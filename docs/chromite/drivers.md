@@ -50,7 +50,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 | 내장 드라이버 | 주요 DB만: SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite |
 | MySQL | Connector/J 9.7.0 포함(2026-11-06 결정). MySQL 5 (Legacy) 드라이버는 내장하지 않음 |
 | 그 밖의 드라이버 | 필요할 때 내려받는다. 인터넷이 되면 처음 연결할 때 Maven에서 온라인 다운로드 |
-| 폐쇄망 | 별도로 받아 설치하는 오프라인 설치 경로를 둔다(계획, 설계 중). 그때까지는 jar 파일을 직접 지정한다 |
+| 폐쇄망 | 인터넷 PC에서 만든 오프라인 설치 묶음(`.chromite-drivers`)을 설치한다([driver-offline-bundle.md](driver-offline-bundle.md)). 벤더에서만 받을 수 있는 jar는 직접 지정한다 |
 
 - 이전 결정(2026-11-06)은 공개판(주요 DB만 내장)과 내부판(전체 내장, 원격 다운로드 끔)의 두 판이었다.
   사용자 결정(2026-11-07)으로 내부판을 없앴다. 주요 DB만 내장하고, 나머지는 내부망이든 외부망이든 필요할 때 받아 쓴다.
@@ -213,6 +213,11 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - 앱(Swing)으로 SQLite 연결을 만드는 확인은 하지 않았다. 묶음 선언(`drivers.sqlite.xerial`)과 `plugin.xml`의 폴더 경로(`drivers/sqlite/xerial`),
   결과물의 폴더가 서로 맞는 것까지 확인했다.
 
+### 폐쇄망의 내장되지 않은 드라이버
+
+인터넷 PC의 드라이버 관리자에서 드라이버를 골라 설치 묶음 파일(`.chromite-drivers`)을 만들고, 폐쇄망 PC에서 그 파일을 설치한다.
+파일은 온라인 다운로드와 같은 드라이버 폴더에 놓이고 같은 방식으로 등록되므로 오프라인 모드에서도 연결된다([driver-offline-bundle.md](driver-offline-bundle.md)).
+
 ### 내장 드라이버를 추가하는 방법
 
 1. 드라이버의 `plugin.xml`에 `bundle="drivers.X"`인 폴더 경로와 `bundle="!drivers.X"`인 Maven 항목이 있는지 확인한다.
@@ -223,12 +228,11 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
    필요한 전이 의존성은 `dependency:tree`로 확인해 하나씩 적는다(`copy`는 전이 의존성을 받지 않는다).
 5. 같은 feature의 `drivers-root/drivers/<이름>/`에 라이선스 원문(LGPL·GPL이면 `SOURCE.txt`도)을 넣고 `drivers/README.txt`와 `NOTICE`를 갱신한다.
 
-### 폐쇄망 오프라인 설치 경로 (계획, 설계 중)
+### 폐쇄망 오프라인 설치 경로
 
 - 2026-11-07 결정으로 전체 드라이버를 내장하는 내부판은 만들지 않는다(위 "배포판 구성").
-- 인터넷이 없는 폐쇄망에서는 내장되지 않은 드라이버를 별도로 받아 설치하는 경로가 필요하다. 별도 작업으로 설계 중이며 아직 구현하지 않았다.
-- 이미 있는 기반: 설치 폴더의 `maven-local`을 원격보다 먼저 찾는 조회 순서, 오프라인 모드(`ui.drivers.offline`),
-  Driver Manager에서 jar 파일을 직접 추가하는 화면([swing-driver-manager.md](swing-driver-manager.md)).
+- 내장되지 않은 드라이버는 오프라인 설치 묶음으로 옮긴다(위 "폐쇄망의 내장되지 않은 드라이버", [driver-offline-bundle.md](driver-offline-bundle.md)).
+- 벤더에서만 받을 수 있는 드라이버는 Driver Manager에서 jar 파일을 직접 추가한다([swing-driver-manager.md](swing-driver-manager.md)).
 
 ## 라이선스
 
@@ -259,7 +263,6 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   설치 파일과 같은 곳(예: GitHub Release)에 소스 묶음(`mysql-connector-j-9.7.0.tar.gz`, 4,556,015 bytes)을 함께 올리거나 서면 제공 약속을 넣어야 한다(법률 검토 항목)
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
-- 폐쇄망 오프라인 설치 경로(위 "폐쇄망 오프라인 설치 경로", 별도 작업)
 
 ## 변경 이력
 
@@ -285,3 +288,4 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   SQLite(Xerial `sqlite-jdbc` 3.54.1.0) 내장: `drivers.sqlite.xerial` 선언, `drivers/sqlite/xerial/`에 jar, `drivers/sqlite/`에 jar 안의 라이선스 두 개,
   `README.txt`·`NOTICE` 갱신. feature·플러그인 표시 이름에서 "(Public Edition)"을 뺌. ID(`drivers.public`)는 그대로 둠.
   `drivers/README.txt`가 오프라인 모드 위치를 SWT와 함께 없어진 "Preferences > Connections > Drivers"로 적고 있어 "Tools > Driver Manager"로 고침.
+- 2026-11-07 "폐쇄망의 내장되지 않은 드라이버" 절 추가: 오프라인 설치 묶음([driver-offline-bundle.md](driver-offline-bundle.md)).
