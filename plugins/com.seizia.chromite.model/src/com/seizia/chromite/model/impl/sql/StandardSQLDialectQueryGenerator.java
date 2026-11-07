@@ -51,6 +51,7 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-08 Chromite: 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김(SQL Server 별칭·계산 열 필터 실패), 행을 고르는 ORDER BY가 있는
  *   쿼리의 정렬은 감싸서 함 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-08 Chromite: 결과 열이 아닌 것으로 정렬하는 쿼리를 감쌀 때 바깥 열 목록을 따로 씀(숨은 정렬 열 제외, evening #23)
  */
 public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
     private static final Log log = Log.getLog(StandardSQLDialectQueryGenerator.class);
@@ -241,12 +242,13 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         @NotNull String sqlQuery,
         @NotNull DBDDataFilter dataFilter
     ) throws DBException {
-        // The query's own ORDER BY goes outside (SQL Server rejects it in a derived table); a sort of the result replaces it
-        Pair<String, String> wrapped = SQLSemanticProcessor.moveOrderByOutside(
+        // The query's own ORDER BY goes outside (SQL Server rejects it in a derived table); a sort of the result replaces it.
+        // Sort values that are not result columns become hidden columns, which the outer select list leaves out.
+        SQLSemanticProcessor.WrappedQuery wrapped = SQLSemanticProcessor.moveOrderByOutside(
             dataSource.getSQLDialect(), sqlQuery, NESTED_QUERY_AlIAS, dataFilter.hasOrdering());
         StringBuilder modifiedQuery = new StringBuilder(sqlQuery.length() + 100);
-        modifiedQuery.append("SELECT * FROM (\n");
-        modifiedQuery.append(wrapped.getFirst());
+        modifiedQuery.append("SELECT ").append(wrapped.outerColumns() != null ? wrapped.outerColumns() : "*").append(" FROM (\n");
+        modifiedQuery.append(wrapped.query());
         modifiedQuery.append("\n) ").append(NESTED_QUERY_AlIAS);
         if (dataFilter.hasConditions()) {
             modifiedQuery.append(" WHERE ");
@@ -255,8 +257,8 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         if (dataFilter.hasOrdering()) {
             modifiedQuery.append(" ORDER BY "); //$NON-NLS-1$
             SQLUtils.appendOrderString(dataFilter, dataSource, NESTED_QUERY_AlIAS, true, modifiedQuery);
-        } else if (wrapped.getSecond() != null) {
-            modifiedQuery.append(" ORDER BY ").append(wrapped.getSecond()); //$NON-NLS-1$
+        } else if (wrapped.outerOrder() != null) {
+            modifiedQuery.append(" ORDER BY ").append(wrapped.outerOrder()); //$NON-NLS-1$
         }
         return modifiedQuery.toString();
     }

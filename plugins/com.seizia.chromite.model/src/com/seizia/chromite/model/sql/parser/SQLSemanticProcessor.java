@@ -18,6 +18,7 @@
 package com.seizia.chromite.model.sql.parser;
 
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
@@ -50,7 +51,6 @@ import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
-import org.jkiss.utils.Pair;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -70,6 +70,8 @@ import java.util.concurrent.*;
  * - 2026-11-08 결과 정렬이 쿼리의 ORDER BY를 바꿈(뒤에 덧붙여 보이는 순서가 그대로였다). 행을 고르는 ORDER BY(TOP·LIMIT·FETCH·
  *   DISTINCT ON)는 그대로 둠. 쿼리를 감쌀 때 ORDER BY를 결과 열 참조로 바꿔 바깥으로 옮기는 {@link #moveOrderByOutside}
  *   (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-08 결과 열이 아닌 것으로 정렬하는 쿼리를 감쌀 때 그 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 씀. 안쪽에 남은 ORDER BY가
+ *   SQL Server에서 오류 1033이었다(evening #23, docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  */
 public class SQLSemanticProcessor {
 
@@ -511,19 +513,34 @@ public class SQLSemanticProcessor {
     }
 
     /**
+     * A query prepared to be wrapped as a derived table by {@link #moveOrderByOutside}.
+     *
+     * @param query        the query to wrap
+     * @param outerColumns the outer select list ({@code alias.col, ...}) when the query got hidden sort columns that must
+     *                     not be shown, otherwise null ({@code *})
+     * @param outerOrder   the outer ORDER BY items that keep the query's order, or null
+     */
+    public record WrappedQuery(@NotNull String query, @Nullable String outerColumns, @Nullable String outerOrder) {
+    }
+
+    // Alias prefix of the hidden sort columns that moveOrderByOutside adds to a query
+    private static final String HIDDEN_ORDER_COLUMN_PREFIX = "z_o";
+
+    /**
      * Prepares a query to be wrapped as a derived table ({@code SELECT * FROM (query) alias}). SQL Server rejects an
      * ORDER BY in a derived table unless it has TOP, OFFSET or FOR XML, so the query's ORDER BY is moved outside: its
      * items become references to the result columns of the derived table (output alias, selected column, a column of
-     * {@code *}, an aliased expression, or a column number). An ORDER BY that decides the rows
-     * ({@link #isOrderDecidingRows}) stays in the query, as does one that orders by something that is not a result
-     * column (only the query itself can sort by it).
+     * {@code *}, an aliased expression, or a column number). An item that is not a result column ({@code ORDER BY name}
+     * without selecting {@code name}) becomes a hidden column of the query, and the outer select list then names the
+     * query's own columns so that the hidden ones are not shown. That needs a plain SELECT without DISTINCT whose
+     * columns all have names; otherwise the ORDER BY stays in the query (only the query itself can sort by it). An
+     * ORDER BY that decides the rows ({@link #isOrderDecidingRows}) stays in the query.
      *
      * @param alias        alias of the derived table
      * @param sortReplaces the wrapped query is sorted by a sort of the result, which replaces the query's ORDER BY
-     * @return the query to wrap, and the outer ORDER BY items that keep the query's order or null
      */
     @NotNull
-    public static Pair<String, String> moveOrderByOutside(
+    public static WrappedQuery moveOrderByOutside(
         @Nullable SQLDialect dialect,
         @NotNull String sqlQuery,
         @NotNull String alias,
@@ -534,19 +551,29 @@ public class SQLSemanticProcessor {
             statement = parseQuery(dialect, sqlQuery);
         } catch (DBCException e) {
             log.debug("Can't parse the query to move its ORDER BY, wrapping it as it is", e);
-            return new Pair<>(sqlQuery, null);
+            return new WrappedQuery(sqlQuery, null, null);
         }
         if (!(statement instanceof Select select) || CommonUtils.isEmpty(select.getOrderByElements())
             || isOrderDecidingRows(select)) {
-            return new Pair<>(sqlQuery, null);
+            return new WrappedQuery(sqlQuery, null, null);
         }
+        String outerColumns = null;
         String outerOrder = null;
         if (!sortReplaces) {
             List<String> items = new ArrayList<>();
+            List<SelectItem<?>> hiddenColumns = new ArrayList<>();
             for (OrderByElement element : select.getOrderByElements()) {
                 Expression reference = getResultColumnReference(select, element.getExpression(), alias);
                 if (reference == null) {
-                    return new Pair<>(sqlQuery, null);
+                    if (outerColumns == null) {
+                        outerColumns = getOuterColumnList(select, alias);
+                        if (outerColumns == null) {
+                            return new WrappedQuery(sqlQuery, null, null);
+                        }
+                    }
+                    String hiddenName = HIDDEN_ORDER_COLUMN_PREFIX + (hiddenColumns.size() + 1);
+                    hiddenColumns.add(SelectItem.from(element.getExpression(), new Alias(hiddenName, true)));
+                    reference = new Column(new Table(alias), hiddenName);
                 }
                 items.add(new OrderByElement()
                     .withExpression(reference)
@@ -555,10 +582,38 @@ public class SQLSemanticProcessor {
                     .withNullOrdering(element.getNullOrdering())
                     .toString());
             }
+            if (!hiddenColumns.isEmpty()) {
+                ((PlainSelect) select).addSelectItems(hiddenColumns);
+            }
             outerOrder = String.join(", ", items);
         }
         select.setOrderByElements(null);
-        return new Pair<>(statement.toString(), outerOrder);
+        return new WrappedQuery(statement.toString(), outerColumns, outerOrder);
+    }
+
+    /**
+     * The outer select list that shows exactly the columns of a query wrapped as a derived table, or null when the
+     * query's columns can't be listed: not a plain SELECT, DISTINCT (a hidden column would change its rows), {@code *}
+     * or {@code t.*}, or an expression without an alias.
+     */
+    @Nullable
+    private static String getOuterColumnList(@NotNull Select select, @NotNull String alias) {
+        if (!(select instanceof PlainSelect plainSelect) || plainSelect.getDistinct() != null) {
+            return null;
+        }
+        List<String> columns = new ArrayList<>();
+        for (SelectItem<?> item : plainSelect.getSelectItems()) {
+            String name;
+            if (item.getAlias() != null) {
+                name = item.getAlias().getName();
+            } else if (item.getExpression() instanceof Column column) {
+                name = column.getColumnName();
+            } else {
+                return null;
+            }
+            columns.add(alias + "." + name);
+        }
+        return String.join(", ", columns);
     }
 
     /**

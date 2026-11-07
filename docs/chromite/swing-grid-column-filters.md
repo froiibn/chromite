@@ -175,8 +175,12 @@ ResultSetViewerPanel (결과 하나)
   바깥에 둔다. 이름은 SQL과 같은 순서로 찾는다: 결과 별칭 → 고른 열(`p.id`처럼 테이블 이름·별칭이 붙으면 그 테이블의 열) → `*`·`t.*`의 열 → 별칭이 있는 같은 식 → 열 번호(`ORDER BY 2`).
   UNION은 ORDER BY가 이미 결과 열 이름이라 그대로 옮긴다. 머리글 정렬이 있으면 옮기지 않고 지운다(정렬이 바꾸므로).
   ORDER BY가 행을 고르면 안쪽에 남긴다(TOP·OFFSET이 있으면 SQL Server도 받음).
-- **SQL을 읽지 못하거나 결과에 없는 것으로 정렬하는 ORDER BY**(`ORDER BY name`인데 `name`을 고르지 않음)는 안쪽에 남긴다. 쿼리만 그 값으로 정렬할 수 있어서다.
-  이 경우 SQL Server에서는 여전히 오류 1033이다(아래 "남긴 것").
+- **결과에 없는 것으로 정렬하는 ORDER BY**(`ORDER BY name`인데 `name`을 고르지 않음, 2026-11-08 evening #23): 정렬 값을 안쪽 SELECT의 숨은 열
+  (`name AS z_o1`)로 더하고 바깥은 그 열로 정렬한다. 숨은 열이 결과에 보이지 않도록 바깥 열 목록을 `SELECT *` 대신 원래 결과 열로 쓴다
+  (`SELECT z_q.id, z_q.total FROM (SELECT id, price * qty AS total, name AS z_o1 FROM …) z_q WHERE total > 3000.0 ORDER BY z_q.z_o1`,
+  `SQLSemanticProcessor.WrappedQuery.outerColumns`). `TOP 100 PERCENT`나 `OFFSET 0 ROWS`로 안쪽 ORDER BY를 살리는 방법은 SQL Server가 받지만
+  바깥 결과의 순서를 보장하지 않아 쓰지 않았다. 바깥 열 목록을 만들 수 없는 쿼리(UNION, DISTINCT, `*`·`t.*`, 별칭 없는 식)와 SQL을 읽지 못하는 쿼리는
+  예전처럼 ORDER BY를 안쪽에 남긴다. DISTINCT는 숨은 열이 행을 바꾸고, 이름 없는 식은 SQL Server 파생 테이블이 어차피 받지 않는다(오류 8155).
 - **상태 줄 정렬 요약:** 정렬이 있으면 필터 요약 옆에 강조색 정렬 화살표와 "정렬: name ↓ ✕"를 보인다. 서버에서 다시 읽은 정렬이 쿼리의 ORDER BY를 바꿨으면
   "정렬: name ↓ · ORDER BY 대신"이고 도구 설명이 바뀐 ORDER BY를 보인다("… 쿼리의 ORDER BY id 대신 이 열로 정렬해 다시 읽었습니다…"). 표 안 정렬(모두 읽은 결과)과 행을 고르는
   쿼리의 정렬은 "정렬: …"만 보이고 도구 설명이 그 방식(표 안에서 / 다시 읽음)을 말한다. ✕("쿼리 순서로 되돌리기")는 정렬을 없애고 쿼리를 그 순서로 다시 읽는다
@@ -212,13 +216,26 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
 | ✕ 쿼리 순서로 되돌리기 | id 1, 2, 3…, 요약 사라짐 | 같음 | 같음 |
 | 행을 고르는 쿼리 `TOP 300` / `LIMIT 300` / `FETCH FIRST 300 ROWS ONLY` + `price` 내림차순 | 첫 행 id 300(그 300행 안에서 정렬, 고치기 전 방식이면 id 500). `SELECT * FROM (SELECT TOP 300 … ORDER BY id) z_q ORDER BY z_q.price DESC` | 같음 | 같음 |
 | 위 + 필터 `qty = 3` | 조건은 안쪽 WHERE(정렬 없을 때와 같음), 72행 | - | - |
-| 결과에 없는 열로 정렬 `… ORDER BY name`(name 안 고름) + 계산 열 필터 | 오류 1033(남긴 것) | - | - |
+| 결과에 없는 열로 정렬 `… ORDER BY name`(name 안 고름) + 계산 열 필터 | 오류 1033(남긴 것). 2026-11-08 고침, 아래 "확인 (2026-11-08, evening #23)" | - | - |
 | 필터 + 정렬을 함께(계산 열 `total > 1000`, `name` 정렬, 1500px 창에 오른쪽 속성 창) | 감싼 쿼리 `… z_q WHERE total > 1000.0 ORDER BY z_q.name`, 요약 "Sort: name ↑ · replaces ORDER BY" | 한국어: 상태 줄이 두 줄(높이 25 → 38), "정렬: name ↑ · ORDER BY 대신", 도구 설명 "쿼리의 ORDER BY id DESC 대신 …". ✕ 뒤 한 줄(25)로 돌아오고 id 500부터. 라이트·다크 | - |
 
 캡처: `D:\Tools\_scratch\chromite-results-plan-fixes\run\shots\`(`en-light-*`, `en-dark-*`, `ko-light-*`, `ko-dark-*`, `ms-*`, `pg-*`, `ora-*`).
 
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 서버 정렬·필터·다음 페이지, Export Data…의 필터·정렬 전달(같은 생성기),
   열 필터 값 목록(감싸기 경로, 정렬 없음), "필터를 늘 하위 쿼리로" 설정.
+
+### 확인 (2026-11-08, evening #23)
+
+`chromite/followups-3` 빌드, 작업 공간 사본과 별도 데이터 폴더, 프로세스 안 드라이버(OS 입력 없음). SQL Server 2022의 `chr_followups_3` DB에 `fu3_items` 500행
+(`price` = id × 1.5, `qty` = id % 7 + 1).
+
+| 확인 | 결과 |
+|---|---|
+| 고치기 전 감싸기 `SELECT * FROM (… ORDER BY name) z_q WHERE total > 3000.0`(sqlcmd) | 오류 1033 |
+| 한국어: `SELECT id, price * qty AS total … ORDER BY name DESC`, `total` > 3000 | 69행, id 496·495·494·489·488…(name 내림차순 유지). 읽은 쿼리 `SELECT z_q.id, z_q.total FROM ( SELECT id, price * qty AS total, name AS z_o1 FROM dbo.fu3_items ) z_q WHERE total > 3000.0 ORDER BY z_q.z_o1 DESC`, 결과 열은 id·total 둘 |
+| 영어: `SELECT p.id, p.price * 2 AS dbl … ORDER BY p.name, p.qty DESC`, `dbl` < 100 | 33행, id 1·2·3…. 숨은 열 둘(`p.name AS z_o1, p.qty AS z_o2`), `ORDER BY z_q.z_o1, z_q.z_o2 DESC`, "33 rows (filtered)" |
+
+캡처: `D:\Tools\_scratch\chromite-followups-3\shots\ms-23-ko.png`, `ms-23-en.png`.
 
 ## 확인 (2026-11-07)
 
@@ -261,8 +278,9 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
 - DataGrip 캡처에 있는 것 중 이번 요청 밖: 그리드 아래 가운데 떠 있는 페이지 이동 알약(`1-500 ▾ 501+`), 결과 도구 막대의 "Tx: 자동" 표시. 요청하면 만든다.
 - 열마다 조건 둘 이상(예: `> 10 AND < 20` 대신 범위로 됨, `OR` 조합), 열 사이 OR, 저장한 필터, 필터 기록.
 - 값 목록의 행 수 정렬 전환(지금은 값 순서), 대소문자 구분 선택.
-- 결과에 없는 값으로 정렬하는 쿼리(`SELECT id, price * qty AS total … ORDER BY name`)에 계산 열·별칭 열 필터를 걸면 SQL Server에서 여전히 오류 1033이다.
-  ORDER BY를 바깥으로 옮길 수 없어 안쪽에 남기 때문이다. 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 쓰는 방법이 있으나 바깥 `SELECT *`를 바꾸는 큰 변경이라 남겼다.
+- ~~결과에 없는 값으로 정렬하는 쿼리(`SELECT id, price * qty AS total … ORDER BY name`)에 계산 열·별칭 열 필터를 걸면 SQL Server에서 여전히 오류 1033이다.~~
+  2026-11-08 고침(evening #23): 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 쓴다(위 "결정과 설계"). 남은 경우: UNION·DISTINCT·`*`가 든 쿼리가
+  결과에 없는 것으로 정렬하면 바깥 열 목록을 만들 수 없어 예전처럼 SQL Server에서 오류 1033이다.
 - 행을 고르는 쿼리(TOP·LIMIT)에 필터를 걸면 조건이 쿼리 안에 들어가 "조건에 맞는 행 중 처음 N개"가 된다(upstream 그대로, 정렬해도 같음). "보이는 N개 중 거르기"로 바꿀지는 정하지 않았다.
 - 같은 "ORDER BY가 행을 고름" 판단이 값 목록(`SQLQueryColumnValues.removeOrdering`, `DISTINCT ON`을 보지 않음)과 행 수 세기(`SQLQueryTransformerCount`, LIMIT이 있어도 ORDER BY를 지움)에도 따로 있다.
   두 곳 모두 세는 데에만 쓰여 결과 순서에는 영향이 없어 고치지 않았다.
@@ -274,5 +292,7 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
 - 2026-11-08 "남긴 것"의 결과 영역 높이를 다시 확인함(지금 기본 배치에서는 생기지 않음).
 - 2026-11-08 정렬과 쿼리의 ORDER BY(#73, #75): 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김, 머리글 정렬이 쿼리의 ORDER BY를 바꿈(행을 고르는 쿼리는 감싸서 정렬),
   상태 줄 정렬 요약과 쿼리 순서로 되돌리기.
+- 2026-11-08 결과에 없는 것으로 정렬하는 쿼리의 계산 열·별칭 열 필터: 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 씀(SQL Server 오류 1033, evening #23,
+  `chromite/followups-3`).
 - 2026-11-08 Query Library가 값을 바인딩한 결과에서도 열 필터와 값 목록이 됨: `SQLQueryColumnValues`가 결과 컨테이너의 바인딩 방법을 넘겨받음
   ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
