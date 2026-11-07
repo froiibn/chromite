@@ -49,6 +49,7 @@ import java.nio.file.Path;
  * @param bom           whether the file starts with a byte order mark
  * @param lineSeparator line separator of the file
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 {@link #parse}: 디스크에 없는 파일 바이트(Query Library 묶음 파일의 항목)도 같은 규칙으로 읽음 (docs/chromite/swing-query-library.md "공유")
  */
 record SqlFileContent(@NotNull String text, @NotNull Charset charset, boolean bom, @NotNull String lineSeparator) {
 
@@ -66,7 +67,14 @@ record SqlFileContent(@NotNull String text, @NotNull Charset charset, boolean bo
 
     @NotNull
     static SqlFileContent read(@NotNull Path file) throws IOException {
-        byte[] bytes = Files.readAllBytes(file);
+        return parse(Files.readAllBytes(file));
+    }
+
+    /**
+     * The content of file bytes that are not on disk (an entry of a Query Library archive).
+     */
+    @NotNull
+    static SqlFileContent parse(@NotNull byte[] bytes) throws IOException {
         Charset charset;
         int bomLength;
         if (startsWith(bytes, UTF8_BOM)) {

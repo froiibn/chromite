@@ -1,4 +1,4 @@
-# AI 에이전트: 도구 카탈로그, 권한 정책, 로컬 MCP 서버, AI 엔진, 채팅 화면 (1·2단계)
+# Chromite Agent: 도구 카탈로그, 권한 정책, 로컬 MCP 서버, AI 엔진, 채팅 화면 (1·2단계)
 
 ## 목적
 
@@ -8,10 +8,19 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 같은 도구 카탈로그를 두 곳에서 쓴다.
 
-- (a) 앱 안의 AI 채팅(2단계, 아래 "2단계 구현").
+- (a) 앱 안의 Chromite Agent 채팅 창(2단계, 아래 "2단계 구현").
 - (b) 이 PC에서만 접속할 수 있는 로컬 MCP 서버. Claude Code 같은 외부 에이전트가 Chromite의 연결로 일한다.
 
 1단계(모델 계층)와 2단계(채팅 화면, 설정 화면, 확인 대화상자)의 **계약**이다. 코드와 다르면 코드가 사실이고, 이 문서를 고친다.
+
+## 명칭
+
+이 기능의 공식 이름은 **Chromite Agent**다(사용자 결정, 2026-11-07: "이 앱의 에이전트 기능은 ai도우미가 아니다. 공식적으로 Chromite Agent 라는 용어를 사용하라"). 영어와 한국어 화면 모두 옮기지 않고
+"Chromite Agent"로 쓰고, 한국어 조사는 소리대로 붙인다("Chromite Agent가", "Chromite Agent에게", "Chromite Agent 설정"). "AI 도우미", "AI Assistant", "도우미"로
+이 기능을 부르지 않는다. 바꾸는 것은 사용자에게 보이는 글과 그 이름이 드러나는 값이다. 화면 문구, 모델 번들이 내는 오류 글, 서버 세션 목록에 보이는
+격리 문맥 이름(아래 "실행 문맥"), 채팅 시스템 프롬프트의 첫 줄("You are Chromite Agent, the database agent inside Chromite, …", 모델이 자기를 소개할 때
+이 이름을 쓰게)이다. 클래스·번들·확장 포인트 ID, 설정 키, 저장 이름, MCP 도구 ID, 도구 설명은 그대로 둔다. "AI 제공자"("AI provider")처럼 AI가 모델과
+그 회사를 뜻하는 문구, MCP로 붙는 "외부 에이전트"·"다른 AI 도구"도 그대로다.
 
 ## 사용자 결정 (2026-11-07)
 
@@ -60,10 +69,14 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 ### 실행 문맥
 
 - 도구는 사용자의 쿼리 창이나 탐색기 메타데이터 문맥을 쓰지 않는다. 연결(그리고 `database` 인수)마다 **에이전트 전용 격리 문맥**
-  (`DBSInstance.openIsolatedContext`, 이름 "Chromite AI agent", 서버 세션의 프로그램 이름에도 보임)의 작은 풀(최대 4개)을 쓴다. 이유:
+  (`DBSInstance.openIsolatedContext`, 이름 "Chromite Agent" = `AgentSql.CONTEXT_NAME`)의 작은 풀(최대 4개)을 쓴다. 이유:
   - 에이전트가 자동 커밋이나 읽기 전용 상태를 바꿔도 사용자의 트랜잭션에 영향이 없다.
   - 사용자의 열린 트랜잭션에 에이전트 문장이 섞이지 않는다.
   - 오래 걸리는 진단 쿼리가 탐색기의 메타데이터 읽기를 막지 않는다.
+- **DBA가 에이전트 세션을 찾는 법**: 문맥 이름은 드라이버가 서버에 알리는 프로그램 이름의 뒷부분이 된다(`DBUtils.getClientApplicationName`:
+  `<제품 이름과 버전> - Chromite Agent`). PostgreSQL `pg_stat_activity.application_name`, SQL Server `sys.dm_exec_sessions.program_name`(64자에서 자름)
+  등에서 `LIKE '%- Chromite Agent'`로 거른다(드라이버마다 이 값을 서버에 넘기는지는 다르다). 연결 설정에서 클라이언트 이름을 직접 정했으면(`META_CLIENT_NAME_OVERRIDE`) 그 값을 따른다.
+  2026-11-07 이전 빌드는 "Chromite AI agent"였다.
 - 한 문맥에서는 한 번에 한 호출만 실행한다(문맥별 잠금). 바쁜 문맥이 있으면 풀에서 다른 문맥을 쓰거나 새로 연다. 문맥이 하나뿐이던 첫 구현에서는
   잠금에 걸린 에이전트 DDL(블로킹된 `CREATE INDEX`) 하나가 그 연결의 진단·`cancelQuery`까지 막았다(아래 "확인"). 쓰기는 열린 에이전트 트랜잭션이 있는
   문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어 있으면 그것을(커밋 전 변경이 보이게), 아니면 다른 문맥을 쓴다.
@@ -441,6 +454,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 (`GlobalProxyAuthenticator`), Maven 저장소 인증(`MavenRegistry`)도 쓰고 이들도 같은 설정 파일에 평문으로 남는다. 이들은 시작 중·백그라운드 저장 경로에서
 읽고 쓰며 실패를 로그로만 남기므로, 저장소를 바꾸면 OS 저장소 실패가 비밀번호를 조용히 잃는 일로 바뀐다. 각 기능의 실패 처리와 이전을 따로 정해야 해서
 이번 범위에서 뺐다(아래 "위험과 남은 일"). 연결 비밀번호는 이 컨트롤러를 쓰지 않는다(`isUseSecretStorage()`가 false, `credentials-config.json`).
+**2026-11-07 후속:** 전역 비밀 컨트롤러와 연결 비밀번호도 OS 보안 저장소로 옮겼다([credential-storage.md](credential-storage.md)). AI 키는 이 절의 위치에 그대로 있다.
 
 확인(2026-11-07, Windows 11): 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. 빌드한 제품과
 `D:\Chromite-Test`의 작업 공간 사본을 `D:\Tools\_scratch\ai-key-secure-storage`에 두고 `-eclipse.keyring <사본 폴더>\keyringN\secure_storage`로 실행했다
@@ -567,11 +581,11 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | | `AIAgentChatStore` | 대화 저장: 작업 공간 `.metadata/chromite-ai/chats/<id>.json`(임시 파일 + 이동) |
 | | `AIAgentProviders` | 제공자 3개(`anthropic`, `openai`, `ollama`)의 설정 프로필(프로필 ID = 엔진 ID), 설정 사본·저장(비밀은 보안 저장소), 엔진 만들기(대화의 모델로 사본을 만들어 기본 모델은 그대로), 모델 목록 |
 | `model.ai` `AIToolPolicy` | `resolve(Settings, …)`, `setSettings` | 설정 화면이 저장 전 규칙으로 실행기와 같은 판정을 보이고, OK에서 한 번에 저장한다 |
-| Swing `com.seizia.chromite.ui.swing` | `AiAssistantPanel` | 도구 창 "AI Assistant"/"AI 도우미" |
+| Swing `com.seizia.chromite.ui.swing` | `AiAssistantPanel` | 도구 창 "Chromite Agent" |
 | | `AiMarkdownView` | 모델 글의 Markdown(제목, 굵게·기울임, 인라인 코드, 목록, 인용, 표, 가로줄)과 코드 블록(복사, 쿼리 창에서 열기) |
 | | `AiToolCard` | 도구 호출 카드(접힘/펼침): 이름, 분류 배지, 상태(실행 중·완료·실패·거부·정책으로 막힘·읽기 전용 연결·취소·잘못된 호출), 시간, 결과 요약, 인수·결과 JSON |
 | | `AiConfirmationDialog` (+ `Handler`) | `AIToolConfirmationHandler` 구현. Allow/Deny 또는 Commit/Roll back/Cancel |
-| | `AiOptionsPage` | 옵션의 "AI Assistant" 탭: Providers, Tool Policy, MCP Server, Audit Log |
+| | `AiOptionsPage` | 옵션의 "Chromite Agent" 탭: Providers, Tool Policy, MCP Server, Audit Log |
 | | `QueryLibraryThresholdsDialog` | Query Library 쿼리의 `@threshold` 편집 |
 | | `internal/AiMessages` (+ `_ko`) | 화면 문구 196개 |
 | | `MainFrame`, `OptionsDialog`, `QueryLibraryEditor` | 연결 지점만: 도구 창·도구 막대 단추·View 메뉴, 확인 처리기·편집기 연결 등록, 쿼리 창 편집기 메뉴 항목 / 옵션 탭 / Thresholds… 단추 |
@@ -579,9 +593,9 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 ### 채팅 도구 창
 
-- 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > AI Assistant(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
+- 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > Chromite Agent(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
   같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
-- 위에서 아래로: 대화 목록(최근 순) + 새 대화·대화 삭제·플레이북·AI 설정 단추 / 제공자(Anthropic Claude, OpenAI, Ollama)와 모델(편집 가능, 알려진 이름 +
+- 위에서 아래로: 대화 목록(최근 순) + 새 대화·대화 삭제·플레이북·Chromite Agent 설정 단추 / 제공자(Anthropic Claude, OpenAI, Ollama)와 모델(편집 가능, 알려진 이름 +
   Test로 받은 목록) / 연결과 데이터베이스(편집 가능, 연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈), 보내기·중지, 상태 줄.
 - 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 연결의 기본 실행 문맥의 기본 카탈로그·스키마, 쿼리 창이 쓰는 문맥)로 시작한다. 마지막에 쓴 제공자·모델은
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
@@ -591,7 +605,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
   `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
   전체 글은 도구 설명에 있다.
-- 쿼리 창 편집기의 오른쪽 클릭 메뉴 "Ask AI About This Query"/"이 쿼리에 대해 AI에게 묻기": 선택한 글, 없으면 커서의 문장(자동완성과 같은
+- 쿼리 창 편집기의 오른쪽 클릭 메뉴 "Ask Chromite Agent About This Query"/"이 쿼리에 대해 Chromite Agent에게 묻기": 선택한 글, 없으면 커서의 문장(자동완성과 같은
   `SQLScriptParser.extractQueryAtPos`, 연결이 없으면 전체 글)을 쿼리 창의 연결로 보낸다. 지금 대화가 비어 있지 않으면 새 대화로 시작한다.
 - 대화 기록에는 도구 결과(DB 값)가 들어 있어 작업 공간 밖에 두지 않는다. 로그에는 대화 내용·인수·키를 쓰지 않는다.
 
@@ -611,7 +625,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 `AIAgentServices.setEditorBridge`: `openInEditor` 도구가 부르면 EDT에서 새 쿼리 창을 연다(연결, 글, 제목 → 파일 이름 `제목.sql`). 실행하지 않는다.
 모델 글의 코드 블록 "쿼리 창에서 열기"도 같은 경로(대화의 연결)다.
 
-### 설정 (Tools > Options > AI Assistant)
+### 설정 (Tools > Options > Chromite Agent)
 
 | 탭 | 내용 |
 |---|---|
@@ -632,7 +646,7 @@ Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준�
   (`AIDatabaseContext`, 연결과 논리 데이터 소스를 만든다)을 함께 쓴다. 에이전트 채팅은 연결을 도구 인수로 넘기고 정책·확인·감사는 실행기가 하므로, 실행기를 직접 부르는
   작은 실행기(`AIAgentChatRunner`)를 두었다. 실행기에 채팅 문맥(null)을 넘기지 않는 대신 `connection` 인수를 채운다. 기존 `AIAssistantImpl.callFunction` 경로는 그대로다.
 - **데이터베이스 문맥은 시스템 프롬프트로 알린다.** `database` 인수의 뜻이 도구마다 달라(인스턴스 선택, 필터) 자동으로 넣지 않았다.
-- **설정 화면은 탭 하나("AI Assistant") 안의 하위 탭 4개다.** 옵션의 위 탭 줄이 넘치지 않게 했다.
+- **설정 화면은 탭 하나("Chromite Agent") 안의 하위 탭 4개다.** 옵션의 위 탭 줄이 넘치지 않게 했다.
 - **Ollama**: 엔진이 응답의 첫 도구 호출만 돌려준다(1단계 "엔진"). 이 PC에 Ollama가 없어 실행해 보지 못했다.
 - `AIToolPolicy`에 공개 메서드 2개를 더했다(위 "구성").
 
@@ -750,7 +764,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **에이전트 문맥 수**: 연결·DB마다 최대 4개의 서버 세션을 더 연다. 연결을 끊으면 닫힌다.
 - **다른 비밀은 아직 평문이다**: 전역 네트워크 프로필 비밀, 전역 프록시 사용자·비밀번호, Maven 저장소 인증은 작업 공간 설정 파일
   (`com.seizia.chromite.ui.swing.prefs`의 `//secrets/…`)에 평문으로 남는다(위 "API 키 저장"). 연결 비밀번호의 `credentials-config.json`은 소스에 있는 고정 키
-  (`BaseProjectImpl.LOCAL_KEY_CACHE`)로 암호화되어 OS 계정으로 보호되지 않는다. 둘 다 이번 범위 밖이다.
+  (`BaseProjectImpl.LOCAL_KEY_CACHE`)로 암호화되어 OS 계정으로 보호되지 않는다. 둘 다 이번 범위 밖이다. **2026-11-07 후속에서 둘 다 OS 보안 저장소로 옮겼다**
+  ([credential-storage.md](credential-storage.md)).
 - **AI 키 저장의 남은 점**: macOS 키체인은 Mac이 없어 실행해 보지 못했다(첫 접근 때 키체인 허용 질문이 뜰 수 있다). OpenAI 계정 토큰(`AIUtils.setAccountToken`)은
   OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
@@ -758,6 +773,13 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 모델 번들(`model.ai.tools`)의 남은 옛 이름을 Chromite Agent로: 제공자 미설정 오류의 경로 "Options > Chromite Agent > Providers"
+  (`AIAgentProviders`), 요청 한도 오류 "Chromite Agent made … requests in one turn …"(`AIAgentChatRunner`, 둘 다 영어 고정 글이라 영어만),
+  채팅 시스템 프롬프트 첫 줄 "You are Chromite Agent, the database agent inside Chromite, …", 격리 문맥 이름 `AgentSql.CONTEXT_NAME`
+  "Chromite AI agent" → "Chromite Agent"(위 "실행 문맥"에 DBA가 거르는 법). 위 "명칭"을 이에 맞춰 고치고 "위험과 남은 일"의 해당 항목을 지움.
+- 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정, 위 "명칭"). Swing 화면 문구(`AiMessages`, `UpdateMessages`의 `exit_txn_agent_item`,
+  영어·한국어), 개인정보 페이지의 절 이름과 본문, 이 문서의 현재 설명(제목, "2단계 구현")을 바꿈. "2단계" 확인 표와 변경 이력의 옛 이름은 그때의 기록이라 그대로 둠.
+- 2026-11-07 전역 비밀 컨트롤러·연결 비밀번호 이전([credential-storage.md](credential-storage.md))에 맞춰 "API 키 저장"과 "위험과 남은 일"에 후속 안내를 더함(AI 키 동작은 그대로).
 - 2026-11-07 AI 키를 OS 보안 저장소로: `AIUtils`의 AI 비밀을 Eclipse secure storage + OS 제공자에 저장하고 0.1.0의 평문 값을 옮김, 저장소 실패 시 평문 대체 없이
   설정 화면에 안내(`ai_options_save_failed_secure_storage`), `AIAgentProviders.save`가 비밀을 먼저 저장, `SecurePreferencesSecretController`가 제공자의 unchecked
   예외를 `DBSecurityException`으로. 2단계 확인 표의 "작업 공간 전체 검색 0건" 정정. 위 "API 키 저장".

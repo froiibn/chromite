@@ -175,9 +175,9 @@ SWT의 `ApplicationWorkbenchAdvisor.closeActiveTransactions`와 `DataSourceHandl
 SWT는 문맥마다 물었지만, 끝낼 때는 편집기 저장 질문처럼 한 번에 묻는다. 이 작업 전의 Swing 종료 경로는 트랜잭션을 묻지 않았다.
 연결 끊기 전에도 같은 찾기·질문·끝내기를 그 연결에 한다(`ExitTransactionCheck.confirmDisconnect`, [idle-transactions.md](idle-transactions.md) "연결 끊기 전 질문").
 
-AI 도우미·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 자기 격리 문맥의 JDBC 연결에 직접 SQL을 보내므로(`AgentSql`) 쿼리 관리자에
+Chromite Agent·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 자기 격리 문맥의 JDBC 연결에 직접 SQL을 보내므로(`AgentSql`) 쿼리 관리자에
 기록이 없고 `QMUtils.isTransactionActive`가 늘 false다. 그래서 수동 커밋 연결에 에이전트가 열어 둔 트랜잭션을 놓쳤다. 이제 연결마다
-`AgentSql.hasPendingTransaction`(쓰기 뒤 DB에 직접 물어 기록한 값)도 보고, 목록에 "연결 이름 (AI 도우미·MCP 도구)"로 넣는다. 같은 답으로
+`AgentSql.hasPendingTransaction`(쓰기 뒤 DB에 직접 물어 기록한 값)도 보고, 목록에 "연결 이름 (Chromite Agent·MCP 도구)"로 넣는다. 같은 답으로
 `AgentSql.endTransaction`이 커밋·롤백한다(에이전트 도구 `commitTransaction`/`rollbackTransaction`과 같은 경로, [ai-agent.md](ai-agent.md) "트랜잭션 안전").
 
 ### 시험 모드 (`UpdateTestMode`, 개발 빌드 전용)
@@ -295,3 +295,5 @@ DBeaver는 p2 업데이트 사이트와 dbeaver.io 버전 확인을 쓴다. Chro
 - 2026-11-07 끝낼 때 트랜잭션 질문이 AI 에이전트 격리 문맥의 열린 트랜잭션도 찾음(후속 과제 #78). 확인: PostgreSQL 수동 커밋 연결에서
   채팅이 INSERT를 열어 둔 채 File > 끝내기 → 질문에 "FB PG Manual (AI 도우미·MCP 도구)", [취소]는 앱과 트랜잭션을 그대로 두고
   (`pg_stat_activity` "idle in transaction"), [커밋]은 행을 커밋하고 닫음(psql로 행 확인). 영어 화면에서 [Roll Back]은 행 없음.
+- 2026-11-07 에이전트 기능의 공식 이름을 Chromite Agent로 정함([ai-agent.md](ai-agent.md) "명칭"): 끝낼 때 질문의 목록 줄이
+  "연결 이름 (Chromite Agent·MCP 도구)"(영어 "(Chromite Agent and MCP tools)"). 위 확인 기록의 옛 문구는 그때의 화면이라 그대로 둠.

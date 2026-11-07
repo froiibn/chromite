@@ -18,6 +18,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 | 배포 파일 이름 | `chromite-<버전>-<플랫폼>` |
 | 웹사이트 | https://github.com/froiibn/chromite |
 | 저작권 표기 | `© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp` |
+| 에이전트 기능 이름 | `Chromite Agent`. 영어·한국어 모두 옮기지 않는다. "AI 도우미"·"AI Assistant"라고 쓰지 않는다(사용자 결정 2026-11-07, [ai-agent.md](ai-agent.md) "명칭") |
 
 ## 구조
 
@@ -193,3 +194,4 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
   표와 경로의 파일 이름(`Chromite.product`, `chromite*.png` 등)은 이름 변경 도구가 함께 바꿨다.
 - 2026-11-07 Microsoft Store·Eclipse 플러그인 제품 삭제([build.md](build.md) "빌드하는 제품")로 `ui.app.eclipse` 아이콘과 `community-msstore` 미완료 항목을 지움.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 제품 아이콘을 `product/swing/icons*`로 옮기고, 파생 이미지·제품 정보 파일 표를 Swing 제품 기준으로 고침.
+- 2026-11-07 결정 사항에 에이전트 기능 이름 `Chromite Agent` 추가(사용자 결정, [ai-agent.md](ai-agent.md) "명칭").

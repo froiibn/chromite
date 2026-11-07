@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
+ * - 2026-11-07 가져오기 저장 실패 문구, 내보내기 암호 안내에 비밀번호가 작업 공간 복사로 따라가지 않는다는 문장 (docs/chromite/credential-storage.md)
  */
 public class ConnectionTransferMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages"; //$NON-NLS-1$
@@ -65,6 +66,7 @@ public class ConnectionTransferMessages extends NLS {
     public static String transfer_import_unsupported;
     public static String transfer_import_invalid;
     public static String transfer_import_failed;
+    public static String transfer_import_save_failed;
     public static String transfer_import_empty;
     public static String transfer_import_file;
     public static String transfer_import_with_passwords;

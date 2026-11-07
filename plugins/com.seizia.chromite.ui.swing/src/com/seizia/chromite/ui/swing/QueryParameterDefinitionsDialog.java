@@ -30,6 +30,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 쿼리 편집기의 "Parameters…": SQL에서 찾은 매개변수마다 표시 이름, 형식, 기본값, 필수, 선택 목록/조회 쿼리를 정하는 표.
@@ -41,12 +42,18 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 ④ 공유: 이름·표시 이름이 비밀번호·토큰처럼 보이는 매개변수의 기본값은 경고 뒤에만 저장(기본값은 공유되는 쿼리 파일에 쓰임)
+ *   (docs/chromite/swing-query-library.md "공유")
  */
 final class QueryParameterDefinitionsDialog extends JDialog {
 
     private static final String[] COLUMNS = {ToolsMessages.param_definitions_column_parameter, ToolsMessages.param_definitions_column_label,
         ToolsMessages.param_definitions_column_type, ToolsMessages.param_definitions_column_default, ToolsMessages.param_definitions_column_required,
         ToolsMessages.param_definitions_column_choices};
+
+    // Parameter names and labels that suggest a secret value (English and Korean)
+    private static final Pattern SECRET_NAME = Pattern.compile(
+        "pass(word)?|pwd|secret|token|api[_-]?key|credential|private[_-]?key|비밀번호|암호|토큰", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
 
     private final List<QueryLibraryParameter> parameters = new ArrayList<>();
     private final Map<String, Boolean> kinds;
@@ -83,6 +90,9 @@ final class QueryParameterDefinitionsDialog extends JDialog {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
             }
+            if (!confirmSecretDefaults()) {
+                return;
+            }
             accepted = true;
             dispose();
         });
@@ -105,6 +115,24 @@ final class QueryParameterDefinitionsDialog extends JDialog {
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         pack();
         setLocationRelativeTo(owner);
+    }
+
+    /**
+     * Defaults are written into the query file, which a shared root shows to everyone: a default of a parameter whose
+     * name or label looks like a secret (password, token, key) is saved only after a warning.
+     *
+     * @return false to keep editing
+     */
+    private boolean confirmSecretDefaults() {
+        List<String> names = new ArrayList<>();
+        for (QueryLibraryParameter parameter : parameters) {
+            if (!CommonUtils.isEmpty(parameter.getDefaultValue())
+                && (SECRET_NAME.matcher(parameter.getName()).find() || SECRET_NAME.matcher(CommonUtils.notEmpty(parameter.getLabel())).find())) {
+                names.add(parameter.getName());
+            }
+        }
+        return names.isEmpty() || JOptionPane.showConfirmDialog(this, NLS.bind(ToolsMessages.param_definitions_secret_default, String.join(", ", names)), //$NON-NLS-1$
+            ToolsMessages.param_definitions_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
     }
 
     /**

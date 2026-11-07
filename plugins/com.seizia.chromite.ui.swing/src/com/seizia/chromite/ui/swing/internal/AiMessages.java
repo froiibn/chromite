@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing.internal;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * Screen text of the AI assistant: the tool window, the tool confirmation dialog, the AI Assistant options and the Query
+ * Screen text of Chromite Agent: the tool window, the tool confirmation dialog, the Chromite Agent options and the Query
  * Library thresholds editor.
  *
  * 설계: 기능별 묶음 규칙(docs/chromite/swing-l10n.md)에 따라 AI 기능만의 {@link NLS} 묶음을 둔다. 영어가 기본({@code AiMessages.properties}),
@@ -30,6 +30,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 {@code ai_tool_transaction_*}, {@code ai_tool_state_after_transaction}: 도구 카드의 트랜잭션 질문 결과
  * - 2026-11-07 {@code ai_options_save_failed_secure_storage}: OS 보안 저장소에 키를 저장하지 못했을 때의 안내
+ * - 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정). "AI 도우미"·"AI Assistant"·"도우미"로 기능을 가리키던 문구를
+ *   영어·한국어 모두 "Chromite Agent"로 바꿈. 모델 제공자를 뜻하는 "AI 제공자"는 그대로 둠(docs/chromite/ai-agent.md "명칭")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$

@@ -28,13 +28,17 @@ import com.seizia.chromite.model.DBPAdaptable;
 import com.seizia.chromite.model.DBPExternalFileManager;
 import com.seizia.chromite.model.DBPImage;
 import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.auth.SMSession;
 import com.seizia.chromite.model.data.json.JSONUtils;
 import com.seizia.chromite.model.fs.DBFResourceAdapter;
 import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
 import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.model.impl.app.LocalWorkspaceSession;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.WorkspaceSecretController;
+import com.seizia.chromite.registry.ProjectCredentialsStorage;
 import com.seizia.chromite.registry.ResourceHandlerDescriptor;
 import com.seizia.chromite.registry.ResourceTypeDescriptor;
 import com.seizia.chromite.registry.ResourceTypeRegistry;
@@ -54,6 +58,8 @@ import java.util.*;
  *
  * 변경 이력:
  * - 2026-11-07 외부 파일 속성 파일 이름 상수를 패키지 공개로 바꿈({@link LegacyNameMigration}이 옛 이름에서 복사할 대상으로 씀)
+ * - 2026-11-07 작업 공간 세션의 비밀 컨트롤러를 OS 보안 저장소({@link WorkspaceSecretController})로 바꿈. 내용과 함께 지운 프로젝트의
+ *   저장된 비밀번호를 보안 저장소에서도 지움 (docs/chromite/credential-storage.md)
  */
 public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWorkspaceDesktop, DBPExternalFileManager, DBFResourceAdapter {
 
@@ -74,6 +80,22 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
 
         loadExtensions(Platform.getExtensionRegistry());
         loadExternalFileProperties();
+    }
+
+    /**
+     * The workspace session keeps its secrets in the OS secure storage, not in plain text in the workspace settings.
+     */
+    @NotNull
+    @Override
+    protected SMSession acquireWorkspaceSession(@NotNull DBRProgressMonitor monitor) {
+        WorkspaceSecretController secretController = new WorkspaceSecretController(getMetadataFolder());
+        return new LocalWorkspaceSession(this) {
+            @NotNull
+            @Override
+            public DBSSecretController getSecretController() {
+                return secretController;
+            }
+        };
     }
 
     @Nullable
@@ -467,10 +489,20 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
             var secretController = DBSSecretController.getProjectSecretController(project);
             secretController.deleteProjectSecrets(project.getId());
         }
+        // Taken while the folder exists: the scope comes from its real path
+        String credentialsScope = ProjectCredentialsStorage.getScope(project.getMetadataFolder(false));
         try {
             eclipseProject.delete(deleteContents, true, new NullProgressMonitor());
         } catch (CoreException e) {
             throw new DBException("Error deleting Eclipse project '" + project.getName() + "'", e);
+        }
+        if (deleteContents) {
+            // The saved passwords of a deleted project would stay in the secure storage with nothing to use them
+            try {
+                ProjectCredentialsStorage.removeScope(credentialsScope);
+            } catch (DBException e) {
+                log.error("Error removing the saved passwords of project '" + project.getName() + "'", e);
+            }
         }
     }
 

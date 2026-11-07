@@ -109,7 +109,7 @@
 
 가져오기는 파일 내용을 따로 만든 임시 레지스트리(같은 프로젝트, 메모리 설정 관리자)에 레지스트리 직렬화기로 읽고,
 가져올 연결만 실제 레지스트리로 복사해 보통 경로(`DataSourceRegistry.addDataSource`)로 더한다. 그래서 자격 증명은 그때 쓰는 저장소
-(지금은 `credentials-config.json`, 나중에는 OS 보안 저장소)에 저장된다. 실제 레지스트리에 바로 읽어 들이지 않는 이유: 그 경로
+(2026-11-07부터 OS 보안 저장소, [credential-storage.md](credential-storage.md))에 저장된다. 실제 레지스트리에 바로 읽어 들이지 않는 이유: 그 경로
 (`loadDataSources`)는 파일에 없는 네트워크 프로필을 지우고, 인증 프로필 목록을 파일의 것으로 바꾸고, 같은 ID의 연결을 그 자리에서 바꾼다.
 
 충돌은 같은 ID, 또는 같은 그룹에 같은 이름인 기존 연결이다. 충돌마다 고른다(기본: 건너뛰기, "모든 충돌에"로 한 번에):
@@ -134,6 +134,12 @@
 - 가져오기는 `addDataSource`(→ `persistSecretIfNeeded`와 설정 저장)로 저장한다.
 - 그래서 다음 작업에서 저장 위치를 바꿀 때 이 기능의 코드를 바꿀 필요가 없도록 했다. 다음 작업은 이 기능으로
   "내보내기 → 새 PC에서 가져오기 → 비밀번호 없이 연결"이 계속 되는지 확인해야 한다(아래 확인 절차).
+- **2026-11-07 이전 완료**([credential-storage.md](credential-storage.md)): 이 기능의 코드는 바꾸지 않았다(데스크톱 프로젝트는
+  `isUseSecretStorage`가 여전히 false이고, 직렬화기가 쓰는 저장소만 바뀌었다). 확인: 이전한 작업 공간에서 비밀번호 포함 내보내기 →
+  자기 keyring을 쓰는 빈 작업 공간에서 가져오기 → 5개 모두 비밀번호를 묻지 않고 연결, 다시 시작한 뒤에도 같음(credential-storage.md "확인" 6).
+- 작업 공간을 복사해도 비밀번호가 다른 PC로 따라가지 않으므로, 내보내기 대화상자의 암호 안내(`transfer_export_passphrase_hint`)에
+  "저장된 비밀번호는 이 PC의 보안 저장소에 있어 작업 공간을 복사해도 따라가지 않고 이 파일에는 담긴다"는 문장을 더했다. 따로 묻는 대화상자는 두지 않았다.
+- 가져온 연결을 저장하다 보안 저장소가 실패하면 결과 알림 뒤에 그 오류를 보인다(`transfer_import_save_failed`, `ConnectionTransferCommands`).
 
 ## upstream·SWT 대비
 
@@ -182,4 +188,5 @@ SWT `ProjectExportWizard`/`ProjectImportWizard`(`263b8ddb45`의 `plugins/com.sei
 
 ## 변경 이력
 
+- 2026-11-07 OS 보안 저장소 이전과의 관계 갱신: 내보내기 암호 안내 문장, 가져오기 저장 실패 알림, 이전 뒤 확인 결과([credential-storage.md](credential-storage.md))
 - 2026-11-07 최초 작성: 연결 내보내기·가져오기(파일 형식 버전 1)

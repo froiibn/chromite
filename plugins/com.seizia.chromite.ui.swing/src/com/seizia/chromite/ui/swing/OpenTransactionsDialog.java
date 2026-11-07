@@ -60,7 +60,7 @@ import java.util.List;
  *     (상태 줄 메뉴와 같은 확인 규칙). 실행 중인 행은 단추가 꺼진다.</li>
  *     <li>모달이 아니고 하나만 연다. 쿼리 관리자 기록만 읽으므로(드라이버 호출 없음) 1초마다 다시 채운다. 고른 행은 같은 문맥이면 그대로 둔다.</li>
  *     <li>도구 창이 아니라 대화상자다: 가끔 여는 점검 화면이고, 도킹 배치 저장(ToolWindowDocking)을 늘리지 않는다.</li>
- *     <li>AI 도우미·MCP 도구의 격리 세션은 쿼리 관리자를 거치지 않아 보이지 않는다(설명 문구에 적음). 끝낼 때는 {@code ExitTransactionCheck}가 묻는다.</li>
+ *     <li>Chromite Agent·MCP 도구의 격리 세션은 쿼리 관리자를 거치지 않아 보이지 않는다(설명 문구에 적음). 끝낼 때는 {@code ExitTransactionCheck}가 묻는다.</li>
  * </ul>
  *
  * 변경 이력:

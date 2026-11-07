@@ -16,13 +16,13 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 11 | 7 | 11 | 0 | 0 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 12 | 7 | 10 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 9 | 1 | 4 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 9 | 4 | 6 | 0 | 0 |
 | Oracle (`ext.oracle.ui`) | 24 | 8 | 3 | 11 | 1 | 1 |
 | Altibase (`ext.altibase.ui`) | 9 | 2 | 0 | 6 | 0 | 1 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 2 | 16 | 8 | 0 | 3 |
-| **합계** | **124** | **41** | **31** | **46** | **1** | **5** |
+| **합계** | **124** | **42** | **31** | **45** | **1** | **5** |
 
 ### 조용히 끊김 (먼저 볼 것)
 
@@ -69,7 +69,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P26 | EXPLAIN 옵션(ANALYZE, VERBOSE, COSTS, BUFFERS, SETTINGS, WAL, TIMING, SUMMARY) | `PostgreExplainPlanConfigurator` | 일부 | `SqlPlanExplainer.java:123-126`(실제 계획 = ANALYZE만) | 낮음 | BUFFERS 등 진단 옵션 없음 |
 | P27 | plpgsql_check로 함수 검사(SQL 생성기, 편집기 명령) | `SQLGeneratorProcedureCheck`, `SQLEditorHandlerCheckProcedureConsole` | 없음 | grep `plpgsql_check` → 0건 | 낮음 | |
 | P28 | 값 편집기: ENUM 콤보, hstore(구조), money, bit string | `dataManager`: `PostgreEnumValueManager` 등 | 없음 | 결과 표 편집은 글자 칸. grep `ValueManager`·`getEnumValues` → `ResultSet*` 0건 | 낮음 | 글자로는 입력 가능 |
-| P29 | PL/pgSQL 디버거(중단점, 단계 실행) | `ext.postgresql.debug.ui`(+ 모델 `debug.core`, `ext.postgresql.debug.core`도 함께 삭제) | 없음 | swt-removal.md 103행 | 중간 | 모델까지 지워져 화면만 만들 수 없다 |
+| P29 | PL/pgSQL 디버거(중단점, 단계 실행) | `ext.postgresql.debug.ui`(+ 모델 `debug.core`, `ext.postgresql.debug.core`도 함께 삭제) | 있음(2026-11-07) | 모델 복원, Swing 디버거 탭([procedure-debugger.md](../procedure-debugger.md)) | 중간 | Step Out은 pldbgapi에 없음 |
 
 ## 2. SQL Server (`ext.mssql.ui`, 16 클래스)
 
@@ -241,7 +241,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 6. TRUNCATE·트리거 사용/사용 안 함·구체화된 뷰 새로 고침(P23, O21, S14, M17, A5) — 없음, 중간.
 7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간.
 8. O18 Oracle 인덱스·제약·외래 키(디자이너 미지원) — 없음, 중간.
-9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간.
+9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간.
 
 다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기, P3 PgBouncer prepared statement, K3 CUBRID 출력.
