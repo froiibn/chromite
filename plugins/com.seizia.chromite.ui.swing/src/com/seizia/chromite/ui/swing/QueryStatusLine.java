@@ -58,7 +58,8 @@ import java.time.format.DateTimeFormatter;
  *     <li>열린 트랜잭션(2026-11-07 사용자 요청, 잠금 사고 방지): 커밋 방식 바로 뒤에 수동 커밋 문맥에서 커밋·롤백하지 않은 문장이 있는 동안만
  *     보인다. 점은 커밋 방식 점과 같은 크기의 status.warning(주의, 오류 아님)이고 글자는 트랜잭션 시작부터의 경과 시간(1초마다 쿼리 창이 갱신)과
  *     문장 수다. 도구 설명은 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수, 마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
- *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.</li>
+ *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.
+ *     같은 메뉴의 Transaction Log는 그 트랜잭션의 문장 목록을 연다(SWT 트랜잭션 모니터를 누르면 로그가 열리던 것과 같은 자리).</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
  *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
@@ -79,6 +80,7 @@ import java.time.format.DateTimeFormatter;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 커밋 방식 칸(자동 커밋/수동 커밋, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 열린 트랜잭션 칸(경과 시간, 문장 수, 누르면 커밋/롤백, 사용자 요청) (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 열린 트랜잭션 메뉴에 Transaction Log (docs/chromite/transactions.md)
  */
 final class QueryStatusLine extends JPanel {
 
@@ -90,13 +92,18 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * Ends the open transaction shown in the status line (Commit / Roll back of its menu).
+     * The menu of the open transaction segment: Commit / Roll back of the shown transaction, Transaction Log.
      */
     interface OpenTransactionActions {
         /**
          * @param transaction the transaction shown when the menu opened
          */
         void end(@NotNull QMTransactionState transaction, boolean commit);
+
+        /**
+         * Opens the transaction log of the window's execution context.
+         */
+        void showLog();
     }
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
@@ -291,7 +298,7 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * What Commit / Roll back of the open transaction segment's menu do; null for no menu.
+     * What Commit / Roll back and Transaction Log of the open transaction segment's menu do; null for no menu.
      */
     void setOpenTransactionActions(@Nullable OpenTransactionActions actions) {
         openTransactionActions = actions;
@@ -299,7 +306,8 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * Commit / Roll back for the transaction shown now, above the segment (the line is at the bottom of the window).
+     * Commit / Roll back for the transaction shown now and Transaction Log, above the segment (the line is at the
+     * bottom of the window).
      */
     private void showOpenTransactionMenu() {
         QMTransactionState transaction = openTransaction;
@@ -310,6 +318,8 @@ final class QueryStatusLine extends JPanel {
         JPopupMenu menu = new JPopupMenu();
         menu.add(new JMenuItem(EditorMessages.editor_status_txn_commit)).addActionListener(e -> actions.end(transaction, true));
         menu.add(new JMenuItem(EditorMessages.editor_status_txn_rollback)).addActionListener(e -> actions.end(transaction, false));
+        menu.addSeparator();
+        menu.add(new JMenuItem(EditorMessages.editor_status_txn_log)).addActionListener(e -> actions.showLog());
         menu.show(openTransactionLabel, 0, -menu.getPreferredSize().height);
     }
 

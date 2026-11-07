@@ -56,6 +56,8 @@ import java.util.List;
  *   (docs/chromite/idle-transactions.md)
  * - 2026-11-07 {@link #getLastUseTime}: 유휴 연결 닫기가 연결마다 마지막으로 쓴 시각을 읽음(전역 마우스·키보드 활동 대신)
  *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-07 {@link #getTransactionStatements}: 트랜잭션 로그가 상태 줄의 문장 수와 같은 문장을 보이도록 같은 기준({@link #isUserStatement})으로 읽음
+ *   (docs/chromite/transactions.md)
  */
 public class QMUtils {
 
@@ -182,8 +184,7 @@ public class QMUtils {
                     QMMTransactionSavepointInfo sp = txnInfo.getCurrentSavepoint();
                     // Newest first: the first user statement met is the last one run, the last one met started the transaction
                     for (QMMStatementExecuteInfo exec = sp.getLastExecute(); exec != null && exec.getSavepoint() == sp; exec = exec.getPrevious()) {
-                        DBCExecutionPurpose purpose = exec.getStatement().getPurpose();
-                        if (purpose == DBCExecutionPurpose.META || purpose == DBCExecutionPurpose.UTIL) {
+                        if (!isUserStatement(exec)) {
                             continue;
                         }
                         execCount++;
@@ -199,6 +200,34 @@ public class QMUtils {
             }
         }
         return new QMTransactionState(execCount, updateCount, txnMode, txnStartTime, lastExecTime, executing);
+    }
+
+    /**
+     * The user statements of the context's current transaction, oldest first: the statements that
+     * {@link #getTransactionState} counts, for the transaction log. Empty in auto-commit mode and when none ran since
+     * the last commit or rollback. Cheap like {@link #getTransactionState}.
+     */
+    @NotNull
+    public static List<QMMStatementExecuteInfo> getTransactionStatements(@Nullable DBCExecutionContext executionContext) {
+        List<QMMStatementExecuteInfo> statements = new ArrayList<>();
+        QMMTransactionSavepointInfo sp = executionContext == null || qmRegistry == null ? null : getCurrentTransaction(executionContext);
+        if (sp != null) {
+            for (QMMStatementExecuteInfo exec = sp.getLastExecute(); exec != null && exec.getSavepoint() == sp; exec = exec.getPrevious()) {
+                if (isUserStatement(exec)) {
+                    statements.addFirst(exec);
+                }
+            }
+        }
+        return statements;
+    }
+
+    /**
+     * Metadata reads (META) and internal work (UTIL, the commit and rollback sessions among them) are not statements
+     * of the user's transaction.
+     */
+    private static boolean isUserStatement(@NotNull QMMStatementExecuteInfo exec) {
+        DBCExecutionPurpose purpose = exec.getStatement().getPurpose();
+        return purpose != DBCExecutionPurpose.META && purpose != DBCExecutionPurpose.UTIL;
     }
 
     /**

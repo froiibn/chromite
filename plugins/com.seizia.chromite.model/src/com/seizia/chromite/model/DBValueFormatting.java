@@ -48,6 +48,8 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-07 UI 형식에서 제약 조건 유형을 지역화된 이름으로 보여 줌(docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ * - 2026-11-07 Float·Double의 원래 형식(NATIVE·EDIT)이 값을 반올림하게 되면 지수 표기를 둠: -2.5E-300이 -0으로 보이고
+ *   그 글자가 편집 값·생성한 SQL에 쓰이던 문제 (docs/chromite/swing-result-viewer.md)
  */
 public final class DBValueFormatting {
 
@@ -243,10 +245,12 @@ public final class DBValueFormatting {
                 if (scientificNotation || strValue.indexOf('E') == -1) {
                     return strValue;
                 }
-                // We don't want exponential view
-                if (value instanceof Float) {
+                // We don't want exponential view, unless the plain form would round the value: -2.5E-300 became -0,
+                // which the value editor and generated SQL then used as the value. Then the exponent form is kept.
+                int fractionDigits = new BigDecimal(strValue).scale();
+                if (value instanceof Float && fractionDigits <= NATIVE_FLOAT_FORMATTER.getMaximumFractionDigits()) {
                     return NATIVE_FLOAT_FORMATTER.format(value);
-                } else if (value instanceof Double) {
+                } else if (value instanceof Double && fractionDigits <= NATIVE_DOUBLE_FORMATTER.getMaximumFractionDigits()) {
                     return NATIVE_DOUBLE_FORMATTER.format(value);
                 }
             }

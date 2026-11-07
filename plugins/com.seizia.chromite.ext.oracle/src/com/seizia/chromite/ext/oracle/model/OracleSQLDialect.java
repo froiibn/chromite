@@ -30,6 +30,7 @@ import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
@@ -49,6 +50,7 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -71,6 +73,8 @@ import java.util.Set;
  * - 2026-11-07 Chromite: character length semantics — VARCHAR2(n CHAR)/CHAR(n CHAR) for character types of other
  *   databases, and "(n CHAR)" in the DDL of columns that count characters ({@link OracleTableColumn}); NUMBER without
  *   precision and scale stays NUMBER (it became NUMBER(38), an integer).
+ * - 2026-11-07 Chromite: the VARCHAR2 limit of the converter follows MAX_STRING_SIZE (32767 when EXTENDED, read from
+ *   V$PARAMETER when the login may read it; 4000 otherwise).
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -78,8 +82,10 @@ public class OracleSQLDialect extends JDBCSQLDialect
 
     // Text form of a UUID (8-4-4-4-12 hex digits)
     private static final int UUID_TEXT_LENGTH = 36;
-    // Longest VARCHAR2 with the default MAX_STRING_SIZE = STANDARD
-    private static final long MAX_VARCHAR2_LENGTH = 4000;
+    // Longest VARCHAR2 with the default MAX_STRING_SIZE = STANDARD and with MAX_STRING_SIZE = EXTENDED (12c and later)
+    private static final long MAX_VARCHAR2_LENGTH_STANDARD = 4000;
+    private static final long MAX_VARCHAR2_LENGTH_EXTENDED = 32767;
+    private static final String MAX_STRING_SIZE_EXTENDED = "EXTENDED";
     private static final String TYPE_NAME_TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE";
     private static final String TYPE_NAME_BINARY_FLOAT = "BINARY_FLOAT";
     private static final String TYPE_NAME_BINARY_DOUBLE = "BINARY_DOUBLE";
@@ -162,6 +168,7 @@ public class OracleSQLDialect extends JDBCSQLDialect
     private static final String AUTO_INCREMENT_KEYWORD = "GENERATED ALWAYS AS IDENTITY";
     private boolean crlfBroken;
     private DBPPreferenceStore preferenceStore;
+    private long maxVarchar2Length = MAX_VARCHAR2_LENGTH_STANDARD;
 
     public OracleSQLDialect() {
         super("Oracle", "oracle");
@@ -172,6 +179,7 @@ public class OracleSQLDialect extends JDBCSQLDialect
         super.initDriverSettings(session, dataSource, metaData);
         crlfBroken = !dataSource.isServerVersionAtLeast(11, 0);
         preferenceStore = dataSource.getContainer().getPreferenceStore();
+        maxVarchar2Length = readMaxVarchar2Length(session);
 
         addFunctions(
             Arrays.asList(
@@ -410,6 +418,23 @@ public class OracleSQLDialect extends JDBCSQLDialect
         turnFunctionIntoKeyword("TRUNCATE");
 
         super.cachedDialectSkipTokenPredicates = this.makeDialectSkipTokenPredicates(dataSource);
+    }
+
+    /**
+     * The longest VARCHAR2 of the database: MAX_STRING_SIZE = EXTENDED raises it from 4000 to 32767 bytes.
+     * V$PARAMETER needs SELECT_CATALOG_ROLE or a grant, and servers before 12c have no such parameter: then the
+     * STANDARD limit is kept (a longer string becomes CLOB, which holds every value).
+     */
+    private static long readMaxVarchar2Length(@NotNull JDBCSession session) {
+        try {
+            String maxStringSize = JDBCUtils.queryString(session, "SELECT VALUE FROM V$PARAMETER WHERE NAME = 'max_string_size'"); //$NON-NLS-1$
+            if (MAX_STRING_SIZE_EXTENDED.equalsIgnoreCase(CommonUtils.trim(maxStringSize))) {
+                return MAX_VARCHAR2_LENGTH_EXTENDED;
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read MAX_STRING_SIZE: " + e.getMessage()); //$NON-NLS-1$
+        }
+        return MAX_VARCHAR2_LENGTH_STANDARD;
     }
 
     @Override
@@ -671,7 +696,7 @@ public class OracleSQLDialect extends JDBCSQLDialect
         }
         if (localDataType == null && sourceTypedObject.getDataKind() == DBPDataKind.STRING) {
             long maxLength = sourceTypedObject.getMaxLength();
-            if (maxLength <= 0 || maxLength > MAX_VARCHAR2_LENGTH) {
+            if (maxLength <= 0 || maxLength > maxVarchar2Length) {
                 localDataType = OracleConstants.TYPE_CLOB;
             } else {
                 // Lengths of other databases count characters, VARCHAR2(n) counts bytes with the default

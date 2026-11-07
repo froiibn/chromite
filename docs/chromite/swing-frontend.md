@@ -616,8 +616,10 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
    준비 Job이 실행 Job을 예약하는 순간과 겹치지 않도록 같은 잠금 안에서 취소 표시를 확인하고 예약한다. 실행 Job의 취소는 `AbstractJob`이 실행 중인 문장을 취소한다.
 5. **끝:** 실행 Job의 `done` 이벤트(또는 준비 단계의 조기 종료)에서 EDT로 상태를 마무리한다. 실행마다 `Execution` 객체를 두어, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.
 
-- **커밋·오류 처리·최대 행 수:** 엔진 기본값을 쓴다. 커밋 방식 `NO_COMMIT`(연결의 자동 커밋 설정을 그대로 따름), 오류 처리 `STOP_ROLLBACK`,
-  최대 행 수는 연결의 `ModelPreferences.RESULT_SET_MAX_ROWS`(기본 200).
+- **커밋·오류 처리·최대 행 수:** 커밋 방식은 엔진 기본값 `NO_COMMIT`(연결의 자동 커밋 설정을 그대로 따름), 최대 행 수는 연결의
+  `ModelPreferences.RESULT_SET_MAX_ROWS`(기본 200). 오류 처리는 2026-11-07부터 Options > Query Execution 설정을 넘긴다(멈춤 = `STOP_COMMIT`,
+  건너뛰고 계속 = `IGNORE`). 그 전에는 엔진 기본값 `STOP_ROLLBACK`이어서 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백했다
+  ([swing-options.md](swing-options.md) "오류 처리와 트랜잭션").
 - **핸들러(`SQLQueryExecuteHandler`):** `getDataReceiver`는 결과 집합마다 `ResultSetGridReceiver`를 만든다. `handleExecutionError`는 대화상자를 띄우지 않고
   `STOP`을 돌려준다(오류는 Messages 탭에 이미 썼다. 쿼리를 보내기 전에 난 오류 — 매개변수, pragma, 제어 명령 — 는 여기서 Messages에 쓴다).
   나머지(확인 대화상자, 설정값)는 인터페이스 기본 구현(`DBPPlatformUI` = `SwingPlatformUI`)이다.
@@ -2547,3 +2549,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 결과 표 저장 전 스크립트 미리 보기: 설정 `resultset.confirm.beforeSave`와 연결 유형 "데이터 변경 확인"이 다시 동작(전수 조사 B-R19), Options 항목. "저장 전 스크립트 미리 보기" 절.
 - 2026-11-07 Object Explorer 개체 작업: DB 객체 삭제·이름 바꾸기(스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택,
   SQL 생성 메뉴. "Object Explorer 개체 작업" 절, E단계 남긴 것에 표시. [swing-explorer-object-actions.md](swing-explorer-object-actions.md).
+- 2026-11-07 쿼리 실행의 오류 처리를 설정에서 넘김(오류 뒤 무확인 롤백 고침), C단계 "커밋·오류 처리" 항목 갱신. [swing-options.md](swing-options.md).
