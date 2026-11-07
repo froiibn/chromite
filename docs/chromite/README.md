@@ -50,6 +50,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [shell-command-approval.md](shell-command-approval.md) | 저장된 설정의 셸 명령(연결 이벤트, 셸 명령 암호, 전송 뒤 명령) 실행 전 승인: Swing 대화상자(이번만 실행·항상 허용·취소), 연결별·정확한 명령별 기억, 승인 서비스가 없으면 실행 거부 |
 | [drivers.md](drivers.md) | JDBC 드라이버 내장(주요 DB만 내장하는 단일 배포판), 오프라인 우선 조회와 오프라인 모드 |
 | [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 내장 가능 여부 분류 |
+| [driver-offline-bundle.md](driver-offline-bundle.md) | 폐쇄망용 오프라인 드라이버 설치 묶음: 인터넷 PC에서 드라이버를 골라 파일 하나로 만들고 폐쇄망 PC에서 설치, 형식(`.chromite-drivers`, 매니페스트·SHA-256), 드라이버 폴더 설치와 로더 등록, 검사·zip-slip·상한, 라이선스 메모 |
 | [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink, `tools/jre/`): 모듈 목록과 근거, 크기, 시작 시간 측정, 갱신 절차, 지원 플랫폼 |
 | [platform-startup.md](platform-startup.md) | 플랫폼 시작·종료: Windows 인증서 저장소(`WINDOWS-ROOT`)를 기본 신뢰 저장소로 쓰기, macOS 앱 메뉴의 끝내기(Cmd+Q)·정보·환경설정을 메인 창 경로로 연결 |
 | [versioning.md](versioning.md) | 제품 버전 체계(`major.minor.dev`, 0.1.0부터): 규칙, 버전이 있는 곳과 유일한 원본, 번들 버전을 따로 두는 이유, `tools/release/bump-version.ps1`, 릴리스 태그 검사 |
@@ -62,3 +63,4 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [distribution.md](distribution.md) | 배포: Windows 설치 프로그램(NSIS, 사용자별, 조용한 업그레이드), 업데이트 피드 `releases.json`, 배포 스크립트와 Docker 리허설, 다운로드 사이트, 되돌리기 |
 | [signing.md](signing.md) | 릴리스 서명: Windows(Azure Artifact Signing)·macOS(Developer ID 서명·공증) 흐름, 서명 대상 파일, 제3자 정책, 사용자가 할 일 |
 | [auto-update.md](auto-update.md) | 앱 안의 자동 업데이트: 업데이트 목록 확인(고정 User-Agent, 1 MB, 10초), 뒤에서 받기, Windows·macOS 파일 확인(서명·게시자·버전), 끝날 때 적용(도우미), 실패 처리, 옵션, 끝낼 때 트랜잭션 질문, 개발 빌드 시험 모드 |
+| [connection-transfer.md](connection-transfer.md) | 연결 내보내기·가져오기: 비밀번호를 사용자 암호로 암호화한 파일(AES-256-GCM, PBKDF2 600,000번, 형식 버전 1), 내보내는 것, 충돌(건너뛰기·바꾸기·사본), 연결 중인 연결 보호, OS 보안 저장소 이전과의 관계 |

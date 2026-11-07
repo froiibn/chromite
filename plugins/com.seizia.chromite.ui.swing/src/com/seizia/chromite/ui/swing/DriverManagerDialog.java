@@ -74,10 +74,13 @@ import java.util.TreeMap;
  *     둘 다 {@code saveDrivers()}로 {@code drivers.xml}에 바로 저장한다.</li>
  *     <li>오프라인 모드: SWT는 이 대화상자에서 환경설정 > 드라이버 페이지로 가는 링크를 두는데, Swing 앱에는 그 페이지가 없어
  *     같은 설정({@link ModelPreferences#UI_DRIVERS_OFFLINE})을 체크 상자로 둔다. 모델은 값을 매번 읽으므로 바로 적용된다(docs/chromite/drivers.md).</li>
+ *     <li>오프라인 설치 묶음: 인터넷이 되는 PC에서 드라이버를 골라 파일 하나로 만들고({@link DriverBundleCreateDialog}), 폐쇄망 PC에서 그 파일을
+ *     설치한다({@link DriverBundleInstallDialog}). 기존 jar·폴더 직접 추가는 그대로 둔다(docs/chromite/driver-offline-bundle.md).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 오프라인 묶음 만들기·설치 단추 추가 (docs/chromite/driver-offline-bundle.md)
  */
 final class DriverManagerDialog extends JDialog {
 
@@ -152,6 +155,12 @@ final class DriverManagerDialog extends JDialog {
         deleteButton.addActionListener(e -> deleteDriver());
         JButton restoreButton = new JButton(DriverManagerMessages.drivermgr_button_restore);
         restoreButton.addActionListener(e -> restoreDrivers());
+        JButton createBundleButton = new JButton(DriverManagerMessages.drivermgr_button_bundle_create);
+        createBundleButton.setToolTipText(DriverManagerMessages.drivermgr_button_bundle_create_tip);
+        createBundleButton.addActionListener(e -> DriverBundleCreateDialog.open(this, getSelectedDriver()));
+        JButton installBundleButton = new JButton(DriverManagerMessages.drivermgr_button_bundle_install);
+        installBundleButton.setToolTipText(DriverManagerMessages.drivermgr_button_bundle_install_tip);
+        installBundleButton.addActionListener(e -> installBundle());
 
         JPanel buttons = new JPanel(new GridLayout(0, 1, 0, 6));
         buttons.add(newButton);
@@ -159,6 +168,8 @@ final class DriverManagerDialog extends JDialog {
         buttons.add(editButton);
         buttons.add(deleteButton);
         buttons.add(restoreButton);
+        buttons.add(createBundleButton);
+        buttons.add(installBundleButton);
         JPanel legend = new JPanel(new GridLayout(0, 1, 0, 4));
         legend.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
         legend.add(createLegend(DBIcon.OVER_LAMP, DriverManagerMessages.drivermgr_legend_custom));
@@ -478,6 +489,13 @@ final class DriverManagerDialog extends JDialog {
         }
         saveDrivers();
         reload(list.getSelectedValuesList().getFirst());
+    }
+
+    private void installBundle() {
+        if (DriverBundleInstallDialog.open(this)) {
+            // Repaint the tree with the drivers' current icons
+            reload(getSelectedDriver());
+        }
     }
 
     private void saveDrivers() {
