@@ -66,6 +66,8 @@ public class ConnectionMessages extends NLS {
     public static String dialog_test_error;
     public static String dialog_create_failed_title;
     public static String dialog_create_failed;
+    public static String dialog_save_failed_title;
+    public static String dialog_save_failed;
     public static String dialog_changed_title;
     public static String dialog_changed_reconnect;
 

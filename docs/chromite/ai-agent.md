@@ -441,6 +441,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 (`GlobalProxyAuthenticator`), Maven 저장소 인증(`MavenRegistry`)도 쓰고 이들도 같은 설정 파일에 평문으로 남는다. 이들은 시작 중·백그라운드 저장 경로에서
 읽고 쓰며 실패를 로그로만 남기므로, 저장소를 바꾸면 OS 저장소 실패가 비밀번호를 조용히 잃는 일로 바뀐다. 각 기능의 실패 처리와 이전을 따로 정해야 해서
 이번 범위에서 뺐다(아래 "위험과 남은 일"). 연결 비밀번호는 이 컨트롤러를 쓰지 않는다(`isUseSecretStorage()`가 false, `credentials-config.json`).
+**2026-11-07 후속:** 전역 비밀 컨트롤러와 연결 비밀번호도 OS 보안 저장소로 옮겼다([credential-storage.md](credential-storage.md)). AI 키는 이 절의 위치에 그대로 있다.
 
 확인(2026-11-07, Windows 11): 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. 빌드한 제품과
 `D:\Chromite-Test`의 작업 공간 사본을 `D:\Tools\_scratch\ai-key-secure-storage`에 두고 `-eclipse.keyring <사본 폴더>\keyringN\secure_storage`로 실행했다
@@ -750,7 +751,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **에이전트 문맥 수**: 연결·DB마다 최대 4개의 서버 세션을 더 연다. 연결을 끊으면 닫힌다.
 - **다른 비밀은 아직 평문이다**: 전역 네트워크 프로필 비밀, 전역 프록시 사용자·비밀번호, Maven 저장소 인증은 작업 공간 설정 파일
   (`com.seizia.chromite.ui.swing.prefs`의 `//secrets/…`)에 평문으로 남는다(위 "API 키 저장"). 연결 비밀번호의 `credentials-config.json`은 소스에 있는 고정 키
-  (`BaseProjectImpl.LOCAL_KEY_CACHE`)로 암호화되어 OS 계정으로 보호되지 않는다. 둘 다 이번 범위 밖이다.
+  (`BaseProjectImpl.LOCAL_KEY_CACHE`)로 암호화되어 OS 계정으로 보호되지 않는다. 둘 다 이번 범위 밖이다. **2026-11-07 후속에서 둘 다 OS 보안 저장소로 옮겼다**
+  ([credential-storage.md](credential-storage.md)).
 - **AI 키 저장의 남은 점**: macOS 키체인은 Mac이 없어 실행해 보지 못했다(첫 접근 때 키체인 허용 질문이 뜰 수 있다). OpenAI 계정 토큰(`AIUtils.setAccountToken`)은
   OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
@@ -758,6 +760,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 전역 비밀 컨트롤러·연결 비밀번호 이전([credential-storage.md](credential-storage.md))에 맞춰 "API 키 저장"과 "위험과 남은 일"에 후속 안내를 더함(AI 키 동작은 그대로).
 - 2026-11-07 AI 키를 OS 보안 저장소로: `AIUtils`의 AI 비밀을 Eclipse secure storage + OS 제공자에 저장하고 0.1.0의 평문 값을 옮김, 저장소 실패 시 평문 대체 없이
   설정 화면에 안내(`ai_options_save_failed_secure_storage`), `AIAgentProviders.save`가 비밀을 먼저 저장, `SecurePreferencesSecretController`가 제공자의 unchecked
   예외를 `DBSecurityException`으로. 2단계 확인 표의 "작업 공간 전체 검색 0건" 정정. 위 "API 키 저장".

@@ -63,3 +63,4 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [signing.md](signing.md) | 릴리스 서명: Windows(Azure Artifact Signing)·macOS(Developer ID 서명·공증) 흐름, 서명 대상 파일, 제3자 정책, 사용자가 할 일 |
 | [auto-update.md](auto-update.md) | 앱 안의 자동 업데이트: 업데이트 목록 확인(고정 User-Agent, 1 MB, 10초), 뒤에서 받기, Windows·macOS 파일 확인(서명·게시자·버전), 끝날 때 적용(도우미), 실패 처리, 옵션, 끝낼 때 트랜잭션 질문, 개발 빌드 시험 모드 |
 | [connection-transfer.md](connection-transfer.md) | 연결 내보내기·가져오기: 비밀번호를 사용자 암호로 암호화한 파일(AES-256-GCM, PBKDF2 600,000번, 형식 버전 1), 내보내는 것, 충돌(건너뛰기·바꾸기·사본), 연결 중인 연결 보호, OS 보안 저장소 이전과의 관계 |
+| [credential-storage.md](credential-storage.md) | 저장된 비밀번호의 OS 보안 저장소(Windows DPAPI, macOS 키체인) 이전: 연결 자격 증명과 작업 공간 비밀(전역 네트워크 프로필, 프록시, Maven), Chromite 전용 저장 파일과 범위, 시작할 때 이전(중간에 죽어도 안전), 저장 실패 표시, 옮기지 않은 것 |

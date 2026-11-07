@@ -24,6 +24,7 @@ Export-Package: com.seizia.chromite.registry,
 Require-Bundle: org.eclipse.core.expressions,
  org.objectweb.asm,
  com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.security,
  com.sun.jna.platform
 Bundle-Localization: OSGI-INF/l10n/bundle
 Automatic-Module-Name: com.seizia.chromite.registry
