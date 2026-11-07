@@ -145,9 +145,20 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   (`DBDDataFormatterProfile`, SWT 설정 화면의 Data Formats)을 쓴다. 그래서 SWT 그리드와 같은 형식이다. 값 패널은 SWT 패널처럼 편집 형식(`DBDDisplayFormat.EDIT`, 전체 정밀도)이다.
 - **열 고정(freeze):** 하지 않았다(아래 "남긴 것").
 
+### 아주 작은 수의 표시 (2026-11-07)
+
+- 증상: `double precision` 값 `-2.5E-300`이 표에 `-0`, `2.5E-300`이 `0`으로 보임. 값 패널과 칸 편집기도 `-0`·`0`이었다.
+- 원인 1(표, UI 형식): 숫자 형식기(`NumberDataFormatter`)는 최대 소수 자릿수(기본 10)로 반올림한다. 그보다 작은 0이 아닌 값을 지수로 보이는 설정
+  `scientificSmallValues`(Data Formats의 "Use scientific notation for small numbers")가 있지만 기본값이 꺼짐이었다(`NumberFormatSample`). 음수는 반올림해도 부호가 남아 `-0`.
+- 원인 2(편집·원래 형식, EDIT·NATIVE): `DBValueFormatting.convertNumberToNativeString`은 지수 표기를 피하려고 `Double`을 소수 16자리(`Float`은 8자리)로 고쳐 썼다.
+  그보다 작은 자리의 값은 0이 되었고, 이 글자가 칸 편집기·값 패널의 처음 값이 되고 생성한 SQL(INSERT 등, `SQLUtils.convertValueToSQL`)의 값이 되었다.
+  편집기를 열고 그대로 저장하거나 SQL을 만들면 값이 0으로 바뀔 수 있었다. `1.2345678901234567E-5` 같은 값도 끝자리를 잃었다.
+- 고친 것: `scientificSmallValues` 기본값을 켬(표에 `-2.5E-300`). 원래 형식은 소수 자릿수 안에 들어갈 때만 지수 없이 쓰고, 아니면 Java의 글자(지수 포함)를 그대로 쓴다.
+  작업 공간에 이미 저장한 형식 프로필의 값은 그대로다(바꾼 적 없는 설정만 새 기본값을 따름). SWT에도 같은 모델이라 함께 바뀐다.
+
 ## upstream 대비 변경점
 
-- upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)만 고쳤다(SWT에도 적용).
+- upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)와 아주 작은 수의 표시(`NumberFormatSample`의 기본값, `DBValueFormatting.convertNumberToNativeString`)를 고쳤다(SWT에도 적용).
 - SWT와 다른 동작: 머리글 클릭은 한 열 정렬(Ctrl로 더하기), 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
@@ -188,3 +199,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 2026-11-07 WHERE 필터 줄(`ResultSetFilterBar`)과 기록을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄로.
   [swing-grid-column-filters.md](swing-grid-column-filters.md).
 - 2026-11-07 값 패널 글꼴 설명을 코드에 맞춤: `ResultSetValuePanel` 설계 주석이 "SQL 편집기와 같은 글꼴"이라 했지만 코드와 design-spec.md는 `monospaced.font`(코드는 그대로).
+- 2026-11-07 아주 작은 수의 표시(#53): `scientificSmallValues` 기본값을 켜고, 원래 형식(편집·생성 SQL)이 값을 반올림하면 지수 표기를 둠. 위 "아주 작은 수의 표시".
