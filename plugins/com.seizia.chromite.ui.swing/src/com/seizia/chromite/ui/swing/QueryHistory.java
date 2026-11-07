@@ -24,6 +24,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
+import org.jkiss.utils.CommonUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -57,6 +58,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-08 바인딩한 실행의 값({@link Parameter}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 값의 주석 줄({@link Parameter#toCommentLines})을 기록 미리 보기와 SQL 터미널이 함께 씀 (docs/chromite/swing-sql-terminal.md)
  */
 final class QueryHistory {
 
@@ -105,6 +107,23 @@ final class QueryHistory {
      * @param type  the type it was bound with ({@link QueryLibraryParameter.Type#getId})
      */
     record Parameter(@NotNull String name, @Nullable String value, @Nullable String type) {
+
+        /**
+         * The values as SQL comment lines ({@code -- :name = value}, NULL for an empty value), one per parameter, shown
+         * below the statement by the history preview and the SQL terminal.
+         */
+        @NotNull
+        static String toCommentLines(@NotNull List<Parameter> parameters) {
+            StringBuilder text = new StringBuilder();
+            for (Parameter parameter : parameters) {
+                if (!text.isEmpty()) {
+                    text.append('\n');
+                }
+                text.append("-- :").append(parameter.name()).append(" = ") //$NON-NLS-1$ //$NON-NLS-2$
+                    .append(CommonUtils.isEmpty(parameter.value()) ? "NULL" : parameter.value().replace("\n", " ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            }
+            return text.toString();
+        }
     }
 
     private static final Gson GSON = new Gson();

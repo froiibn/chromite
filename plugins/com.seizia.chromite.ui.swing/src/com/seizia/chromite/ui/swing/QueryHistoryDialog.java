@@ -336,11 +336,7 @@ final class QueryHistoryDialog extends JDialog {
     private static String getPreviewText(@NotNull QueryHistory.Entry entry) {
         StringBuilder text = new StringBuilder(entry.query());
         if (entry.parameters() != null && !entry.parameters().isEmpty()) {
-            text.append('\n');
-            for (QueryHistory.Parameter parameter : entry.parameters()) {
-                text.append("\n-- :").append(parameter.name()).append(" = ") //$NON-NLS-1$ //$NON-NLS-2$
-                    .append(CommonUtils.isEmpty(parameter.value()) ? "NULL" : parameter.value().replace("\n", " ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-            }
+            text.append("\n\n").append(QueryHistory.Parameter.toCommentLines(entry.parameters())); //$NON-NLS-1$
         }
         if (entry.error() != null) {
             text.append("\n\n-- ").append(entry.error().replace("\n", "\n-- ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
