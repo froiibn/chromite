@@ -44,6 +44,10 @@ import java.util.Map;
 
 /**
  * Oracle table column manager
+ *
+ * 변경 이력:
+ * - 2026-11-07 열 복사(copyColumnProperties)가 문자 길이 단위(CHAR_USED)도 옮김: VARCHAR2(n CHAR) 열의 복사본이
+ *   VARCHAR2(n)(바이트)이 되던 문제 (docs/chromite/swing-data-transfer.md)
  */
 public class OracleTableColumnManager extends SQLTableColumnManager<OracleTableColumn, OracleTableBase>
     implements DBEObjectRenamer<OracleTableColumn> {
@@ -145,6 +149,8 @@ public class OracleTableColumnManager extends SQLTableColumnManager<OracleTableC
         }
         column.setTypeName(source.getTypeName());
         column.setMaxLength(source.getMaxLength());
+        // The length is a character count for VARCHAR2(n CHAR); without the unit the copy would be n bytes
+        column.setCharLengthSemantics(source.isCharLengthSemantics());
         column.setPrecision(source.getPrecision());
         column.setScale(source.getScale());
         column.setValueType(source.getTypeID());

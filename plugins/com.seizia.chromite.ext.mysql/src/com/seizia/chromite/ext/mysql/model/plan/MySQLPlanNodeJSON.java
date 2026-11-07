@@ -33,6 +33,10 @@ import java.util.*;
 
 /**
  * MySQL execution plan node based on JSON format
+ *
+ * 변경 이력:
+ * - 2026-11-07 비용이 없는 노드의 비용(자식 비용의 합)을 소수로 더함: 정수로 더해 중간 노드가 0%로 보이던 문제
+ *   (docs/chromite/model-fixes.md)
  */
 public class MySQLPlanNodeJSON extends MySQLPlanNode implements DBPPropertySource {
 
@@ -140,11 +144,12 @@ public class MySQLPlanNodeJSON extends MySQLPlanNode implements DBPPropertySourc
         }
         if (readCost == null) {
             if (nested != null) {
-                long totalCost = 0;
+                // Child costs are fractional (MySQL cost_info, e.g. 0.35): summing them as long made parents 0
+                double totalCost = 0;
                 for (MySQLPlanNodeJSON child : nested) {
                     Number childCost = child.getNodeCost();
                     if (childCost != null) {
-                        totalCost += childCost.longValue();
+                        totalCost += childCost.doubleValue();
                     }
                 }
                 return totalCost;

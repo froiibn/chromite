@@ -33,6 +33,13 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
 
 /**
  * SQLServerProcedureParameter
+ *
+ * 설계: 매개변수 종류는 sys.parameters에서 정한다. parameter_id 0은 함수의 반환 값이고, is_output은 OUTPUT 매개변수다.
+ * is_readonly는 테이블 반환 매개변수(READONLY)에만 붙으므로 방향을 정하는 데 쓰지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 일반 매개변수를 INOUT이 아니라 IN으로, 반환 값을 OUT이 아니라 RETURN으로 보고함
+ *   (docs/chromite/model-fixes.md)
  */
 public class SQLServerProcedureParameter implements DBSProcedureParameter, DBSAttributeBase, DBSObject {
     private SQLServerProcedure procedure;
@@ -61,10 +68,14 @@ public class SQLServerProcedureParameter implements DBSProcedureParameter, DBSAt
 
         boolean isOutput = JDBCUtils.safeGetInt(dbResult, "is_output") != 0;
         boolean isCursor = JDBCUtils.safeGetInt(dbResult, "is_cursor_ref") != 0;
-        boolean readonly = JDBCUtils.safeGetInt(dbResult, "is_readonly") != 0;
-        this.parameterKind = isCursor ? DBSProcedureParameterKind.RESULTSET :
-            (isOutput ? DBSProcedureParameterKind.OUT :
-                (readonly ? DBSProcedureParameterKind.IN : DBSProcedureParameterKind.INOUT));
+        // parameter_id 0 is a function's return value (sys.parameters also flags it is_output)
+        if (ordinalPosition == 0) {
+            this.parameterKind = DBSProcedureParameterKind.RETURN;
+        } else if (isCursor) {
+            this.parameterKind = DBSProcedureParameterKind.RESULTSET;
+        } else {
+            this.parameterKind = isOutput ? DBSProcedureParameterKind.OUT : DBSProcedureParameterKind.IN;
+        }
 
         this.maxLength = JDBCUtils.safeGetInt(dbResult, "max_length");
         this.scale = JDBCUtils.safeGetInt(dbResult, "scale");

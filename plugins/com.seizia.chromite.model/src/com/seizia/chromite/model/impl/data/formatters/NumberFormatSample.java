@@ -27,6 +27,13 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Number format properties and their defaults.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: scientificSmallValues 기본값을 켬. 꺼져 있으면 최대 소수 자릿수(기본 10)보다 작은 0이 아닌 값이
+ *   0이나 -0으로 보였다(-2.5E-300 → -0) (docs/chromite/swing-result-viewer.md)
+ */
 public class NumberFormatSample implements DBDDataFormatterSample {
 
     public static final String PROP_USE_GROUPING ="useGrouping";
@@ -58,7 +65,8 @@ public class NumberFormatSample implements DBDDataFormatterSample {
         props.put(PROP_MIN_FRACT_DIGITS, tmp.getMinimumFractionDigits());
         props.put(PROP_USE_TYPE_SCALE, false);
         props.put(PROP_NATIVE_SPECIAL_VALUES, false);
-        props.put(PROP_SCIENTIFIC_SMALL_VALUES, false);
+        // Chromite: on by default. A nonzero value below the last fraction digit was shown as 0 or -0 (-2.5E-300)
+        props.put(PROP_SCIENTIFIC_SMALL_VALUES, true);
         props.put(PROP_SCIENTIFIC_EXP_SEP, DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
         props.put(PROP_SCIENTIFIC_PATTERN, DEFAULT_SCIENTIFIC_PATTERN);
         props.put(PROP_EXCLUDE_ID_COLUMNS, false);
