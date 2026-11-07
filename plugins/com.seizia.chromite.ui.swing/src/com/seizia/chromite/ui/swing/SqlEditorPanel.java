@@ -238,6 +238,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 스마트 커밋({@link SmartCommit}): 엔진 처리기가 설정을 따르고, 문장이 세션을 수동 커밋으로 바꾸면 커밋·롤백 뒤 되돌릴 세션으로 기억
+ *   (docs/chromite/connection-lifecycle.md "스마트 커밋"). 쿼리 관리자가 본 커밋 방식이 바뀌면 상태 줄의 커밋 방식을 다시 읽음(실행 밖의 전환)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -338,6 +340,9 @@ final class SqlEditorPanel extends JPanel {
      */
     @Nullable
     private QMTransactionState openTransaction;
+    // The commit mode (manual = true) the query manager last reported for the window's session, or null
+    @Nullable
+    private Boolean shownTransactionMode;
     private final Object jobLock = new Object();
     // EDT only
     @Nullable
@@ -1588,6 +1593,12 @@ final class SqlEditorPanel extends JPanel {
         }
 
         @Override
+        public boolean isSmartAutoCommit() {
+            // A data-changing statement switches an auto-commit session to manual commit (SmartCommit)
+            return SmartCommit.isEnabled(run.dataSourceContainer);
+        }
+
+        @Override
         public boolean hasBoundParameters(@NotNull SQLQuery query) {
             return run.binding.isBound(query);
         }
@@ -1604,6 +1615,8 @@ final class SqlEditorPanel extends JPanel {
     private final class QueryListener implements SQLQueryListener {
         private final Execution run;
         private final DBCExecutionContext context;
+        // The session's commit mode before the current statement, for smart commit
+        private boolean wasAutoCommit;
 
         QueryListener(@NotNull Execution run, @NotNull DBCExecutionContext context) {
             this.run = run;
@@ -1612,11 +1625,15 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void onStartQuery(@NotNull DBCSession session, @NotNull SQLQuery query) {
+            wasAutoCommit = SmartCommit.isAutoCommit(session.getExecutionContext());
             syncServerOutput(session);
         }
 
         @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
+            if (SmartCommit.isEnabled(run.dataSourceContainer)) {
+                SmartCommit.afterStatement(session.getExecutionContext(), wasAutoCommit);
+            }
             reportQueryResult(run, session, result);
             recordHistory(run, context, result);
             if (run.includeActualPlan && run.planner != null && result.getError() == null && !run.cancelRequested
@@ -1850,6 +1867,15 @@ final class SqlEditorPanel extends JPanel {
         if (previous == null ? shown != null
             : shown == null || previous.getTransactionStartTime() != shown.getTransactionStartTime() || previous.isExecuting() != shown.isExecuting()) {
             host.executionStateChanged(this);
+        }
+        // The commit mode changed outside this window's execution (smart commit going back to auto-commit after a commit
+        // or rollback, the connection's Auto-commit applied to open sessions): read it again. Set first, so that the
+        // read, which calls this method, does not start another one.
+        Boolean mode = transaction == null ? null : transaction.isTransactionMode();
+        Boolean previousMode = shownTransactionMode;
+        shownTransactionMode = mode;
+        if (mode != null && previousMode != null && !mode.equals(previousMode)) {
+            refreshTransactionMode();
         }
     }
 

@@ -31,7 +31,7 @@
    Swing `ResultSetEditPersister`(`:151` `collectChanges` 뒤 바로 저장)에는 확인이 없다. 설정값은 남아 있지만 효과가 없다.
    → **2026-11-07 수정**(`chromite/grid-save-preview`): 저장 전 `ScriptPreviewDialog.confirmSave`로 문장을 보이고 Save/Cancel을 묻는다.
    Options에 설정 항목. [swing-frontend.md](../swing-frontend.md) "저장 전 스크립트 미리 보기".
-4. **S16 스마트 커밋.** 엔진은 `handler.isSmartAutoCommit()`일 때만 `DBExecUtils.checkSmartAutoCommit`을 부른다(`SQLQueryExecuteJob.java:615`).
+4. **S16 스마트 커밋.** (2026-11-08 고침, [connection-lifecycle.md](../connection-lifecycle.md) "스마트 커밋") 엔진은 `handler.isSmartAutoCommit()`일 때만 `DBExecUtils.checkSmartAutoCommit`을 부른다(`SQLQueryExecuteJob.java:615`).
    인터페이스 기본값은 `false`(`SQLQueryExecuteHandler.java:91`)이고 Swing `SqlEditorPanel.QueryHandler`(`:1329`)는 재정의하지 않는다.
    연결 종류의 `smartCommit`과 `transaction.smart.commit` 설정은 저장·읽기(`DBExecUtils.java:528`)되지만 쿼리 창에서는 아무 일도 하지 않는다.
 5. **S24 유휴 트랜잭션 자동 종료**(영역 A 지시서의 예와 같음, 교차 참조). `DataSourceMonitorJob.getTransactionTimeoutSeconds`·`getLastUserActivityTime`이 쓰는
@@ -62,7 +62,7 @@
 | S13 | `@echo` 등 제어 명령 출력 | `SQLEditorOutputConsoleViewer` | 있음 | Messages 탭(swing-frontend.md C단계 "스크립트 문맥") | 낮음 | |
 | S14 | 오류 때 묻기(Stop/Retry/Ignore/Ignore all), 오류 처리 설정 | `showErrorStopRetryIgnore`, `PrefPageSQLExecute` | 일부 | `SqlEditorPanel.java:1372-1379` 늘 STOP. 2026-11-07 오류 처리 설정 추가(Options > Query Execution: 멈춤 / 건너뛰고 계속, [swing-options.md](../swing-options.md)). 대화상자로 묻기는 여전히 없음(SSMS식 Messages 탭) | 중간 | 조사 당시: 무시하고 계속할 방법 없음. 함께 고침: 오류로 멈추면 엔진 기본값 `STOP_ROLLBACK`이 열린 트랜잭션을 묻지 않고 롤백하던 것 |
 | S15 | 커밋 방식 설정(문장마다·스크립트 끝·N줄마다) | `PrefPageSQLExecute`, `SQLScriptCommitType` | 의도적 제외 (2026-11-07) | 엔진 기본 `NO_COMMIT`(swing-frontend.md C단계 "커밋·오류 처리"). 모든 선택지가 묻지 않고 커밋해 트랜잭션 안전 규칙에 어긋남([swing-options.md](../swing-options.md)) | 중간 | 조사 당시: 없음 |
-| S16 | 스마트 커밋(변경 문에서 수동 커밋으로, 끝나면 복귀) | `SQLEditor.isSmartAutoCommit`, `TransactionMonitorToolbar`(`recoverSmartCommit`) | **조용히 끊김** | 위 요약 4 | 높음 | 설정 화면도 없음(C15). 2026-11-07: 효과가 없어 연결 유형 편집에도 두지 않음([swing-options.md](../swing-options.md)) |
+| S16 | 스마트 커밋(변경 문에서 수동 커밋으로, 끝나면 복귀) | `SQLEditor.isSmartAutoCommit`, `TransactionMonitorToolbar`(`recoverSmartCommit`) | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "스마트 커밋": 쿼리 창 처리기가 설정을 따르고, 스마트 커밋이 바꾼 세션만 커밋·롤백 뒤 열린 트랜잭션이 없을 때 자동 커밋으로 되돌림. Options > Connection Types에 두 칸). 조사 당시: **조용히 끊김** | 위 요약 4 | 높음 | 설정 화면도 없음(C15). 2026-11-07: 효과가 없어 연결 유형 편집에도 두지 않음([swing-options.md](../swing-options.md)) |
 | S17 | Commit / Rollback 명령 | `core` 트랜잭션 도구 막대 | **있음** (2026-11-07, [transactions.md](../transactions.md), 영역 A-C1). 조사 당시: 없음 | swing-frontend.md:1898 "만들지 않았다… 결정이 필요" | 높음 | 수동 커밋 연결은 `COMMIT`을 직접 실행해야 함 |
 | S18 | 실행 중 자동/수동 커밋 전환(도구 막대·메뉴) | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 없음 | 연결 편집에서만 바꿈(`AutoCommitApplier`, swing-frontend.md "자동 커밋 상태") | 높음 | 도구 막대·메뉴 토글은 결정 대기(:1898) |
 | S18a | 상태 줄에서 커밋 방식 바꾸기 | (SWT 상태 표시와 도구 막대) | 의도적 제외 | swing-frontend.md:1824 사용자 결정 "상태표시줄에서 바꾸면 안된다" | 중간 | 상태 줄은 표시와 설정 안내만 |
@@ -166,7 +166,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 없음 | grep `DBPConnectionEventType` 0건 | 낮음 | 이미 저장된 명령은 모델이 실행(`SwingPlatformUI.executeProcess`) |
 | C13 | 연결 보안 제한(권한 편집), 연결 잠금 | `EditConnectionPermissionsDialog` | 없음 | grep `setModifyPermission` 0건 | 중간 | 편집 화면이 없고 S8처럼 일부 제한은 무시됨 |
 | C14 | 연결 종류 편집기(새 종류, 자동 커밋·실행 확인·데이터 변경 확인·스마트 커밋·자동 닫기 기간·색) | `PrefPageConnectionTypes` | 없음 | `ConnectionSettingsPanel.java:632`는 종류 목록만 고름 | 중간 | 기본 3종류의 값을 바꿀 수 없음 |
-| C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
+| C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 일부 (2026-11-08 스마트 커밋·되돌리기는 Options > Connection Types, [connection-lifecycle.md](../connection-lifecycle.md). 유휴 트랜잭션은 연결 대화상자, [idle-transactions.md](../idle-transactions.md)). 조사 당시: 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
 | C16 | 클라이언트 식별(애플리케이션 이름 끄기·바꾸기, 환경 변수 쓰기) | `PrefPageConnectionClient` | 없음 | Swing grep `META_CLIENT_NAME` 0건, 모델 키 `ModelPreferences.java:216-218` | 낮음 | 이름은 늘 `GeneralUtils.getProductTitle()`(swing-followup-fixes.md "Oracle 프로그램 이름") |
 | C17 | 오류 처리(재연결 등), 메타데이터 읽기 설정 | `PrefPageErrorHandle`, `PrefPageMetaData` | 없음 | grep 0건 | 낮음 | 모델 기본값으로 동작 |
 | C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 일부 | `DriverManagerDialog`, `DriverEditorDialog`; swt-removal.md:114 | 낮음 | |

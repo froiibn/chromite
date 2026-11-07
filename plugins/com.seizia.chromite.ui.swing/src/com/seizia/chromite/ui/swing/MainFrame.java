@@ -208,6 +208,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 끝낼 때 실행 중인 작업 질문({@link RunningJobsCheck}: 기다리기 / 멈추고 끝내기 / 취소, 트랜잭션 질문 앞)
+ *   (docs/chromite/connection-lifecycle.md "끝낼 때 실행 중인 작업")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1203,8 +1205,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
      * changes of their result grids (SSMS lists them in one question), then lets the tool documents end their own
-     * sessions ({@link ToolDocument#confirmClose}: the debugger), then what to do with uncommitted transactions
-     * ({@link ExitTransactionCheck}), then closes the window.
+     * sessions ({@link ToolDocument#confirmClose}: the debugger), then what to do with jobs that still run
+     * ({@link RunningJobsCheck}), then with uncommitted transactions ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
         // Table designers ask one by one: saving shows each change script
@@ -1263,6 +1265,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     return;
                 }
             }
+        }
+        // Running queries, exports and tasks: wait for them, stop them, or keep Chromite open (before the transactions,
+        // which can be ended only once their statements stopped)
+        if (!RunningJobsCheck.confirm(this)) {
+            return;
         }
         // Closing ends every session: open transactions are committed or rolled back only as the user says
         if (!ExitTransactionCheck.confirm(this)) {

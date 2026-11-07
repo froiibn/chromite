@@ -43,6 +43,10 @@ import java.util.stream.Collectors;
  * 변경 이력:
  * - 2026-11-07 {@link #collectDependentDataSources}를 패키지 안에 공개: 자동 복구 전에 다시 연결이 끝낼 열린 트랜잭션을 같은
  *   범위에서 찾기 위해({@link TransactionRecoveryGuard}, docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 {@link #collectDependentDataSources}를 공개: Swing의 무효화·다시 연결 명령이 다시 열 연결 모두의 열린 트랜잭션을
+ *   먼저 묻기 위해 (docs/chromite/connection-lifecycle.md "무효화·다시 연결")
+ * - 2026-11-08 결과를 마지막 단계만이 아니라 모든 단계로 셈({@code mergeResults}): 다시 열지 못한 문맥(INVALIDATE 실패)이
+ *   AFTER_INVALIDATE 성공 때문에 "다시 연결함"(n/n)으로 알려지고 호출자도 성공으로 보던 것 (docs/chromite/connection-lifecycle.md "무효화·다시 연결")
  */
 public class InvalidateJob extends DataSourceJob {
     private static final Log log = Log.getLog(InvalidateJob.class);
@@ -201,11 +205,13 @@ public class InvalidateJob extends DataSourceJob {
     ) {
         monitor.beginTask("Invalidate data sources", containers.size());
 
-        final List<ContextInvalidateResult> finalResults = new ArrayList<>();
+        // The result of each network handler and each context over all phases: a failure in any phase stays a failure.
+        // Each phase lists them in the same order. Before, only the last phase counted, and a context that could not be
+        // reopened (INVALIDATE failed) was reported as reconnected because nothing fails in AFTER_INVALIDATE.
+        final Map<DBPDataSourceContainer, List<ContextInvalidateResult>> handlerResults = new LinkedHashMap<>();
+        final Map<DBPDataSourceContainer, List<ContextInvalidateResult>> instanceResults = new LinkedHashMap<>();
 
         for (DBCInvalidatePhase phase : DBCInvalidatePhase.values()) {
-            finalResults.clear();
-
             enum Severity {
                 FINE,
                 SEVERE
@@ -229,7 +235,7 @@ public class InvalidateJob extends DataSourceJob {
                     failed.put(container, Severity.SEVERE);
                 }
 
-                finalResults.addAll(results);
+                mergeResults(handlerResults, container, results);
             }
 
             for (DBPDataSourceContainer container : containers) {
@@ -242,6 +248,7 @@ public class InvalidateJob extends DataSourceJob {
                     continue;
                 }
                 var results = invalidateInstances(monitor, dataSource, phase);
+                List<ContextInvalidateResult> merged = mergeResults(instanceResults, container, results);
 
                 if (anyFailed(results)) {
                     failed.put(container, Severity.FINE);
@@ -268,26 +275,56 @@ public class InvalidateJob extends DataSourceJob {
 
                 if (phase == DBCInvalidatePhase.AFTER_INVALIDATE) {
                     if (feedbackHandler != null) {
-                        if (anySucceeded(results)) {
-                            feedbackHandler.onInvalidateSuccess(container, results);
+                        if (anySucceeded(merged)) {
+                            feedbackHandler.onInvalidateSuccess(container, merged);
                         } else if (showErrors) {
-                            feedbackHandler.onInvalidateFailure(container, results);
+                            feedbackHandler.onInvalidateFailure(container, merged);
                         }
                     }
 
                     monitor.worked(1);
                 }
-
-                finalResults.addAll(results);
             }
         }
 
         monitor.done();
 
+        final List<ContextInvalidateResult> finalResults = new ArrayList<>();
+        handlerResults.values().forEach(finalResults::addAll);
+        instanceResults.values().forEach(finalResults::addAll);
         return finalResults;
     }
 
-    static void collectDependentDataSources(
+    /**
+     * Combines a phase's results of a container with those of the earlier phases, position by position (the same
+     * handler or context): an earlier failure is kept.
+     *
+     * @return the combined results of the container
+     */
+    @NotNull
+    private static List<ContextInvalidateResult> mergeResults(
+        @NotNull Map<DBPDataSourceContainer, List<ContextInvalidateResult>> all,
+        @NotNull DBPDataSourceContainer container,
+        @NotNull Collection<ContextInvalidateResult> results
+    ) {
+        List<ContextInvalidateResult> previous = all.get(container);
+        List<ContextInvalidateResult> merged = new ArrayList<>(results);
+        if (previous != null && previous.size() == merged.size()) {
+            for (int i = 0; i < merged.size(); i++) {
+                if (previous.get(i).isError()) {
+                    merged.set(i, previous.get(i));
+                }
+            }
+        }
+        all.put(container, merged);
+        return merged;
+    }
+
+    /**
+     * The data source and the data sources that use its network handlers (an SSH tunnel shared by several connections):
+     * the ones whose contexts an invalidation reopens.
+     */
+    public static void collectDependentDataSources(
         @NotNull DBPDataSource dataSource,
         @NotNull Set<DBPDataSourceContainer> result
     ) {

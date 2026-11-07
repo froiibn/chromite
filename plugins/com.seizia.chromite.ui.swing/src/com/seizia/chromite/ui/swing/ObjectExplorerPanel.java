@@ -27,6 +27,7 @@ import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DataSearchMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.SchedulerMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
@@ -213,6 +214,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 Search Data… 메뉴(여러 테이블의 값 찾기, {@link DataSearchPanel}) (docs/chromite/swing-data-search.md)
+ * - 2026-11-08 연결 메뉴에 Invalidate/Reconnect(연결을 끊지 않고 세션을 다시 엶, 열린 트랜잭션을 먼저 물음)
+ *   (docs/chromite/connection-lifecycle.md "무효화·다시 연결")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -309,6 +312,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action connectAction;
     private final Action disconnectAction;
     private final Action reconnectAction;
+    private final Action invalidateAction;
     private final Action editConnectionAction;
     private final Action renameAction;
     private final Action deleteAction;
@@ -575,6 +579,8 @@ final class ObjectExplorerPanel extends JPanel {
         disconnectAction = createAction(CoreMessages.explorer_disconnect, () -> runOnSelectedDataSource(this::disconnectServer));
         disconnectAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_disconnect_tip);
         reconnectAction = createAction(CoreMessages.explorer_reconnect, () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
+        invalidateAction = createAction(LifecycleMessages.invalidate, () -> runOnSelectedDataSource(container -> ConnectionCommands.invalidate(this, container)));
+        invalidateAction.putValue(Action.SHORT_DESCRIPTION, LifecycleMessages.invalidate_tip);
         editConnectionAction = createAction(CoreMessages.explorer_edit_connection, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.edit(this, node.getDataSourceContainer());
@@ -657,6 +663,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
         popupMenu.add(reconnectAction);
+        popupMenu.add(invalidateAction);
         popupMenu.addSeparator();
         popupMenu.add(activityMonitorAction);
         popupMenu.add(locksAction);
@@ -891,6 +898,7 @@ final class ObjectExplorerPanel extends JPanel {
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
         reconnectAction.setEnabled(connected);
+        invalidateAction.setEnabled(connected);
         activityMonitorAction.setEnabled(dataSource != null);
         locksAction.setEnabled(dataSource != null);
         dashboardAction.setEnabled(dataSource != null);

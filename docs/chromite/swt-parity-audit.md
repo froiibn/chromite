@@ -132,3 +132,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
   A-platform §6의 해당 줄과 §7 집계 문단 갱신.
+- 2026-11-08 4순위 B2 연결 수명 주기([connection-lifecycle.md](connection-lifecycle.md)): A-S8·S10·S11(조용히 끊김) 수정, A-C4·A-C7·A-C8·A-C15·A-U3 → 있음, A-S2 → 일부,
+  B-S16 → 있음, B-C15 → 일부, D-K4·K5 수정. 닫기 경로 전수 점검(절전 닫기·깨어남 다시 초기화의 무확인 롤백을 고침).
