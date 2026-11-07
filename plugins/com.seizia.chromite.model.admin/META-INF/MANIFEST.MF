@@ -14,17 +14,21 @@ Require-Bundle: com.seizia.chromite.model,
  com.seizia.chromite.ext.oracle,
  com.seizia.chromite.ext.generic,
  com.seizia.chromite.ext.altibase,
- com.seizia.chromite.model.dashboard
+ com.seizia.chromite.model.dashboard,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native
 Export-Package: com.seizia.chromite.model.admin,
  com.seizia.chromite.model.admin.dashboard,
  com.seizia.chromite.model.admin.logs,
  com.seizia.chromite.model.admin.maintenance,
  com.seizia.chromite.model.admin.mssql,
  com.seizia.chromite.model.admin.mysql,
+ com.seizia.chromite.model.admin.nativetool,
  com.seizia.chromite.model.admin.objects,
  com.seizia.chromite.model.admin.oracle,
  com.seizia.chromite.model.admin.postgresql,
  com.seizia.chromite.model.admin.replication,
+ com.seizia.chromite.model.admin.search,
  com.seizia.chromite.model.admin.security,
  com.seizia.chromite.model.admin.space
 Automatic-Module-Name: com.seizia.chromite.model.admin

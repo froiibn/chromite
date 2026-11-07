@@ -18,13 +18,18 @@ package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPContextProvider;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 
 import java.util.List;
 
@@ -34,12 +39,16 @@ import java.util.List;
  * 설계: 파서가 나눈 문장({@link SQLScriptElement})을 실행 엔진에 넘기기 전에 {@link #prepare}가 바꾸고(예: {@code :name} → {@code ?}),
  * 엔진이 문장을 만들 때 {@link SQLQueryExecuteHandler#hasBoundParameters}/{@link SQLQueryExecuteHandler#bindParameters}로
  * {@link #isBound}/{@link #bind}를 부른다. 실행 창({@link SqlEditorPanel})과 예약 실행이 같은 바인딩을 쓴다.
+ * 결과를 다시 읽는 데이터 컨테이너({@link #createDataContainer})와 Query History에 남길 글자·값도 바인딩이 정한다:
+ * 값은 그 실행에만 있으므로, 다시 읽기와 기록에서 다시 실행하기가 같은 값을 쓰게 하려면 바인딩을 아는 쪽이 만들어야 한다.
  * 구현은 {@link QueryParameterBinder}.
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 {@link #getHistoryText}: 바인딩한 쿼리가 Query History에 {@code ?}로 남아 다시 열거나 실행할 수 없던 문제
  *   (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-08 {@link #getHistoryText}는 리터럴 대신 {@code :name} 글자, 값은 {@link #getHistoryParameters}. 결과를 다시 읽을 데이터 컨테이너
+ *   {@link #createDataContainer} (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 interface SqlParameterBinding {
 
@@ -88,11 +97,33 @@ interface SqlParameterBinding {
     void bind(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException;
 
     /**
-     * The text of an executed query for the query history: a bound query with its values written in as SQL literals
-     * (its own text has {@code ?} markers, which can't be run again from the history).
+     * The text of an executed query for the query history: a bound query with its {@code :name} markers (its own text
+     * has {@code ?} markers, whose values the history would not know).
      */
     @NotNull
     default String getHistoryText(@NotNull SQLQuery query) {
         return query.getText();
+    }
+
+    /**
+     * The values bound to an executed query, for the query history (History: Open, Execute bind them again), or null
+     * if the query is not bound.
+     */
+    @Nullable
+    default List<QueryHistory.Parameter> getHistoryParameters(@NotNull SQLQuery query) {
+        return null;
+    }
+
+    /**
+     * The data container that reads a result of the query again (filters, server sorting, next pages, Export Data).
+     */
+    @NotNull
+    default SQLQueryDataContainer createDataContainer(
+        @NotNull DBPContextProvider contextProvider,
+        @NotNull SQLQuery query,
+        @NotNull SQLScriptContext scriptContext,
+        @NotNull Log log
+    ) {
+        return new SQLQueryDataContainer(contextProvider, query, scriptContext, log);
     }
 }

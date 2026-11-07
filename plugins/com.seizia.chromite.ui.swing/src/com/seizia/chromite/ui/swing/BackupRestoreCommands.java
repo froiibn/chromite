@@ -20,8 +20,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
-import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
-import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.struct.DBSObject;
 
@@ -36,9 +35,11 @@ import java.awt.*;
  * ({@code supportsNativeClient()}, ext.postgresql plugin.xml의 pgDatabaseBackup 작업 조건), MySQL은
  * {@code supportsNativeClients()}(ext.mysql plugin.xml)다. SQL Server는 디스크로 백업할 수 없는 Azure·Fabric·Babelfish 드라이버와
  * Synapse를 뺀다(서버 에디션은 대화상자를 열 때 다시 확인한다). Oracle은 대상이 아니다(RMAN·Data Pump는 서버 쪽 도구).
+ * PostgreSQL·MySQL 조건은 Chromite Agent 백업·복원 도구와 같도록 {@link NativeBackupRestore#isSupported}에 둔다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-08 PostgreSQL·MySQL 조건을 {@link NativeBackupRestore#isSupported}로 옮김(Chromite Agent 도구와 함께 씀)
  */
 final class BackupRestoreCommands {
 
@@ -54,13 +55,7 @@ final class BackupRestoreCommands {
             return !SQLServerUtils.isDriverAzure(driver) && !SQLServerUtils.isDriverFabric(driver)
                 && !SQLServerUtils.isDriverBabelfish(driver) && !database.getDataSource().isSynapseDatabase();
         }
-        if (object instanceof PostgreDatabase database) {
-            return database.getDataSource().getServerType().supportsNativeClient();
-        }
-        if (object instanceof MySQLCatalog catalog) {
-            return catalog.getDataSource().supportsNativeClients();
-        }
-        return false;
+        return NativeBackupRestore.isSupported(object);
     }
 
     static void backUp(@NotNull Component owner, @NotNull DBSObject object, @NotNull ObjectExplorerPanel.QueryWindows queryWindows) {

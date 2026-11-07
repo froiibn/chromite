@@ -104,16 +104,16 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | PostgreSQL 디버거(프로시저 중단점·단계 실행) | `debug.ui`, `ext.postgresql.debug.ui`, (모델) `debug.core`, `ext.postgresql.debug.core` | 없음(함께 삭제, git 이력) | 2026-11-07 옮김: 모델의 DB 중립 부분과 PostgreSQL 구현을 `org.eclipse.debug.core` 없이 복원, Swing 디버거 탭([procedure-debugger.md](procedure-debugger.md)) |
 | 작업(Task) 관리와 예약 실행: 저장한 작업 목록, 스케줄러, SQL 스크립트 작업 | `tasks.ui`, `tasks.ui.view`, `tasks.sql.ui`, `tasks.native.ui` | `model`의 `DBTTask*`, `tasks.native` | `DBTTask`는 데이터 전송 실행(`DataTransferWizard`)에만 쓰임. 작업 저장·예약 화면 없음 |
 | SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | `terminal` 참조 0 |
-| 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | `Chart`·`DBGeometry` 참조 0 |
+| 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | 2026-11-08 결과 표의 차트·공간 보기를 Java2D로 더함([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 대시보드 차트 편집·지도 타일은 없음 |
 | 사용자 정의 대시보드(대시보드 편집·여러 대시보드 보기) | `ui.dashboard` | `model.dashboard` | Swing에는 Activity Monitor의 고정 서버 대시보드만 있다([swing-dashboard.md](swing-dashboard.md), 2026-11-07 devel 병합으로 확인) |
 | 프로젝트·자원 탐색기(스크립트 폴더, 북마크, 프로젝트 관리) | `ui.navigator`의 프로젝트 보기, `core` | `model`, `model.rcp` | Object Explorer는 연 서버만 보인다(`ObjectExplorerPanel` 루트 주석) |
 | Git 연동 | `team.git.ui`(+ EGit/JGit) | - | JGit 참조 0 |
 | 스키마 비교 | `cmp.simple.ui` | `cmp.simple` | `CMPCompare` 참조 0 |
 | AI 자동완성(AI 채팅은 #92에서 옮김, [ai-agent.md](ai-agent.md)) | `ui.ai` | `model.ai` | Swing에 AI 자동완성 없음 |
 | Query Manager(실행 로그 보기) | `ui.editors.sql`(`QueryLogViewer`) | `model`의 QM | QM 보기 없음. Swing에는 자체 쿼리 기록만 있다([swing-sql-editor-plus.md](swing-sql-editor-plus.md)) |
-| 데이터 검색(여러 테이블의 값 찾기) | `ui.search` | `model` | `DataSearch` 참조 0. 이름으로 객체 찾기는 있음(`ObjectSearchPanel`) |
+| ~~데이터 검색(여러 테이블의 값 찾기)~~ 2026-11-08 옮김([swing-data-search.md](swing-data-search.md)) | `ui.search` | `model` | Object Explorer "Search Data…"(`DataSearchPanel`, 모델 `DataSearch`) |
 | 드라이버 관리의 나머지: Maven 아티팩트 추가·편집, 라이브러리 의존성 트리, 전역 클래스패스 | `ui.editors.connection` | `registry` | 관리자·편집 창·오프라인 모드는 Swing에 있다([swing-driver-manager.md](swing-driver-manager.md) "남긴 것", 2026-11-07 devel 병합으로 확인) |
-| 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0 |
+| 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0. 2026-11-08: Oracle SQL Developer·Toad·CSV는 File > Import Connections > From Another Tool…로 옮김([connection-transfer.md](connection-transfer.md) "다른 도구에서 가져오기"), 나머지 도구는 없음 |
 | 환경설정 화면 대부분(편집기·결과·연결 기본값 등) | `ui`, `ui.editors.*`, `core` | `model` 설정 키 | Swing에는 일부 옵션 대화상자만 있다 |
 | DB별 전용 화면: 연결 페이지, 객체 편집기 탭, 도구(예: Oracle 컴파일, PostgreSQL 유지 보수, MySQL 세션) | `ext.*.ui` 32개 | `ext.*` | Swing은 범용 연결 화면과 일부 SQL Server·PostgreSQL·MySQL 도구만 있다([swing-frontend.md](swing-frontend.md) D단계, [swing-conn-advanced.md](swing-conn-advanced.md)) |
 | WMI 데이터 소스 | `ext.wmi` | 없음 | Swing 제품에 원래 없었다 |
@@ -162,3 +162,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 - 2026-11-07 devel 병합(#65 드라이버 관리자, #66 내장 런타임): 런타임 단계·`BundleJre.java`를 Swing 제품만 대상으로, 드라이버 관리자·오프라인 모드를 없는 기능 목록에서 뺌.
 - 2026-11-07 전수 조사 문서 [swt-parity-audit.md](swt-parity-audit.md) 연결, AI 채팅 줄 갱신(#92에서 옮김).
 - 2026-11-07 PostgreSQL 디버거 줄 갱신: 모델 복원과 Swing 디버거([procedure-debugger.md](procedure-debugger.md)).
+- 2026-11-08 차트·GIS 줄 갱신: 결과 표의 차트·공간 보기([swing-result-charts-spatial.md](swing-result-charts-spatial.md)).

@@ -8,11 +8,13 @@ Bundle-Activator: com.seizia.chromite.ext.oracle.internal.OracleActivator
 Require-Bundle: com.seizia.chromite.data.gis,
  com.seizia.chromite.model;visibility:=reexport,
  com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.net.ssh,
  com.seizia.chromite.registry,
  com.seizia.chromite.tasks.native;visibility:=reexport
 Export-Package: com.seizia.chromite.ext.oracle,
  com.seizia.chromite.ext.oracle.data,
  com.seizia.chromite.ext.oracle.edit,
+ com.seizia.chromite.ext.oracle.importer,
  com.seizia.chromite.ext.oracle.model,
  com.seizia.chromite.ext.oracle.model.auth,
  com.seizia.chromite.ext.oracle.model.dict,

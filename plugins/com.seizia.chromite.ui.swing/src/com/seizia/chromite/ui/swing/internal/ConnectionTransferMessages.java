@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
  * - 2026-11-07 가져오기 저장 실패 문구, 내보내기 암호 안내에 비밀번호가 작업 공간 복사로 따라가지 않는다는 문장 (docs/chromite/credential-storage.md)
+ * - 2026-11-08 다른 도구에서 가져오기 문구(File > Import Connections 하위 메뉴, 원본 고르기, 알 수 없는 DB 종류) (docs/chromite/connection-transfer.md)
  */
 public class ConnectionTransferMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages"; //$NON-NLS-1$
@@ -97,6 +98,26 @@ public class ConnectionTransferMessages extends NLS {
     public static String transfer_import_done_skipped_connected;
     public static String transfer_import_done_missing_drivers;
     public static String transfer_import_done_kept_profiles;
+    public static String transfer_import_driver_unrecognized;
+    public static String transfer_import_drivers_unrecognized_note;
+    public static String transfer_import_done_unrecognized;
+
+    public static String transfer_menu_import_group;
+    public static String transfer_menu_import_file;
+    public static String transfer_menu_import_other;
+    public static String transfer_other_title;
+    public static String transfer_other_choose;
+    public static String transfer_other_sqldeveloper;
+    public static String transfer_other_toad;
+    public static String transfer_other_csv;
+    public static String transfer_other_note;
+    public static String transfer_other_open_title;
+    public static String transfer_other_filter_sqldeveloper;
+    public static String transfer_other_filter_toad;
+    public static String transfer_other_filter_csv;
+    public static String transfer_other_progress;
+    public static String transfer_other_failed;
+    public static String transfer_other_empty;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionTransferMessages.class);

@@ -609,6 +609,42 @@
             <parameter name="replace" type="boolean" description="Overwrite an existing database (default false)"/>
         </function>
 
+        <!-- PostgreSQL and MySQL/MariaDB backup and restore with the local client tools (tasks.native, the same path as the
+             Swing Back Up / Restore dialog: model.admin NativeBackupRestore). The client folder is the connection's Local Client
+             setting; passwords go to the tools through environment variables, never on the command line -->
+        <function id="dumpDatabase" name="%tool.dumpDatabase.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
+            description="PostgreSQL (pg_dump) and MySQL/MariaDB (mysqldump): backs up a database, or some schemas (PostgreSQL) or tables (MySQL), to a new file on the computer where Chromite runs, with the local client tools of the connection's Local Client setting. Never overwrites a file. The user sees the command line and confirms. Long runs report progress.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" required="true" description="Database to back up"/>
+            <parameter name="file" type="string" required="true" description="Absolute path of the new backup file (a folder for format=directory) on this computer; it must not exist, its folder must"/>
+            <parameter name="format" type="string" validValues="custom,plain,directory,tar" description="PostgreSQL output format (default custom; plain is a SQL script). MySQL always writes a SQL script"/>
+            <parameter name="schemas" type="string" description="PostgreSQL: comma-separated schemas to back up (default: the whole database)"/>
+            <parameter name="tables" type="string" description="MySQL: comma-separated tables to back up (default: the whole database)"/>
+            <parameter name="noOwner" type="boolean" description="PostgreSQL: --no-owner (default false)"/>
+            <parameter name="noPrivileges" type="boolean" description="PostgreSQL: --no-privileges (default false)"/>
+            <parameter name="inserts" type="boolean" description="PostgreSQL: INSERT commands instead of COPY (default false)"/>
+            <parameter name="clean" type="boolean" description="PostgreSQL: add DROP commands before the CREATE commands (default false)"/>
+            <parameter name="create" type="boolean" description="PostgreSQL: add a CREATE DATABASE command (default false)"/>
+            <parameter name="method" type="string" validValues="online,lock,normal" description="MySQL: online = --single-transaction (default), lock = --lock-all-tables, normal = --skip-lock-tables"/>
+            <parameter name="noData" type="boolean" description="MySQL: structure only (default false)"/>
+            <parameter name="routines" type="boolean" description="MySQL: include procedures and functions (default true)"/>
+            <parameter name="events" type="boolean" description="MySQL: include events (default false)"/>
+            <parameter name="removeDefiner" type="boolean" description="MySQL: remove DEFINER clauses (default false)"/>
+        </function>
+        <function id="restoreDump" name="%tool.restoreDump.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
+            description="PostgreSQL (pg_restore, or psql for a plain SQL script) and MySQL/MariaDB (mysql): restores a backup file on the computer where Chromite runs into an existing database, with the local client tools of the connection's Local Client setting. The PostgreSQL format is detected from the file. DANGEROUS: the user sees the command line and confirms.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" required="true" description="Existing target database"/>
+            <parameter name="file" type="string" required="true" description="Absolute path of the backup file (or directory-format folder) on this computer"/>
+            <parameter name="format" type="string" validValues="custom,plain,directory,tar" description="PostgreSQL: the backup's format (default: detected from the file)"/>
+            <parameter name="clean" type="boolean" description="PostgreSQL pg_restore: drop objects before recreating them (default false)"/>
+            <parameter name="noOwner" type="boolean" description="PostgreSQL pg_restore: do not restore ownership (default false)"/>
+            <parameter name="stopOnError" type="boolean" description="PostgreSQL: stop at the first error (psql ON_ERROR_STOP, pg_restore --exit-on-error; default false)"/>
+            <parameter name="disableForeignKeyChecks" type="boolean" description="MySQL: disable foreign key checks while restoring (default false)"/>
+        </function>
+
         <!-- SQL Server Agent jobs through the model of the Agent node (ext.mssql model.agent, docs/chromite/swing-sqlserver-agent.md):
              the msdb help procedures, so the agent roles (SQLAgentUserRole, SQLAgentReaderRole, SQLAgentOperatorRole) are enough -->
         <function id="listAgentJobs" name="%tool.listAgentJobs.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"

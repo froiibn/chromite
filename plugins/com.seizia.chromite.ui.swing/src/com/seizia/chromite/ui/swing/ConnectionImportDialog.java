@@ -45,11 +45,14 @@ import java.util.Map;
  *     모르게 바꾸지 않기 위해). "모든 충돌에" 한 번에 정할 수도 있다. 충돌이 없는 연결은 그대로 가져온다.</li>
  *     <li>기존 연결이 연결 중이면 "바꾸기"를 고를 수 없다(세션과 트랜잭션을 건드리지 않음). 모델도 가져오는 순간 다시 확인한다.</li>
  *     <li>이 PC에 없는 드라이버는 드라이버 열에 "설치 안 됨"으로 표시하고 표 아래에 알린다.</li>
+ *     <li>다른 도구에서 가져온 연결 중 DB 종류를 알아보지 못한 것은 드라이버 열에 원본 종류와 "Generic JDBC"를 보이고 표 아래에
+ *     드라이버 관리자에서 설정해야 한다고 알린다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
  * - 2026-11-08 취소를 기본 단추로 하고 처음 포커스를 둠: Enter로 기존 연결이 바뀌지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 다른 도구에서 가져올 때 알아보지 못한 DB 종류 표시 (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  */
 final class ConnectionImportDialog extends JDialog {
 
@@ -74,12 +77,14 @@ final class ConnectionImportDialog extends JDialog {
         this.entries = importFile.getEntries();
         boolean anyConflict = false;
         boolean anyMissingDriver = false;
+        boolean anyUnrecognizedType = false;
         for (ImportEntry entry : entries) {
             if (entry.getConflict() != ConnectionTransfer.ConflictKind.NONE) {
                 actions.put(entry.getId(), ConflictAction.SKIP);
                 anyConflict = true;
             }
             anyMissingDriver |= entry.isDriverMissing();
+            anyUnrecognizedType |= entry.getUnrecognizedType() != null;
         }
 
         JPanel header = new JPanel(new GridLayout(0, 1, 0, 2));
@@ -109,11 +114,15 @@ final class ConnectionImportDialog extends JDialog {
         scrollPane.setPreferredSize(new Dimension(UIScale.scale(900), UIScale.scale(300)));
 
         JPanel south = new JPanel(new BorderLayout(0, 6));
+        JPanel notes = new JPanel(new GridLayout(0, 1, 0, 6));
         if (anyMissingDriver) {
-            JLabel note = new JLabel("<html><body style='width:" + UIScale.scale(760) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
-                + ConnectionTransferMessages.transfer_import_drivers_missing_note + "</body></html>"); //$NON-NLS-1$
-            note.setIcon(UIManager.getIcon("OptionPane.warningIcon")); //$NON-NLS-1$
-            south.add(note, BorderLayout.NORTH);
+            notes.add(createNote(ConnectionTransferMessages.transfer_import_drivers_missing_note));
+        }
+        if (anyUnrecognizedType) {
+            notes.add(createNote(ConnectionTransferMessages.transfer_import_drivers_unrecognized_note));
+        }
+        if (notes.getComponentCount() > 0) {
+            south.add(notes, BorderLayout.NORTH);
         }
         if (anyConflict) {
             JComboBox<ConflictAction> allCombo = createActionCombo(ALL_ACTIONS);
@@ -172,6 +181,14 @@ final class ConnectionImportDialog extends JDialog {
         ConnectionImportDialog dialog = new ConnectionImportDialog(owner, fileName, importFile);
         dialog.setVisible(true);
         return dialog.accepted ? dialog.actions : null;
+    }
+
+    @NotNull
+    private static JLabel createNote(@NotNull String text) {
+        JLabel note = new JLabel("<html><body style='width:" + UIScale.scale(760) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
+            + text + "</body></html>"); //$NON-NLS-1$
+        note.setIcon(UIManager.getIcon("OptionPane.warningIcon")); //$NON-NLS-1$
+        return note;
     }
 
     private void applyToAll(@Nullable ConflictAction action) {
@@ -259,7 +276,9 @@ final class ConnectionImportDialog extends JDialog {
             return switch (column) {
                 case COLUMN_NAME -> entry.getName();
                 case COLUMN_HOST -> entry.getAddress();
-                case COLUMN_DRIVER -> entry.isDriverMissing()
+                case COLUMN_DRIVER -> entry.getUnrecognizedType() != null
+                    ? NLS.bind(ConnectionTransferMessages.transfer_import_driver_unrecognized, entry.getUnrecognizedType())
+                    : entry.isDriverMissing()
                     ? NLS.bind(ConnectionTransferMessages.transfer_import_driver_missing, entry.getDriverName())
                     : entry.getDriverName();
                 case COLUMN_GROUP -> entry.getFolderPath() == null ? "" : entry.getFolderPath().replace("/", " / "); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$

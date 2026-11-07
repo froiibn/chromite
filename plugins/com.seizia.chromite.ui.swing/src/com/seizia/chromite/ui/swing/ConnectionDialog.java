@@ -88,6 +88,8 @@ import java.util.StringTokenizer;
  *   (docs/chromite/credential-storage.md "실패")
  * - 2026-11-07 쿼리 창 세션 설정(쿼리 창마다 별도 연결)만 바꾸면 다시 연결을 묻지 않음: 그 뒤 연결하는 창부터 적용
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 모델이 작업마다 읽는 연결별 설정(Settings 탭의 Query Execution·Query Results·Data Formats·Errors and Timeouts·Metadata)도
+ *   다시 연결을 묻지 않음({@link ConnectionSettingsPanel#getPreferencesAppliedWithoutReconnect}) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 연결 설명만 바꾸면 다시 연결을 묻지 않음: 세션과 관계없는 값 (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
  */
 final class ConnectionDialog extends JDialog {
@@ -449,12 +451,14 @@ final class ConnectionDialog extends JDialog {
             autoCommitChanged = before.isDefaultAutoCommit() != after.isDefaultAutoCommit();
             after.getConnectionConfiguration().getBootstrap().setDefaultAutoCommit(
                 before.getConnectionConfiguration().getBootstrap().getDefaultAutoCommit());
-            // Query window sessions apply to windows that connect later (QueryWindowContext): no reconnect either
-            if (before.getPreferenceStore().contains(QueryWindowContext.PREF_SEPARATE_CONNECTION)) {
-                after.getPreferenceStore().setValue(QueryWindowContext.PREF_SEPARATE_CONNECTION,
-                    before.getPreferenceStore().getString(QueryWindowContext.PREF_SEPARATE_CONNECTION));
-            } else {
-                after.getPreferenceStore().setToDefault(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+            // Settings the model reads at each operation (query window sessions, the Settings pages such as Query
+            // Execution): no reconnect either
+            for (String key : settingsPanel.getPreferencesAppliedWithoutReconnect()) {
+                if (before.getPreferenceStore().contains(key)) {
+                    after.getPreferenceStore().setValue(key, before.getPreferenceStore().getString(key));
+                } else if (after.getPreferenceStore().contains(key)) {
+                    after.getPreferenceStore().setToDefault(key);
+                }
             }
             // The description is not used by the sessions either
             after.setDescription(before.getDescription());

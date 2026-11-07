@@ -83,8 +83,8 @@ import java.util.Set;
  *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
- *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
- *     Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
+ *     쓰는 핸들러의 탭에는 확인 표시), Settings(Tools &gt; Options 페이지의 연결별 값, {@link ConnectionSettingsOverrides}), Driver Properties,
+ *     Provider Properties, Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
  *     <li>Driver Properties 탭: 처음 열 때 모델의 {@code DBPDataSourceProvider#getConnectionProperties}(JDBC 드라이버의
  *     {@code getPropertyInfo})로 읽는다(SWT {@code ConnectionPropertiesControl}과 같은 호출, 드라이버 파일이 없으면 이때 내려받기를 묻는다).
  *     열지 않았으면 저장할 때 연결의 드라이버 속성을 건드리지 않는다.</li>
@@ -117,6 +117,8 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-07 Connection Properties에 쿼리 창 세션(이 연결의 쿼리 창마다 별도 연결: Options 설정 / 창마다 / 함께 씀)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 Options의 Settings 탭: Tools &gt; Options 페이지의 연결별 값({@link ConnectionSettingsOverrides}). 다시 연결 없이 적용되는
+ *   설정 키를 대화상자에 알림({@link #getPreferencesAppliedWithoutReconnect}) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 Connection Properties 맨 위에 연결 설명(SWT {@code ConnectionPageGeneral}의 Description, 탐색기 도구 설명에 보임)
  *   (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
  * - 2026-11-08 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않음(HANA의 빈 표)
@@ -192,6 +194,7 @@ final class ConnectionSettingsPanel extends JPanel {
     private List<String> bootstrapQueries = new ArrayList<>();
     private boolean ignoreBootstrapErrors;
     private final List<ConnectionNetworkPage> networkPages;
+    private final ConnectionSettingsOverrides settingsOverrides;
 
     private final JTabbedPane optionsTabs = new JTabbedPane();
     private final ConnectionPropertiesTable driverPropertiesTable = new ConnectionPropertiesTable(true);
@@ -256,6 +259,7 @@ final class ConnectionSettingsPanel extends JPanel {
         authExtras = ConnectionAuthExtras.create(authModels);
         driverFields = urlOnly ? null : ConnectionDriverFields.create(driver, this.changeListener);
         networkPages = ConnectionNetworkPage.createPages(dataSource, this.changeListener);
+        settingsOverrides = new ConnectionSettingsOverrides(dataSource);
 
         // Properties with a field in the main form are edited there only; without other properties there is no table tab (HANA)
         if (driverFields != null) {
@@ -278,6 +282,7 @@ final class ConnectionSettingsPanel extends JPanel {
         for (ConnectionNetworkPage page : networkPages) {
             optionsTabs.addTab(page.getTitle(), page);
         }
+        optionsTabs.addTab(ConnectionMessages.settings_tab_settings, settingsOverrides);
         optionsTabs.addTab(ConnectionMessages.settings_tab_driver_properties, driverPropertiesTable);
         if (providerPropertiesTable != null) {
             optionsTabs.addTab(ConnectionMessages.settings_tab_provider_properties, providerPropertiesTable);
@@ -487,6 +492,18 @@ final class ConnectionSettingsPanel extends JPanel {
         for (ConnectionNetworkPage page : networkPages) {
             page.saveSettings(target);
         }
+        settingsOverrides.saveSettings(target);
+    }
+
+    /**
+     * Keys of the connection's preference store that the model reads at each operation, so that a change of them
+     * needs no reconnect: the query window session and the settings pages applied without reconnect.
+     */
+    @NotNull
+    Set<String> getPreferencesAppliedWithoutReconnect() {
+        Set<String> keys = new HashSet<>(settingsOverrides.getKeysAppliedWithoutReconnect());
+        keys.add(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+        return keys;
     }
 
     /**
