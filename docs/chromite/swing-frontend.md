@@ -2529,7 +2529,7 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 드라이버 파일 내려받기 질문(`SwingDriversService`): 내려받기가 기본. 사용자가 연결을 시작해서 뜬 질문이고, 없는 파일을 더하기만 한다.
 - Query Library 가져오기 충돌(`QueryLibraryPanel`): 복사본 만들기가 기본(기존 쿼리를 바꾸지 않음). 지워진 쿼리 파일 다시 저장(`QueryLibraryEditor`): 사용자가 누른 저장이고 잃는 것이 없다.
 - 지운 드라이버 되살리기(`DriverManagerDialog` Restore Deleted…): 되살리기만 한다.
-- 값을 입력받는 폼: 연결 대화상자(Connect), 쿼리 매개변수(`SqlParameterDialog`의 Execute, `QueryParameterDialog`의 Run: 사용자가 이미 고른 실행에 값을 넣음),
+- 값을 입력받는 폼: 연결 대화상자(Connect), 쿼리 매개변수(`QueryParameterDialog`의 Run과 스크립트 모드의 Execute: 사용자가 이미 고른 실행에 값을 넣음),
   디버그 시작(`DebugStartDialog`), 보안 속성(`PrincipalPropertiesDialog`, `ObjectPermissionsDialog`: OK가 Cancel 기본 미리 보기를 거침),
   일정(`AgentScheduleDialog`, `ScheduleBuilderDialog`, `QueryScheduleDialog`), 디자이너 하위 창(`DesignerDialogs`), Options, 드라이버 편집, 찾기·바꾸기,
   열 필터, Query Library 루트·기준값·매개변수 정의, 부트스트랩 쿼리, 연결 내보내기, 드라이버 묶음 만들기(파일 덮어쓰기는 따로 확인), 자격 증명·비밀번호·암호 문구·SSH 질문,
@@ -2671,5 +2671,7 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 2026-11-07 Database type 콤보 설명: MySQL 드라이버 내장을 없앴으므로 "공개판에 드라이버가 내장된 주요 DB"를 "주요 DB"로 고침(목록은 그대로). [drivers.md](drivers.md).
 - 2026-11-08 실행 확인의 기본 단추: 데이터·스키마·작업·세션·파일을 바꾸는 확인과 실행 미리 보기는 취소(아니요, 닫기)가 기본 단추이고 처음 포커스,
   실행 단추에 동사(삭제, Kill Session, 바꾸기…). 백업·복원 대화상자와 전송 마법사의 Finish는 기본 단추가 없음. "실행 확인의 기본 단추" 절.
+- 2026-11-08 "실행 확인의 기본 단추"의 쿼리 매개변수 폼: 쿼리 창 대화상자(`SqlParameterDialog`)가 `QueryParameterDialog`의 스크립트 모드로 합쳐짐
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
 - 2026-11-08 "바꾸지 않은 것과 이유"에 남겼던 모델 호출자 네 곳(PLAN_TABLE 만들기, 대상 DDL 자동 생성, 파일 복사·이동, 작업 실행 확인)을 경고 확인으로 바꿈
   ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
