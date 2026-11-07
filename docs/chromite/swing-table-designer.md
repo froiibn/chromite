@@ -136,3 +136,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   모델 `SQLServerTableColumnManager`에서 고침. [swing-followup-fixes.md](swing-followup-fixes.md) "SQL Server 열 정렬 규칙".
 - 2026-11-08 SQL Server에서 기본값(DEFAULT 제약 조건)이 있는 열의 형식·NULL 허용을 바꾸는 변경 스크립트가 실패하던 것(오류 5074, 4922, 스키마 비교 시험에서 찾음, 디자이너 화면에서는 확인하지 않음). 모델 `SQLServerTableColumnManager`가
   제약 조건을 지우고 `ALTER COLUMN` 뒤에 다시 만든다. [schema-compare.md](schema-compare.md) "SQL Server 기본값 제약 조건".
+- 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
+  참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".
