@@ -22,6 +22,7 @@ import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -70,6 +71,7 @@ import java.util.function.IntConsumer;
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-08 오류 위치로 가기: 위치를 아는 오류 글자를 두 번 누르거나 오른쪽 클릭 "오류 위치로 가기"로 쿼리 창의 그 자리로
  *   ({@link Listener#goToSource}), Messages 오른쪽 클릭에 복사 (docs/chromite/swing-grid-navigation.md "오류 위치로 가기")
+ * - 2026-11-08 결과 행에서 SQL 만들기: 만든 문장을 새 쿼리 창에 여는 {@link Listener#openScript} (docs/chromite/swing-result-generate-sql.md)
  */
 final class QueryResultsView {
 
@@ -97,6 +99,11 @@ final class QueryResultsView {
          */
         default void goToSource(int offset) {
         }
+
+        /**
+         * Opens statements made from a result (Generate SQL) in a new query window, without running them.
+         */
+        void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script);
     }
 
     /**
@@ -150,6 +157,16 @@ final class QueryResultsView {
         @Override
         public void rowsChanged() {
             listener.resultsRowsChanged();
+        }
+
+        @Override
+        public boolean canOpenScript() {
+            return true;
+        }
+
+        @Override
+        public void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
+            listener.openScript(container, script);
         }
     };
 

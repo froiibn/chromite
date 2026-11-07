@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 33 | 17 | 6 | 16 | 2 | **74** |
-| 일부 | 8 | 7 | 5 | 6 | 5 | **31** |
+| 있음 | 34 | 17 | 6 | 16 | 2 | **75** |
+| 일부 | 7 | 7 | 5 | 6 | 5 | **30** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
 | 조용히 끊김 | 0 | 0 | 1 | 0 | 0 | **1** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
@@ -92,7 +92,7 @@
 | S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 있음(2026-11-08. 조사 당시: 일부) | `SqlFileContent`, `RecentFiles`, File Open/Save; Scripts 도구 창(2026-11-08: 폴더·이름 바꾸기·삭제·연결 묶기, `ScriptsPanel`); 자동 저장·다시 시작할 때 쿼리 창 복원(2026-11-08, `QueryWindowRecovery`: 연결·기본 DB/스키마, 연결하지 않고 복원); 연결별 최근 스크립트(2026-11-08, Object Explorer > Recent Scripts, `ScriptFiles.findLinkedScripts`); swt-removal.md:108 | - | SWT 자동 저장은 스크립트 파일에 썼고, Swing은 작업 공간의 복원 파일에 쓴다(파일 저장은 Save 질문 그대로). [swing-scripts-explorer.md](../swing-scripts-explorer.md), [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): `SqlMetadataRefresh`, 바뀐 개체의 스키마·DB를 실행 뒤, 수동 커밋이면 트랜잭션이 끝난 뒤 다시 읽음). 조사 당시: 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 조사 당시: 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
-| S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | 2026-11-07 탐색기 Generate SQL(SELECT·INSERT·UPDATE·DELETE·MERGE·JOIN·DDL·CALL, `ObjectScripts.getGenerators`, C-17). 결과 행에서 만들기(`dataInsert` 등)와 결과로 DDL은 없음(결과 클래스 grep 0) |
+| S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 있음(2026-11-08) | 결과 표 오른쪽 클릭 "SQL 생성"(`ResultSetGenerateSql`): 고른 행의 SELECT … = / IN, INSERT, UPDATE, DELETE, MERGE(`SQLGeneratorMergeFromData`, 방언 `supportsMergeStatement`), 중복 키 INSERT(`SQLGeneratorInsertReplaceFromData`, 방언 `insertMethods`), 결과를 담을 CREATE TABLE(데이터 전송 대상 DDL). 실행하지 않고 복사·쿼리 창에서 열기. 탐색기 Generate SQL은 C-17. [swing-result-generate-sql.md](../swing-result-generate-sql.md) | 중간 | 생성 옵션 화면 없음. 조사 당시: 일부(탐색기 Generate SQL만, 결과 행에서 만들기와 결과로 DDL 없음) |
 | S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 있음(2026-11-08) | Object Explorer "Execute Procedure…"(`ExecuteProcedureDialog`, 모델 `ProcedureCallScript`: 방언별 호출 스크립트, OUT 값), [swing-routines.md](../swing-routines.md) | 중간 | SSMS "Execute Stored Procedure"에 해당. 조사 당시: 없음 |
 | S43 | SQL 터미널 | `ui.editors.sql.terminal` | 있음(2026-11-08) | Query > SQL Terminal(Ctrl+T), `SqlTerminalView`, `MainFrame.updateTerminalTab` | 낮음 | 쿼리 창마다 켜고 끔(저장 안 함). SWT 설정 3개는 없음. [swing-sql-terminal.md](../swing-sql-terminal.md) |
 | S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 있음 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김"), 2026-11-08 View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, `ToolWindow.SplitHost`) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 놓는 방향은 전역 |
@@ -176,7 +176,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
 | C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
-| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 있음 (2026-11-08: Object Explorer·Registered Servers의 Change Password…). 조사 당시: 일부 | 만료 비밀번호 묻기(`SwingPlatformUI.promptUserPasswordChange`)와 메뉴(`ConnectionCommands.changePassword`, [swing-conn-advanced.md](../swing-conn-advanced.md) "비밀번호 바꾸기") | 낮음 | |
+| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 있음 (2026-11-08: Object Explorer·Registered Servers의 Change Password…). 조사 당시: 일부 | 만료 비밀번호 묻기(`SwingPlatformUI.promptUserPasswordChange`)와 메뉴(`ConnectionCommands.changePassword`, [swing-conn-advanced.md](../swing-conn-advanced.md) "비밀번호 바꾸기"). 2026-11-08 Oracle·YashanDB·Exasol·HANA의 새 암호 따옴표 처리 고침(`chromite/password-handling-fixes`, [password-handling.md](../password-handling.md)) | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |
 
 ## E. 그 밖의 편집기 (`session`, `locks`, `acl`, `hex`, `image`, `json`, `xml`)
@@ -213,5 +213,6 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 ## 변경 이력
 
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): C5 → 수정함, C11·C14·C16·C17·E11·R15 → 있음, C13 → 일부, S18·S19·S41·S45·R10·R12·R26·E2·E12·O1·O5 근거·비고 갱신, 조용히 끊김 요약과 10개 목록에 고친 것 표시. 요약 수를 행 상태로 다시 셈(있음 73, 일부 32, 없음 7, 조용히 끊김 1, 의도적 제외 4).
+- 2026-11-08 S41 → 있음(`chromite/sql-from-results`, 결과 표 "SQL 생성"). 요약 수: SQL 편집기 있음 33 → 34, 일부 8 → 7(합계 있음 75, 일부 30).
 - 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): R14 근거·남은 것 갱신(일부 그대로, 영향 중간 → 낮음).
-  요약 수는 메인 세션이 다시 셈.
+  요약 수 변화 없음.

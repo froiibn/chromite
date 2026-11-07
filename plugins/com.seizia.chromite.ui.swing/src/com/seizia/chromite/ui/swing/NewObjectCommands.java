@@ -74,7 +74,8 @@ import java.util.function.Supplier;
  *     <li>이름만(Generic): 그 밖에 객체 관리자가 있는 종류는 이름만 받는다(틀이 없는 드라이버의 시퀀스처럼 관리자 기본값으로 문장이
  *     되는 것). 본문이나 대상이 필요한 종류(뷰, 루틴, 테이블, 트리거, 패키지, 형식, 별칭)와 다른 명령이 맡는 종류(New Table·New View·
  *     보안 주체·MySQL 이벤트, Oracle 스키마 = 사용자)는 여기서 빼서, 이름만으로 틀린 문장이 나오지 않게 한다. 모델이 필수 암호를
- *     선언한 종류(Exasol 로컬 사용자 등)는 이 대화상자가 암호도 가려서 받는다({@link NewObjectDialogs}).</li>
+ *     선언한 종류(Exasol 로컬 사용자 등)는 이 대화상자가 암호도 가려서 받는다({@link NewObjectDialogs}). 모델이 그 밖의 필수 값을
+ *     선언한 종류(Exasol CONNECTION의 연결 문자열)도 이름만으로 만들 수 없으므로 뺀다({@link NewObjectDialogs#hasUnaskedRequiredValue}).</li>
  * </ol>
  * 대화상자와 이름만 길은 모델의 객체 관리자로 새 객체를 만들고({@link DBEObjectMaker#createNewObject}, 구성기 없이
  * {@link SQLObjectEditor#OPTION_SKIP_CONFIGURATION}), 삭제·이름 바꾸기와 같은 길({@link ExplorerObjectCommands#runChange})로 실행한다:
@@ -87,6 +88,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
  * - 2026-11-08 이름 대화상자의 암호를 미리 보기에서 가리도록 {@link ExplorerObjectCommands.Secrets}를 넘김
  *   (swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-08 모델이 묻지 않는 필수 값을 선언한 종류를 이름만 길에서 뺌(Exasol New Connection…의 NullPointerException,
+ *   docs/chromite/password-handling.md)
  */
 final class NewObjectCommands {
 
@@ -183,7 +186,8 @@ final class NewObjectCommands {
             return container instanceof DBSEntity && TableDesignSession.canDesign(container)
                 ? new Target(Route.DESIGNER, folder, container, childClass, typeLabel, null) : null;
         }
-        if (!NewObjectDialogs.hasDialog(childClass) && needsMoreThanName(childClass)) {
+        if (!NewObjectDialogs.hasDialog(childClass)
+            && (needsMoreThanName(childClass) || NewObjectDialogs.hasUnaskedRequiredValue(childClass))) {
             return null;
         }
         DBEObjectMaker<DBSObject, Object> maker = getMaker(childClass);

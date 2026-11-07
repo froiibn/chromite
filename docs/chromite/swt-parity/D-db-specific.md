@@ -16,13 +16,13 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 18 | 7 | 4 | 0 | 0 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 19 | 6 | 4 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 13 | 1 | 0 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 16 | 3 | 0 | 0 | 0 |
 | Oracle (`ext.oracle.ui`) | 24 | 23 | 0 | 0 | 1 | 0 |
 | Altibase (`ext.altibase.ui`) | 9 | 7 | 0 | 2 | 0 | 0 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 15 | 12 | 2 | 0 | 0 |
-| **합계** | **124** | **92** | **23** | **8** | **1** | **0** |
+| **합계** | **124** | **93** | **22** | **8** | **1** | **0** |
 
 2026-11-08 다시 셈(devel #165 기준, 모든 행을 코드와 다시 대조): 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"·고침은 있음으로 셈).
 그 전 표는 바뀐 행을 반영하지 않은 수였다. 조사 당시 수는 있음 41, 일부 31, 없음 46, 의도적 제외 1, 조용히 끊김 5였다.
@@ -212,7 +212,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | `ext.databend.ui` | SSL 칸 | **있음** (2026-11-08) | SSL 탭(켜기만, 모델이 `sslmode=enable`을 넣음). 조사 당시: 없음 | 낮음 | 핸들러가 `desktop="false"`지만 SWT는 탭을 보였다 |
 | `ext.db2.ui` | 연결 + 추적(trace) 페이지, FK·인덱스·스키마·시퀀스·고유 키 만들기, 루틴·테이블 DDL 편집기, 서버 애플리케이션(세션) 편집기, 테이블스페이스 고르기, 오류 보기 도구, REORG TABLE | 일부 | 세션은 `DB2DataSource`의 세션 관리자 어댑터로 Activity Monitor에 나옴. 나머지 grep 0건 | 낮음 | 2026-11-08 다시 확인: 스키마·시퀀스는 폴더의 New 명령(이름만, 모델 `DB2SchemaManager`·`DB2SequenceManager`). 디자이너의 DB2 인덱스·외래 키, 추적 페이지, 테이블스페이스 고르기, 오류 보기, REORG는 없음 |
 | `ext.duckdb.ui` | 연결 + 고급(`$$` 처리), DB 파일 열기 처리기, MotherDuck 인증 | 일부 | `$$` 키 선언 → 표, MotherDuck은 Password(토큰) 칸(swing-frontend.md 1431행). 파일 처리기(`fileTypeHandler`) 없음 | 낮음 | |
-| `ext.exasol.ui` | 연결(백업 호스트, 암호화), 사용자·역할·스키마·소비자 그룹·우선순위 그룹·PK/FK/인덱스 대화상자, 세션·잠금 편집기, 테이블 가져오기·내보내기 도구 | 일부 | 연결 키 선언 → 표, 세션은 어댑터로 나옴. 잠금은 모델 `ExasolLockManager`가 있으나 연결 안 됨(A2와 같은 이유). 사용자: Users 폴더의 New User…가 이름과 암호(가림, 필수)를 받음(2026-11-08, swing-create-objects.md "새 사용자의 암호"; SWT 대화상자의 LDAP·Kerberos·설명은 없음). 나머지 없음 | 낮음 | |
+| `ext.exasol.ui` | 연결(백업 호스트, 암호화), 사용자·역할·스키마·소비자 그룹·우선순위 그룹·PK/FK/인덱스 대화상자, 세션·잠금 편집기, 테이블 가져오기·내보내기 도구 | 일부 | 연결 키 선언 → 표, 세션은 어댑터로 나옴. 잠금은 모델 `ExasolLockManager`가 있으나 연결 안 됨(A2와 같은 이유). 사용자: Users 폴더의 New User…가 이름과 암호(가림, 필수)를 받음(2026-11-08, swing-create-objects.md "새 사용자의 암호"; SWT 대화상자의 LDAP·Kerberos·설명은 없음). CONNECTION은 연결 문자열이 필수라 이름만 길(New Connection…)에서 뺌(2026-11-08, 전에는 NullPointerException, [password-handling.md](../password-handling.md)). 나머지 없음 | 낮음 | |
 | `ext.firebird.ui` | 연결, 내장(embedded) 연결 페이지(네이티브 라이브러리 경로) | **있음** (2026-11-08) | Firebird Embedded 주 양식에 Native library folder(공급자 속성 `nativeLibraryPath`, 폴더 고르기). 조사 당시: 일부(`nativeLibraryPath` 미선언) | 낮음 | |
 | `ext.gaussdb.ui` | 연결, 새 DB, 함수·프로시저·패키지 만들기, 패키지 선언·본문 편집기 | 일부 | 연결은 범용, 나머지 없음 | 낮음 | 2026-11-08 다시 확인: `GaussDBDataSource`가 `PostgreDataSource`를 이어받아 PostgreSQL New Database 대화상자와 New Function/Procedure 틀이 적용됨(`NewObjectDialogs`, `SourceScripts`, 코드 경로만). 패키지는 `DBSPackage`가 아니라 이름만 묻는 New로 떨어지고(문장 미확인), 패키지 선언·본문 편집기는 없음 |
 | `ext.generic.ui` | 범용 연결 화면, MS Access 파일 처리기, PK·FK·인덱스 만들기, 소스 보기 | 일부 | 연결·View DDL 있음. 디자이너의 인덱스·FK는 Generic 미지원(swing-table-designer.md 124행), 파일 처리기 없음 | 낮음 | |
@@ -282,4 +282,4 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
   ([swing-conn-advanced.md](../swing-conn-advanced.md)).
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): O8·A3·dameng·kingbase·vertica·yashandb → 있음, cubrid → 일부, P7·P19·P25·A8·O24·A4·db2·gaussdb 비고, §8 두 줄에 고친 것 표시. 요약 표를 행 상태로 다시 셈(있음 92, 일부 23, 없음 8, 의도적 제외 1, 조용히 끊김 0).
 - 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): P28 일부 → 있음(hstore 대화상자, bit string 입력),
-  M18 비고(SET 고르기). 요약 표 수는 메인 세션이 다시 셈.
+  M18 비고(SET 고르기). 요약 표: PostgreSQL 있음 18 → 19, 일부 7 → 6(합계 있음 93, 일부 22).

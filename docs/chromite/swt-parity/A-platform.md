@@ -253,6 +253,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identification·데이터 형식 프로필을 더해 추가함 37, 규칙상 두지 않음 4, 다음 작업 55개다.
 같은 날 전역 라이브러리(`ui.drivers.global.libraries`)를 Driver Manager > Global Libraries…로 만들어 추가함 38, 다음 작업 54개다.
 2026-11-08 다시 셈(§6 표의 줄 45개, 지금 "Swing" 칸 기준): 있음 12, 일부 19, 없음 12, 해당 키 효과 없음 1(Dictionaries), 의도적 제외에 준함 1(DataDam).
+2026-11-08 Dictionaries 줄 해당 키 효과 없음 → 일부(`chromite/value-editors-rest`): 일부 20, 해당 키 효과 없음 0.
 
 ## 8. 영향이 큰 순서 (없음·조용히 끊김)
 
@@ -279,4 +280,4 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): A-C20 → 있음, A-C27·A-X6 → 일부, A-S16 → 일부, §2 `UIServiceSQL`·§4 S8·S9·S12·S13 줄 → 있음, §6 Editors·Confirmations·Transactions → 일부와 A-C5·§6 Connections·Connection Types·Expert Settings 비고 갱신. §7 집계를 행 상태로 다시 셈(있음 34, 일부 15, 없음 22, 의도적 제외 2, 조용히 끊김 0)과 §6 줄 단위 집계 추가.
 - 2026-11-08 §6 Dictionaries 줄: 해당 키 효과 없음 → 일부(참조 값 고르기가 두 키를 읽음, `chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)).
-  §6 줄 단위 집계는 메인 세션이 다시 셈.
+  §6 줄 단위 집계: 일부 19 → 20, 해당 키 효과 없음 1 → 0. §7 집계(행 단위)는 바뀌지 않음.

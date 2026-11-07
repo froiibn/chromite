@@ -66,7 +66,8 @@ import java.util.stream.Stream;
  *     <li>속성 값 읽기는 게으른 속성(DB 조회가 필요한 값)을 포함하므로 백그라운드 Job에서 {@link DBRProgressMonitor}를 넘겨 읽는다.
  *     선택이 바뀌면 이전 Job을 취소하고, 늦게 끝난 이전 결과는 번호로 걸러 버린다.</li>
  *     <li>읽기 전용이다. 속성 편집은 객체 편집기 단계에서 다룬다.</li>
- *     <li>값은 객체면 이름, 배열·컬렉션이면 쉼표로 이은 이름, 나머지는 {@link DBValueFormatting}의 기본 표시 문자열로 보여 준다.</li>
+ *     <li>값은 객체면 이름, 배열·컬렉션이면 쉼표로 이은 이름, 나머지는 {@link DBValueFormatting}의 기본 표시 문자열로 보여 준다.
+ *     암호 속성은 읽는 자리에서 가린다({@link ObjectListTable#maskPassword}).</li>
  *     <li>속성 그리드(SSMS 배치, DataGrip 모양, design-spec "10. Properties 창"): 머리말 아래 도구 막대의 분류별·이름순 단추, 열 머리글 없는 이름 | 값 두 열,
  *     분류 줄은 셰브런 + semibold 이름이고 누르면(또는 ←/→, Enter) 접고 편다. 행 24, 가로선 grid.lineSubtle, 이름과 값 사이 1px border.subtle.
  *     분류 줄 바탕은 {@code Chromite.PropertyGrid.categoryBackground}(Islands {@code dialog-bg-inline}), 속성 줄 바탕은 표 바탕(카드 바탕)이라 SSMS처럼 분류가 띠로 보인다. 분류 없는 속성은 SWT 속성 보기처럼 제목 없이 맨 앞에 둔다.
@@ -84,6 +85,7 @@ import java.util.stream.Stream;
  * - 2026-11-08 분류 행 semibold 글꼴 주석을 고침: deriveFont도 대체 글꼴을 유지하며, semibold.font를 쓰는 이유는 Java에 semibold 스타일이 없어서다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 촘촘한 모드: 행 높이를 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 암호 속성 가리기 (docs/chromite/password-handling.md)
  */
 final class PropertiesPanel extends JPanel {
 
@@ -262,7 +264,7 @@ final class PropertiesPanel extends JPanel {
             if (property.isHidden()) {
                 continue;
             }
-            Object value = propertySource.getPropertyValue(monitor, property.getId());
+            Object value = ObjectListTable.maskPassword(property, propertySource.getPropertyValue(monitor, property.getId()));
             byCategory.computeIfAbsent(CommonUtils.notEmpty(property.getCategory()), c -> new ArrayList<>())
                 .add(new Property(property.getDisplayName(), formatValue(value), CommonUtils.notEmpty(property.getDescription())));
         }

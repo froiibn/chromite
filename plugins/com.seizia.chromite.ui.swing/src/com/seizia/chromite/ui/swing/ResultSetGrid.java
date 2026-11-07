@@ -137,6 +137,8 @@ import java.util.UUID;
  *   "키가 없음"이면 가상 키 정하기 링크({@link Host#defineVirtualKey}) (docs/chromite/swing-grid-navigation.md)
  * - 2026-11-08 값 편집…(참조 값·SET·배열·구조체·hstore 대화상자), UUID 만들기, 비트 문자열 칸은 0·1만, 결과 뷰어의 값 명령이 쓰는
  *   상태 알림({@link #showStatus}) (docs/chromite/swing-value-editors.md)
+ * - 2026-11-08 결과 행에서 SQL 만들기: 만든 문장을 쿼리 창에 여는 {@link Host#openScript}·{@link Host#canOpenScript}
+ *   (docs/chromite/swing-result-generate-sql.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -251,6 +253,21 @@ final class ResultSetGrid extends JPanel {
         @Nullable
         default Runnable defineVirtualKey() {
             return null;
+        }
+
+        /**
+         * Whether {@link #openScript} opens a query window (a grid of a query window); otherwise statements are only
+         * copied.
+         */
+        default boolean canOpenScript() {
+            return false;
+        }
+
+        /**
+         * Opens statements made from a result (Generate SQL) in a new query window of the connection, without running
+         * them.
+         */
+        default void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
         }
     }
 

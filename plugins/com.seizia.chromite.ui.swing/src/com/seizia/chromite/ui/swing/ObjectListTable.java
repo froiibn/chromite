@@ -20,9 +20,11 @@ import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBValueFormatting;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.runtime.properties.DataSourcePropertyFilter;
 import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
@@ -58,16 +60,23 @@ import java.util.function.Predicate;
  *     (자동 새로 고침 중에도 선택이 유지되도록, SWT {@code SessionLoadVisualizer}와 같음).</li>
  *     <li>값의 글자는 {@link DBValueFormatting}(UI 형식)이고, 여러 줄 글자(쿼리)는 한 줄로 보인다. 정렬은 원래 값(숫자, 날짜)으로 한다.</li>
  *     <li>찾기 글자({@link #setSearchText})는 SWT 세션 편집기의 검색처럼 어느 열의 글자에든 들어 있는 행만 남긴다(대소문자 무시).</li>
+ *     <li>암호 속성은 값을 가린다({@link #maskPassword}, SWT {@code ObjectListControl}과 같음). 모델에서 값을 읽는 자리에서 가리므로
+ *     표시, 도구 설명, 찾기, 정렬 어디에도 실제 값이 가지 않는다. 같은 함수를 속성 창·Details 표·세션 상세도 쓴다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: Activity Monitor, 잠금 보기 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 암호 속성 가리기 (docs/chromite/password-handling.md)
  */
 final class ObjectListTable<T> extends JTable {
 
     private static final Log log = Log.getLog(ObjectListTable.class);
     private static final int MAX_COLUMN_WIDTH = 360;
     private static final int MIN_COLUMN_WIDTH = 48;
+    /**
+     * Shown instead of the value of a password property ({@link #maskPassword}).
+     */
+    static final String MASKED_VALUE = "********"; //$NON-NLS-1$
 
     private final ObjectListModel model = new ObjectListModel();
     private final TableRowSorter<ObjectListModel> sorter = new TableRowSorter<>(model);
@@ -335,6 +344,20 @@ final class ObjectListTable<T> extends JTable {
     }
 
     /**
+     * The value to show for a property. A password property ({@code @Property(password = true)}, or the
+     * {@code password} feature of a declared property) shows {@link #MASKED_VALUE} when it has a value, as the SWT
+     * object lists did; an empty one stays empty. The real value never reaches the cell, its tool tip, the search or the
+     * sort.
+     */
+    @Nullable
+    static Object maskPassword(@NotNull DBPPropertyDescriptor property, @Nullable Object value) {
+        if (value == null || !property.hasFeature(DBConstants.PROP_FEATURE_PASSWORD)) {
+            return value;
+        }
+        return CommonUtils.isEmpty(CommonUtils.toString(value)) ? "" : MASKED_VALUE; //$NON-NLS-1$
+    }
+
+    /**
      * One-line display text of a property value.
      */
     @NotNull
@@ -368,7 +391,8 @@ final class ObjectListTable<T> extends JTable {
         @Override
         public Object getValueAt(int row, int column) {
             try {
-                return columns.get(column).readValue(rows.get(row), null, true);
+                ObjectPropertyDescriptor property = columns.get(column);
+                return maskPassword(property, property.readValue(rows.get(row), null, true));
             } catch (Throwable e) {
                 log.debug("Can't read property " + columns.get(column).getId(), e);
                 return null;

@@ -49,11 +49,12 @@ import java.util.Set;
  * omitted, {@code RESTRICT} is implicit and the drop fails loud rather than silently dropping
  * objects the ident owns.
  *
- * 설계: CREATE 문에는 암호가 들어 있으므로 쿼리 관리자 기록에서 뺀다({@code setDisableSessionLogging}, PostgreSQL 역할·
- * SQL Server 로그인 관리자와 같음). 빈 암호는 {@link MimerProgram#buildCreateDDL}이 거절한다.
+ * 설계: CREATE 문과 {@code ALTER IDENT … SET PASSWORD}에는 암호가 들어 있으므로 쿼리 관리자 기록에서 뺀다
+ * ({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server 로그인 관리자와 같음). 빈 암호는 {@link MimerProgram#buildCreateDDL}이 거절한다.
  *
  * 변경 이력:
  * - 2026-11-08 빈 암호의 CREATE 거절, 암호가 든 CREATE의 기록 끄기 (docs/chromite/swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-08 암호를 바꾸는 ALTER의 기록 끄기 (docs/chromite/password-handling.md)
  *
  * @author Mimer Information Technology
  */
@@ -135,6 +136,7 @@ public class MimerProgramManager extends SQLObjectEditor<MimerProgram, MimerData
         }
         for (String ddl : command.getObject().buildAlterDDL(changed)) {
             actionList.add(new SQLDatabasePersistAction("Alter program", ddl));
+            command.setDisableSessionLogging(true); // ALTER IDENT … SET PASSWORD: hide password from Query Manager
         }
         if (command.hasProperty("comment")) {
             MimerProgram program = command.getObject();

@@ -28,17 +28,56 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.generator.SQLGeneratorBase;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import org.jkiss.utils.ArrayUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Generators of statements from the selected rows of a result set (Generate SQL in the result grid).
+ *
+ * 설계: 문장을 만들 뿐 실행하지 않는다. 키가 없는 결과에서 쓸 수 없는 문장(WHERE 없는 UPDATE처럼 테이블 전체를 바꾸게 되는 문장)은
+ * 생성기가 {@link #isUniqueKeyRequired}로 알리고 화면이 그 항목을 끈다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link #isUniqueKeyRequired}, 결과의 원본 테이블 열만 고르는 {@link #getTableColumns}
+ *   (MERGE·INSERT 대체 방식 생성기용) (docs/chromite/swing-result-generate-sql.md)
+ */
 public abstract class SQLGeneratorResultSet extends SQLGeneratorBase<DBDResultSetDataProvider> {
 
     @NotNull
     public DBDResultSetDataProvider getDataProvider() {
         return objects.getFirst();
+    }
+
+    /**
+     * Whether the statement needs a unique key of the result's table ({@link DBDResultSetDataProvider#getDefaultRowIdentifier}):
+     * without one it would change other rows than the selected ones, or would not be valid SQL.
+     */
+    public boolean isUniqueKeyRequired() {
+        return false;
+    }
+
+    /**
+     * The result columns that are columns of the table: an expression or a column of another table has no place in a
+     * statement on the table.
+     */
+    @NotNull
+    protected List<DBDAttributeBinding> getTableColumns(@NotNull DBDResultSetDataProvider dataProvider, @NotNull DBSEntity table)
+        throws DBException {
+        List<DBDAttributeBinding> columns = new ArrayList<>();
+        for (DBDAttributeBinding binding : dataProvider.getVisibleAttributes()) {
+            DBSEntityAttribute attribute = binding.getEntityAttribute();
+            if (attribute != null && attribute.getParentObject() == table
+                && !DBUtils.isPseudoAttribute(attribute) && !DBUtils.isHiddenObject(attribute)) {
+                columns.add(binding);
+            }
+        }
+        return columns;
     }
 
     protected abstract void generateSQL(

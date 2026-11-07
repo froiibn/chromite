@@ -62,6 +62,14 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * SAP HANA data source.
+ *
+ * 설계: 만료된 암호를 바꿀 때 새 암호는 {@link HANAUserPasswordManager#quotePassword}로 넣는다(암호 바꾸기 명령과 같은 따옴표 처리).
+ *
+ * 변경 이력:
+ * - 2026-11-08 만료된 암호 바꾸기의 새 암호를 식별자가 아니라 암호로 따옴표 처리 (docs/chromite/password-handling.md)
+ */
 public class HANADataSource extends GenericDataSource implements DBCQueryPlanner {
 
     private static final Log log = Log.getLog(HANADataSource.class);
@@ -231,7 +239,7 @@ public class HANADataSource extends GenericDataSource implements DBCQueryPlanner
             }
             try (Connection connection = super.openConnection(monitor, context, purpose);
                  Statement statement = connection.createStatement()) {
-                statement.execute("ALTER USER " + passwordInfo.getUserName() + " PASSWORD " + DBUtils.getQuotedIdentifier(this, passwordInfo.getNewPassword()));
+                statement.execute("ALTER USER " + passwordInfo.getUserName() + " PASSWORD " + HANAUserPasswordManager.quotePassword(passwordInfo.getNewPassword()));
             }
             
             connectionInfo.setUserPassword(passwordInfo.getNewPassword());

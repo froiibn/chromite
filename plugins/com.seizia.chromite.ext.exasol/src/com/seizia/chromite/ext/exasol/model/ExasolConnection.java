@@ -34,6 +34,15 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.util.Map;
 
+/**
+ * Exasol CONNECTION object ({@code EXA_DBA_CONNECTIONS}).
+ *
+ * 설계: 연결 문자열은 필수 속성({@code required = true})이다. {@code CREATE CONNECTION … TO '…'}에 꼭 있어야 하므로, 이름만 받는 새 개체
+ * 길(Swing New Connection…)이 이 선언을 보고 이 종류를 뺀다. 암호는 암호 속성이라 속성 표에서 가린다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 연결 문자열을 필수로 선언 (docs/chromite/password-handling.md)
+ */
 public class ExasolConnection
 		implements DBPRefreshableObject, DBPNamedObject2, DBPSaveableObject, DBPScriptObject{
 
@@ -104,7 +113,7 @@ public class ExasolConnection
 	    this.connectionName = name;
 	}
 
-	@Property(viewable = true,editable=true, updatable=true, order = 20)
+	@Property(viewable = true,editable=true, updatable=true, required = true, order = 20)
 	public String getConnectionString()
 	{
 		return this.connectionString;
