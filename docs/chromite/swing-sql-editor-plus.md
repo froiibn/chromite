@@ -174,7 +174,7 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 | SQL Server | 전체: 연산자 아이콘(Key Lookup 포함), 연산자 비용 %, 예상·실제 행(모든 실행), 어긋남 표시, 경고 배지 전부, 누락 인덱스 머리말, 일괄 처리 기준 문장 비용 | showplan XML |
 | PostgreSQL | 전체: 비용 %(Total-Cost에서 자식 비용을 뺀 값), 예상·실제 행(× Actual-Loops), 어긋남 표시, 넘침 경고, 문장 상자(SQL 첫 단어) | EXPLAIN XML |
 | MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식. 자기 비용이 없는 중간 노드는 0%, 하위 트리 비용은 자식 비용의 합 — 2026-11-07 모델 수정, [model-fixes.md](model-fixes.md)). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
-| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 실제 계획 없음 | DBMS_XPLAN 글자 |
+| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 적응 계획은 쓰는 행만(아래 "Oracle 적응 계획"). 실제 계획 없음 | DBMS_XPLAN 글자 |
 | 그 밖의 DB | 공통 모델(`DBCPlanNode` 이름·개체·조건, `DBCPlanCostNode` 비용·행). 아이콘은 연산 이름의 낱말로 | 모델이 남긴 원문 |
 
 #### 모델 변경
@@ -186,6 +186,24 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - `ext.mssql` MANIFEST: Swing 번들이 SQL Server 계획 노드를 읽도록 `com.seizia.chromite.ext.mssql.model.plan`을 내보낸다(다른 DB의 계획 패키지는 원래 내보냄).
 - `OracleExecutionPlan`(DBeaver 파일, Chromite 수정 표시와 Javadoc): 계획 행을 읽은 뒤 같은 세션·같은 STATEMENT_ID로 `DBMS_XPLAN.DISPLAY` 글자를 읽어 원문으로 둔다.
   `getPlanSourceDataFormat`은 그 글자가 있으면 TEXT, 없으면 예전처럼 RESULT_SET이다. 이 값을 읽는 다른 코드는 없다(검색으로 확인: `getPlanSourceData` 호출은 원본 보기뿐).
+
+#### Oracle 적응 계획 (2026-11-08, 후속 과제 #71)
+
+- 증상: 적응 계획(adaptive plan)의 트리·그림에 쓰이지 않는 행이 함께 보였다. 예: `t1 JOIN t2 … WHERE t1.grp = 3 AND t1.val LIKE 'v1%'`의 PLAN_TABLE은 9행
+  (`HASH JOIN` 아래 `NESTED LOOPS` ×2, `STATISTICS COLLECTOR`, `INDEX (RANGE SCAN)`, `TABLE ACCESS (BY INDEX ROWID)`, `TABLE ACCESS (FULL)` ×2)인데
+  `DBMS_XPLAN.DISPLAY` 기본 출력(원본 보기)은 4행(`SELECT STATEMENT` → `HASH JOIN` → `T1`, `T2` 전체 읽기)이다. `+ADAPTIVE`로 보면 나머지 5행은 '-'(쓰지 않음)다.
+- 원인: `OracleExecutionPlan.readPlanNodes`는 PLAN_TABLE의 모든 행을 PARENT_ID로 이었다. 어느 행을 쓰는지는 첫 계획 행(ID 1)의 `OTHER_XML` 안
+  `<display_map>`에 있다: 행마다 `op`(PLAN_TABLE ID), `dis`(보이는 번호), `par`(보이는 부모의 번호), `skp`(1이면 쓰지 않음). 쓰는 행의 부모는 PARENT_ID가 아니라
+  `par`일 수 있다(위 예에서 `T1`의 PARENT_ID는 `STATISTICS COLLECTOR`, 보이는 부모는 `HASH JOIN`).
+- 고친 것: 계획 행을 다 읽은 뒤 `display_map`에 `skp="1"` 행이 있으면 그 행을 빼고 나머지를 `par`의 노드 아래로 다시 잇는다(`hideInactiveRows`,
+  `OraclePlanNode.clearNested`·`linkToDisplayParent`). 문장 행(ID 0)은 맵에 없어 그대로다. 비용 합계(`updateCosts`)는 다시 이은 뒤에 한다.
+  모델에서 거르므로 트리·그림 보기와 Chromite Agent의 계획 도구(`PlanTools`)가 같은 계획을 본다. 원본 보기(DBMS_XPLAN 글자)는 원래 쓰는 행만 보였다.
+- 적응 계획이 아니거나 쓰지 않는 행이 없으면, 또는 `OTHER_XML`을 읽지 못하면 예전처럼 모든 행을 PARENT_ID로 잇는다.
+- `EXPLAIN PLAN`의 적응 계획은 실행 전 기본 계획(옵티마이저가 처음 고른 쪽)이다. 실행 중 통계 수집기가 다른 조인으로 바꿀 수 있지만 그것은 실제 계획(V$SQL_PLAN)에서만 보이며
+  Oracle 실제 계획은 아직 없다(위 표).
+- 확인(2026-11-08, Oracle 23ai, 시험 스키마 `CHR_RESULTS_PLAN`의 t1 10,000행·t2 50,000행): 트리 `SELECT STATEMENT`(77) → `HASH JOIN`(77) → `TABLE ACCESS (FULL) T1`(9),
+  `TABLE ACCESS (FULL) T2`(68). 그림은 `HASH JOIN` 0%·`T1` 12%·`T2` 88%. 적응 계획이 아닌 `WHERE id = 7`은 `TABLE ACCESS (BY INDEX ROWID)` → `INDEX (UNIQUE SCAN)` 그대로.
+  같은 계획의 PLAN_TABLE 9행과 display_map은 `sqlplus`로 읽어 맞춰 보았다.
 
 ### 쿼리 기록
 
@@ -264,9 +282,9 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - ~~그래픽 계획 도면~~: 2026-11-07 "실행 계획 세 보기"로 더함.
 - 원본 보기의 서식 맞춤(SQL Server showplan XML 들여쓰기): 요청이 "서버가 돌려준 그대로"라 넣지 않았다. 지금은 긴 줄을 화면에서만 접는다.
 - ~~MySQL/MariaDB 그래픽 보기의 중간 노드 비용~~: 2026-11-07 `MySQLPlanNodeJSON.getNodeCost`가 자식 비용을 소수로 더하도록 고침(`long`으로 더해 하위 트리 비용이 0,
-  뿌리에 문장 비용 전체가 몰렸다). [model-fixes.md](model-fixes.md) "MySQL/MariaDB 계획의 비용".
-- Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행(`STATISTICS COLLECTOR`, 대안 `HASH JOIN`)도 있어 DBeaver 모델의 트리·그림에 함께 보인다.
-  DBMS_XPLAN 글자(원본 보기)는 쓰이는 계획만 보인다. 모델이 `OTHER_XML`의 적응 계획 정보를 읽어야 해서 미뤘다.
+  뿌리에 문장 비용 전체가 몰렸다). [model-fixes.md](model-fixes.md) "MySQL/MariaDB 계획의 비용". 2026-11-08 다시 확인(MariaDB 11, `t1 JOIN t2`):
+  `nested_loop#1` 하위 트리 비용 0.205, `nested_loop#2` 0.981, 그림은 `t1` 17%·`t2` 83%(합 100%), 중간 노드 0%.
+- ~~Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행도 있어 트리·그림에 함께 보인다.~~ 2026-11-08 고침(위 "Oracle 적응 계획").
 - 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
 - MySQL/MariaDB 실제 계획: DBeaver MySQL 계획기는 `ANALYZE` 설정을 모른다. MariaDB `ANALYZE FORMAT=JSON` / MySQL `EXPLAIN ANALYZE`를 계획기에 넣는 일은
   `ext.mysql` 수정이 필요해 미뤘다(지금은 예상 계획을 "Estimated"로 표시).
@@ -327,5 +345,6 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-07 실행 계획 세 보기(사용자 결정): 그래픽(연산자 그림, 비용·행·경고·예상 어긋남), 트리, 원본(복사·저장) 보기 전환과 마지막 보기 기억.
   SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.
 - 2026-11-07 MySQL/MariaDB 계획의 중간 노드 비용(#70): 모델이 자식 비용을 소수로 더함. "미룬 일"의 항목을 닫음.
+- 2026-11-08 Oracle 적응 계획(#71): `OTHER_XML`의 display_map으로 쓰지 않는 행을 빼고 보이는 부모로 다시 이음. "미룬 일"의 항목을 닫음. #70을 MariaDB에서 다시 확인.
 - 2026-11-08 매개변수 대화상자를 Query Library의 `QueryParameterDialog`(스크립트 모드)로 합치고 `SqlParameterDialog`를 지움. 엔진 제공자는 `QueryParameterBinder.ScriptProvider`.
   바인딩한 실행의 기록은 리터럴 대신 `:name` 글자와 값. "미룬 일"의 대화상자 통합 항목을 닫음.

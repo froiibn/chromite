@@ -39,11 +39,14 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.gis.DBGeometry;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DataSourceJob;
@@ -83,7 +86,9 @@ import java.util.function.Consumer;
  *     ({@link OrderingStrategy}: SMART면 아직 읽지 않은 행이 있을 때만 서버, CLIENT_SIDE는 항상 표 안에서, SERVER_SIDE는 항상 서버)와
  *     DB가 결과 정렬을 지원하는지로 정하고, 쿼리를 다시 읽을 수 없는 결과({@link ResultSetSource#requeryBlocker()})는 표 안에서 정렬한다.
  *     표 안 정렬은 SWT {@code ResultSetModel.resetOrderingImpl}처럼 먼저 읽은 순서로 되돌린 뒤 열의 값 처리기 비교기, 문자열은 대소문자 무시,
- *     그 밖에는 {@link DBUtils#compareDataValues}로 비교한다.</li>
+ *     그 밖에는 {@link DBUtils#compareDataValues}로 비교한다. 서버 정렬은 쿼리의 ORDER BY를 바꾼다(모델 생성기, 행을 고르는 ORDER BY는 그대로
+ *     두고 바깥에서 정렬). 정렬이 있으면 상태 줄에 "정렬: 열 ↑ ✕"를 보이고, 쿼리의 ORDER BY를 바꿨으면 그렇다고 쓴다. ✕는 정렬을 없애
+ *     쿼리 순서로 되돌린다.</li>
  *     <li><b>필터</b>: 열마다 머리글의 깔때기로 여는 팝업({@link ResultSetColumnFilterPopup})이 그 열의 조건({@link DBDAttributeConstraint})을
  *     정하고, 뷰어가 바뀐 {@link DBDDataFilter}로 쿼리를 서버에서 다시 읽는다. 표의 오른쪽 클릭 "Filter by Value"는 SWT
  *     {@code FilterByAttributeAction}처럼 열 조건(연산자와 값)을 더한다. 조건이 있으면 상태 줄에 "필터: 열1, 열2 ✕" 요약을 보인다
@@ -94,6 +99,8 @@ import java.util.function.Consumer;
  *     SWT {@code checkForChanges}처럼 먼저 저장하거나 취소해야 한다(자동 다음 페이지는 묻지 않고 건너뛴다).</li>
  *     <li><b>값 패널</b>({@link ResultSetValuePanel}, F7)과 <b>레코드 보기</b>({@link ResultSetRecordView})는 지금 선택한 칸·행을 보여 준다.
  *     값 패널을 연 상태는 다음 결과에도 이어진다(이 실행 동안).</li>
+ *     <li><b>차트 보기</b>({@link ResultSetChartView})와 <b>공간 보기</b>({@link ResultSetSpatialView})는 레코드 보기처럼 표 자리에 바꿔 보인다
+ *     (한 번에 하나, 같은 단추를 다시 누르면 표). 둘 다 표에 읽혀 있는 행을 그리고, 행이 바뀌면 다시 그린다. Spatial 단추는 기하 열이 있을 때만 보인다.</li>
  *     <li><b>상태 줄</b>: 읽은 행 수("200 rows fetched — more available"), 다음 페이지 링크, 선택한 칸의 집계(SSMS 상태 줄처럼 개수·합계·평균·최솟값·최댓값,
  *     모델 계층의 {@code com.seizia.chromite.model.data.aggregate} 함수 사용, {@link ResultSetAggregates}).</li>
  * </ul>
@@ -114,6 +121,12 @@ import java.util.function.Consumer;
  *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 LOB 칸 편집: F2·두 번 누르기로 값 패널을 열고, 글자 LOB는 패널에서 고치며, 파일에서 불러오기·파일로 저장(메뉴와 값 패널 단추).
  *   그리드가 모르는(읽지 않은) LOB 값만 받은 내용으로 보이고, 고치거나 저장한 값은 편집 모델의 값을 보임 (docs/chromite/swing-grid-editing.md)
+ * - 2026-11-08 상태 줄의 정렬 요약: 정렬한 열, 쿼리의 ORDER BY를 바꿨는지, 쿼리 순서로 되돌리기(✕). 상태 줄 왼쪽이 넘치면 두 줄로 늘어남
+ *   ({@link WrapFlowLayout}: 전에는 넘친 요약이 상태 줄 밖으로 밀려 가려짐) (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-08 차트 보기·공간 보기와 상태 줄 Chart / Spatial 단추. 레코드 보기 여부(boolean)를 보기 방식({@code ViewMode})으로 바꿈.
+ *   기하 값은 값 패널에도 보이고 "Filter by Value"에는 넣지 않음 (docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-08 끝까지 내리면 더 읽기({@link #isAutoFetchNextSegment}): 기본값을 전역 설정에 두고 연결의 저장소로 읽음. 전에는 연결 자신의 값만
+ *   보아 Options의 값이 효과가 없었다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -122,9 +135,11 @@ final class ResultSetViewerPanel extends JPanel {
     /**
      * SWT {@code ResultSetPreferences.RESULT_SET_AUTO_FETCH_NEXT_SEGMENT} (UI bundle, default on).
      */
-    private static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
+    static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
     private static final String CARD_GRID = "grid"; //$NON-NLS-1$
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
+    private static final String CARD_CHART = "chart"; //$NON-NLS-1$
+    private static final String CARD_SPATIAL = "spatial"; //$NON-NLS-1$
     private static final int SORT_CLICK_BORDER = 4;
     /**
      * Widest first column width made for the header icons (the grid's own first widths stop at the same width).
@@ -135,6 +150,19 @@ final class ResultSetViewerPanel extends JPanel {
      * Whether new result viewers open with the value panel (the state of the last toggle in this session).
      */
     private static boolean valuePanelDefault;
+
+    /**
+     * What the viewer shows in place of the grid: the grid itself, the record view, the chart view or the spatial view.
+     */
+    private enum ViewMode {
+        GRID(CARD_GRID), RECORD(CARD_RECORD), CHART(CARD_CHART), SPATIAL(CARD_SPATIAL);
+
+        private final String card;
+
+        ViewMode(@NotNull String card) {
+            this.card = card;
+        }
+    }
 
     /**
      * One row kept across rebuilds of the grid: its fetch position, display strings, export values, cell values
@@ -153,16 +181,22 @@ final class ResultSetViewerPanel extends JPanel {
     private final ResultSetGrid.Host gridHost;
     private final ResultSetValuePanel valuePanel;
     private final ResultSetRecordView recordView;
+    private final ResultSetChartView chartView;
+    private final ResultSetSpatialView spatialView;
     private final JLabel rowsLabel = new JLabel();
     private final JButton fetchNextButton;
     private final JButton fetchAllButton;
     private final JPanel filterSummary = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
     private final JLabel filterSummaryLabel = new JLabel();
+    private final JPanel sortSummary = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+    private final JLabel sortSummaryLabel = new JLabel();
     private final JLabel aggregateLabel = new JLabel();
     private final JToggleButton valuePanelToggle;
     private final JToggleButton recordToggle;
     private final Action loadFileAction;
     private final Action saveFileAction;
+    private final JToggleButton chartToggle;
+    private final JToggleButton spatialToggle;
     private final JPanel cards = new JPanel(new CardLayout());
     private final JSplitPane split;
     private final Timer selectionTimer;
@@ -187,8 +221,8 @@ final class ResultSetViewerPanel extends JPanel {
     private String statusMessage;
     private int lastScrollValue;
     private boolean valuePanelShown;
-    // Kept apart from the toggle button: a click selects the button before its action runs
-    private boolean recordMode;
+    // Kept apart from the toggle buttons: a click selects the button before its action runs
+    private ViewMode viewMode = ViewMode.GRID;
     private int valuePanelWidth = -1;
 
     ResultSetViewerPanel(@NotNull ResultSetGrid.Fetched fetched, @NotNull ResultSetGrid.Host host) {
@@ -251,13 +285,21 @@ final class ResultSetViewerPanel extends JPanel {
         loadFileAction.setEnabled(false);
         saveFileAction.setEnabled(false);
         valuePanel.setFileActions(loadFileAction, saveFileAction);
+        chartView = new ResultSetChartView(new ChartSource());
+        spatialView = new ResultSetSpatialView(new SpatialSource());
 
         Action toggleValuePanel = createAction(EditorMessages.editor_viewer_value_panel, KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), () -> setValuePanelShown(!valuePanelShown));
         toggleValuePanel.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_value_panel_tip);
         valuePanelToggle = createToggle(toggleValuePanel);
-        Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> setRecordMode(!isRecordMode()));
+        Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> toggleViewMode(ViewMode.RECORD));
         toggleRecord.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_record_tip);
         recordToggle = createToggle(toggleRecord);
+        Action toggleChart = createAction(EditorMessages.editor_viewer_chart, null, () -> toggleViewMode(ViewMode.CHART));
+        toggleChart.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_chart_tip);
+        chartToggle = createToggle(toggleChart);
+        Action toggleSpatial = createAction(EditorMessages.editor_viewer_spatial, null, () -> toggleViewMode(ViewMode.SPATIAL));
+        toggleSpatial.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_spatial_tip);
+        spatialToggle = createToggle(toggleSpatial);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) toggleValuePanel.getValue(Action.ACCELERATOR_KEY), "chromite.toggleValuePanel"); //$NON-NLS-1$
         getActionMap().put("chromite.toggleValuePanel", toggleValuePanel); //$NON-NLS-1$
 
@@ -269,6 +311,8 @@ final class ResultSetViewerPanel extends JPanel {
 
         cards.add(new JPanel(), CARD_GRID);
         cards.add(recordView, CARD_RECORD);
+        cards.add(chartView, CARD_CHART);
+        cards.add(spatialView, CARD_SPATIAL);
         // The split stays in place and the hidden value panel is invisible: moving the grid to another parent would
         // take the keyboard focus away from it
         split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, cards, valuePanel);
@@ -314,7 +358,9 @@ final class ResultSetViewerPanel extends JPanel {
     private JComponent createStatusBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBorder(UiSizes.createPadding(UiSizes.VIEWER_STATUS_PADDING));
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        // Wraps to a second line when the row count, filter and sort summaries don't fit: a plain FlowLayout wrapped
+        // them below the one-line status bar, where they were cut off (sort summary next to filters in a narrow result)
+        JPanel left = new JPanel(new WrapFlowLayout(FlowLayout.LEFT, 4, 0));
         left.setOpaque(false);
         rowsLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         left.add(rowsLabel);
@@ -332,12 +378,24 @@ final class ResultSetViewerPanel extends JPanel {
         filterSummary.add(clearFiltersButton);
         filterSummary.setVisible(false);
         left.add(filterSummary);
+        // Active sort: the columns, whether the sort replaced the query's ORDER BY, and the way back to the query's order
+        sortSummary.setOpaque(false);
+        sortSummary.add(sortSummaryLabel);
+        Action restoreOrder = createAction(GridFilterMessages.gridfilter_sort_restore, null, this::clearSorting);
+        restoreOrder.putValue(Action.SHORT_DESCRIPTION, GridFilterMessages.gridfilter_sort_restore);
+        JButton restoreOrderButton = UiIcons.createActionButton(restoreOrder, "close"); //$NON-NLS-1$
+        restoreOrderButton.setMargin(new Insets(1, 1, 1, 1));
+        sortSummary.add(restoreOrderButton);
+        sortSummary.setVisible(false);
+        left.add(sortSummary);
         aggregateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         right.setOpaque(false);
         right.add(aggregateLabel);
         right.add(valuePanelToggle);
         right.add(recordToggle);
+        right.add(chartToggle);
+        right.add(spatialToggle);
         bar.add(left, BorderLayout.CENTER);
         bar.add(right, BorderLayout.EAST);
         return bar;
@@ -363,21 +421,50 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private boolean isRecordMode() {
-        return recordMode;
+        return viewMode == ViewMode.RECORD;
     }
 
-    private void setRecordMode(boolean recordMode) {
-        this.recordMode = recordMode;
-        recordToggle.setSelected(recordMode);
-        ((CardLayout) cards.getLayout()).show(cards, recordMode ? CARD_RECORD : CARD_GRID);
-        if (recordMode) {
-            recordView.refresh();
-            // The record line of the grid's selected column, so the value panel keeps showing the same cell
-            recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
-        } else if (grid != null) {
-            grid.getTable().requestFocusInWindow();
+    /**
+     * Shows a view in place of the grid, or the grid again when that view is shown already.
+     */
+    private void toggleViewMode(@NotNull ViewMode mode) {
+        setViewMode(viewMode == mode ? ViewMode.GRID : mode);
+    }
+
+    private void setViewMode(@NotNull ViewMode mode) {
+        this.viewMode = mode;
+        recordToggle.setSelected(mode == ViewMode.RECORD);
+        chartToggle.setSelected(mode == ViewMode.CHART);
+        spatialToggle.setSelected(mode == ViewMode.SPATIAL);
+        ((CardLayout) cards.getLayout()).show(cards, mode.card);
+        switch (mode) {
+            case RECORD -> {
+                recordView.refresh();
+                // The record line of the grid's selected column, so the value panel keeps showing the same cell
+                recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
+            }
+            // The chart starts from the cells selected in the grid
+            case CHART -> chartView.configureFromSelection();
+            case SPATIAL -> spatialView.refresh();
+            case GRID -> {
+                if (grid != null) {
+                    grid.getTable().requestFocusInWindow();
+                }
+            }
         }
         scheduleSelectionUpdate();
+    }
+
+    /**
+     * Whether a column has geometry values the spatial view can draw (the Spatial button is shown only then).
+     */
+    private boolean hasSpatialColumns() {
+        for (DBDAttributeBinding binding : fetched.data().bindings()) {
+            if (ResultSetSpatialView.isSpatialColumn(binding)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void setValuePanelShown(boolean shown) {
@@ -473,7 +560,13 @@ final class ResultSetViewerPanel extends JPanel {
             lastScrollValue = 0;
             scrollPane.getVerticalScrollBar().addAdjustmentListener(this::verticalScrolled);
         }
-        ((CardLayout) cards.getLayout()).show(cards, isRecordMode() ? CARD_RECORD : CARD_GRID);
+        // The same columns in a new grid of the same viewer, but checked again so the button can't outlive its columns
+        spatialToggle.setVisible(hasSpatialColumns());
+        if (viewMode == ViewMode.SPATIAL && !spatialToggle.isVisible()) {
+            viewMode = ViewMode.GRID;
+            spatialToggle.setSelected(false);
+        }
+        ((CardLayout) cards.getLayout()).show(cards, viewMode.card);
         cards.revalidate();
         cards.repaint();
         if (selectedRow >= 0 && selectedColumn >= 0 && selectedRow < table.getRowCount()) {
@@ -493,6 +586,12 @@ final class ResultSetViewerPanel extends JPanel {
         }
         updateStatus();
         recordView.refresh();
+        // Sorted, filtered or more rows: the chart and the map show the grid's rows
+        if (viewMode == ViewMode.CHART) {
+            chartView.refresh();
+        } else if (viewMode == ViewMode.SPATIAL) {
+            spatialView.refresh();
+        }
         scheduleSelectionUpdate();
     }
 
@@ -714,6 +813,8 @@ final class ResultSetViewerPanel extends JPanel {
         JCheckBoxMenuItem recordItem = new JCheckBoxMenuItem(recordToggle.getAction());
         JMenuItem loadFileItem = new JMenuItem(loadFileAction);
         JMenuItem saveFileItem = new JMenuItem(saveFileAction);
+        JCheckBoxMenuItem chartItem = new JCheckBoxMenuItem(chartToggle.getAction());
+        JCheckBoxMenuItem spatialItem = new JCheckBoxMenuItem(spatialToggle.getAction());
 
         int copyIndex = -1;
         for (int i = 0; i < menu.getComponentCount(); i++) {
@@ -736,6 +837,8 @@ final class ResultSetViewerPanel extends JPanel {
         menu.add(fitColumns);
         menu.add(valuePanelItem);
         menu.add(recordItem);
+        menu.add(chartItem);
+        menu.add(spatialItem);
         menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
@@ -744,6 +847,9 @@ final class ResultSetViewerPanel extends JPanel {
                 valuePanelItem.setSelected(valuePanelShown);
                 recordItem.setSelected(isRecordMode());
                 updateFileActions();
+                chartItem.setSelected(viewMode == ViewMode.CHART);
+                spatialItem.setVisible(spatialToggle.isVisible());
+                spatialItem.setSelected(viewMode == ViewMode.SPATIAL);
             }
 
             @Override
@@ -774,7 +880,8 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeBinding binding = fetched.data().bindings()[modelColumn];
         Object value = getCellValue(row, modelColumn);
         String name = binding.getName();
-        if (value != null && !(value instanceof ResultSetCellContent)) {
+        // Geometries are kept for the spatial view only; they are not offered as filter values
+        if (value != null && !(value instanceof ResultSetCellContent) && !(value instanceof DBGeometry)) {
             String shown = CommonUtils.truncateString(String.valueOf(getDisplayValue(row, modelColumn)).replaceAll("\\s+", " "), 60); //$NON-NLS-1$ //$NON-NLS-2$
             for (DBCLogicalOperator operator : new DBCLogicalOperator[]{
                 DBCLogicalOperator.EQUALS, DBCLogicalOperator.NOT_EQUALS, DBCLogicalOperator.GREATER, DBCLogicalOperator.LESS}) {
@@ -817,8 +924,8 @@ final class ResultSetViewerPanel extends JPanel {
     // Cell access
 
     /**
-     * The original value of a cell: the edited value of an editable result, the kept value or the LOB content, or
-     * null for NULL and values that are not kept.
+     * The original value of a cell: the edited value of an editable result, the kept value, the LOB content or the
+     * geometry, or null for NULL and values that are not kept.
      */
     @Nullable
     private Object getCellValue(int row, int column) {
@@ -830,11 +937,14 @@ final class ResultSetViewerPanel extends JPanel {
             }
             ResultSetEditModel.Row editRow = editModel.getRow(row);
             Object value = editRow.values[column];
-            if (value == null && !editModel.hasValue(row, column)) {
-                // A LOB the grid did not read: the content kept for the panel
+            // Value objects the grid did not read (LOB content, geometries): the model has null there, or the empty value
+            // object that binding the column to its table made of that null (MariaDB geometry: an empty DBGeometry).
+            // A LOB set in the grid (panel, file) is the model's value
+            if (DBUtils.isNullValue(value) && !editModel.hasValue(row, column)) {
                 int number = editRow.getRowNumber();
-                if (number < cells.size() && cells.get(number)[column] instanceof ResultSetCellContent content) {
-                    return content;
+                Object cell = number < cells.size() ? cells.get(number)[column] : null;
+                if (cell instanceof ResultSetCellContent || cell instanceof DBGeometry) {
+                    return cell;
                 }
             }
             return value;
@@ -1007,7 +1117,11 @@ final class ResultSetViewerPanel extends JPanel {
                 valuePanel.showCell(null);
             }
         }
-        aggregateLabel.setText(isRecordMode() ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
+        if (viewMode == ViewMode.SPATIAL) {
+            spatialView.selectionChanged();
+        }
+        // The aggregates describe the grid's selection: only while the grid is shown
+        aggregateLabel.setText(viewMode != ViewMode.GRID ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
         updateFileActions();
     }
 
@@ -1078,6 +1192,49 @@ final class ResultSetViewerPanel extends JPanel {
             rowsLabel.setToolTipText(null);
         }
         updateFilterSummary();
+        updateSortSummary();
+    }
+
+    /**
+     * "Sort: col1 ↑, col2 ↓ ✕" while the result is sorted. A sort read from the server replaces the query's own
+     * ORDER BY (the model generator, {@link SQLSemanticProcessor#getReplaceableOrderBy}): then the summary says so, and
+     * ✕ (no sort) reads the query in its own order again.
+     */
+    private void updateSortSummary() {
+        List<DBDAttributeConstraint> orders = dataFilter.getOrderConstraints();
+        sortSummary.setVisible(!orders.isEmpty());
+        if (orders.isEmpty()) {
+            return;
+        }
+        List<String> columns = new ArrayList<>();
+        for (DBDAttributeConstraint order : orders) {
+            String label = CommonUtils.isEmpty(order.getAttributeLabel()) ? order.getAttributeName() : order.getAttributeLabel();
+            columns.add(label + (order.isOrderDescending() ? " ↓" : " ↑")); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        String columnsText = String.join(", ", columns); //$NON-NLS-1$
+        String replaced = clientOrdered ? null : getReplaceableOrderBy();
+        sortSummaryLabel.setIcon(ResultSetHeaderRenderer.createActiveSortIcon(orders.getFirst().isOrderDescending() ? -1 : 1));
+        sortSummaryLabel.setText(NLS.bind(replaced != null
+            ? GridFilterMessages.gridfilter_sort_summary_replaces : GridFilterMessages.gridfilter_sort_summary, columnsText));
+        sortSummaryLabel.setToolTipText(replaced != null ? NLS.bind(GridFilterMessages.gridfilter_sort_replaces_tip, replaced)
+            : clientOrdered ? GridFilterMessages.gridfilter_sort_grid_tip : GridFilterMessages.gridfilter_sort_server_tip);
+        for (Component component : sortSummary.getComponents()) {
+            if (component instanceof AbstractButton button) {
+                button.setEnabled(!reading);
+            }
+        }
+    }
+
+    /**
+     * The ORDER BY of the result's query that a server sort replaces, or null (the query is parsed already: the
+     * re-read check parses it in the job thread).
+     */
+    @Nullable
+    private String getReplaceableOrderBy() {
+        if (fetched.source().dataContainer() instanceof SQLQueryContainer container && container.getQuery() instanceof SQLQuery query) {
+            return SQLSemanticProcessor.getReplaceableOrderBy(query);
+        }
+        return null;
     }
 
     /**
@@ -1428,11 +1585,20 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         DBCExecutionContext context = fetched.source().context();
-        if (context != null && !context.getDataSource().getContainer().getPreferenceStore().getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT)
-            && context.getDataSource().getContainer().getPreferenceStore().contains(PREF_AUTO_FETCH_NEXT_SEGMENT)) {
+        if (context != null && !isAutoFetchNextSegment(context.getDataSource().getContainer().getPreferenceStore())) {
             return;
         }
         SwingUtilities.invokeLater(() -> readNextSegment(true));
+    }
+
+    /**
+     * Whether scrolling to the end reads the next rows. The default (on) is registered in the global settings, so that a
+     * connection without a value of its own follows Tools &gt; Options; checking only the connection's own value made
+     * the global setting ineffective.
+     */
+    static boolean isAutoFetchNextSegment(@NotNull DBPPreferenceStore store) {
+        DBWorkbench.getPlatform().getPreferenceStore().setDefault(PREF_AUTO_FETCH_NEXT_SEGMENT, true);
+        return store.getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT);
     }
 
     /**
@@ -1572,7 +1738,9 @@ final class ResultSetViewerPanel extends JPanel {
             Object[] values = row.values.clone();
             for (int c = 0; c < rowCells.length; c++) {
                 if (!editModel.hasValue(i, c)) {
-                    rowCells[c] = fetchedCells != null && fetchedCells[c] instanceof ResultSetCellContent content ? content : null;
+                    // Value objects the grid did not read: the LOB content or geometry kept for the panel and the spatial view
+                    Object fetchedCell = fetchedCells != null ? fetchedCells[c] : null;
+                    rowCells[c] = fetchedCell instanceof ResultSetCellContent || fetchedCell instanceof DBGeometry ? fetchedCell : null;
                 } else if (editModel.isContentColumn(c) && row.values[c] instanceof DBDContent content) {
                     // A LOB value set and saved in the grid: the new grid's panel content (its edit model reads LOB
                     // columns as not read)
@@ -1739,6 +1907,112 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     /**
+     * The chart view's access to the rows and the selection of the grid.
+     */
+    private final class ChartSource implements ResultSetChartView.Source {
+        @NotNull
+        @Override
+        public DBDAttributeBinding[] getBindings() {
+            return fetched.data().bindings();
+        }
+
+        @NotNull
+        @Override
+        public String[] getColumnNames() {
+            return fetched.data().columns();
+        }
+
+        @NotNull
+        @Override
+        public boolean[] getNumericColumns() {
+            return fetched.data().numeric();
+        }
+
+        @Override
+        public int getRowCount() {
+            return ResultSetViewerPanel.this.getRowCount();
+        }
+
+        @Nullable
+        @Override
+        public Object getValue(int row, int column) {
+            return getCellValue(row, column);
+        }
+
+        @Nullable
+        @Override
+        public Object getDisplayValue(int row, int column) {
+            return ResultSetViewerPanel.this.getDisplayValue(row, column);
+        }
+
+        @NotNull
+        @Override
+        public int[] getSelectedRows() {
+            return grid == null ? new int[0] : grid.getTable().getSelectedRows();
+        }
+
+        @NotNull
+        @Override
+        public int[] getSelectedColumns() {
+            if (grid == null) {
+                return new int[0];
+            }
+            JTable table = grid.getTable();
+            int[] columns = table.getSelectedColumns();
+            for (int i = 0; i < columns.length; i++) {
+                columns[i] = table.convertColumnIndexToModel(columns[i]);
+            }
+            return columns;
+        }
+
+        @Override
+        public boolean hasMoreRows() {
+            return hasMore;
+        }
+    }
+
+    /**
+     * The spatial view's access to the geometry values and the selected row of the grid.
+     */
+    private final class SpatialSource implements ResultSetSpatialView.Source {
+        @NotNull
+        @Override
+        public DBDAttributeBinding[] getBindings() {
+            return fetched.data().bindings();
+        }
+
+        @NotNull
+        @Override
+        public String[] getColumnNames() {
+            return fetched.data().columns();
+        }
+
+        @Override
+        public int getRowCount() {
+            return ResultSetViewerPanel.this.getRowCount();
+        }
+
+        @Nullable
+        @Override
+        public Object getSpatialValue(int row, int column) {
+            return getCellValue(row, column);
+        }
+
+        @Override
+        public int getCurrentRow() {
+            return grid == null ? -1 : grid.getTable().getSelectionModel().getLeadSelectionIndex();
+        }
+
+        @Override
+        public void setCurrentRow(int row) {
+            if (grid != null && row >= 0 && row < grid.getTable().getRowCount()) {
+                JTable table = grid.getTable();
+                table.changeSelection(row, Math.max(table.getSelectedColumn(), 0), false, false);
+            }
+        }
+    }
+
+    /**
      * The record view's access to the selected row of the grid.
      */
     private final class RecordSource implements ResultSetRecordView.Source {
@@ -1815,6 +2089,72 @@ final class ResultSetViewerPanel extends JPanel {
         @Override
         public void selectionChanged() {
             scheduleSelectionUpdate();
+        }
+    }
+
+    /**
+     * A flow layout whose preferred height counts the lines it wraps to at the container's width (FlowLayout reports one
+     * line, so the wrapped components fell outside the status bar). When the line count changes on a resize, the
+     * container is validated again so the status bar takes the new height.
+     */
+    private static final class WrapFlowLayout extends FlowLayout {
+        private int lastHeight = -1;
+
+        WrapFlowLayout(int align, int hgap, int vgap) {
+            super(align, hgap, vgap);
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(Container target) {
+            return layoutSize(target, true);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(Container target) {
+            return layoutSize(target, false);
+        }
+
+        @Override
+        public void layoutContainer(Container target) {
+            super.layoutContainer(target);
+            int height = preferredLayoutSize(target).height;
+            if (height != lastHeight) {
+                lastHeight = height;
+                SwingUtilities.invokeLater(target::revalidate);
+            }
+        }
+
+        @NotNull
+        private Dimension layoutSize(@NotNull Container target, boolean preferred) {
+            synchronized (target.getTreeLock()) {
+                Insets insets = target.getInsets();
+                // Before the first layout the width is 0: one line, as FlowLayout
+                int width = target.getWidth();
+                int maxWidth = width > 0 ? width - insets.left - insets.right - 2 * getHgap() : Integer.MAX_VALUE;
+                int totalWidth = 0;
+                int totalHeight = 0;
+                int rowWidth = 0;
+                int rowHeight = 0;
+                for (Component component : target.getComponents()) {
+                    if (!component.isVisible()) {
+                        continue;
+                    }
+                    Dimension size = preferred ? component.getPreferredSize() : component.getMinimumSize();
+                    // The same test as FlowLayout.layoutContainer, so both break the lines at the same components
+                    if (rowWidth > 0 && rowWidth + size.width > maxWidth) {
+                        totalWidth = Math.max(totalWidth, rowWidth);
+                        totalHeight += rowHeight + getVgap();
+                        rowWidth = 0;
+                        rowHeight = 0;
+                    }
+                    rowWidth += (rowWidth > 0 ? getHgap() : 0) + size.width;
+                    rowHeight = Math.max(rowHeight, size.height);
+                }
+                totalWidth = Math.max(totalWidth, rowWidth);
+                totalHeight += rowHeight;
+                return new Dimension(totalWidth + insets.left + insets.right + 2 * getHgap(),
+                    totalHeight + insets.top + insets.bottom + 2 * getVgap());
+            }
         }
     }
 }

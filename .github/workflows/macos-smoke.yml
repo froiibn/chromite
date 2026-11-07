@@ -1,0 +1,283 @@
+# Chromite macOS install-and-run smoke test on a GitHub-hosted macos-15 (arm64) runner, which has a logged-in
+# GUI session. It checks what had only been checked by reading code: the signed, notarized disk image installs and
+# the app starts from a quarantined copy, Quit goes through the main window's closing path, saved passwords go to the
+# Keychain-protected secure storage, About and Preferences of the app menu. Every check is a subcommand of
+# tools/release/macos-smoke.sh; logs and screenshots are uploaded as the artifact macos-smoke-<source>.
+# Design and results: docs/chromite/ci.md "macOS 설치·실행 시험".
+#
+#   * Release (default): the signed DRAFT release assets of a tag. After release.yml succeeds for a v* tag
+#     (workflow_run; only from the default branch's copy of this file), or by hand with the input tag (empty: the
+#     newest release). Only the job release-assets may list draft releases (contents: write); it runs no product
+#     code and hands the disk image on as an artifact. The macOS job has read-only permissions.
+#   * Build: an UNSIGNED build of the ref this run was started on (workflow_dispatch, source: build), for a quick
+#     check without a release; the app is signed ad hoc on the runner, no quarantine, no signature checks.
+#
+# Nothing here uses a secret: the test password is a fake constant, no API key is set.
+name: macOS smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'release: the signed draft/published release assets of a tag; build: an unsigned build of this ref'
+        type: choice
+        options: [release, build]
+        default: release
+      tag:
+        description: 'Release tag (source release), e.g. v0.1.1; empty = the newest release'
+        type: string
+        default: ''
+      launcher_args:
+        description: 'Extra launcher arguments for an experiment (e.g. --launcher.secondThread); empty = the product as shipped'
+        type: string
+        default: ''
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-smoke-${{ github.ref }}-${{ inputs.source || 'release' }}-${{ inputs.tag || github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+env:
+  MAVEN_OPTS: -Xmx3g
+  SWING_PRODUCTS_DIR: product/swing/target/products/com.seizia.chromite.swing.product
+
+jobs:
+  release-assets:
+    name: Release disk image (download)
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.source == 'release')
+      || (github.event_name == 'workflow_run'
+          && github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push'
+          && startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Draft releases are listed only to a token with push access. This job only downloads.
+      contents: write
+    outputs:
+      found: ${{ steps.dl.outputs.found }}
+      tag: ${{ steps.dl.outputs.tag }}
+    steps:
+      - name: Download the disk image and SHA256SUMS
+        id: dl
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          RUN_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          tag=${INPUT_TAG:-$RUN_TAG}
+          if [ -z "$tag" ]; then
+            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName')
+          fi
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$tag' is not a release tag v<major>.<minor>.<dev>"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # release.yml drafts a Release only when both platforms were signed; an unsigned run leaves none
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '"release \(.isDraft | if . then "draft" else "published" end)"'; then
+            echo "::notice::no release $tag (an unsigned release run drafts none): nothing to test"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir release --pattern 'Chromite-*-arm64.dmg' --pattern SHA256SUMS
+          cd release
+          grep -E '  Chromite-[0-9]+\.[0-9]+\.[0-9]+-arm64\.dmg$' SHA256SUMS | sha256sum -c -
+          ls -l
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      - name: Hand the disk image to the macOS job
+        if: steps.dl.outputs.found == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-input-release-dmg
+          path: release/*.dmg
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  build:
+    # Same build as release.yml macos-build (unsigned intermediate), from the ref this run was started on
+    name: macOS arm64 app (unsigned build on Linux)
+    if: github.event_name == 'workflow_dispatch' && inputs.source == 'build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 25 (JetBrains Runtime)
+        uses: actions/setup-java@v6
+        with:
+          distribution: jetbrains
+          java-version: '25'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore Maven repository
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: m2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml', 'deps/dbeaver-common/.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            m2-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Build
+        shell: bash
+        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
+
+      - name: Restore JBR SDK download
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/chromite-jbr
+          key: jbr-macos-aarch64-on-linux-${{ hashFiles('tools/jre/jbr.properties') }}
+      - name: Bundle Java runtime
+        shell: bash
+        run: java tools/jre/BundleJre.java osx-aarch64
+
+      - name: Pack the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir=$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64
+          if [ ! -x "$dir/ChromiteSwing.app/Contents/MacOS/chromite-swing" ]; then
+            echo "::error::$dir/ChromiteSwing.app/Contents/MacOS/chromite-swing is missing or not executable"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/apps"
+          tar -czf "$RUNNER_TEMP/apps/ChromiteSwing.app.tar.gz" -C "$dir" ChromiteSwing.app
+
+      - name: Hand the app to the macOS job
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-input-unsigned-app
+          path: ${{ runner.temp }}/apps/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  smoke:
+    name: macOS arm64 smoke test (install, start, Keychain, menus, Quit)
+    needs: [release-assets, build]
+    if: >-
+      !cancelled()
+      && ((needs.release-assets.result == 'success' && needs.release-assets.outputs.found == 'true')
+          || needs.build.result == 'success')
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      SOURCE: ${{ needs.build.result == 'success' && 'build' || 'release' }}
+      LAUNCHER_ARGS: ${{ inputs.launcher_args }}
+    steps:
+      - name: Checkout (smoke script only)
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/release
+
+      - name: Download the disk image (release)
+        if: env.SOURCE == 'release'
+        uses: actions/download-artifact@v8
+        with:
+          name: smoke-input-release-dmg
+          path: input
+      - name: Download the app (unsigned build)
+        if: env.SOURCE == 'build'
+        uses: actions/download-artifact@v8
+        with:
+          name: smoke-input-unsigned-app
+          path: input
+
+      - name: Runner
+        shell: bash
+        run: |
+          sw_vers
+          uname -m
+          spctl --status || true
+          ls -l input
+
+      - name: Install from the disk image (quarantined, as downloaded)
+        if: env.SOURCE == 'release'
+        shell: bash
+        run: bash tools/release/macos-smoke.sh install "$(ls input/Chromite-*-arm64.dmg)"
+      - name: Unpack the unsigned app
+        if: env.SOURCE == 'build'
+        shell: bash
+        run: bash tools/release/macos-smoke.sh unpack input/ChromiteSwing.app.tar.gz
+
+      - name: Verify the signature (codesign, Gatekeeper, stapled tickets)
+        if: env.SOURCE == 'release'
+        shell: bash
+        run: bash tools/release/macos-smoke.sh verify "$(ls input/Chromite-*-arm64.dmg)"
+
+      - name: Test data folder and workspace (SQLite connection, fake saved password)
+        shell: bash
+        run: bash tools/release/macos-smoke.sh workspace
+
+      - name: First launch
+        id: launch1
+        shell: bash
+        run: bash tools/release/macos-smoke.sh launch first-launch
+
+      - name: Secure storage and Keychain item
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        shell: bash
+        run: bash tools/release/macos-smoke.sh secure-storage
+
+      - name: About and Preferences (app menu)
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        shell: bash
+        run: bash tools/release/macos-smoke.sh menus
+
+      - name: Quit (Apple event quit)
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        shell: bash
+        run: bash tools/release/macos-smoke.sh quit appleevent
+
+      - name: Second launch (reads the password from the secure storage)
+        id: launch2
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        shell: bash
+        run: |
+          bash tools/release/macos-smoke.sh stop
+          bash tools/release/macos-smoke.sh launch second-launch
+
+      - name: Quit (Cmd+Q)
+        if: ${{ !cancelled() && steps.launch2.outcome == 'success' }}
+        shell: bash
+        run: bash tools/release/macos-smoke.sh quit keystroke
+
+      # Drives the UI by System Events keys and Accessibility clicks; a failure here is reported, not fatal
+      - name: Quit with an open transaction (third launch)
+        id: txn
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          bash tools/release/macos-smoke.sh stop
+          bash tools/release/macos-smoke.sh launch txn-launch
+          bash tools/release/macos-smoke.sh txn
+
+      - name: Collect logs and screenshots
+        if: always()
+        shell: bash
+        run: bash tools/release/macos-smoke.sh collect
+
+      - name: Upload logs and screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-smoke-${{ env.SOURCE }}
+          path: ${{ runner.temp }}/chromite-smoke/out
+          if-no-files-found: warn
+          retention-days: 14

@@ -21,6 +21,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.utils.CommonUtils;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBUtils;
@@ -35,6 +36,7 @@ import com.seizia.chromite.model.exec.DBCResultSet;
 import com.seizia.chromite.model.exec.DBCResultSetMetaData;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.gis.DBGeometry;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
@@ -68,6 +70,7 @@ import java.util.function.Consumer;
  * 파일로 값 전체를 바꾼다, {@link ResultSetEditModel#isContentColumn}).
  * 값 패널·정렬·필터·다음 페이지(결과 뷰어): 값 패널이 칸의 원래 값을 보여 주도록 행마다 칸 값을 함께 넘긴다({@link ResultSetSource#cellValues()}).
  * LOB({@link DBDContent})는 {@link ResultSetCellContent}로 바꿔 넘기고, 메모리에 없는 LOB는 패널이 나중에 읽도록 값 객체를 놓아 주지 않는다.
+ * 공간 값({@link DBGeometry}, {@code data.gis})은 결과 공간 보기가 그리도록 칸 값에 그대로 남긴다(DB 자원을 잡지 않는 값). 열은 지금처럼 편집하지 않는다.
  * 다음 페이지를 읽을 때는 첫 결과의 열 바인딩을 그대로 쓰는 수신기({@link #forNextSegment})를 만든다(SWT {@code ResultSetDataReceiver}의
  * {@code nextSegmentRead}처럼 열 정보를 다시 만들지 않는다). 이 수신기는 테이블 메타데이터에 다시 묶지 않고 편집 모델도 만들지 않는다
  * (첫 결과의 편집 모델에 행을 붙이는 일은 {@link ResultSetViewerPanel}이 한다).
@@ -82,10 +85,14 @@ import java.util.function.Consumer;
  *   받는 생성자 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 공간 값({@link DBGeometry})을 칸 값에 남김(결과 공간 보기, docs/chromite/swing-result-charts-spatial.md)
  * - 2026-11-08 다시 읽으면 안 되는 이유를 받는 생성자를 지움: 값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 편집할 수 있는 결과의 ENUM 열 값을 Job 스레드에서 읽어 편집 모델에 넘기고, LOB 값으로 받은 열을 알림(테이블 처리기가 문자열 처리기여도
  *   값 전체로 편집) (docs/chromite/swing-grid-editing.md)
+ * - 2026-11-08 열 머리글을 열의 레이블(별칭)로: 이름({@code getColumnName})을 써서 MySQL·MariaDB처럼 드라이버가 원래 열 이름을 주는 곳에서
+ *   {@code AS} 별칭이 보이지 않았다. SWT 표처럼 레이블, 없으면 이름. "레이블 대신 열 이름 표시" 설정({@code resultset.column.label.ignore})이
+ *   레이블을 이름으로 바꾼다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -194,6 +201,10 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                         ResultSetCellContent cellContent = ResultSetCellContent.capture(content);
                         cells[i] = cellContent;
                         keepValue = cellContent.isLive();
+                    } else if (value instanceof DBGeometry geometry && !isNull) {
+                        // For the spatial view; a geometry is a plain value (its release does nothing), so it is kept as it is
+                        cells[i] = geometry;
+                        keepValue = true;
                     }
                 } else {
                     raw[i] = value;
@@ -298,7 +309,8 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         String[] columns = new String[bindings.length];
         boolean[] numeric = new boolean[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
-            columns[i] = bindings[i].getName();
+            // The label (alias) as the SWT grid shows it; resultset.column.label.ignore makes the label the column name
+            columns[i] = CommonUtils.isEmpty(bindings[i].getLabel()) ? bindings[i].getName() : bindings[i].getLabel();
             numeric[i] = bindings[i].getDataKind() == DBPDataKind.NUMERIC;
         }
         List<Object[]> values = new ArrayList<>(rawValues.size());

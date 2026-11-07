@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 열린 트랜잭션 확인 목록의 소유자·설명(docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ * - 2026-11-08 {@code progress_native_*}: 백업·복원 도구가 채팅 카드에 보이는 진행 글(docs/chromite/ai-agent.md)
  */
 public class AIToolsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.model.ai.tools.internal.AIToolsMessages"; //$NON-NLS-1$
@@ -39,6 +40,8 @@ public class AIToolsMessages extends NLS {
     public static String pending_agent_work_ddl_database;
     public static String pending_query_window_work;
     public static String pending_server_session_work;
+    public static String progress_native_dump;
+    public static String progress_native_restore;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, AIToolsMessages.class);

@@ -21,12 +21,14 @@ Object Explorer의 데이터베이스 노드에서 SSMS처럼 **Tasks ▸ Back U
 | `SqlServerBackupDialog` (새) | 같은 곳 | 일반 / 미디어 옵션 / 백업 옵션 |
 | `SqlServerRestoreDialog` (새) | 같은 곳 | 일반(백업 파일·대상·백업 세트) / 파일(WITH MOVE) / 옵션 |
 | `NativeBackupRestoreDialog` (새) | 같은 곳 | PostgreSQL·MySQL 백업·복원: 일반 / 옵션 / 로컬 클라이언트(명령줄 미리 보기) |
+| `NativeBackupRestore` (새, 2026-11-08) | `com.seizia.chromite.model.admin` (`.nativetool`) | PostgreSQL·MySQL 네이티브 도구 작업의 화면과 상관없는 부분: 메뉴 조건(`isSupported`), 로컬 클라이언트 목록(`findLocalClients`, 내려받는 클라이언트 제외), 작업 형식, 명령줄(`getCommandLine`), 처리기 실행(`execute`, pg_restore 종료 코드 1). 대화상자와 Chromite Agent 도구(`dumpDatabase`, `restoreDump`, [ai-agent.md](ai-agent.md))가 함께 쓴다 |
 | `BackupRestoreCommands` (새) | 같은 곳 | 메뉴를 켤 조건, DB 종류별 대화상자 열기 |
 | `internal/BackupRestoreMessages` (새) | 같은 곳 | 화면 문구(영어 기본 + `_ko`) |
 | `ObjectExplorerPanel` (변경) | 같은 곳 | Tasks 메뉴에 Back Up… / Restore… 두 항목과 켜기 조건(작은 훅) |
 
 모델 클래스는 SWT·Swing에 기대지 않는다. `com.seizia.chromite.model.admin`은 이미 `ext.mssql`과 `model.jdbc`를 쓰고 `.mssql` 패키지를 내보내므로
-MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bundle`이 없다. `com.seizia.chromite.tasks.native`는 `ext.postgresql`이
+MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패키지를 더하면서 `model.admin`이 `registry`(`TaskPreferenceStore`,
+`RemoteNativeClientLocation`)와 `tasks.native`를 `Require-Bundle`에 더하고 `.nativetool`을 내보낸다. Swing 번들도 새 `Require-Bundle`이 없다. `com.seizia.chromite.tasks.native`는 `ext.postgresql`이
 `visibility:=reexport`로 다시 내보내고, `registry`(`TaskPreferenceStore`, `DriverDescriptor`)·`ext.postgresql`·`ext.mysql`은 이미 쓰고 있었다.
 `tasks.native`는 SWT에 기대지 않는다(`Require-Bundle: model, model.sql, registry`). 그래서 SWT에서 떼어 낼 모델 부분이 없었다.
 
@@ -98,6 +100,9 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
 - DBeaver 네이티브 도구 작업을 그대로 쓴다. 설정 객체를 화면 값으로 채우고(`loadSettingsFromInput` + setter), 임시 작업에 `saveSettings`로 저장한 뒤
   작업 형식의 처리기(`pgDatabaseBackup`, `pgDatabaseRestore`, `mysqlDatabaseBackup`, `mysqlDatabaseRestore`)의 `executeTask`를 부른다. SWT 마법사가
   작업에 설정을 저장하고 처리기가 다시 읽는 흐름과 같다. 처리기의 로그 스트림(명령줄, 도구 출력)은 메시지 페이지에 줄 단위로 보인다.
+- 2026-11-08부터 설정을 채우는 것(화면 값)만 대화상자에 있고, 클라이언트 목록·작업 형식·명령줄·처리기 실행·pg_restore 종료 코드 1 처리는 모델의
+  `NativeBackupRestore`에 있다. Chromite Agent의 PostgreSQL·MySQL 백업·복원 도구가 같은 경로로 실행하게 하려는 것이다(두 벌의 실행 코드가
+  어긋나지 않게). 동작은 그대로다(아래 "확인 (2026-11-08)").
 - 페이지: **일반**(데이터베이스, 출력 폴더·파일 이름 패턴 또는 입력 파일, PostgreSQL 형식·압축·인코딩, MySQL 덤프 방법), **옵션**(SWT 마법사의 주요 옵션:
   PostgreSQL `--no-owner`, `--no-privileges`, `--inserts`, `--clean`, `--create`; MySQL `--no-create-info`, `--add-drop-table`, `--disable-keys`,
   `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 첫 오류에서 멈춤(2026-11-07), 외래 키 검사 끄기, `-v`),
@@ -194,6 +199,18 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
     → 2026-11-07 빈 파일은 지우고, 복원에 "첫 오류에서 멈춤" 옵션을 더함(위 "실패한 백업과 psql 오류").
 - 회귀 테스트는 실행하지 않았다(요청 없음).
 
+## 확인 (2026-11-08)
+
+모델 부분을 `NativeBackupRestore`로 옮긴 뒤 같은 빌드의 Swing 제품(작업 공간 사본, `CHROMITE_DATA`)에서 앱 안 시험 에이전트가 대화상자를 열고 칸을 채워
+확인을 눌렀다(화면 좌표·OS 입력 없음). PostgreSQL 17.11 로컬 클라이언트, 공용 컨테이너의 시험 DB `chr_agent_backup`(끝나고 지움).
+
+- 백업(사용자 지정 형식): 명령줄 미리 보기가 전과 같고(`pg_dump.exe --verbose … --format=c --file …`), 메시지 페이지에 pg_dump 진행 줄, "완료",
+  "데이터베이스 'chr_agent_backup'을(를) 백업했습니다."
+- 같은 파일을 `--clean` 없이 이미 개체가 있는 DB로 복원: pg_restore 오류 줄들, 진행률 "실패", 끝에 `native_error_pg_restore_errors` 문구(종료 코드 1을
+  실패로 보는 동작이 그대로).
+- 화면: `D:\Tools\_scratch\chromite-agent-backup-tools\shots\ko-dialog-pg-backup.png`, `ko-dialog-pg-restore-end.png`.
+- 회귀 테스트는 실행하지 않았다(요청 없음).
+
 ## 남긴 것
 
 - Oracle 백업·복원(RMAN·Data Pump) — 대상 아님.
@@ -211,3 +228,6 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
   확인 중 고친 것: pg_restore가 오류로 끝난 복원(종료 코드 1, 로그인 실패 포함)을 성공으로 보이던 것(`CheckedPostgreRestore`, 문구 `native_error_pg_restore_errors`).
 - 2026-11-07 실패한 백업이 0바이트 파일을 남겨 MySQL 재실행이 "Output file already exists"로 막히던 것(모델 처리기에서 빈 출력 파일을 지움),
   PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql `-v ON_ERROR_STOP=1`, pg_restore `--exit-on-error`, 기본 끔). "실패한 백업과 psql 오류" 절 추가.
+- 2026-11-08 대화상자의 모델 부분(클라이언트 목록, 작업 형식, 명령줄 미리 보기, 처리기 실행, `CheckedPostgreRestore`)을 `model.admin`의
+  `NativeBackupRestore`로 옮김. 메뉴 조건(`BackupRestoreCommands.canBackUp`)의 PostgreSQL·MySQL 부분도 `NativeBackupRestore.isSupported`로.
+  Chromite Agent `dumpDatabase`·`restoreDump`가 같은 경로를 쓴다([ai-agent.md](ai-agent.md) "PostgreSQL·MySQL 백업·복원 도구").

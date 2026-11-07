@@ -17,6 +17,7 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 | `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드. 작업 `rename-gate`(`ubuntu-latest`)가 `tools/rename/gate.py`로 옛 DBeaver 내부 이름 재유입과 깨진 참조를 검사([internal-rename.md](internal-rename.md)) |
 | `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
 | `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 제품을 빌드·서명·확인하고 Windows 설치 프로그램(NSIS)을 만들어 서명·확인한 뒤 태그면 초안 Release에 올림([signing.md](signing.md), [distribution.md](distribution.md)) |
+| `.github/workflows/macos-smoke.yml` | `release.yml`이 `v*` 태그에서 성공한 뒤(`workflow_run`), 수동 실행(`workflow_dispatch`: `source`, `tag`, `launcher_args`) | `macos-15` 러너에 서명한 dmg(또는 브랜치의 서명 없는 빌드)를 설치하고 서명·Gatekeeper 확인, 실행, 키체인, 앱 메뉴, 끝내기를 확인(아래 "macOS 설치·실행 시험") |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
 ### build.yml 단계
@@ -112,7 +113,7 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
   macOS에서만 할 수 있다. 그때는 Linux 작업이 올린 `chromite-macos-aarch64`를 macOS 작업이 받아 처리하게 하면
   macOS 러너에서 빌드(수십 분)를 다시 하지 않아도 된다. macOS 러너 배정이 늦을 수 있으므로 그 작업은 PR을 막지 않게 둔다.
   - 서명·공증은 이 방식으로 `release.yml`에 넣었다(Linux 작업이 만든 앱을 `macos-15` 작업이 받아 서명, [signing.md](signing.md)).
-    `build.yml`은 바뀌지 않았고 PR을 막지 않는다. 실행 시험은 아직 없다.
+    `build.yml`은 바뀌지 않았고 PR을 막지 않는다. 실행 시험은 `macos-smoke.yml`이 한다(아래 "macOS 설치·실행 시험").
 
 ### macOS 결과물을 tar로 묶는 이유
 
@@ -153,6 +154,84 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 
 같은 PR(또는 같은 브랜치)에 새 커밋이 오면 `build.yml`의 이전 실행을 취소한다(`concurrency`, 이전 워크플로와 같은 규칙).
 
+## macOS 설치·실행 시험 (macos-smoke.yml)
+
+Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기 경로, 키체인 보안 저장소, 앱 메뉴)을 GitHub의 `macos-15`(arm64) 러너에서 실제로 돌려 본다.
+이 저장소는 공개 저장소라 러너가 무료이고, 러너에는 로그인한 화면 세션이 있다. 확인 명령은 모두 `tools/release/macos-smoke.sh`의 하위 명령이다
+(`release-macos.sh`처럼 워크플로 단계 하나가 하위 명령 하나).
+
+### 작업
+
+| 작업 | 러너 | 권한 | 하는 일 |
+|---|---|---|---|
+| `release-assets` | `ubuntu-latest` | `contents: write` | 태그(입력 `tag`, `workflow_run`이면 그 태그, 비면 가장 최근 릴리스)의 `Chromite-<v>-arm64.dmg`와 `SHA256SUMS`를 `gh release download`로 받아 SHA-256을 확인하고 결과물 `smoke-input-release-dmg`(보관 1일)로 넘김. 릴리스가 없으면(서명 없는 릴리스 실행은 초안을 만들지 않음) 안내만 하고 끝 |
+| `build` | `ubuntu-latest` | 읽기 | `source: build`일 때만. 실행한 브랜치를 `release.yml`의 `macos-build`와 같은 단계로 빌드해 `ChromiteSwing.app`을 tar로 넘김 |
+| `smoke` | `macos-15` | 읽기 | 아래 단계. 로그·스크린숏을 결과물 `macos-smoke-<source>`(보관 14일)로 올리고 `result.txt`를 작업 요약에 씀 |
+
+`smoke` 단계(`macos-smoke.sh` 하위 명령):
+
+1. `install <dmg>`(release): dmg에 `com.apple.quarantine`을 붙이고(브라우저로 받은 파일처럼) `hdiutil attach` → `ditto`로 `/Applications/ChromiteSwing.app`에 복사 → `hdiutil detach`.
+   복사본이 이미지의 격리 속성을 물려받는지 확인한다. `unpack <tar.gz>`(build): 풀고 임시 서명(`codesign --sign -`, Apple silicon은 서명 없는 코드를 실행하지 않음). 격리·서명 확인은 하지 않는다.
+2. `verify <dmg>`(release): `codesign --verify --deep --strict`, Developer ID·타임스탬프, `spctl --assess --type execute`(격리된 복사본, "accepted", `source=Notarized Developer ID`),
+   앱과 dmg의 `xcrun stapler validate`, dmg의 `spctl --assess --type open`, `syspolicy_check distribution`. Gatekeeper가 꺼져 있으면 러너에서만 켠다(`release-macos.sh`와 같음).
+3. `workspace`: 데이터 폴더(`CHROMITE_DATA`)와 작업 공간을 임시 폴더에 만든다. 프로젝트 `General`에 SQLite 연결 하나(연결 유형 `smoke`: 수동 커밋, 실행 전 확인 없음)와
+   #111 이전 형식의 `credentials-config.json`(고정 키 AES, 가짜 비밀번호)을 둔다. 첫 시작이 이 파일을 보안 저장소로 옮기므로 키체인 항목이 생긴다.
+4. `launch <이름>`: `open -n --env CHROMITE_DATA=… --stdout … --stderr … <앱> --args -data <작업 공간>`. 120초 안에 디버그 로그(`<작업 공간>/.metadata/chromite-debug.log`)에
+   `SSL trust store type`(`ChromiteSwingApplication.start`가 플랫폼을 만들기 전에 남김)이 나오고 앱 프로세스에 창이 생기기를 기다린다. 메인 창을 띄웠다는 로그 줄은 코드에 없어
+   창은 System Events(손쉬운 사용 API)로 센다. Gatekeeper의 첫 실행 질문이 보이면 스크린숏을 찍고 System Events로 "Open"을 한 번 누른다.
+   창이 뜨지 않으면 프로세스·작업 공간·데이터 폴더·Equinox 로그·통합 로그(`*-diagnostics.txt`), 네이티브 스택(`sample`, `*-sample.txt`), JVM 스레드 덤프(SIGQUIT, `*-stdout.txt`)를 남긴다.
+5. `secure-storage`: `<데이터 폴더>/ChromiteData/secure/secure_storage`가 있고 평문 비밀번호가 없으며 값이 키체인 제공자(`MacOSSecureStorageKeychain`)로 암호화됐는지,
+   예전 파일이 옮겨지고 지워졌는지(`credentials-storage.properties`의 `legacy.migrated.…`), 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목이 있는지
+   (`security find-generic-password`, `-g`/`-w` 없이 속성만), 디버그 로그에 보안 저장소 오류가 없는지. 키체인 잠금 상태(`security show-keychain-info`)도 남긴다.
+6. `menus`: System Events로 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Settings…"/"Preferences…"를 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
+7. `quit appleevent`: `osascript -e 'tell application id "<번들 ID>" to quit'`(끝내기 처리기). 프로세스가 끝나고 디버그 로그에 `Main window closed`와 `(Swing) shutdown completed`가
+   있어야 한다(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남). 새 크래시 보고서가 없어야 한다.
+8. 두 번째 시작(`launch second-launch`, 보안 저장소에서 비밀번호를 읽음) → `quit keystroke`(System Events의 Cmd+Q).
+9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(Home) → Ctrl+N 새 쿼리 창 → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
+   "Uncommitted Transactions" 질문 스크린숏 → Cancel이면 앱이 남는지 → 다시 Cmd+Q → "Roll Back" → 정상 종료와 SQLite 파일에 행이 없는지.
+10. `collect`(항상): 남은 앱 프로세스 정리, 디버그 로그, Equinox `.log`, `Info.plist`, 런처 ini, 크래시 보고서, Gatekeeper·키체인 통합 로그.
+
+### 설계 결정
+
+- **초안 릴리스 다운로드만 쓰기 권한**: 초안 릴리스는 push 권한이 있는 토큰에만 보인다. 그래서 다운로드 작업만 `contents: write`를 갖고 제품 코드를 실행하지 않는다.
+  앱을 실행하는 `smoke` 작업은 읽기 권한이다. 비밀값은 쓰지 않는다(가짜 비밀번호 상수, API 키 없음).
+- **`workflow_run`**: GitHub은 기본 브랜치(`devel`)에 있는 이 파일만 `workflow_run`으로 실행한다. 병합 전에는 수동 실행으로만 돈다.
+  `head_branch`(태그 이름)는 셸에 환경 변수로 넘긴다(식 주입 방지).
+- **`/Applications`에 `ditto`로 복사**: 사용자처럼 `/Applications`에 두되 Finder가 아니라서 격리 속성이 남는다. 그래서 첫 실행 때 Gatekeeper 질문과
+  App Translocation(임의의 읽기 전용 경로에서 실행)이 생긴다. dmg에서 바로 실행하거나 다운로드 폴더에서 실행하는 사용자와 같은 경로다.
+- **창은 System Events로 센다**: 처음에는 창 서버 목록(`CGWindowListCopyWindowInfo`)을 썼지만 러너의 셸 도구에는 화면 기록 권한이 없어 다른 프로세스의 창이 보이지 않았다(Dock만 보임).
+  System Events(손쉬운 사용 권한)는 러너에서 동작했다. `screencapture -x`는 다른 앱의 창도 찍었다.
+- **`launcher_args`**: 실험용(예: `--launcher.secondThread`). 비어 있으면 출시한 제품 그대로다. 결과 파일에 쓴 인수를 적는다.
+- **서명 없는 빌드 경로(`source: build`)**: 릴리스 없이 브랜치를 확인하는 빠른 길. 서명·공증·격리는 확인하지 않는다.
+
+### 결과 (2026-11-08, v0.1.1 초안 릴리스, macOS 15.8.2 arm64 가상 머신)
+
+| 확인 | 결과 |
+|---|---|
+| dmg 설치, 격리 속성 전달 | 통과. 복사본이 이미지의 `com.apple.quarantine`을 물려받음 |
+| `codesign --verify --deep --strict` | 통과. `Developer ID Application: Jaeyoung Ko (F3Z4RU59X6)`, 타임스탬프 있음 |
+| `spctl` 앱(execute)·dmg(open) | 통과. 둘 다 `accepted`, `source=Notarized Developer ID` |
+| `stapler validate` 앱·dmg, `syspolicy_check distribution` | 통과 |
+| Gatekeeper 첫 실행 질문 | 나옴: "“ChromiteSwing” is an app downloaded from the Internet…", "Apple checked it for malicious software and none was detected." System Events로 Open을 누를 수 있음 |
+| **앱 시작** | **실패(제품 결함)**. 프로세스는 뜨지만 창이 없고 디버그 로그도 생기지 않는다(아래) |
+| 보안 저장소·키체인, 앱 메뉴, 끝내기(Apple event·Cmd+Q), 열린 트랜잭션 질문 | 앱이 시작하지 않아 실행하지 못함 |
+| 그 밖에 본 것 | 앱 메뉴·크래시 대화상자의 앱 이름이 "Chromite-swing"(`Info.plist`의 `CFBundleName`, 브랜딩 결함). `Info.plist`의 `Eclipse` 인수에 Eclipse 기본값 `-keyring ~/.eclipse_keyring`. `NSRequiresAquaSystemAppearance`가 `true`(시스템 어두운 모드를 따르지 않음) |
+
+`secure-storage`·`menus`·`quit`·`txn`(5~9단계)은 앱이 시작하지 않아 한 번도 실행되지 않았다. 앱이 시작하게 된 뒤 첫 실행에서 조정이 필요할 수 있다.
+
+**앱이 시작하지 않는 원인**: Eclipse 런처는 macOS에서 JVM을 프로세스의 첫(AppKit 메인) 스레드에서 시작한다. JVM 스레드 덤프에서 `main`은
+`ChromiteSwingApplication.installLookAndFeel`(`SwingUtilities.invokeAndWait`)에서 기다리고, `AWT-EventQueue-0`은 `CGraphicsEnvironment.initMetal`에 있다.
+AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기다리는데, 그 스레드가 Java `main`으로 막혀 있어 서로 기다린다(교착). `sample`도 메인 스레드가
+`startJavaJNI` → `JVM_MonitorWait`에 있음을 보인다. SWT는 첫 스레드에서 돌아야 해서 런처의 기본이 이렇고, Swing에는 맞지 않는다.
+런처의 `--launcher.secondThread`(JVM을 둘째 스레드에서 시작)로 실험하면 런처 자신이 메인 스레드에서 AppKit 단정(`_NSAssertMainEventQueueIsCurrentEventQueue`,
+`eclipse_11924.so +[KeyWindow dispatch]`)으로 `EXC_BREAKPOINT` 종료한다("Chromite-swing quit unexpectedly"). 명령줄 `-vm …/jre/bin/java`를 더해도 런처가
+같은 프로세스에 JVM을 올려(프로세스 하나, 같은 스레드 덤프) 결과가 같다. 이 브랜치(`devel`과 같은 제품 코드)의 서명 없는 빌드(`source: build`, 격리·App Translocation 없음)도
+같은 곳에서 멈춰, 서명·Gatekeeper·Translocation 때문이 아니다. 고치는 일은 이 작업 범위 밖이라 보고만 한다.
+
+증거(실행 URL과 파일): 실행 42400660270(`first-launch-sample.txt`), 42401087028(`--launcher.secondThread`, 크래시 보고서), 42401477114(`first-launch-stdout.txt` 스레드 덤프),
+42401481357(서명 없는 빌드, 같은 스레드 덤프), 42402015208(서명 없는 빌드 + `-vm …/bin/java`).
+내려받은 결과물은 `D:\Tools\_scratch\macos-smoke-ci\run*\`.
+
 ## .github 파일 분류
 
 | 파일 | 결정 | 이유 |
@@ -178,13 +257,14 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 
 - GitHub Actions를 로컬에서 실행할 수 없어 이 설정은 push한 뒤 첫 실행으로만 확인할 수 있다(작성 시점에 미확인).
 - 두 작업 모두 두 플랫폼의 제품을 다 만들고 그중 한 플랫폼의 것만 올린다(루트 `pom.xml`, `product/swing/pom.xml`의 두 환경).
-- macOS 제품은 Linux에서 만들기 때문에 CI는 이 제품이 macOS에서 실제로 실행되는지 확인하지 않는다(위 "macOS 제품을 Linux 러너에서 만드는 이유").
+- macOS 제품은 Linux에서 만들기 때문에 `build.yml`은 이 제품이 macOS에서 실제로 실행되는지 확인하지 않는다. 실행 확인은 `macos-smoke.yml`이 릴리스 뒤나 수동으로 한다(위 "macOS 설치·실행 시험").
 - 빌드는 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다([build.md](build.md)).
   이 서버가 응답하지 않으면 CI도 실패한다.
 - `package` 단계까지만 실행하므로 테스트(`test/`)는 돌리지 않는다.
 - 결과물은 서명하지 않았다. 내장 런타임(`jre/`)이 들어 있어 Java를 따로 설치하지 않아도 실행된다([runtime.md](runtime.md)).
   배포용이 아니라 확인용이며 7일 뒤 지워진다. 서명한 배포 파일은 `release.yml`이 만든다([signing.md](signing.md)).
-- macOS 런타임은 Linux에서 jlink로 만든다(교차 링크). CI는 구조와 실행 권한만 확인하고, macOS에서 실행되는지는 확인하지 않는다.
+- macOS 런타임은 Linux에서 jlink로 만든다(교차 링크). `build.yml`은 구조와 실행 권한만 확인한다. `macos-smoke.yml`에서 내장 런타임의 JVM이 macOS에서 뜨는 것은 확인했다(스레드 덤프의 `java.base@25.0.4.1`).
+- `macos-smoke.yml`은 `workflow_run` 때문에 `devel`에 병합된 뒤에만 릴리스를 따라 돈다. 병합 전에는 수동 실행으로만 돈다. GUI 조작(System Events)은 러너 이미지의 손쉬운 사용 권한에 기댄다.
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
   JBR SDK 다운로드 캐시는 플랫폼마다 하나(Windows 약 280MB, macOS 약 230MB)다.
 
@@ -218,3 +298,5 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
   브랜치 `chromite/jbr-runtime`에서 수동 실행(실행 42267311710)으로 두 작업 성공과 macOS 결과물의 런타임 구조를 확인했다. `release.yml`은 실행하지 않았다.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `build.yml`·`release.yml`에서 SWT 제품 빌드·업로드·서명·패키징 단계 삭제, 프로파일은 `product-chromite-swing`만. 결과물 표와 설명 갱신.
 - 2026-11-07 `release.yml` Windows 작업에 NSIS 설치 프로그램(고정한 NSIS 3.12, 2단계 빌드·서명, 조용한 설치·제거 확인)을 넣고 macOS 결과 파일 이름을 계약 이름으로 바꿨다([distribution.md](distribution.md)). `build.yml`은 바꾸지 않았다.
+- 2026-11-08 `macos-smoke.yml`과 `tools/release/macos-smoke.sh` 추가("macOS 설치·실행 시험"): `macos-15` 러너에서 v0.1.1 초안 dmg의 설치·서명·Gatekeeper는 통과,
+  앱 시작은 런처가 JVM을 AppKit 메인 스레드에서 돌려 AWT와 교착해 실패함을 확인(제품 결함, 보고). "알려진 제약"의 macOS 실행 항목을 고침.

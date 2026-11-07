@@ -38,6 +38,7 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.gis.DBGeometry;
 import com.seizia.chromite.model.impl.data.ResultSetHintContext;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
@@ -491,15 +492,18 @@ final class ResultSetEditModel implements DBDResultSetModel {
      * @param lob the fetched values of the column were LOB value objects
      */
     private static boolean isWholeValueColumn(@NotNull DBDAttributeBinding binding, boolean lob) {
-        DBPDataKind dataKind = binding.getDataKind();
-        if (lob || dataKind == DBPDataKind.CONTENT || dataKind == DBPDataKind.BINARY) {
-            return true;
-        }
+        Class<?> valueType;
         try {
-            return DBDContent.class.isAssignableFrom(binding.getValueHandler().getValueObjectType(binding));
+            valueType = binding.getValueHandler().getValueObjectType(binding);
         } catch (Exception e) {
+            valueType = Object.class;
+        }
+        if (DBGeometry.class.isAssignableFrom(valueType)) {
+            // Geometries (some drivers report binary columns) stay read-only: the spatial view shows them
             return false;
         }
+        DBPDataKind dataKind = binding.getDataKind();
+        return lob || dataKind == DBPDataKind.CONTENT || dataKind == DBPDataKind.BINARY || DBDContent.class.isAssignableFrom(valueType);
     }
 
     boolean isInlineEditable(int rowIndex, int column) {

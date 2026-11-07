@@ -26,6 +26,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.registry.DataSourceProviderDescriptor;
@@ -48,7 +49,7 @@ import java.util.Map;
 
 /**
  * 드라이버 만들기·복사·편집 대화상자(SWT {@code DriverEditDialog}의 Swing 판). 탭: Settings, Libraries, Default Properties,
- * Advanced Parameters, License(드라이버에 라이선스가 있을 때).
+ * Advanced Parameters, Local Client(공급자가 네이티브 클라이언트를 다룰 때), License(드라이버에 라이선스가 있을 때).
  *
  * 설계: SWT {@code DriverEditDialog}(ui.editors.connection)의 동작을 모델 API 그대로 옮겼다.
  * <ul>
@@ -65,11 +66,16 @@ import java.util.Map;
  *     <li>Default Properties: SWT {@code ConnectionPropertiesControl.makeProperties(driver, props)}처럼 드라이버 수준 연결 속성을
  *     사용자 속성으로만 보인다(JDBC 드라이버에 묻지 않음). Advanced Parameters: 공급자의 드라이버 매개 변수
  *     ({@code getDriverProperties()})와 기본값. 두 표 모두 {@link ConnectionPropertiesTable}을 그대로 쓴다.</li>
+ *     <li>Local Client({@link ClientHomesPanel}, SWT {@code createClientHomesTab}): 공급자가 클라이언트 관리자
+ *     ({@code getNativeClientManager()})일 때만. OK가 추가한 폴더를 {@code setNativeClientLocations}로 쓴다. 새 드라이버의 공급자를 바꾸면
+ *     이전 공급자의 목록이라 탭을 뺀다(저장한 뒤 편집에서 지정).</li>
+ *     <li>Libraries 탭을 열 때마다 라이브러리 상태를 다시 그린다. "로컬 파일 우선" 상태가 Settings 탭의 Class name 값에 달려 있어서다.</li>
  * </ul>
- * SWT에 있던 Local Client 탭(네이티브 클라이언트 홈)과 분산 제품의 라이브러리 업로드는 없다(설계 문서 "남긴 것").
+ * 분산 제품의 라이브러리 업로드는 없다(설계 문서 "남긴 것").
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-08 Local Client 탭, Libraries 탭을 열 때 상태 다시 그리기 (docs/chromite/swing-driver-manager.md "Local Client")
  */
 final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.Host {
 
@@ -101,6 +107,9 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
     private final ConnectionPropertiesTable connectionPropertiesTable = new ConnectionPropertiesTable(true);
     private final ConnectionPropertiesTable parametersTable = new ConnectionPropertiesTable(false);
     private final DriverLibrariesPanel librariesPanel;
+    private final JTabbedPane tabs = new JTabbedPane();
+    @Nullable
+    private ClientHomesPanel clientHomesPanel;
     private final JButton okButton = new JButton(CoreMessages.common_ok);
     private final JLabel problemLabel = new JLabel(" ");
 
@@ -116,7 +125,6 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
         libraries.addAll(driver.getEnabledDriverLibraries());
         librariesPanel = new DriverLibrariesPanel(this, libraries);
 
-        JTabbedPane tabs = new JTabbedPane();
         tabs.addTab(DriverManagerMessages.driveredit_tab_settings, createSettingsTab());
         tabs.addTab(DriverManagerMessages.driveredit_tab_libraries, null, librariesPanel, DriverManagerMessages.driveredit_tab_libraries_tip);
         connectionPropertiesTable.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -124,6 +132,11 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
             DriverManagerMessages.driveredit_tab_connection_properties_tip);
         parametersTable.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         tabs.addTab(DriverManagerMessages.driveredit_tab_parameters, null, parametersTable, DriverManagerMessages.driveredit_tab_parameters_tip);
+        DBPNativeClientLocationManager clientManager = driver.getNativeClientManager();
+        if (clientManager != null && clientManager.supportsNativeClients()) {
+            clientHomesPanel = new ClientHomesPanel(driver, clientManager);
+            tabs.addTab(DriverManagerMessages.driveredit_tab_client, null, clientHomesPanel, DriverManagerMessages.driveredit_tab_client_tip);
+        }
         String license = driver.getLicense();
         if (license != null) {
             JTextArea licenseArea = new JTextArea(license);
@@ -135,6 +148,11 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
             licenseScroll.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10), licenseScroll.getBorder()));
             tabs.addTab(DriverManagerMessages.driveredit_tab_license, licenseScroll);
         }
+        tabs.addChangeListener(e -> {
+            if (tabs.getSelectedComponent() == librariesPanel) {
+                librariesPanel.reload();
+            }
+        });
 
         JButton resetButton = new JButton(DriverManagerMessages.driveredit_reset);
         resetButton.setToolTipText(DriverManagerMessages.driveredit_reset_tip);
@@ -355,6 +373,11 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
         providerIdField.setText(driver.getProviderId());
         parametersTable.setSource(createParametersSource(driver), null);
         librariesPanel.reload();
+        if (clientHomesPanel != null) {
+            // The list belongs to the previous provider's client manager
+            tabs.remove(clientHomesPanel);
+            clientHomesPanel = null;
+        }
         log.debug("New driver moved from provider " + previous.getProviderId() + " to " + provider.getId());
     }
 
@@ -453,6 +476,9 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
             target.setConnectionProperties(connectionProperties.getPropertyValues());
         }
         target.setDriverLibraries(libraries);
+        if (clientHomesPanel != null) {
+            target.setNativeClientLocations(clientHomesPanel.getLocalLocations());
+        }
     }
 
     private void save() {
@@ -499,6 +525,12 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
     @Override
     public boolean isManageable() {
         return provider.isDriversManageable();
+    }
+
+    @NotNull
+    @Override
+    public String getDriverClassName() {
+        return classField.getText().trim();
     }
 
     @Override

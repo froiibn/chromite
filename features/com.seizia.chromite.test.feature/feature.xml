@@ -35,4 +35,8 @@
     <plugin id="com.seizia.chromite.model.sql.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.data.transfer.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.model.datadam.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.registry.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.ai.tools.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ui.swing.test" version="0.0.0"/>
 </feature>

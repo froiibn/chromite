@@ -50,7 +50,6 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
-import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -75,6 +74,8 @@ import java.util.Set;
  *   precision and scale stays NUMBER (it became NUMBER(38), an integer).
  * - 2026-11-07 Chromite: the VARCHAR2 limit of the converter follows MAX_STRING_SIZE (32767 when EXTENDED, read from
  *   V$PARAMETER when the login may read it; 4000 otherwise).
+ * - 2026-11-08 Chromite: any failure of the MAX_STRING_SIZE probe keeps 4000 (only SQLException was caught; a session without
+ *   a statement threw NullPointerException out of the dialect setup and broke 11 SQL parser tests, docs/chromite/regression-tests.md).
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -423,7 +424,9 @@ public class OracleSQLDialect extends JDBCSQLDialect
     /**
      * The longest VARCHAR2 of the database: MAX_STRING_SIZE = EXTENDED raises it from 4000 to 32767 bytes.
      * V$PARAMETER needs SELECT_CATALOG_ROLE or a grant, and servers before 12c have no such parameter: then the
-     * STANDARD limit is kept (a longer string becomes CLOB, which holds every value).
+     * STANDARD limit is kept (a longer string becomes CLOB, which holds every value). Any failure of the probe (also a
+     * driver or session that gives no statement or result) keeps the STANDARD limit: the dialect is set up while connecting
+     * and for parsing, which a metadata probe must never break.
      */
     private static long readMaxVarchar2Length(@NotNull JDBCSession session) {
         try {
@@ -431,7 +434,7 @@ public class OracleSQLDialect extends JDBCSQLDialect
             if (MAX_STRING_SIZE_EXTENDED.equalsIgnoreCase(CommonUtils.trim(maxStringSize))) {
                 return MAX_VARCHAR2_LENGTH_EXTENDED;
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.debug("Can't read MAX_STRING_SIZE: " + e.getMessage()); //$NON-NLS-1$
         }
         return MAX_VARCHAR2_LENGTH_STANDARD;
