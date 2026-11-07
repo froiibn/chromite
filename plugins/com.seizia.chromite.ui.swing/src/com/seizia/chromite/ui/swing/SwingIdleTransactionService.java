@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.qm.QMTransactionState;
