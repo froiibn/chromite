@@ -71,6 +71,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 확인 대화상자의 열린 트랜잭션 설명을 AgentSql.pendingAgentTransaction으로 만듦(화면 언어를 따름)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -404,9 +405,8 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
             String head = statement.stripLeading().toUpperCase(Locale.ROOT);
             if (head.startsWith("CREATE") || head.startsWith("ALTER") || head.startsWith("DROP") || head.startsWith("TRUNCATE") ||
                 head.startsWith("RENAME") || head.startsWith("GRANT") || head.startsWith("REVOKE")) {
-                for (String agent : AgentSql.getPendingTransactions(container)) {
-                    result.add(new AIPendingTransaction("agent", "uncommitted agent work in the " + agent +
-                        " (" + family.getDisplayName() + " commits it implicitly before DDL)", true));
+                for (String database : AgentSql.getPendingTransactionDatabases(container)) {
+                    result.add(AgentSql.pendingAgentTransaction(database, family.getDisplayName()));
                 }
                 break;
             }

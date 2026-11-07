@@ -244,11 +244,11 @@
                         <folder type="com.seizia.chromite.ext.oracle.model.OracleDBLink" label="%tree.database_links.node.name" icon="#folder_link" description="Database Links (DBLinks)">
                             <items label="%tree.database_links.node.name" path="databaseLink" property="databaseLinks" icon="#link"/>
                         </folder>
-                        <folder type="com.seizia.chromite.ext.oracle.model.OracleJavaClass" label="Java" icon="#java" description="Java Classes">
-                            <items label="Java Class" path="class" property="javaClasses" icon="#javaClass"/>
+                        <folder type="com.seizia.chromite.ext.oracle.model.OracleJavaClass" label="%tree.java.node.name" icon="#java" description="%tree.java.node.tip">
+                            <items label="%tree.java_class.node.name" path="class" property="javaClasses" icon="#javaClass"/>
                         </folder>
-                        <folder type="com.seizia.chromite.ext.oracle.model.OracleJob" label="Jobs" icon="#scheduler_job_folder" description="Jobs">
-                            <items label="Job" path="job" property="jobs" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/job_schedule.svg"/>
+                        <folder type="com.seizia.chromite.ext.oracle.model.OracleJob" label="%tree.jobs.node.name" icon="#scheduler_job_folder" description="%tree.jobs.node.tip">
+                            <items label="%tree.job.node.name" path="job" property="jobs" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/job_schedule.svg"/>
                         </folder>
                         <folder label="%tree.scheduler.node.name" icon="#scheduler_folder" id="schedulerFolder"
                                 description="Scheduler objects">
@@ -390,27 +390,27 @@
                     <file type="jar" path="drivers/oracle" bundle="drivers.oracle"/>
                 </driver>
                 <provider-properties>
-                    <propertyGroup label="Misc">
-                        <property id="@chromite-sid-service@" label="Service type" type="string" supportedConfigurationTypes="MANUAL" description="Database type" defaultValue="SID" validValues="SID,SERVICE"/>
-                        <property id="oracle.logon-as" label="Role" type="string" description="Connect as role" defaultValue="Normal" validValues="Normal,SYSDBA,SYSOPER"/>
-                        <property id="oracle.set-os-user" label="Set Username to OS_USER property" type="boolean" description="Sets Username to OS_USER driver property"/>
+                    <propertyGroup label="%provider.group.misc.label">
+                        <property id="@chromite-sid-service@" label="%provider.property.sid_service.label" type="string" supportedConfigurationTypes="MANUAL" description="%provider.property.sid_service.description" defaultValue="SID" validValues="SID,SERVICE"/>
+                        <property id="oracle.logon-as" label="%provider.property.logon_as.label" type="string" description="%provider.property.logon_as.description" defaultValue="Normal" validValues="Normal,SYSDBA,SYSOPER"/>
+                        <property id="oracle.set-os-user" label="%provider.property.set_os_user.label" type="boolean" description="%provider.property.set_os_user.description"/>
                     </propertyGroup>
-                    <propertyGroup label="Performance">
-                        <property id="@chromite-use-meta-optimizer@" label="Use metadata queries optimizer" type="boolean" description="Use metadata queries optimizer"/>
-                        <property id="@chromite-use-rule-hint@" label="Use RULE hint for system catalog queries" type="boolean" description="Adds RULE hint for some system catalog queries (like columns and constraints reading).\nIt significantly increases performance on some Oracle databases (and decreases on others)."/>
-                        <property id="@chromite-meta-use-simple-constraints@" label="Simple constraint reading query" type="boolean" description="Use simple metadata queries. May work slower but it is more stable for all Oracle versions."/>
-                        <property id="@chromite-meta-use-alternative-table-query@" label="Use UNION for table metadata reading" type="boolean" description="Use legacy table metadata query. With UNION instead JOIN. It helps in some cases speed up reading of table data.r"/>
-                        <property id="oracle.meta-search-in-synonyms" label="Search metadata in synonyms" type="boolean" description="Use metadata queries optimizer"/>
+                    <propertyGroup label="%provider.group.performance.label">
+                        <property id="@chromite-use-meta-optimizer@" label="%provider.property.use_meta_optimizer.label" type="boolean" description="%provider.property.use_meta_optimizer.label"/>
+                        <property id="@chromite-use-rule-hint@" label="%provider.property.use_rule_hint.label" type="boolean" description="%provider.property.use_rule_hint.description"/>
+                        <property id="@chromite-meta-use-simple-constraints@" label="%provider.property.simple_constraints.label" type="boolean" description="%provider.property.simple_constraints.description"/>
+                        <property id="@chromite-meta-use-alternative-table-query@" label="%provider.property.alternative_table_query.label" type="boolean" description="%provider.property.alternative_table_query.description"/>
+                        <property id="oracle.meta-search-in-synonyms" label="%provider.property.search_in_synonyms.label" type="boolean" description="%provider.property.search_in_synonyms.description"/>
                     </propertyGroup>
-                    <propertyGroup label="Content">
-                        <property id="show-only-one-schema@" label="Show only connected user schema" type="boolean" description="Show only a scheme of a connected user in the Database Navigator"/>
-                        <property id="@chromite-check-schema-content@" label="Hide empty schemas" type="boolean" description="Check existence of objects within schema and do not show empty schemas in tree.\nEnabled by default but it may cause performance problems on databases with very big number of objects."/>
-                        <property id="@chromite-always-show-dba@" label="Always show DBA objects" type="boolean" description="Always shows DBA-related metadata objects in tree even if user do not has DBA role."/>
-                        <property id="@chromite-always-use-dba-views@" label="Always use DBA_* views" type="boolean" description="Use DBA_* views instead of ALL_* views wherever it is possible"/>
-                        <property id="@chromite-meta-use-sys-schema@" label="Use SYS schema prefix" type="boolean" description="Use SYS schema prefix in all metadata queries. Otherwise use view names without explicit schema."/>
+                    <propertyGroup label="%provider.group.content.label">
+                        <property id="show-only-one-schema@" label="%provider.property.show_only_one_schema.label" type="boolean" description="%provider.property.show_only_one_schema.description"/>
+                        <property id="@chromite-check-schema-content@" label="%provider.property.check_schema_content.label" type="boolean" description="%provider.property.check_schema_content.description"/>
+                        <property id="@chromite-always-show-dba@" label="%provider.property.always_show_dba.label" type="boolean" description="%provider.property.always_show_dba.description"/>
+                        <property id="@chromite-always-use-dba-views@" label="%provider.property.always_use_dba_views.label" type="boolean" description="%provider.property.always_use_dba_views.description"/>
+                        <property id="@chromite-meta-use-sys-schema@" label="%provider.property.use_sys_schema.label" type="boolean" description="%provider.property.use_sys_schema.description"/>
                     </propertyGroup>
-                    <propertyGroup label="Data">
-                        <property id="oracle.show-date-as-date" label="Show DATE values specifically as DATE" type="boolean" description="Show DATE data type values specifically as DATE, not as a TIMESTAMP.\nThis setting will not work with disabled date/time formatting."/>
+                    <propertyGroup label="%provider.group.data.label">
+                        <property id="oracle.show-date-as-date" label="%provider.property.show_date_as_date.label" type="boolean" description="%provider.property.show_date_as_date.description"/>
                     </propertyGroup>
                 </provider-properties>
             </drivers>
@@ -468,8 +468,8 @@
     <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="oracle_native"
-                label="Username/password"
-                description="Oracle database authentication (name/password)"
+                label="%auth.oracle_native.label"
+                description="%auth.oracle_native.description"
                 class="com.seizia.chromite.ext.oracle.model.auth.OracleAuthModelDatabaseNative"
                 default="true">
             <replace model="native"/>
@@ -477,8 +477,8 @@
         </authModel>
         <authModel
                 id="oracle_os"
-                label="OS Authentication"
-                description="OS authentication allows Oracle to pass control of user authentication to the operating system."
+                label="%auth.oracle_os.label"
+                description="%auth.oracle_os.description"
                 class="com.seizia.chromite.ext.oracle.model.auth.OracleAuthOS"
                 desktop="true">
             <datasource id="oracle"/>

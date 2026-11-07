@@ -19,6 +19,7 @@ package com.seizia.chromite.model.ai.tools;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -39,6 +40,7 @@ import com.seizia.chromite.model.ai.agent.AIToolDecision;
 import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
+import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
@@ -69,6 +71,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -336,18 +339,19 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         }
         switch (toolId) {
             case "disconnect" -> {
-                for (String agent : AgentSql.getPendingTransactions(container)) {
-                    result.add(new AIPendingTransaction("agent", "uncommitted agent work in the " + agent, true));
+                for (String database : AgentSql.getPendingTransactionDatabases(container)) {
+                    result.add(AgentSql.pendingAgentTransaction(database, null));
                 }
                 for (DBCExecutionContext ctx : userContexts(container)) {
                     if (QMUtils.isTransactionActive(ctx)) {
-                        result.add(new AIPendingTransaction("query window", "uncommitted work in '" + ctx.getContextName() + "'", true));
+                        result.add(new AIPendingTransaction(AIToolsMessages.pending_owner_query_window,
+                            NLS.bind(AIToolsMessages.pending_query_window_work, ctx.getContextName()), true));
                     }
                 }
             }
             case "setCurrentDatabase", "commitTransaction", "rollbackTransaction" -> {
-                for (String agent : AgentSql.getPendingTransactions(container)) {
-                    result.add(new AIPendingTransaction("agent", "uncommitted agent work in the " + agent, true));
+                for (String database : AgentSql.getPendingTransactionDatabases(container)) {
+                    result.add(AgentSql.pendingAgentTransaction(database, null));
                 }
             }
             default -> {

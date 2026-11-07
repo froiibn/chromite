@@ -18,6 +18,7 @@ package com.seizia.chromite.model.ai.tools;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -25,7 +26,9 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
+import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
@@ -83,6 +86,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 열린 트랜잭션의 DB 목록({@link #getPendingTransactionDatabases})과 확인 대화상자용 지역화된 설명
+ *   ({@link #pendingAgentTransaction})을 나눔. 모델에 돌려주는 {@link #getPendingTransactions}는 영어 그대로
+ *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  */
 public final class AgentSql {
 
@@ -341,9 +347,23 @@ public final class AgentSql {
 
     /**
      * Describes the agent's open transactions on a connection (one per agent context), empty when none.
+     * English: the text goes to the AI model (getTransactionStatus).
      */
     @NotNull
     public static List<String> getPendingTransactions(@NotNull DBPDataSourceContainer container) {
+        List<String> result = new ArrayList<>();
+        for (String database : getPendingTransactionDatabases(container)) {
+            result.add(database.isEmpty() ? "default database" : "database " + database); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        return result;
+    }
+
+    /**
+     * Databases of the agent's open transactions on a connection (one per agent context; empty string for the default
+     * database), empty when none.
+     */
+    @NotNull
+    public static List<String> getPendingTransactionDatabases(@NotNull DBPDataSourceContainer container) {
         List<String> result = new ArrayList<>();
         for (Map.Entry<ContextKey, List<AgentContext>> e : pools.entrySet()) {
             if (!e.getKey().containerId().equals(container.getId())) {
@@ -351,12 +371,30 @@ public final class AgentSql {
             }
             for (AgentContext agentContext : snapshot(e.getValue())) {
                 if (agentContext.pending) {
-                    String database = e.getKey().database();
-                    result.add(database.isEmpty() ? "default database" : "database " + database);
+                    result.add(e.getKey().database());
                 }
             }
         }
         return result;
+    }
+
+    /**
+     * The agent's open transaction in a database as the confirmation dialog lists it, in the UI language.
+     *
+     * @param database        database of the transaction, empty for the default database
+     * @param implicitCommitBy product that commits it implicitly before the call's DDL, or null
+     */
+    @NotNull
+    public static AIPendingTransaction pendingAgentTransaction(@NotNull String database, @Nullable String implicitCommitBy) {
+        String description;
+        if (implicitCommitBy == null) {
+            description = database.isEmpty() ? AIToolsMessages.pending_agent_work_default
+                : NLS.bind(AIToolsMessages.pending_agent_work_database, database);
+        } else {
+            description = database.isEmpty() ? NLS.bind(AIToolsMessages.pending_agent_work_ddl_default, implicitCommitBy)
+                : NLS.bind(AIToolsMessages.pending_agent_work_ddl_database, database, implicitCommitBy);
+        }
+        return new AIPendingTransaction(AIToolsMessages.pending_owner_agent, description, true);
     }
 
     /**

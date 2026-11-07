@@ -19,6 +19,7 @@ package com.seizia.chromite.model.ai.tools;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -36,6 +37,7 @@ import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
+import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -59,6 +61,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
  */
 public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider {
 
@@ -293,8 +296,8 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
             }
         });
         if (open) {
-            result.add(new AIPendingTransaction("server session " + session,
-                "session " + session + " has an open transaction; ending the session rolls it back", false));
+            result.add(new AIPendingTransaction(NLS.bind(AIToolsMessages.pending_owner_server_session, session),
+                NLS.bind(AIToolsMessages.pending_server_session_work, session), false));
         }
         return result;
     }

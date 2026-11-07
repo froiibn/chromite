@@ -19,10 +19,12 @@ package com.seizia.chromite.runtime.jobs;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
@@ -32,6 +34,10 @@ import com.seizia.chromite.utils.GeneralUtils;
  * Connect job.
  * Always returns OK status.
  * To get real status use getConectStatus.
+ *
+ * 변경 이력:
+ * - 2026-11-07 작업 이름("Connect to 'X'")을 ModelMessages로 옮김. 진행 대화상자에 보인다
+ *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  */
 public class ConnectJob extends AbstractJob {
 
@@ -43,7 +49,7 @@ public class ConnectJob extends AbstractJob {
     protected final DBPDataSourceContainer container;
 
     public ConnectJob(@NotNull DBPDataSourceContainer container) {
-        super("Connect to '" + container.getName() + "'");
+        super(NLS.bind(ModelMessages.runtime_connect_job_name, container.getName()));
         setUser(true);
         this.container = container;
     }
