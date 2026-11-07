@@ -138,6 +138,37 @@ SWT는 읽을 때마다 격리된 실행 컨텍스트를 열고 닫는다(`Sessi
 연결 설정이 "단일 연결"이면 SWT처럼 기본 컨텍스트를 쓴다. 작업은 차례로 실행하고(같은 JDBC 연결), 오류가 나면 컨텍스트를 닫아
 다음 작업에서 다시 연다(자기 세션을 끝낸 경우 등). 연결되지 않은 연결은 첫 작업에서 연결한다(SQL 편집기와 같은 `DBUtils.initDataSource`).
 
+### 모니터링 연결의 커밋 방식 (2026-11-08)
+
+문제: 수동 커밋 PostgreSQL 연결에서 Locks 탭이 "잠금을 기다리는 세션이 없습니다"를 보였다. 서버에서는 한 세션이 막혀 있었다(`pg_blocking_pids`로 확인).
+
+원인: `openIsolatedContext`가 연 컨텍스트는 연결 설정의 기본 커밋 방식(`JDBCExecutionContext.connect`의 `isDefaultAutoCommit`)을 따른다.
+수동 커밋이면 첫 읽기가 트랜잭션을 열고, Activity Monitor는 쓰지 않으므로 그 트랜잭션은 창을 닫을 때까지 끝나지 않는다.
+PostgreSQL은 트랜잭션 안에서 처음 읽은 `pg_stat_activity`(와 `stats_fetch_consistency = cache`인 통계 뷰)를 트랜잭션이 끝날 때까지 그대로 돌려준다.
+잠금 관리자(`PostgreBlockingLockManager`)는 `pg_stat_activity`에서 시작하므로 그 뒤에 생긴 세션의 대기는 Refresh를 눌러도 보이지 않았다.
+같은 PostgreSQL 서버에서 확인했다: 트랜잭션 안에서 다른 세션이 생긴 뒤에도 `count(*)`가 0이고, `pg_stat_clear_snapshot()` 뒤에 1이 된다.
+
+같은 원인의 다른 경우:
+
+| 대상 | 영향 |
+|---|---|
+| PostgreSQL 개요·Processes·Locks·Maintenance·Replication | 세션 목록, 대기, 통계(죽은 행, 대시보드의 누적 값 차분)가 첫 읽기 시점에 멈춤 |
+| SQL Server 모든 탭, SQL Server Agent 탭 | 묵시적 트랜잭션이 창을 닫을 때까지 열려 있음(그 세션의 `open_transaction_count` = 1). DMV는 트랜잭션 스냅숏을 따르지 않아 값은 새로 읽힘 |
+| MySQL·MariaDB Maintenance | InnoDB 표(`mysql.innodb_table_stats`)의 읽기 시점이 REPEATABLE READ로 멈추고, 그 표의 메타데이터 잠금이 남음. `information_schema`·`performance_schema`는 해당 없음 |
+| Oracle | `SELECT`는 트랜잭션을 시작하지 않고 `V$` 뷰는 읽기 일관성을 따르지 않아 해당 없음 |
+| Maintenance 대화상자(`MaintenanceRunner`) | 이미 작업마다 새 연결을 자동 커밋으로 연다. 해당 없음 |
+| Chromite Agent 진단 도구 | 읽기는 호출마다 새 읽기 전용 트랜잭션이고 끝에 롤백한다. 에이전트가 수동 커밋 연결에 쓰고 트랜잭션을 열어 둔 동안만 그 트랜잭션 안에서 읽어 PostgreSQL 통계가 멈춘다([ai-agent.md](ai-agent.md) "실행 문맥") |
+
+고친 것:
+
+- `AdminConnection`이 격리된 컨텍스트를 자동 커밋으로 둔다(`keepAutoCommit`). 모니터링은 트랜잭션을 열지 않는다. 방금 연 연결이라 끝나지 않은 트랜잭션이 없어
+  트랜잭션 안전 규칙(커밋/롤백 묻기)의 대상이 아니다(`MaintenanceRunner`와 같은 판단).
+- 작업마다 다시 확인한다. 연결 설정의 자동 커밋을 열린 세션에 적용하는 `AutoCommitApplier`가 이 컨텍스트도 바꾸기 때문이다. 작업 사이에는 실행한 문장이 없어
+  자동 커밋으로 되돌릴 때 끝나는 트랜잭션이 없다.
+- 에이전트: 열린 에이전트 트랜잭션 안에서 실행하는 호출은 PostgreSQL 통계 스냅숏을 먼저 비운다(`AgentSql.clearStatisticsSnapshot`).
+- 연결이 "단일 연결"(드라이버가 연결 하나만 허용하거나 SQL Server MFA 인증)이면 사용자의 기본 컨텍스트를 함께 쓰므로 커밋 방식을 바꾸지 않는다(트랜잭션 안전 규칙).
+  그 연결이 수동 커밋이면 읽기는 사용자의 트랜잭션 안에서 실행된다. 이 경우만 남는다(아래 "미룬 것").
+
 ## Activity Monitor — Locks (잠금)
 
 SWT `LockManagerViewer`(`plugins/com.seizia.chromite.ui.editors.locks/.../LockManagerViewer.java`: 잠금 표, 그래프, 대기·보유 상세 표,
@@ -504,6 +535,8 @@ Kill Session은 공용 컨테이너에서 실행하지 않았다(다른 작업�
 - Oracle은 시험 DB가 없어 실제로 확인하지 못했다(코드 경로는 SWT와 같은 모델 API). 2026-11-07 Oracle Free 23ai로 확인함(아래 "확인 (2026-11-07, PostgreSQL·Oracle 세션과 잠금)").
 - Oracle 쿼리 취소(`ALTER SYSTEM CANCEL SQL`, 18c+): 요청 범위(Kill Session)에 없어 넣지 않았다.
 - 권한이 없을 때 메뉴 자체를 끄는 것: 권한은 연결한 뒤에야 알 수 있어, 메뉴는 그대로 두고 탭 안의 명령 단추를 끈다.
+- "단일 연결"(드라이버가 연결 하나만 허용, SQL Server MFA 인증)인 수동 커밋 연결: 관리 도구가 사용자의 기본 컨텍스트와 트랜잭션을 함께 쓴다(위 "모니터링 연결의 커밋 방식").
+  커밋 방식을 바꾸면 사용자의 트랜잭션이 끝나므로 바꾸지 않았다. 그런 드라이버는 PostgreSQL·MySQL·Oracle이 아니라 지금 시험할 연결이 없다.
 
 ## 확인 (2026-11-06)
 
@@ -619,6 +652,24 @@ PostgreSQL·SQL Server·MariaDB의 `chr_maint_repl` 데이터베이스(`chr_main
 확인하지 못한 것: MySQL(MariaDB만 시험; `SHOW REPLICA STATUS`·`SHOW BINARY LOG STATUS` 분기), MariaDB·MySQL 실제 복제본, Oracle Data Guard 대기 DB, SQL Server Always On·트랜잭션 복제(시험 서버에 없음, 이미지를 내려받지 않음),
 PostgreSQL 17 이전 권한 분기(데이터베이스 소유자)와 12 이전 CONCURRENTLY 끔, PostgreSQL 논리 복제 구독, 다른 PostgreSQL 데이터베이스 노드에서 연 대화상자, 오래 걸리는 DBCC CHECKDB 자체의 취소(작은 시험 데이터베이스는 1초 안에 끝나 잠금 대기로 SQL Server 취소 경로를 확인).
 
+## 확인 (2026-11-08, 모니터링 연결의 커밋 방식)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS. Swing 제품을 별도 작업 공간으로 띄워(`-nl en`, 한국어 기본)
+EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연결 종류다. 시험 객체는 `chr_bugs_locks`(PostgreSQL·SQL Server·MariaDB 데이터베이스, Oracle FREEPDB1의 표)이고,
+잠금 대기는 `docker exec`의 두 세션으로 만들었다(X가 행을 갱신한 채 트랜잭션을 열어 두고 Y가 같은 행을 갱신). 고치기 전 모습은 같은 빌드의 Swing 번들에 이전 클래스를 넣어 확인했다.
+
+| 항목 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| PostgreSQL: Locks 탭을 연 뒤 대기를 만들고 Refresh | "잠금을 기다리는 세션이 없습니다"(`pg_blocking_pids`에는 대기 1개), Activity Monitor 세션 `idle in transaction` | 대기 1개(막는 세션 → 기다리는 세션, `ShareLock (transactionid)`), 세션 `idle` |
+| SQL Server: Locks 탭의 세션 | `sys.dm_exec_sessions.open_transaction_count` = 1 | 0, 대기 1개(`LCK_M_X`) |
+| MariaDB: Maintenance 탭을 읽은 뒤 | `INNODB_TRX`에 RUNNING 트랜잭션 | 없음, Locks 탭 대기 1개 |
+| Oracle: Locks 탭 | (해당 없음) | 대기 1개(`enq: TX - row lock contention`), 세션의 `TADDR` 없음 |
+| 대기가 끝난 뒤 Refresh | — | 네 DB 모두 "잠금을 기다리는 세션이 없습니다" |
+| PostgreSQL 개요·Processes | — | 차트와 세션 목록(9개)이 그대로 읽힘 |
+| 에이전트: 수동 커밋 연결에서 `runSql`로 트랜잭션을 연 채 `getBlockingChain` 두 번(가짜 Messages API) | 열린 트랜잭션의 이전 스냅숏 때문에 서버에 있는 대기를 보지 못함(heads 0) | 대기 중 heads 1, 대기가 끝난 뒤 같은 트랜잭션에서 heads 0. 반대 순서(없음 → 대기)도 heads 0 → 1 |
+
+화면: `D:\Tools\_scratch\chromite-bugs-locks-agent-stream\run\shots\`(`b1-*`, `p2-*`, `k*`).
+
 ### 미룬 것 (유지 관리·복제)
 
 - PostgreSQL 인덱스 부풀림 추정, pgstattuple을 쓰는 정확한 부풀림, VACUUM의 다른 옵션(DISABLE_PAGE_SKIPPING, SKIP_LOCKED, INDEX_CLEANUP, PARALLEL).
@@ -640,4 +691,6 @@ PostgreSQL 17 이전 권한 분기(데이터베이스 소유자)와 12 이전 CO
 - 2026-11-07 Disk Usage·Server Logs(DB 관리 축 3·5): Activity Monitor의 4·5번째 탭, `model.admin`의 `space`·`logs` 패키지와 DB별 방언 (SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), 권한 확인과 안내, 쪽 단위 로그 읽기, `AdminGridTable`(단위 표시·정확한 바이트·복사).
 - 2026-11-07 Maintenance·Replication(DB 관리 축 4·6): Activity Monitor의 6·7번째 탭, 유지 관리 대화상자(권한 확인, 미리 보기, 확인, 별도 자동 커밋 연결, 진행·취소)와
   Object Explorer의 Maintenance… 명령, `model.admin`의 `maintenance`·`replication` 패키지와 DB별 방언(SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), `AdminGrid`·`AdminGridTabs`.
+- 2026-11-08 수동 커밋 PostgreSQL 연결에서 Locks 탭이 대기를 보이지 않던 문제: `AdminConnection`이 격리된 컨텍스트를 자동 커밋으로 둠(첫 읽기의 트랜잭션이 끝나지 않아
+  통계 스냅숏이 멈췄다). 같은 원인의 SQL Server 묵시적 트랜잭션·MariaDB 읽기 시점과 에이전트의 열린 트랜잭션 안 진단도 고침. 위 "모니터링 연결의 커밋 방식", "확인 (2026-11-08 …)".
 - 2026-11-08 Altibase 잠금 탭(`AltibaseBlockingLockManager`, `ServerAdminProfile`의 Altibase 분기), Docker Altibase 7.3에서 확인.
