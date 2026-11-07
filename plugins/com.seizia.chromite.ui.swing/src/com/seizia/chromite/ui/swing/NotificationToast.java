@@ -48,6 +48,8 @@ import java.util.List;
  * - 2026-11-07 답 단추가 있는 알림({@link #showWithActions}): 시간이 지나도 사라지지 않고, 단추나 ×를 누르거나 연 쪽이
  *   {@link #dismiss}할 때까지 남는다. 유휴 트랜잭션 알림(커밋/롤백/열어 두기)과 자동 롤백 알림이 쓴다. 자리를 비운 사이 사라지면
  *   돌아온 사용자가 볼 수 없기 때문이다 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 닫을 때까지 남는 단순 알림({@link #showUntilClosed}): 모델 알림 중 경고·오류(유휴 연결 닫힘, 다시 연결 실패)가 쓴다
+ *   (docs/chromite/idle-transactions.md "모델 알림")
  */
 final class NotificationToast extends JPanel {
 
@@ -168,6 +170,19 @@ final class NotificationToast extends JPanel {
         @Nullable Runnable feedback
     ) {
         display(frame, new NotificationToast(frame.getRootPane(), title, message, kind, feedback, List.of(), false, null));
+    }
+
+    /**
+     * Shows a notification that stays until the user closes it with × or clicks it (which runs {@code feedback}).
+     */
+    static void showUntilClosed(
+        @NotNull JFrame frame,
+        @NotNull String title,
+        @Nullable String message,
+        @NotNull Kind kind,
+        @Nullable Runnable feedback
+    ) {
+        display(frame, new NotificationToast(frame.getRootPane(), title, message, kind, feedback, List.of(), true, null));
     }
 
     /**
