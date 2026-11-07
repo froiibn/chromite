@@ -89,6 +89,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
   오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
   2026-11-08 더 고침(`chromite/settings-rest`): 연결별 설정(연결 대화상자 Options > Settings), Data Formats·Errors and Timeouts·Metadata·Client Identification.
   남은 것: 읽지만 화면 없는 키 55개(결과 편집기 나머지, 연결 일반, 드라이버·프록시·Maven, QM·로그, 탐색기 정렬, 알림, 데이터 전송 매핑, 자동완성, DB별).
+  2026-11-08 오후 고침(`chromite/settings-rest-2`): 그 55개 중 47개를 Options(Connections, Drivers, Logs, Object Explorer, Notifications, Data Transfer,
+  Code Completion, Binary and LOB, Altibase, CUBRID, Mimer SQL, Query Results 읽기와 정렬)에 넣음. 효과 없음 6개, 규칙상 두지 않음 1개(Altibase 실행 계획 방식).
+  남은 것: 전역 라이브러리 1개(드라이버 관리자 작업 X5).
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
@@ -131,3 +134,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
   A-platform §6의 해당 줄과 §7 집계 문단 갱신.
+- 2026-11-08 설정 화면 나머지 2차(`chromite/settings-rest-2`): 남은 키 47개 화면, 효과 없는 키 6개 재판정([swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)").
+  A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).

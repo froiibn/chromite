@@ -113,6 +113,8 @@ import java.util.function.Consumer;
  *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 차트 보기·공간 보기와 상태 줄 Chart / Spatial 단추. 레코드 보기 여부(boolean)를 보기 방식({@code ViewMode})으로 바꿈.
  *   기하 값은 값 패널에도 보이고 "Filter by Value"에는 넣지 않음 (docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-08 끝까지 내리면 더 읽기({@link #isAutoFetchNextSegment}): 기본값을 전역 설정에 두고 연결의 저장소로 읽음. 전에는 연결 자신의 값만
+ *   보아 Options의 값이 효과가 없었다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -121,7 +123,7 @@ final class ResultSetViewerPanel extends JPanel {
     /**
      * SWT {@code ResultSetPreferences.RESULT_SET_AUTO_FETCH_NEXT_SEGMENT} (UI bundle, default on).
      */
-    private static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
+    static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
     private static final String CARD_GRID = "grid"; //$NON-NLS-1$
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
     private static final String CARD_CHART = "chart"; //$NON-NLS-1$
@@ -1383,11 +1385,20 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         DBCExecutionContext context = fetched.source().context();
-        if (context != null && !context.getDataSource().getContainer().getPreferenceStore().getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT)
-            && context.getDataSource().getContainer().getPreferenceStore().contains(PREF_AUTO_FETCH_NEXT_SEGMENT)) {
+        if (context != null && !isAutoFetchNextSegment(context.getDataSource().getContainer().getPreferenceStore())) {
             return;
         }
         SwingUtilities.invokeLater(() -> readNextSegment(true));
+    }
+
+    /**
+     * Whether scrolling to the end reads the next rows. The default (on) is registered in the global settings, so that a
+     * connection without a value of its own follows Tools &gt; Options; checking only the connection's own value made
+     * the global setting ineffective.
+     */
+    static boolean isAutoFetchNextSegment(@NotNull DBPPreferenceStore store) {
+        DBWorkbench.getPlatform().getPreferenceStore().setDefault(PREF_AUTO_FETCH_NEXT_SEGMENT, true);
+        return store.getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT);
     }
 
     /**
