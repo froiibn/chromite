@@ -34,7 +34,7 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | `.../QueryHistory.java`, `QueryHistoryDialog.java` | 쿼리 기록 저장소(작업 공간 `.metadata/chromite-query-history.jsonl`)와 Query History 창 |
 | `.../SqlEditCommands.java` | Format SQL, 대소문자, 주석, 들여쓰기, Edit > Advanced 메뉴, 서식 설정 |
 | `.../SqlTemplates.java`, `SqlTemplatesPage.java` | 템플릿 저장소·넣기와 Options의 Templates 탭 |
-| `.../SqlParameterDialog.java` | 매개변수 값 대화상자와 엔진의 매개변수 제공자 |
+| `.../QueryParameterDialog.java`, `QueryParameterBinder.java` | 매개변수 값 대화상자(스크립트 모드)와 엔진의 매개변수 제공자(`QueryParameterBinder.ScriptProvider`). 2026-11-08에 Query Library와 합침(처음에는 `SqlParameterDialog.java`) |
 | `SqlEditorPanel`, `MainFrame`, `OptionsDialog`, `QueryStatusLine`, `SqlCompletionPopup` | 위 기능을 잇는 작은 연결 지점(아래 "upstream·기존 코드 대비 변경점") |
 | `tools/branding/gen_ui_icons.py`, `icons/ui/*/*/plan.svg`, `history.svg` | 실행 계획·쿼리 기록 아이콘(생성기에 추가, 두 팩 × 두 테마) |
 | `icons/ui/*/*/plan-*.svg`, `copy.svg` | 그래픽 계획의 연산자 아이콘 17개와 원본 보기의 복사 아이콘(같은 생성기) |
@@ -212,7 +212,8 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - 그래서 편집기가 실행한 문장만 엔진의 문장 끝 이벤트(`SQLQueryListener.onEndQuery`)에서 `QueryHistory`에 남긴다:
   시각, 연결 ID·이름, 기본 DB/스키마(실행 문맥의 기본값, 서버 호출 없음), 문장, 실행 시간, 행 수(가져온 행 또는 바뀐 행), 결과(성공·실패·취소), 오류 메시지.
   문장은 엔진이 서버에 보낸 글자다: 매개변수는 넣은 값으로 바뀌어 있고(다시 실행하면 같은 값), SQL Server `GO` 배치는 배치 하나가 한 기록이다.
-  Query Library가 값을 바인딩한 문장은 서버에 `?`로 가므로 대신 값을 SQL 리터럴로 넣은 글자를 남긴다([swing-query-library.md](swing-query-library.md) "매개변수 바인딩").
+  Query Library가 값을 바인딩한 문장은 서버에 `?`로 가므로 대신 `:name`이 남은 글자와 바인딩한 값을 남기고, 기록에서 Execute하면 같은 값을 다시 바인딩한다
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로", 2026-11-08 전에는 값을 SQL 리터럴로 넣은 글자).
   실제 계획 결과 집합은 행 수에 넣지 않는다.
 - 저장은 작업 공간 `.metadata/chromite-query-history.jsonl`에 기록마다 JSON 한 줄 덧붙이기다. 실행할 때마다 파일 전체를 다시 쓰지 않고,
   비정상 종료되어도 그때까지 남는다. 처음 읽을 때 보관 기간이 지난 기록과 깨진 줄을 빼고 다시 쓴다. 최대 20,000개.
@@ -246,14 +247,16 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 
 ### 매개변수
 
-- SWT의 `SQLEditorParametersProvider` + `SQLQueryParameterBindDialog`를 옮겼다. 엔진의 `SQLScriptContext`에 `SqlParameterDialog.Provider`
-  (`SQLParametersProviderBase`)를 넘기면, 스크립트 변수·기본값으로 채워지지 않은 매개변수가 있을 때만 엔진이 부른다(작업 스레드에서 EDT 대화상자를 열고 기다림).
+- SWT의 `SQLEditorParametersProvider` + `SQLQueryParameterBindDialog`를 옮겼다. 엔진의 `SQLScriptContext`에 `QueryParameterBinder.ScriptProvider`
+  (`SQLParametersProviderBase`, 2026-11-08 전에는 `SqlParameterDialog.Provider`)를 넘기면, 스크립트 변수·기본값으로 채워지지 않은 매개변수가 있을 때만
+  엔진이 부른다(작업 스레드에서 EDT 대화상자를 열고 기다림). 대화상자는 Query Library와 같은 `QueryParameterDialog`의 스크립트 모드다(위에 그 문장, 줄마다 입력란).
 - 값은 SWT와 같이 SQL 글자로 문장에 들어간다(문자열은 따옴표). 이름이 같은 매개변수는 한 줄. 마지막 값은 DBeaver의 `SQLQueryParameterRegistry`
   (`parameter-bindings.xml`)에 저장되어 다음에 미리 채워진다. 단추는 SWT와 같은 Execute, Ignore(이 스크립트 끝까지 매개변수 무시), Cancel.
 - 값이 저장되지 않던 근본 원인: `BasePlatformImpl.getLocalConfigurationFile`은 작업 공간 `.metadata/.config/<파일>` 경로를 돌려주는데
   폴더를 만들지 않고, 호출하는 쪽(매개변수 바인딩, 열·필터 상태 등)은 모두 그 파일을 바로 쓴다. SWT 제품에서는 다른 설정 저장이 먼저 폴더를 만들어 드러나지 않았고,
   Swing 제품의 새 작업 공간에서는 `NoSuchFileException`으로 저장되지 않았다(`.metadata/.log`). 호출하는 곳마다 고치지 않고 경로를 주는 쪽에서 폴더를 만든다.
-- 합칠 수 있는 것: 쿼리 라이브러리 작업(`query-library`)이 같은 시간에 따로 매개변수 입력을 만들고 있다. 두 작업이 합쳐진 뒤 한 대화상자로 합칠 수 있다.
+- 쿼리 라이브러리의 매개변수 입력과 하나로 합쳤다(2026-11-08, [swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
+  값이 SQL 글자로 들어가는 것, 값 기억, Execute / Ignore / Cancel은 그대로다. 표 대신 입력란이라 Enter가 Execute다.
 - Cancel: 엔진(`SQLQueryExecuteJob`)은 매개변수 채우기가 취소되면(`fillQueryParameters`가 false) 오류 없이 스크립트를 멈추고 Job은
   OK 상태("SQL job completed")로 끝난다. 실행 확인 대화상자의 취소도 같다. 그래서 상태 줄이 "Query executed successfully"였다.
   엔진이 이 두 경우를 `isCanceledByUser()`로 알리고, 편집기는 그때 취소 상태("Query was canceled", Messages에 "Query was canceled by user.")를 보인다.
@@ -286,7 +289,6 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - MySQL/MariaDB 실제 계획: DBeaver MySQL 계획기는 `ANALYZE` 설정을 모른다. MariaDB `ANALYZE FORMAT=JSON` / MySQL `EXPLAIN ANALYZE`를 계획기에 넣는 일은
   `ext.mysql` 수정이 필요해 미뤘다(지금은 예상 계획을 "Estimated"로 표시).
 - 템플릿 변수의 같은 이름 동시 편집(linked mode)과 문맥 값 제안(테이블 이름 목록).
-- 매개변수 대화상자 통합(쿼리 라이브러리 작업과).
 - 매개변수 대화상자의 Cancel은 그 문장을 실행하지 않고 끝내지만, 엔진이 이를 오류나 취소로 알리지 않아 상태 줄은 "Query executed successfully"로 남는다(실행 엔진 `SQLQueryExecuteJob`의 결과 보고를 바꿔야 함).
 
 ## 확인 (2026-11-06)
@@ -344,3 +346,5 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
   SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.
 - 2026-11-07 MySQL/MariaDB 계획의 중간 노드 비용(#70): 모델이 자식 비용을 소수로 더함. "미룬 일"의 항목을 닫음.
 - 2026-11-08 Oracle 적응 계획(#71): `OTHER_XML`의 display_map으로 쓰지 않는 행을 빼고 보이는 부모로 다시 이음. "미룬 일"의 항목을 닫음. #70을 MariaDB에서 다시 확인.
+- 2026-11-08 매개변수 대화상자를 Query Library의 `QueryParameterDialog`(스크립트 모드)로 합치고 `SqlParameterDialog`를 지움. 엔진 제공자는 `QueryParameterBinder.ScriptProvider`.
+  바인딩한 실행의 기록은 리터럴 대신 `:name` 글자와 값. "미룬 일"의 대화상자 통합 항목을 닫음.

@@ -104,6 +104,7 @@ import java.util.Map;
  * - 2026-11-07 칸과 행 번호를 고정폭 글꼴 대신 UI 글꼴(Pretendard 12)로(사용자 요청). 숫자 폭이 글자마다 달라 행 번호 열 폭을
  *   가장 넓은 숫자로 계산 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  * - 2026-11-07 저장 전 스크립트 미리 보기: 설정과 연결 유형의 "데이터 변경 확인"이 다시 동작함 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
+ * - 2026-11-08 Export Data… 도구 설명의 예를 고침: 값을 바인딩한 실행도 이제 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -647,8 +648,8 @@ final class ResultSetGrid extends JPanel {
     // Actions and menus
 
     /**
-     * @param requeryBlocker why the result's query can't be read again, as the receiver knows it (e.g. values bound for
-     *                       this run only), or null
+     * @param requeryBlocker why the result's query can't be read again, as the receiver knows it (e.g. the connection
+     *                       was closed, or the query is not a single SELECT), or null
      */
     private void installContextMenu(@Nullable String requeryBlocker) {
         copyAction = createAction(EditorMessages.editor_grid_copy, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
@@ -665,7 +666,7 @@ final class ResultSetGrid extends JPanel {
         });
         boolean queryExportable = DataExportWizard.canExportQuery(exportQuery);
         exportDataAction.setEnabled(queryExportable);
-        // Disabled: the known reason first (a bound Query Library run is a single SELECT too, the general rule misled)
+        // Disabled: the known reason first (e.g. the connection was closed: the general rule would mislead)
         exportDataAction.putValue(Action.SHORT_DESCRIPTION, queryExportable
             ? EditorMessages.editor_grid_export_data_tip
             : requeryBlocker != null

@@ -274,3 +274,5 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
 - 2026-11-08 "남긴 것"의 결과 영역 높이를 다시 확인함(지금 기본 배치에서는 생기지 않음).
 - 2026-11-08 정렬과 쿼리의 ORDER BY(#73, #75): 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김, 머리글 정렬이 쿼리의 ORDER BY를 바꿈(행을 고르는 쿼리는 감싸서 정렬),
   상태 줄 정렬 요약과 쿼리 순서로 되돌리기.
+- 2026-11-08 Query Library가 값을 바인딩한 결과에서도 열 필터와 값 목록이 됨: `SQLQueryColumnValues`가 결과 컨테이너의 바인딩 방법을 넘겨받음
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").

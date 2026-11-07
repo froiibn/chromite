@@ -72,7 +72,8 @@ import java.util.List;
  *     JSQLParser로 지운다({@code SQLQueryTransformerCount}와 같은 처리, 묶어 세는 데 순서는 필요 없음). 필터를 넣은 뒤에 지우면 방언이 쿼리를
  *     감싼 경우({@code getWrappedFilterQuery}) 안쪽 ORDER BY가 남는다. 읽지 못하는 쿼리는 그대로 감싸 DB가 판단하게 한다.</li>
  *     <li>새 {@link SQLQueryDataContainer}로 읽는다. 결과 쿼리와 같은 스크립트 문맥을 넘겨 {@link DBSDataContainer#FLAG_REFRESH}로
- *     쿼리 매개변수를 다시 묻지 않고 지난 값을 쓴다. 행 수 제한도 결과를 읽을 때와 같은 방언 경로({@code DBUtils.makeStatement})다.</li>
+ *     쿼리 매개변수를 다시 묻지 않고 지난 값을 쓴다. 값을 바인딩한 쿼리(Query Library)는 결과 쿼리의 바인딩 방법도 넘긴다.
+ *     행 수 제한도 결과를 읽을 때와 같은 방언 경로({@code DBUtils.makeStatement})다.</li>
  *     <li>행이 많이 나온 값부터 {@code limit}개를 읽고(ORDER BY 개수 DESC), 한 행을 더 읽어 더 있는지 알린다. 화면 순서는 호출하는 쪽이 정한다.</li>
  *     <li>결과의 실행 문맥에서 읽는다(임시 테이블, 세션 설정, 현재 DB가 같아야 한다). 수동 커밋 문맥에서는 저장점을 두고 실패하면 저장점까지만
  *     되돌린다: PostgreSQL은 문장 하나가 실패하면 열린 트랜잭션 전체를 못 쓰게 만들기 때문이다. 사용자의 변경은 커밋하거나 되돌리지 않는다.</li>
@@ -80,6 +81,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 결과 그리드 열 필터의 값 목록 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 값을 바인딩한 쿼리의 값 목록: 결과 쿼리의 바인딩 방법({@link SQLQueryDataContainer#getParameterBinder})을 넘김
+ *   (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 public final class SQLQueryColumnValues {
 
@@ -157,6 +160,9 @@ public final class SQLQueryColumnValues {
 
         SQLQuery valuesQuery = new SQLQuery(dataSource, sql);
         SQLQueryDataContainer valuesContainer = new SQLQueryDataContainer(() -> context, valuesQuery, queryContainer.getScriptContext(), log);
+        if (queryContainer instanceof SQLQueryDataContainer resultContainer) {
+            valuesContainer.setParameterBinder(resultContainer.getParameterBinder());
+        }
         ValueReceiver receiver = new ValueReceiver(column);
         try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Read column values")) { //$NON-NLS-1$
             DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
