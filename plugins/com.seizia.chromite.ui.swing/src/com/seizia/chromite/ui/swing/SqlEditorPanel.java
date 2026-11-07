@@ -1754,8 +1754,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle
-     * {@code DBMS_OUTPUT}), before the statement runs: a statement run after turning it on is read, and a session
+     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle and
+     * CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT} callback), before the statement runs: a statement run after turning it on is read, and a session
      * turned off no longer buffers output that nobody reads.
      */
     private static void syncServerOutput(@NotNull DBCSession session) {

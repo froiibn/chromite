@@ -164,8 +164,8 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 - 처음 상태: 연결의 설정 저장소가 페이지의 키 중 하나라도 자기 값으로 가지면 켜짐(SWT `hasDataSourceSpecificOptions`와 같은 규칙).
 - 저장: 켠 페이지는 모든 키를 연결의 값으로 쓰고, 끈 페이지는 연결의 값을 지운다(`setToDefault`). Test Connection의 임시 연결에도 같은 값이 들어간다.
 - 다시 연결: 모델이 그 작업을 할 때마다 읽는 페이지(Query Execution, Query Results, Binary and LOB, Data Formats, Errors and Timeouts, Metadata,
-  Code Completion, Data Transfer, Altibase)는 바꿔도 다시 연결을 묻지 않는다(`ConnectionSettingsPanel.getPreferencesAppliedWithoutReconnect`,
-  쿼리 창 세션과 같은 처리). 세션을 열 때 읽거나 연결마다 기억하는 페이지(Client Identification, Oracle, CUBRID)는 기존 "다시 연결할까요" 질문을
+  Code Completion, Data Transfer, Altibase, CUBRID)는 바꿔도 다시 연결을 묻지 않는다(`ConnectionSettingsPanel.getPreferencesAppliedWithoutReconnect`,
+  쿼리 창 세션과 같은 처리). 세션을 열 때 읽거나 연결마다 기억하는 페이지(Client Identification, Oracle)는 기존 "다시 연결할까요" 질문을
   거치고, 다시 연결은 열린 트랜잭션을 먼저 묻는다(트랜잭션 안전 규칙).
 - 트랜잭션: 이 페이지들의 키는 세션의 커밋 방식을 바꾸거나 세션을 닫지 않는다. 그런 키(오류 때 롤백, 세션 단위 취소)는 두지 않았다(아래 Errors and Timeouts).
 - 알려진 동작(모델 직렬화, 고치지 않음): 연결 설정 파일에는 기본값과 다른 값만 저장된다(`DataSourceSerializerModern`, `getDefaultString`과 비교).
@@ -347,12 +347,14 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | 페이지 | 항목 | 키 | 읽는 곳 |
 |---|---|---|---|
 | Altibase(`AltibaseOptionsPage`, Altibase 연결의 연결별 값) | 메시지 탭에 PRINT 출력, 실행 계획 단계 들여쓰기 | `altibase.dbms.output`, `altibase.plan.prefix` | `AltibaseDataSource`의 출력 읽기, `AltibasePlanNode.getPlanString` |
-| CUBRID(`CubridOptionsPage`, CUBRID 연결의 연결별 값) | 메시지 탭에 DBMS_OUTPUT, 버퍼 크기 | `pref.dbms.output`, `pref.dbms.output.buffer.size` | `CubridDataSource`(세션을 열 때 서버 켜기와 버퍼, 문장마다 켜짐 여부) |
+| CUBRID(`CubridOptionsPage`, CUBRID 연결의 연결별 값) | 메시지 탭에 DBMS_OUTPUT, 버퍼 크기 | `pref.dbms.output`, `pref.dbms.output.buffer.size` | `CubridDataSource`(세션을 열 때 서버 켜기와 버퍼, 문장마다 켜짐 여부, 문장 전에 열린 세션을 설정에 맞춤) |
 | Mimer SQL(`MimerOptionsPage`, 전역만) | CASCADE 삭제를 다시 묻지 않을 개체 종류, 공간 형식 4개 | `mimer.confirm.drop_cascade.<종류>`, `mimer.gis.location.auto_map`, `mimer.gis.coordinate.auto_map`, `mimer.gis.latlong.auto_decimal`, `mimer.gis.grid_point_text` | `MimerCascadeDropUtil`, `MimerGisUtils`(플랫폼 저장소) |
 
 - 기본값은 각 번들의 설정 초기화가 넣는다. Oracle 페이지처럼 값을 읽기 전에 번들의 클래스를 불러 시작시킨다. Swing 번들이 세 번들을 새로
   `Require-Bundle`로 가진다(제품의 `com.seizia.chromite.db.feature`에 이미 들어 있다).
-- CUBRID는 세션을 열 때 서버 쪽을 켜므로 연결된 연결에서 바꾸면 다시 연결을 묻는다(`isAppliedWithoutReconnect` false, 다시 연결은 열린 트랜잭션을 먼저 묻는다).
+- Altibase·CUBRID 서버 출력은 세션을 열 때 서버 쪽(Altibase 콜백, CUBRID `ENABLE`)을 맞추고, 그 뒤 바꾸면 쿼리 창이 다음 문장 전에 열린 세션을 맞춘다
+  (`syncServerOutput`, 2026-11-08 evening #19, [swing-server-output.md](swing-server-output.md)). 그래서 둘 다 다시 연결을 묻지 않는다
+  (전에는 CUBRID가 `isAppliedWithoutReconnect` false로 다시 연결을 물었다).
 - Mimer 공간 형식 키는 모델이 읽기·쓰기 전마다 기본값을 등록해야 끔이 저장된다(`MimerConstants` 주석). 등록 메서드가 모델 패키지 안에만 있어 페이지도
   같은 기본값을 등록한다(SWT `PrefPageMimer`와 같은 방식).
 - 두지 않은 것:
@@ -502,6 +504,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-08 `ui.drivers.global.libraries`: Driver Manager > Global Libraries…로 만듦(후속 #55, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 요약 수(추가함 38, 다음 작업 54)와 8순위·부록 갱신.
 - 2026-11-08 스마트 커밋이 동작하게 되어 Connection Types에 두 칸, `transaction.smart.commit`·`.recover`·`connection.closeOnSleep`이 효과 있음으로 바뀜
   ([connection-lifecycle.md](connection-lifecycle.md)). 요약 수는 고치지 않음(메인 세션이 다시 셈).
+- 2026-11-08 Altibase·CUBRID 서버 출력 설정이 열린 세션에도 다음 문장부터 적용되어 CUBRID 페이지가 다시 연결을 묻지 않음(evening #19,
+  [swing-server-output.md](swing-server-output.md)).
 
 ## 부록: 키별 상태
 

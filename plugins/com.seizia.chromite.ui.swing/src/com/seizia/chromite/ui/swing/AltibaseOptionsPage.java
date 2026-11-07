@@ -34,7 +34,8 @@ import java.util.List;
  * 설계:
  * <ul>
  *     <li>읽는 곳: PRINT 출력 {@code AltibaseDataSource}(쿼리 창이 문장마다 서버 출력을 읽을 때), 실행 계획 들여쓰기
- *     {@code AltibasePlanNode.getPlanString}. 둘 다 연결의 설정 저장소에서 그 작업을 할 때 읽으므로 다시 연결하지 않아도 된다.</li>
+ *     {@code AltibasePlanNode.getPlanString}. 둘 다 연결의 설정 저장소에서 그 작업을 할 때 읽으므로 다시 연결하지 않아도 된다.
+ *     PRINT를 받는 드라이버 콜백은 세션을 열 때 등록하고, 세션을 연 뒤 바꾸면 쿼리 창이 다음 문장 전에({@code syncServerOutput}) 등록하거나 지운다.</li>
  *     <li>기본값(둘 다 켬)은 Altibase 번들의 설정 초기화가 넣는다. 번들이 아직 시작되지 않았으면 꺼짐으로 읽히므로 Oracle 페이지처럼 값을 읽기 전에
  *     번들의 클래스를 불러 시작시킨다.</li>
  *     <li>두지 않은 것: 실행 계획 방식({@code altibase.explain.plan.type})의 "EXPLAIN PLAN = ON"은 계획을 얻으려고 문장을 실제로 실행한다
@@ -44,6 +45,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 PRINT 켜기·끄기가 열린 세션에도 다음 문장부터 적용됨(주석) (docs/chromite/swing-server-output.md)
  */
 final class AltibaseOptionsPage extends SettingsPage {
 

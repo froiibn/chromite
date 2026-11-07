@@ -51,6 +51,15 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * CUBRID data source.
+ *
+ * 설계: 서버 출력(DBMS_OUTPUT, 11.4 이상)의 켜짐과 버퍼 크기는 세션마다 서버에 있다. 세션을 열 때 설정에 맞추고, 세션을 연 뒤 설정이
+ * 바뀌면 쿼리 창이 다음 문장 전에 부르는 {@code syncServerOutput}이 그 세션에 {@code ENABLE(크기)}/{@code DISABLE}을 보낸다(Oracle과 같은 방식).
+ *
+ * 변경 이력:
+ * - 2026-11-08 설정을 바꾸면 열린 세션에도 다음 문장부터 적용({@code syncServerOutput}, docs/chromite/swing-server-output.md)
+ */
 public class CubridDataSource extends GenericDataSource
 {
     private static final Log log = Log.getLog(CubridDataSource.class);
@@ -500,6 +509,10 @@ public class CubridDataSource extends GenericDataSource
     }
 
     private class CubridOutputReader implements DBCServerOutputReader {
+        // The buffer size each session's DBMS_OUTPUT was enabled with (0: off), so that syncServerOutput only calls the
+        // server when the setting changed
+        private final Map<DBCExecutionContext, Integer> enabledBufferSize = Collections.synchronizedMap(new WeakHashMap<>());
+
         @Override
         public boolean isServerOutputEnabled() {
             return getContainer().getPreferenceStore().getBoolean(CubridConstants.PREF_DBMS_OUTPUT);
@@ -510,26 +523,59 @@ public class CubridDataSource extends GenericDataSource
             return false;
         }
 
+        /**
+         * The buffer size the setting asks for, 0 when the output is off.
+         */
+        private int getSettingBufferSize() {
+            if (!isServerOutputEnabled()) {
+                return 0;
+            }
+            return getContainer()
+                    .getPreferenceStore()
+                    .getInt(CubridConstants.PREF_DBMS_OUTPUT_BUFFER_SIZE);
+        }
+
+        /**
+         * Enables DBMS_OUTPUT on a new session when the setting is on. A new session's output is off.
+         */
         public void enableDbmsOutput(DBRProgressMonitor monitor, DBCExecutionContext context)
                 throws DBCException {
-            if (!isServerOutputEnabled()) {
+            int bufferSize = getSettingBufferSize();
+            if (bufferSize == 0) {
+                enabledBufferSize.put(context, 0);
                 return;
             }
+            applyDbmsOutput(monitor, context, bufferSize);
+        }
 
-            int bufferSize =
-                    getContainer()
-                            .getPreferenceStore()
-                            .getInt(CubridConstants.PREF_DBMS_OUTPUT_BUFFER_SIZE);
-
+        /**
+         * {@code ENABLE(bufferSize)}, or {@code DISABLE} (which also drops the unread lines) when the size is 0.
+         */
+        private void applyDbmsOutput(DBRProgressMonitor monitor, DBCExecutionContext context, int bufferSize)
+                throws DBCException {
             try (JDBCSession session =
                     (JDBCSession)
                             context.openSession(
-                                    monitor, DBCExecutionPurpose.UTIL, "Enable DBMS output")) {
-                CallableStatement cstmt = session.getOriginal().prepareCall("CALL dbms_output.enable(?)");
-                cstmt.setInt(1, bufferSize);
-                cstmt.execute();
+                                    monitor, DBCExecutionPurpose.UTIL, (bufferSize > 0 ? "Enable" : "Disable") + " DBMS output")) {
+                try (CallableStatement cstmt = session.getOriginal().prepareCall(
+                        bufferSize > 0 ? "CALL dbms_output.enable(?)" : "CALL dbms_output.disable()")) {
+                    if (bufferSize > 0) {
+                        cstmt.setInt(1, bufferSize);
+                    }
+                    cstmt.execute();
+                }
             } catch (SQLException e) {
                 throw new DBCException(e, context);
+            }
+            enabledBufferSize.put(context, bufferSize);
+        }
+
+        @Override
+        public void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
+            int bufferSize = getSettingBufferSize();
+            Integer enabled = enabledBufferSize.get(context);
+            if (enabled == null || enabled != bufferSize) {
+                applyDbmsOutput(monitor, context, bufferSize);
             }
         }
 
