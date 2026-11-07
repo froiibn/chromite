@@ -41,10 +41,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
-| B 편집기 | 25 | 42 | 39 | 8 | 3 | 117 |
+| B 편집기 | 27 | 40 | 39 | 8 | 3 | 117 |
 | C 탐색기·도구 | 16 | 18 | 27 | 2 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **101** | **104** | **137** | **29** | **7** | **378** |
+| **합계** | **103** | **102** | **137** | **29** | **7** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -125,3 +125,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
 - 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.
 - 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.
+- 2026-11-08 후속 #55·#62·#69(`chromite/drivers-oracle-batch`): B-C18·C19 일부 → 있음(결과 요약 B·합계 갱신), A-platform §6 Classpath 없음 → 있음·Maven 비고,
+  D-O9·O10 비고(Oracle Cancel Query, RAC). [swing-driver-manager.md](swing-driver-manager.md), [drivers.md](drivers.md) "로컬 파일 우선", [swing-admin-tools.md](swing-admin-tools.md) "Oracle RAC와 쿼리 취소".
