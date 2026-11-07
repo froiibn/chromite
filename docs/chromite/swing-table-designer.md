@@ -134,3 +134,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   (`SQLServerView`, `PostgreViewBase` 등)도 `DBSTable`이라 `TableDesignSession.canCreateTable`이 `DBSView`를 뺀다.
 - 2026-11-07 SQL Server 열 형식을 varchar에서 int처럼 정렬 규칙이 없는 형식으로 바꾸면 변경 스크립트에 `COLLATE`가 남아 저장이 실패하던 것(오류 447).
   모델 `SQLServerTableColumnManager`에서 고침. [swing-followup-fixes.md](swing-followup-fixes.md) "SQL Server 열 정렬 규칙".
+- 2026-11-08 SQL Server에서 기본값(DEFAULT 제약 조건)이 있는 열의 형식·NULL 허용을 바꾸는 변경 스크립트가 실패하던 것(오류 5074, 4922, 스키마 비교 시험에서 찾음, 디자이너 화면에서는 확인하지 않음). 모델 `SQLServerTableColumnManager`가
+  제약 조건을 지우고 `ALTER COLUMN` 뒤에 다시 만든다. [schema-compare.md](schema-compare.md) "SQL Server 기본값 제약 조건".

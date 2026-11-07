@@ -110,7 +110,7 @@
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
 | R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
 | R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177) |
-| R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | |
+| R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |
 | R13 | 전체 행 수 세기 | `resultset.count` | 없음 | swing-result-viewer.md:177 | 낮음 | |
 | R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 글자 셀 편집기만(swing-frontend.md:1291, swing-result-viewer.md:178) | 중간 | |

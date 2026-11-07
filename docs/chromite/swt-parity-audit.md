@@ -42,9 +42,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
 | B 편집기 | 38 | 41 | 31 | 3 | 4 | 117 |
-| C 탐색기·도구 | 16 | 19 | 26 | 2 | 1 | 64 (+해당 없음 4) |
+| C 탐색기·도구 | 17 | 20 | 24 | 2 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **114** | **104** | **128** | **24** | **8** | **378** |
+| **합계** | **115** | **105** | **126** | **24** | **8** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -133,5 +133,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
   A-platform §6의 해당 줄과 §7 집계 문단 갱신.
+- 2026-11-08 C-49 없음 → 일부: Schema Compare(두 스키마의 구조 비교와 마이그레이션 스크립트, [schema-compare.md](schema-compare.md)). 결과 요약 C·합계 갱신.
+- 2026-11-08 devel 병합 때 영역 C 집계를 행 상태에서 다시 셈: C-29(데이터 검색, 2026-11-08 옮김)가 행은 있음인데 집계에는 없음으로 남아 있었다. 결과 요약 C·합계 갱신.
 - 2026-11-08 후속 #55·#62·#69(`chromite/drivers-oracle-batch`): B-C18·C19 일부 → 있음(결과 요약 B·합계 갱신), A-platform §6 Classpath 없음 → 있음·Maven 비고,
   D-O9·O10 비고(Oracle Cancel Query, RAC). [swing-driver-manager.md](swing-driver-manager.md), [drivers.md](drivers.md) "로컬 파일 우선", [swing-admin-tools.md](swing-admin-tools.md) "Oracle RAC와 쿼리 취소". devel 병합 때 결과 요약 B를 영역 보고서의 지금 행 상태로 다시 세고("수정함"은 있음) 합계를 다시 냄.

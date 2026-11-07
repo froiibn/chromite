@@ -34,11 +34,16 @@ import com.seizia.chromite.model.impl.plan.AbstractExecutionPlan;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IntKeyMap;
 import org.jkiss.utils.SecurityUtils;
+import org.jkiss.utils.xml.XMLException;
+import org.jkiss.utils.xml.XMLUtils;
+import org.w3c.dom.Element;
 
+import java.io.StringReader;
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,10 +52,14 @@ import java.util.Map;
  *
  * 설계(Chromite): 계획 원문은 PLAN_TABLE 행({@link CachedResultSet})만 남았다. 실행 계획 원문 보기는 Oracle 사용자가 읽는 형태인
  * {@code DBMS_XPLAN.DISPLAY} 글자를 보여야 하므로, 계획 행을 읽은 뒤 같은 세션에서 같은 STATEMENT_ID의 DBMS_XPLAN 출력을 읽어 둔다.
- * 그 글자가 있으면 원문은 TEXT 형식의 그 글자이고, 읽지 못하면(권한 등) 예전처럼 계획 행이다. 계획 노드는 바뀌지 않는다.
+ * 그 글자가 있으면 원문은 TEXT 형식의 그 글자이고, 읽지 못하면(권한 등) 예전처럼 계획 행이다.
+ * 적응 계획(adaptive plan)은 PLAN_TABLE에 고르지 않은 대안(STATISTICS COLLECTOR, 다른 조인)까지 행으로 남긴다. 계획 노드는 Oracle이
+ * 보이는 계획(DBMS_XPLAN 기본 출력)과 같아야 하므로 OTHER_XML의 display_map으로 쓰지 않는 행을 빼고 표시 부모로 다시 잇는다.
+ * 트리·다이어그램·Chromite Agent가 모두 계획 노드를 읽으므로 모델에서 한 번 거른다.
  *
  * 변경 이력:
  * - 2026-11-07 Chromite: DBMS_XPLAN 출력을 계획 원문으로 남김 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
+ * - 2026-11-08 Chromite: 적응 계획의 쓰지 않는 행을 계획 노드에서 뺌 (docs/chromite/swing-sql-editor-plus.md "Oracle 적응 계획")
  */
 public class OracleExecutionPlan extends AbstractExecutionPlan {
 
@@ -203,14 +212,17 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
                 planResults = new CachedResultSet(planSQL, dbResult.getMetaData());
                 rootNodes = new ArrayList<>();
                 IntKeyMap<OraclePlanNode> allNodes = new IntKeyMap<>();
+                List<OraclePlanNode> planNodes = new ArrayList<>();
                 while (dbResult.next()) {
                     OraclePlanNode node = new OraclePlanNode(dataSource, allNodes, dbResult);
                     allNodes.put(node.getId(), node);
+                    planNodes.add(node);
                     if (node.getParent() == null) {
                         rootNodes.add(node);
                     }
                     planResults.addRow(dbResult);
                 }
+                hideInactiveRows(planNodes);
             }
         }
 
@@ -219,6 +231,76 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
             node.updateCosts();
         }
         readPlanText();
+    }
+
+    /**
+     * Links the plan as Oracle shows it: an adaptive plan has rows for all its alternatives (STATISTICS COLLECTOR, the
+     * join that was not chosen), and the display map in OTHER_XML marks the inactive ones ({@code skp="1"}) and gives
+     * the displayed parent of each active row ({@code par}, a displayed row number {@code dis}). DBMS_XPLAN shows the
+     * same plan unless asked for {@code +ADAPTIVE}. Plans without inactive rows stay as the plan table links them.
+     *
+     * @param planNodes the plan table rows in ID order
+     */
+    private void hideInactiveRows(@NotNull List<OraclePlanNode> planNodes) {
+        Map<Integer, Element> displayMap = readDisplayMap(planNodes);
+        if (displayMap == null) {
+            return;
+        }
+        Map<Integer, OraclePlanNode> byDisplayId = new HashMap<>();
+        List<OraclePlanNode> displayRoots = new ArrayList<>();
+        for (OraclePlanNode node : planNodes) {
+            node.clearNested();
+        }
+        for (OraclePlanNode node : planNodes) {
+            Element row = displayMap.get(node.getId());
+            OraclePlanNode displayParent;
+            if (row == null) {
+                // The statement row is not in the map: it keeps its place and its ID
+                displayParent = node.getParent() == null ? null : byDisplayId.get(node.getParent().getId());
+                byDisplayId.put(node.getId(), node);
+            } else if (CommonUtils.toInt(row.getAttribute("skp")) != 0) { //$NON-NLS-1$
+                continue;
+            } else {
+                displayParent = byDisplayId.get(CommonUtils.toInt(row.getAttribute("par"))); //$NON-NLS-1$
+                byDisplayId.put(CommonUtils.toInt(row.getAttribute("dis")), node); //$NON-NLS-1$
+            }
+            node.linkToDisplayParent(displayParent);
+            if (displayParent == null) {
+                displayRoots.add(node);
+            }
+        }
+        rootNodes = displayRoots;
+    }
+
+    /**
+     * The display map rows of an adaptive plan by plan row ID, or null if the plan has no inactive rows.
+     */
+    @Nullable
+    private static Map<Integer, Element> readDisplayMap(@NotNull List<OraclePlanNode> planNodes) {
+        for (OraclePlanNode node : planNodes) {
+            String otherXml = node.getOtherXml();
+            if (CommonUtils.isEmpty(otherXml) || !otherXml.contains("<display_map>")) { //$NON-NLS-1$
+                continue;
+            }
+            try {
+                Element displayMap = XMLUtils.getChildElement(
+                    XMLUtils.parseDocument(new StringReader(otherXml)).getDocumentElement(), "display_map"); //$NON-NLS-1$
+                if (displayMap == null) {
+                    return null;
+                }
+                Map<Integer, Element> rows = new HashMap<>();
+                boolean skips = false;
+                for (Element row : XMLUtils.getChildElementList(displayMap, "row")) { //$NON-NLS-1$
+                    rows.put(CommonUtils.toInt(row.getAttribute("op")), row); //$NON-NLS-1$
+                    skips |= CommonUtils.toInt(row.getAttribute("skp")) != 0; //$NON-NLS-1$
+                }
+                return skips ? rows : null;
+            } catch (XMLException e) {
+                log.debug("Can't read the display map of the adaptive plan, showing all its rows", e);
+                return null;
+            }
+        }
+        return null;
     }
 
     /**
