@@ -34,6 +34,15 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 
+/**
+ * Exasol user ({@code EXA_DBA_USERS}).
+ *
+ * 설계: {@link #getPassword}는 암호 속성({@code password = true, required = true})이다. 새 개체 이름 대화상자가 이 선언을 보고
+ * 암호를 가려서 받는다. 관리자({@code ExasolUserManager})는 암호를 지어내지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호 속성을 password·required로 선언 (docs/chromite/swing-create-objects.md "새 사용자의 암호")
+ */
 public class ExasolUser extends ExasolGrantee
 		implements DBAUser,  DBPSaveableObject, DBPNamedObject2, DBPRefreshableObject {
 
@@ -191,7 +200,11 @@ public class ExasolUser extends ExasolGrantee
 		return this.description;
 	}
 	
-	@Property(viewable = true, editable=true, updatable=true, order = 20)
+	/**
+	 * The stored password hash of a read user; the new password of a new or changed local user. Declared a required
+	 * password so that a new user's dialog asks for it (masked).
+	 */
+	@Property(viewable = true, editable=true, updatable=true, password = true, required = true, order = 20)
 	public String getPassword()
 	{
 		return this.password;

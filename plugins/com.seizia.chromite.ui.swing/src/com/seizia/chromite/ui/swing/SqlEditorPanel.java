@@ -209,6 +209,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>편집 편의(docs/chromite/swing-sql-editor-ergonomics.md): 코드 접기({@link SqlFoldParser}), 커서가 있는 이름의 다른 자리 강조
  *     (RSyntaxTextArea의 같은 단어 표시), 이름 위 마우스 올림 설명과 Ctrl+클릭 이동({@link SqlObjectNavigation}, 이 창의 연결과 세션),
  *     결과 고정({@link #pinResults}).</li>
+ *     <li>다시 시작 뒤 복원({@link QueryWindowRecovery}): 복원한 창은 연결하지 않고 열리고, 예전 기본 DB/스키마
+ *     ({@link #setRestoredDefaults})는 창의 세션이 처음 열릴 때 적용한다. 세션을 여는 작업(실행, 계획, 기본 DB·커밋 방식 읽기)은 모두
+ *     {@link #openWindowContext}를 거치므로 첫 실행이 예전 DB/스키마에서 돈다. 주 문맥을 함께 쓰는 창은 다른 창의 기본값을 바꾸지 않도록 적용하지 않는다.
+ *     연결 전에는 DB 콤보(꺼짐)와 상태 줄에 복원할 이름을 보인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -283,6 +287,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/connection-lifecycle.md "스마트 커밋"). 쿼리 관리자가 본 커밋 방식이 바뀌면 상태 줄의 커밋 방식을 다시 읽음(실행 밖의 전환)
  * - 2026-11-08 오류 위치로 가기(SWT {@code GoToErrorAction}): Messages의 오류가 머리글의 줄·열 위치를 함께 갖고, 두 번 누르면 그 자리로 가서
  *   줄을 오류 색으로 표시({@code ErrorReport}, {@link QueryResultsView.Listener#goToSource}) (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 다시 시작 뒤 복원한 창의 기본 DB/스키마({@link #setRestoredDefaults}, {@link #getDefaultObjectNames}): 세션을 처음 열 때
+ *   적용하도록 세션 열기를 {@link #openWindowContext} 하나로 모음 (docs/chromite/swing-query-window-recovery.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 결과가 만든 문장을 메인 창이 새 쿼리 창에 엶({@link Host#openScript}, 실행하지 않음)
  *   (docs/chromite/swing-result-generate-sql.md)
  */
@@ -454,6 +460,14 @@ final class SqlEditorPanel extends JPanel {
     private final SQLScriptContext windowVariables;
     // Object Explorer containers to read again after DDL of this window's runs
     private final SqlMetadataRefresh metadataRefresh = new SqlMetadataRefresh();
+    /**
+     * The default database/schema a restored window had before the restart ({@link QueryWindowRecovery}), applied to its own
+     * session when the session first opens ({@link #openWindowContext}); null when there is none or it was applied. Guarded
+     * by the lock: a run waits until another job has applied it.
+     */
+    @Nullable
+    private DefaultObjectNames restoredDefaults;
+    private final Object restoredDefaultsLock = new Object();
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
@@ -996,6 +1010,84 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Names of a default catalog (database) and schema; either may be null.
+     */
+    record DefaultObjectNames(@Nullable String catalog, @Nullable String schema) {
+        /**
+         * {@code catalog.schema}, or the one that is set.
+         */
+        @NotNull
+        String label() {
+            return catalog != null && schema != null ? catalog + "." + schema : CommonUtils.notEmpty(schema != null ? schema : catalog); //$NON-NLS-1$
+        }
+    }
+
+    /**
+     * The default database/schema of the window now: the one its session shows, or the restored one that is not applied
+     * yet (the window has not connected since the restart); null when unknown. EDT.
+     */
+    @Nullable
+    DefaultObjectNames getDefaultObjectNames() {
+        DBSObject object = schemaState != null ? schemaState.reader().getDefaultObject() : null;
+        if (object == null) {
+            synchronized (restoredDefaultsLock) {
+                return restoredDefaults;
+            }
+        }
+        DBSObject parent = object.getParentObject();
+        return object instanceof DBSSchema
+            ? new DefaultObjectNames(parent instanceof DBSCatalog ? parent.getName() : null, object.getName())
+            : object instanceof DBSCatalog ? new DefaultObjectNames(object.getName(), null) : null;
+    }
+
+    /**
+     * A window restored after a restart ({@link QueryWindowRecovery}) gets its default database/schema back when its own
+     * session opens, which is when the user runs something or the connection is connected already. Nothing connects here.
+     * EDT.
+     */
+    void setRestoredDefaults(@NotNull DefaultObjectNames names) {
+        synchronized (restoredDefaultsLock) {
+            restoredDefaults = names;
+        }
+        // A read started by the constructor (connected connection) may have opened the session before the names were set
+        refreshSchemas();
+    }
+
+    /**
+     * Opens (or gets) the window's session ({@link QueryWindowContext#open}) and gives it the restored default
+     * database/schema first, so that the first run after a restart runs where the window ran before. Every job that
+     * opens the session comes here (run, plan, the default schema and commit mode reads). Job thread.
+     */
+    @NotNull
+    private DBCExecutionContext openWindowContext(@NotNull DBRProgressMonitor monitor, @NotNull DBPDataSource dataSource) throws DBException {
+        DBCExecutionContext context = windowContext.open(monitor, dataSource);
+        synchronized (restoredDefaultsLock) {
+            DefaultObjectNames names = restoredDefaults;
+            restoredDefaults = null;
+            DBCExecutionContextDefaults<?, ?> contextDefaults = context.getContextDefaults();
+            if (names == null || contextDefaults == null) {
+                return context;
+            }
+            // The connection's main context is shared with the other windows of the connection: a restored window does not
+            // change their default (it shows the shared one instead)
+            if (context != windowContext.getOwn(dataSource.getContainer())) {
+                log.debug("Restored default '" + names.label() + "' not applied: the window shares the main context of '"
+                    + dataSource.getContainer().getName() + "'");
+                return context;
+            }
+            DBSCatalog currentCatalog = contextDefaults.getDefaultCatalog();
+            try {
+                DBExecUtils.setExecutionContextDefaults(monitor, dataSource, context, names.catalog(),
+                    currentCatalog != null ? currentCatalog.getName() : null, names.schema());
+            } catch (DBException e) {
+                // Dropped or renamed since: the window runs in the session's own default, which its picker shows
+                log.warn("Can't restore the default '" + names.label() + "' of query window " + fileName, e);
+            }
+        }
+        return context;
+    }
+
+    /**
      * Before the window's own session ends (the window closes, changes its connection or its database instance): asks
      * Commit / Roll back / Cancel when the session has a transaction that is not committed. Nothing to ask when the
      * window shares the connection's main context, which stays open. Call in the EDT.
@@ -1422,7 +1514,7 @@ final class SqlEditorPanel extends JPanel {
                     DBPDataSource dataSource = container.getDataSource();
                     DBCQueryPlanner planner = SqlPlanExplainer.getPlanner(container.isConnected() ? dataSource : null);
                     // The window's session: its default schema, and its open transaction for planners that execute
-                    DBCExecutionContext context = dataSource == null || !container.isConnected() ? null : windowContext.open(monitor, dataSource);
+                    DBCExecutionContext context = dataSource == null || !container.isConnected() ? null : openWindowContext(monitor, dataSource);
                     if (dataSource == null || context == null) {
                         problem = NLS.bind(EditorMessages.editor_sql_not_connected_to, container.getName());
                     } else if (planner == null) {
@@ -1480,7 +1572,7 @@ final class SqlEditorPanel extends JPanel {
                 return;
             }
             // Opens the window's own session on the first run (QueryWindowContext); fails with editor_sql_no_context
-            DBCExecutionContext context = windowContext.open(monitor, dataSource);
+            DBCExecutionContext context = openWindowContext(monitor, dataSource);
             List<SQLScriptElement> extracted = SqlQueryCommands.extractElements(run.mode, dataSource, run.text, run.offset, run.length);
             if (extracted == null || extracted.isEmpty() && run.mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
                 stopPreparation(run, errorStatus(extracted == null ? QueryCommandMessages.query_no_statement : QueryCommandMessages.query_not_a_query));
@@ -2272,7 +2364,7 @@ final class SqlEditorPanel extends JPanel {
                 SchemaState state = null;
                 DBCExecutionContext context = null;
                 try {
-                    context = windowContext.open(monitor, dataSource);
+                    context = openWindowContext(monitor, dataSource);
                 } catch (DBException e) {
                     log.debug("Can't open the session of the query window on '" + container.getName() + "'", e);
                 }
@@ -2318,7 +2410,7 @@ final class SqlEditorPanel extends JPanel {
                 Boolean autoCommit = null;
                 DBCTransactionManager txnManager = null;
                 try {
-                    txnManager = DBUtils.getTransactionManager(windowContext.open(monitor, dataSource));
+                    txnManager = DBUtils.getTransactionManager(openWindowContext(monitor, dataSource));
                 } catch (DBException e) {
                     log.debug("Can't open the session of the query window on '" + container.getName() + "'", e);
                 }
@@ -2445,7 +2537,15 @@ final class SqlEditorPanel extends JPanel {
             }
             supported = model.getSize() > 0 && (contextDefaults.supportsCatalogChange() || contextDefaults.supportsSchemaChange());
         }
-        if (model.getSize() == 0) {
+        DefaultObjectNames restored;
+        synchronized (restoredDefaultsLock) {
+            restored = restoredDefaults;
+        }
+        if (state == null && restored != null) {
+            // A restored window that has not connected yet: the default it gets when it does (the picker stays disabled)
+            selected = restored.label();
+            model.addElement(selected);
+        } else if (model.getSize() == 0) {
             model.addElement(NOT_AVAILABLE);
         } else if (selected == NOT_AVAILABLE) {
             model.insertElementAt(NOT_AVAILABLE, 0);
@@ -2459,7 +2559,7 @@ final class SqlEditorPanel extends JPanel {
         }
         schemaChangeSupported = supported;
         schemaCombo.setEnabled(execution == null && supported);
-        statusLine.setDatabase(selected instanceof DBSObject object ? object.getName() : null);
+        statusLine.setDatabase(selected instanceof DBSObject object ? object.getName() : selected != NOT_AVAILABLE ? selected.toString() : null);
     }
 
     /**

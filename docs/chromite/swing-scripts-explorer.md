@@ -33,12 +33,23 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 - 저장: 쿼리 창을 스크립트 폴더 안에 저장(Save, Save As, Save All)하면 Scripts 창이 다시 읽고, 그 파일에 묶은 연결이 없으면 쿼리 창의 연결에 묶는다.
 - 이름을 바꾸면 그 스크립트(바꾼 폴더 안의 스크립트)를 연 쿼리 창이 새 경로로 따라간다(창 제목, 이후 저장 위치). 고치던 내용과 고침 표시는 그대로다.
 
+### 연결별 최근 스크립트
+
+- Object Explorer에서 연결(또는 그 연결의 아무 노드)을 오른쪽 클릭 > **Recent Scripts**(New Query 아래). 그 연결에 묶은 스크립트를 최근에 고친 것부터
+  15개 보인다. 이름은 스크립트 폴더 기준 경로(`reports/a.sql`), 도구 설명은 전체 경로다. 고르면 File > Open File과 같이 연다(묶은 연결, 이미 열려 있으면 그 탭).
+  묶은 스크립트가 없으면 "No scripts linked to this connection"(꺼진 항목)이다.
+- SWT는 연결의 스크립트 목록을 고르는 창(`SQLEditorHandlerOpenEditor` → `ScriptSelectorPanel`, `SQLEditorUtils.findScriptTree`)과 가장 최근 스크립트 열기
+  (`findRecentScript`, 고친 시각 순)였다. Swing은 같은 기준(연결 묶기, 고친 시각)의 하위 메뉴다. 스크립트가 없을 때 새 스크립트를 만들던 SWT 동작은 New Query가 대신한다.
+- 찾는 방법: 모든 프로젝트의 자원 속성에서 `default-datasource`가 그 연결 ID인 경로를 묻고(`DBPProject.findResources`), 스크립트 폴더 안의 있는 스크립트 파일이면서
+  묶기의 프로젝트까지 같은 연결인 것만 남긴다(`ScriptFiles.findLinkedScripts`). 폴더 트리를 읽지 않으므로 메뉴를 열 때 바로 만든다.
+
 ## 구조
 
 | 위치 | 역할 |
 |---|---|
 | `ui.swing` `ScriptsPanel` (새로 만듦) | 도구 창: 작업 스레드에서 폴더 읽기, 트리 다시 만들기(펼침·선택 유지), 명령, 셀 그리기(보조 글자) |
-| `ui.swing` `ScriptFiles` (새로 만듦) | 스크립트 폴더 찾기(자원 형식 `sql-script`의 루트), 스크립트 확장자, 연결 묶기 읽기·쓰기, 이름 바꾸기·삭제 때 자원 속성 옮기기·지우기 |
+| `ui.swing` `ScriptFiles` (새로 만듦) | 스크립트 폴더 찾기(자원 형식 `sql-script`의 루트), 스크립트 확장자, 연결 묶기 읽기·쓰기, 이름 바꾸기·삭제 때 자원 속성 옮기기·지우기, 연결에 묶은 스크립트 찾기(`findLinkedScripts`) |
+| `ui.swing` `ObjectExplorerPanel` | Recent Scripts 하위 메뉴(메뉴를 열 때 채움), `QueryWindows.openScriptFile` |
 | `ui.swing` `MainFrame` | Scripts 도구 창 등록(View 메뉴, Ctrl+Alt+L, 기본 위치), 파일 열 때 묶은 연결 우선, 스크립트 폴더에 저장할 때 묶기와 다시 읽기 |
 | `ui.swing` `SqlEditorPanel` | `fileMoved`: 이름을 바꾼 파일을 창이 따라감 |
 | `ui.swing` `QueryLibraryPanel.LibraryTree`, `QueryLibrary.deleteRecursively` | Query Library의 마우스 올림 트리와 삭제를 함께 쓰도록 패키지 안에 엶(동작은 그대로) |
@@ -73,7 +84,7 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 
 - SWT 보기를 옮기지 않고 Swing 도구 창으로 새로 썼다. 자원 처리기(`DBPResourceHandler`)와 Eclipse 자원 트리를 쓰지 않는다.
 - 없는 것(SWT에는 있었음): 프로젝트 관리(여러 프로젝트, 활성 프로젝트 바꾸기, C-21), 새 스크립트 파일 만들기(새 쿼리 창을 스크립트 폴더에 저장하면 된다),
-  끌어다 옮기기, 파일·폴더 링크, 파일 시스템 탐색기, 시스템 탐색기에서 보기, 연결별 스크립트 목록(Object Explorer의 연결 아래 Scripts),
+  끌어다 옮기기, 파일·폴더 링크, 파일 시스템 탐색기, 시스템 탐색기에서 보기, Object Explorer의 연결 아래 Scripts 폴더 노드(목록은 Recent Scripts 메뉴),
   북마크, 스크립트 폴더 밖 파일의 연결 기억(SWT `DBPExternalFileManager`), 묶을 때 기본 DB/스키마 기억(`default-catalog`, `default-schema`, 읽지도 쓰지도 않는다.
   SWT가 쓴 값은 그대로 둔다), 여러 개 선택.
 
@@ -103,3 +114,5 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 ## 변경 이력
 
 - 2026-11-08 최초 작성: Scripts 도구 창(열기, 새 폴더, 이름 바꾸기, 삭제, 연결 묶기·풀기, 새로 고침), 묶은 연결로 파일 열기, 저장할 때 묶기
+- 2026-11-08 연결별 최근 스크립트: Object Explorer > Recent Scripts(SWT 감사 C-22·B-S38의 연결별 스크립트 목록, `chromite/script-autosave`). 확인은
+  [swing-query-window-recovery.md](swing-query-window-recovery.md) "확인 기록"

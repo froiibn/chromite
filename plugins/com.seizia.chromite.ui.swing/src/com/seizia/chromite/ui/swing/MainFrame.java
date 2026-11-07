@@ -131,7 +131,8 @@ import java.util.function.Supplier;
  *     <li>고친 편집기 탭을 닫거나 앱을 끝낼 때(창 닫기, File > Exit) SSMS처럼 Save / Don't Save / Cancel을 묻는다.
  *     결과 표에 저장하지 않은 변경이 있는 편집기도 같이 묻고, Save면 결과 변경을 진행 대화상자에서 저장한다(실패하면 닫지 않고 오류는 Messages에).
  *     결과를 저장하는 중인 편집기는 닫지 않는다.
- *     그래서 창 닫기는 직접 처리하고({@code DO_NOTHING_ON_CLOSE}), 끝내기로 하면 dispose한다. 외부 종료 요청({@code IApplication.stop})은 묻지 않고 닫는다.</li>
+ *     그래서 창 닫기는 직접 처리하고({@code DO_NOTHING_ON_CLOSE}), 끝내기로 하면 dispose한다. 외부 종료 요청({@code IApplication.stop})은 묻지 않고 닫는다.
+ *     열린 쿼리 창은 주기적으로, 그리고 dispose할 때 복원 파일에 저장되고, 다음 시작에서 창이 열린 뒤 복원할지 묻는다({@link QueryWindowRecovery}).</li>
  *     <li>Object Explorer의 스크립트 명령({@link ObjectExplorerPanel.QueryWindows}): 스크립트를 담은 새 편집기, "View DDL"의 읽기 전용 탭({@link DdlViewerPanel}).</li>
  *     <li>관리 도구 문서 탭({@link ToolDocument}): Activity Monitor({@link ActivityMonitorPanel}, 연결마다 하나, 이미 열려 있으면 그 탭)와
  *     Find Objects({@link ObjectSearchPanel}). Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴에서 연다. 탭을 닫거나 창을 닫으면 정리한다(타이머, 서버 연결).</li>
@@ -246,8 +247,12 @@ import java.util.function.Supplier;
  * - 2026-11-08 Database Tasks 도구 창(저장한 작업, {@link DatabaseTasksPanel}, 기본 숨김, Query Library와 같은 탭 묶음)과
  *   Query &gt; Run with Native Client…(저장한 쿼리 창 파일을 psql·mysql·sqlplus로 실행) (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 Tools &gt; Network Profiles… ({@link NetworkProfilesDialog}, docs/chromite/swing-conn-advanced.md "네트워크 프로필")
+ * - 2026-11-08 쿼리 창 자동 저장과 다시 시작할 때 복원({@link QueryWindowRecovery}: 창이 열린 뒤 한 번 묻고, 닫을 때 마지막으로 저장),
+ *   복원한 {@code SQLQueryN.sql} 이름 뒤로 새 창 번호를 넘김, Object Explorer의 Recent Scripts가 스크립트를 엶
+ *   (docs/chromite/swing-query-window-recovery.md, docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  */
-final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
+final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
+    QueryWindowRecovery.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -269,6 +274,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private static final int DEFAULT_RESULTS_HEIGHT = 280;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
+    /**
+     * Name of a new query window: {@code SQLQueryN.sql} as in SSMS.
+     */
+    private static final String QUERY_NAME_PREFIX = "SQLQuery"; //$NON-NLS-1$
+    private static final String QUERY_NAME_SUFFIX = ".sql"; //$NON-NLS-1$
     /**
      * Client property of a query window whose results the user hid; kept on the editor so the choice lives and dies with it.
      */
@@ -384,6 +394,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final SqlOutlinePanel outlinePanel;
     private final SqlEditorToolBar sqlEditorToolBar;
     private final EditMenu editMenu;
+    /**
+     * Saves the query windows periodically and on close, and offers them again at the next start.
+     */
+    private final QueryWindowRecovery recovery = new QueryWindowRecovery(this);
     private int queryCounter;
     /**
      * Folder of the last file dialog, for this run of the application.
@@ -798,6 +812,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     // Floating tool windows open after the main window, so they stay in front of it
                     toolWindowDocking.restoreFloatingWindows();
                     explorerPanel.focusTree();
+                    // The query windows of the last session, once the window is there to show them
+                    recovery.start();
                 });
             }
         });
@@ -815,6 +831,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!layoutSaved && isDisplayable()) {
             layoutSaved = true;
             saveLayout();
+            // While the query windows are still open (also when the application is stopped from outside, without questions)
+            recovery.stop();
             // Also closes the floating tool windows
             toolWindowDocking.dispose();
         }
@@ -1114,6 +1132,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         connectionUpdated(dataSource);
     }
 
+    @Override
+    public void openScriptFile(@NotNull Path file) {
+        openFile(file);
+    }
+
     /**
      * Tells Object Explorer which object and connection the active document is about (Link with Editor): a query window's
      * routine (Modify) or default database/schema, a designed table, a diagram's root, a details document's node, an
@@ -1280,13 +1303,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Adds a query window tab.
      *
      * @param dataSource connection of the window, or null (chosen in its tool bar)
-     * @param fileName   name of the window, or null for the next {@code SQLQueryN.sql}
+     * @param fileName   name of the window, or null for the next {@code SQLQueryN.sql}; a given {@code SQLQueryN.sql} (a restored
+     *                   window) moves the counter past N
      */
     @NotNull
     private SqlEditorPanel openQueryEditor(@Nullable DBPDataSourceContainer dataSource, @Nullable String fileName) {
         if (fileName == null) {
             queryCounter++;
-            fileName = "SQLQuery" + queryCounter + ".sql"; //$NON-NLS-1$ //$NON-NLS-2$
+            fileName = QUERY_NAME_PREFIX + queryCounter + QUERY_NAME_SUFFIX;
+        } else if (fileName.startsWith(QUERY_NAME_PREFIX) && fileName.endsWith(QUERY_NAME_SUFFIX)) {
+            // A window restored after a restart keeps its SQLQueryN name: the next new window does not take it again
+            int number = CommonUtils.toInt(fileName.substring(QUERY_NAME_PREFIX.length(), fileName.length() - QUERY_NAME_SUFFIX.length()), 0);
+            queryCounter = Math.max(queryCounter, number);
         }
         SqlEditorPanel editor = new SqlEditorPanel(dataSource, fileName, this);
         aiAssistantPanel.installEditorActions(editor);

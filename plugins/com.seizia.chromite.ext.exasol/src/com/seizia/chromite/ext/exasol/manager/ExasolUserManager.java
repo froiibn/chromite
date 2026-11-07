@@ -43,6 +43,19 @@ import org.jkiss.utils.CommonUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Exasol user manager: CREATE/ALTER/RENAME/DROP USER and the user comment.
+ *
+ * 설계: 로컬 사용자의 암호는 만드는 쪽(대화상자)이 받아 {@link ExasolUser#setPassword}로 넣는다. 관리자는 암호를 지어내지 않는다:
+ * 암호가 비어 있으면 문장을 만들지 않고 거절한다(받을 수 없는 경로가 고정 암호의 사용자를 만들지 않게). 암호는 언제나 큰따옴표로 감싸고
+ * 안의 큰따옴표를 두 번 쓴다(Exasol의 {@code IDENTIFIED BY "…"}). {@code DBUtils.getQuotedIdentifier}는 이미 따옴표로 싸인 글을 그대로
+ * 두므로 암호에는 쓰지 않는다. 암호가 든 문장은 쿼리 관리자 기록에서 뺀다({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server
+ * 로그인 관리자와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-08 새 사용자의 고정 암호({@code "password"})를 없애고, 빈 암호는 거절, 암호 따옴표 처리와 기록 끄기
+ *   (docs/chromite/swing-create-objects.md "새 사용자의 암호")
+ */
 public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSource> implements DBEObjectRenamer<ExasolUser> {
 
     @Override
@@ -66,19 +79,21 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
         @Nullable Object copyFrom,
         @NotNull Map<String, Object> options
     ) throws DBException {
-    	return new ExasolUser((ExasolDataSource) container, "user", "", "", "password", "", ExasolUserType.LOCAL);
+    	// No password: the caller asks for it (an empty one is refused in addObjectCreateActions)
+    	return new ExasolUser((ExasolDataSource) container, "user", "", "", "", "", ExasolUserType.LOCAL);
     }
 
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions,
-                                          @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) {
+                                          @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) throws DBException {
         ExasolUser obj = command.getObject();
 
         StringBuilder script = new StringBuilder("CREATE USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED ");
 
         switch (obj.getType()) {
             case LOCAL:
-                script.append(" BY \"" + obj.getPassword() + "\"");
+                script.append(" BY ").append(quotePassword(obj));
+                command.setDisableSessionLogging(true); // Hide password from Query Manager
                 break;
             case LDAP:
                 script.append(" AT LDAP AS '" + obj.getDn() + "'");
@@ -127,13 +142,27 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
         );
     }
 
+    /**
+     * The password as Exasol writes it ({@code "…"} with inner quotes doubled).
+     *
+     * @throws DBException if the user has no password: no statement is generated without one
+     */
+    @NotNull
+    private static String quotePassword(@NotNull ExasolUser user) throws DBException {
+        String password = user.getPassword();
+        if (CommonUtils.isEmpty(password)) {
+            throw new DBException("A password is required for the local user " + user.getName());
+        }
+        return "\"" + password.replace("\"", "\"\"") + "\"";
+    }
+
     private SQLDatabasePersistAction Comment(ExasolUser obj) {
         return new SQLDatabasePersistAction("Comment on User", "COMMENT ON USER " + DBUtils.getQuotedIdentifier(obj) + " IS '" + ExasolUtils.quoteString(obj.getDescription()) + "'");
     }
 
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList,
-                                          @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options) {
+                                          @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options) throws DBException {
         ExasolUser obj = command.getObject();
 
         if (command.getProperties().containsKey("description")) {
@@ -170,7 +199,8 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
         if (command.getProperties().containsKey("password")) {
 
             StringBuilder script = new StringBuilder("ALTER USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED ");
-            script.append(" BY \"" + obj.getPassword() + "\" ");
+            script.append(" BY ").append(quotePassword(obj)).append(" ");
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
             /*ExasolDataSource ds = (ExasolDataSource) obj.getDataSource();
             if (!ds.hasAlterUserPrivilege()) {
                 String oldPassword = new UITask<String>() {

@@ -40,76 +40,55 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
-| A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
-| B 편집기 | 39 | 40 | 31 | 3 | 4 | 117 |
-| C 탐색기·도구 | 23 | 19 | 19 | 2 | 1 | 64 (+해당 없음 4) |
-| D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **122** | **103** | **121** | **24** | **8** | **378** |
+| A 플랫폼·설정 | 35 | 15 | 21 | 0 | 2 | 73 |
+| B 편집기 | 75 | 30 | 7 | 1 | 4 | 117 |
+| C 탐색기·도구 | 27 | 22 | 14 | 0 | 1 | 64 (+해당 없음 4) |
+| D DB별 화면 | 92 | 23 | 8 | 0 | 1 | 124 |
+| **합계** | **229** | **90** | **50** | **1** | **8** | **378** |
+
+2026-11-08 다시 셈(devel #165, `chromite/audit-recount`): 네 영역 보고서의 모든 행을 코드와 다시 대조하고 지금 상태 칸으로 셌다("수정함"은 있음으로 셈).
+바로 전 표는 있음 122, 일부 103, 없음 121, 조용히 끊김 24, 의도적 제외 8이었다(병합마다 자기 행만 고쳐 바뀐 행이 빠져 있었다).
+조사 당시(#95)는 있음 89, 일부 105, 없음 148, 조용히 끊김 29, 의도적 제외 7이었다.
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
-## 우선순위 (제안)
+## 남은 빈자리 (우선순위)
 
-### 1순위: 데이터·보안 안전 (조용히 끊김 중 위험한 것)
+2026-11-08 다시 정리(devel #165): 처음 제안한 1~3순위(데이터·보안 안전, 연결이 안 되거나 출력이 사라짐, 매일 쓰는 작업의 빈자리)는 모두 고쳤다.
+고친 내용은 영역 보고서의 상태 칸과 아래 변경 이력에 있다. 여기에는 지금 남은 것만 사용자에게 주는 가치 순으로 둔다.
 
-| 항목 | 영역 | 상태 |
-|---|---|---|
-| 연결 끊기·다시 연결·삭제 때 열린 트랜잭션을 묻지 않고 롤백 | A-S3, B-S23 | 수정함(#97, [idle-transactions.md](idle-transactions.md)) |
-| 유휴 트랜잭션 처리, 유휴 연결 끊기 설정이 동작하지 않음 | A-S1·S2, B-S24 | 유휴 트랜잭션은 수정함(#97). 유휴 연결 닫기도 수정함(`chromite/idle-close-notifications`, [idle-transactions.md](idle-transactions.md) "유휴 연결 닫기"): 연결별 마지막 사용 기준, 열린 트랜잭션이 있으면 닫지 않음. PostgreSQL·SQL Server에서 실행 확인 |
-| 셸 명령(연결 이벤트, 셸 명령 인증, 내보내기 후 명령)이 승인 없이 실행됨 | A-S4 | 보안. 수정함(#99, [shell-command-approval.md](shell-command-approval.md)) |
-| 테스트·운영 유형의 "데이터 변경 확인"이 결과 표 저장에서 무시됨(스크립트 미리 보기 없음) | B-R19 | 수정함(#98, [swing-frontend.md](swing-frontend.md) "저장 전 스크립트 미리 보기") |
-| 조건 없는 DELETE/UPDATE, DROP 실행 전 확인 없음 | B-S7 | 고침(`chromite/sql-exec-safety`, [swing-sql-exec-safety.md](swing-sql-exec-safety.md)) |
-| `@ai`가 만든 SQL을 실행 전 확인 창에 SQL 없이 묻음 | C-58 | 고침(같은 브랜치). AI 확인 규칙 설정 화면은 없음 |
-| 연결의 "스크립트 실행 금지" 제한이 지켜지지 않음 | B-S8 | 고침(같은 브랜치) |
-| 모델 알림(유휴 롤백, 유휴 끊김, 절전 뒤 재검증)이 화면에 안 나옴 | A-S7 | 수정함. 유휴 트랜잭션 알림은 자체 알림 창(#97), 나머지 모델 알림(유휴 연결 닫힘, 다시 연결 성공·실패)은 `SwingModelNotifications`로 메인 창 알림([idle-transactions.md](idle-transactions.md) "모델 알림"). 절전 뒤 재검증은 업스트림부터 알림이 없음 |
+### 조용히 끊김 (1건)
 
-### 2순위: 연결이 안 되거나 출력이 사라짐
+- **B-E12** `openEntityEditor`가 디버그 로그만 남긴다. SWT에서 저장한 데이터 전송 작업의 "끝나면 테이블 열기"가 아무 일도 하지 않는다.
+  Swing 마법사는 이 옵션을 끄고 시작한다. 데이터 위험은 없다(낮음).
 
-| 항목 | 영역 | 메모 |
-|---|---|---|
-| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행으로 확인한 뒤 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)) |
-| Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 고침(#104, [platform-startup.md](platform-startup.md)). Windows에서 실행 확인 |
-| Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | 고침(#105, [swing-server-output.md](swing-server-output.md)): 쿼리 창이 문장마다 읽어 Messages 탭에 씀 |
-| macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | 고침(#104). macOS 실행 확인 안 함 |
-| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)). 기본 SSHJ는 바꾸지 않음 |
+### 상위 13
 
-### 3순위: 매일 쓰는 작업의 빈자리
+| # | 빈자리 | 행 | 상태(영향) | 남은 것 |
+|---|---|---|---|---|
+| 1 | 실행 중 자동/수동 커밋 전환 명령 | B-S18 | 없음(높음) | 도구 막대·메뉴 토글은 사용자 결정 대기. 상태 줄에서 바꾸지 않는 것은 이미 결정됨(B-S18a) |
+| 2 | 개체 속성 편집 | B-E1, B-E2, C-15 | 일부(중간) | 속성 창은 읽기 전용. 디자이너가 없는 DB(DB2·Generic의 인덱스·외래 키)와 시퀀스 등 테이블 밖 개체 |
+| 3 | 실행 중 격리 수준 바꾸기 | B-S19, A-C5 | 없음(중간) | 연결의 기본 격리 수준은 있음(B-C11) |
+| 4 | 값 편집기 나머지 | B-R14 | 일부(중간) | 참조 값 고르기, 배열·구조체·커서, UUID 만들기, 외부 편집기 |
+| 5 | 데이터 전송을 작업으로 저장, 작업 보기 나머지 | C-39, C-43, C-41 | 없음·일부(중간) | 작업 폴더·복사·변수, SQL 스크립트 작업 |
+| 6 | 테이블 복사·내보내기 고급 옵션 | C-36, C-37 | 일부(중간·낮음) | 매핑 규칙, 열 변환기, 중복 키 처리, 매핑 저장, 외래 키 옮기기, 열 고르기 |
+| 7 | 네이티브 백업 고급 | D-P18, D-M13, D-P19, C-46 | 일부·없음(중간) | 스키마·테이블 고르기, pg_dumpall, 도구 계정, 추가 인수 |
+| 8 | 다른 도구에서 연결 가져오기 나머지 | A-X4 | 일부(중간) | DbVisualizer, DataGrip, pgAdmin, Navicat, SQuirreL, SQL Workbench/J |
+| 9 | 설정·스크립트·프로젝트 내보내기/가져오기 | A-C14 | 일부(중간) | 지금은 연결만 옮김 |
+| 10 | 연결별 보안 제한 편집, 연결 잠금 | B-C13 | 일부(중간) | 연결 유형 단위 제한은 있음 |
+| 11 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 일부(중간) | WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈 |
+| 12 | Query Manager 보기 | A-C6, B-S26 | 일부(중간) | 모든 실행 기록, 내부·메타데이터 쿼리, 필터 |
+| 13 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 일부·없음(중간) | PostgreSQL 열 권한·기본 권한, MySQL 자원 제한, Altibase 복제 시작·중지 |
 
-- ~~트랜잭션: 커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록. 상태 줄 표시는 유휴 트랜잭션 작업에 포함.~~
-  2026-11-07 고침([transactions.md](transactions.md)). 남은 것: 로그의 지난 트랜잭션 보이기, 커밋 뒤 알림 설정.
-- ~~쿼리 창마다 별도 연결(지금은 한 연결의 창들이 트랜잭션을 공유).~~
-  2026-11-07 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"): 창마다 격리된 세션(SWT와 같은 키·기본값), 창 닫기·연결 바꾸기 전 트랜잭션 질문,
-  Options > Query Execution과 연결 대화상자의 설정, 상태 줄 도구 설명의 세션 수.
-- 탐색기에서 개체 삭제·이름 바꾸기, 이름 복사, 여러 개 선택, Generate SQL의 INSERT/UPDATE/DELETE 등. 고침(`chromite/p3-navigator-actions`,
-  [swing-explorer-object-actions.md](swing-explorer-object-actions.md)): C-10·C-11·C-17 있음, C-12 일부(Copy Special·붙여넣기 복제는 남음).
-  PostgreSQL·SQL Server에서 실행 확인.
-- 설정 화면: 트랜잭션, 연결 유형, 편집기·결과 기본값(설정 페이지 62개 중 45개는 Swing에서 바꿀 화면이 없음).
-  2026-11-07 일부 고침([swing-options.md](swing-options.md)): 키 306개를 Swing에서 읽는지 전수 확인(효과 없음 197개는 화면을 만들지 않음).
-  Options에 Query Execution(구분 기호·매개 변수·오류 처리)·Connection Types(연결 유형 편집)·Oracle 탭과 결과 형식 행, 연결 대화상자에 격리 수준을 더함.
-  오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
-  2026-11-08 더 고침(`chromite/settings-rest`): 연결별 설정(연결 대화상자 Options > Settings), Data Formats·Errors and Timeouts·Metadata·Client Identification.
-  남은 것: 읽지만 화면 없는 키 55개(결과 편집기 나머지, 연결 일반, 드라이버·프록시·Maven, QM·로그, 탐색기 정렬, 알림, 데이터 전송 매핑, 자동완성, DB별).
-  2026-11-08 전역 라이브러리(`ui.drivers.global.libraries`)는 Driver Manager에 만들어 54개(`chromite/drivers-oracle-batch`).
-  2026-11-08 오후 고침(`chromite/settings-rest-2`): 남은 54개 중 47개를 Options(Connections, Drivers, Logs, Object Explorer, Notifications, Data Transfer,
-  Code Completion, Binary and LOB, Altibase, CUBRID, Mimer SQL, Query Results 읽기와 정렬)에 넣음. 효과 없음 6개, 규칙상 두지 않음 1개(Altibase 실행 계획 방식).
-  남은 것 없음.
-- ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
-  2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
-  [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
-  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: 도구 옵션 화면, Oracle 패키지·열 권한. Altibase TRUNCATE·MView 새로 고침(A5)은
-  2026-11-08 `chromite/p4-routines`에서 고침([swing-routines.md](swing-routines.md)).
-- ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
+### 그다음
 
-### 4순위
-
-나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
-데이터 검색은 2026-11-08 옮겼다([swing-data-search.md](swing-data-search.md), C-29).
-
-- 루틴 묶음(`chromite/p4-routines`, 2026-11-08): B-S42 프로시저 실행, D-O11·O12·O13·O14·O20, D-A5·A6을 고쳤다([swing-routines.md](swing-routines.md)).
-  PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
-
-- 2026-11-08 결과 편집(B3, `chromite/p4-grid-editing`, [swing-grid-editing.md](swing-grid-editing.md)): B-R16·R21·O6·O7 → 있음, B-R20 → 일부(연쇄 삭제 남음),
-  B-R14 일부(날짜 선택기·불리언·LOB 파일 더함), D-P28 → 일부, D-M18 → 있음. PostgreSQL·SQL Server·MariaDB·Oracle에서 자동·수동 커밋으로 실행 확인.
+- 결과: 연쇄 삭제(B-R20), 오류 때 묻기 대화상자(B-S14), 메타데이터·그룹 패널(B-R5, R8), 값에 따른 색(B-R23), 열 고정(B-R24).
+- 편집기: 자동완성 세부(B-S34), 아웃라인의 문장 안 구조(B-S28), 의미 분석 표시(B-S36), 코드 편집·방언 설정(B-S45), 결과 탭 이름 바꾸기·분리(B-S3).
+- 관리: 다른 DB 세션 관리자·잠금 그래프(B-O1, O2), Exasol 잠금, DB2·Exasol 도구(C-44), Oracle 개체 권한 편집(B-O3), Oracle 패키지·열 권한(D-O16 비고), 유지 관리 도구 옵션 화면(D-P23·O21 비고), PostgreSQL 설정 페이지(D-P7).
+- 탐색기: 객체를 쿼리 창에 끌어 놓기(C-13), 자원 탐색기 나머지(새 파일, 파일·폴더 링크, 파일 시스템 탐색기, C-22), 연결된 것만·종류 거르기(C-5), 선택 객체로 필터 추가(C-4), 프로젝트(C-21), 북마크(C-20).
+- 플랫폼: SWT 전역 설정 넘기기(A-P1), 알림 소리(A-U6), 확인의 "다시 묻지 않음"(A-C27), 커밋 알림 설정(A §6 Transactions), 작업 공간 전환(A-S3).
+- AI: 편집기 안 AI 번역(C-57), `@ai` 확인 규칙 설정(C-58), 이미지 첨부(C-56).
+- 나머지 낮음 항목은 각 영역 보고서 표에 있다.
 
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
@@ -160,3 +139,9 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-08 4순위 B2 연결 수명 주기([connection-lifecycle.md](connection-lifecycle.md)): A-S8·S10·S11(조용히 끊김) 수정, A-C4·A-C7·A-C8·A-C15·A-U3 → 있음, A-S2 → 일부,
   B-S16 → 있음, B-C15 → 일부, D-K4·K5 수정. 닫기 경로 전수 점검(절전 닫기·깨어남 다시 초기화의 무확인 롤백을 고침).
 - 2026-11-08 4순위 연결 도구(`chromite/p4-connection-tools`, [swing-conn-advanced.md](swing-conn-advanced.md), [platform-startup.md](platform-startup.md)): A-S9·S12·S13 수정함, A §6 Network Profiles·General 비고, B-C6·C9·C12·C21, C-51·52 행 갱신. 결과 요약 수는 고치지 않음(메인 세션이 다시 셈).
+- 2026-11-08 집계 다시 셈(`chromite/audit-recount`): 네 영역 보고서의 모든 행을 devel #165 코드와 대조해 낡은 상태를 고치고(A 12줄(집계 대상 3줄), B 8줄, C 3줄, D 7줄), 결과 요약을 행 상태로 다시 셈. 우선순위를 남은 빈자리만 사용자 가치 순으로 다시 씀(고친 1~3순위 표는 지움, 기록은 영역 보고서와 이 변경 이력).
+- 2026-11-08 5순위 스크립트 자동 저장(`chromite/script-autosave`, [swing-query-window-recovery.md](swing-query-window-recovery.md)): B-S38 일부 → 있음, A-S17 없음 → 있음,
+  C-22 근거 갱신(연결별 최근 스크립트, 일부 그대로). #166 집계에 두 행의 변화만 더함(A 있음 +1·없음 −1, B 있음 +1·일부 −1, 합계 같이).
+  남은 빈자리 상위 목록의 2번(B-S38·A-S17·C-22)을 빼고 번호를 당김, C-22 나머지는 "그다음 > 탐색기"로.
+- 2026-11-08 5순위 결과에서 SQL 만들기(`chromite/sql-from-results`, [swing-result-generate-sql.md](swing-result-generate-sql.md)): B-S41 일부 → 있음.
+  집계에 한 행의 변화만 더함(B 있음 +1·일부 −1, 합계 같이). 남은 빈자리 상위 목록의 4번(B-S41)을 빼고 번호를 당김.

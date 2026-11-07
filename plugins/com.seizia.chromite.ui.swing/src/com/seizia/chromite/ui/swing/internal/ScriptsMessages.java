@@ -19,13 +19,15 @@ package com.seizia.chromite.ui.swing.internal;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * Texts of the Scripts tool window ({@code ScriptsPanel}): the project's script files and folders.
+ * Texts of the Scripts tool window ({@code ScriptsPanel}): the project's script files and folders; also Object Explorer's
+ * Recent Scripts of a connection and the question that restores the query windows after a restart ({@code QueryWindowRecovery}).
  *
  * 설계: 다른 작업과 같은 파일을 고치지 않도록 이 클래스에 따로 둔다
  * (영어 {@code ScriptsMessages.properties}, 한국어 {@code ScriptsMessages_ko.properties}).
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-scripts-explorer.md)
+ * - 2026-11-08 Recent Scripts, 쿼리 창 복원 질문 (docs/chromite/swing-scripts-explorer.md, docs/chromite/swing-query-window-recovery.md)
  */
 public class ScriptsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ScriptsMessages"; //$NON-NLS-1$
@@ -61,6 +63,13 @@ public class ScriptsMessages extends NLS {
     public static String scripts_error_create_folder;
     public static String scripts_error_rename;
     public static String scripts_error_delete;
+    public static String scripts_recent;
+    public static String scripts_recent_tip;
+    public static String scripts_recent_none;
+    public static String recovery_question_one;
+    public static String recovery_question_many;
+    public static String recovery_restore;
+    public static String recovery_discard;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ScriptsMessages.class);
