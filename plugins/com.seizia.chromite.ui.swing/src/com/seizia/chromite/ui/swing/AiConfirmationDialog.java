@@ -63,7 +63,7 @@ import java.util.function.Supplier;
  *     {@link Handler#confirm}을 부르고 답이 올 때까지 기다린다. 처리기는 EDT에 모달 대화상자를 띄우고, 기다리는 동안 모니터 취소(채팅의 중지,
  *     MCP {@code notifications/cancelled})를 보면 대화상자를 닫고 DENY를 돌려준다.</li>
  *     <li>대화상자는 한 번에 하나다(공정 잠금). MCP 클라이언트가 여러 쓰기 도구를 한꺼번에 불러도 질문이 겹쳐 쌓이지 않고 차례로 나온다.</li>
- *     <li>보이는 것: 요청한 쪽(이 앱의 AI 도우미 / 외부 에이전트 MCP), 도구 이름과 ID, 실제 분류(WRITE/DANGEROUS), 연결(운영 표시 포함), 실행할
+ *     <li>보이는 것: 요청한 쪽(이 앱의 Chromite Agent / 외부 에이전트 MCP), 도구 이름과 ID, 실제 분류(WRITE/DANGEROUS), 연결(운영 표시 포함), 실행할
  *     SQL·DDL 전체(미리 보기, 읽기 전용 SQL 편집기), 비밀을 지운 인수(실행기가 이미 지움), 정책 이유.</li>
  *     <li>"이 연결에서 이 도구 항상 허용"은 WRITE에만 둔다. DANGEROUS는 설정 화면의 연결별·도구별 규칙으로만 자동 실행할 수 있다(사용자 결정).
  *     트랜잭션 질문에도 두지 않는다: 열린 트랜잭션을 어떻게 끝낼지는 매번 묻는다(사용자 규칙 "트랜잭션 안전").</li>
@@ -72,6 +72,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 요청한 쪽 설명을 고침(docs/chromite/ai-agent.md "명칭")
  */
 final class AiConfirmationDialog extends JDialog {
 
