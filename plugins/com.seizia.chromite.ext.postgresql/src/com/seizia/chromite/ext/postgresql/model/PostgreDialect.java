@@ -59,6 +59,7 @@ import java.util.*;
  * - 2026-11-07 Chromite: data transfer type mapping — uniqueidentifier, character LOBs, timestamps with and without
  *   time zone (Oracle DATE has a time part); text and bytea never get a length (text(10485760) failed).
  * - 2026-11-07 Chromite: MariaDB uuid (a character type there) becomes uuid instead of varchar(36).
+ * - 2026-11-07 Chromite: a one-bit BIT of another database (SQL Server bit) becomes boolean instead of bit.
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
     SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -1256,6 +1257,12 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
                 // Character LOBs are CONTENT, which the generic search maps to bytea
                 localDataType = PostgreConstants.TYPE_TEXT;
                 break;
+        }
+        if (localDataType == null && sourceTypedObject.getTypeID() == Types.BIT && CommonUtils.toInt(sourceTypedObject.getPrecision()) <= 1
+            && !(sourceDialect instanceof PostgreDialect)) {
+            // A one-bit BIT (SQL Server bit, MySQL BIT(1)) is a true/false value; the name search found PostgreSQL bit,
+            // which is a bit string
+            localDataType = PostgreConstants.TYPE_BOOLEAN;
         }
         if (localDataType == null && DBStructUtils.isTimestamp(sourceTypedObject)) {
             // Oracle DATE (has a time part) and SQL Server datetimeoffset are not known by name
