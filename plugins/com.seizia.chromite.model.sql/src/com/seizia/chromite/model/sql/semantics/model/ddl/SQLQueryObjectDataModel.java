@@ -42,6 +42,11 @@ import java.util.Set;
  * @apiNote
  * TODO remove objectType and treat this as non-table rows source like table-producing procedures, no matter builtin or not
  *      (see something like {@code SELECT * FROM proc()}  )
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 끝나지 않은 이름({@code EXEC dbo.})을 객체 찾기에 넘기지 않음. 빈 이름 조각(null)이 방언의 따옴표 제거까지
+ *   가서 NullPointerException이 났다. 테이블·함수 참조 모델처럼 앞쪽 조각만 부분 해석한다. 이름 원천의 거르기 방식을
+ *   생성자로 받는다(호출문은 {@link SQLQuerySymbolOrigin.DbObjectFilterMode#CALL}) (docs/chromite/swing-sql-completion.md)
  */
 public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements SQLQuerySymbolDefinition {
 
@@ -52,6 +57,8 @@ public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements 
     private DBSObjectType objectType;
     @NotNull
     private Set<DBSObjectType> objectContainerTypes;
+    @NotNull
+    private final SQLQuerySymbolOrigin.DbObjectFilterMode filterMode;
     @Nullable
     private DBSObject object = null;
 
@@ -63,10 +70,21 @@ public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements 
         @NotNull DBSObjectType objectTypes,
         @NotNull Set<DBSObjectType> objectContainerTypes
     ) {
+        this(syntaxNode, name, objectTypes, objectContainerTypes, SQLQuerySymbolOrigin.DbObjectFilterMode.OBJECT);
+    }
+
+    public SQLQueryObjectDataModel(
+        @NotNull STMTreeNode syntaxNode,
+        @NotNull SQLQueryComplexName name,
+        @NotNull DBSObjectType objectTypes,
+        @NotNull Set<DBSObjectType> objectContainerTypes,
+        @NotNull SQLQuerySymbolOrigin.DbObjectFilterMode filterMode
+    ) {
         super(syntaxNode);
         this.name = name;
         this.objectType = objectTypes;
         this.objectContainerTypes = objectContainerTypes;
+        this.filterMode = filterMode;
     }
 
     @NotNull
@@ -105,7 +123,21 @@ public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements 
         Set<DBSObjectType> scopeMemberTypes = new HashSet<>();
         scopeMemberTypes.addAll(this.objectContainerTypes);
         scopeMemberTypes.add(this.objectType);
-        this.objectNameOrigin = new SQLQuerySymbolOrigin.DbObjectRef(context, scopeMemberTypes, false);
+        this.objectNameOrigin = new SQLQuerySymbolOrigin.DbObjectRef(context, scopeMemberTypes, false, this.filterMode);
+
+        if (this.name.invalidPartsCount > 0) {
+            // An unfinished name (like "dbo." while typing) has empty parts, which object lookup cannot take
+            SQLQuerySemanticUtils.performPartialResolution(
+                context,
+                statistics,
+                this.name,
+                this.objectNameOrigin,
+                this.filterMode,
+                SQLQuerySymbolClass.ERROR
+            );
+            statistics.appendError(this.getSyntaxNode(), "Invalid object reference");
+            return context.resetAsUnresolved();
+        }
 
         List<? extends DBSObject> candidates = context.getConnectionInfo().findRealObjects(statistics.getMonitor(), objectType, this.name.stringParts);
         if (candidates.isEmpty()) {
@@ -114,7 +146,7 @@ public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements 
                 statistics,
                 this.name,
                 this.objectNameOrigin,
-                SQLQuerySymbolOrigin.DbObjectFilterMode.OBJECT,
+                this.filterMode,
                 SQLQuerySymbolClass.ERROR
             );
             statistics.appendError(this.getSyntaxNode(), "Object " + this.name.getNameString() + " not found in the database");
@@ -130,7 +162,7 @@ public class SQLQueryObjectDataModel extends SQLQueryRowsSourceModel implements 
                 this.name,
                 this.object,
                 this.objectNameOrigin,
-                SQLQuerySymbolOrigin.DbObjectFilterMode.OBJECT
+                this.filterMode
             );
             if (!this.objectType.getTypeClass().isAssignableFrom(this.object.getClass())) {
                 statistics.appendError(

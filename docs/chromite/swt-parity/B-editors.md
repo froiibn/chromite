@@ -81,7 +81,7 @@
 | S31 | 접기, 모두 펴기·접기 | `FoldingsEnabled`, `Expand/CollapseAllFoldings` | 없음 | `SqlEditorPanel.java:1743` `setCodeFoldingEnabled(false)` | 낮음 | |
 | S32 | 찾기·바꾸기 | Eclipse find/replace | 있음 | `FindReplaceDialog`, `SqlEditorPanel.java:1746-1753` | 중간 | |
 | S33 | 주석 넣기·빼기 | `comment.single`, `comment.multi` | 있음 | `SqlEditCommands`(Ctrl+K Ctrl+C/U) | 낮음 | 블록 주석 토글은 없음 |
-| S34 | 자동완성 | `SQLCompletionProcessor`, `PrefPageSQLCompletion` | 일부 | `SqlCompletionPopup`, Options(지연, 프로시저 제안) | 중간 | 제안 설명 창, 변수·명령 제안, 세부 설정 없음(swing-frontend.md:1143) |
+| S34 | 자동완성 | `SQLCompletionProcessor`, `PrefPageSQLCompletion` | 일부 | `SqlCompletionPopup`, Options(지연, 프로시저 제안), CALL/EXEC 뒤 루틴 제안과 `EXEC dbo.` 예외 수정(2026-11-07, [swing-sql-completion.md](../swing-sql-completion.md)) | 중간 | 제안 설명 창, 변수·명령 제안, 세부 설정 없음(swing-frontend.md:1143). PL/SQL 블록 안 프로시저 호출, 스키마를 붙인 값 자리(`SELECT dbo.fn`)의 함수 제안 없음 |
 | S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 없음 | `SqlEditorPanel` grep `Hover`/`ToolTipSupplier`/`setMarkOccurrences` 0건 | 낮음 | |
 | S36 | 의미 분석 오류 표시, 빠른 수정 | `SQLEditorSemanticMarkersManager`, `SQLEditorQuickAssistProcessor` | 없음 | grep 0건 | 낮음 | |
 | S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 없음 | grep 0건(쿼리 편집기에 `setLineWrap` 없음) | 낮음 | 대소문자 바꾸기는 있음(S30) |

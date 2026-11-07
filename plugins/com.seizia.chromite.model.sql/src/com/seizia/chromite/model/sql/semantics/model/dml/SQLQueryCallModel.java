@@ -37,6 +37,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Call statement ({@code CALL}, {@code EXEC}) with the routine name and its arguments
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 루틴 이름의 원천을 {@link SQLQuerySymbolOrigin.DbObjectFilterMode#CALL}로 표시. 자동완성이 CALL/EXEC 뒤와
+ *   {@code EXEC dbo.} 뒤에 부를 수 있는 루틴을 제안한다 (docs/chromite/swing-sql-completion.md)
+ */
 public class SQLQueryCallModel extends SQLQueryModelContent {
 
     @Nullable
@@ -100,7 +107,8 @@ public class SQLQueryCallModel extends SQLQueryModelContent {
         }
         if (this.nameScope != null) {
             this.nameScope.setSymbolsOrigin(new SQLQuerySymbolOrigin.DbObjectRef(
-                context.getRowsSources(), Set.of(RelationalObjectType.TYPE_PROCEDURE, RelationalObjectType.TYPE_PACKAGE), false
+                context.getRowsSources(), Set.of(RelationalObjectType.TYPE_PROCEDURE, RelationalObjectType.TYPE_PACKAGE), false,
+                SQLQuerySymbolOrigin.DbObjectFilterMode.CALL
             ));
         }
         if (this.tailScope != null) {
@@ -136,7 +144,8 @@ public class SQLQueryCallModel extends SQLQueryModelContent {
                     nameNode,
                     name,
                     RelationalObjectType.TYPE_PROCEDURE,
-                    Set.of(RelationalObjectType.TYPE_PACKAGE)
+                    Set.of(RelationalObjectType.TYPE_PACKAGE),
+                    SQLQuerySymbolOrigin.DbObjectFilterMode.CALL
                 );
         }
 

@@ -61,6 +61,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Completion context of the semantic completion engine
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 호출문(CALL/EXEC) 뒤에 부를 수 있는 루틴과 패키지·스키마를 제안({@code prepareCallTargetCompletions}).
+ *   이름 원천이 있었지만 테이블 자리가 아니라서 버려졌고, 프로시저 목록은 "프로시저도 제안" 설정이 켜져 있을 때만 읽었다.
+ *   호출문은 루틴 이름을 기대하는 자리이므로 그 설정(SELECT·WHERE의 값 제안용)과 상관없이 제안한다 (docs/chromite/swing-sql-completion.md)
+ */
 public abstract class SQLQueryCompletionContext {
 
     private static final Log log = Log.getLog(SQLQueryCompletionContext.class);
@@ -871,6 +879,15 @@ public abstract class SQLQueryCompletionContext {
                                     prepareContextSchemasAndCatalogs(monitor, contexts, prefix, filterOrNull, results);
                                 }
                             }
+                            case CALL -> {
+                                if (origin.getObject() instanceof DBSObjectContainer objectContainer) {
+                                    List<DBSObjectContainer> contexts = List.of(objectContainer);
+                                    prepareCallTargetCompletions(
+                                        monitor, request, deepestContext.getKnownSources(), contexts, prefix, filterOrNull, results
+                                    );
+                                    prepareContextSchemasAndCatalogs(monitor, contexts, prefix, filterOrNull, results);
+                                }
+                            }
                             default -> throw new UnsupportedOperationException("Unexpected filter mode: " + origin.getFilterMode());
                         };
                     }
@@ -914,7 +931,15 @@ public abstract class SQLQueryCompletionContext {
                         SQLQueryDataContextInfo contextInfo = SQLQueryDataContextInfo.makeFor(origin.getRowsSourceContext());
                         setContextInfo(contextInfo);
 
-                        if (origin.isIncludingRowsets()) {
+                        if (origin.getFilterMode() == SQLQuerySymbolOrigin.DbObjectFilterMode.CALL) {
+                            Collection<DBSObjectContainer> container = obtainDefaultContext(monitor, request);
+                            if (container != null) {
+                                prepareCallTargetCompletions(
+                                    monitor, request, contextInfo.getKnownSources(), container, null, filterOrNull, results
+                                );
+                            }
+                            prepareContextSchemasAndCatalogs(monitor, exposedContexts, null, filterOrNull, results);
+                        } else if (origin.isIncludingRowsets()) {
                             prepareTableCompletions(monitor, request, contextInfo.getKnownSources(), filterOrNull, results);
                         } else {
                             Collection<DBSObjectContainer> container = obtainDefaultContext(monitor, request);
@@ -1555,6 +1580,52 @@ public abstract class SQLQueryCompletionContext {
                         }
                     }
                 }
+            }
+
+            /**
+             * Routines a call statement can name (by the dialect rule) and the packages holding them.
+             * Proposed regardless of the "search procedures" option, which is about value positions.
+             */
+            private void prepareCallTargetCompletions(
+                @NotNull DBRProgressMonitor monitor,
+                @NotNull SQLCompletionRequest request,
+                @NotNull SQLQuerySourcesInfoCollection knownSources,
+                @NotNull Collection<DBSObjectContainer> containers,
+                @Nullable SQLQueryCompletionItem.ContextObjectInfo contextObject,
+                @Nullable SQLQueryWordEntry filterOrNull,
+                @NotNull List<SQLQueryCompletionSet> results
+            ) {
+                LinkedList<SQLQueryCompletionItem> completions = new LinkedList<>();
+                DBPDataSource dataSource = request.getContext().getDataSource();
+                try {
+                    if (dataSource.getInfo().supportsStoredCode()) {
+                        SQLDialect dialect = dataSource.getSQLDialect();
+                        for (DBSObjectContainer container : containers) {
+                            if (container instanceof DBSProcedureContainer procedureContainer) {
+                                Collection<? extends DBSProcedure> procedures = procedureContainer.getProcedures(monitor);
+                                if (procedures != null) {
+                                    for (DBSProcedure procedure : procedures) {
+                                        if (!DBUtils.isHiddenObject(procedure) && dialect.isCallStatementTarget(procedure)) {
+                                            SQLQueryWordEntry name = makeFilterInfo(filterOrNull, procedure.getName());
+                                            int score = name.matches(filterOrNull, this.searchInsideWords);
+                                            if (score > 0) {
+                                                completions.addLast(
+                                                    SQLQueryCompletionItem.forCallTarget(score, name, contextObject, procedure)
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    this.collectImmediateChildren(
+                        monitor, knownSources, containers, o -> o instanceof DBSPackage, contextObject, filterOrNull, completions
+                    );
+                } catch (DBException e) {
+                    log.error(e);
+                }
+                this.makeFilteredCompletionSet(filterOrNull, completions, results);
             }
 
             private void collectTables(

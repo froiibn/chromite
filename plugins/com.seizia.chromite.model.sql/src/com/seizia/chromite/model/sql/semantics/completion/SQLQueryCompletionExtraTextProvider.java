@@ -19,6 +19,7 @@ package com.seizia.chromite.model.sql.semantics.completion;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPOverloadedObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.sql.semantics.SQLQuerySemanticUtils;
 import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItem.*;
@@ -28,6 +29,14 @@ import org.jkiss.utils.CommonUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Gray text shown after a completion proposal
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 호출문의 루틴 이름에 매개변수 형식 목록을 붙임. 이미 읽어 둔 시그니처가 있는 경우
+ *   ({@link DBPOverloadedObject}, PostgreSQL)만 쓰고, 다른 데이터베이스는 루틴마다 질의가 필요해 붙이지 않는다
+ *   (docs/chromite/swing-sql-completion.md)
+ */
 public class SQLQueryCompletionExtraTextProvider implements SQLQueryCompletionItemVisitor<String> {
 
     public static SQLQueryCompletionExtraTextProvider INSTANCE = new SQLQueryCompletionExtraTextProvider();
@@ -115,11 +124,20 @@ public class SQLQueryCompletionExtraTextProvider implements SQLQueryCompletionIt
     @NotNull
     @Override
     public String visitProcedure(@NotNull SQLProcedureCompletionItem procedure) {
-        return switch (procedure.getObject().getProcedureType()) {
+        String kind = switch (procedure.getObject().getProcedureType()) {
             case FUNCTION -> " - Function";
             case PROCEDURE -> " - Procedure";
             default -> " - Stored routine";
         };
+        // A call target inserts only the name, so the parameter types are shown here when they are already loaded
+        if (procedure.isCallTarget() && procedure.getObject() instanceof DBPOverloadedObject overloaded) {
+            String signature = overloaded.getOverloadedName();
+            int parametersStart = signature.indexOf('(');
+            if (parametersStart >= 0) {
+                return " " + signature.substring(parametersStart) + kind;
+            }
+        }
+        return kind;
     }
 
     @Nullable
