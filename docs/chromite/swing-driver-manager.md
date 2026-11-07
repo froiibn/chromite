@@ -18,7 +18,8 @@ Swing 프런트엔드에서 JDBC 드라이버를 만들고, 복사하고, 고치
 
 - 왼쪽: 검색 칸(이름·설명·범주·ID, 대소문자·공백 무시), 범주별 트리(범주 폴더 + 범주 없는 드라이버, 이름순), 아래에 고른 드라이버의 설명.
   검색하는 동안에는 범주를 모두 펼치고 처음 맞는 드라이버를 고른다(Enter = Edit).
-- 오른쪽 단추: **New…**, **Copy…**, **Edit…**(두 번 누르기·Enter도), **Delete**, **Restore Deleted…**, 그 아래 범례(사용자 정의 = 전구 덧그림, 로드 실패 = 오류 덧그림).
+- 오른쪽 단추: **New…**, **Copy…**, **Edit…**(두 번 누르기·Enter도), **Delete**, **Restore Deleted…**, **Create Offline Bundle…**, **Install Offline Bundle…**,
+  그 아래 범례(사용자 정의 = 전구 덧그림, 로드 실패 = 오류 덧그림). 오프라인 묶음 두 단추는 폐쇄망 PC로 드라이버 파일을 옮기는 기능이다([driver-offline-bundle.md](driver-offline-bundle.md)).
 - 아래: **Offline mode (never download driver files)** 체크 상자, Close.
 
 ### 드라이버 편집 창 (New / Copy / Edit)
@@ -145,3 +146,4 @@ epository`에 `sqlite-jdbc` jar가 없어서, 지시대로 공개판에 내장�
   라이브러리 상태, 로컬 파일·폴더 추가, Find Class, Download/Update(오프라인 모드에서 막음), Restore Deleted, 오프라인 모드 체크 상자,
   Connect 대화상자의 Edit Driver….
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md))로 Swing 제품에도 `licenses/external/*.txt`가 들어감을 기존 문제 항목에 적음.
+- 2026-11-07 관리자 창에 Create Offline Bundle…·Install Offline Bundle… 단추 추가([driver-offline-bundle.md](driver-offline-bundle.md)).

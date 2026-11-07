@@ -189,6 +189,11 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - 오프라인 모드를 끈 상태(공개판 기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다(MySQL 추가 전 4종 기준). 코드상 묶음 모드에서는 4개 드라이버에
   내려받을 항목이 남지 않으므로(`getDriverDependencies`가 `null`) 다운로드 대화상자가 열리지 않는다.
 
+### 폐쇄망의 내장되지 않은 드라이버
+
+인터넷 PC의 드라이버 관리자에서 드라이버를 골라 설치 묶음 파일(`.chromite-drivers`)을 만들고, 폐쇄망 PC에서 그 파일을 설치한다.
+파일은 온라인 다운로드와 같은 드라이버 폴더에 놓이고 같은 방식으로 등록되므로 오프라인 모드에서도 연결된다([driver-offline-bundle.md](driver-offline-bundle.md)).
+
 ### 공개판에 드라이버를 추가하는 방법
 
 1. 드라이버의 `plugin.xml`에 `bundle="drivers.X"`인 폴더 경로와 `bundle="!drivers.X"`인 Maven 항목이 있는지 확인한다.
@@ -256,3 +261,4 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   MySQL 5 (Legacy) 드라이버의 묶음 ID를 `ext.mysql/plugin.xml`에서 `drivers.mysql5`로 분리해 Maven 다운로드(5.1.49)를 유지.
 - 2026-11-07 Microsoft Store 제품 삭제([build.md](build.md) "빌드하는 제품")에 맞춰 "플러그인을 따로 만든 이유"에서 msstore 제품 언급을 뺌.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 드라이버 feature를 포함하는 제품은 Swing 하나, 오프라인 모드 설정 노드는 `com.seizia.chromite.ui.swing`, 설정 화면은 SWT와 함께 없어짐.
+- 2026-11-07 "폐쇄망의 내장되지 않은 드라이버" 절 추가: 오프라인 설치 묶음([driver-offline-bundle.md](driver-offline-bundle.md)).
