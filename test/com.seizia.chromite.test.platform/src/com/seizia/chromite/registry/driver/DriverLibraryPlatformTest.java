@@ -22,6 +22,7 @@ import org.jkiss.code.NotNull;
 import com.seizia.chromite.model.runtime.OSDescriptor;
 import com.seizia.chromite.registry.RegistryConstants;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
@@ -34,6 +35,13 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * Tests of driver library platform matching and archive extraction.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: OS가 심볼릭 링크 만들기를 거부하면(Windows 일반 사용자) 링크 시험을 건너뜀
+ *   (docs/chromite/regression-tests.md "실행 결과")
+ */
 class DriverLibraryPlatformTest {
     @TempDir
     Path directory;
@@ -130,13 +138,24 @@ class DriverLibraryPlatformTest {
         Path archive = createArchive("driver.zip");
         Path cache = Files.createDirectories(directory.resolve("drivers/zip-cache"));
         Path archiveCache = cache.resolve("driver");
-        Files.createSymbolicLink(archiveCache, outside);
+        createLinkOrSkip(archiveCache, outside);
         Assertions.assertEquals(List.of(archive), extractZipArchives(List.of(archive), cache));
         Files.delete(archiveCache);
         Files.createDirectory(archiveCache);
-        Files.createSymbolicLink(archiveCache.resolve("outside-file.jar"), existing);
+        createLinkOrSkip(archiveCache.resolve("outside-file.jar"), existing);
         Assertions.assertEquals(List.of(archive), extractZipArchives(List.of(archive), cache));
         Assertions.assertArrayEquals(new byte[]{2}, Files.readAllBytes(existing));
+    }
+
+    /**
+     * Creates a symbolic link, or skips the test where the OS refuses (Windows without the privilege or developer mode).
+     */
+    private static void createLinkOrSkip(@NotNull Path link, @NotNull Path target) {
+        try {
+            Files.createSymbolicLink(link, target);
+        } catch (IOException | UnsupportedOperationException e) {
+            Assumptions.abort("Symbolic links can't be created here: " + e.getMessage());
+        }
     }
 
     @NotNull
