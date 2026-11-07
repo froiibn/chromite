@@ -23,11 +23,12 @@ import org.eclipse.osgi.util.NLS;
  *
  * 설계: 다른 기능과 같은 파일을 고치지 않도록(병합 충돌) 이 기능만의 {@link NLS} 묶음을 둔다. 영어가 기본
  * ({@code DriverManagerMessages.properties}), 한국어는 {@code DriverManagerMessages_ko.properties}이고, 플랫폼이 OS 언어로 고른다.
- * 키 접두사는 관리자 {@code drivermgr_}, 편집 {@code driveredit_}, 라이브러리 {@code driverlib_}다.
+ * 키 접두사는 관리자 {@code drivermgr_}, 편집 {@code driveredit_}, 라이브러리 {@code driverlib_}, 오프라인 설치 묶음 {@code driverbundle_}다.
  * {0} 자리표시자가 있는 값은 {@link NLS#bind}로만 쓰므로 작은따옴표를 두 번 쓴다('').
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 오프라인 설치 묶음 만들기·설치 문구 추가 (docs/chromite/driver-offline-bundle.md)
  */
 public class DriverManagerMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DriverManagerMessages"; //$NON-NLS-1$
@@ -134,6 +135,45 @@ public class DriverManagerMessages extends NLS {
     public static String driverlib_state_missing;
     public static String driverlib_optional;
     public static String driverlib_hint;
+
+    public static String drivermgr_button_bundle_create;
+    public static String drivermgr_button_bundle_create_tip;
+    public static String drivermgr_button_bundle_install;
+    public static String drivermgr_button_bundle_install_tip;
+    public static String driverbundle_create_title;
+    public static String driverbundle_create_hint;
+    public static String driverbundle_column_driver;
+    public static String driverbundle_column_category;
+    public static String driverbundle_column_files;
+    public static String driverbundle_column_versions;
+    public static String driverbundle_column_status;
+    public static String driverbundle_files_downloaded;
+    public static String driverbundle_files_not_downloaded;
+    public static String driverbundle_select_all;
+    public static String driverbundle_select_none;
+    public static String driverbundle_selected_count;
+    public static String driverbundle_button_create;
+    public static String driverbundle_save_title;
+    public static String driverbundle_file_filter;
+    public static String driverbundle_overwrite;
+    public static String driverbundle_task_create;
+    public static String driverbundle_created;
+    public static String driverbundle_created_warnings;
+    public static String driverbundle_open_title;
+    public static String driverbundle_install_title;
+    public static String driverbundle_install_source;
+    public static String driverbundle_platform_hint;
+    public static String driverbundle_status_install;
+    public static String driverbundle_status_installed;
+    public static String driverbundle_status_incomplete;
+    public static String driverbundle_status_not_found;
+    public static String driverbundle_files_summary;
+    public static String driverbundle_different_hint;
+    public static String driverbundle_nothing;
+    public static String driverbundle_button_install;
+    public static String driverbundle_task_read;
+    public static String driverbundle_task_install;
+    public static String driverbundle_installed;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, DriverManagerMessages.class);

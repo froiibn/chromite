@@ -54,14 +54,14 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 항목 | 영역 | 상태 |
 |---|---|---|
-| 연결 끊기·다시 연결·삭제 때 열린 트랜잭션을 묻지 않고 롤백 | A-S3, B | 수정함(#97, [idle-transactions.md](idle-transactions.md)) |
-| 유휴 트랜잭션 처리, 유휴 연결 끊기 설정이 동작하지 않음 | A-S1·S2, B | 유휴 트랜잭션은 수정함(#97). 유휴 연결 끊기는 아직 동작하지 않음(켤 때 같은 트랜잭션 확인을 거쳐야 함) |
+| 연결 끊기·다시 연결·삭제 때 열린 트랜잭션을 묻지 않고 롤백 | A-S3, B-S23 | 수정함(#97, [idle-transactions.md](idle-transactions.md)) |
+| 유휴 트랜잭션 처리, 유휴 연결 끊기 설정이 동작하지 않음 | A-S1·S2, B-S24 | 유휴 트랜잭션은 수정함(#97). 유휴 연결 닫기도 수정함(`chromite/idle-close-notifications`, [idle-transactions.md](idle-transactions.md) "유휴 연결 닫기"): 연결별 마지막 사용 기준, 열린 트랜잭션이 있으면 닫지 않음. PostgreSQL·SQL Server에서 실행 확인 |
 | 셸 명령(연결 이벤트, 셸 명령 인증, 내보내기 후 명령)이 승인 없이 실행됨 | A-S4 | 보안. 수정함(#99, [shell-command-approval.md](shell-command-approval.md)) |
 | 테스트·운영 유형의 "데이터 변경 확인"이 결과 표 저장에서 무시됨(스크립트 미리 보기 없음) | B-R19 | 수정함(#98, [swing-frontend.md](swing-frontend.md) "저장 전 스크립트 미리 보기") |
 | 조건 없는 DELETE/UPDATE, DROP 실행 전 확인 없음 | B-S7 | 고침(`chromite/sql-exec-safety`, [swing-sql-exec-safety.md](swing-sql-exec-safety.md)) |
 | `@ai`가 만든 SQL을 실행 전 확인 창에 SQL 없이 묻음 | C-58 | 고침(같은 브랜치). AI 확인 규칙 설정 화면은 없음 |
 | 연결의 "스크립트 실행 금지" 제한이 지켜지지 않음 | B-S8 | 고침(같은 브랜치) |
-| 모델 알림(유휴 롤백, 유휴 끊김, 절전 뒤 재검증)이 화면에 안 나옴 | A-S7 | 유휴 트랜잭션 알림은 자체 알림 창으로 처리(#97). 나머지 모델 알림은 아직 |
+| 모델 알림(유휴 롤백, 유휴 끊김, 절전 뒤 재검증)이 화면에 안 나옴 | A-S7 | 수정함. 유휴 트랜잭션 알림은 자체 알림 창(#97), 나머지 모델 알림(유휴 연결 닫힘, 다시 연결 성공·실패)은 `SwingModelNotifications`로 메인 창 알림([idle-transactions.md](idle-transactions.md) "모델 알림"). 절전 뒤 재검증은 업스트림부터 알림이 없음 |
 
 ### 2순위: 연결이 안 되거나 출력이 사라짐
 
@@ -100,4 +100,5 @@ SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정�
 
 - 2026-11-07 최초 작성. 영역 A~D 조사(읽기 전용, 코드 대조), 근본 원인, 우선순위 제안.
 - 2026-11-07 2순위 A-S6(Windows 인증서 저장소), A-S14(macOS 끝내기·정보·환경설정) 고침([platform-startup.md](platform-startup.md)).
+- 2026-11-07 1순위 남은 두 줄 고침: A-S2 유휴 연결 닫기, A-S7 모델 알림([idle-transactions.md](idle-transactions.md)). #97로 고친 A-S1·A-S3·B-S23·B-S24의 상태도 영역 보고서에 반영.
 - 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).
