@@ -450,8 +450,9 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   SWT는 모르는 형식 속성을 로그만 남기고 건너뛰었지만 그러면 사용자가 준 옵션이 조용히 무시된다. SELECT만 받는 것은 내보내기가 새 연결에서 쿼리를 실행하므로
   데이터를 바꾸는 문장이 쿼리 창의 수동 커밋 트랜잭션 밖에서 커밋되면 안 되기 때문이다.
 - 명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.
-- 경로는 Windows 형식으로 쓴다(JSON에서는 `"D:\\exports"`). `"D:/exports"`는 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
-  "File system schema 'D' not recognized"로 실패한다(`DBFUtils.resolvePathFromString`, 마법사에 직접 입력해도 같음. 이 작업에서 고치지 않음).
+- 경로는 `"D:\\exports"`(JSON)와 `"D:/exports"` 모두 된다. 2026-11-07에는 `"D:/exports"`를 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
+  "File system schema 'D' not recognized"로 실패했다(`DBFFileSystemManager.getPathFromString`, 마법사에 직접 입력해도 같음). 2026-11-08에 고침
+  ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
 ### 남은 매핑과 기본 키 (2026-11-07 밤)
 
@@ -640,3 +641,5 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 2026-11-07 남은 매핑과 기본 키(모델·방언, SWT에도 적용): 새 테이블에 원본의 기본 키(`DatabaseTransferUtils`, #39), Oracle 열 복사의 문자 길이 단위
   (`OracleTableColumnManager`, #51), `MAX_STRING_SIZE`에 따른 `VARCHAR2` 한도(`OracleSQLDialect`, #52), 다른 DB의 한 비트 `BIT` → PostgreSQL `boolean`(`PostgreDialect`, #53),
   NULL 열이 바뀌는 행을 행마다 삽입할 때 앞 행의 문장을 쓰던 것(`ExecuteBatchImpl`). `NUMBER(p,0)` → `numeric(p,0)`은 확인만 함.
+- 2026-11-08 `"D:/exports"`처럼 슬래시를 쓴 Windows 경로가 "File system schema 'D' not recognized"로 실패하던 것을 고침(`DBFFileSystemManager.URI_SCHEME_PREFIX`가 두 글자 이상의 스킴만 받음).
+  위 "@export 명령"의 경로 항목 갱신. [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정".

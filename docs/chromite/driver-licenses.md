@@ -121,7 +121,11 @@
   - MySQL 계열 드라이버는 처음 쓸 때 Maven에서 받는다(MySQL·NDB·Doris 8.2.0, Manticore 9.7.0, GreptimeDB·TiDB 최신판, 위 표의 버전).
     폐쇄망은 오프라인 설치 묶음([driver-offline-bundle.md](driver-offline-bundle.md)), 또는 내장된 MariaDB Connector/J(LGPL)로 MySQL 서버에 연결한다.
     사용자가 직접 받는 것이므로 Chromite가 배포하는 GPL 구성 요소는 없다.
-  - **v0.1.0은 Connector/J 9.7.0을 내장한 채 배포됐다.** 그 릴리스의 대응 소스 제공(위 "남은 것")은 GitHub Release를 게시할 때 메인 작업에서 처리한다.
+  - **v0.1.0은 Connector/J 9.7.0을 내장한 채 배포됐다.** 그 릴리스의 대응 소스 제공(위 "남은 것"): Oracle 공식 소스 배포본
+    `mysql-connector-j-9.7.0.tar.gz`(4,556,015 bytes, SHA-256 `53d8fdf1b9b8040907cecd470bf3333af96b00371d74dbe4230a15c58f0cb310`,
+    `https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-9.7.0.tar.gz`에서 받음, `.java` 698개와 빌드 파일)을 GitHub `v0.1.0` Release에
+    첨부했다(2026-11-08, 메인 작업). Release는 아직 초안이라 사용자가 게시할 때 공개된다. 0.1.1부터는 Connector/J를 내장하지 않으므로(#123)
+    이후 릴리스에는 소스를 첨부할 필요가 없다.
   - 라이선스 표기: 사용자가 받을 때 보이는 원문이 맞도록 MySQL 계열 6개 드라이버의 `type="license"`를
     `licenses/external/gpl-2.0-universal-foss-exception.txt`(Connector/J `LICENSE`의 GPLv2·Universal FOSS Exception 원문)로 바꿨다(아래 표).
   - `drivers.mysql5` 분리는 `drivers.mysql` 선언 때문이었으므로 upstream대로 `drivers.mysql`로 되돌렸다(동작은 같다).
@@ -252,11 +256,17 @@ Oracle은 위 주요 DB 표에 있다.
 
 - 고친 것(2026-11-07, MySQL 내장 취소): MySQL 8, NDB, Doris, Manticore, GreptimeDB, TiDB는 `gnu3.txt`(GPLv3)였다.
   `gpl-2.0-universal-foss-exception.txt`(GPLv2 + Universal FOSS Exception 원문)로 바꾸고, 쓰는 곳이 없어진 `gnu3.txt`는 지웠다.
+- 고친 것(2026-11-08, evening #12):
+  - MySQL 5 (Legacy)는 `lgpl-2.0.txt`(LGPL)였다. 새 파일 `licenses/external/gpl-2.0-mysql-foss-exception.txt`로 바꿨다. 앞에 GPLv2 + MySQL FOSS License Exception이라는
+    안내와 예외 원문의 Oracle 주소(Connector/J 5.1 `README`가 적은 `http://www.mysql.com/about/legal/licensing/foss-exception.html`), 버전별 전체 고지는
+    5.1의 `README`·`COPYING`에 있다는 안내를 쓰고, GPLv2 원문은 `gpl-2.0-universal-foss-exception.txt`의 것을 그대로 옮겼다. 예외 원문은 웹에서 가져와 넣지 않고 주소만 적었다.
+  - StarRocks는 GNU 사이트의 GPLv2 원문(URL)이었다. POM(`starrocks-connector-j` 1.1.2)이 선언한 라이선스는 "The GNU General Public License, v2 with Universal FOSS
+    Exception, v1.0"이고, POM이 가리키는 `CelerData/starrocks-connector-j` 저장소는 공개돼 있지 않다(2026-11-08 404). 그래서 같은 원문인
+    `gpl-2.0-universal-foss-exception.txt`를 쓰고, 그 파일 앞 안내에 StarRocks Connector/J(Connector/J 포크)가 POM에서 같은 라이선스를 선언한다는 문단을 더했다.
+  - 같은 5.1.49 jar를 쓰는 MySQL (Old)(`ext.generic`, `mysql3`)에는 `type="license"` 항목이 아예 없다. 표기가 틀린 것은 아니라 이번에 더하지 않았다.
 
 | 드라이버 | plugin.xml 표기 | 실제 |
 |---|---|---|
-| MySQL 5 | `lgpl-2.0.txt` | GPLv2 + MySQL FOSS License Exception |
-| StarRocks | GPLv2 원문 | GPLv2 + Universal FOSS Exception |
 | SAP HANA | `asl-2.0.txt` | SAP Developer License Agreement |
 | GBase 8s | `asl-2.0.txt` | GBase License Agreement(내부 사용 한정) |
 | Exasol | `asl-2.0.txt` | EXAClient License |
@@ -311,3 +321,5 @@ Oracle은 위 주요 DB 표에 있다.
   폐쇄망은 별도 오프라인 설치 경로(계획). "공개판"을 단일 제품 기준으로 고치고 분류 표의 내부판 열은 참고로 남김. B·C 분류는 계속 내장하지 않음.
   SQLite(Xerial `sqlite-jdbc` 3.54.1.0) 내장 기록.
 - 2026-11-07 MySQL Connector/J 내장 취소(사용자 결정) 기록, v0.1.0 내장 배포 기록. MySQL 계열 6개 드라이버의 라이선스 표기 수정(`gnu3.txt` 삭제).
+- 2026-11-08 MySQL 5 (Legacy)·StarRocks 라이선스 표기 수정(evening #12, 새 파일 `gpl-2.0-mysql-foss-exception.txt`). v0.1.0 Release에 Connector/J 9.7.0
+  소스 묶음을 첨부한 기록(크기·SHA-256, 초안 Release 게시 때 공개, 0.1.1부터는 해당 없음).
