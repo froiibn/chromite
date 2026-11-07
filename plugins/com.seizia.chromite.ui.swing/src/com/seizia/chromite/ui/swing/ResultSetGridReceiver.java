@@ -21,6 +21,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.utils.CommonUtils;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBUtils;
@@ -86,6 +87,9 @@ import java.util.function.Consumer;
  * - 2026-11-08 공간 값({@link DBGeometry})을 칸 값에 남김(결과 공간 보기, docs/chromite/swing-result-charts-spatial.md)
  * - 2026-11-08 다시 읽으면 안 되는 이유를 받는 생성자를 지움: 값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 열 머리글을 열의 레이블(별칭)로: 이름({@code getColumnName})을 써서 MySQL·MariaDB처럼 드라이버가 원래 열 이름을 주는 곳에서
+ *   {@code AS} 별칭이 보이지 않았다. SWT 표처럼 레이블, 없으면 이름. "레이블 대신 열 이름 표시" 설정({@code resultset.column.label.ignore})이
+ *   레이블을 이름으로 바꾼다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -293,7 +297,8 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         String[] columns = new String[bindings.length];
         boolean[] numeric = new boolean[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
-            columns[i] = bindings[i].getName();
+            // The label (alias) as the SWT grid shows it; resultset.column.label.ignore makes the label the column name
+            columns[i] = CommonUtils.isEmpty(bindings[i].getLabel()) ? bindings[i].getName() : bindings[i].getLabel();
             numeric[i] = bindings[i].getDataKind() == DBPDataKind.NUMERIC;
         }
         List<Object[]> values = new ArrayList<>(rawValues.size());

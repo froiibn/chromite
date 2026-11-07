@@ -152,12 +152,13 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
 
 ## 남긴 것
 
-- Execute Stored Procedure…(매개 변수 대화상자), View Dependencies, Script as DROP / DROP And CREATE.
+- View Dependencies, Script as DROP / DROP And CREATE. Execute Stored Procedure…는 2026-11-08에 더했다([swing-routines.md](swing-routines.md)).
 - SSMS 템플릿 매개 변수 바꾸기(Ctrl+Shift+M), 템플릿 탐색기.
-- Oracle 컴파일 오류 표시(SWT는 `OracleObjectValidateAction`이 저장 뒤 `USER_ERRORS`를 읽음). 쿼리 창에서는 드라이버 경고(성공했지만 컴파일 오류)만 Messages에 나온다.
+- ~~Oracle 컴파일 오류 표시~~ 2026-11-08: Oracle 쿼리 창이 CREATE 뒤 `ALL_ERRORS`를 읽어 오류 줄을 Messages와 편집기에 보인다([swing-routines.md](swing-routines.md) "쿼리 창의 컴파일 오류 줄").
 - 편집기별 연결(위 "기본 문맥을 바꾸는 부작용"의 원인).
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Modify, Script as ▸ ALTER To, New View… / New Procedure… / New Function…, 실행 뒤 노드 다시 읽기.
   MySQL 루틴은 `DELIMITER $$` 사이에 둠(MariaDB 확인에서 구분자 없는 본문이 잘려 실행되는 것을 찾음).
+- 2026-11-08 "남긴 것"의 Execute Stored Procedure…·Oracle 컴파일 오류 표시를 [swing-routines.md](swing-routines.md)로 옮김(완료). 열 때 보일 위치(`openSourceScript`의 위치 인수)를 더함.

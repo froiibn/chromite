@@ -110,6 +110,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
  * - 2026-11-07 주석만: 쿼리 창마다 별도 연결이면 새 창이 주 문맥의 기본값을 복사함 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 {@link #bindDefaultContext}를 패키지 안에 열어 Execute Procedure 창도 루틴의 DB·스키마에서 실행되게 함 (docs/chromite/swing-routines.md)
  * - 2026-11-08 {@link #generateContainerScript}: 스키마 비교 스크립트도 같은 구분자·DB 맞추기로 만든다 (docs/chromite/schema-compare.md)
  */
 final class SourceScripts {
@@ -319,7 +320,7 @@ final class SourceScripts {
      * @return the main context after the change (PostgreSQL: the context of the object's database)
      */
     @NotNull
-    private static DBCExecutionContext bindDefaultContext(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject container) throws DBException {
+    static DBCExecutionContext bindDefaultContext(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject container) throws DBException {
         DBPDataSource dataSource = container.getDataSource();
         DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
         if (dataSource == null || context == null) {

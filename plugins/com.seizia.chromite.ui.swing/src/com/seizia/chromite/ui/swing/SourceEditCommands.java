@@ -48,6 +48,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
+ * - 2026-11-08 창을 열 때 보일 위치 없음(null)을 넘김: openSourceScript가 위치를 받게 됨 (docs/chromite/swing-routines.md)
  */
 final class SourceEditCommands {
 
@@ -144,7 +145,7 @@ final class SourceEditCommands {
         if (toClipboard) {
             DBWorkbench.getPlatformUI().copyTextToClipboard(script, false);
         } else {
-            queryWindows.openSourceScript(container, script, objectNode);
+            queryWindows.openSourceScript(container, script, objectNode, null);
         }
     }
 
@@ -154,7 +155,7 @@ final class SourceEditCommands {
             if (selection.get() instanceof DBNDatabaseFolder folder && SourceScripts.getNewKinds(folder).contains(kind)) {
                 String script = generate(title, monitor -> SourceScripts.generateNew(monitor, folder, kind));
                 if (script != null) {
-                    queryWindows.openSourceScript(folder.getDataSourceContainer(), script, folder);
+                    queryWindows.openSourceScript(folder.getDataSourceContainer(), script, folder, null);
                 }
             }
         });
