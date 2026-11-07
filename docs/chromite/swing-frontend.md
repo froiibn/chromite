@@ -2536,7 +2536,8 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
   Git 커밋 메시지(글 상자가 Enter를 받음), Query Library 저장 폼, 연결·서버 고르기.
 - 모델 계층의 경고가 아닌 확인(`confirmAction(title, message)`): 예가 기본. 모두 가져오기, 바뀐 연결 다시 연결, AI 메타데이터 전송 동의, 새 비밀번호 저장 같은
   질문이 섞여 있어 기본을 일괄로 바꾸지 않았다. 이 중 변경을 하는 호출(Oracle PLAN_TABLE 만들기 `OracleDataSource`, 대상 DDL 자동 생성
-  `DatabaseTransferUtils`, 리소스 복사·이동 `DBNPathBase`, 작업 복원 `DBTaskUtils`)은 모델 호출자가 `isWarning`을 켜야 하므로 이번 범위 밖으로 남긴다.
+  `DatabaseTransferUtils`, 리소스 복사·이동 `DBNPathBase`, 작업 실행 확인 `DBTaskUtils.confirmTask`)은 2026-11-08에 모델 호출자가 `isWarning`을 켜
+  아니요가 기본이 됐다([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
 ### 확인 (2026-11-08)
 
@@ -2670,3 +2671,5 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 2026-11-07 Database type 콤보 설명: MySQL 드라이버 내장을 없앴으므로 "공개판에 드라이버가 내장된 주요 DB"를 "주요 DB"로 고침(목록은 그대로). [drivers.md](drivers.md).
 - 2026-11-08 실행 확인의 기본 단추: 데이터·스키마·작업·세션·파일을 바꾸는 확인과 실행 미리 보기는 취소(아니요, 닫기)가 기본 단추이고 처음 포커스,
   실행 단추에 동사(삭제, Kill Session, 바꾸기…). 백업·복원 대화상자와 전송 마법사의 Finish는 기본 단추가 없음. "실행 확인의 기본 단추" 절.
+- 2026-11-08 "바꾸지 않은 것과 이유"에 남겼던 모델 호출자 네 곳(PLAN_TABLE 만들기, 대상 DDL 자동 생성, 파일 복사·이동, 작업 실행 확인)을 경고 확인으로 바꿈
+  ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").

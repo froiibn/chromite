@@ -124,7 +124,7 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
 | 항목 | 키(`OracleConstants`) | 읽는 곳 |
 |---|---|---|
 | 실행 계획 테이블(비우면 PLAN_TABLE, TOAD_PLAN_TABLE) | `oracle.explain.table` | `OracleDataSource.getPlanTableName`(연결마다 처음 한 번 찾고 기억 → 다시 연결한 뒤 적용) |
-| 메시지 탭에 DBMS_OUTPUT 표시 | `oracle.dbms.output` | `OracleOutputReader.isServerOutputEnabled`(쿼리 창은 문장마다 이 값을 보고 읽음. 서버의 `DBMS_OUTPUT.ENABLE`·`DISABLE`은 세션을 열 때 함 → 끄면 지금 세션은 다시 연결할 때까지 서버 버퍼에 쌓임) |
+| 메시지 탭에 DBMS_OUTPUT 표시 | `oracle.dbms.output` | `OracleOutputReader.isServerOutputEnabled`(쿼리 창은 문장마다 이 값을 보고 읽음. 서버의 `DBMS_OUTPUT.ENABLE`·`DISABLE`은 세션을 열 때와, 값이 바뀐 뒤 쿼리 창 세션의 다음 문장 전에 함(2026-11-08, [swing-server-output.md](swing-server-output.md))) |
 | 스크립트의 JDBC 이스케이프 처리 끄기 | `oracle.disable.script.escape` | `OracleSQLDialect.isDisableScriptEscapeProcessing` |
 | 테이블의 ROWID 열 표시 | `oracle.support.rowid` | `OracleTable.hasRowIdPseudoAttribute` |
 | 모든 동의어 읽기 | `oracle.read.all.synonyms` | `OracleSchema` 동의어 조회 |
@@ -323,6 +323,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 - 2026-11-08 "다음 작업" 1–4·6순위: 연결별 설정(연결 대화상자 Options > Settings, `SettingsPage`·`ConnectionSettingsOverrides`), Options > Data Formats·
   Errors and Timeouts·Metadata·Client Identification, Query Results를 탭으로 옮김, Options 페이지 목록을 왼쪽으로. 요약 수(추가함 37, 규칙상 두지 않음 4,
   다음 작업 55)와 부록 갱신.
+- 2026-11-08 Oracle DBMS_OUTPUT: 값을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용(도구 설명 갱신), 기본 연결 유형 이름을 언어와 상관없이 저장
+  ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
 ## 부록: 키별 상태
 
