@@ -153,7 +153,7 @@ Eclipse 제품에 JRE를 넣는 방법을 비교했다.
 | `jdk.unsupported` | jdeps: Guava(`sun.misc.Unsafe`). 실행 옵션 `--sun-misc-unsafe-memory-access=allow`가 다루는 모듈이고, 내려받는 드라이버도 리플렉션으로 쓴다 |
 | `jdk.zipfs` | zip·jar 파일 시스템 공급자(`FileSystems.newFileSystem`). 서비스로 찾는다. 런처(`ChromiteLauncher.java` 2852행)가 "이전 내장 런타임에는 `jdk.zipfs`가 없었다"며 따로 처리할 만큼 쓰이는 경로다 |
 | `jdk.accessibility` | Windows Java Access Bridge(화면 낭독기가 Swing 화면을 읽음). Swing 제품의 접근성 |
-| `jdk.crypto.mscapi` (Windows만) | `WINDOWS-ROOT` 키 저장소. 설정 "Windows 신뢰 저장소 사용"(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`)이 켜져 있으면 `ChromiteApplication.java` 337행이 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 모듈이 없으면 모든 TLS 연결이 실패한다. macOS JBR에는 이 모듈이 없다(macOS 키체인은 `java.base`의 `KeychainStore`) |
+| `jdk.crypto.mscapi` (Windows만) | `WINDOWS-ROOT` 키 저장소. 설정 "Windows 신뢰 저장소 사용"(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`)이 켜져 있으면 Swing 앱 시작(`ChromiteSwingApplication.useWindowsTrustStore`, [platform-startup.md](platform-startup.md))이 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 모듈이 없으면 모든 TLS 연결이 실패한다. macOS JBR에는 이 모듈이 없다(macOS 키체인은 `java.base`의 `KeychainStore`) |
 
 넣지 않은 모듈:
 
@@ -290,3 +290,4 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
   기본 CDS 아카이브는 넣지 않기로 했다. "jlink 모듈" 절을 "모듈"로 바꿨다.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 런타임을 넣는 제품은 Swing 하나. 빌드 명령, `BundleJre.java`의 제품 목록, 구조 표를 고침. 모듈 근거·크기·확인 기록의 SWT 제품 값은 조사 당시 기록으로 둔다.
 - 2026-11-07 "플랫폼별 사항"의 배포 형태를 실제 배포(NSIS 설치 프로그램, [distribution.md](distribution.md))에 맞췄다. 앱 업데이트는 설치 프로그램 전체를 바꾸므로 런타임도 함께 바뀐다.
+- 2026-11-07 `jdk.crypto.mscapi` 근거를 SWT `ChromiteApplication`(삭제됨)에서 Swing 앱 시작으로 고쳤다([platform-startup.md](platform-startup.md)). 내장 런타임에 이미 들어 있어 모듈 목록은 그대로다.
