@@ -94,7 +94,8 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
   attach 모드에서는 대상이 붙기 전에 넣을 수 없기 때문이다. 멈춘 동안 놓은 중단점은 바로 넣는다.
 - "원본 편집기"에서 시작: Modify 창은 `CREATE OR REPLACE` 전체 DDL이고 pldbgapi의 줄 번호는 함수 본문(`prosrc`) 기준이라, 중단점 여백은 디버거 탭의
   본문 보기에 둔다. Modify 창에서는 Query > Debug…로 같은 디버거 탭을 연다.
-- 인수 입력: 쿼리 창의 매개 변수 대화상자(`SqlParameterDialog`)는 쿼리 글의 `:name` 매개 변수에 묶여 있어 쓰지 않았다. 값 규칙(SQL 식)은 같다.
+- 인수 입력: 쿼리 창의 매개 변수 대화상자(`QueryParameterDialog`, 2026-11-08 전에는 `SqlParameterDialog`)는 쿼리 글의 `:name` 매개 변수에 묶여 있어 쓰지 않았다.
+  값 규칙(SQL 식)은 그 대화상자의 스크립트 모드와 같다.
   마지막 인수는 같은 탭에서 다시 시작할 때 다시 보인다(저장하지 않음).
 - 단축키는 Visual Studio·SSMS와 같다. 탭 안에 초점이 있을 때만 받으므로(F5) 쿼리 창의 실행(F5)과 겹치지 않는다.
 
@@ -317,3 +318,4 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
   `debug.core`: createSession이 DBGSession을 돌려줌, getUnitsToCompile·compileForDebugging, supportsAttach, DBGPrivilegeException.
   화면: 시작 중에 끝난 호출을 끝내기로 처리, 탭 열쇠에 루틴 이름·입력 형식. 26ai에서 확인한 DBMS_DEBUG 동작과 검증 결과.
 - 2026-11-08 SQL Server 대안 "실행 추적"을 만들었다고 적음(표, "SQL Server 대안", [sqlserver-execution-trace.md](sqlserver-execution-trace.md)).
+- 2026-11-08 인수 입력 설명의 쿼리 창 매개 변수 대화상자 이름을 고침(`SqlParameterDialog` → `QueryParameterDialog`, Query Library와 합침).

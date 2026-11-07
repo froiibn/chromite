@@ -41,13 +41,39 @@ import java.util.Map;
 /**
  * Data container for single SQL query.
  * Doesn't support multiple resulsets.
+ *
+ * 설계(Chromite): 매개변수 값을 SQL 글자로 넣지 않고 JDBC로 바인딩한 쿼리(Swing Query Library)는 {@link #setParameterBinder}로
+ * 바인딩 방법을 받는다. 다시 읽을 때(필터, 서버 정렬, 다음 페이지, 내보내기) 필터를 넣은 최종 글자에서 매개변수를 다시 찾으므로,
+ * 바인딩 방법은 {@code :name} 글자를 받아 그때 {@code ?}로 바꾸고 값을 이름으로 바인딩한다. 필터·정렬이 쿼리를 감싸거나 ORDER BY를
+ * 바꿔도 {@code ?}의 순서가 어긋나지 않는다. 바인딩 방법이 없으면 예전처럼 스크립트 문맥이 값을 글자로 채운다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link ParameterBinder}: 값을 바인딩한 쿼리의 결과도 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContainer, DBPContextProvider, DBPImageProvider {
+
+    /**
+     * Binds parameter values natively (JDBC) instead of writing them into the query text.
+     */
+    public interface ParameterBinder {
+        /**
+         * Rewrites a query whose parameters were parsed from its final text (after the filters), e.g. {@code :name} to
+         * {@code ?}; the returned query is prepared and passed to {@link #bindParameters}.
+         *
+         * @throws DBException a parameter has no value
+         */
+        @NotNull
+        SQLQuery prepareQuery(@NotNull SQLQuery query) throws DBException;
+
+        void bindParameters(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException;
+    }
 
     private final DBPContextProvider contextProvider;
     private final SQLScriptContext scriptContext;
     private SQLQuery query;
     private final Log log;
+    @Nullable
+    private ParameterBinder parameterBinder;
 
     public SQLQueryDataContainer(DBPContextProvider contextProvider, SQLQuery query, SQLScriptContext scriptContext, Log log) {
         this.contextProvider = contextProvider;
@@ -122,7 +148,9 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
             );
             // parse parameters from the final query text
             sqlQuery.setParameters(SQLScriptParser.parseParametersAndVariables(parserContext, 0, sqlQuery.getText().length()));
-            if (!scriptContext.fillQueryParameters(sqlQuery, () -> dataReceiver, CommonUtils.isBitSet(flags, DBSDataContainer.FLAG_REFRESH))) {
+            if (parameterBinder != null) {
+                sqlQuery = parameterBinder.prepareQuery(sqlQuery);
+            } else if (!scriptContext.fillQueryParameters(sqlQuery, () -> dataReceiver, CommonUtils.isBitSet(flags, DBSDataContainer.FLAG_REFRESH))) {
                 // User canceled
                 return statistics;
             }
@@ -136,14 +164,19 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
 
         long startTime = System.currentTimeMillis();
 
+        // Natively bound values need a prepared statement (as in SQLQueryExecuteJob.executeStatement)
+        boolean bound = parameterBinder != null && scriptContext != null;
         try (final DBCStatement dbcStatement = DBUtils.makeStatement(
             source,
             session,
-            DBCStatementType.SCRIPT,
+            bound ? DBCStatementType.QUERY : DBCStatementType.SCRIPT,
             sqlQuery,
             firstRow,
             maxRows))
         {
+            if (bound) {
+                parameterBinder.bindParameters(dbcStatement, sqlQuery);
+            }
             DBExecUtils.setStatementFetchSize(dbcStatement, firstRow, maxRows, fetchSize);
 
             // Execute statement
@@ -261,6 +294,19 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
 
     public void setQuery(SQLQuery query) {
         this.query = query;
+    }
+
+    /**
+     * The binder of a query whose parameter values are bound natively, or null when the script context writes them
+     * into the text. It is used only with a script context (the parameters are parsed from the final text then).
+     */
+    @Nullable
+    public ParameterBinder getParameterBinder() {
+        return parameterBinder;
+    }
+
+    public void setParameterBinder(@Nullable ParameterBinder parameterBinder) {
+        this.parameterBinder = parameterBinder;
     }
 
     @Override

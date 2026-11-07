@@ -206,6 +206,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 Query &gt; Trace Execution…(Modify 창의 SQL Server 프로시저, {@link ExecutionTraceCommands}) (docs/chromite/sqlserver-execution-trace.md)
+ * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
+ *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1509,11 +1511,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Query History: opens a recorded statement in a new query window of its connection.
+     * Query History: opens a recorded statement in a new query window of its connection. A bound statement (Query
+     * Library) binds its recorded values again: Execute runs with them, a later run asks with them filled in.
      */
-    private void openHistoryQuery(@Nullable DBPDataSourceContainer container, @NotNull String query, boolean execute) {
+    private void openHistoryQuery(@Nullable DBPDataSourceContainer container, @NotNull QueryHistory.Entry entry, boolean execute) {
         SqlEditorPanel editor = openQueryEditor(container, null);
-        editor.setContent(SqlFileContent.newFile(query), null);
+        editor.setContent(SqlFileContent.newFile(entry.query()), null);
+        if (entry.parameters() != null) {
+            editor.setRecordedParameters(new QueryParameterBinder.Recorded(entry.parameters()), execute);
+        }
         if (execute) {
             editor.execute();
         }

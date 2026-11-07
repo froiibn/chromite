@@ -38,7 +38,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -60,7 +62,8 @@ import java.util.Objects;
  *     <li>실행 대상 찾기({@link #resolveTarget}): 정해진 연결은 데이터 소스 ID → 이름 순으로 찾고, 없거나 "묻기"면 연결을 고르게 한다.</li>
  *     <li>공유 루트에서는 다른 사람이 같은 쿼리를 먼저 저장할 수 있다. 창은 연 때(또는 마지막 저장 때)의 쿼리를 기억하고, 저장할 때 파일의
  *     편집 항목(이름, 설명, 대상, DB/스키마, 매개변수, SQL)이 그와 다르면 덮어쓰기 전에 묻는다(Overwrite / Reload / Cancel).
- *     {@code @updated}만 다른 경우(Schedule… 저장 등)는 묻지 않는다. 라이브러리를 다시 읽을 때마다({@link #libraryRead}) 열린 창도 확인해,
+ *     창이 다루지 않는 항목만 다른 경우(Schedule… 저장 등)는 묻지 않는다. 비교는 내용으로 하므로 고친 시각이 필요 없고, 질문에 보이는
+ *     고친 시각은 파일의 수정 시각이다. 라이브러리를 다시 읽을 때마다({@link #libraryRead}) 열린 창도 확인해,
  *     고치지 않은 창은 새 내용으로 바꾸고 알림 줄을 보이며, 고친 창은 Reload를 제안한다.</li>
  *     <li>Save As는 라이브러리 쿼리를 바꾸지 않고 SQL만(머리말 없이) 평범한 {@code .sql} 파일로 내보낸다({@link #exportSql}).</li>
  * </ul>
@@ -77,6 +80,7 @@ import java.util.Objects;
  * - 2026-11-08 Save As .sql 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 머리말 단추의 최소 크기를 글자가 들어가기 전에 고정하지 않음: 좁은 창에서 "Para…", "Thres…"로 잘리던 문제
  *   (docs/chromite/swing-query-library.md "머리말 배치")
+ * - 2026-11-08 저장 충돌 질문의 고친 시각은 파일의 수정 시각(파일에 {@code @updated}를 쓰지 않음) (docs/chromite/swing-query-library.md "저장 형식")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -328,7 +332,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 return false;
             }
             // Someone else saved this query after it was opened here: ask before overwriting their change
-            if (!getEditedContent(current).equals(getEditedContent(item)) && !confirmOverwrite(editor, current)) {
+            if (!getEditedContent(current).equals(getEditedContent(item)) && !confirmOverwrite(editor, current, file)) {
                 return false;
             }
         } else if (JOptionPane.showConfirmDialog(editor, NLS.bind(ToolsMessages.library_conflict_deleted, file),
@@ -425,14 +429,13 @@ final class QueryLibraryEditor implements SqlEditorExtension {
 
     /**
      * The parts of a query that this window edits, as file text: name, description, target, database, schema,
-     * parameters and SQL. The update time, the schedule and unknown header lines are left out: a Schedule… save or
+     * parameters and SQL. The creation time, the schedule and unknown header lines are left out: a Schedule… save or
      * another version's header is not a change of what the window shows.
      */
     @NotNull
     private static String getEditedContent(@NotNull QueryLibraryItem query) {
         QueryLibraryItem copy = query.copy();
         copy.setCreated(null);
-        copy.setUpdated(null);
         copy.setSchedule(null);
         copy.getExtraHeader().clear();
         return QueryLibraryFile.format(copy);
@@ -442,11 +445,18 @@ final class QueryLibraryEditor implements SqlEditorExtension {
      * Save found the file changed by someone else since it was opened here: Overwrite, Reload (their version, the
      * window's changes are dropped) or Cancel.
      *
+     * @param file the query's file: its modification time is the time of the other save
      * @return true to overwrite
      */
-    private boolean confirmOverwrite(@NotNull SqlEditorPanel editor, @NotNull QueryLibraryItem current) {
+    private boolean confirmOverwrite(@NotNull SqlEditorPanel editor, @NotNull QueryLibraryItem current, @NotNull Path file) {
         String[] options = {ToolsMessages.library_conflict_overwrite, ToolsMessages.library_conflict_reload, ToolsMessages.button_cancel};
-        String updated = current.getUpdated() != null ? current.getUpdated().toString() : "?"; //$NON-NLS-1$
+        String updated;
+        try {
+            updated = LocalDateTime.ofInstant(Files.getLastModifiedTime(file).toInstant(), ZoneId.systemDefault()).withNano(0).toString()
+                .replace('T', ' ');
+        } catch (IOException e) {
+            updated = "?"; //$NON-NLS-1$
+        }
         int answer = JOptionPane.showOptionDialog(editor, NLS.bind(ToolsMessages.library_conflict_message, current.getName(), updated),
             ToolsMessages.library_conflict_title, JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
         if (answer == 1) {

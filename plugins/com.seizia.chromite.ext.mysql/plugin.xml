@@ -178,7 +178,7 @@
                         categories="sql">
 
                     <file type="jar" path="maven:/mysql:mysql-connector-java:RELEASE[5.1.49]" bundle="!drivers.mysql"/>
-                    <file type="license" path="licenses/external/lgpl-2.0.txt"/>
+                    <file type="license" path="licenses/external/gpl-2.0-mysql-foss-exception.txt"/>
                     <file type="jar" path="drivers/mysql/mysql5" bundle="drivers.mysql"/>
 
                     <property name="autoDeserialize" value="false"/>

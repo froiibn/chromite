@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -46,27 +47,54 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 실행할 때 매개변수 값을 묻는 대화상자.
+ * 실행할 때 매개변수 값을 묻는 대화상자. 쿼리 창의 모든 매개변수 입력이 이 대화상자 하나를 쓴다: Query Library 쿼리와 기록에서 다시 연
+ * 바인딩 실행({@link #open}), 평범한 쿼리 창의 스크립트가 실행 중에 만난 매개변수({@link #openForScript}).
  *
  * 설계:
  * <ul>
  *     <li>매개변수마다 한 줄: 표시 이름(필수면 {@code *}), 형식에 맞는 입력(글자·숫자·날짜는 입력란, 참/거짓·선택 목록은 콤보,
- *     조회 쿼리는 편집할 수 있는 콤보), 형식 힌트. {@code ${name}} 변수는 "SQL text"로 표시해 값이 바인딩되지 않고 SQL에 그대로 들어감을 알린다.</li>
- *     <li>처음 값은 이 PC의 마지막 입력값({@link QueryLibraryState}), 없으면 정의의 기본값이다.</li>
+ *     조회 쿼리는 편집할 수 있는 콤보), 형식 힌트. 값이 바인딩되지 않고 SQL에 그대로 들어가는 줄({@link Field#sqlText}: {@code ${name}} 변수,
+ *     평범한 쿼리 창의 매개변수)은 "SQL text"로 표시한다. 이름의 도구 설명은 SQL에 쓴 표식({@code :name}, {@code ${name}}, {@code ?})이다.</li>
+ *     <li>처음 값은 부르는 쪽이 정한다: 라이브러리 쿼리는 이 PC의 마지막 입력값({@link QueryLibraryState}), 없으면 정의의 기본값,
+ *     평범한 쿼리 창은 DBeaver의 매개변수 기록({@code SQLQueryParameterRegistry}), 기록에서 연 실행은 기록된 값이다.</li>
  *     <li>조회 쿼리 목록은 대상 연결에서 작업 스레드로 읽는다(필요하면 연결한다). 읽는 동안에도 값을 입력할 수 있다.</li>
- *     <li>OK를 누르면 형식·필수 검사({@link QueryLibraryParameter#validate})를 하고, 틀리면 대화상자 안에 오류를 보여 준다.</li>
+ *     <li>실행 단추를 누르면 형식·필수 검사({@link QueryLibraryParameter#validate})를 하고, 틀리면 대화상자 안에 오류를 보여 준다.</li>
+ *     <li>스크립트 모드({@link #openForScript})는 엔진이 문장 하나에서 값을 물을 때라 그 문장을 위에 보이고, SWT와 같은 Ignore 단추
+ *     (이 스크립트 끝까지 매개변수를 무시)를 둔다. 처음에는 쿼리 창에 별도 대화상자({@code SqlParameterDialog}, 이름·값 표)가 있었으나
+ *     이 대화상자와 하나로 합쳤다: 입력 칸, 오류 표시, Enter = 실행이 모든 쿼리 창에서 같다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 쿼리 창의 매개변수 대화상자({@code SqlParameterDialog})를 합침: 스크립트 모드(문장 미리 보기, Ignore), 줄마다 SQL 글자 여부와
+ *   표식, 열 때 첫 입력 칸에 초점 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class QueryParameterDialog extends JDialog {
 
     private static final Log log = Log.getLog(QueryParameterDialog.class);
     private static final int MAX_LOOKUP_VALUES = 1000;
     private static final int MAX_ROWS_WITHOUT_SCROLLING = 10;
+
+    /**
+     * One parameter to ask for.
+     *
+     * @param marker  how the parameter is written in the SQL ({@code :name}, {@code ${name}}, {@code ?}), the label's tool tip
+     * @param sqlText the value goes into the SQL text as it is instead of being bound
+     */
+    record Field(@NotNull QueryLibraryParameter parameter, @NotNull String marker, boolean sqlText) {
+    }
+
+    enum Action {
+        RUN, IGNORE, CANCEL
+    }
+
+    /**
+     * @param values values by parameter name (empty unless {@link Action#RUN})
+     */
+    record Answer(@NotNull Action action, @NotNull Map<String, String> values) {
+    }
 
     private record Row(@NotNull QueryLibraryParameter parameter, @NotNull JComponent input) {
         @NotNull
@@ -81,30 +109,41 @@ final class QueryParameterDialog extends JDialog {
 
     private final List<Row> rows = new ArrayList<>();
     private final JLabel errorLabel = new JLabel(" ");
+    private Action action = Action.CANCEL;
     @Nullable
     private Map<String, String> result;
 
+    /**
+     * @param runText   text of the button that runs with the values
+     * @param statement the statement the values are for, shown above the fields (script mode), or null
+     * @param footer    a line below the fields, or null
+     * @param ignorable whether there is an Ignore button (script mode)
+     */
     private QueryParameterDialog(
         @NotNull Window owner,
         @NotNull String title,
-        @NotNull List<QueryLibraryParameter> parameters,
-        @NotNull Map<String, Boolean> kinds,
+        @NotNull String runText,
+        @NotNull List<Field> fields,
         @NotNull Map<String, String> initialValues,
-        @Nullable DBPDataSourceContainer container
+        @Nullable DBPDataSourceContainer container,
+        @Nullable String statement,
+        @Nullable String footer,
+        boolean ignorable
     ) {
         super(owner, title, ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         JPanel form = new JPanel(new GridBagLayout());
         int y = 0;
-        for (QueryLibraryParameter parameter : parameters) {
+        for (Field field : fields) {
+            QueryLibraryParameter parameter = field.parameter();
             String initial = initialValues.getOrDefault(parameter.getName(), CommonUtils.notEmpty(parameter.getDefaultValue()));
             JComponent input = createInput(parameter, initial);
             rows.add(new Row(parameter, input));
 
             JLabel label = new JLabel(parameter.getDisplayLabel() + (parameter.isRequired() ? " *" : ""));
-            boolean textSubstitution = Boolean.FALSE.equals(kinds.get(parameter.getName()));
-            label.setToolTipText(textSubstitution ? "${" + parameter.getName() + "}" : ":" + parameter.getName()); //$NON-NLS-1$ //$NON-NLS-2$
+            boolean textSubstitution = field.sqlText();
+            label.setToolTipText(field.marker());
             label.setLabelFor(input);
             GridBagConstraints c = new GridBagConstraints();
             c.gridy = y;
@@ -138,27 +177,57 @@ final class QueryParameterDialog extends JDialog {
         }
         errorLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.error"); //$NON-NLS-1$
 
-        JButton runButton = new JButton(ToolsMessages.library_action_run);
+        JButton runButton = new JButton(runText);
         runButton.addActionListener(e -> accept());
         JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(runButton);
+        if (ignorable) {
+            JButton ignoreButton = new JButton(EditorMessages.editor_param_ignore);
+            ignoreButton.setToolTipText(EditorMessages.editor_param_ignore_tip);
+            ignoreButton.addActionListener(e -> {
+                action = Action.IGNORE;
+                dispose();
+            });
+            buttons.add(ignoreButton);
+        }
         buttons.add(cancelButton);
         JPanel south = new JPanel(new BorderLayout(0, 10));
         south.add(errorLabel, BorderLayout.NORTH);
         south.add(buttons, BorderLayout.SOUTH);
 
-        JPanel content = new JPanel(new BorderLayout(0, 6));
-        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        if (parameters.size() > MAX_ROWS_WITHOUT_SCROLLING) {
+        JPanel center = new JPanel(new BorderLayout(0, 6));
+        if (fields.size() > MAX_ROWS_WITHOUT_SCROLLING) {
             JScrollPane scrollPane = new JScrollPane(form);
             scrollPane.setBorder(BorderFactory.createEmptyBorder());
             scrollPane.setPreferredSize(new Dimension(form.getPreferredSize().width + 24, 420));
-            content.add(scrollPane, BorderLayout.CENTER);
+            center.add(scrollPane, BorderLayout.CENTER);
         } else {
-            content.add(form, BorderLayout.CENTER);
+            center.add(form, BorderLayout.CENTER);
         }
+        if (footer != null) {
+            JLabel footerLabel = new JLabel(footer);
+            footerLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+            center.add(footerLabel, BorderLayout.SOUTH);
+        }
+
+        JPanel content = new JPanel(new BorderLayout(0, 6));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        if (statement != null) {
+            SqlEditorPanel.SqlTextArea statementText = new SqlEditorPanel.SqlTextArea();
+            statementText.setText(statement);
+            statementText.setEditable(false);
+            statementText.setCaretPosition(0);
+            JScrollPane statementScroll = new JScrollPane(statementText);
+            statementText.applyTheme();
+            statementScroll.setPreferredSize(new Dimension(480, 110));
+            JPanel north = new JPanel(new BorderLayout());
+            north.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 0));
+            north.add(statementScroll, BorderLayout.CENTER);
+            content.add(north, BorderLayout.NORTH);
+        }
+        content.add(center, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
         setContentPane(content);
         getRootPane().setDefaultButton(runButton);
@@ -167,10 +236,17 @@ final class QueryParameterDialog extends JDialog {
         pack();
         setSize(Math.max(getWidth(), 460), getHeight());
         setLocationRelativeTo(owner);
+        // The first value, not the statement above it (script mode)
+        SwingUtilities.invokeLater(() -> {
+            if (!rows.isEmpty()) {
+                rows.getFirst().input().requestFocusInWindow();
+            }
+        });
     }
 
     /**
-     * Asks for the values of the parameters.
+     * Asks for the values of the parameters of a query before it runs (Query Library, a bound run reopened from the
+     * query history).
      *
      * @param kinds     parameter name -> true if bound, false if inserted as SQL text ({@link QueryParameterBinder#detect})
      * @param container connection for lookup queries, or null
@@ -185,11 +261,41 @@ final class QueryParameterDialog extends JDialog {
         @NotNull Map<String, String> initialValues,
         @Nullable DBPDataSourceContainer container
     ) {
+        List<Field> fields = new ArrayList<>();
+        for (QueryLibraryParameter parameter : parameters) {
+            boolean sqlText = Boolean.FALSE.equals(kinds.get(parameter.getName()));
+            fields.add(new Field(parameter, sqlText ? "${" + parameter.getName() + "}" : ":" + parameter.getName(), sqlText)); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
         Window owner = SwingUtilities.getWindowAncestor(parent);
         QueryParameterDialog dialog = new QueryParameterDialog(owner != null ? owner : JOptionPane.getRootFrame(),
-            NLS.bind(ToolsMessages.param_dialog_title, queryName), parameters, kinds, initialValues, container);
+            NLS.bind(ToolsMessages.param_dialog_title, queryName), ToolsMessages.library_action_run, fields, initialValues, container,
+            null, null, false);
         dialog.setVisible(true);
         return dialog.result;
+    }
+
+    /**
+     * Asks for the values of the parameters of one statement while a query window's script runs (the engine found
+     * parameters without a value): the statement is shown, the values go into its text as SQL, and Ignore runs the rest
+     * of the script without parameters.
+     *
+     * @param parent        the query window, or null
+     * @param fields        the statement's parameters
+     * @param initialValues values by parameter name
+     */
+    @NotNull
+    static Answer openForScript(
+        @Nullable Component parent,
+        @NotNull String statement,
+        @NotNull List<Field> fields,
+        @NotNull Map<String, String> initialValues
+    ) {
+        Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
+        QueryParameterDialog dialog = new QueryParameterDialog(owner != null ? owner : JOptionPane.getRootFrame(),
+            EditorMessages.editor_param_title, EditorMessages.editor_common_execute, fields, initialValues, null,
+            statement, EditorMessages.editor_param_hint, true);
+        dialog.setVisible(true);
+        return new Answer(dialog.action, dialog.result != null ? dialog.result : Map.of());
     }
 
     @NotNull
@@ -256,6 +362,7 @@ final class QueryParameterDialog extends JDialog {
             values.put(row.parameter().getName(), value);
         }
         result = values;
+        action = Action.RUN;
         dispose();
     }
 
