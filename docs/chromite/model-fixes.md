@@ -148,6 +148,26 @@
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 모델 확인 네 가지(Enter가 이제 아니요), Oracle·YashanDB 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 SQL 한 번),
   `getPathFromString`을 쓰는 모든 파일 경로(한 글자 스킴은 이제 로컬 경로), 연결 유형 저장·읽기, MySQL 5 (Legacy)·StarRocks 드라이버의 License 탭.
 
+## 후속 수정 3 (2026-11-08)
+
+후속 과제 followups-2026-11-07-evening의 #18, #19, #20, #23, #24, #27(2·3부), #28, #30, #31, #33이다(`chromite/followups-3`). 고치기 전에 모두 코드로 다시 확인했다.
+줄 번호는 고치기 전 기준이다. 다른 문서에 적은 항목: #18·#20 [driver-licenses.md](driver-licenses.md), #19 [swing-server-output.md](swing-server-output.md),
+#23 [swing-grid-column-filters.md](swing-grid-column-filters.md), #27 [ai-agent.md](ai-agent.md), #28 [swing-sql-terminal.md](swing-sql-terminal.md).
+
+### Oracle 계획 노드의 부모 번호 (#24)
+
+- 증상: `OraclePlanNode.getParentId`가 늘 0이었다. 계획을 저장 형식(JSON, `OracleQueryPlanner.serialize`)으로 쓰면 모든 노드의 `parent_id`가 0이었다.
+- 원인: 필드 `parentId`(`:90`)에 값을 넣는 곳이 없었다. 두 생성자 모두 `PARENT_ID`로 부모 노드만 찾았다(`:233-240`, `:281-287`).
+- 같은 원인의 다른 경우: 저장한 계획을 읽을 때(`OracleQueryPlanner.deserialize`) 노드 생성자가 `parent_id`(늘 0)로 부모를 찾아 스스로 그 자식으로 붙었고,
+  읽는 쪽(`ExecutionPlanDeserializer.loadNode`)도 저장한 트리대로 자식으로 붙였다. 그래서 뿌리 밑에 모든 노드가 한 번 더 들어갔다. Altibase(`AltibasePlanNode`의
+  JSON 생성자 `:87-104`)도 같은 구조라 자식이 두 번 들어갔다(Altibase는 `parent_id`를 올바르게 썼으므로 같은 부모에 두 번). 다른 DB(MySQL, PostgreSQL,
+  Exasol, OceanBase, Ocient)의 노드는 읽는 쪽이 넘긴 부모만 쓰고 스스로 붙지 않는다.
+- 고친 것: 결과 집합 생성자가 `PARENT_ID`를 `parentId`에 담는다. 저장한 계획의 노드(Oracle·Altibase)는 읽는 쪽이 넘긴 부모를 쓰고 스스로 붙지 않으며 `parent_id`는 값으로만
+  담는다. 저장한 트리는 보이는 계획(적응 계획의 쓰지 않는 행을 뺀 것, [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "Oracle 적응 계획")이라 그대로 읽으면 같은 모양이다. 쓰지 않게 된 `IntKeyMap` 노드 목록을 지웠다.
+- 지금 Swing에는 계획을 저장하거나 불러오는 화면이 없다(`serialize`·`deserialize`를 부르는 곳이 `ui.swing`에 없음). 그래서 앱 안의 시험 코드로 모델 API를 불렀다:
+  Oracle 23ai에서 `t1 JOIN v1 … ORDER BY` 예상 계획(노드 5개) → `serialize` → `deserialize`. 앞뒤 트리가 같다(id 0 뿌리, 1 SORT의 부모 0, 2 HASH JOIN의 부모 1,
+  3·4 TABLE ACCESS의 부모 2, 자식 수 1·1·2·0·0, 겹친 자식 없음). `getParentId`는 0·0·1·2·2. Altibase는 코드 경로만 확인했다.
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -175,3 +195,4 @@
   MySQL/MariaDB 계획 비용(#70).
 - 2026-11-08 "작은 모델·안전·라이선스 수정": 변경을 하는 모델 확인 네 곳의 기본 단추(#17), Oracle DBMS_OUTPUT을 열린 세션에도 적용(#4), 슬래시 Windows 경로(#5),
   연결 유형 이름의 언어(#3), MySQL 5 (Legacy)·StarRocks 라이선스 표기(#12), `LICENSE.md`의 JFreeChart 줄(#49).
+- 2026-11-08 "후속 수정 3": Oracle 계획 노드의 부모 번호와 저장한 계획 읽기(#24, Altibase 같은 원인).

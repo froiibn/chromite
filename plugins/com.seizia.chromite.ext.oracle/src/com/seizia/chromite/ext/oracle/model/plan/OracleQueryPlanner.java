@@ -30,7 +30,6 @@ import com.seizia.chromite.model.exec.plan.*;
 import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanSerializer;
 import com.seizia.chromite.model.impl.plan.ExecutionPlanDeserializer;
 import org.jkiss.utils.CommonUtils;
-import org.jkiss.utils.IntKeyMap;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -40,7 +39,11 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Oracle execution plan node
+ * Oracle query planner, and the saved plan format (JSON of the plan nodes).
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 저장한 계획을 읽을 때 노드의 부모를 저장한 트리에서 넘김(parent_id로 다시 잇지 않음, evening #24,
+ *   docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class OracleQueryPlanner  extends AbstractExecutionPlanSerializer implements DBCQueryPlanner/*, DBCSavedQueryPlanner*/ {
 
@@ -167,13 +170,8 @@ public class OracleQueryPlanner  extends AbstractExecutionPlanSerializer impleme
 
             ExecutionPlanDeserializer<OraclePlanNode> loader = new ExecutionPlanDeserializer<>();
 
-            IntKeyMap<OraclePlanNode> allNodes = new IntKeyMap<>();
-
-            List<OraclePlanNode> rootNodes = loader.loadRoot(dataSource, jo, (datasource, node, parent) -> {
-                OraclePlanNode nodeOra = new OraclePlanNode(dataSource, allNodes, getNodeAttributes(node));
-                allNodes.put(nodeOra.getId(), nodeOra);
-                return nodeOra;
-            });
+            List<OraclePlanNode> rootNodes = loader.loadRoot(dataSource, jo,
+                (datasource, node, parent) -> new OraclePlanNode(dataSource, parent, getNodeAttributes(node)));
             return new OracleExecutionPlan(query, rootNodes);
 
         } catch (Throwable e) {
