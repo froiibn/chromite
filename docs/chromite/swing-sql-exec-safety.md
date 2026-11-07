@@ -23,6 +23,8 @@ SWT → Swing 전수 조사([swt-parity-audit.md](swt-parity-audit.md))의 1순�
 | `ui.swing/SqlEditorPanel.java` | `execute()`에서 실행 제한 검사, 준비 Job(`prepareAndSchedule`)에서 문장을 나눈 뒤 위험한 문 확인 |
 | `ui.swing/OptionsDialog.java` | 일반 ▸ 쿼리 편집기에 확인란 두 개 |
 | `EditorMessages`, `CoreMessages` (+ `_ko`) | 화면 문구(영어, 한국어) |
+| `model/SQLQuery` | `isDropDangerous`, `isDeleteUpdateDangerous`, `isTruncate`(2026-11-07) — JSQLParser 판단 |
+| `model.sql/SQLObjectOperationRecognizer`, `model.lsm/STMKnownRuleNames` | `isDropStatement`(2026-11-07) — LSM 파서의 DROP 문 판단 |
 
 ### 실행 흐름
 
@@ -43,8 +45,13 @@ SWT → Swing 전수 조사([swt-parity-audit.md](swt-parity-audit.md))의 1순�
   그래서 SWT 동작(모두 거절, 안전 쪽)을 따랐다. 단일 문장을 허용하려면 `checkExecutePermission` 호출을 문장 수를 아는 준비 Job으로 옮기면 된다.
 - **위험한 문은 실행 한 번에 한 번만 묻고 목록을 보여 준다.** SWT는 문장마다 물었다(여러 개면 "모두 예"). 스크립트 전체를 보고 한 번에 결정하는 편이
   안전하고 덜 번거롭다. 목록에는 줄 번호(편집기 기준, 문장 앞 주석이 있으면 그 주석의 줄), 종류, 문장 원문을 SQL 주석과 함께 보여 준다.
-- **판단은 모델의 파서 도우미만 쓴다.** 새 파서를 만들지 않았다. `isDropDangerous`는 JSQLParser의 `Drop`과 객체 작업(DROP)을,
-  `isDeleteUpdateDangerous`는 WHERE 없는 `Delete`/`Update`를 본다. TRUNCATE는 SWT와 같이 묻지 않는다.
+- **판단은 모델의 파서만 쓴다.** 새 파서를 만들지 않았다. `isDropDangerous`는 JSQLParser의 `Drop`과 객체 작업(DROP)을,
+  `isDeleteUpdateDangerous`는 WHERE 없는 `Delete`/`Update`를, `isTruncate`는 `Truncate`를 본다. JSQLParser가 읽지 못한 문장은
+  LSM 파서가 DROP 문으로 읽는지 본다(`SQLObjectOperationRecognizer.isDropStatement`, 아래 "DROP 판단의 근본 원인"). SWT 편집기도 두 파서를 함께 썼다.
+- **TRUNCATE도 묻는다(2026-11-07, SWT와 다름).** SWT는 TRUNCATE를 묻지 않았다(`getDropQueries`, `isDeleteUpdateDangerous` 모두 `Truncate`를 보지 않음).
+  그러나 TRUNCATE는 WHERE 없는 DELETE처럼 표의 모든 행을 지우고, MySQL·MariaDB·Oracle에서는 암시적으로 커밋되어 롤백할 수도 없다.
+  Chromite Agent의 분류(`AgentSqlClassifier`)도 이미 위험으로 본다. 그래서 같은 설정("위험한 SQL", `confirm.dangerous_sql`)으로 묻는다.
+  Options의 이름을 "WHERE 절이 없는 UPDATE·DELETE와 TRUNCATE 실행 전에 확인"으로 바꿨다. 끄려면 그 설정을 끈다.
 - **`GO` 배치는 다시 문장으로 나눠 검사한다(근본 원인).** SQL Server처럼 배치 구분자가 있는 방언은 실행 요소가 배치 하나로 합쳐진 `SQLQuery`라
   (`SQLScriptBatches.addBatch`) 그대로 파서에 넘기면 여러 문장이어서 위험한 문을 찾지 못한다. 배치 구분자가 있는 방언이면 각 배치를
   `SQLScriptParser.extractScriptQueries`(편집기와 같은 파서 문맥 `SQLScriptBatches.createParserContext`)로 다시 나눈다. 반복 배치(`GO 2`)는 한 번만 본다.
@@ -60,12 +67,46 @@ SWT → Swing 전수 조사([swt-parity-audit.md](swt-parity-audit.md))의 1순�
   `getSQLPanelText`, `openNewScript`, `openRecentScript`, `useIsolatedConnections`)는 SWT 편집기 부품을 돌려주는 것이라 Swing에 대응하는 것이 없고
   부르는 곳도 없다. 빈 값을 돌려주면 호출자가 성공으로 오해할 수 있어 `UnsupportedOperationException`을 던진다. 새 호출자를 만들면 먼저 구현해야 한다.
 
+## DROP 판단의 근본 원인 (2026-11-07)
+
+MariaDB에서 `DROP DATABASE`가 묻지 않고 실행되었다(설정 작업 에이전트가 발견).
+
+- **원인.** Swing의 확인은 `SQLQuery.isDropDangerous`(JSQLParser 5.3)만 썼다. JSQLParser의 DROP 문법은 객체 종류 자리에 일반 식별자와 몇 가지 키워드만
+  받는다. 종류가 JSQLParser의 키워드인 DROP은 "Encountered unexpected token"으로 읽지 못해 문장이 없고(`statement == null`), 그래서 DROP이 아니라고 판단했다.
+  SWT 편집기는 `isDropDangerous`에 더해 LSM 파서의 `SQLObjectOperationRecognizer`로 DROP을 찾았는데(`SQLEditor.getDropQueries`, 기준 `263b8ddb45`),
+  #100이 Swing으로 옮길 때 이 두 번째 판단을 빠뜨렸다.
+- **고친 것.** JSQLParser가 읽지 못한 문장은 LSM 파서가 DROP 문 규칙(`dropCatalogDatabaseStatement`, `dropSchemaStatement`, `dropTableStatement`,
+  `dropViewStatement`, `dropIndexStatement`, `dropProcedureStatement`, `dropTriggerStatement`, `dropCharacterSetStatement`, `dropNamedObjectStatement`)으로
+  읽는지 본다(`SQLObjectOperationRecognizer.isDropStatement`, `SqlExecutionSafety.isDrop`). 문자열을 비교하지 않고 파서가 고른 문장 규칙을 쓴다.
+  - 객체 이름의 문법 오류는 무시한다. `DROP USER 'u1'@'%'`(MariaDB 계정 이름)는 LSM 파서도 이름을 읽지 못하지만 `DROP USER`로 이미 `dropNamedObjectStatement`를 골랐다.
+    `recognizeAll`(정확한 객체 이름이 필요한 쪽)은 오류가 있으면 아무것도 돌려주지 않으므로 그것을 쓰지 않고 새 메서드를 두었다.
+  - `DROP TRIGGER`는 LSM 문법에 규칙이 있지만 `STMKnownRuleNames`에 이름이 없어 `recognizeAll`도 찾지 못했다. 이름(`dropTriggerStatement`)을 더했다.
+  - LSM 파서는 JSQLParser가 읽지 못한 문장에만 돌린다. JSQLParser가 읽은 문장은 DROP이면 이미 `Drop`이고, 긴 INSERT 스크립트마다 두 번 파싱하지 않기 위해서다.
+- **같은 원인의 다른 경우(파서 직접 확인).** JSQLParser 5.3(`D:\Tools\_scratch\safety-recovery-drop\probe\jsqlparser-drop.txt`)과
+  LSM 문장 규칙(`lsm-kind.txt`, PostgreSQL·MySQL(MariaDB)·Oracle·Altibase 방언)을 실제로 돌린 결과다.
+
+  | 문장 | JSQLParser | LSM 규칙 | 이제 묻는가 |
+  |---|---|---|---|
+  | `DROP DATABASE x`, `IF EXISTS`, `` `x` `` | 읽지 못함 | `dropCatalogDatabaseStatement` | 예(전에는 아니요) |
+  | `DROP USER u1`, `DROP USER 'u1'@'%'`, `DROP USER u1 CASCADE` | 읽지 못함 | `dropNamedObjectStatement` | 예(전에는 아니요) |
+  | `DROP TABLESPACE ts1 [INCLUDING CONTENTS AND DATAFILES]` | 읽지 못함 | `dropNamedObjectStatement` | 예(전에는 아니요) |
+  | `DROP PROCEDURE p1` | 읽지 못함 | `dropProcedureStatement` | 예(전에는 아니요) |
+  | `DROP TRIGGER tr1 [ON t1]` | 읽지 못함 | `dropTriggerStatement` | 예(전에는 아니요) |
+  | `DROP TYPE`, `DROP SYNONYM`, `DROP PUBLIC SYNONYM`, `DROP TABLE a, b` | 읽지 못함 | `dropNamedObjectStatement`, `dropTableStatement` | 예(전에는 아니요) |
+  | `DROP SCHEMA`, `ROLE`, `LOGIN`, `INDEX`, `VIEW`, `MATERIALIZED VIEW`, `FUNCTION`, `PACKAGE [BODY]`, `SEQUENCE`, `TABLE`, `EVENT`, `EXTENSION` | `Drop` | - | 예(전에도) |
+  | `ALTER TABLE t DROP COLUMN c` | `Alter` | `alterTableStatement` | 아니요(SWT와 같음) |
+  | `SELECT 'DROP TABLE x'`, `CALL drop_all()` | 읽음 | DROP 아님 | 아니요 |
+  | `TRUNCATE [TABLE] t [CASCADE]` | `Truncate` | - | 예(새로, 위 "TRUNCATE도 묻는다") |
+
+  SQL Server의 `DROP DATABASE [x]`는 방언의 대괄호 인용을 써야 해서 앱 안에서 확인했다(아래 검증).
+
 ## upstream(SWT) 대비 변경점
 
 | 항목 | SWT | Swing |
 |---|---|---|
 | 위험한 문 확인 | 문장마다 대화상자(DROP 먼저, 그다음 UPDATE/DELETE), "모두 예", "다시 묻지 않음" | 실행마다 한 번, 목록 표시, 끄기는 Options |
-| DROP 판단 | `isDropDangerous` + `SQLObjectOperationRecognizer` | `isDropDangerous`만 |
+| DROP 판단 | `isDropDangerous` + `SQLObjectOperationRecognizer.recognizeAll`(이름을 읽지 못하면 놓침, DROP TRIGGER 놓침) | `isDropDangerous` + `SQLObjectOperationRecognizer.isDropStatement`(문장 규칙만 봄) |
+| TRUNCATE | 묻지 않음 | 위험한 SQL 확인으로 물음 |
 | `GO` 배치 | 배치로 묶지 않음 | 배치를 다시 문장으로 나눠 검사 |
 | 스크립트 실행 제한 | `processQueries`에서 모두 거절 | 같음(`execute()`에서 연결 전에 거절) |
 | 읽기 전용 연결의 변경 문 거절(`SQLEditor.java:3115-3124`) | 있음 | 이 작업 범위 밖(남은 것 참고) |
@@ -86,10 +127,22 @@ SWT → Swing 전수 조사([swt-parity-audit.md](swt-parity-audit.md))의 1순�
 | `@ai delete every row of p1b_safety`(로컬 가짜 Ollama가 `DELETE FROM p1b_safety` 응답) | 확인 창에 생성된 SQL 표시, 취소 뒤 행 수 3 그대로 (`ai-confirm-sql.png`, `s9`, `s10`) |
 | Options에서 DROP 확인 끄기 → `DROP TABLE IF EXISTS …` 바로 실행, 다시 켜기 → 확인 창 | 설정 저장 `…confirm.drop_sql=prompt` (`options-general.png`, `s16`) |
 
+DROP 판단 고침 뒤 확인(2026-11-07, 이 브랜치의 빌드, 같은 방식의 시험용 에이전트). 증거: `D:\Tools\_scratch\safety-recovery-drop\run\`
+(`e*.txt.log`, `server-state.txt`, `shots\*-drop*.png`), 파서 확인 `D:\Tools\_scratch\safety-recovery-drop\probe\`.
+
+| 시험 | 결과 |
+|---|---|
+| MariaDB: `DROP USER IF EXISTS '…'@'%'`, `DROP TRIGGER`, `DROP PROCEDURE`, `TRUNCATE TABLE t`, `DROP DATABASE chr_srd_drop` 한 번에 실행 | 확인 창에 5개(줄 1~5, TRUNCATE는 "TRUNCATE(모든 행 삭제)") → 취소, 데이터베이스 그대로 (`maria-e1-drop-confirm.png`) |
+| PostgreSQL: `DROP DATABASE chr_srd_drop` | 확인 창 → 취소, 데이터베이스 그대로 (`pg-e-drop-database-confirm.png`) |
+| SQL Server: `DROP DATABASE [chr_srd_drop]`(대괄호) | 확인 창 → 취소, 데이터베이스 그대로 (`mssql-e-drop-database-confirm.png`) |
+
 AI는 실제 키를 쓰지 않았다. 작업 공간 복사본의 `.metadata/.config/ai-configuration.json`에 Ollama 프로필(127.0.0.1의 가짜 서버)을 두었다.
 
 ## 남은 것
 
+- **두 파서가 모두 DROP으로 읽지 못하는 문장.** 파서 확인에서 DROP으로 시작하는 문장은 모두 찾았지만(위 표), 앞에 다른 키워드가 붙는 방언 문법
+  (예: 문장 앞 레이블, `EXEC('DROP …')` 같은 동적 SQL)은 찾지 못한다. 동적 SQL은 SWT도 찾지 못했다. Oracle·Altibase는 앱 안에서 실행해 보지 않았다(파서 확인만).
+- **`ALTER TABLE … DROP COLUMN`은 묻지 않는다.** 열의 데이터를 잃지만 SWT도 묻지 않았고 이 작업 범위(문장 단위 DROP) 밖이다.
 - **구분자 없는 T-SQL 여러 문장.** `SELECT 1` 다음 줄에 `DELETE FROM t`처럼 `;` 없이 이어 쓴 문장은 파서가 한 문장으로 보아 위험한 문을 찾지 못한다
   (SWT도 같은 파서를 썼다). 문장 하나만 있거나 `;`로 나눈 경우는 찾는다. 새 파서를 만들지 않는다는 결정에 따라 남겼다.
 - **`@ai` 확인을 취소하면** 엔진이 명령 실패(`SQLControlResult.failure()`, `SQLQueryExecuteJob.java:467`)를 오류 없이 멈춤으로 처리해 상태 줄이
@@ -103,3 +156,6 @@ AI는 실제 키를 쓰지 않았다. 작업 공간 복사본의 `.metadata/.con
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 위험한 문 확인(B-S7), 스크립트 실행 제한(B-S8), `@ai` 실행 확인에 SQL 표시(C-58)
+- 2026-11-07 DROP 판단의 근본 원인을 고침: JSQLParser가 읽지 못한 문장은 LSM 파서의 DROP 문 규칙으로 판단(`SQLObjectOperationRecognizer.isDropStatement`,
+  `STMKnownRuleNames.dropTriggerStatement`). `DROP DATABASE`·`USER`·`TABLESPACE`·`PROCEDURE`·`TRIGGER` 등을 묻지 않던 것을 고침.
+  TRUNCATE도 위험한 SQL 확인으로 물음(`SQLQuery.isTruncate`). MariaDB·PostgreSQL·SQL Server에서 확인

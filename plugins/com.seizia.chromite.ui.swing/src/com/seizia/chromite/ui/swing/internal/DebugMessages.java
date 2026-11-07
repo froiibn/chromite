@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 Oracle 디버거 문구: 디버그 컴파일 질문, 권한 안내, attach·프로시저 나가기 미지원 도움말
  */
 public class DebugMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DebugMessages"; //$NON-NLS-1$
@@ -44,6 +45,7 @@ public class DebugMessages extends NLS {
     public static String debug_step_into_tip;
     public static String debug_step_out;
     public static String debug_step_out_tip;
+    public static String debug_step_out_unsupported_tip;
     public static String debug_tab_variables;
     public static String debug_tab_stack;
     public static String debug_tab_messages;
@@ -70,11 +72,16 @@ public class DebugMessages extends NLS {
     public static String debug_start_no_params;
     public static String debug_start_value_missing;
     public static String debug_start_pid_invalid;
+    public static String debug_start_attach_unsupported;
     public static String debug_start_button;
     public static String debug_error_start;
     public static String debug_error_command;
     public static String debug_error_open;
+    public static String debug_error_privileges;
+    public static String debug_compile_title;
+    public static String debug_compile_question;
     public static String debug_progress_open;
+    public static String debug_progress_compile;
     public static String debug_progress_start;
     public static String debug_progress_stop;
     public static String debug_txn_title;

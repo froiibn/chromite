@@ -34,6 +34,10 @@ import java.util.Set;
 
 /**
  * The origin providing symbols occurring as identifiers in a query text (actually faced with or potential)
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 호출문(CALL/EXEC)의 루틴 이름을 나타내는 {@link DbObjectFilterMode#CALL}과 {@link DbObjectRef}의 거르기 방식을 추가.
+ *   CALL 뒤는 테이블 자리가 아니라서 이름 원천이 자동완성에 쓰이지 않았다 (docs/chromite/swing-sql-completion.md)
  */
 public abstract class SQLQuerySymbolOrigin {
 
@@ -77,7 +81,11 @@ public abstract class SQLQuerySymbolOrigin {
         FUNCTION,
         TABLE,
         TYPE,
-        OBJECT
+        OBJECT,
+        /**
+         * Name of a routine invoked by a call statement ({@code CALL}, {@code EXEC})
+         */
+        CALL
     }
 
     /**
@@ -149,6 +157,9 @@ public abstract class SQLQuerySymbolOrigin {
 
         private final boolean includingRowsets;
 
+        @NotNull
+        private final DbObjectFilterMode filterMode;
+
         public DbObjectRef(
             @NotNull SQLQueryRowsSourceContext rowsSourceContext,
             @NotNull DBSObjectType objectType
@@ -161,9 +172,19 @@ public abstract class SQLQuerySymbolOrigin {
             @NotNull Set<DBSObjectType> objectTypes,
             boolean includingRowsets
         ) {
+            this(rowsSourceContext, objectTypes, includingRowsets, DbObjectFilterMode.DEFAULT);
+        }
+
+        public DbObjectRef(
+            @NotNull SQLQueryRowsSourceContext rowsSourceContext,
+            @NotNull Set<DBSObjectType> objectTypes,
+            boolean includingRowsets,
+            @NotNull DbObjectFilterMode filterMode
+        ) {
             super(rowsSourceContext);
             this.objectTypes = objectTypes;
             this.includingRowsets = includingRowsets;
+            this.filterMode = filterMode;
         }
 
         @NotNull
@@ -175,9 +196,18 @@ public abstract class SQLQuerySymbolOrigin {
             return this.includingRowsets;
         }
 
+        @NotNull
+        public DbObjectFilterMode getFilterMode() {
+            return this.filterMode;
+        }
+
         @Override
         public boolean isApplicable(@NotNull LSMInspections.SyntaxInspectionResult syntaxInspectionResult) {
-            return this.objectTypes.contains(RelationalObjectType.TYPE_DATA_TYPE) || super.isApplicable(syntaxInspectionResult);
+            // Data type and call target names are not table references for the syntax inspection,
+            // but their statement model already says that a name of this kind is expected here
+            return this.objectTypes.contains(RelationalObjectType.TYPE_DATA_TYPE)
+                || this.filterMode == DbObjectFilterMode.CALL
+                || super.isApplicable(syntaxInspectionResult);
         }
 
         @Override
