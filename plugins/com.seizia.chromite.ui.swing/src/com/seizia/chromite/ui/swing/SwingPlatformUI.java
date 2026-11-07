@@ -91,6 +91,8 @@ import java.util.function.Supplier;
  *   비밀번호를 저장하지 않은 연결이 묻지 않고 취소되던 것을 고침 (docs/chromite/swing-auth-prompts.md)
  * - 2026-11-08 경고 확인({@code confirmAction(title, message, true)})은 No가 기본 단추. 데이터·스키마·작업·세션·파일을 바꾸는 확인의
  *   공통 대화상자 {@link #confirmChange}(동사 단추와 기본 단추인 Cancel) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 {@code showError}의 DB별 처리(연결 끊김의 다시 연결, 드라이버 클래스 없음의 드라이버 편집, 드라이버 라이선스 오류)를
+ *   {@link DatabaseErrorDialogs}로 함(SWT {@code DesktopUI.showDatabaseError}) (docs/chromite/connection-lifecycle.md)
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -112,18 +114,32 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
-        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing)
-        showErrorBox(title, joinText(ErrorText.clean(message), ErrorText.describe(status)), ErrorText.findException(status));
+        Throwable error = ErrorText.findException(status);
+        if (error != null && showDatabaseError(title, message, error)) {
+            return UserResponse.OK;
+        }
+        showErrorBox(title, joinText(ErrorText.clean(message), ErrorText.describe(status)), error);
         return UserResponse.OK;
     }
 
     @Override
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
-        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing)
         log.debug(e);
+        if (showDatabaseError(title, message, e)) {
+            return UserResponse.OK;
+        }
         showErrorBox(CommonUtils.isEmpty(title) ? CoreMessages.common_error : title,
             joinText(ErrorText.clean(message), ErrorText.describe(e)), e);
         return UserResponse.OK;
+    }
+
+    /**
+     * The dialogs of lost connections, missing driver classes and driver licenses (SWT {@code DesktopUI.showDatabaseError}).
+     *
+     * @return true when the error had such a dialog
+     */
+    private static boolean showDatabaseError(@Nullable String title, @Nullable String message, @NotNull Throwable error) {
+        return Boolean.TRUE.equals(runOnEdt(() -> DatabaseErrorDialogs.show(title, message, error)));
     }
 
     @Override

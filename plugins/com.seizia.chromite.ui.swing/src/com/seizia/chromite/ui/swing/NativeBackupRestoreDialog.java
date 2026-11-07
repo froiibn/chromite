@@ -33,14 +33,13 @@ import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.app.DBPProject;
-import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
-import com.seizia.chromite.model.connection.LocalNativeClientLocation;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
-import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.nativetool.AbstractScriptExecuteSettings;
 import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -57,7 +56,9 @@ import java.util.*;
 import java.util.List;
 
 /**
- * PostgreSQL·MySQL/MariaDB 백업·복원 대화상자(Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…).
+ * PostgreSQL·MySQL/MariaDB 백업·복원 대화상자(Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…)와
+ * 네이티브 클라이언트로 스크립트 실행 대화상자(Tasks &gt; Run Script with Native Client…, Query &gt; Run with Native Client…:
+ * psql, mysql, sqlplus).
  *
  * 설계: DBeaver의 네이티브 도구 작업을 그대로 쓴다. SWT 마법사(ext.postgresql.ui {@code PostgreBackupWizard}·
  * {@code PostgreRestoreWizard}, ext.mysql.ui의 백업·복원 마법사)는 모델의 설정({@code PostgreDatabaseBackupSettings},
@@ -81,6 +82,11 @@ import java.util.List;
  *     모델 처리기는 이를 경고 알림만 띄우고 성공으로 끝낸다.</li>
  *     <li>화면과 상관없는 부분(클라이언트 목록, 작업 형식, 명령줄, 처리기 실행, pg_restore 종료 코드 1)은 모델의
  *     {@link NativeBackupRestore}에 있다. Chromite Agent 백업·복원 도구가 같은 실행 경로를 쓴다.</li>
+ *     <li>스크립트 실행은 복원처럼 입력 파일을 읽는 세 번째 방식이다. 도구가 따로 접속하는 새 세션이라 쿼리 창의 세션·트랜잭션과
+ *     상관없다는 것을 General 페이지와 실행 확인에 적는다. 실행 확인(Cancel이 기본 단추)이 명령줄과 표준 입력으로 보내는 것
+ *     (SQL*Plus 로그온, 암호는 가림)을 보인다.</li>
+ *     <li>저장된 작업: Script 메뉴의 Save as Task…가 설정을 프로젝트의 작업으로 저장하고, Database Tasks 보기의 Edit…가
+ *     {@link #openTask}로 다시 연다(그 뒤의 저장은 같은 작업을 고침).</li>
  * </ul>
  *
  * 변경 이력:
@@ -89,6 +95,8 @@ import java.util.List;
  * - 2026-11-07 메시지 페이지에서 로그의 스택 추적 머리줄("…Exception: …", "Caused by:")도 빼고 클래스 이름을 줄임 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql ON_ERROR_STOP, pg_restore --exit-on-error) (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
  * - 2026-11-08 모델 부분을 {@link NativeBackupRestore}(model.admin)로 옮김: Chromite Agent 백업·복원 도구와 같은 실행 경로 (docs/chromite/ai-agent.md)
+ * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus), 작업으로 저장·저장된 작업 편집, 클라이언트 폴더 더하기를 모델로 옮김
+ *   (docs/chromite/swing-database-tasks.md)
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -96,13 +104,19 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     private enum Kind {
         POSTGRES,
-        MYSQL
+        MYSQL,
+        ORACLE
     }
 
     private final Kind kind;
     private final boolean restore;
+    // Run Script with Native Client: like a restore it reads an input file, with the script options
+    private final boolean script;
     private final DBSObject database;
     private final DBPDataSourceContainer container;
+    // The saved task this dialog edits (Save Task updates it), or null
+    @Nullable
+    private DBTTask savedTask;
 
     private final JTextField folderField = new JTextField();
     private final JTextField fileNameField = new JTextField();
@@ -125,22 +139,38 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     private boolean fileNameEdited;
     private boolean settingFileName;
 
-    private NativeBackupRestoreDialog(@NotNull Component owner, @NotNull DBSObject database, @NotNull Kind kind, boolean restore) {
-        super(owner, NLS.bind(restore ? BackupRestoreMessages.restore_title : BackupRestoreMessages.backup_title, database.getName()),
+    private NativeBackupRestoreDialog(
+        @NotNull Component owner,
+        @NotNull DBSObject database,
+        boolean restore,
+        boolean script,
+        @Nullable DBTTask savedTask,
+        @Nullable AbstractNativeToolSettings<?> savedSettings
+    ) {
+        super(owner, NLS.bind(script ? BackupRestoreMessages.native_script_title
+            : restore ? BackupRestoreMessages.restore_title : BackupRestoreMessages.backup_title, database.getName()),
             database.getDataSource().getContainer());
-        this.kind = kind;
+        this.kind = database instanceof PostgreDatabase ? Kind.POSTGRES : database instanceof MySQLCatalog ? Kind.MYSQL : Kind.ORACLE;
         this.restore = restore;
+        this.script = script;
         this.database = database;
         this.container = database.getDataSource().getContainer();
+        this.savedTask = savedTask;
         previewTimer.setRepeats(false);
 
         // General
         FormPanel general = new FormPanel();
-        general.addSection(restore ? BackupRestoreMessages.restore_section_destination : BackupRestoreMessages.backup_section_source);
+        general.addSection(script ? BackupRestoreMessages.native_script_section_target
+            : restore ? BackupRestoreMessages.restore_section_destination : BackupRestoreMessages.backup_section_source);
         JTextField databaseField = new JTextField(database.getName());
         databaseField.setEditable(false);
-        general.addRow(BackupRestoreMessages.backup_database, databaseField);
-        if (restore) {
+        general.addRow(script ? BackupRestoreMessages.native_script_target : BackupRestoreMessages.backup_database, databaseField);
+        if (script) {
+            general.addSection(BackupRestoreMessages.native_script_section_script);
+            general.addRow(BackupRestoreMessages.native_script_file, withBrowse(inputFileField, true));
+            // A native client run is a session of its own: said where the script is chosen
+            general.addFull(FormPanel.note(NLS.bind(BackupRestoreMessages.native_script_session_note, getToolNames())));
+        } else if (restore) {
             general.addSection(BackupRestoreMessages.restore_section_source);
             general.addRow(BackupRestoreMessages.native_input_file, withBrowse(inputFileField, true));
         } else {
@@ -150,7 +180,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             general.addRow(BackupRestoreMessages.native_file_name, fileNameField);
             general.addFull(FormPanel.note(BackupRestoreMessages.native_file_name_note));
         }
-        if (kind == Kind.POSTGRES) {
+        if (kind == Kind.POSTGRES && !script) {
             formatCombo.setRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -168,7 +198,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
                 general.addRow(BackupRestoreMessages.native_pg_compression, compressionField);
                 general.addRow(BackupRestoreMessages.native_pg_encoding, encodingField);
             }
-        } else if (!restore) {
+        } else if (kind == Kind.MYSQL && !restore && !script) {
             methodCombo.setSelectedIndex(0);
             methodCombo.addActionListener(e -> schedulePreview());
             general.addRow(BackupRestoreMessages.native_mysql_method, methodCombo);
@@ -178,8 +208,16 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
         // Options
         FormPanel options = new FormPanel();
-        options.addSection(restore ? BackupRestoreMessages.restore_section_options : BackupRestoreMessages.native_section_options);
-        if (kind == Kind.POSTGRES && !restore) {
+        options.addSection(script ? BackupRestoreMessages.native_script_section_options
+            : restore ? BackupRestoreMessages.restore_section_options : BackupRestoreMessages.native_section_options);
+        if (script && kind == Kind.POSTGRES) {
+            addOption(options, "stopOnError", BackupRestoreMessages.native_script_pg_stop_on_error, false); //$NON-NLS-1$
+        } else if (script && kind == Kind.MYSQL) {
+            addOption(options, "disableFk", BackupRestoreMessages.native_script_mysql_disable_fk, false); //$NON-NLS-1$
+            addOption(options, "verbose", BackupRestoreMessages.native_mysql_verbose, false); //$NON-NLS-1$
+        } else if (script) {
+            options.addFull(FormPanel.note(BackupRestoreMessages.native_script_oracle_note));
+        } else if (kind == Kind.POSTGRES && !restore) {
             addOption(options, "noOwner", BackupRestoreMessages.native_pg_no_owner, false); //$NON-NLS-1$
             addOption(options, "noPrivileges", BackupRestoreMessages.native_pg_no_privileges, false); //$NON-NLS-1$
             addOption(options, "inserts", BackupRestoreMessages.native_pg_inserts, false); //$NON-NLS-1$
@@ -275,10 +313,14 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         encodingField.getDocument().addDocumentListener(previewListener);
         updateDefaultFileName();
         loadClients(container.getConnectionConfiguration().getClientHomeId());
+        if (savedSettings != null) {
+            applySettings(savedSettings);
+        }
 
         initDialog(List.of(
             new Page(BackupRestoreMessages.task_page_general, general),
-            new Page(restore ? BackupRestoreMessages.restore_page_options : BackupRestoreMessages.backup_page_options, options),
+            new Page(script ? BackupRestoreMessages.native_script_page_options
+                : restore ? BackupRestoreMessages.restore_page_options : BackupRestoreMessages.backup_page_options, options),
             new Page(BackupRestoreMessages.native_page_client, client)));
         updatePreview();
     }
@@ -287,8 +329,113 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
      * Back Up / Restore of a PostgreSQL database or a MySQL/MariaDB catalog.
      */
     static void open(@NotNull Component owner, @NotNull DBSObject database, boolean restore) {
-        Kind kind = database instanceof PostgreDatabase ? Kind.POSTGRES : Kind.MYSQL;
-        new NativeBackupRestoreDialog(owner, database, kind, restore).open();
+        new NativeBackupRestoreDialog(owner, database, restore, false, null, null).open();
+    }
+
+    /**
+     * Run Script with Native Client on a PostgreSQL database, MySQL/MariaDB catalog, Oracle schema or Oracle connection
+     * ({@link NativeBackupRestore#isScriptSupported}).
+     *
+     * @param scriptFile the script file to fill in, or null
+     */
+    static void openScript(@NotNull Component owner, @NotNull DBSObject target, @Nullable String scriptFile) {
+        NativeBackupRestoreDialog dialog = new NativeBackupRestoreDialog(owner, target, false, true, null, null);
+        if (scriptFile != null) {
+            dialog.inputFileField.setText(scriptFile);
+        }
+        dialog.open();
+    }
+
+    /**
+     * Opens the dialog of a saved task with its settings (Edit in Database Tasks). Reading the settings finds the task's
+     * database objects, which connects; the user can run the settings and save them back into the task.
+     */
+    static void openTask(@NotNull Component owner, @NotNull DBTTask task) {
+        AbstractNativeToolSettings<?> settings;
+        try {
+            settings = ProgressDialog.runTask(NLS.bind(BackupRestoreMessages.native_task_loading, task.getName()),
+                monitor -> NativeBackupRestore.loadTaskSettings(monitor, task));
+        } catch (DBException e) {
+            log.debug("Can't read the task settings", e);
+            ErrorDialog.show(owner, task.getName(), ErrorText.describe(e), e);
+            return;
+        }
+        DBSObject target = NativeBackupRestore.getTaskTarget(settings);
+        if (target == null) {
+            JOptionPane.showMessageDialog(owner, NLS.bind(BackupRestoreMessages.native_task_no_target, task.getName()),
+                task.getName(), JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // A MySQL restore is a script run of the restore task type (MySQLScriptExecuteSettings with the import flag)
+        boolean script = settings instanceof AbstractScriptExecuteSettings<?> && !(settings instanceof MySQLScriptExecuteSettings my && my.isImport());
+        boolean restore = !script && (settings instanceof PostgreDatabaseRestoreSettings || settings instanceof MySQLScriptExecuteSettings);
+        new NativeBackupRestoreDialog(owner, target, restore, script, task, settings).open();
+    }
+
+    /**
+     * Fills the controls from the settings of a saved task.
+     */
+    private void applySettings(@NotNull AbstractNativeToolSettings<?> settings) {
+        if (settings instanceof PostgreDatabaseBackupSettings pg) {
+            formatCombo.setSelectedItem(pg.getFormat());
+            setOutputPatterns(pg.getOutputFolderPattern(), pg.getOutputFilePattern());
+            compressionField.setText(CommonUtils.notEmpty(pg.getCompression()));
+            encodingField.setText(CommonUtils.notEmpty(pg.getEncoding()));
+            setOption("noOwner", pg.isNoOwner()); //$NON-NLS-1$
+            setOption("noPrivileges", pg.isNoPrivileges()); //$NON-NLS-1$
+            setOption("inserts", pg.isUseInserts()); //$NON-NLS-1$
+            setOption("clean", pg.isDropObjects()); //$NON-NLS-1$
+            setOption("create", pg.isCreateDatabase()); //$NON-NLS-1$
+        } else if (settings instanceof PostgreDatabaseRestoreSettings pg) {
+            formatCombo.setSelectedItem(pg.getFormat());
+            inputFileField.setText(CommonUtils.notEmpty(pg.getInputFile()));
+            setOption("clean", pg.isCleanFirst()); //$NON-NLS-1$
+            setOption("noOwner", pg.isNoOwner()); //$NON-NLS-1$
+            setOption("create", pg.isCreateDatabase()); //$NON-NLS-1$
+            // The only extra arguments this dialog writes (see createSettings)
+            setOption("stopOnError", !CommonUtils.isEmptyTrimmed(pg.getExtraCommandArgs())); //$NON-NLS-1$
+        } else if (settings instanceof MySQLExportSettings my) {
+            methodCombo.setSelectedIndex(switch (my.getMethod()) {
+                case ONLINE -> 0;
+                case LOCK_ALL_TABLES -> 1;
+                default -> 2;
+            });
+            setOutputPatterns(my.getOutputFolderPattern(), my.getOutputFilePattern());
+            setOption("noCreate", my.isNoCreateStatements()); //$NON-NLS-1$
+            setOption("addDrop", my.isAddDropStatements()); //$NON-NLS-1$
+            setOption("disableKeys", my.isDisableKeys()); //$NON-NLS-1$
+            setOption("extendedInserts", my.isExtendedInserts()); //$NON-NLS-1$
+            setOption("noData", my.isNoData()); //$NON-NLS-1$
+            setOption("routines", !my.isNoRoutines()); //$NON-NLS-1$
+            setOption("events", my.isDumpEvents()); //$NON-NLS-1$
+            setOption("comments", my.isComments()); //$NON-NLS-1$
+            setOption("removeDefiner", my.isRemoveDefiner()); //$NON-NLS-1$
+            setOption("hexBlob", my.isBinariesInHex()); //$NON-NLS-1$
+        } else if (settings instanceof AbstractScriptExecuteSettings<?> scriptSettings) {
+            inputFileField.setText(CommonUtils.notEmpty(scriptSettings.getInputFile()));
+            if (scriptSettings instanceof MySQLScriptExecuteSettings my) {
+                setOption("disableFk", my.isForeignKeyCheckDisabled()); //$NON-NLS-1$
+                setOption("verbose", my.getLogLevel() == MySQLScriptExecuteSettings.LogLevel.Verbose); //$NON-NLS-1$
+            } else {
+                setOption("stopOnError", !CommonUtils.isEmptyTrimmed(scriptSettings.getExtraCommandArgs())); //$NON-NLS-1$
+            }
+        }
+    }
+
+    private void setOutputPatterns(@Nullable String folder, @Nullable String fileName) {
+        folderField.setText(CommonUtils.notEmpty(folder));
+        if (!CommonUtils.isEmpty(fileName)) {
+            fileNameField.setText(fileName);
+            // The saved name stays when the format changes
+            fileNameEdited = true;
+        }
+    }
+
+    private void setOption(@NotNull String id, boolean selected) {
+        JCheckBox check = optionChecks.get(id);
+        if (check != null) {
+            check.setSelected(selected);
+        }
     }
 
     @NotNull
@@ -331,7 +478,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     @NotNull
     private String getToolNames() {
-        return NativeBackupRestore.getToolNames(kind == Kind.POSTGRES, restore);
+        return script ? NativeBackupRestore.getScriptToolName(database) : NativeBackupRestore.getToolNames(kind == Kind.POSTGRES, restore);
     }
 
     private void fileNameChanged() {
@@ -344,7 +491,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
      * Default file name: as the SWT wizards, "dump-${database}-${timestamp}" with the format's extension.
      */
     private void updateDefaultFileName() {
-        if (restore || fileNameEdited) {
+        if (restore || script || fileNameEdited) {
             return;
         }
         String extension = kind == Kind.MYSQL ? "sql" //$NON-NLS-1$
@@ -398,26 +545,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             return;
         }
         String path = chooser.getSelectedFile().getAbsolutePath();
-        DBPDriver driver = container.getDriver();
-        if (driver instanceof DriverDescriptor descriptor) {
-            // Keep the driver's custom locations and add this one, as the SWT client homes panel saves them
-            List<DBPNativeClientLocation> custom = new ArrayList<>();
-            for (DBPNativeClientLocation location : driver.getNativeClientLocations()) {
-                if (NativeBackupRestore.isLocal(location) && !location.getName().equals(path)) {
-                    custom.add(location);
-                }
-            }
-            custom.add(new LocalNativeClientLocation(path, path));
-            descriptor.setNativeClientLocations(custom);
-            // Only modified drivers are written to drivers.xml; without this the folder is gone after a restart
-            // (the SWT client homes panel relies on the driver being modified already)
-            descriptor.setModified(true);
-            try {
-                descriptor.getProviderDescriptor().getRegistry().saveDrivers();
-            } catch (DBException e) {
-                log.debug("Can't save the client location", e);
-            }
-        }
+        NativeBackupRestore.addLocalClient(container.getDriver(), path);
         loadClients(path);
     }
 
@@ -434,7 +562,18 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         DBPProject project = container.getProject();
         DBPNativeClientLocation client = getSelectedClient();
         AbstractNativeToolSettings<?> settings;
-        if (kind == Kind.POSTGRES && !restore) {
+        if (script) {
+            AbstractScriptExecuteSettings<?> scriptSettings = NativeBackupRestore.createScriptSettings(database);
+            scriptSettings.setInputFile(inputFileField.getText().trim());
+            if (scriptSettings instanceof MySQLScriptExecuteSettings my) {
+                my.setIsForeignKeyCheckDisabled(option("disableFk")); //$NON-NLS-1$
+                my.setLogLevel(option("verbose") ? MySQLScriptExecuteSettings.LogLevel.Verbose : MySQLScriptExecuteSettings.LogLevel.Normal); //$NON-NLS-1$
+            } else if (option("stopOnError")) { //$NON-NLS-1$
+                // psql runs the script to the end and exits with 0 whatever failed; with ON_ERROR_STOP it stops and exits with 3
+                scriptSettings.setExtraCommandArgs("-v ON_ERROR_STOP=1"); //$NON-NLS-1$
+            }
+            settings = scriptSettings;
+        } else if (kind == Kind.POSTGRES && !restore) {
             PostgreDatabaseBackupSettings pg = new PostgreDatabaseBackupSettings(project);
             pg.loadSettingsFromInput(List.of(database), Map.of());
             pg.setFormat((PostgreBackupRestoreSettings.ExportFormat) formatCombo.getSelectedItem());
@@ -513,7 +652,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             return;
         }
         try {
-            commandArea.setText(NativeBackupRestore.getCommandLine(createSettings()));
+            commandArea.setText(describeCommand(createSettings()));
             commandArea.setCaretPosition(0);
             clientStatus.setText(NLS.bind(BackupRestoreMessages.native_client_found, client.getPath().getAbsolutePath()));
         } catch (Exception e) {
@@ -526,13 +665,24 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     //////////////////////////////////////////////////////////
     // Run
 
+    /**
+     * The command line, and the commands written to the tool's standard input before the script (SQL*Plus logon, password
+     * masked).
+     */
+    @NotNull
+    private static String describeCommand(@NotNull AbstractNativeToolSettings<?> settings) throws Exception {
+        String command = NativeBackupRestore.getCommandLine(settings);
+        String input = NativeBackupRestore.getStandardInputPreview(settings);
+        return input == null ? command : command + "\n\n" + BackupRestoreMessages.native_stdin + "\n" + input.strip(); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
     @Nullable
     @Override
     protected String validateInput() {
-        if (restore) {
+        if (restore || script) {
             String input = inputFileField.getText().trim();
             if (input.isEmpty()) {
-                return BackupRestoreMessages.native_error_no_input;
+                return script ? BackupRestoreMessages.native_script_error_no_input : BackupRestoreMessages.native_error_no_input;
             }
             if (!new File(input).exists()) {
                 return NLS.bind(BackupRestoreMessages.native_error_input_missing, input);
@@ -552,18 +702,53 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         return null;
     }
 
+    /**
+     * A script run shows the command line and says that it is a session of its own before it starts (the command line is
+     * on the Local Client page, which the user may not have opened). Cancel is the default button.
+     */
+    @Override
+    protected boolean confirmRun() {
+        if (!script) {
+            return true;
+        }
+        String command;
+        try {
+            command = describeCommand(createSettings());
+        } catch (Exception e) {
+            log.debug("Can't build the command line", e);
+            return false;
+        }
+        // Long command lines wrap: room for a few wrapped lines without a scroll bar
+        JTextArea commandText = new JTextArea(command, Math.min(10, command.split("\n").length + 3), 60); //$NON-NLS-1$
+        commandText.setEditable(false);
+        commandText.setLineWrap(true);
+        commandText.putClientProperty(com.formdev.flatlaf.FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        JPanel message = new JPanel(new BorderLayout(0, 8));
+        message.add(new JLabel(NLS.bind(BackupRestoreMessages.native_script_confirm, getToolNames())), BorderLayout.NORTH);
+        message.add(new JScrollPane(commandText), BorderLayout.CENTER);
+        return SwingPlatformUI.confirmChange(this, message, BackupRestoreMessages.native_script_confirm_title,
+            BackupRestoreMessages.native_script_confirm_run, JOptionPane.QUESTION_MESSAGE);
+    }
+
     @NotNull
     @Override
     protected TaskRun prepareRun() {
         AbstractNativeToolSettings<?> settings = createSettings();
+        storeClientHome();
+        String title = getTitle();
+        return monitor -> runHandler(monitor, title, settings);
+    }
+
+    /**
+     * The handlers read the client from the connection, as the SWT native client dialog stores it: the chosen local client
+     * becomes the connection's client home (a saved task runs with it too).
+     */
+    private void storeClientHome() {
         DBPNativeClientLocation client = Objects.requireNonNull(getSelectedClient());
-        // The handlers read the client from the connection, as the SWT native client dialog stores it
         if (!client.getName().equals(container.getConnectionConfiguration().getClientHomeId())) {
             container.getConnectionConfiguration().setClientHomeId(client.getName());
             container.persistConfiguration();
         }
-        String title = getTitle();
-        return monitor -> runHandler(monitor, title, settings);
     }
 
     private void runHandler(
@@ -583,7 +768,8 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     @NotNull
     @Override
     protected String getSuccessText() {
-        return NLS.bind(restore ? BackupRestoreMessages.restore_success : BackupRestoreMessages.backup_success, database.getName());
+        return NLS.bind(script ? BackupRestoreMessages.native_script_success
+            : restore ? BackupRestoreMessages.restore_success : BackupRestoreMessages.backup_success, database.getName());
     }
 
     @NotNull
@@ -598,7 +784,41 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
                 }
             }
         };
-        return List.of(copy);
+        // Built each time the menu opens: after the first save the item updates that task
+        Action save = new AbstractAction(savedTask == null ? BackupRestoreMessages.native_task_save : BackupRestoreMessages.native_task_update) {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                saveAsTask();
+            }
+        };
+        return List.of(copy, save);
+    }
+
+    /**
+     * Saves the settings as a task of the project (Database Tasks view), or into the task this dialog edits. The chosen local
+     * client becomes the connection's client home, as when the dialog runs, so that the saved task runs with it.
+     */
+    private void saveAsTask() {
+        String problem = validateInput();
+        if (problem != null) {
+            JOptionPane.showMessageDialog(this, problem, getTitle(), JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Object name = JOptionPane.showInputDialog(this, BackupRestoreMessages.native_task_name, BackupRestoreMessages.native_task_save_title,
+            JOptionPane.QUESTION_MESSAGE, null, null, savedTask != null ? savedTask.getName() : getTitle());
+        if (name == null || name.toString().isBlank()) {
+            return;
+        }
+        try {
+            storeClientHome();
+            savedTask = NativeBackupRestore.saveTask(createSettings(), name.toString().strip(), savedTask);
+        } catch (DBException e) {
+            log.debug("Can't save the task", e);
+            ErrorDialog.show(this, BackupRestoreMessages.native_task_save_title, ErrorText.describe(e), e);
+            return;
+        }
+        JOptionPane.showMessageDialog(this, NLS.bind(BackupRestoreMessages.native_task_saved, savedTask.getName()),
+            BackupRestoreMessages.native_task_save_title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**

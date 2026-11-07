@@ -19,17 +19,20 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
 import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDDataFilter;
 import com.seizia.chromite.model.data.order.OrderingStrategy;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -61,6 +64,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -115,10 +119,14 @@ import java.util.function.Consumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 WHERE 필터 줄을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄 오른쪽으로,
  *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 LOB 칸 편집: F2·두 번 누르기로 값 패널을 열고, 글자 LOB는 패널에서 고치며, 파일에서 불러오기·파일로 저장(메뉴와 값 패널 단추).
+ *   그리드가 모르는(읽지 않은) LOB 값만 받은 내용으로 보이고, 고치거나 저장한 값은 편집 모델의 값을 보임 (docs/chromite/swing-grid-editing.md)
  * - 2026-11-08 상태 줄의 정렬 요약: 정렬한 열, 쿼리의 ORDER BY를 바꿨는지, 쿼리 순서로 되돌리기(✕). 상태 줄 왼쪽이 넘치면 두 줄로 늘어남
  *   ({@link WrapFlowLayout}: 전에는 넘친 요약이 상태 줄 밖으로 밀려 가려짐) (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  * - 2026-11-08 차트 보기·공간 보기와 상태 줄 Chart / Spatial 단추. 레코드 보기 여부(boolean)를 보기 방식({@code ViewMode})으로 바꿈.
  *   기하 값은 값 패널에도 보이고 "Filter by Value"에는 넣지 않음 (docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-08 끝까지 내리면 더 읽기({@link #isAutoFetchNextSegment}): 기본값을 전역 설정에 두고 연결의 저장소로 읽음. 전에는 연결 자신의 값만
+ *   보아 Options의 값이 효과가 없었다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -127,7 +135,7 @@ final class ResultSetViewerPanel extends JPanel {
     /**
      * SWT {@code ResultSetPreferences.RESULT_SET_AUTO_FETCH_NEXT_SEGMENT} (UI bundle, default on).
      */
-    private static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
+    static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
     private static final String CARD_GRID = "grid"; //$NON-NLS-1$
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
     private static final String CARD_CHART = "chart"; //$NON-NLS-1$
@@ -185,6 +193,8 @@ final class ResultSetViewerPanel extends JPanel {
     private final JLabel aggregateLabel = new JLabel();
     private final JToggleButton valuePanelToggle;
     private final JToggleButton recordToggle;
+    private final Action loadFileAction;
+    private final Action saveFileAction;
     private final JToggleButton chartToggle;
     private final JToggleButton spatialToggle;
     private final JPanel cards = new JPanel(new CardLayout());
@@ -245,6 +255,12 @@ final class ResultSetViewerPanel extends JPanel {
             }
 
             @Override
+            public void editInValuePanel() {
+                setValuePanelShown(true);
+                scheduleSelectionUpdate();
+            }
+
+            @Override
             public void exportData(@NotNull Component parent, @NotNull DBSDataContainer query) {
                 // The rows as the server read them (SWT ResultSetHandlerMain passes the model's data filter); a sort done in
                 // the grid only can't be passed on
@@ -262,6 +278,13 @@ final class ResultSetViewerPanel extends JPanel {
 
         valuePanel = new ResultSetValuePanel();
         recordView = new ResultSetRecordView(new RecordSource());
+        loadFileAction = createAction(GridEditMessages.gridedit_lob_load, null, this::loadCellFromFile);
+        loadFileAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_lob_load_tip);
+        saveFileAction = createAction(GridEditMessages.gridedit_lob_save, null, this::saveCellToFile);
+        saveFileAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_lob_save_tip);
+        loadFileAction.setEnabled(false);
+        saveFileAction.setEnabled(false);
+        valuePanel.setFileActions(loadFileAction, saveFileAction);
         chartView = new ResultSetChartView(new ChartSource());
         spatialView = new ResultSetSpatialView(new SpatialSource());
 
@@ -788,6 +811,8 @@ final class ResultSetViewerPanel extends JPanel {
         Action fitColumns = createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table));
         JCheckBoxMenuItem valuePanelItem = new JCheckBoxMenuItem(valuePanelToggle.getAction());
         JCheckBoxMenuItem recordItem = new JCheckBoxMenuItem(recordToggle.getAction());
+        JMenuItem loadFileItem = new JMenuItem(loadFileAction);
+        JMenuItem saveFileItem = new JMenuItem(saveFileAction);
         JCheckBoxMenuItem chartItem = new JCheckBoxMenuItem(chartToggle.getAction());
         JCheckBoxMenuItem spatialItem = new JCheckBoxMenuItem(spatialToggle.getAction());
 
@@ -802,6 +827,9 @@ final class ResultSetViewerPanel extends JPanel {
         } else {
             menu.add(copyAsMenu);
         }
+        menu.addSeparator();
+        menu.add(loadFileItem);
+        menu.add(saveFileItem);
         menu.addSeparator();
         menu.add(filterMenu);
         menu.add(clearFilter);
@@ -818,6 +846,7 @@ final class ResultSetViewerPanel extends JPanel {
                 clearFilter.setEnabled(fetched.source().canRequery() && dataFilter.hasConditions() && !reading);
                 valuePanelItem.setSelected(valuePanelShown);
                 recordItem.setSelected(isRecordMode());
+                updateFileActions();
                 chartItem.setSelected(viewMode == ViewMode.CHART);
                 spatialItem.setVisible(spatialToggle.isVisible());
                 spatialItem.setSelected(viewMode == ViewMode.SPATIAL);
@@ -908,10 +937,10 @@ final class ResultSetViewerPanel extends JPanel {
             }
             ResultSetEditModel.Row editRow = editModel.getRow(row);
             Object value = editRow.values[column];
-            // Value objects are not in the edit model (their columns are read-only): LOB content and geometries. The
-            // model has null there, or the empty value object that binding the column to its table made of that null
-            // (MariaDB geometry: an empty DBGeometry)
-            if (DBUtils.isNullValue(value) && editRow.state != ResultSetEditModel.RowState.ADDED && !editRow.isCellChanged(column)) {
+            // Value objects the grid did not read (LOB content, geometries): the model has null there, or the empty value
+            // object that binding the column to its table made of that null (MariaDB geometry: an empty DBGeometry).
+            // A LOB set in the grid (panel, file) is the model's value
+            if (DBUtils.isNullValue(value) && !editModel.hasValue(row, column)) {
                 int number = editRow.getRowNumber();
                 Object cell = number < cells.size() ? cells.get(number)[column] : null;
                 if (cell instanceof ResultSetCellContent || cell instanceof DBGeometry) {
@@ -936,6 +965,115 @@ final class ResultSetViewerPanel extends JPanel {
     private boolean isCellEditable(int row, int column) {
         ResultSetEditModel editModel = fetched.editModel();
         return editModel != null && row < editModel.getRowCount() && editModel.isCellEditable(row, column);
+    }
+
+    /**
+     * Whether the value panel edits the cell as text: an editable cell, except a binary LOB (loaded from a file).
+     */
+    private boolean isTextEditable(int row, int column) {
+        ResultSetEditModel editModel = fetched.editModel();
+        return isCellEditable(row, column) && (!editModel.isContentColumn(column) || editModel.isTextContentColumn(column));
+    }
+
+    /**
+     * The selected cell (model column), in the grid or the record view, or null.
+     */
+    @Nullable
+    private int[] getSelectedCell() {
+        if (grid == null) {
+            return null;
+        }
+        JTable table = grid.getTable();
+        int row = table.getSelectionModel().getLeadSelectionIndex();
+        int viewColumn = isRecordMode() && recordView.getSelectedColumn() >= 0
+            ? recordView.getSelectedColumn() : table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
+        if (row < 0 || row >= table.getRowCount() || viewColumn < 0 || viewColumn >= table.getColumnCount()) {
+            return null;
+        }
+        return new int[]{row, table.convertColumnIndexToModel(viewColumn)};
+    }
+
+    /**
+     * Load from File and Save to File apply to the selected LOB cell (load: an editable one).
+     */
+    private void updateFileActions() {
+        int[] cell = getSelectedCell();
+        ResultSetEditModel editModel = fetched.editModel();
+        boolean load = cell != null && editModel != null && editModel.isContentColumn(cell[1]) && isCellEditable(cell[0], cell[1]);
+        Object value = cell == null ? null : getCellValue(cell[0], cell[1]);
+        boolean save = value instanceof ResultSetCellContent || value instanceof byte[]
+            || value instanceof DBDContent content && !DBUtils.isNullValue(content);
+        loadFileAction.setEnabled(load && !reading);
+        saveFileAction.setEnabled(save);
+    }
+
+    /**
+     * Load from File (SWT {@code ContentValueManager.loadFromFile}): the file's bytes, or its text for a text LOB,
+     * become the cell's value.
+     */
+    private void loadCellFromFile() {
+        int[] cell = getSelectedCell();
+        ResultSetEditModel editModel = fetched.editModel();
+        if (cell == null || grid == null || editModel == null || !editModel.isContentColumn(cell[1]) || !isCellEditable(cell[0], cell[1])) {
+            return;
+        }
+        Path file = ResultSetLobFiles.chooseOpen(this);
+        if (file == null) {
+            return;
+        }
+        boolean text = editModel.isTextContentColumn(cell[1]);
+        Object input;
+        try {
+            input = ProgressDialog.runTask(GridEditMessages.gridedit_lob_load_title, monitor -> ResultSetLobFiles.read(monitor, file, text));
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(GridEditMessages.gridedit_lob_load_title, NLS.bind(GridEditMessages.gridedit_lob_cant_load, file), e);
+            return;
+        }
+        String error = grid.setCellObject(cell[0], cell[1], input);
+        if (error != null) {
+            DBWorkbench.getPlatformUI().showError(GridEditMessages.gridedit_lob_load_title, NLS.bind(GridEditMessages.gridedit_lob_cant_load, file),
+                new DBException(error));
+        }
+    }
+
+    /**
+     * Save to File (SWT {@code ContentValueManager.saveToFile}): the cell's whole value, text as UTF-8.
+     */
+    private void saveCellToFile() {
+        int[] cell = getSelectedCell();
+        if (cell == null) {
+            return;
+        }
+        Object value = getCellValue(cell[0], cell[1]);
+        boolean text;
+        if (value instanceof ResultSetCellContent content) {
+            text = content.isText();
+        } else if (value instanceof byte[]) {
+            text = false;
+        } else if (value instanceof DBDContent content && !DBUtils.isNullValue(content)) {
+            text = ResultSetLobFiles.isText(content);
+        } else {
+            return;
+        }
+        DBDAttributeBinding binding = fetched.data().bindings()[cell[1]];
+        Path file = ResultSetLobFiles.chooseSave(this, ResultSetLobFiles.suggestFileName(binding.getName(), binding.getTypeName(), text));
+        if (file == null) {
+            return;
+        }
+        try {
+            ProgressDialog.runTask(GridEditMessages.gridedit_lob_save_title, monitor -> {
+                if (value instanceof ResultSetCellContent content) {
+                    content.writeTo(monitor, file);
+                } else if (value instanceof byte[] bytes) {
+                    ResultSetLobFiles.writeLoaded(null, bytes, file);
+                } else {
+                    ResultSetLobFiles.writeContent(monitor, (DBDContent) value, file, text);
+                }
+                return null;
+            });
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(GridEditMessages.gridedit_lob_save_title, NLS.bind(GridEditMessages.gridedit_lob_cant_save, file), e);
+        }
     }
 
     @Nullable
@@ -974,7 +1112,7 @@ final class ResultSetViewerPanel extends JPanel {
                     binding,
                     getDisplayValue(row, column),
                     getCellValue(row, column),
-                    isCellEditable(row, column)));
+                    isTextEditable(row, column)));
             } else {
                 valuePanel.showCell(null);
             }
@@ -984,6 +1122,7 @@ final class ResultSetViewerPanel extends JPanel {
         }
         // The aggregates describe the grid's selection: only while the grid is shown
         aggregateLabel.setText(viewMode != ViewMode.GRID ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
+        updateFileActions();
     }
 
     @Nullable
@@ -1446,11 +1585,20 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         DBCExecutionContext context = fetched.source().context();
-        if (context != null && !context.getDataSource().getContainer().getPreferenceStore().getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT)
-            && context.getDataSource().getContainer().getPreferenceStore().contains(PREF_AUTO_FETCH_NEXT_SEGMENT)) {
+        if (context != null && !isAutoFetchNextSegment(context.getDataSource().getContainer().getPreferenceStore())) {
             return;
         }
         SwingUtilities.invokeLater(() -> readNextSegment(true));
+    }
+
+    /**
+     * Whether scrolling to the end reads the next rows. The default (on) is registered in the global settings, so that a
+     * connection without a value of its own follows Tools &gt; Options; checking only the connection's own value made
+     * the global setting ineffective.
+     */
+    static boolean isAutoFetchNextSegment(@NotNull DBPPreferenceStore store) {
+        DBWorkbench.getPlatform().getPreferenceStore().setDefault(PREF_AUTO_FETCH_NEXT_SEGMENT, true);
+        return store.getBoolean(PREF_AUTO_FETCH_NEXT_SEGMENT);
     }
 
     /**
@@ -1587,15 +1735,21 @@ final class ResultSetViewerPanel extends JPanel {
             int number = row.getRowNumber();
             Object[] fetchedCells = number < cells.size() ? cells.get(number) : null;
             Object[] rowCells = row.values.clone();
-            if (fetchedCells != null) {
-                for (int c = 0; c < rowCells.length; c++) {
-                    if (fetchedCells[c] instanceof ResultSetCellContent content && !row.isCellChanged(c)) {
-                        rowCells[c] = content;
-                    }
+            Object[] values = row.values.clone();
+            for (int c = 0; c < rowCells.length; c++) {
+                if (!editModel.hasValue(i, c)) {
+                    // Value objects the grid did not read: the LOB content or geometry kept for the panel and the spatial view
+                    Object fetchedCell = fetchedCells != null ? fetchedCells[c] : null;
+                    rowCells[c] = fetchedCell instanceof ResultSetCellContent || fetchedCell instanceof DBGeometry ? fetchedCell : null;
+                } else if (editModel.isContentColumn(c) && row.values[c] instanceof DBDContent content) {
+                    // A LOB value set and saved in the grid: the new grid's panel content (its edit model reads LOB
+                    // columns as not read)
+                    rowCells[c] = DBUtils.isNullValue(content) ? null : ResultSetCellContent.capture(content);
+                    values[c] = null;
                 }
             }
             int ordinal = number < ordinals.length ? ordinals[number] : ordinals.length + number;
-            rows.add(new ViewerRow(ordinal, row.display.clone(), ResultSetGridReceiver.keepValues(row.values), rowCells, row.values.clone()));
+            rows.add(new ViewerRow(ordinal, row.display.clone(), ResultSetGridReceiver.keepValues(row.values), rowCells, values));
         }
         return rows;
     }
@@ -1623,7 +1777,8 @@ final class ResultSetViewerPanel extends JPanel {
             Collections.unmodifiableList(kept), old.bindings(), hasMore);
         ResultSetEditModel oldModel = fetched.editModel();
         ResultSetEditModel editModel = oldModel == null ? null
-            : new ResultSetEditModel(oldModel.getExecutionContext(), oldModel.getDataContainer(), old.bindings(), unreadable, values, display);
+            : new ResultSetEditModel(oldModel.getExecutionContext(), oldModel.getDataContainer(), old.bindings(), unreadable,
+                oldModel.getLobColumns(), values, display, oldModel.getEnumValues());
         ResultSetSource newSource = new ResultSetSource(source.dataContainer(), source.context(), source.segmentSize(),
             source.requeryBlocker(), unreadable, List.copyOf(cells));
         fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), newSource, fetched.exportQuery());
@@ -1900,7 +2055,9 @@ final class ResultSetViewerPanel extends JPanel {
 
         @Override
         public boolean isEditable(int row, int column) {
-            return isCellEditable(row, column);
+            // LOB cells are edited in the value panel, as in the grid
+            ResultSetEditModel editModel = fetched.editModel();
+            return editModel != null && row < editModel.getRowCount() && editModel.isInlineEditable(row, column);
         }
 
         @NotNull

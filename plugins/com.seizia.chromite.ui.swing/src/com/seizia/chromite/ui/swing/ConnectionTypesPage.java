@@ -26,6 +26,7 @@ import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPConnectionType;
 import com.seizia.chromite.registry.DataSourceProviderRegistry;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -60,8 +61,8 @@ import java.util.Set;
  *     <li>보이는 항목은 Swing 제품이 읽는 것만이다: 색({@link ConnectionColors}, 라이트·다크 테마 각각), 자동 커밋 기본값
  *     ({@code DataSourceDescriptor.isDefaultAutoCommit}), 실행 확인({@code SQLQueryExecuteJob}), 데이터 변경 확인({@link ResultSetGrid}),
  *     유휴 트랜잭션 알림과 기간({@code IdleTransactionMonitor}), 유휴 연결 닫기와 기간({@code DataSourceMonitorJob}), 수정 제한
- *     ({@code hasModifyPermission}: 데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기). 스마트 커밋은 Swing 쿼리 창이 켜지 않아(엔진 처리기의
- *     {@code isSmartAutoCommit} 기본값) 효과가 없으므로 두지 않는다. 저장된 값은 복사본이 그대로 지닌다.</li>
+ *     ({@code hasModifyPermission}: 데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기), 스마트 커밋과 그 뒤 자동 커밋으로 돌아가기
+ *     ({@link SmartCommit}, 2026-11-08부터 쿼리 창이 씀).</li>
  *     <li>유휴 트랜잭션은 "알림"이다(롤백 동의가 아님, docs/chromite/idle-transactions.md). 묻지 않는 자동 롤백은 연결마다 사용자가 켜고,
  *     유형에는 두지 않는다.</li>
  *     <li>지우기: 미리 정의된 유형(개발·테스트·운영)은 지울 수 없다. 지운 유형을 쓰던 연결은 새 연결의 기본 유형으로 바뀌고 저장된다(SWT는
@@ -75,6 +76,7 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md "연결 유형")
  * - 2026-11-08 연결 유형 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 스마트 커밋·자동 커밋으로 돌아가기 칸: 쿼리 창이 스마트 커밋을 쓰게 되어 효과가 생김 (docs/chromite/connection-lifecycle.md "스마트 커밋")
  */
 final class ConnectionTypesPage extends JPanel {
 
@@ -96,6 +98,8 @@ final class ConnectionTypesPage extends JPanel {
     private final JButton darkColorButton = new JButton();
     private final JButton darkColorNoneButton = new JButton(SettingsMessages.types_color_none);
     private final JCheckBox autoCommitBox = new JCheckBox(SettingsMessages.types_auto_commit);
+    private final JCheckBox smartCommitBox = new JCheckBox(LifecycleMessages.smart_commit);
+    private final JCheckBox smartCommitRecoverBox = new JCheckBox(LifecycleMessages.smart_commit_recover);
     private final JCheckBox confirmExecuteBox = new JCheckBox(SettingsMessages.types_confirm_execute);
     private final JCheckBox confirmDataChangeBox = new JCheckBox(SettingsMessages.types_confirm_data_change);
     private final JCheckBox idleTxnBox = new JCheckBox(SettingsMessages.types_idle_transactions);
@@ -168,11 +172,13 @@ final class ConnectionTypesPage extends JPanel {
         colorNoneButton.addActionListener(e -> setColor(false, NO_COLOR));
         darkColorNoneButton.addActionListener(e -> setColor(true, NO_COLOR));
         autoCommitBox.setToolTipText(SettingsMessages.types_auto_commit_tip);
+        smartCommitBox.setToolTipText(LifecycleMessages.smart_commit_tip);
+        smartCommitRecoverBox.setToolTipText(LifecycleMessages.smart_commit_recover_tip);
         confirmExecuteBox.setToolTipText(SettingsMessages.types_confirm_execute_tip);
         confirmDataChangeBox.setToolTipText(SettingsMessages.types_confirm_data_change_tip);
         idleTxnBox.setToolTipText(SettingsMessages.types_idle_transactions_tip);
         closeIdleBox.setToolTipText(SettingsMessages.types_close_idle_tip);
-        for (JCheckBox box : List.of(autoCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
+        for (JCheckBox box : List.of(autoCommitBox, smartCommitBox, smartCommitRecoverBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
             box.addActionListener(e -> storeSelected());
         }
         for (JSpinner spinner : List.of(idleTxnSpinner, closeIdleSpinner)) {
@@ -190,6 +196,8 @@ final class ConnectionTypesPage extends JPanel {
         row = OptionsDialog.addRow(form, row, SettingsMessages.types_color_dark, colorRow(darkColorButton, darkColorNoneButton), null);
         row = OptionsDialog.addSection(form, row, SettingsMessages.types_section_transactions);
         row = OptionsDialog.addRow(form, row, null, autoCommitBox, null);
+        row = OptionsDialog.addRow(form, row, null, smartCommitBox, null);
+        row = OptionsDialog.addRow(form, row, null, smartCommitRecoverBox, null);
         row = OptionsDialog.addRow(form, row, null, confirmExecuteBox, null);
         row = OptionsDialog.addRow(form, row, null, confirmDataChangeBox, null);
         row = OptionsDialog.addRow(form, row, null, idleTxnBox, null);
@@ -241,6 +249,8 @@ final class ConnectionTypesPage extends JPanel {
             nameField.setText(type == null ? "" : type.getName());
             descriptionField.setText(type == null ? "" : CommonUtils.notEmpty(type.getDescription()));
             autoCommitBox.setSelected(type != null && type.isAutocommit());
+            smartCommitBox.setSelected(type != null && type.isSmartCommit());
+            smartCommitRecoverBox.setSelected(type != null && type.isSmartCommitRecover());
             confirmExecuteBox.setSelected(type != null && type.isConfirmExecute());
             confirmDataChangeBox.setSelected(type != null && type.isConfirmDataChange());
             idleTxnBox.setSelected(type != null && type.isAutoCloseTransactions());
@@ -252,7 +262,7 @@ final class ConnectionTypesPage extends JPanel {
                 entry.getValue().setEnabled(editable);
             }
             for (JComponent component : List.of(nameField, descriptionField, colorButton, colorNoneButton, darkColorButton,
-                darkColorNoneButton, autoCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
+                darkColorNoneButton, autoCommitBox, smartCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
                 component.setEnabled(editable);
             }
             deleteButton.setEnabled(type != null && !type.isPredefined());
@@ -274,6 +284,8 @@ final class ConnectionTypesPage extends JPanel {
         type.setName(nameField.getText().trim());
         type.setDescription(CommonUtils.nullIfEmpty(descriptionField.getText().trim()));
         type.setAutocommit(autoCommitBox.isSelected());
+        type.setSmartCommit(smartCommitBox.isSelected());
+        type.setSmartCommitRecover(smartCommitRecoverBox.isSelected());
         type.setConfirmExecute(confirmExecuteBox.isSelected());
         type.setConfirmDataChange(confirmDataChangeBox.isSelected());
         type.setAutoCloseTransactions(idleTxnBox.isSelected());
@@ -293,9 +305,10 @@ final class ConnectionTypesPage extends JPanel {
     }
 
     /**
-     * The periods only apply with their switch on.
+     * The periods only apply with their switch on, as the return to auto-commit only applies with smart commit.
      */
     private void updateDependentFields() {
+        smartCommitRecoverBox.setEnabled(smartCommitBox.isEnabled() && smartCommitBox.isSelected());
         idleTxnSpinner.setEnabled(idleTxnBox.isEnabled() && idleTxnBox.isSelected());
         closeIdleSpinner.setEnabled(closeIdleBox.isEnabled() && closeIdleBox.isSelected());
     }

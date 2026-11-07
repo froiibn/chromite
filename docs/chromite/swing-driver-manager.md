@@ -140,7 +140,8 @@ SWT는 같은 판단을 글자색으로만 보여 준다(오류색 = 파일 없�
   Swing은 검사한 뒤에 쓴다.
 - **클래스 로더 버리기:** SWT는 같은 이름의 드라이버가 있을 때만 `resetDriverInstance()`를 불러서, 이름을 바꾼 편집에서는 이전 jar의 클래스 로더가 남았다.
   Swing은 OK마다 버린다(다음 연결이 새 라이브러리로 드라이버를 다시 로드).
-- **오프라인 모드 체크 상자:** SWT 관리자는 환경설정 > 연결 > 드라이버 페이지로 가는 링크를 둔다. Swing 앱에는 그 페이지가 없어 같은 설정
+- **오프라인 모드 체크 상자:** SWT 관리자는 환경설정 > 연결 > 드라이버 페이지로 가는 링크를 둔다. Swing 앱에는 그 페이지가 없어(2026-11-08부터 Options > Drivers가 있지만
+  오프라인 모드는 그대로 여기 둔다, [swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)") 같은 설정
   (`ModelPreferences.UI_DRIVERS_OFFLINE`, `com.seizia.chromite.core` 노드)을 관리자 창의 체크 상자로 둔다. 모델(`DriverUtils.isOfflineMode`)이 매번 읽으므로 바로 적용된다.
 - **Propagate driver properties:** SWT는 읽기 전용 공급자에서도 이 체크 상자만 켜 두는데, Swing은 다른 옵션처럼 끈다.
 - **상태 글자:** SWT의 색 구분 대신 상태 이름을 글로 보인다(위 표).
@@ -226,3 +227,4 @@ Windows x86_64 Swing 제품을 사설 작업 공간과 사설 데이터 폴더(`
 - 2026-11-08 후속 #55·#62: Maven 아티팩트 추가·편집(`MavenArtifactDialog`), 라이브러리 정보와 의존성 트리(`DriverLibraryDetailsDialog`),
   Local Client 탭(`ClientHomesPanel`), 전역 라이브러리(`GlobalLibrariesDialog`), 라이브러리 상태 "사용 안 함"([drivers.md](drivers.md) "로컬 파일 우선").
   모델: 사용자 정의 Maven 아티팩트의 의존성 옵션이 다시 시작하면 사라지던 것을 고침(`DriverDescriptorSerializerLegacy`).
+- 2026-11-08 Options > Drivers(드라이버 폴더·파일 원본·프록시·Maven 저장소)가 생겨 오프라인 모드 설명을 고침([swing-options.md](swing-options.md)).

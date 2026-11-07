@@ -46,17 +46,29 @@ import java.io.File;
  * <ul>
  *     <li>SSH 터널(구현 {@link SSHTunnelImpl}): {@link SshTunnelPanel}. SWT {@code SSHTunnelDefaultConfiguratorUI}.</li>
  *     <li>SOCKS 프록시(구현 {@link SocksProxyImpl}): {@link SocksProxyPanel}. SWT {@code SocksProxyConfiguratorUI}.</li>
- *     <li>SSL(핸들러 ID {@code postgre_ssl}, {@code mysql_ssl}, {@code mssql_ssl}): {@link SslHandlerPanel}.
- *     SWT {@code PostgreSSLConfigurator}, {@code MySQLSSLConfigurator}, {@code SQLServerSSLConfigurator}.</li>
+ *     <li>SSL(핸들러 ID {@code postgre_ssl}, {@code mysql_ssl}, {@code mssql_ssl}, {@code clickhouse-ssl}, {@code databend-ssl},
+ *     {@code tidblake-ssl}): {@link SslHandlerPanel}. SWT {@code PostgreSSLConfigurator}, {@code MySQLSSLConfigurator},
+ *     {@code SQLServerSSLConfigurator}, {@code ClickhouseSSLConfigurator}, {@code DatabendSSLConfigurator}, {@code TiDBLakeSSLConfigurator}.
+ *     SSL 칸은 구현 클래스가 아니라 핸들러 ID로 고른다. Databend와 TiDB Lake는 같은 구현 {@code SSLHandlerImpl}을 쓰는데, SWT는 구현 클래스 이름을
+ *     키로 한 표({@code UIPropertyConfiguratorRegistry})에 두 화면을 넣어 나중에 읽힌 하나가 두 DB 모두에 나왔다.</li>
  * </ul>
- * 그 밖의 핸들러(ClickHouse·Databend·TiDB Lake의 SSL)는 Swing 칸이 없어 탭을 만들지 않는다(SWT도 설정 화면이 없는 핸들러는 탭을 만들지 않는다).
+ * 그 밖의 핸들러는 Swing 칸이 없어 탭을 만들지 않는다(SWT도 설정 화면이 없는 핸들러는 탭을 만들지 않는다).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 설계 주석: 비밀번호 저장 위치가 OS 보안 저장소로 바뀜(코드 변경 없음)
+ * - 2026-11-08 ClickHouse·Databend·TiDB Lake SSL 탭 (docs/chromite/swing-conn-advanced.md "SSL")
  */
 abstract class NetworkHandlerPanel {
+
+    /**
+     * SSL handler IDs of plugin.xml that the models also write as literals (ClickhouseDataSource, DatabendDataSource,
+     * TiDBLakeDataSource have no constant for them).
+     */
+    private static final String HANDLER_CLICKHOUSE_SSL = "clickhouse-ssl"; //$NON-NLS-1$
+    private static final String HANDLER_DATABEND_SSL = "databend-ssl"; //$NON-NLS-1$
+    private static final String HANDLER_TIDBLAKE_SSL = "tidblake-ssl"; //$NON-NLS-1$
 
     /**
      * Called when a value changes (validation of the dialog).
@@ -83,6 +95,8 @@ abstract class NetworkHandlerPanel {
             case PostgreConstants.HANDLER_SSL -> new SslHandlerPanel(SslHandlerPanel.Kind.POSTGRESQL, changeListener);
             case MySQLConstants.HANDLER_SSL -> new SslHandlerPanel(SslHandlerPanel.Kind.MYSQL, changeListener);
             case SQLServerConstants.HANDLER_SSL -> new SslHandlerPanel(SslHandlerPanel.Kind.SQLSERVER, changeListener);
+            case HANDLER_CLICKHOUSE_SSL -> new SslHandlerPanel(SslHandlerPanel.Kind.CLICKHOUSE, changeListener);
+            case HANDLER_DATABEND_SSL, HANDLER_TIDBLAKE_SSL -> new SslHandlerPanel(SslHandlerPanel.Kind.ENABLE_ONLY, changeListener);
             default -> null;
         };
     }

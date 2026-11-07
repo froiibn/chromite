@@ -53,6 +53,8 @@ import java.awt.event.ActionEvent;
  *   도킹 도구 창은 {@link ToolWindowDocking}으로 옮김, 분할 창은 Results만 씀({@link SplitHost}) (docs/chromite/swing-frontend.md "도구 창 도킹")
  * - 2026-11-07 Results 자동 숨김: {@link SplitHost}가 표시 여부를 {@link SplitHost.Context}(쿼리 창마다 기억)에서 읽고,
  *   쓰지 않게 된 전역 표시 여부 설정({@code results.visible})을 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-08 Results 배치: 문서 오른쪽에 놓기({@link SplitHost#setBeside})와 최대화({@link SplitHost#setMaximized})
+ *   (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class ToolWindow {
 
@@ -164,6 +166,9 @@ final class ToolWindow {
      *     still reach it. {@link JSplitPane} gives no space to an invisible side but keeps the divider, so the divider size is 0 while hidden.</li>
      *     <li>The saved value is the card's height, not the divider location; the split pane gives extra space to the
      *     documents ({@code resizeWeight = 1}), so the results keep their height when the window grows.</li>
+     *     <li>Layout (SWT {@code toggleLayout}, {@code maximize.result.panel}): the card goes below or beside (right of) the
+     *     documents; the size is then its width, and switching gives it half of the area. Maximizing leaves the documents
+     *     the minimum size (their tab row) and restores the earlier size when turned off; the maximized state is not saved.</li>
      * </ul>
      */
     static final class SplitHost implements Host {
@@ -191,6 +196,8 @@ final class ToolWindow {
         private final Context context;
         private final int defaultSize;
         private int size;
+        // Size before Maximize Results, -1 while not maximized
+        private int sizeBeforeMaximize = -1;
 
         /**
          * @param content     content with its own header (it can embed {@link ToolWindow#createHideButton()})
@@ -254,8 +261,53 @@ final class ToolWindow {
          * caller resets first.
          */
         void reset() {
+            sizeBeforeMaximize = -1;
             size = defaultSize;
             update();
+            applySize();
+        }
+
+        boolean isBeside() {
+            return isHorizontal();
+        }
+
+        /**
+         * Puts the tool window beside (right of) the documents or below them.
+         *
+         * @param halve give it half of the area (a switch by the user), else keep the size (restored with the layout)
+         */
+        void setBeside(boolean beside, boolean halve) {
+            if (beside == isHorizontal()) {
+                return;
+            }
+            sizeBeforeMaximize = -1;
+            splitPane.setOrientation(beside ? JSplitPane.HORIZONTAL_SPLIT : JSplitPane.VERTICAL_SPLIT);
+            int total = beside ? splitPane.getWidth() : splitPane.getHeight();
+            if (halve && total > 0) {
+                size = Math.max(MIN_SIZE, (total - splitPane.getDividerSize()) / 2);
+            }
+            applySize();
+        }
+
+        boolean isMaximized() {
+            return sizeBeforeMaximize >= 0;
+        }
+
+        /**
+         * Gives the tool window all of the area but the documents' minimum, or restores its size.
+         */
+        void setMaximized(boolean maximized) {
+            if (maximized == isMaximized()) {
+                return;
+            }
+            if (maximized) {
+                sizeBeforeMaximize = component.isVisible() ? getCurrentSize() : size;
+                int total = isHorizontal() ? splitPane.getWidth() : splitPane.getHeight();
+                size = Math.max(MIN_SIZE, total - splitPane.getDividerSize() - MIN_SIZE);
+            } else {
+                size = sizeBeforeMaximize;
+                sizeBeforeMaximize = -1;
+            }
             applySize();
         }
 
@@ -272,10 +324,11 @@ final class ToolWindow {
         }
 
         void save(@NotNull DBPPreferenceStore preferences) {
-            if (component.isVisible()) {
+            if (component.isVisible() && !isMaximized()) {
                 size = getCurrentSize();
             }
-            preferences.setValue(toolWindow.getId() + PREF_SIZE_SUFFIX, size);
+            // A maximized tool window keeps its earlier size for the next start
+            preferences.setValue(toolWindow.getId() + PREF_SIZE_SUFFIX, isMaximized() ? sizeBeforeMaximize : size);
         }
 
         /**

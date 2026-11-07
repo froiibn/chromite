@@ -27,6 +27,11 @@ import com.seizia.chromite.ext.mysql.tasks.MySQLExportSettings;
 import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteHandler;
 import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteSettings;
 import com.seizia.chromite.ext.mysql.tasks.MySQLTasks;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.ext.oracle.tasks.OracleScriptExecuteHandler;
+import com.seizia.chromite.ext.oracle.tasks.OracleScriptExecuteSettings;
+import com.seizia.chromite.ext.oracle.tasks.OracleTasks;
 import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupHandler;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
@@ -35,20 +40,30 @@ import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreHandler;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreSQLTasks;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreScriptExecuteHandler;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreScriptExecuteSettings;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPNamedObject2;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
 import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
+import com.seizia.chromite.model.connection.LocalNativeClientLocation;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.MonitorRunnableContext;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.model.task.DBTTaskExecutionListener;
 import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskManager;
 import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
 import com.seizia.chromite.registry.driver.RemoteNativeClientLocation;
 import com.seizia.chromite.registry.task.TaskPreferenceStore;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolHandler;
 import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.nativetool.AbstractScriptExecuteSettings;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -57,10 +72,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * PostgreSQL and MySQL/MariaDB backup and restore with the local client tools (pg_dump, pg_restore, psql, mysqldump, mysql)
- * through the native tool tasks of the model (tasks.native, ext.postgresql, ext.mysql).
+ * PostgreSQL and MySQL/MariaDB backup and restore with the local client tools (pg_dump, pg_restore, psql, mysqldump, mysql),
+ * and running a script file with the native client (psql, mysql, sqlplus), through the native tool tasks of the model
+ * (tasks.native, ext.postgresql, ext.mysql, ext.oracle). Also the saved tasks of these types (load, save).
  *
  * 설계: Swing 백업·복원 대화상자({@code NativeBackupRestoreDialog})와 Chromite Agent 도구({@code NativeBackupTools})가 같은
  * 실행 경로를 쓰도록 화면과 상관없는 부분을 이 모델 클래스에 모았다(docs/chromite/swing-backup-restore.md,
@@ -74,16 +91,32 @@ import java.util.Map;
  *     호출자가 정한다(대화상자는 화면 언어, 도구는 모델이 읽는 영어). 모델 처리기는 DBeaver 코드라 고치지 않았다.</li>
  *     <li>명령줄: 처리기의 {@code getCommandLine}(보호 메서드)을 하위 클래스로 불러 실제로 실행할 명령을 만든다(미리 보기, 확인 요청).</li>
  *     <li>로컬 클라이언트: 드라이버의 클라이언트 위치와 클라이언트 관리자가 찾은 설치. 내려받는 클라이언트
- *     ({@link RemoteNativeClientLocation}, 처음 쓸 때 원격 저장소에서 받음)는 빼서, 묻지 않고 클라이언트를 내려받지 않는다.</li>
+ *     ({@link RemoteNativeClientLocation}, 처음 쓸 때 원격 저장소에서 받음)는 빼서, 묻지 않고 클라이언트를 내려받지 않는다.
+ *     찾아보기로 고른 폴더는 드라이버의 사용자 위치로 저장한다({@link #addLocalClient}, 대화상자와 연결 편집기가 함께 씀).</li>
+ *     <li>스크립트 실행: 모델의 스크립트 실행 작업 형식(pgScriptExecute, mysqlScriptExecute, oracleScriptExecute)을 같은 경로로
+ *     실행한다. 도구는 따로 접속하는 새 세션이라 쿼리 창의 세션·트랜잭션과 상관없다. SQL*Plus는 암호를 명령줄이 아니라 표준 입력의
+ *     로그온 명령으로 받는다({@link OracleScriptExecuteHandler#getLogonScript}, {@link #getStandardInputPreview}).</li>
+ *     <li>저장된 작업: 위 일곱 형식은 대화상자에서 작업으로 저장하고({@link #saveTask}) 다시 읽어 고칠 수 있다({@link #loadTaskSettings}).
+ *     저장된 작업을 실행하면 처리기가 명령줄 승인을 묻는다({@code AbstractNativeToolHandler}, docs/chromite/shell-command-approval.md).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: NativeBackupRestoreDialog의 모델 부분(클라이언트 목록, 작업 형식, 명령줄, 처리기 실행, pg_restore 종료 코드 1)을
  *   옮겨 Chromite Agent 백업·복원 도구와 함께 씀
+ * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus), 저장된 작업 읽기·저장, 클라이언트 폴더 더하기를 대화상자에서 옮김
+ *   (docs/chromite/swing-database-tasks.md)
  */
 public final class NativeBackupRestore {
 
     private static final Log log = Log.getLog(NativeBackupRestore.class);
+
+    /**
+     * Task types that the Back Up / Restore and Run Script dialogs save and edit.
+     */
+    private static final Set<String> SAVED_TASK_TYPES = Set.of(
+        PostgreSQLTasks.TASK_DATABASE_BACKUP, PostgreSQLTasks.TASK_DATABASE_RESTORE, PostgreSQLTasks.TASK_SCRIPT_EXECUTE,
+        MySQLTasks.TASK_DATABASE_BACKUP, MySQLTasks.TASK_DATABASE_RESTORE, MySQLTasks.TASK_SCRIPT_EXECUTE,
+        OracleTasks.TASK_SCRIPT_EXECUTE);
 
     private NativeBackupRestore() {
     }
@@ -115,6 +148,57 @@ public final class NativeBackupRestore {
     }
 
     /**
+     * The object is a target of Run Script with Native Client: a PostgreSQL database or a MySQL/MariaDB catalog (the same
+     * conditions as backup and restore), an Oracle schema or an Oracle connection (the object types of the model task types
+     * pgScriptExecute, mysqlScriptExecute and oracleScriptExecute).
+     */
+    public static boolean isScriptSupported(@Nullable DBSObject target) {
+        return isSupported(target) || target instanceof OracleSchema || target instanceof OracleDataSource;
+    }
+
+    /**
+     * The client tool that runs a script on the target, for messages.
+     */
+    @NotNull
+    public static String getScriptToolName(@NotNull DBSObject target) {
+        if (target instanceof PostgreDatabase) {
+            return "psql"; //$NON-NLS-1$
+        }
+        if (target instanceof MySQLCatalog) {
+            return "mysql / mariadb"; //$NON-NLS-1$
+        }
+        return "sqlplus"; //$NON-NLS-1$
+    }
+
+    /**
+     * Settings of a script run on the target (a PostgreSQL database, MySQL/MariaDB catalog, Oracle schema or connection),
+     * without the input file and options.
+     */
+    @NotNull
+    public static AbstractScriptExecuteSettings<?> createScriptSettings(@NotNull DBSObject target) {
+        DBPDataSourceContainer container = target.getDataSource().getContainer();
+        DBPProject project = container.getProject();
+        AbstractScriptExecuteSettings<?> settings;
+        if (target instanceof PostgreDatabase database) {
+            PostgreScriptExecuteSettings pg = new PostgreScriptExecuteSettings(project);
+            pg.loadSettingsFromInput(List.of(database), Map.of());
+            pg.setDatabase(database);
+            settings = pg;
+        } else if (target instanceof MySQLCatalog catalog) {
+            MySQLScriptExecuteSettings my = new MySQLScriptExecuteSettings(project);
+            my.loadSettingsFromInput(List.of(catalog), Map.of());
+            my.setImport(false);
+            settings = my;
+        } else {
+            OracleScriptExecuteSettings oracle = new OracleScriptExecuteSettings(project);
+            oracle.loadSettingsFromInput(List.of(target), Map.of());
+            settings = oracle;
+        }
+        settings.setDataSourceContainer(container);
+        return settings;
+    }
+
+    /**
      * Local client locations of the driver: its own (custom) locations and the installations the client manager finds,
      * without the locations downloaded from a remote repository. One entry per location name.
      */
@@ -143,6 +227,40 @@ public final class NativeBackupRestore {
     }
 
     /**
+     * The driver can run native client tools: its provider finds installed clients, or it has client locations.
+     */
+    public static boolean hasNativeClients(@NotNull DBPDriver driver) {
+        return driver.getNativeClientManager() != null || !driver.getNativeClientLocations().isEmpty();
+    }
+
+    /**
+     * Adds a client folder chosen by the user to the driver's own client locations and saves the drivers, as the SWT client
+     * homes panel does. The location's name is the folder; it is what a connection stores as its client home.
+     */
+    public static void addLocalClient(@NotNull DBPDriver driver, @NotNull String path) {
+        if (!(driver instanceof DriverDescriptor descriptor)) {
+            return;
+        }
+        // Keep the driver's custom locations and add this one, as the SWT client homes panel saves them
+        List<DBPNativeClientLocation> custom = new ArrayList<>();
+        for (DBPNativeClientLocation location : driver.getNativeClientLocations()) {
+            if (isLocal(location) && !location.getName().equals(path)) {
+                custom.add(location);
+            }
+        }
+        custom.add(new LocalNativeClientLocation(path, path));
+        descriptor.setNativeClientLocations(custom);
+        // Only modified drivers are written to drivers.xml; without this the folder is gone after a restart
+        // (the SWT client homes panel relies on the driver being modified already)
+        descriptor.setModified(true);
+        try {
+            descriptor.getProviderDescriptor().getRegistry().saveDrivers();
+        } catch (DBException e) {
+            log.debug("Can't save the client location", e);
+        }
+    }
+
+    /**
      * Task type of the settings: PostgreSQL or MySQL, backup or restore.
      */
     @NotNull
@@ -156,15 +274,21 @@ public final class NativeBackupRestore {
         if (settings instanceof MySQLExportSettings) {
             return MySQLTasks.TASK_DATABASE_BACKUP;
         }
-        if (settings instanceof MySQLScriptExecuteSettings) {
-            return MySQLTasks.TASK_DATABASE_RESTORE;
+        if (settings instanceof MySQLScriptExecuteSettings my) {
+            return my.isImport() ? MySQLTasks.TASK_DATABASE_RESTORE : MySQLTasks.TASK_SCRIPT_EXECUTE;
         }
-        throw new IllegalArgumentException("Not a database backup or restore: " + settings.getClass().getName());
+        if (settings instanceof PostgreScriptExecuteSettings) {
+            return PostgreSQLTasks.TASK_SCRIPT_EXECUTE;
+        }
+        if (settings instanceof OracleScriptExecuteSettings) {
+            return OracleTasks.TASK_SCRIPT_EXECUTE;
+        }
+        throw new IllegalArgumentException("Not a database backup, restore or script run: " + settings.getClass().getName());
     }
 
     /**
-     * The command line the handler will run, quoted for display; a MySQL backup or restore adds the output or input
-     * redirection that the handler does with streams. No password is in it.
+     * The command line the handler will run, quoted for display; a MySQL backup or restore and a script run add the output
+     * or input redirection that the handler does with streams. No password is in it.
      *
      * @throws IOException the tool is not in the client location
      */
@@ -181,6 +305,12 @@ public final class NativeBackupRestore {
             MySQLDatabaseExportInfo info = my.getExportObjects().get(0);
             command = new PreviewMySQLExport().preview(my, info);
             redirect = "> " + my.getOutputFile(info); //$NON-NLS-1$
+        } else if (settings instanceof PostgreScriptExecuteSettings pg) {
+            command = new PreviewPostgreScript().preview(pg, pg.getDatabase());
+            redirect = "< " + pg.getInputFile(); //$NON-NLS-1$
+        } else if (settings instanceof OracleScriptExecuteSettings oracle) {
+            command = new PreviewOracleScript().preview(oracle);
+            redirect = "< " + oracle.getInputFile(); //$NON-NLS-1$
         } else {
             MySQLScriptExecuteSettings my = (MySQLScriptExecuteSettings) settings;
             command = new PreviewMySQLRestore().preview(my, my.getDatabaseObjects().get(0));
@@ -200,7 +330,149 @@ public final class NativeBackupRestore {
     }
 
     /**
-     * Runs the backup or restore in the calling thread: saves the settings into a temporary task, as the SWT wizards do, and
+     * What the handler writes to the tool's standard input before the script, with the password masked: the SQL*Plus logon
+     * commands. Null for the other tools (they read the password from an environment variable).
+     */
+    @Nullable
+    public static String getStandardInputPreview(@NotNull AbstractNativeToolSettings<?> settings) throws IOException {
+        if (settings instanceof OracleScriptExecuteSettings oracle) {
+            return new OracleScriptExecuteHandler().getLogonScript(oracle, true);
+        }
+        return null;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Saved tasks
+
+    /**
+     * The Back Up / Restore and Run Script dialogs can save and edit tasks of this type.
+     */
+    public static boolean isEditableTaskType(@NotNull DBTTaskType type) {
+        return SAVED_TASK_TYPES.contains(type.getId());
+    }
+
+    /**
+     * Tasks of this type run a native client tool (any native tool task type, also those saved by older versions such as
+     * pgDatabaseBackupAll): the handler runs the connection's client home.
+     */
+    public static boolean isNativeToolTask(@NotNull DBTTaskType type) {
+        Class<?> handlerClass = type.getHandlerClass();
+        return handlerClass != null && AbstractNativeToolHandler.class.isAssignableFrom(handlerClass);
+    }
+
+    /**
+     * The connection a native tool task runs on, from the settings it was saved with (no connecting).
+     */
+    @Nullable
+    public static DBPDataSourceContainer getTaskConnection(@NotNull DBTTask task) {
+        // The key AbstractNativeToolSettings.saveSettings writes
+        Object id = task.getProperties().get("dataSource"); //$NON-NLS-1$
+        return id instanceof String dataSourceId ? task.getProject().getDataSourceRegistry().getDataSource(dataSourceId) : null;
+    }
+
+    /**
+     * The connection's client home when it is a local client. Without one the handler would take the first location of the
+     * driver, which may be a client that is downloaded on first use: a saved task must not run then.
+     */
+    @Nullable
+    public static DBPNativeClientLocation findConnectionClient(@NotNull DBPDataSourceContainer container) {
+        String clientHomeId = container.getConnectionConfiguration().getClientHomeId();
+        if (clientHomeId == null) {
+            return null;
+        }
+        for (DBPNativeClientLocation location : findLocalClients(container.getDriver())) {
+            if (location.getName().equals(clientHomeId)) {
+                return location;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Reads the settings of a saved task as its handler does: finds the database objects by their IDs (this connects).
+     *
+     * @throws DBException the task type is not one of the dialogs' types, or its objects are gone
+     */
+    @NotNull
+    public static AbstractNativeToolSettings<?> loadTaskSettings(@NotNull DBRProgressMonitor monitor, @NotNull DBTTask task) throws DBException {
+        DBPProject project = task.getProject();
+        String typeId = task.getType().getId();
+        AbstractNativeToolSettings<?> settings = switch (typeId) {
+            case PostgreSQLTasks.TASK_DATABASE_BACKUP -> new PostgreDatabaseBackupSettings(project);
+            case PostgreSQLTasks.TASK_DATABASE_RESTORE -> new PostgreDatabaseRestoreSettings(project);
+            case PostgreSQLTasks.TASK_SCRIPT_EXECUTE -> new PostgreScriptExecuteSettings(project);
+            case MySQLTasks.TASK_DATABASE_BACKUP -> new MySQLExportSettings(project);
+            case MySQLTasks.TASK_DATABASE_RESTORE, MySQLTasks.TASK_SCRIPT_EXECUTE -> {
+                // As MySQLScriptExecuteHandler: the task type decides between a restore and a script run
+                MySQLScriptExecuteSettings my = new MySQLScriptExecuteSettings(project);
+                my.setImport(MySQLTasks.TASK_DATABASE_RESTORE.equals(typeId));
+                yield my;
+            }
+            case OracleTasks.TASK_SCRIPT_EXECUTE -> new OracleScriptExecuteSettings(project);
+            default -> throw new DBException("Task type " + typeId + " can't be edited"); //$NON-NLS-1$ //$NON-NLS-2$
+        };
+        settings.loadSettings(new MonitorRunnableContext(monitor), new TaskPreferenceStore(task));
+        if (settings.getDataSourceContainer() == null) {
+            throw new DBException("The connection of task '" + task.getName() + "' was not found"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        return settings;
+    }
+
+    /**
+     * The database object a saved task runs on (a PostgreSQL database, MySQL/MariaDB catalog, Oracle schema or connection).
+     */
+    @Nullable
+    public static DBSObject getTaskTarget(@NotNull AbstractNativeToolSettings<?> settings) {
+        if (!settings.getDatabaseObjects().isEmpty()) {
+            return settings.getDatabaseObjects().get(0);
+        }
+        if (settings instanceof OracleScriptExecuteSettings && settings.getDataSourceContainer().getDataSource() instanceof OracleDataSource oracle) {
+            return oracle;
+        }
+        return null;
+    }
+
+    /**
+     * Saves the settings as a task: a new task with the name, or the settings (and the name) of an existing task.
+     * No passwords are saved (the tool account fields stay empty).
+     *
+     * @throws DBException another task has the name
+     */
+    @NotNull
+    public static DBTTask saveTask(
+        @NotNull AbstractNativeToolSettings<?> settings,
+        @NotNull String name,
+        @Nullable DBTTask existing
+    ) throws DBException {
+        DBTTaskManager taskManager = settings.getDataSourceContainer().getProject().getTaskManager();
+        Map<String, Object> properties = new LinkedHashMap<>();
+        settings.saveSettings(new MonitorRunnableContext(new VoidProgressMonitor()), new TaskPreferenceStore(properties));
+        DBTTask other = taskManager.getTaskByName(name);
+        if (other != null && other != existing) {
+            throw new DBException("A task named '" + name + "' already exists"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        DBTTask task;
+        if (existing != null) {
+            task = existing;
+            if (task instanceof DBPNamedObject2 named) {
+                named.setName(name);
+            }
+            task.setProperties(properties);
+        } else {
+            String typeId = getTaskTypeId(settings);
+            DBTTaskType type = taskManager.getRegistry().getTaskType(typeId);
+            if (type == null) {
+                throw new DBException("Task type " + typeId + " is not registered"); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            task = taskManager.createTask(type, name, null, null, properties);
+        }
+        // Adds a new task to the project's task list and writes the tasks file
+        taskManager.updateTaskConfiguration(task);
+        return task;
+    }
+
+    /**
+     * Runs the backup, restore or script in the calling thread: saves the settings into a temporary task, as the SWT wizards do, and
      * runs the task type's handler. The handler writes the command line (password masked), the tool's output and its own log
      * to {@code logStream}. The monitor's cancel stops the tool process.
      *
@@ -298,6 +570,21 @@ public final class NativeBackupRestore {
         @NotNull
         List<String> preview(@NotNull MySQLScriptExecuteSettings settings, @NotNull MySQLCatalog catalog) throws IOException {
             return getCommandLine(settings, catalog);
+        }
+    }
+
+    private static final class PreviewPostgreScript extends PostgreScriptExecuteHandler {
+        @NotNull
+        List<String> preview(@NotNull PostgreScriptExecuteSettings settings, @NotNull PostgreDatabase database) throws IOException {
+            return getCommandLine(settings, database);
+        }
+    }
+
+    private static final class PreviewOracleScript extends OracleScriptExecuteHandler {
+        @NotNull
+        List<String> preview(@NotNull OracleScriptExecuteSettings settings) throws IOException {
+            // The data source argument is not used to build the command line
+            return getCommandLine(settings, null);
         }
     }
 }

@@ -21,8 +21,10 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.qm.meta.QMMStatementExecuteInfo;
+import com.seizia.chromite.model.qm.meta.QMMTransactionInfo;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.utils.RuntimeUtils;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -55,23 +57,33 @@ import java.util.Map;
  *     <li>모달이 아니고 문맥마다 하나다. 쿼리 관리자 기록은 메모리에 있어 1초마다 다시 읽어도 부담이 없다. 그래서 다른 쿼리 창에서
  *     실행하거나 커밋·롤백해도 창이 따라온다. 고른 문장은 같은 문장이면 그대로 둔다.</li>
  *     <li>커밋·롤백 단추는 두지 않는다(SWT와 같음). 끝내기는 Query 메뉴, 상태 줄, 열린 트랜잭션 목록이 같은 경로로 한다.</li>
- *     <li>지난 트랜잭션 보이기(SWT "Show previous transactions")와 모든 문장 보이기는 옮기지 않았다(docs/chromite/transactions.md "남은 일").</li>
+ *     <li>지난 트랜잭션 보이기(SWT "Show previous transactions"): 켜면 그 문맥의 최근 트랜잭션 {@value #MAX_PREVIOUS_TRANSACTIONS}개의 문장을 같은 기준으로
+ *     보이고({@link QMUtils#getRecentTransactionStatements}), 트랜잭션 열에 각 문장의 트랜잭션이 어떻게 끝났는지(커밋·롤백과 그 시각, 아직 열림)를 적는다.
+ *     자동 커밋으로 실행한 문장은 트랜잭션이 없어 넣지 않는다. 쿼리 관리자가 메모리에 둔 기록만이라 다시 연결하거나 다시 시작하면 그 전 기록은 없다.
+ *     모든 문장(메타데이터 포함) 보이기는 옮기지 않았다(docs/chromite/transactions.md "남은 일").</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/transactions.md)
+ * - 2026-11-08 지난 트랜잭션 보이기와 트랜잭션 열 (docs/chromite/connection-lifecycle.md "트랜잭션 로그의 지난 트랜잭션")
  */
 final class TransactionLogDialog extends JDialog {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS"); //$NON-NLS-1$
     private static final DateTimeFormatter START_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
     private static final int MAX_SQL_COLUMN_TEXT = 300;
+    private static final int MAX_PREVIOUS_TRANSACTIONS = 20;
+    // How far back the session's statements are looked through for previous transactions
+    private static final int MAX_PREVIOUS_STATEMENTS = 5000;
+    // Time, type, statement, duration, rows, result, and the transaction when previous ones are shown
+    private static final int[] COLUMN_WIDTHS = {100, 80, 520, 90, 110, 160, 170};
 
     // EDT only: the open log of each context
     private static final Map<DBCExecutionContext, TransactionLogDialog> dialogs = new IdentityHashMap<>();
 
     private final DBCExecutionContext context;
     private final JLabel summaryLabel = new JLabel();
+    private final JCheckBox previousBox = new JCheckBox(LifecycleMessages.txn_log_show_previous);
     private final LogModel model = new LogModel();
     private final JTable table = new JTable(model);
     private final SqlEditorPanel.SqlTextArea preview = new SqlEditorPanel.SqlTextArea();
@@ -84,19 +96,22 @@ final class TransactionLogDialog extends JDialog {
 
         String windows = SwingIdleTransactionService.describeQueryWindows(context);
         JLabel sessionLabel = new JLabel(NLS.bind(EditorMessages.editor_txn_log_session, windows != null ? windows : context.getContextName()));
-        JPanel top = new JPanel(new GridLayout(2, 1, 0, 4));
+        previousBox.setToolTipText(LifecycleMessages.txn_log_show_previous_tip);
+        previousBox.addActionListener(e -> {
+            model.setShowTransaction(previousBox.isSelected());
+            applyColumnWidths();
+            reload();
+        });
+        JPanel top = new JPanel(new GridLayout(3, 1, 0, 4));
         top.add(sessionLabel);
         top.add(summaryLabel);
+        top.add(previousBox);
 
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setFillsViewportHeight(true);
         table.setShowVerticalLines(false);
         table.getTableHeader().setReorderingAllowed(false);
-        // Time, type, duration, rows and result keep room for their text; the statement takes the rest
-        int[] widths = {100, 80, 520, 90, 110, 160};
-        for (int i = 0; i < widths.length; i++) {
-            table.getColumnModel().getColumn(i).setPreferredWidth(UIScale.scale(widths[i]));
-        }
+        applyColumnWidths();
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 showSelected();
@@ -152,6 +167,15 @@ final class TransactionLogDialog extends JDialog {
         super.dispose();
     }
 
+    /**
+     * Time, type, duration, rows, result and transaction keep room for their text; the statement takes the rest.
+     */
+    private void applyColumnWidths() {
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setPreferredWidth(UIScale.scale(COLUMN_WIDTHS[i]));
+        }
+    }
+
     private void reload() {
         QMTransactionState state = QMUtils.getTransactionState(context);
         if (!state.isTransactionMode()) {
@@ -164,7 +188,9 @@ final class TransactionLogDialog extends JDialog {
             summaryLabel.setText(EditorMessages.editor_txn_log_none);
         }
         QMMStatementExecuteInfo selected = getSelected();
-        model.setStatements(QMUtils.getTransactionStatements(context));
+        model.setStatements(previousBox.isSelected()
+            ? QMUtils.getRecentTransactionStatements(context, MAX_PREVIOUS_TRANSACTIONS, MAX_PREVIOUS_STATEMENTS)
+            : QMUtils.getTransactionStatements(context));
         int index = selected == null ? -1 : model.indexOf(selected);
         if (index >= 0) {
             table.getSelectionModel().setSelectionInterval(index, index);
@@ -191,8 +217,15 @@ final class TransactionLogDialog extends JDialog {
     private final class LogModel extends AbstractTableModel {
         private final String[] columns = {
             EditorMessages.editor_txn_log_col_time, EditorMessages.editor_txn_log_col_type, EditorMessages.editor_txn_log_col_sql,
-            EditorMessages.editor_txn_log_col_duration, EditorMessages.editor_txn_log_col_rows, EditorMessages.editor_txn_log_col_result};
+            EditorMessages.editor_txn_log_col_duration, EditorMessages.editor_txn_log_col_rows, EditorMessages.editor_txn_log_col_result,
+            LifecycleMessages.txn_log_col_transaction};
         private List<QMMStatementExecuteInfo> statements = new ArrayList<>();
+        private boolean showTransaction;
+
+        void setShowTransaction(boolean showTransaction) {
+            this.showTransaction = showTransaction;
+            fireTableStructureChanged();
+        }
 
         void setStatements(@NotNull List<QMMStatementExecuteInfo> statements) {
             this.statements = statements;
@@ -216,7 +249,8 @@ final class TransactionLogDialog extends JDialog {
 
         @Override
         public int getColumnCount() {
-            return columns.length;
+            // The transaction column only with the previous transactions
+            return showTransaction ? columns.length : columns.length - 1;
         }
 
         @Override
@@ -234,9 +268,23 @@ final class TransactionLogDialog extends JDialog {
                 case 2 -> CommonUtils.truncateString(query.replaceAll("\\s+", " ").trim(), MAX_SQL_COLUMN_TEXT); //$NON-NLS-1$ //$NON-NLS-2$
                 case 3 -> exec.isClosed() ? RuntimeUtils.formatExecutionTime(exec.getDuration()) : ""; //$NON-NLS-1$
                 case 4 -> describeRows(exec);
+                case 6 -> describeTransaction(exec);
                 default -> !exec.isClosed() ? EditorMessages.editor_txn_log_running
                     : exec.hasError() ? CommonUtils.notEmpty(exec.getErrorMessage()) : EditorMessages.editor_txn_log_ok;
             };
+        }
+
+        /**
+         * How the statement's transaction ended: committed or rolled back and when, or still open.
+         */
+        @NotNull
+        private static String describeTransaction(@NotNull QMMStatementExecuteInfo exec) {
+            QMMTransactionInfo transaction = exec.getSavepoint() == null ? null : exec.getSavepoint().getTransaction();
+            if (transaction == null || !transaction.isClosed()) {
+                return LifecycleMessages.txn_log_open;
+            }
+            String time = START_FORMAT.format(Instant.ofEpochMilli(transaction.getCloseTime()).atZone(ZoneId.systemDefault()));
+            return NLS.bind(transaction.isCommitted() ? LifecycleMessages.txn_log_committed : LifecycleMessages.txn_log_rolled_back, time);
         }
 
         @NotNull

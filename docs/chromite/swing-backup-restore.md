@@ -106,7 +106,9 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
 - 페이지: **일반**(데이터베이스, 출력 폴더·파일 이름 패턴 또는 입력 파일, PostgreSQL 형식·압축·인코딩, MySQL 덤프 방법), **옵션**(SWT 마법사의 주요 옵션:
   PostgreSQL `--no-owner`, `--no-privileges`, `--inserts`, `--clean`, `--create`; MySQL `--no-create-info`, `--add-drop-table`, `--disable-keys`,
   `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 첫 오류에서 멈춤(2026-11-07), 외래 키 검사 끄기, `-v`),
-  **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"다.
+  **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"와 "작업으로 저장…"(2026-11-08)이다.
+- 2026-11-08 같은 대화상자에 세 번째 방식 "네이티브 클라이언트로 스크립트 실행"(psql, mysql, sqlplus)을 더하고, 설정을 작업으로 저장해 Database Tasks 보기에서
+  다시 실행·편집하게 했다. 로컬 클라이언트는 연결 편집기(연결 속성)에서도 고른다. 자세한 것은 [swing-database-tasks.md](swing-database-tasks.md).
 - 파일은 **이 컴퓨터의 파일**이다(도구가 로컬에서 읽고 쓴다). 파일 이름 기본값은 SWT와 같은 `dump-${database}-${timestamp}` + 형식의 확장자.
 - **로컬 클라이언트**: 목록은 드라이버의 사용자 위치와 클라이언트 관리자가 찾은 설치(Windows 레지스트리 등)다. **내려받는 클라이언트**
   (`RemoteNativeClientLocation`, 처음 쓸 때 원격 저장소에서 받음)는 넣지 않는다 — 클라이언트 도구를 묻지 않고 내려받지 않으려는 것이다.
@@ -228,6 +230,8 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
   확인 중 고친 것: pg_restore가 오류로 끝난 복원(종료 코드 1, 로그인 실패 포함)을 성공으로 보이던 것(`CheckedPostgreRestore`, 문구 `native_error_pg_restore_errors`).
 - 2026-11-07 실패한 백업이 0바이트 파일을 남겨 MySQL 재실행이 "Output file already exists"로 막히던 것(모델 처리기에서 빈 출력 파일을 지움),
   PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql `-v ON_ERROR_STOP=1`, pg_restore `--exit-on-error`, 기본 끔). "실패한 백업과 psql 오류" 절 추가.
+- 2026-11-08 스크립트 메뉴 "작업으로 저장…", 저장된 작업 편집(Database Tasks 보기), 같은 대화상자의 "네이티브 클라이언트로 스크립트 실행" 방식, 찾아보기로 더한 폴더를
+  저장하는 코드를 `NativeBackupRestore.addLocalClient`로 옮김(연결 편집기와 함께 씀) ([swing-database-tasks.md](swing-database-tasks.md)).
 - 2026-11-08 대화상자의 모델 부분(클라이언트 목록, 작업 형식, 명령줄 미리 보기, 처리기 실행, `CheckedPostgreRestore`)을 `model.admin`의
   `NativeBackupRestore`로 옮김. 메뉴 조건(`BackupRestoreCommands.canBackUp`)의 PostgreSQL·MySQL 부분도 `NativeBackupRestore.isSupported`로.
   Chromite Agent `dumpDatabase`·`restoreDump`가 같은 경로를 쓴다([ai-agent.md](ai-agent.md) "PostgreSQL·MySQL 백업·복원 도구").

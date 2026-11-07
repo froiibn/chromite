@@ -29,7 +29,9 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-dashboard.md](swing-dashboard.md) | Swing 서버 대시보드(Activity Monitor 개요 탭): 연결별 실시간 차트(세션, 초당 트랜잭션·요청, CPU, I/O, 잠금·대기, 캐시 적중률), 갱신 로직의 모델 번들 이전, Java2D 차트를 고른 이유 |
 | [swing-data-transfer.md](swing-data-transfer.md) | Swing 데이터 가져오기·내보내기 마법사(Export Data: 테이블·뷰·결과 표 → 모든 스트림 형식, Import Data: CSV → 기존 테이블, Copy Tables: 다른 연결·DB로 테이블 복사), 모델 실행 경로와 SWT 대비 변경점 |
 | [swing-backup-restore.md](swing-backup-restore.md) | Swing 데이터베이스 백업·복원(Tasks ▸ Back Up… / Restore…): SQL Server T-SQL 대화상자(진행 메시지, 복원 계획, 파일 위치), PostgreSQL·MySQL 로컬 클라이언트 도구 |
+| [swing-database-tasks.md](swing-database-tasks.md) | Swing 저장된 작업(Database Tasks 보기: 목록·실행·편집·삭제·마지막 결과와 로그, 작업으로 저장), 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus: 별도 세션, 실행 전 명령줄 확인, SQL*Plus 암호를 표준 입력으로), 저장된 네이티브 작업의 명령줄 승인, 연결 편집기의 로컬 클라이언트 |
 | [swing-result-viewer.md](swing-result-viewer.md) | Swing 결과 뷰어: 값 패널(JSON·XML·이미지·16진수), 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 선택 집계 |
+| [swing-grid-editing.md](swing-grid-editing.md) | Swing 결과 그리드 편집: 저장하고 커밋(수동 커밋), 변경 미리 보기, 행 복제·위아래 값 복사·기본값·셀 되돌리기·실행 취소, 붙여넣기·특수 붙여넣기, 고급 복사·JSON/XML/HTML/INSERT 복사, 불리언·ENUM·날짜 편집기, LOB 값 패널 편집·파일 불러오기/저장, JSON·XML 편집기 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
 | [swing-sql-terminal.md](swing-sql-terminal.md) | Swing SQL 터미널(Query > SQL Terminal, Ctrl+T): 쿼리 창마다 켜는 Terminal 탭에 문장·글자 표·메시지를 명령줄처럼 쌓음, 결과 표는 그대로 |
@@ -38,11 +40,13 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
+| [connection-lifecycle.md](connection-lifecycle.md) | 연결 수명 주기: 여러 연결 끊기, 무효화·다시 연결, 연결 끊김·드라이버 오류 대화상자, 끝낼 때 실행 중인 작업, 스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, H2 초기화 SQL·SQLite 확장 승인, 절전, 세션을 닫는 모든 경로의 트랜잭션 질문 점검 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정, 머리글 정렬이 쿼리의 ORDER BY를 바꿈·감싼 쿼리의 ORDER BY 옮기기 |
 | [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |
 | [design-spec.md](design-spec.md) | Swing 화면 디자인 사양: 배치·동작은 SSMS, 모양은 DataGrip New UI. 요소별 비교, 디자인 토큰과 FlatLaf 키, 아이콘 요구 사항, 적용 현황(Islands, 아이콘 팩, 글꼴, 촘촘한 모드, 측정값) |
 | [swing-table-designer.md](swing-table-designer.md) | Swing 테이블 디자이너(Design, New Table…): 열·키·외래 키·인덱스 편집, 변경 스크립트 미리 보기와 저장, 드라이버별 부분(어댑터) |
 | [swing-explorer-object-actions.md](swing-explorer-object-actions.md) | Swing 개체 탐색기 개체 작업: DB 객체 삭제(여러 개, 연쇄 옵션)·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴 |
+| [swing-explorer-productivity.md](swing-explorer-productivity.md) | Swing 개체 탐색기 생산성: 필터 대화상자(포함·제외 마스크, 범위), 빠른 거르기, 편집기와 연결, 두 번 클릭 설정, 긴 폴더 "더 읽기", 선택하여 복사, 연결 복제, 개체 세부 정보(F7, 종속성·참조 탭), 기본 데이터베이스·스키마 지정, Ctrl+9 / Ctrl+0 |
 | [swing-security.md](swing-security.md) | Swing 보안 편집기: 로그인·사용자·역할 속성(일반, 역할 멤버 자격, SQL Server 사용자 매핑, 사용 권한), 새로 만들기·삭제, 개체 사용 권한(허용·권한 부여·거부), 스크립트 미리 보기 후 실행 |
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행, 공유(공유 폴더 자동 새로 고침, Git, 내보내기·가져오기, 저장 충돌) |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
@@ -54,11 +58,12 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-routines.md](swing-routines.md) | Swing 루틴 명령: Execute Procedure…(방언별 호출 스크립트, OUT 값), Oracle·Altibase 컴파일과 오류 목록, 쿼리 창의 Oracle 컴파일 오류 줄, 패키지 루틴의 Go to Source Code, View DDL의 Oracle DDL 형식, 구조 검증, Altibase TRUNCATE·구체화된 뷰 새로 고침 |
 | [swing-sqlserver-agent.md](swing-sqlserver-agent.md) | Swing SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드(서비스 상태), 작업(속성·단계·일정·알림, 시작·중지·사용·기록·스크립트), 작업 활동 모니터, 경고, 운영자, 오류 로그, 프록시(읽기), 권한·에이전트 멈춤 처리 |
 | [swing-job-schedulers.md](swing-job-schedulers.md) | Swing 작업 스케줄러: Oracle DBMS_SCHEDULER(일정, 작업 실행 기록, 실행 중인 작업, 작업 창, 지금 실행·중지), PostgreSQL pg_cron(설치 여부 노드, 작업, 기록), MySQL/MariaDB 이벤트(창, event_scheduler 상태), 권한·스케줄러 중지 처리 |
-| [swing-options.md](swing-options.md) | Swing 옵션과 SWT 설정 페이지: 키 306개의 Swing 효과 전수(키별 상태 표), Query Execution(구분 기호·매개 변수·오류 처리, 오류 뒤 무확인 롤백 고침)·Connection Types(연결 유형 편집, 열린 세션의 커밋 방식 적용)·Oracle 탭, 결과 형식, 격리 수준, 연결별 설정(연결 대화상자 Settings 탭), Data Formats·Errors and Timeouts·Metadata·Client Identification 탭, 남은 키 목록 |
+| [swing-options.md](swing-options.md) | Swing 옵션과 SWT 설정 페이지: 키 306개의 Swing 효과 전수(키별 상태 표), Query Execution(구분 기호·매개 변수·오류 처리, 오류 뒤 무확인 롤백 고침)·Connection Types(연결 유형 편집, 열린 세션의 커밋 방식 적용)·Oracle 탭, 결과 형식, 격리 수준, 연결별 설정(연결 대화상자 Settings 탭), Data Formats·Errors and Timeouts·Metadata·Client Identification 탭, Binary and LOB·Connections·Drivers(프록시, Maven 저장소)·Logs·Object Explorer·Notifications·Data Transfer·Code Completion·Altibase·CUBRID·Mimer SQL 탭, 남은 키 목록 |
 | [swing-driver-manager.md](swing-driver-manager.md) | Swing 드라이버 관리자(Tools > Driver Manager…, Connect 대화상자의 Edit Driver…): 드라이버 만들기·복사·편집·삭제, 로컬 jar·폴더 라이브러리와 상태, 클래스 찾기, 오프라인 모드에서 다운로드 막기 |
 | [swing-l10n.md](swing-l10n.md) | Swing 화면 언어: OS 언어를 따르는 영어/한국어 NLS 묶음, 영역 나눔, 용어집, 영어로 남긴 것, 한글 굵은 글꼴(합성 글꼴 대체 칸) |
 | [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패. 작은 화면 수정(2026-11-08): 쿼리 상태 줄 폭, 잠금 나무 폭, 테마 전환 뒤 탭 넘침 단추, 연결 중 중지, 감사 기록 열, 줄임표 |
 | [swing-sql-completion.md](swing-sql-completion.md) | SQL 자동완성의 프로시저 제안: CALL/EXEC 뒤 부를 수 있는 루틴(방언 규칙, SQL Server 스칼라 함수 포함)·패키지·스키마, 이름만 넣기, `EXEC dbo.`의 NullPointerException(끝나지 않은 이름) |
+| [swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md) | 쿼리 편집기 편의: 코드 접기, Outline, 같은 이름 강조, 마우스 올림 설명·Ctrl+클릭 이동, 자동완성 설명 창, 블록 주석 토글·글자 도구, 결과 고정, 결과 배치(옆에 놓기·최대화) |
 | [model-fixes.md](model-fixes.md) | 모델 후속 수정(2026-11-07): SQL Server 매개변수 종류, MariaDB 패키지 캐시, PostgreSQL Block IO 단위, PostgreSQL 복사한 열의 COLLATE·STORAGE, MySQL/MariaDB 계획 비용. 작은 수정(2026-11-08): 변경을 하는 모델 확인의 기본 단추, Oracle DBMS_OUTPUT을 열린 세션에도 적용, 슬래시 Windows 경로, 연결 유형 이름의 언어, MySQL 5·StarRocks 라이선스 표기, LICENSE.md의 JFreeChart |
 | [altibase.md](altibase.md) | Altibase: Object Explorer의 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁·속성), 목록 질의에서 함께 읽는 카탈로그 근거 |
 | [swing-auth-prompts.md](swing-auth-prompts.md) | 연결할 때의 질문: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의 자격 증명 질문, JSch SSH의 호스트 키·비밀번호·개인 키 암호·키보드 대화형(OTP) 질문(안전 쪽 실패) |

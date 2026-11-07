@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/shell-command-approval.md)
+ * - 2026-11-08 항상 허용 안내에 저장된 작업 범위를 더함 (docs/chromite/shell-command-approval.md "저장된 네이티브 도구 작업")
  */
 public class ShellCommandMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ShellCommandMessages"; //$NON-NLS-1$

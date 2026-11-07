@@ -29,12 +29,14 @@ import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionBootstrap;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPConnectionType;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
+import com.seizia.chromite.model.connection.DBPNativeClientLocation;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.impl.jdbc.JDBCTransactionIsolation;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
@@ -51,6 +53,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,12 +76,14 @@ import java.util.Set;
  *     예시 URL이 없거나 그중 아무것도 없으면 JDBC URL만 입력한다.</li>
  *     <li>Authentication: {@link ConnectionAuthModels}가 고른 인증 방식(둘 이상일 때만 콤보를 보임, SWT {@code AuthModelSelector}와 같음).
  *     인증 방식마다 Login·Password 칸을 보이거나 숨긴다. 드라이버가 익명 접속이면 인증 칸을 모두 숨긴다.</li>
- *     <li>인증 방식별 추가 칸({@link ConnectionAuthExtras}: SQL Server NTLM의 integrated security, Oracle Role, PgPass 호스트 이름)은
+ *     <li>인증 방식별 추가 칸({@link ConnectionAuthExtras}: SQL Server NTLM의 integrated security, Oracle Role, PgPass 호스트 이름,
+ *     BigQuery OAuth, Snowflake Role·Authenticator, Spanner 키 파일)은
  *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
- *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
+ *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service,
+ *     BigQuery·Snowflake·SAP HANA·Firebird Embedded·Mimer SQL의 칸)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
- *     유휴 트랜잭션 알림·자동 롤백. SWT
+ *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     유휴 트랜잭션 알림·자동 롤백, 네이티브 도구 드라이버면 로컬 클라이언트. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Settings(Tools &gt; Options 페이지의 연결별 값, {@link ConnectionSettingsOverrides}), Driver Properties,
  *     Provider Properties, Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
@@ -116,6 +121,11 @@ import java.util.Set;
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 Options의 Settings 탭: Tools &gt; Options 페이지의 연결별 값({@link ConnectionSettingsOverrides}). 다시 연결 없이 적용되는
  *   설정 키를 대화상자에 알림({@link #getPreferencesAppliedWithoutReconnect}) (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 Connection Properties 맨 위에 연결 설명(SWT {@code ConnectionPageGeneral}의 Description, 탐색기 도구 설명에 보임)
+ *   (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
+ * - 2026-11-08 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않음(HANA의 빈 표)
+ * - 2026-11-08 Connection Properties에 로컬 클라이언트(네이티브 도구의 클라이언트 폴더, 연결의 {@code clientHomeId}). 전에는 백업·복원
+ *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -163,6 +173,7 @@ final class ConnectionSettingsPanel extends JPanel {
     @Nullable
     private JComponent databaseRow;
 
+    private final JTextField descriptionField = new JTextField();
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
     // The driver default (a String) or a DBPTransactionIsolation
@@ -186,6 +197,10 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JButton bootstrapButton = new JButton();
     private List<String> bootstrapQueries = new ArrayList<>();
     private boolean ignoreBootstrapErrors;
+    // Local client (client home) of the native tools: "" = not set, else a client location name. Only for drivers with
+    // native clients (NativeBackupRestore.hasNativeClients)
+    private final JComboBox<String> localClientCombo = new JComboBox<>();
+    private final Map<String, DBPNativeClientLocation> localClients = new HashMap<>();
     private final List<ConnectionNetworkPage> networkPages;
     private final ConnectionSettingsOverrides settingsOverrides;
 
@@ -193,6 +208,10 @@ final class ConnectionSettingsPanel extends JPanel {
     private final ConnectionPropertiesTable driverPropertiesTable = new ConnectionPropertiesTable(true);
     @Nullable
     private final ConnectionPropertiesTable providerPropertiesTable;
+    /**
+     * Provider properties edited by the main form's fields (left out of the Provider Properties table).
+     */
+    private final Set<String> handledProviderProperties = new HashSet<>();
     private boolean driverPropertiesRequested;
     private boolean loading;
 
@@ -250,8 +269,17 @@ final class ConnectionSettingsPanel extends JPanel {
         networkPages = ConnectionNetworkPage.createPages(dataSource, this.changeListener);
         settingsOverrides = new ConnectionSettingsOverrides(dataSource);
 
+        // Properties with a field in the main form are edited there only; without other properties there is no table tab (HANA)
+        if (driverFields != null) {
+            handledProviderProperties.addAll(driverFields.getHandledProviderProperties());
+        }
+        for (ConnectionAuthExtras.Extra extra : authExtras) {
+            handledProviderProperties.addAll(extra.getHandledProviderProperties());
+        }
         DBPPropertyDescriptor[] providerDescriptors = driver.getProviderPropertyDescriptors();
-        providerPropertiesTable = providerDescriptors == null || providerDescriptors.length == 0 ? null : new ConnectionPropertiesTable(false);
+        boolean tableProperties = providerDescriptors != null
+            && Arrays.stream(providerDescriptors).anyMatch(descriptor -> !handledProviderProperties.contains(descriptor.getId()));
+        providerPropertiesTable = tableProperties ? new ConnectionPropertiesTable(false) : null;
 
         add(createMainForm(databaseTypeCombo), BorderLayout.NORTH);
         optionsTabs.addTab(ConnectionMessages.settings_tab_connection_properties, createConnectionPropertiesPage());
@@ -726,6 +754,8 @@ final class ConnectionSettingsPanel extends JPanel {
         keepAliveSpinner.setToolTipText(ConnectionMessages.settings_keep_alive_tip);
 
         FormBuilder form = new FormBuilder();
+        descriptionField.setToolTipText(ConnectionMessages.settings_description_tip);
+        form.addRow(ConnectionMessages.settings_description, descriptionField);
         form.addRow(ConnectionMessages.settings_connection_type, connectionTypeCombo);
         form.addRow(ConnectionMessages.settings_auto_commit, autoCommitCombo);
         isolationCombo.setRenderer(new DefaultListCellRenderer() {
@@ -768,6 +798,9 @@ final class ConnectionSettingsPanel extends JPanel {
             }
         });
         form.addRow(ConnectionMessages.settings_bootstrap, leftAligned(bootstrapButton));
+        if (NativeBackupRestore.hasNativeClients(driver)) {
+            form.addRow(ConnectionMessages.settings_local_client, createLocalClientField());
+        }
         form.addGroupGap();
         form.addRow(ConnectionMessages.settings_keep_alive, leftAligned(keepAliveSpinner));
         JPanel closeIdlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -859,15 +892,7 @@ final class ConnectionSettingsPanel extends JPanel {
 
             if (providerPropertiesTable != null && providerDescriptors != null) {
                 List<DBPPropertyDescriptor> descriptors = new ArrayList<>(List.of(providerDescriptors));
-                // Properties with a field in the main form are edited there only
-                Set<String> handled = new HashSet<>();
-                if (driverFields != null) {
-                    handled.addAll(driverFields.getHandledProviderProperties());
-                }
-                for (ConnectionAuthExtras.Extra extra : authExtras) {
-                    handled.addAll(extra.getHandledProviderProperties());
-                }
-                descriptors.removeIf(descriptor -> handled.contains(descriptor.getId()));
+                descriptors.removeIf(descriptor -> handledProviderProperties.contains(descriptor.getId()));
                 providerPropertiesTable.setSource(
                     new PropertySourceCustom(descriptors, new HashMap<>(configuration.getProviderProperties())), null);
             }
@@ -895,6 +920,7 @@ final class ConnectionSettingsPanel extends JPanel {
      * ConnectionPageInitialization load them.
      */
     private void loadConnectionProperties(@NotNull DBPConnectionConfiguration configuration) {
+        descriptionField.setText(CommonUtils.notEmpty(dataSource.getDescription()));
         DBPConnectionType type = configuration.getConnectionType();
         if (((DefaultComboBoxModel<DBPConnectionType>) connectionTypeCombo.getModel()).getIndexOf(type) < 0) {
             connectionTypeCombo.addItem(type);
@@ -929,6 +955,65 @@ final class ConnectionSettingsPanel extends JPanel {
         bootstrapQueries = new ArrayList<>(configuration.getBootstrap().getInitQueries());
         ignoreBootstrapErrors = configuration.getBootstrap().isIgnoreErrors();
         updateBootstrapButton();
+        loadLocalClients(configuration.getClientHomeId());
+    }
+
+    /**
+     * Local client: the client folders of the driver on this computer (as the Back Up / Restore dialog lists them, without
+     * clients that are downloaded on first use) and Browse… to add a folder. Native tools (backup, restore, Run Script with
+     * Native Client, saved tasks) run the tools of this folder.
+     */
+    @NotNull
+    private JComponent createLocalClientField() {
+        localClientCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                String name = (String) value;
+                DBPNativeClientLocation location = name == null ? null : localClients.get(name);
+                if (CommonUtils.isEmpty(name)) {
+                    setText(ConnectionMessages.settings_local_client_none);
+                } else if (location == null) {
+                    // A saved client home that is not on this computer (another PC, a removed folder)
+                    setText(NLS.bind(ConnectionMessages.settings_local_client_missing, name));
+                } else {
+                    String path = location.getPath().getAbsolutePath();
+                    String title = location.getDisplayName();
+                    setText(CommonUtils.isEmpty(title) || title.equals(path) ? path : title + " (" + path + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                return this;
+            }
+        });
+        localClientCombo.setToolTipText(ConnectionMessages.settings_local_client_tip);
+        JButton browse = new JButton(ConnectionMessages.common_browse);
+        browse.setToolTipText(ConnectionMessages.settings_local_client_tip);
+        browse.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                String path = chooser.getSelectedFile().getAbsolutePath();
+                NativeBackupRestore.addLocalClient(driver, path);
+                loadLocalClients(path);
+            }
+        });
+        JPanel panel = new JPanel(new BorderLayout(6, 0));
+        panel.add(localClientCombo, BorderLayout.CENTER);
+        panel.add(browse, BorderLayout.EAST);
+        return panel;
+    }
+
+    private void loadLocalClients(@Nullable String selected) {
+        localClients.clear();
+        localClientCombo.removeAllItems();
+        localClientCombo.addItem(""); //$NON-NLS-1$
+        for (DBPNativeClientLocation location : NativeBackupRestore.findLocalClients(driver)) {
+            localClients.put(location.getName(), location);
+            localClientCombo.addItem(location.getName());
+        }
+        if (!CommonUtils.isEmpty(selected) && !localClients.containsKey(selected)) {
+            localClientCombo.addItem(selected);
+        }
+        localClientCombo.setSelectedItem(CommonUtils.notEmpty(selected));
     }
 
     /**
@@ -1017,12 +1102,15 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
-     * Same values as ConnectionPageGeneral.saveSettings (type, read-only) and ConnectionPageInitialization.saveSettings
+     * Same values as ConnectionPageGeneral.saveSettings (description, type, read-only) and ConnectionPageInitialization.saveSettings
      * (auto-commit, isolation level, default catalog and schema, keep-alive, idle connections), and Chromite's idle
      * transaction settings.
      * Empty names are saved as "not set".
      */
     private void saveConnectionProperties(@NotNull DataSourceDescriptor target) {
+        // ConnectionPageGeneral.saveSettings: an empty description is "none"
+        String description = descriptionField.getText().trim();
+        target.setDescription(description.isEmpty() ? null : description);
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
         if (connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type && !Objects.equals(type, configuration.getConnectionType())) {
             configuration.setConnectionType(type);
@@ -1046,6 +1134,10 @@ final class ConnectionSettingsPanel extends JPanel {
         // ConnectionPageInitialization.saveSettings
         bootstrap.setInitQueries(bootstrapQueries);
         bootstrap.setIgnoreErrors(ignoreBootstrapErrors);
+        if (NativeBackupRestore.hasNativeClients(driver)) {
+            // The client home the native tool handlers read (SWT NativeClientConfigDialog stores the same value)
+            configuration.setClientHomeId(CommonUtils.nullIfEmpty((String) localClientCombo.getSelectedItem()));
+        }
         // ConnectionPageGeneral.saveSettings: the custom color, or none (the connection type's color)
         configuration.setConnectionColor(customColorCheck.isSelected() && customColor != null ? ConnectionColors.format(customColor) : null);
         target.setConnectionReadOnly(readOnlyCheck.isSelected());
