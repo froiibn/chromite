@@ -9,8 +9,8 @@
 이 문서는 `plugin.xml`이 참조하는 모든 JDBC 드라이버 파일의 버전, 라이선스, 출처, 크기를 정리하고
 내장 가능 여부를 분류한다.
 
-- **배포판(2026-11-07 결정):** Chromite는 배포판이 하나다. 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite)만 내장하고
-  나머지는 필요할 때 내려받는다. 폐쇄망에는 별도 오프라인 설치 경로를 둔다(계획). 이전 결정(2026-11-06)은 공개판·내부판 두 판이었고,
+- **배포판(2026-11-07 결정):** Chromite는 배포판이 하나다. 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite)만 내장하고
+  나머지는 필요할 때 내려받는다. MySQL Connector/J는 2026-11-06에 내장했다가 2026-11-07 결정으로 다시 뺐다(아래 "MySQL Connector/J"). 폐쇄망에는 별도 오프라인 설치 경로를 둔다(계획). 이전 결정(2026-11-06)은 공개판·내부판 두 판이었고,
   아래 분류 표의 마지막 열은 그때의 내부판 기준이다. 내부판은 만들지 않으므로 B·C 분류는 어느 경우에도 내장하지 않는다.
 
 ## 조사 방법 (2026-11-06)
@@ -76,7 +76,7 @@
 |---|---|
 | 처음 4종 전체(Azure용 msal4j, PostGIS, waffle 포함, Oracle 중복 제외) | 약 23.7MB |
 | 최소 구성(SQL Server jar, Oracle 4종, pgjdbc, MariaDB) | 약 14.7MB |
-| MySQL Connector/J 9.x 추가 시 | +약 4.5MB (protobuf-java 포함 조사값. 실제로는 protobuf-java를 빼고 9.7.0 jar 2.6MB만 넣음) |
+| MySQL Connector/J 9.x 추가 시 | +약 4.5MB (protobuf-java 포함 조사값. 2026-11-06~07에는 protobuf-java를 빼고 9.7.0 jar 2.6MB만 넣었고, 2026-11-07에 뺐다) |
 | SQLite(Xerial) 추가 시 | +12.1MB(jar 12,132,578 bytes, 의존성 없음) |
 
 ## MySQL Connector/J
@@ -116,6 +116,15 @@
     지금은 Oracle이 공개한 위치만 안내한다(법률 검토 항목, [drivers.md](drivers.md) "미완료 항목").
   - `mysql-connector-java` 5.1.49(MySQL 5 (Legacy))는 위 방침대로 내장하지 않는다. 묶음 ID를 `drivers.mysql5`로 분리해
     Maven 다운로드가 그대로 동작한다.
+- **결정 (2026-11-07, 사용자): 내장을 취소한다.** 원문: "빼자. 많이 쓰지도 않는 db이다". 위 2026-11-06 결정은 기록으로 남긴다.
+  - 이유: 앞으로의 릴리스에서 GPLv2 3항의 대응 소스 제공 의무가 없어지고, 사용자 분야에서 MySQL은 드물게 쓴다.
+  - MySQL 계열 드라이버는 처음 쓸 때 Maven에서 받는다(MySQL·NDB·Doris 8.2.0, Manticore 9.7.0, GreptimeDB·TiDB 최신판, 위 표의 버전).
+    폐쇄망은 오프라인 설치 묶음([driver-offline-bundle.md](driver-offline-bundle.md)), 또는 내장된 MariaDB Connector/J(LGPL)로 MySQL 서버에 연결한다.
+    사용자가 직접 받는 것이므로 Chromite가 배포하는 GPL 구성 요소는 없다.
+  - **v0.1.0은 Connector/J 9.7.0을 내장한 채 배포됐다.** 그 릴리스의 대응 소스 제공(위 "남은 것")은 GitHub Release를 게시할 때 메인 작업에서 처리한다.
+  - 라이선스 표기: 사용자가 받을 때 보이는 원문이 맞도록 MySQL 계열 6개 드라이버의 `type="license"`를
+    `licenses/external/gpl-2.0-universal-foss-exception.txt`(Connector/J `LICENSE`의 GPLv2·Universal FOSS Exception 원문)로 바꿨다(아래 표).
+  - `drivers.mysql5` 분리는 `drivers.mysql` 선언 때문이었으므로 upstream대로 `drivers.mysql`로 되돌렸다(동작은 같다).
 
 ## 전체 목록
 
@@ -238,12 +247,14 @@ Oracle은 위 주요 DB 표에 있다.
 
 ## plugin.xml의 라이선스 표기와 실제가 다른 항목
 
-`type="license"` 파일은 드라이버 다운로드 대화상자에 보여 주는 용도다. 아래 항목은 실제 라이선스와 다르다.
+`type="license"` 파일은 드라이버 설정의 License 탭(Swing `DriverEditorDialog`)에 보여 주는 원문이다. 아래 항목은 실제 라이선스와 다르다.
 코드 변경 범위 밖이라 고치지 않았다. 내장 작업 때 함께 바로잡는다.
+
+- 고친 것(2026-11-07, MySQL 내장 취소): MySQL 8, NDB, Doris, Manticore, GreptimeDB, TiDB는 `gnu3.txt`(GPLv3)였다.
+  `gpl-2.0-universal-foss-exception.txt`(GPLv2 + Universal FOSS Exception 원문)로 바꾸고, 쓰는 곳이 없어진 `gnu3.txt`는 지웠다.
 
 | 드라이버 | plugin.xml 표기 | 실제 |
 |---|---|---|
-| MySQL 8, NDB, Doris, Manticore, GreptimeDB, TiDB | `gnu3.txt`(GPLv3) | GPLv2 + Universal FOSS Exception |
 | MySQL 5 | `lgpl-2.0.txt` | GPLv2 + MySQL FOSS License Exception |
 | StarRocks | GPLv2 원문 | GPLv2 + Universal FOSS Exception |
 | SAP HANA | `asl-2.0.txt` | SAP Developer License Agreement |
@@ -265,6 +276,7 @@ Oracle은 위 주요 DB 표에 있다.
 | 처음 4종 | 31 | 약 23.7MB |
 | 5종 실제 배포(MySQL 포함, 2026-11-06 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 37 | 21,608,448 bytes |
 | 6종 실제 배포(SQLite 포함, 2026-11-07 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 40 | 33,754,109 bytes |
+| 5종 실제 배포(MySQL 뺌, 2026-11-07 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 37 | 31,062,133 bytes |
 | 전체(Maven 고유 아티팩트 + URL·`repo:/` 파일) | 944 + 15 | 약 1,725MB (Maven 1,487MB + URL 238MB) |
 
 큰 드라이버는 다음과 같다(드라이버별 의존성 포함 크기라 서로 겹치는 jar가 있다).
@@ -298,3 +310,4 @@ Oracle은 위 주요 DB 표에 있다.
 - 2026-11-07 배포판을 하나로 정함(사용자 결정, 이전 결정 2026-11-06: 공개판·내부판). 주요 DB만 내장, 나머지는 필요할 때 다운로드,
   폐쇄망은 별도 오프라인 설치 경로(계획). "공개판"을 단일 제품 기준으로 고치고 분류 표의 내부판 열은 참고로 남김. B·C 분류는 계속 내장하지 않음.
   SQLite(Xerial `sqlite-jdbc` 3.54.1.0) 내장 기록.
+- 2026-11-07 MySQL Connector/J 내장 취소(사용자 결정) 기록, v0.1.0 내장 배포 기록. MySQL 계열 6개 드라이버의 라이선스 표기 수정(`gnu3.txt` 삭제).

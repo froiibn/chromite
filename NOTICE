@@ -40,7 +40,7 @@ Binary distributions of Chromite include the following unmodified
 third-party JDBC drivers in the drivers/ folder of the installation.
 They are not covered by the Apache License 2.0 of Chromite; each is
 distributed under its own license, and the license texts (and, for
-LGPL and GPL libraries, the location of the corresponding source code) are in
+LGPL libraries, the location of the corresponding source code) are in
 the same folder as the jar files. See drivers/README.txt for the
 complete file list.
 
@@ -53,11 +53,6 @@ complete file list.
   PostGIS JDBC 2.5.0 - GNU Lesser General Public License 2.1
   MariaDB Connector/J 3.5.10 - GNU Lesser General Public License 2.1
     or later
-  MySQL Connector/J 9.7.0 - GNU General Public License 2 with the
-    Universal FOSS Exception 1.0. The exception applies because Chromite
-    is distributed as open source software with its complete source code;
-    a redistribution of a modified Chromite that is not must not include
-    MySQL Connector/J (drivers/mysql/SOURCE.txt).
   SQLite JDBC Driver 3.54.1.0 (Xerial sqlite-jdbc) - Apache License 2.0;
     parts derived from the Zentus SQLite JDBC driver, Copyright (c) 2006
     David Crawshaw - BSD-style license. The jar contains the native SQLite

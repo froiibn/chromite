@@ -25,7 +25,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 | UI 기술 | SWT/Eclipse RCP UI를 Swing으로 새로 만들고, 모델 계층은 재사용 | 2026-11-06 |
 | UX / 디자인 | 화면 배치와 동작은 SSMS, 모양은 다크·라이트 모두 DataGrip New UI. 아이콘은 오픈 라이선스 세트. 사양은 [design-spec.md](design-spec.md) | 2026-11-06 |
 | 드라이버 | 설치 파일에 미리 내장. 오프라인 우선 조회, 메모리 로딩은 연결할 때만 | 2026-11-06 |
-| 배포판 | 배포판은 하나. 주요 DB 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite)만 내장하고, 나머지는 내부망이든 외부망이든 필요할 때 내려받음. 폐쇄망용 별도 오프라인 설치 경로는 계획(설계 중). 이전 결정(2026-11-06)은 공개판·내부판 분리([drivers.md](drivers.md) "배포판 구성") | 2026-11-07 |
+| 배포판 | 배포판은 하나. 주요 DB 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite)만 내장하고(MySQL은 2026-11-07 결정으로 뺌, 처음 쓸 때 다운로드), 나머지는 내부망이든 외부망이든 필요할 때 내려받음. 폐쇄망용 별도 오프라인 설치 경로는 계획(설계 중). 이전 결정(2026-11-06)은 공개판·내부판 분리([drivers.md](drivers.md) "배포판 구성") | 2026-11-07 |
 | 런타임 | JBR 25 LTS를 jlink로 줄여 내장. 사용자가 JRE를 따로 설치하지 않음 | 2026-11-06 |
 | 플랫폼 | Windows x64, macOS Apple Silicon(arm64). Linux, Intel Mac, Windows ARM은 지원하지 않음 | 2026-11-06 |
 | SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
@@ -68,3 +68,4 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 2026-11-07 결정 사항에 "SWT 삭제" 추가, 진행 단계 6(SWT 버전 삭제) 완료 표시([swt-removal.md](swt-removal.md)).
 - 2026-11-07 미결정 사항 "버전 체계"를 결정 사항 "버전 체계"로 옮김([versioning.md](versioning.md)).
 - 2026-11-07 결정 사항 "배포판" 변경: 공개판·내부판 분리(2026-11-06)에서 배포판 하나로. 주요 DB와 SQLite만 내장, 나머지는 필요할 때 다운로드, 폐쇄망은 별도 오프라인 설치 경로(계획).
+- 2026-11-07 결정 사항 "배포판"의 내장 목록에서 MySQL을 뺌(사용자 결정, [drivers.md](drivers.md) "MySQL Connector/J 내장 취소").

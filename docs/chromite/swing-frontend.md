@@ -1440,8 +1440,9 @@ Connection Properties | Driver Properties | Provider Properties | Additional Con
 
 ### Database type 콤보 (`DatabaseTypeCombo`)
 
-- 순서: 공개판에 드라이버가 내장된 주요 DB(SQL Server `sqlserver:microsoft`, PostgreSQL `postgresql:postgres-jdbc`, MySQL `mysql:mysql8`,
+- 순서: 주요 DB(SQL Server `sqlserver:microsoft`, PostgreSQL `postgresql:postgres-jdbc`, MySQL `mysql:mysql8`,
   MariaDB `mysql:mariaDB`, Oracle `oracle:oracle_thin`, SQLite `sqlite:sqlite_jdbc`) → 최근에 연결을 만든 다른 드라이버 → "More database types…".
+  MySQL을 뺀 다섯은 드라이버가 내장돼 있다. MySQL은 2026-11-07부터 내장하지 않지만(처음 연결할 때 다운로드, [drivers.md](drivers.md)) 목록에는 그대로 둔다.
   새 연결은 첫 항목(SQL Server)으로 시작한다(SSMS의 기본 서버 종류와 같음).
 - "More database types…"는 D단계의 드라이버 고르기 화면(`DriverSelectionPanel`: 검색, 범주, 전체 드라이버)을 작은 창으로 연다. 고른 드라이버는 콤보의 주요 DB 다음에 들어간다.
 - 콤보에 포커스가 있을 때 글자를 치면 이름이 그 글자들로 시작하는 항목으로 간다(1초 안에 친 글자를 이어 붙임. 예: `sqli` → SQLite).
@@ -2550,3 +2551,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 Object Explorer 개체 작업: DB 객체 삭제·이름 바꾸기(스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택,
   SQL 생성 메뉴. "Object Explorer 개체 작업" 절, E단계 남긴 것에 표시. [swing-explorer-object-actions.md](swing-explorer-object-actions.md).
 - 2026-11-07 쿼리 실행의 오류 처리를 설정에서 넘김(오류 뒤 무확인 롤백 고침), C단계 "커밋·오류 처리" 항목 갱신. [swing-options.md](swing-options.md).
+- 2026-11-07 Database type 콤보 설명: MySQL 드라이버 내장을 없앴으므로 "공개판에 드라이버가 내장된 주요 DB"를 "주요 DB"로 고침(목록은 그대로). [drivers.md](drivers.md).
