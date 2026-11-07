@@ -20,7 +20,10 @@ import com.seizia.chromite.model.admin.security.Securable;
 import com.seizia.chromite.model.admin.security.SecurityDialect;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.model.admin.security.SecurityStatement;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -51,6 +54,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 삭제 확인(삭제 / 취소)과 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange})의 기본 단추를 취소로:
+ *   Enter 두 번으로 DROP·GRANT가 실행되지 않게 (Object Explorer 삭제와 같음, docs/chromite/swing-security.md)
  */
 final class SecurityCommands {
 
@@ -141,8 +146,10 @@ final class SecurityCommands {
         if (dialect == null || !dialect.isPrincipal(object)) {
             return;
         }
-        if (JOptionPane.showConfirmDialog(owner, NLS.bind(SecurityMessages.security_drop_question, object.getName()),
-            SecurityMessages.security_drop_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        Object[] buttons = {NavigatorMessages.navigator_delete_button, CoreMessages.common_cancel};
+        // Cancel is the default button, as Object Explorer Delete: Enter must not start a DROP
+        if (JOptionPane.showOptionDialog(owner, NLS.bind(SecurityMessages.security_drop_question, object.getName()),
+            SecurityMessages.security_drop_title, JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]) != 0) {
             return;
         }
         SecurityPrincipal principal;
@@ -208,7 +215,9 @@ final class SecurityCommands {
             return ApplyResult.NOT_EXECUTED;
         }
         String script = dialect.formatScript(statements);
-        ScriptPreviewDialog.Result choice = ScriptPreviewDialog.show(owner, NLS.bind(SecurityMessages.security_script_title, title), script, true);
+        // Cancel is the default button: the script may DROP, GRANT or REVOKE
+        ScriptPreviewDialog.Result choice = ScriptPreviewDialog.confirmChange(owner, NLS.bind(SecurityMessages.security_script_title, title),
+            ToolsMessages.script_preview_execute_question, script);
         if (choice == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
             queryWindows.openScript(dialect.getDataSource().getContainer(), script, 0, false);
             return ApplyResult.NOT_EXECUTED;

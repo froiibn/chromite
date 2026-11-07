@@ -8,10 +8,10 @@ Object Explorer에서 로그인·사용자·역할을 SSMS의 보안 화면처�
   역할 멤버 자격(확인란 목록), SQL Server **사용자 매핑**(데이터베이스별 사용자·기본 스키마·데이터베이스 역할),
   **사용 권한**(보안 개체 목록 + 개체별 허용/권한 부여/거부, "개체 추가…").
 - Logins·Roles·Users 폴더의 **새 로그인… / 새 역할… / 새 사용자…**(같은 창, 빈 값으로 시작).
-- 로그인·사용자·역할의 **삭제**(Delete 키 또는 메뉴, 확인 후 스크립트).
+- 로그인·사용자·역할의 **삭제**(Delete 키 또는 메뉴, 확인(삭제 / 취소) 후 스크립트).
 - 테이블·뷰·시퀀스·함수·프로시저의 **사용 권한…**: 사용자·역할별 권한 허용/취소/거부.
 
-모든 변경은 OK를 누르면 테이블 디자이너처럼 스크립트를 먼저 보여 주고(Execute / Open in Query Window / Copy / Cancel)
+모든 변경은 OK를 누르면 테이블 디자이너처럼 스크립트를 먼저 보여 주고(Execute / Open in Query Window / Copy / Cancel, 기본 단추는 Cancel)
 Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크립트만 보여 준다.
 
 지원: SQL Server, PostgreSQL, MySQL/MariaDB, Oracle(2026-11-08, 아래 "Oracle").
@@ -108,6 +108,9 @@ Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크
   (Microsoft 문서 "Permissions (Database Engine)")을 쓴다. 목록에 없는 권한이 이미 있으면 표에 더해 보여 준다(취소할 수 있게).
 - **새 주체의 기본값.** SSMS 새 로그인처럼 SQL Server는 기본 데이터베이스 master, 암호 정책 켬·만료 끔, 로그인 사용.
   PostgreSQL 새 역할은 로그인 가능·상속 켬(그 밖의 옵션 끔), MySQL 새 사용자는 호스트 `%`.
+- **기본 단추는 취소(2026-11-08, 모든 DB).** 삭제 확인(삭제 / 취소)과 스크립트 미리 보기(`ScriptPreviewDialog.confirmChange`)는 Enter가 취소다.
+  전에는 삭제 확인이 예/아니요(기본 예), 미리 보기가 Execute 기본이라 Enter 두 번으로 DROP·GRANT·REVOKE가 실행됐다.
+  Object Explorer 삭제(#119)·테이블 잘라내기와 같은 규칙이다. 실행하려면 실행 단추를 누른다.
 - **암호는 화면 밖으로 나가지 않는다.** 스크립트 미리 보기·복사·쿼리 창으로 열기는 가린 글(`SecurityStatement.displaySql`)만 쓰고,
   실행할 때는 쿼리 관리자 기록을 끈다. 창은 실행 뒤 편집본의 암호를 지우고, 암호 칸의 글자 배열은 읽은 뒤 0으로 채운다.
 - **화면 문구.** 기능 전용 묶음 `SecurityMessages`(영어 기본 + `_ko`)이고, 한국어 용어는 SSMS 한국어판 보안 화면을 따랐다
@@ -206,3 +209,4 @@ Swing 제품을 개인 작업 공간으로 한 번 띄우고 EDT 시험 에이�
 
 - 2026-11-06 최초 작성: 로그인·사용자·역할 속성과 새로 만들기, 삭제, 개체 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB).
 - 2026-11-08 Oracle 사용자·역할·시스템 권한·객체 권한(`OracleSecurityDialect`), Oracle Free 23ai에서 만들기·부여·회수·삭제 확인.
+- 2026-11-08 삭제 확인과 스크립트 미리 보기의 기본 단추를 취소로 바꿈(모든 DB, 공용 동작 변경): Enter 두 번으로 DROP·GRANT가 실행되지 않게. 삭제 확인 단추는 예/아니요 → 삭제/취소.

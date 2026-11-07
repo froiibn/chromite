@@ -44,6 +44,7 @@ import java.awt.event.KeyEvent;
  * - 2026-11-07 Object Explorer 개체 변경 확인({@link #confirmChange}): 삭제·이름 바꾸기 스크립트, 쿼리 창으로 열기는 두고 Cancel이 기본 단추.
  *   "저장 확인" 한 플래그를 쿼리 창 단추와 기본 단추 두 플래그로 나눔, 줄바꿈이 있는 머리글은 여러 줄로 보임
  *   (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 {@link #confirmChange}를 Object Explorer 유지 관리 명령과 보안 편집기도 씀(Cancel이 기본 단추) (docs/chromite/swing-security.md)
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -165,8 +166,9 @@ final class ScriptPreviewDialog extends JDialog {
     }
 
     /**
-     * Shows the script of a change to database objects (Object Explorer Delete and Rename) and waits for the user's
-     * choice: execute it, open it in a query window, or close. Cancel is the default button.
+     * Shows the script of a change to database objects (Object Explorer Delete, Rename and maintenance commands, the
+     * security editors) and waits for the user's choice: execute it, open it in a query window, or close. Cancel is the
+     * default button.
      *
      * @param header what runs where, above the script (may have several lines)
      */
