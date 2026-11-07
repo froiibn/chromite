@@ -101,7 +101,7 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
   모델이 숫자 열로 다루므로(`SQLServerDataType`의 `bit` → `NUMERIC`) SWT처럼 0·1 글자로 고친다.
 - **ENUM:** PostgreSQL ENUM 형식(`PostgreDataType.getEnumValues`, 형식 범주 E)과 MySQL/MariaDB `ENUM` 열(`MySQLTableColumn.getEnumValues`)은 허용 값 목록으로 고친다.
   SWT의 `PostgreEnumValueManager`, `MySQLEnumValueManager`와 같은 모델 값이다. PostgreSQL 값 읽기는 형식 캐시가 비면 질의하므로 결과를 받는 Job 스레드에서 읽어 편집 모델에 넘긴다.
-  MySQL `SET`은 여러 값이라 글자 편집으로 둔다.
+  MySQL `SET`은 여러 값이라 콤보로 다루지 않는다(확인란 고르기는 [swing-value-editors.md](swing-value-editors.md)).
 - **날짜·시각:** 글자 편집기 오른쪽의 달력 단추나 Alt+↓로 선택기를 연다. 월 달력(주의 첫 요일·요일 이름은 OS 지역), 시:분:초, 오늘/지금, OK, Cancel.
   `DATE`는 날짜만, `TIME`은 시각만, 그 밖은 둘 다다. 고른 값은 `java.sql.Date/Time/Timestamp`로 열의 값 처리기에 넘긴다(SWT 달력 방식과 같음).
   값 처리기가 `Date`를 다루지 않는 열(예: SQL Server `datetimeoffset` 처리기)과 원래 형식 보이기 설정의 글자 값은 단추가 없고 글자로 고친다. 시각을 바꾸지 않으면 소수 초는 남는다.
@@ -191,8 +191,8 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 
 ## 남긴 것
 
-- 연쇄 삭제(Delete cascade, Deep cascade), 참조 값 고르기(외래 키 값 목록), 배열·구조체·커서 편집기, 외부 편집기로 열기, UUID 만들기, MySQL `SET` 다중 선택,
-  PostgreSQL hstore·money·bit string 편집기, 이진 LOB의 16진수 편집.
+- 연쇄 삭제(Delete cascade, Deep cascade), 커서 보기. 참조 값 고르기, 배열·구조체 편집기, 외부 편집기, UUID 만들기, MySQL `SET` 다중 선택,
+  hstore·bit string 편집기, 16진수 편집은 2026-11-08 [swing-value-editors.md](swing-value-editors.md)에서 넣었다.
 - 수동 커밋 연결에서 Save 뒤 쿼리 > 롤백을 하면 DB는 되돌아가지만 표는 저장한 값을 그대로 보인다(G단계부터 같음, 다시 실행하면 DB 값). 롤백 명령이 결과 표에 알리는 길이 필요하다.
 - 불리언·날짜 값 처리기는 글자를 너그럽게 읽는다(예: 붙여넣은 `not-bool` → false, `2026-13-45` → 다음 해 날짜). 셀 편집기와 같은 모델 동작이라 바꾸지 않았다.
 
@@ -200,3 +200,4 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 
 - 2026-11-08 최초 작성(`chromite/p4-grid-editing`): 저장하고 커밋, 변경 미리 보기, 행·셀 명령, 실행 취소, 붙여넣기·특수 붙여넣기, 고급 복사·복사 형식,
   불리언·ENUM·날짜 편집기, LOB 편집·파일, JSON·XML 편집기.
+- 2026-11-08 "남긴 것"의 값 편집기는 [swing-value-editors.md](swing-value-editors.md)에서 넣었다고 표시, SET 설명 고침(`chromite/value-editors-rest`).

@@ -102,6 +102,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 G단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-07 저장 전 미리 보기 스크립트와 바뀐 행 수 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-08 저장하고 커밋(수동 커밋 연결), 커밋 오류를 저장 오류와 따로 넘김 (docs/chromite/swing-grid-editing.md "저장하고 커밋")
+ * - 2026-11-08 저장 뒤 다시 읽은 행의 배열·구조체 값을 놓아 주지 않음: 그리드가 다시 고칠 수 있게 (docs/chromite/swing-value-editors.md)
  */
 final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEditPersister.StatementInfo, ResultSetEditModel.Row, ResultSetEditModel> {
 
@@ -648,7 +649,7 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
 
     /**
      * Reads one row of the refresh query, with display strings made while the result set is open (like
-     * {@link ResultSetGridReceiver}); value objects (LOBs etc.) are released and kept as null.
+     * {@link ResultSetGridReceiver}); value objects (LOBs etc.) are released and kept as null, except arrays and composites.
      */
     private static final class DisplayRowReceiver extends RowDataReceiver {
         Object[] display;
@@ -667,7 +668,8 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
                 display[i] = DBUtils.isNullValue(value)
                     ? ResultSetGrid.NULL_VALUE
                     : binding.getValueRenderer().getValueDisplayString(binding, value, DBDDisplayFormat.UI);
-                if (value instanceof DBDValue || binding.getDataKind() == DBPDataKind.CONTENT) {
+                // Arrays and composites stay: the grid edits them (as ResultSetGridReceiver keeps them)
+                if ((value instanceof DBDValue && !ResultSetGridReceiver.isComplexValue(value)) || binding.getDataKind() == DBPDataKind.CONTENT) {
                     DBUtils.releaseValue(value);
                     rowValues[i] = null;
                 }

@@ -26,6 +26,8 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDComposite;
 import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
@@ -62,11 +64,11 @@ import java.util.function.Consumer;
  * 값 하나를 읽다 난 오류는 그 칸에 오류 문구를 넣고 열마다 한 번만 기록한다(SWT 수신기와 같음).
  * 숫자, 불리언, 날짜·시각 값은 표시 문자열과 함께 원래 값도 남긴다({@link #isKeptValue}). XLSX 내보내기가 숫자·날짜 칸을 그 형식으로 쓰기 위해서다
  * (표시 문자열은 지역 설정의 소수점과 최대 소수 자릿수로 바뀌어 다시 읽으면 값이 달라질 수 있다). 이 값들은 결과 집합·세션에 묶이지 않은 단순 값 객체라(수신기가 행마다 새로 받음)
- * 결과 집합을 닫은 뒤에도 안전하고, LOB·배열 같은 값은 지금처럼 놓아 준다. 원래 값이 없는 행은 배열을 만들지 않는다.
- * 결과 편집(G단계): 값 객체({@code DBDValue})가 아닌 원래 값은 모두 {@code fetchEnd}까지 남기고, {@code fetchEnd}에서 SWT 수신기처럼
+ * 결과 집합을 닫은 뒤에도 안전하고, LOB 같은 값은 지금처럼 놓아 준다(XLSX용 값에는 배열·구조체도 넣지 않는다). 원래 값이 없는 행은 배열을 만들지 않는다.
+ * 결과 편집(G단계): 값 객체({@code DBDValue})가 아닌 원래 값과 배열·구조체 값({@link #isComplexValue})은 모두 {@code fetchEnd}까지 남기고, {@code fetchEnd}에서 SWT 수신기처럼
  * {@link DBExecUtils#bindAttributes}로 열을 테이블 열·행 식별자(기본 키)에 묶는다. 묶으면서 값 처리기가 바뀐 열은 표시 문자열을 다시 만든다.
  * 편집할 수 있는지는 {@link ResultSetEditModel#getReadOnlyReason}이 정하고, 편집할 수 있으면 원래 값을 {@link ResultSetEditModel}에 넘긴다.
- * 읽기 전용이면 원래 값은 위의 XLSX용 값만 남긴다. 값 객체로 온 열과 값을 읽지 못한 열은 칸에서 편집하지 않는다(LOB 열은 값 패널이나
+ * 읽기 전용이면 원래 값은 위의 XLSX용 값만 남긴다. 값 객체(배열·구조체 제외)로 온 열과 값을 읽지 못한 열은 칸에서 편집하지 않는다(LOB 열은 값 패널이나
  * 파일로 값 전체를 바꾼다, {@link ResultSetEditModel#isContentColumn}).
  * 값 패널·정렬·필터·다음 페이지(결과 뷰어): 값 패널이 칸의 원래 값을 보여 주도록 행마다 칸 값을 함께 넘긴다({@link ResultSetSource#cellValues()}).
  * LOB({@link DBDContent})는 {@link ResultSetCellContent}로 바꿔 넘기고, 메모리에 없는 LOB는 패널이 나중에 읽도록 값 객체를 놓아 주지 않는다.
@@ -93,6 +95,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 열 머리글을 열의 레이블(별칭)로: 이름({@code getColumnName})을 써서 MySQL·MariaDB처럼 드라이버가 원래 열 이름을 주는 곳에서
  *   {@code AS} 별칭이 보이지 않았다. SWT 표처럼 레이블, 없으면 이름. "레이블 대신 열 이름 표시" 설정({@code resultset.column.label.ignore})이
  *   레이블을 이름으로 바꾼다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 배열·구조체 값({@link #isComplexValue})을 놓아 주지 않고 원래 값으로 남김: 읽을 때 요소가 단순 값으로 바뀌어 결과 집합에
+ *   묶이지 않으므로, 편집 모델이 배열·구조체 편집기로 고칠 수 있다(값 패널 칸 값은 그대로 표시 문자열) (docs/chromite/swing-value-editors.md)
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -191,7 +195,12 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                 row[i] = isNull
                     ? ResultSetGrid.NULL_VALUE
                     : binding.getValueRenderer().getValueDisplayString(binding, value, DBDDisplayFormat.UI);
-                if (value instanceof DBDValue) {
+                if (isComplexValue(value)) {
+                    // Arrays and composites hold their elements as plain values once fetched: kept for the edit model
+                    // (array and structure editors), not released
+                    raw[i] = value;
+                    keepValue = true;
+                } else if (value instanceof DBDValue) {
                     // Released below unless the value panel reads it later; the grid has its display string only
                     unreadableColumns[i] = true;
                     if (value instanceof DBDContent) {
@@ -225,6 +234,15 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         rows.add(row);
         rawValues.add(raw);
         cellValues.add(cells);
+    }
+
+    /**
+     * An array or a composite value ({@link DBDCollection}, {@link DBDComposite}, not a LOB): the driver's array or
+     * structure is read into plain element values when it is fetched ({@code JDBCCollection}, {@code JDBCComposite}),
+     * so the value does not hold the result set and can be kept and edited after the fetch.
+     */
+    static boolean isComplexValue(@Nullable Object value) {
+        return (value instanceof DBDCollection || value instanceof DBDComposite) && !(value instanceof DBDContent);
     }
 
     /**

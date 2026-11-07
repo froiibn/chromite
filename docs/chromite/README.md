@@ -32,6 +32,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-database-tasks.md](swing-database-tasks.md) | Swing 저장된 작업(Database Tasks 보기: 목록·실행·편집·삭제·마지막 결과와 로그, 작업으로 저장), 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus: 별도 세션, 실행 전 명령줄 확인, SQL*Plus 암호를 표준 입력으로), 저장된 네이티브 작업의 명령줄 승인, 연결 편집기의 로컬 클라이언트 |
 | [swing-result-viewer.md](swing-result-viewer.md) | Swing 결과 뷰어: 값 패널(JSON·XML·이미지·16진수), 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 선택 집계 |
 | [swing-grid-editing.md](swing-grid-editing.md) | Swing 결과 그리드 편집: 저장하고 커밋(수동 커밋), 변경 미리 보기, 행 복제·위아래 값 복사·기본값·셀 되돌리기·실행 취소, 붙여넣기·특수 붙여넣기, 고급 복사·JSON/XML/HTML/INSERT 복사, 불리언·ENUM·날짜 편집기, LOB 값 패널 편집·파일 불러오기/저장, JSON·XML 편집기 |
+| [swing-value-editors.md](swing-value-editors.md) | Swing 결과 값 편집기 나머지: 참조 값 고르기(외래 키, 검색), MySQL/MariaDB SET 고르기, 배열·구조체·hstore 편집, OBJECT 열(PostgreSQL uuid·inet 등) 글자 편집, 비트 문자열, 16진수 편집, 외부 편집기(저장하면 셀에 넣음), UUID 만들기 |
 | [swing-result-generate-sql.md](swing-result-generate-sql.md) | Swing 결과에서 SQL 만들기: 결과 표 "SQL 생성"(고른 행의 SELECT·INSERT·UPDATE·DELETE, MERGE, 중복 키 INSERT, 결과를 담을 CREATE TABLE), 실행하지 않고 복사·쿼리 창에서 열기 |
 | [swing-grid-navigation.md](swing-grid-navigation.md) | Swing 결과 탐색: 외래 키 따라가기(Ctrl+B, 참조·참조하는 테이블)와 뒤로·앞으로, 참조 패널, 집계 패널, 가상 고유 키·가상 외래 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소, 결과 안 찾기, 텍스트 보기, 전체 행 수, 오류 위치로 가기 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |

@@ -19,7 +19,6 @@ package com.seizia.chromite.ui.swing;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
-import com.seizia.chromite.ext.mysql.MySQLConstants;
 import com.seizia.chromite.ext.mysql.model.MySQLTableColumn;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
 import com.seizia.chromite.ext.postgresql.model.PostgreTypeCategory;
@@ -31,16 +30,20 @@ import com.seizia.chromite.model.struct.DBSTypedObjectEx;
 import java.util.List;
 
 /**
- * 결과 표의 ENUM 열이 가질 수 있는 값(편집 콤보 상자용). 지금은 PostgreSQL ENUM 형식과 MySQL/MariaDB {@code ENUM} 열이다.
+ * 결과 표의 ENUM·SET 열이 가질 수 있는 값(편집 콤보 상자, SET 고르기 대화상자용). 지금은 PostgreSQL ENUM 형식과 MySQL/MariaDB
+ * {@code ENUM}·{@code SET} 열이다.
  *
  * 설계: SWT는 DB 확장의 값 관리자({@code PostgreEnumValueManager}, {@code MySQLEnumValueManager}, 각 {@code ext.*.ui} 번들)가
  * 콤보 편집기를 만들었다. Swing에는 값 관리자 확장점이 없고 Swing 번들이 이미 PostgreSQL·MySQL 모델 번들에 의존하므로, 두 관리자가 읽던
  * 모델 값({@link PostgreDataType#getEnumValues}, {@link MySQLTableColumn#getEnumValues})을 여기 한 곳에서 읽는다. DB별 코드를 표 코드에
  * 섞지 않으려고 따로 둔 클래스다. PostgreSQL 값 읽기는 형식 캐시가 비어 있으면 질의하므로, 수신기가 결과를 받는 Job 스레드에서
- * 부른다({@link ResultSetGridReceiver}). MySQL {@code SET}은 여러 값을 고르는 형식이라 콤보로 다루지 않고 글자 편집으로 둔다.
+ * 부른다({@link ResultSetGridReceiver}). MySQL {@code SET}은 여러 값을 고르는 형식이라 콤보가 아니라 확인란 목록으로 고른다
+ * ({@link #isMultiple}, {@link ResultSetValueDialogs}). 모델은 SET의 허용 값도 {@code ENUM}과 같은 목록으로 준다({@code MySQLTableColumn}이
+ * 두 형식의 형식 이름을 같은 규칙으로 읽음).
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: ENUM 열 콤보 편집 (docs/chromite/swing-grid-editing.md "ENUM 콤보")
+ * - 2026-11-08 MySQL/MariaDB {@code SET} 열의 값도 읽고 여러 값 열을 알림(SET 고르기, docs/chromite/swing-value-editors.md)
  */
 final class ResultSetEnumValues {
 
@@ -50,7 +53,7 @@ final class ResultSetEnumValues {
     }
 
     /**
-     * The allowed values of each column, or null for a column that is not an ENUM (job thread: may query the
+     * The allowed values of each column, or null for a column that is not an ENUM or SET (job thread: may query the
      * database).
      */
     @NotNull
@@ -67,11 +70,19 @@ final class ResultSetEnumValues {
         return result;
     }
 
+    /**
+     * Whether a column holds several of its allowed values at once (MySQL/MariaDB {@code SET}: "a,b"), picked from a
+     * check box list rather than a combo box. No database access.
+     */
+    static boolean isMultiple(@NotNull DBDAttributeBinding binding) {
+        return binding.getEntityAttribute() instanceof MySQLTableColumn column && column.isTypeSet();
+    }
+
     @Nullable
     private static String[] readColumn(@NotNull DBRProgressMonitor monitor, @Nullable DBSEntityAttribute attribute) {
         if (attribute instanceof MySQLTableColumn column) {
             List<String> values = column.getEnumValues();
-            if (MySQLConstants.TYPE_NAME_ENUM.equalsIgnoreCase(column.getTypeName()) && values != null && !values.isEmpty()) {
+            if ((column.isTypeEnum() || column.isTypeSet()) && values != null && !values.isEmpty()) {
                 return values.toArray(new String[0]);
             }
             return null;
