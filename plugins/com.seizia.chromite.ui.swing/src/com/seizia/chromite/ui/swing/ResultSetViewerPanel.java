@@ -36,6 +36,7 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.gis.DBGeometry;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -94,6 +95,8 @@ import java.util.function.Consumer;
  *     SWT {@code checkForChanges}처럼 먼저 저장하거나 취소해야 한다(자동 다음 페이지는 묻지 않고 건너뛴다).</li>
  *     <li><b>값 패널</b>({@link ResultSetValuePanel}, F7)과 <b>레코드 보기</b>({@link ResultSetRecordView})는 지금 선택한 칸·행을 보여 준다.
  *     값 패널을 연 상태는 다음 결과에도 이어진다(이 실행 동안).</li>
+ *     <li><b>차트 보기</b>({@link ResultSetChartView})와 <b>공간 보기</b>({@link ResultSetSpatialView})는 레코드 보기처럼 표 자리에 바꿔 보인다
+ *     (한 번에 하나, 같은 단추를 다시 누르면 표). 둘 다 표에 읽혀 있는 행을 그리고, 행이 바뀌면 다시 그린다. Spatial 단추는 기하 열이 있을 때만 보인다.</li>
  *     <li><b>상태 줄</b>: 읽은 행 수("200 rows fetched — more available"), 다음 페이지 링크, 선택한 칸의 집계(SSMS 상태 줄처럼 개수·합계·평균·최솟값·최댓값,
  *     모델 계층의 {@code com.seizia.chromite.model.data.aggregate} 함수 사용, {@link ResultSetAggregates}).</li>
  * </ul>
@@ -114,6 +117,8 @@ import java.util.function.Consumer;
  *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 상태 줄의 정렬 요약: 정렬한 열, 쿼리의 ORDER BY를 바꿨는지, 쿼리 순서로 되돌리기(✕). 상태 줄 왼쪽이 넘치면 두 줄로 늘어남
  *   ({@link WrapFlowLayout}: 전에는 넘친 요약이 상태 줄 밖으로 밀려 가려짐) (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-08 차트 보기·공간 보기와 상태 줄 Chart / Spatial 단추. 레코드 보기 여부(boolean)를 보기 방식({@code ViewMode})으로 바꿈.
+ *   기하 값은 값 패널에도 보이고 "Filter by Value"에는 넣지 않음 (docs/chromite/swing-result-charts-spatial.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -125,6 +130,8 @@ final class ResultSetViewerPanel extends JPanel {
     private static final String PREF_AUTO_FETCH_NEXT_SEGMENT = "resultset.autofetch.next.segment"; //$NON-NLS-1$
     private static final String CARD_GRID = "grid"; //$NON-NLS-1$
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
+    private static final String CARD_CHART = "chart"; //$NON-NLS-1$
+    private static final String CARD_SPATIAL = "spatial"; //$NON-NLS-1$
     private static final int SORT_CLICK_BORDER = 4;
     /**
      * Widest first column width made for the header icons (the grid's own first widths stop at the same width).
@@ -135,6 +142,19 @@ final class ResultSetViewerPanel extends JPanel {
      * Whether new result viewers open with the value panel (the state of the last toggle in this session).
      */
     private static boolean valuePanelDefault;
+
+    /**
+     * What the viewer shows in place of the grid: the grid itself, the record view, the chart view or the spatial view.
+     */
+    private enum ViewMode {
+        GRID(CARD_GRID), RECORD(CARD_RECORD), CHART(CARD_CHART), SPATIAL(CARD_SPATIAL);
+
+        private final String card;
+
+        ViewMode(@NotNull String card) {
+            this.card = card;
+        }
+    }
 
     /**
      * One row kept across rebuilds of the grid: its fetch position, display strings, export values, cell values
@@ -153,6 +173,8 @@ final class ResultSetViewerPanel extends JPanel {
     private final ResultSetGrid.Host gridHost;
     private final ResultSetValuePanel valuePanel;
     private final ResultSetRecordView recordView;
+    private final ResultSetChartView chartView;
+    private final ResultSetSpatialView spatialView;
     private final JLabel rowsLabel = new JLabel();
     private final JButton fetchNextButton;
     private final JButton fetchAllButton;
@@ -163,6 +185,8 @@ final class ResultSetViewerPanel extends JPanel {
     private final JLabel aggregateLabel = new JLabel();
     private final JToggleButton valuePanelToggle;
     private final JToggleButton recordToggle;
+    private final JToggleButton chartToggle;
+    private final JToggleButton spatialToggle;
     private final JPanel cards = new JPanel(new CardLayout());
     private final JSplitPane split;
     private final Timer selectionTimer;
@@ -187,8 +211,8 @@ final class ResultSetViewerPanel extends JPanel {
     private String statusMessage;
     private int lastScrollValue;
     private boolean valuePanelShown;
-    // Kept apart from the toggle button: a click selects the button before its action runs
-    private boolean recordMode;
+    // Kept apart from the toggle buttons: a click selects the button before its action runs
+    private ViewMode viewMode = ViewMode.GRID;
     private int valuePanelWidth = -1;
 
     ResultSetViewerPanel(@NotNull ResultSetGrid.Fetched fetched, @NotNull ResultSetGrid.Host host) {
@@ -238,13 +262,21 @@ final class ResultSetViewerPanel extends JPanel {
 
         valuePanel = new ResultSetValuePanel();
         recordView = new ResultSetRecordView(new RecordSource());
+        chartView = new ResultSetChartView(new ChartSource());
+        spatialView = new ResultSetSpatialView(new SpatialSource());
 
         Action toggleValuePanel = createAction(EditorMessages.editor_viewer_value_panel, KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), () -> setValuePanelShown(!valuePanelShown));
         toggleValuePanel.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_value_panel_tip);
         valuePanelToggle = createToggle(toggleValuePanel);
-        Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> setRecordMode(!isRecordMode()));
+        Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> toggleViewMode(ViewMode.RECORD));
         toggleRecord.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_record_tip);
         recordToggle = createToggle(toggleRecord);
+        Action toggleChart = createAction(EditorMessages.editor_viewer_chart, null, () -> toggleViewMode(ViewMode.CHART));
+        toggleChart.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_chart_tip);
+        chartToggle = createToggle(toggleChart);
+        Action toggleSpatial = createAction(EditorMessages.editor_viewer_spatial, null, () -> toggleViewMode(ViewMode.SPATIAL));
+        toggleSpatial.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_spatial_tip);
+        spatialToggle = createToggle(toggleSpatial);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) toggleValuePanel.getValue(Action.ACCELERATOR_KEY), "chromite.toggleValuePanel"); //$NON-NLS-1$
         getActionMap().put("chromite.toggleValuePanel", toggleValuePanel); //$NON-NLS-1$
 
@@ -256,6 +288,8 @@ final class ResultSetViewerPanel extends JPanel {
 
         cards.add(new JPanel(), CARD_GRID);
         cards.add(recordView, CARD_RECORD);
+        cards.add(chartView, CARD_CHART);
+        cards.add(spatialView, CARD_SPATIAL);
         // The split stays in place and the hidden value panel is invisible: moving the grid to another parent would
         // take the keyboard focus away from it
         split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, cards, valuePanel);
@@ -337,6 +371,8 @@ final class ResultSetViewerPanel extends JPanel {
         right.add(aggregateLabel);
         right.add(valuePanelToggle);
         right.add(recordToggle);
+        right.add(chartToggle);
+        right.add(spatialToggle);
         bar.add(left, BorderLayout.CENTER);
         bar.add(right, BorderLayout.EAST);
         return bar;
@@ -362,21 +398,50 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private boolean isRecordMode() {
-        return recordMode;
+        return viewMode == ViewMode.RECORD;
     }
 
-    private void setRecordMode(boolean recordMode) {
-        this.recordMode = recordMode;
-        recordToggle.setSelected(recordMode);
-        ((CardLayout) cards.getLayout()).show(cards, recordMode ? CARD_RECORD : CARD_GRID);
-        if (recordMode) {
-            recordView.refresh();
-            // The record line of the grid's selected column, so the value panel keeps showing the same cell
-            recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
-        } else if (grid != null) {
-            grid.getTable().requestFocusInWindow();
+    /**
+     * Shows a view in place of the grid, or the grid again when that view is shown already.
+     */
+    private void toggleViewMode(@NotNull ViewMode mode) {
+        setViewMode(viewMode == mode ? ViewMode.GRID : mode);
+    }
+
+    private void setViewMode(@NotNull ViewMode mode) {
+        this.viewMode = mode;
+        recordToggle.setSelected(mode == ViewMode.RECORD);
+        chartToggle.setSelected(mode == ViewMode.CHART);
+        spatialToggle.setSelected(mode == ViewMode.SPATIAL);
+        ((CardLayout) cards.getLayout()).show(cards, mode.card);
+        switch (mode) {
+            case RECORD -> {
+                recordView.refresh();
+                // The record line of the grid's selected column, so the value panel keeps showing the same cell
+                recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
+            }
+            // The chart starts from the cells selected in the grid
+            case CHART -> chartView.configureFromSelection();
+            case SPATIAL -> spatialView.refresh();
+            case GRID -> {
+                if (grid != null) {
+                    grid.getTable().requestFocusInWindow();
+                }
+            }
         }
         scheduleSelectionUpdate();
+    }
+
+    /**
+     * Whether a column has geometry values the spatial view can draw (the Spatial button is shown only then).
+     */
+    private boolean hasSpatialColumns() {
+        for (DBDAttributeBinding binding : fetched.data().bindings()) {
+            if (ResultSetSpatialView.isSpatialColumn(binding)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void setValuePanelShown(boolean shown) {
@@ -472,7 +537,13 @@ final class ResultSetViewerPanel extends JPanel {
             lastScrollValue = 0;
             scrollPane.getVerticalScrollBar().addAdjustmentListener(this::verticalScrolled);
         }
-        ((CardLayout) cards.getLayout()).show(cards, isRecordMode() ? CARD_RECORD : CARD_GRID);
+        // The same columns in a new grid of the same viewer, but checked again so the button can't outlive its columns
+        spatialToggle.setVisible(hasSpatialColumns());
+        if (viewMode == ViewMode.SPATIAL && !spatialToggle.isVisible()) {
+            viewMode = ViewMode.GRID;
+            spatialToggle.setSelected(false);
+        }
+        ((CardLayout) cards.getLayout()).show(cards, viewMode.card);
         cards.revalidate();
         cards.repaint();
         if (selectedRow >= 0 && selectedColumn >= 0 && selectedRow < table.getRowCount()) {
@@ -492,6 +563,12 @@ final class ResultSetViewerPanel extends JPanel {
         }
         updateStatus();
         recordView.refresh();
+        // Sorted, filtered or more rows: the chart and the map show the grid's rows
+        if (viewMode == ViewMode.CHART) {
+            chartView.refresh();
+        } else if (viewMode == ViewMode.SPATIAL) {
+            spatialView.refresh();
+        }
         scheduleSelectionUpdate();
     }
 
@@ -711,6 +788,8 @@ final class ResultSetViewerPanel extends JPanel {
         Action fitColumns = createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table));
         JCheckBoxMenuItem valuePanelItem = new JCheckBoxMenuItem(valuePanelToggle.getAction());
         JCheckBoxMenuItem recordItem = new JCheckBoxMenuItem(recordToggle.getAction());
+        JCheckBoxMenuItem chartItem = new JCheckBoxMenuItem(chartToggle.getAction());
+        JCheckBoxMenuItem spatialItem = new JCheckBoxMenuItem(spatialToggle.getAction());
 
         int copyIndex = -1;
         for (int i = 0; i < menu.getComponentCount(); i++) {
@@ -730,6 +809,8 @@ final class ResultSetViewerPanel extends JPanel {
         menu.add(fitColumns);
         menu.add(valuePanelItem);
         menu.add(recordItem);
+        menu.add(chartItem);
+        menu.add(spatialItem);
         menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
@@ -737,6 +818,9 @@ final class ResultSetViewerPanel extends JPanel {
                 clearFilter.setEnabled(fetched.source().canRequery() && dataFilter.hasConditions() && !reading);
                 valuePanelItem.setSelected(valuePanelShown);
                 recordItem.setSelected(isRecordMode());
+                chartItem.setSelected(viewMode == ViewMode.CHART);
+                spatialItem.setVisible(spatialToggle.isVisible());
+                spatialItem.setSelected(viewMode == ViewMode.SPATIAL);
             }
 
             @Override
@@ -767,7 +851,8 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeBinding binding = fetched.data().bindings()[modelColumn];
         Object value = getCellValue(row, modelColumn);
         String name = binding.getName();
-        if (value != null && !(value instanceof ResultSetCellContent)) {
+        // Geometries are kept for the spatial view only; they are not offered as filter values
+        if (value != null && !(value instanceof ResultSetCellContent) && !(value instanceof DBGeometry)) {
             String shown = CommonUtils.truncateString(String.valueOf(getDisplayValue(row, modelColumn)).replaceAll("\\s+", " "), 60); //$NON-NLS-1$ //$NON-NLS-2$
             for (DBCLogicalOperator operator : new DBCLogicalOperator[]{
                 DBCLogicalOperator.EQUALS, DBCLogicalOperator.NOT_EQUALS, DBCLogicalOperator.GREATER, DBCLogicalOperator.LESS}) {
@@ -810,8 +895,8 @@ final class ResultSetViewerPanel extends JPanel {
     // Cell access
 
     /**
-     * The original value of a cell: the edited value of an editable result, the kept value or the LOB content, or
-     * null for NULL and values that are not kept.
+     * The original value of a cell: the edited value of an editable result, the kept value, the LOB content or the
+     * geometry, or null for NULL and values that are not kept.
      */
     @Nullable
     private Object getCellValue(int row, int column) {
@@ -823,10 +908,14 @@ final class ResultSetViewerPanel extends JPanel {
             }
             ResultSetEditModel.Row editRow = editModel.getRow(row);
             Object value = editRow.values[column];
-            if (value == null && editRow.state != ResultSetEditModel.RowState.ADDED && !editRow.isCellChanged(column)) {
+            // Value objects are not in the edit model (their columns are read-only): LOB content and geometries. The
+            // model has null there, or the empty value object that binding the column to its table made of that null
+            // (MariaDB geometry: an empty DBGeometry)
+            if (DBUtils.isNullValue(value) && editRow.state != ResultSetEditModel.RowState.ADDED && !editRow.isCellChanged(column)) {
                 int number = editRow.getRowNumber();
-                if (number < cells.size() && cells.get(number)[column] instanceof ResultSetCellContent content) {
-                    return content;
+                Object cell = number < cells.size() ? cells.get(number)[column] : null;
+                if (cell instanceof ResultSetCellContent || cell instanceof DBGeometry) {
+                    return cell;
                 }
             }
             return value;
@@ -890,7 +979,11 @@ final class ResultSetViewerPanel extends JPanel {
                 valuePanel.showCell(null);
             }
         }
-        aggregateLabel.setText(isRecordMode() ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
+        if (viewMode == ViewMode.SPATIAL) {
+            spatialView.selectionChanged();
+        }
+        // The aggregates describe the grid's selection: only while the grid is shown
+        aggregateLabel.setText(viewMode != ViewMode.GRID ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
     }
 
     @Nullable
@@ -1656,6 +1749,112 @@ final class ResultSetViewerPanel extends JPanel {
         };
         action.putValue(Action.ACCELERATOR_KEY, accelerator);
         return action;
+    }
+
+    /**
+     * The chart view's access to the rows and the selection of the grid.
+     */
+    private final class ChartSource implements ResultSetChartView.Source {
+        @NotNull
+        @Override
+        public DBDAttributeBinding[] getBindings() {
+            return fetched.data().bindings();
+        }
+
+        @NotNull
+        @Override
+        public String[] getColumnNames() {
+            return fetched.data().columns();
+        }
+
+        @NotNull
+        @Override
+        public boolean[] getNumericColumns() {
+            return fetched.data().numeric();
+        }
+
+        @Override
+        public int getRowCount() {
+            return ResultSetViewerPanel.this.getRowCount();
+        }
+
+        @Nullable
+        @Override
+        public Object getValue(int row, int column) {
+            return getCellValue(row, column);
+        }
+
+        @Nullable
+        @Override
+        public Object getDisplayValue(int row, int column) {
+            return ResultSetViewerPanel.this.getDisplayValue(row, column);
+        }
+
+        @NotNull
+        @Override
+        public int[] getSelectedRows() {
+            return grid == null ? new int[0] : grid.getTable().getSelectedRows();
+        }
+
+        @NotNull
+        @Override
+        public int[] getSelectedColumns() {
+            if (grid == null) {
+                return new int[0];
+            }
+            JTable table = grid.getTable();
+            int[] columns = table.getSelectedColumns();
+            for (int i = 0; i < columns.length; i++) {
+                columns[i] = table.convertColumnIndexToModel(columns[i]);
+            }
+            return columns;
+        }
+
+        @Override
+        public boolean hasMoreRows() {
+            return hasMore;
+        }
+    }
+
+    /**
+     * The spatial view's access to the geometry values and the selected row of the grid.
+     */
+    private final class SpatialSource implements ResultSetSpatialView.Source {
+        @NotNull
+        @Override
+        public DBDAttributeBinding[] getBindings() {
+            return fetched.data().bindings();
+        }
+
+        @NotNull
+        @Override
+        public String[] getColumnNames() {
+            return fetched.data().columns();
+        }
+
+        @Override
+        public int getRowCount() {
+            return ResultSetViewerPanel.this.getRowCount();
+        }
+
+        @Nullable
+        @Override
+        public Object getSpatialValue(int row, int column) {
+            return getCellValue(row, column);
+        }
+
+        @Override
+        public int getCurrentRow() {
+            return grid == null ? -1 : grid.getTable().getSelectionModel().getLeadSelectionIndex();
+        }
+
+        @Override
+        public void setCurrentRow(int row) {
+            if (grid != null && row >= 0 && row < grid.getTable().getRowCount()) {
+                JTable table = grid.getTable();
+                table.changeSelection(row, Math.max(table.getSelectedColumn(), 0), false, false);
+            }
+        }
     }
 
     /**

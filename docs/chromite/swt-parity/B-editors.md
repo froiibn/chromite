@@ -12,8 +12,8 @@
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
 | 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
-| 일부 | 12 | 8 | 6 | 9 | 7 | **42** |
-| 없음 | 19 | 12 | 1 | 7 | 0 | **39** |
+| 일부 | 12 | 9 | 6 | 9 | 7 | **43** |
+| 없음 | 19 | 11 | 1 | 7 | 0 | **38** |
 | 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
 | 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
@@ -106,7 +106,7 @@
 | R6 | 집계 패널 | `AggregateColumnsPanel`, `aggregateFunction` 확장 | 일부 | `ResultSetAggregates`(상태 줄 Count·Sum·Avg·Min·Max) | 낮음 | 함수 고르기·열별 표·그룹 집계 없음 |
 | R7 | 참조 패널, 외래 키 따라가기(참조 행 열기, 참조하는 행 보기) | `ReferencesPanel`, `navigateLink`, `referencesMenu` | 없음 | 결과 클래스에 `ForeignKey`/`DBSEntityAssociation` 0건 | 중간 | |
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
-| R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 없음 | swt-removal.md:106 | 낮음 | |
+| R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
 | R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177) |
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |

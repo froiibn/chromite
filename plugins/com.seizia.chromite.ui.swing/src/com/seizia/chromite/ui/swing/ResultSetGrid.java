@@ -104,6 +104,8 @@ import java.util.Map;
  * - 2026-11-07 칸과 행 번호를 고정폭 글꼴 대신 UI 글꼴(Pretendard 12)로(사용자 요청). 숫자 폭이 글자마다 달라 행 번호 열 폭을
  *   가장 넓은 숫자로 계산 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  * - 2026-11-07 저장 전 스크립트 미리 보기: 설정과 연결 유형의 "데이터 변경 확인"이 다시 동작함 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
+ * - 2026-11-08 촘촘한 모드: 행 번호의 행 높이가 그리드 행 높이를 따라가고, 열·행 번호 폭이 칸 여백의 차이만큼 바뀜(실행 중 밀도 전환)
+ *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Export Data… 도구 설명의 예를 고침: 값을 바인딩한 실행도 이제 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class ResultSetGrid extends JPanel {
@@ -275,6 +277,7 @@ final class ResultSetGrid extends JPanel {
         add(createStatusStrip(fetched.readOnlyReason()), BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         fitColumnWidths(table, data);
+        followCellPadding();
         installContextMenu(fetched.source().requeryBlocker());
         updateState();
     }
@@ -784,6 +787,32 @@ final class ResultSetGrid extends JPanel {
     }
 
     /**
+     * The column widths (fitted, or changed by the user) and the row number width include the cell padding of the time
+     * they were set. A density change at runtime ({@link UiDensity}) changes the cell and header margins by the same
+     * amount, so every width changes by the padding difference: the texts keep their room (switching back from compact
+     * mode would otherwise cut the header names).
+     */
+    private void followCellPadding() {
+        int[] padding = {getCellPadding(table)};
+        table.addPropertyChangeListener("UI", e -> { //$NON-NLS-1$
+            int newPadding = getCellPadding(table);
+            int delta = newPadding - padding[0];
+            padding[0] = newPadding;
+            if (delta == 0) {
+                return;
+            }
+            for (int column = 0; column < table.getColumnCount(); column++) {
+                TableColumn tableColumn = table.getColumnModel().getColumn(column);
+                tableColumn.setPreferredWidth(tableColumn.getPreferredWidth() + delta);
+            }
+            TableColumn numberColumn = rowHeader.getColumnModel().getColumn(0);
+            int width = numberColumn.getPreferredWidth() + delta;
+            numberColumn.setPreferredWidth(width);
+            rowHeader.setPreferredScrollableViewportSize(new Dimension(width, 0));
+        });
+    }
+
+    /**
      * Left and right insets of a cell (the look and feel's cell border) plus the vertical grid line.
      */
     private static int getCellPadding(@NotNull JTable table) {
@@ -858,6 +887,8 @@ final class ResultSetGrid extends JPanel {
         header.setRowSelectionAllowed(false);
         header.setShowGrid(false);
         header.setRowHeight(table.getRowHeight());
+        // The grid's row height comes from the theme (size.row.grid) and changes with the density (UiDensity)
+        table.addPropertyChangeListener("rowHeight", e -> header.setRowHeight(table.getRowHeight())); //$NON-NLS-1$
         // DataGrip row numbers: grid background, text.secondary, left-aligned; the numbers of selected rows get the
         // selection background of the grid
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {

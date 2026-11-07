@@ -205,6 +205,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
@@ -694,7 +695,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
      * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find]; the other buttons
-     * are icons with tool tips that name the menu shortcut (size.toolbar.main 36 = 26px buttons + 5px above and below).
+     * are icons with tool tips that name the menu shortcut (size.toolbar.main 32 = 24px buttons + 4px above and below;
+     * 28 = 22 + 3 in compact mode).
      */
     @NotNull
     private JComponent createToolBar(
@@ -1641,6 +1643,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         viewMenu.addSeparator();
         viewMenu.add(createThemeMenu());
+        viewMenu.add(createCompactModeItem());
 
         JMenuItem aboutItem = new JMenuItem(NLS.bind(CoreMessages.main_about, GeneralUtils.getProductName()));
         aboutItem.setMnemonic(KeyEvent.VK_A);
@@ -1817,6 +1820,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         return themeMenu;
+    }
+
+    /**
+     * View &gt; Compact Mode: density C (lower rows, tool bars, tabs and status lines) instead of the default density B,
+     * switched at runtime and saved ({@link UiDensity}).
+     */
+    @NotNull
+    private static JMenuItem createCompactModeItem() {
+        JCheckBoxMenuItem item = new JCheckBoxMenuItem(CoreMessages.main_menu_compact_mode, UiDensity.isCompact());
+        item.setMnemonic(KeyEvent.VK_C);
+        item.addActionListener(e -> {
+            if (item.isSelected() != UiDensity.isCompact()) {
+                UiDensity.apply(item.isSelected());
+            }
+        });
+        return item;
     }
 
     private void rememberNormalBounds() {
