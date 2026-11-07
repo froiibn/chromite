@@ -49,12 +49,15 @@ import java.util.Map;
  * 설계: 로컬 사용자의 암호는 만드는 쪽(대화상자)이 받아 {@link ExasolUser#setPassword}로 넣는다. 관리자는 암호를 지어내지 않는다:
  * 암호가 비어 있으면 문장을 만들지 않고 거절한다(받을 수 없는 경로가 고정 암호의 사용자를 만들지 않게). 암호는 언제나 큰따옴표로 감싸고
  * 안의 큰따옴표를 두 번 쓴다(Exasol의 {@code IDENTIFIED BY "…"}). {@code DBUtils.getQuotedIdentifier}는 이미 따옴표로 싸인 글을 그대로
- * 두므로 암호에는 쓰지 않는다. 암호가 든 문장은 쿼리 관리자 기록에서 뺀다({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server
- * 로그인 관리자와 같음).
+ * 두므로 암호에는 쓰지 않는다({@link ExasolUtils#quotePassword}, 암호 바꾸기와 같음). 암호가 든 문장은 쿼리 관리자 기록에서 뺀다
+ * ({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server 로그인 관리자와 같음). LDAP DN과 Kerberos 주체는 글자 상수이므로
+ * 작은따옴표를 두 번 쓴다.
  *
  * 변경 이력:
  * - 2026-11-08 새 사용자의 고정 암호({@code "password"})를 없애고, 빈 암호는 거절, 암호 따옴표 처리와 기록 끄기
  *   (docs/chromite/swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-08 암호 따옴표 처리를 {@link ExasolUtils#quotePassword}로 옮김, LDAP DN·Kerberos 주체의 작은따옴표 처리
+ *   (docs/chromite/password-handling.md)
  */
 public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSource> implements DBEObjectRenamer<ExasolUser> {
 
@@ -96,10 +99,10 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
                 command.setDisableSessionLogging(true); // Hide password from Query Manager
                 break;
             case LDAP:
-                script.append(" AT LDAP AS '" + obj.getDn() + "'");
+                script.append(" AT LDAP AS '" + ExasolUtils.quoteString(CommonUtils.notEmpty(obj.getDn())) + "'");
                 break;
             default:
-                script.append(" BY KERBEROS PRINCIPAL '" + obj.getKerberosPrincipal() + "'");
+                script.append(" BY KERBEROS PRINCIPAL '" + ExasolUtils.quoteString(CommonUtils.notEmpty(obj.getKerberosPrincipal())) + "'");
                 break;
         }
         actions.add(new SQLDatabasePersistAction("Create User", script.toString()));
@@ -153,7 +156,7 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
         if (CommonUtils.isEmpty(password)) {
             throw new DBException("A password is required for the local user " + user.getName());
         }
-        return "\"" + password.replace("\"", "\"\"") + "\"";
+        return ExasolUtils.quotePassword(password);
     }
 
     private SQLDatabasePersistAction Comment(ExasolUser obj) {
@@ -185,13 +188,15 @@ public class ExasolUserManager extends SQLObjectEditor<ExasolUser, ExasolDataSou
         }
 
         if (command.getProperties().containsKey("dn")) {
-            String script = String.format("ALTER USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED AT LDAP AS '%s'", obj.getDn());
+            String script = String.format("ALTER USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED AT LDAP AS '%s'",
+                ExasolUtils.quoteString(CommonUtils.notEmpty(obj.getDn())));
             actionList.add(new SQLDatabasePersistAction("alter user", script));
             return;
         }
 
         if (command.getProperties().containsKey("kerberosPrincipal")) {
-            String script = String.format("ALTER USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED BY KERBEROS PRINCIPAL '%s'", obj.getKerberosPrincipal());
+            String script = String.format("ALTER USER " + DBUtils.getQuotedIdentifier(obj) + " IDENTIFIED BY KERBEROS PRINCIPAL '%s'",
+                ExasolUtils.quoteString(CommonUtils.notEmpty(obj.getKerberosPrincipal())));
             actionList.add(new SQLDatabasePersistAction("alter user", script));
             return;
         }

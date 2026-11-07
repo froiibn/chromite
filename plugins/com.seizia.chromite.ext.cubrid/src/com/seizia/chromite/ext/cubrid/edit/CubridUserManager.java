@@ -43,6 +43,14 @@ import org.jkiss.utils.CommonUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * CUBRID user manager: CREATE/DROP USER.
+ *
+ * 설계: 암호가 든 CREATE는 쿼리 관리자 기록에서 뺀다({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server 로그인 관리자와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호가 든 CREATE의 기록 끄기 (docs/chromite/password-handling.md)
+ */
 public class CubridUserManager
     extends SQLObjectEditor<CubridPrivilage, GenericStructContainer> /*implements DBEObjectRenamer<OracleSchema>*/ {
 
@@ -88,7 +96,9 @@ public class CubridUserManager
         StringBuilder builder = new StringBuilder();
         builder.append("CREATE USER ");
         builder.append(DBUtils.getQuotedIdentifier(user.getDataSource(), this.getUserName(user, command.getProperties())));
-        buildBody(user, builder, command.getProperties());
+        if (buildBody(user, builder, command.getProperties())) {
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
+        }
         actions.add(new SQLDatabasePersistAction("Create User", builder.toString()));
     }
 
@@ -104,11 +114,17 @@ public class CubridUserManager
         actions.add(new DeletePersistAction(command.getObject(), builder));
     }
 
-    private void buildBody(CubridPrivilage user, StringBuilder builder, Map<Object, Object> properties) {
+    /**
+     * Appends the PASSWORD, GROUPS and COMMENT clauses.
+     *
+     * @return whether a password was written (the statement must then stay out of the Query Manager log)
+     */
+    private boolean buildBody(CubridPrivilage user, StringBuilder builder, Map<Object, Object> properties) {
         Object password = properties.get("PASSWORD");
         Object description = properties.get("DESCRIPTION");
         Object group = properties.get("GROUPS");
-        if (password != null && CommonUtils.isNotEmpty(password.toString())) {
+        boolean hasPassword = password != null && CommonUtils.isNotEmpty(password.toString());
+        if (hasPassword) {
             builder.append(" PASSWORD ");
             builder.append(SQLUtils.quoteString(user, password.toString()));
         }
@@ -125,6 +141,7 @@ public class CubridUserManager
             builder.append(" COMMENT ");
             builder.append(SQLUtils.quoteString(user, description.toString()));
         }
+        return hasPassword;
     }
 
     @NotNull

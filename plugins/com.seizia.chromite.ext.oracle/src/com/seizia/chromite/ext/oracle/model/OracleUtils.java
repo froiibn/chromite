@@ -59,10 +59,32 @@ import java.util.regex.Pattern;
 
 /**
  * Oracle utils
+ *
+ * 설계: 암호는 {@link #quotePassword}로만 문장에 넣는다. {@code DBUtils.getQuotedIdentifier}는 식별자용이라 이미 큰따옴표로
+ * 싸인 글을 그대로 두고(사용자가 친 {@code "abc"}가 암호 {@code abc}가 됨), 이름 규칙에 맞는 글은 따옴표 없이 둔다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link #quotePassword} 추가: 암호 바꾸기·새 스키마의 암호 따옴표 처리 (docs/chromite/password-handling.md)
  */
 public class OracleUtils {
 
     private static final Log log = Log.getLog(OracleUtils.class);
+
+    /**
+     * A password as {@code IDENTIFIED BY} and {@code REPLACE} take it: always in double quotes, so every character is
+     * kept as typed (a single quote included). Oracle has no escape for a double quote in a password and refuses one
+     * (ORA-25716), so it is refused here with a clear message before anything is sent. YashanDB (Oracle syntax) uses it
+     * too.
+     *
+     * @throws DBException if the password contains a double quote
+     */
+    @NotNull
+    public static String quotePassword(@NotNull String password) throws DBException {
+        if (password.indexOf('"') >= 0) {
+            throw new DBException("The password cannot contain a double quote");
+        }
+        return "\"" + password + "\"";
+    }
 
     public static String getDDL(
         DBRProgressMonitor monitor,

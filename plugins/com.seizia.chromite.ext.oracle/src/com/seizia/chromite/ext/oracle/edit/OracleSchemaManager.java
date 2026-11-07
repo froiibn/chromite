@@ -19,9 +19,11 @@ package com.seizia.chromite.ext.oracle.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.oracle.model.OracleDataSource;
 import com.seizia.chromite.ext.oracle.model.OracleSchema;
 import com.seizia.chromite.ext.oracle.model.OracleUser;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.edit.DBECommandContext;
@@ -39,6 +41,12 @@ import java.util.Map;
 
 /**
  * OracleSchemaManager
+ *
+ * 설계: 새 스키마(= 사용자)의 암호는 {@link OracleUtils#quotePassword}로 넣고, 암호가 든 CREATE는 쿼리 관리자 기록에서 뺀다
+ * ({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server 로그인 관리자와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호 따옴표 처리(큰따옴표가 든 암호는 거절)와 기록 끄기 (docs/chromite/password-handling.md)
  */
 public class OracleSchemaManager extends SQLObjectEditor<OracleSchema, OracleDataSource> /*implements DBEObjectRenamer<OracleSchema>*/ {
 
@@ -70,11 +78,12 @@ public class OracleSchemaManager extends SQLObjectEditor<OracleSchema, OracleDat
     }
 
     @Override
-    protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) {
+    protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) throws DBException {
         OracleUser user = command.getObject().getUser();
         String sql = "CREATE USER " + DBUtils.getQuotedIdentifier(user);
         if (!CommonUtils.isEmpty(user.getPassword())) {
-            sql += " IDENTIFIED BY \"" + user.getPassword() + "\"";
+            sql += " IDENTIFIED BY " + OracleUtils.quotePassword(user.getPassword());
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
         }
 
         actions.add(new SQLDatabasePersistAction("Create schema", sql));

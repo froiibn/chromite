@@ -33,6 +33,7 @@ import com.seizia.chromite.model.rm.RMConstants;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 import com.seizia.chromite.runtime.DBWorkbench;
+import org.jkiss.utils.CommonUtils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +54,12 @@ import java.util.Set;
  * in the wizard (see {@link MimerUser#buildGroupGrantDDL}), so a new user can be created and
  * joined to its groups in a single "Create New User" instead of a separate grant per group
  * afterward.
+ *
+ * 설계: 암호가 든 문장(CREATE의 {@code USING '…'}, {@code ALTER IDENT … SET PASSWORD})은 쿼리 관리자 기록에서 뺀다
+ * ({@code setDisableSessionLogging}, Mimer 프로그램·PostgreSQL 역할·SQL Server 로그인 관리자와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호가 든 CREATE·ALTER의 기록 끄기 (docs/chromite/password-handling.md)
  *
  * @author Mimer Information Technology
  */
@@ -104,6 +111,9 @@ public class MimerUserManager extends SQLObjectEditor<MimerUser, MimerDataSource
     ) {
         MimerUser user = command.getObject();
         actions.add(new SQLDatabasePersistAction("Create user", user.buildCreateDDL()));
+        if (!CommonUtils.isEmpty(user.getPassword())) {
+            command.setDisableSessionLogging(true); // Hide password (USING '…') from Query Manager
+        }
         for (String grantDDL : user.buildGroupGrantDDL()) {
             actions.add(new SQLDatabasePersistAction("Grant group membership", grantDDL));
         }
@@ -137,6 +147,7 @@ public class MimerUserManager extends SQLObjectEditor<MimerUser, MimerDataSource
         }
         for (String ddl : command.getObject().buildAlterDDL(changed)) {
             actionList.add(new SQLDatabasePersistAction("Alter user", ddl));
+            command.setDisableSessionLogging(true); // ALTER IDENT … SET PASSWORD: hide password from Query Manager
         }
         if (command.hasProperty("comment")) {
             MimerUser user = command.getObject();

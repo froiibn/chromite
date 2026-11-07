@@ -33,11 +33,24 @@ import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
 import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Exasol CONNECTION objects: CREATE/ALTER/RENAME/DROP CONNECTION and the comment.
+ *
+ * 설계: 새 CONNECTION은 이름 말고는 값이 없다(사용자 이름·암호·설명이 null). 그래서 값 검사는 null을 견디게 하고
+ * ({@link CommonUtils#isEmpty}), 연결 문자열이 없으면 문장을 만들지 않고 거절한다(Exasol은 {@code TO '…'}가 필수). 모델은 연결 문자열을
+ * 필수 속성으로 선언해 Swing의 이름만 길(New Connection…)이 이 종류를 빼게 한다. 암호가 든 {@code IDENTIFIED BY '…'}는 쿼리 관리자
+ * 기록에서 뺀다({@code setDisableSessionLogging}).
+ *
+ * 변경 이력:
+ * - 2026-11-08 새 CONNECTION의 NullPointerException 고침, 연결 문자열 없는 CREATE 거절, 암호가 든 문장의 기록 끄기
+ *   (docs/chromite/password-handling.md)
+ */
 public class ExasolConnectionManager
         extends SQLObjectEditor<ExasolConnection, ExasolDataSource> implements DBEObjectRenamer<ExasolConnection> {
     
@@ -78,30 +91,42 @@ public class ExasolConnectionManager
                 );
     }
     
+    /**
+     * Whether the {@code USER … IDENTIFIED BY …} clause is written: only with both a user name and a password (null for a
+     * new connection that has neither).
+     */
+    private static boolean hasCredentials(@NotNull ExasolConnection con) {
+        return !CommonUtils.isEmpty(con.getUserName()) && !CommonUtils.isEmpty(con.getPassword());
+    }
+
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions,
-                                          @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options)
+                                          @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) throws DBException
     {
         final ExasolConnection con = command.getObject();
+        if (CommonUtils.isEmpty(con.getConnectionString())) {
+            throw new DBException("A connection string is required for the connection " + con.getName());
+        }
         
         StringBuilder script = new StringBuilder(String.format("CREATE CONNECTION %s TO ",DBUtils.getQuotedIdentifier(con)));
        
         script.append(" '" + ExasolUtils.quoteString(con.getConnectionString()) + "' ");
         
-        if (! (con.getUserName().isEmpty() | con.getPassword().isEmpty()))
+        if (hasCredentials(con))
         {
             script.append(String.format("USER '%s' IDENTIFIED BY '%s'",
                     ExasolUtils.quoteString(con.getUserName()), 
                     ExasolUtils.quoteString(con.getPassword())
                             )
                     );
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
         }
         
         actions.add(
                 new SQLDatabasePersistAction("Create Connection", script.toString())
                 );
         
-        if (! con.getDescription().isEmpty())
+        if (!CommonUtils.isEmpty(con.getDescription()))
         {
             actions.add(getCommentCommand(con));
         }
@@ -153,14 +178,15 @@ public class ExasolConnectionManager
         {
             // possible loss of information - warn
             StringBuilder script = new StringBuilder(String.format("ALTER CONNECTION %s TO",DBUtils.getQuotedIdentifier(con)));
-            script.append(" '" + ExasolUtils.quoteString(con.getConnectionString()) + "' ");
-            if (! (con.getUserName().isEmpty() | con.getPassword().isEmpty()))
+            script.append(" '" + ExasolUtils.quoteString(CommonUtils.notEmpty(con.getConnectionString())) + "' ");
+            if (hasCredentials(con))
             {
                 script.append(String.format(" USER '%s' IDENTIFIED BY '%s'",
                         ExasolUtils.quoteString(con.getUserName()), 
                         ExasolUtils.quoteString(con.getPassword())
                                 )
                         );
+                command.setDisableSessionLogging(true); // Hide password from Query Manager
             }
             
             actionList.add(

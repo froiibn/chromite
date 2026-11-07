@@ -34,6 +34,7 @@ import com.seizia.chromite.ext.postgresql.model.PostgreRole;
 import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
 import com.seizia.chromite.ext.postgresql.model.PostgreServerExtension;
 import com.seizia.chromite.ext.postgresql.model.PostgreTablespace;
+import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPNamedObject2;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.edit.DBECommandContext;
@@ -97,6 +98,8 @@ import java.util.function.Function;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
  * - 2026-11-08 이름 대화상자가 필수 암호를 가려서 받음 (swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-08 {@link #hasUnaskedRequiredValue}: 이름 대화상자가 묻지 않는 필수 값이 있는 종류(Exasol CONNECTION의 연결 문자열)를
+ *   이름만 길에서 빼도록 알림 (docs/chromite/password-handling.md)
  */
 final class NewObjectDialogs {
 
@@ -233,6 +236,22 @@ final class NewObjectDialogs {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether the type declares a required editable value that the name dialog does not ask for: anything but the name
+     * and the required password (for example the connection string of an Exasol CONNECTION). Such a type cannot be made
+     * from a name, so the name-only route leaves it out instead of building a statement that fails. EDT, no database
+     * access.
+     */
+    static boolean hasUnaskedRequiredValue(@NotNull Class<?> childClass) {
+        for (ObjectPropertyDescriptor property : ObjectAttributeDescriptor.extractAnnotations(null, childClass, null, null, false)) {
+            if (property.isRequired() && property.isEditPossible() && !property.isPassword()
+                && !DBConstants.PROP_ID_NAME.equals(property.getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
