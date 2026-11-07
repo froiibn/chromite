@@ -29,9 +29,14 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.CommonUtils;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -55,6 +60,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-scripts-explorer.md)
+ * - 2026-11-08 연결에 묶은 스크립트 찾기({@link #findLinkedScripts}, Object Explorer의 Recent Scripts)
+ *   (docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  */
 final class ScriptFiles {
 
@@ -174,6 +181,54 @@ final class ScriptFiles {
         DBPDataSourceContainer connection = dataSourceProject == null ? null
             : dataSourceProject.getDataSourceRegistry().getDataSource(dataSourceId);
         return new Link(dataSourceId, connection);
+    }
+
+    /**
+     * A script linked to a connection.
+     *
+     * @param name its path in the script folder ({@code reports/a.sql})
+     */
+    record LinkedScript(@NotNull Path file, @NotNull String name) {
+    }
+
+    /**
+     * The existing scripts linked to a connection, last modified first (SWT {@code SQLEditorUtils.findScriptTree} with a
+     * connection, sorted like {@code findRecentScript}). Looks in the link properties of every project (a script links to
+     * a connection of another project by its project id), not in the folders, so it reads no directory trees.
+     */
+    @NotNull
+    static List<LinkedScript> findLinkedScripts(@NotNull DBPDataSourceContainer connection, int limit) {
+        record Found(LinkedScript script, long modified) {
+        }
+        List<Found> found = new ArrayList<>();
+        for (DBPProject project : DBWorkbench.getPlatform().getWorkspace().getProjects()) {
+            Root root = getRoot(project);
+            if (root == null) {
+                continue;
+            }
+            String[] resourcePaths;
+            try {
+                resourcePaths = project.findResources(Map.of(DBConstants.PROP_RESOURCE_DEFAULT_DATASOURCE, connection.getId()));
+            } catch (DBException e) {
+                log.warn("Can't read the resource properties of project " + project.getName(), e);
+                continue;
+            }
+            for (String resourcePath : resourcePaths) {
+                Path file = project.getAbsolutePath().resolve(resourcePath).toAbsolutePath().normalize();
+                // The same id in another project's registry is another connection: the link's project must match too
+                if (!file.startsWith(root.folder()) || !isScript(file) || !Files.isRegularFile(file) || getLink(file).connection() != connection) {
+                    continue;
+                }
+                try {
+                    String name = CommonUtils.normalizeResourcePath(root.folder().relativize(file).toString());
+                    found.add(new Found(new LinkedScript(file, name), Files.getLastModifiedTime(file).toMillis()));
+                } catch (IOException e) {
+                    log.debug("Can't read the time of " + file, e);
+                }
+            }
+        }
+        found.sort(Comparator.comparingLong(Found::modified).reversed());
+        return found.stream().limit(limit).map(Found::script).toList();
     }
 
     /**

@@ -154,7 +154,7 @@
 | A-S14 | 비상 종료, 창 최소화 명령 | `EmergentExitAction`, `MinimizeWindowHandler` | 없음 | | 낮음 | |
 | A-S15 | 스플래시 | `ChromiteSplashHandler` | 없음 | swt-removal.md:69(SWT 스플래시 생성 삭제) | 낮음 | |
 | A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 조용히 끊김 (조사 당시. S6·S7·S8 수정함, S12·S13·프록시 서비스는 남음) | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
-| A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 없음 | Swing에 쿼리 창 복원 없음 | 낮음 | |
+| A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 있음(2026-11-08. 조사 당시: 없음) | 쿼리 창 자동 저장·복원(`QueryWindowRecovery`): 시작할 때 한 번 묻고(Restore가 기본) 연결하지 않고 엶. 연결을 끊어도 쿼리 창은 닫히지 않음(`MainFrame`은 탭 닫기에서만 창을 뺌). 조사 당시: Swing에 쿼리 창 복원 없음 | - | 켜고 끄는 설정은 없음(매번 묻고, Discard로 버림). [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 
 ### 5.4 나머지 삭제 번들
 
