@@ -54,6 +54,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-dashboard.md)
+ * - 2026-11-08 계열 색을 결과 표의 차트·공간 보기와 함께 쓰도록 {@link #seriesPalette()}로 내놓음 (docs/chromite/swing-result-charts-spatial.md)
  */
 final class DashboardChart extends JComponent {
 
@@ -474,6 +475,15 @@ final class DashboardChart extends JComponent {
             }
         }
         return 10 * magnitude * TICKS;
+    }
+
+    /**
+     * The categorical series colors of the current theme, in their fixed order (also used by the result chart and the
+     * spatial view, so that all charts read as one system).
+     */
+    @NotNull
+    static Color[] seriesPalette() {
+        return (FlatLaf.isLafDark() ? DARK_SERIES : LIGHT_SERIES).clone();
     }
 
     @NotNull

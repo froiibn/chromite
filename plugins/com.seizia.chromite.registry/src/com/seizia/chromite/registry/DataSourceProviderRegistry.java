@@ -54,6 +54,12 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+/**
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@code connection-types.xml}에 기본 연결 유형의 이름·설명을 화면 언어와 상관없이 저장하고 읽음
+ *   ({@link DBPConnectionType#toStoredText}, {@link DBPConnectionType#fromStoredText})
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ */
 public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry {
     private static final Log log = Log.getLog(DataSourceProviderRegistry.class);
 
@@ -781,10 +787,12 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
                 for (DBPConnectionType connectionType : connectionTypesSnapshot) {
                     try (var ignored2 = xml.startElement(RegistryConstants.TAG_TYPE)) {
                         xml.addAttribute(RegistryConstants.ATTR_ID, connectionType.getId());
-                        xml.addAttribute(RegistryConstants.ATTR_NAME, CommonUtils.toString(connectionType.getName()));
+                        xml.addAttribute(RegistryConstants.ATTR_NAME, CommonUtils.toString(
+                            DBPConnectionType.toStoredText(connectionType.getId(), false, connectionType.getName())));
                         xml.addAttribute(RegistryConstants.ATTR_COLOR, connectionType.getColorLight());
                         xml.addAttribute(RegistryConstants.ATTR_COLOR_DARK, connectionType.getColorDark());
-                        xml.addAttribute(RegistryConstants.ATTR_DESCRIPTION, CommonUtils.toString(connectionType.getDescription()));
+                        xml.addAttribute(RegistryConstants.ATTR_DESCRIPTION, CommonUtils.toString(
+                            DBPConnectionType.toStoredText(connectionType.getId(), true, connectionType.getDescription())));
                         xml.addAttribute(RegistryConstants.ATTR_AUTOCOMMIT, connectionType.isAutocommit());
                         xml.addAttribute(RegistryConstants.ATTR_CONFIRM_EXECUTE, connectionType.isConfirmExecute());
                         xml.addAttribute(RegistryConstants.ATTR_CONFIRM_DATA_CHANGE, connectionType.isConfirmDataChange());
@@ -955,10 +963,10 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
                 boolean colorConstantUsed = origType != null && CommonUtils.equalObjects(origType.getColorConstant(), colorLight);
                 DBPConnectionType connectionType = new DBPConnectionType(
                     typeId,
-                    attributes.getValue(RegistryConstants.ATTR_NAME),
+                    DBPConnectionType.fromStoredText(typeId, false, attributes.getValue(RegistryConstants.ATTR_NAME)),
                     colorConstantUsed ? origType.getColorLight() : colorLight,
                     colorConstantUsed ? origType.getColorDark() : colorDark,
-                    attributes.getValue(RegistryConstants.ATTR_DESCRIPTION),
+                    DBPConnectionType.fromStoredText(typeId, true, attributes.getValue(RegistryConstants.ATTR_DESCRIPTION)),
                     CommonUtils.getBoolean(attributes.getValue(RegistryConstants.ATTR_AUTOCOMMIT), origType != null && origType.isAutocommit()),
                     CommonUtils.getBoolean(attributes.getValue(RegistryConstants.ATTR_CONFIRM_EXECUTE), origType != null && origType.isConfirmExecute()),
                     CommonUtils.getBoolean(attributes.getValue(RegistryConstants.ATTR_CONFIRM_DATA_CHANGE), origType != null && origType.isConfirmDataChange()),

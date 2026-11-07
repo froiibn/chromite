@@ -65,6 +65,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 ④ 공유: 루트의 Git 상태({@link Folder#git}), ID로 파일 찾기({@link #findFile}, 가져오기의 ID 충돌)
  *   (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 저장·복제할 때 고친 시각({@code @updated})을 쓰지 않음 (docs/chromite/swing-query-library.md "저장 형식")
  */
 final class QueryLibrary {
 
@@ -327,8 +328,8 @@ final class QueryLibrary {
     }
 
     /**
-     * Saves a changed query to its file (found again by id if it was moved). The update time is set; the file name
-     * follows the name of the query.
+     * Saves a changed query to its file (found again by id if it was moved). The file name follows the name of the
+     * query.
      */
     void save(@NotNull QueryLibraryItem item) throws IOException {
         Path file = resolveFile(item);
@@ -340,7 +341,6 @@ final class QueryLibrary {
         if (item.getCreated() == null) {
             item.setCreated(OffsetDateTime.now().withNano(0));
         }
-        item.setUpdated(OffsetDateTime.now().withNano(0));
         QueryLibraryFile.write(item, file);
         Path renamed = renameToName(file, item.getName());
         item.setFile(renamed);
@@ -414,9 +414,7 @@ final class QueryLibrary {
         copy.setId(null);
         copy.setFile(null);
         copy.setName(NLS.bind(ToolsMessages.library_copy_name, item.getName()));
-        OffsetDateTime now = OffsetDateTime.now().withNano(0);
-        copy.setCreated(now);
-        copy.setUpdated(now);
+        copy.setCreated(OffsetDateTime.now().withNano(0));
         return createQuery(targetFolder, copy);
     }
 

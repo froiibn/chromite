@@ -28,6 +28,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -39,6 +40,7 @@ import java.util.function.Supplier;
  * 인스턴스 설정)에 저장한다. SWT 버전의 테마 설정과 같은 위치 계열이고, 레지스트리(Java Preferences)를 건드리지 않으며,
  * 작업 공간을 복사한 스모크 테스트가 사용자 설정을 바꾸지 않는다.
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
+ * 밀도(촘촘한 모드, {@link UiDensity})는 테마와 따로 저장하고, 설치할 때마다 그 치수 값을 FlatLaf extra defaults로 테마 값 위에 얹는다.
  * 글꼴은 Look and Feel을 설치하기 전에 등록한다: UI 글꼴 Pretendard({@link UiFont}, 번들), 고정폭 JetBrains Mono(번들에 넣은 FlatLaf 글꼴 jar),
  * SQL 편집기 글꼴 Cascadia Mono({@link EditorFont}). 테마 properties의 {@code defaultFont}, {@code semibold.font}, {@code monospaced.font}가 이 이름을 쓴다.
  * 테마 글꼴에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
@@ -55,6 +57,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 BOLD로 만들어 한글도 굵은 대체 글꼴로 그림
  * - 2026-11-07 UI 글꼴을 Pretendard로 바꿈(Inter 등록 삭제). semibold 확인은 Inter 고정 이름 대신 설치한 테마의 {@code semibold.font}로 함
  * - 2026-11-07 FlatLaf 탭 넘침 단추의 도구 설명("Show Hidden Tabs")을 화면 언어로 바꿈 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
+ * - 2026-11-08 촘촘한 모드: 설치할 때 {@link UiDensity}의 치수 값을 extra defaults로 넘김 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 enum ChromiteTheme {
 
@@ -99,7 +102,9 @@ enum ChromiteTheme {
         FlatJetBrainsMonoFont.installLazy();
         // SQL editor font (Cascadia Mono, bundled)
         EditorFont.installLazy();
-        if (!FlatLaf.setup(lafFactory.get())) {
+        // The density (compact mode) replaces size values of the theme properties (UiDensity)
+        Map<String, String> extraDefaults = new HashMap<>(UiDensity.getExtraDefaults());
+        if (!FlatLaf.setup(createLaf(extraDefaults))) {
             log.warn("Can't install look and feel of theme " + name());
             return;
         }
@@ -107,9 +112,8 @@ enum ChromiteTheme {
             // The semibold text of this UI language comes from the fallback font, which has the style of the font object:
             // the semibold family is PLAIN, so it would be the regular weight (lighter than the letters beside it).
             // Rare (no UI language needs it now), so the theme is simply set up again with the bold default font.
-            FlatLaf laf = lafFactory.get();
-            laf.setExtraDefaults(Map.of(SEMIBOLD_FONT_KEY, BOLD_FONT_VALUE));
-            if (!FlatLaf.setup(laf)) {
+            extraDefaults.put(SEMIBOLD_FONT_KEY, BOLD_FONT_VALUE);
+            if (!FlatLaf.setup(createLaf(extraDefaults))) {
                 log.warn("Can't install look and feel of theme " + name());
                 return;
             }
@@ -122,6 +126,15 @@ enum ChromiteTheme {
             // Parentless dialogs are owned by the shared root frame, which is not a visible window
             SwingUtilities.updateComponentTreeUI(JOptionPane.getRootFrame());
         }
+    }
+
+    @NotNull
+    private FlatLaf createLaf(@NotNull Map<String, String> extraDefaults) {
+        FlatLaf laf = lafFactory.get();
+        if (!extraDefaults.isEmpty()) {
+            laf.setExtraDefaults(extraDefaults);
+        }
+        return laf;
     }
 
     /**

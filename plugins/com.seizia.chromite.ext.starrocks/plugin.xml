@@ -42,7 +42,7 @@
                         categories="sql">
                     <replace provider="mysql" driver="starRocks"/>
                     <file type="jar" path="maven:/com.starrocks:starrocks-connector-j:RELEASE[1.1.2]"/>
-                    <file type="license" path="https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt"/>
+                    <file type="license" path="licenses/external/gpl-2.0-universal-foss-exception.txt"/>
                     <property name="connectTimeout" value="20000"/>
                     <parameter name="supports-partitions" value="false"/>
                     <parameter name="supports-references" value="false"/>
