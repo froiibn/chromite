@@ -125,6 +125,8 @@ import java.util.Map;
  *   실행 취소, 붙여넣기·특수 붙여넣기 (docs/chromite/swing-grid-editing.md)
  * - 2026-11-08 결과 탐색: 결과 뷰어가 외래 키로 떠나며 남기는 결과의 변경을 버리도록 {@link #cancelChanges}를 열고, 읽기 전용 줄에
  *   "키가 없음"이면 가상 키 정하기 링크({@link Host#defineVirtualKey}) (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 결과 행에서 SQL 만들기: 만든 문장을 쿼리 창에 여는 {@link Host#openScript}·{@link Host#canOpenScript}
+ *   (docs/chromite/swing-result-generate-sql.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -239,6 +241,21 @@ final class ResultSetGrid extends JPanel {
         @Nullable
         default Runnable defineVirtualKey() {
             return null;
+        }
+
+        /**
+         * Whether {@link #openScript} opens a query window (a grid of a query window); otherwise statements are only
+         * copied.
+         */
+        default boolean canOpenScript() {
+            return false;
+        }
+
+        /**
+         * Opens statements made from a result (Generate SQL) in a new query window of the connection, without running
+         * them.
+         */
+        default void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
         }
     }
 

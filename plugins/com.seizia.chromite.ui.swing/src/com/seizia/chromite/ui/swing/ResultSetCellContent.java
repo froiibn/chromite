@@ -24,6 +24,9 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDContentCached;
 import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCContentBytes;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCContentChars;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
@@ -49,6 +52,8 @@ import java.nio.file.Path;
  * - 2026-11-06 최초 작성: 값 패널 (docs/chromite/swing-result-viewer.md "값 패널")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 파일로 저장({@link #writeTo}), 글자 내용 판단({@link #isText}) (docs/chromite/swing-grid-editing.md "LOB 파일")
+ * - 2026-11-08 만든 문장의 값({@link #toStatementValue}): 결과 행에서 SQL 만들기가 LOB 칸을 리터럴로 쓰도록 남긴 값 객체나 받은 바이트·글자를
+ *   값 객체로 돌려줌 (docs/chromite/swing-result-generate-sql.md)
  */
 final class ResultSetCellContent {
 
@@ -173,6 +178,27 @@ final class ResultSetCellContent {
             boolean truncated = out.length() >= MAX_LOAD_SIZE && (length > out.length() || in.read() >= 0);
             return new Loaded(null, out.toString(), Math.max(length, out.length()), truncated);
         }
+    }
+
+    /**
+     * The content as a value of a generated statement (Generate SQL, background job only): the kept LOB value, which the
+     * statement writer reads to its end, or a value of the bytes or text the driver gave (their value object was
+     * released when the row was read).
+     */
+    @NotNull
+    DBDContent toStatementValue(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBException {
+        DBDContent content;
+        synchronized (this) {
+            content = liveContent;
+        }
+        if (content != null) {
+            return content;
+        }
+        Loaded result = load(monitor);
+        if (result.text() != null) {
+            return new JDBCContentChars(context, result.text());
+        }
+        return new JDBCContentBytes(context, result.bytes() == null ? new byte[0] : result.bytes());
     }
 
     /**

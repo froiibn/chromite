@@ -48,6 +48,8 @@ import java.awt.event.KeyEvent;
  * - 2026-11-08 {@link #confirmChange}를 Object Explorer 유지 관리 명령과 보안 편집기도 씀(Cancel이 기본 단추) (docs/chromite/swing-security.md)
  * - 2026-11-08 {@link #show}의 실행 미리 보기(테이블 디자이너 저장, SQL Server 에이전트, 작업 스케줄러)도 Cancel이 기본 단추.
  *   기본 단추 플래그는 늘 참이 되어 지우고, Cancel에 처음 포커스를 둠 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 결과 행에서 SQL 만들기({@link #showGenerated}): 머리글을 호출자가 정하고 실행 단추 없이 복사·쿼리 창으로 열기·닫기만
+ *   (docs/chromite/swing-result-generate-sql.md)
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -167,6 +169,27 @@ final class ScriptPreviewDialog extends JDialog {
         ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, saveLabel, false);
         dialog.setVisible(true);
         return dialog.result == Result.EXECUTE;
+    }
+
+    /**
+     * Shows statements made for the user (Generate SQL from result rows) with Copy, Open in Query Window and Close only:
+     * nothing here runs them. Close is the default button.
+     *
+     * @param header    what the statements were made from, above them
+     * @param allowOpen show "Open in Query Window" (the owner can open one)
+     * @return {@link Result#OPEN_IN_EDITOR} or {@link Result#CLOSE}
+     */
+    @NotNull
+    static Result showGenerated(
+        @NotNull Component owner,
+        @NotNull String title,
+        @NotNull String header,
+        @NotNull String script,
+        boolean allowOpen
+    ) {
+        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, null, allowOpen);
+        dialog.setVisible(true);
+        return dialog.result;
     }
 
     /**
