@@ -35,6 +35,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -88,6 +89,8 @@ import java.util.function.Function;
  *   그 잠금을 기다리지 않게 (docs/chromite/swing-explorer-object-actions.md "트랜잭션")
  * - 2026-11-08 연결이 끊긴 세션은 커밋·롤백 대신 버리기·취소를 물음(전에는 실패해 창을 닫거나 끊을 수 없었음)
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-08 Object Explorer Set as Default가 주 세션을 다른 데이터베이스 인스턴스로 옮기기 전 질문({@link #confirmDefaultChange})
+ *   (docs/chromite/swing-explorer-productivity.md "기본 스키마")
  * - 2026-11-08 여러 연결 끊기(모두 끊기, 다른 연결 끊기, 서버 그룹 끊기)는 한 질문으로, 무효화·다시 연결(세션을 다시 엶) 전 질문
  *   ({@link #confirmReconnect}) (docs/chromite/connection-lifecycle.md)
  */
@@ -151,6 +154,25 @@ final class ExitTransactionCheck {
         }
         return confirm(parent, List.of(context), List.of(), list -> NLS.bind(ConnectionMessages.window_txn_message, windowName, list),
             ConnectionMessages.window_txn_error);
+    }
+
+    /**
+     * Before Object Explorer's Set as Default moves the connection's main session to another database instance (a
+     * PostgreSQL database: the windows that share the main session then use another server session, and the open
+     * transaction would stay behind unseen): asks Commit / Roll back / Cancel when the session has a transaction that is
+     * not committed. Call in the EDT.
+     *
+     * @param target the database or schema that becomes the default
+     * @return true when the default may change: no open transaction, or it was committed or rolled back as asked
+     */
+    static boolean confirmDefaultChange(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String target) {
+        if (!QMUtils.isTransactionActive(context)) {
+            return true;
+        }
+        DBPDataSourceContainer container = context.getDataSource().getContainer();
+        return confirm(parent, List.of(context), List.of(),
+            list -> NLS.bind(ObjectExplorerMessages.oe_set_default_txn_message, new Object[]{container.getName(), list, target}),
+            ObjectExplorerMessages.oe_set_default_txn_error);
     }
 
     /**

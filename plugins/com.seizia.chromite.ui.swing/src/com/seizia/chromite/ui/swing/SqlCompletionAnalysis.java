@@ -49,9 +49,11 @@ import com.seizia.chromite.model.sql.parser.SQLParserContext;
 import com.seizia.chromite.model.sql.parser.SQLParserPartitions;
 import com.seizia.chromite.model.sql.parser.SQLRuleManager;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.semantics.SQLDocumentScriptItemSyntaxContext;
 import com.seizia.chromite.model.sql.semantics.SQLDocumentSyntaxContext;
 import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
 import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
 import com.seizia.chromite.model.sql.semantics.SQLScriptItemAtOffset;
 import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionAnalyzer;
 import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionContext;
@@ -100,6 +102,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 쿼리 창의 실행 문맥({@link Request#executionContext})을 씀: 창이 자기 세션을 쓰면 기본 카탈로그·스키마가 창마다 다르다
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 설정이 값 자리에만 적용됨을 적음. CALL/EXEC 뒤 제안은 모델 엔진이 함 (docs/chromite/swing-sql-completion.md)
+ * - 2026-11-08 문장 의미 모델 만들기를 {@link #recognizeStatement}로 떼어 편집기의 마우스 올림·Ctrl+클릭({@link SqlObjectNavigation})도 씀,
+ *   (문장의 기호를 문맥에 등록해 위치로 찾을 수 있게 함), 제안 설명 창이 쓰는 {@link Proposal#getObject()} (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class SqlCompletionAnalysis {
 
@@ -249,6 +253,30 @@ final class SqlCompletionAnalysis {
                 ? SQLQueryCompletionContext.prepareOffquery(0, offset)
                 : SQLQueryCompletionContext.prepareEmpty(0, offset);
         }
+        SQLDocumentSyntaxContext syntaxContext = recognizeStatement(monitor, parserContext, executionContext, query);
+        if (syntaxContext == null) {
+            return SQLQueryCompletionContext.prepareEmpty(0, offset);
+        }
+        // The character before the caret belongs to the statement being completed (as in SQLBackgroundParsingJob)
+        SQLScriptItemAtOffset scriptItem = syntaxContext.findScriptItem(offset - 1);
+        return scriptItem != null
+            ? SQLQueryCompletionContext.prepareCompletionContext(scriptItem, offset, executionContext, parserContext.getDialect())
+            : SQLQueryCompletionContext.prepareOffquery(0, offset);
+    }
+
+    /**
+     * Semantic model of one statement, registered in a document syntax context at the statement's offset; also used
+     * by the hover and Ctrl+click of the editor ({@link SqlObjectNavigation}) to find what a name refers to.
+     *
+     * @return null when the statement can't be recognized or the monitor was canceled
+     */
+    @Nullable
+    static SQLDocumentSyntaxContext recognizeStatement(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull SQLParserContext parserContext,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull SQLQuery query
+    ) {
         // SWT defaults: READ_METADATA_FOR_SEMANTIC_ANALYSIS = true, VALIDATE_FUNCTIONS = false (the SWT preference
         // initializer sets them; the model layer has no defaults for them). Extra metadata reads can still be disabled
         // per connection with the model setting, as in SQLBackgroundParsingJob.isReadMetadataEnabled.
@@ -259,16 +287,17 @@ final class SqlCompletionAnalysis {
             monitor, executionContext, useRealMetadata, validateFunctions, parserContext.getSyntaxManager(), dialect);
         SQLQueryModel model = SQLQueryModelRecognizer.recognizeQuery(recognitionContext, query.getOriginalText());
         if (model == null || monitor.isCanceled()) {
-            return SQLQueryCompletionContext.prepareEmpty(0, offset);
+            return null;
         }
         SQLDocumentSyntaxContext syntaxContext = new SQLDocumentSyntaxContext();
-        syntaxContext.registerScriptItemContext(
+        SQLDocumentScriptItemSyntaxContext itemContext = syntaxContext.registerScriptItemContext(
             query.getOriginalText(), model, query.getOffset(), query.getLength(), Boolean.TRUE.equals(query.isEndsWithDelimiter()));
-        // The character before the caret belongs to the statement being completed (as in SQLBackgroundParsingJob)
-        SQLScriptItemAtOffset scriptItem = syntaxContext.findScriptItem(offset - 1);
-        return scriptItem != null
-            ? SQLQueryCompletionContext.prepareCompletionContext(scriptItem, offset, executionContext, dialect)
-            : SQLQueryCompletionContext.prepareOffquery(0, offset);
+        // The names of the statement, so a position finds its symbol and definition (as SQLBackgroundParsingJob registers them);
+        // the completion context does not read them
+        for (SQLQuerySymbolEntry entry : model.getAllSymbols()) {
+            itemContext.registerToken(entry.getInterval().a, entry);
+        }
+        return syntaxContext;
     }
 
     /**
@@ -363,6 +392,14 @@ final class SqlCompletionAnalysis {
         @Nullable
         String getDecoration() {
             return decorationString;
+        }
+
+        /**
+         * Database object of the proposal (table, column, routine...), null for keywords and other words.
+         */
+        @Nullable
+        DBSObject getObject() {
+            return object;
         }
     }
 

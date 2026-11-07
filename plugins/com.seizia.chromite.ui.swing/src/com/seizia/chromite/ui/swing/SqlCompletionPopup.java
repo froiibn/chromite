@@ -29,6 +29,7 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.sql.semantics.completion.SQLCompletionProposalComparator;
 import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
@@ -50,7 +51,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -72,6 +75,10 @@ import java.util.function.Supplier;
  *     <li>팝업은 초점을 가져가지 않는 소유 창({@link JWindow}, {@code focusableWindowState = false})이라 입력은 계속 편집기로 가고,
  *     목록 이동 키(위·아래, Page Up/Down, Enter, Tab, Esc)는 편집기의 키 리스너가 먼저 받아 소비한다. 편집기가 초점을 잃거나 창이 움직이면 닫는다.
  *     테마를 바꾸면 FlatLaf가 모든 창을 다시 그리므로 숨은 팝업도 함께 바뀌고, 팝업 창을 처음 만들 때는 편집기와 함께 만든 목록을 현재 테마로 맞춘다.</li>
+ *     <li>설명 창: 고른 제안이 바뀌고 잠시({@value #DOC_DELAY}ms) 멈추면 그 설명을 작업 스레드에서 만들어 목록 옆(화면 오른쪽이 모자라면 왼쪽)의
+ *     두 번째 소유 창에 보인다(SWT 자동완성의 추가 정보 창). 데이터베이스 개체 제안은 마우스 올림과 같은 설명(종류, 전체 이름, 열·매개변수, 주석,
+ *     {@link SqlObjectNavigation#describe})이고 메타데이터를 읽을 수 있어 EDT 밖에서 만든다. 키워드 등은 엔진의 설명 글자이며, 설명이 없거나
+ *     이름과 같으면 창을 숨긴다. 만든 설명은 목록이 열려 있는 동안 제안별로 기억한다.</li>
  *     <li>RSyntaxTextArea의 AutoComplete 라이브러리({@code com.fifesoft:autocomplete})는 쓰지 않았다. 3.3.2 소스 기준으로
  *     {@code AutoCompletion.refreshPopupWindow}가 입력할 때마다 EDT에서 {@code CompletionProvider.getCompletions}를 동기로 부르고,
  *     {@code insertCompletion}은 커서 앞 "이미 입력한 글자"만 바꾼다. DB 메타데이터를 읽는 분석을 EDT 밖에서 취소하며 돌리고 엔진의 교체 범위를 쓰려면
@@ -85,6 +92,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 템플릿 이름 뒤의 Tab은 제안 대신 템플릿을 넣음 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-07 프로시저·함수 제안 설정({@code sqlEditor.completion.showProcedures}, SWT와 같이 기본 끔) 접근자 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  * - 2026-11-07 요청에 쿼리 창의 실행 문맥을 넣음(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
+ * - 2026-11-08 제안 설명 창(SWT 추가 정보 창). 행 도구 설명은 설명 창이 대신하므로 지움 (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class SqlCompletionPopup {
 
@@ -112,6 +120,12 @@ final class SqlCompletionPopup {
     private static boolean defaultsSet;
     private static final int MIN_WIDTH = 280;
     private static final int MAX_WIDTH = 640;
+    /**
+     * Pause after the selection changes before the description of the selected proposal is computed.
+     */
+    private static final int DOC_DELAY = 150;
+    private static final int DOC_WIDTH = 360;
+    private static final int DOC_MAX_HEIGHT = 360;
 
     private final RTextArea textArea;
     private final Supplier<DBPDataSourceContainer> connectionSupplier;
@@ -138,6 +152,15 @@ final class SqlCompletionPopup {
     private JWindow window;
     private final DefaultListModel<SqlCompletionAnalysis.Proposal> listModel = new DefaultListModel<>();
     private final JList<SqlCompletionAnalysis.Proposal> list = new JList<>(listModel);
+    // Description window next to the list (EDT only)
+    @Nullable
+    private JWindow docWindow;
+    private final JEditorPane docPane = new JEditorPane();
+    private final Timer docTimer;
+    // Descriptions computed while the list is open, by proposal (null value: none)
+    private final Map<SqlCompletionAnalysis.Proposal, String> docs = new IdentityHashMap<>();
+    @Nullable
+    private AbstractJob docJob;
     @Nullable
     private Window listenedOwner;
     private final ComponentAdapter ownerListener = new ComponentAdapter() {
@@ -172,6 +195,18 @@ final class SqlCompletionPopup {
         // A fixed height also spares the list from asking the renderer of every proposal for its height
         list.setFixedCellHeight(UIScale.scale(ROW_HEIGHT));
         list.setFocusable(false);
+        docTimer = new Timer(DOC_DELAY, e -> showDescription());
+        docTimer.setRepeats(false);
+        list.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                docTimer.restart();
+            }
+        });
+        docPane.setEditable(false);
+        docPane.setFocusable(false);
+        docPane.setContentType("text/html"); //$NON-NLS-1$
+        // The pane's font and color instead of the HTML defaults
+        docPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
         list.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -472,6 +507,8 @@ final class SqlCompletionPopup {
         if (!popup.isVisible()) {
             popup.setVisible(true);
         }
+        // The list moved or its selection may have changed: the description window follows
+        docTimer.restart();
     }
 
     @Nullable
@@ -542,6 +579,125 @@ final class SqlCompletionPopup {
         shown = null;
         if (window != null && window.isVisible()) {
             window.setVisible(false);
+        }
+        docTimer.stop();
+        cancelDocJob();
+        docs.clear();
+        hideDescription();
+    }
+
+    //////////////////////////////////////////////////////////
+    // Description window
+
+    /**
+     * Shows the description of the selected proposal, computing it first if needed.
+     */
+    private void showDescription() {
+        cancelDocJob();
+        SqlCompletionAnalysis.Proposal proposal = isVisible() ? list.getSelectedValue() : null;
+        if (proposal == null) {
+            hideDescription();
+            return;
+        }
+        if (docs.containsKey(proposal)) {
+            showDescription(docs.get(proposal));
+            return;
+        }
+        DBSObject object = proposal.getObject();
+        if (object == null) {
+            String description = proposal.getAdditionalProposalInfo();
+            String html = CommonUtils.isEmptyTrimmed(description) || description.strip().equalsIgnoreCase(proposal.getDisplayString())
+                ? null
+                : "<html><body>" + CommonUtils.escapeHtml(description.strip()).replace("\n", "<br>") + "</body></html>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+            docs.put(proposal, html);
+            showDescription(html);
+            return;
+        }
+        // A database object: its columns or parameters may have to be read
+        AbstractJob job = new AbstractJob("Describe SQL completion proposal") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                String html = null;
+                try {
+                    html = SqlObjectNavigation.describe(monitor, object);
+                } catch (Throwable e) {
+                    log.debug("Can't describe " + object.getName(), e);
+                }
+                if (!monitor.isCanceled()) {
+                    String result = html;
+                    SwingUtilities.invokeLater(() -> {
+                        docs.put(proposal, result);
+                        if (isVisible() && list.getSelectedValue() == proposal) {
+                            showDescription(result);
+                        }
+                    });
+                }
+                return Status.OK_STATUS;
+            }
+        };
+        job.setSystem(true);
+        job.setUser(false);
+        docJob = job;
+        job.schedule();
+    }
+
+    private void cancelDocJob() {
+        if (docJob != null) {
+            docJob.cancel();
+            docJob = null;
+        }
+    }
+
+    private void showDescription(@Nullable String html) {
+        if (html == null || window == null || !window.isVisible()) {
+            hideDescription();
+            return;
+        }
+        if (docWindow == null || docWindow.getOwner() != window.getOwner()) {
+            if (docWindow != null) {
+                docWindow.dispose();
+            }
+            docWindow = new JWindow(window.getOwner());
+            docWindow.setFocusableWindowState(false);
+            docWindow.setType(Window.Type.POPUP);
+            JScrollPane scrollPane = new JScrollPane(docPane) {
+                @Override
+                public void updateUI() {
+                    super.updateUI();
+                    setBorder(UIManager.getBorder("PopupMenu.border")); //$NON-NLS-1$
+                }
+            };
+            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            docWindow.getContentPane().add(scrollPane);
+            // The pane was created with the editor and missed theme switches made before the window first appeared
+            SwingUtilities.updateComponentTreeUI(docWindow);
+        }
+        docPane.setFont(list.getFont());
+        docPane.setText(html);
+        docPane.setCaretPosition(0);
+        int width = UIScale.scale(DOC_WIDTH);
+        // The height the text needs at the window's width
+        docPane.setSize(width, Short.MAX_VALUE);
+        Insets insets = ((JComponent) docWindow.getContentPane().getComponent(0)).getInsets();
+        int height = Math.min(UIScale.scale(DOC_MAX_HEIGHT), docPane.getPreferredSize().height + insets.top + insets.bottom);
+        Rectangle popup = window.getBounds();
+        GraphicsConfiguration configuration = window.getGraphicsConfiguration();
+        Rectangle screen = configuration != null ? configuration.getBounds() : new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        int x = popup.x + popup.width + 2;
+        if (x + width > screen.x + screen.width) {
+            // No room on the right: on the left of the list
+            x = Math.max(screen.x, popup.x - width - 2);
+        }
+        docWindow.setBounds(x, popup.y, width, height);
+        if (!docWindow.isVisible()) {
+            docWindow.setVisible(true);
+        }
+    }
+
+    private void hideDescription() {
+        if (docWindow != null && docWindow.isVisible()) {
+            docWindow.setVisible(false);
         }
     }
 
@@ -703,8 +859,6 @@ final class SqlCompletionPopup {
             nameLabel.setText(value.getDisplayString());
             nameLabel.setIcon(NodeIcons.getIcon(value.getObjectImage()));
             decorationLabel.setText(CommonUtils.notEmpty(value.getDecoration()).strip());
-            String description = value.getAdditionalProposalInfo();
-            setToolTipText(CommonUtils.isEmpty(description) ? null : description);
             return this;
         }
     }

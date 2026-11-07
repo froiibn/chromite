@@ -20,6 +20,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -31,6 +32,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.navigator.DBNDataSource;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
@@ -40,6 +42,7 @@ import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DefaultInvalidationFeedbackHandler;
 import com.seizia.chromite.runtime.jobs.DisconnectJob;
 import com.seizia.chromite.runtime.jobs.InvalidateJob;
+import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import javax.swing.*;
@@ -51,7 +54,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 연결 명령: 새로 만들기, 편집, 이름 바꾸기, 삭제, 연결, 연결 끊기, 다시 연결. Object Explorer와 메뉴가 함께 쓴다.
+ * 연결 명령: 새로 만들기, 편집, 이름 바꾸기, 복제, 삭제, 연결, 연결 끊기, 다시 연결. Object Explorer와 메뉴가 함께 쓴다.
  *
  * 설계: SWT의 명령 처리기({@code DataSourceHandler}, {@code DataSourceDescriptorManager.deleteObject},
  * {@code NavigatorHandlerObjectRename})에서 UI와 무관한 부분을 모델 코드로 그대로 따른다.
@@ -69,6 +72,8 @@ import java.util.Set;
  *     ({@link DatabaseErrorDialogs#showConnectionLost})가 끊기 / 다시 시도를 묻는다.</li>
  *     <li>삭제: 확인 뒤, 연결 중이면 끊고 나서 {@code DBPDataSourceRegistry.removeDataSource}(설정 파일 저장, 비밀 정보 삭제, 이벤트).</li>
  *     <li>이름 바꾸기: {@link DBNDataSource#rename}(이름 저장과 갱신 이벤트).</li>
+ *     <li>복제: 레지스트리의 복사({@code DBPDataSourceRegistry#createDataSource(DBPDataSourceContainer)}, 새 ID)에 겹치지 않는 이름을 붙여 저장한다.
+ *     SWT({@code DataSourceDescriptorManager}의 {@code copyFrom})보다 연결별 설정 저장소까지 복사한다.</li>
  * </ul>
  * 결과는 모델 이벤트로 Object Explorer와 상태 표시줄에 반영된다. 화면을 직접 고치지 않는다.
  * SWT에서 끊기 전에 하던 열린 편집기 저장 확인은 아직 없다(Swing 편집기는 저장 기능이 없다).
@@ -82,6 +87,7 @@ import java.util.Set;
  * - 2026-11-07 끊기 전 열린 트랜잭션 질문: 끊기·다시 연결·삭제가 수동 커밋의 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
  *   (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  * - 2026-11-08 연결 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 연결 복제 {@link #duplicate} (docs/chromite/swing-explorer-productivity.md "Copy Special과 연결 복제")
  * - 2026-11-08 여러 연결 끊기와 무효화·다시 연결({@link #invalidate}) (docs/chromite/connection-lifecycle.md)
  */
 final class ConnectionCommands {
@@ -239,6 +245,28 @@ final class ConnectionCommands {
             disconnect(dataSource, remover);
         } else {
             remover.run();
+        }
+    }
+
+    /**
+     * Duplicate Connection: a new connection with the same settings (driver, connection details and saved credentials,
+     * network handlers, filters, connection-specific settings, server group) and a new unique name, saved in the same project.
+     *
+     * @return the new connection, or null if it could not be saved
+     */
+    @Nullable
+    static DBPDataSourceContainer duplicate(@Nullable Component parent, @NotNull DBPDataSourceContainer source) {
+        DBPDataSourceRegistry registry = source.getRegistry();
+        try {
+            // The registry's copy (new id) keeps more than SWT's copyFrom: the connection's own settings store too
+            DBPDataSourceContainer copy = registry.createDataSource(source);
+            copy.setName(DataSourceUtils.generateUniqueDataSourceName(registry, source.getName(), 1));
+            registry.addDataSource(copy);
+            return copy;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_new_connection,
+                NLS.bind(ObjectExplorerMessages.oe_duplicate_error, source.getName()), e);
+            return null;
         }
     }
 

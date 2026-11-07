@@ -41,10 +41,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
-| B 편집기 | 38 | 41 | 31 | 3 | 4 | 117 |
-| C 탐색기·도구 | 17 | 20 | 24 | 2 | 1 | 64 (+해당 없음 4) |
+| B 편집기 | 39 | 40 | 31 | 3 | 4 | 117 |
+| C 탐색기·도구 | 23 | 19 | 19 | 2 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **115** | **105** | **126** | **24** | **8** | **378** |
+| **합계** | **122** | **103** | **121** | **24** | **8** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -153,6 +153,8 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-08 4순위 스크립트 탐색기: C-22·A-C13 없음 → 일부(Scripts 도구 창, 스크립트와 연결 묶기, [swing-scripts-explorer.md](swing-scripts-explorer.md)), B-S38 근거 갱신(일부 그대로). 결과 요약은 메인 세션이 다시 셈.
 - 2026-11-08 설정 화면 나머지 2차(`chromite/settings-rest-2`): 남은 키 47개 화면, 효과 없는 키 6개 재판정([swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)").
   A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).
+- 2026-11-08 4순위 쿼리 편집기 편의(B6): B-S31·S35·S37 없음 → 있음, B-S28 없음 → 일부, B-S44 일부 → 있음, B-S3·S33·S34 비고 갱신
+  ([swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md)). 결과 요약 수는 병합 때 다시 셈.
 - 2026-11-08 4순위 연결 칸(`chromite/p4-connection-fields`, [swing-conn-advanced.md](swing-conn-advanced.md)): 공급자 속성 선언, ClickHouse·Databend·TiDB Lake SSL, BigQuery·Snowflake·Spanner·HANA·Firebird·Mimer 칸, 연결 설명.
   D-P3·S4·S5·O7과 번들 줄 9개 갱신, B-C2·C4·C8 비고 갱신. 결과 요약 수는 고치지 않음(공통 규칙: 메인 세션이 다시 셈).
 - 2026-11-08 4순위 B2 연결 수명 주기([connection-lifecycle.md](connection-lifecycle.md)): A-S8·S10·S11(조용히 끊김) 수정, A-C4·A-C7·A-C8·A-C15·A-U3 → 있음, A-S2 → 일부,

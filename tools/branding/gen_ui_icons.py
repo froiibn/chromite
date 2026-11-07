@@ -268,6 +268,7 @@ CONCEPTS = [
     ("connect", "연결하기", "Connect", "plug"),
     ("disconnect", "연결 끊기", "Disconnect", "plug"),
     ("collapse-all", "모두 접기", "Collapse all", "fold"),
+    ("link", "편집기와 연결", "Link with editor", "link"),
     ("hide", "숨기기", "Hide tool window", "minus"),
     ("more", "더 보기", "More options", "dots-vertical"),
     ("close", "닫기", "Close", "x"),
@@ -405,6 +406,8 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["connect"] = svg(plug(green_fill, green))
     I["disconnect"] = svg(plug(red_fill, red))
     I["collapse-all"] = svg(collapse_arrows(n, sw))
+    # Object Explorer Link with Editor: Tabler link, two chain links across a short bar
+    I["link"] = svg(path("M6 10L10 6M7.5 4L7.8 3.6A3.3 3.3 0 0 1 12.4 8.2L12 8.5M8.5 12L8.2 12.4A3.3 3.3 0 0 1 3.6 7.8L4 7.5", None, n, sw))
     I["hide"] = svg(path("M3.5 8H12.5", None, n, sw))
     I["more"] = svg(circle(8, 3.5, 1.25, n) + circle(8, 8, 1.25, n) + circle(8, 12.5, 1.25, n))
     I["close"] = svg(path("M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5", None, n, sw))
