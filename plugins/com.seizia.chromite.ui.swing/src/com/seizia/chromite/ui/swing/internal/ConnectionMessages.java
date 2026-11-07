@@ -29,6 +29,8 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 연결 영역 화면 문구를 옮김(OS 언어를 따름)
  * - 2026-11-07 열린 세션에 자동 커밋을 적용할 때의 문구({@code autocommit_*}) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 유휴 트랜잭션 설정({@code settings_idle_txn_*})과 알림({@code idle_txn_*}) 문구 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 끊기 전 열린 트랜잭션 질문({@code disconnect_txn_*}) (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -121,6 +123,10 @@ public class ConnectionMessages extends NLS {
     public static String settings_keep_alive;
     public static String settings_keep_alive_tip;
     public static String settings_close_idle;
+    public static String settings_idle_txn_remind;
+    public static String settings_idle_txn_remind_tip;
+    public static String settings_idle_txn_rollback;
+    public static String settings_idle_txn_rollback_warning;
     public static String settings_connect_with;
     public static String settings_mode_fields;
     public static String settings_url_note;
@@ -346,6 +352,29 @@ public class ConnectionMessages extends NLS {
     public static String autocommit_rollback_apply;
     public static String autocommit_error_message;
     public static String autocommit_other_session;
+
+    // Idle open transactions (SwingIdleTransactionService)
+    public static String idle_txn_reminder_title;
+    public static String idle_txn_reminder_message;
+    public static String idle_txn_commit;
+    public static String idle_txn_rollback;
+    public static String idle_txn_keep_open;
+    public static String idle_txn_rolled_back_title;
+    public static String idle_txn_rolled_back_message;
+    public static String idle_txn_rollback_failed_title;
+    public static String idle_txn_rollback_failed_message;
+    public static String idle_txn_windows;
+    public static String idle_txn_session;
+    public static String idle_txn_seconds;
+    public static String idle_txn_minutes;
+    public static String idle_txn_hours;
+    public static String idle_txn_title;
+    public static String idle_txn_not_ended;
+    public static String idle_txn_error;
+
+    // Open transactions before a disconnect (ExitTransactionCheck.confirmDisconnect)
+    public static String disconnect_txn_message;
+    public static String disconnect_txn_error;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionMessages.class);

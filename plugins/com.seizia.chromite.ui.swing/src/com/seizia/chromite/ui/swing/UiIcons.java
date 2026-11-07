@@ -55,6 +55,7 @@ import java.util.Map;
  * - 2026-11-07 밀도 B: 글자 단추의 위 여백을 줄여 아이콘 단추와 높이를 맞춤 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 UI 글꼴 12: 글자 단추 여백 주석을 고침(12px 글자 줄 15는 아이콘보다 낮아 여백을 줄이지 않음)
  * - 2026-11-07 {@link #statusDot}: 아이콘 없는 상태 점(쿼리 상태 줄의 커밋 방식, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 {@link Status#WARNING}: 쿼리 상태 줄의 열린 트랜잭션 점(status.warning) (docs/chromite/idle-transactions.md)
  */
 final class UiIcons {
 
@@ -70,7 +71,9 @@ final class UiIcons {
     enum Status {
         CONNECTED("Chromite.status.success"), //$NON-NLS-1$
         CONNECTING("Chromite.status.warning"), //$NON-NLS-1$
-        ERROR("Chromite.status.error"); //$NON-NLS-1$
+        ERROR("Chromite.status.error"), //$NON-NLS-1$
+        // Attention without an error (an open transaction)
+        WARNING("Chromite.status.warning"); //$NON-NLS-1$
 
         private final String colorKey;
 

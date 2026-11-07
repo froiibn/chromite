@@ -29,6 +29,8 @@
 3. **R19 결과 그리드 저장 전 스크립트 미리 보기와 연결 종류의 "데이터 변경 확인"이 동작하지 않는다.** SWT `ResultSetViewer.applyChanges`(`ResultSetViewer.java:4735-4760`)는
    `resultset.confirm.beforeSave` 또는 `DBPConnectionType.isConfirmDataChange()`(Test·Production 기본 켬)이면 `SavePreviewDialog`를 띄웠다.
    Swing `ResultSetEditPersister`(`:151` `collectChanges` 뒤 바로 저장)에는 확인이 없다. 설정값은 남아 있지만 효과가 없다.
+   → **2026-11-07 수정**(`chromite/grid-save-preview`): 저장 전 `ScriptPreviewDialog.confirmSave`로 문장을 보이고 Save/Cancel을 묻는다.
+   Options에 설정 항목. [swing-frontend.md](../swing-frontend.md) "저장 전 스크립트 미리 보기".
 4. **S16 스마트 커밋.** 엔진은 `handler.isSmartAutoCommit()`일 때만 `DBExecUtils.checkSmartAutoCommit`을 부른다(`SQLQueryExecuteJob.java:615`).
    인터페이스 기본값은 `false`(`SQLQueryExecuteHandler.java:91`)이고 Swing `SqlEditorPanel.QueryHandler`(`:1329`)는 재정의하지 않는다.
    연결 종류의 `smartCommit`과 `transaction.smart.commit` 설정은 저장·읽기(`DBExecUtils.java:528`)되지만 쿼리 창에서는 아무 일도 하지 않는다.
@@ -113,7 +115,7 @@
 | R16 | 고급 복사(설정 대화상자, JSON·XML·HTML·SQL INSERT 등 처리기별 복사), 특수 붙여넣기 | `ResultSetHandlerCopySpecial`, `CopyAs`, `PasteSpecial` | 일부 | `ResultSetCopyFormats`(CSV·TSV·Markdown·SQL IN), Copy with Headers | 중간 | 여러 칸 붙여넣기 없음 |
 | R17 | 그리드에서 내보내기 | `resultset.export` | 있음 | `ResultSetExport`(CSV·XLSX), `DataExportWizard`(Export Data…) | 중간 | |
 | R18 | 편집·저장(셀, NULL, 행 추가·삭제, 저장·취소) | `ResultSetViewer`, `ResultSetPersister` | 있음 | `ResultSetEditModel`, `ResultSetEditPersister`(swing-frontend.md G단계) | 높음 | 자동 커밋 연결은 한 트랜잭션으로 저장 |
-| R19 | 저장 전 스크립트 미리 보기, 연결 종류 "데이터 변경 확인" | `ResultSetViewer.java:4735`, `SavePreviewDialog`, `toggleConfirmSave` | **조용히 끊김** | 위 요약 3 | 높음 | Test·Production 기본 켬 |
+| R19 | 저장 전 스크립트 미리 보기, 연결 종류 "데이터 변경 확인" | `ResultSetViewer.java:4735`, `SavePreviewDialog`, `toggleConfirmSave` | 있음 (2026-11-07 수정, 조사 때 조용히 끊김) | `ResultSetGrid.confirmSave`, `ScriptPreviewDialog.confirmSave`, Options "Show the SQL script before saving grid changes" | 높음 | Test·Production 기본 켬. 도구 막대 토글·연쇄 삭제 선택 없음 |
 | R20 | 저장하고 커밋, 변경 스크립트 보기, 연쇄 삭제 옵션 | `applyAndCommitChanges`, `generateScript`, `SaveScriptDialog` | 없음 | swing-frontend.md:1290 | 중간 | 수동 커밋 연결은 저장 뒤 `COMMIT`을 직접 실행 |
 | R21 | 행 복제·위/아래 행 복사, 기본값으로, 칸 되돌리기, 실행 취소 | `row.copy*`, `cell.setDefault`, `cell.reset` | 없음 | swing-frontend.md:1291 | 낮음 | |
 | R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 없음 | swing-frontend.md:1291, grep `DBVEntity` 0건(결과) | 중간 | 기본 키 없는 테이블은 편집 불가 |
@@ -188,7 +190,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 
 1. S23 끊기·다시 연결·삭제 때 미커밋 트랜잭션을 묻지 않고 롤백 (조용히 끊김, 높음)
 2. C5 저장 안 한 비밀번호의 SQL Server·Oracle 연결이 묻지 않고 취소 (조용히 끊김, 높음, 실행 확인 못 함)
-3. R19 결과 저장 미리 보기·연결 종류 "데이터 변경 확인" 미동작 (조용히 끊김, 높음)
+3. R19 결과 저장 미리 보기·연결 종류 "데이터 변경 확인" 미동작 (조용히 끊김, 높음) — 2026-11-07 수정
 4. S16 스마트 커밋 미동작 (조용히 끊김, 높음)
 5. S24 유휴 트랜잭션 자동 종료 미동작 (조용히 끊김, 높음, 영역 A와 중복)
 6. S7 WHERE 없는 DELETE/UPDATE·DROP 확인 없음 (없음, 높음)

@@ -71,7 +71,8 @@ import java.util.Set;
  *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
  *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기. SWT
+ *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     유휴 트랜잭션 알림·자동 롤백. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
  *     Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
@@ -97,6 +98,8 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름). 빠진 값 안내는 조각을 잇지 않고 칸마다 문장 하나
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 {@link #focusAutoCommit()}: 쿼리 상태 줄의 커밋 방식 칸에서 이 설정으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 유휴 트랜잭션 알림(분, 기본값은 연결 종류)과 "묻지 않고 자동으로 롤백"(기본 꺼짐, 켜면 경고 문구). 연결 종류를 바꾸면
+ *   알림 값만 그 종류의 기본값으로 바꾸고, 자동 롤백은 사용자가 이 연결에서 직접 켤 때만 켜진다 (docs/chromite/idle-transactions.md)
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -148,6 +151,11 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JSpinner keepAliveSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
     private final JCheckBox closeIdleCheck = new JCheckBox(ConnectionMessages.settings_close_idle);
     private final JSpinner closeIdleSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
+    private final JCheckBox idleTxnRemindCheck = new JCheckBox(ConnectionMessages.settings_idle_txn_remind);
+    // Minutes
+    private final JSpinner idleTxnPeriodSpinner = new JSpinner(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE / 60, 1));
+    private final JCheckBox idleTxnRollbackCheck = new JCheckBox(ConnectionMessages.settings_idle_txn_rollback);
+    private final JLabel idleTxnRollbackWarning = new JLabel(ConnectionMessages.settings_idle_txn_rollback_warning);
     private final JCheckBox customColorCheck = new JCheckBox(ConnectionMessages.settings_custom_color);
     private final JButton colorButton = new JButton();
     @Nullable
@@ -650,11 +658,20 @@ final class ConnectionSettingsPanel extends JPanel {
                 closeIdleCheck.setSelected(type.isAutoCloseConnections());
                 closeIdleSpinner.setValue(type.getCloseIdleConnectionPeriod());
                 closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
+                // The reminder follows the new type; the automatic rollback stays the user's own choice
+                idleTxnRemindCheck.setSelected(type.isAutoCloseTransactions());
+                idleTxnPeriodSpinner.setValue(toMinutes(type.getCloseIdleTransactionPeriod()));
+                updateIdleTransactionFields();
             }
             updateColorButton();
         });
         closeIdleCheck.addActionListener(e -> closeIdleSpinner.setEnabled(closeIdleCheck.isSelected()));
-        for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner)) {
+        idleTxnRemindCheck.addActionListener(e -> updateIdleTransactionFields());
+        idleTxnRollbackCheck.addActionListener(e -> updateIdleTransactionFields());
+        idleTxnRemindCheck.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
+        idleTxnPeriodSpinner.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
+        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+        for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner, idleTxnPeriodSpinner)) {
             // Seconds without digit grouping
             JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#"); //$NON-NLS-1$
             editor.getTextField().setColumns(7);
@@ -700,6 +717,13 @@ final class ConnectionSettingsPanel extends JPanel {
         closeIdlePanel.add(Box.createHorizontalStrut(6));
         closeIdlePanel.add(closeIdleSpinner);
         form.addRow((JLabel) null, closeIdlePanel);
+        JPanel idleTxnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        idleTxnPanel.add(idleTxnRemindCheck);
+        idleTxnPanel.add(Box.createHorizontalStrut(6));
+        idleTxnPanel.add(idleTxnPeriodSpinner);
+        form.addRow((JLabel) null, idleTxnPanel);
+        form.addRow((JLabel) null, idleTxnRollbackCheck);
+        form.addRow((JLabel) null, idleTxnRollbackWarning);
         form.addFiller();
         JPanel page = form.getPanel();
         page.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
@@ -827,12 +851,36 @@ final class ConnectionSettingsPanel extends JPanel {
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
             ? configuration.getCloseIdleInterval() : type.getCloseIdleConnectionPeriod()));
         closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
+        Boolean idleTxnReminder = configuration.getIdleTransactionReminder();
+        idleTxnRemindCheck.setSelected(idleTxnReminder != null ? idleTxnReminder : type.isAutoCloseTransactions());
+        idleTxnPeriodSpinner.setValue(toMinutes(configuration.getIdleTransactionPeriod() > 0
+            ? configuration.getIdleTransactionPeriod() : type.getCloseIdleTransactionPeriod()));
+        idleTxnRollbackCheck.setSelected(configuration.isIdleTransactionRollback());
+        updateIdleTransactionFields();
         customColor = ConnectionColors.parse(configuration.getConnectionColor());
         customColorCheck.setSelected(customColor != null);
         updateColorButton();
         bootstrapQueries = new ArrayList<>(configuration.getBootstrap().getInitQueries());
         ignoreBootstrapErrors = configuration.getBootstrap().isIgnoreErrors();
         updateBootstrapButton();
+    }
+
+    /**
+     * The period and the automatic rollback only apply with the reminder on; the warning shows while the automatic
+     * rollback is on.
+     */
+    private void updateIdleTransactionFields() {
+        boolean remind = idleTxnRemindCheck.isSelected();
+        idleTxnPeriodSpinner.setEnabled(remind);
+        idleTxnRollbackCheck.setEnabled(remind);
+        idleTxnRollbackWarning.setVisible(remind && idleTxnRollbackCheck.isSelected());
+    }
+
+    /**
+     * Minutes of an idle transaction period in seconds (the connection type keeps seconds), at least one.
+     */
+    private static int toMinutes(int seconds) {
+        return Math.max(1, Math.round(seconds / 60f));
     }
 
     /**
@@ -867,7 +915,8 @@ final class ConnectionSettingsPanel extends JPanel {
 
     /**
      * Same values as ConnectionPageGeneral.saveSettings (type, read-only) and ConnectionPageInitialization.saveSettings
-     * (auto-commit, default catalog and schema, keep-alive, idle connections). Empty names are saved as "not set".
+     * (auto-commit, default catalog and schema, keep-alive, idle connections), and Chromite's idle transaction settings.
+     * Empty names are saved as "not set".
      */
     private void saveConnectionProperties(@NotNull DataSourceDescriptor target) {
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
@@ -891,6 +940,14 @@ final class ConnectionSettingsPanel extends JPanel {
         // Saved only when enabled and different from the connection type's default
         configuration.setCloseIdleInterval(configuration.isCloseIdleConnection()
             && closeIdlePeriod != configuration.getConnectionType().getCloseIdleConnectionPeriod() ? closeIdlePeriod : 0);
+        // Idle transactions: the reminder and its period are saved only when they differ from the connection type's
+        // defaults (the connection keeps following its type); the automatic rollback is saved as chosen
+        DBPConnectionType type = configuration.getConnectionType();
+        boolean remind = idleTxnRemindCheck.isSelected();
+        configuration.setIdleTransactionReminder(remind == type.isAutoCloseTransactions() ? null : remind);
+        int idleTxnPeriod = (Integer) idleTxnPeriodSpinner.getValue() * 60;
+        configuration.setIdleTransactionPeriod(remind && idleTxnPeriod != type.getCloseIdleTransactionPeriod() ? idleTxnPeriod : 0);
+        configuration.setIdleTransactionRollback(remind && idleTxnRollbackCheck.isSelected());
     }
 
     /**

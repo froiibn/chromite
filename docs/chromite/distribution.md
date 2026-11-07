@@ -238,10 +238,33 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | 경로 | 내용 |
 |---|---|
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
-| `/ko/`, `/en/` | 다운로드: Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추), 서명·자동 업데이트 안내 |
+| `/ko/`, `/en/` | 다운로드: 제품 한 줄 소개, Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추), 앱 화면, 들어 있는 것, 서명·자동 업데이트 안내, 오픈 소스(GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크) |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, 사이트에 쿠키·분석 없음, 접속 기록 30일 |
-| `/assets/` | `site.css`, `site.js`, `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`) |
+| `/assets/` | `site.css`, `site.js`, `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`) |
+
+모든 페이지 머리글에 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고, 바닥글에 Apache License 2.0(`LICENSE.md`)과 GitHub 링크가 있다.
+
+### 디자인 (2026-11-07 개편)
+
+사용자 요청: 임시 디자인을 디자인 스킬로 세련되게 바꾸되 AI가 만든 티가 나지 않게, 오픈 소스와 GitHub 연결을 GitHub 아이콘으로 추가.
+
+- 방향: 사이트가 앱의 화면 언어를 그대로 쓴다. 다운로드 상자는 앱의 도구 창(40px 제목 줄, 8px 모서리, 옅은 구분선), 릴리스 정보는 앱 속성 창 같은
+  이름 | 값 격자다. 그 아래에 실제 앱 화면이 오므로 사이트와 화면이 한 제품으로 읽힌다. 색은 디자인 토큰([design-spec.md](design-spec.md)) 그대로이고,
+  단추·링크 파랑만 글자 대비 4.5:1을 넘게 강조색을 조금 어둡게 했다(흰 글자 / `#3574F0`는 4.3:1, 단추 `#2F6AE6` 4.9:1, 링크 `#2C62D0` 5.6:1, 어두운 테마 링크 `#6F9CF9` 6.1:1).
+- 첫 화면: 왼쪽에 제목·소개와 "들어 있는 것"(지원 DB, 기능, 지원 환경), 오른쪽에 다운로드 상자. 860px 아래에서는 소개 → 다운로드 → 들어 있는 것
+  순서로 쌓여(CSS `grid-template-areas`) 휴대폰에서도 내려받기 단추가 먼저 보인다. 그 아래 앱 화면.
+- 나머지 절은 모두 "왼쪽 제목, 오른쪽 내용"(`.sect`) 한 가지 배치다. 홈, 변경 내역, 개인정보가 같은 리듬을 쓰고 760px 아래에서는 세로로 쌓인다.
+- 피한 것: 그라데이션·빛나는 배경, 이모지 아이콘, 같은 모양 카드 세 장, 과장 문구, 대문자 꼬리표, 가운데 정렬 일색. 문구는 할 수 있는 일을 그대로 적는다.
+- 글꼴은 이미 있는 Pretendard 400·600뿐이다(굵기를 늘리면 부분 집합 파일이 더 필요). 위계는 크기와 색으로 만든다. 한국어는 `word-break: keep-all`.
+- 움직임 없음(복사 단추의 "복사됨" 바뀜만). 키보드 초점은 강조색 2px 테두리.
+- 앱 화면(`assets/shots/<ko|en>-<light|dark>.webp`, 1899×1188, 무손실 WebP 86~105KB): 테스트 빌드의 **사본**(`D:\Tools\_scratch\site-redesign\app`)을 사본 작업 공간으로
+  실행해 창만 그렸다(앱 안에서 창을 그리는 시험 에이전트, 화면 전체가 아님). 한국어 화면은 `주문내역`, 영어 화면(`-nl en`)은 `orders`/`customers` 집계 쿼리.
+  보이는 것은 연결 이름, `127.0.0.1` 주소, 시험 DB 이름, 로그인 이름 `sa`뿐이고 비밀번호는 없다. 개체 탐색기는 다른 제품 이름이 든 시험 DB 이름이 보이지 않게 스크롤했다.
+  `<picture>`의 `prefers-color-scheme` 소스로 테마에 맞는 한 장만 받는다. 너비·높이 속성으로 자리를 미리 잡는다.
+- GitHub 마크는 Octicons `mark-github`(MIT) 파일을 고치지 않고 두고, CSS `mask`로 글자색을 입힌다(밝은·어두운 테마 모두). 출처는 `NOTICE`.
+- 오픈 소스 절에 "Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했다"는 문장과 `NOTICE` 링크를 둔다. 원래 프로젝트의 상표 이름은 쓰지 않는다(CLAUDE.md "브랜딩").
+- `site.js`, `lang.js`, 데이터 계약(`data-platform`·`data-field`·`data-state`·`data-ready`)은 바꾸지 않았다. 개인정보 내용도 그대로다(배치만 바뀜).
 
 ### CSP와 `releases.js`
 
@@ -286,6 +309,13 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   자리 표시 페이지와 빈 `releases.json`이 `old/<시각>/`에 남는 것 확인.
 - 사이트(리허설 주소, 내장 브라우저): 한국어·영어, 밝은·어두운 테마, 변경 내역·개인정보 페이지, 모바일 폭(375px, 가로 스크롤 없음), `/`에서 `/ko/`로 이동,
   콘솔 오류 없음(CSP 위반 없음), Pretendard 400·600 적용.
+- 사이트 개편(2026-11-07, "디자인"): 서명된 실제 0.1.0 파일로 리허설을 처음부터 다시 실행(`-Down` 뒤 `rehearse.ps1 -Tag v0.1.0`) `ALL CHECKS OK`, 사이트 파일 21개.
+  헤드리스 Edge(CDP)로 한국어·영어 × 밝은·어두운 × 1440px·375px 전 페이지를 찍고 확인: 가로 스크롤 없음(`scrollWidth` = 폭), 콘솔·CSP 오류 없음,
+  Pretendard 400·600 로드, 테마에 맞는 화면 이미지(`*-light.webp`/`*-dark.webp`), 내려받기 링크 `/downloads/Chromite-0.1.0-x64-setup.exe`·`/downloads/Chromite-0.1.0-arm64.dmg`,
+  복사 단추(글자가 "복사됨"으로 바뀌었다 돌아오고 클립보드 = 화면의 SHA-256), `/`가 `ko-KR`이면 `/ko/`·`en-US`이면 `/en/`.
+  `releases.js`를 가로채 바꾼 세 경우: 없음(404) → 오류 안내, 빈 피드 → "아직 공개된 릴리스가 없습니다", Windows만 → Windows 카드만 채우고 macOS는 "아직 없습니다".
+  영어 개인정보 페이지가 375px에서 긴 `<code>` URL 때문에 가로로 넘치던 것(첫 확인에서 455px)을 `code { overflow-wrap: anywhere }`로 고쳤다.
+  화면 사진: `D:\Tools\_scratch\site-redesign\shots\`.
 
 ## 확인하지 못한 것
 
@@ -311,10 +341,12 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 | `tools/installer/`, `tools/release/releases.sh`, `deploy-chromite-site.ps1`, `deploy-remote.sh`, `tools/release/rehearsal/`, `site/` | 추가 |
 | `.github/workflows/release.yml` | NSIS 설치 프로그램 빌드·서명·확인, macOS 파일 이름 |
 | `.gitattributes`, `.gitignore` | `tools/release`의 `.sh`는 LF, `.local/` 무시 |
-| `NOTICE` | 사이트의 Pretendard 웹 글꼴 |
+| `NOTICE` | 사이트의 Pretendard 웹 글꼴, Octicons GitHub 마크(MIT) |
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성. NSIS 설치 프로그램(사용자별, 제자리 업그레이드·되돌리기, 2단계 서명), `release.yml` 연결, 피드 생성기(`releases.json`, `releases.js`),
   배포 스크립트와 로컬 Docker 리허설, 다운로드 사이트. Swing 제품의 작업 공간이 `%APPDATA%\ChromiteData`가 아니라 현재 폴더 아래 `workspace\`임을 확인해 기록.
 - 2026-11-07 작업 공간 위치 수정 반영: "사용자 데이터의 위치"를 고친 뒤 기준으로 바꾸고 사용자 할 일 완료 표시([workspace-location.md](workspace-location.md)).
+- 2026-11-07 다운로드 사이트 개편("사이트" > "디자인"): 앱 토큰의 도구 창·속성 격자 모양, 실제 앱 화면(한국어·영어 × 밝은·어두운 WebP 4장),
+  "들어 있는 것", 오픈 소스 절과 모든 페이지의 GitHub 마크 링크(Octicons, MIT, `NOTICE`), 왼쪽 제목·오른쪽 내용 배치. `site.js`·`lang.js`·피드 계약은 그대로.

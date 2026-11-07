@@ -42,9 +42,6 @@ import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import com.seizia.chromite.model.net.DBWHandlerType;
 import com.seizia.chromite.model.net.DBWNetworkHandler;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
-import com.seizia.chromite.model.qm.QMUtils;
-import com.seizia.chromite.model.qm.meta.QMMConnectionInfo;
-import com.seizia.chromite.model.qm.meta.QMMStatementExecuteInfo;
 import com.seizia.chromite.model.runtime.*;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
@@ -72,6 +69,10 @@ import java.util.*;
 
 /**
  * Execution utils
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@code isExecutionInProgress}를 지움: 유일한 사용처(업스트림 유휴 트랜잭션 롤백)가 문맥별 확인
+ *   ({@code IdleTransactionMonitor})으로 바뀜 (docs/chromite/idle-transactions.md)
  */
 public class DBExecUtils {
 
@@ -1147,25 +1148,6 @@ public class DBExecUtils {
             }
         }
         return sourceTable;
-    }
-
-    /**
-     * Checks if the data source has pending statements that are still executing.
-     */
-    public static boolean isExecutionInProgress(@NotNull DBPDataSource dataSource) {
-        for (DBSInstance instance : dataSource.getAvailableInstances()) {
-            for (DBCExecutionContext context : instance.getAllContexts()) {
-                QMMConnectionInfo qmConnection = QMUtils.getCurrentConnection(context);
-                if (qmConnection != null) {
-                    QMMStatementExecuteInfo lastExec = qmConnection.getExecutionStack();
-                    if (lastExec != null && !lastExec.isClosed()) {
-                        // It is in progress
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     @NotNull

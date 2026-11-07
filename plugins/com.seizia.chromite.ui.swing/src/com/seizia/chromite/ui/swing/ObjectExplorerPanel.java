@@ -198,6 +198,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 Maintenance… 명령(테이블·인덱스·스키마·데이터베이스, {@link MaintenanceCommands}) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 작업 스케줄러(Oracle 스케줄러, pg_cron, MySQL 이벤트): 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자
  *   (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-07 Disconnect를 열린 트랜잭션 때문에 취소하면 서버를 창에서 빼지 않음 (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -719,7 +720,10 @@ final class ObjectExplorerPanel extends JPanel {
      * Object Explorer Disconnect (SSMS): disconnects the server and removes it from this window.
      */
     private void disconnectServer(@NotNull DBPDataSourceContainer dataSource) {
-        ConnectionCommands.disconnect(dataSource);
+        if (!ConnectionCommands.disconnect(dataSource)) {
+            // Canceled because of an open transaction: the server stays connected and listed
+            return;
+        }
         if (servers != null && servers.remove(dataSource)) {
             reloadConnectionList();
         }

@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Options의 프로시저·함수 제안 설정 문구 추가
  * - 2026-11-07 Options의 날짜/시간 데이터베이스 형식 설정 문구 추가
  * - 2026-11-07 진행 대화상자의 취소 중 문구, 탭 넘침 단추의 도구 설명 추가
+ * - 2026-11-07 Options의 결과 표 저장 전 스크립트 미리 보기 설정 문구 추가
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -175,6 +176,8 @@ public class CoreMessages extends NLS {
     public static String options_max_rows_hint;
     public static String options_native_datetime;
     public static String options_native_datetime_tip;
+    public static String options_confirm_before_save;
+    public static String options_confirm_before_save_tip;
     public static String options_query_history;
     public static String options_keep_history;
     public static String options_keep_history_hint;

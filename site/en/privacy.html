@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Chromite privacy</title>
 <meta name="description" content="What the Chromite download site and update check send and keep">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
@@ -13,39 +14,59 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="/en/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Site">
       <a href="/en/">Download</a>
       <a href="/en/changelog.html">Changelog</a>
       <a href="/en/privacy.html" aria-current="page">Privacy</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
       <a href="/ko/privacy.html" lang="ko">한국어</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Privacy</h1>
+  <div class="page-head">
+    <h1>Privacy</h1>
+  </div>
 
-  <h2>The app's update check</h2>
-  <p>When the update check is on, Chromite reads this site's release list (<code>https://chromite.seizia.com/downloads/releases.json</code>) and, when there is a new version, downloads its installer from the same place.</p>
-  <ul>
-    <li>The requests carry one fixed User-Agent, the same for every copy of Chromite, and nothing else: no installation ID, account, usage history, database details or cookies.</li>
-    <li>Without an internet connection, or when a company network blocks it, the check is skipped quietly.</li>
-    <li>You can turn the automatic update check off in Options.</li>
-  </ul>
+  <section class="sect">
+    <h2>The app's update check</h2>
+    <div class="body">
+      <p>When the update check is on, Chromite reads this site's release list (<code>https://chromite.seizia.com/downloads/releases.json</code>) and, when there is a new version, downloads its installer from the same place.</p>
+      <ul>
+        <li>The requests carry one fixed User-Agent, the same for every copy of Chromite, and nothing else: no installation ID, account, usage history, database details or cookies.</li>
+        <li>Without an internet connection, or when a company network blocks it, the check is skipped quietly.</li>
+        <li>You can turn the automatic update check off in Options.</li>
+      </ul>
+    </div>
+  </section>
 
-  <h2>This site</h2>
-  <ul>
-    <li>No cookies, analytics, ads, or external fonts or scripts. Every file comes from this site only.</li>
-    <li>Like any web server, it logs requests (IP address, time, requested address, User-Agent, response code) and deletes the log after 30 days. The log is used only to run the server and deal with abuse.</li>
-  </ul>
+  <section class="sect">
+    <h2>This site</h2>
+    <div class="body">
+      <ul>
+        <li>No cookies, analytics, ads, or external fonts or scripts. Every file comes from this site only.</li>
+        <li>Like any web server, it logs requests (IP address, time, requested address, User-Agent, response code) and deletes the log after 30 days. The log is used only to run the server and deal with abuse.</li>
+      </ul>
+    </div>
+  </section>
 
-  <h2>Usage statistics</h2>
-  <p>Chromite does not collect or send feature usage statistics.</p>
+  <section class="sect">
+    <h2>Usage statistics</h2>
+    <div class="body">
+      <p>Chromite does not collect or send feature usage statistics.</p>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">Source code</a> (Apache License 2.0)
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
   </div>
 </footer>
 </body>

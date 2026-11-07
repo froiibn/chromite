@@ -49,14 +49,15 @@ import java.awt.*;
  * <ul>
  *     <li>연결: {@link SwingConnectionService}({@code DBServiceConnections})로 연결 Job을 예약한다(탐색기 펼치기와 같은 경로).</li>
  *     <li>연결 끊기: 모델의 {@link DisconnectJob}. 이미 연결·연결 끊기 중인 Job이 있으면 아무것도 하지 않는다
- *     ({@code DataSourceHandler.disconnectDataSource}와 같음).</li>
+ *     ({@code DataSourceHandler.disconnectDataSource}와 같음). 끊으면 열린 트랜잭션이 롤백되므로 먼저 커밋/롤백/취소를 묻는다
+ *     ({@link ExitTransactionCheck#confirmDisconnect}, SWT {@code checkAndCloseActiveTransaction}). 취소하면 끊지 않는다.
+ *     다시 연결, 삭제, 연결 편집 뒤 다시 연결도 이 경로를 지난다.</li>
  *     <li>다시 연결: 연결 끊기가 끝난 뒤 연결한다({@code DataSourceHandler.reconnectDataSource}와 같음).</li>
  *     <li>삭제: 확인 뒤, 연결 중이면 끊고 나서 {@code DBPDataSourceRegistry.removeDataSource}(설정 파일 저장, 비밀 정보 삭제, 이벤트).</li>
  *     <li>이름 바꾸기: {@link DBNDataSource#rename}(이름 저장과 갱신 이벤트).</li>
  * </ul>
  * 결과는 모델 이벤트로 Object Explorer와 상태 표시줄에 반영된다. 화면을 직접 고치지 않는다.
- * SWT에서 끊기 전에 하던 열린 편집기 저장 확인과 진행 중 트랜잭션 확인({@code checkAndCloseActiveTransaction})은 아직 없다
- * (Swing 편집기는 저장 기능이 없고, 커밋 방식은 연결의 자동 커밋을 따른다).
+ * SWT에서 끊기 전에 하던 열린 편집기 저장 확인은 아직 없다(Swing 편집기는 저장 기능이 없다).
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
@@ -64,6 +65,8 @@ import java.awt.*;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 연결 끊기 오류 대화상자 제목을 모델 Job 이름("Disconnect from '…'") 대신 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 {@link #editAutoCommit}: 연결 편집을 Auto-commit 칸에 초점을 두고 엶(쿼리 상태 줄의 커밋 방식 칸) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 끊기 전 열린 트랜잭션 질문: 끊기·다시 연결·삭제가 수동 커밋의 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
+ *   (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  */
 final class ConnectionCommands {
 
@@ -115,8 +118,11 @@ final class ConnectionCommands {
         }
     }
 
-    static void disconnect(@NotNull DBPDataSourceContainer dataSource) {
-        disconnect(dataSource, null);
+    /**
+     * @return false when the user canceled because of an open transaction (the connection stays)
+     */
+    static boolean disconnect(@NotNull DBPDataSourceContainer dataSource) {
+        return disconnect(dataSource, null);
     }
 
     static void reconnect(@NotNull DBPDataSourceContainer dataSource) {
@@ -173,17 +179,22 @@ final class ConnectionCommands {
 
     /**
      * @param onFinish runs after the disconnect job (in the job's thread); without it errors are shown
+     * @return false when the user canceled because of an open transaction (nothing is done, onFinish does not run)
      */
-    private static void disconnect(@NotNull DBPDataSourceContainer dataSource, @Nullable Runnable onFinish) {
+    private static boolean disconnect(@NotNull DBPDataSourceContainer dataSource, @Nullable Runnable onFinish) {
         if (!dataSource.isConnected()) {
             if (onFinish != null) {
                 onFinish.run();
             }
-            return;
+            return true;
         }
         if (!ArrayUtils.isEmpty(Job.getJobManager().find(dataSource))) {
             // Already connecting or disconnecting
-            return;
+            return true;
+        }
+        // Closing the sessions rolls back their open transactions: ask first (user rule "transaction safety")
+        if (!ExitTransactionCheck.confirmDisconnect(KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(), dataSource)) {
+            return false;
         }
         DisconnectJob disconnectJob = new DisconnectJob(dataSource);
         disconnectJob.addJobChangeListener(new JobChangeAdapter() {
@@ -200,6 +211,7 @@ final class ConnectionCommands {
             }
         });
         disconnectJob.schedule();
+        return true;
     }
 
     @Nullable
