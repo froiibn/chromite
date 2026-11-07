@@ -1,0 +1,90 @@
+# Swing 서버 출력 (DBMS_OUTPUT, PRINT)
+
+## 목적
+
+SWT 편집기는 문장이 끝날 때마다 연결의 서버 출력(Oracle `DBMS_OUTPUT`, Altibase `PRINT`, CUBRID `DBMS_OUTPUT`)을 읽어
+Output 패널에 보였다. Swing 쿼리 창은 이 출력을 읽지 않았다. 그래서 출력이 보이지 않았고, 읽지 않은 출력이 쌓였다.
+
+- Oracle: 모델이 모든 실행 문맥에서 `DBMS_OUTPUT.ENABLE(1000000)`을 켠다. 한 세션의 출력이 100만 바이트를 넘으면 사용자 PL/SQL이
+  `ORU-10027: buffer overflow`로 실패할 수 있었다.
+- Altibase: 드라이버의 메시지 콜백이 받은 글을 데이터 원본의 `StringBuilder`에 붙이고, 읽을 때만 비운다. 연결이 열려 있는 동안 계속 커졌다.
+- CUBRID: Oracle과 같은 구조(기본 버퍼 1만 바이트).
+
+SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-audit.md](swt-parity-audit.md) "2순위")이다.
+
+## 구조
+
+| 위치 | 역할 |
+|---|---|
+| `ui.swing` `SqlEditorPanel.readServerOutput` | 문장마다(엔진의 `SQLQueryListener.onEndQuery`, 엔진 Job 스레드) 연결의 `DBCServerOutputReader`로 출력을 읽어 그 문장의 메시지 목록에 넣는다 |
+| `ui.swing` `SqlEditorPanel.reportQueryResult` | 메시지 목록을 Messages 탭에 쓴다. 순서: 경고(PRINT, NOTICE) → 서버 출력 → 행 수·`Commands completed` → 실행 시간, 또는 오류 |
+| `model` `DBCServerOutputReader` | 연결별 읽기 도구(데이터 원본의 `getAdapter`). 이번에 바꾸지 않았다 |
+| `ext.oracle` `OracleDataSource.OracleOutputReader` | `DBMS_OUTPUT.GET_LINE`을 상태가 0이 아닐 때까지 부른다. 읽으면 서버 버퍼에서 빠진다. 바꾸지 않았다 |
+| `ext.altibase` `AltibaseDataSource.AltibaseOutputReader` | 콜백 버퍼를 한 번에 쓰고 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않고, 버퍼가 비어 있으면 아무것도 쓰지 않게 고쳤다 |
+| `ext.cubrid` `CubridDataSource.CubridOutputReader` | Oracle과 같은 `get_line` 반복. 바꾸지 않았다 |
+| `ext.altibase` `internal.AltibaseActivator`(새로 만듦, `MANIFEST.MF`의 `Bundle-Activator`) | 번들이 활성화될 때 기본값 노드를 읽어 `AltibasePreferencesInitializer`를 실행한다 |
+
+## 설계 결정과 이유
+
+- **Messages 탭에 쓴다(SWT의 별도 Output 패널 대신).** SQL Server `PRINT`와 PostgreSQL `NOTICE`는 이미 `SQLWarning`으로 Messages 탭에 나온다.
+  SSMS처럼 한 문장의 출력과 행 수, 오류를 한 곳에 차례대로 보이게 하려고 같은 탭에 넣었다. 패널을 새로 만들면 탭이 하나 늘고,
+  문장과 출력의 순서가 탭 사이에서 끊긴다.
+- **문장마다 엔진 Job 스레드에서 읽는다.** SWT는 200 ms마다 도는 별도 Job이 모아 둔 요청을 읽었다. Swing은 엔진이 문장 끝을 알릴 때 같은
+  스레드에서 바로 읽는다. 그 문장의 메시지와 함께 한 번에 EDT로 넘기므로 순서가 섞이지 않고, EDT에서 서버를 부르지 않는다.
+- **오류와 취소 뒤에도 읽는다.** 오류 전에 찍은 줄도 보여야 하고, 읽어야 버퍼가 비워진다. 출력은 오류 문구보다 앞에 나온다.
+- **매번 읽어 비운다.** Oracle·CUBRID는 `GET_LINE`이 읽은 줄을 서버 버퍼에서 빼고, Altibase는 읽으면서 `StringBuilder`를 비운다.
+  그래서 문장마다 읽으면 다음 실행에 이전 줄이 다시 나오지 않고, 버퍼가 차거나 커지지 않는다.
+- **설정을 따른다.** 읽기 도구의 `isServerOutputEnabled()`(Oracle `oracle.dbms.output`, Altibase `altibase.dbms.output`, CUBRID `pref.dbms.output`,
+  모두 기본 켬)가 거짓이면 읽지 않는다. Oracle을 켜는 방식(`DBMS_OUTPUT.ENABLE(1000000)`)은 바꾸지 않았다.
+- **PRINT·NOTICE를 두 번 쓰지 않는다.** PostgreSQL 읽기 도구(`PostgreServerOutputReader`)와 기본 읽기 도구(`DefaultServerOutputReader`)는
+  실행 결과나 문장의 `SQLWarning`을 되풀이할 뿐이다. 실행 결과와 문장을 `null`로 넘기면 아무것도 쓰지 않는다. SQL Server는 읽기 도구가 없다.
+  경고는 지금처럼 `reportQueryResult`가 한 번만 쓴다.
+- **빈 줄.** `PUT_LINE(NULL)`·`PUT_LINE('')`은 빈 줄로 쓴다(SQL*Plus와 같음). Altibase 읽기 도구는 버퍼가 비어 있어도 빈 글을 한 번 썼기 때문에,
+  문장마다 빈 줄이 생기지 않도록 비어 있으면 쓰지 않게 고쳤다.
+- **Altibase 설정이 꺼져 있을 때.** 예전 코드는 `enable` 인자와 관계없이 콜백을 등록했다. 설정이 꺼져 있으면 편집기가 읽지 않으므로 버퍼가 계속 커진다.
+  콜백이 없으면 드라이버가 메시지를 버리므로(`Altibase.jdbc.driver.cm.CmChannel`이 `mMessageCallback == null`이면 메시지를 건너뜀, `javap`로 확인)
+  꺼져 있을 때는 등록하지 않는다.
+
+- **Altibase 기본값이 적용되지 않던 것.** 실행해 보니 Altibase `PRINTLN` 출력이 나오지 않았다. `altibase.dbms.output`을 작업 공간 설정 파일에
+  직접 `true`로 넣자 나왔다. 원인은 `plugin.xml`의 `AltibasePreferencesInitializer`가 실행되지 않은 것이다. Eclipse는 번들의 기본값 노드를 처음 읽을 때
+  그 번들의 초기화를 실행한다. Oracle·CUBRID는 번들 활성화 코드가 자기 노드를 읽지만(`OracleActivator`, `CubridActivator`가 `BundlePreferenceStore`를 만듦),
+  Altibase 번들에는 활성화 코드가 없었다. 초기화가 있는데 활성화 코드가 없는 번들은 Altibase 하나뿐이다(`plugins/` 검색). 그래서 설정이 기본값 켬이 아니라
+  꺼짐으로 읽혔다. 같은 원인으로 Altibase의 다른 기본값(`PREF_EXPLAIN_PLAN_TYPE`, `PREF_PLAN_PREFIX`)도 적용되지 않았다. 활성화 코드를 더해 함께 고쳐진다.
+  쓰지 않는 메서드를 남기지 않도록 활성화 코드는 노드만 읽는다.
+
+## upstream 대비 변경점
+
+- upstream(SWT)의 Output 패널(`SQLEditorOutputViewer`, 심각도 필터, 자동 표시 설정 `OUTPUT_PANEL_AUTO_SHOW`)은 옮기지 않았다. 출력은 Messages 탭에 있다.
+- SWT가 실행 중인 문장의 출력을 비동기로 읽던 부분(`isAsyncOutputReadSupported`, PostgreSQL의 긴 문장 중 `NOTICE`)은 옮기지 않았다. PostgreSQL `NOTICE`는
+  문장이 끝난 뒤 경고로 나온다(전과 같음).
+- `AltibaseDataSource`: 설정이 꺼져 있으면 콜백을 등록하지 않고, 빈 버퍼는 쓰지 않는다.
+- `ext.altibase`에 번들 활성화 코드(`AltibaseActivator`)를 더했다.
+
+## 남은 일과 한계
+
+- Oracle·Altibase·CUBRID 서버 출력을 켜고 끄는 화면이 없다(Oracle 설정 페이지 D-O8, Altibase A3, CUBRID 환경설정). 설정 파일로만 바꿀 수 있다.
+  끄면 Oracle은 다음 연결부터 `DBMS_OUTPUT.DISABLE`을 부른다. 바꾸는 화면이 생기면 열린 연결에 바로 적용할지 정해야 한다.
+- 쿼리 창 밖에서 같은 실행 문맥으로 PL/SQL을 실행하면(개체 편집기의 저장 등) 그 출력은 다음 쿼리 창 실행 때 함께 나온다. Altibase 버퍼는 데이터 원본 하나에
+  하나라서, 예약 쿼리(격리 문맥)의 `PRINT`도 다음 쿼리 창 실행 때 나온다.
+- Altibase 콜백 버퍼(`StringBuilder`)는 동기화하지 않는다(upstream 그대로). 드라이버는 문장을 실행하는 스레드에서 콜백을 부르므로 읽기와 겹치는 일은
+  드물다. 같은 데이터 원본에서 두 문맥이 동시에 실행되면 겹칠 수 있다.
+- 실행 중인 긴 PL/SQL의 출력은 문장이 끝난 뒤 한 번에 나온다(Oracle `DBMS_OUTPUT` 자체가 끝난 뒤에 읽는 구조).
+
+## 확인 (2026-11-07, Windows, Docker 테스트 DB, 앱 사본으로 실행)
+
+| 확인 | 결과 |
+|---|---|
+| Oracle `BEGIN DBMS_OUTPUT.PUT_LINE('x'); END;` | Messages 탭에 `x` 한 줄. 두 번 실행해도 매번 `x` 한 줄(이전 줄이 다시 나오지 않음) |
+| Oracle 3,000줄 반복(줄마다 약 210바이트, 한 번에 약 63만 바이트) + `PUT_LINE(NULL)` + `'last'` | `line 1`부터 `line 3000`, 빈 줄, `last`가 모두 나옴. 같은 세션에서 두 번 연달아 실행해도(합계 100만 바이트 초과) `ORU-10027` 없이 둘 다 성공 = 매번 비워짐 |
+| Oracle 출력 뒤 `RAISE_APPLICATION_ERROR` | `before error`가 오류 문구 앞에 나옴 |
+| SQL Server `PRINT 'hello print'; SELECT 1 AS n;` | `hello print` 한 번 |
+| PostgreSQL `DO $$ BEGIN RAISE NOTICE 'hello notice'; END $$;` | `hello notice` 한 번 |
+| Altibase `EXEC PRINTLN('hello altibase');` | 활성화 코드 전: 나오지 않음(기본값 미적용). 설정 파일에 `altibase.dbms.output=true`를 넣으면 나옴. 활성화 코드 뒤: 설정 없이 나오고, 두 번 실행해도 한 줄 |
+| CUBRID | 테스트 서버가 없어 실행하지 않음. 코드 경로(`CubridOutputReader.readServerOutput`)만 확인 |
+
+회귀 테스트는 작성·실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 Messages 탭의 메시지 순서, Altibase 연결(번들 활성화 코드 추가).
+
+## 변경 이력
+
+- 2026-11-07 최초 작성: 쿼리 창이 문장마다 서버 출력을 읽어 Messages 탭에 씀, Altibase 읽기 도구 정리, Altibase 번들 활성화 코드로 기본값 초기화
+  (`chromite/server-output`)

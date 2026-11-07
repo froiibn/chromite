@@ -28,13 +28,14 @@
 
 | # | 기능 | 무엇이 끊겼나 | 근거 | 영향 |
 |---|---|---|---|---|
-| K1 | Oracle DBMS_OUTPUT | 모델이 모든 실행 컨텍스트에서 `DBMS_OUTPUT.ENABLE(1000000)`을 켠다(설정 기본값 켬). 출력을 읽는 쪽(`readServerOutput`, SWT SQL 편집기의 Output 패널)이 Swing에 없어 `PUT_LINE` 출력이 보이지 않는다. Oracle 문서상 `GET_LINE(S)`를 한 번도 부르지 않으면 줄이 계속 쌓이므로, 한 세션에서 출력이 100만 바이트를 넘으면 사용자 PL/SQL이 `ORU-10027: buffer overflow`로 실패할 수 있다(추론, 재현하지 않음) | `ext.oracle/.../OracleDataSource.java:335-342`(켜기), `:982-997`(1,000,000), `OracleConstants.java:210`, `ext.oracle/.../internal/OraclePreferencesInitializer.java:40`(기본 켬). `readServerOutput`·`DBCServerOutputReader` 호출: `ui.swing`, `model.sql`, `model.ai*`에서 grep 0건 | 높음 |
-| K2 | Altibase 서버 출력(PRINT/PRINTLN) | 모든 컨텍스트에 메시지 콜백을 등록하고 받은 글을 `StringBuilder`에 붙인다. 비우는 곳은 `readServerOutput`뿐인데 Swing이 부르지 않아, 출력이 보이지 않고 데이터 원본이 살아 있는 동안 메모리에 계속 쌓인다 | `ext.altibase/.../AltibaseDataSource.java:124-127`, `:728`, `:780`(append), `:817-819`(읽을 때만 비움), `AltibasePreferencesInitializer.java:36`(기본 켬) | 중간 |
-| K3 | CUBRID DBMS_OUTPUT | Oracle과 같은 구조. 연결마다 `dbms_output.enable(10000)`(기본 버퍼 1만 바이트)을 켜고 읽지 않는다. 버퍼가 작아 넘침 가능성이 Oracle보다 크다(추론) | `ext.cubrid/.../CubridDataSource.java:333`, `:513-528`, `CubridPreferencesInitializer.java:35-36` | 낮음(사용자 적음) |
+| K1 | Oracle DBMS_OUTPUT | 모델이 모든 실행 컨텍스트에서 `DBMS_OUTPUT.ENABLE(1000000)`을 켠다(설정 기본값 켬). 출력을 읽는 쪽(`readServerOutput`, SWT SQL 편집기의 Output 패널)이 Swing에 없어 `PUT_LINE` 출력이 보이지 않는다. Oracle 문서상 `GET_LINE(S)`를 한 번도 부르지 않으면 줄이 계속 쌓이므로, 한 세션에서 출력이 100만 바이트를 넘으면 사용자 PL/SQL이 `ORU-10027: buffer overflow`로 실패할 수 있다(추론, 재현하지 않음) | `ext.oracle/.../OracleDataSource.java:335-342`(켜기), `:982-997`(1,000,000), `OracleConstants.java:210`, `ext.oracle/.../internal/OraclePreferencesInitializer.java:40`(기본 켬). `readServerOutput`·`DBCServerOutputReader` 호출: `ui.swing`, `model.sql`, `model.ai*`에서 grep 0건. **2026-11-07 고침:** 쿼리 창이 문장마다 읽어 비움([swing-server-output.md](../swing-server-output.md)) | 높음 |
+| K2 | Altibase 서버 출력(PRINT/PRINTLN) | 모든 컨텍스트에 메시지 콜백을 등록하고 받은 글을 `StringBuilder`에 붙인다. 비우는 곳은 `readServerOutput`뿐인데 Swing이 부르지 않아, 출력이 보이지 않고 데이터 원본이 살아 있는 동안 메모리에 계속 쌓인다 | `ext.altibase/.../AltibaseDataSource.java:124-127`, `:728`, `:780`(append), `:817-819`(읽을 때만 비움), `AltibasePreferencesInitializer.java:36`(기본 켬). **2026-11-07 고침:** 쿼리 창이 문장마다 읽어 비움. 실행해 보니 기본값 초기화가 한 번도 실행되지 않아(번들에 활성화 코드가 없음) 설정이 꺼짐으로 읽혔다. `AltibaseActivator`를 더하고, 꺼져 있으면 콜백을 등록하지 않게 함([swing-server-output.md](../swing-server-output.md)) | 중간 |
+| K3 | CUBRID DBMS_OUTPUT | Oracle과 같은 구조. 연결마다 `dbms_output.enable(10000)`(기본 버퍼 1만 바이트)을 켜고 읽지 않는다. 버퍼가 작아 넘침 가능성이 Oracle보다 크다(추론) | `ext.cubrid/.../CubridDataSource.java:333`, `:513-528`, `CubridPreferencesInitializer.java:35-36`. **2026-11-07 고침(코드 경로만, CUBRID 서버로 실행하지 않음):** 쿼리 창이 문장마다 읽어 비움 | 낮음(사용자 적음) |
 | K4 | H2 초기화 스크립트 확인 | URL의 `INIT=`·연결 직후 SQL을 실행하기 전에 묻는 서비스(`UIServiceConnectionInit`, SWT `core`의 `UIServiceConnectionInitImpl`)가 Swing에 없다. 서비스가 없으면 "승인 안 됨"으로 연결을 거부한다(안전한 쪽으로 실패). 기능은 못 쓴다 | `ext.h2/.../H2DataSource.java:97`, `:112`, `H2InitScriptValidator.java:48-49`. Swing `plugin.xml`의 service 등록은 3개뿐(`:21-26`) | 낮음 |
 | K5 | SQLite 확장 불러오기 승인 | 확장 불러오기를 승인하는 서비스(`SQLiteExtensionConfirmationImpl`, `ext.sqlite.ui`의 `com.seizia.chromite.service`)가 없어 승인이 늘 거부된다(안전한 쪽으로 실패). 오류 결과의 "확장 설정" 동작(`resultset.error`)도 없다 | `ext.sqlite/.../SQLiteDataSource.java:178-179` | 낮음 |
 
 K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것이다([swing-frontend.md](../swing-frontend.md) 708-709행 "서버 출력 읽기"를 C단계 남긴 일로 기록). 편집기 영역 감사와 겹친다.
+2026-11-07 #105에서 고쳤다(쿼리 창의 Messages 탭, [swing-server-output.md](../swing-server-output.md)).
 
 ## 1. PostgreSQL (`ext.postgresql.ui`, 57 클래스 / `ext.postgresql.debug.ui`)
 
@@ -140,7 +141,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 없음 | P23과 같은 grep | 중간 | |
 | O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 없음 | grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) | 낮음 | |
 | O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 없음 | swt-removal.md 115행(다른 도구의 연결 가져오기 없음) | 중간 | Oracle 사용자 이전 경로 |
-| O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 조용히 끊김 | 위 K1 | 높음 | |
+| O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K1. 쿼리 창 Messages 탭 | 높음 | 켜고 끄는 화면은 없음(O8) |
 
 ## 5. Altibase (`ext.altibase.ui`, 8 클래스)
 
@@ -151,7 +152,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | A1 | 세션 관리자(Disconnect) | `AltibaseSessionEditor` | 있음 | Activity Monitor의 "그 밖" 분기가 `AltibaseServerSessionManager` 어댑터 + Terminate(`ServerAdminProfile.java:253-260`) | 높음 | |
 | A2 | 잠금 관리자 | `AltibaseLockEditor` | 없음 | 모델 `ext.altibase/.../lock/AltibaseLockManager.java`는 있으나 `ServerAdminProfile`의 그 밖 분기는 잠금 관리자를 넣지 않고, `LockManagerPanel.java:226`은 프로필의 관리자만 쓴다 | 높음 | 모델은 남아 있어 화면 고리 하나로 살릴 수 있다(Exasol도 같음) |
 | A3 | 환경설정(계획 형식, DBMS 출력, 계획 깊이 접두어) | `PrefPageAltibase` | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 `AltibasePreferencesInitializer` |
-| A4 | 서버 출력(PRINT) | (SQL 편집기 Output 패널) | 조용히 끊김 | 위 K2 | 중간 | |
+| A4 | 서버 출력(PRINT) | (SQL 편집기 Output 패널) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K2. 쿼리 창 Messages 탭 | 중간 | 켜고 끄는 화면은 없음(A3) |
 | A5 | 구체화된 뷰 새로 고침, TRUNCATE | `AltibaseToolMViewRefresh`, `AltibaseToolTableTruncate` | 없음 | P23과 같은 grep, Altibase 유지 관리 방언 없음(`model.admin` maintenance 방언 4개) | 중간 | |
 | A6 | 뷰·프로시저·패키지 컴파일 | `AltibaseToolViewCompile/ProcedureCompile/PackageCompile` | 없음 | 위와 같음 | 중간 | |
 | A7 | 복제 시작·중지 | `AltibaseToolReplicationStart/Stop` | 없음 | `model.admin` replication 방언에 Altibase 없음(읽기 전용 4개 DB) | 중간 | Altibase 운영 기능 |
@@ -194,7 +195,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | `ext.clickhouse.ui` | SSL 칸, Cloud SSO·OIDC 인증, ENUM 값 편집기 | 없음 | swing-conn-advanced.md 225-226행, swing-frontend.md 1429행. 인증 서비스 `UIServiceAuth`(`ClickhouseAuthPrompt.java:61`) 구현 없음 | 낮음 | 사용자 이름/암호 연결은 범용 화면으로 됨 |
 | `ext.cloudflare.d1.ui` | 연결 화면, 인증 칸, DB 고르기 | 일부 | 전용 방식 하나의 Login·Password만(swing-frontend.md 1432행) | 낮음 | DB 목록 고르기 없음 |
 | `ext.cubrid.ui` | 연결 + shard 페이지, 프로시저·열·고유 키 만들기, OID 검색, 권한 편집기, 정보 패널, 계획 보기, 환경설정(DBMS 출력) | 없음 | 연결 외 grep 0건. 결과 패널(`resultset.panel`)·계획 보기(`sql.plan.view`) 없음 | 낮음 | 출력은 아래 K3 |
-| ↳ CUBRID DBMS_OUTPUT | (편집기 Output) | 조용히 끊김 | K3 | 낮음 | |
+| ↳ CUBRID DBMS_OUTPUT | (편집기 Output) | 있음(2026-11-07, 코드 경로만 확인) | K3 | 낮음 | |
 | `ext.dameng.ui` | 스키마·시퀀스 만들기 | 없음 | 새로 만들기 메뉴 없음 | 낮음 | |
 | `ext.databend.ui` | SSL 칸 | 없음 | swing-conn-advanced.md 225행 | 낮음 | |
 | `ext.db2.ui` | 연결 + 추적(trace) 페이지, FK·인덱스·스키마·시퀀스·고유 키 만들기, 루틴·테이블 DDL 편집기, 서버 애플리케이션(세션) 편집기, 테이블스페이스 고르기, 오류 보기 도구, REORG TABLE | 일부 | 세션은 `DB2DataSource`의 세션 관리자 어댑터로 Activity Monitor에 나옴. 나머지 grep 0건 | 낮음 | |
@@ -225,17 +226,17 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
   (`ObjectExplorerPanel.java:553-569`). 테이블·뷰·시퀀스·인덱스 등 DB별 객체를 탐색기에서 지울 수 없다. SWT는 각 `DBEObjectManager`로 지웠다.
 - **객체 속성 편집:** 속성 창은 읽기 전용(`PropertiesPanel.java:68`). SWT `databaseEditor`(17개 번들)·`*Configurator`로 하던 속성 편집은
   테이블 디자이너의 Table 탭(PostgreSQL·SQL Server·MySQL)에서만 된다(swing-table-designer.md 121행).
-- **서버 출력 패널:** K1–K3의 원인. SQL 편집기 영역.
+- **서버 출력 패널:** K1–K3의 원인. SQL 편집기 영역. (2026-11-07 Messages 탭으로 고침)
 - **DB별 환경설정 페이지 전부(PostgreSQL, Oracle, Altibase, CUBRID, H2, Mimer):** Swing `OptionsDialog`에 없다(`OptionsDialog.java:178-180`).
 - **Swing에만 있는 DB 기능(SWT에 없던 것):** SQL Server 에이전트, SQL Server 백업·복원, 공간 사용량, 서버 로그, 복제 상태, SQL Server·MySQL 잠금, pg_cron, Oracle 스케줄러 확장,
   Altibase 저장 방식 색. 이번 표에는 넣지 않았다.
 
 ## 높은 순서로 본 빠진 것·끊긴 것
 
-1. K1 / O24 Oracle DBMS_OUTPUT — 조용히 끊김, 높음.
+1. K1 / O24 Oracle DBMS_OUTPUT — 조용히 끊김, 높음. (2026-11-07 고침)
 2. O16 Oracle 사용자·역할·권한 관리 — 없음, 높음.
 3. A2 Altibase 잠금 관리자(모델은 있음; Exasol도 같음) — 없음, 높음.
-4. K2 / A4 Altibase 서버 출력(메모리에 쌓임) — 조용히 끊김, 중간.
+4. K2 / A4 Altibase 서버 출력(메모리에 쌓임) — 조용히 끊김, 중간. (2026-11-07 고침)
 5. O5 Oracle 세션 NLS 설정 — 없음(저장값은 보이지 않게 적용), 중간.
 6. TRUNCATE·트리거 사용/사용 안 함·구체화된 뷰 새로 고침(P23, O21, S14, M17, A5) — 없음, 중간.
 7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간.

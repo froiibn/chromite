@@ -98,7 +98,7 @@
 | A-C7 | 연결 끊기 변형(모두 끊기, 다른 연결 끊기, 프로젝트·폴더 단위 끊기) | `DataSourceDisconnectAllHandler`, `…OtherHandler`, `…ProjectHandler`, `FolderDisconnectHandler` | 없음 | Swing 연결 명령은 하나씩만(`ConnectionCommands`) | 낮음 | |
 | A-C8 | 연결 무효화·다시 연결(세션 유지 재연결) | `DataSourceInvalidateHandler` | 일부 | Swing "다시 연결"은 끊고 다시 연결(`ConnectionCommands.java`:122-128) → S3의 무확인 롤백 | 중간 | |
 | A-C9 | 읽기 전용 전환(도구 막대) | `DataSourceReadonlyHandler` | 일부 | 연결 설정 체크 상자(`ConnectionSettingsPanel.java`:887) | 낮음 | |
-| A-C10 | 서버 출력 보기(Oracle DBMS_OUTPUT 등) | `views/DatabaseOutputView` | 일부 | Swing은 `SQLWarning`(PRINT, NOTICE)을 Messages 탭에 씀(`SqlEditorPanel.java`:1133-1139). `DBCServerOutputReader` 사용 0 | 중간 | Oracle `DBMS_OUTPUT`은 안 보인다(편집기 영역과 겹침) |
+| A-C10 | 서버 출력 보기(Oracle DBMS_OUTPUT 등) | `views/DatabaseOutputView` | 일부 (2026-11-07 쿼리 창 출력은 고침) | 쿼리 창이 문장마다 `DBCServerOutputReader`로 읽어 Messages 탭에 씀(`SqlEditorPanel.readServerOutput`, [swing-server-output.md](../swing-server-output.md)). 별도 Output 보기는 없음 | 중간 | 출력은 SQL Server PRINT·PostgreSQL NOTICE와 같은 Messages 탭에 차례대로 나온다 |
 | A-C11 | 셸 프로세스 보기(연결 이벤트 명령 출력, 중지) | `views/process/ShellProcessView` | 없음 | Swing 검색 0 | 낮음 | |
 | A-C12 | 북마크 | `resources/bookmarks/*` | 없음 | swt-removal.md:108(프로젝트·자원 탐색기) | 낮음 | |
 | A-C13 | 프로젝트 패널·자원 처리기(스크립트 폴더, 바로 가기) | `controls/ProjectsPanel`, `resources/*Handler*` | 없음 | swt-removal.md:108 | 중간 | |
