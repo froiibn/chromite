@@ -66,7 +66,8 @@ import java.util.function.Consumer;
  * 결과 편집(G단계): 값 객체({@code DBDValue})가 아닌 원래 값은 모두 {@code fetchEnd}까지 남기고, {@code fetchEnd}에서 SWT 수신기처럼
  * {@link DBExecUtils#bindAttributes}로 열을 테이블 열·행 식별자(기본 키)에 묶는다. 묶으면서 값 처리기가 바뀐 열은 표시 문자열을 다시 만든다.
  * 편집할 수 있는지는 {@link ResultSetEditModel#getReadOnlyReason}이 정하고, 편집할 수 있으면 원래 값을 {@link ResultSetEditModel}에 넘긴다.
- * 읽기 전용이면 원래 값은 위의 XLSX용 값만 남긴다. 값 객체로 온 열과 값을 읽지 못한 열은 편집하지 않는다.
+ * 읽기 전용이면 원래 값은 위의 XLSX용 값만 남긴다. 값 객체로 온 열과 값을 읽지 못한 열은 칸에서 편집하지 않는다(LOB 열은 값 패널이나
+ * 파일로 값 전체를 바꾼다, {@link ResultSetEditModel#isContentColumn}).
  * 값 패널·정렬·필터·다음 페이지(결과 뷰어): 값 패널이 칸의 원래 값을 보여 주도록 행마다 칸 값을 함께 넘긴다({@link ResultSetSource#cellValues()}).
  * LOB({@link DBDContent})는 {@link ResultSetCellContent}로 바꿔 넘기고, 메모리에 없는 LOB는 패널이 나중에 읽도록 값 객체를 놓아 주지 않는다.
  * 공간 값({@link DBGeometry}, {@code data.gis})은 결과 공간 보기가 그리도록 칸 값에 그대로 남긴다(DB 자원을 잡지 않는 값). 열은 지금처럼 편집하지 않는다.
@@ -87,6 +88,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 공간 값({@link DBGeometry})을 칸 값에 남김(결과 공간 보기, docs/chromite/swing-result-charts-spatial.md)
  * - 2026-11-08 다시 읽으면 안 되는 이유를 받는 생성자를 지움: 값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 편집할 수 있는 결과의 ENUM 열 값을 Job 스레드에서 읽어 편집 모델에 넘기고, LOB 값으로 받은 열을 알림(테이블 처리기가 문자열 처리기여도
+ *   값 전체로 편집) (docs/chromite/swing-grid-editing.md)
  * - 2026-11-08 열 머리글을 열의 레이블(별칭)로: 이름({@code getColumnName})을 써서 MySQL·MariaDB처럼 드라이버가 원래 열 이름을 주는 곳에서
  *   {@code AS} 별칭이 보이지 않았다. SWT 표처럼 레이블, 없으면 이름. "레이블 대신 열 이름 표시" 설정({@code resultset.column.label.ignore})이
  *   레이블을 이름으로 바꾼다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
@@ -106,6 +109,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     private DBDAttributeBinding[] bindings;
     private DBDValueHandler[] fetchHandlers;
     private boolean[] unreadableColumns;
+    private boolean[] lobColumns;
     private long maxRows;
     private boolean delivered;
 
@@ -159,6 +163,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
             fetchHandlers[i] = bindings[i].getValueHandler();
         }
         this.unreadableColumns = new boolean[bindings.length];
+        this.lobColumns = new boolean[bindings.length];
         this.maxRows = maxRows;
         rows.clear();
         rawValues.clear();
@@ -189,6 +194,9 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                 if (value instanceof DBDValue) {
                     // Released below unless the value panel reads it later; the grid has its display string only
                     unreadableColumns[i] = true;
+                    if (value instanceof DBDContent) {
+                        lobColumns[i] = true;
+                    }
                     if (value instanceof DBDContent content && !isNull) {
                         ResultSetCellContent cellContent = ResultSetCellContent.capture(content);
                         cells[i] = cellContent;
@@ -238,7 +246,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         }
         if (segmentBindings != null) {
             // The next rows of a result: its columns are bound already, and its viewer keeps the edit model
-            deliver(session.getExecutionContext(), null, null);
+            deliver(session.getExecutionContext(), null, null, null);
             return;
         }
         Throwable bindError = null;
@@ -251,14 +259,16 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         }
         refreshDisplayOfRebound();
         DBCExecutionContext context = session.getExecutionContext();
-        String readOnlyReason = ResultSetEditModel.getReadOnlyReason(context, bindings, unreadableColumns, bindError);
-        deliver(context, readOnlyReason == null ? context : null, readOnlyReason);
+        String readOnlyReason = ResultSetEditModel.getReadOnlyReason(context, bindings, unreadableColumns, lobColumns, bindError);
+        // ENUM columns edit through a combo box; reading their values may query the type catalog, so here in the job
+        String[][] enumValues = readOnlyReason == null ? ResultSetEnumValues.read(session.getProgressMonitor(), bindings) : null;
+        deliver(context, readOnlyReason == null ? context : null, readOnlyReason, enumValues);
     }
 
     @Override
     public void close() {
         // fetchEnd is not called when the statement fails after fetchStart; show what was fetched
-        deliver(null, null, EditorMessages.editor_grid_fetch_incomplete);
+        deliver(null, null, EditorMessages.editor_grid_fetch_incomplete, null);
     }
 
     /**
@@ -284,11 +294,13 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
      * @param context        context of the fetch, or null if it did not complete
      * @param editContext    context of an editable result, or null
      * @param readOnlyReason why the result is read-only, or null if it is editable
+     * @param enumValues     allowed values of the ENUM columns of an editable result, or null
      */
     private void deliver(
         @Nullable DBCExecutionContext context,
         @Nullable DBCExecutionContext editContext,
-        @Nullable String readOnlyReason
+        @Nullable String readOnlyReason,
+        @Nullable String[][] enumValues
     ) {
         if (delivered || bindings == null) {
             return;
@@ -310,7 +322,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         ResultSetGrid.Data data = new ResultSetGrid.Data(columns, numeric, List.copyOf(rows), Collections.unmodifiableList(values),
             bindings, truncated);
         ResultSetEditModel editModel = editContext == null ? null
-            : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, rawValues, rows);
+            : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, lobColumns, rawValues, rows, enumValues);
         rawValues.clear();
         String blocker = context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
         ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker,
