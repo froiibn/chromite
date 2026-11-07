@@ -35,7 +35,8 @@ import java.awt.*;
  * <ul>
  *     <li>키는 Oracle 모델 상수({@link OracleConstants})다. 읽는 곳: 실행 계획 테이블 {@code OracleDataSource.getPlanTableName}
  *     (비우면 PLAN_TABLE, TOAD_PLAN_TABLE 순으로 찾음, 연결마다 처음 한 번 찾고 기억), ROWID 열 {@code OracleTable.hasRowIdPseudoAttribute},
- *     DBMS_OUTPUT {@code OracleOutputReader.isServerOutputEnabled}(쿼리 창은 문장마다 읽고, 켜기·끄기는 세션을 열 때 함), 모든 동의어 읽기
+ *     DBMS_OUTPUT {@code OracleOutputReader.isServerOutputEnabled}(쿼리 창은 문장마다 읽고, 서버의 켜기·끄기는 세션을 열 때와
+ *     설정이 바뀐 뒤 그 세션의 다음 문장 전에 함), 모든 동의어 읽기
  *     {@code OracleSchema}의 동의어 조회, 스크립트 이스케이프 처리 끄기 {@code OracleSQLDialect.isDisableScriptEscapeProcessing}.</li>
  *     <li>SWT의 같은 페이지에 있던 동의어·시퀀스 메타데이터 검색과 DATE를 DATE로 보이기는 연결의 공급자 속성이라 연결 대화상자의
  *     Provider Properties 탭에서 이미 바꿀 수 있다. 여기 두지 않는다.</li>
@@ -47,6 +48,8 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md "Oracle")
+ * - 2026-11-08 DBMS_OUTPUT 도구 설명: 열린 쿼리 창에도 다음 문장부터 적용(다시 연결할 필요 없음)
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 final class OracleOptionsPage extends JPanel {
 

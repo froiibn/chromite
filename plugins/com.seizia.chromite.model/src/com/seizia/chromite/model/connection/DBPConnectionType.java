@@ -19,24 +19,35 @@ package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourcePermission;
 import com.seizia.chromite.model.DBPDataSourcePermissionOwner;
 import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * Connection type
+ *
+ * 설계: 기본 유형(dev, test, prod)의 이름과 설명은 화면 언어로 번역된다. 저장 파일에는 사용자가 바꾸지 않은 기본 문구를 화면 언어와
+ * 상관없이 영어 기본 문구로 쓰고({@link #toStoredText}), 읽을 때 어느 언어의 기본 문구든 지금 화면 언어 문구로 바꾼다({@link #fromStoredText}).
+ * 사용자가 입력한 이름은 그대로 둔다. 기본 문구인지는 텍스트로만 알 수 있어 모델이 가진 모든 번역 파일과 비교한다.
  *
  * 변경 이력:
  * - 2026-11-07 유휴 트랜잭션: {@link #isAutoCloseTransactions()}와 {@link #getCloseIdleTransactionPeriod()}를 Chromite에서는
  *   "유휴 트랜잭션 알림"과 그 기간의 기본값으로 읽는다(롤백 동의가 아님). TEST 기간 주석을 실제 값(15분)으로 고침
  *   (docs/chromite/idle-transactions.md)
+ * - 2026-11-08 기본 유형의 이름·설명을 언어와 상관없이 저장·읽기({@link #toStoredText}, {@link #fromStoredText}). 전에는 저장할 때의 화면 언어
+ *   문구가 그대로 저장돼, 영어로 저장한 뒤 한국어 화면에서 "Development"로 보였다 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
@@ -46,6 +57,26 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
     public static final DBPConnectionType[] SYSTEM_TYPES;
     public static final DBPConnectionType DEFAULT_TYPE;
+
+    private static final Log log = Log.getLog(DBPConnectionType.class);
+
+    /**
+     * Built-in name and description of a system type: the NLS keys (to find every translation) and the texts in the
+     * current UI language.
+     */
+    private record BuiltInText(
+        @NotNull String nameKey,
+        @NotNull String name,
+        @NotNull String descriptionKey,
+        @NotNull String description
+    ) {
+    }
+
+    // By system type id
+    private static final Map<String, BuiltInText> BUILT_IN_TEXTS;
+    // NLS key of a built-in text -> the text in every language the model carries, and in the base (English) file
+    private static Map<String, Set<String>> builtInTranslations;
+    private static Map<String, String> builtInBaseTexts;
 
     static {
         DEV = new DBPConnectionType(
@@ -107,6 +138,23 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
         ); //$NON-NLS-1$ //$NON-NLS-3$
 
         SYSTEM_TYPES = new DBPConnectionType[] { DEV, TEST, PROD };
+        BUILT_IN_TEXTS = Map.of(
+            DEV.id, new BuiltInText(
+                "dbp_connection_type_table_development", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_development,
+                "dbp_connection_type_table_regular_development_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_regular_development_database),
+            TEST.id, new BuiltInText(
+                "dbp_connection_type_table_test", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_test,
+                "dbp_connection_type_table_test_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_test_database),
+            PROD.id, new BuiltInText(
+                "dbp_connection_type_table_production", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_production,
+                "dbp_connection_type_table_production_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_production_database)
+        );
 
         DBPConnectionType defaultType = new DBPConnectionType(DEV);
         defaultType.predefined = false;
@@ -454,6 +502,93 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
     public static void setDefaultConnectionType(@NotNull DBPConnectionType connectionType) {
         DBWorkbench.getPlatform().getPreferenceStore().setValue(DEFAULT_CONNECTION_TYPE_PREF, connectionType.getId());
+    }
+
+    /**
+     * The name or description of a type as the configuration file stores it. For a system type whose text is still the
+     * built-in one (in any language the model carries) this is the base (English) built-in text, so the file does not
+     * depend on the UI language it was saved in. Text the user typed, and the texts of other types, are stored as they are.
+     */
+    @Nullable
+    public static String toStoredText(@NotNull String typeId, boolean description, @Nullable String text) {
+        BuiltInText builtIn = BUILT_IN_TEXTS.get(typeId);
+        if (builtIn == null || text == null) {
+            return text;
+        }
+        String key = description ? builtIn.descriptionKey() : builtIn.nameKey();
+        synchronized (BUILT_IN_TEXTS) {
+            loadBuiltInTranslations();
+            return builtInTranslations.get(key).contains(text) ? builtInBaseTexts.get(key) : text;
+        }
+    }
+
+    /**
+     * The name or description of a type read from the configuration file. For a system type whose stored text is missing
+     * or is the built-in text in any language the model carries, this is the built-in text in the current UI language:
+     * files saved before 2026-11-08 hold the text of the language they were saved in. Other texts are kept as typed.
+     */
+    @Nullable
+    public static String fromStoredText(@NotNull String typeId, boolean description, @Nullable String text) {
+        BuiltInText builtIn = BUILT_IN_TEXTS.get(typeId);
+        if (builtIn == null) {
+            return text;
+        }
+        String current = description ? builtIn.description() : builtIn.name();
+        if (text == null || text.equals(current)) {
+            return current;
+        }
+        String key = description ? builtIn.descriptionKey() : builtIn.nameKey();
+        synchronized (BUILT_IN_TEXTS) {
+            loadBuiltInTranslations();
+            return builtInTranslations.get(key).contains(text) ? current : text;
+        }
+    }
+
+    /**
+     * Reads the built-in texts from every translation file of the model messages (the bundle and its language
+     * fragments) once. Outside OSGi only the current language is known, and it is also used as the base text.
+     */
+    private static void loadBuiltInTranslations() {
+        if (builtInTranslations != null) {
+            return;
+        }
+        Map<String, Set<String>> translations = new HashMap<>();
+        Map<String, String> baseTexts = new HashMap<>();
+        for (BuiltInText builtIn : BUILT_IN_TEXTS.values()) {
+            translations.computeIfAbsent(builtIn.nameKey(), k -> new HashSet<>()).add(builtIn.name());
+            translations.computeIfAbsent(builtIn.descriptionKey(), k -> new HashSet<>()).add(builtIn.description());
+            baseTexts.put(builtIn.nameKey(), builtIn.name());
+            baseTexts.put(builtIn.descriptionKey(), builtIn.description());
+        }
+        String path = ModelMessages.BUNDLE_NAME.replace('.', '/');
+        int divPos = path.lastIndexOf('/');
+        String folder = path.substring(0, divPos);
+        String baseFileName = path.substring(divPos + 1) + ".properties"; //$NON-NLS-1$
+        Bundle bundle = FrameworkUtil.getBundle(ModelMessages.class);
+        Enumeration<URL> files = bundle == null ? null : bundle.findEntries(folder, path.substring(divPos + 1) + "*.properties", false); //$NON-NLS-1$
+        while (files != null && files.hasMoreElements()) {
+            URL file = files.nextElement();
+            Properties properties = new Properties();
+            // Translation files are UTF-8, as NLS reads them
+            try (Reader reader = new InputStreamReader(file.openStream(), StandardCharsets.UTF_8)) {
+                properties.load(reader);
+            } catch (IOException e) {
+                log.debug("Can't read " + file, e);
+                continue;
+            }
+            boolean base = file.getPath().endsWith("/" + baseFileName);
+            for (Map.Entry<String, Set<String>> entry : translations.entrySet()) {
+                String value = properties.getProperty(entry.getKey());
+                if (value != null) {
+                    entry.getValue().add(value);
+                    if (base) {
+                        baseTexts.put(entry.getKey(), value);
+                    }
+                }
+            }
+        }
+        builtInBaseTexts = baseTexts;
+        builtInTranslations = translations;
     }
 
 }
