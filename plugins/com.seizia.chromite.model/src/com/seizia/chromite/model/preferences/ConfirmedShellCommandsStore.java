@@ -17,35 +17,41 @@
  */
 package com.seizia.chromite.model.preferences;
 
-import com.google.gson.reflect.TypeToken;
 import org.jkiss.code.NotNull;
-import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import com.seizia.chromite.Log;
 import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
+import org.jkiss.utils.CommonUtils;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.List;
 
-public class ConfirmedShellCommandsStore {
+/**
+ * Shell commands the user chose to "Always allow", per approval scope (see {@link UIServiceShellCommands}).
+ *
+ * 설계: SWT와 같은 파일({@value #CONFIRMED_COMMANDS_FILE_NAME}, 전역 설정 폴더의 JSON 문자열 배열)에 둔다.
+ * 프로젝트 폴더 밖이라서 가져오거나 공유한 연결 설정이 승인을 함께 들여올 수 없다.
+ * SWT는 명령 문자열만 기억해 어느 연결에서든 같은 명령을 묻지 않고 실행했다. Chromite는 항목 하나를
+ * [승인 범위, 작업 폴더, 명령] JSON 배열 문자열로 만든다. 그래서 다른 연결, 바뀐 명령, 바뀐 작업 폴더
+ * (같은 상대 경로 명령이 다른 파일을 가리킬 수 있다)는 다시 묻는다. JSON 배열이라 어떤 문자가 들어 있어도 부분끼리 섞이지 않는다.
+ * SWT가 남긴 명령만 있는 항목은 이 형식과 맞지 않아 쓰이지 않고 파일에 그대로 남는다(전역 승인을 이어받지 않는다).
+ * 읽고 쓰기는 {@link ConfirmedActionsStore}(SQLite 확장 승인과 같은 저장 방식, 임시 파일 뒤 교체)가 한다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 명령만 기억하던 전역 승인을 승인 범위·작업 폴더·명령으로 묶은 승인으로 바꿈. 직접 쓰던 파일 읽기·쓰기를
+ *   {@link ConfirmedActionsStore}로 바꾸고, 호출부가 없는 {@code prepareFile} 삭제(docs/chromite/shell-command-approval.md)
+ */
+public final class ConfirmedShellCommandsStore {
 
     public static final String CONFIRMED_COMMANDS_FILE_NAME = "confirmed_shell_commands.json";
 
-    private static final Log log = Log.getLog(ConfirmedShellCommandsStore.class);
-
     private static ConfirmedShellCommandsStore instance;
 
-    @Nullable
-    private Set<String> confirmedCommands;
-    @Nullable
-    private FileTime confirmedCommandsModificationTime;
+    private final ConfirmedActionsStore actions;
 
     private ConfirmedShellCommandsStore() {
+        actions = new ConfirmedActionsStore(DBWorkbench.getPlatform().getGlobalConfigurationFile(CONFIRMED_COMMANDS_FILE_NAME));
     }
 
     @NotNull
@@ -56,97 +62,19 @@ public class ConfirmedShellCommandsStore {
         return instance;
     }
 
-    public boolean contains(@NotNull String command) throws DBException {
-        return confirmedCommands().contains(command);
+    public boolean isApproved(@NotNull String approvalScope, @NotNull DBRShellCommand command) throws DBException {
+        return actions.contains(approvalKey(approvalScope, command));
     }
 
-    public boolean add(@NotNull String command) throws DBException {
-        synchronized (this) {
-            confirmedCommands = loadConfirmedCommands();
-            boolean result = confirmedCommands.add(command);
-            log.debug("Tried to add confirmed command result: %s".formatted(result));
-            saveCommands();
-            return result;
-        }
+    public void approve(@NotNull String approvalScope, @NotNull DBRShellCommand command) throws DBException {
+        actions.add(approvalKey(approvalScope, command));
     }
 
     @NotNull
-    public Path prepareFile() throws DBException {
-        var path = getFilePath();
-        try {
-            Files.createDirectories(path.getParent());
-            if (!Files.exists(path)) {
-                try (var writer = Files.newBufferedWriter(path)) {
-                    JSONUtils.PRETTY_GSON.toJson(Set.of(), writer);
-                }
-            }
-            synchronized (this) {
-                confirmedCommands = loadConfirmedCommands();
-            }
-            return path;
-        } catch (Exception e) {
-            throw new DBException("Error preparing confirmed commands file: %s".formatted(path), e);
-        }
-    }
-
-    @NotNull
-    private Path getFilePath() {
-        return DBWorkbench.getPlatform().getGlobalConfigurationFile(CONFIRMED_COMMANDS_FILE_NAME);
-    }
-
-    @NotNull
-    private Set<String> confirmedCommands() throws DBException {
-        if (confirmedCommands == null || isFileChanged()) {
-            synchronized (this) {
-                confirmedCommands = loadConfirmedCommands();
-            }
-        }
-        return confirmedCommands;
-    }
-
-    @NotNull
-    private Set<String> loadConfirmedCommands() {
-        Set<String> commands = null;
-        var path = getFilePath();
-        if (Files.exists(path)) {
-            try (var reader = Files.newBufferedReader(path)) {
-                commands = JSONUtils.GSON.fromJson(reader, TypeToken.getParameterized(Set.class, String.class).getType());
-                confirmedCommandsModificationTime = getFileModificationTime(path);
-            } catch (Exception e) {
-                log.error("Error loading confirmed shell commands from " + path, e);
-                confirmedCommandsModificationTime = null;
-            }
-        } else {
-            confirmedCommandsModificationTime = null;
-        }
-        return Objects.requireNonNullElse(commands, new HashSet<>());
-    }
-
-    private boolean isFileChanged() throws DBException {
-        FileTime actualModificationTime = getFileModificationTime(getFilePath());
-        return !Objects.equals(confirmedCommandsModificationTime, actualModificationTime);
-    }
-
-    private void saveCommands() throws DBException {
-        var path = getFilePath();
-        try {
-            Files.createDirectories(path.getParent());
-            try (var writer = Files.newBufferedWriter(path)) {
-                JSONUtils.PRETTY_GSON.toJson(confirmedCommands, writer);
-            }
-            confirmedCommandsModificationTime = getFileModificationTime(path);
-        } catch (Exception e) {
-            throw new DBException("Error saving confirmed commands, file: %s".formatted(path), e);
-        }
-        log.debug("Saved confirmed commands to file '%s'".formatted(CONFIRMED_COMMANDS_FILE_NAME));
-    }
-
-    @Nullable
-    private FileTime getFileModificationTime(@NotNull Path path) throws DBException {
-        try {
-            return Files.exists(path) ? Files.getLastModifiedTime(path) : null;
-        } catch (Exception e) {
-            throw new DBException("Error reading confirmed commands file modification time: %s".formatted(path), e);
-        }
+    private static String approvalKey(@NotNull String approvalScope, @NotNull DBRShellCommand command) {
+        return JSONUtils.GSON.toJson(List.of(
+            approvalScope,
+            CommonUtils.notEmpty(command.getWorkingDirectory()),
+            UIServiceShellCommands.getCommandText(command)));
     }
 }
