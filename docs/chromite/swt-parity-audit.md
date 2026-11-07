@@ -41,10 +41,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
-| B 편집기 | 25 | 42 | 39 | 8 | 3 | 117 |
-| C 탐색기·도구 | 16 | 18 | 27 | 2 | 1 | 64 (+해당 없음 4) |
+| B 편집기 | 25 | 43 | 38 | 8 | 3 | 117 |
+| C 탐색기·도구 | 16 | 19 | 26 | 2 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **101** | **104** | **137** | **29** | **7** | **378** |
+| **합계** | **101** | **106** | **135** | **29** | **7** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -87,6 +87,8 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
   2026-11-07 일부 고침([swing-options.md](swing-options.md)): 키 306개를 Swing에서 읽는지 전수 확인(효과 없음 197개는 화면을 만들지 않음).
   Options에 Query Execution(구분 기호·매개 변수·오류 처리)·Connection Types(연결 유형 편집)·Oracle 탭과 결과 형식 행, 연결 대화상자에 격리 수준을 더함.
   오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
+  2026-11-08 더 고침(`chromite/settings-rest`): 연결별 설정(연결 대화상자 Options > Settings), Data Formats·Errors and Timeouts·Metadata·Client Identification.
+  남은 것: 읽지만 화면 없는 키 55개(결과 편집기 나머지, 연결 일반, 드라이버·프록시·Maven, QM·로그, 탐색기 정렬, 알림, 데이터 전송 매핑, 자동완성, DB별).
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
@@ -95,7 +97,8 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 ### 4순위
 
-나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 데이터 검색, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
+나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
+데이터 검색은 2026-11-08 옮겼다([swing-data-search.md](swing-data-search.md), C-29).
 
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
@@ -125,3 +128,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
 - 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.
 - 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.
+- 2026-11-08 4순위 차트·공간 데이터: B-R9·C-64 없음 → 일부(결과 공간 보기), 결과 표 차트 보기는 CE에 없던 기능이라 수 변화 없음
+  ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
+- 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
+  A-platform §6의 해당 줄과 §7 집계 문단 갱신.

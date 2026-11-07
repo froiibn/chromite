@@ -49,11 +49,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *     다시 쓰지 않고, 앱이 비정상 종료되어도 그때까지의 기록이 남는다. 처음 읽을 때 보관 기간({@link #getRetentionDays}, Tools &gt; Options)이 지난 기록과
  *     깨진 줄을 빼고 파일을 다시 쓴다. 기록 수는 {@value #MAX_ENTRIES}개까지다(오래된 것부터 버림).</li>
  *     <li>연결은 ID와 이름을 함께 남긴다. 다시 열 때는 ID로 찾고, 지웠거나 다른 작업 공간이면 이름만 보인다.</li>
+ *     <li>값을 바인딩한 실행(Query Library)은 {@code :name}이 남은 문장과 바인딩한 값·형식({@link Entry#parameters})을 남긴다.
+ *     기록에서 다시 실행할 때 같은 값을 다시 바인딩하기 위해서다. 이 항목이 없는 예전 기록과 다른 실행은 그대로 읽힌다.</li>
  * </ul>
  * 메서드는 어느 스레드에서 불러도 된다(파일 쓰기는 이 클래스의 잠금 안).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-08 바인딩한 실행의 값({@link Parameter}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class QueryHistory {
 
@@ -75,9 +78,11 @@ final class QueryHistory {
      * @param time         start time (epoch milliseconds)
      * @param connectionId data source container id
      * @param database     default catalog/schema when it ran, or null
+     * @param query        the statement; a bound one with its {@code :name} markers
      * @param durationMs   execution time
      * @param rows         rows fetched or affected, -1 when unknown
      * @param error        error message of a failed statement
+     * @param parameters   the values bound to the statement's {@code :name} markers, or null if it was not bound
      */
     record Entry(
         long time,
@@ -88,8 +93,18 @@ final class QueryHistory {
         long durationMs,
         long rows,
         @NotNull Status status,
-        @Nullable String error
+        @Nullable String error,
+        @Nullable List<Parameter> parameters
     ) {
+    }
+
+    /**
+     * A value bound to a statement.
+     *
+     * @param value the value as typed, empty for NULL
+     * @param type  the type it was bound with ({@link QueryLibraryParameter.Type#getId})
+     */
+    record Parameter(@NotNull String name, @Nullable String value, @Nullable String type) {
     }
 
     private static final Gson GSON = new Gson();

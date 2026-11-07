@@ -56,6 +56,7 @@ import java.util.Map;
  * - 2026-11-07 UI 글꼴 12: 글자 단추 여백 주석을 고침(12px 글자 줄 15는 아이콘보다 낮아 여백을 줄이지 않음)
  * - 2026-11-07 {@link #statusDot}: 아이콘 없는 상태 점(쿼리 상태 줄의 커밋 방식, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 {@link Status#WARNING}: 쿼리 상태 줄의 열린 트랜잭션 점(status.warning) (docs/chromite/idle-transactions.md)
+ * - 2026-11-08 촘촘한 모드: 글자 단추의 여백을 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 final class UiIcons {
 
@@ -134,6 +135,14 @@ final class UiIcons {
     @NotNull
     static JButton createToolButton(@NotNull Action action, @NotNull String iconId) {
         JButton button = createButton(action, iconId);
+        setToolButtonMargin(button);
+        // The explicit margin is kept by a new UI: set it again from the new Button.toolbar.margin and font (theme and
+        // density changes, UiDensity)
+        button.addPropertyChangeListener("UI", e -> setToolButtonMargin(button)); //$NON-NLS-1$
+        return button;
+    }
+
+    private static void setToolButtonMargin(@NotNull JButton button) {
         // A text line higher than the icon (16) would make the button and its tool bar higher than size.actionButton:
         // take the difference off the top margin (the margin is unscaled, like the theme value). The 12px UI font's line
         // (15) is lower than the icon, so nothing is taken off; a larger UI font (13px: 17) would need it
@@ -142,7 +151,6 @@ final class UiIcons {
             int excess = Math.max(0, UIScale.unscale(button.getFontMetrics(button.getFont()).getHeight()) - SIZE);
             button.setMargin(new Insets(Math.max(0, margin.top - excess), margin.left, margin.bottom, margin.right));
         }
-        return button;
     }
 
     @NotNull
