@@ -3,6 +3,10 @@ GNU General Public License, version 2 (GPLv2), with the Universal FOSS
 Exception, version 1.0. Both texts follow, unmodified, as Oracle
 publishes them in the LICENSE file of MySQL Connector/J.
 
+StarRocks Connector/J (com.starrocks:starrocks-connector-j), a fork of
+MySQL Connector/J, declares the same license in its Maven POM ("The GNU
+General Public License, v2 with Universal FOSS Exception, v1.0").
+
 The LICENSE file inside each MySQL Connector/J jar is the complete
 licensing information for that version, including Oracle's additional
 permissions and the licenses of third-party components.

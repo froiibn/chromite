@@ -28,10 +28,24 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Provides ability to read server logs for certain session
+ *
+ * 설계: 서버 출력 설정({@link #isServerOutputEnabled})은 언제든 바뀌지만, 서버 쪽에서 켜고 끄는 상태(Oracle {@code DBMS_OUTPUT.ENABLE})는
+ * 세션마다 있고 세션을 열 때만 맞춰졌다. {@link #syncServerOutput}으로 열린 세션도 다음 문장 전에 설정에 맞춘다. 서버 상태가 없는
+ * 리더(경고만 다시 읽는 기본 리더 등)는 아무것도 하지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link #syncServerOutput} 추가 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public interface DBCServerOutputReader extends DBPObject
 {
     boolean isServerOutputEnabled();
+
+    /**
+     * Brings the server side of the context's session in line with {@link #isServerOutputEnabled()} when the setting
+     * changed after the session opened. Called before a statement in the job thread that runs it.
+     */
+    default void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
+    }
 
     /**
      * If async output reading is supported then SQL job will read output during statement execution.

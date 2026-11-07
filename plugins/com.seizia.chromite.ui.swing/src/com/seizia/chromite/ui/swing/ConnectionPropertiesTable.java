@@ -57,6 +57,8 @@ import java.util.Locale;
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 데이터 전송: 처리기 속성 편집에도 씀 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 데이터 형식(Options &gt; Data Formats)의 형식 속성 편집에도 씀. 값이 바뀌면 알림({@link #addValueListener}, 견본 갱신)
+ *   (docs/chromite/swing-options.md "Data Formats")
  */
 final class ConnectionPropertiesTable extends JPanel {
 
@@ -146,6 +148,13 @@ final class ConnectionPropertiesTable extends JPanel {
         if (table.isEditing()) {
             table.getCellEditor().stopCellEditing();
         }
+    }
+
+    /**
+     * Called after a value is edited or reset, or another source is shown (e.g. to update a preview).
+     */
+    void addValueListener(@NotNull Runnable listener) {
+        model.addTableModelListener(e -> listener.run());
     }
 
     @NotNull
