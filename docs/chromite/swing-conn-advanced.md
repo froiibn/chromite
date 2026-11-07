@@ -86,7 +86,7 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
   ([ConnectionPageNetworkHandler.java](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/dialogs/connection/ConnectionPageNetworkHandler.java) `saveSettings`).
   연결 레지스트리도 꺼진 핸들러는 파일에 쓰지 않는다([DataSourceSerializerModern.java](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceSerializerModern.java) "Save network handlers' configurations").
 - 비밀번호: 핸들러 비밀번호(`setPassword`)와 비밀 속성(`setSecureProperty`)에만 넣는다. 레지스트리가 저장할 때 이 값들을 `SecureCredentials`로 묶어
-  비밀 저장소(암호화한 `credentials-config.json`, 보안 저장소를 쓰는 프로젝트는 보안 저장소)에 쓴다
+  OS 보안 저장소에 쓴다(2026-11-07부터, [credential-storage.md](credential-storage.md). 그 전에는 고정 키로 암호화한 `credentials-config.json`)
   ([DataSourceParser.java](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceParser.java) `saveNetworkHandlerConfiguration`). 설정 파일·환경 설정에는 평문으로 남지 않는다.
 - 켜진 핸들러의 칸이 비어 있으면(`getErrorMessage`) 대화상자 아래 빠진 값 안내에 `SSH: Enter the SSH host.`처럼 보이고 Test·Connect가 꺼진다(SWT `isPageComplete`).
 - 네트워크 프로필: 연결이 프로필을 쓰고 그 프로필에 이 핸들러가 켜져 있으면 칸을 끄고 프로필 이름을 보인다. 이때 연결의 핸들러 설정은 건드리지 않는다(프로필 편집 화면은 없다).
@@ -229,6 +229,7 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 
 ## 변경 이력
 
+- 2026-11-07 비밀번호 저장 위치를 OS 보안 저장소로 고쳐 적음([credential-storage.md](credential-storage.md)).
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.
 - 2026-11-06 Object Explorer 연결 노드 바탕을 이름 알약(`ConnectionPill`, Registered Servers와 같음)으로 바꿈. [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".

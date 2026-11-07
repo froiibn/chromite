@@ -41,8 +41,8 @@ import java.io.File;
  * {@code saveSettings}/{@code getErrorMessage}를 부른다. Swing 제품에는 그 SWT 번들이 없으므로 같은 세 동작을 가진 Swing 칸을 이 번들에 두고
  * {@link #create}가 핸들러에 맞는 것을 고른다. 값을 읽고 쓰는 규칙(속성 키, 비밀번호와 비밀 속성의 저장 위치)은 각 SWT 화면을 그대로 따르므로,
  * SWT 제품과 같은 연결 설정 파일을 주고받을 수 있다. 비밀번호는 {@link DBWHandlerConfiguration#setPassword}·{@code setSecureProperty}에만 넣는다.
- * 연결 레지스트리가 저장할 때 이 값들을 비밀 저장소(암호화한 {@code credentials-config.json} 또는 보안 저장소)로 보낸다
- * ({@code DataSourceParser.saveNetworkHandlerConfiguration}).
+ * 연결 레지스트리가 저장할 때 이 값들을 OS 보안 저장소로 보낸다({@code DataSourceParser.saveNetworkHandlerConfiguration},
+ * {@code ProjectCredentialsStorage}, docs/chromite/credential-storage.md).
  * <ul>
  *     <li>SSH 터널(구현 {@link SSHTunnelImpl}): {@link SshTunnelPanel}. SWT {@code SSHTunnelDefaultConfiguratorUI}.</li>
  *     <li>SOCKS 프록시(구현 {@link SocksProxyImpl}): {@link SocksProxyPanel}. SWT {@code SocksProxyConfiguratorUI}.</li>
@@ -54,6 +54,7 @@ import java.io.File;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 설계 주석: 비밀번호 저장 위치가 OS 보안 저장소로 바뀜(코드 변경 없음)
  */
 abstract class NetworkHandlerPanel {
 

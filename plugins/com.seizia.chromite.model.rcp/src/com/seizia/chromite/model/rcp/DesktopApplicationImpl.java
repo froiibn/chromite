@@ -38,6 +38,8 @@ import java.nio.file.Path;
  * 변경 이력:
  * - 2026-11-07 작업 공간을 읽기 전에 이름 변경 전 빌드의 사용자 데이터를 복사함({@link LegacyNameMigration},
  *   docs/chromite/internal-rename.md "사용자 데이터 이전")
+ * - 2026-11-07 이어서 파일에 남은 저장된 비밀번호를 OS 보안 저장소로 옮김({@link CredentialStorageMigration},
+ *   docs/chromite/credential-storage.md)
  */
 public abstract class DesktopApplicationImpl extends BaseApplicationImpl implements DBPApplicationDesktop, DBPLockManagerProvider {
 
@@ -63,6 +65,8 @@ public abstract class DesktopApplicationImpl extends BaseApplicationImpl impleme
     @Override
     public void beforeWorkspaceInitialization() {
         LegacyNameMigration.migrate(getWorkspacePath(), ResourcesPlugin.getWorkspace());
+        // After the rename migration, so that the credential files it copied are moved in the same start
+        CredentialStorageMigration.migrate(getWorkspacePath(), ResourcesPlugin.getWorkspace());
     }
 
     @NotNull

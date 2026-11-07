@@ -28,6 +28,9 @@
 | 상태 줄 표시 | `com.seizia.chromite.ui.swing` | `QueryStatusLine`(칸), `SqlEditorPanel`(1초 타이머, 커밋·롤백) |
 | 남는 알림 | `com.seizia.chromite.ui.swing` | `NotificationToast.showWithActions` |
 | 설정 | `com.seizia.chromite.model`, `registry`, `ui.swing` | `DBPConnectionConfiguration`, `DataSourceSerializerModern`, `ConnectionSettingsPanel` |
+| 유휴 연결 닫기 | `com.seizia.chromite.model` | `runtime.jobs.DataSourceMonitorJob`(`isIdleConnection`), `QMUtils.getLastUseTime` |
+| 쿼리 관리자 밖 세션(AI 도우미) | `com.seizia.chromite.model`, `model.ai.tools` | 서비스 `runtime.DBServiceUnrecordedSessions`, 구현 `AgentSessionsService`(`AgentSql.isInUse`, `getLastUseTime`, ai.tools `plugin.xml`) |
+| 모델 알림 표시 | `com.seizia.chromite.ui.swing` | `SwingModelNotifications`(`ChromiteSwingApplication.start`에서 `ChromiteNotifications.setHandler`), `NotificationToast.showUntilClosed` |
 
 ### 트랜잭션 상태(쿼리 관리자)
 
@@ -72,7 +75,7 @@
 - 답 단추(커밋 / 롤백 / 열어 두기)가 있는 알림은 시간이 지나도 사라지지 않는다. 자리를 비운 사이 사라지면 돌아온 사용자가 볼 수 없기 때문이다.
 - 내용: 연결, 쿼리 창(주 문맥이면 그 연결의 쿼리 창 파일 이름, 아니면 문맥 이름), 유휴 시간, 시작 시각과 문장 수.
 - 자동 롤백 알림: 연결, 쿼리 창, 유휴 시간, 취소된 문장 수와 데이터 변경 문장 수. 닫을 때까지 남는다.
-- 모델 알림(`ChromiteNotifications`)은 쓰지 않는다. 알림은 이 서비스가 직접 띄운다.
+- 모델 알림(`ChromiteNotifications`)은 쓰지 않는다. 알림은 이 서비스가 직접 띄운다. 그래서 아래 "모델 알림"을 연결한 뒤에도 같은 일이 두 번 보이지 않는다.
 
 ### 커밋·롤백 공용 경로
 
@@ -120,6 +123,10 @@
 - 지운 것(이 변경으로 쓰지 않게 됨): `UIServiceConnections.confirmTransactionsClose`, `DBExecUtils.isExecutionInProgress`,
   `ChromiteNotifications.NT_ROLLBACK_IDLE`, 데이터 소스 설정 `ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED`/`_TTL`(`transaction.auto.close.*`, 설정 화면 없음).
 - `DBPConnectionType`의 TEST 기간 주석(`900, //30 minutes`)이 틀려 15분으로 고쳤다.
+- 유휴 연결 닫기(아래 "유휴 연결 닫기"): 업스트림은 전역 사용자 활동 시각 기준으로 열린 트랜잭션과 관계없이 끊었다(끊기가 롤백한다). Chromite는 연결별 마지막
+  사용 기준이고 열린 트랜잭션·실행 중이면 닫지 않으며, 끊기 직전 다시 확인한다. 알림 종류는 오류에서 경고로 바꿨다(설정대로 한 일이지 실패가 아니다,
+  유휴 트랜잭션 롤백 알림과 같은 종류). `DBPApplication.getLastUserActivityTime`을 지웠다.
+- 모델 알림 처리기(아래 "모델 알림")를 Swing에 등록했다. SWT의 알림 설정(알림 끄기, 소리)은 없다.
 
 ## 연결 끊기 전 질문
 
@@ -133,15 +140,76 @@ Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이�
 - 커밋·롤백이 실패하면 오류를 보이고 끊지 않는다.
 - 클래스 이름(`ExitTransactionCheck`)은 바꾸지 않았다. 바꾸면 기존 설계 문서(auto-update.md, ai-agent.md)의 참조까지 고쳐야 해서 변경이 커진다.
 
-## 유휴 연결 끊기
+## 유휴 연결 닫기
 
-유휴 연결 끊기(`DisconnectJob`)는 같은 전역 활동 시각을 쓰므로 지금처럼 동작하지 않는다. 이 변경은 활동 시각을 연결하지 않아 끊기를 켜지 않았다.
-연결 설정의 "유휴 연결 닫기"는 기본으로 켜져 있으므로(`CLOSE_IDLE_CONNECTION_DEFAULT = true`, 유형별 1–4시간), 나중에 활동 시각을 연결하면
-열린 트랜잭션이 있는 연결은 이 문서의 정책(묻거나, 자동 롤백이 켜졌을 때만 롤백)을 따르게 해야 한다.
+연결 편집 > 연결 속성의 "유휴 연결 닫기(초)"는 저장되었지만 아무 일도 하지 않았다(SWT 대조 A-S2).
+
+- 원인: `DataSourceMonitorJob`이 유휴 시간을 `now - getLastUserActivityTime(lastPingTime)`으로 쟀다. 업스트림 SWT 앱은 키·마우스 입력 필터로
+  `DBPApplication.getLastUserActivityTime`을 갱신했지만 Swing 앱은 재정의하지 않아 -1이었고, 그러면 직전 점검 시각(3초 전)을 썼다.
+  유휴 시간이 늘 약 3초라 닫기 조건이 참이 되지 않았다. 유휴 트랜잭션 롤백(A-S1)이 동작하지 않던 것과 같은 원인이다.
+- 고친 것: 유휴 시간을 **연결마다 마지막으로 쓴 때**부터 잰다(`DataSourceMonitorJob.isIdleConnection`). 전역 마우스·키보드 활동은 쓰지 않는다.
+  유휴 트랜잭션 감시와 같은 이유다: 다른 연결로 일하는 동안 놓인 연결도 닫혀야 하고, 반대로 사용자가 자리에 없어도 쓰이는 연결은 닫히면 안 된다.
+  이로써 `DBPApplication.getLastUserActivityTime`과 `DataSourceMonitorJob.getLastUserActivityTime`은 쓰는 곳이 없어 지웠다.
+- 마지막 사용 = 다음 중 가장 늦은 것:
+  - 연결한 시각(`getConnectTime`);
+  - 그 연결의 각 실행 문맥에서 쿼리 관리자가 본 마지막 사용(`QMUtils.getLastUseTime`): 목적과 관계없는 마지막 문장의 끝(사용자 쿼리, 탐색기 메타데이터 읽기,
+    내부 작업)과 가져오기 끝, 마지막 커밋·롤백·커밋 방식 변경(새 트랜잭션 기록의 시작), 문맥이 다시 열린 시각. 실행·가져오기 중이면 지금;
+  - AI 도우미·MCP 도구 세션의 마지막 작업 끝(`DBServiceUnrecordedSessions.getLastUseTime`). 이 세션은 JDBC를 직접 써서 쿼리 관리자에 기록이 없다.
+  - 연결 유지(keep-alive) 핑은 사용이 아니다. 핑은 JDBC 연결에 직접 보내 쿼리 관리자에 남지 않는다(`JDBCUtils.isConnectionAlive`).
+- 닫지 않는 경우(하나라도 맞으면 그 연결은 유휴가 아니다):
+  - 어느 문맥이든 열린 트랜잭션이 있다: `QMTransactionState.isOpen()`(수동 커밋에서 사용자 문장 실행, SELECT 포함) 또는 `QMUtils.isTransactionActive`
+    (다른 목적의 변경 문장). 연결을 닫으면 JDBC 연결이 닫히며 묻지 않고 롤백되기 때문이다(사용자 규칙 "트랜잭션 안전").
+  - AI 도우미가 그 연결에 열린 트랜잭션을 남겼거나 지금 쓰고 있다(`DBServiceUnrecordedSessions.isConnectionInUse` → `AgentSql.isInUse`).
+  - 문장이 실행 중이거나, 그 문맥의 Job(SQL 편집기 실행 등)이나 연결의 작업(`DBPDataSourceTask.isActiveTask`)이 있다. 끊기는 실행 중인 Job을 취소하기 때문이다.
+  - 그 연결의 연결·끊기 Job이 예약되었거나 실행 중이다.
+- 열린 트랜잭션 정책(#97과 맞춤): 연결을 열어 둔다. 그 트랜잭션은 이 문서의 유휴 트랜잭션 감시가 맡는다(기본: 알리고 묻기, 연결에서 켰을 때만 자동 롤백 뒤 알림).
+  커밋·롤백으로 트랜잭션이 끝나면 그때부터 다시 한 기간을 재고 닫는다. 유휴 트랜잭션 알림을 끈 연결은 트랜잭션이 끝날 때까지 열려 있다(조용히 닫지 않는다).
+  수동 커밋 연결은 SELECT만 실행해도 트랜잭션이 열린 것으로 보므로(위 "트랜잭션 상태") 커밋·롤백 전에는 닫히지 않는다.
+- 닫기: `DisconnectJob`을 예약하고, Job이 끊기 직전에 같은 조건을 다시 본다(그 사이 쿼리를 실행했거나 트랜잭션이 열렸으면 아무것도 하지 않는다).
+  끊은 뒤 경고 알림을 보낸다: 제목은 연결 이름, 내용 "20초 동안 쓰지 않아 연결을 닫았습니다. 다시 쓰면 다시 연결합니다."(`ModelMessages.model_connection_idle_closed`,
+  기간은 `DurationFormatter`). 끊긴 뒤라 데이터 소스가 없으므로 제목을 받는 `ChromiteNotifications.showNotification`을 쓴다.
+- 쿼리 창: 닫힌 연결의 쿼리 창은 그대로 쓸 수 있다. 다음 실행이 다시 연결한다(`SqlEditorPanel.prepareAndSchedule` → `DBUtils.initDataSource`).
+  연결에 실패하면 기존 연결 오류 표시가 그대로 나온다.
+- 설정 도구 설명(`settings_close_idle_tip`): 유휴 시간을 무엇부터 재는지, 열린 트랜잭션이 있으면 닫지 않는다는 것, 다시 쓰면 다시 연결한다는 것.
+- 기본값은 업스트림 그대로다: 켜짐(`CLOSE_IDLE_CONNECTION_DEFAULT`), 연결 유형별 기간(개발 4시간 등). 지금까지는 효과가 없었으므로, 이 변경 뒤에는
+  오래 쓰지 않은 연결이 실제로 닫히고 알림이 뜬다.
+
+### 절전 때 연결 닫기(A-S8)는 바뀌지 않았다
+
+`DataSourceMonitorJob`의 "절전 진입 → 모든 연결 닫기"(`closeAllConnections`)는 `OperationSystemState.isInSleepMode()`가 참일 때만 돈다.
+`toggleSleepMode`를 부르는 곳이 없어 Swing에서는 여전히 실행되지 않는다. 이 변경은 그 경로를 열지 않았고 절전 감지도 더하지 않았다.
+절전 감지를 더하면 `closeAllConnections`도 위 조건(열린 트랜잭션이면 닫지 않음)을 거쳐야 한다. 지금은 묻지 않고 끊는다.
+
+## 모델 알림
+
+모델 계층의 알림(`ChromiteNotifications.showNotification`)은 SWT 앱에서 `CoreApplicationActivator`가 등록한 처리기가 알림 팝업으로 보였다.
+Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만 썼다(A-S7).
+
+- `ChromiteSwingApplication.start`가 연결 감시가 시작되기 전(`platform.postInitialize()` 앞)에 `SwingModelNotifications`를 등록한다.
+- 메인 창 알림(`NotificationToast`)으로 보인다. 제목은 연결 이름(데이터 소스가 있는 알림) 또는 보낸 쪽의 제목이다(SWT `NotificationUtils`와 같음).
+- 종류는 그대로 옮긴다: 정보 → 정보, 경고 → 경고, 오류 → 오류. 로그에도 같은 수준으로 남긴다.
+- 경고·오류는 닫을 때까지 남는다(`NotificationToast.showUntilClosed`). 유휴 연결 닫힘처럼 자리를 비운 사이 생기는 일이라 시간이 지나 사라지면 볼 수 없다.
+  정보(다시 연결 성공)는 잠시 뒤 사라진다. 누르면 보낸 쪽의 동작을 실행한다(다시 연결 실패: 연결 편집).
+- 메인 창이 없으면(시작·종료 중) 로그에만 남는다.
+
+보내는 곳(2026-11-07 검색, `ChromiteNotifications.showNotification` 호출 전부):
+
+| 보내는 곳 | 알림 | 종류 | 언제 |
+|---|---|---|---|
+| `DataSourceMonitorJob.showNotification` | `NT_DISCONNECT_IDLE` 유휴 연결 닫힘 | 경고 | 위 "유휴 연결 닫기" |
+| `DefaultInvalidationFeedbackHandler.onInvalidateSuccess` | `NT_RECONNECT_SUCCESS` "Datasource was invalidated, Live connection count: n/m" | 정보 | 끊긴 연결을 다시 이었을 때: 연결 유지 핑 실패(`KeepAlivePingJob`), 실행 중 연결 오류 복구(`DBExecUtils`) |
+| `DefaultInvalidationFeedbackHandler.onInvalidateFailure` | `NT_RECONNECT_FAILURE` "Datasource invalidate failed" | 오류 | 실행 중 연결 오류 복구가 실패했을 때(핑 실패 쪽은 오류를 보이지 않게 부른다) |
+
+- 유휴 트랜잭션 롤백은 #97부터 모델 알림을 쓰지 않는다(`EndIdleTransactionsJob` → `UIServiceIdleTransactions.showIdleTransactionRolledBack`, `NT_ROLLBACK_IDLE`은 지웠다).
+  그래서 이 처리기를 등록해도 롤백 알림이 두 번 뜨지 않는다.
+- 절전 뒤 다시 검증(`DataSourceMonitorJob.invalidateSleptConnections`)은 업스트림부터 알림 처리기 없이(`null`) 부르므로 알림이 없다. 감사 문서는 이것도
+  모델 알림으로 적었지만 코드로 보면 아니다. 바꾸지 않았다.
+- 다시 연결 알림 문구는 업스트림 영어 그대로다(지역화하지 않았다).
 
 ## 남은 일
 
-- AI 도우미·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다.
+- AI 도우미·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
+- 절전 감지(A-S8)를 더하면 `closeAllConnections`가 유휴 연결 닫기와 같은 트랜잭션 확인을 거치게 해야 한다.
 - 연결 유형 편집기가 생기면 유형별 알림·기간·자동 롤백 기본값을 그 화면에도 둔다.
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
@@ -149,3 +217,5 @@ Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이�
 
 - 2026-11-07 최초 작성: 쿼리 창 상태 줄의 열린 트랜잭션 표시, 유휴 트랜잭션 알림(기본)과 자동 롤백(연결에서 켰을 때만), 업스트림 유휴 롤백 경로 교체
 - 2026-11-07 연결 끊기 전 질문: 끊기·다시 연결·삭제·편집 뒤 다시 연결이 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
+- 2026-11-07 유휴 연결 닫기가 동작하게 함(연결별 마지막 사용 기준, 열린 트랜잭션·실행 중이면 닫지 않음, AI 도우미 세션 포함, 닫은 뒤 경고 알림),
+  모델 알림을 메인 창 알림으로 보임. PostgreSQL·SQL Server에서 실행 확인(증거: `D:\Tools\_scratch\idle-close-notifications\`)

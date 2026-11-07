@@ -20,6 +20,7 @@ Require-Bundle: org.eclipse.core.expressions,
  com.seizia.chromite.model.nio,
  org.eclipse.core.resources;visibility:=reexport,
  com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.security,
  com.seizia.chromite.registry
 Bundle-Localization: OSGI-INF/l10n/bundle
 Automatic-Module-Name: com.seizia.chromite.model.rcp
