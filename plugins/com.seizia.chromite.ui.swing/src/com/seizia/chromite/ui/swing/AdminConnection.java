@@ -31,6 +31,7 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
@@ -50,6 +51,14 @@ import java.util.function.Consumer;
  *     <li>컨텍스트가 끊겼으면(서버가 끊음, 재연결) 다음 작업에서 다시 연다.</li>
  *     <li>DB에 맞춘 도구({@link ServerAdminProfile})를 만든 뒤 첫 작업에서 로그인 권한을 확인한다({@link ServerAdminProfile#checkAccess}).
  *     두 탭이 같은 결과를 쓰고, 첫 읽기 결과가 화면에 닿을 때는 이미 확인되어 있다.</li>
+ *     <li>격리된 컨텍스트는 늘 자동 커밋이다({@link #keepAutoCommit}). 연결 설정의 기본값(수동 커밋)을 따르면 첫 읽기가 연 트랜잭션이 창을
+ *     닫을 때까지 끝나지 않는다. PostgreSQL은 트랜잭션 안에서 처음 읽은 {@code pg_stat_activity}·통계 스냅숏을 트랜잭션이 끝날 때까지
+ *     그대로 돌려주므로, 그 뒤에 생긴 세션과 대기가 잠금·세션 탭에 보이지 않았다. SQL Server는 묵시적 트랜잭션이, MySQL·MariaDB는
+ *     InnoDB 표(유지 관리 탭의 {@code mysql.innodb_table_stats})의 읽기 시점과 메타데이터 잠금이 같은 이유로 남는다. 모니터링은
+ *     쓰지 않으므로 트랜잭션이 필요 없다. 작업마다 확인하는 것은 연결 설정의 자동 커밋을 열린 세션에 적용하는 {@code AutoCommitApplier}가
+ *     이 컨텍스트도 바꾸기 때문이다. 작업 사이에는 실행한 문장이 없어 바꿀 때 끝나는 트랜잭션이 없다.</li>
+ *     <li>"단일 연결"(드라이버가 연결 하나만 허용, SQL Server MFA 인증)이면 사용자의 기본 컨텍스트를 함께 쓰므로 커밋 방식을 바꾸지 않는다
+ *     (트랜잭션 안전 규칙). 그 연결이 수동 커밋이면 읽기가 사용자의 트랜잭션 안에서 실행된다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -57,6 +66,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 첫 작업에서 로그인 권한 확인(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 공간 사용량·서버 로그 탭도 이 연결을 씀(주석만 고침, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 격리된 컨텍스트를 자동 커밋으로 둠: 수동 커밋 연결에서 잠금 탭이 새 대기를 보이지 않던 문제
+ *   (docs/chromite/swing-admin-tools.md "모니터링 연결의 커밋 방식")
  */
 final class AdminConnection {
 
@@ -171,7 +182,18 @@ final class AdminConnection {
         if (isolatedContext == null) {
             isolatedContext = dataSource.getDefaultInstance().openIsolatedContext(monitor, "Activity Monitor", null);
         }
+        keepAutoCommit(monitor, isolatedContext);
         return isolatedContext;
+    }
+
+    /**
+     * Keeps the tool's own context in auto-commit, so that no read leaves a transaction open (see the class comment).
+     */
+    private static void keepAutoCommit(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBException {
+        DBCTransactionManager transactions = DBUtils.getTransactionManager(context);
+        if (transactions != null && !transactions.isAutoCommit()) {
+            transactions.setAutoCommit(monitor, true);
+        }
     }
 
     private void closeIsolatedContext() {

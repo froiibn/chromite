@@ -188,6 +188,11 @@ SELECT ...
 ```
 
 - 편집기는 쿼리 창 그대로라 구문 색, 자동완성, 찾기·바꾸기, F5 실행(선택만 실행 포함)이 된다. 머리말을 바꾸면 탭에 `*`가 붙는다.
+- **머리말 배치**(`QueryLibraryEditor.createHeader`, `GridBagLayout` 두 줄): 이름 칸·설명 칸·대상 콤보·Database·Schema 칸은 가중치가 있어 남는 너비를 나눠 갖고
+  좁아지면 줄어든다(우선 크기와 최소 크기 70). Name·Target 글자와 Parameters…·Thresholds… 단추는 줄지 않는다: 최소 크기를 고정하지 않아 지금 글자의 크기
+  ("Parameters (1)…", "매개변수(1)…")가 최소 크기다. 2026-11-08 전에는 만들 때 최소 크기를 고정했는데, 단추의 글자는 그 뒤에(`loadFields`) 들어가
+  빈 단추의 크기(FlatLaf 최소 너비 72)가 최소 크기가 되었다. `GridBagLayout`은 줄이 우선 크기만큼 들어가지 않으면 모든 칸을 최소 크기로 두므로, 문서 영역이 좁은 창
+  (1200 px 창에 Chromite Agent·Query Library 열을 연 경우 등)에서 단추가 "Para…", "Thres…"로 잘렸다. 칸의 최소 크기 합보다 좁으면 칸이 더 줄고 단추 글자는 그대로다.
 - Target 콤보: "Ask when run", "Current connection", 연결 목록. 이 PC에 없는 연결이 저장된 쿼리는 "<이름> (not found)" 항목으로 보여 주고 그대로 저장한다(동료의 설정을 지우지 않음).
 - 저장(Ctrl+S, File > Save, 닫을 때·끝낼 때 Save)은 `QueryLibrary.save`: 파일을 ID로 다시 찾고, 머리말과 SQL을 쓰고, `@updated`를 바꾸고, 이름이 바뀌었으면 파일 이름도 바꾼다.
   읽기 전용 루트의 쿼리는 저장하지 않고 Duplicate를 안내한다. 다른 사람이 먼저 저장했으면 덮어쓰기 전에 묻는다(④).
@@ -484,6 +489,20 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 
 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Query Library 트리 다시 읽기(Git 상태·지문 추가), 라이브러리 쿼리 창 저장(충돌 확인), File > Save As(라이브러리 창), Tools > Options.
 
+## 확인 (2026-11-08, 머리말 단추)
+
+빌드한 Swing 제품, 라이브러리 쿼리 하나(매개변수 1개, 기준값 1개)의 편집 창, Object Explorer·Query Library·Chromite Agent 열을 연 상태. 문서 영역 너비는 도킹 분할을 API로 옮겨 정했다
+(`JSplitPane.setDividerLocation`, 마우스 입력 없음). 단추 너비는 화면 단위(px, UI 배율 전).
+
+| 창 | 문서 영역 | 고치기 전 (영어) | 고친 뒤 영어 | 고친 뒤 한국어 |
+|---|---|---|---|---|
+| 1200 px | 847 / 753 | 단추 118·117(우선 크기, 최소 72) | 118·117 | 99·85 |
+| 1200 px, 좁은 문서 영역 | 614 / 522 | **72·72 "Para…", "Thres…"** | 118·117 | 99·85 |
+| 1024 px | 592 / 500 | — | 118·117 | 99·85 |
+| 1024 px, 450 | 450 | — | 118·117, 입력 칸이 줄어듦 | — |
+
+화면: `D:\Tools\_scratch\chromite-bugs-locks-agent-stream\run\shots\q-*`.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
@@ -499,3 +518,4 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
   `.chromite-queries` 내보내기·가져오기(`QueryLibraryArchive`), 저장 충돌 확인과 열린 창 다시 읽기, Save As .sql, 비밀 정보 안내·경고. "공유 설계"를 구현한 설계로 바꿈.
 - 2026-11-08 비밀 기본값 경고의 단추를 예/아니요에서 저장/취소(취소가 기본)로 바꿈, Query Library 삭제 확인은 삭제/취소, 파일 덮어쓰기 확인은 바꾸기/취소.
   [swing-frontend.md](swing-frontend.md) "실행 확인의 기본 단추".
+- 2026-11-08 좁은 문서 영역에서 머리말 단추가 "Para…", "Thres…"로 잘리던 문제: 글자가 들어가기 전에 단추의 최소 크기를 고정하지 않음("실행 흐름"의 "머리말 배치", "확인 (2026-11-08 …)").

@@ -81,6 +81,12 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
   잠금에 걸린 에이전트 DDL(블로킹된 `CREATE INDEX`) 하나가 그 연결의 진단·`cancelQuery`까지 막았다(아래 "확인"). 쓰기는 열린 에이전트 트랜잭션이 있는
   문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어 있으면 그것을(커밋 전 변경이 보이게), 아니면 다른 문맥을 쓴다.
 - 연결이 "단일 연결 사용"(`isForceUseSingleConnection`)이면 격리 문맥을 열 수 없어 기본 문맥을 쓴다.
+- 에이전트의 열린 트랜잭션 안에서 실행하는 호출은(PostgreSQL) 먼저 `pg_stat_clear_snapshot()`을 부른다(`AgentSql.clearStatisticsSnapshot`, 2026-11-08).
+  PostgreSQL은 트랜잭션에서 처음 읽은 `pg_stat_activity`·통계 뷰를 트랜잭션이 끝날 때까지 그대로 돌려주므로, 수동 커밋 연결에 쓰고 트랜잭션을 열어 둔 동안
+  `getBlockingChain`·`listSessions` 같은 진단이 그 뒤에 생긴 세션과 대기를 보지 못했다(Activity Monitor 잠금 탭과 같은 원인,
+  [swing-admin-tools.md](swing-admin-tools.md) "모니터링 연결의 커밋 방식"). 스냅숏을 비워도 트랜잭션의 다른 상태는 그대로다. 열린 트랜잭션이 없는 읽기는
+  호출마다 새 읽기 전용 트랜잭션이라 해당하지 않는다. SQL Server DMV, MySQL·MariaDB의 `information_schema`·`performance_schema`, Oracle `V$` 뷰는
+  트랜잭션 스냅숏을 따르지 않는다.
 - `setCurrentDatabase`는 에이전트 문맥의 기본 DB/스키마만 바꾼다. 사용자의 화면은 바뀌지 않는다.
 - PostgreSQL처럼 DB마다 인스턴스가 다른 드라이버는 `database` 인수로 그 DB의 인스턴스 문맥을 쓴다.
 
@@ -600,7 +606,8 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 쿼리 창의 실행 문맥, 곧 창의 자기 세션 또는 함께 쓰는 주 문맥의 기본 카탈로그·스키마)로 시작한다.
   "이 쿼리에 대해 묻기"도 그 창의 문맥이다. 대화에서 연결만 바꾸면 그 연결의 주 문맥 값이다([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). 마지막에 쓴 제공자·모델은
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
-- 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다.
+- 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다
+  (아래 "글 조각 그리기").
 - 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
   실행 중에는 대화·제공자·연결을 바꿀 수 없다.
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
@@ -609,6 +616,19 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - 쿼리 창 편집기의 오른쪽 클릭 메뉴 "Ask Chromite Agent About This Query"/"이 쿼리에 대해 Chromite Agent에게 묻기": 선택한 글, 없으면 커서의 문장(자동완성과 같은
   `SQLScriptParser.extractQueryAtPos`, 연결이 없으면 전체 글)을 쿼리 창의 연결로 보낸다. 지금 대화가 비어 있지 않으면 새 대화로 시작한다.
 - 대화 기록에는 도구 결과(DB 값)가 들어 있어 작업 공간 밖에 두지 않는다. 로그에는 대화 내용·인수·키를 쓰지 않는다.
+
+### 글 조각 그리기 (2026-11-08)
+
+- 엔진의 글 조각은 `AIAgentChatRunner.StreamCollector`가 대화 항목에 붙이고 `Listener.textAppended`로 알린다. 화면(`AiAssistantPanel`)은 새 모델 글 항목을
+  만들 때 그때까지의 글로 그리고, 그 뒤의 조각은 80 ms 타이머가 모아 다시 그린다(`renderPending`). 차례가 끝나면(`turnFinished`) 남은 것을 그린다.
+- 문제: 다시 그릴 항목을 필드 하나(`pendingRender`)에 기억했다. 도구가 타이머 간격보다 빨리 끝나면(7–60 ms) 다음 응답의 글이 타이머 전에 와서 앞 항목을 덮어썼고,
+  앞 항목은 처음 그린 조각에서 멈췄다("Now the transact", 16자 조각). 차례가 끝날 때는 마지막 항목만 그려 맨 끝 답은 늘 온전했다. 도구 앞의 글(같은 응답의 글)도
+  다음 응답이 빨리 오면 같은 식으로 잘렸다.
+- 고친 것: 다시 그릴 항목을 모음(`LinkedHashSet`)으로 두고 타이머·차례 끝에서 모두 그린다. 엔진 쪽은 원인이 아니다: Anthropic Messages(`AnthropicClient.StreamState`,
+  `text_delta`마다 조각 하나), OpenAI Responses(`OpenAiAPIStreamConsumer`, `response.output_text.delta`, 함수 호출 항목 동안만 글을 건너뜀), Ollama(`OllamaClient`,
+  줄마다 `message.content`, 도구 호출이 있는 줄은 글과 호출을 함께)는 조각을 모두 넘긴다. 요청마다 새 소비자를 만들어 도구 결과 뒤 상태가 남지 않는다.
+- 확인: 16자 조각으로 보내는 가짜 Messages API(글 + `getBlockingChain` → 글 + `listOpenTransactions` → 답). 고치기 전 "I will look at t", "Now the transaction of the
+  blocking session. Thi"에서 멈춤, 고친 뒤 세 글 모두 끝까지(영어·한국어 화면).
 
 ### 확인 대화상자
 
@@ -774,6 +794,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 도구 뒤 글이 첫 조각에서 멈추던 문제: 채팅 창이 다시 그릴 글 항목을 모음으로 둠(위 "글 조각 그리기").
+- 2026-11-08 에이전트의 열린 트랜잭션 안 호출은 PostgreSQL 통계 스냅숏을 먼저 비움(위 "실행 문맥", [swing-admin-tools.md](swing-admin-tools.md) "모니터링 연결의 커밋 방식").
 - 2026-11-07 쿼리 창마다 별도 연결: 새 대화·"이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음(`AiAssistantPanel.getCurrentDatabase(SqlEditorPanel)`).
 - 2026-11-07 모델 번들(`model.ai.tools`)의 남은 옛 이름을 Chromite Agent로: 제공자 미설정 오류의 경로 "Options > Chromite Agent > Providers"
   (`AIAgentProviders`), 요청 한도 오류 "Chromite Agent made … requests in one turn …"(`AIAgentChatRunner`, 둘 다 영어 고정 글이라 영어만),

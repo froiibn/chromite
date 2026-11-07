@@ -75,6 +75,8 @@ import java.util.Objects;
  * - 2026-11-07 ④ 공유: 저장할 때 다른 사람의 저장을 알아채고 묻기, 디스크에서 바뀐 쿼리 알림·다시 읽기, Save As는 평범한 .sql로 내보내기
  *   (docs/chromite/swing-query-library.md "공유")
  * - 2026-11-08 Save As .sql 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 머리말 단추의 최소 크기를 글자가 들어가기 전에 고정하지 않음: 좁은 창에서 "Para…", "Thres…"로 잘리던 문제
+ *   (docs/chromite/swing-query-library.md "머리말 배치")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -661,10 +663,12 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         c.gridwidth = width;
         c.weightx = weight;
         c.fill = weight > 0 ? GridBagConstraints.HORIZONTAL : GridBagConstraints.NONE;
-        // Fields shrink to a usable width at most; labels and the button never shrink
-        Dimension preferred = component.getPreferredSize();
-        component.setMinimumSize(new Dimension(weight > 0 ? UIScale.scale(70) : preferred.width, preferred.height));
+        // Fields shrink to a usable width at most. Labels and buttons keep their own minimum (their preferred size), which
+        // follows their current text: the buttons get their text ("Parameters (2)…") only after this, so a size fixed here
+        // was that of an empty button and GridBagLayout cut the label ("Para…") whenever the row did not fit its preferred width
         if (weight > 0) {
+            Dimension preferred = component.getPreferredSize();
+            component.setMinimumSize(new Dimension(UIScale.scale(70), preferred.height));
             component.setPreferredSize(new Dimension(UIScale.scale(70), preferred.height));
         }
         c.anchor = GridBagConstraints.WEST;

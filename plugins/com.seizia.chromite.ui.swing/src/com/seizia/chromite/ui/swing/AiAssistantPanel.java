@@ -59,8 +59,10 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The "Chromite Agent" tool window: conversations with an AI model that works on the user's connections through the agent
@@ -70,7 +72,8 @@ import java.util.Map;
  * <ul>
  *     <li>대화 실행은 모델 번들의 {@link AIAgentChatRunner}가 작업({@link AbstractJob}) 안에서 한다. 이 창은 EDT에서 화면만 고친다(모델 호출을 EDT에서
  *     하지 않는다). 작업의 진행은 {@link AIAgentChatRunner.Listener}로 받아 {@link SwingUtilities#invokeLater}로 넘긴다. 글 조각은 짧은 타이머로 모아
- *     다시 그린다(조각마다 Markdown을 다시 해석하지 않게).</li>
+ *     다시 그린다(조각마다 Markdown을 다시 해석하지 않게). 그릴 항목은 하나가 아니라 모음({@code pendingRender})이다. 도구가 타이머 간격보다
+ *     빨리 끝나면 다음 응답의 글이 타이머 전에 오는데, 항목 하나만 기억하면 앞 글의 남은 조각이 그려지지 않아 첫 조각에서 멈춘다.</li>
  *     <li>제공자·모델·연결·데이터베이스는 대화마다 저장한다. 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(쿼리 창이 쓰는 기본 실행 문맥의
  *     기본 카탈로그·스키마)로 시작한다. 모델은 이 연결을 도구의 기본 {@code connection} 인수로 쓴다.</li>
  *     <li>플레이북 단추는 MCP 프롬프트와 같은 글({@link AIAgentPlaybooks#getText})을 채워 보낸다. 대화에는 짧은 이름만 보인다.</li>
@@ -85,6 +88,7 @@ import java.util.Map;
  * - 2026-11-07 새 대화와 "이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음({@link #getCurrentDatabase(SqlEditorPanel)},
  *   쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  * - 2026-11-08 대화 삭제 확인은 대화 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 다시 그릴 글 항목을 모음으로 둠: 도구 뒤 글이 첫 조각에서 멈추던 문제(docs/chromite/ai-agent.md "글 조각 그리기")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -142,8 +146,8 @@ final class AiAssistantPanel extends JPanel {
     private final Map<String, JComponent> entryViews = new HashMap<>();
     private final Timer renderTimer;
     private final AISettingsEventListener settingsListener = registry -> SwingUtilities.invokeLater(this::updateSetupNotice);
-    @Nullable
-    private AIAgentChat.Entry pendingRender;
+    // Text entries with appended text not drawn yet (see the class comment)
+    private final Set<AIAgentChat.Entry> pendingRender = new LinkedHashSet<>();
     private boolean updating;
 
     AiAssistantPanel(@NotNull Host host) {
@@ -731,7 +735,7 @@ final class AiAssistantPanel extends JPanel {
             @Override
             public void textAppended(@NotNull AIAgentChat.Entry entry, @NotNull String delta) {
                 SwingUtilities.invokeLater(() -> {
-                    pendingRender = entry;
+                    pendingRender.add(entry);
                     if (!renderTimer.isRunning()) {
                         renderTimer.start();
                     }
@@ -834,12 +838,16 @@ final class AiAssistantPanel extends JPanel {
     }
 
     private void renderPending() {
-        AIAgentChat.Entry entry = pendingRender;
-        pendingRender = null;
-        if (entry != null && entryViews.get(entry.getId()) instanceof AiMarkdownView markdown) {
-            markdown.setMarkdown(entry.getText());
-            scrollToEnd();
+        if (pendingRender.isEmpty()) {
+            return;
         }
+        for (AIAgentChat.Entry entry : pendingRender) {
+            if (entryViews.get(entry.getId()) instanceof AiMarkdownView markdown) {
+                markdown.setMarkdown(entry.getText());
+            }
+        }
+        pendingRender.clear();
+        scrollToEnd();
     }
 
     @NotNull
