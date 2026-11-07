@@ -34,6 +34,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Options의 날짜/시간 데이터베이스 형식 설정 문구 추가
  * - 2026-11-07 진행 대화상자의 취소 중 문구, 탭 넘침 단추의 도구 설명 추가
  * - 2026-11-07 Options의 결과 표 저장 전 스크립트 미리 보기 설정 문구 추가
+ * - 2026-11-07 Options의 위험한 문(WHERE 없는 UPDATE/DELETE, DROP) 확인 설정 문구 추가 (docs/chromite/swing-sql-exec-safety.md)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -171,6 +172,10 @@ public class CoreMessages extends NLS {
     public static String options_completion_delay_hint;
     public static String options_show_procedures;
     public static String options_show_procedures_tip;
+    public static String options_confirm_dangerous_sql;
+    public static String options_confirm_dangerous_sql_tip;
+    public static String options_confirm_drop_sql;
+    public static String options_confirm_drop_sql_tip;
     public static String options_query_results;
     public static String options_max_rows;
     public static String options_max_rows_hint;

@@ -29,6 +29,9 @@
         <!-- Asks before running shell commands from saved settings (connection events, password command, data transfer step);
              the SWT product registered UIServiceShellCommandsImpl. Without it the model refuses to run them. -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceShellCommands" class="com.seizia.chromite.ui.swing.SwingShellCommandsService"/>
+        <!-- Shows the SQL that an @ai script command generated before it runs; the SWT product registers UIServiceSQLImpl.
+             Without it AIUtils asks a plain yes/no question without the SQL. Only confirmQueryExecution is implemented. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceSQL" class="com.seizia.chromite.ui.swing.SwingSqlService"/>
     </extension>
 
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'

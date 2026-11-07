@@ -37,6 +37,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 결과 표 저장 전 스크립트 미리 보기 문구({@code editor_grid_preview_*}, {@code editor_grid_save_canceled})
  *   (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-07 쿼리 상태 줄의 열린 트랜잭션 칸 문구({@code editor_status_txn_*}) (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 쿼리 창 실행 제한, 위험한 문 확인 문구({@code editor_sql_execution_restricted*}, {@code editor_sql_danger_*})
+ *   (docs/chromite/swing-sql-exec-safety.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -73,6 +75,13 @@ public class EditorMessages extends NLS {
     public static String editor_sql_saving_changes;
     public static String editor_sql_nothing_to_execute;
     public static String editor_sql_choose_connection;
+    public static String editor_sql_execution_restricted_title;
+    public static String editor_sql_execution_restricted;
+    public static String editor_sql_danger_title;
+    public static String editor_sql_danger_message_one;
+    public static String editor_sql_danger_message_many;
+    public static String editor_sql_danger_no_where;
+    public static String editor_sql_danger_drop;
     public static String editor_sql_discard_and_execute;
     public static String editor_sql_discard_confirm_one;
     public static String editor_sql_discard_confirm_many;
