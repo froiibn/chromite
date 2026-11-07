@@ -597,7 +597,8 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
   같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
 - 위에서 아래로: 대화 목록(최근 순) + 새 대화·대화 삭제·플레이북·Chromite Agent 설정 단추 / 제공자(Anthropic Claude, OpenAI, Ollama)와 모델(편집 가능, 알려진 이름 +
   Test로 받은 목록) / 연결과 데이터베이스(편집 가능, 연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈), 보내기·중지, 상태 줄.
-- 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 연결의 기본 실행 문맥의 기본 카탈로그·스키마, 쿼리 창이 쓰는 문맥)로 시작한다. 마지막에 쓴 제공자·모델은
+- 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 쿼리 창의 실행 문맥, 곧 창의 자기 세션 또는 함께 쓰는 주 문맥의 기본 카탈로그·스키마)로 시작한다.
+  "이 쿼리에 대해 묻기"도 그 창의 문맥이다. 대화에서 연결만 바꾸면 그 연결의 주 문맥 값이다([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). 마지막에 쓴 제공자·모델은
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
 - 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다.
 - 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
@@ -773,6 +774,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 쿼리 창마다 별도 연결: 새 대화·"이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음(`AiAssistantPanel.getCurrentDatabase(SqlEditorPanel)`).
 - 2026-11-07 모델 번들(`model.ai.tools`)의 남은 옛 이름을 Chromite Agent로: 제공자 미설정 오류의 경로 "Options > Chromite Agent > Providers"
   (`AIAgentProviders`), 요청 한도 오류 "Chromite Agent made … requests in one turn …"(`AIAgentChatRunner`, 둘 다 영어 고정 글이라 영어만),
   채팅 시스템 프롬프트 첫 줄 "You are Chromite Agent, the database agent inside Chromite, …", 격리 문맥 이름 `AgentSql.CONTEXT_NAME`

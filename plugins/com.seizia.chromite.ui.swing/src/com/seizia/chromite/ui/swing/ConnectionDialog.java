@@ -86,6 +86,8 @@ import java.util.StringTokenizer;
  *   다시 연결하지 않고 열린 세션에 적용({@link AutoCommitApplier}), 다시 연결 질문은 그 밖의 설정이 바뀌었을 때만 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 새 연결의 저장 실패(OS 보안 저장소가 비밀번호를 저장하지 못함)를 알림. 연결은 만들어진 채로 둔다
  *   (docs/chromite/credential-storage.md "실패")
+ * - 2026-11-07 쿼리 창 세션 설정(쿼리 창마다 별도 연결)만 바꾸면 다시 연결을 묻지 않음: 그 뒤 연결하는 창부터 적용
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -446,6 +448,13 @@ final class ConnectionDialog extends JDialog {
             autoCommitChanged = before.isDefaultAutoCommit() != after.isDefaultAutoCommit();
             after.getConnectionConfiguration().getBootstrap().setDefaultAutoCommit(
                 before.getConnectionConfiguration().getBootstrap().getDefaultAutoCommit());
+            // Query window sessions apply to windows that connect later (QueryWindowContext): no reconnect either
+            if (before.getPreferenceStore().contains(QueryWindowContext.PREF_SEPARATE_CONNECTION)) {
+                after.getPreferenceStore().setValue(QueryWindowContext.PREF_SEPARATE_CONNECTION,
+                    before.getPreferenceStore().getString(QueryWindowContext.PREF_SEPARATE_CONNECTION));
+            } else {
+                after.getPreferenceStore().setToDefault(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+            }
             otherChanged = !before.equalSettings(after);
         } finally {
             before.dispose();

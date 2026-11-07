@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <!-- PL/SQL debugger (DBMS_DEBUG): the controller factory is an adapter of the routine classes, so the Swing "Debug…"
+        command is enabled for Oracle procedures and functions, standalone and packaged (docs/chromite/procedure-debugger.md) -->
+   <extension point="org.eclipse.core.runtime.adapters">
+      <factory adaptableType="com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone" class="com.seizia.chromite.ext.oracle.debug.internal.OracleDebugAdapterFactory">
+         <adapter type="com.seizia.chromite.debug.DBGControllerFactory"/>
+      </factory>
+      <factory adaptableType="com.seizia.chromite.ext.oracle.model.OracleProcedurePackaged" class="com.seizia.chromite.ext.oracle.debug.internal.OracleDebugAdapterFactory">
+         <adapter type="com.seizia.chromite.debug.DBGControllerFactory"/>
+      </factory>
+   </extension>
+
+</plugin>

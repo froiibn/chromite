@@ -39,6 +39,7 @@ import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
 import com.seizia.chromite.model.struct.DBSTypedObject;
 import com.seizia.chromite.model.struct.rdb.DBSProcedure;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import com.seizia.chromite.model.text.parser.TPRule;
 import com.seizia.chromite.model.text.parser.TPRuleProvider;
 import com.seizia.chromite.model.text.parser.TPTokenDefault;
@@ -47,6 +48,13 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
 
+/**
+ * T-SQL dialect base of SQL Server and Sybase
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: {@link #isCallStatementTarget}에서 스칼라 함수(FN, FS)도 EXEC 대상으로 둠. 자동완성이 EXEC 뒤에
+ *   프로시저와 함께 제안한다 (docs/chromite/swing-sql-completion.md)
+ */
 public abstract class SQLServerDialectBase extends JDBCSQLDialect implements TPRuleProvider, SQLDialectDDLExtension, SQLDialectSchemaController {
 
     private static final String[][] TSQL_BEGIN_END_BLOCK = new String[][]{
@@ -312,6 +320,20 @@ public abstract class SQLServerDialectBase extends JDBCSQLDialect implements TPR
         }
         sql.append("\nSELECT\t'Return Value' = @return_value\n\n");
         //sql.append("GO\n\n");
+    }
+
+    /**
+     * T-SQL {@code EXECUTE} also runs scalar user-defined functions ({@code EXEC @r = dbo.fn @p = 1}),
+     * but not table-valued ones, which are used only in FROM.
+     */
+    @Override
+    public boolean isCallStatementTarget(@NotNull DBSProcedure procedure) {
+        if (procedure instanceof SQLServerProcedure serverProcedure) {
+            SQLServerObjectType type = serverProcedure.getObjectType();
+            return serverProcedure.getProcedureType() == DBSProcedureType.PROCEDURE
+                || type == SQLServerObjectType.FN || type == SQLServerObjectType.FS;
+        }
+        return super.isCallStatementTarget(procedure);
     }
 
     @Override

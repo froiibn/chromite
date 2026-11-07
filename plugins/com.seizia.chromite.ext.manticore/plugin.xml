@@ -40,7 +40,7 @@
                         allowsEmptyPassword="true">
                     <replace provider="generic" driver="manticore"/>
                     <file type="jar" path="maven:/com.mysql:mysql-connector-j:RELEASE[9.7.0]" bundle="!drivers.mysql"/>
-                    <file type="license" path="licenses/external/gnu3.txt"/>
+                    <file type="license" path="licenses/external/gpl-2.0-universal-foss-exception.txt"/>
                     <file type="jar" path="drivers/mysql/mysql8" bundle="drivers.mysql"/>
                     <property name="characterEncoding" value="utf8"/>
                     <property name="maxAllowedPacket" value="512000"/>

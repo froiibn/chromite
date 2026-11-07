@@ -53,14 +53,6 @@ mariadb/ - MariaDB (also usable for MySQL servers)
   mariadb-java-client-3.5.10.jar       GNU LGPL 2.1 or later (LICENSE.txt)
   Source code: see SOURCE.txt.
 
-mysql/ - MySQL, NDB Cluster, Apache Doris, GreptimeDB, Manticore Search,
-         TiDB
-  mysql8/mysql-connector-j-9.7.0.jar   GNU GPL 2 with the Universal FOSS
-                                       Exception 1.0 (LICENSE.txt)
-  Source code and the conditions of the exception: see SOURCE.txt.
-  The MySQL 5 (Legacy) driver is not bundled; it is downloaded as
-  mysql-connector-java 5.1.49 when first used.
-
 sqlite/ - SQLite
   xerial/sqlite-jdbc-3.54.1.0.jar      Apache License 2.0 (LICENSE.txt);
                                        parts derived from the Zentus

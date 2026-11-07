@@ -86,7 +86,8 @@ import java.util.function.Supplier;
  *     <li>완성 옵션({@link SQLCompletionContext})은 SWT 설정 화면의 기본값({@code SQLEditorPreferencesInitializer})과 같다.
  *     그 설정 키는 SWT 번들({@code SQLPreferenceConstants})에 있어 Swing 제품에서는 읽을 수 없으므로 값을 그대로 옮겼다.
  *     짧은 이름/완전한 이름 형식만 모델 설정({@link SQLModelPreferences})을 연결 설정에서 읽는다(SWT와 같음).
- *     프로시저·함수 제안({@code isSearchProcedures}, SWT {@code SHOW_COLUMN_PROCEDURES})은 Tools &gt; Options의 설정을 따른다(SWT처럼 기본 끔).</li>
+ *     프로시저·함수 제안({@code isSearchProcedures}, SWT {@code SHOW_COLUMN_PROCEDURES})은 Tools &gt; Options의 설정을 따른다(SWT처럼 기본 끔).
+ *     이 설정은 SELECT 목록·WHERE 같은 값 자리용이고, CALL/EXEC 뒤의 루틴 이름은 엔진이 설정과 상관없이 제안한다.</li>
  *     <li>분석은 SWT처럼 {@link DBExecUtils#tryExecuteRecover}로 감싸 연결이 끊긴 경우 복구를 시도한다.
  *     실행 문맥은 F5 실행과 같은 연결의 기본(주) 문맥이다.</li>
  *     <li>결과 제안({@link Proposal})은 넣을 글자(교체 문자열), 교체 시작 위치, 표시 문자열·꾸밈 글자·아이콘을 담는다.
@@ -96,6 +97,9 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-07 프로시저·함수 제안을 늘 끄던 것을 Tools &gt; Options 설정으로 바꿈 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
+ * - 2026-11-07 쿼리 창의 실행 문맥({@link Request#executionContext})을 씀: 창이 자기 세션을 쓰면 기본 카탈로그·스키마가 창마다 다르다
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-07 설정이 값 자리에만 적용됨을 적음. CALL/EXEC 뒤 제안은 모델 엔진이 함 (docs/chromite/swing-sql-completion.md)
  */
 final class SqlCompletionAnalysis {
 
@@ -117,9 +121,17 @@ final class SqlCompletionAnalysis {
     /**
      * Snapshot of the editor taken in the EDT.
      *
-     * @param explicit Ctrl+Space (connects if needed) rather than auto-activation while typing
+     * @param executionContext the query window's session (its default catalog/schema), or null to use the connection's
+     *                         main context (not connected yet, or the window's own session is not open yet)
+     * @param explicit         Ctrl+Space (connects if needed) rather than auto-activation while typing
      */
-    record Request(@NotNull DBPDataSourceContainer dataSourceContainer, @NotNull String text, int offset, boolean explicit) {
+    record Request(
+        @NotNull DBPDataSourceContainer dataSourceContainer,
+        @Nullable DBCExecutionContext executionContext,
+        @NotNull String text,
+        int offset,
+        boolean explicit
+    ) {
     }
 
     /**
@@ -149,7 +161,10 @@ final class SqlCompletionAnalysis {
         if (dataSource == null || !container.isConnected() || monitor.isCanceled()) {
             return null;
         }
-        DBCExecutionContext executionContext = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+        // The window's session when it belongs to this data source (not one closed by a reconnect)
+        DBCExecutionContext windowContext = request.executionContext();
+        DBCExecutionContext executionContext = windowContext != null && windowContext.getDataSource() == dataSource
+            ? windowContext : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
         if (executionContext == null) {
             return null;
         }

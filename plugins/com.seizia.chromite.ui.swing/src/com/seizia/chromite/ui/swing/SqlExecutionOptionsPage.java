@@ -29,6 +29,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 /**
  * Tools &gt; Options &gt; Query Execution: how query windows split scripts into statements, which parameters they
@@ -48,11 +49,15 @@ import java.awt.*;
  *     ({@link #getEngineErrorHandling}). 열린 트랜잭션은 쿼리 상태 줄에 보이고 사용자가 커밋하거나 롤백한다.</li>
  *     <li>스크립트 커밋 방식({@code script.commit.type}: 끝에서 커밋, N줄마다 커밋, 문장마다 자동 커밋)은 두지 않는다. 모두 묻지 않고 커밋하거나
  *     ({@code AUTOCOMMIT}은 세션을 자동 커밋으로 바꿔 열린 트랜잭션을 커밋한다) 같은 규칙에 어긋난다. 엔진 기본값 {@code NO_COMMIT}을 쓴다.</li>
+ *     <li>쿼리 창 세션({@link QueryWindowContext#PREF_SEPARATE_CONNECTION}, SWT SQL Editor 페이지의 "Open separate connection for each editor"):
+ *     기본(내장·단일 연결 DB 빼고 창마다) / 항상 / 사용 안 함. 기본은 저장하지 않는다(기본값으로 되돌림). 연결 대화상자에서 연결마다 바꿀 수 있다.
+ *     이미 세션을 정한 창은 바뀌지 않고 바꾼 뒤 연결하는 창부터 적용된다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 저장한다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 문 구분 기호, 매개 변수, 오류 처리 (docs/chromite/swing-options.md)
+ * - 2026-11-07 쿼리 창 세션(쿼리 창마다 별도 연결) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class SqlExecutionOptionsPage extends JPanel {
 
@@ -60,6 +65,13 @@ final class SqlExecutionOptionsPage extends JPanel {
      * SWT {@code SQLPreferenceConstants.SCRIPT_ERROR_HANDLING}: a {@link SQLScriptErrorHandling} name.
      */
     static final String PREF_SCRIPT_ERROR_HANDLING = "script.error.handling"; //$NON-NLS-1$
+
+    // Order of the query window session combo
+    private static final ModelPreferences.SeparateConnectionBehavior[] SEPARATE_CONNECTION_MODES = {
+        ModelPreferences.SeparateConnectionBehavior.DEFAULT,
+        ModelPreferences.SeparateConnectionBehavior.ALWAYS,
+        ModelPreferences.SeparateConnectionBehavior.NEVER,
+    };
 
     private static final ModelPreferences.SQLScriptStatementDelimiterMode[] BLANK_LINE_MODES = {
         ModelPreferences.SQLScriptStatementDelimiterMode.SMART,
@@ -82,6 +94,9 @@ final class SqlExecutionOptionsPage extends JPanel {
     private final JTextField commandPrefixField = new JTextField(3);
     private final JComboBox<String> errorHandlingCombo = new JComboBox<>(new String[]{
         SettingsMessages.exec_on_error_stop, SettingsMessages.exec_on_error_ignore});
+    private final JComboBox<String> separateConnectionCombo = new JComboBox<>(new String[]{
+        SettingsMessages.exec_separate_connection_default, SettingsMessages.exec_separate_connection_always,
+        SettingsMessages.exec_separate_connection_never});
 
     SqlExecutionOptionsPage() {
         super(new BorderLayout());
@@ -105,6 +120,9 @@ final class SqlExecutionOptionsPage extends JPanel {
         commandPrefixField.setText(store.getString(ModelPreferences.SQL_CONTROL_COMMAND_PREFIX));
         commandPrefixField.setToolTipText(SettingsMessages.exec_command_prefix_tip);
         errorHandlingCombo.setSelectedIndex(isIgnoreErrors(store) ? 1 : 0);
+        separateConnectionCombo.setSelectedIndex(List.of(SEPARATE_CONNECTION_MODES).indexOf(
+            ModelPreferences.SeparateConnectionBehavior.parse(store.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION))));
+        separateConnectionCombo.setToolTipText(SettingsMessages.exec_separate_connection_tip);
         updateParameterFields();
 
         JPanel form = new JPanel(new GridBagLayout());
@@ -126,7 +144,10 @@ final class SqlExecutionOptionsPage extends JPanel {
         row = OptionsDialog.addRow(form, row, SettingsMessages.exec_command_prefix, commandPrefixField,
             NLS.bind(SettingsMessages.exec_default_hint, SQLConstants.DEFAULT_CONTROL_COMMAND_PREFIX));
         row = OptionsDialog.addSection(form, row, SettingsMessages.exec_section_errors);
-        OptionsDialog.addRow(form, row, SettingsMessages.exec_on_error, errorHandlingCombo, SettingsMessages.exec_on_error_hint);
+        row = OptionsDialog.addRow(form, row, SettingsMessages.exec_on_error, errorHandlingCombo, SettingsMessages.exec_on_error_hint);
+        row = OptionsDialog.addSection(form, row, SettingsMessages.exec_section_sessions);
+        OptionsDialog.addRow(form, row, SettingsMessages.exec_separate_connection, separateConnectionCombo,
+            SettingsMessages.exec_separate_connection_hint);
         add(OptionsDialog.wrapPage(form), BorderLayout.CENTER);
     }
 
@@ -166,6 +187,16 @@ final class SqlExecutionOptionsPage extends JPanel {
         boolean ignoreErrors = errorHandlingCombo.getSelectedIndex() == 1;
         if (ignoreErrors != isIgnoreErrors(store)) {
             store.setValue(PREF_SCRIPT_ERROR_HANDLING, ignoreErrors ? SQLScriptErrorHandling.IGNORE.name() : SQLScriptErrorHandling.STOP_ROLLBACK.name());
+            changed = true;
+        }
+        ModelPreferences.SeparateConnectionBehavior separate = SEPARATE_CONNECTION_MODES[separateConnectionCombo.getSelectedIndex()];
+        if (separate != ModelPreferences.SeparateConnectionBehavior.parse(store.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION))) {
+            // The default is not written: connections without a value of their own follow the code's default
+            if (separate == ModelPreferences.SeparateConnectionBehavior.DEFAULT) {
+                store.setToDefault(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+            } else {
+                store.setValue(QueryWindowContext.PREF_SEPARATE_CONNECTION, separate.name());
+            }
             changed = true;
         }
         if (changed) {

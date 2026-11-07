@@ -21,6 +21,8 @@
     - 2026-11-06 Added drivers.mysql (MySQL Connector/J, GPLv2 with the Universal FOSS Exception).
     - 2026-11-07 Added drivers.sqlite.xerial (Xerial sqlite-jdbc). Chromite ships one edition: these major
       databases are bundled and every other driver is downloaded when needed; there is no internal edition.
+    - 2026-11-07 Removed drivers.mysql (user decision): MySQL Connector/J is downloaded from Maven again when first
+      used, so MySQL-family drivers use their Maven entries (bundle="!drivers.mysql").
 -->
 <plugin>
 
@@ -29,7 +31,6 @@
         <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
         <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
         <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
-        <bundle id="drivers.mysql" label="MySQL JDBC driver" description="MySQL Connector/J in drivers/mysql/mysql8"/>
         <bundle id="drivers.sqlite.xerial" label="SQLite JDBC driver" description="Xerial sqlite-jdbc in drivers/sqlite/xerial"/>
     </extension>
 

@@ -41,7 +41,9 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 연결 설정에서 바꾼 자동 커밋을 이미 열려 있는 세션(실행 컨텍스트)에도 적용한다.
@@ -56,12 +58,15 @@ import java.util.List;
  *     커밋하지 않은 변경이 있는 컨텍스트를 찾고, 있으면 그 목록(쿼리 창 이름과 연결)을 보이고 "커밋하고 적용 / 롤백하고 적용 / 취소"를 묻는다.
  *     취소하면 열린 세션은 이전 방식 그대로이고 저장한 설정은 다음 연결부터 적용된다. 끄기는 묻지 않는다(트랜잭션이 생기지 않는다).</li>
  *     <li>JDBC 호출(현재 상태 읽기, 커밋·롤백, 전환)은 모두 작업 스레드에서 하고, 질문과 결과는 EDT에서 보인다.</li>
+ *     <li>컨텍스트의 이름은 그 컨텍스트를 쓰는 쿼리 창 제목이다(창의 자기 세션, 또는 창들이 함께 쓰는 주 컨텍스트, {@link SqlEditorPanel#getExecutionContext}).
+ *     창이 없는 컨텍스트는 컨텍스트 이름으로 보인다.</li>
  *     <li>전환하지 못한 컨텍스트(드라이버 오류)는 창 이름과 함께 오류로 알린다. 끝나면 연결 갱신 이벤트를 보내 쿼리 창들이 실제 상태를 다시 읽는다
  *     ({@link SqlEditorPanel#refreshTransactionMode}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 연결 설정의 자동 커밋을 열린 세션에 적용(사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 쿼리 창 이름을 창의 실제 컨텍스트로 붙임(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  */
 final class AutoCommitApplier {
 
@@ -92,14 +97,16 @@ final class AutoCommitApplier {
             afterwards.run();
             return;
         }
-        // Names of the query windows, which all run in the connection's main context
-        List<String> windows = new ArrayList<>();
+        // Names of the query windows by the context they run in (a window's own session, or the main context they share)
+        Map<DBCExecutionContext, String> windows = new IdentityHashMap<>();
         if (findMainFrame() instanceof MainFrame frame) {
             for (SqlEditorPanel editor : frame.getQueryWindows()) {
-                if (editor.getDataSourceContainer() == container) {
+                DBCExecutionContext context = editor.getExecutionContext();
+                if (editor.getDataSourceContainer() == container && context != null) {
                     // Without the modified marker of the tab title
                     String title = editor.getTitle();
-                    windows.add(title.endsWith("*") ? title.substring(0, title.length() - 1) : title); //$NON-NLS-1$
+                    windows.merge(context, title.endsWith("*") ? title.substring(0, title.length() - 1) : title, //$NON-NLS-1$
+                        (first, next) -> first + ", " + next); //$NON-NLS-1$
                 }
             }
         }
@@ -116,9 +123,8 @@ final class AutoCommitApplier {
 
     @NotNull
     private static List<Target> findTargets(@NotNull DBRProgressMonitor monitor, @NotNull DBPDataSource dataSource, boolean autoCommit,
-                                            @NotNull List<String> windows) {
+                                            @NotNull Map<DBCExecutionContext, String> windows) {
         List<Target> targets = new ArrayList<>();
-        DBCExecutionContext mainContext = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
         for (DBSInstance instance : dataSource.getAvailableInstances()) {
             for (DBCExecutionContext context : instance.getAllContexts()) {
                 DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
@@ -132,7 +138,7 @@ final class AutoCommitApplier {
                 } catch (DBCException e) {
                     log.debug("Can't read the auto-commit state of " + context.getContextName(), e);
                 }
-                String label = context == mainContext && !windows.isEmpty() ? String.join(", ", windows)
+                String label = windows.containsKey(context) ? windows.get(context)
                     : NLS.bind(ConnectionMessages.autocommit_other_session, context.getContextName(), dataSource.getContainer().getName());
                 // Only switching to auto-commit ends a transaction
                 targets.add(new Target(context, txnManager, label, autoCommit && QMUtils.isTransactionActive(context)));
