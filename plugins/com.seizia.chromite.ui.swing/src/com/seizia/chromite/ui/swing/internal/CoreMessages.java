@@ -39,6 +39,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Options의 위험한 SQL 확인 문구에 TRUNCATE를 더함 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-08 파일 덮어쓰기 확인의 바꾸기 단추 문구 추가 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 View &gt; Compact Mode 문구 추가 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 Object Explorer Filter의 한 줄 입력 창 문구(explorer_filter_title·prompt)를 지움: 필터 대화상자({@link ObjectExplorerMessages})로 바뀜
+ *   (docs/chromite/swing-explorer-productivity.md "필터 대화상자")
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -132,8 +134,6 @@ public class CoreMessages extends NLS {
     public static String explorer_collapse_all;
     public static String explorer_filter;
     public static String explorer_filter_tip;
-    public static String explorer_filter_title;
-    public static String explorer_filter_prompt;
     public static String explorer_select_top;
     public static String explorer_view_ddl;
     public static String explorer_activity_monitor_tip;

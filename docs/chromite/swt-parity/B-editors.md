@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
-| 일부 | 12 | 9 | 6 | 9 | 7 | **43** |
+| 있음 | 9 | 7 | 5 | 5 | 0 | **26** |
+| 일부 | 12 | 9 | 5 | 9 | 7 | **42** |
 | 없음 | 19 | 11 | 1 | 7 | 0 | **38** |
 | 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
 | 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
@@ -139,7 +139,7 @@
 | E4 | 소스 편집(뷰·프로시저·함수·트리거·패키지) | 소스 탭 + Ctrl+S | 있음 | `SourceEditCommands`, `SourceScripts`(swing-source-editor.md) | 높음 | Modify → 쿼리 창 실행으로 흐름을 바꿈 |
 | E5 | 데이터 탭 | `DatabaseDataEditor` | 있음 | Select Top 1000 Rows(쿼리 창, 편집 가능) | 중간 | |
 | E6 | ER 탭·ERD 편집기 | `ui.editors.erd` | 일부 | `ErdDiagramPanel`(보기·배치 저장·PNG/SVG/.erd 내보내기) | 낮음 | 다이어그램에서 편집, 메모, .erd 열기, 인쇄 없음(swing-erd.md:96-100) |
-| E7 | 개체별 하위 목록 탭(열·제약·인덱스·참조·트리거·종속성·통계·파티션) | `ObjectListControl` 탭 | 일부 | Object Explorer 트리 + Properties | 중간 | 속성 열이 있는 목록 보기, 종속성·참조 페이지 없음 |
+| E7 | 개체별 하위 목록 탭(열·제약·인덱스·참조·트리거·종속성·통계·파티션) | `ObjectListControl` 탭 | 있음 | 2026-11-08 개체 세부 정보(F7, `ObjectDetailsPanel`): 자식 폴더마다 속성 열이 있는 목록 탭, 인라인 자식(인덱스 열, Oracle 종속 개체)은 들여 쓴 행. 탭은 드라이버 모델의 구성: PostgreSQL·Oracle은 종속성·참조, SQL Server는 참조([swing-explorer-productivity.md](../swing-explorer-productivity.md)). 조사 당시: 일부(트리 + Properties) | 중간 | SQL Server 종속성은 모델에 폴더가 없어 없음 |
 | E8 | DB별 편집기 페이지(`ext.*.ui`: 권한, 컴파일 등) | `databaseEditor` 확장 | 일부 | 보안 창(swing-security.md), 관리 도구(swing-admin-tools.md); swt-removal.md:117 | 중간 | |
 | E9 | 개체 만들기 대화상자(열·제약·FK·인덱스·시퀀스·프로시저 이름, 사전) | `EditObjectDialog`, `Edit*Page`, `CreateSequencePage`, `EditDictionaryPage` | 일부 | `DesignerDialogs`(3개 DB), New View/Procedure/Function 틀 | 중간 | 시퀀스·사전 없음 |
 | E10 | 저장 흐름과 스크립트 미리 보기 | `EntityEditor` 저장 확인 | 있음 | `ScriptPreviewDialog`(Execute / Open in Query Window / Copy) | 높음 | 디자이너·보안 창에서 |

@@ -23,6 +23,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -59,6 +60,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -70,6 +72,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
@@ -208,6 +211,10 @@ import java.util.function.Supplier;
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 탐색기 생산성: Object Details 문서 탭({@link ObjectDetailsPanel}, 같은 노드는 열린 탭), 활성 문서를 Object Explorer에 알림
+ *   (Link with Editor, {@link #linkExplorerToDocument}), Query &gt; Select Connection…(Ctrl+9)·Select Database/Schema…(Ctrl+0)는
+ *   걸러 고르는 목록({@link ObjectChooserDialog})으로 활성 쿼리 창의 콤보를 바꿈, Set as Default 뒤 그 연결의 쿼리 창 DB 콤보를 다시 읽음
+ *   (docs/chromite/swing-explorer-productivity.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -865,6 +872,125 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return document;
     }
 
+    @Override
+    public void openObjectDetails(@NotNull DBNDatabaseNode node) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ObjectDetailsPanel details && details.getNode() == node) {
+                documentTabs.setSelectedIndex(i);
+                return;
+            }
+        }
+        addToolDocument(new ObjectDetailsPanel(node, target -> {
+            // Object Explorer is the first tool window
+            toolWindows.get(0).setShown(true);
+            explorerPanel.revealNode(target);
+        }));
+    }
+
+    @Override
+    public void connectionDefaultsChanged(@NotNull DBPDataSourceContainer dataSource) {
+        // The query windows of the connection read their database picker again (those sharing the main session changed)
+        connectionUpdated(dataSource);
+    }
+
+    /**
+     * Tells Object Explorer which object and connection the active document is about (Link with Editor): a query window's
+     * routine (Modify) or default database/schema, a designed table, a diagram's root, a details document's node, an
+     * Activity Monitor's connection.
+     */
+    private void linkExplorerToDocument() {
+        Component document = documentTabs.getSelectedComponent();
+        DBSObject object = null;
+        DBPDataSourceContainer container = null;
+        if (document instanceof SqlEditorPanel editor) {
+            container = editor.getDataSourceContainer();
+            object = editor.getSourceObject();
+            if (object == null && editor.getSchemaCombo().getSelectedItem() instanceof DBSObject schema) {
+                object = schema;
+            }
+        } else if (document instanceof TableDesignerPanel designer) {
+            object = designer.getSession().getTable();
+        } else if (document instanceof ErdDiagramPanel diagram) {
+            object = diagram.getRoot();
+        } else if (document instanceof ObjectDetailsPanel details) {
+            object = details.getNode().getObject();
+            container = details.getNode().getDataSourceContainer();
+        } else if (document instanceof ActivityMonitorPanel monitor) {
+            container = monitor.getContainer();
+        }
+        if (container == null && object != null && object.getDataSource() != null) {
+            container = object.getDataSource().getContainer();
+        }
+        explorerPanel.activeDocumentChanged(object, container);
+    }
+
+    /**
+     * Query &gt; Select Connection… (Ctrl+9, SWT): chooses the active query window's connection from a filtered list; the
+     * window's connection picker then changes it (asking about its own session's transaction first).
+     */
+    private void selectActiveConnection() {
+        SqlEditorPanel editor = getActiveEditor();
+        if (editor == null) {
+            JOptionPane.showMessageDialog(this, ObjectExplorerMessages.oe_choose_no_editor, ObjectExplorerMessages.oe_select_connection,
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        List<DBPDataSourceContainer> connections = new ArrayList<>();
+        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
+        if (project != null) {
+            for (DBPDataSourceContainer container : project.getDataSourceRegistry().getDataSources()) {
+                if (!container.isHidden() && !container.isTemporary()) {
+                    connections.add(container);
+                }
+            }
+        }
+        connections.sort(Comparator.comparing(DBPDataSourceContainer::getName, String.CASE_INSENSITIVE_ORDER));
+        DBPDataSourceContainer chosen = ObjectChooserDialog.choose(this, ObjectExplorerMessages.oe_select_connection, connections,
+            editor.getDataSourceContainer(), DBPDataSourceContainer::getName, container -> NodeIcons.getIcon(container.getDriver().getIcon()));
+        if (chosen != null && chosen != editor.getDataSourceContainer()) {
+            JComboBox<DBPDataSourceContainer> combo = editor.getConnectionCombo();
+            if (combo.getModel() instanceof DefaultComboBoxModel<DBPDataSourceContainer> model && model.getIndexOf(chosen) < 0) {
+                // Created since the picker was filled
+                model.addElement(chosen);
+            }
+            combo.setSelectedItem(chosen);
+        }
+    }
+
+    /**
+     * Query &gt; Select Database/Schema… (Ctrl+0, SWT): chooses the active query window's default database or schema from
+     * the window's own picker list; the picker then changes it (the same transaction question as choosing it there).
+     */
+    private void selectActiveSchema() {
+        SqlEditorPanel editor = getActiveEditor();
+        if (editor == null) {
+            JOptionPane.showMessageDialog(this, ObjectExplorerMessages.oe_choose_no_editor, ObjectExplorerMessages.oe_select_schema,
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        JComboBox<Object> combo = editor.getSchemaCombo();
+        List<DBSObject> objects = new ArrayList<>();
+        for (int i = 0; i < combo.getItemCount(); i++) {
+            if (combo.getItemAt(i) instanceof DBSObject object) {
+                objects.add(object);
+            }
+        }
+        if (!combo.isEnabled() || objects.isEmpty()) {
+            JOptionPane.showMessageDialog(this, ObjectExplorerMessages.oe_choose_schema_unavailable, ObjectExplorerMessages.oe_select_schema,
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        DBSObject current = combo.getSelectedItem() instanceof DBSObject selected ? selected : null;
+        DBSObject chosen = ObjectChooserDialog.choose(this, ObjectExplorerMessages.oe_select_schema, objects, current,
+            DBSObject::getName, object -> {
+                DBNDatabaseNode node = DBWorkbench.getPlatform().getNavigatorModel().getNodeByObject(object);
+                return node != null ? NodeIcons.getNodeIcon(node, false) : null;
+            });
+        if (chosen != null && chosen != current) {
+            combo.setSelectedItem(chosen);
+        }
+    }
+
     private void addToolDocument(@NotNull ToolDocument document) {
         JComponent component = (JComponent) document;
         component.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
@@ -943,6 +1069,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         SqlEditorPanel editor = new SqlEditorPanel(dataSource, fileName, this);
         aiAssistantPanel.installEditorActions(editor);
+        // Link with Editor follows the window's default database/schema (chosen, or read again into a new picker model)
+        editor.getSchemaCombo().addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED && editor == getActiveEditor()) {
+                linkExplorerToDocument();
+            }
+        });
+        editor.getSchemaCombo().addPropertyChangeListener("model", e -> { //$NON-NLS-1$
+            if (editor == getActiveEditor()) {
+                linkExplorerToDocument();
+            }
+        });
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
         int index = documentTabs.indexOfComponent(editor);
@@ -1379,6 +1516,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             editor.refreshTransactionMode();
         }
         updateQueryActions();
+        linkExplorerToDocument();
     }
 
     /**
@@ -1534,9 +1672,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             documentTabs.setToolTipTextAt(index, editor.getToolTip());
             documentTabs.setIconAt(index, editor.getTabIcon());
         }
-        // Modified or saved (Save All), or another connection (Activity Monitor)
+        // Modified or saved (Save All), or another connection (Activity Monitor, Link with Editor)
         saveAllAction.setEnabled(hasModifiedDocuments());
         updateActivityMonitorAction();
+        if (editor == getActiveEditor()) {
+            linkExplorerToDocument();
+        }
     }
 
     /**
@@ -1619,6 +1760,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
+        queryMenu.addSeparator();
+        // SWT shortcuts of the active connection and schema selectors
+        JMenuItem selectConnectionItem = new JMenuItem(ObjectExplorerMessages.oe_select_connection);
+        selectConnectionItem.setToolTipText(ObjectExplorerMessages.oe_select_connection_tip);
+        selectConnectionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK));
+        selectConnectionItem.addActionListener(e -> selectActiveConnection());
+        queryMenu.add(selectConnectionItem);
+        JMenuItem selectSchemaItem = new JMenuItem(ObjectExplorerMessages.oe_select_schema);
+        selectSchemaItem.setToolTipText(ObjectExplorerMessages.oe_select_schema_tip);
+        selectSchemaItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK));
+        selectSchemaItem.addActionListener(e -> selectActiveSchema());
+        queryMenu.add(selectSchemaItem);
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(commitAction));
         queryMenu.add(new JMenuItem(rollbackAction));

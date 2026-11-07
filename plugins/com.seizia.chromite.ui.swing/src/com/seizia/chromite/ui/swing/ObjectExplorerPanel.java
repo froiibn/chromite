@@ -27,6 +27,7 @@ import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.SchedulerMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.core.runtime.IStatus;
@@ -51,25 +52,28 @@ import com.seizia.chromite.model.navigator.DBNProject;
 import com.seizia.chromite.model.navigator.DBNProjectDatabases;
 import com.seizia.chromite.model.navigator.DBNUtils;
 import com.seizia.chromite.model.navigator.INavigatorListener;
-import com.seizia.chromite.model.navigator.meta.DBXTreeItem;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObject;
-import com.seizia.chromite.model.struct.DBSObjectFilter;
 import com.seizia.chromite.model.struct.DBSParameter;
 import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.event.TreeExpansionEvent;
@@ -90,12 +94,17 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * Object Explorer: 활성 프로젝트의 연결과 DB 객체를 보여 주는 트리.
@@ -110,7 +119,8 @@ import java.util.function.Supplier;
  *     {@link AbstractJob}(백그라운드 Job, {@link DBRProgressMonitor} 사용)에서 호출한다. EDT에서는 모델을 읽지 않는다
  *     (연결 목록처럼 메모리에 있는 자식도 같은 경로를 써서 경로를 하나로 둔다).</li>
  *     <li>SWT 탐색기 트리와 달리 탐색 불가 항목({@code navigable="false"}: 루틴 매개 변수, 인덱스·키 열, MySQL 변수·상태·엔진 등)도
- *     보여 준다({@link #hasTreeChildren}). SWT는 그것을 객체 편집기의 탭에서 보여 주지만 이 앱에는 객체 편집기가 없어 트리가 유일한 자리다.
+ *     보여 준다({@link #hasTreeChildren}). SWT는 그것을 객체 편집기의 탭에서 보여 주지만 이 앱에는 객체 편집기가 없어 트리에 둔다
+ *     (Object Details도 목록으로 보인다).
  *     숨김 노드({@code DBPHiddenObject})는 SWT처럼 뺀다.</li>
  *     <li>연결 노드를 펼치면 {@code DBNDatabaseNode#getChildren} → {@code DBUtils.initDataSource} →
  *     {@code DBServiceConnections}({@link SwingConnectionService})로 연결한다. SWT 탐색기와 같은 흐름이다.</li>
@@ -121,7 +131,20 @@ import java.util.function.Supplier;
  *     <li>새로 고침(도구 막대 단추, 오른쪽 클릭 메뉴, 트리에 초점이 있을 때 F5)은 {@code DBNNode#refreshNode} 뒤에
  *     자식을 다시 읽는다. 아직 펼친 적 없는 노드는 연결을 새로 열지 않도록 다시 그리기만 한다. F5는 SSMS처럼 초점에 따라 나뉜다:
  *     트리의 키 바인딩(초점 컴포넌트)이 메인 창 Query 메뉴의 F5(Execute, 창 전체 단축키)보다 먼저 처리되므로, 트리에서는 새로 고침, 그 밖에서는 실행이다.</li>
- *     <li>더블클릭은 Swing 트리의 기본 동작(펼치기/접기)만 한다. 객체 편집기는 다음 단계에서 만든다.</li>
+ *     <li>두 번 클릭({@link #openDefault}): 트리 자체의 펼치기(toggle click count)는 끄고 여기서 정한다. SQL Server 에이전트·작업 스케줄러 노드는
+ *     그 기본 명령, "더 읽기" 행은 다음 묶음, 연결은 설정({@link ExplorerPreferences.ConnectionDoubleClick}: 펼치기, 새 쿼리, 연결 편집),
+ *     DB 객체(폴더·데이터베이스·스키마가 아닌 것)는 설정({@link ExplorerPreferences.ObjectDoubleClick}: 펼치기, 편집기 = Design·Modify·
+ *     Object Details, 데이터 = Select Top)을 따르고, 나머지와 할 일이 없는 경우는 펼치기/접기다. 기본값은 전처럼 펼치기다.</li>
+ *     <li>긴 폴더 나눠 보이기(SWT {@code TreeNodeLazyExpander}): 자식이 설정({@link ExplorerPreferences#getPageSize}, 기본 5000)보다 많으면
+ *     그만큼만 보이고 끝에 "더 읽기… (보인 수/전체)" 행을 둔다. 모델은 자식을 한 번에 읽으므로(SWT와 같음) 나누는 것은 트리 행뿐이다.
+ *     읽은 자식 전체는 {@link ExplorerNode#allChildren}에 두고, 보이는 행은 {@link #setTreeChildren}이 만든다.</li>
+ *     <li>빠른 거르기(SWT 탐색기 검색 상자): 도구 막대 아래 입력란의 글자가 이름에 든 객체만 객체 폴더에 보인다(이미 읽은 폴더만,
+ *     DB를 다시 읽지 않음, 대소문자 무시, {@code *}·{@code %}는 아무 글자). 연결·데이터베이스·스키마·폴더는 거르지 않는다.
+ *     트리에서 Ctrl+F로 입력란에 가고 Esc로 지운다. 서버 쪽 필터(Filter 대화상자)와 달리 저장하지 않는다.</li>
+ *     <li>Link with Editor(도구 막대 토글, 설정에 저장): 메인 창이 활성 문서가 바뀔 때마다 그 문서의 객체·연결을 알리고({@link #activeDocumentChanged}),
+ *     켜져 있으면 그 노드를 고른다(초점은 옮기지 않음). 이 창에 열지 않은 서버는 넣지 않고, 연결되지 않은 연결은 연결하지 않는다.</li>
+ *     <li>Object Details(F7, SSMS "Object Explorer Details"): 노드의 자식을 속성 열이 있는 표로 보이는 문서({@link ObjectDetailsPanel}).</li>
+ *     <li>Set as Default: 데이터베이스·스키마를 연결 주 세션의 기본값으로({@link DefaultObjectCommands}). 주 세션의 기본 데이터베이스·스키마는 굵게 그린다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
  *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳에서도, 최상위에 만들고 이 창에 넣는다), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
@@ -143,8 +166,8 @@ import java.util.function.Supplier;
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
  *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열·매개 변수 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
- *     <li>Filter(SSMS): 고른 객체 폴더에 이름 마스크를 건다. DBeaver 탐색기 필터({@code DBSObjectFilter})를 그대로 써서 연결 설정에 저장된다.
- *     Collapse All은 펼친 노드를 모두 접는다.</li>
+ *     <li>Filter(SSMS): 고른 객체 폴더의 포함·제외 마스크 대화상자({@link ObjectFilterDialog}). DBeaver 탐색기 필터({@code DBSObjectFilter})를
+ *     그대로 써서 연결 설정에 저장된다. 필터가 걸린 폴더는 보조 글자에 "필터됨"을 붙인다. Collapse All은 펼친 노드를 모두 접는다.</li>
  *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
@@ -158,7 +181,8 @@ import java.util.function.Supplier;
  *     <li>작업 스케줄러({@link SchedulerCommands}): Oracle 스케줄러·pg_cron·MySQL 이벤트의 명령(그 노드에서만 보임), 작업·이벤트의
  *     Properties와 Delete, 두 번 클릭으로 실행 기록·실행 중인 작업·속성 열기, 스케줄러 상태·사용 안 함 보조 글자.</li>
  *     <li>DB 객체 작업({@link ExplorerObjectCommands}): 객체 관리자로 하는 Delete(Delete 키)·Rename(F2)과 스크립트 미리 보기, Copy Name(Ctrl+C,
- *     트리의 전송 처리기)·Copy Qualified Name(Ctrl+Shift+C), Generate SQL 메뉴. 위의 연결·보안·에이전트·스케줄러 갈래가 먼저다.</li>
+ *     트리의 전송 처리기)·Copy Qualified Name(Ctrl+Shift+C), Generate SQL 메뉴. 위의 연결·보안·에이전트·스케줄러 갈래가 먼저다.
+ *     Copy Special…(이름·정규화된 이름·DDL, 구분자, {@link CopySpecialDialog})과 연결의 Duplicate Connection({@link ConnectionCommands#duplicate}).</li>
  *     <li>여러 개 선택: 트리는 여러 노드를 고를 수 있다. Delete, 이름 복사, Generate SQL은 선택 전체에 적용하고, 나머지 명령은
  *     {@link #getSelectedNavigatorNode}가 null이 되어 꺼진다. 오른쪽 클릭이 고른 행 위면 선택을 그대로 둔다.</li>
  * </ul>
@@ -210,6 +234,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 탐색기 생산성: Filter 대화상자(포함·제외 마스크), 빠른 거르기 입력란, Link with Editor, 두 번 클릭 설정, 긴 폴더 "더 읽기",
+ *   Copy Special·연결 복제, Object Details(F7), Set as Default와 기본 데이터베이스·스키마 굵게 (docs/chromite/swing-explorer-productivity.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -285,6 +311,30 @@ final class ObjectExplorerPanel extends JPanel {
          */
         @NotNull
         ToolDocument openToolDocument(@NotNull String key, @NotNull Supplier<ToolDocument> factory);
+
+        /**
+         * Opens (or shows) the Object Details document of a node: its children with their properties (F7).
+         */
+        void openObjectDetails(@NotNull DBNDatabaseNode node);
+
+        /**
+         * The default database or schema of the connection's main session changed (Set as Default): query windows that
+         * share it read their database picker again.
+         */
+        void connectionDefaultsChanged(@NotNull DBPDataSourceContainer dataSource);
+    }
+
+    /**
+     * The "Load more…" row of a folder that shows only part of its children.
+     *
+     * @param shown children shown above the row
+     * @param total children that could be shown (after the quick filter)
+     */
+    private record MoreItem(int shown, int total) {
+        @Override
+        public String toString() {
+            return NLS.bind(ObjectExplorerMessages.oe_load_more, shown, total);
+        }
     }
 
     private final DefaultTreeModel treeModel;
@@ -338,6 +388,36 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action backUpAction;
     private final Action restoreAction;
     private final Action copyTablesAction;
+    private final Action detailsAction;
+    private final Action setDefaultAction;
+    private final Action copySpecialAction;
+    private final Action duplicateConnectionAction;
+    private final Action linkWithEditorAction;
+    private final QueryWindows queryWindows;
+    /**
+     * Quick filter box below the tool bar: object folders show only the children whose names match.
+     */
+    private final JTextField quickFilterField = new JTextField();
+    /**
+     * Applies the quick filter a moment after the last keystroke.
+     */
+    private final Timer quickFilterTimer = new Timer(250, e -> applyQuickFilter());
+    /**
+     * The quick filter in effect (lower case, wildcards as regular expression), null for none.
+     */
+    @Nullable
+    private Pattern quickFilter;
+    /**
+     * Expanded nodes that the quick filter hides now, expanded again when they show again.
+     */
+    private final Set<TreePath> quickFilterExpanded = new HashSet<>();
+    /**
+     * The active document's object and connection (Link with Editor), as the main window last reported them.
+     */
+    @Nullable
+    private DBSObject linkedObject;
+    @Nullable
+    private DBPDataSourceContainer linkedContainer;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window). The
@@ -355,6 +435,10 @@ final class ObjectExplorerPanel extends JPanel {
      */
     @Nullable
     private DBNNode revealTarget;
+    /**
+     * Give the tree the focus once {@link #revealTarget} is selected (not for Link with Editor).
+     */
+    private boolean revealFocus;
     private boolean disposed;
 
     /**
@@ -363,6 +447,7 @@ final class ObjectExplorerPanel extends JPanel {
      */
     ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull QueryWindows queryWindows) {
         super(new BorderLayout());
+        this.queryWindows = queryWindows;
 
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         projectNode = project == null ? null :
@@ -378,6 +463,8 @@ final class ObjectExplorerPanel extends JPanel {
         // Several objects for Delete, Copy Name and Generate SQL; the other commands need one node (getSelectedNavigatorNode)
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
         tree.putClientProperty(FlatClientProperties.TREE_WIDE_SELECTION, true);
+        // A double click does what the settings say (openDefault), so the tree itself does not expand on it
+        tree.setToggleClickCount(0);
         ToolTipManager.sharedInstance().registerComponent(tree);
         tree.addTreeWillExpandListener(new TreeWillExpandListener() {
             @Override
@@ -593,15 +680,60 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+        detailsAction = createAction(ObjectExplorerMessages.oe_details, () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode) {
+                queryWindows.openObjectDetails(databaseNode);
+            }
+        });
+        detailsAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_details_tip);
+        detailsAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0));
+        setDefaultAction = createAction(ObjectExplorerMessages.oe_set_default, () -> {
+            DBNNode node = getSelectedNavigatorNode();
+            DBPDataSourceContainer dataSource = getSelectedDataSource();
+            if (node != null && dataSource != null) {
+                DefaultObjectCommands.setDefault(this, node, () -> {
+                    // The default database or schema is drawn in bold
+                    tree.repaint();
+                    queryWindows.connectionDefaultsChanged(dataSource);
+                    updateActions();
+                });
+            }
+        });
+        setDefaultAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_set_default_tip);
+        copySpecialAction = createAction(ObjectExplorerMessages.oe_copy_special, () -> CopySpecialDialog.open(this, getSelectedNavigatorNodes()));
+        copySpecialAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_copy_special_tip);
+        duplicateConnectionAction = createAction(ObjectExplorerMessages.oe_duplicate_connection, () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
+                DBPDataSourceContainer created = ConnectionCommands.duplicate(this, node.getDataSourceContainer());
+                if (created != null) {
+                    showServer(created, false);
+                }
+            }
+        });
+        duplicateConnectionAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_duplicate_connection_tip);
+        linkWithEditorAction = new AbstractAction(ObjectExplorerMessages.oe_link_editor) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boolean link = Boolean.TRUE.equals(getValue(Action.SELECTED_KEY));
+                ExplorerPreferences.setLinkWithEditor(link);
+                if (link) {
+                    showLinked();
+                }
+            }
+        };
+        linkWithEditorAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_link_editor_tip);
+        linkWithEditorAction.putValue(Action.SELECTED_KEY, ExplorerPreferences.isLinkWithEditor());
         updateActions();
         tree.addTreeSelectionListener(e -> updateActions());
 
-        // Keys of the connection commands (shown in the menu); Enter on other nodes keeps expanding/collapsing them
+        // Keys of the connection commands (shown in the menu); Enter on "Load more…" shows more, on other nodes it keeps expanding/collapsing them
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "chromite.editOrToggle", () -> { //$NON-NLS-1$
+            TreePath path = tree.getSelectionPath();
             if (getSelectedNavigatorNode() instanceof DBNDataSource) {
                 editConnectionAction.actionPerformed(null);
+            } else if (path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof MoreItem) {
+                loadMore(node);
             } else {
-                TreePath path = tree.getSelectionPath();
                 if (path != null) {
                     if (tree.isExpanded(path)) {
                         tree.collapsePath(path);
@@ -618,11 +750,17 @@ final class ObjectExplorerPanel extends JPanel {
             () -> objectCommands.getCopyQualifiedNameAction().actionPerformed(null));
         // SSMS: F5 in Object Explorer refreshes (elsewhere it executes the query, Query menu)
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::refreshSelection); //$NON-NLS-1$
+        // SSMS Object Explorer Details
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), "chromite.details", () -> detailsAction.actionPerformed(null)); //$NON-NLS-1$
+        // The quick filter box; the tree's own type-to-select search stays on plain letters
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.quickFilter", //$NON-NLS-1$
+            quickFilterField::requestFocusInWindow);
 
         JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
+        popupMenu.add(setDefaultAction);
         popupMenu.add(newTableAction);
         popupMenu.add(sourceEditCommands.getNewViewAction());
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
@@ -639,6 +777,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(objectCommands.getGenerateSqlMenu());
         popupMenu.add(viewDdlAction);
         popupMenu.add(viewDiagramAction);
+        popupMenu.add(detailsAction);
         popupMenu.add(tasksMenu);
         popupMenu.add(maintenanceAction);
         maintenanceCommands.addTo(popupMenu);
@@ -654,8 +793,10 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(findObjectsAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
+        popupMenu.add(duplicateConnectionAction);
         popupMenu.add(objectCommands.getCopyNameAction());
         popupMenu.add(objectCommands.getCopyQualifiedNameAction());
+        popupMenu.add(copySpecialAction);
         popupMenu.add(renameAction);
         popupMenu.add(deleteAction);
         popupMenu.addSeparator();
@@ -697,18 +838,24 @@ final class ObjectExplorerPanel extends JPanel {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                // SQL Server Agent leaves open on double click (job activity, agent log, job properties)
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
-                    agentCommands.openDefault(getSelectedNavigatorNode());
-                    // Job scheduler leaves and objects (run history, running jobs, job and event properties)
-                    schedulerCommands.openDefault(getSelectedNavigatorNode());
+                    // The whole row width (wide selection), not only the label
+                    TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
+                    Rectangle bounds = path == null ? null : tree.getPathBounds(path);
+                    if (bounds != null && e.getY() >= bounds.y && e.getY() < bounds.y + bounds.height) {
+                        openDefault(path);
+                    }
                 }
             }
         });
 
         JScrollPane scrollPane = new JScrollPane(tree);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        add(createToolBar(), BorderLayout.NORTH);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.add(createToolBar(), BorderLayout.NORTH);
+        top.add(createQuickFilter(), BorderLayout.SOUTH);
+        add(top, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
         if (projectNode != null) {
@@ -721,6 +868,7 @@ final class ObjectExplorerPanel extends JPanel {
      * Stops listening to the navigator model (the main window is closing).
      */
     void dispose() {
+        quickFilterTimer.stop();
         if (projectNode != null && !disposed) {
             disposed = true;
             DBWorkbench.getPlatform().getNavigatorModel().removeListener(navigatorListener);
@@ -902,12 +1050,19 @@ final class ObjectExplorerPanel extends JPanel {
         newPrincipalAction.putValue(Action.NAME, SecurityCommands.getNewPrincipalLabel(newPrincipalKind));
         newPrincipalAction.setEnabled(newPrincipalKind != null);
         objectPermissionsAction.setEnabled(SecurityCommands.canEditPermissions(object));
-        filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && folder.getItemsMeta() != null);
+        filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder
+            && folder.getItemsMeta() != null && folder.getChildrenClass() != null);
+        // A connection's details read its databases, which connects it: only for a connected one
+        detailsAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode
+            && (connected || !connectionNode) && hasTreeChildren(databaseNode));
+        setDefaultAction.setEnabled(DefaultObjectCommands.canSetDefault(getSelectedNavigatorNode()));
+        copySpecialAction.setEnabled(CopySpecialDialog.canCopy(getSelectedNavigatorNodes()));
+        duplicateConnectionAction.setEnabled(connectionNode);
     }
 
     /**
      * SSMS Object Explorer tool bar below the tool window header (32 high: 26px icon buttons + 3 above and below):
-     * New Connection, Connect, Disconnect | Filter, Refresh | Collapse All. The buttons that don't fit a narrow tool window
+     * New Connection, Connect, Disconnect | Filter, Refresh | Collapse All, Link with Editor (toggle). The buttons that don't fit a narrow tool window
      * go to the overflow menu.
      */
     @NotNull
@@ -923,13 +1078,286 @@ final class ObjectExplorerPanel extends JPanel {
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(collapseAllAction, "collapse-all")); //$NON-NLS-1$
+        toolBar.add(createToggleButton(linkWithEditorAction, "link")); //$NON-NLS-1$
         return toolBar;
     }
 
     /**
-     * Filter (SSMS Object Explorer filter): shows only the objects of the selected folder whose names match a mask.
-     * The filter is the connection's navigator filter of that object type (saved with the connection, like the SWT
-     * navigator filters); a text without {@code %} matches names that contain it, an empty text removes the filter.
+     * An icon toggle button of the tool bar (pressed while the action's {@link Action#SELECTED_KEY} is true).
+     */
+    @NotNull
+    private static JToggleButton createToggleButton(@NotNull Action action, @NotNull String iconId) {
+        JToggleButton button = new JToggleButton(action);
+        button.setHideActionText(true);
+        button.setIcon(UiIcons.get(iconId));
+        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.setFocusable(false);
+        return button;
+    }
+
+    /**
+     * The quick filter box below the tool bar: Esc clears it, ↓ goes to the tree.
+     */
+    @NotNull
+    private JComponent createQuickFilter() {
+        quickFilterTimer.setRepeats(false);
+        quickFilterField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ObjectExplorerMessages.oe_quick_filter_placeholder);
+        quickFilterField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("filter")); //$NON-NLS-1$
+        quickFilterField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
+        quickFilterField.setToolTipText(ObjectExplorerMessages.oe_quick_filter_tip);
+        quickFilterField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                quickFilterTimer.restart();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                quickFilterTimer.restart();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                quickFilterTimer.restart();
+            }
+        });
+        quickFilterField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "chromite.clearQuickFilter"); //$NON-NLS-1$
+        quickFilterField.getActionMap().put("chromite.clearQuickFilter", createAction("clear", () -> { //$NON-NLS-1$ //$NON-NLS-2$
+            quickFilterField.setText("");
+            tree.requestFocusInWindow();
+        }));
+        quickFilterField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "chromite.toTree"); //$NON-NLS-1$
+        quickFilterField.getActionMap().put("chromite.toTree", createAction("tree", tree::requestFocusInWindow)); //$NON-NLS-1$ //$NON-NLS-2$
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 6, 4, 6));
+        panel.add(quickFilterField, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Applies the quick filter box: every loaded object folder shows its matching children again (from what it read).
+     */
+    private void applyQuickFilter() {
+        quickFilterTimer.stop();
+        String text = quickFilterField.getText().trim().toLowerCase(Locale.ROOT);
+        Pattern filter = null;
+        if (!text.isEmpty()) {
+            // Plain text: names that contain it; * and % match any characters
+            String[] parts = text.split("[*%]", -1); //$NON-NLS-1$
+            StringBuilder regex = new StringBuilder();
+            for (int i = 0; i < parts.length; i++) {
+                if (i > 0) {
+                    regex.append(".*"); //$NON-NLS-1$
+                }
+                if (!parts[i].isEmpty()) {
+                    regex.append(Pattern.quote(parts[i]));
+                }
+            }
+            filter = Pattern.compile(regex.toString(), Pattern.DOTALL);
+        }
+        if (String.valueOf(filter).equals(String.valueOf(quickFilter))) {
+            return;
+        }
+        quickFilter = filter;
+        // Expanded nodes the filter hides are expanded again when they show again (their tree nodes are kept)
+        Enumeration<TreePath> expandedPaths = tree.getExpandedDescendants(new TreePath(rootNode));
+        if (expandedPaths != null) {
+            quickFilterExpanded.addAll(Collections.list(expandedPaths));
+        }
+        applyQuickFilter(rootNode);
+        List<TreePath> expanded = new ArrayList<>(quickFilterExpanded);
+        expanded.sort(Comparator.comparingInt(TreePath::getPathCount));
+        for (TreePath path : expanded) {
+            if (isAttached(path)) {
+                tree.expandPath(path);
+                quickFilterExpanded.remove(path);
+            }
+        }
+        if (quickFilter == null) {
+            quickFilterExpanded.clear();
+        }
+    }
+
+    /**
+     * Shows the children of a loaded object folder again under the quick filter, then does the same below it (a folder
+     * that shows again was built under the previous filter).
+     */
+    private void applyQuickFilter(@NotNull ExplorerNode node) {
+        if (node.getUserObject() instanceof DBNDatabaseFolder && node.state == LoadState.LOADED && node.allChildren != null) {
+            node.shownLimit = 0;
+            replaceChildrenPreserving(node, node.allChildren);
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNNode) {
+                applyQuickFilter(child);
+            }
+        }
+    }
+
+    /**
+     * Connections, databases, schemas and folders always pass, so that every folder can still be opened.
+     */
+    private boolean matchesQuickFilter(@NotNull DBNNode node) {
+        Pattern filter = quickFilter;
+        return filter == null || !isObjectNode(node) || filter.matcher(getNodeText(node).toLowerCase(Locale.ROOT)).find();
+    }
+
+    /**
+     * The quick filter applies to the children of object folders (Tables, Columns, …), not to connections, databases,
+     * schemas or folders.
+     */
+    private boolean isQuickFiltered(@NotNull ExplorerNode node) {
+        return quickFilter != null && node.getUserObject() instanceof DBNDatabaseFolder;
+    }
+
+    /**
+     * "Load more…": the folder shows the next page of its children; the first new row is selected.
+     */
+    private void loadMore(@NotNull ExplorerNode moreNode) {
+        if (!(moreNode.getParent() instanceof ExplorerNode parent) || !(moreNode.getUserObject() instanceof MoreItem more)) {
+            return;
+        }
+        parent.shownLimit = more.shown() + ExplorerPreferences.getPageSize();
+        replaceChildrenPreserving(parent, parent.allChildren);
+        if (more.shown() < parent.getChildCount()) {
+            TreePath path = new TreePath(((ExplorerNode) parent.getChildAt(more.shown())).getPath());
+            tree.setSelectionPath(path);
+            tree.scrollPathToVisible(path);
+        }
+    }
+
+    /**
+     * Double click on a row (and the default of Enter on "Load more…"): see the class comment.
+     */
+    private void openDefault(@NotNull TreePath path) {
+        if (!(path.getLastPathComponent() instanceof ExplorerNode node)) {
+            return;
+        }
+        if (node.getUserObject() instanceof MoreItem) {
+            loadMore(node);
+            return;
+        }
+        if (!(node.getUserObject() instanceof DBNNode navigatorNode)) {
+            return;
+        }
+        // SQL Server Agent leaves (job activity, agent log, job properties) and job scheduler leaves and objects (run
+        // history, running jobs, job and event properties) have a command of their own
+        if (agentCommands.openDefault(navigatorNode) || schedulerCommands.openDefault(navigatorNode)) {
+            return;
+        }
+        if (navigatorNode instanceof DBNDataSource dataSourceNode) {
+            switch (ExplorerPreferences.getConnectionDoubleClick()) {
+                case NEW_QUERY -> {
+                    queryWindows.openQuery(dataSourceNode.getDataSourceContainer());
+                    return;
+                }
+                case EDIT_CONNECTION -> {
+                    ConnectionCommands.edit(this, dataSourceNode.getDataSourceContainer());
+                    return;
+                }
+                default -> {
+                    // Expand (connects)
+                }
+            }
+        } else if (isObjectNode(navigatorNode)) {
+            switch (ExplorerPreferences.getObjectDoubleClick()) {
+                case OPEN_EDITOR -> {
+                    if (openEditor(navigatorNode)) {
+                        return;
+                    }
+                }
+                case OPEN_DATA -> {
+                    if (selectTopAction.isEnabled()) {
+                        selectTopAction.actionPerformed(null);
+                        return;
+                    }
+                }
+                default -> {
+                    // Expand
+                }
+            }
+        }
+        if (tree.isExpanded(path)) {
+            tree.collapsePath(path);
+        } else {
+            tree.expandPath(path);
+        }
+    }
+
+    /**
+     * Database objects, not folders, connections, databases or schemas: a double click may open them (the others
+     * expand) and the quick filter hides them (the others stay).
+     */
+    private static boolean isObjectNode(@NotNull DBNNode node) {
+        if (!(node instanceof DBNDatabaseNode databaseNode) || node instanceof DBNDatabaseFolder || node instanceof DBNDataSource) {
+            return false;
+        }
+        DBSObject object = databaseNode.getObject();
+        return object != null && !(object instanceof DBSCatalog || object instanceof DBSSchema || object instanceof DBSInstance);
+    }
+
+    /**
+     * Double click "Open editor": the table designer, the definition script (Modify), else Object Details for an object
+     * with children. The actions are enabled for the double-clicked (selected) node.
+     *
+     * @return false when there is nothing to open (the node expands instead)
+     */
+    private boolean openEditor(@NotNull DBNNode node) {
+        if (designAction.isEnabled()) {
+            designAction.actionPerformed(null);
+            return true;
+        }
+        Action modifyAction = sourceEditCommands.getModifyAction();
+        if (modifyAction.isEnabled()) {
+            modifyAction.actionPerformed(null);
+            return true;
+        }
+        if (node instanceof DBNDatabaseNode databaseNode && hasTreeChildren(databaseNode)) {
+            queryWindows.openObjectDetails(databaseNode);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * The main window's active document changed: its object (a query window's routine or default schema, a designed
+     * table, a diagram's root, a details document's object) and connection. With Link with Editor on, its node is selected.
+     */
+    void activeDocumentChanged(@Nullable DBSObject object, @Nullable DBPDataSourceContainer container) {
+        linkedObject = object;
+        linkedContainer = container;
+        if (ExplorerPreferences.isLinkWithEditor()) {
+            showLinked();
+        }
+    }
+
+    /**
+     * Link with Editor: selects the active document's object, else its connection, without taking the focus. Only
+     * servers opened in this window; the object only while connected (its node exists only after its parent was read).
+     */
+    private void showLinked() {
+        DBPDataSourceContainer container = linkedContainer;
+        if (container == null || servers == null || !servers.contains(container)) {
+            return;
+        }
+        DBNNode target = null;
+        if (linkedObject != null && container.isConnected()) {
+            target = DBWorkbench.getPlatform().getNavigatorModel().getNodeByObject(linkedObject);
+        }
+        if (target == null) {
+            target = DBWorkbench.getPlatform().getNavigatorModel().getNodeByObject(container);
+        }
+        if (target != null && target != getSelectedNavigatorNode()) {
+            revealNode(target, false);
+        }
+    }
+
+    /**
+     * Filter (SSMS Object Explorer filter): include and exclude name masks of the selected folder ({@link ObjectFilterDialog}),
+     * the connection's navigator filter of that object type (saved with the connection, like the SWT navigator filters).
+     * The folder reads its children again; a connection-wide filter makes every loaded folder of that type do so.
      */
     private void filterSelectedFolder() {
         TreePath path = tree.getSelectionPath();
@@ -937,27 +1365,26 @@ final class ObjectExplorerPanel extends JPanel {
             || !(node.getUserObject() instanceof DBNDatabaseFolder folder)) {
             return;
         }
-        DBXTreeItem itemsMeta = folder.getItemsMeta();
-        if (itemsMeta == null) {
+        Boolean global = ObjectFilterDialog.open(this, folder);
+        if (global == null) {
             return;
         }
-        DBSObjectFilter current = folder.getNodeFilter(itemsMeta, true);
-        String currentMask = current != null && current.isEnabled() && current.hasSingleMask() ? current.getSingleMask() : "";
-        Object input = JOptionPane.showInputDialog(this,
-            NLS.bind(CoreMessages.explorer_filter_prompt, folder.getNodeDisplayName()),
-            CoreMessages.explorer_filter_title, JOptionPane.PLAIN_MESSAGE, null, null, currentMask);
-        if (input == null) {
-            return;
+        if (global) {
+            Class<?> childrenClass = folder.getChildrenClass();
+            List<ExplorerNode> folders = new ArrayList<>();
+            Enumeration<TreeNode> nodes = rootNode.breadthFirstEnumeration();
+            while (nodes.hasMoreElements()) {
+                if (nodes.nextElement() instanceof ExplorerNode other && other != node && other.state != LoadState.NOT_LOADED
+                    && other.getUserObject() instanceof DBNDatabaseFolder otherFolder
+                    && otherFolder.getDataSourceContainer() == folder.getDataSourceContainer()
+                    && otherFolder.getChildrenClass() == childrenClass) {
+                    folders.add(other);
+                }
+            }
+            folders.forEach(other -> loadChildren(other, true));
         }
-        String mask = input.toString().trim();
-        DBSObjectFilter filter = null;
-        if (!mask.isEmpty()) {
-            filter = new DBSObjectFilter(mask.contains("%") ? mask : "%" + mask + "%", null); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        }
-        if (folder.setNodeFilter(itemsMeta, filter, true)) {
-            loadChildren(node, true);
-            tree.expandPath(path);
-        }
+        loadChildren(node, true);
+        tree.expandPath(path);
     }
 
     /**
@@ -982,7 +1409,15 @@ final class ObjectExplorerPanel extends JPanel {
      * (as Registered Servers "Object Explorer" does); the walk goes on when the server list is read again ({@link #mergeChildren}).
      */
     void revealNode(@NotNull DBNNode node) {
+        revealNode(node, true);
+    }
+
+    /**
+     * @param focus give the tree the focus at the end (Find Objects, diagrams); Link with Editor leaves it where it is
+     */
+    private void revealNode(@NotNull DBNNode node, boolean focus) {
         revealTarget = node;
+        revealFocus = focus;
         if (node instanceof DBNDatabaseNode databaseNode && servers != null && servers.add(databaseNode.getDataSourceContainer())
             && rootNode.state != LoadState.NOT_LOADED) {
             reloadConnectionList();
@@ -1002,6 +1437,7 @@ final class ObjectExplorerPanel extends JPanel {
             return;
         }
         ExplorerNode current = rootNode;
+        int shownHidden = 0;
         while (true) {
             if (current.state != LoadState.LOADED) {
                 if (current.state == LoadState.NOT_LOADED) {
@@ -1023,6 +1459,11 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
             if (next == null) {
+                // At most twice per level (quick filter, then page): a child that is still missing stops the walk
+                if (shownHidden++ < 2 && showHiddenChild(current, target)) {
+                    // Shown now; look again at the same level
+                    continue;
+                }
                 revealTarget = null;
                 return;
             }
@@ -1031,11 +1472,58 @@ final class ObjectExplorerPanel extends JPanel {
                 TreePath path = new TreePath(next.getPath());
                 tree.setSelectionPath(path);
                 tree.scrollPathToVisible(path);
-                tree.requestFocusInWindow();
+                if (revealFocus) {
+                    tree.requestFocusInWindow();
+                }
                 return;
             }
             current = next;
+            shownHidden = 0;
         }
+    }
+
+    /**
+     * Shows a child of a node that is on the way to a revealed node but not in the tree: past the "Load more…" row (the
+     * folder shows more), or hidden by the quick filter (cleared for an explicit reveal, Link with Editor keeps it).
+     *
+     * @return true if it is in the tree now
+     */
+    private boolean showHiddenChild(@NotNull ExplorerNode node, @NotNull DBNNode target) {
+        if (node.allChildren == null) {
+            return false;
+        }
+        DBNNode hidden = null;
+        for (DBNNode child : node.allChildren) {
+            if (child == target || target.isChildOf(child)) {
+                hidden = child;
+                break;
+            }
+        }
+        if (hidden == null) {
+            return false;
+        }
+        if (isQuickFiltered(node) && !matchesQuickFilter(hidden)) {
+            if (!revealFocus) {
+                return false;
+            }
+            quickFilterField.setText("");
+            applyQuickFilter();
+            return true;
+        }
+        // Past the page: show up to it, whole pages
+        int index = 0;
+        for (DBNNode child : node.allChildren) {
+            if (child == hidden) {
+                break;
+            }
+            if (!isQuickFiltered(node) || matchesQuickFilter(child)) {
+                index++;
+            }
+        }
+        int pageSize = ExplorerPreferences.getPageSize();
+        node.shownLimit = (index / pageSize + 1) * pageSize;
+        replaceChildrenPreserving(node, node.allChildren);
+        return true;
     }
 
     /**
@@ -1179,7 +1667,7 @@ final class ObjectExplorerPanel extends JPanel {
      * in plugin.xml: routine parameters, index and key columns, MySQL system information such as variables, status
      * and engines). The SWT navigator leaves those out of its tree ({@code DBNNode#hasChildren(true)},
      * {@code DBNUtils#filterNavigableChildren}) because it shows them in the object editor's tabs; this application has
-     * no object editor, so the tree is the only place they can be seen.
+     * no object editor, so the tree shows them (Object Details lists them too).
      * <p>
      * Only the navigable condition differs from {@code hasChildren(true)} ({@code DBNDatabaseNode#allowsNavigableChildren}):
      * {@code hasChildren(false)} would also look for the dynamic attributes of struct-typed columns and parameters,
@@ -1232,12 +1720,9 @@ final class ObjectExplorerPanel extends JPanel {
             node.state = LoadState.NOT_LOADED;
             target.loadSerial++;
         }
-        target.removeAllChildren();
-        if (children != null) {
-            for (DBNNode child : children) {
-                target.add(new ExplorerNode(child));
-            }
-        }
+        // Read again: new tree nodes, the first page
+        target.shownLimit = 0;
+        setTreeChildren(target, children, false);
         target.state = LoadState.LOADED;
         treeModel.nodeStructureChanged(target);
         // Connecting may change the node icon (connected state)
@@ -1405,6 +1890,9 @@ final class ObjectExplorerPanel extends JPanel {
         node.loadSerial++;
         node.state = LoadState.NOT_LOADED;
         node.removeAllChildren();
+        node.allChildren = null;
+        node.childNodes = new HashMap<>();
+        node.shownLimit = 0;
         if (node.getUserObject() instanceof DBNNode navigatorNode && hasTreeChildren(navigatorNode)) {
             node.add(new ExplorerNode(LOADING_TEXT));
         }
@@ -1444,38 +1932,7 @@ final class ObjectExplorerPanel extends JPanel {
         if (node.loadSerial != serial || (node != rootNode && node.getParent() == null)) {
             return;
         }
-        TreePath nodePath = new TreePath(node.getPath());
-        List<TreePath> expanded = new ArrayList<>();
-        Enumeration<TreePath> expandedPaths = tree.getExpandedDescendants(nodePath);
-        if (expandedPaths != null) {
-            expanded.addAll(Collections.list(expandedPaths));
-        }
-        TreePath selection = tree.getSelectionPath();
-
-        Map<DBNNode, ExplorerNode> existing = new HashMap<>();
-        for (int i = 0; i < node.getChildCount(); i++) {
-            if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNNode childNode) {
-                existing.put(childNode, child);
-            }
-        }
-        node.removeAllChildren();
-        if (children != null) {
-            for (DBNNode child : children) {
-                ExplorerNode explorerChild = existing.get(child);
-                node.add(explorerChild != null ? explorerChild : new ExplorerNode(child));
-            }
-        }
-        node.state = LoadState.LOADED;
-        treeModel.nodeStructureChanged(node);
-
-        for (TreePath path : expanded) {
-            if (isAttached(path)) {
-                tree.expandPath(path);
-            }
-        }
-        if (selection != null && isAttached(selection)) {
-            tree.setSelectionPath(selection);
-        }
+        replaceChildrenPreserving(node, children);
         if (pendingReveal != null) {
             for (int i = 0; i < node.getChildCount(); i++) {
                 if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNDataSource dataSourceNode
@@ -1496,6 +1953,83 @@ final class ObjectExplorerPanel extends JPanel {
         // Find Objects may have opened the server of its result here (revealNode)
         continueReveal();
         updateActions();
+    }
+
+    /**
+     * Shows a node's children again, keeping the tree nodes that are still there with their children, expansion and
+     * selection (a reload from the model, the quick filter, "Load more…").
+     */
+    private void replaceChildrenPreserving(@NotNull ExplorerNode node, @Nullable DBNNode[] children) {
+        TreePath nodePath = new TreePath(node.getPath());
+        List<TreePath> expanded = new ArrayList<>();
+        Enumeration<TreePath> expandedPaths = tree.getExpandedDescendants(nodePath);
+        if (expandedPaths != null) {
+            expanded.addAll(Collections.list(expandedPaths));
+        }
+        TreePath[] selection = tree.getSelectionPaths();
+
+        setTreeChildren(node, children, true);
+        node.state = LoadState.LOADED;
+        treeModel.nodeStructureChanged(node);
+
+        for (TreePath path : expanded) {
+            if (isAttached(path)) {
+                tree.expandPath(path);
+            }
+        }
+        if (selection != null) {
+            List<TreePath> kept = Arrays.stream(selection).filter(this::isAttached).toList();
+            if (!kept.isEmpty()) {
+                tree.setSelectionPaths(kept.toArray(new TreePath[0]));
+            }
+        }
+    }
+
+    /**
+     * Puts a node's children into the tree: in an object folder those that pass the quick filter, up to the node's page
+     * ({@link ExplorerNode#shownLimit}), then a "Load more…" row when some are left.
+     *
+     * @param reuse keep the tree nodes of children that are still there (with their children); false after a read
+     *              from the database, whose children are new navigator nodes anyway
+     */
+    private void setTreeChildren(@NotNull ExplorerNode node, @Nullable DBNNode[] children, boolean reuse) {
+        Map<DBNNode, ExplorerNode> previous = reuse ? node.childNodes : Map.of();
+        node.allChildren = children;
+        node.childNodes = new HashMap<>();
+        node.removeAllChildren();
+        if (children == null) {
+            node.matchedCount = 0;
+            return;
+        }
+        boolean filtered = isQuickFiltered(node);
+        List<DBNNode> matched = new ArrayList<>(children.length);
+        for (DBNNode child : children) {
+            if (!filtered || matchesQuickFilter(child)) {
+                matched.add(child);
+            } else if (previous.containsKey(child)) {
+                // Hidden by the quick filter: keep its tree node (and what it read) for when it shows again
+                node.childNodes.put(child, previous.get(child));
+            }
+        }
+        node.matchedCount = matched.size();
+        int limit = node.shownLimit > 0 ? node.shownLimit : ExplorerPreferences.getPageSize();
+        int shown = Math.min(limit, matched.size());
+        for (int i = 0; i < matched.size(); i++) {
+            DBNNode child = matched.get(i);
+            ExplorerNode treeNode = previous.get(child);
+            if (i < shown) {
+                if (treeNode == null) {
+                    treeNode = new ExplorerNode(child);
+                }
+                node.add(treeNode);
+            }
+            if (treeNode != null) {
+                node.childNodes.put(child, treeNode);
+            }
+        }
+        if (shown < matched.size()) {
+            node.add(new ExplorerNode(new MoreItem(shown, matched.size())));
+        }
     }
 
     /**
@@ -1526,11 +2060,29 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
-     * Tree node holding a navigator node, or a text for placeholders ("Loading…", "No active project").
+     * Tree node holding a navigator node, or a text for placeholders ("Loading…", "No active project"), or a
+     * {@link MoreItem}.
      */
     private static final class ExplorerNode extends DefaultMutableTreeNode {
         private LoadState state = LoadState.NOT_LOADED;
         private int loadSerial;
+        /**
+         * All children as read (the tree shows those that pass the quick filter, up to {@link #shownLimit}); null until read.
+         */
+        @Nullable
+        private DBNNode[] allChildren;
+        /**
+         * The tree nodes made for the children, also for the ones the quick filter hides now.
+         */
+        private Map<DBNNode, ExplorerNode> childNodes = new HashMap<>();
+        /**
+         * Children shown before the "Load more…" row; 0 for one page.
+         */
+        private int shownLimit;
+        /**
+         * Children that pass the quick filter (the folder's count).
+         */
+        private int matchedCount;
 
         ExplorerNode(@NotNull Object userObject) {
             super(userObject);
@@ -1660,7 +2212,14 @@ final class ObjectExplorerPanel extends JPanel {
             setIconTextGap(UiSizes.get(UiSizes.TREE_ICON_TEXT_GAP));
             secondaryText = null;
             pill = null;
+            // The tree's font; the main session's default database or schema in bold (SWT navigator)
+            setFont(null);
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
+                if (navigatorNode instanceof DBNDatabaseNode databaseNode
+                    && (databaseNode.getObject() instanceof DBSCatalog || databaseNode.getObject() instanceof DBSSchema)
+                    && DBNUtils.isDefaultElement(navigatorNode)) {
+                    setFont(tree.getFont().deriveFont(Font.BOLD));
+                }
                 if (navigatorNode instanceof DBNDataSource dataSourceNode) {
                     pill = ConnectionPill.of(dataSourceNode.getDataSourceContainer());
                     if (pill != null) {
@@ -1673,6 +2232,14 @@ final class ObjectExplorerPanel extends JPanel {
                 setToolTipText(navigatorNode.getNodeDescription());
                 TableStorageStyle.apply(this, navigatorNode);
                 secondaryText = getSecondaryText(node, navigatorNode);
+            } else if (value instanceof ExplorerNode node && node.getUserObject() instanceof MoreItem) {
+                // "Load more…": a command row in text.secondary (SWT TreeNodeLazyExpander)
+                setIcon(UiIcons.get("more")); //$NON-NLS-1$
+                setToolTipText(ObjectExplorerMessages.oe_load_more_tip);
+                if (!selected) {
+                    Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+                    setForeground(color != null ? color : getForeground());
+                }
             } else {
                 // Placeholder text
                 setIcon(null);
@@ -1704,9 +2271,18 @@ final class ObjectExplorerPanel extends JPanel {
                 }
                 return CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
             }
-            if (navigatorNode instanceof DBNDatabaseFolder) {
-                // Count of the objects read so far (not the "Loading…" placeholder)
-                return node.state == LoadState.LOADED && node.getChildCount() > 0 ? String.valueOf(node.getChildCount()) : null;
+            if (navigatorNode instanceof DBNDatabaseFolder folder) {
+                // Count of the objects read so far ("shown/all" while the quick filter hides some), and whether the
+                // connection's object filter left some out
+                String count = null;
+                if (node.state == LoadState.LOADED && node.allChildren != null && node.allChildren.length > 0) {
+                    int total = node.allChildren.length;
+                    count = node.matchedCount != total ? node.matchedCount + "/" + total : String.valueOf(total); //$NON-NLS-1$
+                }
+                if (node.state == LoadState.LOADED && folder.isFiltered()) {
+                    return count == null ? ObjectExplorerMessages.oe_filtered : count + " · " + ObjectExplorerMessages.oe_filtered; //$NON-NLS-1$
+                }
+                return count;
             }
             if (navigatorNode instanceof DBNDatabaseNode databaseNode && databaseNode.getObject() instanceof DBSEntityAttribute attribute) {
                 return CommonUtils.nullIfEmpty(attribute.getFullTypeName());

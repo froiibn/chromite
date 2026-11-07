@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
@@ -82,6 +83,8 @@ import java.util.Objects;
  *   (docs/chromite/swing-options.md)
  * - 2026-11-08 General 탭의 Query Results 절을 Query Results 탭({@link ResultSetOptionsPage})으로 옮김. Data Formats·Errors and Timeouts·Metadata·
  *   Client Identification 탭. 탭을 왼쪽 목록으로 (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 General 탭의 Object Explorer 절: 두 번 클릭(객체, 연결), 긴 폴더에 한 번에 보일 객체 수({@link ExplorerPreferences})
+ *   (docs/chromite/swing-explorer-productivity.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -132,6 +135,12 @@ final class OptionsDialog extends JDialog {
     private final JSpinner libraryHistoryRunsSpinner;
     private final JSpinner libraryHistoryDaysSpinner;
     private final JSpinner libraryRefreshSpinner;
+    // General tab: Object Explorer
+    private final JComboBox<ExplorerPreferences.ObjectDoubleClick> objectDoubleClickCombo = new JComboBox<>(ExplorerPreferences.ObjectDoubleClick.values());
+    private final JComboBox<ExplorerPreferences.ConnectionDoubleClick> connectionDoubleClickCombo =
+        new JComboBox<>(ExplorerPreferences.ConnectionDoubleClick.values());
+    private final JSpinner explorerPageSizeSpinner = new JSpinner(new SpinnerNumberModel(ExplorerPreferences.getPageSize(),
+        ExplorerPreferences.MIN_PAGE_SIZE, ExplorerPreferences.MAX_PAGE_SIZE, 100));
 
     private OptionsDialog(@NotNull Frame owner) {
         super(owner, CoreMessages.options_title, true);
@@ -162,6 +171,14 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, CoreMessages.options_environment);
         row = addRow(form, row, CoreMessages.options_theme, themeCombo, null);
         row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
+        row = addSection(form, row, ObjectExplorerMessages.oe_options_section);
+        objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
+        objectDoubleClickCombo.setRenderer(new LabelRenderer());
+        connectionDoubleClickCombo.setSelectedItem(ExplorerPreferences.getConnectionDoubleClick());
+        connectionDoubleClickCombo.setRenderer(new LabelRenderer());
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_object_dblclick, objectDoubleClickCombo, null);
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_connection_dblclick, connectionDoubleClickCombo, null);
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_page_size, explorerPageSizeSpinner, ObjectExplorerMessages.oe_options_page_size_hint);
         row = addSection(form, row, CoreMessages.options_query_editor);
         row = addRow(form, row, null, autoCompleteBox, null);
         row = addRow(form, row, CoreMessages.options_completion_delay, delaySpinner, CoreMessages.options_completion_delay_hint);
@@ -484,6 +501,14 @@ final class OptionsDialog extends JDialog {
         }
         oraclePage.apply();
         connectionTypesPage.apply(getOwner());
+        if (objectDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ObjectDoubleClick objectDoubleClick
+            && connectionDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ConnectionDoubleClick connectionDoubleClick) {
+            int pageSize = ((Number) explorerPageSizeSpinner.getValue()).intValue();
+            if (objectDoubleClick != ExplorerPreferences.getObjectDoubleClick() || connectionDoubleClick != ExplorerPreferences.getConnectionDoubleClick()
+                || pageSize != ExplorerPreferences.getPageSize()) {
+                ExplorerPreferences.save(objectDoubleClick, connectionDoubleClick, pageSize);
+            }
+        }
         int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();
         if (historyDays != QueryHistory.getRetentionDays()) {
             QueryHistory.setRetentionDays(historyDays);
@@ -584,6 +609,10 @@ final class OptionsDialog extends JDialog {
                 setText(theme.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
+            } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {
+                setText(action.getLabel());
+            } else if (value instanceof ExplorerPreferences.ConnectionDoubleClick action) {
+                setText(action.getLabel());
             }
             return this;
         }
