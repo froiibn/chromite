@@ -114,7 +114,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
-| 49 | 객체 비교(Compare/Migrate > Simple compare: 두 개 이상 객체의 속성·구조 비교 보고서, 파일 출력) | `CompareObjectsHandler`, `CompareObjectsWizard` (명령 `com.seizia.chromite.core.compare.simple`) | 없음 | swt-removal.md:110. `ui.swing`에서 `CompareObjects`·`cmp.simple` grep 0. 모델 번들 `cmp.simple`은 `runtime.feature`에 있어 제품에 들어 있지만 쓰는 곳 없음 | 중간 | |
+| 49 | 객체 비교(Compare/Migrate > Simple compare: 두 개 이상 객체의 속성·구조 비교 보고서, 파일 출력) | `CompareObjectsHandler`, `CompareObjectsWizard` (명령 `com.seizia.chromite.core.compare.simple`) | 일부(2026-11-08) | 조사 당시: swt-removal.md:110, `ui.swing`에서 `CompareObjects`·`cmp.simple` grep 0. 2026-11-08 Schema Compare(Tools > Compare Schemas…, 두 스키마의 구조 비교와 마이그레이션 스크립트, `cmp.simple`의 새 패키지 `tools.compare.schema`)를 더함([schema-compare.md](../schema-compare.md)). 여러 객체의 속성 보고서·HTML 파일 출력은 없음 | 중간 | Schema Compare는 SWT CE에 없던 기능(상용판 기능)이다 |
 
 ## 7. `net.ssh.ui`
 
@@ -152,14 +152,15 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | 상태 | 수 | 번호 |
 |---|---|---|
-| 있음 | 16 | 1, 2, 3, 10, 11, 17, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 19 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60, 64 |
-| 없음 | 26 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63 |
+| 있음 | 17 | 1, 2, 3, 10, 11, 17, 27, 28, 29, 31, 34, 35, 45, 48, 50, 55, 62 |
+| 일부 | 20 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 49, 51, 57, 59, 60, 64 |
+| 없음 | 24 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 30, 32, 33, 39, 40, 41, 43, 46, 52, 53, 56, 63 |
 | 의도적 제외 | 1 | 61 |
 | 조용히 끊김 | 2 | 54, 58 |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
 64(GIS)는 2026-11-08 결과 공간 보기로 일부가 되었다([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)).
+29(데이터 검색)는 2026-11-08 옮겼고([swing-data-search.md](../swing-data-search.md)), 49는 Schema Compare로 일부가 되었다([schema-compare.md](../schema-compare.md)). 위 집계는 행 상태에서 다시 센 것이다.
 조사 당시 없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 
@@ -175,7 +176,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39)
 7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44)
 8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29) — 2026-11-08 옮김([swing-data-search.md](../swing-data-search.md))
-9. 객체 비교(Simple compare) 없음 (#49)
+9. 객체 비교(Simple compare) 없음 (#49) — 2026-11-08 Schema Compare(구조 비교·마이그레이션 스크립트)를 더해 일부가 됨([schema-compare.md](../schema-compare.md))
 10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22)
 
 그다음: 범용 새 객체 만들기 일부(#14), 필터 편집 일부(#4), 테이블 복사 고급 옵션(#36), 편집기 안 AI 번역(#57), 객체 편집기(#15, 편집기 영역과 겹침).

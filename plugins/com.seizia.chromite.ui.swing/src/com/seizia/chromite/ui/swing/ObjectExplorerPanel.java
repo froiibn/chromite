@@ -22,6 +22,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DataSearchMessages;
@@ -214,6 +215,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 SQL Server 프로시저의 Trace Execution… 메뉴({@link ExecutionTraceCommands}, docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 Search Data… 메뉴(여러 테이블의 값 찾기, {@link DataSearchPanel}) (docs/chromite/swing-data-search.md)
+ * - 2026-11-08 Compare Schemas… 메뉴({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -322,6 +324,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action maintenanceAction;
     private final Action findObjectsAction;
     private final Action searchDataAction;
+    private final Action compareSchemasAction;
     private final Action designAction;
     private final Action newTableAction;
     private final Action viewDiagramAction;
@@ -461,6 +464,8 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         searchDataAction.putValue(Action.SHORT_DESCRIPTION, DataSearchMessages.datasearch_command_tip);
+        compareSchemasAction = createAction(CompareMessages.compare_command, () -> SchemaComparePanel.open(queryWindows, getSelectedNavigatorNode()));
+        compareSchemasAction.putValue(Action.SHORT_DESCRIPTION, CompareMessages.compare_command_tip);
         designAction = createAction(CoreMessages.explorer_design, () -> {
             if (getSelectedObject() instanceof DBSEntity table) {
                 queryWindows.designTable(table);
@@ -668,6 +673,7 @@ final class ObjectExplorerPanel extends JPanel {
         adminViewActions.forEach(popupMenu::add);
         popupMenu.add(findObjectsAction);
         popupMenu.add(searchDataAction);
+        popupMenu.add(compareSchemasAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
         popupMenu.add(objectCommands.getCopyNameAction());
@@ -902,6 +908,7 @@ final class ObjectExplorerPanel extends JPanel {
         adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
         findObjectsAction.setEnabled(projectNode != null);
         searchDataAction.setEnabled(DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null);
+        compareSchemasAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);

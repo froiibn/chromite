@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
@@ -209,6 +210,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 Tools &gt; Compare Schemas… ({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1681,6 +1683,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem compareSchemasItem = new JMenuItem(CompareMessages.compare_command);
+        compareSchemasItem.setToolTipText(CompareMessages.compare_command_tip);
+        compareSchemasItem.addActionListener(e -> SchemaComparePanel.open(this, explorerPanel.getSelectedNode()));
         JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
         driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
         driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
@@ -1692,6 +1697,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(openTransactionsItem);
         toolsMenu.add(findObjectsItem);
+        toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);
