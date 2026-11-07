@@ -33,6 +33,10 @@ import java.util.Map;
 
 /**
  * KeepAlivePingJob
+ *
+ * 변경 이력:
+ * - 2026-11-07 끊긴 문맥을 찾아도 다시 연결이 열린 트랜잭션을 끝내게 되면 다시 연결하지 않고 알림
+ *   ({@link TransactionRecoveryGuard}, docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  */
 class KeepAlivePingJob extends AbstractJob {
     private static final Log log = Log.getLog(KeepAlivePingJob.class);
@@ -53,19 +57,23 @@ class KeepAlivePingJob extends AbstractJob {
     @NotNull
     @Override
     protected IStatus run(@NotNull DBRProgressMonitor monitor) {
-        boolean hasDeadContexts = false;
+        Exception deadContextError = null;
         for (final DBSInstance instance : dataSource.getAvailableInstances()) {
             for (final DBCExecutionContext context : instance.getAllContexts()) {
                 try {
                     context.checkContextAlive(monitor);
                 } catch (Exception e) {
                     log.debug("Context [" + dataSource.getName() + "::" + context.getContextName() + "] check failed: " + e.getMessage());
-                    hasDeadContexts = true;
+                    deadContextError = e;
                     break;
                 }
             }
         }
-        if (hasDeadContexts) {
+        if (deadContextError != null && TransactionRecoveryGuard.holdReconnect(dataSource, deadContextError, null, true)) {
+            // Reconnecting would end open transactions without asking: leave the connection as it is, the user was told
+            return Status.OK_STATUS;
+        }
+        if (deadContextError != null) {
             // Invalidate whole datasource. Do not log errors (as it can spam tons of logs)
             final List<InvalidateJob.ContextInvalidateResult> results = InvalidateJob.invalidateDataSource(
                 monitor,
