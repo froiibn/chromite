@@ -21,8 +21,10 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.oracle.model.OracleConstants;
 import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
 import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
 import com.seizia.chromite.ext.oracle.oci.OCIUtils;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.fs.DBFUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -31,10 +33,13 @@ import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.registry.task.TaskPreferenceStore;
 import com.seizia.chromite.tasks.nativetool.AbstractNativeToolHandler;
+import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.RuntimeUtils;
+import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,6 +50,16 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Runs a script file with SQL*Plus for the oracleScriptExecute task.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 암호를 명령줄에 넣지 않는다. 전에는 {@code user/"password"@url}을 SQL*Plus 인수로 넘겨서 이 컴퓨터의
+ *   다른 사용자가 프로세스 목록에서 암호를 볼 수 있었고, 실행 로그의 명령줄 가리기({@code NativeToolUtils.isSecureString}, 암호로 끝나는
+ *   인수만 가림)도 이 인수를 가리지 못했다. 이제 {@code sqlplus /nolog}로 시작하고 로그온 명령({@link #getLogonScript})을 표준 입력으로
+ *   스크립트 앞에 보낸다. 로그온이 실패하면 스크립트를 실행하지 않고 실패로 끝나도록 {@code WHENEVER SQLERROR EXIT FAILURE}로 감싸고,
+ *   스키마를 골랐으면 그 스키마를 현재 스키마로 정한다 (docs/chromite/swing-database-tasks.md "네이티브 클라이언트로 스크립트 실행")
+ */
 public class OracleScriptExecuteHandler extends AbstractNativeToolHandler<OracleScriptExecuteSettings, DBSObject, OracleDataSource> {
 
     @Override
@@ -83,6 +98,19 @@ public class OracleScriptExecuteHandler extends AbstractNativeToolHandler<Oracle
     protected List<String> getCommandLine(OracleScriptExecuteSettings settings, OracleDataSource arg) throws IOException {
         List<String> cmd = new ArrayList<>();
         fillProcessParameters(settings, arg, cmd);
+        // The logon goes through the standard input (startProcessHandler): arguments are visible in the process list
+        cmd.add("/nolog"); //$NON-NLS-1$
+        return cmd;
+    }
+
+    /**
+     * SQL*Plus commands sent through the standard input before the script: log on (a failed logon exits with a failure
+     * code instead of running the script without a session), then the default error handling again, and the chosen schema
+     * as the current schema.
+     *
+     * @param maskPassword replace the password with asterisks (to show the commands)
+     */
+    public String getLogonScript(OracleScriptExecuteSettings settings, boolean maskPassword) throws IOException {
         DBPConnectionConfiguration conInfo = settings.getDataSourceContainer().getActualConnectionConfiguration();
         String url;
         String walletLocation = conInfo.getAuthProperty("oracle.wallet.dir");
@@ -138,17 +166,15 @@ public class OracleScriptExecuteHandler extends AbstractNativeToolHandler<Oracle
         if (role != null) {
             url += (" AS " + role);
         }
-        cmd.add(conInfo.getUserName() + "/\"" + conInfo.getUserPassword() + "\"@" + url + ""); //$NON-NLS-1$ //$NON-NLS-2$
-/*
-
-        if (toolWizard.isVerbose()) {
-            cmd.add("-v");
+        String password = maskPassword ? "******" : conInfo.getUserPassword(); //$NON-NLS-1$
+        StringBuilder script = new StringBuilder();
+        script.append("WHENEVER SQLERROR EXIT FAILURE\n"); //$NON-NLS-1$
+        script.append("CONNECT ").append(conInfo.getUserName()).append("/\"").append(CommonUtils.notEmpty(password)).append("\"@").append(url).append('\n'); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        script.append("WHENEVER SQLERROR CONTINUE NONE\n"); //$NON-NLS-1$
+        if (!settings.getDatabaseObjects().isEmpty() && settings.getDatabaseObjects().get(0) instanceof OracleSchema schema) {
+            script.append("ALTER SESSION SET CURRENT_SCHEMA = ").append(DBUtils.getQuotedIdentifier(schema)).append(";\n"); //$NON-NLS-1$ //$NON-NLS-2$
         }
-        cmd.add("-q");
-
-        cmd.add(toolWizard.getDatabaseObjects().getName());
-*/
-        return cmd;
+        return script.toString();
     }
 
     private static String extractServiceName(String descriptor) {
@@ -185,7 +211,11 @@ public class OracleScriptExecuteHandler extends AbstractNativeToolHandler<Oracle
             throw new IOException("File '" + inputFile + "' doesn't exist");
         }
         super.startProcessHandler(monitor, task, settings, arg, processBuilder, process, log);
-        new BinaryFileTransformerJob(monitor, task, inputFile, process.getOutputStream(), log).start();
+        // The logon commands first, then the script through the same stream (the job closes it at the end)
+        OutputStream input = process.getOutputStream();
+        input.write(getLogonScript(settings, false).getBytes(GeneralUtils.getDefaultConsoleEncoding()));
+        input.flush();
+        new BinaryFileTransformerJob(monitor, task, inputFile, input, log).start();
     }
 
     public static String patchWalletDirectory(String descriptor, String walletDir) {

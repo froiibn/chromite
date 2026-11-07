@@ -33,13 +33,16 @@ import com.seizia.chromite.model.connection.DBPNativeClientLocation;
 import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.task.*;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ProgressStreamReader;
+import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
 import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
 import com.seizia.chromite.tasks.nativetool.messages.NativeToolMessages;
 import com.seizia.chromite.utils.GeneralUtils;
@@ -59,6 +62,10 @@ import java.util.*;
  * 변경 이력:
  * - 2026-11-07 Chromite: {@link DumpCopierJob}이 아무것도 받지 못한 출력 파일(0바이트)을 지움. 도구가 출력 없이 실패하면
  *   빈 파일이 남아 MySQL 백업을 같은 이름으로 다시 실행할 수 없었다 (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
+ * - 2026-11-08 Chromite: 저장된 작업(임시 작업이 아닌 것)은 도구를 시작하기 전에 실제로 실행할 명령줄을 셸 명령 승인
+ *   ({@link UIServiceShellCommands#validate})으로 묻는다({@link #approveSavedTaskCommand}). 저장된 작업의 설정은 사용자가 방금 입력한
+ *   것이 아니므로 연결 이벤트 명령과 같이 다룬다. 대화상자와 Chromite Agent 도구가 만든 임시 작업은 묻지 않는다(사용자가 그 자리에서
+ *   설정을 보고 실행함) (docs/chromite/shell-command-approval.md "저장된 네이티브 도구 작업")
  */
 public abstract class AbstractNativeToolHandler<SETTINGS extends AbstractNativeToolSettings<BASE_OBJECT>, BASE_OBJECT extends DBSObject, PROCESS_ARG> implements DBTTaskHandler, DBTTaskImportTransformer {
 
@@ -226,6 +233,9 @@ public abstract class AbstractNativeToolHandler<SETTINGS extends AbstractNativeT
         try {
             monitor.subTask("Start native tool " + getClass().getSimpleName());
             final List<String> commandLine = getCommandLine(settings, arg);
+            if (!task.isTemporary()) {
+                approveSavedTaskCommand(task, settings, commandLine);
+            }
             final File execPath = new File(commandLine.get(0));
 
             ProcessBuilder processBuilder = new ProcessBuilder(commandLine);
@@ -267,6 +277,48 @@ public abstract class AbstractNativeToolHandler<SETTINGS extends AbstractNativeT
             monitor.done();
         }
         return CommonUtils.isEmpty(taskErrorMessage);
+    }
+
+    /**
+     * Asks the user to approve the exact command line of a saved task before the tool starts (the same approval as the
+     * connection event commands). The password is not in the command line of the PostgreSQL and MySQL tools; anything
+     * that ends with a password is masked as in the run log. A script run shows its script file as an input redirection.
+     *
+     * @throws InterruptedException the user declined: the run stops as when a task confirmation is declined
+     */
+    private void approveSavedTaskCommand(@NotNull DBTTask task, @NotNull SETTINGS settings, @NotNull List<String> commandLine)
+        throws InterruptedException {
+        StringBuilder text = new StringBuilder();
+        for (String arg : commandLine) {
+            if (NativeToolUtils.isSecureString(settings, arg)) {
+                arg = "******"; //$NON-NLS-1$
+            }
+            if (!text.isEmpty()) {
+                text.append(' ');
+            }
+            text.append(arg.isEmpty() || arg.indexOf(' ') >= 0 ? "\"" + arg + "\"" : arg); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        if (settings instanceof AbstractScriptExecuteSettings<?> script && !CommonUtils.isEmpty(script.getInputFile())) {
+            // A script run gets its script through the standard input, not in the arguments: which file runs is part of what is approved
+            text.append(" < ").append(script.getInputFile()); //$NON-NLS-1$
+        }
+        DBRShellCommand command = new DBRShellCommand(text.toString());
+        command.setWorkingDirectory(new File(commandLine.get(0)).getParent());
+        Map<String, String> context = new LinkedHashMap<>();
+        context.put(ModelMessages.model_shell_command_context_project, task.getProject().getDisplayName());
+        context.put(ModelMessages.model_shell_command_context_task, task.getName() + " (" + task.getType().getName() + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+        DBPDataSourceContainer container = settings.getDataSourceContainer();
+        if (container != null) {
+            context.put(ModelMessages.model_shell_command_context_connection, container.getName());
+        }
+        context.put(ModelMessages.model_shell_command_context_event, ModelMessages.model_shell_command_event_saved_task);
+        try {
+            UIServiceShellCommands.validate(command, UIServiceShellCommands.getTaskScope(task), context);
+        } catch (DBException e) {
+            InterruptedException declined = new InterruptedException(e.getMessage());
+            declined.initCause(e);
+            throw declined;
+        }
     }
 
     public void validateErrorCode(int exitCode) throws IOException {

@@ -23,6 +23,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.runtime.DBRShellCommand;
+import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -46,6 +47,8 @@ import java.util.Map;
  * - 2026-11-07 승인 범위 인자와 fail-closed {@link #validate} 추가. 호출부가 없는 {@code isShellCommandExecutionEnabled},
  *   {@code addConfirmedCommand}, {@code FEATURE_CONNECTION_SHELL_COMMANDS} 삭제(SWT 연결 이벤트 편집 화면만 썼다)
  *   (docs/chromite/shell-command-approval.md)
+ * - 2026-11-08 {@link #getTaskScope}: 저장된 네이티브 도구 작업(백업, 복원, 스크립트 실행)의 명령줄 승인 범위
+ *   (docs/chromite/shell-command-approval.md "저장된 네이티브 도구 작업")
  */
 public interface UIServiceShellCommands {
 
@@ -98,6 +101,21 @@ public interface UIServiceShellCommands {
             return null;
         }
         return "connection:" + projectPath.toAbsolutePath().normalize() + "|" + id;
+    }
+
+    /**
+     * Approval scope of a saved task: its project folder and ID. An approval given for one task does not apply to another
+     * task that runs the same command, nor to a task imported from another workspace.
+     *
+     * @return {@code null} when the task has no stable identity (a temporary task)
+     */
+    @Nullable
+    static String getTaskScope(@NotNull DBTTask task) {
+        Path projectPath = task.getProject().getAbsolutePath();
+        if (task.isTemporary() || projectPath == null) {
+            return null;
+        }
+        return "task:" + projectPath.toAbsolutePath().normalize() + "|" + task.getId();
     }
 
     /**

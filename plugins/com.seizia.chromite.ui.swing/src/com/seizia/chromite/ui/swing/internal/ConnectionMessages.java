@@ -45,6 +45,7 @@ import org.eclipse.osgi.util.NLS;
  *   {@code driver_firebird_*}, {@code driver_mimer_*}), 인증 칸({@code auth_bigquery_*}, {@code auth_snowflake_*}, {@code auth_spanner_*},
  *   {@code auth_key_file}), SSL({@code ssl_proxy_server*}, {@code ssl_clickhouse_mode_tip}, {@code ssl_enable_only})
  *   (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-08 로컬 클라이언트({@code settings_local_client*}) (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -147,6 +148,10 @@ public class ConnectionMessages extends NLS {
     public static String settings_color_dialog;
     public static String settings_bootstrap;
     public static String settings_bootstrap_edit_count;
+    public static String settings_local_client;
+    public static String settings_local_client_none;
+    public static String settings_local_client_missing;
+    public static String settings_local_client_tip;
     public static String settings_keep_alive;
     public static String settings_keep_alive_tip;
     public static String settings_close_idle;

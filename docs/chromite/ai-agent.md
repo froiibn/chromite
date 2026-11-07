@@ -785,8 +785,8 @@ DANGEROUS 5)다. SQL Server의 `backupDatabase`·`restoreDatabase`(서버가 서
 - **같은 실행 경로**: Swing 백업·복원 대화상자의 모델 부분을 `model.admin`의 `NativeBackupRestore`로 옮겨 대화상자와 도구가 함께 쓴다
   ([swing-backup-restore.md](swing-backup-restore.md)). DBeaver 네이티브 도구 작업(`tasks.native`)의 설정 객체를 인수로 채우고 임시 작업에 저장한 뒤 작업 형식의
   처리기를 부른다. pg_restore 종료 코드 1(오류 있음, 로그인 실패도 같음)은 실패로 본다(대화상자와 같은 `CheckedPostgreRestore`).
-- **로컬 클라이언트**: 연결의 로컬 클라이언트 설정(`clientHomeId`)만 쓴다. Swing에서는 Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…의
-  로컬 클라이언트 페이지에서 고르고, 그 대화상자를 실행할 때 연결에 저장된다. 설정이 없거나, 내려받는 클라이언트(`RemoteNativeClientLocation`)를 가리키거나,
+- **로컬 클라이언트**: 연결의 로컬 클라이언트 설정(`clientHomeId`)만 쓴다. Swing에서는 연결 편집기의 연결 속성 &gt; 로컬 클라이언트(2026-11-08)나
+  Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…의 로컬 클라이언트 페이지에서 고른다(대화상자는 실행할 때 연결에 저장). 설정이 없거나, 내려받는 클라이언트(`RemoteNativeClientLocation`)를 가리키거나,
   그 폴더가 없어졌거나, 도구가 그 폴더에 없으면 실행하지 않고 무엇을 하면 되는지와 이 컴퓨터에서 찾은 클라이언트 폴더를 알린다. 클라이언트를 내려받지 않는다.
   모델이 실행 파일 폴더를 인수로 고르게 하지 않았다(모델이 고른 실행 파일을 돌리는 길을 만들지 않으려는 것).
 - **비밀**: 암호는 명령줄에 없다. 처리기가 PostgreSQL은 `PGPASSWORD`, MySQL은 `MYSQL_PWD` 환경 변수로 넘긴다(Swing 대화상자와 같음). 확인 요청의 미리 보기와
@@ -996,14 +996,16 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **AI 키 저장의 남은 점**: macOS 키체인은 Mac이 없어 실행해 보지 못했다(첫 접근 때 키체인 허용 질문이 뜰 수 있다). OpenAI 계정 토큰(`AIUtils.setAccountToken`)은
   OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
-- **PostgreSQL·MySQL 백업·복원 도구의 남은 점(2026-11-08)**: 연결의 로컬 클라이언트는 아직 백업·복원 대화상자를 실행할 때만 저장된다(연결 편집 화면에
-  칸이 없음, swt-parity D-db-specific P6). 확인 대화상자의 미리 보기 제목은 "실행할 SQL"인데 이 도구에서는 명령줄이다. 기존 `backupDatabase`·`restoreDatabase`를
+- **PostgreSQL·MySQL 백업·복원 도구의 남은 점(2026-11-08)**: ~~연결의 로컬 클라이언트는 아직 백업·복원 대화상자를 실행할 때만 저장된다(연결 편집 화면에
+  칸이 없음, swt-parity D-db-specific P6).~~ 2026-11-08 연결 편집기의 연결 속성에 로컬 클라이언트 칸을 더했고 도구의 안내 문구도 그 칸을 가리킨다
+  ([swing-database-tasks.md](swing-database-tasks.md)). 확인 대화상자의 미리 보기 제목은 "실행할 SQL"인데 이 도구에서는 명령줄이다. 기존 `backupDatabase`·`restoreDatabase`를
   SQL Server가 아닌 연결로 MCP에서 부르면 확인을 먼저 묻고 실행할 때 거절한다(미리 보기가 DB 종류를 보지 않음, 채팅은 도구 고르기로 보내지 않음).
   MySQL 8 서버와 mysqldump 8은 이 PC에 없어 MariaDB로만 확인했다.
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
 
+- 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
 - 2026-11-08 `getActualPlan`(Oracle)의 첫 키워드 찾기: 앞 공백·`--` 주석·블록 주석은 반복문(`PlanTools.skipLeadingComments`)으로 건너뛰고 정규식은 그 자리의
   키워드만 본다. 주석 본문 패턴의 그룹이 글자마다 반복되어 약 2,000자 넘는 머리 주석에서 `StackOverflowError`가 났다(ReDoS 수정 뒤 남은 문제).
   동작은 같다(옛 정규식과 무작위 입력 30만 개 비교). 회귀 테스트 `PlanToolsOracleHintTest`(10만 자 주석·공백, ReDoS 입력 3만 번),

@@ -29,6 +29,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-dashboard.md](swing-dashboard.md) | Swing 서버 대시보드(Activity Monitor 개요 탭): 연결별 실시간 차트(세션, 초당 트랜잭션·요청, CPU, I/O, 잠금·대기, 캐시 적중률), 갱신 로직의 모델 번들 이전, Java2D 차트를 고른 이유 |
 | [swing-data-transfer.md](swing-data-transfer.md) | Swing 데이터 가져오기·내보내기 마법사(Export Data: 테이블·뷰·결과 표 → 모든 스트림 형식, Import Data: CSV → 기존 테이블, Copy Tables: 다른 연결·DB로 테이블 복사), 모델 실행 경로와 SWT 대비 변경점 |
 | [swing-backup-restore.md](swing-backup-restore.md) | Swing 데이터베이스 백업·복원(Tasks ▸ Back Up… / Restore…): SQL Server T-SQL 대화상자(진행 메시지, 복원 계획, 파일 위치), PostgreSQL·MySQL 로컬 클라이언트 도구 |
+| [swing-database-tasks.md](swing-database-tasks.md) | Swing 저장된 작업(Database Tasks 보기: 목록·실행·편집·삭제·마지막 결과와 로그, 작업으로 저장), 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus: 별도 세션, 실행 전 명령줄 확인, SQL*Plus 암호를 표준 입력으로), 저장된 네이티브 작업의 명령줄 승인, 연결 편집기의 로컬 클라이언트 |
 | [swing-result-viewer.md](swing-result-viewer.md) | Swing 결과 뷰어: 값 패널(JSON·XML·이미지·16진수), 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 선택 집계 |
 | [swing-grid-editing.md](swing-grid-editing.md) | Swing 결과 그리드 편집: 저장하고 커밋(수동 커밋), 변경 미리 보기, 행 복제·위아래 값 복사·기본값·셀 되돌리기·실행 취소, 붙여넣기·특수 붙여넣기, 고급 복사·JSON/XML/HTML/INSERT 복사, 불리언·ENUM·날짜 편집기, LOB 값 패널 편집·파일 불러오기/저장, JSON·XML 편집기 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
