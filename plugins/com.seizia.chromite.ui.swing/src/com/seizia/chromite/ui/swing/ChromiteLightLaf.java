@@ -31,6 +31,7 @@ import javax.swing.*;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: SSMS풍 색 대신 DataGrip New UI 라이트 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 P1: 스크롤바 UI({@link ChromiteScrollBarUI}) 등록 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-08 탭 창 UI({@link ChromiteTabbedPaneUI}) 등록 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 public class ChromiteLightLaf extends FlatLightLaf {
 
@@ -45,6 +46,7 @@ public class ChromiteLightLaf extends FlatLightLaf {
     public UIDefaults getDefaults() {
         UIDefaults defaults = super.getDefaults();
         ChromiteScrollBarUI.install(defaults);
+        ChromiteTabbedPaneUI.install(defaults);
         return defaults;
     }
 }

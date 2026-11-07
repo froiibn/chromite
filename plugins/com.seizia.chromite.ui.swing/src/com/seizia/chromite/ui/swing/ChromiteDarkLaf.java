@@ -33,6 +33,7 @@ import javax.swing.*;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: 상위 클래스를 FlatDarculaLaf에서 FlatDarkLaf로 바꾸고 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 P1: 스크롤바 UI({@link ChromiteScrollBarUI}) 등록 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-08 탭 창 UI({@link ChromiteTabbedPaneUI}) 등록 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 public class ChromiteDarkLaf extends FlatDarkLaf {
 
@@ -47,6 +48,7 @@ public class ChromiteDarkLaf extends FlatDarkLaf {
     public UIDefaults getDefaults() {
         UIDefaults defaults = super.getDefaults();
         ChromiteScrollBarUI.install(defaults);
+        ChromiteTabbedPaneUI.install(defaults);
         return defaults;
     }
 }

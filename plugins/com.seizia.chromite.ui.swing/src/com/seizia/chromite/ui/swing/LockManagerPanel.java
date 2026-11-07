@@ -68,11 +68,14 @@ import java.util.Set;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 권한 안내 줄과 권한에 따른 Kill Session 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 차단 체인 나무의 처음 폭을 280으로: 빈 나무의 폭(머리글만)으로 시작해 대기 세션 줄이 잘렸다
+ *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 final class LockManagerPanel extends JPanel {
 
     private static final Log log = Log.getLog(LockManagerPanel.class);
     private static final String PREF_REFRESH = "activityMonitor.locks.refreshSeconds"; //$NON-NLS-1$
+    private static final int TREE_WIDTH = 280;
 
     private final AdminConnection connection;
     private final ObjectListTable<DBAServerLock> lockTable;
@@ -178,6 +181,9 @@ final class LockManagerPanel extends JPanel {
         topSplit.setContinuousLayout(true);
         topSplit.setBorder(BorderFactory.createEmptyBorder());
         topSplit.setPreferredSize(new Dimension(UIScale.scale(600), UIScale.scale(260)));
+        // The divider starts at the chains' preferred width, read before the first refresh fills the tree: without this
+        // only the header fit and "Session 38352  · waits for 38345" was cut. Wide enough for a waiting session's row
+        treePanel.setPreferredSize(new Dimension(UIScale.scale(TREE_WIDTH), UIScale.scale(260)));
         itemsPanel.setPreferredSize(new Dimension(UIScale.scale(600), UIScale.scale(240)));
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplit, itemsPanel);
         split.setResizeWeight(0.5);

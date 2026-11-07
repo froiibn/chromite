@@ -48,7 +48,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-options.md](swing-options.md) | Swing 옵션과 SWT 설정 페이지: 키 306개의 Swing 효과 전수(키별 상태 표), Query Execution(구분 기호·매개 변수·오류 처리, 오류 뒤 무확인 롤백 고침)·Connection Types(연결 유형 편집, 열린 세션의 커밋 방식 적용)·Oracle 탭, 결과 형식, 격리 수준, 남은 키 목록 |
 | [swing-driver-manager.md](swing-driver-manager.md) | Swing 드라이버 관리자(Tools > Driver Manager…, Connect 대화상자의 Edit Driver…): 드라이버 만들기·복사·편집·삭제, 로컬 jar·폴더 라이브러리와 상태, 클래스 찾기, 오프라인 모드에서 다운로드 막기 |
 | [swing-l10n.md](swing-l10n.md) | Swing 화면 언어: OS 언어를 따르는 영어/한국어 NLS 묶음, 영역 나눔, 용어집, 영어로 남긴 것, 한글 굵은 글꼴(합성 글꼴 대체 칸) |
-| [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패 |
+| [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패. 작은 화면 수정(2026-11-08): 쿼리 상태 줄 폭, 잠금 나무 폭, 테마 전환 뒤 탭 넘침 단추, 연결 중 중지, 감사 기록 열, 줄임표 |
 | [swing-sql-completion.md](swing-sql-completion.md) | SQL 자동완성의 프로시저 제안: CALL/EXEC 뒤 부를 수 있는 루틴(방언 규칙, SQL Server 스칼라 함수 포함)·패키지·스키마, 이름만 넣기, `EXEC dbo.`의 NullPointerException(끝나지 않은 이름) |
 | [model-fixes.md](model-fixes.md) | 모델 후속 수정(2026-11-07): SQL Server 매개변수 종류, MariaDB 패키지 캐시, PostgreSQL Block IO 단위, PostgreSQL 복사한 열의 COLLATE·STORAGE, MySQL/MariaDB 계획 비용 |
 | [altibase.md](altibase.md) | Altibase: Object Explorer의 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁·속성), 목록 질의에서 함께 읽는 카탈로그 근거 |

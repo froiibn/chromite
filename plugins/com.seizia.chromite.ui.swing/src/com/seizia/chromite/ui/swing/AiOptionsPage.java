@@ -29,6 +29,7 @@ import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolAuditLog;
 import com.seizia.chromite.model.ai.agent.AIToolCatalog;
 import com.seizia.chromite.model.ai.agent.AIToolDecision;
+import com.seizia.chromite.model.ai.agent.AIToolOutcome;
 import com.seizia.chromite.model.ai.agent.AIToolPermission;
 import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
@@ -56,9 +57,11 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -84,6 +87,8 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
  * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 감사 기록의 고정 문구·형식 열(시각·클라이언트·분류·정책·결과)을 가장 긴 문구에 맞춤: "Chromite Agent"가 "Chro…"로 잘렸다
+ *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -831,6 +836,8 @@ final class AiOptionsPage extends JPanel {
 
     private static final class AuditTab extends JPanel {
         private static final String ALL = "*"; //$NON-NLS-1$
+        // Table.cellMargins 8 + 8, and the header's sort arrow
+        private static final int LABEL_COLUMN_PADDING = 28;
         private final JTextField filterField = new JTextField(18);
         private final JComboBox<String> clientCombo = new JComboBox<>(new String[]{ALL, "CHAT", "MCP"}); //$NON-NLS-1$ //$NON-NLS-2$
         private final JComboBox<String> outcomeCombo = new JComboBox<>(new String[]{ALL, "SUCCESS", "ERROR", "DENIED", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -895,10 +902,17 @@ final class AiOptionsPage extends JPanel {
 
             table.setAutoCreateRowSorter(true);
             table.getSelectionModel().addListSelectionListener(e -> showDetail());
-            int[] widths = {150, 60, 150, 80, 140, 80, 80, 60};
-            for (int i = 0; i < widths.length; i++) {
-                table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-            }
+            // Free text: tool, connection, ms
+            TableColumnModel columns = table.getColumnModel();
+            columns.getColumn(2).setPreferredWidth(150);
+            columns.getColumn(4).setPreferredWidth(140);
+            columns.getColumn(7).setPreferredWidth(60);
+            // Fixed format and fixed labels: time (0 is about the widest digit), client, class, policy, result
+            fitLabels(0, List.of("0000-00-00 00:00:00")); //$NON-NLS-1$
+            fitLabels(1, List.of(AiMessages.ai_audit_client_chat, AiMessages.ai_audit_client_mcp));
+            fitLabels(3, Arrays.stream(AIToolAccess.values()).map(AiOptionsPage::describeAccess).toList());
+            fitLabels(5, Arrays.stream(AIToolPermission.values()).map(AiOptionsPage::describePermission).toList());
+            fitLabels(6, Arrays.stream(AIToolOutcome.values()).map(outcome -> AiToolCard.describeOutcome(outcome.name())).toList());
             JScrollPane tableScroll = new JScrollPane(table);
             tableScroll.setPreferredSize(new Dimension(UIScale.scale(640), UIScale.scale(240)));
             detailArea.setEditable(false);
@@ -913,6 +927,23 @@ final class AiOptionsPage extends JPanel {
             fileLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             add(fileLabel, BorderLayout.SOUTH);
             load();
+        }
+
+        /**
+         * Sizes a column whose values are fixed labels (or have a fixed format) to its longest label or its header,
+         * with the cell margins and room for the sort arrow. Fixed numbers clipped "Chromite Agent" (client),
+         * "Run automatically" (policy) and "Read-only connection" (result). The width is also the minimum, so fitting
+         * the table to its width shrinks only the free text columns and never clips these.
+         */
+        private void fitLabels(int column, @NotNull List<String> labels) {
+            FontMetrics metrics = table.getFontMetrics(table.getFont());
+            int width = metrics.stringWidth(model.getColumnName(column));
+            for (String label : labels) {
+                width = Math.max(width, metrics.stringWidth(label));
+            }
+            width += UIScale.scale(LABEL_COLUMN_PADDING);
+            table.getColumnModel().getColumn(column).setMinWidth(width);
+            table.getColumnModel().getColumn(column).setPreferredWidth(width);
         }
 
         private void load() {
