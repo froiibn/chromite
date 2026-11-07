@@ -134,3 +134,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   A-platform §6의 해당 줄과 §7 집계 문단 갱신.
 - 2026-11-08 C-49 없음 → 일부: Schema Compare(두 스키마의 구조 비교와 마이그레이션 스크립트, [schema-compare.md](schema-compare.md)). 결과 요약 C·합계 갱신.
 - 2026-11-08 devel 병합 때 영역 C 집계를 행 상태에서 다시 셈: C-29(데이터 검색, 2026-11-08 옮김)가 행은 있음인데 집계에는 없음으로 남아 있었다. 결과 요약 C·합계 갱신.
+- 2026-11-08 4순위 쿼리 편집기 편의(B6): B-S31·S35·S37 없음 → 있음, B-S28 없음 → 일부, B-S44 일부 → 있음, B-S3·S33·S34 비고 갱신
+  ([swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md)). 결과 요약 수는 병합 때 다시 셈.

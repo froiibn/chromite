@@ -49,7 +49,7 @@
 |---|---|---|---|---|---|---|
 | S1 | 선택 영역·전체 실행, `GO` 배치 | `run.script`, `SQLEditor.processQueries` | 있음 | `SqlEditorPanel`(F5), `SQLScriptBatches`(model.sql), swing-frontend.md "쿼리 실행 사양" | 높음 | SSMS 방식. 선택 1자부터 선택으로 봄 |
 | S2 | 커서 위치 문장 실행(Ctrl+Enter) | `run.statement` | 일부 | Query 메뉴는 Execute·Cancel·완성·계획·기록뿐(`MainFrame.java:1511-1529`) | 중간 | 문장을 선택해야 함. F5 사양(swing-frontend.md:94-106)은 정했지만 문장 실행을 뺀다는 결정은 없음 |
-| S3 | 새 탭에 결과, 탭마다 결과 여러 개 | `run.statementNew`, `run.scriptNew`, `multipleResultsPerTab` | 일부 | `QueryResultsView`가 결과를 한 카드에 쌓음 | 낮음 | 결과를 고정·이름 바꾸기·분리하는 탭 없음 |
+| S3 | 새 탭에 결과, 탭마다 결과 여러 개 | `run.statementNew`, `run.scriptNew`, `multipleResultsPerTab` | 일부 | `QueryResultsView`가 결과를 한 카드에 쌓음. 2026-11-08 결과 고정(Query &gt; Pin Results, Ctrl+Shift+P): 고정 탭은 다음 실행이 지우지 않음(`QueryResultsView.pinResults`, [swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 탭 이름 바꾸기·분리, "새 탭에서 실행" 명령 없음 |
 | S4 | 커서부터 스크립트 실행, 이전·다음 문장 이동, 현재 쿼리 복사 | `run.scriptFromPosition`, `query.next/prev`, `copy.query` | 없음 | grep `FromPosition`, `query.next` 0건 | 낮음 | |
 | S5 | 식 평가, 쿼리 행 수 세기 | `run.expression`, `run.count` | 없음 | grep 0건 | 낮음 | |
 | S6 | 연결 종류 "SQL 실행 확인"(Production) | `SQLQueryJob` 확인 | 있음 | 모델 `SQLQueryExecuteJob.java:507` → 핸들러 기본 `confirmQueryExecution` → `SwingPlatformUI.confirmAction`(`:183`) | 높음 | 예/취소뿐. SWT의 "건너뛰기", "모두 예" 없음 |
@@ -75,23 +75,23 @@
 | S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴. 2026-11-08: Oracle 설정을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용([model-fixes.md](../model-fixes.md)) |
 | S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
-| S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 없음 | grep `Outline` 0건 | 낮음 | |
+| S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 일부 | 2026-11-08 View &gt; Outline 도구 창(`SqlOutlinePanel`, Ctrl+Alt+O): 문장 목록, 고르면 편집기에서 선택 ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 문장 안 구조(SELECT 목록, FROM 표) 나무 없음 |
 | S29 | 템플릿 | `SQLTemplateStore`, `PrefPageSQLTemplates` | 있음 | `SqlTemplates`, `SqlTemplatesPage` | 낮음 | 테이블·열 이름 변수 해석기, linked mode 없음(swing-sql-editor-plus.md:270) |
 | S30 | SQL 서식 | `SQLFormattingStrategy`, `PrefPageSQLFormat`, 외부·SQL Workbench/J 서식기 | 일부 | `SqlEditCommands`, Options Formatting(Default/Compact, 키워드 대소문자) | 낮음 | 서식기 세부 설정·외부 서식기 없음 |
-| S31 | 접기, 모두 펴기·접기 | `FoldingsEnabled`, `Expand/CollapseAllFoldings` | 없음 | `SqlEditorPanel.java:1743` `setCodeFoldingEnabled(false)` | 낮음 | |
+| S31 | 접기, 모두 펴기·접기 | `FoldingsEnabled`, `Expand/CollapseAllFoldings` | 있음 | 2026-11-08 `SqlFoldParser`(문장, BEGIN/CASE…END, 여러 줄 괄호, 블록 주석), Edit &gt; Advanced &gt; Folding ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 접기 켜기·끄기 설정은 없음(늘 켬) |
 | S32 | 찾기·바꾸기 | Eclipse find/replace | 있음 | `FindReplaceDialog`, `SqlEditorPanel.java:1746-1753` | 중간 | |
-| S33 | 주석 넣기·빼기 | `comment.single`, `comment.multi` | 있음 | `SqlEditCommands`(Ctrl+K Ctrl+C/U) | 낮음 | 블록 주석 토글은 없음 |
-| S34 | 자동완성 | `SQLCompletionProcessor`, `PrefPageSQLCompletion` | 일부 | `SqlCompletionPopup`, Options(지연, 프로시저 제안), CALL/EXEC 뒤 루틴 제안과 `EXEC dbo.` 예외 수정(2026-11-07, [swing-sql-completion.md](../swing-sql-completion.md)) | 중간 | 제안 설명 창, 변수·명령 제안, 세부 설정 없음(swing-frontend.md:1143). PL/SQL 블록 안 프로시저 호출, 스키마를 붙인 값 자리(`SELECT dbo.fn`)의 함수 제안 없음 |
-| S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 없음 | `SqlEditorPanel` grep `Hover`/`ToolTipSupplier`/`setMarkOccurrences` 0건 | 낮음 | |
+| S33 | 주석 넣기·빼기 | `comment.single`, `comment.multi` | 있음 | `SqlEditCommands`(Ctrl+K Ctrl+C/U), 2026-11-08 블록 주석 토글(Ctrl+Shift+/, `SqlTextTools.toggleBlockComment`) | 낮음 | |
+| S34 | 자동완성 | `SQLCompletionProcessor`, `PrefPageSQLCompletion` | 일부 | `SqlCompletionPopup`, Options(지연, 프로시저 제안), CALL/EXEC 뒤 루틴 제안과 `EXEC dbo.` 예외 수정(2026-11-07, [swing-sql-completion.md](../swing-sql-completion.md)) | 중간 | 2026-11-08 제안 설명 창 추가([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)). 변수·명령 제안, 세부 설정 없음(swing-frontend.md:1143). PL/SQL 블록 안 프로시저 호출, 스키마를 붙인 값 자리(`SELECT dbo.fn`)의 함수 제안 없음 |
+| S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 있음 | 2026-11-08 `SqlObjectNavigation`(의미 분석으로 별칭·열까지 풀기, 마우스 올림 설명, Ctrl+클릭), `setMarkOccurrences` ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | Ctrl+클릭한 DB 개체는 Object Explorer에서 고름(개체 편집기 없음). 같은 단어 강조는 대소문자가 같은 것만 |
 | S36 | 의미 분석 오류 표시, 빠른 수정 | `SQLEditorSemanticMarkersManager`, `SQLEditorQuickAssistProcessor` | 없음 | grep 0건 | 낮음 | |
-| S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 없음 | grep 0건(쿼리 편집기에 `setLineWrap` 없음) | 낮음 | 대소문자 바꾸기는 있음(S30) |
+| S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 있음 | 2026-11-08 Edit &gt; Advanced(`SqlTextTools`, 자동 줄 바꿈 Ctrl+Alt+Shift+W) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 대소문자 바꾸기는 있음(S30). 소스 코드로 복사는 옵션 대화상자 없이 기본 옵션 |
 | S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 파일 단위 열기·저장·최근 파일만 |
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
 | S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | |
 | S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 없음 | grep `executeProcedure`/procedure call 0건 | 중간 | SSMS "Execute Stored Procedure"에 해당 |
 | S43 | SQL 터미널 | `ui.editors.sql.terminal` | 없음 | swt-removal.md:105 | 낮음 | |
-| S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 일부 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김") | 낮음 | |
+| S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 있음 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김"), 2026-11-08 View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, `ToolWindow.SplitHost`) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 놓는 방향은 전역 |
 | S45 | SQL 편집기 설정 화면 | `PrefPageSQLEditor`, `CodeEditing`, `Completion`, `Execute`, `Format`, `Dialects`, `Resources` | 일부 | `OptionsDialog`(Query Editor, Formatting, Templates, 글꼴·색), swt-removal.md:116 | 중간 | 실행·방언·코드 편집 설정 없음 |
 
 ## B. 결과 뷰어 (`ui.editors.data`, GIS는 `data.gis.view`)

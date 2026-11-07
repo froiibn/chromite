@@ -30,6 +30,7 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
 import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -62,6 +63,7 @@ import com.seizia.chromite.model.exec.output.DBCOutputWriter;
 import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -168,7 +170,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     Query Library 쿼리(확장)와 기록에서 다시 연 바인딩 실행({@link #setRecordedParameters})은 실행 전에 묻고 값을 바인딩한다
  *     ({@link SqlParameterBinding}). 대화상자는 모두 {@link QueryParameterDialog}다.</li>
  *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
- *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
+ *     블록 주석 토글(Ctrl+Shift+/), 자동 줄 바꿈(Ctrl+Alt+Shift+W), 들여쓰기({@link SqlEditCommands}, 글자 도구는 {@link SqlTextTools}),
+ *     템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
  *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
  *     SQL Editor 도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
  *     <li>실행 안전 확인({@link SqlExecutionSafety}): 연결의 스크립트 실행 제한은 실행을 시작하기 전에(EDT), WHERE 없는 UPDATE/DELETE와
@@ -179,6 +182,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
  *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     <li>편집 편의(docs/chromite/swing-sql-editor-ergonomics.md): 코드 접기({@link SqlFoldParser}), 커서가 있는 이름의 다른 자리 강조
+ *     (RSyntaxTextArea의 같은 단어 표시), 이름 위 마우스 올림 설명과 Ctrl+클릭 이동({@link SqlObjectNavigation}, 이 창의 연결과 세션),
+ *     결과 고정({@link #pinResults}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -239,6 +245,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 편집 편의: 코드 접기, 같은 이름 강조, 마우스 올림 설명·Ctrl+클릭({@link Host#revealNode}), 블록 주석 토글·글자 도구·자동 줄 바꿈·접기
+ *   명령({@link SqlTextArea.Command}), 결과 고정. 다시 실행 전 버리기 묻기는 고정하지 않은 결과만 셈 (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -260,6 +268,11 @@ final class SqlEditorPanel extends JPanel {
          * SQL Editor tool bar state, {@link #canExecute()}).
          */
         void executionStateChanged(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Shows a database object of the editor's text in Object Explorer (Ctrl+click on its name).
+         */
+        void revealNode(@NotNull DBNDatabaseNode node);
 
         /**
          * The tab title or tool tip changed (file name, connection, modified marker).
@@ -372,6 +385,32 @@ final class SqlEditorPanel extends JPanel {
         textArea = new SqlTextArea();
         // The connection and session at the time of the request (the connection picker may change them)
         completion = new SqlCompletionPopup(textArea, this::getDataSourceContainer, this::getExecutionContext);
+        // Hover documentation and Ctrl+click of names, with the connection and session at the time of the request
+        SqlObjectNavigation.install(textArea, new SqlObjectNavigation.Host() {
+            @Nullable
+            @Override
+            public DBPDataSourceContainer getDataSourceContainer() {
+                return SqlEditorPanel.this.getDataSourceContainer();
+            }
+
+            @Nullable
+            @Override
+            public DBCExecutionContext getExecutionContext() {
+                return SqlEditorPanel.this.getExecutionContext();
+            }
+
+            @Override
+            public void revealNode(@NotNull DBNDatabaseNode node) {
+                host.revealNode(node);
+            }
+
+            @Override
+            public void showMessage(@NotNull String message) {
+                if (execution == null) {
+                    statusLine.setState(QueryStatusLine.State.READY, message);
+                }
+            }
+        });
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
@@ -588,6 +627,22 @@ final class SqlEditorPanel extends JPanel {
     @NotNull
     QueryResultsView getResultsView() {
         return resultsView;
+    }
+
+    /**
+     * Query &gt; Pin Results: the current results move to a pinned tab and the next run leaves them.
+     */
+    void pinResults() {
+        if (execution != null) {
+            // The run is still adding grids to the current results
+            UIManager.getLookAndFeel().provideErrorFeedback(this);
+            return;
+        }
+        if (!resultsView.pinResults()) {
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_results_nothing_to_pin);
+            return;
+        }
+        host.showResults(this, false);
     }
 
     /**
@@ -871,7 +926,8 @@ final class SqlEditorPanel extends JPanel {
         if (!SqlExecutionSafety.checkExecutePermission(this, container)) {
             return;
         }
-        int pendingChanges = resultsView.getChangeCount();
+        // Pinned results stay, so only the current ones are replaced
+        int pendingChanges = resultsView.getCurrentChangeCount();
         if (pendingChanges > 0) {
             String[] options = {EditorMessages.editor_sql_discard_and_execute, EditorMessages.editor_common_cancel};
             if (JOptionPane.showOptionDialog(this,
@@ -2030,6 +2086,11 @@ final class SqlEditorPanel extends JPanel {
      * {@link DdlViewerPanel} and by the Options preview).
      */
     static final class SqlTextArea extends RSyntaxTextArea {
+        static {
+            // Before the first text area: its fold manager looks up the parser of the syntax style when the style is set
+            SqlFoldParser.install();
+        }
+
         // EDT only; read by the token maker while painting
         private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
         // EDT only: connection for the dialect of the editing commands
@@ -2044,7 +2105,10 @@ final class SqlEditorPanel extends JPanel {
             // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
             ((RSyntaxDocument) getDocument()).setTokenMakerFactory(new SqlTokenClassifier.Factory(() -> words));
             setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
-            setCodeFoldingEnabled(false);
+            // Statements, BEGIN/END and CASE blocks, parentheses and block comments (SqlFoldParser, registered above)
+            setCodeFoldingEnabled(true);
+            // Other occurrences of the name at the caret (the theme's markOccurrencesHighlight color)
+            setMarkOccurrences(true);
             setTabSize(4);
             // SSMS find keys (Edit menu); bound here so they win over the text area's own keys (Ctrl+H deletes backwards)
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.find", //$NON-NLS-1$
@@ -2064,6 +2128,11 @@ final class SqlEditorPanel extends JPanel {
                 () -> runCommand(Command.UPPER_CASE));
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.lowerCase", //$NON-NLS-1$
                 () -> runCommand(Command.LOWER_CASE));
+            // The keys of the SWT editor
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.blockComment", //$NON-NLS-1$
+                () -> runCommand(Command.TOGGLE_BLOCK_COMMENT));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+                "chromite.wordWrap", () -> runCommand(Command.WORD_WRAP)); //$NON-NLS-1$
             // Tab: next template variable, a template name before the caret, else the text area's own Tab (indent)
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), "chromite.tab", this::tab); //$NON-NLS-1$
             // Key listeners run before the key bindings: the second key of a chord never reaches them
@@ -2082,17 +2151,38 @@ final class SqlEditorPanel extends JPanel {
         }
 
         /**
-         * Editing commands of the query editor (Edit &gt; Advanced and the editor keys).
+         * Commands of the query editor (Edit &gt; Advanced and the editor keys).
          */
         enum Command {
-            FORMAT, UPPER_CASE, LOWER_CASE, COMMENT, UNCOMMENT, INDENT, OUTDENT, INSERT_TEMPLATE
+            FORMAT, UPPER_CASE, LOWER_CASE, COMMENT, UNCOMMENT, TOGGLE_BLOCK_COMMENT, INDENT, OUTDENT, INSERT_TEMPLATE,
+            TRIM, TRIM_LEADING, TRIM_TRAILING, MORPH_LIST,
+            // Commands that do not change the text: also for read-only text areas
+            WORD_WRAP(false), SEARCH_WEB(false),
+            COLLAPSE_FOLD(false), EXPAND_FOLD(false), COLLAPSE_ALL_FOLDS(false), EXPAND_ALL_FOLDS(false), COLLAPSE_COMMENT_FOLDS(false);
+
+            private final boolean edits;
+
+            Command() {
+                this(true);
+            }
+
+            Command(boolean edits) {
+                this.edits = edits;
+            }
+
+            /**
+             * Whether the command changes the text (not available in read-only text areas).
+             */
+            boolean isEdit() {
+                return edits;
+            }
         }
 
         /**
-         * Runs an editing command on this text area; read-only text areas (DDL tabs) ignore them.
+         * Runs a command on this text area; read-only text areas (DDL tabs) ignore the commands that change the text.
          */
         void runCommand(@NotNull Command command) {
-            if (!isEditable()) {
+            if (command.isEdit() && !isEditable()) {
                 return;
             }
             switch (command) {
@@ -2101,9 +2191,35 @@ final class SqlEditorPanel extends JPanel {
                 case LOWER_CASE -> SqlEditCommands.changeCase(this, false);
                 case COMMENT -> SqlEditCommands.comment(this, container);
                 case UNCOMMENT -> SqlEditCommands.uncomment(this, container);
+                case TOGGLE_BLOCK_COMMENT -> SqlTextTools.toggleBlockComment(this, container);
                 case INDENT -> SqlEditCommands.indent(this);
                 case OUTDENT -> SqlEditCommands.outdent(this);
                 case INSERT_TEMPLATE -> showTemplateMenu();
+                case TRIM -> SqlTextTools.trim(this, SqlTextTools.Trim.BOTH);
+                case TRIM_LEADING -> SqlTextTools.trim(this, SqlTextTools.Trim.LEADING);
+                case TRIM_TRAILING -> SqlTextTools.trim(this, SqlTextTools.Trim.TRAILING);
+                case MORPH_LIST -> SqlTextTools.morphDelimitedList(this);
+                case WORD_WRAP -> setLineWrap(!getLineWrap());
+                case SEARCH_WEB -> SqlTextTools.searchWeb(this);
+                case COLLAPSE_FOLD -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseFoldAction);
+                case EXPAND_FOLD -> runTextAction(RSyntaxTextAreaEditorKit.rstaExpandFoldAction);
+                case COLLAPSE_ALL_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseAllFoldsAction);
+                case EXPAND_ALL_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaExpandAllFoldsAction);
+                case COLLAPSE_COMMENT_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseAllCommentFoldsAction);
+            }
+        }
+
+        /**
+         * Edit &gt; Advanced &gt; Copy as Source Code: the selection (or the statement at the caret) for a programming language.
+         */
+        void copyAsSourceCode(@NotNull SqlTextTools.SourceFormat format) {
+            SqlTextTools.copyAsSourceCode(this, format, container);
+        }
+
+        private void runTextAction(@NotNull String actionKey) {
+            Action action = getActionMap().get(actionKey);
+            if (action != null) {
+                action.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, actionKey));
             }
         }
 
