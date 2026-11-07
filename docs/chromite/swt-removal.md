@@ -102,7 +102,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | 기능 | 삭제한 SWT 번들 | 남은 모델 | Swing 확인 근거 |
 |---|---|---|---|
 | PostgreSQL 디버거(프로시저 중단점·단계 실행) | `debug.ui`, `ext.postgresql.debug.ui`, (모델) `debug.core`, `ext.postgresql.debug.core` | 없음(함께 삭제, git 이력) | 2026-11-07 옮김: 모델의 DB 중립 부분과 PostgreSQL 구현을 `org.eclipse.debug.core` 없이 복원, Swing 디버거 탭([procedure-debugger.md](procedure-debugger.md)) |
-| 작업(Task) 관리와 예약 실행: 저장한 작업 목록, 스케줄러, SQL 스크립트 작업 | `tasks.ui`, `tasks.ui.view`, `tasks.sql.ui`, `tasks.native.ui` | `model`의 `DBTTask*`, `tasks.native` | `DBTTask`는 데이터 전송 실행(`DataTransferWizard`)에만 쓰임. 작업 저장·예약 화면 없음 |
+| 작업(Task) 관리와 예약 실행: 저장한 작업 목록, 스케줄러, SQL 스크립트 작업 | `tasks.ui`, `tasks.ui.view`, `tasks.sql.ui`, `tasks.native.ui` | `model`의 `DBTTask*`, `tasks.native` | `DBTTask`는 데이터 전송 실행(`DataTransferWizard`)에만 쓰임. 작업 저장·예약 화면 없음. 2026-11-08 일부 옮김: Database Tasks 도구 창(목록·실행·편집·삭제·마지막 결과), 백업·복원·네이티브 스크립트 실행을 작업으로 저장([swing-database-tasks.md](swing-database-tasks.md)). 예약·SQL 스크립트 작업·데이터 전송 작업 편집은 아직 없음 |
 | SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | 2026-11-08 옮김: Query > SQL Terminal, 쿼리 창마다 켜는 Terminal 탭([swing-sql-terminal.md](swing-sql-terminal.md)) |
 | 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | 2026-11-08 결과 표의 차트·공간 보기를 Java2D로 더함([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 대시보드 차트 편집·지도 타일은 없음 |
 | 사용자 정의 대시보드(대시보드 편집·여러 대시보드 보기) | `ui.dashboard` | `model.dashboard` | Swing에는 Activity Monitor의 고정 서버 대시보드만 있다([swing-dashboard.md](swing-dashboard.md), 2026-11-07 devel 병합으로 확인) |
@@ -163,3 +163,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 - 2026-11-07 전수 조사 문서 [swt-parity-audit.md](swt-parity-audit.md) 연결, AI 채팅 줄 갱신(#92에서 옮김).
 - 2026-11-07 PostgreSQL 디버거 줄 갱신: 모델 복원과 Swing 디버거([procedure-debugger.md](procedure-debugger.md)).
 - 2026-11-08 차트·GIS 줄 갱신: 결과 표의 차트·공간 보기([swing-result-charts-spatial.md](swing-result-charts-spatial.md)).
+- 2026-11-08 작업 관리 줄 갱신: Database Tasks 도구 창과 작업으로 저장([swing-database-tasks.md](swing-database-tasks.md)).

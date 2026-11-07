@@ -63,7 +63,7 @@
 - 모달이 아니고 문맥마다 하나다. 1초마다 다시 읽는다(쿼리 관리자 메모리 기록만 읽음). 다른 쿼리 창에서 실행하거나 커밋하면 따라온다.
 - SWT와 다른 점:
   - SWT는 기본으로 데이터를 바꾸는 문장만 보이고 "모든 문장 보이기"를 두었다. Chromite는 SELECT도 트랜잭션을 연 것으로 보므로(잠금·스냅숏, [idle-transactions.md](idle-transactions.md)) 모두 보인다.
-  - "지난 트랜잭션 보이기"는 옮기지 않았다(남은 일).
+  - "지난 트랜잭션 보이기"는 2026-11-08에 더했다([connection-lifecycle.md](connection-lifecycle.md) "트랜잭션 로그의 지난 트랜잭션").
   - SWT는 쿼리 관리자 보기(`QueryLogViewer`)를 그대로 썼다. Swing에는 그 보기가 없어(A-C6) 표를 새로 만들었다.
 
 ## 열린 트랜잭션 목록
@@ -231,8 +231,8 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 - **왜 "알림만 하고 복구"가 아니라 "멈추고 묻기"인가.** 중단된 트랜잭션은 롤백 말고 할 일이 없지만, 사용자가 무엇이 사라졌는지 보고 직접 끝내야 다음 문장이 새
   트랜잭션이라는 것을 안다. 끊긴 연결은 살아 있는 다른 문맥의 트랜잭션까지 끝내므로 먼저 커밋할 기회를 주어야 한다.
 - **PostgreSQL의 COMMIT.** 중단된 트랜잭션에 COMMIT을 보내면 서버가 ROLLBACK으로 끝낸다(pgjdbc 기본 설정에서 오류 없음). 그래서 알림에 "커밋해도 저장되지 않습니다"를 적었다.
-- 바뀌지 않은 것: 절전 뒤 다시 검증(`DataSourceMonitorJob.invalidateSleptConnections`)과 절전 때 연결 닫기는 Swing에서 실행되지 않는다([idle-transactions.md](idle-transactions.md)
-  "절전 때 연결 닫기"). 쿼리 창의 "실행 전 연결 다시 검증"(`isInvalidateBeforeExecute`)은 Swing이 켜지 않는다(기본 `false`, 재정의 없음).
+- 절전 뒤 다시 검증(`DataSourceMonitorJob.invalidateSleptConnections`)과 절전 때 연결 닫기는 2026-11-08부터 쓰는 중인 연결(열린 트랜잭션 등)을 건너뛴다
+  ([connection-lifecycle.md](connection-lifecycle.md) "절전"). 쿼리 창의 "실행 전 연결 다시 검증"(`isInvalidateBeforeExecute`)은 Swing이 켜지 않는다(기본 `false`, 재정의 없음).
   오류로 멈춘 스크립트의 자동 롤백(`STOP_ROLLBACK`)은 #117이 고쳤다([swing-options.md](swing-options.md)).
 
 ### 확인 (2026-11-07)
@@ -341,9 +341,9 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 
 ## 남은 일
 
-- 트랜잭션 로그의 "지난 트랜잭션 보이기"와 "모든 문장(메타데이터 포함) 보이기".
+- 트랜잭션 로그의 "모든 문장(메타데이터 포함) 보이기". "지난 트랜잭션 보이기"는 2026-11-08에 더했다.
 - 커밋·롤백 뒤 알림과 그 설정(SWT `transaction.show.notifications`). 트랜잭션 설정 화면(A-P1 "Transactions")과 함께 한다.
-- 스마트 커밋(B-S16), 실행 중 자동/수동 커밋 전환(B-S18)은 이 작업에 들어 있지 않다. 쿼리 창마다 별도 연결(B-S22)은 2026-11-07에 더했다(위 절).
+- 실행 중 자동/수동 커밋 전환(B-S18)은 이 작업에 들어 있지 않다. 스마트 커밋(B-S16)은 2026-11-08에 더했다([connection-lifecycle.md](connection-lifecycle.md) "스마트 커밋"). 쿼리 창마다 별도 연결(B-S22)은 2026-11-07에 더했다(위 절).
 - 서버가 스스로 트랜잭션 전체를 롤백하는 경우(SQL Server 교착 상태 희생자 1205·`XACT_ABORT ON`, MariaDB 교착 상태 1213)는 Chromite의 복구가 아니라서
   알리지 않고, 상태 줄도 계속 열린 트랜잭션을 보인다. 오류 코드로 알아보거나 서버에 트랜잭션 수(`@@TRANCOUNT` 등)를 묻는 것이 필요하다.
 - PostgreSQL의 중단된 트랜잭션에 Query > Commit을 누르면 서버가 롤백하고 오류가 없다(pgjdbc `raiseExceptionOnSilentRollback` 기본 꺼짐). 알림이 그것을 말하지만
@@ -366,3 +366,4 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 - 2026-11-08 origin/devel(#120 오류 복구, #121, #122) 병합: 오류 복구가 창마다의 세션을 보는지 확인하고 "쿼리 창마다 별도 연결 > 트랜잭션 안전"과 남은 일에 적음
 - 2026-11-08 끊긴 세션의 쿼리 창: 끝내기 전 질문이 끊긴 세션에 버리기 / 취소를 물음(커밋·롤백이 실패해 창을 닫거나 끊을 수 없던 것), 실행 복구와 연결 유지 핑이
   끊긴 격리 세션만 다시 열고 잃은 문장 수를 알림(다른 창의 세션과 트랜잭션은 그대로). PostgreSQL·SQL Server에서 확인("끊긴 세션의 쿼리 창 > 확인")
+- 2026-11-08 트랜잭션 로그의 지난 트랜잭션, 스마트 커밋, 절전 경로의 트랜잭션 안전은 [connection-lifecycle.md](connection-lifecycle.md)에 적고 이 문서의 해당 줄을 고침

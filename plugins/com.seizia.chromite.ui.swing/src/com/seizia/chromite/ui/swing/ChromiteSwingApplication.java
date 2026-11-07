@@ -34,6 +34,7 @@ import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
 import com.seizia.chromite.runtime.ChromiteNotifications;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.OperationSystemState;
 import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
@@ -44,6 +45,8 @@ import org.jkiss.utils.StandardConstants;
 
 import javax.swing.*;
 import java.awt.Desktop;
+import java.awt.desktop.SystemSleepEvent;
+import java.awt.desktop.SystemSleepListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -91,6 +94,7 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-08 저장된 밀도(촘촘한 모드, {@link UiDensity})가 다르면 주 창을 열기 전에 테마를 다시 설치함 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 macOS: 런처가 첫(AppKit) 스레드에서 부르면 본문({@code run})을 다른 스레드에서 돌리고 첫 스레드는 AppKit 실행 루프를
  *   돌린다({@link MacOSMainThread}). 첫 스레드가 Swing을 기다려 창이 뜨지 않던 교착 수정 (docs/chromite/platform-startup.md)
+ * - 2026-11-08 시스템 절전 알림을 연결 감시에 넘김(SWT {@code systemSleepListener}, JDK가 지원하는 macOS만) (docs/chromite/connection-lifecycle.md "절전")
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -280,6 +284,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
      * is gone and the application ends through its normal path ({@link #start}). Each handler is installed only where
      * the platform supports it, so nothing changes on Windows. Under the Eclipse launcher AWT does not own the macOS
      * application and builds no application menu: {@link MacOSAppMenu} does (docs/chromite/platform-startup.md).
+     * The system sleep notice goes to the connection monitor (docs/chromite/connection-lifecycle.md "절전").
      */
     private static void installDesktopHandlers(@NotNull MainFrame frame) {
         if (!Desktop.isDesktopSupported()) {
@@ -298,6 +303,22 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
         if (desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
             desktop.setPreferencesHandler(event -> SwingUtilities.invokeLater(() -> OptionsDialog.open(frame)));
+        }
+        if (desktop.isSupported(Desktop.Action.APP_EVENT_SYSTEM_SLEEP)) {
+            // Close on sleep (connection.closeOnSleep): the connection monitor closes the connections that are not in
+            // use when it sees the sleep mode (SWT ApplicationWorkbenchAdvisor.systemSleepListener). The JDK reports
+            // sleep on macOS only; elsewhere only the wake-up is seen, from the gap between the monitor's checks.
+            desktop.addAppEventListener(new SystemSleepListener() {
+                @Override
+                public void systemAboutToSleep(SystemSleepEvent e) {
+                    OperationSystemState.toggleSleepMode(true);
+                }
+
+                @Override
+                public void systemAwoke(SystemSleepEvent e) {
+                    OperationSystemState.toggleSleepMode(false);
+                }
+            });
         }
         if (MacOSMainThread.isActive()) {
             // AWT does not build the application menu for an NSApplication it did not create (the launcher's)

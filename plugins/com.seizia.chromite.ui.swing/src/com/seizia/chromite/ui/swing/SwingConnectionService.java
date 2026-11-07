@@ -50,6 +50,8 @@ import com.seizia.chromite.runtime.jobs.ConnectJob;
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-07 연결 오류 대화상자 제목을 모델 Job 이름("Connect to '…'") 대신 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 드라이버 클래스를 찾지 못한 연결 오류는 드라이버 편집을 권하는 대화상자({@link DatabaseErrorDialogs#showConnectError})
+ *   (docs/chromite/connection-lifecycle.md "연결 끊김·드라이버 오류 대화상자")
  */
 public class SwingConnectionService implements DBServiceConnections {
 
@@ -113,8 +115,12 @@ public class SwingConnectionService implements DBServiceConnections {
             onFinish.onTaskFinished(result);
         } else if (!result.isOK() && result.getSeverity() != IStatus.CANCEL && container != null) {
             // Localized title instead of the model job name ("Connect to '...'")
-            DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_connect_title,
-                NLS.bind(ConnectionMessages.commands_connect_error, container.getName()), result);
+            String message = NLS.bind(ConnectionMessages.commands_connect_error, container.getName());
+            // A missing driver class or license: the dialog that offers to edit the driver (the status no longer has the
+            // connect exception that names the data source, so the connection is passed here)
+            if (!DatabaseErrorDialogs.showConnectError(container, ConnectionMessages.commands_connect_title, message, result)) {
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_connect_title, message, result);
+            }
         }
     }
 }

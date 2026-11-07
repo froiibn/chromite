@@ -8,6 +8,7 @@
 - 연결 이벤트 명령: 연결하기 전·후, 연결을 끊기 전·후.
 - "셸 명령의 암호" 인증 방식(`shell_command`): 연결할 때 명령의 표준 출력에서 암호를 읽는다.
 - 데이터 전송의 "프로세스 실행" 단계: 전송을 마친 뒤 명령을 실행한다.
+- 저장된 네이티브 도구 작업(2026-11-08): 백업·복원·스크립트 실행 작업이 도구(pg_dump, psql, mysql, sqlplus 등)를 시작하기 전의 실제 명령줄.
 
 이 명령들은 `data-sources.json`, 가져오거나 공유한 연결 설정, 저장된 작업에 들어 있을 수 있다. 사용자가 방금 입력한 것이 아니므로 묻지 않고 실행하면 안 된다.
 Swing 화면에는 이 명령을 편집하는 곳이 없어서, 사용자가 모르는 명령이 연결할 때 실행될 수 있었다.
@@ -24,6 +25,7 @@ SWT를 지운 뒤(#68) 승인 서비스(`UIServiceShellCommands`)를 등록하�
 | registry `DataSourceDescriptor.processEvents` | 연결 이벤트 명령. 범위는 그 연결, 문맥은 프로젝트·데이터 원본·이벤트 유형 |
 | model `impl/auth/AuthModelDatabaseShellCommand.resolvePassword` | 암호 명령. 범위는 그 연결, 문맥은 프로젝트·연결·이벤트("암호 읽기(연결할 때)") |
 | data.transfer `processor/ExecuteCommandEventProcessor` | 전송 뒤 명령. 범위 없음(매번 묻는다), 문맥은 작업 이름·이벤트("데이터 전송을 마친 뒤") |
+| tasks.native `AbstractNativeToolHandler.executeProcess` | 저장된(임시가 아닌) 네이티브 도구 작업의 명령줄. 범위는 그 작업(`getTaskScope`), 문맥은 프로젝트·작업(이름과 형식)·연결·이벤트("저장된 작업 실행") |
 | ui.swing `SwingShellCommandsService` | Swing 승인 대화상자. `plugin.xml`의 `com.seizia.chromite.service` 확장으로 등록 |
 | ui.swing `internal/ShellCommandMessages` | 대화상자 문구(영어, 한국어) |
 
@@ -68,6 +70,26 @@ SWT를 지운 뒤(#68) 승인 서비스(`UIServiceShellCommands`)를 등록하�
 - **기본 단추는 Cancel이다.** Enter를 누르거나 창을 닫아서 실행되는 일이 없게 한다.
 - **취소는 오류로 알린다.** SWT처럼 예외를 던진다. 연결이 왜 안 됐는지 사용자가 알 수 있다. 예외 문구는 영어다(AGENTS.md "Hardcode").
 
+## 저장된 네이티브 도구 작업
+
+2026-11-08 Database Tasks 보기([swing-database-tasks.md](swing-database-tasks.md))로 저장된 작업을 다시 실행할 수 있게 되면서 대상에 더했다.
+작업 설정(`tasks.json`)은 가져온 프로젝트나 손으로 고친 파일일 수 있고, 네이티브 도구 작업은 그 설정으로 이 컴퓨터의 실행 파일을 돌린다.
+
+- 승인은 처리기(`AbstractNativeToolHandler.executeProcess`)가 도구를 시작하기 바로 전에, 실제로 실행할 명령줄(`getCommandLine`의 결과)로 받는다.
+  화면이 아니라 처리기에서 받으므로 작업을 실행하는 모든 경로(Database Tasks 보기, 앞으로의 예약 실행 등)에 적용된다.
+- 작업 폴더는 도구 실행 파일의 폴더(`ProcessBuilder.directory`와 같음)다. 암호는 명령줄에 없다(PGPASSWORD·MYSQL_PWD, SQL*Plus는 표준 입력).
+  그래도 암호로 끝나는 인수는 실행 로그처럼 `******`로 가린다.
+- 범위는 작업마다다(`UIServiceShellCommands.getTaskScope`: `task:<프로젝트 절대 경로>|<작업 ID>`). 같은 명령이라도 다른 작업이나 다른 작업 공간에서 가져온 작업은 다시 묻는다.
+  `${timestamp}`가 든 백업 파일 이름처럼 실행마다 명령이 바뀌면 항상 허용해도 매번 다시 묻는다(정확한 명령만 기억한다).
+- 취소하면 `InterruptedException`(작업 확인을 거절했을 때와 같은 방식)으로 실행을 멈추고, 실행 기록에 "Shell command was not approved …"가 남는다.
+- 대화상자와 Chromite Agent 도구가 만든 임시 작업은 묻지 않는다. 사용자가 그 자리에서 설정을 보고 실행하거나(대화상자, 스크립트 실행은 명령줄 확인),
+  에이전트의 확인 대화상자가 명령줄을 보인다.
+- 대화상자의 "항상 허용" 안내는 "이 연결이나 저장된 작업에서"로 바꿨다.
+
+확인(2026-11-08, `chromite/p4-tasks-native`): 저장한 psql 스크립트 작업을 실행 → 대화상자에 프로젝트·작업·연결·이벤트·작업 폴더·명령(`psql.exe … -v ON_ERROR_STOP=1
+--echo-errors chr_p4_tasks`), 기본 단추는 취소 → 취소하면 psql을 실행하지 않고 마지막 결과가 "실패: Shell command was not approved …". 이번만 실행 → 실행됨.
+MariaDB 작업에서 항상 허용 → `confirmed_shell_commands.json`에 `task:…|<작업 ID>` 항목이 생기고 다시 실행할 때 묻지 않음.
+
 ## upstream 대비 변경점
 
 | 항목 | DBeaver(SWT) | Chromite |
@@ -78,6 +100,7 @@ SWT를 지운 뒤(#68) 승인 서비스(`UIServiceShellCommands`)를 등록하�
 | 대화상자 문맥 | 호출부가 준 값 | 같음 + 작업 폴더. 암호 명령·전송 단계 문구를 NLS로 옮김(전에는 영어 고정) |
 | 서비스 인터페이스 | `isShellCommandExecutionEnabled`, `addConfirmedCommand`, `FEATURE_CONNECTION_SHELL_COMMANDS` | 삭제. SWT 연결 이벤트 편집 화면만 썼고 Swing에는 호출부가 없다. `validateByUser`에 승인 범위 인자 추가 |
 | 기록 저장 | `ConfirmedShellCommandsStore`가 파일을 직접 읽고 씀, `prepareFile`(관리 링크용) | `ConfirmedActionsStore`에 맡김(임시 파일 뒤 교체), `prepareFile` 삭제 |
+| 저장된 네이티브 도구 작업 | 묻지 않고 실행 | 실행할 때마다 실제 명령줄 승인(작업 범위로 기억) |
 
 ## 남은 것
 
@@ -108,3 +131,5 @@ UI 조작은 실행 중인 앱에 붙이는 스크래치 테스트 도구(`agent
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Swing 승인 서비스 등록, 서비스가 없을 때 거부, 연결 범위 승인, 대화상자 문구 NLS(`chromite/shell-command-approval`)
+- 2026-11-08 저장된 네이티브 도구 작업의 명령줄 승인(작업 범위 `getTaskScope`, 문맥 문구 `model_shell_command_context_task`·`model_shell_command_event_saved_task`),
+  "항상 허용" 안내 문구(`chromite/p4-tasks-native`, [swing-database-tasks.md](swing-database-tasks.md))
