@@ -56,6 +56,9 @@ import com.seizia.chromite.model.exec.DBCStatementType;
 import com.seizia.chromite.model.exec.DBCStatistics;
 import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
 import com.seizia.chromite.model.qm.QMTransactionState;
@@ -158,6 +161,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *     SQL Editor 도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
  *     <li>실행 안전 확인({@link SqlExecutionSafety}): 연결의 스크립트 실행 제한은 실행을 시작하기 전에(EDT), WHERE 없는 UPDATE/DELETE와
  *     DROP 확인은 준비 Job이 문장을 나눈 뒤 엔진을 예약하기 전에 한 번 묻는다. 취소하면 아무 문장도 실행하지 않고 취소로 끝난다.</li>
+ *     <li>서버 출력(Oracle·CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT}): 문장이 끝날 때마다 엔진 Job 스레드에서 연결의
+ *     {@link DBCServerOutputReader}로 읽어 그 문장의 메시지(경고 다음, 행 수 앞)로 Messages 탭에 쓴다. SWT의 별도 Output 패널 대신
+ *     Messages 탭인 것은 SQL Server PRINT·PostgreSQL NOTICE가 이미 여기 있어 SSMS처럼 한 곳에 차례대로 보이게 하려는 것이다.
+ *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
+ *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md).</li>
  * </ul>
  *
  * 변경 이력:
@@ -200,6 +208,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 상태 줄의 열린 트랜잭션: 실행 문맥의 쿼리 관리자 상태를 1초마다 읽어 보이고({@link #refreshOpenTransaction}),
  *   메뉴의 Commit / Roll back은 보여 준 트랜잭션만 끝냄({@link SwingIdleTransactionService#endTransaction}) (docs/chromite/idle-transactions.md)
  * - 2026-11-07 실행 안전 확인: 스크립트 실행 제한, 위험한 문 확인 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-07 서버 출력: 문장마다 {@link DBCServerOutputReader}를 읽어 Messages 탭에 씀(Oracle DBMS_OUTPUT이 안 보이고 버퍼가 차던 것,
+ *   Altibase PRINT가 메모리에 쌓이던 것) (docs/chromite/swing-server-output.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1152,8 +1162,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Messages of one finished query: warnings and PRINT output, rows affected, time, or the error with its position
-     * in the editor.
+     * Messages of one finished query: warnings and PRINT output, server output (DBMS_OUTPUT), rows affected, time, or
+     * the error with its position in the editor.
      */
     private void reportQueryResult(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQueryResult result) {
         List<String> messages = new ArrayList<>();
@@ -1161,6 +1171,7 @@ final class SqlEditorPanel extends JPanel {
             // SQL Server PRINT and RAISERROR (low severity), PostgreSQL NOTICE etc. arrive as SQLWarning
             messages.add(CommonUtils.notEmpty(warning.getMessage()));
         }
+        readServerOutput(session, messages);
         Throwable error = result.getError();
         String errorText = null;
         if (error == null) {
@@ -1201,6 +1212,37 @@ final class SqlEditorPanel extends JPanel {
                 resultsView.appendError(finalErrorText);
             }
         });
+    }
+
+    /**
+     * Server output of the finished statement (Oracle and CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT}), read in the
+     * job thread after every statement, also after errors and cancels. Reading drains the server buffer (Oracle
+     * {@code GET_LINE}) or the data source's message buffer (Altibase), so it does not fill up (ORU-10027) or grow while
+     * the connection is open. Off when the connection's server output preference is off.
+     */
+    private static void readServerOutput(@NotNull DBCSession session, @NotNull List<String> messages) {
+        DBCExecutionContext context = session.getExecutionContext();
+        DBCServerOutputReader reader = DBUtils.getAdapter(DBCServerOutputReader.class, context.getDataSource());
+        if (reader == null || !reader.isServerOutputEnabled()) {
+            return;
+        }
+        try {
+            // No execution result and no statement: readers that only repeat the statement's SQLWarning (PostgreSQL, the
+            // default reader) write nothing, so PRINT and NOTICE are not shown twice
+            reader.readServerOutput(session.getProgressMonitor(), context, null, null, new DBCOutputWriter() {
+                @Override
+                public void println(@Nullable DBCOutputSeverity severity, @Nullable String message) {
+                    // PUT_LINE(NULL) is an empty line
+                    messages.add(CommonUtils.notEmpty(message));
+                }
+
+                @Override
+                public void flush() {
+                }
+            });
+        } catch (Throwable e) {
+            log.debug("Can't read the server output", e);
+        }
     }
 
     /**
