@@ -320,7 +320,6 @@ li + li { margin-top: 6px; }
 /* the picture is clipped by its frame, so a zoom (a transform of the img) stays inside the window's edges */
 .frame { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
 .frame img { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--media-max); transform-origin: 0 0; }
-.scene-media figcaption { margin-top: 12px; font-size: 13px; line-height: 1.55; color: var(--stage-ink-2); max-width: 46em; }
 
 .slot { margin: 0; padding: 0; list-style: none; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.45; letter-spacing: -0.012em; max-width: 34em; }
 .slot li + li { margin-top: 18px; }
@@ -431,7 +430,6 @@ li + li { margin-top: 6px; }
 @media (max-width: 600px) {
   .pin { padding-top: 88px; gap: 24px; }
   .scene-hero .pin { padding-top: 64px; }
-  .scene-media figcaption { font-size: 12px; }
   .motion .pin { padding-top: 5vh; padding-bottom: 4vh; }
   .motion .scene-side .scene-lead { font-size: 15px; }
   .motion .hero-shot { width: min(100%, calc((100svh - 360px) * 1.598)); }
