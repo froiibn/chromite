@@ -58,6 +58,10 @@ complete file list.
     is distributed as open source software with its complete source code;
     a redistribution of a modified Chromite that is not must not include
     MySQL Connector/J (drivers/mysql/SOURCE.txt).
+  SQLite JDBC Driver 3.54.1.0 (Xerial sqlite-jdbc) - Apache License 2.0;
+    parts derived from the Zentus SQLite JDBC driver, Copyright (c) 2006
+    David Crawshaw - BSD-style license. The jar contains the native SQLite
+    library, which is in the public domain.
 
 Binary distributions of Chromite include a Java runtime in the jre/ folder
 of the installation (macOS: Contents/Eclipse/jre inside the app), linked

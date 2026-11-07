@@ -2,7 +2,7 @@
 <?eclipse version="3.2"?>
 
 <!--
-    Chromite public edition: JDBC drivers shipped inside the installation.
+    Chromite: JDBC drivers shipped inside the installation (major databases only).
 
     Design: each driver in the driver plugin.xml files declares two alternative file sets,
     a Maven artifact with bundle="!drivers.X" and an install-relative folder with bundle="drivers.X".
@@ -19,6 +19,8 @@
     - 2026-11-06 Moved with the drivers/ root files into com.seizia.chromite.drivers.public.feature,
       which both the SWT and the Swing product include.
     - 2026-11-06 Added drivers.mysql (MySQL Connector/J, GPLv2 with the Universal FOSS Exception).
+    - 2026-11-07 Added drivers.sqlite.xerial (Xerial sqlite-jdbc). Chromite ships one edition: these major
+      databases are bundled and every other driver is downloaded when needed; there is no internal edition.
 -->
 <plugin>
 
@@ -28,6 +30,7 @@
         <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
         <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
         <bundle id="drivers.mysql" label="MySQL JDBC driver" description="MySQL Connector/J in drivers/mysql/mysql8"/>
+        <bundle id="drivers.sqlite.xerial" label="SQLite JDBC driver" description="Xerial sqlite-jdbc in drivers/sqlite/xerial"/>
     </extension>
 
 </plugin>
