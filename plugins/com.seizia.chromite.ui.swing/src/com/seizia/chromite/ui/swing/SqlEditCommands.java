@@ -69,6 +69,8 @@ import java.util.function.UnaryOperator;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 Edit &gt; Advanced에 블록 주석 토글, 공백 다듬기, 구분 목록, 소스 코드로 복사, 웹에서 찾기({@link SqlTextTools}), 자동 줄 바꿈,
+ *   접기 명령. 글자를 바꾸지 않는 명령은 읽기 전용 편집기(DDL 탭)에서도 켬 (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class SqlEditCommands {
 
@@ -346,11 +348,57 @@ final class SqlEditCommands {
         menu.addSeparator();
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_comment, "Ctrl+K, Ctrl+C", null, SqlEditorPanel.SqlTextArea.Command.COMMENT); //$NON-NLS-1$
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_uncomment, "Ctrl+K, Ctrl+U", null, SqlEditorPanel.SqlTextArea.Command.UNCOMMENT); //$NON-NLS-1$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_toggle_block_comment, null,
+            KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.TOGGLE_BLOCK_COMMENT);
         menu.addSeparator();
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_indent, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), SqlEditorPanel.SqlTextArea.Command.INDENT);
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_outdent, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.OUTDENT);
+        menu.addSeparator();
+        // Text tools of the SWT editor
+        JMenu trimMenu = new JMenu(EditorMessages.editor_edit_trim);
+        addItem(trimMenu, items, activeTextArea, EditorMessages.editor_edit_trim_spaces, null, null, SqlEditorPanel.SqlTextArea.Command.TRIM);
+        addItem(trimMenu, items, activeTextArea, EditorMessages.editor_edit_trim_leading, null, null, SqlEditorPanel.SqlTextArea.Command.TRIM_LEADING);
+        addItem(trimMenu, items, activeTextArea, EditorMessages.editor_edit_trim_trailing, null, null, SqlEditorPanel.SqlTextArea.Command.TRIM_TRAILING);
+        menu.add(trimMenu);
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_morph_list, null, null, SqlEditorPanel.SqlTextArea.Command.MORPH_LIST);
+        JMenu sourceMenu = new JMenu(EditorMessages.editor_edit_copy_as_source);
+        for (SqlTextTools.SourceFormat format : SqlTextTools.SourceFormat.values()) {
+            JMenuItem item = new JMenuItem(format.getLabel());
+            item.addActionListener(e -> {
+                SqlEditorPanel.SqlTextArea textArea = activeTextArea.get();
+                if (textArea != null) {
+                    textArea.copyAsSourceCode(format);
+                }
+            });
+            sourceMenu.add(item);
+        }
+        menu.add(sourceMenu);
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_search_web, null, null, SqlEditorPanel.SqlTextArea.Command.SEARCH_WEB);
+        menu.addSeparator();
+        JCheckBoxMenuItem wordWrapItem = new JCheckBoxMenuItem(EditorMessages.editor_edit_word_wrap);
+        wordWrapItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        wordWrapItem.addActionListener(e -> {
+            SqlEditorPanel.SqlTextArea textArea = activeTextArea.get();
+            if (textArea != null) {
+                textArea.runCommand(SqlEditorPanel.SqlTextArea.Command.WORD_WRAP);
+            }
+        });
+        menu.add(wordWrapItem);
+        // The folding keys are the text area's own (RSyntaxTextArea: Ctrl and the numeric keypad); the menu shows them
+        JMenu foldingMenu = new JMenu(EditorMessages.editor_edit_folding);
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse, "Ctrl+NumPad -", null, //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.COLLAPSE_FOLD);
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand, "Ctrl+NumPad +", null, //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.EXPAND_FOLD);
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse_all, "Ctrl+NumPad /", null, //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.COLLAPSE_ALL_FOLDS);
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand_all, "Ctrl+NumPad *", null, //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.EXPAND_ALL_FOLDS);
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse_comments, null, null,
+            SqlEditorPanel.SqlTextArea.Command.COLLAPSE_COMMENT_FOLDS);
+        menu.add(foldingMenu);
         menu.addSeparator();
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_insert_template, "Ctrl+K, Ctrl+X", null, SqlEditorPanel.SqlTextArea.Command.INSERT_TEMPLATE); //$NON-NLS-1$
         menu.addMenuListener(new MenuListener() {
@@ -358,7 +406,12 @@ final class SqlEditCommands {
             public void menuSelected(MenuEvent e) {
                 SqlEditorPanel.SqlTextArea textArea = activeTextArea.get();
                 boolean editable = textArea != null && textArea.isEditable();
-                items.forEach(item -> item.setEnabled(editable));
+                // Commands that do not change the text work in read-only text areas too (DDL tabs)
+                items.forEach(item -> item.setEnabled(textArea != null
+                    && (editable || !((SqlEditorPanel.SqlTextArea.Command) item.getClientProperty(COMMAND_KEY)).isEdit())));
+                sourceMenu.setEnabled(textArea != null);
+                wordWrapItem.setEnabled(textArea != null);
+                wordWrapItem.setSelected(textArea != null && textArea.getLineWrap());
             }
 
             @Override
@@ -371,6 +424,11 @@ final class SqlEditCommands {
         });
         return menu;
     }
+
+    /**
+     * Client property of an Edit &gt; Advanced item: its {@link SqlEditorPanel.SqlTextArea.Command}.
+     */
+    private static final String COMMAND_KEY = "chromite.editCommand"; //$NON-NLS-1$
 
     private static void addItem(
         @NotNull JMenu menu,
@@ -390,6 +448,7 @@ final class SqlEditCommands {
         // A menu accelerator is one key stroke; two-key chords (Ctrl+K, Ctrl+D) are named in the item text
         JMenuItem item = new JMenuItem(keys == null ? text : text + "    (" + keys + ")"); //$NON-NLS-1$ //$NON-NLS-2$
         item.setAccelerator(shortcut);
+        item.putClientProperty(COMMAND_KEY, command);
         item.addActionListener(e -> {
             SqlEditorPanel.SqlTextArea textArea = activeTextArea.get();
             if (textArea != null) {

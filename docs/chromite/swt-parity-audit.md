@@ -153,5 +153,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-08 4순위 스크립트 탐색기: C-22·A-C13 없음 → 일부(Scripts 도구 창, 스크립트와 연결 묶기, [swing-scripts-explorer.md](swing-scripts-explorer.md)), B-S38 근거 갱신(일부 그대로). 결과 요약은 메인 세션이 다시 셈.
 - 2026-11-08 설정 화면 나머지 2차(`chromite/settings-rest-2`): 남은 키 47개 화면, 효과 없는 키 6개 재판정([swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)").
   A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).
+- 2026-11-08 4순위 쿼리 편집기 편의(B6): B-S31·S35·S37 없음 → 있음, B-S28 없음 → 일부, B-S44 일부 → 있음, B-S3·S33·S34 비고 갱신
+  ([swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md)). 결과 요약 수는 병합 때 다시 셈.
 - 2026-11-08 4순위 연결 칸(`chromite/p4-connection-fields`, [swing-conn-advanced.md](swing-conn-advanced.md)): 공급자 속성 선언, ClickHouse·Databend·TiDB Lake SSL, BigQuery·Snowflake·Spanner·HANA·Firebird·Mimer 칸, 연결 설명.
   D-P3·S4·S5·O7과 번들 줄 9개 갱신, B-C2·C4·C8 비고 갱신. 결과 요약 수는 고치지 않음(공통 규칙: 메인 세션이 다시 셈).
