@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -29,8 +30,8 @@ import java.util.List;
 
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
- * [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [연결 ▾] │ [DB/스키마 ▾] │ [Comment] [Uncomment] │ [Decrease Indent] [Increase Indent] │
- * [Format SQL] │ [Query History].
+ * [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] │ [연결 ▾] │ [DB/스키마 ▾] │ [Comment] [Uncomment] │
+ * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
  *
  * 설계:
  * <ul>
@@ -39,6 +40,7 @@ import java.util.List;
  *     <li>실행·중지·예상 계획·실제 계획 단추는 메인 창 Query 메뉴와 같은 {@link Action}을 쓴다. 그래서 켜짐과 단축키(F5, Alt+Break, Ctrl+L,
  *     Ctrl+M)가 메뉴와 같고, 켜짐은 메인 창이 활성 쿼리 창({@link SqlEditorPanel#canExecute()} 등)으로 정한다. 단추의 도구 설명은
  *     쿼리 창 도구 막대에 있던 것(단축키 포함)이다. 실제 계획은 메뉴의 확인 표시와 같은 동작의 선택 상태({@link Action#SELECTED_KEY})다.</li>
+ *     <li>Commit / Roll Back 단추도 Query 메뉴와 같은 동작이다(SWT 메인 도구 막대의 커밋·롤백 단추). 활성 쿼리 창에 열린 트랜잭션이 있을 때만 켜진다.</li>
  *     <li>연결·DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getConnectionCombo()}): 모델·리스너·켜짐이 창마다의 상태라
  *     한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 콤보를 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면
  *     연결·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다.</li>
@@ -51,6 +53,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 쿼리 창 도구 막대를 메인 창 둘째 줄로 옮김(사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 Commit / Roll Back 단추 (docs/chromite/transactions.md)
  */
 final class SqlEditorToolBar {
 
@@ -71,6 +74,8 @@ final class SqlEditorToolBar {
      * @param cancelAction        Query &gt; Cancel Executing Query
      * @param estimatedPlanAction Query &gt; Display Estimated Execution Plan
      * @param actualPlanAction    Query &gt; Include Actual Execution Plan (with {@link Action#SELECTED_KEY})
+     * @param commitAction        Query &gt; Commit
+     * @param rollbackAction      Query &gt; Roll Back
      * @param openQueryHistory    Query &gt; Query History
      */
     SqlEditorToolBar(
@@ -78,6 +83,8 @@ final class SqlEditorToolBar {
         @NotNull Action cancelAction,
         @NotNull Action estimatedPlanAction,
         @NotNull Action actualPlanAction,
+        @NotNull Action commitAction,
+        @NotNull Action rollbackAction,
         @NotNull Runnable openQueryHistory
     ) {
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
@@ -88,6 +95,12 @@ final class SqlEditorToolBar {
         toolBar.addSeparator();
         toolBar.add(createButton(UiIcons.createActionButton(estimatedPlanAction, "plan"), EditorMessages.editor_sql_estimated_plan_tip)); //$NON-NLS-1$
         toolBar.add(createActualPlanButton(actualPlanAction));
+        toolBar.addSeparator();
+        // The shortcut differs by platform (MainFrame), so the tool tip takes it from the action
+        toolBar.add(createButton(UiIcons.createActionButton(commitAction, "commit"), //$NON-NLS-1$
+            NLS.bind(EditorMessages.editor_sql_commit_tip, WelcomePanel.getKeyText((KeyStroke) commitAction.getValue(Action.ACCELERATOR_KEY)))));
+        toolBar.add(createButton(UiIcons.createActionButton(rollbackAction, "rollback"), //$NON-NLS-1$
+            NLS.bind(EditorMessages.editor_sql_rollback_tip, WelcomePanel.getKeyText((KeyStroke) rollbackAction.getValue(Action.ACCELERATOR_KEY)))));
         toolBar.addSeparator();
         toolBar.add(connectionCombo);
         toolBar.addSeparator();

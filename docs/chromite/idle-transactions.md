@@ -53,6 +53,7 @@
 - 모양: `status.warning` 점(커밋 방식 점과 같은 크기, 주의이지 오류가 아님) + `열린 트랜잭션 00:03:15 (문장 3개)`. 경과 시간은 트랜잭션 시작부터이고 1초마다 갱신한다.
 - 도구 설명: 시작 시각, 문장 수와 데이터 변경 문장 수, 마지막 문장 끝 시각, "클릭하면 커밋하거나 롤백합니다".
 - 클릭: 칸 위에 커밋 / 롤백 메뉴. 고르면 메뉴를 연 때의 트랜잭션만 끝낸다(아래 "커밋·롤백 공용 경로"). 사용자가 직접 고르는 동작이므로 허용된다.
+  같은 메뉴의 트랜잭션 로그…는 그 트랜잭션의 문장을 보인다([transactions.md](transactions.md)).
 
 ### 유휴 감시
 
@@ -80,6 +81,7 @@
 ### 커밋·롤백 공용 경로
 
 `IdleTransactionMonitor.endTransaction(monitor, context, transactionStart, commit)`을 알림 단추, 상태 줄 메뉴, 자동 롤백이 함께 쓴다.
+2026-11-07부터 Query 메뉴·SQL Editor 도구 막대·단축키의 Commit / Roll Back과 열린 트랜잭션 목록도 이 경로를 쓴다([transactions.md](transactions.md)).
 
 - 그 문맥의 트랜잭션이 보여 준 트랜잭션(시작 시각)과 같고 실행 중이 아닐 때만 한다. 그 사이 다른 트랜잭션이 시작되었으면 건드리지 않고 "아무것도 하지 않았습니다"라고 알린다.
 - 커밋·롤백 자체는 다른 기능과 같은 트랜잭션 관리자 호출(`DBCTransactionManager.commit` / `rollback`, UTIL 세션)이다. 새 JDBC 호출을 만들지 않았다.
@@ -220,3 +222,4 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 2026-11-07 유휴 연결 닫기가 동작하게 함(연결별 마지막 사용 기준, 열린 트랜잭션·실행 중이면 닫지 않음, AI 도우미 세션 포함, 닫은 뒤 경고 알림),
   모델 알림을 메인 창 알림으로 보임. PostgreSQL·SQL Server에서 실행 확인(증거: `D:\Tools\_scratch\idle-close-notifications\`)
 - 2026-11-07 에이전트 기능의 공식 이름을 Chromite Agent로 정함([ai-agent.md](ai-agent.md) "명칭"): 이 문서의 설명에서 "AI 도우미"를 바꿈.
+- 2026-11-07 상태 줄 메뉴에 트랜잭션 로그, 공용 커밋 경로를 Query 메뉴·도구 막대·단축키·열린 트랜잭션 목록도 씀([transactions.md](transactions.md))
