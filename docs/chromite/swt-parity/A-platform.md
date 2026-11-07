@@ -102,7 +102,7 @@
 | A-C11 | 셸 프로세스 보기(연결 이벤트 명령 출력, 중지) | `views/process/ShellProcessView` | 없음 | Swing 검색 0 | 낮음 | |
 | A-C12 | 북마크 | `resources/bookmarks/*` | 없음 | swt-removal.md:108(프로젝트·자원 탐색기) | 낮음 | |
 | A-C13 | 프로젝트 패널·자원 처리기(스크립트 폴더, 바로 가기) | `controls/ProjectsPanel`, `resources/*Handler*` | 없음 | swt-removal.md:108 | 중간 | |
-| A-C14 | 설정·프로젝트·스크립트 내보내기/가져오기 마법사 | `tools/configuration`, `tools/project`, `tools/scripts` | 없음 | Swing 검색 0 | 중간 | 작업 공간을 다른 PC로 옮기는 공식 경로가 없다 |
+| A-C14 | 설정·프로젝트·스크립트 내보내기/가져오기 마법사 | `tools/configuration`, `tools/project`, `tools/scripts` | 일부 (2026-11-07 연결만. 조사 당시: 없음) | 연결·그룹·비밀번호는 암호로 암호화한 파일로 옮김([connection-transfer.md](../connection-transfer.md)). 설정·스크립트·프로젝트 자원은 없음 | 중간 | 연결 외의 작업 공간 내용은 다른 PC로 옮기는 공식 경로가 없다 |
 | A-C15 | 연결 끊김 시 다시 연결 대화상자, 드라이버 설정 오류 안내, 드라이버 라이선스 오류 | `DesktopUI.showDatabaseError` | 일부 | §3 | 중간 | 모델의 자동 복구(`execute.recover.*`)는 남아 있음 |
 | A-C16 | 인증 방식 자격 증명 대화상자 | `DesktopUI.promptAuthModelCredentials` | 있음 (2026-11-07 수정함. 조사 당시: 조용히 끊김) | S5, [swing-auth-prompts.md](../swing-auth-prompts.md) | 높음 | |
 | A-C17 | 셸 명령 승인 | `UIServiceShellCommandsImpl` | 있음 (2026-11-07 수정. 조사 당시: 조용히 끊김) | S4, `SwingShellCommandsService` | 높음 | [shell-command-approval.md](../shell-command-approval.md) |
@@ -236,8 +236,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | 상태 | 수 |
 |---|---|
 | 있음 | 11 (A-C21, A-C22, A-U1, A-U2, A-U4, A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
-| 일부 | 12 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1) |
-| 없음 | 34 (A-C1~A-C4, A-C7, A-C11~A-C14, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X4, A-X6) |
+| 일부 | 13 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1) |
+| 없음 | 33 (A-C1~A-C4, A-C7, A-C11~A-C13, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X4, A-X6) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 14 (S1~S14. 그중 S1은 다른 에이전트가 수정 중, S10·S11은 안전 쪽으로 실패, S14는 macOS 실행 확인 필요) |
 

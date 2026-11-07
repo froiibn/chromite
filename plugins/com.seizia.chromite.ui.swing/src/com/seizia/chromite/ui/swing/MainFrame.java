@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
@@ -192,6 +193,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 열쇠로 찾아 여는 도구 문서 탭 {@link #openToolDocument}(SQL Server 에이전트 작업 활동·기록·로그) (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-07 AI Assistant 도구 창(오른쪽 가장자리, 기본 숨김, View 메뉴·도구 막대 토글), AI 도구 확인 대화상자와 쿼리 창 연결 등록,
  *   쿼리 창 편집기의 "Ask AI About This Query" ({@link AiAssistantPanel}, docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 File 메뉴에 Import Connections… / Export Connections… ({@link ConnectionTransferCommands}, docs/chromite/connection-transfer.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1503,6 +1505,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAction));
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.add(new JMenuItem(saveAllAction));
+        fileMenu.addSeparator();
+        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import);
+        importConnectionsItem.addActionListener(e -> ConnectionTransferCommands.importConnections(this));
+        fileMenu.add(importConnectionsItem);
+        JMenuItem exportConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_export);
+        exportConnectionsItem.addActionListener(e -> ConnectionTransferCommands.exportConnections(this, null));
+        fileMenu.add(exportConnectionsItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));

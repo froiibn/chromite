@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -82,9 +83,10 @@ import java.util.Set;
  *     줄 전체를 칠하지 않는 것은 줄 바탕을 선택·마우스 올림 표시에 남기기 위해서다(사용자 결정 2026-11-06).</li>
  *     <li>서버 메뉴: New Query(필요하면 연결하고 그 연결의 SQL 편집기를 연다. SSMS처럼 Object Explorer에는 넣지 않는다),
  *     Object Explorer(더블클릭·Enter도 같음: Object Explorer에 넣고 골라 펼친다 = 연결), Connect / Disconnect, Move To,
- *     Properties…(연결 대화상자), Rename(F2), Delete(Delete, 확인). 연결 명령은 Object Explorer와 같은 {@link ConnectionCommands}다.</li>
+ *     Properties…(연결 대화상자), Rename(F2), Delete(Delete, 확인), Export Connections…. 연결 명령은 Object Explorer와 같은 {@link ConnectionCommands}다.</li>
  *     <li>그룹 메뉴: New Server Registration…(그 그룹을 고른 연결 대화상자), New Server Group…, Expand All / Collapse All(그 그룹 아래),
- *     Move To, Rename(F2), Delete(Delete, 확인. 하위 그룹은 지우고 서버는 상위로 옮긴다는 것을 알린다).</li>
+ *     Move To, Rename(F2), Delete(Delete, 확인. 하위 그룹은 지우고 서버는 상위로 옮긴다는 것을 알린다), Export Connections….
+ *     빈 곳의 메뉴에는 Import Connections… / Export Connections…(모든 연결)가 있다.</li>
  *     <li>끌어 놓기: 서버와 그룹을 그룹 위(또는 그룹 안의 서버 위, 빈 곳 = 최상위)로 옮긴다. 그룹을 자기 자신이나 하위 그룹으로는 옮길 수 없다.</li>
  *     <li>펼친 그룹은 이 번들의 설정 저장소에 그룹 경로로 저장해 다시 시작해도 남는다. 저장한 적이 없으면(처음) 모든 그룹을 펼친다.</li>
  *     <li>모양은 Object Explorer와 같다: 머리말 아래 아이콘 도구 막대, 이름 뒤 보조 글자(연결 호스트), 마우스를 올린 행의 둥근 바탕.</li>
@@ -97,6 +99,8 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
+ * - 2026-11-07 메뉴에 연결 내보내기(서버·그룹은 그것만 골라 시작)와 빈 곳의 연결 가져오기 ({@link ConnectionTransferCommands},
+ *   docs/chromite/connection-transfer.md)
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -359,6 +363,8 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(menuItem(CoreMessages.servers_properties, null, () -> ConnectionCommands.edit(this, container)));
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
             popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
+            popupMenu.addSeparator();
+            popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, container)));
         } else if (selected instanceof DBPDataSourceFolder folder) {
             popupMenu.add(menuItem(CoreMessages.servers_new_registration, null, () -> newServer(folder)));
             popupMenu.add(menuItem(CoreMessages.servers_new_group, null, () -> newGroup(folder)));
@@ -370,12 +376,17 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
             popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
+            popupMenu.addSeparator();
+            popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, folder)));
         } else {
             popupMenu.add(new JMenuItem(newServerAction));
             popupMenu.add(new JMenuItem(newGroupAction));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(null, true)));
             popupMenu.add(new JMenuItem(collapseAllAction));
+            popupMenu.addSeparator();
+            popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_import, null, () -> ConnectionTransferCommands.importConnections(this)));
+            popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, null)));
         }
     }
 
