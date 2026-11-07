@@ -32,6 +32,11 @@ import java.util.List;
 
 /**
  * Connection type
+ *
+ * 변경 이력:
+ * - 2026-11-07 유휴 트랜잭션: {@link #isAutoCloseTransactions()}와 {@link #getCloseIdleTransactionPeriod()}를 Chromite에서는
+ *   "유휴 트랜잭션 알림"과 그 기간의 기본값으로 읽는다(롤백 동의가 아님). TEST 기간 주석을 실제 값(15분)으로 고침
+ *   (docs/chromite/idle-transactions.md)
  */
 public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
@@ -74,7 +79,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             false,
             true,
             true,
-            900, //30 minutes
+            900, //15 minutes
             true,
             7200, //2 hours
             true,
@@ -320,6 +325,10 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
         this.smartCommitRecover = smartCommitRecover;
     }
 
+    /**
+     * Default of the idle open transaction reminder of the type's connections (IdleTransactionMonitor). The name comes
+     * from upstream, where it rolled back; Chromite only reminds by default and never reads it as consent to roll back.
+     */
     public boolean isAutoCloseTransactions() {
         return autoCloseTransactions;
     }
@@ -328,6 +337,9 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
         this.autoCloseTransactions = autoCloseTransactions;
     }
 
+    /**
+     * Default idle period (seconds) of an open transaction before the reminder.
+     */
     public int getCloseIdleTransactionPeriod() {
         return closeIdleTransactionPeriod;
     }

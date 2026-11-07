@@ -38,6 +38,10 @@ import java.util.*;
 
 /**
  * Connection configuration.
+ *
+ * 변경 이력:
+ * - 2026-11-07 유휴 트랜잭션 설정(알림 켜기·기간, 자동 롤백)을 연결마다 둠. 알림과 기간은 비어 있으면 연결 종류를 따르고,
+ *   자동 롤백은 사용자가 이 연결에 켰을 때만 켜진다(기본 꺼짐) (docs/chromite/idle-transactions.md)
  */
 public class DBPConnectionConfiguration implements DBPObject {
     public static final String ATTRIBUTE_TEST_CONNECTION_SOURCE = "test-connection-source";
@@ -129,6 +133,10 @@ public class DBPConnectionConfiguration implements DBPObject {
     private int keepAliveInterval;
     private boolean closeIdleConnection;
     private int closeIdleInterval;
+    @Nullable
+    private Boolean idleTransactionReminder;
+    private int idleTransactionPeriod;
+    private boolean idleTransactionRollback;
 
     private String authModelId;
     private Map<String, String> authProperties;
@@ -186,6 +194,9 @@ public class DBPConnectionConfiguration implements DBPObject {
         this.keepAliveInterval = info.keepAliveInterval;
         this.closeIdleConnection = info.closeIdleConnection;
         this.closeIdleInterval = info.closeIdleInterval;
+        this.idleTransactionReminder = info.idleTransactionReminder;
+        this.idleTransactionPeriod = info.idleTransactionPeriod;
+        this.idleTransactionRollback = info.idleTransactionRollback;
     }
 
     @NotNull
@@ -500,6 +511,43 @@ public class DBPConnectionConfiguration implements DBPObject {
         this.closeIdleInterval = closeIdleInterval;
     }
 
+    /**
+     * Remind about an open transaction that stays idle: true/false set for this connection, or null to follow the
+     * connection type ({@link DBPConnectionType#isAutoCloseTransactions()}).
+     */
+    @Nullable
+    public Boolean getIdleTransactionReminder() {
+        return idleTransactionReminder;
+    }
+
+    public void setIdleTransactionReminder(@Nullable Boolean idleTransactionReminder) {
+        this.idleTransactionReminder = idleTransactionReminder;
+    }
+
+    /**
+     * Idle period of an open transaction in seconds before Chromite reminds (or rolls back), or 0 to follow the
+     * connection type ({@link DBPConnectionType#getCloseIdleTransactionPeriod()}).
+     */
+    public int getIdleTransactionPeriod() {
+        return idleTransactionPeriod;
+    }
+
+    public void setIdleTransactionPeriod(int idleTransactionPeriod) {
+        this.idleTransactionPeriod = idleTransactionPeriod;
+    }
+
+    /**
+     * Roll back an idle open transaction without asking. Only an explicit choice for this connection turns it on: the
+     * connection types' old auto-close flag means "remind" in Chromite, never consent to roll back.
+     */
+    public boolean isIdleTransactionRollback() {
+        return idleTransactionRollback;
+    }
+
+    public void setIdleTransactionRollback(boolean idleTransactionRollback) {
+        this.idleTransactionRollback = idleTransactionRollback;
+    }
+
     @Nullable
     public String getConfigProfileSource() {
         return configProfileSource;
@@ -659,7 +707,10 @@ public class DBPConnectionConfiguration implements DBPObject {
                 CommonUtils.equalObjects(this.bootstrap, source.bootstrap) &&
                 this.keepAliveInterval == source.keepAliveInterval &&
                 this.closeIdleConnection == source.closeIdleConnection &&
-                this.closeIdleInterval == source.closeIdleInterval;
+                this.closeIdleInterval == source.closeIdleInterval &&
+                CommonUtils.equalObjects(this.idleTransactionReminder, source.idleTransactionReminder) &&
+                this.idleTransactionPeriod == source.idleTransactionPeriod &&
+                this.idleTransactionRollback == source.idleTransactionRollback;
     }
 
     public void resolveDynamicVariables(IVariableResolver variableResolver) {

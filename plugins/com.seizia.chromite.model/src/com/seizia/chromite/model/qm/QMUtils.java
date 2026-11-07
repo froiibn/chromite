@@ -50,6 +50,10 @@ import java.util.List;
 
 /**
  * Query Manager utils
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #getTransactionState}: 열린 트랜잭션 표시와 유휴 트랜잭션 감시가 쓰도록 마지막 문장 시각과 실행 중 여부를 더함
+ *   (docs/chromite/idle-transactions.md)
  */
 public class QMUtils {
 
@@ -150,43 +154,49 @@ public class QMUtils {
         return null;
     }
 
+    /**
+     * The statements of the context's current transaction (see {@link QMTransactionState} for what is counted). Reads
+     * only the query manager's in-memory records, so it is cheap enough for the UI thread.
+     */
     @NotNull
     public static QMTransactionState getTransactionState(@Nullable DBCExecutionContext executionContext) {
         int execCount = 0, updateCount = 0;
         final boolean txnMode;
-        long txnStartTime = 0;
+        long txnStartTime = 0, lastExecTime = 0;
+        boolean executing = false;
         if (executionContext == null || qmRegistry == null) {
             txnMode = false;
         } else {
             QMMConnectionInfo sessionInfo = getCurrentConnection(executionContext);
             if (sessionInfo == null || sessionInfo.isClosed()) {
                 txnMode = false;
-            } else if (sessionInfo.isTransactional()) {
-                txnMode = true;
-                QMMTransactionInfo txnInfo = sessionInfo.getTransaction();
+            } else {
+                // The last statement of the context, of any purpose and transaction mode
+                QMMStatementExecuteInfo lastExec = sessionInfo.getExecutionStack();
+                executing = lastExec != null && !lastExec.isClosed();
+                txnMode = sessionInfo.isTransactional();
+                QMMTransactionInfo txnInfo = txnMode ? sessionInfo.getTransaction() : null;
                 if (txnInfo != null) {
                     QMMTransactionSavepointInfo sp = txnInfo.getCurrentSavepoint();
-                    QMMStatementExecuteInfo execInfo = sp.getLastExecute();
-                    for (QMMStatementExecuteInfo exec = execInfo; exec != null && exec.getSavepoint() == sp; exec = exec.getPrevious()) {
-                        execCount++;
+                    // Newest first: the first user statement met is the last one run, the last one met started the transaction
+                    for (QMMStatementExecuteInfo exec = sp.getLastExecute(); exec != null && exec.getSavepoint() == sp; exec = exec.getPrevious()) {
                         DBCExecutionPurpose purpose = exec.getStatement().getPurpose();
-                        if (!exec.hasError()
-                            && purpose != DBCExecutionPurpose.META
-                            && purpose != DBCExecutionPurpose.UTIL
-                        ) {
-                            txnStartTime = exec.getOpenTime();
+                        if (purpose == DBCExecutionPurpose.META || purpose == DBCExecutionPurpose.UTIL) {
+                            continue;
+                        }
+                        execCount++;
+                        if (exec.isTransactional()) {
                             updateCount++;
                         }
+                        if (lastExecTime == 0) {
+                            lastExecTime = exec.isClosed() ? exec.getCloseTime() : exec.getOpenTime();
+                        }
+                        txnStartTime = exec.getOpenTime();
                     }
                 }
-            } else {
-                txnMode = false;
             }
         }
-        if (txnStartTime <= 0) {
-            txnStartTime = System.currentTimeMillis();
-        }
-        return new QMTransactionState(execCount, updateCount, txnMode, txnStartTime);
+        return new QMTransactionState(execCount, updateCount, txnMode, txnStartTime, lastExecTime, executing);
     }
 
     @NotNull
