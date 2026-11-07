@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-06 최초 작성: 연결 영역 화면 문구를 옮김(OS 언어를 따름)
  * - 2026-11-07 열린 세션에 자동 커밋을 적용할 때의 문구({@code autocommit_*}) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 유휴 트랜잭션 설정({@code settings_idle_txn_*})과 알림({@code idle_txn_*}) 문구 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 끊기 전 열린 트랜잭션 질문({@code disconnect_txn_*}) (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -370,6 +371,10 @@ public class ConnectionMessages extends NLS {
     public static String idle_txn_title;
     public static String idle_txn_not_ended;
     public static String idle_txn_error;
+
+    // Open transactions before a disconnect (ExitTransactionCheck.confirmDisconnect)
+    public static String disconnect_txn_message;
+    public static String disconnect_txn_error;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionMessages.class);

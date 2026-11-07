@@ -121,6 +121,18 @@
   `ChromiteNotifications.NT_ROLLBACK_IDLE`, 데이터 소스 설정 `ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED`/`_TTL`(`transaction.auto.close.*`, 설정 화면 없음).
 - `DBPConnectionType`의 TEST 기간 주석(`900, //30 minutes`)이 틀려 15분으로 고쳤다.
 
+## 연결 끊기 전 질문
+
+연결을 끊으면 JDBC 연결을 닫으며 열린 트랜잭션이 롤백된다(`JDBCDataSource.closeConnection` → `JDBCExecutionContext.close`).
+Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이것을 묻지 않았다(앱 종료만 물었다). SWT는 `DataSourceHandler.checkAndCloseActiveTransaction`으로 물었다.
+
+- 네 동작이 모두 지나는 `ConnectionCommands`의 끊기 경로에서, `DisconnectJob`을 예약하기 전에 `ExitTransactionCheck.confirmDisconnect`를 부른다.
+- 찾기·질문·끝내기는 앱 종료 질문과 같은 코드다: 그 연결의 모든 실행 문맥에서 `QMUtils.isTransactionActive`, AI 도우미·MCP 도구 격리 문맥은
+  `AgentSql.hasPendingTransaction`. 있으면 목록과 함께 커밋 / 롤백 / 취소를 묻는다.
+- 취소하면 끊지 않고 트랜잭션도 그대로 둔다. 다시 연결·삭제도 하지 않고, Object Explorer의 Disconnect는 서버를 창에서 빼지 않는다.
+- 커밋·롤백이 실패하면 오류를 보이고 끊지 않는다.
+- 클래스 이름(`ExitTransactionCheck`)은 바꾸지 않았다. 바꾸면 기존 설계 문서(auto-update.md, ai-agent.md)의 참조까지 고쳐야 해서 변경이 커진다.
+
 ## 유휴 연결 끊기
 
 유휴 연결 끊기(`DisconnectJob`)는 같은 전역 활동 시각을 쓰므로 지금처럼 동작하지 않는다. 이 변경은 활동 시각을 연결하지 않아 끊기를 켜지 않았다.
@@ -136,3 +148,4 @@
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 쿼리 창 상태 줄의 열린 트랜잭션 표시, 유휴 트랜잭션 알림(기본)과 자동 롤백(연결에서 켰을 때만), 업스트림 유휴 롤백 경로 교체
+- 2026-11-07 연결 끊기 전 질문: 끊기·다시 연결·삭제·편집 뒤 다시 연결이 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음

@@ -173,6 +173,7 @@ updates/
 답은 모든 문맥에 적용하고, 진행 대화상자에서 `DBCTransactionManager.commit`/`rollback`을 한다. 하나라도 실패하면 오류를 보이고 앱을 닫지 않는다.
 SWT의 `ApplicationWorkbenchAdvisor.closeActiveTransactions`와 `DataSourceHandler.checkAndCloseActiveTransaction`(#68에서 삭제)을 옮겼다.
 SWT는 문맥마다 물었지만, 끝낼 때는 편집기 저장 질문처럼 한 번에 묻는다. 이 작업 전의 Swing 종료 경로는 트랜잭션을 묻지 않았다.
+연결 끊기 전에도 같은 찾기·질문·끝내기를 그 연결에 한다(`ExitTransactionCheck.confirmDisconnect`, [idle-transactions.md](idle-transactions.md) "연결 끊기 전 질문").
 
 AI 도우미·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 자기 격리 문맥의 JDBC 연결에 직접 SQL을 보내므로(`AgentSql`) 쿼리 관리자에
 기록이 없고 `QMUtils.isTransactionActive`가 늘 false다. 그래서 수동 커밋 연결에 에이전트가 열어 둔 트랜잭션을 놓쳤다. 이제 연결마다
