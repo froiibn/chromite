@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 Oracle 구조 검증(VALIDATE STRUCTURE) 문구 (docs/chromite/swing-admin-tools.md)
  */
 public class MaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.model.admin.maintenance.MaintenanceMessages"; //$NON-NLS-1$
@@ -180,6 +181,12 @@ public class MaintenanceMessages extends NLS {
     public static String maint_ora_rebuild_desc;
     public static String maint_ora_online_tip;
     public static String maint_ora_warn_rebuild;
+    public static String maint_ora_validate;
+    public static String maint_ora_validate_desc;
+    public static String maint_ora_validate_cascade;
+    public static String maint_ora_validate_cascade_tip;
+    public static String maint_ora_validate_table_only;
+    public static String maint_ora_warn_validate;
     public static String maint_ora_compile;
     public static String maint_ora_compile_desc;
     public static String maint_ora_compile_schema;

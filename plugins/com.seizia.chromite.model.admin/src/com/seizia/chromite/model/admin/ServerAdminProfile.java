@@ -92,6 +92,7 @@ import java.util.function.Function;
  * - 2026-11-06 최초 작성: Swing Activity Monitor, 잠금 보기 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 PostgreSQL·Oracle 세션·잠금 관리자를 이 번들의 것으로 바꾸고 권한 확인을 더함 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-08 Altibase 잠금 관리자를 더함 (docs/chromite/swing-admin-tools.md "Altibase 잠금")
+ * - 2026-11-08 Oracle 18c+ 쿼리 취소(ALTER SYSTEM CANCEL SQL) 명령 (docs/chromite/swing-admin-tools.md "Oracle RAC와 쿼리 취소")
  */
 public final class ServerAdminProfile {
 
@@ -254,6 +255,12 @@ public final class ServerAdminProfile {
                 OracleServerSessionManager.PROP_IMMEDIATE));
             profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_disconnect_session,
                 ServerAdminMessages.action_disconnect_session_tip, Map.of(), false, false, OracleServerSessionManager.PROP_IMMEDIATE));
+            if (oracleDataSource.isAtLeastV10() && oracleDataSource.isServerVersionAtLeast(18, 0)) {
+                // ALTER SYSTEM CANCEL SQL (OracleActivitySessionManager, the 10g+ branch above): Oracle 18c+,
+                // same ALTER SYSTEM privilege as Kill Session
+                profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_cancel_query,
+                    ServerAdminMessages.action_cancel_query_tip, Map.of(OracleActivitySessionManager.PROP_CANCEL_SQL, true), true, true, null));
+            }
             profile.sessionUserReader = session -> session instanceof OracleServerSession oracleSession ? oracleSession.getUser() : null;
         } else if (dataSource instanceof AltibaseDataSource altibaseDataSource) {
             // AltibaseSessionEditor (the data source adapter), AltibaseLockEditor

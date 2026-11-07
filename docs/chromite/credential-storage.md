@@ -21,7 +21,7 @@
 |---|---|
 | 저장소 | Eclipse secure storage + OS 제공자(`DBSecurityUtils.findNativeOSProvider`). 제공자를 필수 모듈(`IProviderHints.REQUIRED_MODULE_ID`)로 지정해, 값은 제공자가 지키는 마스터 비밀번호로 암호화된다 |
 | Windows | `org.eclipse.equinox.security.win32`(`WindowsPasswordProvider64bit`): 마스터 비밀번호를 DPAPI(`CryptProtectData`, 현재 Windows 사용자)로 암호화해 같은 파일에 둔다 |
-| macOS | `model.security`의 키체인 제공자(`MacOSSecureStorageKeychain`): 마스터 비밀번호를 키체인에 둔다. **실행으로 확인하지 못했다**(아래 "위험과 남은 일"의 macOS 항목). 첫 접근 때 키체인 허용 질문이 뜰 수 있다 |
+| macOS | `model.security`의 키체인 제공자(`MacOSSecureStorageKeychain`): 마스터 비밀번호를 키체인에 둔다. 서명 없는(임시 서명) 빌드에서 확인했다(아래 "위험과 남은 일"의 macOS 항목). 첫 접근 때 키체인 허용 질문이 뜰 수 있다 |
 | 파일 | `<데이터 폴더>/secure/secure_storage`(Windows 기본 `%APPDATA%\ChromiteData\secure\secure_storage`, macOS `~/Library/ChromiteData/secure/secure_storage`). `-eclipse.keyring <파일>`이나 환경 변수 `ECLIPSE_KEYRING`이 있으면 그 파일. 옆의 `secure_storage.lock`은 다른 Chromite 창과의 잠금용(내용 없음) |
 | 노드 | `/chromite/projects/<범위>/credentials-config<부 ID>.json` = 예전 파일과 같은 JSON(데이터 소스 ID → `#connection`/`network/<처리기>`/`profile:<ID>` → 속성) |
 | | `/chromite/workspaces/<범위>/<비밀 ID>` = 작업 공간 비밀(예: `global/network-profile/<이름>`, `maven/<저장소>/auth-password`, `ui.proxy.user`) |
@@ -180,12 +180,14 @@ PC를 옮길 때는 #108 내보내기가 있으므로 남길 이유가 없다.
 
 ## 위험과 남은 일
 
-- **macOS 미확인(2026-11-08 시도)**: `macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")이 #111 이전 형식의 `credentials-config.json`(가짜 비밀번호)을 둔 작업 공간으로
-  앱을 띄워 `<CHROMITE_DATA>/ChromiteData/secure/secure_storage`, 평문 없음, 값의 제공자(`MacOSSecureStorageKeychain`), 예전 파일 이전, 로그인 키체인의
-  `com.seizia.chromite.SecureStorage`/`master-password` 항목(`security find-generic-password`), 두 번째 시작의 읽기를 확인하도록 만들었다. 그러나 앱이 macOS에서
-  시작하지 않아(런처가 JVM을 AppKit 메인 스레드에서 돌려 AWT와 교착, [platform-startup.md](platform-startup.md) "macOS 확인 기록") 이 경로는 아직 실행되지 않았다.
-  러너의 로그인 키체인이 잠겨 있는지도 그때 기록된다(`keychains.txt`). 참고: 제품 `Info.plist`의 `Eclipse` 인수에 Eclipse 기본값 `-keyring ~/.eclipse_keyring`이 있다.
-  Equinox 보안 저장소는 `-eclipse.keyring`만 읽으므로(`SecurePreferencesMapper`의 `KEYRING_ARGUMENT`) 이 저장소 위치에는 영향이 없을 것으로 보이나 실행으로 확인하지 않았다.
+- **macOS(2026-11-08)**: `macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")로 macOS 시작 수정 브랜치의 서명 없는 빌드(러너에서 임시 서명)를 확인했다(실행 42407606192).
+  #111 이전 형식의 `credentials-config.json`(가짜 비밀번호)을 둔 작업 공간으로 시작하면: 예전 파일이 옮겨지고 지워짐(`legacy.migrated.credentials-config.json`),
+  `<CHROMITE_DATA>/ChromiteData/secure/secure_storage`에 값이 있고 평문 없음, 값의 모듈은 `com.seizia.chromite.model.security.macossecurestoragekeychain`(Equinox가 소문자로 씀),
+  로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목(데이터 보호 키체인은 권한이 없어 `-34018` → 로그인 키체인, `MacOSKeychain.addPassword`),
+  보안 저장소 오류 없음. 두 번째 시작도 질문 없이 저장소를 읽었다(같은 앱이 만든 항목). 러너의 로그인 키체인은 잠겨 있지 않아 잠긴 키체인의 질문은 보지 못했다.
+  `~/Library/ChromiteData`는 생기지 않았다(`CHROMITE_DATA`). 남은 것: Developer ID로 서명한 앱(다음 릴리스)에서 같은 확인. 그 앱도 키체인 접근 그룹 권한이 없어
+  로그인 키체인을 쓸 것으로 보이나 실행으로 확인하지 않았다. 참고로 v0.1.1 `Info.plist`의 `-keyring ~/.eclipse_keyring`은 옛 Platform 인증 저장소만 읽고 이 저장소와
+  관계없다. 다음 릴리스부터 지운다([platform-startup.md](platform-startup.md) "macOS Info.plist").
 - **Equinox 저장 파일 쓰기는 원자적이지 않다**: flush가 파일을 바로 덮어쓴다. 쓰는 도중 전원이 꺼지면 파일이 깨질 수 있다. 이전 중에는 예전 파일이 확인 뒤에만 지워지므로 잃지 않지만, 이전 뒤에는 그 파일이 유일한 사본이다(#108 내보내기가 백업 수단).
 - **다른 PC·계정의 저장 파일**: 데이터 폴더째 옮기면 그 파일을 지워야 다시 저장할 수 있다(메시지가 안내).
 - **네이티브 도구 작업 자격 증명**(`AbstractNativeToolSettings`의 `tool.password`)과 암호화 프로젝트 설정은 여전히 고정 키다. 작업 설정 파일 형식과 실행기를 함께 바꿔야 해서 이번 범위에서 뺐다.
@@ -198,3 +200,4 @@ PC를 옮길 때는 #108 내보내기가 있으므로 남길 이유가 없다.
 
 - 2026-11-07 최초 작성: 연결 자격 증명과 작업 공간 비밀을 OS 보안 저장소로 옮김, 시작할 때 이전, 저장 실패 표시, 확인 결과
 - 2026-11-08 macOS 항목 갱신: `macos-smoke.yml`로 키체인 확인 경로를 만들었으나 앱이 macOS에서 시작하지 않아 실행하지 못함. `Info.plist`의 `-keyring` 인수 기록.
+- 2026-11-08 macOS 확인: 서명 없는 빌드에서 이전·키체인 항목·읽기 확인, `-keyring` 인수는 이 저장소와 관계없음을 확인(다음 릴리스에서 지움).

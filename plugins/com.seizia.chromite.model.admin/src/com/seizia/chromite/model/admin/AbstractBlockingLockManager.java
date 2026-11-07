@@ -53,6 +53,8 @@ import java.util.Map;
  * - 2026-11-06 최초 작성: SQL Server, MySQL/MariaDB 잠금 보기 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 PostgreSQL·Oracle 관리자가 쓰도록 뿌리 행 만들기({@link #createRootLock})를 하위 클래스가 바꿀 수 있게 하고,
  *   세션 끝내기({@link #killSession})가 세션 번호 대신 행을 받게 함(Oracle은 'SID,SERIAL#'로 끝냄)
+ * - 2026-11-08 잠금 상세의 기다리는 세션을 행의 열쇠({@code getId()})로 넘김. 다른 DB는 세션 번호와 같고, Oracle RAC는 인스턴스와 SID를
+ *   묶은 값이다(docs/chromite/swing-admin-tools.md "Oracle RAC와 쿼리 취소")
  */
 public abstract class AbstractBlockingLockManager extends LockGraphManager
     implements DBAServerLockManager<BlockingSessionLock, SessionLockItem> {
@@ -135,7 +137,8 @@ public abstract class AbstractBlockingLockManager extends LockGraphManager
     public static Map<String, Object> getLockItemOptions(@NotNull BlockingSessionLock lock, boolean holding) {
         Map<String, Object> options = new LinkedHashMap<>();
         options.put(LockGraphManager.keyType, holding ? LockGraphManager.typeHold : LockGraphManager.typeWait);
-        options.put(OPTION_WAIT_SESSION, lock.getWaitId());
+        // The lock key, not the session number: Oracle RAC keys a session by its instance and SID (OracleBlockingLock)
+        options.put(OPTION_WAIT_SESSION, lock.getId());
         if (lock.getHoldID() != null) {
             options.put(OPTION_HOLD_SESSION, lock.getHoldID());
         }

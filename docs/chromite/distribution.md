@@ -325,7 +325,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   `.hero`(다운로드 블록)는 `.get`으로 이름을 바꿨다(이제 첫 화면이 아니므로).
 - 둘러보기 화면 사진의 출처(2026-11-07): 테스트 빌드(#119)의 **사본**을 사본 작업 공간으로 실행하고, 앱 안에서 도는 시험 에이전트가 Swing 공개 API로 조작하고 창만 그렸다(OS 입력 없음).
   화면 배율 1.5. 연결 이름(Sales DB, Billing 등)과 `127.0.0.1` 외에 비밀번호·키·개인 정보는 없다. Chromite Agent 화면은 [ai-agent.md](ai-agent.md)의 방식대로 로컬 가짜
-  Messages API(가짜 키)로 찍었고, 도구 호출과 결과는 실제 DB 값이며 답의 글은 시험용 제공자가 돌려준 것이라고 그림 설명에 적었다(무대에서도 그대로).
+  Messages API(가짜 키)로 찍었고, 도구 호출과 결과는 실제 DB 값이며 답의 글은 시험용 제공자가 돌려준 것이다. 이 사실을 그림 아래 설명(`figcaption`)에 적었으나 2026-11-08 사용자 요청으로 그림 설명을 모두 지웠다.
   잠금 화면은 시험 PostgreSQL의 임시 DB에서 `psql` 세션이 행을 잡고 쿼리 창의 UPDATE가 기다리게 만들었고, 디버거 화면은 pldebugger를 넣은 임시 컨테이너로 찍었다. WebP 품질 82, 장당 16~82KB.
 
 ### 데이터베이스 지원 문구 (2026-11-08)
@@ -457,6 +457,9 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   첫 실행 때 Gatekeeper가 "Apple checked it for malicious software and none was detected" 질문을 보였다. **앱은 창 없이 멈춘다**(제품 결함: 런처가 JVM을 AppKit
   메인 스레드에서 돌려 AWT와 교착, ci.md의 원인 분석). 그래서 v0.1.1의 macOS 파일은 받아도 쓸 수 없다(공개·배포 여부는 사용자가 정한다).
   앱 메뉴 이름이 "Chromite-swing"(`Info.plist`의 `CFBundleName`)으로 보이는 것도 확인했다(크래시 대화상자 문구).
+  **수정(2026-11-08, [platform-startup.md](platform-startup.md) "macOS 메인 스레드"·"macOS Info.plist")**: 다음 릴리스부터 앱이 시작하고 이름이 Chromite다.
+  서명 없는 빌드로는 시작·앱 메뉴·끝내기·키체인을 확인했다. 서명·공증한 dmg에서의 시작(격리, App Translocation, 강화된 런타임)은 다음 릴리스 뒤 `macos-smoke.yml`로 확인한다.
+  v0.1.1 macOS 파일은 이 수정이 없으므로 그대로는 쓸 수 없다.
 - 실제 서버 배포(사용자 승인 전이라 하지 않음).
 - 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
 
@@ -506,3 +509,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   모든 페이지의 그림 설명, 서버 관리 장면 제목·설명과 Altibase 줄, Chromite Agent 장면 설명, 폐쇄망 장면 첫 줄, 다운로드 블록 "데이터베이스" 줄. 기준은 드라이버 정의 144개("100가지가 넘는 드라이버").
   아이콘은 다시 만들어도 같은 바이트라 바뀌지 않음. 배포하지 않음.
 - 2026-11-08 "확인하지 못한 것"의 macOS 항목을 `macos-smoke.yml` 결과로 바꿈: v0.1.1 dmg 서명·공증·Gatekeeper 통과, 앱은 시작하지 못함(제품 결함, [ci.md](ci.md)).
+- 2026-11-08 macOS 시작 교착과 `Info.plist` 이름 수정을 "확인하지 못한 것"의 macOS 항목에 기록(서명한 dmg 확인은 다음 릴리스 뒤).
+- 2026-11-08 홈(ko·en)의 그림 아래 작은 설명(`figcaption`) 7개씩과 CSS `.scene-media figcaption` 규칙 두 개를 지움(사용자 요청). 디버거 장면 설명에 있던 서버 조건(pldebugger, Oracle 디버그 권한, SQL Server 미지원)과 Chromite Agent 화면의 답이 시험용 제공자 글이라는 안내도 함께 빠짐.

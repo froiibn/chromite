@@ -52,6 +52,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipFile;
 
 /**
  * DriverLoaderDescriptor
@@ -60,6 +61,9 @@ import java.util.stream.Stream;
  * - 2026-11-06 드라이버 오프라인 모드({@link DriverUtils#isOfflineMode()}): 다운로드 대화상자를 열지 않고
  *   로컬 소스(설치 폴더의 maven-local, Maven 캐시, file: 저장소)에서만 파일을 찾는다. 그래도 드라이버 클래스를
  *   불러오지 못하면 파일을 직접 추가하라는 안내로 실패한다(docs/chromite/drivers.md).
+ * - 2026-11-08 로컬 파일 우선({@link #hasCustomLocalDriverClass}): 사용자가 추가한 로컬 라이브러리에 드라이버 클래스가 있으면
+ *   plugin.xml의 기본 다운로드 항목(Maven 등)을 내려받지도, 클래스패스에 넣지도 않는다. 기본 Maven 항목 때문에 연결할 때마다
+ *   다운로드를 묻고, 취소하면 로컬 jar가 있어도 "Class not found"로 끝나던 문제(Altibase 등, docs/chromite/drivers.md "로컬 파일 우선").
  */
 public class DriverLoaderDescriptor implements DBPDriverLoader {
 
@@ -278,8 +282,11 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
 
     @Override
     public boolean needsExternalDependencies() {
-        for (DBPDriverLibrary library : getAllLibraries()) {
-            if (library.isDisabled() || library.isOptional() || !library.matchesCurrentPlatform()) {
+        List<DBPDriverLibrary> libraries = getAllLibraries();
+        boolean localDriverClass = hasCustomLocalDriverClass(driver.getDriverClassName(), libraries);
+        for (DBPDriverLibrary library : libraries) {
+            if (library.isDisabled() || library.isOptional() || !library.matchesCurrentPlatform()
+                || isReplacedByLocalLibrary(library, localDriverClass)) {
                 continue;
             }
             if (library.getType() == DBPDriverLibrary.FileType.license) {
@@ -307,9 +314,15 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
 
         List<Path> result = new ArrayList<>();
 
-        for (DBPDriverLibrary library : getAllLibraries()) {
+        List<DBPDriverLibrary> libraries = getAllLibraries();
+        boolean localDriverClass = hasCustomLocalDriverClass(driver.getDriverClassName(), libraries);
+        for (DBPDriverLibrary library : libraries) {
             if (library.isDisabled() || !library.matchesCurrentPlatform()) {
                 // Wrong OS or architecture
+                continue;
+            }
+            if (isReplacedByLocalLibrary(library, localDriverClass)) {
+                // Files downloaded earlier are left out too: the user's driver class must not be shadowed by them
                 continue;
             }
             if (library.isDownloadable()) {
@@ -395,6 +408,65 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
         }
     }
 
+    /**
+     * Whether a user-added (custom) local jar or folder that exists has the driver class.
+     * <p>
+     * Then the user's files are the driver, and the predefined downloadable libraries (the default Maven entries of
+     * plugin.xml) are not needed: {@link #isReplacedByLocalLibrary} leaves them out. Only custom libraries count, because
+     * a predefined local library may come with a predefined Maven entry that the driver needs at run time (for example
+     * the Cloud SQL socket factory of {@code postgres-gcloud-jdbc} next to the bundled PostgreSQL jar). The jars are
+     * only looked into (no class loader, no class initialization); ZIP archives with nested jars are not.
+     */
+    public static boolean hasCustomLocalDriverClass(@Nullable String driverClassName, @NotNull Collection<? extends DBPDriverLibrary> libraries) {
+        if (CommonUtils.isEmpty(driverClassName)) {
+            return false;
+        }
+        String classEntry = driverClassName.replace('.', '/') + ".class";
+        for (DBPDriverLibrary library : libraries) {
+            if (!library.isCustom() || library.isDownloadable() || library.isDisabled() || !library.matchesCurrentPlatform()
+                || library.getType() != DBPDriverLibrary.FileType.jar) {
+                continue;
+            }
+            Path localFile = library.getLocalFile();
+            if (localFile == null || !IOUtils.isFileFromDefaultFS(localFile) || !Files.exists(localFile)) {
+                continue;
+            }
+            if (Files.isDirectory(localFile)) {
+                // A folder library puts the folder itself and its jars on the class path
+                if (Files.isRegularFile(localFile.resolve(classEntry))) {
+                    return true;
+                }
+                try (Stream<Path> list = Files.list(localFile)) {
+                    if (list.anyMatch(file -> file.getFileName().toString().endsWith(DBPDriverLibrary.FILE_EXT_JAR)
+                        && jarHasEntry(file, classEntry))) {
+                        return true;
+                    }
+                } catch (IOException e) {
+                    log.debug("Error reading driver directory '" + localFile + "'", e);
+                }
+            } else if (jarHasEntry(localFile, classEntry)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A predefined downloadable library that a custom local library replaces (see {@link #hasCustomLocalDriverClass}).
+     */
+    public static boolean isReplacedByLocalLibrary(@NotNull DBPDriverLibrary library, boolean customLocalDriverClass) {
+        return customLocalDriverClass && library.isDownloadable() && !library.isCustom();
+    }
+
+    private static boolean jarHasEntry(@NotNull Path file, @NotNull String entry) {
+        try (ZipFile zip = new ZipFile(file.toFile())) {
+            return zip.getEntry(entry) != null;
+        } catch (IOException e) {
+            log.debug("Can't read driver library '" + file + "'", e);
+            return false;
+        }
+    }
+
     @NotNull
     private List<DBPDriverLibrary> getAllLibraries() {
         List<DBPDriverLibrary> libraries = new ArrayList<>(driver.getDriverLibraries());
@@ -465,9 +537,15 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
     public DriverDependencies getDriverDependencies(boolean resetVersions, boolean skipLicense) {
         boolean localLibsExists = false;
         final List<DBPDriverLibrary> downloadCandidates = new ArrayList<>();
-        for (DBPDriverLibrary library : getAllLibraries()) {
+        List<DBPDriverLibrary> libraries = getAllLibraries();
+        boolean localDriverClass = hasCustomLocalDriverClass(driver.getDriverClassName(), libraries);
+        for (DBPDriverLibrary library : libraries) {
             if (library.isDisabled()) {
                 // Nothing we can do about it
+                continue;
+            }
+            if (isReplacedByLocalLibrary(library, localDriverClass)) {
+                // Not used, so not downloaded (not even by Download/Update)
                 continue;
             }
             if (!library.matchesCurrentPlatform()) {

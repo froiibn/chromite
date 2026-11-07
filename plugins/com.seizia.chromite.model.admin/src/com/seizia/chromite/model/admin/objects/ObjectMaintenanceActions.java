@@ -18,16 +18,33 @@ package com.seizia.chromite.model.admin.objects;
 
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView;
+import com.seizia.chromite.ext.altibase.model.AltibasePackage;
+import com.seizia.chromite.ext.altibase.model.AltibaseProcedureStandAlone;
+import com.seizia.chromite.ext.altibase.model.AltibaseTable;
+import com.seizia.chromite.ext.altibase.model.AltibaseView;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolMViewRefresh;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolPackageCompile;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolProcedureCompile;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolTableTruncate;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolViewCompile;
 import com.seizia.chromite.ext.mssql.model.SQLServerTable;
 import com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger;
 import com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerDisable;
 import com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerEnable;
 import com.seizia.chromite.ext.mysql.model.MySQLTable;
 import com.seizia.chromite.ext.mysql.tasks.MySQLToolTableTruncate;
+import com.seizia.chromite.ext.oracle.model.OracleDataType;
 import com.seizia.chromite.ext.oracle.model.OracleMaterializedView;
 import com.seizia.chromite.ext.oracle.model.OracleObjectStatus;
+import com.seizia.chromite.ext.oracle.model.OraclePackage;
+import com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
 import com.seizia.chromite.ext.oracle.model.OracleTable;
 import com.seizia.chromite.ext.oracle.model.OracleTableTrigger;
+import com.seizia.chromite.ext.oracle.model.OracleTrigger;
+import com.seizia.chromite.ext.oracle.model.OracleView;
+import com.seizia.chromite.ext.oracle.model.source.OracleSourceObject;
 import com.seizia.chromite.ext.oracle.tasks.OracleToolMViewRefresh;
 import com.seizia.chromite.ext.oracle.tasks.OracleToolTableTriggerDisable;
 import com.seizia.chromite.ext.oracle.tasks.OracleToolTableTriggerEnable;
@@ -42,7 +59,10 @@ import com.seizia.chromite.ext.postgresql.tasks.PostgreToolTableTriggerEnable;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreToolTableTruncate;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPEvent;
+import com.seizia.chromite.model.DBPStatefulObject;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
 import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -58,6 +78,7 @@ import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
 import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -70,7 +91,7 @@ import java.util.function.Consumer;
 
 /**
  * Object Explorer maintenance commands on single objects: TRUNCATE a table, enable or disable a trigger, refresh a
- * materialized view.
+ * materialized view, compile stored code.
  *
  * 설계: SWT는 이 명령들을 작업(task) 확장점의 도구로 실행했다({@code pgToolTableTruncate}, {@code oracleToolTriggerEnable} 등, 도구 대화상자
  * {@code SQLToolTaskWizard}). 문 모양은 모델 번들의 도구 처리기({@link SQLToolExecuteHandler#generateObjectQueries})에 있으므로 그대로 불러
@@ -78,8 +99,15 @@ import java.util.function.Consumer;
  * 진행 기록(작업 로그)을 전제로 하고, 연결의 기본 실행 문맥에서 실행해 사용자의 열린 트랜잭션과 섞일 수 있기 때문이다.
  * <ul>
  *     <li>지원: TRUNCATE — PostgreSQL({@link PostgreToolTableTruncate}, 외부 테이블 제외), MySQL/MariaDB({@link MySQLToolTableTruncate}),
- *     Oracle({@link OracleToolTableTruncate}), SQL Server(모델에 도구가 없어 {@code TRUNCATE TABLE <이름>}, SWT도 SQL Server TRUNCATE 도구는 없었다).
- *     트리거 사용/사용 안 함 — PostgreSQL(테이블·이벤트 트리거), SQL Server, Oracle의 도구. 구체화된 뷰 새로 고침 — PostgreSQL, Oracle의 도구.</li>
+ *     Oracle({@link OracleToolTableTruncate}), Altibase({@link AltibaseToolTableTruncate}), SQL Server(모델에 도구가 없어
+ *     {@code TRUNCATE TABLE <이름>}, SWT도 SQL Server TRUNCATE 도구는 없었다).
+ *     트리거 사용/사용 안 함 — PostgreSQL(테이블·이벤트 트리거), SQL Server, Oracle의 도구. 구체화된 뷰 새로 고침 — PostgreSQL, Oracle,
+ *     Altibase의 도구.</li>
+ *     <li>컴파일 — Oracle은 SWT Compile 명령({@code CompileHandler})과 같이 모델의 {@link OracleSourceObject#getCompileActions}
+ *     ({@code ALTER … COMPILE}, 패키지는 선언과 본문), Altibase는 SWT 도구({@link AltibaseToolViewCompile},
+ *     {@link AltibaseToolProcedureCompile}, {@link AltibaseToolPackageCompile})의 문장이다. Oracle은 컴파일 오류가 예외가 아니라 경고로
+ *     오므로 실행 뒤 {@link #readCompileErrors}로 {@code ALL_ERRORS}를 읽는다. Altibase는 컴파일 오류가 예외로 온다(7.3에서 확인).
+ *     실행 뒤 {@link #refreshObjectStates}가 객체의 유효 상태를 다시 읽고 바뀌었으면 알린다(SWT {@code CompileHandler.compileUnit}과 같음).</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -90,6 +118,8 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 Altibase TRUNCATE·구체화된 뷰 새로 고침(A5), Oracle·Altibase 컴파일(O11, A6), 컴파일 오류 읽기, 상태 다시 읽기
+ *   (docs/chromite/swing-routines.md)
  */
 public final class ObjectMaintenanceActions {
 
@@ -102,7 +132,8 @@ public final class ObjectMaintenanceActions {
         TRUNCATE,
         ENABLE_TRIGGER,
         DISABLE_TRIGGER,
-        REFRESH_MATERIALIZED_VIEW
+        REFRESH_MATERIALIZED_VIEW,
+        COMPILE
     }
 
     /**
@@ -125,12 +156,71 @@ public final class ObjectMaintenanceActions {
             case TRUNCATE -> object instanceof PostgreTable && !(object instanceof PostgreTableForeign)
                 || object instanceof MySQLTable
                 || object instanceof OracleTable
+                || object instanceof AltibaseTable
                 || object instanceof SQLServerTable;
             case ENABLE_TRIGGER, DISABLE_TRIGGER -> object instanceof PostgreTriggerBase
                 || object instanceof SQLServerTableTrigger
                 || object instanceof OracleTableTrigger;
-            case REFRESH_MATERIALIZED_VIEW -> object instanceof PostgreMaterializedView || object instanceof OracleMaterializedView;
+            case REFRESH_MATERIALIZED_VIEW -> object instanceof PostgreMaterializedView || object instanceof OracleMaterializedView
+                || object instanceof AltibaseMaterializedView;
+            case COMPILE -> object instanceof OracleProcedureStandalone
+                || object instanceof OraclePackage
+                || object instanceof OracleView
+                || object instanceof OracleMaterializedView
+                || object instanceof OracleTrigger<?>
+                // Predefined types (NUMBER, …) have no compile action
+                || object instanceof OracleDataType type && !type.isPredefined()
+                || object instanceof AltibaseView
+                || object instanceof AltibaseProcedureStandAlone
+                || object instanceof AltibasePackage;
         };
+    }
+
+    /**
+     * Reads the state (valid or invalid) of compiled objects again after {@link #execute}, and tells the navigator when it
+     * changed so the tree shows it. Objects without a state are skipped; errors only go to the log.
+     */
+    public static void refreshObjectStates(@NotNull DBRProgressMonitor monitor, @NotNull List<? extends DBSObject> objects) {
+        for (DBSObject object : objects) {
+            if (!(object instanceof DBPStatefulObject stateful)) {
+                continue;
+            }
+            try {
+                DBSObjectState oldState = stateful.getObjectState();
+                stateful.refreshObjectState(monitor);
+                if (stateful.getObjectState() != oldState) {
+                    object.getDataSource().getContainer().fireEvent(new DBPEvent(DBPEvent.Action.OBJECT_UPDATE, object));
+                }
+            } catch (DBException | RuntimeException e) {
+                log.debug("Cannot read the state of " + object.getName(), e); //$NON-NLS-1$
+            }
+        }
+    }
+
+    /**
+     * The Oracle compilation errors ({@code ALL_ERRORS}) of the objects after a compile; empty for other databases, which
+     * report compile errors as statement errors.
+     */
+    @NotNull
+    public static List<OracleCompileErrors.CompileError> readCompileErrors(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull List<? extends DBSObject> objects
+    ) throws DBException {
+        List<OracleCompileErrors.CompileError> errors = new ArrayList<>();
+        for (DBSObject object : objects) {
+            List<String> types = OracleCompileErrors.getErrorTypes(object);
+            // The owner; a table trigger's parent is its table
+            OracleSchema schema = DBUtils.getParentOfType(OracleSchema.class, object);
+            if (types.isEmpty() || schema == null) {
+                continue;
+            }
+            try (JDBCSession session = DBUtils.openMetaSession(monitor, object, "Read compilation errors")) { //$NON-NLS-1$
+                errors.addAll(OracleCompileErrors.read(session, schema.getName(), object.getName(), types));
+            } catch (SQLException e) {
+                throw new DBDatabaseException(e, object.getDataSource());
+            }
+        }
+        return errors;
     }
 
     /**
@@ -166,7 +256,8 @@ public final class ObjectMaintenanceActions {
                 throw new DBException("The command is not supported for " + DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)); //$NON-NLS-1$
             }
             List<DBEPersistAction> actions = new ArrayList<>();
-            // The tools' signature takes a session; only the PostgreSQL TRUNCATE tool uses it, and only while a task runs
+            // The tools' signature takes a session; only the PostgreSQL TRUNCATE tool uses it, and only while a task runs.
+            // Oracle compile actions use its monitor (a package reads whether it has a body)
             try (DBCSession session = DBUtils.openMetaSession(monitor, object, "Generate maintenance script")) { //$NON-NLS-1$
                 addActions(session, action, object, actions);
             }
@@ -296,6 +387,8 @@ public final class ObjectMaintenanceActions {
                     generate(new MySQLToolTableTruncate(), null, session, table, actions);
                 } else if (object instanceof OracleTable table) {
                     generate(new OracleToolTableTruncate(), null, session, table, actions);
+                } else if (object instanceof AltibaseTable table) {
+                    generate(new AltibaseToolTableTruncate(), null, session, table, actions);
                 } else if (object instanceof SQLServerTable table) {
                     actions.add(new SQLDatabasePersistAction(
                         "TRUNCATE TABLE " + DBUtils.getObjectFullName(table, DBPEvaluationContext.DDL))); //$NON-NLS-1$
@@ -325,6 +418,19 @@ public final class ObjectMaintenanceActions {
                     generate(new PostgreToolMViewRefresh(), settings -> settings.setWithData(true), session, view, actions);
                 } else if (object instanceof OracleMaterializedView view) {
                     generate(new OracleToolMViewRefresh(), null, session, view, actions);
+                } else if (object instanceof AltibaseMaterializedView view) {
+                    generate(new AltibaseToolMViewRefresh(), null, session, view, actions);
+                }
+            }
+            case COMPILE -> {
+                if (object instanceof OracleSourceObject sourceObject) {
+                    actions.addAll(List.of(sourceObject.getCompileActions(session.getProgressMonitor())));
+                } else if (object instanceof AltibaseView view) {
+                    generate(new AltibaseToolViewCompile(), null, session, view, actions);
+                } else if (object instanceof AltibaseProcedureStandAlone procedure) {
+                    generate(new AltibaseToolProcedureCompile(), null, session, procedure, actions);
+                } else if (object instanceof AltibasePackage altibasePackage) {
+                    generate(new AltibaseToolPackageCompile(), null, session, altibasePackage, actions);
                 }
             }
         }

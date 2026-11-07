@@ -125,7 +125,7 @@ SWT `SessionManagerViewer`(`plugins/com.seizia.chromite.ui.editors.session/.../S
 | PostgreSQL | `PostgreActivitySessionManager`(9.6+, 서버 종류 PostgreSQL), 그 밖은 데이터 소스 어댑터(`PostgreSessionManager`) | Show idle connections(켜짐) | Terminate Session(`pg_terminate_backend`), Cancel Query(`OPTION_QUERY_CANCEL`, `pg_cancel_backend`) | `usename` |
 | SQL Server | `SQLServerSessionManager` | Only connections(켜짐) | Terminate Session(`KILL`) | `login_name` |
 | MySQL·MariaDB | `MySQLSessionManager` | Hide sleeping(꺼짐), Show performance info(꺼짐, sys 스키마가 있을 때) | Kill Session(`KILL CONNECTION`), Kill Query(`KILL QUERY`, 쿼리가 있는 세션만) | `User` |
-| Oracle | `OracleActivitySessionManager`(10g+), 그 전은 `OracleServerSessionManager` | Show background, Show inactive(꺼짐) | Kill Session, Disconnect Session(확인 창의 Immediate 체크) | `USERNAME` |
+| Oracle | `OracleActivitySessionManager`(10g+), 그 전은 `OracleServerSessionManager` | Show background, Show inactive(꺼짐) | Kill Session, Disconnect Session(확인 창의 Immediate 체크), Cancel Query(18c+, `ALTER SYSTEM CANCEL SQL`, 쿼리가 있는 세션만) | `USERNAME` |
 | 그 밖 | 데이터 소스 어댑터 | 없음 | Terminate Session(관리자의 `getTerminateOptions()`) | 없음 |
 
 필터 값은 드라이버마다 이 번들의 설정 저장소(`activityMonitor.sessions.filter.<드라이버>.<옵션>`)에, 자동 새로 고침 간격은
@@ -228,9 +228,10 @@ Activity Monitor·Locks)는 원래부터 연결된 모든 DB에서 켜져 있었
 - **적용 범위**: PostgreSQL은 서버 종류가 PostgreSQL(`PostgreServerPostgreSQL` 계열: PostgreSQL, Google Cloud, Timescale)이고 9.6 이상일 때만,
   Oracle은 10g 이상일 때만 새 관리자를 쓴다. Greenplum·Redshift 같은 PostgreSQL 계열 서버와 오래된 버전은 함수·열이 없어 DBeaver 관리자를 그대로 쓴다.
 - **ORACLE LICENSE GUARD**: Diagnostics/Tuning Pack이 필요한 ASH·AWR(`V$ACTIVE_SESSION_HISTORY`, `DBA_HIST_*`), SQL Monitor, SQL Tuning Advisor 뷰는 쓰지 않는다.
-  쓰는 뷰는 `GV$SESSION`, `GV$SQL`, `GV$SESS_IO`, `GV$TRANSACTION`, `V$SESSION`, `V$LOCK`, `V$SQL`, `DBA_OBJECTS`/`ALL_OBJECTS`, `SESSION_PRIVS`와
+  쓰는 뷰는 `GV$SESSION`, `GV$SQL`, `GV$SESS_IO`, `GV$TRANSACTION`, `GV$INSTANCE`, `V$SESSION`, `V$LOCK`, `V$SQL`(RAC는 `GV$LOCK`), `DBA_OBJECTS`/`ALL_OBJECTS`, `SESSION_PRIVS`와
   DBeaver 세부 정보 탭의 `GV$SESSION_LONGOPS`, `DBMS_XPLAN.DISPLAY_CURSOR`(팩 라이선스가 필요 없음)뿐이다. 그래서 라이선스 설정은 두지 않았다.
 - **잠금은 현재 인스턴스(`V$`)만**: RAC에서 다른 인스턴스의 세션이 막으면 막는 세션 행이 비어 있다. 세션 목록은 `GV$`라 모든 인스턴스가 보인다.
+  → 2026-11-08 RAC에서는 `GV$`로 읽는다(아래 "Oracle RAC와 쿼리 취소").
 
 ### 권한 확인
 
@@ -240,7 +241,7 @@ Activity Monitor·Locks)는 원래부터 연결된 모든 DB에서 켜져 있었
 | DB | 확인 | 모자랄 때 |
 |---|---|---|
 | PostgreSQL | `rolsuper OR pg_has_role(.., 'pg_read_all_stats', 'USAGE')`(10+; pg_monitor가 포함), 9.6은 `rolsuper` | 자기 세션만 읽고(`sa.usename = current_user`) 안내한다. 남의 세션은 SQL·상태가 "insufficient privilege"로만 보이기 때문이다. 잠금은 그대로 읽는다. 끝내기는 서버가 판단한다(자기 세션은 됨, 남의 세션은 `pg_signal_backend` 필요) |
-| Oracle | 뷰마다 `SELECT 1 FROM <뷰> WHERE 1 = 0`(SELECT_CATALOG_ROLE, SELECT ANY DICTIONARY, 개별 GRANT 어느 쪽이든 실제로 읽히는지), `SESSION_PRIVS`의 ALTER SYSTEM | 못 읽는 뷰 이름과 "SELECT_CATALOG_ROLE을 부여하라"를 안내한다. 세션 뷰를 못 읽으면 세션 목록, 잠금 뷰를 못 읽으면 잠금을 읽지 않고 상태 줄에도 같은 안내를 보인다. `DBA_OBJECTS`만 없으면 `ALL_OBJECTS`로 객체 이름을 찾는다. ALTER SYSTEM이 없으면 Kill/Disconnect 단추를 끈다 |
+| Oracle | 뷰마다 `SELECT 1 FROM <뷰> WHERE 1 = 0`(SELECT_CATALOG_ROLE, SELECT ANY DICTIONARY, 개별 GRANT 어느 쪽이든 실제로 읽히는지), `SESSION_PRIVS`의 ALTER SYSTEM | 못 읽는 뷰 이름과 "SELECT_CATALOG_ROLE을 부여하라"를 안내한다. 세션 뷰를 못 읽으면 세션 목록, 잠금 뷰를 못 읽으면 잠금을 읽지 않고 상태 줄에도 같은 안내를 보인다. `DBA_OBJECTS`만 없으면 `ALL_OBJECTS`로 객체 이름을 찾는다. ALTER SYSTEM이 없으면 Kill/Disconnect/Cancel Query 단추를 끈다. RAC 판단은 `GV$INSTANCE`의 행 수(못 읽으면 단일 인스턴스) |
 
 확인 질의가 실패하면(권한과 상관없는 오류) 모두 허용으로 두고 서버가 거부하는 오류를 그대로 보인다(지금까지와 같음).
 
@@ -399,7 +400,7 @@ MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든�
 
 | 항목 | PostgreSQL(9.4+, 서버 종류 PostgreSQL) | MySQL·MariaDB | Oracle | SQL Server |
 |---|---|---|---|---|
-| 테이블 | VACUUM(FULL, FREEZE, ANALYZE, VERBOSE), ANALYZE(VERBOSE), REINDEX TABLE(CONCURRENTLY 12+), CLUSTER(인덱스 고르기, 지난번 인덱스) | ANALYZE(NO_WRITE_TO_BINLOG), OPTIMIZE, CHECK(QUICK/FAST/MEDIUM/EXTENDED/CHANGED/FOR UPGRADE), REPAIR(QUICK/EXTENDED) | DBMS_STATS.GATHER_TABLE_STATS(표본 자동/1/10/30/100%, 인덱스 포함) | 모든 인덱스 다시 작성(ONLINE, SORT_IN_TEMPDB)·다시 구성(LOB_COMPACTION), UPDATE STATISTICS(기본/FULLSCAN/SAMPLE n PERCENT/RESAMPLE) |
+| 테이블 | VACUUM(FULL, FREEZE, ANALYZE, VERBOSE), ANALYZE(VERBOSE), REINDEX TABLE(CONCURRENTLY 12+), CLUSTER(인덱스 고르기, 지난번 인덱스) | ANALYZE(NO_WRITE_TO_BINLOG), OPTIMIZE, CHECK(QUICK/FAST/MEDIUM/EXTENDED/CHANGED/FOR UPGRADE), REPAIR(QUICK/EXTENDED) | DBMS_STATS.GATHER_TABLE_STATS(표본 자동/1/10/30/100%, 인덱스 포함), ANALYZE TABLE … VALIDATE STRUCTURE(테이블만/CASCADE/CASCADE FAST/CASCADE ONLINE, 2026-11-08) | 모든 인덱스 다시 작성(ONLINE, SORT_IN_TEMPDB)·다시 구성(LOB_COMPACTION), UPDATE STATISTICS(기본/FULLSCAN/SAMPLE n PERCENT/RESAMPLE) |
 | 인덱스 | REINDEX INDEX(CONCURRENTLY), CLUSTER … USING | — | ALTER INDEX … REBUILD(ONLINE), GATHER_INDEX_STATS | 다시 작성·다시 구성·UPDATE STATISTICS(그 인덱스의 통계) |
 | 스키마 | 테이블마다 VACUUM/ANALYZE, REINDEX SCHEMA(9.5+) | (데이터베이스 = 스키마) 기본 테이블 50개씩 한 문장 | GATHER_SCHEMA_STATS(GATHER/STALE/EMPTY), 무효 개체 컴파일 | — |
 | 데이터베이스 | VACUUM/ANALYZE 전체, REINDEX DATABASE, CLUSTER(전에 정렬한 테이블) | — | — | DBCC CHECKDB(NO_INFOMSGS, PHYSICAL_ONLY), sp_updatestats |
@@ -523,6 +524,55 @@ Locks 탭(자동 새로 고침 10초): 나무 "Session 4 · blocking 1" → "Ses
 상세 "Locks of session 5 (waiting)" `CHR_ALTI.CHR_ALTI_DEFAULT TBL X_LOCK WAITING`, "Locks of blocking session 4" `… X_LOCK GRANTED`(`D:\Tools\_scratch\p3-oracle-altibase-admin\shots\` `alti-en-locks.png`).
 Kill Session은 공용 컨테이너에서 실행하지 않았다(다른 작업의 세션을 끊지 않도록).
 
+## Oracle RAC와 쿼리 취소 (2026-11-08)
+
+후속 #69(세션·잠금에서 미룬 것). 모델 번들(`model.admin`)만 고쳤다. 화면(`SessionManagerPanel`, `LockManagerPanel`)은 `ServerAdminProfile`의 명령과 잠금 관리자를 그대로 쓴다.
+
+- **RAC 판단:** 권한 확인(`OracleActivitySessionManager#checkAccess`)이 `SELECT COUNT(*) FROM GV$INSTANCE`를 읽는다. 2 이상이면 RAC다.
+  이 뷰를 못 읽으면(ORA-00942/01031) 단일 인스턴스로 보고 지금까지처럼 `V$`를 쓴다. 판단 전(권한 확인이 아직 돌지 않음)도 단일 인스턴스다.
+- **RAC 잠금:** `OracleBlockingLockManager`가 같은 질의를 `GV$SESSION`·`GV$LOCK`·`GV$SQL`로 읽고, 막는 세션은 `BLOCKING_INSTANCE`·`BLOCKING_SESSION`,
+  조인은 모두 `INST_ID`를 함께 쓴다. 권한 확인도 이 세 뷰를 본다. 단일 인스턴스는 `V$` 질의 그대로다(`GV$`는 병렬 질의 프로세스를 쓰므로 필요할 때만).
+  - SID는 인스턴스마다 매겨지므로 잠금 그래프와 상세 조회의 열쇠는 인스턴스와 SID를 묶은 값(`OracleBlockingLock.sessionKey`, 상위 32비트 인스턴스)이다.
+    화면의 세션 열은 SID 그대로이고, RAC일 때만 "인스턴스"·"차단 세션 인스턴스" 열이 더 보인다(`getLocksType`). 행 제목은 `SID@인스턴스`.
+  - 잠금 상세의 기다리는 세션은 행의 열쇠(`getId()`)로 넘긴다(`AbstractBlockingLockManager.getLockItemOptions`, 다른 DB는 세션 번호와 같은 값).
+  - Kill Session은 `ALTER SYSTEM KILL SESSION 'SID,SERIAL#,@INST_ID' IMMEDIATE`.
+- **RAC 세션 번호:** DBeaver `OracleServerSession.getSessionId()`는 인스턴스가 1이면 `@1`을 뺀다. RAC에서 2번 인스턴스에 연결한 채 1번 인스턴스의 세션을 끝내면
+  이 문장은 연결한 인스턴스에서 그 SID를 찾는다. `OracleActivitySession`이 RAC일 때 언제나 `,@INST_ID`를 붙인다(Kill·Disconnect·Cancel Query 모두).
+- **Cancel Query(18c+):** `ALTER SYSTEM CANCEL SQL 'SID, SERIAL#[, @INST_ID][, SQL_ID]'`. 세션은 그대로 두고 실행 중인 문장만 멈춘다(그 세션은 ORA-01013).
+  - SQL_ID는 목록을 읽을 때의 값이다. 확인 창을 보는 사이 세션이 다음 문장으로 넘어갔으면 서버가 ORA-00866으로 거절하고 아무것도 취소하지 않는다
+    (Kill의 SERIAL#과 같은 이유). 오류 창 뒤 목록을 다시 읽는다.
+  - 권한: Kill과 같은 `ALTER SYSTEM`(`SESSION_PRIVS`). 없으면 단추가 꺼지고 안내 줄이 "세션을 종료하거나 쿼리를 취소할 수 없습니다"라고 알린다.
+  - 확인 창은 다른 세션 명령과 같은 `SwingPlatformUI.confirmChange`(명령 이름 / 취소, 기본 단추 취소).
+  - 쿼리가 있는 세션(`getActiveQuery`가 빈 값이 아님)을 골랐을 때만 켜진다. 18c 전 서버에는 명령이 없다(`isServerVersionAtLeast(18, 0)`).
+  - ALTER SYSTEM은 바인드 변수를 받지 않으므로 세션 번호(`\d+,\d+(,@\d+)?`)와 SQL_ID(`[0-9a-z]{1,13}`)를 검사한 뒤 문장에 넣는다.
+- **ORACLE LICENSE GUARD:** 더 쓰는 뷰는 `GV$INSTANCE`, `GV$LOCK`(팩이 필요 없음)뿐이다.
+
+### 확인 (2026-11-08, Docker Oracle AI Database 26ai Free 23.26.3 `chromite-test-oracle`, FREEPDB1, 단일 인스턴스)
+
+RAC가 없어 RAC 질의는 단일 인스턴스에서 문장과 결과만 확인했다(`GV$`는 단일 인스턴스에서도 읽힌다). 컨테이너 안 `/tmp/chromite-drivers-oracle-batch/`의
+두 `sqlplus` 세션(시험 사용자 `CHR_X5`의 표 `CHR_X5_ITEMS`)으로 행 잠금 대기를 만들었다.
+
+| 항목 | 결과 |
+|---|---|
+| `SELECT COUNT(*) FROM GV$INSTANCE` | 1(단일 인스턴스 → `V$` 경로) |
+| RAC 잠금 대기 질의(`GV$`, 객체 뷰 `DBA_OBJECTS`) | 1행: wait_inst 1, wait 53/28155, hold_inst 1, hold 44/19409, `enq: TX - row lock contention`, `TX` 요청 6, `CHR_X5.CHR_X5_ITEMS`, 두 문장 |
+| RAC 잠금 상세 질의(`GV$LOCK`, INST_ID = 1, SID = 53) | 3행: TX 요청 6(객체 `CHR_X5.CHR_X5_ITEMS`), AE 4, TM 3(같은 객체) |
+| `CANCEL SQL '53, 28155, @1, 0000000000000'`(없는 SQL_ID) | ORA-00866, 대기 계속 |
+| `CANCEL SQL '44, 19409, 6ypdx4h3suq83'`(다른 세션의 SQL_ID = 넘어간 문장) | ORA-00866, 취소 안 됨 |
+| `CANCEL SQL '53, 28155, @1, 6ypdx4h3suq83'`(RAC 모양, 현재 SQL_ID) | System altered, 기다리던 세션은 ORA-01013, 세션은 남음 |
+| `KILL SESSION '44,19409,@1' IMMEDIATE`(RAC 모양) | System altered, 세션 끝남(ORA-03113) |
+
+앱(Swing 제품, 사설 작업 공간, EDT 테스트 에이전트, 한국어·라이트와 `-nl en`·다크)에서도 같은 잠금 대기를 만들어 확인했다(`system` 로그인, 연결 `X5 Oracle`).
+
+| 항목 | 결과 |
+|---|---|
+| 프로세스 탭 도구 막대 | 세션 종료, 세션 연결 끊기, **쿼리 취소**(23ai ≥ 18c). 세션을 고르기 전에는 모두 꺼짐 |
+| 기다리는 세션(175, `enq: TX - row lock contention`) → 쿼리 취소 | 확인 창 "세션 175,28297에서 쿼리 취소 작업을 실행하시겠습니까?", 기본 단추·포커스 **취소** → 쿼리 취소 → 그 세션의 sqlplus가 ORA-01013, 목록에서 대기가 사라짐 |
+| 잠금 탭(단일 인스턴스, `V$`) | 행 2개(대기 44 → 175, 뿌리 175), 인스턴스 열 없음. 대기 행의 상세: TX 대기 Exclusive·AE·TM, 막는 세션 상세: AE·TM·TX BLOCKING(`getId()` 열쇠로 상세가 읽힘) |
+| 잠금 탭 Kill Session(뿌리 175) | 확인 기본 단추 Cancel → Kill Session → "No sessions wait for locks", 막던 세션 ORA-03114 |
+
+확인 중 고친 것: 첫 빌드에서 잠금 탭이 "예기치 않은 오류"였다. `OracleBlockingLock.getHoldID()`의 조건식이 `Long`과 `long`을 섞어 뿌리 행의 null을 언박싱했다(NPE). `if` 문으로 바꿔 고쳤다.
+
 ## 미룬 것
 
 - **서버 대시보드**: 모델(`com.seizia.chromite.model.dashboard`)에는 대시보드 정의와 질의 등록만 있고, 값을 주기적으로 읽어 누적·차분하는
@@ -533,7 +583,8 @@ Kill Session은 공용 컨테이너에서 실행하지 않았다(다른 작업�
 - 잠금 그래프 그림(GEF): 나무로 대신했다.
 - Find Objects의 "주석·정의에서도 찾기"(`setSearchInComments`, `setSearchInDefinitions`)와 검색 기록.
 - Oracle은 시험 DB가 없어 실제로 확인하지 못했다(코드 경로는 SWT와 같은 모델 API). 2026-11-07 Oracle Free 23ai로 확인함(아래 "확인 (2026-11-07, PostgreSQL·Oracle 세션과 잠금)").
-- Oracle 쿼리 취소(`ALTER SYSTEM CANCEL SQL`, 18c+): 요청 범위(Kill Session)에 없어 넣지 않았다.
+- Oracle 쿼리 취소(`ALTER SYSTEM CANCEL SQL`, 18c+): 요청 범위(Kill Session)에 없어 넣지 않았다. → 2026-11-08 넣음("Oracle RAC와 쿼리 취소").
+- 실제 RAC 확인: 시험할 RAC가 없어 단일 인스턴스에서 RAC 질의의 문장과 결과만 확인했다.
 - 권한이 없을 때 메뉴 자체를 끄는 것: 권한은 연결한 뒤에야 알 수 있어, 메뉴는 그대로 두고 탭 안의 명령 단추를 끈다.
 - "단일 연결"(드라이버가 연결 하나만 허용, SQL Server MFA 인증)인 수동 커밋 연결: 관리 도구가 사용자의 기본 컨텍스트와 트랜잭션을 함께 쓴다(위 "모니터링 연결의 커밋 방식").
   커밋 방식을 바꾸면 사용자의 트랜잭션이 끝나므로 바꾸지 않았다. 그런 드라이버는 PostgreSQL·MySQL·Oracle이 아니라 지금 시험할 연결이 없다.
@@ -673,7 +724,7 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 ### 미룬 것 (유지 관리·복제)
 
 - PostgreSQL 인덱스 부풀림 추정, pgstattuple을 쓰는 정확한 부풀림, VACUUM의 다른 옵션(DISABLE_PAGE_SKIPPING, SKIP_LOCKED, INDEX_CLEANUP, PARALLEL).
-- Oracle 분할 인덱스 파티션의 다시 작성(`REBUILD PARTITION`), 테이블 구조 검증(VALIDATE STRUCTURE), 세그먼트 축소(SHRINK SPACE).
+- Oracle 분할 인덱스 파티션의 다시 작성(`REBUILD PARTITION`), 세그먼트 축소(SHRINK SPACE). 테이블 구조 검증은 2026-11-08에 더했다([swing-routines.md](swing-routines.md) "구조 검증").
 - SQL Server 파티션 단위 다시 작성, 인덱스 옵션(FILLFACTOR, MAXDOP, RESUMABLE), CHECKDB 진행률(`sys.dm_exec_requests.percent_complete`) 표시.
 - 복제: SQL Server 구독자·에이전트 상태, MySQL 그룹 복제·Galera, PostgreSQL 슬롯 지우기 같은 쓰기 명령(읽기 전용 범위 밖).
 - AI DBA 도구로 내보내기(`ai-agent.md`): 모델 방언은 화면과 무관하게 만들어 두어 그대로 쓸 수 있다.
@@ -694,3 +745,6 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 - 2026-11-08 수동 커밋 PostgreSQL 연결에서 Locks 탭이 대기를 보이지 않던 문제: `AdminConnection`이 격리된 컨텍스트를 자동 커밋으로 둠(첫 읽기의 트랜잭션이 끝나지 않아
   통계 스냅숏이 멈췄다). 같은 원인의 SQL Server 묵시적 트랜잭션·MariaDB 읽기 시점과 에이전트의 열린 트랜잭션 안 진단도 고침. 위 "모니터링 연결의 커밋 방식", "확인 (2026-11-08 …)".
 - 2026-11-08 Altibase 잠금 탭(`AltibaseBlockingLockManager`, `ServerAdminProfile`의 Altibase 분기), Docker Altibase 7.3에서 확인.
+- 2026-11-08 Oracle 테이블 구조 검증(VALIDATE STRUCTURE, SWT 감사 O20) 동작. Oracle Free 23ai에서 확인([swing-routines.md](swing-routines.md)).
+- 2026-11-08 후속 #69: Oracle RAC(인스턴스 2개 이상)에서 잠금을 `GV$`로 읽고 세션을 인스턴스와 SID로 가리킴(Kill·Disconnect·잠금 상세), Oracle 18c+ Cancel Query
+  (`ALTER SYSTEM CANCEL SQL`, 목록의 SQL_ID 사용, ALTER SYSTEM 권한, 취소가 기본인 확인). 위 "Oracle RAC와 쿼리 취소".

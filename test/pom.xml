@@ -39,6 +39,10 @@
         <module>com.seizia.chromite.net.ssh.sshj.test</module>
         <module>com.seizia.chromite.model.sql.test</module>
         <module>com.seizia.chromite.data.transfer.test</module>
+        <module>com.seizia.chromite.model.test</module>
+        <module>com.seizia.chromite.registry.test</module>
+        <module>com.seizia.chromite.model.ai.tools.test</module>
+        <module>com.seizia.chromite.ui.swing.test</module>
     </modules>
 
     <build>

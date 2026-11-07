@@ -24,6 +24,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -34,7 +35,9 @@ import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -86,7 +89,11 @@ import java.util.Locale;
  *     Options의 편집기 글꼴 설정을 따르지 않는다.</li>
  *     <li>편집: 결과 표가 편집할 수 있는 칸이고 글자 값이면 패널에서 고친 뒤 Apply(Ctrl+Enter)로 표에 넣는다. 값은 표의 셀 편집기처럼
  *     열의 값 처리기가 만든다({@link ResultSetGrid#setCellText}). 고치는 중에는 같은 칸이 다시 보여도 글자를 덮어쓰지 않는다.
- *     LOB 열은 표에서도 읽기 전용이라 패널에서도 고치지 않는다.</li>
+ *     글자 LOB(JSON, XML, CLOB)도 여기서 고친다(표 칸에서는 고치지 않음). 잘라 읽은 LOB는 고치면 뒷부분을 잃으므로 고치지 않고 파일로 바꾼다.
+ *     이진 LOB는 파일에서 불러오기·파일로 저장 단추(결과 뷰어의 동작, {@link #setFileActions})로 다룬다.</li>
+ *     <li>JSON·XML 편집기(SWT {@code JSONPanelEditor}, {@code XMLPanelEditor}): Format 단추가 지금 글자를 다시 들여쓰고, 고치는 동안 잠시 뒤
+ *     JSON·XML로 읽히는지 아래 줄에 보인다. JSON·XML 형식 열(형식 이름이나 LOB 내용 형식)은 읽히지 않는 글자를 Apply하지 않는다(DB가 거부할 값을
+ *     저장 전에 막음). 다른 글자 열은 보기 방식이 JSON·XML이어도 그대로 넣는다.</li>
  *     <li>읽는 양: LOB는 {@link ResultSetCellContent#MAX_LOAD_SIZE}까지, 16진수 덤프는 {@link #MAX_HEX_BYTES}까지 보인다.</li>
  * </ul>
  *
@@ -95,6 +102,7 @@ import java.util.Locale;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 설계 설명의 글꼴을 코드와 맞춤: SQL 편집기 글꼴이 아니라 {@code monospaced.font}(docs/chromite/swing-result-viewer.md "값 패널")
+ * - 2026-11-08 글자 LOB 편집, JSON·XML 정리(Format)와 검사, 파일 불러오기·저장 단추 (docs/chromite/swing-grid-editing.md "JSON·XML 편집기")
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -112,8 +120,8 @@ final class ResultSetValuePanel extends JPanel {
      * @param key      identifies the cell (grid, row, column): the same cell shown again keeps an edit in progress
      * @param binding  column of the cell
      * @param display  display string of the grid, or {@link ResultSetGrid#NULL_VALUE}
-     * @param value    original value, {@link ResultSetCellContent} for a LOB, or null
-     * @param editable whether the grid lets the cell be changed
+     * @param value    original value, {@link ResultSetCellContent} for a LOB, a value object set in the grid, or null
+     * @param editable whether the grid lets the cell be changed as text (not a binary LOB)
      */
     record Cell(
         @NotNull String key,
@@ -190,6 +198,9 @@ final class ResultSetValuePanel extends JPanel {
     private final JLabel infoLabel = new JLabel(" ");
     private final JButton applyButton;
     private final JButton revertButton;
+    private final JButton formatButton;
+    private final JPanel fileButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+    private final Timer validateTimer;
     @Nullable
     private Editor editor;
     @Nullable
@@ -256,21 +267,34 @@ final class ResultSetValuePanel extends JPanel {
         revertAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_value_revert_tip);
         textArea.getInputMap().put((KeyStroke) applyAction.getValue(Action.ACCELERATOR_KEY), "chromite.applyValue"); //$NON-NLS-1$
         textArea.getActionMap().put("chromite.applyValue", applyAction); //$NON-NLS-1$
+        Action formatAction = ResultSetViewerPanel.createAction(GridEditMessages.gridedit_value_format,
+            KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::formatText);
+        formatAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_value_format_tip);
+        textArea.getInputMap().put((KeyStroke) formatAction.getValue(Action.ACCELERATOR_KEY), "chromite.formatValue"); //$NON-NLS-1$
+        textArea.getActionMap().put("chromite.formatValue", formatAction); //$NON-NLS-1$
+        // JSON and XML are checked a moment after typing stops
+        validateTimer = new Timer(400, e -> validateText());
+        validateTimer.setRepeats(false);
         applyButton = new JButton(applyAction);
         revertButton = new JButton(revertAction);
-        for (JButton button : new JButton[]{applyButton, revertButton}) {
+        formatButton = new JButton(formatAction);
+        for (JButton button : new JButton[]{formatButton, applyButton, revertButton}) {
             button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
             button.setFocusable(false);
         }
+        // The info line keeps the full width; the buttons (edit, Format, files) go on a line of their own when shown
         JPanel footer = new JPanel(new BorderLayout(4, 0));
         footer.setBorder(BorderFactory.createEmptyBorder(1, 6, 1, 4));
         infoLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel editButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         editButtons.setOpaque(false);
+        fileButtons.setOpaque(false);
+        editButtons.add(fileButtons);
+        editButtons.add(formatButton);
         editButtons.add(applyButton);
         editButtons.add(revertButton);
         footer.add(infoLabel, BorderLayout.CENTER);
-        footer.add(editButtons, BorderLayout.EAST);
+        footer.add(editButtons, BorderLayout.SOUTH);
 
         add(header, BorderLayout.NORTH);
         add(cards, BorderLayout.CENTER);
@@ -281,6 +305,21 @@ final class ResultSetValuePanel extends JPanel {
 
     void setEditor(@Nullable Editor editor) {
         this.editor = editor;
+    }
+
+    /**
+     * Load from File and Save to File of LOB cells (the result viewer's actions, which it enables for the selected cell).
+     */
+    void setFileActions(@NotNull Action load, @NotNull Action save) {
+        fileButtons.removeAll();
+        // Icon buttons (the tool tip names them): with Format, Apply and Revert the line must fit a narrow panel
+        for (Action action : new Action[]{load, save}) {
+            JButton button = UiIcons.createActionButton(action, action == load ? "open" : "save"); //$NON-NLS-1$ //$NON-NLS-2$
+            button.setVisible(action.isEnabled());
+            // Shown only where they apply, so the footer of a plain cell stays as it was
+            action.addPropertyChangeListener(e -> button.setVisible(action.isEnabled()));
+            fileButtons.add(button);
+        }
     }
 
     /**
@@ -397,10 +436,16 @@ final class ResultSetValuePanel extends JPanel {
     private static Rendered render(@NotNull Cell cell, @NotNull Mode mode, @NotNull DBRProgressMonitor monitor) throws Exception {
         DBDAttributeBinding binding = cell.binding();
         Object value = cell.value();
+        if (value instanceof DBDContent content) {
+            // A LOB value set in the grid (panel, file): read like a fetched one, without releasing it
+            value = DBUtils.isNullValue(content) ? null : ResultSetCellContent.capture(content);
+        }
         boolean isNull = cell.display() == ResultSetGrid.NULL_VALUE && value == null;
         if (isNull) {
-            if (cell.editable() && (mode == Mode.AUTO || mode == Mode.TEXT)) {
-                return new Rendered(Kind.TEXT, "", SyntaxConstants.SYNTAX_STYLE_NONE, null, "NULL", true, null);
+            // A NULL JSON or XML cell is typed with that editor
+            Mode nullMode = mode == Mode.AUTO ? detectTypeMode(binding) : mode;
+            if (cell.editable() && (nullMode == Mode.TEXT || nullMode == Mode.JSON || nullMode == Mode.XML)) {
+                return new Rendered(Kind.TEXT, "", getSyntax(nullMode), null, "NULL", true, null);
             }
             return new Rendered(Kind.MESSAGE, "NULL", SyntaxConstants.SYNTAX_STYLE_NONE, null, "", false, null);
         }
@@ -428,7 +473,8 @@ final class ResultSetValuePanel extends JPanel {
             text = cell.display() == null ? "" : cell.display().toString();
         }
         boolean textValue = bytes == null;
-        boolean editable = cell.editable() && textValue && !(value instanceof ResultSetCellContent);
+        // A LOB read in part can't be edited here: the rest would be lost
+        boolean editable = cell.editable() && textValue && !truncated;
         String size = bytes != null
             ? NLS.bind(EditorMessages.editor_value_bytes, String.format("%,d", length >= 0 ? length : bytes.length)) //$NON-NLS-1$
             : NLS.bind(EditorMessages.editor_value_chars, String.format("%,d", length >= 0 ? length : text.length())); //$NON-NLS-1$
@@ -478,6 +524,20 @@ final class ResultSetValuePanel extends JPanel {
                 return new Rendered(Kind.TEXT, source, SyntaxConstants.SYNTAX_STYLE_NONE, null, info, editable, warning);
             }
         }
+    }
+
+    /**
+     * The editor of a JSON or XML column by its type name, else Text.
+     */
+    @NotNull
+    private static Mode detectTypeMode(@NotNull DBDAttributeBinding binding) {
+        String typeName = CommonUtils.notEmpty(binding.getTypeName()).toLowerCase(Locale.ROOT);
+        return typeName.contains("json") ? Mode.JSON : typeName.contains("xml") ? Mode.XML : Mode.TEXT; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    @NotNull
+    private static String getSyntax(@NotNull Mode mode) {
+        return mode == Mode.JSON ? SyntaxConstants.SYNTAX_STYLE_JSON : mode == Mode.XML ? SyntaxConstants.SYNTAX_STYLE_XML : SyntaxConstants.SYNTAX_STYLE_NONE;
     }
 
     @NotNull
@@ -647,6 +707,9 @@ final class ResultSetValuePanel extends JPanel {
         if (settingText || rendered == null || !rendered.editable()) {
             return;
         }
+        if (isStructured(rendered)) {
+            validateTimer.restart();
+        }
         if (!dirty) {
             dirty = true;
             updateEditButtons();
@@ -657,13 +720,99 @@ final class ResultSetValuePanel extends JPanel {
         boolean editable = rendered != null && rendered.editable() && rendered.kind() == Kind.TEXT;
         applyButton.setVisible(editable);
         revertButton.setVisible(editable);
+        formatButton.setVisible(editable && isStructured(rendered));
         applyButton.setEnabled(dirty);
         revertButton.setEnabled(dirty);
+    }
+
+    /**
+     * The text is shown with the JSON or XML editor.
+     */
+    private static boolean isStructured(@Nullable Rendered shown) {
+        return shown != null && (SyntaxConstants.SYNTAX_STYLE_JSON.equals(shown.syntax()) || SyntaxConstants.SYNTAX_STYLE_XML.equals(shown.syntax()));
+    }
+
+    /**
+     * Why the text is not valid JSON or XML for the editor shown, or null if it is.
+     */
+    @Nullable
+    private static String validate(@NotNull String syntax, @NotNull String text) {
+        try {
+            if (SyntaxConstants.SYNTAX_STYLE_JSON.equals(syntax)) {
+                parseJson(text);
+                return null;
+            }
+            formatXml(text);
+            return null;
+        } catch (Exception e) {
+            return NLS.bind(SyntaxConstants.SYNTAX_STYLE_JSON.equals(syntax) ? EditorMessages.editor_value_invalid_json : EditorMessages.editor_value_invalid_xml,
+                firstLine(ErrorText.describe(e)));
+        }
+    }
+
+    private void validateText() {
+        if (rendered == null || !rendered.editable() || !isStructured(rendered)) {
+            return;
+        }
+        String problem = validate(rendered.syntax(), textArea.getText());
+        if (problem == null) {
+            setInfo(SyntaxConstants.SYNTAX_STYLE_JSON.equals(rendered.syntax()) ? GridEditMessages.gridedit_value_valid_json
+                : GridEditMessages.gridedit_value_valid_xml, null, false);
+        } else {
+            setInfo("", problem, true); //$NON-NLS-1$
+        }
+    }
+
+    /**
+     * Format: indents the JSON or XML being edited (the edit stays pending until Apply).
+     */
+    private void formatText() {
+        if (rendered == null || !rendered.editable() || !isStructured(rendered)) {
+            return;
+        }
+        String text = textArea.getText();
+        String problem = validate(rendered.syntax(), text);
+        if (problem != null) {
+            setInfo("", problem, true); //$NON-NLS-1$
+            UIManager.getLookAndFeel().provideErrorFeedback(textArea);
+            return;
+        }
+        try {
+            String formatted = SyntaxConstants.SYNTAX_STYLE_JSON.equals(rendered.syntax()) ? formatJson(text) : formatXml(text);
+            if (!formatted.equals(text)) {
+                int caret = Math.min(textArea.getCaretPosition(), formatted.length());
+                textArea.setText(formatted);
+                textArea.setCaretPosition(caret);
+            }
+            validateText();
+        } catch (Exception e) {
+            setInfo("", firstLine(ErrorText.describe(e)), true); //$NON-NLS-1$
+        }
+    }
+
+    /**
+     * A JSON or XML column (by its type name or its LOB content type): the database rejects text that is not.
+     */
+    private boolean isStructuredColumn() {
+        if (cell == null) {
+            return false;
+        }
+        String typeName = CommonUtils.notEmpty(cell.binding().getTypeName()).toLowerCase(Locale.ROOT);
+        String contentType = cell.value() instanceof ResultSetCellContent content ? content.getContentType() : "";
+        return typeName.contains("json") || typeName.contains("xml") || contentType.endsWith("json") || contentType.endsWith("xml"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
     }
 
     private void applyText() {
         if (!dirty || editor == null || rendered == null || !rendered.editable()) {
             return;
+        }
+        if (isStructured(rendered) && isStructuredColumn()) {
+            String problem = validate(rendered.syntax(), textArea.getText());
+            if (problem != null) {
+                setInfo("", NLS.bind(EditorMessages.editor_value_not_applied, problem), true); //$NON-NLS-1$
+                UIManager.getLookAndFeel().provideErrorFeedback(textArea);
+                return;
+            }
         }
         String error = editor.apply(textArea.getText());
         if (error != null) {

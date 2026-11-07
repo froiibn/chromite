@@ -82,6 +82,10 @@ import java.util.function.Consumer;
  *     <li>트랜잭션: 연결이 자동 커밋이면 저장하는 동안 자동 커밋을 끄고 모든 문장을 한 트랜잭션으로 실행한 뒤 커밋한다. 하나라도 실패하면 모두 롤백하고
  *     자동 커밋을 되돌린다(전부 저장되거나 하나도 저장되지 않음, 바뀐 내용은 화면에 남는다). 연결이 수동 커밋이면 SWT처럼 열린 트랜잭션 안에서 실행하고
  *     (엔진이 저장점을 잡고 실패하면 저장점까지 롤백) 커밋은 사용자에게 맡긴다. 트랜잭션을 지원하지 않는 연결은 문장마다 바로 적용된다.</li>
+ *     <li>저장하고 커밋(SWT {@code applyAndCommitChanges}): 수동 커밋 연결에서 사용자가 고른 명령일 때만 같은 Job에서 저장 문장 뒤에 커밋한다.
+ *     따로 Commit 명령을 부르지 않은 것은 저장 Job이 끝나기 전에는 Commit 명령이 "실행 중"으로 보고 아무것도 하지 않기 때문이다.
+ *     커밋이 실패하면 저장 문장은 열린 트랜잭션에 남으므로 행은 저장된 것으로 반영하고 커밋 오류만 따로 알린다({@link Outcome#commitError}):
+ *     바뀐 내용으로 남기면 다시 저장할 때 같은 INSERT가 두 번 실행된다.</li>
  *     <li>INSERT: 원본 테이블 열만 넣고({@link #shouldInsertAttribute}), 생성된 키는 SWT와 같은 규칙으로 받는다. 새 행에 키 값이 없으면 열이 자동 생성으로
  *     표시되지 않았어도 생성된 키를 요청한다(SQLite {@code INTEGER} 기본 키 = rowid 별칭). 그래야 새 행을 키로 다시 읽고 이어서 고칠 수 있다.</li>
  *     <li>저장 Job은 엔진의 {@link DataUpdaterJob}({@code DataSourceJob})이다. 문장 준비({@code prepareStatements})도 그 Job 안에서 해서 EDT는 기다리지 않는다.
@@ -97,6 +101,7 @@ import java.util.function.Consumer;
  * 변경 이력:
  * - 2026-11-06 G단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-07 저장 전 미리 보기 스크립트와 바뀐 행 수 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
+ * - 2026-11-08 저장하고 커밋(수동 커밋 연결), 커밋 오류를 저장 오류와 따로 넘김 (docs/chromite/swing-grid-editing.md "저장하고 커밋")
  */
 final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEditPersister.StatementInfo, ResultSetEditModel.Row, ResultSetEditModel> {
 
@@ -109,6 +114,8 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
      * @param executedRows   rows whose statements ran and stay applied
      * @param zeroRowChanges statements that changed no rows
      * @param transaction    how the changes were committed
+     * @param committed      Save and Commit committed the open transaction
+     * @param commitError    Save and Commit saved the changes but the commit failed: they stay in the open transaction
      */
     record Outcome(
         @Nullable Throwable error,
@@ -117,7 +124,9 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
         int updated,
         int deleted,
         int zeroRowChanges,
-        @NotNull TransactionMode transaction
+        @NotNull TransactionMode transaction,
+        boolean committed,
+        @Nullable Throwable commitError
     ) {
     }
 
@@ -193,10 +202,12 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
     /**
      * Creates the save job; the caller schedules it (or waits for it in a progress dialog, which schedules it).
      * {@code done} runs in the EDT when it is over.
+     *
+     * @param commit commit the open transaction after the statements (Save and Commit, manual commit mode only)
      */
     @NotNull
-    DataUpdaterJob createSaveJob(@NotNull Consumer<Outcome> done) {
-        return new SaveJob(new ResultSetSaveSettings(), done);
+    DataUpdaterJob createSaveJob(boolean commit, @NotNull Consumer<Outcome> done) {
+        return new SaveJob(new ResultSetSaveSettings(), commit, done);
     }
 
     /**
@@ -359,12 +370,17 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
      */
     private final class SaveJob extends DataUpdaterJob {
         private final ResultSetSaveSettings settings;
+        private final boolean commit;
         private final Consumer<Outcome> done;
         private TransactionMode transaction = TransactionMode.NONE;
+        private boolean committed;
+        @Nullable
+        private Throwable commitError;
 
-        SaveJob(@NotNull ResultSetSaveSettings settings, @NotNull Consumer<Outcome> done) {
+        SaveJob(@NotNull ResultSetSaveSettings settings, boolean commit, @NotNull Consumer<Outcome> done) {
             super(ResultSetEditPersister.this, false, settings, null, model.getExecutionContext());
             this.settings = settings;
+            this.commit = commit;
             this.done = done;
         }
 
@@ -401,6 +417,14 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
             }
             if (switchedAutoCommit) {
                 error = endSaveTransaction(monitor, context, txnManager, error);
+            } else if (error == null && commit && transaction == TransactionMode.OPEN_TRANSACTION) {
+                // Save and Commit: the user's command commits the open transaction, the saved statements with it
+                try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Commit results save")) {
+                    txnManager.commit(session);
+                    committed = true;
+                } catch (Throwable e) {
+                    commitError = e;
+                }
             }
             return error;
         }
@@ -461,7 +485,7 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
                 deleted = (int) Math.max(0, getDeleteStats().getRowsUpdated());
             }
             List<StatementInfo> keyStatements = keepExecuted ? new ArrayList<>(insertStatements) : List.of();
-            Outcome outcome = new Outcome(error, executedRows, inserted, updated, deleted, zeroRowChanges, transaction);
+            Outcome outcome = new Outcome(error, executedRows, inserted, updated, deleted, zeroRowChanges, transaction, committed, commitError);
             SwingUtilities.invokeLater(() -> {
                 // Generated keys of the inserted rows, as SWT reflectKeysUpdate
                 for (StatementInfo statement : keyStatements) {

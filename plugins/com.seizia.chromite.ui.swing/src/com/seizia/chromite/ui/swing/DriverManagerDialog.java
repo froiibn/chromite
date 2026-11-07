@@ -76,12 +76,14 @@ import java.util.TreeMap;
  *     같은 설정({@link ModelPreferences#UI_DRIVERS_OFFLINE})을 체크 상자로 둔다. 모델은 값을 매번 읽으므로 바로 적용된다(docs/chromite/drivers.md).</li>
  *     <li>오프라인 설치 묶음: 인터넷이 되는 PC에서 드라이버를 골라 파일 하나로 만들고({@link DriverBundleCreateDialog}), 폐쇄망 PC에서 그 파일을
  *     설치한다({@link DriverBundleInstallDialog}). 기존 jar·폴더 직접 추가는 그대로 둔다(docs/chromite/driver-offline-bundle.md).</li>
+ *     <li>전역 라이브러리({@link GlobalLibrariesDialog}): SWT 환경설정 > 드라이버 > Classpath 페이지. 오프라인 모드와 같은 이유로 이 창의 단추로 둔다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
  * - 2026-11-07 오프라인 묶음 만들기·설치 단추 추가 (docs/chromite/driver-offline-bundle.md)
  * - 2026-11-08 드라이버 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Global Libraries… 단추 (docs/chromite/swing-driver-manager.md "전역 라이브러리")
  */
 final class DriverManagerDialog extends JDialog {
 
@@ -162,6 +164,9 @@ final class DriverManagerDialog extends JDialog {
         JButton installBundleButton = new JButton(DriverManagerMessages.drivermgr_button_bundle_install);
         installBundleButton.setToolTipText(DriverManagerMessages.drivermgr_button_bundle_install_tip);
         installBundleButton.addActionListener(e -> installBundle());
+        JButton globalLibrariesButton = new JButton(DriverManagerMessages.drivermgr_button_global_libraries);
+        globalLibrariesButton.setToolTipText(DriverManagerMessages.drivermgr_button_global_libraries_tip);
+        globalLibrariesButton.addActionListener(e -> GlobalLibrariesDialog.open(this));
 
         JPanel buttons = new JPanel(new GridLayout(0, 1, 0, 6));
         buttons.add(newButton);
@@ -171,6 +176,7 @@ final class DriverManagerDialog extends JDialog {
         buttons.add(restoreButton);
         buttons.add(createBundleButton);
         buttons.add(installBundleButton);
+        buttons.add(globalLibrariesButton);
         JPanel legend = new JPanel(new GridLayout(0, 1, 0, 4));
         legend.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
         legend.add(createLegend(DBIcon.OVER_LAMP, DriverManagerMessages.drivermgr_legend_custom));

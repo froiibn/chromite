@@ -19,14 +19,20 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.data.resultset.DataUpdaterJob;
 import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -81,6 +87,13 @@ import java.util.Map;
  *     켜졌거나 연결 유형의 "데이터 변경 확인"(기본: Test, Production)이 켜졌으면 저장할 문장을 먼저 보여 주고 Save를 눌러야 저장한다.
  *     Cancel이면 아무것도 실행하지 않고 바뀐 내용은 표에 남는다. 설정은 SWT처럼 연결의 설정 저장소에서 읽는다(연결별 값이 없으면 전체 설정).</li>
  *     <li>복사와 내보내기는 지금 표에 보이는 내용({@link #getCurrentData})을 쓴다.</li>
+ *     <li>저장하고 커밋(SWT {@code applyAndCommitChanges}): 수동 커밋 연결에서만 보인다. 그 연결에서 Save는 변경을 열린 트랜잭션에 두고(사용자 규칙:
+ *     묻지 않고 커밋하지 않음) 이 명령만 저장 뒤 커밋한다. 트랜잭션에 그 전 변경이 있으면 함께 커밋된다고 먼저 묻는다(기본 단추 Cancel).
+ *     변경 미리 보기(SWT "Generate Script")는 설정과 관계없이 저장할 문장을 보여 주고 Save를 누르면 저장한다.</li>
+ *     <li>형식별 칸 편집기: 불리언·ENUM 열은 값 목록({@link ChoiceCellEditor}), 날짜·시각 열은 글자 편집기에 달력 단추({@link ResultSetDateTimePicker}).
+ *     LOB 열은 칸에서 고치지 않고 F2·두 번 누르기로 값 패널을 연다({@link Host#editInValuePanel}).</li>
+ *     <li>행 복제, 위·아래 행 값 복사, 기본값으로, 칸 되돌리기, 실행 취소·다시 실행(칸 값), 붙여넣기(Ctrl+V, 여러 칸)와 특수 붙여넣기(새 행, NULL 표지)는
+ *     SWT 결과 명령과 같은 단축키다. 한 동작의 변경은 한 번에 되돌린다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -107,6 +120,8 @@ import java.util.Map;
  * - 2026-11-08 촘촘한 모드: 행 번호의 행 높이가 그리드 행 높이를 따라가고, 열·행 번호 폭이 칸 여백의 차이만큼 바뀜(실행 중 밀도 전환)
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Export Data… 도구 설명의 예를 고침: 값을 바인딩한 실행도 이제 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 저장하고 커밋, 변경 미리 보기, 불리언·ENUM·날짜 편집기, LOB 칸은 값 패널로, 행 복제·위아래 값 복사·기본값·칸 되돌리기,
+ *   실행 취소, 붙여넣기·특수 붙여넣기 (docs/chromite/swing-grid-editing.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -206,6 +221,13 @@ final class ResultSetGrid extends JPanel {
         default void exportData(@NotNull Component parent, @NotNull DBSDataContainer query) {
             DataExportWizard.openForQuery(parent, query, null, null);
         }
+
+        /**
+         * Edit Cell (F2, double click) on a LOB cell: its value is edited in the value panel, which the result viewer
+         * opens. A grid without a viewer does nothing.
+         */
+        default void editInValuePanel() {
+        }
     }
 
     /**
@@ -226,13 +248,29 @@ final class ResultSetGrid extends JPanel {
     private final JLabel statusLabel = new JLabel();
     private final List<Action> editActions = new ArrayList<>();
     private Action saveAction;
+    private Action saveCommitAction;
+    private JButton saveCommitButton;
     private Action cancelChangesAction;
+    private Action previewChangesAction;
     private Action setNullAction;
+    private Action setDefaultAction;
+    private Action resetCellAction;
     private Action insertRowAction;
+    private Action duplicateRowAction;
+    private Action copyFromAboveAction;
+    private Action copyFromBelowAction;
     private Action deleteRowsAction;
     private Action editCellAction;
+    private Action undoAction;
+    private Action redoAction;
+    private Action pasteAction;
+    private Action pasteSpecialAction;
     private Action copyAction;
     private Action copyWithHeadersAction;
+    @Nullable
+    private TextCellEditor textEditor;
+    @Nullable
+    private ChoiceCellEditor choiceEditor;
     @Nullable
     private String transientStatus;
 
@@ -248,6 +286,15 @@ final class ResultSetGrid extends JPanel {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 paintHorizontalLines(this, g);
+            }
+
+            @Override
+            public TableCellEditor getCellEditor(int row, int column) {
+                // Boolean and ENUM columns pick from a list; the others are typed (dates with a picker)
+                if (choiceEditor != null && ChoiceCellEditor.hasChoices(editModel, convertColumnIndexToModel(column))) {
+                    return choiceEditor;
+                }
+                return super.getCellEditor(row, column);
             }
         };
         // DataGrip grid: vertical lines in grid.line, horizontal lines in the lighter grid.lineSubtle (one JTable grid
@@ -268,7 +315,9 @@ final class ResultSetGrid extends JPanel {
         table.putClientProperty("JTable.autoStartsEdit", Boolean.FALSE); //$NON-NLS-1$
         table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
         if (editModel != null) {
-            table.setDefaultEditor(Object.class, new TextCellEditor());
+            textEditor = new TextCellEditor();
+            choiceEditor = new ChoiceCellEditor();
+            table.setDefaultEditor(Object.class, textEditor);
         }
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -315,6 +364,17 @@ final class ResultSetGrid extends JPanel {
      */
     @Nullable
     String setCellText(int row, int column, @NotNull String text) {
+        return setCellObject(row, column, text);
+    }
+
+    /**
+     * Sets a cell from an editor's value (text, or the bytes or text of a file loaded into a LOB cell): the column's
+     * value handler makes the value.
+     *
+     * @return null if the value was set, otherwise why it was not
+     */
+    @Nullable
+    String setCellObject(int row, int column, @NotNull Object input) {
         if (editModel == null || !editModel.isCellEditable(row, column)) {
             return EditorMessages.editor_grid_cell_read_only;
         }
@@ -322,12 +382,20 @@ final class ResultSetGrid extends JPanel {
             return EditorMessages.editor_grid_invalid_editor;
         }
         try {
-            editModel.setValue(row, column, editModel.parseValue(column, text));
+            editModel.setValue(row, column, editModel.parseObject(column, input));
         } catch (DBCException e) {
             return NLS.bind(EditorMessages.editor_grid_invalid_value, data.columns()[column], ErrorText.describeLine(e));
         }
         repaintKeepingSelection();
         return null;
+    }
+
+    /**
+     * The edit model of an editable result, or null (the result viewer's access for LOB files and the value panel).
+     */
+    @Nullable
+    ResultSetEditModel getEditModel() {
+        return editModel;
     }
 
     /**
@@ -359,9 +427,14 @@ final class ResultSetGrid extends JPanel {
         if (editModel != null) {
             saveAction = createAction(EditorMessages.editor_common_save, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> save(false));
             saveAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_save_tip);
+            saveCommitAction = createAction(GridEditMessages.gridedit_save_commit, null, () -> save(false, true, false));
+            saveCommitAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_save_commit_tip);
             cancelChangesAction = createAction(EditorMessages.editor_common_cancel, null, this::cancelChanges);
             cancelChangesAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_cancel_tip);
             strip.add(createStripButton(saveAction));
+            // Only in manual commit mode, where Save leaves the changes in the open transaction
+            saveCommitButton = createStripButton(saveCommitAction);
+            strip.add(saveCommitButton);
             strip.add(createStripButton(cancelChangesAction));
         } else {
             statusLabel.setText(NLS.bind(EditorMessages.editor_grid_read_only, CommonUtils.notEmpty(readOnlyReason)));
@@ -390,12 +463,25 @@ final class ResultSetGrid extends JPanel {
         }
         boolean saving = editModel.isSaving();
         boolean dirty = editModel.isDirty();
+        boolean manualCommit = isManualCommit();
         saveAction.setEnabled(dirty && !saving);
+        saveCommitAction.setEnabled(dirty && !saving && manualCommit);
+        saveCommitButton.setVisible(manualCommit);
         cancelChangesAction.setEnabled(dirty && !saving);
+        previewChangesAction.setEnabled(dirty && !saving);
         editCellAction.setEnabled(!saving);
         setNullAction.setEnabled(!saving);
+        setDefaultAction.setEnabled(!saving && hasRows);
+        resetCellAction.setEnabled(!saving && dirty);
         insertRowAction.setEnabled(!saving && editModel.isInsertSupported());
+        duplicateRowAction.setEnabled(!saving && hasRows && editModel.isInsertSupported());
+        copyFromAboveAction.setEnabled(!saving && hasRows);
+        copyFromBelowAction.setEnabled(!saving && hasRows);
         deleteRowsAction.setEnabled(!saving && hasRows && editModel.isDeleteSupported());
+        undoAction.setEnabled(!saving && editModel.canUndo());
+        redoAction.setEnabled(!saving && editModel.canRedo());
+        pasteAction.setEnabled(!saving && hasRows);
+        pasteSpecialAction.setEnabled(!saving);
         String text;
         if (saving) {
             text = EditorMessages.editor_grid_saving;
@@ -425,7 +511,14 @@ final class ResultSetGrid extends JPanel {
     private void editSelectedCell() {
         int row = table.getSelectedRow();
         int column = table.getSelectedColumn();
-        if (row >= 0 && column >= 0 && table.editCellAt(row, column)) {
+        if (row < 0 || column < 0) {
+            return;
+        }
+        if (isPanelEditedCell(row, column)) {
+            host.editInValuePanel();
+            return;
+        }
+        if (table.editCellAt(row, column)) {
             Component editor = table.getEditorComponent();
             if (editor != null) {
                 editor.requestFocusInWindow();
@@ -433,23 +526,265 @@ final class ResultSetGrid extends JPanel {
         }
     }
 
+    /**
+     * An editable LOB cell: edited in the value panel, not in the grid.
+     */
+    private boolean isPanelEditedCell(int row, int viewColumn) {
+        int column = table.convertColumnIndexToModel(viewColumn);
+        return editModel != null && editModel.isContentColumn(column) && editModel.isCellEditable(row, column);
+    }
+
+    /**
+     * Model column indexes of the selected columns.
+     */
+    @NotNull
+    private int[] getSelectedModelColumns() {
+        int[] columns = table.getSelectedColumns();
+        for (int i = 0; i < columns.length; i++) {
+            columns[i] = table.convertColumnIndexToModel(columns[i]);
+        }
+        return columns;
+    }
+
     private void setSelectedToNull() {
         if (editModel == null || !stopEditing()) {
             return;
         }
         boolean changed = false;
-        for (int row : table.getSelectedRows()) {
-            for (int column : table.getSelectedColumns()) {
-                int modelColumn = table.convertColumnIndexToModel(column);
-                if (editModel.isCellEditable(row, modelColumn)) {
-                    editModel.setValue(row, modelColumn, null);
-                    changed = true;
+        editModel.beginStep();
+        try {
+            for (int row : table.getSelectedRows()) {
+                for (int modelColumn : getSelectedModelColumns()) {
+                    if (editModel.isCellEditable(row, modelColumn)) {
+                        editModel.setValue(row, modelColumn, null);
+                        changed = true;
+                    }
                 }
             }
+        } finally {
+            editModel.endStep();
         }
         if (changed) {
             repaintKeepingSelection();
         }
+    }
+
+    /**
+     * Set to Default (SWT {@code cell.setDefault}): the handler's default value, e.g. the current time.
+     */
+    private void setSelectedToDefault() {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        int count;
+        editModel.beginStep();
+        try {
+            count = editModel.setDefaults(table.getSelectedRows(), getSelectedModelColumns());
+        } finally {
+            editModel.endStep();
+        }
+        repaintKeepingSelection();
+        if (count == 0) {
+            setTransientStatus(GridEditMessages.gridedit_no_default);
+        }
+    }
+
+    /**
+     * Reset Cell (SWT {@code cell.reset}): the selected cells get the values read from the database back.
+     */
+    private void resetSelectedCells() {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        editModel.beginStep();
+        try {
+            for (int row : table.getSelectedRows()) {
+                for (int modelColumn : getSelectedModelColumns()) {
+                    editModel.resetCell(row, modelColumn);
+                }
+            }
+        } finally {
+            editModel.endStep();
+        }
+        repaintKeepingSelection();
+    }
+
+    /**
+     * Duplicate Row (SWT {@code row.copy}): copies of the selected rows below them.
+     */
+    private void duplicateSelectedRows() {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        int[] selected = table.getSelectedRows();
+        if (selected.length == 0) {
+            return;
+        }
+        int position = table.getSelectionModel().getMaxSelectionIndex() + 1;
+        int skipped;
+        try {
+            skipped = editModel.duplicateRows(selected, position);
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(GridEditMessages.gridedit_duplicate_row, EditorMessages.editor_grid_cant_add_row, e);
+            return;
+        }
+        int column = Math.max(table.getSelectedColumn(), 0);
+        dataChanged();
+        table.changeSelection(position, column, false, false);
+        table.changeSelection(position + selected.length - 1, column, false, true);
+        table.requestFocusInWindow();
+        if (skipped > 0) {
+            setTransientStatus(NLS.bind(GridEditMessages.gridedit_duplicate_lob_skipped, skipped));
+        }
+    }
+
+    /**
+     * Copy from the Row Above / Below (SWT {@code row.copy.from.above/below}).
+     */
+    private void copyFromAdjacentRow(boolean fromAbove) {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        editModel.beginStep();
+        try {
+            editModel.copyFromAdjacent(table.getSelectedRows(), getSelectedModelColumns(), fromAbove);
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(fromAbove ? GridEditMessages.gridedit_copy_from_above : GridEditMessages.gridedit_copy_from_below,
+                GridEditMessages.gridedit_cant_copy_values, e);
+        } finally {
+            editModel.endStep();
+        }
+        repaintKeepingSelection();
+    }
+
+    private void undo() {
+        if (editModel != null && stopEditing() && editModel.undo()) {
+            repaintKeepingSelection();
+        }
+    }
+
+    private void redo() {
+        if (editModel != null && stopEditing() && editModel.redo()) {
+            repaintKeepingSelection();
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Paste (EDT)
+
+    /**
+     * Pastes the clipboard text into the cells from the selected one on (SWT paste and Paste Special): lines are
+     * rows and tabs separate the values, as a spreadsheet copies them. One value with several selected cells fills
+     * them all. Values go through the columns' handlers; cells that can't be edited and values a column rejects are
+     * skipped and counted. All changes are one undo step.
+     *
+     * @param options null for a plain paste (no new rows, no NULL marker)
+     */
+    private void paste(@Nullable ResultSetPaste.Options options) {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        String text = ResultSetPaste.readClipboard();
+        if (text == null) {
+            return;
+        }
+        ResultSetPaste.Options effective = options != null ? options : ResultSetPaste.Options.PLAIN;
+        List<String[]> lines = ResultSetPaste.parse(text, effective.ignoreQuotes());
+        if (lines.isEmpty()) {
+            return;
+        }
+        int startRow = table.getSelectionModel().getLeadSelectionIndex();
+        int startColumn = table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
+        if (startRow < 0 || startColumn < 0) {
+            if (!effective.insertNewRows() || table.getColumnCount() == 0) {
+                return;
+            }
+            startRow = gridModel.getRowCount();
+            startColumn = 0;
+        }
+        int[] counts = new int[2];
+        String[] firstError = new String[1];
+        editModel.beginStep();
+        try {
+            if (lines.size() == 1 && lines.getFirst().length == 1 && table.getSelectedRowCount() * table.getSelectedColumnCount() > 1) {
+                // One value into every selected cell
+                for (int row : table.getSelectedRows()) {
+                    for (int column : getSelectedModelColumns()) {
+                        pasteValue(row, column, lines.getFirst()[0], effective, counts, firstError);
+                    }
+                }
+            } else {
+                for (int i = 0; i < lines.size(); i++) {
+                    int row = startRow + i;
+                    if (row >= gridModel.getRowCount()) {
+                        if (!effective.insertNewRows() || !editModel.isInsertSupported()) {
+                            counts[1] += lines.size() - i;
+                            break;
+                        }
+                        editModel.addRow(gridModel.getRowCount());
+                    }
+                    String[] values = lines.get(i);
+                    for (int j = 0; j < values.length; j++) {
+                        int viewColumn = startColumn + j;
+                        if (viewColumn >= table.getColumnCount()) {
+                            counts[1] += values.length - j;
+                            break;
+                        }
+                        pasteValue(row, table.convertColumnIndexToModel(viewColumn), values[j], effective, counts, firstError);
+                    }
+                }
+            }
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(GridEditMessages.gridedit_paste, EditorMessages.editor_grid_cant_add_row, e);
+        } finally {
+            editModel.endStep();
+        }
+        dataChanged();
+        if (startRow < gridModel.getRowCount()) {
+            table.changeSelection(startRow, startColumn, false, false);
+        }
+        table.requestFocusInWindow();
+        if (counts[1] > 0) {
+            setTransientStatus(NLS.bind(GridEditMessages.gridedit_paste_skipped, new Object[]{counts[0], counts[1],
+                firstError[0] != null ? firstError[0] : GridEditMessages.gridedit_paste_skipped_readonly}));
+        }
+    }
+
+    private void pasteValue(
+        int row,
+        int column,
+        @NotNull String text,
+        @NotNull ResultSetPaste.Options options,
+        @NotNull int[] counts,
+        @NotNull String[] firstError
+    ) {
+        // LOB cells take text only when their column holds text (JSON, XML, CLOB)
+        if (!editModel.isCellEditable(row, column) || (editModel.isContentColumn(column) && !editModel.isTextContentColumn(column))) {
+            counts[1]++;
+            return;
+        }
+        try {
+            Object value = options.isNull(text) ? null : editModel.parseValue(column, text);
+            editModel.setValue(row, column, value);
+            counts[0]++;
+        } catch (DBCException e) {
+            counts[1]++;
+            if (firstError[0] == null) {
+                firstError[0] = NLS.bind(EditorMessages.editor_grid_invalid_value, data.columns()[column], ErrorText.describeLine(e));
+            }
+        }
+    }
+
+    private void pasteSpecial() {
+        ResultSetPaste.Options options = ResultSetPaste.askOptions(this);
+        if (options != null) {
+            paste(options);
+        }
+    }
+
+    private void setTransientStatus(@NotNull String text) {
+        transientStatus = text;
+        updateState();
     }
 
     private void insertRow() {
@@ -524,11 +859,26 @@ final class ResultSetGrid extends JPanel {
      * @return whether the changes were saved; without waiting, whether the save started
      */
     boolean save(boolean wait) {
+        return save(wait, false, false);
+    }
+
+    /**
+     * @param commit  Save and Commit: in manual commit mode, commit the open transaction after the statements (SWT
+     *                {@code applyAndCommitChanges}); if the transaction already holds earlier changes, ask first
+     *                (Cancel is the default). In auto-commit mode the save commits anyway.
+     * @param preview show the statements first even when the option and the connection type don't ask for it
+     *                (SWT "Generate Script")
+     */
+    private boolean save(boolean wait, boolean commit, boolean preview) {
         if (editModel == null || editModel.isSaving() || !stopEditing()) {
             return false;
         }
         if (!editModel.isDirty()) {
             return true;
+        }
+        boolean commitAfter = commit && isManualCommit();
+        if (commitAfter && !confirmCommitEarlierChanges()) {
+            return false;
         }
         ResultSetEditPersister persister = new ResultSetEditPersister(editModel);
         String tableName = editModel.getSingleSource() != null ? editModel.getSingleSource().getName() : EditorMessages.editor_grid_results;
@@ -538,7 +888,7 @@ final class ResultSetGrid extends JPanel {
             reportSaveError(tableName, e, ResultSetEditPersister.TransactionMode.NONE, false);
             return false;
         }
-        if (isSavePreviewRequired() && !confirmSave(persister, tableName)) {
+        if ((preview || isSavePreviewRequired()) && !confirmSave(persister, tableName)) {
             return false;
         }
         long startTime = System.currentTimeMillis();
@@ -547,13 +897,35 @@ final class ResultSetGrid extends JPanel {
             table.getCellEditor().cancelCellEditing();
         }
         updateState();
-        DataUpdaterJob job = persister.createSaveJob(outcome -> finishSave(tableName, outcome, startTime));
+        DataUpdaterJob job = persister.createSaveJob(commitAfter, outcome -> finishSave(tableName, outcome, startTime));
         if (wait) {
             ProgressDialog.waitForJob(EditorMessages.editor_grid_save_job, job);
             return job.getError() == null;
         }
         job.schedule();
         return true;
+    }
+
+    /**
+     * The result's session is in manual commit mode (the query manager's record, no driver call).
+     */
+    private boolean isManualCommit() {
+        return editModel != null && QMUtils.getTransactionState(editModel.getExecutionContext()).isTransactionMode();
+    }
+
+    /**
+     * Save and Commit commits the whole open transaction. When it already holds changes made before (other
+     * statements of the query window, an earlier save), the user confirms that they are committed too.
+     *
+     * @return true to go on
+     */
+    private boolean confirmCommitEarlierChanges() {
+        QMTransactionState state = QMUtils.getTransactionState(editModel.getExecutionContext());
+        if (!state.isOpen() || state.getUpdateCount() == 0) {
+            return true;
+        }
+        return SwingPlatformUI.confirmChange(this, NLS.bind(GridEditMessages.gridedit_commit_earlier, state.getUpdateCount()),
+            GridEditMessages.gridedit_save_commit, GridEditMessages.gridedit_save_commit, JOptionPane.WARNING_MESSAGE);
     }
 
     /**
@@ -613,8 +985,14 @@ final class ResultSetGrid extends JPanel {
             if (outcome.zeroRowChanges() > 0) {
                 host.appendMessage(NLS.bind(EditorMessages.editor_grid_zero_rows, outcome.zeroRowChanges()));
             }
-            if (outcome.transaction() == ResultSetEditPersister.TransactionMode.OPEN_TRANSACTION) {
+            if (outcome.committed()) {
+                host.appendMessage(GridEditMessages.gridedit_committed);
+            } else if (outcome.transaction() == ResultSetEditPersister.TransactionMode.OPEN_TRANSACTION) {
                 host.appendMessage(EditorMessages.editor_grid_manual_commit);
+            }
+            if (outcome.commitError() != null) {
+                host.appendError(GridEditMessages.gridedit_commit_failed + "\n" + ErrorText.describe(outcome.commitError())); //$NON-NLS-1$
+                host.showMessages();
             }
             host.appendMessage(NLS.bind(EditorMessages.editor_grid_save_time, System.currentTimeMillis() - startTime));
             if (isDisplayable()) {
@@ -682,32 +1060,91 @@ final class ResultSetGrid extends JPanel {
         if (editModel != null) {
             editCellAction = createAction(EditorMessages.editor_grid_edit_cell, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::editSelectedCell);
             setNullAction = createAction(EditorMessages.editor_grid_set_null, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), this::setSelectedToNull);
+            // Shortcuts of SWT's result set commands (ui.editors.data plugin.xml at 263b8ddb45); Reset Cell's Esc is
+            // left out: in the grid Esc cancels a cell edit
+            setDefaultAction = createAction(GridEditMessages.gridedit_set_default,
+                KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, InputEvent.CTRL_DOWN_MASK), this::setSelectedToDefault);
+            resetCellAction = createAction(GridEditMessages.gridedit_reset_cell, null, this::resetSelectedCells);
             insertRowAction = createAction(EditorMessages.editor_grid_insert_row, KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::insertRow);
+            duplicateRowAction = createAction(GridEditMessages.gridedit_duplicate_row,
+                KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), this::duplicateSelectedRows);
+            copyFromAboveAction = createAction(GridEditMessages.gridedit_copy_from_above,
+                KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), () -> copyFromAdjacentRow(true));
+            copyFromBelowAction = createAction(GridEditMessages.gridedit_copy_from_below,
+                KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), () -> copyFromAdjacentRow(false));
             deleteRowsAction = createAction(EditorMessages.editor_grid_delete_row, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelectedRows);
+            undoAction = createAction(GridEditMessages.gridedit_undo, KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), this::undo);
+            redoAction = createAction(GridEditMessages.gridedit_redo, KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), this::redo);
+            pasteAction = createAction(GridEditMessages.gridedit_paste, KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), () -> paste(null));
+            pasteSpecialAction = createAction(GridEditMessages.gridedit_paste_special,
+                KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::pasteSpecial);
+            previewChangesAction = createAction(GridEditMessages.gridedit_preview_changes, null, () -> save(false, false, true));
+            previewChangesAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_preview_changes_tip);
             Action saveMenuAction = createAction(EditorMessages.editor_grid_save_changes, (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));
             Action cancelMenuAction = createAction(EditorMessages.editor_grid_cancel_changes, null, this::cancelChanges);
-            // F2 is the table's own "start editing" binding; the menu only shows it
-            bindKey(table, JComponent.WHEN_FOCUSED, setNullAction, "chromite.setNull"); //$NON-NLS-1$
-            bindKey(table, JComponent.WHEN_FOCUSED, insertRowAction, "chromite.insertRow"); //$NON-NLS-1$
-            bindKey(table, JComponent.WHEN_FOCUSED, deleteRowsAction, "chromite.deleteRows"); //$NON-NLS-1$
+            // F2 opens the grid's editor, or the value panel for a LOB cell
+            for (Action action : new Action[]{editCellAction, setNullAction, setDefaultAction, insertRowAction, duplicateRowAction,
+                copyFromAboveAction, copyFromBelowAction, deleteRowsAction, undoAction, redoAction, pasteAction, pasteSpecialAction}) {
+                bindKey(table, JComponent.WHEN_FOCUSED, action, "chromite." + action.getValue(Action.NAME)); //$NON-NLS-1$
+            }
             // Ctrl+S in the grid or its cell editor saves the grid, even without changes, instead of reaching File > Save
             Action saveKeyAction = createAction(EditorMessages.editor_common_save, null, () -> save(false));
             getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
                 (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "chromite.saveGrid"); //$NON-NLS-1$
             getActionMap().put("chromite.saveGrid", saveKeyAction); //$NON-NLS-1$
+            // A double click on a LOB cell opens the value panel (the grid doesn't edit it)
+            table.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    int row = table.rowAtPoint(e.getPoint());
+                    int column = table.columnAtPoint(e.getPoint());
+                    if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e) && row >= 0 && column >= 0
+                        && isPanelEditedCell(row, column)) {
+                        host.editInValuePanel();
+                    }
+                }
+            });
             popupMenu.add(editCellAction);
             popupMenu.add(setNullAction);
+            popupMenu.add(setDefaultAction);
+            popupMenu.add(resetCellAction);
             popupMenu.addSeparator();
             popupMenu.add(insertRowAction);
+            popupMenu.add(duplicateRowAction);
+            popupMenu.add(copyFromAboveAction);
+            popupMenu.add(copyFromBelowAction);
             popupMenu.add(deleteRowsAction);
             popupMenu.addSeparator();
+            popupMenu.add(undoAction);
+            popupMenu.add(redoAction);
+            popupMenu.add(pasteAction);
+            popupMenu.add(pasteSpecialAction);
+            popupMenu.addSeparator();
+            JMenuItem saveCommitItem = new JMenuItem(saveCommitAction);
             popupMenu.add(saveMenuAction);
+            popupMenu.add(saveCommitItem);
+            popupMenu.add(previewChangesAction);
             popupMenu.add(cancelMenuAction);
             popupMenu.addSeparator();
             saveMenuAction.setEnabled(false);
             cancelMenuAction.setEnabled(false);
             saveAction.addPropertyChangeListener(e -> saveMenuAction.setEnabled(saveAction.isEnabled()));
             cancelChangesAction.addPropertyChangeListener(e -> cancelMenuAction.setEnabled(cancelChangesAction.isEnabled()));
+            // Save and Commit only means something in manual commit mode
+            popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+                @Override
+                public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                    saveCommitItem.setVisible(isManualCommit());
+                }
+
+                @Override
+                public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+                }
+
+                @Override
+                public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+                }
+            });
         }
         popupMenu.add(copyAction);
         popupMenu.add(copyWithHeadersAction);
@@ -971,7 +1408,7 @@ final class ResultSetGrid extends JPanel {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return editModel != null && editModel.isCellEditable(rowIndex, columnIndex);
+            return editModel != null && editModel.isInlineEditable(rowIndex, columnIndex);
         }
 
         @Override
@@ -991,15 +1428,75 @@ final class ResultSetGrid extends JPanel {
      */
     private final class TextCellEditor extends AbstractCellEditor implements TableCellEditor {
         private final JTextField field = new JTextField();
+        private final JButton pickerButton;
         private final Border normalBorder;
         private String initialText = "";
         private int modelColumn;
+        private int modelRow;
         @Nullable
         private EditedValue value;
+        /**
+         * The value picked in the date picker; it ends the edit without parsing the text.
+         */
+        @Nullable
+        private EditedValue picked;
 
         TextCellEditor() {
             normalBorder = field.getBorder();
             field.addActionListener(e -> stopCellEditing());
+            // Date and time cells: a calendar button in the field (SWT DateTimeInlineEditor "Calendar"), also Alt+Down
+            Action pickAction = createAction(GridEditMessages.gridedit_pick_date, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.ALT_DOWN_MASK),
+                this::pickDate);
+            pickerButton = UiIcons.createActionButton(pickAction, "schedule"); //$NON-NLS-1$
+            pickerButton.setToolTipText(GridEditMessages.gridedit_pick_date_tip);
+            pickerButton.setFocusable(false);
+            pickerButton.setMargin(new Insets(0, 2, 0, 2));
+            field.getInputMap().put((KeyStroke) pickAction.getValue(Action.ACCELERATOR_KEY), "chromite.pickDate"); //$NON-NLS-1$
+            field.getActionMap().put("chromite.pickDate", pickAction); //$NON-NLS-1$
+        }
+
+        private boolean hasPicker() {
+            return ResultSetDateTimePicker.supports(data.bindings()[modelColumn], editModel.getRow(modelRow).values[modelColumn]);
+        }
+
+        private void pickDate() {
+            if (!hasPicker()) {
+                return;
+            }
+            DBDAttributeBinding binding = data.bindings()[modelColumn];
+            // Start from the typed text when it is a date, else from the cell's value
+            Object start = editModel.getRow(modelRow).values[modelColumn];
+            if (!field.getText().equals(initialText)) {
+                try {
+                    Object typed = editModel.parseValue(modelColumn, field.getText());
+                    if (typed instanceof java.util.Date date) {
+                        start = date;
+                    }
+                } catch (DBCException e) {
+                    // Not a date: the picker starts from the cell's value
+                }
+            }
+            java.util.Date result = ResultSetDateTimePicker.pick(table, ResultSetDateTimePicker.getKind(binding),
+                start instanceof java.util.Date date ? date : null);
+            if (result == null) {
+                field.requestFocusInWindow();
+                return;
+            }
+            try {
+                picked = new EditedValue(editModel.parseObject(modelColumn, result));
+            } catch (DBCException e) {
+                showInvalid(e);
+                return;
+            }
+            stopCellEditing();
+        }
+
+        private void showInvalid(@NotNull DBCException e) {
+            Color errorColor = UIManager.getColor("Component.error.focusedBorderColor"); //$NON-NLS-1$
+            field.setBorder(BorderFactory.createLineBorder(errorColor != null ? errorColor : Color.RED, 2));
+            transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], ErrorText.describeLine(e));
+            updateState();
+            UIManager.getLookAndFeel().provideErrorFeedback(field);
         }
 
         @Override
@@ -1011,11 +1508,14 @@ final class ResultSetGrid extends JPanel {
         @Override
         public Component getTableCellEditorComponent(JTable table, Object cellValue, boolean isSelected, int row, int column) {
             modelColumn = table.convertColumnIndexToModel(column);
-            initialText = editModel.getEditText(table.convertRowIndexToModel(row), modelColumn);
+            modelRow = table.convertRowIndexToModel(row);
+            initialText = editModel.getEditText(modelRow, modelColumn);
             value = null;
+            picked = null;
             field.setText(initialText);
             field.setBorder(normalBorder);
             field.setFont(table.getFont());
+            field.putClientProperty(FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, hasPicker() ? pickerButton : null);
             SwingUtilities.invokeLater(field::selectAll);
             return field;
         }
@@ -1027,6 +1527,11 @@ final class ResultSetGrid extends JPanel {
 
         @Override
         public boolean stopCellEditing() {
+            if (picked != null) {
+                value = picked;
+                picked = null;
+                return super.stopCellEditing();
+            }
             String text = field.getText();
             if (text.equals(initialText)) {
                 // Unchanged text keeps the value (an empty editor of a NULL cell must not become an empty string)
@@ -1036,12 +1541,135 @@ final class ResultSetGrid extends JPanel {
             try {
                 value = new EditedValue(editModel.parseValue(modelColumn, text));
             } catch (DBCException e) {
-                Color errorColor = UIManager.getColor("Component.error.focusedBorderColor"); //$NON-NLS-1$
-                field.setBorder(BorderFactory.createLineBorder(errorColor != null ? errorColor : Color.RED, 2));
-                transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], ErrorText.describeLine(e));
-                updateState();
-                UIManager.getLookAndFeel().provideErrorFeedback(field);
+                showInvalid(e);
                 return false;
+            }
+            return super.stopCellEditing();
+        }
+
+        @Override
+        public void cancelCellEditing() {
+            value = null;
+            picked = null;
+            super.cancelCellEditing();
+        }
+    }
+
+    /**
+     * Editor of a boolean or ENUM cell (SWT {@code BooleanInlineEditor}, {@code EnumValueManager}): a list of the
+     * allowed values, with NULL when the column takes it. The list opens with the editor; picking a value ends the
+     * edit.
+     */
+    private final class ChoiceCellEditor extends AbstractCellEditor implements TableCellEditor {
+
+        /**
+         * One entry: its label and the value given to the column's handler (null for NULL).
+         */
+        private record Choice(@NotNull String label, @Nullable Object value) {
+            @Override
+            public String toString() {
+                return label;
+            }
+        }
+
+        private final JComboBox<Choice> combo = new JComboBox<>();
+        private int modelColumn;
+        @Nullable
+        private EditedValue value;
+        private boolean filling;
+
+        ChoiceCellEditor() {
+            // Arrow keys move in the list without selecting (no action event); Enter or a click selects and ends the edit
+            combo.putClientProperty("JComboBox.isTableCellEditor", Boolean.TRUE); //$NON-NLS-1$
+            combo.addActionListener(e -> {
+                if (!filling) {
+                    stopCellEditing();
+                }
+            });
+        }
+
+        static boolean hasChoices(@Nullable ResultSetEditModel model, int column) {
+            return model != null && !model.isContentColumn(column)
+                && (model.getEnumValues(column) != null || model.getAttributes()[column].getDataKind() == DBPDataKind.BOOLEAN);
+        }
+
+        @Override
+        public boolean isCellEditable(EventObject event) {
+            // Double click, F2, or the Edit Cell menu
+            return !(event instanceof MouseEvent mouseEvent) || mouseEvent.getClickCount() >= 2;
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object cellValue, boolean isSelected, int row, int column) {
+            modelColumn = table.convertColumnIndexToModel(column);
+            DBDAttributeBinding binding = data.bindings()[modelColumn];
+            Object current = editModel.getRow(table.convertRowIndexToModel(row)).values[modelColumn];
+            value = null;
+            filling = true;
+            try {
+                combo.removeAllItems();
+                Choice selected = null;
+                String[] enumValues = editModel.getEnumValues(modelColumn);
+                if (enumValues != null) {
+                    String currentText = DBUtils.isNullValue(current) ? null : current.toString();
+                    for (String enumValue : enumValues) {
+                        Choice choice = new Choice(enumValue, enumValue);
+                        combo.addItem(choice);
+                        if (enumValue.equals(currentText)) {
+                            selected = choice;
+                        }
+                    }
+                } else {
+                    for (Boolean flag : new Boolean[]{Boolean.TRUE, Boolean.FALSE}) {
+                        Choice choice = new Choice(binding.getValueHandler().getValueDisplayString(binding, flag, DBDDisplayFormat.EDIT), flag);
+                        combo.addItem(choice);
+                        if (flag.equals(current)) {
+                            selected = choice;
+                        }
+                    }
+                }
+                if (binding.getAttribute() == null || !binding.getAttribute().isRequired()) {
+                    Choice nullChoice = new Choice(ResultSetGrid.NULL_VALUE.toString(), null);
+                    combo.addItem(nullChoice);
+                    if (DBUtils.isNullValue(current)) {
+                        selected = nullChoice;
+                    }
+                }
+                combo.setSelectedItem(selected);
+            } finally {
+                filling = false;
+            }
+            combo.setFont(table.getFont());
+            SwingUtilities.invokeLater(() -> {
+                if (combo.isShowing()) {
+                    combo.requestFocusInWindow();
+                    combo.showPopup();
+                }
+            });
+            return combo;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return value;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            if (combo.getSelectedItem() instanceof Choice choice) {
+                try {
+                    value = new EditedValue(choice.value() == null ? null : editModel.parseObject(modelColumn, choice.value()));
+                } catch (DBCException e) {
+                    transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], ErrorText.describeLine(e));
+                    updateState();
+                    UIManager.getLookAndFeel().provideErrorFeedback(combo);
+                    return false;
+                }
+            } else {
+                value = null;
+            }
+            if (combo.isPopupVisible()) {
+                combo.hidePopup();
             }
             return super.stopCellEditing();
         }
