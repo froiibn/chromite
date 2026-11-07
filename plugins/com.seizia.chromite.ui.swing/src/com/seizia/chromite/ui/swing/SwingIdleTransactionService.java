@@ -64,6 +64,8 @@ import java.util.Map;
  *     <li>오류 복구가 멈춘 알림({@link TransactionRecoveryGuard}): 서버가 중단한 트랜잭션은 잃은 문장 수와 롤백 단추를,
  *     끊긴 연결은 다시 연결이 끝낼 트랜잭션 목록과 다시 연결 단추를 보인다. 답할 때까지 남는다. 같은 트랜잭션(연결)에 대한 알림이
  *     떠 있으면 다시 띄우지 않는다. 멈춘 뒤의 문장마다 같은 오류가 나기 때문이다.</li>
+ *     <li>격리 세션 하나만 끊겨 그 세션만 다시 연 알림({@link #showSessionReopened}): 커밋하지 않은 문장이 있었으면 그 수와 시작 시각을 적고
+ *     닫을 때까지 남는다(사라진 작업이라 사용자가 놓치면 안 된다). 없었으면 잠시 보이는 정보 알림이다(업스트림의 "다시 연결함" 알림과 같은 무게).</li>
  * </ul>
  *
  * 변경 이력:
@@ -74,6 +76,7 @@ import java.util.Map;
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 오류 복구가 멈춘 알림({@link #showTransactionAborted}, {@link #showReconnectHeld})
  *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@link #showSessionReopened}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -235,6 +238,34 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
             reconnectNotices.put(container, new Notice(NotificationToast.showWithActions(frame, ConnectionMessages.recovery_reconnect_title,
                 NLS.bind(ConnectionMessages.recovery_reconnect_message, new Object[]{container.getName(), reason, String.join("\n", items)}), //$NON-NLS-1$
                 NotificationToast.Kind.ERROR, actions, forget), 0));
+        });
+    }
+
+    @Override
+    public void showSessionReopened(
+        @NotNull DBCExecutionContext context,
+        @Nullable QMTransactionState lostTransaction,
+        @NotNull Throwable error
+    ) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = findMainFrame();
+            if (frame == null) {
+                return;
+            }
+            String target = describeContext(context);
+            // The first line only: the causes of a connection error repeat it
+            String reason = ErrorText.describe(error).lines().findFirst().orElse(""); //$NON-NLS-1$
+            log.info("Session lost and reopened alone: " + target + ": " + reason); //$NON-NLS-1$ //$NON-NLS-2$
+            if (lostTransaction != null) {
+                NotificationToast.showWithActions(frame, ConnectionMessages.recovery_session_lost_title,
+                    NLS.bind(ConnectionMessages.recovery_session_lost_message, new Object[]{
+                        target, reason, lostTransaction.getExecuteCount(), formatTime(lostTransaction.getTransactionStartTime())}),
+                    NotificationToast.Kind.WARNING, List.of(), null);
+            } else {
+                NotificationToast.show(frame, ConnectionMessages.recovery_session_reopened_title,
+                    NLS.bind(ConnectionMessages.recovery_session_reopened_message, target, reason),
+                    NotificationToast.Kind.INFO, null);
+            }
         });
     }
 

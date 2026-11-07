@@ -19,15 +19,18 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPErrorAssistant;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.ai.tools.AgentSql;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCTransactionManager;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
@@ -67,6 +70,9 @@ import java.util.function.Function;
  *     ({@code JDBCExecutionContext.close}). SWT는 끊기 전에 {@code DataSourceHandler.checkAndCloseActiveTransaction}으로 물었다.
  *     같은 찾기·질문·끝내기를 그 연결 하나에 한다. 취소하면 끊지 않고 트랜잭션도 그대로 둔다. 끊기, 다시 연결, 삭제,
  *     연결 편집 뒤 다시 연결이 모두 {@code ConnectionCommands}의 한 끊기 경로를 지나므로 그곳에서 부른다.</li>
+ *     <li>연결이 끊긴 세션({@link TransactionRecoveryGuard#isSessionLost}): 커밋·롤백이 끊긴 연결에서 실패해 창을 닫거나 연결을 끊을 수 없었다.
+ *     끊긴 세션의 트랜잭션은 서버가 이미 롤백했으므로 커밋·롤백 대신 버리기·취소를 묻는다. 살아 있는 세션과 섞이면 한 질문에서 살아 있는 세션은
+ *     커밋·롤백을 묻고 끊긴 세션은 버린다고 적는다. 확인이 답하지 않아 살아 있다고 본 세션이 커밋·롤백에서 연결 끊김 오류를 내면 그때 버리기를 묻는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -78,6 +84,8 @@ import java.util.function.Function;
  *   그 문맥을 쓰는 쿼리 창 이름으로 보임(창마다 세션이 따로라 끊을 때 창별로 보임) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 Object Explorer 개체 변경 전 질문({@link #confirmObjectChange}): 삭제·이름 바꾸기 DDL이 열린 트랜잭션을 함께 커밋하거나
  *   그 잠금을 기다리지 않게 (docs/chromite/swing-explorer-object-actions.md "트랜잭션")
+ * - 2026-11-08 연결이 끊긴 세션은 커밋·롤백 대신 버리기·취소를 물음(전에는 실패해 창을 닫거나 끊을 수 없었음)
+ *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 final class ExitTransactionCheck {
 
@@ -155,23 +163,29 @@ final class ExitTransactionCheck {
         if (active.isEmpty() && agentActive.isEmpty()) {
             return true;
         }
-        Set<String> names = new LinkedHashSet<>();
-        for (DBCExecutionContext context : active) {
-            // A query window's own session, or the main context, by the windows that run in it
-            String windows = SwingIdleTransactionService.describeQueryWindows(context);
-            names.add(context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+        // Sessions whose connection is gone: Commit and Roll back cannot work there, and nothing is left to keep
+        List<DBCExecutionContext> lost = findLost(active);
+        List<DBCExecutionContext> live = new ArrayList<>(active);
+        live.removeAll(lost);
+        if (live.isEmpty() && agentActive.isEmpty()) {
+            return confirmDiscard(parent, lost);
         }
+        Set<String> names = new LinkedHashSet<>(describe(live));
         for (DBPDataSourceContainer container : agentActive) {
             names.add(NLS.bind(UpdateMessages.exit_txn_agent_item, container.getName()));
         }
+        String question = message.apply(String.join("\n", names)); //$NON-NLS-1$
+        if (!lost.isEmpty()) {
+            question += NLS.bind(ConnectionMessages.lost_txn_note, String.join("\n", describe(lost))); //$NON-NLS-1$
+        }
         String[] options = {UpdateMessages.exit_txn_commit, UpdateMessages.exit_txn_rollback, CoreMessages.common_cancel};
-        int answer = JOptionPane.showOptionDialog(parent, message.apply(String.join("\n", names)), //$NON-NLS-1$
+        int answer = JOptionPane.showOptionDialog(parent, question,
             UpdateMessages.exit_txn_title, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
         if (answer != 0 && answer != 1) {
             return false;
         }
         boolean commit = answer == 0;
-        for (DBCExecutionContext context : active) {
+        for (DBCExecutionContext context : live) {
             try {
                 ProgressDialog.runTask(UpdateMessages.exit_txn_progress, monitor -> {
                     try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "End active transaction")) { //$NON-NLS-1$
@@ -187,6 +201,14 @@ final class ExitTransactionCheck {
                     return null;
                 });
             } catch (DBException e) {
+                if (isConnectionLost(context, e)) {
+                    // The session was lost although the check did not tell (no answer in time, or lost since)
+                    log.debug("The session of " + context.getDataSource().getContainer().getName() + " was lost: " + e.getMessage()); //$NON-NLS-1$ //$NON-NLS-2$
+                    if (!confirmDiscard(parent, List.of(context))) {
+                        return false;
+                    }
+                    continue;
+                }
                 log.warn("Cannot end the transaction of " + context.getDataSource().getContainer().getName(), e); //$NON-NLS-1$
                 ErrorDialog.show(parent, UpdateMessages.exit_txn_title,
                     NLS.bind(error, context.getDataSource().getContainer().getName()), e);
@@ -202,7 +224,81 @@ final class ExitTransactionCheck {
                 return false;
             }
         }
+        discard(lost);
         return true;
+    }
+
+    /**
+     * Asks Discard / Cancel for sessions whose connection was lost, and on Discard records that their transactions ended.
+     *
+     * @return true when they were discarded
+     */
+    private static boolean confirmDiscard(@Nullable Component parent, @NotNull List<DBCExecutionContext> lost) {
+        String[] options = {ConnectionMessages.lost_txn_discard, CoreMessages.common_cancel};
+        int answer = JOptionPane.showOptionDialog(parent,
+            NLS.bind(ConnectionMessages.lost_txn_message, String.join("\n", describe(lost))), //$NON-NLS-1$
+            UpdateMessages.exit_txn_title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
+        if (answer != 0) {
+            return false;
+        }
+        discard(lost);
+        return true;
+    }
+
+    private static void discard(@NotNull List<DBCExecutionContext> lost) {
+        for (DBCExecutionContext context : lost) {
+            log.info("Discarded the transaction of the lost session " + context.getDataSource().getContainer().getName() //$NON-NLS-1$
+                + " (" + context.getContextName() + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+            TransactionRecoveryGuard.discardLostTransaction(context);
+        }
+    }
+
+    /**
+     * The sessions among {@code active} whose server session is gone ({@link TransactionRecoveryGuard#isSessionLost}).
+     * A session that cannot be checked counts as live, so it is asked about as before.
+     */
+    @NotNull
+    private static List<DBCExecutionContext> findLost(@NotNull List<DBCExecutionContext> active) {
+        if (active.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return ProgressDialog.runTask(ConnectionMessages.lost_txn_checking, monitor -> {
+                List<DBCExecutionContext> lost = new ArrayList<>();
+                for (DBCExecutionContext context : active) {
+                    if (TransactionRecoveryGuard.isSessionLost(monitor, context)) {
+                        lost.add(context);
+                    }
+                }
+                return lost;
+            });
+        } catch (DBException e) {
+            log.debug("Cannot check the sessions: " + e.getMessage()); //$NON-NLS-1$
+            return List.of();
+        }
+    }
+
+    private static boolean isConnectionLost(@NotNull DBCExecutionContext context, @NotNull Throwable error) {
+        for (Throwable cause = error; cause != null && cause.getCause() != cause; cause = cause.getCause()) {
+            if (DBExecUtils.discoverErrorType(context.getDataSource(), cause) == DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The sessions as listed in the questions: the connection and the query windows that run in the session (a window's
+     * own session, or the main context), else the context's name.
+     */
+    @NotNull
+    private static List<String> describe(@NotNull List<DBCExecutionContext> contexts) {
+        List<String> names = new ArrayList<>();
+        for (DBCExecutionContext context : contexts) {
+            String windows = SwingIdleTransactionService.describeQueryWindows(context);
+            names.add(context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        return names;
     }
 
     /**

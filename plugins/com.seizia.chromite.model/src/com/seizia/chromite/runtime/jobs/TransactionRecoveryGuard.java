@@ -27,6 +27,7 @@ import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.runtime.DBServiceUnrecordedSessions;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.UIServiceIdleTransactions;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Keeps the automatic error recovery from ending a transaction the user has: the rollback after PostgreSQL's
@@ -59,14 +61,24 @@ import java.util.WeakHashMap;
  *     {@link InvalidateJob#invalidateDataSource}를 사용자가 고른 뒤에 한다({@link #reconnect}).</li>
  *     <li>연결 유지 핑은 몇 초마다 다시 실패하므로 같은 연결 객체에 한 번만 알린다(새로 연결하면 새 객체라 다시 알린다).
  *     실행에서 생긴 오류는 매번 알리고 UI가 떠 있는 알림을 겹쳐 띄우지 않는다.</li>
+ *     <li>격리 문맥(쿼리 창의 자기 세션, 도구의 세션) 하나만 끊겼으면 그 문맥만 다시 연다({@link #reopenLostSession}). 데이터 소스 전체를
+ *     다시 연결하면 끊기지 않은 다른 창의 세션과 그 열린 트랜잭션까지 끝나고, 위의 멈춤 때문에 끊긴 창은 다른 창의 트랜잭션이 끝날 때까지
+ *     쓸 수 없었다. 주·메타데이터 문맥은 여러 창과 탐색기가 함께 쓰므로 그대로 전체 다시 연결과 멈춤을 거친다.</li>
+ *     <li>세션이 정말 끊겼는지는 짧은 시간 안의 연결 확인으로 본다({@link #isSessionLost}). 끊긴 세션의 트랜잭션은 서버가 이미 롤백했으므로
+ *     버려도 잃을 것이 없지만, 살아 있는 세션을 끊긴 것으로 보면 트랜잭션을 묻지 않고 끝내게 되므로 확인이 답하지 않으면 살아 있다고 본다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 끊긴 격리 문맥만 다시 열기({@link #reopenLostSession}), 세션이 끊겼는지 확인({@link #isSessionLost}), 끊긴 세션의
+ *   트랜잭션을 쿼리 관리자에 롤백으로 기록({@link #discardLostTransaction}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 public final class TransactionRecoveryGuard {
 
     private static final Log log = Log.getLog(TransactionRecoveryGuard.class);
+
+    // How long the session check may take; the connection's own validation timeout is 10 s by default
+    private static final long SESSION_CHECK_TIMEOUT_MS = 3000;
 
     // Data sources whose held reconnect the keep-alive ping already reported; weak so that a new connection reports again
     private static final Set<DBPDataSource> reportedByPing = Collections.newSetFromMap(new WeakHashMap<>());
@@ -187,6 +199,98 @@ public final class TransactionRecoveryGuard {
         }
         log.info("Reconnected " + dataSource.getContainer().getName() + " as the user chose: " + results);
         return results;
+    }
+
+    /**
+     * After the connection of a context failed: when it is an isolated context (a query window's own session, a tool's
+     * session) and its server session is really gone, reopens that context alone. The main and metadata contexts and
+     * the other isolated contexts keep their sessions and transactions. The user is told which session was lost and,
+     * when it had the user's statements, that its uncommitted transaction is gone.
+     *
+     * @param attempt the context of the failed attempt and its transaction before it, or null when not known
+     * @return true when the context was reopened (the caller may try again in it); false when it is the main or metadata
+     * context, its session still answers, or it could not be reopened: the caller goes on with the whole connection
+     */
+    public static boolean reopenLostSession(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        @NotNull Throwable error,
+        @Nullable Attempt attempt
+    ) {
+        DBSInstance instance = context.getOwnerInstance();
+        if (context == instance.getDefaultContext(monitor, false) || context == instance.getDefaultContext(monitor, true)) {
+            // Shared by windows and metadata reads: the whole connection is reconnected, held for open transactions
+            return false;
+        }
+        if (!isSessionLost(monitor, context)) {
+            // Reopening a live session would end its transaction without asking
+            return false;
+        }
+        // What is lost: the transaction before the failed attempt (a transaction only the attempt opened holds nothing)
+        QMTransactionState lost = attempt != null && attempt.context() == context
+            ? attempt.transactionBefore() : QMUtils.getTransactionState(context);
+        Exception reopenError = null;
+        Object lock = instance.getExclusiveLock().acquireExclusiveLock();
+        try {
+            context.invalidateContext(monitor);
+        } catch (Exception e) {
+            reopenError = e;
+        } finally {
+            instance.getExclusiveLock().releaseExclusiveLock(lock);
+        }
+        // The old connection is closed either way, so its transaction has ended
+        discardLostTransaction(context);
+        String name = context.getDataSource().getContainer().getName() + "::" + context.getContextName();
+        if (reopenError != null) {
+            log.debug("Lost session " + name + " could not be reopened: " + reopenError.getMessage());
+            return false;
+        }
+        log.info("Session " + name + " was lost and reopened alone; uncommitted statements lost: "
+            + (lost.isOpen() ? lost.getExecuteCount() : 0));
+        UIServiceIdleTransactions ui = DBWorkbench.findService(UIServiceIdleTransactions.class);
+        if (ui != null) {
+            ui.showSessionReopened(context, lost.isOpen() ? lost : null, error);
+        }
+        return true;
+    }
+
+    /**
+     * Whether the context's server session is gone: it has no connection, or the connection check
+     * ({@link DBCExecutionContext#checkContextAlive}) fails within a short time. A check that does not answer in time,
+     * or a context that runs a statement, counts as alive: only a session known to be gone may be treated as such.
+     * Runs a server round-trip; call in a job.
+     */
+    public static boolean isSessionLost(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) {
+        if (!context.isConnected()) {
+            return true;
+        }
+        if (QMUtils.getTransactionState(context).isExecuting()) {
+            return false;
+        }
+        AtomicBoolean lost = new AtomicBoolean();
+        boolean answered = RuntimeUtils.runTask(
+            checkMonitor -> {
+                try {
+                    context.checkContextAlive(checkMonitor);
+                } catch (Exception e) {
+                    log.debug("Session " + context.getContextName() + " check failed: " + e.getMessage());
+                    lost.set(true);
+                }
+            },
+            "Check session " + context.getContextName(),
+            SESSION_CHECK_TIMEOUT_MS,
+            true);
+        return answered && lost.get();
+    }
+
+    /**
+     * Records in the query manager that the transaction of a lost session ended (the server rolled it back with the
+     * session), so the open transaction indicators, lists and questions no longer show its statements.
+     */
+    public static void discardLostTransaction(@NotNull DBCExecutionContext context) {
+        if (QMUtils.isTransactionActive(context) || QMUtils.getTransactionState(context).isOpen()) {
+            QMUtils.getDefaultHandler().handleTransactionRollback(context, null);
+        }
     }
 
     @NotNull

@@ -77,6 +77,8 @@ import java.util.*;
  * - 2026-11-07 {@link #tryExecuteRecover}: 복구가 열린 트랜잭션을 끝내게 되면(중단된 트랜잭션 롤백, 끊긴 연결 다시 연결)
  *   복구하지 않고 원래 오류로 멈추며 사용자에게 알림({@code TransactionRecoveryGuard}, docs/chromite/transactions.md
  *   "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 {@link #tryExecuteRecover}: 끊긴 문맥이 격리 문맥(쿼리 창의 자기 세션)이면 데이터 소스 전체 대신 그 문맥만 다시 엶
+ *   ({@code TransactionRecoveryGuard.reopenLostSession}, docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 public class DBExecUtils {
 
@@ -210,9 +212,9 @@ public class DBExecUtils {
 
     /**
      * Runs the runnable and, when it fails because the transaction was aborted or the connection was lost, recovers
-     * (rolls back the aborted transaction or reconnects) and runs it again. It does not recover when that would end a
-     * transaction with the user's statements: it then fails with the error and the user is told
-     * ({@link TransactionRecoveryGuard}).
+     * (rolls back the aborted transaction or reconnects) and runs it again. When only the failed isolated context's
+     * session was lost, it reopens that context alone. It does not recover when that would end a transaction with the
+     * user's statements: it then fails with the error and the user is told ({@link TransactionRecoveryGuard}).
      *
      * @param param DBRProgressProgress monitor or DBCSession
      *
@@ -290,6 +292,12 @@ public class DBExecUtils {
                         }
                         InvalidateJob.invalidateTransaction(monitor, dataSource, executionContext);
                     } else {
+                        DBCExecutionContext failedContext = attempt != null ? attempt.context()
+                            : lastError instanceof DBCException dbce ? dbce.getExecutionContext() : null;
+                        if (failedContext != null && TransactionRecoveryGuard.reopenLostSession(monitor, failedContext, lastError, attempt)) {
+                            // Only the failed isolated session was lost and it was reopened alone: try again in it
+                            continue;
+                        }
                         if (TransactionRecoveryGuard.holdReconnect(dataSource, lastError, attempt, false)) {
                             // Reconnecting would end open transactions without asking: stop with the error
                             break;
