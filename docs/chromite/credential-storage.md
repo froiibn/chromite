@@ -21,7 +21,7 @@
 |---|---|
 | 저장소 | Eclipse secure storage + OS 제공자(`DBSecurityUtils.findNativeOSProvider`). 제공자를 필수 모듈(`IProviderHints.REQUIRED_MODULE_ID`)로 지정해, 값은 제공자가 지키는 마스터 비밀번호로 암호화된다 |
 | Windows | `org.eclipse.equinox.security.win32`(`WindowsPasswordProvider64bit`): 마스터 비밀번호를 DPAPI(`CryptProtectData`, 현재 Windows 사용자)로 암호화해 같은 파일에 둔다 |
-| macOS | `model.security`의 키체인 제공자(`MacOSSecureStorageKeychain`): 마스터 비밀번호를 키체인에 둔다. **Mac이 없어 실행해 보지 못했다.** 첫 접근 때 키체인 허용 질문이 뜰 수 있다 |
+| macOS | `model.security`의 키체인 제공자(`MacOSSecureStorageKeychain`): 마스터 비밀번호를 키체인에 둔다. **실행으로 확인하지 못했다**(아래 "위험과 남은 일"의 macOS 항목). 첫 접근 때 키체인 허용 질문이 뜰 수 있다 |
 | 파일 | `<데이터 폴더>/secure/secure_storage`(Windows 기본 `%APPDATA%\ChromiteData\secure\secure_storage`, macOS `~/Library/ChromiteData/secure/secure_storage`). `-eclipse.keyring <파일>`이나 환경 변수 `ECLIPSE_KEYRING`이 있으면 그 파일. 옆의 `secure_storage.lock`은 다른 Chromite 창과의 잠금용(내용 없음) |
 | 노드 | `/chromite/projects/<범위>/credentials-config<부 ID>.json` = 예전 파일과 같은 JSON(데이터 소스 ID → `#connection`/`network/<처리기>`/`profile:<ID>` → 속성) |
 | | `/chromite/workspaces/<범위>/<비밀 ID>` = 작업 공간 비밀(예: `global/network-profile/<이름>`, `maven/<저장소>/auth-password`, `ui.proxy.user`) |
@@ -180,7 +180,12 @@ PC를 옮길 때는 #108 내보내기가 있으므로 남길 이유가 없다.
 
 ## 위험과 남은 일
 
-- **macOS 미확인**: 키체인 제공자 경로는 실행해 보지 못했다. 데이터 폴더(`~/Library/ChromiteData/secure`)에 파일을 두는 것과 첫 접근 때의 허용 질문을 Mac에서 확인해야 한다.
+- **macOS 미확인(2026-11-08 시도)**: `macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")이 #111 이전 형식의 `credentials-config.json`(가짜 비밀번호)을 둔 작업 공간으로
+  앱을 띄워 `<CHROMITE_DATA>/ChromiteData/secure/secure_storage`, 평문 없음, 값의 제공자(`MacOSSecureStorageKeychain`), 예전 파일 이전, 로그인 키체인의
+  `com.seizia.chromite.SecureStorage`/`master-password` 항목(`security find-generic-password`), 두 번째 시작의 읽기를 확인하도록 만들었다. 그러나 앱이 macOS에서
+  시작하지 않아(런처가 JVM을 AppKit 메인 스레드에서 돌려 AWT와 교착, [platform-startup.md](platform-startup.md) "macOS 확인 기록") 이 경로는 아직 실행되지 않았다.
+  러너의 로그인 키체인이 잠겨 있는지도 그때 기록된다(`keychains.txt`). 참고: 제품 `Info.plist`의 `Eclipse` 인수에 Eclipse 기본값 `-keyring ~/.eclipse_keyring`이 있다.
+  Equinox 보안 저장소는 `-eclipse.keyring`만 읽으므로(`SecurePreferencesMapper`의 `KEYRING_ARGUMENT`) 이 저장소 위치에는 영향이 없을 것으로 보이나 실행으로 확인하지 않았다.
 - **Equinox 저장 파일 쓰기는 원자적이지 않다**: flush가 파일을 바로 덮어쓴다. 쓰는 도중 전원이 꺼지면 파일이 깨질 수 있다. 이전 중에는 예전 파일이 확인 뒤에만 지워지므로 잃지 않지만, 이전 뒤에는 그 파일이 유일한 사본이다(#108 내보내기가 백업 수단).
 - **다른 PC·계정의 저장 파일**: 데이터 폴더째 옮기면 그 파일을 지워야 다시 저장할 수 있다(메시지가 안내).
 - **네이티브 도구 작업 자격 증명**(`AbstractNativeToolSettings`의 `tool.password`)과 암호화 프로젝트 설정은 여전히 고정 키다. 작업 설정 파일 형식과 실행기를 함께 바꿔야 해서 이번 범위에서 뺐다.
@@ -192,3 +197,4 @@ PC를 옮길 때는 #108 내보내기가 있으므로 남길 이유가 없다.
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 연결 자격 증명과 작업 공간 비밀을 OS 보안 저장소로 옮김, 시작할 때 이전, 저장 실패 표시, 확인 결과
+- 2026-11-08 macOS 항목 갱신: `macos-smoke.yml`로 키체인 확인 경로를 만들었으나 앱이 macOS에서 시작하지 않아 실행하지 못함. `Info.plist`의 `-keyring` 인수 기록.

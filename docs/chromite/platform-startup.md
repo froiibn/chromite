@@ -76,9 +76,23 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
   메인 창에 `WM_CLOSE`를 보내면 `Main window closed` → 플랫폼 정리 → 정상 종료(`run-debug.log`).
 - 열린 트랜잭션이 있을 때 창 닫기 질문은 실행으로 확인하지 못했다(다른 에이전트의 앱과 입력이 겹쳐 전역 키보드·마우스 입력을 멈춤).
   이 변경은 `MainFrame.requestExit`와 `ExitTransactionCheck`를 고치지 않았고, Windows에서는 새 처리기가 등록되지 않으므로 코드 경로는 그대로다.
-- **macOS 동작은 확인하지 않았다.** macOS에서 확인할 것: Cmd+Q 때 저장·열린 트랜잭션 질문이 나오는지, 취소하면 앱이 남는지,
-  끝내기로 하면 정상 종료하는지, 앱 메뉴의 정보·환경설정이 Chromite 대화상자를 여는지.
+- macOS 확인은 아래 "macOS 확인 기록"에 있다.
+
+## macOS 확인 기록 (2026-11-08, GitHub `macos-15` 러너, macOS 15.8.2 arm64)
+
+`macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")이 앱을 실제로 띄워 끝내기(Apple event `quit`과 System Events의 Cmd+Q), 앱 메뉴의 정보·환경설정,
+열린 트랜잭션이 있을 때의 Cmd+Q(저장 질문 → "Uncommitted Transactions" → Cancel이면 앱이 남는지 → Roll Back이면 롤백 후 정상 종료)를 확인하도록 만들었다.
+판정은 디버그 로그의 `Main window closed`·`(Swing) shutdown completed`(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남)와 크래시 보고서 유무다.
+
+- **확인하지 못했다: 앱이 macOS에서 시작하지 않는다(제품 결함).** v0.1.1 서명 dmg와 이 브랜치의 서명 없는 빌드 모두 프로세스는 뜨지만 창이 없고 디버그 로그도 생기지 않는다.
+  JVM 스레드 덤프: `main`이 `installLookAndFeel`의 `SwingUtilities.invokeAndWait`(`ChromiteSwingApplication.java:189`)에서, `AWT-EventQueue-0`이
+  `CGraphicsEnvironment.initMetal`에서 멈춤. Eclipse 런처가 JVM을 AppKit 메인 스레드에서 시작해(`sample`: 메인 스레드 `startJavaJNI` → `JVM_MonitorWait`)
+  AWT가 메인 스레드에 맡긴 초기화를 아무도 처리하지 못한다. 그래서 이 문서의 끝내기·정보·환경설정 처리기(`installDesktopHandlers`)는 아직 한 번도 실행되지 않았다.
+- `--launcher.secondThread`(JVM을 둘째 스레드에서)로 실험하면 런처가 AppKit 단정으로 바로 죽는다(`+[KeyWindow dispatch]`, `EXC_BREAKPOINT`).
+  명령줄 `-vm …/jre/bin/java`도 런처가 같은 프로세스에 JVM을 올려 결과가 같다. 고치는 방법은 따로 정해야 한다(보고).
+- 앱이 시작하면 같은 워크플로를 다시 돌려 위 항목을 확인한다(`gh workflow run macos-smoke.yml --repo froiibn/chromite -f source=build` 또는 `-f tag=<태그>`).
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성. A-S6(Windows 인증서 저장소)과 A-S14(macOS 끝내기·정보·환경설정)를 Swing 앱 시작에 옮김.
+- 2026-11-08 macOS 확인 기록 추가: `macos-smoke.yml`로 끝내기·앱 메뉴·열린 트랜잭션 확인 경로를 만들었으나 앱이 macOS에서 시작하지 않아(런처·AWT 교착) 실행하지 못함.
