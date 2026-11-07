@@ -240,7 +240,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
 | `/ko/`, `/en/` | 다운로드: 제품 한 줄 소개, Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침), 앱 화면, 들어 있는 것, 서명·자동 업데이트 안내, 오픈 소스(GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크) |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
-| `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, AI 도우미(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
+| `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, Chromite Agent(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
 | `/assets/` | `site.css`, `site.js`, `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`) |
 
 모든 페이지 머리글에 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고, 바닥글에 Apache License 2.0(`LICENSE.md`)과 GitHub 링크가 있다.
@@ -379,3 +379,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   한도 `AgentLimits`), 기본 권한(`AIToolPolicy.resolve`), 로컬 MCP 서버(`AIMcpServer` 루프백 바인딩·403·Bearer, `AIMcpSettings` 기본 꺼짐).
   API 키 저장은 문서·화면 문구("보안 저장소")와 달리 `LocalSecretController`(암호화 없음)를 거쳐 작업 공간의 `com.seizia.chromite.ui.swing.prefs`에
   평문으로 저장됨을 코드와 시험 작업 공간 파일로 확인해 그대로 적었다(앱 쪽 수정은 별도 작업으로 보고).
+- 2026-11-07 개인정보 페이지(`site/ko|en/privacy.html`)의 "AI 도우미"/"AI assistant" 절을 "Chromite Agent"로 바꿈(절 이름, 옵션 탭 이름, 본문에서
+  기능을 가리키는 말). 다른 AI 도구(MCP로 붙는 외부 도구)를 말하는 문장은 그대로. 사용자 결정([ai-agent.md](ai-agent.md) "명칭"). 배포하지 않음.
