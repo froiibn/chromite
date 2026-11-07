@@ -91,6 +91,7 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 디버거, Git, Office("Excel에서 열기"), 개발 도구 번들은 빌드는 됐지만 SWT 제품 피처에 들어 있지 않았다([C 보고서](swt-parity/C-navigator-tools.md) 참고).
 SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정한다.
 PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-62, D-P29 → 있음, [procedure-debugger.md](procedure-debugger.md)).
+같은 날 SWT에 없던 Oracle PL/SQL 디버거(`DBMS_DEBUG`)를 더했다(C-62 비고).
 
 ## 앞으로
 
@@ -105,3 +106,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).
 - 2026-11-07 C-62·D-P29 없음 → 있음: PostgreSQL 프로시저 디버거(모델 복원, Swing 디버거 탭)([procedure-debugger.md](procedure-debugger.md)).
   결과 요약의 C·D·합계 수를 고침.
+- 2026-11-07 Oracle 프로시저 디버거 추가(SWT에 없던 기능, 수 변화 없음, C-62 비고)([procedure-debugger.md](procedure-debugger.md)).
