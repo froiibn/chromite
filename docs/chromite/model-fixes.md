@@ -183,6 +183,16 @@
   `sys.parameters`는 100·5,2·20·20. 한국어 화면의 Execute Procedure 인수 표가 `nvarchar(50)`, `decimal(5,2)`, `varchar(20)`, `nchar(10)`, "쿼리 창에서 열기"의
   스크립트가 `DECLARE @label nchar(10) = NULL;`. 마우스 올림 설명과 Oracle 형식 컴파일은 코드 경로만 확인했다.
 
+### SQL 로그 파일 핸들, Options의 저장 실패 (#33)
+
+- `QMLogFileWriter`: 설정 저장소의 `qm.` 키가 바뀔 때마다(`preferenceChange`, Options > Logs의 OK 한 번에 키 여러 개) `initLogFile`이 새 `FileWriter`를 열고
+  이전 것을 닫지 않았다(`:91-95`, 닫는 것은 기록을 끌 때뿐). 열 때마다 이전 핸들을 먼저 닫고(`closeLogFile`), `dispose`(앱 종료)에서도 닫는다.
+  확인: 코드 경로. 앱에서 Options > Logs로 기록을 켜고 키 두세 개를 바꾼 뒤 실행한 문장이 파일에 한 번 쓰였다. 열린 핸들 수는 이 PC에서 셀 도구가 없어 세지 못했다
+  (Java의 `FileWriter`는 열려 있어도 Windows에서 파일을 지울 수 있어 지우기로는 확인할 수 없었다).
+- `OptionsDialog`: OK가 페이지를 차례로 저장하다 한 페이지가 예외를 던지면 그 뒤 페이지가 말없이 저장되지 않았다. 이제 저장 단계마다 예외를 잡아 기록하고 나머지를
+  저장한 뒤, 실패한 페이지를 "페이지: 오류" 줄로 한 번에 알린다(`options_save_failed`, 영어·한국어). 저장 순서는 그대로다(테마가 마지막).
+  자세한 것은 [swing-options.md](swing-options.md). 확인: 정상 저장(Altibase, 로그 페이지)은 앱에서, 실패 경로는 코드로만 확인했다(예외를 일으킬 방법이 없음).
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -212,3 +222,4 @@
   연결 유형 이름의 언어(#3), MySQL 5 (Legacy)·StarRocks 라이선스 표기(#12), `LICENSE.md`의 JFreeChart 줄(#49).
 - 2026-11-08 "후속 수정 3": Oracle 계획 노드의 부모 번호와 저장한 계획 읽기(#24, Altibase 같은 원인).
 - 2026-11-08 "후속 수정 3": Oracle 형식 컴파일의 개체 종류, SQL Server 루틴 매개변수의 길이와 루틴 설명의 정밀도(#31).
+- 2026-11-08 "후속 수정 3": SQL 로그 파일 핸들, Options OK의 저장 실패 알림(#33).

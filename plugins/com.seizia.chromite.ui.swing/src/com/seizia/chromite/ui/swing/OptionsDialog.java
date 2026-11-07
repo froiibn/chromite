@@ -27,11 +27,13 @@ import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPIdentifierCase;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +70,8 @@ import java.util.Objects;
  *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}, {@link #wrapPage}다.</li>
  *     <li>탭은 SSMS Options의 왼쪽 목록처럼 왼쪽에 둔다. 페이지가 한 줄 탭에 들어가지 않는다.</li>
  * </ul>
- * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
+ * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다. 한 페이지의 저장이 실패해도 나머지 페이지는 저장하고, 실패한 페이지를
+ * 마지막에 한 번에 알린다(전에는 예외가 OK 처리를 끊어 뒤 페이지가 말없이 저장되지 않았다).
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
@@ -91,9 +94,12 @@ import java.util.Objects;
  * - 2026-11-08 남은 설정 키 페이지 11개, 왼쪽 목록 스크롤 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-08 General 탭의 Object Explorer 절: 두 번 클릭(객체, 연결), 긴 폴더에 한 번에 보일 객체 수({@link ExplorerPreferences})
  *   (docs/chromite/swing-explorer-productivity.md)
+ * - 2026-11-08 OK가 한 페이지의 예외로 멈추지 않고 모든 페이지를 저장한 뒤 실패한 페이지를 알림(evening #33,
+ *   docs/chromite/swing-options.md)
  */
 final class OptionsDialog extends JDialog {
 
+    private static final Log log = Log.getLog(OptionsDialog.class);
     private static final int MAX_DELAY = 5000;
     private static final String PREVIEW_TEXT = """
         -- 한글 주석: editor preview
@@ -495,9 +501,56 @@ final class OptionsDialog extends JDialog {
         return row + 1;
     }
 
+    /**
+     * Saves every page, also when one of them fails (a failed page would otherwise leave the pages after it unsaved
+     * with no notice), then reports the pages that failed.
+     */
     private void apply() {
-        updatesPage.apply();
-        aiPage.apply();
+        List<String> failures = new ArrayList<>();
+        applyStep(failures, UpdateMessages.update_options_tab, updatesPage::apply);
+        applyStep(failures, AiMessages.ai_options_tab, aiPage::apply);
+        applyStep(failures, CoreMessages.options_general, this::applyQueryEditorSettings);
+        for (SettingsPage page : settingsPages) {
+            applyStep(failures, page.getTitle(), page::apply);
+        }
+        for (SettingsPage page : globalPages) {
+            applyStep(failures, page.getTitle(), page::apply);
+        }
+        for (SettingsPage page : databasePages) {
+            applyStep(failures, page.getTitle(), page::apply);
+        }
+        applyStep(failures, SettingsMessages.types_tab, () -> connectionTypesPage.apply(getOwner()));
+        applyStep(failures, CoreMessages.options_general, this::applyExplorerAndHistorySettings);
+        applyStep(failures, CoreMessages.options_editor, this::applyFormatSettings);
+        applyStep(failures, CoreMessages.options_templates, templatesPage::apply);
+        boolean[] editorChanged = {false};
+        applyStep(failures, CoreMessages.options_editor, () -> editorChanged[0] |= applyFontSettings());
+        applyStep(failures, CoreMessages.options_editor_colors, () -> editorChanged[0] |= applyColorSettings());
+        if (editorChanged[0]) {
+            applyStep(failures, CoreMessages.options_editor, SqlEditorPanel.SqlTextArea::applyThemeToAll);
+        }
+        applyStep(failures, CoreMessages.options_general, this::applyLibrarySettings);
+        // Theme last: it updates every window, this dialog is about to close
+        applyStep(failures, CoreMessages.options_general, this::applyThemeSettings);
+        if (!failures.isEmpty()) {
+            JOptionPane.showMessageDialog(getOwner(), NLS.bind(CoreMessages.options_save_failed, String.join("\n", failures)), //$NON-NLS-1$
+                CoreMessages.options_save_failed_title, JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Runs one saving step; a failure is logged and added to the list as "page: error" instead of stopping the others.
+     */
+    private static void applyStep(@NotNull List<String> failures, @NotNull String page, @NotNull Runnable step) {
+        try {
+            step.run();
+        } catch (RuntimeException e) {
+            log.error("Can't save the options of " + page, e);
+            failures.add(page + ": " + ErrorText.describeLine(e)); //$NON-NLS-1$
+        }
+    }
+
+    private void applyQueryEditorSettings() {
         if (autoCompleteBox.isSelected() != SqlCompletionPopup.isAutoActivateOnLetters()) {
             SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteBox.isSelected());
         }
@@ -514,16 +567,9 @@ final class OptionsDialog extends JDialog {
         if (confirmDropSqlBox.isSelected() != SqlExecutionSafety.isConfirmDropSql()) {
             SqlExecutionSafety.setConfirmDropSql(confirmDropSqlBox.isSelected());
         }
-        for (SettingsPage page : settingsPages) {
-            page.apply();
-        }
-        for (SettingsPage page : globalPages) {
-            page.apply();
-        }
-        for (SettingsPage page : databasePages) {
-            page.apply();
-        }
-        connectionTypesPage.apply(getOwner());
+    }
+
+    private void applyExplorerAndHistorySettings() {
         if (objectDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ObjectDoubleClick objectDoubleClick
             && connectionDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ConnectionDoubleClick connectionDoubleClick) {
             int pageSize = ((Number) explorerPageSizeSpinner.getValue()).intValue();
@@ -536,6 +582,9 @@ final class OptionsDialog extends JDialog {
         if (historyDays != QueryHistory.getRetentionDays()) {
             QueryHistory.setRetentionDays(historyDays);
         }
+    }
+
+    private void applyFormatSettings() {
         String formatterId = formatterCombo.getSelectedIndex() == 1 ? SqlEditCommands.FORMATTER_COMPACT : SqlEditCommands.FORMATTER_DEFAULT;
         DBPIdentifierCase keywordCase = switch (keywordCaseCombo.getSelectedIndex()) {
             case 1 -> DBPIdentifierCase.UPPER;
@@ -546,23 +595,36 @@ final class OptionsDialog extends JDialog {
         if (!formatterId.equals(SqlEditCommands.getFormatterId()) || keywordCase != SqlEditCommands.getKeywordCase()) {
             SqlEditCommands.saveFormatSettings(formatterId, keywordCase);
         }
-        templatesPage.apply();
-        boolean editorChanged = false;
+    }
+
+    /**
+     * @return whether the editor font changed (open editors are updated after the colors are saved)
+     */
+    private boolean applyFontSettings() {
         String family = (String) fontFamilyCombo.getSelectedItem();
         int size = ((Number) fontSizeSpinner.getValue()).intValue();
         if (family != null && (!family.equals(EditorFont.getSavedFamily()) || size != EditorFont.getSavedSize())) {
             EditorFont.save(family, size);
-            editorChanged = true;
+            return true;
         }
+        return false;
+    }
+
+    /**
+     * @return whether the editor colors of a theme changed
+     */
+    private boolean applyColorSettings() {
+        boolean changed = false;
         for (ChromiteTheme theme : ChromiteTheme.values()) {
             if (!colors.get(theme).equals(EditorColors.getSaved(theme))) {
                 EditorColors.save(theme, colors.get(theme));
-                editorChanged = true;
+                changed = true;
             }
         }
-        if (editorChanged) {
-            SqlEditorPanel.SqlTextArea.applyThemeToAll();
-        }
+        return changed;
+    }
+
+    private void applyLibrarySettings() {
         int libraryHistoryRuns = ((Number) libraryHistoryRunsSpinner.getValue()).intValue();
         int libraryHistoryDays = ((Number) libraryHistoryDaysSpinner.getValue()).intValue();
         if (libraryHistoryRuns != QueryLibraryHistory.getMaxRuns() || libraryHistoryDays != QueryLibraryHistory.getMaxDays()) {
@@ -572,7 +634,9 @@ final class OptionsDialog extends JDialog {
         if (libraryRefresh != QueryLibraryWatcher.getInterval()) {
             QueryLibraryWatcher.setInterval(libraryRefresh);
         }
-        // Theme last: it updates every window, this dialog is about to close
+    }
+
+    private void applyThemeSettings() {
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
             iconStyle.apply();
         }

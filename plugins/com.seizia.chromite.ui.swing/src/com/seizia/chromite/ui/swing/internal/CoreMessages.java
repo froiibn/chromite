@@ -243,6 +243,8 @@ public class CoreMessages extends NLS {
     public static String options_bold;
     public static String options_italic;
     public static String options_preview;
+    public static String options_save_failed_title;
+    public static String options_save_failed;
 
     public static String editor_colors_text;
     public static String editor_colors_keyword;

@@ -167,6 +167,8 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
   Code Completion, Data Transfer, Altibase, CUBRID)는 바꿔도 다시 연결을 묻지 않는다(`ConnectionSettingsPanel.getPreferencesAppliedWithoutReconnect`,
   쿼리 창 세션과 같은 처리). 세션을 열 때 읽거나 연결마다 기억하는 페이지(Client Identification, Oracle)는 기존 "다시 연결할까요" 질문을
   거치고, 다시 연결은 열린 트랜잭션을 먼저 묻는다(트랜잭션 안전 규칙).
+- Options의 OK(2026-11-08, evening #33): 페이지마다 저장하다 한 페이지가 실패해도 나머지 페이지는 저장하고, 실패한 페이지를 "페이지: 오류" 줄로 한 번에 알린다
+  (`OptionsDialog.applyStep`, 문구 `options_save_failed`). 전에는 예외가 OK 처리를 끊어 그 뒤 페이지가 말없이 저장되지 않았다.
 - 트랜잭션: 이 페이지들의 키는 세션의 커밋 방식을 바꾸거나 세션을 닫지 않는다. 그런 키(오류 때 롤백, 세션 단위 취소)는 두지 않았다(아래 Errors and Timeouts).
 - 알려진 동작(모델 직렬화, 고치지 않음): 연결 설정 파일에는 기본값과 다른 값만 저장된다(`DataSourceSerializerModern`, `getDefaultString`과 비교).
   전역 값을 바꾸지 않은 키에 연결이 기본값과 같은 값을 주면 저장되지 않아, 다시 열면 그 페이지의 확인란이 꺼져 보일 수 있다. 실제로 쓰는 값은 같다.
@@ -506,6 +508,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   ([connection-lifecycle.md](connection-lifecycle.md)). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 - 2026-11-08 Altibase·CUBRID 서버 출력 설정이 열린 세션에도 다음 문장부터 적용되어 CUBRID 페이지가 다시 연결을 묻지 않음(evening #19,
   [swing-server-output.md](swing-server-output.md)).
+- 2026-11-08 Options의 OK가 한 페이지의 실패로 멈추지 않고 모든 페이지를 저장한 뒤 실패를 알림, Logs 페이지 키가 바뀔 때 SQL 로그 파일 핸들을 닫음
+  (evening #33, [model-fixes.md](model-fixes.md) "후속 수정 3").
 
 ## 부록: 키별 상태
 
