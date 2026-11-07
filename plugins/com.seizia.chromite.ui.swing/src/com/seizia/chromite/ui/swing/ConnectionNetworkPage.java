@@ -48,13 +48,15 @@ import java.util.List;
  *     <li>저장: 켜져 있으면 연결의 핸들러 설정 사본(없으면 새 설정)에 칸 값을 쓰고 {@code updateHandler}, 꺼져 있으면 {@code removeHandler}
  *     ({@code ConnectionPageNetworkHandler.saveSettings}와 같음. 연결 레지스트리도 꺼진 핸들러는 저장하지 않는다).</li>
  *     <li>네트워크 프로필: 연결이 프로필을 쓰고 그 프로필에 이 핸들러가 켜져 있으면 SWT처럼 칸을 끄고 프로필 이름을 보인다.
- *     이때는 연결의 핸들러 설정을 건드리지 않는다(프로필 편집 화면은 아직 없다).</li>
+ *     이때는 연결의 핸들러 설정을 건드리지 않는다. 대화상자에서 프로필을 바꾸면 그 프로필로 다시 읽는다. 프로필 편집은 {@link NetworkProfilesDialog}.</li>
  *     <li>확인: 켜져 있을 때만 칸의 {@code getErrorMessage}를 대화상자의 빠진 값 안내로 올린다(SWT {@code isPageComplete}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 대화상자에서 고른 네트워크 프로필로 다시 읽기({@link #loadSettings(DataSourceDescriptor, DBWNetworkProfile)})
+ *   (docs/chromite/swing-conn-advanced.md "네트워크 프로필")
  */
 final class ConnectionNetworkPage extends JPanel {
 
@@ -138,8 +140,15 @@ final class ConnectionNetworkPage extends JPanel {
     }
 
     void loadSettings(@NotNull DataSourceDescriptor dataSource) {
+        loadSettings(dataSource, getActiveProfile(dataSource));
+    }
+
+    /**
+     * Loads the tab for a connection that uses the given network profile (the one chosen in the dialog): when the profile
+     * turns this handler on, the profile's settings are shown read-only and the connection's own ones are kept.
+     */
+    void loadSettings(@NotNull DataSourceDescriptor dataSource, @Nullable DBWNetworkProfile profile) {
         DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
-        DBWNetworkProfile profile = getActiveProfile(dataSource);
         DBWHandlerConfiguration profileConfiguration = profile == null ? null : profile.getConfiguration(descriptor);
         profileProvided = profileConfiguration != null && profileConfiguration.isEnabled();
         DBWHandlerConfiguration handlerConfiguration;
@@ -197,7 +206,7 @@ final class ConnectionNetworkPage extends JPanel {
     }
 
     @Nullable
-    private static DBWNetworkProfile getActiveProfile(@NotNull DataSourceDescriptor dataSource) {
+    static DBWNetworkProfile getActiveProfile(@NotNull DataSourceDescriptor dataSource) {
         DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
         if (CommonUtils.isEmpty(configuration.getConfigProfileName())) {
             return null;

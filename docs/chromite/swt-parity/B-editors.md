@@ -159,13 +159,13 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C3 | 드라이버 속성, 공급자 속성 | `DriverPropertiesDialogPage`, `ConnectionPropertiesControl` | 있음 | `ConnectionPropertiesTable` | 중간 | |
 | C4 | 인증 방식과 방식별 칸 | `AuthModelSelector`, `*AuthConfigurator` | 일부 | `ConnectionAuthModels`, `ConnectionAuthExtras` | 중간 | 셸 명령 비밀번호, ClickHouse SSO·OIDC 칸 없음. BigQuery·Snowflake·Spanner 칸은 2026-11-08 더함([swing-conn-advanced.md](../swing-conn-advanced.md) "1. 인증 방식") |
 | C5 | 저장 안 한 비밀번호의 인증 방식 자격 증명 묻기 | `AuthModelCredentialsDialog`, `DesktopUI.promptAuthModelCredentials` | **조용히 끊김** | 위 요약 2 | 높음 | 실행 확인 못 함(코드 경로) |
-| C6 | SSH 터널 | `SSHTunnelDefaultConfiguratorUI` | 일부 | `SshTunnelPanel` | 중간 | 점프 서버 목록 편집 없음(보존만) |
+| C6 | SSH 터널 | `SSHTunnelDefaultConfiguratorUI` | 있음 (2026-11-08: 점프 서버 목록 편집 `SshJumpServersDialog`). 조사 당시: 일부 | `SshTunnelPanel` | 중간 | |
 | C7 | 프록시 | `SocksProxyConfiguratorUI` | 있음 | `SocksProxyPanel` | 낮음 | SOCKS만(HTTP는 모델에 없음) |
 | C8 | SSL | `SSLConfiguratorTrustStoreUI`, DB별 SSL 화면 | 일부 | `SslHandlerPanel`(PostgreSQL·MySQL·SQL Server, 2026-11-08 ClickHouse·Databend·TiDB Lake) | 중간 | PostgreSQL SSL factory 목록 없음(직접 입력) |
-| C9 | 네트워크 프로필 편집 | `PrefPageNetworkProfiles` 등 | 없음 | swing-conn-advanced.md:224 | 낮음 | 프로필을 쓰는 연결은 표시만 |
+| C9 | 네트워크 프로필 편집 | `PrefPageNetworkProfiles` 등 | 있음 (2026-11-08). 조사 당시: 없음 | `NetworkProfilesDialog`, 연결 대화상자의 Network profile 고르기([swing-conn-advanced.md](../swing-conn-advanced.md) "네트워크 프로필") | 낮음 | |
 | C10 | 연결 직후 SQL(bootstrap) | `EditBootstrapQueriesDialog` | 있음 | `BootstrapQueriesDialog` | 중간 | |
 | C11 | 초기화 설정(자동 커밋, 기본 DB/스키마, keep-alive, 유휴 연결 닫기, 격리 수준) | `ConnectionPageInitialization` | 일부 | `ConnectionSettingsPanel` Options; 격리 수준 grep 0건 | 중간 | 격리 수준만 없음 |
-| C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 없음 | grep `DBPConnectionEventType` 0건 | 낮음 | 이미 저장된 명령은 모델이 실행(`SwingPlatformUI.executeProcess`) |
+| C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 있음 (2026-11-08). 조사 당시: 없음 | Options의 Shell Commands 탭(`ConnectionShellCommandsPage`, [swing-conn-advanced.md](../swing-conn-advanced.md) "셸 명령") | 낮음 | 실행 전 승인(#99)은 그대로. 편집한 명령도 처음 실행할 때 묻는다 |
 | C13 | 연결 보안 제한(권한 편집), 연결 잠금 | `EditConnectionPermissionsDialog` | 없음 | grep `setModifyPermission` 0건 | 중간 | 편집 화면이 없고 S8처럼 일부 제한은 무시됨 |
 | C14 | 연결 종류 편집기(새 종류, 자동 커밋·실행 확인·데이터 변경 확인·스마트 커밋·자동 닫기 기간·색) | `PrefPageConnectionTypes` | 없음 | `ConnectionSettingsPanel.java:632`는 종류 목록만 고름 | 중간 | 기본 3종류의 값을 바꿀 수 없음 |
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 일부 (2026-11-08 스마트 커밋·되돌리기는 Options > Connection Types, [connection-lifecycle.md](../connection-lifecycle.md). 유휴 트랜잭션은 연결 대화상자, [idle-transactions.md](../idle-transactions.md)). 조사 당시: 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
@@ -174,7 +174,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
 | C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
-| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 일부 | 만료 비밀번호 묻기는 됨(`SwingPlatformUI.promptUserPasswordChange` `:360`), 메뉴 없음 | 낮음 | |
+| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 있음 (2026-11-08: Object Explorer·Registered Servers의 Change Password…). 조사 당시: 일부 | 만료 비밀번호 묻기(`SwingPlatformUI.promptUserPasswordChange`)와 메뉴(`ConnectionCommands.changePassword`, [swing-conn-advanced.md](../swing-conn-advanced.md) "비밀번호 바꾸기") | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |
 
 ## E. 그 밖의 편집기 (`session`, `locks`, `acl`, `hex`, `image`, `json`, `xml`)

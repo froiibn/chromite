@@ -159,3 +159,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   D-P3·S4·S5·O7과 번들 줄 9개 갱신, B-C2·C4·C8 비고 갱신. 결과 요약 수는 고치지 않음(공통 규칙: 메인 세션이 다시 셈).
 - 2026-11-08 4순위 B2 연결 수명 주기([connection-lifecycle.md](connection-lifecycle.md)): A-S8·S10·S11(조용히 끊김) 수정, A-C4·A-C7·A-C8·A-C15·A-U3 → 있음, A-S2 → 일부,
   B-S16 → 있음, B-C15 → 일부, D-K4·K5 수정. 닫기 경로 전수 점검(절전 닫기·깨어남 다시 초기화의 무확인 롤백을 고침).
+- 2026-11-08 4순위 연결 도구(`chromite/p4-connection-tools`, [swing-conn-advanced.md](swing-conn-advanced.md), [platform-startup.md](platform-startup.md)): A-S9·S12·S13 수정함, A §6 Network Profiles·General 비고, B-C6·C9·C12·C21, C-51·52 행 갱신. 결과 요약 수는 고치지 않음(메인 세션이 다시 셈).

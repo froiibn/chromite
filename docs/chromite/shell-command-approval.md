@@ -12,6 +12,8 @@
 
 이 명령들은 `data-sources.json`, 가져오거나 공유한 연결 설정, 저장된 작업에 들어 있을 수 있다. 사용자가 방금 입력한 것이 아니므로 묻지 않고 실행하면 안 된다.
 Swing 화면에는 이 명령을 편집하는 곳이 없어서, 사용자가 모르는 명령이 연결할 때 실행될 수 있었다.
+2026-11-08부터 연결 대화상자 Options의 Shell Commands 탭에서 연결 이벤트 명령을 고칠 수 있다([swing-conn-advanced.md](swing-conn-advanced.md) "셸 명령").
+그 탭에서 입력하거나 고친 명령도 승인 기록에 바로 넣지 않는다. 처음 실행할 때 이 승인 대화상자를 거친다(SWT는 편집 화면에서 입력한 명령을 승인 기록에 넣었다).
 
 SWT를 지운 뒤(#68) 승인 서비스(`UIServiceShellCommands`)를 등록하는 곳이 없어졌다. 세 호출부가 모두 `if (service != null)`로 확인을 건너뛰어 승인 없이 실행했다.
 감사 기록: [swt-parity/A-platform.md](swt-parity/A-platform.md) S4.
@@ -133,3 +135,4 @@ UI 조작은 실행 중인 앱에 붙이는 스크래치 테스트 도구(`agent
 - 2026-11-07 최초 작성: Swing 승인 서비스 등록, 서비스가 없을 때 거부, 연결 범위 승인, 대화상자 문구 NLS(`chromite/shell-command-approval`)
 - 2026-11-08 저장된 네이티브 도구 작업의 명령줄 승인(작업 범위 `getTaskScope`, 문맥 문구 `model_shell_command_context_task`·`model_shell_command_event_saved_task`),
   "항상 허용" 안내 문구(`chromite/p4-tasks-native`, [swing-database-tasks.md](swing-database-tasks.md))
+- 2026-11-08 연결 이벤트 명령 편집 탭이 생김. 편집한 명령도 실행 전에 승인을 받는다(실행 확인: Cancel이면 연결 안 됨, Run Once면 연결됨)(`chromite/p4-connection-tools`)

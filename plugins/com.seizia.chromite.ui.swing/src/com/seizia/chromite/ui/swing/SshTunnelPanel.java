@@ -55,7 +55,8 @@ import java.util.List;
  *     Password / Public key / Agent({@link SSHConstants.AuthType})이고, Agent 소켓 경로는 SWT처럼 Windows가 아닐 때만 보인다.
  *     공개 키는 데스크톱 SWT처럼 키 파일 경로({@link SSHAuthConfiguration.KeyFile})로 저장한다.
  *     비밀번호(또는 키 암호)는 핸들러 비밀번호라 연결 레지스트리가 비밀 저장소에 저장하고, Remember password를 끄면 저장하지 않는다.</li>
- *     <li>점프 서버: 읽은 점프 서버는 그대로 저장한다(SWT의 점프 서버 목록 편집 화면은 아직 옮기지 않았고, 몇 개가 있는지 안내만 한다).</li>
+ *     <li>점프 서버: 대상 호스트 앞에 거치는 SSH 호스트 목록. 몇 개인지와 첫 서버를 보이고 Edit…로 {@link SshJumpServersDialog}에서 고친다.
+ *     저장은 [점프 서버…, 대상 호스트] 순서의 배열이다(SWT와 같음).</li>
  *     <li>고급 설정: 구현(SSHJ 기본, {@link SSHSessionControllerRegistry}), Keep-alive·연결 시간 초과(ms), 로컬·원격 호스트와 포트,
  *     호스트 키 확인 건너뛰기, 터널 공유. 저장 규칙(0 이하는 지움, 기본 시간 초과는 저장 안 함)은 SWT {@code saveSettings}와 같다.</li>
  *     <li>Test tunnel: SWT {@code testTunnelConnection}처럼 폼 값으로 만든 핸들러 설정(변수 풀기, DB 연결 없음)으로 모델의
@@ -65,6 +66,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 점프 서버 목록 편집({@link SshJumpServersDialog}) (docs/chromite/swing-conn-advanced.md "SSH 점프 서버")
  */
 final class SshTunnelPanel extends NetworkHandlerPanel {
 
@@ -88,6 +90,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     private final JLabel agentSocketLabel = new JLabel(ConnectionMessages.ssh_agent_socket);
     private final JTextField agentSocketField = new JTextField();
     private final JLabel jumpHostsLabel = new JLabel();
+    private final JButton jumpHostsButton = new JButton(ConnectionMessages.ssh_jump_edit);
 
     private final JComboBox<SSHSessionControllerDescriptor> implementationCombo = new JComboBox<>();
     private final JSpinner keepAliveSpinner = createNumberSpinner(0, 0, Integer.MAX_VALUE);
@@ -101,7 +104,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     private final JButton testButton = new JButton(ConnectionMessages.ssh_test);
 
     /**
-     * Jump servers read from the configuration: saved again as they are.
+     * Jump servers in the order they are passed through, before the target host (edited in {@link SshJumpServersDialog}).
      */
     private List<SSHHostConfiguration> jumpHosts = Collections.emptyList();
     /**
@@ -155,7 +158,12 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
         form.addRow(passwordLabel, passwordField);
         form.addRow((JLabel) null, savePasswordCheck);
         form.addRow(agentSocketLabel, agentSocketField);
-        form.addRow((JLabel) null, jumpHostsLabel);
+        JPanel jumpHostsPanel = new JPanel(new BorderLayout(6, 0));
+        jumpHostsPanel.add(jumpHostsLabel, BorderLayout.CENTER);
+        jumpHostsPanel.add(jumpHostsButton, BorderLayout.EAST);
+        jumpHostsButton.setToolTipText(ConnectionMessages.ssh_jump_hint);
+        jumpHostsButton.addActionListener(e -> editJumpHosts());
+        form.addRow(ConnectionMessages.ssh_jump_servers, jumpHostsPanel);
         jumpHostsLabel.setForeground(ConnectionDialog.getThemeColor("Chromite.secondaryForeground", "Label.disabledForeground", Color.GRAY)); //$NON-NLS-1$ //$NON-NLS-2$
 
         form.addGroupGap();
@@ -192,8 +200,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
                 SSHConstants.DEFAULT_PORT, new SSHAuthConfiguration.Password("", true))};
         }
         jumpHosts = new ArrayList<>(Arrays.asList(hosts).subList(0, hosts.length - 1));
-        jumpHostsLabel.setText(jumpHosts.isEmpty() ? "" : NLS.bind(ConnectionMessages.ssh_jump_hosts, jumpHosts.size())); //$NON-NLS-1$
-        jumpHostsLabel.setVisible(!jumpHosts.isEmpty());
+        updateJumpHostsLabel();
 
         SSHHostConfiguration target = hosts[hosts.length - 1];
         hostField.setText(target.hostname());
@@ -292,6 +299,23 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
         if (enabled) {
             updateAuthTypeFields();
         }
+    }
+
+    private void editJumpHosts() {
+        List<SSHHostConfiguration> edited = SshJumpServersDialog.edit(component, jumpHosts);
+        if (edited != null) {
+            jumpHosts = new ArrayList<>(edited);
+            updateJumpHostsLabel();
+            changeListener.run();
+        }
+    }
+
+    /**
+     * "None", or the number of jump servers and the first one.
+     */
+    private void updateJumpHostsLabel() {
+        jumpHostsLabel.setText(jumpHosts.isEmpty() ? ConnectionMessages.ssh_jump_none
+            : NLS.bind(ConnectionMessages.ssh_jump_hosts, jumpHosts.size(), jumpHosts.getFirst().toDisplayString()));
     }
 
     @NotNull
