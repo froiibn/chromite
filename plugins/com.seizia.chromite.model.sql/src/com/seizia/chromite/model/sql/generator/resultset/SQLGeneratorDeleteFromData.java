@@ -29,8 +29,16 @@ import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSEntity;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
+/**
+ * DELETE statements of the selected rows, by the table's unique key or, without one, by all their column values.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: a result without a unique key failed with UnsupportedOperationException: the columns were added to
+ *   the immutable empty key list; they now go to a list of their own (docs/chromite/swing-result-generate-sql.md)
+ */
 public class SQLGeneratorDeleteFromData extends SQLGeneratorResultSet {
 
     @Override
@@ -51,6 +59,7 @@ public class SQLGeneratorDeleteFromData extends SQLGeneratorResultSet {
             sql.append(getLineSeparator()).append("WHERE ");
             if (CommonUtils.isEmpty(keyAttributes)) {
                 // For tables without keys including virtual
+                keyAttributes = new ArrayList<>();
                 Collection<? extends DBSAttributeBase> allAttributes = getAllAttributes(monitor, dataProvider);
                 for (DBSAttributeBase attr : allAttributes) {
                     if (DBUtils.isPseudoAttribute(attr) || DBUtils.isHiddenObject(attr)) {
