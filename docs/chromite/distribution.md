@@ -241,7 +241,8 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | `/ko/`, `/en/` | 다운로드: 제품 한 줄 소개, Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침), 앱 화면, 들어 있는 것, 기능 둘러보기 8화면(마지막이 오픈 소스: GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크), 서명·자동 업데이트 안내 |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, Chromite Agent(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
-| `/assets/` | `site.css`, `site.js`, `tour.js`(기능 둘러보기), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장, `shots/tour/` 기능 화면 28장), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`) |
+| `/favicon.ico` | 16·32·48px 아이콘(아래 "파비콘과 공유 이미지") |
+| `/assets/` | `site.css`, `site.js`, `tour.js`(기능 둘러보기), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장, `shots/tour/` 기능 화면 28장), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장) |
 
 모든 페이지 머리글에 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고, 바닥글에 Apache License 2.0(`LICENSE.md`)과 GitHub 링크가 있다.
 
@@ -308,6 +309,20 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   잠금 화면은 시험 PostgreSQL의 임시 DB에서 `psql` 세션이 행을 잡고 쿼리 창의 UPDATE가 기다리게 만들었고, 디버거 화면은 pldebugger를 넣은 임시 컨테이너로 찍었다(둘 다 지움).
   WebP 품질 82, 장당 20~90KB.
 
+### 파비콘과 공유 이미지 (2026-11-07)
+
+사용자 요청: "웹사이트는 파비콘과 og 이미지도 만들어서 반영한다".
+
+- 파일: `/favicon.ico`(16·32·48px), `/assets/icons/icon-32.png`, `icon-192.png`, `apple-touch-icon.png`(180px, 불투명 남색 바탕), 기존 `/assets/chromite-icon.svg`,
+  공유 이미지 `/assets/og/og-ko.png`, `og-en.png`(1200×630). 생성기 `tools/branding/gen_site_images.py`가 `gen_app_icons.py`의 크기별 아이콘 그림(16px는 16px용
+  그림)과 `chromite_logo_pack/chromite_wordmark_light.svg`, 사이트의 Pretendard 부분 집합, 홈의 실제 앱 화면(`assets/shots/<언어>-light.webp`) 일부로 만든다.
+  색은 디자인 토큰(바탕 `#F7F8FA`, 글 `#1E1F22`·`#6C707E`, 테두리 `#DFE1E5`)이고 그라데이션 바탕은 없다.
+- 모든 페이지(`/`, `/ko|en/`, 변경 내역, 개인정보)의 `<head>`: 아이콘 링크 5개, `<link rel="canonical">`(https://chromite.seizia.com/… ), `og:type`·`og:site_name`·`og:title`·
+  `og:description`·`og:url`·`og:image`(절대 https 주소)·`og:image:type`·`og:image:width`·`og:image:height`·`og:image:alt`·`og:locale`(`ko_KR`/`en_US`)·
+  `og:locale:alternate`, `twitter:card=summary_large_image`와 같은 제목·설명·이미지. 제목·설명은 그 페이지의 `<title>`·`description`(홈은 "Chromite - 데이터베이스 워크벤치").
+  언어 선택 페이지 `/`는 영어 이미지를 쓴다.
+- `site.webmanifest`는 만들지 않았다: CSP에 `manifest-src`가 없어 `default-src 'none'`이 매니페스트를 막는다. CSP를 바꾸지 않기로 했으므로 넣어도 쓰이지 않는다.
+
 ### CSP와 `releases.js`
 
 서버 CSP(Turbrix 세션이 설정, 2026-11-07):
@@ -363,13 +378,16 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   단추 "… (Windows)". 단추 `aria-expanded` false → 누름 true(다른 카드 보임) → 다시 누름 false(다시 숨김). Linux, iPad(`MacIntel` + 터치 5) → 두 카드.
   JavaScript 끔 → 두 카드(요구 사항)와 `static` 안내. 어두운 테마, 375px 모두 가로 스크롤 없음, 콘솔·CSP 오류 없음.
   기존 확인(복사 단추, 빈 피드·Windows만·`releases.js` 없음, `/` 언어 이동)을 다시 돌려 같은 결과. 화면 사진: `D:\Tools\_scratch\site-redesign\shots-platform\`.
-- 기능 둘러보기(2026-11-07): 서명된 실제 0.1.0 파일로 리허설을 처음부터 다시 실행(`-Down` 뒤 `rehearse.ps1 -Tag v0.1.0`) `ALL CHECKS OK`.
+- 기능 둘러보기·파비콘·공유 이미지(2026-11-07): 서명된 실제 0.1.0 파일로 리허설을 처음부터 다시 실행(`-Down` 뒤 `rehearse.ps1 -Tag v0.1.0`) `ALL CHECKS OK`.
   헤드리스 Edge(CDP, 자기 프로필)로 한국어·영어 × 밝은·어두운 × 1440×900·375×812에서 화면 8개를 차례로 찍었다: 가로 스크롤 없음, 콘솔·CSP 오류 없음,
   화면마다 목록의 현재 항목이 그 화면(`aria-current`), 스크롤이 끝나면 숨은 글 없음. 움직임 줄이기(`prefers-reduced-motion: reduce`)와 JavaScript 끔에서는
   `is-animated`가 붙지 않고 처음부터 모든 글이 보인다. 스냅 비교: `proximity`는 첫 화면·다운로드에서 자유롭게 움직이고 기능 화면 시작 근처에서 멈춘다.
   `mandatory`를 넣어 보면 `scrollTo(0, 0)`이 첫 기능 화면(1868px)으로 끌려가 첫 화면을 볼 수 없다(그래서 `proximity`).
-  화면 사진: `D:\Tools\_scratch\site-feature-tour\check3\`(처음부터 한 리허설),
+  `/favicon.ico` 200 `image/vnd.microsoft.icon`, 아이콘 PNG·공유 이미지 200 `image/png`, 모든 페이지 7개에 아이콘·canonical·OG·Twitter 태그 23개.
+  공유 이미지는 서버에서 받은 파일을 1200×630 그대로, 그리고 600×315로 줄여 글이 읽히는지 봤다. 화면 사진: `D:\Tools\_scratch\site-feature-tour\check3\`(처음부터 한 리허설),
   `check4\`(글 옆 그림 칸을 넓힌 CSS 한 줄 뒤, 같은 리허설 서버에 사이트 파일만 다시 복사해 같은 확인).
+  헤드리스 브라우저에는 탭 줄이 없어서 탭의 파비콘은 직접 보지 못했다. 대신 `favicon.ico`의 16·32·48px 항목을 밝은·어두운 탭 색 위에 그려 확인했다
+  (`D:\Tools\_scratch\site-feature-tour\evidence-favicon-tabs.png`).
 
 ## 확인하지 못한 것
 
@@ -379,6 +397,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - `%LOCALAPPDATA%\Programs\Chromite` 기본 위치 설치(시험은 `/D=`로 D: 폴더에만).
 - macOS zip·dmg의 새 이름으로 서명·공증 작업 실행, Mac에서 `codesign`/`spctl` 확인 경로.
 - 실제 서버 배포(사용자 승인 전이라 하지 않음).
+- 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
 - 기능 둘러보기의 Oracle 디버거 문구: 이 작업의 기준(`origin/devel` `b392c27919`)에는 PostgreSQL 디버거만 있고 Oracle 디버거는 `chromite/oracle-debugger` 가지에 있다.
   디버거 화면 사진은 PostgreSQL이다. Oracle 디버거가 `devel`에 들어간 뒤에 배포해야 문구가 맞다.
 
@@ -417,3 +436,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   기능을 가리키는 말). 다른 AI 도구(MCP로 붙는 외부 도구)를 말하는 문장은 그대로. 사용자 결정([ai-agent.md](ai-agent.md) "명칭"). 배포하지 않음.
 - 2026-11-07 홈에 기능 둘러보기 추가("사이트" > "기능 둘러보기"): 한 화면에 특장점 하나씩 8개, 실제 앱 화면 28장(WebP), `assets/tour.js`(나타나기·현재 화면 표시),
   CSS 스크롤 스냅(`proximity`). 예전 "오픈 소스" 절은 마지막 화면으로 옮김(`#open-source` 그대로). 배포하지 않음.
+- 2026-11-07 파비콘과 공유 이미지 추가("사이트" > "파비콘과 공유 이미지"): `favicon.ico`, 아이콘 PNG 3장, 언어별 OG 이미지, 모든 페이지의 canonical·OG·Twitter 태그,
+  생성기 `tools/branding/gen_site_images.py`. CSP는 그대로(매니페스트는 CSP가 막아 만들지 않음). 배포하지 않음.
