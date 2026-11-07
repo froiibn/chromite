@@ -451,7 +451,12 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   주체 문자열은 Turbrix `docs/SIGNING.md`(같은 Azure 계정의 게시자)에서 가져왔다. 다르면 확인 단계가 실패한다(의도한 동작). 첫 실행에서 확인한다.
 - 서명된 설치 프로그램의 SmartScreen 동작, 대화형 설치 화면의 나머지 단계(구성 요소·마침), 바탕 화면 바로 가기 유지(바탕 화면이 OneDrive 폴더라 시험하지 않음).
 - `%LOCALAPPDATA%\Programs\Chromite` 기본 위치 설치(시험은 `/D=`로 D: 폴더에만).
-- macOS zip·dmg의 새 이름으로 서명·공증 작업 실행, Mac에서 `codesign`/`spctl` 확인 경로.
+- macOS zip(업데이트 파일)을 Mac에서 풀어 확인하는 것. dmg는 아래처럼 확인했다.
+- **macOS dmg 설치·실행(2026-11-08, `macos-smoke.yml`, [ci.md](ci.md) "macOS 설치·실행 시험")**: v0.1.1 초안의 `Chromite-0.1.1-arm64.dmg`를 `macos-15` 러너에서 격리 속성을 붙여
+  설치했다. `codesign --verify --deep --strict`, `spctl`(앱 execute·dmg open, `source=Notarized Developer ID`), `stapler validate`(앱·dmg), `syspolicy_check distribution`은 통과했고
+  첫 실행 때 Gatekeeper가 "Apple checked it for malicious software and none was detected" 질문을 보였다. **앱은 창 없이 멈춘다**(제품 결함: 런처가 JVM을 AppKit
+  메인 스레드에서 돌려 AWT와 교착, ci.md의 원인 분석). 그래서 v0.1.1의 macOS 파일은 받아도 쓸 수 없다(공개·배포 여부는 사용자가 정한다).
+  앱 메뉴 이름이 "Chromite-swing"(`Info.plist`의 `CFBundleName`)으로 보이는 것도 확인했다(크래시 대화상자 문구).
 - 실제 서버 배포(사용자 승인 전이라 하지 않음).
 - 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
 
@@ -500,3 +505,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-08 사이트가 네다섯 DB만 다루는 것처럼 읽히던 문구를 고침("사이트" > "데이터베이스 지원 문구", 사용자 의견): 첫 화면 문장, 홈의 설명 태그 3개, 공유 이미지 2장(생성기 `OG_COPY`)과
   모든 페이지의 그림 설명, 서버 관리 장면 제목·설명과 Altibase 줄, Chromite Agent 장면 설명, 폐쇄망 장면 첫 줄, 다운로드 블록 "데이터베이스" 줄. 기준은 드라이버 정의 144개("100가지가 넘는 드라이버").
   아이콘은 다시 만들어도 같은 바이트라 바뀌지 않음. 배포하지 않음.
+- 2026-11-08 "확인하지 못한 것"의 macOS 항목을 `macos-smoke.yml` 결과로 바꿈: v0.1.1 dmg 서명·공증·Gatekeeper 통과, 앱은 시작하지 못함(제품 결함, [ci.md](ci.md)).
