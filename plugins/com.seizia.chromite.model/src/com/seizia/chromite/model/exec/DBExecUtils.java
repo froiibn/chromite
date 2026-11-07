@@ -59,6 +59,7 @@ import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DefaultInvalidationFeedbackHandler;
 import com.seizia.chromite.runtime.jobs.InvalidateJob;
+import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.runtime.net.GlobalProxyAuthenticator;
 import org.jkiss.utils.CommonUtils;
 
@@ -73,6 +74,9 @@ import java.util.*;
  * 변경 이력:
  * - 2026-11-07 {@code isExecutionInProgress}를 지움: 유일한 사용처(업스트림 유휴 트랜잭션 롤백)가 문맥별 확인
  *   ({@code IdleTransactionMonitor})으로 바뀜 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 {@link #tryExecuteRecover}: 복구가 열린 트랜잭션을 끝내게 되면(중단된 트랜잭션 롤백, 끊긴 연결 다시 연결)
+ *   복구하지 않고 원래 오류로 멈추며 사용자에게 알림({@code TransactionRecoveryGuard}, docs/chromite/transactions.md
+ *   "오류 복구와 열린 트랜잭션")
  */
 public class DBExecUtils {
 
@@ -205,6 +209,11 @@ public class DBExecUtils {
     }
 
     /**
+     * Runs the runnable and, when it fails because the transaction was aborted or the connection was lost, recovers
+     * (rolls back the aborted transaction or reconnects) and runs it again. It does not recover when that would end a
+     * transaction with the user's statements: it then fails with the error and the user is told
+     * ({@link TransactionRecoveryGuard}).
+     *
      * @param param DBRProgressProgress monitor or DBCSession
      *
      */
@@ -228,6 +237,9 @@ public class DBExecUtils {
             if (recoverEnabled) {
                 tryCount += dataSource.getContainer().getPreferenceStore().getInt(ModelPreferences.EXECUTE_RECOVER_RETRY_COUNT);
             }
+            // The session's transaction before the first try: what a recovery would end besides this operation
+            TransactionRecoveryGuard.Attempt attempt = recoverEnabled && param instanceof DBCSession session
+                ? TransactionRecoveryGuard.Attempt.start(session.getExecutionContext()) : null;
             Throwable lastError = null;
             for (int i = 0; i < tryCount; i++) {
                 try {
@@ -267,6 +279,10 @@ public class DBExecUtils {
                         if (lastError instanceof DBCException) {
                             executionContext = ((DBCException) lastError).getExecutionContext();
                         }
+                        if (TransactionRecoveryGuard.holdAbortedTransactionRollback(dataSource, executionContext, attempt)) {
+                            // The rollback would discard the user's statements without asking: stop with the error
+                            break;
+                        }
                         if (executionContext != null) {
                             log.debug("Invalidate context [" + executionContext.getDataSource().getContainer().getName() + "/" + executionContext.getContextName() + "] transactions");
                         } else {
@@ -274,6 +290,10 @@ public class DBExecUtils {
                         }
                         InvalidateJob.invalidateTransaction(monitor, dataSource, executionContext);
                     } else {
+                        if (TransactionRecoveryGuard.holdReconnect(dataSource, lastError, attempt, false)) {
+                            // Reconnecting would end open transactions without asking: stop with the error
+                            break;
+                        }
                         // Do not recover if connection was canceled
                         log.debug("Invalidate datasource '" + dataSource.getContainer().getName() + "' connections...");
                         InvalidateJob.invalidateDataSource(

@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-07 Chromite: keep CHAR length semantics (read from CHAR_USED, parsed from "(n CHAR)" / "(n BYTE)").
+ * - 2026-11-07 Chromite: setCharLengthSemantics, so a copied column (OracleTableColumnManager) keeps the unit.
  */
 public class OracleTableColumn extends JDBCTableColumn<OracleTableBase> implements
     DBSTableColumn, DBSTypedObjectEx, DBSTypedObjectExt3, DBPHiddenObject, DBPNamedObject2, DBSTypedObjectExt4<OracleDataType>, DBPObjectWithLazyDescription, DBSDescriptionEditable
@@ -150,6 +151,10 @@ public class OracleTableColumn extends JDBCTableColumn<OracleTableBase> implemen
      */
     public boolean isCharLengthSemantics() {
         return charLengthSemantics;
+    }
+
+    public void setCharLengthSemantics(boolean charLengthSemantics) {
+        this.charLengthSemantics = charLengthSemantics;
     }
 
     @Override

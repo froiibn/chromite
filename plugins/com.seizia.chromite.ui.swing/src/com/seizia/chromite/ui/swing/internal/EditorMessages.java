@@ -39,6 +39,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 쿼리 상태 줄의 열린 트랜잭션 칸 문구({@code editor_status_txn_*}) (docs/chromite/idle-transactions.md)
  * - 2026-11-07 쿼리 창 실행 제한, 위험한 문 확인 문구({@code editor_sql_execution_restricted*}, {@code editor_sql_danger_*})
  *   (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-07 Commit / Roll Back 도구 설명, 트랜잭션 로그·열린 트랜잭션 목록 문구({@code editor_txn_log_*}, {@code editor_txn_list_*})
+ *   (docs/chromite/transactions.md), {@code @export} 안내 줄({@code editor_sql_export_command}, docs/chromite/swing-data-transfer.md)
+ * - 2026-11-07 위험한 문 확인에 TRUNCATE({@code editor_sql_danger_truncate}) (docs/chromite/swing-sql-exec-safety.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -82,6 +85,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_danger_message_many;
     public static String editor_sql_danger_no_where;
     public static String editor_sql_danger_drop;
+    public static String editor_sql_danger_truncate;
     public static String editor_sql_discard_and_execute;
     public static String editor_sql_discard_confirm_one;
     public static String editor_sql_discard_confirm_many;
@@ -224,6 +228,37 @@ public class EditorMessages extends NLS {
     public static String editor_status_txn_tip_click;
     public static String editor_status_txn_commit;
     public static String editor_status_txn_rollback;
+    public static String editor_status_txn_log;
+    public static String editor_sql_commit_tip;
+    public static String editor_sql_rollback_tip;
+    public static String editor_txn_log_title;
+    public static String editor_txn_log_not_connected;
+    public static String editor_txn_log_session;
+    public static String editor_txn_log_open;
+    public static String editor_txn_log_none;
+    public static String editor_txn_log_auto_commit;
+    public static String editor_txn_log_col_time;
+    public static String editor_txn_log_col_type;
+    public static String editor_txn_log_col_sql;
+    public static String editor_txn_log_col_duration;
+    public static String editor_txn_log_col_rows;
+    public static String editor_txn_log_col_result;
+    public static String editor_txn_log_rows_updated;
+    public static String editor_txn_log_rows_fetched;
+    public static String editor_txn_log_running;
+    public static String editor_txn_log_ok;
+    public static String editor_txn_list_title;
+    public static String editor_txn_list_description;
+    public static String editor_txn_list_empty;
+    public static String editor_txn_list_col_connection;
+    public static String editor_txn_list_col_database;
+    public static String editor_txn_list_col_session;
+    public static String editor_txn_list_col_started;
+    public static String editor_txn_list_col_statements;
+    public static String editor_txn_list_col_idle;
+    public static String editor_txn_list_statements;
+    public static String editor_txn_list_running;
+    public static String editor_sql_export_command;
 
     // Results (QueryResultsView)
     public static String editor_results_none;

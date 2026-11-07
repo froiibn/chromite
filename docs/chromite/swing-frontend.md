@@ -616,8 +616,10 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
    준비 Job이 실행 Job을 예약하는 순간과 겹치지 않도록 같은 잠금 안에서 취소 표시를 확인하고 예약한다. 실행 Job의 취소는 `AbstractJob`이 실행 중인 문장을 취소한다.
 5. **끝:** 실행 Job의 `done` 이벤트(또는 준비 단계의 조기 종료)에서 EDT로 상태를 마무리한다. 실행마다 `Execution` 객체를 두어, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.
 
-- **커밋·오류 처리·최대 행 수:** 엔진 기본값을 쓴다. 커밋 방식 `NO_COMMIT`(연결의 자동 커밋 설정을 그대로 따름), 오류 처리 `STOP_ROLLBACK`,
-  최대 행 수는 연결의 `ModelPreferences.RESULT_SET_MAX_ROWS`(기본 200).
+- **커밋·오류 처리·최대 행 수:** 커밋 방식은 엔진 기본값 `NO_COMMIT`(연결의 자동 커밋 설정을 그대로 따름), 최대 행 수는 연결의
+  `ModelPreferences.RESULT_SET_MAX_ROWS`(기본 200). 오류 처리는 2026-11-07부터 Options > Query Execution 설정을 넘긴다(멈춤 = `STOP_COMMIT`,
+  건너뛰고 계속 = `IGNORE`). 그 전에는 엔진 기본값 `STOP_ROLLBACK`이어서 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백했다
+  ([swing-options.md](swing-options.md) "오류 처리와 트랜잭션").
 - **핸들러(`SQLQueryExecuteHandler`):** `getDataReceiver`는 결과 집합마다 `ResultSetGridReceiver`를 만든다. `handleExecutionError`는 대화상자를 띄우지 않고
   `STOP`을 돌려준다(오류는 Messages 탭에 이미 썼다. 쿼리를 보내기 전에 난 오류 — 매개변수, pragma, 제어 명령 — 는 여기서 Messages에 쓴다).
   나머지(확인 대화상자, 설정값)는 인터페이스 기본 구현(`DBPPlatformUI` = `SwingPlatformUI`)이다.
@@ -1019,6 +1021,7 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`com.seizia.chrom
 - 편집기별 별도 연결(SSMS는 쿼리 창마다 연결) — 기본 스키마가 같은 연결의 모든 편집기에 적용되는 원인.
 - 파일: 다른 프로그램이 바꾼 파일 다시 읽기, 문자 집합 직접 고르기(Save with Encoding), 파일 끌어다 놓기, 프로젝트 `Scripts` 폴더 연동.
 - Script as의 DROP / ALTER / INSERT / UPDATE / DELETE, Edit Top 200 Rows(결과 편집, G단계에서 구현), 생성기 옵션 설정 화면.
+  (2026-11-07: INSERT / UPDATE / DELETE 등은 "SQL 생성" 메뉴, DROP 스크립트는 삭제의 미리 보기로 옮김. "Object Explorer 개체 작업" 절)
 
 ## 구현 현황 — F단계
 
@@ -2416,6 +2419,17 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
   Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
 
+## Object Explorer 개체 작업 (2026-11-07)
+
+전수 조사 3순위의 탐색기 줄(C-10·11·12·17). 자세한 설계와 확인은 [swing-explorer-object-actions.md](swing-explorer-object-actions.md).
+
+- 트리는 여러 노드를 고를 수 있다(`DISCONTIGUOUS_TREE_SELECTION`). 삭제, 이름 복사, SQL 생성은 선택 전체에 적용하고, 한 노드용 명령과
+  속성 창은 둘 이상 고르면 꺼진다(`getSelectedNavigatorNode`가 null). 오른쪽 클릭이 고른 행 위면 선택을 유지한다.
+- 삭제(Delete)·이름 바꾸기(F2): 연결·보안 주체·에이전트·스케줄러 갈래 다음에 DB 객체를 모델의 객체 관리자로 처리한다(`ExplorerObjectCommands`).
+  확인(목록, 연쇄 삭제 옵션) → 스크립트 미리 보기(`ScriptPreviewDialog.confirmChange`, 취소가 기본) → 열린 트랜잭션 질문 → 실행.
+- 이름 복사(Ctrl+C, Edit > 복사)·정규화된 이름 복사(Ctrl+Shift+C): 트리의 전송 처리기가 객체 이름을 복사한다.
+- SQL 생성 메뉴: 생성기 확장점의 생성기(SELECT, INSERT, UPDATE, DELETE, MERGE, JOIN, CALL, DDL, PostgreSQL 전용 등). 결과는 새 쿼리 창.
+
 ## 제목 표시줄 (2026-11-07)
 
 사용자 결정(2026-11-07): "화면 제목표시줄 가운데 chromite 문구는 안보이게 제거하라". 주 창의 FlatLaf 제목 표시줄은 창 제목을 그리지 않는다
@@ -2533,3 +2547,6 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 AI 도우미(2단계): 오른쪽 도구 창 "AI Assistant", AI 도구 확인 대화상자, 쿼리 창 편집기의 "Ask AI About This Query", Options > AI Assistant, Query Library 기준값 편집. [ai-agent.md](ai-agent.md) "2단계 구현".
 - 2026-11-07 작업 스케줄러(Oracle DBMS_SCHEDULER, PostgreSQL pg_cron, MySQL/MariaDB 이벤트): 탐색기 노드·명령·창·기록 탭. [swing-job-schedulers.md](swing-job-schedulers.md).
 - 2026-11-07 결과 표 저장 전 스크립트 미리 보기: 설정 `resultset.confirm.beforeSave`와 연결 유형 "데이터 변경 확인"이 다시 동작(전수 조사 B-R19), Options 항목. "저장 전 스크립트 미리 보기" 절.
+- 2026-11-07 Object Explorer 개체 작업: DB 객체 삭제·이름 바꾸기(스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택,
+  SQL 생성 메뉴. "Object Explorer 개체 작업" 절, E단계 남긴 것에 표시. [swing-explorer-object-actions.md](swing-explorer-object-actions.md).
+- 2026-11-07 쿼리 실행의 오류 처리를 설정에서 넘김(오류 뒤 무확인 롤백 고침), C단계 "커밋·오류 처리" 항목 갱신. [swing-options.md](swing-options.md).

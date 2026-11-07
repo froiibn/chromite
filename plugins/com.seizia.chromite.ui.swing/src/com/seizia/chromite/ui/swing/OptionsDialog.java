@@ -20,12 +20,14 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPIdentifierCase;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -57,6 +59,12 @@ import java.util.Objects;
  *     폴더 확인 간격: {@link QueryLibraryWatcher}의 설정. 지금 기다리는 확인이 끝난 뒤부터 적용된다.</li>
  *     <li>Updates 탭: 자동 업데이트 확인 켜기·끄기(업데이트 모델이 설치 단위로 저장), 현재 버전, 지금 확인({@link UpdateOptionsPage}).</li>
  *     <li>저장 전 스크립트 표시: 결과 표가 읽는 {@link ResultSetGrid#PREF_CONFIRM_BEFORE_SAVE}. Maximum rows처럼 플랫폼 저장소에 쓴다.</li>
+ *     <li>Query Results의 가져오기 크기 사용, 이진 값 표시 형식·길이, 숫자를 데이터베이스 형식·과학적 표기로 표시: 실행 엔진과 값 서식
+ *     ({@code DBExecUtils.setStatementFetchSize}, {@code DBValueFormatting}, {@code DataSourceDescriptor.isUseNativeNumericFormat})이
+ *     연결의 설정 저장소에서 읽는 모델 키. Maximum rows처럼 플랫폼 저장소에 쓰고, 표에는 다음 실행부터 보인다(표는 가져올 때 글자로 바꿔 둔다).</li>
+ *     <li>Query Execution 탭: 문 구분 기호, 매개 변수, 오류 처리({@link SqlExecutionOptionsPage}). Connection Types 탭: 연결 유형 편집
+ *     ({@link ConnectionTypesPage}). Oracle 탭: Oracle 모델이 읽는 전역 설정({@link OracleOptionsPage}). 모두 OK에서 저장한다.
+ *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}, {@link #wrapPage}다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
@@ -74,6 +82,8 @@ import java.util.Objects;
  * - 2026-11-07 결과 표 저장 전 스크립트 표시 설정(SWT Data Editor 설정 페이지의 같은 항목) (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-07 Query editor 절에 위험한 문 확인 설정 두 개 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 Query Library 절에 폴더 확인 간격(공유 루트 자동 새로 고침) (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-07 SWT 설정 페이지 중 Swing에서 효과가 있는 키: Query Execution·Connection Types·Oracle 탭, Query Results의 가져오기 크기·이진 값·숫자 형식
+ *   (docs/chromite/swing-options.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -94,12 +104,21 @@ final class OptionsDialog extends JDialog {
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
     private final JCheckBox nativeDateTimeBox = new JCheckBox(CoreMessages.options_native_datetime);
+    private final JCheckBox fetchSizeBox = new JCheckBox(SettingsMessages.results_use_fetch_size);
+    private final JCheckBox nativeNumericBox = new JCheckBox(SettingsMessages.results_native_numeric);
+    private final JCheckBox scientificNumericBox = new JCheckBox(SettingsMessages.results_scientific_numeric);
+    private final JComboBox<String> binaryFormatCombo = new JComboBox<>(new String[]{
+        SettingsMessages.results_binary_string, SettingsMessages.results_binary_hex, SettingsMessages.results_binary_base64});
+    private final JSpinner binaryMaxLengthSpinner;
     private final JCheckBox confirmBeforeSaveBox = new JCheckBox(CoreMessages.options_confirm_before_save);
     private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
         Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
     private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
     private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{
         CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
+    private final SqlExecutionOptionsPage executionPage = new SqlExecutionOptionsPage();
+    private final ConnectionTypesPage connectionTypesPage = new ConnectionTypesPage();
+    private final OracleOptionsPage oraclePage = new OracleOptionsPage();
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
     private final UpdateOptionsPage updatesPage = new UpdateOptionsPage();
     private final AiOptionsPage aiPage = new AiOptionsPage();
@@ -137,6 +156,8 @@ final class OptionsDialog extends JDialog {
             Math.clamp(SqlCompletionPopup.getAutoActivationDelay(), 0, MAX_DELAY), 0, MAX_DELAY, 50));
         maxRowsSpinner = new JSpinner(new SpinnerNumberModel(
             Math.max(0, getPlatformPreferences().getInt(ModelPreferences.RESULT_SET_MAX_ROWS)), 0, Integer.MAX_VALUE, 100));
+        binaryMaxLengthSpinner = new JSpinner(new SpinnerNumberModel(
+            Math.max(0, getPlatformPreferences().getInt(ModelPreferences.RESULT_SET_BINARY_STRING_MAX_LEN)), 0, Integer.MAX_VALUE, 16));
 
         fontFamilyCombo = new JComboBox<>(EditorFont.getMonospacedFamilies().toArray(String[]::new));
         fontFamilyCombo.setSelectedItem(EditorFont.getSavedFamily());
@@ -165,12 +186,27 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, null, confirmDropSqlBox, null);
         row = addSection(form, row, CoreMessages.options_query_results);
         row = addRow(form, row, CoreMessages.options_max_rows, maxRowsSpinner, CoreMessages.options_max_rows_hint);
+        // Read by the engine for every statement (DBExecUtils.setStatementFetchSize); drivers such as PostgreSQL then
+        // stream the rows instead of loading the whole result before the first page
+        fetchSizeBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_SET_USE_FETCH_SIZE));
+        fetchSizeBox.setToolTipText(SettingsMessages.results_use_fetch_size_tip);
+        row = addRow(form, row, null, fetchSizeBox, null);
+        // Binary values in the grid: the formatter and the length of DBValueFormatting.formatBinaryString (display format UI)
+        binaryFormatCombo.setSelectedIndex(Math.max(0, indexOfBinaryFormat(getPlatformPreferences().getString(ModelPreferences.RESULT_SET_BINARY_PRESENTATION))));
+        row = addRow(form, row, SettingsMessages.results_binary_format, binaryFormatCombo, null);
+        row = addRow(form, row, SettingsMessages.results_binary_max_length, binaryMaxLengthSpinner, SettingsMessages.results_binary_max_length_hint);
         // The model setting of the SWT "Disable date/time formatting" (Data Formats page); connections without their own
         // value inherit it. The default data formatter profile prints milliseconds only (yyyy-MM-dd HH:mm:ss.SSS), so the
         // grid and the cell editor drop the micro- and nanoseconds of timestamp values unless the driver's text is used.
         nativeDateTimeBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT));
         nativeDateTimeBox.setToolTipText(CoreMessages.options_native_datetime_tip);
         row = addRow(form, row, null, nativeDateTimeBox, null);
+        // Data Formats page of SWT: numbers as the driver returns them, or in scientific notation (DBDFormatSettings)
+        nativeNumericBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_NATIVE_NUMERIC_FORMAT));
+        nativeNumericBox.setToolTipText(SettingsMessages.results_native_numeric_tip);
+        row = addRow(form, row, null, nativeNumericBox, null);
+        scientificNumericBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_SCIENTIFIC_NUMERIC_FORMAT));
+        row = addRow(form, row, null, scientificNumericBox, null);
         confirmBeforeSaveBox.setSelected(getPlatformPreferences().getBoolean(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE));
         confirmBeforeSaveBox.setToolTipText(CoreMessages.options_confirm_before_save_tip);
         row = addRow(form, row, null, confirmBeforeSaveBox, null);
@@ -199,6 +235,9 @@ final class OptionsDialog extends JDialog {
         tabs.addTab(CoreMessages.options_general, wrapPage(form));
         tabs.addTab(CoreMessages.options_editor, createEditorPage());
         tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
+        tabs.addTab(SettingsMessages.exec_tab, executionPage);
+        tabs.addTab(SettingsMessages.types_tab, connectionTypesPage);
+        tabs.addTab(SettingsMessages.oracle_tab, oraclePage);
         tabs.addTab(CoreMessages.options_templates, templatesPage);
         tabs.addTab(UpdateMessages.update_options_tab, updatesPage);
         tabs.addTab(AiMessages.ai_options_tab, aiPage);
@@ -222,7 +261,7 @@ final class OptionsDialog extends JDialog {
      * A tab page: the form at the top, below the tabs.
      */
     @NotNull
-    private static JComponent wrapPage(@NotNull JComponent form) {
+    static JComponent wrapPage(@NotNull JComponent form) {
         JPanel page = new JPanel(new BorderLayout());
         page.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
         page.add(form, BorderLayout.NORTH);
@@ -409,7 +448,7 @@ final class OptionsDialog extends JDialog {
     /**
      * Section title: font.ui.semibold with a border.subtle line, 20 above (except the first) and 6 below.
      */
-    private static int addSection(@NotNull JPanel form, int row, @NotNull String title) {
+    static int addSection(@NotNull JPanel form, int row, @NotNull String title) {
         JLabel label = new JLabel(title);
         label.putClientProperty(FlatClientProperties.STYLE_CLASS, "semibold"); //$NON-NLS-1$
         JPanel section = new JPanel(new BorderLayout(8, 0));
@@ -429,7 +468,7 @@ final class OptionsDialog extends JDialog {
     /**
      * Label (no colon, SSMS), control, and an optional hint in text.secondary; space.6 between them and between rows.
      */
-    private static int addRow(@NotNull JPanel form, int row, @Nullable String label, @NotNull JComponent control, @Nullable String hint) {
+    static int addRow(@NotNull JPanel form, int row, @Nullable String label, @NotNull JComponent control, @Nullable String hint) {
         GridBagConstraints c = new GridBagConstraints();
         c.gridy = row;
         c.anchor = GridBagConstraints.WEST;
@@ -485,6 +524,32 @@ final class OptionsDialog extends JDialog {
             platformPreferences.setValue(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT, nativeDateTimeBox.isSelected());
             PrefUtils.savePreferenceStore(platformPreferences);
         }
+        boolean resultsChanged = false;
+        for (Map.Entry<String, JCheckBox> entry : Map.of(
+            ModelPreferences.RESULT_SET_USE_FETCH_SIZE, fetchSizeBox,
+            ModelPreferences.RESULT_NATIVE_NUMERIC_FORMAT, nativeNumericBox,
+            ModelPreferences.RESULT_SCIENTIFIC_NUMERIC_FORMAT, scientificNumericBox).entrySet()) {
+            if (entry.getValue().isSelected() != platformPreferences.getBoolean(entry.getKey())) {
+                platformPreferences.setValue(entry.getKey(), entry.getValue().isSelected());
+                resultsChanged = true;
+            }
+        }
+        String binaryFormat = DBConstants.BINARY_FORMATS[binaryFormatCombo.getSelectedIndex()].getId();
+        if (indexOfBinaryFormat(platformPreferences.getString(ModelPreferences.RESULT_SET_BINARY_PRESENTATION)) != binaryFormatCombo.getSelectedIndex()) {
+            platformPreferences.setValue(ModelPreferences.RESULT_SET_BINARY_PRESENTATION, binaryFormat);
+            resultsChanged = true;
+        }
+        int binaryMaxLength = ((Number) binaryMaxLengthSpinner.getValue()).intValue();
+        if (binaryMaxLength != platformPreferences.getInt(ModelPreferences.RESULT_SET_BINARY_STRING_MAX_LEN)) {
+            platformPreferences.setValue(ModelPreferences.RESULT_SET_BINARY_STRING_MAX_LEN, binaryMaxLength);
+            resultsChanged = true;
+        }
+        if (resultsChanged) {
+            PrefUtils.savePreferenceStore(platformPreferences);
+        }
+        executionPage.apply();
+        oraclePage.apply();
+        connectionTypesPage.apply(getOwner());
         if (confirmBeforeSaveBox.isSelected() != platformPreferences.getBoolean(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE)) {
             platformPreferences.setValue(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE, confirmBeforeSaveBox.isSelected());
             PrefUtils.savePreferenceStore(platformPreferences);
@@ -536,6 +601,18 @@ final class OptionsDialog extends JDialog {
         if (themeCombo.getSelectedItem() instanceof ChromiteTheme theme && theme != ChromiteTheme.getCurrent()) {
             theme.apply();
         }
+    }
+
+    /**
+     * Position of a binary formatter id in {@link DBConstants#BINARY_FORMATS} (the combo's order), or -1.
+     */
+    private static int indexOfBinaryFormat(@Nullable String id) {
+        for (int i = 0; i < DBConstants.BINARY_FORMATS.length; i++) {
+            if (DBConstants.BINARY_FORMATS[i].getId().equals(id)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @NotNull

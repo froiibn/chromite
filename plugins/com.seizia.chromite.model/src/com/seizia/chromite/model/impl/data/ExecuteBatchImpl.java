@@ -41,6 +41,9 @@ import java.util.Map;
  * Execute batch.
  * Can be used in JDBC or any other underlying DB APIs
  *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: NULL인 열이 앞 행과 다르면 일괄 처리가 아니어도(행마다 실행, 스크립트) 문장을 새로 준비함.
+ *   일괄 처리를 끈 데이터 전송에서 앞 행의 값이 NULL 열에 들어가고 뒤 매개변수가 밀렸다 (docs/chromite/swing-data-transfer.md)
 */
 public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatch {
 
@@ -143,13 +146,16 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
                     for (int i = 0; i < rowValues.length; i++) {
                         nulls[i] = DBUtils.isNullValue(rowValues[i]);
                     }
-                    if (!Arrays.equals(prevNulls, nulls) && statementsInBatch > 0) {
+                    // Checked against the prepared statement, not the batch: without batches (rows executed one by one,
+                    // or a script) the statement of other NULL columns was reused, kept the previous row's value for the
+                    // new NULL column and shifted the following parameters
+                    if (!Arrays.equals(prevNulls, nulls) && statement != null) {
                         reuse = false;
                     }
                     System.arraycopy(nulls, 0, prevNulls, 0, nulls.length);
-                    if (!reuse && statementsInBatch > 0) {
+                    if (!reuse && statement != null) {
                         // Flush batch
-                        if (actions == null) {
+                        if (actions == null && statementsInBatch > 0) {
                             flushBatch(statistics, statement);
                         }
                         DBUtils.closeSafely(statement);

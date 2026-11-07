@@ -56,6 +56,10 @@ import java.util.*;
 
 /**
  * MySQLCatalog
+ *
+ * 변경 이력:
+ * - 2026-11-07 refreshObject가 패키지 캐시(MariaDB 패키지)도 비움: 데이터베이스나 Packages 폴더를 새로 고쳐도 밖에서 만들거나
+ *   지운 패키지가 보이지 않던 문제 (docs/chromite/model-fixes.md)
  */
 public class MySQLCatalog implements
     DBSCatalog, DBPSaveableObject, DBPRefreshableObject, DBPSystemObject,
@@ -548,6 +552,7 @@ public class MySQLCatalog implements
             checkConstraintCache.clearCache();
         }
         getProceduresCache().clearCache();
+        packageCache.clearCache();
         triggerCache.clearCache();
         eventCache.clearCache();
         sequenceCache.clearCache();

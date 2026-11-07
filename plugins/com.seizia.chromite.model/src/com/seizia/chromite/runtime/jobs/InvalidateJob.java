@@ -39,6 +39,10 @@ import java.util.stream.Collectors;
 /**
  * Invalidate datasource job.
  * Invalidates all datasource contexts (not just the one passed in constructor).
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #collectDependentDataSources}를 패키지 안에 공개: 자동 복구 전에 다시 연결이 끝낼 열린 트랜잭션을 같은
+ *   범위에서 찾기 위해({@link TransactionRecoveryGuard}, docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  */
 public class InvalidateJob extends DataSourceJob {
     private static final Log log = Log.getLog(InvalidateJob.class);
@@ -283,7 +287,7 @@ public class InvalidateJob extends DataSourceJob {
         return finalResults;
     }
 
-    private static void collectDependentDataSources(
+    static void collectDependentDataSources(
         @NotNull DBPDataSource dataSource,
         @NotNull Set<DBPDataSourceContainer> result
     ) {

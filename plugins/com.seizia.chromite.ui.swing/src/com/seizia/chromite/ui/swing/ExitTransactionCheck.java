@@ -30,6 +30,7 @@ import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.registry.DataSourceRegistry;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -47,8 +48,9 @@ import java.util.function.Function;
 
 /**
  * Before Chromite closes (window close, File &gt; Exit, [Restart now] of an update) and before a connection is
- * disconnected (Disconnect, Reconnect, Delete, reconnect after editing it): asks what to do with the transactions that
- * are not committed — Commit / Roll back / Cancel. Nothing is committed or rolled back silently.
+ * disconnected (Disconnect, Reconnect, Delete, reconnect after editing it), and before Object Explorer changes database
+ * objects (Delete, Rename): asks what to do with the transactions that are not committed — Commit / Roll back / Cancel.
+ * Nothing is committed or rolled back silently.
  *
  * 설계: 사용자 규칙 "트랜잭션 안전"(2026-11-07): 세션을 닫는 기능은 커밋하지 않은 트랜잭션을 먼저 찾아 커밋/롤백/취소를 묻는다.
  * 끝낼 때 플랫폼이 모든 연결을 닫으므로 그 전에 묻는다. SWT의 {@code ApplicationWorkbenchAdvisor.closeActiveTransactions}와
@@ -72,6 +74,8 @@ import java.util.function.Function;
  * - 2026-11-07 AI 에이전트 격리 문맥의 열린 트랜잭션도 찾아 같은 질문으로 끝냄(전에는 쿼리 관리자만 봐서 놓침, docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-07 연결 끊기 전 질문({@link #confirmDisconnect}): 끊기·다시 연결·삭제·편집 뒤 다시 연결이 열린 트랜잭션을 묻지 않고
  *   롤백하던 것을 막음. 찾기·질문·끝내기는 끝낼 때와 같은 코드 (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
+ * - 2026-11-07 Object Explorer 개체 변경 전 질문({@link #confirmObjectChange}): 삭제·이름 바꾸기 DDL이 열린 트랜잭션을 함께 커밋하거나
+ *   그 잠금을 기다리지 않게 (docs/chromite/swing-explorer-object-actions.md "트랜잭션")
  */
 final class ExitTransactionCheck {
 
@@ -96,6 +100,19 @@ final class ExitTransactionCheck {
     static boolean confirmDisconnect(@Nullable Component parent, @NotNull DBPDataSourceContainer container) {
         return confirm(parent, List.of(container), list -> NLS.bind(ConnectionMessages.disconnect_txn_message, container.getName(), list),
             ConnectionMessages.disconnect_txn_error);
+    }
+
+    /**
+     * Before Object Explorer runs DDL on the connection (Delete, Rename): asks Commit / Roll back / Cancel when it has
+     * transactions that are not committed. The model's command path commits after each command
+     * ({@code AbstractCommandContext.saveChanges}) and some databases commit DDL implicitly, so an open transaction of the
+     * same session would be committed with it; one of another session may hold locks the DDL waits for. Call in the EDT.
+     *
+     * @return true when the change may run: no open transaction, or each one was committed or rolled back as asked
+     */
+    static boolean confirmObjectChange(@Nullable Component parent, @NotNull DBPDataSourceContainer container) {
+        return confirm(parent, List.of(container), list -> NLS.bind(NavigatorMessages.navigator_change_txn_message, container.getName(), list),
+            NavigatorMessages.navigator_change_txn_error);
     }
 
     /**

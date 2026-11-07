@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-07 {@code exit_txn_agent_item}: 끝낼 때 질문의 AI 도우미·MCP 도구 트랜잭션 줄
+ * - 2026-11-07 {@code exit_txn_agent_item}: 기능 이름을 Chromite Agent로 바꿈(docs/chromite/ai-agent.md "명칭")
  */
 public class UpdateMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.UpdateMessages"; //$NON-NLS-1$

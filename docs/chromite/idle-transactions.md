@@ -29,7 +29,7 @@
 | 남는 알림 | `com.seizia.chromite.ui.swing` | `NotificationToast.showWithActions` |
 | 설정 | `com.seizia.chromite.model`, `registry`, `ui.swing` | `DBPConnectionConfiguration`, `DataSourceSerializerModern`, `ConnectionSettingsPanel` |
 | 유휴 연결 닫기 | `com.seizia.chromite.model` | `runtime.jobs.DataSourceMonitorJob`(`isIdleConnection`), `QMUtils.getLastUseTime` |
-| 쿼리 관리자 밖 세션(AI 도우미) | `com.seizia.chromite.model`, `model.ai.tools` | 서비스 `runtime.DBServiceUnrecordedSessions`, 구현 `AgentSessionsService`(`AgentSql.isInUse`, `getLastUseTime`, ai.tools `plugin.xml`) |
+| 쿼리 관리자 밖 세션(Chromite Agent) | `com.seizia.chromite.model`, `model.ai.tools` | 서비스 `runtime.DBServiceUnrecordedSessions`, 구현 `AgentSessionsService`(`AgentSql.isInUse`, `getLastUseTime`, ai.tools `plugin.xml`) |
 | 모델 알림 표시 | `com.seizia.chromite.ui.swing` | `SwingModelNotifications`(`ChromiteSwingApplication.start`에서 `ChromiteNotifications.setHandler`), `NotificationToast.showUntilClosed` |
 
 ### 트랜잭션 상태(쿼리 관리자)
@@ -53,6 +53,7 @@
 - 모양: `status.warning` 점(커밋 방식 점과 같은 크기, 주의이지 오류가 아님) + `열린 트랜잭션 00:03:15 (문장 3개)`. 경과 시간은 트랜잭션 시작부터이고 1초마다 갱신한다.
 - 도구 설명: 시작 시각, 문장 수와 데이터 변경 문장 수, 마지막 문장 끝 시각, "클릭하면 커밋하거나 롤백합니다".
 - 클릭: 칸 위에 커밋 / 롤백 메뉴. 고르면 메뉴를 연 때의 트랜잭션만 끝낸다(아래 "커밋·롤백 공용 경로"). 사용자가 직접 고르는 동작이므로 허용된다.
+  같은 메뉴의 트랜잭션 로그…는 그 트랜잭션의 문장을 보인다([transactions.md](transactions.md)).
 
 ### 유휴 감시
 
@@ -80,6 +81,7 @@
 ### 커밋·롤백 공용 경로
 
 `IdleTransactionMonitor.endTransaction(monitor, context, transactionStart, commit)`을 알림 단추, 상태 줄 메뉴, 자동 롤백이 함께 쓴다.
+2026-11-07부터 Query 메뉴·SQL Editor 도구 막대·단축키의 Commit / Roll Back과 열린 트랜잭션 목록도 이 경로를 쓴다([transactions.md](transactions.md)).
 
 - 그 문맥의 트랜잭션이 보여 준 트랜잭션(시작 시각)과 같고 실행 중이 아닐 때만 한다. 그 사이 다른 트랜잭션이 시작되었으면 건드리지 않고 "아무것도 하지 않았습니다"라고 알린다.
 - 커밋·롤백 자체는 다른 기능과 같은 트랜잭션 관리자 호출(`DBCTransactionManager.commit` / `rollback`, UTIL 세션)이다. 새 JDBC 호출을 만들지 않았다.
@@ -99,7 +101,8 @@
 - 자동 롤백은 별도 설정이고 사용자가 그 연결에서 직접 켰을 때만 켜진다. 업스트림의 `autoCloseTransactions=true`(유형 기본값)는 "알림"으로만 읽고 롤백 동의로 읽지 않는다.
   켜면 경고 문구("유휴 트랜잭션의 커밋하지 않은 변경을 묻지 않고 버립니다. 버린 뒤 알림이 뜹니다.")가 보인다. 알림을 끄면 자동 롤백도 꺼진다.
 - 설정은 감시가 매번 읽으므로 저장하면 다시 연결하지 않아도 적용된다.
-- Swing에는 연결 유형 편집기가 없다. 그래서 자동 롤백의 유형별 기본값은 두지 않았다(모든 유형 꺼짐). 연결 유형 편집기를 만들면 그때 유형 기본값을 더한다.
+- 연결 유형의 알림과 기간은 Options > Connection Types에서 바꾼다(2026-11-07, [swing-options.md](swing-options.md)). 자동 롤백의 유형별 기본값은 두지 않았다
+  (모든 유형 꺼짐). 사용자가 연결마다 켜는 것이 결정이고, 유형에 두려면 모델에 새 필드가 필요하다.
 
 ## 설계 결정과 이유
 
@@ -134,7 +137,7 @@
 Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이것을 묻지 않았다(앱 종료만 물었다). SWT는 `DataSourceHandler.checkAndCloseActiveTransaction`으로 물었다.
 
 - 네 동작이 모두 지나는 `ConnectionCommands`의 끊기 경로에서, `DisconnectJob`을 예약하기 전에 `ExitTransactionCheck.confirmDisconnect`를 부른다.
-- 찾기·질문·끝내기는 앱 종료 질문과 같은 코드다: 그 연결의 모든 실행 문맥에서 `QMUtils.isTransactionActive`, AI 도우미·MCP 도구 격리 문맥은
+- 찾기·질문·끝내기는 앱 종료 질문과 같은 코드다: 그 연결의 모든 실행 문맥에서 `QMUtils.isTransactionActive`, Chromite Agent·MCP 도구 격리 문맥은
   `AgentSql.hasPendingTransaction`. 있으면 목록과 함께 커밋 / 롤백 / 취소를 묻는다.
 - 취소하면 끊지 않고 트랜잭션도 그대로 둔다. 다시 연결·삭제도 하지 않고, Object Explorer의 Disconnect는 서버를 창에서 빼지 않는다.
 - 커밋·롤백이 실패하면 오류를 보이고 끊지 않는다.
@@ -154,12 +157,12 @@ Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이�
   - 연결한 시각(`getConnectTime`);
   - 그 연결의 각 실행 문맥에서 쿼리 관리자가 본 마지막 사용(`QMUtils.getLastUseTime`): 목적과 관계없는 마지막 문장의 끝(사용자 쿼리, 탐색기 메타데이터 읽기,
     내부 작업)과 가져오기 끝, 마지막 커밋·롤백·커밋 방식 변경(새 트랜잭션 기록의 시작), 문맥이 다시 열린 시각. 실행·가져오기 중이면 지금;
-  - AI 도우미·MCP 도구 세션의 마지막 작업 끝(`DBServiceUnrecordedSessions.getLastUseTime`). 이 세션은 JDBC를 직접 써서 쿼리 관리자에 기록이 없다.
+  - Chromite Agent·MCP 도구 세션의 마지막 작업 끝(`DBServiceUnrecordedSessions.getLastUseTime`). 이 세션은 JDBC를 직접 써서 쿼리 관리자에 기록이 없다.
   - 연결 유지(keep-alive) 핑은 사용이 아니다. 핑은 JDBC 연결에 직접 보내 쿼리 관리자에 남지 않는다(`JDBCUtils.isConnectionAlive`).
 - 닫지 않는 경우(하나라도 맞으면 그 연결은 유휴가 아니다):
   - 어느 문맥이든 열린 트랜잭션이 있다: `QMTransactionState.isOpen()`(수동 커밋에서 사용자 문장 실행, SELECT 포함) 또는 `QMUtils.isTransactionActive`
     (다른 목적의 변경 문장). 연결을 닫으면 JDBC 연결이 닫히며 묻지 않고 롤백되기 때문이다(사용자 규칙 "트랜잭션 안전").
-  - AI 도우미가 그 연결에 열린 트랜잭션을 남겼거나 지금 쓰고 있다(`DBServiceUnrecordedSessions.isConnectionInUse` → `AgentSql.isInUse`).
+  - Chromite Agent가 그 연결에 열린 트랜잭션을 남겼거나 지금 쓰고 있다(`DBServiceUnrecordedSessions.isConnectionInUse` → `AgentSql.isInUse`).
   - 문장이 실행 중이거나, 그 문맥의 Job(SQL 편집기 실행 등)이나 연결의 작업(`DBPDataSourceTask.isActiveTask`)이 있다. 끊기는 실행 중인 Job을 취소하기 때문이다.
   - 그 연결의 연결·끊기 Job이 예약되었거나 실행 중이다.
 - 열린 트랜잭션 정책(#97과 맞춤): 연결을 열어 둔다. 그 트랜잭션은 이 문서의 유휴 트랜잭션 감시가 맡는다(기본: 알리고 묻기, 연결에서 켰을 때만 자동 롤백 뒤 알림).
@@ -197,7 +200,7 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 | 보내는 곳 | 알림 | 종류 | 언제 |
 |---|---|---|---|
 | `DataSourceMonitorJob.showNotification` | `NT_DISCONNECT_IDLE` 유휴 연결 닫힘 | 경고 | 위 "유휴 연결 닫기" |
-| `DefaultInvalidationFeedbackHandler.onInvalidateSuccess` | `NT_RECONNECT_SUCCESS` "Datasource was invalidated, Live connection count: n/m" | 정보 | 끊긴 연결을 다시 이었을 때: 연결 유지 핑 실패(`KeepAlivePingJob`), 실행 중 연결 오류 복구(`DBExecUtils`) |
+| `DefaultInvalidationFeedbackHandler.onInvalidateSuccess` | `NT_RECONNECT_SUCCESS` "Datasource was invalidated, Live connection count: n/m" | 정보 | 끊긴 연결을 다시 이었을 때: 연결 유지 핑 실패(`KeepAlivePingJob`), 실행 중 연결 오류 복구(`DBExecUtils`), "연결 끊김" 알림의 다시 연결. 열린 트랜잭션이 있으면 자동으로 다시 잇지 않는다([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션") |
 | `DefaultInvalidationFeedbackHandler.onInvalidateFailure` | `NT_RECONNECT_FAILURE` "Datasource invalidate failed" | 오류 | 실행 중 연결 오류 복구가 실패했을 때(핑 실패 쪽은 오류를 보이지 않게 부른다) |
 
 - 유휴 트랜잭션 롤백은 #97부터 모델 알림을 쓰지 않는다(`EndIdleTransactionsJob` → `UIServiceIdleTransactions.showIdleTransactionRolledBack`, `NT_ROLLBACK_IDLE`은 지웠다).
@@ -208,9 +211,9 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 
 ## 남은 일
 
-- AI 도우미·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
+- Chromite Agent·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
 - 절전 감지(A-S8)를 더하면 `closeAllConnections`가 유휴 연결 닫기와 같은 트랜잭션 확인을 거치게 해야 한다.
-- 연결 유형 편집기가 생기면 유형별 알림·기간·자동 롤백 기본값을 그 화면에도 둔다.
+- 연결 유형별 자동 롤백 기본값(연결 유형 편집기는 2026-11-07에 생겼고 알림·기간은 그 화면에 있다). 넣는다면 사용자 결정을 다시 받는다.
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
 ## 변경 이력
@@ -219,3 +222,8 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 2026-11-07 연결 끊기 전 질문: 끊기·다시 연결·삭제·편집 뒤 다시 연결이 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
 - 2026-11-07 유휴 연결 닫기가 동작하게 함(연결별 마지막 사용 기준, 열린 트랜잭션·실행 중이면 닫지 않음, AI 도우미 세션 포함, 닫은 뒤 경고 알림),
   모델 알림을 메인 창 알림으로 보임. PostgreSQL·SQL Server에서 실행 확인(증거: `D:\Tools\_scratch\idle-close-notifications\`)
+- 2026-11-07 에이전트 기능의 공식 이름을 Chromite Agent로 정함([ai-agent.md](ai-agent.md) "명칭"): 이 문서의 설명에서 "AI 도우미"를 바꿈.
+- 2026-11-07 상태 줄 메뉴에 트랜잭션 로그, 공용 커밋 경로를 Query 메뉴·도구 막대·단축키·열린 트랜잭션 목록도 씀([transactions.md](transactions.md))
+- 2026-11-07 연결 유형 편집기(Options > Connection Types)가 생겨 유형의 알림·기간을 바꿀 수 있음을 반영([swing-options.md](swing-options.md))
+- 2026-11-07 같은 UI 서비스(`UIServiceIdleTransactions`)에 오류 복구가 멈춘 알림 두 가지를 더함. 다시 연결 알림이 언제 뜨는지 고침
+  ([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션")
