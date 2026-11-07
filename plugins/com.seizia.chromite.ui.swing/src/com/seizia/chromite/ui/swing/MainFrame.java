@@ -20,11 +20,14 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.ScriptsMessages;
+import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -80,8 +83,8 @@ import java.util.function.Supplier;
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
  * 설계: 가운데 문서 영역(문서 탭, 그 아래 Results / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
- * Query Library)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
- * 오른쪽 열에 Properties(Query Library는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * Query Library, Scripts)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
+ * 오른쪽 열에 Properties(Query Library와 Scripts {@link ScriptsPanel}는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
  * 도구 창은 머리말을 끌어 옮기거나 탭으로 합치거나 떠 있는 창으로 띄울 수 있다. Results는 쿼리 창 안에 있으므로 도킹하지 않고
  * 문서 영역의 분할 창 아래쪽이다({@link ToolWindow.SplitHost}).
  * <ul>
@@ -105,7 +108,9 @@ import java.util.function.Supplier;
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼운다.
  *     편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
  *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
- *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.</li>
+ *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.
+ *     Terminal 탭(Query &gt; SQL Terminal, Ctrl+T)은 활성 쿼리 창이 터미널을 켰을 때만 넷째 탭으로 붙인다. 켜는 것이 창마다라서
+ *     탭이 늘 있으면 꺼진 창에서 빈 탭이 되기 때문이다.</li>
  *     <li>Results 카드는 DataGrip처럼 활성 문서가 쿼리 창일 때만 보인다. 빈 문서 영역과 다른 문서(테이블 디자이너, ER 다이어그램, 도구 문서, DDL 탭)에서는
  *     숨겨 빈 화면·문서가 문서 영역을 다 쓴다. 사용자가 숨긴 것(Ctrl+R, View 메뉴, — 단추)은 전역이 아니라 그 쿼리 창에 기억하고
  *     ({@link #RESULTS_HIDDEN_KEY}), 실행·실행 계획은 그 쿼리 창의 Results를 다시 보인다. 활성 문서가 바뀔 때 {@link ToolWindow.SplitHost#update()}가
@@ -114,7 +119,8 @@ import java.util.function.Supplier;
  *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
  *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
  *     <li>SQL 파일(SSMS): File > Open File(Ctrl+O), Save(Ctrl+S), Save As, Recent Files(최근 10개, {@link RecentFiles}).
- *     연 파일은 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다. 이미 열린 파일은 그 탭을 보여 준다.
+ *     연 파일은 스크립트에 묶은 연결({@link ScriptFiles}), 없으면 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다.
+ *     이미 열린 파일은 그 탭을 보여 준다. 스크립트 폴더에 저장한 파일은 묶은 연결이 없으면 쿼리 창의 연결에 묶고 Scripts 창을 다시 읽는다.
  *     파일 대화상자의 폴더는 실행 중에만 기억한다.</li>
  *     <li>고친 편집기 탭을 닫거나 앱을 끝낼 때(창 닫기, File > Exit) SSMS처럼 Save / Don't Save / Cancel을 묻는다.
  *     결과 표에 저장하지 않은 변경이 있는 편집기도 같이 묻고, Save면 결과 변경을 진행 대화상자에서 저장한다(실패하면 닫지 않고 오류는 Messages에).
@@ -207,10 +213,16 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 openSourceScript가 보일 위치(패키지 안 루틴, 컴파일 오류 줄)를 받음, showDdl이 DDL 형식을 받음 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 File > Import Connections를 하위 메뉴로: Chromite 파일에서… / 다른 도구에서… (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  * - 2026-11-08 Query &gt; Trace Execution…(Modify 창의 SQL Server 프로시저, {@link ExecutionTraceCommands}) (docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 Tools &gt; Compare Schemas… ({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
+ * - 2026-11-08 Query &gt; SQL Terminal(Ctrl+T)과 활성 쿼리 창이 켰을 때만 붙는 Terminal 탭 (docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창(Ctrl+Alt+L, Properties 위, 기본 숨김), 스크립트에 묶은 연결로 파일 열기, 스크립트 폴더에 저장할 때 연결 묶기
+ *   (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-08 Database Tasks 도구 창(저장한 작업, {@link DatabaseTasksPanel}, 기본 숨김, Query Library와 같은 탭 묶음)과
  *   Query &gt; Run with Native Client…(저장한 쿼리 창 파일을 psql·mysql·sqlplus로 실행) (docs/chromite/swing-database-tasks.md)
  */
@@ -245,10 +257,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final int RESULTS_TAB = 0;
     private static final int MESSAGES_TAB = 1;
     private static final int PLAN_TAB = 2;
+    /**
+     * Index of the Terminal tab, which is there only while the active query window has Query &gt; SQL Terminal on
+     * ({@link #updateTerminalTab}).
+     */
+    private static final int TERMINAL_TAB = 3;
 
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
     private final QueryLibraryPanel queryLibraryPanel;
+    private final ScriptsPanel scriptsPanel;
     private final AiAssistantPanel aiAssistantPanel;
     private final ToolWindow aiWindow;
     private final StatusBar statusBar;
@@ -294,6 +312,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * ({@link Action#SELECTED_KEY}) while the active query window includes the actual plan.
      */
     private final Action actualPlanAction;
+    /**
+     * Query &gt; SQL Terminal (Ctrl+T, SSMS "Results to Text"): selected ({@link Action#SELECTED_KEY}) while the active
+     * query window writes its runs to the Terminal tab.
+     */
+    private final Action terminalAction;
     /**
      * Query &gt; Debug…: debugs the routine of the active Modify window (enabled when the Query menu opens).
      */
@@ -439,7 +462,32 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
-        aiWindow = new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
+        scriptsPanel = new ScriptsPanel(new ScriptsPanel.Host() {
+            @NotNull
+            @Override
+            public Component getComponent() {
+                return MainFrame.this;
+            }
+
+            @NotNull
+            @Override
+            public List<SqlEditorPanel> getQueryWindows() {
+                return getEditors();
+            }
+
+            @Override
+            public void openScript(@NotNull Path file) {
+                openFile(file);
+            }
+        });
+        // Scripts above Properties in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L,
+        // the Solution Explorer shortcut)
+        ToolWindow scriptsWindow = new ToolWindow("scripts", ScriptsMessages.scripts_title, //$NON-NLS-1$
+            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false,
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
             @Nullable
@@ -476,7 +524,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
             ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.CENTER, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, tasksWindow, aiWindow, resultsWindow);
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, tasksWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -542,6 +590,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
         // Menu items and toggle buttons write their state back to the action only if it has one
         actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
+        // Ctrl+T is SSMS's Results to Text, the nearest SSMS command to a console-style output
+        terminalAction = createAction(TerminalMessages.terminal_action, TerminalMessages.terminal_action_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.setTerminalEnabled(!editor.isTerminalEnabled());
+                    if (editor.isTerminalEnabled()) {
+                        showTerminal(editor);
+                    } else {
+                        // The Terminal tab goes away; the tab the window showed before it comes back
+                        selectResultTab(editor);
+                    }
+                }
+                updateQueryActions();
+            });
+        terminalAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         // The SWT shortcuts: Ctrl+Alt+Shift+K / R on Windows, Ctrl+4 / Ctrl+8 elsewhere (core plugin.xml key bindings)
         boolean windows = RuntimeUtils.isWindows();
         int windowsModifiers = InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
@@ -590,6 +654,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             if (editor != null && !switchingResults) {
                 editor.getResultsView().setMessagesTabSelected(resultTabs.getSelectedIndex() == MESSAGES_TAB);
                 editor.setPlanTabSelected(resultTabs.getSelectedIndex() == PLAN_TAB);
+                editor.setTerminalTabSelected(resultTabs.getSelectedIndex() == TERMINAL_TAB);
             }
         });
         updateQueryActions();
@@ -822,17 +887,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     @Override
-    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode) {
+    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
+                                 @Nullable SqlEditorPanel.SourcePosition position) {
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
         // Modify: Query > Debug… and Trace Execution… use the routine of the window (a New window's node is its folder: neither applies)
         editor.setSourceObject(refreshNode.getObject());
+        if (position != null) {
+            // After the new tab is laid out, so the text scrolls to the place
+            SwingUtilities.invokeLater(() -> editor.showSourcePosition(position));
+        }
     }
 
     @Override
-    public void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl) {
-        DdlViewerPanel viewer = new DdlViewerPanel(dataSource, objectName, ddl);
+    public void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl,
+                        @Nullable DdlViewerPanel.Formats formats) {
+        DdlViewerPanel viewer = new DdlViewerPanel(dataSource, objectName, ddl, formats);
         viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(viewer.getTitle(), UiIcons.get("file-sql"), viewer); //$NON-NLS-1$
         int index = documentTabs.indexOfComponent(viewer);
@@ -1069,7 +1140,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             DBWorkbench.getPlatformUI().showError(CoreMessages.main_open_file_title, NLS.bind(CoreMessages.main_cant_open, file), e);
             return;
         }
-        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        // A script linked to a connection (Scripts tool window) opens with it, wherever it is opened from
+        DBPDataSourceContainer dataSource = ScriptFiles.getLink(file).connection();
+        if (dataSource == null) {
+            dataSource = explorerPanel.getSelectedDataSource();
+        }
         if (dataSource == null) {
             SqlEditorPanel activeEditor = getActiveEditor();
             dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
@@ -1118,6 +1193,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         editor.saved(file, content);
         lastDirectory = file.getParent();
         RecentFiles.add(file);
+        if (ScriptFiles.findRoot(file) != null) {
+            // A script saved into the script folder remembers the connection it was written for, unless the user linked
+            // it already (an explicit link is not replaced by the connection of whichever window saves it)
+            DBPDataSourceContainer connection = editor.getDataSourceContainer();
+            if (connection != null && ScriptFiles.getLink(file).dataSourceId() == null) {
+                ScriptFiles.setLink(file, connection);
+            }
+            scriptsPanel.reload();
+        }
         return true;
     }
 
@@ -1394,11 +1478,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             attachResultTab(RESULTS_TAB, editor != null ? editor.getResultsView().getResultsComponent() : null);
             attachResultTab(MESSAGES_TAB, editor != null ? editor.getResultsView().getMessagesComponent() : null);
             attachResultTab(PLAN_TAB, editor != null ? editor.getPlanView().getComponent() : null);
-            resultTabs.setSelectedIndex(editor != null && editor.isPlanTabSelected() ? PLAN_TAB
-                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
         } finally {
             switchingResults = false;
         }
+        selectResultTab(editor);
         // Before the status line, which goes below the results only while they are shown
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
@@ -1408,6 +1491,36 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             editor.refreshTransactionMode();
         }
         updateQueryActions();
+    }
+
+    /**
+     * Shows the Terminal tab of the window (or none) and brings back the result tab the window showed last.
+     */
+    private void selectResultTab(@Nullable SqlEditorPanel editor) {
+        switchingResults = true;
+        try {
+            updateTerminalTab(editor);
+            resultTabs.setSelectedIndex(editor != null && editor.isTerminalEnabled() && editor.isTerminalTabSelected() ? TERMINAL_TAB
+                : editor != null && editor.isPlanTabSelected() ? PLAN_TAB
+                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
+        } finally {
+            switchingResults = false;
+        }
+    }
+
+    /**
+     * The Terminal tab is there only while the active query window has Query &gt; SQL Terminal on, with that window's
+     * terminal. Call with {@link #switchingResults} set: removing the selected tab selects another one.
+     */
+    private void updateTerminalTab(@Nullable SqlEditorPanel editor) {
+        if (editor != null && editor.isTerminalEnabled()) {
+            if (resultTabs.getTabCount() <= TERMINAL_TAB) {
+                resultTabs.addTab(TerminalMessages.terminal_tab, UiIcons.get("terminal"), null); //$NON-NLS-1$
+            }
+            attachResultTab(TERMINAL_TAB, editor.getTerminalView().getComponent());
+        } else if (resultTabs.getTabCount() > TERMINAL_TAB) {
+            resultTabs.removeTabAt(TERMINAL_TAB);
+        }
     }
 
     /**
@@ -1479,6 +1592,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
         actualPlanAction.setEnabled(editor != null);
         actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && editor.isIncludeActualPlan());
+        terminalAction.setEnabled(editor != null);
+        terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
         // Ending the transaction needs it idle: a running statement or script of this window would be refused
         QMTransactionState transaction = editor == null ? null : editor.getOpenTransaction();
         boolean canEndTransaction = transaction != null && !transaction.isExecuting() && !editor.canCancel();
@@ -1518,6 +1633,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         editor.getResultsView().setMessagesTabSelected(messages);
         editor.setPlanTabSelected(false);
+        editor.setTerminalTabSelected(false);
         resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
         resultsWindow.setShown(true);
     }
@@ -1528,7 +1644,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return;
         }
         editor.setPlanTabSelected(true);
+        editor.setTerminalTabSelected(false);
         resultTabs.setSelectedIndex(PLAN_TAB);
+        resultsWindow.setShown(true);
+    }
+
+    @Override
+    public void showTerminal(@NotNull SqlEditorPanel editor) {
+        if (editor != getActiveEditor()) {
+            return;
+        }
+        if (!editor.isTerminalEnabled()) {
+            // Turned off while a run that started with it was going on: its output still goes to the (hidden) terminal
+            showResults(editor, false);
+            return;
+        }
+        editor.setPlanTabSelected(false);
+        editor.setTerminalTabSelected(true);
+        selectResultTab(editor);
         resultsWindow.setShown(true);
     }
 
@@ -1622,9 +1755,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.add(new JMenuItem(saveAllAction));
         fileMenu.addSeparator();
-        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import);
+        JMenu importConnectionsMenu = new JMenu(ConnectionTransferMessages.transfer_menu_import_group);
+        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_file);
         importConnectionsItem.addActionListener(e -> ConnectionTransferCommands.importConnections(this));
-        fileMenu.add(importConnectionsItem);
+        importConnectionsMenu.add(importConnectionsItem);
+        JMenuItem importOtherToolItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_other);
+        importOtherToolItem.addActionListener(e -> ConnectionTransferCommands.importFromOtherTool(this));
+        importConnectionsMenu.add(importOtherToolItem);
+        fileMenu.add(importConnectionsMenu);
         JMenuItem exportConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_export);
         exportConnectionsItem.addActionListener(e -> ConnectionTransferCommands.exportConnections(this, null));
         fileMenu.add(exportConnectionsItem);
@@ -1646,6 +1784,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(estimatedPlanAction));
         queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
+        queryMenu.add(new JCheckBoxMenuItem(terminalAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
         queryMenu.add(new JMenuItem(traceAction));
@@ -1703,6 +1842,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem compareSchemasItem = new JMenuItem(CompareMessages.compare_command);
+        compareSchemasItem.setToolTipText(CompareMessages.compare_command_tip);
+        compareSchemasItem.addActionListener(e -> SchemaComparePanel.open(this, explorerPanel.getSelectedNode()));
         JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
         driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
         driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
@@ -1714,6 +1856,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(openTransactionsItem);
         toolsMenu.add(findObjectsItem);
+        toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);

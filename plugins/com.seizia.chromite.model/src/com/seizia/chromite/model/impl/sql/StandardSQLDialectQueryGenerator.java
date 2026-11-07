@@ -41,6 +41,17 @@ import java.lang.reflect.Array;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * Standard SQL query generator: conditions, ordering and filters of result queries.
+ *
+ * 설계(Chromite): 결과 정렬(머리글 정렬)은 쿼리가 돌려주는 행을 바꾸지 않고 그 순서만 정한다. 그래서 쿼리의 ORDER BY는 정렬이 있으면 바뀌고
+ * (뒤에 덧붙이면 보이는 순서가 그대로였다), ORDER BY가 행을 고르는 쿼리(TOP·LIMIT·FETCH 등)는 쿼리를 감싸 그 바깥에서 정렬한다.
+ * 쿼리를 감쌀 때는 쿼리의 ORDER BY를 바깥으로 옮긴다(SQL Server는 파생 테이블 안의 ORDER BY를 거부한다).
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김(SQL Server 별칭·계산 열 필터 실패), 행을 고르는 ORDER BY가 있는
+ *   쿼리의 정렬은 감싸서 함 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ */
 public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
     private static final Log log = Log.getLog(StandardSQLDialectQueryGenerator.class);
     private static final String NESTED_QUERY_AlIAS = "z_q";
@@ -202,6 +213,20 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         if (isForceFilterSubQuery) {
             return getWrappedFilterQuery(dataSource, sqlQuery, dataFilter);
         }
+        if (dataFilter.hasOrdering() && SQLSemanticProcessor.isSortedOutside(dataSource.getSQLDialect(), sqlQuery)) {
+            // The query's ORDER BY picks its rows (TOP, LIMIT, FETCH...): a sort of the result orders those rows and must
+            // not pick others, so the conditions go into the query as usual and the sort goes around it
+            DBDDataFilter conditions = new DBDDataFilter(dataFilter);
+            conditions.resetOrderBy();
+            String filteredQuery = conditions.hasConditions()
+                ? getQueryWithAppliedFilters(monitor, dataSource, sqlQuery, conditions)
+                : sqlQuery;
+            StringBuilder sortedQuery = new StringBuilder(filteredQuery.length() + 100);
+            sortedQuery.append("SELECT * FROM (\n").append(filteredQuery).append("\n) ").append(NESTED_QUERY_AlIAS);
+            sortedQuery.append(" ORDER BY "); //$NON-NLS-1$
+            SQLUtils.appendOrderString(dataFilter, dataSource, NESTED_QUERY_AlIAS, true, sortedQuery);
+            return sortedQuery.toString();
+        }
         try {
             return SQLSemanticProcessor.injectFiltersToQuery(monitor, dataSource, sqlQuery, dataFilter);
         } catch (DBException ignored) {
@@ -216,9 +241,12 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         @NotNull String sqlQuery,
         @NotNull DBDDataFilter dataFilter
     ) throws DBException {
+        // The query's own ORDER BY goes outside (SQL Server rejects it in a derived table); a sort of the result replaces it
+        Pair<String, String> wrapped = SQLSemanticProcessor.moveOrderByOutside(
+            dataSource.getSQLDialect(), sqlQuery, NESTED_QUERY_AlIAS, dataFilter.hasOrdering());
         StringBuilder modifiedQuery = new StringBuilder(sqlQuery.length() + 100);
         modifiedQuery.append("SELECT * FROM (\n");
-        modifiedQuery.append(sqlQuery);
+        modifiedQuery.append(wrapped.getFirst());
         modifiedQuery.append("\n) ").append(NESTED_QUERY_AlIAS);
         if (dataFilter.hasConditions()) {
             modifiedQuery.append(" WHERE ");
@@ -227,6 +255,8 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         if (dataFilter.hasOrdering()) {
             modifiedQuery.append(" ORDER BY "); //$NON-NLS-1$
             SQLUtils.appendOrderString(dataFilter, dataSource, NESTED_QUERY_AlIAS, true, modifiedQuery);
+        } else if (wrapped.getSecond() != null) {
+            modifiedQuery.append(" ORDER BY ").append(wrapped.getSecond()); //$NON-NLS-1$
         }
         return modifiedQuery.toString();
     }

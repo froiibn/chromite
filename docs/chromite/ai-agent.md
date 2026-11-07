@@ -1006,6 +1006,10 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 ## 변경 이력
 
 - 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
+- 2026-11-08 `getActualPlan`(Oracle)의 첫 키워드 찾기: 앞 공백·`--` 주석·블록 주석은 반복문(`PlanTools.skipLeadingComments`)으로 건너뛰고 정규식은 그 자리의
+  키워드만 본다. 주석 본문 패턴의 그룹이 글자마다 반복되어 약 2,000자 넘는 머리 주석에서 `StackOverflowError`가 났다(ReDoS 수정 뒤 남은 문제).
+  동작은 같다(옛 정규식과 무작위 입력 30만 개 비교). 회귀 테스트 `PlanToolsOracleHintTest`(10만 자 주석·공백, ReDoS 입력 3만 번),
+  [regression-tests.md](regression-tests.md).
 - 2026-11-08 1b단계에서 미룬 PostgreSQL·MySQL/MariaDB 백업·복원 도구 `dumpDatabase`(W, 파일)·`restoreDump`(D): 로컬 클라이언트 도구(`tasks.native`)를
   Swing 대화상자와 같은 경로(`model.admin` `NativeBackupRestore`)로 실행, 연결의 로컬 클라이언트 설정만 씀, 덮어쓰지 않음, 취소 시 만든 파일 지움.
   도구 진행 알림(`AIToolCallContext.reportProgress`, `AIToolExecutor.execute`의 진행 수신자, `AIAgentChat.Entry.getProgress`, `Listener.toolProgress`, 도구 카드

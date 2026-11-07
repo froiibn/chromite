@@ -42,6 +42,7 @@ import com.seizia.chromite.model.exec.DBCEntityMetaData;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryGenerator;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
@@ -49,6 +50,7 @@ import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
+import org.jkiss.utils.Pair;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -65,6 +67,9 @@ import java.util.concurrent.*;
  * - 2026-11-07 SQL Server처럼 드라이버가 결과 열의 테이블 이름을 주지 않을 때, 쿼리에서 찾아 묶은 열({@code DBDAttributeBinding.getEntityAttribute})의
  *   테이블로 필터를 넣음. 그전에는 늘 감싸서 {@code ORDER BY}가 있는 쿼리의 열 필터가 "ORDER BY clause is invalid in … derived tables"로 실패했다
  *   (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 결과 정렬이 쿼리의 ORDER BY를 바꿈(뒤에 덧붙여 보이는 순서가 그대로였다). 행을 고르는 ORDER BY(TOP·LIMIT·FETCH·
+ *   DISTINCT ON)는 그대로 둠. 쿼리를 감쌀 때 ORDER BY를 결과 열 참조로 바꿔 바깥으로 옮기는 {@link #moveOrderByOutside}
+ *   (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  */
 public class SQLSemanticProcessor {
 
@@ -294,7 +299,9 @@ public class SQLSemanticProcessor {
         @NotNull DBDDataFilter filter
     ) throws DBException {
         List<OrderByElement> orderByElements = select.getOrderByElements();
-        if (orderByElements == null) {
+        if (orderByElements == null || !isOrderDecidingRows(select)) {
+            // A sort of the result replaces the query's ORDER BY: added after it, the sort changed nothing visible.
+            // An ORDER BY that decides the rows stays (the generator sorts such queries outside when it can).
             orderByElements = new ArrayList<>();
             select.setOrderByElements(orderByElements);
         }
@@ -457,6 +464,160 @@ public class SQLSemanticProcessor {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether the ORDER BY of a SELECT decides which rows it returns, not only their order: with a row limit (TOP, LIMIT,
+     * OFFSET, FETCH) or PostgreSQL {@code DISTINCT ON}. Such an ORDER BY can't be removed or replaced without changing
+     * the rows.
+     */
+    public static boolean isOrderDecidingRows(@NotNull Select select) {
+        if (select.getLimit() != null || select.getOffset() != null || select.getFetch() != null) {
+            return true;
+        }
+        return select instanceof PlainSelect plainSelect
+            && (plainSelect.getTop() != null
+                || plainSelect.getDistinct() != null && plainSelect.getDistinct().getOnSelectItems() != null);
+    }
+
+    /**
+     * Whether a sort of the result must be put around a query ({@code SELECT * FROM (query) ORDER BY ...}) instead of
+     * into it: the query's ORDER BY decides its rows ({@link #isOrderDecidingRows}). Not for queries with a WITH clause,
+     * which SQL Server does not accept in a derived table; their sort is added after the query's ORDER BY.
+     */
+    public static boolean isSortedOutside(@Nullable SQLDialect dialect, @NotNull String sqlQuery) {
+        try {
+            return parseQuery(dialect, sqlQuery) instanceof Select select
+                && isOrderDecidingRows(select)
+                && CommonUtils.isEmpty(select.getWithItemsList());
+        } catch (DBCException e) {
+            log.debug("Can't parse the query to check its ordering", e);
+            return false;
+        }
+    }
+
+    /**
+     * The ORDER BY of a SELECT query that a sort of the result replaces, as the query writes it
+     * ({@code ORDER BY id DESC}), or null if the query has none or its ORDER BY decides the rows
+     * ({@link #isOrderDecidingRows}, the sort is then applied to the rows the query returns).
+     */
+    @Nullable
+    public static String getReplaceableOrderBy(@NotNull SQLQuery query) {
+        if (query.getStatement() instanceof Select select && !CommonUtils.isEmpty(select.getOrderByElements())
+            && !isOrderDecidingRows(select)) {
+            return Select.orderByToString(select.getOrderByElements()).trim();
+        }
+        return null;
+    }
+
+    /**
+     * Prepares a query to be wrapped as a derived table ({@code SELECT * FROM (query) alias}). SQL Server rejects an
+     * ORDER BY in a derived table unless it has TOP, OFFSET or FOR XML, so the query's ORDER BY is moved outside: its
+     * items become references to the result columns of the derived table (output alias, selected column, a column of
+     * {@code *}, an aliased expression, or a column number). An ORDER BY that decides the rows
+     * ({@link #isOrderDecidingRows}) stays in the query, as does one that orders by something that is not a result
+     * column (only the query itself can sort by it).
+     *
+     * @param alias        alias of the derived table
+     * @param sortReplaces the wrapped query is sorted by a sort of the result, which replaces the query's ORDER BY
+     * @return the query to wrap, and the outer ORDER BY items that keep the query's order or null
+     */
+    @NotNull
+    public static Pair<String, String> moveOrderByOutside(
+        @Nullable SQLDialect dialect,
+        @NotNull String sqlQuery,
+        @NotNull String alias,
+        boolean sortReplaces
+    ) {
+        Statement statement;
+        try {
+            statement = parseQuery(dialect, sqlQuery);
+        } catch (DBCException e) {
+            log.debug("Can't parse the query to move its ORDER BY, wrapping it as it is", e);
+            return new Pair<>(sqlQuery, null);
+        }
+        if (!(statement instanceof Select select) || CommonUtils.isEmpty(select.getOrderByElements())
+            || isOrderDecidingRows(select)) {
+            return new Pair<>(sqlQuery, null);
+        }
+        String outerOrder = null;
+        if (!sortReplaces) {
+            List<String> items = new ArrayList<>();
+            for (OrderByElement element : select.getOrderByElements()) {
+                Expression reference = getResultColumnReference(select, element.getExpression(), alias);
+                if (reference == null) {
+                    return new Pair<>(sqlQuery, null);
+                }
+                items.add(new OrderByElement()
+                    .withExpression(reference)
+                    .withAsc(element.isAsc())
+                    .withAscDescPresent(element.isAscDescPresent())
+                    .withNullOrdering(element.getNullOrdering())
+                    .toString());
+            }
+            outerOrder = String.join(", ", items);
+        }
+        select.setOrderByElements(null);
+        return new Pair<>(statement.toString(), outerOrder);
+    }
+
+    /**
+     * The result column of a query that an ORDER BY item of the query names, as a column of the derived table, or null.
+     * Names are resolved as SQL does: output aliases first, then selected columns, then the columns of {@code *}.
+     */
+    @Nullable
+    private static Expression getResultColumnReference(@NotNull Select select, @NotNull Expression expression, @NotNull String alias) {
+        if (expression instanceof LongValue) {
+            // A column number stays valid: SELECT * keeps the columns in their order
+            return expression;
+        }
+        List<SelectItem<?>> items = select instanceof PlainSelect plainSelect ? plainSelect.getSelectItems() : null;
+        Table derived = new Table(alias);
+        if (expression instanceof Column column) {
+            String name = column.getUnquotedColumnName();
+            Table table = column.getTable() == null || CommonUtils.isEmpty(column.getTable().getName()) ? null : column.getTable();
+            if (items == null) {
+                // UNION and the like: their ORDER BY already names result columns
+                return table == null ? new Column(derived, column.getColumnName()) : null;
+            }
+            if (table == null) {
+                for (SelectItem<?> item : items) {
+                    if (item.getAlias() != null && item.getAlias().getUnquotedName().equalsIgnoreCase(name)) {
+                        return new Column(derived, item.getAlias().getName());
+                    }
+                }
+            }
+            for (SelectItem<?> item : items) {
+                if (item.getExpression() instanceof Column selected && selected.getUnquotedColumnName().equalsIgnoreCase(name)
+                    && (table == null || selected.getTable() == null || CommonUtils.isEmpty(selected.getTable().getName())
+                        || isSameTable(selected.getTable(), table))) {
+                    return new Column(derived, item.getAlias() != null ? item.getAlias().getName() : selected.getColumnName());
+                }
+            }
+            for (SelectItem<?> item : items) {
+                if (item.getExpression() instanceof AllTableColumns tableColumns) {
+                    if (table == null || isSameTable(tableColumns.getTable(), table)) {
+                        return new Column(derived, column.getColumnName());
+                    }
+                } else if (item.getExpression() instanceof AllColumns) {
+                    return new Column(derived, column.getColumnName());
+                }
+            }
+            return null;
+        }
+        if (items != null) {
+            String text = expression.toString();
+            for (SelectItem<?> item : items) {
+                if (item.getAlias() != null && item.getExpression() != null && item.getExpression().toString().equalsIgnoreCase(text)) {
+                    return new Column(derived, item.getAlias().getName());
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean isSameTable(@Nullable Table table1, @NotNull Table table2) {
+        return table1 != null && table1.getUnquotedName() != null && table1.getUnquotedName().equalsIgnoreCase(table2.getUnquotedName());
     }
 
     @Nullable

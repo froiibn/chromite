@@ -72,7 +72,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/transactions-en-dark.webp" srcset="/assets/shots/tour/transactions-en-dark.webp 1.25x" width="994" height="342" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -42% .03 .17; y 0% -70% .03 .17; s 1.7 1 .52 .66; x -42% 0% .52 .66; y -70% 0% .52 .66" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log."></div>
-        <figcaption>PostgreSQL on a manual-commit connection: after an UPDATE, the open-transaction field of the status line is clicked.</figcaption>
       </figure>
       <ul class="slot">
         <li>The status line shows the open transaction, how long it has been open and how many statements it holds. Click it to commit, roll back or open the transaction log.</li>
@@ -90,7 +89,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/library-en-dark.webp" srcset="/assets/shots/tour/library-en-dark.webp 1.25x" width="1401" height="584" loading="lazy" decoding="async" data-t="s 1.6 1 .18 .36; x -60% 0% .18 .36; y 0% 0% .18 .36" alt="The Query Library window with the roots My queries and Team queries, a Git repository shown as main ↑1. The query window in the middle has Name, Description, Target, Parameters (1) and Thresholds, the SQL, and one long open transaction in the result grid."></div>
-        <figcaption>Team queries is a Git working copy (branch main, one commit not pushed). The query ran with its parameter set to 0.</figcaption>
       </figure>
       <ul class="slot">
         <li>Add a network folder or a Git working copy as a library root. The tree shows the branch and the commits not pushed yet, and you pull or commit and push from the app.</li>
@@ -109,7 +107,6 @@
       </div>
       <figure class="scene-media" data-t="y 8vh 0vh 0 .3">
         <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
-        <figcaption>The tool calls and their results come from a real database. The wording of the answer came from a scripted test provider used for this picture.</figcaption>
       </figure>
       <ul class="slot tasks">
         <li><strong>Slow query tuning</strong> Reads the estimated and actual plan, compares plans before and after an index, and looks at statistics, index usage, missing and unused indexes and fragmentation. It creates an index only after you confirm.</li>
@@ -130,7 +127,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; y 0% -34% .3 .42; s 1.6 1 .63 .75; y -34% 0% .63 .75" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."></div>
-        <figcaption>Choosing the drivers for a bundle on a PC with internet. Bundled drivers are not in the list.</figcaption>
       </figure>
       <ul class="slot">
         <li>There are more than 100 drivers. The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; the rest, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
@@ -147,7 +143,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" data-t="s 1 1.8 .22 .34; x 0% 0% .22 .34; y 0% -43% .22 .34; s 1.8 1.5 .47 .6; x 0% -25% .47 .6; y -43% -50% .47 .6; s 1.5 1 .72 .84; x -25% 0% .72 .84; y -50% 0% .72 .84" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."></div>
-        <figcaption>A PostgreSQL function stopped inside its loop, on the second line. PostgreSQL needs the pldebugger extension on the server, and Oracle needs debug privileges. SQL Server is not supported.</figcaption>
       </figure>
       <ul class="slot">
         <li>Run PostgreSQL (PL/pgSQL) and Oracle (PL/SQL) functions and procedures in a debugger.</li>
@@ -166,7 +161,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -44% .03 .17; s 1.7 1 .22 .36; x -44% 0% .22 .36" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."></div>
-        <figcaption>PostgreSQL: an UPDATE in one session waits for another session's change that is not committed.</figcaption>
       </figure>
       <ul class="slot">
         <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
@@ -185,7 +179,6 @@
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/credentials-en-dark.webp" srcset="/assets/shots/tour/credentials-en-dark.webp 1.25x" width="707" height="700" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; x 0% -6% .3 .42; y 0% -60% .3 .42; s 1.6 1 .63 .75; x -6% 0% .63 .75; y -60% 0% .63 .75" alt="The Export Connections dialog: the list of connections to export, the check box to include passwords and encrypt the file, Passphrase and Confirm fields, and a note that it needs 12 characters or more."></div>
-        <figcaption>File &gt; Export Connections. With passwords included, the whole file is encrypted with this passphrase.</figcaption>
       </figure>
       <ul class="slot">
         <li>They are encrypted in the operating system's secure storage: DPAPI tied to your Windows account, or the Keychain on macOS.</li>

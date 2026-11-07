@@ -30,7 +30,7 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
 | `com.seizia.chromite.debug.core` (복원) | DB 중립 디버그 모델: `DBGController`, `DBGControllerFactory`, `DBGSession`, `DBGEvent`, `DBGStackFrame`, `DBGVariable`, `DBGBreakpointDescriptor`, `DBGTargetResult`(새), `DBGConstants`, JDBC 기반 `jdbc/DBGJDBCSession`·`DBGJDBCWorker`. UI·Eclipse 디버그 의존 없음 |
 | `com.seizia.chromite.ext.postgresql.debug.core` (복원) | pldbgapi 구현: `PostgreDebugController`, `PostgreDebugSession`, 중단점·스택·변수 클래스. `plugin.xml`이 `PostgreProcedure`의 어댑터로 `DBGControllerFactory`를 등록 |
 | `com.seizia.chromite.ext.oracle.debug.core` (새) | DBMS_DEBUG 구현(`internal` 패키지): `OracleDebugAdapterFactory`(팩터리, attach 미지원), `OracleDebugController`(원본·권한·디버그 컴파일), `OracleDebugSession`, `OracleDebugCall`(대상이 실행할 익명 블록), `OracleDebugUnit`(원본 식별자 = ALL_SOURCE의 OWNER·TYPE·NAME), 중단점·스택·변수·세션 정보 record. `plugin.xml`이 `OracleProcedureStandalone`·`OracleProcedurePackaged`의 어댑터로 등록 |
-| `com.seizia.chromite.ui.swing` | `DebugCommands`(메뉴 동작, 열기, 디버그 컴파일 질문, 권한 안내), `ProcedureDebuggerPanel`(디버거 문서 탭), `DebugStartDialog`(시작 대화상자), `internal/DebugMessages`(영어·한국어) |
+| `com.seizia.chromite.ui.swing` | `DebugCommands`(메뉴 동작, 열기, 디버그 컴파일 질문, 권한 안내), `ProcedureDebuggerPanel`(디버거 문서 탭), `DebugStartDialog`(시작 대화상자), `RoutineArgumentTable`(시작 대화상자의 인수 표, Execute Procedure와 함께 씀, 2026-11-08), `internal/DebugMessages`(영어·한국어) |
 
 세 모델 번들은 `plugins/pom.xml`의 `desktop` 프로파일과 `com.seizia.chromite.swing.feature`에 들어간다.
 
@@ -317,5 +317,7 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
 - 2026-11-07 Oracle 디버거(`ext.oracle.debug.core`, DBMS_DEBUG): 디버그 컴파일 질문, 권한 안내, 프로시저 나가기, attach 미지원 표시.
   `debug.core`: createSession이 DBGSession을 돌려줌, getUnitsToCompile·compileForDebugging, supportsAttach, DBGPrivilegeException.
   화면: 시작 중에 끝난 호출을 끝내기로 처리, 탭 열쇠에 루틴 이름·입력 형식. 26ai에서 확인한 DBMS_DEBUG 동작과 검증 결과.
+- 2026-11-08 시작 대화상자의 인수 표를 `RoutineArgumentTable`로 옮겨 Execute Procedure 대화상자와 함께 씀. 형식 칸은 매개 변수 자신의 길이·정밀도
+  ([swing-routines.md](swing-routines.md)). PostgreSQL에서 시작 대화상자가 그대로 열리는 것을 확인.
 - 2026-11-08 SQL Server 대안 "실행 추적"을 만들었다고 적음(표, "SQL Server 대안", [sqlserver-execution-trace.md](sqlserver-execution-trace.md)).
 - 2026-11-08 인수 입력 설명의 쿼리 창 매개 변수 대화상자 이름을 고침(`SqlParameterDialog` → `QueryParameterDialog`, Query Library와 합침).

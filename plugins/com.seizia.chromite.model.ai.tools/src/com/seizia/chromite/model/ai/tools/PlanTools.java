@@ -75,16 +75,20 @@ import java.util.regex.Pattern;
  * - 2026-11-07 최초 작성
  * - 2026-11-08 Oracle 실제 계획, whatIfIndex(hypopg), Oracle 계획 노드를 {@link PlanParser#parseOracle}로 옮겨 예상·실제 계획이 함께 씀
  *   (docs/chromite/ai-agent.md "1b단계 도구")
+ * - 2026-11-08 Oracle 실제 계획의 첫 키워드 찾기: 앞 공백·주석은 반복문({@link #skipLeadingComments})으로 건너뛰고 정규식은 그 자리의 키워드만
+ *   본다. 주석 패턴의 그룹이 글자마다 반복되어 약 2,000자 넘는 머리 주석에서 StackOverflowError가 났다(회귀 테스트
+ *   {@code PlanToolsOracleHintTest}, docs/chromite/regression-tests.md)
  */
 public class PlanTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
     private static final String SHOWPLAN_COLUMN = "Showplan"; //$NON-NLS-1$
     private static final AgentLimits ORACLE_PLAN_LIMITS = new AgentLimits(1000, 4000, AgentLimits.DEFAULT_BYTES);
-    // Leading comments, then the first DML keyword; a WITH query's first SELECT (the first query block).
-    // The block comment pattern cannot match "*/" inside a comment and the leading group is possessive, so a comment
-    // like "/* *//* *//* ..." cannot make the matcher backtrack exponentially (CodeQL java/redos).
+    // The first DML keyword where the statement starts (after its leading comments, skipped by skipLeadingComments);
+    // a WITH query's first SELECT (the first query block). Only single-character repetitions: java.util.regex runs a
+    // repeated group recursively, once per repetition, so a group per comment character overflowed the stack on long
+    // comments, and an ambiguous comment group backtracked exponentially (CodeQL java/redos)
     private static final Pattern ORACLE_FIRST_KEYWORD = Pattern.compile(
-        "^(?:\\s|--[^\\n]*\\n|/\\*(?:[^*]|\\*+[^*/])*\\*+/)*+(?:WITH\\b.*?)?\\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\\b", //$NON-NLS-1$
+        "(?:WITH\\b.*?)?\\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\\b", //$NON-NLS-1$
         Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern ORACLE_HINT = Pattern.compile("\\s*/\\*\\+(.*?)\\*/", Pattern.DOTALL); //$NON-NLS-1$
     private static final Pattern CREATE_INDEX = Pattern.compile("\\s*CREATE\\s+(UNIQUE\\s+)?INDEX\\b", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
@@ -500,8 +504,9 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
      */
     @NotNull
     static String oracleHint(@NotNull String sql, @NotNull String marker) throws AIToolArgumentException {
-        Matcher keyword = ORACLE_FIRST_KEYWORD.matcher(sql);
-        if (!keyword.find()) {
+        int start = skipLeadingComments(sql);
+        Matcher keyword = start < 0 ? null : ORACLE_FIRST_KEYWORD.matcher(sql).region(start, sql.length());
+        if (keyword == null || !keyword.lookingAt()) {
             throw new AIToolArgumentException("Oracle actual plans take a SELECT, INSERT, UPDATE, DELETE or MERGE statement (or a WITH query)");
         }
         int at = keyword.end();
@@ -512,6 +517,40 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
                 " /* " + marker + " */" + sql.substring(hint.end()); //$NON-NLS-1$ //$NON-NLS-2$
         }
         return sql.substring(0, at) + " /*+ GATHER_PLAN_STATISTICS */ /* " + marker + " */" + sql.substring(at); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Where the statement starts: past leading whitespace, {@code --} line comments (up to their line break) and block
+     * comments (slash-star up to the first star-slash, not nested, as Oracle reads them). A loop and not a regex, so that
+     * its stack does not grow with the comments and its time stays linear.
+     *
+     * @return the index of the first character that is not whitespace or comment, or -1 when the text ends inside a
+     * comment (an unclosed block comment, a line comment without a line break): there is no statement to run
+     */
+    static int skipLeadingComments(@NotNull String sql) {
+        int pos = 0;
+        int length = sql.length();
+        while (pos < length) {
+            char c = sql.charAt(pos);
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\f' || c == '\r') {
+                pos++;
+            } else if (sql.startsWith("--", pos)) { //$NON-NLS-1$
+                int end = sql.indexOf('\n', pos + 2);
+                if (end < 0) {
+                    return -1;
+                }
+                pos = end + 1;
+            } else if (sql.startsWith("/*", pos)) { //$NON-NLS-1$
+                int end = sql.indexOf("*/", pos + 2); //$NON-NLS-1$
+                if (end < 0) {
+                    return -1;
+                }
+                pos = end + 2;
+            } else {
+                return pos;
+            }
+        }
+        return pos;
     }
 
     @NotNull
