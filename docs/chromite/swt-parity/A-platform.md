@@ -45,7 +45,7 @@
 | ext.h2 `H2DataSource.java`:97, 112 | `UIServiceConnectionInit` | `UIServiceConnectionInitImpl` | `SwingConnectionInitService` (2026-11-08) | 연결 거부 | 있음 (S10 수정함. 조사 당시: 조용히 끊김) |
 | ext.sqlite `SQLiteDataSource.java`:178 | `SQLiteExtensionConfirmation` | `ext.sqlite.ui` | `SwingSqliteExtensionConfirmation` (2026-11-08) | 연결 거부 | 있음 (S11 수정함. 조사 당시: 조용히 끊김) |
 | ext.clickhouse `auth/ClickhouseAuthPrompt.java`:61 | `UIServiceAuth`(브라우저·코드 인증 팝업) | `UIServiceAuthImpl`(+`CodeAuthDialog`) | 없음 | `DBException` "available only in desktop applications" | 없음 (낮음). 새 연결에서는 Swing이 이 방식을 목록에서 뺀다(`ConnectionAuthModels.java` 클래스 주석) |
-| model.ai `utils/AIUtils.java`:342 | `UIServiceSQL.confirmQueryExecution` | ui.editors.sql `UIServiceSQLImpl` | 없음 | `confirmAction`으로 대신 물음(SQL 미리 보기 없음) | 일부 (낮음) |
+| model.ai `utils/AIUtils.java`:342 | `UIServiceSQL.confirmQueryExecution` | ui.editors.sql `UIServiceSQLImpl` | `SwingSqlService` (2026-11-07, `ui.swing/plugin.xml`:34, `confirmQueryExecution`만) | `confirmAction`으로 대신 물음(SQL 미리 보기 없음) | 있음 (C-58: 확인 창에 SQL을 보임). 조사 당시: 일부 (낮음) |
 | model `impl/auth/SessionContextImpl.java`:60 | `SMSessionProviderService` | SWT도 등록 없음 | 없음 | 변화 없음 | 해당 없음 |
 
 ## 3. `DBPPlatformUI` 메서드 (남은 번들이 쓰는 것 중 Swing이 하지 않는 것)
@@ -73,12 +73,12 @@
 | `getLastUserActivityTime` | 키·마우스 입력 필터로 갱신(`ChromiteApplication.java`:177-180, 540-546) | 메서드 삭제(2026-11-07): 유휴 시간은 문맥·연결별 사용 시각으로 잼 | S1·S2 수정함. 조사 당시: 조용히 끊김 |
 | `isStandalone`/`isPrimaryInstance`/`isHeadlessMode`/`isExclusiveMode`/`isCommunity`/`getDefaultProjectName` | 재정의(인스턴스 서버·CLI 모드에 따라 바뀜) | 기본값(true/true/false/false) + `isCommunity`, `getDefaultProjectName` 재정의 | 있음 (일반 실행에서 값이 같다) |
 | `getPreferenceStore` / 모델 설정 노드 | `com.seizia.chromite.core`(`ChromiteActivator.java`:71 `setMainBundle`) | `com.seizia.chromite.ui.swing`(`ChromiteSwingActivator.java`:65) | 일부 — A-P1 |
-| `initializeApplication` | IP 스택, 네트워크 디버그, Defender 정책 | 없음 | 조용히 끊김 (S13) |
-| `start`의 Windows 인증서 저장소, 시간대 | 있음(:330-339) | 인증서 저장소만 있음(`ChromiteSwingApplication.useWindowsTrustStore`) | S6 수정함. 시간대는 조용히 끊김 (S12) |
-| `DesktopPlatform.initialize`의 BouncyCastle | 있음 | 없음 | 조용히 끊김 (S9) |
+| `initializeApplication` | IP 스택, 네트워크 디버그, Defender 정책 | `ChromiteSwingApplication.configureNetwork`(:297, 2026-11-08). Defender 정책은 일부러 뺌([platform-startup.md](../platform-startup.md)) | 있음 (S13 수정함). 조사 당시: 조용히 끊김 |
+| `start`의 Windows 인증서 저장소, 시간대 | 있음(:330-339) | 인증서 저장소(`ChromiteSwingApplication.useWindowsTrustStore`), 시간대(:179 `TimezoneRegistry.overrideTimezone()`, 2026-11-08) | 있음 (S6·S12 수정함). 조사 당시: 시간대는 조용히 끊김 |
+| `DesktopPlatform.initialize`의 BouncyCastle | 있음 | `ChromiteSwingPlatform.initialize`(:85-87, 2026-11-08) | 있음 (S9 수정함). 조사 당시: 조용히 끊김 |
 | `DesktopPlatform.dispose`의 `setHeadlessMode(true)` | 종료 중 UI 질문을 막음 | 없음 | 일부, 낮음(종료 중 모델이 대화상자를 띄울 수 있음, 실행 확인 안 함) |
 | 알림 처리기(`ChromiteNotifications.setHandler`) | `CoreApplicationActivator` | `SwingModelNotifications`(`ChromiteSwingApplication.start`) | 있음 (S7 수정함. 조사 당시: 조용히 끊김) |
-| 절전 감지 | `ApplicationWorkbenchAdvisor` | 없음 | 조용히 끊김 (S8) |
+| 절전 감지 | `ApplicationWorkbenchAdvisor` | `ChromiteSwingApplication`(:339-353, JDK 절전 알림 → `toggleSleepMode`, macOS만, 2026-11-08) | 있음 (S8 수정함). 조사 당시: 조용히 끊김 |
 | Eclipse 프록시 서비스 활성화 | `ApplicationWorkbenchAdvisor.activateProxyService`:626-643 | 없음 | 없음 (낮음) |
 | 연결 감시 Job(`DataSourceMonitorJob`) 시작 | 워크벤치 창 advisor | `platform.postInitialize()`(`ChromiteSwingApplication.java` start) | 있음 (S1·S2 수정함) |
 | 디버그 로그 | `initDebugWriter` | 같은 방식(`ChromiteSwingApplication.initDebugWriter`) | 있음 |
@@ -93,7 +93,7 @@
 | A-C2 | 열린 트랜잭션 표시(문장 수·경과 시간 도구 막대) | `TransactionMonitorToolbar` | **있음** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 쿼리 창 상태 줄의 열린 트랜잭션 칸(경과 시간, 문장 수), 누르면 커밋·롤백·트랜잭션 로그). 조사 당시: 없음 | Swing은 커밋 방식(자동/수동)만 보여 준다(swing-frontend.md "자동 커밋 상태", `QueryStatusLine`). 보류 문장 수·시간 없음 | 높음 | 잠금을 오래 쥐고 있는지 알 수 없다 |
 | A-C3 | 보류 중 트랜잭션 창(모든 연결의 커밋 안 한 문장, 거기서 커밋·롤백) | `PendingTransactionsDialog`, `DataSourcePendingTransactionsHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md) "열린 트랜잭션 목록": Tools &gt; Open Transactions…, 연결·DB·세션·시작·문장 수·유휴, 고른 행 커밋·롤백. "Show all connections"는 없음). 조사 당시: 없음 | Swing 검색 0(`QMTransactionState`, `getTransactionState` 0). 지시서의 예와 같음 | 높음 | |
 | A-C4 | 트랜잭션 로그(현재 트랜잭션의 문장 목록) | `TransactionLogDialog`, `TransactionInfoDialog`, `DataSourceTransactionLogHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md) "트랜잭션 로그": Query 메뉴·상태 줄·목록에서 열고 현재 트랜잭션의 시각·종류·SQL·시간·행·결과. 지난 트랜잭션 보이기는 2026-11-08 더함([connection-lifecycle.md](../connection-lifecycle.md) "트랜잭션 로그의 지난 트랜잭션")). 조사 당시: 없음 | Swing 검색 0 | 중간 | |
-| A-C5 | 자동 커밋 전환, 격리 수준, 스마트 커밋 메뉴 | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 일부 | 자동 커밋: 상태 표시 + 연결 편집으로 안내, 열린 세션에 적용(swing-frontend.md "자동 커밋 상태", 사용자 결정 "상태표시줄에서 바꾸면 안된다"). 격리 수준·스마트 커밋 전환은 없음 | 중간 | 자동 커밋을 상태 줄에서 바꾸지 않는 것은 의도한 것 |
+| A-C5 | 자동 커밋 전환, 격리 수준, 스마트 커밋 메뉴 | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 일부 | 자동 커밋: 상태 표시 + 연결 편집으로 안내, 열린 세션에 적용(swing-frontend.md "자동 커밋 상태", 사용자 결정 "상태표시줄에서 바꾸면 안된다"). 2026-11-08 다시 확인: 격리 수준은 연결 대화상자의 기본값(`ConnectionSettingsPanel.java`:883, 1236), 스마트 커밋은 Options &gt; Connection Types(`ConnectionTypesPage.java`:101, `SmartCommit.java`). 실행 중 세션에서 메뉴로 바꾸기는 없음(B-S18·S19) | 중간 | 자동 커밋을 상태 줄에서 바꾸지 않는 것은 의도한 것 |
 | A-C6 | Query Manager 보기(모든 실행 기록, 필터, 지우기) | `views/qm/QueryManagerView` 외 | 일부 | Swing `QueryHistory`(편집기 문장만, 클래스 주석). [swt-removal.md](../swt-removal.md):112 | 중간 | 트랜잭션 경계·메타데이터 쿼리는 안 보인다 |
 | A-C7 | 연결 끊기 변형(모두 끊기, 다른 연결 끊기, 프로젝트·폴더 단위 끊기) | `DataSourceDisconnectAllHandler`, `…OtherHandler`, `…ProjectHandler`, `FolderDisconnectHandler` | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "여러 연결 끊기": Registered Servers의 다른 연결 끊기·모두 연결 끊기·그룹 연결 끊기, 열린 트랜잭션은 한 질문). 조사 당시: 없음 | Swing 연결 명령은 하나씩만(`ConnectionCommands`) | 낮음 | |
 | A-C8 | 연결 무효화·다시 연결(세션 유지 재연결) | `DataSourceInvalidateHandler` | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "무효화·다시 연결": Object Explorer 무효화/다시 연결, 같은 터널의 연결까지 열린 트랜잭션을 먼저 물음. 기존 다시 연결의 무확인 롤백은 #97에서 고침). 조사 당시: 일부 | Swing "다시 연결"은 끊고 다시 연결(`ConnectionCommands.java`:122-128) → S3의 무확인 롤백 | 중간 | |
@@ -108,14 +108,14 @@
 | A-C17 | 셸 명령 승인 | `UIServiceShellCommandsImpl` | 있음 (2026-11-07 수정. 조사 당시: 조용히 끊김) | S4, `SwingShellCommandsService` | 높음 | [shell-command-approval.md](../shell-command-approval.md) |
 | A-C18 | H2 초기화 스크립트 승인 | `UIServiceConnectionInitImpl` | 있음 (2026-11-08 수정. 조사 당시: 조용히 끊김) | S10 | 낮음 | |
 | A-C19 | 브라우저·코드 인증 팝업 | `UIServiceAuthImpl` | 없음 | §2 | 낮음 | |
-| A-C20 | 연결 서비스(연결 Job, 확인) | `UIServiceConnectionsImpl` | 일부 | `SwingConnectionService`는 `DBServiceConnections`만. `UIServiceConnections`(트랜잭션 확인, 다시 연결 질문) 없음. 트랜잭션 확인은 `ExitTransactionCheck`(S3)와 `SwingIdleTransactionService`(S1)가 대신함(#97) | 높음 | S1, S3 |
+| A-C20 | 연결 서비스(연결 Job, 확인) | `UIServiceConnectionsImpl` | **있음** (2026-11-08 다시 확인: `UIServiceConnections`를 부르는 곳이 남은 번들에 없음(인터페이스 model `runtime/ui/UIServiceConnections.java`:35뿐). 끊기 전 질문은 `ConnectionCommands.java`:212의 `ExitTransactionCheck.confirmDisconnect`, 유휴 트랜잭션은 `SwingIdleTransactionService`, 연결 끊김 질문은 `DatabaseErrorDialogs.showConnectionLost`). 조사 당시: 일부 | `SwingConnectionService`는 `DBServiceConnections`만. `UIServiceConnections`(트랜잭션 확인, 다시 연결 질문) 없음. 트랜잭션 확인은 `ExitTransactionCheck`(S3)와 `SwingIdleTransactionService`(S1)가 대신함(#97) | 높음 | S1, S3 |
 | A-C21 | 드라이버 내려받기 확인 | `UIServiceDriversImpl` | 있음 | `SwingDriversService` | - | |
 | A-C22 | 오래 걸린 작업 알림 | `UIServiceSystemAgentImpl` | 있음 | `SwingSystemAgent` | - | 트레이 대신 알림 창 |
 | A-C23 | 상태 줄 breadcrumbs | `controls/BreadcrumbTrim` | 일부 | `QueryStatusLine`(서버·사용자·DB/스키마) | 낮음 | |
 | A-C24 | EULA 대화상자 | `ui/eula/*` | 없음 | Swing 검색 0 | 낮음 | |
 | A-C25 | 내장 브라우저 보기 | `views/BaseBrowserView`, `SWTBrowserRegistry` | 없음 | Swing은 시스템 브라우저(`SwingPlatformUI.executeShellProgram`) | 낮음 | |
 | A-C26 | 도구 막대 사용자 지정, 접근성(화면 판독기) | `PrefPageToolbarCustomization`, `PrefPageAccessibility` | 없음 | Swing 검색 0 | 낮음 | |
-| A-C27 | 확인 질문 "다시 묻지 않음" 관리(종료·드라이버 내려받기·테스트 연결 저장) | `com.seizia.chromite.confirmations`, `PrefPageConfirmations` | 없음 | Swing 확인 대화상자에 기억 기능·관리 화면 없음 | 낮음 | |
+| A-C27 | 확인 질문 "다시 묻지 않음" 관리(종료·드라이버 내려받기·테스트 연결 저장) | `com.seizia.chromite.confirmations`, `PrefPageConfirmations` | **일부** (2026-11-08 다시 확인: 위험한 문·DROP 확인 두 개는 Options에서 끔·켬(`OptionsDialog.java`:205-208, 564-568, `SqlExecutionSafety.java`:85-90, 같은 `confirm.*` 키). 끝내기·드라이버 내려받기·테스트 연결 저장의 "다시 묻지 않음"과 관리 화면은 없음). 조사 당시: 없음 | Swing 확인 대화상자에 기억 기능·관리 화면 없음 | 낮음 | |
 | A-C28 | Eclipse 전역 프록시 자격 증명 | `UIServiceConnectionsImpl.getGlobalProxyConfiguration` | 없음 | §2 | 낮음 | |
 
 ### 5.2 `ui` (공용 UI: 대화상자, 알림, 컨트롤)
@@ -153,7 +153,7 @@
 | A-S13 | 파일 열기, 최근 파일 | `OpenLocalFileActionExt` | 있음 | File > Open File, Recent Files(`RecentFiles`) | - | |
 | A-S14 | 비상 종료, 창 최소화 명령 | `EmergentExitAction`, `MinimizeWindowHandler` | 없음 | | 낮음 | |
 | A-S15 | 스플래시 | `ChromiteSplashHandler` | 없음 | swt-removal.md:69(SWT 스플래시 생성 삭제) | 낮음 | |
-| A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 조용히 끊김 (조사 당시. S6·S7·S8 수정함, S12·S13·프록시 서비스는 남음) | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
+| A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 일부 (2026-11-08 다시 확인: S6·S7·S8·S12·S13 수정함(`ChromiteSwingApplication.java`:167, 179, 297, 339-353). Eclipse 프록시 서비스만 남음(A-C28)). 조사 당시: 조용히 끊김 | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
 | A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 없음 | Swing에 쿼리 창 복원 없음 | 낮음 | |
 
 ### 5.4 나머지 삭제 번들
@@ -165,7 +165,7 @@
 | A-X3 | 샘플 데이터베이스 만들기 | `ui.config.sample` | 없음 | Swing 검색 0 | 낮음 | |
 | A-X4 | 다른 도구 설정 가져오기(DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J, 사용자 정의) | `ui.config.migration` | 일부 (2026-11-08, File > Import Connections > From Another Tool…: Oracle SQL Developer, Toad, CSV(사용자 정의를 대신함), Chromite 파일과 같은 미리 보기·충돌 화면. 조사 당시: 없음) | [connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기". 읽는 코드가 모두 UI 번들에 있어 SWT와 함께 없어졌으므로 모델(`registry`, `ext.oracle`)로 옮김. DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J는 남음 | 중간 | 다른 도구에서 옮겨 오는 사용자 |
 | A-X5 | 사용자 정의 런처 | `launcher` | 의도적 제외 | swt-removal.md:53 "Swing 제품은 기본 `org.eclipse.equinox.launcher`를 쓴다" | - | |
-| A-X6 | macOS 메뉴 통합, 마우스 휠 설정 | `ui.swt.macos` `CocoaUIService`, `PrefPageMouseConfigurator` | 없음 | S14 | 높음(Cmd+Q, 미확인) / 낮음(마우스) | |
+| A-X6 | macOS 메뉴 통합, 마우스 휠 설정 | `ui.swt.macos` `CocoaUIService`, `PrefPageMouseConfigurator` | **일부** (2026-11-08 다시 확인: 메뉴 통합은 S14로 수정함(`ChromiteSwingApplication.java`:318-360, `MacOSAppMenu.java`), macOS 실행 확인 안 함. 마우스 휠 설정은 없음). 조사 당시: 없음 | S14 | 높음(Cmd+Q, 미확인) / 낮음(마우스) | |
 | A-X7 | 내장 브라우저 도우미, Windows 창 테마 | `ui.swt.windows`, `ui.swt.macos` `ChromiteBrowserHelper`, `SWTThemeUtils` | 해당 없음 | SWT 위젯 전용. Swing은 FlatLaf | - | 사용자 기능 없음 |
 | A-X8 | 폼 빌더 | `ui.forms` | 해당 없음 | 내부 도구(사용자 기능 없음) | - | 표에서 셈하지 않음 |
 | A-P1 | SWT에서 바꾼 전역 설정 값 | `core` 설정 노드 `com.seizia.chromite.core.prefs` | 일부 | 모델 설정의 주 번들이 SWT `core`(`ChromiteActivator.java`:71)에서 `ui.swing`(`ChromiteSwingActivator.java`:65)으로 바뀜. [swing-frontend.md](../swing-frontend.md):382 "공유되지 않았다". 연결별 설정(`data-sources.json`)은 그대로 | 중간 | SWT에서 정한 트랜잭션 자동 종료, 시간 제한, 결과 최대 행 수 같은 전역 값은 Swing에서 기본값으로 돌아간다 |
@@ -185,26 +185,26 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 |---|---|---|---|---|---|
 | General (`general`) | core `PrefPageGeneral` | | `ui.auto.update.check`, `java.client.timezone` | 있음: 업데이트는 Options > Updates(자체 저장). 시간대는 2026-11-08 Options > Connections(키, [swing-options.md](../swing-options.md))와 시작할 때 적용(S12) | 낮음 |
 | User Interface (`main`) | core `PrefPageDatabaseUserInterface` | | `ui.use.redirect.auth`, `ui.statusBar.show.statusLine`, `ui.statusBar.show.breadcrumbs`, `ui.showZoomRestartPrompt`, Colors and Fonts 링크 | 없음(같은 키). 테마·글꼴은 Swing 자체 Options | 낮음 |
-| Editors (`editors`) | core `PrefPageDatabaseEditors` | | `ui.editors.reopen-after-restart`, `ui.editors.keep-editors-on-disconnect`, `ui.editors.disconnect-on-editors-close`, `navigator.refresh.editor.open`, `navigator.editor.full-name`, `navigator.editor.show.preview`, `navigator.sync.editor.datasource` | 없음 | 낮음 |
+| Editors (`editors`) | core `PrefPageDatabaseEditors` | | `ui.editors.reopen-after-restart`, `ui.editors.keep-editors-on-disconnect`, `ui.editors.disconnect-on-editors-close`, `navigator.refresh.editor.open`, `navigator.editor.full-name`, `navigator.editor.show.preview`, `navigator.sync.editor.datasource` | 일부(2026-11-08: `navigator.sync.editor.datasource`는 Object Explorer의 편집기와 연결 토글(`ExplorerPreferences.java`:44, `ObjectExplorerPanel.java`:773). 나머지 6키는 없음). 조사 당시: 없음 | 낮음 |
 | Query Manager (`misc.qm`, 연결별 `main.qm`) | core `PrefPageQueryManager` | ✓ | `qm.maxEntries`, `qm.storeLogs`, `qm.historyDays`, `qm.objectTypes`, `qm.queryTypes`, `qm.logDirectory` | 있음(2026-11-08, Options > Logs 5키, [swing-options.md](../swing-options.md)). `qm.maxEntries`는 효과 없음. 조사 당시: 없음 | 중간 |
 | Toolbar Customization | core | ✓ | 도구 막대 항목 표시 | 없음 | 낮음 |
 | Accessibility | core | | `screen.reader.accessibility`, `screen.reader.force.focus` | 없음 | 낮음 |
 | Errors and Timeouts (`main.errorHandle`) | ui.editors.connection `PrefPageErrorHandle` | ✓ | `connection.open.timeout`, `connection.close.timeout`, `connection.validation.timeout`, `query.rollback-on-error`, `execute.recover.enabled`, `execute.recover.retryCount`, `execute.cancel.checkTimeout` | 있음(2026-11-08, Options > Errors and Timeouts와 연결별 값, [swing-options.md](../swing-options.md)): 시간 제한 3, 자동 복구 2. 오류 때 롤백·세션 단위 취소는 트랜잭션 안전 규칙으로 두지 않음. 조사 당시: 없음(모델 기본값으로만 동작) | 중간 |
 | Error Logs (`main.errorLogs`) | core `PrefPageErrorLogs` | | `logs.debug.enabled`, `logs.debug.location`, `logs.files.output.maxSize`, `logs.files.output.maxCount` | 일부(2026-11-08, Options > Logs: 크기·개수, 바로 적용, [swing-options.md](../swing-options.md)). 위치·켜기 키는 효과 없음(Swing은 항상 `.metadata/chromite-debug.log`) | 낮음 |
-| Connections (`main.connections`) | core `PrefPageConnectionsGeneral` | ✓ | `navigator.settings.default.connectionPattern`, `connection.closeOnSleep`, `connection.shellAuthModelEnabled`, `connection.sanitizeDriverProperties`, `connections.useWinTrustStoreType` | 일부(2026-11-08, Options > Connections 2키, [swing-options.md](../swing-options.md)). 셸 명령 인증 허용은 Swing 연결 대화상자가 그 방식을 고를 수 없어 효과 없음, 연결 이름 패턴은 읽는 곳 없음, 절전 때 닫기는 경로 없음(A-S8). 조사 당시: 없음 | 중간 |
+| Connections (`main.connections`) | core `PrefPageConnectionsGeneral` | ✓ | `navigator.settings.default.connectionPattern`, `connection.closeOnSleep`, `connection.shellAuthModelEnabled`, `connection.sanitizeDriverProperties`, `connections.useWinTrustStoreType` | 일부(2026-11-08, Options > Connections 2키, [swing-options.md](../swing-options.md)). 셸 명령 인증 허용은 Swing 연결 대화상자가 그 방식을 고를 수 없어 효과 없음, 연결 이름 패턴은 읽는 곳 없음. 절전 때 닫기는 2026-11-08 S8로 경로가 생겼지만(`ChromiteSwingApplication.java`:340) 바꿀 화면은 없음. 조사 당시: 없음 | 중간 |
 | Client Identification (`client.connections`) | ui.editors.connection `PrefPageConnectionClient` | | `database.meta.client.name.disable`, `database.meta.client.name.override`, `database.meta.client.name.value`, `database.connect.processEnvVars` | 있음(2026-11-08, Options > Client Identification과 연결별 값, [swing-options.md](../swing-options.md)). 조사 당시: 없음 | 낮음 |
-| Transactions (`main.transactions`) | ui.editors.connection `PrefPageTransactions` | ✓ | `transaction.smart.commit`, `transaction.smart.commit.recover`, `transaction.auto.close.enabled`, `transaction.auto.close.ttl`, `transaction.show.notifications`, `transaction.ddl.behavior` | 해당 키 효과 없음(2026-11-07 확인, [swing-options.md](../swing-options.md): 스마트 커밋은 쿼리 창이 켜지 않음, 자동 종료 키는 #97에서 지움, 나머지는 읽는 곳 없음). 같은 기능은 연결 유형 편집(Options > Connection Types)과 연결 대화상자(자동 커밋, 격리 수준, 유휴 트랜잭션 알림)에 있음. 조사 당시: 없음 | 높음 |
+| Transactions (`main.transactions`) | ui.editors.connection `PrefPageTransactions` | ✓ | `transaction.smart.commit`, `transaction.smart.commit.recover`, `transaction.auto.close.enabled`, `transaction.auto.close.ttl`, `transaction.show.notifications`, `transaction.ddl.behavior` | 일부(2026-11-08 다시 확인: 스마트 커밋·되돌리기 키는 쿼리 창이 읽음(`SmartCommit.java`:79-93, 연결의 값, 없으면 연결 유형). 전역 Transactions 화면은 없고 같은 기능은 연결 유형 편집(Options > Connection Types)과 연결 대화상자(자동 커밋, 격리 수준, 유휴 트랜잭션 알림)에 있음. 자동 종료 키는 #97에서 지움, 알림·DDL 키는 읽는 곳 없음). 2026-11-07: 해당 키 효과 없음([swing-options.md](../swing-options.md)). 조사 당시: 없음 | 높음 |
 | Metadata (`main.meta`) | ui.editors.connection `PrefPageMetaData` | ✓ | `database.meta.separate.connection`, `database.props.expensive`, `database.meta.casesensitive`, `database.meta.server.side.filters`, `database.meta.extra.ddl.info`, `database.meta.disableAdditionalRead` | 있음(2026-11-08, Options > Metadata와 연결별 값 5키, 별도 연결은 연결 대화상자, [swing-options.md](../swing-options.md)). 조사 당시: 없음(Swing은 두 키를 내부에서 읽기만) | 중간 |
 | Drivers (`drivers`) | ui.editors.connection `PrefPageDrivers` | | `ui.drivers.version.update`, `driver.selector.showCommercialDrivers`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호), `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.offline` | 있음(2026-11-08, Options > Drivers: 폴더, 파일 원본, 버전 갱신, 프록시. 프록시 사용자·비밀번호는 보안 저장소, [swing-options.md](../swing-options.md)). 오프라인 모드는 드라이버 관리자. 조사 당시: 오프라인 모드만 | 낮음 |
 | Maven (`drivers.maven`) | ui.editors.connection | | Maven 저장소 목록 | 있음(2026-11-08, Options > Drivers의 Maven 저장소: 사용 여부, 추가·편집·제거. 순서 바꾸기 없음, [swing-options.md](../swing-options.md)). 드라이버의 Maven 아티팩트 추가·편집은 드라이버 편집 창(B-C18). 조사 당시: 없음 | 낮음 |
 | Classpath (`drivers.classpath`) | ui.editors.connection | | `ui.drivers.global.libraries` | 있음(2026-11-08, Driver Manager > Global Libraries…, [swing-driver-manager.md](../swing-driver-manager.md) "전역 라이브러리"). 조사 당시: 없음 | 낮음 |
 | Network Profiles (전역 `globalNetworkProfiles`, 프로젝트별) | ui.editors.connection | ✓ | 네트워크 프로필(SSH·프록시 묶음) | 있음 (2026-11-08): Tools > Network Profiles…(전역·프로젝트, `NetworkProfilesDialog`)와 연결 대화상자의 Network profile 고르기([swing-conn-advanced.md](../swing-conn-advanced.md) "네트워크 프로필"). 조사 당시: 일부(읽기 전용 표시) | 낮음 |
-| Connection Types (`connectionTypes`) | ui.editors.connection `PrefPageConnectionTypes` | ✓ | 연결 종류 만들기·고치기(이름, 색, 자동 커밋, 실행 확인, 데이터 변경 확인, 스마트 커밋, 유휴 트랜잭션·연결 자동 종료) | 있음(2026-11-07, Options > Connection Types, [swing-options.md](../swing-options.md)): 스마트 커밋만 뺌(효과 없음). 자동 커밋 변경은 열린 세션에 적용하며 커밋하지 않은 변경을 물음. 조사 당시: 일부(고르기만) | 중간 (운영 연결의 "실행 확인" 같은 안전 장치를 새로 정할 수 없음) |
+| Connection Types (`connectionTypes`) | ui.editors.connection `PrefPageConnectionTypes` | ✓ | 연결 종류 만들기·고치기(이름, 색, 자동 커밋, 실행 확인, 데이터 변경 확인, 스마트 커밋, 유휴 트랜잭션·연결 자동 종료) | 있음(2026-11-07, Options > Connection Types, [swing-options.md](../swing-options.md)). 2026-11-07에 뺀 스마트 커밋·되돌리기도 2026-11-08 더함(`ConnectionTypesPage.java`:101-102, [connection-lifecycle.md](../connection-lifecycle.md) "스마트 커밋"). 자동 커밋 변경은 열린 세션에 적용하며 커밋하지 않은 변경을 물음. 조사 당시: 일부(고르기만) | 중간 (운영 연결의 "실행 확인" 같은 안전 장치를 새로 정할 수 없음) |
 | Navigator (`navigator`, 연결별 `Database Navigator`) | ui.navigator `PrefPageDatabaseNavigator` | ✓ | `navigator.*` 25개(호스트 표시, 설명, 통계, 정렬, 자식 수, 드라이버별 묶기, 연결 시 펼치기, 필터 복원, 긴 목록 가져오기 크기, 더블클릭 동작 등) | 일부(2026-11-08, Options > Object Explorer: 정렬 3키, [swing-options.md](../swing-options.md)). 나머지는 Swing에서 읽는 곳 없음 | 낮음 (탐색기 영역에서 자세히) |
-| Confirmations | core `PrefPageConfirmations` | | `com.seizia.chromite.core.confirm.*` | 없음 | 낮음 |
+| Confirmations | core `PrefPageConfirmations` | | `com.seizia.chromite.core.confirm.*` | 일부(2026-11-08 다시 확인: 위험한 문·DROP 확인 2키는 Options, A-C27). 조사 당시: 없음 | 낮음 |
 | Notifications | core `PrefPageNotifications` | | `notifications.enabled`, `notifications.closeDelay`, `notifications.soundEnabled`, `notifications.soundVolume`, `agent.long.operation.notify`, `agent.long.operation.timeout` | 일부(2026-11-08, Options > Notifications: 긴 작업 알림 2키, [swing-options.md](../swing-options.md)). 알림 창 키 4개는 Swing 알림 창이 읽지 않음 | 낮음 |
 | Miscellaneous | core `PrefPageMiscellaneous`(+macOS 마우스) | | `ui.show.holiday.decorations` | 없음 | 낮음 |
-| Expert Settings (`network.expert`) | core `PrefPageNetworkExpert` | | `connections.debugNetworkConnections`, `connections.preferredIPType`, `connections.preferredIPAddresses` | 없음(적용 코드도 없음, S13) | 낮음 |
+| Expert Settings (`network.expert`) | core `PrefPageNetworkExpert` | | `connections.debugNetworkConnections`, `connections.preferredIPType`, `connections.preferredIPAddresses` | 없음(화면 없음. 시작할 때 적용하는 코드는 2026-11-08 S13으로 생김(`ChromiteSwingApplication.java`:297)). 조사 당시: 적용 코드도 없음 | 낮음 |
 | Data Transfer | data.transfer.ui `PrefPageDataTransfer` | ✓ | `nameCaseMapping`, `replaceMapping`, `maxTypeLengthMapping`, `reconnectToLastDatabase`, `captureUnsavedTaskLogs`, `fallbackOutputDirectory` | 일부(2026-11-08, Options > Data Transfer와 연결별 값: 매핑 3키, [swing-options.md](../swing-options.md)). 나머지 3키는 읽는 곳 없음 | 낮음 |
 | GIS Viewer | data.gis.view | | `gis.view.defaultSRID`, `gis.view.maxObjectsRender`, `gis.view.minZoomLevel` | 없음(GIS 보기 없음, swt-removal.md:106) | 낮음 |
 | Altibase / CUBRID / H2 / Mimer SQL | ext.*.ui | 일부 ✓ | Altibase: `altibase.explain.plan.type`, `altibase.dbms.output`, `altibase.plan.prefix`. CUBRID: `pref.dbms.output`, `pref.dbms.output.buffer.size`, `statistic*` 4개, `oid_navigator`. H2: 허용 클래스(보안). Mimer: `mimer.confirm.drop_cascade.*`, `mimer.gis.*` 4개 | 일부(2026-11-08, Options > Altibase·CUBRID·Mimer SQL, Altibase·CUBRID는 연결별 값도, [swing-options.md](../swing-options.md)). Altibase 실행 계획 방식은 두지 않음(계획 보기가 문장을 실행). CUBRID 통계·OID 키, H2는 없음 | 낮음 |
@@ -235,11 +235,13 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 | 상태 | 수 |
 |---|---|
-| 있음 | 11 (A-C21, A-C22, A-U1, A-U2, A-U4, A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
-| 일부 | 14 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1, A-X4(2026-11-08)) |
-| 없음 | 32 (A-C1~A-C4, A-C7, A-C11~A-C13, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X6) |
+| 있음 | 34 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C7, A-C8, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
+| 일부 | 15 (A-C5, A-C6, A-C9, A-C10, A-C13, A-C14, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
+| 없음 | 22 (A-C11, A-C12, A-C19, A-C24~A-C26, A-C28, A-U10, A-U11, A-S3~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
-| 조용히 끊김 | 14 (S1~S14, 조사 당시. 그 뒤 S1·S2·S3·S4·S5·S6·S7 수정함, S14는 수정했지만 macOS 실행 확인 필요. S10·S11은 안전 쪽으로 실패) |
+| 조용히 끊김 | 0 (조사 당시 14: S1~S14. 모두 수정함, S14는 macOS 실행 확인 안 함) |
+
+2026-11-08 다시 셈: 위 수는 표의 지금 상태 칸으로 센 것이다("수정함"은 있음으로 셈). 조사 당시 수는 있음 11, 일부 12, 없음 34, 조용히 끊김 14, 의도적 제외 2였다.
 
 §3의 `DBPPlatformUI` 차이(`openEntityEditor`, HTML 복사, `readAndDispatchEvents`, `createLoadingService`)는 모두 일부·낮음이고 위 수에 넣지 않았다.
 
@@ -250,6 +252,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 2026-11-08 갱신: 연결별 설정 화면을 만들었다(연결 대화상자 Options > Settings: Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata,
 Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identification·데이터 형식 프로필을 더해 추가함 37, 규칙상 두지 않음 4, 다음 작업 55개다.
 같은 날 전역 라이브러리(`ui.drivers.global.libraries`)를 Driver Manager > Global Libraries…로 만들어 추가함 38, 다음 작업 54개다.
+2026-11-08 다시 셈(§6 표의 줄 45개, 지금 "Swing" 칸 기준): 있음 12, 일부 19, 없음 12, 해당 키 효과 없음 1(Dictionaries), 의도적 제외에 준함 1(DataDam).
 
 ## 8. 영향이 큰 순서 (없음·조용히 끊김)
 
@@ -258,8 +261,8 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 3. **S5** 비밀번호를 저장하지 않은 SQL Server(SQL 인증)·Oracle 연결이 질문 없이 취소됨. 2026-11-07 실행으로 확인한 뒤 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
 4. **S4** 연결 이벤트·셸 인증·내보내기 후 셸 명령이 승인 없이 실행됨(보안). 2026-11-07 수정함([shell-command-approval.md](../shell-command-approval.md)).
 5. **A-C1/A-C3/A-C2** 커밋·롤백 명령, 보류 트랜잭션 창, 열린 트랜잭션 표시가 없음(수동 커밋 연결을 안전하게 쓰기 어렵다). 2026-11-07 A-C2 수정함(#97), A-C1·A-C3·A-C4 수정함([transactions.md](../transactions.md)).
-6. **S6** Windows 인증서 저장소 기본 사용이 빠져 사내 CA SSL 연결이 실패할 수 있음.
-7. **S14** macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 가능성(실행 확인 필요).
+6. **S6** Windows 인증서 저장소 기본 사용이 빠져 사내 CA SSL 연결이 실패할 수 있음. 2026-11-07 수정함(#104).
+7. **S14** macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 가능성(실행 확인 필요). 2026-11-07 수정함(#104), macOS 실행 확인 안 함.
 8. **Transactions·Connection Types 설정 화면 없음**(§6) — 트랜잭션 자동 종료 시간, 스마트 커밋, 운영 연결의 실행 확인 같은 안전 설정을 정할 수 없음.
    2026-11-07 연결 유형 편집(Options > Connection Types)을 더함. Transactions 페이지의 키는 Swing에서 효과가 없음을 확인([swing-options.md](../swing-options.md)).
 9. **A-P1** SWT에서 정한 전역 설정이 Swing으로 넘어오지 않음.
@@ -271,3 +274,7 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 - S9(BouncyCastle)는 어떤 기능이 깨지는지 호출 경로를 찾지 못했다.
 - §6의 키 목록은 페이지 클래스가 직접 참조하는 상수를 자동으로 풀어 만든 것이다. 상위 클래스·위임 클래스·구성 관리자 화면 안의 키는 빠졌을 수 있다.
 - 다른 영역(SQL 편집기, 결과 표, 탐색기, 데이터 전송)과 겹치는 항목(A-C10, §6의 편집기·결과 페이지)은 해당 영역 보고서에서 더 자세히 봐야 한다.
+
+## 변경 이력
+
+- 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): A-C20 → 있음, A-C27·A-X6 → 일부, A-S16 → 일부, §2 `UIServiceSQL`·§4 S8·S9·S12·S13 줄 → 있음, §6 Editors·Confirmations·Transactions → 일부와 A-C5·§6 Connections·Connection Types·Expert Settings 비고 갱신. §7 집계를 행 상태로 다시 셈(있음 34, 일부 15, 없음 22, 의도적 제외 2, 조용히 끊김 0)과 §6 줄 단위 집계 추가.
