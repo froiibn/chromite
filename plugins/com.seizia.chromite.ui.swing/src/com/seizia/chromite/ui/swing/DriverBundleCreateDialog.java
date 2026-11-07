@@ -59,6 +59,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/driver-offline-bundle.md)
+ * - 2026-11-08 묶음 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DriverBundleCreateDialog extends JDialog {
 
@@ -296,8 +297,8 @@ final class DriverBundleCreateDialog extends JDialog {
         if (!file.getName().toLowerCase(Locale.ENGLISH).endsWith("." + DriverOfflineBundle.FILE_EXTENSION)) { //$NON-NLS-1$
             file = new File(file.getParentFile(), file.getName() + "." + DriverOfflineBundle.FILE_EXTENSION); //$NON-NLS-1$
         }
-        if (file.exists() && JOptionPane.showConfirmDialog(this, NLS.bind(DriverManagerMessages.driverbundle_overwrite, file),
-            DriverManagerMessages.driverbundle_save_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (file.exists() && !SwingPlatformUI.confirmChange(this, NLS.bind(DriverManagerMessages.driverbundle_overwrite, file),
+            DriverManagerMessages.driverbundle_save_title, CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
             return null;
         }
         return file.toPath();

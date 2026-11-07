@@ -51,6 +51,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.SchedulerMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -100,6 +101,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-08 삭제 확인은 삭제 / 취소, 지금 실행은 지금 실행 / 취소 단추(취소가 기본), 스크립트 미리 보기도 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class SchedulerCommands {
 
@@ -374,8 +376,8 @@ final class SchedulerCommands {
         if (!canDelete(node) || object == null) {
             return;
         }
-        if (JOptionPane.showConfirmDialog(owner, NLS.bind(SchedulerMessages.scheduler_delete_question, object.getName()),
-            SchedulerMessages.scheduler_delete_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(owner, NLS.bind(SchedulerMessages.scheduler_delete_question, object.getName()),
+            SchedulerMessages.scheduler_delete_title, NavigatorMessages.navigator_delete_button, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         Backend backend;
@@ -614,8 +616,8 @@ final class SchedulerCommands {
             panel.add(new JLabel(SchedulerMessages.scheduler_run_scheduler_stopped, UiIcons.get("warning"), SwingConstants.LEADING), //$NON-NLS-1$
                 BorderLayout.SOUTH);
         }
-        if (JOptionPane.showConfirmDialog(owner, panel, SchedulerMessages.scheduler_run_now_title, JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) {
+        if (!SwingPlatformUI.confirmChange(owner, panel, SchedulerMessages.scheduler_run_now_title, SchedulerMessages.scheduler_run_now_title,
+            JOptionPane.PLAIN_MESSAGE)) {
             return;
         }
         boolean wait = waitCheck.isSelected();

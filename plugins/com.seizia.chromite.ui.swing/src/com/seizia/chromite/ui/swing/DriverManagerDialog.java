@@ -81,6 +81,7 @@ import java.util.TreeMap;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
  * - 2026-11-07 오프라인 묶음 만들기·설치 단추 추가 (docs/chromite/driver-offline-bundle.md)
+ * - 2026-11-08 드라이버 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DriverManagerDialog extends JDialog {
 
@@ -435,8 +436,8 @@ final class DriverManagerDialog extends JDialog {
         }
         String question = NLS.bind(driver.isCustom() ? DriverManagerMessages.drivermgr_delete_custom : DriverManagerMessages.drivermgr_delete_builtin,
             driver.getName());
-        if (JOptionPane.showConfirmDialog(this, question, DriverManagerMessages.drivermgr_delete_title, JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(this, question, DriverManagerMessages.drivermgr_delete_title, DriverManagerMessages.drivermgr_button_delete,
+            JOptionPane.QUESTION_MESSAGE)) {
             return;
         }
         // Custom drivers are removed, predefined ones only disabled (DataSourceProviderDescriptor.removeDriver)

@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -73,6 +74,7 @@ import java.util.Objects;
  *   모르는 머리말 줄에서 기준값 블록만 바꾼다 (docs/chromite/ai-agent.md "Query Library 기준값")
  * - 2026-11-07 ④ 공유: 저장할 때 다른 사람의 저장을 알아채고 묻기, 디스크에서 바뀐 쿼리 알림·다시 읽기, Save As는 평범한 .sql로 내보내기
  *   (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 Save As .sql 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -403,8 +405,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 JOptionPane.INFORMATION_MESSAGE);
             return false;
         }
-        if (Files.exists(target) && JOptionPane.showConfirmDialog(parent, NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
-            ToolsMessages.library_save_sql_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (Files.exists(target) && !SwingPlatformUI.confirmChange(parent, NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
+            ToolsMessages.library_save_sql_title, CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
             return false;
         }
         try {

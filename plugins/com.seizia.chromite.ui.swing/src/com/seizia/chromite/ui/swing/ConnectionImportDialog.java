@@ -49,6 +49,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
+ * - 2026-11-08 취소를 기본 단추로 하고 처음 포커스를 둠: Enter로 기존 연결이 바뀌지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ConnectionImportDialog extends JDialog {
 
@@ -153,11 +154,13 @@ final class ConnectionImportDialog extends JDialog {
         content.add(scrollPane, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
         setContentPane(content);
-        getRootPane().setDefaultButton(importButton);
+        // Cancel is the default button: Import can replace existing connections (conflicts set to Replace)
+        getRootPane().setDefaultButton(cancelButton);
         getRootPane().registerKeyboardAction(e -> dispose(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         pack();
         setLocationRelativeTo(owner);
+        SwingUtilities.invokeLater(cancelButton::requestFocusInWindow);
     }
 
     /**

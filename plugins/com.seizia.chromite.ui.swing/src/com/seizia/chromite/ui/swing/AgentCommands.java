@@ -71,6 +71,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-08 삭제 확인은 삭제 / 취소 단추(취소가 기본), 스크립트 미리 보기도 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class AgentCommands {
 
@@ -217,8 +218,8 @@ final class AgentCommands {
         if (!canDelete(node) || object == null) {
             return;
         }
-        if (JOptionPane.showConfirmDialog(owner, NLS.bind(AgentMessages.agent_delete_question, object.getName()),
-            AgentMessages.agent_delete_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(owner, NLS.bind(AgentMessages.agent_delete_question, object.getName()),
+            AgentMessages.agent_delete_title, AgentMessages.agent_button_delete, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         String statement;

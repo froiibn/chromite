@@ -85,6 +85,7 @@ import java.util.Map;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 권한 안내 줄과 권한에 따른 명령 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 세션 명령 확인은 명령 이름 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -426,9 +427,7 @@ final class SessionManagerPanel extends JPanel {
         String question = NLS.bind(single ? ConnectionMessages.sessions_action_confirm_one : ConnectionMessages.sessions_action_confirm_many,
             new Object[] {action.label(), idList, action.toolTip()});
         Object message = immediateCheck == null ? question : new Object[] {question, immediateCheck};
-        int answer = JOptionPane.showConfirmDialog(this, message, action.label(), JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(this, message, action.label(), action.label(), JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         Map<String, Object> options = new LinkedHashMap<>(action.options());

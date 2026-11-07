@@ -84,6 +84,7 @@ import java.util.Map;
  * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 화면 문구를 인용한 주석을 고침(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-07 새 대화와 "이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음({@link #getCurrentDatabase(SqlEditorPanel)},
  *   쿼리 창마다 별도 연결, docs/chromite/transactions.md)
+ * - 2026-11-08 대화 삭제 확인은 대화 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -405,9 +406,9 @@ final class AiAssistantPanel extends JPanel {
         if (current == null || runningJob != null) {
             return;
         }
-        if (!current.isEmpty() && JOptionPane.showConfirmDialog(this,
+        if (!current.isEmpty() && !SwingPlatformUI.confirmChange(this,
             NLS.bind(AiMessages.ai_delete_chat_question, current.getTitle()), AiMessages.ai_delete_chat,
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION) {
+            AiMessages.ai_delete_chat, JOptionPane.QUESTION_MESSAGE)) {
             return;
         }
         chats.remove(current);

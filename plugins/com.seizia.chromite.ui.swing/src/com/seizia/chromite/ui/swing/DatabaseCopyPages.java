@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -94,6 +95,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 테이블 복사: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 데이터베이스 노드: 여러 스키마의 원본이 같은 대상 테이블로 가는 매핑을 막음 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 TRUNCATE 확인은 잘라내기 / 취소, 다시 만들기 확인은 삭제 후 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DatabaseCopyPages {
 
@@ -229,9 +231,9 @@ final class DatabaseCopyPages {
                     truncated.add(DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI));
                 }
             }
-            if (!truncated.isEmpty() && JOptionPane.showConfirmDialog(wizard,
+            if (!truncated.isEmpty() && !SwingPlatformUI.confirmChange(wizard,
                 NLS.bind(DbCopyMessages.confirm_truncate, String.join("\n", truncated)),
-                wizard.getTitle(), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+                wizard.getTitle(), ObjectMaintenanceMessages.objmaint_truncate_button, JOptionPane.WARNING_MESSAGE)) {
                 return null;
             }
         }
@@ -1045,9 +1047,9 @@ final class DatabaseCopyPages {
                     }
                 });
             } else if (columnIndex == 2 && value instanceof DatabaseMappingType type && type != mapping.getMappingType()) {
-                if (type == DatabaseMappingType.recreate && JOptionPane.showConfirmDialog(wizard,
+                if (type == DatabaseMappingType.recreate && !SwingPlatformUI.confirmChange(wizard,
                     NLS.bind(DbCopyMessages.confirm_recreate, mapping.getTargetName()),
-                    wizard.getTitle(), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+                    wizard.getTitle(), DbCopyMessages.mapping_type_recreate, JOptionPane.WARNING_MESSAGE)) {
                     return;
                 }
                 changeMapping(monitor -> DatabaseCopyMappings.setTableMappingType(monitor, mapping, type));
