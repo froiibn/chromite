@@ -20,18 +20,28 @@ package com.seizia.chromite.tools.transfer.processor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.DBRProcessDescriptor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRShellCommand;
 import com.seizia.chromite.model.task.DBTTask;
-import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
 import com.seizia.chromite.tools.transfer.IDataTransferEventProcessor;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
 import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Data transfer "execute process" step: runs a shell command when the transfer finishes.
+ *
+ * 변경 이력:
+ * - 2026-11-07 명령 승인: 승인 서비스가 없으면 승인 없이 실행하던 것을 {@link UIServiceShellCommands#validate}로 바꿔
+ *   실행하지 않게 함(fail closed). 연결에 묶이지 않는 단계라 승인을 기억하지 않고 매번 묻는다. 대화상자 문구를 NLS로 옮김
+ *   (docs/chromite/shell-command-approval.md)
+ */
 public class ExecuteCommandEventProcessor implements IDataTransferEventProcessor<StreamTransferConsumer> {
     public static final String ID = "executeCommand";
     public static final String PROP_COMMAND = "command";
@@ -45,10 +55,13 @@ public class ExecuteCommandEventProcessor implements IDataTransferEventProcessor
         final DBRShellCommand command = new DBRShellCommand(commandLine);
         command.setWorkingDirectory(workingDirectory);
 
-        UIServiceShellCommands shellCommandsService = DBWorkbench.getService(UIServiceShellCommands.class);
-        if (shellCommandsService != null) {
-            shellCommandsService.validateByUser(command, Map.of("Context", "task completion"));
+        Map<String, String> approvalContext = new LinkedHashMap<>();
+        if (task != null) {
+            approvalContext.put(DTMessages.data_transfer_shell_command_context_task, task.getName());
         }
+        approvalContext.put(ModelMessages.model_shell_command_context_event, DTMessages.data_transfer_shell_command_event_finished);
+        // No approval scope: the step is not tied to a connection, so the user is asked on every run
+        UIServiceShellCommands.validate(command, null, approvalContext);
 
         final DBRProcessDescriptor processDescriptor = new DBRProcessDescriptor(command);
         processDescriptor.execute();

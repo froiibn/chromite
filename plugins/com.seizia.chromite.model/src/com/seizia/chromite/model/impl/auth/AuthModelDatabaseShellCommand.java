@@ -23,10 +23,10 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.DBRProcessDescriptor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRShellCommand;
-import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
 import org.jkiss.utils.CommonUtils;
 
@@ -39,6 +39,11 @@ import java.util.Properties;
  *
  * The username is stored like the native model; the command is stored as an auth property.
  * No password is ever persisted - it is resolved on each connect from the command's stdout.
+ *
+ * 변경 이력:
+ * - 2026-11-07 명령 승인: 승인 서비스가 없으면 승인 없이 실행하던 것을 {@link UIServiceShellCommands#validate}로 바꿔
+ *   실행하지 않게 함(fail closed), 승인을 연결 범위로 기억, 승인 대화상자 문구를 ModelMessages로 옮김
+ *   (docs/chromite/shell-command-approval.md)
  */
 public class AuthModelDatabaseShellCommand<CREDENTIALS extends AuthModelDatabaseShellCommandCredentials>
     extends AuthModelDatabaseNative<CREDENTIALS> {
@@ -113,13 +118,11 @@ public class AuthModelDatabaseShellCommand<CREDENTIALS extends AuthModelDatabase
         command.setEnabled(true);
         command.setWaitProcessFinish(true);
         command.setWorkingDirectory(credentials.getWorkingDirectory());
-        UIServiceShellCommands shellCommandsService = DBWorkbench.getService(UIServiceShellCommands.class);
-        if (shellCommandsService != null) {
-            Map<String, String> approvalContext = new LinkedHashMap<>();
-            approvalContext.put("Project", container.getProject().getName());
-            approvalContext.put("Connection", container.getName());
-            shellCommandsService.validateByUser(command, approvalContext);
-        }
+        Map<String, String> approvalContext = new LinkedHashMap<>();
+        approvalContext.put(ModelMessages.model_shell_command_context_project, container.getProject().getName());
+        approvalContext.put(ModelMessages.model_shell_command_context_connection, container.getName());
+        approvalContext.put(ModelMessages.model_shell_command_context_event, ModelMessages.model_shell_command_event_password);
+        UIServiceShellCommands.validate(command, UIServiceShellCommands.getConnectionScope(container), approvalContext);
         DBRProcessDescriptor processDescriptor = new DBRProcessDescriptor(command, container.getVariablesResolver(true));
         try {
             processDescriptor.execute();

@@ -26,6 +26,9 @@
         <service name="com.seizia.chromite.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
         <!-- Reminder and notice of idle open transactions (IdleTransactionMonitor); without it the monitor neither reminds nor rolls back -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceIdleTransactions" class="com.seizia.chromite.ui.swing.SwingIdleTransactionService"/>
+        <!-- Asks before running shell commands from saved settings (connection events, password command, data transfer step);
+             the SWT product registered UIServiceShellCommandsImpl. Without it the model refuses to run them. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceShellCommands" class="com.seizia.chromite.ui.swing.SwingShellCommandsService"/>
     </extension>
 
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'
