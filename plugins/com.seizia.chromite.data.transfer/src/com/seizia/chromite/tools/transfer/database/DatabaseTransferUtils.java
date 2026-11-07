@@ -53,6 +53,8 @@ import java.util.*;
 * 변경 이력:
 * - 2026-11-07 Chromite: 새 테이블(구조 DDL)에 원본 테이블의 기본 키를 만듦(ALTER TABLE … ADD PRIMARY KEY, 키 열은 NOT NULL).
 *   이전에는 열만 만들어 복사한 테이블에 기본 키가 없었다 (docs/chromite/swing-data-transfer.md)
+* - 2026-11-08 Chromite: 구조 DDL이 실패한 뒤 자동 생성 SQL로 대상을 만들거나 바꿀지 묻는 확인을 경고 확인으로 물음(아니요가 기본 단추)
+*   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
 */
 public class DatabaseTransferUtils {
 
@@ -226,7 +228,8 @@ public class DatabaseTransferUtils {
                 DBWorkbench.getPlatformUI().showError("Can't create or update target table", null, e);
                 if (!DBWorkbench.getPlatformUI().confirmAction(
                     "Generate DDL automatically",
-                    "Do you want to create or update target object with auto-generated SQL script?")) {
+                    "Do you want to create or update target object with auto-generated SQL script?",
+                    true)) {
                     throw new DBException("Target table create or update was canceled");
                 }
             }

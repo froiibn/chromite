@@ -295,14 +295,14 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   폐쇄망(`#closed-networks`), 프로시저 디버거(`#debugger`), 서버 관리(`#administration`, Altibase 줄 포함), 비밀번호(`#passwords`), 오픈 소스(`#open-source`).
   순서와 문구 출처는 2026-11-07에 승인된 둘러보기이고, 문장을 줄이기만 하고 새 주장은 넣지 않았다. 앵커 id는 그대로다.
 - 다운로드 자리: 첫 화면의 "다운로드" 단추가 `#download`(다운로드 블록)로 바로 간다. 무대가 길어서(1440×900에서 약 24화면) 다운로드 블록은 무대 바로 뒤에 둔다.
-  다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다. 예전 `h1`(지원 DB 문장)은 첫 화면 마지막 문장이 되고, 다운로드 블록 제목은 `h2` "Windows와 macOS용 Chromite 받기".
+  다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다. 예전 `h1`(지원 DB 문장)은 첫 화면 마지막 문장이 되고(2026-11-08부터 드라이버 수 문장, 아래 "데이터베이스 지원 문구"), 다운로드 블록 제목은 `h2` "Windows와 macOS용 Chromite 받기".
 - 장면 구조: `section.scene` 안에 `div.pin`(제목 `.scene-head`, 그림 `.scene-media`, 짧은 문장 목록 `ul.slot`). 넓은 앱 화면은 위에서 아래로(`.scene-wide`),
   세로로 긴 화면·대화상자·저장소 카드는 글 옆에(`.scene-side`, 860px 아래에서는 위에서 아래로).
 - 움직임(`assets/stage.js`): 장면이 화면보다 길고(문장 수에 따라 190~370vh) `.pin`이 `position: sticky`로 한 화면 높이에 머문다. 장면 안의 스크롤 위치가 진행도 p(0~1)이고
   모든 움직임이 p의 함수라서 되돌려 스크롤하면 거꾸로 움직이고, 중간에서 새로 고쳐도 그 자리 모습이 바로 나온다.
   - 무엇이 움직이는지는 페이지의 `data-t`에 적는다. 예: `data-t="s 1 1.7 .03 .17; x 0% -56% .03 .17"`(p가 .03→.17일 때 배율 1→1.7, 가로 이동 0→-56%).
     속성은 `o`(불투명도), `x`·`y`(이동, 단위 포함), `s`(배율), `r`(`rotateX`, 도). 언어별 화면 사진의 위치가 달라서 확대 목표를 페이지마다 적는다.
-  - 첫 화면: 이름과 단추가 위로 사라지는 동안 앱 창이 기울어진 채(34°, 0.84배) 아래에서 올라와 평평하게 놓이고, 마지막에 지원 DB 문장이 나타난다.
+  - 첫 화면: 이름과 단추가 위로 사라지는 동안 앱 창이 기울어진 채(34°, 0.84배) 아래에서 올라와 평평하게 놓이고, 마지막에 지원 문장(드라이버 수)이 나타난다.
   - 기능 장면: 그림은 테두리(`.frame`, `overflow: hidden`) 안에서만 확대·이동한다(앱 창의 가장자리를 넘지 않음). 확대 위치는 원점 0,0 기준 이동으로 적고,
     이동 값을 -(배율-1)~0 사이에 두어 확대 중에도 틀 안이 비지 않는다.
     트랜잭션: 상태 줄의 열린 트랜잭션 칸과 커밋/롤백 메뉴로 확대했다가 돌아온다. 쿼리 라이브러리: Git 루트("팀 쿼리 main ↑1")에 확대된 채 시작해 전체로 물러난다.
@@ -328,6 +328,25 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   Messages API(가짜 키)로 찍었고, 도구 호출과 결과는 실제 DB 값이며 답의 글은 시험용 제공자가 돌려준 것이라고 그림 설명에 적었다(무대에서도 그대로).
   잠금 화면은 시험 PostgreSQL의 임시 DB에서 `psql` 세션이 행을 잡고 쿼리 창의 UPDATE가 기다리게 만들었고, 디버거 화면은 pldebugger를 넣은 임시 컨테이너로 찍었다. WebP 품질 82, 장당 16~82KB.
 
+### 데이터베이스 지원 문구 (2026-11-08)
+
+사용자 의견: "우리 도구는 4개 db만 다루지 않는다. 드라이버만 미리 세팅되어있을 뿐이다. 오히려 이 4개 db만 된다는 오해를 살 수 있다. 이건 특장점이 아니다".
+
+- 근거: `plugins/*/plugin.xml` 44개에 `<driver id=…>` 요소가 181개 있고(XML로 읽어 셈. 정규식으로는 주석 속 3개를 더해 184), 그중 `label`이 있는
+  드라이버 정의가 144개다. 나머지 37개는 옛 드라이버 ID를 데이터 소스 종류에 잇는 이름 없는 항목이다. 44개 플러그인은 모두 `db`·`drivers.public`·`swing` 기능에 들어 있다.
+  이름이 있는 드라이버를 제품 단위로 묶으면(같은 제품의 옛·클라우드·임베디드 판, CSV·DBF·JDBCX·Avatica·Arrow Flight 같은 파일·연합 드라이버 제외) 약 92개라
+  "100가지가 넘는 데이터베이스"는 확실히 참이라고 할 수 없다. 그래서 사이트는 "100가지가 넘는 드라이버"라고 쓴다(144개, 옛·사용 중단 표시 약 18개를 빼도 120개 이상).
+  드라이버 관리자에서 사용자가 JDBC 드라이버를 새로 더할 수 있다(`DriverManagerDialog.createDriver`).
+- 미리 설치된 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, [drivers.md](drivers.md))는 편의로 적고 한계처럼 적지 않는다. 나머지는 처음 연결할 때 받거나 오프라인 묶음으로 설치한다.
+- 첫 화면 문장, 홈의 `description`·`og:description`·`twitter:description`, 공유 이미지와 모든 페이지의 그림 설명: 드라이버 수와 "여러 데이터베이스".
+- 서버 관리 장면 제목은 DB 수가 아니라 도구("DBA 도구가 처음부터 들어 있습니다" / "DBA tools built in")이고, 설명에서 깊은 관리 도구가 지금 다루는 DB(SQL Server, Oracle,
+  PostgreSQL, MariaDB, Altibase는 세션과 잠금)와 다른 DB도 연결해 쿼리·개체 탐색을 한다는 것을 한 번 적는다. 관리 코드에는 MySQL 경로도 있지만
+  ([swing-admin-tools.md](swing-admin-tools.md)) 시험은 MariaDB로만 했으므로 사이트에는 MariaDB만 적었다. 마지막 줄 "Altibase도 연결합니다"는 다른 DB는 안 된다는 뜻으로 읽혀 "Altibase는 …"로 바꿨다.
+- Chromite Agent 장면: 스키마·데이터·쿼리 도구는 모든 연결(도구 카탈로그의 G), 진단 도구(실행 계획, 잠금, 상태 점검)는 SQL Server, PostgreSQL, MariaDB·MySQL, Oracle
+  ([ai-agent.md](ai-agent.md) "도구 카탈로그"의 MS·PG·MY·OR). 이 장면은 375px에서 문장 목록이 원래도 화면 아래로 조금 넘친다(영어 약 24px). 설명을 길게 쓰면 더 넘쳐서
+  예전 설명과 같은 줄 수로 줄였다(헤드리스 Edge로 잼). 넘침 자체는 이 작업 범위 밖이라 그대로 두었다.
+- 변경 내역(0.1.0의 "JDBC 드라이버 내장", 0.1.1의 MySQL 드라이버 안내)은 그 버전에서 있었던 일이라 고치지 않았다.
+
 ### 파비콘과 공유 이미지 (2026-11-07)
 
 사용자 요청: "웹사이트는 파비콘과 og 이미지도 만들어서 반영한다".
@@ -335,6 +354,9 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - 파일: `/favicon.ico`(16·32·48px), `/assets/icons/icon-32.png`, `icon-192.png`, `apple-touch-icon.png`(180px, 불투명 남색 바탕), 기존 `/assets/chromite-icon.svg`,
   공유 이미지 `/assets/og/og-ko.png`, `og-en.png`(1200×630). 생성기 `tools/branding/gen_site_images.py`가 `gen_app_icons.py`의 크기별 아이콘 그림(16px는 16px용
   그림)과 `chromite_logo_pack/chromite_wordmark_light.svg`, 사이트의 Pretendard 부분 집합, 홈의 실제 앱 화면(`assets/shots/<언어>-light.webp`) 일부로 만든다.
+  공유 이미지 문구(`OG_COPY`)는 "100가지가 넘는 드라이버로 / 여러 데이터베이스를 / 한 창에서 다룹니다", "More than 100 drivers, / many databases, / one window"이고,
+  모든 페이지의 `og:image:alt`·`twitter:image:alt`가 이 문구를 그대로 적는다. 문구를 바꾸면 생성기를 다시 실행하고 alt 7쪽을 같이 고친다.
+  새 한글은 Pretendard 부분 집합에 있는 글자인지 확인한다(없는 글자는 빈 네모로 그려진다).
   색은 디자인 토큰(바탕 `#F7F8FA`, 글 `#1E1F22`·`#6C707E`, 테두리 `#DFE1E5`)이고 그라데이션 바탕은 없다.
 - 모든 페이지(`/`, `/ko|en/`, 변경 내역, 개인정보)의 `<head>`: 아이콘 링크 5개, `<link rel="canonical">`(https://chromite.seizia.com/… ), `og:type`·`og:site_name`·`og:title`·
   `og:description`·`og:url`·`og:image`(절대 https 주소)·`og:image:type`·`og:image:width`·`og:image:height`·`og:image:alt`·`og:locale`(`ko_KR`/`en_US`)·
@@ -416,6 +438,12 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   JavaScript 끔에서 다운로드 상자는 `static`(두 카드와 파일 위치 안내). 페이지 높이: 움직일 때 약 22,800px(1440×900), 움직이지 않을 때 약 10,900px.
   장면마다 진행도 0·25·50·75·100%(한국어 9장면, 영어 0·50·100%), 375px 한 장씩, 밝은 테마 첫 화면·무대에서 다운로드로 넘어가는 곳, 무대 전체를 100px씩
   스크롤한 GIF(720×450, 7.5MB): `D:\Tools\_scratch\site-apple-scroll\proto\`. 움직임 줄이기·JavaScript 끔 전체 페이지: `D:\Tools\_scratch\site-apple-scroll\check\`.
+- 데이터베이스 지원 문구(2026-11-08): `-Down` 뒤 리허설을 처음부터 실행(`rehearse.ps1 -Tag v0.1.1 -DataGeneration 2`, 실제 0.1.1 파일) `ALL CHECKS OK`, 사이트 파일 42개.
+  헤드리스 Edge(CDP, 자기 프로필)로 한국어·영어 × 밝은·어두운 × 1440×900·375×812 홈: 가로 스크롤 없음, 깨진 이미지 없음, 콘솔·CSP 오류 없음(정보 수준 지연 로드 알림만),
+  Pretendard 400·600 로드, 첫 화면·Chromite Agent·폐쇄망·서버 관리·"데이터베이스" 줄과 설명 태그 3개가 새 문구. 변경 내역·개인정보 4쪽과 `/`의 `og:image:alt`·`twitter:image:alt`가 새 문구,
+  `/assets/og/og-ko.png`·`og-en.png` 200 `image/png`(120,391·137,400 B). 새 한글이 Pretendard 부분 집합에 모두 있음(없는 글자를 .notdef 그림과 비교해 찾는 방법, `漢`으로 검출 확인).
+  Chromite Agent 장면은 375px에서 문장 목록 끝이 화면 아래로 넘치는 양을 예전 문구와 비교해 같거나 적게 맞췄다(영어 24px, 예전과 같음).
+  화면 사진: `D:\Tools\_scratch\chromite-site-db-wording\shots\`.
 
 ## 확인하지 못한 것
 
@@ -423,7 +451,12 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   주체 문자열은 Turbrix `docs/SIGNING.md`(같은 Azure 계정의 게시자)에서 가져왔다. 다르면 확인 단계가 실패한다(의도한 동작). 첫 실행에서 확인한다.
 - 서명된 설치 프로그램의 SmartScreen 동작, 대화형 설치 화면의 나머지 단계(구성 요소·마침), 바탕 화면 바로 가기 유지(바탕 화면이 OneDrive 폴더라 시험하지 않음).
 - `%LOCALAPPDATA%\Programs\Chromite` 기본 위치 설치(시험은 `/D=`로 D: 폴더에만).
-- macOS zip·dmg의 새 이름으로 서명·공증 작업 실행, Mac에서 `codesign`/`spctl` 확인 경로.
+- macOS zip(업데이트 파일)을 Mac에서 풀어 확인하는 것. dmg는 아래처럼 확인했다.
+- **macOS dmg 설치·실행(2026-11-08, `macos-smoke.yml`, [ci.md](ci.md) "macOS 설치·실행 시험")**: v0.1.1 초안의 `Chromite-0.1.1-arm64.dmg`를 `macos-15` 러너에서 격리 속성을 붙여
+  설치했다. `codesign --verify --deep --strict`, `spctl`(앱 execute·dmg open, `source=Notarized Developer ID`), `stapler validate`(앱·dmg), `syspolicy_check distribution`은 통과했고
+  첫 실행 때 Gatekeeper가 "Apple checked it for malicious software and none was detected" 질문을 보였다. **앱은 창 없이 멈춘다**(제품 결함: 런처가 JVM을 AppKit
+  메인 스레드에서 돌려 AWT와 교착, ci.md의 원인 분석). 그래서 v0.1.1의 macOS 파일은 받아도 쓸 수 없다(공개·배포 여부는 사용자가 정한다).
+  앱 메뉴 이름이 "Chromite-swing"(`Info.plist`의 `CFBundleName`)으로 보이는 것도 확인했다(크래시 대화상자 문구).
 - 실제 서버 배포(사용자 승인 전이라 하지 않음).
 - 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
 
@@ -469,3 +502,7 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-08 홈을 스크롤 무대로 바꿈("사이트" > "스크롤 무대", 사용자 요청 "애플 제품 페이지 같은" 스크롤 연동 움직임): 어두운 무대에 첫 화면과 특장점 8장면,
   `assets/stage.js`(진행도에 묶인 `transform`·`opacity`, `data-t` 시간표), 다운로드 블록은 무대 뒤 `#download`(첫 화면의 다운로드 단추가 바로 감).
   기능 둘러보기(`assets/tour.js`, 스크롤 스냅, 목록, `.tour`·`.feature*`·`.shot` CSS)와 밝은 테마 기능 화면 14장을 지움. `site.js`·`lang.js`·피드 계약과 앵커는 그대로. 배포하지 않음.
+- 2026-11-08 사이트가 네다섯 DB만 다루는 것처럼 읽히던 문구를 고침("사이트" > "데이터베이스 지원 문구", 사용자 의견): 첫 화면 문장, 홈의 설명 태그 3개, 공유 이미지 2장(생성기 `OG_COPY`)과
+  모든 페이지의 그림 설명, 서버 관리 장면 제목·설명과 Altibase 줄, Chromite Agent 장면 설명, 폐쇄망 장면 첫 줄, 다운로드 블록 "데이터베이스" 줄. 기준은 드라이버 정의 144개("100가지가 넘는 드라이버").
+  아이콘은 다시 만들어도 같은 바이트라 바뀌지 않음. 배포하지 않음.
+- 2026-11-08 "확인하지 못한 것"의 macOS 항목을 `macos-smoke.yml` 결과로 바꿈: v0.1.1 dmg 서명·공증·Gatekeeper 통과, 앱은 시작하지 못함(제품 결함, [ci.md](ci.md)).

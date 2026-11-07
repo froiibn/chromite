@@ -21,21 +21,30 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPContextProvider;
 import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLParametersProviderBase;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryParameter;
+import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
-import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.sql.registry.SQLQueryParameterRegistry;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
-import java.math.BigDecimal;
+import javax.swing.SwingUtilities;
+import java.awt.Component;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -45,11 +54,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 
 /**
- * Query Library 쿼리의 매개변수 바인딩: {@code :name}은 prepared statement의 {@code ?}로 바꿔 값을 바인딩하고,
- * {@code ${name}} 변수는 값을 SQL 글자로 끼운다.
+ * 쿼리 창의 매개변수 바인딩. Query Library 쿼리(실행 창, 예약 실행)와 기록에서 다시 연 바인딩 실행({@link Recorded})은 {@code :name}을
+ * prepared statement의 {@code ?}로 바꿔 값을 바인딩하고, {@code ${name}} 변수는 값을 SQL 글자로 끼운다. 평범한 쿼리 창의 스크립트가
+ * 실행 중에 만난 매개변수는 엔진의 매개변수 제공자({@link ScriptProvider})가 같은 대화상자({@link QueryParameterDialog})로 묻고 값을 SQL 글자로 넣는다.
  *
  * 설계:
  * <ul>
@@ -65,6 +76,16 @@ import java.util.regex.Matcher;
  *     <li>쿼리의 기본 DB/스키마가 있으면 실행 전에 연결의 기본 문맥에 설정한다(쿼리 창의 DB/스키마 콤보와 같은 API).</li>
  *     <li>실행 전(EDT)의 매개변수 목록은 연결 없이 만들어야 하므로 {@link #detect}가 같은 규칙을 간단히 따르는 문자 단위 검사로 찾는다.
  *     실행할 때 파서가 찾은 이름에 값이 없으면 실행하지 않고 오류를 낸다.</li>
+ *     <li>결과를 다시 읽을 때(필터, 서버 정렬, 다음 페이지, Export Data)도 같은 값을 바인딩한다({@link #createDataContainer}). 데이터 컨테이너는
+ *     {@code ?} 글자가 아니라 {@code :name}이 남은 글자를 갖고, 필터를 넣은 최종 글자에서 매개변수를 다시 찾아 이름으로 바인딩한다
+ *     ({@code SQLQueryDataContainer.ParameterBinder}). 필터·정렬이 쿼리를 감싸거나 ORDER BY를 바꿔도 {@code ?}의 순서에 기대지 않는다.</li>
+ *     <li>Query History에는 {@code :name}이 남은 글자와 바인딩한 값·형식을 남긴다({@link #getHistoryText}, {@link #getHistoryParameters}).
+ *     기록에서 Execute하면 같은 값을 다시 바인딩하고, Open한 창은 실행할 때 그 값을 채운 대화상자로 묻는다({@link Recorded}).
+ *     처음에는 값을 SQL 리터럴로 넣은 글자를 남겼는데, 리터럴은 서버마다 뜻이 달라(Oracle의 날짜 문자열은 NLS 설정에 따름, SQL Server에는 불리언
+ *     리터럴이 없음) 다시 실행하면 처음과 다르게 동작할 수 있었다.</li>
+ *     <li>평범한 쿼리 창의 {@code :name}은 SWT와 같이 SQL 글자다(사용자가 {@code 'abc'}처럼 따옴표까지 입력, {@code IN (1,2)}처럼 SQL 조각도 됨).
+ *     문장마다 스크립트 변수({@code @set})가 값을 줄 수 있어 엔진이 실행 중에 값이 없는 매개변수만 묻는다. 그래서 이 경로는 바인딩으로 바꾸지 않고
+ *     대화상자만 합쳤다. 값은 DBeaver의 {@link SQLQueryParameterRegistry}(작업 공간의 {@code parameter-bindings.xml})에 이름별로 기억한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -73,15 +94,27 @@ import java.util.regex.Matcher;
  *   기록에서 다시 열거나 실행할 수 없던 문제 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 쿼리 창의 매개변수 제공자({@link ScriptProvider}, 예전 {@code SqlParameterDialog.Provider})를 옮겨 와 매개변수 입력을 하나로 합침,
+ *   결과를 다시 읽을 때도 바인딩({@link #createDataContainer}), 기록에는 리터럴 대신 {@code :name} 글자와 값({@link #getHistoryParameters}, {@link Recorded})
+ *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
-final class QueryParameterBinder implements SqlParameterBinding {
+final class QueryParameterBinder implements SqlParameterBinding, SQLQueryDataContainer.ParameterBinder {
+
+    private static final Log log = Log.getLog(QueryParameterBinder.class);
 
     /**
      * Values bound to the {@code ?} markers of one rewritten query, in order; kept as the query's data.
      *
-     * @param historyText the query with the values written in as SQL literals, for the query history
+     * @param namedText  the query with its {@code :name} markers (variables written in): results are read again from it,
+     *                   and the query history keeps it
+     * @param parameters the bound parameters with their values, for the query history
      */
-    private record BoundValues(@NotNull List<Object> values, @NotNull List<QueryLibraryParameter.Type> types, @NotNull String historyText) {
+    private record BoundValues(
+        @NotNull List<Object> values,
+        @NotNull List<QueryLibraryParameter.Type> types,
+        @NotNull String namedText,
+        @NotNull List<QueryHistory.Parameter> parameters
+    ) {
     }
 
     // Lower-case name -> value as typed
@@ -97,12 +130,25 @@ final class QueryParameterBinder implements SqlParameterBinding {
      * @param values values by parameter name
      */
     QueryParameterBinder(@NotNull QueryLibraryItem item, @NotNull Map<String, String> values) {
+        this(item.getParameters(), values, item.getDatabase(), item.getSchema());
+    }
+
+    /**
+     * @param definitions parameter types (not changed)
+     * @param values      values by parameter name
+     */
+    private QueryParameterBinder(
+        @NotNull List<QueryLibraryParameter> definitions,
+        @NotNull Map<String, String> values,
+        @Nullable String database,
+        @Nullable String schema
+    ) {
         values.forEach((name, value) -> this.values.put(name.toLowerCase(Locale.ROOT), value));
-        for (QueryLibraryParameter parameter : item.getParameters()) {
-            definitions.put(parameter.getName().toLowerCase(Locale.ROOT), parameter.copy());
+        for (QueryLibraryParameter parameter : definitions) {
+            this.definitions.put(parameter.getName().toLowerCase(Locale.ROOT), parameter.copy());
         }
-        this.database = item.getDatabase();
-        this.schema = item.getSchema();
+        this.database = database;
+        this.schema = schema;
     }
 
     /**
@@ -157,7 +203,42 @@ final class QueryParameterBinder implements SqlParameterBinding {
     @NotNull
     @Override
     public String getHistoryText(@NotNull SQLQuery query) {
-        return query.getData() instanceof BoundValues bound ? bound.historyText() : query.getText();
+        return query.getData() instanceof BoundValues bound ? bound.namedText() : query.getText();
+    }
+
+    @Nullable
+    @Override
+    public List<QueryHistory.Parameter> getHistoryParameters(@NotNull SQLQuery query) {
+        return query.getData() instanceof BoundValues bound ? bound.parameters() : null;
+    }
+
+    @NotNull
+    @Override
+    public SQLQueryDataContainer createDataContainer(
+        @NotNull DBPContextProvider contextProvider,
+        @NotNull SQLQuery query,
+        @NotNull SQLScriptContext scriptContext,
+        @NotNull Log log
+    ) {
+        if (!(query.getData() instanceof BoundValues bound)) {
+            return SqlParameterBinding.super.createDataContainer(contextProvider, query, scriptContext, log);
+        }
+        // The text with the ":name" markers: a re-read finds them again in the filtered text and binds them by name
+        SQLQuery namedQuery = new SQLQuery(query.getDataSource(), bound.namedText(), query.getOffset(), query.getLength());
+        SQLQueryDataContainer container = new SQLQueryDataContainer(contextProvider, namedQuery, scriptContext, log);
+        container.setParameterBinder(this);
+        return container;
+    }
+
+    @NotNull
+    @Override
+    public SQLQuery prepareQuery(@NotNull SQLQuery query) throws DBException {
+        return CommonUtils.isEmpty(query.getParameters()) ? query : rewrite(query);
+    }
+
+    @Override
+    public void bindParameters(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException {
+        bind(statement, query);
     }
 
     /**
@@ -170,10 +251,11 @@ final class QueryParameterBinder implements SqlParameterBinding {
         parameters.sort(Comparator.comparingInt(SQLQueryParameter::getTokenOffset));
         String text = query.getText();
         StringBuilder newText = new StringBuilder(text.length());
-        // The same text with the values instead of the markers: what the query history keeps and can run again
-        StringBuilder historyText = new StringBuilder(text.length());
+        // The same text with the ":name" markers kept: re-reads and the query history bind the values to it again
+        StringBuilder namedText = new StringBuilder(text.length());
         List<Object> boundValues = new ArrayList<>();
         List<QueryLibraryParameter.Type> boundTypes = new ArrayList<>();
+        Map<String, QueryHistory.Parameter> boundParameters = new LinkedHashMap<>();
         int position = 0;
         for (SQLQueryParameter parameter : parameters) {
             int start = parameter.getTokenOffset();
@@ -191,10 +273,10 @@ final class QueryParameterBinder implements SqlParameterBinding {
             }
             String value = values.get(key);
             newText.append(text, position, start);
-            historyText.append(text, position, start);
+            namedText.append(text, position, start);
             if (isTextSubstitution(originalName)) {
                 newText.append(CommonUtils.notEmpty(value));
-                historyText.append(CommonUtils.notEmpty(value));
+                namedText.append(CommonUtils.notEmpty(value));
             } else {
                 QueryLibraryParameter definition = definitions.get(key);
                 QueryLibraryParameter.Type type = definition != null ? definition.getType() : QueryLibraryParameter.Type.TEXT;
@@ -207,42 +289,29 @@ final class QueryParameterBinder implements SqlParameterBinding {
                 boundValues.add(boundValue);
                 boundTypes.add(type);
                 newText.append('?');
-                historyText.append(toSqlLiteral(query.getDataSource(), boundValue, value));
+                namedText.append(text, start, end);
+                boundParameters.putIfAbsent(key, new QueryHistory.Parameter(parameter.getName(), value, getHistoryType(type).getId()));
             }
             position = end;
         }
         newText.append(text, position, text.length());
-        historyText.append(text, position, text.length());
+        namedText.append(text, position, text.length());
         SQLQuery rewritten = new SQLQuery(query.getDataSource(), newText.toString(), query.getOffset(), query.getLength());
         if (!boundValues.isEmpty()) {
-            rewritten.setData(new BoundValues(boundValues, boundTypes, historyText.toString()));
+            rewritten.setData(new BoundValues(boundValues, boundTypes, namedText.toString(), List.copyOf(boundParameters.values())));
         }
         return rewritten;
     }
 
     /**
-     * A bound value as SQL text for the query history: numbers as they are, strings, dates and times as quoted strings
-     * (the dialect's quoting; the servers convert them as for the bound value), booleans as {@code TRUE}/{@code FALSE}
-     * (SQL Server has no boolean literal: such a history entry fails there with an error rather than comparing wrongly).
-     *
-     * @param typed the value as typed (dates and times keep the user's format)
+     * The type a value is bound with: choice and lookup values are text (their lists are not recorded in the history).
      */
     @NotNull
-    private static String toSqlLiteral(@Nullable DBPDataSource dataSource, @Nullable Object value, @Nullable String typed) {
-        if (value == null) {
-            return "NULL"; //$NON-NLS-1$
-        }
-        if (value instanceof BigDecimal decimal) {
-            return decimal.toPlainString();
-        }
-        if (value instanceof Number) {
-            return value.toString();
-        }
-        if (value instanceof Boolean flag) {
-            return flag ? "TRUE" : "FALSE"; //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        String text = value instanceof String string ? string : CommonUtils.notEmpty(typed).trim();
-        return dataSource != null ? SQLUtils.quoteString(dataSource, text) : "'" + text.replace("'", "''") + "'"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+    private static QueryLibraryParameter.Type getHistoryType(@NotNull QueryLibraryParameter.Type type) {
+        return switch (type) {
+            case NUMBER, DATE, DATETIME, BOOLEAN -> type;
+            default -> QueryLibraryParameter.Type.TEXT;
+        };
     }
 
     /**
@@ -380,5 +449,176 @@ final class QueryParameterBinder implements SqlParameterBinding {
 
     private static boolean isNameStart(char c) {
         return Character.isLetter(c) || c == '_';
+    }
+
+    //////////////////////////////////////////////////////////
+    // A bound run reopened from the query history
+
+    /**
+     * The bound values of a run reopened from the query history (Query History: Open, Execute). The window binds the
+     * {@code :name} parameters of its text as values again, with the recorded types; a parameter the text got since then
+     * is text. Values typed in the dialog replace the recorded ones for the window's next runs.
+     */
+    static final class Recorded {
+        private final List<QueryLibraryParameter> definitions = new ArrayList<>();
+        private final Map<String, String> values = new LinkedHashMap<>();
+
+        Recorded(@NotNull List<QueryHistory.Parameter> parameters) {
+            for (QueryHistory.Parameter parameter : parameters) {
+                QueryLibraryParameter definition = new QueryLibraryParameter(parameter.name());
+                definition.setType(QueryLibraryParameter.Type.fromId(parameter.type()));
+                definitions.add(definition);
+                values.put(parameter.name(), CommonUtils.notEmpty(parameter.value()));
+            }
+        }
+
+        /**
+         * Makes the binding of a run (EDT).
+         *
+         * @param title     the window name, in the dialog title
+         * @param container the connection (lookup values), or null
+         * @param sql       the text that runs
+         * @param ask       false to use the recorded values without asking when every parameter has one (History: Execute)
+         * @return the binding, or null if canceled
+         */
+        @Nullable
+        SqlParameterBinding prepareExecution(
+            @NotNull Component parent,
+            @NotNull String title,
+            @Nullable DBPDataSourceContainer container,
+            @NotNull String sql,
+            boolean ask
+        ) {
+            Map<String, Boolean> kinds = detect(sql);
+            if (kinds.isEmpty()) {
+                return SqlParameterBinding.NONE;
+            }
+            List<QueryLibraryParameter> fields = QueryParameterDefinitionsDialog.merge(definitions, kinds);
+            if (ask || !hasValues(fields)) {
+                Map<String, String> answer = QueryParameterDialog.open(parent, title, fields, kinds, values, container);
+                if (answer == null) {
+                    return null;
+                }
+                values.putAll(answer);
+            }
+            return new QueryParameterBinder(fields, values, null, null);
+        }
+
+        private boolean hasValues(@NotNull List<QueryLibraryParameter> fields) {
+            for (QueryLibraryParameter field : fields) {
+                if (!values.containsKey(field.getName())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Parameters of a query window's script (values as SQL text)
+
+    /**
+     * The engine's parameter provider of a query window: the engine calls it in the job thread only for the parameters
+     * of a statement that script variables and defaults do not fill. It asks in the EDT ({@link QueryParameterDialog},
+     * script mode) and waits; the engine writes the values into the statement as SQL text (SWT:
+     * {@code SQLEditorParametersProvider} + {@code SQLQueryParameterBindDialog}).
+     */
+    static final class ScriptProvider extends SQLParametersProviderBase {
+        private final Component parent;
+
+        ScriptProvider(@NotNull Component parent) {
+            this.parent = parent;
+        }
+
+        @Nullable
+        @Override
+        protected Boolean collectAndAssignVariables(
+            @NotNull SQLScriptContext scriptContext,
+            @NotNull SQLQuery sqlStatement,
+            @NotNull List<SQLQueryParameter> parameters,
+            @NotNull Supplier<DBDDataReceiver> dataReceiverSupplier
+        ) {
+            QueryParameterDialog.Action[] action = {QueryParameterDialog.Action.CANCEL};
+            try {
+                SwingUtilities.invokeAndWait(() -> action[0] = askScriptValues(parent, sqlStatement, parameters));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            } catch (InvocationTargetException e) {
+                log.error("Parameter dialog failed", e.getTargetException());
+                return false;
+            }
+            switch (action[0]) {
+                case RUN -> {
+                    // Values are remembered for the rest of the script, as in the SWT editor
+                    for (SQLQueryParameter parameter : parameters) {
+                        if (parameter.isNamed()) {
+                            if (scriptContext.hasVariable(parameter.getName())) {
+                                scriptContext.setVariable(parameter.getName(), parameter.getValue());
+                            } else if (scriptContext.hasVariable(parameter.getVarName())) {
+                                scriptContext.setVariable(parameter.getVarName(), parameter.getValue());
+                            } else {
+                                scriptContext.setParameterDefaultValue(parameter.getName(), parameter.getValue());
+                            }
+                        }
+                    }
+                    return true;
+                }
+                case IGNORE -> {
+                    scriptContext.setIgnoreParameters(true);
+                    return null;
+                }
+                default -> {
+                    return false;
+                }
+            }
+        }
+    }
+
+    /**
+     * Asks for the values of a statement's parameters (EDT) and, on Execute, assigns them and remembers them by name.
+     * Parameters with the same name are one field, in the order the names first appear; unnamed ones ({@code ?}) are
+     * numbered.
+     */
+    @NotNull
+    private static QueryParameterDialog.Action askScriptValues(
+        @Nullable Component parent,
+        @NotNull SQLQuery query,
+        @NotNull List<SQLQueryParameter> parameters
+    ) {
+        Map<String, List<SQLQueryParameter>> parametersByName = new LinkedHashMap<>();
+        for (SQLQueryParameter parameter : parameters) {
+            String key = parameter.isNamed() ? parameter.getName() : "?" + (parameter.getOrdinalPosition() + 1); //$NON-NLS-1$
+            parametersByName.computeIfAbsent(key, k -> new ArrayList<>()).add(parameter);
+        }
+        SQLQueryParameterRegistry registry = SQLQueryParameterRegistry.getInstance();
+        List<QueryParameterDialog.Field> fields = new ArrayList<>();
+        Map<String, String> initialValues = new LinkedHashMap<>();
+        for (Map.Entry<String, List<SQLQueryParameter>> entry : parametersByName.entrySet()) {
+            SQLQueryParameter first = entry.getValue().getFirst();
+            String value = first.getValue();
+            if (value == null && first.isNamed()) {
+                SQLQueryParameterRegistry.ParameterInfo saved = registry.getParameter(first.getName());
+                value = saved != null ? saved.value : null;
+            }
+            initialValues.put(entry.getKey(), CommonUtils.notEmpty(value));
+            String marker = first.isNamed() ? CommonUtils.notEmpty(first.getOriginalName()) : "?"; //$NON-NLS-1$
+            fields.add(new QueryParameterDialog.Field(new QueryLibraryParameter(entry.getKey()), marker, true));
+        }
+        QueryParameterDialog.Answer answer = QueryParameterDialog.openForScript(parent, query.getText(), fields, initialValues);
+        if (answer.action() == QueryParameterDialog.Action.RUN) {
+            for (Map.Entry<String, List<SQLQueryParameter>> entry : parametersByName.entrySet()) {
+                String value = answer.values().getOrDefault(entry.getKey(), ""); //$NON-NLS-1$
+                for (SQLQueryParameter parameter : entry.getValue()) {
+                    parameter.setValue(value);
+                    parameter.setVariableSet(!CommonUtils.isEmpty(value));
+                    if (parameter.isNamed()) {
+                        registry.setParameter(parameter.getName(), value);
+                    }
+                }
+            }
+            registry.save();
+        }
+        return answer.action();
     }
 }

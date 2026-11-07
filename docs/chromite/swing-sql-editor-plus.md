@@ -34,7 +34,7 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | `.../QueryHistory.java`, `QueryHistoryDialog.java` | 쿼리 기록 저장소(작업 공간 `.metadata/chromite-query-history.jsonl`)와 Query History 창 |
 | `.../SqlEditCommands.java` | Format SQL, 대소문자, 주석, 들여쓰기, Edit > Advanced 메뉴, 서식 설정 |
 | `.../SqlTemplates.java`, `SqlTemplatesPage.java` | 템플릿 저장소·넣기와 Options의 Templates 탭 |
-| `.../SqlParameterDialog.java` | 매개변수 값 대화상자와 엔진의 매개변수 제공자 |
+| `.../QueryParameterDialog.java`, `QueryParameterBinder.java` | 매개변수 값 대화상자(스크립트 모드)와 엔진의 매개변수 제공자(`QueryParameterBinder.ScriptProvider`). 2026-11-08에 Query Library와 합침(처음에는 `SqlParameterDialog.java`) |
 | `SqlEditorPanel`, `MainFrame`, `OptionsDialog`, `QueryStatusLine`, `SqlCompletionPopup` | 위 기능을 잇는 작은 연결 지점(아래 "upstream·기존 코드 대비 변경점") |
 | `tools/branding/gen_ui_icons.py`, `icons/ui/*/*/plan.svg`, `history.svg` | 실행 계획·쿼리 기록 아이콘(생성기에 추가, 두 팩 × 두 테마) |
 | `icons/ui/*/*/plan-*.svg`, `copy.svg` | 그래픽 계획의 연산자 아이콘 17개와 원본 보기의 복사 아이콘(같은 생성기) |
@@ -174,7 +174,7 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 | SQL Server | 전체: 연산자 아이콘(Key Lookup 포함), 연산자 비용 %, 예상·실제 행(모든 실행), 어긋남 표시, 경고 배지 전부, 누락 인덱스 머리말, 일괄 처리 기준 문장 비용 | showplan XML |
 | PostgreSQL | 전체: 비용 %(Total-Cost에서 자식 비용을 뺀 값), 예상·실제 행(× Actual-Loops), 어긋남 표시, 넘침 경고, 문장 상자(SQL 첫 단어) | EXPLAIN XML |
 | MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식. 자기 비용이 없는 중간 노드는 0%, 하위 트리 비용은 자식 비용의 합 — 2026-11-07 모델 수정, [model-fixes.md](model-fixes.md)). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
-| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 실제 계획 없음 | DBMS_XPLAN 글자 |
+| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 적응 계획은 쓰는 행만(아래 "Oracle 적응 계획"). 실제 계획 없음 | DBMS_XPLAN 글자 |
 | 그 밖의 DB | 공통 모델(`DBCPlanNode` 이름·개체·조건, `DBCPlanCostNode` 비용·행). 아이콘은 연산 이름의 낱말로 | 모델이 남긴 원문 |
 
 #### 모델 변경
@@ -187,6 +187,24 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - `OracleExecutionPlan`(DBeaver 파일, Chromite 수정 표시와 Javadoc): 계획 행을 읽은 뒤 같은 세션·같은 STATEMENT_ID로 `DBMS_XPLAN.DISPLAY` 글자를 읽어 원문으로 둔다.
   `getPlanSourceDataFormat`은 그 글자가 있으면 TEXT, 없으면 예전처럼 RESULT_SET이다. 이 값을 읽는 다른 코드는 없다(검색으로 확인: `getPlanSourceData` 호출은 원본 보기뿐).
 
+#### Oracle 적응 계획 (2026-11-08, 후속 과제 #71)
+
+- 증상: 적응 계획(adaptive plan)의 트리·그림에 쓰이지 않는 행이 함께 보였다. 예: `t1 JOIN t2 … WHERE t1.grp = 3 AND t1.val LIKE 'v1%'`의 PLAN_TABLE은 9행
+  (`HASH JOIN` 아래 `NESTED LOOPS` ×2, `STATISTICS COLLECTOR`, `INDEX (RANGE SCAN)`, `TABLE ACCESS (BY INDEX ROWID)`, `TABLE ACCESS (FULL)` ×2)인데
+  `DBMS_XPLAN.DISPLAY` 기본 출력(원본 보기)은 4행(`SELECT STATEMENT` → `HASH JOIN` → `T1`, `T2` 전체 읽기)이다. `+ADAPTIVE`로 보면 나머지 5행은 '-'(쓰지 않음)다.
+- 원인: `OracleExecutionPlan.readPlanNodes`는 PLAN_TABLE의 모든 행을 PARENT_ID로 이었다. 어느 행을 쓰는지는 첫 계획 행(ID 1)의 `OTHER_XML` 안
+  `<display_map>`에 있다: 행마다 `op`(PLAN_TABLE ID), `dis`(보이는 번호), `par`(보이는 부모의 번호), `skp`(1이면 쓰지 않음). 쓰는 행의 부모는 PARENT_ID가 아니라
+  `par`일 수 있다(위 예에서 `T1`의 PARENT_ID는 `STATISTICS COLLECTOR`, 보이는 부모는 `HASH JOIN`).
+- 고친 것: 계획 행을 다 읽은 뒤 `display_map`에 `skp="1"` 행이 있으면 그 행을 빼고 나머지를 `par`의 노드 아래로 다시 잇는다(`hideInactiveRows`,
+  `OraclePlanNode.clearNested`·`linkToDisplayParent`). 문장 행(ID 0)은 맵에 없어 그대로다. 비용 합계(`updateCosts`)는 다시 이은 뒤에 한다.
+  모델에서 거르므로 트리·그림 보기와 Chromite Agent의 계획 도구(`PlanTools`)가 같은 계획을 본다. 원본 보기(DBMS_XPLAN 글자)는 원래 쓰는 행만 보였다.
+- 적응 계획이 아니거나 쓰지 않는 행이 없으면, 또는 `OTHER_XML`을 읽지 못하면 예전처럼 모든 행을 PARENT_ID로 잇는다.
+- `EXPLAIN PLAN`의 적응 계획은 실행 전 기본 계획(옵티마이저가 처음 고른 쪽)이다. 실행 중 통계 수집기가 다른 조인으로 바꿀 수 있지만 그것은 실제 계획(V$SQL_PLAN)에서만 보이며
+  Oracle 실제 계획은 아직 없다(위 표).
+- 확인(2026-11-08, Oracle 23ai, 시험 스키마 `CHR_RESULTS_PLAN`의 t1 10,000행·t2 50,000행): 트리 `SELECT STATEMENT`(77) → `HASH JOIN`(77) → `TABLE ACCESS (FULL) T1`(9),
+  `TABLE ACCESS (FULL) T2`(68). 그림은 `HASH JOIN` 0%·`T1` 12%·`T2` 88%. 적응 계획이 아닌 `WHERE id = 7`은 `TABLE ACCESS (BY INDEX ROWID)` → `INDEX (UNIQUE SCAN)` 그대로.
+  같은 계획의 PLAN_TABLE 9행과 display_map은 `sqlplus`로 읽어 맞춰 보았다.
+
 ### 쿼리 기록
 
 - DBeaver 쿼리 관리자(QM)를 다시 쓰지 않은 이유: CE의 `QMUtils.getEventBrowser`는 `QMRegistryImpl`의 기본 이벤트 브라우저(이번 실행의 메모리 기록)이고,
@@ -194,7 +212,8 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - 그래서 편집기가 실행한 문장만 엔진의 문장 끝 이벤트(`SQLQueryListener.onEndQuery`)에서 `QueryHistory`에 남긴다:
   시각, 연결 ID·이름, 기본 DB/스키마(실행 문맥의 기본값, 서버 호출 없음), 문장, 실행 시간, 행 수(가져온 행 또는 바뀐 행), 결과(성공·실패·취소), 오류 메시지.
   문장은 엔진이 서버에 보낸 글자다: 매개변수는 넣은 값으로 바뀌어 있고(다시 실행하면 같은 값), SQL Server `GO` 배치는 배치 하나가 한 기록이다.
-  Query Library가 값을 바인딩한 문장은 서버에 `?`로 가므로 대신 값을 SQL 리터럴로 넣은 글자를 남긴다([swing-query-library.md](swing-query-library.md) "매개변수 바인딩").
+  Query Library가 값을 바인딩한 문장은 서버에 `?`로 가므로 대신 `:name`이 남은 글자와 바인딩한 값을 남기고, 기록에서 Execute하면 같은 값을 다시 바인딩한다
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로", 2026-11-08 전에는 값을 SQL 리터럴로 넣은 글자).
   실제 계획 결과 집합은 행 수에 넣지 않는다.
 - 저장은 작업 공간 `.metadata/chromite-query-history.jsonl`에 기록마다 JSON 한 줄 덧붙이기다. 실행할 때마다 파일 전체를 다시 쓰지 않고,
   비정상 종료되어도 그때까지 남는다. 처음 읽을 때 보관 기간이 지난 기록과 깨진 줄을 빼고 다시 쓴다. 최대 20,000개.
@@ -228,14 +247,16 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 
 ### 매개변수
 
-- SWT의 `SQLEditorParametersProvider` + `SQLQueryParameterBindDialog`를 옮겼다. 엔진의 `SQLScriptContext`에 `SqlParameterDialog.Provider`
-  (`SQLParametersProviderBase`)를 넘기면, 스크립트 변수·기본값으로 채워지지 않은 매개변수가 있을 때만 엔진이 부른다(작업 스레드에서 EDT 대화상자를 열고 기다림).
+- SWT의 `SQLEditorParametersProvider` + `SQLQueryParameterBindDialog`를 옮겼다. 엔진의 `SQLScriptContext`에 `QueryParameterBinder.ScriptProvider`
+  (`SQLParametersProviderBase`, 2026-11-08 전에는 `SqlParameterDialog.Provider`)를 넘기면, 스크립트 변수·기본값으로 채워지지 않은 매개변수가 있을 때만
+  엔진이 부른다(작업 스레드에서 EDT 대화상자를 열고 기다림). 대화상자는 Query Library와 같은 `QueryParameterDialog`의 스크립트 모드다(위에 그 문장, 줄마다 입력란).
 - 값은 SWT와 같이 SQL 글자로 문장에 들어간다(문자열은 따옴표). 이름이 같은 매개변수는 한 줄. 마지막 값은 DBeaver의 `SQLQueryParameterRegistry`
   (`parameter-bindings.xml`)에 저장되어 다음에 미리 채워진다. 단추는 SWT와 같은 Execute, Ignore(이 스크립트 끝까지 매개변수 무시), Cancel.
 - 값이 저장되지 않던 근본 원인: `BasePlatformImpl.getLocalConfigurationFile`은 작업 공간 `.metadata/.config/<파일>` 경로를 돌려주는데
   폴더를 만들지 않고, 호출하는 쪽(매개변수 바인딩, 열·필터 상태 등)은 모두 그 파일을 바로 쓴다. SWT 제품에서는 다른 설정 저장이 먼저 폴더를 만들어 드러나지 않았고,
   Swing 제품의 새 작업 공간에서는 `NoSuchFileException`으로 저장되지 않았다(`.metadata/.log`). 호출하는 곳마다 고치지 않고 경로를 주는 쪽에서 폴더를 만든다.
-- 합칠 수 있는 것: 쿼리 라이브러리 작업(`query-library`)이 같은 시간에 따로 매개변수 입력을 만들고 있다. 두 작업이 합쳐진 뒤 한 대화상자로 합칠 수 있다.
+- 쿼리 라이브러리의 매개변수 입력과 하나로 합쳤다(2026-11-08, [swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
+  값이 SQL 글자로 들어가는 것, 값 기억, Execute / Ignore / Cancel은 그대로다. 표 대신 입력란이라 Enter가 Execute다.
 - Cancel: 엔진(`SQLQueryExecuteJob`)은 매개변수 채우기가 취소되면(`fillQueryParameters`가 false) 오류 없이 스크립트를 멈추고 Job은
   OK 상태("SQL job completed")로 끝난다. 실행 확인 대화상자의 취소도 같다. 그래서 상태 줄이 "Query executed successfully"였다.
   엔진이 이 두 경우를 `isCanceledByUser()`로 알리고, 편집기는 그때 취소 상태("Query was canceled", Messages에 "Query was canceled by user.")를 보인다.
@@ -261,14 +282,13 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - ~~그래픽 계획 도면~~: 2026-11-07 "실행 계획 세 보기"로 더함.
 - 원본 보기의 서식 맞춤(SQL Server showplan XML 들여쓰기): 요청이 "서버가 돌려준 그대로"라 넣지 않았다. 지금은 긴 줄을 화면에서만 접는다.
 - ~~MySQL/MariaDB 그래픽 보기의 중간 노드 비용~~: 2026-11-07 `MySQLPlanNodeJSON.getNodeCost`가 자식 비용을 소수로 더하도록 고침(`long`으로 더해 하위 트리 비용이 0,
-  뿌리에 문장 비용 전체가 몰렸다). [model-fixes.md](model-fixes.md) "MySQL/MariaDB 계획의 비용".
-- Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행(`STATISTICS COLLECTOR`, 대안 `HASH JOIN`)도 있어 DBeaver 모델의 트리·그림에 함께 보인다.
-  DBMS_XPLAN 글자(원본 보기)는 쓰이는 계획만 보인다. 모델이 `OTHER_XML`의 적응 계획 정보를 읽어야 해서 미뤘다.
+  뿌리에 문장 비용 전체가 몰렸다). [model-fixes.md](model-fixes.md) "MySQL/MariaDB 계획의 비용". 2026-11-08 다시 확인(MariaDB 11, `t1 JOIN t2`):
+  `nested_loop#1` 하위 트리 비용 0.205, `nested_loop#2` 0.981, 그림은 `t1` 17%·`t2` 83%(합 100%), 중간 노드 0%.
+- ~~Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행도 있어 트리·그림에 함께 보인다.~~ 2026-11-08 고침(위 "Oracle 적응 계획").
 - 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
 - MySQL/MariaDB 실제 계획: DBeaver MySQL 계획기는 `ANALYZE` 설정을 모른다. MariaDB `ANALYZE FORMAT=JSON` / MySQL `EXPLAIN ANALYZE`를 계획기에 넣는 일은
   `ext.mysql` 수정이 필요해 미뤘다(지금은 예상 계획을 "Estimated"로 표시).
 - 템플릿 변수의 같은 이름 동시 편집(linked mode)과 문맥 값 제안(테이블 이름 목록).
-- 매개변수 대화상자 통합(쿼리 라이브러리 작업과).
 - 매개변수 대화상자의 Cancel은 그 문장을 실행하지 않고 끝내지만, 엔진이 이를 오류나 취소로 알리지 않아 상태 줄은 "Query executed successfully"로 남는다(실행 엔진 `SQLQueryExecuteJob`의 결과 보고를 바꿔야 함).
 
 ## 확인 (2026-11-06)
@@ -325,3 +345,6 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-07 실행 계획 세 보기(사용자 결정): 그래픽(연산자 그림, 비용·행·경고·예상 어긋남), 트리, 원본(복사·저장) 보기 전환과 마지막 보기 기억.
   SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.
 - 2026-11-07 MySQL/MariaDB 계획의 중간 노드 비용(#70): 모델이 자식 비용을 소수로 더함. "미룬 일"의 항목을 닫음.
+- 2026-11-08 Oracle 적응 계획(#71): `OTHER_XML`의 display_map으로 쓰지 않는 행을 빼고 보이는 부모로 다시 이음. "미룬 일"의 항목을 닫음. #70을 MariaDB에서 다시 확인.
+- 2026-11-08 매개변수 대화상자를 Query Library의 `QueryParameterDialog`(스크립트 모드)로 합치고 `SqlParameterDialog`를 지움. 엔진 제공자는 `QueryParameterBinder.ScriptProvider`.
+  바인딩한 실행의 기록은 리터럴 대신 `:name` 글자와 값. "미룬 일"의 대화상자 통합 항목을 닫음.

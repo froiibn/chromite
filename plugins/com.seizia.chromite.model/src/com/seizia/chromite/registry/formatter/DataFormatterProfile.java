@@ -42,9 +42,10 @@ import java.util.Map;
  */
 public class DataFormatterProfile implements DBDDataFormatterProfile, DBPPreferenceListener {
 
-    private static final String PROP_LANGUAGE = "dataformat.profile.language"; //$NON-NLS-1$
-    private static final String PROP_COUNTRY = "dataformat.profile.country"; //$NON-NLS-1$
-    private static final String PROP_VARIANT = "dataformat.profile.variant"; //$NON-NLS-1$
+    // Public for editors that write a profile into a store without saving the store (a connection being edited)
+    public static final String PROP_LANGUAGE = "dataformat.profile.language"; //$NON-NLS-1$
+    public static final String PROP_COUNTRY = "dataformat.profile.country"; //$NON-NLS-1$
+    public static final String PROP_VARIANT = "dataformat.profile.variant"; //$NON-NLS-1$
     public static final String DATAFORMAT_PREFIX = "dataformat."; //$NON-NLS-1$
     public static final String DATAFORMAT_TYPE_PREFIX = DATAFORMAT_PREFIX + "type."; //$NON-NLS-1$
 

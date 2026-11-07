@@ -33,6 +33,7 @@ import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * 결과 그리드 열 머리글: 열 아이콘, 이름, 오른쪽 끝의 필터(깔때기)·정렬 아이콘(DataGrip 결과 그리드처럼).
@@ -53,6 +54,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 결과 필터 줄을 열별 필터로 바꿈 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 상태 줄 정렬 요약의 강조색 정렬 화살표 아이콘 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  */
 final class ResultSetHeaderRenderer implements TableCellRenderer {
 
@@ -190,12 +192,27 @@ final class ResultSetHeaderRenderer implements TableCellRenderer {
      */
     @NotNull
     static Icon createActiveFilterIcon() {
+        return createActiveIcon((g, box) -> paintFunnel(g, box, UIManager.getColor(ICON_ACTIVE_COLOR), true));
+    }
+
+    /**
+     * The sort arrow in the accent color (the active sort summary of the result viewer).
+     *
+     * @param direction 1 ascending, -1 descending
+     */
+    @NotNull
+    static Icon createActiveSortIcon(int direction) {
+        return createActiveIcon((g, box) -> paintSort(g, box, UIManager.getColor(ICON_ACTIVE_COLOR), direction));
+    }
+
+    @NotNull
+    private static Icon createActiveIcon(@NotNull BiConsumer<Graphics2D, Rectangle> painter) {
         return new Icon() {
             @Override
             public void paintIcon(Component c, Graphics g, int x, int y) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 try {
-                    paintFunnel(g2, new Rectangle(x, y, getIconWidth(), getIconHeight()), UIManager.getColor(ICON_ACTIVE_COLOR), true);
+                    painter.accept(g2, new Rectangle(x, y, getIconWidth(), getIconHeight()));
                 } finally {
                     g2.dispose();
                 }

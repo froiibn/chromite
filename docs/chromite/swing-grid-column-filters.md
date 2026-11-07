@@ -118,6 +118,7 @@ ResultSetViewerPanel (결과 하나)
 
 - 필터가 있을 때만 상태 줄(행 수 옆)에 강조색 깔때기와 "필터: 열1, 열2", ✕(모든 필터 지우기)를 보인다. 도구 설명은 전체 SQL 조건이다.
 - 줄을 새로 두지 않은 이유: 필터 줄을 없앤 자리에 다시 줄을 두면 결과 영역이 그만큼 줄고, 상태 줄은 이미 "(필터됨)" 행 수를 보이는 곳이라 함께 읽힌다.
+  (2026-11-08: 폭이 모자랄 때만 상태 줄이 두 줄로 늘어난다, 아래 "정렬과 쿼리의 ORDER BY".)
   어느 열에 필터가 있는지는 머리글의 강조색 깔때기로도 보인다.
 - 그리드 오른쪽 클릭의 "Filter by Value"와 "Clear Filter"는 그대로 두었다(Clear Filter = 모든 필터 지우기).
 
@@ -145,10 +146,79 @@ ResultSetViewerPanel (결과 하나)
   (`SELECT * FROM (원래 쿼리) z_q WHERE …`). SQL Server는 파생 테이블 안의 ORDER BY를 거부한다.
 - 수정: 드라이버 테이블 이름이 없으면 바인딩이 묶은 테이블 열의 테이블을 쓰고, 그 열 이름이 결과 열 이름과 같을 때만(별칭이 아닐 때, upstream #6927의 뜻) 원래 SELECT에 WHERE를 넣는다.
   PostgreSQL처럼 드라이버가 테이블 이름을 주는 경우는 그대로다.
-- 남은 것: 별칭·계산 열에 필터를 걸면 여전히 감싸므로 SQL Server에서 원래 쿼리에 ORDER BY가 있으면 실패한다(값 목록은 감싸기 전에 ORDER BY를 지우므로 된다).
-  감쌀 때 ORDER BY를 바깥으로 옮기는 것은 모델의 감싸기(`getWrappedFilterQuery`)를 바꾸는 일이라 남겼다.
-- 정렬 관찰(바꾸지 않음): 원래 쿼리에 ORDER BY가 있으면 머리글 정렬은 그 뒤에 덧붙는다(upstream `addOrderByClause`). 그래서 `ORDER BY id` 결과에서 다른 열 정렬은
-  보이는 순서를 바꾸지 않는다. 확인은 ORDER BY 없는 쿼리로 했다.
+- ~~남은 것: 별칭·계산 열에 필터를 걸면 여전히 감싸므로 SQL Server에서 원래 쿼리에 ORDER BY가 있으면 실패한다.~~ 2026-11-08 고침: 감쌀 때 ORDER BY를
+  바깥으로 옮긴다(아래 "정렬과 쿼리의 ORDER BY").
+- ~~정렬 관찰(바꾸지 않음): 원래 쿼리에 ORDER BY가 있으면 머리글 정렬은 그 뒤에 덧붙는다.~~ 2026-11-08 고침: 머리글 정렬이 쿼리의 ORDER BY를 바꾼다(아래).
+
+## 정렬과 쿼리의 ORDER BY (2026-11-08)
+
+후속 과제 #73(SQL Server 별칭·계산 열 필터)과 #75(머리글 정렬이 ORDER BY 뒤에 붙어 순서가 그대로)다.
+
+### 증상과 근본 원인
+
+- **#73:** SQL Server에서 `SELECT id, name, price * qty AS total FROM … ORDER BY id DESC` 결과의 `total`에 필터를 걸면 "The ORDER BY clause is invalid in views,
+  inline functions, derived tables…"(오류 1033)로 다시 읽기가 실패했다. 계산 열·별칭 열은 WHERE에 넣을 수 없어 모델이 쿼리를 감싸는데
+  (`StandardSQLDialectQueryGenerator.getWrappedFilterQuery`: `SELECT * FROM (원래 쿼리) z_q WHERE …`), 원래 쿼리의 ORDER BY가 파생 테이블 안에 남았다.
+  SQL Server는 TOP·OFFSET·FOR XML 없는 파생 테이블의 ORDER BY를 거부한다. PostgreSQL·Oracle은 받아들이지만 바깥 결과의 순서는 SQL이 보장하지 않는다.
+  같은 원인으로 실패하던 다른 경로: 설정 "필터를 늘 하위 쿼리로"(`SQL_FILTER_FORCE_SUBSELECT`), UNION 쿼리의 필터(평범한 SELECT가 아니라 늘 감쌈).
+- **#75:** 머리글 정렬은 `SQLSemanticProcessor.addOrderByClause`가 쿼리의 ORDER BY **뒤에** 덧붙였다(upstream). `ORDER BY id` 결과를 `name`으로 정렬하면
+  `ORDER BY id, "name"`이 되어 보이는 순서가 바뀌지 않았다. 쿼리를 감싸는 경로도 안쪽 ORDER BY를 남기고 바깥에 정렬을 붙였다.
+
+### 결정과 설계
+
+- **머리글 정렬은 쿼리의 ORDER BY를 바꾼다**(주 에이전트 결정). 그 결과를 다시 읽는 동안에만 바꾸고, 쿼리 글자(편집기)는 그대로다. 정렬을 없애면 쿼리의 순서로 돌아간다.
+- **정렬은 쿼리가 돌려주는 행을 바꾸지 않는다.** ORDER BY가 행을 고르는 쿼리(TOP·LIMIT·OFFSET·FETCH, PostgreSQL `DISTINCT ON`,
+  `SQLSemanticProcessor.isOrderDecidingRows`)는 ORDER BY를 바꾸면 다른 행이 나온다. 그래서 그 ORDER BY는 그대로 두고 쿼리를 감싸 바깥에서 정렬한다
+  (`SELECT * FROM (SELECT TOP 300 … ORDER BY id) z_q ORDER BY z_q.price DESC`, `getQueryWithAppliedFilters`). 필터 조건은 예전처럼 쿼리 안에 넣는다
+  (정렬 여부에 따라 필터가 거르는 행이 달라지지 않게). WITH 절이 있는 쿼리는 SQL Server가 파생 테이블로 받지 않아 예전처럼 ORDER BY 뒤에 덧붙인다(`isSortedOutside`).
+- **감쌀 때 ORDER BY를 바깥으로 옮긴다**(`SQLSemanticProcessor.moveOrderByOutside`): 안쪽 쿼리에서 ORDER BY를 지우고, 각 항목을 파생 테이블의 결과 열 참조로 바꿔
+  바깥에 둔다. 이름은 SQL과 같은 순서로 찾는다: 결과 별칭 → 고른 열(`p.id`처럼 테이블 이름·별칭이 붙으면 그 테이블의 열) → `*`·`t.*`의 열 → 별칭이 있는 같은 식 → 열 번호(`ORDER BY 2`).
+  UNION은 ORDER BY가 이미 결과 열 이름이라 그대로 옮긴다. 머리글 정렬이 있으면 옮기지 않고 지운다(정렬이 바꾸므로).
+  ORDER BY가 행을 고르면 안쪽에 남긴다(TOP·OFFSET이 있으면 SQL Server도 받음).
+- **SQL을 읽지 못하거나 결과에 없는 것으로 정렬하는 ORDER BY**(`ORDER BY name`인데 `name`을 고르지 않음)는 안쪽에 남긴다. 쿼리만 그 값으로 정렬할 수 있어서다.
+  이 경우 SQL Server에서는 여전히 오류 1033이다(아래 "남긴 것").
+- **상태 줄 정렬 요약:** 정렬이 있으면 필터 요약 옆에 강조색 정렬 화살표와 "정렬: name ↓ ✕"를 보인다. 서버에서 다시 읽은 정렬이 쿼리의 ORDER BY를 바꿨으면
+  "정렬: name ↓ · ORDER BY 대신"이고 도구 설명이 바뀐 ORDER BY를 보인다("… 쿼리의 ORDER BY id 대신 이 열로 정렬해 다시 읽었습니다…"). 표 안 정렬(모두 읽은 결과)과 행을 고르는
+  쿼리의 정렬은 "정렬: …"만 보이고 도구 설명이 그 방식(표 안에서 / 다시 읽음)을 말한다. ✕("쿼리 순서로 되돌리기")는 정렬을 없애고 쿼리를 그 순서로 다시 읽는다
+  (머리글 오른쪽 클릭의 "Clear Sorting"과 같은 동작). 바꾼 ORDER BY는 모델의 `SQLSemanticProcessor.getReplaceableOrderBy`로 알아낸다(UI는 SQL을 직접 파싱하지 않음).
+  문구는 짧게 했다("· replaces ORDER BY").
+- **상태 줄이 넘칠 때:** 상태 줄 왼쪽(행 수, Fetch next·Fetch all, 필터 요약, 정렬 요약)은 `FlowLayout`이라 폭이 모자라면 다음 줄로 넘기지만, `FlowLayout`의 선호 높이는
+  한 줄이라 넘긴 줄이 상태 줄 밖에서 가려졌다(오른쪽에 도구 창이 있는 1500px 창에서 필터와 정렬을 함께 걸면 정렬 요약이 사라짐, 캡처로 확인).
+  필터 요약도 같은 원인으로 가려질 수 있었다. 그래서 줄 수를 세는 흐름 배치(`ResultSetViewerPanel.WrapFlowLayout`)로 바꿔, 넘칠 때만 상태 줄이 두 줄이 된다.
+  평소(한 줄에 들어갈 때)는 높이가 그대로다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `SQLSemanticProcessor` (model) | `addOrderByClause`가 ORDER BY를 바꿈(행을 고르는 ORDER BY는 그대로), `isOrderDecidingRows`·`isSortedOutside`·`getReplaceableOrderBy`·`moveOrderByOutside` |
+| `StandardSQLDialectQueryGenerator` (model) | `getWrappedFilterQuery`가 ORDER BY를 바깥으로 옮김, `getQueryWithAppliedFilters`가 행을 고르는 쿼리의 정렬을 감싸서 함 |
+| `ResultSetViewerPanel` | 상태 줄 정렬 요약과 ✕ |
+| `ResultSetHeaderRenderer` | 강조색 정렬 화살표 아이콘(`createActiveSortIcon`) |
+| `GridFilterMessages` (+ `_ko`) | `gridfilter_sort_*` 6개 |
+
+### 확인 (2026-11-08)
+
+빌드한 Swing 제품(`-vm` JBR 25, `CHROMITE_DATA`와 작업 공간은 scratch)에 EDT 에이전트를 붙여 머리글·팝업·상태 줄 단추를 눌렀다(OS 입력 없음).
+DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_items` 500행(`price` = id × 1.5, 한 번에 읽는 행 200)을 만들었다. "읽은 쿼리"는 뷰어의 필터로 방언이 만든 SQL이다.
+
+| 확인 | SQL Server 2022 | PostgreSQL 17 | Oracle 23ai |
+|---|---|---|---|
+| #73 `… price * qty AS total … ORDER BY id DESC`, `total > 3000` | 69행, id 496·495·494…(내림차순 유지). 읽은 쿼리 `SELECT * FROM ( … ) z_q WHERE total > 3000.0 ORDER BY z_q.id DESC`. 고치기 전 감싸기를 `sqlcmd`로 실행하면 오류 1033 | 같음(69행, 같은 순서) | 같음 |
+| 별칭 `name AS item_name … ORDER BY item_name DESC`, 시작 `Item 4` | 100행, Item 499부터(테이블 열이라 WHERE에 넣음) | 같음 | - |
+| `p.price * 2 AS dbl … ORDER BY p.id DESC`, `dbl < 100` | 33행, `ORDER BY z_q.id DESC` | - | - |
+| UNION … `ORDER BY qty DESC, name`, `qty < 3` | 8행, `ORDER BY z_q.qty DESC, z_q.name` | - | - |
+| #75 `… ORDER BY id`, 머리글 `name` 내림차순 | 읽은 쿼리 `ORDER BY name DESC`, Item 499부터. 요약 "Sort: name ↓ · replaces ORDER BY", 도구 설명에 `ORDER BY id` | 같음(오름차순 → 내림차순 → 없음 = id 1부터) | 같음 |
+| ✕ 쿼리 순서로 되돌리기 | id 1, 2, 3…, 요약 사라짐 | 같음 | 같음 |
+| 행을 고르는 쿼리 `TOP 300` / `LIMIT 300` / `FETCH FIRST 300 ROWS ONLY` + `price` 내림차순 | 첫 행 id 300(그 300행 안에서 정렬, 고치기 전 방식이면 id 500). `SELECT * FROM (SELECT TOP 300 … ORDER BY id) z_q ORDER BY z_q.price DESC` | 같음 | 같음 |
+| 위 + 필터 `qty = 3` | 조건은 안쪽 WHERE(정렬 없을 때와 같음), 72행 | - | - |
+| 결과에 없는 열로 정렬 `… ORDER BY name`(name 안 고름) + 계산 열 필터 | 오류 1033(남긴 것) | - | - |
+| 필터 + 정렬을 함께(계산 열 `total > 1000`, `name` 정렬, 1500px 창에 오른쪽 속성 창) | 감싼 쿼리 `… z_q WHERE total > 1000.0 ORDER BY z_q.name`, 요약 "Sort: name ↑ · replaces ORDER BY" | 한국어: 상태 줄이 두 줄(높이 25 → 38), "정렬: name ↑ · ORDER BY 대신", 도구 설명 "쿼리의 ORDER BY id DESC 대신 …". ✕ 뒤 한 줄(25)로 돌아오고 id 500부터. 라이트·다크 | - |
+
+캡처: `D:\Tools\_scratch\chromite-results-plan-fixes\run\shots\`(`en-light-*`, `en-dark-*`, `ko-light-*`, `ko-dark-*`, `ms-*`, `pg-*`, `ora-*`).
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 서버 정렬·필터·다음 페이지, Export Data…의 필터·정렬 전달(같은 생성기),
+  열 필터 값 목록(감싸기 경로, 정렬 없음), "필터를 늘 하위 쿼리로" 설정.
 
 ## 확인 (2026-11-07)
 
@@ -191,9 +261,18 @@ ResultSetViewerPanel (결과 하나)
 - DataGrip 캡처에 있는 것 중 이번 요청 밖: 그리드 아래 가운데 떠 있는 페이지 이동 알약(`1-500 ▾ 501+`), 결과 도구 막대의 "Tx: 자동" 표시. 요청하면 만든다.
 - 열마다 조건 둘 이상(예: `> 10 AND < 20` 대신 범위로 됨, `OR` 조합), 열 사이 OR, 저장한 필터, 필터 기록.
 - 값 목록의 행 수 정렬 전환(지금은 값 순서), 대소문자 구분 선택.
+- 결과에 없는 값으로 정렬하는 쿼리(`SELECT id, price * qty AS total … ORDER BY name`)에 계산 열·별칭 열 필터를 걸면 SQL Server에서 여전히 오류 1033이다.
+  ORDER BY를 바깥으로 옮길 수 없어 안쪽에 남기 때문이다. 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 쓰는 방법이 있으나 바깥 `SELECT *`를 바꾸는 큰 변경이라 남겼다.
+- 행을 고르는 쿼리(TOP·LIMIT)에 필터를 걸면 조건이 쿼리 안에 들어가 "조건에 맞는 행 중 처음 N개"가 된다(upstream 그대로, 정렬해도 같음). "보이는 N개 중 거르기"로 바꿀지는 정하지 않았다.
+- 같은 "ORDER BY가 행을 고름" 판단이 값 목록(`SQLQueryColumnValues.removeOrdering`, `DISTINCT ON`을 보지 않음)과 행 수 세기(`SQLQueryTransformerCount`, LIMIT이 있어도 ORDER BY를 지움)에도 따로 있다.
+  두 곳 모두 세는 데에만 쓰여 결과 순서에는 영향이 없어 고치지 않았다.
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 결과 필터 줄 삭제, 열 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록, 조건), 상태 줄 필터 요약,
   SQL Server 열 필터가 ORDER BY 쿼리에서 실패하던 모델 문제 수정.
 - 2026-11-08 "남긴 것"의 결과 영역 높이를 다시 확인함(지금 기본 배치에서는 생기지 않음).
+- 2026-11-08 정렬과 쿼리의 ORDER BY(#73, #75): 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김, 머리글 정렬이 쿼리의 ORDER BY를 바꿈(행을 고르는 쿼리는 감싸서 정렬),
+  상태 줄 정렬 요약과 쿼리 순서로 되돌리기.
+- 2026-11-08 Query Library가 값을 바인딩한 결과에서도 열 필터와 값 목록이 됨: `SQLQueryColumnValues`가 결과 컨테이너의 바인딩 방법을 넘겨받음
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").

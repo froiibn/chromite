@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Download Chromite</title>
-<meta name="description" content="Chromite - Database Workbench. A desktop app for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window. Download the installer for Windows or macOS.">
+<meta name="description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
@@ -15,20 +15,20 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Chromite">
 <meta property="og:title" content="Chromite - Database Workbench">
-<meta property="og:description" content="Chromite - Database Workbench. A desktop app for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window. Download the installer for Windows or macOS.">
+<meta property="og:description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
 <meta property="og:url" content="https://chromite.seizia.com/en/">
 <meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Chromite logo, the line &#x27;SQL Server, Oracle, PostgreSQL and MariaDB in one window&#x27; and the Chromite window">
+<meta property="og:image:alt" content="The Chromite logo, the line &#x27;More than 100 drivers, many databases, one window&#x27; and the Chromite window">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Chromite - Database Workbench">
-<meta name="twitter:description" content="Chromite - Database Workbench. A desktop app for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window. Download the installer for Windows or macOS.">
+<meta name="twitter:description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
 <meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en.png">
-<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;SQL Server, Oracle, PostgreSQL and MariaDB in one window&#x27; and the Chromite window">
+<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;More than 100 drivers, many databases, one window&#x27; and the Chromite window">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="ko" href="/ko/">
 <script src="/downloads/releases.js" defer></script>
@@ -61,7 +61,7 @@
       <div class="hero-shot">
         <img src="/assets/shots/en-dark.webp" width="1899" height="1188" fetchpriority="high" decoding="async" data-t="y 62% -4% 0 .62; r 34 0 0 .62; s .84 1 0 .62" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
       </div>
-      <p class="hero-statement" data-t="o 0 1 .6 .78; y 36px 0px .6 .78">PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window.</p>
+      <p class="hero-statement" data-t="o 0 1 .6 .78; y 36px 0px .6 .78">Many databases in one window, through more than 100 drivers. The common ones come pre-installed.</p>
     </div>
   </section>
 
@@ -105,7 +105,7 @@
     <div class="pin">
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
-        <p class="scene-lead">Ask it something and it picks tools to gather evidence from the connected database, then answers. The tools target SQL Server, PostgreSQL, MariaDB and Oracle; which tools work depends on the database.</p>
+        <p class="scene-lead">Ask, and it gathers evidence with its tools, then answers. Schema, data and query tools work with any database; diagnostics (plans, locks, health) cover SQL Server, PostgreSQL, MariaDB/MySQL and Oracle.</p>
       </div>
       <figure class="scene-media" data-t="y 8vh 0vh 0 .3">
         <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
@@ -133,7 +133,7 @@
         <figcaption>Choosing the drivers for a bundle on a PC with internet. Bundled drivers are not in the list.</figcaption>
       </figure>
       <ul class="slot">
-        <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are in the installer. MySQL is downloaded on first connect or installed from an offline bundle.</li>
+        <li>There are more than 100 drivers. The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; the rest, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
         <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC. Every file's SHA-256 is checked before it is installed.</li>
         <li>With offline mode on, Chromite does not try to download driver files. The automatic update check can be turned off in Options.</li>
       </ul>
@@ -161,8 +161,8 @@
   <section class="scene scene-wide" id="administration" aria-labelledby="administration-title">
     <div class="pin">
       <div class="scene-head">
-        <h2 id="administration-title">Administer four databases from one tool.</h2>
-        <p class="scene-lead">SQL Server, Oracle, PostgreSQL and MariaDB in the same Activity Monitor, with the same menus.</p>
+        <h2 id="administration-title">DBA tools built in.</h2>
+        <p class="scene-lead">The admin tools in the Activity Monitor currently cover SQL Server, Oracle, PostgreSQL and MariaDB, with sessions and locks for Altibase. Other databases connect too, for queries and object browsing.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -44% .03 .17; s 1.7 1 .22 .36; x -44% 0% .22 .36" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."></div>
@@ -172,7 +172,7 @@
         <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
         <li>Job schedulers: SQL Server Agent, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron and MariaDB events.</li>
         <li>Disk usage, server logs (errors, warnings, slow queries), maintenance with a preview and a confirmation, and replication status.</li>
-        <li>Altibase connects too, with tables coloured by storage type, server output, and sessions and locks.</li>
+        <li>Altibase has tables coloured by storage type, server output, and sessions and locks.</li>
       </ul>
     </div>
   </section>
@@ -228,7 +228,7 @@
     <div class="included">
       <h2 class="spec-title">What is included</h2>
       <dl class="spec">
-        <dt>Databases</dt><dd>PostgreSQL, SQL Server, MariaDB, MySQL and Oracle. Their JDBC drivers are included, except MySQL's, which is downloaded on first connect or installed from an offline bundle.</dd>
+        <dt>Databases</dt><dd>More than 100 drivers. The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; others are downloaded on first connect or installed from an offline bundle. You can also add another JDBC driver in the Driver Manager.</dd>
         <dt>Queries</dt><dd>SQL editor, a result grid you can filter and edit in place, execution plans, Query Library</dd>
         <dt>Objects</dt><dd>Object Explorer, Registered Servers, Properties, table designer, ER diagrams</dd>
         <dt>Data</dt><dd>Import and export, backup and restore</dd>

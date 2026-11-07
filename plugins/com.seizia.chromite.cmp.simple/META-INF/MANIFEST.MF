@@ -7,6 +7,7 @@ Bundle-Version: 6.0.187.qualifier
 Bundle-Release-Date: 20261116
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Export-Package: com.seizia.chromite.tools.compare.simple
+Export-Package: com.seizia.chromite.tools.compare.schema,
+ com.seizia.chromite.tools.compare.simple
 Require-Bundle: com.seizia.chromite.registry;visibility:=reexport
 Automatic-Module-Name: com.seizia.chromite.cmp.simple
