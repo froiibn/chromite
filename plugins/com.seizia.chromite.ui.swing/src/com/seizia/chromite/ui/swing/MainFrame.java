@@ -201,6 +201,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 Query Library 쿼리 창의 Save As는 확장의 {@link SqlEditorExtension#saveAs}(SQL을 평범한 .sql로 내보냄) (docs/chromite/swing-query-library.md "공유")
  * - 2026-11-07 Query &gt; Commit / Roll Back(SWT 단축키, SQL Editor 도구 막대 단추)·Transaction Log, Tools &gt; Open Transactions…
  *   ({@link OpenTransactionsDialog}) (docs/chromite/transactions.md)
+ * - 2026-11-07 쿼리 창을 닫을 때 그 창의 자기 세션에 커밋하지 않은 트랜잭션이 있으면 저장 질문 뒤에 묻기(쿼리 창마다 별도 연결)
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1130,7 +1132,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Asks to save a modified query window before it is closed.
+     * Asks to save a modified query window before it is closed, then what to do with the uncommitted transaction of its
+     * own session, which closes with the window ({@link SqlEditorPanel#confirmEndSession}).
      *
      * @return true if the window may be closed
      */
@@ -1138,15 +1141,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!confirmResultChanges(editor)) {
             return false;
         }
-        if (!editor.isDirty()) {
-            return true;
+        if (editor.isDirty()) {
+            documentTabs.setSelectedComponent(editor);
+            boolean saved = switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()))) {
+                case 0 -> saveEditor(editor, false);
+                case 1 -> true;
+                default -> false;
+            };
+            if (!saved) {
+                return false;
+            }
         }
-        documentTabs.setSelectedComponent(editor);
-        return switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()))) {
-            case 0 -> saveEditor(editor, false);
-            case 1 -> true;
-            default -> false;
-        };
+        return editor.confirmEndSession();
     }
 
     /**
@@ -1361,7 +1367,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
         sqlEditorToolBar.setActiveEditor(editor);
         if (editor != null) {
-            // Another window on the same connection shares its session and may have changed the commit mode
+            // A window that shares the connection's main context shares its commit mode with the other windows
             editor.refreshTransactionMode();
         }
         updateQueryActions();

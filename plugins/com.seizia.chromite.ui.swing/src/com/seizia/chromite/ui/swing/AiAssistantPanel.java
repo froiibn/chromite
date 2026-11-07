@@ -82,6 +82,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 화면 문구를 인용한 주석을 고침(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-07 새 대화와 "이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음({@link #getCurrentDatabase(SqlEditorPanel)},
+ *   쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -517,11 +519,12 @@ final class AiAssistantPanel extends JPanel {
         } finally {
             updating = false;
         }
-        connectionChanged(getCurrentDatabase(container));
+        connectionChanged(getCurrentDatabase(editor));
     }
 
     /**
-     * The default catalog or schema of the connection's default execution context, which the query windows use.
+     * The default catalog or schema of the connection's default (main) execution context: the database of the query
+     * windows that share it, and the one a window's own session starts with.
      */
     @Nullable
     static String getCurrentDatabase(@NotNull DBPDataSourceContainer container) {
@@ -529,7 +532,25 @@ final class AiAssistantPanel extends JPanel {
         if (dataSource == null || !container.isConnected()) {
             return null;
         }
-        DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+        return getDefaultObjectName(DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false));
+    }
+
+    /**
+     * The default catalog or schema of the query window's own execution context (its own session, or the main context it
+     * shares); the connection's main context when the window has not used the connection yet.
+     */
+    @Nullable
+    private static String getCurrentDatabase(@NotNull SqlEditorPanel editor) {
+        DBCExecutionContext context = editor.getExecutionContext();
+        if (context != null) {
+            return getDefaultObjectName(context);
+        }
+        DBPDataSourceContainer container = editor.getDataSourceContainer();
+        return container == null ? null : getCurrentDatabase(container);
+    }
+
+    @Nullable
+    private static String getDefaultObjectName(@Nullable DBCExecutionContext context) {
         DBCExecutionContextDefaults<?, ?> defaults = context == null ? null : context.getContextDefaults();
         if (defaults == null) {
             return null;
@@ -603,7 +624,7 @@ final class AiAssistantPanel extends JPanel {
                     try {
                         Object current = databaseCombo.getEditor().getItem();
                         databaseCombo.setModel(new DefaultComboBoxModel<>(names.toArray(String[]::new)));
-                        // Nothing chosen yet: the database the query windows of this connection use
+                        // Nothing chosen yet: the database of the connection's main context
                         Object shown = selected != null ? selected : CommonUtils.isEmpty(CommonUtils.toString(current, null))
                             ? getCurrentDatabase(container) : current;
                         databaseCombo.setSelectedItem(shown);
@@ -1048,7 +1069,7 @@ final class AiAssistantPanel extends JPanel {
             } finally {
                 updating = false;
             }
-            connectionChanged(getCurrentDatabase(container));
+            connectionChanged(getCurrentDatabase(editor));
         }
         send(NLS.bind(AiMessages.ai_ask_prompt, sql), null);
     }

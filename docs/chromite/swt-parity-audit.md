@@ -77,7 +77,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 - ~~트랜잭션: 커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록. 상태 줄 표시는 유휴 트랜잭션 작업에 포함.~~
   2026-11-07 고침([transactions.md](transactions.md)). 남은 것: 로그의 지난 트랜잭션 보이기, 커밋 뒤 알림 설정.
-- 쿼리 창마다 별도 연결(지금은 한 연결의 창들이 트랜잭션을 공유).
+- ~~쿼리 창마다 별도 연결(지금은 한 연결의 창들이 트랜잭션을 공유).~~
+  2026-11-07 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"): 창마다 격리된 세션(SWT와 같은 키·기본값), 창 닫기·연결 바꾸기 전 트랜잭션 질문,
+  Options > Query Execution과 연결 대화상자의 설정, 상태 줄 도구 설명의 세션 수.
 - 탐색기에서 개체 삭제·이름 바꾸기, 이름 복사, 여러 개 선택, Generate SQL의 INSERT/UPDATE/DELETE 등. 고침(`chromite/p3-navigator-actions`,
   [swing-explorer-object-actions.md](swing-explorer-object-actions.md)): C-10·C-11·C-17 있음, C-12 일부(Copy Special·붙여넣기 복제는 남음).
   PostgreSQL·SQL Server에서 실행 확인.
@@ -118,3 +120,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-07 3순위 1차: 트랜잭션 줄(커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록, [transactions.md](transactions.md))과 `@export` 줄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령") 고침. 영역 A-C1·A-C2·A-C3·A-C4, B-S12·B-S17·B-S20·B-S21 상태 갱신.
 - 2026-11-07 3순위 설정 화면 일부: SWT 설정 키의 Swing 효과 전수, Query Execution·Connection Types·Oracle 탭, 결과 형식, 격리 수준, 오류 뒤 무확인 롤백 고침
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
+- 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.

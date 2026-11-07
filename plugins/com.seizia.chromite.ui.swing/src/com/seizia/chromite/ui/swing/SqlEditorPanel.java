@@ -73,6 +73,7 @@ import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObjectContainer;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
@@ -134,8 +135,12 @@ import java.util.concurrent.atomic.AtomicLong;
  *     어느 쪽이든 오류 뒤 세션의 트랜잭션은 커밋도 롤백도 하지 않는다(엔진 기본값 {@code STOP_ROLLBACK}은 수동 커밋 세션의 열린 트랜잭션을
  *     묻지 않고 롤백하므로 쓰지 않는다, 트랜잭션 안전 규칙).</li>
  *     <li>커밋 방식과 최대 행 수는 엔진 기본값(커밋 방식 {@code NO_COMMIT}, 연결의 최대 행 수 설정)을 쓴다.
- *     "Select Top N Rows"로 연 편집기는 N행까지 가져오도록 최대 행 수를 키운다({@link #setMaxRows}).
- *     실행 문맥은 연결의 기본(주) 문맥이다(편집기별 별도 연결은 아직 없음).</li>
+ *     "Select Top N Rows"로 연 편집기는 N행까지 가져오도록 최대 행 수를 키운다({@link #setMaxRows}).</li>
+ *     <li>실행 문맥(세션): 설정이 켜져 있으면(기본, SWT와 같음) 쿼리 창마다 자기 격리 문맥을 연다({@link QueryWindowContext}). 그래서 창마다 트랜잭션이
+ *     따로다. 실행, 계획, 기본 DB/스키마, 커밋 방식과 열린 트랜잭션 표시, Commit / Roll Back, 트랜잭션 로그, 자동완성이 모두 이 창의 문맥을 쓴다
+ *     ({@link #getExecutionContext}). 결과 표의 편집·저장과 {@code @export}는 실행한 문맥을 넘겨받으므로 따라온다. 설정이 꺼져 있거나 "단일 연결"
+ *     연결이면 예전처럼 연결의 주 문맥을 같은 연결의 창들과 함께 쓴다. 자기 세션을 끝내는 동작(창 닫기, 연결 바꾸기, 다른 DB 인스턴스로 바꾸기)은
+ *     커밋하지 않은 트랜잭션이 있으면 먼저 묻는다({@link #confirmEndSession}, 트랜잭션 안전 규칙).</li>
  *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
  *     실행 중에는 바꿀 수 없다. 목록은 콤보를 열 때 활성 프로젝트의 연결로 다시 채운다(추가·삭제·이름 변경 반영).</li>
  *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창마다의 도구 막대는 없다. 실행·중지·계획·편집 명령은 메인 창의 SQL Editor 도구 막대
@@ -144,7 +149,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     {@link #canExplain()}으로 메인 창이 정하고, 바뀔 때 {@link Host#executionStateChanged}로 알린다.</li>
  *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
  *     목록과 현재 값은 {@link ContextDefaultObjectsReader}, 바꾸기는 {@link DBExecUtils#setExecutionContextDefaults}다(둘 다 작업 스레드).
- *     실행 문맥이 연결의 기본 문맥이라 같은 연결의 다른 편집기에도 적용된다. 연결되어 있지 않거나 문맥이 바꾸기를 지원하지 않으면 끈다.</li>
+ *     이 창의 실행 문맥에 적용된다(창이 자기 세션을 쓰면 이 창에만, 주 문맥을 함께 쓰면 같은 연결의 그 창들에도). 연결되어 있지 않거나 문맥이 바꾸기를
+ *     지원하지 않으면 끈다.</li>
  *     <li>파일: 편집기는 텍스트만 다루고, 파일의 문자 집합·BOM·줄바꿈은 {@link SqlFileContent}로 기억해 저장할 때 되살린다.
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
@@ -218,6 +224,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 원본 객체({@link #setSourceObject}): Modify 창의 루틴을 Query &gt; Debug…가 디버깅 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 오류 처리 설정(Options &gt; Query Execution)을 엔진에 넘김. 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을
  *   묻지 않고 롤백하던 것을 고침(엔진 기본값 {@code STOP_ROLLBACK}) (docs/chromite/swing-options.md)
+ * - 2026-11-07 쿼리 창마다 별도 연결({@link QueryWindowContext}): 실행·계획·기본 스키마·트랜잭션 표시와 명령·자동완성이 창의 문맥을 쓰고,
+ *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
+ *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -329,6 +338,8 @@ final class SqlEditorPanel extends JPanel {
     // EDT only: the object whose definition this window edits (Modify), or null
     @Nullable
     private DBSObject sourceObject;
+    // The window's session: its own context or the connection's main context
+    private final QueryWindowContext windowContext = new QueryWindowContext(this::getFileName);
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
@@ -342,7 +353,8 @@ final class SqlEditorPanel extends JPanel {
         this.host = host;
 
         textArea = new SqlTextArea();
-        completion = new SqlCompletionPopup(textArea, () -> dataSourceContainer);
+        // The connection and session at the time of the request (the connection picker may change them)
+        completion = new SqlCompletionPopup(textArea, this::getDataSourceContainer, this::getExecutionContext);
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
@@ -658,13 +670,36 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The tab is closing: stop a running query.
+     * The tab is closing: stop a running query and close the window's own session (the main window asked about its
+     * transaction first, {@link #confirmEndSession}).
      */
     void dispose() {
         cancel();
         completion.cancel();
         elapsedTimer.stop();
         transactionTimer.stop();
+        windowContext.release();
+    }
+
+    /**
+     * The execution context (session) the window runs in now, without opening one: its own context, or the connection's
+     * main context when it shares it; null while not connected or before the window used the connection.
+     */
+    @Nullable
+    DBCExecutionContext getExecutionContext() {
+        return windowContext.get(dataSourceContainer);
+    }
+
+    /**
+     * Before the window's own session ends (the window closes, changes its connection or its database instance): asks
+     * Commit / Roll back / Cancel when the session has a transaction that is not committed. Nothing to ask when the
+     * window shares the connection's main context, which stays open. Call in the EDT.
+     *
+     * @return true when the session may end
+     */
+    boolean confirmEndSession() {
+        DBCExecutionContext own = windowContext.getOwn(dataSourceContainer);
+        return own == null || ExitTransactionCheck.confirmEndSession(this, own, fileName);
     }
 
     /**
@@ -693,6 +728,17 @@ final class SqlEditorPanel extends JPanel {
         sizePicker(connectionCombo, CONNECTION_PICKER_WIDTH);
         connectionCombo.addActionListener(e -> {
             if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
+                // The window's own session on the old connection ends
+                if (!confirmEndSession()) {
+                    updatingCombos = true;
+                    try {
+                        connectionCombo.setSelectedItem(dataSourceContainer);
+                    } finally {
+                        updatingCombos = false;
+                    }
+                    return;
+                }
+                windowContext.release();
                 dataSourceContainer = selected;
                 statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_status_ready);
                 statusLine.setConnection(selected);
@@ -1012,7 +1058,8 @@ final class SqlEditorPanel extends JPanel {
                     }
                     DBPDataSource dataSource = container.getDataSource();
                     DBCQueryPlanner planner = SqlPlanExplainer.getPlanner(container.isConnected() ? dataSource : null);
-                    DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+                    // The window's session: its default schema, and its open transaction for planners that execute
+                    DBCExecutionContext context = dataSource == null || !container.isConnected() ? null : windowContext.open(monitor, dataSource);
                     if (dataSource == null || context == null) {
                         problem = NLS.bind(EditorMessages.editor_sql_not_connected_to, container.getName());
                     } else if (planner == null) {
@@ -1069,11 +1116,8 @@ final class SqlEditorPanel extends JPanel {
                     : errorStatus(NLS.bind(EditorMessages.editor_sql_not_connected_to_short, container.getName())));
                 return;
             }
-            DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
-            if (context == null) {
-                stopPreparation(run, errorStatus(NLS.bind(EditorMessages.editor_sql_no_context, container.getName())));
-                return;
-            }
+            // Opens the window's own session on the first run (QueryWindowContext); fails with editor_sql_no_context
+            DBCExecutionContext context = windowContext.open(monitor, dataSource);
             List<SQLScriptElement> elements = run.binding.prepare(monitor, context,
                 SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length));
             if (elements.isEmpty()) {
@@ -1630,7 +1674,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Reads the default catalog/schema of the connection and the ones it can change to, in a job.
+     * Reads the default catalog/schema of the window's session and the ones it can change to, in a job. The window's
+     * own session opens here when the window gets a connected connection (QueryWindowContext).
      */
     private void refreshSchemas() {
         int serial = ++schemaSerial;
@@ -1649,7 +1694,12 @@ final class SqlEditorPanel extends JPanel {
             @Override
             protected IStatus run(@NotNull DBRProgressMonitor monitor) {
                 SchemaState state = null;
-                DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+                DBCExecutionContext context = null;
+                try {
+                    context = windowContext.open(monitor, dataSource);
+                } catch (DBException e) {
+                    log.debug("Can't open the session of the query window on '" + container.getName() + "'", e);
+                }
                 if (context != null && context.getContextDefaults() != null) {
                     ContextDefaultObjectsReader reader = new ContextDefaultObjectsReader(dataSource, context);
                     try {
@@ -1669,11 +1719,12 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Shows the commit mode (auto-commit or manual) of the execution context this window runs in, the connection's
-     * main context, as the SWT auto-commit tool bar item reads it ({@code DataSourceAutoCommitHandler#updateElement}).
-     * The context caches the mode, but its first read after connecting asks the driver, so it is read in a job. Hidden
-     * while not connected. Also called by the main window when this window becomes active: another window on the
-     * same connection shares the context.
+     * Shows the commit mode (auto-commit or manual) of the execution context this window runs in (its own session, or
+     * the connection's main context), as the SWT auto-commit tool bar item reads it
+     * ({@code DataSourceAutoCommitHandler#updateElement}). The context caches the mode, but its first read after
+     * connecting asks the driver, so it is read in a job; the job also opens the window's own session when the window
+     * gets a connected connection. Hidden while not connected. Also called by the main window when this window becomes
+     * active: a window that shares the main context shares its mode with the other windows of the connection.
      */
     void refreshTransactionMode() {
         int serial = ++transactionSerial;
@@ -1689,7 +1740,12 @@ final class SqlEditorPanel extends JPanel {
             @Override
             protected IStatus run(@NotNull DBRProgressMonitor monitor) {
                 Boolean autoCommit = null;
-                DBCTransactionManager txnManager = DBUtils.getTransactionManager(DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false));
+                DBCTransactionManager txnManager = null;
+                try {
+                    txnManager = DBUtils.getTransactionManager(windowContext.open(monitor, dataSource));
+                } catch (DBException e) {
+                    log.debug("Can't open the session of the query window on '" + container.getName() + "'", e);
+                }
                 if (txnManager != null) {
                     try {
                         autoCommit = txnManager.isAutoCommit();
@@ -1709,13 +1765,17 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Shows the open transaction of the execution context this window runs in (the connection's main context, shared
-     * by the connection's query windows): hidden in auto-commit mode and when nothing ran since the last commit or
-     * rollback. Reads only the query manager's in-memory state, so it runs in the EDT. When the transaction opens,
-     * ends, changes or starts or stops running a statement, the main window updates Query &gt; Commit / Roll Back.
+     * Shows the open transaction of the execution context this window runs in (its own session, or the connection's
+     * main context shared by the windows that do not have one): hidden in auto-commit mode and when nothing ran since
+     * the last commit or rollback. Reads only the query manager's in-memory state, so it runs in the EDT. When the
+     * transaction opens, ends, changes or starts or stops running a statement, the main window updates Query &gt;
+     * Commit / Roll Back. Also the session line of the commit mode's tool tip (sessions open on the connection).
      */
     private void refreshOpenTransaction() {
-        DBCExecutionContext context = getTransactionContext();
+        DBCExecutionContext context = getExecutionContext();
+        statusLine.setSessions(context == null ? null
+            : NLS.bind(windowContext.getOwn(dataSourceContainer) != null ? EditorMessages.editor_status_session_own
+                : EditorMessages.editor_status_session_shared, QueryWindowContext.countSessions(context.getDataSource())));
         QMTransactionState transaction = context == null ? null : QMUtils.getTransactionState(context);
         QMTransactionState shown = transaction != null && transaction.isOpen() ? transaction : null;
         QMTransactionState previous = openTransaction;
@@ -1751,7 +1811,7 @@ final class SqlEditorPanel extends JPanel {
      * (also of the Query menu, for the transaction shown now).
      */
     private void endOpenTransaction(@NotNull QMTransactionState transaction, boolean commit) {
-        DBCExecutionContext context = getTransactionContext();
+        DBCExecutionContext context = getExecutionContext();
         if (context != null) {
             SwingIdleTransactionService.endTransaction(this, context, transaction.getTransactionStartTime(), commit, this::refreshOpenTransaction);
         }
@@ -1763,20 +1823,13 @@ final class SqlEditorPanel extends JPanel {
      * Query menu is not updated when a window connects).
      */
     void showTransactionLog() {
-        DBCExecutionContext context = getTransactionContext();
+        DBCExecutionContext context = getExecutionContext();
         if (context != null) {
             TransactionLogDialog.open(this, context);
         } else {
             JOptionPane.showMessageDialog(this, EditorMessages.editor_txn_log_not_connected,
                 NLS.bind(EditorMessages.editor_txn_log_title, fileName), JOptionPane.INFORMATION_MESSAGE);
         }
-    }
-
-    @Nullable
-    private DBCExecutionContext getTransactionContext() {
-        DBPDataSourceContainer container = dataSourceContainer;
-        DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
-        return dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
     }
 
     private void showSchemas(int serial, @Nullable SchemaState state) {
@@ -1821,12 +1874,20 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Makes a catalog or schema the default of the connection's context, with the same arguments as the SWT
-     * active schema selector ({@code SelectActiveSchemaHandler}).
+     * Makes a catalog or schema the default of the window's context, with the same arguments as the SWT active schema
+     * selector ({@code SelectActiveSchemaHandler}).
      */
     private void changeDefaultObject(@NotNull DBSObject object) {
         SchemaState state = schemaState;
         if (state == null || object == state.reader().getDefaultObject()) {
+            return;
+        }
+        // A database that is an instance of its own (PostgreSQL), or a schema in one, needs another server session: the
+        // window's own context reconnects to it (PostgreExecutionContext.setDefaultCatalog), which ends its transaction
+        DBSInstance instance = object instanceof DBSInstance self ? self : DBUtils.getParentOfType(DBSInstance.class, object);
+        if (instance != null && instance != state.context().getOwnerInstance()
+            && state.context() == windowContext.getOwn(dataSourceContainer) && !confirmEndSession()) {
+            showSchemas(schemaSerial, state);
             return;
         }
         String currentCatalogName = state.reader().getDefaultCatalogName();

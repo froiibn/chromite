@@ -37,6 +37,7 @@ import java.awt.event.MouseEvent;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 /**
  * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │
@@ -54,7 +55,8 @@ import java.time.format.DateTimeFormatter;
  *     연결되어 있지 않으면 칸을 숨긴다(빨간 점을 보이지 않는다). 글자 앞의 점은 자동 커밋이면 초록(status.success), 수동 커밋이면 빨강(status.error)이고
  *     글자도 함께 보여 색만으로 구별하지 않는다(사용자 요청). 보이는 값은 열린 세션의 실제 상태이고, 연결 설정에 저장한 값과 다르면(다음 연결부터 적용)
  *     도구 설명에 적는다. 수동 커밋의 도구 설명은 COMMIT이 필요하다고 알린다.
- *     칸을 누르면 설정 화면(연결 편집의 Auto-commit)으로 안내만 한다: 사용자 결정(2026-11-07)으로 상태 줄에서는 커밋 방식을 바꾸지 않는다.</li>
+ *     칸을 누르면 설정 화면(연결 편집의 Auto-commit)으로 안내만 한다: 사용자 결정(2026-11-07)으로 상태 줄에서는 커밋 방식을 바꾸지 않는다.
+ *     도구 설명의 세션 줄({@link #setSessions})은 창이 자기 세션을 쓰는지(쿼리 창마다 별도 연결)와 그 연결에 열린 세션 수다. 커밋 방식이 세션의 것이라 같은 칸에 둔다.</li>
  *     <li>열린 트랜잭션(2026-11-07 사용자 요청, 잠금 사고 방지): 커밋 방식 바로 뒤에 수동 커밋 문맥에서 커밋·롤백하지 않은 문장이 있는 동안만
  *     보인다. 점은 커밋 방식 점과 같은 크기의 status.warning(주의, 오류 아님)이고 글자는 트랜잭션 시작부터의 경과 시간(1초마다 쿼리 창이 갱신)과
  *     문장 수다. 도구 설명은 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수, 마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
@@ -81,6 +83,7 @@ import java.time.format.DateTimeFormatter;
  * - 2026-11-07 커밋 방식 칸(자동 커밋/수동 커밋, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 열린 트랜잭션 칸(경과 시간, 문장 수, 누르면 커밋/롤백, 사용자 요청) (docs/chromite/idle-transactions.md)
  * - 2026-11-07 열린 트랜잭션 메뉴에 Transaction Log (docs/chromite/transactions.md)
+ * - 2026-11-07 커밋 방식 도구 설명에 세션 줄(창의 세션, 연결에 열린 세션 수) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -122,6 +125,11 @@ final class QueryStatusLine extends JPanel {
     private DBPDataSourceContainer container;
     @Nullable
     private Runnable transactionAction;
+    // The commit mode shown (null: hidden) and the session line of its tool tip
+    @Nullable
+    private Boolean autoCommit;
+    @Nullable
+    private String sessions;
     @Nullable
     private QMTransactionState openTransaction;
     @Nullable
@@ -242,6 +250,23 @@ final class QueryStatusLine extends JPanel {
      * connect) and that a click opens the setting.
      */
     void setAutoCommit(@Nullable Boolean autoCommit) {
+        this.autoCommit = autoCommit;
+        updateTransactionSegment();
+    }
+
+    /**
+     * The session line of the commit mode's tool tip: whether the window has a session of its own and how many sessions
+     * are open on the connection; null for none. Called about once a second.
+     */
+    void setSessions(@Nullable String sessions) {
+        if (!Objects.equals(this.sessions, sessions)) {
+            this.sessions = sessions;
+            updateTransactionSegment();
+        }
+    }
+
+    private void updateTransactionSegment() {
+        Boolean autoCommit = this.autoCommit;
         if (autoCommit == null) {
             setSegment(transactionLabel, null, null);
             transactionLabel.setIcon(null);
@@ -253,6 +278,9 @@ final class QueryStatusLine extends JPanel {
         if (container != null && container.isDefaultAutoCommit() != autoCommit) {
             String setting = container.isDefaultAutoCommit() ? EditorMessages.editor_status_auto_commit : EditorMessages.editor_status_manual_commit;
             tip.append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_commit_default_differs, setting))); //$NON-NLS-1$
+        }
+        if (sessions != null) {
+            tip.append("<br>").append(CommonUtils.escapeHtml(sessions)); //$NON-NLS-1$
         }
         if (transactionAction != null) {
             tip.append("<br>").append(CommonUtils.escapeHtml(EditorMessages.editor_status_commit_setting_tip)); //$NON-NLS-1$

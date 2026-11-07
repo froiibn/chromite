@@ -6,11 +6,34 @@
 <meta name="color-scheme" content="light dark">
 <title>Chromite 다운로드</title>
 <meta name="description" content="Chromite - 데이터베이스 워크벤치. PostgreSQL, SQL Server, MariaDB, MySQL, Oracle을 한 창에서 다루는 데스크톱 앱. Windows와 macOS용 설치 파일을 받습니다.">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="canonical" href="https://chromite.seizia.com/ko/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chromite">
+<meta property="og:title" content="Chromite - 데이터베이스 워크벤치">
+<meta property="og:description" content="Chromite - 데이터베이스 워크벤치. PostgreSQL, SQL Server, MariaDB, MySQL, Oracle을 한 창에서 다루는 데스크톱 앱. Windows와 macOS용 설치 파일을 받습니다.">
+<meta property="og:url" content="https://chromite.seizia.com/ko/">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-ko.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chromite 로고와 &#x27;SQL Server, Oracle, PostgreSQL, MariaDB를 한 창에서 다룹니다&#x27; 문구, 그 옆의 Chromite 창 화면">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chromite - 데이터베이스 워크벤치">
+<meta name="twitter:description" content="Chromite - 데이터베이스 워크벤치. PostgreSQL, SQL Server, MariaDB, MySQL, Oracle을 한 창에서 다루는 데스크톱 앱. Windows와 macOS용 설치 파일을 받습니다.">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-ko.png">
+<meta name="twitter:image:alt" content="Chromite 로고와 &#x27;SQL Server, Oracle, PostgreSQL, MariaDB를 한 창에서 다룹니다&#x27; 문구, 그 옆의 Chromite 창 화면">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="en" href="/en/">
 <script src="/downloads/releases.js" defer></script>
 <script src="/assets/site.js" defer></script>
+<script src="/assets/tour.js" defer></script>
 </head>
 <body>
 <header class="top">
@@ -36,7 +59,7 @@
     <div class="included">
       <h2 class="spec-title">들어 있는 것</h2>
       <dl class="spec">
-        <dt>데이터베이스</dt><dd>PostgreSQL, SQL Server, MariaDB, MySQL, Oracle. 각 JDBC 드라이버가 함께 들어 있습니다.</dd>
+        <dt>데이터베이스</dt><dd>PostgreSQL, SQL Server, MariaDB, MySQL, Oracle. MySQL을 뺀 각 JDBC 드라이버가 함께 들어 있고, MySQL 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다.</dd>
         <dt>쿼리</dt><dd>SQL 편집기, 필터와 바로 편집이 되는 결과 표, 실행 계획, 쿼리 라이브러리</dd>
         <dt>개체</dt><dd>개체 탐색기, 등록된 서버, 속성 창, 테이블 디자이너, ER 다이어그램</dd>
         <dt>데이터</dt><dd>가져오기와 내보내기, 백업과 복원</dd>
@@ -94,6 +117,216 @@
     <figcaption>SQL Server에 연결해 쿼리를 실행한 실제 화면입니다. 왼쪽은 개체 탐색기와 등록된 서버, 오른쪽은 선택한 테이블의 속성입니다.</figcaption>
   </figure>
 
+  <section class="tour" aria-labelledby="tour-title">
+    <h2 class="visually-hidden" id="tour-title">Chromite로 하는 일</h2>
+    <nav class="tour-index" aria-label="기능 목록">
+      <div class="panel">
+        <p class="panel-head" aria-hidden="true">둘러보기</p>
+        <ul>
+          <li><a href="#transactions">트랜잭션 보호</a></li>
+          <li><a href="#query-library">쿼리 라이브러리</a></li>
+          <li><a href="#chromite-agent">Chromite Agent</a></li>
+          <li><a href="#closed-networks">폐쇄망</a></li>
+          <li><a href="#debugger">프로시저 디버거</a></li>
+          <li><a href="#administration">서버 관리</a></li>
+          <li><a href="#passwords">비밀번호</a></li>
+          <li><a href="#open-source">오픈 소스</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="tour-screens">
+      <article class="feature" id="transactions" aria-labelledby="transactions-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="transactions-title">트랜잭션을 몰래 끝내지 않습니다</h3>
+            <p class="feature-lead">수동 커밋으로 일하면 커밋하지 않은 변경이 세션에 남습니다. Chromite는 그 트랜잭션을 늘 보여 주고, 끝낼지는 사용자가 정합니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>쿼리 창 상태 줄에 열린 트랜잭션, 열린 뒤 지난 시간, 문장 수가 보입니다. 누르면 커밋, 롤백, 트랜잭션 로그를 고릅니다.</li>
+            <li>열어 둔 채 쓰지 않는 트랜잭션은 정한 시간이 지나면 알림으로 다시 묻습니다.</li>
+            <li>연결을 끊거나 앱을 끝낼 때 커밋 / 롤백 / 취소를 묻습니다. 오류 뒤 다시 연결할 때도 트랜잭션을 버리기 전에 묻습니다.</li>
+            <li>WHERE 없는 UPDATE·DELETE, DROP, TRUNCATE는 실행하기 전에 확인합니다.</li>
+            <li>결과 표에서 고친 값은 저장하기 전에 실행할 SQL을 미리 보고 확인할 수 있습니다.</li>
+          </ul>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/transactions-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/transactions-ko-light.webp" srcset="/assets/shots/tour/transactions-ko-light.webp 1.5x" width="924" height="285" loading="lazy" decoding="async" alt="UPDATE를 실행한 쿼리 창의 아래쪽. 메시지 탭에 '(1개 행 적용됨)', 상태 줄에 수동 커밋과 열린 트랜잭션(지난 시간, 문장 1개)이 있고, 그 칸을 눌러 연 메뉴에 커밋, 롤백, 트랜잭션 로그가 있다.">
+          </picture>
+          <figcaption>PostgreSQL 수동 커밋 연결에서 UPDATE를 실행한 뒤, 상태 줄의 열린 트랜잭션 칸을 누른 모습입니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature" id="query-library" aria-labelledby="query-library-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="query-library-title">팀이 함께 쓰는 쿼리 라이브러리</h3>
+            <p class="feature-lead">자주 쓰는 점검·보고 쿼리를 트리에 모아 두고 바로 실행합니다. 쿼리 하나가 평범한 <code>.sql</code> 파일 하나라서 다른 도구에서도 열립니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>매개 변수: 실행할 때 값을 묻습니다. 숫자, 날짜, 선택 목록과 기본값을 정할 수 있습니다.</li>
+            <li>일정: Chromite가 켜져 있는 동안 정한 간격이나 시각에 실행하고, 조건에 맞으면 알립니다.</li>
+            <li>기준값: 결과 열에 경고·위험 기준을 두고 판정합니다.</li>
+            <li>공유: 네트워크 폴더나 Git 작업 사본을 라이브러리 루트로 더합니다. 트리에 브랜치와 올리지 않은 커밋 수가 보이고, Pull과 Commit &amp; Push를 앱에서 합니다.</li>
+            <li>내보내기·가져오기: 쿼리 묶음을 파일 하나로 옮깁니다.</li>
+          </ul>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/library-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/library-ko-light.webp" srcset="/assets/shots/tour/library-ko-light.webp 1.5x" width="937" height="447" loading="lazy" decoding="async" alt="쿼리 라이브러리 창에 '내 쿼리'와 Git 저장소인 '팀 쿼리 main ↑1' 루트가 있다. 가운데 쿼리 창에는 이름, 설명, 대상, 매개 변수(1), 기준값 단추와 SQL, 아래 결과 표에 오래 열린 트랜잭션 한 행이 보인다.">
+          </picture>
+          <figcaption>'팀 쿼리'는 Git 작업 사본입니다(main 브랜치, 올리지 않은 커밋 1개). 매개 변수에 0을 넣어 실행한 결과입니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature feature-side" id="chromite-agent" aria-labelledby="chromite-agent-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="chromite-agent-title">Chromite Agent</h3>
+            <p class="feature-lead">물어보면 연결한 데이터베이스에서 도구를 골라 근거를 모으고 답하는 데이터베이스 에이전트입니다. 도구는 SQL Server, PostgreSQL, MariaDB, Oracle 기준이며 DB마다 쓸 수 있는 도구가 다릅니다.</p>
+          </div>
+          <ul class="feature-points tasks">
+            <li><strong>느린 쿼리 튜닝</strong> 예상·실제 실행 계획을 구조화된 데이터로 읽고, 인덱스 전후 계획을 비교하고, 테이블 통계, 인덱스 사용, 누락·미사용 인덱스, 조각화를 봅니다. 인덱스를 제안하고, 확인을 받은 뒤 만들 수 있습니다.</li>
+            <li><strong>블로킹과 교착 상태</strong> 맨 앞 블로커부터 차단 체인을 만들고, 잠금과 오래 열리거나 쉬고 있는 트랜잭션의 세션을 나열하고, 최근 교착 상태 그래프를 읽습니다. 세션 종료는 늘 확인을 받습니다.</li>
+            <li><strong>상태 점검</strong> 세션, 대기 통계, CPU·I/O 상위 쿼리, 데이터베이스·파일 공간, 백업·작업 기록, 서버 오류 로그, 기본값과 다른 설정을 봅니다.</li>
+            <li><strong>프로시저 검토</strong> 줄 번호가 붙은 원본, 의존 관계, 문장별 실행 통계를 읽습니다.</li>
+          </ul>
+          <details class="more">
+            <summary>그 밖에 할 수 있는 일</summary>
+            <ul class="feature-points tasks">
+              <li><strong>스키마와 데이터</strong> 개체를 찾고, 테이블·키·권한을 설명하고, DDL을 만들고, 행 표본과 열 프로파일을 보고, 쿼리 결과를 비교합니다. CSV·XLSX·JSON으로 내보내고, CSV를 가져오고, 테이블을 복사합니다.</li>
+              <li><strong>쿼리 라이브러리로 감시</strong> 저장한 점검 쿼리를 실행하고 기준값으로 판정합니다.</li>
+              <li><strong>사용자에게 넘기기</strong> 만든 SQL을 실행하지 않고 새 쿼리 창에 엽니다.</li>
+            </ul>
+          </details>
+          <p class="feature-note">안전: 모든 도구에 연결별 정책(자동 실행 / 확인 / 막음)이 있고, 운영 연결의 쓰기는 기본으로 막힙니다. 커밋과 롤백은 늘 확인을 받습니다. 읽기 진단은 읽기 전용으로 실행하고(지원하는 DB는 읽기 전용 트랜잭션), 모든 호출은 감사 기록에 남습니다.</p>
+          <p class="feature-note">연결: 같은 도구를 이 PC 안에서만 접속되는 로컬 MCP 서버로 외부 에이전트에도 제공합니다. 제공자는 Claude, OpenAI, Ollama(로컬 모델)이고, API 키는 운영체제 보안 저장소에 둡니다.</p>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/agent-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/agent-ko-light.webp" srcset="/assets/shots/tour/agent-ko-light.webp 1.5x" width="296" height="624" loading="lazy" decoding="async" alt="Chromite Agent 창. 질문 '주문 42번을 고치는 UPDATE가 끝나지 않아요. 왜 기다리나요?' 아래에 읽기 도구 '차단 체인 가져오기'와 '열린 트랜잭션 목록'이 완료로 표시되고, 원인과 할 일을 적은 답이 있다.">
+          </picture>
+          <figcaption>도구 호출과 결과는 실제 DB에서 나왔습니다. 답의 글은 이 화면을 찍으려고 쓴 시험용 제공자가 돌려준 것입니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature feature-side" id="closed-networks" aria-labelledby="closed-networks-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="closed-networks-title">인터넷이 없는 망에서도 씁니다</h3>
+            <p class="feature-lead">설치 파일 하나로 주요 데이터베이스에 바로 연결합니다. 드라이버를 내려받을 인터넷이 없어도 됩니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>SQL Server, Oracle, PostgreSQL, MariaDB, SQLite 드라이버가 설치 파일에 들어 있습니다. MySQL은 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다.</li>
+            <li>그 밖의 드라이버는 인터넷이 되는 PC의 드라이버 관리자에서 오프라인 묶음 파일 하나로 만들고, 폐쇄망 PC에서 그 파일을 설치합니다. 설치 전에 모든 파일의 SHA-256을 확인합니다.</li>
+            <li>오프라인 모드를 켜면 드라이버 파일을 내려받으려 하지 않습니다.</li>
+            <li>자동 업데이트 확인은 옵션에서 끌 수 있습니다.</li>
+          </ul>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/drivers-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/drivers-ko-light.webp" srcset="/assets/shots/tour/drivers-ko-light.webp 1.5x" width="609" height="559" loading="lazy" decoding="async" alt="'오프라인 드라이버 묶음 만들기' 대화상자. 드라이버 목록에서 Derby Embedded와 DuckDB가 체크되어 있고 아래에 '3개 선택'과 만들기 단추가 있다.">
+          </picture>
+          <figcaption>인터넷이 되는 PC에서 묶음에 넣을 드라이버를 고르는 대화상자입니다. 내장 드라이버는 목록에 없습니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature" id="debugger" aria-labelledby="debugger-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="debugger-title">프로시저를 한 줄씩 따라갑니다</h3>
+            <p class="feature-lead">PostgreSQL(PL/pgSQL)과 Oracle(PL/SQL)의 함수와 프로시저를 디버거에서 실행합니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>여백을 눌러 중단점을 놓고, 프로시저 단위 실행과 한 단계씩 코드 실행으로 따라갑니다. Oracle에서는 프로시저 나가기도 됩니다.</li>
+            <li>변수, 호출 스택, 서버 메시지, 결과를 봅니다. 멈춘 동안 변수 값을 고칠 수 있습니다.</li>
+            <li>디버거를 끝낼 때 그 세션에 커밋하지 않은 트랜잭션이 있으면 커밋 / 롤백 / 취소를 묻습니다.</li>
+          </ul>
+          <p class="feature-note">PostgreSQL 서버에는 pldebugger 확장이 필요하고, Oracle은 디버그 권한이 필요합니다. SQL Server는 지원하지 않습니다.</p>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/debugger-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/debugger-ko-light.webp" srcset="/assets/shots/tour/debugger-ko-light.webp 1.5x" width="908" height="580" loading="lazy" decoding="async" alt="디버거 탭. PL/pgSQL 함수 order_total의 14번 줄에 중단점이 있고 실행이 그 줄에서 멈춰 있다. 아래 변수 탭에 p_order_id 42, p_discount 0.05, v_total 126.50, v_lines 1이 보인다.">
+          </picture>
+          <figcaption>PostgreSQL 함수가 반복문 두 번째 줄에서 멈춘 모습입니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature" id="administration" aria-labelledby="administration-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="administration-title">네 가지 데이터베이스를 한 도구에서 관리합니다</h3>
+            <p class="feature-lead">SQL Server, Oracle, PostgreSQL, MariaDB를 같은 작업 모니터와 같은 메뉴로 다룹니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>세션과 잠금: 맨 앞 블로커부터 차단 체인과 세션별 잠금을 보고, 세션을 끝냅니다.</li>
+            <li>작업 스케줄러: SQL Server 에이전트, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron, MariaDB 이벤트.</li>
+            <li>공간 사용량, 서버 로그(오류·경고·느린 쿼리), 미리 보기와 확인을 거치는 유지 관리, 복제 상태.</li>
+          </ul>
+          <p class="feature-note">Altibase도 연결합니다. 저장 방식별 테이블 색, 서버 출력, 세션과 잠금을 지원합니다.</p>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/admin-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/admin-ko-light.webp" srcset="/assets/shots/tour/admin-ko-light.webp 1.5x" width="831" height="624" loading="lazy" decoding="async" alt="작업 모니터의 잠금 탭. 차단 체인에 세션 34547이 세션 34516을 막고 있고, 대기 리소스 orders (row 0,42), 대기 모드 ShareLock이 보인다. 아래에 두 세션의 잠금 목록이 있다.">
+          </picture>
+          <figcaption>PostgreSQL에서 한 세션의 UPDATE가 다른 세션의 커밋하지 않은 변경을 기다리는 모습입니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature feature-side" id="passwords" aria-labelledby="passwords-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="passwords-title">비밀번호는 이 PC에만 둡니다</h3>
+            <p class="feature-lead">저장한 연결 비밀번호와 API 키는 작업 공간 파일에 남기지 않습니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>운영체제 보안 저장소에 암호화해 둡니다. Windows는 Windows 계정에 묶인 DPAPI, macOS는 키체인을 씁니다.</li>
+            <li>새 PC로 옮길 때는 직접 정한 암호(12자 이상)로 암호화한 연결 파일을 내보내고 가져옵니다.</li>
+            <li>사용 통계는 모으지도 보내지도 않습니다. 밖으로 나가는 요청은 업데이트 확인, 내장되지 않은 드라이버 내려받기, 직접 설정한 Chromite Agent 제공자 호출입니다. 자세한 내용은 <a href="/ko/privacy.html">개인정보</a>에 있습니다.</li>
+          </ul>
+        </div>
+        <figure class="feature-shot">
+          <picture>
+            <source srcset="/assets/shots/tour/credentials-ko-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
+            <img src="/assets/shots/tour/credentials-ko-light.webp" srcset="/assets/shots/tour/credentials-ko-light.webp 1.5x" width="589" height="568" loading="lazy" decoding="async" alt="'연결 내보내기' 대화상자. 내보낼 연결 목록, '비밀번호 포함(파일을 암호로 암호화합니다)' 체크 상자, 암호와 암호 확인 입력란, 12자 이상이라는 안내가 있다.">
+          </picture>
+          <figcaption>파일 &gt; 연결 내보내기. 비밀번호를 넣으면 파일 전체를 이 암호로 암호화합니다.</figcaption>
+        </figure>
+      </article>
+
+      <article class="feature feature-side" id="open-source" aria-labelledby="open-source-title">
+        <div class="feature-text">
+          <div class="feature-head">
+            <h3 id="open-source-title">무료 오픈 소스</h3>
+            <p class="feature-lead">Chromite의 소스 코드는 GitHub에 공개되어 있으며 Apache License 2.0을 따릅니다. 누구나 코드를 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</p>
+          </div>
+          <ul class="feature-points">
+            <li>Windows용 설치 파일(코드 서명)과 macOS용 디스크 이미지를 제공합니다.</li>
+            <li>새 버전은 자동으로 받아 두었다가 앱을 다시 시작할 때 설치합니다.</li>
+            <li>Chromite는 Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했습니다. 원저작자 표시와, 함께 배포되는 JDBC 드라이버, Java 런타임, 글꼴의 라이선스는 NOTICE에 있습니다.</li>
+          </ul>
+        </div>
+        <div class="feature-repo">
+          <a class="oss-repo" href="https://github.com/froiibn/chromite">
+            <span class="mark-github large" aria-hidden="true"></span>
+            <span><strong>froiibn/chromite</strong><span class="where">GitHub에서 소스 코드 보기</span></span>
+          </a>
+          <ul class="oss-links">
+            <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">라이선스 (Apache License 2.0)</a></li>
+            <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <div class="sects">
     <section class="sect">
       <h2>서명과 확인</h2>
@@ -106,22 +339,6 @@
       <h2>자동 업데이트</h2>
       <div class="body">
         <p>Chromite는 새 버전이 나오면 스스로 받아 두었다가, 앱을 다시 시작할 때 설치합니다. 받은 파일은 크기, SHA-256, 서명을 확인한 뒤에만 실행합니다. 업데이트 확인이 보내는 정보는 <a href="/ko/privacy.html">개인정보</a>에 적었습니다.</p>
-      </div>
-    </section>
-
-    <section class="sect" id="open-source">
-      <h2>오픈 소스</h2>
-      <div class="body">
-        <p>Chromite의 소스 코드는 GitHub에 공개되어 있으며 Apache License 2.0을 따릅니다. 누구나 코드를 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</p>
-        <p>Chromite는 Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했습니다. 원저작자 표시와, 함께 배포되는 JDBC 드라이버, Java 런타임, 글꼴의 라이선스는 NOTICE에 있습니다.</p>
-        <a class="oss-repo" href="https://github.com/froiibn/chromite">
-          <span class="mark-github large" aria-hidden="true"></span>
-          <span><strong>froiibn/chromite</strong><span class="where">GitHub에서 소스 코드 보기</span></span>
-        </a>
-        <ul class="oss-links">
-          <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">라이선스 (Apache License 2.0)</a></li>
-          <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
-        </ul>
       </div>
     </section>
   </div>
