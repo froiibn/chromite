@@ -25,6 +25,8 @@
 | 트랜잭션 로그 | `com.seizia.chromite.ui.swing` | `TransactionLogDialog` |
 | 열린 트랜잭션 목록 | `com.seizia.chromite.ui.swing` | `OpenTransactionsDialog`(Tools > Open Transactions…) |
 | 문구 | `com.seizia.chromite.ui.swing` | `CoreMessages`(`main_commit` 등), `EditorMessages`(`editor_txn_log_*`, `editor_txn_list_*`, `editor_sql_commit_tip` 등), 영어·한국어 |
+| 오류 복구의 트랜잭션 보호 | `com.seizia.chromite.model` | `runtime.jobs.TransactionRecoveryGuard`(판단, 사용자가 고른 다시 연결), `DBExecUtils.tryExecuteRecover`, `KeepAlivePingJob`, `UIServiceIdleTransactions` |
+| 오류 복구 알림 | `com.seizia.chromite.ui.swing` | `SwingIdleTransactionService`(`showTransactionAborted`, `showReconnectHeld`), `ConnectionMessages`(`recovery_*`) |
 
 ## Commit / Roll Back 명령
 
@@ -76,6 +78,63 @@
 - 보이지 않는 것: Chromite Agent·MCP 도구의 격리 세션(쿼리 관리자를 거치지 않음). 설명 문구에 적었다. 끝낼 때와 끊을 때는 `ExitTransactionCheck`가 이들도 묻는다.
 - SWT와 다른 점: SWT의 "Show all connections"(트랜잭션 없는 문맥도 보이기)와 아래 붙은 로그는 두지 않았다. 끝낼 것이 없는 문맥이고, 로그는 단추로 연다.
 
+## 오류 복구와 열린 트랜잭션
+
+문장이 실패하면 모델의 실행 복구(`DBExecUtils.tryExecuteRecover`)가 원인에 따라 복구하고 다시 실행한다. 업스트림 복구는 묻지 않고 트랜잭션을 끝냈다
+(설정 작업 에이전트가 2026-11-07에 발견).
+
+| 경로 | 언제 | 업스트림이 한 일 | 잃는 것 |
+|---|---|---|---|
+| 중단된 트랜잭션(`TRANSACTION_ABORTED`) | PostgreSQL(과 그 계열, Trino): 트랜잭션 안에서 문장이 실패한 뒤의 문장이 "current transaction is aborted"(25P02) | 그 문맥(오류에 문맥이 없으면 데이터 소스의 모든 문맥)을 롤백하고 다시 실행. 롤백은 쿼리 관리자에 기록하지 않음(`InvalidateJob.invalidateTransaction`, `enableLogging(false)`) | 서버가 이미 중단한 트랜잭션이라 커밋할 수 있는 데이터는 없다. 그러나 사용자는 앞 문장이 아직 있다고 믿고, 상태 줄도 계속 "열린 트랜잭션"을 보였다 |
+| 끊긴 연결(`CONNECTION_LOST`) | 모든 DB: SQLState 08xxx, 소켓 오류(SQL Server "Connection reset", MariaDB·PostgreSQL에서 세션이 끊김 등) | 데이터 소스와 그 네트워크 처리기를 쓰는 데이터 소스의 **모든** 문맥을 닫고(수동 커밋이면 닫기 전에 롤백, `JDBCDataSource.closeConnection`) 다시 연결한 뒤 다시 실행. 알림은 "다시 연결함" 정보뿐 | 끊긴 문맥의 트랜잭션(서버가 이미 버림)과 **끊기지 않은 다른 문맥**(Chromite Agent 세션 등)의 살아 있는 트랜잭션 |
+| 연결 유지 핑(`KeepAlivePingJob`) | 연결 설정의 연결 유지 간격이 있을 때, 문맥 하나라도 죽었으면 | 위와 같은 다시 연결 | 위와 같음 |
+
+복구를 거치는 호출: 쿼리 창의 SELECT·DDL 등(INSERT·UPDATE·DELETE는 `SQLQueryExecuteJob.shouldRecoverQuery`가 복구하지 않음), 메타데이터 읽기,
+실행 계획, 자동 완성 분석, 데이터 전송, 결과 표 저장 등(`grep tryExecuteRecover`).
+
+### 바꾼 것: 멈추고 묻는다
+
+- **판단.** 복구가 끝낼 문맥 중 열린 트랜잭션이 있으면(`QMTransactionState.isOpen()`: 수동 커밋에서 사용자 문장이 있음, 상태 줄·목록과 같은 기준) 복구하지 않는다.
+  다시 연결은 Chromite Agent 세션(`DBServiceUnrecordedSessions.isConnectionInUse`)도 본다. 판단은 `TransactionRecoveryGuard`(모델)가 한다.
+  - 실패한 시도 자신의 문장은 셈에서 뺀다: 세션으로 부른 복구는 첫 시도 전의 트랜잭션 상태를 기억하고(`TransactionRecoveryGuard.Attempt`), 그 문맥은 그때 열려
+    있었을 때만 연 것으로 본다. 커밋 직후 첫 SELECT에서 연결이 끊긴 경우처럼 잃을 것이 없으면 전처럼 다시 연결한다.
+  - 자동 커밋 문맥과 메타데이터 읽기만 한 문맥은 잃을 것이 없으므로 전처럼 복구한다.
+- **멈춤.** 복구하지 않고 원래 오류를 호출자에게 그대로 돌려준다(쿼리 창의 Messages 탭에 서버 오류). 핑은 다시 연결하지 않고 연결을 그대로 둔다.
+- **알림(닫을 때까지 남음, `UIServiceIdleTransactions` → `SwingIdleTransactionService`).**
+  - 중단된 트랜잭션: "서버가 트랜잭션을 중단함 — 오류가 나서 서버가 {쿼리 창}의 열린 트랜잭션을 중단했습니다. {시각}부터 실행한 문장 N개는 사라졌고 커밋해도
+    저장되지 않습니다. 계속하려면 롤백하십시오." 단추 **롤백**은 다른 커밋·롤백과 같은 경로(`IdleTransactionMonitor.endTransaction`, 보여 준 트랜잭션만)다.
+    같은 트랜잭션의 알림이 떠 있으면 다시 띄우지 않는다(멈춘 뒤의 문장은 모두 같은 오류).
+  - 끊긴 연결: "연결 끊김 — 연결 X이(가) 끊겼습니다: {오류 첫 줄}. 다시 연결하면 아래의 열린 트랜잭션이 끝나므로 자동으로 다시 연결하지 않았습니다: {세션: 문장 N개}…
+    아직 동작하는 세션의 변경을 남기려면 먼저 커밋하십시오(도구 > 열린 트랜잭션). 다시 연결하면 나머지는 버려집니다." 단추 **다시 연결**은 업스트림 복구와 같은
+    `InvalidateJob.invalidateDataSource`를 사용자가 고른 뒤에 하고(`TransactionRecoveryGuard.reconnect`), 끝낸 트랜잭션을 쿼리 관리자에 롤백으로 기록한다
+    (다시 연결은 문맥 객체를 그대로 두고 옛 연결을 기록 없이 닫아 상태 줄이 사라진 문장을 계속 보였기 때문이다). 핑은 같은 연결 객체에 한 번만 알린다.
+- **왜 "알림만 하고 복구"가 아니라 "멈추고 묻기"인가.** 중단된 트랜잭션은 롤백 말고 할 일이 없지만, 사용자가 무엇이 사라졌는지 보고 직접 끝내야 다음 문장이 새
+  트랜잭션이라는 것을 안다. 끊긴 연결은 살아 있는 다른 문맥의 트랜잭션까지 끝내므로 먼저 커밋할 기회를 주어야 한다.
+- **PostgreSQL의 COMMIT.** 중단된 트랜잭션에 COMMIT을 보내면 서버가 ROLLBACK으로 끝낸다(pgjdbc 기본 설정에서 오류 없음). 그래서 알림에 "커밋해도 저장되지 않습니다"를 적었다.
+- 바뀌지 않은 것: 절전 뒤 다시 검증(`DataSourceMonitorJob.invalidateSleptConnections`)과 절전 때 연결 닫기는 Swing에서 실행되지 않는다([idle-transactions.md](idle-transactions.md)
+  "절전 때 연결 닫기"). 쿼리 창의 "실행 전 연결 다시 검증"(`isInvalidateBeforeExecute`)은 Swing이 켜지 않는다(기본 `false`, 재정의 없음).
+  오류로 멈춘 스크립트의 자동 롤백(`STOP_ROLLBACK`)은 #117이 고쳤다([swing-options.md](swing-options.md)).
+
+### 확인 (2026-11-07)
+
+이 브랜치의 제품 빌드를 복사해 자기 작업 공간으로 실행하고 프로세스 안에서 Swing API로 누르는 스크립트(OS 입력 없음)로 확인했다. 연결은 수동 커밋,
+전용 DB `chr_srd`의 `t`. 세션을 끊는 것은 다른 세션(`docker exec`)에서 했다(PostgreSQL `pg_terminate_backend`, SQL Server `KILL`, MariaDB `KILL`).
+증거: `D:\Tools\_scratch\safety-recovery-drop\run\`(스크립트 `*.txt`, 결과 `*.txt.log`, 서버 상태 `server-state.txt`, 앱 로그 `app-workspace.log`, 창 그림 `shots\`).
+
+| 확인 | 결과 |
+|---|---|
+| PostgreSQL: INSERT → `SELECT 1/0`(오류) → `SELECT 1` | `SELECT 1`은 25P02 오류로 멈춤, 알림 "서버가 트랜잭션을 중단함 … 23:31:51부터 실행한 문장 3개는 사라졌고 커밋해도 저장되지 않습니다", 상태 줄 "열린 트랜잭션 (문장 3개)" 그대로, 서버 `idle in transaction (aborted)`(롤백되지 않음). 다음 문장도 같은 오류지만 알림은 하나 (`pg-a1-aborted-notice.png`) |
+| 알림의 롤백 | 서버 `idle`·`ROLLBACK`, 상태 줄 칸 사라짐, 다음 문장 정상 (`pg-a2-after-rollback.png`) |
+| PostgreSQL: SELECT·INSERT(열린 트랜잭션) 뒤 세션 끊김 → `SELECT 4` | 다시 연결하지 않음(서버에 주 세션 없음), 알림 "연결 끊김 … 57P01 … 쿼리 창 SQLQuery1.sql: 문장 3개", 상태 줄 그대로 (`pg-b2-reconnect-held.png`) |
+| 알림의 다시 연결 | 다시 연결("활성 연결 수 2/2"), 상태 줄 칸 사라짐(쿼리 관리자에 롤백 기록), 다음 문장 정상 (`pg-b3-after-reconnect.png`) |
+| PostgreSQL: 롤백 뒤(열린 트랜잭션 없음) 세션 끊김 → `SELECT 6` | 전처럼 묻지 않고 다시 연결해 실행(로그 "Invalidate datasource"), 알림 없음 (`pg-c1-harmless-recovery.png`) |
+| SQL Server: INSERT → `SELECT 1/0`(오류) → `SELECT 7` | 알림 없음, 서버 `open_tran = 1`(INSERT가 그대로 남음, SQL Server는 문장 오류로 트랜잭션을 끝내지 않음) (`mssql-d1-error-then-select.png`) |
+| SQL Server: 세션 `KILL` → `SELECT 8` → 다시 연결 | 다시 연결하지 않고 알림("08S01 연결이 닫혔습니다", 문장 3개) → 다시 연결 뒤 칸 사라짐, 정상 (`mssql-d2-…`, `mssql-d3-…`) |
+| MariaDB: INSERT → 없는 표 SELECT(오류) → `SELECT 7` | 알림 없음, 서버 `trx_state RUNNING, rows_modified 1`(INSERT가 그대로) (`maria-d1-error-then-select.png`) |
+| MariaDB: 세션 `KILL` → `SELECT 8` → 다시 연결 | 다시 연결하지 않고 알림("08000 Socket error", 문장 4개) → 다시 연결 뒤 칸 사라짐, 정상 (`maria-d2-…`, `maria-d3-…`) |
+
+연결 유지 핑 경로(`KeepAlivePingJob`)는 같은 판단을 쓰지만 연결 유지 간격을 켜고 실행해 보지는 않았다.
+
 ## 설계 결정과 이유
 
 - **한 커밋 경로**: Query 메뉴·도구 막대·단축키·목록이 모두 #97의 `SwingIdleTransactionService.endTransaction`을 쓴다. 오래된 화면이 새 트랜잭션을 끝내지 않는 보호(시작 시각 비교, 실행 중이면 하지 않음)를 그대로 얻는다.
@@ -113,8 +172,17 @@
 - 트랜잭션 로그의 "지난 트랜잭션 보이기"와 "모든 문장(메타데이터 포함) 보이기".
 - 커밋·롤백 뒤 알림과 그 설정(SWT `transaction.show.notifications`). 트랜잭션 설정 화면(A-P1 "Transactions")과 함께 한다.
 - 스마트 커밋(B-S16), 실행 중 자동/수동 커밋 전환(B-S18), 쿼리 창마다 별도 연결(B-S22)은 이 작업에 들어 있지 않다.
+- 서버가 스스로 트랜잭션 전체를 롤백하는 경우(SQL Server 교착 상태 희생자 1205·`XACT_ABORT ON`, MariaDB 교착 상태 1213)는 Chromite의 복구가 아니라서
+  알리지 않고, 상태 줄도 계속 열린 트랜잭션을 보인다. 오류 코드로 알아보거나 서버에 트랜잭션 수(`@@TRANCOUNT` 등)를 묻는 것이 필요하다.
+- PostgreSQL의 중단된 트랜잭션에 Query > Commit을 누르면 서버가 롤백하고 오류가 없다(pgjdbc `raiseExceptionOnSilentRollback` 기본 꺼짐). 알림이 그것을 말하지만
+  커밋 명령 자체는 막지 않는다.
+- 연결이 죽은 채 열린 트랜잭션이 남으면 연결 메뉴의 끊기·다시 연결은 먼저 커밋·롤백을 시도하다 실패해 끊지 못한다(`ExitTransactionCheck`, 이전부터).
+  이 경우 "연결 끊김" 알림의 다시 연결로 벗어난다. 알림을 ×로 닫았으면 다음 실행이 다시 띄운다.
+- 사용자가 고른 다시 연결 뒤 Chromite Agent의 열린 트랜잭션 기록(`AgentSql`)은 지우지 않는다(모델에서 위 번들을 알 수 없다). 에이전트가 끝내거나 끊을 때 정리된다.
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Query > Commit / Roll Back(SWT 단축키, SQL Editor 도구 막대 단추), 트랜잭션 로그, 열린 트랜잭션 목록.
   PostgreSQL·SQL Server에서 실행 확인(위 "확인")
+- 2026-11-07 오류 복구와 열린 트랜잭션: 실행 복구와 연결 유지 핑이 열린 트랜잭션을 묻지 않고 롤백(PostgreSQL 중단된 트랜잭션)하거나
+  다시 연결로 끝내던 것을 막음. 멈추고 롤백·다시 연결을 알림으로 물음(`TransactionRecoveryGuard`). PostgreSQL·SQL Server·MariaDB에서 확인

@@ -41,9 +41,11 @@ import java.util.Map;
  * 루틴 인수에 쓸 수 없다. 값을 SQL 식으로 받는 규칙(문자열은 따옴표, NULL)은 그 대화상자와 SWT 디버거 구성 패널
  * ({@code PostgreDebugPanelFunction})과 같게 했다. 표는 SWT 패널처럼 이름·형식·방향·값이다. SWT 패널에서는 막아 두었던
  * attach(Global) 모드를 켰다: 모델이 지원하고 서버에서 확인했다(docs/chromite/procedure-debugger.md "pldbgapi 동작").
+ * attach를 지원하지 않는 디버거(Oracle {@code DBMS_DEBUG})에서는 그 선택을 끄고 이유를 도움말로 보인다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 attach 지원 여부 인수(Oracle 디버거)
  */
 final class DebugStartDialog extends JDialog {
 
@@ -60,7 +62,8 @@ final class DebugStartDialog extends JDialog {
         @Nullable Window owner,
         @NotNull String routineName,
         @NotNull List<DBSProcedureParameter> parameters,
-        @Nullable Map<String, Object> previous
+        @Nullable Map<String, Object> previous,
+        boolean attachSupported
     ) {
         super(owner, NLS.bind(DebugMessages.debug_start_title, routineName), ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -69,9 +72,13 @@ final class DebugStartDialog extends JDialog {
         for (int i = 0; i < parameters.size(); i++) {
             values.add(previousValues instanceof List<?> list && list.size() == parameters.size() ? CommonUtils.toString(list.get(i)) : ""); //$NON-NLS-1$
         }
-        if (previous != null && DBGConstants.ATTACH_KIND_GLOBAL.equals(previous.get(DBGConstants.ATTR_ATTACH_KIND))) {
+        if (attachSupported && previous != null && DBGConstants.ATTACH_KIND_GLOBAL.equals(previous.get(DBGConstants.ATTR_ATTACH_KIND))) {
             attachButton.setSelected(true);
             processField.setText(CommonUtils.toString(previous.get(DBGConstants.ATTR_ATTACH_PROCESS)));
+        }
+        if (!attachSupported) {
+            attachButton.setEnabled(false);
+            attachButton.setToolTipText(DebugMessages.debug_start_attach_unsupported);
         }
         ButtonGroup group = new ButtonGroup();
         group.add(localButton);
@@ -178,6 +185,7 @@ final class DebugStartDialog extends JDialog {
      *
      * @param parameters the routine's input parameters, in order
      * @param previous   the configuration of the last start (its answers are offered again), or null
+     * @param attachSupported the debugger can wait for another session's call
      * @return the debug configuration ({@link DBGConstants} keys), or null if canceled
      */
     @Nullable
@@ -185,9 +193,11 @@ final class DebugStartDialog extends JDialog {
         @NotNull Component parent,
         @NotNull String routineName,
         @NotNull List<DBSProcedureParameter> parameters,
-        @Nullable Map<String, Object> previous
+        @Nullable Map<String, Object> previous,
+        boolean attachSupported
     ) {
-        DebugStartDialog dialog = new DebugStartDialog(SwingUtilities.getWindowAncestor(parent), routineName, parameters, previous);
+        DebugStartDialog dialog = new DebugStartDialog(SwingUtilities.getWindowAncestor(parent), routineName, parameters, previous,
+            attachSupported);
         dialog.setVisible(true);
         return dialog.result;
     }

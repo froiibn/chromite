@@ -45,12 +45,54 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Recognizes database object operations from DDL syntax trees produced by the LSM parser.
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #isDropStatement}: Swing 쿼리 창의 DROP 확인이 JSQLParser가 읽지 못하는 DROP(DATABASE, USER, TABLESPACE,
+ *   PROCEDURE, TRIGGER 등)도 찾도록. SWT 편집기는 이 클래스로 그것을 찾았다 (docs/chromite/swing-sql-exec-safety.md)
  */
 public final class SQLObjectOperationRecognizer {
+
+    // The statement rules of the LSM grammar that drop an object
+    private static final Set<String> DROP_STATEMENTS = Set.of(
+        STMKnownRuleNames.dropSchemaStatement,
+        STMKnownRuleNames.dropTableStatement,
+        STMKnownRuleNames.dropViewStatement,
+        STMKnownRuleNames.dropProcedureStatement,
+        STMKnownRuleNames.dropTriggerStatement,
+        STMKnownRuleNames.dropIndexStatement,
+        STMKnownRuleNames.dropCharacterSetStatement,
+        STMKnownRuleNames.dropNamedObjectStatement,
+        STMKnownRuleNames.dropCatalogDatabaseStatement
+    );
+
     private SQLObjectOperationRecognizer() {
+    }
+
+    /**
+     * Whether the LSM parser reads one statement as a DROP of a database object, of any kind.
+     * <p>
+     * Unlike {@link #recognizeAll}, syntax errors after the object kind do not matter: the parser chooses the DROP
+     * rule by the leading {@code DROP <kind>}, and a name it cannot read (MySQL accounts {@code 'user'@'host'}) must not
+     * hide the DROP. Only the kind of statement is used, not the object.
+     *
+     * @param statement the text of one statement
+     */
+    public static boolean isDropStatement(
+        @NotNull SQLDialect dialect,
+        @NotNull SQLSyntaxManager syntaxManager,
+        @NotNull String statement
+    ) {
+        LSMAnalyzer analyzer = LSMDialectRegistry.getInstance().getAnalyzerFactoryForDialect(dialect)
+            .createAnalyzer(LSMAnalyzerParameters.forDialect(dialect, syntaxManager));
+        // The listener only keeps the parser from reporting the syntax errors on the console
+        STMTreeNode tree = analyzer.parseSqlQueryTree(STMSource.fromString(statement), new RecognitionErrorListener());
+        STMTreeNode schemaStatement = tree == null ? null : unwrapSchemaStatement(tree);
+        STMTreeNode node = schemaStatement == null ? null : schemaStatement.findFirstNonErrorChild();
+        return node != null && DROP_STATEMENTS.contains(node.getNodeName());
     }
 
     /**

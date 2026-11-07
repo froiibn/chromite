@@ -35,16 +35,19 @@ import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.generator.SQLGenerator;
 import com.seizia.chromite.model.sql.generator.SQLGeneratorDDL;
 import com.seizia.chromite.model.sql.generator.SQLGeneratorSelect;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorConfigurationRegistry;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBInterruptedException;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Object Explorer의 "Script as", "Select Top 1000 Rows", "View DDL"이 쓰는 SQL 만들기.
+ * Object Explorer의 "Script as", "Select Top 1000 Rows", "View DDL", "Generate SQL"이 쓰는 SQL 만들기.
  *
  * 설계: SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기({@code com.seizia.chromite.model.sql.generator}, UI 의존 없음)를 그대로 쓴다.
  * <ul>
@@ -56,12 +59,16 @@ import java.util.List;
  *     연결의 {@link DBCQueryTransformProvider}({@link DBCQueryTransformType#RESULT_SET_LIMIT})로 바꾼다
  *     (SQL Server {@code TOP}, SQLite·PostgreSQL·MySQL {@code LIMIT} 등). 변환기가 없거나 적용할 수 없으면 SELECT를 그대로 두고,
  *     편집기의 가져오기 행 수 제한으로만 자른다.</li>
+ *     <li>Generate SQL: SWT 메뉴({@code SQLGeneratorContributor})처럼 생성기 확장점의 등록({@link SQLGeneratorConfigurationRegistry})에서
+ *     선택한 객체에 맞는 생성기를 고른다(SELECT, INSERT, UPDATE, DELETE, MERGE, JOIN, CALL, DDL, PostgreSQL의 INSERT ON CONFLICT 등).
+ *     드라이버가 확장점으로 더한 생성기도 코드 수정 없이 나온다.</li>
  * </ul>
- * 모두 DB 메타데이터를 읽으므로 작업 스레드에서 부른다.
+ * 생성기 실행은 DB 메타데이터를 읽으므로 작업 스레드에서 부른다.
  *
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 Generate SQL 메뉴의 생성기 고르기와 실행 (docs/chromite/swing-explorer-object-actions.md)
  */
 final class ObjectScripts {
 
@@ -94,6 +101,35 @@ final class ObjectScripts {
         generator.initGenerator(List.of(entity));
         String sql = runGenerator(monitor, generator);
         return maxRows > 0 ? applyRowLimit(entity.getDataSource(), sql, maxRows) : sql;
+    }
+
+    /**
+     * The generators of the Generate SQL menu for selected objects ({@code com.seizia.chromite.sqlGenerator} extensions,
+     * in the registry's order): those that apply to at least one of the objects; multi-object generators (JOIN) only
+     * for several objects. The same choice as the SWT menu ({@code SQLGeneratorContributor}).
+     */
+    @NotNull
+    static List<SQLGeneratorDescriptor> getGenerators(@NotNull List<DBSObject> objects) {
+        return objects.isEmpty() ? List.of() : SQLGeneratorConfigurationRegistry.getInstance().getApplicableGenerators(objects, null);
+    }
+
+    /**
+     * Runs a Generate SQL generator on the objects it applies to. The others are left out: a generator casts each object
+     * to its type (a SELECT generator to a table), so a mixed selection (tables and procedures) would fail.
+     */
+    @NotNull
+    static String generate(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull SQLGeneratorDescriptor descriptor,
+        @NotNull List<DBSObject> objects
+    ) throws DBException {
+        List<Object> applicable = new ArrayList<>();
+        for (DBSObject object : objects) {
+            if (descriptor.appliesTo(object, null)) {
+                applicable.add(object);
+            }
+        }
+        return runGenerator(monitor, descriptor.createGenerator(applicable));
     }
 
     @NotNull

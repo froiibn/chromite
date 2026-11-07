@@ -20,6 +20,13 @@ package com.seizia.chromite.model.stm;
 import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
 import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
 
+/**
+ * Names of the LSM grammar rules that the semantic code looks for in parse trees.
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #dropTriggerStatement}: 쿼리 창의 DROP 확인이 DROP TRIGGER도 찾도록
+ *   ({@code SQLObjectOperationRecognizer.isDropStatement}, docs/chromite/swing-sql-exec-safety.md)
+ */
 public class STMKnownRuleNames {
     // root rule for script
     public static final String sqlQueries = SQLStandardParser.ruleNames[SQLStandardParser.RULE_sqlQueries]; // EOF - don't stop early. must match all input
@@ -343,6 +350,7 @@ public class STMKnownRuleNames {
     public static final String dropViewStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_dropViewStatement];
     public static final String dropProcedureStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_dropProcedureStatement];
     public static final String dropCharacterSetStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_dropCharacterSetStatement];
+    public static final String dropTriggerStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_dropTriggerStatement];
     public static final String ifExistsSpec = SQLStandardParser.ruleNames[SQLStandardParser.RULE_ifExistsSpec];
 
     // data statements
