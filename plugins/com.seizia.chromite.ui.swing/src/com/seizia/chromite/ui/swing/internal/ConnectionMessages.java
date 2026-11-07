@@ -35,6 +35,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 유휴 연결 닫기 도구 설명({@code settings_close_idle_tip}) (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-07 트랜잭션 격리 수준({@code settings_isolation*}) (docs/chromite/swing-options.md)
  * - 2026-11-07 오류 복구가 멈췄다는 알림({@code recovery_*}) (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 Oracle 세션 설정 탭({@code driver_oracle_session_tab}, {@code driver_oracle_nls_*}) (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -158,6 +159,21 @@ public class ConnectionMessages extends NLS {
     public static String driver_oracle_tns_folder_placeholder;
     public static String driver_oracle_tns_folder_tip;
     public static String driver_oracle_enter_alias;
+    public static String driver_oracle_session_tab;
+    public static String driver_oracle_nls_default;
+    public static String driver_oracle_nls_language;
+    public static String driver_oracle_nls_language_tip;
+    public static String driver_oracle_nls_territory;
+    public static String driver_oracle_nls_territory_tip;
+    public static String driver_oracle_nls_date_format;
+    public static String driver_oracle_nls_date_format_tip;
+    public static String driver_oracle_nls_timestamp_format;
+    public static String driver_oracle_nls_timestamp_format_tip;
+    public static String driver_oracle_nls_length;
+    public static String driver_oracle_nls_length_tip;
+    public static String driver_oracle_nls_currency;
+    public static String driver_oracle_nls_currency_tip;
+    public static String driver_oracle_nls_hint;
 
     public static String auth_integrated_security;
     public static String auth_integrated_security_tip;

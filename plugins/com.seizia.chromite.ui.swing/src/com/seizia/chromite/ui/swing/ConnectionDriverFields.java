@@ -25,6 +25,8 @@ import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
 import com.seizia.chromite.ext.oracle.model.OracleConstants;
 import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
+import com.seizia.chromite.ext.oracle.model.dict.OracleLanguage;
+import com.seizia.chromite.ext.oracle.model.dict.OracleTerritory;
 import com.seizia.chromite.ext.oracle.oci.OCIUtils;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
@@ -36,8 +38,13 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -59,11 +66,18 @@ import java.util.Set;
  *     비우면 {@code TNS_ADMIN} 환경 변수와 기본 Oracle 홈)를 보인다. 별칭 목록은 모델의 {@link OCIUtils#readTnsNames}로 읽는다.
  *     SWT의 Custom(JDBC URL 템플릿)은 Additional Connection Parameters의 JDBC URL 연결 방식이 맡는다(저장할 때 connection-type = CUSTOM).
  *     Oracle 클라이언트(OCI) 홈 선택은 옮기지 않았다(상용 기능에서만 보이는 SWT 칸).</li>
+ *     <li>Oracle 세션 설정(Options의 Session Settings 탭, {@link #getOptionsPage}): SWT {@code OracleConnectionExtraPage}의 "Session settings"
+ *     묶음(언어·지역 콤보, 날짜·타임스탬프 형식, 길이 의미, 통화)과 같은 공급자 속성({@code OracleConstants.PROP_SESSION_*})이다. 모델이 연결할 때
+ *     {@code ALTER SESSION SET NLS_…}으로 적용한다({@code OracleDataSource.initializeContextState}). 기본값(빈 값)이면 속성을 지운다(SWT와 같음).
+ *     언어·지역 목록은 SWT처럼 모델의 {@link OracleLanguage}·{@link OracleTerritory}이고 직접 입력도 된다. 길이 의미는 SWT의 글 칸 대신
+ *     BYTE/CHAR 콤보(입력 가능)다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 Oracle 세션 설정(NLS) 탭과 드라이버별 Options 탭 고리({@link #getOptionsPage})
+ *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  */
 abstract class ConnectionDriverFields {
 
@@ -134,6 +148,20 @@ abstract class ConnectionDriverFields {
      */
     @Nullable
     String validate() {
+        return null;
+    }
+
+    /**
+     * A driver specific tab of the Options tabs.
+     */
+    record OptionsPage(@NotNull String title, @NotNull JComponent page) {
+    }
+
+    /**
+     * The driver's own Options tab, or {@code null}.
+     */
+    @Nullable
+    OptionsPage getOptionsPage() {
         return null;
     }
 
@@ -220,6 +248,8 @@ abstract class ConnectionDriverFields {
      * Oracle: Basic (server name + SID/service name) or TNS (network alias + tnsnames folder).
      */
     private static final class OracleFields extends ConnectionDriverFields {
+        private static final String NLS_LENGTH_BYTE = "BYTE"; //$NON-NLS-1$
+        private static final String NLS_LENGTH_CHAR = "CHAR"; //$NON-NLS-1$
         private static final String[] CONNECTION_TYPE_ITEMS = {ConnectionMessages.driver_oracle_basic, "TNS"}; //$NON-NLS-1$
 
         private final JComboBox<String> connectionTypeCombo = new JComboBox<>(CONNECTION_TYPE_ITEMS);
@@ -230,6 +260,11 @@ abstract class ConnectionDriverFields {
         private final JLabel tnsPathLabel = new JLabel(ConnectionMessages.driver_oracle_tns_folder);
         private final JTextField tnsPathField = new JTextField();
         private final JComponent tnsPathRow;
+        /**
+         * Session settings (NLS) by provider property: combo boxes (language, territory, length semantics) and text fields.
+         */
+        private final Map<String, JComboBox<String>> sessionCombos = new LinkedHashMap<>();
+        private final Map<String, JTextField> sessionFields = new LinkedHashMap<>();
         private boolean loading;
 
         OracleFields(@NotNull Runnable changeListener) {
@@ -282,6 +317,63 @@ abstract class ConnectionDriverFields {
             };
             aliasField.getDocument().addDocumentListener(listener);
             tnsPathField.getDocument().addDocumentListener(listener);
+            List<String> languages = new ArrayList<>();
+            for (OracleLanguage language : OracleLanguage.values()) {
+                languages.add(language.getLanguage());
+            }
+            List<String> territories = new ArrayList<>();
+            for (OracleTerritory territory : OracleTerritory.values()) {
+                territories.add(territory.getTerritory());
+            }
+            addSessionCombo(OracleConstants.PROP_SESSION_LANGUAGE, languages, ConnectionMessages.driver_oracle_nls_language_tip, listener);
+            addSessionCombo(OracleConstants.PROP_SESSION_TERRITORY, territories, ConnectionMessages.driver_oracle_nls_territory_tip, listener);
+            addSessionField(OracleConstants.PROP_SESSION_NLS_DATE_FORMAT, ConnectionMessages.driver_oracle_nls_date_format_tip, listener);
+            addSessionField(OracleConstants.PROP_SESSION_NLS_TIMESTAMP_FORMAT, ConnectionMessages.driver_oracle_nls_timestamp_format_tip, listener);
+            addSessionCombo(OracleConstants.PROP_SESSION_NLS_LENGTH_FORMAT, List.of(NLS_LENGTH_BYTE, NLS_LENGTH_CHAR),
+                ConnectionMessages.driver_oracle_nls_length_tip, listener);
+            addSessionField(OracleConstants.PROP_SESSION_NLS_CURRENCY_FORMAT, ConnectionMessages.driver_oracle_nls_currency_tip, listener);
+        }
+
+        private void addSessionCombo(@NotNull String property, @NotNull List<String> values, @NotNull String tip, @NotNull DocumentListener listener) {
+            JComboBox<String> combo = new JComboBox<>();
+            // The first item is the database default (no ALTER SESSION), as SWT's "Default"
+            combo.addItem(ConnectionMessages.driver_oracle_nls_default);
+            values.forEach(combo::addItem);
+            combo.setEditable(true);
+            combo.setMaximumRowCount(20);
+            combo.setToolTipText(tip);
+            ((JTextField) combo.getEditor().getEditorComponent()).getDocument().addDocumentListener(listener);
+            sessionCombos.put(property, combo);
+        }
+
+        private void addSessionField(@NotNull String property, @NotNull String tip, @NotNull DocumentListener listener) {
+            JTextField field = new JTextField();
+            field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.driver_oracle_nls_default);
+            field.setToolTipText(tip);
+            field.getDocument().addDocumentListener(listener);
+            sessionFields.put(property, field);
+        }
+
+        @NotNull
+        @Override
+        OptionsPage getOptionsPage() {
+            ConnectionSettingsPanel.FormBuilder form = new ConnectionSettingsPanel.FormBuilder();
+            form.addRow(ConnectionMessages.driver_oracle_nls_language, sessionCombos.get(OracleConstants.PROP_SESSION_LANGUAGE));
+            form.addRow(ConnectionMessages.driver_oracle_nls_territory, sessionCombos.get(OracleConstants.PROP_SESSION_TERRITORY));
+            form.addRow(ConnectionMessages.driver_oracle_nls_date_format, sessionFields.get(OracleConstants.PROP_SESSION_NLS_DATE_FORMAT));
+            form.addRow(ConnectionMessages.driver_oracle_nls_timestamp_format, sessionFields.get(OracleConstants.PROP_SESSION_NLS_TIMESTAMP_FORMAT));
+            form.addRow(ConnectionMessages.driver_oracle_nls_length, sessionCombos.get(OracleConstants.PROP_SESSION_NLS_LENGTH_FORMAT));
+            form.addRow(ConnectionMessages.driver_oracle_nls_currency, sessionFields.get(OracleConstants.PROP_SESSION_NLS_CURRENCY_FORMAT));
+            JLabel hint = new JLabel(ConnectionMessages.driver_oracle_nls_hint);
+            hint.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
+            hint.setForeground(UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
+            form.addGroupGap();
+            form.addRow((JLabel) null, hint);
+            form.addFiller();
+            JPanel page = form.getPanel();
+            page.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+            return new OptionsPage(ConnectionMessages.driver_oracle_session_tab,
+                new JScrollPane(page, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER));
         }
 
         @Override
@@ -324,6 +416,13 @@ abstract class ConnectionDriverFields {
                 tnsPathField.setText(CommonUtils.notEmpty(configuration.getProviderProperty(OracleConstants.PROP_TNS_PATH)));
                 refreshAliases();
                 aliasField.setText(tns ? CommonUtils.notEmpty(configuration.getDatabaseName()) : "");
+                for (Map.Entry<String, JComboBox<String>> entry : sessionCombos.entrySet()) {
+                    String value = configuration.getProviderProperty(entry.getKey());
+                    entry.getValue().setSelectedItem(CommonUtils.isEmpty(value) ? ConnectionMessages.driver_oracle_nls_default : value);
+                }
+                for (Map.Entry<String, JTextField> entry : sessionFields.entrySet()) {
+                    entry.getValue().setText(CommonUtils.notEmpty(configuration.getProviderProperty(entry.getKey())));
+                }
             } finally {
                 loading = false;
             }
@@ -343,6 +442,22 @@ abstract class ConnectionDriverFields {
             setProviderProperty(configuration, OracleConstants.PROP_SID_SERVICE,
                 OracleConnectionType.getTypeForTitle(CommonUtils.notEmpty((String) sidServiceCombo.getSelectedItem())).name(),
                 OracleConnectionType.SERVICE.name());
+            // OracleConnectionExtraPage.saveSettings: the default (or an empty value) removes the property
+            for (Map.Entry<String, JComboBox<String>> entry : sessionCombos.entrySet()) {
+                String value = ((JTextField) entry.getValue().getEditor().getEditorComponent()).getText().trim();
+                setSessionProperty(configuration, entry.getKey(), value.equals(ConnectionMessages.driver_oracle_nls_default) ? "" : value); //$NON-NLS-1$
+            }
+            for (Map.Entry<String, JTextField> entry : sessionFields.entrySet()) {
+                setSessionProperty(configuration, entry.getKey(), entry.getValue().getText().trim());
+            }
+        }
+
+        private static void setSessionProperty(@NotNull DBPConnectionConfiguration configuration, @NotNull String name, @NotNull String value) {
+            if (value.isEmpty()) {
+                configuration.removeProviderProperty(name);
+            } else {
+                configuration.setProviderProperty(name, value);
+            }
         }
 
         @Nullable
@@ -354,7 +469,10 @@ abstract class ConnectionDriverFields {
         @NotNull
         @Override
         Set<String> getHandledProviderProperties() {
-            return Set.of(OracleConstants.PROP_SID_SERVICE);
+            Set<String> properties = new HashSet<>(sessionCombos.keySet());
+            properties.addAll(sessionFields.keySet());
+            properties.add(OracleConstants.PROP_SID_SERVICE);
+            return properties;
         }
 
         private boolean isTns() {

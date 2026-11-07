@@ -14,7 +14,7 @@ Object Explorer에서 로그인·사용자·역할을 SSMS의 보안 화면처�
 모든 변경은 OK를 누르면 테이블 디자이너처럼 스크립트를 먼저 보여 주고(Execute / Open in Query Window / Copy / Cancel)
 Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크립트만 보여 준다.
 
-지원: SQL Server, PostgreSQL, MySQL/MariaDB. Oracle은 이번에 넣지 않았다("남긴 것").
+지원: SQL Server, PostgreSQL, MySQL/MariaDB, Oracle(2026-11-08, 아래 "Oracle").
 
 ## 화면
 
@@ -116,7 +116,7 @@ Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크
 
 ## upstream 대비 변경점
 
-- 새 파일: 모델 번들 `com.seizia.chromite.model.admin/.../security/*`(8개), Swing 번들 `SecurityCommands`, `PrincipalPropertiesDialog`,
+- 새 파일: 모델 번들 `com.seizia.chromite.model.admin/.../security/*`(8개, 2026-11-08 `OracleSecurityDialect`로 9개), Swing 번들 `SecurityCommands`, `PrincipalPropertiesDialog`,
   `ObjectPermissionsDialog`, `PermissionEditorPanel`, `SecurityPickerDialog`, `SecurityLabels`, `internal/SecurityMessages`(+ properties 2개).
 - 고친 파일: `ObjectExplorerPanel`(메뉴 항목 3개, Delete가 주체도 지움, `refreshNavigatorNode`), `com.seizia.chromite.model.admin/META-INF/MANIFEST.MF`(패키지 내보내기).
 - DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다.
@@ -148,9 +148,52 @@ Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크
   스키마 이름 앞에 데이터베이스가 붙던 표시, 미리 보기 창 제목이 속성 창과 같아 구별되지 않던 것("스크립트 - …").
 - **알려진 동작:** SQL Server·MySQL에서 Logins/Users 폴더를 새로 고치면 폴더의 부모(데이터 원본)를 다시 읽으므로 F5와 같이 보안 폴더가 접힌다.
 
+## Oracle (2026-11-08)
+
+SWT 감사 3순위 "Oracle 사용자·역할·권한 관리"(D-db-specific O16). 같은 창(`PrincipalPropertiesDialog`, `ObjectPermissionsDialog`)과 같은 흐름(OK → 스크립트 미리 보기 →
+실행, 삭제는 확인 → 미리 보기 → 실행)을 쓴다. DB별 부분은 새 `OracleSecurityDialect`(`model.admin` `security` 패키지)이고 `SecurityDialect.forObject`에 한 줄을 더했다.
+Swing 번들은 고치지 않았다.
+
+| 항목 | 동작 | 문 |
+|---|---|---|
+| Security ▸ Users / Roles 폴더 | 새 사용자… / 새 역할… | `CREATE USER u IDENTIFIED BY "…"`(미리 보기는 가림, 암호를 비우면 `NO AUTHENTICATION`), 계정 잠김이면 `ACCOUNT LOCK` / `CREATE ROLE r` |
+| 사용자·역할 속성 | 일반(암호, 계정 잠김), 역할(소속), 사용 권한 | `ALTER USER … IDENTIFIED BY`, `ALTER USER … ACCOUNT LOCK/UNLOCK`, `GRANT/REVOKE <role> TO/FROM` |
+| 사용 권한 탭의 데이터베이스 행(현재 PDB 이름) | 시스템 권한(`SYSTEM_PRIVILEGE_MAP`), "권한 부여" = ADMIN OPTION | `GRANT CREATE SESSION TO u [WITH ADMIN OPTION]`, `REVOKE … FROM u` |
+| 사용 권한 탭의 객체 행, 테이블·뷰·시퀀스·함수·프로시저의 사용 권한… | 객체 권한(`DBA_TAB_PRIVS`), "권한 부여" = GRANT OPTION | `GRANT SELECT ON s.t TO u [WITH GRANT OPTION]`, `REVOKE … ON s.t FROM u` |
+| 삭제(Delete 키·메뉴) | 확인 → 미리 보기 | `DROP USER u` / `DROP ROLE r` |
+
+설계 결정:
+
+- **모델 객체 관리자가 없다.** ext.oracle `plugin.xml`의 objectManager에 사용자·역할이 없고, 사용자 만들기·지우기는 스키마 관리자
+  (`OracleSchemaManager`: `CREATE USER … IDENTIFIED BY`, `DROP USER … CASCADE`)뿐이다. SWT의 권한 탭도 범용 편집기의 읽기 표였다.
+  그래서 다른 DB와 같이 "읽은 상태 → 고친 상태" 차이로 문을 만든다(위 "설계 결정과 이유" 첫 항목).
+- **시스템 권한은 데이터베이스 행.** SQL Server 데이터베이스 권한처럼 `ON` 없는 GRANT라 `Securable.Kind.DATABASE`(이름 = `SYS_CONTEXT('USERENV', 'CON_NAME')`)로
+  둔다. 새 사용자·역할 창에도 처음부터 이 행이 있어 CREATE SESSION을 바로 고를 수 있다. 공용 enum은 바꾸지 않았다.
+- **ADMIN OPTION과 GRANT OPTION.** 시스템 권한의 "권한 부여"는 `WITH ADMIN OPTION`, 객체 권한은 `WITH GRANT OPTION`이다. Oracle에는
+  `REVOKE GRANT OPTION FOR`가 없어 "권한 부여"만 끄면 `REVOKE` 뒤 `GRANT`로 다시 준다. 객체 권한 REVOKE는 Oracle이 연쇄로 거두므로 `CASCADE`를 붙이지 않는다.
+- **DROP USER에 CASCADE를 붙이지 않는다.** 모델의 스키마 관리자와 다르다. 객체가 있으면 서버가 ORA-01922로 거부하고 오류 창에 실패한 문이 보인다.
+  객체까지 지우려면 미리 보기를 쿼리 창으로 열어 CASCADE를 붙인다(되돌릴 수 없는 일을 기본으로 하지 않기 위해).
+- **새 이름.** 따옴표 없는 식별자로 쓸 수 있는 이름은 Oracle 규칙대로 대문자로 바꾼다(`chr_p3_user` → `CHR_P3_USER`). 이름 바꾸기는 Oracle에 없어 막는다.
+- **목록.** 역할 소속에는 `DBA_ROLES` 전부(CONNECT, RESOURCE 같은 Oracle 역할 포함). 권한 받을 대상·객체 추가 목록에서는 Oracle이 관리하는
+  사용자·역할(`ORACLE_MAINTAINED = 'Y'`, 12c+)을 뺀다. 읽기는 DBA 뷰라 SELECT_CATALOG_ROLE 등이 없으면 서버 오류가 그대로 보인다.
+- **ORACLE LICENSE GUARD:** `DBA_USERS`, `DBA_ROLES`, `DBA_ROLE_PRIVS`, `DBA_SYS_PRIVS`, `DBA_TAB_PRIVS`, `DBA_OBJECTS`, `SYSTEM_PRIVILEGE_MAP`만 쓴다(팩 필요 없음).
+- 패키지·형식·디렉터리 권한, 열 단위 권한(`DBA_COL_PRIVS`), 23ai 스키마 권한, 기본 테이블스페이스·할당량·프로필은 다루지 않는다(표에 나오지 않고 바꾸지도 않는다).
+
+### 확인 (2026-11-08, Oracle Free 23ai FREEPDB1, system 계정)
+
+Swing 제품을 개인 작업 공간으로 한 번 띄우고 EDT 시험 에이전트로 확인했다(스크린숏 `D:\Tools\_scratch\p3-oracle-altibase-admin\shots\`). 결과는 `sqlplus`로 DBA 뷰를 읽어 확인했다.
+
+| 단계 | 미리 보기 | DB 결과 |
+|---|---|---|
+| Roles ▸ 새 역할… `chr_p3_role`, 데이터베이스 행 CREATE SESSION·CREATE VIEW | `CREATE ROLE CHR_P3_ROLE; GRANT CREATE SESSION, CREATE VIEW TO CHR_P3_ROLE;` | `DBA_SYS_PRIVS` 2행 |
+| Users ▸ 새 사용자… `chr_p3_user`(암호), 역할 CHR_P3_ROLE, CREATE SEQUENCE, CREATE TABLE(권한 부여) | `CREATE USER CHR_P3_USER IDENTIFIED BY '********'; GRANT CHR_P3_ROLE TO …; GRANT CREATE SEQUENCE TO …; GRANT CREATE TABLE TO … WITH ADMIN OPTION;` | 사용자 OPEN, ADMIN_OPTION YES, 그 암호로 `sqlplus` 접속됨 |
+| 테이블 `CHR_P3_OBJ.CHR_TRUNC` ▸ 사용 권한… ▸ 사용자 추가, SELECT(권한 부여)·INSERT | `GRANT INSERT ON … TO CHR_P3_USER; GRANT SELECT ON … TO CHR_P3_USER WITH GRANT OPTION;` | `DBA_TAB_PRIVS` SELECT YES, INSERT NO |
+| 사용자 속성: 계정 잠김, 역할 해제, CREATE TABLE·SELECT의 권한 부여만 끔, INSERT 끔 | `ALTER USER … ACCOUNT LOCK; REVOKE CHR_P3_ROLE FROM …; REVOKE CREATE TABLE FROM …; GRANT CREATE TABLE TO …; REVOKE SELECT ON …; REVOKE INSERT ON …; GRANT SELECT ON …;` | LOCKED, 역할 없음, CREATE TABLE NO, SELECT NO만 남음 |
+| 사용자·역할 삭제(확인 → 미리 보기 → 실행) | `DROP USER CHR_P3_USER;` / `DROP ROLE CHR_P3_ROLE;` | 둘 다 없어짐, 트리에서도 빠짐 |
+
 ## 남긴 것
 
-- **Oracle:** 모델에 `OracleUser`·`OracleRole`·`OraclePrivTable`(읽기)이 있으나 만들기·바꾸기 관리자가 없고 권한 종류 목록도 따로 만들어야 해 이번에 넣지 않았다.
+- **Oracle:** 패키지·형식 등 그 밖의 객체 권한, 열 단위 권한, 23ai 스키마 권한, 기본 테이블스페이스·할당량·프로필, DROP USER CASCADE 선택 칸(위 "Oracle").
 - **SQL Server 데이터베이스 사용자·역할 폴더와 새 데이터베이스 역할:** 탐색기에 폴더가 없다(위 설계 결정). 서버 역할 만들기, 서버 수준 권한(보안 개체의 서버 종류),
   열 단위 권한, 인증서·비대칭 키 로그인도 하지 않았다.
 - **MySQL 8 역할**(`mysql.role_edges`)과 MariaDB 새 역할 만들기(`CREATE ROLE`): 기존 MariaDB 역할의 편집·멤버 자격·사용 권한은 된다.
@@ -162,3 +205,4 @@ Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 로그인·사용자·역할 속성과 새로 만들기, 삭제, 개체 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB).
+- 2026-11-08 Oracle 사용자·역할·시스템 권한·객체 권한(`OracleSecurityDialect`), Oracle Free 23ai에서 만들기·부여·회수·삭제 확인.

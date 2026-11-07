@@ -43,8 +43,8 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
 | B 편집기 | 25 | 42 | 39 | 8 | 3 | 117 |
 | C 탐색기·도구 | 16 | 18 | 27 | 2 | 1 | 64 (+해당 없음 4) |
-| D DB별 화면 | 42 | 31 | 45 | 5 | 1 | 124 |
-| **합계** | **94** | **104** | **144** | **29** | **7** | **378** |
+| D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
+| **합계** | **101** | **104** | **137** | **29** | **7** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -85,7 +85,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
   2026-11-07 일부 고침([swing-options.md](swing-options.md)): 키 306개를 Swing에서 읽는지 전수 확인(효과 없음 197개는 화면을 만들지 않음).
   Options에 Query Execution(구분 기호·매개 변수·오류 처리)·Connection Types(연결 유형 편집)·Oracle 탭과 결과 형식 행, 연결 대화상자에 격리 수준을 더함.
   오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
-- Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.
+- ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
+  2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
+  [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
+  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: Altibase TRUNCATE·MView 새로 고침(A5), 도구 옵션 화면, Oracle 패키지·열 권한.
 - ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
@@ -118,3 +121,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-07 3순위 1차: 트랜잭션 줄(커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록, [transactions.md](transactions.md))과 `@export` 줄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령") 고침. 영역 A-C1·A-C2·A-C3·A-C4, B-S12·B-S17·B-S20·B-S21 상태 갱신.
 - 2026-11-07 3순위 설정 화면 일부: SWT 설정 키의 Swing 효과 전수, Query Execution·Connection Types·Oracle 탭, 결과 형식, 격리 수준, 오류 뒤 무확인 롤백 고침
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
+- 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.

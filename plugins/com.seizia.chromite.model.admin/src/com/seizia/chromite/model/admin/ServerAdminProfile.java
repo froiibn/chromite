@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.model.admin;
 
+import com.seizia.chromite.model.admin.altibase.AltibaseBlockingLockManager;
 import com.seizia.chromite.model.admin.mssql.SQLServerLockManager;
 import com.seizia.chromite.model.admin.mysql.MySQLLockManager;
 import com.seizia.chromite.model.admin.oracle.OracleActivitySessionManager;
@@ -25,6 +26,7 @@ import com.seizia.chromite.model.admin.postgresql.PostgreBlockingLockManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.session.SQLServerSession;
 import com.seizia.chromite.ext.mssql.model.session.SQLServerSessionManager;
@@ -81,12 +83,15 @@ import java.util.function.Function;
  *     {@link OracleActivitySessionManager}, {@link OracleBlockingLockManager})를 쓴다. PostgreSQL 계열 다른 서버(Greenplum, Redshift 등)와
  *     그보다 오래된 버전은 {@code pg_blocking_pids}, {@code BLOCKING_SESSION}이 없어 DBeaver 관리자를 그대로 쓴다.</li>
  *     <li>권한 확인({@link #checkAccess})은 연결마다 첫 작업에서 한 번 한다. 결과({@link ServerAdminAccess})의 안내와 명령 사용 여부는 화면이 쓴다.</li>
+ *     <li>Altibase는 세션이 데이터 소스 어댑터({@code AltibaseServerSessionManager})이고, 잠금은 다른 DB와 같은 행 모양의
+ *     {@link AltibaseBlockingLockManager}다(DBeaver {@code AltibaseLockManager}는 행 모양이 달라 쓰지 않는다).</li>
  *     <li>그 밖의 DB는 데이터 소스 어댑터의 세션 관리자와 그 관리자가 정한 끝내기 옵션({@code getTerminateOptions})만 쓴다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: Swing Activity Monitor, 잠금 보기 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 PostgreSQL·Oracle 세션·잠금 관리자를 이 번들의 것으로 바꾸고 권한 확인을 더함 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 Altibase 잠금 관리자를 더함 (docs/chromite/swing-admin-tools.md "Altibase 잠금")
  */
 public final class ServerAdminProfile {
 
@@ -250,6 +255,15 @@ public final class ServerAdminProfile {
             profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_disconnect_session,
                 ServerAdminMessages.action_disconnect_session_tip, Map.of(), false, false, OracleServerSessionManager.PROP_IMMEDIATE));
             profile.sessionUserReader = session -> session instanceof OracleServerSession oracleSession ? oracleSession.getUser() : null;
+        } else if (dataSource instanceof AltibaseDataSource altibaseDataSource) {
+            // AltibaseSessionEditor (the data source adapter), AltibaseLockEditor
+            DBAServerSessionManager<?> manager = DBUtils.getAdapter(DBAServerSessionManager.class, dataSource);
+            profile = new ServerAdminProfile(manager);
+            if (manager != null) {
+                profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_terminate,
+                    ServerAdminMessages.action_terminate_tip, manager.getTerminateOptions(), false, false, null));
+            }
+            profile.lockManager = (DBAServerLockManager) new AltibaseBlockingLockManager(altibaseDataSource);
         } else {
             // Other databases: the session manager adapter and its own terminate options
             DBAServerSessionManager<?> manager = DBUtils.getAdapter(DBAServerSessionManager.class, dataSource);

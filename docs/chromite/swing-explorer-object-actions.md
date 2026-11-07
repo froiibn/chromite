@@ -1,4 +1,4 @@
-# Swing 개체 탐색기 개체 작업 (삭제, 이름 바꾸기, 이름 복사, 여러 개 선택, SQL 생성)
+# Swing 개체 탐색기 개체 작업 (삭제, 이름 바꾸기, 이름 복사, 여러 개 선택, SQL 생성, 유지 관리 명령)
 
 ## 목적
 
@@ -138,7 +138,50 @@ Swing 제품(`-Pproduct-chromite-swing`)을 복사한 작업 공간과 개인 �
 - 여러 개 삭제 중 하나가 실패하면 앞의 객체는 이미 지워져 있고 나머지는 실행하지 않는다(명령마다 커밋). 오류 창이 실패한 객체 이름을 알린다.
 - 회귀 테스트는 실행하지 않았다(요청 없음).
 
+## 유지 관리 명령 (2026-11-08)
+
+SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침"(D-db-specific P23·S14·M17·O21, C #44). SWT는 작업(task) 도구와 도구 마법사로
+실행했다(`pgToolTableTruncate`, `oracleToolTriggerEnable` 등, `SQLToolTaskWizard`). Swing은 Object Explorer 오른쪽 클릭 메뉴의 "유지 관리…" 아래에 둔다.
+
+| 메뉴 | 보이는 노드 | 문 (모델 도구 처리기 `generateObjectQueries`) |
+|---|---|---|
+| 테이블 잘라내기… | PostgreSQL 테이블(외부 테이블 제외), MySQL/MariaDB·Oracle·SQL Server 테이블 | PG `TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT`(`PostgreToolTableTruncate`), MySQL `TRUNCATE TABLE t`(`MySQLToolTableTruncate`), Oracle `TRUNCATE TABLE t`(`OracleToolTableTruncate`), SQL Server `TRUNCATE TABLE db.schema.t`(모델 도구 없음, 직접) |
+| 트리거 사용 / 트리거 사용 안 함 | PostgreSQL 테이블·이벤트 트리거, SQL Server 테이블 트리거, Oracle 테이블 트리거 | `ALTER TABLE t ENABLE/DISABLE TRIGGER tr`(PG, SQL Server), `ALTER TRIGGER s.tr ENABLE/DISABLE`(Oracle) |
+| 구체화된 뷰 새로 고침 | PostgreSQL·Oracle 구체화된 뷰 | `REFRESH MATERIALIZED VIEW v WITH DATA`(PG), `CALL DBMS_MVIEW.REFRESH('s.v','')`(Oracle, 뷰의 새로 고침 방식) |
+
+- **흐름**: (TRUNCATE만) 경고 확인 → 스크립트 미리 보기(삭제와 같은 머리글, 취소가 기본 단추, 쿼리 창으로 열기) → 열린 트랜잭션 질문 → 실행.
+- **TRUNCATE 확인**: #120의 규칙(쿼리 창의 TRUNCATE는 늘 확인)을 따른다. "{연결}에서 테이블 {이름}의 모든 행을 삭제하시겠습니까?"(여러 개면 목록),
+  "삭제한 행은 되살릴 수 없습니다", DDL을 바로 커밋하는 DB(JDBC `dataDefinitionCausesTransactionCommit`: MySQL·MariaDB·Oracle)는
+  "{DB}에서는 TRUNCATE가 암시적으로 커밋되므로 롤백할 수 없습니다"를 더한다. 단추는 잘라내기 / 취소(기본).
+- **메뉴**: 선택한 노드가 모두 그 명령을 지원하고 한 연결에 있을 때만 보인다(여러 개 선택 가능). 트리거는 모델이 읽은 상태가 이미 그 상태면 그 항목을 끈다
+  (PG `tgenabled = 'D'`, SQL Server `is_disabled`, Oracle `STATUS`). 실행 뒤 트리거 폴더를 다시 읽어 상태가 맞게 보인다.
+- **실행 위치**: 보안 편집기처럼 대상 인스턴스의 격리된 실행 문맥에서 실행한다. 사용자 쿼리 창의 세션·트랜잭션을 건드리지 않는다. 연결이 수동 커밋이면 끝에서 커밋하고
+  실패하면 되돌린다(실행 전 열린 트랜잭션은 질문으로 끝냈다). 모델 도구의 `executeTask`(작업 로그, 기본 실행 문맥, 자동 커밋 강제)는 쓰지 않는다.
+- **도구 설정**: 처리기 기본값. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 `WITH NO DATA`(뷰를 비움)라 `WITH DATA`로 둔다.
+- **구조**: `ObjectMaintenanceCommands`(Swing, 새 파일: 메뉴·확인·미리 보기·실행·새로 고침), `internal/ObjectMaintenanceMessages`(+`_ko`, 18개),
+  `model.admin`의 `objects/ObjectMaintenanceActions`(새 패키지, 내보냄: 지원 판단, 트리거 상태, 스크립트, 실행). `ObjectExplorerPanel`은 만들기·메뉴에 넣기·갱신 세 줄.
+  SQL Server 트리거 도구를 쓰려고 `ext.mssql` MANIFEST가 `com.seizia.chromite.ext.mssql.tasks`를 내보낸다(한 줄).
+
+### 확인 (2026-11-08)
+
+같은 제품·작업 공간·EDT 시험 에이전트로 했다(스크린숏 `D:\Tools\_scratch\p3-oracle-altibase-admin\shots\`). 결과는 `docker exec`로 DB에서 읽었다.
+
+| DB | 명령 | 미리 보기 | DB 결과 |
+|---|---|---|---|
+| PostgreSQL 17 (`chr_p3_oaa` 스키마) | 테이블 잘라내기 | `TRUNCATE TABLE chr_p3_oaa.chr_trunc CONTINUE IDENTITY RESTRICT;` | 5행 → 0행 |
+| | 트리거 사용 안 함 / 사용 | `ALTER TABLE chr_p3_oaa.chr_trg_t DISABLE TRIGGER chr_trg;` / `ENABLE` | `tgenabled` D → O, 사용 안 함 뒤 메뉴는 "트리거 사용"만 켜짐 |
+| | 구체화된 뷰 새로 고침 | `REFRESH MATERIALIZED VIEW chr_p3_oaa.chr_mv WITH DATA;` | 개수 5 → 2(새 행 수) |
+| SQL Server 2022 | 트리거 사용 안 함 / 사용 | `ALTER TABLE chr_p3_oracle_altibase_admin.dbo.chr_trg_t DISABLE TRIGGER chr_trg;` / `ENABLE` | `is_disabled` 0 |
+| | 테이블 잘라내기 | `TRUNCATE TABLE chr_p3_oracle_altibase_admin.dbo.chr_trunc;` | 3행 → 0행 |
+| Oracle Free 23ai (`CHR_P3_OBJ`) | 구체화된 뷰 새로 고침 | `CALL DBMS_MVIEW.REFRESH('CHR_P3_OBJ.CHR_MV','');`(DDL 커밋 안내 머리글) | `LAST_REFRESH_DATE` 바뀜 |
+| | 트리거 사용 안 함 / 사용 | `ALTER TRIGGER CHR_P3_OBJ.CHR_TRG DISABLE;` / `ENABLE` | `STATUS` DISABLED → ENABLED |
+| | 테이블 잘라내기 | 확인에 암시적 커밋 문구, `TRUNCATE TABLE CHR_P3_OBJ.CHR_TRUNC;` | 5행 → 0행 |
+| MariaDB 11 (`chr_p3_oaa`, 한국어 화면) | 테이블 잘라내기 | 확인 "MariaDB에서는 TRUNCATE가 암시적으로 커밋되므로 롤백할 수 없습니다", `TRUNCATE TABLE chr_p3_oaa.chr_trunc;` | 3행 → 0행 |
+
+영어(`-nl en`)·한국어, 라이트·다크(Oracle 메뉴·미리 보기·잘라내기 확인)에서 화면을 보았다. 시험 객체는 끝난 뒤 모두 지웠다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 개체 삭제·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴.
   PostgreSQL·SQL Server·MariaDB에서 실행 확인, 삭제 확인 목록의 불필요한 스크롤바 수정.
+- 2026-11-08 유지 관리 명령: 테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침(모델 도구의 SQL, 확인·미리 보기·트랜잭션 질문). PostgreSQL·SQL Server·Oracle·MariaDB에서 확인.
