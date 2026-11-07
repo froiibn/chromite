@@ -32,6 +32,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 {@code ai_options_save_failed_secure_storage}: OS 보안 저장소에 키를 저장하지 못했을 때의 안내
  * - 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정). "AI 도우미"·"AI Assistant"·"도우미"로 기능을 가리키던 문구를
  *   영어·한국어 모두 "Chromite Agent"로 바꿈. 모델 제공자를 뜻하는 "AI 제공자"는 그대로 둠(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -164,6 +165,8 @@ public class AiMessages extends NLS {
     public static String ai_policy_scope_production;
     public static String ai_policy_scope_read_only;
     public static String ai_policy_filter;
+    public static String ai_policy_send_all_tools;
+    public static String ai_policy_send_all_tools_tip;
     public static String ai_policy_inherit;
     public static String ai_policy_auto;
     public static String ai_policy_confirm;

@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-08 쓸 수 있는 DB 종류 = SQL 자원에 블록이 있는 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
  */
 public class DiagnosticSqlTool extends AgentTool {
 
@@ -95,6 +96,17 @@ public class DiagnosticSqlTool extends AgentTool {
             output.add("notes", notes);
         }
         return DiagnosticPostProcessor.process(toolId, context, family, args, output);
+    }
+
+    // The families with a block in the tool's SQL resource: the same rule call() applies
+    @Override
+    public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        try {
+            DiagnosticScript script = DiagnosticScript.load(tool.getId());
+            return script != null && script.getBlock(family) != null;
+        } catch (DBException e) {
+            return true;
+        }
     }
 
     /**

@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.model.ai.tools.chat;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.seizia.chromite.model.ai.AIFunctionCall;
 import com.seizia.chromite.model.ai.AIFunctionResult;
@@ -28,6 +29,7 @@ import org.jkiss.dbeaver.DBException;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,12 +49,33 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *     다음 요청에서 같은 호출과 결과 짝을 다시 보내야 하기 때문이다.</li>
  *     <li>저장은 {@link AIAgentChatStore}(작업 공간의 JSON 파일 하나)다. 항목 목록은 작업 스레드가 덧붙이고 화면이 읽으므로
  *     {@link CopyOnWriteArrayList}다.</li>
+ *     <li>요청 크기: 요청마다 대화 전체를 다시 보내므로 긴 대화는 문맥 한도에 걸린다. 모델 메시지를 만들 때 크기 예산
+ *     ({@link #HISTORY_BUDGET_CHARS})을 넘으면 최근 차례를 남기고 오래된 도구 결과를 앞부분 미리 보기로 줄이고, 그래도 넘으면 오래된 차례를 통째로 뺀다
+ *     ({@link #toModelMessages}). 저장한 대화와 화면은 그대로이고 보내는 사본만 줄인다. 크기는 글자 수로 잰다(토큰 수는 제공자·모델마다 달라
+ *     요청 전에 알 수 없다. 영어·JSON은 대략 4글자 = 1토큰).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-08 기록 크기 예산: 오래된 도구 결과 줄이기, 오래된 차례 빼기, 호출·결과 짝은 나누지 않음 (docs/chromite/ai-agent.md "요청 크기")
  */
 public final class AIAgentChat {
+
+    /**
+     * History characters one request carries at most (about 15,000 tokens of JSON and English): with the system prompt and
+     * the tool definitions a request stays far below the 128k-token context of current hosted models, and within reach of
+     * the 32k contexts of local models.
+     */
+    public static final int HISTORY_BUDGET_CHARS = 60_000;
+    /**
+     * Turns (a prompt and everything up to the next one) kept whole: the current turn and the one before it.
+     */
+    public static final int KEEP_TURNS = 2;
+    // Newest tool results never shortened, even when one long turn alone is over the budget
+    private static final int KEEP_RESULTS = 4;
+    private static final int SHORT_RESULT_CHARS = 600;
+    private static final int PREVIEW_CHARS = 300;
+    private static final String RESULT_HEADER = " was completed.\n"; //$NON-NLS-1$
 
     /**
      * Kind of a conversation entry.
@@ -337,37 +360,153 @@ public final class AIAgentChat {
     }
 
     /**
-     * The conversation as model messages: prompts, the model's texts and tool call/result pairs. Errors are not sent. A tool
-     * call without a result (the app stopped while it ran) is sent as canceled, because every tool call needs its result.
+     * The history of one request and what was left out of it to fit the budget.
+     *
+     * @param fullChars        size of the whole conversation as messages (characters of texts, arguments and results)
+     * @param sentChars        size of the messages sent
+     * @param shortenedResults tool results replaced by a short preview
+     * @param droppedTurns     oldest turns (a prompt and everything up to the next prompt) left out
+     */
+    public record ModelHistory(
+        @NotNull List<AIMessage> messages,
+        int fullChars,
+        int sentChars,
+        int shortenedResults,
+        int droppedTurns
+    ) {
+    }
+
+    /**
+     * The conversation as model messages, within a size budget: prompts, the model's texts and tool call/result pairs.
+     * Errors are not sent. A tool call without a result (the app stopped while it ran) is sent as canceled, because every
+     * tool call needs its result.
+     * <p>
+     * Over the budget, in this order until it fits: the results of tool calls before the last {@code keepTurns} turns are
+     * replaced by a short preview (oldest first); then the oldest turns before them are left out whole; then the results in
+     * the kept turns are shortened too, except the newest {@link #KEEP_RESULTS}. A call and its result are one message,
+     * and a turn is left out whole, so a call is never sent without its result (or a result without its call) and the
+     * history still starts with the user's prompt.
      */
     @NotNull
-    List<AIMessage> toModelMessages() {
-        List<AIMessage> messages = new ArrayList<>();
+    ModelHistory toModelMessages(int budgetChars, int keepTurns) {
+        List<List<Entry>> turns = new ArrayList<>();
         for (Entry entry : getEntries()) {
-            switch (entry.kind) {
-                case USER -> messages.add(AIMessage.userMessage(entry.getText()));
-                case ASSISTANT -> {
-                    if (!entry.getText().isBlank()) {
-                        messages.add(AIMessage.assistantMessage(entry.getText(), null));
-                    }
-                }
-                case TOOL -> {
-                    AIFunctionCall call = new AIFunctionCall(
-                        entry.function == null ? "" : entry.function,
-                        new LinkedHashMap<>(entry.getArguments()),
-                        entry.metadata == null ? null : new LinkedHashMap<>(entry.metadata));
-                    String result = entry.result != null ? entry.result : "{\"error\":\"Canceled\",\"outcome\":\"CANCELED\"}"; //$NON-NLS-1$
-                    boolean error = entry.outcome == null || !entry.outcome.equals("SUCCESS"); //$NON-NLS-1$
-                    messages.add(AIMessage.functionCall(call, error
-                        ? new AIFunctionResult(AIFunctionType.INFORMATION, result, null, new DBException(result))
-                        : new AIFunctionResult(AIFunctionType.INFORMATION, result)));
-                }
-                case ERROR -> {
-                    // Local only
+            boolean sent = switch (entry.kind) {
+                case USER, TOOL -> true;
+                case ASSISTANT -> !entry.getText().isBlank();
+                case ERROR -> false;
+            };
+            if (!sent) {
+                continue;
+            }
+            if (entry.kind == Kind.USER || turns.isEmpty()) {
+                turns.add(new ArrayList<>());
+            }
+            turns.get(turns.size() - 1).add(entry);
+        }
+        Map<Entry, String> shortened = new IdentityHashMap<>();
+        int full = 0;
+        for (List<Entry> turn : turns) {
+            for (Entry entry : turn) {
+                full += size(entry, null);
+            }
+        }
+        int total = full;
+        int kept = Math.max(0, turns.size() - Math.max(1, keepTurns));
+        // 1. Old tool results become previews
+        for (int t = 0; t < kept && total > budgetChars; t++) {
+            for (Entry entry : turns.get(t)) {
+                total -= shorten(entry, shortened);
+            }
+        }
+        // 2. Old turns are left out whole
+        int first = 0;
+        while (total > budgetChars && first < kept) {
+            for (Entry entry : turns.get(first)) {
+                total -= size(entry, shortened.get(entry));
+            }
+            first++;
+        }
+        // 3. A long turn of its own: shorten its older results, keep the newest ones the model works with
+        if (total > budgetChars) {
+            List<Entry> keptTools = new ArrayList<>();
+            for (int t = first; t < turns.size(); t++) {
+                turns.get(t).stream().filter(e -> e.kind == Kind.TOOL).forEach(keptTools::add);
+            }
+            for (int i = 0; i < keptTools.size() - KEEP_RESULTS && total > budgetChars; i++) {
+                total -= shorten(keptTools.get(i), shortened);
+            }
+        }
+        List<AIMessage> messages = new ArrayList<>();
+        int sentResults = 0;
+        for (int t = first; t < turns.size(); t++) {
+            for (Entry entry : turns.get(t)) {
+                messages.add(toModelMessage(entry, shortened.get(entry)));
+                if (shortened.containsKey(entry)) {
+                    sentResults++;
                 }
             }
         }
-        return messages;
+        return new ModelHistory(messages, full, total, sentResults, first);
+    }
+
+    @NotNull
+    private static AIMessage toModelMessage(@NotNull Entry entry, @Nullable String shortResult) {
+        return switch (entry.kind) {
+            case USER -> AIMessage.userMessage(entry.getText());
+            case ASSISTANT -> AIMessage.assistantMessage(entry.getText(), null);
+            default -> {
+                AIFunctionCall call = new AIFunctionCall(
+                    entry.function == null ? "" : entry.function,
+                    new LinkedHashMap<>(entry.getArguments()),
+                    entry.metadata == null ? null : new LinkedHashMap<>(entry.metadata));
+                String result = shortResult != null ? shortResult : resultText(entry);
+                boolean error = entry.outcome == null || !entry.outcome.equals("SUCCESS"); //$NON-NLS-1$
+                yield AIMessage.functionCall(call, error
+                    ? new AIFunctionResult(AIFunctionType.INFORMATION, result, null, new DBException(result))
+                    : new AIFunctionResult(AIFunctionType.INFORMATION, result));
+            }
+        };
+    }
+
+    @NotNull
+    private static String resultText(@NotNull Entry entry) {
+        return entry.result != null ? entry.result : "{\"error\":\"Canceled\",\"outcome\":\"CANCELED\"}"; //$NON-NLS-1$
+    }
+
+    /**
+     * Replaces a long tool result by a preview; returns the characters saved.
+     */
+    private static int shorten(@NotNull Entry entry, @NotNull Map<Entry, String> shortened) {
+        if (entry.kind != Kind.TOOL || shortened.containsKey(entry)) {
+            return 0;
+        }
+        String result = resultText(entry);
+        if (result.length() <= SHORT_RESULT_CHARS) {
+            return 0;
+        }
+        JsonObject preview = new JsonObject();
+        preview.addProperty("shortened", "This earlier tool result was shortened to keep the request small; call the tool again if you need it in full.");
+        preview.addProperty("originalChars", result.length());
+        preview.addProperty("start", result.substring(0, PREVIEW_CHARS) + "...");
+        String text = AgentJson.toText(preview);
+        if (text.length() >= result.length()) {
+            return 0;
+        }
+        shortened.put(entry, text);
+        return result.length() - text.length();
+    }
+
+    // What the request carries for an entry: texts, the function name and arguments of a call, its result. AIMessage sends a
+    // successful result as "<function> was completed.\n<result>", so the name counts twice
+    private static int size(@NotNull Entry entry, @Nullable String shortResult) {
+        int size = entry.getText().length();
+        if (entry.kind == Kind.TOOL) {
+            int name = entry.function == null ? 0 : entry.function.length();
+            size += name + AgentJson.GSON.toJson(entry.getArguments()).length() +
+                name + RESULT_HEADER.length() + (shortResult != null ? shortResult : resultText(entry)).length();
+        }
+        return size;
     }
 
     @NotNull

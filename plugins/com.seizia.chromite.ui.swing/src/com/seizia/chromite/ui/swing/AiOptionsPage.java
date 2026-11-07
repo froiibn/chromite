@@ -37,6 +37,7 @@ import com.seizia.chromite.model.ai.engine.anthropic.AnthropicProperties;
 import com.seizia.chromite.model.ai.engine.ollama.OllamaProperties;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentProviders;
+import com.seizia.chromite.model.ai.tools.chat.AIAgentToolSelection;
 import com.seizia.chromite.model.ai.tools.mcp.AIMcpServer;
 import com.seizia.chromite.model.ai.tools.mcp.AIMcpSettings;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -74,7 +75,7 @@ import java.util.Map;
  *     Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번).</li>
  *     <li>Policy: {@link AIToolPolicy}의 규칙 사본을 고치고 OK에서 한 번에 저장한다. "실제 권한" 열은 저장 전 사본으로 실행기와 같은 판정
  *     ({@link AIToolPolicy#resolve(AIToolPolicy.Settings, DBPDataSourceContainer, AIFunctionDescriptor, AIToolAccess)})을 해서 보인다.
- *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다.</li>
+ *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다. 그 아래 "도구를 모두 보냄" 설정은 채팅 요청의 도구 고르기를 끈다(OK에서 저장).</li>
  *     <li>MCP server: 켜기·포트는 OK에서 {@link AIMcpSettings}로 저장한다(서버가 바로 시작·중지). 토큰 다시 만들기는 즉시 하고(되돌릴 수 없으므로
  *     묻는다), 토큰은 기본으로 가려 보인다.</li>
  *     <li>Audit log: {@link AIToolAuditLog#readRecent} 최근 기록을 작업 스레드에서 읽어 표로 보이고 클라이언트·결과·글자로 거른다.</li>
@@ -84,6 +85,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
  * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 Tool Policy 탭에 "도구를 모두 보냄" 설정({@link AIAgentToolSelection}, docs/chromite/ai-agent.md "요청 크기")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -416,6 +418,7 @@ final class AiOptionsPage extends JPanel {
         private final Map<AIToolAccess, JComboBox<Choice>> classCombos = new java.util.EnumMap<>(AIToolAccess.class);
         private final JTextField filterField = new JTextField(16);
         private final JLabel scopeNote = new JLabel(" "); //$NON-NLS-1$
+        private final JCheckBox sendAllTools = new JCheckBox(AiMessages.ai_policy_send_all_tools, AIAgentToolSelection.isSendAllTools());
         private final ToolTableModel tableModel = new ToolTableModel();
         private final JTable table = new JTable(tableModel);
         private final TableRowSorter<ToolTableModel> sorter = new TableRowSorter<>(tableModel);
@@ -438,6 +441,10 @@ final class AiOptionsPage extends JPanel {
                 label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
                 top.add(label);
             }
+            sendAllTools.setToolTipText(AiMessages.ai_policy_send_all_tools_tip);
+            sendAllTools.setAlignmentX(LEFT_ALIGNMENT);
+            top.add(sendAllTools);
+            top.add(Box.createVerticalStrut(4));
 
             scopeCombo.addItem(AiMessages.ai_policy_all_connections);
             for (DBPDataSourceContainer container : QueryLibraryEditor.getConnections()) {
@@ -589,6 +596,9 @@ final class AiOptionsPage extends JPanel {
         void apply() {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
+            }
+            if (sendAllTools.isSelected() != AIAgentToolSelection.isSendAllTools()) {
+                AIAgentToolSelection.setSendAllTools(sendAllTools.isSelected());
             }
             if (!changed) {
                 return;

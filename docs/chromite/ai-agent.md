@@ -585,15 +585,16 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | `model.ai.tools` 패키지 `...model.ai.tools.chat` (새, 공개) | `AIAgentChat` | 대화 하나: 보이는 항목(사용자 글, 모델 글, 도구 호출과 결과, 오류)과 제공자·모델·연결·데이터베이스. 모델 메시지는 항목에서 다시 만든다(`toModelMessages`) |
 | | `AIAgentChatRunner` | 한 차례 실행: 스트림 요청 → 도구 호출을 `AIToolExecutor.execute(…, AIToolClient.CHAT, …, null)`로 실행 → 결과를 보내고 반복(최대 40번). `connection` 인수가 없으면 대화의 연결을 넣는다. 시스템 프롬프트 = MCP의 `AIAgentPlaybooks.INSTRUCTIONS` + 현재 연결(운영·읽기 전용 표시)·데이터베이스 |
 | | `AIAgentChatStore` | 대화 저장: 작업 공간 `.metadata/chromite-ai/chats/<id>.json`(임시 파일 + 이동) |
+| | `AIAgentToolSelection` | 요청에 보낼 도구 고르기와 "도구를 모두 보냄" 설정(아래 "요청 크기", 2026-11-08) |
 | | `AIAgentProviders` | 제공자 3개(`anthropic`, `openai`, `ollama`)의 설정 프로필(프로필 ID = 엔진 ID), 설정 사본·저장(비밀은 보안 저장소), 엔진 만들기(대화의 모델로 사본을 만들어 기본 모델은 그대로), 모델 목록 |
 | `model.ai` `AIToolPolicy` | `resolve(Settings, …)`, `setSettings` | 설정 화면이 저장 전 규칙으로 실행기와 같은 판정을 보이고, OK에서 한 번에 저장한다 |
 | Swing `com.seizia.chromite.ui.swing` | `AiAssistantPanel` | 도구 창 "Chromite Agent" |
 | | `AiMarkdownView` | 모델 글의 Markdown(제목, 굵게·기울임, 인라인 코드, 목록, 인용, 표, 가로줄)과 코드 블록(복사, 쿼리 창에서 열기) |
 | | `AiToolCard` | 도구 호출 카드(접힘/펼침): 이름, 분류 배지, 상태(실행 중·완료·실패·거부·정책으로 막힘·읽기 전용 연결·취소·잘못된 호출), 시간, 결과 요약, 인수·결과 JSON |
 | | `AiConfirmationDialog` (+ `Handler`) | `AIToolConfirmationHandler` 구현. Allow/Deny 또는 Commit/Roll back/Cancel |
-| | `AiOptionsPage` | 옵션의 "Chromite Agent" 탭: Providers, Tool Policy, MCP Server, Audit Log |
+| | `AiOptionsPage` | 옵션의 "Chromite Agent" 탭: Providers, Tool Policy(2026-11-08부터 "도구를 모두 보냄" 확인란), MCP Server, Audit Log |
 | | `QueryLibraryThresholdsDialog` | Query Library 쿼리의 `@threshold` 편집 |
-| | `internal/AiMessages` (+ `_ko`) | 화면 문구 196개 |
+| | `internal/AiMessages` (+ `_ko`) | 화면 문구 198개 |
 | | `MainFrame`, `OptionsDialog`, `QueryLibraryEditor` | 연결 지점만: 도구 창·도구 막대 단추·View 메뉴, 확인 처리기·편집기 연결 등록, 쿼리 창 편집기 메뉴 항목 / 옵션 탭 / Thresholds… 단추 |
 | `tools/branding/gen_ui_icons.py` | `ai-assistant` 아이콘 | 말풍선 + 반짝임, 두 팩·두 테마 |
 
@@ -709,6 +710,54 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 | `whatIfIndex` (PG hypopg, SQL Server는 없음) | 확장 설치가 필요하고 테스트 DB에 없다 |
 | SQL Server Query Store 기반 상위 쿼리·계획 회귀 | 1단계는 `dm_exec_query_stats`(플랜 캐시)만 쓴다 |
 
+## 요청 크기 (후속 과제 #76, 2026-11-08)
+
+채팅 요청마다 도구 정의 전체와 대화 기록 전체를 보내던 것을 줄였다. MCP 서버는 그대로다(`tools/list`는 연결이 정해지지 않아 늘 전체이고 기록은 MCP
+클라이언트의 몫이다).
+
+### 도구 고르기 (`AIAgentToolSelection`)
+
+- 대화의 연결이 있으면 그 연결에서 쓸 수 없는 도구를 빼고 보낸다.
+  - **DB 종류**: `AgentTool.supports(도구, DbFamily)`. 진단 SQL 도구는 SQL 자원에 그 DB 종류의 블록이 있는지(실행기와 같은 규칙), `AdminTools`는
+    백업·복원 = SQL Server, `killSession` = 알려진 4종, `AgentJobTools` = SQL Server, `whatIfIndex` = PostgreSQL. 나머지(모델 계층·드라이버 계획기)는 모두.
+    plugin.xml 속성으로 따로 적지 않은 것은 SQL 자원과 어긋나지 않게 하기 위해서다.
+  - **정책**: 실행기와 같은 판정으로 막히는 도구(읽기 전용 연결의 DB 쓰기 도구, `AIToolPolicy.resolve`가 BLOCKED). 정적 분류로 판정한다. 호출별로
+    분류가 올라가는 도구(`runSql` 등)는 정적 분류로 보내지고 실행기가 호출마다 다시 판정한다.
+  - 연결 인수가 없는 도구(`listConnections`, `formatSql` 등)는 늘 보낸다. 대화에 연결이 없으면 모두 보낸다.
+- 빠진 도구 ID는 시스템 프롬프트 끝에 알린다("Tools the user's policy blocks on this connection are not offered: …", "Tools for other database types are not
+  offered: …"). 모델이 막힌 도구를 사용자에게 설명하거나 연결을 바꾸라고 할 수 있게 하기 위해서다.
+- **"도구를 모두 보냄"**: Options > Chromite Agent > Tool Policy 맨 위 확인란(`ai_policy_send_all_tools`, 기본 꺼짐, OK에서 저장). 번들 설정
+  `chromite.ai.chat.sendAllTools`(`com.seizia.chromite.model.ai.tools.prefs`). 한 대화에서 DB 종류가 다른 여러 연결을 다룰 때 켠다. 화면은 이번에 눈으로
+  확인하지 않았다(아래 "위험과 남은 일").
+
+### 기록 줄이기 (`AIAgentChat.toModelMessages`)
+
+- 예산: 기록 글자 수 60,000자(`HISTORY_BUDGET_CHARS`, JSON·영어 기준 약 15,000토큰). 글자 수는 요청에 실제로 실리는 것과 같게 센다: 글, 함수 이름과
+  인수 JSON, 결과(성공한 결과는 `AIMessage`가 "<함수> was completed.\n"을 앞에 붙이므로 함께 셈. 처음에는 빠뜨려 예산을 400~900자 넘었다).
+- 차례 = 사용자 글 하나와 다음 사용자 글 전까지. 최근 2차례(`KEEP_TURNS`, 지금 차례와 그 앞)는 그대로 둔다.
+- 넘으면 이 순서로 맞춘다: ① 그 앞 차례들의 도구 결과(600자 넘는 것)를 오래된 것부터 앞 300자 미리 보기 + `originalChars` + "shortened … call the tool again"으로
+  바꾼다 ② 그래도 넘으면 오래된 차례를 통째로 뺀다 ③ 그래도 넘으면(최근 차례 자체가 큼) 최근 차례의 오래된 결과를 줄이되 가장 최근 결과 4개는 둔다.
+- 호출과 결과는 한 메시지(`AIMessage.functionCall`)이고 차례는 통째로 빠지므로 짝이 나뉘지 않고 기록은 늘 사용자 글로 시작한다. 저장된 대화와 화면은
+  그대로이고 보내는 사본만 줄인다. 줄였으면 시스템 프롬프트 끝에 "N earlier turn(s) … left out and M earlier tool result(s) were shortened …"를 붙인다.
+
+### 크기 (2026-11-08 측정)
+
+가짜 Messages API가 받은 요청 본문을 쟀다(바이트, UTF-8 JSON. 토큰은 대략 바이트/4). "전"은 바꾸기 전 동작(도구 96개 전체 + 기록 전체)이다. 도구 정의는
+"도구를 모두 보냄"으로 잰 값, 기록은 저장된 대화에서 엔진과 같은 모양으로 다시 만든 값이다(같은 지점의 실제 요청과 0.6% 안에서 맞음).
+
+| 대상 | 전 | 후 |
+|---|---|---|
+| 도구 정의, SQL Server 연결 | 96개 52,589 B | 95개 51,866 B (-1%, `whatIfIndex`만 빠짐) |
+| 도구 정의, Oracle 연결 | 96개 52,589 B | 82개 43,972 B (-16%) |
+| 도구 정의, 운영 SQL Server 연결(쓰기 막힘) | 96개 52,589 B | 72개 38,005 B (-28%) |
+| 도구 정의, 그 밖의 DB(Altibase) | 96개 | 54개 (진단 SQL 도구 42개 빠짐) |
+| 6차례 SQL Server 대화(도구 22회)의 마지막 요청 | 약 161.5 KB(도구 52.6 + 시스템 1.5 + 기록 107.4) ≈ 40k 토큰 | 119.0 KB(51.9 + 1.6 + 65.5) ≈ 30k 토큰 (-26%) |
+| 같은 대화를 12차례(도구 44회)로 늘린 마지막 요청 | 약 339.3 KB(기록 285.2 KB) ≈ 85k 토큰 | 119.0 KB ≈ 30k 토큰 (-65%) |
+| 기록 글자 수, 12차례 | 251,818자 | 56,975자(예산 60,000) |
+
+- 12차례 대화의 56개 요청에서 기록 글자 수는 최대 59,739자로 예산 안이었고, 모든 요청에서 `tool_use`/`tool_result` 짝 오류 0건, 기록 첫 메시지는 늘 사용자 글.
+- 도구 정의(약 52 KB)가 이제 요청에서 가장 큰 고정 몫이다. SQL Server 연결에서는 고르기로 거의 줄지 않는다(아래 "위험과 남은 일").
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -772,8 +821,12 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 위험과 남은 일
 
-- **실제 LLM으로 시험하지 않았다(2단계)**: 유료 키가 없어 가짜 Messages API로만 시험했다. 실제 모델의 도구 선택, 긴 대화의 문맥 크기(도구 86개 정의 + 결과가 매번
-  다시 감, 잘라 내기 없음), OpenAI Responses·Ollama 스트림의 도구 호출 흐름은 확인하지 못했다. 대화가 길어지면 제공자의 문맥 한도에 걸릴 수 있다.
+- **실제 LLM으로 시험하지 않았다(2단계)**: 유료 키가 없어 가짜 Messages API로만 시험했다. 실제 모델의 도구 선택, OpenAI Responses·Ollama 스트림의 도구 호출
+  흐름은 확인하지 못했다. 긴 대화의 문맥 크기는 2026-11-08에 줄였다(위 "요청 크기").
+- **요청 크기의 남은 점(2026-11-08)**: 도구 정의 약 52 KB(≈13k 토큰)가 요청마다 간다. SQL Server 연결은 거의 모든 도구를 쓸 수 있어 고르기로 줄지 않는다.
+  더 줄이려면 도구 설명을 짧게 하거나, 제공자의 프롬프트 캐시(Anthropic `cache_control`)를 쓰거나, 묶음을 필요할 때만 여는 방식(도구 검색)이 필요하다.
+  예산 60,000자는 고정값이다. 32k 문맥의 로컬 모델(Ollama)에는 도구 정의와 합쳐 클 수 있고, 모델의 문맥 크기 설정(`AnthropicProperties.contextWindowSize` 등)을
+  따르게 하지 않았다. 대화의 연결과 다른 연결의 DB 종류 도구는 "도구를 모두 보냄"을 켜야 보인다. 이 확인란은 눈으로 확인하지 않았다(빌드·NLS 키만 확인).
 - **열린 에이전트 트랜잭션과 앱 종료**: 2026-11-07 확인 결과 `ExitTransactionCheck`는 쿼리 관리자만 보아 에이전트 격리 문맥의 트랜잭션을 찾지 못했다
   (에이전트는 JDBC 연결을 직접 쓴다). 이제 `AgentSql.hasPendingTransaction`도 보고 같은 질문으로 끝낸다([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
 - **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 이 계약은 그대로 두고
@@ -794,6 +847,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 요청 크기(후속 과제 #76): 채팅 요청에 연결의 DB 종류와 정책에 맞는 도구만 보내기(`AgentTool.supports`, `AIAgentToolSelection`, "도구를 모두
+  보냄" 설정), 기록 크기 예산(`AIAgentChat.toModelMessages`), 빠진 것을 시스템 프롬프트로 알림. 위 "요청 크기".
 - 2026-11-08 도구 뒤 글이 첫 조각에서 멈추던 문제: 채팅 창이 다시 그릴 글 항목을 모음으로 둠(위 "글 조각 그리기").
 - 2026-11-08 에이전트의 열린 트랜잭션 안 호출은 PostgreSQL 통계 스냅숏을 먼저 비움(위 "실행 문맥", [swing-admin-tools.md](swing-admin-tools.md) "모니터링 연결의 커밋 방식").
 - 2026-11-07 쿼리 창마다 별도 연결: 새 대화·"이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음(`AiAssistantPanel.getCurrentDatabase(SqlEditorPanel)`).
