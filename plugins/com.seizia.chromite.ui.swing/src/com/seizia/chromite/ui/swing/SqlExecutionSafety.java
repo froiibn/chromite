@@ -18,8 +18,10 @@ package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourcePermission;
@@ -47,8 +49,8 @@ import java.util.Set;
  * 설계:
  * <ul>
  *     <li>실행 제한: SWT {@code SQLEditor.processQueries}처럼 연결(또는 연결 종류)이 {@link DBPDataSourcePermission#PERMISSION_EXECUTE_SCRIPTS}를
- *     막으면 쿼리 창의 실행을 모두 거절한다. Swing 쿼리 창에는 문장 실행과 스크립트 실행의 구분이 없고(F5 하나, 선택 또는 전체),
- *     문장 수로 나누면 위험한 문도 한 문장씩 실행할 수 있어 제한이 의미가 없으므로 문장 수와 관계없이 막는다. 연결하기 전에 EDT에서 검사한다.</li>
+ *     막으면 쿼리 창의 실행을 모두 거절한다. 실행 명령(F5, 커서 위치 문장, 커서부터, 행 수, 식)과 문장 수로 나누면 위험한 문도 한 문장씩
+ *     실행할 수 있어 제한이 의미가 없으므로 명령과 문장 수에 관계없이 막는다. 연결하기 전에 EDT에서 검사한다.</li>
  *     <li>위험한 문: 판단은 모델의 파서 도우미({@link SQLQuery#isDeleteUpdateDangerous()}, {@link SQLQuery#isTruncate()},
  *     {@link SQLQuery#isDropDangerous()})를 쓴다. JSQLParser가 읽지 못하는 DROP(DATABASE, USER 등)은 SWT 편집기처럼 LSM 파서로 찾는다
  *     ({@link #isDrop}). TRUNCATE는 WHERE 없는 DELETE와 같이 모든 행을 지우고 MySQL·MariaDB·Oracle에서는 되돌릴 수 없어
@@ -67,6 +69,8 @@ import java.util.Set;
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 DROP DATABASE 등 JSQLParser가 읽지 못하는 DROP을 놓치던 것을 고침(LSM 파서로도 찾음), TRUNCATE도 물음
  *   (docs/chromite/swing-sql-exec-safety.md "DROP 판단의 근본 원인")
+ * - 2026-11-08 {@code @include}로 읽은 파일의 문장도 끼우기 전에 검사하고, 목록에 파일 이름을 붙임(줄 번호는 그 파일의 줄)
+ *   (docs/chromite/swing-query-commands.md "@include")
  */
 final class SqlExecutionSafety {
 
@@ -130,13 +134,15 @@ final class SqlExecutionSafety {
      * without a WHERE clause, TRUNCATE and DROP statements of the run (as far as the confirmations are turned on).
      *
      * @param text     the editor text that the offsets of the elements refer to (line numbers)
+     * @param fileName the included file that {@code text} is, or null for the editor text
      * @return {@code true} to execute, {@code false} if the user canceled
      */
     static boolean confirmDangerousStatements(
         @NotNull Component parent,
         @NotNull DBPDataSource dataSource,
         @NotNull String text,
-        @NotNull List<SQLScriptElement> elements
+        @NotNull List<SQLScriptElement> elements,
+        @Nullable String fileName
     ) {
         boolean deleteUpdate = isConfirmDangerousSql();
         boolean drop = isConfirmDropSql();
@@ -158,6 +164,9 @@ final class SqlExecutionSafety {
                 kind = NLS.bind(EditorMessages.editor_sql_danger_truncate, lineOf(text, statement.offset()));
             } else {
                 continue;
+            }
+            if (fileName != null) {
+                kind = NLS.bind(QueryCommandMessages.query_include_location, fileName, kind);
             }
             findings.add(kind);
             if (!sql.isEmpty()) {

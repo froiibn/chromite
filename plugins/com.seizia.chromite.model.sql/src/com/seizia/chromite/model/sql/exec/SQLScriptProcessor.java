@@ -38,13 +38,18 @@ import java.util.List;
 
 /**
  * SQLScriptProcessor
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@code @include}가 돌려준 {@link SQLIncludedScript}의 문장을 그 파일의 스크립트 문맥으로 실행한다. 바깥 문맥으로 실행하면
+ *   안에서 다시 포함하는 상대 경로의 기준과 포함 고리 검사가 틀린다 (docs/chromite/swing-query-commands.md "@include")
  */
 public class SQLScriptProcessor {
     private static final String STAT_LOG_PREFIX = "-----------------> ";
 
     private final DBCExecutionContext executionContext;
     private final List<SQLScriptElement> queries;
-    private final SQLScriptContext scriptContext;
+    // The context of the running statement: an included file's context while its statements run
+    private SQLScriptContext scriptContext;
     private final DBDDataReceiver dataReceiver;
     private final Log log;
 
@@ -208,7 +213,15 @@ public class SQLScriptProcessor {
                 return false;
             }
         }
-        if (element instanceof SQLScript script) {
+        if (element instanceof SQLIncludedScript includedScript) {
+            SQLScriptContext outerContext = scriptContext;
+            scriptContext = includedScript.getScriptContext();
+            try {
+                this.executeScript(session, includedScript.getScriptElements(), false);
+            } finally {
+                scriptContext = outerContext;
+            }
+        } else if (element instanceof SQLScript script) {
             this.executeScript(session, script.getScriptElements(), false);
         } else if (!(element instanceof SQLQuery sqlQuery)) {
             log.error("Unsupported SQL element type: " + element);
