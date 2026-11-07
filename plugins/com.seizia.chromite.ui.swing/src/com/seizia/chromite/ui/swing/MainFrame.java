@@ -205,6 +205,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Query &gt; Trace Execution…(Modify 창의 SQL Server 프로시저, {@link ExecutionTraceCommands}) (docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
@@ -293,6 +294,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Query &gt; Debug…: debugs the routine of the active Modify window (enabled when the Query menu opens).
      */
     private final Action debugAction;
+    /**
+     * Query &gt; Trace Execution…: traces the SQL Server procedure of the active Modify window (enabled when the Query menu opens).
+     */
+    private final Action traceAction;
     /**
      * Query &gt; Commit / Roll Back (also on the SQL Editor tool bar): enabled while the active query window shows an
      * open transaction that no statement is running in.
@@ -552,6 +557,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SqlEditorPanel editor = getActiveEditor();
             return editor != null ? editor.getSourceObject() : null;
         }, this);
+        traceAction = ExecutionTraceCommands.createAction(this, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            return editor != null ? editor.getSourceObject() : null;
+        }, this);
         sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
             commitAction, rollbackAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
@@ -797,7 +806,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
-        // Modify: Query > Debug… debugs the routine of the window (a New window's node is its folder: not debuggable)
+        // Modify: Query > Debug… and Trace Execution… use the routine of the window (a New window's node is its folder: neither applies)
         editor.setSourceObject(refreshNode.getObject());
     }
 
@@ -1619,6 +1628,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
+        queryMenu.add(new JMenuItem(traceAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(commitAction));
         queryMenu.add(new JMenuItem(rollbackAction));
@@ -1634,6 +1644,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
             SqlEditorPanel editor = getActiveEditor();
             debugAction.setEnabled(editor != null && DebugCommands.canDebug(editor.getSourceObject()));
+            traceAction.setEnabled(editor != null && ExecutionTraceCommands.canTrace(editor.getSourceObject()));
         });
 
         JMenu viewMenu = new JMenu(CoreMessages.main_menu_view);

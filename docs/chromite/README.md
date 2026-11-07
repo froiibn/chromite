@@ -44,6 +44,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행, 공유(공유 폴더 자동 새로 고침, Git, 내보내기·가져오기, 저장 충돌) |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
 | [procedure-debugger.md](procedure-debugger.md) | 프로시저 디버거: PostgreSQL pldbgapi(중단점, 단계 실행, 변수·호출 스택, attach 모드), Oracle DBMS_DEBUG(디버그 컴파일 질문, 프로시저 나가기, 권한 안내), 복원한 디버그 모델, 끝낼 때 트랜잭션 질문, SQL Server·MySQL·Altibase 가능성과 추정 |
+| [sqlserver-execution-trace.md](sqlserver-execution-trace.md) | SQL Server 실행 추적(Trace Execution…): 프로시저를 인수와 함께 실행하고 확장 이벤트로 문장마다 줄·시간·행·읽기를 기록, 원본 옆 타임라인·줄별 표와 실행된 줄 표시, 권한 안내(GRANT), XE 세션 정리, 끝날 때 트랜잭션 질문 |
 | [swing-source-editor.md](swing-source-editor.md) | Swing 개체 정의 편집: Modify·Script as ALTER(SWT 소스 탭 저장과 같은 객체 관리자 스크립트), New View/Procedure/Function 템플릿, 실행 뒤 노드 다시 읽기 |
 | [swing-sqlserver-agent.md](swing-sqlserver-agent.md) | Swing SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드(서비스 상태), 작업(속성·단계·일정·알림, 시작·중지·사용·기록·스크립트), 작업 활동 모니터, 경고, 운영자, 오류 로그, 프록시(읽기), 권한·에이전트 멈춤 처리 |
 | [swing-job-schedulers.md](swing-job-schedulers.md) | Swing 작업 스케줄러: Oracle DBMS_SCHEDULER(일정, 작업 실행 기록, 실행 중인 작업, 작업 창, 지금 실행·중지), PostgreSQL pg_cron(설치 여부 노드, 작업, 기록), MySQL/MariaDB 이벤트(창, event_scheduler 상태), 권한·스케줄러 중지 처리 |

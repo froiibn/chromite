@@ -231,6 +231,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 쿼리 창마다 별도 연결({@link QueryWindowContext}): 실행·계획·기본 스키마·트랜잭션 표시와 명령·자동완성이 창의 문맥을 쓰고,
  *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
+ * - 2026-11-08 원본 객체를 Query &gt; Trace Execution…도 씀(주석) (docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 촘촘한 모드: 도구 막대 선택 상자의 여백을 치수 키로 정하고, 높이를 UI가 바뀔 때 다시 정함
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 매개변수 대화상자를 하나로({@link QueryParameterDialog}, 엔진 제공자는 {@link QueryParameterBinder.ScriptProvider}),
@@ -541,7 +542,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The object whose definition the window edits (Modify), for Query &gt; Debug…; null for other windows.
+     * The object whose definition the window edits (Modify), for Query &gt; Debug… and Trace Execution…; null for other windows.
      */
     @Nullable
     DBSObject getSourceObject() {
