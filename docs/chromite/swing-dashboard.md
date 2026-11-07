@@ -83,7 +83,7 @@ DBeaver 대시보드 등록부(`DashboardRegistry#getDashboardItems`)에서 연�
 
 | DB | 정의한 곳 | 차트 (기본 표시 *) |
 |---|---|---|
-| PostgreSQL | DBeaver `ext.postgresql` | 서버 세션*(활성·유휴·전체), 초당 트랜잭션*(전체·커밋·롤백), 블록 I/O*(읽기·적중, 초당) |
+| PostgreSQL | DBeaver `ext.postgresql` | 서버 세션*(활성·유휴·전체), 초당 트랜잭션*(전체·커밋·롤백), 블록 I/O*(읽기·적중, 초당 블록 수 — 2026-11-07 `value="bytes"`를 `integer`로 고침) |
 | PostgreSQL | Chromite | 대기 유형별 활성 세션*(CPU·잠금·IO·기타), 잠금(허용됨·대기 중), 캐시 적중률*(%) |
 | MySQL·MariaDB | DBeaver `ext.mysql` | 네트워크 트래픽*, InnoDB 데이터*, 쿼리*(SELECT·INSERT·UPDATE·DELETE 초당), 서버 세션*(명령별), InnoDB 메모리, 키 효율 |
 | MySQL·MariaDB | Chromite | 스레드*(연결됨·실행 중), 행 잠금 대기*, 버퍼 풀 적중률*(%) |
@@ -188,7 +188,7 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
 
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Activity Monitor의 탭 번호(Processes·Locks로 여는 명령), Object Explorer 오른쪽 클릭 메뉴, Tools 메뉴.
 - Oracle은 차트 정의가 없어 빈 화면 문구만 해당된다(확인하지 않음).
-- DBeaver PostgreSQL "Block IO" 정의는 블록 수를 `value="bytes"`로 적어 단위가 바이트로 보인다(실제는 블록/초). upstream 정의 문제라 고치지 않았다.
+- DBeaver PostgreSQL "Block IO" 정의는 블록 수를 `value="bytes"`로 적어 단위가 바이트로 보였다(실제는 블록/초). 2026-11-07 `value="integer"`로 고침([model-fixes.md](model-fixes.md) "PostgreSQL Block IO 대시보드 단위").
 - `LICENSE.md`의 제3자 목록이 JFreeChart를 "Apache 2.0"으로 적었으나 JFreeChart는 LGPL 2.1이다. 이 작업은 JFreeChart를 쓰지 않아 고치지 않았다.
 
 ## 변경 이력
@@ -196,3 +196,4 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
 - 2026-11-07 최초 작성: Activity Monitor 개요 탭(서버 대시보드), Tools·Object Explorer의 Server Dashboard 명령, 모델 번들의 갱신 로직
   (`DashboardSampler`, `DashboardHistory`)과 SQL Server·PostgreSQL·MySQL 차트 정의, Java2D 차트.
 - 2026-11-07 Activity Monitor 탭 스타일: 밀도 B 브랜치와 합칠 때 옛 고정값(`tabHeight: 32`) 줄이 남아 밀도 B 값(`UiSizes.TOOL_TABS_STYLE`)을 덮던 것을 지움.
+- 2026-11-07 PostgreSQL "Block IO" 정의의 단위를 바이트에서 정수(블록/초)로(`ext.postgresql` `plugin.xml`, #50).

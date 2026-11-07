@@ -173,7 +173,7 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 |---|---|---|
 | SQL Server | 전체: 연산자 아이콘(Key Lookup 포함), 연산자 비용 %, 예상·실제 행(모든 실행), 어긋남 표시, 경고 배지 전부, 누락 인덱스 머리말, 일괄 처리 기준 문장 비용 | showplan XML |
 | PostgreSQL | 전체: 비용 %(Total-Cost에서 자식 비용을 뺀 값), 예상·실제 행(× Actual-Loops), 어긋남 표시, 넘침 경고, 문장 상자(SQL 첫 단어) | EXPLAIN XML |
-| MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식, 중간 노드는 모델 한계로 0%, 아래 "미룬 일"). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
+| MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식. 자기 비용이 없는 중간 노드는 0%, 하위 트리 비용은 자식 비용의 합 — 2026-11-07 모델 수정, [model-fixes.md](model-fixes.md)). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
 | Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 실제 계획 없음 | DBMS_XPLAN 글자 |
 | 그 밖의 DB | 공통 모델(`DBCPlanNode` 이름·개체·조건, `DBCPlanCostNode` 비용·행). 아이콘은 연산 이름의 낱말로 | 모델이 남긴 원문 |
 
@@ -260,8 +260,8 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 
 - ~~그래픽 계획 도면~~: 2026-11-07 "실행 계획 세 보기"로 더함.
 - 원본 보기의 서식 맞춤(SQL Server showplan XML 들여쓰기): 요청이 "서버가 돌려준 그대로"라 넣지 않았다. 지금은 긴 줄을 화면에서만 접는다.
-- MySQL/MariaDB 그래픽 보기의 중간 노드 비용: DBeaver 모델 `MySQLPlanNodeJSON.getNodeCost`가 자식 비용을 `longValue()`로 더해
-  1보다 작은 비용(MariaDB 11의 `cost` 0.003 등)이 0이 되므로 `filesort`, `nested_loop` 같은 중간 노드는 0%로 보인다(테이블 노드의 비용 %는 맞음). `ext.mysql` 모델 수정이 필요해 고치지 않았다.
+- ~~MySQL/MariaDB 그래픽 보기의 중간 노드 비용~~: 2026-11-07 `MySQLPlanNodeJSON.getNodeCost`가 자식 비용을 소수로 더하도록 고침(`long`으로 더해 하위 트리 비용이 0,
+  뿌리에 문장 비용 전체가 몰렸다). [model-fixes.md](model-fixes.md) "MySQL/MariaDB 계획의 비용".
 - Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행(`STATISTICS COLLECTOR`, 대안 `HASH JOIN`)도 있어 DBeaver 모델의 트리·그림에 함께 보인다.
   DBMS_XPLAN 글자(원본 보기)는 쓰이는 계획만 보인다. 모델이 `OTHER_XML`의 적응 계획 정보를 읽어야 해서 미뤘다.
 - 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
@@ -324,3 +324,4 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-07 계획 단추와 Actual Plan 토글이 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮겨짐(사용자 결정). [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - 2026-11-07 실행 계획 세 보기(사용자 결정): 그래픽(연산자 그림, 비용·행·경고·예상 어긋남), 트리, 원본(복사·저장) 보기 전환과 마지막 보기 기억.
   SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.
+- 2026-11-07 MySQL/MariaDB 계획의 중간 노드 비용(#70): 모델이 자식 비용을 소수로 더함. "미룬 일"의 항목을 닫음.
