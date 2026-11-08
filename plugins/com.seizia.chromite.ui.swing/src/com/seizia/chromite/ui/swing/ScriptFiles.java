@@ -62,6 +62,7 @@ import java.util.Map;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-08 연결에 묶은 스크립트 찾기({@link #findLinkedScripts}, Object Explorer의 Recent Scripts)
  *   (docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
+ * - 2026-11-08 설정 가져오기가 연결 묶기를 바꾸기 전에 이전 값을 백업하도록 {@link #getResourcePath}를 패키지 안에 엶 (docs/chromite/settings-transfer.md)
  */
 final class ScriptFiles {
 
@@ -155,7 +156,7 @@ final class ScriptFiles {
      * Project-relative path with {@code /} separators, as SWT stored resource properties.
      */
     @NotNull
-    private static String getResourcePath(@NotNull DBPProject project, @NotNull Path path) {
+    static String getResourcePath(@NotNull DBPProject project, @NotNull Path path) {
         return CommonUtils.normalizeResourcePath(project.getAbsolutePath().toAbsolutePath().normalize()
             .relativize(path.toAbsolutePath().normalize()).toString());
     }

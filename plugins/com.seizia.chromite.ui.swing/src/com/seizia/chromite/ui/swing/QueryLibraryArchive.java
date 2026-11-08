@@ -62,6 +62,7 @@ import java.util.zip.ZipOutputStream;
  * 변경 이력:
  * - 2026-11-07 Query Library ④ 공유: 최초 작성 (docs/chromite/swing-query-library.md "공유")
  * - 2026-11-08 사본으로 가져올 때 고친 시각({@code @updated})을 쓰지 않음 (docs/chromite/swing-query-library.md "저장 형식")
+ * - 2026-11-08 설정 내보내기·가져오기가 같은 쿼리 모으기({@link #collect})와 쓰기({@link #write})를 씀 (docs/chromite/settings-transfer.md)
  */
 final class QueryLibraryArchive {
 
@@ -134,7 +135,7 @@ final class QueryLibraryArchive {
         return files.size();
     }
 
-    private static void collect(@NotNull Path folder, @NotNull List<Path> result) throws IOException {
+    static void collect(@NotNull Path folder, @NotNull List<Path> result) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder)) {
             for (Path child : stream) {
                 String name = String.valueOf(child.getFileName());

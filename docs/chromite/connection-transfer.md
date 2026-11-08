@@ -110,7 +110,7 @@
 | 드라이버 정의와 jar | 드라이버는 ID로만 참조한다. 사용자 드라이버의 jar 경로는 다른 PC에 없을 수 있다. 없는 드라이버는 미리 보기에 "설치 안 됨"으로 보이고, 연결은 저장 파일을 읽을 때와 같이 "없는 드라이버"로 들어온다 |
 | 인증 프로필, 저장된 필터 | 프로젝트 전체의 것이고 고른 연결에 속하지 않는다 |
 | 키 파일(SSH 개인 키, SSL 인증서 파일) | 경로만 설정에 남는다. 다른 PC에서는 그 경로에 파일을 두거나 연결을 고쳐야 한다 |
-| 스크립트, 설정, 프로젝트 자원 | 이 기능의 범위가 아니다(SWT 프로젝트 내보내기와의 차이 아래) |
+| 스크립트, 설정, 프로젝트 자원 | 이 기능의 범위가 아니다. File > Export Settings가 이 연결 파일을 안에 넣어 함께 옮긴다([settings-transfer.md](settings-transfer.md)) |
 
 ## 가져오기와 충돌
 
@@ -226,7 +226,7 @@ SWT `ProjectExportWizard`/`ProjectImportWizard`(`263b8ddb45`의 `plugins/com.sei
 자격 증명은 위 고정 키로만 보호되었다. 가져오기는 프로젝트를 새로 만드는 방식이라 기존 프로젝트에 연결을 합치지 못했다.
 
 옮긴 것: 드라이버 참조와 없는 드라이버 처리, 연결·폴더 설정(같은 직렬화기). 옮기지 않은 것: 고정 키 보호, 드라이버 jar 묶기,
-프로젝트 자원(스크립트 등) 묶기. 그래서 [swt-parity/A-platform.md](swt-parity/A-platform.md) A-C14는 "일부"다.
+프로젝트 자원(스크립트 등) 묶기. 설정·드라이버·쿼리 라이브러리·스크립트는 2026-11-08 설정 내보내기·가져오기([settings-transfer.md](settings-transfer.md))가 옮기고, 연결은 이 파일을 그 안에 넣는다(A-C14 있음).
 
 ## 설계 결정 (판단)
 
@@ -292,6 +292,7 @@ Swing API(`doClick`, `setSelected`, `JFileChooser.approveSelection`, 표 모델)
 
 ## 변경 이력
 
+- 2026-11-08 설정 내보내기·가져오기([settings-transfer.md](settings-transfer.md))가 쓰도록 파일 내용으로 내보내기·읽기(`exportConnectionsData`, `readData`), 가져오기 결과의 가져온·바꾼 연결 ID, 암호 묻기·결과 알림을 나눔(`ConnectionTransferCommands.readData`, `showImportResult`). 이 기능의 동작은 같다
 - 2026-11-08 다른 도구에서 가져오기(Oracle SQL Developer, Toad, CSV): 모델 읽기 클래스, 드라이버 고르기와 알 수 없는 종류의 Generic 드라이버,
   같은 미리 보기·충돌 화면, File > Import Connections 하위 메뉴(감사 A-X4 일부, O23 있음)
 
