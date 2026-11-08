@@ -90,6 +90,8 @@ import java.util.Set;
  * - 2026-11-08 대화 삭제 확인은 대화 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 다시 그릴 글 항목을 모음으로 둠: 도구 뒤 글이 첫 조각에서 멈추던 문제(docs/chromite/ai-agent.md "글 조각 그리기")
  * - 2026-11-08 실행 중인 도구의 진행 글로 도구 카드를 고침({@code toolProgress}, 백업·복원 도구)
+ * - 2026-11-08 설정 단추(도구 막대, 공급자 미설정 안내)가 Options를 Chromite Agent 페이지(Providers 탭)로 엶
+ *   (docs/chromite/ai-agent.md "설정 열기")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -115,8 +117,8 @@ final class AiAssistantPanel extends JPanel {
         /** Shows the Chromite Agent tool window. */
         void showAssistant();
 
-        /** Tools &gt; Options. */
-        void openOptions();
+        /** Tools &gt; Options at a page ({@link OptionsDialog#PAGE_AGENT}). */
+        void openOptions(@NotNull String pageId);
     }
 
     private record Playbook(@NotNull String name, @NotNull String label, boolean needsSql) {
@@ -273,7 +275,7 @@ final class AiAssistantPanel extends JPanel {
         JButton playbooksButton = UiIcons.createActionButton(playbooksAction, "library"); //$NON-NLS-1$
         playbooksButton.addActionListener(e -> showPlaybooks(playbooksButton));
         toolBar.add(playbooksButton);
-        toolBar.add(UiIcons.createActionButton(createAction(AiMessages.ai_settings, host::openOptions), "settings")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(createAction(AiMessages.ai_settings, () -> host.openOptions(OptionsDialog.PAGE_AGENT)), "settings")); //$NON-NLS-1$
         JPanel bar = new JPanel(new BorderLayout(4, 0));
         bar.setOpaque(false);
         bar.add(toolBar, BorderLayout.EAST);
@@ -330,7 +332,7 @@ final class AiAssistantPanel extends JPanel {
         JLabel noticeLabel = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_setup_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
         noticeLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
         JButton noticeButton = new JButton(AiMessages.ai_settings);
-        noticeButton.addActionListener(e -> host.openOptions());
+        noticeButton.addActionListener(e -> host.openOptions(OptionsDialog.PAGE_AGENT));
         setupNotice.setOpaque(false);
         setupNotice.add(noticeLabel, BorderLayout.CENTER);
         setupNotice.add(noticeButton, BorderLayout.EAST);

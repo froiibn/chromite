@@ -540,7 +540,55 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   `LCK_M_SCH_S`로 기다렸다. 원인: 비우기(`TRUNCATE`)는 넣기 트랜잭션 안에서 실행되어 테이블에 Sch-M 잠금을 커밋까지 쥐는데, 넣기(`JDBCTable.insertData` →
   `readRequiredMeta`)가 열을 메타데이터 문맥(다른 세션)으로 다시 읽는다. 열 캐시는 새 테이블을 만든 뒤 스키마를 새로 고치며 비워진다. 고친 것: 비우기 전에
   대상 테이블의 열을 읽어 둔다(그 세션은 아직 잠금이 없다). SWT에도 같은 코드라 같은 결함이 있었다.
-  - 그때 취소하면 작업은 끝나지만 넣기 세션이 열린 트랜잭션(비우기)을 쥔 채 남았다(아래 "남긴 것"). 시험에서는 그 세션을 서버에서 끊어 되돌렸다.
+  - 그때 취소하면 작업은 끝나지만 넣기 세션이 열린 트랜잭션(비우기)을 쥔 채 남았다. 시험에서는 그 세션을 서버에서 끊어 되돌렸다.
+    원인과 수정은 아래 "취소·실패 때 넣기 트랜잭션"(2026-11-08).
+
+## 취소·실패 때 넣기 트랜잭션 (2026-11-08, 후속 36)
+
+사용자 규칙 "트랜잭션 안전": 데이터 전송이 커밋하지 않은 트랜잭션을 숨긴 채 남기거나, 묻지도 알리지도 않고 끝내면 안 된다.
+
+- **근본 원인(모델 `DBDDataReceiver.startFetchWorkflow`):** 수신기의 `close()`는 문장을 닫을 때 부르도록 `fetchStart`가 **성공한 뒤에** 문장에 걸렸다.
+  그래서 `fetchStart` 안에서 실패하면 `close()`가 불리지 않았다. 인터페이스 Javadoc은 "`fetchStart`가 불리지 않았어도 `close`는 불린다"고 약속한다.
+  넣기 소비자(`DatabaseTransferConsumer`)는 `fetchStart`에서 넣기 연결(새 연결)을 열고 자동 커밋을 끄고 비우기(TRUNCATE)를 한다.
+  그 뒤에 실패하거나 취소되면(예: 비우기가 다른 세션의 잠금을 기다리는 중 취소, 예전의 메타데이터 읽기 멈춤 중 취소) 닫기가 불리지 않아
+  넣기 연결이 커밋하지 않은 트랜잭션째 열린 채 남았다. 고친 것: `fetchStart`가 실패하면 `close()`를 부르고(그 오류는 원래 오류에 덧붙임) 원래 오류를 다시 던진다.
+  같은 원인의 다른 경우: `startFetchWorkflow`를 쓰는 모든 수신기(쿼리 결과 표, 실행 계획, 생성 키, CSV 가져오기, 스트림 내보내기). 다른 수신기의
+  `close()`는 비어 있거나(`SQLScriptDataReceiver`, `RowDataReceiver` 등) `fetchStart` 전 상태를 견딘다(`ResultSetGridReceiver`는 묶음이 없으면 아무것도 하지 않음).
+- **조용한 롤백을 알림으로(`DatabaseTransferConsumer.closeExporter`):** 닫을 때 수동 커밋이면 롤백하는 것은 그대로다(넣기 트랜잭션의 커밋하지 않은 부분은 실패로 본다).
+  이제 커밋하지 않은 것(비우기, 마지막 커밋 뒤의 행 수)을 세어 두었다가, 있으면 롤백한 뒤 경고 알림을 띄운다:
+  "데이터 넣기 롤백 — chr_followups4.dbo.big(FU4-MS)에 넣기가 마지막 변경을 커밋하기 전에 끝나 그 변경을 롤백했습니다: 테이블 비우기(TRUNCATE를 바로 커밋하는 DB에서는
+  비운 상태로 남음), 커밋하지 않은 행 400000개. 그 전에 커밋한 행은 테이블에 남아 있습니다." 롤백이 실패하면 오류 대화상자로 알린다(테이블과 도구 > 열린 트랜잭션을 확인하라고).
+  커밋했거나(`insertBatch`의 커밋, 대량 로드의 `finishBulkLoad`) 롤백을 알린 뒤에는 센 값을 지운다. 묻지 않고 롤백하는 이유: 이 트랜잭션은 사용자 세션이 아니라 전송이 연 것이고,
+  취소·실패한 넣기의 커밋하지 않은 부분을 커밋하면 비운 테이블이 그대로 커밋된다. 대신 숨기지 않고 무엇을 되돌렸는지 알린다(브리프의 "묻거나 분명히 알린다").
+  MySQL·MariaDB·Oracle처럼 TRUNCATE를 바로 커밋하는 DB에서는 비우기가 되돌려지지 않으므로 문구에 그렇게 적었다.
+- **새 연결을 쓰지 않을 때(`DatabaseTransferConsumer.endOpenTransaction`):** "대상에 별도 연결 사용"을 끄면 넣기가 연결의 기본 세션(쿼리 창이 함께 쓸 수 있음)에서 돈다.
+  넣기는 그 세션의 커밋 방식을 바꾸고 커밋·롤백하므로, 사용자가 그 세션에 열어 둔 트랜잭션까지 커밋하거나 롤백했다. 이제 그 세션에 열린 트랜잭션이 있으면
+  (`QMUtils.isTransactionActive` 또는 `QMTransactionState.isOpen`, 열린 트랜잭션 목록과 같은 기준) 넣기 전에 커밋 / 롤백 / 취소(기본 취소)를 묻는다.
+  취소는 그 테이블을 넣지 않고 "Data load into … not started: the session of connection … has a transaction that is not committed" 오류로 끝낸다.
+  문구는 SQL 스크립트 작업의 질문(`sql_script_task_txn_*`)의 제목·단추를 같이 쓴다.
+- 문구: `DTMessages`의 `database_transfer_consumer_txn_before`, `_rolled_back_title`, `_rolled_back`, `_rolled_back_truncate`, `_rolled_back_rows`, `_rollback_failed`(영어, 한국어).
+
+### 확인 (2026-11-08, `chromite/followups-4`)
+
+이 브랜치 빌드의 Swing 제품 한 벌을 개인 데이터 폴더(`CHROMITE_DATA`)·작업 공간으로 실행하고, 같은 프로세스에 붙인 시험 코드가 Swing 부품을 직접 눌렀다(화면 입력 없음).
+공용 Docker DB에 만든 `chr_followups4`(PostgreSQL `public.big` 400,000행·`customers` 1,000행, SQL Server `dbo.big` 기존 1,000행·`customers` 기존 2행)를 썼고 끝나고 지웠다.
+증거: `D:\Tools\_scratch\chromite-followups-4\run\t36*.txt.log`, `shots\36*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| 비우기 + 커밋 간격 1,000,000 + 넣는 중 취소(PostgreSQL `big` → SQL Server `big`) | 일괄 실행이 취소되어 모델의 중지/다시 시도/건너뛰기 질문 → 중지 → 경고 알림 "…롤백했습니다: 테이블 비우기(…), 커밋하지 않은 행 400000개…". `dbo.big` 1,000행(비우기 되돌림), "Data transfer consumer" 세션 없음 |
+| 다른 세션이 `dbo.big`에 잠금(`TABLOCK, HOLDLOCK`)을 쥔 채 비우기가 기다리는 중 취소 | 비우기 문장이 취소되어 `fetchStart`가 실패(`DBDDataReceiver.java:80` 경로, `.log`의 스택), 이어서 넣기 문맥이 닫힘("Execution context closed (FU4-MS, 9)"). `sys.dm_exec_sessions`에 넣기 세션 없음, 1,000행 그대로. 되돌릴 것이 없어 알림 없음. 진행 표 "취소됨" |
+| 별도 연결 끔 + 주 세션(수동 커밋)에 `INSERT`(6001)를 열어 둠 | "커밋하지 않은 트랜잭션" 질문(커밋 / 롤백 / 취소, 기본 취소) → 취소: 표에 "Data load into … not started …", 주 세션의 열린 트랜잭션 1개 그대로(6001 남음) |
+| 같은 설정, 롤백 | 6001 롤백 뒤 넣기 실행, `customers` 1,000행(`이름 + ' (en)'`), 주 세션 열린 트랜잭션 0 |
+
+- 브리프의 SQL Server "한 행씩 + 고유 키 위반 건너뛰기 + 식"에서 한 번 본 "The value is not set for the parameter number 2"는 같은 설정으로 두 번(별도 연결 끔·켬) 더 실행해
+  모두 성공(1,000행)해 다시 만들지 못했다. 코드로 본 것: 행마다 문장을 새로 준비하고(`ExecuteBatchImpl.processBatch`, 한 행씩이면 값 목록이 1개), 준비(`ExecuteInsertBatchImpl.prepareQueryForStatement`)와
+  바인딩(`bindStatement`)이 같은 NULL 판단(`DBUtils.isNullValue`)을 쓰며, SQL Server 문자열 처리기는 값이 있으면 늘 `setString`을 부른다. 매개변수 2(=`name`, 식 열)를
+  건너뛸 경로는 `bindStatement`가 진행 모니터의 취소를 보고 멈추는 것뿐이다. 원인을 확정하지 못해 고치지 않았다(아래 "남긴 것").
+- 같은 확인에서 본 것(범위 밖, 고치지 않음): 넣는 중 취소하면 모델이 취소된 일괄 실행을 오류로 보고 중지/다시 시도/건너뛰기를 묻는다(`DatabaseTransferConsumer.insertBatch`의 catch가 취소를 구별하지 않음).
+  한 행씩 넣기에서 다시 시도·복구는 빈 값 목록을 다시 실행한다(`ExecuteBatchImpl.processBatch`가 실패해도 값 목록을 비움) — 실패한 행이 조용히 빠질 수 있다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: `startFetchWorkflow`를 쓰는 모든 읽기(쿼리 결과 표, 실행 계획, 생성 키, CSV 가져오기,
+  내보내기)의 `fetchStart` 실패 경로, 모든 데이터베이스 넣기(테이블 복사·가져오기·데이터 전송 작업)의 닫기.
 
 ## upstream 대비 변경점
 
@@ -550,6 +598,8 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   매핑 저장·불러오기(작업 저장으로 대신)는 없다. 매핑 규칙, 열 값(변환기), 중복 키 처리는 2026-11-08에 더했다.
 - 비우기·다시 만들기를 대상 DDL 탭과 요약에 보이고 Finish에서 한 번 묻는다(SWT는 비우기를 체크할 때 묻고 다시 만들기는 고를 때만).
 - 비우기 전에 대상 테이블의 열을 읽어 두는 모델 수정(`DatabaseTransferConsumer`, 위 "비우기 뒤 멈춤").
+- `fetchStart`가 실패해도 수신기를 닫고(`DBDDataReceiver.startFetchWorkflow`), 넣기 트랜잭션의 롤백을 알리며, 별도 연결을 끈 넣기 전에 그 세션의 열린 트랜잭션을 묻는
+  모델 수정(`DatabaseTransferConsumer`, 위 "취소·실패 때 넣기 트랜잭션"). SWT에도 같은 결함이 있었다.
 - 원본 테이블 자신을 대상으로 한 매핑을 막고, 건너뛴 테이블의 파이프는 실행하지 않는다.
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
 - 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
@@ -709,9 +759,10 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   [swing-database-tasks.md](swing-database-tasks.md) "데이터 전송 작업").
 - 원본 읽기의 동시 추출 수(위 "고급 옵션").
 - 이름 붙인 데이터 형식 프로필을 만드는 화면(내보내기는 있는 프로필을 고르기만 함).
-- SQL Server로 하나씩 삽입할 때 한 번 본 "The value is not set for the parameter number 2"(위 "고급 옵션 확인"). 다시 만들지 못해 원인을 찾지 못했다.
-- 복사를 취소할 때 넣기 세션이 열린 트랜잭션을 쥔 채 남는 경우(2026-11-08 확인, 메타데이터 읽기가 막혀 있던 중 취소). 넣기 소비자의 `close`가 그 경로에서 불리지 않는 것으로 보이며
-  모델 `DataTransferJob`·`DTTaskHandlerTransfer`의 취소 경로를 따로 확인해야 한다. 위 멈춤을 고친 뒤로는 그 상황이 생기지 않았다.
+- SQL Server로 하나씩 삽입할 때 한 번 본 "The value is not set for the parameter number 2"(위 "고급 옵션 확인"). 2026-11-08에 같은 설정으로 두 번 더 실행했으나
+  다시 만들지 못해 원인을 찾지 못했다(위 "취소·실패 때 넣기 트랜잭션"의 확인).
+- ~~복사를 취소할 때 넣기 세션이 열린 트랜잭션을 쥔 채 남는 경우~~ 2026-11-08 고침(위 "취소·실패 때 넣기 트랜잭션").
+- 넣는 중 취소가 중지/다시 시도/건너뛰기 질문으로 나오는 것, 한 행씩 넣기에서 다시 시도·복구가 실패한 행을 다시 넣지 않는 것(모델, 위 확인에서 봄).
 - XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
 - 형식 매핑에 남은 것: MariaDB `TIME`의 24시간 넘는 값 → Oracle. (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
   정밀도 없는 `numeric`을, 밤에 `bit` → `boolean`, Oracle 열 복사의 길이 단위, `MAX_STRING_SIZE`를 고쳤고 `NUMBER(p,0)` → `numeric(p,0)`을 확인 —
@@ -760,3 +811,5 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   SQL Server 멈춤), 마지막 구간 통계(`DatabaseTransferProducer`). 위 "고급 옵션".
 - 2026-11-08 결과 표의 Export Data: 배치 결과는 그 결과를 만든 SELECT만 다시 실행(첫 결과 집합만이던 제한을 없앰), 문장을 정하지 못한 결과는 끄고 이유를 보임.
   [sql-batch-reread.md](sql-batch-reread.md).
+- 2026-11-08 후속 36(`chromite/followups-4`): 취소·실패 때 넣기 연결이 커밋하지 않은 비우기를 쥔 채 남던 것(`DBDDataReceiver.startFetchWorkflow`가 `fetchStart`
+  실패 때 `close`를 부르지 않음), 넣기 트랜잭션의 조용한 롤백을 알림으로, 별도 연결을 끈 넣기 전 열린 트랜잭션 질문. 위 "취소·실패 때 넣기 트랜잭션".

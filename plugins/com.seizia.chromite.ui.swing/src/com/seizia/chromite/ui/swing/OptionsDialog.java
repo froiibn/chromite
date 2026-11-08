@@ -31,13 +31,24 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPIdentifierCase;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.plaf.LayerUI;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Tools &gt; Options (SSMS): 기능별 설정을 한곳에서 바꾸는 대화상자.
@@ -68,7 +79,12 @@ import java.util.Objects;
  *     페이지가 많아 왼쪽 목록은 넘치면 스크롤한다.</li>
  *     <li>Connection Types 탭: 연결 유형 편집({@link ConnectionTypesPage}). 모두 OK에서 저장한다.
  *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}, {@link #wrapPage}다.</li>
- *     <li>탭은 SSMS Options의 왼쪽 목록처럼 왼쪽에 둔다. 페이지가 한 줄 탭에 들어가지 않는다.</li>
+ *     <li>페이지는 SSMS Options의 왼쪽 목록처럼 왼쪽 목록에서 고른다. 페이지가 한 줄 탭에 들어가지 않는다. 목록은 {@link JList}, 페이지는
+ *     {@link CardLayout}이다({@link JTabbedPane}은 탭을 숨길 수 없어 찾기로 걸러 보일 수 없다). 목록 위에는 찾기 칸을 고정하고, 페이지 이름과
+ *     페이지 안의 설정 글자(라벨, 체크 상자, 단추, 테두리 제목, 하위 탭 이름)로 페이지를 거르고, 보이는 페이지에서 일치한 글자를 {@link JLayer}로
+ *     칠한다(페이지 코드는 그대로).</li>
+ *     <li>페이지 왼쪽 여백은 페이지 자리 한 곳에서 준다. {@link #wrapPage}는 탭이 위에 있는 다른 대화상자도 쓰므로 바꾸지 않는다.</li>
+ *     <li>다른 화면이 특정 페이지를 열 때는 화면 이름이 아니라 페이지 식별자({@link #PAGE_AGENT})로 고른다({@link #open(Frame, String)}).</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다. 한 페이지의 저장이 실패해도 나머지 페이지는 저장하고, 실패한 페이지를
  * 마지막에 한 번에 알린다(전에는 예외가 OK 처리를 끊어 뒤 페이지가 말없이 저장되지 않았다).
@@ -96,11 +112,27 @@ import java.util.Objects;
  *   (docs/chromite/swing-explorer-productivity.md)
  * - 2026-11-08 OK가 한 페이지의 예외로 멈추지 않고 모든 페이지를 저장한 뒤 실패한 페이지를 알림(evening #33,
  *   docs/chromite/swing-options.md)
+ * - 2026-11-08 왼쪽 목록을 넓히고(최소 220) 찾기 칸, 창을 pack 크기보다 크게, 페이지 왼쪽 여백, 페이지 식별자로 열기(app round 1 #8, #13,
+ *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  */
 final class OptionsDialog extends JDialog {
 
+    /**
+     * Page id of Chromite Agent, for {@link #open(Frame, String)}. A new dialog shows its first tab, Providers.
+     */
+    static final String PAGE_AGENT = "agent"; //$NON-NLS-1$
+
     private static final Log log = Log.getLog(OptionsDialog.class);
     private static final int MAX_DELAY = 5000;
+    // The page list is at least this wide (scaled), wider when a title needs it
+    private static final int PAGE_LIST_MIN_WIDTH = 220;
+    // Between the page list and the page: design-spec group spacing
+    private static final int PAGE_GAP = 20;
+    // The dialog opens this much larger than its packed size (the packed size stays the minimum), within this share of the screen
+    private static final double SIZE_FACTOR = 1.18;
+    private static final double MAX_SCREEN_SHARE = 0.9;
+    private static final Pattern HTML_TAG = Pattern.compile("<[^>]*>"); //$NON-NLS-1$
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+"); //$NON-NLS-1$
     private static final String PREVIEW_TEXT = """
         -- 한글 주석: editor preview
         DECLARE @cnt INT = 0;
@@ -161,7 +193,19 @@ final class OptionsDialog extends JDialog {
     private final JSpinner explorerPageSizeSpinner = new JSpinner(new SpinnerNumberModel(ExplorerPreferences.getPageSize(),
         ExplorerPreferences.MIN_PAGE_SIZE, ExplorerPreferences.MAX_PAGE_SIZE, 100));
 
-    private OptionsDialog(@NotNull Frame owner) {
+    // The page list (filtered by the search field) and the shown page
+    private final List<Page> pages = new ArrayList<>();
+    private final DefaultListModel<Page> pageListModel = new DefaultListModel<>();
+    private final JList<Page> pageList = new JList<>(pageListModel);
+    private final CardLayout pageCards = new CardLayout();
+    private final JPanel pageHolder = new JPanel(pageCards);
+    private final JTextField searchField = new JTextField();
+    private final JLabel noMatchLabel = new JLabel(CoreMessages.options_search_no_match);
+    private final MatchHighlighter highlighter = new MatchHighlighter();
+    // Matched texts per page id, for the search of the moment (empty without a search)
+    private final Map<String, List<Match>> matches = new HashMap<>();
+
+    private OptionsDialog(@NotNull Frame owner, @Nullable String pageId) {
         super(owner, CoreMessages.options_title, true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
@@ -229,38 +273,258 @@ final class OptionsDialog extends JDialog {
         JPanel content = new JPanel(new BorderLayout(0, 20));
         // Dialog insets 10/12, groups 20 apart (design-spec space tokens)
         content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        // Pages on the left, as the SSMS Options tree: more pages than one row of tabs holds
-        JTabbedPane tabs = new JTabbedPane(SwingConstants.LEFT, JTabbedPane.SCROLL_TAB_LAYOUT);
-        tabs.addTab(CoreMessages.options_general, wrapPage(form));
-        tabs.addTab(CoreMessages.options_editor, createEditorPage());
-        tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
+        // Pages on the left, as the SSMS Options tree: more pages than one row of tabs holds. Settings pages are identified by their class.
+        addPage("general", CoreMessages.options_general, wrapPage(form)); //$NON-NLS-1$
+        addPage("editor", CoreMessages.options_editor, createEditorPage()); //$NON-NLS-1$
+        addPage("editor-colors", CoreMessages.options_editor_colors, createColorsPage()); //$NON-NLS-1$
         for (SettingsPage page : settingsPages) {
-            tabs.addTab(page.getTitle(), page);
+            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
         }
         for (SettingsPage page : globalPages) {
-            tabs.addTab(page.getTitle(), page);
+            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
         }
-        tabs.addTab(SettingsMessages.types_tab, connectionTypesPage);
+        addPage("connection-types", SettingsMessages.types_tab, connectionTypesPage); //$NON-NLS-1$
         for (SettingsPage page : databasePages) {
-            tabs.addTab(page.getTitle(), page);
+            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
         }
-        tabs.addTab(CoreMessages.options_templates, templatesPage);
-        tabs.addTab(UpdateMessages.update_options_tab, updatesPage);
-        tabs.addTab(AiMessages.ai_options_tab, aiPage);
-        content.add(tabs, BorderLayout.CENTER);
+        addPage("templates", CoreMessages.options_templates, templatesPage); //$NON-NLS-1$
+        addPage("updates", UpdateMessages.update_options_tab, updatesPage); //$NON-NLS-1$
+        addPage(PAGE_AGENT, AiMessages.ai_options_tab, aiPage);
+        content.add(createPageList(), BorderLayout.WEST);
+        // The left margin of every page, here once: wrapPage serves other dialogs too, and the other pages have none of their own
+        pageHolder.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(PAGE_GAP), 0, 0));
+        content.add(new JLayer<>(pageHolder, highlighter), BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
+        selectPage(pageId);
 
         getRootPane().setDefaultButton(okButton);
         getRootPane().registerKeyboardAction(e -> dispose(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        getRootPane().registerKeyboardAction(e -> {
+            searchField.requestFocusInWindow();
+            searchField.selectAll();
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        // The page list has the focus at first, not the search field above it (Ctrl+F goes there)
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowOpened(WindowEvent e) {
+                pageList.requestFocusInWindow();
+            }
+        });
         pack();
-        setMinimumSize(getSize());
+        Dimension packed = getSize();
+        setMinimumSize(packed);
+        setSize(getOpeningSize(packed, owner));
         setLocationRelativeTo(owner);
     }
 
     static void open(@NotNull Frame owner) {
-        new OptionsDialog(owner).setVisible(true);
+        new OptionsDialog(owner, null).setVisible(true);
+    }
+
+    /**
+     * Opens the dialog at a page, given by its id (not its title, which follows the language).
+     */
+    static void open(@NotNull Frame owner, @NotNull String pageId) {
+        new OptionsDialog(owner, pageId).setVisible(true);
+    }
+
+    private void addPage(@NotNull String id, @NotNull String title, @NotNull JComponent component) {
+        Page page = new Page(id, title, component);
+        pages.add(page);
+        pageListModel.addElement(page);
+        pageHolder.add(component, id);
+    }
+
+    /**
+     * The search field fixed above the page list, the "no match" text under it, and the list, at least {@link #PAGE_LIST_MIN_WIDTH}
+     * wide and as wide as its longest title with the scroll bar, so that no title is cut.
+     */
+    @NotNull
+    private JComponent createPageList() {
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, CoreMessages.options_search_placeholder);
+        searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
+        searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                filterPages();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                filterPages();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                filterPages();
+            }
+        });
+        // Esc empties a non-empty search; on an empty one it is disabled, so that the dialog's Esc closes the dialog
+        searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "chromite.options.clearSearch"); //$NON-NLS-1$
+        searchField.getActionMap().put("chromite.options.clearSearch", new AbstractAction() { //$NON-NLS-1$
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                searchField.setText(""); //$NON-NLS-1$
+            }
+
+            @Override
+            public boolean isEnabled() {
+                return !searchField.getText().isEmpty();
+            }
+        });
+        noMatchLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        noMatchLabel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(6), UIScale.scale(4), 0, 0));
+        noMatchLabel.setVisible(false);
+
+        pageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        // A few rows: the list scrolls, the pages set the dialog height; the width then counts the scroll bar
+        pageList.setVisibleRowCount(8);
+        pageList.addListSelectionListener(e -> {
+            // The selection is empty while the search rebuilds the list; the shown page stays until one is selected
+            Page page = pageList.getSelectedValue();
+            if (page != null) {
+                pageCards.show(pageHolder, page.id());
+                highlighter.setMatches(matches.getOrDefault(page.id(), List.of()));
+            }
+        });
+
+        JPanel search = new JPanel(new BorderLayout());
+        search.add(searchField, BorderLayout.NORTH);
+        search.add(noMatchLabel, BorderLayout.CENTER);
+        JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(6)));
+        panel.add(search, BorderLayout.NORTH);
+        panel.add(new JScrollPane(pageList), BorderLayout.CENTER);
+        Dimension size = panel.getPreferredSize();
+        size.width = Math.max(size.width, UIScale.scale(PAGE_LIST_MIN_WIDTH));
+        panel.setPreferredSize(size);
+        return panel;
+    }
+
+    /**
+     * Selects a page by id, or the first page when there is none with that id.
+     */
+    private void selectPage(@Nullable String pageId) {
+        int index = -1;
+        for (int i = 0; i < pageListModel.size(); i++) {
+            if (pageListModel.get(i).id().equals(pageId)) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            if (pageId != null) {
+                log.warn("No options page with id " + pageId); //$NON-NLS-1$
+            }
+            index = 0;
+        }
+        pageList.setSelectedIndex(index);
+        pageList.ensureIndexIsVisible(index);
+    }
+
+    /**
+     * The packed size enlarged by {@link #SIZE_FACTOR}, within {@link #MAX_SCREEN_SHARE} of the owner's screen, never below the packed size.
+     */
+    @NotNull
+    private static Dimension getOpeningSize(@NotNull Dimension packed, @NotNull Frame owner) {
+        GraphicsConfiguration config = owner.getGraphicsConfiguration();
+        Rectangle screen = config.getBounds();
+        Insets screenInsets = Toolkit.getDefaultToolkit().getScreenInsets(config);
+        int maxWidth = (int) ((screen.width - screenInsets.left - screenInsets.right) * MAX_SCREEN_SHARE);
+        int maxHeight = (int) ((screen.height - screenInsets.top - screenInsets.bottom) * MAX_SCREEN_SHARE);
+        return new Dimension(
+            Math.max(packed.width, Math.min((int) Math.round(packed.width * SIZE_FACTOR), maxWidth)),
+            Math.max(packed.height, Math.min((int) Math.round(packed.height * SIZE_FACTOR), maxHeight)));
+    }
+
+    /**
+     * Shows the pages whose title or settings texts contain the search text (case and spaces ignored), all pages without one.
+     * The selected page stays when it matches, otherwise the first match is selected.
+     */
+    private void filterPages() {
+        String key = normalize(searchField.getText());
+        Page selected = pageList.getSelectedValue();
+        matches.clear();
+        List<Page> shown = new ArrayList<>();
+        for (Page page : pages) {
+            if (key.isEmpty()) {
+                shown.add(page);
+                continue;
+            }
+            List<Match> pageMatches = new ArrayList<>();
+            findMatches(page.component(), key, pageMatches);
+            if (!pageMatches.isEmpty() || normalize(page.title()).contains(key)) {
+                matches.put(page.id(), pageMatches);
+                shown.add(page);
+            }
+        }
+        pageListModel.clear();
+        pageListModel.addAll(shown);
+        noMatchLabel.setVisible(shown.isEmpty());
+        if (selected != null && shown.contains(selected)) {
+            pageList.setSelectedValue(selected, true);
+        } else if (!shown.isEmpty()) {
+            pageList.setSelectedIndex(0);
+        } else {
+            highlighter.setMatches(List.of());
+        }
+    }
+
+    /**
+     * Adds the texts of a component tree that contain the key: labels, buttons and check boxes, titled border titles, and tabs whose
+     * title or content matches. Hidden tabs and cards count (their page shows them on a click), other hidden components do not.
+     * Cell renderers are skipped: their component holds the text of the last painted cell, not a setting.
+     */
+    private static void findMatches(@NotNull Component component, @NotNull String key, @NotNull List<Match> found) {
+        if (component instanceof CellRendererPane) {
+            return;
+        }
+        if (component instanceof JLabel label && containsKey(label.getText(), key)) {
+            found.add(new Match(label, Match.TEXT));
+        } else if (component instanceof AbstractButton button && containsKey(button.getText(), key)) {
+            found.add(new Match(button, Match.TEXT));
+        }
+        if (component instanceof JComponent jComponent && jComponent.getBorder() instanceof TitledBorder titled
+            && containsKey(titled.getTitle(), key)) {
+            found.add(new Match(jComponent, Match.BORDER_TITLE));
+        }
+        if (component instanceof JTabbedPane tabbedPane) {
+            for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+                List<Match> tabMatches = new ArrayList<>();
+                findMatches(tabbedPane.getComponentAt(i), key, tabMatches);
+                if (!tabMatches.isEmpty() || containsKey(tabbedPane.getTitleAt(i), key)) {
+                    found.add(new Match(tabbedPane, i));
+                    found.addAll(tabMatches);
+                }
+            }
+            return;
+        }
+        if (component instanceof Container container) {
+            boolean cards = container.getLayout() instanceof CardLayout;
+            for (Component child : container.getComponents()) {
+                if (child.isVisible() || cards) {
+                    findMatches(child, key, found);
+                }
+            }
+        }
+    }
+
+    private static boolean containsKey(@Nullable String text, @NotNull String key) {
+        return text != null && normalize(text).contains(key);
+    }
+
+    /**
+     * Lower case without spaces; HTML text without its tags and common entities.
+     */
+    @NotNull
+    private static String normalize(@NotNull String text) {
+        if (text.regionMatches(true, 0, "<html>", 0, 6)) { //$NON-NLS-1$
+            text = HTML_TAG.matcher(text).replaceAll(" ") //$NON-NLS-1$
+                .replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&amp;", "&"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$ //$NON-NLS-9$ //$NON-NLS-10$
+        }
+        return WHITESPACE.matcher(text.toLowerCase(Locale.ROOT)).replaceAll(""); //$NON-NLS-1$
     }
 
     /**
@@ -642,6 +906,97 @@ final class OptionsDialog extends JDialog {
         }
         if (themeCombo.getSelectedItem() instanceof ChromiteTheme theme && theme != ChromiteTheme.getCurrent()) {
             theme.apply();
+        }
+    }
+
+    /**
+     * A page of the list: its id (for {@link #open(Frame, String)} and the card), its title (shown by the list) and its component.
+     */
+    private record Page(@NotNull String id, @NotNull String title, @NotNull JComponent component) {
+        @Override
+        public String toString() {
+            return title;
+        }
+    }
+
+    /**
+     * A text the search found: a label or button ({@link #TEXT}), the title of a titled border ({@link #BORDER_TITLE}),
+     * or a tab of a tabbed pane (its index).
+     */
+    private record Match(@NotNull JComponent component, int tab) {
+        static final int TEXT = -1;
+        static final int BORDER_TITLE = -2;
+    }
+
+    /**
+     * Paints the matches of the shown page over it (translucent, so the text stays readable), without changing the page's
+     * components. Matches inside hidden tabs or scrolled out of view are not painted.
+     */
+    private final class MatchHighlighter extends LayerUI<JComponent> {
+        private List<Match> shown = List.of();
+
+        void setMatches(@NotNull List<Match> matches) {
+            shown = matches;
+            pageHolder.repaint();
+        }
+
+        @Override
+        public void paint(Graphics g, JComponent layer) {
+            super.paint(g, layer);
+            if (shown.isEmpty()) {
+                return;
+            }
+            Color color = UIManager.getColor("Component.focusedBorderColor"); //$NON-NLS-1$
+            Color fill = new Color(color.getRed(), color.getGreen(), color.getBlue(), 56);
+            int arc = UIScale.scale(6);
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                for (Match match : shown) {
+                    Rectangle bounds = getBounds(match, layer);
+                    if (bounds != null) {
+                        g2.setColor(fill);
+                        g2.fillRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, arc, arc);
+                        g2.setColor(color);
+                        g2.drawRoundRect(bounds.x, bounds.y, bounds.width - 1, bounds.height - 1, arc, arc);
+                    }
+                }
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        /**
+         * The match's text area in layer coordinates: the preferred width of a label or button (a stretched check box is wider than its
+         * text), the title strip of a titled border, the tab of a tabbed pane; clipped to what is visible.
+         */
+        @Nullable
+        private Rectangle getBounds(@NotNull Match match, @NotNull JComponent layer) {
+            JComponent component = match.component();
+            if (!component.isShowing()) {
+                return null;
+            }
+            Rectangle bounds;
+            if (match.tab() >= 0) {
+                if (!(component instanceof JTabbedPane tabbedPane) || match.tab() >= tabbedPane.getTabCount()) {
+                    return null;
+                }
+                bounds = tabbedPane.getBoundsAt(match.tab());
+                if (bounds == null) {
+                    return null;
+                }
+            } else if (match.tab() == Match.BORDER_TITLE) {
+                if (!(component.getBorder() instanceof TitledBorder titled)) {
+                    return null;
+                }
+                Font font = Objects.requireNonNullElse(titled.getTitleFont(), component.getFont());
+                int titleWidth = component.getFontMetrics(font).stringWidth(titled.getTitle());
+                bounds = new Rectangle(0, 0, Math.min(component.getWidth(), titleWidth + UIScale.scale(16)), titled.getBorderInsets(component).top);
+            } else {
+                bounds = new Rectangle(0, 0, Math.min(component.getWidth(), component.getPreferredSize().width), component.getHeight());
+            }
+            bounds = bounds.intersection(component.getVisibleRect());
+            return bounds.isEmpty() ? null : SwingUtilities.convertRectangle(component, bounds, layer);
         }
     }
 

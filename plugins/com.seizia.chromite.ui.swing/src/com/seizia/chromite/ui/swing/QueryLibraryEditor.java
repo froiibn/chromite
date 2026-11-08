@@ -34,6 +34,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,6 +60,10 @@ import java.util.Objects;
  *     <li>창은 쿼리 파일 이름(쿼리 이름)과 연결로 제목을 단다. 저장(Ctrl+S, 닫을 때 저장)은 파일에 SQL만 쓰지 않고 머리말과 함께
  *     {@link QueryLibrary#save}로 쓴다. 이름을 바꾸면 파일 이름도 바뀐다.</li>
  *     <li>머리말 입력란을 바꾸면 쿼리 창을 "고침"으로 표시한다. 매개변수 정의는 "Parameters…"에서 지금 SQL의 매개변수에 대해 정한다.</li>
+ *     <li>머리말 오른쪽 끝의 저장 단추(아이콘만, 사용자 결정 2026-11-08)는 메인 창의 Save(Ctrl+S) 동작을 그대로 부른다
+ *     ({@link QueryLibraryPanel.Host#getSaveAction}). 저장 경로를 하나로 두어 읽기 전용 루트 안내, 이름 검사, 충돌 질문이 단축키와 같게
+ *     하기 위해서다. 창이 고침 상태일 때만 켜진다({@link SqlEditorPanel#DIRTY_PROPERTY}).</li>
+ *     <li>Database·Schema 칸은 대상 연결의 DB/스키마 목록이 있는 콤보다({@link QueryLibraryDefaultsPicker}).</li>
  *     <li>실행 대상 찾기({@link #resolveTarget}): 정해진 연결은 데이터 소스 ID → 이름 순으로 찾고, 없거나 "묻기"면 연결을 고르게 한다.</li>
  *     <li>공유 루트에서는 다른 사람이 같은 쿼리를 먼저 저장할 수 있다. 창은 연 때(또는 마지막 저장 때)의 쿼리를 기억하고, 저장할 때 파일의
  *     편집 항목(이름, 설명, 대상, DB/스키마, 매개변수, SQL)이 그와 다르면 덮어쓰기 전에 묻는다(Overwrite / Reload / Cancel).
@@ -81,6 +86,9 @@ import java.util.Objects;
  * - 2026-11-08 머리말 단추의 최소 크기를 글자가 들어가기 전에 고정하지 않음: 좁은 창에서 "Para…", "Thres…"로 잘리던 문제
  *   (docs/chromite/swing-query-library.md "머리말 배치")
  * - 2026-11-08 저장 충돌 질문의 고친 시각은 파일의 수정 시각(파일에 {@code @updated}를 쓰지 않음) (docs/chromite/swing-query-library.md "저장 형식")
+ * - 2026-11-08 머리말 오른쪽 끝에 저장 아이콘 단추(Ctrl+S와 같은 동작, 고쳤을 때만 켜짐) (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-08 Database·Schema 글 칸을 대상 연결의 목록이 있는 콤보로 바꿈({@link QueryLibraryDefaultsPicker})
+ *   (docs/chromite/swing-query-library.md "머리말 DB/스키마 목록")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -93,10 +101,10 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     private final JTextField nameField = new JTextField(18);
     private final JTextField descriptionField = new JTextField(30);
     private final JComboBox<Object> targetCombo = new JComboBox<>();
-    private final JTextField databaseField = new JTextField(10);
-    private final JTextField schemaField = new JTextField(10);
+    private final QueryLibraryDefaultsPicker defaultsPicker = new QueryLibraryDefaultsPicker(this::getListSource, this::fieldChanged);
     private final JButton parametersButton = new JButton();
     private final JButton thresholdsButton = new JButton();
+    private final JButton saveButton = createSaveButton();
     // Edited thresholds; null while unchanged (the file's blocks are kept as they are)
     @Nullable
     private List<QueryLibraryThresholdsDialog.Threshold> thresholds;
@@ -188,6 +196,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         QueryLibraryEditor extension = new QueryLibraryEditor(host, item);
         extension.editor = editor;
         editor.setExtension(extension);
+        editor.addPropertyChangeListener(SqlEditorPanel.DIRTY_PROPERTY, e -> extension.saveButton.setEnabled(editor.isDirty()));
         return editor;
     }
 
@@ -613,7 +622,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     // Header (EDT)
 
     /**
-     * Two rows above the editor of the query window: Name, Description | Target, Database, Schema, Parameters….
+     * Two rows above the editor of the query window: Name, Description, Save | Target, Database, Schema, Parameters…,
+     * Thresholds….
      */
     @NotNull
     private JPanel createHeader() {
@@ -624,14 +634,14 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         nameField.setToolTipText(ToolsMessages.library_editor_name_tip);
         descriptionField.setToolTipText(ToolsMessages.library_editor_description_tip);
         descriptionField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_field_description);
-        databaseField.setToolTipText(ToolsMessages.library_editor_database_tip);
-        databaseField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_editor_database);
-        schemaField.setToolTipText(ToolsMessages.library_editor_schema_tip);
-        schemaField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_editor_schema);
         parametersButton.setToolTipText(ToolsMessages.library_editor_parameters_tip);
         parametersButton.addActionListener(e -> editParameters());
         thresholdsButton.setToolTipText(AiMessages.ai_thresholds_tip);
         thresholdsButton.addActionListener(e -> editThresholds());
+        // Icon only (user decision 2026-11-08): the name stays for screen readers, the tool tip names the shortcut
+        saveButton.getAccessibleContext().setAccessibleName(ToolsMessages.library_editor_save);
+        // Enabled while the window is modified
+        saveButton.setEnabled(false);
 
         // Only Name and Target have labels; the other fields show placeholders, so both rows fit a narrow document area
         addCell(panel, new JLabel(ToolsMessages.library_field_name), 0, 0, 0, 1);
@@ -639,10 +649,17 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         addCell(panel, descriptionField, 2, 0, 0.65, 3);
         addCell(panel, new JLabel(ToolsMessages.library_editor_target), 0, 1, 0, 1);
         addCell(panel, targetCombo, 1, 1, 0.35, 1);
-        addCell(panel, databaseField, 2, 1, 0.3, 1);
-        addCell(panel, schemaField, 3, 1, 0.3, 1);
+        addCell(panel, defaultsPicker.getDatabaseCombo(), 2, 1, 0.3, 1);
+        addCell(panel, defaultsPicker.getSchemaCombo(), 3, 1, 0.3, 1);
         addCell(panel, parametersButton, 4, 1, 0, 1);
         addCell(panel, thresholdsButton, 5, 1, 0, 1);
+        // The right end of the first row, right-aligned with Thresholds… below it
+        GridBagConstraints save = new GridBagConstraints();
+        save.gridx = 5;
+        save.gridy = 0;
+        save.anchor = GridBagConstraints.EAST;
+        save.insets = new Insets(UIScale.scale(2), 0, UIScale.scale(2), UIScale.scale(6));
+        panel.add(saveButton, save);
 
         DocumentListener modified = new DocumentListener() {
             @Override
@@ -659,10 +676,13 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             public void changedUpdate(DocumentEvent e) {
             }
         };
-        for (JTextField field : List.of(nameField, descriptionField, databaseField, schemaField)) {
+        for (JTextField field : List.of(nameField, descriptionField)) {
             field.getDocument().addDocumentListener(modified);
         }
-        targetCombo.addActionListener(e -> fieldChanged());
+        targetCombo.addActionListener(e -> {
+            fieldChanged();
+            defaultsPicker.sourceChanged();
+        });
         return panel;
     }
 
@@ -691,10 +711,9 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         try {
             nameField.setText(item.getName());
             descriptionField.setText(CommonUtils.notEmpty(item.getDescription()));
-            databaseField.setText(CommonUtils.notEmpty(item.getDatabase()));
-            schemaField.setText(CommonUtils.notEmpty(item.getSchema()));
+            defaultsPicker.setValues(item.getDatabase(), item.getSchema());
             // Show the start of long names and descriptions
-            for (JTextField field : List.of(nameField, descriptionField, databaseField, schemaField)) {
+            for (JTextField field : List.of(nameField, descriptionField)) {
                 field.setCaretPosition(0);
             }
             DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<>();
@@ -717,6 +736,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             }
             model.setSelectedItem(selected);
             targetCombo.setModel(model);
+            defaultsPicker.sourceChanged();
             updateParametersButton();
             updateThresholdsButton();
         } finally {
@@ -728,6 +748,49 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         if (!updating && editor != null) {
             editor.markModified();
         }
+    }
+
+    /**
+     * Where the Database and Schema lists come from: the fixed target, else this window's connection (the target is
+     * "Ask when run" or "Current connection").
+     */
+    @NotNull
+    private QueryLibraryDefaultsPicker.Source getListSource() {
+        Object selected = targetCombo.getSelectedItem();
+        if (selected instanceof DBPDataSourceContainer container) {
+            return new QueryLibraryDefaultsPicker.Source(container, true);
+        }
+        if (selected instanceof MissingConnection) {
+            return new QueryLibraryDefaultsPicker.Source(null, true);
+        }
+        return new QueryLibraryDefaultsPicker.Source(editor != null ? editor.getDataSourceContainer() : null, false);
+    }
+
+    /**
+     * The header's Save button: the save icon like the tool bars' icon buttons; its tool tip is the action's description.
+     */
+    @NotNull
+    private JButton createSaveButton() {
+        Action action = new AbstractAction(ToolsMessages.library_editor_save) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveFromHeader(e);
+            }
+        };
+        action.putValue(Action.SHORT_DESCRIPTION, ToolsMessages.library_editor_save_tip);
+        return UiIcons.createActionButton(action, "save"); //$NON-NLS-1$
+    }
+
+    /**
+     * The header's Save button: the main window's File &gt; Save (Ctrl+S) on this window.
+     */
+    private void saveFromHeader(@NotNull ActionEvent event) {
+        if (editor == null) {
+            return;
+        }
+        // The action saves the active query window
+        host.showQueryWindow(editor);
+        host.getSaveAction().actionPerformed(event);
     }
 
     private void updateParametersButton() {
@@ -780,8 +843,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             target.setName(name);
         }
         target.setDescription(descriptionField.getText().strip());
-        target.setDatabase(databaseField.getText().strip());
-        target.setSchema(schemaField.getText().strip());
+        target.setDatabase(defaultsPicker.getDatabase());
+        target.setSchema(defaultsPicker.getSchema());
         Object selected = targetCombo.getSelectedItem();
         if (selected instanceof QueryLibraryItem.TargetMode mode) {
             target.setTargetMode(mode);

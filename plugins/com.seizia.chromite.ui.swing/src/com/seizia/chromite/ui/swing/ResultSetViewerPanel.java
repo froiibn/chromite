@@ -99,8 +99,9 @@ import java.util.function.Consumer;
  *     표를 고치지 않고 바뀐 행으로 새 {@link ResultSetGrid}를 만들어 바꿔 끼운다(열 너비, 스크롤, 선택은 이어받는다).
  *     표가 값을 표시 문자열로 미리 갖는 구조(C단계)와 편집 모델(G단계)을 그대로 두고 기능을 더하기 위해서다.</li>
  *     <li><b>머리글</b>({@link ResultSetHeaderRenderer}): 열 아이콘, 이름, 오른쪽 끝에 필터(깔때기)·정렬 아이콘. 깔때기는 열 필터 팝업을 열고,
- *     정렬 아이콘과 이름 자리는 똑같이 정렬을 바꾼다(예전 머리글 클릭 동작을 그대로 둠).</li>
- *     <li><b>정렬</b>(SWT {@code ResultSetViewer.toggleSortOrder}): 열 머리글을 누르면 오름차순 → 내림차순 → 정렬 없음 순서로 바뀐다.
+ *     정렬 아이콘은 정렬을 바꾼다. 이름 자리를 누르면 엑셀처럼 그 열 전체를 선택한다(Ctrl+클릭은 열을 더하고, Shift+클릭은 기준 열부터 범위).
+ *     정렬과 필터는 아이콘에서만 바뀌게 해 열을 고르려다 쿼리를 다시 읽는 일이 없게 했다.</li>
+ *     <li><b>정렬</b>(SWT {@code ResultSetViewer.toggleSortOrder}): 머리글의 정렬 아이콘을 누르면 오름차순 → 내림차순 → 정렬 없음 순서로 바뀐다.
  *     Ctrl을 누르고 누르면 다른 열의 정렬을 두고 이 열을 더한다. 서버에서 정렬할지는 SWT 설정 {@code resultset.order.mode}
  *     ({@link OrderingStrategy}: SMART면 아직 읽지 않은 행이 있을 때만 서버, CLIENT_SIDE는 항상 표 안에서, SERVER_SIDE는 항상 서버)와
  *     DB가 결과 정렬을 지원하는지로 정하고, 쿼리를 다시 읽을 수 없는 결과({@link ResultSetSource#requeryBlocker()})는 표 안에서 정렬한다.
@@ -169,6 +170,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 저장한 필터·최근 필터(오른쪽 클릭 "저장한 필터")와 가상(계산) 열(오른쪽 클릭 "가상 열"). 가상 열의 머리글 필터·Filter by Value를
  *   끄고, 가상 열 정렬은 표 안에서 하며, 서버에서 다시 읽는 필터에서 가상 열의 정렬을 뺀다. 가상 키·가상 열을 바꾼 뒤 다시 읽는 메서드를 하나로
  *   ({@link #readAgainForVirtualModel}) (docs/chromite/swing-saved-filters-virtual-columns.md)
+ * - 2026-11-08 머리글 이름 자리를 누르면 정렬 대신 열 전체 선택(Ctrl+클릭 더하기, Shift+클릭 범위). 정렬은 정렬 아이콘으로만
+ *   (사용자 요청, docs/chromite/swing-grid-column-filters.md "머리글 누르기")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -183,7 +186,7 @@ final class ResultSetViewerPanel extends JPanel {
     private static final String CARD_CHART = "chart"; //$NON-NLS-1$
     private static final String CARD_SPATIAL = "spatial"; //$NON-NLS-1$
     private static final String CARD_TEXT = "text"; //$NON-NLS-1$
-    private static final int SORT_CLICK_BORDER = 4;
+    private static final int HEADER_CLICK_BORDER = 4;
     /**
      * Widest first column width made for the header icons (the grid's own first widths stop at the same width).
      */
@@ -800,7 +803,8 @@ final class ResultSetViewerPanel extends JPanel {
 
     /**
      * Column headers with the column icon, the filter and sort icons ({@link ResultSetHeaderRenderer}); a click on the
-     * funnel opens the column's filter popup, on the sort icon or the name it sorts (Ctrl adds the column to the sort).
+     * funnel opens the column's filter popup, on the sort icon it sorts (Ctrl adds the column to the sort), on the name
+     * it selects the whole column ({@link #selectColumns}).
      */
     private void installHeader(@NotNull JTable table) {
         JTableHeader header = table.getTableHeader();
@@ -840,7 +844,7 @@ final class ResultSetViewerPanel extends JPanel {
             }
         });
         header.setDefaultRenderer(renderer);
-        // Columns are moved by dragging their header (SWT moveColumnLeft/Right); a drag is not a sort click
+        // Columns are moved by dragging their header (SWT moveColumnLeft/Right); a drag is not a header click
         header.setReorderingAllowed(true);
         boolean[] dragged = {false};
         header.addMouseListener(new MouseAdapter() {
@@ -859,11 +863,12 @@ final class ResultSetViewerPanel extends JPanel {
                 if (column < 0 || isNearColumnBorder(header, column, e.getX())) {
                     return;
                 }
-                if (renderer.zoneAt(header, column, e.getPoint()) == ResultSetHeaderRenderer.Zone.FILTER) {
-                    openFilterPopup(header, column);
-                    return;
+                boolean ctrl = (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0;
+                switch (renderer.zoneAt(header, column, e.getPoint())) {
+                    case FILTER -> openFilterPopup(header, column);
+                    case SORT -> toggleSort(table.convertColumnIndexToModel(column), null, ctrl);
+                    case NAME -> selectColumns(table, column, ctrl, (e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0);
                 }
-                toggleSort(table.convertColumnIndexToModel(column), null, (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0);
             }
 
             @Override
@@ -937,7 +942,7 @@ final class ResultSetViewerPanel extends JPanel {
                     int column = header.columnAtPoint(e.getPoint());
                     if (column >= 0 && isNearColumnBorder(header, column, e.getX())) {
                         Rectangle rect = header.getHeaderRect(column);
-                        int target = e.getX() - rect.x < SORT_CLICK_BORDER && column > 0 ? column - 1 : column;
+                        int target = e.getX() - rect.x < HEADER_CLICK_BORDER && column > 0 ? column - 1 : column;
                         ResultSetColumnFit.fitColumn(table, target);
                     }
                 }
@@ -947,7 +952,41 @@ final class ResultSetViewerPanel extends JPanel {
 
     private static boolean isNearColumnBorder(@NotNull JTableHeader header, int column, int x) {
         Rectangle rect = header.getHeaderRect(column);
-        return x - rect.x < SORT_CLICK_BORDER || rect.x + rect.width - x <= SORT_CLICK_BORDER;
+        return x - rect.x < HEADER_CLICK_BORDER || rect.x + rect.width - x <= HEADER_CLICK_BORDER;
+    }
+
+    /**
+     * Selects whole columns from a click on a header name, like Excel: one column, {@code add} (Ctrl) adds the column to
+     * the selected ones, {@code range} (Shift) selects the columns from the anchor column to this one.
+     * <p>
+     * The selection models are set directly instead of {@code changeSelection}: that scrolls to the cell it selects (the
+     * grid would jump to the last row) and toggles a selected cell on Ctrl. The lead and anchor go to the first row, so
+     * the focus cell stays at the top of the column (Excel's active cell) and arrow keys start from there.
+     */
+    private static void selectColumns(@NotNull JTable table, int column, boolean add, boolean range) {
+        int rowCount = table.getRowCount();
+        if (rowCount == 0) {
+            return;
+        }
+        ListSelectionModel columns = table.getColumnModel().getSelectionModel();
+        int anchor = columns.getAnchorSelectionIndex();
+        if (range && anchor >= 0 && anchor < table.getColumnCount()) {
+            if (add) {
+                columns.addSelectionInterval(anchor, column);
+            } else {
+                columns.setSelectionInterval(anchor, column);
+            }
+        } else if (add) {
+            columns.addSelectionInterval(column, column);
+        } else {
+            columns.setSelectionInterval(column, column);
+        }
+        ListSelectionModel rows = table.getSelectionModel();
+        rows.setSelectionInterval(0, rowCount - 1);
+        if (rows instanceof DefaultListSelectionModel model) {
+            model.moveLeadSelectionIndex(0);
+        }
+        table.requestFocusInWindow();
     }
 
     /**

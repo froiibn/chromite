@@ -273,6 +273,9 @@ import java.util.function.Supplier;
  * - 2026-11-08 쿼리 상태 칸을 메인 창 상태 표시줄로(앱 변경 #2): 결과 아래·편집기 아래의 상태 줄 자리({@code resultsStatusHolder},
  *   {@code documentStatusHolder}, {@code placeStatusLine})를 지우고 상태 표시줄이 활성 쿼리 창의 칸을 보이며 그 연결 색으로 칠함
  *   (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-08 Query Library 머리말의 저장 단추가 쓰도록 Save 동작을 넘김({@link #getSaveAction}) (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-08 Chromite Agent 창의 설정 단추는 Options를 그 페이지로 엶({@link OptionsDialog#open(Frame, String)},
+ *   docs/chromite/ai-agent.md "설정 열기")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -588,8 +591,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
 
             @Override
-            public void openOptions() {
-                OptionsDialog.open(MainFrame.this);
+            public void openOptions(@NotNull String pageId) {
+                OptionsDialog.open(MainFrame.this, pageId);
             }
         });
         // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
@@ -1766,6 +1769,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     @Override
     public SqlEditorPanel openQueryWindow(@Nullable DBPDataSourceContainer container, @NotNull String fileName) {
         return openQueryEditor(container, fileName);
+    }
+
+    @NotNull
+    @Override
+    public Action getSaveAction() {
+        return saveAction;
     }
 
     @Nullable

@@ -310,6 +310,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   {@code planTabSelected}·{@code terminalTabSelected} 삭제), 실행 시작은 Messages, 첫 결과만 앞으로, 오류로 멈췄거나 결과가 없을 때만 끝에 Messages,
  *   상태 줄 행 수는 고른 결과 탭 (docs/chromite/swing-frontend.md "결과 탭")
  * - 2026-11-08 상태 줄은 메인 창 상태 표시줄에 보임(앱 변경 #2, 주석만) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-08 고침 상태가 바뀌면 {@link #DIRTY_PROPERTY} 속성 변경을 알림: Query Library 머리말의 저장 단추가 따름
+ *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -363,6 +365,11 @@ final class SqlEditorPanel extends JPanel {
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
+    /**
+     * Bound property of the modified state ({@link #isDirty()}), for components of the window that follow it (the Save
+     * button of a Query Library header).
+     */
+    static final String DIRTY_PROPERTY = "dirty"; //$NON-NLS-1$
     /**
      * Widths of the connection and database/schema pickers, also of the empty pickers shown without a query window so
      * that the tool bar does not move.
@@ -654,8 +661,10 @@ final class SqlEditorPanel extends JPanel {
             this.file = file;
             this.fileName = file.getFileName().toString();
         }
+        boolean wasDirty = dirty;
         dirty = false;
         host.titleChanged(this);
+        firePropertyChange(DIRTY_PROPERTY, wasDirty, false);
     }
 
     /**
@@ -665,8 +674,10 @@ final class SqlEditorPanel extends JPanel {
         this.file = file;
         this.fileName = file.getFileName().toString();
         this.fileFormat = content;
+        boolean wasDirty = dirty;
         dirty = false;
         host.titleChanged(this);
+        firePropertyChange(DIRTY_PROPERTY, wasDirty, false);
     }
 
     /**
@@ -791,6 +802,7 @@ final class SqlEditorPanel extends JPanel {
         if (this.dirty != dirty) {
             this.dirty = dirty;
             host.titleChanged(this);
+            firePropertyChange(DIRTY_PROPERTY, !dirty, dirty);
         }
     }
 
