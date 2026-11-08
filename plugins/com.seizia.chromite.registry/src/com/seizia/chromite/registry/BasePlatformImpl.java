@@ -75,6 +75,8 @@ import java.util.*;
  *   because the Chromite launcher is "chromite" and reads "chromite.ini".
  * - 2026-11-06 Chromite: getLocalConfigurationFile creates the workspace configuration folder, because its callers write
  *   the file directly and the Swing product has no earlier save that creates it (docs/chromite/swing-sql-editor-plus.md).
+ * - 2026-11-08 Chromite: initialize resets the preferences Chromite removed for transaction safety ({@link RemovedPreferences})
+ *   in the global store (docs/chromite/swing-options.md "Errors and Timeouts").
  */
 public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationConfigurator, DBPPlatformLanguageManager {
 
@@ -125,6 +127,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
         log.debug("Initialize base platform...");
 
         DBPPreferenceStore prefStore = getPreferenceStore();
+        RemovedPreferences.removeFrom(prefStore);
         // Global pref events forwarder
         prefStore.addPropertyChangeListener(event -> {
             // Forward event to all data source preferences

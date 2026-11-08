@@ -152,7 +152,7 @@
 | A-S12 | 도움말(위키 도움말, 가벼운 도움말 보기) | `help/GitHubWikiHelpUI`, `LightweightHelpView` | 없음 | Help 메뉴는 About뿐 | 낮음 | |
 | A-S13 | 파일 열기, 최근 파일 | `OpenLocalFileActionExt` | 있음 | File > Open File, Recent Files(`RecentFiles`) | - | |
 | A-S14 | 비상 종료, 창 최소화 명령 | `EmergentExitAction`, `MinimizeWindowHandler` | 없음 | | 낮음 | |
-| A-S15 | 스플래시 | `ChromiteSplashHandler` | 없음 | swt-removal.md:69(SWT 스플래시 생성 삭제) | 낮음 | |
+| A-S15 | 스플래시 | `ChromiteSplashHandler` | 있음(2026-11-08, `chromite/startup-splash`. 조사 당시: 없음) | 런처 시작 화면(`-showsplash com.seizia.chromite.splash`, JVM 전)을 Swing `StartupSplash`가 이어받아 버전과 "Loading…"을 보이고, 메인 창이나 시작 대화상자가 열리면 닫힘. 조사 당시: swt-removal.md:69(SWT 스플래시 생성 삭제) | - | 진행 막대는 없음(상태 줄 한 줄). [branding.md](../branding.md) "시작 화면" |
 | A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 일부 (2026-11-08 다시 확인: S6·S7·S8·S12·S13 수정함(`ChromiteSwingApplication.java`:167, 179, 297, 339-353). Eclipse 프록시 서비스만 남음(A-C28)). 조사 당시: 조용히 끊김 | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
 | A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 있음(2026-11-08. 조사 당시: 없음) | 쿼리 창 자동 저장·복원(`QueryWindowRecovery`): 시작할 때 한 번 묻고(Restore가 기본) 연결하지 않고 엶. 연결을 끊어도 쿼리 창은 닫히지 않음(`MainFrame`은 탭 닫기에서만 창을 뺌). 조사 당시: Swing에 쿼리 창 복원 없음 | - | 켜고 끄는 설정은 없음(매번 묻고, Discard로 버림). [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 
@@ -189,7 +189,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Query Manager (`misc.qm`, 연결별 `main.qm`) | core `PrefPageQueryManager` | ✓ | `qm.maxEntries`, `qm.storeLogs`, `qm.historyDays`, `qm.objectTypes`, `qm.queryTypes`, `qm.logDirectory` | 있음(2026-11-08, Options > Logs 5키, [swing-options.md](../swing-options.md)). `qm.maxEntries`는 효과 없음. 조사 당시: 없음 | 중간 |
 | Toolbar Customization | core | ✓ | 도구 막대 항목 표시 | 없음 | 낮음 |
 | Accessibility | core | | `screen.reader.accessibility`, `screen.reader.force.focus` | 없음 | 낮음 |
-| Errors and Timeouts (`main.errorHandle`) | ui.editors.connection `PrefPageErrorHandle` | ✓ | `connection.open.timeout`, `connection.close.timeout`, `connection.validation.timeout`, `query.rollback-on-error`, `execute.recover.enabled`, `execute.recover.retryCount`, `execute.cancel.checkTimeout` | 있음(2026-11-08, Options > Errors and Timeouts와 연결별 값, [swing-options.md](../swing-options.md)): 시간 제한 3, 자동 복구 2. 오류 때 롤백·세션 단위 취소는 트랜잭션 안전 규칙으로 두지 않음. 조사 당시: 없음(모델 기본값으로만 동작) | 중간 |
+| Errors and Timeouts (`main.errorHandle`) | ui.editors.connection `PrefPageErrorHandle` | ✓ | `connection.open.timeout`, `connection.close.timeout`, `connection.validation.timeout`, `query.rollback-on-error`, `execute.recover.enabled`, `execute.recover.retryCount`, `execute.cancel.checkTimeout` | 있음(2026-11-08, Options > Errors and Timeouts와 연결별 값, [swing-options.md](../swing-options.md)): 시간 제한 3, 자동 복구 2. 오류 때 롤백·세션 단위 취소는 트랜잭션 안전 규칙으로 두지 않음. 2026-11-08 `chromite/safety-defaults`: 모델도 두 키를 읽지 않고 남은 값은 시작할 때 지움. 조사 당시: 없음(모델 기본값으로만 동작) | 중간 |
 | Error Logs (`main.errorLogs`) | core `PrefPageErrorLogs` | | `logs.debug.enabled`, `logs.debug.location`, `logs.files.output.maxSize`, `logs.files.output.maxCount` | 일부(2026-11-08, Options > Logs: 크기·개수, 바로 적용, [swing-options.md](../swing-options.md)). 위치·켜기 키는 효과 없음(Swing은 항상 `.metadata/chromite-debug.log`) | 낮음 |
 | Connections (`main.connections`) | core `PrefPageConnectionsGeneral` | ✓ | `navigator.settings.default.connectionPattern`, `connection.closeOnSleep`, `connection.shellAuthModelEnabled`, `connection.sanitizeDriverProperties`, `connections.useWinTrustStoreType` | 일부(2026-11-08, Options > Connections 2키, [swing-options.md](../swing-options.md)). 셸 명령 인증 허용은 Swing 연결 대화상자가 그 방식을 고를 수 없어 효과 없음, 연결 이름 패턴은 읽는 곳 없음. 절전 때 닫기는 2026-11-08 S8로 경로가 생겼지만(`ChromiteSwingApplication.java`:340) 바꿀 화면은 없음. 조사 당시: 없음 | 중간 |
 | Client Identification (`client.connections`) | ui.editors.connection `PrefPageConnectionClient` | | `database.meta.client.name.disable`, `database.meta.client.name.override`, `database.meta.client.name.value`, `database.connect.processEnvVars` | 있음(2026-11-08, Options > Client Identification과 연결별 값, [swing-options.md](../swing-options.md)). 조사 당시: 없음 | 낮음 |
@@ -285,3 +285,6 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 - 2026-11-08 5순위 설정 내보내기·가져오기(`chromite/settings-export-import`, [settings-transfer.md](../settings-transfer.md)): A-C14 일부 → 있음. §7 집계에 이 행의 변화만 더함(있음 +1, 일부 −1).
 - 2026-11-08 A-C6 일부 → 있음(`chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): Query Manager 도구 창).
   §7 집계: 있음 36 → 37, 일부 14 → 13.
+- 2026-11-08 Errors and Timeouts 행 비고: 두지 않은 두 키(`query.rollback-on-error`, `execute.cancel.checkTimeout`)를 모델이 읽지 않게 함
+  (`chromite/safety-defaults`). 상태는 그대로.
+- 2026-11-08 A-S15 없음 → 있음(`chromite/startup-splash`, [branding.md](../branding.md) "시작 화면"). §7 집계는 고치지 않음(병합 뒤 다시 셈).

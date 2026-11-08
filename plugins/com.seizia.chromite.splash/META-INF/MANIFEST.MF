@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Splash
+Bundle-SymbolicName: com.seizia.chromite.splash
+Bundle-Version: 1.0.0.qualifier
+Eclipse-BundleShape: dir
+Automatic-Module-Name: com.seizia.chromite.splash

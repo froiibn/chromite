@@ -66,6 +66,7 @@ import java.util.stream.Collectors;
  * - 2026-11-07 데스크톱 프로젝트 파일({@link DataSourceConfigurationManagerNIO})의 자격 증명을 {@code credentials-config*.json}(소스에
  *   있는 고정 키로 암호화) 대신 OS 보안 저장소에 읽고 씀({@link ProjectCredentialsStorage}). 저장 실패는 로그만 남기지 않고 예외로
  *   올려 레지스트리의 마지막 오류로 사용자에게 보인다 (docs/chromite/credential-storage.md)
+ * - 2026-11-08 연결 설정에서 Chromite가 지운 키({@link RemovedPreferences})를 읽을 때 뺌 (docs/chromite/swing-options.md "Errors and Timeouts")
  */
 public class DataSourceSerializerModern<T extends DataSourceDescriptor> implements DataSourceSerializer<T> {
 
@@ -844,6 +845,7 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
                 DataSourcePreferenceStore preferenceStore = dataSource.getPreferenceStore();
                 preferenceStore.clear();
                 Map<String, String> customProperties = JSONUtils.deserializeStringMap(conObject, RegistryConstants.TAG_CUSTOM_PROPERTIES);
+                RemovedPreferences.removeFrom(customProperties, dataSource.getName());
                 customProperties.forEach(preferenceStore::setValue);
 
                 setCurrentUserSettings(dataSource, conObject);

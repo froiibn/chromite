@@ -26,11 +26,6 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
-import com.seizia.chromite.ModelPreferences;
-import com.seizia.chromite.model.DBPDataSource;
-import com.seizia.chromite.model.exec.DBCSession;
-import com.seizia.chromite.model.preferences.DBPPreferenceStore;
-import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
@@ -41,6 +36,11 @@ import java.util.List;
 
 /**
  * Abstract job
+ *
+ * 변경 이력:
+ * - 2026-11-08 취소가 듣지 않으면 {@code execute.cancel.checkTimeout} 뒤 바깥 블록(세션)까지 취소하던 것을 지움. 세션 단위 취소는
+ *   연결과 열린 트랜잭션을 묻지 않고 잃을 수 있어 트랜잭션 안전 규칙에 어긋나고, 설정 파일이나 설정 가져오기로 다시 켜지지 않게 키를 읽지
+ *   않는다 (docs/chromite/swing-options.md "Errors and Timeouts")
  */
 public abstract class AbstractJob extends Job {
     private static final Log log = Log.getLog(AbstractJob.class);
@@ -196,48 +196,15 @@ public abstract class AbstractJob extends Job {
 
         final DBRBlockingObject lastBlock = activeBlocks.removeLast();
 
+        // Only the innermost block (the statement) is canceled. Upstream could escalate to the outer blocks (the session)
+        // after execute.cancel.checkTimeout; Chromite removed that because a session-level cancel can drop the connection
+        // and its open transaction without asking.
         try {
             new JobCanceler(lastBlock, cancellationMonitor).schedule();
         } catch (Exception e) {
             // If this happens during shutdown and job manager is not active
             log.debug(e);
         }
-
-        if (!activeBlocks.isEmpty()) {
-            DBPPreferenceStore preferenceStore;
-            if (activeBlocks.getFirst() instanceof DBCSession session) {
-                DBPDataSource dataSource = session.getDataSource();
-                preferenceStore = dataSource.getContainer().getPreferenceStore();
-            } else {
-                preferenceStore = DBWorkbench.getPlatform().getPreferenceStore();
-            }
-
-            int cancelCheckTimeout = preferenceStore.getInt(ModelPreferences.EXECUTE_CANCEL_CHECK_TIMEOUT);
-
-            if (cancelCheckTimeout > 0) {
-                // There are other blocks. If last one can't be canceled then try others
-                Job cancelChecker = new Job("Cancel checker block") { //$NON-N LS-1$
-                    {
-                        setSystem(true);
-                        setUser(false);
-                    }
-
-                    @Override
-                    protected IStatus run(IProgressMonitor monitor) {
-                        if (!finished) {
-                            DBRBlockingObject nextBlock = activeBlocks.removeLast();
-                            new JobCanceler(nextBlock, cancellationMonitor).schedule();
-                            if (!activeBlocks.isEmpty()) {
-                                schedule(cancelCheckTimeout);
-                            }
-                        }
-                        return Status.OK_STATUS;
-                    }
-                };
-                cancelChecker.schedule(cancelCheckTimeout);
-            }
-        }
-
     }
 
     private class JobCanceler extends Job {

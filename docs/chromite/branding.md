@@ -94,11 +94,95 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | `product/swing/icons/chromite_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 (저장소 안에서는 참조 없음) |
 | `product/swing/icons-sources/icon_*.png` | 16~1024 | macOS 아이콘 세트 (빌드에서는 쓰지 않음) |
 | `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
+| `plugins/com.seizia.chromite.splash/splash.png` | 560×320 | 시작 화면. 네이티브 런처가 JVM보다 먼저 띄운다(아래 "시작 화면") |
+| `plugins/com.seizia.chromite.splash/splash@2x.png` | 1120×640 | 같은 시작 화면의 HiDPI 판. Java가 돈 뒤 Swing 시작 화면(`StartupSplash`)이 그린다 |
 | `site/favicon.ico`, `site/assets/icons/icon-{32,192}.png`, `apple-touch-icon.png`, `site/assets/og/og-{ko,en}-2.png` | 16/32/48, 32, 192, 180, 1200×630 | 다운로드 사이트 파비콘과 공유 이미지. `tools/branding/gen_site_images.py`가 이 스크립트의 크기별 그림으로 만든다([distribution.md](distribution.md) "파비콘과 공유 이미지") |
 
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
 - SWT 제품의 창 아이콘·About 이미지·스플래시·`UIIcon` 로고는 SWT 프런트엔드와 함께 삭제했다([swt-removal.md](swt-removal.md)).
+  Swing 제품의 시작 화면은 2026-11-08에 새로 만들었다(아래 "시작 화면").
   제품 아이콘(`.ico`, `.icns`, 아이콘 세트, 설치 이미지)은 `product/community/icons*`에서 `product/swing/icons*`로 옮겼다.
+
+### 시작 화면
+
+앱이 뜨기까지 몇 초 걸려서 사용자가 로딩 화면을 요청했다(2026-11-08). SWT 제품의 스플래시는 SWT와 함께 없어졌다(감사 행 A-S15).
+시작 화면은 두 단계로 보인다.
+
+1. **런처 시작 화면(JVM 전):** `chromite-swing.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
+   네이티브 런처가 `plugins/com.seizia.chromite.splash_<버전>/splash.png`를 JVM을 띄우기 전에 보여 준다. 그림만 보이고 글자는 없다.
+2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 같은 자리(주 화면 가운데)에 띄우고
+   아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중…` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
+   그 직후 애플리케이션이 런처 시작 화면을 내린다(`IApplicationContext.applicationRunning`). 메인 창이나 시작 대화상자가 열리면 닫힌다.
+
+| 구성 | 위치 | 하는 일 |
+|---|---|---|
+| 그림 번들 | `plugins/com.seizia.chromite.splash` (`Eclipse-BundleShape: dir`, 코드 없음) | `splash.png`(1x), `splash@2x.png`(2x). 기능 `com.seizia.chromite.swing.feature`에 들어 있다 |
+| 런처 인수 | `product/swing/chromite-swing.product` `<programArgs>-showsplash com.seizia.chromite.splash</programArgs>` | Windows·macOS ini 모두에 들어간다(빌드 결과로 확인) |
+| Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다 |
+| 시작 순서 | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open` → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
+| 그림 생성 | `tools/branding/gen_app_icons.py` `splash_png` | 다크 가로 로고를 다크 테마 `bg.chrome`(`#2B2D30`) 바탕, `border.popup`(`#43454A`) 1px 테두리 위에. 아래 줄은 비워 둔다 |
+| 시간 기록 | `ChromiteSwingApplication.StartupTimes` | 프로세스 시작부터 단계별 ms를 디버그 로그 한 줄로: `Startup times (ms after the process started): application …, look and feel …, splash …, platform …, services …, workspace …, main window …` |
+
+#### 설계 결정
+
+- **런처 시작 화면을 쓴다.** JVM보다 먼저 뜨므로 가장 빠르다(아래 측정: 실행 뒤 약 80 ms).
+  런처는 `-showsplash`의 값이 파일·폴더가 아니면 번들 ID로 보고 `plugins/<ID>_<버전>/`에서 `splash.png`를 찾는다
+  (equinox `eclipse.c` `findSplash`). 현재 폴더와 상관없이 찾는 방법은 이것뿐이다. 상대 경로는 먼저 현재 폴더 기준으로 찾고,
+  없으면 `<경로>_<버전>` 형식으로만 찾는다. 번들이 jar면 런처가 그 안을 읽지 못하므로 그림만 담은 작은 폴더형 번들을 따로 두었다
+  (Eclipse 제품의 스플래시 번들과 같은 방식). Swing 번들을 폴더형으로 바꾸는 방법은 설치 구조와 업데이트·서명 경로를 건드려서 쓰지 않았다.
+- **Swing 시작 화면이 이어받는다.** 런처 시작 화면만 쓰면 세 가지가 안 된다.
+  - 글자(버전, 상태 줄)를 그릴 수 없다. SWT 앱은 SWT로 그 창 위에 그렸다. 버전을 그림에 넣으면 버전을 올릴 때마다 그림을 다시 만들어야 하고, 잊으면 틀린 버전이 보인다.
+  - Windows 런처는 창을 첫 스레드에서 만들고, 그 스레드는 곧바로 Java(Equinox, 앱 `run`)를 돌려 창의 메시지를 처리하지 않는다.
+    플랫폼 초기화가 길어지면 Windows가 창을 "응답 없음"으로 바꿀 수 있다. Swing 창은 EDT가 처리한다.
+  - Windows 런처는 그림을 언제나 96 DPI로 보고 화면 배율만큼 늘린다(WIC 3차 보간, `eclipseWin.c` `loadImage`). 2x 그림을 주면 두 배 크기로 나온다.
+    그래서 런처용은 1x, Swing용은 2x 그림이다. macOS 런처는 그림을 포인트 크기로 보여 주므로(`NSImage`) 1x 그림은 Retina에서 흐리다가 Swing 창에서 선명해진다.
+- **같은 자리, 빈틈 없이.** Swing 창은 주 화면 전체의 가운데에 놓는다(작업 표시줄을 뺀 영역이 아님). Windows 런처도 그렇게 놓는다.
+  Swing 창을 띄우고 한 번 그린 뒤(`paintImmediately`) 런처 창을 내린다. Windows 150%에서 두 창의 위치·크기가 픽셀까지 같았다(아래 확인 기록).
+  macOS 런처는 창을 가운데보다 조금 위에 놓아(`[NSWindow center]`) 넘어갈 때 조금 움직일 수 있다.
+- **런처 창은 앱 스레드에서 내린다.** Windows의 `DestroyWindow`는 창을 만든 스레드에서만 된다. 런처 창은 첫 스레드가 만들었고 Windows에서는 `run`도 첫 스레드에서 돈다.
+  그래서 `applicationRunning`을 `run`에서 부른다(메인 창 직전에 부르던 것을 Swing 시작 화면 직후로 옮김). macOS에서는 `run`이 작업 스레드(`MacOSMainThread`)에서 돌고,
+  런처가 닫기를 AppKit 스레드로 넘긴다(`performSelectorOnMainThread`, 기다리지 않음). AppKit 스레드는 막지 않는다.
+- **창은 활성화될 수 있는 `JFrame`이다.** Windows 런처 창은 뜰 때 활성화된다(`SW_SHOW`). 프로세스에 활성 창이 없는 채로 그 창을 내리면 활성 창이 다른 앱으로 넘어가고,
+  뒤에 뜨는 메인 창이 앞으로 나오지 못할 수 있다. 보이지 않는 소유자를 가진 `JWindow`는 활성화되지 않아서 꾸밈 없는 `JFrame`을 쓴다.
+  `Window.Type.UTILITY`라 작업 표시줄 단추가 없다. macOS에서는 다른 앱이 앞에 있어도 숨지 않게 `Window.hidesOnDeactivate`를 끈다. 확인 기록에서 메인 창이 전경 창이었다.
+- **닫는 시점은 "다른 창이 열릴 때" 하나다.** 모든 창의 `WINDOW_OPENED`를 보는 AWT 이벤트 리스너가 시작 화면이 아닌 창이 열리면 닫는다.
+  메인 창, 작업 공간 잠금 오류, 플랫폼 초기화 오류, 모델 코드가 띄우는 대화상자가 모두 같은 경로다. 쿼리 창 복원 질문(#167)은 메인 창이 열린 뒤라 시작 화면이 이미 닫혀 있다.
+  업데이트 적용 중 안내는 Swing 시작 화면보다 앞이라 런처 시작 화면만 먼저 내린다. 시작이 어떻게 끝나도 `runWithSplash`가 닫는다(보이는 창이 남으면 AWT 이벤트 스레드가 프로세스를 붙잡는다).
+- **`-nosplash`를 따른다.** 런처가 그림을 띄우지 않았으면 시스템 속성이 없어서 Swing 시작 화면도 띄우지 않는다. 개발 실행(런처 없음)도 같다.
+- **그림 하나가 두 테마에 맞는다.** 바탕과 테두리는 다크 테마 토큰이다. 어두운 카드라 밝은 바탕화면과 어두운 바탕화면 모두에서 경계가 보인다.
+  Windows 런처는 그림을 24비트 RGB로 바꾸므로(알파 없음) 투명 모서리 없이 불투명하게 만든다. 글자 색은 다크 테마의 상태 표시줄 글자(`#9DA0A8`)와 `text.primary`(`#DFE1E5`)다.
+
+#### 시작 시간 (Windows 11, 150%, 이 PC, 빈 작업 공간, 2026-11-08)
+
+다른 에이전트 약 15개가 같은 PC에서 빌드·실행하는 중에 잰 값이라 흔들림이 크다. 단위는 프로세스 시작부터 ms다(`Startup times` 줄, 런처 창은 창 목록으로 잼).
+
+| 실행 | 런처 시작 화면 | `application`(Equinox가 `start` 호출) | `look and feel` | `splash` | `platform` | `workspace` | `main window` |
+|---|---|---|---|---|---|---|---|
+| 1 (첫 실행, 한국어) | 83 | 1269 | 1885 | 2018 | 2884 | 2959 | 3767 |
+| 2 (한국어) | 81 | 678 | 1349 | 1479 | 1835 | 1916 | 2751 |
+| 3 (`-nl en`) | 80 | 1095 | 1753 | 1888 | 2232 | 2314 | 3154 |
+
+- 가장 큰 몫: JVM·Equinox 시작(0.7~1.3초), 메인 창 만들기(EDT에서 0.8초 안팎, `MainFrame` 생성과 도킹 배치 복원), Look and Feel 설치(약 0.65초, AWT 초기화와 FlatLaf·글꼴).
+  `services`(`postInitialize`)는 몇 ms, `workspace`(연결 수 세기)는 빈 작업 공간에서 약 0.08초다. 연결이 많은 작업 공간에서는 늘어난다.
+- 바로 적용할 만큼 싸고 안전한 단축은 찾지 못해 바꾸지 않았다. 후보: 저장된 테마가 다크면 Look and Feel을 라이트로 한 번, 다크로 한 번 설치한다
+  (작업 공간을 잠그기 전에는 설정을 읽을 수 없어서). JVM 클래스 데이터 공유(CDS) 보관 파일은 설치 폴더에 쓰기가 필요해 미뤘다.
+- 시작 화면이 없을 때 사용자는 약 2.7~3.8초 동안 아무것도 못 봤다. 이제 약 0.08초에 런처 시작 화면, 1.4~2.0초에 버전과 상태 줄이 보인다.
+
+#### 확인 기록 (Windows 11, 2026-11-08, 브랜치 `chromite/startup-splash`)
+
+이 PC에서 빌드한 제품을 `CHROMITE_DATA`·작업 공간을 scratch에 두고 띄우고, 이 프로세스의 최상위 창만 40 ms마다 읽었다(`EnumWindows`, `PrintWindow`로 창 그림 저장, 입력은 보내지 않음).
+현재 폴더는 설치 폴더가 아닌 곳이었다.
+
+| 경우 | 결과 |
+|---|---|
+| 정상 시작(한국어·영어) | +80 ms 런처 창(`Static`, 840×480 = 560×320 × 1.5) → +1.4~2.0초 Swing 창(`SunAwtFrame`, 같은 자리·크기) → 약 45 ms 뒤 런처 창 사라짐 → 메인 창 → 약 0.2초 뒤 Swing 창 사라짐. 끝에 전경 창은 메인 창. 한국어 `버전 0.1.3` `로드하는 중…`, `-nl en`은 `Version 0.1.3` `Loading…`. "응답 없음" 창 없음(`IsHungAppWindow`) |
+| 쿼리 창 복원 질문(#167) | 시작 화면이 닫힌 뒤 질문이 뜨고 전경 창이다 |
+| 작업 공간 잠김(두 번째 실행) | 시작 화면 → 오류 대화상자가 열리며 시작 화면이 닫힘(대화상자가 전경). 대화상자를 닫으면 프로세스가 끝남(종료 코드 0, 남은 창 없음) |
+| 업데이트 적용 중(scratch `LOCALAPPDATA`의 `apply.lock`) | 런처 창이 안내 대화상자보다 먼저 사라짐, 대화상자를 닫으면 종료 코드 0 |
+| `-nosplash` | 시작 화면 없이 메인 창만 |
+
+플랫폼 초기화 오류 대화상자는 일부러 일으키지 못했다. 작업 공간 잠김과 같은 `showStartupError` → `WINDOW_OPENED` 경로다.
+macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "메인 창 뒤에 시작 화면 크기의 창이 없음"을 확인한다([ci.md](ci.md) "macOS 설치·실행 시험").
 
 ### 제품 정보 파일
 
@@ -198,3 +282,5 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 2026-11-07 결정 사항에 에이전트 기능 이름 `Chromite Agent` 추가(사용자 결정, [ai-agent.md](ai-agent.md) "명칭").
 - 2026-11-07 다운로드 사이트 파비콘·공유 이미지와 생성기 `tools/branding/gen_site_images.py`를 파생 이미지 표에 추가(사용자 요청, [distribution.md](distribution.md)).
 - 2026-11-08 공유 이미지 파일 이름을 `og-{ko,en}-2.png`로 바꿈(메신저 미리 보기 캐시, [distribution.md](distribution.md) "파비콘과 공유 이미지").
+- 2026-11-08 Swing 제품의 시작 화면(감사 행 A-S15, `chromite/startup-splash`): 그림 번들 `com.seizia.chromite.splash`와 런처 `-showsplash`, Swing이 이어받는 `StartupSplash`(버전·상태 줄),
+  `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.
