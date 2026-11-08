@@ -111,6 +111,8 @@ import java.util.Set;
  *   (docs/chromite/ai-agent.md "설정 열기")
  * - 2026-11-08 위쪽 제공자·모델 줄을 없애고 제공자를 함께 고르는 모델 선택 하나를 보내기와 같은 줄 왼쪽에 둠, 맨 위 대화 콤보를 없애고
  *   대화 기록 팝업(거르기, 이동, 삭제)을 둠, 차례가 끝나면 토큰 사용량을 상태 줄에 보임 (docs/chromite/ai-agent.md "채팅 도구 창")
+ * - 2026-11-08 대화를 보일 때 공급자 미설정 안내를 다시 정함: 창이 시작할 때부터 보이면(기본 배치, 앱 변경 #12) 대화를 읽기 전 빈 모델
+ *   선택으로 정해 안내가 안 보이던 문제 (docs/chromite/ai-agent.md "채팅 도구 창")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -490,6 +492,9 @@ final class AiAssistantPanel extends JPanel {
         turnUsage = null;
         statusLabel.setText(" "); //$NON-NLS-1$
         fillModelPicker();
+        // The conversations are read after the panel may already be showing (shown in the default layout), when the
+        // empty picker could not tell the provider
+        updateSetupNotice();
         refreshConnections();
         transcript.removeAll();
         entryViews.clear();

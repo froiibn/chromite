@@ -70,7 +70,8 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 
 ### Outline (S28)
 
-- SWT Outline 보기처럼 스크립트를 탐색하는 도구 창이다. 오른쪽 열(Properties 위)에 처음에는 숨겨 둔다.
+- SWT Outline 보기처럼 스크립트를 탐색하는 도구 창이다. 오른쪽 열(Properties 위)에 처음에는 숨겨 둔다. 2026-11-08부터는 열면 오른쪽 열 위쪽
+  Query Library 자리의 탭이다(없으면 Properties의 탭, 둘 다 없으면 Chromite Agent 위, [swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent").
 - 문장 목록은 접기와 같은 `SqlFoldParser.findStatements`다. 연결 없는 창에서도 되고, 접기 범위와 목록이 같다.
 - 문장마다 줄 번호와 주석을 뺀 첫 줄을 보인다. SWT는 문장 안의 구조(SELECT 목록, FROM 표)까지 나무로 보였는데 그것은 옮기지 않았다.
 - 문서가 바뀌면 0.4초 뒤 다시 만들고, 커서가 있는 문장을 고른다. 도구 창이 숨어 있으면 만들지 않는다.
@@ -180,3 +181,4 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 
 - 2026-11-08 최초 작성: S3, S28, S31, S33, S34, S35, S37, S44 (`chromite/p4-editor-ergonomics`)
 - 2026-11-08 결과 고정(S3): 결과 집합마다 탭이 되어 고른 결과 탭 하나를 고정(핀 아이콘, 고정 시각), 새 결과는 고정 탭 앞(앱 변경 #7, `chromite/result-tabs`)
+- 2026-11-08 Outline 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위(`chromite/ui-layout`)

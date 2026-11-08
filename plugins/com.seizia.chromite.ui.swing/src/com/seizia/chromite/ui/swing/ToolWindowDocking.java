@@ -75,7 +75,7 @@ import java.util.StringJoiner;
  *     <li>보이기·숨기기: 라이브러리의 닫기는 위치를 기억하지 않는다. 그래서 도구 창마다 마지막 위치({@link Place}: 이웃 도구 창이나
  *     창 가장자리, 방향, 비율)를 배치가 바뀔 때마다 배치 트리에서 다시 계산해 두고, 다시 보일 때 그 위치에 놓는다. 이웃이
  *     없으면 도구 창마다 정한 기본 위치를 차례로 쓴다. 한 열을 나누는 두 도구 창(Object Explorer와 Registered Servers, Query Library와
- *     Properties)은 기본 위치에 서로를 이웃으로 둔다. 마지막 위치가 문서 영역 옆 열(창 가장자리나 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이
+ *     Chromite Agent)은 기본 위치에 서로를 이웃으로 둔다. 마지막 위치가 문서 영역 옆 열(창 가장자리나 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이
  *     지금 문서 영역의 같은 쪽에 있으면, 새 열을 만들지 않고 이웃의 열에 들어간다. 마지막 위치는 이웃이 숨어 있을 때 계산되어 이웃의 열을
  *     모르기 때문이다(한쪽을 숨긴 사이에 다른 쪽을 보였다가 다시 보여도 같은 열).</li>
  *     <li>저장: 작업 공간 {@code .metadata}의 {@value #LAYOUT_FILE}(라이브러리의 XML 형식, 떠 있는 창 포함)와 이 번들 설정의
@@ -99,6 +99,8 @@ import java.util.StringJoiner;
  *   줄지 않던 문제 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  * - 2026-11-07 한 열의 두 도구 창: 문서 영역 옆 열로 돌아가는 도구 창은 기본 이웃이 문서 영역의 같은 쪽에 있으면 이웃의 열로. Properties를
  *   숨긴 사이 Query Library를 보이면 둘이 따로 열을 만들던 문제 (docs/chromite/swing-frontend.md "Query Library 자리")
+ * - 2026-11-08 주석만: 한 열을 나누는 예를 새 기본 배치(Query Library와 Chromite Agent, 앱 변경 #12)로
+ *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
  */
 final class ToolWindowDocking {
 

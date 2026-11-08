@@ -75,6 +75,8 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
   문서 영역이 좁아져 시작 화면 글자가 잘려 합칠 때 오른쪽 열로 옮겼다(되돌리기: `MainFrame`에서 `propertiesWindow.stackBelow(libraryWindow)` 대신
   예전처럼 가로 분할 열을 만든다).
   Properties를 숨긴 사이에 보였다가 Properties를 다시 보여도 같은 열에 쌓인다(2026-11-07, [swing-frontend.md](swing-frontend.md) "Query Library 자리").
+  **2026-11-08 바뀜(앱 변경 #12, 사용자 결정):** 기본 배치에서 보이고 오른쪽 열 위(0.4), 아래는 Chromite Agent다. Properties는 기본 숨김이고 열면 Query Library의 탭이다.
+  Reset Window Layout도 이 배치로 되돌린다([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent").
   Ctrl+Alt+T는 SSMS의 Template Browser 단축키이고 이 번들에서 비어 있다(2026-11-06 `KeyStroke.getKeyStroke` 전체 검색).
 - **트리:** 루트(책 아이콘, 읽기 전용이면 "read-only") → 폴더 → 쿼리(이름 뒤 보조 글자: 고정 대상 연결 이름, 또는 "ask"). 폴더가 쿼리보다 앞이고, 둘 다 자연 정렬("2. …" < "10. …").
   도구 설명은 설명과 파일 경로다. 모양(아이콘 팩, 행 높이, 마우스 올림 둥근 바탕, 보조 글자)은 Object Explorer와 같다.
@@ -662,3 +664,4 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
   "고친 시각을 파일에 두지 않음", "Git 루트", "남긴 것".
 - 2026-11-08 머리말 오른쪽 끝에 저장 아이콘 단추(Ctrl+S와 같은 동작, 고쳤을 때만 켜짐), Database·Schema 칸을 대상 연결의 목록이 있는 콤보로 바꿈(목록을 펼칠 때만 연결,
   연결이 쓰지 않는 칸은 끔). "머리말 저장 단추", "머리말 DB/스키마 목록".
+- 2026-11-08 기본 배치(앱 변경 #12): Query Library가 처음부터 보이고 오른쪽 열 위, 아래는 Chromite Agent, Properties는 숨김. "열기"에 표시(`chromite/ui-layout`).

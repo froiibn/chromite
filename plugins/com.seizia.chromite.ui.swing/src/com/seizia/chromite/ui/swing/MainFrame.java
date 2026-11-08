@@ -93,8 +93,10 @@ import java.util.function.Supplier;
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
  * 설계: 가운데 문서 영역(문서 탭, 그 아래 결과 탭 Result1… / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
- * Query Library, Scripts)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
- * 오른쪽 열에 Properties(Query Library와 Scripts {@link ScriptsPanel}는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * Query Library, Scripts, Outline, Database Tasks, Chromite Agent, Query Manager)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치(첫 실행과
+ * Window &gt; Reset Window Layout)는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래), 오른쪽 열에 Query Library(위 40%)와 Chromite Agent
+ * (아래 60%)다(2026-11-08 사용자 결정: 첫 화면에서 대화를 바로 쓰게). 오른쪽 열 폭은 예전 Agent 열 폭이다. Properties, Scripts {@link ScriptsPanel},
+ * Outline, Database Tasks는 처음에 숨김이고 보이면 오른쪽 열 위쪽(Query Library 자리)의 탭이 된다. 저장된 배치는 그대로 복원한다(창 id와 저장 형식 같음).
  * 도구 창은 머리말을 끌어 옮기거나 탭으로 합치거나 떠 있는 창으로 띄울 수 있다. Results는 쿼리 창 안에 있으므로 도킹하지 않고
  * 문서 영역의 분할 창 아래쪽이다({@link ToolWindow.SplitHost}).
  * <ul>
@@ -280,6 +282,9 @@ import java.util.function.Supplier;
  *   docs/chromite/ai-agent.md "설정 열기")
  * - 2026-11-08 Chromite Agent 편집기 연결을 {@link AiQueryWindowBridge}로: 쿼리 창 목록·읽기·고치기 도구 (docs/chromite/ai-agent.md "편집기 도구")
  * - 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6) (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-08 기본 도구 창 배치(앱 변경 #12): 오른쪽 열 = Query Library(위 0.4) + Chromite Agent(아래 0.6), 둘 다 보임, 폭 = 예전 Agent 열
+ *   ({@link #DEFAULT_RIGHT_SHARE} 0.18 → 0.25). Properties는 기본 숨김, Properties·Scripts·Outline·Database Tasks는 오른쪽 위 탭으로
+ *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -292,11 +297,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final String PREF_RESULTS_BESIDE = "results.beside"; //$NON-NLS-1$
     private static final Dimension DEFAULT_SIZE = new Dimension(1280, 800);
     /**
-     * Default shares of the main window width for the left and right tool window columns: the documents keep 60% (a
-     * query window stays usable at 1280 px with both columns shown).
+     * Default shares of the main window width for the left and right tool window columns. The right column holds the
+     * Chromite Agent's chat and is as wide as the Agent's own column was (user decision 2026-11-08): the former
+     * Properties column's 0.18 + 0.07. The documents keep 53%.
      */
     private static final double DEFAULT_LEFT_SHARE = 0.22;
-    private static final double DEFAULT_RIGHT_SHARE = 0.18;
+    private static final double DEFAULT_RIGHT_SHARE = 0.25;
+    /**
+     * Default share of the right column's height for its upper part (Query Library); the Chromite Agent below gets the
+     * rest, as a conversation uses the height (user decision 2026-11-08).
+     */
+    private static final double UPPER_RIGHT_SHARE = 0.4;
     /**
      * Default share of the main window height for the Query Manager along the bottom edge.
      */
@@ -504,11 +515,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(registeredServersWindow, registeredServersPanel, true,
             ToolWindowDocking.Place.next(explorerWindow.getId(), DockingRegion.SOUTH, 0.4),
             ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
+        // Default layout of the right column (user decision 2026-11-08): Query Library above the Chromite Agent, both shown.
+        // The other right-hand tool windows (Properties, Scripts, Outline, Database Tasks) are hidden and open as tabs of
+        // the upper part: next to the Query Library, else Properties, else above the Agent, else a column of their own
+        ToolWindowDocking.Place[] upperRightPlaces = {
+            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.CENTER, 0.5), //$NON-NLS-1$
+            ToolWindowDocking.Place.next("properties", DockingRegion.CENTER, 0.5), //$NON-NLS-1$
+            ToolWindowDocking.Place.next("aiAssistant", DockingRegion.NORTH, UPPER_RIGHT_SHARE), //$NON-NLS-1$
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE)};
         ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
-        toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, true,
-            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.SOUTH, 0.5), //$NON-NLS-1$
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, false, upperRightPlaces);
         // The query window's result tabs are their own header; the hide button sits next to the tabs. The results stay in the
         // query window (below the documents), so they are not dockable
         resultsWindow = new ToolWindow("results", CoreMessages.main_results, //$NON-NLS-1$
@@ -534,13 +551,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultTabsTrailing.setOpaque(false);
         resultTabsTrailing.add(resultsWindow.createHideButton());
         queryLibraryPanel = new QueryLibraryPanel(this);
-        // Query Library above Properties in the right column (SSMS docks its Template Browser on the right), hidden until opened;
-        // a column of its own would narrow the documents
+        // Query Library at the top of the right column, shown (SSMS docks its Template Browser on the right). Placed before
+        // the Agent, it makes the column in the default layout
         ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, true, upperRightPlaces);
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
         scriptsPanel = new ScriptsPanel(new ScriptsPanel.Host() {
             @NotNull
@@ -560,20 +575,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 openFile(file);
             }
         });
-        // Scripts above Properties in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L,
-        // the Solution Explorer shortcut)
+        // Scripts in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L, the Solution Explorer
+        // shortcut)
         ToolWindow scriptsWindow = new ToolWindow("scripts", ScriptsMessages.scripts_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false, upperRightPlaces);
         // The statements of the active query window, in the right column like the SWT Outline view; hidden until opened
         outlinePanel = new SqlOutlinePanel();
         ToolWindow outlineWindow = new ToolWindow("outline", CoreMessages.main_outline, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false, upperRightPlaces);
         aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
@@ -599,17 +610,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 OptionsDialog.open(MainFrame.this, pageId);
             }
         });
-        // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
-        toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, false,
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE + 0.07));
+        // Below the Query Library in the right column, shown; the chat gets the larger part of the height. Without the Query
+        // Library it goes below the upper tool window that is shown instead (Properties), else it makes the column
+        toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, true,
+            ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.SOUTH, 1 - UPPER_RIGHT_SHARE),
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.SOUTH, 1 - UPPER_RIGHT_SHARE),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         // Tool calls of the in-app chat and of the MCP server ask in this window; the editor tools open, read and edit its query windows
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
         AIAgentServices.setEditorBridge(new AiQueryWindowBridge(this::getEditors, this::getActiveEditor, this::showQueryWindow, aiAssistantPanel));
         // Saved tasks (backups, restores, native script runs): a tab next to the Query Library, hidden until opened
         ToolWindow tasksWindow = new ToolWindow("databaseTasks", DatabaseTasksMessages.tasks_title, null); //$NON-NLS-1$
-        toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
-            ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.CENTER, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false, upperRightPlaces);
         // Every statement the query manager recorded: a wide table along the bottom edge, like SWT's bottom views; hidden until
         // opened. Statements open in a new query window and never run
         queryManagerPanel = new QueryManagerPanel((connection, sql) -> {
@@ -2266,8 +2278,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library
-     * hidden) and the results with their default height, shown again in every query window (still hidden without one).
+     * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library and
+     * Chromite Agent shown in the right column, Properties hidden) and the results with their default height, shown again
+     * in every query window (still hidden without one).
      */
     private void resetWindowLayout() {
         toolWindowDocking.resetLayout();
