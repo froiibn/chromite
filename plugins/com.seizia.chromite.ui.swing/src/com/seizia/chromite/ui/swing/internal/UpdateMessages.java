@@ -31,6 +31,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 {@code exit_txn_agent_item}: 끝낼 때 질문의 AI 도우미·MCP 도구 트랜잭션 줄
  * - 2026-11-07 {@code exit_txn_agent_item}: 기능 이름을 Chromite Agent로 바꿈(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 {@code exit_txn_unknown_item}: DB에 확인할 수 없는 트랜잭션 줄(docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-08 {@code update_window_*}: 업데이트 진행 창(Turbrix #747의 문구, docs/chromite/auto-update.md "업데이트 진행 창").
+ *   이 클래스는 앱의 사본(OSGi 없이 도는 진행 창)도 읽으므로 {@link NLS} 말고 다른 것을 참조하지 않는다.
  */
 public class UpdateMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.UpdateMessages"; //$NON-NLS-1$
@@ -60,6 +62,43 @@ public class UpdateMessages extends NLS {
     public static String update_applying_message;
     public static String update_install_failed_title;
     public static String update_install_failed_message;
+
+    public static String update_window_name;
+    public static String update_window_versions;
+    public static String update_window_step_download;
+    public static String update_window_step_check;
+    public static String update_window_step_install;
+    public static String update_window_step_start;
+    public static String update_window_step_open;
+    public static String update_window_mark_done;
+    public static String update_window_mark_current;
+    public static String update_window_mark_waiting;
+    public static String update_window_mark_failed;
+    public static String update_window_head_downloading;
+    public static String update_window_head_ready;
+    public static String update_window_head_installing;
+    public static String update_window_head_starting;
+    public static String update_window_head_done;
+    public static String update_window_head_failed_install;
+    public static String update_window_head_failed_start;
+    public static String update_window_sub_downloading;
+    public static String update_window_sub_ready;
+    public static String update_window_sub_installing;
+    public static String update_window_sub_starting;
+    public static String update_window_sub_done;
+    public static String update_window_sub_failed_start;
+    public static String update_window_install_failed;
+    public static String update_window_version_kept;
+    public static String update_window_try_or_download;
+    public static String update_window_note_running;
+    public static String update_window_note_downloading;
+    public static String update_window_received;
+    public static String update_window_megabytes;
+    public static String update_window_elapsed;
+    public static String update_window_close;
+    public static String update_window_later;
+    public static String update_window_back;
+    public static String update_window_log;
 
     public static String update_options_tab;
     public static String update_options_auto;

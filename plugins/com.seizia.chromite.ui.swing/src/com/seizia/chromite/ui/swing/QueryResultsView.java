@@ -17,8 +17,10 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
+import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -39,21 +41,28 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * 쿼리 창 하나의 Results / Messages 내용(SSMS의 결과 창).
+ * 쿼리 창 하나의 결과 탭 줄: {@code Result1 | Result2 | … | Messages | Execution plan | Terminal}.
  *
- * 설계: SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭은 하나이므로, 쿼리 창이 이 객체를 갖고
- * 메인 창이 활성 쿼리 창의 두 컴포넌트를 탭에 끼운다({@link MainFrame}).
+ * 설계: 결과는 쿼리 창마다 따로 있다. 탭 줄도 쿼리 창마다 하나이고, 메인 창이 활성 쿼리 창의 탭 줄을 Results 카드에 통째로 끼운다
+ * ({@link MainFrame}). 탭 줄이 쿼리 창의 것이라 고른 탭은 창을 바꿨다 돌아와도 그대로다(따로 기억할 상태가 없다).
  * <ul>
- *     <li>Results: 결과 집합마다 {@link ResultSetGrid} 하나를 위아래로 쌓는다. 모두 들어가면 높이를 똑같이 나눠 채우고
- *     (SSMS와 같음), 표마다 최소 높이보다 작아지면 바깥 세로 스크롤로 넘긴다.</li>
- *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고(PRINT 출력 포함), 오류를 차례로 쓴다. 오류는 빨간색이다.
- *     결과 표의 저장 결과와 저장 오류도 여기에 쓴다.</li>
+ *     <li>결과 탭(2026-11-08 사용자 결정, SSMS와 다르게): 결과 집합마다 탭 하나 "Result1", "Result2"…이고 탭은 결과 뷰어
+ *     ({@link ResultSetViewerPanel}) 하나를 채운다. 결과가 하나여도 "Result1"이다. 번호는 실행마다 1부터, 결과가 나온 순서다.
+ *     탭 도구 설명은 그 결과를 만든 SQL의 첫 줄이다. 전에는 결과 표를 한 탭 안에 위아래로 쌓고 높이를 나눴는데(SSMS), 결과가 많으면
+ *     표마다 낮아지고 바깥 스크롤로 넘겨야 했다.</li>
+ *     <li>그 뒤에 Messages, Execution plan, 켜져 있으면 Terminal(쿼리 창이 켰을 때만) 탭이다. 계획과 터미널 내용은 쿼리 창이 넘긴다.</li>
+ *     <li>앞으로 오는 탭: 실행을 시작하면 Messages(아직 결과가 없다), 그 실행의 첫 결과가 나오면 Result1이다. 뒤의 결과는 탭만 생기고
+ *     사용자가 고른 탭을 빼앗지 않는다. 오류로 멈췄거나 결과가 없으면 쿼리 창이 Messages를 앞으로 가져온다. 탭이 넘치면 FlatLaf의 탭 줄 스크롤과
+ *     숨은 탭 목록이다.</li>
+ *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고(PRINT 출력 포함), 오류를 차례로 쓴다. 오류는 빨간색이다. 결과 표의 저장 결과와 저장 오류도 여기에 쓴다.
+ *     오류가 있으면 탭에 오류 점과 개수를 붙인다(오류에서 멈추지 않고 이어 가는 설정에서도 오류가 있었음을 알린다). 다음 실행에서 지운다.</li>
  *     <li>결과 편집: 결과 표마다 바뀐 내용을 따로 가진다. 쿼리 창은 이 객체를 통해 저장하지 않은 변경이 있는지, 저장 중인지 묻고
  *     닫거나 다시 실행하기 전에 모두 저장한다({@link #saveChanges}).</li>
- *     <li>결과 고정(SWT의 결과 탭 고정, Query &gt; Pin Results): 지금 결과 표들을 고정 탭으로 옮겨 다음 실행이 지우지 않게 한다. 고정 탭이 있으면
- *     Results 안에 탭 줄이 생기고 첫 탭이 지금 실행의 결과다. 고정 탭은 닫을 수 있고, 저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel).
- *     고정 결과도 실행한 문맥으로 다시 읽고 저장하며, 창을 닫을 때의 저장 묻기({@link #getChangeCount})에 들어간다. 다시 실행 전의 버리기 묻기는
- *     지금 결과만 본다({@link #getCurrentChangeCount}). 행 수(상태 줄)도 지금 결과만이다.</li>
+ *     <li>결과 고정(SWT의 결과 탭 고정, Query &gt; Pin Results): 고른 결과 탭(다른 탭이 앞에 있으면 마지막으로 고른 결과 탭)을 고정한다.
+ *     탭에 핀 아이콘과 고정 시각이 붙고, 다음 실행은 고정하지 않은 결과 탭만 지우고 새 결과를 고정 탭 앞에 놓는다. 고정 탭은 닫을 수 있고,
+ *     저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel). 고정 결과도 실행한 문맥으로 다시 읽고 저장하며, 창을 닫을 때의 저장 묻기
+ *     ({@link #getChangeCount})에 들어간다. 다시 실행 전의 버리기 묻기는 지울 결과만 본다({@link #getCurrentChangeCount}).</li>
+ *     <li>행 수(쿼리 상태 줄)는 고른 결과 탭의 행 수다({@link #getRowCount}). 결과가 아닌 탭이 앞에 있으면 쿼리 창이 실행에서 읽은 행 수를 보인다.</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -72,6 +81,9 @@ import java.util.function.IntConsumer;
  * - 2026-11-08 오류 위치로 가기: 위치를 아는 오류 글자를 두 번 누르거나 오른쪽 클릭 "오류 위치로 가기"로 쿼리 창의 그 자리로
  *   ({@link Listener#goToSource}), Messages 오른쪽 클릭에 복사 (docs/chromite/swing-grid-navigation.md "오류 위치로 가기")
  * - 2026-11-08 결과 행에서 SQL 만들기: 만든 문장을 새 쿼리 창에 여는 {@link Listener#openScript} (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 결과 집합마다 탭(사용자 결정, 앱 변경 #7): 쿼리 창마다의 탭 줄 Result1… | Messages | Execution plan | Terminal이 메인 창의
+ *   Results / Messages 바깥 탭과 결과 표 쌓기({@code GridStack})를 대신함, 고정은 고른 결과 탭 하나, Messages 탭의 오류 점·개수, 행 수는 고른 결과 탭
+ *   (docs/chromite/swing-frontend.md "결과 탭")
  */
 final class QueryResultsView {
 
@@ -90,7 +102,8 @@ final class QueryResultsView {
         void resultsEditStateChanged();
 
         /**
-         * A result viewer read its rows again (filter, sort, more rows): {@link #getRowCount()} changed.
+         * {@link #getRowCount()} may have changed: another result tab was selected, or a result viewer read its rows
+         * again (filter, sort, more rows).
          */
         void resultsRowsChanged();
 
@@ -107,6 +120,13 @@ final class QueryResultsView {
     }
 
     /**
+     * What Query &gt; Pin Results did.
+     */
+    enum PinResult {
+        PINNED, NOTHING_TO_PIN, ALREADY_PINNED
+    }
+
+    /**
      * Character attribute of an error's text in Messages: its offset in the query window's text.
      */
     private static final Object ERROR_OFFSET_ATTRIBUTE = new Object() {
@@ -116,22 +136,30 @@ final class QueryResultsView {
         }
     };
 
-    // A result viewer adds a status line below its grid (ResultSetViewerPanel)
-    private static final int MIN_GRID_HEIGHT = 220;
     private static final DateTimeFormatter PIN_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
+    /**
+     * Longest SQL line shown as a result tab's tool tip.
+     */
+    private static final int TOOL_TIP_SQL_LENGTH = 120;
 
-    private final GridStack gridStack = new GridStack();
-    private final JScrollPane gridScrollPane;
-    // The current results alone, or the tabs of the current and the pinned results
-    private final JPanel resultsComponent = new JPanel(new BorderLayout());
-    private final List<GridStack> pinnedStacks = new ArrayList<>();
+    private final JTabbedPane tabs = new JTabbedPane();
+    // The results of the last run, in tab order; a new run replaces them
+    private final List<ResultTab> currentTabs = new ArrayList<>();
+    // Pinned results, kept by the next runs until their tabs are closed
+    private final List<ResultTab> pinnedTabs = new ArrayList<>();
+    /**
+     * The selected result tab, or the one selected last while another tab (Messages, plan, terminal) is in front: Pin
+     * Results pins it, and showing the results brings it back.
+     */
     @Nullable
-    private JTabbedPane pinnedTabs;
-    private int pinCount;
-    private final JLabel placeholder;
+    private ResultTab lastResultTab;
     private final JTextPane messagesPane = new JTextPane();
     private final JScrollPane messagesComponent;
-    private boolean messagesTabSelected;
+    private final JComponent planComponent;
+    // Errors written to Messages since the last clear
+    private int errorCount;
+    @Nullable
+    private JComponent terminalComponent;
     private final Listener listener;
     private final ResultSetGrid.Host gridHost = new ResultSetGrid.Host() {
         @Override
@@ -170,13 +198,16 @@ final class QueryResultsView {
         }
     };
 
-    QueryResultsView(@NotNull Listener listener) {
+    /**
+     * @param planComponent the Execution plan tab's content
+     */
+    QueryResultsView(@NotNull Listener listener, @NotNull JComponent planComponent) {
         this.listener = listener;
-        placeholder = new JLabel(EditorMessages.editor_results_none, SwingConstants.CENTER);
-        placeholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
-        gridScrollPane = createScrollPane(gridStack);
-        resultsComponent.setOpaque(false);
-        resultsComponent.add(gridScrollPane, BorderLayout.CENTER);
+        this.planComponent = planComponent;
+        // size.tab.tool with a 3px underline (size.tabUnderline); one row that scrolls, with FlatLaf's list of hidden tabs
+        tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+        tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closePinned);
 
         messagesPane.setEditable(false);
         // font.code, like the DataGrip console output
@@ -184,111 +215,119 @@ final class QueryResultsView {
         installGoToError();
         messagesComponent = new JScrollPane(messagesPane);
         messagesComponent.setBorder(BorderFactory.createEmptyBorder());
+        tabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), messagesComponent); //$NON-NLS-1$
+        tabs.addTab(CoreMessages.main_execution_plan, UiIcons.get("plan"), planComponent); //$NON-NLS-1$
         clear();
-    }
-
-    @NotNull
-    JComponent getResultsComponent() {
-        return resultsComponent;
-    }
-
-    @NotNull
-    JComponent getMessagesComponent() {
-        return messagesComponent;
-    }
-
-    @NotNull
-    private static JScrollPane createScrollPane(@NotNull GridStack stack) {
-        JScrollPane scrollPane = new JScrollPane(stack);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        return scrollPane;
+        // After the first tabs: the query window is still being built while they are added
+        tabs.addChangeListener(e -> {
+            ResultTab selected = findTab(tabs.getSelectedComponent());
+            if (selected != null) {
+                lastResultTab = selected;
+            }
+            listener.resultsRowsChanged();
+        });
     }
 
     /**
-     * Clears the current results and the messages for a new run; pinned results stay.
+     * The tab row with its contents, put into the main window's Results card while the query window is active.
+     */
+    @NotNull
+    JTabbedPane getComponent() {
+        return tabs;
+    }
+
+    /**
+     * Removes the results of the last run and clears the messages for a new run; pinned results stay.
      */
     void clear() {
-        disposeViewers(gridStack);
-        gridStack.removeAll();
-        gridStack.add(placeholder);
-        gridStack.revalidate();
-        gridStack.repaint();
+        for (ResultTab tab : currentTabs) {
+            removeTab(tab);
+        }
+        currentTabs.clear();
         messagesPane.setText("");
-        if (pinnedTabs != null) {
-            // The new run's results are on the first tab
-            pinnedTabs.setSelectedIndex(0);
+        errorCount = 0;
+        updateMessagesTab();
+    }
+
+    private void removeTab(@NotNull ResultTab tab) {
+        tab.viewer.dispose();
+        tabs.remove(tab.viewer);
+        if (tab == lastResultTab) {
+            lastResultTab = null;
         }
     }
 
-    private static void disposeViewers(@NotNull GridStack stack) {
-        for (Component component : stack.getComponents()) {
-            if (component instanceof ResultSetViewerPanel viewer) {
-                viewer.dispose();
+    @Nullable
+    private ResultTab findTab(@Nullable Component component) {
+        for (List<ResultTab> list : List.of(currentTabs, pinnedTabs)) {
+            for (ResultTab tab : list) {
+                if (tab.viewer == component) {
+                    return tab;
+                }
             }
         }
+        return null;
     }
 
     /**
-     * Query &gt; Pin Results: the current result grids move to a pinned tab of their own, so the next run leaves them.
+     * Adds a result of the running query as the next "ResultN" tab, before the pinned ones. The tab in front does not
+     * change (the query window brings the run's first result to the front, {@link #showResult}).
      *
-     * @return false when there are no results to pin
+     * @param sql the query that gave the result; its first line is the tab's tool tip
      */
-    boolean pinResults() {
-        if (getGridCount() == 0) {
-            return false;
+    void addGrid(@NotNull ResultSetGrid.Fetched fetched, @NotNull String sql) {
+        ResultTab tab = new ResultTab(new ResultSetViewerPanel(fetched, gridHost),
+            NLS.bind(EditorMessages.editor_results_tab, currentTabs.size() + 1), firstLine(sql));
+        tabs.insertTab(tab.name, UiIcons.get("results"), tab.viewer, tab.sql, currentTabs.size()); //$NON-NLS-1$
+        currentTabs.add(tab);
+    }
+
+    @NotNull
+    private static String firstLine(@NotNull String sql) {
+        for (String line : sql.strip().split("\\R")) { //$NON-NLS-1$
+            if (!line.isBlank()) {
+                String text = line.strip();
+                return text.length() > TOOL_TIP_SQL_LENGTH ? text.substring(0, TOOL_TIP_SQL_LENGTH) + "…" : text; //$NON-NLS-1$
+            }
         }
-        GridStack pinned = new GridStack();
-        for (Component component : gridStack.getComponents()) {
-            pinned.add(component);
-        }
-        gridStack.removeAll();
-        gridStack.add(placeholder);
-        gridStack.revalidate();
-        gridStack.repaint();
-        pinnedStacks.add(pinned);
-        pinCount++;
-        JTabbedPane tabs = getPinnedTabs();
-        JScrollPane scrollPane = createScrollPane(pinned);
-        scrollPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        scrollPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, EditorMessages.editor_results_unpin_tip);
-        tabs.addTab(NLS.bind(EditorMessages.editor_results_pinned, pinCount, LocalTime.now().format(PIN_TIME_FORMAT)), scrollPane);
-        // The pinned results stay in view; the next run brings the first tab to the front
-        tabs.setSelectedComponent(scrollPane);
-        return true;
+        return ""; //$NON-NLS-1$
     }
 
     /**
-     * The tabs of the current and the pinned results, created with the first pin.
+     * Query &gt; Pin Results: pins the selected result tab (or the one selected last), so the next runs leave it.
      */
     @NotNull
-    private JTabbedPane getPinnedTabs() {
-        if (pinnedTabs == null) {
-            pinnedTabs = new JTabbedPane();
-            pinnedTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
-            pinnedTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closePinned);
-            resultsComponent.remove(gridScrollPane);
-            pinnedTabs.addTab(EditorMessages.editor_results_current, gridScrollPane);
-            resultsComponent.add(pinnedTabs, BorderLayout.CENTER);
-            resultsComponent.revalidate();
-            resultsComponent.repaint();
+    PinResult pinResults() {
+        ResultTab tab = lastResultTab;
+        if (tab == null) {
+            return PinResult.NOTHING_TO_PIN;
         }
-        return pinnedTabs;
+        if (pinnedTabs.contains(tab)) {
+            return PinResult.ALREADY_PINNED;
+        }
+        // The tab stays where it is; the next run puts its results before the pinned tabs
+        currentTabs.remove(tab);
+        pinnedTabs.add(tab);
+        String time = LocalTime.now().format(PIN_TIME_FORMAT);
+        int index = tabs.indexOfComponent(tab.viewer);
+        tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, EditorMessages.editor_results_unpin_tip);
+        tabs.setTitleAt(index, NLS.bind(EditorMessages.editor_results_pinned, tab.name, time));
+        tabs.setIconAt(index, UiIcons.get("pin")); //$NON-NLS-1$
+        tabs.setToolTipTextAt(index, NLS.bind(EditorMessages.editor_results_pinned_tip, tab.sql, time));
+        tabs.setSelectedIndex(index);
+        return PinResult.PINNED;
     }
 
     /**
-     * Closes a pinned tab; unsaved changes of its grids are discarded after asking (Cancel is the default).
+     * Closes a pinned tab; unsaved changes of its grid are discarded after asking (Cancel is the default).
      */
     private void closePinned(int tabIndex) {
-        JTabbedPane tabs = pinnedTabs;
-        if (tabs == null || tabIndex <= 0 || tabIndex > pinnedStacks.size()) {
+        ResultTab tab = findTab(tabs.getComponentAt(tabIndex));
+        if (tab == null || !pinnedTabs.contains(tab) || tab.viewer.getGrid().isSaving()) {
             return;
         }
-        GridStack stack = pinnedStacks.get(tabIndex - 1);
-        if (isSaving(stack)) {
-            return;
-        }
-        int changes = getChangeCount(stack);
+        int changes = tab.viewer.getGrid().getChangeCount();
         if (changes > 0) {
             String[] options = {EditorMessages.editor_results_unpin_discard, EditorMessages.editor_common_cancel};
             if (JOptionPane.showOptionDialog(tabs,
@@ -297,56 +336,77 @@ final class QueryResultsView {
                 return;
             }
         }
-        disposeViewers(stack);
-        pinnedStacks.remove(tabIndex - 1);
-        tabs.removeTabAt(tabIndex);
-        if (pinnedStacks.isEmpty()) {
-            // Back to the current results alone
-            resultsComponent.remove(tabs);
-            tabs.removeAll();
-            pinnedTabs = null;
-            resultsComponent.add(gridScrollPane, BorderLayout.CENTER);
-            resultsComponent.revalidate();
-            resultsComponent.repaint();
-        }
+        pinnedTabs.remove(tab);
+        removeTab(tab);
         listener.resultsEditStateChanged();
     }
 
     /**
-     * Which of the two tabs the user looked at last for this query window, restored when the window becomes active again.
+     * Brings the Messages tab to the front.
      */
-    boolean isMessagesTabSelected() {
-        return messagesTabSelected;
-    }
-
-    void setMessagesTabSelected(boolean messagesTabSelected) {
-        this.messagesTabSelected = messagesTabSelected;
-    }
-
-    int getGridCount() {
-        return gridStack.getComponentCount() == 1 && gridStack.getComponent(0) == placeholder ? 0 : gridStack.getComponentCount();
-    }
-
-    void addGrid(@NotNull ResultSetGrid.Fetched fetched) {
-        if (getGridCount() == 0) {
-            gridStack.removeAll();
-        }
-        gridStack.add(new ResultSetViewerPanel(fetched, gridHost));
-        gridStack.revalidate();
-        gridStack.repaint();
+    void showMessages() {
+        tabs.setSelectedComponent(messagesComponent);
     }
 
     /**
-     * Rows shown in all result grids now (after filters and fetching more rows).
+     * Brings a result to the front: the selected result tab stays, else the first result of the last run (a run's first
+     * result), else the result tab selected last (a pinned one); Messages when there is no result.
      */
-    long getRowCount() {
-        long rows = 0;
-        for (Component component : gridStack.getComponents()) {
-            if (component instanceof ResultSetViewerPanel viewer) {
-                rows += viewer.getRowCount();
+    void showResult() {
+        if (findTab(tabs.getSelectedComponent()) != null) {
+            return;
+        }
+        ResultTab tab = !currentTabs.isEmpty() ? currentTabs.get(0) : lastResultTab;
+        tabs.setSelectedComponent(tab != null ? tab.viewer : messagesComponent);
+    }
+
+    void showPlan() {
+        tabs.setSelectedComponent(planComponent);
+    }
+
+    /**
+     * The Terminal tab's content while the query window has Query &gt; SQL Terminal on, or null to remove the tab. It is
+     * there only while the terminal is on: the switch is per window, so a tab that is always there would be empty in
+     * the other windows.
+     */
+    void setTerminalComponent(@Nullable JComponent component) {
+        if (component == terminalComponent) {
+            return;
+        }
+        if (terminalComponent != null) {
+            boolean selected = tabs.getSelectedComponent() == terminalComponent;
+            tabs.remove(terminalComponent);
+            if (selected) {
+                // The window's output without the terminal
+                showResult();
             }
         }
-        return rows;
+        terminalComponent = component;
+        if (component != null) {
+            tabs.addTab(TerminalMessages.terminal_tab, UiIcons.get("terminal"), component); //$NON-NLS-1$
+        }
+    }
+
+    void showTerminal() {
+        if (terminalComponent != null) {
+            tabs.setSelectedComponent(terminalComponent);
+        }
+    }
+
+    /**
+     * Result tabs of the last run (not the pinned ones).
+     */
+    int getGridCount() {
+        return currentTabs.size();
+    }
+
+    /**
+     * Rows shown now (after filters and fetching more rows) in the selected result tab; -1 while another tab is in
+     * front.
+     */
+    long getRowCount() {
+        ResultTab tab = findTab(tabs.getSelectedComponent());
+        return tab != null ? tab.viewer.getRowCount() : -1;
     }
 
     /**
@@ -354,20 +414,16 @@ final class QueryResultsView {
      */
     @NotNull
     private List<ResultSetGrid> getGrids() {
-        List<ResultSetGrid> grids = new ArrayList<>(getGrids(gridStack));
-        for (GridStack stack : pinnedStacks) {
-            grids.addAll(getGrids(stack));
-        }
+        List<ResultSetGrid> grids = new ArrayList<>(getGrids(currentTabs));
+        grids.addAll(getGrids(pinnedTabs));
         return grids;
     }
 
     @NotNull
-    private static List<ResultSetGrid> getGrids(@NotNull GridStack stack) {
+    private static List<ResultSetGrid> getGrids(@NotNull List<ResultTab> list) {
         List<ResultSetGrid> grids = new ArrayList<>();
-        for (Component component : stack.getComponents()) {
-            if (component instanceof ResultSetViewerPanel viewer) {
-                grids.add(viewer.getGrid());
-            }
+        for (ResultTab tab : list) {
+            grids.add(tab.viewer.getGrid());
         }
         return grids;
     }
@@ -384,15 +440,11 @@ final class QueryResultsView {
     }
 
     /**
-     * Pending changes in the current results, the ones a new run replaces.
+     * Pending changes in the results of the last run, the ones a new run replaces.
      */
     int getCurrentChangeCount() {
-        return getChangeCount(gridStack);
-    }
-
-    private static int getChangeCount(@NotNull GridStack stack) {
         int count = 0;
-        for (ResultSetGrid grid : getGrids(stack)) {
+        for (ResultSetGrid grid : getGrids(currentTabs)) {
             count += grid.getChangeCount();
         }
         return count;
@@ -400,15 +452,6 @@ final class QueryResultsView {
 
     boolean isSaving() {
         for (ResultSetGrid grid : getGrids()) {
-            if (grid.isSaving()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isSaving(@NotNull GridStack stack) {
-        for (ResultSetGrid grid : getGrids(stack)) {
             if (grid.isSaving()) {
                 return true;
             }
@@ -449,6 +492,26 @@ final class QueryResultsView {
             attributes.addAttribute(ERROR_OFFSET_ATTRIBUTE, sourceOffset);
         }
         append(text, attributes);
+        errorCount++;
+        updateMessagesTab();
+    }
+
+    /**
+     * The Messages tab with an error dot and the number of errors while it has any, so they are seen also when a
+     * result is in front (Options: skip failed statements and continue).
+     */
+    private void updateMessagesTab() {
+        int index = tabs.indexOfComponent(messagesComponent);
+        Icon icon = UiIcons.get("messages"); //$NON-NLS-1$
+        if (errorCount == 0) {
+            tabs.setTitleAt(index, CoreMessages.main_messages);
+            tabs.setIconAt(index, icon);
+            tabs.setToolTipTextAt(index, null);
+        } else {
+            tabs.setTitleAt(index, NLS.bind(EditorMessages.editor_results_messages_errors, CoreMessages.main_messages, errorCount));
+            tabs.setIconAt(index, UiIcons.withStatusDot(icon, UiIcons.Status.ERROR));
+            tabs.setToolTipTextAt(index, NLS.bind(EditorMessages.editor_results_messages_errors_tip, errorCount));
+        }
     }
 
     /**
@@ -528,43 +591,8 @@ final class QueryResultsView {
     }
 
     /**
-     * Grids stacked vertically. While every grid gets at least {@link #MIN_GRID_HEIGHT}, the stack tracks the
-     * viewport height and the grids share it equally; otherwise it is taller than the viewport and scrolls.
+     * A result tab: its viewer (the tab's content), "ResultN", and the first line of the query that gave it.
      */
-    private static final class GridStack extends JPanel implements Scrollable {
-        GridStack() {
-            super(new GridLayout(0, 1, 0, 6));
-        }
-
-        @Override
-        public Dimension getPreferredSize() {
-            Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, getComponentCount() * MIN_GRID_HEIGHT);
-        }
-
-        @Override
-        public Dimension getPreferredScrollableViewportSize() {
-            return getPreferredSize();
-        }
-
-        @Override
-        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-            return 16;
-        }
-
-        @Override
-        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
-            return orientation == SwingConstants.VERTICAL ? visibleRect.height : visibleRect.width;
-        }
-
-        @Override
-        public boolean getScrollableTracksViewportWidth() {
-            return true;
-        }
-
-        @Override
-        public boolean getScrollableTracksViewportHeight() {
-            return getParent() instanceof JViewport viewport && viewport.getHeight() >= getComponentCount() * MIN_GRID_HEIGHT;
-        }
+    private record ResultTab(@NotNull ResultSetViewerPanel viewer, @NotNull String name, @NotNull String sql) {
     }
 }

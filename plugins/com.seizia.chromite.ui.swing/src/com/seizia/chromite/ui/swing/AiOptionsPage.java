@@ -92,6 +92,8 @@ import java.util.Map;
  * - 2026-11-08 감사 기록의 고정 문구·형식 열(시각·클라이언트·분류·정책·결과)을 가장 긴 문구에 맞춤: "Chromite Agent"가 "Chro…"로 잘렸다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 MCP 토큰 다시 만들기 확인은 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Providers 양식은 자기 폭을 지킴: 넓어진 Options 창에서 입력란이 오른쪽 끝까지 늘어나던 것(app round 1 #8,
+ *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -155,8 +157,11 @@ final class AiOptionsPage extends JPanel {
                 label.setPreferredSize(new Dimension(labelWidth, label.getPreferredSize().height));
             }
         }
+        // The forms keep their preferred width (fields of 28 columns) instead of stretching across a wide Options page
+        JPanel column = new JPanel(new BorderLayout());
+        column.add(panel, BorderLayout.WEST);
         JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.add(panel, BorderLayout.NORTH);
+        wrapper.add(column, BorderLayout.NORTH);
         JScrollPane scrollPane = new JScrollPane(wrapper);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         return scrollPane;

@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
- * [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [연결 ▾] │ [DB/스키마 ▾] │ [Comment] [Uncomment] │
+ * [연결 ▾] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
  * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
  *
  * 설계:
@@ -47,7 +47,10 @@ import java.util.List;
  *     상태 줄의 점을 쓴다. 글자가 지금 방식을 말하므로 눌림 상태(토글 단추)는 쓰지 않는다.</li>
  *     <li>연결·DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getConnectionCombo()}): 모델·리스너·켜짐이 창마다의 상태라
  *     한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 콤보를 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면
- *     연결·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다.</li>
+ *     연결·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다. 끼울 때는 빼낸 콤보의 위치(index)에
+ *     넣으므로 막대 안 순서와 상관없다.</li>
+ *     <li>콤보가 맨 앞이다(사용자 결정 2026-11-08): 무엇에 실행할지(연결, DB/스키마)를 고른 뒤 실행한다. 좁은 창에서는 콤보가 먼저 줄고 넘치는
+ *     단추는 뒤쪽(Query History)부터 메뉴로 가므로 실행 단추는 콤보가 최소 폭이 되어도 남는다. 키보드 Tab 순서도 화면 순서(연결, DB/스키마)다.</li>
  *     <li>편집 명령(주석, 들여쓰기, 서식)과 Query History는 이 막대의 동작이고, 활성 쿼리 창이 없으면 꺼진다. 편집 명령은
  *     Edit &gt; Advanced와 같은 명령({@link SqlEditorPanel.SqlTextArea#runCommand})이다.</li>
  *     <li>활성 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS).</li>
@@ -61,6 +64,7 @@ import java.util.List;
  * - 2026-11-08 커밋 방식 단추(활성 쿼리 창 세션의 자동/수동 커밋 전환, B-S18) (docs/chromite/transactions.md "커밋 방식 전환")
  * - 2026-11-08 실제 계획을 주지 않는 연결에서는 실제 계획 단추가 꺼지고 도구 설명이 이유를 말함({@link #setActualPlanUnsupported})
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-08 연결·DB 콤보를 맨 앞으로, 연결 콤보 폭 260 → 220(앱 변경 #3, 사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class SqlEditorToolBar {
 
@@ -101,6 +105,11 @@ final class SqlEditorToolBar {
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
+        // The pickers first (user decision 2026-11-08): what the run applies to, then the run
+        toolBar.add(connectionCombo);
+        toolBar.addSeparator();
+        toolBar.add(schemaCombo);
+        toolBar.addSeparator();
         toolBar.add(createButton(UiIcons.createToolButton(executeAction, "run"), EditorMessages.editor_sql_execute_tip)); //$NON-NLS-1$
         toolBar.add(createButton(UiIcons.createActionButton(cancelAction, "stop"), EditorMessages.editor_sql_cancel_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
@@ -115,10 +124,6 @@ final class SqlEditorToolBar {
             NLS.bind(EditorMessages.editor_sql_rollback_tip, WelcomePanel.getKeyText((KeyStroke) rollbackAction.getValue(Action.ACCELERATOR_KEY)))));
         commitModeButton = createCommitModeButton(commitModeAction);
         toolBar.add(commitModeButton);
-        toolBar.addSeparator();
-        toolBar.add(connectionCombo);
-        toolBar.addSeparator();
-        toolBar.add(schemaCombo);
         toolBar.addSeparator();
         toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, ToolbarMessages.toolbar_comment_tip, "comment", SqlEditorPanel.SqlTextArea.Command.COMMENT)); //$NON-NLS-1$
         toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, ToolbarMessages.toolbar_uncomment_tip, "uncomment", SqlEditorPanel.SqlTextArea.Command.UNCOMMENT)); //$NON-NLS-1$

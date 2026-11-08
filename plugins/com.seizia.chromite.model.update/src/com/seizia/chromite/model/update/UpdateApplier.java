@@ -53,9 +53,16 @@ import java.util.Map;
  *     끝난 PID의 잠금은 버린다(PID 재사용으로 영영 열리지 않는 일이 없게).</li>
  * </ul>
  * 도우미의 기록은 {@code <updates>/apply-update.log}다.
+ * <p>
+ * Windows의 [지금 다시 시작]은 이 도우미 대신 앱의 사본({@link UpdateHandOver})이 설치 프로그램을 실행하고 진행 창을 보인다.
+ * 이 클래스는 그 사본도 같은 잠금으로 띄운다({@link #startWindowCopy}). 이 도우미는 그냥 닫을 때, 사본을 만들지 못했을 때,
+ * macOS에서 쓴다. 이 도우미의 결과는 그대로 {@value #RESULT_FILE}에 남고(셸 스크립트가 JSON 기록을 고치지 않게), 사본의 결과는
+ * 업데이트 기록({@link UpdateRun})에 남는다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md "적용")
+ * - 2026-11-08 앱의 사본을 도우미와 같은 잠금으로 띄움({@link #startWindowCopy}), 결과를 지우지 않고 읽기({@link #peekOutcome}, 업데이트 뒤
+ *   첫 시작의 판단) (docs/chromite/auto-update.md "업데이트 진행 창")
  */
 public final class UpdateApplier {
 
@@ -235,24 +242,48 @@ public final class UpdateApplier {
     }
 
     /**
+     * Starts the copy of the app that shows the update window and runs the installer ({@link UpdateHandOver}), with the
+     * helper's lock: a start of Chromite waits while it installs. The copy removes the lock before it starts Chromite.
+     */
+    public static void startWindowCopy(@NotNull Path folder, @NotNull List<String> command) throws IOException {
+        Files.createDirectories(folder);
+        start(command, Map.of(), folder.resolve(LOCK_FILE));
+    }
+
+    /**
      * What the helper of the last update said: the version it installed and the installer's exit code (0: done), or
      * null when no update was applied since. The file is removed: each outcome is told once.
      */
     @Nullable
     static Outcome takeOutcome(@NotNull Path folder) {
+        Outcome outcome = peekOutcome(folder);
+        try {
+            Files.deleteIfExists(folder.resolve(RESULT_FILE));
+        } catch (IOException ignored) {
+            // (told again at the next start)
+        }
+        return outcome;
+    }
+
+    /**
+     * The helper's result as {@link #takeOutcome} reads it, the file left in place (the first start after an update
+     * reads it before the updater tells it).
+     */
+    @Nullable
+    public static Outcome peekOutcome(@NotNull Path folder) {
         Path file = folder.resolve(RESULT_FILE);
         try {
             if (!Files.isRegularFile(file)) {
                 return null;
             }
             String text = Files.readString(file, StandardCharsets.US_ASCII).trim();
-            Files.deleteIfExists(file);
+            long at = Files.getLastModifiedTime(file).toMillis();
             com.google.gson.JsonElement root = com.google.gson.JsonParser.parseString(text);
             if (root instanceof com.google.gson.JsonObject o
                 && o.get("version") instanceof com.google.gson.JsonPrimitive v && v.isString() //$NON-NLS-1$
                 && UpdateVersion.isValid(v.getAsString())
                 && o.get("code") instanceof com.google.gson.JsonPrimitive c && c.isNumber()) { //$NON-NLS-1$
-                return new Outcome(v.getAsString(), c.getAsInt());
+                return new Outcome(v.getAsString(), c.getAsInt(), at);
             }
         } catch (IOException | RuntimeException ignored) {
             // (no outcome known)
@@ -264,8 +295,9 @@ public final class UpdateApplier {
      * The outcome of one applied update.
      *
      * @param code the setup's exit code (0 done, 1 cancelled, 2 failed), or a negative RESULT_* value of the helper
+     * @param at   when the helper wrote it (ms since the epoch)
      */
-    record Outcome(@NotNull String version, int code) {
+    public record Outcome(@NotNull String version, int code, long at) {
     }
 
     private static void start(@NotNull List<String> command, @NotNull Map<String, String> env, @NotNull Path lock) throws IOException {

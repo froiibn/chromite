@@ -48,6 +48,8 @@ import java.util.Map;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 모델 이름으로 카탈로그에서 컨텍스트 크기를 찾던 코드
  *   (OpenAIModels.getModelByName 사용)를 삭제했다. 그 결과 저장값과 같아진 getEffectiveContextWindowSize() 재정의와
  *   getConfiguredContextWindowSize()도 삭제했다.
+ * - 2026-11-08 temperature를 명시적으로 정했을 때만 요청에 넣음(getRequestTemperature). 설정 파일의 기본값 0.0이 요청마다 가서 새 모델이
+ *   거부할 수 있었다. Anthropic 엔진과 같은 원인·같은 방법 (docs/chromite/ai-agent.md "엔진")
  */
 public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBaseProperties, AIAccountProperties {
     public static final String ENV_API_KEY = "OPENAI_API_KEY";
@@ -186,6 +188,17 @@ public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBa
         return DBWorkbench.getPlatform()
             .getPreferenceStore()
             .getDouble(OpenAIConstants.AI_TEMPERATURE);
+    }
+
+    /**
+     * The temperature only when one was set explicitly ({@link #setTemperature}); otherwise none, so the model uses its own
+     * default. Newer OpenAI models reject the parameter, and the settings file always holds the field's default 0.0, which
+     * the base class would send with every request (the same cause as the Anthropic engine's).
+     */
+    @Nullable
+    @Override
+    public Double getRequestTemperature() {
+        return hasExplicitTemperature() ? getTemperature() : null;
     }
 
     @Override

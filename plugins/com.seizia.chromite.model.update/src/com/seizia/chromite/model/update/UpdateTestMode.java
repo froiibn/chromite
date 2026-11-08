@@ -32,6 +32,8 @@ import java.net.URI;
  *     <li>{@value #PROP_PUBLISHER}, {@value #PROP_PRODUCT}: 기대하는 서명자 주체와 ProductName(없으면 실제 값).
  *     서명 상태 {@code Valid}와 타임스탬프 요구는 그대로다. 그래서 Windows가 신뢰하는 체인으로 서명된 파일만 통과한다.</li>
  *     <li>설치 파일은 실행하지 않는다(dry run). 도우미는 확인·기다리기·다시 시작만 한다.</li>
+ *     <li>{@value #PROP_INSTALLER_CODE}: 앱의 사본({@link UpdateHandOver})이 dry run에서 설치 프로그램의 종료 코드로 알릴 값(없으면 0).
+ *     설치 실패 화면을 실제 설치 없이 보려고 둔다.</li>
  * </ul>
  * 릴리스 빌드에서 켜지지 않게 하는 조건(모두 만족해야 켜진다, {@link UpdatePlace#detect}):
  * (1) 이 복사본이 설치 프로그램으로 설치된 것이 아니다(Windows: 제거 정보에 이 폴더가 없다),
@@ -41,12 +43,15 @@ import java.net.URI;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md "시험 모드")
+ * - 2026-11-08 {@value #PROP_INSTALLER_CODE}: dry run이 알릴 설치 프로그램 종료 코드 (docs/chromite/auto-update.md "업데이트 진행 창")
  */
-public record UpdateTestMode(@NotNull URI origin, @Nullable String publisher, @Nullable String productName) {
+public record UpdateTestMode(@NotNull URI origin, @Nullable String publisher, @Nullable String productName,
+                             @Nullable Integer installerCode) {
 
     public static final String PROP_ORIGIN = "chromite.update.test.origin"; //$NON-NLS-1$
     public static final String PROP_PUBLISHER = "chromite.update.test.publisher"; //$NON-NLS-1$
     public static final String PROP_PRODUCT = "chromite.update.test.product"; //$NON-NLS-1$
+    public static final String PROP_INSTALLER_CODE = "chromite.update.test.installer.code"; //$NON-NLS-1$
 
     /**
      * The test mode the system properties ask for, or null; a malformed origin asks for none.
@@ -66,7 +71,7 @@ public record UpdateTestMode(@NotNull URI origin, @Nullable String publisher, @N
                 return null;
             }
             return new UpdateTestMode(URI.create(UpdateFeed.originText(uri)),
-                System.getProperty(PROP_PUBLISHER), System.getProperty(PROP_PRODUCT));
+                System.getProperty(PROP_PUBLISHER), System.getProperty(PROP_PRODUCT), Integer.getInteger(PROP_INSTALLER_CODE));
         } catch (IllegalArgumentException e) {
             return null;
         }

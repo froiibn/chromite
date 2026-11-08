@@ -152,7 +152,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | 그림 번들 | `plugins/com.seizia.chromite.splash` (`Eclipse-BundleShape: dir`, 코드 없음) | `splash.png`(1x), `splash@2x.png`(2x). 기능 `com.seizia.chromite.swing.feature`에 들어 있다 |
 | 런처 인수 | `product/swing/chromite-swing.product` `<programArgs>-showsplash com.seizia.chromite.splash</programArgs>` | Windows·macOS ini 모두에 들어간다(빌드 결과로 확인) |
 | Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다 |
-| 시작 순서 | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open` → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
+| 시작 순서 | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open`(업데이트 뒤 첫 시작이면 그 대신 업데이트 진행 창, [auto-update.md](auto-update.md) "업데이트 진행 창") → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
 | 그림 생성 | `tools/branding/gen_app_icons.py` `splash_png` | 다크 가로 로고를 다크 테마 `bg.chrome`(`#2B2D30`) 바탕, `border.popup`(`#43454A`) 1px 테두리 위에. 아래 줄은 비워 둔다 |
 | 시간 기록 | `ChromiteSwingApplication.StartupTimes` | 프로세스 시작부터 단계별 ms를 디버그 로그 한 줄로: `Startup times (ms after the process started): application …, look and feel …, splash …, platform …, services …, workspace …, main window …` |
 
@@ -319,3 +319,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 - 2026-11-08 Swing 제품의 시작 화면(감사 행 A-S15, `chromite/startup-splash`): 그림 번들 `com.seizia.chromite.splash`와 런처 `-showsplash`, Swing이 이어받는 `StartupSplash`(버전·상태 줄),
   `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.
 - 2026-11-08 "사이트의 출처 고지" 절 추가(사이트 2차 수정 요청 15번, `chromite/site-round2`): 바닥글과 지원 범위 페이지의 출처 고지 문구가 사이트에서 원래 프로젝트 이름을 쓰는 유일한 자리.
+- 2026-11-08 업데이트 뒤 첫 시작에는 Swing 시작 화면 대신 업데이트 진행 창이 뜬다(앱 항목 #11, `chromite/update-window`, "시작 순서" 행). 앱의 사본은 런처를 `-nosplash`로 띄운다.

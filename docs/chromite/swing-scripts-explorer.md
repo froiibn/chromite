@@ -12,6 +12,8 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 ## 동작
 
 - View > Scripts(Ctrl+Alt+L, SSMS Solution Explorer 단축키). 처음에는 숨김이고, 보이면 오른쪽 열 Properties 위에 붙는다(Query Library와 같은 열).
+  2026-11-08부터는 오른쪽 열 위쪽 Query Library 자리의 탭으로 열린다(Query Library가 없으면 Properties의 탭, 둘 다 없으면 Chromite Agent 위,
+  [swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent").
 - 트리의 루트는 활성 프로젝트의 스크립트 폴더(기본 `<작업 공간>/General/Scripts`)다. 하위 폴더와 스크립트 확장자(`.sql`) 파일만 보이고,
   이름이 `.`으로 시작하는 것은 숨긴다. 폴더가 앞, 이름순이다. 폴더가 아직 없으면 루트 뒤에 "not created yet"이 보인다.
 - 연결에 묶은 스크립트는 이름 뒤에 연결 이름이 흐린 글자로 보인다. 묶은 연결이 지워졌으면 "connection not found"가 보인다.
@@ -116,3 +118,4 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 - 2026-11-08 최초 작성: Scripts 도구 창(열기, 새 폴더, 이름 바꾸기, 삭제, 연결 묶기·풀기, 새로 고침), 묶은 연결로 파일 열기, 저장할 때 묶기
 - 2026-11-08 연결별 최근 스크립트: Object Explorer > Recent Scripts(SWT 감사 C-22·B-S38의 연결별 스크립트 목록, `chromite/script-autosave`). 확인은
   [swing-query-window-recovery.md](swing-query-window-recovery.md) "확인 기록"
+- 2026-11-08 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위 → 오른쪽 가장자리(`chromite/ui-layout`).

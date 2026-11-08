@@ -33,6 +33,8 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
   - 새 쿼리 창 번호는 복원한 `SQLQueryN.sql` 다음부터다.
 - **Discard**(또는 대화상자 닫기): 창을 열지 않는다. 복원 파일은 지우지 않고 `query-windows.discarded.json`으로 한 번 남긴다(잘못 누른 경우 손으로 되살릴 수 있게).
   다음 Discard가 덮어쓴다.
+- **질문 중에 앱이 끝날 때**(밖에서 끝냄, `ChromiteSwingApplication.stop` → 메인 창 `dispose`): 질문 대화상자가 메인 창과 함께 닫히지만 답이 아니다.
+  복원도 버리기도 하지 않고 지난 세션의 파일을 그대로 두어 다음 시작에서 다시 묻는다(2026-11-08, 후속 38).
 
 ## 구조
 
@@ -107,3 +109,8 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
 
 - 2026-11-08 최초 작성: 쿼리 창 자동 저장(10초 주기, 닫을 때)과 다시 시작할 때 복원(한 번 묻기, 연결하지 않고 열기, 첫 세션에 기본 DB/스키마 적용),
   SWT 감사 B-S38·A-S17 (`chromite/script-autosave`)
+- 2026-11-08 후속 38(`chromite/followups-4`): 복원 질문이 열린 동안 앱이 끝나면 `start()`가 닫힌 질문을 Discard로 보고 지난 세션의 파일을 옮긴 뒤
+  이미 멈춘 쓰기 실행기에 저장을 넣어 `RejectedExecutionException`이 났다(`stop()`이 질문의 중첩 이벤트 루프 안에서 먼저 돎). `stop()`이 `stopped`를 세우고,
+  `start()`는 질문이 돌아온 뒤 그 값을 보면 아무것도 하지 않는다. 확인: 창 2개를 남기고 다시 시작 → 질문이 열린 채 시험 코드가 `ChromiteSwingApplication.stop()` 호출 →
+  앱이 끝나고 `.log`·`chromite-debug.log`에 `RejectedExecutionException` 없음, `query-windows.json` 그대로(`discarded` 없음) → 다음 시작에서 같은 질문, 복원으로 창 2개
+  (증거 `D:\Tools\_scratch\chromite-followups-4\run\t38*.txt.log`, `g1.txt.log`, `shots\38-*.png`). 회귀 테스트는 실행하지 않았다.

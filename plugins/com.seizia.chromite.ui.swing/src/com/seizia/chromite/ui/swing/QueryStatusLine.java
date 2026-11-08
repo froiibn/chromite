@@ -43,18 +43,19 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │
- * 커서 위치(Ln, Col).
+ * 쿼리 창 상태 칸(SSMS 쿼리 창 맨 아래 줄의 내용): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │
+ * 커서 위치(Ln, Col). 메인 창 상태 표시줄에 놓인다.
  *
  * 설계:
  * <ul>
- *     <li>내용은 SSMS 상태 줄(상태, 서버(버전), 사용자, DB, 시간, 행)이고 모양은 DataGrip 상태 표시줄 값(design-spec "9. 쿼리 상태 줄"):
- *     높이 size.statusLine.query(밀도 B 26, {@link UiSizes}), 위 1px border.subtle, 글자 text.secondary, 칸 사이 1px 구분선. 바탕은 Islands 카드 바탕이다(카드 안에 있으므로 사양의 bg.chrome 대신). 상태 아이콘 16은 아이콘 팩의 메시지 아이콘이고,
+ *     <li>내용은 SSMS 상태 줄(상태, 서버(버전), 사용자, DB, 시간, 행)이고 모양은 DataGrip 상태 표시줄 값(design-spec "9. 쿼리 상태 줄과 주 상태 표시줄"):
+ *     높이는 메인 창 상태 표시줄(size.statusBar, 밀도 B 26, {@link UiSizes}), 글자 text.secondary, 칸 사이 1px 구분선. 바탕은 그리지 않는다(투명):
+ *     상태 표시줄이 연결 색이나 캔버스를 칠한다. 상태 아이콘 16은 아이콘 팩의 메시지 아이콘이고,
  *     실행 전에는 연결 아이콘(연결되어 있으면 초록 상태 점)이라 연결 상태를 보인다.</li>
  *     <li>서버는 호스트[:포트], 호스트가 없는 파일 DB는 파일 이름이다. 전체 경로·URL과 DB 제품 버전은 도구 설명에 둔다(SSMS의 "서버 (버전)"을 줄이지 않고 보이면 칸이 길어진다).
  *     빈 칸(사용자가 없는 SQLite, 기본 DB/스키마를 모르는 연결)은 숨긴다.</li>
- *     <li>커밋 방식(2026-11-07 사용자 요청): 쿼리 창 실행 문맥의 자동 커밋/수동 커밋. 실행 문맥은 창마다(연결마다) 다르므로 메인 창 상태 표시줄(작업 공간 전체의
- *     연결 수)이 아니라 연결의 서버·사용자·DB가 있는 이 줄에 둔다. 값은 쿼리 창이 작업 스레드에서 읽어 넣고({@code SqlEditorPanel#refreshTransactionMode}),
+ *     <li>커밋 방식(2026-11-07 사용자 요청): 쿼리 창 실행 문맥의 자동 커밋/수동 커밋. 실행 문맥은 창마다(연결마다) 다르므로 연결의 서버·사용자·DB가 있는
+ *     이 칸들에 둔다(활성 쿼리 창의 것이 메인 창 상태 표시줄에 보인다). 값은 쿼리 창이 작업 스레드에서 읽어 넣고({@code SqlEditorPanel#refreshTransactionMode}),
  *     연결되어 있지 않으면 칸을 숨긴다(빨간 점을 보이지 않는다). 글자 앞의 점은 자동 커밋이면 초록(status.success), 수동 커밋이면 빨강(status.error)이고
  *     글자도 함께 보여 색만으로 구별하지 않는다(사용자 요청). 보이는 값은 열린 세션의 실제 상태이고, 연결 설정에 저장한 값과 다르면(다음 연결부터 적용)
  *     도구 설명에 적는다. 수동 커밋의 도구 설명은 COMMIT이 필요하다고 알린다.
@@ -70,13 +71,16 @@ import java.util.Objects;
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>폭이 모자라면 서버 칸이 먼저 줄어든다({@link LineLayout}): 서버 칸은 도구 설명에 전체 위치와 버전이 있지만 상태 문구(오류, 취소)는
  *     다른 곳에 없다. 서버 칸은 최소 폭(64)까지 줄임표로 줄고, 그래도 모자라면 빠진다(연결은 도구 막대와 탭 제목에 있다). 그 뒤에야 상태 문구가 잘린다.</li>
- *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
+ *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이고 메인 창 상태 표시줄 전체를 그 색으로 칠한다(2026-11-08 사용자 결정).
+ *     이 줄은 색을 정해 {@link #BAND_PROPERTY}로 알리기만 하고 칠하는 것은 상태 표시줄이다. 색이 없는 연결(기본 Development)은 캔버스 그대로다.
  *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
- *     테마 글자 색이 띠와 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 줄의 모든 글자를 대비 색({@link ConnectionColors#getTextColor})으로 그린다.
+ *     테마 글자 색이 띠와 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 줄의 모든 글자를 대비 색({@link ConnectionColors#getTextColor})으로 그린다
+ *     (상태 표시줄의 업데이트 진행 글자도 같은 색, {@link #getBandForeground}).
  *     라벨에 색을 설정하지 않고 그릴 때 읽는 색을 바꾼다({@link BandLabel#getForeground}). 테마를 바꿀 때 부모의 {@code updateUI}가 자식보다 먼저 불려
  *     설정한 색이 자식의 테마 색으로 덮이기 때문이다. 같은 이유로 칸의 보조 글자 색도 FlatLaf 스타일({@code foreground: $Chromite.secondaryForeground}) 대신
  *     여기서 읽는다: FlatLaf 스타일은 리플렉션으로 {@code getForeground}를 부르는데 이 번들 밖에서 접근할 수 없는 클래스의 메서드라 스타일 적용이 실패한다.</li>
- *     <li>줄은 편집기마다 하나이고 메인 창이 Results 카드 아래쪽(쿼리 창 맨 아래, Results가 숨겨져 있으면 문서 카드 아래쪽)에 활성 편집기의 줄을 끼운다(결과와 같은 방식, {@link MainFrame}).</li>
+ *     <li>줄은 편집기마다 하나이고 메인 창이 활성 쿼리 창의 줄을 메인 창 상태 표시줄에 끼운다({@link MainFrame}, 2026-11-08 사용자 요청
+ *     "결과 표 아래 상태표시줄에 나타나는 항목들을 화면전체 상태표시줄로 옮긴다"). 쿼리 창이 아니면(빈 문서 영역, DDL 탭, 도구 문서) 상태 표시줄은 작업 공간 연결 수다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -95,6 +99,8 @@ import java.util.Objects;
  *   상태 문구가 "…"로 잘렸다 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 촘촘한 모드: 칸 테두리가 줄 높이와 글자 줄을 그때마다 읽음(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 열린 트랜잭션 칸: "확인할 수 없음" 문구와 도구 설명의 쥔 것 줄 (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-08 메인 창 상태 표시줄로 옮김(앱 변경 #2): 바탕과 위 1px 선을 그리지 않고 연결 색을 상태 표시줄에 알림({@link #BAND_PROPERTY}),
+ *   높이는 size.statusBar(size.statusLine.query 삭제) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -120,6 +126,11 @@ final class QueryStatusLine extends JPanel {
         void showLog();
     }
 
+    /**
+     * Property fired when the connection color or the text color on it may have changed ({@link #getBandColor()},
+     * {@link #getBandForeground()}).
+     */
+    static final String BAND_PROPERTY = "chromite.band"; //$NON-NLS-1$
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
     /**
      * Narrowest elided server segment: its padding and a few characters with the ellipsis. Below it the segment is left
@@ -151,6 +162,11 @@ final class QueryStatusLine extends JPanel {
     @Nullable
     private OpenTransactionActions openTransactionActions;
     /**
+     * The connection's color, or {@code null} when it has none.
+     */
+    @Nullable
+    private Color bandColor;
+    /**
      * Text color of every label when the theme's text is unreadable on the connection color, else {@code null}.
      */
     @Nullable
@@ -158,6 +174,8 @@ final class QueryStatusLine extends JPanel {
 
     QueryStatusLine() {
         setLayout(new LineLayout());
+        // The status bar behind it paints the background (the connection color or the canvas)
+        setOpaque(false);
         stateLabel.setIconTextGap(UIScale.scale(6));
         stateLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
         add(stateLabel);
@@ -193,31 +211,41 @@ final class QueryStatusLine extends JPanel {
     }
 
     @Override
-    public Dimension getPreferredSize() {
-        Dimension size = super.getPreferredSize();
-        return new Dimension(size.width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + 1);
-    }
-
-    @Override
     public void updateUI() {
         super.updateUI();
-        // bg.chrome with a border.subtle line above; recreated on theme changes because the colors come from the theme
+        // The type colors differ between the light and the dark theme
         applyConnectionColor();
-        setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, getLineColor()));
     }
 
     /**
-     * The connection's color (custom or connection type) as the background, like the query window status bar
-     * colored by a connection's custom color; the card background when the connection has none. Also picks the text
-     * color of the labels on it ({@link #bandForeground}).
+     * The connection's color (custom or connection type), which the main window's status bar paints behind the line,
+     * and the text color of the labels on it ({@link #bandForeground}). Tells the status bar ({@link #BAND_PROPERTY}).
      */
     private void applyConnectionColor() {
         Color color = container == null ? null : ConnectionColors.getColor(container.getConnectionConfiguration());
-        setBackground(color != null ? color : UIManager.getColor("Panel.background")); //$NON-NLS-1$
+        bandColor = color;
         Color foreground = UIManager.getColor("Label.foreground"); //$NON-NLS-1$
         Color text = color == null || foreground == null ? null : ConnectionColors.getTextColor(color, foreground);
         bandForeground = text == null || text.equals(foreground) ? null : text;
+        // Fired also when nothing changed: the status bar takes both colors again
+        firePropertyChange(BAND_PROPERTY, null, color);
         repaint();
+    }
+
+    /**
+     * The connection's color the status bar is painted with, or null for a connection without one (the canvas then).
+     */
+    @Nullable
+    Color getBandColor() {
+        return bandColor;
+    }
+
+    /**
+     * Text color for everything on the band when the theme's text is unreadable on it, else null.
+     */
+    @Nullable
+    Color getBandForeground() {
+        return bandForeground;
     }
 
     void setState(@NotNull State state, @NotNull String text) {
@@ -477,7 +505,7 @@ final class QueryStatusLine extends JPanel {
                 @Override
                 public void paintBorder(Component c, Graphics g, int x, int y, int width, int borderHeight) {
                     // The separator is half the line high
-                    int lineInset = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) / 4;
+                    int lineInset = UiSizes.get(UiSizes.STATUS_BAR_HEIGHT) / 4;
                     g.setColor(getLineColor());
                     g.fillRect(x, y + lineInset, 1, Math.max(0, borderHeight - 2 * lineInset));
                 }
@@ -490,7 +518,7 @@ final class QueryStatusLine extends JPanel {
             new AbstractBorder() {
                 @Override
                 public Insets getBorderInsets(Component c, Insets insets) {
-                    int height = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT);
+                    int height = UiSizes.get(UiSizes.STATUS_BAR_HEIGHT);
                     int textHeight = c.getFontMetrics(c.getFont()).getHeight();
                     int top = Math.max(0, (height - textHeight) / 2);
                     int bottom = Math.max(0, height - textHeight - top);
@@ -527,13 +555,13 @@ final class QueryStatusLine extends JPanel {
                     width += component.getPreferredSize().width;
                 }
             }
-            return new Dimension(width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + insets.top + insets.bottom);
+            return new Dimension(width, UiSizes.get(UiSizes.STATUS_BAR_HEIGHT) + insets.top + insets.bottom);
         }
 
         @Override
         public Dimension minimumLayoutSize(Container parent) {
             Insets insets = parent.getInsets();
-            return new Dimension(insets.left + insets.right, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + insets.top + insets.bottom);
+            return new Dimension(insets.left + insets.right, UiSizes.get(UiSizes.STATUS_BAR_HEIGHT) + insets.top + insets.bottom);
         }
 
         @Override

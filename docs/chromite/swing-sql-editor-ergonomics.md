@@ -25,7 +25,7 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 | `SqlEditCommands` | Edit &gt; Advanced에 새 항목(블록 주석, 공백 다듬기, 구분 목록, 소스 코드로 복사, 웹에서 찾기, 자동 줄 바꿈, 접기) |
 | `SqlCompletionPopup` | 제안 설명 창(목록 옆 두 번째 창) |
 | `SqlCompletionAnalysis` | 문장의 의미 모델 만들기를 `recognizeStatement`로 떼어 자동완성과 이름 탐색이 같이 씀. `Proposal.getObject()` |
-| `QueryResultsView` | 결과 고정: 고정 탭, 닫기 확인, 지금 결과만의 변경 수(`getCurrentChangeCount`) |
+| `QueryResultsView` | 결과 고정: 고정 탭(2026-11-08부터 고른 결과 탭 하나), 닫기 확인, 지울 결과만의 변경 수(`getCurrentChangeCount`) |
 | `ToolWindow.SplitHost` | Results를 문서 옆에 놓기(`setBeside`), 최대화(`setMaximized`) |
 | `MainFrame` | Outline 도구 창, Query &gt; Pin Results, View &gt; Results Beside Editor·Maximize Results, Ctrl+클릭한 개체를 Object Explorer에 보이기 |
 | `EditorMessages`, `CoreMessages` (+ `_ko`) | 새 문구(영어·한국어) |
@@ -70,7 +70,8 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 
 ### Outline (S28)
 
-- SWT Outline 보기처럼 스크립트를 탐색하는 도구 창이다. 오른쪽 열(Properties 위)에 처음에는 숨겨 둔다.
+- SWT Outline 보기처럼 스크립트를 탐색하는 도구 창이다. 오른쪽 열(Properties 위)에 처음에는 숨겨 둔다. 2026-11-08부터는 열면 오른쪽 열 위쪽
+  Query Library 자리의 탭이다(없으면 Properties의 탭, 둘 다 없으면 Chromite Agent 위, [swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent").
 - 문장 목록은 접기와 같은 `SqlFoldParser.findStatements`다. 연결 없는 창에서도 되고, 접기 범위와 목록이 같다.
 - 문장마다 줄 번호와 주석을 뺀 첫 줄을 보인다. SWT는 문장 안의 구조(SELECT 목록, FROM 표)까지 나무로 보였는데 그것은 옮기지 않았다.
 - 문서가 바뀌면 0.4초 뒤 다시 만들고, 커서가 있는 문장을 고른다. 도구 창이 숨어 있으면 만들지 않는다.
@@ -121,12 +122,15 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 
 ### 결과 고정 (S3)
 
-- Query &gt; Pin Results는 지금 결과 표들을 고정 탭으로 옮긴다. 다음 실행은 고정 탭을 지우지 않고 첫 탭(Results)에 결과를 낸다.
-  SWT의 "탭 고정 → 다음 실행은 새 탭"과 같은 결과다.
-- 고정 탭이 있을 때만 Results 안에 탭 줄이 생긴다. 고정 탭은 닫을 수 있고, 저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel).
+- 2026-11-08부터 결과는 결과 집합마다 탭(Result1, Result2…)이다([swing-frontend.md](swing-frontend.md) "결과 탭"). 그래서 고정의 단위도 결과 탭 하나다.
+- Query &gt; Pin Results는 고른 결과 탭(Messages 같은 다른 탭이 앞이면 마지막으로 고른 결과 탭)을 고정한다. 탭은 그 자리에 남고 핀 아이콘과 고정 시각
+  (`Result3 (23:15:58)`)이 붙는다. 다음 실행은 고정하지 않은 결과 탭만 지우고 새 결과(번호는 1부터)를 고정 탭 앞에 낸다.
+  SWT의 "탭 고정 → 다음 실행은 새 탭"과 같은 결과다. 이미 고정한 탭이면 상태 줄에 알린다.
+- 고정 탭은 닫을 수 있고, 저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel). (전에는 지금 결과 표 전부를 고정 탭 하나로 옮기고, 고정 탭이 있을 때만
+  Results 안에 탭 줄이 생겼다.)
 - 고정 결과도 필터·정렬·다음 페이지·저장이 그대로 된다(결과 표가 자기 문맥과 다시 읽을 쿼리를 가짐). 창을 닫을 때의 저장 질문에 들어가고,
-  다시 실행 전의 "버리고 실행" 질문은 지금 결과만 센다. 상태 줄 행 수도 지금 결과다.
-- 실행 중에는 고정하지 않는다(실행이 아직 표를 더하는 중).
+  다시 실행 전의 "버리고 실행" 질문은 지울 결과(고정하지 않은 결과 탭)만 센다. 상태 줄 행 수는 고른 결과 탭의 행 수다.
+- 실행 중에는 고정하지 않는다(실행이 아직 결과 탭을 더하는 중).
 
 ### 결과 배치 (S44)
 
@@ -176,3 +180,5 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 ## 변경 이력
 
 - 2026-11-08 최초 작성: S3, S28, S31, S33, S34, S35, S37, S44 (`chromite/p4-editor-ergonomics`)
+- 2026-11-08 결과 고정(S3): 결과 집합마다 탭이 되어 고른 결과 탭 하나를 고정(핀 아이콘, 고정 시각), 새 결과는 고정 탭 앞(앱 변경 #7, `chromite/result-tabs`)
+- 2026-11-08 Outline 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위(`chromite/ui-layout`)
