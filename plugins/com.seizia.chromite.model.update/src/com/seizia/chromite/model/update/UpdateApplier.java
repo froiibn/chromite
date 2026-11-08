@@ -22,6 +22,7 @@ import org.jkiss.code.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
@@ -38,8 +39,9 @@ import java.util.Map;
  * <ul>
  *     <li>Windows: PowerShell 5.1에 스크립트를 {@code -EncodedCommand}로 넘긴다(스크립트 파일이 없어 실행 정책과 상관없음).
  *     경로와 값은 환경 변수로만 넘긴다. 도우미는 앱이 끝나기를 기다리고({@value #WAIT_SECONDS}초까지), 설치 파일의 SHA-256을
- *     한 번 더 보고(앱이 확인한 뒤 바뀌지 않았는지), {@code setup.exe /S}(조용한 설치, 같은 폴더에 덮어씀)를 실행하고
- *     끝나기를 기다린다. 설치 프로그램은 앱을 띄우지 않는다(종료 코드 0 완료, 1 취소, 2 실패, 실패하면 아무것도 바꾸지 않음,
+ *     한 번 더 보고(앱이 확인한 뒤 바뀌지 않았는지), {@code setup.exe /CurrentUser /S}(조용한 설치, 같은 폴더에 덮어씀)를 실행하고
+ *     끝나기를 기다린다. 모든 사용자 설치는 {@code /AllUsers /S}를 셸의 {@code runas}로 관리자 권한으로 실행한다({@link #RUN_INSTALLER},
+ *     UAC 거부는 {@value #RESULT_ELEVATION_REFUSED}). 설치 프로그램은 앱을 띄우지 않는다(종료 코드 0 완료, 1 취소, 2 실패, 실패하면 아무것도 바꾸지 않음,
  *     docs/chromite/distribution.md). 다시 시작을 골랐으면 설치 결과와 상관없이 런처를 다시 띄운다(실패면 이전 버전이 뜬다).
  *     다시 띄울 때 작업 폴더는 설치 폴더다(시작 메뉴 바로 가기와 같게. 2026-11-07 현재 작업 공간 위치가 작업 폴더를 따르는 문제가 있어
  *     다른 작업에서 고치는 중이고, 고친 뒤에도 해가 없다). 도우미 자신의 작업 폴더는 업데이트 폴더다(설치 폴더를 붙잡지 않게).</li>
@@ -47,7 +49,9 @@ import java.util.Map;
  *     ({@link #takeOutcome}). 설치하지 못했으면 화면이 알린다.</li>
  *     <li>macOS: 셸 스크립트({@value #MAC_HELPER})를 업데이트 폴더에 쓰고 {@code /bin/sh}로 띄운다. 경로는 스크립트 글이 아니라
  *     인자로 넘긴다. 앱이 끝나면 지금 앱 묶음을 {@code <updates>/before-<새 버전>/}로 옮기고(되돌리기용), 확인한 새 앱 묶음을 같은
- *     경로로 옮긴다. 새 앱을 옮기지 못하면 옛 앱을 제자리로 돌린다. 다른 것은 지우지 않는다.</li>
+ *     폴더에 zip 안의 이름으로 옮긴다({@link #macTarget}: 0.1.3까지의 {@code ChromiteSwing.app}은 {@code Chromite.app}이 된다. 그 이름이
+ *     이미 있으면 다른 복사본을 건드리지 않고 지금 앱의 자리로). 새 앱을 옮기지 못하면 옛 앱을 제자리로 돌린다. 다른 것은 지우지 않는다.
+ *     다시 시작이면 새 앱의 경로를 연다.</li>
  *     <li>잠금 파일({@value #LOCK_FILE}): 도우미의 PID를 적어 두고, 도우미가 다시 띄우기 직전에 지운다. 그사이 사용자가 Chromite를
  *     다시 열면 {@link #isRunning}이 참이라 시작하지 않는다(설치 중인 파일을 쓰지 않게). 오래된 잠금({@value #LOCK_MINUTES}분)이나
  *     끝난 PID의 잠금은 버린다(PID 재사용으로 영영 열리지 않는 일이 없게).</li>
@@ -63,6 +67,10 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md "적용")
  * - 2026-11-08 앱의 사본을 도우미와 같은 잠금으로 띄움({@link #startWindowCopy}), 결과를 지우지 않고 읽기({@link #peekOutcome}, 업데이트 뒤
  *   첫 시작의 판단) (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 macOS: 새 앱 묶음을 zip 안의 이름으로 놓음({@link #macTarget}, {@code ChromiteSwing.app} → {@code Chromite.app})
+ *   (docs/chromite/auto-update.md "적용")
+ * - 2026-11-09 Windows 설치 범위: 모든 사용자 설치는 설치 프로그램을 관리자 권한으로 실행({@link #RUN_INSTALLER}), 사용자별 설치는
+ *   {@code /CurrentUser}를 명시 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 public final class UpdateApplier {
 
@@ -81,6 +89,7 @@ public final class UpdateApplier {
     private static final String V_DRY_RUN = "CHROMITE_UPDATE_DRYRUN"; //$NON-NLS-1$
     private static final String V_VERSION = "CHROMITE_UPDATE_VERSION"; //$NON-NLS-1$
     private static final String V_RESULT = "CHROMITE_UPDATE_RESULT"; //$NON-NLS-1$
+    private static final String V_ALL_USERS = "CHROMITE_UPDATE_ALLUSERS"; //$NON-NLS-1$
 
     static final String RESULT_FILE = "apply-result.json"; //$NON-NLS-1$
     /** The helper failed before or while running the installer. */
@@ -91,6 +100,42 @@ public final class UpdateApplier {
     static final int RESULT_NOT_ENDED = -3;
     /** macOS: the new bundle was missing, or the bundles could not be moved (the old app stays). */
     static final int RESULT_NOT_REPLACED = -4;
+    /** Windows, all users: the administrator prompt (UAC) was refused or cancelled; the installer did not run. */
+    static final int RESULT_ELEVATION_REFUSED = -5;
+    /** {@code ERROR_CANCELLED}: the shell's answer when the user does not allow the elevation. */
+    private static final int ERROR_CANCELLED = 1223;
+
+    /** The installer's scope switches (tools/installer/chromite.nsi) and its silent switch. */
+    static final String SWITCH_ALL_USERS = "/AllUsers"; //$NON-NLS-1$
+    static final String SWITCH_CURRENT_USER = "/CurrentUser"; //$NON-NLS-1$
+    static final String SWITCH_SILENT = "/S"; //$NON-NLS-1$
+
+    /**
+     * PowerShell: runs {@code $installer} with {@code $arguments} through the shell and waits for it; {@code $code} is
+     * its exit code. With {@code $elevate} the shell's {@code runas} verb asks for administrator rights (UAC): a refusal
+     * sets {@value #RESULT_ELEVATION_REFUSED}, any other failure is thrown. {@code Process.Start} with a verb is used
+     * instead of {@code Start-Process -Verb RunAs}: its exception carries the Win32 error code that tells a refusal.
+     * There is no own time limit for the prompt: ending the waiting process does not take the prompt away, and a yes
+     * given later would then start an installer nobody waits for. A prompt that Windows itself ends without a yes is
+     * expected to come back as the same {@code ERROR_CANCELLED} (not seen on a test PC: no prompt was shown there).
+     */
+    static final String RUN_INSTALLER = String.join("\n", //$NON-NLS-1$
+        "$psi = New-Object System.Diagnostics.ProcessStartInfo", //$NON-NLS-1$
+        "$psi.FileName = $installer", //$NON-NLS-1$
+        "$psi.Arguments = $arguments", //$NON-NLS-1$
+        "$psi.UseShellExecute = $true", //$NON-NLS-1$
+        "if ($elevate) { $psi.Verb = 'runas' }", //$NON-NLS-1$
+        "$refused = $false", //$NON-NLS-1$
+        "try { $proc = [System.Diagnostics.Process]::Start($psi) }", //$NON-NLS-1$
+        "catch {", //$NON-NLS-1$
+        "  $e = $_.Exception", //$NON-NLS-1$
+        "  while ($e -and -not ($e -is [System.ComponentModel.Win32Exception])) { $e = $e.InnerException }", //$NON-NLS-1$
+        "  if (-not $elevate -or -not $e -or $e.NativeErrorCode -ne " + ERROR_CANCELLED + ") { throw }", //$NON-NLS-1$ //$NON-NLS-2$
+        "  $refused = $true", //$NON-NLS-1$
+        "}", //$NON-NLS-1$
+        "if ($refused) { $code = " + RESULT_ELEVATION_REFUSED + " }", //$NON-NLS-1$ //$NON-NLS-2$
+        "elseif (-not $proc) { throw 'the installer did not start' }", //$NON-NLS-1$
+        "else { $proc.WaitForExit(); $code = [int]$proc.ExitCode }"); //$NON-NLS-1$
 
     /**
      * The Windows helper. {@code $launcher} is started again only when the app ended (else the new start would find
@@ -107,6 +152,10 @@ public final class UpdateApplier {
         "$installer = $env:" + V_INSTALLER, //$NON-NLS-1$
         "$version = $env:" + V_VERSION, //$NON-NLS-1$
         "$result = $env:" + V_RESULT, //$NON-NLS-1$
+        "$elevate = $env:" + V_ALL_USERS + " -eq '1'", //$NON-NLS-1$ //$NON-NLS-2$
+        "$arguments = if ($elevate) { '" + SWITCH_ALL_USERS + " " + SWITCH_SILENT + "' } else { '" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            + SWITCH_CURRENT_USER + " " + SWITCH_SILENT + "' }", //$NON-NLS-1$ //$NON-NLS-2$
+        "$how = $installer + ' ' + $arguments + $(if ($elevate) { ' (elevated)' } else { '' })", //$NON-NLS-1$
         "$ended = $false", //$NON-NLS-1$
         // (the outcome for the next start: the setup's exit code, or one of the RESULT_* values)
         "$code = " + RESULT_HELPER_FAILED, //$NON-NLS-1$
@@ -121,11 +170,10 @@ public final class UpdateApplier {
         "      $h = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()", //$NON-NLS-1$
         "      if ($h -ne $env:" + V_SHA256 + ") { $code = " + RESULT_CHANGED //$NON-NLS-1$ //$NON-NLS-2$
             + "; Say 'the installer changed after its check: nothing changed' }", //$NON-NLS-1$
-        "      elseif ($env:" + V_DRY_RUN + " -eq '1') { $code = 0; Say ('test mode: not run: ' + $installer) }", //$NON-NLS-1$ //$NON-NLS-2$
+        "      elseif ($env:" + V_DRY_RUN + " -eq '1') { $code = 0; Say ('test mode: not run: ' + $how) }", //$NON-NLS-1$ //$NON-NLS-2$
         "      else {", //$NON-NLS-1$
-        "        Say ('running ' + $installer + ' /S')", //$NON-NLS-1$
-        "        $r = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru", //$NON-NLS-1$
-        "        $code = [int]$r.ExitCode", //$NON-NLS-1$
+        "        Say ('running ' + $how)", //$NON-NLS-1$
+        RUN_INSTALLER,
         "        Say ('installer exit code ' + $code)", //$NON-NLS-1$
         "      }", //$NON-NLS-1$
         "    }", //$NON-NLS-1$
@@ -138,7 +186,7 @@ public final class UpdateApplier {
         "}", //$NON-NLS-1$
         "if ($ended -and $launcher) {", //$NON-NLS-1$
         "  foreach ($n in '" + V_PID + "','" + V_INSTALLER + "','" + V_SHA256 + "','" + V_LAUNCHER + "','" + V_LOG + "','" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-            + V_LOCK + "','" + V_DRY_RUN + "','" + V_VERSION + "','" + V_RESULT //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            + V_LOCK + "','" + V_DRY_RUN + "','" + V_VERSION + "','" + V_RESULT + "','" + V_ALL_USERS //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
             + "') { Remove-Item -LiteralPath ('Env:' + $n) -ErrorAction SilentlyContinue }", //$NON-NLS-1$
         // (the installation folder as the working directory, as the Start menu shortcut does)
         "  try { Start-Process -FilePath $launcher -WorkingDirectory (Split-Path -LiteralPath $launcher); Say 'started again' }" //$NON-NLS-1$
@@ -147,13 +195,15 @@ public final class UpdateApplier {
 
     /**
      * The macOS helper. Arguments: $1 the app's process id, $2 the app bundle, $3 the new bundle (empty: restart
-     * only), $4 where the bundle goes aside, $5 1 = start it again, $6 the log, $7 the lock file, $8 the new
-     * version, $9 the result file (code 0 replaced, -3 the app did not end, -4 not replaced).
+     * only), $4 where the new bundle goes (the app bundle, or a new name in its folder), $5 where the bundle goes
+     * aside, $6 1 = start it again, $7 the log, $8 the lock file, $9 the new version, ${10} the result file (code 0
+     * replaced, -3 the app did not end, -4 not replaced). A new name that is taken by then (another copy) is not used:
+     * the new bundle takes the app's own place, as without a new name.
      */
     static final String MAC_HELPER_SCRIPT = """
         #!/bin/sh
         # Chromite: replaces the app once it has ended (written by the app: UpdateApplier)
-        pid=$1 app=$2 next=$3 aside=$4 restart=$5 log=$6 lock=$7 version=$8 result=$9
+        pid=$1 app=$2 next=$3 target=$4 aside=$5 restart=$6 log=$7 lock=$8 version=$9 result=${10}
         say() { printf '%s %s\\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$log"; }
         outcome() { [ -n "$next" ] && printf '{"version":"%s","code":%s}\\n' "$version" "$1" > "$result"; }
         n=0
@@ -163,23 +213,28 @@ public final class UpdateApplier {
           sleep 0.2
         done
         say "the app ended"
+        started=$app
         if [ -n "$next" ]; then
+          if [ "$target" != "$app" ] && { [ -e "$target" ] || [ -L "$target" ]; }; then
+            say "$target exists: the new app takes the place of $app"; target=$app
+          fi
           if [ ! -d "$next" ]; then
             say "no new app: nothing changed"; outcome -4
           elif ! mkdir -p "$(dirname "$aside")" || ! rm -rf "$aside"; then
             say "no place aside: nothing changed"; outcome -4
           elif ! mv "$app" "$aside"; then
             say "the app could not be moved aside: nothing changed"; outcome -4
-          elif ! mv "$next" "$app"; then
+          elif ! mv "$next" "$target"; then
             mv "$aside" "$app"
             say "the new app could not be moved in: the app is back"; outcome -4
           else
-            say "replaced"; outcome 0
+            started=$target
+            say "replaced: $target"; outcome 0
           fi
         fi
         rm -f "$lock"
         if [ "$restart" = 1 ]; then
-          /usr/bin/open "$app" && say "started again"
+          /usr/bin/open "$started" && say "started again"
         fi
         exit 0
         """; //$NON-NLS-1$
@@ -191,6 +246,7 @@ public final class UpdateApplier {
      * Starts the Windows helper, which runs {@code installer} (null: restart only) once this process has ended.
      *
      * @param launcher the program to start again, null for none
+     * @param allUsers an installation for all users: the installer runs elevated
      */
     static void startWindowsHelper(
         @NotNull Path folder,
@@ -198,7 +254,8 @@ public final class UpdateApplier {
         @Nullable String sha256,
         @Nullable String version,
         @Nullable Path launcher,
-        boolean dryRun
+        boolean dryRun,
+        boolean allUsers
     ) throws IOException {
         Files.createDirectories(folder);
         Files.deleteIfExists(folder.resolve(RESULT_FILE));
@@ -213,18 +270,22 @@ public final class UpdateApplier {
         env.put(V_LOG, folder.resolve(LOG_FILE).toString());
         env.put(V_LOCK, lock.toString());
         env.put(V_DRY_RUN, dryRun ? "1" : "0"); //$NON-NLS-1$ //$NON-NLS-2$
+        env.put(V_ALL_USERS, allUsers ? "1" : "0"); //$NON-NLS-1$ //$NON-NLS-2$
         start(List.of(WindowsUpdateVerifier.powerShell(), "-NoLogo", "-NoProfile", "-NonInteractive", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             "-WindowStyle", "Hidden", "-EncodedCommand", UpdateProcess.encodePowerShell(WINDOWS_HELPER)), env, lock); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     /**
-     * Starts the macOS helper, which moves {@code next} (null: restart only) into {@code app}'s place once this
-     * process has ended.
+     * Starts the macOS helper, which moves {@code app} aside and {@code next} (null: restart only) to {@code target}
+     * once this process has ended.
+     *
+     * @param target where the new bundle goes ({@link #macTarget}); the app that is started again
      */
     static void startMacHelper(
         @NotNull Path folder,
         @NotNull Path app,
         @Nullable Path next,
+        @NotNull Path target,
         @NotNull Path aside,
         @Nullable String version,
         boolean restart
@@ -235,10 +296,25 @@ public final class UpdateApplier {
         Files.writeString(script, MAC_HELPER_SCRIPT, StandardCharsets.UTF_8);
         Path lock = folder.resolve(LOCK_FILE);
         start(List.of("/bin/sh", script.toString(), Long.toString(ProcessHandle.current().pid()), app.toString(), //$NON-NLS-1$
-            next != null ? next.toString() : "", aside.toString(), restart ? "1" : "0", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            next != null ? next.toString() : "", target.toString(), aside.toString(), restart ? "1" : "0", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             folder.resolve(LOG_FILE).toString(), lock.toString(),
             version != null && UpdateVersion.isValid(version) ? version : "", folder.resolve(RESULT_FILE).toString()), //$NON-NLS-1$
             Map.of(), lock);
+    }
+
+    /**
+     * Where the new bundle {@code next} goes (macOS): under its own name beside {@code app}, so that a
+     * {@code ChromiteSwing.app} (0.1.3 and earlier) becomes {@code Chromite.app}; in {@code app}'s place when the names
+     * are the same, when there is no new bundle, or when the new name is taken (another copy, never replaced).
+     */
+    @NotNull
+    static Path macTarget(@NotNull Path app, @Nullable Path next) {
+        if (next == null || next.getFileName() == null || app.getFileName() == null
+            || next.getFileName().toString().equals(app.getFileName().toString())) {
+            return app;
+        }
+        Path target = app.resolveSibling(next.getFileName().toString());
+        return Files.exists(target, LinkOption.NOFOLLOW_LINKS) ? app : target;
     }
 
     /**

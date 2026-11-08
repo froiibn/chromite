@@ -18,12 +18,27 @@
 ; and generates the file list. Design and decisions: docs/chromite/distribution.md.
 ;
 ; Design:
-;   * Per-user install (%LOCALAPPDATA%\Programs\Chromite, HKCU, no administrator rights) so that the
-;     in-app updater can run "setup.exe /S" after Chromite exits without an elevation prompt.
+;   * Two install scopes, as NSIS MultiUser (user decision 2026-11-08, "Program Files by default, with a
+;     choice"): all users (default; $PROGRAMFILES64\Chromite, HKLM, all-users shortcuts, administrator
+;     rights) or only the current user (%LOCALAPPDATA%\Programs\Chromite, HKCU, no administrator rights).
+;     Switches /AllUsers and /CurrentUser; without one an existing installation keeps its scope (HKCU
+;     first: 0.1.3 and earlier were per-user), else all users. An existing installation is upgraded in
+;     its folder (/D= and the folder page do not apply): never a second copy. A switch that names the
+;     other scope of an existing installation fails (exit code 2).
+;   * MultiUser.nsh itself is not used: its mixed mode needs RequestExecutionLevel highest, and then
+;     every start of the setup by an administrator asks for elevation, also the per-user updates the
+;     updater runs as a child (CreateProcess cannot start it at all: ERROR_ELEVATION_REQUIRED) and the
+;     0.1.3 updater's "setup.exe /S". So the setup runs as invoker, and only the all-users scope asks:
+;     interactive, the setup starts itself again with the shell's "runas" verb (UAC) and /AllUsers;
+;     silent without administrator rights it fails with exit code 2 (the updater starts it elevated).
+;   * The uninstaller removes its own scope only: all users when the HKLM entry names its folder, else
+;     the current user. An all-users uninstall started without administrator rights starts itself again
+;     with "runas".
 ;   * User data is not in the install folder: the workspace is %APPDATA%\ChromiteData
 ;     (RuntimeUtils.getWorkingDirectory, ChromiteSwingApplication.lockWorkspace). The install folder
-;     holds program files and the OSGi cache (configuration\) only, so an upgrade replaces the whole
-;     program and keeps the user's data.
+;     holds program files and the OSGi cache (configuration\, written by Chromite only when the folder
+;     is writable; in Program Files Equinox keeps it in the user's home) only, so an upgrade replaces
+;     the whole program and keeps the user's data.
 ;   * Upgrade in place (also a downgrade, for rollback): the installed uninstaller removes its own
 ;     program files first ("/UPGRADE": shortcuts and the Apps entry stay), then the new files are
 ;     copied. A file list that changed between versions therefore leaves nothing stale behind.
@@ -35,7 +50,8 @@
 ;     uninstall.exe carry our signature (release.yml).
 ;   * Silent mode (/S): no question at all. A running Chromite is waited for (60 s), then the setup
 ;     fails with exit code 2 and changes nothing. The setup never starts Chromite in silent mode;
-;     the updater does that after the setup's exit code 0.
+;     the updater does that after the setup's exit code 0. An elevated setup starts Chromite (finish
+;     page) through Explorer, so that Chromite runs as the signed-in user, not as administrator.
 ;
 ; Defines (all from build-installer.ps1):
 ;   VERSION        product version, major.minor.dev (docs/chromite/versioning.md)
@@ -45,12 +61,17 @@
 ;   ICON           product/swing/icons/chromite.ico
 ;   INNER          pass 1: write the uninstaller to UNINSTALLER_OUT and quit
 ;   UNINSTALLER    pass 2: the (signed) uninstaller to embed
+;   INSTANCE       (optional, test builds only) the name of the Apps entry, the shortcuts and the default
+;                  folder, so that a test installation never touches a real one; default Chromite
 ;
 ; Change history:
 ; - 2026-11-07 Created (Windows installer, silent upgrade for the in-app updater).
+; - 2026-11-09 Install scope: all users (Program Files, default) or current user, /AllUsers and
+;              /CurrentUser, elevation by "runas", scope-aware uninstall (docs/chromite/distribution.md).
 
 Unicode true
 ManifestDPIAware true
+; As invoker: only the all-users scope asks for elevation (see "Design")
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 SetCompressorDictSize 64
@@ -79,13 +100,13 @@ SetCompressorDictSize 64
 ; The JVM library is loaded by both launchers (chromite-swing.exe, chromite-swingc.exe): while either
 ; runs it cannot be opened for writing.
 !define RUNNING_PROBE "jre\bin\server\jvm.dll"
-!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite"
+!define /ifndef INSTANCE "${PRODUCT}"
+!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${INSTANCE}"
 !define SITE "https://chromite.seizia.com"
 
 Name "${PRODUCT}"
 OutFile "${OUT_FILE}"
-InstallDir "$LOCALAPPDATA\Programs\${PRODUCT}"
-InstallDirRegKey HKCU "${UNINST_KEY}" "InstallLocation"
+; No InstallDir: .onInit chooses the folder by scope (an empty $INSTDIR there means no /D=)
 BrandingText "${PRODUCT} ${VERSION}"
 ShowInstDetails nevershow
 ShowUninstDetails nevershow
@@ -104,6 +125,7 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "Copyright (C) 2026 Chromite contributo
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
 !include "Sections.nsh"
+!include "nsDialogs.nsh"
 
 !define MUI_ICON "${ICON}"
 !define MUI_UNICON "${ICON}"
@@ -111,12 +133,15 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "Copyright (C) 2026 Chromite contributo
 !define MUI_COMPONENTSPAGE_NODESC
 
 !ifndef INNER
+  Page custom ScopePage ScopeLeave
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE DirectoryPre
   !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DirectoryLeave
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_INSTFILES
-  !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE}"
+  !define MUI_FINISHPAGE_RUN
   !define MUI_FINISHPAGE_RUN_TEXT "$(LangRun)"
+  !define MUI_FINISHPAGE_RUN_FUNCTION StartChromite
   !insertmacro MUI_PAGE_FINISH
 !endif
 
@@ -137,12 +162,46 @@ LangString LangRunning ${LANG_ENGLISH} "${PRODUCT} is running. Close it, then se
 LangString LangRunning ${LANG_KOREAN} "${PRODUCT}이(가) 실행 중입니다. 종료한 뒤 [다시 시도]를 누르세요."
 LangString LangNotEmpty ${LANG_ENGLISH} "The folder $INSTDIR is not empty and holds no ${PRODUCT} installation. Choose an empty folder."
 LangString LangNotEmpty ${LANG_KOREAN} "$INSTDIR 폴더가 비어 있지 않고 ${PRODUCT} 설치 폴더도 아닙니다. 빈 폴더를 고르세요."
+LangString LangScopeTitle ${LANG_ENGLISH} "Installation Scope"
+LangString LangScopeTitle ${LANG_KOREAN} "설치 범위"
+LangString LangScopeSubtitle ${LANG_ENGLISH} "Choose who uses ${PRODUCT} on this computer."
+LangString LangScopeSubtitle ${LANG_KOREAN} "이 컴퓨터에서 ${PRODUCT}을(를) 쓸 사용자를 고르세요."
+LangString LangScopeAll ${LANG_ENGLISH} "Anyone who uses this computer (recommended)"
+LangString LangScopeAll ${LANG_KOREAN} "이 컴퓨터의 모든 사용자 (권장)"
+LangString LangScopeAllNote ${LANG_ENGLISH} "Installs to Program Files. Administrator rights are needed to install and to update."
+LangString LangScopeAllNote ${LANG_KOREAN} "Program Files에 설치합니다. 설치와 업데이트에 관리자 권한이 필요합니다."
+LangString LangScopeMe ${LANG_ENGLISH} "Only for me"
+LangString LangScopeMe ${LANG_KOREAN} "나만 사용"
+LangString LangScopeMeNote ${LANG_ENGLISH} "Installs to your user folder (%LOCALAPPDATA%\Programs). No administrator rights are needed."
+LangString LangScopeMeNote ${LANG_KOREAN} "내 사용자 폴더(%LOCALAPPDATA%\Programs)에 설치합니다. 관리자 권한이 필요 없습니다."
+LangString LangElevationRefused ${LANG_ENGLISH} "The administrator prompt was cancelled, so ${PRODUCT} was not installed for all users. Try again, or choose Only for me."
+LangString LangElevationRefused ${LANG_KOREAN} "관리자 확인이 취소되어 모든 사용자용으로 설치하지 못했습니다. 다시 시도하거나 [나만 사용]을 고르세요."
+LangString LangUninstallRefused ${LANG_ENGLISH} "The administrator prompt was cancelled, so ${PRODUCT} was not uninstalled."
+LangString LangUninstallRefused ${LANG_KOREAN} "관리자 확인이 취소되어 ${PRODUCT}을(를) 제거하지 못했습니다."
+LangString LangInstalledForMe ${LANG_ENGLISH} "${PRODUCT} is already installed only for you. To install it for all users, uninstall that copy first."
+LangString LangInstalledForMe ${LANG_KOREAN} "${PRODUCT}이(가) 이미 나만 사용으로 설치되어 있습니다. 모든 사용자용으로 설치하려면 먼저 그 설치를 제거하세요."
+LangString LangInstalledForAll ${LANG_ENGLISH} "${PRODUCT} is already installed for all users. To install it only for you, uninstall that copy first."
+LangString LangInstalledForAll ${LANG_KOREAN} "${PRODUCT}이(가) 이미 모든 사용자용으로 설치되어 있습니다. 나만 사용으로 설치하려면 먼저 그 설치를 제거하세요."
 
 ; ---- shared by the installer and the uninstaller (un. prefix)
+
+; 1: all users (HKLM, all-users shortcuts), 0: the current user (HKCU)
+Var AllUsers
 
 ; Removes the program files listed in files.nsh (top-level entries of the product folder).
 !macro RemoveProgramFiles
   !include "${FILES_NSH}"
+!macroend
+
+; The shell context of the scope: shortcut folders, and SHCTX for the Apps entry (HKLM or HKCU).
+!macro SetScope UN
+Function ${UN}SetScope
+  ${If} $AllUsers == 1
+    SetShellVarContext all
+  ${Else}
+    SetShellVarContext current
+  ${EndIf}
+FunctionEnd
 !macroend
 
 ; Waits until no Chromite of this folder runs. Interactive: Retry / Cancel. Silent: 60 tries, one
@@ -219,7 +278,7 @@ FunctionEnd
 
 Section "$(LangProgram)" SecProgram
   SectionIn RO
-  SetShellVarContext current
+  Call SetScope
   Call CheckInstDir
   Call WaitNotRunning
 
@@ -236,34 +295,230 @@ Section "$(LangProgram)" SecProgram
   File "/oname=uninstall.exe" "${UNINSTALLER}"
 
   ; "Start in" of the shortcut is $OUTPATH; the workspace does not depend on it
-  CreateShortCut "$SMPROGRAMS\${PRODUCT}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
+  CreateShortCut "$SMPROGRAMS\${INSTANCE}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
 
-  WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "${PRODUCT}"
-  WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "${UNINST_KEY}" "Publisher" "${PUBLISHER}"
-  WriteRegStr HKCU "${UNINST_KEY}" "DisplayIcon" "$INSTDIR\${EXE},0"
-  WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteRegStr HKCU "${UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
-  WriteRegStr HKCU "${UNINST_KEY}" "URLInfoAbout" "${SITE}"
-  WriteRegDWORD HKCU "${UNINST_KEY}" "NoModify" 1
-  WriteRegDWORD HKCU "${UNINST_KEY}" "NoRepair" 1
+  ; SHCTX: HKLM for all users, HKCU for the current user (the updater reads the scope from where it is)
+  WriteRegStr SHCTX "${UNINST_KEY}" "DisplayName" "${PRODUCT}"
+  WriteRegStr SHCTX "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr SHCTX "${UNINST_KEY}" "Publisher" "${PUBLISHER}"
+  WriteRegStr SHCTX "${UNINST_KEY}" "DisplayIcon" "$INSTDIR\${EXE},0"
+  WriteRegStr SHCTX "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr SHCTX "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteRegStr SHCTX "${UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
+  WriteRegStr SHCTX "${UNINST_KEY}" "URLInfoAbout" "${SITE}"
+  WriteRegDWORD SHCTX "${UNINST_KEY}" "NoModify" 1
+  WriteRegDWORD SHCTX "${UNINST_KEY}" "NoRepair" 1
   ${GetSize} "$INSTDIR" "/S=0K" $R0 $R1 $R2
   IntFmt $R0 "0x%08X" $R0
-  WriteRegDWORD HKCU "${UNINST_KEY}" "EstimatedSize" "$R0"
+  WriteRegDWORD SHCTX "${UNINST_KEY}" "EstimatedSize" "$R0"
 SectionEnd
 
 Section /o "$(LangDesktop)" SecDesktop
-  SetShellVarContext current
+  Call SetScope
   SetOutPath "$INSTDIR"
-  CreateShortCut "$DESKTOP\${PRODUCT}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
+  CreateShortCut "$DESKTOP\${INSTANCE}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
 SectionEnd
 
+!insertmacro SetScope ""
+
+Var IsAdmin
+; /D= was given ($INSTDIR is set before .onInit)
+Var DirGiven
+; the folder of an existing installation of the chosen scope: upgraded in place
+Var Existing
+; 1: no switch and no installation, the scope page asks
+Var AskScope
+Var ScopeAll
+Var ScopeMe
+
+; The default folder of the scope (the shell context must be set: $LOCALAPPDATA follows it)
+Function DefaultDir
+  ${If} $AllUsers == 1
+    StrCpy $INSTDIR "$PROGRAMFILES64\${INSTANCE}"
+  ${Else}
+    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\${INSTANCE}"
+  ${EndIf}
+FunctionEnd
+
+; The same setup again with administrator rights (UAC) and /AllUsers. Quits when it started; returns
+; (error flag set) when the prompt was refused.
+Function Elevate
+  StrCpy $R0 "/AllUsers"
+  ${If} $DirGiven != ""
+    StrCpy $R0 "$R0 /D=$DirGiven"
+  ${EndIf}
+  ClearErrors
+  ExecShell "runas" "$EXEPATH" "$R0"
+  ${IfNot} ${Errors}
+    Quit
+  ${EndIf}
+FunctionEnd
+
 Function .onInit
+  SetRegView 64
+  StrCpy $DirGiven $INSTDIR
+  StrCpy $AskScope 0
+  UserInfo::GetAccountType
+  Pop $R0
+  StrCpy $IsAdmin 0
+  ${If} $R0 == "Admin"
+    StrCpy $IsAdmin 1
+  ${EndIf}
+
+  ; the scope: a switch; else an existing installation (HKCU first: 0.1.3 and earlier); else all users
+  ${GetParameters} $R0
+  StrCpy $R1 ""
+  ClearErrors
+  ${GetOptions} $R0 "/AllUsers" $R2
+  ${IfNot} ${Errors}
+    StrCpy $R1 1
+  ${EndIf}
+  ClearErrors
+  ${GetOptions} $R0 "/CurrentUser" $R2
+  ${IfNot} ${Errors}
+    StrCpy $R1 0
+  ${EndIf}
+  ReadRegStr $R3 HKCU "${UNINST_KEY}" "InstallLocation"
+  ReadRegStr $R4 HKLM "${UNINST_KEY}" "InstallLocation"
+  ${If} $R1 != ""
+    StrCpy $AllUsers $R1
+  ${ElseIf} $R3 != ""
+    StrCpy $AllUsers 0
+  ${ElseIf} $R4 != ""
+    StrCpy $AllUsers 1
+  ${Else}
+    StrCpy $AllUsers 1
+    ${IfNot} ${Silent}
+      StrCpy $AskScope 1
+    ${EndIf}
+  ${EndIf}
+
+  ; never a second copy: an installation of the other scope only is not installed beside
+  ${If} $AllUsers == 1
+    StrCpy $Existing $R4
+    ${If} $Existing == ""
+    ${AndIf} $R3 != ""
+      MessageBox MB_OK|MB_ICONSTOP "$(LangInstalledForMe)" /SD IDOK
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${Else}
+    StrCpy $Existing $R3
+    ${If} $Existing == ""
+    ${AndIf} $R4 != ""
+      MessageBox MB_OK|MB_ICONSTOP "$(LangInstalledForAll)" /SD IDOK
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+  ${EndIf}
+
+  Call SetScope
+  ${If} $Existing != ""
+    StrCpy $INSTDIR $Existing
+  ${ElseIf} $DirGiven == ""
+    Call DefaultDir
+  ${EndIf}
+
+  ; all users needs administrator rights; the scope page asks first when there is a choice
+  ${If} $AllUsers == 1
+  ${AndIf} $IsAdmin != 1
+  ${AndIf} $AskScope != 1
+    ${If} ${Silent}
+      SetErrorLevel 2
+      Quit
+    ${EndIf}
+    Call Elevate
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(LangElevationRefused)"
+    SetErrorLevel 1
+    Quit
+  ${EndIf}
+
   ; keep the user's earlier choice of a desktop shortcut (also in a silent update)
-  SetShellVarContext current
-  ${If} ${FileExists} "$DESKTOP\${PRODUCT}.lnk"
+  ${If} ${FileExists} "$DESKTOP\${INSTANCE}.lnk"
     !insertmacro SelectSection ${SecDesktop}
+  ${EndIf}
+FunctionEnd
+
+; The UAC shield on Next while the all-users scope needs elevation
+Function ScopeShield
+  GetDlgItem $R0 $HWNDPARENT 1
+  ${NSD_GetState} $ScopeAll $R1
+  ${If} $R1 == ${BST_CHECKED}
+  ${AndIf} $IsAdmin != 1
+    SendMessage $R0 ${BCM_SETSHIELD} 0 1
+  ${Else}
+    SendMessage $R0 ${BCM_SETSHIELD} 0 0
+  ${EndIf}
+FunctionEnd
+
+Function ScopeClick
+  Pop $R0
+  Call ScopeShield
+FunctionEnd
+
+Function ScopePage
+  ${If} $AskScope != 1
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "$(LangScopeTitle)" "$(LangScopeSubtitle)"
+  nsDialogs::Create 1018
+  Pop $R0
+  ${NSD_CreateRadioButton} 0 0 100% 12u "$(LangScopeAll)"
+  Pop $ScopeAll
+  ${NSD_OnClick} $ScopeAll ScopeClick
+  ${NSD_CreateLabel} 12u 14u -12u 20u "$(LangScopeAllNote)"
+  Pop $R0
+  ${NSD_CreateRadioButton} 0 42u 100% 12u "$(LangScopeMe)"
+  Pop $ScopeMe
+  ${NSD_OnClick} $ScopeMe ScopeClick
+  ${NSD_CreateLabel} 12u 56u -12u 20u "$(LangScopeMeNote)"
+  Pop $R0
+  ${If} $AllUsers == 1
+    ${NSD_Check} $ScopeAll
+  ${Else}
+    ${NSD_Check} $ScopeMe
+  ${EndIf}
+  Call ScopeShield
+  nsDialogs::Show
+FunctionEnd
+
+Function ScopeLeave
+  ${NSD_GetState} $ScopeAll $R0
+  ${If} $R0 == ${BST_CHECKED}
+    StrCpy $AllUsers 1
+  ${Else}
+    StrCpy $AllUsers 0
+  ${EndIf}
+  Call SetScope
+  ${If} $DirGiven == ""
+    Call DefaultDir
+  ${EndIf}
+  ${If} $AllUsers == 1
+  ${AndIf} $IsAdmin != 1
+    Call Elevate
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(LangElevationRefused)"
+    Abort
+  ${EndIf}
+  ; the Next button of the other pages has no shield
+  GetDlgItem $R0 $HWNDPARENT 1
+  SendMessage $R0 ${BCM_SETSHIELD} 0 0
+FunctionEnd
+
+; An upgrade keeps its folder: never a second copy
+Function DirectoryPre
+  ${If} $Existing != ""
+    Abort
+  ${EndIf}
+FunctionEnd
+
+; The finish page's [Start Chromite]: an elevated setup starts it through Explorer, so that it runs as the
+; signed-in user and not as administrator
+Function StartChromite
+  SetOutPath "$INSTDIR"
+  ${If} $IsAdmin == 1
+    Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
+  ${Else}
+    Exec '"$INSTDIR\${EXE}"'
   ${EndIf}
 FunctionEnd
 
@@ -275,7 +530,10 @@ FunctionEnd
 
 Var Upgrade
 
+!insertmacro SetScope "un."
+
 Function un.onInit
+  SetRegView 64
   StrCpy $Upgrade 0
   ${GetParameters} $R0
   ClearErrors
@@ -283,19 +541,46 @@ Function un.onInit
   ${IfNot} ${Errors}
     StrCpy $Upgrade 1
   ${EndIf}
+  ; this installation's scope: all users when the HKLM entry names this folder, else the current user
+  StrCpy $AllUsers 0
+  ReadRegStr $R1 HKLM "${UNINST_KEY}" "InstallLocation"
+  ${If} $R1 == $INSTDIR
+    StrCpy $AllUsers 1
+  ${EndIf}
+  Call un.SetScope
+  ; an all-users uninstall needs administrator rights: again with "runas" (an upgrade runs elevated already)
+  ${If} $AllUsers == 1
+  ${AndIf} $Upgrade == 0
+    UserInfo::GetAccountType
+    Pop $R2
+    ${If} $R2 != "Admin"
+      ${If} ${Silent}
+        SetErrorLevel 2
+        Quit
+      ${EndIf}
+      ClearErrors
+      ExecShell "runas" "$INSTDIR\uninstall.exe"
+      ${If} ${Errors}
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$(LangUninstallRefused)"
+        SetErrorLevel 1
+      ${EndIf}
+      Quit
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 Section "Uninstall"
-  SetShellVarContext current
+  Call un.SetScope
   Call un.WaitNotRunning
   !insertmacro RemoveProgramFiles
   ; an upgrade keeps the shortcuts, the Apps entry and uninstall.exe (the new setup replaces it)
   ${If} $Upgrade == 1
     Return
   ${EndIf}
-  Delete "$SMPROGRAMS\${PRODUCT}.lnk"
-  Delete "$DESKTOP\${PRODUCT}.lnk"
-  DeleteRegKey HKCU "${UNINST_KEY}"
+  Delete "$SMPROGRAMS\${INSTANCE}.lnk"
+  Delete "$DESKTOP\${INSTANCE}.lnk"
+  ; only this scope's entry (SHCTX: HKLM or HKCU)
+  DeleteRegKey SHCTX "${UNINST_KEY}"
   Delete "$INSTDIR\uninstall.exe"
   ; only when empty: the user's data is in %APPDATA%\ChromiteData and stays
   RMDir "$INSTDIR"

@@ -61,7 +61,7 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
 | `product-chromite-swing` | `product/swing` | Swing 제품 `chromite-swing` ([swing-frontend.md](swing-frontend.md)) |
 
 - SWT 제품(`product/community`, 프로파일 `product-chromite-swt`)은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
-  결과물은 `product/swing/target/products/com.seizia.chromite.swing.product/<os>/<ws>/<arch>/`(Windows `chromite-swing/`, macOS `ChromiteSwing.app`)이다.
+  결과물은 `product/swing/target/products/com.seizia.chromite.swing.product/<os>/<ws>/<arch>/`(Windows `chromite-swing/`, macOS `Chromite.app`)이다.
 
 - `product/testing/ChromiteUnitTest.product`는 Maven 모듈이 아니다. 테스트 기반 클래스 `ChromiteUnitTest`의
   `@RunWithProduct("ChromiteUnitTest.product")`와 `osgi-app.properties`의 `productsPaths`(IDEA 작업 공간 생성기)가 이 파일을 쓴다.
@@ -100,7 +100,7 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
   빌드할 때마다 바뀌는 정보는 OSGi 한정자(qualifier, 빌드 시각 `yyyyMMddHHmm`)에만 들어간다.
 - 번들·feature 버전(DBeaver에서 온 26.2.5, 1.0.x 등)과 Maven 부모 POM 버전(`1.0.0-SNAPSHOT`)은 제품 버전을 따르지 않는다.
   예외는 제품을 정의하는 번들 `com.seizia.chromite.ui.swing`이다(About이 이 번들 버전을 보여 준다).
-- 결과물 폴더(`chromite-swing/`, `ChromiteSwing.app`)에는 버전이 없다. 버전이 들어간 zip·dmg는 `release.yml`이 만든다([signing.md](signing.md)).
+- 결과물 폴더(`chromite-swing/`, `Chromite.app`)에는 버전이 없다. 버전이 들어간 zip·dmg는 `release.yml`이 만든다([signing.md](signing.md)).
 
 ## 설계 결정과 이유
 
@@ -193,3 +193,4 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 빌드 명령과 `tools/build.*`의 프로파일을 `product-chromite-swing`으로, "빌드하는 제품" 표에서 SWT 제품 삭제.
 - 2026-11-07 "버전" 절 추가: 제품 버전 체계 `major.minor.dev`(0.1.0), `tools/release/bump-version.ps1`([versioning.md](versioning.md)).
 - 2026-11-08 `deps/` 두 `LICENSE.md`의 JSch 항목을 LGPL에서 BSD 계열로 고침(사용자 승인). "deps/ 폴더에 둔 이유"와 갱신 방법에 예외와 재적용을 적음.
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

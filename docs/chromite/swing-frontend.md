@@ -244,7 +244,7 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | `com.seizia.chromite.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
 | 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 포함한다([drivers.md](drivers.md)). 설치 폴더의 `licenses/`(`docs/root`)도 이 피처가 넣는다 |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
-| 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지) |
+| 실행 파일 | `chromite-swing.exe` / `Chromite.app` (`chromite-swing`은 SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지. macOS 폴더는 2026-11-09 `ChromiteSwing.app`에서 `Chromite.app`으로, [distribution.md](distribution.md) "macOS 앱 이름") |
 | Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
 | Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
 
@@ -255,7 +255,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
 결과물: `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/chromite-swing/`,
-`.../macosx/cocoa/aarch64/ChromiteSwing.app/`
+`.../macosx/cocoa/aarch64/Chromite.app/`
 
 ### 시작 흐름
 
@@ -2951,3 +2951,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-08 기본 배치의 오른쪽 열을 Query Library(위) + Chromite Agent(아래)로, Properties 기본 숨김(앱 변경 #12): "기본 배치: Query Library와 Chromite Agent" 절과
   "확인 (2026-11-08, 앱 변경 #3·#6·#12)", "도구 창 도킹" 배치 절에 표시.
 - 2026-11-09 macOS 단축키(앱 변경 #24, `chromite/mac-ui`): Find/Replace, Edit 도구 막대, SQL Editor 도구 막대의 macOS 키를 적음. 표 전체는 [shortcuts.md](shortcuts.md), 화면 메뉴 막대는 [mac-ui.md](mac-ui.md).
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

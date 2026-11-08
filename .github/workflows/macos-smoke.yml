@@ -150,12 +150,12 @@ jobs:
         run: |
           set -euo pipefail
           dir=$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64
-          if [ ! -x "$dir/ChromiteSwing.app/Contents/MacOS/chromite-swing" ]; then
-            echo "::error::$dir/ChromiteSwing.app/Contents/MacOS/chromite-swing is missing or not executable"
+          if [ ! -x "$dir/Chromite.app/Contents/MacOS/chromite-swing" ]; then
+            echo "::error::$dir/Chromite.app/Contents/MacOS/chromite-swing is missing or not executable"
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/apps"
-          tar -czf "$RUNNER_TEMP/apps/ChromiteSwing.app.tar.gz" -C "$dir" ChromiteSwing.app
+          tar -czf "$RUNNER_TEMP/apps/Chromite.app.tar.gz" -C "$dir" Chromite.app
 
       - name: Hand the app to the macOS job
         uses: actions/upload-artifact@v7
@@ -214,7 +214,7 @@ jobs:
       - name: Unpack the unsigned app
         if: env.SOURCE == 'build'
         shell: bash
-        run: bash tools/release/macos-smoke.sh unpack input/ChromiteSwing.app.tar.gz
+        run: bash tools/release/macos-smoke.sh unpack input/Chromite.app.tar.gz
 
       - name: Verify the signature (codesign, Gatekeeper, stapled tickets)
         if: env.SOURCE == 'release'

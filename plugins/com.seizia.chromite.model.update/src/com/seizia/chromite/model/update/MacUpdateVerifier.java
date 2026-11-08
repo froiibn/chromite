@@ -36,8 +36,10 @@ import java.util.regex.Pattern;
  * 설계: Turbrix 데스크톱 {@code macUpdate.cjs}의 확인을 옮겼다(docs/chromite/auto-update.md "macOS 확인").
  * <ol>
  *     <li>크기와 SHA-256이 목록과 같다.</li>
- *     <li>zip 안의 이름이 모두 실행 중인 앱 묶음의 이름({@code <Name>.app/})으로 시작하고 {@code ..}, 역슬래시, NUL이 없다
- *     ({@code zipinfo -1}로 풀기 전에 읽는다).</li>
+ *     <li>zip 안의 이름이 모두 한 앱 묶음({@code <Name>.app/}) 안에 있고 {@code ..}, 역슬래시, NUL이 없다
+ *     ({@code zipinfo -1}로 풀기 전에 읽는다). 그 묶음은 실행 중인 앱의 이름이거나 지금 이름 {@value #BUNDLE_NAME}이다:
+ *     0.1.3까지의 이름 {@code ChromiteSwing.app}으로 설치된 앱이 새 이름의 zip을 받는다. 이름이 달라도 받는 근거는 5번(번들 ID·Team ID가
+ *     실행 중인 앱과 같음)이다. 바꿔 넣을 때 새 앱은 zip의 이름으로 같은 폴더에 놓인다({@code UpdateService.applyAtExit}).</li>
  *     <li>{@code ditto -x -k}로 zip 옆의 {@code staging/}에 한 번 푼다.</li>
  *     <li>{@code codesign --verify --deep --strict}가 통과한다.</li>
  *     <li>번들 ID와 Team ID가 실행 중인 앱의 것({@code codesign -dv})과 같다. 실행 중인 앱에 Team ID가 없으면(서명 없는 빌드) 받지 않는다.</li>
@@ -51,6 +53,8 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-09 앱 묶음 이름이 {@code ChromiteSwing.app}에서 {@value #BUNDLE_NAME}으로 바뀜: 실행 중인 앱과 이름이 다른 {@value #BUNDLE_NAME}
+ *   zip도 받는다({@link #bundleInside}, docs/chromite/auto-update.md "macOS 확인")
  */
 public final class MacUpdateVerifier implements UpdateVerifier {
 
@@ -60,6 +64,10 @@ public final class MacUpdateVerifier implements UpdateVerifier {
     static final String ZIPINFO = "/usr/bin/zipinfo"; //$NON-NLS-1$
     static final String PLUTIL = "/usr/bin/plutil"; //$NON-NLS-1$
     static final String STAGING = "staging"; //$NON-NLS-1$
+    /**
+     * The name of the app bundle since 0.1.4 (product/swing/pom.xml); 0.1.3 and earlier were {@code ChromiteSwing.app}.
+     */
+    static final String BUNDLE_NAME = "Chromite.app"; //$NON-NLS-1$
     private static final Duration CHECK_TIME = Duration.ofSeconds(120);
     private static final Map<String, String> TOOL_ENV = Map.of("PATH", "/usr/bin:/bin:/usr/sbin:/sbin"); //$NON-NLS-1$ //$NON-NLS-2$
     private static final Pattern TEAM = Pattern.compile("^[A-Z0-9]{10}$"); //$NON-NLS-1$
@@ -93,9 +101,11 @@ public final class MacUpdateVerifier implements UpdateVerifier {
         if (bytes != null) {
             return Verdict.fail(bytes);
         }
-        String bundleName = runningApp.getFileName().toString();
         UpdateProcess.Result listed = UpdateProcess.run(List.of(ZIPINFO, "-1", file.toString()), TOOL_ENV, CHECK_TIME); //$NON-NLS-1$
-        if (listed.code() != 0 || !namesInside(Arrays.asList(listed.output().split("\n")), bundleName)) { //$NON-NLS-1$
+        String bundleName = listed.code() == 0
+            ? bundleInside(Arrays.asList(listed.output().split("\n")), runningApp.getFileName().toString()) //$NON-NLS-1$
+            : null;
+        if (bundleName == null) {
             return Verdict.fail(UpdateStep.EXTRACT);
         }
         Path staging = file.resolveSibling(STAGING);
@@ -171,6 +181,21 @@ public final class MacUpdateVerifier implements UpdateVerifier {
     static Signing signingOfApp(@NotNull Path app) throws InterruptedException {
         UpdateProcess.Result said = UpdateProcess.run(List.of(CODESIGN, "-dv", "--verbose=2", app.toString()), TOOL_ENV, CHECK_TIME); //$NON-NLS-1$ //$NON-NLS-2$
         return said.code() == 0 ? parseSigning(said.output()) : null;
+    }
+
+    /**
+     * The app bundle the zip holds: the running bundle's name or {@value #BUNDLE_NAME}, when every name of the zip lies
+     * inside it ({@link #namesInside}); null otherwise. Whether it is a Chromite bundle at all is the signature's to say
+     * (bundle id and Team ID, {@link #comparePublisher}).
+     */
+    @Nullable
+    static String bundleInside(@NotNull List<String> names, @NotNull String runningName) {
+        for (String name : runningName.equals(BUNDLE_NAME) ? List.of(BUNDLE_NAME) : List.of(runningName, BUNDLE_NAME)) {
+            if (namesInside(names, name)) {
+                return name;
+            }
+        }
+        return null;
     }
 
     /**

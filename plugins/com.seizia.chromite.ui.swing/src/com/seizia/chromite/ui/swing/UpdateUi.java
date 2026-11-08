@@ -58,6 +58,7 @@ import java.awt.event.WindowEvent;
  * - 2026-11-08 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  * - 2026-11-09 macOS 화면 메뉴 막대에는 메뉴만 보이므로 단추를 상태 표시줄 오른쪽 끝, 진행 옆에 둠({@link MacOSScreenMenuBar#isEnabled()},
  *   앱 변경 #27). Windows는 그대로 (docs/chromite/mac-ui.md)
+ * - 2026-11-09 모든 사용자 설치의 "받아서 확인함" 툴팁: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 final class UpdateUi {
 
@@ -187,8 +188,10 @@ final class UpdateUi {
         switch (state.phase()) {
             case DOWNLOADING -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 UpdateMessages.update_window_head_downloading, "foreground: $Component.linkColor"); //$NON-NLS-1$
+            // An installation for all users installs only with [Restart now] (administrator prompt), not at a close
             case READY -> showButton(NLS.bind(UpdateMessages.update_button_ready, version),
-                NLS.bind(UpdateMessages.update_button_ready_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
+                NLS.bind(service.isAllUsers() ? UpdateMessages.update_button_ready_tip_all_users : UpdateMessages.update_button_ready_tip,
+                    version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case AVAILABLE -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 NLS.bind(UpdateMessages.update_button_available_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case FAILED -> {
