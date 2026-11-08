@@ -20,7 +20,7 @@ Object Explorer의 데이터베이스 노드에서 SSMS처럼 **Tasks ▸ Back U
 | `DatabaseTaskDialog` (새) | `com.seizia.chromite.ui.swing` | 작업 대화상자 틀: 페이지 선택 목록, 연결·진행률, 스크립트 메뉴, 확인·취소, 메시지 페이지, 백그라운드 실행 |
 | `SqlServerBackupDialog` (새) | 같은 곳 | 일반 / 미디어 옵션 / 백업 옵션 |
 | `SqlServerRestoreDialog` (새) | 같은 곳 | 일반(백업 파일·대상·백업 세트) / 파일(WITH MOVE) / 옵션 |
-| `NativeBackupRestoreDialog` (새) | 같은 곳 | PostgreSQL·MySQL 백업·복원: 일반 / 옵션 / 로컬 클라이언트(명령줄 미리 보기) |
+| `NativeBackupRestoreDialog` (새) | 같은 곳 | PostgreSQL·MySQL 백업·복원: 일반(PostgreSQL 백업 범위) / 개체(백업, 2026-11-08) / 옵션 / 로컬 클라이언트(도구 계정, 추가 인수, 명령줄 미리 보기) |
 | `NativeBackupRestore` (새, 2026-11-08) | `com.seizia.chromite.model.admin` (`.nativetool`) | PostgreSQL·MySQL 네이티브 도구 작업의 화면과 상관없는 부분: 메뉴 조건(`isSupported`), 로컬 클라이언트 목록(`findLocalClients`, 내려받는 클라이언트 제외), 작업 형식, 명령줄(`getCommandLine`), 처리기 실행(`execute`, pg_restore 종료 코드 1). 대화상자와 Chromite Agent 도구(`dumpDatabase`, `restoreDump`, [ai-agent.md](ai-agent.md))가 함께 쓴다 |
 | `BackupRestoreCommands` (새) | 같은 곳 | 메뉴를 켤 조건, DB 종류별 대화상자 열기 |
 | `internal/BackupRestoreMessages` (새) | 같은 곳 | 화면 문구(영어 기본 + `_ko`) |
@@ -151,10 +151,52 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
     `fx_ok2` 없음. 끄면 예전처럼 "완료"와 두 테이블. 사용자 지정 형식은 명령줄에 `--exit-on-error`.
   - 화면: 한국어·영어(`ko-light-pg-restore-options.png`, `en-light-pg-restore-options.png` 등, `D:\Tools\_scratch\fixes-editor\run\shots\`).
 
+### 고급 백업·복원 (2026-11-08)
+
+SWT 백업 마법사의 개체 페이지와 설정 페이지에 있던 것을 같은 대화상자에 더했다(C-46, D-P18, D-P19, D-M13). 근거는 `263b8ddb45`의
+ext.postgresql.ui `PostgreBackupWizardPageObjects`·`PostgreBackupWizardPageSettings`·`PostgreBackupAllWizardPage*`·`PostgreRestoreWizardPageSettings`·
+`PostgreToolWizardPageSettings.createSecurityGroup`, ext.mysql.ui `MySQLExportWizardPageObjects`·`MySQLExportWizardPageSettings`, tasks.native.ui
+`AbstractNativeToolWizardPage.createExtraArgsInput`이다. 설정 객체와 처리기는 모델에 그대로 있으므로 화면만 새로 만들었다.
+
+- **백업 범위(PostgreSQL, General 페이지)**: 이 데이터베이스(pg_dump) / 서버의 전역 개체: 역할·테이블스페이스(pg_dumpall) / 전체 클러스터(pg_dumpall).
+  pg_dumpall은 모델의 `pgDatabaseBackupAll` 작업 형식(`PostgreBackupAllSettings` + `PostgreDatabaseBackupAllHandler`)으로 실행한다.
+  일반 SQL 스크립트만 쓰므로 형식·압축 칸을 끄고, 기본 파일 이름은 `globals-${host}-${timestamp}.sql`·`cluster-${host}-${timestamp}.sql`이다
+  (데이터베이스가 아니라 서버의 백업). 복원은 복원 대화상자의 일반(SQL 스크립트) 형식(psql)으로 한다. SWT처럼 따로 메뉴를 두지 않은 것은
+  같은 클라이언트·출력 폴더·작업 저장을 그대로 쓰고, 메뉴를 늘리지 않으려는 것이다.
+- **개체 페이지(백업에만)**:
+  - PostgreSQL 이 데이터베이스: 스키마 목록과, 목록에서 선택한 스키마의 테이블 목록(뷰 표시). 선택 규칙은 SWT와 같은 모델 클래스
+    `PostgreDatabaseBackupSelection`이다. 모두 고르면 `-n`/`-t` 없이 데이터베이스 전체(확장 같은 데이터베이스 수준 개체 포함, `fullSchemaBackup`).
+    스키마 전체는 `-n`, 일부 테이블은 `-t`이고, pg_dump가 `-t`가 있으면 `-n`을 무시하므로 일부 테이블을 고른 스키마마다 pg_dump를 따로 실행해
+    `-1`, `-2` 번호를 붙인 파일에 쓴다(모델 `PostgreDatabaseBackupSettings.getOutputFile`). 명령줄 미리 보기는 실행마다 한 줄이다.
+  - PostgreSQL 전역 개체: 역할·테이블스페이스 확인란. 둘 다 `--globals-only`, 하나만 `--roles-only`/`--tablespaces-only`.
+  - PostgreSQL 전체 클러스터: 연결이 보이는 데이터베이스 목록. 해제한 것은 처리기가 `--exclude-database`로 뺀다(pg_dumpall에는 포함 옵션이 없음).
+    모두 고르면 목록을 비워 저장해 제외 인수가 없다. 연결이 보이지 않는 데이터베이스는 늘 포함된다.
+  - MySQL: 데이터베이스의 테이블(뷰 표시). 모두 고르면 지금처럼 데이터베이스 전체(`--routines`), 일부면 `mysqldump db 테이블…`(처리기가 루틴을 뺌, SWT와 같음).
+    SWT처럼 여러 데이터베이스를 한 번에 고르는 것은 넣지 않았다(대화상자가 데이터베이스 하나에서 열림).
+  - 목록은 대화상자를 열 때 읽는다(PostgreSQL 테이블은 스키마를 선택할 때, 진행 대화상자). 읽지 못하면 안내만 하고 전체 백업이 된다.
+- **pg_dumpall 옵션(옵션 페이지, 범위에 따라 바뀜)**: 구조만(`--schema-only`, 전체 클러스터만), `--no-owner`, `--no-privileges`, 역할 암호 포함
+  (기본 끔 = `--no-role-passwords`, 모델 처리기와 DBeaver의 기본값. 켜면 파일에 암호 해시가 들어가고 `pg_authid`를 읽으므로 슈퍼유저가 필요).
+- **MySQL `--compress`**: SWT에 있던 "압축" 확인란.
+- **도구 계정(Local Client 페이지)**: 연결과 다른 사용자로 도구를 실행한다(SWT `createSecurityGroup`의 인증 단추). PostgreSQL·MySQL의 백업·복원·스크립트
+  실행에 있고 Oracle(SQL*Plus, 표준 입력 로그온)에는 없다. 암호는 처리기가 `PGPASSWORD`/`MYSQL_PWD` 환경 변수로만 넘긴다(명령줄에 없음).
+  - 작업에 암호를 저장하지 않는다(`NativeBackupRestore.saveTask`). 모델은 프로젝트의 고정 로컬 키로 암호화해 `tasks.json`에 쓰는데, 그것은 보안 저장소가 아니다.
+    사용자 이름은 저장한다. 예전 SWT 작업에 저장된 암호는 편집할 때 칸에 채워 그 실행에는 쓰지만, 다시 저장하면 빠진다.
+  - 모델 처리기의 근본 수정: 도구 사용자가 있고 암호가 없으면 연결의 암호를 넘기지 않는다(`PostgreNativeToolHandler`, `MySQLNativeToolHandler`).
+    전에는 연결 사용자의 암호를 다른 계정에 넘겼고, PGPASSWORD가 있으면 libpq가 pgpass 파일을 읽지 않는다. PostgreSQL은 이때 `--no-password`를 붙인다.
+    도구의 표준 입력이 Java의 파이프라 암호를 물으면 실행이 멈추기 때문이다. MySQL은 `-p`를 넘기지 않으므로 묻지 않는다. 그래서 도구 계정이 있는
+    저장된 작업은 클라이언트의 암호 파일(pgpass.conf, MySQL 옵션 파일)을 쓰거나 인증 오류로 끝난다.
+  - MySQL의 "자격 증명 파일" 방식(`MySQLNativeCredentialsSettings.overrideCredentials`, 임시 `.my.cnf`에 암호를 씀)은 대화상자에 두지 않는다. 암호는 환경 변수로만 넘긴다.
+- **추가 인수**: 명령줄에 붙는다(모델 `addExtraCommandArgs`가 공백마다 나누므로 인수 안에 공백을 넣을 수 없고, 대화상자가 연속 공백을 하나로 줄인다).
+  "첫 오류에서 멈춤"은 지금처럼 추가 인수로 넘기되 사용자의 인수 뒤에 붙이고, 저장된 작업을 열 때 끝에서 떼어 확인란으로 되돌린다
+  (그 칸이 없던 작업은 그 인수만 있었다). 추가 인수에 암호를 넣지 말라는 안내를 둔다(명령줄은 다른 프로그램이 볼 수 있음).
+- **저장된 작업**: 위 설정은 모델 설정 객체의 키로 저장된다(SWT와 같은 키라 SWT 작업도 열린다). `pgDatabaseBackupAll` 작업도 Database Tasks에서 편집된다.
+  작업의 대상은 대화상자를 연 데이터베이스다(pg_dumpall 작업도 `databaseObjects`에 그 데이터베이스를 둠).
+
 ## upstream 대비 변경점
 
 - DBeaver 코드는 고치지 않았다. Chromite 번들(`model.admin`, `ui.swing`)에 클래스를 더하고 `ObjectExplorerPanel`에 메뉴 훅을 넣었다.
   예외: 2026-11-07에 빈 출력 파일을 지우도록 tasks.native `AbstractNativeToolHandler`와 ext.mysql `MySQLDatabaseExportHandler`를 고쳤다(SWT에도 적용, 위 "실패한 백업과 psql 오류").
+  2026-11-08에 도구 계정에 암호가 없을 때 연결의 암호를 넘기지 않도록 ext.postgresql `PostgreNativeToolHandler`와 ext.mysql `MySQLNativeToolHandler`를 고쳤다(위 "고급 백업·복원").
 - DBeaver CE에 없는 SQL Server 백업·복원을 더했다.
 - PostgreSQL·MySQL은 DBeaver와 같은 처리기를 쓰되, 내려받는 클라이언트를 목록에서 뺐다(위 "로컬 클라이언트").
 
@@ -213,12 +255,49 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
 - 화면: `D:\Tools\_scratch\chromite-agent-backup-tools\shots\ko-dialog-pg-backup.png`, `ko-dialog-pg-restore-end.png`.
 - 회귀 테스트는 실행하지 않았다(요청 없음).
 
+## 확인 (2026-11-08, 고급 백업·복원)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 그 Swing 제품을 개인 작업 공간과 `CHROMITE_DATA`(스크래치)로 한 번 띄우고, 같은 프로세스에 붙인 시험 에이전트가
+Swing 구성 요소를 직접 다뤘다(화면 좌표·OS 입력 없음). 클라이언트는 D:의 PostgreSQL 17.11(`D:\Tools\pgsql-17\pgsql`), MariaDB 11.8.9(`D:\Tools\mariadb-11.8`).
+PostgreSQL은 역할·전체 클러스터 복원이 공용 컨테이너의 다른 역할·데이터베이스를 건드리지 않도록 **이 확인만의 PostgreSQL 17.11 컨테이너**(끝나고 볼륨까지 지움)에
+`chr_nba_one`(스키마 `s1`·`s2`·`"Mixed Case"`, 뷰, 확장 `pg_trgm`), `chr_nba_two`, `chr_nba_three`, 역할 `chr_nba_tool`(읽기 전용, 암호)·`chr_nba_scratch`를 만들었다.
+MariaDB는 공용 컨테이너의 `chr_native_backup_adv`(테이블 a·b·c, 뷰 v, 프로시저)와 사용자 `chr_nba_tool`(끝나고 지움).
+
+| # | 한 일 | 결과 |
+|---|---|---|
+| 1 | PostgreSQL 백업, 아무것도 바꾸지 않음 | 명령줄이 전과 같음(`-n`/`-t` 없음). 개체 페이지는 스키마 모두 체크 |
+| 2 | `s1`은 `t1`만, `s2` 전체, `"Mixed Case"` 해제 | 명령줄 두 줄: `-t "s1.t1"` → `part-chr_nba_one-1.backup`, `-n "public" -n "s2"` → `-2.backup`. `pg_restore --list`로 각각 t1만, s2(t3·t4)+public만 확인 |
+| 3 | 2의 파일을 `--clean` + 첫 오류에서 멈춤 + 추가 인수 `--single-transaction`으로 복원 | 명령줄 `… --single-transaction --exit-on-error --clean …`. 뷰 `s1.v1`이 t1에 기대 DROP 실패 → "실패"와 종료 코드 1 문구, 한 트랜잭션이라 바뀐 것 없음 |
+| 4 | t1 행을 지우고 추가 인수 `--data-only --single-transaction`으로 복원 | "완료", 원래 3행(한글 값 포함) |
+| 5 | 4를 작업으로 저장 → 다시 열기 | 작업의 추가 인수 `--data-only --single-transaction --exit-on-error`, 다시 열면 칸은 `--data-only --single-transaction`, "첫 오류에서 멈춤" 체크 |
+| 6 | 도구 계정 `chr_nba_tool` + 암호, 일반 형식, 추가 인수 `--no-comments`, 2와 같은 선택 | 명령줄 `--username=chr_nba_tool --no-comments …`(암호 없음), "완료", 파일 두 개 |
+| 7 | 6을 작업으로 저장 → 작업 속성 | `tool.user`는 암호화된 값, `tool.password`는 빈 값. 다시 열면 사용자 이름·선택(`s1`은 t1만, `"Mixed Case"` 해제)이 돌아오고 암호 칸은 비어 있음 |
+| 8 | 7을 암호 없이 실행 | 명령줄에 `--no-password`, 곧바로 `fe_sendauth: no password supplied`로 "실패"(멈추지 않음, 연결의 암호를 넘기지 않음) |
+| 9 | 범위 "서버의 전역 개체" | 파일 이름 `globals-${host}-${timestamp}.sql`, 형식·압축 꺼짐, `pg_dumpall … --globals-only --no-role-passwords --file …`. 역할만 → `--roles-only`, 둘 다 해제 → 미리 보기에 "역할이나 테이블스페이스를 하나 이상 고르십시오." "서버의 전역 개체를 백업했습니다." |
+| 10 | 9를 작업으로 저장(`pgDatabaseBackupAll`) → 다시 열기 → 작업 관리자로 실행 | 다시 열면 범위·옵션이 그대로. 실행하면 셸 명령 승인 대화상자에 같은 명령줄, Run Once → 성공(마지막 실행 success) |
+| 11 | 전역 개체 복원: `chr_nba_scratch`를 지우고 9의 파일을 복원 대화상자(일반 형식, psql)로 | 있는 역할의 "already exists" 오류 줄, "완료", 역할과 주석이 돌아옴 |
+| 12 | 범위 "전체 클러스터", `chr_nba_three` 해제, `--no-owner` | `pg_dumpall … --no-owner --no-role-passwords --file … --exclude-database="chr_nba_three"`, 파일에 `chr_nba_three` 없음. 작업으로 저장 → 다시 열면 해제가 그대로 |
+| 13 | 클러스터 복원: `chr_nba_two`·`chr_nba_three`를 지우고 12의 파일을 `postgres`에 복원 | `chr_nba_two`가 다시 생기고 marker = 2, `chr_nba_three`는 없음(제외됨). 있는 개체의 오류 줄은 psql이 넘어감 |
+| 14 | `"Mixed Case"` 스키마만 백업 | `pg_restore --list`에 그 스키마와 `"Odd Table"`만. 미리 보기가 따옴표를 두 번 싸던 것을 고침(아래) |
+| 15 | MariaDB: 뷰 표시, b·c 해제, `--compress`, 도구 계정 + 암호, 추가 인수 `--skip-dump-date` | `mysqldump … --compress … --skip-dump-date -u chr_nba_tool … chr_native_backup_adv a v > …`, "완료", 파일에 a와 v만(루틴 없음) |
+| 16 | 15를 작업으로 저장 → 다시 열기 | `tool.password` 빈 값, 표시·선택·옵션·추가 인수가 돌아옴 |
+| 17 | MariaDB 복원: a·v를 지우고 15의 파일을 추가 인수 `--default-character-set=utf8mb4`로 복원 | "완료", a 3행(한글 포함)과 v |
+
+- 화면: 한국어(OS 기본)와 `-nl en`, `D:\Tools\_scratch\native-backup-advanced\shots\`(`ko-pg-objects-partial.png`, `ko-pg-scope-globals.png`,
+  `ko-pg-client-account.png`, `ko-my-objects-partial.png`, `en-pg-objects-cluster.png`, `en-pg-client-account.png` 등).
+- 확인 중 고친 것: 명령줄 미리 보기가 처리기가 이미 따옴표로 싼 인수(Windows의 스키마·테이블 이름, `escapeCLIIdentifier`)를 공백이 있다고 한 번 더 싸
+  `""\"Mixed Case\"""`로 보였다. 이미 따옴표로 시작하고 끝나는 인수는 프로세스 실행기처럼 그대로 보이게 했다(`NativeBackupRestore.formatCommand`). 실제 실행은 원래 맞았다.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 백업·복원·스크립트 실행 대화상자 전체(같은 클래스), Chromite Agent `dumpDatabase`·`restoreDump`
+  (같은 `getCommandLine`, 실행 하나면 한 줄로 전과 같음), 도구 계정이 있는 예전 SWT 작업(암호가 저장되어 있지 않으면 이제 연결의 암호를 쓰지 않음).
+
 ## 남긴 것
 
 - Oracle 백업·복원(RMAN·Data Pump) — 대상 아님.
 - SQL Server: 여러 파일로 나눠 쓰는 백업(스트라이프), URL(Azure Blob) 백업, 백업 암호화, 만료 날짜, 꼬리 로그 백업, 지정 시간 복원(STOPAT),
   `STANDBY` 복구 상태, 서버 파일 탐색기(`xp_dirtree`/`sys.dm_os_enumerate_filesystem`), "데이터베이스에서 복원"(msdb 기록의 백업 세트를 파일 대신 고르기).
-- PostgreSQL 백업할 스키마·테이블 고르기, 전체 클러스터 백업(pg_dumpall), MySQL 테이블 고르기, 도구 사용자 이름·암호 따로 쓰기, 추가 명령줄 인수.
+- 2026-11-08 고급 백업·복원으로 채움: PostgreSQL 스키마·테이블 고르기, pg_dumpall(전역 개체, 전체 클러스터), MySQL 테이블 고르기, 도구 계정, 추가 인수.
+  남은 것: MySQL 여러 데이터베이스를 한 백업에서 고르기, 도구 계정 암호를 OS 보안 저장소에 두고 저장된 작업이 쓰게 하기,
+  MySQL 복원 로그 수준 Debug(지금은 보통·자세히), PostgreSQL 복원의 `--clean` 확인 대화상자(SWT에 있었음).
 
 ## 변경 이력
 
@@ -235,3 +314,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
 - 2026-11-08 대화상자의 모델 부분(클라이언트 목록, 작업 형식, 명령줄 미리 보기, 처리기 실행, `CheckedPostgreRestore`)을 `model.admin`의
   `NativeBackupRestore`로 옮김. 메뉴 조건(`BackupRestoreCommands.canBackUp`)의 PostgreSQL·MySQL 부분도 `NativeBackupRestore.isSupported`로.
   Chromite Agent `dumpDatabase`·`restoreDump`가 같은 경로를 쓴다([ai-agent.md](ai-agent.md) "PostgreSQL·MySQL 백업·복원 도구").
+- 2026-11-08 (`chromite/native-backup-advanced`) 고급 백업·복원(C-46, D-P18, D-P19, D-M13): PostgreSQL 백업 범위(pg_dumpall 전역 개체·전체 클러스터,
+  `pgDatabaseBackupAll` 작업 저장·편집), 개체 페이지(스키마·테이블, 클러스터 데이터베이스, 역할·테이블스페이스, MySQL 테이블), pg_dumpall 옵션,
+  MySQL `--compress`, 도구 계정(암호는 환경 변수로만, 작업에 저장하지 않음), 추가 인수. 모델 처리기: 도구 계정에 암호가 없으면 연결의 암호를 넘기지 않음
+  (PostgreSQL은 `--no-password`). 명령줄 미리 보기: 실행마다 한 줄, 이미 따옴표로 싼 인수는 그대로. "고급 백업·복원"·"확인 (2026-11-08, 고급 백업·복원)" 절 추가.

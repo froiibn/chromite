@@ -33,6 +33,9 @@ import com.seizia.chromite.ext.oracle.tasks.OracleScriptExecuteHandler;
 import com.seizia.chromite.ext.oracle.tasks.OracleScriptExecuteSettings;
 import com.seizia.chromite.ext.oracle.tasks.OracleTasks;
 import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreBackupAllSettings;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllHandler;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupHandler;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSettings;
@@ -96,8 +99,10 @@ import java.util.Set;
  *     <li>스크립트 실행: 모델의 스크립트 실행 작업 형식(pgScriptExecute, mysqlScriptExecute, oracleScriptExecute)을 같은 경로로
  *     실행한다. 도구는 따로 접속하는 새 세션이라 쿼리 창의 세션·트랜잭션과 상관없다. SQL*Plus는 암호를 명령줄이 아니라 표준 입력의
  *     로그온 명령으로 받는다({@link OracleScriptExecuteHandler#getLogonScript}, {@link #getStandardInputPreview}).</li>
- *     <li>저장된 작업: 위 일곱 형식은 대화상자에서 작업으로 저장하고({@link #saveTask}) 다시 읽어 고칠 수 있다({@link #loadTaskSettings}).
- *     저장된 작업을 실행하면 처리기가 명령줄 승인을 묻는다({@code AbstractNativeToolHandler}, docs/chromite/shell-command-approval.md).</li>
+ *     <li>저장된 작업: 위 형식과 pg_dumpall(pgDatabaseBackupAll)은 대화상자에서 작업으로 저장하고({@link #saveTask}) 다시 읽어 고칠 수
+ *     있다({@link #loadTaskSettings}). 저장된 작업을 실행하면 처리기가 명령줄 승인을 묻는다({@code AbstractNativeToolHandler},
+ *     docs/chromite/shell-command-approval.md). 도구 계정의 암호는 작업에 저장하지 않는다.</li>
+ *     <li>나눠 실행하는 백업(여러 스키마의 일부 테이블을 고른 pg_dump)은 실행마다 명령줄 한 줄을 보인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -105,6 +110,9 @@ import java.util.Set;
  *   옮겨 Chromite Agent 백업·복원 도구와 함께 씀
  * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus), 저장된 작업 읽기·저장, 클라이언트 폴더 더하기를 대화상자에서 옮김
  *   (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 고급 백업: pg_dumpall 작업 형식(전역 개체, 전체 클러스터), 실행마다 한 줄인 명령줄(스키마·테이블 고르기),
+ *   작업에 도구 계정 암호를 저장하지 않음, 처리기가 이미 따옴표로 싼 인수는 미리 보기에서 다시 싸지 않음
+ *   (docs/chromite/swing-backup-restore.md "고급 백업·복원")
  */
 public final class NativeBackupRestore {
 
@@ -114,7 +122,8 @@ public final class NativeBackupRestore {
      * Task types that the Back Up / Restore and Run Script dialogs save and edit.
      */
     private static final Set<String> SAVED_TASK_TYPES = Set.of(
-        PostgreSQLTasks.TASK_DATABASE_BACKUP, PostgreSQLTasks.TASK_DATABASE_RESTORE, PostgreSQLTasks.TASK_SCRIPT_EXECUTE,
+        PostgreSQLTasks.TASK_DATABASE_BACKUP, PostgreSQLTasks.TASK_DATABASE_BACKUP_ALL, PostgreSQLTasks.TASK_DATABASE_RESTORE,
+        PostgreSQLTasks.TASK_SCRIPT_EXECUTE,
         MySQLTasks.TASK_DATABASE_BACKUP, MySQLTasks.TASK_DATABASE_RESTORE, MySQLTasks.TASK_SCRIPT_EXECUTE,
         OracleTasks.TASK_SCRIPT_EXECUTE);
 
@@ -268,6 +277,9 @@ public final class NativeBackupRestore {
         if (settings instanceof PostgreDatabaseBackupSettings) {
             return PostgreSQLTasks.TASK_DATABASE_BACKUP;
         }
+        if (settings instanceof PostgreBackupAllSettings) {
+            return PostgreSQLTasks.TASK_DATABASE_BACKUP_ALL;
+        }
         if (settings instanceof PostgreDatabaseRestoreSettings) {
             return PostgreSQLTasks.TASK_DATABASE_RESTORE;
         }
@@ -288,40 +300,55 @@ public final class NativeBackupRestore {
 
     /**
      * The command line the handler will run, quoted for display; a MySQL backup or restore and a script run add the output
-     * or input redirection that the handler does with streams. No password is in it.
+     * or input redirection that the handler does with streams. No password is in it. A backup of several parts (pg_dump of
+     * some tables of more than one schema: -t ignores -n, so each such schema is a run of its own; mysqldump of several
+     * databases) runs the tool once per part: one line per run.
      *
      * @throws IOException the tool is not in the client location
      */
     @NotNull
     public static String getCommandLine(@NotNull AbstractNativeToolSettings<?> settings) throws IOException {
-        List<String> command;
-        String redirect = null;
+        List<String> lines = new ArrayList<>();
         if (settings instanceof PostgreDatabaseBackupSettings pg) {
             // A local output file is passed with --file
-            command = new PreviewPostgreBackup().preview(pg, pg.getExportObjects().get(0));
+            for (PostgreDatabaseBackupInfo info : pg.getExportObjects()) {
+                lines.add(formatCommand(new PreviewPostgreBackup().preview(pg, info), null));
+            }
+        } else if (settings instanceof PostgreBackupAllSettings pg) {
+            for (PostgreDatabaseBackupAllInfo info : pg.getExportObjects()) {
+                lines.add(formatCommand(new PreviewPostgreBackupAll().preview(pg, info), null));
+            }
         } else if (settings instanceof PostgreDatabaseRestoreSettings pg) {
-            command = new PreviewPostgreRestore().preview(pg, pg.getRestoreInfo());
+            lines.add(formatCommand(new PreviewPostgreRestore().preview(pg, pg.getRestoreInfo()), null));
         } else if (settings instanceof MySQLExportSettings my) {
-            MySQLDatabaseExportInfo info = my.getExportObjects().get(0);
-            command = new PreviewMySQLExport().preview(my, info);
-            redirect = "> " + my.getOutputFile(info); //$NON-NLS-1$
+            for (MySQLDatabaseExportInfo info : my.getExportObjects()) {
+                lines.add(formatCommand(new PreviewMySQLExport().preview(my, info), "> " + my.getOutputFile(info))); //$NON-NLS-1$
+            }
         } else if (settings instanceof PostgreScriptExecuteSettings pg) {
-            command = new PreviewPostgreScript().preview(pg, pg.getDatabase());
-            redirect = "< " + pg.getInputFile(); //$NON-NLS-1$
+            lines.add(formatCommand(new PreviewPostgreScript().preview(pg, pg.getDatabase()), "< " + pg.getInputFile())); //$NON-NLS-1$
         } else if (settings instanceof OracleScriptExecuteSettings oracle) {
-            command = new PreviewOracleScript().preview(oracle);
-            redirect = "< " + oracle.getInputFile(); //$NON-NLS-1$
+            lines.add(formatCommand(new PreviewOracleScript().preview(oracle), "< " + oracle.getInputFile())); //$NON-NLS-1$
         } else {
             MySQLScriptExecuteSettings my = (MySQLScriptExecuteSettings) settings;
-            command = new PreviewMySQLRestore().preview(my, my.getDatabaseObjects().get(0));
-            redirect = "< " + my.getInputFile(); //$NON-NLS-1$
+            lines.add(formatCommand(new PreviewMySQLRestore().preview(my, my.getDatabaseObjects().get(0)), "< " + my.getInputFile())); //$NON-NLS-1$
         }
+        if (lines.isEmpty()) {
+            throw new IOException("Nothing to back up"); //$NON-NLS-1$
+        }
+        return String.join("\n", lines); //$NON-NLS-1$
+    }
+
+    @NotNull
+    private static String formatCommand(@NotNull List<String> command, @Nullable String redirect) {
         StringBuilder text = new StringBuilder();
         for (String arg : command) {
             if (!text.isEmpty()) {
                 text.append(' ');
             }
-            text.append(arg.isEmpty() || arg.indexOf(' ') >= 0 ? "\"" + arg + "\"" : arg); //$NON-NLS-1$ //$NON-NLS-2$
+            // An argument the handler quoted already (a schema or table name on Windows, PostgreNativeToolHandler.escapeCLIIdentifier)
+            // is passed as it is, as the process launcher does
+            boolean quoted = arg.length() > 1 && arg.startsWith("\"") && arg.endsWith("\""); //$NON-NLS-1$ //$NON-NLS-2$
+            text.append(arg.isEmpty() || !quoted && arg.indexOf(' ') >= 0 ? "\"" + arg + "\"" : arg); //$NON-NLS-1$ //$NON-NLS-2$
         }
         if (redirect != null) {
             text.append(' ').append(redirect);
@@ -399,6 +426,7 @@ public final class NativeBackupRestore {
         String typeId = task.getType().getId();
         AbstractNativeToolSettings<?> settings = switch (typeId) {
             case PostgreSQLTasks.TASK_DATABASE_BACKUP -> new PostgreDatabaseBackupSettings(project);
+            case PostgreSQLTasks.TASK_DATABASE_BACKUP_ALL -> new PostgreBackupAllSettings(project);
             case PostgreSQLTasks.TASK_DATABASE_RESTORE -> new PostgreDatabaseRestoreSettings(project);
             case PostgreSQLTasks.TASK_SCRIPT_EXECUTE -> new PostgreScriptExecuteSettings(project);
             case MySQLTasks.TASK_DATABASE_BACKUP -> new MySQLExportSettings(project);
@@ -434,7 +462,9 @@ public final class NativeBackupRestore {
 
     /**
      * Saves the settings as a task: a new task with the name, or the settings (and the name) of an existing task.
-     * No passwords are saved (the tool account fields stay empty).
+     * The tool account's user name is saved, its password never: the task file is not a secure storage (the model would
+     * write it with the project's fixed local key). A saved task with a tool account and no password gives the tool no
+     * password, so the client reads its own password file or fails (PostgreNativeToolHandler, MySQLNativeToolHandler).
      *
      * @throws DBException another task has the name
      */
@@ -446,7 +476,13 @@ public final class NativeBackupRestore {
     ) throws DBException {
         DBTTaskManager taskManager = settings.getDataSourceContainer().getProject().getTaskManager();
         Map<String, Object> properties = new LinkedHashMap<>();
-        settings.saveSettings(new MonitorRunnableContext(new VoidProgressMonitor()), new TaskPreferenceStore(properties));
+        String toolPassword = settings.getToolUserPassword();
+        settings.setToolUserPassword(null);
+        try {
+            settings.saveSettings(new MonitorRunnableContext(new VoidProgressMonitor()), new TaskPreferenceStore(properties));
+        } finally {
+            settings.setToolUserPassword(toolPassword);
+        }
         DBTTask other = taskManager.getTaskByName(name);
         if (other != null && other != existing) {
             throw new DBException("A task named '" + name + "' already exists"); //$NON-NLS-1$ //$NON-NLS-2$
@@ -548,6 +584,13 @@ public final class NativeBackupRestore {
     private static final class PreviewPostgreBackup extends PostgreDatabaseBackupHandler {
         @NotNull
         List<String> preview(@NotNull PostgreDatabaseBackupSettings settings, @NotNull PostgreDatabaseBackupInfo info) throws IOException {
+            return getCommandLine(settings, info);
+        }
+    }
+
+    private static final class PreviewPostgreBackupAll extends PostgreDatabaseBackupAllHandler {
+        @NotNull
+        List<String> preview(@NotNull PostgreBackupAllSettings settings, @NotNull PostgreDatabaseBackupAllInfo info) throws IOException {
             return getCommandLine(settings, info);
         }
     }
