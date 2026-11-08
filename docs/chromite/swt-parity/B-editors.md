@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 34 | 17 | 7 | 17 | 2 | **77** |
-| 일부 | 7 | 7 | 5 | 5 | 5 | **29** |
+| 있음 | 34 | 19 | 7 | 17 | 2 | **79** |
+| 일부 | 7 | 5 | 5 | 5 | 5 | **27** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
 | 조용히 끊김 | 0 | 0 | 0 | 0 | 0 | **0** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
@@ -112,7 +112,7 @@
 | R7 | 참조 패널, 외래 키 따라가기(참조 행 열기, 참조하는 행 보기) | `ReferencesPanel`, `navigateLink`, `referencesMenu` | 있음 (2026-11-08) | Ctrl+B·Ctrl+Shift+1·Navigate 메뉴, 뒤로·앞으로(Alt+←/→), `ResultSetReferencesPanel`, [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 없음 | 중간 | 참조 패널은 읽기 전용("열기"로 편집), 뒤로는 다시 읽지 않고 남긴 결과 |
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
 | R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
-| R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177). 2026-11-08 다시 확인: 그대로. WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿨고([swing-grid-column-filters.md](../swing-grid-column-filters.md) "목적"), 저장한 필터·필터 기록은 그 문서의 "남긴 것" |
+| R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 있음 (2026-11-08, `chromite/saved-filters-virtual-columns`) | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md). 저장한 필터(이름으로 열 필터와 정렬 저장·적용·지우기)와 테이블별 최근 필터(`ResultSetSavedFilters`, 연결의 가상 모델에 저장), [swing-saved-filters-virtual-columns.md](../swing-saved-filters-virtual-columns.md). 조사 당시: 일부(저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음, swing-result-viewer.md:177) | 중간 | WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿨다([swing-grid-column-filters.md](../swing-grid-column-filters.md) "목적"). 모든 열을 한 화면에서 고치는 필터 편집 대화상자는 옮기지 않음(조건은 머리글 팝업, 정렬은 머리글, 보이기는 열 메뉴) |
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | 조사 당시: JDBC fetch size 설정 없음. 2026-11-07 Options &gt; Query Results의 가져오기 크기(`ResultSetOptionsPage.java`:61) |
 | R13 | 전체 행 수 세기 | `resultset.count` | 있음 (2026-11-08) | 상태 줄·Navigate "행 수 세기", 모델 `SQLQueryDataContainer.countData` 고침(늘 -1이었음), [swing-grid-navigation.md](../swing-grid-navigation.md) "전체 행 수". 조사 당시: 없음 | 낮음 | 다시 읽을 수 있는 결과만 |
@@ -124,7 +124,7 @@
 | R19 | 저장 전 스크립트 미리 보기, 연결 종류 "데이터 변경 확인" | `ResultSetViewer.java:4735`, `SavePreviewDialog`, `toggleConfirmSave` | 있음 (2026-11-07 수정, 조사 때 조용히 끊김) | `ResultSetGrid.confirmSave`, `ScriptPreviewDialog.confirmSave`, Options "Show the SQL script before saving grid changes" | 높음 | Test·Production 기본 켬. 도구 막대 토글·연쇄 삭제 선택 없음 |
 | R20 | 저장하고 커밋, 변경 스크립트 보기, 연쇄 삭제 옵션 | `applyAndCommitChanges`, `generateScript`, `SaveScriptDialog` | 일부 (2026-11-08) | 저장하고 커밋(수동 커밋 연결, 그 전 변경은 먼저 물음), 변경 미리 보기([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 연쇄 삭제는 남음 |
 | R21 | 행 복제·위/아래 행 복사, 기본값으로, 칸 되돌리기, 실행 취소 | `row.copy*`, `cell.setDefault`, `cell.reset` | 있음 (2026-11-08) | `ResultSetGrid`·`ResultSetEditModel`, SWT 단축키([swing-grid-editing.md](../swing-grid-editing.md)) | 낮음 | 셀 되돌리기에 Esc 없음(표의 편집 취소 키) |
-| R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 일부 (2026-11-08) | 가상 고유 키(읽기 전용 줄의 "가상 키 정하기…"), 가상 외래 키 추가·지우기(`ResultSetVirtualKeys`, 가상 모델에 저장), [swing-grid-navigation.md](../swing-grid-navigation.md) "가상 키". 조사 당시: 없음 | 중간 | 가상(계산) 열은 남음 |
+| R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 있음 (2026-11-08) | 가상 고유 키(읽기 전용 줄의 "가상 키 정하기…"), 가상 외래 키 추가·지우기(`ResultSetVirtualKeys`, 가상 모델에 저장), [swing-grid-navigation.md](../swing-grid-navigation.md) "가상 키". 가상(계산) 열 추가·고치기·지우기(JEXL 식, 미리 보기, 고칠 수 없음, `ResultSetVirtualColumns`, `chromite/saved-filters-virtual-columns`), [swing-saved-filters-virtual-columns.md](../swing-saved-filters-virtual-columns.md) "가상 열". 조사 당시: 없음 | 중간 | 가상 열은 서버 필터·정렬이 없다(정렬은 표 안에서) |
 | R23 | 값에 따른 색, 행 색, 그룹 줄무늬 | `colors/*` | 없음 | grep 0건 | 낮음 | |
 | R24 | 열 숨기기·순서·고정·빈 열 숨기기, 행·열로 가기, 확대·축소 | `grid.*` 명령, `zoomIn/Out` | 일부 (2026-11-08) | 숨기기·모두 보이기·빈 열 숨기기, 머리글 끌어 옮기기, Ctrl+G·Ctrl+Shift+G, Alt+0/Alt+9(`ResultSetColumnLayout`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 열 너비 맞추기만 | 낮음 | 열 고정(pin)은 남음 |
 | R25 | 결과 안 찾기 | Find/Replace on grid | 있음 (2026-11-08) | Ctrl+F 찾기 줄(`ResultSetFindBar`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 없음 | 낮음 | 찾기만(바꾸기 없음), 읽은 행만 |
@@ -221,3 +221,5 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
   요약 수: 연결 편집기 있음 16 → 17, 일부 6 → 5(합계 있음 76, 일부 29).
 - 2026-11-08 E12 조용히 끊김 → 수정함(`chromite/transfer-tasks`, `openEntityEditor`가 개체 탐색기에서 보임), 요약 8에 고친 것 표시.
   요약 수: 개체 편집기 있음 6 → 7, 조용히 끊김 1 → 0(합계 있음 77, 조용히 끊김 0).
+- 2026-11-08 R10·R22 일부 → 있음(`chromite/saved-filters-virtual-columns`: 저장한 필터·최근 필터, 가상(계산) 열).
+  요약 수: 결과 뷰어 있음 17 → 19, 일부 7 → 5(합계 있음 79, 일부 27).

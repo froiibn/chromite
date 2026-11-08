@@ -35,6 +35,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-value-editors.md](swing-value-editors.md) | Swing 결과 값 편집기 나머지: 참조 값 고르기(외래 키, 검색), MySQL/MariaDB SET 고르기, 배열·구조체·hstore 편집, OBJECT 열(PostgreSQL uuid·inet 등) 글자 편집, 비트 문자열, 16진수 편집, 외부 편집기(저장하면 셀에 넣음), UUID 만들기 |
 | [swing-result-generate-sql.md](swing-result-generate-sql.md) | Swing 결과에서 SQL 만들기: 결과 표 "SQL 생성"(고른 행의 SELECT·INSERT·UPDATE·DELETE, MERGE, 중복 키 INSERT, 결과를 담을 CREATE TABLE), 실행하지 않고 복사·쿼리 창에서 열기 |
 | [swing-grid-navigation.md](swing-grid-navigation.md) | Swing 결과 탐색: 외래 키 따라가기(Ctrl+B, 참조·참조하는 테이블)와 뒤로·앞으로, 참조 패널, 집계 패널, 가상 고유 키·가상 외래 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소, 결과 안 찾기, 텍스트 보기, 전체 행 수, 오류 위치로 가기 |
+| [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md) | Swing 결과의 저장한 필터(열 필터와 정렬을 이름으로 저장·적용, 테이블별 최근 필터)와 가상(계산) 열(JEXL 식, 쿼리 결과에도 붙음, 고칠 수 없음, 표 안 정렬), 연결의 가상 모델에 저장 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
 | [swing-sql-terminal.md](swing-sql-terminal.md) | Swing SQL 터미널(Query > SQL Terminal, Ctrl+T): 쿼리 창마다 켜는 Terminal 탭에 문장·글자 표·메시지를 명령줄처럼 쌓음, 결과 표는 그대로 |

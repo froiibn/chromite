@@ -45,6 +45,7 @@ import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -97,6 +98,10 @@ import java.util.function.Consumer;
  *   레이블을 이름으로 바꾼다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-08 배열·구조체 값({@link #isComplexValue})을 놓아 주지 않고 원래 값으로 남김: 읽을 때 요소가 단순 값으로 바뀌어 결과 집합에
  *   묶이지 않으므로, 편집 모델이 배열·구조체 편집기로 고칠 수 있다(값 패널 칸 값은 그대로 표시 문자열) (docs/chromite/swing-value-editors.md)
+ * - 2026-11-08 가상(계산) 열: 결과 집합에 없는 열이라 읽지 않고, 행을 읽은 뒤 다른 열 값으로 계산한다({@link ResultSetVirtualColumns}).
+ *   전에는 테이블 데이터 컨테이너가 붙인 가상 열(SWT에서 만든 것)을 결과 집합의 없는 열 번호로 읽어 칸마다 오류였다. 쿼리 결과는 열을
+ *   테이블에 묶은 뒤 단일 원본 테이블의 가상 열을 붙이고, 다음 페이지는 결과 집합 열 수를 가상 열을 뺀 수와 비교한다
+ *   (docs/chromite/swing-saved-filters-virtual-columns.md)
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -155,7 +160,8 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
             throw new DBException("Null result set metadata");
         }
         if (segmentBindings != null) {
-            if (metaData.getAttributes().size() != segmentBindings.length) {
+            // The result's virtual columns are not in the result set
+            if (metaData.getAttributes().size() != ResultSetVirtualColumns.getReadCount(segmentBindings)) {
                 throw new DBException(EditorMessages.editor_grid_columns_changed);
             }
             this.bindings = segmentBindings;
@@ -181,6 +187,11 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         Object[] cells = new Object[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
             DBDAttributeBinding binding = bindings[i];
+            if (binding.isCustom()) {
+                // A virtual column (a table's data container adds them to the bindings): not in the result set, it is
+                // calculated from the row in fetchEnd
+                continue;
+            }
             DBSAttributeBase attribute = binding.getAttribute();
             if (attribute == null) {
                 row[i] = ResultSetGrid.NULL_VALUE;
@@ -264,6 +275,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         }
         if (segmentBindings != null) {
             // The next rows of a result: its columns are bound already, and its viewer keeps the edit model
+            computeVirtualColumns();
             deliver(session.getExecutionContext(), null, null, null);
             return;
         }
@@ -276,6 +288,10 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
             log.debug("Can't bind result set columns to table metadata", e);
         }
         refreshDisplayOfRebound();
+        if (bindError == null) {
+            appendVirtualColumns(session);
+        }
+        computeVirtualColumns();
         DBCExecutionContext context = session.getExecutionContext();
         String readOnlyReason = ResultSetEditModel.getReadOnlyReason(context, bindings, unreadableColumns, lobColumns, bindError);
         // ENUM columns edit through a combo box; reading their values may query the type catalog, so here in the job
@@ -287,6 +303,40 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     public void close() {
         // fetchEnd is not called when the statement fails after fetchStart; show what was fetched
         deliver(null, null, EditorMessages.editor_grid_fetch_incomplete, null);
+    }
+
+    /**
+     * A query over one table gets that table's virtual columns once its columns are bound to the table (the model adds
+     * them to a table's own data container only); every row grows by them.
+     */
+    private void appendVirtualColumns(@NotNull DBCSession session) {
+        DBDAttributeBinding[] all = ResultSetVirtualColumns.appendTableColumns(session.getDataSource(), dataContainer, bindings);
+        if (all == bindings) {
+            return;
+        }
+        int count = all.length;
+        fetchHandlers = Arrays.copyOf(fetchHandlers, count);
+        for (int i = bindings.length; i < count; i++) {
+            fetchHandlers[i] = all[i].getValueHandler();
+        }
+        unreadableColumns = Arrays.copyOf(unreadableColumns, count);
+        lobColumns = Arrays.copyOf(lobColumns, count);
+        rows.replaceAll(row -> Arrays.copyOf(row, count));
+        rawValues.replaceAll(row -> Arrays.copyOf(row, count));
+        cellValues.replaceAll(row -> Arrays.copyOf(row, count));
+        bindings = all;
+    }
+
+    /**
+     * The values and display strings of the virtual columns, from the other values of each row.
+     */
+    private void computeVirtualColumns() {
+        if (ResultSetVirtualColumns.getReadCount(bindings) == bindings.length) {
+            return;
+        }
+        for (int r = 0; r < rows.size(); r++) {
+            ResultSetVirtualColumns.computeRow(bindings, rawValues.get(r), rows.get(r), cellValues.get(r));
+        }
     }
 
     /**
