@@ -39,6 +39,7 @@ import com.seizia.chromite.model.meta.PropertyLength;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.sql.DBSQLException;
+import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSCollationProvider;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectFilter;
@@ -63,6 +64,8 @@ import java.util.TreeSet;
 *
 * 변경 이력:
 * - 2026-11-08 {@link #getCollationNames}: 새 데이터베이스 대화상자가 정렬 규칙 목록을 고르게 공개 (docs/chromite/swing-create-objects.md)
+* - 2026-11-09 Babelfish 스키마 목록 질의: 데이터베이스 이름을 식별자 따옴표가 아니라 이스케이프한 문자열로 비교. 따옴표가 필요한 이름은
+*   {@code [이름]}이 되어 맞지 않았고 {@code '}가 있으면 질의가 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
 */
 public class SQLServerDatabase
     implements
@@ -609,7 +612,7 @@ public class SQLServerDatabase
             }
             sql.append("s.*,ep.value as description FROM ");
             if (SQLServerUtils.isDriverBabelfish(dataSource.getContainer().getDriver())) {
-                sql.append("(SELECT CAST(ext.orig_name AS sysname) AS name, base.oid AS schema_id, base.nspowner AS principal_id FROM pg_namespace base JOIN babelfish_namespace_ext ext ON base.nspname = ext.nspname JOIN babelfish_sysdatabases dbs ON dbs.dbid = ext.dbid WHERE dbs.name = '" + DBUtils.getQuotedIdentifier(dataSource, owner.getName()) + "') AS s");
+                sql.append("(SELECT CAST(ext.orig_name AS sysname) AS name, base.oid AS schema_id, base.nspowner AS principal_id FROM pg_namespace base JOIN babelfish_namespace_ext ext ON base.nspname = ext.nspname JOIN babelfish_sysdatabases dbs ON dbs.dbid = ext.dbid WHERE dbs.name = '" + SQLUtils.escapeString(dataSource, owner.getName()) + "') AS s");
             }
             else {
                 sql.append(sysSchema).append(".schemas s");
