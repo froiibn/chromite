@@ -6,7 +6,7 @@ DBeaver SWT 결과 뷰어(`com.seizia.chromite.ui.editors.data`의 `ResultSetVie
 ([swing-frontend.md](swing-frontend.md) C·G단계의 `ResultSetGrid`)에 옮긴다. 우선순위는 다음과 같다.
 
 1. 값 패널: 고른 칸의 값을 표 옆에서 크게 보기(줄 바꿈 글자, JSON·XML 정리, 이진 이미지 미리 보기, 16진수), 편집할 수 있는 표에서는 고치기
-2. 정렬·필터: 머리글 눌러 정렬(서버 또는 표 안), 칸 값으로 거르기. WHERE 필터 줄과 기록은 2026-11-07 열 머리글 필터로 바뀜([swing-grid-column-filters.md](swing-grid-column-filters.md))
+2. 정렬·필터: 머리글의 정렬 아이콘을 눌러 정렬(서버 또는 표 안), 칸 값으로 거르기. WHERE 필터 줄과 기록은 2026-11-07 열 머리글 필터로 바뀜([swing-grid-column-filters.md](swing-grid-column-filters.md))
 3. 다음 페이지: 끝까지 내리면 더 읽기, 모두 읽기, 읽은 행 수 표시
 4. 레코드 보기: 한 행을 세로로
 5. 표 편의 기능: 열 너비 맞춤, 복사 형식(CSV·TSV·SQL IN·Markdown), 선택 집계, NULL 표시, 날짜·숫자 형식
@@ -83,7 +83,7 @@ SWT: `ResultSetViewer.toggleSortOrder`(ResultSetViewer.java:2700), `reorderLocal
 `ResultSetModel.createDataFilter`(:183), `ResultSetFilterPanel.setCustomDataFilter`(ResultSetFilterPanel.java:618), `addFiltersHistory`(:651),
 `ResultSetViewer.fillFiltersMenu`(:3893), `FilterByAttributeAction.run`(:42).
 
-- **정렬 순서:** 머리글을 누르면 오름차순 → 내림차순 → 정렬 없음. Ctrl을 누른 채 누르면 다른 열의 정렬을 두고 이 열을 더한다(여러 열 정렬).
+- **정렬 순서:** 머리글의 정렬 아이콘을 누르면 오름차순 → 내림차순 → 정렬 없음(2026-11-08 전에는 이름 자리를 눌러도 정렬했고, 지금 이름 자리는 열 선택이다). Ctrl을 누른 채 누르면 다른 열의 정렬을 두고 이 열을 더한다(여러 열 정렬).
   SWT는 그냥 눌러도 열을 더하지만, Swing은 한 열 정렬을 기본으로 했다(다른 데이터베이스 도구에서 흔한 방식). 머리글 오른쪽 클릭에 Sort Ascending / Sort Descending / Clear Sorting.
   정렬 상태는 2026-11-07부터 머리글 오른쪽 끝의 정렬 아이콘(정렬 없음: 흐린 ⇅, 정렬: 강조색 화살표)이 보이고, 그 아이콘을 눌러도 같은 순서로 바뀐다
   (전에는 Look and Feel의 정렬 화살표 `Table.ascendingSortIcon`/`descendingSortIcon`, [swing-grid-column-filters.md](swing-grid-column-filters.md)).
@@ -146,6 +146,11 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   지금 필터·서버 정렬을 내보내기에 넘기려면(`DatabaseTransferProducer(컨테이너, DBDDataFilter)`) 마법사와 표의 메뉴에 필터를 넘기는 길이 더 필요해 남겼다(아래 "남긴 것").
 - **선택 집계:** 칸을 둘 이상 고르면 상태 줄 오른쪽에 `Count: 6   Sum: …   Avg: …   Min: …   Max: …`. 모델 계층의 집계 함수(`FunctionSum`, `FunctionAvg`, `FunctionMin`, `FunctionMax`,
   SWT `AggregateColumnsPanel`(panel/aggregate/AggregateColumnsPanel.java:60)이 쓰는 것)를 쓰고 숫자 값만 넣는다. 선택이 바뀌고 100ms 뒤에 계산한다(SWT `ResultSetStatListener`와 같은 지연).
+- **행 번호 열:** 맨 왼쪽(SSMS·DataGrip처럼), 그리드 바탕에 보조 글자색(`Chromite.secondaryForeground`)이다. 2026-11-08부터 선택한 행의 번호도 선택색으로 칠하지 않는다:
+  셀 하나만 골라도 번호 칸이 함께 칠해져 선택이 번호 열까지 이어졌다가 끊긴 것처럼 보였다(사용자 #4). 그 칠하기만을 위해 있던 표의 선택·포커스 리스너도 지웠다.
+  번호를 누르면 그 행 전체를 고르는 동작(가로 스크롤 없이)은 그대로다. 열 전체 선택은 머리글 이름 자리를 누른다([swing-grid-column-filters.md](swing-grid-column-filters.md) "머리글 누르기").
+  확인(2026-11-08, 앱 안 시험 에이전트): 칸 3행×3열 선택, 행 번호 클릭(그 행 7열 모두 선택), 표가 포커스를 잃은 상태에서 번호 칸 렌더러 바탕이 모두 그리드 바탕(#ffffff),
+  글자 #73767c. 캡처 `D:\Tools\_scratch\grid-header\shots\4-1-cells-selected.png`, `4-2-row-selected.png`.
 - **NULL 표시:** C단계 그대로 `NULL`을 보조 글자색으로 그린다(문자열 "NULL"과 구분). 레코드 보기와 값 패널도 같다.
 - **날짜·숫자 형식:** 표의 표시 문자열은 C단계부터 열의 값 처리기 `getValueDisplayString(…, DBDDisplayFormat.UI)`로 만들고, 값 처리기는 연결의 데이터 형식 프로필
   (`DBDDataFormatterProfile`, SWT 설정 화면의 Data Formats)을 쓴다. 그래서 SWT 그리드와 같은 형식이다. 값 패널은 SWT 패널처럼 편집 형식(`DBDDisplayFormat.EDIT`, 전체 정밀도)이다.
@@ -168,7 +173,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 ## upstream 대비 변경점
 
 - upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)와 아주 작은 수의 표시(`NumberFormatSample`의 기본값, `DBValueFormatting.convertNumberToNativeString`)를 고쳤다(SWT에도 적용).
-- SWT와 다른 동작: 머리글 클릭은 한 열 정렬(Ctrl로 더하기), 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
+- SWT와 다른 동작: 정렬 아이콘 클릭은 한 열 정렬(Ctrl로 더하기), 머리글 이름 클릭은 열 전체 선택, 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
 ## 확인 (2026-11-06)
@@ -220,3 +225,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   전체 행 수. "남긴 것" 갱신. [swing-grid-navigation.md](swing-grid-navigation.md).
 - 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 2026-11-08 배치 결과 다시 읽기: 결과를 만든 SELECT만 실행, 정할 수 없으면 막고 이유를 보임. [sql-batch-reread.md](sql-batch-reread.md).
+- 2026-11-08 행 번호 칸을 선택·포커스와 관계없이 늘 그리드 바탕으로("표 편의 기능"), 머리글 이름 자리는 정렬 대신 열 선택(swing-grid-column-filters.md "머리글 누르기").
