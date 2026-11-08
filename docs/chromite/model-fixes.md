@@ -3,7 +3,8 @@
 2026-11-06 통합 중 모은 후속 과제(followups-2026-11-06) 가운데 모델 번들의 결함 다섯 가지를 고친 기록이다(#47, #48, #50, #60, #70).
 형식 매핑·Copy Tables의 기본 키(#39, #51, #52, #53)는 [swing-data-transfer.md](swing-data-transfer.md) "남은 매핑과 기본 키 (2026-11-07 밤)",
 작은 수의 표시(#53)는 [swing-result-viewer.md](swing-result-viewer.md) "아주 작은 수의 표시"에 있다.
-2026-11-08의 작은 모델·안전·라이선스 수정 여섯 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)", 그 뒤의 후속 과제 열 가지는 "후속 수정 3 (2026-11-08)"에 있다.
+2026-11-08의 작은 모델·안전·라이선스 수정 여섯 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)", 그 뒤의 후속 과제 열 가지는 "후속 수정 3 (2026-11-08)",
+속성 편집에서 드러난 DDL 결함 두 가지(후속 2026-11-07 저녁 #35)는 "모델 DDL 수정 (2026-11-08)"에 있다.
 항목마다 증상, 근본 원인(파일:줄, 고치기 전 기준), 같은 원인의 다른 경우, 고친 방법을 적는다. 모두 DBeaver에서 온 코드라 SWT(DBeaver)에도 같은 결함이 있다.
 
 ## SQL Server 매개변수 종류 (#47)
@@ -232,6 +233,59 @@ Docker 시험 DB(SQL Server 2022 `chr_followups_3`, Oracle 23ai 사용자 `CHR_F
   계획 저장 형식, SQL Server 루틴 매개변수를 쓰는 곳(자동완성, 실행·디버그 대화상자, 호출문), SQL 터미널, Query History 미리 보기, Tools > Options OK, SQL 로그 파일,
   Chromite Agent 확인 대화상자, Altibase·CUBRID 쿼리 창.
 
+## 모델 DDL 수정 (2026-11-08)
+
+후속 목록(2026-11-07 저녁) #35. 속성 편집([swing-object-properties.md](swing-object-properties.md) "알려진 문제")에서 드러난 두 가지다(`chromite/model-ddl-fixes`).
+
+### Oracle ALTER SEQUENCE
+
+- 증상: 한 번도 쓰지 않은 시퀀스의 증분·캐시를 Properties에서 바꾸면 Oracle 23ai에서 ORA-04007("MINVALUE cannot exceed the current value")로 실패했다.
+- 근본 원인: `OracleSequence.buildStatement(true)`(고치기 전 `:175-213`)가 ALTER에도 CREATE와 같이 모든 절(INCREMENT BY, MINVALUE, MAXVALUE, CYCLE, CACHE, ORDER)을
+  적었다. `OracleSequenceManager.addObjectModifyActions`(`:89-91`)는 어떤 속성이 바뀌었는지 보지 않고 그 문장을 썼다. Oracle은 ALTER SEQUENCE의 절마다 지금 값과
+  맞는지 검사하므로, 바꾸지 않은 MINVALUE도 검사를 받는다. 23ai 컨테이너에서 같은 문장으로 재현했다: 새 시퀀스에
+  `ALTER SEQUENCE … INCREMENT BY 3 MINVALUE 1 MAXVALUE 9999999999999999999999999999 NOCYCLE CACHE 50 NOORDER` → ORA-04007,
+  `ALTER SEQUENCE … INCREMENT BY 3` → 성공.
+- 고친 방법: CREATE(`buildStatement()`, 모든 절)와 ALTER(`buildAlterStatement(changed)`, 바뀐 속성의 절만)를 나눴다. 관리자는 명령이 기록한 속성
+  (`ObjectChangeCommand.hasProperty`)을 넘긴다. 최소·최대값을 지우면 `NOMINVALUE`·`NOMAXVALUE`다. 적을 절이 없으면(Value(마지막 값)만 바꿈) 문장을 만들지 않아
+  편집 화면이 "만들어진 SQL 문이 없음"을 알리고 되돌린다. 전에는 Value를 바꾸면 모든 절을 다시 적고 값은 바뀌지 않았다.
+  쓰이지 않게 된 `forUpdate` 인자는 지웠다(호출하는 곳은 관리자와 DDL 보기 둘뿐, grep `buildStatement`).
+- 같은 원인의 다른 경우: Altibase(`AltibaseSequence.buildStatement`), Dameng(`DamengSequence.buildStatement`), DB2(`DB2SequenceManager.buildStatement`),
+  CUBRID(`CubridSequenceManager.buildStatement`)도 ALTER에 모든 절을 다시 적는다. 그 DB들이 바꾸지 않은 절을 거절하는지는 확인하지 못해(시험 서버는 Altibase뿐이고
+  이번 범위 밖) 고치지 않았다(아래 "남긴 것").
+
+### PostgreSQL Partition by
+
+- 증상: 저장된 테이블의 Properties에서 Partition by를 고칠 수 있었고, 고치면 `ALTER TABLE … PARTITION BY …`가 `syntax error at or near "PARTITION"`으로 실패했다.
+- 근본 원인: PostgreSQL에는 있는 테이블의 파티션 방식을 정하거나 바꾸는 문장이 없다(파티션 방식은 CREATE TABLE에서만 정한다). 그런데 `PostgreTable.getPartitionKey`가
+  `@Property(updatable = true)`(고치기 전 `:184`)였고, `PostgreTableManager.generateAlterActions`(고치기 전 `:180-182`)가 없는 문장을 만들었다.
+- 같은 원인의 다른 경우: 파티션의 범위(`PostgreTablePartition.getPartitionExpression`, `FOR VALUES …`)도 `updatable = true`였다. 저장된 파티션의 범위는
+  DETACH/ATTACH PARTITION으로만 바꿀 수 있고 관리자는 그 문장을 만들지 않아, 고치면 "만들어진 SQL 문이 없음"으로 끝났다.
+- 고친 방법: 두 속성의 `updatable`을 지워 저장된 테이블·파티션에서는 읽기 전용(흐린 글자)이고, 새 테이블·파티션을 만들 때는 그대로 고친다(`editable`).
+  쓰이지 않게 된 `ALTER TABLE … PARTITION BY` 분기를 지웠다(`hasProperty("partitionKey")`는 저장된 테이블의 속성 명령에서만 생기고, 새 테이블의 명령은
+  CREATE 명령에 합쳐진다(`SQLStructEditor.StructCreateCommand.aggregateCommand`)).
+- Redshift(`RedshiftTable.getPartitionKey` `:114-118`)는 이 게터를 `@Property` 없이 재정의한다(주석 "Not supported"). 이번 변경은 그 클래스를 건드리지 않았다.
+
+### 확인 (2026-11-08, 모델 DDL 수정)
+
+`mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. 빌드 결과물 하나를 작업 공간 사본·별도 데이터 폴더(`CHROMITE_DATA`)로
+한국어, 다시 `-nl en`으로 실행하고 같은 프로세스에 붙인 시험 드라이버로 Properties 창을 조작했다(OS 입력 없음). DB는 Docker Oracle 23ai(사용자 `CHR_G11`)와
+PostgreSQL 17(DB `chr_model_ddl_fixes`)에 이 작업이 만든 개체만 썼고 끝난 뒤 지웠다. DB 값은 `docker exec`로 카탈로그를 읽었다.
+
+| 확인 | 결과 |
+|---|---|
+| Oracle 새 시퀀스(한 번도 안 씀) 증분 1 → 3, 실행 | 미리 보기 `ALTER SEQUENCE CHR_G11.G11_SEQ INCREMENT BY 3;`, `dba_sequences.increment_by` 3(전에는 ORA-04007) |
+| 캐시 20 → 50 | `ALTER SEQUENCE … CACHE 50;`, `cache_size` 50 |
+| 순환 true → 취소 | 미리 보기 `ALTER SEQUENCE … CYCLE;`, 취소 뒤 그리드·DB false |
+| 값(마지막 값) 100 | "이 데이터베이스에서는 이 변경에 대한 SQL 문이 만들어지지 않아 아무것도 바꾸지 않았습니다.", 그리드 1 |
+| 최소값 1 → 0 | `ALTER SEQUENCE … MINVALUE 0;`, `min_value` 0 |
+| 영어: 새 시퀀스 Increment 3, Cache 50, Value 100 | 같은 문장(`… INCREMENT BY 3;`, `… CACHE 50;`), "This change produces no SQL statement for this database, so nothing was changed." |
+| View DDL(CREATE 경로) | `CREATE SEQUENCE CHR_G11.G11_SEQ3 INCREMENT BY 3 MINVALUE 1 MAXVALUE 9999999999999999999999999999 NOCYCLE CACHE 50 NOORDER;` |
+| PostgreSQL 파티션 테이블 `g11_part`, 일반 테이블 `g11_plain` | 파티션 기준(Partition by) `RANGE (created)`·빈 값 모두 흐린 글자, 편집이 시작되지 않음. 테이블스페이스·행 수준 보안·주석은 그대로 고칠 수 있음 |
+| 파티션 `g11_part_2026` | 파티션 식 `FOR VALUES FROM ('2026-01-01') TO ('2027-01-01')` 흐린 글자, 편집 안 됨 |
+
+- 새 테이블의 Partition by(테이블 디자이너·새 테이블 만들기)는 코드로만 확인했다(`editable`은 그대로, CREATE는 `PostgreServerExtensionBase.getTableModifiers`).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Oracle 시퀀스 만들기·DDL 보기·속성 편집, PostgreSQL 테이블·파티션 속성 편집과 DDL.
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -252,6 +306,8 @@ Docker 시험 DB(SQL Server 2022 `chr_followups_3`, Oracle 23ai 사용자 `CHR_F
 - OceanBase 계획(`OceanbasePlanNodeJSON.getNodeCost`)도 자식 비용을 `long`으로 더한다. `COST`가 정수면 문제가 없고, 확인할 시험 DB가 없다.
 - SQL Server OUTPUT 매개변수는 입력도 받지만 OUT으로 둔다. 자동완성은 OUTPUT 매개변수를 입력으로 제안하지 않는다.
 - PostgreSQL 기존 열의 정렬 규칙만 바꾸는 변경은 스크립트를 만들지 않는다(upstream 그대로).
+- Altibase·Dameng·DB2·CUBRID 시퀀스의 ALTER도 모든 절을 다시 적는다(위 "Oracle ALTER SEQUENCE"). 그 DB가 바꾸지 않은 절을 거절하는지 확인한 뒤 고친다.
+- Oracle 시퀀스의 Value(마지막 값)는 고칠 수 있게 보이지만 문장이 없다. Oracle 18c 이상 `ALTER SEQUENCE … RESTART START WITH n`으로 넣을 수 있다(새 기능이라 두지 않음).
 
 ## 변경 이력
 
@@ -263,3 +319,4 @@ Docker 시험 DB(SQL Server 2022 `chr_followups_3`, Oracle 23ai 사용자 `CHR_F
 - 2026-11-08 "후속 수정 3": Oracle 형식 컴파일의 개체 종류, SQL Server 루틴 매개변수의 길이와 루틴 설명의 정밀도(#31).
 - 2026-11-08 "후속 수정 3": SQL 로그 파일 핸들, Options OK의 저장 실패 알림(#33).
 - 2026-11-08 "후속 수정 3": 머리말, Oracle View DDL의 ORA-38802 조사(#30, 재현 안 됨), 확인 표.
+- 2026-11-08 "모델 DDL 수정"(`chromite/model-ddl-fixes`, 후속 저녁 #35): Oracle ALTER SEQUENCE는 바꾼 절만, PostgreSQL Partition by·파티션 식은 저장된 객체에서 읽기 전용.

@@ -32,6 +32,16 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * PostgreSQL table partition
+ *
+ * 설계: 파티션 범위(Partition expression, {@code FOR VALUES …})는 CREATE TABLE … PARTITION OF에서만 정한다. 저장된 파티션의
+ * 범위를 바꾸려면 DETACH·ATTACH PARTITION이 필요해 속성 편집으로는 바꾸지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Partition expression을 저장된 파티션에서 읽기 전용으로 함(전에는 고칠 수 있다고 보였지만 문장이 만들어지지 않음)
+ *   (docs/chromite/model-fixes.md "PostgreSQL Partition by")
+ */
 public class PostgreTablePartition extends PostgreTable implements DBSTablePartition {
 
     public static final String CAT_PARTITIONING = "Partitioning";
@@ -65,7 +75,9 @@ public class PostgreTablePartition extends PostgreTable implements DBSTableParti
         return false;
     }
 
-    @Property(viewable = true, editable = true, updatable = true, order = 60)
+    // Set by CREATE TABLE … PARTITION OF only: PostgreSQL changes the bounds of an existing partition only by detaching
+    // and attaching it again, which the property command does not generate
+    @Property(viewable = true, editable = true, order = 60)
     @Nullable
     public String getPartitionExpression() {
         return partitionExpression;
