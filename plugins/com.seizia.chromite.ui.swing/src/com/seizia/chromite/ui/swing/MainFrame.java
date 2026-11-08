@@ -267,6 +267,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 Query Library 머리말의 저장 단추가 쓰도록 Save 동작을 넘김({@link #getSaveAction}) (docs/chromite/swing-query-library.md "머리말 저장 단추")
  * - 2026-11-08 Chromite Agent 창의 설정 단추는 Options를 그 페이지로 엶({@link OptionsDialog#open(Frame, String)},
  *   docs/chromite/ai-agent.md "설정 열기")
+ * - 2026-11-08 Chromite Agent 편집기 연결을 {@link AiQueryWindowBridge}로: 쿼리 창 목록·읽기·고치기 도구 (docs/chromite/ai-agent.md "편집기 도구")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -609,10 +610,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
         toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, false,
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE + 0.07));
-        // Tool calls of the in-app chat and of the MCP server ask in this window; the openInEditor tool opens query windows here
+        // Tool calls of the in-app chat and of the MCP server ask in this window; the editor tools open, read and edit its query windows
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
-        AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
-            SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
+        AIAgentServices.setEditorBridge(new AiQueryWindowBridge(this::getEditors, this::getActiveEditor, this::showQueryWindow, aiAssistantPanel));
         // Saved tasks (backups, restores, native script runs): a tab next to the Query Library, hidden until opened
         ToolWindow tasksWindow = new ToolWindow("databaseTasks", DatabaseTasksMessages.tasks_title, null); //$NON-NLS-1$
         toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
