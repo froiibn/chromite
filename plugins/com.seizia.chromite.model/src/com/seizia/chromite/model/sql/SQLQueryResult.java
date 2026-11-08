@@ -28,6 +28,13 @@ import java.util.List;
 
 /**
  * SQLQueryResult
+ *
+ * 설계: 한 쿼리가 여러 문장의 배치(SQL Server {@code GO} 배치 등)이면 문장마다 오류가 날 수 있다. {@link #getError()}는 첫 오류로 두어
+ * 오류 하나만 보는 곳(기록, 상태)이 그대로 동작하게 하고, 나머지는 {@link #getErrors()}로 순서대로 돌려준다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link #addError}, {@link #getErrors()}: 배치의 뒤 문장 오류를 경고가 아니라 쿼리 오류로 모은다
+ *   (docs/chromite/sql-batch-errors.md)
  */
 public class SQLQueryResult implements DBCExecutionResult
 {
@@ -83,6 +90,8 @@ public class SQLQueryResult implements DBCExecutionResult
     private Long rowOffset;
     private boolean hasResultSet;
     private Throwable error;
+    // Errors after the first one (later statements of the same batch), in the order they happened
+    private final List<Throwable> laterErrors = new ArrayList<>();
     private long queryTime;
     private List<Throwable> warnings;
     private List<ExecuteResult> executeResults = new ArrayList<>();
@@ -129,6 +138,32 @@ public class SQLQueryResult implements DBCExecutionResult
     public void setError(Throwable error)
     {
         this.error = error;
+    }
+
+    /**
+     * Adds an error of the query: the first one becomes {@link #getError()}, later ones (errors of later statements
+     * of the same batch) follow it in {@link #getErrors()}.
+     */
+    public void addError(@NotNull Throwable error) {
+        if (this.error == null) {
+            this.error = error;
+        } else {
+            laterErrors.add(error);
+        }
+    }
+
+    /**
+     * All errors of the query in the order they happened, {@link #getError()} first. Empty without an error.
+     */
+    @NotNull
+    public List<Throwable> getErrors() {
+        if (error == null) {
+            return List.of();
+        }
+        List<Throwable> errors = new ArrayList<>(laterErrors.size() + 1);
+        errors.add(error);
+        errors.addAll(laterErrors);
+        return errors;
     }
 
     public long getQueryTime()

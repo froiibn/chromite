@@ -291,6 +291,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   적용하도록 세션 열기를 {@link #openWindowContext} 하나로 모음 (docs/chromite/swing-query-window-recovery.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 결과가 만든 문장을 메인 창이 새 쿼리 창에 엶({@link Host#openScript}, 실행하지 않음)
  *   (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 배치 오류: 한 쿼리(GO 배치)의 오류를 모두 Messages에 각자의 줄 머리글로 쓰고, 오류가 있어도 앞뒤 문장의 행 수를 씀
+ *   ({@link SQLQueryResult#getErrors()}, docs/chromite/sql-batch-errors.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1707,8 +1709,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Messages of one finished query: warnings and PRINT output, server output (DBMS_OUTPUT), rows affected, time, or
-     * the error with its position in the editor.
+     * Messages of one finished query: warnings and PRINT output, server output (DBMS_OUTPUT), rows affected, then the
+     * time, or every error (one per failed statement of a batch) with its position in the editor.
      */
     private void reportQueryResult(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQueryResult result) {
         List<String> messages = new ArrayList<>();
@@ -1717,35 +1719,36 @@ final class SqlEditorPanel extends JPanel {
             messages.add(CommonUtils.notEmpty(warning.getMessage()));
         }
         readServerOutput(session, messages);
-        Throwable error = result.getError();
-        String errorText = null;
-        int errorOffset = -1;
-        List<CompileErrorLine> compileErrors = error == null ? readCompileErrors(run, session, result.getStatement()) : List.of();
+        // A batch (SQL Server GO batch) can fail in several statements: each error with its own line
+        List<Throwable> errors = result.getErrors();
+        List<CompileErrorLine> compileErrors = errors.isEmpty() ? readCompileErrors(run, session, result.getStatement()) : List.of();
         if (compileErrors.stream().anyMatch(CompileErrorLine::error)) {
             // The unit exists but is invalid: the run reports errors and brings the Messages tab to the front
             run.hasErrors = true;
         }
-        if (error == null) {
-            boolean anyCount = false;
-            List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
-            int resultSetIndex = 0;
-            for (SQLQueryResult.ExecuteResult executeResult : result.getExecuteResults()) {
-                if (executeResult.isResultSet() && resultSetIndex < planReceivers.size()
-                    && planReceivers.get(resultSetIndex++).isPlanResultSet()) {
-                    // The actual plan of the statement, shown in the Execution plan tab
-                    continue;
-                }
-                Long count = executeResult.isResultSet() ? executeResult.getRowCount() : executeResult.getUpdateCount();
-                if (count == null) {
-                    continue;
-                }
-                anyCount = true;
-                String line = NLS.bind(count == 1 ? EditorMessages.editor_sql_rows_affected_one : EditorMessages.editor_sql_rows_affected_many, count);
-                if (executeResult.isResultSet() && run.maxRows > 0 && count >= run.maxRows) {
-                    line = NLS.bind(EditorMessages.editor_sql_rows_affected_max, line, run.maxRows);
-                }
-                messages.add(line);
+        // Counts also before errors: the statements of a batch before (and after) a failed one ran
+        boolean anyCount = false;
+        List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
+        int resultSetIndex = 0;
+        for (SQLQueryResult.ExecuteResult executeResult : result.getExecuteResults()) {
+            if (executeResult.isResultSet() && resultSetIndex < planReceivers.size()
+                && planReceivers.get(resultSetIndex++).isPlanResultSet()) {
+                // The actual plan of the statement, shown in the Execution plan tab
+                continue;
             }
+            Long count = executeResult.isResultSet() ? executeResult.getRowCount() : executeResult.getUpdateCount();
+            if (count == null) {
+                continue;
+            }
+            anyCount = true;
+            String line = NLS.bind(count == 1 ? EditorMessages.editor_sql_rows_affected_one : EditorMessages.editor_sql_rows_affected_many, count);
+            if (executeResult.isResultSet() && run.maxRows > 0 && count >= run.maxRows) {
+                line = NLS.bind(EditorMessages.editor_sql_rows_affected_max, line, run.maxRows);
+            }
+            messages.add(line);
+        }
+        List<ErrorReport> errorReports = new ArrayList<>();
+        if (errors.isEmpty()) {
             if (!anyCount && !run.cancelRequested) {
                 // A canceled statement ends without an error and without counts; it did not complete
                 messages.add(EditorMessages.editor_sql_commands_completed);
@@ -1753,13 +1756,11 @@ final class SqlEditorPanel extends JPanel {
             messages.add(NLS.bind(EditorMessages.editor_sql_execution_time, result.getQueryTime()));
         } else {
             run.hasErrors = true;
-            ErrorReport report = describeError(run, session, result.getStatement(), error);
-            errorText = report.text();
-            errorOffset = report.offset();
-            run.reportedErrors.add(error);
+            for (Throwable error : errors) {
+                errorReports.add(describeError(run, session, result.getStatement(), error));
+                run.reportedErrors.add(error);
+            }
         }
-        String finalErrorText = errorText;
-        int finalErrorOffset = errorOffset;
         // SQL terminal: the statement, its result sets as text tables, then the same messages as the Messages tab
         String terminalText = null;
         if (run.terminal) {
@@ -1796,13 +1797,13 @@ final class SqlEditorPanel extends JPanel {
                 }
             }
             addErrorLines(errorLines);
-            if (finalErrorText != null) {
-                resultsView.appendError(finalErrorText, finalErrorOffset);
+            for (ErrorReport report : errorReports) {
+                resultsView.appendError(report.text(), report.offset());
             }
             if (finalTerminalText != null) {
                 terminalView.append(finalTerminalText);
-                if (finalErrorText != null) {
-                    terminalView.appendError(finalErrorText);
+                for (ErrorReport report : errorReports) {
+                    terminalView.appendError(report.text());
                 }
                 terminalView.append("");
             }

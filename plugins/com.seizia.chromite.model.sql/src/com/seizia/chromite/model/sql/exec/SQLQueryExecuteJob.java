@@ -84,6 +84,9 @@ import java.util.Map;
  * - 2026-11-08 {@code @include}: 명령이 돌려준 {@link SQLIncludedScript}의 문장을 남은 문장 앞에 끼워 같은 루프로 실행한다(오류 처리·취소·
  *   진행·통계가 스크립트 자신의 문장과 같다). 끼운 문장은 그 파일의 스크립트 문맥으로 실행한다(매개변수, 명령, 중첩 포함의 기준 폴더).
  *   다시 실행하면 처음 받은 문장부터 다시 읽는다 (docs/chromite/swing-query-commands.md "@include").
+ * - 2026-11-08 배치 오류: 여러 문장 배치(SQL Server GO 배치)의 뒤 문장 오류를 경고로 바꾸던 처리({@code getMoreResults} 예외, 행을 일부 읽은 뒤
+ *   읽기 오류)를 없앴다. 오류는 쿼리 오류로 모으고({@link SQLQueryResult#addError}) 그 뒤 결과도 계속 읽으며, 쿼리는 실패로 끝난다.
+ *   첫 문장이 실패해도 뒤 문장이 실행된 배치는 그 결과를 읽는다({@link SQLBatchErrors}, docs/chromite/sql-batch-errors.md).
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -711,10 +714,11 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                 executionCanceled = true;
             } else if (!(ex instanceof DBException)) {
                 log.error("Unexpected error while processing SQL", ex);
-                curResult.setError(ex);
+                // After the errors of earlier statements of the batch, if any
+                curResult.addError(ex);
                 lastError = ex;
             } else {
-                curResult.setError(ex);
+                curResult.addError(ex);
                 lastError = ex;
             }
         }
@@ -730,6 +734,11 @@ public class SQLQueryExecuteJob extends DataSourceJob {
 
         if (executionCanceled) {
             return false;
+        }
+        if (lastError == null && curResult.getError() != null) {
+            // Statement errors of a batch, collected while its later results were read (SQLBatchErrors): the query
+            // failed although the statement did not throw
+            lastError = curResult.getError();
         }
 
         lastGoodQuery = originalQuery;
@@ -804,7 +813,13 @@ public class SQLQueryExecuteJob extends DataSourceJob {
             DBRProgressMonitor monitor = session.getProgressMonitor();
             monitor.subTask("Execute query");
 
-            boolean hasResultSet = dbcStatement.executeStatement();
+            boolean hasResultSet;
+            try {
+                hasResultSet = dbcStatement.executeStatement();
+            } catch (DBCException e) {
+                // The first statement of a batch failed and the later ones may still have run (SQL Server)
+                hasResultSet = SQLBatchErrors.resumeAfterExecuteError(session, dbcStatement, e, curResult::addError);
+            }
 
             statistics.addExecuteTime(System.currentTimeMillis() - startTime);
             statistics.addStatementsCount();
@@ -848,18 +863,20 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                                 try {
                                     hasResultSet = fetchQueryData(session, resultSet, curResult, curResult.addExecuteResult(true), dataReceiver, true);
                                 } catch (DBCException e) {
-                                    if (DBExecUtils.isExecutionCanceled(session.getDataSource(), e) || monitor.isCanceled()) {
+                                    // Checked first: it does not read the driver's error chain, which would drop the
+                                    // later results of a SQL Server batch (SQLBatchErrors.canReadPast)
+                                    boolean readPast = SQLBatchErrors.canReadPast(session, e);
+                                    if (!readPast && (DBExecUtils.isExecutionCanceled(session.getDataSource(), e) || monitor.isCanceled())) {
                                         throw e;
                                     }
-                                    if (rowsFetched == 0) {
+                                    if (rowsFetched == 0 && !readPast) {
                                         throw e;
-                                    } else {
-                                        // Some rows were fetched, so we don't want to fail entire query
-                                        // Ad error as a warning
-                                        log.warn("Fetch failed", e);
-                                        statistics.setRowsFetched(rowsFetched);
-                                        statistics.setError(e);
                                     }
+                                    // The rows fetched so far stay, and the results of the later statements of the batch
+                                    // are still read. The error is the query's error, not a warning: the run must fail.
+                                    // Not logged here (the log reads the error chain too); the run logs its error when it stops
+                                    statistics.setRowsFetched(rowsFetched);
+                                    curResult.addError(e);
                                 }
                             } else {
                                 // The result is skipped without reading any rows, so the max rows check must not use a count left from the previous fetch
@@ -905,19 +922,8 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                         log.trace("Max rows exceeded. Additional resultsets extraction is disabled");
                         hasResultSet = false;
                     } else {
-                        try {
-                            hasResultSet = dbcStatement.nextResults();
-                        } catch (DBCException e) {
-                            if (dataSourceInfo.isMultipleResultsFetchBroken()) {
-                                statistics.addWarning(e);
-                                statistics.setError(e);
-                                // #2792: Check this twice. Some drivers (e.g. Sybase jConnect)
-                                // throw error on n'th result fetch - but it still can keep fetching next results
-                                hasResultSet = dbcStatement.nextResults();
-                            } else {
-                                throw e;
-                            }
-                        }
+                        // An error of a later statement of the batch is the query's error; the results after it are still read
+                        hasResultSet = SQLBatchErrors.nextResults(session, dbcStatement, curResult::addError);
                     }
                     updateCount = hasResultSet ? -1 : 0;
                 } else {
@@ -930,9 +936,6 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                 curResult.addWarnings(dbcStatement.getStatementWarnings());
             } catch (Throwable e) {
                 log.warn("Can't read execution warnings", e);
-            }
-            if (!CommonUtils.isEmpty(statistics.getWarnings())) {
-                curResult.addWarnings(statistics.getWarnings().toArray(new Throwable[0]));
             }
             //monitor.subTask("Close query");
             if (!keepStatementOpen()) {
