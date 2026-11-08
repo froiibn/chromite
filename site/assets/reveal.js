@@ -3,7 +3,8 @@
  * Copyright (C) 2026 Chromite contributors
  * Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
  *
- * The one-time reveal of the home page's stage scenes (docs/chromite/distribution.md "Site", "Home stage").
+ * The one-time reveal of the home page's stage scenes and the switch for their loops
+ * (docs/chromite/distribution.md "Site", "Home stage").
  *
  * Design:
  *   - The user found the scroll-linked stage (stage.js, motion as a function of the scroll position) janky
@@ -15,6 +16,12 @@
  *     -20% at the bottom, threshold 0), not a share of the scene: a tall scene on a phone can be several
  *     views high and would never reach 25% visible.
  *   - Each scene is unobserved once revealed and never hidden again; scrolling back shows it as it is.
+ *   - The loop (each screenshot zooming into its parts on a timer, like a GIF; keyframes in site.css) runs
+ *     only while its scene is on screen: a second observer, with no margin, adds "is-playing" while any
+ *     part of a scene is in view and removes it when the scene leaves, and site.css pauses every scene
+ *     without it. When the tab is hidden every scene loses the class, and the ones still in view get it
+ *     back when the tab is shown again. That is all the script does for the loop: two observers and one
+ *     visibility listener, no per-frame work.
  *   - The html element gets the class "reveal" right away (this file is loaded without defer in <head>, so
  *     the hidden state is in place before the first paint and nothing flashes). Only then does site.css
  *     hide anything, and only for screens with prefers-reduced-motion: no-preference. Without the class -
@@ -25,6 +32,8 @@
  *
  * Change history:
  * - 2026-11-08 Created; replaces stage.js (scroll-linked motion with sticky scenes).
+ * - 2026-11-08 "is-playing" for the looping screenshots that replace the highlight boxes (user: "like a
+ *   GIF, the page should feel alive"): set while a scene is in view and the tab is visible.
  */
 (function () {
   'use strict';
@@ -46,8 +55,27 @@
           }
         });
       }, { rootMargin: '0px 0px -20% 0px' });
+      // the scenes now on screen, so a tab shown again restarts exactly those
+      var inView = [];
+      var playing = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var at = inView.indexOf(entry.target);
+          if (entry.isIntersecting && at < 0) {
+            inView.push(entry.target);
+          } else if (!entry.isIntersecting && at >= 0) {
+            inView.splice(at, 1);
+          }
+          entry.target.classList.toggle('is-playing', entry.isIntersecting && !document.hidden);
+        });
+      });
       Array.prototype.forEach.call(document.querySelectorAll('.scene'), function (scene) {
         observer.observe(scene);
+        playing.observe(scene);
+      });
+      document.addEventListener('visibilitychange', function () {
+        inView.forEach(function (scene) {
+          scene.classList.toggle('is-playing', !document.hidden);
+        });
       });
     } catch (e) {
       root.classList.remove('reveal');
