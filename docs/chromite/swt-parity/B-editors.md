@@ -11,10 +11,10 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 34 | 17 | 6 | 17 | 2 | **76** |
+| 있음 | 34 | 17 | 7 | 17 | 2 | **77** |
 | 일부 | 7 | 7 | 5 | 5 | 5 | **29** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
-| 조용히 끊김 | 0 | 0 | 1 | 0 | 0 | **1** |
+| 조용히 끊김 | 0 | 0 | 0 | 0 | 0 | **0** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
 
@@ -46,6 +46,7 @@
    SWT 시절에 저장한 제한(연결·연결 종류의 `permissions`)은 파일에 남아 있지만 쿼리 창에서는 무시된다(데이터 편집 제한 `PERMISSION_EDIT_DATA`는 모델이 검사하므로 동작한다).
 8. **E12 `openEntityEditor`가 아무것도 하지 않는다.** `SwingPlatformUI.java:496-505`는 디버그 로그만 남긴다. 호출하는 곳: 데이터 전송 뒤 새 테이블 열기(`DatabaseTransferConsumer.java:815`). 영향은 작다.
    (2026-11-08 다시 확인: 남은 유일한 조용히 끊김. Swing 마법사는 그 옵션을 끄고 시작하지만 SWT에서 저장한 전송 작업은 여기에 닿는다. 표의 E12)
+   (2026-11-08 고침: 개체 탐색기에서 그 테이블을 보인다, `chromite/transfer-tasks`, [swing-database-tasks.md](../swing-database-tasks.md) "데이터 전송 작업")
 
 ## A. SQL 편집기 (`ui.editors.sql`, `ui.editors.sql.terminal`, 트랜잭션 도구는 `core`)
 
@@ -148,7 +149,7 @@
 | E9 | 개체 만들기 대화상자(열·제약·FK·인덱스·시퀀스·프로시저 이름, 사전) | `EditObjectDialog`, `Edit*Page`, `CreateSequencePage`, `EditDictionaryPage` | 일부 | `DesignerDialogs`(PostgreSQL·SQL Server·MySQL/MariaDB·Oracle), New View/Procedure/Function 틀, 2026-11-08 폴더의 New Sequence… 등 틀과 이름·데이터베이스 대화상자([swing-create-objects.md](../swing-create-objects.md)) | 중간 | 사전(가상 모델 설명 열) 없음: Swing에 쓰는 곳이 없음. 조사 당시: 시퀀스·사전 없음 |
 | E10 | 저장 흐름과 스크립트 미리 보기 | `EntityEditor` 저장 확인 | 있음 | `ScriptPreviewDialog`(Execute / Open in Query Window / Copy) | 높음 | 디자이너·보안 창에서 |
 | E11 | 개체 삭제·이름 바꾸기(스크립트 미리 보기, 연쇄 옵션) | `DBEObjectMaker.deleteObject`, `DBEObjectRenamer` | **있음** (2026-11-07, #119: Object Explorer의 Delete·Rename(F2)이 객체 관리자가 있는 DB 객체에서 켜짐, 연쇄 삭제·기존 연결 닫기 옵션, 늘 스크립트 미리 보기(`ExplorerObjectCommands.java`:318-420, :530), C-10·C-11, [swing-explorer-object-actions.md](../swing-explorer-object-actions.md)). 조사 당시: 없음 | Delete는 연결·로그인·사용자·역할만(swing-security.md), Rename은 연결만 | 중간 | DROP은 쿼리로 직접. 영역 A(탐색기)와 겹칠 수 있음 |
-| E12 | `openEntityEditor` 호출 | `DesktopUI.openEntityEditor` | **조용히 끊김** | 위 요약 8 | 낮음 | 2026-11-08 다시 확인: 그대로(`SwingPlatformUI.java`:585-595, 디버그 로그만). Swing 가져오기·복사 마법사는 "끝나면 테이블 열기"를 끄고 시작하지만(`DataImportWizard.java`:196, `DatabaseCopyPages.java`:251), SWT에서 저장한 데이터 전송 작업은 기본값이 켜짐이라 여기에 닿는다 |
+| E12 | `openEntityEditor` 호출 | `DesktopUI.openEntityEditor` | 수정함(2026-11-08, `chromite/transfer-tasks`) | 위 요약 8 | 낮음 | `SwingPlatformUI.openEntityEditor`가 개체 탐색기에서 그 객체를 보임(Swing에는 객체 편집기가 없음). SWT에서 저장한 복사 작업("끝나면 테이블 열기" 켜짐)을 Database Tasks에서 실행하면 새 테이블이 개체 탐색기에서 골라짐을 확인. 그 작업은 데이터 전송 마법사로도 열림([swing-database-tasks.md](../swing-database-tasks.md) "데이터 전송 작업"). 조사 당시: 조용히 끊김(디버그 로그만) |
 
 ## D. 연결 편집기 (`ui.editors.connection`)
 
@@ -218,3 +219,5 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
   요약 수 변화 없음.
 - 2026-11-08 모델 DDL 수정과 연결 제한(`chromite/model-ddl-fixes`): C13 일부 → 있음(연결별 제한 편집, 잠긴 연결의 잠금 비밀번호 확인), E2 비고(Oracle 시퀀스, PostgreSQL Partition by).
   요약 수: 연결 편집기 있음 16 → 17, 일부 6 → 5(합계 있음 76, 일부 29).
+- 2026-11-08 E12 조용히 끊김 → 수정함(`chromite/transfer-tasks`, `openEntityEditor`가 개체 탐색기에서 보임), 요약 8에 고친 것 표시.
+  요약 수: 개체 편집기 있음 6 → 7, 조용히 끊김 1 → 0(합계 있음 77, 조용히 끊김 0).

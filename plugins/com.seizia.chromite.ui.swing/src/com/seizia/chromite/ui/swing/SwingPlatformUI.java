@@ -32,7 +32,9 @@ import com.seizia.chromite.model.access.DBAPasswordChangeInfo;
 import com.seizia.chromite.model.connection.DBPAuthInfo;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
 import com.seizia.chromite.model.navigator.fs.DBNPathBase;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProcessDescriptor;
@@ -40,6 +42,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
 import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
 import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.runtime.load.ILoadService;
 import com.seizia.chromite.model.runtime.load.ILoadVisualizer;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -72,8 +75,8 @@ import java.util.function.Supplier;
  * 백그라운드 Job이다. 그래서 대화상자는 항상 EDT에서 띄우고, 결과가 필요하면 {@link SwingUtilities#invokeAndWait}로
  * 기다린다(이미 EDT이면 바로 실행). A단계는 {@link JOptionPane} 기반의 단순한 대화상자로 구현했고,
  * B단계에서 진행 표시({@link ProgressDialog})와 비모달 알림({@link NotificationToast})을 더했다.
- * 아직 화면이 없는 기능(객체 선택, 객체 편집기 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
- * 돌려주며 {@code // Phase C:} 주석으로 무엇이 빠졌는지 표시한다.
+ * 아직 화면이 없는 기능(객체 선택 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
+ * 돌려주며 {@code // Phase C:} 주석으로 무엇이 빠졌는지 표시한다. 객체 편집기 요청은 Object Explorer에서 그 객체를 보여 준다.
  * {@code ConsoleUserInterface}를 상속하지 않은 것은, 어떤 메서드가 아직 콘솔 동작인지 이 클래스만 보고 알 수 있게 하기 위해서다.
  *
  * 변경 이력:
@@ -93,6 +96,8 @@ import java.util.function.Supplier;
  *   공통 대화상자 {@link #confirmChange}(동사 단추와 기본 단추인 Cancel) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 {@code showError}의 DB별 처리(연결 끊김의 다시 연결, 드라이버 클래스 없음의 드라이버 편집, 드라이버 라이선스 오류)를
  *   {@link DatabaseErrorDialogs}로 함(SWT {@code DesktopUI.showDatabaseError}) (docs/chromite/connection-lifecycle.md)
+ * - 2026-11-08 {@code openEntityEditor}가 디버그 로그만 남기던 것(swt-parity B-E12): Object Explorer에서 그 객체를 보여 줌. SWT에서 저장한
+ *   데이터 전송 작업의 "끝나면 테이블 열기"가 닿는 곳 (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -581,16 +586,43 @@ public class SwingPlatformUI implements DBPPlatformUI {
         return null;
     }
 
+    /**
+     * Swing has no object editor: the object is shown in Object Explorer instead. The model asks for it after a data transfer
+     * into a new table when "open the table when done" is set, which data transfer tasks saved by SWT have (the Swing wizards
+     * turn it off). Called from a background job; the node is looked up there.
+     */
     @Override
     public void openEntityEditor(@NotNull DBSObject object) {
-        // Phase C: object editor (properties / DDL tabs)
-        log.debug("Entity editor is not implemented yet: " + object.getName());
+        DBNDatabaseNode node = DBNUtils.getNodeByObject(object);
+        if (node == null && !SwingUtilities.isEventDispatchThread()) {
+            // Reads the parent nodes; never on the EDT
+            node = DBNUtils.getNodeByObject(new VoidProgressMonitor(), object, true);
+        }
+        if (node == null) {
+            log.debug("No navigator node to show for " + object.getName());
+            return;
+        }
+        revealInExplorer(node);
     }
 
     @Override
     public void openEntityEditor(@NotNull DBNNode selectedNode, @Nullable String defaultPageId) {
-        // Phase C: object editor (properties / DDL tabs)
-        log.debug("Entity editor is not implemented yet: " + selectedNode.getNodeDisplayName());
+        if (selectedNode instanceof DBNDatabaseNode node) {
+            revealInExplorer(node);
+        } else {
+            log.debug("No object to show for " + selectedNode.getNodeDisplayName());
+        }
+    }
+
+    private static void revealInExplorer(@NotNull DBNDatabaseNode node) {
+        SwingUtilities.invokeLater(() -> {
+            for (Frame frame : Frame.getFrames()) {
+                if (frame instanceof MainFrame mainFrame && mainFrame.isDisplayable()) {
+                    mainFrame.revealNode(node);
+                    return;
+                }
+            }
+        });
     }
 
     @Override

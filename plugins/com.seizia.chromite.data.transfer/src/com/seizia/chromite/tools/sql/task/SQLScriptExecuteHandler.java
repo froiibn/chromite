@@ -17,6 +17,7 @@
  */
 package com.seizia.chromite.tools.sql.task;
 
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
@@ -25,14 +26,19 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.fs.DBFUtils;
 import com.seizia.chromite.model.navigator.DBNModel;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.navigator.DBNProject;
 import com.seizia.chromite.model.navigator.DBNStreamData;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.rm.RMControllerProvider;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableContext;
@@ -47,8 +53,10 @@ import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.model.task.*;
 import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.tools.sql.SQLScriptExecuteSettings;
 import com.seizia.chromite.tools.transfer.DTUtils;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
 import org.jkiss.utils.IOUtils;
 
 import java.io.*;
@@ -56,12 +64,32 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * SQLScriptExecuteHandler
+ *
+ * 설계 (Chromite, 사용자 규칙 "트랜잭션 안전"): 스크립트는 SWT처럼 연결의 주 실행 문맥에서 돌지만 Chromite는 그 세션의 트랜잭션을
+ * 묻지 않고 끝내지 않는다.
+ * <ul>
+ *     <li>SWT는 "자동 커밋"을 끄면 커밋 방식 {@code AT_END}로 스크립트 끝에 커밋하고 오류면 롤백했으며, 자동 커밋 연결에서는
+ *     세션을 수동 커밋으로 바꿨다가 되돌려(JDBC가 그때 커밋) 결국 묻지 않고 커밋했다. 이제 세션의 커밋 방식은 바꾸지 않는다:
+ *     자동 커밋 세션은 {@code AUTOCOMMIT}, 수동 커밋 세션은 {@code NO_COMMIT}로 돌린다. 작업의 "자동 커밋"을 켜면 사용자가 고른
+ *     대로 문장마다 커밋한다(세션을 자동 커밋으로 바꿨다 되돌림, 아래 확인 뒤라 끝낼 트랜잭션이 없음).</li>
+ *     <li>오류에서 멈춤은 {@code STOP_COMMIT}이다. {@code NO_COMMIT}과 함께면 멈추기만 하고 커밋·롤백하지 않는다({@code STOP_ROLLBACK}은 롤백함).</li>
+ *     <li>한 세션에서 처음 실행하기 전에 그 세션에 열린 트랜잭션이 있으면 커밋 / 롤백 / 취소를 묻는다(취소가 기본, 취소하면 실행하지 않음).
+ *     스크립트가 남의 트랜잭션에 섞이지 않게 하기 위해서다.</li>
+ *     <li>끝나면(오류로 멈춰도) 실행한 세션에 열린 트랜잭션이 있으면 커밋 / 롤백 / 열어 두기를 묻는다(열어 두기가 기본).
+ *     열어 둔 트랜잭션은 열린 트랜잭션 목록, 유휴 트랜잭션 알림, 연결을 끊을 때의 질문이 보인다.</li>
+ * </ul>
+ *
+ * 변경 이력:
+ * - 2026-11-08 트랜잭션 안전: 커밋 방식을 바꾸거나 묻지 않고 커밋·롤백하지 않음, 실행 전·후 열린 트랜잭션 질문
+ *   (docs/chromite/swing-database-tasks.md "SQL 스크립트 작업")
  */
 public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTransformer {
 
@@ -132,7 +160,26 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
 
     private void runScripts(DBRProgressMonitor monitor, DBTTask task, SQLScriptExecuteSettings settings, Log log, PrintStream logStream) throws DBException {
         List<DBPDataSourceContainer> dataSources = settings.getDataSources();
+        // The sessions the scripts ran in: their open transactions are asked about at the end, also after an error
+        Set<DBCExecutionContext> usedContexts = new LinkedHashSet<>();
+        try {
+            runScripts(monitor, task, settings, log, logStream, dataSources, usedContexts);
+        } finally {
+            for (DBCExecutionContext context : usedContexts) {
+                askEndTransaction(monitor, task, context, logStream);
+            }
+        }
+    }
 
+    private void runScripts(
+        DBRProgressMonitor monitor,
+        DBTTask task,
+        SQLScriptExecuteSettings settings,
+        Log log,
+        PrintStream logStream,
+        List<DBPDataSourceContainer> dataSources,
+        Set<DBCExecutionContext> usedContexts
+    ) throws DBException {
         for (String filePath : settings.getScriptFiles()) {
             try {
                 for (DBPDataSourceContainer dataSourceContainer : dataSources) {
@@ -145,6 +192,14 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
                         throw new DBException("Can't obtain data source connection");
                     }
                     DBCExecutionContext executionContext = dataSource.getDefaultInstance().getDefaultContext(monitor, false);
+                    if (!usedContexts.contains(executionContext)) {
+                        if (!askOpenTransaction(monitor, task, executionContext, logStream)) {
+                            // Not run: TaskRunJob records a canceled run
+                            monitor.getNestedMonitor().setCanceled(true);
+                            return;
+                        }
+                        usedContexts.add(executionContext);
+                    }
 
                     log.debug("> Execute script [" + filePath + "] in [" + dataSourceContainer.getName() + "]");
                     DBCExecutionContextDefaults contextDefaults = executionContext.getContextDefaults();
@@ -176,8 +231,10 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         SQLScriptDataReceiver dataReceiver = new SQLScriptDataReceiver();
         SQLScriptProcessor scriptProcessor = new SQLScriptProcessor(executionContext, scriptElements, scriptContext, dataReceiver, log);
 
-        scriptProcessor.setCommitType(settings.isAutoCommit() ? SQLScriptCommitType.AUTOCOMMIT : SQLScriptCommitType.AT_END);
-        scriptProcessor.setErrorHandling(settings.isIgnoreErrors() ? SQLScriptErrorHandling.IGNORE : SQLScriptErrorHandling.STOP_ROLLBACK);
+        // The session keeps its commit mode and its transaction (see the class comment)
+        scriptProcessor.setCommitType(settings.isAutoCommit() || !isManualCommit(executionContext)
+            ? SQLScriptCommitType.AUTOCOMMIT : SQLScriptCommitType.NO_COMMIT);
+        scriptProcessor.setErrorHandling(settings.isIgnoreErrors() ? SQLScriptErrorHandling.IGNORE : SQLScriptErrorHandling.STOP_COMMIT);
         if (settings.isDumpQueryResultsToLog()) {
             dataReceiver.setDumpWriter(logWriter);
         }
@@ -185,6 +242,90 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         scriptProcessor.runScript(monitor);
 
         totalStatistics.accumulate(scriptProcessor.getTotalStatistics());
+    }
+
+    private static boolean isManualCommit(@NotNull DBCExecutionContext context) throws DBCException {
+        DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
+        return txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit();
+    }
+
+    /**
+     * Before the first script runs in a session: a transaction of the session that is not committed would take the script's
+     * changes. Asks Commit / Roll back / Cancel (Cancel is the default).
+     *
+     * @return false when the task must not run
+     */
+    private static boolean askOpenTransaction(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBTTask task,
+        @NotNull DBCExecutionContext context,
+        @NotNull PrintStream logStream
+    ) throws DBException {
+        if (!QMUtils.isTransactionActive(context)) {
+            return true;
+        }
+        String connection = context.getDataSource().getContainer().getName();
+        List<String> labels = List.of(DTMessages.sql_script_task_txn_commit, DTMessages.sql_script_task_txn_rollback,
+            DTMessages.sql_script_task_txn_cancel);
+        int choice = DBWorkbench.getPlatformUI().showUserChoice(DTMessages.sql_script_task_txn_title,
+            NLS.bind(DTMessages.sql_script_task_txn_before, connection, task.getName()), labels, List.of(), 2, 2).choiceIndex;
+        if (choice != 0 && choice != 1) {
+            logStream.println("Not run: the session of " + connection + " has a transaction that is not committed"); //$NON-NLS-1$ //$NON-NLS-2$
+            return false;
+        }
+        endTransaction(monitor, context, choice == 0, logStream);
+        return true;
+    }
+
+    /**
+     * After the scripts (also after an error or a cancel): asks Commit / Roll back / Keep open when they left a transaction
+     * that is not committed in the session (Keep open is the default). Nothing is committed or rolled back without the answer.
+     */
+    private static void askEndTransaction(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBTTask task,
+        @NotNull DBCExecutionContext context,
+        @NotNull PrintStream logStream
+    ) {
+        if (!QMUtils.isTransactionActive(context)) {
+            return;
+        }
+        String connection = context.getDataSource().getContainer().getName();
+        List<String> labels = List.of(DTMessages.sql_script_task_txn_commit, DTMessages.sql_script_task_txn_rollback,
+            DTMessages.sql_script_task_txn_keep);
+        int choice = DBWorkbench.getPlatformUI().showUserChoice(DTMessages.sql_script_task_txn_title,
+            NLS.bind(DTMessages.sql_script_task_txn_after, task.getName(), connection), labels, List.of(), 2, 2).choiceIndex;
+        if (choice != 0 && choice != 1) {
+            logStream.println("The transaction in the session of " + connection + " was left open"); //$NON-NLS-1$ //$NON-NLS-2$
+            return;
+        }
+        try {
+            endTransaction(monitor, context, choice == 0, logStream);
+        } catch (DBException e) {
+            logStream.println("Can't end the transaction in the session of " + connection + ": " + e.getMessage()); //$NON-NLS-1$ //$NON-NLS-2$
+            DBWorkbench.getPlatformUI().showError(DTMessages.sql_script_task_txn_title,
+                NLS.bind(DTMessages.sql_script_task_txn_error, connection), e);
+        }
+    }
+
+    private static void endTransaction(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        boolean commit,
+        @NotNull PrintStream logStream
+    ) throws DBException {
+        try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "End script task transaction")) { //$NON-NLS-1$
+            DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
+            if (txnManager != null) {
+                if (commit) {
+                    txnManager.commit(session);
+                } else {
+                    txnManager.rollback(session, null);
+                }
+            }
+        }
+        logStream.println((commit ? "Committed" : "Rolled back") + " the transaction in the session of " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            + context.getDataSource().getContainer().getName());
     }
 
     public static String readScriptContents(
