@@ -44,6 +44,10 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 Chromite: NULL인 열이 앞 행과 다르면 일괄 처리가 아니어도(행마다 실행, 스크립트) 문장을 새로 준비함.
  *   일괄 처리를 끈 데이터 전송에서 앞 행의 값이 NULL 열에 들어가고 뒤 매개변수가 밀렸다 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-08 Chromite: 실행이 실패해도 행을 버리지 않음. 일괄 처리를 쓰지 않을 때(한 행씩) 실패하면 값 목록을 비워서,
+ *   다시 시도와 자동 복구가 빈 목록을 실행하고 실패한 행(과 그 뒤 행)이 조용히 빠졌다. 이제 이미 실행한 앞 행 수
+ *   ({@link #appliedRows})와 실패한 행의 범위를 기억해, 다음 실행은 실패한 행부터 하고, 건너뛰기({@link #skipFailedRows})는 실패한 행만
+ *   버리며, 롤백된 뒤({@link #restoreAppliedRows})에는 앞 행부터 다시 한다 (docs/chromite/swing-data-transfer.md "한 행씩 넣기의 다시 시도와 복구")
 */
 public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatch {
 
@@ -53,6 +57,11 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
     protected final List<Object[]> values = new ArrayList<>();
     protected final DBDDataReceiver keysReceiver;
     protected final boolean reuseStatement;
+    // After a failed execution: the leading rows of values it already executed (they are not run again), and the rows
+    // that failed (the failing row, or the rows of the failing batch), as indexes into values
+    private int appliedRows;
+    private int failedFrom;
+    private int failedTo;
 
     /**
      * Constructs new batch
@@ -89,6 +98,22 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
         processBatch(session, actions, options);
     }
 
+    @Override
+    public void skipFailedRows() {
+        // The rows executed before the failure are not run again either: the caller goes on (and commits) without them
+        // The failed rows always follow the executed ones
+        values.subList(failedFrom, failedTo).clear();
+        values.subList(0, appliedRows).clear();
+        appliedRows = 0;
+        failedFrom = 0;
+        failedTo = 0;
+    }
+
+    @Override
+    public void restoreAppliedRows() {
+        appliedRows = 0;
+    }
+
     /**
      * Execute batch OR generate batch script.
      * @param session    session
@@ -121,6 +146,11 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
 
         DBCStatistics statistics = new DBCStatistics();
         DBCStatement statement = null;
+        // Rows executed so far (a failed execution's executed rows are not run again) and the rows the next step may fail on
+        int applied = appliedRows;
+        int failFrom = applied;
+        int failTo = applied;
+        boolean completed = false;
 
         try {
             // Here we'll try to reuse prepared statement.
@@ -132,7 +162,7 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
             boolean[] nulls = new boolean[attributes.length];
             int statementsInBatch = 0;
 
-            for (int rowIndex = 0; rowIndex < values.size(); rowIndex++) {
+            for (int rowIndex = applied; rowIndex < values.size(); rowIndex++) {
                 Object[] rowValues = values.get(rowIndex);
                 if (session.getProgressMonitor().isCanceled()) {
                     break;
@@ -156,7 +186,10 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
                     if (!reuse && statement != null) {
                         // Flush batch
                         if (actions == null && statementsInBatch > 0) {
+                            failFrom = applied;
+                            failTo = rowIndex;
                             flushBatch(statistics, statement);
+                            applied = rowIndex;
                         }
                         DBUtils.closeSafely(statement);
                         statement = null;
@@ -164,6 +197,8 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
                         reuse = true;
                     }
                 }
+                failFrom = rowIndex;
+                failTo = rowIndex + 1;
                 if (statement == null || !reuse) {
                     statement = prepareStatement(session, handlers, rowValues, options);
                     statistics.setQueryText(statement.getQueryString());
@@ -181,6 +216,7 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
                             // Execute each row separately
                             long startTime = System.currentTimeMillis();
                             executeStatement(statistics, statement);
+                            applied = rowIndex + 1;
                             statistics.addExecuteTime(System.currentTimeMillis() - startTime);
 
                             long rowCount = statement.getUpdateRowCount();
@@ -213,18 +249,28 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
 
             if (statementsInBatch > 0) {
                 if (actions == null) {
+                    failFrom = applied;
+                    failTo = values.size();
                     flushBatch(statistics, statement);
                 }
                 DBUtils.closeSafely(statement);
                 statement = null;
             }
             values.clear();
+            completed = true;
         } finally {
             if (reuseStatement && statement != null) {
                 DBUtils.closeSafely(statement);
             }
-            if (!useBatch && !values.isEmpty()) {
-                values.clear();
+            if (completed) {
+                appliedRows = 0;
+                failedFrom = 0;
+                failedTo = 0;
+            } else {
+                // Kept for Retry and the recovery: they go on from the failed row
+                appliedRows = applied;
+                failedFrom = failFrom;
+                failedTo = failTo;
             }
         }
 
