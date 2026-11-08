@@ -42,6 +42,7 @@ import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLQueryType;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
@@ -143,6 +144,8 @@ import java.util.Set;
  *   시각 형식·파일 나누기 옵션은 이제 화면 칸에 들어간다(전에는 칸 없이 설정에 넣음). 저장된 작업을 열면 데이터 형식 프로필·내보낼 열·
  *   복사 작업의 원본 옵션도 칸에 넣는다 (docs/chromite/swing-data-transfer.md "고급 옵션")
  * - 2026-11-08 작업으로 저장, 저장된 내보내기·복사 작업 편집({@link #openForTask}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-08 {@link #canExportQuery}: 배치 결과는 그 결과를 만든 SELECT만 내보내고, 문장을 정하지 못한 배치 결과는 내보내지 않음
+ *   (docs/chromite/sql-batch-reread.md)
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -499,10 +502,12 @@ final class DataExportWizard extends DataTransferWizard {
 
     /**
      * Whether the query of a result grid can be run again to export all its rows: one SELECT statement without INTO
-     * or FOR UPDATE (re-running other statements would repeat their changes).
+     * or FOR UPDATE (re-running other statements would repeat their changes). The result of a batch is exported with the
+     * statement that produced it; a batch result whose statement is not known can't be exported.
      */
     static boolean canExportQuery(@Nullable DBSDataContainer container) {
-        if (!(container instanceof SQLQueryContainer queryContainer)) {
+        if (!(container instanceof SQLQueryContainer queryContainer)
+            || container instanceof SQLQueryDataContainer resultContainer && resultContainer.isWholeBatchOnly()) {
             return false;
         }
         SQLScriptElement element = queryContainer.getQuery();
@@ -511,7 +516,8 @@ final class DataExportWizard extends DataTransferWizard {
             return false;
         }
         // A GO batch of several statements is one query (SQLScriptBatches) and the type above is that of its first
-        // statement only: count the statements so that "SELECT …; DELETE …" is not run again
+        // statement only: count the statements so that "SELECT …; DELETE …" is not run again (@export takes the next
+        // query as it is; a result's container has the statement of its result set only)
         DBPDataSource dataSource = container.getDataSource();
         return dataSource != null && SQLScriptParser.parseScript(dataSource, sqlQuery.getText()).size() == 1;
     }

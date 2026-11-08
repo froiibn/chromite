@@ -24,6 +24,7 @@ import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLQueryType;
 import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 
 import java.util.List;
@@ -35,11 +36,15 @@ import java.util.List;
  * 그래서 결과마다 데이터 컨테이너, 실행 문맥, 한 번에 읽는 행 수를 남긴다. 다시 읽어도 되는지는 SWT처럼 컨테이너의
  * {@link DBSDataContainer#FEATURE_DATA_FILTER}와, 쿼리를 다시 실행해도 데이터가 바뀌지 않는지(SWT {@code verifyQuerySafety}가 묻는 것)로 정한다.
  * Swing은 묻는 대신 SELECT 하나({@link SQLQuery#getType()}이 SELECT이고 {@link SQLQuery#isModifying()}이 거짓)일 때만 다시 읽는다:
- * GO 배치나 여러 문장, 프로시저 호출은 다시 실행하면 다른 문장까지 실행되고 두 번째 이후 결과 집합은 {@code readData}로 다시 얻을 수 없다.
+ * 프로시저 호출은 다시 실행하면 다른 문장까지 실행되고 두 번째 이후 결과 집합은 {@code readData}로 다시 얻을 수 없다.
+ * GO 배치나 선택한 여러 문장의 결과는 컨테이너가 그 결과를 만든 문장만 가지므로 그 문장으로 판단하고, 문장을 정하지 못한 결과
+ * ({@link SQLQueryDataContainer#isWholeBatchOnly()})는 배치 전체를 다시 실행해야 하므로 다시 읽지 않는다. 그 검사가 먼저다:
+ * 배치 글자의 {@link SQLQuery#getType()}은 첫 문장의 종류라 {@code SELECT …; UPDATE …}도 SELECT로 보인다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널, 정렬·필터, 다음 페이지 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 결과를 만든 문장을 정하지 못한 배치 결과는 다시 읽지 않고 그 이유를 보임 (docs/chromite/sql-batch-reread.md)
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
@@ -67,6 +72,9 @@ record ResultSetSource(
         }
         if (!dataContainer.isFeatureSupported(DBSDataContainer.FEATURE_DATA_FILTER)) {
             return EditorMessages.editor_source_no_filters;
+        }
+        if (dataContainer instanceof SQLQueryDataContainer resultContainer && resultContainer.isWholeBatchOnly()) {
+            return EditorMessages.editor_source_whole_batch;
         }
         if (dataContainer instanceof SQLQueryContainer queryContainer) {
             SQLScriptElement element = queryContainer.getQuery();
