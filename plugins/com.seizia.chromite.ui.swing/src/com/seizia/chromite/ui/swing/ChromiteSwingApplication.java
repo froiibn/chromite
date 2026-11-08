@@ -104,7 +104,9 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-08 시작 화면: Look and Feel 설치 직후 {@link StartupSplash}를 띄우고 런처 스플래시를 내림({@code applicationRunning}을
  *   메인 창 직전에서 이 자리로 옮김, Windows에서는 런처 창을 만든 이 스레드만 내릴 수 있다). 스플래시는 메인 창이나 시작 대화상자가
  *   열리면 닫히고, 시작이 어떻게 끝나도 닫힌다({@code runWithSplash}). 프로세스 시작부터 단계별 시간을 디버그 로그 한 줄로 남김
- *   (docs/chromite/branding.md "시작 화면") */
+ *   (docs/chromite/branding.md "시작 화면")
+ * - 2026-11-08 업데이트 진행 창: 업데이트 뒤 첫 시작이면 시작 화면 대신 그 창을 띄우고({@link UpdateProgress#openFirstStart}), 시작이
+ *   끝나거나 실패하면 그 창이 알림. 끝날 때 적용에 그 창을 넘김 (docs/chromite/auto-update.md "업데이트 진행 창") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -148,6 +150,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             return run(context);
         } finally {
             StartupSplash.close();
+            UpdateProgress.endFirstStart();
         }
     }
 
@@ -164,9 +167,12 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             showStartupMessage(UpdateMessages.update_applying_message);
             return EXIT_OK;
         }
+        // The first start after an update shows the update window instead of the splash (its "Start Chromite" step).
         // The Swing splash is on screen before the launcher's one goes (applicationRunning), so there is no gap. On Windows
         // the launcher made its splash window on this thread, and only this thread can destroy it.
-        StartupSplash.open();
+        if (!UpdateProgress.openFirstStart()) {
+            StartupSplash.open();
+        }
         times.mark("splash"); //$NON-NLS-1$
         context.applicationRunning();
 
@@ -215,6 +221,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             // Counted here, off the EDT: the first count loads the connection registries of all projects
             String statusText = MainFrame.describeWorkspace(platform.getWorkspace());
             times.mark("workspace"); //$NON-NLS-1$
+            UpdateProgress.started();
 
             // The splash closes when the main window opens (StartupSplash)
             SwingUtilities.invokeAndWait(() -> openMainWindow(statusText));
@@ -226,7 +233,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             log.debug("Main window closed");
             if (!stopRequested) {
                 // After the normal exit path (unsaved editors, open transactions): the helper waits until this process ends
-                UpdateService.getInstance().applyAtExit(UpdateUi.isRestartRequested());
+                UpdateService.getInstance().applyAtExit(UpdateUi.isRestartRequested(), UpdateProgress.exitWindow(mainFrame));
             }
             return EXIT_OK;
         } finally {
@@ -302,6 +309,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         mainFrame = frame;
         installDesktopHandlers(frame);
         frame.setVisible(true);
+        // The first start after an update: "The update is done", then its window closes
+        UpdateProgress.mainShown();
     }
 
     /**
@@ -413,6 +422,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     }
 
     private static void showStartupError(@NotNull String title, @Nullable String message) {
+        // The first start after an update: its window says it, with the log folder and the way back
+        if (UpdateProgress.showStartFailure(message, null)) {
+            return;
+        }
         try {
             SwingUtilities.invokeAndWait(() ->
                 JOptionPane.showMessageDialog(null, message, title, JOptionPane.ERROR_MESSAGE));

@@ -38,7 +38,8 @@ import java.awt.event.WindowEvent;
  * 설계: Turbrix 데스크톱의 화면(#579, #583, #585 사용자 결정)을 따른다. 상태는 모델({@link UpdateService})이 정하고
  * 이 클래스는 보이기만 한다.
  * <ul>
- *     <li>받는 동안: 제목 표시줄에는 아무것도 없고, 상태 표시줄 오른쪽에 "새 버전 X 받는 중 (n%)"과 막대.</li>
+ *     <li>받는 동안: 상태 표시줄 오른쪽에 "새 버전 X 받는 중 (n%)"과 막대, 제목 표시줄에 단추 "새 버전 X". 누르면 메뉴 대신
+ *     업데이트 진행 창({@link UpdateProgress})이 받기를 보인다(Turbrix #747).</li>
  *     <li>받아서 확인함: 단추 "새 버전 X · 다시 시작". 누르면 메뉴 [지금 다시 시작] [업데이트 내용].</li>
  *     <li>알리기만(설치 프로그램으로 설치하지 않은 복사본): 단추 "새 버전 X". 메뉴 [받는 곳 열기] [업데이트 내용].</li>
  *     <li>확인 실패: 경고 단추 "업데이트 파일 확인 실패". 설명(회사 보안 장비가 내려받기를 막을 수 있음)은 단추의 툴팁과
@@ -48,8 +49,12 @@ import java.awt.event.WindowEvent;
  * 저장 안 한 편집기와 커밋하지 않은 트랜잭션을 묻게 한다). 사용자가 취소하면 창이 남고 다시 시작 요청도 지운다.
  * 설치는 앱이 끝난 뒤 도우미가 한다({@code ChromiteSwingApplication}이 {@link UpdateService#applyAtExit}를 부른다).
  *
+ * 진행 글자는 보조 글자 색이고, 상태 표시줄이 활성 쿼리 창 연결 색으로 칠해져 그 색 위에서 읽히지 않으면 쿼리 창 칸과 같은 대비 색이다.
+ *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-08 받는 동안 제목 표시줄 단추가 업데이트 진행 창을 엶, 열린 창이 상태를 따라감 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-08 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class UpdateUi {
 
@@ -58,7 +63,7 @@ final class UpdateUi {
     private final JFrame frame;
     private final UpdateService service;
     private final JButton titleButton = new JButton();
-    private final JLabel progressLabel = new JLabel();
+    private final JLabel progressLabel;
     private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final JPanel progressPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
     private final UpdateService.Listener listener;
@@ -81,7 +86,19 @@ final class UpdateUi {
             menuBar.add(titleButton);
         }
 
-        progressLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        progressLabel = new JLabel() {
+            /**
+             * text.secondary, or the contrast color while the status bar is painted in a query window connection's color
+             * the theme's text is unreadable on ({@link MainFrame#STATUS_BAR_FOREGROUND_KEY}). Read when painting: a FlatLaf
+             * style cannot set the color of this class (see {@link QueryStatusLine}).
+             */
+            @Override
+            public Color getForeground() {
+                Color band = statusBar == null ? null : (Color) statusBar.getClientProperty(MainFrame.STATUS_BAR_FOREGROUND_KEY);
+                Color color = band != null ? band : UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+                return color != null ? color : super.getForeground();
+            }
+        };
         progressBar.setPreferredSize(new Dimension(UIScale.scale(120), UIScale.scale(4)));
         progressPanel.setOpaque(false);
         progressPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, UIScale.scale(12)));
@@ -161,6 +178,8 @@ final class UpdateUi {
             progressBar.setValue(state.progress());
         }
         switch (state.phase()) {
+            case DOWNLOADING -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
+                UpdateMessages.update_window_head_downloading, "foreground: $Component.linkColor"); //$NON-NLS-1$
             case READY -> showButton(NLS.bind(UpdateMessages.update_button_ready, version),
                 NLS.bind(UpdateMessages.update_button_ready_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case AVAILABLE -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
@@ -180,6 +199,8 @@ final class UpdateUi {
             menuBar.revalidate();
             menuBar.repaint();
         }
+        // An update window opened from the button follows the state
+        UpdateProgress.updaterChanged();
     }
 
     private void showButton(@NotNull String text, @NotNull String tip, @NotNull String style) {
@@ -198,6 +219,11 @@ final class UpdateUi {
         UpdateService.State state = shown;
         JPopupMenu menu = new JPopupMenu();
         switch (state.phase()) {
+            case DOWNLOADING -> {
+                // No menu: the update window shows the download
+                UpdateProgress.openFromButton(frame, this::restart);
+                return;
+            }
             case READY -> {
                 menu.add(item(UpdateMessages.update_restart_now, this::restart));
                 addNotes(menu, state);

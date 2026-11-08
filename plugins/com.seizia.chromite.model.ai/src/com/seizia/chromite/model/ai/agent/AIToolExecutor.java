@@ -63,6 +63,7 @@ import java.util.function.Consumer;
  *   {@code commitTransaction}이 커밋과 같은 "완료"로만 보이던 것(docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-08 도구의 진행 상황을 받을 수신자를 넘기는 {@code execute}(채팅 카드에 백업·복원 진행 표시)
  * - 2026-11-08 트랜잭션 질문의 Commit/Roll back 답을 감사 기록에도 남김(docs/chromite/ai-agent.md "실제 API 확인")
+ * - 2026-11-08 확인 요청에 미리 보기 종류를 넣음(쿼리 창 글 고치기, docs/chromite/ai-agent.md "편집기 도구")
  */
 public final class AIToolExecutor {
 
@@ -318,7 +319,12 @@ public final class AIToolExecutor {
             return new Confirmation("Denied: this call needs the user's confirmation (" + reason +
                 ") and no confirmation UI is available", null);
         }
-        String preview = instance instanceof AIToolPreviewProvider provider ? provider.getPreview(context, args) : null;
+        String preview = null;
+        AIToolPreviewProvider.Kind previewKind = AIToolPreviewProvider.Kind.RUN;
+        if (instance instanceof AIToolPreviewProvider provider) {
+            preview = provider.getPreview(context, args);
+            previewKind = provider.getPreviewKind(context);
+        }
         AIToolConfirmationRequest request = new AIToolConfirmationRequest(
             context.getClient(),
             tool.getId(),
@@ -327,6 +333,7 @@ public final class AIToolExecutor {
             connection,
             AIToolAuditLog.maskSecrets(args),
             preview,
+            previewKind,
             reason,
             List.copyOf(pending)
         );

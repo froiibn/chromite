@@ -80,6 +80,7 @@ import com.seizia.chromite.model.sql.SQLQueryListener;
 import com.seizia.chromite.model.sql.SQLQueryResult;
 import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.SQLScriptErrorHandling;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSInstance;
@@ -140,8 +141,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>엔진의 콜백({@link SQLQueryExecuteHandler}, {@link SQLQueryListener})은 Job 스레드에서 불리므로, 화면 변경은 모두
  *     {@link SwingUtilities#invokeLater}로 EDT에 넘긴다. 각 실행은 {@link Execution} 객체로 구분해, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.</li>
  *     <li>오류는 대화상자 대신 Messages 탭에 쓰고(오류 위치 = 편집기의 줄·열), 엔진의 "계속할까요" 질문
- *     ({@link SQLQueryExecuteHandler#handleExecutionError})에는 묻지 않고 멈춤으로 답한다. 오류가 나면 SSMS처럼 Messages 탭을 보여 준다.
+ *     ({@link SQLQueryExecuteHandler#handleExecutionError})에는 묻지 않고 멈춤으로 답한다. 오류로 멈추면 오류 앞의 결과 탭(Result1, Result2…)은
+ *     남고 Messages 탭을 보여 준다. 오류 문장에는 결과 탭이 없다.
  *     Options &gt; Query Execution에서 "건너뛰고 계속"을 고르면 실패한 문장을 건너뛰고 다음 문장을 실행한다({@link SqlExecutionOptionsPage}).
+ *     이때 다음 결과가 이어서 다음 번호의 결과 탭이 되고, 결과가 있으면 앞의 결과 탭을 그대로 두며 Messages 탭의 오류 점·개수로 알린다.
  *     어느 쪽이든 오류 뒤 세션의 트랜잭션은 커밋도 롤백도 하지 않는다(엔진 기본값 {@code STOP_ROLLBACK}은 수동 커밋 세션의 열린 트랜잭션을
  *     묻지 않고 롤백하므로 쓰지 않는다, 트랜잭션 안전 규칙).</li>
  *     <li>커밋 방식과 최대 행 수는 엔진 기본값(커밋 방식 {@code NO_COMMIT}, 연결의 최대 행 수 설정)을 쓴다.
@@ -165,7 +168,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
  *     <li>찾기·바꾸기: 편집기가 Ctrl+F, Ctrl+H, F3, Shift+F3을 직접 받아 {@link FindReplaceDialog}를 연다(Edit 메뉴와 같은 동작).</li>
- *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 결과 아래에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.</li>
+ *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 활성 창의 것을 메인 창 상태 표시줄에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.
+ *     행 수는 고른 결과 탭의 행 수이고, 결과 탭이 아닌 탭이 앞에 있으면 실행에서 읽은 행 수다({@link #updateRowCount}).</li>
  *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
  *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
  *     <li>실행 계획({@link ExecutionPlanView}, 메인 창의 Execution plan 탭): Ctrl+L은 선택(없으면 전체)의 문장마다 연결의 계획기로 예상 계획을 구한다
@@ -195,7 +199,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
  *     <li>SQL 터미널(Query &gt; SQL Terminal, 쿼리 창마다 켜고 끔): 켜고 시작한 실행은 결과 표와 Messages 탭은 그대로 두고, 문장마다
  *     {@code SQL> 문장}, 결과 집합의 글자 표, 같은 메시지와 오류를 Terminal 탭({@link SqlTerminalView})에도 쓴다. 글자 표는 결과를 받는 Job
- *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 Results 대신 Terminal 탭을
+ *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 결과 탭 대신 Terminal 탭을
  *     앞으로 가져온다(SWT 터미널이 결과 탭 자동 포커스를 끈 것과 같음, docs/chromite/swing-sql-terminal.md).</li>
  *     <li>문장 명령(Query 메뉴: 현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식): F5와 같은 실행 경로에 무엇을 실행할지만
  *     ({@link SqlQueryCommands.ExecuteMode}) 넘긴다. 문장은 준비 Job이 연결의 방언으로 찾는다({@link SqlQueryCommands#extractElements}).
@@ -302,8 +306,14 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 배치 결과 다시 읽기: 결과마다 데이터 컨테이너가 그 결과를 만든 문장만 갖게 함({@code restrictToResultSet}, 쿼리 안의
  *   결과 집합 번호). 첫 결과 집합만 Export Data 쿼리로 넘기던 것을 모든 결과로 넓힘(다시 읽을 수 있는지는 컨테이너가 정함)
  *   (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-08 결과 집합마다 탭(앱 변경 #7): 결과 탭 줄은 {@link QueryResultsView}가 계획·터미널 탭까지 가짐(창이 고른 탭을 따로 기억하던
+ *   {@code planTabSelected}·{@code terminalTabSelected} 삭제), 실행 시작은 Messages, 첫 결과만 앞으로, 오류로 멈췄거나 결과가 없을 때만 끝에 Messages,
+ *   상태 줄 행 수는 고른 결과 탭 (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-08 상태 줄은 메인 창 상태 표시줄에 보임(앱 변경 #2, 주석만) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  * - 2026-11-08 고침 상태가 바뀌면 {@link #DIRTY_PROPERTY} 속성 변경을 알림: Query Library 머리말의 저장 단추가 따름
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-08 연결 콤보 폭 260 → 220(앱 변경 #3), 연결·DB 콤보의 도구 설명에 고른 항목의 전체 이름(긴 이름은 콤보에서 말줄임표)
+ *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -316,7 +326,8 @@ final class SqlEditorPanel extends JPanel {
      */
     interface Host {
         /**
-         * The results of the editor changed; show them (if it is the active editor) on the Results or Messages tab.
+         * The results of the editor changed; brings a result tab or the Messages tab to the front, and shows the
+         * Results card if it is the active editor.
          */
         void showResults(@NotNull SqlEditorPanel editor, boolean messages);
 
@@ -363,9 +374,10 @@ final class SqlEditorPanel extends JPanel {
     static final String DIRTY_PROPERTY = "dirty"; //$NON-NLS-1$
     /**
      * Widths of the connection and database/schema pickers, also of the empty pickers shown without a query window so
-     * that the tool bar does not move.
+     * that the tool bar does not move. The connection picker stays wider than the database/schema one (user decision
+     * 2026-11-08: 260 before); longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
      */
-    static final int CONNECTION_PICKER_WIDTH = 260;
+    static final int CONNECTION_PICKER_WIDTH = 220;
     static final int SCHEMA_PICKER_WIDTH = 200;
     private static final int PICKER_MIN_WIDTH = 100;
 
@@ -393,6 +405,8 @@ final class SqlEditorPanel extends JPanel {
     private SchemaState schemaState;
     private final SqlTextArea textArea;
     private final SqlCompletionPopup completion;
+    // Before the results view, whose tab row has the Execution plan tab
+    private final ExecutionPlanView planView = new ExecutionPlanView();
     private final QueryResultsView resultsView = new QueryResultsView(new QueryResultsView.Listener() {
         @Override
         public void showMessages() {
@@ -406,11 +420,8 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void resultsRowsChanged() {
-            // A grid was read again after the run (filter, sort, more rows): the rows it shows now, as the grid's own status
-            if (execution == null) {
-                long rows = resultsView.getRowCount();
-                statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
-            }
+            // Another tab was selected, or a grid was read again after the run (filter, sort, more rows)
+            updateRowCount();
         }
 
         @Override
@@ -432,16 +443,16 @@ final class SqlEditorPanel extends JPanel {
             // Generate SQL from a result: never run here
             host.openScript(container, script, 0, false);
         }
-    });
+    }, planView.getComponent());
+    // EDT only: rows the last run read (all its results), shown while no result tab is selected; null while not known yet
+    @Nullable
+    private Long runRows;
     // EDT only: Query > Include Actual Execution Plan for this window
     private boolean includeActualPlan;
-    private final ExecutionPlanView planView = new ExecutionPlanView();
     // EDT only
     private boolean explaining;
-    private boolean planTabSelected;
     // EDT only: Query > SQL Terminal for this window; the terminal keeps its output across runs
     private boolean terminalEnabled;
-    private boolean terminalTabSelected;
     private final SqlTerminalView terminalView = new SqlTerminalView();
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
@@ -812,6 +823,8 @@ final class SqlEditorPanel extends JPanel {
     void connectionChanged() {
         host.titleChanged(this);
         connectionCombo.repaint();
+        // A new name
+        updatePickerToolTips();
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
         // Connected or disconnected: whether the connection gives actual plans is known after connecting
@@ -824,38 +837,20 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Query &gt; Pin Results: the current results move to a pinned tab and the next run leaves them.
+     * Query &gt; Pin Results: the selected result tab (or the one selected last) is pinned and the next runs leave it.
      */
     void pinResults() {
         if (execution != null) {
-            // The run is still adding grids to the current results
+            // The run is still adding result tabs
             UIManager.getLookAndFeel().provideErrorFeedback(this);
             return;
         }
-        if (!resultsView.pinResults()) {
-            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_results_nothing_to_pin);
-            return;
+        switch (resultsView.pinResults()) {
+            case NOTHING_TO_PIN -> statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_results_nothing_to_pin);
+            case ALREADY_PINNED -> statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_results_already_pinned);
+            // The pinned tab is in front; the Results card comes back if it was hidden
+            case PINNED -> host.showResults(this, false);
         }
-        host.showResults(this, false);
-    }
-
-    /**
-     * Content of the Execution plan tab.
-     */
-    @NotNull
-    ExecutionPlanView getPlanView() {
-        return planView;
-    }
-
-    /**
-     * Whether the Execution plan tab was the last one the user looked at for this window (restored on activation).
-     */
-    boolean isPlanTabSelected() {
-        return planTabSelected;
-    }
-
-    void setPlanTabSelected(boolean planTabSelected) {
-        this.planTabSelected = planTabSelected;
     }
 
     /**
@@ -888,39 +883,30 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * Query &gt; SQL Terminal, per query window: runs are also written as text to the Terminal tab
-     * ({@link #getTerminalView()}).
+     * ({@link SqlTerminalView}).
      */
     boolean isTerminalEnabled() {
         return terminalEnabled;
     }
 
     /**
-     * Turns the terminal on or off for the next runs; a run that is going on keeps the choice it started with.
+     * Turns the terminal on or off for the next runs; a run that is going on keeps the choice it started with. The
+     * Terminal tab is in the window's tab row only while the terminal is on.
      */
     void setTerminalEnabled(boolean enabled) {
         terminalEnabled = enabled;
-        if (!enabled) {
-            terminalTabSelected = false;
-        }
+        resultsView.setTerminalComponent(enabled ? terminalView.getComponent() : null);
     }
 
     /**
-     * Content of the Terminal tab.
+     * Rows in the status line: the selected result tab's rows, or the rows the last run read while another tab
+     * (Messages, plan, terminal) is in front.
      */
-    @NotNull
-    SqlTerminalView getTerminalView() {
-        return terminalView;
-    }
-
-    /**
-     * Whether the Terminal tab was the last one the user looked at for this window (restored on activation).
-     */
-    boolean isTerminalTabSelected() {
-        return terminalTabSelected;
-    }
-
-    void setTerminalTabSelected(boolean terminalTabSelected) {
-        this.terminalTabSelected = terminalTabSelected;
+    private void updateRowCount() {
+        long tabRows = resultsView.getRowCount();
+        Long rows = tabRows >= 0 ? Long.valueOf(tabRows) : runRows;
+        statusLine.setRows(rows == null ? null
+            : NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
     }
 
     /**
@@ -937,7 +923,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The query status line; the main window shows the active editor's line below the results (SSMS).
+     * The query status line; the main window shows the active editor's line in its status bar.
      */
     @NotNull
     QueryStatusLine getStatusLine() {
@@ -1161,7 +1147,6 @@ final class SqlEditorPanel extends JPanel {
      * state); the main window shows the active window's pickers in its SQL Editor tool bar ({@link SqlEditorToolBar}).
      */
     private void createPickers() {
-        connectionCombo.setToolTipText(EditorMessages.editor_sql_connection_tip);
         connectionCombo.setRenderer(new ConnectionRenderer());
         sizePicker(connectionCombo, CONNECTION_PICKER_WIDTH);
         connectionCombo.addActionListener(e -> {
@@ -1202,7 +1187,6 @@ final class SqlEditorPanel extends JPanel {
             }
         });
 
-        schemaCombo.setToolTipText(EditorMessages.editor_sql_schema_tip);
         schemaCombo.setRenderer(new SchemaRenderer());
         sizePicker(schemaCombo, SCHEMA_PICKER_WIDTH);
         schemaCombo.addActionListener(e -> {
@@ -1210,6 +1194,23 @@ final class SqlEditorPanel extends JPanel {
                 changeDefaultObject(selected);
             }
         });
+        // The items are reloaded with new models (setModel fires no item event)
+        for (JComboBox<?> picker : List.of(connectionCombo, schemaCombo)) {
+            picker.addItemListener(e -> updatePickerToolTips());
+            picker.addPropertyChangeListener("model", e -> updatePickerToolTips()); //$NON-NLS-1$
+        }
+        updatePickerToolTips();
+    }
+
+    /**
+     * Tool tips of the pickers with the whole name of the selected connection and database/schema: the pickers have a
+     * fixed width and their renderers cut longer names with an ellipsis. The opened list is as wide as its items.
+     */
+    private void updatePickerToolTips() {
+        connectionCombo.setToolTipText(connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer container
+            ? NLS.bind(EditorMessages.editor_sql_connection_selected_tip, container.getName()) : EditorMessages.editor_sql_connection_tip);
+        schemaCombo.setToolTipText(schemaCombo.getSelectedItem() instanceof DBSObject object
+            ? NLS.bind(EditorMessages.editor_sql_schema_selected_tip, object.getName()) : EditorMessages.editor_sql_schema_tip);
     }
 
     /**
@@ -1345,10 +1346,12 @@ final class SqlEditorPanel extends JPanel {
         }
         statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? EditorMessages.editor_sql_executing : EditorMessages.editor_sql_connecting);
         statusLine.setElapsed(formatElapsed(0, false));
+        runRows = null;
         statusLine.setRows(null);
         elapsedTimer.start();
         updateActions();
-        showRunOutput(run, false);
+        // No result yet: Messages until the run's first result tab comes to the front
+        showRunOutput(run, true);
 
         AbstractJob prepareJob = new AbstractJob("Prepare query") {
             @NotNull
@@ -1452,12 +1455,17 @@ final class SqlEditorPanel extends JPanel {
         // The run may have connected: server version and the connected icon
         statusLine.setConnection(run.dataSourceContainer);
         statusLine.setElapsed(formatElapsed(elapsed, true));
-        long rows = run.rowsFetched.get();
-        statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
+        runRows = run.rowsFetched.get();
+        updateRowCount();
         refreshOpenTransaction();
         updateActions();
-        // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
-        showRunOutput(run, run.hasErrors || resultsView.getGridCount() == 0);
+        // As in SSMS: an error that stopped the run (or no results at all) brings the Messages tab to the front; the result
+        // tabs before the error stay. A run that skipped failed statements keeps its results in front (Messages shows the
+        // errors' count). Otherwise the tab the user is looking at stays
+        boolean messages = run.hasErrors && !run.continueOnError || resultsView.getGridCount() == 0;
+        if (messages || run.terminal) {
+            showRunOutput(run, messages);
+        }
         finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
@@ -1467,8 +1475,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Brings the output of a run to the front: the Terminal tab when the run writes to the terminal, else the Results
-     * or Messages tab.
+     * Brings the output of a run to the front: the Terminal tab when the run writes to the terminal, else a result tab
+     * or the Messages tab.
      */
     private void showRunOutput(@NotNull Execution run, boolean messages) {
         if (run.terminal) {
@@ -1528,7 +1536,6 @@ final class SqlEditorPanel extends JPanel {
         explaining = true;
         updateActions();
         planView.clear(container.isConnected() ? EditorMessages.editor_sql_making_estimated_plan : EditorMessages.editor_sql_connecting);
-        planTabSelected = true;
         host.showPlan(this);
         int finalOffset = offset;
         int finalLength = length;
@@ -1633,7 +1640,9 @@ final class SqlEditorPanel extends JPanel {
                 job.setResultSetLimit(0, run.maxRows);
             }
             // Stop or skip on errors; never the engine default STOP_ROLLBACK (see class doc)
-            job.setErrorHandling(SqlExecutionOptionsPage.getEngineErrorHandling(container.getPreferenceStore()));
+            SQLScriptErrorHandling errorHandling = SqlExecutionOptionsPage.getEngineErrorHandling(container.getPreferenceStore());
+            run.continueOnError = errorHandling == SQLScriptErrorHandling.IGNORE;
+            job.setErrorHandling(errorHandling);
             job.addJobChangeListener(new JobChangeAdapter() {
                 @Override
                 public void done(IJobChangeEvent event) {
@@ -2087,6 +2096,8 @@ final class SqlEditorPanel extends JPanel {
         final AtomicLong rowsFetched = new AtomicLong();
         final List<Throwable> reportedErrors = new CopyOnWriteArrayList<>();
         volatile boolean hasErrors;
+        // Options: failed statements are skipped and the run goes on (set in the preparation job)
+        volatile boolean continueOnError;
         volatile boolean cancelRequested;
         @Nullable
         Job job;
@@ -2183,9 +2194,14 @@ final class SqlEditorPanel extends JPanel {
                     run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
                 }
                 post(run, () -> {
-                    resultsView.addGrid(fetched.withExportQuery(dataContainer));
-                    statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
-                    showRunOutput(run, false);
+                    // The run's first result comes to the front; later ones leave the tab the user is looking at
+                    boolean first = resultsView.getGridCount() == 0;
+                    resultsView.addGrid(fetched.withExportQuery(dataContainer), query.getText());
+                    runRows = run.rowsFetched.get();
+                    updateRowCount();
+                    if (first) {
+                        showRunOutput(run, false);
+                    }
                 });
             });
         }

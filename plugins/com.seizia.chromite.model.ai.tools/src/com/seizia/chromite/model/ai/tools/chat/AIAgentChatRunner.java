@@ -74,6 +74,7 @@ import java.util.concurrent.TimeUnit;
  * - 2026-11-07 시스템 프롬프트와 요청 한도 오류에서 기능을 공식 이름 "Chromite Agent"로 부름 (docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 요청 크기: 연결에 맞는 도구만 보내고, 기록을 예산 안으로 줄임 (후속 과제 #76)
  * - 2026-11-08 도구의 진행 글을 항목에 두고 {@link Listener#toolProgress}로 알림(백업·복원 도구)
+ * - 2026-11-08 차례의 토큰 사용량을 모아 {@link Listener#usage}로 알림: 엔진이 받던 사용량을 버리고 있었다 (후속 39)
  */
 public final class AIAgentChatRunner {
 
@@ -101,6 +102,32 @@ public final class AIAgentChatRunner {
         /** A running tool reported progress ({@link AIAgentChat.Entry#getProgress}). */
         default void toolProgress(@NotNull AIAgentChat.Entry entry) {
         }
+
+        /**
+         * Tokens of the turn: the usage the provider reported for each request of the turn, summed. Called once at the end of
+         * the turn, only when the provider reported usage.
+         */
+        default void usage(@NotNull AIUsage turnUsage) {
+        }
+    }
+
+    /**
+     * Sum of the usage of a turn's requests; null until a request reported usage.
+     */
+    private static final class TurnUsage {
+        @Nullable
+        private AIUsage total;
+
+        void add(@Nullable AIUsage usage) {
+            if (usage == null) {
+                return;
+            }
+            total = total == null ? usage : new AIUsage(
+                total.totalInputTokens() + usage.totalInputTokens(),
+                total.cachedTokens() + usage.cachedTokens(),
+                total.totalOutputTokens() + usage.totalOutputTokens(),
+                total.reasoningTokens() + usage.reasoningTokens());
+        }
     }
 
     private AIAgentChatRunner() {
@@ -110,8 +137,9 @@ public final class AIAgentChatRunner {
      * Runs the turn that the last user entry started and saves the conversation afterwards.
      */
     public static void run(@NotNull DBRProgressMonitor monitor, @NotNull AIAgentChat chat, @NotNull Listener listener) {
+        TurnUsage usage = new TurnUsage();
         try {
-            runTurn(monitor, chat, listener);
+            runTurn(monitor, chat, listener, usage);
         } catch (Throwable e) {
             if (!monitor.isCanceled()) {
                 log.debug("AI assistant turn failed", e);
@@ -120,13 +148,17 @@ public final class AIAgentChatRunner {
         } finally {
             chat.touch();
             AIAgentChatStore.save(chat);
+            if (usage.total != null) {
+                listener.usage(usage.total);
+            }
         }
     }
 
     private static void runTurn(
         @NotNull DBRProgressMonitor monitor,
         @NotNull AIAgentChat chat,
-        @NotNull Listener listener
+        @NotNull Listener listener,
+        @NotNull TurnUsage usage
     ) throws Exception {
         if (AISettingsManager.getInstance().getSettings().isAiDisabled()) {
             throw new IllegalStateException("AI integration is disabled");
@@ -153,7 +185,9 @@ public final class AIAgentChatRunner {
 
                 StreamCollector collector = new StreamCollector(chat, listener);
                 engine.requestCompletionStream(monitor, engineRequest, collector);
-                if (!collector.await(monitor)) {
+                boolean finished = collector.await(monitor);
+                usage.add(collector.usage);
+                if (!finished) {
                     // Stopped: the engine is closed below, which ends its HTTP stream
                     return;
                 }
@@ -314,6 +348,9 @@ public final class AIAgentChatRunner {
         private AIAgentChat.Entry text;
         @Nullable
         private volatile Throwable error;
+        // The last usage of the response (Anthropic repeats the output tokens so far with each message delta)
+        @Nullable
+        private volatile AIUsage usage;
         private volatile boolean stopped;
 
         StreamCollector(@NotNull AIAgentChat chat, @NotNull Listener listener) {
@@ -357,7 +394,9 @@ public final class AIAgentChatRunner {
 
         @Override
         public void usage(@Nullable AIUsage usage) {
-            // Not shown
+            if (usage != null) {
+                this.usage = usage;
+            }
         }
 
         @Override
