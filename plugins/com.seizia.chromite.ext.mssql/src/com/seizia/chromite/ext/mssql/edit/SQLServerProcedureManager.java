@@ -46,6 +46,10 @@ import java.util.Map;
 
 /**
  * SQLServerProcedureManager
+ *
+ * 변경 이력:
+ * - 2026-11-09 Chromite: {@code sp_rename}의 옛 이름(스키마까지 붙인 이름)을 문자열로 따옴표 처리. 전에는 {@code N'…'} 안에 그대로 넣어
+ *   이름에 {@code '}가 있으면 문장이 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
  */
 public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerProcedure, SQLServerSchema>
     implements DBEObjectRenamer<SQLServerProcedure> {
@@ -139,9 +143,10 @@ public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerP
         actions.add(
             new SQLDatabasePersistAction(
                 "Rename procedure",
-                "EXEC " + SQLServerUtils.getSystemTableName(procedure.getDatabase(), "sp_rename") +
-                    " N'" + procedure.getContainer().getFullyQualifiedName(DBPEvaluationContext.DML) + "." + DBUtils.getQuotedIdentifier(procedure.getDataSource(), command.getOldName()) +
-                    "', " + SQLUtils.quoteString(procedure.getDataSource(), command.getNewName())));
+                "EXEC " + SQLServerUtils.getSystemTableName(procedure.getDatabase(), "sp_rename") + " " +
+                    SQLUtils.quoteString(procedure.getDataSource(), procedure.getContainer().getFullyQualifiedName(DBPEvaluationContext.DML) + "." +
+                        DBUtils.getQuotedIdentifier(procedure.getDataSource(), command.getOldName())) +
+                    ", " + SQLUtils.quoteString(procedure.getDataSource(), command.getNewName())));
     }
 
     @Override

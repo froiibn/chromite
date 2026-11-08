@@ -46,6 +46,10 @@ import java.util.Map;
 
 /**
  * SQLServerTableIndex
+ *
+ * 변경 이력:
+ * - 2026-11-09 Chromite: 인덱스 정의를 읽는 질의에 넣는 인덱스 이름을 이스케이프한 {@code N'…'} 문자열로(표 이름과 같게).
+ *   이름에 {@code '}가 있으면 질의가 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
  */
 public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServerTableBase>
     implements SQLServerObject, DBSTableConstraint, DBPNamedObject2, DBSObjectWithScript
@@ -218,7 +222,7 @@ public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServ
             "SELECT ' CREATE ' + \n" +
                 needToInsertUnique +
                 "    I.type_desc COLLATE DATABASE_DEFAULT +' INDEX ' +   \n" +
-                "    '" + indexName + "' + ' ON '  +  \n" +
+                "    N'" + SQLUtils.escapeString(getDataSource(), indexName) + "' + ' ON '  +  \n" +
                 "    N'" + tableName + "' + ' ( ' + \n" +
                 "    KeyColumns + ' )  ' + \n" +
                 "    ISNULL('\n\t INCLUDE ('+IncludedColumns+' ) ','') + \n" +
