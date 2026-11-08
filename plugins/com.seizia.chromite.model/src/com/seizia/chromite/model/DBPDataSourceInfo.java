@@ -26,6 +26,10 @@ import java.util.Map;
 
 /**
  * DBPDataSourceInfo
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link #isMultipleResultsFetchBroken()}의 설명을 실제 뜻(배치의 문장 오류를 그 자리에서 알리고 뒤 결과를 계속 읽을 수 있음)으로
+ *   고쳤다. 실행기는 이 오류를 쿼리 오류로 보고한다 (docs/chromite/sql-batch-errors.md)
  */
 public interface DBPDataSourceInfo
 {
@@ -176,7 +180,10 @@ public interface DBPDataSourceInfo
     boolean supportsMultipleResults();
 
     /**
-     * Workaround for broken drivers (#2792)
+     * The driver reports the error of a statement of a multi-statement batch where the reading of the results reaches
+     * it (on execute, fetch or the move to the next result), and the results after it can still be read (#2792:
+     * SQL Server, Sybase). The script executors report such an error as the query's error and keep reading the later
+     * results, because the server ran the later statements of the batch.
      */
     boolean isMultipleResultsFetchBroken();
 

@@ -53,6 +53,7 @@ import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLState;
 import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import com.seizia.chromite.model.struct.*;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -77,6 +78,8 @@ import java.util.Properties;
  * 변경 이력:
  * - 2026-11-06 SQL Server 실행 계획 어댑터 {@link SQLServerQueryPlanner} (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-07 SQL Server 에이전트 노드 {@link #getAgent}, 새로 고침 때 다시 만듦 (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-08 {@link #discoverErrorType}: 로그인 오류가 아니면 {@code getNextException()} 사슬을 읽지 않음. 드라이버가 그 사슬을 배치의
+ *   뒤 결과를 미리 읽어 만들어서, 쿼리 관리자가 오류 종류를 볼 때 뒤 문장의 행 수와 결과 집합이 사라졌다 (docs/chromite/sql-batch-errors.md)
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -168,10 +171,8 @@ public class SQLServerDataSource
         if (isPasswordExpired(error)) {
             return ErrorType.PASSWORD_EXPIRED;
         }
-        if (JDBCUtils.matchesSQLException(
-            error,
-            exception -> exception.getErrorCode() == SQLServerConstants.EC_SQL_SERVER_LOGON_FAILED
-        )) {
+        // The error itself, not its getNextException() chain: see isPasswordExpired
+        if (SQLState.getCodeFromException(error) == SQLServerConstants.EC_SQL_SERVER_LOGON_FAILED) {
             return ErrorType.AUTHENTICATION_FAILED;
         }
         return super.discoverErrorType(error);
@@ -354,6 +355,14 @@ public class SQLServerDataSource
     private boolean isPasswordExpired(@NotNull Throwable error) {
         for (Throwable cause = error; cause != null; cause = cause.getCause()) {
             if (cause instanceof SQLException sqle) {
+                int topCode = sqle.getErrorCode();
+                if (topCode != SQLServerConstants.EC_SQL_SERVER_LOGON_FAILED && topCode != SQLServerConstants.EC_PASSWORD_EXPIRED
+                    && topCode != SQLServerConstants.EC_PASSWORD_MUST_CHANGE) {
+                    // Not a login error: its chain is not read. For an error of a statement in a batch the driver builds
+                    // getNextException() by reading the statement's later results ahead, and those results (update
+                    // counts, result sets) are then lost to the query window (docs/chromite/sql-batch-errors.md)
+                    continue;
+                }
                 // Check chained SQL exceptions for specific password expiry error codes
                 for (SQLException se = sqle; se != null; se = se.getNextException()) {
                     int code = se.getErrorCode();

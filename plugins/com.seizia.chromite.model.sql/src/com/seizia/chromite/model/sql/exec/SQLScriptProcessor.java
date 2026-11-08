@@ -34,6 +34,7 @@ import com.seizia.chromite.utils.DurationFormatter;
 import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,6 +43,9 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 {@code @include}가 돌려준 {@link SQLIncludedScript}의 문장을 그 파일의 스크립트 문맥으로 실행한다. 바깥 문맥으로 실행하면
  *   안에서 다시 포함하는 상대 경로의 기준과 포함 고리 검사가 틀린다 (docs/chromite/swing-query-commands.md "@include")
+ * - 2026-11-08 배치 오류: 여러 문장 배치의 뒤 문장 오류({@code getMoreResults} 예외)를 로그에만 쓰고 넘어가서 작업이 성공으로 끝나던 것을
+ *   고쳤다. 오류는 그 쿼리의 실패가 되고(오류 처리 설정대로 멈춤), 오류 뒤 결과와 첫 문장 오류 뒤에 실행된 문장의 결과도 읽는다
+ *   ({@link SQLBatchErrors}, docs/chromite/sql-batch-errors.md)
  */
 public class SQLScriptProcessor {
     private static final String STAT_LOG_PREFIX = "-----------------> ";
@@ -54,6 +58,8 @@ public class SQLScriptProcessor {
     private final Log log;
 
     private Throwable lastError = null;
+    // Statement errors of the running query's batch that the driver reported while the results were read (SQLBatchErrors)
+    private final List<Throwable> statementErrors = new ArrayList<>();
 
     private DBCStatistics statistics;
     private final DBCStatistics totalStatistics = new DBCStatistics();
@@ -183,7 +189,10 @@ public class SQLScriptProcessor {
                     break;
                 }
                 if (errorHandling != SQLScriptErrorHandling.IGNORE) {
-                    log.error(lastError);
+                    if (!statementErrors.contains(lastError)) {
+                        // A collected statement error is already in the log
+                        log.error(lastError);
+                    }
                     break;
                 } else {
                     log.warn("Query failed: " + lastError.getMessage());
@@ -229,6 +238,7 @@ public class SQLScriptProcessor {
         } else {
             scriptContext.fillQueryParameters(sqlQuery, () -> dataReceiver, true);
             lastError = null;
+            statementErrors.clear();
 
             try {
                 statistics.reset();
@@ -238,12 +248,20 @@ public class SQLScriptProcessor {
                     long execStartTime = System.currentTimeMillis();
                     executeStatement(session, sqlQuery, execStartTime);
                 });
+                if (!statementErrors.isEmpty()) {
+                    // The batch failed although the statement did not throw
+                    lastError = statementErrors.getFirst();
+                }
             } catch (Throwable ex) {
                 if (!(ex instanceof DBException)) {
                     log.error("Unexpected error while processing SQL", ex);
                 }
                 lastError = ex;
             } finally {
+                // Only now that the results are read: logging walks the driver's error chain (SQLBatchErrors.canReadPast)
+                for (Throwable error : statementErrors) {
+                    log.error(error);
+                }
                 scriptContext.clearStatementContext();
             }
         }
@@ -267,7 +285,13 @@ public class SQLScriptProcessor {
         // Execute statement
         try {
             log.debug(STAT_LOG_PREFIX + "Execute query\n" + sqlQuery.getText());
-            boolean hasResultSet = statement.executeStatement();
+            boolean hasResultSet;
+            try {
+                hasResultSet = statement.executeStatement();
+            } catch (DBCException e) {
+                // The first statement of a batch failed and the later ones may still have run (SQL Server)
+                hasResultSet = SQLBatchErrors.resumeAfterExecuteError(session, statement, e, statementErrors::add);
+            }
 
             statistics.addExecuteTime(System.currentTimeMillis() - startTime);
             statistics.addStatementsCount();
@@ -282,7 +306,15 @@ public class SQLScriptProcessor {
                             // Kind of bug in the driver. It says it has resultset but returns null
                             break;
                         } else {
-                            hasResultSet = fetchQueryData(session, resultSet, dataReceiver);
+                            try {
+                                hasResultSet = fetchQueryData(session, resultSet, dataReceiver);
+                            } catch (DBCException e) {
+                                // A statement of the batch failed while its rows were read: the later results are still read
+                                if (!SQLBatchErrors.canReadPast(session, e)) {
+                                    throw e;
+                                }
+                                statementErrors.add(e);
+                            }
                         }
                     }
                 }
@@ -305,18 +337,8 @@ public class SQLScriptProcessor {
                 }
 
                 if (session.getDataSource().getInfo().supportsMultipleResults()) {
-                    try {
-                        hasResultSet = statement.nextResults();
-                    } catch (DBCException e) {
-                        if (session.getDataSource().getInfo().isMultipleResultsFetchBroken()) {
-                            log.error(e);
-                            // #2792: Check this twice. Some drivers (e.g. Sybase jConnect)
-                            // throw error on n'th result fetch - but it still can keep fetching next results
-                            hasResultSet = statement.nextResults();
-                        } else {
-                            throw e;
-                        }
-                    }
+                    // An error of a later statement of the batch fails the query; the results after it are still read
+                    hasResultSet = SQLBatchErrors.nextResults(session, statement, statementErrors::add);
                     updateCount = hasResultSet ? -1 : 0;
                 } else {
                     break;
