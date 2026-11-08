@@ -265,6 +265,7 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Object Details(F7)를 자식이 없는 객체(시퀀스)에서도 켬: 첫 탭인 속성 탭에서 속성을 고친다 (docs/chromite/swing-object-properties.md)
  * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림. 125%·150% 배율에서 둥근 사각형의 안티앨리어싱
  *   가장자리가 행 밖의 장치 픽셀 한 줄까지 칠해, 행만 다시 그리면 그 줄이 남았다 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 빠른 거르기 안내의 키 글자
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -840,14 +841,14 @@ final class ObjectExplorerPanel extends JPanel {
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "chromite.rename", () -> renameAction.actionPerformed(null)); //$NON-NLS-1$
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "chromite.delete", () -> deleteAction.actionPerformed(null)); //$NON-NLS-1$
         // Ctrl+C is the tree's own copy key (the transfer handler copies the names)
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.copyQualifiedName", //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_C, InputEvent.SHIFT_DOWN_MASK), "chromite.copyQualifiedName", //$NON-NLS-1$
             () -> objectCommands.getCopyQualifiedNameAction().actionPerformed(null));
         // SSMS: F5 in Object Explorer refreshes (elsewhere it executes the query, Query menu)
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::refreshSelection); //$NON-NLS-1$
         // SSMS Object Explorer Details
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), "chromite.details", () -> detailsAction.actionPerformed(null)); //$NON-NLS-1$
         // The quick filter box; the tree's own type-to-select search stays on plain letters
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.quickFilter", //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_F), "chromite.quickFilter", //$NON-NLS-1$
             quickFilterField::requestFocusInWindow);
 
         JPopupMenu popupMenu = new JPopupMenu();
@@ -1273,7 +1274,9 @@ final class ObjectExplorerPanel extends JPanel {
     @NotNull
     private JComponent createQuickFilter() {
         quickFilterTimer.setRepeats(false);
-        quickFilterField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ObjectExplorerMessages.oe_quick_filter_placeholder);
+        // The quick filter key of the tree (chromite.quickFilter)
+        quickFilterField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT,
+            UiKeys.format(ObjectExplorerMessages.oe_quick_filter_placeholder, UiKeys.command(KeyEvent.VK_F)));
         quickFilterField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("filter")); //$NON-NLS-1$
         quickFilterField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
         quickFilterField.setToolTipText(ObjectExplorerMessages.oe_quick_filter_tip);

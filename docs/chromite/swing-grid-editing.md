@@ -66,10 +66,10 @@ SWT 명령과 단축키(`ui.editors.data/plugin.xml`, 기준 커밋 `263b8ddb45`
 | 명령 | 단축키 | 동작 |
 |---|---|---|
 | 행 복제 | Ctrl+Alt+Insert | 고른 행의 사본을 아래에 새 행으로 더함. 값은 값 처리기로 복사(`getValueFromObject(…, copy=true)`), 의사·자동 생성 열은 새 행 값. 읽지 않은 LOB는 비워 두고 몇 개인지 상태 줄에 알림 |
-| 위 행 값 복사 / 아래 행 값 복사 | Ctrl+D / Ctrl+Alt+D | SWT `copyRowValues`와 같은 규칙: 한 행이면 이웃 행, 이어진 여러 행이면 그 묶음의 첫(위)·마지막(아래) 행의 값. 고른 열만 |
+| 위 행 값 복사 / 아래 행 값 복사 | Ctrl+D / Ctrl+Alt+D (macOS ⌘D / ⇧⌘D) | SWT `copyRowValues`와 같은 규칙: 한 행이면 이웃 행, 이어진 여러 행이면 그 묶음의 첫(위)·마지막(아래) 행의 값. 고른 열만 |
 | 기본값으로 설정 | Ctrl+Backspace | 값 처리기의 기본값(`DBDValueDefaultGenerator`: 날짜는 지금, 숫자 0, 불리언 false, 문자열 빈 값). DB의 DEFAULT가 아니다(SWT와 같음) |
 | 셀 되돌리기 | (메뉴만) | DB에서 읽은 값으로. SWT의 Esc는 표에서 셀 편집 취소 키라 쓰지 않았다 |
-| 실행 취소 / 다시 실행 | Ctrl+Z / Ctrl+Y | 셀 값 변경만(SWT `ResultSetUndoRedoManager`와 같음). 한 동작(붙여넣기, NULL로, 위 행 값 복사…)은 한 번에. 기록 200단계(SWT 기본). 저장·취소하면 기록을 지움 |
+| 실행 취소 / 다시 실행 | Ctrl+Z / Ctrl+Y (macOS ⌘Z / ⇧⌘Z) | 셀 값 변경만(SWT `ResultSetUndoRedoManager`와 같음). 한 동작(붙여넣기, NULL로, 위 행 값 복사…)은 한 번에. 기록 200단계(SWT 기본). 저장·취소하면 기록을 지움 |
 
 - 행 추가·삭제는 실행 취소 대상이 아니다(SWT와 같음). 지운 새 행이나 삭제 표시된 행의 변경은 되돌릴 때 건너뛴다.
 
@@ -201,3 +201,4 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 - 2026-11-08 최초 작성(`chromite/p4-grid-editing`): 저장하고 커밋, 변경 미리 보기, 행·셀 명령, 실행 취소, 붙여넣기·특수 붙여넣기, 고급 복사·복사 형식,
   불리언·ENUM·날짜 편집기, LOB 편집·파일, JSON·XML 편집기.
 - 2026-11-08 "남긴 것"의 값 편집기는 [swing-value-editors.md](swing-value-editors.md)에서 넣었다고 표시, SET 설명 고침(`chromite/value-editors-rest`).
+- 2026-11-09 macOS 키: 아래 행 값 복사 ⇧⌘D(⌥⌘D는 Dock), 다시 실행 ⇧⌘Z(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).

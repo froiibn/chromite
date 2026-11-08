@@ -37,7 +37,6 @@ import javax.swing.event.DocumentListener;
 import javax.swing.plaf.LayerUI;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -114,6 +113,7 @@ import java.util.regex.Pattern;
  *   docs/chromite/swing-options.md)
  * - 2026-11-08 왼쪽 목록을 넓히고(최소 220) 찾기 칸, 창을 pack 크기보다 크게, 페이지 왼쪽 여백, 페이지 식별자로 열기(app round 1 #8, #13,
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 서식 안내의 두 키 조합 글자
  */
 final class OptionsDialog extends JDialog {
 
@@ -304,7 +304,7 @@ final class OptionsDialog extends JDialog {
         getRootPane().registerKeyboardAction(e -> {
             searchField.requestFocusInWindow();
             searchField.selectAll();
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        }, UiKeys.command(KeyEvent.VK_F), JComponent.WHEN_IN_FOCUSED_WINDOW);
         // The page list has the focus at first, not the search field above it (Ctrl+F goes there)
         addWindowListener(new WindowAdapter() {
             @Override
@@ -554,7 +554,8 @@ final class OptionsDialog extends JDialog {
             case MIXED -> 3;
         });
         row = addSection(form, row, CoreMessages.options_formatting);
-        row = addRow(form, row, CoreMessages.options_style, formatterCombo, CoreMessages.options_style_hint);
+        row = addRow(form, row, CoreMessages.options_style, formatterCombo,
+            NLS.bind(CoreMessages.options_style_hint, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D)));
         row = addRow(form, row, CoreMessages.options_keyword_case, keywordCaseCombo, CoreMessages.options_keyword_case_hint);
         addPreview(form, row, fontPreview);
         updatePreviews();

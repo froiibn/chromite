@@ -49,7 +49,6 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
@@ -87,6 +86,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-erd.md)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 확대·축소 도움말의 수정자 이름
  */
 final class ErdDiagramPanel extends JPanel implements ToolDocument {
 
@@ -179,8 +179,8 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
             }
         });
 
-        zoomInAction = createAction(ErdMessages.erd_zoom_in, canvas::zoomIn);
-        zoomOutAction = createAction(ErdMessages.erd_zoom_out, canvas::zoomOut);
+        zoomInAction = createAction(NLS.bind(ErdMessages.erd_zoom_in, UiKeys.getCommandText()), canvas::zoomIn);
+        zoomOutAction = createAction(NLS.bind(ErdMessages.erd_zoom_out, UiKeys.getCommandText()), canvas::zoomOut);
         zoomActualAction = createAction("100%", () -> canvas.setZoom(1.0, null)); //$NON-NLS-1$
         zoomActualAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_zoom_actual);
         fitAction = createAction(ErdMessages.erd_zoom_fit, canvas::zoomToFit);
@@ -260,11 +260,11 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
         center.add(scrollPane, CARD_DIAGRAM);
         add(center, BorderLayout.CENTER);
 
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), "zoomIn", zoomInAction); //$NON-NLS-1$
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_DOWN_MASK), "zoomIn", zoomInAction); //$NON-NLS-1$
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), "zoomOut", zoomOutAction); //$NON-NLS-1$
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_SUBTRACT, InputEvent.CTRL_DOWN_MASK), "zoomOut", zoomOutAction); //$NON-NLS-1$
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), "zoomActual", zoomActualAction); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_EQUALS), "zoomIn", zoomInAction); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_ADD), "zoomIn", zoomInAction); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_MINUS), "zoomOut", zoomOutAction); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_SUBTRACT), "zoomOut", zoomOutAction); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_0), "zoomActual", zoomActualAction); //$NON-NLS-1$
 
         updateZoomLabel();
         load(false);

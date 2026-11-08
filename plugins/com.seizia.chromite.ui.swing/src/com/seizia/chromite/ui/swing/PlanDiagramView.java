@@ -24,7 +24,6 @@ import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -63,6 +62,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
+ * - 2026-11-09 Ctrl+휠 확대를 플랫폼 명령 키로({@link UiKeys#isCommandDown}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class PlanDiagramView extends JComponent implements Scrollable {
 
@@ -252,7 +252,7 @@ final class PlanDiagramView extends JComponent implements Scrollable {
     }
 
     private void onWheel(@NotNull MouseWheelEvent e) {
-        if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
+        if (UiKeys.isCommandDown(e)) {
             double factor = Math.pow(ZOOM_STEP, -e.getPreciseWheelRotation());
             JViewport viewport = getViewport();
             Point p = viewport != null ? SwingUtilities.convertPoint(this, e.getPoint(), viewport) : null;

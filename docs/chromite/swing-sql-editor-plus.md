@@ -47,7 +47,7 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | 기능 | 키 | 메뉴 |
 |---|---|---|
 | 예상 실행 계획 | Ctrl+L | Query > Display Estimated Execution Plan, 메인 창 SQL Editor 도구 막대의 계획 단추 |
-| 실제 실행 계획 포함 | Ctrl+M (쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, SQL Editor 도구 막대의 Actual Plan 토글(메뉴와 같은 동작, 활성 쿼리 창의 값을 보임) |
+| 실제 실행 계획 포함 | Ctrl+M (macOS ⇧⌘M, 쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, SQL Editor 도구 막대의 Actual Plan 토글(메뉴와 같은 동작, 활성 쿼리 창의 값을 보임) |
 | 쿼리 기록 | - | Query > Query History… |
 | SQL 서식 | Ctrl+K Ctrl+D, Ctrl+Shift+F | Edit > Advanced > Format SQL |
 | 대문자 / 소문자 | Ctrl+Shift+U / Ctrl+Shift+L | Edit > Advanced > Make Uppercase / Make Lowercase |
@@ -430,3 +430,4 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-08 실제 계획 토글을 Oracle·Altibase로(사용자 결정, "실제 계획 토글을 Altibase·Oracle로"): 어댑터를 실행 단위(`startRun`/`Run`)로 바꾸고 엔진 훅
   `afterStatementExecuted`를 더함. Oracle은 `statistics_level = ALL` + 커서 계획(`OracleActualPlanProvider`, `OracleActualPlanNode`), Altibase는 드라이버
   `EXPLAIN PLAN = ON`(`AltibaseActualPlanProvider`). 어댑터가 없는 연결에서 SELECT를 `EXPLAIN ANALYZE`로 다시 실행하던 실제 계획을 지우고 토글을 끔(도구 설명에 이유).
+- 2026-11-09 실제 계획 포함의 macOS 키 ⇧⌘M(⌘M은 최소화, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).

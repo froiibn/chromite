@@ -142,6 +142,7 @@ import java.util.UUID;
  *   (docs/chromite/sql-batch-reread.md)
  * - 2026-11-08 행 번호 칸에 선택·포커스 바탕을 칠하지 않음, 그 칠하기만을 위한 선택·포커스 리스너 삭제(사용자 요청)
  *   (docs/chromite/swing-result-viewer.md "표 편의 기능")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), macOS 다시 실행 ⇧⌘Z·아래 행 값 복사 ⇧⌘D
  */
 final class ResultSetGrid extends JPanel {
 
@@ -471,8 +472,8 @@ final class ResultSetGrid extends JPanel {
         strip.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
         if (editModel != null) {
-            saveAction = createAction(EditorMessages.editor_common_save, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> save(false));
-            saveAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_save_tip);
+            saveAction = createAction(EditorMessages.editor_common_save, UiKeys.command(KeyEvent.VK_S), () -> save(false));
+            saveAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(EditorMessages.editor_grid_save_tip, saveAction));
             saveCommitAction = createAction(GridEditMessages.gridedit_save_commit, null, () -> save(false, true, false));
             saveCommitAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_save_commit_tip);
             cancelChangesAction = createAction(EditorMessages.editor_common_cancel, null, this::cancelChanges);
@@ -1190,10 +1191,10 @@ final class ResultSetGrid extends JPanel {
      *                       was closed, or the query is not a single SELECT), or null
      */
     private void installContextMenu(@Nullable String requeryBlocker) {
-        copyAction = createAction(EditorMessages.editor_grid_copy, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
+        copyAction = createAction(EditorMessages.editor_grid_copy, UiKeys.command(KeyEvent.VK_C),
             () -> TransferHandler.getCopyAction().actionPerformed(new ActionEvent(table, ActionEvent.ACTION_PERFORMED, "copy"))); //$NON-NLS-1$
         copyWithHeadersAction = createAction(EditorMessages.editor_grid_copy_with_headers,
-            KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+            UiKeys.command(KeyEvent.VK_C, InputEvent.SHIFT_DOWN_MASK),
             () -> DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, getCurrentData(), true), false));
         Action exportCsvAction = createAction(EditorMessages.editor_grid_export_csv, null, () -> ResultSetExport.exportCsv(table, getCurrentData()));
         Action exportXlsxAction = createAction(EditorMessages.editor_grid_export_xlsx, null, () -> ResultSetExport.exportXlsx(table, getCurrentData()));
@@ -1216,32 +1217,32 @@ final class ResultSetGrid extends JPanel {
         JPopupMenu popupMenu = new JPopupMenu();
         if (editModel != null) {
             editCellAction = createAction(EditorMessages.editor_grid_edit_cell, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::editSelectedCell);
-            setNullAction = createAction(EditorMessages.editor_grid_set_null, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), this::setSelectedToNull);
+            setNullAction = createAction(EditorMessages.editor_grid_set_null, UiKeys.command(KeyEvent.VK_0), this::setSelectedToNull);
             // Shortcuts of SWT's result set commands (ui.editors.data plugin.xml at 263b8ddb45); Reset Cell's Esc is
             // left out: in the grid Esc cancels a cell edit
             setDefaultAction = createAction(GridEditMessages.gridedit_set_default,
-                KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, InputEvent.CTRL_DOWN_MASK), this::setSelectedToDefault);
+                UiKeys.command(KeyEvent.VK_BACK_SPACE), this::setSelectedToDefault);
             resetCellAction = createAction(GridEditMessages.gridedit_reset_cell, null, this::resetSelectedCells);
             // SWT "Open value editor" (Shift+Enter) and "Generate UUID" (Ctrl+Shift+Alt+U)
             editValueAction = createAction(ValueEditMessages.valueedit_edit_value,
                 KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK), this::editValueInDialog);
             editValueAction.putValue(Action.SHORT_DESCRIPTION, ValueEditMessages.valueedit_edit_value_tip);
             generateUuidAction = createAction(ValueEditMessages.valueedit_generate_uuid,
-                KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
+                UiKeys.command(KeyEvent.VK_U, InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
                 this::generateUuids);
             insertRowAction = createAction(EditorMessages.editor_grid_insert_row, KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::insertRow);
             duplicateRowAction = createAction(GridEditMessages.gridedit_duplicate_row,
-                KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), this::duplicateSelectedRows);
+                UiKeys.command(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::duplicateSelectedRows);
             copyFromAboveAction = createAction(GridEditMessages.gridedit_copy_from_above,
-                KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), () -> copyFromAdjacentRow(true));
+                UiKeys.command(KeyEvent.VK_D), () -> copyFromAdjacentRow(true));
             copyFromBelowAction = createAction(GridEditMessages.gridedit_copy_from_below,
-                KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), () -> copyFromAdjacentRow(false));
+                UiKeys.command(KeyEvent.VK_D, InputEvent.ALT_DOWN_MASK), () -> copyFromAdjacentRow(false));
             deleteRowsAction = createAction(EditorMessages.editor_grid_delete_row, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelectedRows);
-            undoAction = createAction(GridEditMessages.gridedit_undo, KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), this::undo);
-            redoAction = createAction(GridEditMessages.gridedit_redo, KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), this::redo);
-            pasteAction = createAction(GridEditMessages.gridedit_paste, KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), () -> paste(null));
+            undoAction = createAction(GridEditMessages.gridedit_undo, UiKeys.command(KeyEvent.VK_Z), this::undo);
+            redoAction = createAction(GridEditMessages.gridedit_redo, UiKeys.command(KeyEvent.VK_Y), this::redo);
+            pasteAction = createAction(GridEditMessages.gridedit_paste, UiKeys.command(KeyEvent.VK_V), () -> paste(null));
             pasteSpecialAction = createAction(GridEditMessages.gridedit_paste_special,
-                KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::pasteSpecial);
+                UiKeys.command(KeyEvent.VK_V, InputEvent.SHIFT_DOWN_MASK), this::pasteSpecial);
             previewChangesAction = createAction(GridEditMessages.gridedit_preview_changes, null, () -> save(false, false, true));
             previewChangesAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_preview_changes_tip);
             Action saveMenuAction = createAction(EditorMessages.editor_grid_save_changes, (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));

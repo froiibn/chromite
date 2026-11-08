@@ -48,7 +48,6 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -102,6 +101,7 @@ import java.util.Set;
  * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
  * - 2026-11-08 {@link Host#getSaveAction}: 쿼리 창 머리말의 저장 단추가 메인 창의 Save(Ctrl+S)를 그대로 씀
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -254,7 +254,7 @@ final class QueryLibraryPanel extends JPanel {
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "chromite.delete", this::deleteSelected); //$NON-NLS-1$
         // As in Object Explorer: F5 refreshes while the tree has the focus, it executes the query elsewhere
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::reload); //$NON-NLS-1$
-        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), "chromite.duplicate", this::duplicateSelected); //$NON-NLS-1$
+        bindKey(UiKeys.command(KeyEvent.VK_D), "chromite.duplicate", this::duplicateSelected); //$NON-NLS-1$
 
         searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_search_placeholder);
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$

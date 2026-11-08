@@ -35,6 +35,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -89,6 +90,7 @@ import java.util.Objects;
  * - 2026-11-08 머리말 오른쪽 끝에 저장 아이콘 단추(Ctrl+S와 같은 동작, 고쳤을 때만 켜짐) (docs/chromite/swing-query-library.md "머리말 저장 단추")
  * - 2026-11-08 Database·Schema 글 칸을 대상 연결의 목록이 있는 콤보로 바꿈({@link QueryLibraryDefaultsPicker})
  *   (docs/chromite/swing-query-library.md "머리말 DB/스키마 목록")
+ * - 2026-11-09 저장 단추 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -777,7 +779,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 saveFromHeader(e);
             }
         };
-        action.putValue(Action.SHORT_DESCRIPTION, ToolsMessages.library_editor_save_tip);
+        action.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(ToolsMessages.library_editor_save_tip, UiKeys.command(KeyEvent.VK_S)));
         return UiIcons.createActionButton(action, "save"); //$NON-NLS-1$
     }
 

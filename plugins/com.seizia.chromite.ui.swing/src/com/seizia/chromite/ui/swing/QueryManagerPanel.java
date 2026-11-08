@@ -65,6 +65,7 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.Instant;
@@ -112,6 +113,7 @@ import java.util.TreeMap;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-manager.md)
+ * - 2026-11-09 복사 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPreferenceListener {
 
@@ -190,7 +192,8 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
         super(new BorderLayout());
         this.host = host;
         openAction = createAction(QueryManagerMessages.qm_open, QueryManagerMessages.qm_open_tip, this::openSelected);
-        copyAction = createAction(QueryManagerMessages.qm_copy, QueryManagerMessages.qm_copy_tip, this::copySelected);
+        // The table's own copy key
+        copyAction = createAction(QueryManagerMessages.qm_copy, UiKeys.format(QueryManagerMessages.qm_copy_tip, UiKeys.command(KeyEvent.VK_C)), this::copySelected);
         showTransactionAction = createAction(QueryManagerMessages.qm_show_transaction, QueryManagerMessages.qm_show_transaction_tip,
             this::showSelectedTransaction);
         clearAction = createAction(QueryManagerMessages.qm_clear, QueryManagerMessages.qm_clear_tip, this::clear);
