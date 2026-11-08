@@ -70,6 +70,8 @@
  *   Apple marks (.os-marks, inline SVG) and its note under it; "support details" links in the scenes
  *   (.scene-more); the legal attribution row in the footer (.foot .attribution); the support page's table
  *   (.matrix, sticky header row and first column inside its own scroll box, the filter box, the state tokens).
+ * - 2026-11-08 The hero button shows only the visitor's platform mark ([data-visitor-os], set by site.js; user request:
+ *   "윈도우면 윈도우 아이콘만, 맥이면 맥 아이콘만"). Both marks stay for unknown systems and without script.
  */
 @font-face {
   font-family: "Pretendard";
@@ -320,6 +322,9 @@ li + li { margin-top: 6px; }
 .hero-cta p { font-size: 15px; color: var(--stage-ink-2); }
 .os-marks { display: inline-flex; gap: 6px; }
 .os-marks svg { display: block; }
+/* site.js marks the visitor's platform when the browser clearly says it; unknown systems and pages without script keep both marks */
+[data-visitor-os="windows"] .os-marks [data-os="macos"],
+[data-visitor-os="macos"] .os-marks [data-os="windows"] { display: none; }
 /* what backs the headline: the easy side (Query Library) and the safe side (transactions, confirmations) */
 .hero-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 64px; max-width: 1000px; }
 .proof-title { padding-bottom: 8px; border-bottom: 1px solid var(--stage-line); font-size: 15px; font-weight: 600; }
