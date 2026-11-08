@@ -712,6 +712,19 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - **도구 수**: MCP `tools/list`는 101개(READ 75, WRITE 21, DANGEROUS 5)다. 채팅은 연결 인수가 없는 도구라 늘 보낸다(`AIAgentToolSelection`). 사이트의 지원 범위 페이지는
   Agent 도구 수를 말하지 않아 고치지 않았다.
 
+#### 확인 (2026-11-08, `chromite/agent-panel-2`)
+
+빌드한 Swing 제품을 개인 작업 공간·데이터 폴더로 띄우고, 가짜 Messages API·Responses API(로컬, 스크립트로 정한 도구 호출, 사용량 보고)를 제공자 주소로 두어
+앱 안의 시험 에이전트(Attach API, Swing 객체를 직접 다룸, 화면 좌표·OS 입력 없음)와 Python MCP 클라이언트로 확인했다. 한국어 다크, 영어(`-nl en`), 화면 배율 150%.
+
+| 시험 | 결과 |
+|---|---|
+| 모델 선택 | 목록: 제공자 제목(굵게) 아래 모델(들여 씀), 설정되지 않은 Ollama에 "설정 필요", 끝에 "모델 이름 직접 입력". 닫힌 콤보 "Anthropic Claude · claude-sonnet-5-5"와 같은 도구 설명. 모델을 고르면 대화의 엔진·모델이 바뀜, 취소(Esc)·제목은 대화의 모델로 되돌림, "설정 필요"는 Options의 Chromite Agent 페이지를 엶, 직접 입력(제공자 + 이름)은 대화와 목록에 들어감. 보내기 줄 왼쪽에 글자 폭만큼, 좁은 창에서는 줄임표 |
+| 대화 기록 | 최근 순 3개, 지금 대화 굵게 + 체크, 거르기("인덱스") → 1개 → Enter로 그 대화, 위·아래 화살표, Esc로 닫힘, × → 삭제 질문(취소 기본) → 취소하면 목록이 다시 열리고 거르기에 초점, 삭제하면 목록에서 빠짐, 지금 대화를 지우면 가장 최근 대화 |
+| 편집기 도구(채팅) | `listQueryWindows`(w1, 선택 범위), `getQueryWindowText`(연결 없으면 statement → all, 선택), `editQueryWindow` 넣기: 확인 대화상자 제목 "바뀌는 글", 지운 줄·넣은 줄 색, 거부 → 글 그대로, 허용 → 넣은 글 선택·저장 안 됨 표시, Ctrl+Z(`undoLastAction`) 한 번에 원래 글. 선택 없음 `replaceSelection` → 묻기 전에 오류. `replaceAll`의 줄 차이. Tool Policy 전역 규칙 AUTO → 묻지 않고 고침(감사 `global rule for editQueryWindow`) |
+| 편집기 도구(MCP) | `tools/list` 101개(READ 75, W 21, D 5), 세 도구의 한국어 제목과 `readOnlyHint`. `listQueryWindows`·`getQueryWindowText`가 감사 기록에 `client: MCP`로 남음. PostgreSQL에 연결된 창에서 `part=statement`가 커서의 둘째 문장만(시작 16, 끝 52). MCP `editQueryWindow` → "외부 에이전트(MCP)가 쿼리 창의 글을 바꾸려고 합니다" 확인 → 거부 → `isError` |
+| 후속 39 | 상태 줄 "토큰: 입력 14,863(캐시 100), 출력 50"(영어 "Tokens: 14,418 in (100 cached), 50 out"), 도구가 있는 차례는 요청들의 합. 가짜 API가 받은 요청에 `temperature` 없음(Anthropic·OpenAI 모두). 없는 모델: "Anthropic request failed: model: claude-does-not-exist-9 (not found, HTTP 404)", OpenAI "… does not exist or you do not have access to it. (not found, HTTP 404)" |
+
 ### 설정 (Tools > Options > Chromite Agent)
 
 | 탭 | 내용 |
