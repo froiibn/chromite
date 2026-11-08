@@ -264,6 +264,8 @@ import java.util.function.Supplier;
  *   문장은 새 쿼리 창에 넣기만 함 (docs/chromite/swing-query-manager.md)
  * - 2026-11-08 Include Actual Execution Plan: 활성 쿼리 창의 연결이 실제 계획을 주지 않으면 꺼지고 도구 설명이 이유를 말함
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-08 결과 탭에 활성 쿼리 창의 컴포넌트를 끼운 뒤 다시 그림: 결과 표가 없는 쿼리 창(Query Library 탭)으로 가면 앞 창의 결과 그림이
+ *   남던 문제 (docs/chromite/swing-frontend.md "앞 쿼리 창의 결과가 남던 문제")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -1864,6 +1866,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Puts an editor's results component into the Results / Messages tab. Components of inactive editors are not in
      * the window and miss theme switches, so their look and feel is brought up to date here (also for the status line).
+     * The tab is repainted: {@link JTabbedPane#setComponentAt} only revalidates when it replaces a component, and a
+     * component that had the tab's bounds before is not moved by the layout, so nothing asked to paint it and the
+     * previous window's results stayed on the screen (a query window with no grids, such as a Query Library tab).
      */
     private void attachResultTab(int index, @Nullable JComponent component) {
         if (resultTabs.getComponentAt(index) == component) {
@@ -1873,6 +1878,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateLookAndFeel(component);
         }
         resultTabs.setComponentAt(index, component);
+        resultTabs.repaint();
     }
 
     /**

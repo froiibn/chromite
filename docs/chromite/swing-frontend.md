@@ -2567,6 +2567,24 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 영향받을 수 있는 기능: 위 표의 모든 확인(Enter가 이제 취소), 데이터베이스 작업 대화상자와 전송 마법사 마지막 페이지(Enter가 아무것도 하지 않음),
   모델의 경고 확인을 쓰는 확인 필요 연결 유형의 쿼리 실행.
 
+## 앞 쿼리 창의 결과가 남던 문제 (2026-11-08)
+
+사용자 보고(앱 변경 #18): 일반 쿼리 창에서 실행해 결과가 보이는 상태에서 Query Library > New Query로 연 탭(또는 이미 열린 그 탭)으로 가면
+결과 창에 앞 창의 결과가 그대로 남았다.
+
+### 재현과 근본 원인
+
+- **재현:** 프로세스 안 시험 에이전트(OS 입력 없음)로 SQLite 쿼리 창 A를 실행하고, Query Library > New Query(`RtLib1`)를 만든 뒤 A → `RtLib1`로 돌아갔다.
+  컴포넌트 트리는 맞았다: Results 탭의 컴포넌트는 `RtLib1`의 것이고 A의 결과 뷰어는 보이지 않았다(`isShowing() = false`).
+  그런데 `RepaintManager`에 들어온 다시 그리기 요청을 기록하니 결과 영역에는 상태 줄과 26px 띠뿐이었다. 화면에는 A의 표 그림이 그대로 남는다.
+- **근본 원인:** `MainFrame.attachResultTab`(origin/devel `MainFrame.java` 1868–1876행)은 `JTabbedPane.setComponentAt`으로 활성 쿼리 창의 컴포넌트를 끼운다.
+  JDK의 `setComponentAt`은 컴포넌트를 바꿀 때 `revalidate()`만 하고 `repaint()`는 `null`로 바꿀 때만 한다. 끼운 컴포넌트가 전에 같은 탭에서 같은 크기로 배치된 적이 있으면
+  배치가 위치·크기를 바꾸지 않으므로 다시 그리기 요청이 생기지 않는다. 결과 표가 있는 창은 표가 스스로 다시 그려 문제가 가려졌고, 결과가 없는 창(실행하지 않은 Query Library 편집 창)에서 드러났다.
+- **같은 원인의 다른 경우:** 한 번 보였던 쿼리 창 중 결과 표가 없는 창은 모두 같다(실행 전 일반 쿼리 창, Query Library 실행·편집 창, 기록·Query Manager에서 연 창, 결과 없이 끝난 창).
+  Messages·Execution plan·Terminal 탭도 같은 `attachResultTab`을 쓴다. 처음 여는 창은 컴포넌트 크기가 0에서 바뀌어 다시 그려졌고,
+  DDL 탭·도구 문서 탭·빈 문서 영역은 Results 카드를 숨겼다가 다시 보이므로 카드 전체가 다시 그려졌다(같은 기록으로 확인).
+- **수정:** 컴포넌트를 바꾼 뒤 탭 영역을 다시 그린다(`resultTabs.repaint()`).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2691,3 +2709,4 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 2026-11-08 결과 편집(B3): G단계 "남긴 것" 갱신, 수동 커밋 저장 안내 문구가 저장하고 커밋·쿼리 > 커밋을 가리킴. [swing-grid-editing.md](swing-grid-editing.md).
 - 2026-11-08 "자동 커밋 상태"에 B-S18 사용자 결정(세션 전환은 Query 메뉴와 SQL Editor 도구 막대) 안내. [transactions.md](transactions.md) "커밋 방식 전환".
 - 2026-11-08 SQL Editor 도구 막대: Actual Plan이 실제 계획을 주지 않는 연결에서 꺼지고 도구 설명이 이유를 말함. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로".
+- 2026-11-08 앞 쿼리 창의 결과가 남던 문제(앱 변경 #18): 결과 탭에 컴포넌트를 끼운 뒤 다시 그림. "앞 쿼리 창의 결과가 남던 문제" 절.
