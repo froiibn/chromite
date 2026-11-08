@@ -20,20 +20,28 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
 /**
- * An object that permissions are granted on (SSMS "securable"): a database, a schema, a table, a view, a sequence or a routine.
+ * An object that permissions are granted on (SSMS "securable"): a database, a schema, a table, a view, a sequence or a routine,
+ * a column, or the objects a PostgreSQL role creates later (default privileges).
  *
  * 설계: 권한은 객체 이름으로 읽고 쓴다(카탈로그 조회 결과와 GRANT 문 모두 이름을 쓴다). 그래서 모델 객체 대신 이름 묶음을 키로 쓴다.
  * 같은 객체는 어느 경로(주체의 권한 조회, 객체의 권한 조회, 개체 추가 선택)로 와도 같은 값이 되어야 하므로 이름은 DB에 저장된 그대로다.
  * PostgreSQL 루틴은 이름이 겹칠 수 있어(오버로드) 인수 목록({@code pg_get_function_identity_arguments})을 {@link #signature}로 구별한다.
+ * 열({@link Kind#COLUMN})은 테이블의 하위 대상이라 같은 자리({@link #signature})에 열 이름을 둔다(name은 테이블). 레코드 구성 요소를 늘리면
+ * 모든 DB 방언의 생성자 호출이 바뀌므로 늘리지 않았다.
+ * PostgreSQL 기본 권한({@code ALTER DEFAULT PRIVILEGES}, {@link Kind#isDefaultPrivileges()})은 객체가 아니라
+ * "어느 역할이(FOR ROLE) 어느 스키마에(IN SCHEMA, 없으면 모든 스키마) 앞으로 만들 객체 종류"라서 name에 그 역할, schema에 스키마를 둔다.
+ * 객체 종류마다 줄 수 있는 권한이 달라 종류별 값(DEFAULT_TABLES 등)으로 나눴다({@code SecurityDialect#getPrivileges}가 종류로 고른다).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 열(COLUMN)과 PostgreSQL 기본 권한(DEFAULT_*) (docs/chromite/swing-security.md "열 권한과 기본 권한")
  *
  * @param kind      object type
  * @param catalog   database (SQL Server and PostgreSQL: the database of the object; MySQL: the schema), or null
  * @param schema    schema, or null (MySQL, databases)
- * @param name      object name (for a schema or a database: its own name)
- * @param signature PostgreSQL routine arguments without parentheses, or null
+ * @param name      object name (for a schema or a database: its own name; for a column: its table; for default privileges:
+ *                  the role whose new objects get them, FOR ROLE)
+ * @param signature PostgreSQL routine arguments without parentheses, the column name of a {@link Kind#COLUMN}, or null
  */
 public record Securable(
     @NotNull Kind kind,
@@ -53,14 +61,37 @@ public record Securable(
         VIEW,
         SEQUENCE,
         FUNCTION,
-        PROCEDURE
+        PROCEDURE,
+        COLUMN,
+        /** PostgreSQL ALTER DEFAULT PRIVILEGES … ON TABLES */
+        DEFAULT_TABLES,
+        /** … ON SEQUENCES */
+        DEFAULT_SEQUENCES,
+        /** … ON FUNCTIONS (also procedures) */
+        DEFAULT_FUNCTIONS,
+        /** … ON TYPES */
+        DEFAULT_TYPES,
+        /** … ON SCHEMAS */
+        DEFAULT_SCHEMAS;
+
+        /**
+         * Default privileges of objects created later, not privileges on an existing object.
+         */
+        public boolean isDefaultPrivileges() {
+            return this == DEFAULT_TABLES || this == DEFAULT_SEQUENCES || this == DEFAULT_FUNCTIONS || this == DEFAULT_TYPES
+                || this == DEFAULT_SCHEMAS;
+        }
     }
 
     /**
-     * Name shown in the lists: {@code schema.name(args)}, without quotes.
+     * Name shown in the lists: {@code schema.name(args)}, {@code schema.table.column}, or for default privileges the clause
+     * {@code FOR ROLE r [IN SCHEMA s]} (SQL keywords, the same in every language), without quotes.
      */
     @NotNull
     public String getDisplayName() {
+        if (kind.isDefaultPrivileges()) {
+            return "FOR ROLE " + name + (schema == null ? "" : " IN SCHEMA " + schema); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
         StringBuilder text = new StringBuilder();
         if (schema != null && kind != Kind.SCHEMA) {
             text.append(schema).append('.');
@@ -68,7 +99,9 @@ public record Securable(
             text.append(catalog).append('.');
         }
         text.append(name);
-        if (signature != null) {
+        if (signature != null && kind == Kind.COLUMN) {
+            text.append('.').append(signature);
+        } else if (signature != null) {
             text.append('(').append(signature).append(')');
         }
         return text.toString();

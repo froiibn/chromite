@@ -109,7 +109,52 @@ Altibase 번들의 `OSGI-INF/l10n/bundle_ko.properties`는 DBeaver에서 온 일
 - 나머지 빠진 키 278개(예: 폴더 `Global metadata`, 속성 `Database 이름`의 "Database"는 generic 번들)와 `plugin.xml`에 글자로 적은
   폴더 설명(`Procedures`, `Functions`, `Synonyms` 등)은 이번에 고치지 않았다(후속 과제 #24, #26).
 
+## 복제 시작·중지·동기화 (2026-11-08)
+
+SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor의 복제 탭, 명령은 Object Explorer의 복제 노드(전역 메타데이터 ▸ Replications ▸ 복제)다.
+
+### 화면
+
+| 위치 | 내용 |
+|---|---|
+| Activity Monitor ▸ 복제(Replication) | 요약(복제 포트 `REPLICATION_PORT_NO`, 0이면 "이 서버는 복제가 꺼져 있음", 복제 수와 시작된 수), 복제(이름, 원격 서버, 시작됨, 모드, 역할, 테이블 수, XSN, 원격 장애 감지·포기 시각), 송신(상태, 시작 방식, 네트워크 오류, 상대 서버, 지연 바이트, XSN·커밋 XSN), 수신(상대 서버, 적용 XSN, 적용·실패한 변경 수). 읽기 전용 |
+| 복제 노드 오른쪽 클릭 | 복제 시작… / 복제 중지… / 복제 동기화…. 모델이 읽은 시작 여부(`IS_STARTED`)로 시작한 복제의 시작·동기화, 멈춘 복제의 중지를 끈다 |
+
+명령 흐름: 무엇을 하는지 묻는 확인(시작 / 중지 / 동기화 단추와 취소, 취소가 기본) → 스크립트 미리 보기(취소 기본) → 열린 트랜잭션 질문 → 그 인스턴스의 격리 연결에서 실행 → 복제 노드를 다시 읽음(실패해도).
+
+| 명령 | 문 | 근거 |
+|---|---|---|
+| 시작 | `ALTER REPLICATION r START` | 모델 도구 `AltibaseToolReplicationStart` |
+| 중지 | `ALTER REPLICATION r STOP` | 모델 도구 `AltibaseToolReplicationStop` |
+| 동기화 | `ALTER REPLICATION r SYNC` | 모델에 도구가 없어 같은 모양으로 씀. Altibase 복제 매뉴얼: 대상 테이블의 모든 행을 원격 서버로 보낸 뒤 복제를 시작(실행으로는 확인하지 못함) |
+
+### 구조
+
+- 모델: `model.admin` `altibase/AltibaseReplicationDialect`(상태, `ReplicationDialect.forDataSource`에 Altibase 분기), `objects/ObjectMaintenanceActions`(`START_REPLICATION`·`STOP_REPLICATION`·`SYNC_REPLICATION`),
+  문구 `replication/ReplicationMessages`(`repl_alti_*`).
+- 화면: `ObjectMaintenanceCommands`(메뉴 항목, 확인, 노드 다시 읽기), 문구 `ObjectMaintenanceMessages`(`objmaint_repl_*`).
+- 읽는 표: `SYSTEM_.SYS_REPLICATIONS_`, `SYSTEM_.SYS_REPL_HOSTS_`, `V$REPSENDER`, `V$REPGAP`, `V$REPRECEIVER`, `V$PROPERTY`. 값의 뜻(REPL_MODE 0 Lazy/2 Eager, ROLE, 송신 STATUS·START_FLAG 코드,
+  지연 = REP_GAP × REPLICATION_GAP_UNIT)은 모델의 복제 노드(`AltibaseDataSource` 복제 캐시, `AltibaseReplicationSender`)와 같다.
+
+### 설계 결정
+
+- **원격 서버에 영향을 주므로 한 번 더 묻는다.** 다른 유지 관리 명령은 미리 보기가 확인이지만, 복제 명령은 TRUNCATE처럼 미리 보기 전에 무엇이 일어나는지 적은 확인을 둔다(브리프 요구).
+- **상태 다시 읽기는 노드 새로 고침.** 모델 `AltibaseReplication.refreshObjectState`는 복제가 아니라 `SYS_PROCEDURES_`를 읽어(범위 밖 모델 버그, 고치지 않음) 쓰지 않고,
+  노드 새로 고침(`refreshObject` → 복제 캐시 다시 읽기)으로 시작 여부와 송신·수신 목록을 맞춘다.
+- **이름은 모델 도구처럼 따옴표 없이.** 시작·중지 도구가 `ALTER REPLICATION %s START`로 쓰므로 동기화도 같게 했다(카탈로그에 저장된 이름 그대로).
+- **실행 계정.** Altibase 복제 매뉴얼에 따르면 복제 명령은 SYS 사용자만 실행한다(이 서버에서는 복제가 꺼져 있어 확인하지 못함). 다른 계정이면 서버 오류가 실패한 문과 함께 보인다. 상태 표는 SYS가 아닌 사용자도 읽는다(7.3, `CHR_ALTI`로 확인).
+
+### 확인 (2026-11-08)
+
+- 시험 서버(`chromite-test-altibase`, 7.3)는 `REPLICATION_PORT_NO = 0`이라 복제를 만들 수 없다: `CREATE REPLICATION …`이 `ERR-61023 : Replication is disabled`.
+  포트는 읽기 전용 속성이라 바꾸려면 공유 컨테이너를 다시 시작해야 해서 하지 않았다. `turbrix-validation-altibase`는 건드리지 않았다.
+- 그래서 명령은 코드와 문으로 확인했다: isql에서 `ALTER REPLICATION CHR_G14_NOPE SYNC|START|STOP`이 문법 오류가 아니라 이름 오류(ERR-61126 / ERR-6111B "replication name was not found")로 끝난다.
+  자동 커밋을 끈 세션에서도 같은 오류였다(자동 커밋 상태 검사 전에 이름을 찾음 — 수동 커밋 연결에서의 동작은 확인하지 못함).
+- 앱(영어·한국어, SYS 연결)에서 Activity Monitor ▸ 복제 탭: 요약 "복제 포트 0: 이 서버는 복제가 꺼져 있음(REPLICATION_PORT_NO)", "복제: 구성되지 않음", 표 4개(`shots\09-alti-replication-summary.png`, `14-ko-alti-replications.png`).
+  복제 노드가 없어 오른쪽 클릭 명령은 화면에서 실행하지 못했다(복제가 아닌 노드에서는 세 항목이 꺼짐을 확인).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
 - 2026-11-07 한국어 표시: "Partitioned"(분할됨), "Materialized View(s)"(구체화된 뷰) 번역 추가(후속 과제 #61), 위 "한국어 표시".
+- 2026-11-08 복제 상태(Activity Monitor 복제 탭)와 복제 시작·중지·동기화 명령(SWT 감사 D-A7), 위 "복제 시작·중지·동기화".

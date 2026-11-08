@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.model.admin.replication;
 
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
 import com.seizia.chromite.ext.oracle.model.OracleDataSource;
@@ -23,6 +24,7 @@ import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
 import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.admin.AdminGrid;
+import com.seizia.chromite.model.admin.altibase.AltibaseReplicationDialect;
 import com.seizia.chromite.model.admin.mssql.SQLServerReplicationDialect;
 import com.seizia.chromite.model.admin.mysql.MySQLReplicationDialect;
 import com.seizia.chromite.model.admin.oracle.OracleReplicationDialect;
@@ -48,7 +50,7 @@ import java.util.TreeMap;
  *
  * 설계: 공간 사용량·유지 관리와 같이 DB마다 하위 클래스 하나를 둔다. DBeaver에는 이 화면이 없다.
  * <ul>
- *     <li>읽기 전용이다: 복제를 시작·멈추거나 슬롯을 지우는 명령은 없다.</li>
+ *     <li>읽기 전용이다: 복제를 시작·멈추거나 슬롯을 지우는 명령은 없다(Altibase 복제의 시작·중지·동기화는 Object Explorer의 복제 노드 명령).</li>
  *     <li>복제가 구성되지 않은 서버는 오류가 아니다. 요약에 "구성되지 않음"을 보이고 표는 빈 표 문구({@code AdminGrid#getEmptyText()})로 같은 말을 한다.</li>
  *     <li>권한을 먼저 본다: 읽을 수 없는 표는 질의하지 않거나(뷰 권한) 서버가 거부한 이유를 표의 "읽을 수 없음"으로 보이고, 무엇을 받아야 하는지 안내한다.</li>
  *     <li>Oracle은 Diagnostics/Tuning Pack이 필요한 뷰를 쓰지 않는다({@code V$DATABASE}, {@code V$ARCHIVE_DEST_STATUS}, {@code V$DATAGUARD_STATS}는 팩이 필요 없다).</li>
@@ -56,6 +58,7 @@ import java.util.TreeMap;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 6 복제 상태 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 Altibase({@link AltibaseReplicationDialect}) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  */
 public abstract class ReplicationDialect {
 
@@ -79,6 +82,9 @@ public abstract class ReplicationDialect {
         }
         if (dataSource instanceof OracleDataSource oracle) {
             return new OracleReplicationDialect(oracle);
+        }
+        if (dataSource instanceof AltibaseDataSource altibase) {
+            return new AltibaseReplicationDialect(altibase);
         }
         return null;
     }

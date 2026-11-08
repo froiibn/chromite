@@ -21,6 +21,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.postgresql.PostgreConstants;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
 import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
 import com.seizia.chromite.ext.postgresql.model.PostgrePrivilegeType;
 import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
@@ -30,6 +31,7 @@ import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
 import com.seizia.chromite.ext.postgresql.model.PostgreSequence;
 import com.seizia.chromite.ext.postgresql.model.PostgreServerExtension;
 import com.seizia.chromite.ext.postgresql.model.PostgreTable;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableColumn;
 import com.seizia.chromite.ext.postgresql.model.PostgreView;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
@@ -41,8 +43,10 @@ import org.jkiss.utils.CommonUtils;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * PostgreSQL roles (users are roles that can log in) and their permissions.
@@ -62,9 +66,21 @@ import java.util.Map;
  * {@code PostgreRole.getPrivileges}도 같은 카탈로그를 쓰지만 스키마·시퀀스 권한의 WITH GRANT OPTION을 버리고(PostgreRole.java:629-636),
  * 객체 소유자의 암묵적 권한은 이 창에서 고칠 대상이 아니므로 뺀다({@code grantee <> owner}).
  * 권한 종류는 모델의 {@link PostgreDataSource#getSupportedPrivilegeTypes()}를 객체 종류로 거른다({@code RolePermissionsEditor}와 같음).
+ * <p>
+ * 열 권한과 기본 권한(2026-11-08, SWT 감사 D-P10):
+ * <ul>
+ *     <li>열 권한은 {@code pg_attribute.attacl}을 같은 방법으로 읽고(8.4+), 문은 {@code PostgreCommandGrantPrivilege.getPersistActions}가 열에
+ *     쓰는 모양 {@code GRANT SELECT("c") ON TABLE s.t TO r}(같은 파일 120-122행)이다. 권한 종류는 PostgreSQL 문서의 열 권한
+ *     (SELECT, INSERT, UPDATE, REFERENCES)만 둔다: 모델의 {@code PostgrePrivilegeType.DELETE}는 열에도 붙어 있지만 서버가 거부한다.</li>
+ *     <li>기본 권한은 {@code pg_default_acl}을 읽는다(모델 {@code PostgreRole.getPermissions}와 같은 표). 문은
+ *     {@code PostgreCommandGrantPrivilege}의 기본 권한 모양 {@code ALTER DEFAULT PRIVILEGES FOR ROLE o IN SCHEMA s GRANT … ON TABLES TO r}
+ *     (같은 파일 124-145행)이고, 모든 스키마 항목(defaclnamespace = 0)은 IN SCHEMA 없이 쓴다(모델은 이 항목을 읽지 않는다). 대상 역할 자신의 권한
+ *     (grantee = defaclrole)은 소유자의 암묵적 권한이라 객체와 같이 뺀다.</li>
+ * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 열 권한, 기본 권한(ALTER DEFAULT PRIVILEGES) (docs/chromite/swing-security.md "열 권한과 기본 권한")
  */
 final class PostgreSecurityDialect extends SecurityDialect {
 
@@ -76,6 +92,23 @@ final class PostgreSecurityDialect extends SecurityDialect {
     static final String OPTION_BYPASSRLS = "BYPASSRLS"; //$NON-NLS-1$
 
     private static final String COLUMN_KIND = "kind"; //$NON-NLS-1$
+
+    /**
+     * Privileges that can be granted on a column (PostgreSQL documentation, GRANT).
+     */
+    private static final Set<String> COLUMN_PRIVILEGES = Set.of(
+        PostgrePrivilegeType.SELECT.name(), PostgrePrivilegeType.INSERT.name(), PostgrePrivilegeType.UPDATE.name(),
+        PostgrePrivilegeType.REFERENCES.name());
+
+    /**
+     * {@code pg_default_acl.defaclobjtype} of each default privilege kind.
+     */
+    private static final Map<String, Securable.Kind> DEFAULT_OBJECT_TYPES = Map.of(
+        "r", Securable.Kind.DEFAULT_TABLES, //$NON-NLS-1$
+        "S", Securable.Kind.DEFAULT_SEQUENCES, //$NON-NLS-1$
+        "f", Securable.Kind.DEFAULT_FUNCTIONS, //$NON-NLS-1$
+        "T", Securable.Kind.DEFAULT_TYPES, //$NON-NLS-1$
+        "n", Securable.Kind.DEFAULT_SCHEMAS); //$NON-NLS-1$
 
     @NotNull
     private final PostgreDataSource dataSource;
@@ -100,10 +133,17 @@ final class PostgreSecurityDialect extends SecurityDialect {
         classes.put(Securable.Kind.SEQUENCE, PostgreSequence.class);
         classes.put(Securable.Kind.FUNCTION, PostgreProcedure.class);
         classes.put(Securable.Kind.PROCEDURE, PostgreProcedure.class);
+        classes.put(Securable.Kind.COLUMN, PostgreTableColumn.class);
+        classes.put(Securable.Kind.DEFAULT_TABLES, PostgreTable.class);
+        classes.put(Securable.Kind.DEFAULT_SEQUENCES, PostgreSequence.class);
+        classes.put(Securable.Kind.DEFAULT_FUNCTIONS, PostgreProcedure.class);
+        classes.put(Securable.Kind.DEFAULT_TYPES, PostgreDataType.class);
+        classes.put(Securable.Kind.DEFAULT_SCHEMAS, PostgreSchema.class);
         for (Map.Entry<Securable.Kind, Class<?>> entry : classes.entrySet()) {
             List<String> names = new ArrayList<>();
             for (PostgrePrivilegeType type : dataSource.getSupportedPrivilegeTypes()) {
-                if (type.isValid() && type != PostgrePrivilegeType.ALL && type.supportsType(entry.getValue())) {
+                if (type.isValid() && type != PostgrePrivilegeType.ALL && type.supportsType(entry.getValue())
+                    && (entry.getKey() != Securable.Kind.COLUMN || COLUMN_PRIVILEGES.contains(type.name()))) {
                     names.add(type.name());
                 }
             }
@@ -154,6 +194,9 @@ final class PostgreSecurityDialect extends SecurityDialect {
         readPermissions(monitor, "a.grantee = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = ?)", //$NON-NLS-1$
             (resultSet, securable) -> principal.getPermissions().set(securable, resultSet.getString("privilege_type"), readState(resultSet)), //$NON-NLS-1$
             object.getName());
+        if (supportsDefaultPrivileges()) {
+            readDefaultPrivileges(monitor, principal.getPermissions(), object.getName());
+        }
         return principal;
     }
 
@@ -192,6 +235,50 @@ final class PostgreSecurityDialect extends SecurityDialect {
 
     @NotNull
     @Override
+    public List<Securable.Kind> getDefaultPrivilegeKinds() {
+        if (!supportsDefaultPrivileges()) {
+            return List.of();
+        }
+        List<Securable.Kind> kinds = new ArrayList<>(List.of(
+            Securable.Kind.DEFAULT_TABLES, Securable.Kind.DEFAULT_SEQUENCES, Securable.Kind.DEFAULT_FUNCTIONS));
+        // ON TYPES came with PostgreSQL 9.2, ON SCHEMAS with 10 (ALTER DEFAULT PRIVILEGES documentation of those versions)
+        if (dataSource.isServerVersionAtLeast(9, 2)) {
+            kinds.add(Securable.Kind.DEFAULT_TYPES);
+        }
+        if (dataSource.isServerVersionAtLeast(10, 0)) {
+            kinds.add(Securable.Kind.DEFAULT_SCHEMAS);
+        }
+        return kinds;
+    }
+
+    @NotNull
+    @Override
+    public List<String> listDefaultPrivilegeRoles(@NotNull DBRProgressMonitor monitor, @NotNull SecurityPrincipal principal) throws DBException {
+        // Predefined roles (pg_*) do not create objects
+        List<String> roles = queryStrings(monitor, "SELECT rolname FROM pg_catalog.pg_roles WHERE rolname NOT LIKE 'pg\\_%' ORDER BY rolname"); //$NON-NLS-1$
+        if (!principal.isNew()) {
+            roles.remove(principal.getName());
+        }
+        return roles;
+    }
+
+    @NotNull
+    @Override
+    public List<String> listSchemas(@NotNull DBRProgressMonitor monitor, @NotNull String database) throws DBException {
+        // The schemas of the context database, where the editor reads and changes privileges (the argument is for SQL Server)
+        return queryStrings(monitor, "SELECT nspname FROM pg_catalog.pg_namespace " + //$NON-NLS-1$
+            "WHERE nspname NOT IN ('pg_catalog', 'information_schema') AND nspname NOT LIKE 'pg\\_%' ORDER BY nspname"); //$NON-NLS-1$
+    }
+
+    @NotNull
+    @Override
+    public Securable createDefaultPrivileges(@NotNull Securable.Kind kind, @NotNull String role, @Nullable String schema) {
+        // The database of the context, as the rows read by loadPrincipal: the same defaults must be the same row
+        return new Securable(kind, databaseName, schema, role, null);
+    }
+
+    @NotNull
+    @Override
     public List<String> getPrivileges(@NotNull Securable.Kind kind) {
         return privileges.getOrDefault(kind, List.of());
     }
@@ -217,7 +304,20 @@ final class PostgreSecurityDialect extends SecurityDialect {
                 procedure.getDatabase().getName(), procedure.getSchema().getName(), procedure.getName(),
                 arguments.isEmpty() ? "" : CommonUtils.notEmpty(arguments.getFirst())); //$NON-NLS-1$
         }
+        if (object instanceof PostgreTableColumn column) {
+            return new Securable(Securable.Kind.COLUMN, column.getDatabase().getName(), column.getSchema().getName(),
+                column.getTable().getName(), column.getName());
+        }
         return super.toSecurable(monitor, object);
+    }
+
+    @Nullable
+    @Override
+    protected Securable.Kind getSecurableKind(@NotNull DBSObject object) {
+        if (object instanceof PostgreTableColumn) {
+            return supportsColumnPrivileges() ? Securable.Kind.COLUMN : null;
+        }
+        return super.getSecurableKind(object);
     }
 
     @NotNull
@@ -337,7 +437,64 @@ final class PostgreSecurityDialect extends SecurityDialect {
             case SEQUENCE -> "SEQUENCE " + qualified; //$NON-NLS-1$
             case FUNCTION -> "FUNCTION " + qualified + "(" + CommonUtils.notEmpty(securable.signature()) + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             case PROCEDURE -> "PROCEDURE " + qualified + "(" + CommonUtils.notEmpty(securable.signature()) + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            // The column list goes after the privilege names (diffPermissions)
+            case COLUMN -> "TABLE " + qualified; //$NON-NLS-1$
+            case DEFAULT_TABLES -> "TABLES"; //$NON-NLS-1$
+            case DEFAULT_SEQUENCES -> "SEQUENCES"; //$NON-NLS-1$
+            case DEFAULT_FUNCTIONS -> "FUNCTIONS"; //$NON-NLS-1$
+            case DEFAULT_TYPES -> "TYPES"; //$NON-NLS-1$
+            case DEFAULT_SCHEMAS -> "SCHEMAS"; //$NON-NLS-1$
         };
+    }
+
+    /**
+     * Column privileges are written {@code SELECT ("c"), UPDATE ("c") ON TABLE …}; default privileges get the
+     * {@code ALTER DEFAULT PRIVILEGES FOR ROLE … [IN SCHEMA …]} prefix before each GRANT / REVOKE.
+     */
+    @NotNull
+    @Override
+    protected List<SecurityStatement> diffPermissions(
+        @NotNull Securable securable,
+        @NotNull String grantee,
+        @NotNull Map<String, PermissionGrid.State> before,
+        @NotNull Map<String, PermissionGrid.State> after,
+        @Nullable String database
+    ) {
+        if (securable.kind() == Securable.Kind.COLUMN) {
+            String column = " (" + quote(CommonUtils.notEmpty(securable.signature())) + ")"; //$NON-NLS-1$ //$NON-NLS-2$
+            return super.diffPermissions(securable, grantee, appendToNames(before, column), appendToNames(after, column), database);
+        }
+        List<SecurityStatement> statements = super.diffPermissions(securable, grantee, before, after, database);
+        if (!securable.kind().isDefaultPrivileges()) {
+            return statements;
+        }
+        String prefix = "ALTER DEFAULT PRIVILEGES FOR ROLE " + quote(securable.name()) //$NON-NLS-1$
+            + (securable.schema() == null ? "" : " IN SCHEMA " + quote(securable.schema())) + " "; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        List<SecurityStatement> prefixed = new ArrayList<>();
+        for (SecurityStatement statement : statements) {
+            prefixed.add(SecurityStatement.inDatabase(statement.database(), prefix + statement.sql()));
+        }
+        return prefixed;
+    }
+
+    @NotNull
+    private static Map<String, PermissionGrid.State> appendToNames(@NotNull Map<String, PermissionGrid.State> states, @NotNull String suffix) {
+        Map<String, PermissionGrid.State> result = new LinkedHashMap<>();
+        for (Map.Entry<String, PermissionGrid.State> entry : states.entrySet()) {
+            result.put(entry.getKey() + suffix, entry.getValue());
+        }
+        return result;
+    }
+
+    private boolean supportsDefaultPrivileges() {
+        return dataSource.getServerType().supportsDefaultPrivileges();
+    }
+
+    /**
+     * Column privileges ({@code pg_attribute.attacl}) exist since PostgreSQL 8.4.
+     */
+    private boolean supportsColumnPrivileges() {
+        return dataSource.isServerVersionAtLeast(8, 4);
     }
 
     /**
@@ -415,7 +572,14 @@ final class PostgreSecurityDialect extends SecurityDialect {
 
             UNION ALL
             SELECT 'DATABASE', NULL, d.datname, NULL, d.datacl, d.datdba FROM pg_catalog.pg_database d
-            WHERE d.datname = pg_catalog.current_database()""" + aclFilter.formatted("d.datacl"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$
+            WHERE d.datname = pg_catalog.current_database()""" + aclFilter.formatted("d.datacl") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$
+            + (!supportsColumnPrivileges() ? "" : """
+
+            UNION ALL
+            SELECT 'COLUMN', n.nspname, c.relname, CAST(a.attname AS text), a.attacl, c.relowner
+            FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+            WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f') AND a.attnum > 0 AND NOT a.attisdropped""" + aclFilter.formatted("a.attacl")); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     @FunctionalInterface
@@ -436,6 +600,28 @@ final class PostgreSecurityDialect extends SecurityDialect {
             ) o CROSS JOIN LATERAL pg_catalog.aclexplode(o.acl) a
             WHERE a.grantee <> o.owner AND """ + " " + filter; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         query(monitor, sql, resultSet -> reader.read(resultSet, readSecurable(resultSet)), parameters);
+    }
+
+    /**
+     * Default privileges granted to the role by the defaults of every role in this database ({@code pg_default_acl}).
+     */
+    private void readDefaultPrivileges(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull PermissionGrid<Securable> permissions,
+        @NotNull String roleName
+    ) throws DBException {
+        query(monitor, """
+                SELECT d.defaclobjtype, n.nspname, pg_catalog.pg_get_userbyid(d.defaclrole) AS for_role, a.privilege_type, a.is_grantable
+                FROM pg_catalog.pg_default_acl d LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
+                CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) a
+                WHERE a.grantee = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = ?) AND a.grantee <> d.defaclrole""", //$NON-NLS-1$
+            resultSet -> {
+                Securable.Kind kind = DEFAULT_OBJECT_TYPES.get(resultSet.getString(1));
+                if (kind != null) {
+                    permissions.set(new Securable(kind, databaseName, resultSet.getString(2), resultSet.getString(3), null),
+                        resultSet.getString("privilege_type"), readState(resultSet)); //$NON-NLS-1$
+                }
+            }, roleName);
     }
 
     @NotNull

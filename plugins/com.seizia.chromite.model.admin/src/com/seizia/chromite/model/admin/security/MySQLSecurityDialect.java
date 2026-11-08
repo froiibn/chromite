@@ -30,6 +30,7 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -54,14 +55,33 @@ import java.util.Set;
  * {@code MySQLUser.getGrants}({@code SHOW GRANTS})가 이름을 대문자로 바꿔 버려(MySQLUser.java:185) 대소문자를 가리는 서버에서 객체를 찾지 못하므로,
  * {@code information_schema}의 SCHEMA_PRIVILEGES·TABLE_PRIVILEGES와 {@code mysql.procs_priv}에서 읽는다.
  * 계정 잠금(ACCOUNT LOCK)은 MariaDB 10.4.2+와 MySQL 5.7.6+, 역할은 MariaDB({@code mysql.roles_mapping})만 다룬다.
+ * <p>
+ * 자원 제한(2026-11-08, SWT 감사 D-M5): SWT 일반 탭({@code MySQLUserEditorGeneral})의 네 값 MAX_QUERIES_PER_HOUR·MAX_UPDATES_PER_HOUR·
+ * MAX_CONNECTIONS_PER_HOUR·MAX_USER_CONNECTIONS를 {@code mysql.user}의 열(max_questions 등, 모델 {@code MySQLUser}가 읽는 열)에서 읽는다.
+ * 문은 {@code MySQLCommandChangeUser.generateAlterScript}와 같은 {@code ALTER USER … WITH …}(바뀐 값만)이고, 새 사용자는 {@code CREATE USER … WITH …}다.
+ * ALTER USER가 없는 서버({@link MySQLUtils#isAlterUSerSupported}가 거짓)에서 SWT는 {@code UPDATE mysql.user}를 썼는데 FLUSH PRIVILEGES 없이는
+ * 적용되지 않으므로, 그 서버들이 문서로 정한 {@code GRANT USAGE ON *.* TO … WITH …}를 쓴다. 역할에는 자원 제한이 없다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 자원 제한(MAX_QUERIES_PER_HOUR 등) (docs/chromite/swing-security.md "MySQL/MariaDB 자원 제한")
  */
 final class MySQLSecurityDialect extends SecurityDialect {
 
     private static final String GRANT_OPTION = "GRANT OPTION"; //$NON-NLS-1$
     private static final String SYSTEM_SCHEMAS = "('information_schema', 'performance_schema', 'mysql', 'sys')"; //$NON-NLS-1$
+
+    /**
+     * Resource limits (the keyword of {@code WITH}) and their {@code mysql.user} columns, in the order of the SWT General tab.
+     */
+    private static final Map<String, String> LIMIT_COLUMNS = new LinkedHashMap<>();
+
+    static {
+        LIMIT_COLUMNS.put("MAX_QUERIES_PER_HOUR", "max_questions"); //$NON-NLS-1$ //$NON-NLS-2$
+        LIMIT_COLUMNS.put("MAX_UPDATES_PER_HOUR", "max_updates"); //$NON-NLS-1$ //$NON-NLS-2$
+        LIMIT_COLUMNS.put("MAX_CONNECTIONS_PER_HOUR", "max_connections"); //$NON-NLS-1$ //$NON-NLS-2$
+        LIMIT_COLUMNS.put("MAX_USER_CONNECTIONS", "max_user_connections"); //$NON-NLS-1$ //$NON-NLS-2$
+    }
 
     @NotNull
     private final MySQLDataSource dataSource;
@@ -93,12 +113,21 @@ final class MySQLSecurityDialect extends SecurityDialect {
         loadPrivilegeTypes(monitor);
         MySQLUser user = (MySQLUser) object;
         boolean[] role = new boolean[1];
+        Map<String, Long> limits = new LinkedHashMap<>();
         query(monitor, "SELECT * FROM mysql.user WHERE User = ? AND Host = ?", //$NON-NLS-1$
-            resultSet -> role[0] = "Y".equalsIgnoreCase(JDBCUtils.safeGetString(resultSet, "is_role")), //$NON-NLS-1$ //$NON-NLS-2$
+            resultSet -> {
+                role[0] = "Y".equalsIgnoreCase(JDBCUtils.safeGetString(resultSet, "is_role")); //$NON-NLS-1$ //$NON-NLS-2$
+                for (Map.Entry<String, String> limit : LIMIT_COLUMNS.entrySet()) {
+                    limits.put(limit.getKey(), JDBCUtils.safeGetLong(resultSet, limit.getValue()));
+                }
+            },
             user.getUserName(), user.getHost());
         SecurityPrincipal principal = new SecurityPrincipal(role[0] ? SecurityPrincipal.Kind.ROLE : SecurityPrincipal.Kind.USER,
             false, object, user.getUserName());
         principal.setHost(user.getHost());
+        if (!role[0]) {
+            principal.getLimits().putAll(limits);
+        }
         if (!role[0] && supportsAccountLock()) {
             List<String> locked = mariaDB
                 ? queryStrings(monitor, "SELECT JSON_VALUE(Priv, '$.account_locked') FROM mysql.global_priv WHERE User = ? AND Host = ?", //$NON-NLS-1$
@@ -147,6 +176,10 @@ final class MySQLSecurityDialect extends SecurityDialect {
         principal.setHost("%"); //$NON-NLS-1$
         if (supportsAccountLock()) {
             principal.setEnabled(true);
+        }
+        // 0 = no limit, the server default of a new account
+        for (String limit : LIMIT_COLUMNS.keySet()) {
+            principal.getLimits().put(limit, 0L);
         }
         if (supportsRoles()) {
             for (String roleName : listRoles(monitor)) {
@@ -243,8 +276,14 @@ final class MySQLSecurityDialect extends SecurityDialect {
         List<SecurityStatement> statements = new ArrayList<>();
         boolean role = edited.getKind() == SecurityPrincipal.Kind.ROLE;
         String account = role ? quote(edited.getName()) : formatAccount(edited.getName(), CommonUtils.notEmpty(edited.getHost()));
+        boolean alterUser = MySQLUtils.isAlterUSerSupported(dataSource);
         if (edited.isNew()) {
             String lock = Boolean.FALSE.equals(edited.getEnabled()) ? " ACCOUNT LOCK" : ""; //$NON-NLS-1$ //$NON-NLS-2$
+            // CREATE USER takes WITH <limits> on the servers that have ALTER USER (the same versions), before the lock option
+            String limits = formatLimits(Map.of(), edited.getLimits());
+            if (alterUser && !limits.isEmpty()) {
+                lock = " WITH" + limits + lock; //$NON-NLS-1$
+            }
             if (CommonUtils.isEmpty(edited.getPassword())) {
                 statements.add(SecurityStatement.of("CREATE USER " + account + lock)); //$NON-NLS-1$
             } else {
@@ -253,13 +292,16 @@ final class MySQLSecurityDialect extends SecurityDialect {
                     "CREATE USER " + account + " IDENTIFIED BY " + MASKED_PASSWORD + lock, //$NON-NLS-1$ //$NON-NLS-2$
                     null, true));
             }
+            if (!alterUser && !limits.isEmpty()) {
+                statements.add(SecurityStatement.of("GRANT USAGE ON *.* TO " + account + " WITH" + limits)); //$NON-NLS-1$ //$NON-NLS-2$
+            }
         } else {
             if (!role && (!original.getName().equals(edited.getName()) || !CommonUtils.equalObjects(original.getHost(), edited.getHost()))) {
                 statements.add(SecurityStatement.of("RENAME USER " + //$NON-NLS-1$
                     formatAccount(original.getName(), CommonUtils.notEmpty(original.getHost())) + " TO " + account)); //$NON-NLS-1$
             }
             if (!CommonUtils.isEmpty(edited.getPassword())) {
-                if (MySQLUtils.isAlterUSerSupported(dataSource)) {
+                if (alterUser) {
                     statements.add(new SecurityStatement(
                         "ALTER USER " + account + " IDENTIFIED BY " + quoteString(edited.getPassword()), //$NON-NLS-1$ //$NON-NLS-2$
                         "ALTER USER " + account + " IDENTIFIED BY " + MASKED_PASSWORD, //$NON-NLS-1$ //$NON-NLS-2$
@@ -273,6 +315,11 @@ final class MySQLSecurityDialect extends SecurityDialect {
             }
             if (edited.getEnabled() != null && !CommonUtils.equalObjects(original.getEnabled(), edited.getEnabled())) {
                 statements.add(SecurityStatement.of("ALTER USER " + account + (edited.getEnabled() ? " ACCOUNT UNLOCK" : " ACCOUNT LOCK"))); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            }
+            String limits = formatLimits(original.getLimits(), edited.getLimits());
+            if (!limits.isEmpty()) {
+                statements.add(SecurityStatement.of((alterUser ? "ALTER USER " + account : "GRANT USAGE ON *.* TO " + account) //$NON-NLS-1$ //$NON-NLS-2$
+                    + " WITH" + limits)); //$NON-NLS-1$
             }
         }
         List<String> added = new ArrayList<>();
@@ -354,6 +401,22 @@ final class MySQLSecurityDialect extends SecurityDialect {
             statements.add(SecurityStatement.of(grantSql(target, added, grantee, isWith)));
         }
         return statements;
+    }
+
+    /**
+     * The {@code WITH} options of the limits that differ from {@code before} (a new account: those that are not 0), with a leading space.
+     */
+    @NotNull
+    private static String formatLimits(@NotNull Map<String, Long> before, @NotNull Map<String, Long> after) {
+        StringBuilder options = new StringBuilder();
+        for (Map.Entry<String, Long> limit : after.entrySet()) {
+            long value = limit.getValue() == null ? 0 : limit.getValue();
+            Long old = before.get(limit.getKey());
+            if (old == null ? value != 0 : old != value) {
+                options.append(' ').append(limit.getKey()).append(' ').append(value);
+            }
+        }
+        return options.toString();
     }
 
     private boolean supportsAccountLock() {

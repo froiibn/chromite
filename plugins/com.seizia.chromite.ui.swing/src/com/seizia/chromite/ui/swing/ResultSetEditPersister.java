@@ -64,6 +64,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,6 +104,8 @@ import java.util.function.Consumer;
  * - 2026-11-07 저장 전 미리 보기 스크립트와 바뀐 행 수 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-08 저장하고 커밋(수동 커밋 연결), 커밋 오류를 저장 오류와 따로 넘김 (docs/chromite/swing-grid-editing.md "저장하고 커밋")
  * - 2026-11-08 저장 뒤 다시 읽은 행의 배열·구조체 값을 놓아 주지 않음: 그리드가 다시 고칠 수 있게 (docs/chromite/swing-value-editors.md)
+ * - 2026-11-08 가상(계산) 열이 있는 결과의 저장 뒤 다시 읽기: 결과 집합의 열만 맞춰 읽고 가상 열은 다시 계산한다. 전에는 열 수가 달라
+ *   다시 읽기를 건너뛰었다 (docs/chromite/swing-saved-filters-virtual-columns.md)
  */
 final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEditPersister.StatementInfo, ResultSetEditModel.Row, ResultSetEditModel> {
 
@@ -650,12 +653,17 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
     /**
      * Reads one row of the refresh query, with display strings made while the result set is open (like
      * {@link ResultSetGridReceiver}); value objects (LOBs etc.) are released and kept as null, except arrays and composites.
+     * The result's virtual columns are not in the result set: the row is matched and read without them, then they are
+     * calculated from the new values.
      */
     private static final class DisplayRowReceiver extends RowDataReceiver {
+        private final DBDAttributeBinding[] allBindings;
         Object[] display;
 
         DisplayRowReceiver(@NotNull DBDAttributeBinding[] bindings) {
-            super(bindings);
+            // The virtual columns come after the result set's columns
+            super(Arrays.copyOf(bindings, ResultSetVirtualColumns.getReadCount(bindings)));
+            this.allBindings = bindings;
         }
 
         @Override
@@ -673,6 +681,11 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
                     DBUtils.releaseValue(value);
                     rowValues[i] = null;
                 }
+            }
+            if (allBindings.length > curAttributes.length) {
+                rowValues = Arrays.copyOf(rowValues, allBindings.length);
+                display = Arrays.copyOf(display, allBindings.length);
+                ResultSetVirtualColumns.computeRow(allBindings, rowValues, display, null);
             }
         }
     }

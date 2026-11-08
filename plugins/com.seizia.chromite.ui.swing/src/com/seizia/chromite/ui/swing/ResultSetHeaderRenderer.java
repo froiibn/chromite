@@ -55,6 +55,7 @@ import java.util.function.BiConsumer;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 결과 필터 줄을 열별 필터로 바꿈 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 상태 줄 정렬 요약의 강조색 정렬 화살표 아이콘 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-08 깔때기를 열마다 끌 수 있게: 가상(계산) 열은 DB가 거를 수 없다 (docs/chromite/swing-saved-filters-virtual-columns.md)
  */
 final class ResultSetHeaderRenderer implements TableCellRenderer {
 
@@ -82,9 +83,10 @@ final class ResultSetHeaderRenderer implements TableCellRenderer {
         int getSortDirection(int modelColumn);
 
         /**
-         * Whether the filter icons can be used now (the query can be read again and is not being read).
+         * Whether the filter icon of a column can be used now (the query can be read again and is not being read, and
+         * the column is not a virtual one).
          */
-        boolean isFilterEnabled();
+        boolean isFilterEnabled(int modelColumn);
     }
 
     private static final String ICON_COLOR = "Chromite.Table.headerIconForeground"; //$NON-NLS-1$
@@ -129,7 +131,7 @@ final class ResultSetHeaderRenderer implements TableCellRenderer {
         label.setBorder(base == null ? actions : borders.computeIfAbsent(base, outside -> new CompoundBorder(outside, actions)));
         actions.filtered = columns.isFiltered(modelColumn);
         actions.sortDirection = columns.getSortDirection(modelColumn);
-        actions.filterEnabled = columns.isFilterEnabled();
+        actions.filterEnabled = columns.isFilterEnabled(modelColumn);
         actions.hover = column == hoverColumn ? hoverZone : Zone.NAME;
         return label;
     }

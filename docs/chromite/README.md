@@ -35,6 +35,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-value-editors.md](swing-value-editors.md) | Swing 결과 값 편집기 나머지: 참조 값 고르기(외래 키, 검색), MySQL/MariaDB SET 고르기, 배열·구조체·hstore 편집, OBJECT 열(PostgreSQL uuid·inet 등) 글자 편집, 비트 문자열, 16진수 편집, 외부 편집기(저장하면 셀에 넣음), UUID 만들기 |
 | [swing-result-generate-sql.md](swing-result-generate-sql.md) | Swing 결과에서 SQL 만들기: 결과 표 "SQL 생성"(고른 행의 SELECT·INSERT·UPDATE·DELETE, MERGE, 중복 키 INSERT, 결과를 담을 CREATE TABLE), 실행하지 않고 복사·쿼리 창에서 열기 |
 | [swing-grid-navigation.md](swing-grid-navigation.md) | Swing 결과 탐색: 외래 키 따라가기(Ctrl+B, 참조·참조하는 테이블)와 뒤로·앞으로, 참조 패널, 집계 패널, 가상 고유 키·가상 외래 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소, 결과 안 찾기, 텍스트 보기, 전체 행 수, 오류 위치로 가기 |
+| [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md) | Swing 결과의 저장한 필터(열 필터와 정렬을 이름으로 저장·적용, 테이블별 최근 필터)와 가상(계산) 열(JEXL 식, 쿼리 결과에도 붙음, 고칠 수 없음, 표 안 정렬), 연결의 가상 모델에 저장 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
 | [sql-batch-errors.md](sql-batch-errors.md) | 배치의 문장 오류: SQL Server `GO` 배치·프로시저·SQL 스크립트 작업에서 뒤 문장 오류를 경고가 아니라 쿼리 오류로(줄 번호와 함께 모두, 실행은 실패), 오류 뒤에 실행된 문장의 결과 읽기, 드라이버 오류 사슬의 미리 읽기 피하기 |
@@ -46,6 +47,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
+| [swing-query-manager.md](swing-query-manager.md) | Swing Query Manager 도구 창(View > Query Manager): 쿼리 관리자가 기록한 모든 실행(내부·메타데이터 쿼리, 커밋·롤백, 연결), 연결·종류·글자 필터(종류는 Options > Logs와 같은 `qm.*` 키), 문장 복사, 쿼리 창에서 열기(실행 안 함), 트랜잭션 보기, 지우기 |
 | [connection-lifecycle.md](connection-lifecycle.md) | 연결 수명 주기: 여러 연결 끊기, 무효화·다시 연결, 연결 끊김·드라이버 오류 대화상자, 끝낼 때 실행 중인 작업, 스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, H2 초기화 SQL·SQLite 확장 승인, 절전, 세션을 닫는 모든 경로의 트랜잭션 질문 점검 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정, 머리글 정렬이 쿼리의 ORDER BY를 바꿈·감싼 쿼리의 ORDER BY 옮기기 |
 | [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |

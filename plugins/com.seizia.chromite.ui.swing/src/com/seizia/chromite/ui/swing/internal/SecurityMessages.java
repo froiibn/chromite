@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 열·기본 권한, MySQL/MariaDB 자원 제한 문구 (docs/chromite/swing-security.md "열 권한과 기본 권한", "MySQL/MariaDB 자원 제한")
  */
 public class SecurityMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SecurityMessages"; //$NON-NLS-1$
@@ -82,6 +83,14 @@ public class SecurityMessages extends NLS {
     public static String security_option_check_policy;
     public static String security_option_check_expiration;
 
+    public static String security_limits;
+    public static String security_limits_hint;
+    public static String security_limit_max_queries;
+    public static String security_limit_max_updates;
+    public static String security_limit_max_connections;
+    public static String security_limit_max_user_connections;
+    public static String security_error_limit;
+
     public static String security_column_member;
     public static String security_column_role;
     public static String security_column_map;
@@ -109,6 +118,18 @@ public class SecurityMessages extends NLS {
     public static String security_script_title;
     public static String security_no_mapped_database;
 
+    public static String security_page_default_privileges;
+    public static String security_default_privileges;
+    public static String security_default_description;
+    public static String security_add_default_privileges;
+    public static String security_default_title;
+    public static String security_default_role;
+    public static String security_default_schema;
+    public static String security_default_all_schemas;
+    public static String security_default_object_type;
+    public static String security_default_exists;
+    public static String security_default_no_roles;
+
     public static String security_kind_database;
     public static String security_kind_schema;
     public static String security_kind_table;
@@ -116,6 +137,12 @@ public class SecurityMessages extends NLS {
     public static String security_kind_sequence;
     public static String security_kind_function;
     public static String security_kind_procedure;
+    public static String security_kind_column;
+    public static String security_kind_default_tables;
+    public static String security_kind_default_sequences;
+    public static String security_kind_default_functions;
+    public static String security_kind_default_types;
+    public static String security_kind_default_schemas;
 
     public static String security_pick_objects_title;
     public static String security_pick_grantees_title;
