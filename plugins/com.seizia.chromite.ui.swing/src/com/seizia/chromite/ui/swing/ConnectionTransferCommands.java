@@ -74,6 +74,8 @@ import java.util.Map;
  * - 2026-11-08 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 다른 도구에서 가져오기(SQL Developer, Toad, CSV), 미리 보기 뒤 단계를 {@link #previewAndImport}로 나눔,
  *   결과에 알 수 없는 DB 종류의 연결 (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
+ * - 2026-11-08 설정 가져오기가 같은 암호 묻기·결과 알림을 쓰도록 {@link #readData}(다른 파일 안의 연결 파일)와
+ *   {@link #showImportResult}를 나눔 (docs/chromite/settings-transfer.md)
  */
 final class ConnectionTransferCommands {
 
@@ -204,6 +206,17 @@ final class ConnectionTransferCommands {
             // New folders appear in the navigator and Registered Servers
             RegisteredServerCommands.updateConfig(registry);
         }
+        showImportResult(parent, registry, result);
+    }
+
+    /**
+     * What an import did, then a failure to save the imported connections if there was one.
+     */
+    static void showImportResult(
+        @NotNull Component parent,
+        @NotNull DBPDataSourceRegistry registry,
+        @NotNull ConnectionTransfer.ImportResult result
+    ) {
         StringBuilder message = new StringBuilder(NLS.bind(ConnectionTransferMessages.transfer_import_done,
             new Object[]{result.getAdded(), result.getReplaced(), result.getCopied(), result.getSkipped()}));
         appendList(message, ConnectionTransferMessages.transfer_import_done_skipped_connected, result.getSkippedConnected());
@@ -259,9 +272,31 @@ final class ConnectionTransferCommands {
      */
     @Nullable
     private static ConnectionTransfer.ImportFile readFile(@NotNull Component parent, @NotNull DBPDataSourceRegistry registry, @NotNull Path file) {
+        return read(parent, () -> ConnectionTransfer.isEncrypted(file), passphrase -> ConnectionTransfer.readFile(file, passphrase, registry));
+    }
+
+    /**
+     * Like {@link #readFile}, for the content of a connection file kept inside another file (Import Settings).
+     */
+    @Nullable
+    static ConnectionTransfer.ImportFile readData(@NotNull Component parent, @NotNull DBPDataSourceRegistry registry, @NotNull byte[] data) {
+        return read(parent, () -> ConnectionTransfer.isEncrypted(data), passphrase -> ConnectionTransfer.readData(data, passphrase, registry));
+    }
+
+    private interface EncryptionCheck {
+        boolean isEncrypted() throws DBException;
+    }
+
+    private interface ContentReader {
+        @NotNull
+        ConnectionTransfer.ImportFile read(@Nullable char[] passphrase) throws DBException;
+    }
+
+    @Nullable
+    private static ConnectionTransfer.ImportFile read(@NotNull Component parent, @NotNull EncryptionCheck check, @NotNull ContentReader reader) {
         boolean encrypted;
         try {
-            encrypted = ConnectionTransfer.isEncrypted(file);
+            encrypted = check.isEncrypted();
         } catch (DBException e) {
             showReadProblem(parent, e);
             return null;
@@ -277,7 +312,7 @@ final class ConnectionTransferCommands {
             char[] filePassphrase = passphrase;
             try {
                 return ProgressDialog.runTask(ConnectionTransferMessages.transfer_import_progress,
-                    monitor -> ConnectionTransfer.readFile(file, filePassphrase, registry));
+                    monitor -> reader.read(filePassphrase));
             } catch (DBException e) {
                 showReadProblem(parent, e);
                 if (!(e instanceof ConnectionTransferException transferError)

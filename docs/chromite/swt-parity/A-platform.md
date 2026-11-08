@@ -102,7 +102,7 @@
 | A-C11 | 셸 프로세스 보기(연결 이벤트 명령 출력, 중지) | `views/process/ShellProcessView` | 없음 | Swing 검색 0 | 낮음 | |
 | A-C12 | 북마크 | `resources/bookmarks/*` | 없음 | swt-removal.md:108(프로젝트·자원 탐색기) | 낮음 | |
 | A-C13 | 프로젝트 패널·자원 처리기(스크립트 폴더, 바로 가기) | `controls/ProjectsPanel`, `resources/*Handler*` | 일부(2026-11-08. 조사 당시: 없음) | Scripts 도구 창(`ScriptsPanel`, 스크립트 폴더), swt-removal.md:108 | 중간 | 바로 가기·다른 자원 처리기는 없음. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
-| A-C14 | 설정·프로젝트·스크립트 내보내기/가져오기 마법사 | `tools/configuration`, `tools/project`, `tools/scripts` | 일부 (2026-11-07 연결만. 조사 당시: 없음) | 연결·그룹·비밀번호는 암호로 암호화한 파일로 옮김([connection-transfer.md](../connection-transfer.md)). 설정·스크립트·프로젝트 자원은 없음 | 중간 | 연결 외의 작업 공간 내용은 다른 PC로 옮기는 공식 경로가 없다 |
+| A-C14 | 설정·프로젝트·스크립트 내보내기/가져오기 마법사 | `tools/configuration`, `tools/project`, `tools/scripts` | **있음** (2026-11-08. 2026-11-07 연결만 일부. 조사 당시: 없음) | File > Export Settings / Import Settings / Undo Settings Import(`SettingsTransferCommands`, 모델 `SettingsTransfer`·`SettingsBackup`, [settings-transfer.md](../settings-transfer.md)): 옵션 설정 값·SQL 템플릿·연결 유형·데이터 형식, 드라이버 설정, 쿼리 라이브러리(내 쿼리), 스크립트와 연결 묶기, 연결(#108 암호화 파일, [connection-transfer.md](../connection-transfer.md)). 미리 보기, 충돌마다 건너뛰기·바꾸기·둘 다 두기, 가져오기 전 백업과 되돌리기 | 중간 | SWT와 다른 점: 프로젝트를 새로 만들지 않고 합침, 드라이버 jar는 넣지 않음([driver-offline-bundle.md](../driver-offline-bundle.md)), 스크립트 폴더 밖의 프로젝트 자원·Maven 저장소 목록·공유 쿼리 라이브러리 루트는 옮기지 않음 |
 | A-C15 | 연결 끊김 시 다시 연결 대화상자, 드라이버 설정 오류 안내, 드라이버 라이선스 오류 | `DesktopUI.showDatabaseError` | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "연결 끊김·드라이버 오류 대화상자"). 조사 당시: 일부 | §3 | 중간 | 모델의 자동 복구(`execute.recover.*`)는 남아 있음 |
 | A-C16 | 인증 방식 자격 증명 대화상자 | `DesktopUI.promptAuthModelCredentials` | 있음 (2026-11-07 수정함. 조사 당시: 조용히 끊김) | S5, [swing-auth-prompts.md](../swing-auth-prompts.md) | 높음 | |
 | A-C17 | 셸 명령 승인 | `UIServiceShellCommandsImpl` | 있음 (2026-11-07 수정. 조사 당시: 조용히 끊김) | S4, `SwingShellCommandsService` | 높음 | [shell-command-approval.md](../shell-command-approval.md) |
@@ -235,8 +235,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 | 상태 | 수 |
 |---|---|
-| 있음 | 36 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C6, A-C7, A-C8, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13, A-S17) |
-| 일부 | 14 (A-C5, A-C9, A-C10, A-C13, A-C14, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
+| 있음 | 37 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C6, A-C7, A-C8, A-C14, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13, A-S17) |
+| 일부 | 13 (A-C5, A-C9, A-C10, A-C13, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
 | 없음 | 21 (A-C11, A-C12, A-C19, A-C24~A-C26, A-C28, A-U10, A-U11, A-S3~A-S8, A-S11, A-S12, A-S14, A-S15, A-X1, A-X3) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 0 (조사 당시 14: S1~S14. 모두 수정함, S14는 macOS 실행 확인 안 함) |
@@ -281,5 +281,6 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): A-C20 → 있음, A-C27·A-X6 → 일부, A-S16 → 일부, §2 `UIServiceSQL`·§4 S8·S9·S12·S13 줄 → 있음, §6 Editors·Confirmations·Transactions → 일부와 A-C5·§6 Connections·Connection Types·Expert Settings 비고 갱신. §7 집계를 행 상태로 다시 셈(있음 34, 일부 15, 없음 22, 의도적 제외 2, 조용히 끊김 0)과 §6 줄 단위 집계 추가.
 - 2026-11-08 §6 Dictionaries 줄: 해당 키 효과 없음 → 일부(참조 값 고르기가 두 키를 읽음, `chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)).
   §6 줄 단위 집계: 일부 19 → 20, 해당 키 효과 없음 1 → 0. §7 집계(행 단위)는 바뀌지 않음.
+- 2026-11-08 5순위 설정 내보내기·가져오기(`chromite/settings-export-import`, [settings-transfer.md](../settings-transfer.md)): A-C14 일부 → 있음. §7 집계에 이 행의 변화만 더함(있음 +1, 일부 −1).
 - 2026-11-08 A-C6 일부 → 있음(`chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): Query Manager 도구 창).
-  §7 집계: 있음 35 → 36, 일부 15 → 14.
+  §7 집계: 있음 36 → 37, 일부 14 → 13.

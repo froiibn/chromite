@@ -72,6 +72,8 @@ import java.util.function.Predicate;
  * - 2026-11-08 다른 도구의 연결({@link ForeignConnectionImport})도 같은 미리 보기·충돌·가져오기를 쓰게 함: 파일을 읽은 뒤의 단계를
  *   {@link #readConfiguration}으로 나눔, 알 수 없는 종류의 연결과 그 대기 드라이버(가져올 때만 등록) (docs/chromite/connection-transfer.md
  *   "다른 도구에서 가져오기")
+ * - 2026-11-08 설정 내보내기·가져오기가 쓰도록 파일 내용(바이트)으로 내보내기·읽기({@link #exportConnectionsData}, {@link #readData}),
+ *   결과에 가져온·바꾼 연결 ID(가져오기를 되돌릴 때 씀) (docs/chromite/settings-transfer.md)
  */
 public final class ConnectionTransfer {
 
@@ -288,6 +290,8 @@ public final class ConnectionTransfer {
         private final List<String> missingDrivers = new ArrayList<>();
         private final List<String> unrecognizedDrivers = new ArrayList<>();
         private final List<String> keptProfiles = new ArrayList<>();
+        private final List<String> importedIds = new ArrayList<>();
+        private final List<String> replacedIds = new ArrayList<>();
 
         public int getAdded() {
             return added;
@@ -339,6 +343,22 @@ public final class ConnectionTransfer {
         public List<String> getKeptProfiles() {
             return keptProfiles;
         }
+
+        /**
+         * IDs of the connections the import added (new ones and copies); a settings import removes them when it is undone.
+         */
+        @NotNull
+        public List<String> getImportedIds() {
+            return importedIds;
+        }
+
+        /**
+         * IDs of the existing connections the import replaced (they keep their ID).
+         */
+        @NotNull
+        public List<String> getReplacedIds() {
+            return replacedIds;
+        }
     }
 
     private ConnectionTransfer() {
@@ -361,6 +381,30 @@ public final class ConnectionTransfer {
         @NotNull Collection<? extends DBPDataSourceFolder> folders,
         @Nullable char[] passphrase,
         @NotNull Path file
+    ) throws DBException {
+        int[] count = new int[1];
+        byte[] fileBytes = exportConnectionsData(monitor, registry, connections, folders, passphrase, count);
+        try {
+            Files.write(file, fileBytes);
+        } catch (IOException e) {
+            throw new DBException("Cannot write " + file, e);
+        }
+        return count[0];
+    }
+
+    /**
+     * The content of a connection file, for a file kept inside another one (a settings file, a settings backup).
+     *
+     * @param count gets the number of exported connections (first element), when not null
+     */
+    @NotNull
+    public static byte[] exportConnectionsData(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSourceRegistry registry,
+        @NotNull Collection<? extends DBPDataSourceContainer> connections,
+        @NotNull Collection<? extends DBPDataSourceFolder> folders,
+        @Nullable char[] passphrase,
+        @Nullable int[] count
     ) throws DBException {
         DataSourceRegistry<?> sourceRegistry = getRegistry(registry);
         boolean secrets = passphrase != null;
@@ -406,13 +450,13 @@ public final class ConnectionTransfer {
         byte[] payloadBytes = payload.toString().getBytes(StandardCharsets.UTF_8);
         try {
             byte[] fileBytes = ConnectionTransferFile.write(payloadBytes, passphrase);
-            Files.write(file, fileBytes);
-        } catch (IOException e) {
-            throw new DBException("Cannot write " + file, e);
+            if (count != null) {
+                count[0] = descriptors.size();
+            }
+            return fileBytes;
         } finally {
             Arrays.fill(payloadBytes, (byte) 0);
         }
-        return descriptors.size();
     }
 
     /**
@@ -576,6 +620,13 @@ public final class ConnectionTransfer {
     }
 
     /**
+     * True if the content of a connection file needs a passphrase.
+     */
+    public static boolean isEncrypted(@NotNull byte[] data) throws DBException {
+        return ConnectionTransferFile.isEncrypted(data);
+    }
+
+    /**
      * Decrypts and reads a file; conflicts are checked against the target registry. Nothing is changed.
      */
     @NotNull
@@ -584,7 +635,19 @@ public final class ConnectionTransfer {
         @Nullable char[] passphrase,
         @NotNull DBPDataSourceRegistry target
     ) throws DBException {
-        byte[] payloadBytes = ConnectionTransferFile.read(readBytes(file), passphrase);
+        return readData(readBytes(file), passphrase, target);
+    }
+
+    /**
+     * Like {@link #readFile}, for the content of a connection file kept inside another one.
+     */
+    @NotNull
+    public static ImportFile readData(
+        @NotNull byte[] data,
+        @Nullable char[] passphrase,
+        @NotNull DBPDataSourceRegistry target
+    ) throws DBException {
+        byte[] payloadBytes = ConnectionTransferFile.read(data, passphrase);
         JsonObject payload;
         try {
             JsonElement element = JsonParser.parseString(new String(payloadBytes, StandardCharsets.UTF_8));
@@ -763,14 +826,17 @@ public final class ConnectionTransfer {
                     copy.setId(existingId);
                     registry.addDataSource(copy);
                     result.replaced++;
+                    result.replacedIds.add(existingId);
                 } else if (action == ConflictAction.COPY) {
                     copy.setId(DataSourceDescriptor.generateNewId(copy.getDriver()));
                     copy.setName(getUniqueName(registry, copy.getName(), entry == null ? null : entry.folderPath));
                     registry.addDataSource(copy);
                     result.copied++;
+                    result.importedIds.add(copy.getId());
                 } else {
                     registry.addDataSource(copy);
                     result.added++;
+                    result.importedIds.add(copy.getId());
                 }
                 if (copy.getDriver().isTemporary()) {
                     result.missingDrivers.add(copy.getName());
