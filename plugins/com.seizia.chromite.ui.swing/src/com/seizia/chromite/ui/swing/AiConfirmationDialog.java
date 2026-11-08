@@ -29,6 +29,7 @@ import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationHandler;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationRequest;
 import com.seizia.chromite.model.ai.agent.AIToolPermission;
+import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
@@ -40,6 +41,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -64,7 +66,8 @@ import java.util.function.Supplier;
  *     MCP {@code notifications/cancelled})를 보면 대화상자를 닫고 DENY를 돌려준다.</li>
  *     <li>대화상자는 한 번에 하나다(공정 잠금). MCP 클라이언트가 여러 쓰기 도구를 한꺼번에 불러도 질문이 겹쳐 쌓이지 않고 차례로 나온다.</li>
  *     <li>보이는 것: 요청한 쪽(이 앱의 Chromite Agent / 외부 에이전트 MCP), 도구 이름과 ID, 실제 분류(WRITE/DANGEROUS), 연결(운영 표시 포함), 실행할
- *     SQL·DDL 전체(미리 보기, 읽기 전용 SQL 편집기), 비밀을 지운 인수(실행기가 이미 지움), 정책 이유.</li>
+ *     SQL·DDL·명령 줄 전체 또는 쿼리 창에서 바뀌는 글(미리 보기, 읽기 전용 SQL 편집기. 제목은 미리 보기 종류를 따른다), 비밀을 지운 인수(실행기가
+ *     이미 지움), 정책 이유.</li>
  *     <li>"이 연결에서 이 도구 항상 허용"은 WRITE에만 둔다. DANGEROUS는 설정 화면의 연결별·도구별 규칙으로만 자동 실행할 수 있다(사용자 결정).
  *     트랜잭션 질문에도 두지 않는다: 열린 트랜잭션을 어떻게 끝낼지는 매번 묻는다(사용자 규칙 "트랜잭션 안전").</li>
  *     <li>기본 단추는 Deny / Cancel이다. Enter를 잘못 눌러 쓰기가 실행되지 않게 하기 위해서다.</li>
@@ -73,6 +76,8 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 요청한 쪽 설명을 고침(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 미리 보기 종류에 맞는 제목과 첫 줄: 쿼리 창 글 고치기는 "바뀌는 글"(지운 줄·넣은 줄 색 표시)이고 DB를 바꾸지 않는다고 알림
+ *   (docs/chromite/ai-agent.md "편집기 도구")
  */
 final class AiConfirmationDialog extends JDialog {
 
@@ -183,8 +188,10 @@ final class AiConfirmationDialog extends JDialog {
             body.add(createTransactions());
         }
         if (!CommonUtils.isEmptyTrimmed(request.preview())) {
+            boolean textChange = request.previewKind() == AIToolPreviewProvider.Kind.TEXT_CHANGE;
             body.add(Box.createVerticalStrut(10));
-            body.add(createSection(AiMessages.ai_confirm_preview, createPreview(request.preview())));
+            body.add(createSection(textChange ? AiMessages.ai_confirm_preview_change : AiMessages.ai_confirm_preview,
+                createPreview(request.preview(), textChange)));
         }
         if (!request.arguments().isEmpty()) {
             body.add(Box.createVerticalStrut(10));
@@ -226,6 +233,10 @@ final class AiConfirmationDialog extends JDialog {
             return AiMessages.ai_confirm_tx_headline;
         }
         boolean mcp = request.client() == AIToolClient.MCP;
+        if (request.previewKind() == AIToolPreviewProvider.Kind.TEXT_CHANGE) {
+            // A query window edit changes the user's text, not the database
+            return mcp ? AiMessages.ai_confirm_headline_edit_mcp : AiMessages.ai_confirm_headline_edit;
+        }
         if (request.access() == AIToolAccess.DANGEROUS) {
             return mcp ? AiMessages.ai_confirm_headline_dangerous_mcp : AiMessages.ai_confirm_headline_dangerous;
         }
@@ -317,16 +328,35 @@ final class AiConfirmationDialog extends JDialog {
         return panel;
     }
 
+    /**
+     * The preview in a read-only SQL editor. A text change marks its removed ("- ") and added ("+ ") lines with the
+     * result grid's removed and added row colors.
+     */
     @NotNull
-    private static JComponent createPreview(@NotNull String sql) {
+    private static JComponent createPreview(@NotNull String sql, boolean textChange) {
         SqlEditorPanel.SqlTextArea textArea = new SqlEditorPanel.SqlTextArea();
         textArea.setText(sql);
         textArea.setCaretPosition(0);
         textArea.setEditable(false);
         textArea.discardAllEdits();
-        textArea.setRows(Math.min(12, Math.max(3, sql.split("\n", -1).length))); //$NON-NLS-1$
+        String[] lines = sql.split("\n", -1); //$NON-NLS-1$
+        textArea.setRows(Math.min(12, Math.max(3, lines.length)));
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         textArea.applyTheme();
+        if (textChange) {
+            Color removed = UIManager.getColor("Chromite.Table.removedBackground"); //$NON-NLS-1$
+            Color added = UIManager.getColor("Chromite.Table.addedBackground"); //$NON-NLS-1$
+            for (int line = 0; line < lines.length; line++) {
+                Color color = lines[line].startsWith("- ") ? removed : lines[line].startsWith("+ ") ? added : null; //$NON-NLS-1$ //$NON-NLS-2$
+                if (color != null) {
+                    try {
+                        textArea.addLineHighlight(line, color);
+                    } catch (BadLocationException e) {
+                        log.debug(e);
+                    }
+                }
+            }
+        }
         return scrollPane;
     }
 

@@ -819,6 +819,24 @@
             <parameter name="sql" type="string" required="true" description="SQL text"/>
             <parameter name="title" type="string" description="Window title"/>
         </function>
+        <function id="listQueryWindows" name="%tool.listQueryWindows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
+            description="Lists the query windows open in the Chromite app: id, title, connection, database, saved file, unsaved changes, active window, running query, text length, caret and selection.">
+        </function>
+        <function id="getQueryWindowText" name="%tool.getQueryWindowText.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
+            description="Reads the text of an open query window (default: the active one): the whole text, the selection, or the SQL statement at the caret, with its offsets.">
+            <parameter name="window" type="string" description="Window id from listQueryWindows (default: the active window)"/>
+            <parameter name="part" type="string" description="all (default), selection or statement (the statement at the caret)"/>
+            <parameter name="maxChars" type="integer" description="Max characters to return (default 100000)"/>
+        </function>
+        <function id="editQueryWindow" name="%tool.editQueryWindow.name" type="ACTION" access="WRITE" writes="none" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
+            description="Changes the text of an open query window (default: the active one): insert at the caret, replace the selection, or replace the whole text. Never runs or saves the text; the user confirms a preview of the change and can undo it with one Ctrl+Z.">
+            <parameter name="window" type="string" description="Window id from listQueryWindows (default: the active window)"/>
+            <parameter name="mode" type="string" required="true" description="insert, replaceSelection or replaceAll"/>
+            <parameter name="text" type="string" description="New text (empty with replaceSelection deletes the selection)"/>
+        </function>
     </extension>
 
     <extension point="com.seizia.chromite.pluginService">

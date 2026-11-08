@@ -34,6 +34,9 @@ import org.eclipse.osgi.util.NLS;
  *   영어·한국어 모두 "Chromite Agent"로 바꿈. 모델 제공자를 뜻하는 "AI 제공자"는 그대로 둠(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기")
  * - 2026-11-08 {@code ai_tool_running_progress}: 실행 중인 도구의 진행 글(백업·복원 도구, docs/chromite/ai-agent.md)
+ * - 2026-11-08 대화 콤보·제공자 콤보를 없애고 대화 기록({@code ai_history*})과 제공자를 함께 고르는 모델 선택({@code ai_model_*})을 둠,
+ *   차례의 토큰 사용량({@code ai_status_usage*}), 쿼리 창 글 고치기의 확인({@code ai_confirm_headline_edit*}, {@code ai_confirm_preview_change})
+ *   (docs/chromite/ai-agent.md "채팅 도구 창", "편집기 도구")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -44,11 +47,19 @@ public class AiMessages extends NLS {
     public static String ai_delete_chat;
     public static String ai_delete_chat_question;
     public static String ai_chat_untitled;
-    public static String ai_chats_tip;
+    public static String ai_history;
+    public static String ai_history_filter;
+    public static String ai_history_empty;
+    public static String ai_history_no_match;
+    public static String ai_history_delete_tip;
     public static String ai_playbooks;
     public static String ai_settings;
-    public static String ai_provider_tip;
     public static String ai_model_tip;
+    public static String ai_model_setup;
+    public static String ai_model_enter;
+    public static String ai_model_enter_title;
+    public static String ai_model_provider;
+    public static String ai_model_name;
     public static String ai_connection_tip;
     public static String ai_database_tip;
     public static String ai_no_connection;
@@ -62,6 +73,8 @@ public class AiMessages extends NLS {
     public static String ai_status_tool;
     public static String ai_status_stopping;
     public static String ai_status_stopped;
+    public static String ai_status_usage;
+    public static String ai_status_usage_cached;
     public static String ai_empty_hint;
     public static String ai_playbook_tune;
     public static String ai_playbook_health;
@@ -110,6 +123,8 @@ public class AiMessages extends NLS {
     public static String ai_confirm_headline_mcp;
     public static String ai_confirm_headline_dangerous;
     public static String ai_confirm_headline_dangerous_mcp;
+    public static String ai_confirm_headline_edit;
+    public static String ai_confirm_headline_edit_mcp;
     public static String ai_confirm_tx_headline;
     public static String ai_confirm_tx_question;
     public static String ai_confirm_tx_no_commit;
@@ -120,6 +135,7 @@ public class AiMessages extends NLS {
     public static String ai_confirm_client_mcp;
     public static String ai_confirm_reason;
     public static String ai_confirm_preview;
+    public static String ai_confirm_preview_change;
     public static String ai_confirm_arguments;
     public static String ai_confirm_argument_name;
     public static String ai_confirm_argument_value;

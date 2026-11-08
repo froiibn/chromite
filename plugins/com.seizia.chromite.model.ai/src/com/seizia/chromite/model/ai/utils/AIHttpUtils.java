@@ -25,11 +25,23 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.data.json.JSONUtils;
 import org.jkiss.utils.CommonUtils;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * HTTP helpers of the AI engines: URL resolution and error texts.
+ *
+ * 설계: 엔진마다 HTTP 오류를 이 클래스의 {@link #parseOpenAIStyleErrorMessage}로 글로 바꾼다. 화면에는 이 글만 보이므로, 응답 본문의 문구가
+ * 무엇이 잘못됐는지 말하지 않으면(모르는 모델의 404) 상태의 뜻을 덧붙인다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 404 응답의 글에 "not found"가 없으면 덧붙임: 없는 모델 이름의 오류가 "model: claude-x"로만 보였다
+ *   (docs/chromite/ai-agent.md "실제 API 확인", 후속 39)
+ */
 public final class AIHttpUtils {
     private static final Log log = Log.getLog(AIHttpUtils.class);
 
@@ -68,7 +80,10 @@ public final class AIHttpUtils {
     /**
      * Parses an OpenAI-style error message from a JSON string.
      * Extracts the "message" field from the "error" or root object of the JSON structure.
-     * If the parsing fails or no suitable message field is found, the original input string is returned.
+     * If the parsing fails or no suitable message field is found, a short status description is returned (the HTTP status
+     * with the page title or the start of the body).
+     * A "not found" response (HTTP 404) says so when its message does not: providers answer an unknown model with only the
+     * model name (Anthropic {@code "model: claude-x"}) or with "does not exist" (OpenAI).
      *
      * @param statusCode HTTP status code of the failed response, 0 if unknown
      * @param body       the response body, expected to be an OpenAI-style JSON error
@@ -76,6 +91,15 @@ public final class AIHttpUtils {
      */
     @NotNull
     public static String parseOpenAIStyleErrorMessage(int statusCode, @NotNull String body) {
+        String message = parseErrorMessage(statusCode, body);
+        if (statusCode == HttpURLConnection.HTTP_NOT_FOUND && !message.toLowerCase(Locale.ROOT).contains("not found")) {
+            return message + " (not found, HTTP 404)";
+        }
+        return message;
+    }
+
+    @NotNull
+    private static String parseErrorMessage(int statusCode, @NotNull String body) {
         try {
             JsonElement errorResponse = JSONUtils.GSON.fromJson(body, JsonElement.class);
             if (errorResponse != null && errorResponse.isJsonObject()) {
