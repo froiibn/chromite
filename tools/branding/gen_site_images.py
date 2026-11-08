@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the download site's favicons and Open Graph images (docs/chromite/distribution.md "Site").
+"""Generate the download site's favicons, brand images and Open Graph images (docs/chromite/distribution.md "Site").
 
 Why this script exists
 ----------------------
@@ -8,8 +8,17 @@ image per language. They are derived from the same vector sources as the app ico
 gen_app_icons.py (the size-tier tile drawings, resvg rendering) instead of resizing one bitmap: a 16 px
 favicon is the 16 px tier drawn on its own pixel grid, the same image the app uses for 16 px.
 
+The pages also show the logo (user request 2026-11-08): the header carries the wordmark alone (the "CHROMITE"
+lettering with the E's blue accent bar; no icon, divider or subtitle) and the top of the home page and of the
+language chooser carries the full lockup (icon, CHROMITE, DATABASE WORKBENCH). Both are SVG, so they stay sharp at
+every display scale, and both are drawn from gen_app_icons.py's lockup geometry (TITLE_GLYPHS, lockup_svg), the
+drawing behind chromite_logo_pack/chromite_wordmark_*.svg, never from a hand-cut file. The wordmark is the
+lockup's lettering under its own tight viewBox (WORDMARK_BOX). Light pages get the navy ink and dark pages the
+white ink; the home page's hero sits on the always-dark stage, so it uses the white-ink lockup in both themes.
+
 The share image is the logo lockup from chromite_logo_pack/, the home page's headline and subline and a small
-"free and open source" line in Pretendard (the site's font) and a crop of a real app screenshot
+line saying every feature is free at work and at home, in Pretendard (the site's font), and a crop of a real
+app screenshot
 (site/assets/shots/<lang>-light.webp: the main window with Object Explorer, a query and its results on a
 "Sales DB" connection, the Registered Servers list showing connections of several kinds). The copy names
 neither databases nor a count of databases or drivers: a list of the pre-installed ones read as the only
@@ -28,14 +37,18 @@ site/favicon.ico                         16, 32 and 48 px (PNG entries; browsers
 site/assets/icons/icon-32.png, icon-192.png
 site/assets/icons/apple-touch-icon.png   180 px on an opaque navy square (iOS adds its own corners)
 site/assets/og/og-ko-<OG_VERSION>.png, og-en-<OG_VERSION>.png   1200x630
+site/assets/brand/wordmark-{light,dark}.svg   header wordmark (navy ink for light pages, white ink for dark ones)
+site/assets/brand/logo-{light,dark}.svg       full lockup (dark: the home page's hero and the language chooser in
+                                              the dark theme; light: the language chooser in the light theme)
 
 Usage
 -----
-    D:\\Tools\\_venvs\\chromite-branding\\Scripts\\python tools/branding/gen_site_images.py
+    D:\\Tools\\_venvs\\chromite-branding\\Scripts\\python tools/branding/gen_site_images.py [--inter-jar PATH]
 
 Same venv as gen_app_icons.py (resvg-py, Pillow, fonttools; docs/chromite/branding.md). The Pretendard
 SemiBold/Regular web subsets in site/assets/fonts are used for the copy, so the share image needs no
-other font.
+other font. The full lockup's subtitle is Inter, found the way gen_app_icons.py finds it (--inter-jar or the
+Swing bundle's lib/flatlaf-fonts-inter.jar).
 
 Change history:
 - 2026-11-07 Created (site favicons and Open Graph images).
@@ -45,7 +58,11 @@ Change history:
   headline "anyone can use easily and safely" with its subline, wrapped at the column width. New
   screenshot input without vendor-named connections, and versioned file names (OG_VERSION 2) so cached
   previews are fetched again.
+- 2026-11-08 Brand images for the pages (header wordmark and full lockup, light and dark ink). The share image's
+  small line says every feature is free at work and at home (user request); OG_VERSION 3.
 """
+import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -68,13 +85,16 @@ LINE = "#DFE1E5"
 OG_COPY = {
     "ko": ("누구나 편하고 안전하게 다루는 데이터베이스 도구",
            "시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이",
-           "Windows와 macOS용 무료 오픈 소스"),
+           "회사에서도 개인도, 모든 기능 무료 · Windows와 macOS"),
     "en": ("A database tool anyone can use easily and safely",
            "Even system and application operators can query and fix data with ease and without slip-ups",
-           "Free and open source for Windows and macOS"),
+           "Every feature free, at work or at home · Windows, macOS"),
 }
 # part of the share image's file name; raise it whenever the picture changes (see the module docstring)
-OG_VERSION = 2
+OG_VERSION = 3
+# The wordmark's viewBox in the lockup's coordinates: the cap height (y 125-218) and, after the italic shear, from
+# the C's rounded lower-left corner (x 434.6) to the right end of the E's accent bar (x 1240.25)
+WORDMARK_BOX = (434, 125, 1241, 218)
 
 
 def tile(size):
@@ -94,6 +114,29 @@ def write_icons():
     touch = Image.new("RGBA", (180, 180), icons.TILE_DARK)
     touch.alpha_composite(tile(180))
     touch.convert("RGB").save(SITE / "assets" / "icons" / "apple-touch-icon.png", optimize=True)
+
+
+def wordmark_svg(dark):
+    """The header wordmark: the lockup's "CHROMITE" and the E's accent bar, without the icon, divider and subtitle."""
+    pid = "wd" if dark else "wl"
+    ink = icons.LOCKUP_INK[dark][0]
+    shear = (f"translate(0 {icons.n(icons.TITLE_BASE)}) "
+             f"skewX({icons.n(-math.degrees(math.atan(icons.TITLE_SLANT)))}) "
+             f"translate(0 {icons.n(-icons.TITLE_BASE)})")
+    accent = "M" + " L".join(f"{icons.n(x)},{icons.n(y)}" for x, y in icons.TITLE_ACCENT) + " Z"
+    x0, y0, x1, y1 = WORDMARK_BOX
+    inner = (f'<defs><linearGradient id="{pid}acc" gradientUnits="userSpaceOnUse" x1="1147" y1="0" x2="1241" y2="0">'
+             f'{icons.stops(icons.ACCENT_STOPS)}</linearGradient></defs>'
+             f'<path d="{icons.title_d()}" fill="{ink}" fill-rule="evenodd" transform="{shear}"/>'
+             f'<path d="{accent}" fill="url(#{pid}acc)"/>')
+    return icons.svg_doc(x1 - x0, y1 - y0, f"{x0} {y0} {x1 - x0} {y1 - y0}", inner)
+
+
+def write_brand(inter):
+    brand = SITE / "assets" / "brand"
+    for name, dark in (("light", False), ("dark", True)):
+        icons.write_text(brand / f"wordmark-{name}.svg", wordmark_svg(dark))
+        icons.write_text(brand / f"logo-{name}.svg", icons.lockup_svg(inter, dark, pad=0))
 
 
 def lockup(width):
@@ -169,10 +212,15 @@ def write_og(lang):
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--inter-jar", help="flatlaf-fonts-inter jar for the full lockup's subtitle")
+    args = ap.parse_args()
     write_icons()
+    write_brand(icons.Inter(icons.find_inter(args.inter_jar)))
     for lang in OG_COPY:
         write_og(lang)
-    for p in [SITE / "favicon.ico", *sorted((SITE / "assets" / "icons").glob("*.png")), *sorted((SITE / "assets" / "og").glob("*.png"))]:
+    for p in [SITE / "favicon.ico", *sorted((SITE / "assets" / "icons").glob("*.png")),
+              *sorted((SITE / "assets" / "og").glob("*.png")), *sorted((SITE / "assets" / "brand").glob("*.svg"))]:
         print(f"{p.relative_to(ROOT)}  {p.stat().st_size // 1024} KB")
 
 

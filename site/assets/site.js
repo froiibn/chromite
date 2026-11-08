@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
  *
  * The download page's script (docs/chromite/distribution.md "Site"): fills the Windows and macOS cards with
- * the newest setup and disk image of the feed: version, size, date and SHA-256.
+ * the newest setup and disk image of the feed: download link, version, size and date.
  *
  * Design:
  *   - The site's CSP has no connect-src (default-src 'none'), so the page cannot fetch
@@ -12,7 +12,8 @@
  *     (window.chromiteReleases), which the page loads as a same-origin script before this one, with
  *     each file's upload time (window.chromiteReleaseDates; the feed itself has no date).
  *   - The feed is checked as strictly as the updater does: format 1, file names and versions by
- *     pattern, a 64-hex sha256; an entry that does not pass is ignored.
+ *     pattern, a 64-hex sha256; an entry that does not pass is ignored. The checksum is not shown on the
+ *     page (user request 2026-11-08), but a malformed one still keeps that entry off the download buttons.
  *   - Text comes from the page (data-* attributes, so each language page carries its own words);
  *     values are set with textContent only.
  *   - The page starts in data-state "static", which is what a browser without script keeps: both cards
@@ -31,6 +32,7 @@
  * Change history:
  * - 2026-11-07 Created.
  * - 2026-11-07 Visitor's platform first, the other behind a button.
+ * - 2026-11-08 The SHA-256 row and its copy button are gone from the cards: no checksum output, no copy handler.
  */
 (function () {
   'use strict';
@@ -87,7 +89,6 @@
     field(card, 'link').href = '/downloads/' + encodeURIComponent(f.file);
     field(card, 'version').textContent = f.version;
     field(card, 'size').textContent = megabytes(f.size);
-    field(card, 'sha256').textContent = f.sha256;
     var seconds = dates && typeof dates[f.file] === 'number' ? dates[f.file] : null;
     field(card, 'date').textContent = seconds === null ? '-' :
       new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date(seconds * 1000));
@@ -159,17 +160,4 @@
       preferVisitorPlatform();
     }
   }
-
-  area.addEventListener('click', function (e) {
-    var button = e.target.closest('button.copy');
-    if (!button || !navigator.clipboard) {
-      return;
-    }
-    var code = button.parentNode.querySelector('code');
-    navigator.clipboard.writeText(code.textContent).then(function () {
-      var label = button.textContent;
-      button.textContent = button.getAttribute('data-done');
-      setTimeout(function () { button.textContent = label; }, 1500);
-    });
-  });
 }());

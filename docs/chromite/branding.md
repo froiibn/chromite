@@ -96,9 +96,28 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
 | `plugins/com.seizia.chromite.splash/splash.png` | 560×320 | 시작 화면. 네이티브 런처가 JVM보다 먼저 띄운다(아래 "시작 화면") |
 | `plugins/com.seizia.chromite.splash/splash@2x.png` | 1120×640 | 같은 시작 화면의 HiDPI 판. Java가 돈 뒤 Swing 시작 화면(`StartupSplash`)이 그린다 |
-| `site/favicon.ico`, `site/assets/icons/icon-{32,192}.png`, `apple-touch-icon.png`, `site/assets/og/og-{ko,en}-2.png` | 16/32/48, 32, 192, 180, 1200×630 | 다운로드 사이트 파비콘과 공유 이미지. `tools/branding/gen_site_images.py`가 이 스크립트의 크기별 그림으로 만든다([distribution.md](distribution.md) "파비콘과 공유 이미지") |
+| `site/favicon.ico`, `site/assets/icons/icon-{32,192}.png`, `apple-touch-icon.png`, `site/assets/og/og-{ko,en}-3.png` | 16/32/48, 32, 192, 180, 1200×630 | 다운로드 사이트 파비콘과 공유 이미지. `tools/branding/gen_site_images.py`가 이 스크립트의 크기별 그림으로 만든다([distribution.md](distribution.md) "파비콘과 공유 이미지") |
+| `site/assets/brand/wordmark-{light,dark}.svg` | 807×93 (벡터) | 다운로드 사이트 머리글의 워드마크(아래 "사이트의 로고"). `gen_site_images.py`가 가로 로고의 글자 도형으로 만든다 |
+| `site/assets/brand/logo-{light,dark}.svg` | 1136×250 (벡터) | 다운로드 사이트 홈 첫 화면과 언어 선택 페이지의 가로 로고. `lockup_svg(pad=0)` 그대로(Swing `brand/lockup-*.svg`와 같은 그림) |
 
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
+
+### 사이트의 로고 (2026-11-08)
+
+사용자 요청: "헤더는 글자만 잘라서 배치하고, 페이지 상단에 풀 로고 배치". 다운로드 사이트에서 글자로 쓰던 이름 "Chromite"(아이콘 + 글자)를 로고 그림으로 바꿨다.
+
+| 자리 | 그림 | 밝은 테마 / 어두운 테마 |
+|---|---|---|
+| 모든 페이지 머리글 왼쪽(`.brand`, 홈·변경 내역·개인정보) | 워드마크: `CHROMITE` 글자와 E의 파란 강조 획만(아이콘·구분선·부제 없음), 높이 16px | `wordmark-light.svg`(남색 `#18253B`) / `wordmark-dark.svg`(흰색). `<picture>`의 `prefers-color-scheme` |
+| 홈 첫 화면 맨 위(`h1`, 예전 큰 글자 "Chromite" 자리) | 가로 로고(아이콘 + `CHROMITE` + `DATABASE WORKBENCH`), 폭 `clamp(260px, 40vw, 560px)` | 무대가 테마와 상관없이 늘 어두워서 두 테마 모두 `logo-dark.svg`(흰 글자) |
+| 언어 선택 페이지 `/`(아이콘 + "Chromite" 자리) | 가로 로고, 폭 320px | `logo-light.svg` / `logo-dark.svg` |
+
+- 벡터(SVG)라 화면 배율(HiDPI)과 상관없이 선명하다. CSP의 `img-src 'self'`로 같은 출처 그림이라 그대로 된다.
+- 손으로 자른 파일이 아니라 `gen_app_icons.py`의 가로 로고 도형(`TITLE_GLYPHS`, `TITLE_ACCENT`, `lockup_svg`)을 `gen_site_images.py`가 불러 만든다.
+  워드마크는 같은 글자 경로를 글자에 딱 맞는 viewBox(`WORDMARK_BOX`, x 434~1241, y 125~218: 기울인 C의 둥근 왼쪽 아래 모서리 434.6부터 강조 획 끝 1240.25까지)로 자른 것이다.
+  가로 로고의 부제 글꼴(Inter)이 필요해서 `gen_site_images.py`도 `--inter-jar`를 받는다.
+- `h1`과 링크는 그림의 `alt="Chromite"`로 이름을 가진다(화면 읽기 프로그램에는 예전처럼 "Chromite").
+- `site/assets/chromite-icon.svg`는 파비콘 링크로 계속 쓴다.
 - SWT 제품의 창 아이콘·About 이미지·스플래시·`UIIcon` 로고는 SWT 프런트엔드와 함께 삭제했다([swt-removal.md](swt-removal.md)).
   Swing 제품의 시작 화면은 2026-11-08에 새로 만들었다(아래 "시작 화면").
   제품 아이콘(`.ico`, `.icns`, 아이콘 세트, 설치 이미지)은 `product/community/icons*`에서 `product/swing/icons*`로 옮겼다.
@@ -282,5 +301,6 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 - 2026-11-07 결정 사항에 에이전트 기능 이름 `Chromite Agent` 추가(사용자 결정, [ai-agent.md](ai-agent.md) "명칭").
 - 2026-11-07 다운로드 사이트 파비콘·공유 이미지와 생성기 `tools/branding/gen_site_images.py`를 파생 이미지 표에 추가(사용자 요청, [distribution.md](distribution.md)).
 - 2026-11-08 공유 이미지 파일 이름을 `og-{ko,en}-2.png`로 바꿈(메신저 미리 보기 캐시, [distribution.md](distribution.md) "파비콘과 공유 이미지").
+- 2026-11-08 다운로드 사이트의 머리글을 워드마크, 홈 첫 화면과 언어 선택 페이지를 가로 로고 그림으로 바꿈(사용자 요청, "사이트의 로고" 절, `site/assets/brand/`). 공유 이미지를 `og-{ko,en}-3.png`로 다시 만듦(작은 줄 문구).
 - 2026-11-08 Swing 제품의 시작 화면(감사 행 A-S15, `chromite/startup-splash`): 그림 번들 `com.seizia.chromite.splash`와 런처 `-showsplash`, Swing이 이어받는 `StartupSplash`(버전·상태 줄),
   `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.

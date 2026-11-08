@@ -17,7 +17,7 @@
 <meta property="og:title" content="Chromite - Database Workbench">
 <meta property="og:description" content="Chromite - A database tool anyone can use easily and safely. Even system and application operators can query and fix data with ease and without slip-ups. Download the installer for Windows or macOS.">
 <meta property="og:url" content="https://chromite.seizia.com/en/">
-<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en-2.png">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en-3.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Chromite - Database Workbench">
 <meta name="twitter:description" content="Chromite - A database tool anyone can use easily and safely. Even system and application operators can query and fix data with ease and without slip-ups. Download the installer for Windows or macOS.">
-<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en-2.png">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en-3.png">
 <meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;A database tool anyone can use easily and safely&#x27; and the Chromite window with Object Explorer, a query and its results">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="ko" href="/ko/">
@@ -38,7 +38,7 @@
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/en/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
+    <a class="brand" href="/en/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
     <nav class="nav" aria-label="Site">
       <a href="/en/" aria-current="page">Download</a>
       <a href="/en/changelog.html">Changelog</a>
@@ -54,10 +54,10 @@
   <section class="scene scene-hero" aria-labelledby="hero-title">
     <div class="scene-body">
       <div class="hero-copy">
-        <h1 id="hero-title">Chromite</h1>
+        <h1 id="hero-title"><img src="/assets/brand/logo-dark.svg" width="1136" height="250" fetchpriority="high" alt="Chromite"></h1>
         <p class="hero-sub">A database tool anyone can use easily and safely</p>
         <p class="hero-lead">Even system and application operators can query and fix data with ease and without slip-ups</p>
-        <p class="hero-cta"><a class="btn" href="#download">Download</a><span>For Windows and macOS. Free and open source.</span></p>
+        <p class="hero-cta"><a class="btn" href="#download">Download</a><span>For Windows and macOS. Every feature free, at work or at home.</span></p>
       </div>
       <div class="hero-proof">
         <div class="proof">
@@ -85,7 +85,7 @@
   <section class="scene scene-wide" id="transactions" aria-labelledby="transactions-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="transactions-title">Transactions are never closed behind your back.</h2>
+        <h2 id="transactions-title">Safe transaction management</h2>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/transactions-en-dark.webp" srcset="/assets/shots/tour/transactions-en-dark.webp 1.25x" width="994" height="342" loading="lazy" decoding="async" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log."></div>
@@ -120,18 +120,16 @@
     <div class="scene-body">
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
-        <p class="scene-lead">Ask, and it gathers evidence with its tools, then answers. Schema, data and query tools work with any database; diagnostics (plans, locks, health) cover SQL Server, PostgreSQL, MariaDB/MySQL and Oracle.</p>
+        <p class="scene-lead">Ask in plain words. It checks the real database and answers with the evidence.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
       </figure>
-      <ul class="lines tasks">
-        <li><strong>Slow query tuning</strong> Reads the estimated and actual plan, compares plans before and after an index, and looks at statistics, index usage, missing and unused indexes and fragmentation. It creates an index only after you confirm.</li>
-        <li><strong>Blocking and deadlocks</strong> Builds the blocking chain from the head blocker, lists locks and sessions with long open or idle transactions, and reads recent deadlock graphs. Ending a session always asks you first.</li>
-        <li><strong>Health check</strong> Sessions, wait statistics, top CPU and I/O queries, database and file space, backup and job history, the server error log, and settings that differ from their defaults.</li>
-        <li><strong>Procedure review</strong> Reads the source with line numbers, its dependencies and per-statement execution statistics.</li>
-        <li><strong>And more</strong> Searches objects, describes tables, keys and permissions, and generates DDL. Samples rows, profiles columns and compares results; exports to CSV, XLSX or JSON and imports CSV; runs saved Query Library checks; opens the SQL it wrote in a new query window without running it.</li>
-        <li><strong>Safety and access</strong> Every tool has a policy per connection (run / confirm / blocked), and writes are blocked on production connections by default. Commit and rollback always ask, read-only diagnostics run read-only, and every call goes to the audit log. Providers are Claude, OpenAI and Ollama, and a local MCP server offers the same tools to external agents on this PC.</li>
+      <ul class="lines">
+        <li>Ask about a slow query, an UPDATE that never finishes or the server's health, and it reads the plans, locks and blocking chain, sessions, waits and space itself, then tells you the cause and what to do. These diagnostics cover SQL Server, PostgreSQL, MariaDB/MySQL and Oracle.</li>
+        <li>Anything that changes the database, such as creating an index or ending a session, shows its SQL and runs only after you confirm, and writes on production connections are blocked (default settings).</li>
+        <li>Every tool call is written to the audit log.</li>
+        <li>Providers are Claude, OpenAI (with your own API key) and Ollama. Turn on the local MCP server, and other AI tools on this PC can use the same tools.</li>
       </ul>
     </div>
   </section>
@@ -139,15 +137,15 @@
   <section class="scene scene-side" id="closed-networks" aria-labelledby="closed-networks-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="closed-networks-title">Works on networks without internet.</h2>
-        <p class="scene-lead">One installer connects to the main databases right away, with no driver download.</p>
+        <h2 id="closed-networks-title">Made for closed corporate networks</h2>
+        <p class="scene-lead">One installer connects to the main databases right away, with no driver download, even on a closed network.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."></div>
       </figure>
       <ul class="lines">
         <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed. Other drivers, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
-        <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC. Every file's SHA-256 is checked before it is installed.</li>
+        <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC.</li>
         <li>With offline mode on, Chromite does not try to download driver files. The automatic update check can be turned off in Options.</li>
       </ul>
     </div>
@@ -191,7 +189,7 @@
   <section class="scene scene-side" id="passwords" aria-labelledby="passwords-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="passwords-title">Passwords stay on your PC.</h2>
+        <h2 id="passwords-title">Your passwords stay safely on your computer</h2>
         <p class="scene-lead">Saved connection passwords and API keys are never written to workspace files.</p>
       </div>
       <figure class="scene-media">
@@ -208,8 +206,8 @@
   <section class="scene scene-side" id="open-source" aria-labelledby="open-source-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="open-source-title">Free and open source.</h2>
-        <p class="scene-lead">Chromite's source code is public on GitHub under the Apache License 2.0. Anyone can read it, build it, change it and redistribute it.</p>
+        <h2 id="open-source-title">Every feature free, at work or at home</h2>
+        <p class="scene-lead">Commercial or not, there is no paid edition, no feature limit and no subscription.</p>
       </div>
       <div class="scene-media oss">
         <a class="oss-repo" href="https://github.com/froiibn/chromite">
@@ -222,7 +220,7 @@
         </ul>
       </div>
       <ul class="lines">
-        <li>A code-signed installer for Windows and a disk image for macOS are provided. New versions are downloaded automatically and installed when you restart the app.</li>
+        <li>This rests on the Apache License 2.0, which allows commercial use. The source code is public on GitHub, so anyone can read it, build it, change it and redistribute it.</li>
         <li>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</li>
       </ul>
     </div>
@@ -264,7 +262,6 @@
             <dt>Version</dt><dd data-field="version"></dd>
             <dt>Size</dt><dd data-field="size"></dd>
             <dt>Published</dt><dd data-field="date"></dd>
-            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
           </dl>
           <p class="when-missing">There is no Windows file yet.</p>
         </article>
@@ -279,30 +276,13 @@
             <dt>Version</dt><dd data-field="version"></dd>
             <dt>Size</dt><dd data-field="size"></dd>
             <dt>Published</dt><dd data-field="date"></dd>
-            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
           </dl>
           <p class="when-missing">There is no macOS file yet.</p>
         </article>
       </div>
-      <p class="state state-static">The latest version and the download buttons are filled in by JavaScript. Without it, find the file name (with its size and SHA-256) in <a href="/downloads/releases.json">releases.json</a> and open <code>/downloads/&lt;file name&gt;</code>. The same files are on <a href="https://github.com/froiibn/chromite/releases">GitHub Releases</a>.</p>
+      <p class="state state-static">The latest version and the download buttons are filled in by JavaScript. Without it, find the file name in <a href="/downloads/releases.json">releases.json</a> and open <code>/downloads/&lt;file name&gt;</code>. The same files are on <a href="https://github.com/froiibn/chromite/releases">GitHub Releases</a>.</p>
     </section>
   </section>
-
-  <div class="sects">
-    <section class="sect">
-      <h2>Signatures and checksums</h2>
-      <div class="body">
-        <p>The Windows installer is code-signed by the publisher Seizia, and the macOS app is notarized by Apple. You can compare the SHA-256 of a downloaded file with the value above (Windows: <code>Get-FileHash file</code>, macOS: <code>shasum -a 256 file</code>).</p>
-      </div>
-    </section>
-
-    <section class="sect">
-      <h2>Automatic updates</h2>
-      <div class="body">
-        <p>Chromite downloads a new version on its own and installs it when you restart the app. A downloaded file runs only after its size, SHA-256 and signature have been checked. What the update check sends is described under <a href="/en/privacy.html">Privacy</a>.</p>
-      </div>
-    </section>
-  </div>
 </main>
 
 <footer class="foot">

@@ -17,7 +17,7 @@
 <meta property="og:title" content="Chromite - 데이터베이스 워크벤치">
 <meta property="og:description" content="Chromite - 누구나 편하고 안전하게 다루는 데이터베이스 도구. 시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이. Windows와 macOS용 설치 파일을 받습니다.">
 <meta property="og:url" content="https://chromite.seizia.com/ko/">
-<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-ko-2.png">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-ko-3.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Chromite - 데이터베이스 워크벤치">
 <meta name="twitter:description" content="Chromite - 누구나 편하고 안전하게 다루는 데이터베이스 도구. 시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이. Windows와 macOS용 설치 파일을 받습니다.">
-<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-ko-2.png">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-ko-3.png">
 <meta name="twitter:image:alt" content="Chromite 로고와 &#x27;누구나 편하고 안전하게 다루는 데이터베이스 도구&#x27; 문구, 그 옆의 Chromite 창 화면(개체 탐색기, 쿼리와 결과)">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="en" href="/en/">
@@ -38,7 +38,7 @@
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/ko/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
+    <a class="brand" href="/ko/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
     <nav class="nav" aria-label="사이트">
       <a href="/ko/" aria-current="page">다운로드</a>
       <a href="/ko/changelog.html">변경 내역</a>
@@ -54,10 +54,10 @@
   <section class="scene scene-hero" aria-labelledby="hero-title">
     <div class="scene-body">
       <div class="hero-copy">
-        <h1 id="hero-title">Chromite</h1>
+        <h1 id="hero-title"><img src="/assets/brand/logo-dark.svg" width="1136" height="250" fetchpriority="high" alt="Chromite"></h1>
         <p class="hero-sub">누구나 편하고 안전하게 다루는 데이터베이스 도구</p>
         <p class="hero-lead">시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이</p>
-        <p class="hero-cta"><a class="btn" href="#download">다운로드</a><span>Windows와 macOS용. 무료 오픈 소스.</span></p>
+        <p class="hero-cta"><a class="btn" href="#download">다운로드</a><span>Windows와 macOS용. 회사에서도 개인도, 모든 기능 무료.</span></p>
       </div>
       <div class="hero-proof">
         <div class="proof">
@@ -85,7 +85,7 @@
   <section class="scene scene-wide" id="transactions" aria-labelledby="transactions-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="transactions-title">트랜잭션을 몰래 끝내지 않습니다.</h2>
+        <h2 id="transactions-title">안전한 트랜잭션 관리</h2>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/transactions-ko-dark.webp" srcset="/assets/shots/tour/transactions-ko-dark.webp 1.25x" width="1109" height="342" loading="lazy" decoding="async" alt="UPDATE를 실행한 쿼리 창의 아래쪽. 메시지 탭에 '(1개 행 적용됨)', 상태 줄에 수동 커밋과 열린 트랜잭션(지난 시간, 문장 1개)이 있고, 그 칸을 눌러 연 메뉴에 커밋, 롤백, 트랜잭션 로그가 있다."></div>
@@ -120,18 +120,16 @@
     <div class="scene-body">
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
-        <p class="scene-lead">물어보면 도구로 근거를 모아 답합니다. 스키마·데이터·쿼리 도구는 어느 데이터베이스에서나, 진단 도구(실행 계획, 잠금, 상태 점검)는 SQL Server, PostgreSQL, MariaDB·MySQL, Oracle에서 씁니다.</p>
+        <p class="scene-lead">평소 말로 물으면, 실제 데이터베이스를 확인하고 근거를 들어 답합니다.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/agent-ko-dark.webp" srcset="/assets/shots/tour/agent-ko-dark.webp 1.25x" width="355" height="749" loading="lazy" decoding="async" alt="Chromite Agent 창. 질문 '주문 42번을 고치는 UPDATE가 끝나지 않아요. 왜 기다리나요?' 아래에 읽기 도구 '차단 체인 가져오기'와 '열린 트랜잭션 목록'이 완료로 표시되고, 원인과 할 일을 적은 답이 있다."></div>
       </figure>
-      <ul class="lines tasks">
-        <li><strong>느린 쿼리 튜닝</strong> 예상·실제 실행 계획을 읽고 인덱스 전후 계획을 비교하고, 통계, 인덱스 사용, 누락·미사용 인덱스, 조각화를 봅니다. 인덱스는 확인을 받은 뒤 만듭니다.</li>
-        <li><strong>블로킹과 교착 상태</strong> 맨 앞 블로커부터 차단 체인을 만들고, 잠금과 오래 열리거나 쉬고 있는 트랜잭션의 세션을 나열하고, 최근 교착 상태 그래프를 읽습니다. 세션 종료는 늘 확인을 받습니다.</li>
-        <li><strong>상태 점검</strong> 세션, 대기 통계, CPU·I/O 상위 쿼리, 데이터베이스·파일 공간, 백업·작업 기록, 서버 오류 로그, 기본값과 다른 설정을 봅니다.</li>
-        <li><strong>프로시저 검토</strong> 줄 번호가 붙은 원본, 의존 관계, 문장별 실행 통계를 읽습니다.</li>
-        <li><strong>그 밖에</strong> 개체를 찾고 테이블·키·권한을 설명하고 DDL을 만듭니다. 행 표본과 열 프로파일, 결과 비교, CSV·XLSX·JSON 내보내기와 CSV 가져오기, 쿼리 라이브러리 점검 실행, 만든 SQL을 실행하지 않고 새 쿼리 창에 열기.</li>
-        <li><strong>안전과 연결</strong> 모든 도구에 연결별 정책(자동 실행 / 확인 / 막음)이 있고 운영 연결의 쓰기는 기본으로 막힙니다. 커밋과 롤백은 늘 확인을 받고, 읽기 진단은 읽기 전용으로 실행하며, 모든 호출은 감사 기록에 남습니다. 제공자는 Claude, OpenAI, Ollama이고, 같은 도구를 이 PC 안의 로컬 MCP 서버로 외부 에이전트에도 제공합니다.</li>
+      <ul class="lines">
+        <li>느린 쿼리, 끝나지 않는 UPDATE, 서버 상태를 물으면 실행 계획, 잠금과 차단 체인, 세션·대기·공간을 직접 읽고 원인과 할 일을 알려 줍니다. 이런 진단은 SQL Server, PostgreSQL, MariaDB·MySQL, Oracle에서 합니다.</li>
+        <li>인덱스 만들기나 세션 끝내기처럼 무언가를 바꾸는 일은 실행할 SQL을 보여 주고 확인을 받은 뒤에 하고, 운영 연결에서는 쓰기를 막습니다(기본 설정).</li>
+        <li>모든 도구 호출은 감사 기록에 남습니다.</li>
+        <li>제공자는 Claude, OpenAI(직접 넣은 API 키), Ollama입니다. 로컬 MCP 서버를 켜면 이 PC의 다른 AI 도구도 같은 도구를 씁니다.</li>
       </ul>
     </div>
   </section>
@@ -139,15 +137,15 @@
   <section class="scene scene-side" id="closed-networks" aria-labelledby="closed-networks-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="closed-networks-title">인터넷이 없는 망에서도 씁니다.</h2>
-        <p class="scene-lead">설치 파일 하나로 주요 데이터베이스에 바로 연결합니다. 드라이버를 내려받을 인터넷이 없어도 됩니다.</p>
+        <h2 id="closed-networks-title">기업용 폐쇄망을 위한 편의성</h2>
+        <p class="scene-lead">설치 파일 하나로 주요 데이터베이스에 바로 연결합니다. 폐쇄망에서도 드라이버를 따로 받을 필요가 없습니다.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/drivers-ko-dark.webp" srcset="/assets/shots/tour/drivers-ko-dark.webp 1.25x" width="731" height="670" loading="lazy" decoding="async" alt="'오프라인 드라이버 묶음 만들기' 대화상자. 드라이버 목록에서 Derby Embedded와 DuckDB가 체크되어 있고 아래에 '3개 선택'과 만들기 단추가 있다."></div>
       </figure>
       <ul class="lines">
         <li>SQL Server, Oracle, PostgreSQL, MariaDB, SQLite 드라이버는 설치 파일에 미리 들어 있습니다. MySQL을 비롯한 다른 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다.</li>
-        <li>그 밖의 드라이버는 인터넷이 되는 PC의 드라이버 관리자에서 오프라인 묶음 파일 하나로 만들어 옮깁니다. 설치 전에 모든 파일의 SHA-256을 확인합니다.</li>
+        <li>그 밖의 드라이버는 인터넷이 되는 PC의 드라이버 관리자에서 오프라인 묶음 파일 하나로 만들어 폐쇄망 PC로 옮깁니다.</li>
         <li>오프라인 모드를 켜면 드라이버 파일을 내려받으려 하지 않습니다. 자동 업데이트 확인은 옵션에서 끌 수 있습니다.</li>
       </ul>
     </div>
@@ -191,14 +189,14 @@
   <section class="scene scene-side" id="passwords" aria-labelledby="passwords-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="passwords-title">비밀번호는 이 PC에만 둡니다.</h2>
+        <h2 id="passwords-title">비밀번호는 내 컴퓨터에 안전하게 보관됩니다</h2>
         <p class="scene-lead">저장한 연결 비밀번호와 API 키는 작업 공간 파일에 남기지 않습니다.</p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/credentials-ko-dark.webp" srcset="/assets/shots/tour/credentials-ko-dark.webp 1.25x" width="707" height="682" loading="lazy" decoding="async" alt="'연결 내보내기' 대화상자. 내보낼 연결 목록, '비밀번호 포함(파일을 암호로 암호화합니다)' 체크 상자, 암호와 암호 확인 입력란, 12자 이상이라는 안내가 있다."></div>
       </figure>
       <ul class="lines">
-        <li>운영체제 보안 저장소에 암호화해 둡니다. Windows는 Windows 계정에 묶인 DPAPI, macOS는 키체인을 씁니다.</li>
+        <li>운영체제 보안 저장소에 암호화해 보관합니다. Windows는 Windows 계정에 묶인 DPAPI, macOS는 키체인을 씁니다.</li>
         <li>새 PC로 옮길 때는 직접 정한 암호(12자 이상)로 암호화한 연결 파일을 내보내고 가져옵니다.</li>
         <li>사용 통계는 모으지도 보내지도 않습니다. 밖으로 나가는 요청은 업데이트 확인, 내장되지 않은 드라이버 내려받기, 직접 설정한 Chromite Agent 제공자 호출입니다. 자세한 내용은 <a href="/ko/privacy.html">개인정보</a>에 있습니다.</li>
       </ul>
@@ -208,8 +206,8 @@
   <section class="scene scene-side" id="open-source" aria-labelledby="open-source-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="open-source-title">무료 오픈 소스</h2>
-        <p class="scene-lead">Chromite의 소스 코드는 GitHub에 공개되어 있으며 Apache License 2.0을 따릅니다. 누구나 코드를 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</p>
+        <h2 id="open-source-title">회사에서도 개인도, 모든 기능이 무료</h2>
+        <p class="scene-lead">업무에 써도 개인적으로 써도 유료판, 기능 제한, 구독이 없습니다.</p>
       </div>
       <div class="scene-media oss">
         <a class="oss-repo" href="https://github.com/froiibn/chromite">
@@ -222,7 +220,7 @@
         </ul>
       </div>
       <ul class="lines">
-        <li>Windows용 설치 파일(코드 서명)과 macOS용 디스크 이미지를 제공합니다. 새 버전은 자동으로 받아 두었다가 앱을 다시 시작할 때 설치합니다.</li>
+        <li>근거는 상업적 사용을 허용하는 Apache License 2.0입니다. 소스 코드는 GitHub에 공개되어 있어 누구나 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</li>
         <li>Chromite는 Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했습니다. 원저작자 표시와, 함께 배포되는 JDBC 드라이버, Java 런타임, 글꼴의 라이선스는 NOTICE에 있습니다.</li>
       </ul>
     </div>
@@ -264,7 +262,6 @@
             <dt>버전</dt><dd data-field="version"></dd>
             <dt>크기</dt><dd data-field="size"></dd>
             <dt>게시일</dt><dd data-field="date"></dd>
-            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
           </dl>
           <p class="when-missing">Windows용 파일이 아직 없습니다.</p>
         </article>
@@ -279,30 +276,13 @@
             <dt>버전</dt><dd data-field="version"></dd>
             <dt>크기</dt><dd data-field="size"></dd>
             <dt>게시일</dt><dd data-field="date"></dd>
-            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
           </dl>
           <p class="when-missing">macOS용 파일이 아직 없습니다.</p>
         </article>
       </div>
-      <p class="state state-static">최신 파일의 버전과 내려받기 단추는 JavaScript로 채웁니다. JavaScript 없이 받으려면 <a href="/downloads/releases.json">releases.json</a>에서 파일 이름(크기, SHA-256 포함)을 보고 <code>/downloads/파일 이름</code>을 여세요. <a href="https://github.com/froiibn/chromite/releases">GitHub 릴리스</a>에도 같은 파일이 있습니다.</p>
+      <p class="state state-static">최신 파일의 버전과 내려받기 단추는 JavaScript로 채웁니다. JavaScript 없이 받으려면 <a href="/downloads/releases.json">releases.json</a>에서 파일 이름을 보고 <code>/downloads/파일 이름</code>을 여세요. <a href="https://github.com/froiibn/chromite/releases">GitHub 릴리스</a>에도 같은 파일이 있습니다.</p>
     </section>
   </section>
-
-  <div class="sects">
-    <section class="sect">
-      <h2>서명과 확인</h2>
-      <div class="body">
-        <p>Windows 설치 파일은 게시자 Seizia로 코드 서명되어 있고, macOS 앱은 Apple의 공증을 받았습니다. 받은 파일의 SHA-256을 위 값과 비교해 확인할 수 있습니다(Windows: <code>Get-FileHash 파일</code>, macOS: <code>shasum -a 256 파일</code>).</p>
-      </div>
-    </section>
-
-    <section class="sect">
-      <h2>자동 업데이트</h2>
-      <div class="body">
-        <p>Chromite는 새 버전이 나오면 스스로 받아 두었다가, 앱을 다시 시작할 때 설치합니다. 받은 파일은 크기, SHA-256, 서명을 확인한 뒤에만 실행합니다. 업데이트 확인이 보내는 정보는 <a href="/ko/privacy.html">개인정보</a>에 적었습니다.</p>
-      </div>
-    </section>
-  </div>
 </main>
 
 <footer class="foot">
