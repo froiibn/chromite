@@ -68,7 +68,8 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Chromite: {@link #probeTransaction}: whether the session has a transaction, asked from the server
  *   (docs/chromite/idle-transactions.md "MySQL, MariaDB").
  * - 2026-11-09 Chromite: {@link #probeTransaction} tells that the transaction only reads when INNODB_TRX shows no changed
- *   row and no InnoDB lock (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기").
+ *   row and no InnoDB lock, read again 0.11 s later so that the view's copy is current (docs/chromite/idle-transactions.md
+ *   "조회만 한 트랜잭션 끝내기").
  */
 public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe {
 
@@ -86,6 +87,11 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
     // SERVER_STATUS_IN_TRANS of the client protocol's status flags
     private static final int SERVER_STATUS_IN_TRANS = 1;
 
+    // InnoDB fills INNODB_TRX from a cache refreshed when it is read and older than 0.1 s; a read this much later is current
+    private static final long INNODB_TRX_REFRESH_MILLIS = 110;
+    private static final String INNODB_TRX_QUERY =
+        "SELECT trx_rows_modified, trx_lock_structs FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id = CONNECTION_ID()"; //$NON-NLS-1$
+
     // The login may read INNODB_TRX (PROCESS privilege); false after the first refusal
     private volatile boolean innodbTrxReadable = true;
 
@@ -101,8 +107,10 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
      * the server does not report as a transaction.
      * The transaction only reads ({@link DBCServerTransaction#readsOnly()}) in manual commit when INNODB_TRX lists it with
      * no modified row and no InnoDB lock structure (a plain read: its read view and the tables' shared metadata locks).
-     * Without PROCESS, or before the view lists the transaction, that is unknown and the answer does not say so: the
-     * statements alone cannot tell, a SELECT may call a function that changes data.
+     * Without PROCESS that is unknown and the answer does not say so: the statements alone cannot tell, a SELECT may call
+     * a function that changes data. The view is a copy refreshed at most every 0.1 s (another session may have just
+     * refreshed it): before saying "reads only", or when it does not list the transaction yet, it is read again 0.11 s
+     * later, which makes InnoDB refresh it.
      */
     @Nullable
     @Override
@@ -129,20 +137,35 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
             }
             if (innodbTrxReadable) {
                 // An error does not end a MySQL transaction; the login lacks PROCESS, so it is not asked again
-                try (ResultSet rs = statement.executeQuery(
-                    "SELECT trx_rows_modified, trx_lock_structs FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id = CONNECTION_ID()")) { //$NON-NLS-1$
+                long[] trx;
+                try {
+                    trx = readInnodbTrx(statement);
+                } catch (SQLException e) {
+                    innodbTrxReadable = false;
+                    trx = null;
+                }
+                if (innodbTrxReadable) {
+                    boolean manualCommit = !connection.getAutoCommit();
+                    if (manualCommit && (trx == null || trx[0] == 0 && trx[1] == 0)) {
+                        // Perhaps a copy from before the last statement: read a current one
+                        try {
+                            Thread.sleep(INNODB_TRX_REFRESH_MILLIS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds);
+                        }
+                        trx = readInnodbTrx(statement);
+                    }
                     boolean readsOnly = false;
-                    if (rs.next()) {
-                        if (rs.getLong(1) > 0) {
+                    if (trx != null) {
+                        if (trx[0] > 0) {
                             holds.add(DBCServerTransaction.Hold.CHANGES);
                         }
                         // With no row lock, the read view and the tables' metadata locks
                         holds.add(DBCServerTransaction.Hold.LOCKS);
-                        readsOnly = rs.getLong(1) == 0 && rs.getLong(2) == 0 && !connection.getAutoCommit();
+                        readsOnly = manualCommit && trx[0] == 0 && trx[1] == 0;
                     }
                     return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds, readsOnly);
-                } catch (SQLException e) {
-                    innodbTrxReadable = false;
                 }
             }
         }
@@ -151,6 +174,16 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
             holds.add(DBCServerTransaction.Hold.LOCKS);
         }
         return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds);
+    }
+
+    /**
+     * The session's INNODB_TRX row: rows modified and InnoDB lock structures, or null when the view does not list it.
+     */
+    @Nullable
+    private static long[] readInnodbTrx(@NotNull Statement statement) throws SQLException {
+        try (ResultSet rs = statement.executeQuery(INNODB_TRX_QUERY)) {
+            return rs.next() ? new long[]{rs.getLong(1), rs.getLong(2)} : null;
+        }
     }
 
     // MySQL Connector/J: getSession().getServerSession().inTransactionOnServer(); MariaDB Connector/J: getContext().getServerStatus()

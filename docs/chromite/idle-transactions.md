@@ -352,7 +352,9 @@ Oracle은 쥔 것을 알려 주지 않으므로 도구 설명의 쥔 것은 문�
   - PostgreSQL: 수동 커밋, 트랜잭션 ID 없음(모든 데이터 변경과 행 잠금은 먼저 트랜잭션 ID를 받는다. SELECT가 부른 함수의 변경도), 그 세션의 잡힌 잠금이
     관계의 `AccessShareLock`과 SERIALIZABLE의 `SIReadLock`뿐(시스템 카탈로그 제외). `LOCK TABLE`, 시퀀스의 `nextval`(RowExclusiveLock), 권고 잠금이 있으면 아니다.
   - MySQL·MariaDB: 수동 커밋, 로그인이 `INNODB_TRX`를 읽을 수 있고 그 트랜잭션 행이 있으며 `trx_rows_modified` 0, `trx_lock_structs` 0(행 잠금 없음: 읽기 뷰와
-    공유 메타데이터 잠금뿐). PROCESS 권한이 없거나 뷰에 아직 행이 없으면 모른다. 문장만으로는 정하지 않는다: SELECT가 데이터를 바꾸는 함수를 부를 수 있다.
+    공유 메타데이터 잠금뿐). PROCESS 권한이 없으면 모른다. 문장만으로는 정하지 않는다: SELECT가 데이터를 바꾸는 함수를 부를 수 있다.
+    `INNODB_TRX`는 읽을 때 0.1초보다 오래된 경우에만 새로 채우는 사본이라(다른 세션이 막 읽었으면 마지막 문장 전의 사본일 수 있다), "조회만"이라고 답하기 전과
+    행이 없을 때는 0.11초 뒤에 한 번 더 읽어 그때의 값으로 정한다. 그 경우에만 묻는 시간이 0.11초 늘어난다(PROCESS가 있는 로그인의 수동 커밋).
   - SQL Server·Oracle·그 밖의 DB: 늘 거짓. SQL Server 일반 SELECT는 쥔 것이 없어 이미 숨김이고 Oracle 일반 SELECT는 트랜잭션을 만들지 않는다. 남는 경우(잠금 힌트,
     REPEATABLE READ·SERIALIZABLE·SNAPSHOT, `SET TRANSACTION`)는 사용자가 고른 것이고, 읽기 잠금인지 쓰기 잠금인지를 권한 없이 읽을 수 없다(위 "SQL Server").
 - 쿼리 관리자가 본 문장도 그렇다: 사용자 문장이 1개 이상, 데이터 변경 문장 0개, 잠그는 읽기(`FOR UPDATE`/`FOR SHARE`, `LOCK IN SHARE MODE`, `LOCK TABLE`, SQL Server 잠금 힌트) 없음,
@@ -563,8 +565,8 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 조회만 한 트랜잭션 끝내기(2026-11-09)에서 남은 것:
   - MySQL·MariaDB에서 `INNODB_TRX`를 읽을 수 없는 로그인(PROCESS 권한 없음, 흔한 경우)은 조회만 했는지 DB가 확인해 주지 않아 한 번에 끝내기·자동으로 끝내기가
     없다(보통의 커밋 / 롤백). 권한 없이 읽는 방법(서버의 `session_track_transaction_info` 상태 추적)은 드라이버가 값을 내주지 않아 넣지 않았다.
-  - `INNODB_TRX`는 최대 0.1초 묵은 사본이다. 다른 세션이 막 읽어 둔 사본에 그 뒤 SELECT가 부른 함수의 변경이 아직 없을 수 있다(그 트랜잭션의 첫 문장이면 행이 없어
-    안전 쪽). 문장 분류(데이터 변경 문장 없음)와 함께 보지만 SELECT 안의 함수는 문장으로 알 수 없다. 드문 조합이라 남겼다.
+  - MySQL·MariaDB에서 PROCESS가 없는 로그인의 데이터 변경 문장은 칸이 "(변경 있음)"이 아니라 문장 수로 보인다(DB의 답이 "잠금"뿐이라 쥔 것은 DB의 답을 쓴다,
+    위 "합치기"). 점은 같은 주의 색이다.
   - 유휴 트랜잭션 알림은 조회만 한 트랜잭션에도 지금처럼 커밋 / 롤백 / 열어 두기다(끝내기 단추 없음). 유휴 연결 닫기도 조회만 한 트랜잭션이 있으면 닫지 않는다(그대로).
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
