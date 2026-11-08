@@ -75,6 +75,12 @@ import java.util.Map;
  * - 2026-11-08 Chromite: 넣기가 실패한 뒤 다시 시도·자동 복구는 실패한 행부터 다시 넣고(복구가 롤백했으면 그 실행이 넣은 행부터),
  *   건너뛰기는 실패한 행만 버림({@code ExecuteBatchImpl}). 전에는 한 행씩 넣기에서 실패한 행이 조용히 빠졌다. 사용자가 취소해 넣던 문장이
  *   취소된 것은 오류로 묻지 않고 취소로 끝냄 (docs/chromite/swing-data-transfer.md "한 행씩 넣기의 다시 시도와 복구", "넣는 중 취소")
+ * - 2026-11-09 Chromite: 수동 커밋 넣기는 실행마다 저장점을 두고, 실패하면 그 저장점으로 되돌린 뒤에 묻는다. 오류가 트랜잭션 전체를
+ *   끝내는 DB(PostgreSQL은 중단, SQL Server 트리거 오류·교착 상태는 롤백)에서 건너뛰기가 그 전에 넣은 행을 조용히 잃었다(커밋이 롤백이
+ *   됨). 저장점으로 되돌릴 수 없으면(트랜잭션이 이미 끝남) 커밋하지 않은 앞 행이 있을 때 넣기를 멈추고 어떤 행인지 알린다. 건너뛴 뒤
+ *   남은 행은 곧바로 넣는다(마지막 실행에서 건너뛰면 남은 행이 버려졌다). 넣기가 멈추면(중지, 위의 멈춤) 읽기를 닫을 때의 마지막
+ *   넣기({@link #fetchEnd})를 하지 않는다: 멈춘 행을 다시 실행해 같은 질문을 또 하고, 성공하면 멈춘 넣기를 커밋했다
+ *   (docs/chromite/swing-data-transfer.md "오류가 트랜잭션을 끝내는 DB의 건너뛰기")
  */
 @DBSerializable(DatabaseTransferConsumer.NODE_ID)
 public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
@@ -102,6 +108,14 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
     // What the load transaction holds that is not committed yet (manual commit): told to the user when it is rolled back
     private boolean truncateUncommitted;
     private long rowsCommitted;
+    // Rows inserted in the load transaction by earlier executions (manual commit): lost if the database ends the transaction
+    private boolean executedUncommitted;
+    // The driver cannot set savepoints (then none is tried again in this load) or cannot release them (SQL Server, Oracle:
+    // they stay until the commit)
+    private boolean savepointUnsupported;
+    private boolean savepointReleaseUnsupported;
+    // An insert error stopped the load (Stop, or rows lost with the transaction): the end of the fetch inserts nothing more
+    private boolean insertStopped;
 
     // Used only for non-explicit import
     // In this case consumer will be replaced with explicit consumers during configuration
@@ -485,6 +499,8 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                 boolean retryInsert;
                 do {
                     retryInsert = false;
+                    // Set before the last try (manual commit): rolling back to it undoes that try only
+                    DBCSavepoint[] savepoint = {null};
                     try {
                         int[] tries = {0};
                         DBExecUtils.tryExecuteRecover(targetSession, targetSession.getDataSource(), param -> {
@@ -492,8 +508,14 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                                 // The recovery rolled back or reconnected: the rows the failed try executed are gone
                                 executeBatch.restoreAppliedRows();
                             }
+                            savepoint[0] = manualCommit ? setInsertSavepoint(loadTxnManager) : null;
                             statistics.accumulate(executeBatch.execute(targetSession, options));
+                            releaseInsertSavepoint(loadTxnManager, savepoint[0]);
+                            savepoint[0] = null;
                         });
+                        if (manualCommit) {
+                            executedUncommitted = true;
+                        }
                     } catch (Throwable e) {
                         if (targetSession.getProgressMonitor().isCanceled()) {
                             // The user canceled the transfer and with it the running statement: not an error to ask about.
@@ -501,19 +523,27 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                             log.debug("Insert canceled: " + e.getMessage());
                             break;
                         }
+                        if (manualCommit) {
+                            keepLoadTransaction(loadTxnManager, savepoint[0], e);
+                        }
+                        // After a skip the rows that follow the failed ones are inserted at once: left in the batch, the
+                        // last execution's were dropped when the batch closed
                         if (ignoreDuplicateRowsErrors && (e.getCause() instanceof SQLException)) {
                             DBPErrorAssistant.ErrorType errorType = DBExecUtils.discoverErrorType(targetSession.getDataSource(), e.getCause());
                             if (errorType == DBPErrorAssistant.ErrorType.UNIQUE_KEY_VIOLATION) {
                                 executeBatch.skipFailedRows();
-                                break;
+                                retryInsert = true;
+                                continue;
                             }
                         }
                         log.error("Error inserting row", e);
                         if (ignoreErrors) {
                             executeBatch.skipFailedRows();
-                            break;
+                            retryInsert = true;
+                            continue;
                         }
                         if (DBWorkbench.getPlatform().getApplication().isHeadlessMode()) {
+                            insertStopped = true;
                             if (e instanceof DBCException dbe) {
                                 throw dbe;
                             }
@@ -527,16 +557,19 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                         }
                         DBPPlatformUI.UserResponse response = DBWorkbench.getPlatformUI().showErrorStopRetryIgnore(message, e, true);
                         retryInsert = switch (response) {
-                            case STOP -> throw new DBCException("Can't insert row", e);
+                            case STOP -> {
+                                insertStopped = true;
+                                throw new DBCException("Can't insert row", e);
+                            }
                             case RETRY -> true;
                             case IGNORE -> {
                                 executeBatch.skipFailedRows();
-                                yield false;
+                                yield true;
                             }
                             case IGNORE_ALL -> {
                                 ignoreErrors = true;
                                 executeBatch.skipFailedRows();
-                                yield false;
+                                yield true;
                             }
                             default -> retryInsert;
                         };
@@ -557,14 +590,108 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
     // After a commit, or after the rollback was told
     private void resetUncommitted() {
         truncateUncommitted = false;
+        executedUncommitted = false;
         rowsCommitted = rowsExported;
+    }
+
+    /**
+     * A savepoint before an insert execution of a manual-commit load, or null when the driver has none. The driver is
+     * asked by trying: {@code supportsSavepoints()} of JDBC data sources is always false (upstream), and turning it on
+     * would also switch on the savepoints of other features (result set saves, the transfer producer).
+     */
+    @Nullable
+    private DBCSavepoint setInsertSavepoint(@NotNull DBCTransactionManager txnManager) {
+        if (savepointUnsupported) {
+            return null;
+        }
+        try {
+            return txnManager.setSavepoint(targetSession.getProgressMonitor(), null);
+        } catch (Throwable e) {
+            // A lost connection says nothing about the driver; the execution fails too and the recovery reconnects
+            if (DBExecUtils.discoverErrorType(targetSession.getDataSource(), e) != DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
+                savepointUnsupported = true;
+            }
+            log.debug("Can't set a savepoint before the insert: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void releaseInsertSavepoint(@NotNull DBCTransactionManager txnManager, @Nullable DBCSavepoint savepoint) {
+        if (savepoint == null || savepointReleaseUnsupported) {
+            return;
+        }
+        try {
+            txnManager.releaseSavepoint(targetSession.getProgressMonitor(), savepoint);
+        } catch (Throwable e) {
+            savepointReleaseUnsupported = true;
+            log.debug("Can't release the savepoint of the insert: " + e.getMessage());
+        }
+    }
+
+    /**
+     * After a failed insert execution of a manual-commit load, before Retry or Skip: makes the load transaction hold
+     * exactly the rows inserted before that execution. Skip assumed that a failed statement undoes only itself, but in
+     * some databases an error ends the whole transaction (PostgreSQL aborts it and its COMMIT becomes a rollback,
+     * SQL Server rolls it back on an error in a trigger or on a deadlock), and the rows inserted before were lost
+     * without a word.
+     * <ul>
+     *     <li>Rolled back to the savepoint set before the execution: the transaction is usable again; the rows the
+     *     execution inserted before it failed are undone and inserted again by the next try. Not when the database
+     *     says it has no transaction any more ({@link DBCTransactionProbe}): the SQL Server driver skips the rollback to
+     *     a savepoint without a transaction ({@code IF @@TRANCOUNT > 0}), so it would succeed after the server rolled
+     *     everything back.</li>
+     *     <li>No savepoint (the database has none) and not reported as an aborted transaction: the failed statement
+     *     undid only itself.</li>
+     *     <li>Otherwise the transaction is ended or can only be rolled back. When it held nothing but this execution's
+     *     rows (they are still in the batch), it is rolled back (a lost connection cannot, but the server ended the
+     *     transaction with it) and they are inserted again. When it held earlier rows or
+     *     the emptying of the table, those are lost: the load stops and names them (the close tells the rollback).</li>
+     * </ul>
+     *
+     * @throws DBCException when the database ended a transaction with earlier rows: the load stops
+     */
+    private void keepLoadTransaction(
+        @NotNull DBCTransactionManager txnManager,
+        @Nullable DBCSavepoint savepoint,
+        @NotNull Throwable error
+    ) throws DBCException {
+        if (savepoint != null) {
+            DBCServerTransaction server = targetSession.getExecutionContext() instanceof DBCTransactionProbe probe ? probe.probeTransaction() : null;
+            if (server != null && server.kind() == DBCServerTransaction.Kind.NONE) {
+                log.debug("The load transaction ended with the failed insert");
+            } else {
+                try {
+                    txnManager.rollback(targetSession, savepoint);
+                    executeBatch.restoreAppliedRows();
+                    return;
+                } catch (Throwable e) {
+                    log.debug("Can't roll back to the savepoint of the failed insert: " + e.getMessage());
+                }
+            }
+        } else if (DBExecUtils.discoverErrorType(targetSession.getDataSource(), error) != DBPErrorAssistant.ErrorType.TRANSACTION_ABORTED) {
+            // The rows the execution inserted before the failure stay in the transaction
+            executedUncommitted = true;
+            return;
+        }
+        if (truncateUncommitted || executedUncommitted) {
+            insertStopped = true;
+            throw new DBCException("The database ended the load transaction of " + getTargetName() + " after an insert error, so the rows not committed yet"
+                + " (source rows " + (rowsCommitted + 1) + "-" + rowsExported + ") are not in the table. The load stopped. Error: " + error.getMessage(), error);
+        }
+        try {
+            txnManager.rollback(targetSession, null);
+        } catch (Throwable e) {
+            // The connection is lost: the server ended the transaction with it, and Retry reconnects
+            log.debug("Can't roll back the ended load transaction: " + e.getMessage());
+        }
+        executeBatch.restoreAppliedRows();
     }
 
     @Override
     public void fetchEnd(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBCException {
         boolean canceled = isTransferCanceled(session);
         try {
-            if (!canceled && rowsExported > 0) {
+            if (!canceled && !insertStopped && rowsExported > 0) {
                 insertBatch(true);
             }
             if (!canceled && bulkLoadManager != null) {
@@ -680,7 +807,8 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
             parts.add(DTMessages.database_transfer_consumer_rolled_back_truncate);
         }
         if (rowsExported > rowsCommitted) {
-            parts.add(NLS.bind(DTMessages.database_transfer_consumer_rolled_back_rows, rowsExported - rowsCommitted));
+            parts.add(NLS.bind(DTMessages.database_transfer_consumer_rolled_back_rows,
+                new Object[]{rowsExported - rowsCommitted, rowsCommitted + 1, rowsExported}));
         }
         return parts.isEmpty() ? null : String.join(", ", parts); //$NON-NLS-1$
     }

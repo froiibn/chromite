@@ -31,6 +31,8 @@ import javax.swing.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The macOS application menu (About, Options, Hide, Hide Others, Show All, Quit) and the quit request when AWT does not
@@ -45,8 +47,14 @@ import java.util.List;
  * 정보·옵션도 같은 객체가 받아 Swing 쪽 실행기를 EDT에서 부른다(AWT 위임자의 내부 선택자에 기대지 않는다). 메뉴는 AppKit 스레드에서만 다룰 수 있어 main dispatch queue로 보낸다. AWT는 창이 활성화될 때 메인 메뉴의
  * 0번(앱 메뉴)을 남기고 나머지를 지우므로({@code CMenuBar clearMenuBar}) 이 메뉴는 그대로 남는다.
  *
+ * 메인 메뉴를 새로 두므로({@code setMainMenu:}) 창 메뉴가 화면 메뉴 막대로 가는 경우({@link MacOSScreenMenuBar}) AWT가 창 메뉴를 붙이기 전에
+ * 끝나야 한다. 그래서 {@link #install}은 AppKit 스레드의 작업이 끝날 때까지 기다린다(메인 창을 보이기 전, 최대 {@value #SETUP_WAIT_SECONDS}초).
+ * AppKit 스레드가 EDT를 기다리고 있어도 시간이 다 되면 그대로 진행하므로 교착은 없다.
+ *
  * 변경 이력:
  * - 2026-11-08 최초 작성: macOS 시작 교착 수정과 함께 (docs/chromite/platform-startup.md "macOS 앱 메뉴")
+ * - 2026-11-09 {@link #install}이 앱 메뉴 작업이 끝나기를 기다림: 화면 메뉴 막대의 창 메뉴가 새 메인 메뉴로 지워지지 않게(앱 변경 #27)
+ *   (docs/chromite/mac-ui.md)
  */
 final class MacOSAppMenu {
 
@@ -61,6 +69,8 @@ final class MacOSAppMenu {
     /** NSEventModifierFlagCommand, NSEventModifierFlagOption */
     private static final long COMMAND = 1L << 20;
     private static final long OPTION = 1L << 19;
+    /** Longest wait of {@link #install} for the AppKit thread */
+    private static final int SETUP_WAIT_SECONDS = 5;
 
     /** Objective-C method "v@:@": {@code - (void)action:(id)sender} */
     public interface ActionCallback extends Callback {
@@ -87,8 +97,9 @@ final class MacOSAppMenu {
     }
 
     /**
-     * Sets the application menu and, when the application has no delegate, the quit request, on the AppKit thread
-     * (asynchronously). {@code about}, {@code options} and {@code quit} run on the EDT.
+     * Sets the application menu and, when the application has no delegate, the quit request, on the AppKit thread, and
+     * waits until it is done (at most {@value #SETUP_WAIT_SECONDS} s). {@code about}, {@code options} and {@code quit} run
+     * on the EDT.
      */
     static synchronized void install(
         @NotNull String productName,
@@ -98,17 +109,28 @@ final class MacOSAppMenu {
     ) {
         process = NativeLibrary.getProcess();
         msgSend = process.getFunction("objc_msgSend");
+        CountDownLatch done = new CountDownLatch(1);
         DispatchCallback build = context -> {
             try {
                 setUp(productName, about, options, quit);
             } catch (Throwable e) {
                 log.error("Cannot set the macOS application menu", e);
+            } finally {
+                done.countDown();
             }
         };
         CALLBACKS.add(build);
         // dispatch_get_main_queue() is the address of _dispatch_main_q
         process.getFunction("dispatch_async_f").invokeVoid(
             new Object[] {process.getGlobalVariableAddress("_dispatch_main_q"), null, build});
+        // The new main menu must be in place before AWT adds the window's menus to it (screen menu bar)
+        try {
+            if (!done.await(SETUP_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                log.warn("The macOS application menu was not set within " + SETUP_WAIT_SECONDS + " s");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static void setUp(

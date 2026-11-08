@@ -105,6 +105,8 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다. 다만 2026-11-07에 SQL Server 열 정의의 `COLLATE` 조건을 모델 `SQLServerTableColumnManager`에서 고쳤다(SWT에도 적용).
   2026-11-08(후속 29 d–f): 모델 `AbstractCommandContext`(실패 뒤 합쳐진 명령 지우기, 적용한 문장 기록), `SQLObjectEditor.ObjectRenameCommand.merge`(옛 이름),
   `SQLServerTableColumnManager`(`sp_rename` 새 이름, 기본값 제약 조건 이름). 모두 SWT에도 있던 결함이다.
+  2026-11-09(후속 30 b): `SQLServerBaseTableManager`·`SQLServerProcedureManager`(`sp_rename` 옛 이름), `SQLServerTableIndex`(인덱스 DDL 질의의 이름),
+  `SQLServerDatabase`(Babelfish 스키마 목록의 데이터베이스 이름). SWT에도 있던 결함이다.
 
 ## 확인 (2026-11-06)
 
@@ -195,6 +197,34 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 명령 묶음으로 저장하는 모든 편집(디자이너, 탐색기 이름 바꾸기·지우기·만들기, Properties 창 편집)의
   실패 뒤 상태, 이름 바꾸기 명령을 여러 번 합치는 경로, SQL Server 열 이름 바꾸기·기본값 다시 만들기.
 
+## sp_rename의 옛 이름 (2026-11-09, 후속 30 b)
+
+- **원인:** SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)는 `sp_rename`의 첫 인자를
+  `" N'" + 스키마 이름 + "." + 따옴표 붙인 옛 이름 + "'"`로 만들어 `'`를 두 번 쓰지 않았다. 이름(또는 데이터베이스·스키마 이름)에 `'`가 있으면 문장이 깨졌다
+  ("Incorrect syntax near 'tab'"). 열 이름 바꾸기(`SQLServerTableColumnManager`)는 후속 29에서 이미 `SQLUtils.quoteString`을 썼다.
+- **고친 것:** 두 관리자도 열처럼 이름 전체를 `SQLUtils.quoteString`으로 감싼다(`N'chr.dbo.[o''tab]'`).
+- **SQL Server 플러그인의 같은 모양(이름을 문자열 상수에 넣는 곳) 점검:** `sp_rename` 호출은 위 세 곳뿐이다. 확장 속성(`sp_addextendedproperty` 등)은
+  `quoteString`/`getQuotedString`을 쓴다. 고친 곳 두 군데 더:
+  - `SQLServerTableIndex.readIndexDefinition`: 인덱스 DDL을 만드는 질의에 인덱스 이름을 이스케이프하지 않고 `'…'`에 넣어 `'`가 있으면 질의가 깨졌다
+    ("Error reading index definition"). 테이블 이름처럼 이스케이프한 `N'…'`로.
+  - `SQLServerDatabase` 스키마 목록(Babelfish만): 데이터베이스 이름을 식별자 따옴표(`getQuotedIdentifier`)로 문자열에 넣어, 따옴표가 필요한 이름은
+    `[이름]`이 되어 맞지 않았고 `'`가 있으면 질의가 깨졌다. 이스케이프한 이름으로. Babelfish 서버가 없어 실행해 보지 않았다.
+- **같은 확인에서 본 것(범위 밖, 고치지 않음):** 인덱스 DDL의 열 목록은 서버 질의가 열 이름을 따옴표 없이 이어 붙여 `c'ol ASC`처럼 나온다.
+
+### 확인 (2026-11-09, `chromite/followups-6`)
+
+탐색기의 이름 바꾸기와 같은 경로(`DBEObjectRenamer.renameObject` → 명령 문맥 저장)를 시험 코드가 입력 대화상자 없이 불렀다. 공용 Docker SQL Server의 `chr_followups6`.
+"고치기 전"은 `origin/devel`(918eec24f4)을 고치지 않고 빌드한 것이다. 증거 `D:\Tools\_scratch\chromite-followups-6\run\r4*.txt.log`(전), `f4.txt.log`(뒤).
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 테이블 `dbo.[o'tab]` → `o'tab2` | `EXEC chr_followups6.sys.sp_rename N'chr_followups6.dbo.[o'tab]', N'o''tab2', 'OBJECT'` → 오류 102 | `… sp_rename N'chr_followups6.dbo.[o''tab]', N'o''tab2', 'OBJECT'` → 저장, `sys.objects`에 `o'tab2` |
+| 프로시저 `dbo.[p'proc]` → `p'proc2` | 오류 156 | `… sp_rename N'chr_followups6.dbo.[p''proc]', N'p''proc2'` → 저장, `p'proc2` |
+| 인덱스 `[ixo'tab]`의 DDL | "Error reading index definition" | `CREATE NONCLUSTERED INDEX [ixo'tab] ON chr_followups6.dbo.[o'tab] (…)` |
+
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: SQL Server 테이블·뷰·프로시저 이름 바꾸기(탐색기, 디자이너 테이블 탭), 인덱스 DDL 보기,
+  Babelfish 스키마 목록.
+
 ## 남긴 것
 
 - **New View…:** 뷰는 SQL 정의를 편집해야 해서 디자이너 표가 맞지 않는다. 다음에 "CREATE VIEW 틀을 쿼리 창으로 열기"로 만든다.
@@ -204,8 +234,8 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
 - ~~(2026-11-08 확인에서 찾음) SQL Server 저장된 열 이름 바꾸기가 `sp_rename` 없이 `ALTER COLUMN`으로 나가는 것, 저장 스크립트가 중간에 실패할 때 앞 문장이 남는 것과
   디자이너가 보이는 상태, 다시 만든 기본값 제약 조건의 이름(위 "확인 (2026-11-08, SQL Server·MariaDB…)").~~ 2026-11-08 고침(위 "후속 29 d–f").
-- SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)의 `sp_rename` 첫 인자는 따옴표를 두 번 쓰지 않은 채
-  `N'…'`에 넣는다. 이름에 `'`가 있으면 문장이 깨진다(이번 범위 밖, 고치지 않음).
+- ~~SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)의 `sp_rename` 첫 인자는 따옴표를 두 번 쓰지 않은 채
+  `N'…'`에 넣는다. 이름에 `'`가 있으면 문장이 깨진다.~~ 2026-11-09 고침(위 "sp_rename의 옛 이름").
 
 ## 변경 이력
 
@@ -227,3 +257,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-08 SQL Server·MariaDB 화면 확인과 다크 테마(`chromite/followups-4`): 저장된 열의 형식 바꾸기 성공, SQL Server 열 이름 바꾸기·중간 실패·기본값 이름 결함을 "남긴 것"에 적음.
 - 2026-11-08 후속 29 d–f(`chromite/followups-5`): 저장된 객체의 이름을 관리자의 이름 바꾸기로(`TableDesignSession`, 모델 `ObjectRenameCommand.merge`·SQL Server `sp_rename` 새 이름),
   중간에 실패한 저장의 적용·미적용 알림과 다시 읽기(`AbstractCommandContext`, `PartialSaveException`), 다시 만든 SQL Server 기본값 제약 조건의 이름. 위 "후속 29 d–f".
+- 2026-11-09 후속 30 b(`chromite/followups-6`): SQL Server 테이블·프로시저 `sp_rename`의 옛 이름, 인덱스 DDL 질의와 Babelfish 스키마 목록의 이름을 문자열로
+  이스케이프. 위 "sp_rename의 옛 이름".

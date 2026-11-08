@@ -57,6 +57,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 주 도구 막대가 Undo·Redo·Find 동작을 같이 쓰도록 내줌, Undo·Redo는 실행 취소 기록에 맞춰 켜고 끔
  *   (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}, macOS Command, Replace는 ⌥⌘F, Redo는 ⇧⌘Z) (docs/chromite/shortcuts.md)
  */
 final class EditMenu {
 
@@ -104,16 +105,17 @@ final class EditMenu {
      */
     EditMenu(@NotNull Supplier<RTextArea> activeTextArea) {
         this.activeTextArea = activeTextArea;
-        undoAction = createCommand(CoreMessages.edit_undo, KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK, Command.UNDO);
-        redoAction = createCommand(CoreMessages.edit_redo, KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK, Command.REDO);
-        cutAction = createCommand(CoreMessages.edit_cut, KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK, Command.CUT);
-        copyAction = createCommand(CoreMessages.edit_copy, KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK, Command.COPY);
-        pasteAction = createCommand(CoreMessages.edit_paste, KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK, Command.PASTE);
-        selectAllAction = createCommand(CoreMessages.edit_select_all, KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK, Command.SELECT_ALL);
-        findAction = createAction(CoreMessages.edit_find, KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, false)));
-        replaceAction = createAction(CoreMessages.edit_replace, KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, true)));
-        findNextAction = createAction(CoreMessages.find_find_next, KeyEvent.VK_F3, 0, () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, true)));
-        findPreviousAction = createAction(CoreMessages.find_find_previous, KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK,
+        undoAction = createCommand(CoreMessages.edit_undo, UiKeys.command(KeyEvent.VK_Z), Command.UNDO);
+        redoAction = createCommand(CoreMessages.edit_redo, UiKeys.command(KeyEvent.VK_Y), Command.REDO);
+        cutAction = createCommand(CoreMessages.edit_cut, UiKeys.command(KeyEvent.VK_X), Command.CUT);
+        copyAction = createCommand(CoreMessages.edit_copy, UiKeys.command(KeyEvent.VK_C), Command.COPY);
+        pasteAction = createCommand(CoreMessages.edit_paste, UiKeys.command(KeyEvent.VK_V), Command.PASTE);
+        selectAllAction = createCommand(CoreMessages.edit_select_all, UiKeys.command(KeyEvent.VK_A), Command.SELECT_ALL);
+        findAction = createAction(CoreMessages.edit_find, UiKeys.command(KeyEvent.VK_F), () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, false)));
+        replaceAction = createAction(CoreMessages.edit_replace, UiKeys.command(KeyEvent.VK_H), () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, true)));
+        findNextAction = createAction(CoreMessages.find_find_next, KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0),
+            () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, true)));
+        findPreviousAction = createAction(CoreMessages.find_find_previous, KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK),
             () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, false)));
 
         menu.setMnemonic(KeyEvent.VK_E);
@@ -300,19 +302,19 @@ final class EditMenu {
     }
 
     @NotNull
-    private static Action createCommand(@NotNull String name, int keyCode, int modifiers, @NotNull Command command) {
-        return createAction(name, keyCode, modifiers, () -> run(command));
+    private static Action createCommand(@NotNull String name, @NotNull KeyStroke accelerator, @NotNull Command command) {
+        return createAction(name, accelerator, () -> run(command));
     }
 
     @NotNull
-    private static Action createAction(@NotNull String name, int keyCode, int modifiers, @NotNull Runnable task) {
+    private static Action createAction(@NotNull String name, @NotNull KeyStroke accelerator, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 task.run();
             }
         };
-        action.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(keyCode, modifiers));
+        action.putValue(Action.ACCELERATOR_KEY, accelerator);
         return action;
     }
 }

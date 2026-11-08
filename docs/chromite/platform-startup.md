@@ -30,7 +30,7 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 | `ChromiteSwingApplication.start` | macOS 첫(AppKit) 스레드에서 불리면 본문(`run`)을 `MacOSMainThread.runApplication`에 맡긴다. 그 밖에는 바로 `run`. 두 경로 모두 `runWithSplash`를 거쳐 시작이 어떻게 끝나도 시작 화면을 닫는다 |
 | `StartupSplash` (2026-11-08) | Look and Feel 직후 런처 시작 화면을 이어받는 Swing 시작 화면. 띄운 뒤 `run`이 `applicationRunning`으로 런처 시작 화면을 내린다(Windows는 창을 만든 첫 스레드, macOS는 런처가 AppKit 스레드로 넘김). [branding.md](branding.md) "시작 화면" |
 | `MacOSMainThread` (새) | 앱 본문을 스레드 `Chromite main`에서 돌리고 첫 스레드는 CoreFoundation 실행 루프를 돈다. 본문이 끝나면 OSGi 프레임워크를 멈추고 결과 코드로 끝낸다(아래 "macOS 메인 스레드") |
-| `MacOSAppMenu` (새) | 앱 메뉴(정보, 옵션, 가리기, 기타 가리기, 모두 보기, 끝내기)와 앱 위임자(`applicationShouldTerminate:`)를 JNA·Objective-C 런타임으로 만든다(아래 "macOS 앱 메뉴") |
+| `MacOSAppMenu` (새) | 앱 메뉴(정보, 옵션, 가리기, 기타 가리기, 모두 보기, 끝내기)와 앱 위임자(`applicationShouldTerminate:`)를 JNA·Objective-C 런타임으로 만든다(아래 "macOS 앱 메뉴"). 메인 창을 보이기 전에 그 작업이 끝나기를 기다린다(최대 5초, 화면 메뉴 막대의 창 메뉴가 새 메인 메뉴로 지워지지 않게, [mac-ui.md](mac-ui.md)) |
 | `product/swing/pom.xml` `macos-info-plist` | 제품을 만든 뒤 macOS `Info.plist`를 고친다(아래 "macOS Info.plist") |
 | `ChromiteSwingApplication.configureNetwork` (2026-11-08) | IP 스택·주소 선호(Auto면 JDK 기본 그대로)와 네트워크 디버그 시스템 속성. 모델 설정 저장소(`ModelPreferences.getPreferences`)에서 읽는다 |
 | `ChromiteSwingApplication.run`의 `TimezoneRegistry.overrideTimezone()` (2026-11-08) | 플랫폼을 만든 직후(플랫폼 설정 저장소를 읽으므로), 연결·날짜 서식보다 앞 |
@@ -118,7 +118,7 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
 | `Eclipse`(런처 인수 배열) | `-keyring ~/.eclipse_keyring` | 지움. 이 인수는 옛 Platform 인증 저장소(`InternalPlatform` → `AuthorizationHandler.setKeyringFile`)만 읽고 Chromite는 쓰지 않는다. 보안 저장소는 `-eclipse.keyring`만 읽는다(`SecurePreferencesMapper`, [credential-storage.md](credential-storage.md)) |
 | `NSRequiresAquaSystemAppearance` | `true` | 지움(시스템 어두운 모드가 창 테두리에 닿음) |
 
-`CFBundleExecutable`(`chromite-swing`), `CFBundleIdentifier`, 앱 폴더 이름(`ChromiteSwing.app`)은 서명·업데이트·배포 파일이 쓰므로 그대로다.
+`CFBundleExecutable`(`chromite-swing`), `CFBundleIdentifier`는 서명·업데이트·배포 파일이 쓰므로 그대로다. 앱 폴더 이름은 2026-11-09에 `ChromiteSwing.app`에서 `Chromite.app`으로 바꿨다([distribution.md](distribution.md) "macOS 앱 이름").
 고친 뒤 값이 예상과 다르면(틀이 바뀌어 정규식이 맞지 않으면) 빌드가 실패한다(`<fail>` 조건).
 
 ## 설계 결정과 이유
@@ -224,3 +224,5 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
   런처가 만든 `NSApplication`에 앱 메뉴와 끝내기 위임자를 둔다(`MacOSAppMenu`, "macOS 앱 메뉴"). `Info.plist`의 이름(Chromite)과 Eclipse 틀 값 정리("macOS Info.plist").
   `macos-smoke.yml` 서명 없는 빌드로 시작·앱 메뉴·끝내기·열린 트랜잭션·키체인을 확인("macOS 확인 기록"). Windows 시작은 그대로임을 로컬 실행으로 확인.
 - 2026-11-08 시작 화면([branding.md](branding.md) "시작 화면"): `applicationRunning`을 메인 창 직전에서 Swing 시작 화면 직후로 옮김(런처 시작 화면을 내리는 호출). macOS에서는 작업 스레드에서 불려도 런처가 닫기를 AppKit 스레드로 넘기고 기다리지 않아 AppKit 스레드를 막지 않는다. `runWithSplash` 추가.
+- 2026-11-09 `MacOSAppMenu.install`이 앱 메뉴 작업이 끝나기를 기다림(최대 5초): macOS 화면 메뉴 막대(앱 변경 #27, `chromite/mac-ui`, [mac-ui.md](mac-ui.md)).
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

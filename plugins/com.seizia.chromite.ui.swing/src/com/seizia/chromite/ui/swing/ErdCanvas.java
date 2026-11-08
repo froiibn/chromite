@@ -23,7 +23,6 @@ import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -47,6 +46,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-erd.md)
+ * - 2026-11-09 Ctrl+클릭 선택·Ctrl+휠 확대를 플랫폼 명령 키로({@link UiKeys#isCommandDown}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class ErdCanvas extends JComponent implements Scrollable {
 
@@ -307,7 +307,8 @@ final class ErdCanvas extends JComponent implements Scrollable {
             popup(e, entity);
             return;
         }
-        boolean toggle = (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0;
+        // Ctrl+click on Windows, Command-click on macOS (where Ctrl+click is the right click)
+        boolean toggle = UiKeys.isCommandDown(e);
         if (SwingUtilities.isLeftMouseButton(e) && entity != null) {
             if (toggle) {
                 if (!selected.remove(entity)) {
@@ -398,7 +399,7 @@ final class ErdCanvas extends JComponent implements Scrollable {
     }
 
     private void onWheel(@NotNull MouseWheelEvent e) {
-        if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0) {
+        if (UiKeys.isCommandDown(e)) {
             double factor = Math.pow(ZOOM_STEP, -e.getPreciseWheelRotation());
             JViewport viewport = getViewport();
             Point p = viewport != null ? SwingUtilities.convertPoint(this, e.getPoint(), viewport) : null;

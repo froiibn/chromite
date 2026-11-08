@@ -34,7 +34,7 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 
 | 기능 | 위치 | 키 | SWT 키 |
 |---|---|---|---|
-| 블록 주석 토글 | Edit &gt; Advanced | Ctrl+Shift+/ | 같음 |
+| 블록 주석 토글 | Edit &gt; Advanced | Ctrl+Shift+/ (macOS ⌥⌘/) | 같음 |
 | 공백 다듬기(양쪽·앞·뒤) | Edit &gt; Advanced &gt; Trim Whitespace | 없음 | 없음 |
 | 구분 목록 바꾸기 | Edit &gt; Advanced | 없음 | 없음 |
 | 소스 코드로 복사(Java, Python, C/C++, Delphi, 서식 없는 SQL, HTML) | Edit &gt; Advanced &gt; Copy as Source Code | 없음 | 없음(대화상자) |
@@ -182,3 +182,4 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 - 2026-11-08 최초 작성: S3, S28, S31, S33, S34, S35, S37, S44 (`chromite/p4-editor-ergonomics`)
 - 2026-11-08 결과 고정(S3): 결과 집합마다 탭이 되어 고른 결과 탭 하나를 고정(핀 아이콘, 고정 시각), 새 결과는 고정 탭 앞(앱 변경 #7, `chromite/result-tabs`)
 - 2026-11-08 Outline 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위(`chromite/ui-layout`)
+- 2026-11-09 블록 주석 토글의 macOS 키 ⌥⌘/(⇧⌘/는 도움말 메뉴 검색, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md))

@@ -285,6 +285,9 @@ import java.util.function.Supplier;
  * - 2026-11-08 기본 도구 창 배치(앱 변경 #12): 오른쪽 열 = Query Library(위 0.4) + Chromite Agent(아래 0.6), 둘 다 보임, 폭 = 예전 Agent 열
  *   ({@link #DEFAULT_RIGHT_SHARE} 0.18 → 0.25). Properties는 기본 숨김, Properties·Scripts·Outline·Database Tasks는 오른쪽 위 탭으로
  *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 실제 계획 ⇧⌘M), 도구 설명의 키 글자는 단축키에서 만듦(앱 변경 #24)
+ *   (docs/chromite/shortcuts.md); macOS: 메뉴는 화면 메뉴 막대({@link MacOSScreenMenuBar}), 앱 메뉴와 겹치는 Exit·Options·Help(About)는
+ *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -511,7 +514,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         ToolWindow registeredServersWindow = new ToolWindow("registeredServers", CoreMessages.main_registered_servers, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_G, InputEvent.ALT_DOWN_MASK));
         toolWindowDocking.addToolWindow(registeredServersWindow, registeredServersPanel, true,
             ToolWindowDocking.Place.next(explorerWindow.getId(), DockingRegion.SOUTH, 0.4),
             ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
@@ -529,7 +532,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // The query window's result tabs are their own header; the hide button sits next to the tabs. The results stay in the
         // query window (below the documents), so they are not dockable
         resultsWindow = new ToolWindow("results", CoreMessages.main_results, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_R));
         // Shown only for the active query window, unless the user hid them there (user decision 2026-11-06, as in DataGrip)
         resultsSplit = new ToolWindow.SplitHost(resultsWindow, resultsArea, documentSplit, DEFAULT_RESULTS_HEIGHT, new ToolWindow.SplitHost.Context() {
             @Override
@@ -554,7 +557,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Query Library at the top of the right column, shown (SSMS docks its Template Browser on the right). Placed before
         // the Agent, it makes the column in the default layout
         ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_T, InputEvent.ALT_DOWN_MASK));
         toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, true, upperRightPlaces);
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
         scriptsPanel = new ScriptsPanel(new ScriptsPanel.Host() {
@@ -578,15 +581,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Scripts in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L, the Solution Explorer
         // shortcut)
         ToolWindow scriptsWindow = new ToolWindow("scripts", ScriptsMessages.scripts_title, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_L, InputEvent.ALT_DOWN_MASK));
         toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false, upperRightPlaces);
         // The statements of the active query window, in the right column like the SWT Outline view; hidden until opened
         outlinePanel = new SqlOutlinePanel();
         ToolWindow outlineWindow = new ToolWindow("outline", CoreMessages.main_outline, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_O, InputEvent.ALT_DOWN_MASK));
         toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false, upperRightPlaces);
         aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            UiKeys.command(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
             @Nullable
             @Override
@@ -634,30 +637,31 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, outlineWindow, tasksWindow,
             queryManagerWindow, aiWindow, resultsWindow);
 
-        newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
-        openFileAction = createAction(CoreMessages.main_open_file, CoreMessages.main_open_file_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), this::openFile);
-        saveAction = createAction(CoreMessages.common_save, CoreMessages.main_save_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> {
+        // The tool tips name the platform's key ({0}, UiKeys.formatDescription)
+        newQueryAction = UiKeys.formatDescription(createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
+            UiKeys.command(KeyEvent.VK_N), this::newQuery));
+        openFileAction = UiKeys.formatDescription(createAction(CoreMessages.main_open_file, CoreMessages.main_open_file_tip,
+            UiKeys.command(KeyEvent.VK_O), this::openFile));
+        saveAction = UiKeys.formatDescription(createAction(CoreMessages.common_save, CoreMessages.main_save_tip,
+            UiKeys.command(KeyEvent.VK_S), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     saveEditor(editor, false);
                 } else if (documentTabs.getSelectedComponent() instanceof TableDesignerPanel designer) {
                     designer.save();
                 }
-            });
+            }));
         saveAsAction = createAction(CoreMessages.main_save_as, CoreMessages.main_save_as_tip, null, () -> {
             SqlEditorPanel editor = getActiveEditor();
             if (editor != null) {
                 saveEditor(editor, true);
             }
         });
-        saveAllAction = createAction(ToolbarMessages.toolbar_save_all, ToolbarMessages.toolbar_save_all_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::saveAll);
-        activityMonitorAction = createAction(CoreMessages.main_activity_monitor, ToolbarMessages.toolbar_activity_monitor_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
-            () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
+        saveAllAction = UiKeys.formatDescription(createAction(ToolbarMessages.toolbar_save_all, ToolbarMessages.toolbar_save_all_tip,
+            UiKeys.command(KeyEvent.VK_S, InputEvent.SHIFT_DOWN_MASK), this::saveAll));
+        activityMonitorAction = UiKeys.formatDescription(createAction(CoreMessages.main_activity_monitor,
+            ToolbarMessages.toolbar_activity_monitor_tip, UiKeys.command(KeyEvent.VK_A, InputEvent.ALT_DOWN_MASK),
+            () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB)));
         executeQueryAction = createEditorAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), SqlEditorPanel::execute);
         cancelQueryAction = createAction(CoreMessages.main_cancel_query, null,
@@ -667,8 +671,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     editor.cancel();
                 }
             });
+        // Control+Space on macOS too (Cmd+Space is Spotlight), as in the JetBrains IDEs
         completeAction = createAction(CoreMessages.main_complete, CoreMessages.main_complete_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK), () -> {
+            UiKeys.control(KeyEvent.VK_SPACE), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.complete();
@@ -677,7 +682,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Ctrl+Enter, Alt+P and Ctrl+Alt+' are the SWT editor's keys
         statementRunActions = List.of(
             createEditorAction(QueryCommandMessages.query_execute_statement, QueryCommandMessages.query_execute_statement_tip,
-                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK),
+                UiKeys.command(KeyEvent.VK_ENTER),
                 editor -> editor.execute(SqlQueryCommands.ExecuteMode.STATEMENT)),
             createEditorAction(QueryCommandMessages.query_execute_from_cursor, QueryCommandMessages.query_execute_from_cursor_tip,
                 KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.ALT_DOWN_MASK),
@@ -685,7 +690,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             createEditorAction(QueryCommandMessages.query_row_count, QueryCommandMessages.query_row_count_tip, null,
                 editor -> editor.execute(SqlQueryCommands.ExecuteMode.ROW_COUNT)),
             createEditorAction(QueryCommandMessages.query_evaluate_expression, QueryCommandMessages.query_evaluate_expression_tip,
-                KeyStroke.getKeyStroke(KeyEvent.VK_QUOTE, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
+                UiKeys.command(KeyEvent.VK_QUOTE, InputEvent.ALT_DOWN_MASK),
                 editor -> editor.execute(SqlQueryCommands.ExecuteMode.EXPRESSION)));
         // SWT used Alt+Up / Alt+Down, which the editor uses to move lines
         statementEditActions = List.of(
@@ -698,9 +703,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SqlEditorPanel::showVariables);
         estimatedPlanAction = createEditorAction(CoreMessages.main_estimated_plan,
             CoreMessages.main_estimated_plan_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK), SqlEditorPanel::explainEstimatedPlan);
+            UiKeys.command(KeyEvent.VK_L), SqlEditorPanel::explainEstimatedPlan);
         actualPlanAction = createAction(CoreMessages.main_actual_plan, CoreMessages.main_actual_plan_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_M), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.setIncludeActualPlan(!editor.isIncludeActualPlan());
@@ -712,7 +717,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         // Ctrl+T is SSMS's Results to Text, the nearest SSMS command to a console-style output
         terminalAction = createAction(TerminalMessages.terminal_action, TerminalMessages.terminal_action_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_T), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     // Turned off, the Terminal tab goes away and a result (or Messages) comes to the front
@@ -724,11 +729,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 updateQueryActions();
             });
         terminalAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
-        // The SWT shortcuts: Ctrl+Alt+Shift+K / R on Windows, Ctrl+4 / Ctrl+8 elsewhere (core plugin.xml key bindings)
+        // The SWT shortcuts: Ctrl+Alt+Shift+K / R on Windows, Ctrl+4 / Ctrl+8 elsewhere (core plugin.xml key bindings), with
+        // the command key: Cmd+4 / Cmd+8 on macOS
         boolean windows = RuntimeUtils.isWindows();
-        int windowsModifiers = InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
+        int windowsModifiers = InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
         commitAction = createAction(CoreMessages.main_commit, CoreMessages.main_commit_tip,
-            windows ? KeyStroke.getKeyStroke(KeyEvent.VK_K, windowsModifiers) : KeyStroke.getKeyStroke(KeyEvent.VK_4, InputEvent.CTRL_DOWN_MASK),
+            windows ? UiKeys.command(KeyEvent.VK_K, windowsModifiers) : UiKeys.command(KeyEvent.VK_4),
             () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
@@ -736,7 +742,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 }
             });
         rollbackAction = createAction(CoreMessages.main_rollback, CoreMessages.main_rollback_tip,
-            windows ? KeyStroke.getKeyStroke(KeyEvent.VK_R, windowsModifiers) : KeyStroke.getKeyStroke(KeyEvent.VK_8, InputEvent.CTRL_DOWN_MASK),
+            windows ? UiKeys.command(KeyEvent.VK_R, windowsModifiers) : UiKeys.command(KeyEvent.VK_8),
             () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
@@ -760,7 +766,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         commitModeAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         // SWT keys: Ctrl+Shift+P pins the result tab, Ctrl+Shift+T maximizes the results
         pinResultsAction = createAction(CoreMessages.main_pin_results, CoreMessages.main_pin_results_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_P, InputEvent.SHIFT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.pinResults();
@@ -772,7 +778,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         });
         resultsBesideAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         maximizeResultsAction = createAction(CoreMessages.main_maximize_results, CoreMessages.main_maximize_results_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_T, InputEvent.SHIFT_DOWN_MASK), () -> {
                 if (getActiveEditor() == null) {
                     return;
                 }
@@ -803,7 +809,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         updateQueryActions();
-        documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, CoreMessages.main_welcome_next),
+        documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, UiKeys.format(CoreMessages.main_welcome_next, newQueryAction)),
             List.of(newQueryAction, openFileAction, registeredServersWindow.getToggleAction())), WELCOME_CARD);
         updateDocumentCard();
 
@@ -999,20 +1005,21 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(UiIcons.createActionButton(saveAllAction, "save-all")); //$NON-NLS-1$
         toolBar.addSeparator();
         // Edit menu actions: they act on the focused component, which keeps the focus (tool bar buttons don't take it)
-        toolBar.add(createIconButton(editMenu.getUndoAction(), "undo", ToolbarMessages.toolbar_undo_tip)); //$NON-NLS-1$
-        toolBar.add(createIconButton(editMenu.getRedoAction(), "redo", ToolbarMessages.toolbar_redo_tip)); //$NON-NLS-1$
+        toolBar.add(createIconButton(editMenu.getUndoAction(), "undo", UiKeys.format(ToolbarMessages.toolbar_undo_tip, editMenu.getUndoAction()))); //$NON-NLS-1$
+        toolBar.add(createIconButton(editMenu.getRedoAction(), "redo", UiKeys.format(ToolbarMessages.toolbar_redo_tip, editMenu.getRedoAction()))); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(activityMonitorAction, "activity-monitor")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createToolWindowButton(registeredServersWindow, "registered-servers", ToolbarMessages.toolbar_registered_servers_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(registeredServersWindow, "registered-servers", //$NON-NLS-1$
+            UiKeys.format(ToolbarMessages.toolbar_registered_servers_tip, registeredServersWindow.getToggleAction())));
         toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
-        toolBar.add(createToolWindowButton(libraryWindow, "library", ToolbarMessages.toolbar_query_library_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(libraryWindow, "library", UiKeys.format(ToolbarMessages.toolbar_query_library_tip, libraryWindow.getToggleAction()))); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createIconButton(editMenu.getFindAction(), "search", ToolbarMessages.toolbar_find_tip)); //$NON-NLS-1$
+        toolBar.add(createIconButton(editMenu.getFindAction(), "search", UiKeys.format(ToolbarMessages.toolbar_find_tip, editMenu.getFindAction()))); //$NON-NLS-1$
         // Chromite Agent at the right end with icon and name, where DataGrip has its AI button (user decision 2026-11-08);
         // in a narrow window the buttons before it overflow first
-        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip); //$NON-NLS-1$
+        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", UiKeys.format(AiMessages.ai_toolbar_tip, aiWindow.getToggleAction())); //$NON-NLS-1$
         agentButton.setHideActionText(false);
         UiIcons.useToolButtonMargin(agentButton);
         OverflowToolBar.setTrailing(agentButton);
@@ -1928,7 +1935,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Results belong to a query window: without one, Ctrl+R and the View menu item are disabled and say why
         Action resultsToggle = resultsWindow.getToggleAction();
         resultsToggle.setEnabled(editor != null);
-        resultsToggle.putValue(Action.SHORT_DESCRIPTION, editor != null ? null : CoreMessages.main_results_unavailable_tip);
+        resultsToggle.putValue(Action.SHORT_DESCRIPTION, editor != null ? null : UiKeys.format(CoreMessages.main_results_unavailable_tip, resultsToggle));
         saveAllAction.setEnabled(hasModifiedDocuments());
         updateActivityMonitorAction();
         editMenu.activeDocumentChanged();
@@ -1945,8 +1952,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         boolean enabled = getCurrentConnection() != null;
         activityMonitorAction.setEnabled(enabled);
-        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION,
-            enabled ? ToolbarMessages.toolbar_activity_monitor_tip : ToolbarMessages.toolbar_activity_monitor_disabled_tip);
+        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(
+            enabled ? ToolbarMessages.toolbar_activity_monitor_tip : ToolbarMessages.toolbar_activity_monitor_disabled_tip, activityMonitorAction));
     }
 
     /**
@@ -2068,6 +2075,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @NotNull
     private JMenuBar createMenuBar() {
+        // macOS: the application menu has About, Options (Cmd+,) and Quit (Cmd+Q) (MacOSAppMenu, installDesktopHandlers in
+        // ChromiteSwingApplication), so the window menus leave them out, as macOS applications do
+        boolean appMenu = RuntimeUtils.isMacOS();
         JMenuItem exitItem = new JMenuItem(CoreMessages.main_menu_exit);
         exitItem.setMnemonic(KeyEvent.VK_X);
         exitItem.addActionListener(e -> requestExit());
@@ -2107,8 +2117,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem undoSettingsItem = new JMenuItem(SettingsTransferMessages.settings_menu_undo);
         undoSettingsItem.addActionListener(e -> SettingsTransferCommands.undoImport(this, () -> scriptsPanel.reload()));
         fileMenu.add(undoSettingsItem);
-        fileMenu.addSeparator();
-        fileMenu.add(exitItem);
+        if (!appMenu) {
+            fileMenu.addSeparator();
+            fileMenu.add(exitItem);
+        }
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
         fillRecentFilesMenu(recentMenu);
 
@@ -2138,12 +2150,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // SWT shortcuts of the active connection and schema selectors
         JMenuItem selectConnectionItem = new JMenuItem(ObjectExplorerMessages.oe_select_connection);
         selectConnectionItem.setToolTipText(ObjectExplorerMessages.oe_select_connection_tip);
-        selectConnectionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.CTRL_DOWN_MASK));
+        selectConnectionItem.setAccelerator(UiKeys.command(KeyEvent.VK_9));
         selectConnectionItem.addActionListener(e -> selectActiveConnection());
         queryMenu.add(selectConnectionItem);
         JMenuItem selectSchemaItem = new JMenuItem(ObjectExplorerMessages.oe_select_schema);
         selectSchemaItem.setToolTipText(ObjectExplorerMessages.oe_select_schema_tip);
-        selectSchemaItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK));
+        selectSchemaItem.setAccelerator(UiKeys.command(KeyEvent.VK_0));
         selectSchemaItem.addActionListener(e -> selectActiveSchema());
         queryMenu.add(selectSchemaItem);
         queryMenu.addSeparator();
@@ -2226,7 +2238,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(networkProfilesItem);
-        toolsMenu.add(optionsItem);
+        if (!appMenu) {
+            toolsMenu.add(optionsItem);
+        }
 
         JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);
         windowMenu.setMnemonic(KeyEvent.VK_W);
@@ -2234,7 +2248,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fillWindowMenu(windowMenu);
 
         // SSMS order
-        JMenuBar menuBar = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar() {
+            @Override
+            public void updateUI() {
+                super.updateUI();
+                // macOS: the menus go to the screen menu bar, also after a theme change
+                MacOSScreenMenuBar.attach(this);
+            }
+        };
         menuBar.add(fileMenu);
         editMenu.getMenu().addSeparator();
         editMenu.getMenu().add(SqlEditCommands.createAdvancedMenu(this::getActiveTextArea));
@@ -2243,7 +2264,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         menuBar.add(queryMenu);
         menuBar.add(toolsMenu);
         menuBar.add(windowMenu);
-        menuBar.add(helpMenu);
+        // Help has only About, which the macOS application menu has
+        if (!appMenu) {
+            menuBar.add(helpMenu);
+        }
         return menuBar;
     }
 

@@ -244,7 +244,7 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | `com.seizia.chromite.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
 | 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 포함한다([drivers.md](drivers.md)). 설치 폴더의 `licenses/`(`docs/root`)도 이 피처가 넣는다 |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
-| 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지) |
+| 실행 파일 | `chromite-swing.exe` / `Chromite.app` (`chromite-swing`은 SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지. macOS 폴더는 2026-11-09 `ChromiteSwing.app`에서 `Chromite.app`으로, [distribution.md](distribution.md) "macOS 앱 이름") |
 | Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
 | Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
 
@@ -255,7 +255,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
 결과물: `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/chromite-swing/`,
-`.../macosx/cocoa/aarch64/ChromiteSwing.app/`
+`.../macosx/cocoa/aarch64/Chromite.app/`
 
 ### 시작 흐름
 
@@ -1614,7 +1614,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - **Edit**(`EditMenu`): Undo부터 Select All까지는 키보드 초점 컴포넌트에 적용한다(Swing 메뉴는 초점을 가져가지 않음). 편집기(RSyntaxTextArea)는 실행 취소 기록,
   입력 칸은 `JTextComponent`, 표·트리의 복사는 그 컴포넌트의 전송 처리기다. 단축키는 메뉴 단축키라 초점 컴포넌트가 같은 키를 직접 처리하면 그쪽이 먼저다.
   켜고 끄기는 초점이 바뀔 때(컴포넌트 종류) 정하고, 메뉴를 열 때 선택·실행 취소 기록까지 보고 다시 정한다.
-- **Find/Replace**(`FindReplaceDialog`): Ctrl+F, Ctrl+H(SSMS), F3·Shift+F3. 편집기가 이 키를 직접 받아(텍스트 영역의 Ctrl+H 뒤로 지우기보다 우선) 활성 문서 탭의 편집기를 대상으로 연다.
+- **Find/Replace**(`FindReplaceDialog`): Ctrl+F, Ctrl+H(SSMS; macOS ⌘F, ⌥⌘F, [shortcuts.md](shortcuts.md)), F3·Shift+F3. 편집기가 이 키를 직접 받아(텍스트 영역의 Ctrl+H 뒤로 지우기보다 우선) 활성 문서 탭의 편집기를 대상으로 연다.
   RSyntaxTextArea `SearchEngine`(대소문자, 단어 단위, 정규식, 끝에서 처음으로 이어 찾기, 맞는 곳 모두 표시)을 쓴다. 대화상자는 모달이 아니고 닫으면 표시를 지운다. DDL 탭에서는 바꾸기를 끈다.
   RSTA의 찾기 대화상자(RSTAUI)는 별도 라이브러리라 넣지 않았다.
 - **Tools > Options**(`OptionsDialog`): 이미 있는 설정만 한곳에 모았다. 테마·아이콘 스타일(`ui.theme`, `ui.iconStyle`), 입력 중 자동완성·지연(`sqlEditor.completion.*`),
@@ -1752,7 +1752,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
 |---|---|---|
 | Save All | 새 `MainFrame#saveAll` (File > Save All에도 추가) | Ctrl+Shift+S (SSMS) |
-| Undo / Redo / Find | `EditMenu`의 Undo·Redo·Find… 동작(`getUndoAction` 등으로 내줌) | Ctrl+Z / Ctrl+Y / Ctrl+F |
+| Undo / Redo / Find | `EditMenu`의 Undo·Redo·Find… 동작(`getUndoAction` 등으로 내줌) | Ctrl+Z / Ctrl+Y / Ctrl+F (macOS ⌘Z / ⇧⌘Z / ⌘F) |
 | Activity Monitor | Tools > Activity Monitor를 `Action`으로 바꿔 같이 씀(`openActivityMonitor`) | Ctrl+Alt+A (새로 붙임, SSMS) |
 | 도구 창 4개 | `ToolWindow#getToggleAction`(View 메뉴 체크 항목과 같은 동작, `SELECTED_KEY`로 눌린 모양이 따라감) | Ctrl+Alt+G, F8, Ctrl+Alt+T, F4 |
 | Comment ~ Format SQL | `SqlTextArea#runCommand`(Edit > Advanced와 같은 `SqlEditCommands`) | Ctrl+K Ctrl+C, Ctrl+K Ctrl+U, Shift+Tab, Tab, Ctrl+K Ctrl+D |
@@ -1846,7 +1846,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   ([swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로").
 - **쿼리 창이 아닐 때:** 활성 문서가 테이블 디자이너·ER 다이어그램·도구 문서·DDL 탭이거나 문서가 없으면 2줄은 보인 채 모든 컨트롤이 꺼진다(SSMS).
   콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다.
-- **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
+- **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획, macOS ⇧⌘M)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
   편집 명령의 키(Ctrl+K Ctrl+C 등)는 편집 영역이 직접 받는다.
 - **좁은 창:** 두 줄 모두 `OverflowToolBar`다. 폭이 모자라면 2줄의 콤보가 먼저 줄고(최소 100·100), 그래도 넘치는 뒤쪽 단추는 오른쪽 끝 » 메뉴로 간다.
   콤보는 메뉴에 넣을 수 없어 넘치면 보이지 않는다(창을 넓히면 다시 보임).
@@ -2950,3 +2950,5 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6, `OverflowToolBar.setTrailing`): "Chromite Agent 단추를 오른쪽 끝으로" 절.
 - 2026-11-08 기본 배치의 오른쪽 열을 Query Library(위) + Chromite Agent(아래)로, Properties 기본 숨김(앱 변경 #12): "기본 배치: Query Library와 Chromite Agent" 절과
   "확인 (2026-11-08, 앱 변경 #3·#6·#12)", "도구 창 도킹" 배치 절에 표시.
+- 2026-11-09 macOS 단축키(앱 변경 #24, `chromite/mac-ui`): Find/Replace, Edit 도구 막대, SQL Editor 도구 막대의 macOS 키를 적음. 표 전체는 [shortcuts.md](shortcuts.md), 화면 메뉴 막대는 [mac-ui.md](mac-ui.md).
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

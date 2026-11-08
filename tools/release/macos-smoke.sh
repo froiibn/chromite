@@ -22,7 +22,8 @@
 #                            without a window: process, native stacks (sample) and a JVM thread dump
 #                            (SIGQUIT into <label>-stdout.txt)
 #   secure-storage           the secure storage file, the Keychain item and the debug log
-#   menus                    About and Preferences of the app menu (System Events), screenshots
+#   menus                    the window menus in the screen menu bar, About and Preferences of the app
+#                            menu (System Events), screenshots
 #   quit <appleevent|keystroke>
 #                            Quit by the Apple event quit or by Cmd+Q; the process must end through
 #                            the main window's closing path (debug log), no crash report
@@ -434,13 +435,20 @@ close_dialog() {
 }
 
 cmd_menus() {
-  local pid items before rc=0 n
+  local pid items bar before rc=0 n
   need_app
   pid=$(app_pid)
   [ -n "$pid" ] || fail "the app does not run"
   items=$(app_menu "$pid" 'return name of every menu item' 2>&1) || { echo "$items" > "$OUT/app-menu.txt"; fail "System Events cannot read the app menu: $items"; }
   echo "$items" | tee "$OUT/app-menu.txt"
   [ -n "$items" ] || fail "the application menu is empty"
+  # The main window's menus in the screen menu bar after the Apple and application menus (docs/chromite/mac-ui.md)
+  bar=$(with_timeout 30 osascript -e "tell application \"System Events\" to get name of every menu bar item of menu bar 1 of (first process whose unix id is $pid)" 2>&1 || true)
+  echo "$bar" | tee "$OUT/menu-bar.txt"
+  case "$bar" in
+    *File*Edit*View*Query*Tools*Window*) pass "the window menus are in the screen menu bar: $bar" ;;
+    *) note "the window menus are not in the screen menu bar: $bar"; rc=1 ;;
+  esac
   before=$(window_count pid "$pid")
   if app_menu "$pid" 'click menu item 1' > "$OUT/menu-about.txt" 2>&1; then
     sleep 3
@@ -465,7 +473,7 @@ cmd_menus() {
     note "Preferences: System Events could not click: $(tail -1 "$OUT/menu-preferences.txt")"
     rc=1
   fi
-  [ $rc = 0 ] || fail "the About/Preferences check is incomplete (see the notes above and the screenshots)"
+  [ $rc = 0 ] || fail "the menu check is incomplete (see the notes above and the screenshots)"
 }
 
 cmd_quit() {

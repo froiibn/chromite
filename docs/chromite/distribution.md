@@ -17,7 +17,7 @@ Chromite를 https://chromite.seizia.com 에서 내려받고, 앱이 스스로 �
 | 주소 | https://chromite.seizia.com (dbeaver.io는 쓰지 않는다) |
 | 서버 | Turbrix의 EC2 + Caddy. 정적 파일만. `/srv/chromite/site`(사이트), `/srv/chromite/downloads`(`/downloads/`) |
 | 업로드 | CI 업로드 없음. 이 PC에서 확인한 뒤 배포 스크립트로 올린다 |
-| Windows 설치 프로그램 | NSIS `setup.exe` (Turbrix와 같음) |
+| Windows 설치 프로그램 | NSIS `setup.exe` (Turbrix와 같음). 설치 범위는 기본 Program Files(모든 사용자) + "나만 사용" 선택(2026-11-08, 아래 "설치 범위") |
 | 버전 | `major.minor.dev`, 태그 `v<버전>` ([versioning.md](versioning.md)) |
 | 본보기 | Turbrix의 `releases.json`(format 1), `releases.sh`, 로컬 배포 방식 |
 
@@ -45,8 +45,8 @@ Chromite를 https://chromite.seizia.com 에서 내려받고, 앱이 스스로 �
 | 파일 | 내용 |
 |---|---|
 | `Chromite-<v>-x64-setup.exe` | Windows 설치 프로그램(서명). 업데이트와 다운로드 페이지 모두 이 파일 |
-| `Chromite-<v>-arm64.zip` | macOS 업데이트 파일: 서명·공증·staple한 `ChromiteSwing.app`을 `ditto`로 묶은 zip |
-| `Chromite-<v>-arm64.dmg` | macOS 디스크 이미지(서명·공증·staple). 다운로드 페이지용 |
+| `Chromite-<v>-arm64.zip` | macOS 업데이트 파일: 서명·공증·staple한 `Chromite.app`을 `ditto`로 묶은 zip. **0.1.4만** 같은 묶음을 옛 이름 `ChromiteSwing.app`으로 담는다(아래 "macOS 앱 이름") |
+| `Chromite-<v>-arm64.dmg` | macOS 디스크 이미지(서명·공증·staple, 볼륨 이름 "Chromite", `Chromite.app`과 Applications 링크, 창 배치는 아래 "macOS 디스크 이미지 창"). 다운로드 페이지용 |
 
 GitHub Release에는 이 셋과 Windows 포터블 zip(`chromite-swing-<v>-windows-x64.zip`, 이름 그대로), `SHA256SUMS`가 올라간다. 포터블 zip은 서버에 올리지 않는다.
 
@@ -54,9 +54,11 @@ GitHub Release에는 이 셋과 Windows 포터블 zip(`chromite-swing-<v>-window
 
 - Azure Artifact Signing 서명. 서명자 주체는 정확히 `CN=Seizia, O=Seizia, L=Cheongju-si, S=North Chungcheong, C=KR`([signing.md](signing.md) "게시자"), 타임스탬프 있음.
 - 버전 리소스 `ProductVersion` = `FileVersion` = `<v>`(예: `0.1.1`). 고정 버전 필드(`VIProductVersion`)는 `<v>.0`.
-- 조용한 실행 `/S`: 질문 없이 설치된 앱을 같은 폴더에서 바꾼다. 설치 폴더는 레지스트리(`HKCU\...\Uninstall\Chromite` `InstallLocation`)에서 읽는다.
-  `/D=<폴더>`(맨 끝, 따옴표 없이)로 바꿀 수 있다. **조용한 실행은 Chromite를 시작하지 않는다.** 업데이트 기능이 종료 코드 0을 본 뒤 시작한다.
-- 종료 코드: `0` 성공, `1` 사용자가 취소(대화형), `2` 실패. 실패에는 "Chromite가 60초 넘게 실행 중", "비어 있지 않은 다른 프로그램 폴더"가 있다. 실패하면 아무것도 바꾸지 않는다.
+- 조용한 실행 `/S`: 질문 없이 설치된 앱을 같은 폴더에서 바꾼다. 설치 폴더는 레지스트리(`HKCU` 또는 `HKLM`의 `...\Uninstall\Chromite` `InstallLocation`)에서 읽는다.
+  설치 범위는 `/AllUsers`(모든 사용자, 관리자 권한 필요) 또는 `/CurrentUser`(나만)로 고른다. 스위치가 없으면 이미 있는 설치의 범위, 설치가 없으면 모든 사용자(아래 "설치 범위").
+  새로 설치할 때만 `/D=<폴더>`(맨 끝, 따옴표 없이)로 폴더를 바꿀 수 있다. **조용한 실행은 Chromite를 시작하지 않는다.** 업데이트 기능이 종료 코드 0을 본 뒤 시작한다.
+- 종료 코드: `0` 성공, `1` 사용자가 취소(대화형), `2` 실패. 실패에는 "Chromite가 60초 넘게 실행 중", "비어 있지 않은 다른 프로그램 폴더", "관리자 권한 없이 모든 사용자 설치(조용한 실행)",
+  "다른 범위에 이미 설치됨"이 있다. 실패하면 아무것도 바꾸지 않는다.
 - 낮은 버전의 설치 프로그램도 같은 방식으로 덮어 설치한다(되돌리기).
 
 ### 업데이트 데이터 세대 `data_generation`
@@ -70,7 +72,9 @@ GitHub Release에는 이 셋과 Windows 포터블 zip(`chromite-swing-<v>-window
 |---|---|
 | `tools/installer/chromite.nsi` | NSIS 설치 프로그램 스크립트(설치·업그레이드·제거) |
 | `tools/installer/build-installer.ps1` | 설치 프로그램 빌드(2단계: 제거 프로그램 → 설치 프로그램). CI와 로컬이 같이 쓴다 |
-| `.github/workflows/release.yml` | Windows 작업: NSIS 설치(고정), 2단계 빌드와 서명, 확인, 조용한 설치·제거 확인. macOS 작업: 계약 이름으로 zip·dmg |
+| `.github/workflows/release.yml` | Windows 작업: NSIS 설치(고정), 2단계 빌드와 서명, 확인, 두 설치 범위의 조용한 설치·업그레이드·제거 확인. macOS 작업: 계약 이름으로 zip·dmg, dmg 창 사진 |
+| `tools/release/release-macos.sh` | macOS 서명·공증·묶기(`package`: zip, dmgbuild로 dmg)·확인(`verify`)·dmg 창 사진(`dmg-window`) |
+| `tools/release/dmg/` | dmg 창: `dmg-settings.py`(dmgbuild 설정), `background.png`·`background@2x.png`와 그 생성기 `DmgBackground.java`, `requirements.txt`(dmgbuild 고정) |
 | `tools/release/releases.sh` | 피드 생성기(`releases.json`, `releases.js`). 서버와 이 PC(Git Bash)에서 돈다 |
 | `tools/release/deploy-chromite-site.ps1` | 배포 스크립트(이 PC에서 실행) |
 | `tools/release/deploy-remote.sh` | 배포의 서버 쪽 절반(배포 스크립트가 올려서 실행) |
@@ -90,16 +94,43 @@ pwsh tools/installer/build-installer.ps1 -Makensis D:\Tools\nsis-3.12\makensis.e
 
 버전은 `bump-version.ps1` 검사 모드로 읽는다(`-Version`으로 바꿀 수 있음). `-ProductDir`, `-OutDir`, `-Stage`(`all`|`uninstaller`|`setup`)는 스크립트 도움말에 있다.
 
-### 사용자별 설치 (관리자 권한 없음)
+### 설치 범위 (2026-11-08 결정, 앱 변경 #23)
 
-- 위치 `%LOCALAPPDATA%\Programs\Chromite`, 레지스트리 `HKCU`, 시작 메뉴 바로 가기는 사용자 것, `RequestExecutionLevel user`.
-- 이유: 업데이트 기능이 Chromite가 끝난 뒤 `setup.exe /S`를 실행한다. 컴퓨터 전체 설치(`Program Files`)면 업데이트마다 UAC 창이 뜨고,
-  사용자가 자리에 없으면 업데이트가 멈춘다. 사용자별 설치는 승격 없이 바뀐다. Turbrix도 같다(`perMachine: false`).
-- 회사 PC에서 `%LOCALAPPDATA%` 실행을 막는 정책이 있으면 설치 폴더를 고르면 된다(설치 화면, 또는 `/D=`).
+사용자 요청: "윈도우에서는 AppData가 아니고 ProgramFiles에 설치되게 기본값을 설정하라". 결정: **기본 Program Files + 선택**.
+
+| 범위 | 폴더(기본) | 앱 목록 항목 | 바로 가기 | 권한 | 스위치 |
+|---|---|---|---|---|---|
+| 모든 사용자(기본) | `%ProgramFiles%\Chromite`(`$PROGRAMFILES64`) | `HKLM\...\Uninstall\Chromite`(64비트 보기) | 모든 사용자 시작 메뉴·공용 바탕 화면 | 관리자(UAC) | `/AllUsers` |
+| 나만 | `%LOCALAPPDATA%\Programs\Chromite` | `HKCU\...\Uninstall\Chromite` | 사용자 시작 메뉴·바탕 화면 | 없음 | `/CurrentUser` |
+
+- **범위를 정하는 순서**: 스위치 → 이미 있는 설치(HKCU 먼저: 0.1.3까지는 모두 사용자별) → 모든 사용자. 대화형이고 스위치도 설치도 없을 때만 "설치 범위" 화면이 묻는다
+  ("이 컴퓨터의 모든 사용자 (권장)"가 기본, 관리자 권한이 필요하면 [다음]에 UAC 방패).
+- **두 벌 설치 금지**: 이미 있는 설치는 그 범위·그 폴더에서 업그레이드한다(폴더 화면과 `/D=`는 새 설치에만). 0.1.3의 사용자별 설치는 0.1.3 업데이터의
+  `setup.exe /S`로도, 직접 실행한 설치 프로그램으로도 그대로 사용자별로 올라간다. 스위치가 이미 있는 설치의 다른 범위를 가리키면(예: 사용자별 설치가 있는데 `/AllUsers`)
+  "이미 … 설치되어 있습니다. 먼저 제거하세요"로 끝난다(종료 코드 2).
+- **승격**: 설치 프로그램은 `RequestExecutionLevel user`(호출한 권한 그대로)다. 모든 사용자 범위인데 관리자가 아니면 대화형은 자기를 셸의 `runas`로
+  `/AllUsers`(와 받은 `/D=`)를 붙여 다시 실행하고(UAC) 끝난다. UAC를 거부하면 "관리자 확인이 취소되어 모든 사용자용으로 설치하지 못했습니다. 다시 시도하거나 [나만 사용]을 고르세요."
+  조용한 실행은 승격하지 않고 종료 코드 2로 끝난다(관리자 셸이나 배포 도구에서 실행하거나 `/CurrentUser`를 쓴다. 앱의 업데이터는 승격해서 실행한다, [auto-update.md](auto-update.md)).
+- **NSIS `MultiUser.nsh`를 그대로 쓰지 않은 이유**: 두 범위를 고르는 모드는 `MULTIUSER_EXECUTIONLEVEL Highest`(매니페스트 `highestAvailable`)가 있어야 한다.
+  그러면 관리자 계정은 설치 프로그램을 시작할 때마다 UAC를 받는다. 사용자별 업데이트도 마찬가지이고, 업데이터가 자식으로 띄우는 `CreateProcess`는 아예 실패한다
+  (`ERROR_ELEVATION_REQUIRED`). 0.1.3 업데이터의 조용한 업데이트에도 UAC 창이 뜬다. 그래서 같은 방식(두 범위, 스위치, `SHCTX`, 범위 화면)을 직접 쓰고
+  모든 사용자 범위만 승격을 요청한다.
+- **제거**: 제거 프로그램은 자기 범위만 지운다. 자기 폴더를 가리키는 `HKLM` 항목이 있으면 모든 사용자(관리자 아니면 `runas`로 다시 실행, 조용한 실행은 종료 코드 2), 아니면 사용자별.
+  지우는 것은 그 범위의 바로 가기와 앱 목록 항목(`SHCTX`)이다.
+- **마침 화면의 "Chromite 시작"**: 승격된 설치 프로그램은 Chromite를 탐색기(`explorer.exe`)로 띄운다. Chromite가 관리자 권한이 아니라 로그인한 사용자로 돈다.
+- **설치 폴더에 쓰지 않는다**(Program Files는 일반 사용자가 쓸 수 없다): 작업 공간·설정·로그는 `%APPDATA%\ChromiteData`([workspace-location.md](workspace-location.md)),
+  내려받은 드라이버는 같은 데이터 폴더의 `drivers`(`DriverDescriptor.getCustomDriversHome`), 업데이트 파일은 `%LOCALAPPDATA%\Chromite\updates`([auto-update.md](auto-update.md)).
+  설치 폴더는 읽기만 한다: 내장 드라이버(`DriverLibraryLocal`·`DriverLibraryBundle`), 로컬 Maven 저장소 찾기(`MavenRegistry`), 옛 작업 공간 복사의 원본(`WorkspaceLocationMigration`).
+  예외는 Equinox의 OSGi 캐시(`configuration\`)다. 쓸 수 있으면 설치 폴더에, 쓸 수 없으면 Equinox가 사용자 홈(`%USERPROFILE%\.eclipse\…`)에 둔다(아래 "확인한 것").
+- 업데이트: 업데이터는 범위를 앱 목록 항목의 위치(HKLM/HKCU)로 안다. 모든 사용자 설치는 받고·확인하고 [지금 다시 시작]의 진행 창에서 설치 프로그램을 승격해 실행한다([auto-update.md](auto-update.md) "관리자 권한으로 설치").
+- 회사 PC에서 관리자 권한이 없으면 "나만 사용"(`/CurrentUser`)으로 설치한다. `%LOCALAPPDATA%` 실행을 막는 정책이 있으면 폴더를 고른다(설치 화면, 또는 `/D=`).
+
+이전 결정(2026-11-07, 사용자별 설치만): 업데이트가 앱이 끝난 뒤 `setup.exe /S`를 실행하므로 Program Files면 업데이트마다 UAC 창이 뜨고 자리에 없으면 업데이트가 멈춘다는 이유로
+`%LOCALAPPDATA%\Programs\Chromite`·HKCU만 썼다(Turbrix도 `perMachine: false`). 새 결정은 이 문제를 모든 사용자 설치를 [지금 다시 시작]에서만, 진행 창과 함께 승격해 설치하는 것으로 푼다.
 
 ### 화면
 
-설치 폴더 → 구성 요소(Chromite 필수, 바탕 화면 바로 가기 선택, 기본 꺼짐) → 설치 → 마침("Chromite 시작" 선택).
+설치 범위(스위치도 설치도 없을 때만) → 설치 폴더(새 설치만) → 구성 요소(Chromite 필수, 바탕 화면 바로 가기 선택, 기본 꺼짐) → 설치 → 마침("Chromite 시작" 선택).
 Windows 언어가 한국어면 한국어, 아니면 영어(`MUI_LANGUAGE` 순서: 영어가 기본). 제거는 확인 → 제거.
 이전에 바탕 화면 바로 가기가 있었으면 업그레이드에서도(조용한 실행 포함) 다시 만든다.
 
@@ -150,6 +181,52 @@ GitHub 러너의 제품 폴더 경로가 약 120자). 그래서 빌드 스크립
 러너 이미지에 깔린 NSIS는 이미지마다 버전이 바뀌므로 쓰지 않는다. 이 PC에는 같은 zip을 `D:\Tools\nsis-3.12`에 풀어 두었다
 (zip의 `makensis.exe`가 이 PC에 따로 설치돼 있던 NSIS 3.12의 것과 바이트 단위로 같음을 확인).
 
+## macOS 앱 이름 (2026-11-08 결정, 앱 변경 #22)
+
+사용자: "먼저 이름이 ChromiteSwing 으로 나온다". Finder·응용 프로그램 폴더·Launchpad·Spotlight·dmg 창은 묶음 폴더 이름을 보인다
+(메뉴 막대 이름은 `Info.plist`의 `CFBundleName`이라 이미 Chromite였다, [platform-startup.md](platform-startup.md)).
+
+- 묶음 이름은 `Chromite.app`이다: Tycho `rootFolders`(`product/swing/pom.xml`), `BundleJre.java`, `build.yml`·`macos-smoke.yml`·`release.yml`,
+  `deploy-chromite-site.ps1`. 번들 ID(`CFBundleIdentifier`)와 실행 파일 이름(`chromite-swing`)은 그대로다(서명·키체인·업데이터가 쓴다).
+- **자동 업데이트 유지(결정)**: 0.1.3의 업데이터(`MacUpdateVerifier`)는 zip 안의 이름이 모두 실행 중인 묶음 이름(`ChromiteSwing.app/`)으로 시작해야 받는다.
+  그래서 **0.1.4만** 두 이름을 쓴다.
+  - dmg(새 설치): `Chromite.app`.
+  - 업데이트 zip: 같은 서명·공증·staple 묶음을 옛 이름 `ChromiteSwing.app`으로(`release-macos.sh package <app> <이름> dist ChromiteSwing.app`). 묶음 폴더 이름은
+    코드 서명의 봉인과 공증 티켓(cdhash)에 들어가지 않는다. `release-macos.sh verify`가 서명한 앱(`Chromite.app`), dmg 안의 앱(`Chromite.app`), zip 안의 앱(`ChromiteSwing.app`)
+    셋 모두에 `codesign --verify --deep --strict`, 팀 Developer ID·Mach-O 검사, `stapler validate`, `spctl -a -t exec`("Notarized Developer ID")를 한다(이름 둘 다 확인).
+  - 0.1.3 Mac → 0.1.4: 0.1.3의 도우미가 `ChromiteSwing.app`을 같은 이름으로 바꿔 넣는다(이름은 그대로). 0.1.4 → 0.1.5에서 0.1.4의 업데이터가 이름을 바꾼다.
+- **0.1.4부터의 업데이터**: 실행 중인 묶음과 이름이 달라도 zip의 묶음이 `Chromite.app`이면 받는다(번들 ID·Team ID가 실행 중인 앱과 같아야 하는 것 등 다른 확인은 같다).
+  적용할 때 새 앱을 같은 폴더에 `Chromite.app`으로 놓고 옛 `ChromiteSwing.app`은 업데이트 폴더의 `before-<새 버전>/`으로 옮긴 뒤 `Chromite.app`을 연다.
+  같은 폴더에 `Chromite.app`이 이미 있으면(다른 복사본) 건드리지 않고 지금 앱의 자리에 옛 이름 그대로 놓는다([auto-update.md](auto-update.md) "적용").
+- **이름이 바뀔 때 사용자가 보는 것**(0.1.4 → 0.1.5의 Mac, 실제 Mac에서는 확인하지 못함):
+  - 응용 프로그램 폴더·Launchpad·Spotlight에는 "Chromite"가 보인다. LaunchServices는 `open`으로 새 앱을 열 때 새 경로를 등록한다. 옛 묶음은 `~/Library/Application Support/Chromite/updates/before-<버전>/`에
+    남으므로(되돌리기용) Spotlight가 그것을 함께 찾을 수 있다.
+  - Dock에 고정한 옛 "ChromiteSwing" 항목은 옛 경로를 가리킨다. macOS가 그 항목을 옮겨진 옛 묶음으로 찾아가거나(파일 ID) 물음표로 보일 수 있다.
+    실행 중인 새 앱은 Dock에 따로 "Chromite"로 보인다. 옛 항목은 Dock에서 빼고 새 아이콘을 "Dock에 유지"로 고정하면 된다(릴리스 노트에 적을 것).
+  - 로그인 항목에 넣어 둔 옛 경로도 같은 이유로 다시 넣어야 할 수 있다.
+- **0.1.5에서 할 일(릴리스 체크리스트)**: `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`을 지우고(zip도 `Chromite.app`),
+  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용도 지운다. 0.1.3에서 0.1.5로 바로 올리는 Mac은 자동 업데이트가 안 된다(dmg로 한 번 설치).
+
+## macOS 디스크 이미지 창 (2026-11-08 요청, 앱 변경 #26)
+
+사용자: "dmg파일을 실행하면 … 아이콘 배치를 위에서 아래로 드래그하도록 배치하고 아이콘 크기를 더 키운다".
+
+- 이전: `hdiutil create -srcfolder`로 앱과 Applications 링크만 넣었다(창 배치·배경 없음, 작은 아이콘이 가로로, 볼륨 이름 = 묶음 이름 "ChromiteSwing").
+- 지금(`release-macos.sh package`): [dmgbuild](https://github.com/dmgbuild/dmgbuild)가 `tools/release/dmg/dmg-settings.py`로 dmg를 만든다.
+  - 볼륨 이름 "Chromite", 창 480×580pt(위치 고정, 도구 막대·경로 막대·사이드바·상태 막대 없음), 아이콘 보기, 아이콘 144pt, 글자 13pt.
+  - 앱 중심 (240, 150), Applications 중심 (240, 430). 그 사이에 아래로 향하는 화살표가 있는 배경(`background.png` 480×580, `background@2x.png` 960×1160을
+    `tiffutil -cathidpicheck`로 한 TIFF로 묶어 Retina에서도 선명).
+  - 배경색 `#0876D6`: 로고 팩의 물결 파랑(`#0A86F2`, `chromite_icon_macos.svg`)을 같은 색상에서 상대 휘도 0.179로 맞춘 것. Finder는 아이콘 이름을 밝은 모드에서 검정,
+    어두운 모드에서 흰색으로 쓰고 바탕 그림에 맞춰 바꾸지 않는다. 이 바탕에서 검정 4.57:1, 흰색 4.59:1(둘 다 4.5:1 이상, 생성기가 계산해 출력)이라 밝은·어두운 Finder 모두 읽힌다.
+    화살표는 로고 팩의 하늘색 `#D3E8FC`(바탕과 3.66:1). 생성기: `java tools/release/dmg/DmgBackground.java`(그림은 저장소에 있다, 바꿀 때만 실행).
+  - 방법: dmgbuild는 창의 `.DS_Store`를 Finder 스크립트(AppleScript) 없이 직접 쓴다(`ds_store`, `mac_alias`). CI 러너에서 Finder 자동화는 불안정해서 이 방법을 골랐다.
+  - 고정: `tools/release/dmg/requirements.txt`(dmgbuild 1.6.7, ds_store 1.3.3, mac_alias 2.2.3, 버전과 SHA-256, wheel만). `release.yml`이 venv에
+    `pip install --require-hashes --only-binary :all: --no-deps`로 설치한다(러너의 Python은 외부 관리라 venv). 셋 모두 MIT이고 빌드 때만 쓰며 dmg에 들어가는 것은
+    그것이 만든 `.DS_Store`·배경 그림(우리 것)뿐이라 `NOTICE`에 넣지 않았다.
+- 서명·공증·staple·`verify`는 그대로다: dmgbuild가 만든 dmg를 `sign-dmg` → `notarize` → `verify`가 확인한다(dmg 안의 앱도 `codesign`·`spctl`).
+- 증거: `release.yml`의 "Disk image window" 단계가 `release-macos.sh dmg-window`로 dmg를 사용자처럼 붙이고 Finder로 열어 `screencapture`한 그림(`dmg-window.png`)과
+  `.DS_Store` 내용(`dmg-ds-store.txt`)을 산출물 `macos-dmg-window-<버전>`으로 올린다(실패해도 릴리스는 계속). `release.yml`은 태그나 `devel`의 수동 실행에서만 돈다.
+
 ## 피드 생성기 `tools/release/releases.sh`
 
 ```sh
@@ -183,7 +260,7 @@ pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 `
 2. 이 PC에서 확인(하나라도 틀리면 서버에 아무것도 하지 않는다):
    - 세 파일이 `SHA256SUMS`와 같은지.
    - `setup.exe`: Authenticode `Valid`, 타임스탬프, 서명자 주체가 정확히 게시자 문자열, `ProductVersion`·`FileVersion` = 버전.
-   - macOS zip: `ChromiteSwing.app/Contents/MacOS/chromite-swing`, 서명 폴더(`_CodeSignature/CodeResources`), 공증 티켓(`Contents/CodeResources`), `Info.plist`의 `CFBundleShortVersionString` = 버전.
+   - macOS zip: 묶음 하나(`Chromite.app`, 0.1.4만 `ChromiteSwing.app`)의 `Contents/MacOS/chromite-swing`, 서명 폴더(`_CodeSignature/CodeResources`), 공증 티켓(`Contents/CodeResources`), `Info.plist`의 `CFBundleShortVersionString` = 버전.
      Mac에서 실행하면 `codesign --verify --deep --strict`와 `spctl`("Notarized Developer ID")도 확인한다. Windows에서는 `release.yml`의 확인을 믿는다.
    - `site/ko|en/changelog.html`에 `id="v<버전>"`가 있는지(`notes_url`이 가리키는 곳).
 3. 올릴 묶음: `files/`, `site/`, `releases.sh`, `deploy-remote.sh`(LF로 바꿔서), 모든 파일의 `SUMS`.
@@ -566,6 +643,10 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 4. 사용자 승인 뒤 `deploy-chromite-site.ps1`로 배포(먼저 리허설). 확인이 모두 OK인지 본다.
 5. 사용자가 GitHub 초안 Release를 공개한다(배포는 초안에서도 된다).
 
+릴리스 체크리스트(버전별):
+- [ ] **0.1.5**: macOS 업데이트 zip의 옛 이름을 없앤다. `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`과
+  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용을 지운다(위 "macOS 앱 이름"). 0.1.5 릴리스 노트에 Mac 이름 변경(Dock 항목 다시 고정)을 적는다.
+
 ## 확인한 것
 
 2026-11-07, 이 PC(Windows 11). 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` `BUILD SUCCESS`(3분 8초),
@@ -677,8 +758,45 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   화면 사진: `D:\Tools\_scratch\site-round2\shots\<경우>\`(첫 화면 `*-hero.png`, 장면 `*-scene-<id>.png`, 다운로드 `*-download.png`, 바닥글 `*-footer.png`, 머리글 `*-header.png`,
   지원 범위 `*-top.png`·`*-table-scrolled.png`).
 
+### 설치 범위, macOS 이름, dmg 창 (2026-11-09, `chromite/install-update-2`, 앱 변경 #22·#23·#26)
+
+이 PC(Windows 11, 관리자 계정의 승격하지 않은 셸)에서. 회귀 테스트는 요청되지 않아 작성·실행하지 않았다. UAC는 한 번도 띄우지 않았다(설치 프로그램은
+호출한 권한으로 돌고 조용한 실행은 승격을 요청하지 않는다).
+
+- 설치 프로그램 빌드: `build-installer.ps1`로 가짜 제품 폴더(실행 파일 하나, `jvm.dll` 자리, `configuration\config.ini`)에서 두 단계 모두 성공(경고 없음).
+  실제 설치는 사용자의 진짜 설치(`%LOCALAPPDATA%\Programs\Chromite`, 시작 메뉴 `Chromite.lnk`)를 건드리지 않도록 `/DINSTANCE=ChromiteTestR1`로 만든 시험 설치 프로그램으로,
+  모두 `D:\Tools\_scratch\chromite-install-update-2\` 아래에 했다. 0.1.3 설치 프로그램은 `origin/devel`의 `chromite.nsi`에 같은 시험 이름만 바꿔 넣어 만들었다.
+
+| 경우 | 결과 |
+|---|---|
+| 스위치 없음, 설치 없음, `/S /D=t1`(관리자 아님) | 종료 코드 2, 폴더·HKCU·HKLM·바로 가기 없음(기본 = 모든 사용자, 조용한 실행은 승격하지 않음) |
+| `/AllUsers /S /D=t2`(관리자 아님) | 종료 코드 2, 아무것도 없음 |
+| `/CurrentUser /S /D=t3` | 0, 파일, HKCU `0.1.4@t3`, 사용자 시작 메뉴 바로 가기, HKLM 없음 |
+| 그 뒤 `/S`(0.1.3 업데이터가 하는 것) | 0, t3에서 제자리 업그레이드(`uninstall.exe` 다시 씀), 기본 폴더 `%LOCALAPPDATA%\Programs\ChromiteTestR1` 안 생김 |
+| 그 뒤 `/S /D=t5` | 0, 여전히 t3(두 벌 금지, `t5` 안 생김) |
+| 그 뒤 `/AllUsers /S` | 2("이미 나만 사용으로 설치"), 그대로 |
+| 그 뒤 `/CurrentUser /S`(0.1.4 업데이터가 하는 것) | 0, t3 |
+| `t3\uninstall.exe /S` | 0, HKCU 항목·바로 가기·프로그램 파일 지움(`_?=`로 돌린 `uninstall.exe` 자신만 남음, 전과 같음) |
+| 0.1.3 설치 프로그램 `/S /D=t9` → 0.1.4 `/S` | HKCU `0.1.3@t9` → `0.1.4@t9`, `uninstall.exe` 0.1.4, HKLM 없음. 0.1.4 제거 프로그램으로 지움 |
+
+- 설치 폴더에 쓰지 않음(Program Files처럼 읽기·실행만): 빌드한 제품을 시험 폴더에 복사해 상속을 끊고 이 사용자에게 읽기·실행만 준 뒤(`icacls /inheritance:r /grant:r <사용자>:(OI)(CI)RX`)
+  `-vm`(JBR 25)·`-data <시험 작업 공간>`·`CHROMITE_DATA`·`APPDATA`·`LOCALAPPDATA`·`user.home`을 모두 시험 폴더로 두고 실행했다. 메인 창까지 떴다(`Startup times … main window 3874`,
+  `Updates: NOTIFY (not installed by the setup)`). Equinox는 OSGi 캐시를 `<user.home>\.eclipse\1762393238_win32_win32_x86_64\configuration`에 만들었고,
+  실행 전후 설치 폴더 파일 414개의 크기·수정 시각이 모두 같았다.
+- 코드: 설치 폴더(`Platform.getInstallLocation()`)를 쓰는 곳은 읽기뿐이다: `DriverLibraryLocal`·`DriverLibraryBundle`(내장 드라이버), `MavenRegistry`(로컬 저장소 찾기),
+  `WorkspaceLocationMigration`(옛 작업 공간 복사의 원본), `SystemVariablesResolver`·`GeneralUtils`·`DriverLibrariesPanel`(경로 표시). `BasePlatformImpl.getApplicationConfiguration`은 부르는 곳이 없다.
+- macOS(`release-macos.sh`): `bash -n` 통과. dmgbuild 설정(`dmg-settings.py`)과 `package`·`verify`·`dmg-window`는 Mac이 없어 실행하지 못했다(아래).
+  배경 그림의 대비는 생성기가 계산했다(검정 4.57:1, 흰색 4.59:1). dmgbuild·ds_store·mac_alias의 버전·SHA-256은 PyPI JSON과 simple 색인 두 곳에서 같은 값을 읽었다.
+
 ## 확인하지 못한 것
 
+- **0.1.4의 macOS 파일 전부(#22·#26)**: `release.yml`(태그·`devel` 수동 실행에서만 돎)과 Mac이 필요하다. 첫 실행에서 볼 것: dmgbuild 설치와 dmg 생성,
+  서명·공증·staple한 dmg 안 `Chromite.app`과 zip 안 `ChromiteSwing.app` 둘 다의 `codesign --verify --deep --strict`·`spctl`(`verify signed`가 함),
+  "Disk image window" 산출물의 창 사진(밝은 Finder만, 러너는 밝은 모드)과 `.DS_Store` 내용(`Iloc` 앱 (240, 150)·Applications (240, 430), `icvp`의 `iconSize` 144, `bwsp` 창 크기).
+  어두운 Finder의 이름 글자는 대비 계산으로만 확인했다. dmgbuild가 앱을 복사할 때 서명이 유지되는지는 `verify`가 dmg 안의 앱으로 확인한다.
+- 모든 사용자 범위의 실제 설치(Program Files, HKLM, 모든 사용자 바로 가기, 승격된 마침 화면의 탐색기 실행, 제거 프로그램의 `runas` 다시 실행): UAC가 필요해 하지 않았다.
+  `release.yml`의 Windows 작업(러너는 관리자)이 `/AllUsers`로 설치·업그레이드·제거를 실제로 한다.
+- 대화형 설치 범위 화면(라디오 단추, UAC 방패, 거부 문구): 이 PC 화면에 설치 프로그램 창을 띄우지 않아 보지 못했다.
 - GitHub Actions에서 `release.yml` 실행(태그·push 없음): Azure 서명 단계에서 `uninstall.exe`·`setup.exe` 서명, 서명된 파일의 정확한 서명자 주체.
   주체 문자열은 Turbrix `docs/SIGNING.md`(같은 Azure 계정의 게시자)에서 가져왔다. 다르면 확인 단계가 실패한다(의도한 동작). 첫 실행에서 확인한다.
 - 서명된 설치 프로그램의 SmartScreen 동작, 대화형 설치 화면의 나머지 단계(구성 요소·마침), 바탕 화면 바로 가기 유지(바탕 화면이 OneDrive 폴더라 시험하지 않음).
@@ -708,7 +826,8 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 | 파일 | 변경 |
 |---|---|
 | `tools/installer/`, `tools/release/releases.sh`, `deploy-chromite-site.ps1`, `deploy-remote.sh`, `tools/release/rehearsal/`, `site/` | 추가 |
-| `.github/workflows/release.yml` | NSIS 설치 프로그램 빌드·서명·확인, macOS 파일 이름 |
+| `.github/workflows/release.yml` | NSIS 설치 프로그램 빌드·서명·확인(두 설치 범위), macOS 파일 이름, dmgbuild 설치와 dmg 창 사진 |
+| `tools/release/dmg/` | dmg 창 설정·배경 그림·생성기·dmgbuild 고정(추가) |
 | `.gitattributes`, `.gitignore` | `tools/release`의 `.sh`는 LF, `.local/` 무시 |
 | `NOTICE` | 사이트의 Pretendard 웹 글꼴, Octicons GitHub 마크(MIT) |
 
@@ -761,3 +880,6 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   머리글 메뉴·바닥글·관련 장면의 링크. 배포 스크립트의 실제 사이트 확인에 새 쪽 두 개와 `support.js`를 더함. 배포하지 않음.
 - 2026-11-08 첫 화면 다운로드 단추에 방문자 운영체제의 마크만 보임(사용자 요청, "다운로드 자리"). 알 수 없는 운영체제와 스크립트 없는 페이지는 두 마크 그대로.
 - 2026-11-08 첫 화면 다운로드 단추가 방문자 운영체제의 최신 파일을 바로 내려받음(사용자 요청, "다운로드 자리"). 알 수 없으면 다운로드 블록으로.
+- 2026-11-09 앱 변경 #22·#23·#26(`chromite/install-update-2`): macOS 앱 이름 `Chromite.app`과 0.1.4만의 옛 이름 zip("macOS 앱 이름", 릴리스 체크리스트의 0.1.5 항목),
+  Windows 설치 범위 "기본 Program Files + 선택"("설치 범위", 이전의 "사용자별 설치" 절과 그 이유는 그 절 끝의 "이전 결정"으로), dmgbuild로 만든 dmg 창("macOS 디스크 이미지 창"),
+  `release.yml`의 두 범위 설치 확인과 dmg 창 사진, 배포 스크립트의 zip 묶음 이름.

@@ -26,6 +26,7 @@ import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,6 +66,7 @@ import java.util.List;
  * - 2026-11-08 실제 계획을 주지 않는 연결에서는 실제 계획 단추가 꺼지고 도구 설명이 이유를 말함({@link #setActualPlanUnsupported})
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  * - 2026-11-08 연결·DB 콤보를 맨 앞으로, 연결 콤보 폭 260 → 220(앱 변경 #3, 사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-09 도구 설명의 키 글자를 단축키에서 만듦({@link UiKeys}, 두 키 조합은 {@code SqlTextArea.getChordText}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class SqlEditorToolBar {
 
@@ -113,25 +115,30 @@ final class SqlEditorToolBar {
         toolBar.add(createButton(UiIcons.createToolButton(executeAction, "run"), EditorMessages.editor_sql_execute_tip)); //$NON-NLS-1$
         toolBar.add(createButton(UiIcons.createActionButton(cancelAction, "stop"), EditorMessages.editor_sql_cancel_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createButton(UiIcons.createActionButton(estimatedPlanAction, "plan"), EditorMessages.editor_sql_estimated_plan_tip)); //$NON-NLS-1$
+        toolBar.add(createButton(UiIcons.createActionButton(estimatedPlanAction, "plan"), //$NON-NLS-1$
+            UiKeys.format(EditorMessages.editor_sql_estimated_plan_tip, estimatedPlanAction)));
         actualPlanButton = createActualPlanButton(actualPlanAction);
         toolBar.add(actualPlanButton);
         toolBar.addSeparator();
         // The shortcut differs by platform (MainFrame), so the tool tip takes it from the action
         toolBar.add(createButton(UiIcons.createActionButton(commitAction, "commit"), //$NON-NLS-1$
-            NLS.bind(EditorMessages.editor_sql_commit_tip, WelcomePanel.getKeyText((KeyStroke) commitAction.getValue(Action.ACCELERATOR_KEY)))));
+            UiKeys.format(EditorMessages.editor_sql_commit_tip, commitAction)));
         toolBar.add(createButton(UiIcons.createActionButton(rollbackAction, "rollback"), //$NON-NLS-1$
-            NLS.bind(EditorMessages.editor_sql_rollback_tip, WelcomePanel.getKeyText((KeyStroke) rollbackAction.getValue(Action.ACCELERATOR_KEY)))));
+            UiKeys.format(EditorMessages.editor_sql_rollback_tip, rollbackAction)));
         commitModeButton = createCommitModeButton(commitModeAction);
         toolBar.add(commitModeButton);
         toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, ToolbarMessages.toolbar_comment_tip, "comment", SqlEditorPanel.SqlTextArea.Command.COMMENT)); //$NON-NLS-1$
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, ToolbarMessages.toolbar_uncomment_tip, "uncomment", SqlEditorPanel.SqlTextArea.Command.UNCOMMENT)); //$NON-NLS-1$
+        // The editor's two-key chords (SqlEditorPanel.SqlTextArea)
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, NLS.bind(ToolbarMessages.toolbar_comment_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_C)), "comment", //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.COMMENT));
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, NLS.bind(ToolbarMessages.toolbar_uncomment_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_U)), "uncomment", //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.UNCOMMENT));
         toolBar.addSeparator();
         toolBar.add(createCommandButton(ToolbarMessages.toolbar_outdent, ToolbarMessages.toolbar_outdent_tip, "outdent", SqlEditorPanel.SqlTextArea.Command.OUTDENT)); //$NON-NLS-1$
         toolBar.add(createCommandButton(ToolbarMessages.toolbar_indent, ToolbarMessages.toolbar_indent_tip, "indent", SqlEditorPanel.SqlTextArea.Command.INDENT)); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_format, ToolbarMessages.toolbar_format_tip, "format", SqlEditorPanel.SqlTextArea.Command.FORMAT)); //$NON-NLS-1$
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_format, NLS.bind(ToolbarMessages.toolbar_format_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D)), "format", //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.FORMAT));
         toolBar.addSeparator();
         Action historyAction = createEditorAction(ToolbarMessages.toolbar_query_history, ToolbarMessages.toolbar_query_history_tip, openQueryHistory);
         toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$
@@ -152,7 +159,8 @@ final class SqlEditorToolBar {
      * the action's description changed, which the button also takes.
      */
     void setActualPlanUnsupported(boolean unsupported) {
-        actualPlanButton.setToolTipText(unsupported ? EditorMessages.editor_sql_actual_plan_unsupported : EditorMessages.editor_sql_actual_plan_tip);
+        actualPlanButton.setToolTipText(unsupported ? EditorMessages.editor_sql_actual_plan_unsupported
+            : UiKeys.format(EditorMessages.editor_sql_actual_plan_tip, actualPlanButton.getAction()));
     }
 
     void setActiveEditor(@Nullable SqlEditorPanel editor) {
@@ -200,7 +208,7 @@ final class SqlEditorToolBar {
         button.setHideActionText(true);
         button.setText(EditorMessages.editor_sql_actual_plan);
         button.setIcon(UiIcons.get("plan")); //$NON-NLS-1$
-        button.setToolTipText(EditorMessages.editor_sql_actual_plan_tip);
+        button.setToolTipText(UiKeys.format(EditorMessages.editor_sql_actual_plan_tip, actualPlanAction));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);

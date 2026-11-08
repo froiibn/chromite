@@ -52,6 +52,12 @@
             --add-opens=java.sql/java.sql=ALL-UNNAMED
             -Xms64m
             -Xmx1024m</vmArgs>
+        <!-- macOS screen menu bar (docs/chromite/mac-ui.md "화면 메뉴 막대"): the property before AWT and FlatLaf read it; the
+             launcher's NSApplication makes AWT ignore it, so MacOSScreenMenuBar turns it on in the JDK's menu bar UI, which
+             needs the package opened. macOS only: the package does not exist on Windows. -->
+        <vmArgsMac>
+            -Dapple.laf.useScreenMenuBar=true
+            --add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</vmArgsMac>
     </launcherArgs>
 
     <!-- The name dates from when the SWT product used "chromite"; signing, release files and the macOS app folder use it -->

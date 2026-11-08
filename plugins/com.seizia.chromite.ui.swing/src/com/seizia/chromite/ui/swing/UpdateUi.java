@@ -33,7 +33,8 @@ import java.awt.event.WindowEvent;
 
 /**
  * The updater's place in the main window: one button at the right of the title bar (the menu bar, which FlatLaf
- * embeds into the title bar), and the download progress at the right of the status bar.
+ * embeds into the title bar; with the macOS screen menu bar, after the progress), and the download progress at the right of
+ * the status bar.
  *
  * 설계: Turbrix 데스크톱의 화면(#579, #583, #585 사용자 결정)을 따른다. 상태는 모델({@link UpdateService})이 정하고
  * 이 클래스는 보이기만 한다.
@@ -55,6 +56,9 @@ import java.awt.event.WindowEvent;
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-08 받는 동안 제목 표시줄 단추가 업데이트 진행 창을 엶, 열린 창이 상태를 따라감 (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-08 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-09 macOS 화면 메뉴 막대에는 메뉴만 보이므로 단추를 상태 표시줄 오른쪽 끝, 진행 옆에 둠({@link MacOSScreenMenuBar#isEnabled()},
+ *   앱 변경 #27). Windows는 그대로 (docs/chromite/mac-ui.md)
+ * - 2026-11-09 모든 사용자 설치의 "받아서 확인함" 툴팁: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 final class UpdateUi {
 
@@ -80,7 +84,7 @@ final class UpdateUi {
         titleButton.setVisible(false);
         titleButton.addActionListener(e -> showMenu());
         JMenuBar menuBar = frame.getJMenuBar();
-        if (menuBar != null) {
+        if (menuBar != null && !MacOSScreenMenuBar.isEnabled()) {
             // Components after a glue sit at the right end of the menu bar, in the title bar when FlatLaf embeds it there
             menuBar.add(Box.createHorizontalGlue());
             menuBar.add(titleButton);
@@ -108,6 +112,10 @@ final class UpdateUi {
         JPanel progressHolder = new JPanel(new GridBagLayout());
         progressHolder.setOpaque(false);
         progressHolder.add(progressPanel);
+        if (MacOSScreenMenuBar.isEnabled()) {
+            // The macOS screen menu bar shows menus only: the button goes after the progress, at the right end of the status bar
+            progressHolder.add(titleButton);
+        }
         statusBar.add(progressHolder, BorderLayout.EAST);
 
         listener = state -> SwingUtilities.invokeLater(() -> show(state));
@@ -122,8 +130,8 @@ final class UpdateUi {
     }
 
     /**
-     * Puts the update button into the main window's menu bar and the progress into its status bar, and starts the
-     * updater (its first check comes 10 s later).
+     * Puts the update button into the main window's menu bar (macOS screen menu bar: its status bar) and the progress into its
+     * status bar, and starts the updater (its first check comes 10 s later).
      */
     static void install(@NotNull JFrame frame, @NotNull JPanel statusBar) {
         new UpdateUi(frame, statusBar);
@@ -180,8 +188,10 @@ final class UpdateUi {
         switch (state.phase()) {
             case DOWNLOADING -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 UpdateMessages.update_window_head_downloading, "foreground: $Component.linkColor"); //$NON-NLS-1$
+            // An installation for all users installs only with [Restart now] (administrator prompt), not at a close
             case READY -> showButton(NLS.bind(UpdateMessages.update_button_ready, version),
-                NLS.bind(UpdateMessages.update_button_ready_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
+                NLS.bind(service.isAllUsers() ? UpdateMessages.update_button_ready_tip_all_users : UpdateMessages.update_button_ready_tip,
+                    version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case AVAILABLE -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 NLS.bind(UpdateMessages.update_button_available_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case FAILED -> {
@@ -194,10 +204,10 @@ final class UpdateUi {
             default -> titleButton.setVisible(false);
         }
         progressPanel.revalidate();
-        JMenuBar menuBar = frame.getJMenuBar();
-        if (menuBar != null) {
-            menuBar.revalidate();
-            menuBar.repaint();
+        Container buttonParent = titleButton.getParent();
+        if (buttonParent != null) {
+            buttonParent.revalidate();
+            buttonParent.repaint();
         }
         // An update window opened from the button follows the state
         UpdateProgress.updaterChanged();

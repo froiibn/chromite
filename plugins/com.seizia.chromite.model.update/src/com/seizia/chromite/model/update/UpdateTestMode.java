@@ -34,6 +34,9 @@ import java.net.URI;
  *     <li>설치 파일은 실행하지 않는다(dry run). 도우미는 확인·기다리기·다시 시작만 한다.</li>
  *     <li>{@value #PROP_INSTALLER_CODE}: 앱의 사본({@link UpdateHandOver})이 dry run에서 설치 프로그램의 종료 코드로 알릴 값(없으면 0).
  *     설치 실패 화면을 실제 설치 없이 보려고 둔다.</li>
+ *     <li>{@value #PROP_ALL_USERS}: {@code true}면 이 개발 빌드를 모든 사용자 설치(Windows, HKLM)처럼 다룬다. 사본은 설치 프로그램을
+ *     관리자 권한으로 실행하는 경로를 타되 dry run이라 실행하지 않고 그 명령을 기록한다. 관리자 확인(UAC) 거부는
+ *     {@value #PROP_INSTALLER_CODE}{@code =-5}로 본다.</li>
  * </ul>
  * 릴리스 빌드에서 켜지지 않게 하는 조건(모두 만족해야 켜진다, {@link UpdatePlace#detect}):
  * (1) 이 복사본이 설치 프로그램으로 설치된 것이 아니다(Windows: 제거 정보에 이 폴더가 없다),
@@ -44,14 +47,16 @@ import java.net.URI;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md "시험 모드")
  * - 2026-11-08 {@value #PROP_INSTALLER_CODE}: dry run이 알릴 설치 프로그램 종료 코드 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 {@value #PROP_ALL_USERS}: 모든 사용자 설치의 관리자 권한 설치 경로 (docs/chromite/auto-update.md "시험 모드")
  */
 public record UpdateTestMode(@NotNull URI origin, @Nullable String publisher, @Nullable String productName,
-                             @Nullable Integer installerCode) {
+                             @Nullable Integer installerCode, boolean allUsers) {
 
     public static final String PROP_ORIGIN = "chromite.update.test.origin"; //$NON-NLS-1$
     public static final String PROP_PUBLISHER = "chromite.update.test.publisher"; //$NON-NLS-1$
     public static final String PROP_PRODUCT = "chromite.update.test.product"; //$NON-NLS-1$
     public static final String PROP_INSTALLER_CODE = "chromite.update.test.installer.code"; //$NON-NLS-1$
+    public static final String PROP_ALL_USERS = "chromite.update.test.allusers"; //$NON-NLS-1$
 
     /**
      * The test mode the system properties ask for, or null; a malformed origin asks for none.
@@ -71,7 +76,8 @@ public record UpdateTestMode(@NotNull URI origin, @Nullable String publisher, @N
                 return null;
             }
             return new UpdateTestMode(URI.create(UpdateFeed.originText(uri)),
-                System.getProperty(PROP_PUBLISHER), System.getProperty(PROP_PRODUCT), Integer.getInteger(PROP_INSTALLER_CODE));
+                System.getProperty(PROP_PUBLISHER), System.getProperty(PROP_PRODUCT), Integer.getInteger(PROP_INSTALLER_CODE),
+                Boolean.getBoolean(PROP_ALL_USERS));
         } catch (IllegalArgumentException e) {
             return null;
         }

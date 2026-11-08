@@ -47,7 +47,6 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -99,6 +98,7 @@ import java.util.Set;
  * - 2026-11-06 열이 너무 좁아 연산 이름이 잘리던 문제: 고정 비율로 보기에 맞추던 열을 내용에 맞추고, 넘치면 가로 스크롤 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 세 보기(그래픽·트리·원본)와 보기 전환 도구 막대, 마지막 보기 기억 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 빈 계획 안내와 확대·축소 도움말의 키 글자
  */
 final class ExecutionPlanView {
 
@@ -281,9 +281,9 @@ final class ExecutionPlanView {
         zoomButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         zoomButton.setFocusable(false);
         addTool(toolBar, graphicalTools, Box.createHorizontalStrut(UIScale.scale(8)));
-        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_out, diagramView::zoomOut), "zoom-out")); //$NON-NLS-1$
+        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(NLS.bind(PlanMessages.plan_zoom_out, UiKeys.getCommandText()), diagramView::zoomOut), "zoom-out")); //$NON-NLS-1$
         addTool(toolBar, graphicalTools, zoomButton);
-        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_in, diagramView::zoomIn), "zoom-in")); //$NON-NLS-1$
+        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(NLS.bind(PlanMessages.plan_zoom_in, UiKeys.getCommandText()), diagramView::zoomIn), "zoom-in")); //$NON-NLS-1$
         addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_fit, diagramView::zoomToFit), "zoom-fit")); //$NON-NLS-1$
 
         // Raw: statement picker, copy, save
@@ -367,11 +367,11 @@ final class ExecutionPlanView {
     private void bindZoomKeys() {
         InputMap inputs = diagramView.getInputMap(JComponent.WHEN_FOCUSED);
         ActionMap actions = diagramView.getActionMap();
-        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), "zoomIn"); //$NON-NLS-1$
-        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_DOWN_MASK), "zoomIn"); //$NON-NLS-1$
-        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), "zoomOut"); //$NON-NLS-1$
-        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_SUBTRACT, InputEvent.CTRL_DOWN_MASK), "zoomOut"); //$NON-NLS-1$
-        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), "zoomActual"); //$NON-NLS-1$
+        inputs.put(UiKeys.command(KeyEvent.VK_EQUALS), "zoomIn"); //$NON-NLS-1$
+        inputs.put(UiKeys.command(KeyEvent.VK_ADD), "zoomIn"); //$NON-NLS-1$
+        inputs.put(UiKeys.command(KeyEvent.VK_MINUS), "zoomOut"); //$NON-NLS-1$
+        inputs.put(UiKeys.command(KeyEvent.VK_SUBTRACT), "zoomOut"); //$NON-NLS-1$
+        inputs.put(UiKeys.command(KeyEvent.VK_0), "zoomActual"); //$NON-NLS-1$
         actions.put("zoomIn", createAction("zoomIn", diagramView::zoomIn)); //$NON-NLS-1$ //$NON-NLS-2$
         actions.put("zoomOut", createAction("zoomOut", diagramView::zoomOut)); //$NON-NLS-1$ //$NON-NLS-2$
         actions.put("zoomActual", createAction("zoomActual", diagramView::zoomActual)); //$NON-NLS-1$ //$NON-NLS-2$
@@ -464,7 +464,8 @@ final class ExecutionPlanView {
     }
 
     void clear() {
-        clear(EditorMessages.editor_plan_empty);
+        // The keys of Query > Display Estimated Plan and Include Actual Plan (MainFrame)
+        clear(UiKeys.format(EditorMessages.editor_plan_empty, UiKeys.command(KeyEvent.VK_L), UiKeys.command(KeyEvent.VK_M)));
     }
 
     void addEntry(@NotNull Entry entry) {

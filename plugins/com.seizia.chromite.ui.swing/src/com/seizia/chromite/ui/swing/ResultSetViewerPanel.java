@@ -172,6 +172,7 @@ import java.util.function.Consumer;
  *   ({@link #readAgainForVirtualModel}) (docs/chromite/swing-saved-filters-virtual-columns.md)
  * - 2026-11-08 머리글 이름 자리를 누르면 정렬 대신 열 전체 선택(Ctrl+클릭 더하기, Shift+클릭 범위). 정렬은 정렬 아이콘으로만
  *   (사용자 요청, docs/chromite/swing-grid-column-filters.md "머리글 누르기")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 열 머리글 Ctrl+클릭도 명령 키, 텍스트 보기는 macOS에서도 Control+`
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -426,8 +427,8 @@ final class ResultSetViewerPanel extends JPanel {
         toggleSpatial.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_spatial_tip);
         spatialToggle = createToggle(toggleSpatial);
         Action toggleText = createAction(GridNavMessages.gridnav_text,
-            KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, InputEvent.CTRL_DOWN_MASK), () -> toggleViewMode(ViewMode.TEXT));
-        toggleText.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_text_tip);
+            UiKeys.command(KeyEvent.VK_BACK_QUOTE), () -> toggleViewMode(ViewMode.TEXT));
+        toggleText.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(GridNavMessages.gridnav_text_tip, toggleText));
         textToggle = createToggle(toggleText);
         textView = new ResultSetTextView(new TextSource());
         findBar = new ResultSetFindBar(() -> grid == null ? null : grid.getTable());
@@ -459,12 +460,12 @@ final class ResultSetViewerPanel extends JPanel {
         bindViewerKey(toggleText);
         bindViewerKey(backAction);
         bindViewerKey(forwardAction);
-        bindViewerKey(createAction("find", KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), findBar::open)); //$NON-NLS-1$
-        bindViewerKey(createAction("gotoRow", KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), this::goToRow)); //$NON-NLS-1$
-        bindViewerKey(createAction("gotoColumn", KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
+        bindViewerKey(createAction("find", UiKeys.command(KeyEvent.VK_F), findBar::open)); //$NON-NLS-1$
+        bindViewerKey(createAction("gotoRow", UiKeys.command(KeyEvent.VK_G), this::goToRow)); //$NON-NLS-1$
+        bindViewerKey(createAction("gotoColumn", UiKeys.command(KeyEvent.VK_G, InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
             this::goToColumn));
-        bindViewerKey(createAction("navigateLink", KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK), this::navigateCellLink)); //$NON-NLS-1$
-        bindViewerKey(createAction("referencesMenu", KeyStroke.getKeyStroke(KeyEvent.VK_1, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
+        bindViewerKey(createAction("navigateLink", UiKeys.command(KeyEvent.VK_B), this::navigateCellLink)); //$NON-NLS-1$
+        bindViewerKey(createAction("referencesMenu", UiKeys.command(KeyEvent.VK_1, InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
             this::showReferencesMenu));
         bindViewerKey(createAction("zoomIn", KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom + 1))); //$NON-NLS-1$
         bindViewerKey(createAction("zoomOut", KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom - 1))); //$NON-NLS-1$
@@ -863,7 +864,8 @@ final class ResultSetViewerPanel extends JPanel {
                 if (column < 0 || isNearColumnBorder(header, column, e.getX())) {
                     return;
                 }
-                boolean ctrl = (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0;
+                // Ctrl+click on Windows, Command-click on macOS (where Ctrl+click is the right click)
+                boolean ctrl = UiKeys.isCommandDown(e);
                 switch (renderer.zoneAt(header, column, e.getPoint())) {
                     case FILTER -> openFilterPopup(header, column);
                     case SORT -> toggleSort(table.convertColumnIndexToModel(column), null, ctrl);
@@ -1011,7 +1013,8 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeConstraint constraint = getConstraint(column);
         return switch (zone) {
             case NAME -> {
-                String tip = NLS.bind(GridFilterMessages.gridfilter_header_column_tip, binding.getLabel(), binding.getFullTypeName());
+                String tip = NLS.bind(GridFilterMessages.gridfilter_header_column_tip, binding.getLabel(), binding.getFullTypeName(),
+                    UiKeys.getCommandText());
                 yield binding instanceof DBDAttributeBindingCustom custom
                     ? tip + "  —  " + NLS.bind(GridVirtualMessages.gridvirt_column_tip, custom.getEntityAttribute().getExpression()) //$NON-NLS-1$
                     : tip;
@@ -1029,7 +1032,7 @@ final class ResultSetViewerPanel extends JPanel {
             }
             case SORT -> {
                 if (constraint == null || constraint.getOrderPosition() <= 0) {
-                    yield GridFilterMessages.gridfilter_header_sort_ascending_tip;
+                    yield NLS.bind(GridFilterMessages.gridfilter_header_sort_ascending_tip, UiKeys.getCommandText());
                 }
                 yield constraint.isOrderDescending() ? GridFilterMessages.gridfilter_header_sort_clear_tip
                     : GridFilterMessages.gridfilter_header_sort_descending_tip;
@@ -1090,7 +1093,7 @@ final class ResultSetViewerPanel extends JPanel {
         JMenu savedFiltersMenu = new JMenu(GridVirtualMessages.gridvirt_filters_menu);
         JMenu virtualColumnsMenu = new JMenu(GridVirtualMessages.gridvirt_columns_menu);
         JMenuItem findItem = new JMenuItem(createAction(GridNavMessages.gridnav_find,
-            KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), this::openFindBar));
+            UiKeys.command(KeyEvent.VK_F), this::openFindBar));
 
         int copyIndex = -1;
         for (int i = 0; i < menu.getComponentCount(); i++) {
@@ -2473,7 +2476,7 @@ final class ResultSetViewerPanel extends JPanel {
             DBSEntityAssociation association = associations.get(i);
             String label = describeAssociation(association);
             Action action = createAction(NLS.bind(GridNavMessages.gridnav_go_referenced, label),
-                i == 0 ? KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK) : null,
+                i == 0 ? UiKeys.command(KeyEvent.VK_B) : null,
                 () -> navigate(association, false, label));
             action.setEnabled(canRead);
             menu.add(action);
@@ -2488,9 +2491,9 @@ final class ResultSetViewerPanel extends JPanel {
         menu.add(createMenuAction(GridNavMessages.gridnav_back, backAction));
         menu.add(createMenuAction(GridNavMessages.gridnav_forward, forwardAction));
         menu.addSeparator();
-        menu.add(createAction(GridNavMessages.gridnav_goto_row, KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), this::goToRow));
+        menu.add(createAction(GridNavMessages.gridnav_goto_row, UiKeys.command(KeyEvent.VK_G), this::goToRow));
         menu.add(createAction(GridNavMessages.gridnav_goto_column,
-            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::goToColumn));
+            UiKeys.command(KeyEvent.VK_G, InputEvent.SHIFT_DOWN_MASK), this::goToColumn));
         Action count = createAction(GridNavMessages.gridnav_count, null, this::countRows);
         count.setEnabled(countButton.isVisible() && !counting);
         menu.add(count);
@@ -2842,7 +2845,7 @@ final class ResultSetViewerPanel extends JPanel {
         menu.add(new JMenuItem(showAll));
         menu.add(new JMenuItem(hideEmpty));
         menu.add(new JMenuItem(createAction(GridNavMessages.gridnav_goto_column,
-            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::goToColumn)));
+            UiKeys.command(KeyEvent.VK_G, InputEvent.SHIFT_DOWN_MASK), this::goToColumn)));
         menu.add(new JSeparator());
         Action zoomIn = createAction(GridNavMessages.gridnav_zoom_in, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom + 1));
         zoomIn.setEnabled(zoom < ResultSetColumnLayout.MAX_ZOOM);

@@ -14,26 +14,41 @@
 #                            timestamp and the hardened runtime
 #   notarize <app|dmg>       (CI only) xcrun notarytool submit --wait (an app goes as a zip of it),
 #                            then xcrun stapler staple and validate (with retries)
-#   package <app> <base> <dir>
-#                            <dir>/<base>.zip (ditto, the app with its stapled ticket) and
-#                            <dir>/<base>.dmg (hdiutil, the app and an Applications link)
+#   package <app> <base> <dir> [<zip app name>]
+#                            <dir>/<base>.zip (ditto, the app with its stapled ticket; the bundle folder
+#                            is named <zip app name>, default the app's own name) and
+#                            <dir>/<base>.dmg (dmgbuild with tools/release/dmg: volume "Chromite", the app
+#                            at the top, an Applications link below it, 144 pt icons, the arrow background;
+#                            dmgbuild is $DMGBUILD or on PATH, tools/release/dmg/requirements.txt)
 #   sign-dmg <dmg>           (CI only) signs the disk image (secure timestamp)
 #   verify <signed|unsigned> <app> <dmg> <zip>
-#                            the app as signed, inside the disk image and inside the zip verifies;
-#                            signed: team's Developer ID everywhere, tickets stapled, Gatekeeper
-#                            accepts the app and the disk image as notarized Developer ID
+#                            the app as signed, inside the disk image and inside the zip (whatever the
+#                            name of its one bundle) verifies; signed: team's Developer ID everywhere,
+#                            tickets stapled, Gatekeeper accepts the apps and the disk image as notarized
+#                            Developer ID
+#   dmg-window <dmg> <dir>   mounts the disk image as a user would, opens it in Finder and writes
+#                            <dir>/dmg-window.png (screencapture) and <dir>/dmg-ds-store.txt (the
+#                            window's .DS_Store records, read with ds_store: $DMG_PYTHON or python3)
 #   keychain-delete          (CI only) deletes the temporary keychain and the key files
 #
 # Nothing here prints a secret: the .p12, its password and the notary key come in through the
 # environment and go to files under $RUNNER_TEMP that keychain-delete removes; the keychain password
 # is a random value masked in the log. A signing step refuses to run outside GitHub Actions
 # (signing happens in CI only).
+#
+# Change history:
+# - 2026-11-09 package: the disk image window by dmgbuild (app changes #26) and the zip's bundle name
+#   (0.1.4 ships the zip with the old name ChromiteSwing.app, app change #22); verify takes the zip's one
+#   bundle by its own name; dmg-window (docs/chromite/distribution.md).
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 NATIVES="$HERE/macos_natives.py"
 ENTITLEMENTS="$HERE/entitlements.mac.plist"
 KEYCHAIN_NAME=chromite-signing.keychain-db
+DMG_DIR="$HERE/dmg"
+# The volume name: what the Finder window and the desktop show (not the bundle's file name)
+VOLUME=Chromite
 
 fail() {
   echo "release-macos: $*" >&2
@@ -175,19 +190,31 @@ cmd_notarize() {
 
 cmd_package() {
   local app=${1:?package: the app} base=${2:?package: the file name without extension} dir=${3:?package: the output folder}
-  local name stage zip dmg
+  local zipname=${4:-} name stage zip dmg dmgbuild=${DMGBUILD:-dmgbuild}
   [ -d "$app" ] || fail "no app: $app"
   name=$(basename "$app")
+  zipname=${zipname:-$name}
+  case "$zipname" in */* | .* | *[!A-Za-z0-9._-]*) fail "not a bundle name: $zipname" ;; *.app) ;; *) fail "not a bundle name: $zipname" ;; esac
+  command -v "$dmgbuild" > /dev/null || fail "dmgbuild not found ($dmgbuild): pip install --require-hashes --only-binary :all: --no-deps -r tools/release/dmg/requirements.txt"
   mkdir -p "$dir"
   zip="$dir/$base.zip"
   dmg="$dir/$base.dmg"
   rm -f "$zip" "$dmg"
-  # ditto keeps the executable bits, symlinks and the stapled ticket (Contents/CodeResources)
-  ditto -c -k --keepParent "$app" "$zip"
   stage=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/chromite-dmg.XXXXXX")
-  ditto "$app" "$stage/$name"
-  ln -s /Applications "$stage/Applications"
-  hdiutil create -volname "$(basename "$app" .app)" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg" > /dev/null
+  # ditto keeps the executable bits, symlinks and the stapled ticket (Contents/CodeResources)
+  if [ "$zipname" = "$name" ]; then
+    ditto -c -k --keepParent "$app" "$zip"
+  else
+    # The same signed, stapled bundle under another folder name: the name of the bundle folder is not part
+    # of its seal or its notarization ticket (verify checks the copy in the zip like the app itself)
+    ditto "$app" "$stage/$zipname"
+    ditto -c -k --keepParent "$stage/$zipname" "$zip"
+    rm -rf "${stage:?}/$zipname"
+  fi
+  # The window background: one TIFF with the 1x and the 2x picture, so Retina displays get the sharp one
+  tiffutil -cathidpicheck "$DMG_DIR/background.png" "$DMG_DIR/background@2x.png" -out "$stage/background.tiff" > /dev/null
+  # dmgbuild writes the window's .DS_Store itself (no Finder scripting), copies the app and links /Applications
+  "$dmgbuild" -s "$DMG_DIR/dmg-settings.py" -D app="$app" -D background="$stage/background.tiff" "$VOLUME" "$dmg" > /dev/null
   rm -rf "$stage"
   echo "$(basename "$zip"): $(wc -c < "$zip" | tr -d ' ') bytes, sha256 $(sha "$zip")"
   echo "$(basename "$dmg"): $(wc -c < "$dmg" | tr -d ' ') bytes, sha256 $(sha "$dmg")"
@@ -249,7 +276,7 @@ cmd_verify() {
     need MAC_TEAM_ID
     gatekeeper_on
   fi
-  local name work mnt
+  local name work mnt zipped
   name=$(basename "$app")
   check_app "$app" "$mode"
   work=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/chromite-verify.XXXXXX")
@@ -263,12 +290,42 @@ cmd_verify() {
   hdiutil detach "$mnt" > /dev/null
   mkdir -p "$work/zip"
   ditto -x -k "$zip" "$work/zip"
-  check_app "$work/zip/$name" "$mode"
+  # the zip holds one bundle; its name may differ from the app's (package's <zip app name>)
+  zipped=$(cd "$work/zip" && ls -A)
+  case "$zipped" in *.app) ;; *) fail "the zip holds not exactly one app bundle: $(echo $zipped)" ;; esac
+  [ "$(printf '%s\n' "$zipped" | wc -l | tr -d ' ')" = 1 ] || fail "the zip holds not exactly one app bundle: $(echo $zipped)"
+  check_app "$work/zip/$zipped" "$mode"
   if [ "$mode" = signed ]; then
     stapler_try validate "$dmg"
     accepted_notarized "$(basename "$dmg")" -a -vv -t open --context context:primary-signature "$dmg"
   fi
-  echo "verified ($mode): $name, $(basename "$dmg"), $(basename "$zip")"
+  echo "verified ($mode): $name, $(basename "$dmg"), $(basename "$zip") ($zipped)"
+}
+
+cmd_dmg_window() {
+  local dmg=${1:?dmg-window: the disk image} out=${2:?dmg-window: the output folder} attached mnt py=${DMG_PYTHON:-python3}
+  [ -f "$dmg" ] || fail "no disk image $dmg"
+  mkdir -p "$out"
+  # browsable, as a double click mounts it (under /Volumes/<volume name>)
+  attached=$(hdiutil attach -readonly -noautoopen "$dmg")
+  mnt=$(printf '%s\n' "$attached" | awk -F '\t' '/\/Volumes\// {print $NF; exit}')
+  [ -n "$mnt" ] || fail "the disk image was not mounted under /Volumes: $attached"
+  trap 'osascript -e "tell application \"Finder\" to close every window" > /dev/null 2>&1 || true; hdiutil detach "'"$mnt"'" -force > /dev/null 2>&1 || true' EXIT
+  echo "mounted at $mnt"
+  ls -la "$mnt"
+  "$py" -I - "$mnt/.DS_Store" > "$out/dmg-ds-store.txt" << 'EOF' || fail "the .DS_Store cannot be read (ds_store: DMG_PYTHON)"
+import sys
+from ds_store import DSStore
+with DSStore.open(sys.argv[1], "r") as store:
+    for entry in sorted(store, key=lambda e: (e.filename, e.code)):
+        print(entry.filename, entry.code.decode("ascii", "replace"), entry.type, entry.value)
+EOF
+  cat "$out/dmg-ds-store.txt"
+  # the window as Finder shows it from the .DS_Store
+  open "$mnt"
+  sleep 5
+  screencapture -x "$out/dmg-window.png" || fail "screencapture failed"
+  echo "dmg-window.png: $(wc -c < "$out/dmg-window.png" | tr -d ' ') bytes"
 }
 
 case "${1:-}" in
@@ -280,5 +337,6 @@ case "${1:-}" in
   package) cmd_package "${2:-}" "${3:-}" "${4:-}" ;;
   sign-dmg) cmd_sign_dmg "${2:-}" ;;
   verify) cmd_verify "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
-  *) fail "usage: release-macos.sh keychain-create|sign <app>|check-signed <app>|notarize <app|dmg>|package <app> <base> <dir>|sign-dmg <dmg>|verify signed|unsigned <app> <dmg> <zip>|keychain-delete" ;;
+  dmg-window) cmd_dmg_window "${2:-}" "${3:-}" ;;
+  *) fail "usage: release-macos.sh keychain-create|sign <app>|check-signed <app>|notarize <app|dmg>|package <app> <base> <dir> [<zip app name>]|sign-dmg <dmg>|verify signed|unsigned <app> <dmg> <zip>|dmg-window <dmg> <dir>|keychain-delete" ;;
 esac

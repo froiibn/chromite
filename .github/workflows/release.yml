@@ -12,15 +12,18 @@
 #     timestamp, Azure issuer; no third-party binary carries our signature) -> zip, same layout as build.yml.
 #     The NSIS installer Chromite-<version>-x64-setup.exe (tools/installer, pinned NSIS) is built from the signed
 #     product in two passes so its uninstaller is signed too; setup and uninstaller are verified (exact
-#     publisher subject, ProductVersion) and installed and uninstalled silently once (docs/chromite/distribution.md).
+#     publisher subject, ProductVersion) and installed, upgraded and uninstalled silently in both install scopes
+#     (current user, all users; docs/chromite/distribution.md).
 #     Third-party binaries (Equinox launcher library, JNA, the Eclipse-signed console launcher
 #     chromite-swingc.exe) are not signed.
 #   * macOS: the app is built on Linux like build.yml (macOS arm64 runner capacity, docs/chromite/ci.md)
 #     and handed over as an intermediate artifact that is never released; the job macos-sign signs
 #     every Mach-O inside out (also inside jars), the app with the hardened runtime and
-#     tools/release/entitlements.mac.plist, notarizes and staples the app, makes zip (the update payload,
-#     Chromite-<version>-arm64.zip) and dmg (Chromite-<version>-arm64.dmg), signs,
-#     notarizes and staples the dmg, and checks everything (tools/release/release-macos.sh).
+#     tools/release/entitlements.mac.plist, notarizes and staples the app (Chromite.app), makes zip (the update payload,
+#     Chromite-<version>-arm64.zip; in 0.1.4 only it holds the bundle under the old name ChromiteSwing.app) and dmg
+#     (Chromite-<version>-arm64.dmg, window laid out by dmgbuild), signs, notarizes and staples the dmg, checks
+#     everything (both bundle names: codesign and Gatekeeper) and keeps a screenshot of the dmg window
+#     (tools/release/release-macos.sh).
 #   * Missing credentials: none of the six -> an UNSIGNED build (file and artifact names say so,
 #     never released); some but not all -> the job fails.
 #
@@ -270,29 +273,45 @@ jobs:
             }
           }
 
-      # The updater's path: a silent install into an empty folder must put the (signed) product there byte for
-      # byte, register the version, and a silent uninstall must take it away again.
-      - name: Silent install and uninstall check
+      # The updater's path, in both install scopes (docs/chromite/distribution.md "Install scope"; the runner is an
+      # administrator, so the all-users scope runs for real here): a silent install into an empty folder must put
+      # the (signed) product there byte for byte and register the version in its scope's hive only (HKCU or HKLM),
+      # a second silent run without a switch (what the 0.1.3 updater runs) must upgrade it in place, and a silent
+      # uninstall must take it away again, its scope's entry only.
+      - name: Silent install, upgrade and uninstall check (current user, all users)
         shell: pwsh
         run: |
-          $dir = Join-Path $env:RUNNER_TEMP 'install-check\Chromite'
-          $p = Start-Process "installer/Chromite-$env:VERSION-x64-setup.exe" -ArgumentList '/S', "/D=$dir" -Wait -PassThru
-          if ($p.ExitCode) { throw "silent install exit code $($p.ExitCode)" }
+          $setup = "installer/Chromite-$env:VERSION-x64-setup.exe"
+          $entry = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite'
           $src = (Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing").Path
           $files = @(Get-ChildItem -Recurse -File -Force $src)
-          foreach ($f in $files) {
-            $copy = Join-Path $dir $f.FullName.Substring($src.Length + 1)
-            if (-not (Test-Path $copy) -or (Get-FileHash $copy).Hash -ne (Get-FileHash $f.FullName).Hash) { throw "installed $copy differs from the product" }
+          foreach ($scope in @(@{ switch = '/CurrentUser'; hive = 'HKCU:'; other = 'HKLM:' }, @{ switch = '/AllUsers'; hive = 'HKLM:'; other = 'HKCU:' })) {
+            $dir = Join-Path $env:RUNNER_TEMP "install-check\$($scope.switch.TrimStart('/'))\Chromite"
+            $p = Start-Process $setup -ArgumentList $scope.switch, '/S', "/D=$dir" -Wait -PassThru
+            if ($p.ExitCode) { throw "$($scope.switch): silent install exit code $($p.ExitCode)" }
+            foreach ($f in $files) {
+              $copy = Join-Path $dir $f.FullName.Substring($src.Length + 1)
+              if (-not (Test-Path $copy) -or (Get-FileHash $copy).Hash -ne (Get-FileHash $f.FullName).Hash) { throw "installed $copy differs from the product" }
+            }
+            if ((Get-FileHash "$dir/uninstall.exe").Hash -ne (Get-FileHash 'installer/installer-work/uninstall.exe').Hash) { throw 'installed uninstall.exe differs' }
+            $key = Get-ItemProperty "$($scope.hive)\$entry"
+            if ($key.DisplayVersion -ne $env:VERSION -or $key.Publisher -ne 'Seizia' -or $key.InstallLocation -ne $dir) { throw "Apps entry: $($key.DisplayVersion) / $($key.Publisher) / $($key.InstallLocation)" }
+            if (Test-Path "$($scope.other)\$entry") { throw "$($scope.switch) wrote an Apps entry in $($scope.other)" }
+            "$($scope.switch): $($files.Count) product files, Apps entry in $($scope.hive) $($key.DisplayName) $($key.DisplayVersion) $($key.Publisher)"
+            # no switch, no /D=: the existing installation is upgraded where it is, in its scope (never a second copy)
+            $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+            if ($p.ExitCode) { throw "$($scope.switch): silent upgrade exit code $($p.ExitCode)" }
+            if ((Get-ItemProperty "$($scope.hive)\$entry").InstallLocation -ne $dir -or (Test-Path "$($scope.other)\$entry")) { throw "$($scope.switch): the upgrade did not stay in $dir" }
+            foreach ($default in "$env:LOCALAPPDATA\Programs\Chromite", "$env:ProgramFiles\Chromite") {
+              if (Test-Path $default) { throw "$($scope.switch): the upgrade made a second copy in $default" }
+            }
+            "$($scope.switch): upgraded in place"
+            $p = Start-Process "$dir/uninstall.exe" -ArgumentList '/S', "_?=$dir" -Wait -PassThru
+            if ($p.ExitCode) { throw "$($scope.switch): silent uninstall exit code $($p.ExitCode)" }
+            if (Test-Path "$dir/chromite-swing.exe") { throw 'the uninstaller left the launcher' }
+            if (Test-Path "$($scope.hive)\$entry") { throw 'the uninstaller left the Apps entry' }
+            "$($scope.switch): uninstalled"
           }
-          if ((Get-FileHash "$dir/uninstall.exe").Hash -ne (Get-FileHash 'installer/installer-work/uninstall.exe').Hash) { throw 'installed uninstall.exe differs' }
-          $key = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite'
-          if ($key.DisplayVersion -ne $env:VERSION -or $key.Publisher -ne 'Seizia') { throw "Apps entry: $($key.DisplayVersion) / $($key.Publisher)" }
-          "installed: $($files.Count) product files, Apps entry $($key.DisplayName) $($key.DisplayVersion) $($key.Publisher)"
-          $p = Start-Process "$dir/uninstall.exe" -ArgumentList '/S', "_?=$dir" -Wait -PassThru
-          if ($p.ExitCode) { throw "silent uninstall exit code $($p.ExitCode)" }
-          if (Test-Path "$dir/chromite-swing.exe") { throw 'the uninstaller left the launcher' }
-          if (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite') { throw 'the uninstaller left the Apps entry' }
-          'uninstalled'
 
       # The zip holds the product's root folder (chromite-swing/), as the build.yml artifact. The setup goes beside it.
       - name: Package (zip)
@@ -412,7 +431,7 @@ jobs:
             fi
             tar -czf "$RUNNER_TEMP/apps/$app.tar.gz" -C "$dir" "$app"
           }
-          pack "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" ChromiteSwing.app chromite-swing
+          pack "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app chromite-swing
 
       - name: Upload the unsigned apps (intermediate, not for release)
         uses: actions/upload-artifact@v7
@@ -508,7 +527,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh sign "$APPS/ChromiteSwing.app"
+          bash tools/release/release-macos.sh sign "$APPS/Chromite.app"
 
       - name: The apps are signed by the team (app, entitlements, every Mach-O)
         if: steps.apple.outputs.signed == 'true'
@@ -517,7 +536,7 @@ jobs:
           MAC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh check-signed "$APPS/ChromiteSwing.app"
+          bash tools/release/release-macos.sh check-signed "$APPS/Chromite.app"
 
       - name: Notarize the apps and staple them
         if: steps.apple.outputs.signed == 'true'
@@ -527,10 +546,27 @@ jobs:
           NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh notarize "$APPS/ChromiteSwing.app"
+          bash tools/release/release-macos.sh notarize "$APPS/Chromite.app"
+
+      # dmgbuild lays out the disk image window (tools/release/dmg, app change #26): pinned by version and SHA-256,
+      # wheels only, in a venv of its own (the runner's Python is externally managed).
+      - name: Install dmgbuild (pinned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else "dmgbuild needs Python 3.10 or later")'
+          python3 -m venv "$RUNNER_TEMP/dmgbuild"
+          "$RUNNER_TEMP/dmgbuild/bin/pip" install --quiet --require-hashes --only-binary :all: --no-deps -r tools/release/dmg/requirements.txt
+          echo "DMGBUILD=$RUNNER_TEMP/dmgbuild/bin/dmgbuild" >> "$GITHUB_ENV"
+          echo "DMG_PYTHON=$RUNNER_TEMP/dmgbuild/bin/python" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/dmgbuild/bin/pip" list
 
       # Release names (docs/chromite/distribution.md "File names"): the zip is the macOS update payload (the
       # notarized, stapled app, zipped with ditto), the disk image is for the download page.
+      # 0.1.4 ONLY: the zip holds the bundle under its old name ChromiteSwing.app (the last argument), so that the
+      # updater of 0.1.3 (MacUpdateVerifier: the zip's bundle must have the running app's name) accepts it; the disk
+      # image holds Chromite.app. From 0.1.5 the zip holds Chromite.app: DROP the argument ChromiteSwing.app here
+      # (release checklist in docs/chromite/distribution.md; app change #22).
       - name: Zip and disk image of each app
         shell: bash
         env:
@@ -538,7 +574,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$SIGNED" = true ]; then suffix=; else suffix=-UNSIGNED; fi
-          bash tools/release/release-macos.sh package "$APPS/ChromiteSwing.app" "Chromite-$VERSION-arm64$suffix" dist
+          bash tools/release/release-macos.sh package "$APPS/Chromite.app" "Chromite-$VERSION-arm64$suffix" dist ChromiteSwing.app
 
       - name: Sign, notarize and staple the disk images
         if: steps.apple.outputs.signed == 'true'
@@ -559,14 +595,35 @@ jobs:
           MAC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify signed "$APPS/ChromiteSwing.app" "dist/Chromite-$VERSION-arm64.dmg" "dist/Chromite-$VERSION-arm64.zip"
+          bash tools/release/release-macos.sh verify signed "$APPS/Chromite.app" "dist/Chromite-$VERSION-arm64.dmg" "dist/Chromite-$VERSION-arm64.zip"
 
       - name: Verify (unsigned) - contents only
         if: steps.apple.outputs.signed != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify unsigned "$APPS/ChromiteSwing.app" "dist/Chromite-$VERSION-arm64-UNSIGNED.dmg" "dist/Chromite-$VERSION-arm64-UNSIGNED.zip"
+          bash tools/release/release-macos.sh verify unsigned "$APPS/Chromite.app" "dist/Chromite-$VERSION-arm64-UNSIGNED.dmg" "dist/Chromite-$VERSION-arm64-UNSIGNED.zip"
+
+      # Evidence of the disk image window (app change #26): Finder's window as a user sees it, and its .DS_Store.
+      # Not a release file (a separate artifact); a failure here does not stop the release.
+      - name: Disk image window (screenshot, .DS_Store)
+        continue-on-error: true
+        shell: bash
+        env:
+          SIGNED: ${{ steps.apple.outputs.signed }}
+        run: |
+          set -euo pipefail
+          if [ "$SIGNED" = true ]; then suffix=; else suffix=-UNSIGNED; fi
+          bash tools/release/release-macos.sh dmg-window "dist/Chromite-$VERSION-arm64$suffix.dmg" "$RUNNER_TEMP/dmg-window"
+      - name: Upload the disk image window evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-dmg-window-${{ needs.version.outputs.version }}
+          path: ${{ runner.temp }}/dmg-window/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Delete the temporary keychain and the key files
         if: always()

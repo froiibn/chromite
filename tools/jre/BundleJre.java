@@ -94,6 +94,7 @@ import java.util.zip.GZIPInputStream;
  * <ul>
  *   <li>2026-11-07 Created: bundled JBR 25 runtime for both products (docs/chromite/runtime.md).</li>
  *   <li>2026-11-07 The SWT product was removed (docs/chromite/swt-removal.md): only the Swing product is listed.</li>
+ *   <li>2026-11-09 The macOS app folder is Chromite.app (was ChromiteSwing.app; docs/chromite/distribution.md).</li>
  * </ul>
  */
 public class BundleJre {
@@ -108,7 +109,7 @@ public class BundleJre {
      * ({@code <product><id>} and {@code <rootFolders>} of the module's pom.xml).
      */
     private static final String[][] PRODUCTS = {
-        {"product/swing", "com.seizia.chromite.swing.product", "chromite-swing", "ChromiteSwing.app"},
+        {"product/swing", "com.seizia.chromite.swing.product", "chromite-swing", "Chromite.app"},
     };
 
     private record Platform(String name, String productEnv, boolean macos) {
