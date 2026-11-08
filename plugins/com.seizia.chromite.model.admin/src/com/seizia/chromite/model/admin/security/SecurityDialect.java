@@ -71,6 +71,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
  * - 2026-11-08 Oracle({@link OracleSecurityDialect}) (docs/chromite/swing-security.md "Oracle")
+ * - 2026-11-08 PostgreSQL 기본 권한의 종류·대상 역할·행({@link #getDefaultPrivilegeKinds}, {@link #listDefaultPrivilegeRoles},
+ *   {@link #createDefaultPrivileges}) (docs/chromite/swing-security.md "열 권한과 기본 권한")
  */
 public abstract class SecurityDialect {
 
@@ -253,6 +255,31 @@ public abstract class SecurityDialect {
      */
     @NotNull
     public abstract List<String> getPrivileges(@NotNull Securable.Kind kind);
+
+    /**
+     * PostgreSQL: the kinds of default privileges ({@code ALTER DEFAULT PRIVILEGES … ON TABLES} etc.) this server supports, in
+     * display order; empty when the database has none (the Default Privileges page is not shown).
+     */
+    @NotNull
+    public List<Securable.Kind> getDefaultPrivilegeKinds() {
+        return List.of();
+    }
+
+    /**
+     * Roles whose new objects can get default privileges for the principal (FOR ROLE), without the principal itself.
+     */
+    @NotNull
+    public List<String> listDefaultPrivilegeRoles(@NotNull DBRProgressMonitor monitor, @NotNull SecurityPrincipal principal) throws DBException {
+        return List.of();
+    }
+
+    /**
+     * The row of default privileges for the objects {@code role} creates later in {@code schema} (null: in every schema).
+     */
+    @NotNull
+    public Securable createDefaultPrivileges(@NotNull Securable.Kind kind, @NotNull String role, @Nullable String schema) {
+        return new Securable(kind, null, schema, role, null);
+    }
 
     /**
      * Objects that permissions can be granted on ("Add Objects…").

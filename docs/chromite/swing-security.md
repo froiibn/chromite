@@ -194,14 +194,73 @@ Swing 제품을 개인 작업 공간으로 한 번 띄우고 EDT 시험 에이�
 | 사용자 속성: 계정 잠김, 역할 해제, CREATE TABLE·SELECT의 권한 부여만 끔, INSERT 끔 | `ALTER USER … ACCOUNT LOCK; REVOKE CHR_P3_ROLE FROM …; REVOKE CREATE TABLE FROM …; GRANT CREATE TABLE TO …; REVOKE SELECT ON …; REVOKE INSERT ON …; GRANT SELECT ON …;` | LOCKED, 역할 없음, CREATE TABLE NO, SELECT NO만 남음 |
 | 사용자·역할 삭제(확인 → 미리 보기 → 실행) | `DROP USER CHR_P3_USER;` / `DROP ROLE CHR_P3_ROLE;` | 둘 다 없어짐, 트리에서도 빠짐 |
 
+## 열 권한과 기본 권한 (PostgreSQL, 2026-11-08)
+
+SWT 감사 D-P10의 남은 부분(SWT `PostgresPermissionsEditor`의 열 권한, 모델 `PostgreRole.getPermissions`가 읽는 기본 권한). 같은 창과 같은 흐름(OK → 스크립트 미리
+보기(취소 기본) → 열린 트랜잭션 질문 → 격리 연결에서 실행)이다.
+
+| 위치 | 동작 | 문 |
+|---|---|---|
+| 역할 속성 ▸ 사용 권한 | 열 행(종류 "열", 이름 `스키마.테이블.열`). 개체 추가 목록에 테이블·뷰·구체화된 뷰·외부 테이블의 열도 나온다. 권한은 SELECT·INSERT·UPDATE·REFERENCES | `GRANT UPDATE (id) ON TABLE app.orders TO chr_g14_reader` |
+| Object Explorer 열 노드 ▸ 사용 권한… | 그 열의 사용자·역할별 권한(테이블과 같은 창) | `GRANT SELECT (amount) ON TABLE app.orders TO chr_g14_reader` |
+| 역할 속성 ▸ 기본 권한(새 탭) | 이 역할이 받을 기본 권한. "기본 권한 추가…"에서 개체를 만드는 역할(FOR ROLE), 스키마((모든 스키마) 또는 하나), 개체 종류(테이블, 시퀀스, 함수, 형식 9.2+, 스키마 10+)를 고른다 | `ALTER DEFAULT PRIVILEGES FOR ROLE chr_g14_owner IN SCHEMA app GRANT INSERT ON TABLES TO chr_g14_reader` |
+
+- **같은 권한 표, 두 탭.** 기본 권한 행은 `Securable.Kind`의 `DEFAULT_TABLES`·`DEFAULT_SEQUENCES`·`DEFAULT_FUNCTIONS`·`DEFAULT_TYPES`·`DEFAULT_SCHEMAS`이고
+  사용 권한 탭과 같은 `SecurityPrincipal.getPermissions()`에 들어 있다. 두 탭은 행 거르기만 다르다. 스크립트를 만드는 차이 계산(`generateScript`)이 행 종류와 상관없이
+  한 번에 하므로 표를 나누지 않았다. 종류별로 나눈 것은 줄 수 있는 권한이 다르기 때문이다(테이블 SELECT·INSERT…, 시퀀스 SELECT·UPDATE·USAGE, 함수 EXECUTE, 형식 USAGE, 스키마 CREATE·USAGE).
+- **기본 권한 행의 이름은 SQL 절(`FOR ROLE o [IN SCHEMA s]`).** 언어와 상관없이 같은 글이고 실행할 문의 앞부분과 같다. 종류 칸이 "테이블(기본 권한)"처럼 무엇인지 말한다.
+- **읽기.** `pg_default_acl`을 `aclexplode`로 펼쳐 이 역할이 받은 항목만 읽는다. 모든 스키마 항목(`defaclnamespace = 0`)은 IN SCHEMA 없이 쓴다(모델은 이 항목을 읽지 않는다).
+  모든 스키마 항목의 ACL에는 만드는 역할 자신의 권한도 들어 있는데(`chr_g14_owner=rwU/…`), 소유자의 암묵적 권한이라 객체와 같이 뺀다(`grantee <> defaclrole`).
+- **열 권한 종류.** PostgreSQL 문서의 열 권한 네 가지만 둔다. 모델 `PostgrePrivilegeType.DELETE`의 대상에 `PostgreTableColumn`이 들어 있지만 서버는 열 DELETE를 거부한다(모델 쪽 문제, 고치지 않음).
+- **"개체 추가"의 열.** 개체 추가 목록은 한 번에 읽어 이름 필터로 좁히므로 열이 많은 데이터베이스에서는 목록이 길어진다(`orders.` 처럼 걸러 고른다). 열 권한이 8.4+라 그 전 서버에는 열 행이 없다.
+- **문 모양.** 열은 `PostgreCommandGrantPrivilege`처럼 권한 이름 뒤에 열 목록(`SELECT (c)`), 기본 권한은 모든 GRANT·REVOKE 앞에 `ALTER DEFAULT PRIVILEGES FOR ROLE … [IN SCHEMA …]`를 붙인다.
+  "권한 부여"만 끄면 `REVOKE GRANT OPTION FOR … CASCADE`(기본 권한도 같은 문법).
+- `ALTER DEFAULT PRIVILEGES FOR ROLE o`는 실행하는 계정이 o의 구성원(또는 슈퍼유저)이어야 한다. 아니면 서버 오류가 실패한 문과 함께 보인다.
+
+## MySQL/MariaDB 자원 제한 (2026-11-08)
+
+SWT 감사 D-M5. SWT 사용자 편집기 일반 탭(`MySQLUserEditorGeneral`)의 네 값을 사용자 속성·새 사용자 창 일반 탭의 "자원 제한" 칸으로 옮겼다(역할에는 없다).
+
+| 칸 | 키워드 | `mysql.user` 열 |
+|---|---|---|
+| 시간당 쿼리 수 | MAX_QUERIES_PER_HOUR | max_questions |
+| 시간당 업데이트 수 | MAX_UPDATES_PER_HOUR | max_updates |
+| 시간당 연결 수 | MAX_CONNECTIONS_PER_HOUR | max_connections |
+| 동시 연결 수 | MAX_USER_CONNECTIONS | max_user_connections |
+
+- 0은 제한 없음이다. 0 이상의 정수만 받는다(읽은 값이 음수면 그 값은 그대로 둘 수 있다: MariaDB는 일부 제한에 -1을 쓴다). 틀리면 그 칸으로 옮기고 알린다.
+- 문: 바뀐 값만 `ALTER USER 'u'@'h' WITH MAX_UPDATES_PER_HOUR 50 …`(`MySQLCommandChangeUser.generateAlterScript`와 같음). 새 사용자는 0이 아닌 값을 `CREATE USER … WITH …` 안에 쓴다.
+  ALTER USER가 없는 서버(MySQL 5.7 전, MariaDB 10.2 전)에서 SWT는 `UPDATE mysql.user`를 썼는데 FLUSH PRIVILEGES 없이는 적용되지 않아, 그 서버 문서의 `GRANT USAGE ON *.* TO … WITH …`를 쓴다.
+- 모델 클래스: `SecurityPrincipal.getLimits()`(수치 제한, 켜고 끄는 `getOptions()`와 따로), `MySQLSecurityDialect`, 화면 `PrincipalPropertiesDialog`, 문구 `SecurityLabels.getLimitLabel`.
+
+## 열린 트랜잭션 질문 (2026-11-08)
+
+미리 보기에서 실행을 고르면 그 연결의 열린 트랜잭션을 묻는다(`ExitTransactionCheck.confirmObjectChange`, 커밋 / 롤백 / 취소, 취소가 기본). 실행은 격리 연결이라
+사용자 세션의 트랜잭션을 함께 커밋하지는 않지만, GRANT·REVOKE·DROP이 그 트랜잭션의 잠금을 기다릴 수 있다(Object Explorer 유지 관리 명령과 같은 흐름). 모든 DB의 보안 변경에 적용된다.
+취소하면 아무것도 실행하지 않고 속성 창이 열린 채로 남는다.
+
+### 확인 (2026-11-08, `chromite/privileges-replication`)
+
+빌드한 Swing 제품을 개인 작업 공간·`CHROMITE_DATA`(스크래치)로 한 번 띄우고 프로세스 안 EDT 시험 에이전트(OS 입력 없음)로 조작했다. 영어(`-nl en`)와 한국어(OS 기본).
+스크린숏은 `D:\Tools\_scratch\privileges-replication\shots\`. 시험 개체는 이 작업이 만든 것만 썼고 끝나고 지웠다(PostgreSQL DB `chr_g14`·역할 `chr_g14_owner`/`chr_g14_reader`, MariaDB DB `chr_g14`·`'chr_g14_user'@'%'`).
+
+| DB | 단계 | 미리 보기 | DB 결과 |
+|---|---|---|---|
+| PostgreSQL 17 | `chr_g14_reader` 속성: 사용 권한 탭에 기존 열 권한 `app.orders.id`(SELECT), 기본 권한 탭에 `FOR ROLE chr_g14_owner IN SCHEMA app`(테이블, SELECT)가 읽힘. 열 id UPDATE, 테이블 기본 권한 INSERT, 기본 권한 추가(chr_g14_owner, 모든 스키마, 시퀀스) USAGE 권한 부여 | `GRANT UPDATE (id) ON TABLE app.orders TO chr_g14_reader;` `ALTER DEFAULT PRIVILEGES FOR ROLE chr_g14_owner IN SCHEMA app GRANT INSERT ON TABLES TO chr_g14_reader;` `ALTER DEFAULT PRIVILEGES FOR ROLE chr_g14_owner GRANT USAGE ON SEQUENCES TO chr_g14_reader WITH GRANT OPTION;` | `attacl` `chr_g14_reader=rw`, `pg_default_acl` app/r `ar`, 전체/S `U*` |
+| | 열 노드 `amount` ▸ 사용 권한… ▸ 사용자 추가, SELECT | `GRANT SELECT (amount) ON TABLE app.orders TO chr_g14_reader;` | `amount` `chr_g14_reader=r` |
+| | 다시 연 속성: 테이블 기본 권한 행 제거, 시퀀스 권한 부여 끔, 열 id UPDATE 끔 | `REVOKE UPDATE (id) …;` `ALTER DEFAULT PRIVILEGES … IN SCHEMA app REVOKE INSERT, SELECT ON TABLES FROM …;` `ALTER DEFAULT PRIVILEGES … REVOKE GRANT OPTION FOR USAGE ON SEQUENCES FROM … CASCADE;` | app/r 항목 없어짐, 시퀀스 `U`, id `r` |
+| MariaDB 11 | `chr_g14_user`(시간당 쿼리 100, 동시 연결 3으로 만듦) 속성: 네 값이 읽힘. "abc" → 경고 후 그 칸으로. 0/50/5로 바꿈 | `ALTER USER 'chr_g14_user'@'%' WITH MAX_QUERIES_PER_HOUR 0 MAX_UPDATES_PER_HOUR 50 MAX_USER_CONNECTIONS 5;` | `mysql.user` 0, 50, 0, 5 |
+| | 수동 커밋 연결에서 쿼리 창 INSERT로 트랜잭션을 연 채 시간당 연결 수 10 → 실행 | `ALTER USER … WITH MAX_CONNECTIONS_PER_HOUR 10;` | "커밋하지 않은 트랜잭션"(취소 기본): 취소 → 바뀌지 않음, 속성 창 남음. 다시 실행 → 롤백 → 적용(max_connections 10, INSERT한 행 없음) |
+
 ## 남긴 것
 
 - **Oracle:** 패키지·형식 등 그 밖의 객체 권한, 열 단위 권한, 23ai 스키마 권한, 기본 테이블스페이스·할당량·프로필, DROP USER CASCADE 선택 칸(위 "Oracle").
 - **SQL Server 데이터베이스 사용자·역할 폴더와 새 데이터베이스 역할:** 탐색기에 폴더가 없다(위 설계 결정). 서버 역할 만들기, 서버 수준 권한(보안 개체의 서버 종류),
   열 단위 권한, 인증서·비대칭 키 로그인도 하지 않았다.
 - **MySQL 8 역할**(`mysql.role_edges`)과 MariaDB 새 역할 만들기(`CREATE ROLE`): 기존 MariaDB 역할의 편집·멤버 자격·사용 권한은 된다.
-  계정 만료(`PASSWORD EXPIRE`), 리소스 제한(MAX_QUERIES_PER_HOUR 등)도 아직 없다.
-- **PostgreSQL 기본 권한(ALTER DEFAULT PRIVILEGES), 열 단위 권한, 연결 수 제한(CONNECTION LIMIT), 역할 설명(COMMENT).**
+  계정 만료(`PASSWORD EXPIRE`)도 아직 없다. 자원 제한은 2026-11-08에 넣었다(위). MariaDB의 MAX_STATEMENT_TIME은 SWT에 없던 값이라 넣지 않았다.
+- **PostgreSQL 연결 수 제한(CONNECTION LIMIT), 역할 설명(COMMENT).** 열 권한·기본 권한은 2026-11-08에 넣었다(위). 기본 권한은 받는 역할 쪽에서만 편집한다(스키마의 사용 권한 창은 없다).
+  MySQL/MariaDB·SQL Server·Oracle의 열 단위 권한은 아직 없다.
 - **유효 권한 보기**(역할을 통해 받은 권한까지 합친 SSMS "유효" 탭).
 - SQL Server 로그인 속성을 열 때 접근 가능한 모든 데이터베이스를 차례로 읽는다(데이터베이스가 아주 많으면 느릴 수 있음).
 
@@ -210,3 +269,4 @@ Swing 제품을 개인 작업 공간으로 한 번 띄우고 EDT 시험 에이�
 - 2026-11-06 최초 작성: 로그인·사용자·역할 속성과 새로 만들기, 삭제, 개체 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB).
 - 2026-11-08 Oracle 사용자·역할·시스템 권한·객체 권한(`OracleSecurityDialect`), Oracle Free 23ai에서 만들기·부여·회수·삭제 확인.
 - 2026-11-08 삭제 확인과 스크립트 미리 보기의 기본 단추를 취소로 바꿈(모든 DB, 공용 동작 변경): Enter 두 번으로 DROP·GRANT가 실행되지 않게. 삭제 확인 단추는 예/아니요 → 삭제/취소.
+- 2026-11-08 PostgreSQL 열 권한·기본 권한(D-P10), MySQL/MariaDB 자원 제한(D-M5), 실행 전 열린 트랜잭션 질문(모든 DB). PostgreSQL 17·MariaDB 11에서 확인(위 "확인 (2026-11-08, `chromite/privileges-replication`)").

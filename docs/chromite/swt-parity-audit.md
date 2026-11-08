@@ -43,8 +43,8 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | A 플랫폼·설정 | 37 | 13 | 21 | 0 | 2 | 73 |
 | B 편집기 | 78 | 28 | 7 | 0 | 4 | 117 |
 | C 탐색기·도구 | 29 | 22 | 12 | 0 | 1 | 64 (+해당 없음 4) |
-| D DB별 화면 | 93 | 22 | 8 | 0 | 1 | 124 |
-| **합계** | **237** | **85** | **48** | **0** | **8** | **378** |
+| D DB별 화면 | 96 | 20 | 7 | 0 | 1 | 124 |
+| **합계** | **240** | **83** | **47** | **0** | **8** | **378** |
 
 2026-11-08 다시 셈(devel #165, `chromite/audit-recount`): 네 영역 보고서의 모든 행을 코드와 다시 대조하고 지금 상태 칸으로 셌다("수정함"은 있음으로 셈).
 바로 전 표는 있음 122, 일부 103, 없음 121, 조용히 끊김 24, 의도적 제외 8이었다(병합마다 자기 행만 고쳐 바뀐 행이 빠져 있었다).
@@ -76,7 +76,7 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 8 | 다른 도구에서 연결 가져오기 나머지 | A-X4 | 일부(중간) | DbVisualizer, DataGrip, pgAdmin, Navicat, SQuirreL, SQL Workbench/J |
 | 9 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 일부(중간) | WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈 |
 | 10 | Query Manager 보기 | A-C6, B-S26 | 있음(2026-11-08 `chromite/query-manager-view`) | [swing-query-manager.md](swing-query-manager.md). 남은 것: 열 정렬, 행 하나씩 지우기, 쿼리 창 안의 실행 로그 패널(세션·찾기 글자로 대신함) |
-| 11 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 일부·없음(중간) | PostgreSQL 열 권한·기본 권한, MySQL 자원 제한, Altibase 복제 시작·중지 |
+| 11 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 있음(2026-11-08 `chromite/privileges-replication`) | 남은 것: 복제가 켜진 Altibase 서버에서 시작·중지·동기화 실행 확인, MySQL/SQL Server/Oracle 열 단위 권한 |
 
 ### 그다음
 
@@ -157,3 +157,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   집계에 한 행의 변화만 더함(A 있음 +1·일부 −1, 합계 같이). 남은 빈자리 상위 목록의 9번(A-C14)을 빼고 번호를 당김.
 - 2026-11-08 Query Manager 도구 창(`chromite/query-manager-view`, [swing-query-manager.md](swing-query-manager.md)): A-C6·B-S26 일부 → 있음.
   집계에 이 행들의 변화만 더함(A 있음 +1·일부 −1, B 있음 +1·일부 −1, 합계 같이). 상위 목록 10번의 상태·남은 것을 고침.
+- 2026-11-08 5순위 권한 세부와 Altibase 복제(`chromite/privileges-replication`, [swing-security.md](swing-security.md), [altibase.md](altibase.md)): D-P10·D-M5 일부 → 있음,
+  D-A7 없음 → 있음. 집계에 이 행들의 변화만 더함(D 있음 +3·일부 −2·없음 −1, 합계 같이). 상위 목록 12번의 상태·남은 것을 고침.

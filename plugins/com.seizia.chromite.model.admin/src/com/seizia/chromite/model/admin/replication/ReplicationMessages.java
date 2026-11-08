@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 6 복제 상태 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 Altibase 복제 상태 문구 (docs/chromite/altibase.md "복제 시작·중지·동기화")
  */
 public class ReplicationMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.model.admin.replication.ReplicationMessages"; //$NON-NLS-1$
@@ -183,6 +184,30 @@ public class ReplicationMessages extends NLS {
     public static String repl_ms_replication_desc;
     public static String repl_ms_replication_databases;
     public static String repl_ms_no_distributor;
+    public static String repl_alti_row_port;
+    public static String repl_alti_disabled;
+    public static String repl_alti_configured;
+    public static String repl_grid_alti_replications;
+    public static String repl_grid_alti_senders;
+    public static String repl_grid_alti_receivers;
+    public static String repl_alti_col_remote;
+    public static String repl_alti_col_started;
+    public static String repl_alti_col_mode;
+    public static String repl_alti_col_xsn;
+    public static String repl_alti_col_commit_xsn;
+    public static String repl_alti_col_apply_xsn;
+    public static String repl_alti_col_fault_time;
+    public static String repl_alti_col_give_up_time;
+    public static String repl_alti_col_start_mode;
+    public static String repl_alti_col_network_error;
+    public static String repl_alti_col_peer;
+    public static String repl_alti_col_gap_tip;
+    public static String repl_alti_col_applied;
+    public static String repl_alti_col_failed;
+    public static String repl_alti_replications_desc;
+    public static String repl_alti_no_replications;
+    public static String repl_alti_no_senders;
+    public static String repl_alti_no_receivers;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ReplicationMessages.class);

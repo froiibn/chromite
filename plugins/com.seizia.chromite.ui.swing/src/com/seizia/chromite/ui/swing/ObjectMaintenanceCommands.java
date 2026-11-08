@@ -47,10 +47,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
- * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View and Compile on the
- * selected objects.
+ * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View, Compile and the Altibase
+ * replication commands Start, Stop and Synchronize on the selected objects.
  *
  * 설계: {@link ExplorerObjectCommands}(삭제·이름 바꾸기)와 같은 나눔이다. 탐색기에는 메뉴 항목과 갱신 호출만 두고, 문 만들기·실행은 모델 번들의
  * {@link ObjectMaintenanceActions}(모델 도구 처리기의 SQL)가 맡는다. 흐름도 같다: 확인 → 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange},
@@ -67,12 +68,16 @@ import java.util.function.Supplier;
  *     {@link CompileErrorsDialog}로 보인다(오류에서 Modify 창으로 간다). 오류가 없으면 성공을 알린다(SWT {@code CompileHandler}와 같음).
  *     미리 보기와 열린 트랜잭션 질문은 다른 명령과 같다(Oracle·Altibase의 ALTER … COMPILE도 DDL이라 암시적으로 커밋한다).</li>
  *     <li>제한: 읽기 전용 연결과 메타데이터 변경 제한이면 실행하지 않고 알린다({@link ExplorerObjectCommands}와 같은 판단).</li>
+ *     <li>Altibase 복제(Replications 아래 복제 노드): 시작·중지·동기화. 원격 서버에 영향을 주므로 TRUNCATE처럼 미리 보기 전에 무엇을 하는지
+ *     묻는다(명령 단추 / 취소, 취소가 기본). 모델이 읽은 시작 여부로 이미 시작한 복제의 시작·동기화, 멈춘 복제의 중지를 끈다.
+ *     실행 뒤(실패해도) 복제 노드를 다시 읽어 시작 여부와 송신·수신 목록을 맞춘다(SWT 도구의 {@code needsRefreshOnFinish}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 Compile 명령과 컴파일 결과(SWT 감사 O11, A6), Altibase TRUNCATE·구체화된 뷰 새로 고침은 모델 쪽 지원으로 켜짐(A5)
  *   (docs/chromite/swing-routines.md)
+ * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  */
 final class ObjectMaintenanceCommands {
 
@@ -105,6 +110,12 @@ final class ObjectMaintenanceCommands {
         addItem(ObjectMaintenanceActions.Action.REFRESH_MATERIALIZED_VIEW, ObjectMaintenanceMessages.objmaint_refresh_mview,
             ObjectMaintenanceMessages.objmaint_refresh_mview_tip);
         addItem(ObjectMaintenanceActions.Action.COMPILE, ObjectMaintenanceMessages.objmaint_compile, ObjectMaintenanceMessages.objmaint_compile_tip);
+        addItem(ObjectMaintenanceActions.Action.START_REPLICATION, ObjectMaintenanceMessages.objmaint_repl_start,
+            ObjectMaintenanceMessages.objmaint_repl_start_tip);
+        addItem(ObjectMaintenanceActions.Action.STOP_REPLICATION, ObjectMaintenanceMessages.objmaint_repl_stop,
+            ObjectMaintenanceMessages.objmaint_repl_stop_tip);
+        addItem(ObjectMaintenanceActions.Action.SYNC_REPLICATION, ObjectMaintenanceMessages.objmaint_repl_sync,
+            ObjectMaintenanceMessages.objmaint_repl_sync_tip);
     }
 
     private void addItem(@NotNull ObjectMaintenanceActions.Action action, @NotNull String label, @NotNull String tip) {
@@ -145,13 +156,17 @@ final class ObjectMaintenanceCommands {
     }
 
     /**
-     * False only for a trigger whose state (as read) already is the one the command sets.
+     * False only for a trigger whose state (as read) already is the one the command sets, and for an Altibase replication
+     * that is already started (Start, Synchronize) or stopped (Stop).
      */
     private static boolean changesState(@NotNull ObjectMaintenanceActions.Action action, @NotNull DBSObject object) {
         Boolean enabled = ObjectMaintenanceActions.isTriggerEnabled(object);
+        Boolean started = ObjectMaintenanceActions.isReplicationStarted(object);
         return switch (action) {
             case ENABLE_TRIGGER -> !Boolean.TRUE.equals(enabled);
             case DISABLE_TRIGGER -> !Boolean.FALSE.equals(enabled);
+            case START_REPLICATION, SYNC_REPLICATION -> !Boolean.TRUE.equals(started);
+            case STOP_REPLICATION -> !Boolean.FALSE.equals(started);
             default -> true;
         };
     }
@@ -194,6 +209,9 @@ final class ObjectMaintenanceCommands {
         if (action == ObjectMaintenanceActions.Action.TRUNCATE && !confirmTruncate(window, objects, container, ddlCommits[0])) {
             return;
         }
+        if (isReplicationAction(action) && !confirmReplication(window, action, objects, container)) {
+            return;
+        }
         StringBuilder script = new StringBuilder();
         for (ObjectMaintenanceActions.Statement statement : statements) {
             script.append(statement.sql()).append(";\n"); //$NON-NLS-1$
@@ -215,6 +233,13 @@ final class ObjectMaintenanceCommands {
             for (DBNNode node : nodes) {
                 if (node.getParentNode() instanceof DBNDatabaseNode parent) {
                     refreshNodes.add(parent);
+                }
+            }
+        } else if (isReplicationAction(action)) {
+            // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers
+            for (DBNNode node : nodes) {
+                if (node instanceof DBNDatabaseNode databaseNode) {
+                    refreshNodes.add(databaseNode);
                 }
             }
         }
@@ -319,6 +344,38 @@ final class ObjectMaintenanceCommands {
         return answer == 0;
     }
 
+    private static boolean isReplicationAction(@NotNull ObjectMaintenanceActions.Action action) {
+        return action == ObjectMaintenanceActions.Action.START_REPLICATION || action == ObjectMaintenanceActions.Action.STOP_REPLICATION
+            || action == ObjectMaintenanceActions.Action.SYNC_REPLICATION;
+    }
+
+    /**
+     * What the replication command does to the remote server, before the script is shown. Cancel is the default button.
+     */
+    private static boolean confirmReplication(
+        @NotNull Window window,
+        @NotNull ObjectMaintenanceActions.Action action,
+        @NotNull List<DBSObject> replications,
+        @NotNull DBPDataSourceContainer container
+    ) {
+        String names = replications.stream().map(DBSObject::getName).collect(Collectors.joining(", ")); //$NON-NLS-1$
+        String question = switch (action) {
+            case START_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_start_question;
+            case STOP_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_stop_question;
+            default -> ObjectMaintenanceMessages.objmaint_repl_sync_question;
+        };
+        String button = switch (action) {
+            case START_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_start_button;
+            case STOP_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_stop_button;
+            default -> ObjectMaintenanceMessages.objmaint_repl_sync_button;
+        };
+        Object[] buttons = {button, CoreMessages.common_cancel};
+        // Cancel is the default button: Enter must not start, stop or synchronize a replication
+        int answer = JOptionPane.showOptionDialog(window, SwingPlatformUI.createMessageComponent(NLS.bind(question, names, container.getName())),
+            getTitle(action), JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, buttons, buttons[1]);
+        return answer == 0;
+    }
+
     @NotNull
     private static String getTitle(@NotNull ObjectMaintenanceActions.Action action) {
         return switch (action) {
@@ -327,6 +384,9 @@ final class ObjectMaintenanceCommands {
             case DISABLE_TRIGGER -> ObjectMaintenanceMessages.objmaint_disable_trigger_title;
             case REFRESH_MATERIALIZED_VIEW -> ObjectMaintenanceMessages.objmaint_refresh_mview_title;
             case COMPILE -> ObjectMaintenanceMessages.objmaint_compile_title;
+            case START_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_start_title;
+            case STOP_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_stop_title;
+            case SYNC_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_sync_title;
         };
     }
 

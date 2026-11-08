@@ -50,9 +50,15 @@ import java.util.regex.Pattern;
  * {@link SecurityDialect#generateScript}로 만든다(SSMS처럼 OK 한 번에 적용하되, 테이블 디자이너처럼 스크립트를 먼저 보여 준다).
  * SWT에서는 DB마다 따로 있는 편집기({@code MySQLUserEditorGeneral}·{@code MySQLUserEditorPrivileges}, PostgreSQL 역할 속성 편집기와
  * {@code RolePermissionsEditor}, SQL Server 로그인 만들기 대화상자 {@code SQLServerLoginConfigurator})가 하는 일을 한 창에 모은 것이다.
+ * <p>
+ * 기본 권한 탭(PostgreSQL)은 사용 권한 탭과 같은 권한 표({@link SecurityPrincipal#getPermissions()})의 기본 권한 행만 보이는 두 번째
+ * {@link PermissionEditorPanel}이다. 표를 나누지 않은 것은 스크립트를 만드는 차이 계산({@link SecurityDialect#generateScript})이 행 종류와 상관없이
+ * 한 번에 하기 때문이다. 기본 권한 행은 개체가 아니라 (만드는 역할, 스키마, 개체 종류)라 "개체 추가" 목록 대신 세 콤보로 고른다.
+ * 자원 제한(MySQL/MariaDB)은 일반 탭의 숫자 칸이다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 기본 권한 탭(PostgreSQL ALTER DEFAULT PRIVILEGES), 일반 탭의 자원 제한(MySQL/MariaDB) (docs/chromite/swing-security.md)
  */
 final class PrincipalPropertiesDialog extends JDialog {
 
@@ -78,9 +84,12 @@ final class PrincipalPropertiesDialog extends JDialog {
     private final JTextField expiryField = new JTextField(28);
     private final JCheckBox enabledBox = new JCheckBox();
     private final Map<String, JCheckBox> optionBoxes = new LinkedHashMap<>();
+    private final Map<String, JTextField> limitFields = new LinkedHashMap<>();
 
     @Nullable
     private PermissionEditorPanel<Securable> permissionEditor;
+    @Nullable
+    private PermissionEditorPanel<Securable> defaultPrivilegesEditor;
     private final JComboBox<String> permissionDatabaseCombo = new JComboBox<>();
     /**
      * SQL Server User Mapping page (created with the page: the model reads the edited principal).
@@ -120,6 +129,9 @@ final class PrincipalPropertiesDialog extends JDialog {
         }
         if (dialect.supportsPermissions(edited)) {
             tabs.addTab(SecurityMessages.security_page_permissions, createPermissionsPage());
+            if (!dialect.getDefaultPrivilegeKinds().isEmpty()) {
+                tabs.addTab(SecurityMessages.security_page_default_privileges, createDefaultPrivilegesPage());
+            }
         }
         tabs.addChangeListener(e -> updatePermissionDatabases());
 
@@ -220,6 +232,23 @@ final class PrincipalPropertiesDialog extends JDialog {
             JCheckBox box = new JCheckBox(SecurityLabels.getOptionLabel(option.getKey()), Boolean.TRUE.equals(option.getValue()));
             optionBoxes.put(option.getKey(), box);
             row = addRow(form, row, null, box, null);
+        }
+        if (!edited.getLimits().isEmpty()) {
+            JLabel header = new JLabel(SecurityMessages.security_limits);
+            GridBagConstraints constraints = new GridBagConstraints();
+            constraints.gridx = 0;
+            constraints.gridy = row++;
+            constraints.gridwidth = 2;
+            constraints.anchor = GridBagConstraints.WEST;
+            constraints.insets = new Insets(8, 0, 6, 0);
+            form.add(header, constraints);
+            int index = 0;
+            for (Map.Entry<String, Long> limit : edited.getLimits().entrySet()) {
+                JTextField field = new JTextField(String.valueOf(limit.getValue()), 12);
+                limitFields.put(limit.getKey(), field);
+                boolean last = ++index == edited.getLimits().size();
+                row = addRow(form, row, SecurityLabels.getLimitLabel(limit.getKey()), field, last ? SecurityMessages.security_limits_hint : null);
+            }
         }
         JPanel page = new JPanel(new BorderLayout());
         page.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
@@ -336,6 +365,8 @@ final class PrincipalPropertiesDialog extends JDialog {
             securable -> dialect.getPrivileges(securable.kind()), dialect.supportsDeny(),
             SecurityMessages.security_add_objects, this::addObjects);
         permissionEditor = editor;
+        // Default privileges have their own page; SQL Server replaces the filter by its database filter (it has none)
+        editor.setRowFilter(securable -> !securable.kind().isDefaultPrivileges());
         JPanel page = new JPanel(new BorderLayout(0, 8));
         page.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         if (perDatabase) {
@@ -352,6 +383,78 @@ final class PrincipalPropertiesDialog extends JDialog {
         }
         page.add(editor, BorderLayout.CENTER);
         return page;
+    }
+
+    /**
+     * PostgreSQL Default Privileges: the default privilege rows of the same grid as the Permissions page.
+     */
+    @NotNull
+    private JComponent createDefaultPrivilegesPage() {
+        PermissionEditorPanel<Securable> editor = new PermissionEditorPanel<>(edited.getPermissions(), SecurityMessages.security_default_privileges,
+            Securable::getDisplayName, securable -> SecurityLabels.getKindLabel(securable.kind()),
+            securable -> dialect.getPrivileges(securable.kind()), dialect.supportsDeny(),
+            SecurityMessages.security_add_default_privileges, this::addDefaultPrivileges);
+        editor.setRowFilter(securable -> securable.kind().isDefaultPrivileges());
+        defaultPrivilegesEditor = editor;
+        JPanel page = new JPanel(new BorderLayout(0, 8));
+        page.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        page.add(SwingPlatformUI.createMessageComponent(SecurityMessages.security_default_description), BorderLayout.NORTH);
+        page.add(editor, BorderLayout.CENTER);
+        return page;
+    }
+
+    /**
+     * Picks the role, schema and object type of new default privileges and adds that row.
+     */
+    private void addDefaultPrivileges() {
+        List<String> roles;
+        List<String> schemas;
+        try {
+            List<List<String>> lists = ProgressDialog.runTask(SecurityMessages.security_default_title,
+                monitor -> List.of(dialect.listDefaultPrivilegeRoles(monitor, edited), dialect.listSchemas(monitor, ""))); //$NON-NLS-1$
+            roles = lists.get(0);
+            schemas = lists.get(1);
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(SecurityMessages.security_default_title, null, e);
+            return;
+        }
+        if (roles.isEmpty()) {
+            JOptionPane.showMessageDialog(this, SecurityMessages.security_default_no_roles, SecurityMessages.security_default_title,
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        JComboBox<String> roleCombo = new JComboBox<>(roles.toArray(new String[0]));
+        JComboBox<String> schemaCombo = new JComboBox<>();
+        schemaCombo.addItem(SecurityMessages.security_default_all_schemas);
+        for (String schema : schemas) {
+            schemaCombo.addItem(schema);
+        }
+        List<Securable.Kind> kinds = dialect.getDefaultPrivilegeKinds();
+        JComboBox<String> kindCombo = new JComboBox<>();
+        for (Securable.Kind kind : kinds) {
+            kindCombo.addItem(SecurityLabels.getKindLabel(kind));
+        }
+        JPanel form = new JPanel(new GridBagLayout());
+        int row = addRow(form, 0, SecurityMessages.security_default_role, roleCombo, null);
+        row = addRow(form, row, SecurityMessages.security_default_schema, schemaCombo, null);
+        addRow(form, row, SecurityMessages.security_default_object_type, kindCombo, null);
+        if (JOptionPane.showConfirmDialog(this, form, SecurityMessages.security_default_title, JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) {
+            return;
+        }
+        String schema = schemaCombo.getSelectedIndex() <= 0 ? null : (String) schemaCombo.getSelectedItem();
+        Securable securable = dialect.createDefaultPrivileges(kinds.get(Math.max(0, kindCombo.getSelectedIndex())),
+            (String) roleCombo.getSelectedItem(), schema);
+        if (edited.getPermissions().hasRow(securable)) {
+            JOptionPane.showMessageDialog(this, SecurityMessages.security_default_exists, SecurityMessages.security_default_title,
+                JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            edited.getPermissions().addRow(securable);
+        }
+        if (defaultPrivilegesEditor != null) {
+            defaultPrivilegesEditor.refresh();
+            defaultPrivilegesEditor.select(securable);
+        }
     }
 
     /**
@@ -469,6 +572,15 @@ final class PrincipalPropertiesDialog extends JDialog {
         for (Map.Entry<String, JCheckBox> option : optionBoxes.entrySet()) {
             edited.getOptions().put(option.getKey(), option.getValue().isSelected());
         }
+        for (Map.Entry<String, JTextField> limit : limitFields.entrySet()) {
+            Long value = parseLimit(limit.getValue().getText().trim(), original.getLimits().get(limit.getKey()));
+            if (value == null) {
+                // The label without its colon reads as part of the sentence
+                String label = SecurityLabels.getLimitLabel(limit.getKey()).replaceFirst(":$", ""); //$NON-NLS-1$ //$NON-NLS-2$
+                return invalid(NLS.bind(SecurityMessages.security_error_limit, label), limit.getValue());
+            }
+            edited.getLimits().put(limit.getKey(), value);
+        }
         for (Map.Entry<String, SecurityPrincipal.DatabaseMapping> entry : edited.getMappings().entrySet()) {
             if (entry.getValue().isMapped() && CommonUtils.isEmpty(entry.getValue().getUserName())) {
                 return invalid(NLS.bind(SecurityMessages.security_error_user_required, entry.getKey()), nameField);
@@ -478,6 +590,19 @@ final class PrincipalPropertiesDialog extends JDialog {
             return dialect.generateScript(original, edited);
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(getTitle(), null, e);
+            return null;
+        }
+    }
+
+    /**
+     * A limit as typed: a whole number of 0 or more, or the value as read (MariaDB keeps -1 in some limits), or null if invalid.
+     */
+    @Nullable
+    private static Long parseLimit(@NotNull String text, @Nullable Long original) {
+        try {
+            long value = Long.parseLong(text);
+            return value >= 0 || original != null && value == original ? value : null;
+        } catch (NumberFormatException e) {
             return null;
         }
     }
