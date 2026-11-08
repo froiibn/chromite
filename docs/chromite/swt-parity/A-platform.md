@@ -94,7 +94,7 @@
 | A-C3 | 보류 중 트랜잭션 창(모든 연결의 커밋 안 한 문장, 거기서 커밋·롤백) | `PendingTransactionsDialog`, `DataSourcePendingTransactionsHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md) "열린 트랜잭션 목록": Tools &gt; Open Transactions…, 연결·DB·세션·시작·문장 수·유휴, 고른 행 커밋·롤백. "Show all connections"는 없음). 조사 당시: 없음 | Swing 검색 0(`QMTransactionState`, `getTransactionState` 0). 지시서의 예와 같음 | 높음 | |
 | A-C4 | 트랜잭션 로그(현재 트랜잭션의 문장 목록) | `TransactionLogDialog`, `TransactionInfoDialog`, `DataSourceTransactionLogHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md) "트랜잭션 로그": Query 메뉴·상태 줄·목록에서 열고 현재 트랜잭션의 시각·종류·SQL·시간·행·결과. 지난 트랜잭션 보이기는 2026-11-08 더함([connection-lifecycle.md](../connection-lifecycle.md) "트랜잭션 로그의 지난 트랜잭션")). 조사 당시: 없음 | Swing 검색 0 | 중간 | |
 | A-C5 | 자동 커밋 전환, 격리 수준, 스마트 커밋 메뉴 | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 일부 | 자동 커밋: 상태 표시 + 연결 편집으로 안내, 열린 세션에 적용(swing-frontend.md "자동 커밋 상태", 사용자 결정 "상태표시줄에서 바꾸면 안된다"). 2026-11-08 다시 확인: 격리 수준은 연결 대화상자의 기본값(`ConnectionSettingsPanel.java`:883, 1236), 스마트 커밋은 Options &gt; Connection Types(`ConnectionTypesPage.java`:101, `SmartCommit.java`). 실행 중 세션에서 메뉴로 바꾸기는 없음(B-S18·S19). 2026-11-08: 자동/수동 커밋은 Query &gt; Auto-Commit과 SQL Editor 도구 막대로 바꿈(B-S18, [transactions.md](../transactions.md) "커밋 방식 전환"), 격리 수준(B-S19)은 여전히 없음 | 중간 | 자동 커밋을 상태 줄에서 바꾸지 않는 것은 의도한 것 |
-| A-C6 | Query Manager 보기(모든 실행 기록, 필터, 지우기) | `views/qm/QueryManagerView` 외 | 일부 | Swing `QueryHistory`(편집기 문장만, 클래스 주석). [swt-removal.md](../swt-removal.md):112 | 중간 | 트랜잭션 경계·메타데이터 쿼리는 안 보인다 |
+| A-C6 | Query Manager 보기(모든 실행 기록, 필터, 지우기) | `views/qm/QueryManagerView` 외 | 있음 (2026-11-08, `chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): View &gt; Query Manager 도구 창 `QueryManagerPanel`. 쿼리 관리자 기록 전체(내부·메타데이터 쿼리, 커밋·롤백, 연결), 연결·종류·글자 필터, 문장 복사·쿼리 창에서 열기(실행 안 함)·트랜잭션 보기, 지우기. 종류 필터는 SWT처럼 `qm.objectTypes`·`qm.queryTypes`. PostgreSQL·SQL Server에서 한국어·영어로 실행 확인). 조사 당시: 일부 | Swing `QueryHistory`(편집기 문장만, 클래스 주석). [swt-removal.md](../swt-removal.md):112 | 중간 | 조사 당시: 트랜잭션 경계·메타데이터 쿼리는 안 보였다. SWT의 이벤트 상세 창 대신 오른쪽 미리 보기, 열 정렬·행 지우기(하나씩)는 없음 |
 | A-C7 | 연결 끊기 변형(모두 끊기, 다른 연결 끊기, 프로젝트·폴더 단위 끊기) | `DataSourceDisconnectAllHandler`, `…OtherHandler`, `…ProjectHandler`, `FolderDisconnectHandler` | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "여러 연결 끊기": Registered Servers의 다른 연결 끊기·모두 연결 끊기·그룹 연결 끊기, 열린 트랜잭션은 한 질문). 조사 당시: 없음 | Swing 연결 명령은 하나씩만(`ConnectionCommands`) | 낮음 | |
 | A-C8 | 연결 무효화·다시 연결(세션 유지 재연결) | `DataSourceInvalidateHandler` | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "무효화·다시 연결": Object Explorer 무효화/다시 연결, 같은 터널의 연결까지 열린 트랜잭션을 먼저 물음. 기존 다시 연결의 무확인 롤백은 #97에서 고침). 조사 당시: 일부 | Swing "다시 연결"은 끊고 다시 연결(`ConnectionCommands.java`:122-128) → S3의 무확인 롤백 | 중간 | |
 | A-C9 | 읽기 전용 전환(도구 막대) | `DataSourceReadonlyHandler` | 일부 | 연결 설정 체크 상자(`ConnectionSettingsPanel.java`:887) | 낮음 | |
@@ -235,8 +235,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 | 상태 | 수 |
 |---|---|
-| 있음 | 36 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C7, A-C8, A-C14, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13, A-S17) |
-| 일부 | 14 (A-C5, A-C6, A-C9, A-C10, A-C13, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
+| 있음 | 37 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C6, A-C7, A-C8, A-C14, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13, A-S17) |
+| 일부 | 13 (A-C5, A-C9, A-C10, A-C13, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
 | 없음 | 21 (A-C11, A-C12, A-C19, A-C24~A-C26, A-C28, A-U10, A-U11, A-S3~A-S8, A-S11, A-S12, A-S14, A-S15, A-X1, A-X3) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 0 (조사 당시 14: S1~S14. 모두 수정함, S14는 macOS 실행 확인 안 함) |
@@ -283,3 +283,5 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
   §6 줄 단위 집계: 일부 19 → 20, 해당 키 효과 없음 1 → 0. §7 집계(행 단위)는 바뀌지 않음.
 - 2026-11-08 A-C5 비고: 자동/수동 커밋 전환은 Query &gt; Auto-Commit과 SQL Editor 도구 막대로 생김(B-S18, `chromite/commit-mode-toggle`), 격리 수준(B-S19)은 남음. 상태(일부)와 집계는 그대로.
 - 2026-11-08 5순위 설정 내보내기·가져오기(`chromite/settings-export-import`, [settings-transfer.md](../settings-transfer.md)): A-C14 일부 → 있음. §7 집계에 이 행의 변화만 더함(있음 +1, 일부 −1).
+- 2026-11-08 A-C6 일부 → 있음(`chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): Query Manager 도구 창).
+  §7 집계: 있음 36 → 37, 일부 14 → 13.

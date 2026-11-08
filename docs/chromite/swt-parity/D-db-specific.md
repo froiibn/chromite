@@ -16,13 +16,13 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 19 | 6 | 4 | 0 | 0 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 20 | 5 | 4 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 13 | 1 | 0 | 0 | 0 |
-| MySQL/MariaDB (`ext.mysql.ui`) | 19 | 16 | 3 | 0 | 0 | 0 |
+| MySQL/MariaDB (`ext.mysql.ui`) | 19 | 17 | 2 | 0 | 0 | 0 |
 | Oracle (`ext.oracle.ui`) | 24 | 23 | 0 | 0 | 1 | 0 |
-| Altibase (`ext.altibase.ui`) | 9 | 7 | 0 | 2 | 0 | 0 |
+| Altibase (`ext.altibase.ui`) | 9 | 8 | 0 | 1 | 0 | 0 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 15 | 12 | 2 | 0 | 0 |
-| **합계** | **124** | **93** | **22** | **8** | **1** | **0** |
+| **합계** | **124** | **96** | **20** | **7** | **1** | **0** |
 
 2026-11-08 다시 셈(devel #165 기준, 모든 행을 코드와 다시 대조): 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"·고침은 있음으로 셈).
 그 전 표는 바뀐 행을 반영하지 않은 수였다. 조사 당시 수는 있음 41, 일부 31, 없음 46, 의도적 제외 1, 조용히 끊김 5였다.
@@ -62,7 +62,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P7 | 전역 환경설정 "PostgreSQL" 페이지(위 P2·P3 항목의 전역 기본값) | `PrefPagePostgreSQL`, `PostgrePreferencesInitializer` | 없음 | `OptionsDialog.java:178-180`(일반·편집기·색 탭뿐) | 낮음 | 연결마다 표로 바꿀 수는 있다. 2026-11-08 다시 확인: 그대로. DB별 Options 페이지는 Oracle·Altibase·CUBRID·Mimer SQL뿐(`OptionsDialog.java`:135) |
 | P8 | 세션 관리자(유휴 보기, Terminate, Cancel query) | `PostgreSessionEditor` | 있음 | `SessionManagerPanel` + `PostgreActivitySessionManager`(swing-admin-tools.md 124행) | 높음 | Swing이 대기·막는 세션·트랜잭션 경과를 더함 |
 | P9 | 잠금 관리자 | `PostgreLockEditor` | 있음 | `LockManagerPanel` + `PostgreBlockingLockManager`(swing-admin-tools.md 153행) | 높음 | |
-| P10 | 사용 권한 탭(역할의 권한, 테이블·열·함수·스키마의 권한) | `RolePermissionsEditor`, `ObjectPermissionsEditor`, `PostgresPermissionsEditor` | 일부 | `PrincipalPropertiesDialog`, `ObjectPermissionsDialog`, `PostgreSecurityDialect`(DATABASE·SCHEMA 포함) | 중간 | 열 단위 권한, ALTER DEFAULT PRIVILEGES 없음(swing-security.md 158행) |
+| P10 | 사용 권한 탭(역할의 권한, 테이블·열·함수·스키마의 권한) | `RolePermissionsEditor`, `ObjectPermissionsEditor`, `PostgresPermissionsEditor` | 있음 | `PrincipalPropertiesDialog`(사용 권한·기본 권한 탭), `ObjectPermissionsDialog`(열 노드 포함), `PostgreSecurityDialect`(DATABASE·SCHEMA·열·기본 권한) | 중간 | 2026-11-08 `chromite/privileges-replication`: 열 권한, ALTER DEFAULT PRIVILEGES([swing-security.md](../swing-security.md) "열 권한과 기본 권한") |
 | P11 | 역할 만들기·속성 | `PostgreCreateRoleDialog`, `PostgreRoleConfigurator` | 있음 | `PrincipalPropertiesDialog`(swing-security.md 63행 표) | 중간 | |
 | P12 | Source/DDL 탭(뷰·함수·트리거·규칙 등 정의 보기·제자리 편집 저장) | `PostgreSourceViewEditor` | 일부 | View DDL(`DdlViewerPanel`), Modify → 쿼리 창 `CREATE OR REPLACE`(swing-source-editor.md 7, 53행) | 중간 | 제자리 편집·저장 없음, 쿼리 창에서 실행 |
 | P13 | 새 데이터베이스(소유자·템플릿·인코딩·테이블스페이스) | `PostgreCreateDatabaseDialog`, `PostgreDatabaseConfigurator` | 있음(2026-11-08) | Databases 폴더의 New Database…(`NewObjectCommands`, `NewObjectDialogs.askPostgreDatabase`): 이름·소유자·템플릿·인코딩·LC_COLLATE·LC_CTYPE·테이블스페이스 → 스크립트 미리 보기(취소가 기본) → 실행. 모델 `PostgreDatabaseManager`가 문장을 만든다. [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. LC_COLLATE·LC_CTYPE는 SWT에 없던 것 |
@@ -110,7 +110,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M2 | 로컬 클라이언트(mysqldump 위치) | `MySQLConnectionPageAdvanced`의 `ClientHomesSelector` | 있음 | `NativeBackupRestoreDialog` | 낮음 | |
 | M3 | SSL(인증서, 암호 모음, Require SSL, 서버 인증서 확인, 공개 키 가져오기) | `MySQLSSLConfigurator` | 있음 | `SslHandlerPanel`(swing-conn-advanced.md 137행) | 중간 | |
 | M4 | 세션 관리자(Hide sleeping, 성능 정보, Kill connection/query) | `MySQLSessionEditor` | 있음 | swing-admin-tools.md 126행 | 높음 | Swing이 InnoDB 잠금 탭을 더함 |
-| M5 | 사용자 편집기(General·Privileges), 사용자 관리자, GRANT | `MySQLUserEditorGeneral/Privileges`, `MySQLUserManager`(UI 번들의 objectManager), `MySQLCommandGrantPrivilege` | 일부 | `PrincipalPropertiesDialog` + `MySQLSecurityDialect`(swing-security.md 76-80행) | 중간 | SWT General 탭의 리소스 제한(MAX_QUERIES/UPDATES/CONNECTIONS, `MySQLUserEditorGeneral.java:103-107`) 없음(swing-security.md 157행) |
+| M5 | 사용자 편집기(General·Privileges), 사용자 관리자, GRANT | `MySQLUserEditorGeneral/Privileges`, `MySQLUserManager`(UI 번들의 objectManager), `MySQLCommandGrantPrivilege` | 있음 | `PrincipalPropertiesDialog` + `MySQLSecurityDialect`(swing-security.md 76-80행) | 중간 | 2026-11-08 `chromite/privileges-replication`: 일반 탭의 자원 제한 네 값(MAX_QUERIES/UPDATES/CONNECTIONS_PER_HOUR, MAX_USER_CONNECTIONS, [swing-security.md](../swing-security.md) "MySQL/MariaDB 자원 제한") |
 | M6 | 새 데이터베이스(문자 집합, 콜레이션) | `MySQLCreateDatabaseDialog`, `MySQLCatalogConfigurator` | 있음(2026-11-08) | Databases 폴더의 New Database…(`NewObjectDialogs.askMySQLDatabase`): 이름·문자 집합·정렬 규칙 → 미리 보기(DDL 바로 커밋 안내) → 열린 트랜잭션 질문 → 실행. [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
 | M7 | 인덱스·제약·외래 키 | `MySQL{Index,Constraint,ForeignKey}Configurator` | 있음 | `design/MySQLTableDesignerDriver` | 중간 | |
 | M8 | 프로시저·함수 만들기 | `MySQLProcedureConfigurator` | 있음 | New Procedure/Function | 중간 | |
@@ -167,7 +167,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | A4 | 서버 출력(PRINT) | (SQL 편집기 Output 패널) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K2. 쿼리 창 Messages 탭 | 중간 | 조사 당시: 켜고 끄는 화면은 없음(A3). 2026-11-08 Options &gt; Altibase에서 켜고 끔(A3), 열린 세션에도 다음 문장부터 적용(#165) |
 | A5 | 구체화된 뷰 새로 고침, TRUNCATE | `AltibaseToolMViewRefresh`, `AltibaseToolTableTruncate` | 있음(2026-11-08) | 유지 관리 명령(`ObjectMaintenanceActions`)이 모델 도구의 문장을 씀, [swing-routines.md](../swing-routines.md) | 중간 | 조사 당시: 없음 |
 | A6 | 뷰·프로시저·패키지 컴파일 | `AltibaseToolViewCompile/ProcedureCompile/PackageCompile` | 있음(2026-11-08) | Object Explorer "Compile"(모델 도구의 문장, 오류는 문장 오류로 보임), [swing-routines.md](../swing-routines.md) | 중간 | 조사 당시: 없음 |
-| A7 | 복제 시작·중지 | `AltibaseToolReplicationStart/Stop` | 없음 | `model.admin` replication 방언에 Altibase 없음(읽기 전용 4개 DB) | 중간 | Altibase 운영 기능 |
+| A7 | 복제 시작·중지 | `AltibaseToolReplicationStart/Stop` | 있음 | `ObjectMaintenanceActions`·`ObjectMaintenanceCommands`(복제 노드의 시작·중지·동기화), `AltibaseReplicationDialect`(Activity Monitor 복제 탭) | 중간 | 2026-11-08 `chromite/privileges-replication`([altibase.md](../altibase.md) "복제 시작·중지·동기화"). 시험 서버는 복제가 꺼져 있어 명령은 문으로만 확인 |
 | A8 | 프로시저·Typeset·시퀀스 만들기 | `Altibase{Procedure,Typeset,Sequence}Configurator`, `CreateTypesetPage` | 없음 | `SourceScripts` 템플릿 방언은 SQL Server·PostgreSQL·MySQL·Oracle뿐(`SourceScripts.java` 434-440행 부근) | 낮음 | 2026-11-08 다시 확인: 그대로(`SourceScripts.getDialect`는 4개 방언, `AltibaseSequenceManager`는 만들기를 허용하지 않음) |
 | A9 | 패키지 선언 소스 보기 | `databaseEditor` `source.declaration` → `SQLSourceViewer` | 있음 | View DDL(`DdlViewerPanel`) | 낮음 | Swing이 저장 방식 색을 더함(altibase.md) |
 
@@ -257,7 +257,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간. (2026-11-08 고침, [swing-create-objects.md](../swing-create-objects.md))
 8. O18 Oracle 인덱스·제약·외래 키(디자이너 미지원) — 없음, 중간. (2026-11-08 고침)
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
-10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 남음)
+10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 2026-11-08 `chromite/privileges-replication`)
 
 다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall(2026-11-08 고침), O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음). (2026-11-08 고침, [swing-routines.md](../swing-routines.md))
@@ -284,5 +284,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): O8·A3·dameng·kingbase·vertica·yashandb → 있음, cubrid → 일부, P7·P19·P25·A8·O24·A4·db2·gaussdb 비고, §8 두 줄에 고친 것 표시. 요약 표를 행 상태로 다시 셈(있음 92, 일부 23, 없음 8, 의도적 제외 1, 조용히 끊김 0).
 - 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): P28 일부 → 있음(hstore 대화상자, bit string 입력),
   M18 비고(SET 고르기). 요약 표: PostgreSQL 있음 18 → 19, 일부 7 → 6(합계 있음 93, 일부 22).
+- 2026-11-08 5순위 권한 세부와 Altibase 복제(`chromite/privileges-replication`): P10·M5 일부 → 있음, A7 없음 → 있음. 요약 표: PostgreSQL 있음 19 → 20·일부 6 → 5,
+  MySQL/MariaDB 있음 16 → 17·일부 3 → 2, Altibase 있음 7 → 8·없음 2 → 1(합계 있음 96, 일부 20, 없음 7).
 - 2026-11-08 P26 일부 → 없음(`chromite/actual-plan-more-dbs`, PostgreSQL `EXPLAIN ANALYZE` 다시 실행을 지움, 사용자 결정), A3 비고(실제 계획 토글의 `EXPLAIN PLAN = ON`).
   요약 수는 고치지 않음(합치는 쪽에서 다시 셈).

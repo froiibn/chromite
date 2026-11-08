@@ -192,8 +192,9 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
 ## 남긴 것
 
-- 열 고정(freeze), 저장한 필터, 필터 편집 대화상자, 자동완성되는 필터 입력. 열 숨기기·순서 바꾸기와 행 수 세기는 2026-11-08에 했다
-  ([swing-grid-navigation.md](swing-grid-navigation.md)).
+- 열 고정(freeze), 필터 편집 대화상자, 자동완성되는 필터 입력. 열 숨기기·순서 바꾸기와 행 수 세기는 2026-11-08에 했다
+  ([swing-grid-navigation.md](swing-grid-navigation.md)). 저장한 필터·필터 기록과 가상(계산) 열도 2026-11-08에 했다
+  ([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 이진 값 형식 바꾸기(SWT의 Binary format 메뉴). LOB·JSON 열 편집과 파일로 저장·파일에서 불러오기는 2026-11-08에 했다([swing-grid-editing.md](swing-grid-editing.md)).
 - 그룹 패널, 메타데이터 패널. 결과 안 찾기(찾기만)와 참조 패널은 2026-11-08에 했다([swing-grid-navigation.md](swing-grid-navigation.md)).
 
@@ -215,3 +216,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   편집 형식(WKT)으로 보임. 선택 집계는 표가 보일 때만. [swing-result-charts-spatial.md](swing-result-charts-spatial.md).
 - 2026-11-08 결과 탐색(B4): 외래 키 따라가기와 뒤로·앞으로, 참조·집계 패널, 가상 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소, 찾기, 텍스트 보기,
   전체 행 수. "남긴 것" 갱신. [swing-grid-navigation.md](swing-grid-navigation.md).
+- 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).

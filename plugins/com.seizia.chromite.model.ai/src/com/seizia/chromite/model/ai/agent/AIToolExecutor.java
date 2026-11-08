@@ -62,6 +62,7 @@ import java.util.function.Consumer;
  * - 2026-11-07 트랜잭션 질문의 Commit/Roll back 답을 결과에 남김({@value #RESULT_TRANSACTIONS_BEFORE_CALL}): 롤백으로 답한
  *   {@code commitTransaction}이 커밋과 같은 "완료"로만 보이던 것(docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-08 도구의 진행 상황을 받을 수신자를 넘기는 {@code execute}(채팅 카드에 백업·복원 진행 표시)
+ * - 2026-11-08 트랜잭션 질문의 Commit/Roll back 답을 감사 기록에도 남김(docs/chromite/ai-agent.md "실제 API 확인")
  */
 public final class AIToolExecutor {
 
@@ -160,28 +161,28 @@ public final class AIToolExecutor {
                 }
             }
             if (monitor.isCanceled()) {
-                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
-                    start, "Canceled", null), resolution);
+                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                    start, "Canceled", null, resolution);
             }
             AIFunctionResult result = instance.callFunction(context, args);
             String text = String.valueOf(result.getValue());
             if (result.getException() != null) {
-                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
-                    start, text, null), resolution);
+                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+                    start, text, null, resolution);
             }
-            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
-                start, null, text), resolution);
+            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
+                start, null, text, resolution);
         } catch (AIToolArgumentException e) {
-            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.INVALID,
-                start, e.getMessage(), null), resolution);
+            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.INVALID,
+                start, e.getMessage(), null, resolution);
         } catch (Throwable e) {
             if (monitor.isCanceled()) {
-                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
-                    start, "Canceled", null), resolution);
+                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                    start, "Canceled", null, resolution);
             }
             log.debug("AI tool " + tool.getId() + " failed", e);
-            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
-                start, describe(e), null), resolution);
+            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+                start, describe(e), null, resolution);
         }
     }
 
@@ -192,6 +193,11 @@ public final class AIToolExecutor {
      * @param count  number of uncommitted transactions the answer ended
      */
     private record Resolution(@NotNull AIToolConfirmationAnswer answer, int count) {
+        /** {@code COMMITTED} or {@code ROLLED_BACK}, as the result and the audit log name it. */
+        @NotNull
+        String action() {
+            return answer == AIToolConfirmationAnswer.COMMIT ? "COMMITTED" : "ROLLED_BACK"; //$NON-NLS-1$ //$NON-NLS-2$
+        }
     }
 
     /**
@@ -207,7 +213,7 @@ public final class AIToolExecutor {
         }
         JsonObject note = new JsonObject();
         boolean commit = resolution.answer() == AIToolConfirmationAnswer.COMMIT;
-        note.addProperty("action", commit ? "COMMITTED" : "ROLLED_BACK");
+        note.addProperty("action", resolution.action());
         note.addProperty("count", resolution.count());
         note.addProperty("note", "Before this call the user chose " + (commit ? "Commit" : "Roll back") + ": " +
             resolution.count() + " uncommitted transaction(s) were " + (commit ? "committed" : "rolled back") +
@@ -350,17 +356,39 @@ public final class AIToolExecutor {
         @Nullable String error,
         @Nullable String text
     ) {
+        return finish(client, toolId, access, connection, args, decision, outcome, start, error, text, null);
+    }
+
+    /**
+     * Audits the call and builds its result. A Commit / Roll back answer carried out before the call goes into both
+     * ({@link #withResolution}): the audit log records the user's decision, not only the policy's.
+     */
+    @NotNull
+    private static AIToolCallResult finish(
+        @NotNull AIToolClient client,
+        @NotNull String toolId,
+        @NotNull AIToolAccess access,
+        @Nullable DBPDataSourceContainer connection,
+        @NotNull Map<String, Object> args,
+        @Nullable AIToolDecision decision,
+        @NotNull AIToolOutcome outcome,
+        long start,
+        @Nullable String error,
+        @Nullable String text,
+        @Nullable Resolution resolution
+    ) {
         long duration = System.currentTimeMillis() - start;
         AIToolAuditLog.getInstance().append(AIToolAuditLog.newEntry(
-            client, toolId, access, connection, args, decision, outcome, duration, error));
+            client, toolId, access, connection, args, decision, outcome, duration, error,
+            resolution == null ? null : resolution.action(), resolution == null ? 0 : resolution.count()));
         if (outcome == AIToolOutcome.SUCCESS && text != null) {
             if (text.length() > MAX_RESULT_CHARS) {
                 JsonObject cut = new JsonObject();
                 cut.addProperty("truncatedText", text.substring(0, MAX_RESULT_CHARS));
                 cut.addProperty("note", "Result was cut at " + MAX_RESULT_CHARS + " characters; ask for fewer rows or columns");
-                return new AIToolCallResult(outcome, GSON.toJson(cut));
+                return withResolution(new AIToolCallResult(outcome, GSON.toJson(cut)), resolution);
             }
-            return new AIToolCallResult(outcome, text);
+            return withResolution(new AIToolCallResult(outcome, text), resolution);
         }
         JsonObject json = new JsonObject();
         json.addProperty("error", error == null ? outcome.name() : error);
@@ -370,6 +398,6 @@ public final class AIToolExecutor {
             json.addProperty("policy", decision.permission().name());
             json.addProperty("policyReason", decision.reason());
         }
-        return new AIToolCallResult(outcome, GSON.toJson(json));
+        return withResolution(new AIToolCallResult(outcome, GSON.toJson(json)), resolution);
     }
 }

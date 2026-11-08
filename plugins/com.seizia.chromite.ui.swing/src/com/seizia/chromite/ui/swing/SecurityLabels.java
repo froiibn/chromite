@@ -31,6 +31,7 @@ import org.jkiss.code.NotNull;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 열·기본 권한 종류, 수치 제한 id(MySQL/MariaDB 자원 제한) (docs/chromite/swing-security.md)
  */
 final class SecurityLabels {
 
@@ -47,6 +48,26 @@ final class SecurityLabels {
             case SEQUENCE -> SecurityMessages.security_kind_sequence;
             case FUNCTION -> SecurityMessages.security_kind_function;
             case PROCEDURE -> SecurityMessages.security_kind_procedure;
+            case COLUMN -> SecurityMessages.security_kind_column;
+            case DEFAULT_TABLES -> SecurityMessages.security_kind_default_tables;
+            case DEFAULT_SEQUENCES -> SecurityMessages.security_kind_default_sequences;
+            case DEFAULT_FUNCTIONS -> SecurityMessages.security_kind_default_functions;
+            case DEFAULT_TYPES -> SecurityMessages.security_kind_default_types;
+            case DEFAULT_SCHEMAS -> SecurityMessages.security_kind_default_schemas;
+        };
+    }
+
+    /**
+     * Label of a numeric limit id ({@code SecurityPrincipal#getLimits()}); an unknown id is shown as it is.
+     */
+    @NotNull
+    static String getLimitLabel(@NotNull String limit) {
+        return switch (limit) {
+            case "MAX_QUERIES_PER_HOUR" -> SecurityMessages.security_limit_max_queries; //$NON-NLS-1$
+            case "MAX_UPDATES_PER_HOUR" -> SecurityMessages.security_limit_max_updates; //$NON-NLS-1$
+            case "MAX_CONNECTIONS_PER_HOUR" -> SecurityMessages.security_limit_max_connections; //$NON-NLS-1$
+            case "MAX_USER_CONNECTIONS" -> SecurityMessages.security_limit_max_user_connections; //$NON-NLS-1$
+            default -> limit;
         };
     }
 

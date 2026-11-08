@@ -98,7 +98,8 @@ SWT: `ValidateUniqueKeyUsageDialog`, `VirtualUniqueKeyEditAction`, `VirtualForei
 - **가상 외래 키:** 테이블 디자이너의 외래 키 대화상자를 가상 모드로 다시 쓴다(`DesignerDialogs.editForeignKey(..., virtual=true)`: 이름·ON DELETE/UPDATE 없음,
   참조할 키에 참조 테이블의 가상 고유 키도 들어감). 참조할 테이블은 같은 스키마의 테이블과 뷰다. 저장은 진행 대화상자에서 한다(가상 외래 키는 참조 테이블의
   탐색기 노드 경로를 남기므로 노드를 찾음). 저장하면 결과를 다시 읽어 칸의 외래 키(Ctrl+B)와 참조 메뉴에 나온다. 지우기는 확인(기본 Cancel) 뒤에 한다.
-- **가상(계산) 열은 하지 않았다**(아래 "남긴 것").
+- **가상(계산) 열**은 2026-11-08 [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md) "가상 열"에서 했다. 가상 키·가상 열을 바꾼 뒤
+  다시 읽는 메서드는 하나다(`readAgainForVirtualModel`).
 
 ### 열 배치와 이동 (B-R24)
 
@@ -167,7 +168,7 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
   - 참조 패널은 읽기 전용이고 "열기"로 편집한다. 고른 관계는 설정 파일에 남기지 않는다.
   - 집계 패널은 숫자 값만 합계·평균에 넣는다.
   - 열은 머리글을 끌어 옮긴다(왼쪽·오른쪽 옮기기 명령 없음).
-  - 열 고정, 가상 계산 열, 그룹 패널, 바꾸기 없음.
+  - 열 고정, 그룹 패널, 바꾸기 없음.
 
 ## 확인 (2026-11-08)
 
@@ -205,7 +206,7 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
 ## 남긴 것
 
 - **열 고정(pin):** Swing `JTable`은 고정 열이 없다. 두 번째 표를 행 머리글 자리에 두고 선택·편집·키·값 패널을 두 표에 맞춰야 해서 따로 한다.
-- **가상(계산) 열**(SWT `EditVirtualAttributePage`, JEXL 식): 식 편집기와 계산 값의 표시·정렬·내보내기가 필요하다.
+- ~~**가상(계산) 열**~~ 2026-11-08 함([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 그룹 패널(B-R8), 결과 안 바꾸기, 참조 패널에서 편집, 외래 키 칸의 링크 표시(SWT는 칸에 화살표를 그림)와 클릭으로 따라가기, 뒤로 갈 때 다시 읽기.
 - 가상 외래 키의 참조 테이블은 같은 스키마에서만 고른다(다른 스키마·다른 연결은 SWT처럼 탐색기 트리로 골라야 함).
 
@@ -214,3 +215,4 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
 - 2026-11-08 최초 작성(`chromite/p4-grid-navigation`): 외래 키 따라가기와 기록, 참조 패널, 가상 고유 키·가상 외래 키, 열 숨기기·순서·빈 열·행/열로 가기·확대,
   찾기, 집계 패널, 텍스트 보기, 전체 행 수, 오류 위치로 가기. `rebindFilter`가 여러 열 키의 OR 형식(`useDisjunctiveNormalForm`)을 옮김.
   레코드 보기의 줄을 모델 열로 씀.
+- 2026-11-08 가상(계산) 열을 [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)에서 함: "가상 키"·"남긴 것"·upstream 대비 변경점을 고침.
