@@ -168,7 +168,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
  *     <li>찾기·바꾸기: 편집기가 Ctrl+F, Ctrl+H, F3, Shift+F3을 직접 받아 {@link FindReplaceDialog}를 연다(Edit 메뉴와 같은 동작).</li>
- *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 결과 아래에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.
+ *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 활성 창의 것을 메인 창 상태 표시줄에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.
  *     행 수는 고른 결과 탭의 행 수이고, 결과 탭이 아닌 탭이 앞에 있으면 실행에서 읽은 행 수다({@link #updateRowCount}).</li>
  *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
  *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
@@ -309,6 +309,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 결과 집합마다 탭(앱 변경 #7): 결과 탭 줄은 {@link QueryResultsView}가 계획·터미널 탭까지 가짐(창이 고른 탭을 따로 기억하던
  *   {@code planTabSelected}·{@code terminalTabSelected} 삭제), 실행 시작은 Messages, 첫 결과만 앞으로, 오류로 멈췄거나 결과가 없을 때만 끝에 Messages,
  *   상태 줄 행 수는 고른 결과 탭 (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-08 상태 줄은 메인 창 상태 표시줄에 보임(앱 변경 #2, 주석만) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -905,7 +906,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The query status line; the main window shows the active editor's line below the results (SSMS).
+     * The query status line; the main window shows the active editor's line in its status bar.
      */
     @NotNull
     QueryStatusLine getStatusLine() {

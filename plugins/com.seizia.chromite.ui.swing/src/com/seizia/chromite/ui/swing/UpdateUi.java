@@ -48,8 +48,11 @@ import java.awt.event.WindowEvent;
  * 저장 안 한 편집기와 커밋하지 않은 트랜잭션을 묻게 한다). 사용자가 취소하면 창이 남고 다시 시작 요청도 지운다.
  * 설치는 앱이 끝난 뒤 도우미가 한다({@code ChromiteSwingApplication}이 {@link UpdateService#applyAtExit}를 부른다).
  *
+ * 진행 글자는 보조 글자 색이고, 상태 표시줄이 활성 쿼리 창 연결 색으로 칠해져 그 색 위에서 읽히지 않으면 쿼리 창 칸과 같은 대비 색이다.
+ *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-08 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class UpdateUi {
 
@@ -58,7 +61,7 @@ final class UpdateUi {
     private final JFrame frame;
     private final UpdateService service;
     private final JButton titleButton = new JButton();
-    private final JLabel progressLabel = new JLabel();
+    private final JLabel progressLabel;
     private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final JPanel progressPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
     private final UpdateService.Listener listener;
@@ -81,7 +84,19 @@ final class UpdateUi {
             menuBar.add(titleButton);
         }
 
-        progressLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        progressLabel = new JLabel() {
+            /**
+             * text.secondary, or the contrast color while the status bar is painted in a query window connection's color
+             * the theme's text is unreadable on ({@link MainFrame#STATUS_BAR_FOREGROUND_KEY}). Read when painting: a FlatLaf
+             * style cannot set the color of this class (see {@link QueryStatusLine}).
+             */
+            @Override
+            public Color getForeground() {
+                Color band = statusBar == null ? null : (Color) statusBar.getClientProperty(MainFrame.STATUS_BAR_FOREGROUND_KEY);
+                Color color = band != null ? band : UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+                return color != null ? color : super.getForeground();
+            }
+        };
         progressBar.setPreferredSize(new Dimension(UIScale.scale(120), UIScale.scale(4)));
         progressPanel.setOpaque(false);
         progressPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, UIScale.scale(12)));

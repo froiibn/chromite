@@ -69,7 +69,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
@@ -78,6 +77,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,7 +102,8 @@ import java.util.function.Supplier;
  *     ({@link ChromiteTheme}, {@link ToolWindowDocking} 참고). 저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>Results 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 적용하고, 떠 있는 도구 창도 그때 연다.</li>
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
- *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
+ *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다
+ *     (상태 표시줄은 활성 쿼리 창의 연결에 색이 있으면 그 색).</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
  *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Network Profiles {@link NetworkProfilesDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
@@ -118,8 +119,8 @@ import java.util.function.Supplier;
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다. 탭 줄 {@code Result1 | Result2 | … | Messages | Execution plan | Terminal}도 쿼리 창마다 하나이고
  *     ({@link QueryResultsView}, 2026-11-08 사용자 결정), Results 카드에는 활성 쿼리 창의 탭 줄을 통째로 끼운다({@link #attachResults}). 그래서 고른 탭은
  *     창마다 그대로 남는다. 숨기기 단추는 끼운 탭 줄의 오른쪽 끝으로 옮긴다. 탭 줄에서 빠져 있던 동안의 테마 전환은 끼울 때 맞춘다.
- *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
- *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.
+ *     쿼리 상태 칸({@link QueryStatusLine})도 같은 방식으로, 활성 쿼리 창의 것을 메인 창 상태 표시줄에 끼운다(2026-11-08 사용자 요청). 그동안 상태 표시줄 전체가
+ *     그 창 연결의 색이다. 빈 문서 영역과 쿼리 창이 아닌 문서(DDL 탭, 도구 문서)에서는 상태 표시줄이 작업 공간 연결 수다.
  *     Terminal 탭(Query &gt; SQL Terminal, Ctrl+T)은 쿼리 창이 터미널을 켰을 때만 그 창의 탭 줄 끝에 붙는다.</li>
  *     <li>Results 카드는 DataGrip처럼 활성 문서가 쿼리 창일 때만 보인다. 빈 문서 영역과 다른 문서(테이블 디자이너, ER 다이어그램, 도구 문서, DDL 탭)에서는
  *     숨겨 빈 화면·문서가 문서 영역을 다 쓴다. 사용자가 숨긴 것(Ctrl+R, View 메뉴, — 단추)은 전역이 아니라 그 쿼리 창에 기억하고
@@ -269,6 +270,9 @@ import java.util.function.Supplier;
  * - 2026-11-08 결과 집합마다 탭(앱 변경 #7): Results / Messages / Execution plan / Terminal 바깥 탭과 탭 번호 상수, 창마다 고른 탭 기억을 지우고
  *   활성 쿼리 창의 탭 줄({@link QueryResultsView})을 Results 카드에 끼움, 쿼리 창이 활성이 아니어도 그 창의 탭 줄은 실행 결과를 따름
  *   (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-08 쿼리 상태 칸을 메인 창 상태 표시줄로(앱 변경 #2): 결과 아래·편집기 아래의 상태 줄 자리({@code resultsStatusHolder},
+ *   {@code documentStatusHolder}, {@code placeStatusLine})를 지우고 상태 표시줄이 활성 쿼리 창의 칸을 보이며 그 연결 색으로 칠함
+ *   (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -297,6 +301,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private static final int DEFAULT_RESULTS_HEIGHT = 280;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
+    /**
+     * Client property of the status bar: the text color on the active query window's connection color when the theme's
+     * text is unreadable on it, else null. Labels on the bar that are not the query window's ({@link UpdateUi}) read it.
+     */
+    static final String STATUS_BAR_FOREGROUND_KEY = "chromite.statusBarForeground"; //$NON-NLS-1$
     /**
      * Name of a new query window: {@code SQLQueryN.sql} as in SSMS.
      */
@@ -349,14 +358,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * The Results card's hide button at the right end of the attached tab row.
      */
     private final JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
-    /**
-     * Hold the active editor's query status line at the bottom of the query window (SSMS): inside the Results card below
-     * the results, or at the bottom of the document card while the Results tool window is hidden.
-     */
-    private final JPanel resultsStatusHolder = new JPanel(new BorderLayout());
-    private final JPanel documentStatusHolder = new JPanel(new BorderLayout());
-    @Nullable
-    private JComponent attachedStatusLine;
     private final ToolWindow resultsWindow;
     private final ToolWindow.SplitHost resultsSplit;
     private final ToolWindowDocking toolWindowDocking;
@@ -462,25 +463,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        // Islands: the document tabs and their editors are one card; the query status line goes to its bottom only
-        // while the Results card is hidden (attachStatusLine)
+        // Islands: the document tabs and their editors are one card
         JPanel documentArea = new JPanel(new BorderLayout());
         // No open document: the document area shows the welcome content instead of the tabs (updateDocumentCard)
         documentCards.add(documentTabs, DOCUMENTS_CARD);
         documentArea.add(documentCards, BorderLayout.CENTER);
-        documentArea.add(documentStatusHolder, BorderLayout.SOUTH);
         documentSplit.setTopComponent(new IslandPanel(documentArea));
         // The center gets the active query window's tab row (activeEditorChanged); without one the Results card is hidden
         resultsArea.setOpaque(false);
-        resultsArea.add(resultsStatusHolder, BorderLayout.SOUTH);
-        // The status line follows the Results card when it is hidden or shown again (Ctrl+R, hide button, another document)
-        resultsArea.addHierarchyListener(e -> {
-            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
-                placeStatusLine();
-            }
-        });
-        resultsStatusHolder.setVisible(false);
-        documentStatusHolder.setVisible(false);
         // The document area (document card + results card) is the fixed center of the docking layout
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
 
@@ -1799,7 +1789,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         SqlEditorPanel editor = getActiveEditor();
         // No query window: the card lets go of the last window's tab row (the Results card is hidden)
         attachResults(editor != null ? editor.getResultsView().getComponent() : null);
-        // Before the status line, which goes below the results only while they are shown
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
         outlinePanel.setTextArea(getActiveTextArea());
@@ -1816,7 +1805,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Puts a query window's tab row (its results, Messages, plan and terminal, {@link QueryResultsView}) into the Results
      * card, with the hide button at its right end. The tab row keeps the window's selected tab. A tab row of an inactive
      * window is not in the window and misses theme switches, so its look and feel is brought up to date here (also for
-     * the status line and the hide button, which is out of the window while no query window is active).
+     * the hide button, which is out of the window while no query window is active).
      * The card is repainted: a tab row that had the card's bounds before is not moved by the layout, so without it
      * nothing asked to paint it and the previous window's results stayed on the screen (app change #18, a query window
      * with no results such as a Query Library tab).
@@ -1853,37 +1842,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Shows the active editor's query status line at the bottom of the query window; other documents (DDL) and the empty document area
-     * have none.
+     * Shows the active query window's status cells in the main window's status bar; other documents (DDL, tool
+     * documents) and the empty document area show the workspace text there.
      */
-    private void attachStatusLine(@Nullable JComponent statusLine) {
-        if (statusLine == attachedStatusLine) {
+    private void attachStatusLine(@Nullable QueryStatusLine statusLine) {
+        // The status bar is made after the document tabs, whose listener calls this
+        if (statusBar == null) {
             return;
         }
-        attachedStatusLine = statusLine;
         if (statusLine != null) {
             updateLookAndFeel(statusLine);
         }
-        placeStatusLine();
-    }
-
-    /**
-     * Puts the status line below the results (SSMS), or below the editor while the Results card is hidden.
-     */
-    private void placeStatusLine() {
-        JPanel target = resultsWindow != null && resultsWindow.isShown() ? resultsStatusHolder : documentStatusHolder;
-        for (JPanel holder : List.of(resultsStatusHolder, documentStatusHolder)) {
-            boolean show = holder == target && attachedStatusLine != null;
-            if (show && (holder.getComponentCount() == 0 || holder.getComponent(0) != attachedStatusLine)) {
-                holder.removeAll();
-                holder.add(attachedStatusLine, BorderLayout.CENTER);
-            } else if (!show) {
-                holder.removeAll();
-            }
-            holder.setVisible(show);
-            holder.revalidate();
-            holder.repaint();
-        }
+        statusBar.setLine(statusLine);
     }
 
     private void updateQueryActions() {
@@ -2615,9 +2585,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
      * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
+     * While a query window is active it shows that window's status cells ({@link QueryStatusLine}) instead of the
+     * workspace text, and the whole bar is painted in the window connection's color (user decision 2026-11-08), with
+     * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
+     * also read by the update progress at the right end, {@link UpdateUi}).
      */
     private static final class StatusBar extends JPanel {
         private final JLabel statusLabel;
+        @Nullable
+        private QueryStatusLine line;
+        private final PropertyChangeListener bandListener = e -> applyBand();
 
         StatusBar(@NotNull String statusText) {
             super(new BorderLayout());
@@ -2637,13 +2614,47 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             statusLabel.setText(text);
         }
 
+        /**
+         * The active query window's status cells in place of the workspace text, or null for none.
+         */
+        void setLine(@Nullable QueryStatusLine line) {
+            if (line == this.line) {
+                return;
+            }
+            if (this.line != null) {
+                this.line.removePropertyChangeListener(QueryStatusLine.BAND_PROPERTY, bandListener);
+                remove(this.line);
+            }
+            this.line = line;
+            if (line != null) {
+                // Its connection color follows tab switches, connection settings and theme changes
+                line.addPropertyChangeListener(QueryStatusLine.BAND_PROPERTY, bandListener);
+                add(line, BorderLayout.CENTER);
+            }
+            statusLabel.setVisible(line == null);
+            applyBand();
+            revalidate();
+        }
+
+        /**
+         * The connection color of the shown query window as the background (the canvas without one), and its text color
+         * for the update progress.
+         */
+        private void applyBand() {
+            Color band = line != null ? line.getBandColor() : null;
+            Color background = band != null ? band : UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (background != null) {
+                setBackground(background);
+            }
+            putClientProperty(STATUS_BAR_FOREGROUND_KEY, line != null ? line.getBandForeground() : null);
+            repaint();
+        }
+
         @Override
         public void updateUI() {
             super.updateUI();
-            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
-            if (canvas != null) {
-                setBackground(canvas);
-            }
+            // Called by the super constructor too, before the fields are set
+            applyBand();
         }
     }
 }
