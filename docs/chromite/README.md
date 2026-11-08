@@ -46,6 +46,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
+| [swing-query-manager.md](swing-query-manager.md) | Swing Query Manager 도구 창(View > Query Manager): 쿼리 관리자가 기록한 모든 실행(내부·메타데이터 쿼리, 커밋·롤백, 연결), 연결·종류·글자 필터(종류는 Options > Logs와 같은 `qm.*` 키), 문장 복사, 쿼리 창에서 열기(실행 안 함), 트랜잭션 보기, 지우기 |
 | [connection-lifecycle.md](connection-lifecycle.md) | 연결 수명 주기: 여러 연결 끊기, 무효화·다시 연결, 연결 끊김·드라이버 오류 대화상자, 끝낼 때 실행 중인 작업, 스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, H2 초기화 SQL·SQLite 확장 승인, 절전, 세션을 닫는 모든 경로의 트랜잭션 질문 점검 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정, 머리글 정렬이 쿼리의 ORDER BY를 바꿈·감싼 쿼리의 ORDER BY 옮기기 |
 | [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |
@@ -92,5 +93,6 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [auto-update.md](auto-update.md) | 앱 안의 자동 업데이트: 업데이트 목록 확인(고정 User-Agent, 1 MB, 10초), 뒤에서 받기, Windows·macOS 파일 확인(서명·게시자·버전), 끝날 때 적용(도우미), 실패 처리, 옵션, 끝낼 때 트랜잭션 질문, 개발 빌드 시험 모드 |
 | [connection-transfer.md](connection-transfer.md) | 연결 내보내기·가져오기: 비밀번호를 사용자 암호로 암호화한 파일(AES-256-GCM, PBKDF2 600,000번, 형식 버전 1), 내보내는 것, 충돌(건너뛰기·바꾸기·사본), 연결 중인 연결 보호, OS 보안 저장소 이전과의 관계, 다른 도구(Oracle SQL Developer, Toad, CSV)에서 가져오기와 드라이버 고르기 |
 | [regression-tests.md](regression-tests.md) | 회귀 테스트: 실행 방법(`mvn verify`, 시험 데이터 폴더), PR #95–#133의 모델 기능 JUnit 테스트 목록(트랜잭션 안전, SQL 실행 안전, 자격 증명·연결 파일, 드라이버 묶음, 데이터, 자동완성, Chromite Agent, Query Library), 화면 확인 목록, 실행 결과 |
+| [settings-transfer.md](settings-transfer.md) | 설정 내보내기·가져오기(File 메뉴): 옵션 설정 값·SQL 템플릿·연결 유형·데이터 형식, 드라이버 설정, 쿼리 라이브러리, 스크립트와 연결 묶기, 연결(#108 암호화 파일). 파일 형식, 비밀 걸러내기, 이 PC의 상태 키, 미리 보기와 충돌(건너뛰기·바꾸기·둘 다 두기), 가져오기 전 백업과 되돌리기 |
 | [credential-storage.md](credential-storage.md) | 저장된 비밀번호의 OS 보안 저장소(Windows DPAPI, macOS 키체인) 이전: 연결 자격 증명과 작업 공간 비밀(전역 네트워크 프로필, 프록시, Maven), Chromite 전용 저장 파일과 범위, 시작할 때 이전(중간에 죽어도 안전), 저장 실패 표시, 옮기지 않은 것 |
 | [password-handling.md](password-handling.md) | 암호를 넣는 SQL과 화면: 드라이버별 암호 따옴표(Oracle·YashanDB·Exasol·HANA 암호 바꾸기, Oracle 새 스키마), 암호가 든 문장의 쿼리 관리자 기록 끄기(Mimer·Exasol CONNECTION·CUBRID), Exasol LDAP·Kerberos 작은따옴표와 New Connection…, Swing 속성 표의 암호 가리기 |

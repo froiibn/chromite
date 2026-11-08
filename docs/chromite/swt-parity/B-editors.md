@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 34 | 19 | 7 | 17 | 2 | **79** |
-| 일부 | 7 | 5 | 5 | 5 | 5 | **27** |
+| 있음 | 35 | 17 | 7 | 17 | 2 | **78** |
+| 일부 | 6 | 7 | 5 | 5 | 5 | **28** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
 | 조용히 끊김 | 0 | 0 | 0 | 0 | 0 | **0** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
@@ -69,7 +69,7 @@
 | S15 | 커밋 방식 설정(문장마다·스크립트 끝·N줄마다) | `PrefPageSQLExecute`, `SQLScriptCommitType` | 의도적 제외 (2026-11-07) | 엔진 기본 `NO_COMMIT`(swing-frontend.md C단계 "커밋·오류 처리"). 모든 선택지가 묻지 않고 커밋해 트랜잭션 안전 규칙에 어긋남([swing-options.md](../swing-options.md)) | 중간 | 조사 당시: 없음 |
 | S16 | 스마트 커밋(변경 문에서 수동 커밋으로, 끝나면 복귀) | `SQLEditor.isSmartAutoCommit`, `TransactionMonitorToolbar`(`recoverSmartCommit`) | **있음** (2026-11-08, [connection-lifecycle.md](../connection-lifecycle.md) "스마트 커밋": 쿼리 창 처리기가 설정을 따르고, 스마트 커밋이 바꾼 세션만 커밋·롤백 뒤 열린 트랜잭션이 없을 때 자동 커밋으로 되돌림. Options > Connection Types에 두 칸). 조사 당시: **조용히 끊김** | 위 요약 4 | 높음 | 설정 화면도 없음(C15). 2026-11-07: 효과가 없어 연결 유형 편집에도 두지 않음([swing-options.md](../swing-options.md)) |
 | S17 | Commit / Rollback 명령 | `core` 트랜잭션 도구 막대 | **있음** (2026-11-07, [transactions.md](../transactions.md), 영역 A-C1). 조사 당시: 없음 | swing-frontend.md:1898 "만들지 않았다… 결정이 필요" | 높음 | 수동 커밋 연결은 `COMMIT`을 직접 실행해야 함 |
-| S18 | 실행 중 자동/수동 커밋 전환(도구 막대·메뉴) | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 없음 | 연결 편집에서만 바꿈(`AutoCommitApplier`, swing-frontend.md "자동 커밋 상태") | 높음 | 도구 막대·메뉴 토글은 결정 대기(:1898). 2026-11-08 다시 확인: 그대로(상태 줄 칸은 연결 편집을 엶, `SqlEditorPanel.java`:515) |
+| S18 | 실행 중 자동/수동 커밋 전환(도구 막대·메뉴) | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | **있음** (2026-11-08, `chromite/commit-mode-toggle`, [transactions.md](../transactions.md) "커밋 방식 전환": Query &gt; Auto-Commit과 SQL Editor 도구 막대 단추가 활성 창 세션만 바꿈, 수동→자동은 열린 트랜잭션이 있으면 커밋하고 전환 / 롤백하고 전환 / 취소(취소 기본), 실행 중 꺼짐, 연결 설정의 기본값은 그대로). 조사 당시: 없음 | 연결 편집에서만 바꿈(`AutoCommitApplier`, swing-frontend.md "자동 커밋 상태") | 높음 | 사용자 결정(2026-11-08): Query 메뉴와 SQL Editor 도구 막대, 상태 줄은 아님(S18a). SWT는 열린 트랜잭션을 묻지 않고 바꿔 JDBC가 커밋했다 |
 | S18a | 상태 줄에서 커밋 방식 바꾸기 | (SWT 상태 표시와 도구 막대) | 의도적 제외 | swing-frontend.md:1824 사용자 결정 "상태표시줄에서 바꾸면 안된다" | 중간 | 상태 줄은 표시와 설정 안내만 |
 | S19 | 격리 수준 바꾸기 | `DataSourceTransactionModeContributor` | 없음 | Swing grep `isolation` 0건 | 중간 | 조사 당시: 연결 설정에도 없음(C11). 2026-11-08: 연결의 기본 격리 수준은 연결 대화상자에 생김(C11), 실행 중 세션에서 바꾸기는 여전히 없음 |
 | S20 | 트랜잭션 로그(현재 트랜잭션의 문 목록), 트랜잭션 모니터(문 수·경과 시간) | `core` `TransactionLogDialog`, `TransactionMonitorToolbar` | **있음** (2026-11-07: 모니터는 #97 상태 줄 칸([idle-transactions.md](../idle-transactions.md)), 로그는 [transactions.md](../transactions.md), 지난 트랜잭션 보이기는 없음). 조사 당시: 없음 | Swing grep `QMTransaction`/`TransactionLog` 0건 | 높음 | 끝낼 때·AI 도구만 열린 트랜잭션을 찾음(`ExitTransactionCheck`, `AutoCommitApplier`) |
@@ -78,7 +78,7 @@
 | S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문", 영역 A-S3). 조사 당시: 조용히 끊김 | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
 | S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 마지막 문장 기준 유휴, 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림, 영역 A-S1). 조사 당시: 조용히 끊김 | 위 요약 5 | 높음 | 영역 A와 중복 |
 | S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴. 2026-11-08: Oracle 설정을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용([model-fixes.md](../model-fixes.md)) |
-| S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
+| S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 있음 (2026-11-08, `chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): View &gt; Query Manager 도구 창. 쿼리 창마다 자기 세션(`SQLEditor <SQLQueryN.sql>`)이라 세션 열과 찾기 글자(창 이름)로 한 쿼리 창의 실행·내부 쿼리·트랜잭션을 거름). 조사 당시: 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | SWT처럼 쿼리 창 안의 패널이 아니라 한 도구 창이다. 조사 당시: 편집기가 실행한 문만 기록, 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
 | S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 일부 | 2026-11-08 View &gt; Outline 도구 창(`SqlOutlinePanel`, Ctrl+Alt+O): 문장 목록, 고르면 편집기에서 선택 ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 문장 안 구조(SELECT 목록, FROM 표) 나무 없음 |
 | S29 | 템플릿 | `SQLTemplateStore`, `PrefPageSQLTemplates` | 있음 | `SqlTemplates`, `SqlTemplatesPage` | 낮음 | 테이블·열 이름 변수 해석기, linked mode 없음(swing-sql-editor-plus.md:270) |
@@ -200,7 +200,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 4. S16 스마트 커밋 미동작 (조용히 끊김, 높음) — 2026-11-08 수정([connection-lifecycle.md](../connection-lifecycle.md) "스마트 커밋")
 5. S24 유휴 트랜잭션 자동 종료 미동작 (조용히 끊김, 높음, 영역 A와 중복) — 2026-11-07 수정(#97)
 6. S7 WHERE 없는 DELETE/UPDATE·DROP 확인 없음 (없음, 높음) — 2026-11-07 수정([swing-sql-exec-safety.md](../swing-sql-exec-safety.md))
-7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기) — 2026-11-07 S17 수정([transactions.md](../transactions.md)), S18 남음
+7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기) — 2026-11-07 S17 수정([transactions.md](../transactions.md)), 2026-11-08 S18 수정(같은 문서 "커밋 방식 전환")
 8. S22 쿼리 창별 별도 연결 없음 — 창들이 한 트랜잭션을 나눠 씀 (없음, 높음) — 2026-11-07 수정([transactions.md](../transactions.md) "쿼리 창마다 별도 연결")
 9. S20·S21 트랜잭션 로그·모니터·미결 트랜잭션 보기 없음 (없음, 높음) — 2026-11-07 수정([transactions.md](../transactions.md))
 10. S12 `@export` 무시 / S8 스크립트 실행 제한 무시 (조용히 끊김, 중간) — 2026-11-07 S12 수정([swing-data-transfer.md](../swing-data-transfer.md) "@export 명령"), S8 수정([swing-sql-exec-safety.md](../swing-sql-exec-safety.md))
@@ -221,5 +221,9 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
   요약 수: 연결 편집기 있음 16 → 17, 일부 6 → 5(합계 있음 76, 일부 29).
 - 2026-11-08 E12 조용히 끊김 → 수정함(`chromite/transfer-tasks`, `openEntityEditor`가 개체 탐색기에서 보임), 요약 8에 고친 것 표시.
   요약 수: 개체 편집기 있음 6 → 7, 조용히 끊김 1 → 0(합계 있음 77, 조용히 끊김 0).
+- 2026-11-08 S18 없음 → 있음(`chromite/commit-mode-toggle`, Query &gt; Auto-Commit과 SQL Editor 도구 막대의 커밋 방식 단추), 요약 7에 고친 것 표시.
+  요약 수는 고치지 않음(합치는 쪽에서 다시 셈).
+- 2026-11-08 S26 일부 → 있음(`chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): Query Manager 도구 창).
+  요약 수: SQL 편집기 있음 34 → 35, 일부 7 → 6(합계 있음 78, 일부 28).
 - 2026-11-08 R10·R22 일부 → 있음(`chromite/saved-filters-virtual-columns`: 저장한 필터·최근 필터, 가상(계산) 열).
   요약 수: 결과 뷰어 있음 17 → 19, 일부 7 → 5(합계 있음 79, 일부 27).

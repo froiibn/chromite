@@ -40,11 +40,11 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
-| A 플랫폼·설정 | 35 | 15 | 21 | 0 | 2 | 73 |
-| B 편집기 | 79 | 27 | 7 | 0 | 4 | 117 |
+| A 플랫폼·설정 | 37 | 13 | 21 | 0 | 2 | 73 |
+| B 편집기 | 80 | 26 | 7 | 0 | 4 | 117 |
 | C 탐색기·도구 | 29 | 22 | 12 | 0 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 93 | 22 | 8 | 0 | 1 | 124 |
-| **합계** | **236** | **86** | **48** | **0** | **8** | **378** |
+| **합계** | **239** | **83** | **48** | **0** | **8** | **378** |
 
 2026-11-08 다시 셈(devel #165, `chromite/audit-recount`): 네 영역 보고서의 모든 행을 코드와 다시 대조하고 지금 상태 칸으로 셌다("수정함"은 있음으로 셈).
 바로 전 표는 있음 122, 일부 103, 없음 121, 조용히 끊김 24, 의도적 제외 8이었다(병합마다 자기 행만 고쳐 바뀐 행이 빠져 있었다).
@@ -62,22 +62,21 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 남은 것이 없다. 마지막이던 **B-E12**(`openEntityEditor`가 디버그 로그만 남겨 SWT에서 저장한 데이터 전송 작업의 "끝나면 테이블 열기"가 아무 일도 하지 않음)는
 2026-11-08 고쳤다(`chromite/transfer-tasks`: 개체 탐색기에서 그 테이블을 보이고, SWT에서 저장한 작업은 데이터 전송 마법사로 열린다).
 
-### 상위 12
+### 상위 11
 
 | # | 빈자리 | 행 | 상태(영향) | 남은 것 |
 |---|---|---|---|---|
-| 1 | 실행 중 자동/수동 커밋 전환 명령 | B-S18 | 없음(높음) | 도구 막대·메뉴 토글은 사용자 결정 대기. 상태 줄에서 바꾸지 않는 것은 이미 결정됨(B-S18a) |
+| 1 | 실행 중 자동/수동 커밋 전환 명령 | B-S18 | 있음(2026-11-08, `chromite/commit-mode-toggle`) | Query &gt; Auto-Commit과 SQL Editor 도구 막대 단추(사용자 결정 2026-11-08), [transactions.md](transactions.md) "커밋 방식 전환". 상태 줄에서 바꾸지 않는 것은 그대로(B-S18a) |
 | 2 | 개체 속성 편집 | B-E1, B-E2, C-15 | 있음·일부(중간) | 2026-11-08 Properties 창·Object Details 속성 탭에서 편집([swing-object-properties.md](swing-object-properties.md)). 남은 것: 값을 모아 저장(Save/Revert), 모델에 관리자·`updatable`이 없는 속성, 하이퍼링크 |
 | 3 | 실행 중 격리 수준 바꾸기 | B-S19, A-C5 | 없음(중간) | 연결의 기본 격리 수준은 있음(B-C11) |
 | 4 | 값 편집기 나머지 | B-R14 | 일부(낮음) | 2026-11-08 참조 값 고르기·배열·구조체·hstore·SET·16진수·외부 편집기·UUID 만들기를 넣음([swing-value-editors.md](swing-value-editors.md)). 커서 보기, 일반 JDBC 구조체(Oracle 객체 형식) 편집만 남음 |
 | 5 | 데이터 전송을 작업으로 저장, 작업 보기 나머지 | C-39, C-43, C-41 | 일부(중간) | 2026-11-08 `chromite/transfer-tasks`: C-39·C-41 있음(데이터 전송 작업 저장·편집, SQL 스크립트 작업). 남은 것(C-43): 작업 폴더·복사·변수, 최근 작업 메뉴 |
-| 6 | 테이블 복사·내보내기 고급 옵션 | C-36, C-37 | 일부(중간·낮음) | 매핑 규칙, 열 변환기, 중복 키 처리, 매핑 저장, 외래 키 옮기기, 열 고르기 |
+| 6 | 테이블 복사·내보내기 고급 옵션 | C-36, C-37 | 일부(중간·낮음) | 2026-11-08 매핑 규칙, 열 값(변환기), 중복 키 처리, 원본 읽기 설정, 열 고르기, 파일 나누기, 형식 프로필을 넣음([swing-data-transfer.md](swing-data-transfer.md) "고급 옵션"). 남은 것: 새 테이블 속성, 기존 테이블 고르기 대화상자, 외래 키 옮기기, 결과 표의 선택 행만 내보내기, 동시 추출 수 |
 | 7 | 네이티브 백업 고급 | D-P18, D-M13, D-P19, C-46 | 있음(2026-11-08 `chromite/native-backup-advanced`) | 남은 것: MySQL 여러 데이터베이스 한 번에, 도구 계정 암호를 보안 저장소에 두기 |
 | 8 | 다른 도구에서 연결 가져오기 나머지 | A-X4 | 일부(중간) | DbVisualizer, DataGrip, pgAdmin, Navicat, SQuirreL, SQL Workbench/J |
-| 9 | 설정·스크립트·프로젝트 내보내기/가져오기 | A-C14 | 일부(중간) | 지금은 연결만 옮김 |
-| 10 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 있음(2026-11-08 `chromite/saved-filters-virtual-columns`) | 저장한 필터·최근 필터·가상 열([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)). WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈. 남은 것: 모든 열을 한 화면에서 고치는 필터 편집 대화상자 |
-| 11 | Query Manager 보기 | A-C6, B-S26 | 일부(중간) | 모든 실행 기록, 내부·메타데이터 쿼리, 필터 |
-| 12 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 일부·없음(중간) | PostgreSQL 열 권한·기본 권한, MySQL 자원 제한, Altibase 복제 시작·중지 |
+| 9 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 있음(2026-11-08 `chromite/saved-filters-virtual-columns`) | 저장한 필터·최근 필터·가상 열([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)). WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈. 남은 것: 모든 열을 한 화면에서 고치는 필터 편집 대화상자 |
+| 10 | Query Manager 보기 | A-C6, B-S26 | 있음(2026-11-08 `chromite/query-manager-view`) | [swing-query-manager.md](swing-query-manager.md). 남은 것: 열 정렬, 행 하나씩 지우기, 쿼리 창 안의 실행 로그 패널(세션·찾기 글자로 대신함) |
+| 11 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 일부·없음(중간) | PostgreSQL 열 권한·기본 권한, MySQL 자원 제한, Altibase 복제 시작·중지 |
 
 ### 그다음
 
@@ -153,5 +152,10 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-08 데이터 전송 작업과 SQL 스크립트 작업(`chromite/transfer-tasks`, [swing-database-tasks.md](swing-database-tasks.md)): C-39·C-41 없음 → 있음,
   C-43 근거 갱신(일부 그대로), B-E12 조용히 끊김 → 수정함(있음으로 셈). 집계에 이 행들의 변화만 더함(B 있음 +1·조용히 끊김 −1, C 있음 +2·없음 −2,
   합계 같이). 남은 조용히 끊김이 0건이 됨. 상위 목록 5번의 상태·남은 것을 고침.
+- 2026-11-08 실행 중 커밋 방식 전환(`chromite/commit-mode-toggle`, [transactions.md](transactions.md) "커밋 방식 전환"): B-S18 없음 → 있음, 상위 목록 1번의 상태를 고침. 집계는 고치지 않음(합치는 쪽에서 다시 셈).
+- 2026-11-08 5순위 설정 내보내기·가져오기(`chromite/settings-export-import`, [settings-transfer.md](settings-transfer.md)): A-C14 일부 → 있음.
+  집계에 한 행의 변화만 더함(A 있음 +1·일부 −1, 합계 같이). 남은 빈자리 상위 목록의 9번(A-C14)을 빼고 번호를 당김.
+- 2026-11-08 Query Manager 도구 창(`chromite/query-manager-view`, [swing-query-manager.md](swing-query-manager.md)): A-C6·B-S26 일부 → 있음.
+  집계에 이 행들의 변화만 더함(A 있음 +1·일부 −1, B 있음 +1·일부 −1, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.
 - 2026-11-08 저장한 필터·최근 필터와 가상(계산) 열(`chromite/saved-filters-virtual-columns`, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)):
-  B-R10·B-R22 일부 → 있음. 집계에 이 행들의 변화만 더함(B 있음 +2·일부 −2, 합계 같이). 상위 목록 10번의 상태·남은 것을 고침.
+  B-R10·B-R22 일부 → 있음. 집계에 이 행들의 변화만 더함(B 있음 +2·일부 −2, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.
