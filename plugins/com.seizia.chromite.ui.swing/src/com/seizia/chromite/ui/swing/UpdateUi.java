@@ -38,7 +38,8 @@ import java.awt.event.WindowEvent;
  * 설계: Turbrix 데스크톱의 화면(#579, #583, #585 사용자 결정)을 따른다. 상태는 모델({@link UpdateService})이 정하고
  * 이 클래스는 보이기만 한다.
  * <ul>
- *     <li>받는 동안: 제목 표시줄에는 아무것도 없고, 상태 표시줄 오른쪽에 "새 버전 X 받는 중 (n%)"과 막대.</li>
+ *     <li>받는 동안: 상태 표시줄 오른쪽에 "새 버전 X 받는 중 (n%)"과 막대, 제목 표시줄에 단추 "새 버전 X". 누르면 메뉴 대신
+ *     업데이트 진행 창({@link UpdateProgress})이 받기를 보인다(Turbrix #747).</li>
  *     <li>받아서 확인함: 단추 "새 버전 X · 다시 시작". 누르면 메뉴 [지금 다시 시작] [업데이트 내용].</li>
  *     <li>알리기만(설치 프로그램으로 설치하지 않은 복사본): 단추 "새 버전 X". 메뉴 [받는 곳 열기] [업데이트 내용].</li>
  *     <li>확인 실패: 경고 단추 "업데이트 파일 확인 실패". 설명(회사 보안 장비가 내려받기를 막을 수 있음)은 단추의 툴팁과
@@ -50,6 +51,7 @@ import java.awt.event.WindowEvent;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-08 받는 동안 제목 표시줄 단추가 업데이트 진행 창을 엶, 열린 창이 상태를 따라감 (docs/chromite/auto-update.md "업데이트 진행 창")
  */
 final class UpdateUi {
 
@@ -161,6 +163,8 @@ final class UpdateUi {
             progressBar.setValue(state.progress());
         }
         switch (state.phase()) {
+            case DOWNLOADING -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
+                UpdateMessages.update_window_head_downloading, "foreground: $Component.linkColor"); //$NON-NLS-1$
             case READY -> showButton(NLS.bind(UpdateMessages.update_button_ready, version),
                 NLS.bind(UpdateMessages.update_button_ready_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case AVAILABLE -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
@@ -180,6 +184,8 @@ final class UpdateUi {
             menuBar.revalidate();
             menuBar.repaint();
         }
+        // An update window opened from the button follows the state
+        UpdateProgress.updaterChanged();
     }
 
     private void showButton(@NotNull String text, @NotNull String tip, @NotNull String style) {
@@ -198,6 +204,11 @@ final class UpdateUi {
         UpdateService.State state = shown;
         JPopupMenu menu = new JPopupMenu();
         switch (state.phase()) {
+            case DOWNLOADING -> {
+                // No menu: the update window shows the download
+                UpdateProgress.openFromButton(frame, this::restart);
+                return;
+            }
             case READY -> {
                 menu.add(item(UpdateMessages.update_restart_now, this::restart));
                 addNotes(menu, state);

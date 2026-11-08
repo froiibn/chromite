@@ -26,6 +26,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -55,7 +56,7 @@ import java.util.stream.Stream;
  *     [닫기]는 그 버전의 실패 알림을 숨긴다(하루 한 번 재시도는 계속, 통과하면 기록이 지워짐, 다른 버전이 실패하면 다시 보임).</li>
  *     <li>받아서 확인한 버전은 더 높은 버전이 확인을 마쳐야 바뀐다(더 높은 버전이 실패해도 받아 둔 것은 계속 보이고 끝날 때 적용됨).</li>
  *     <li>되돌리기용으로 지금 버전의 설치 파일도 한 번 받아 같은 확인을 거친다(Windows, {@code previous/<버전>/}).
- *     되돌리기 화면은 아직 없다(보고서 "남은 일").</li>
+ *     업데이트 뒤 새 버전이 시작하지 못하면 업데이트 진행 창의 [이전 버전으로 되돌리기]가 이 파일을 설치한다(기록의 {@code previous}).</li>
  *     <li>적용: 끝날 때({@link #applyAtExit}) 확인한 파일을 한 번 더 확인한 뒤 도우미({@link UpdateApplier})를 띄운다.
  *     사용자의 정상 종료 경로(저장 안 한 편집기·트랜잭션 질문)를 거친 뒤에만 불린다. 자동 확인이 꺼져 있으면
  *     [다시 시작]을 눌렀을 때만 적용한다. 지난번 끝날 때 설치하지 못한 버전({@link #getInstallFailure}, 도우미가 남긴 결과)은
@@ -65,8 +66,16 @@ import java.util.stream.Stream;
  * 화면은 {@link Listener}로 상태를 받는다(이 스레드에서 불리므로 UI 스레드로 넘겨야 한다).
  * Eclipse Job 대신 실행기를 쓴 이유: 진행 표시 UI가 없는 주기 작업이고, OSGi 없이 같은 클래스를 시험할 수 있다.
  *
+ * <p>
+ * 업데이트 진행 창(Turbrix #747, docs/chromite/auto-update.md "업데이트 진행 창"): 적용할 때마다 업데이트 기록({@link UpdateRun})을 쓴다.
+ * [지금 다시 시작]이면 화면({@link ExitWindow})이 다시 확인하는 동안 창을 보이고, Windows에서는 화면이 만든 앱의 사본이 설치 프로그램을
+ * 실행한다(사본을 만들지 못하면 지금까지처럼 도우미). 받는 동안의 시각·받은 양({@link #getDetail})은 창이 보인다.
+ * 지난번 설치 결과는 도우미의 결과 파일이나 기록의 종료 코드에서 읽는다. 사본의 창이 실패를 이미 보였으면 알림을 되풀이하지 않는다.
+ *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-08 업데이트 진행 창: 업데이트 기록, [지금 다시 시작]의 창과 앱의 사본({@link ExitWindow}), 받기 시각({@link #getDetail}),
+ *   업데이트 뒤 첫 시작의 판단({@link #detectFirstStart}) (docs/chromite/auto-update.md "업데이트 진행 창")
  */
 public final class UpdateService {
 
@@ -75,7 +84,8 @@ public final class UpdateService {
     /**
      * The one update site (never another host, never dbeaver.io).
      */
-    public static final URI ORIGIN = URI.create("https://chromite.seizia.com"); //$NON-NLS-1$
+    public static final String ORIGIN_TEXT = "https://chromite.seizia.com"; //$NON-NLS-1$
+    public static final URI ORIGIN = URI.create(ORIGIN_TEXT);
     public static final long FIRST_CHECK_MS = 10_000;
     public static final long EVERY_MS = 60 * 60 * 1000L;
     public static final long RETRY_FAILED_MS = 24 * 60 * 60 * 1000L;
@@ -145,6 +155,50 @@ public final class UpdateService {
     }
 
     /**
+     * What the update window shows of a download: when it began, how much is received of how much, and how long the
+     * download of the version ready took (null when it was received at an earlier start).
+     */
+    public record Detail(@Nullable Long startedAt, long bytes, long size, @Nullable Long receivedMs) {
+    }
+
+    /**
+     * The update window while Chromite ends (the UI's). Called on the exiting thread.
+     */
+    public interface ExitWindow {
+        /**
+         * Adds what the window knows to the record of an update applied now: language, theme, its place, the log folder.
+         */
+        void describe(@NotNull UpdateRun.Record record);
+
+        /**
+         * [Restart now]: the window shows while the file of {@code to} is checked again.
+         */
+        void checking(@NotNull String from, @NotNull String to, long restartAt, @Nullable Long downloadMs);
+
+        /**
+         * The file passed its check again.
+         */
+        void checked(long checkEndAt);
+
+        /**
+         * Windows: the command that starts the copy of this app that shows the window and runs the installer (made since
+         * {@link #checking}), or null when there is none (the helper applies the update as before).
+         */
+        @Nullable
+        List<String> copyCommand();
+
+        /**
+         * The copy runs: returns once its window is up (or after a while). The window goes.
+         */
+        void handedOver(@NotNull UpdateRun run);
+
+        /**
+         * The window goes: nothing is applied, or the helper applies it.
+         */
+        void close();
+    }
+
+    /**
      * A checked file to apply, and the bundle extracted from it (macOS).
      */
     private record Ready(@NotNull UpdateEntry entry, @NotNull Path file, @Nullable Path app) {
@@ -159,6 +213,7 @@ public final class UpdateService {
     private final LongSupplier clock;
     private final ScheduledExecutorService executor;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
+    private final UpdateRun runs;
 
     // Read and written on the updater's thread only, except where volatile
     private volatile UpdatePlace place = UpdatePlace.off("not detected yet"); //$NON-NLS-1$
@@ -180,6 +235,7 @@ public final class UpdateService {
     private UpdateEntry previous;
     @Nullable
     private ScheduledFuture<?> timer;
+    private volatile Detail detail = new Detail(null, 0, 0, null);
 
     /**
      * @param detector  where this copy runs ({@link UpdatePlace#detect}), called once on the updater's thread
@@ -204,6 +260,7 @@ public final class UpdateService {
             t.setDaemon(true);
             return t;
         });
+        this.runs = new UpdateRun(folder);
         this.prefs = UpdatePrefs.read(folder);
         this.state = new State(UpdatePlace.Mode.OFF, prefs.enabled, Phase.IDLE, null, null, null, 0, false, CheckResult.NONE, false);
     }
@@ -260,6 +317,52 @@ public final class UpdateService {
         return UpdateApplier.isRunning(defaultFolder());
     }
 
+    /**
+     * Whether this start of {@code version} is the first start after an update (the update window shows it). Call before
+     * the updater starts: it reads the helper's result, which the updater then removes. A record of this version that is
+     * not of a first start any more is removed with the copy.
+     */
+    @Nullable
+    public static UpdateRun.FirstStart detectFirstStart(@NotNull String version) {
+        Path folder = defaultFolder();
+        UpdateRun runs = new UpdateRun(folder);
+        UpdateRun.Record run = runs.read();
+        UpdateRun.FirstStart first = UpdateRun.firstStart(run, UpdateApplier.peekOutcome(folder), previousVersion(folder),
+            version, System.currentTimeMillis());
+        if (first == null && run != null && version.equals(run.to)) {
+            runs.remove();
+            runs.removeCopy();
+        }
+        return first;
+    }
+
+    /**
+     * The version of the installer kept for a rollback ({@code previous/<version>/}), when there is exactly one.
+     */
+    @Nullable
+    private static String previousVersion(@NotNull Path folder) {
+        try (Stream<Path> children = Files.list(folder.resolve(PREVIOUS_FOLDER))) {
+            List<String> versions = children.filter(Files::isDirectory).map(p -> p.getFileName().toString())
+                .filter(UpdateVersion::isValid).toList();
+            return versions.size() == 1 ? versions.get(0) : null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /**
+     * The record of the updates of this installation.
+     */
+    @NotNull
+    public UpdateRun getRuns() {
+        return runs;
+    }
+
+    @NotNull
+    public Detail getDetail() {
+        return detail;
+    }
+
     public void addListener(@NotNull Listener listener) {
         listeners.add(listener);
     }
@@ -310,13 +413,27 @@ public final class UpdateService {
             if (verifier == null && place.mode() == UpdatePlace.Mode.APPLY) {
                 place = UpdatePlace.off("no checks for this place"); //$NON-NLS-1$
             }
-            // The outcome of the update applied at the last end: told once, on this start
+            // The outcome of the update applied at the last end: told once, on this start. A helper writes it to its result
+            // file, the copy of the app to the record (its window has told a failure already).
             UpdateApplier.Outcome outcome = UpdateApplier.takeOutcome(folder);
+            UpdateRun.Record run = runs.read();
+            boolean toldByWindow = false;
+            if (run != null && place.target() != null && !run.to.equals(place.target().version())) {
+                if (outcome == null && run.installCode != null) {
+                    outcome = new UpdateApplier.Outcome(run.to, run.installCode, run.installEndAt != null ? run.installEndAt : 0);
+                    toldByWindow = run.helperShownAt != null;
+                }
+                // Not an update to this version: done with (the first start of a version removes its own record)
+                runs.remove();
+                runs.removeCopy();
+            }
             if (outcome != null && outcome.code() != 0 && place.target() != null
                 && !outcome.version().equals(place.target().version())) {
                 log.warn("Update " + outcome.version() + " was not installed: code " + outcome.code()); //$NON-NLS-1$ //$NON-NLS-2$
                 failedInstallVersion = outcome.version();
-                installFailure = new InstallFailure(outcome.version(), outcome.code());
+                if (!toldByWindow) {
+                    installFailure = new InstallFailure(outcome.version(), outcome.code());
+                }
             }
             publish(state.phase(), state.version(), state.notesUrl(), state.step(), state.progress());
             if (place.mode() != UpdatePlace.Mode.OFF && prefs.enabled) {
@@ -453,13 +570,20 @@ public final class UpdateService {
             }
             if (verdict == null || !verdict.ok()) {
                 cancelled = false;
+                long startedAt = clock.getAsLong();
+                detail = new Detail(startedAt, 0, entry.size(), null);
                 file = http.download(entry, versionFolder, bytes -> {
+                    detail = new Detail(startedAt, bytes, entry.size(), null);
                     int progress = (int) (bytes * 100 / entry.size());
                     if (progress != state.progress()) {
                         publish(Phase.DOWNLOADING, entry.version(), entry.notesUrl(), null, progress);
                     }
                 }, () -> cancelled || stopped);
+                detail = new Detail(startedAt, entry.size(), entry.size(), clock.getAsLong() - startedAt);
                 verdict = verifier.verify(file, entry);
+            } else {
+                // Received at an earlier start: its time is not known
+                detail = new Detail(null, entry.size(), entry.size(), null);
             }
         } catch (IOException e) {
             // Offline, cut, cancelled: quietly, the next round tries again
@@ -554,14 +678,25 @@ public final class UpdateService {
 
     /**
      * Applies a checked update when Chromite ends: called after the normal exit path (unsaved editors, open
-     * transactions) has finished, on the exiting thread. Checks the file once more, then starts the helper and
-     * stops the updater. Without an update, [Restart now] still starts Chromite again.
+     * transactions) has finished, on the exiting thread. Checks the file once more, writes the record of the update,
+     * then starts the copy of the app ([Restart now] on Windows) or the helper, and stops the updater. Without an update,
+     * [Restart now] still starts Chromite again.
      *
      * @param restart the user chose [Restart now]
+     * @param window  the update window ([Restart now] shows it while the file is checked again)
      */
-    public void applyAtExit(boolean restart) {
+    public void applyAtExit(boolean restart, @Nullable ExitWindow window) {
+        long endAt = clock.getAsLong();
         stopped = true;
         cancelled = true;
+        UpdatePlace here = place;
+        State shown = state;
+        String from = here.target() != null ? here.target().version() : null;
+        boolean showing = restart && window != null && from != null && here.mode() == UpdatePlace.Mode.APPLY
+            && shown.phase() == Phase.READY && shown.version() != null;
+        if (showing) {
+            window.checking(from, shown.version(), endAt, detail.receivedMs());
+        }
         Ready plan = null;
         try {
             Future<Ready> checked = executor.submit(() -> toApply(restart));
@@ -573,16 +708,28 @@ public final class UpdateService {
         } finally {
             executor.shutdownNow();
         }
-        UpdatePlace here = place;
-        if (here.home() == null || (plan == null && !restart)) {
-            return;
-        }
+        long checkEndAt = clock.getAsLong();
         try {
+            if (here.home() == null || (plan == null && !restart)) {
+                return;
+            }
             boolean windows = here.target() != null && UpdateTarget.PLATFORM_WINDOWS.equals(here.target().platform());
+            UpdateRun.Record record = plan != null && from != null ? newRecord(plan, from, restart, endAt, checkEndAt, windows) : null;
+            if (record != null && window != null) {
+                window.describe(record);
+            }
             if (windows) {
+                if (record != null && showing) {
+                    window.checked(checkEndAt);
+                    if (handOver(window, plan, record, here)) {
+                        return;
+                    }
+                }
+                writeRecord(record);
                 UpdateApplier.startWindowsHelper(folder, plan != null ? plan.file() : null, plan != null ? plan.entry().sha256() : null,
                     plan != null ? plan.entry().version() : null, restart ? here.launcher() : null, here.test() != null);
             } else {
+                writeRecord(record);
                 Path app = here.home();
                 Path aside = folder.resolve(ASIDE_PREFIX + (plan != null ? plan.entry().version() : "restart")).resolve(app.getFileName()); //$NON-NLS-1$
                 UpdateApplier.startMacHelper(folder, app, plan != null && here.test() == null ? plan.app() : null, aside,
@@ -591,6 +738,86 @@ public final class UpdateService {
             log.debug("Update helper started" + (plan != null ? " for " + plan.entry().version() : "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         } catch (IOException | RuntimeException e) {
             log.warn("Update helper not started: " + e.getMessage()); //$NON-NLS-1$
+        } finally {
+            if (showing) {
+                window.close();
+            }
+        }
+    }
+
+    /**
+     * The record of the update applied now: [Restart now] counts from its press, a plain close from the new version's
+     * first start.
+     */
+    @NotNull
+    private UpdateRun.Record newRecord(@NotNull Ready plan, @NotNull String from, boolean restart, long endAt, long checkEndAt,
+                                       boolean windows) {
+        UpdateRun.Record r = new UpdateRun.Record();
+        r.from = from;
+        r.to = plan.entry().version();
+        if (restart) {
+            r.restartAt = endAt;
+            r.downloadMs = detail.receivedMs();
+            r.checkEndAt = checkEndAt;
+        } else {
+            r.quitAt = endAt;
+        }
+        r.language = Locale.getDefault().getLanguage();
+        r.downloadPage = getOrigin() + "/"; //$NON-NLS-1$
+        UpdateEntry back = previous;
+        if (windows && back != null) {
+            Path file = folder.resolve(PREVIOUS_FOLDER).resolve(back.version()).resolve(back.file());
+            if (Files.isRegularFile(file)) {
+                r.previous = new UpdateRun.Installer(back.version(), file, back.sha256());
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Windows, [Restart now]: the copy of the app made by the window shows the installation and runs the installer as
+     * its child. False when there is no copy, or it did not start: the helper applies the update as before.
+     */
+    private boolean handOver(@NotNull ExitWindow window, @NotNull Ready plan, @NotNull UpdateRun.Record r, @NotNull UpdatePlace here) {
+        List<String> command = window.copyCommand();
+        if (command == null || here.launcher() == null || here.home() == null) {
+            return false;
+        }
+        try {
+            r.installer = new UpdateRun.Installer(plan.entry().version(), plan.file().toAbsolutePath(), plan.entry().sha256());
+            r.installDir = here.home().toString();
+            r.launcher = here.launcher().toString();
+            r.pid = ProcessHandle.current().pid();
+            if (here.test() != null) {
+                r.dryRun = true;
+                r.testCode = here.test().installerCode();
+            }
+            runs.write(r);
+            UpdateApplier.startWindowCopy(folder, command);
+        } catch (IOException | RuntimeException e) {
+            log.warn("The update window's copy did not start: " + e.getMessage()); //$NON-NLS-1$
+            r.installer = null;
+            r.installDir = null;
+            r.launcher = null;
+            r.pid = null;
+            r.dryRun = null;
+            r.testCode = null;
+            return false;
+        }
+        log.debug("Update " + r.to + " handed over to the update window's copy"); //$NON-NLS-1$ //$NON-NLS-2$
+        window.handedOver(runs);
+        return true;
+    }
+
+    private void writeRecord(@Nullable UpdateRun.Record record) {
+        if (record == null) {
+            return;
+        }
+        try {
+            runs.write(record);
+        } catch (IOException e) {
+            // (the new version's first start then shows no window)
+            log.debug("Update record not written: " + e.getMessage()); //$NON-NLS-1$
         }
     }
 
