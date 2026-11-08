@@ -21,6 +21,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBCStatistics;
 import com.seizia.chromite.model.sql.SQLIncludedScript;
@@ -50,6 +51,8 @@ import com.seizia.chromite.runtime.ui.DBPPlatformUI;
  * - 2026-11-06 기본 확인 대화상자 문구를 {@link ModelSQLMessages}로 옮김(OS 언어를 따름)
  * - 2026-11-08 {@link #confirmIncludedScript}: {@code @include}로 읽은 파일의 문장은 실행 전에 쿼리 창이 검사하지 못하므로
  *   (위험한 문 확인, 오류 위치) 끼우기 전에 알린다 (docs/chromite/swing-query-commands.md "@include")
+ * - 2026-11-08 {@link #afterStatementExecuted}: Altibase는 실제 계획을 문장이 열려 있는 동안에만 드라이버에서 받을 수 있고, 엔진은
+ *   결과를 읽은 뒤 바로 문장을 닫는다 (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 public interface SQLQueryExecuteHandler {
 
@@ -202,6 +205,13 @@ public interface SQLQueryExecuteHandler {
      */
     default boolean isKeepStatementOpen() {
         return false;
+    }
+
+    /**
+     * Called when a statement ran without an error and its results were read, before it is closed (for example to ask
+     * the driver for the statement's actual plan).
+     */
+    default void afterStatementExecuted(@NotNull DBCSession session, @NotNull DBCStatement statement, @NotNull SQLQuery query) {
     }
 
     /**

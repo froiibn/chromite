@@ -59,13 +59,13 @@ import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
-import com.seizia.chromite.model.exec.DBCStatementType;
 import com.seizia.chromite.model.exec.DBCStatistics;
 import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
 import com.seizia.chromite.model.exec.output.DBCOutputWriter;
 import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
@@ -121,6 +121,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -170,9 +171,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
  *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
  *     <li>실행 계획({@link ExecutionPlanView}, 메인 창의 Execution plan 탭): Ctrl+L은 선택(없으면 전체)의 문장마다 연결의 계획기로 예상 계획을 구한다
- *     ({@link SqlPlanExplainer}). Ctrl+M(쿼리 창마다 켜고 끔)을 켜고 실행하면 실제 계획을 함께 받는다. 연결이 실행 중 계획 결과 집합을 주면
- *     ({@link SQLActualPlanProvider}, SQL Server) 실행 전에 켜고 끝나면 끄며 그 결과 집합을 계획으로 바꾸고({@link ActualPlanReceiver}),
- *     아니면 실행이 끝난 뒤 데이터를 바꾸지 않는 SELECT만 계획기의 ANALYZE 설정으로 다시 계획한다.</li>
+ *     ({@link SqlPlanExplainer}). Ctrl+M(쿼리 창마다 켜고 끔)을 켜고 실행하면 실제 계획을 함께 받는다. 연결이 실제 계획 어댑터
+ *     ({@link SQLActualPlanProvider}: SQL Server, Oracle, Altibase)를 주면 실행 전에 창의 세션에서 켜고, 문장마다 계획을 받고(결과 집합은
+ *     {@link ActualPlanReceiver}, 열린 문장은 엔진 처리기, 닫은 문장은 문장 끝 이벤트), 끝나면(오류·취소 포함) 세션 설정을 되돌린다.
+ *     문장은 한 번만 실행된다. 어댑터가 없는 연결은 토글을 끈다({@link #getActualPlanSupport}): 실제 계획을 보려면 문장을 한 번 더 실행해야 해서다.</li>
  *     <li>쿼리 기록: 엔진의 문장 끝 이벤트마다 {@link QueryHistory}에 문장, 연결, 기본 DB/스키마, 시간, 행 수, 결과를 남긴다.</li>
  *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link QueryParameterBinder.ScriptProvider}로 묻고 값을 SQL 글자로 넣는다.
  *     Query Library 쿼리(확장)와 기록에서 다시 연 바인딩 실행({@link #setRecordedParameters})은 실행 전에 묻고 값을 바인딩한다
@@ -296,6 +298,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *   ({@link SQLQueryResult#getErrors()}, docs/chromite/sql-batch-errors.md)
  * - 2026-11-08 Query &gt; Auto-Commit(B-S18): 창 세션의 커밋 방식을 바꿈({@link #switchCommitMode}, {@link CommitModeSwitch}). 실행·계획·결과 저장 중에는
  *   끄고({@link #canSwitchCommitMode}), 상태 줄이 보이는 방식이 바뀌면 메인 창이 명령을 다시 정함 (docs/chromite/transactions.md "커밋 방식 전환")
+ * - 2026-11-08 실제 계획을 Oracle·Altibase로 넓힘(어댑터의 실행 단위 {@link SQLActualPlanProvider.Run}). 어댑터가 없는 연결에서 성공한 SELECT를
+ *   계획기의 ANALYZE로 다시 실행하던 방식을 지움(사용자 결정: 실제 계획은 문장을 한 번만 실행할 때만, 그 밖의 연결은 토글을 끔)
+ *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -796,6 +801,8 @@ final class SqlEditorPanel extends JPanel {
         connectionCombo.repaint();
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
+        // Connected or disconnected: whether the connection gives actual plans is known after connecting
+        host.executionStateChanged(this);
     }
 
     @NotNull
@@ -849,6 +856,17 @@ final class SqlEditorPanel extends JPanel {
         includeActualPlan = include;
         statusLine.setState(QueryStatusLine.State.READY, include
             ? EditorMessages.editor_sql_actual_plan_on : EditorMessages.editor_sql_actual_plan_off);
+    }
+
+    /**
+     * Whether the window's connection gives actual plans while the statements run once ({@link SQLActualPlanProvider}),
+     * or null while it is not connected: the data source makes the adapter, so it is known after connecting.
+     */
+    @Nullable
+    Boolean getActualPlanSupport() {
+        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSource dataSource = container == null || !container.isConnected() ? null : container.getDataSource();
+        return dataSource == null ? null : DBUtils.getAdapter(SQLActualPlanProvider.class, dataSource) != null;
     }
 
     boolean isExplaining() {
@@ -1151,6 +1169,8 @@ final class SqlEditorPanel extends JPanel {
                 statusLine.setConnection(selected);
                 host.titleChanged(this);
                 refreshSchemas();
+                // The Actual Plan toggle depends on the connection
+                host.executionStateChanged(this);
             }
         });
         connectionCombo.addPopupMenuListener(new PopupMenuListener() {
@@ -1298,7 +1318,8 @@ final class SqlEditorPanel extends JPanel {
         long connectionMaxRows = container.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
-        run.includeActualPlan = isIncludeActualPlan();
+        // A connection known to give no actual plans has the toggle disabled: the run does not ask for one
+        run.includeActualPlan = isIncludeActualPlan() && !Boolean.FALSE.equals(getActualPlanSupport());
         run.terminal = terminalEnabled;
         run.binding = binding;
         run.mode = mode;
@@ -1445,8 +1466,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Include Actual Execution Plan: the plans already arrived as result sets, or the read-only SELECT statements of the
-     * run are planned now with run-time values (the planner executes them again and rolls back).
+     * Include Actual Execution Plan: the plans arrived while the statements ran; says why there is none otherwise.
      */
     private void finishActualPlan(@NotNull Execution run, boolean canceled) {
         if (!run.includeActualPlan) {
@@ -1457,28 +1477,15 @@ final class SqlEditorPanel extends JPanel {
             planView.clear(EditorMessages.editor_sql_plan_did_not_run);
             return;
         }
-        if (run.actualPlanProvider != null) {
-            if (!planView.hasContent()) {
-                planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled : EditorMessages.editor_sql_plan_none_returned);
-            }
+        if (run.actualPlan == null) {
+            planView.clear(run.actualPlanError != null
+                ? NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, run.actualPlanError)
+                : EditorMessages.editor_sql_actual_plan_unsupported);
             return;
         }
-        if (run.planner == null || run.context == null) {
-            planView.clear(EditorMessages.editor_sql_no_plans);
-            return;
+        if (!planView.hasContent()) {
+            planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled : EditorMessages.editor_sql_plan_none_returned);
         }
-        if (canceled || run.actualPlanQueries.isEmpty()) {
-            planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled
-                : EditorMessages.editor_sql_actual_plan_select_only);
-            return;
-        }
-        explaining = true;
-        updateActions();
-        planView.clear(EditorMessages.editor_sql_making_actual_plan);
-        SqlPlanExplainer.explain(run.context, run.planner, List.copyOf(run.actualPlanQueries), true, planView::addEntry, () -> {
-            explaining = false;
-            updateActions();
-        });
     }
 
     /**
@@ -1543,7 +1550,7 @@ final class SqlEditorPanel extends JPanel {
                                 planView.clear(EditorMessages.editor_sql_making_estimated_plan);
                                 statusLine.setConnection(container);
                             });
-                            SqlPlanExplainer.explain(context, planner, queries, false, planView::addEntry, () -> {
+                            SqlPlanExplainer.explain(context, planner, queries, planView::addEntry, () -> {
                                 explaining = false;
                                 updateActions();
                             });
@@ -1618,7 +1625,7 @@ final class SqlEditorPanel extends JPanel {
                 @Override
                 public void done(IJobChangeEvent event) {
                     // Also after errors and cancels: the connection must not keep returning plans
-                    disableActualPlan(run, context);
+                    disableActualPlan(run);
                     // Canceling the parameter dialog (or the execution confirmation) stops the script without an error
                     // and with an OK job status
                     IStatus result = job.isCanceledByUser() ? Status.CANCEL_STATUS : event.getResult();
@@ -1627,7 +1634,7 @@ final class SqlEditorPanel extends JPanel {
             });
             synchronized (jobLock) {
                 if (run.cancelRequested) {
-                    disableActualPlan(run, context);
+                    disableActualPlan(run);
                     stopPreparation(run, Status.CANCEL_STATUS);
                     return;
                 }
@@ -1637,13 +1644,15 @@ final class SqlEditorPanel extends JPanel {
             post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_executing));
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
+            // The job that restores the session settings did not start
+            disableActualPlan(run);
             stopPreparation(run, errorStatus(ErrorText.describe(e)));
         }
     }
 
     /**
-     * Include Actual Execution Plan, before the run (job thread): turns on the plan result sets of the connection, or
-     * keeps its planner for planning the SELECT statements afterwards.
+     * Include Actual Execution Plan, before the run (job thread): turns actual plans on in the window's session. When
+     * that fails the statements still run as asked, without a plan (the error is in the Messages tab).
      */
     private void prepareActualPlan(
         @NotNull Execution run,
@@ -1651,49 +1660,60 @@ final class SqlEditorPanel extends JPanel {
         @NotNull DBPDataSource dataSource,
         @NotNull DBCExecutionContext context
     ) {
-        run.context = context;
         SQLActualPlanProvider provider = DBUtils.getAdapter(SQLActualPlanProvider.class, dataSource);
         if (provider != null) {
-            try {
-                executeStatements(monitor, context, provider.getEnableStatements());
-                run.actualPlanProvider = provider;
+            try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Execution plan settings")) {
+                run.actualPlanContext = context;
+                run.actualPlan = provider.startRun(session);
             } catch (Throwable e) {
                 log.debug("Can't turn the actual plan on", e);
+                run.actualPlanError = ErrorText.describe(e);
                 post(run, () -> resultsView.appendError(NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, ErrorText.describe(e))));
             }
-        } else {
-            run.planner = SqlPlanExplainer.getPlanner(dataSource);
         }
         run.planChecked = true;
     }
 
-    private void disableActualPlan(@NotNull Execution run, @NotNull DBCExecutionContext context) {
-        SQLActualPlanProvider provider = run.actualPlanProvider;
-        if (provider == null) {
+    /**
+     * Restores the session settings the actual plan changed, after the run (also after errors and cancels) and once.
+     */
+    private void disableActualPlan(@NotNull Execution run) {
+        SQLActualPlanProvider.Run actualPlan = run.actualPlan;
+        DBCExecutionContext context = run.actualPlanContext;
+        if (actualPlan == null || context == null || !run.actualPlanFinished.compareAndSet(false, true)) {
             return;
         }
-        try {
-            executeStatements(new VoidProgressMonitor(), context, provider.getDisableStatements());
+        try (DBCSession session = context.openSession(new VoidProgressMonitor(), DBCExecutionPurpose.UTIL, "Execution plan settings")) {
+            actualPlan.finish(session);
         } catch (Throwable e) {
             log.warn("Can't turn the actual plan off", e);
+            post(run, () -> resultsView.appendError(NLS.bind(EditorMessages.editor_sql_cant_restore_actual_plan, ErrorText.describe(e))));
         }
     }
 
     /**
-     * Runs statements one by one on the execution context's connection (session settings such as SET STATISTICS XML).
+     * Shows the actual plan of a statement read while the script runs (job thread), or why it could not be read.
      */
-    private static void executeStatements(
-        @NotNull DBRProgressMonitor monitor,
-        @NotNull DBCExecutionContext context,
-        @NotNull List<String> statements
-    ) throws DBException {
-        try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Execution plan settings")) {
-            for (String sql : statements) {
-                try (DBCStatement statement = session.prepareStatement(DBCStatementType.SCRIPT, sql, false, false, false)) {
-                    statement.executeStatement();
-                }
+    private void addActualPlan(@NotNull Execution run, @NotNull String query, @NotNull ActualPlanReader reader) {
+        ExecutionPlanView.Entry entry;
+        try {
+            DBCPlan plan = reader.read();
+            if (plan == null) {
+                return;
             }
+            entry = new ExecutionPlanView.Entry(query, plan, null, true);
+        } catch (Throwable e) {
+            log.debug("Can't read the actual plan", e);
+            entry = new ExecutionPlanView.Entry(query, null, ErrorText.describe(e), true);
         }
+        ExecutionPlanView.Entry finalEntry = entry;
+        post(run, () -> planView.addEntry(finalEntry));
+    }
+
+    @FunctionalInterface
+    private interface ActualPlanReader {
+        @Nullable
+        DBCPlan read() throws Exception;
     }
 
     private void stopPreparation(@NotNull Execution run, @NotNull IStatus status) {
@@ -2060,14 +2080,16 @@ final class SqlEditorPanel extends JPanel {
         // Include Actual Execution Plan: set in the EDT before the run, the rest in the preparation job
         boolean includeActualPlan;
         volatile boolean planChecked;
+        // Actual plans of this run in the window's session; null when the connection has none or they could not be turned on
         @Nullable
-        volatile SQLActualPlanProvider actualPlanProvider;
+        volatile SQLActualPlanProvider.Run actualPlan;
         @Nullable
-        volatile DBCQueryPlanner planner;
+        volatile String actualPlanError;
+        // The window's session the actual plans were turned on in
         @Nullable
-        volatile DBCExecutionContext context;
-        // Succeeded read-only SELECT statements, planned after the run when there is no actualPlanProvider
-        final List<SQLQuery> actualPlanQueries = new CopyOnWriteArrayList<>();
+        volatile DBCExecutionContext actualPlanContext;
+        // The session settings were restored (the job's end and a cancel before it was scheduled can both ask)
+        final AtomicBoolean actualPlanFinished = new AtomicBoolean();
         // Receivers of each query's result sets in fetch order (job thread only): plan result sets are not counted as rows
         final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
         // Set in the EDT before the jobs start
@@ -2120,10 +2142,10 @@ final class SqlEditorPanel extends JPanel {
         @Nullable
         @Override
         public DBDDataReceiver getDataReceiver(@NotNull SQLQuery query, int resultSetNumber) {
-            SQLActualPlanProvider planProvider = run.actualPlanProvider;
-            if (planProvider != null) {
+            SQLActualPlanProvider.Run actualPlan = run.actualPlan;
+            if (actualPlan != null) {
                 // Plan result sets go to the Execution plan tab, the others to the grids
-                ActualPlanReceiver receiver = new ActualPlanReceiver(planProvider, query.getText(), () -> createGridReceiver(query),
+                ActualPlanReceiver receiver = new ActualPlanReceiver(actualPlan, query.getText(), () -> createGridReceiver(query),
                     entry -> post(run, () -> planView.addEntry(entry)));
                 run.planReceivers.computeIfAbsent(query, q -> new ArrayList<>()).add(receiver);
                 return receiver;
@@ -2190,6 +2212,15 @@ final class SqlEditorPanel extends JPanel {
         }
 
         @Override
+        public void afterStatementExecuted(@NotNull DBCSession session, @NotNull DBCStatement statement, @NotNull SQLQuery query) {
+            // Altibase: the driver gives the statement's plan only while it is open
+            SQLActualPlanProvider.Run actualPlan = run.actualPlan;
+            if (actualPlan != null && !run.cancelRequested) {
+                addActualPlan(run, query.getText(), () -> actualPlan.readOpenStatementPlan(session, statement, query.getText()));
+            }
+        }
+
+        @Override
         public void bindParameters(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException {
             run.binding.bind(statement, query);
         }
@@ -2217,6 +2248,12 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
+            // Oracle: read first, before anything else runs on the session (server output, smart commit)
+            SQLActualPlanProvider.Run actualPlan = run.actualPlan;
+            if (actualPlan != null && result.getError() == null && !run.cancelRequested) {
+                String text = result.getStatement().getText();
+                addActualPlan(run, text, () -> actualPlan.readStatementPlan(session, text));
+            }
             if (SmartCommit.isEnabled(run.dataSourceContainer)) {
                 SmartCommit.afterStatement(session.getExecutionContext(), wasAutoCommit);
             }
@@ -2224,10 +2261,6 @@ final class SqlEditorPanel extends JPanel {
             recordHistory(run, context, result);
             if (result.getError() == null) {
                 metadataRefresh.collect(session, result.getStatement());
-            }
-            if (run.includeActualPlan && run.planner != null && result.getError() == null && !run.cancelRequested
-                && SqlPlanExplainer.isReadOnlySelect(result.getStatement())) {
-                run.actualPlanQueries.add(result.getStatement());
             }
         }
     }

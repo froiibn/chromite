@@ -49,6 +49,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-08 실제 계획을 {@link SQLActualPlanProvider#startRun}의 실행 단위로 켜고 끔(어댑터 모양이 바뀜, 동작은 같음)
  */
 public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProvider {
 
@@ -128,26 +129,37 @@ public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProv
 
     @NotNull
     @Override
-    public List<String> getEnableStatements() {
-        return List.of(STATISTICS_ON);
+    public Run startRun(@NotNull DBCSession session) throws DBException {
+        executeSetting(session, STATISTICS_ON);
+        return new Run() {
+            @Override
+            public boolean isPlanResultSet(@NotNull List<String> columnLabels) {
+                return columnLabels.size() == 1 && SHOWPLAN_COLUMN.equals(columnLabels.getFirst());
+            }
+
+            @NotNull
+            @Override
+            public DBCPlan parsePlan(@NotNull String query, @NotNull String planData) throws DBException {
+                // The plan names its own statement; the query is the whole batch that was executed
+                SQLServerExecutionPlan plan = SQLServerExecutionPlan.parse(null, planData);
+                return plan.getQueryString().isEmpty() ? SQLServerExecutionPlan.parse(query, planData) : plan;
+            }
+
+            @Override
+            public void finish(@NotNull DBCSession session) throws DBException {
+                executeSetting(session, STATISTICS_OFF);
+            }
+        };
     }
 
-    @NotNull
-    @Override
-    public List<String> getDisableStatements() {
-        return List.of(STATISTICS_OFF);
-    }
-
-    @Override
-    public boolean isPlanResultSet(@NotNull List<String> columnLabels) {
-        return columnLabels.size() == 1 && SHOWPLAN_COLUMN.equals(columnLabels.getFirst());
-    }
-
-    @NotNull
-    @Override
-    public DBCPlan parsePlan(@NotNull String query, @NotNull String planData) throws DBException {
-        // The plan names its own statement; the query is the whole batch that was executed
-        SQLServerExecutionPlan plan = SQLServerExecutionPlan.parse(null, planData);
-        return plan.getQueryString().isEmpty() ? SQLServerExecutionPlan.parse(query, planData) : plan;
+    /**
+     * Runs a SET statement alone (SET statements must be alone in their batch).
+     */
+    private static void executeSetting(@NotNull DBCSession session, @NotNull String sql) throws DBException {
+        try (JDBCStatement statement = ((JDBCSession) session).createStatement()) {
+            statement.execute(sql);
+        } catch (SQLException e) {
+            throw new DBCException(e, session.getExecutionContext());
+        }
     }
 }

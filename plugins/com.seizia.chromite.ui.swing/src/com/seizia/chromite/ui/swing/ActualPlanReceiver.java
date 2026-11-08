@@ -38,7 +38,7 @@ import java.util.function.Supplier;
 
 /**
  * Result receiver of a run with "Include Actual Execution Plan" on a connection that returns the plans as result sets
- * ({@link SQLActualPlanProvider}): plan result sets become plans, the others go to the result grid receiver.
+ * ({@link SQLActualPlanProvider.Run#isPlanResultSet}): plan result sets become plans, the others go to the result grid receiver.
  *
  * 설계: 엔진은 결과 집합마다 받는 쪽을 먼저 정하고({@code getDataReceiver}) 열 정보는 {@code fetchStart}에서야 알려 준다.
  * 그래서 이 수신기가 먼저 받고, 열 이름이 계획 결과 집합이면 값을 직접 읽고, 아니면 그때 결과 표 수신기를 만들어 모든 호출을 넘긴다.
@@ -47,12 +47,13 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 실행 단위 어댑터({@link SQLActualPlanProvider.Run})를 받음 (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 final class ActualPlanReceiver implements DBDDataReceiver {
 
     private static final Log log = Log.getLog(ActualPlanReceiver.class);
 
-    private final SQLActualPlanProvider provider;
+    private final SQLActualPlanProvider.Run provider;
     private final String query;
     private final Supplier<DBDDataReceiver> gridReceiverFactory;
     private final Consumer<ExecutionPlanView.Entry> planConsumer;
@@ -65,7 +66,7 @@ final class ActualPlanReceiver implements DBDDataReceiver {
      * @param planConsumer receives the plans in the job thread
      */
     ActualPlanReceiver(
-        @NotNull SQLActualPlanProvider provider,
+        @NotNull SQLActualPlanProvider.Run provider,
         @NotNull String query,
         @NotNull Supplier<DBDDataReceiver> gridReceiverFactory,
         @NotNull Consumer<ExecutionPlanView.Entry> planConsumer

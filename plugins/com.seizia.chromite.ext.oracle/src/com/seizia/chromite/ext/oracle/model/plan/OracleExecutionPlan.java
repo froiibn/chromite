@@ -56,14 +56,23 @@ import java.util.Map;
  * 적응 계획(adaptive plan)은 PLAN_TABLE에 고르지 않은 대안(STATISTICS COLLECTOR, 다른 조인)까지 행으로 남긴다. 계획 노드는 Oracle이
  * 보이는 계획(DBMS_XPLAN 기본 출력)과 같아야 하므로 OTHER_XML의 display_map으로 쓰지 않는 행을 빼고 표시 부모로 다시 잇는다.
  * 트리·다이어그램·Chromite Agent가 모두 계획 노드를 읽으므로 모델에서 한 번 거른다.
+ * 실행한 커서의 계획(실제 계획 토글)은 {@code V$SQL_PLAN_STATISTICS_ALL} 행이다. 열 이름이 PLAN_TABLE과 같아 같은 코드로 노드를 잇고
+ * (적응 계획 거르기 포함, 커서 계획의 display_map은 실행 중 고른 계획이다), 원문은 {@code DBMS_XPLAN.DISPLAY_CURSOR(..., 'ALLSTATS LAST')} 글자다.
  *
  * 변경 이력:
  * - 2026-11-07 Chromite: DBMS_XPLAN 출력을 계획 원문으로 남김 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  * - 2026-11-08 Chromite: 적응 계획의 쓰지 않는 행을 계획 노드에서 뺌 (docs/chromite/swing-sql-editor-plus.md "Oracle 적응 계획")
+ * - 2026-11-08 Chromite: 실행한 커서의 실제 계획({@link #readCursorPlan}, {@link OracleActualPlanProvider},
+ *   docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 public class OracleExecutionPlan extends AbstractExecutionPlan {
 
     private static final Log log = Log.getLog(OracleExecutionPlan.class);
+
+    // Plan rows of an executed cursor with the statistics of its last execution (OracleActualPlanNode)
+    private static final String CURSOR_PLAN_SQL = "SELECT * FROM V$SQL_PLAN_STATISTICS_ALL WHERE SQL_ID = ? AND CHILD_NUMBER = ? ORDER BY ID"; //$NON-NLS-1$
+    // DISPLAY_CURSOR reports a missing privilege as plan text instead of an error
+    private static final String NO_PRIVILEGE_TEXT = "User has no SELECT privilege"; //$NON-NLS-1$
 
     private OracleDataSource dataSource;
     private JDBCSession session;
@@ -74,11 +83,24 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
     private CachedResultSet planResults;
     @Nullable
     private String planText;
+    // The executed cursor of an actual plan, null for an EXPLAIN PLAN
+    @Nullable
+    private String cursorSqlId;
+    private long cursorChild;
 
     OracleExecutionPlan(OracleDataSource dataSource, JDBCSession session, String query) {
         this.dataSource = dataSource;
         this.session = session;
         this.query = query;
+    }
+
+    /**
+     * The actual plan of a cursor this session executed: {@link #readCursorPlan} reads it.
+     */
+    OracleExecutionPlan(OracleDataSource dataSource, JDBCSession session, String query, @NotNull String sqlId, long child) {
+        this(dataSource, session, query);
+        this.cursorSqlId = sqlId;
+        this.cursorChild = child;
     }
 
     public OracleExecutionPlan(String query, List<OraclePlanNode> nodes) {
@@ -109,6 +131,10 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
     @NotNull
     @Override
     public String getPlanQueryString() throws DBException {
+        if (cursorSqlId != null) {
+            return CURSOR_PLAN_SQL.replace("SQL_ID = ?", "SQL_ID = '" + cursorSqlId + "'") //$NON-NLS-1$ //$NON-NLS-2$
+                .replace("CHILD_NUMBER = ?", "CHILD_NUMBER = " + cursorChild); //$NON-NLS-1$ //$NON-NLS-2$
+        }
         if (planTableName == null) {
             // Detect plan table
             planTableName = dataSource.getPlanTableName(session);
@@ -209,28 +235,69 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
         try (JDBCPreparedStatement dbStat = session.prepareStatement(planSQL)) {
             dbStat.setString(1, planStmtId);
             try (JDBCResultSet dbResult = dbStat.executeQuery()) {
-                planResults = new CachedResultSet(planSQL, dbResult.getMetaData());
-                rootNodes = new ArrayList<>();
-                IntKeyMap<OraclePlanNode> allNodes = new IntKeyMap<>();
-                List<OraclePlanNode> planNodes = new ArrayList<>();
-                while (dbResult.next()) {
-                    OraclePlanNode node = new OraclePlanNode(dataSource, allNodes, dbResult);
-                    allNodes.put(node.getId(), node);
-                    planNodes.add(node);
-                    if (node.getParent() == null) {
-                        rootNodes.add(node);
-                    }
-                    planResults.addRow(dbResult);
-                }
-                hideInactiveRows(planNodes);
+                readNodes(planSQL, dbResult, false);
             }
         }
+        readPlanText();
+    }
+
+    /**
+     * Reads the plan of the executed cursor with the statistics of its last execution.
+     *
+     * @return false when the cursor has no plan (for example DDL or a PL/SQL block)
+     */
+    boolean readCursorPlan() throws DBException {
+        try {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(CURSOR_PLAN_SQL)) {
+                dbStat.setString(1, cursorSqlId);
+                dbStat.setLong(2, cursorChild);
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    readNodes(getPlanQueryString(), dbResult, true);
+                }
+            }
+            if (rootNodes.isEmpty()) {
+                return false;
+            }
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                "SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(?, ?, 'ALLSTATS LAST'))")) {
+                dbStat.setString(1, cursorSqlId);
+                dbStat.setLong(2, cursorChild);
+                planText = readText(dbStat);
+            }
+        } catch (SQLException e) {
+            throw new DBCException(e, session.getExecutionContext());
+        }
+        if (planText != null && planText.contains(NO_PRIVILEGE_TEXT)) {
+            throw new DBCException(planText.strip() + " Reading actual plans needs GRANT SELECT_CATALOG_ROLE (or SELECT ANY DICTIONARY) TO <user>");
+        }
+        return true;
+    }
+
+    /**
+     * Makes the plan nodes of plan rows in ID order (plan table or cursor plan, same columns), as Oracle displays them.
+     */
+    private void readNodes(@NotNull String planSQL, @NotNull JDBCResultSet dbResult, boolean actual) throws SQLException {
+        planResults = new CachedResultSet(planSQL, dbResult.getMetaData());
+        rootNodes = new ArrayList<>();
+        IntKeyMap<OraclePlanNode> allNodes = new IntKeyMap<>();
+        List<OraclePlanNode> planNodes = new ArrayList<>();
+        while (dbResult.next()) {
+            OraclePlanNode node = actual
+                ? new OracleActualPlanNode(dataSource, allNodes, dbResult)
+                : new OraclePlanNode(dataSource, allNodes, dbResult);
+            allNodes.put(node.getId(), node);
+            planNodes.add(node);
+            if (node.getParent() == null) {
+                rootNodes.add(node);
+            }
+            planResults.addRow(dbResult);
+        }
+        hideInactiveRows(planNodes);
 
         // Update costs
         for (OraclePlanNode node : rootNodes) {
             node.updateCosts();
         }
-        readPlanText();
     }
 
     /**
@@ -311,15 +378,20 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
             "SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY(?, ?, 'TYPICAL'))")) {
             dbStat.setString(1, planTableName);
             dbStat.setString(2, planStmtId);
-            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
-                StringBuilder text = new StringBuilder();
-                while (dbResult.next()) {
-                    text.append(CommonUtils.notEmpty(dbResult.getString(1))).append('\n');
-                }
-                planText = text.isEmpty() ? null : text.toString();
-            }
+            planText = readText(dbStat);
         } catch (SQLException e) {
             log.debug("Can't read the DBMS_XPLAN output, the plan table rows are the plan source", e);
+        }
+    }
+
+    @Nullable
+    private static String readText(@NotNull JDBCPreparedStatement dbStat) throws SQLException {
+        try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+            StringBuilder text = new StringBuilder();
+            while (dbResult.next()) {
+                text.append(CommonUtils.notEmpty(dbResult.getString(1))).append('\n');
+            }
+            return text.isEmpty() ? null : text.toString();
         }
     }
 

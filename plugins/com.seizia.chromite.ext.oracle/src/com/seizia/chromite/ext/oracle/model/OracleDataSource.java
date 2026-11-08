@@ -26,6 +26,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
 import com.seizia.chromite.ext.oracle.internal.OracleMessages;
+import com.seizia.chromite.ext.oracle.model.plan.OracleActualPlanProvider;
 import com.seizia.chromite.ext.oracle.model.plan.OracleQueryPlanner;
 import com.seizia.chromite.ext.oracle.model.session.OracleServerSessionManager;
 import com.seizia.chromite.model.*;
@@ -55,6 +56,7 @@ import com.seizia.chromite.model.meta.ForTest;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLState;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.struct.DBSDataType;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectFilter;
@@ -83,6 +85,8 @@ import java.util.regex.Pattern;
  *   changed. Before, the setting reached the server only when a session opened, so turning it off left the session
  *   buffering (until ORU-10027 once 1 MB was not read) and turning it on showed nothing until reconnect
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정").
+ * - 2026-11-08 Chromite: actual plan adapter ({@link OracleActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md
+ *   "실제 계획 토글을 Altibase·Oracle로")
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -695,6 +699,8 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
             return adapter.cast(new OracleServerSessionManager(this));
         } else if (adapter == DBCQueryPlanner.class) {
             return adapter.cast(new OracleQueryPlanner(this));
+        } else if (adapter == SQLActualPlanProvider.class) {
+            return adapter.cast(new OracleActualPlanProvider(this));
         } else if(adapter == DBAUserPasswordManager.class) {
             return adapter.cast(new OracleChangeUserPasswordManager(this));
         } else if (adapter == DBDAttributeContentTypeProvider.class) {

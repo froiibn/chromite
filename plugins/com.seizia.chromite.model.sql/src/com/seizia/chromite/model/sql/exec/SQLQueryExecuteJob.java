@@ -87,6 +87,8 @@ import java.util.Map;
  * - 2026-11-08 배치 오류: 여러 문장 배치(SQL Server GO 배치)의 뒤 문장 오류를 경고로 바꾸던 처리({@code getMoreResults} 예외, 행을 일부 읽은 뒤
  *   읽기 오류)를 없앴다. 오류는 쿼리 오류로 모으고({@link SQLQueryResult#addError}) 그 뒤 결과도 계속 읽으며, 쿼리는 실패로 끝난다.
  *   첫 문장이 실패해도 뒤 문장이 실행된 배치는 그 결과를 읽는다({@link SQLBatchErrors}, docs/chromite/sql-batch-errors.md).
+ * - 2026-11-08 문장이 오류 없이 끝나고 결과를 다 읽은 뒤, 닫기 전에 {@link SQLQueryExecuteHandler#afterStatementExecuted}를 부른다
+ *   (Altibase 실제 계획, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -930,6 +932,8 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                     break;
                 }
             };
+            // Still open: some drivers give the statement's actual plan only now (Altibase EXPLAIN PLAN = ON)
+            handler.afterStatementExecuted(session, dbcStatement, sqlQuery);
         }
         finally {
             try {

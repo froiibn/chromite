@@ -23,6 +23,7 @@ import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.model.plan.AltibaseActualPlanProvider;
 import com.seizia.chromite.ext.altibase.model.plan.AltibaseQueryPlanner;
 import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSessionManager;
 import com.seizia.chromite.ext.generic.GenericConstants;
@@ -49,6 +50,7 @@ import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectLookupCache;
 import com.seizia.chromite.model.impl.jdbc.cache.JDBCStructLookupCache;
 import com.seizia.chromite.model.meta.Association;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -79,6 +81,7 @@ import java.util.WeakHashMap;
  * - 2026-11-07 서버 출력 설정이 꺼져 있으면 콜백을 등록하지 않고, 비어 있으면 빈 줄을 쓰지 않음
  *   (docs/chromite/swing-server-output.md)
  * - 2026-11-08 설정을 바꾸면 열린 세션에도 다음 문장부터 적용({@code syncServerOutput}, docs/chromite/swing-server-output.md)
+ * - 2026-11-08 실제 계획 어댑터({@link AltibaseActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -210,6 +213,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             return adapter.cast(outputReader);
         } else if (adapter == DBCQueryPlanner.class) {
             return adapter.cast(new AltibaseQueryPlanner(this));
+        } else if (adapter == SQLActualPlanProvider.class) {
+            return adapter.cast(new AltibaseActualPlanProvider(this));
         } else if (adapter == DBAServerSessionManager.class) {
             return adapter.cast(new AltibaseServerSessionManager(this));
         }

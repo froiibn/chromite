@@ -27,6 +27,7 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
@@ -261,6 +262,8 @@ import java.util.function.Supplier;
  *   docs/chromite/settings-transfer.md)
  * - 2026-11-08 Query Manager 도구 창({@link QueryManagerPanel}, 메인 창 아래 가장자리, 기본 숨김): 쿼리 관리자가 기록한 모든 실행,
  *   문장은 새 쿼리 창에 넣기만 함 (docs/chromite/swing-query-manager.md)
+ * - 2026-11-08 Include Actual Execution Plan: 활성 쿼리 창의 연결이 실제 계획을 주지 않으면 꺼지고 도구 설명이 이유를 말함
+ *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -1928,8 +1931,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         variablesAction.setEnabled(editor != null && !editor.isExecuting());
         completeAction.setEnabled(editor != null);
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
-        actualPlanAction.setEnabled(editor != null);
-        actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && editor.isIncludeActualPlan());
+        // A connection that gives no actual plans (they would need a second run of the statements) has the toggle off,
+        // with the reason as its tool tip; before connecting it is not known yet
+        boolean actualPlanUnsupported = editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport());
+        actualPlanAction.setEnabled(editor != null && !actualPlanUnsupported);
+        actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && !actualPlanUnsupported && editor.isIncludeActualPlan());
+        actualPlanAction.putValue(Action.SHORT_DESCRIPTION,
+            actualPlanUnsupported ? EditorMessages.editor_sql_actual_plan_unsupported : CoreMessages.main_actual_plan_tip);
+        if (sqlEditorToolBar != null) {
+            sqlEditorToolBar.setActualPlanUnsupported(actualPlanUnsupported);
+        }
         terminalAction.setEnabled(editor != null);
         terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
         // Ending the transaction needs it idle: a running statement or script of this window would be refused
