@@ -53,6 +53,30 @@
     <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
   </div>
 
+  <section class="sect release" id="v0.1.3">
+    <h2>0.1.3</h2>
+    <div class="body">
+      <p>More object editing and result grid tools, and stronger execution and transaction safety.</p>
+      <ul>
+        <li>Safety: re-reading a result from a multi-statement run no longer runs the whole batch again (only the SELECT that produced it is re-read); errors inside a SQL Server batch are no longer lost and reported as success</li>
+        <li>Transactions: switch auto/manual commit from the Query menu and the SQL Editor toolbar (asks first when a transaction is open); SQL script tasks no longer commit or roll back without asking</li>
+        <li>Objects: New object from Explorer folders, New Database dialogs, sequence, trigger and package templates, Oracle index, foreign key and CHECK design, property editing in the Properties view</li>
+        <li>Result grid: follow foreign keys with references and aggregates panels, virtual keys, hide and move columns, find in results, text view, generate SQL from rows, saved and recent filters, virtual calculated columns, referenced-value picker, array, hstore, hex and external editors, UUID</li>
+        <li>Execution plans: the Actual Plan toggle now also works for Oracle and Altibase (only when turned on; the statement runs once)</li>
+        <li>Query Manager window: every executed statement, filtered by connection, type and text</li>
+        <li>Query windows are saved automatically and restored after a restart (without connecting or running anything); recent scripts per connection</li>
+        <li>Connections: shell commands, jump servers, network profiles, change password, per-connection restrictions and connection lock</li>
+        <li>Data transfer: save and edit as tasks, SQL script tasks, advanced Copy Tables and Export options (emptying or re-creating tables asks first)</li>
+        <li>Backup: choose schemas and tables, pg_dumpall (global objects and whole cluster), tool account and extra arguments</li>
+        <li>Settings export, import and undo</li>
+        <li>Privileges: PostgreSQL column and default privileges, MySQL resource limits, Altibase replication status and commands</li>
+        <li>Chromite Agent: fixed every request failing on Claude models and a slow Stop; the transaction answer is now in the audit log</li>
+        <li>Security: passwords quoted as passwords, statements with passwords kept out of the query log, password properties masked, the hard-coded password for new Exasol users removed</li>
+        <li>Fixed: Oracle sequence changes (ORA-04007), SQL Server filters on queries sorted by unselected columns (1033), SQL Server parameter types, Altibase and CUBRID server output settings applied at once</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v0.1.2">
     <h2>0.1.2</h2>
     <div class="body">
