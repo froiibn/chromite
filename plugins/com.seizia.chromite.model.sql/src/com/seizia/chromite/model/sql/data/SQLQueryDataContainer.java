@@ -51,10 +51,17 @@ import java.util.Map;
  * 행 수({@link #countData})는 컨테이너가 {@code FEATURE_DATA_COUNT}를 내세우면서도 늘 -1을 돌려주던 것을 고쳐, 필터 조건을 넣은 쿼리를
  * 모델의 COUNT 변환기로 바꾸고 {@link #readData}로 읽는다(매개변수 처리가 행 읽기와 같게).
  *
+ * 여러 문장을 한 번에 보낸 쿼리(SQL Server {@code GO} 배치, 선택한 여러 문장)의 결과는 {@link #restrictToResultSet}로 그 결과를 만든
+ * 문장만 갖는다({@link SQLBatchResultStatement}). 다시 읽기가 배치 전체(UPDATE·DDL·EXEC 포함)를 다시 실행하지 않게 하기 위해서다.
+ * 문장을 정하지 못한 결과는 배치를 그대로 갖되 {@link #readData}와 {@link #countData}가 거절한다: 화면이 다시 읽기를 막지 못한
+ * 경로(저장 뒤 새로 고침 등)가 있어도 배치가 다시 실행되지 않는다.
+ *
  * 변경 이력:
  * - 2026-11-08 {@link ParameterBinder}: 값을 바인딩한 쿼리의 결과도 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-08 {@link #countData}: 쿼리 결과의 전체 행 수(결과 뷰어 "행 수 세기", 데이터 전송의 "행 수 읽기"). 전에는 -1이라 상태 줄에
  *   "전체 -1행"이 보이고 내보내기는 전체 행 수를 몰랐다 (docs/chromite/swing-grid-navigation.md "전체 행 수")
+ * - 2026-11-08 {@link #restrictToResultSet}: 배치 결과를 다시 읽으면 그 결과를 만든 문장만 실행하고, 문장을 정하지 못하면 거절
+ *   (docs/chromite/sql-batch-reread.md)
  */
 public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContainer, DBPContextProvider, DBPImageProvider {
 
@@ -80,6 +87,8 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
     private final Log log;
     @Nullable
     private ParameterBinder parameterBinder;
+    // The query has several statements and the one that produced the result is not known (restrictToResultSet)
+    private boolean wholeBatchOnly;
 
     public SQLQueryDataContainer(DBPContextProvider contextProvider, SQLQuery query, SQLScriptContext scriptContext, Log log) {
         this.contextProvider = contextProvider;
@@ -118,6 +127,7 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
         int fetchSize
     ) throws DBException
     {
+        checkCanReadAgain(session);
         DBCStatistics statistics = new DBCStatistics();
         // Modify query (filters + parameters)
         DBPDataSource dataSource = session.getDataSource();
@@ -246,6 +256,7 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
     public long countData(@NotNull DBCExecutionSource source, @NotNull DBCSession session, @Nullable DBDDataFilter dataFilter, long flags)
         throws DBCException
     {
+        checkCanReadAgain(session);
         if (query.getType() != SQLQueryType.SELECT || query.isModifying()) {
             throw new DBCException("Can't count the rows of a statement that is not a single SELECT");
         }
@@ -373,6 +384,39 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
 
     public void setParameterBinder(@Nullable ParameterBinder parameterBinder) {
         this.parameterBinder = parameterBinder;
+    }
+
+    /**
+     * Makes the container of a result read only the statement of its query that produced the result set, for a query
+     * of several statements (a {@code GO} batch, selected statements run as one): reading the result again (filters,
+     * sorting, next pages, export) must not run the other statements. When that statement can't be found, the
+     * container keeps the query and refuses to read it again ({@link #isWholeBatchOnly()}).
+     *
+     * @param resultSetNumber the number of the result set among the query's result sets, 0 for the first one
+     */
+    public void restrictToResultSet(int resultSetNumber) {
+        DBPDataSource dataSource = query.getDataSource() != null ? query.getDataSource() : getDataSource();
+        SQLQuery statement = dataSource == null ? null : SQLBatchResultStatement.find(dataSource, query, resultSetNumber);
+        if (statement == null) {
+            wholeBatchOnly = true;
+        } else {
+            query = statement;
+        }
+    }
+
+    /**
+     * Whether the result can only be read again by running all statements of its query again, which this container
+     * refuses ({@link #restrictToResultSet}).
+     */
+    public boolean isWholeBatchOnly() {
+        return wholeBatchOnly;
+    }
+
+    private void checkCanReadAgain(@NotNull DBCSession session) throws DBCException {
+        if (wholeBatchOnly) {
+            throw new DBCException("This result can't be read again without running the whole batch again", null,
+                session.getExecutionContext());
+        }
     }
 
     @Override

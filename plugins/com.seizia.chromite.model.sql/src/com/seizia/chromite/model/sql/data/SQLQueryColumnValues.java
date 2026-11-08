@@ -83,6 +83,8 @@ import java.util.List;
  * - 2026-11-07 최초 작성: 결과 그리드 열 필터의 값 목록 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 값을 바인딩한 쿼리의 값 목록: 결과 쿼리의 바인딩 방법({@link SQLQueryDataContainer#getParameterBinder})을 넘김
  *   (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-08 결과를 만든 문장을 정하지 못한 배치 결과({@link SQLQueryDataContainer#isWholeBatchOnly()})는 읽지 않음: 쿼리 글자를
+ *   감싸 새 컨테이너로 읽으므로 결과 컨테이너의 거절을 거치지 않는다 (docs/chromite/sql-batch-reread.md)
  */
 public final class SQLQueryColumnValues {
 
@@ -128,6 +130,9 @@ public final class SQLQueryColumnValues {
         SQLScriptElement element = queryContainer.getQuery();
         if (!(element instanceof SQLQuery query) || !(queryContainer instanceof DBSDataContainer dataContainer)) {
             throw new DBException("The result has no query to read the values from");
+        }
+        if (queryContainer instanceof SQLQueryDataContainer resultContainer && resultContainer.isWholeBatchOnly()) {
+            throw new DBException("The values can't be read without running the whole batch of the result again");
         }
         DBPDataSource dataSource = context.getDataSource();
         SQLDialect dialect = dataSource.getSQLDialect();

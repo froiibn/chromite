@@ -77,7 +77,7 @@ import java.util.UUID;
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
  * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
  * Export Data…는 쿼리를 다시 실행해 모든 행을 모델의 모든 형식으로 내보내는 마법사({@link DataExportWizard})다. 다시 실행할 수 있는 결과
- * (쿼리의 첫 결과 집합이면서 문장 하나뿐인, 바꾸지 않는 SELECT, {@link Fetched#exportQuery()}, {@link DataExportWizard#canExportQuery})에서만 켜진다. CSV·XLSX 항목은 그대로 표에 보이는 행(편집 중인 값 포함)을 쓴다.
+ * (그 결과를 만든 문장이 바꾸지 않는 SELECT 하나인 결과: 배치의 결과는 그 문장만 다시 실행한다, {@link Fetched#exportQuery()}, {@link DataExportWizard#canExportQuery})에서만 켜진다. CSV·XLSX 항목은 그대로 표에 보이는 행(편집 중인 값 포함)을 쓴다.
  * 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택한 뒤 메뉴를 연다.
  * <p>
  * 편집(G단계): 수신기가 편집할 수 있다고 정한 결과({@link Fetched#editModel()}, 판단은 {@link ResultSetEditModel#getReadOnlyReason})는
@@ -139,6 +139,8 @@ import java.util.UUID;
  *   상태 알림({@link #showStatus}) (docs/chromite/swing-value-editors.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 만든 문장을 쿼리 창에 여는 {@link Host#openScript}·{@link Host#canOpenScript}
  *   (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 Export Data 쿼리를 첫 결과 집합만이 아니라 쿼리 창의 모든 결과가 가짐: 배치 결과도 그 결과를 만든 문장으로 다시 실행
+ *   (docs/chromite/sql-batch-reread.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -186,8 +188,8 @@ final class ResultSetGrid extends JPanel {
      * What a receiver delivers: the data, either the edit model of an editable result or why it is read-only, and
      * where the result was read from (with the cell values of the value panel).
      *
-     * @param exportQuery the query container that reads this result again on its own (the first result set of a
-     *                    query; "Export Data…" runs it again for all rows), or null
+     * @param exportQuery the query container that reads this result again on its own (the statement of the query
+     *                    window's run that produced it; "Export Data…" runs it again for all rows), or null
      */
     record Fetched(
         @NotNull Data data,

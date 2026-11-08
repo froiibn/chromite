@@ -113,13 +113,11 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -301,6 +299,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 실제 계획을 Oracle·Altibase로 넓힘(어댑터의 실행 단위 {@link SQLActualPlanProvider.Run}). 어댑터가 없는 연결에서 성공한 SELECT를
  *   계획기의 ANALYZE로 다시 실행하던 방식을 지움(사용자 결정: 실제 계획은 문장을 한 번만 실행할 때만, 그 밖의 연결은 토글을 끔)
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-08 배치 결과 다시 읽기: 결과마다 데이터 컨테이너가 그 결과를 만든 문장만 갖게 함({@code restrictToResultSet}, 쿼리 안의
+ *   결과 집합 번호). 첫 결과 집합만 Export Data 쿼리로 넘기던 것을 모든 결과로 넓힘(다시 읽을 수 있는지는 컨테이너가 정함)
+ *   (docs/chromite/sql-batch-reread.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -2106,6 +2107,8 @@ final class SqlEditorPanel extends JPanel {
         final Map<SQLScriptContext, SQLIncludedScript> includedScripts = new IdentityHashMap<>();
         // SQL terminal (job thread only): the text tables of each query's result sets, written when the query ends
         final Map<SQLQuery, List<String>> terminalTables = new IdentityHashMap<>();
+        // Grid result sets of each query so far (job thread only), counted again when the query starts again (GO 2)
+        final Map<SQLQuery, Integer> gridResultSets = new IdentityHashMap<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -2131,7 +2134,6 @@ final class SqlEditorPanel extends JPanel {
         private final Execution run;
         private final DBCExecutionContext context;
         private final SQLScriptContext scriptContext;
-        private final Set<SQLQuery> gridQueries = Collections.newSetFromMap(new IdentityHashMap<>());
 
         QueryHandler(@NotNull Execution run, @NotNull DBCExecutionContext context, @NotNull SQLScriptContext scriptContext) {
             this.run = run;
@@ -2158,16 +2160,18 @@ final class SqlEditorPanel extends JPanel {
             // Natively bound values (Query Library) are bound again when the result is read again (Export Data, filters,
             // next pages): the binding makes the data container
             SQLQueryDataContainer dataContainer = run.binding.createDataContainer(() -> context, query, scriptContext, log);
+            // A batch (GO, several selected statements) is one query: the result is read again with the statement that
+            // produced it only. Grid receivers are made in the order of the result sets; plan result sets have none.
+            int resultSetNumber = run.gridResultSets.merge(query, 1, Integer::sum) - 1;
+            dataContainer.restrictToResultSet(resultSetNumber);
             return new ResultSetGridReceiver(dataContainer, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
-                // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
-                boolean exportable = gridQueries.add(query);
                 if (run.terminal) {
                     // Formatted here, off the EDT; written with the query's messages when it ends (reportQueryResult)
                     run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
                 }
                 post(run, () -> {
-                    resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
+                    resultsView.addGrid(fetched.withExportQuery(dataContainer));
                     statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
                     showRunOutput(run, false);
                 });
@@ -2242,6 +2246,7 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void onStartQuery(@NotNull DBCSession session, @NotNull SQLQuery query) {
+            run.gridResultSets.remove(query);
             wasAutoCommit = SmartCommit.isAutoCommit(session.getExecutionContext());
             syncServerOutput(session);
         }

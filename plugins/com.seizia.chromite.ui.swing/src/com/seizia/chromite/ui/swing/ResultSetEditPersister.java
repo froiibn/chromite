@@ -93,7 +93,9 @@ import java.util.function.Consumer;
  *     끝나면 결과를 EDT로 넘긴다({@link Outcome}).</li>
  *     <li>저장 뒤 새로 고침: SWT 기본 설정({@code resultset.edit.refreshAfterUpdate} = 켬)처럼 추가·수정한 행만 키로 다시 읽는다({@link #refreshRows}).
  *     원래 쿼리를 키 조건으로 걸러 다시 실행하므로({@code SQLQueryDataContainer.readData}) 열 구성이 같다. 스크립트 전체를 다시 실행하지 않는 것은
- *     스크립트에 다른 문장(DML 포함)이 있을 수 있고, 다른 결과 표와 화면 위치를 그대로 두기 위해서다.</li>
+ *     스크립트에 다른 문장(DML 포함)이 있을 수 있고, 다른 결과 표와 화면 위치를 그대로 두기 위해서다. 정렬·필터처럼 다시 읽을 수 있는 결과
+ *     ({@link ResultSetSource#getRequeryBlocker})만 다시 읽는다: 배치 결과는 그 결과를 만든 SELECT로 읽고, 그 문장을 정하지 못한 결과나
+ *     SELECT가 아닌 쿼리(프로시저 호출 등)의 결과는 다시 읽지 않고 입력한 값을 그대로 둔다.</li>
  *     <li>저장 전 미리 보기 스크립트({@link #createScriptJob}): 엔진의 스크립트 생성 모드로 저장과 같은 문장을 만든다(SWT
  *     {@code ResultSetViewer.generateChangesScript}). 저장 Job은 문장을 다시 준비하므로({@code prepareStatements}가 이전 문장과
  *     동작을 지움) 같은 객체로 미리 보기와 저장을 차례로 해도 미리 보기의 상태가 저장에 남지 않는다.</li>
@@ -106,6 +108,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 저장 뒤 다시 읽은 행의 배열·구조체 값을 놓아 주지 않음: 그리드가 다시 고칠 수 있게 (docs/chromite/swing-value-editors.md)
  * - 2026-11-08 가상(계산) 열이 있는 결과의 저장 뒤 다시 읽기: 결과 집합의 열만 맞춰 읽고 가상 열은 다시 계산한다. 전에는 열 수가 달라
  *   다시 읽기를 건너뛰었다 (docs/chromite/swing-saved-filters-virtual-columns.md)
+ * - 2026-11-08 저장 뒤 다시 읽기를 다시 읽을 수 있는 결과로 한정: 전에는 결과의 쿼리를 검사 없이 키 조건으로 다시 실행했다
+ *   (docs/chromite/sql-batch-reread.md)
  */
 final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEditPersister.StatementInfo, ResultSetEditModel.Row, ResultSetEditModel> {
 
@@ -601,6 +605,11 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
         }
         DBCExecutionContext context = model.getExecutionContext();
         DBSDataContainer dataContainer = model.getDataContainer();
+        if (ResultSetSource.getRequeryBlocker(dataContainer, context) != null) {
+            // Not a query that can be read again on its own (a batch, a procedure call): the grid keeps the values as entered.
+            // The receiver checked the same container when it delivered the result, so the query is parsed already.
+            return;
+        }
         DBDAttributeBinding[] bindings = model.getAttributes();
         // Key values are read in the EDT, where the rows live
         List<ResultSetEditModel.Row> keyedRows = new ArrayList<>();

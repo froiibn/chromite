@@ -102,7 +102,9 @@ SWT: `ResultSetViewer.toggleSortOrder`(ResultSetViewer.java:2700), `reorderLocal
   "Clear Filter"는 모든 조건을 지운다.
 - **다시 읽을 수 있는 결과:** 컨테이너가 `FEATURE_DATA_FILTER`를 지원하고 쿼리가 SELECT 하나(`SQLQuery.getType() == SELECT`, `isModifying()` 거짓)일 때만
   필터·서버 정렬·다음 페이지를 한다(`ResultSetSource.getRequeryBlocker`). SWT는 쿼리를 다시 실행하기 전에 데이터가 바뀌는 쿼리인지 묻지만(`verifyQuerySafety`, :4463),
-  Swing의 GO 배치·여러 문장·프로시저 호출은 다시 실행하면 다른 문장까지 실행되고 두 번째 이후 결과 집합은 `readData`로 다시 얻을 수 없으므로 막는다.
+  Swing의 프로시저 호출은 다시 실행하면 다른 문장까지 실행되고 두 번째 이후 결과 집합은 `readData`로 다시 얻을 수 없으므로 막는다. GO 배치·선택한 여러 문장의
+  결과는 그 결과를 만든 SELECT만 다시 읽고, 그 문장을 정할 수 없으면 막는다(이유 "this result can't be read again without running the whole batch again",
+  [sql-batch-reread.md](sql-batch-reread.md)).
   막힌 결과는 머리글의 깔때기가 흐려지고(2026-11-07 전에는 필터 줄이 꺼짐) 도구 설명에 이유("not a single SELECT query")가 보인다. 정렬은 표 안에서 된다.
 - **저장하지 않은 변경:** 정렬·필터 전에 "변경을 버릴까요?"를 묻는다(SWT `checkForChanges`). 저장 중에는 하지 않는다.
 - **다시 읽기:** 백그라운드 `DataSourceJob`에서 `DBSDataContainer.readData(…, FLAG_REFRESH, …)`로 한다. `FLAG_REFRESH`는 쿼리 매개변수를 다시 묻지 않고 지난 값을 쓰게 한다.
@@ -217,3 +219,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 2026-11-08 결과 탐색(B4): 외래 키 따라가기와 뒤로·앞으로, 참조·집계 패널, 가상 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소, 찾기, 텍스트 보기,
   전체 행 수. "남긴 것" 갱신. [swing-grid-navigation.md](swing-grid-navigation.md).
 - 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
+- 2026-11-08 배치 결과 다시 읽기: 결과를 만든 SELECT만 실행, 정할 수 없으면 막고 이유를 보임. [sql-batch-reread.md](sql-batch-reread.md).

@@ -373,6 +373,7 @@ public class EditorMessages extends NLS {
     // Result source (ResultSetSource)
     public static String editor_source_no_filters;
     public static String editor_source_not_single_select;
+    public static String editor_source_whole_batch;
 
     // Result viewer (ResultSetViewerPanel)
     public static String editor_viewer_order_note;

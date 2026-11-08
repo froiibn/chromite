@@ -93,11 +93,12 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
   마법사를 열고 뷰어가 이 필터를 넣는다. 뷰어는 서버에서 읽은 필터를 따로 둔다(`serverFilter`): 모든 행을 이미 읽은 표나 서버 정렬이 꺼진 연결의 정렬은
   표 안에서만 하므로(`clientOrdered`) 내보내기가 따를 수 없고, 그때는 원본 페이지와 요약에 "내보낸 행은 쿼리가 돌려주는 순서"라고 적는다.
   필터는 늘 서버에서 다시 읽으므로 표 안에서만 거른 결과는 없다. 마법사의 원본 페이지와 요약은 적용되는 WHERE·ORDER BY를 보여 준다.
-- **다시 실행해도 되는 결과만:** `Export Data…`는 (1) 쿼리의 첫 결과 집합이고 (2) 바꾸지 않는 SELECT(`SQLQuery.getType() == SELECT && !isModifying()` —
+- **다시 실행해도 되는 결과만:** `Export Data…`는 (1) 결과를 만든 문장을 아는 결과이고 (2) 바꾸지 않는 SELECT(`SQLQuery.getType() == SELECT && !isModifying()` —
   `SELECT … INTO`, 데이터를 바꾸는 CTE, `FOR UPDATE` 제외)이면서 (3) 문장이 하나(`SQLScriptParser.parseScript`로 센다)일 때만 켜진다.
   `GO` 배치의 여러 문장은 쿼리 하나로 합쳐지고 그 형식은 첫 문장의 것이라, 셋째 조건이 없으면 `SELECT 1; DELETE …` 배치의 첫 결과 표에서도 켜졌다(SQL Server에서 확인 후 고침). `SQLQueryDataContainer`는 결과 집합을 하나만 읽고("Doesn't support multiple resulsets"),
-  `GO` 배치는 여러 문장이 한 쿼리라 다시 실행하면 INSERT 등이 되풀이되기 때문이다. 첫 결과 집합인지는 `SqlEditorPanel`의 처리기가 쿼리 객체별로 처음 넘긴 표인지로 정한다
-  (`SQLQueryExecuteJob`의 결과 번호는 스크립트 전체에서 이어지므로 쓸 수 없음).
+  `GO` 배치는 여러 문장이 한 쿼리라 다시 실행하면 INSERT 등이 되풀이되기 때문이다. 2026-11-08부터 결과의 컨테이너는 그 결과를 만든 문장만 가진다
+  ([sql-batch-reread.md](sql-batch-reread.md)): 배치의 결과는 그 SELECT만 내보내고(둘째 SELECT 결과 포함), 문장을 정하지 못한 결과는 꺼진다. 전에는 쿼리의
+  첫 결과 집합만 내보낼 수 있었다. 셋째 조건은 다음 쿼리를 그대로 받는 `@export`를 위해 남았다.
   꺼진 메뉴의 도구 설명은 수신기가 아는 이유(`ResultSetSource.requeryBlocker`, 예: 연결이 끊김)가 있으면 그것을 보인다. 처음에는 늘 "SELECT 하나인 쿼리만" 문구라,
   SELECT 하나인 결과에서 이유를 잘못 알렸다. Query Library가 값을 바인딩한 실행도 2026-11-08부터 같은 값을 바인딩해 내보낸다
   ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로", 그 전에는 "parameter values bound for this run only"로 꺼짐).
@@ -757,3 +758,5 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   테이블 복사의 중복 키 처리·고유 키 위반 행 건너뛰기·값 직접 쓰기·쿼리 관리자 기록·매핑 규칙·열 값(`DataTransferOptionDialogs`), 비우기를 DDL 탭·요약에 보이고
   Finish에서 비우기와 다시 만들기를 한 번에 묻기. `@export`의 원본·나누기·시각 옵션은 화면 칸으로. 모델: 비우기 전에 대상 열 읽기(`DatabaseTransferConsumer`,
   SQL Server 멈춤), 마지막 구간 통계(`DatabaseTransferProducer`). 위 "고급 옵션".
+- 2026-11-08 결과 표의 Export Data: 배치 결과는 그 결과를 만든 SELECT만 다시 실행(첫 결과 집합만이던 제한을 없앰), 문장을 정하지 못한 결과는 끄고 이유를 보임.
+  [sql-batch-reread.md](sql-batch-reread.md).
