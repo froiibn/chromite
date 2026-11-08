@@ -66,7 +66,7 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | # | 빈자리 | 행 | 상태(영향) | 남은 것 |
 |---|---|---|---|---|
-| 1 | 실행 중 자동/수동 커밋 전환 명령 | B-S18 | 없음(높음) | 도구 막대·메뉴 토글은 사용자 결정 대기. 상태 줄에서 바꾸지 않는 것은 이미 결정됨(B-S18a) |
+| 1 | 실행 중 자동/수동 커밋 전환 명령 | B-S18 | 있음(2026-11-08, `chromite/commit-mode-toggle`) | Query &gt; Auto-Commit과 SQL Editor 도구 막대 단추(사용자 결정 2026-11-08), [transactions.md](transactions.md) "커밋 방식 전환". 상태 줄에서 바꾸지 않는 것은 그대로(B-S18a) |
 | 2 | 개체 속성 편집 | B-E1, B-E2, C-15 | 있음·일부(중간) | 2026-11-08 Properties 창·Object Details 속성 탭에서 편집([swing-object-properties.md](swing-object-properties.md)). 남은 것: 값을 모아 저장(Save/Revert), 모델에 관리자·`updatable`이 없는 속성, 하이퍼링크 |
 | 3 | 실행 중 격리 수준 바꾸기 | B-S19, A-C5 | 없음(중간) | 연결의 기본 격리 수준은 있음(B-C11) |
 | 4 | 값 편집기 나머지 | B-R14 | 일부(낮음) | 2026-11-08 참조 값 고르기·배열·구조체·hstore·SET·16진수·외부 편집기·UUID 만들기를 넣음([swing-value-editors.md](swing-value-editors.md)). 커서 보기, 일반 JDBC 구조체(Oracle 객체 형식) 편집만 남음 |
@@ -152,5 +152,6 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-08 데이터 전송 작업과 SQL 스크립트 작업(`chromite/transfer-tasks`, [swing-database-tasks.md](swing-database-tasks.md)): C-39·C-41 없음 → 있음,
   C-43 근거 갱신(일부 그대로), B-E12 조용히 끊김 → 수정함(있음으로 셈). 집계에 이 행들의 변화만 더함(B 있음 +1·조용히 끊김 −1, C 있음 +2·없음 −2,
   합계 같이). 남은 조용히 끊김이 0건이 됨. 상위 목록 5번의 상태·남은 것을 고침.
+- 2026-11-08 실행 중 커밋 방식 전환(`chromite/commit-mode-toggle`, [transactions.md](transactions.md) "커밋 방식 전환"): B-S18 없음 → 있음, 상위 목록 1번의 상태를 고침. 집계는 고치지 않음(합치는 쪽에서 다시 셈).
 - 2026-11-08 5순위 설정 내보내기·가져오기(`chromite/settings-export-import`, [settings-transfer.md](settings-transfer.md)): A-C14 일부 → 있음.
   집계에 한 행의 변화만 더함(A 있음 +1·일부 −1, 합계 같이). 남은 빈자리 상위 목록의 9번(A-C14)을 빼고 번호를 당김.
