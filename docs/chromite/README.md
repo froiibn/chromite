@@ -16,6 +16,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | 문서 | 내용 |
 |---|---|
 | [product-direction.md](product-direction.md) | 제품 정의, 주요 결정 사항, 진행 단계, 미결정 사항 (먼저 읽을 문서) |
+| [roadmap-post-1.0.md](roadmap-post-1.0.md) | 1.0.0 이후 로드맵: 안전(영향 행 미리 보기, 되돌리기 스크립트, 운영 DB 보호, 작업 기록), 편의, Chromite Agent, 관리, 조직 배포 16개 기능과 권장 순서 |
 | [branding.md](branding.md) | 제품명, 아이콘, 스플래시, About 화면, 라이선스 고지 등 Chromite 브랜딩 |
 | [commercial-upsell.md](commercial-upsell.md) | DBeaver 상용판 홍보 기능과 문구 제거, 다른 판을 가리키는 문구의 일반화 |
 | [cdata-removal.md](cdata-removal.md) | CData 연동 제거 이유, 제거한 항목, 기존 CData 연결의 동작 |
