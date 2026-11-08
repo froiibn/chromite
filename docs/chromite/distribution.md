@@ -240,11 +240,13 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
 | `/ko/`, `/en/` | 홈: 어두운 무대(첫 화면: 가로 로고·제목·부제·근거 두 묶음과 앱 창, 특장점 8장면, 마지막이 "모든 기능 무료": GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크, 아래 "홈 무대"), 다운로드 블록(`#download`: 제품 소개, 들어 있는 것, Windows 설치 파일, macOS 디스크 이미지: 버전, 크기, 게시일, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침) |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
+| `/ko|en/support.html` | 기능과 지원 범위: 데이터베이스(행 110개) × 기능(열 17개) 표, 찾기 칸, 열 설명, 데이터베이스별 기능, 라이선스와 출처(아래 "기능과 지원 범위 페이지") |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, Chromite Agent(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
 | `/favicon.ico` | 16·32·48px 아이콘(아래 "파비콘과 공유 이미지") |
-| `/assets/` | `site.css`, `site.js`, `reveal.js`(무대의 한 번 등장과 반복 재생 켜고 끄기), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장: 첫 화면은 `-dark`, `-light`는 공유 이미지 생성기 입력, `shots/tour/` 기능 장면 화면 14장 `-dark`), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장, `og-<언어>-3.png`), `brand/`(워드마크·가로 로고 SVG, 밝은·어두운 글자 각 2장, [branding.md](branding.md) "사이트의 로고") |
+| `/assets/` | `site.css`, `site.js`, `reveal.js`(무대의 한 번 등장과 반복 재생 켜고 끄기), `support.js`(지원 범위 표의 찾기 칸), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장: 첫 화면은 `-dark`, `-light`는 공유 이미지 생성기 입력, `shots/tour/` 기능 장면 화면 14장 `-dark`), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장, `og-<언어>-3.png`), `brand/`(워드마크·가로 로고 SVG, 밝은·어두운 글자 각 2장, [branding.md](branding.md) "사이트의 로고") |
 
-모든 페이지 머리글 왼쪽에 워드마크(`CHROMITE` 글자만, 홈으로 가는 링크), 오른쪽에 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고, 바닥글에 Apache License 2.0(`LICENSE.md`)과 GitHub 링크가 있다.
+모든 페이지 머리글 왼쪽에 워드마크(`CHROMITE` 글자만, 홈으로 가는 링크), 오른쪽에 메뉴(다운로드, 지원 범위, 변경 내역, 개인정보)와 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고,
+바닥글에 지원 범위, Apache License 2.0(`LICENSE.md`), GitHub 링크와 출처 고지 한 줄(`NOTICE` 링크, [branding.md](branding.md) "사이트의 출처 고지")이 있다.
 
 ### 디자인 (2026-11-07 개편)
 
@@ -267,6 +269,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   등록된 서버의 ERP·HR·Sales DB·Shop(아래 "파비콘과 공유 이미지"의 "그림"). 로그인 이름은 `postgres`.
 - GitHub 마크는 Octicons `mark-github`(MIT) 파일을 고치지 않고 두고, CSS `mask`로 글자색을 입힌다(밝은·어두운 테마 모두). 출처는 `NOTICE`.
 - 오픈 소스 절에 "Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했다"는 문장과 `NOTICE` 링크를 둔다. 원래 프로젝트의 상표 이름은 쓰지 않는다(CLAUDE.md "브랜딩").
+  예외는 2026-11-08부터 바닥글과 지원 범위 페이지의 법적 출처 고지 한 문장뿐이다([branding.md](branding.md) "사이트의 출처 고지").
 - 개편 때 `site.js`, `lang.js`, 데이터 계약(`data-platform`·`data-field`·`data-state`·`data-ready`)은 바꾸지 않았다. 개인정보 내용도 그대로다(배치만 바뀜).
 
 ### 방문자 운영체제에 맞춘 다운로드 (2026-11-07)
@@ -303,10 +306,10 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   장면이 190~370vh에 sticky로 붙어 있어 페이지가 붙잡히는 느낌이었다.
 - 순서: 머리글 → 어두운 무대(`div.stage`, 장면 9개) → 다운로드 블록(`section.get#download`: 제목, 소개, 들어 있는 것, 다운로드 상자) → 바닥글. 서명·자동 업데이트 절(`.sects`)은 2026-11-08에 지웠다(아래 "1차 수정 요청").
   장면: 첫 화면, 트랜잭션 보호(`#transactions`), 쿼리 라이브러리(`#query-library`), Chromite Agent(`#chromite-agent`),
-  폐쇄망(`#closed-networks`), 프로시저 디버거(`#debugger`), 서버 관리(`#administration`, Altibase 줄 포함), 비밀번호(`#passwords`), 오픈 소스(`#open-source`).
+  폐쇄망(`#closed-networks`), 프로시저 디버거(`#debugger`), 서버 관리(`#administration`), 비밀번호(`#passwords`), 오픈 소스(`#open-source`).
   특장점 순서와 문구 출처는 2026-11-07에 승인된 둘러보기이고, 문장을 줄이기만 하고 새 주장은 넣지 않았다. 앵커 id는 그대로다.
 - 첫 화면: 가로 로고(`h1` 안의 그림, `alt="Chromite"`), 제목(`.hero-sub`), 부제(`.hero-lead`), 다운로드 단추, 근거 두 묶음(`.hero-proof`: 편하게·안전하게), 앱 창. 제목·부제·근거는 아래 "데이터베이스 지원 문구".
-- 다운로드 자리: 첫 화면의 "다운로드" 단추가 `#download`(다운로드 블록)로 바로 간다. 다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다.
+- 다운로드 자리: 첫 화면의 "무료로 다운로드" 단추(2026-11-08 2차 수정부터 가운데)가 `#download`(다운로드 블록)로 바로 간다. 다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다.
   다운로드 블록 제목은 `h2` "Windows와 macOS용 Chromite 받기". 페이지 높이는 1440×900에서 한국어 약 10,900px, 영어 약 12,200px(스크롤 연동 때 약 22,800px).
 - 장면 구조: `section.scene` 안에 `div.scene-body`(제목 `.scene-head`, 그림 `.scene-media`, 문장 목록 `ul.lines`). 장면은 보통 높이의 절이고 문장은 모두 보이는 목록이다.
   넓은 앱 화면은 위에서 아래로(`.scene-wide`), 세로로 긴 화면·대화상자·저장소 카드는 글 옆에(`.scene-side`, 860px 아래에서는 위에서 아래로).
@@ -400,7 +403,9 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
     `resultset.confirm.beforeSave`(기본 꺼짐) 또는 연결 종류의 "데이터 변경 확인"일 때만 저절로 나오고, 그 밖에는 "변경 미리 보기…" 명령으로 본다.
     받은 문구 "저장 전에 SQL을 미리 보여 줌"은 기본 설정의 개발 연결에서는 참이 아니다.
     열린 트랜잭션 표시와 묻지 않는 커밋·롤백 없음([transactions.md](transactions.md), [idle-transactions.md](idle-transactions.md)). 예외는 사용자가 연결 종류에서
-    직접 켠 유휴 트랜잭션 자동 롤백(알림이 뒤따름)뿐이다.
+    직접 켠 유휴 트랜잭션 자동 롤백(알림이 뒤따름)뿐이다. 2차 수정부터 이 줄은 "묻지 않고 커밋하지 않음, 자동 롤백은 켠 경우에만"이다(아래).
+- 2026-11-08 2차 수정(아래 "2차 수정 요청" 11·13번): 홈에는 데이터베이스 이름과 데이터베이스·드라이버 수를 쓰지 않는다. 위에 적은 서버 관리 장면의 DB 나열, Agent 장면의 네 DB 문장,
+  미리 설치된 드라이버 이름은 모두 홈에서 빠지고, 데이터베이스별 세부 사항은 지원 범위 페이지(`support.html`)에만 둔다. 변경 내역의 지난 기록은 그대로다.
 
 ### 1차 수정 요청 (2026-11-08)
 
@@ -440,6 +445,79 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - 머리글 워드마크는 높이 16px, 첫 화면 로고는 폭 `clamp(260px, 40vw, 560px)`, 언어 선택 페이지 로고는 320px이다. 다운로드 블록 뒤의 서명 절을 지워
   `.get`에 아래 여백(80px, 760px 아래 56px, 예전 `.sects` 위 여백과 같음)을 주었다.
 - 새 한글은 Pretendard 부분 집합에 모두 있다(페이지와 생성기 문구, 없는 글자를 `.notdef` 그림과 비교해 찾는 방법).
+
+### 2차 수정 요청 (2026-11-08)
+
+1차가 배포된 뒤 사용자가 모은 7가지(9~15번)를 "지금까지 모은 것을 모두 반영"하라고 했다. 한국어·영어 페이지에 똑같이 적용했다. 사용자 결정은 그대로 따랐다.
+
+| # | 요청 | 바꾼 것 |
+|---|---|---|
+| 9 | 다운로드 단추를 turbrix.com처럼 가운데, "무료로 다운로드", 왼쪽에 Windows·Apple 아이콘 | 첫 화면 `.hero-cta`가 `div`로 바뀌고 단추와 안내 줄만 가운데 정렬(로고·제목·부제·근거는 그대로 왼쪽). 단추 글 "무료로 다운로드" / "Download free", 둥근 알약 모양(`border-radius: 999px`, 높이 48px). 안내 줄 "Windows와 macOS용. 회사에서도 개인도, 모든 기능 무료."는 단추 아래 가운데. 방문자 운영체제 우선(#101)과 다운로드 블록은 그대로 |
+| 10 | 트랜잭션 장면과 첫 화면 근거 줄 | 장면 둘째 줄 "…알림으로 다시 묻거나 자동 롤백 처리합니다." / "…after the time you set, or rolled back automatically." 근거 줄 "열린 트랜잭션을 표시하고, 묻지 않고 커밋하지 않음, 자동 롤백은 켠 경우에만" / "Open transactions are shown, nothing is committed without asking, and automatic rollback happens only if you turn it on" |
+| 11 | 홈에서 DB 이름·수를 모두 뺌 | Agent 장면의 "이런 진단은 SQL Server, …에서 합니다" → "어느 데이터베이스에서나 스키마·데이터·쿼리를 다루고, 시스템 정보를 직접 조회해 잠금·실행 계획·서버 상태를 진단합니다." 서버 관리 장면 설명은 할 수 있는 일("작업 모니터에서 세션과 잠금, 작업 스케줄러, 공간과 로그, 유지 관리, 복제 상태를 한곳에서 다룹니다."), 작업 스케줄러 줄은 "데이터베이스의 작업 스케줄러에 등록된 작업을 보고, 만들고, 고칩니다.", Altibase 줄은 지움(내용은 지원 범위 페이지). 폐쇄망 장면 첫 줄과 다운로드 블록 "데이터베이스" 줄은 "자주 쓰는 드라이버는 미리 들어 있고, 다른 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치"(이름·수 없음, "모두 100가지가 넘음"도 뺌). 그림 설명에서 `PL/pgSQL`과 체크된 드라이버 이름(Derby Embedded, DuckDB)을 뺌 |
+| 12 | 디버거 장면 | 제목 "프로시저 디버깅 지원" / "Procedure debugging". 첫 줄 "함수와 프로시저를 디버거에서 실행합니다.", 둘째 줄 "…프로시저 단위 실행과 한 단계씩 코드 실행으로 디버깅합니다. 데이터베이스가 지원하면 프로시저 나가기도 씁니다." / "…debug with Step Over and Step Into, and Step Out where the database supports it." DB 이름은 지원 범위 페이지로 |
+| 13 | 기능별 지원 범위 새 페이지 | `/ko/support.html`, `/en/support.html`(아래 "기능과 지원 범위 페이지"). 관련 장면(Chromite Agent, 폐쇄망, 디버거, 서버 관리)의 제목 아래와 다운로드 블록 "데이터베이스" 줄 끝에 "지원 범위 자세히" / "Database support details" 링크(`.scene-more`). 모든 페이지의 머리글 메뉴("지원 범위" / "Database support")와 바닥글에도 링크. 배포 스크립트의 실제 사이트 확인에 두 쪽과 `support.js`를 더함 |
+| 14 | 무료 장면 | 첫 줄 "Chromite는 상업적 사용을 허용하는 Apache License 2.0을 따릅니다." / "Chromite is licensed under the Apache License 2.0, which allows commercial use." 뒤의 소스 공개 문장은 그대로 |
+| 15 | 원래 프로젝트 출처 고지 | 모든 페이지 바닥글과 지원 범위 페이지 맨 아래("라이선스와 출처")에 고지 한 문장과 `NOTICE` 링크. 홈 본문·첫 화면·메타·공유 이미지에는 없음. 문구와 규칙은 [branding.md](branding.md) "사이트의 출처 고지" |
+
+- 아이콘: 사이트 안의 인라인 SVG(외부 리소스 없음, CSP 그대로). Windows 마크는 네 칸 정사각형을 직접 그렸고, Apple 마크는 Simple Icons 13.21.0의 `apple` 경로(CC0 1.0, 출처 표시 의무 없음)다.
+  `fill="currentColor"`라 단추 글자색(흰색)을 따르고, 장식이라 `aria-hidden="true"`(단추 이름은 글자).
+- 단추 색: turbrix.com은 밝은 바탕의 어두운 알약이지만 Chromite 무대는 늘 검은 바탕이라 어두운 단추가 보이지 않는다. 모양(알약, 가운데, 아래 작은 줄)만 따르고 색은 사이트의 단추 파랑(`#2F6AE6`, 흰 글자 4.9:1)을 그대로 썼다.
+- 반복 재생: 서버 관리 장면은 문장이 4개에서 3개로 줄었지만 밝게 두는 문장(1번)은 그대로다. 디버거 장면은 문장 수(4개)와 밝게 두는 문장(2번 → 3번)이 그대로다.
+- 바뀐 문구의 한글과 지원 범위 페이지의 글자(“ ” 따옴표 포함, 448자)는 모두 Pretendard 부분 집합에 있어 글꼴 파일은 바꾸지 않았다(공유 이미지 생성기도 같은 파일). 공유 이미지 문구(`OG_COPY`)는 바뀌지 않아 그림을 다시 만들지 않았다.
+- 홈과 개인정보 4쪽에 데이터베이스 제품 이름이 없음을 확인했다(바닥글의 출처 고지만 있음, 아래 "확인한 것").
+
+### 기능과 지원 범위 페이지 (2026-11-08)
+
+사용자 결정: 랜딩(홈)은 특장점만 쓰고, 데이터베이스별 세부 지원은 별도 페이지의 표로. 세로축은 드라이버 정의가 있는 모든 데이터베이스, 가로축은 기능, 칸은 지원 / 일부 / 미지원과 짧은 이유,
+이유는 "DB가 제공하지 않음"과 "Chromite에서 아직 지원하지 않음"을 구분, 코드·설계 문서로 확인한 사실만.
+
+- 파일: `site/ko/support.html`, `site/en/support.html`, `site/assets/support.js`, `site.css`의 `.matrix*`·`.filter*`·`--state-*` 토큰. 문서형 쪽(변경 내역·개인정보와 같은 머리글·`.page-head`·`.sect`·바닥글).
+- 행 110개, 세 묶음:
+  - 주요 데이터베이스 7개: SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, Altibase, SQLite(Chromite가 직접 시험하고 고친 DB와 미리 설치된 드라이버).
+  - 그 밖의 데이터베이스 98개, 이름순("Apache "는 빼고 정렬).
+  - 파일·연합 드라이버 5개: CSV, DBF, JDBCX, Apache Calcite Avatica, Apache Arrow Flight SQL.
+- 행을 만든 기준: `plugins/*/plugin.xml`에서 `label`이 있는 `<driver>` 144개(XML로 읽어 셈)를 제품 단위로 묶었다. 같은 제품의 옛·사용 중단·클라우드 판은 한 행이다(MySQL 5·MySQL (Old)는 MySQL,
+  PostgreSQL (Old)는 PostgreSQL, Sybase jTDS·jConnect·SAP ASE jConnect는 SAP ASE, PrestoSQL은 Trino, TDengine Cloud는 TDengine, Timeplus Proton은 Timeplus, H2 서버·임베디드 판은 H2).
+  기능이 다른 판은 따로 둔다: Azure SQL, Babelfish(같은 SQL Server 데이터 소스지만 실행 추적·에이전트·백업·계획 판단이 다름), OceanBase MySQL 모드·Oracle 모드, Db2 LUW·IBM i·z/OS.
+- 열 17개: 쿼리 편집기·결과, 프로시저 디버거, 실행 추적(SQL Server), 실제 실행 계획, 예상 실행 계획, 세션·잠금, 작업 스케줄러, 공간·로그, 유지 관리, 복제 상태, 보안 편집기,
+  네이티브 백업·복원, 스키마 비교, Chromite Agent 공통 도구(스키마·데이터·쿼리 도구와 `runReadOnlySql`), Agent 전용 진단 도구, 드라이버(미리 설치 / 처음 연결할 때 받음 / 직접 지정), 오프라인 묶음.
+  Agent를 두 열로 나눈 것은 "어느 데이터베이스에서나 진단"(공통 도구, 모든 행 지원)과 "전용 진단 도구는 다섯 계열만"을 한 칸에 "일부"로 섞으면 모든 DB가 제한된 것처럼 읽히기 때문이다.
+- 칸 판정 규칙:
+  - 지원: 그 DB용 구현이 코드에 있고 그 DB를 위해 만든 것(Chromite가 시험했거나 upstream이 그 DB용으로 둔 코드). 작은 글씨는 조건(예: "이 PC의 pg_dump·pg_restore 사용").
+  - 일부: 핵심의 일부가 빠짐. 빠진 것과 이유의 종류를 적었다. 작은 글씨는 "구체적인 이유(이유의 종류)" 순서다(예: "MySQL 8 역할은 없음(Chromite에서 아직 지원하지 않음)").
+  - 미지원 · DB가 제공하지 않음: 설계 문서가 DB에 기능·API가 없다고 적은 경우만(예: SQL Server 디버거, [procedure-debugger.md](procedure-debugger.md) "다른 데이터베이스", 대신 실행 추적).
+  - 미지원 · Chromite에서 아직 지원하지 않음: 그 DB용 구현이 없음. DB 자체에 기능이 있는지는 판단하지 않는다(쪽의 "표 읽는 법"에 적음). 근거 없이 "DB가 제공하지 않음"이라고 쓰지 않으려고 고른 규칙이다.
+  - 확인 필요: 부모 플러그인의 클래스를 물려받아(`instanceof`, 어댑터 팩터리, 서버 종류) 메뉴는 켜지지만 그 DB를 위해 만들거나 시험하지 않은 경우.
+- 근거(칸마다 확인한 곳):
+  - 디버거: `DebugCommands`(어댑터 `DBGControllerFactory`), `ext.postgresql.debug.core`·`ext.oracle.debug.core`의 `plugin.xml`, PostgreSQL 프로시저 나가기 없음(`PostgreDebugSession.canStepReturn`), [procedure-debugger.md](procedure-debugger.md).
+  - 실행 추적: `SQLServerExecutionTrace.canTrace`, [sqlserver-execution-trace.md](sqlserver-execution-trace.md)(Azure SQL Database는 서버 범위 XE 없음).
+  - 실제 계획: `SQLActualPlanProvider` 어댑터(SQL Server, Oracle, Altibase), PostgreSQL·MySQL은 문장을 두 번 실행하는 방식이라 넣지 않음([swing-sql-editor-plus.md](swing-sql-editor-plus.md)).
+  - 예상 계획: `DBCQueryPlanner`를 주는 플러그인(PostgreSQL 계열, MySQL·TiDB·OceanBase MySQL, SQL Server, Oracle, Altibase, Db2 LUW, HANA, Firebird, Exasol, Ocient, H2, HSQLDB, Hive, Mimer, CUBRID).
+    CockroachDB·Materialize는 서버 종류가 `supportsExplainPlan() = false`라 확인 필요, YashanDB는 계획기를 일부러 끔.
+  - 관리 축(세션·잠금, 공간, 로그, 유지 관리, 복제, 보안): `com.seizia.chromite.model.admin`의 `ServerAdminProfile`·`ServerSpaceDialect`·`ServerLogDialect`·`MaintenanceDialect`·`ReplicationDialect`·`SecurityDialect`의 `forDataSource`
+    ([swing-admin-tools.md](swing-admin-tools.md), [swing-security.md](swing-security.md)). PostgreSQL 축은 서버 종류가 `PostgreServerPostgreSQL`(TimescaleDB, Google Cloud SQL 포함)일 때만이라 다른 PostgreSQL 계열은 옛 세션 관리자(확인 필요) 또는 미지원.
+    TiDB·OceanBase MySQL·NDB·YashanDB는 `MySQLDataSource`·`OracleDataSource`를 물려받아 확인 필요. Db2 LUW·Exasol은 프로세스 목록만(일부).
+  - 작업 스케줄러: [swing-job-schedulers.md](swing-job-schedulers.md), [swing-sqlserver-agent.md](swing-sqlserver-agent.md). pg_cron 노드는 서버 종류가 확장을 지원할 때(Greenplum 계열, YugabyteDB, EDB, Yellowbrick은 확인 필요).
+  - 백업·복원: `BackupRestoreCommands.canBackUp`, `NativeBackupRestore.isSupported`([swing-backup-restore.md](swing-backup-restore.md)). Oracle은 RMAN·Data Pump가 없어 미지원.
+  - 스키마 비교: [schema-compare.md](schema-compare.md)(개체 탐색기 기반, 모든 드라이버 같은 코드).
+  - Agent: [ai-agent.md](ai-agent.md) "도구 카탈로그", `DbFamily.of`(드라이버 제공자 ID, 그다음 서버 제품 이름), `runReadOnlySql`(모든 DB, 읽기 판정 `AgentSqlClassifier`).
+  - 드라이버: `drivers.public` 번들 5개를 `bundle="drivers.…"`로 쓰는 드라이버가 미리 설치(SQL Server·Azure·Babelfish, Oracle, PostgreSQL·TimescaleDB·YugabyteDB·CockroachDB·CrateDB·RisingWave·Google Cloud SQL·Greenplum·Cloudberry·Greengage, MariaDB, SQLite).
+    파일 정의가 없는 Netezza·Cloudera Impala·OpenEdge·Pervasive SQL·EDB와 받을 수 없는 Cloudflare D1(404, [driver-licenses.md](driver-licenses.md))은 직접 지정. Db2 z/OS는 IBM 별도 라이선스 JAR.
+  - 오프라인 묶음: [driver-offline-bundle.md](driver-offline-bundle.md)(받을 파일이 있는 드라이버는 모두, 미리 설치된 것은 필요 없음).
+- 확인 필요 칸(111칸, 23행): Amazon Redshift(디버거, 세션, Agent 전용), Apache Doris·StarRocks(Agent 전용: MySQL 프로토콜이라 계열 판별 결과 미확인), Azure SQL·Babelfish(세션, 공간·로그, 유지 관리, 복제, 보안, Agent 전용),
+  Cloudberry·Greengage·Greenplum·YugabyteDB·Yellowbrick(디버거, 세션, 작업 스케줄러, 보안, 백업, Agent 전용), CockroachDB(디버거, 예상 계획, 세션, 보안, 백업, Agent 전용), CrateDB(디버거, 세션, 백업, Agent 전용),
+  EDB(세션, 작업 스케줄러, 보안, 백업, Agent 전용), GaussDB·Kingbase·RisingWave(디버거, 세션, 보안, Agent 전용), Google Cloud SQL for PostgreSQL(디버거), Materialize(디버거, 예상 계획, 세션, 백업, Agent 전용),
+  NDB Cluster·TiDB·OceanBase MySQL 모드(세션, 공간·로그, 유지 관리, 복제, 보안, 백업, Agent 전용, NDB는 작업 스케줄러도), OceanBase Oracle 모드(Agent 전용), YashanDB(디버거, 실제 계획, 세션, 공간·로그, 유지 관리, 복제, 보안, Agent 전용).
+  실제 서버로 시험하면 지원·미지원으로 바꾼다.
+- 데이터베이스별 기능 절: SQL Server 에이전트(Express에는 없음), Altibase(저장 방식별 테이블 색, 서버 출력, 세션과 잠금, 실제 계획, 복제 상태와 명령; 홈에서 지운 Altibase 줄의 내용).
+- 쓰기 편의: 표는 상자(`.matrix`) 안에서 가로·세로로 스크롤한다. sticky 칸은 가장 가까운 스크롤 상자에 붙으므로, 상자가 세로로도 스크롤해야 머리 행이 붙는다(상자 높이 `100vh - 96px`, 600px 아래 `75vh`).
+  머리 행(`thead th`)과 첫 열(`tbody th`)이 sticky이고 왼쪽 위 칸이 가장 위(`z-index` 3). 묶음 행은 칸이 표 전체 폭이라 글자만 sticky(`span`). 쪽 자체는 가로로 스크롤하지 않는다.
+  칸은 상태를 글로 쓰고(지원/일부/미지원/확인 필요), 점의 색과 모양은 같은 뜻을 되풀이할 뿐이다(색만으로 구별하지 않음).
+- 찾기 칸(`support.js`): HTML에서는 `hidden`이고 스크립트가 보이게 한다. JavaScript가 없으면 칸 없이 표 전체가 보인다. 행의 `data-terms`(이름과 다른 이름, 소문자)에 입력한 글자가 들어 있으면 보이고,
+  행이 모두 숨은 묶음(`tbody`)도 숨긴다. 표시 수 문구는 상자의 `data-count`(언어별)에서 읽어 스크립트에 화면 글이 없다. CSP(`script-src 'self'`) 때문에 같은 출처 파일이다.
+- 고칠 때: 표는 두 언어 HTML에 직접 있다(행마다 `<tr data-terms>`, 칸은 `<td class="y|p|n|u">상태<small>이유</small></td>`). 처음 만들 때는 칸 판정을 한 곳에 모은 일회용 스크립트로 두 언어를
+  함께 썼다(저장소에 넣지 않음). 기능이 바뀌면 두 언어의 같은 칸을 함께 고치고, 근거를 이 절에 더한다.
 
 ### 파비콘과 공유 이미지 (2026-11-07)
 
@@ -580,6 +658,22 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   Agent 장면 반복 재생: 두 단계의 멈춤 가운데로 애니메이션을 옮기면 한국어·영어 × 1440·375px 모두 문장 불투명도 `1,0.45,0.45,0.45`, 전체 화면일 때 `1,1,1,1`, 확대는 예전과 같은 1.6·1.4배.
   공유 이미지 두 장은 1200×630으로 직접 봄(영어 작은 줄이 글 칸을 넘지 않게 "Windows, macOS"로 줄임). 같은 브라우저로 쪽을 많이 읽으면 화면 캡처가 검게 나오는 일이 있어(시험 도구 쪽 현상) 묶음마다 브라우저를 새로 띄웠다.
   화면 사진: `D:\Tools\_scratch\chromite-site-round1\shots\`(머리글 `*-header@2x.png`, 첫 화면 `*-hero@2x.png`, 장면 `*-scene-<id>.png`, 다운로드 `*-download.png`), Agent 단계 `D:\Tools\_scratch\chromite-site-round1\agent\`.
+- 사이트 2차 수정 요청과 지원 범위 페이지(2026-11-08, `chromite/site-round2`): 리허설을 `-Down` 상태에서 처음부터 실행(`rehearse.ps1 -Tag v0.1.2`, 이어서 `-Tag v0.1.3`, 둘 다 `-DataGeneration 2`,
+  GitHub 릴리스에서 받은 실제 파일) 둘 다 `ALL CHECKS OK`. 새 확인 항목 `/ko/support.html`·`/en/support.html`·`/assets/support.js` 200 포함. 뒤에 `-Down`.
+  리허설 서버(실제 CSP)에서 헤드리스 Edge(CDP, 경우마다 새 브라우저와 새 프로필, OS 입력 없음)로 홈·지원 범위 × 한국어·영어 × 밝은·어두운 × 1440×900·375×812 16가지, JavaScript 끔 6가지
+  (홈 375 두 언어, 지원 범위 375·1440 두 언어), 변경 내역·개인정보 × 두 언어 × 두 테마 8쪽, 모두 30가지:
+  - 모든 쪽 가로 스크롤 없음(`scrollWidth` = 폭), 깨진 이미지 없음, 콘솔·CSP 오류와 4xx 없음(정보 수준 지연 로드 알림만). 모든 쪽 머리글에 지원 범위 메뉴, 바닥글에 출처 고지 문장과 `NOTICE` 링크.
+  - 첫 화면: 단추와 안내 줄의 가운데가 첫 화면 글 칸의 가운데와 0px 차이(1440·375 모두), 안내 줄이 단추 12px 아래, 로고는 왼쪽 끝 그대로(0px), 단추 글 "무료로 다운로드"/"Download free",
+    아이콘 SVG 2개, 모서리 `999px`.
+  - 지원 범위 표: 행 110개. 표 상자를 아래로 1500px, 옆으로 900px 스크롤해도 머리 행·첫 열·왼쪽 위 칸이 상자 가장자리에 붙어 있음(테두리 1px 차이, 1440 상자 1114×802·표 2416×9330~9956, 375 상자 341×607).
+    찾기: "postgres" → 17행(묶음 2개만 보임), 표시 "17 / 110개 표시"/"Showing 17 of 110", "zzzz" → 0행과 "찾는 데이터베이스가 없습니다.", "db2" → Db2 3행, 지우면 110행.
+    JavaScript 끔: 찾기 칸이 숨고 110행이 모두 보임(스크롤 상자와 sticky는 CSS라 같음).
+  - 홈의 DB 이름: 리허설에서 받은 홈·개인정보 4쪽과 `/`에 SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, SQLite, Altibase, Derby, DuckDB, PL/pgSQL, pg_cron, DBMS_SCHEDULER, Db2, Redshift, Azure 등이 0개.
+    "DBeaver"는 바닥글 출처 고지의 4번뿐(`/`에는 바닥글이 없어 0). 변경 내역(지난 기록)과 지원 범위 페이지에만 DB 이름이 있다.
+  - Pretendard: 모든 쪽과 공유 이미지 생성기의 ASCII 밖 글자 448자가 Regular·SemiBold 부분 집합에 모두 있음(.notdef 그림 비교, `漢`은 없음으로 검출, `가`는 있음으로 검출).
+  - `python tools/rename/gate.py` `ALL GATES PASSED`.
+  화면 사진: `D:\Tools\_scratch\site-round2\shots\<경우>\`(첫 화면 `*-hero.png`, 장면 `*-scene-<id>.png`, 다운로드 `*-download.png`, 바닥글 `*-footer.png`, 머리글 `*-header.png`,
+  지원 범위 `*-top.png`·`*-table-scrolled.png`).
 
 ## 확인하지 못한 것
 
@@ -659,3 +753,7 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-08 사이트 1차 수정 요청 8가지("사이트" > "1차 수정 요청", `chromite/site-round1`): 머리글 워드마크·첫 화면과 언어 선택 페이지의 가로 로고(`site/assets/brand/`, 생성기 `gen_site_images.py`),
   비밀번호·트랜잭션·폐쇄망 장면 제목과 문구, 서명·업데이트·SHA-256 내용 삭제(절 2개, 카드의 SHA-256 줄과 복사 단추, 관련 CSS·JS), "회사에서도 개인도, 모든 기능 무료"(첫 화면, 장면, 공유 이미지 `og-<언어>-3.png`),
   Chromite Agent 장면 재작성(반복 재생에서 밝게 두는 문장을 1번으로). 배포하지 않음.
+- 2026-11-08 사이트 2차 수정 요청 7가지("사이트" > "2차 수정 요청", `chromite/site-round2`): 첫 화면 다운로드 단추만 가운데(알약 모양, "무료로 다운로드", Windows·Apple 아이콘, 아래 안내 줄),
+  트랜잭션 문구(자동 롤백), 홈의 DB 이름·수 모두 제거(Agent·서버 관리·폐쇄망·디버거 장면, 다운로드 블록, 그림 설명), 디버거 장면 제목과 디버깅 용어, 무료 장면 라이선스 문장,
+  모든 페이지 바닥글의 출처 고지([branding.md](branding.md) "사이트의 출처 고지"). 새 쪽 "기능과 지원 범위"(`support.html`, 110행 × 17열, "기능과 지원 범위 페이지")와 `assets/support.js`,
+  머리글 메뉴·바닥글·관련 장면의 링크. 배포 스크립트의 실제 사이트 확인에 새 쪽 두 개와 `support.js`를 더함. 배포하지 않음.
