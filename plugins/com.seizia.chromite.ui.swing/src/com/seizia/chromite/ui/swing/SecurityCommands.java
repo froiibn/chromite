@@ -56,6 +56,9 @@ import java.util.List;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
  * - 2026-11-08 삭제 확인(삭제 / 취소)과 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange})의 기본 단추를 취소로:
  *   Enter 두 번으로 DROP·GRANT가 실행되지 않게 (Object Explorer 삭제와 같음, docs/chromite/swing-security.md)
+ * - 2026-11-08 미리 보기에서 Execute를 고른 뒤 그 연결의 열린 트랜잭션을 묻는다({@link ExitTransactionCheck#confirmObjectChange}, 사용자 규칙
+ *   "트랜잭션 안전"): 실행은 격리된 연결이지만 GRANT·REVOKE·DROP은 사용자 세션의 열린 트랜잭션이 잡은 잠금을 기다릴 수 있다
+ *   (Object Explorer 유지 관리 명령과 같은 흐름, docs/chromite/swing-security.md)
  */
 final class SecurityCommands {
 
@@ -222,7 +225,8 @@ final class SecurityCommands {
             queryWindows.openScript(dialect.getDataSource().getContainer(), script, 0, false);
             return ApplyResult.NOT_EXECUTED;
         }
-        if (choice != ScriptPreviewDialog.Result.EXECUTE) {
+        if (choice != ScriptPreviewDialog.Result.EXECUTE
+            || !ExitTransactionCheck.confirmObjectChange(owner, dialect.getDataSource().getContainer())) {
             return ApplyResult.NOT_EXECUTED;
         }
         // The node is looked up before executing: a dropped or renamed principal is still in the navigator model then
