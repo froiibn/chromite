@@ -38,6 +38,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-08 Chromite: {@link ExecuteBatch#skipFailedRows}, {@link ExecuteBatch#restoreAppliedRows}. 실행이 실패한 일괄 실행을
  *   다시 시도·복구·건너뛰기할 때 실패한 행을 잃거나 이미 넣은 행을 다시 넣지 않도록 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-09 Chromite: 주석만: {@link ExecuteBatch#restoreAppliedRows}는 실행 전에 둔 저장점으로 되돌린 뒤에도 부름
+ *   (docs/chromite/swing-data-transfer.md "오류가 트랜잭션을 끝내는 DB의 건너뛰기")
  */
 public interface DBSDataManipulator extends DBSDataContainer {
 
@@ -79,8 +81,9 @@ public interface DBSDataManipulator extends DBSDataContainer {
         }
 
         /**
-         * After {@link #execute} failed and the session's transaction was then rolled back (the error recovery): the rows
-         * the failed execution already executed are gone, so the next execution runs them again.
+         * After {@link #execute} failed and the session's transaction was then rolled back (the error recovery, or back to a
+         * savepoint set before the execution): the rows the failed execution already executed are gone, so the next
+         * execution runs them again.
          */
         default void restoreAppliedRows() {
         }
