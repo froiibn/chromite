@@ -35,6 +35,8 @@ import org.eclipse.osgi.util.NLS;
  *   이 클래스는 앱의 사본(OSGi 없이 도는 진행 창)도 읽으므로 {@link NLS} 말고 다른 것을 참조하지 않는다.
  * - 2026-11-09 모든 사용자 설치(Windows): 준비됨 문구 {@code *_all_users}, 관리자 확인 거부 {@code update_window_elevation_*}
  *   (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-09 끝낼 때·끊을 때 질문의 트랜잭션 종류 줄({@code exit_txn_read_only_item}, {@code exit_txn_changes_item}, {@code exit_txn_open_item})
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class UpdateMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.UpdateMessages"; //$NON-NLS-1$
@@ -129,6 +131,9 @@ public class UpdateMessages extends NLS {
     public static String exit_txn_error;
     public static String exit_txn_agent_item;
     public static String exit_txn_unknown_item;
+    public static String exit_txn_read_only_item;
+    public static String exit_txn_changes_item;
+    public static String exit_txn_open_item;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, UpdateMessages.class);

@@ -81,7 +81,8 @@ import java.util.Map;
  * - 2026-11-07 오류 복구가 멈춘 알림({@link #showTransactionAborted}, {@link #showReconnectHeld})
  *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@link #showSessionReopened}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
- * - 2026-11-09 조회만 한 트랜잭션 끝내기({@link #endReadOnlyTransaction}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-09 조회만 한 트랜잭션 끝내기({@link #endReadOnlyTransaction}), 유휴 알림이 조회 트랜잭션이라고 적음
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -117,7 +118,9 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
             }
             dismissReminder(context);
             String target = describeContext(context);
-            String message = NLS.bind(ConnectionMessages.idle_txn_reminder_message, new Object[]{
+            // Which kind it is: a read-only one holds only read locks or a snapshot (user request 2026-11-09)
+            String message = NLS.bind(transaction.isReadOnly() ? ConnectionMessages.idle_txn_reminder_message_read_only
+                : ConnectionMessages.idle_txn_reminder_message, new Object[]{
                 target,
                 formatDuration(System.currentTimeMillis() - transaction.getLastExecuteTime()),
                 transaction.getExecuteCount(),

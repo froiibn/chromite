@@ -57,7 +57,8 @@ import org.eclipse.osgi.util.NLS;
  *   {@code editor_results_messages_errors*} 추가, {@code editor_results_pinned}가 결과 탭 이름과 고정 시각을 받음, 결과 쌓기의 자리 표시
  *   {@code editor_results_none}과 고정 탭 줄의 {@code editor_results_current} 삭제 (docs/chromite/swing-frontend.md "결과 탭")
  * - 2026-11-09 조회만 한 트랜잭션 끝내기({@code editor_status_txn_end_read_only}, {@code editor_status_txn_tip_click_read_only},
- *   {@code editor_status_txn_read_only_ended*}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ *   {@code editor_status_txn_read_only_ended*}), 칸이 조회 트랜잭션과 변경 있는 트랜잭션을 구별({@code editor_status_txn_read_only_locks},
+ *   {@code editor_status_txn_read_only_snapshot}, {@code editor_status_txn_open_changes}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -295,6 +296,9 @@ public class EditorMessages extends NLS {
     public static String editor_status_txn_tip_click_read_only;
     public static String editor_status_txn_read_only_ended;
     public static String editor_status_txn_read_only_ended_tip;
+    public static String editor_status_txn_read_only_locks;
+    public static String editor_status_txn_read_only_snapshot;
+    public static String editor_status_txn_open_changes;
     public static String editor_sql_commit_tip;
     public static String editor_sql_rollback_tip;
     public static String editor_txn_log_title;

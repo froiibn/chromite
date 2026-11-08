@@ -23,6 +23,7 @@ import com.seizia.chromite.model.DBPErrorAssistant;
 import com.seizia.chromite.model.ai.tools.AgentSql;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.qm.QMTransactionState;
@@ -98,6 +99,8 @@ import java.util.function.Function;
  * - 2026-11-08 열린 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 찾음: 쥔 것 없는 SELECT만 한 세션은 묻지 않고, 자동 커밋 모드의
  *   BEGIN TRAN은 물음. 끝내기는 공용 경로(자동 커밋의 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN). 확인할 수 없는 세션은 목록에 그렇게 적음
  *   (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 목록의 줄마다 종류를 적음(조회 트랜잭션: 읽기 잠금·스냅숏만, 변경 있음, 그 밖의 열린 트랜잭션). 둘 다 무언가를 쥐므로
+ *   계속 묻는다 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 final class ExitTransactionCheck {
 
@@ -344,7 +347,18 @@ final class ExitTransactionCheck {
         for (DBCExecutionContext context : contexts) {
             String windows = SwingIdleTransactionService.describeQueryWindows(context);
             String name = context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"; //$NON-NLS-1$ //$NON-NLS-2$
-            names.add(QMUtils.getTransactionState(context).isUnknown() ? NLS.bind(UpdateMessages.exit_txn_unknown_item, name) : name);
+            QMTransactionState state = QMUtils.getTransactionState(context);
+            String item;
+            if (state.isUnknown()) {
+                item = UpdateMessages.exit_txn_unknown_item;
+            } else if (state.isReadOnly()) {
+                item = UpdateMessages.exit_txn_read_only_item;
+            } else if (state.getHolds().contains(DBCServerTransaction.Hold.CHANGES)) {
+                item = UpdateMessages.exit_txn_changes_item;
+            } else {
+                item = UpdateMessages.exit_txn_open_item;
+            }
+            names.add(NLS.bind(item, name));
         }
         return names;
     }

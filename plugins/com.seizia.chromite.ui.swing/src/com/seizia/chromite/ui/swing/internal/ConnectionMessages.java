@@ -50,7 +50,8 @@ import org.eclipse.osgi.util.NLS;
  *   네트워크 프로필({@code profiles_*}) (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-08 연결별 제한({@code settings_restrictions*}, {@code restrictions_*})과 잠긴 연결({@code lock_*})
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
- * - 2026-11-09 조회만 한 트랜잭션을 끝내려 할 때 변경이 생겼으면 묻는 문구({@code idle_txn_read_only_changed})
+ * - 2026-11-09 조회만 한 트랜잭션을 끝내려 할 때 변경이 생겼으면 묻는 문구({@code idle_txn_read_only_changed}), 조회 트랜잭션의
+ *   유휴 알림({@code idle_txn_reminder_message_read_only})
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class ConnectionMessages extends NLS {
@@ -474,6 +475,7 @@ public class ConnectionMessages extends NLS {
     // Idle open transactions (SwingIdleTransactionService)
     public static String idle_txn_reminder_title;
     public static String idle_txn_reminder_message;
+    public static String idle_txn_reminder_message_read_only;
     public static String idle_txn_commit;
     public static String idle_txn_rollback;
     public static String idle_txn_keep_open;

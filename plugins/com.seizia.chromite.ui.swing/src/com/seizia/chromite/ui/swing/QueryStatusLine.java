@@ -104,8 +104,9 @@ import java.util.Objects;
  * - 2026-11-08 열린 트랜잭션 칸: "확인할 수 없음" 문구와 도구 설명의 쥔 것 줄 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  * - 2026-11-08 메인 창 상태 표시줄로 옮김(앱 변경 #2): 바탕과 위 1px 선을 그리지 않고 연결 색을 상태 표시줄에 알림({@link #BAND_PROPERTY}),
  *   높이는 size.statusBar(size.statusLine.query 삭제) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
- * - 2026-11-09 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기(잠금 해제), 자동으로 끝냈다는 짧은 알림 (docs/chromite/idle-transactions.md
- *   "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-09 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기(잠금 해제), 자동으로 끝냈다는 짧은 알림, 칸이 두 종류를 구별함(사용자
+ *   "활성 트랜잭션과 lock은 구분하는게 좋지 않나?": 조회 트랜잭션은 보조 색 점과 "조회 트랜잭션 … · 잠금 유지", 변경이 있으면
+ *   "열린 트랜잭션 … (변경 있음)") (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -372,10 +373,19 @@ final class QueryStatusLine extends JPanel {
         }
         String elapsed = formatClock(System.currentTimeMillis() - transaction.getTransactionStartTime());
         boolean unknown = transaction.isUnknown();
-        String text = transaction.getExecuteCount() == 1
-            ? NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_one : EditorMessages.editor_status_txn_open_one, elapsed)
-            : NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_many : EditorMessages.editor_status_txn_open_many,
-                elapsed, transaction.getExecuteCount());
+        String text;
+        if (transaction.isReadOnly()) {
+            // Only read locks or a snapshot: told apart from a transaction with changes (user request 2026-11-09)
+            text = NLS.bind(transaction.getHolds().contains(DBCServerTransaction.Hold.LOCKS) ? EditorMessages.editor_status_txn_read_only_locks
+                : EditorMessages.editor_status_txn_read_only_snapshot, elapsed);
+        } else if (!unknown && transaction.getHolds().contains(DBCServerTransaction.Hold.CHANGES)) {
+            text = NLS.bind(EditorMessages.editor_status_txn_open_changes, elapsed);
+        } else {
+            text = transaction.getExecuteCount() == 1
+                ? NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_one : EditorMessages.editor_status_txn_open_one, elapsed)
+                : NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_many : EditorMessages.editor_status_txn_open_many,
+                    elapsed, transaction.getExecuteCount());
+        }
         StringBuilder tip = new StringBuilder("<html>"); //$NON-NLS-1$
         if (unknown) {
             tip.append(CommonUtils.escapeHtml(EditorMessages.editor_status_txn_tip_unknown)).append("<br>"); //$NON-NLS-1$
@@ -403,7 +413,7 @@ final class QueryStatusLine extends JPanel {
                 ? EditorMessages.editor_status_txn_tip_click_read_only : EditorMessages.editor_status_txn_tip_click));
         }
         setSegment(openTransactionLabel, text, tip.append("</html>").toString()); //$NON-NLS-1$
-        openTransactionLabel.setIcon(UiIcons.statusDot(UiIcons.Status.WARNING));
+        openTransactionLabel.setIcon(UiIcons.statusDot(transaction.isReadOnly() ? UiIcons.Status.QUIET : UiIcons.Status.WARNING));
     }
 
     /**
