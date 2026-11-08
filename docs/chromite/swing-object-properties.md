@@ -123,9 +123,12 @@ DB 상태는 매번 `docker exec`로 카탈로그를 읽어 확인했다.
 
 ### 알려진 문제 (범위 밖, 보고만)
 
+두 가지 모두 2026-11-08에 고쳤다([model-fixes.md](model-fixes.md) "모델 DDL 수정"). 위 확인 기록에서 Partition by와 ORA-04007이 나오는 줄은 고치기 전 결과다.
+
 - Oracle `OracleSequenceManager`는 ALTER SEQUENCE에 늘 MINVALUE·MAXVALUE·CACHE를 다시 적는다. 한 번도 쓰지 않은 시퀀스는 Oracle 23ai에서
-  ORA-04007("MINVALUE cannot exceed the current value")로 실패한다. 바꾼 절만 적도록 고치는 것은 모델 수정이라 따로 다룬다.
+  ORA-04007("MINVALUE cannot exceed the current value")로 실패한다. → 바꾼 절만 적는다.
 - PostgreSQL `Partition by`는 저장된 테이블에서도 `updatable`이라 잘못된 `ALTER TABLE … PARTITION BY …`를 만든다(오류로 끝나고 되돌림).
+  → 저장된 테이블에서 읽기 전용(파티션의 범위도 같음).
 
 ## 다음 작업
 
@@ -135,3 +138,4 @@ DB 상태는 매번 `docker exec`로 카탈로그를 읽어 확인했다.
 ## 변경 이력
 
 - 2026-11-08 최초 작성: Properties 창과 Object Details 속성 탭의 속성 편집(SWT 감사 B-E1, B-E2, C-15, `chromite/object-properties-edit`)
+- 2026-11-08 알려진 문제 두 가지(Oracle ALTER SEQUENCE, PostgreSQL Partition by)를 고쳤다고 적음(`chromite/model-ddl-fixes`)

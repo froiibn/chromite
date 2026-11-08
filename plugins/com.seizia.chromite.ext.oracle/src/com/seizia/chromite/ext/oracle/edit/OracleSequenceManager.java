@@ -38,6 +38,15 @@ import org.jkiss.utils.CommonUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Oracle sequence manager
+ *
+ * 설계: 속성 변경(ALTER SEQUENCE)은 바뀐 속성의 절만 적는다({@link OracleSequence#buildAlterStatement}). 적을 절이 없으면(마지막 값만
+ * 바꿈) 문장을 만들지 않아 편집 화면이 "만들어진 SQL 문이 없음"을 알린다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 ALTER SEQUENCE는 바뀐 절만 적음(ORA-04007) (docs/chromite/model-fixes.md "Oracle ALTER SEQUENCE")
+ */
 public class OracleSequenceManager extends SQLObjectEditor<OracleSequence, OracleSchema> {
 
     @Override
@@ -76,7 +85,7 @@ public class OracleSequenceManager extends SQLObjectEditor<OracleSequence, Oracl
 
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) {
-        String sql = command.getObject().buildStatement(false);
+        String sql = command.getObject().buildStatement();
         actions.add(new SQLDatabasePersistAction("Create Sequence", sql));
 
         String comment = buildComment(command.getObject());
@@ -87,8 +96,11 @@ public class OracleSequenceManager extends SQLObjectEditor<OracleSequence, Oracl
 
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options) {
-        String sql = command.getObject().buildStatement(true);
-        actionList.add(new SQLDatabasePersistAction("Alter Sequence", sql));
+        // Only the changed clauses: restating an unchanged one can fail (ORA-04007 on a sequence that was never used)
+        String sql = command.getObject().buildAlterStatement(command::hasProperty);
+        if (sql != null) {
+            actionList.add(new SQLDatabasePersistAction("Alter Sequence", sql));
+        }
 
         String comment = buildComment(command.getObject());
         if (comment != null) {
