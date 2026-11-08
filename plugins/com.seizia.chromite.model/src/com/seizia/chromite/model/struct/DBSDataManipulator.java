@@ -34,6 +34,10 @@ import java.util.Map;
 /**
  * Data manipulator.
  * Extends data container and provides additional methods to manipulate underlying data.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link ExecuteBatch#skipFailedRows}, {@link ExecuteBatch#restoreAppliedRows}. 실행이 실패한 일괄 실행을
+ *   다시 시도·복구·건너뛰기할 때 실패한 행을 잃거나 이미 넣은 행을 다시 넣지 않도록 (docs/chromite/swing-data-transfer.md)
  */
 public interface DBSDataManipulator extends DBSDataContainer {
 
@@ -65,6 +69,21 @@ public interface DBSDataManipulator extends DBSDataContainer {
             @NotNull List<DBEPersistAction> actions,
             @NotNull Map<String, Object> options
         ) throws DBException;
+
+        /**
+         * After {@link #execute} failed: drops the rows that failed (the failing row, or the rows of the failing JDBC batch)
+         * and the rows the failed execution already executed. The rows it did not reach stay for the next execution.
+         * Without this call the next execution goes on from the failed row (Retry).
+         */
+        default void skipFailedRows() {
+        }
+
+        /**
+         * After {@link #execute} failed and the session's transaction was then rolled back (the error recovery): the rows
+         * the failed execution already executed are gone, so the next execution runs them again.
+         */
+        default void restoreAppliedRows() {
+        }
 
         void close();
     }

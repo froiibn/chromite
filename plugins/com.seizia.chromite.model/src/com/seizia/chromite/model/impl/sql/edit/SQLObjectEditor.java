@@ -49,6 +49,11 @@ import java.util.Map;
 
 /**
  * Database object editor
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 합쳐진 이름 바꾸기 명령({@code ObjectRenameCommand.merge})이 첫 명령의 옛 이름을 이어받음. 객체 이름이 이미
+ *   새 이름으로 바뀐 뒤에 만들어져 옛 이름과 새 이름이 같아졌고, 명령 대기열을 다시 만들면(다른 편집 뒤의 스크립트·저장) 이름 바꾸기
+ *   문장이 빠졌다 (docs/chromite/swing-table-designer.md "저장된 열 이름 바꾸기")
  */
 public abstract class SQLObjectEditor<OBJECT_TYPE extends DBSObject, CONTAINER_TYPE extends DBSObject>
         extends AbstractObjectManager<OBJECT_TYPE>
@@ -590,6 +595,10 @@ public abstract class SQLObjectEditor<OBJECT_TYPE extends DBSObject, CONTAINER_T
             ObjectRenameCommand renameCmd = (ObjectRenameCommand) userParams.get(mergeId);
             if (renameCmd == null) {
                 renameCmd = new ObjectRenameCommand(getObject(), getTitle(), options, newName);
+                // The constructor takes the object's current name, which the reflector already changed when this
+                // command was added: the merged rename must start from this command's old name, or it renames
+                // nothing (no sp_rename / RENAME in a script that is built again, e.g. after another edit)
+                renameCmd.oldName = oldName;
                 userParams.put(mergeId, renameCmd);
             } else {
                 renameCmd.newName = newName;

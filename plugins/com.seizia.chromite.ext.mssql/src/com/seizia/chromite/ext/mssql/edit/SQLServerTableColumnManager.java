@@ -50,6 +50,8 @@ import java.util.Map;
  *   {@code ALTER COLUMN … int COLLATE …}(오류 447)가 만들어졌다 (docs/chromite/swing-followup-fixes.md "SQL Server 열 정렬 규칙")
  * - 2026-11-08 Chromite: 기본값 제약 조건이 있는 열의 형식·NULL 허용을 바꾸면 제약 조건을 먼저 지우고 ALTER COLUMN 뒤에 다시 만든다.
  *   제약 조건이 남아 있으면 ALTER COLUMN이 실패했다(오류 5074, 4922) (docs/chromite/schema-compare.md "SQL Server 기본값 제약 조건")
+ * - 2026-11-08 Chromite: 다시 만드는 기본값 제약 조건에 원래 이름을 붙임(이름이 시스템 이름 DF__…로 바뀌었다). sp_rename의 새 열 이름을
+ *   대괄호 없는 문자열로 넘김(대괄호가 이름의 일부가 되었다) (docs/chromite/swing-table-designer.md "저장된 열 이름 바꾸기")
  */
 public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServerTableColumn, SQLServerTableBase> implements DBEStructEditor<SQLServerTableColumn>, DBEObjectRenamer<SQLServerTableColumn> {
 
@@ -232,7 +234,12 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
             String defaultValue = column.getDefaultValue();
             if (!CommonUtils.isEmpty(defaultValue)) {
                 StringBuilder sql = new StringBuilder();
-                sql.append("ALTER TABLE ").append(column.getTable().getFullyQualifiedName(DBPEvaluationContext.DDL)).append(" ADD "); //$NON-NLS-1$ //$NON-NLS-2$
+                sql.append("ALTER TABLE ").append(column.getTable().getFullyQualifiedName(DBPEvaluationContext.DDL)).append(" ADD"); //$NON-NLS-1$ //$NON-NLS-2$
+                String constraintName = column.getDefaultConstraintName();
+                if (constraintName != null) {
+                    // The re-created constraint keeps its name; without one SQL Server makes up DF__<table>__<column>__<hash>
+                    sql.append(" CONSTRAINT ").append(DBUtils.getQuotedIdentifier(column.getDataSource(), constraintName)); //$NON-NLS-1$
+                }
                 DefaultModifier.appendModifier(monitor, column, sql, command);
                 sql.append(" FOR ").append(DBUtils.getQuotedIdentifier(column)); //$NON-NLS-1$
                 actionList.add(new SQLDatabasePersistAction("Alter default value", sql.toString())); //$NON-NLS-1$
@@ -304,12 +311,14 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
     {
         final SQLServerTableColumn column = command.getObject();
 
+        // The new name is taken as it is (brackets would become part of it), so it is a plain string like the table's rename
         actions.add(
             new SQLDatabasePersistAction(
                 "Rename column",
-                    "EXEC " + SQLServerUtils.getSystemTableName(column.getTable().getDatabase(), "sp_rename") +
-                    " N'" + column.getTable().getFullyQualifiedName(DBPEvaluationContext.DML) + "." + DBUtils.getQuotedIdentifier(column.getDataSource(), command.getOldName()) +
-                    "' , N'" + DBUtils.getQuotedIdentifier(column.getDataSource(), command.getNewName()) + "', 'COLUMN'")
+                    "EXEC " + SQLServerUtils.getSystemTableName(column.getTable().getDatabase(), "sp_rename") + " " +
+                    SQLUtils.quoteString(column, column.getTable().getFullyQualifiedName(DBPEvaluationContext.DML) + "." +
+                        DBUtils.getQuotedIdentifier(column.getDataSource(), command.getOldName())) +
+                    ", " + SQLUtils.quoteString(column, command.getNewName()) + ", 'COLUMN'")
         );
     }
 

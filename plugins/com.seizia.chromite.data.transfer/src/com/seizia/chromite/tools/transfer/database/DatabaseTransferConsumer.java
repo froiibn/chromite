@@ -72,6 +72,9 @@ import java.util.Map;
  *   롤백하면 무엇을 되돌렸는지 알리고(롤백하지 못하면 오류로 알림), 새 연결을 열지 않아 연결의 세션에서 넣을 때는 그 세션에 이미 열린
  *   트랜잭션을 커밋 / 롤백 / 취소로 먼저 묻는다(넣기의 커밋·롤백이 그 트랜잭션까지 끝내기 때문). 닫기가 불리지 않던 경로는
  *   {@code DBDDataReceiver.startFetchWorkflow}에서 고침 (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
+ * - 2026-11-08 Chromite: 넣기가 실패한 뒤 다시 시도·자동 복구는 실패한 행부터 다시 넣고(복구가 롤백했으면 그 실행이 넣은 행부터),
+ *   건너뛰기는 실패한 행만 버림({@code ExecuteBatchImpl}). 전에는 한 행씩 넣기에서 실패한 행이 조용히 빠졌다. 사용자가 취소해 넣던 문장이
+ *   취소된 것은 오류로 묻지 않고 취소로 끝냄 (docs/chromite/swing-data-transfer.md "한 행씩 넣기의 다시 시도와 복구", "넣는 중 취소")
  */
 @DBSerializable(DatabaseTransferConsumer.NODE_ID)
 public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
@@ -476,21 +479,38 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                     }
                 }
 
+                // Whether the rows of a failed execution stay in an open transaction (that the recovery would roll back)
+                DBCTransactionManager loadTxnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
+                boolean manualCommit = loadTxnManager != null && loadTxnManager.isSupportsTransactions() && !loadTxnManager.isAutoCommit();
                 boolean retryInsert;
                 do {
                     retryInsert = false;
                     try {
-                        DBExecUtils.tryExecuteRecover(targetSession, targetSession.getDataSource(), param ->
-                            statistics.accumulate(executeBatch.execute(targetSession, options)));
+                        int[] tries = {0};
+                        DBExecUtils.tryExecuteRecover(targetSession, targetSession.getDataSource(), param -> {
+                            if (tries[0]++ > 0 && manualCommit) {
+                                // The recovery rolled back or reconnected: the rows the failed try executed are gone
+                                executeBatch.restoreAppliedRows();
+                            }
+                            statistics.accumulate(executeBatch.execute(targetSession, options));
+                        });
                     } catch (Throwable e) {
+                        if (targetSession.getProgressMonitor().isCanceled()) {
+                            // The user canceled the transfer and with it the running statement: not an error to ask about.
+                            // The load transaction is rolled back and told when the consumer closes
+                            log.debug("Insert canceled: " + e.getMessage());
+                            break;
+                        }
                         if (ignoreDuplicateRowsErrors && (e.getCause() instanceof SQLException)) {
                             DBPErrorAssistant.ErrorType errorType = DBExecUtils.discoverErrorType(targetSession.getDataSource(), e.getCause());
                             if (errorType == DBPErrorAssistant.ErrorType.UNIQUE_KEY_VIOLATION) {
+                                executeBatch.skipFailedRows();
                                 break;
                             }
                         }
                         log.error("Error inserting row", e);
                         if (ignoreErrors) {
+                            executeBatch.skipFailedRows();
                             break;
                         }
                         if (DBWorkbench.getPlatform().getApplication().isHeadlessMode()) {
@@ -509,9 +529,13 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                         retryInsert = switch (response) {
                             case STOP -> throw new DBCException("Can't insert row", e);
                             case RETRY -> true;
-                            case IGNORE -> false;
+                            case IGNORE -> {
+                                executeBatch.skipFailedRows();
+                                yield false;
+                            }
                             case IGNORE_ALL -> {
                                 ignoreErrors = true;
+                                executeBatch.skipFailedRows();
                                 yield false;
                             }
                             default -> retryInsert;

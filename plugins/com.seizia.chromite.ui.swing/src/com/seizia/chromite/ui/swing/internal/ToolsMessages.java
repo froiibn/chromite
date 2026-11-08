@@ -226,6 +226,7 @@ public class ToolsMessages extends NLS {
     public static String designer_save_changes_title;
     public static String designer_progress_save;
     public static String designer_error_save;
+    public static String designer_error_save_partial;
     public static String designer_confirm_revert;
     public static String designer_confirm_close;
     public static String designer_progress_discard;
