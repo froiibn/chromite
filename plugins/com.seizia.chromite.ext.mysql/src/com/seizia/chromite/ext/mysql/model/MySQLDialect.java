@@ -24,8 +24,10 @@ import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataTypeProvider;
 import com.seizia.chromite.model.DBPIdentifierCase;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
 import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
@@ -38,6 +40,10 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -59,8 +65,10 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-07 Chromite: data transfer type mapping — timestamps, uuid, JSON, unbounded text and binary data, LOBs,
  *   TINYINT of other databases.
+ * - 2026-11-08 Chromite: {@link #probeTransaction}: whether the session has a transaction, asked from the server
+ *   (docs/chromite/idle-transactions.md "MySQL, MariaDB").
  */
-public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension {
+public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe {
 
     // Target types of convertExternalDataType
     private static final String TYPE_NAME_UUID = "UUID";
@@ -73,6 +81,88 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
     // VARCHAR holds 65535 bytes, that is 16383 utf8mb4 characters; VARBINARY holds 65535 bytes
     private static final long MAX_VARCHAR_CHARACTERS = 16383;
     private static final long MAX_VARBINARY_LENGTH = 65535;
+    // SERVER_STATUS_IN_TRANS of the client protocol's status flags
+    private static final int SERVER_STATUS_IN_TRANS = 1;
+
+    // The login may read INNODB_TRX (PROCESS privilege); false after the first refusal
+    private volatile boolean innodbTrxReadable = true;
+
+    /**
+     * Whether the session is in a transaction, from the server status flags of the last OK packet as the driver keeps
+     * them ({@code DO 0} first, so that they are fresh: an error packet carries none). The flags and MariaDB's
+     * {@code @@in_transaction} need no privilege, unlike INNODB_TRX (PROCESS) and performance_schema. Any transaction
+     * counts: a table read in one keeps its metadata lock to the end and blocks ALTER TABLE of another session (INNODB_TRX
+     * lists such a plain read with no row lock), an empty START TRANSACTION was begun explicitly, and in auto-commit mode
+     * every transaction was. What it holds comes from INNODB_TRX when the login may read it (changed rows, InnoDB lock
+     * structures; the view is refreshed at most every 0.1 s, so it is a description, not the decision), else it is the
+     * tables' metadata locks. Not seen: a read of a non-transactional (MyISAM) table in manual commit, whose metadata lock
+     * the server does not report as a transaction.
+     */
+    @Nullable
+    @Override
+    public DBCServerTransaction probeTransaction(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        Boolean inTransaction;
+        Set<DBCServerTransaction.Hold> holds = EnumSet.noneOf(DBCServerTransaction.Hold.class);
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(TIMEOUT_SECONDS);
+            statement.execute("DO 0"); //$NON-NLS-1$
+            inTransaction = getDriverTransactionFlag(connection);
+            if (inTransaction == null) {
+                try (ResultSet rs = statement.executeQuery("SELECT @@in_transaction")) { //$NON-NLS-1$
+                    inTransaction = rs.next() ? rs.getInt(1) != 0 : null;
+                } catch (SQLException e) {
+                    // MySQL has no such variable
+                    return null;
+                }
+            }
+            if (!Boolean.TRUE.equals(inTransaction)) {
+                return inTransaction == null ? null : DBCServerTransaction.NONE;
+            }
+            if (connection.getAutoCommit()) {
+                holds.add(DBCServerTransaction.Hold.EXPLICIT);
+            }
+            if (innodbTrxReadable) {
+                // An error does not end a MySQL transaction; the login lacks PROCESS, so it is not asked again
+                try (ResultSet rs = statement.executeQuery(
+                    "SELECT trx_rows_modified, trx_lock_structs FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id = CONNECTION_ID()")) { //$NON-NLS-1$
+                    if (rs.next()) {
+                        if (rs.getLong(1) > 0) {
+                            holds.add(DBCServerTransaction.Hold.CHANGES);
+                        }
+                        // With no row lock, the read view and the tables' metadata locks
+                        holds.add(DBCServerTransaction.Hold.LOCKS);
+                    }
+                    return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds);
+                } catch (SQLException e) {
+                    innodbTrxReadable = false;
+                }
+            }
+        }
+        if (!connection.getAutoCommit()) {
+            // In manual commit only a table read or an explicit begin starts one; the statements tell which
+            holds.add(DBCServerTransaction.Hold.LOCKS);
+        }
+        return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds);
+    }
+
+    // MySQL Connector/J: getSession().getServerSession().inTransactionOnServer(); MariaDB Connector/J: getContext().getServerStatus()
+    @Nullable
+    private static Boolean getDriverTransactionFlag(@NotNull Connection connection) {
+        try {
+            Object session = connection.getClass().getMethod("getSession").invoke(connection); //$NON-NLS-1$
+            Object serverSession = session.getClass().getMethod("getServerSession").invoke(session); //$NON-NLS-1$
+            return (Boolean) serverSession.getClass().getMethod("inTransactionOnServer").invoke(serverSession); //$NON-NLS-1$
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            // Not Connector/J
+        }
+        try {
+            Object context = connection.getClass().getMethod("getContext").invoke(connection); //$NON-NLS-1$
+            Object status = context.getClass().getMethod("getServerStatus").invoke(context); //$NON-NLS-1$
+            return (((Number) status).intValue() & SERVER_STATUS_IN_TRANS) != 0;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
+    }
 
     /** MySQL resolves an unqualified stored-program variable before a same-named table column.
      *

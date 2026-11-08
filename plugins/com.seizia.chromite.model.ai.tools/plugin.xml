@@ -75,7 +75,7 @@
         </function>
         <function id="getTransactionStatus" name="%tool.getTransactionStatus.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Whether the agent has an uncommitted transaction on the connection (manual-commit connections), and whether query windows have one.">
+            description="Whether the agent has an open transaction on the connection (one that holds changes, locks or a snapshot, or was begun explicitly, also in auto-commit mode), and whether query windows have one or one the database could not be asked about.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="commitTransaction" name="%tool.commitTransaction.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"

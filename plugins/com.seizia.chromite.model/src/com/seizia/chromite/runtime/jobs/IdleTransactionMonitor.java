@@ -24,8 +24,11 @@ import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPConnectionType;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBCTransactionManager;
+import com.seizia.chromite.model.exec.DBCTransactionProbe;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -52,7 +55,8 @@ import java.util.Map;
  * <ul>
  *     <li>유휴 = 그 트랜잭션의 실행 문맥에서 마지막 사용자 문장이 끝난 뒤 지난 시간({@link QMTransactionState#getLastExecuteTime()}).
  *     전역 마우스·키보드 활동은 쓰지 않는다. 사고는 다른 창에서 일하는 동안 한 트랜잭션이 놓여 있던 것이었다.
- *     쿼리 관리자의 기록만 읽으므로 드라이버를 부르지 않는다.</li>
+ *     열린 트랜잭션은 DB가 무언가를 쥐었다고 답한 것과 확인할 수 없는 것이다({@link QMTransactionState#isOpen()}). 메모리 안 기록만
+ *     읽으므로 드라이버를 부르지 않는다(DB에는 실행 작업이 끝날 때 미리 묻는다).</li>
  *     <li>{@link DataSourceMonitorJob}이 3초마다 연결된 연결마다 {@link #check}를 부르고, 한 바퀴가 끝나면 {@link #sweep}이
  *     이번에 보지 못한 문맥(연결 끊김, 문맥 닫힘)의 상태와 알림을 지운다.</li>
  *     <li>설정({@link #getReminderPeriodSeconds}, {@link #isAutoRollback}): 알림 켜기와 기간은 연결 설정이 비어 있으면 연결 종류의
@@ -76,10 +80,16 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
  * - 2026-11-07 유휴 연결 닫기와의 관계를 설명에 고침(이제 닫기가 동작함) (docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-08 열린 트랜잭션을 DB의 답으로 정함(쥔 것 없는 SELECT는 알리지 않음, 자동 커밋의 명시적 트랜잭션은 알림).
+ *   커밋·롤백 공용 경로({@link #commitOrRollback}): 자동 커밋 모드는 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN은 끝까지 커밋
+ *   (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 public final class IdleTransactionMonitor {
 
     private static final Log log = Log.getLog(IdleTransactionMonitor.class);
+
+    // Commits of one Commit at most (nested BEGIN TRANs of SQL Server)
+    private static final int MAX_NESTED_COMMITS = 32;
 
     /**
      * What the monitor knows about the open transaction of one context.
@@ -297,18 +307,51 @@ public final class IdleTransactionMonitor {
         if (!transaction.isOpen() || transaction.getTransactionStartTime() != transactionStart || transaction.isExecuting() || isJobRunning(context)) {
             return false;
         }
-        DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
-        if (txnManager == null) {
+        if (DBUtils.getTransactionManager(context) == null) {
             return false;
         }
         try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, commit ? "Commit transaction" : "Roll back transaction")) {
-            if (commit) {
+            commitOrRollback(session, commit);
+        }
+        return true;
+    }
+
+    /**
+     * Ends the transaction of the session's context as the user chose: the transaction manager in manual commit mode,
+     * the COMMIT or ROLLBACK statement in auto-commit mode (a transaction begun with BEGIN TRAN, BEGIN or START
+     * TRANSACTION; the drivers refuse {@code commit()} there). A commit is repeated while the database still has the
+     * transaction: in SQL Server a COMMIT only ends the innermost of nested BEGIN TRANs, and closing the session later
+     * would roll the rest back although the user chose Commit.
+     */
+    public static void commitOrRollback(@NotNull DBCSession session, boolean commit) throws DBException {
+        DBCExecutionContext context = session.getExecutionContext();
+        DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
+        if (txnManager == null) {
+            return;
+        }
+        for (int i = 0; i < MAX_NESTED_COMMITS; i++) {
+            if (txnManager.isAutoCommit()) {
+                try (DBCStatement statement = DBUtils.createStatement(session, commit ? "COMMIT" : "ROLLBACK", false)) { //$NON-NLS-1$ //$NON-NLS-2$
+                    statement.executeStatement();
+                }
+                if (commit) {
+                    QMUtils.getDefaultHandler().handleTransactionCommit(context);
+                } else {
+                    QMUtils.getDefaultHandler().handleTransactionRollback(context, null);
+                }
+            } else if (commit) {
                 txnManager.commit(session);
             } else {
                 txnManager.rollback(session, null);
             }
+            if (!commit || !(context instanceof DBCTransactionProbe probe)) {
+                return;
+            }
+            DBCServerTransaction answer = probe.probeTransaction();
+            if (answer == null || answer.kind() == DBCServerTransaction.Kind.NONE || answer.kind() == DBCServerTransaction.Kind.FAILED) {
+                return;
+            }
         }
-        return true;
     }
 
     /**

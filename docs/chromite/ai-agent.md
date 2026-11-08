@@ -166,7 +166,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `runReadOnlySql` | 모델이 쓴 진단 SQL(시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지 | R | `connection`, `sql`, `database`, `limit` | `results[]`, `messages[]` | G | 1 |
 | `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과). 연결의 커밋 방식 그대로: 수동 커밋 연결이면 트랜잭션을 열어 둔 채 `transactionOpen: true`를 알린다 | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표, `transactionOpen` | G | 1 |
 | `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen` | G | 1 |
-| `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: `@@TRANCOUNT`, `txid_current_if_assigned()`, `INNODB_TRX`, `DBMS_TRANSACTION`)과 이 연결의 쿼리 창 트랜잭션 | R | `connection` | 객체 | MS PG MY OR, G | 1 |
+| `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: 쿼리 창과 같은 방언 질의 `JDBCTransactionProbe`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태")과 이 연결의 쿼리 창 트랜잭션(`otherOpenTransactions`, DB에 확인할 수 없는 것은 `otherUnverifiedTransactions`) | R | `connection` | 객체 | MS PG MY OR, G | 1 |
 | `commitTransaction` | 에이전트의 열린 트랜잭션 커밋. **자동 실행 설정과 상관없이 늘 확인** | W | `connection` | 결과 | G | 1 |
 | `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인. 운영 연결에서도 에이전트가 자기 일을 되돌릴 수 있어야 하므로 분류는 READ(막히지 않음)이고, 되돌릴 것이 있으면 트랜잭션 안전 규칙이 늘 묻는다 | R | `connection` | 결과 | G | 1 |
 | `cancelQuery` | 에이전트가 실행 중인 문장 취소 | R | `connection` | 취소한 수 | G | 1 |
@@ -358,7 +358,7 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 
   | 도구 | 찾는 트랜잭션 | Commit 가능 |
   |---|---|---|
-  | `disconnect` | 이 연결의 모든 실행 문맥(쿼리 창은 QM `QMUtils.isTransactionActive`, 에이전트 문맥은 아래 표시) | 예 |
+  | `disconnect` | 이 연결의 모든 실행 문맥(쿼리 창은 상태 줄과 같은 규칙 `QMTransactionState.isOpen()`, 에이전트 문맥은 아래 표시) | 예 |
   | `setCurrentDatabase` | 이 연결의 에이전트 문맥 | 예 |
   | `commitTransaction`, `rollbackTransaction` | 에이전트 문맥(답이 곧 커밋·롤백 결정) | 예 |
   | `runSql`, `runScript`, DDL 도구 (MySQL/MariaDB·Oracle) | DDL이 열린 에이전트 트랜잭션을 암묵적으로 커밋하므로 | 예 |
@@ -372,6 +372,12 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 - **읽기 도구**: 에이전트 문맥에 열린 쓰기 트랜잭션이 없을 때만 읽기 전용 트랜잭션을 열고 끝에 롤백한다(쓰기가 없어 잃는 것이 없다).
   열린 트랜잭션이 있으면 그 안에서 읽고(바뀐 내용이 보인다) 롤백하지 않는다. 이때 읽기 보호는 분류기만 한다.
 - 에이전트 문맥의 열린 트랜잭션은 쓰기 뒤에 DB에 직접 확인해(`getTransactionStatus`와 같은 쿼리) 기록한다.
+  2026-11-08부터 쿼리 창과 같은 방언 질의(`JDBCTransactionProbe`, `AgentSql.isTransactionOpen`)다. 무언가를 쥐었거나(변경·잠금·스냅숏·명시적 시작·중단)
+  확인할 수 없으면 열린 것이다. 자동 커밋 연결에서도 묻는다(`runSql`로 `BEGIN TRAN`을 연 경우). 예전 질의는 SQL Server `@@TRANCOUNT > 0`(수동 커밋에서는 SELECT도 1),
+  MySQL `INNODB_TRX` 행 수(PROCESS 권한이 없으면 오류라 늘 열림), PostgreSQL `txid_current_if_assigned()`(테이블 잠금·중단을 모름), Oracle `SELECT … FROM dual`
+  (직렬화 세션에서 트랜잭션을 시작함)이었고, 수동 커밋 문맥에서만 물었다.
+- 커밋·롤백(`AgentSql.endTransaction`): 자동 커밋 문맥의 명시적 트랜잭션은 `COMMIT`/`ROLLBACK` 문장으로 끝낸다(드라이버가 `commit()`을 거절). 커밋은 DB가 아직
+  트랜잭션이 있다고 답하는 동안 되풀이한다(SQL Server 중첩 `BEGIN TRAN`). 쿼리 창의 트랜잭션(`disconnect` 답)은 공용 경로 `IdleTransactionMonitor.commitOrRollback`.
 
 ### 감사 기록
 
@@ -1123,6 +1129,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-09 에이전트 문맥의 열린 트랜잭션 확인을 쿼리 창과 같은 방언 질의로(`chromite/txn-real-state`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태"):
+  SELECT만 한 트랜잭션(SQL Server 암시적, MySQL `INNODB_TRX` 행)을 열림으로 보던 것과 자동 커밋 문맥의 `BEGIN TRAN`을 놓치던 것을 고침, 자동 커밋 트랜잭션은
+  `COMMIT`/`ROLLBACK` 문장으로 끝냄, `getTransactionStatus`에 `otherUnverifiedTransactions`. 위 "트랜잭션 안전".
 - 2026-11-08 앱 변경 #6·#12(`chromite/ui-layout`): Agent 창이 기본 배치에서 보이고 오른쪽 열 아래(Query Library 아래), 주 도구 막대 단추는 오른쪽 끝에 아이콘 + 글자.
   시작할 때부터 보이는 Agent 창에서 공급자 미설정 안내가 안 보이던 문제: `showChat`이 모델 선택을 채운 뒤 안내를 다시 정함. 위 "채팅 도구 창".
 - 2026-11-08 Chromite Agent 창의 설정 단추 두 개가 Options를 Chromite Agent 페이지(Providers)로 엶, Providers 양식 폭(app round 1 #13·#8,

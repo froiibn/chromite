@@ -27,6 +27,7 @@ import com.seizia.chromite.model.DBPAdaptable;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.exec.*;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.AbstractExecutionContext;
 import com.seizia.chromite.model.impl.jdbc.exec.JDBCSavepointImpl;
 import com.seizia.chromite.model.messages.ModelMessages;
@@ -52,8 +53,13 @@ import java.util.function.Consumer;
  * JDBCExecutionContext.
  * Implements transaction manager and execution context defaults.
  * Both depend on datasource implementation.
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link DBCTransactionProbe}: 세션의 트랜잭션이 무엇을 쥐었는지 방언의 질의({@link JDBCTransactionProbe})로 이 문맥의
+ *   JDBC 연결에 물음. 쿼리 관리자의 추적기가 사용자 작업 뒤에 부름 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
-public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance> implements DBCTransactionManager, DBPAdaptable {
+public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
+    implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
     public static final String TYPE_MAIN = "Main";
     public static final String TYPE_METADATA = "Metadata";
 
@@ -509,6 +515,17 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     @Override
     public boolean isSupportsTransactions() {
         return instance.getDataSource().getInfo().supportsTransactions();
+    }
+
+    @Nullable
+    @Override
+    public DBCServerTransaction probeTransaction() {
+        Connection dbCon = this.connection;
+        if (dbCon == null) {
+            // Disconnected: the server ended the session and its transaction
+            return DBCServerTransaction.NONE;
+        }
+        return JDBCTransactionProbe.probe(dataSource, dbCon);
     }
 
     @NotNull

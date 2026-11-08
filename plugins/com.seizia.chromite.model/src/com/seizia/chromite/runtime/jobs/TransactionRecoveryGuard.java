@@ -52,8 +52,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *     <li>업스트림 복구는 묻지 않았다. 트랜잭션이 중단되면 문맥을 롤백(쿼리 관리자에 기록하지 않음)하고 문장을 다시 실행했고,
  *     연결이 끊기면 데이터 소스의 모든 문맥을 닫고(수동 커밋이면 닫기 전에 롤백) 다시 연결했다. 그래서 사용자는 앞 문장이 아직
  *     트랜잭션에 있다고 믿지만 이미 없었고, 끊기지 않은 다른 문맥(다른 연결 쪽 작업, Chromite Agent 세션)의 트랜잭션까지 롤백되었다.</li>
- *     <li>"열린 트랜잭션"은 상태 줄·유휴 감시·열린 트랜잭션 목록과 같은 기준이다({@link QMTransactionState#isOpen()}: 수동 커밋에서
- *     사용자 문장이 있음). 자동 커밋 문맥과 메타데이터 읽기만 한 문맥은 복구해도 잃을 것이 없으므로 업스트림대로 복구한다.
+ *     <li>"열린 트랜잭션"은 상태 줄·유휴 감시·열린 트랜잭션 목록과 같은 기준이다({@link QMTransactionState#isOpen()}: DB가 무언가를
+ *     쥐었다고 답했거나 명시적으로 시작했거나 확인할 수 없음). 쥔 것 없는 문맥과 메타데이터 읽기만 한 문맥은 복구해도 잃을 것이 없으므로
+ *     업스트림대로 복구한다.
  *     다시 연결은 쿼리 관리자 밖 세션(Chromite Agent, {@link DBServiceUnrecordedSessions})도 닫으므로 그것도 본다.</li>
  *     <li>멈추고 묻기를 골랐다(알림만 하고 복구하는 방법보다 안전). 멈추면 원래 오류가 호출자에게 그대로 간다. 사용자에게는
  *     UI 서비스({@link UIServiceIdleTransactions})가 남는 알림으로 이유와 잃는 문장 수를 보이고, 롤백·다시 연결을 고르게 한다.
@@ -72,6 +73,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * - 2026-11-07 최초 작성 (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  * - 2026-11-08 끊긴 격리 문맥만 다시 열기({@link #reopenLostSession}), 세션이 끊겼는지 확인({@link #isSessionLost}), 끊긴 세션의
  *   트랜잭션을 쿼리 관리자에 롤백으로 기록({@link #discardLostTransaction}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-08 주석만: 열린 트랜잭션의 기준이 DB의 답으로 바뀜 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 public final class TransactionRecoveryGuard {
 
