@@ -1746,7 +1746,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
 | 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
@@ -1813,6 +1813,20 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   연결·DB 콤보는 메뉴에 넣을 수 없어 보이지 않는다(도구 창을 닫으면 다시 보임).
 - 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
+
+### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
+
+사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
+"가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
+
+- **자리와 모양:** 주 도구 막대 마지막 단추(Find) 뒤, 남는 공간 다음 오른쪽 끝. 아이콘 `ai-assistant` + 글자 "Chromite Agent"(토글 동작의 이름 = `AiMessages.ai_title`).
+  글자 단추 여백은 New Query와 같다(`UiIcons.useToolButtonMargin`, 이번에 `createToolButton`의 여백 코드를 토글 단추도 쓰게 떼어 냄). 도구 창 단추 묶음에서는 빠졌고
+  Properties 뒤 구분선 다음이 Find다.
+- **그대로인 것:** 도구 창 토글 동작(`ToolWindow#getToggleAction`, 보이면 눌린 모양), 도구 설명 "Chromite Agent (Ctrl+Alt+I)", View 메뉴와 단축키.
+- **오른쪽 끝 정렬(`OverflowToolBar.setTrailing`):** 이 배치 관리자는 컴포넌트를 기본 폭으로만 놓으므로 접착 컴포넌트(`Box.createHorizontalGlue`)로 공간을 채울 수 없고,
+  넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
+  폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
+  (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
 
 ## SQL Editor 도구 막대 (2026-11-07)
 
@@ -2866,3 +2880,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-08 상태 표시줄의 쿼리 창 칸(앱 변경 #2, 사용자 결정): 쿼리 상태 칸을 결과 아래에서 메인 창 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로 칠함,
   `size.statusLine.query` 삭제. "상태 표시줄의 쿼리 창 칸" 절 추가, P1 쿼리 상태 줄·Results 자동 숨김 절에 표시.
 - 2026-11-08 SQL Editor 도구 막대의 연결·DB 콤보를 맨 앞으로, 연결 콤보 260 → 220, 콤보 도구 설명에 전체 이름(앱 변경 #3): "콤보를 맨 앞으로, 연결 콤보 220" 절.
+- 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6, `OverflowToolBar.setTrailing`): "Chromite Agent 단추를 오른쪽 끝으로" 절.

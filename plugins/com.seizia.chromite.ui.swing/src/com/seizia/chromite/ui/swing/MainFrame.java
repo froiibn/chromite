@@ -144,8 +144,10 @@ import java.util.function.Supplier;
  *     <li>테이블 디자이너 탭({@link TableDesignerPanel}): Object Explorer의 Design·New Table…. 같은 테이블은 열린 탭을 보여 준다.
  *     Ctrl+S는 디자이너의 Save(스크립트 미리 보기 후 적용), 닫을 때·끝낼 때 저장하지 않은 변경을 디자이너마다 묻는다.</li>
  *     <li>주 도구 막대는 SSMS Standard 도구 막대 순서다: New Query(아이콘 + 글자), New Connection │ Open, Save, Save All │ Undo, Redo │
- *     Activity Monitor │ Registered Servers, Object Explorer, Query Library, Properties(도구 창 켜고 끄기, 보이면 눌린 모양) │ Find.
- *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 간다({@link OverflowToolBar}).
+ *     Activity Monitor │ Registered Servers, Object Explorer, Query Library, Properties(도구 창 켜고 끄기, 보이면 눌린 모양) │ Find, 그리고
+ *     남는 공간 뒤 오른쪽 끝에 Chromite Agent(아이콘 + 글자, 도구 창 토글, 2026-11-08 사용자 결정: DataGrip의 AI 단추 자리).
+ *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 가고
+ *     Chromite Agent는 그 앞 단추들이 먼저 넘친 뒤에도 오른쪽 끝에 남는다({@link OverflowToolBar}).
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
@@ -277,6 +279,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 Chromite Agent 창의 설정 단추는 Options를 그 페이지로 엶({@link OptionsDialog#open(Frame, String)},
  *   docs/chromite/ai-agent.md "설정 열기")
  * - 2026-11-08 Chromite Agent 편집기 연결을 {@link AiQueryWindowBridge}로: 쿼리 창 목록·읽기·고치기 도구 (docs/chromite/ai-agent.md "편집기 도구")
+ * - 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6) (docs/chromite/swing-frontend.md "도구 막대")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -961,9 +964,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
-     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find]; the other buttons
-     * are icons with tool tips that name the menu shortcut (size.toolbar.main 32 = 24px buttons + 4px above and below;
-     * 28 = 22 + 3 in compact mode).
+     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find], then at the right
+     * end [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
+     * (size.toolbar.main 32 = 24px buttons + 4px above and below; 28 = 22 + 3 in compact mode).
      */
     @NotNull
     private JComponent createToolBar(
@@ -993,9 +996,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(libraryWindow, "library", ToolbarMessages.toolbar_query_library_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
-        toolBar.add(createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createIconButton(editMenu.getFindAction(), "search", ToolbarMessages.toolbar_find_tip)); //$NON-NLS-1$
+        // Chromite Agent at the right end with icon and name, where DataGrip has its AI button (user decision 2026-11-08);
+        // in a narrow window the buttons before it overflow first
+        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip); //$NON-NLS-1$
+        agentButton.setHideActionText(false);
+        UiIcons.useToolButtonMargin(agentButton);
+        OverflowToolBar.setTrailing(agentButton);
+        toolBar.add(agentButton);
         return toolBar;
     }
 
