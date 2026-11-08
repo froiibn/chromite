@@ -57,6 +57,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -98,7 +100,11 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-08 시스템 절전 알림을 연결 감시에 넘김(SWT {@code systemSleepListener}, JDK가 지원하는 macOS만) (docs/chromite/connection-lifecycle.md "절전")
  * - 2026-11-08 SWT 앱처럼 시작할 때 IP 스택·주소 선호와 네트워크 디버그({@link #configureNetwork}), 클라이언트 시간대
  *   ({@code TimezoneRegistry.overrideTimezone})를 적용. 두 경로(Windows는 첫 스레드, macOS는 {@link MacOSMainThread}의 작업 스레드) 모두
- *   {@code run} 안이라 AWT·연결보다 앞이다 (docs/chromite/platform-startup.md) */
+ *   {@code run} 안이라 AWT·연결보다 앞이다 (docs/chromite/platform-startup.md)
+ * - 2026-11-08 시작 화면: Look and Feel 설치 직후 {@link StartupSplash}를 띄우고 런처 스플래시를 내림({@code applicationRunning}을
+ *   메인 창 직전에서 이 자리로 옮김, Windows에서는 런처 창을 만든 이 스레드만 내릴 수 있다). 스플래시는 메인 창이나 시작 대화상자가
+ *   열리면 닫히고, 시작이 어떻게 끝나도 닫힌다({@code runWithSplash}). 프로세스 시작부터 단계별 시간을 디버그 로그 한 줄로 남김
+ *   (docs/chromite/branding.md "시작 화면") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -127,20 +133,42 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     public Object start(IApplicationContext context) throws Exception {
         if (MacOSMainThread.isAppKitMainThread()) {
             // macOS: this thread must serve AppKit for AWT, so the application runs on another one (never returns)
-            return MacOSMainThread.runApplication(() -> run(context));
+            return MacOSMainThread.runApplication(() -> runWithSplash(context));
         }
-        return run(context);
+        return runWithSplash(context);
+    }
+
+    /**
+     * {@link #run} with the startup splash closed on every way out: a splash left on screen after a failed start would
+     * keep the AWT event thread, and with it the process, alive.
+     */
+    @NotNull
+    private Object runWithSplash(@NotNull IApplicationContext context) throws Exception {
+        try {
+            return run(context);
+        } finally {
+            StartupSplash.close();
+        }
     }
 
     @NotNull
     private Object run(@NotNull IApplicationContext context) throws Exception {
+        StartupTimes times = new StartupTimes();
         installLookAndFeel();
+        times.mark("look and feel"); //$NON-NLS-1$
 
         // The update helper replaces the installation now: a start would use files being replaced
         if (UpdateService.isApplyRunning()) {
+            // Takes the launcher's splash down, which would stay over the message
+            context.applicationRunning();
             showStartupMessage(UpdateMessages.update_applying_message);
             return EXIT_OK;
         }
+        // The Swing splash is on screen before the launcher's one goes (applicationRunning), so there is no gap. On Windows
+        // the launcher made its splash window on this thread, and only this thread can destroy it.
+        StartupSplash.open();
+        times.mark("splash"); //$NON-NLS-1$
+        context.applicationRunning();
 
         Location instanceLoc = Platform.getInstanceLocation();
         // Set at launch only by -data: nothing has read the instance preferences yet (see ChromiteSwingActivator)
@@ -169,6 +197,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             ChromiteSwingPlatform platform;
             try {
                 platform = DBWorkbench.getPlatform(ChromiteSwingPlatform.class);
+                times.mark("platform"); //$NON-NLS-1$
             } catch (Throwable e) {
                 log.error("Error initializing platform", e);
                 showStartupError(CoreMessages.app_error_init, ErrorText.describe(e));
@@ -181,12 +210,16 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             ChromiteNotifications.setHandler(new SwingModelNotifications());
             // Activates plugin services and the connection monitor; the SWT workbench window advisor does the same
             platform.postInitialize();
+            times.mark("services"); //$NON-NLS-1$
 
             // Counted here, off the EDT: the first count loads the connection registries of all projects
             String statusText = MainFrame.describeWorkspace(platform.getWorkspace());
-            context.applicationRunning();
+            times.mark("workspace"); //$NON-NLS-1$
 
+            // The splash closes when the main window opens (StartupSplash)
             SwingUtilities.invokeAndWait(() -> openMainWindow(statusText));
+            times.mark("main window"); //$NON-NLS-1$
+            log.debug("Startup times (ms after the process started): " + times);
             platform.setWorkbenchStarted(true);
             mainWindowClosed.await();
             platform.setWorkbenchStarted(false);
@@ -471,6 +504,32 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     @Override
     public DBPPreferenceStore getPreferenceStore() {
         return ChromiteSwingActivator.getInstance().getPreferences();
+    }
+
+    /**
+     * Milliseconds from the process start (the native launcher, before the JVM) to each startup step, for one debug line
+     * that shows where the startup time goes (docs/chromite/branding.md "시작 화면").
+     */
+    private static final class StartupTimes {
+        @Nullable
+        private final Instant processStart = ProcessHandle.current().info().startInstant().orElse(null);
+        private final StringBuilder steps = new StringBuilder();
+
+        StartupTimes() {
+            mark("application"); //$NON-NLS-1$
+        }
+
+        void mark(@NotNull String step) {
+            if (processStart != null) {
+                steps.append(steps.isEmpty() ? "" : ", ").append(step).append(' ') //$NON-NLS-1$ //$NON-NLS-2$
+                    .append(Duration.between(processStart, Instant.now()).toMillis());
+            }
+        }
+
+        @Override
+        public String toString() {
+            return steps.isEmpty() ? "unknown (no process start time)" : steps.toString(); //$NON-NLS-1$
+        }
     }
 
     private static final class TeeOutputStream extends OutputStream {

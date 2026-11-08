@@ -162,3 +162,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   집계에 이 행들의 변화만 더함(A 있음 +1·일부 −1, B 있음 +1·일부 −1, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.
 - 2026-11-08 저장한 필터·최근 필터와 가상(계산) 열(`chromite/saved-filters-virtual-columns`, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)):
   B-R10·B-R22 일부 → 있음. 집계에 이 행들의 변화만 더함(B 있음 +2·일부 −2, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.
+- 2026-11-08 시작 화면(`chromite/startup-splash`, [branding.md](branding.md) "시작 화면"): A-S15 없음 → 있음. 결과 요약 수는 고치지 않음(메인 세션이 다시 셈).

@@ -27,7 +27,8 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 |---|---|
 | `ChromiteSwingApplication.useWindowsTrustStore` | Windows이고 설정 `connections.useWinTrustStoreType`(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`, Windows 기본 켬)이 켜져 있으며, 명령줄에 `javax.net.ssl.trustStore`·`trustStoreType`이 없으면 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 적용 결과를 디버그 로그에 남긴다(`SSL trust store type: ...`) |
 | `ChromiteSwingApplication.installDesktopHandlers` | `java.awt.Desktop`이 지원하는 경우에만 끝내기·정보·환경설정 처리기를 등록한다. macOS에서 런처가 첫 스레드에서 시작했으면 `MacOSAppMenu`로 앱 메뉴와 끝내기 요청도 둔다 |
-| `ChromiteSwingApplication.start` | macOS 첫(AppKit) 스레드에서 불리면 본문(`run`)을 `MacOSMainThread.runApplication`에 맡긴다. 그 밖에는 바로 `run` |
+| `ChromiteSwingApplication.start` | macOS 첫(AppKit) 스레드에서 불리면 본문(`run`)을 `MacOSMainThread.runApplication`에 맡긴다. 그 밖에는 바로 `run`. 두 경로 모두 `runWithSplash`를 거쳐 시작이 어떻게 끝나도 시작 화면을 닫는다 |
+| `StartupSplash` (2026-11-08) | Look and Feel 직후 런처 시작 화면을 이어받는 Swing 시작 화면. 띄운 뒤 `run`이 `applicationRunning`으로 런처 시작 화면을 내린다(Windows는 창을 만든 첫 스레드, macOS는 런처가 AppKit 스레드로 넘김). [branding.md](branding.md) "시작 화면" |
 | `MacOSMainThread` (새) | 앱 본문을 스레드 `Chromite main`에서 돌리고 첫 스레드는 CoreFoundation 실행 루프를 돈다. 본문이 끝나면 OSGi 프레임워크를 멈추고 결과 코드로 끝낸다(아래 "macOS 메인 스레드") |
 | `MacOSAppMenu` (새) | 앱 메뉴(정보, 옵션, 가리기, 기타 가리기, 모두 보기, 끝내기)와 앱 위임자(`applicationShouldTerminate:`)를 JNA·Objective-C 런타임으로 만든다(아래 "macOS 앱 메뉴") |
 | `product/swing/pom.xml` `macos-info-plist` | 제품을 만든 뒤 macOS `Info.plist`를 고친다(아래 "macOS Info.plist") |
@@ -222,3 +223,4 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
 - 2026-11-08 macOS 시작 교착 수정: 첫 스레드에서는 본문을 `Chromite main` 스레드로 옮기고 첫 스레드가 AppKit 실행 루프를 돈다(`MacOSMainThread`, "macOS 메인 스레드").
   런처가 만든 `NSApplication`에 앱 메뉴와 끝내기 위임자를 둔다(`MacOSAppMenu`, "macOS 앱 메뉴"). `Info.plist`의 이름(Chromite)과 Eclipse 틀 값 정리("macOS Info.plist").
   `macos-smoke.yml` 서명 없는 빌드로 시작·앱 메뉴·끝내기·열린 트랜잭션·키체인을 확인("macOS 확인 기록"). Windows 시작은 그대로임을 로컬 실행으로 확인.
+- 2026-11-08 시작 화면([branding.md](branding.md) "시작 화면"): `applicationRunning`을 메인 창 직전에서 Swing 시작 화면 직후로 옮김(런처 시작 화면을 내리는 호출). macOS에서는 작업 스레드에서 불려도 런처가 닫기를 AppKit 스레드로 넘기고 기다리지 않아 AppKit 스레드를 막지 않는다. `runWithSplash` 추가.

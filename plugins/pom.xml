@@ -115,6 +115,8 @@
 
                 <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
                 <module>com.seizia.chromite.ui.swing</module>
+                <!-- Startup splash images read by the native launcher, docs/chromite/branding.md -->
+                <module>com.seizia.chromite.splash</module>
                 <!-- Server administration model of the Swing tools (sessions, locks), docs/chromite/swing-admin-tools.md -->
                 <module>com.seizia.chromite.model.admin</module>
                 <!-- AI agent tools and the local MCP server, docs/chromite/ai-agent.md -->
