@@ -27,6 +27,7 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
 import com.seizia.chromite.ui.swing.internal.QueryManagerMessages;
@@ -254,6 +255,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-query-window-recovery.md, docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  * - 2026-11-08 Properties 창과 Object Details 속성 탭이 변경 스크립트를 쿼리 창으로 열 수 있게 쿼리 창 호스트를 넘김(속성 편집)
  *   (docs/chromite/swing-object-properties.md)
+ * - 2026-11-08 Query &gt; Auto-Commit(확인 표시)과 SQL Editor 도구 막대의 커밋 방식 단추: 활성 쿼리 창 세션의 자동/수동 커밋 전환({@link CommitModeSwitch}, B-S18)
+ *   (docs/chromite/transactions.md "커밋 방식 전환")
  * - 2026-11-08 File &gt; Export Settings… / Import Settings… / Undo Settings Import… ({@link SettingsTransferCommands},
  *   docs/chromite/settings-transfer.md)
  * - 2026-11-08 Query Manager 도구 창({@link QueryManagerPanel}, 메인 창 아래 가장자리, 기본 숨김): 쿼리 관리자가 기록한 모든 실행,
@@ -398,6 +401,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action commitAction;
     private final Action rollbackAction;
     private final Action transactionLogAction;
+    /**
+     * Query &gt; Auto-Commit and the SQL Editor tool bar's commit mode button: switches the active query window's session
+     * between auto-commit and manual commit; selected ({@link Action#SELECTED_KEY}) in auto-commit mode, enabled while
+     * the window is connected and nothing of it runs ({@link SqlEditorPanel#canSwitchCommitMode}).
+     */
+    private final Action commitModeAction;
     /**
      * Query &gt; Pin Results and the View menu's results layout, for the active query window.
      */
@@ -732,6 +741,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 editor.showTransactionLog();
             }
         });
+        commitModeAction = createAction(LifecycleMessages.commit_mode_auto, null, null, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null) {
+                editor.switchCommitMode();
+            }
+            // A check box item selects itself when clicked: show the window's actual mode again
+            updateQueryActions();
+        });
+        commitModeAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         // SWT keys: Ctrl+Shift+P pins the result tab, Ctrl+Shift+T maximizes the results
         pinResultsAction = createAction(CoreMessages.main_pin_results, CoreMessages.main_pin_results_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> {
@@ -773,7 +791,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
-            commitAction, rollbackAction, this::openQueryHistory);
+            commitAction, rollbackAction, commitModeAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
@@ -1920,6 +1938,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         commitAction.setEnabled(canEndTransaction);
         rollbackAction.setEnabled(canEndTransaction);
         transactionLogAction.setEnabled(editor != null);
+        Boolean autoCommit = editor == null ? null : editor.getAutoCommit();
+        commitModeAction.setEnabled(editor != null && editor.canSwitchCommitMode());
+        commitModeAction.putValue(Action.SELECTED_KEY, Boolean.TRUE.equals(autoCommit));
+        commitModeAction.putValue(Action.SHORT_DESCRIPTION, CommitModeSwitch.describe(autoCommit, editor != null && editor.isSharedSession()));
+        sqlEditorToolBar.setCommitMode(autoCommit);
         pinResultsAction.setEnabled(editor != null);
         resultsBesideAction.putValue(Action.SELECTED_KEY, resultsSplit.isBeside());
         maximizeResultsAction.setEnabled(editor != null);
@@ -2153,6 +2176,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(new JMenuItem(commitAction));
         queryMenu.add(new JMenuItem(rollbackAction));
         queryMenu.add(new JMenuItem(transactionLogAction));
+        queryMenu.add(new JCheckBoxMenuItem(commitModeAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(pinResultsAction));
         queryMenu.addSeparator();

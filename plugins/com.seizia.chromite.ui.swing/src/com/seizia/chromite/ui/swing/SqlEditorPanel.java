@@ -118,6 +118,7 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -291,6 +292,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   적용하도록 세션 열기를 {@link #openWindowContext} 하나로 모음 (docs/chromite/swing-query-window-recovery.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 결과가 만든 문장을 메인 창이 새 쿼리 창에 엶({@link Host#openScript}, 실행하지 않음)
  *   (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 Query &gt; Auto-Commit(B-S18): 창 세션의 커밋 방식을 바꿈({@link #switchCommitMode}, {@link CommitModeSwitch}). 실행·계획·결과 저장 중에는
+ *   끄고({@link #canSwitchCommitMode}), 상태 줄이 보이는 방식이 바뀌면 메인 창이 명령을 다시 정함 (docs/chromite/transactions.md "커밋 방식 전환")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -436,6 +439,11 @@ final class SqlEditorPanel extends JPanel {
     // The commit mode (manual = true) the query manager last reported for the window's session, or null
     @Nullable
     private Boolean shownTransactionMode;
+    // EDT only: the commit mode the status line shows (auto-commit = true), null while unknown or not connected
+    @Nullable
+    private Boolean shownAutoCommit;
+    // EDT only: Query > Auto-Commit is switching the session's mode
+    private boolean switchingCommitMode;
     private final Object jobLock = new Object();
     // EDT only
     @Nullable
@@ -2400,7 +2408,7 @@ final class SqlEditorPanel extends JPanel {
         DBPDataSourceContainer container = dataSourceContainer;
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         if (dataSource == null) {
-            statusLine.setAutoCommit(null);
+            showAutoCommit(null);
             return;
         }
         new AbstractJob("Read commit mode of " + container.getName()) {
@@ -2424,12 +2432,71 @@ final class SqlEditorPanel extends JPanel {
                 Boolean finalAutoCommit = autoCommit;
                 SwingUtilities.invokeLater(() -> {
                     if (serial == transactionSerial) {
-                        statusLine.setAutoCommit(finalAutoCommit);
+                        showAutoCommit(finalAutoCommit);
                     }
                 });
                 return Status.OK_STATUS;
             }
         }.schedule();
+    }
+
+    /**
+     * Shows the commit mode on the status line; the main window updates Query &gt; Auto-Commit and the tool bar button
+     * when it changed.
+     */
+    private void showAutoCommit(@Nullable Boolean autoCommit) {
+        statusLine.setAutoCommit(autoCommit);
+        if (!Objects.equals(shownAutoCommit, autoCommit)) {
+            shownAutoCommit = autoCommit;
+            host.executionStateChanged(this);
+        }
+    }
+
+    /**
+     * The commit mode of the window's session as the status line shows it (auto-commit = true), or null while unknown.
+     */
+    @Nullable
+    Boolean getAutoCommit() {
+        return shownAutoCommit;
+    }
+
+    /**
+     * Whether the window runs in the connection's main context, shared with the other windows of the connection,
+     * instead of a session of its own.
+     */
+    boolean isSharedSession() {
+        return getExecutionContext() != null && windowContext.getOwn(dataSourceContainer) == null;
+    }
+
+    /**
+     * Whether Query &gt; Auto-Commit can switch the session's mode now: the mode is known and nothing of this window runs
+     * in the session (a run, a plan, a result save, a statement of the open transaction). Never mid-execution.
+     */
+    boolean canSwitchCommitMode() {
+        return shownAutoCommit != null && !switchingCommitMode && execution == null && !explaining && !resultsView.isSaving()
+            && (openTransaction == null || !openTransaction.isExecuting());
+    }
+
+    /**
+     * Query &gt; Auto-Commit (menu, SQL Editor tool bar): switches the window's session to the other commit mode, asking
+     * first as the transaction rule says ({@link CommitModeSwitch}). The connection's saved default does not change.
+     */
+    void switchCommitMode() {
+        DBCExecutionContext context = getExecutionContext();
+        Boolean autoCommit = shownAutoCommit;
+        if (context == null || autoCommit == null || !canSwitchCommitMode()) {
+            return;
+        }
+        switchingCommitMode = true;
+        host.executionStateChanged(this);
+        try {
+            CommitModeSwitch.switchMode(this, context, !autoCommit, isSharedSession(), fileName);
+        } finally {
+            switchingCommitMode = false;
+            // The actual mode, also after a cancel or an error; a shared session's other windows follow refreshOpenTransaction
+            refreshTransactionMode();
+            host.executionStateChanged(this);
+        }
     }
 
     /**

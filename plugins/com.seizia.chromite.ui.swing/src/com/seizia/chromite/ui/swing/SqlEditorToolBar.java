@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -30,7 +31,7 @@ import java.util.List;
 
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
- * [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] │ [연결 ▾] │ [DB/스키마 ▾] │ [Comment] [Uncomment] │
+ * [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [연결 ▾] │ [DB/스키마 ▾] │ [Comment] [Uncomment] │
  * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
  *
  * 설계:
@@ -41,6 +42,9 @@ import java.util.List;
  *     Ctrl+M)가 메뉴와 같고, 켜짐은 메인 창이 활성 쿼리 창({@link SqlEditorPanel#canExecute()} 등)으로 정한다. 단추의 도구 설명은
  *     쿼리 창 도구 막대에 있던 것(단축키 포함)이다. 실제 계획은 메뉴의 확인 표시와 같은 동작의 선택 상태({@link Action#SELECTED_KEY})다.</li>
  *     <li>Commit / Roll Back 단추도 Query 메뉴와 같은 동작이다(SWT 메인 도구 막대의 커밋·롤백 단추). 활성 쿼리 창에 열린 트랜잭션이 있을 때만 켜진다.</li>
+ *     <li>커밋 방식 단추(B-S18, SWT 도구 막대의 자동 커밋 토글)는 Query &gt; Auto-Commit과 같은 동작이다. 지금 방식을 상태 줄과 같은 점(자동 커밋 초록,
+ *     수동 커밋 빨강)과 글자로 보이고, 누르면 다른 방식으로 바꾼다({@link CommitModeSwitch}). Swing 아이콘 팩에 트랜잭션 방식 아이콘이 없어
+ *     상태 줄의 점을 쓴다. 글자가 지금 방식을 말하므로 눌림 상태(토글 단추)는 쓰지 않는다.</li>
  *     <li>연결·DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getConnectionCombo()}): 모델·리스너·켜짐이 창마다의 상태라
  *     한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 콤보를 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면
  *     연결·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다.</li>
@@ -54,6 +58,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 쿼리 창 도구 막대를 메인 창 둘째 줄로 옮김(사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 Commit / Roll Back 단추 (docs/chromite/transactions.md)
+ * - 2026-11-08 커밋 방식 단추(활성 쿼리 창 세션의 자동/수동 커밋 전환, B-S18) (docs/chromite/transactions.md "커밋 방식 전환")
  */
 final class SqlEditorToolBar {
 
@@ -66,6 +71,7 @@ final class SqlEditorToolBar {
     private final List<Action> editorActions = new ArrayList<>();
     private JComboBox<?> connectionCombo = emptyConnectionCombo;
     private JComboBox<?> schemaCombo = emptySchemaCombo;
+    private final JButton commitModeButton;
     @Nullable
     private SqlEditorPanel editor;
 
@@ -76,6 +82,7 @@ final class SqlEditorToolBar {
      * @param actualPlanAction    Query &gt; Include Actual Execution Plan (with {@link Action#SELECTED_KEY})
      * @param commitAction        Query &gt; Commit
      * @param rollbackAction      Query &gt; Roll Back
+     * @param commitModeAction    Query &gt; Auto-Commit (with {@link Action#SELECTED_KEY})
      * @param openQueryHistory    Query &gt; Query History
      */
     SqlEditorToolBar(
@@ -85,6 +92,7 @@ final class SqlEditorToolBar {
         @NotNull Action actualPlanAction,
         @NotNull Action commitAction,
         @NotNull Action rollbackAction,
+        @NotNull Action commitModeAction,
         @NotNull Runnable openQueryHistory
     ) {
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
@@ -101,6 +109,8 @@ final class SqlEditorToolBar {
             NLS.bind(EditorMessages.editor_sql_commit_tip, WelcomePanel.getKeyText((KeyStroke) commitAction.getValue(Action.ACCELERATOR_KEY)))));
         toolBar.add(createButton(UiIcons.createActionButton(rollbackAction, "rollback"), //$NON-NLS-1$
             NLS.bind(EditorMessages.editor_sql_rollback_tip, WelcomePanel.getKeyText((KeyStroke) rollbackAction.getValue(Action.ACCELERATOR_KEY)))));
+        commitModeButton = createCommitModeButton(commitModeAction);
+        toolBar.add(commitModeButton);
         toolBar.addSeparator();
         toolBar.add(connectionCombo);
         toolBar.addSeparator();
@@ -178,6 +188,30 @@ final class SqlEditorToolBar {
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);
         return button;
+    }
+
+    /**
+     * The commit mode of the active query window's session as icon and text, the status line's dot and words; a click
+     * switches to the other mode. Its tool tip is the action's (what the click does).
+     */
+    @NotNull
+    private static JButton createCommitModeButton(@NotNull Action commitModeAction) {
+        JButton button = new JButton(commitModeAction);
+        button.setHideActionText(true);
+        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.setFocusable(false);
+        return button;
+    }
+
+    /**
+     * Shows the active query window's commit mode on the commit mode button (auto-commit = true); null shows the
+     * connection's mode as unknown (no window, not connected).
+     */
+    void setCommitMode(@Nullable Boolean autoCommit) {
+        commitModeButton.setText(autoCommit == null ? LifecycleMessages.commit_mode_unknown
+            : autoCommit ? LifecycleMessages.commit_mode_auto : LifecycleMessages.commit_mode_manual);
+        commitModeButton.setIcon(autoCommit == null ? null : UiIcons.statusDot(autoCommit ? UiIcons.Status.CONNECTED : UiIcons.Status.ERROR));
     }
 
     /**

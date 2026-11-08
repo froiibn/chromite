@@ -35,6 +35,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+/**
+ * HTTP client of the AI engines: requests that follow the progress monitor and streamed responses.
+ *
+ * 설계: 닫을 때 진행 중인 요청을 끝낸다({@link #close}). 엔진을 닫는 곳은 모두 응답을 다 받았거나 사용자가 멈춘 뒤라, 받는 중인 응답을
+ * 기다릴 이유가 없다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 닫을 때 진행 중인 요청을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다림 (docs/chromite/ai-agent.md "실제 API 확인")
+ */
 public class MonitoredHttpClient implements AutoCloseable {
 
     /**
@@ -218,6 +227,11 @@ public class MonitoredHttpClient implements AutoCloseable {
         }
     }
 
+    /**
+     * Ends the requests still in progress, then closes the client. {@link HttpClient#close} alone waits until every
+     * streamed response is read to its end: closing an engine to stop a streamed answer (the agent chat's Stop) kept
+     * receiving, and paying for, the whole answer before the stop finished.
+     */
     @Override
     public void close() {
         Stream<String> body = responseStream.get();
@@ -225,6 +239,7 @@ public class MonitoredHttpClient implements AutoCloseable {
             // release this response before waiting for the client from its callback
             body.close();
         }
+        client.shutdownNow();
         client.close();
     }
 }
