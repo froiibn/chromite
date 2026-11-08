@@ -199,11 +199,27 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | 연결이 끊기면 자동으로 다시 연결, 재시도 횟수 | `execute.recover.enabled`, `execute.recover.retryCount` | `DBExecUtils.tryExecuteRecover`. Chromite의 `TransactionRecoveryGuard`가 복구가 커밋하지 않은 변경을 버리게 되면 복구하지 않고 오류로 멈춘다([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션") |
 
 - 규칙상 두지 않음:
-  - `query.rollback-on-error`(SWT "Rollback on error"): 문장이 실패하면 수동 커밋 세션의 트랜잭션을 묻지 않고 롤백한다(`JDBCStatementImpl.handleExecuteError`).
-  - `execute.cancel.checkTimeout`(SWT "Close connection after timeout"): 문장 취소가 듣지 않으면 시간 뒤 바깥 블록(세션)을 취소한다(`AbstractJob` 취소 확인,
+  - `query.rollback-on-error`(SWT "Rollback on error"): 문장이 실패하면 수동 커밋 세션의 트랜잭션을 묻지 않고 롤백했다(upstream `JDBCStatementImpl.handleExecuteError`).
+  - `execute.cancel.checkTimeout`(SWT "Close connection after timeout"): 문장 취소가 듣지 않으면 시간 뒤 바깥 블록(세션)을 취소했다(upstream `AbstractJob` 취소 확인,
     `JDBCConnectionImpl.cancelBlock` → `JDBCDataSource.cancelCurrentExecution`: 일반 JDBC는 실행 스레드 인터럽트, PostgreSQL `cancelQuery`, Oracle `cancel`).
-    인터럽트로 드라이버의 연결이 끊기면 열린 트랜잭션을 묻지 않고 잃는다. 드라이버마다 확인하기 전까지 두지 않는다. 기본값(0, 꺼짐)으로 동작한다.
-  - SWT에서 이 두 키를 켜 둔 설정 파일을 가져오면 여전히 동작한다(화면이 없어 끌 수 없음). 남은 위험으로 적어 둔다.
+    인터럽트로 드라이버의 연결이 끊기면 열린 트랜잭션을 묻지 않고 잃는다.
+- 두 키를 끄는 방법(2026-11-08, `chromite/safety-defaults`):
+  - **모델이 읽지 않는다.** 두 키를 읽던 코드를 지웠다. 롤백 분기(`JDBCStatementImpl.handleExecuteError`)와 바깥 블록 취소(`AbstractJob.runBlockCanceler`의
+    취소 확인 작업)가 없어, 취소는 늘 가장 안쪽 블록(문장)만 한다. 키 상수와 기본값(`ModelPreferences`)도 지웠다.
+  - 시작할 때 값을 기본값으로 되돌리는 것만으로는 그 뒤의 설정 가져오기(#178), 연결 파일 가져오기, 손으로 고친 설정 파일이 다시 켤 수 있다. 읽는 코드를
+    지우면 어느 경로로 들어온 값도 효과가 없어 이쪽을 골랐다. 두 기능 모두 Swing 화면이 없어 쓸 수 없었으므로 사용자에게 보이는 동작은 바뀌지 않는다
+    (SWT에서 켜 둔 설정을 가져온 경우만 꺼진다).
+  - **남은 값 정리**(`RemovedPreferences`, registry 번들): 효과는 없지만 설정 내보내기가 옮기거나 켜져 있다고 오해하지 않게 지운다. 지운 키마다 정보 로그를
+    한 줄 남긴다(`Reset removed preference '<키>' (was '<값>')…`).
+    - 전역: 플랫폼 설정 저장소(연결 설정 저장소의 부모, 두 키를 읽던 곳)에서 `BasePlatformImpl.initialize`가 지우고 저장한다.
+    - 연결: `DataSourceSerializerModern`이 `data-sources*.json`의 `custom-properties`를 읽을 때 뺀다. 연결 파일 가져오기와 설정 가져오기의 연결도 같은 파서를
+      거친다. 파일에서는 레지스트리가 그 연결 파일을 다음에 저장할 때 빠진다. 시작할 때 연결 파일을 다시 쓰지 않는 것은 Git에 둔 프로젝트 파일이
+      사용자가 바꾸지 않았는데 바뀌지 않게 하려는 것이다. 그래서 저장되기 전까지는 파일을 읽을 때마다(시작할 때 두 번 읽음) 로그가 다시 남는다.
+  - 확인(2026-11-08, 제품 빌드를 복사해 자기 작업 공간·데이터 폴더로 실행, 프로세스 안의 검사 코드, OS 입력 없음): 전역 설정 파일과 PostgreSQL·SQL Server
+    연결 두 개의 `custom-properties`에 두 키를 넣고 시작 → 키마다 로그 한 줄, 전역 설정 파일에서 빠짐, 두 연결의 저장소에 남지 않음(같이 넣은 다른 키
+    `resultset.maxrows`는 남음). 이어서 두 키를 실행 중에 연결 저장소에 다시 켜고(저장하지 않음) 수동 커밋 세션에서 INSERT 뒤 없는 표 SELECT로 오류를
+    냄 → PostgreSQL 서버 상태 `idle in transaction (aborted)`(롤백하지 않음, 다음 문장은 25P02), SQL Server `@@TRANCOUNT` 1·같은 세션에서 행 1개·
+    `sys.dm_exec_sessions.open_transaction_count` 1. 세션 단위 취소는 코드를 지운 것으로 확인했고 실행해 보지는 않았다.
 
 ### Options > Metadata (`MetadataOptionsPage`)
 
@@ -419,7 +435,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 12. ~~Code Completion~~: 2026-11-08 오후 Options > Code Completion. `SQLEditor.ContentAssistant.activate.hippie`는 효과 없음.
 13. ~~DB별~~: 2026-11-08 오후 Options > Altibase·CUBRID·Mimer SQL. 남은 것: `altibase.explain.plan.type`은 "ON"이 계획 보기에서 문장을 실행하므로
     확인 절차를 만들 때까지 두지 않는다. PostgreSQL `show-database-statistics`는 효과 없음. `postgresql.dd.*`의 전역 기본값(`PostgreDialect`가 연결의
-    공급자 속성이 없을 때 플랫폼 저장소를 읽음)은 이번 작업 목록 밖이라 남겨 둔다.
+    공급자 속성이 없을 때 플랫폼 저장소를 읽음)은 **결정함**(2026-11-08 사용자 결정 5): Options에 전역 기본값을 두지 않는다. 연결 대화상자의 연결별
+    Provider Properties는 그대로 둔다.
 14. 효과 없는 키 중 Swing 기능이 생기면 다시 볼 것: `statement.timeout`(문장 시간 제한).
 15. 2026-11-08 효과가 생긴 키([connection-lifecycle.md](connection-lifecycle.md)): `transaction.smart.commit`, `transaction.smart.commit.recover`(연결별 값만 읽음.
     기본값은 Options > Connection Types의 유형 칸), `connection.closeOnSleep`(macOS 절전 알림). 화면은 없다.
@@ -483,7 +500,9 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 격리 수준을 연결 전에도 고를 수 있다(SWT는 연결되어 있을 때만).
 - 연결별 설정은 연결 대화상자의 한 탭(Settings)에 모았다(SWT는 연결의 속성 페이지 트리). 연결별 값을 켜면 페이지의 모든 키를 연결의 값으로 쓴다
   (SWT 데이터 형식 페이지는 로캘 기본값과 다른 값만 써서, 전역에서 바꾼 패턴을 연결에서 기본값으로 되돌릴 수 없었다).
-- Errors and Timeouts에 "오류 때 롤백", "취소가 안 되면 시간 뒤 연결 닫기"가 없다(트랜잭션 안전 규칙).
+- Errors and Timeouts에 "오류 때 롤백", "취소가 안 되면 시간 뒤 연결 닫기"가 없다(트랜잭션 안전 규칙). 2026-11-08부터 모델도 두 키
+  (`query.rollback-on-error`, `execute.cancel.checkTimeout`)를 읽지 않고, 남은 값은 시작할 때 지운다(모델 변경: `JDBCStatementImpl`, `AbstractJob`,
+  `ModelPreferences`, `BasePlatformImpl`, `DataSourceSerializerModern`).
 - 데이터 형식의 이름 있는 프로필 관리가 없다.
 - Options의 페이지 목록이 왼쪽에 있다(SSMS Options처럼). Query Results는 General 탭의 절에서 탭으로 옮겼다.
 - 모델 변경: `DataFormatterProfile`의 로캘 키 상수 세 개를 공개로 바꿨다(값 변경 없음).
@@ -516,6 +535,9 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   (evening #33, [model-fixes.md](model-fixes.md) "후속 수정 3").
 - 2026-11-08 부록의 `dictionary.max.rows`: 참조 값 고르기가 읽게 되어 "효과 없음"에서 고침([swing-value-editors.md](swing-value-editors.md)).
 - 2026-11-08 파일 원본 기본값(dbeaver.io)을 그대로 두기로 한 사용자 결정을 적음.
+- 2026-11-08 `query.rollback-on-error`, `execute.cancel.checkTimeout`을 모델이 읽지 않게 하고 남은 값을 시작할 때 지움(`chromite/safety-defaults`,
+  "Errors and Timeouts"의 "두 키를 끄는 방법"). SWT 설정을 가져오면 두 키가 동작하던 남은 위험이 없어짐. `postgresql.dd.*` 전역 기본값을 두지 않기로 한
+  사용자 결정 5를 "다음 작업" 13순위에 적음.
 
 ## 부록: 키별 상태
 
@@ -547,10 +569,10 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Errors and Timeouts | `connection.close.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
 | Errors and Timeouts | `connection.open.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
 | Errors and Timeouts | `connection.validation.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
-| Errors and Timeouts | `execute.cancel.checkTimeout` | 두지 않음: 트랜잭션 안전 규칙(세션 단위 취소로 연결이 끊길 수 있음, 2026-11-08) |
+| Errors and Timeouts | `execute.cancel.checkTimeout` | 두지 않음: 트랜잭션 안전 규칙(세션 단위 취소로 연결이 끊길 수 있음, 2026-11-08). 2026-11-08부터 모델이 읽지 않음 |
 | Errors and Timeouts | `execute.recover.enabled` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
 | Errors and Timeouts | `execute.recover.retryCount` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
-| Errors and Timeouts | `query.rollback-on-error` | 두지 않음: 트랜잭션 안전 규칙(묻지 않고 롤백, 2026-11-08) |
+| Errors and Timeouts | `query.rollback-on-error` | 두지 않음: 트랜잭션 안전 규칙(묻지 않고 롤백, 2026-11-08). 2026-11-08부터 모델이 읽지 않음 |
 | Error Logs | `logs.debug.enabled` | 효과 없음(읽는 곳 없음) |
 | Error Logs | `logs.debug.location` | 효과 없음(읽는 곳 없음) |
 | Error Logs | `logs.files.output.maxCount` | **추가함**: Options > Logs(2026-11-08) |

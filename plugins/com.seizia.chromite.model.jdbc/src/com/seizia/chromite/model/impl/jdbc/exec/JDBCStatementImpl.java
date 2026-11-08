@@ -22,7 +22,6 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.DBRuntimeException;
 import com.seizia.chromite.Log;
-import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.jdbc.JDBCObjectSupplier;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
@@ -44,6 +43,10 @@ import java.util.List;
 /**
  * Manageable statement.
  * Stores information about execution in query manager and operated progress monitor.
+ *
+ * 변경 이력:
+ * - 2026-11-08 실패한 문장 뒤에 수동 커밋 트랜잭션을 롤백하던 {@code query.rollback-on-error}를 지움. 묻지 않고 롤백해 트랜잭션 안전
+ *   규칙에 어긋나고, 설정 파일이나 설정 가져오기로 다시 켜지지 않게 키를 읽지 않는다 (docs/chromite/swing-options.md "Errors and Timeouts")
  */
 public class JDBCStatementImpl<STATEMENT extends Statement> extends AbstractStatement<JDBCSession> implements JDBCStatement {
 
@@ -284,15 +287,6 @@ public class JDBCStatementImpl<STATEMENT extends Statement> extends AbstractStat
     @NotNull
     protected SQLException handleExecuteError(@NotNull Throwable ex) {
         this.executeError = ex;
-        if (connection.getDataSource().getContainer().getPreferenceStore().getBoolean(ModelPreferences.QUERY_ROLLBACK_ON_ERROR)) {
-            try {
-                if (!connection.isClosed() && !connection.getAutoCommit()) {
-                    connection.rollback();
-                }
-            } catch (SQLException e) {
-                log.error("Can't rollback connection after error (" + ex.getMessage() + ")", e); //$NON-NLS-1$ //$NON-NLS-2$
-            }
-        }
         if (ex instanceof SQLException sqlException) {
             return sqlException;
         } else {
