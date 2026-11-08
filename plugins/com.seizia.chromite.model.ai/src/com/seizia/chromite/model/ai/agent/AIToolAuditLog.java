@@ -48,10 +48,13 @@ import java.util.Map;
  *     (Swing 쿼리 기록 {@code QueryHistory}와 같은 방식).</li>
  *     <li>10 MB를 넘으면 {@code audit.1.jsonl}로 바꾸고 새로 시작한다. 하나만 보관해 디스크를 무한히 쓰지 않는다.</li>
  *     <li>인수의 비밀은 {@link #maskSecrets}로 지운다. 확인 요청에도 같은 함수를 쓴다.</li>
+ *     <li>트랜잭션 질문에 Commit / Roll back으로 답했으면 그 답을 {@code transactionsBeforeCall}로 남긴다. 그런 호출의 정책 판정은 대개
+ *     AUTO라, 이것이 없으면 사용자가 물음을 받고 무엇을 골랐는지 기록에 없다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "감사 기록")
+ * - 2026-11-08 트랜잭션 질문의 답(transactionsBeforeCall)을 기록함 (docs/chromite/ai-agent.md "실제 API 확인")
  */
 public final class AIToolAuditLog {
 
@@ -82,7 +85,9 @@ public final class AIToolAuditLog {
         @Nullable String reason,
         @NotNull AIToolOutcome outcome,
         long durationMs,
-        @Nullable String error
+        @Nullable String error,
+        @Nullable String transactionAction,
+        int transactionCount
     ) {
         @NotNull
         JsonObject toJson() {
@@ -107,6 +112,12 @@ public final class AIToolAuditLog {
             if (error != null) {
                 json.addProperty("error", error);
             }
+            if (transactionAction != null) {
+                JsonObject transactions = new JsonObject();
+                transactions.addProperty("action", transactionAction);
+                transactions.addProperty("count", transactionCount);
+                json.add(AIToolExecutor.RESULT_TRANSACTIONS_BEFORE_CALL, transactions);
+            }
             return json;
         }
     }
@@ -126,6 +137,10 @@ public final class AIToolAuditLog {
 
     /**
      * Builds an entry with the current time and masked arguments.
+     *
+     * @param transactionAction the user's answer to a transaction question, carried out before the call
+     *                          ({@code COMMITTED} or {@code ROLLED_BACK}), or null when there was no such question
+     * @param transactionCount  number of uncommitted transactions that answer ended
      */
     @NotNull
     public static Entry newEntry(
@@ -137,7 +152,9 @@ public final class AIToolAuditLog {
         @Nullable AIToolDecision decision,
         @NotNull AIToolOutcome outcome,
         long durationMs,
-        @Nullable String error
+        @Nullable String error,
+        @Nullable String transactionAction,
+        int transactionCount
     ) {
         return new Entry(
             OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
@@ -151,7 +168,9 @@ public final class AIToolAuditLog {
             decision == null ? null : decision.reason(),
             outcome,
             durationMs,
-            error
+            error,
+            transactionAction,
+            transactionCount
         );
     }
 

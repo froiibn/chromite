@@ -382,6 +382,7 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 | `permission`, `reason` | 정책 판정과 이유 |
 | `outcome` | `SUCCESS`, `ERROR`, `DENIED`, `BLOCKED`, `READ_ONLY`, `CANCELED`, `INVALID` |
 | `durationMs`, `error` | 실행 시간, 오류 문구 |
+| `transactionsBeforeCall` | 트랜잭션 질문에 Commit / Roll back으로 답했을 때만: `{"action": "COMMITTED"\|"ROLLED_BACK", "count": n}`. 그런 호출의 정책 판정은 대개 AUTO라 이것이 사용자의 결정을 남긴다. Cancel은 `outcome` DENIED와 `error`로 남는다 |
 
 파일이 10 MB를 넘으면 `audit.1.jsonl`로 바꾸고 새로 시작한다(하나만 보관).
 
@@ -445,7 +446,7 @@ claude mcp add --transport http chromite http://127.0.0.1:47821/mcp --header "Au
 |---|---|---|
 | OpenAI (`openai`) | 기존. Responses API(`OpenAiUtils.createOpenAiRequest`)가 `AIFunctionDescriptor` 목록을 `function` 도구로 보낸다. 이 작업의 도구도 같은 경로로 간다 | 예 |
 | Ollama (`ollama`) | 이미 `plugin.xml`에 등록되어 있다(브리프의 "등록 안 됨"은 이전 상태). `/api/chat`의 `tools` | 예(응답의 첫 도구 호출) |
-| Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록 | 예 |
+| Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록. `temperature`는 명시적으로 정했을 때만 보낸다(`AnthropicProperties.getRequestTemperature`, 아래 "실제 API 확인") | 예 |
 
 API 키는 설정 파일(`ai-configuration.json`)에 쓰지 않고(`@SecureProperty`) `AIUtils.setSecretValue`가 OS 보안 저장소에 둔다(아래 "API 키 저장").
 환경 변수 `ANTHROPIC_API_KEY`도 쓸 수 있다.
@@ -621,7 +622,8 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
 - 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다
   (아래 "글 조각 그리기").
-- 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
+- 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 엔진을 닫으면 받는 중인 응답도 끝낸다(`MonitoredHttpClient.close`, 아래 "실제 API 확인").
+  실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
   실행 중에는 대화·제공자·연결을 바꿀 수 없다.
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
   `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
@@ -711,6 +713,42 @@ Anthropic 제공자의 기본 URL로 두고, 빌드한 Swing 제품을 개인 �
 시험 중에 찾아 고친 것: Markdown 가로줄 정규식이 클래스 초기화에서 실패(모델 글이 안 보임), 코드 블록이 좁은 창에서 가로 스크롤 막대에 가려짐(줄 바꿈으로),
 설정 후에도 "제공자를 설정하세요" 안내가 남음(AI 설정 변경 이벤트로 갱신), 연결을 고를 때 데이터베이스가 비어 있음(쿼리 창 문맥의 기본값으로), 테마를 바꿔도
 Markdown 글자색이 그대로(외형 값을 따르게).
+
+### 실제 API 확인 (2026-11-08)
+
+사용자가 임시 Claude API 키를 시험 빌드(`D:\Chromite-Test`, devel `2bf537048a`)에 넣은 뒤 실제 Anthropic API로 처음 확인했다. 데이터 폴더와 작업 공간은
+사본(`D:\Tools\_scratch\agent-real-api`)으로 쓰고, 화면은 앱 안의 시험 에이전트(Attach API, Swing 객체를 직접 조작, 화면·키보드 입력 없음)로 조작했다.
+모델은 사용자가 정한 `claude-sonnet-5-5`, 연결은 PostgreSQL 17의 시험 DB `chr_agent_real_api`(테이블 2개, 5행·12행). API 요청은 모두 21번이다.
+
+| 시험 | 결과 |
+|---|---|
+| 첫 요청 | 사용자 설정 그대로 모든 요청이 "Anthropic request failed: \`temperature\` is deprecated for this model."로 실패(아래 1). 사본의 설정에 `ai.useServerDefaultTemperature: true`를 넣어 우회하고 나머지를 시험했다 |
+| 대화 | 한국어·영어 질문 모두 답이 스트리밍되어 끝남. 토큰·사용량 표시는 없다(`AIAgentChatRunner.StreamCollector.usage`가 받지만 보이지 않음) |
+| 읽기 도구 | "public 스키마의 테이블과 정확한 행 수" → `listTables`, `countRows` 2번(자동 실행, 카드 3개) → 표에 5·12(psql과 같음) |
+| 쓰기 + 거부 | `insertRows` 확인 대화상자(쓰기 배지, 실행할 내용, 인수, 기본 단추 Deny에 초점) → Deny → 카드 "거부됨", DB 그대로(psql 5행) |
+| 쓰기 + 허용 | 같은 요청에 Allow → 1행 들어감(psql 6행), 자동 커밋 연결이라 `transactionOpen: false`, 열린 트랜잭션 없음(`pg_stat_activity`) |
+| 수동 커밋 | 연결의 자동 커밋을 끔 → `insertRows` 허용 → `transactionOpen: true`, 다른 세션에서 행이 안 보이고 에이전트 세션은 `idle in transaction`. `rollbackTransaction`이 "Open Transaction"(Commit / Roll Back / Cancel, 기본 Cancel) → Roll Back → 행 없음, 트랜잭션 없음 |
+| 운영 연결 | 연결 종류를 Production으로 → `insertRows` BLOCKED("production connection …"), DB 그대로 |
+| 중지 | 긴 답 중 중지 → 글은 멈췄지만 상태가 "Stopping…"으로 약 20초 남고 그동안 보내기가 안 됨(아래 2). 오류 대화상자 없음, 끝난 뒤 다시 보낼 수 있음 |
+| API 오류 | 없는 모델 이름 → 대화에 "Anthropic request failed: model: claude-does-not-exist-9"(404 `not_found_error`의 문구). 키 없음 |
+| 감사 기록 | 도구 호출 9건이 정책(AUTO/CONFIRM/BLOCKED)과 결과(SUCCESS/DENIED/BLOCKED)로 남음. 트랜잭션 질문의 답(Roll back)은 없었다(아래 3) |
+| 키 | 사본 작업 공간·데이터 폴더·로그·증거 파일에서 `sk-ant-` 0건 |
+
+찾아 고친 것:
+
+1. **temperature**: 설정 파일에는 늘 `gpt.model.temperature: 0.0`이 저장되고(`BaseAIEngineProperties.temperature`), `useServerDefaultTemperature`가 없으면
+   `getRequestTemperature()`가 그 값을 돌려주어 요청마다 `temperature: 0.0`이 갔다. 지금의 Claude 모델은 이 매개변수가 있으면 요청 전체를 거부한다. Chromite 화면에는
+   temperature를 정하는 곳이 없으므로(`setTemperature` 호출 없음), `AnthropicProperties.getRequestTemperature()`가 명시적으로 정했을 때만 값을 돌려주게 했다.
+   고친 빌드에서 사용자 설정 그대로(우회 없이) 요청이 성공했다. OpenAI 엔진도 같은 기본값을 보내지만(`OpenAIProperties.getTemperature`는 전역 설정값) 키가 없어
+   확인하지 못했다(아래 "위험과 남은 일").
+2. **중지가 답이 끝날 때까지 기다림**: 중지하면 실행기는 스트림 대기를 끝내고 엔진을 닫는데, `MonitoredHttpClient.close()`의 `HttpClient.close()`는 진행 중인
+   요청이 끝날 때까지 기다린다. 받는 중인 응답을 먼저 닫는 코드는 콜백 스레드의 `ThreadLocal`만 보아 작업 스레드에서 닫을 때는 아무것도 닫지 않았다. 그래서
+   모델이 답을 다 쓸 때까지(약 20초) 받기가 이어지고(그만큼 과금), 화면은 "Stopping…"이었다. `close()`가 `HttpClient.shutdownNow()`로 진행 중인 요청을 먼저 끝내게
+   했다. 엔진을 닫는 곳(`AIAgentChatRunner`, `AIEngineResponseConsumerImpl`, 모델 목록·`generateText`의 try-with-resources)은 모두 응답을 다 받았거나 사용자가
+   멈춘 뒤다. 고친 빌드에서 같은 시험: 중지 후 250 ms 안에 "Stopped.", 보내기 단추가 돌아옴.
+3. **감사 기록에 트랜잭션 답이 없음**: `rollbackTransaction`은 READ(AUTO)라 기록이 `permission: AUTO`, `outcome: SUCCESS`뿐이었고, 사용자가 "Open Transaction"
+   질문에 Roll back을 고른 것은 결과 JSON(`transactionsBeforeCall`)에만 있었다. 실행기가 감사 기록에도 같은 답을 넣는다(위 "감사 기록"). 고친 빌드에서 수동 커밋
+   연결에 `insertRows`(허용) → `rollbackTransaction`(Roll Back)을 실행기로 직접 불러 확인: 기록에 `"transactionsBeforeCall":{"action":"ROLLED_BACK","count":1}`.
 
 ## 1b단계 도구 (2026-11-08)
 
@@ -974,8 +1012,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 위험과 남은 일
 
-- **실제 LLM으로 시험하지 않았다(2단계)**: 유료 키가 없어 가짜 Messages API로만 시험했다. 실제 모델의 도구 선택, OpenAI Responses·Ollama 스트림의 도구 호출
-  흐름은 확인하지 못했다. 긴 대화의 문맥 크기는 2026-11-08에 줄였다(위 "요청 크기").
+- **실제 LLM은 Anthropic만 시험했다**: 2026-11-08에 실제 Anthropic API(`claude-sonnet-5-5`)로 확인했다(위 "실제 API 확인"). OpenAI Responses·Ollama 스트림의
+  도구 호출 흐름은 확인하지 못했다. OpenAI 엔진도 요청마다 temperature(전역 설정값, 기본 0.0)를 보내므로 그것을 받지 않는 모델에서는 같은 식으로 실패할 수 있다.
+  긴 대화의 문맥 크기는 2026-11-08에 줄였다(위 "요청 크기").
 - **요청 크기의 남은 점(2026-11-08)**: 도구 정의 약 52 KB(≈13k 토큰)가 요청마다 간다. SQL Server 연결은 거의 모든 도구를 쓸 수 있어 고르기로 줄지 않는다.
   더 줄이려면 도구 설명을 짧게 하거나, 제공자의 프롬프트 캐시(Anthropic `cache_control`)를 쓰거나, 묶음을 필요할 때만 여는 방식(도구 검색)이 필요하다.
   예산 60,000자는 고정값이다. 32k 문맥의 로컬 모델(Ollama)에는 도구 정의와 합쳐 클 수 있고, 모델의 문맥 크기 설정(`AnthropicProperties.contextWindowSize` 등)을
@@ -1006,6 +1045,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 실제 Anthropic API 확인(`chromite/agent-real-api-test`): Anthropic 요청에 temperature를 명시적으로 정했을 때만 넣음. 위 "실제 API 확인".
+- 2026-11-08 AI 엔진을 닫으면 받는 중인 응답을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다리던 것. 위 "실제 API 확인" 2.
+- 2026-11-08 감사 기록에 트랜잭션 질문의 Commit/Roll back 답(`transactionsBeforeCall`)을 남김. 위 "감사 기록", "실제 API 확인" 3.
 - 2026-11-08 확인 대화상자의 미리 보기 제목을 "실행할 내용"(What will run)으로(명령줄 미리 보기도 있음), `backupDatabase`가 SQL Server가 아닌 연결을
   확인 전에 거절(evening #27 2·3부, `chromite/followups-3`). 위 "위험과 남은 일".
 - 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
