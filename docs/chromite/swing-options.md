@@ -303,7 +303,9 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 - **고친 버그(모델)**: 그룹(scope)이 있는 저장소를 저장하면 `MavenRegistry.saveConfiguration`이 scope 자식 요소 뒤에 `snapshot` 속성을 쓰려다
   "Attribute outside of element"로 실패했다(upstream 그대로, SWT에서도 같음). 속성을 자식 요소보다 먼저 쓰게 고쳤다. 실행 확인 중 OK가 이 예외로 멈춰 찾았다.
 - dbeaver.io의 버전 확인이나 저장소 주소를 새로 넣지 않았다. 다만 파일 원본의 모델 기본값이 이미 `https://dbeaver.io/files/jdbc/`이다
-  (`ModelPreferences` 423행, upstream). 이 페이지는 그 값을 보일 뿐 바꾸지 않았다. 바꿀지는 따로 정할 일이다(아래 "다음 작업").
+  (`ModelPreferences` 423행, upstream). 이 페이지는 그 값을 보일 뿐 바꾸지 않았다. 2026-11-08 사용자 결정: 그대로 둔다.
+  이 주소는 `repo:/…` 경로의 파일(Caché·jConnect 드라이버, jTDS SSO dll, DBF 라이브러리, Teradata 라이선스, Windows용 PostgreSQL·MySQL·MariaDB 로컬 클라이언트)에만 쓰이고,
+  주요 드라이버는 Maven Central에서 받는다. Chromite 서버로 옮기려면 파일별 재배포 라이선스부터 확인해야 한다.
 
 ### Options > Logs (9순위, `LogsOptionsPage`, 전역만)
 
@@ -407,8 +409,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 6. ~~Client Identification~~: 2026-11-08.
 7. ~~Connections, General~~: 2026-11-08 오후 Options > Connections. 시간대의 앱 전체 적용(S12)과 IP 스택(S13)은 B9 2부.
 8. ~~Drivers·Classpath·Maven~~: 2026-11-08 오후 Options > Drivers. `ui.drivers.global.libraries`(전역 라이브러리)는 2026-11-08 Driver Manager >
-   Global Libraries…([swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 남은 것: 파일 원본의 모델 기본값(`https://dbeaver.io/files/jdbc/`)을 Chromite 주소로 바꿀지
-   또는 비울지는 따로 정한다(Maven이 아닌 드라이버 파일과 네이티브 클라이언트 내려받기가 쓴다).
+   Global Libraries…([swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 파일 원본의 모델 기본값(`https://dbeaver.io/files/jdbc/`)은
+   2026-11-08 사용자 결정으로 그대로 둔다(Maven이 아닌 드라이버 파일과 네이티브 클라이언트 내려받기가 쓴다).
 9. ~~Query Manager, Error Logs~~: 2026-11-08 오후 Options > Logs.
 10. ~~Navigator~~: 2026-11-08 오후 Options > Object Explorer. `navigator.show.folder.placeholders`는 효과 없음.
 11. ~~Notifications, Data Transfer~~: 2026-11-08 오후 Options > Notifications·Data Transfer.
@@ -511,6 +513,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-08 Options의 OK가 한 페이지의 실패로 멈추지 않고 모든 페이지를 저장한 뒤 실패를 알림, Logs 페이지 키가 바뀔 때 SQL 로그 파일 핸들을 닫음
   (evening #33, [model-fixes.md](model-fixes.md) "후속 수정 3").
 - 2026-11-08 부록의 `dictionary.max.rows`: 참조 값 고르기가 읽게 되어 "효과 없음"에서 고침([swing-value-editors.md](swing-value-editors.md)).
+- 2026-11-08 파일 원본 기본값(dbeaver.io)을 그대로 두기로 한 사용자 결정을 적음.
 
 ## 부록: 키별 상태
 
