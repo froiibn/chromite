@@ -146,6 +146,11 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   지금 필터·서버 정렬을 내보내기에 넘기려면(`DatabaseTransferProducer(컨테이너, DBDDataFilter)`) 마법사와 표의 메뉴에 필터를 넘기는 길이 더 필요해 남겼다(아래 "남긴 것").
 - **선택 집계:** 칸을 둘 이상 고르면 상태 줄 오른쪽에 `Count: 6   Sum: …   Avg: …   Min: …   Max: …`. 모델 계층의 집계 함수(`FunctionSum`, `FunctionAvg`, `FunctionMin`, `FunctionMax`,
   SWT `AggregateColumnsPanel`(panel/aggregate/AggregateColumnsPanel.java:60)이 쓰는 것)를 쓰고 숫자 값만 넣는다. 선택이 바뀌고 100ms 뒤에 계산한다(SWT `ResultSetStatListener`와 같은 지연).
+- **행 번호 열:** 맨 왼쪽(SSMS·DataGrip처럼), 그리드 바탕에 보조 글자색(`Chromite.secondaryForeground`)이다. 2026-11-08부터 선택한 행의 번호도 선택색으로 칠하지 않는다:
+  셀 하나만 골라도 번호 칸이 함께 칠해져 선택이 번호 열까지 이어졌다가 끊긴 것처럼 보였다(사용자 #4). 그 칠하기만을 위해 있던 표의 선택·포커스 리스너도 지웠다.
+  번호를 누르면 그 행 전체를 고르는 동작(가로 스크롤 없이)은 그대로다. 열 전체 선택은 머리글 이름 자리를 누른다([swing-grid-column-filters.md](swing-grid-column-filters.md) "머리글 누르기").
+  확인(2026-11-08, 앱 안 시험 에이전트): 칸 3행×3열 선택, 행 번호 클릭(그 행 7열 모두 선택), 표가 포커스를 잃은 상태에서 번호 칸 렌더러 바탕이 모두 그리드 바탕(#ffffff),
+  글자 #73767c. 캡처 `D:\Tools\_scratch\grid-header\shots\4-1-cells-selected.png`, `4-2-row-selected.png`.
 - **NULL 표시:** C단계 그대로 `NULL`을 보조 글자색으로 그린다(문자열 "NULL"과 구분). 레코드 보기와 값 패널도 같다.
 - **날짜·숫자 형식:** 표의 표시 문자열은 C단계부터 열의 값 처리기 `getValueDisplayString(…, DBDDisplayFormat.UI)`로 만들고, 값 처리기는 연결의 데이터 형식 프로필
   (`DBDDataFormatterProfile`, SWT 설정 화면의 Data Formats)을 쓴다. 그래서 SWT 그리드와 같은 형식이다. 값 패널은 SWT 패널처럼 편집 형식(`DBDDisplayFormat.EDIT`, 전체 정밀도)이다.
@@ -220,3 +225,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   전체 행 수. "남긴 것" 갱신. [swing-grid-navigation.md](swing-grid-navigation.md).
 - 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 2026-11-08 배치 결과 다시 읽기: 결과를 만든 SELECT만 실행, 정할 수 없으면 막고 이유를 보임. [sql-batch-reread.md](sql-batch-reread.md).
+- 2026-11-08 행 번호 칸을 선택·포커스와 관계없이 늘 그리드 바탕으로("표 편의 기능").
