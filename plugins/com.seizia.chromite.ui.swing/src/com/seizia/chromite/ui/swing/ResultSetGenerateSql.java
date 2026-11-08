@@ -72,6 +72,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -101,6 +102,8 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 결과 행에서 SQL 만들기(SWT 대조 B-S41) (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 행에서 만드는 문장(INSERT·UPDATE·DELETE·SELECT·MERGE)에서 가상(계산) 열을 뺌: 테이블에 없는 열이다
+ *   (docs/chromite/swing-saved-filters-virtual-columns.md)
  */
 final class ResultSetGenerateSql {
 
@@ -507,7 +510,7 @@ final class ResultSetGenerateSql {
 
         RowsProvider(@NotNull DBSDataContainer dataContainer, @NotNull DBDAttributeBinding[] bindings, @NotNull List<RowValues> rows) {
             this.bindings = bindings;
-            this.columns = List.of(bindings);
+            this.columns = Arrays.stream(bindings).filter(binding -> !binding.isCustom()).toList();
             this.rows = rows;
             this.uniqueKey = findUniqueKey(bindings);
             this.singleSource = DBExecUtils.detectSingleSourceTable(bindings);
@@ -528,6 +531,7 @@ final class ResultSetGenerateSql {
 
         /**
          * All columns of the result, also those hidden in the grid (Columns menu): the statements are on the table.
+         * Virtual columns are left out: they are calculated in Chromite and the database has no such column.
          */
         @NotNull
         @Override

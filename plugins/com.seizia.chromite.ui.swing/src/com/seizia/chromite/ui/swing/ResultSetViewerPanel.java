@@ -23,6 +23,7 @@ import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import com.seizia.chromite.ui.swing.internal.GridSqlMessages;
+import com.seizia.chromite.ui.swing.internal.GridVirtualMessages;
 import com.seizia.chromite.ui.swing.internal.ValueEditMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -35,6 +36,7 @@ import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBindingCustom;
 import com.seizia.chromite.model.data.DBDAttributeConstraint;
 import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDDataFilter;
@@ -59,7 +61,9 @@ import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAssociation;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.virtual.DBVEntityAttribute;
 import com.seizia.chromite.model.virtual.DBVEntityForeignKey;
+import com.seizia.chromite.model.virtual.DBVUtils;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DataSourceJob;
 import org.jkiss.utils.CommonUtils;
@@ -127,6 +131,10 @@ import java.util.function.Consumer;
  *     표를 새로 만들 때 같은 열이면 배치를 옮긴다. 찾기 줄({@link ResultSetFindBar}, Ctrl+F)과 텍스트 보기({@link ResultSetTextView})도 있다.</li>
  *     <li><b>전체 행 수</b>(SWT {@code resultset.count}): 더 읽을 행이 있으면 상태 줄 "행 수 세기"가 모델의 {@code countData}(SELECT COUNT)로 센다.</li>
  *     <li><b>가상 키</b>({@link ResultSetVirtualKeys}): 키가 없어 읽기 전용인 결과의 가상 고유 키, 가상 외래 키. 정하면 결과를 다시 읽는다.</li>
+ *     <li><b>저장한 필터·최근 필터</b>({@link ResultSetSavedFilters}): 테이블 하나에서 온 결과의 열 필터와 정렬을 이름으로 저장해 고르고,
+ *     조건으로 다시 읽을 때마다 그 조건을 테이블의 최근 필터에 남긴다. 둘 다 연결의 가상 모델에 저장한다.</li>
+ *     <li><b>가상(계산) 열</b>({@link ResultSetVirtualColumns}): 테이블 하나에서 온 결과에 식으로 계산하는 열을 더한다. DB에 없는 열이라
+ *     머리글 필터와 "Filter by Value"를 끄고, 정렬은 표 안에서만 하며 서버에서 다시 읽는 필터에서는 뺀다.</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -158,6 +166,9 @@ import java.util.function.Consumer;
  *   결과를 닫으면 멈춤). 배열·구조체 값은 "Filter by Value"에 넣지 않음 (docs/chromite/swing-value-editors.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 오른쪽 클릭 메뉴의 "SQL 생성"(Copy As 다음, {@link ResultSetGenerateSql}). 고른 행의 칸 값을
  *   저장하지 않은 변경까지 넘김 (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-08 저장한 필터·최근 필터(오른쪽 클릭 "저장한 필터")와 가상(계산) 열(오른쪽 클릭 "가상 열"). 가상 열의 머리글 필터·Filter by Value를
+ *   끄고, 가상 열 정렬은 표 안에서 하며, 서버에서 다시 읽는 필터에서 가상 열의 정렬을 뺀다. 가상 키·가상 열을 바꾼 뒤 다시 읽는 메서드를 하나로
+ *   ({@link #readAgainForVirtualModel}) (docs/chromite/swing-saved-filters-virtual-columns.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -823,8 +834,9 @@ final class ResultSetViewerPanel extends JPanel {
             }
 
             @Override
-            public boolean isFilterEnabled() {
-                return fetched.source().canRequery() && !reading;
+            public boolean isFilterEnabled(int modelColumn) {
+                // A virtual column is calculated in Chromite: the database can't filter it
+                return fetched.source().canRequery() && !reading && !fetched.data().bindings()[modelColumn].isCustom();
             }
         });
         header.setDefaultRenderer(renderer);
@@ -959,8 +971,16 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeBinding binding = fetched.data().bindings()[column];
         DBDAttributeConstraint constraint = getConstraint(column);
         return switch (zone) {
-            case NAME -> NLS.bind(GridFilterMessages.gridfilter_header_column_tip, binding.getLabel(), binding.getFullTypeName());
+            case NAME -> {
+                String tip = NLS.bind(GridFilterMessages.gridfilter_header_column_tip, binding.getLabel(), binding.getFullTypeName());
+                yield binding instanceof DBDAttributeBindingCustom custom
+                    ? tip + "  —  " + NLS.bind(GridVirtualMessages.gridvirt_column_tip, custom.getEntityAttribute().getExpression()) //$NON-NLS-1$
+                    : tip;
+            }
             case FILTER -> {
+                if (binding.isCustom()) {
+                    yield GridVirtualMessages.gridvirt_column_no_filter;
+                }
                 if (!fetched.source().canRequery()) {
                     yield NLS.bind(EditorMessages.editor_viewer_filters_need, fetched.source().requeryBlocker());
                 }
@@ -982,12 +1002,14 @@ final class ResultSetViewerPanel extends JPanel {
      * Opens the filter popup of a column (view index) below its header cell.
      */
     private void openFilterPopup(@NotNull JTableHeader header, int column) {
-        if (reading || !fetched.source().canRequery()) {
+        DBDAttributeBinding[] bindings = fetched.data().bindings();
+        DBDAttributeBinding binding = bindings[header.getTable().convertColumnIndexToModel(column)];
+        if (reading || !fetched.source().canRequery() || binding.isCustom()) {
             return;
         }
-        DBDAttributeBinding[] bindings = fetched.data().bindings();
-        ResultSetColumnFilterPopup.show(header, header.getHeaderRect(column), bindings[header.getTable().convertColumnIndexToModel(column)],
-            bindings, new DBDDataFilter(dataFilter), fetched.source(), new ResultSetColumnFilterPopup.Host() {
+        // The popup reads the values with the other columns' conditions: without a sort of virtual columns (not in the database)
+        ResultSetColumnFilterPopup.show(header, header.getHeaderRect(column), binding,
+            bindings, ResultSetVirtualColumns.withoutVirtualColumns(dataFilter), fetched.source(), new ResultSetColumnFilterPopup.Host() {
                 @Override
                 public void applyFilter(@NotNull DBDDataFilter filter) {
                     ResultSetViewerPanel.this.applyFilter(filter);
@@ -1026,6 +1048,8 @@ final class ResultSetViewerPanel extends JPanel {
         JMenu navigateMenu = new JMenu(GridNavMessages.gridnav_menu_navigate);
         JMenu columnsMenu = new JMenu(GridNavMessages.gridnav_menu_columns);
         JMenu virtualMenu = new JMenu(GridNavMessages.gridnav_menu_virtual);
+        JMenu savedFiltersMenu = new JMenu(GridVirtualMessages.gridvirt_filters_menu);
+        JMenu virtualColumnsMenu = new JMenu(GridVirtualMessages.gridvirt_columns_menu);
         JMenuItem findItem = new JMenuItem(createAction(GridNavMessages.gridnav_find,
             KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), this::openFindBar));
 
@@ -1050,11 +1074,13 @@ final class ResultSetViewerPanel extends JPanel {
         menu.addSeparator();
         menu.add(filterMenu);
         menu.add(clearFilter);
+        menu.add(savedFiltersMenu);
         menu.add(navigateMenu);
         menu.addSeparator();
         menu.add(fitColumns);
         menu.add(columnsMenu);
         menu.add(virtualMenu);
+        menu.add(virtualColumnsMenu);
         menu.add(findItem);
         menu.addSeparator();
         menu.add(valuePanelItem);
@@ -1084,6 +1110,8 @@ final class ResultSetViewerPanel extends JPanel {
                 int lead = table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
                 addColumnItems(columnsMenu, table, lead >= 0 && lead < table.getColumnCount() ? lead : -1);
                 fillVirtualMenu(virtualMenu);
+                fillSavedFiltersMenu(savedFiltersMenu);
+                fillVirtualColumnsMenu(virtualColumnsMenu, table);
             }
 
             @Override
@@ -1112,6 +1140,11 @@ final class ResultSetViewerPanel extends JPanel {
         filterMenu.setToolTipText(null);
         int modelColumn = table.convertColumnIndexToModel(column);
         DBDAttributeBinding binding = fetched.data().bindings()[modelColumn];
+        if (binding.isCustom()) {
+            filterMenu.setEnabled(false);
+            filterMenu.setToolTipText(GridVirtualMessages.gridvirt_column_no_filter);
+            return;
+        }
         Object value = getCellValue(row, modelColumn);
         String name = binding.getName();
         // Geometries are kept for the spatial view only, arrays and structures for their editors; they are not offered as
@@ -1726,7 +1759,8 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private void applyOrdering(@NotNull DBDDataFilter filter) {
-        if (isServerSideOrdering()) {
+        // A virtual column is calculated in Chromite: sorted in the grid, by the rows read
+        if (isServerSideOrdering() && !ResultSetVirtualColumns.hasVirtualOrdering(filter)) {
             dataFilter = filter;
             requery(filter);
         } else {
@@ -1779,7 +1813,8 @@ final class ResultSetViewerPanel extends JPanel {
                 int column = key[0];
                 Object cell1 = getSortValue(row1, column);
                 Object cell2 = getSortValue(row2, column);
-                Comparator<Object> comparator = bindings[column].getValueHandler().getComparator();
+                // A virtual column's value may not be of its type (an expression error is a text): compared as plain values
+                Comparator<Object> comparator = bindings[column].isCustom() ? null : bindings[column].getValueHandler().getComparator();
                 int result;
                 if (comparator != null) {
                     result = comparator.compare(cell1, cell2);
@@ -1944,8 +1979,10 @@ final class ResultSetViewerPanel extends JPanel {
         if (context == null) {
             return;
         }
-        DBDDataFilter readFilter = new DBDDataFilter(filter);
-        DBDDataFilter viewFilter = new DBDDataFilter(filter);
+        // A sort by a virtual column was done in the grid; the database has no such column, and the new rows come
+        // in the server's order
+        DBDDataFilter readFilter = ResultSetVirtualColumns.withoutVirtualColumns(filter);
+        DBDDataFilter viewFilter = new DBDDataFilter(readFilter);
         long segmentSize = source.segmentSize();
         startRead("Read results", context, (monitor, done) -> {
             ResultSetGrid.Fetched[] result = new ResultSetGrid.Fetched[1];
@@ -1975,6 +2012,7 @@ final class ResultSetViewerPanel extends JPanel {
         installGrid(new ResultSetGrid(newFetched, gridHost), false);
         host.editStateChanged();
         host.rowsChanged();
+        rememberFilter();
     }
 
     private void verticalScrolled(@NotNull AdjustmentEvent e) {
@@ -2060,7 +2098,8 @@ final class ResultSetViewerPanel extends JPanel {
         if (context == null) {
             return;
         }
-        DBDDataFilter readFilter = new DBDDataFilter(dataFilter);
+        // Without a sort of virtual columns: the rows are read in the server's order and sorted in the grid again
+        DBDDataFilter readFilter = ResultSetVirtualColumns.withoutVirtualColumns(dataFilter);
         DBDAttributeBinding[] bindings = fetched.data().bindings();
         int offset = fetched.editModel() != null ? fetched.editModel().getRowCount() : fetched.data().rows().size();
         startRead("Read next rows", context, (monitor, done) -> {
@@ -2902,7 +2941,7 @@ final class ResultSetViewerPanel extends JPanel {
             for (DBVEntityForeignKey existing : foreignKeys) {
                 remove.add(createAction(ResultSetVirtualKeys.describe(existing), null, () -> {
                     if (ResultSetVirtualKeys.removeForeignKey(this, entity, existing)) {
-                        readAgainForKeys();
+                        readAgainForVirtualModel(GridNavMessages.gridnav_vkey_run_again);
                     }
                 }));
             }
@@ -2913,30 +2952,225 @@ final class ResultSetViewerPanel extends JPanel {
 
     private void editVirtualKey(@NotNull DBSEntity entity) {
         if (!reading && ResultSetVirtualKeys.editUniqueKey(this, entity, fetched.data().bindings())) {
-            readAgainForKeys();
+            readAgainForVirtualModel(GridNavMessages.gridnav_vkey_run_again);
         }
     }
 
     private void addVirtualForeignKey(@NotNull DBSEntity entity) {
         if (!reading && ResultSetVirtualKeys.addForeignKey(this, entity, fetched.data().bindings())) {
-            readAgainForKeys();
+            readAgainForVirtualModel(GridNavMessages.gridnav_vkey_run_again);
         }
     }
 
     /**
-     * A virtual key changed: the columns are bound to the keys when the result is read, so it is read again (its
-     * pending changes are discarded after asking). A result that can't be read again tells to run the query again.
+     * A virtual key or column changed: the columns are bound to the keys and the virtual columns are added when the
+     * result is read, so it is read again (its pending changes are discarded after asking). A result that can't be
+     * read again tells to run the query again.
+     *
+     * @param runAgain the status message for a result that can't be read again
      */
-    private void readAgainForKeys() {
+    private void readAgainForVirtualModel(@NotNull String runAgain) {
         links = null;
         linkTables = null;
         referencesPanel.resultChanged();
         if (!fetched.source().canRequery() || reading || !checkNoChanges(GridNavMessages.gridnav_action_read_again)) {
-            statusMessage = GridNavMessages.gridnav_vkey_run_again;
+            statusMessage = runAgain;
             updateStatus();
             return;
         }
         requery(new DBDDataFilter(dataFilter));
+    }
+
+    //////////////////////////////////////////////////////////
+    // Saved filters and recent filters (ResultSetSavedFilters)
+
+    /**
+     * The Saved Filters submenu: save the current filter, the table's saved filters, its recent filters and deleting.
+     */
+    private void fillSavedFiltersMenu(@NotNull JMenu menu) {
+        menu.removeAll();
+        DBSEntity entity = getSingleSource();
+        if (entity == null) {
+            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
+            none.setEnabled(false);
+            menu.add(none);
+            return;
+        }
+        boolean canApply = fetched.source().canRequery() && !reading;
+        String applyBlocked = fetched.source().canRequery() ? null : NLS.bind(EditorMessages.editor_viewer_filters_need, fetched.source().requeryBlocker());
+        Action save = createAction(GridVirtualMessages.gridvirt_filters_save, null, () -> saveCurrentFilter(entity));
+        save.setEnabled(!reading && ResultSetSavedFilters.hasSavable(dataFilter));
+        JMenuItem saveItem = new JMenuItem(save);
+        if (!ResultSetSavedFilters.hasSavable(dataFilter)) {
+            saveItem.setToolTipText(GridVirtualMessages.gridvirt_filters_nothing);
+        }
+        menu.add(saveItem);
+        List<ResultSetSavedFilters.Entry> saved = ResultSetSavedFilters.getSaved(entity);
+        if (!saved.isEmpty()) {
+            menu.addSeparator();
+            for (ResultSetSavedFilters.Entry entry : saved) {
+                Action apply = createAction(entry.name(), null, () -> applySavedFilter(entry, true));
+                apply.setEnabled(canApply);
+                JMenuItem item = new JMenuItem(apply);
+                item.setToolTipText(applyBlocked != null ? applyBlocked : entry.text());
+                menu.add(item);
+            }
+        }
+        menu.addSeparator();
+        JMenu recentMenu = new JMenu(GridVirtualMessages.gridvirt_filters_history);
+        List<ResultSetSavedFilters.Entry> recent = ResultSetSavedFilters.getRecent(entity);
+        if (recent.isEmpty()) {
+            JMenuItem empty = new JMenuItem(GridVirtualMessages.gridvirt_filters_history_empty);
+            empty.setEnabled(false);
+            recentMenu.add(empty);
+        } else {
+            for (ResultSetSavedFilters.Entry entry : recent) {
+                Action apply = createAction(ResultSetSavedFilters.shorten(entry.text(), 80), null, () -> applySavedFilter(entry, false));
+                apply.setEnabled(canApply);
+                JMenuItem item = new JMenuItem(apply);
+                item.setToolTipText(applyBlocked != null ? applyBlocked : entry.text());
+                recentMenu.add(item);
+            }
+            recentMenu.addSeparator();
+            recentMenu.add(createAction(GridVirtualMessages.gridvirt_filters_history_clear, null,
+                () -> ResultSetSavedFilters.clearRecent(this, entity)));
+        }
+        menu.add(recentMenu);
+        if (!saved.isEmpty()) {
+            JMenu deleteMenu = new JMenu(GridVirtualMessages.gridvirt_filters_delete);
+            for (ResultSetSavedFilters.Entry entry : saved) {
+                deleteMenu.add(createAction(entry.name(), null, () -> ResultSetSavedFilters.delete(this, entity, entry)));
+            }
+            menu.add(deleteMenu);
+        }
+    }
+
+    private void saveCurrentFilter(@NotNull DBSEntity entity) {
+        if (reading) {
+            return;
+        }
+        String name = ResultSetSavedFilters.save(this, entity, dataFilter, getFilterText(dataFilter));
+        if (name != null) {
+            statusMessage = NLS.bind(GridVirtualMessages.gridvirt_filters_saved, name);
+            updateStatus();
+        }
+    }
+
+    /**
+     * Applies a saved filter (its conditions and sort) or a recent filter (its conditions; the sort stays) and reads
+     * the result again. Conditions of columns the result does not have are left out and named in the messages.
+     */
+    private void applySavedFilter(@NotNull ResultSetSavedFilters.Entry entry, boolean withOrder) {
+        DBCExecutionContext context = fetched.source().context();
+        if (reading || context == null || !fetched.source().canRequery()) {
+            return;
+        }
+        DBDAttributeBinding[] bindings = fetched.data().bindings();
+        DBDDataFilter target = ResultSetVirtualColumns.withoutVirtualColumns(dataFilter);
+        for (DBDAttributeConstraint constraint : target.getConstraints()) {
+            ResultSetColumnFilterPopup.clearCondition(constraint);
+            if (withOrder) {
+                constraint.setOrderPosition(0);
+                constraint.setOrderDescending(false);
+            }
+        }
+        ResultSetSavedFilters.Restored restored = ResultSetSavedFilters.restore(entry, target, bindings, context, withOrder);
+        if (!restored.missingColumns().isEmpty()) {
+            host.appendMessage(NLS.bind(GridVirtualMessages.gridvirt_filters_skipped,
+                entry.name().isEmpty() ? ResultSetSavedFilters.shorten(entry.text(), 80) : entry.name(), String.join(", ", restored.missingColumns()))); //$NON-NLS-1$
+        }
+        applyFilter(restored.filter());
+    }
+
+    /**
+     * The conditions and the sort of a filter as SQL, for the saved filter menu.
+     */
+    @NotNull
+    private String getFilterText(@NotNull DBDDataFilter filter) {
+        String conditions = getConditionText(filter);
+        List<String> orders = new ArrayList<>();
+        for (DBDAttributeConstraint order : filter.getOrderConstraints()) {
+            if (!ResultSetVirtualColumns.isVirtual(order)) {
+                orders.add(order.getAttributeName() + (order.isOrderDescending() ? " DESC" : "")); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+        }
+        String orderText = orders.isEmpty() ? "" : NLS.bind(GridVirtualMessages.gridvirt_filters_order, String.join(", ", orders)); //$NON-NLS-1$ //$NON-NLS-2$
+        return conditions.isEmpty() ? orderText : orderText.isEmpty() ? conditions : conditions + "  " + orderText; //$NON-NLS-1$
+    }
+
+    /**
+     * Keeps the conditions the result was just read with in the recent filters of its table.
+     */
+    private void rememberFilter() {
+        DBSEntity entity = getSingleSource();
+        if (entity != null && dataFilter.hasConditions()) {
+            ResultSetSavedFilters.remember(entity, dataFilter, getConditionText(dataFilter));
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Virtual columns (ResultSetVirtualColumns)
+
+    /**
+     * The Virtual Columns submenu: add, edit and remove the calculated columns of the result's table.
+     */
+    private void fillVirtualColumnsMenu(@NotNull JMenu menu, @NotNull JTable table) {
+        menu.removeAll();
+        DBSEntity entity = getSingleSource();
+        if (entity == null) {
+            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
+            none.setEnabled(false);
+            menu.add(none);
+            return;
+        }
+        Action add = createAction(GridVirtualMessages.gridvirt_column_add, null, () -> editVirtualColumn(entity, null, table));
+        add.setEnabled(!reading);
+        menu.add(add);
+        List<DBVEntityAttribute> columns = DBVUtils.getCustomAttributes(entity);
+        if (!columns.isEmpty()) {
+            JMenu edit = new JMenu(GridVirtualMessages.gridvirt_column_edit);
+            JMenu remove = new JMenu(GridVirtualMessages.gridvirt_column_remove);
+            for (DBVEntityAttribute column : columns) {
+                String label = column.getName() + " = " + ResultSetSavedFilters.shorten(CommonUtils.notEmpty(column.getExpression()), 60); //$NON-NLS-1$
+                edit.add(createAction(label, null, () -> editVirtualColumn(entity, column, table)));
+                remove.add(createAction(label, null, () -> {
+                    if (!reading && ResultSetVirtualColumns.remove(this, entity, column)) {
+                        readAgainForVirtualModel(GridVirtualMessages.gridvirt_column_run_again);
+                    }
+                }));
+            }
+            edit.setEnabled(!reading);
+            remove.setEnabled(!reading);
+            menu.add(edit);
+            menu.add(remove);
+        }
+    }
+
+    private void editVirtualColumn(@NotNull DBSEntity entity, @Nullable DBVEntityAttribute column, @NotNull JTable table) {
+        if (!reading && ResultSetVirtualColumns.edit(this, entity, fetched.data().bindings(), column, getPreviewRow(table))) {
+            readAgainForVirtualModel(GridVirtualMessages.gridvirt_column_run_again);
+        }
+    }
+
+    /**
+     * The values of the selected row (else the first), by binding, for the expression preview; LOB contents are
+     * not values the expression sees (NULL, as when the column is calculated).
+     */
+    @Nullable
+    private Object[] getPreviewRow(@NotNull JTable table) {
+        if (table.getRowCount() == 0) {
+            return null;
+        }
+        int row = Math.max(table.getSelectionModel().getLeadSelectionIndex(), 0);
+        if (row >= table.getRowCount()) {
+            row = 0;
+        }
+        Object[] values = new Object[fetched.data().bindings().length];
+        for (int column = 0; column < values.length; column++) {
+            Object value = getCellValue(row, column);
+            values[column] = value instanceof ResultSetCellContent ? null : value;
+        }
+        return values;
     }
 
     //////////////////////////////////////////////////////////

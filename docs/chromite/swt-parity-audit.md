@@ -41,10 +41,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 37 | 13 | 21 | 0 | 2 | 73 |
-| B 편집기 | 78 | 28 | 7 | 0 | 4 | 117 |
+| B 편집기 | 80 | 26 | 7 | 0 | 4 | 117 |
 | C 탐색기·도구 | 29 | 22 | 12 | 0 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 96 | 20 | 7 | 0 | 1 | 124 |
-| **합계** | **240** | **83** | **47** | **0** | **8** | **378** |
+| **합계** | **242** | **81** | **47** | **0** | **8** | **378** |
 
 2026-11-08 다시 셈(devel #165, `chromite/audit-recount`): 네 영역 보고서의 모든 행을 코드와 다시 대조하고 지금 상태 칸으로 셌다("수정함"은 있음으로 셈).
 바로 전 표는 있음 122, 일부 103, 없음 121, 조용히 끊김 24, 의도적 제외 8이었다(병합마다 자기 행만 고쳐 바뀐 행이 빠져 있었다).
@@ -74,7 +74,7 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 6 | 테이블 복사·내보내기 고급 옵션 | C-36, C-37 | 일부(중간·낮음) | 2026-11-08 매핑 규칙, 열 값(변환기), 중복 키 처리, 원본 읽기 설정, 열 고르기, 파일 나누기, 형식 프로필을 넣음([swing-data-transfer.md](swing-data-transfer.md) "고급 옵션"). 남은 것: 새 테이블 속성, 기존 테이블 고르기 대화상자, 외래 키 옮기기, 결과 표의 선택 행만 내보내기, 동시 추출 수 |
 | 7 | 네이티브 백업 고급 | D-P18, D-M13, D-P19, C-46 | 있음(2026-11-08 `chromite/native-backup-advanced`) | 남은 것: MySQL 여러 데이터베이스 한 번에, 도구 계정 암호를 보안 저장소에 두기 |
 | 8 | 다른 도구에서 연결 가져오기 나머지 | A-X4 | 일부(중간) | DbVisualizer, DataGrip, pgAdmin, Navicat, SQuirreL, SQL Workbench/J |
-| 9 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 일부(중간) | WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈 |
+| 9 | 저장한 필터·필터 기록, 가상(계산) 열 | B-R10, B-R22 | 있음(2026-11-08 `chromite/saved-filters-virtual-columns`) | 저장한 필터·최근 필터·가상 열([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)). WHERE 입력 줄은 사용자 요청으로 열 머리글 필터로 바꿈. 남은 것: 모든 열을 한 화면에서 고치는 필터 편집 대화상자 |
 | 10 | Query Manager 보기 | A-C6, B-S26 | 있음(2026-11-08 `chromite/query-manager-view`) | [swing-query-manager.md](swing-query-manager.md). 남은 것: 열 정렬, 행 하나씩 지우기, 쿼리 창 안의 실행 로그 패널(세션·찾기 글자로 대신함) |
 | 11 | 권한 세부와 Altibase 복제 | D-P10, D-M5, D-A7 | 있음(2026-11-08 `chromite/privileges-replication`) | 남은 것: 복제가 켜진 Altibase 서버에서 시작·중지·동기화 실행 확인, MySQL/SQL Server/Oracle 열 단위 권한 |
 
@@ -159,3 +159,6 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   집계에 이 행들의 변화만 더함(A 있음 +1·일부 −1, B 있음 +1·일부 −1, 합계 같이). 상위 목록 10번의 상태·남은 것을 고침.
 - 2026-11-08 5순위 권한 세부와 Altibase 복제(`chromite/privileges-replication`, [swing-security.md](swing-security.md), [altibase.md](altibase.md)): D-P10·D-M5 일부 → 있음,
   D-A7 없음 → 있음. 집계에 이 행들의 변화만 더함(D 있음 +3·일부 −2·없음 −1, 합계 같이). 상위 목록 12번의 상태·남은 것을 고침.
+  집계에 이 행들의 변화만 더함(A 있음 +1·일부 −1, B 있음 +1·일부 −1, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.
+- 2026-11-08 저장한 필터·최근 필터와 가상(계산) 열(`chromite/saved-filters-virtual-columns`, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)):
+  B-R10·B-R22 일부 → 있음. 집계에 이 행들의 변화만 더함(B 있음 +2·일부 −2, 합계 같이). 상위 목록 9번의 상태·남은 것을 고침.

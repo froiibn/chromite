@@ -276,7 +276,8 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
   [swing-followup-fixes.md](swing-followup-fixes.md) "결과 상태 줄과 결과 영역 높이")
 
 - DataGrip 캡처에 있는 것 중 이번 요청 밖: 그리드 아래 가운데 떠 있는 페이지 이동 알약(`1-500 ▾ 501+`), 결과 도구 막대의 "Tx: 자동" 표시. 요청하면 만든다.
-- 열마다 조건 둘 이상(예: `> 10 AND < 20` 대신 범위로 됨, `OR` 조합), 열 사이 OR, 저장한 필터, 필터 기록.
+- 열마다 조건 둘 이상(예: `> 10 AND < 20` 대신 범위로 됨, `OR` 조합), 열 사이 OR. ~~저장한 필터, 필터 기록~~ 2026-11-08 함
+  ([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md): 저장한 필터, 테이블별 최근 필터).
 - 값 목록의 행 수 정렬 전환(지금은 값 순서), 대소문자 구분 선택.
 - ~~결과에 없는 값으로 정렬하는 쿼리(`SELECT id, price * qty AS total … ORDER BY name`)에 계산 열·별칭 열 필터를 걸면 SQL Server에서 여전히 오류 1033이다.~~
   2026-11-08 고침(evening #23): 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 쓴다(위 "결정과 설계"). 남은 경우: UNION·DISTINCT·`*`가 든 쿼리가
@@ -294,5 +295,7 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
   상태 줄 정렬 요약과 쿼리 순서로 되돌리기.
 - 2026-11-08 결과에 없는 것으로 정렬하는 쿼리의 계산 열·별칭 열 필터: 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 씀(SQL Server 오류 1033, evening #23,
   `chromite/followups-3`).
+- 2026-11-08 "남긴 것"의 저장한 필터·필터 기록을 지움([swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)). 가상(계산) 열은
+  머리글 깔때기가 꺼진다(같은 문서 "가상 열").
 - 2026-11-08 Query Library가 값을 바인딩한 결과에서도 열 필터와 값 목록이 됨: `SQLQueryColumnValues`가 결과 컨테이너의 바인딩 방법을 넘겨받음
   ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
