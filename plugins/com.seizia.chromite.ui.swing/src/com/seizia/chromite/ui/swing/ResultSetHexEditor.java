@@ -47,6 +47,7 @@ import java.io.ByteArrayOutputStream;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 이진 값 16진수 편집 (docs/chromite/swing-value-editors.md)
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class ResultSetHexEditor extends JDialog {
 
@@ -154,7 +155,7 @@ final class ResultSetHexEditor extends JDialog {
         root.add(south, BorderLayout.SOUTH);
         setContentPane(root);
         // The cell changes, not the database: OK is the default (Ctrl+Enter, as Enter types a line break), Esc cancels
-        getRootPane().registerKeyboardAction(e -> okButton.doClick(), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_DOWN_MASK),
+        getRootPane().registerKeyboardAction(e -> okButton.doClick(), UiKeys.command(KeyEvent.VK_ENTER),
             JComponent.WHEN_IN_FOCUSED_WINDOW);
         getRootPane().registerKeyboardAction(e -> dispose(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         parse();

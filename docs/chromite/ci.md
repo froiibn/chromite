@@ -186,7 +186,7 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 5. `secure-storage`: `<데이터 폴더>/ChromiteData/secure/secure_storage`가 있고 평문 비밀번호가 없으며 값이 키체인 제공자(`MacOSSecureStorageKeychain`)로 암호화됐는지,
    예전 파일이 옮겨지고 지워졌는지(`credentials-storage.properties`의 `legacy.migrated.…`), 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목이 있는지
    (`security find-generic-password`, `-g`/`-w` 없이 속성만), 디버그 로그에 보안 저장소 오류가 없는지. 키체인 잠금 상태(`security show-keychain-info`)도 남긴다.
-6. `menus`: System Events로 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Options…"(Chromite 앱 메뉴)·"Settings…"·"Preferences…" 중 있는 것을 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
+6. `menus`: System Events로 화면 메뉴 막대의 항목 이름을 읽어 주 창 메뉴(File…Window)가 있는지 보고([mac-ui.md](mac-ui.md), `menu-bar.txt`), 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Options…"(Chromite 앱 메뉴)·"Settings…"·"Preferences…" 중 있는 것을 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
 7. `quit appleevent`: `osascript -e 'tell application id "<번들 ID>" to quit'`(끝내기 처리기). 프로세스가 끝나고 디버그 로그에 `Main window closed`와 `(Swing) shutdown completed`가
    있어야 한다(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남). 새 크래시 보고서가 없어야 한다.
 8. 두 번째 시작(`launch second-launch`, 보안 저장소에서 비밀번호를 읽음) → `quit keystroke`(System Events의 Cmd+Q).
@@ -330,4 +330,5 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 2026-11-08 macOS 시작 수정([platform-startup.md](platform-startup.md))과 함께 `macos-smoke.sh`의 처음 실행된 단계를 고침(디버그 로그 교체, System Events 창 세기·AX 설명,
   트리 선택 키, 보안 저장소 확인). 서명 없는 빌드로 모든 단계 통과(실행 42407606192, "결과 (시작 수정 뒤)").
 - 2026-11-08 시작 화면(`chromite/startup-splash`, [branding.md](branding.md) "시작 화면"): `launch`가 메인 창 뒤의 `Startup times` 줄을 기다리고, 그 전에 보인 시작 화면을 찍고, 메인 창이 뜬 뒤 시작 화면이 닫혔는지 확인한다.
+- 2026-11-09 `macos-smoke.sh menus`가 화면 메뉴 막대의 주 창 메뉴를 확인(앱 변경 #27, `chromite/mac-ui`, [mac-ui.md](mac-ui.md)). 아직 실행하지 않음.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

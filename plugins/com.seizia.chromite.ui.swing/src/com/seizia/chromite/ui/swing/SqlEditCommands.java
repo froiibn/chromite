@@ -71,6 +71,7 @@ import java.util.function.UnaryOperator;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 Edit &gt; Advanced에 블록 주석 토글, 공백 다듬기, 구분 목록, 소스 코드로 복사, 웹에서 찾기({@link SqlTextTools}), 자동 줄 바꿈,
  *   접기 명령. 글자를 바꾸지 않는 명령은 읽기 전용 편집기(DDL 탭)에서도 켬 (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), Edit > Advanced의 두 키 조합·접기 키 글자를 키에서 만듦, macOS 블록 주석 ⌥⌘/
  */
 final class SqlEditCommands {
 
@@ -338,18 +339,18 @@ final class SqlEditCommands {
         JMenu menu = new JMenu(EditorMessages.editor_edit_advanced);
         menu.setMnemonic(KeyEvent.VK_V);
         List<JMenuItem> items = new ArrayList<>();
-        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_format_sql, "Ctrl+K, Ctrl+D", //$NON-NLS-1$
-            KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.FORMAT);
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_format_sql, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D),
+            UiKeys.command(KeyEvent.VK_F, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.FORMAT);
         menu.addSeparator();
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_upper_case, null,
-            KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.UPPER_CASE);
+            UiKeys.command(KeyEvent.VK_U, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.UPPER_CASE);
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_lower_case, null,
-            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.LOWER_CASE);
+            UiKeys.command(KeyEvent.VK_L, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.LOWER_CASE);
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_comment, "Ctrl+K, Ctrl+C", null, SqlEditorPanel.SqlTextArea.Command.COMMENT); //$NON-NLS-1$
-        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_uncomment, "Ctrl+K, Ctrl+U", null, SqlEditorPanel.SqlTextArea.Command.UNCOMMENT); //$NON-NLS-1$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_comment, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_C), null, SqlEditorPanel.SqlTextArea.Command.COMMENT);
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_uncomment, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_U), null, SqlEditorPanel.SqlTextArea.Command.UNCOMMENT);
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_toggle_block_comment, null,
-            KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.TOGGLE_BLOCK_COMMENT);
+            UiKeys.command(KeyEvent.VK_SLASH, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.TOGGLE_BLOCK_COMMENT);
         menu.addSeparator();
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_indent, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), SqlEditorPanel.SqlTextArea.Command.INDENT);
@@ -378,7 +379,7 @@ final class SqlEditCommands {
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_search_web, null, null, SqlEditorPanel.SqlTextArea.Command.SEARCH_WEB);
         menu.addSeparator();
         JCheckBoxMenuItem wordWrapItem = new JCheckBoxMenuItem(EditorMessages.editor_edit_word_wrap);
-        wordWrapItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        wordWrapItem.setAccelerator(UiKeys.command(KeyEvent.VK_W, InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         wordWrapItem.addActionListener(e -> {
             SqlEditorPanel.SqlTextArea textArea = activeTextArea.get();
             if (textArea != null) {
@@ -386,21 +387,21 @@ final class SqlEditCommands {
             }
         });
         menu.add(wordWrapItem);
-        // The folding keys are the text area's own (RSyntaxTextArea: Ctrl and the numeric keypad); the menu shows them
+        // The folding keys are the text area's own (RSyntaxTextArea: the command key and the numeric keypad); the menu shows them
         JMenu foldingMenu = new JMenu(EditorMessages.editor_edit_folding);
-        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse, "Ctrl+NumPad -", null, //$NON-NLS-1$
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse, UiKeys.getText(UiKeys.command(KeyEvent.VK_SUBTRACT)), null,
             SqlEditorPanel.SqlTextArea.Command.COLLAPSE_FOLD);
-        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand, "Ctrl+NumPad +", null, //$NON-NLS-1$
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand, UiKeys.getText(UiKeys.command(KeyEvent.VK_ADD)), null,
             SqlEditorPanel.SqlTextArea.Command.EXPAND_FOLD);
-        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse_all, "Ctrl+NumPad /", null, //$NON-NLS-1$
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse_all, UiKeys.getText(UiKeys.command(KeyEvent.VK_DIVIDE)), null,
             SqlEditorPanel.SqlTextArea.Command.COLLAPSE_ALL_FOLDS);
-        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand_all, "Ctrl+NumPad *", null, //$NON-NLS-1$
+        addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_expand_all, UiKeys.getText(UiKeys.command(KeyEvent.VK_MULTIPLY)), null,
             SqlEditorPanel.SqlTextArea.Command.EXPAND_ALL_FOLDS);
         addItem(foldingMenu, items, activeTextArea, EditorMessages.editor_edit_fold_collapse_comments, null, null,
             SqlEditorPanel.SqlTextArea.Command.COLLAPSE_COMMENT_FOLDS);
         menu.add(foldingMenu);
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_insert_template, "Ctrl+K, Ctrl+X", null, SqlEditorPanel.SqlTextArea.Command.INSERT_TEMPLATE); //$NON-NLS-1$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_insert_template, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_X), null, SqlEditorPanel.SqlTextArea.Command.INSERT_TEMPLATE);
         menu.addMenuListener(new MenuListener() {
             @Override
             public void menuSelected(MenuEvent e) {

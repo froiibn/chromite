@@ -48,6 +48,7 @@ import java.util.Locale;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "레코드 보기")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 그리드처럼 고정폭 글꼴 대신 UI 글꼴 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class ResultSetRecordView extends JPanel {
 
@@ -128,7 +129,7 @@ final class ResultSetRecordView extends JPanel {
             KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK), () -> move(1));
         previousAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_record_previous_tip);
         nextAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_record_next_tip);
-        Action saveAction = ResultSetViewerPanel.createAction(EditorMessages.editor_common_save, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), source::save);
+        Action saveAction = ResultSetViewerPanel.createAction(EditorMessages.editor_common_save, UiKeys.command(KeyEvent.VK_S), source::save);
         for (Action action : new Action[]{previousAction, nextAction, saveAction}) {
             KeyStroke key = (KeyStroke) action.getValue(Action.ACCELERATOR_KEY);
             getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(key, action.getValue(Action.NAME));

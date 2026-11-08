@@ -44,7 +44,6 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -93,6 +92,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 프로시저·함수 제안 설정({@code sqlEditor.completion.showProcedures}, SWT와 같이 기본 끔) 접근자 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  * - 2026-11-07 요청에 쿼리 창의 실행 문맥을 넣음(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  * - 2026-11-08 제안 설명 창(SWT 추가 정보 창). 행 도구 설명은 설명 창이 대신하므로 지움 (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-09 Ctrl+Space는 macOS에서도 Control({@link UiKeys#control}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class SqlCompletionPopup {
 
@@ -216,8 +216,9 @@ final class SqlCompletionPopup {
             }
         });
 
+        // Control+Space on macOS too, like Query > Complete (MainFrame)
         textArea.getInputMap(JComponent.WHEN_FOCUSED).put(
-            KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK), "chromite.complete"); //$NON-NLS-1$
+            UiKeys.control(KeyEvent.VK_SPACE), "chromite.complete"); //$NON-NLS-1$
         textArea.getActionMap().put("chromite.complete", new AbstractAction() { //$NON-NLS-1$
             @Override
             public void actionPerformed(ActionEvent e) {

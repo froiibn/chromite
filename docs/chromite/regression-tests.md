@@ -60,6 +60,7 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 | | `DataSourceMonitorJobIdleTest` (model.test) | 유휴 연결 닫기 시간(연결 → 연결 종류), 마지막 사용(메타데이터 읽기 포함), 열린 트랜잭션·실행 중·에이전트 세션이면 닫지 않음 | 단독 |
 | SQL 실행 안전 | `SqlExecutionDangerDetectionTest` (model.sql.test) | DROP 15종(JSQLParser가 못 읽는 DATABASE, USER, TABLESPACE, PROCEDURE, TRIGGER, 여러 테이블 DROP은 LSM 파서), `isDropStatement`, `ALTER TABLE … DROP COLUMN`은 DROP 아님, TRUNCATE, WHERE 없는 UPDATE/DELETE | 앱 |
 | | `SqlExecutionSafetyTest` (ui.swing.test) | 쿼리 창의 `isDrop` 그대로, SWT 확인 설정 값의 뜻(`always`·`never`는 묻지 않음), 찾은 문장의 줄 번호 | 단독 |
+| 단축키 | `UiKeysTest` (ui.swing.test) | 앱의 Windows 단축키 57개를 macOS 명령 키로: Windows는 그대로 Ctrl, macOS 예외(⌥⌘F, ⇧⌘M, ⇧⌘Z, ⌥⌘/, ⌃`, ⇧⌘D), macOS 시스템 키를 피함, 서로 겹치지 않음, 글자(⇧⌘F / Ctrl+Shift+F), 마우스 수정자 ([shortcuts.md](shortcuts.md)) | 단독 |
 | | `ExecuteScriptsPermissionTest` (registry.test) | "Restrict script execute": 연결 종류의 제한, 연결 자체 목록이 종류 대신 쓰임 | 앱 |
 | 자격 증명 | `ProjectCredentialsStorageTest` (registry.test) | 합치기(같은 연결·노드는 저장소 값이 이김, 예전 파일에만 있는 것은 남김), 저장소를 쓸 수 없으면 예전 파일을 지우지 않고 읽기만 함, 저장 거부, 둘 다 없으면 오류 | 앱 |
 | | `ConnectionTransferFileTest` (registry.test) | 평문·암호화 왕복, 틀린·빠진 암호, 바뀐 암호문 바이트, 바뀐 머리말(AAD), 반복 횟수·태그 길이 범위, 다른 형식·버전·암호 방식, 한글 암호 | 단독 |
@@ -250,6 +251,24 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 | macOS 앱 메뉴 About / Preferences | 기존 대화상자 |
 | Windows에서 사내 CA 인증서를 쓰는 서버에 SSL 연결 | 별도 신뢰 저장소 없이 연결(`WINDOWS-ROOT`) |
 
+### macOS 단축키와 화면 메뉴 막대 (앱 변경 #24, #27)
+
+[shortcuts.md](shortcuts.md), [mac-ui.md](mac-ui.md). macOS 장비가 필요하다(`macos-smoke.yml`의 `menus`가 메뉴 막대 항목 이름만 본다).
+
+| 단계 | 기대 결과 |
+|---|---|
+| 앱을 켜고 화면 맨 위 메뉴 막대를 봄 | Chromite(앱 메뉴), File, Edit, View, Query, Tools, Window. 창 안에는 메뉴 막대가 없음 |
+| File, Tools 메뉴, Help 메뉴 | Exit·Options가 없고 Help 메뉴가 없음. 앱 메뉴에 Chromite 정보, 옵션…(⌘,), Chromite 끝내기(⌘Q) |
+| View > Theme으로 테마를 바꿈 | 메뉴가 화면 메뉴 막대에 그대로 있음 |
+| File > Recent Files, Window 메뉴 | 열 때마다 항목이 채워짐(동적 메뉴), Query 메뉴의 체크 항목(Include Actual Plan)이 상태를 보임 |
+| ⌘N, ⌘S, ⌘F, ⌥⌘F, ⇧⌘M, ⌘Enter, ⇧⌘Z | 새 쿼리, 저장, 찾기, 바꾸기, 실제 계획 토글, 현재 문장 실행, 다시 실행. 한 번씩만 동작(메뉴와 편집기가 두 번 하지 않음) |
+| Control+Enter, Control+H | 아무 명령도 실행하지 않음(예전 키) |
+| 편집기에서 ⌃Space | 자동 완성 목록(입력 소스 단축키를 바꾼 경우). 입력 소스가 바뀌면 [shortcuts.md](shortcuts.md)의 안내대로 |
+| 결과 표에서 ⌘+클릭, 열 머리글 ⌘+클릭 | 행·열 선택에 더함. Control+클릭은 팝업 메뉴 |
+| 도구 막대 단추에 마우스를 올림 | 도구 설명이 ⌘ 기호로 키를 보임(예: "Save all … (⇧⌘S)") |
+| 새 버전이 있을 때 | 업데이트 단추가 상태 표시줄 오른쪽 끝에 보이고 누르면 메뉴·업데이트 창 |
+| Windows에서 같은 단계 | 메뉴가 창 안(제목 표시줄), Exit·Options·About 있음, 단축키·도구 설명 Ctrl, 업데이트 단추는 제목 표시줄 오른쪽 |
+
 ### 설치와 브랜딩 (#107, #123, #127)
 
 | 단계 | 기대 결과 |
@@ -316,3 +335,4 @@ Docker 시험 DB가 필요한 테스트는 없다.
   Oracle 계획 힌트 정규식의 StackOverflowError 결함 발견, 기존 테스트 실패 16개의 원인)
 - 2026-11-08 찾은 실패를 고침: `PlanTools`의 앞 주석 건너뛰기(반복문), Oracle `MAX_STRING_SIZE` 조회의 모든 실패를 4000으로, `ConnectJobTest`를 #131 동작으로,
   `AISettingsManagerTest`에 메모리 보안 저장소, 심볼릭 링크 시험 건너뛰기. 둘째 실행 결과(실패 0)
+- 2026-11-09 `UiKeysTest`와 "macOS 단축키와 화면 메뉴 막대" 확인 목록(앱 변경 #24, #27, `chromite/mac-ui`)

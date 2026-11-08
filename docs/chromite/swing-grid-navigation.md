@@ -134,7 +134,7 @@ SWT: `AggregateColumnsPanel`.
 
 SWT: `PlainTextPresentation`(Ctrl+` switchPresentation).
 
-- 상태 줄 "텍스트"(Ctrl+`)가 표 자리에 고정폭 글자로 열을 맞춘 결과를 보인다(머리글, `-` 줄, 숫자 오른쪽 맞춤, NULL은 `NULL`). 보이는 열과 표의 순서를 따른다.
+- 상태 줄 "텍스트"(Ctrl+`, macOS에서도 Control+`: ⌘`는 창 순환)가 표 자리에 고정폭 글자로 열을 맞춘 결과를 보인다(머리글, `-` 줄, 숫자 오른쪽 맞춤, NULL은 `NULL`). 보이는 열과 표의 순서를 따른다.
 - 열 너비는 가장 긴 값까지 최대 255자(SWT 기본), 한글·한자는 두 칸으로 센다. 20,000행까지 쓴다. 읽기 전용이고 골라 복사한다.
   코드 글꼴의 한글 글자 폭이 정확히 영문 두 글자가 아니어서 한글이 든 줄은 화면에서 조금 어긋난다(복사한 글은 맞음, 2026-11-08 PostgreSQL에서 확인).
 
@@ -216,3 +216,4 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
   찾기, 집계 패널, 텍스트 보기, 전체 행 수, 오류 위치로 가기. `rebindFilter`가 여러 열 키의 OR 형식(`useDisjunctiveNormalForm`)을 옮김.
   레코드 보기의 줄을 모델 열로 씀.
 - 2026-11-08 가상(계산) 열을 [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)에서 함: "가상 키"·"남긴 것"·upstream 대비 변경점을 고침.
+- 2026-11-09 텍스트 보기 키는 macOS에서도 Control+`(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).

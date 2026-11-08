@@ -31,8 +31,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 import java.net.URL;
 import java.util.List;
 
@@ -53,7 +51,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: Welcome 탭을 빈 문서 영역으로 바꿈 (docs/chromite/swing-frontend.md "빈 문서 영역")
- * - 2026-11-07 단축키 글자({@link #getKeyText})를 SQL Editor 도구 막대의 Commit / Roll Back 도구 설명도 씀 (docs/chromite/transactions.md)
+ * - 2026-11-07 단축키 글자({@code getKeyText})를 SQL Editor 도구 막대의 Commit / Roll Back 도구 설명도 씀 (docs/chromite/transactions.md)
+ * - 2026-11-09 단축키 글자는 {@link UiKeys#getText}(macOS 기호 ⌘⇧)로 옮기고 {@code getKeyText}는 지움 (docs/chromite/shortcuts.md)
  */
 final class WelcomePanel extends JPanel {
 
@@ -93,7 +92,7 @@ final class WelcomePanel extends JPanel {
             cell.gridx = 1;
             cell.anchor = GridBagConstraints.LINE_START;
             cell.insets = new Insets(UIScale.scale(4), 0, 0, 0);
-            JLabel keyLabel = new JLabel(getKeyText(accelerator));
+            JLabel keyLabel = new JLabel(UiKeys.getText(accelerator));
             keyLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
             shortcutTable.add(keyLabel, cell);
         }
@@ -133,16 +132,6 @@ final class WelcomePanel extends JPanel {
     private static String getActionName(@NotNull Action action) {
         String name = String.valueOf(action.getValue(Action.NAME));
         return name.endsWith("…") ? name.substring(0, name.length() - 1) : name; //$NON-NLS-1$
-    }
-
-    /**
-     * Accelerator text as the menus show it (Ctrl+Alt+G); also for tool tips whose shortcut differs by platform.
-     */
-    @NotNull
-    static String getKeyText(@NotNull KeyStroke keyStroke) {
-        String modifiers = InputEvent.getModifiersExText(keyStroke.getModifiers());
-        String key = KeyEvent.getKeyText(keyStroke.getKeyCode());
-        return modifiers.isEmpty() ? key : modifiers + "+" + key; //$NON-NLS-1$
     }
 
     /**

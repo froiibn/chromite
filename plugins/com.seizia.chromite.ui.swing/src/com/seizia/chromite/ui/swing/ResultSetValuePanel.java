@@ -105,6 +105,7 @@ import java.util.Locale;
  * - 2026-11-08 글자 LOB 편집, JSON·XML 정리(Format)와 검사, 파일 불러오기·저장 단추 (docs/chromite/swing-grid-editing.md "JSON·XML 편집기")
  * - 2026-11-08 NULL 배열·구조체(값이 없는 값 객체)를 NULL로 보임: 편집 모델이 배열·구조체 값을 남기게 되어 "NULL" 글자로 보이던 것
  *   (docs/chromite/swing-value-editors.md)
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 도구 설명의 키 글자
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -263,15 +264,15 @@ final class ResultSetValuePanel extends JPanel {
         cards.add(messageLabel, CARD_MESSAGE);
 
         Action applyAction = ResultSetViewerPanel.createAction(EditorMessages.editor_value_apply,
-            KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), this::applyText);
-        applyAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_value_apply_tip);
+            UiKeys.command(KeyEvent.VK_ENTER), this::applyText);
+        applyAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(EditorMessages.editor_value_apply_tip, applyAction));
         Action revertAction = ResultSetViewerPanel.createAction(EditorMessages.editor_value_revert, null, this::rerender);
         revertAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_value_revert_tip);
         textArea.getInputMap().put((KeyStroke) applyAction.getValue(Action.ACCELERATOR_KEY), "chromite.applyValue"); //$NON-NLS-1$
         textArea.getActionMap().put("chromite.applyValue", applyAction); //$NON-NLS-1$
         Action formatAction = ResultSetViewerPanel.createAction(GridEditMessages.gridedit_value_format,
-            KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::formatText);
-        formatAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_value_format_tip);
+            UiKeys.command(KeyEvent.VK_F, InputEvent.SHIFT_DOWN_MASK), this::formatText);
+        formatAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(GridEditMessages.gridedit_value_format_tip, formatAction));
         textArea.getInputMap().put((KeyStroke) formatAction.getValue(Action.ACCELERATOR_KEY), "chromite.formatValue"); //$NON-NLS-1$
         textArea.getActionMap().put("chromite.formatValue", formatAction); //$NON-NLS-1$
         // JSON and XML are checked a moment after typing stops

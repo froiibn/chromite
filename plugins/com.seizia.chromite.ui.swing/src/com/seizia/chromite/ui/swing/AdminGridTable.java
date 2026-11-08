@@ -33,7 +33,6 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
@@ -57,6 +56,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 공간 사용량·서버 로그 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class AdminGridTable extends JTable {
 
@@ -88,9 +88,9 @@ final class AdminGridTable extends JTable {
 
         Action copy = createAction(AdminViewMessages.admin_copy, () -> copy(false, false));
         // The table's own Ctrl+C copies toString() of the raw values; copy what is shown instead
-        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK), "chromite.copy"); //$NON-NLS-1$
+        getInputMap(WHEN_FOCUSED).put(UiKeys.command(KeyEvent.VK_C), "chromite.copy"); //$NON-NLS-1$
         getActionMap().put("chromite.copy", copy); //$NON-NLS-1$
-        copy.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
+        copy.putValue(Action.ACCELERATOR_KEY, UiKeys.command(KeyEvent.VK_C));
         JPopupMenu menu = new JPopupMenu();
         menu.add(copy);
         menu.add(createAction(AdminViewMessages.admin_copy_headers, () -> copy(true, false)));

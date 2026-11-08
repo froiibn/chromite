@@ -315,6 +315,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
  * - 2026-11-08 연결 콤보 폭 260 → 220(앱 변경 #3), 연결·DB 콤보의 도구 설명에 고른 항목의 전체 이름(긴 이름은 콤보에서 말줄임표)
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-09 편집기 키를 플랫폼 명령 키로({@link UiKeys}, macOS Command, Replace ⌥⌘F, 블록 주석 ⌥⌘/), 두 키 조합의 글자는
+ *   {@link SqlTextArea#getChordText}가 만듦 (docs/chromite/shortcuts.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -2794,12 +2796,17 @@ final class SqlEditorPanel extends JPanel {
             SqlFoldParser.install();
         }
 
+        /**
+         * First key of the two-key chords (SSMS Ctrl+K, Ctrl+D; Cmd+K, Cmd+D on macOS).
+         */
+        private static final int CHORD_KEY = KeyEvent.VK_K;
+
         // EDT only; read by the token maker while painting
         private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
         // EDT only: connection for the dialect of the editing commands
         @Nullable
         private DBPDataSourceContainer container;
-        // Ctrl+K was pressed; the next key completes the chord (Ctrl+K Ctrl+D etc.)
+        // Ctrl+K (Cmd+K on macOS) was pressed; the next key completes the chord (Ctrl+K Ctrl+D etc.)
         private boolean chordPending;
         @Nullable
         private SqlTemplates.Session templateSession;
@@ -2813,33 +2820,35 @@ final class SqlEditorPanel extends JPanel {
             // Other occurrences of the name at the caret (the theme's markOccurrencesHighlight color)
             setMarkOccurrences(true);
             setTabSize(4);
-            // SSMS find keys (Edit menu); bound here so they win over the text area's own keys (Ctrl+H deletes backwards)
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.find", //$NON-NLS-1$
+            // SSMS find keys (Edit menu, the same platform keys: Replace is Option+Cmd+F on macOS); bound here so they win over
+            // the text area's own keys (Ctrl+H deletes backwards)
+            bindKey(UiKeys.command(KeyEvent.VK_F), "chromite.find", //$NON-NLS-1$
                 () -> FindReplaceDialog.open(this, false));
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK), "chromite.replace", //$NON-NLS-1$
+            bindKey(UiKeys.command(KeyEvent.VK_H), "chromite.replace", //$NON-NLS-1$
                 () -> FindReplaceDialog.open(this, true));
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0), "chromite.findNext", //$NON-NLS-1$
                 () -> FindReplaceDialog.findAgain(this, true));
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK), "chromite.findPrevious", //$NON-NLS-1$
                 () -> FindReplaceDialog.findAgain(this, false));
             // Editing commands (Edit > Advanced shows the same keys)
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.CTRL_DOWN_MASK), "chromite.chord", //$NON-NLS-1$
+            bindKey(UiKeys.command(CHORD_KEY), "chromite.chord", //$NON-NLS-1$
                 () -> chordPending = true);
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.format", //$NON-NLS-1$
+            bindKey(UiKeys.command(KeyEvent.VK_F, InputEvent.SHIFT_DOWN_MASK), "chromite.format", //$NON-NLS-1$
                 () -> runCommand(Command.FORMAT));
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.upperCase", //$NON-NLS-1$
+            bindKey(UiKeys.command(KeyEvent.VK_U, InputEvent.SHIFT_DOWN_MASK), "chromite.upperCase", //$NON-NLS-1$
                 () -> runCommand(Command.UPPER_CASE));
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.lowerCase", //$NON-NLS-1$
+            bindKey(UiKeys.command(KeyEvent.VK_L, InputEvent.SHIFT_DOWN_MASK), "chromite.lowerCase", //$NON-NLS-1$
                 () -> runCommand(Command.LOWER_CASE));
             // The keys of the SWT editor
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.blockComment", //$NON-NLS-1$
+            bindKey(UiKeys.command(KeyEvent.VK_SLASH, InputEvent.SHIFT_DOWN_MASK), "chromite.blockComment", //$NON-NLS-1$
                 () -> runCommand(Command.TOGGLE_BLOCK_COMMENT));
-            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+            bindKey(UiKeys.command(KeyEvent.VK_W, InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
                 "chromite.wordWrap", () -> runCommand(Command.WORD_WRAP)); //$NON-NLS-1$
             // Tab: next template variable, a template name before the caret, else the text area's own Tab (indent)
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), "chromite.tab", this::tab); //$NON-NLS-1$
-            // Ctrl+Enter is Query > Execute Current Statement (main window); the text area's own word completion would take it
-            getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), "none"); //$NON-NLS-1$
+            // Ctrl+Enter (Cmd+Enter on macOS, like the text area's own key) is Query > Execute Current Statement (main window);
+            // the text area's own word completion would take it
+            getInputMap(JComponent.WHEN_FOCUSED).put(UiKeys.command(KeyEvent.VK_ENTER), "none"); //$NON-NLS-1$
             // Key listeners run before the key bindings: the second key of a chord never reaches them
             addKeyListener(new KeyAdapter() {
                 @Override
@@ -2928,6 +2937,15 @@ final class SqlEditorPanel extends JPanel {
             }
         }
 
+        /**
+         * Text of the chord whose second key is the command key and {@code keyCode} ("Ctrl+K, Ctrl+D", "⌘K, ⌘D"), for menus and
+         * tool tips.
+         */
+        @NotNull
+        static String getChordText(int keyCode) {
+            return UiKeys.getChordText(UiKeys.command(CHORD_KEY), UiKeys.command(keyCode));
+        }
+
         private void handleChordKey(@NotNull KeyEvent e) {
             if (!chordPending) {
                 return;
@@ -2938,7 +2956,7 @@ final class SqlEditorPanel extends JPanel {
             }
             chordPending = false;
             e.consume();
-            if (!e.isControlDown()) {
+            if (!UiKeys.isCommandDown(e)) {
                 return;
             }
             switch (code) {

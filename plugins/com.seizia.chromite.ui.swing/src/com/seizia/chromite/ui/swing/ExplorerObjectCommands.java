@@ -57,6 +57,8 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -106,6 +108,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 새 개체의 암호를 미리 보기에서 가리고 저장하는 동안에만 넣음({@link Secrets}, swing-create-objects.md "새 사용자의 암호")
  * - 2026-11-08 {@link #runChange}를 속성 편집({@link ObjectPropertyEdits})도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림
  *   (docs/chromite/swing-object-properties.md)
+ * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  */
 final class ExplorerObjectCommands {
 
@@ -215,7 +218,7 @@ final class ExplorerObjectCommands {
             }
         };
         copyNameAction.putValue(Action.SHORT_DESCRIPTION, NavigatorMessages.navigator_copy_name_tip);
-        copyNameAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("ctrl C")); //$NON-NLS-1$
+        copyNameAction.putValue(Action.ACCELERATOR_KEY, UiKeys.command(KeyEvent.VK_C));
         copyQualifiedNameAction = new AbstractAction(NavigatorMessages.navigator_copy_qualified_name) {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -223,7 +226,7 @@ final class ExplorerObjectCommands {
             }
         };
         copyQualifiedNameAction.putValue(Action.SHORT_DESCRIPTION, NavigatorMessages.navigator_copy_qualified_name_tip);
-        copyQualifiedNameAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("ctrl shift C")); //$NON-NLS-1$
+        copyQualifiedNameAction.putValue(Action.ACCELERATOR_KEY, UiKeys.command(KeyEvent.VK_C, InputEvent.SHIFT_DOWN_MASK));
         generateSqlMenu.setToolTipText(NavigatorMessages.navigator_generate_sql_tip);
     }
 
