@@ -43,13 +43,14 @@ import java.util.List;
  * 설계: 공간 사용량 탭({@link DiskUsagePanel})과 같은 모양이다(도구 막대의 범위·개수, 권한 안내 줄, 표마다 하위 탭, 상태 줄).
  * <ul>
  *     <li>DB별 질의는 모델의 {@link MaintenanceDialect}가 하고, 목록은 Activity Monitor의 서버 연결({@link AdminConnection})로 EDT 밖에서 읽는다(읽기 전용).</li>
- *     <li>행을 두 번 누르거나 "작업 실행…"을 누르면 그 행의 권장 작업으로 {@link MaintenanceDialog}를 연다. 작업 실행은 대화상자가 자기 연결에서 하고
+ *     <li>행을 두 번 누르거나 "작업 실행"을 누르면 그 행의 권장 작업으로 {@link MaintenanceDialog}를 연다. 작업 실행은 대화상자가 자기 연결에서 하고
  *     (이 탭의 연결이 아님), 끝나면 이 탭을 다시 읽어 전후 숫자를 보인다.</li>
  *     <li>목록은 크고 자주 바뀌지 않아 자동 새로 고침이 없다. 탭을 처음 볼 때, Refresh, 범위·개수를 바꿀 때, 작업이 끝날 때 읽는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-09 한국어 단추 이름의 끝 말줄임표를 없앤 것에 맞춰 주석의 단추 이름을 고침 (docs/chromite/swing-l10n.md)
  */
 final class MaintenancePanel extends JPanel {
 

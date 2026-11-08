@@ -400,6 +400,7 @@ public class ConnectionMessages extends NLS {
     public static String sessions_open_query_tip;
     public static String sessions_action_confirm_one;
     public static String sessions_action_confirm_many;
+    public static String sessions_action_running;
     public static String sessions_action_error_one;
     public static String sessions_action_error_many;
     public static String sessions_details_error;

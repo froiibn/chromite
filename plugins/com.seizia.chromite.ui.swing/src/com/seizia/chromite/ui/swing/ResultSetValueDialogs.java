@@ -52,7 +52,7 @@ import java.util.Set;
 
 /**
  * 결과 칸 하나를 대화상자로 고치는 값 편집기: 참조 값 고르기, MySQL/MariaDB {@code SET} 값 고르기, 배열·구조체·hstore 항목 편집.
- * 그리드의 "값 편집…"(Shift+Enter)과 칸 편집기의 단추가 연다({@link ResultSetGrid}).
+ * 그리드의 "값 편집"(Shift+Enter)과 칸 편집기의 단추가 연다({@link ResultSetGrid}).
  *
  * 설계:
  * <ul>
@@ -71,6 +71,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 참조 값·SET·배열·구조체·hstore 편집기 (docs/chromite/swing-value-editors.md)
+ * - 2026-11-09 한국어 메뉴 이름의 끝 말줄임표를 없앤 것에 맞춰 주석의 메뉴 이름을 고침 (docs/chromite/swing-l10n.md)
  */
 final class ResultSetValueDialogs {
 

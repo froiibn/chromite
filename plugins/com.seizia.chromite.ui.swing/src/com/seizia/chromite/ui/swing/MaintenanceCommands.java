@@ -32,7 +32,7 @@ import java.awt.event.ActionEvent;
 import java.util.function.Supplier;
 
 /**
- * Object Explorer 오른쪽 클릭 메뉴의 "유지 관리…" 명령: 테이블·인덱스·스키마·데이터베이스 노드에서 {@link MaintenanceDialog}를 연다.
+ * Object Explorer 오른쪽 클릭 메뉴의 "유지 관리" 명령: 테이블·인덱스·스키마·데이터베이스 노드에서 {@link MaintenanceDialog}를 연다.
  *
  * 설계: 여러 작업이 함께 고치는 {@code ObjectExplorerPanel}에는 이 클래스를 부르는 줄만 둔다(만들기, 메뉴에 넣기, 선택에 따라 켜기).
  * 어떤 노드에 할 수 있는지는 모델의 DB별 방언({@link MaintenanceDialect#getTarget})이 정한다(서버를 읽지 않고 노드의 종류만 본다).
@@ -40,6 +40,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-09 한국어 메뉴 이름의 끝 말줄임표를 없앤 것에 맞춰 주석의 메뉴 이름을 고침 (docs/chromite/swing-l10n.md)
  */
 final class MaintenanceCommands {
 
