@@ -43,6 +43,16 @@
  *   the light/dark theme, like every other page. Without the "motion" class (no script, reduced motion)
  *   each scene is a plain section with all of its lines shown. The feature tour, its index, scroll
  *   snapping and the hero screenshot (.tour, .feature, .shot) are removed.
+ * - 2026-11-08 The stage reveals instead of following the scroll (user: the scroll-linked motion felt janky):
+ *   scenes are normal sections (.scene-body, the .lines list fully shown), and when a scene comes into view
+ *   reveal.js adds .is-in and its parts fade and rise once with short CSS transitions of transform and
+ *   opacity. Hidden states exist only under html.reveal and only with prefers-reduced-motion:
+ *   no-preference, so no script, a failed script or "reduce motion" shows everything at once. The zooms
+ *   into the screenshots became highlight boxes (.mark) placed in % per language page. The tall scenes,
+ *   sticky pins, stacked lines, the tilted hero rise and the hero statement (.motion, .pin, .slot,
+ *   .hero-statement) are removed.
+ * - 2026-11-08 The hero carries the user's headline and subline (.hero-sub, .hero-lead) instead of a
+ *   driver count, and two short proof groups under it (.hero-proof: easy and safe).
  */
 @font-face {
   font-family: "Pretendard";
@@ -262,8 +272,8 @@ li + li { margin-top: 6px; }
 .spec dt { font-weight: 600; padding-right: 16px; }
 .spec dd { color: var(--ink-2); }
 
-/* home: the stage (stage.js). Always dark: its screenshots are the app's dark theme. Without the "motion"
-   class each scene is a plain section; with it, a tall scene whose sticky .pin is one view high. */
+/* home: the stage. Always dark: its screenshots are the app's dark theme. Each scene is a plain section;
+   reveal.js only adds the one-time reveal (below). */
 .stage {
   --stage-bg: #000000;
   --stage-ink: #f7f8fa;
@@ -280,52 +290,81 @@ li + li { margin-top: 6px; }
 .stage a.btn { color: var(--button-ink); }
 .stage figure { margin: 0; }
 .stage code { background: #2b2d30; }
-.pin {
+.scene-body {
   display: grid;
   gap: 28px 64px;
   max-width: var(--page);
   margin: 0 auto;
   padding: 120px var(--gutter) 0;
 }
-.scene:last-child .pin { padding-bottom: 120px; }
+.scene:last-child .scene-body { padding-bottom: 120px; }
 
-/* the hero: the name, then the real window tilting up into place */
-.scene-hero .pin { padding-top: 96px; }
+/* the hero: the name, the headline and subline, the download button, the proof groups, then the real window */
+.scene-hero .scene-body { padding-top: 96px; }
 .hero-copy h1 { font-size: clamp(76px, 14vw, 208px); line-height: 0.9; letter-spacing: -0.055em; margin-left: -0.04em; }
-.hero-sub { margin-top: 14px; font-size: clamp(22px, 2.4vw, 34px); line-height: 1.25; letter-spacing: -0.02em; color: var(--stage-ink-2); }
+.hero-sub { margin-top: 20px; font-size: clamp(26px, 3.2vw, 46px); font-weight: 600; line-height: 1.2; letter-spacing: -0.03em; max-width: 22em; }
+.hero-lead { margin-top: 14px; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.5; color: var(--stage-ink-2); max-width: 36em; }
 .hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 32px; font-size: 15px; color: var(--stage-ink-2); }
 .hero-cta .btn { min-height: 44px; padding: 0 22px; font-size: 16px; }
-.hero-shot { width: min(100%, 1180px); justify-self: center; perspective: 1800px; }
+/* what backs the headline: the easy side (Query Library) and the safe side (transactions, confirmations) */
+.hero-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 64px; max-width: 1000px; }
+.proof-title { padding-bottom: 8px; border-bottom: 1px solid var(--stage-line); font-size: 15px; font-weight: 600; }
+.proof ul { margin: 12px 0 0; padding: 0; list-style: none; font-size: 15px; line-height: 1.55; color: var(--stage-ink-2); }
+.proof li + li { margin-top: 8px; }
+.hero-shot { width: min(100%, 1180px); justify-self: center; }
 .hero-shot img {
   display: block;
   width: 100%;
   height: auto;
   border: 1px solid var(--stage-line);
   border-radius: 12px;
-  transform-origin: 50% 100%;
 }
-.hero-statement { font-size: clamp(22px, 2.5vw, 36px); line-height: 1.3; letter-spacing: -0.025em; font-weight: 600; max-width: 30em; justify-self: center; text-align: center; }
 
 /* a strength: heading, picture, lines */
 .scene-head h2 { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.1; letter-spacing: -0.035em; max-width: 15em; }
 .scene-lead { margin-top: 16px; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.55; color: var(--stage-ink-2); max-width: 36em; }
 .scene-head { grid-area: head; }
 .scene-media { grid-area: media; min-width: 0; }
-.slot { grid-area: slot; }
-.scene-wide .pin { grid-template-areas: "head" "media" "slot"; }
-.scene-side .pin { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "head media" "slot media"; align-items: start; }
+.lines { grid-area: lines; }
+.scene-wide .scene-body { grid-template-areas: "head" "media" "lines"; }
+.scene-side .scene-body { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "head media" "lines media"; align-items: start; }
 .scene-side .scene-head { align-self: end; }
 .scene-side .scene-media { align-self: center; justify-self: center; }
 
-/* the picture is clipped by its frame, so a zoom (a transform of the img) stays inside the window's edges */
-.frame { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
-.frame img { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--media-max); transform-origin: 0 0; }
+/* the frame is exactly the picture's size, so a highlight box placed in % lands on the same spot of the
+   screenshot at every width */
+.frame { position: relative; display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
+.frame img { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--media-max); }
 
-.slot { margin: 0; padding: 0; list-style: none; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.45; letter-spacing: -0.012em; max-width: 34em; }
-.slot li + li { margin-top: 18px; }
-.slot.tasks li { color: var(--stage-ink-2); }
-.slot.tasks strong { display: block; margin-bottom: 4px; font-weight: 600; color: var(--stage-ink); }
-.slot .small { font-size: 0.8em; color: var(--stage-ink-2); }
+/* a highlight box over the part of the screenshot a scene is about, with a short label beside it. The
+   positions are per screenshot, and the Korean and English screenshots differ, so each page language has
+   its own. The label sits above the box unless the class says otherwise: end (above, right-aligned), below,
+   side (right of the box) or inside (inside, at the right end). */
+.mark { position: absolute; border: 2px solid #6f9cf9; border-radius: 6px; box-shadow: 0 0 0 3px rgba(111, 156, 249, 0.25); pointer-events: none; }
+.mark > span { position: absolute; left: -2px; bottom: calc(100% + 6px); padding: 1px 8px; border-radius: 4px; background: var(--button); color: #ffffff; font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+.mark.end > span { left: auto; right: -2px; }
+.mark.below > span { bottom: auto; top: calc(100% + 6px); }
+.mark.side > span { bottom: auto; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); }
+.mark.inside > span { bottom: auto; left: auto; right: 6px; top: 50%; transform: translateY(-50%); }
+#transactions .mark { left: 39.5%; top: 90%; width: 29.4%; height: 7.9%; }
+:lang(ko) #transactions .mark { left: 52%; width: 22.5%; }
+#query-library .mark { left: 75%; top: 28.9%; width: 13.2%; height: 4.9%; }
+:lang(ko) #query-library .mark { left: 79.8%; top: 31.6%; width: 12.2%; height: 5.4%; }
+#closed-networks .mark { left: 4.4%; top: 42%; width: 49.2%; height: 4.3%; }
+#closed-networks .mark + .mark { top: 59.2%; }
+:lang(ko) #closed-networks .mark { top: 41.9%; }
+:lang(ko) #closed-networks .mark + .mark { top: 59.1%; }
+#debugger .mark { left: 0.2%; top: 49.9%; width: 35.4%; height: 3.1%; }
+:lang(ko) #debugger .mark { left: 0.1%; top: 52.5%; width: 33.5%; height: 3.2%; }
+#administration .mark { left: 26%; top: 18.7%; width: 62.9%; height: 7.2%; }
+:lang(ko) #administration .mark { left: 19.7%; top: 19.9%; width: 76.6%; height: 7.7%; }
+#passwords .mark { left: 2.7%; top: 72%; width: 94.6%; height: 11%; }
+:lang(ko) #passwords .mark { top: 73.9%; height: 11.3%; }
+
+.lines { margin: 0; padding: 0; list-style: none; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.45; letter-spacing: -0.012em; max-width: 34em; }
+.lines li + li { margin-top: 18px; }
+.lines.tasks li { color: var(--stage-ink-2); }
+.lines.tasks strong { display: block; margin-bottom: 4px; font-weight: 600; color: var(--stage-ink); }
 
 /* open source: the repository instead of a picture */
 .oss { width: 100%; max-width: 420px; }
@@ -337,36 +376,45 @@ li + li { margin-top: 6px; }
 .oss-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 15px; }
 .oss-links li + li { margin-top: 0; }
 
-/* motion mode: tall scenes, sticky pins, lines stacked in one cell (stage.js moves them). The lengths give
-   each line a little under half a view of scrolling. */
-.motion .scene { height: 280vh; }
-.motion .scene-hero { height: 230vh; }
-.motion .scene.n2 { height: 190vh; }
-.motion .scene.n3 { height: 235vh; }
-.motion .scene.n6 { height: 370vh; }
-.motion .scene:last-child .pin,
-.motion .pin {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100svh;
-  overflow: hidden;
-  align-content: center;
-  padding-top: 7vh;
-  padding-bottom: 6vh;
+/* reveal on enter (reveal.js adds "reveal" to html, then "is-in" to a scene the first time it comes into
+   view): the heading rises in, the picture follows with a slight scale, the lines come one after another and
+   the highlight box appears last. Time-based transitions of transform and opacity only, played once, so
+   nothing is tied to the scroll position and nothing runs while scrolling. The hidden states are only for
+   screens that allow motion; printing, "reduce motion" or a page without the class shows everything. No
+   will-change: a transition gets its own layer while it runs and gives it back when it ends. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .reveal .hero-copy > *,
+  .reveal .hero-proof,
+  .reveal .scene-head,
+  .reveal .scene-media,
+  .reveal .hero-shot,
+  .reveal .lines > li {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+    transition: opacity 0.5s ease-out, transform 0.6s cubic-bezier(0.2, 0.65, 0.25, 1);
+  }
+  .reveal .scene-media,
+  .reveal .hero-shot { transform: translate3d(0, 16px, 0) scale(0.98); transition-delay: 0.12s; }
+  .reveal .hero-copy > :nth-child(2) { transition-delay: 0.08s; }
+  .reveal .hero-copy > :nth-child(3) { transition-delay: 0.16s; }
+  .reveal .hero-copy > :nth-child(4) { transition-delay: 0.24s; }
+  .reveal .hero-proof { transition-delay: 0.32s; }
+  .reveal .hero-shot { transition-delay: 0.4s; }
+  .reveal .lines > li:nth-child(1) { transition-delay: 0.24s; }
+  .reveal .lines > li:nth-child(2) { transition-delay: 0.32s; }
+  .reveal .lines > li:nth-child(3) { transition-delay: 0.4s; }
+  .reveal .lines > li:nth-child(4) { transition-delay: 0.48s; }
+  .reveal .lines > li:nth-child(5) { transition-delay: 0.56s; }
+  .reveal .lines > li:nth-child(n+6) { transition-delay: 0.64s; }
+  .reveal .mark { opacity: 0; transition: opacity 0.4s ease-out 0.7s; }
+  .reveal .is-in .hero-copy > *,
+  .reveal .is-in .hero-proof,
+  .reveal .is-in .scene-head,
+  .reveal .is-in .scene-media,
+  .reveal .is-in .hero-shot,
+  .reveal .is-in .lines > li { opacity: 1; transform: none; }
+  .reveal .is-in .mark { opacity: 1; }
 }
-.motion .scene-wide { --media-max: calc(100svh - 400px); }
-.motion .scene-side { --media-max: calc(100svh - 200px); }
-.motion .slot { display: grid; }
-.motion .slot li { grid-area: 1 / 1; margin: 0; }
-.motion [data-t],
-.motion .slot li { will-change: transform, opacity; }
-.motion .scene-hero .pin { grid-template-areas: "stack"; grid-template-rows: minmax(0, 1fr); align-content: stretch; }
-.motion .scene-hero .pin > * { grid-area: stack; }
-.motion .hero-copy { align-self: start; padding-top: 4vh; }
-.motion .hero-shot { align-self: center; }
-.motion .hero-shot { width: min(100%, 1180px, calc((100svh - 300px) * 1.598)); }
-.motion .hero-statement { align-self: end; }
 
 /* text pages */
 .page-head { padding: 56px 0 40px; }
@@ -421,16 +469,14 @@ li + li { margin-top: 6px; }
 
 /* the stage on narrower screens: text, picture and lines in one column */
 @media (max-width: 860px) {
-  .scene-side .pin { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "media" "slot"; }
+  .scene-side .scene-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "media" "lines"; }
   .scene-side .scene-media { justify-self: start; }
   .oss { max-width: none; }
-  .motion .scene-wide { --media-max: max(160px, calc(100svh - 430px)); }
-  .motion .scene-side { --media-max: max(180px, calc(100svh - 520px)); }
+  .hero-proof { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
-  .pin { padding-top: 88px; gap: 24px; }
-  .scene-hero .pin { padding-top: 64px; }
-  .motion .pin { padding-top: 5vh; padding-bottom: 4vh; }
-  .motion .scene-side .scene-lead { font-size: 15px; }
-  .motion .hero-shot { width: min(100%, calc((100svh - 360px) * 1.598)); }
+  .scene-body { padding-top: 88px; gap: 24px; }
+  .scene-hero .scene-body { padding-top: 64px; }
+  /* on a phone the screenshot is about a third of its size: the labels would cover what they point at */
+  .mark > span { display: none; }
 }

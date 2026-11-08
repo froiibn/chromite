@@ -8,19 +8,26 @@ image per language. They are derived from the same vector sources as the app ico
 gen_app_icons.py (the size-tier tile drawings, resvg rendering) instead of resizing one bitmap: a 16 px
 favicon is the 16 px tier drawn on its own pixel grid, the same image the app uses for 16 px.
 
-The share image is the logo lockup from chromite_logo_pack/, one line of copy in Pretendard (the site's
-font) and a crop of the real app screenshot that the home page already shows (site/assets/shots). The copy
-names the driver count, not a list of databases: a list of the pre-installed ones read as the only
-databases Chromite supports. Colours
-are the app's design tokens (docs/chromite/design-spec.md): canvas #F7F8FA, ink #1E1F22, secondary text
-#6C707E, border #DFE1E5. Flat colours only, no gradient washes.
+The share image is the logo lockup from chromite_logo_pack/, the home page's headline and subline and a small
+"free and open source" line in Pretendard (the site's font) and a crop of a real app screenshot
+(site/assets/shots/<lang>-light.webp: the main window with Object Explorer, a query and its results on a
+"Sales DB" connection, the Registered Servers list showing connections of several kinds). The copy names
+neither databases nor a count of databases or drivers: a list of the pre-installed ones read as the only
+databases Chromite supports, and the user does not count the number as a strength. OG_COPY is the only
+place the image's copy lives.
+Colours are the app's design tokens (docs/chromite/design-spec.md): canvas #F7F8FA, ink #1E1F22, secondary
+text #6C707E, border #DFE1E5. Flat colours only, no gradient washes.
+
+Messengers and social sites (KakaoTalk among them) cache a link preview by the image URL, so a changed
+picture under the same name keeps showing the old one. The file name carries OG_VERSION: when the picture
+changes, raise it and change og:image / twitter:image on every page to the new name.
 
 Outputs
 -------
 site/favicon.ico                         16, 32 and 48 px (PNG entries; browsers read them, unlike IconExe)
 site/assets/icons/icon-32.png, icon-192.png
 site/assets/icons/apple-touch-icon.png   180 px on an opaque navy square (iOS adds its own corners)
-site/assets/og/og-ko.png, og-en.png      1200x630
+site/assets/og/og-ko-<OG_VERSION>.png, og-en-<OG_VERSION>.png   1200x630
 
 Usage
 -----
@@ -34,6 +41,10 @@ Change history:
 - 2026-11-07 Created (site favicons and Open Graph images).
 - 2026-11-08 Share image copy says "more than 100 drivers, many databases" instead of four database names
   (user feedback: the list implied Chromite works only with those four).
+- 2026-11-08 No count in the copy (user: the number of databases is not a selling point); the user's
+  headline "anyone can use easily and safely" with its subline, wrapped at the column width. New
+  screenshot input without vendor-named connections, and versioned file names (OG_VERSION 2) so cached
+  previews are fetched again.
 """
 import sys
 from pathlib import Path
@@ -52,12 +63,18 @@ INK = "#1E1F22"
 INK_2 = "#6C707E"
 LINE = "#DFE1E5"
 
+# headline, subline and a small last line per language (the headline and subline are the home page's, user
+# decision 2026-11-08); write_og wraps them at the column width
 OG_COPY = {
-    "ko": (["100가지가 넘는 드라이버로", "여러 데이터베이스를", "한 창에서 다룹니다"],
+    "ko": ("누구나 편하고 안전하게 다루는 데이터베이스 도구",
+           "시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이",
            "Windows와 macOS용 무료 오픈 소스"),
-    "en": (["More than 100 drivers,", "many databases,", "one window"],
-           "Free and open source, for Windows and macOS"),
+    "en": ("A database tool anyone can use easily and safely",
+           "Even system and application operators can query and fix data with ease and without slip-ups",
+           "Free and open source for Windows and macOS"),
 }
+# part of the share image's file name; raise it whenever the picture changes (see the module docstring)
+OG_VERSION = 2
 
 
 def tile(size):
@@ -87,9 +104,9 @@ def lockup(width):
 
 
 def screenshot_crop(lang, w, h):
-    """The left part of the home page's app screenshot (Object Explorer, SQL editor, results)."""
+    """The left part of the light app screenshot (Object Explorer, SQL editor, results)."""
     shot = Image.open(SITE / "assets" / "shots" / f"{lang}-light.webp").convert("RGBA")
-    scale = 0.62
+    scale = 0.52
     shot = shot.resize((round(shot.width * scale), round(shot.height * scale)), Image.LANCZOS)
     return shot.crop((0, 0, min(w, shot.width), min(h, shot.height)))
 
@@ -100,6 +117,17 @@ def rounded(im, radius):
     out = im.copy()
     out.putalpha(mask)
     return out
+
+
+def wrap(draw, text, font, width):
+    """Greedy line breaking at spaces within width pixels."""
+    lines = []
+    for word in text.split(" "):
+        if lines and draw.textlength(lines[-1] + " " + word, font=font) <= width:
+            lines[-1] += " " + word
+        else:
+            lines.append(word)
+    return lines
 
 
 def write_og(lang):
@@ -114,20 +142,30 @@ def write_og(lang):
     frame.alpha_composite(crop, (1, 1))
     og.alpha_composite(rounded(frame, 14), (x0, y0))
 
-    logo = lockup(470)
-    og.alpha_composite(logo, (64, 92))
+    logo = lockup(400)
+    og.alpha_composite(logo, (64, 72))
 
-    semi = ImageFont.truetype(str(FONTS / "Pretendard-SemiBold.subset.woff2"), 36)
+    headline, subline, small = OG_COPY[lang]
+    semi = ImageFont.truetype(str(FONTS / "Pretendard-SemiBold.subset.woff2"), 44)
     regular = ImageFont.truetype(str(FONTS / "Pretendard-Regular.subset.woff2"), 24)
-    lines, small = OG_COPY[lang]
-    y = 92 + logo.height + 56
-    for line in lines:
+    note = ImageFont.truetype(str(FONTS / "Pretendard-Regular.subset.woff2"), 20)
+    # the copy wraps at spaces (Korean words stay whole, like word-break: keep-all on the site), keeping a
+    # 40 px gap to the screenshot, so a changed text needs no hand-made line breaks
+    column = x0 - 40 - 72
+    y = 72 + logo.height + 48
+    for line in wrap(draw, headline, semi, column):
         draw.text((72, y), line, font=semi, fill=INK)
-        y += 50
-    draw.text((72, y + 22), small, font=regular, fill=INK_2)
+        y += 58
+    y += 14
+    for line in wrap(draw, subline, regular, column):
+        draw.text((72, y), line, font=regular, fill=INK_2)
+        y += 35
+    # the small line only where it does not crowd the bottom edge
+    if y + 18 + 28 <= H - 40:
+        draw.text((72, y + 18), small, font=note, fill=INK_2)
 
     (SITE / "assets" / "og").mkdir(parents=True, exist_ok=True)
-    og.convert("RGB").save(SITE / "assets" / "og" / f"og-{lang}.png", optimize=True)
+    og.convert("RGB").save(SITE / "assets" / "og" / f"og-{lang}-{OG_VERSION}.png", optimize=True)
 
 
 def main():
