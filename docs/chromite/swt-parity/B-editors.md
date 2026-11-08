@@ -115,7 +115,7 @@
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | 조사 당시: JDBC fetch size 설정 없음. 2026-11-07 Options &gt; Query Results의 가져오기 크기(`ResultSetOptionsPage.java`:61) |
 | R13 | 전체 행 수 세기 | `resultset.count` | 있음 (2026-11-08) | 상태 줄·Navigate "행 수 세기", 모델 `SQLQueryDataContainer.countData` 고침(늘 -1이었음), [swing-grid-navigation.md](../swing-grid-navigation.md) "전체 행 수". 조사 당시: 없음 | 낮음 | 다시 읽을 수 있는 결과만 |
-| R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 2026-11-08 날짜·시각 선택기, 불리언·ENUM 목록, LOB 파일 불러오기·저장, LOB 값 패널 편집([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 참조 값 고르기, 배열·구조체·커서, 외부 편집기, UUID 만들기는 남음 |
+| R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 2026-11-08 날짜·시각 선택기, 불리언·ENUM 목록, LOB 파일 불러오기·저장, LOB 값 패널 편집([swing-grid-editing.md](../swing-grid-editing.md)). 2026-11-08 참조 값 고르기(`ResultSetReferencePicker`), 배열·구조체(PostgreSQL)·hstore·SET 대화상자(`ResultSetValueDialogs`), 16진수 편집, 외부 편집기(저장하면 셀에 넣음), UUID 만들기([swing-value-editors.md](../swing-value-editors.md)) | 낮음 | 커서 보기, 일반 JDBC 구조체(Oracle 객체 형식) 편집은 남음 |
 | R15 | 이진 표시 형식, 데이터 형식 설정 화면 | `BinaryFormatAction`, `PrefPageDataFormat` | **있음** (2026-11-08 다시 확인: 이진 값 표시 형식·길이는 Options &gt; Query Results와 연결별 값(`ResultSetOptionsPage.java`:64, 144), 형식 프로필·숫자·과학적 표기는 Options &gt; Data Formats(`DataFormatOptionsPage`), [swing-options.md](../swing-options.md)). 조사 당시: 일부 | Options "Show date/time values in the database format" 하나 | 낮음 | 결과 표 안에서 이진 형식을 바로 바꾸는 단추는 없음(설정 화면에서 바꿈) |
 | R16 | 고급 복사(설정 대화상자, JSON·XML·HTML·SQL INSERT 등 처리기별 복사), 특수 붙여넣기 | `ResultSetHandlerCopySpecial`, `CopyAs`, `PasteSpecial` | 있음 (2026-11-08) | `ResultSetCopyFormats`(CSV·TSV·Markdown·SQL IN·JSON·XML·HTML·SQL INSERT, 고급 복사), `ResultSetPaste`(여러 칸 붙여넣기, 특수 붙여넣기), [swing-grid-editing.md](../swing-grid-editing.md) | 중간 | 복사 형식은 데이터 전송 처리기가 아니라 표의 값으로 만듦 |
 | R17 | 그리드에서 내보내기 | `resultset.export` | 있음 | `ResultSetExport`(CSV·XLSX), `DataExportWizard`(Export Data…) | 중간 | |
@@ -137,8 +137,8 @@
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
-| E1 | 속성 탭(보기) | `EntityEditor` 속성 페이지 | 일부 | `PropertiesPanel` Javadoc "읽기 전용이다" | 중간 | 보기는 됨, 고치기는 E2 |
-| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). DB2·Generic 인덱스·외래 키, 시퀀스 등 다른 개체 속성 편집은 없음 |
+| E1 | 속성 탭(보기) | `EntityEditor` 속성 페이지 | 있음(2026-11-08) | Properties 창과 Object Details 첫 탭인 속성 탭(`PropertiesPanel`, `ObjectDetailsPanel`), 자식이 없는 객체(시퀀스)도 F7로 열림. [swing-object-properties.md](../swing-object-properties.md) | 중간 | 조사 당시: 일부(`PropertiesPanel` Javadoc "읽기 전용이다"). 고치기는 E2 |
+| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). 2026-11-08 속성 편집: 객체 관리자가 있고 `updatable`인 속성을 Properties 창·Object Details 속성 탭에서 고침(`ObjectPropertyEdits`: 미리 보기(취소가 기본) → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림), PostgreSQL·SQL Server·Oracle·MariaDB에서 확인, [swing-object-properties.md](../swing-object-properties.md). 남은 것: 값을 모아 한 번에 저장하는 방식, 모델에 관리자·`updatable`이 없는 속성(MariaDB·SQL Server 시퀀스 등) |
 | E3 | DDL 탭 | `SQLSourceViewer` | 있음 | `DdlViewerPanel`, Script as CREATE(`ObjectScripts`) | 중간 | |
 | E4 | 소스 편집(뷰·프로시저·함수·트리거·패키지) | 소스 탭 + Ctrl+S | 있음 | `SourceEditCommands`, `SourceScripts`(swing-source-editor.md) | 높음 | Modify → 쿼리 창 실행으로 흐름을 바꿈 |
 | E5 | 데이터 탭 | `DatabaseDataEditor` | 있음 | Select Top 1000 Rows(쿼리 창, 편집 가능) | 중간 | |
@@ -214,3 +214,5 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): C5 → 수정함, C11·C14·C16·C17·E11·R15 → 있음, C13 → 일부, S18·S19·S41·S45·R10·R12·R26·E2·E12·O1·O5 근거·비고 갱신, 조용히 끊김 요약과 10개 목록에 고친 것 표시. 요약 수를 행 상태로 다시 셈(있음 73, 일부 32, 없음 7, 조용히 끊김 1, 의도적 제외 4).
 - 2026-11-08 S41 → 있음(`chromite/sql-from-results`, 결과 표 "SQL 생성"). 요약 수: SQL 편집기 있음 33 → 34, 일부 8 → 7(합계 있음 75, 일부 30).
+- 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): R14 근거·남은 것 갱신(일부 그대로, 영향 중간 → 낮음).
+  요약 수 변화 없음.

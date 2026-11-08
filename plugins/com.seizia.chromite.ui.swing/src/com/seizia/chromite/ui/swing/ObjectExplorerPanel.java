@@ -152,7 +152,8 @@ import java.util.regex.Pattern;
  *     트리에서 Ctrl+F로 입력란에 가고 Esc로 지운다. 서버 쪽 필터(Filter 대화상자)와 달리 저장하지 않는다.</li>
  *     <li>Link with Editor(도구 막대 토글, 설정에 저장): 메인 창이 활성 문서가 바뀔 때마다 그 문서의 객체·연결을 알리고({@link #activeDocumentChanged}),
  *     켜져 있으면 그 노드를 고른다(초점은 옮기지 않음). 이 창에 열지 않은 서버는 넣지 않고, 연결되지 않은 연결은 연결하지 않는다.</li>
- *     <li>Object Details(F7, SSMS "Object Explorer Details"): 노드의 자식을 속성 열이 있는 표로 보이는 문서({@link ObjectDetailsPanel}).</li>
+ *     <li>Object Details(F7, SSMS "Object Explorer Details"): 노드의 자식을 속성 열이 있는 표로 보이는 문서({@link ObjectDetailsPanel}).
+ *     객체는 첫 탭이 속성 탭이라 자식이 없는 객체에서도 열 수 있다.</li>
  *     <li>Set as Default: 데이터베이스·스키마를 연결 주 세션의 기본값으로({@link DefaultObjectCommands}). 주 세션의 기본 데이터베이스·스키마는 굵게 그린다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
@@ -261,6 +262,7 @@ import java.util.regex.Pattern;
  * - 2026-11-08 연결 노드의 Change Password… 메뉴(연결한 사용자의 비밀번호 바꾸기, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  * - 2026-11-08 Recent Scripts 하위 메뉴: 선택한 노드의 연결에 묶은 스크립트를 최근 고친 순으로 열기({@link ScriptFiles#findLinkedScripts},
  *   docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
+ * - 2026-11-08 Object Details(F7)를 자식이 없는 객체(시퀀스)에서도 켬: 첫 탭인 속성 탭에서 속성을 고친다 (docs/chromite/swing-object-properties.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1218,9 +1220,10 @@ final class ObjectExplorerPanel extends JPanel {
         objectPermissionsAction.setEnabled(SecurityCommands.canEditPermissions(object));
         filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder
             && folder.getItemsMeta() != null && folder.getChildrenClass() != null);
-        // A connection's details read its databases, which connects it: only for a connected one
+        // A connection's details read its databases, which connects it: only for a connected one. An object without
+        // children (a sequence) still has the Properties tab; a folder needs children
         detailsAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode
-            && (connected || !connectionNode) && hasTreeChildren(databaseNode));
+            && (connected || !connectionNode) && (hasTreeChildren(databaseNode) || !(databaseNode instanceof DBNDatabaseFolder)));
         setDefaultAction.setEnabled(DefaultObjectCommands.canSetDefault(getSelectedNavigatorNode()));
         copySpecialAction.setEnabled(CopySpecialDialog.canCopy(getSelectedNavigatorNodes()));
         duplicateConnectionAction.setEnabled(connectionNode);

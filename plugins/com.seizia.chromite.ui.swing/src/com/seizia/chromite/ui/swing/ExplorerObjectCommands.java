@@ -104,6 +104,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 미리 보기·트랜잭션 질문·실행 경로({@link #runChange})를 패키지 안에 열어 새 개체 만들기({@link NewObjectCommands})도 같은 길로 실행
  *   (docs/chromite/swing-create-objects.md)
  * - 2026-11-08 새 개체의 암호를 미리 보기에서 가리고 저장하는 동안에만 넣음({@link Secrets}, swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-08 {@link #runChange}를 속성 편집({@link ObjectPropertyEdits})도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림
+ *   (docs/chromite/swing-object-properties.md)
  */
 final class ExplorerObjectCommands {
 
@@ -550,6 +552,13 @@ final class ExplorerObjectCommands {
             return;
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(title, null, e);
+            return;
+        }
+        if (prepared.script().isBlank()) {
+            // The object manager makes no statement for the change (e.g. a property the database cannot alter): nothing to run
+            discard(prepared.changes());
+            JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(owner), NavigatorMessages.navigator_change_no_script, title,
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         String header = NLS.bind(prepared.ddlCommits()

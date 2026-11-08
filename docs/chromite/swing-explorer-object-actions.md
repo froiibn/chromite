@@ -187,3 +187,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
   PostgreSQL·SQL Server·MariaDB에서 실행 확인, 삭제 확인 목록의 불필요한 스크롤바 수정.
 - 2026-11-08 유지 관리 명령: 테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침(모델 도구의 SQL, 확인·미리 보기·트랜잭션 질문). PostgreSQL·SQL Server·Oracle·MariaDB에서 확인.
 - 2026-11-08 Altibase 테이블 잘라내기·구체화된 뷰 새로 고침(A5), 컴파일 명령(Oracle·Altibase, O11·A6). 확인은 [swing-routines.md](swing-routines.md).
+- 2026-11-08 `runChange`를 속성 편집도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림([swing-object-properties.md](swing-object-properties.md)).

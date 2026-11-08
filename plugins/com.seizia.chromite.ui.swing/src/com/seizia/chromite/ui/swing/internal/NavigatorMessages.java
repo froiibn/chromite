@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 이름 없는 반환 값 매개 변수의 이름 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-07 개체 작업(삭제, 이름 바꾸기, 이름 복사, SQL 생성)의 문구 (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 문장이 없는 변경의 알림 (docs/chromite/swing-object-properties.md)
  */
 public class NavigatorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.NavigatorMessages"; //$NON-NLS-1$
@@ -64,6 +65,7 @@ public class NavigatorMessages extends NLS {
     public static String navigator_change_preview_header_ddl_commit;
     public static String navigator_change_txn_message;
     public static String navigator_change_txn_error;
+    public static String navigator_change_no_script;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, NavigatorMessages.class);
