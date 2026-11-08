@@ -454,17 +454,15 @@ final class AiAssistantPanel extends JPanel {
     /**
      * Deletes a conversation (the current one or one picked in the conversation history) after asking, Cancel being the
      * default; an empty conversation goes without asking. Deleting the current conversation shows the most recent one.
-     *
-     * @return false if the user canceled
      */
-    private boolean deleteChat(@NotNull AIAgentChat target) {
+    private void deleteChat(@NotNull AIAgentChat target) {
         if (runningJob != null) {
-            return false;
+            return;
         }
         if (!target.isEmpty() && !SwingPlatformUI.confirmChange(this,
             NLS.bind(AiMessages.ai_delete_chat_question, target.getTitle()), AiMessages.ai_delete_chat,
             AiMessages.ai_delete_chat, JOptionPane.QUESTION_MESSAGE)) {
-            return false;
+            return;
         }
         chats.remove(target);
         new AbstractJob("Delete AI conversation") { //$NON-NLS-1$
@@ -476,7 +474,7 @@ final class AiAssistantPanel extends JPanel {
             }
         }.schedule();
         if (target != chat) {
-            return true;
+            return;
         }
         chat = null;
         if (chats.isEmpty()) {
@@ -484,7 +482,6 @@ final class AiAssistantPanel extends JPanel {
         } else {
             showChat(chats.getFirst());
         }
-        return true;
     }
 
     private void showChat(@NotNull AIAgentChat selected) {
@@ -1125,9 +1122,9 @@ final class AiAssistantPanel extends JPanel {
             }
             String text = filter.getText();
             popup.setVisible(false);
-            if (deleteChat(selected)) {
-                showHistory(anchor, text);
-            }
+            // Open again after the question, deleted or not, to go on in the list
+            deleteChat(selected);
+            showHistory(anchor, text);
         };
         refill.run();
         filter.getDocument().addDocumentListener(new DocumentListener() {
@@ -1183,7 +1180,8 @@ final class AiAssistantPanel extends JPanel {
             }
         });
         popup.show(anchor, 0, anchor.getHeight());
-        filter.requestFocusInWindow();
+        // Later: when the list opens again after the delete question, the closed dialog gives the focus back first
+        SwingUtilities.invokeLater(filter::requestFocusInWindow);
     }
 
     @NotNull

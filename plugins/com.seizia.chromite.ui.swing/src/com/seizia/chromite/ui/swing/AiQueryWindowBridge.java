@@ -168,7 +168,6 @@ final class AiQueryWindowBridge implements AIEditorBridge {
                     end = before.length();
                 }
             }
-            QueryWindowEdit edit = new QueryWindowEdit(describe(editor, activeWindow.get()), before, start, end, newText);
             if (apply) {
                 textArea.beginAtomicEdit();
                 try {
@@ -179,7 +178,8 @@ final class AiQueryWindowBridge implements AIEditorBridge {
                 showWindow.accept(editor);
                 textArea.select(start, start + newText.length());
             }
-            return edit;
+            // The window as it is now: after an applied edit, modified with the new text selected
+            return new QueryWindowEdit(describe(editor, activeWindow.get()), before, start, end, newText);
         });
     }
 

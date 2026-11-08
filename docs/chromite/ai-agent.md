@@ -631,7 +631,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - **대화 기록**(2026-11-08, 앱 변경 #15): 맨 위의 대화 콤보를 지우고(문구 키 `ai_chats_tip`도) 도구 막대에 "대화 기록" 단추(시계 아이콘)를 두었다. 누르면 단추 아래에
   팝업 목록이 열린다: 위에 거르기 입력란(제목·연결 이름), 최근 순, 줄마다 제목(지금 대화는 굵게 + 체크 표시)과 마지막 시각 · 연결 이름, 고른 줄 오른쪽 끝의 ×.
   줄을 누르거나 Enter면 그 대화로 간다(대화 전환과 같은 `showChat`). ×나 Delete(거르기 칸이 비어 있을 때, 아니면 Shift+Delete)는 삭제를 묻고(기본 취소, 빈 대화는
-  목록에 없음) 지운 뒤 같은 거르기로 목록을 다시 연다. 지금 대화를 지우면 가장 최근 대화를 보인다. 실행 중에는 단추가 꺼진다. 위·아래 화살표는 거르기 칸에 초점을 둔 채
+  목록에 없음) 답한 뒤(지웠든 취소했든) 같은 거르기로 목록을 다시 연다. 지금 대화를 지우면 가장 최근 대화를 보인다. 실행 중에는 단추가 꺼진다. 위·아래 화살표는 거르기 칸에 초점을 둔 채
   목록을 움직인다.
 - **토큰 사용량**(2026-11-08, 후속 39): 차례가 끝나면 상태 줄에 그 차례의 토큰(입력·출력, 캐시가 있으면 캐시)을 보인다. 한 차례의 요청(도구마다 한 번)이 엔진에서 받은
   사용량(`AIEngineResponseConsumer.usage`, 요청마다 마지막 값)을 `AIAgentChatRunner`가 더해 `Listener.usage`로 알린다. 요청마다 대화를 다시 보내므로 입력은 요청들의
@@ -692,14 +692,14 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | `model.ai` `AIToolPreviewProvider.Kind`, `AIToolConfirmationRequest.previewKind` | 미리 보기 종류 `RUN`(실행할 SQL·DDL·명령줄) / `TEXT_CHANGE`(바뀌는 글). 모델 번들은 종류만 알리고 문구는 화면이 정한다 |
 | `model.ai.tools` `EditorTools` | 세 도구. 인수 읽기, 결과 JSON, 확인 미리 보기(줄 차이). `plugin.xml` 분류 `agent.editor` |
 | Swing `AiQueryWindowBridge` | 브리지 구현. 모든 읽기·고치기를 EDT에서(`invokeAndWait`) 하고 결과를 돌려준다. `MainFrame`이 시작할 때 등록하고 닫을 때 지운다 |
-| Swing `AiConfirmationDialog` | `TEXT_CHANGE`면 제목 "바뀌는 글(- 지움, + 넣음)", 첫 줄 "…쿼리 창의 글을 바꾸려고 합니다. 실행하거나 저장하지 않습니다.", 지운 줄·넣은 줄을 결과 표의 지운 행·넣은 행 색(`Chromite.Table.removedBackground`/`addedBackground`)으로 칠함 |
+| Swing `AiConfirmationDialog` | `TEXT_CHANGE`면 제목 "바뀌는 글(- 지움, + 넣음)", 첫 줄 "…쿼리 창의 글을 바꾸려고 합니다. 실행하거나 저장하지 않습니다.", 기본 정책의 묻는 이유 "쿼리 창의 글을 바꾸는 도구는 실행 전에 묻습니다(기본값, Tool Policy에서 묻지 않게 할 수 있음)", 지운 줄·넣은 줄을 결과 표의 지운 행·넣은 행 색(`Chromite.Table.removedBackground`/`addedBackground`)으로 칠함 |
 
 - **창 ID**: 창 객체마다 처음 볼 때 `w1`, `w2`…를 정한다(약한 참조, 닫힌 창은 잊음). 탭 위치는 닫거나 옮기면 바뀌고 제목은 겹칠 수 있어서다. `window`를 빼면 활성 창
   (활성 창이 없고 창이 하나면 그 창), ID가 맞지 않으면 제목이 하나로 정해질 때만 받는다. 못 찾으면 열린 창의 ID와 제목을 오류에 적는다.
 - **읽기**(`getQueryWindowText`): `part=statement`는 "이 쿼리에 대해 묻기"와 같은 파서(`SQLScriptParser.extractQueryAtPos`, `AiAssistantPanel.findStatementAtCaret`)이고
   연결이 연결되어 있지 않으면 전체 글(`part: all`로 알림)이다. `maxChars`를 넘으면 자르고 `truncated`와 안내를 넣는다.
 - **고치기**(`editQueryWindow`): `insert`(커서, 빈 글이면 INVALID), `replaceSelection`(선택이 없으면 오류: insert나 replaceAll을 쓰라고 알림, 빈 글이면 선택 삭제),
-  `replaceAll`. 줄 바꿈은 문서 형식(`\n`)으로 바꾸고 저장할 때 파일의 줄 바꿈으로 돌아간다. `beginAtomicEdit`/`endAtomicEdit`로 묶어 Ctrl+Z 한 번에 되돌아간다.
+  `replaceAll`. 결과의 `window`는 고친 뒤의 창(저장 안 됨, 새 글 선택)이다. 줄 바꿈은 문서 형식(`\n`)으로 바꾸고 저장할 때 파일의 줄 바꿈으로 돌아간다. `beginAtomicEdit`/`endAtomicEdit`로 묶어 Ctrl+Z 한 번에 되돌아간다.
   고친 뒤 그 창 탭을 앞에 두고 새 글을 선택한다(초점은 옮기지 않음: 사용자가 채팅에 쓰는 중일 수 있다). 창은 "저장 안 됨"이 되고 실행·저장하지 않는다.
   쿼리가 실행 중인 창과 편집할 수 없는 창은 거절한다. 이 검사는 미리 보기에서도 해서 확인을 묻기 전에 거절한다.
 - **정책**: WRITE, `writes="none"`(DB를 바꾸지 않으므로 읽기 전용 연결 규칙과 상관없음), 연결 인수가 없어 운영 연결 규칙도 걸리지 않는다. 기본은 실행 전 확인이고

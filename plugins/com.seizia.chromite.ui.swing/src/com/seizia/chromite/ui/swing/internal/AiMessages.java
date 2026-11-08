@@ -35,7 +35,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기")
  * - 2026-11-08 {@code ai_tool_running_progress}: 실행 중인 도구의 진행 글(백업·복원 도구, docs/chromite/ai-agent.md)
  * - 2026-11-08 대화 콤보·제공자 콤보를 없애고 대화 기록({@code ai_history*})과 제공자를 함께 고르는 모델 선택({@code ai_model_*})을 둠,
- *   차례의 토큰 사용량({@code ai_status_usage*}), 쿼리 창 글 고치기의 확인({@code ai_confirm_headline_edit*}, {@code ai_confirm_preview_change})
+ *   차례의 토큰 사용량({@code ai_status_usage*}), 쿼리 창 글 고치기의 확인({@code ai_confirm_headline_edit*}, {@code ai_confirm_preview_change}, {@code ai_reason_default_edit})
  *   (docs/chromite/ai-agent.md "채팅 도구 창", "편집기 도구")
  */
 public class AiMessages extends NLS {
@@ -151,6 +151,7 @@ public class AiMessages extends NLS {
     public static String ai_reason_connection_rule;
     public static String ai_reason_global_rule;
     public static String ai_reason_default;
+    public static String ai_reason_default_edit;
     public static String ai_reason_transaction;
     public static String ai_options_tab;
     public static String ai_options_title;

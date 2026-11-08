@@ -263,7 +263,7 @@ final class AiConfirmationDialog extends JDialog {
         }
         row = addFact(facts, row, AiMessages.ai_confirm_requested_by, new JLabel(
             request.client() == AIToolClient.MCP ? AiMessages.ai_confirm_client_mcp : AiMessages.ai_confirm_client_chat));
-        JLabel reason = new JLabel(describeReason(request.reason()));
+        JLabel reason = new JLabel(describeReason(request.reason(), request.previewKind()));
         reason.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         addFact(facts, row, AiMessages.ai_confirm_reason, reason);
         return facts;
@@ -285,16 +285,17 @@ final class AiConfirmationDialog extends JDialog {
     }
 
     /**
-     * The policy reason in the user's language (the model writes it in English for the audit log).
+     * The policy reason in the user's language (the model writes it in English for the audit log). A query window edit
+     * changes no data: its default reason names the text and where to let it run without asking.
      */
     @NotNull
-    private static String describeReason(@NotNull String reason) {
+    private static String describeReason(@NotNull String reason, @NotNull AIToolPreviewProvider.Kind previewKind) {
         if (reason.startsWith("connection rule")) { //$NON-NLS-1$
             return AiMessages.ai_reason_connection_rule;
         } else if (reason.startsWith("global rule")) { //$NON-NLS-1$
             return AiMessages.ai_reason_global_rule;
         } else if (reason.startsWith("default for")) { //$NON-NLS-1$
-            return AiMessages.ai_reason_default;
+            return previewKind == AIToolPreviewProvider.Kind.TEXT_CHANGE ? AiMessages.ai_reason_default_edit : AiMessages.ai_reason_default;
         } else if (reason.contains("uncommitted transaction")) { //$NON-NLS-1$
             return AiMessages.ai_reason_transaction;
         }
