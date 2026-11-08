@@ -36,6 +36,7 @@ import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNEvent;
 import com.seizia.chromite.model.navigator.DBNModel;
 import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
@@ -51,6 +52,7 @@ import com.seizia.chromite.tools.transfer.*;
 import com.seizia.chromite.tools.transfer.internal.DTMessages;
 import com.seizia.chromite.tools.transfer.registry.DataTransferEventProcessorDescriptor;
 import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
@@ -66,6 +68,10 @@ import java.util.Map;
  * - 2026-11-08 Chromite: 대상 테이블을 비우기(TRUNCATE) 전에 그 열 메타데이터를 읽어 둠. 비우기는 넣기 트랜잭션 안에서 테이블을 잠그고
  *   (SQL Server Sch-M), 넣기({@code JDBCTable.insertData})가 다른 세션(메타데이터 문맥)으로 열을 다시 읽으면 그 잠금을 기다리며 멈췄다
  *   (같은 스키마에 새 테이블을 만들면 열 캐시가 비워짐) (docs/chromite/swing-data-transfer.md "고급 옵션")
+ * - 2026-11-08 Chromite: 넣기 트랜잭션을 조용히 끝내지 않음(사용자 규칙 "트랜잭션 안전"). 취소·실패로 닫을 때 커밋하지 않은 비우기·행을
+ *   롤백하면 무엇을 되돌렸는지 알리고(롤백하지 못하면 오류로 알림), 새 연결을 열지 않아 연결의 세션에서 넣을 때는 그 세션에 이미 열린
+ *   트랜잭션을 커밋 / 롤백 / 취소로 먼저 묻는다(넣기의 커밋·롤백이 그 트랜잭션까지 끝내기 때문). 닫기가 불리지 않던 경로는
+ *   {@code DBDDataReceiver.startFetchWorkflow}에서 고침 (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
  */
 @DBSerializable(DatabaseTransferConsumer.NODE_ID)
 public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
@@ -90,6 +96,9 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
     private List<DBSAttributeBase> targetAttributes;
     private boolean useIsolatedConnection;
     private Boolean oldAutoCommit;
+    // What the load transaction holds that is not committed yet (manual commit): told to the user when it is rolled back
+    private boolean truncateUncommitted;
+    private long rowsCommitted;
 
     // Used only for non-explicit import
     // In this case consumer will be replaced with explicit consumers during configuration
@@ -207,6 +216,7 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
             }
             try {
                 targetObject.truncateData(targetSession, executionSource);
+                truncateUncommitted = true;
             } catch (DBCFeatureNotSupportedException e) {
                 log.warn("Table '" + targetObject.getName() + "' doesn't support truncate operation");
             }
@@ -515,8 +525,15 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
             if (txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit()) {
                 targetSession.getProgressMonitor().subTask("Commit changes");
                 txnManager.commit(targetSession);
+                resetUncommitted();
             }
         }
+    }
+
+    // After a commit, or after the rollback was told
+    private void resetUncommitted() {
+        truncateUncommitted = false;
+        rowsCommitted = rowsExported;
     }
 
     @Override
@@ -527,7 +544,9 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                 insertBatch(true);
             }
             if (!canceled && bulkLoadManager != null) {
+                // (commits the load)
                 bulkLoadManager.finishBulkLoad(targetSession);
+                resetUncommitted();
             } else if (executeBatch != null) {
                 executeBatch.close();
                 executeBatch = null;
@@ -573,6 +592,9 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
         targetSession.enableLogging(settings.isEnableQmLogging());
 
         if (!isPreview) {
+            if (!useIsolatedConnection) {
+                endOpenTransaction();
+            }
             DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
             if (txnManager != null && txnManager.isSupportsTransactions()) {
                 oldAutoCommit = txnManager.isAutoCommit();
@@ -587,6 +609,56 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
                 }
             }
         }
+    }
+
+    /**
+     * Without a new connection the load runs in a session of the connection itself, and its commits and its rollback on
+     * a cancel would end a transaction the user left open there. That transaction is ended first by the user's answer:
+     * Commit / Roll back / Cancel (the default; nothing is loaded).
+     */
+    private void endOpenTransaction() throws DBException {
+        if (!QMUtils.isTransactionActive(targetContext) && !QMUtils.getTransactionState(targetContext).isOpen()) {
+            return;
+        }
+        String connection = targetContext.getDataSource().getContainer().getName();
+        String target = getTargetName();
+        List<String> labels = List.of(DTMessages.sql_script_task_txn_commit, DTMessages.sql_script_task_txn_rollback,
+            DTMessages.sql_script_task_txn_cancel);
+        int choice = DBWorkbench.getPlatformUI().showUserChoice(DTMessages.sql_script_task_txn_title,
+            NLS.bind(DTMessages.database_transfer_consumer_txn_before, connection, target), labels, List.of(), 2, 2).choiceIndex;
+        if (choice != 0 && choice != 1) {
+            throw new DBCException("Data load into " + target + " not started: the session of connection " + connection
+                + " has a transaction that is not committed");
+        }
+        DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetContext);
+        if (txnManager != null) {
+            if (choice == 0) {
+                txnManager.commit(targetSession);
+            } else {
+                txnManager.rollback(targetSession, null);
+            }
+        }
+    }
+
+    @NotNull
+    private String getTargetName() {
+        DBSDataManipulator targetObject = getTargetObject();
+        return targetObject != null ? DBUtils.getObjectFullName(targetObject, DBPEvaluationContext.UI) : "?"; //$NON-NLS-1$
+    }
+
+    /**
+     * What the load transaction holds that is not committed, as told to the user; null when nothing.
+     */
+    @Nullable
+    private String describeUncommitted() {
+        List<String> parts = new ArrayList<>();
+        if (truncateUncommitted) {
+            parts.add(DTMessages.database_transfer_consumer_rolled_back_truncate);
+        }
+        if (rowsExported > rowsCommitted) {
+            parts.add(NLS.bind(DTMessages.database_transfer_consumer_rolled_back_rows, rowsExported - rowsCommitted));
+        }
+        return parts.isEmpty() ? null : String.join(", ", parts); //$NON-NLS-1$
     }
 
     private DBSObject checkTargetContainer(DBRProgressMonitor monitor) throws DBException {
@@ -610,9 +682,26 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
             try {
                 DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
                 if (txnManager != null && txnManager.isSupportsTransactions()) {
-                    // Every uncommited data here is considered as fail, and we need to rollback them
+                    // Every uncommited data here is considered as fail, and we need to rollback them.
+                    // The user is told what was undone (or that it could not be), never silently
                     if (!txnManager.isAutoCommit()) {
-                        txnManager.rollback(targetSession, null);
+                        String uncommitted = describeUncommitted();
+                        String connection = targetContext.getDataSource().getContainer().getName();
+                        try {
+                            txnManager.rollback(targetSession, null);
+                        } catch (DBCException e) {
+                            if (uncommitted != null) {
+                                DBWorkbench.getPlatformUI().showError(DTMessages.database_transfer_consumer_rolled_back_title,
+                                    NLS.bind(DTMessages.database_transfer_consumer_rollback_failed,
+                                        new Object[]{getTargetName(), connection, uncommitted}), e);
+                            }
+                            throw e;
+                        }
+                        if (uncommitted != null) {
+                            resetUncommitted();
+                            DBWorkbench.getPlatformUI().showWarningNotification(DTMessages.database_transfer_consumer_rolled_back_title,
+                                NLS.bind(DTMessages.database_transfer_consumer_rolled_back, new Object[]{getTargetName(), connection, uncommitted}));
+                        }
                     }
                     txnManager.setAutoCommit(targetSession.getProgressMonitor(), oldAutoCommit);
                 }

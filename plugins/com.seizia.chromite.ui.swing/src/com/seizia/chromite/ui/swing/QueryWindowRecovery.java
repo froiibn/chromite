@@ -66,6 +66,8 @@ import java.util.concurrent.Executors;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-window-recovery.md)
+ * - 2026-11-08 복원 질문이 열린 동안 메인 창이 닫히면(앱을 밖에서 끝냄) 질문이 닫힌 것을 Discard로 보고 지난 세션의 파일을 옮긴 뒤,
+ *   이미 멈춘 쓰기 실행기에 저장을 넣어 {@code RejectedExecutionException}이 났다. 이제 그때는 복원도 버리기도 하지 않고 파일을 그대로 둔다
  */
 final class QueryWindowRecovery {
 
@@ -139,6 +141,8 @@ final class QueryWindowRecovery {
     private final Object writeLock = new Object();
     // EDT only: saving runs between start() and stop()
     private boolean started;
+    // EDT only: stop() ran. The main window can close while the modal restore question of start() is still open
+    private boolean stopped;
     // EDT only: the JSON written last, so that an unchanged state is not written again
     @Nullable
     private String lastJson;
@@ -157,7 +161,7 @@ final class QueryWindowRecovery {
      * starts saving periodically. Call in the EDT once the main window is shown.
      */
     void start() {
-        if (started) {
+        if (started || stopped) {
             return;
         }
         Session session = read();
@@ -167,6 +171,11 @@ final class QueryWindowRecovery {
             int answer = JOptionPane.showOptionDialog(host.getComponent(),
                 NLS.bind(windows.size() == 1 ? ScriptsMessages.recovery_question_one : ScriptsMessages.recovery_question_many, windows.size()),
                 GeneralUtils.getProductName(), JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+            if (stopped) {
+                // The main window closed while the question was open (its dialog closed with it): not an answer. The
+                // last session's file stays for the next start, and nothing may be saved after stop()
+                return;
+            }
             if (answer == 0) {
                 restore(windows, session.active());
             } else {
@@ -184,6 +193,7 @@ final class QueryWindowRecovery {
      * windows are still there.
      */
     void stop() {
+        stopped = true;
         if (!started) {
             // The question was not answered: the last session's file stays as it is
             writer.shutdown();
