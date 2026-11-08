@@ -17,8 +17,10 @@
 #                            connection whose fake password is in the pre-#111 credentials file
 #   launch <label>           open(1) with CHROMITE_DATA and -data, waits for the startup log line and a
 #                            window of the app (answers Gatekeeper's first-launch question once),
-#                            screenshot <label>-main-window.png; without a window: process, native
-#                            stacks (sample) and a JVM thread dump (SIGQUIT into <label>-stdout.txt)
+#                            screenshot <label>-splash.png of the startup splash and
+#                            <label>-main-window.png; the splash must be gone once the main window is up;
+#                            without a window: process, native stacks (sample) and a JVM thread dump
+#                            (SIGQUIT into <label>-stdout.txt)
 #   secure-storage           the secure storage file, the Keychain item and the debug log
 #   menus                    About and Preferences of the app menu (System Events), screenshots
 #   quit <appleevent|keystroke>
@@ -52,9 +54,12 @@ KEYCHAIN_SERVICE=com.seizia.chromite.SecureStorage
 KEYCHAIN_ACCOUNT=master-password
 # BaseProjectImpl.LOCAL_KEY_CACHE: the fixed key of the pre-#111 credentials-config.json, public in the source
 LEGACY_KEY=babb4a9f774ab853c96c2d653dfe544a
-# ChromiteSwingApplication.start logs this before the platform is created; there is no line for the main
-# window being shown, so launch also waits for a window of the process
-STARTUP_LINE='SSL trust store type'
+# ChromiteSwingApplication.run logs this once the main window is shown, with the milliseconds of each startup step
+# after the process started. Before it, the only window of the process may be the startup splash
+# (docs/chromite/branding.md "시작 화면"), so launch also waits for this line and not for a window alone.
+STARTUP_LINE='Startup times'
+# Size of the startup splash in points, the native launcher's and the Swing one's (plugins/com.seizia.chromite.splash)
+SPLASH_SIZE='560, 320'
 
 mkdir -p "$OUT"
 
@@ -286,7 +291,7 @@ launch_diagnostics() {
 }
 
 cmd_launch() {
-  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 n prompt
+  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 splash=0 n prompt times
   need_app
   [ -z "$(app_pid)" ] || fail "an app copy already runs"
   # A start may rotate or rewrite the debug log: keep the previous one aside and wait for a new file
@@ -321,6 +326,11 @@ cmd_launch() {
     if [ -n "$pid" ] && [ -f "$DEBUG_LOG" ] && tail -n +$((before + 1)) "$DEBUG_LOG" | grep -q "$STARTUP_LINE"; then
       n=$(window_count pid "$pid" || echo 0)
       if [ "${n:-0}" -gt 0 ]; then up=1; break; fi
+    elif [ -n "$pid" ] && [ $splash = 0 ] && [ "$(window_count pid "$pid" || echo 0)" -gt 0 ]; then
+      # A window before the main window: the startup splash (once per launch)
+      window_list pid "$pid" > "$OUT/$label-splash-windows.txt"
+      shot "$label-splash"
+      splash=1
     fi
     sleep 2
   done
@@ -333,6 +343,16 @@ cmd_launch() {
   sleep 8
   window_list pid "$pid" | tee "$OUT/$label-windows.txt"
   shot "$label-main-window"
+  if grep -q "$SPLASH_SIZE" "$OUT/$label-windows.txt"; then
+    fail "$label: a window of the startup splash's size ($SPLASH_SIZE) is still open after the main window (see $label-windows.txt)"
+  fi
+  if [ $splash = 1 ] && grep -q "$SPLASH_SIZE" "$OUT/$label-splash-windows.txt"; then
+    pass "$label: the startup splash was shown before the main window and is closed"
+  else
+    note "$label: no splash-sized window was seen before the main window (startup may have been faster than one poll)"
+  fi
+  times=$(grep "$STARTUP_LINE" "$DEBUG_LOG" | tail -1 | sed 's/.*Startup times/Startup times/' || true)
+  note "$label: $times"
   ps -o pid=,etime=,command= -p "$pid" | cut -c1-400 > "$OUT/$label-process.txt"
   if grep -q AppTranslocation "$OUT/$label-process.txt"; then
     note "$label: the app runs translocated (App Translocation, read-only random path)"
