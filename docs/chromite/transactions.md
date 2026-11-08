@@ -64,7 +64,8 @@
   걸린 시간, 행(바꾼 행 수 또는 읽은 행 수), 결과(성공, 오류 메시지, 실행 중).
 - 모달이 아니고 문맥마다 하나다. 1초마다 다시 읽는다(쿼리 관리자 메모리 기록만 읽음). 다른 쿼리 창에서 실행하거나 커밋하면 따라온다.
 - SWT와 다른 점:
-  - SWT는 기본으로 데이터를 바꾸는 문장만 보이고 "모든 문장 보이기"를 두었다. Chromite는 SELECT도 트랜잭션을 연 것으로 보므로(잠금·스냅숏, [idle-transactions.md](idle-transactions.md)) 모두 보인다.
+  - SWT는 기본으로 데이터를 바꾸는 문장만 보이고 "모든 문장 보이기"를 두었다. Chromite는 SELECT도 보인다. SELECT도 트랜잭션에 잠금·스냅숏을 남길 수 있고
+    (PostgreSQL·MySQL의 테이블 잠금, REPEATABLE READ), 열림 여부는 DB에 물어 정하기 때문이다([idle-transactions.md](idle-transactions.md) "트랜잭션 상태").
   - "지난 트랜잭션 보이기"는 2026-11-08에 더했다([connection-lifecycle.md](connection-lifecycle.md) "트랜잭션 로그의 지난 트랜잭션").
   - SWT는 쿼리 관리자 보기(`QueryLogViewer`)를 그대로 썼다. 만들 때 Swing에는 그 보기가 없어(A-C6) 표를 새로 만들었다.
     2026-11-08부터 View > Query Manager가 있다([swing-query-manager.md](swing-query-manager.md)). 그 창의 트랜잭션 보기는 지난 트랜잭션도 고를 수 있고 메타데이터·내부 쿼리도 보일 수 있다.
@@ -74,7 +75,7 @@
 
 - 여는 곳: Tools > Open Transactions…. 하나만 여는 모달 아닌 대화상자다.
 - 도구 창이 아니라 대화상자로 한 이유: 가끔 여는 점검 화면이고, 도구 창으로 하면 도킹 배치 저장(`ToolWindowDocking`)과 View 메뉴가 늘어난다. SWT도 대화상자였다.
-- 대상: 작업 공간 모든 프로젝트의 연결된 연결에서, 모든 인스턴스의 모든 실행 문맥 중 열린 트랜잭션(`QMTransactionState.isOpen`)이 있는 것.
+- 대상: 작업 공간 모든 프로젝트의 연결된 연결에서, 모든 인스턴스의 모든 실행 문맥 중 열린 트랜잭션(`QMTransactionState.isOpen`, DB의 답, 확인할 수 없는 것 포함)이 있는 것.
   상태 줄, 유휴 트랜잭션 감시, Commit 명령과 같은 기준이라 세 곳이 같은 트랜잭션을 보인다.
 - 열: 연결, 데이터베이스(문맥의 기본 카탈로그·스키마, 없으면 연결 설정의 DB), 세션(쿼리 창 이름 또는 문맥 이름), 시작 시각, 문장 수(데이터 변경 수),
   유휴(마지막 문장 끝부터, 실행 중이면 "실행 중").
@@ -131,7 +132,8 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 
 ### 트랜잭션 안전
 
-창의 자기 세션을 끝내는 동작은 커밋하지 않은 트랜잭션(`QMUtils.isTransactionActive`, 끊기·끝내기 질문과 같은 기준)이 있으면 먼저 Commit / Roll back / Cancel을 묻는다.
+창의 자기 세션을 끝내는 동작은 열린 트랜잭션(`QMTransactionState.isOpen()`, 상태 줄·끊기·끝내기 질문과 같은 기준, 2026-11-08부터 DB의 답
+[idle-transactions.md](idle-transactions.md) "트랜잭션 상태")이 있으면 먼저 Commit / Roll back / Cancel을 묻는다.
 
 | 동작 | 질문 | 취소하면 |
 |---|---|---|
@@ -218,7 +220,8 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 
 ### 바꾼 것: 멈추고 묻는다
 
-- **판단.** 복구가 끝낼 문맥 중 열린 트랜잭션이 있으면(`QMTransactionState.isOpen()`: 수동 커밋에서 사용자 문장이 있음, 상태 줄·목록과 같은 기준) 복구하지 않는다.
+- **판단.** 복구가 끝낼 문맥 중 열린 트랜잭션이 있으면(`QMTransactionState.isOpen()`: 2026-11-08부터 DB가 무언가를 쥐었다고 답했거나 명시적으로 시작했거나
+  확인할 수 없음, 상태 줄·목록과 같은 기준, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태") 복구하지 않는다.
   다시 연결은 Chromite Agent 세션(`DBServiceUnrecordedSessions.isConnectionInUse`)도 본다. 판단은 `TransactionRecoveryGuard`(모델)가 한다.
   - 실패한 시도 자신의 문장은 셈에서 뺀다: 세션으로 부른 복구는 첫 시도 전의 트랜잭션 상태를 기억하고(`TransactionRecoveryGuard.Attempt`), 그 문맥은 그때 열려
     있었을 때만 연 것으로 본다. 커밋 직후 첫 SELECT에서 연결이 끊긴 경우처럼 잃을 것이 없으면 전처럼 다시 연결한다.
@@ -332,7 +335,8 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 ### 동작 (`CommitModeSwitch.switchMode`)
 
 1. 대상은 그 창의 실행 문맥이다(`getExecutionContext`: 창의 자기 세션, 또는 주 문맥). 연결 설정의 기본값(`bootstrap.autocommit`)은 바꾸지 않는다. 그래서 다시 연결하면 설정의 방식으로 돌아가고, 그동안 상태 줄 도구 설명에 "연결 설정은 지금 …입니다. 다시 연결하면 적용됩니다"가 나온다. 무효화·다시 연결은 문맥의 지금 방식을 이어받는다(`JDBCExecutionContext.invalidateContext`가 `autoCommit`을 넘김).
-2. 수동 → 자동이고 세션에 커밋하지 않은 문장이 있으면(상태 줄의 열린 트랜잭션 `QMTransactionState.isOpen`, 또는 데이터를 바꾼 실행 `QMUtils.isTransactionActive`) **커밋하고 바꾸기 / 롤백하고 바꾸기 / 취소**(취소 기본)를 묻는다. JDBC `setAutoCommit(true)`가 열린 트랜잭션을 묻지 않고 커밋하기 때문이다. SELECT만 있어도 묻는다(상태 줄이 열린 트랜잭션을 보이는 기준과 같게, SELECT … FOR UPDATE의 잠금).
+2. 수동 → 자동이고 세션에 커밋하지 않은 문장이 있으면(상태 줄의 열린 트랜잭션 `QMTransactionState.isOpen`, 또는 데이터를 바꾼 실행 `QMUtils.isTransactionActive`) **커밋하고 바꾸기 / 롤백하고 바꾸기 / 취소**(취소 기본)를 묻는다. JDBC `setAutoCommit(true)`가 열린 트랜잭션을 묻지 않고 커밋하기 때문이다. 상태 줄이 열린 트랜잭션을 보이는 기준과 같다: 2026-11-08부터 DB가 쥔 것이 있다고 답할 때다
+  (SELECT … FOR UPDATE의 잠금, PostgreSQL·MySQL SELECT의 테이블 잠금은 묻고, SQL Server의 쥔 것 없는 SELECT는 묻지 않는다, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태").
 3. 창이 세션을 함께 쓰면(쿼리 창마다 별도 연결이 꺼졌거나 "단일 연결") "PG test의 쿼리 창들이 한 세션을 함께 씁니다(SQLQuery1.sql, SQLQuery2.sql). 커밋 방식이 그 창 모두에서 바뀝니다"를 알린다. 열린 트랜잭션 질문이 있으면 그 질문에 넣고, 없으면 **…으로 바꾸기 / 취소**(취소 기본)로 묻는다. 자기 세션이면 자동 → 수동은 묻지 않는다.
 4. 진행 대화상자(`ProgressDialog.runTask`)의 작업 스레드에서 다시 확인한다: 그 세션에서 문장이나 `DataSourceJob`이 돌고 있으면 아무것도 하지 않고 "세션에서 문장이 실행 중입니다…"를 알린다. 질문 뒤 트랜잭션이 바뀌었거나(시작 시각) 묻지 않았는데 트랜잭션이 생겼으면(함께 쓰는 다른 창) "질문한 뒤 세션의 트랜잭션이 바뀌었습니다… 커밋, 롤백, 전환 모두 하지 않았습니다"를 알린다.
 5. 답에 따라 UTIL 세션으로 `commit`/`rollback`을 먼저 하고 `DBCTransactionManager.setAutoCommit`을 부른다. 실패하면 오류 대화상자(창과 연결 이름, 원인). 끝나면 창이 실제 방식을 다시 읽는다. 함께 쓰는 다른 창은 1초마다의 쿼리 관리자 상태 읽기가 방식 변화를 보고 다시 읽는다(`refreshOpenTransaction`).
@@ -413,7 +417,8 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 - 커밋·롤백 뒤 알림과 그 설정(SWT `transaction.show.notifications`). 트랜잭션 설정 화면(A-P1 "Transactions")과 함께 한다.
 - 실행 중 자동/수동 커밋 전환(B-S18)은 2026-11-08에 더했다(위 "커밋 방식 전환"). 실행 중 세션의 격리 수준 바꾸기(B-S19)는 아직 없다. 스마트 커밋(B-S16)은 2026-11-08에 더했다([connection-lifecycle.md](connection-lifecycle.md) "스마트 커밋"). 쿼리 창마다 별도 연결(B-S22)은 2026-11-07에 더했다(위 절).
 - 서버가 스스로 트랜잭션 전체를 롤백하는 경우(SQL Server 교착 상태 희생자 1205·`XACT_ABORT ON`, MariaDB 교착 상태 1213)는 Chromite의 복구가 아니라서
-  알리지 않고, 상태 줄도 계속 열린 트랜잭션을 보인다. 오류 코드로 알아보거나 서버에 트랜잭션 수(`@@TRANCOUNT` 등)를 묻는 것이 필요하다.
+  알리지 않는다. 상태 줄은 2026-11-08부터 실행이 끝날 때 서버에 묻으므로 닫힘으로 바뀐다(SQL Server `XACT_ABORT` 확인,
+  [idle-transactions.md](idle-transactions.md) "확인: DB별 경우표"). 롤백되었다는 알림은 아직 없다.
 - PostgreSQL의 중단된 트랜잭션에 Query > Commit을 누르면 서버가 롤백하고 오류가 없다(pgjdbc `raiseExceptionOnSilentRollback` 기본 꺼짐). 알림이 그것을 말하지만
   커밋 명령 자체는 막지 않는다.
 - 사용자가 고른 다시 연결 뒤 Chromite Agent의 열린 트랜잭션 기록(`AgentSql`)은 지우지 않는다(모델에서 위 번들을 알 수 없다). 에이전트가 끝내거나 끊을 때 정리된다.
@@ -439,3 +444,5 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
   수동 → 자동은 열린 트랜잭션이 있으면 커밋하고 바꾸기 / 롤백하고 바꾸기 / 취소(취소 기본), 세션을 함께 쓰면 그 창들을 알리고 확인, 실행 중 꺼짐,
   연결의 기본값은 그대로(`chromite/commit-mode-toggle`). PostgreSQL·SQL Server·Oracle, 한국어·영어에서 확인("커밋 방식 전환 > 확인")
 - 2026-11-08 문장 오류 때 롤백과 세션 단위 취소의 두 키를 모델이 읽지 않음(`chromite/safety-defaults`, [swing-options.md](swing-options.md))
+- 2026-11-09 열린 트랜잭션의 기준을 DB의 답으로 바꾼 것을 반영(창의 세션 끝내기 질문, 오류 복구 판단, 커밋 방식 전환 질문, 목록, 로그, 서버가 스스로 롤백한 뒤의 상태 줄)
+  ([idle-transactions.md](idle-transactions.md) "트랜잭션 상태", `chromite/txn-real-state`)

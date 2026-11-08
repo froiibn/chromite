@@ -103,6 +103,8 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - 새 파일: `TableDesignSession`, `TableDesignerPanel`, `DesignerTable`, `DesignerDialogs`, `ScriptPreviewDialog`, `design/*`(Swing 번들).
 - 고친 파일: `ObjectExplorerPanel`(메뉴 2개, 모델 `ADD`·`REFRESH` 반영), `MainFrame`(디자이너 탭), Swing 번들 `MANIFEST.MF`·`plugin.xml`.
 - DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다. 다만 2026-11-07에 SQL Server 열 정의의 `COLLATE` 조건을 모델 `SQLServerTableColumnManager`에서 고쳤다(SWT에도 적용).
+  2026-11-08(후속 29 d–f): 모델 `AbstractCommandContext`(실패 뒤 합쳐진 명령 지우기, 적용한 문장 기록), `SQLObjectEditor.ObjectRenameCommand.merge`(옛 이름),
+  `SQLServerTableColumnManager`(`sp_rename` 새 이름, 기본값 제약 조건 이름). 모두 SWT에도 있던 결함이다.
 
 ## 확인 (2026-11-06)
 
@@ -137,6 +139,62 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   3. SQL Server 기본값을 다시 만들 때 이름을 넣지 않아(`ADD DEFAULT N'x' FOR title`) 원래 이름 `df_designer_title`이 시스템 이름 `DF__designer___title__…`로 바뀐다.
 - 회귀 테스트는 실행하지 않았다(코드 변경 없음).
 
+## 후속 29 d–f (2026-11-08, `chromite/followups-5`)
+
+### 저장된 열 이름 바꾸기
+
+- **근본 원인:** 저장된 열·키·테이블의 이름은 모델 속성이 `editable`일 뿐 `updatable`이 아니어서(`JDBCTableColumn.getName`, `JDBCTable.getName`) 디자이너 칸이 잠겨 있었다.
+  이름 바꾸기는 객체 관리자의 `DBEObjectRenamer`(탐색기 Rename과 같음)가 하는데 디자이너는 속성 변경(`PropertySourceEditable.setPropertyValue`)만 썼다.
+  그래서 칸을 고쳐도(후속 확인은 표 모델에 직접 값을 넣음) 이름 바꾸기 명령이 없고 SQL Server는 새 이름으로 `ALTER COLUMN`만 나가 오류 4924가 났다.
+  같은 빈틈이 모든 드라이버(PostgreSQL·MySQL/MariaDB·Oracle 열 관리자도 `DBEObjectRenamer`)와 키·인덱스·테이블 이름에 있었다.
+- **고친 것(`TableDesignSession`):** 저장된 객체의 이름 속성이고 관리자가 `DBEObjectRenamer`이며 `canRenameObject`이면 편집할 수 있고(`isEditable`),
+  값은 `renameObject`로 같은 명령 묶음에 넣는다(`setValue`, 새 객체 이름과 같은 대소문자 변환기를 거침). 스크립트는 드라이버의 이름 바꾸기 문장이다:
+  SQL Server `sp_rename … 'COLUMN'`/`'OBJECT'`, PostgreSQL `RENAME COLUMN`, MariaDB `CHANGE`.
+- **모델 결함 1(`SQLObjectEditor.ObjectRenameCommand.merge`):** 명령 대기열을 다시 만들 때 합친 이름 바꾸기 명령을 새로 만들면서 옛 이름을 객체에서 읽었는데,
+  객체는 명령을 넣을 때 이미 새 이름으로 바뀌어 있어 옛 이름 = 새 이름이 되어 문장이 빠졌다(다른 칸을 고친 뒤의 스크립트·저장). 첫 명령의 옛 이름을 이어받게 고쳤다.
+  탐색기 Rename처럼 바로 저장하는 경로는 대기열을 한 번만 만들어 드러나지 않았다.
+- **모델 결함 2(`SQLServerTableColumnManager.addObjectRenameActions`):** `sp_rename`의 새 이름을 `getQuotedIdentifier`로 감싸, 따옴표가 필요한 이름이면
+  대괄호가 이름의 일부가 됐다. 테이블 이름 바꾸기처럼 문자열(`N'…'`, 방언의 `getQuotedString`)로 넘긴다. 첫 인자도 같은 문자열 처리를 거친다.
+- 이름 바꾸기 명령은 대기열 앞에 온다(`AbstractCommandContext`, upstream #7512): 이름을 바꾸고 형식을 고친 열은 `sp_rename` 뒤에 새 이름으로 `ALTER COLUMN`이 나간다.
+
+### 저장이 중간에 실패할 때
+
+- **근본 원인(모델 `AbstractCommandContext.executeCommands`):** 저장은 명령마다 커밋한다(대부분 DB의 DDL은 트랜잭션이 안 됨). 실패하면 실행된 명령의 **합쳐진 결과**만
+  명령 목록에서 지웠는데, 같은 객체의 속성 편집들은 합친 명령(복합 명령)에 들어가 원래 명령이 목록에 남았다. 그래서 디자이너는 이미 적용된 변경까지 모두 대기로 보이고,
+  다음 저장은 그것을 다시 실행했으며(새 열 다시 추가 → 실패), 되돌리기는 DB에 이미 있는 변경을 모델에서만 되돌렸다.
+- **고친 것:**
+  - `AbstractCommandContext`: 실행된 명령과 그 명령으로 합쳐진 명령을 모두 지운다(`getMergeTarget`). 저장에서 적용된 문장을 기록한다(`getAppliedActions`: 커밋한 명령의 문장,
+    트랜잭션 없이 실행되어 남은 문장. 트랜잭션 안에서 실패한 명령의 문장은 롤백되므로 빼고, 다 저장되거나 되돌리면 비움).
+  - `TableDesignSession.save`: 실패했는데 적용된 문장이 없으면 전처럼 변경을 대기로 둔다(고쳐서 다시 저장). 적용된 문장이 있으면 적용하지 못한 변경의 스크립트를 만든 뒤
+    남은 변경을 버리고(`resetChanges`) 테이블을 DB에서 다시 읽고(`FORCE_REFRESH`) `PartialSaveException`을 던진다.
+  - `TableDesignerPanel.save`: 오류 창에 "'…'의 변경 중 일부를 적용한 뒤 저장이 실패했습니다 … 적용함: … 적용하지 못함: …"과 원래 오류를 보인다(`designer_error_save_partial`).
+- 결정: 적용하지 못한 변경은 디자이너에 남기지 않는다. DB에서 다시 읽은 객체는 새 객체라 옛 객체에 걸린 명령을 그대로 둘 수 없다. 대신 그 문장을 창에 보여 다시 할 수 있게 한다.
+
+### 기본값 제약 조건 이름
+
+- SQL Server에서 기본값이 있는 열을 고치면 제약 조건을 지우고 다시 만드는데(2026-11-08, 오류 5074), 다시 만들 때 이름을 붙이지 않아
+  `df_designer_title`이 시스템 이름 `DF__designer___title__…`로 바뀌었다. `ADD CONSTRAINT <원래 이름> DEFAULT … FOR …`로 고쳤다(`SQLServerTableColumnManager.addObjectModifyActions`).
+  원래 제약 조건이 없던 열에 기본값을 새로 넣을 때는 전처럼 이름 없이 만든다. PostgreSQL·MySQL·Oracle의 기본값은 이름 있는 제약 조건이 아니라 해당 없음.
+
+### 확인 (2026-11-08)
+
+이 브랜치 빌드의 앱 한 벌(개인 데이터 폴더·작업 공간, 한국어)에 붙인 시험 코드가 디자이너를 `MainFrame.designTable`로 열고 표 모델에 값을 넣고(편집 가능 여부는
+`JTable.isCellEditable`로 따로 봄) 도구 막대 동작을 실행했다. 공용 Docker DB의 `chr_followups5`. 증거 `D:\Tools\_scratch\chromite-followups-5\run\d*.txt.log`, `shots\d*.png`, `shots\e*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SQL Server `designer_t`: 저장된 열 `title`의 이름 칸 | 편집 가능(`#` 칸은 그대로 불가) |
+| `title` → `title2`, 길이 50 → 80, 스크립트 | `EXEC chr_followups5.sys.sp_rename N'chr_followups5.dbo.designer_t.title', N'title2', 'COLUMN';` → `DROP CONSTRAINT df_designer_title` → `ALTER COLUMN title2 nvarchar(80) …` → `ADD CONSTRAINT df_designer_title DEFAULT N'x' FOR title2` |
+| 저장(실행) | `sys.columns`: `title2 nvarchar(80)`, `sys.default_constraints`: `df_designer_title (N'x') title2`. 고치기 전에는 첫 실행에서 `sp_rename`이 빠졌다(대기열을 다시 만든 스크립트) |
+| `title2` 길이 100, 새 열 `Column1`, `qty` 기본값 `nosuchfunc()` → 저장 | 오류 창 "적용함: DROP/ALTER/ADD CONSTRAINT(title2), ADD Column1 / 적용하지 못함: ADD DEFAULT nosuchfunc() FOR qty / SQL 오류 [195]"(`shots\e1-partial-save.png`). 디자이너는 저장할 것 없음(제목에 `*` 없음), DB와 같은 `title2 100`, `Column1`, `qty` 기본값 없음 |
+| PostgreSQL `designer_p` `title` → `title2` | `ALTER TABLE public.designer_p RENAME COLUMN title TO title2;`, 저장 뒤 열 `title2`(기본값 유지) |
+| MariaDB `designer_m` `title` → `title2` | `ALTER TABLE chr_followups5.designer_m CHANGE title title2 varchar(50) DEFAULT 'x' NULL;`, 저장 뒤 `SHOW CREATE TABLE`이 같음 |
+| SQL Server 테이블 탭의 이름 `designer_t` → `designer_t2` | `EXEC … sp_rename N'chr_followups5.dbo.designer_t', N'designer_t2', 'OBJECT';`, 저장 뒤 `sys.tables`에 `designer_t2`, 문서 탭 제목도 바뀜 |
+
+- Oracle 열 이름 바꾸기는 실행해 보지 않았다(관리자가 `DBEObjectRenamer`라 같은 경로).
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 명령 묶음으로 저장하는 모든 편집(디자이너, 탐색기 이름 바꾸기·지우기·만들기, Properties 창 편집)의
+  실패 뒤 상태, 이름 바꾸기 명령을 여러 번 합치는 경로, SQL Server 열 이름 바꾸기·기본값 다시 만들기.
+
 ## 남긴 것
 
 - **New View…:** 뷰는 SQL 정의를 편집해야 해서 디자이너 표가 맞지 않는다. 다음에 "CREATE VIEW 틀을 쿼리 창으로 열기"로 만든다.
@@ -144,8 +202,10 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 열 순서 바꾸기(SSMS 끌어 놓기), 실행 취소·다시 실행(Ctrl+Z), 저장된 키·인덱스의 열 구성 편집(지금은 지우고 다시 추가).
 - 다른 스키마의 테이블을 참조하는 외래 키(대화상자는 같은 스키마·카탈로그의 테이블만 보여 줌).
 - DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
-- (2026-11-08 확인에서 찾음) SQL Server 저장된 열 이름 바꾸기가 `sp_rename` 없이 `ALTER COLUMN`으로 나가는 것, 저장 스크립트가 중간에 실패할 때 앞 문장이 남는 것과
-  디자이너가 보이는 상태, 다시 만든 기본값 제약 조건의 이름(위 "확인 (2026-11-08, SQL Server·MariaDB…)").
+- ~~(2026-11-08 확인에서 찾음) SQL Server 저장된 열 이름 바꾸기가 `sp_rename` 없이 `ALTER COLUMN`으로 나가는 것, 저장 스크립트가 중간에 실패할 때 앞 문장이 남는 것과
+  디자이너가 보이는 상태, 다시 만든 기본값 제약 조건의 이름(위 "확인 (2026-11-08, SQL Server·MariaDB…)").~~ 2026-11-08 고침(위 "후속 29 d–f").
+- SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)의 `sp_rename` 첫 인자는 따옴표를 두 번 쓰지 않은 채
+  `N'…'`에 넣는다. 이름에 `'`가 있으면 문장이 깨진다(이번 범위 밖, 고치지 않음).
 
 ## 변경 이력
 
@@ -165,3 +225,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
   참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".
 - 2026-11-08 SQL Server·MariaDB 화면 확인과 다크 테마(`chromite/followups-4`): 저장된 열의 형식 바꾸기 성공, SQL Server 열 이름 바꾸기·중간 실패·기본값 이름 결함을 "남긴 것"에 적음.
+- 2026-11-08 후속 29 d–f(`chromite/followups-5`): 저장된 객체의 이름을 관리자의 이름 바꾸기로(`TableDesignSession`, 모델 `ObjectRenameCommand.merge`·SQL Server `sp_rename` 새 이름),
+  중간에 실패한 저장의 적용·미적용 알림과 다시 읽기(`AbstractCommandContext`, `PartialSaveException`), 다시 만든 SQL Server 기본값 제약 조건의 이름. 위 "후속 29 d–f".

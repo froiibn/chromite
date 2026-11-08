@@ -34,6 +34,7 @@ import com.seizia.chromite.model.edit.DBECommand;
 import com.seizia.chromite.model.edit.DBECommandContext;
 import com.seizia.chromite.model.edit.DBEObjectMaker;
 import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.edit.DBEObjectRenamer;
 import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.edit.DBEStructEditor;
 import com.seizia.chromite.model.edit.prop.DBECommandDeleteObject;
@@ -119,6 +120,9 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 키·인덱스·외래 키 설정이 실패하면(드라이버가 값을 거절) 만든 객체를 거둠({@code discardNew}): 이름 없는 빈 객체가
  *   명령 묶음에 남아 다음 스크립트가 "Empty foreign key name"으로 실패하던 것 (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 저장된 열·키·테이블의 이름은 객체 관리자의 이름 바꾸기({@link DBEObjectRenamer})로 바꿈: 이름 칸이 잠겨 있었고, 속성 변경으로는
+ *   SQL Server에서 sp_rename 없이 ALTER COLUMN만 나갔다(오류 4924). 저장이 일부 문장을 적용한 뒤 실패하면 적용한 것과 못 한 것을
+ *   {@link PartialSaveException}으로 알리고 테이블을 DB에서 다시 읽음 (docs/chromite/swing-table-designer.md "후속 29 d–f")
  */
 final class TableDesignSession {
 
@@ -423,16 +427,43 @@ final class TableDesignSession {
      * objects or updatable for saved ones ({@link ObjectPropertyDescriptor#isEditable}).
      */
     boolean isEditable(@NotNull DBSObject object, @NotNull ObjectPropertyDescriptor property) {
-        return !isReadOnly() && property.getDeclaringClass().isInstance(object) && property.isEditable(object);
+        return !isReadOnly() && property.getDeclaringClass().isInstance(object)
+            && (property.isEditable(object) || getRenamer(object, property) != null);
     }
 
     /**
      * Changes a property: a command in the command context (SWT {@code ItemListControl.CellEditingSupport.setValue}).
-     * Texts are trimmed like the SWT editors do ({@code UIUtils.normalizePropertyValue}).
+     * Texts are trimmed like the SWT editors do ({@code UIUtils.normalizePropertyValue}). The name of a saved object
+     * is renamed by its object manager, as the explorer's Rename does.
      */
-    void setValue(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, @NotNull ObjectPropertyDescriptor property, @Nullable Object value) {
+    @SuppressWarnings("unchecked")
+    void setValue(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, @NotNull ObjectPropertyDescriptor property, @Nullable Object value)
+        throws DBException {
         Object normalized = value instanceof String text ? text.trim() : value;
+        DBEObjectRenamer<DBSObject> renamer = getRenamer(object, property);
+        if (renamer != null) {
+            // The same case rule as a new object's name (the property's transformer)
+            Object newName = property.getValueTransformer() == null ? normalized : property.getValueTransformer().transform(object, normalized);
+            if (newName instanceof String name && !name.isEmpty() && !name.equals(object.getName())) {
+                renamer.renameObject(commandContext, object, new HashMap<>(), name);
+            }
+            return;
+        }
         propertySource.setPropertyValue(monitor, object, property, normalized);
+    }
+
+    /**
+     * The renamer of a saved object's name ({@link DBEObjectRenamer}): the name of a saved column, key or table is not
+     * an updatable property, and a property change would only be an ALTER of the old name (SQL Server error 4924).
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    private static DBEObjectRenamer<DBSObject> getRenamer(@NotNull DBSObject object, @NotNull ObjectPropertyDescriptor property) {
+        if (!property.isNameProperty() || !object.isPersisted()) {
+            return null;
+        }
+        DBEObjectRenamer<DBSObject> renamer = DBWorkbench.getPlatform().getEditorsRegistry().getObjectManager(object.getClass(), DBEObjectRenamer.class);
+        return renamer != null && renamer.canRenameObject(object) ? renamer : null;
     }
 
     //////////////////////////////////////////////////////////
@@ -815,7 +846,7 @@ final class TableDesignSession {
         constraint.setAttributeReferences(refs);
     }
 
-    private void setRequired(@NotNull DBRProgressMonitor monitor, @NotNull DBSEntityAttribute column) {
+    private void setRequired(@NotNull DBRProgressMonitor monitor, @NotNull DBSEntityAttribute column) throws DBException {
         for (ObjectPropertyDescriptor property : getObjectProperties(column)) {
             if (PROP_REQUIRED.equals(property.getId()) && property.isEditable(column)
                 && !Boolean.TRUE.equals(readValue(monitor, column, property))) {
@@ -833,6 +864,19 @@ final class TableDesignSession {
      */
     @NotNull
     String generateScript(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return generateScript(monitor, List.of());
+    }
+
+    /**
+     * The script of the pending changes without the statements already applied (the first statements of a command
+     * that failed where DDL is not transactional).
+     */
+    @NotNull
+    private String generateScript(@NotNull DBRProgressMonitor monitor, @NotNull List<DBEPersistAction> applied) throws DBException {
+        List<String> appliedScripts = new ArrayList<>();
+        for (DBEPersistAction action : applied) {
+            appliedScripts.add(action.getScript());
+        }
         Collection<? extends DBECommand<?>> commands = commandContext.getFinalCommands();
         StringBuilder script = new StringBuilder();
         monitor.beginTask(ToolsMessages.designer_progress_generate_script, commands.size());
@@ -842,8 +886,16 @@ final class TableDesignSession {
             command.validateCommand(monitor, validateOptions);
             Map<String, Object> options = new HashMap<>();
             options.put(DBPScriptObject.OPTION_OBJECT_SAVE, true);
-            DBEPersistAction[] actions = command.getPersistActions(monitor, executionContext, options);
-            script.append(SQLUtils.generateScript(table.getDataSource(), actions, false));
+            List<DBEPersistAction> actions = new ArrayList<>();
+            DBEPersistAction[] commandActions = command.getPersistActions(monitor, executionContext, options);
+            if (commandActions != null) {
+                for (DBEPersistAction action : commandActions) {
+                    if (!appliedScripts.remove(action.getScript())) {
+                        actions.add(action);
+                    }
+                }
+            }
+            script.append(SQLUtils.generateScript(table.getDataSource(), actions.toArray(new DBEPersistAction[0]), false));
             monitor.worked(1);
         }
         monitor.done();
@@ -852,6 +904,8 @@ final class TableDesignSession {
 
     /**
      * Executes the pending changes ({@code EntityEditor.saveCommandContext}) and reads the table again from the database.
+     * When the save fails after some statements were applied, the rest is discarded, the table is read again and
+     * {@link PartialSaveException} tells both parts.
      */
     void save(@NotNull DBRProgressMonitor monitor) throws DBException {
         if (!table.getDataSource().getContainer().hasModifyPermission(DBPDataSourcePermission.PERMISSION_EDIT_METADATA)) {
@@ -867,8 +921,55 @@ final class TableDesignSession {
                 }
             }
         }
-        DBExecUtils.tryExecuteRecover(monitor, executionContext.getDataSource(), param ->
-            commandContext.saveChanges(monitor, new HashMap<>()));
+        try {
+            DBExecUtils.tryExecuteRecover(monitor, executionContext.getDataSource(), param ->
+                commandContext.saveChanges(monitor, new HashMap<>()));
+        } catch (DBException e) {
+            List<DBEPersistAction> applied = ((AbstractCommandContext) commandContext).getAppliedActions();
+            if (applied.isEmpty()) {
+                // Nothing reached the database: the changes stay pending, to be corrected and saved again
+                throw e;
+            }
+            // Each command commits, so the statements before the failed one stay in the database: the designer would show
+            // them as pending and the next save would run them again. Tell what was applied and what was not, and show
+            // the table as the database has it
+            String appliedScript = SQLUtils.generateScript(table.getDataSource(), applied.toArray(new DBEPersistAction[0]), false);
+            String notAppliedScript = generateScript(monitor, applied);
+            commandContext.resetChanges(true);
+            readFromDatabase(monitor, true);
+            throw new PartialSaveException(appliedScript, notAppliedScript, e);
+        }
+        readFromDatabase(monitor, isNewObject);
+    }
+
+    /**
+     * A save that failed after some of its statements were applied. The designer was read again from the database.
+     */
+    static final class PartialSaveException extends DBException {
+        private final String appliedScript;
+        private final String notAppliedScript;
+
+        PartialSaveException(@NotNull String appliedScript, @NotNull String notAppliedScript, @NotNull DBException cause) {
+            super(cause.getMessage(), cause);
+            this.appliedScript = appliedScript;
+            this.notAppliedScript = notAppliedScript;
+        }
+
+        @NotNull
+        String getAppliedScript() {
+            return appliedScript;
+        }
+
+        @NotNull
+        String getNotAppliedScript() {
+            return notAppliedScript;
+        }
+    }
+
+    /**
+     * Reads the saved table and its children from the database (EntityEditor refreshes the editor's node).
+     */
+    private void readFromDatabase(@NotNull DBRProgressMonitor monitor, boolean isNewObject) throws DBException {
         newTable = false;
         if (table instanceof DBPStatefulObject statefulObject) {
             try {

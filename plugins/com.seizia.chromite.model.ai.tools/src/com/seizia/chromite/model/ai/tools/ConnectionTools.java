@@ -46,10 +46,11 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
-import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
 
 import java.sql.DatabaseMetaData;
 import java.util.ArrayList;
@@ -64,14 +65,16 @@ import java.util.Map;
  * <ul>
  *     <li>{@code getConnectionInfo}는 연결 설정 중 비밀이 아닌 칸만 고른다(허용 목록). 인증 속성·비밀번호·SSH 키·프록시 비밀번호는 넣지 않는다
  *     (docs/chromite/ai-agent.md "보안"). 네트워크 처리기는 종류와 켜짐 여부만 낸다.</li>
- *     <li>트랜잭션 안전(사용자 규칙): {@code disconnect}는 이 연결의 모든 실행 문맥(쿼리 창은 QM이 아는 트랜잭션, 에이전트 문맥은
- *     {@link AgentSql}이 기록한 것)을, {@code setCurrentDatabase}·{@code commitTransaction}·{@code rollbackTransaction}은 에이전트의
- *     열린 트랜잭션을 실행기에 알려 Commit / Roll back / Cancel을 묻게 한다({@link AIToolTransactionGuard}).</li>
+ *     <li>트랜잭션 안전(사용자 규칙): {@code disconnect}는 이 연결의 모든 실행 문맥(쿼리 창은 상태 줄과 같은 규칙
+ *     {@link QMUtils#getTransactionState}, 에이전트 문맥은 {@link AgentSql}이 기록한 것)을, {@code setCurrentDatabase}·{@code commitTransaction}·
+ *     {@code rollbackTransaction}은 에이전트의 열린 트랜잭션을 실행기에 알려 Commit / Roll back / Cancel을 묻게 한다({@link AIToolTransactionGuard}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
+ * - 2026-11-08 쿼리 창 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 봄, getTransactionStatus에 확인할 수 없는 트랜잭션
+ *   ({@code otherUnverifiedTransactions}), 끝내기는 공용 경로 (docs/chromite/ai-agent.md "트랜잭션 안전")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -253,13 +256,20 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         agent.forEach(agentList::add);
         json.add("agentTransactions", agentList);
         json.addProperty("defaultAutoCommit", container.isDefaultAutoCommit());
+        // Same rule as the query window's status line: the database holds something for it or it was begun explicitly;
+        // "unverified" when the database could not be asked (treated as open)
         JsonArray user = new JsonArray();
+        JsonArray unverified = new JsonArray();
         for (DBCExecutionContext ctx : userContexts(container)) {
-            if (QMUtils.isTransactionActive(ctx)) {
+            QMTransactionState state = QMUtils.getTransactionState(ctx);
+            if (state.isUnknown()) {
+                unverified.add(ctx.getContextName());
+            } else if (state.isOpen()) {
                 user.add(ctx.getContextName());
             }
         }
         json.add("otherOpenTransactions", user);
+        json.add("otherUnverifiedTransactions", unverified);
         return json;
     }
 
@@ -343,7 +353,7 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
                     result.add(AgentSql.pendingAgentTransaction(database, null));
                 }
                 for (DBCExecutionContext ctx : userContexts(container)) {
-                    if (QMUtils.isTransactionActive(ctx)) {
+                    if (QMUtils.getTransactionState(ctx).isOpen()) {
                         result.add(new AIPendingTransaction(AIToolsMessages.pending_owner_query_window,
                             NLS.bind(AIToolsMessages.pending_query_window_work, ctx.getContextName()), true));
                     }
@@ -371,19 +381,11 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         AgentSql.endTransaction(context.getMonitor(), container, commit);
         if (context.getTool().getId().equals("disconnect")) {
             for (DBCExecutionContext ctx : userContexts(container)) {
-                if (!QMUtils.isTransactionActive(ctx)) {
-                    continue;
-                }
-                DBCTransactionManager txn = DBUtils.getTransactionManager(ctx);
-                if (txn == null) {
+                if (!QMUtils.getTransactionState(ctx).isOpen()) {
                     continue;
                 }
                 try (DBCSession session = ctx.openSession(context.getMonitor(), DBCExecutionPurpose.UTIL, "End transaction")) {
-                    if (commit) {
-                        txn.commit(session);
-                    } else {
-                        txn.rollback(session, null);
-                    }
+                    IdleTransactionMonitor.commitOrRollback(session, commit);
                 }
             }
         }

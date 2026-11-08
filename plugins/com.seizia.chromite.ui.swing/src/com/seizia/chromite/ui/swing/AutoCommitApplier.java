@@ -54,8 +54,9 @@ import java.util.Map;
  *     모델은 연결 설정의 기본값을 컨텍스트를 열 때만 읽는다({@code JDBCExecutionContext.connect}의 {@code isDefaultAutoCommit}). 그래서 저장 뒤
  *     연결의 모든 인스턴스의 모든 컨텍스트(주 컨텍스트, 메타데이터, 관리 도구의 격리 컨텍스트)에 SWT 자동 커밋 전환
  *     ({@code DataSourceAutoCommitHandler})과 같은 {@link DBCTransactionManager#setAutoCommit}을 부른다. 다시 연결했을 때와 같은 결과다.</li>
- *     <li>안전: 자동 커밋을 켜면 JDBC가 열린 트랜잭션을 조용히 커밋한다. 그래서 먼저 쿼리 관리자의 트랜잭션 추적({@link QMUtils#isTransactionActive})으로
- *     커밋하지 않은 변경이 있는 컨텍스트를 찾고, 있으면 그 목록(쿼리 창 이름과 연결)을 보이고 "커밋하고 적용 / 롤백하고 적용 / 취소"를 묻는다.
+ *     <li>안전: 자동 커밋을 켜면 JDBC가 열린 트랜잭션을 조용히 커밋한다. 그래서 먼저 상태 줄과 같은 규칙({@link QMUtils#getTransactionState}: DB가
+ *     무언가를 쥐었다고 답했거나 확인할 수 없는 트랜잭션)으로 열린 트랜잭션이 있는 컨텍스트를 찾고, 있으면 그 목록(쿼리 창 이름과 연결)을 보이고
+ *     "커밋하고 적용 / 롤백하고 적용 / 취소"를 묻는다.
  *     취소하면 열린 세션은 이전 방식 그대로이고 저장한 설정은 다음 연결부터 적용된다. 끄기는 묻지 않는다(트랜잭션이 생기지 않는다).</li>
  *     <li>JDBC 호출(현재 상태 읽기, 커밋·롤백, 전환)은 모두 작업 스레드에서 하고, 질문과 결과는 EDT에서 보인다.</li>
  *     <li>컨텍스트의 이름은 그 컨텍스트를 쓰는 쿼리 창 제목이다(창의 자기 세션, 또는 창들이 함께 쓰는 주 컨텍스트, {@link SqlEditorPanel#getExecutionContext}).
@@ -67,6 +68,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 연결 설정의 자동 커밋을 열린 세션에 적용(사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 쿼리 창 이름을 창의 실제 컨텍스트로 붙임(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
+ * - 2026-11-08 열린 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 찾음 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 final class AutoCommitApplier {
 
@@ -141,7 +143,7 @@ final class AutoCommitApplier {
                 String label = windows.containsKey(context) ? windows.get(context)
                     : NLS.bind(ConnectionMessages.autocommit_other_session, context.getContextName(), dataSource.getContainer().getName());
                 // Only switching to auto-commit ends a transaction
-                targets.add(new Target(context, txnManager, label, autoCommit && QMUtils.isTransactionActive(context)));
+                targets.add(new Target(context, txnManager, label, autoCommit && QMUtils.getTransactionState(context).isOpen()));
             }
         }
         monitor.done();

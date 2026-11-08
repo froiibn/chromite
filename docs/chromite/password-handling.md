@@ -107,6 +107,14 @@
 
 - HANA 암호 바꾸기의 사용자 이름은 따옴표 없이 문장에 들어간다(`"ALTER USER " + userName`). 연결 설정의 사용자 이름이고, HANA는
   따옴표 없는 이름을 대문자로 바꾸므로 Oracle처럼 대소문자 변환 뒤 따옴표를 붙여야 맞다. HANA 서버로 확인하지 못해 바꾸지 않았다.
+  - 2026-11-08 코드 검토(후속 29 g, `chromite/followups-5`, 서버 없음, 코드 변경 없음): 같은 문장이 두 곳에 있다
+    (`HANAUserPasswordManager.changeUserPassword`, `HANADataSource`의 만료된 암호 바꾸기). 지금 모양이 맞는 경우는 이름이 따옴표 없는 식별자 규칙에 맞을 때
+    (영문자로 시작, 영문자·숫자·`_`만, 예약어 아님)뿐이고, 이때 HANA가 대문자로 바꾼 사용자를 찾으므로 로그인한 사용자와 같다.
+    틀리는 경우: `-`·`.`·`@`·공백이 든 이름(문법 오류), 예약어 이름, 따옴표로 만든 소문자·대소문자 섞인 사용자(다른 사용자 이름으로 바뀜, 대개 "user not found").
+    Oracle 방식(`DBObjectNameCaseTransformer.transformName` 뒤 `getQuotedIdentifier`)을 그대로 쓰면 대소문자가 섞인 로그인 이름(`MyUser`)을
+    `"MyUser"`로 감싸는데, HANA가 로그인 이름을 대문자로 맞추는지(그러면 `MYUSER`가 맞음) 따옴표 사용자처럼 그대로 찾는지 서버 없이 정할 수 없다.
+    잘못 고치면 지금 되는 이름(대소문자 섞인 따옴표 없는 사용자)이 깨지므로 그대로 둔다. 고칠 때는 HANA 서버에서 `CURRENT_USER`를 읽어 그 값을 따옴표로 감싸는 방법이
+    가장 확실하다(로그인한 사용자의 실제 이름).
 - HANA 암호의 `"` 두 번 쓰기는 구분 식별자 규칙을 따른 것이다. HANA 서버로 실행해 보지 못했다(Exasol·YashanDB·Mimer·CUBRID도 같음).
 - ~~속성 편집(G4, `chromite/object-properties-edit`)이 Properties 창에서 암호 속성을 고칠 때도 가린 입력 칸을 써야 한다.~~
   2026-11-08 확인(후속 34, `chromite/followups-4`): 속성 편집(#171)은 암호 속성을 고칠 수 있는 칸으로 만들지 않는다
@@ -174,3 +182,4 @@
   Swing 속성 표의 암호 가리기.
 - 2026-11-08 후속 34 확인(`chromite/followups-4`): Exasol LDAP `AS` 절은 #170에서 고쳐짐(`ExasolUserManager` CREATE·ALTER가 `ExasolUtils.quoteString`).
   "남긴 것"의 속성 편집 항목은 #171이 암호 속성을 편집하지 않아 닫음. HANA 사용자 이름 따옴표는 HANA 서버가 없어 그대로 남김.
+- 2026-11-08 후속 29 g 코드 검토(`chromite/followups-5`): HANA 사용자 이름 따옴표의 틀리는 경우와 고치지 않은 이유를 "남긴 것"에 적음(코드 변경 없음, 서버로 확인하지 못함).

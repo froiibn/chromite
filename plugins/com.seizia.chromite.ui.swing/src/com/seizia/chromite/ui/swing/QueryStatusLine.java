@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
@@ -37,6 +38,8 @@ import java.awt.event.MouseEvent;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -58,9 +61,11 @@ import java.util.Objects;
  *     도구 설명에 적는다. 수동 커밋의 도구 설명은 COMMIT이 필요하다고 알린다.
  *     칸을 누르면 설정 화면(연결 편집의 Auto-commit)으로 안내만 한다: 사용자 결정(2026-11-07)으로 상태 줄에서는 커밋 방식을 바꾸지 않는다.
  *     도구 설명의 세션 줄({@link #setSessions})은 창이 자기 세션을 쓰는지(쿼리 창마다 별도 연결)와 그 연결에 열린 세션 수다. 커밋 방식이 세션의 것이라 같은 칸에 둔다.</li>
- *     <li>열린 트랜잭션(2026-11-07 사용자 요청, 잠금 사고 방지): 커밋 방식 바로 뒤에 수동 커밋 문맥에서 커밋·롤백하지 않은 문장이 있는 동안만
- *     보인다. 점은 커밋 방식 점과 같은 크기의 status.warning(주의, 오류 아님)이고 글자는 트랜잭션 시작부터의 경과 시간(1초마다 쿼리 창이 갱신)과
- *     문장 수다. 도구 설명은 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수, 마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
+ *     <li>열린 트랜잭션(2026-11-07 사용자 요청, 잠금 사고 방지): 커밋 방식 바로 뒤에 DB가 그 세션의 트랜잭션이 무언가를 쥐었다고 답했거나
+ *     사용자가 명시적으로 시작한 동안만 보인다(2026-11-08 사용자 원칙 "실제로 쥐고 있을 때만", 자동 커밋 모드 포함). DB에 확인할 수 없으면
+ *     "확인할 수 없음" 문구로 따로 보인다. 점은 커밋 방식 점과 같은 크기의 status.warning(주의, 오류 아님)이고 글자는 트랜잭션 시작부터의 경과 시간(1초마다 쿼리 창이 갱신)과
+ *     문장 수다. 도구 설명은 DB가 알려 준 쥔 것(변경, 잠금, 스냅숏, 명시적 시작, 오류로 중단됨), 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수,
+ *     마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
  *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.
  *     같은 메뉴의 Transaction Log는 그 트랜잭션의 문장 목록을 연다(SWT 트랜잭션 모니터를 누르면 로그가 열리던 것과 같은 자리).</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
@@ -93,6 +98,7 @@ import java.util.Objects;
  * - 2026-11-08 폭이 모자라면 상태 문구 대신 서버 칸이 먼저 줄거나 빠짐(BorderLayout·FlowLayout 대신 {@link LineLayout}): 1280 창의 기본 배치에서
  *   상태 문구가 "…"로 잘렸다 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 촘촘한 모드: 칸 테두리가 줄 높이와 글자 줄을 그때마다 읽음(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 열린 트랜잭션 칸: "확인할 수 없음" 문구와 도구 설명의 쥔 것 줄 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  * - 2026-11-08 메인 창 상태 표시줄로 옮김(앱 변경 #2): 바탕과 위 1px 선을 그리지 않고 연결 색을 상태 표시줄에 알림({@link #BAND_PROPERTY}),
  *   높이는 size.statusBar(size.statusLine.query 삭제) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
@@ -328,8 +334,9 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * The open transaction of the window's execution context (manual commit with statements since the last commit or
-     * rollback), or null to hide the segment. Called about once a second, so the elapsed time counts up.
+     * The open transaction of the window's execution context ({@link QMTransactionState#isOpen()}: the database holds
+     * something for it, it was begun explicitly, or that cannot be told), or null to hide the segment. Called about once
+     * a second, so the elapsed time counts up.
      */
     void setOpenTransaction(@Nullable QMTransactionState transaction) {
         openTransaction = transaction;
@@ -339,10 +346,29 @@ final class QueryStatusLine extends JPanel {
             return;
         }
         String elapsed = formatClock(System.currentTimeMillis() - transaction.getTransactionStartTime());
-        String text = transaction.getExecuteCount() == 1 ? NLS.bind(EditorMessages.editor_status_txn_open_one, elapsed)
-            : NLS.bind(EditorMessages.editor_status_txn_open_many, elapsed, transaction.getExecuteCount());
-        StringBuilder tip = new StringBuilder("<html>") //$NON-NLS-1$
-            .append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_started, formatTime(transaction.getTransactionStartTime()))))
+        boolean unknown = transaction.isUnknown();
+        String text = transaction.getExecuteCount() == 1
+            ? NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_one : EditorMessages.editor_status_txn_open_one, elapsed)
+            : NLS.bind(unknown ? EditorMessages.editor_status_txn_unknown_many : EditorMessages.editor_status_txn_open_many,
+                elapsed, transaction.getExecuteCount());
+        StringBuilder tip = new StringBuilder("<html>"); //$NON-NLS-1$
+        if (unknown) {
+            tip.append(CommonUtils.escapeHtml(EditorMessages.editor_status_txn_tip_unknown)).append("<br>"); //$NON-NLS-1$
+        } else if (!transaction.getHolds().isEmpty()) {
+            List<String> holds = new ArrayList<>();
+            for (DBCServerTransaction.Hold hold : transaction.getHolds()) {
+                holds.add(switch (hold) {
+                    case CHANGES -> EditorMessages.editor_status_txn_hold_changes;
+                    case LOCKS -> EditorMessages.editor_status_txn_hold_locks;
+                    case SNAPSHOT -> EditorMessages.editor_status_txn_hold_snapshot;
+                    case EXPLICIT -> EditorMessages.editor_status_txn_hold_explicit;
+                    case ABORTED -> EditorMessages.editor_status_txn_hold_aborted;
+                });
+            }
+            tip.append(CommonUtils.escapeHtml(NLS.bind(transaction.isServerChecked() ? EditorMessages.editor_status_txn_tip_holds
+                : EditorMessages.editor_status_txn_tip_holds_statements, String.join(", ", holds)))).append("<br>"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        tip.append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_started, formatTime(transaction.getTransactionStartTime()))))
             .append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_statements, //$NON-NLS-1$
                 transaction.getExecuteCount(), transaction.getUpdateCount())))
             .append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_last, //$NON-NLS-1$

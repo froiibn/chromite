@@ -35,6 +35,12 @@ import java.util.*;
 
 /**
  * DBECommandContextImpl
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 저장이 중간에 실패하면 실행된 명령에 합쳐진 명령(같은 객체의 속성 편집들, 복합 명령)도 명령 목록에서 지움.
+ *   실행된 명령 정보만 지워서 합쳐진 원래 명령이 남았고, 다음 저장이 이미 적용한 변경을 다시 실행했으며 편집기는 모든 변경을 대기로 보였다.
+ *   저장한 문장({@link #getAppliedActions})도 기록해 편집기가 무엇이 적용됐는지 보일 수 있게 함
+ *   (docs/chromite/swing-table-designer.md "저장이 중간에 실패할 때")
  */
 public abstract class AbstractCommandContext implements DBECommandContext {
 
@@ -44,6 +50,8 @@ public abstract class AbstractCommandContext implements DBECommandContext {
     private final List<CommandInfo> commands = new ArrayList<>();
     private final List<CommandInfo> undidCommands = new ArrayList<>();
     private List<CommandQueue> commandQueues;
+    // The statements saves applied to the database since the last completed save (committed, or run without a transaction)
+    private final List<DBEPersistAction> appliedActions = new ArrayList<>();
 
     private final Map<Object, Object> userParams = new HashMap<>();
     private final List<DBECommandListener> listeners = new ArrayList<>();
@@ -80,6 +88,16 @@ public abstract class AbstractCommandContext implements DBECommandContext {
             }
             return false;
         }
+    }
+
+    /**
+     * The statements {@link #saveChanges} applied to the database since the last save that completed (or the last reset).
+     * After a save that failed partway, also one retried by the error recovery, these are the changes that stay in the
+     * database although the save failed.
+     */
+    @NotNull
+    public List<DBEPersistAction> getAppliedActions() {
+        return List.copyOf(appliedActions);
     }
 
     @Override
@@ -177,6 +195,7 @@ public abstract class AbstractCommandContext implements DBECommandContext {
                             }
                         //}
                         if (!CommonUtils.isEmpty(cmd.persistActions)) {
+                            List<DBEPersistAction> commandApplied = new ArrayList<>();
                             try (DBCSession session = openCommandPersistContext(monitor, cmd.command)) {
                                 DBException error = null;
                                 for (PersistInfo persistInfo : cmd.persistActions) {
@@ -201,6 +220,7 @@ public abstract class AbstractCommandContext implements DBECommandContext {
                                             if (disableSessionLogging) {
                                                 session.enableLogging(true);
                                             }
+                                            commandApplied.add(persistInfo.action);
                                         }
                                         persistInfo.executed = true;
                                     } catch (DBException e) {
@@ -211,15 +231,22 @@ public abstract class AbstractCommandContext implements DBECommandContext {
                                         }
                                     }
                                 }
+                                boolean inTransaction = txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit();
                                 if (error != null) {
+                                    if (!inTransaction) {
+                                        // Without a transaction the statements before the failed one stay; in one, the
+                                        // save rolls them back
+                                        appliedActions.addAll(commandApplied);
+                                    }
                                     throw error;
                                 }
-                                if (txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit()) {
+                                if (inTransaction) {
                                     // Commit all processed changes for every command
                                     // Because most databases do not support transactional DDL
                                     /// and we cannot revert saved changes anyway
                                     txnManager.commit(session);
                                 }
+                                appliedActions.addAll(commandApplied);
                             }
                             cmd.executed = true;
                         }
@@ -232,6 +259,10 @@ public abstract class AbstractCommandContext implements DBECommandContext {
                             // Remove original command from stack
                             //final CommandInfo thisCommand = queue.commands.get(i);
                             commands.remove(cmd);
+                            // And the commands merged into it (property edits merged into one change): left in the stack,
+                            // a save that fails later would keep them, and the next save would run them again
+                            CommandInfo executed = cmd;
+                            commands.removeIf(info -> getMergeTarget(info) == executed);
                         }
                     }
                     if (!executedCommands.contains(cmd)) {
@@ -247,6 +278,7 @@ public abstract class AbstractCommandContext implements DBECommandContext {
             // There were no exceptions during save so we assume that everything went well
             commands.clear();
             userParams.clear();
+            appliedActions.clear();
 
 /*
             // Refresh object states
@@ -306,6 +338,7 @@ public abstract class AbstractCommandContext implements DBECommandContext {
 
                 commands.clear();
                 userParams.clear();
+                appliedActions.clear();
             } finally {
                 for (DBECommandListener listener : getListeners()) {
                     listener.onReset();
@@ -703,6 +736,14 @@ public abstract class AbstractCommandContext implements DBECommandContext {
 
 
         return commandQueues;
+    }
+
+    @NotNull
+    private static CommandInfo getMergeTarget(@NotNull CommandInfo info) {
+        while (info.mergedBy != null) {
+            info = info.mergedBy;
+        }
+        return info;
     }
 
     private void clearCommandQueues()

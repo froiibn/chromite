@@ -23,12 +23,15 @@ import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.ext.postgresql.PostgreConstants;
 import com.seizia.chromite.ext.postgresql.internal.PostgreSQLMessages;
 import com.seizia.chromite.ext.postgresql.model.data.PostgreBinaryFormatter;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
 import com.seizia.chromite.ext.postgresql.sql.PostgreEscapeStringRule;
 import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.data.DBDBinaryFormatter;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
 import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
@@ -46,6 +49,10 @@ import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.*;
 
@@ -62,9 +69,11 @@ import java.util.*;
  * - 2026-11-07 Chromite: a one-bit BIT of another database (SQL Server bit) becomes boolean instead of bit.
  * - 2026-11-08 Chromite: a numeric without precision (display size 131089, e.g. an expression column of a query result)
  *   gets no modifiers in a new column; numeric(131089) failed (docs/chromite/swing-result-generate-sql.md).
+ * - 2026-11-08 Chromite: {@link #probeTransaction}: what the session's transaction holds, asked from the server
+ *   (docs/chromite/idle-transactions.md "PostgreSQL").
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
-    SQLDialectDDLExtension, SQLDialectSchemaController {
+    SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
 
     private static final String TYPE_NUMERIC = "numeric"; //$NON-NLS-1$
     private static final String TYPE_DECIMAL = "decimal"; //$NON-NLS-1$
@@ -73,10 +82,85 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
      */
     private static final int NUMERIC_MAX_PRECISION = 1000;
 
+    // The session's granted locks besides its own virtual transaction id. Relations below FirstNormalObjectId (16384)
+    // are system catalogs and views, pg_locks among them: their AccessShareLock blocks nobody's DDL and the probe itself
+    // takes the one on pg_locks. A transaction id is assigned by the first write or row lock (FOR UPDATE/SHARE); with a
+    // write-mode relation lock it means changes.
+    private static final String TRANSACTION_PROBE =
+        "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.locktype = 'transactionid')" //$NON-NLS-1$
+            + " AND EXISTS (SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.locktype = 'relation'" //$NON-NLS-1$
+            + " AND l.mode NOT IN ('AccessShareLock', 'RowShareLock') AND l.relation >= 16384)," //$NON-NLS-1$
+            + " (SELECT count(*) FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.granted" //$NON-NLS-1$
+            + " AND l.locktype NOT IN ('virtualxid', 'transactionid') AND (l.relation IS NULL OR l.relation >= 16384))," //$NON-NLS-1$
+            + " pg_catalog.current_setting('transaction_isolation')"; //$NON-NLS-1$
+    private static final String PROBE_SAVEPOINT = "chromite_txn_probe"; //$NON-NLS-1$
+
     @NotNull
     @Override
     public SQLDialectFeatures getDialectFeatures() {
         return DialectFeatures.INSTANCE;
+    }
+
+    /**
+     * pgjdbc's protocol state (the server's ReadyForQuery status) tells without a round trip whether there is a
+     * transaction: in manual commit the driver sends BEGIN before any statement outside one, so a query would start one.
+     * Inside a transaction the locks decide: a plain SELECT keeps AccessShareLock on its tables to the end, which blocks
+     * ALTER, DROP and TRUNCATE of another session; {@code SELECT 1} holds nothing. REPEATABLE READ and SERIALIZABLE keep
+     * their snapshot. The query runs in a savepoint: an error (a statement timeout) would otherwise abort the user's
+     * transaction. Only PostgreSQL servers; the other server types behind this dialect fall back to statement classification.
+     */
+    @Nullable
+    @Override
+    public DBCServerTransaction probeTransaction(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        if (!(dataSource instanceof PostgreDataSource pgDataSource) || !(pgDataSource.getServerType() instanceof PostgreServerPostgreSQL)) {
+            return null;
+        }
+        String state;
+        try {
+            Object value = connection.getClass().getMethod("getTransactionState").invoke(connection); //$NON-NLS-1$
+            state = value == null ? null : value.toString();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            // Not pgjdbc: without the protocol state a query could start a transaction
+            return null;
+        }
+        if ("IDLE".equals(state)) { //$NON-NLS-1$
+            return DBCServerTransaction.NONE;
+        }
+        if ("FAILED".equals(state)) { //$NON-NLS-1$
+            return DBCServerTransaction.holding(EnumSet.of(DBCServerTransaction.Hold.ABORTED));
+        }
+        if (!"OPEN".equals(state)) { //$NON-NLS-1$
+            return DBCServerTransaction.FAILED;
+        }
+        Set<DBCServerTransaction.Hold> holds = EnumSet.noneOf(DBCServerTransaction.Hold.class);
+        if (connection.getAutoCommit()) {
+            // The driver never begins one in auto-commit mode
+            holds.add(DBCServerTransaction.Hold.EXPLICIT);
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(TIMEOUT_SECONDS);
+            statement.execute("SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
+            try (ResultSet rs = statement.executeQuery(TRANSACTION_PROBE)) {
+                if (rs.next()) {
+                    if (rs.getBoolean(1)) {
+                        holds.add(DBCServerTransaction.Hold.CHANGES);
+                    }
+                    if (rs.getLong(2) > 0) {
+                        holds.add(DBCServerTransaction.Hold.LOCKS);
+                    }
+                    String isolation = rs.getString(3);
+                    if ("repeatable read".equals(isolation) || "serializable".equals(isolation)) { //$NON-NLS-1$ //$NON-NLS-2$
+                        holds.add(DBCServerTransaction.Hold.SNAPSHOT);
+                    }
+                }
+            } catch (SQLException e) {
+                statement.execute("ROLLBACK TO SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
+                statement.execute("RELEASE SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
+                throw e;
+            }
+            statement.execute("RELEASE SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
+        }
+        return DBCServerTransaction.holding(holds);
     }
 
     private static class DialectFeatures extends SQLDialectFeatures {

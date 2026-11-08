@@ -26,8 +26,10 @@ import com.seizia.chromite.ext.oracle.internal.OracleMessages;
 import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.data.DBDBinaryFormatter;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
@@ -50,6 +52,9 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -78,10 +83,33 @@ import java.util.Set;
  *   a statement threw NullPointerException out of the dialect setup and broke 11 SQL parser tests, docs/chromite/regression-tests.md).
  * - 2026-11-08 Chromite: {@link #supportsMergeStatement} (MERGE since Oracle 9i) for Generate SQL from result rows
  *   (docs/chromite/swing-result-generate-sql.md).
+ * - 2026-11-08 Chromite: {@link #probeTransaction}: whether the session has a transaction, asked from the server
+ *   (docs/chromite/idle-transactions.md "Oracle").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
-    implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
+    implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
     private static final Log log = Log.getLog(OracleSQLDialect.class);
+
+    // A PL/SQL call: a SELECT of the function would itself begin a transaction in a SERIALIZABLE session
+    private static final String TRANSACTION_PROBE = "BEGIN ? := DBMS_TRANSACTION.LOCAL_TRANSACTION_ID; END;"; //$NON-NLS-1$
+
+    /**
+     * Oracle begins a transaction only with something to end: a change, a row or table lock (SELECT FOR UPDATE, LOCK
+     * TABLE, also a DML that changed no row), SET TRANSACTION, or a SERIALIZABLE or READ ONLY transaction's snapshot. A
+     * plain READ COMMITTED SELECT begins none. What it holds is in V$TRANSACTION and V$LOCK, which most logins may not
+     * read, so the answer says only that there is one; the query manager adds what it saw run.
+     */
+    @Nullable
+    @Override
+    public DBCServerTransaction probeTransaction(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        try (CallableStatement call = connection.prepareCall(TRANSACTION_PROBE)) {
+            call.setQueryTimeout(TIMEOUT_SECONDS);
+            call.registerOutParameter(1, Types.VARCHAR);
+            call.execute();
+            return call.getString(1) == null ? DBCServerTransaction.NONE
+                : new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, Set.of());
+        }
+    }
 
     // Text form of a UUID (8-4-4-4-12 hex digits)
     private static final int UUID_TEXT_LENGTH = 36;

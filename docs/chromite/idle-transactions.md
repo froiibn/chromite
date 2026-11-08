@@ -20,7 +20,9 @@
 
 | 부분 | 번들 | 클래스 |
 |---|---|---|
-| 트랜잭션 상태 읽기 | `com.seizia.chromite.model` | `QMUtils.getTransactionState`, `QMTransactionState` |
+| 트랜잭션 상태 읽기 | `com.seizia.chromite.model` | `QMUtils.getTransactionState`, `QMTransactionState`, 문장 분류 `QMStatementClassifier` |
+| DB에 묻기(2026-11-08) | `com.seizia.chromite.model` | 답 `exec.DBCServerTransaction`, 문맥 인터페이스 `exec.DBCTransactionProbe`, 묻는 때·답 보관 `runtime.qm.QMTransactionTracker`(`QMRegistryImpl`이 등록) |
+| DB별 질의 | `model.jdbc`, `ext.mssql`, `ext.postgresql`, `ext.mysql`, `ext.oracle` | 방언 인터페이스 `exec.jdbc.JDBCTransactionProbe`, `JDBCExecutionContext.probeTransaction`, `SQLServerDialectMssql`, `PostgreDialect`, `MySQLDialect`(MariaDB 포함), `OracleSQLDialect` |
 | 유휴 감시, 커밋·롤백 공용 경로 | `com.seizia.chromite.model` | `runtime.jobs.IdleTransactionMonitor` (`DataSourceMonitorJob`이 3초마다 부름) |
 | 자동 롤백 | `com.seizia.chromite.model` | `runtime.jobs.EndIdleTransactionsJob` |
 | UI 서비스 인터페이스 | `com.seizia.chromite.model` | `runtime.ui.UIServiceIdleTransactions` |
@@ -32,26 +34,270 @@
 | 쿼리 관리자 밖 세션(Chromite Agent) | `com.seizia.chromite.model`, `model.ai.tools` | 서비스 `runtime.DBServiceUnrecordedSessions`, 구현 `AgentSessionsService`(`AgentSql.isInUse`, `getLastUseTime`, ai.tools `plugin.xml`) |
 | 모델 알림 표시 | `com.seizia.chromite.ui.swing` | `SwingModelNotifications`(`ChromiteSwingApplication.start`에서 `ChromiteNotifications.setHandler`), `NotificationToast.showUntilClosed` |
 
-### 트랜잭션 상태(쿼리 관리자)
+### 트랜잭션 상태
 
-`QMUtils.getTransactionState(context)`는 쿼리 관리자(QM)가 메모리에 기록한 실행 문맥의 현재 트랜잭션을 읽는다. 드라이버를 부르지 않아 EDT에서 1초마다 읽어도 된다.
+사용자 결정(2026-11-08, 앱 변경 #1): "SELECT만 했을 뿐인데 FETCH ALL ROWS를 하면 활성 트랜잭션 시간이 흘러간다"는 지적에서 시작해, 열린 트랜잭션은
+**DB가 실제로 무언가를 쥐고 있을 때만** 보인다. 원칙(사용자): "실제로 쥐고 있을 때만 하라. 이 기능의 목적은 사고의 방지이다. 트랜잭션 활성에 안 잡혔는데
+실제로 잡혀 있다면 제품 신뢰성의 큰 문제가 된다. 반대의 경우도 마찬가지이다." 그래서 놓침(쥐고 있는데 안 보임)과 거짓 표시(쥔 것이 없는데 보임) 둘 다 결함이다.
 
-- 열림(`isOpen`): 수동 커밋 모드이고 마지막 커밋·롤백 뒤 사용자 문장이 하나 이상 실행됨.
-  SELECT만 실행해도 열림이다. PostgreSQL·MySQL·SQL Server(수동 커밋은 암시적 트랜잭션)는 SELECT로도 트랜잭션이 시작되고 잠금이나 스냅숏을 쥘 수 있기 때문이다.
-- 문장 수는 사용자 문장만 센다. 메타데이터 읽기(META)와 내부 작업(UTIL)은 세지 않는다. 탐색기가 같은 문맥에서 메타데이터를 읽을 때마다 유휴 시간이 0으로 돌아가면 안 되기 때문이다.
-- 데이터 변경 문장 수(`getUpdateCount`)는 QM의 "트랜잭션에 영향을 주는 문장"(DML·DDL, 갱신 행 수가 있는 문장, 실패한 문장)이다.
-- 시작 시각 = 첫 사용자 문장의 시작 시각. 트랜잭션을 구별하는 값으로도 쓴다.
+전에는 수동 커밋 모드에서 사용자 문장이 하나라도 실행되면(SELECT 포함) 열림이었다. SQL Server의 일반 SELECT(쥔 것 없음)도 열림이었고, 자동 커밋 모드에서
+`BEGIN TRAN`으로 연 트랜잭션은 표시도 질문도 없었다.
+
+**열림의 기준** — 트랜잭션이 다음 중 하나를 끝날 때까지 쥐고 있음:
+
+- 커밋하지 않은 데이터 변경(로그 레코드, 할당된 트랜잭션 ID);
+- 트랜잭션 끝까지 쥐는 잠금(행·테이블·메타데이터 잠금, 직렬화 술어 잠금);
+- 스냅숏(SQL Server SNAPSHOT의 tempdb 행 버전, PostgreSQL·Oracle의 REPEATABLE READ·SERIALIZABLE·READ ONLY 스냅숏);
+- 사용자가 명시적으로 시작함(`BEGIN TRAN`, `BEGIN`, `START TRANSACTION`, `SET TRANSACTION`). 자동 커밋 모드에서도;
+- 오류로 중단되어 롤백해야 끝남(PostgreSQL aborted, SQL Server 커밋할 수 없는 트랜잭션).
+
+쥔 것이 없는 SELECT(`WITH (NOLOCK)`, 기본 READ COMMITTED에서 읽은 뒤 잠금을 푼 SELECT, 테이블 없는 `SELECT 1`)는 열림이 아니다.
+
+**DB에 묻기** (`QMTransactionTracker`, `DBCTransactionProbe`):
+
+- 사용자 문장(META·UTIL이 아닌 문장)이 실행된 문맥은 "다시 물을 것"으로 표시하고, 사용자 문장을 실행한 세션이 모두 닫힐 때 그 문맥의 JDBC 연결에 직접 묻는다.
+  SQL 실행 작업, 결과 더 읽기(Fetch All 포함), 필터·정렬 다시 읽기, 표 저장이 모두 세션을 열고 닫으므로 작업 하나가 끝날 때 한 번이다. 스크립트의 문장
+  사이에는 묻지 않는다. 묻는 스레드는 실행 작업 스레드다(EDT가 아니고, 주기적으로 묻지 않는다).
+- 커밋·롤백·커밋 방식 바꾸기 뒤에도 묻는다. 세션 밖에서 일어나면 작은 작업으로 묻는다. 커밋·롤백 직후에는 묻기 전에 "없음"으로 둔다(스마트 커밋이
+  커밋 직후 상태를 읽어 자동 커밋으로 돌아가기 때문). 중첩 `BEGIN TRAN`처럼 남은 트랜잭션은 곧 이어 묻는 답이 고친다.
+- 답은 문맥마다 메모리에 둔다. 상태 줄·유휴 감시·질문은 그것을 읽기만 한다(`QMUtils.getTransactionState`는 지금처럼 드라이버를 부르지 않는다).
+- 질의는 JDBC 연결에 직접 보내므로 쿼리 관리자에 기록되지 않는다. 시간 제한 5초.
+- 질의가 지켜야 하는 것: 트랜잭션을 새로 시작하지 않을 것(수동 커밋 SQL Server는 DMV를 읽는 SELECT로도, pgjdbc는 트랜잭션 밖의 아무 문장 앞에서도 BEGIN을
+  보내고, 직렬화 격리 Oracle은 SELECT로도 트랜잭션을 시작한다). 실패해도 사용자 트랜잭션을 바꾸지 않을 것(PostgreSQL은 오류가 트랜잭션을 중단시키고,
+  SQL Server `XACT_ABORT ON`은 롤백한다).
+
+**합치기** (`QMUtils.getTransactionState` → `QMTransactionState.getStatus()`):
+
+| DB의 답 | 상태 |
+|---|---|
+| 트랜잭션 없음 | 닫힘 |
+| 쥔 것 있음(변경·잠금·스냅숏·명시적·중단) | 열림. 도구 설명에 "DB가 쥐고 있는 것" |
+| 트랜잭션은 있으나 쥔 것 없음 | 문장에 명시적 BEGIN이 보이면 열림(수동 커밋 PostgreSQL의 빈 `BEGIN`), 아니면 닫힘 |
+| 트랜잭션은 있으나 무엇을 쥐었는지 읽을 권한 없음 | 문장 분류가 데이터 변경·잠그는 읽기·명시적 BEGIN을 찾으면 열림, 아니면 **확인할 수 없음** |
+| 질의 실패, 또는 질의가 없는 DB | 수동 커밋: 사용자 문장이 있으면 문장 분류(위와 같음), 못 찾으면 확인할 수 없음. 자동 커밋: 명시적 BEGIN 뒤 COMMIT·ROLLBACK이 없으면 열림, 아니면 닫힘 |
+
+- 확인할 수 없음(`Status.UNKNOWN`)은 열림으로 꾸미지 않는다. 상태 줄에 "트랜잭션 확인할 수 없음"으로 따로 보이고, 도구 설명이 이유를 말한다.
+  안전 동작(유휴 알림·자동 롤백, 끝낼 때·끊을 때·창을 닫을 때 질문, 커밋 방식 전환 질문, 오류 복구 멈춤, 유휴 연결 닫기에서 빼기)은 확인할 수 없음을 열림처럼
+  다룬다(`QMTransactionState.isOpen()` = 열림 또는 확인할 수 없음). 끝낼 때·끊을 때 질문의 목록은 그 세션에 "쥔 것이 있는지 DB에서 확인할 수 없음"을 붙인다.
+- 문장 수는 트랜잭션이 없다고 확인된 뒤의 사용자 문장이다(서버의 트랜잭션은 그 첫 문장에서 시작했다. 쥔 것 없던 SELECT라도). 자동 커밋 모드의 명시적 트랜잭션도 센다.
+  메타데이터 읽기(META)와 내부 작업(UTIL)은 세지 않는다. 탐색기가 같은 문맥에서 메타데이터를 읽을 때마다 유휴 시간이 0으로 돌아가면 안 되기 때문이다.
+- 데이터 변경 문장 수(`getUpdateCount`)는 QM의 "트랜잭션에 영향을 주는 문장"(DML·DDL, 갱신 행 수가 있는 문장, 실패한 문장)에서 세션만 바꾸는 문장
+  (`SET`, `USE`, `ALTER SESSION`, 저장점, `BEGIN`·`COMMIT`·`ROLLBACK`)을 뺀 것이다.
+- 시작 시각 = 그 첫 사용자 문장의 시작 시각(커밋 뒤에도 남은 중첩 트랜잭션은 DB가 열림이라고 처음 답한 시각). 트랜잭션을 구별하는 값으로도 쓴다.
 - 마지막 문장 시각 = 마지막 사용자 문장이 끝난 시각(실행 중이면 시작 시각).
 - 실행 중(`isExecuting`) = 목적과 관계없이 그 문맥에서 끝나지 않은 문장이 있음.
 
-에디터에 `COMMIT`/`ROLLBACK`을 입력해 실행해도 실행 엔진이 트랜잭션 관리자로 끝내므로(`SQLQueryExecuteJob.handleTransactionStatements`) QM 상태가 바로 닫힌다.
+에디터에 `COMMIT`/`ROLLBACK`을 입력해 실행하면 수동 커밋에서는 실행 엔진이 트랜잭션 관리자로 끝내고(`SQLQueryExecuteJob.handleTransactionStatements`),
+자동 커밋에서는 문장이 서버에서 실행된다. 어느 쪽이든 작업이 끝날 때 DB에 다시 묻는다.
+
+#### 문장 분류 (`QMStatementClassifier`)
+
+DB가 알려 주지 않는 것에만 쓴다. 잠금·변경은 DB에 물을 수 있으면 DB의 답으로 정하고 문장 글자의 힌트를 해석하지 않는다.
+
+- 명시적 시작: `BEGIN`(단독), `BEGIN TRAN[SACTION]`/`WORK`/PostgreSQL·SQLite 옵션, `START TRANSACTION`. PL/SQL·T-SQL 블록의 `BEGIN … END`, `BEGIN TRY`는 아니다.
+  새것부터 거슬러 올라가 처음 만나는 트랜잭션 제어 문장이 시작이면 열린 것이고, `COMMIT`·`ROLLBACK`(저장점으로 롤백은 제외)·`END`면 끝난 것이다.
+- 잠그는 읽기: `FOR UPDATE`/`FOR SHARE` 등, `LOCK IN SHARE MODE`, `LOCK [TABLE]`, SQL Server 잠금 테이블 힌트(`UPDLOCK`, `HOLDLOCK`, `XLOCK`, `TABLOCK[X]`, `PAGLOCK`,
+  `SERIALIZABLE`, `REPEATABLEREAD`).
+- 데이터 변경: 위 데이터 변경 문장 수가 1 이상.
+
+#### SQL Server
+
+한 배치로 묻는다(트랜잭션 수를 먼저 읽어야 한다: 수동 커밋(`IMPLICIT_TRANSACTIONS ON`)에서는 DMV를 읽는 SELECT도 트랜잭션을 시작한다, 2026-11-08 확인).
+
+- `@@TRANCOUNT` = 0 → 없음.
+- `XACT_STATE()` = -1 → 중단(커밋할 수 없음).
+- 명시적: 자동 커밋(`@@OPTIONS & 2` = 0)에서 트랜잭션 수 > 0, 또는 수동 커밋에서 트랜잭션 수 ≥ 2(암시적 트랜잭션은 1이고 `BEGIN TRAN`이 하나를 더한다, 확인함).
+- 권한이 있으면(`VIEW SERVER STATE`, 2022는 `VIEW SERVER PERFORMANCE STATE`, `HAS_PERMS_BY_NAME`으로 먼저 확인하고 없으면 DMV를 건드리지 않는다):
+  변경 = `sys.dm_tran_database_transactions.database_transaction_log_record_count` > 0, 잠금 = `sys.dm_tran_locks`에서 그 세션의 TRANSACTION 소유 잠금(모든 세션이
+  쥐는 DATABASE 공유 잠금과 메타데이터 `Sch-S` 제외), 스냅숏 = `sys.dm_tran_current_transaction.transaction_is_snapshot`.
+- 메타데이터 `Sch-S`를 빼는 이유(2026-11-09 확인): 계획 캐시에 없는 쿼리를 암시적 트랜잭션 안에서 컴파일하면 스키마 소유 주체에 `METADATA`
+  `DATABASE_PRINCIPAL` `Sch-S`가 트랜잭션 끝까지 남는다(`DBCC FREEPROCCACHE` 뒤 같은 SELECT를 두 번: 처음만 남음). 같은 SELECT가 계획 캐시에 따라 열림·닫힘이
+  바뀌면 안 되고, 이 잠금은 그 주체·스키마 자체를 바꾸는 것만 막는다. 테이블의 `Sch-S`(OBJECT)는 그대로 센다.
+- 권한이 없으면: DMV가 모두 "VIEW SERVER PERFORMANCE STATE permission was denied"(오류 300)다(2026-11-08 낮은 권한 로그인으로 확인). 자기 세션의
+  `sys.dm_exec_sessions` 행은 보이지만(트랜잭션 수, 격리 수준) 잠금 힌트를 알 수 없다. 그래서 트랜잭션 수·명시적·중단만 DB가 답하고, 수동 커밋의 암시적
+  트랜잭션(수 1)은 "권한 없음"으로 답해 문장 분류로 간다(DML·잠금 힌트 → 열림, 일반 SELECT → 확인할 수 없음). 확인할 수 없음을 없애려면 로그인에
+  `GRANT VIEW SERVER STATE`(2022: `VIEW SERVER PERFORMANCE STATE`)를 준다.
+- Sybase·Babelfish·Fabric(같은 방언 계열)은 이 함수·뷰가 없어 묻지 않는다(문장 분류).
+
+#### PostgreSQL
+
+- pgjdbc의 프로토콜 상태(`getTransactionState`, 서버의 ReadyForQuery 상태)로 왕복 없이 트랜잭션 유무를 본다: IDLE → 없음, FAILED → 중단, OPEN → 아래 질의.
+  수동 커밋에서 드라이버는 트랜잭션 밖의 아무 문장 앞에 BEGIN을 보내므로 질의만으로는 트랜잭션을 만들어 버린다. 드라이버가 pgjdbc가 아니면 묻지 않는다.
+- 질의는 저장점 안에서 한다(시간 제한 등으로 실패해도 사용자 트랜잭션이 중단되지 않게): 그 세션의 `pg_locks`에서
+  변경 = 트랜잭션 ID 잠금 + 쓰기 모드 관계 잠금(RowExclusiveLock 이상), 잠금 = 가상 트랜잭션 ID·트랜잭션 ID 외의 잡힌 잠금(시스템 카탈로그·뷰, 곧 OID 16384
+  미만 관계 제외: 질의 자신이 `pg_locks`에 AccessShareLock을 잡는다), 스냅숏 = 격리 수준 REPEATABLE READ·SERIALIZABLE. 자동 커밋에서 트랜잭션이 있으면 명시적이다.
+- **일반 SELECT는 열림이다.** PostgreSQL은 SELECT가 읽은 테이블과 인덱스에 AccessShareLock을 트랜잭션 끝까지 쥐고, 이 잠금은 다른 세션의 `ALTER TABLE`·`DROP`·
+  `TRUNCATE`·`VACUUM FULL`을 막는다(2026-11-08 확인: 수동 커밋에서 SELECT 뒤 다른 세션의 `ALTER TABLE t ADD COLUMN`이 `lock_timeout` 500ms로 "canceling statement due to
+  lock timeout"). 막힌 DDL 뒤로 모든 쿼리가 줄을 서는 사고가 이 기능이 막으려는 것이다. `SELECT 1`(테이블 없음)은 잠금이 없어 닫힘이다.
+- 서버 종류가 PostgreSQL(Google Cloud, Timescale 포함)일 때만 묻는다. CockroachDB·Redshift·YugabyteDB·EDB 등은 문장 분류.
+
+#### MySQL, MariaDB
+
+- 트랜잭션 유무: `DO 0`으로 서버 상태 플래그를 새로 받고(오류 패킷에는 플래그가 없다) 드라이버가 들고 있는 SERVER_STATUS_IN_TRANS를 읽는다
+  (Connector/J `getSession().getServerSession().inTransactionOnServer()`, MariaDB Connector/J `getContext().getServerStatus()`). 둘 다 아니면 MariaDB의 `@@in_transaction`.
+  권한이 필요 없다. `INNODB_TRX`는 PROCESS 권한이, `performance_schema`는 SELECT 권한이 필요하다(2026-11-08 확인: 일반 로그인은 둘 다 거절).
+- **트랜잭션이 있으면 열림이다.** 수동 커밋에서 트랜잭션은 테이블을 읽거나 명시적으로 시작해야만 생기고(`SELECT 1`·오류만 난 문장은 생기지 않음, 확인함),
+  테이블을 읽은 트랜잭션은 그 테이블의 메타데이터 잠금(MDL `SHARED_READ`, `LOCK_DURATION = TRANSACTION`)을 끝까지 쥔다. 다른 세션의 `ALTER TABLE`이 막힌다
+  (2026-11-08 확인: MySQL 8.4·MariaDB 11.8 모두 `lock_wait_timeout` 1초로 1205 "Lock wait timeout exceeded"). `INNODB_TRX`에 일반 읽기도 행이 있는 것은 이 때문에
+  맞는 답이다. 자동 커밋에서 트랜잭션이 있으면 명시적이다.
+- 쥔 것의 설명: 로그인이 `INNODB_TRX`를 읽을 수 있으면 변경 = `trx_rows_modified` > 0, 잠금 = 그 행이 있음(행 잠금이 없어도 읽기 뷰와 MDL). 읽을 수 없으면(처음 거절 뒤
+  다시 묻지 않음) 수동 커밋은 잠금(MDL). 이 뷰는 0.1초마다만 새로 고쳐지므로 설명일 뿐 열림·닫힘은 정하지 않는다.
+- 보이지 않는 것: 수동 커밋에서 MyISAM(트랜잭션이 없는 엔진) 테이블만 읽은 경우. MySQL은 그 MDL을 트랜잭션 끝까지 쥐지만 트랜잭션으로 알리지 않는다
+  (2026-11-08 확인: `metadata_locks`에 `SHARED_READ`/`TRANSACTION`, 플래그·`events_transactions_current`는 없음). 아래 "남은 일".
+
+#### Oracle
+
+- `BEGIN ? := DBMS_TRANSACTION.LOCAL_TRANSACTION_ID; END;`(PL/SQL 호출). 같은 함수를 SELECT로 부르면 직렬화 세션에서 그 SELECT가 트랜잭션을 시작한다
+  (2026-11-08 확인: `ALTER SESSION SET ISOLATION_LEVEL = SERIALIZABLE`과 COMMIT 뒤 SELECT로 부르면 값이 생기고, PL/SQL로는 NULL). PUBLIC에 실행 권한이 있다.
+- 값이 있으면 열림이다. Oracle은 끝낼 것이 있을 때만 트랜잭션을 시작한다: 변경, 행·테이블 잠금(`SELECT FOR UPDATE`, `LOCK TABLE`, 바꾼 행이 없는 DML도 TM 잠금),
+  `SET TRANSACTION`, SERIALIZABLE·READ ONLY 트랜잭션의 스냅숏. 일반 READ COMMITTED SELECT는 시작하지 않는다.
+- 무엇을 쥐었는지는 `V$TRANSACTION`·`V$LOCK`에 있지만 대부분 로그인이 읽을 수 없어 묻지 않는다. 도구 설명은 문장 분류(변경·잠그는 읽기·명시적)로 적는다.
+- 자동 커밋에서도 트랜잭션이 남을 수 있다: `ALTER SESSION SET ISOLATION_LEVEL = SERIALIZABLE` 세션에서 SELECT(드라이버는 SELECT 뒤 커밋하지 않는다). 열림으로 보인다.
+
+#### Chromite Agent
+
+에이전트 문맥(쿼리 관리자 밖의 격리 문맥)도 같은 방언 질의를 쓴다(`AgentSql.isTransactionOpen`). 쓰기 도구 뒤에 수동·자동 커밋 모두 묻고, 쥔 것이 있거나
+확인할 수 없으면 `pending`이다([ai-agent.md](ai-agent.md) "트랜잭션 안전"). 예전 질의는 SQL Server `@@TRANCOUNT > 0`(수동 커밋의 SELECT도 1), MySQL
+`INNODB_TRX` 행 수, PostgreSQL `txid_current_if_assigned()`(테이블 잠금·빈 BEGIN·중단을 모름), Oracle `SELECT … FROM dual`(직렬화 세션에서 트랜잭션을 시작함)이었다.
+
+### 확인: DB별 경우표 (2026-11-09)
+
+빌드한 Swing 제품의 복사본(한국어 OS, 이 브랜치)에서 앱 안 시험 에이전트(Attach API, Swing 객체를 EDT에서 직접 다룸, 화면 입력 없음)가 쿼리 창에 각 경우의 SQL을
+넣어 실행하고(F5, 창 전체), 1.5초 뒤 상태 줄의 열린 트랜잭션 칸 글자·도구 설명과, **별도 관찰 연결**로 읽은 DB 자신의 뷰를 기록했다. 각 경우 뒤에는
+`ROLLBACK`(SQL Server `IF @@TRANCOUNT > 0 ROLLBACK`)을 실행해 닫힘으로 돌아가는지도 보았다. 연결마다 수동 커밋·자동 커밋 두 개를 두었다.
+시험 DB: 공유 컨테이너 SQL Server 2022(`chr_txn_rs`), PostgreSQL 17, MariaDB 11.8, Oracle Free 23ai(FREEPDB1), 이 브랜치가 띄운 MySQL 8.4(끝난 뒤 지움).
+MySQL 서버는 내장된 MariaDB Connector/J로 연결했다(Connector/J는 내장하지 않음, [drivers.md](drivers.md)). Connector/J의 플래그 경로는 JDBC 시험 도구로 확인했다.
+증거: `D:\Tools\_scratch\chromite-txn-real-state\logs\*.log`(경우마다 DB 뷰, 상태 줄 글자·도구 설명, 상태), 상태 줄 화면 `shots\`, JDBC 시험 `probe\`.
+
+모든 경우에서 Chromite 표시(열림·닫힘·확인할 수 없음)가 DB가 쥔 것과 일치했다. 아래 "→"의 왼쪽이 DB 뷰, 오른쪽이 상태 줄(괄호 안은 도구 설명의 "DB가 쥐고 있는 것").
+"끝낸 뒤"는 모든 경우에 DB가 트랜잭션 없음, 상태 줄 숨김이었다.
+
+**SQL Server 2022** (로그인 `VIEW SERVER STATE` 있음. DB 뷰: `@@TRANCOUNT`/`open_transaction_count`, 로그 레코드, 그 세션의 TRANSACTION 소유 잠금, SNAPSHOT 행)
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT(READ COMMITTED) | 트랜잭션 1, 로그 0, 잠금 없음 → 숨김 | 트랜잭션 0 → 숨김 |
+| SELECT WITH (NOLOCK) | 트랜잭션 1, 잠금 없음 → 숨김 | 0 → 숨김 |
+| SELECT WITH (HOLDLOCK) | KEY S, PAGE IS, OBJECT IS → 열림(잠금) | 0 → 숨김 |
+| SELECT WITH (UPDLOCK) | KEY U, PAGE IU, OBJECT IX → 열림(잠금) | 0 → 숨김 |
+| REPEATABLE READ SELECT | KEY S, PAGE IS, OBJECT IS → 열림(잠금) | 0 → 숨김 |
+| SERIALIZABLE SELECT | KEY S, PAGE IS, OBJECT IS → 열림(잠금) | 0 → 숨김 |
+| SNAPSHOT SELECT | 잠금 없음, 스냅숏 트랜잭션 1 → 열림(스냅숏) | 0 → 숨김 |
+| DML | 로그 2, KEY X, PAGE IX, OBJECT IX → 열림(변경, 잠금) | 0 → 숨김 |
+| 빈 `BEGIN TRAN` | 트랜잭션 2, 잠금 없음 → 열림(명시적) | 트랜잭션 1 → 열림(명시적) |
+| DML 뒤 오류(`1/0`, 트랜잭션은 남음) | 로그 2, 잠금 → 열림(변경, 잠금) | 0 → 숨김 |
+| `XACT_ABORT ON` + TRY 안 오류(커밋할 수 없게 되어 배치 끝에 서버가 롤백, 오류 3998) | 0 → 숨김 | 0 → 숨김 |
+| DML 뒤 `COMMIT` / `ROLLBACK` | 0 → 숨김 | 0 → 숨김 |
+| `BEGIN TRAN` ×2 + DML, 상태 줄 메뉴 Commit | 트랜잭션 3, 로그 2 → 열림(변경, 잠금, 명시적) → Commit 뒤 0, 숨김 | 트랜잭션 2 → 열림 → Commit 뒤 0, 숨김 |
+
+권한 없는 로그인(`chr_txn_low`, db_datareader·db_datawriter만):
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT | 트랜잭션 1, 잠금 없음 → **트랜잭션 확인할 수 없음** | 0 → 숨김 |
+| SELECT WITH (HOLDLOCK) | KEY S 등 → 열림(실행한 문장으로 판단: 잠금) | 0 → 숨김 |
+| DML | 로그 2, 잠금 → 열림(실행한 문장으로 판단: 변경) | 0 → 숨김 |
+| 빈 `BEGIN TRAN` | 트랜잭션 2 → 열림(DB: 명시적) | 트랜잭션 1 → 열림(DB: 명시적) |
+| DML 뒤 `COMMIT` | 0 → 숨김 | 0 → 숨김 |
+
+고치기 전 첫 실행(2026-11-08 23:44, 계획 캐시에 없던 문장들)에서 일반 SELECT·NOLOCK·DML이 `METADATA` `Sch-S`(DATABASE_PRINCIPAL) 하나 때문에
+"열린 트랜잭션(잠금)"으로 보였고 같은 문장을 다시 실행하면 숨김이었다. JDBC 시험으로 원인(계획 컴파일)을 확인하고 메타데이터 `Sch-S`를 세지 않게 고쳤다(위 "SQL Server").
+
+**PostgreSQL 17** (DB 뷰: `pg_stat_activity.state`·`backend_xid`·`backend_xmin`, 그 세션의 `pg_locks`(시스템 카탈로그 제외))
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT | idle in transaction, `t`·`t_pkey` AccessShareLock → 열림(잠금) | idle → 숨김 |
+| `SELECT 1`(테이블 없음) | idle in transaction, 잠금 없음 → 숨김 | idle → 숨김 |
+| SELECT FOR UPDATE | xid 있음, RowShareLock → 열림(잠금) | idle → 숨김 |
+| REPEATABLE READ(`SELECT 1`) | backend_xmin 있음(스냅숏), 잠금 없음 → 열림(스냅숏) | idle → 숨김 |
+| SERIALIZABLE SELECT | xmin, AccessShareLock, SIReadLock → 열림(잠금, 스냅숏) | idle → 숨김 |
+| DML | xid, RowExclusiveLock → 열림(변경, 잠금) | idle → 숨김 |
+| 빈 `BEGIN` | idle in transaction, 잠금 없음 → 열림(명시적) | idle in transaction → 열림(명시적) |
+| DML 뒤 오류 | idle in transaction (aborted) → 열림(오류로 중단됨) | idle → 숨김 |
+| `BEGIN`, DML 뒤 오류 | aborted → 열림(명시적, 중단) | aborted → 열림(명시적, 중단) |
+| DML 뒤 `COMMIT` / `ROLLBACK` | idle → 숨김 | idle → 숨김 |
+| `BEGIN` + DML, 상태 줄 메뉴 Commit | xid, RowExclusiveLock → 열림 → Commit 뒤 idle, 숨김 | 같음(자동 커밋은 `COMMIT` 문장으로 끝냄) |
+
+수동 커밋 일반 SELECT의 AccessShareLock이 실제로 다른 세션을 막는지는 JDBC 시험으로 확인했다: 관리자 세션의 `ALTER TABLE t ADD COLUMN`이 `lock_timeout` 500ms로
+"canceling statement due to lock timeout"(55P03).
+
+**MySQL 8.4** (사용자 로그인은 PROCESS 권한 없음. DB 뷰: 관찰 로그인의 `INNODB_TRX`, `performance_schema.metadata_locks`, `events_transactions_current`)
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT(REPEATABLE READ) | INNODB_TRX 행(변경 0, 잠금 구조 0), MDL `t` SHARED_READ/TRANSACTION, ACTIVE → 열림(잠금) | COMMITTED → 숨김 |
+| `SELECT 1` | 행 없음, ROLLED BACK → 숨김 | 숨김 |
+| SELECT FOR UPDATE / LOCK IN SHARE MODE | 잠금 구조 2, MDL → 열림(잠금) | COMMITTED → 숨김 |
+| SERIALIZABLE SELECT | 잠금 구조 2, MDL → 열림(잠금) | COMMITTED → 숨김 |
+| DML | 변경 1, 잠금 구조 2, MDL SHARED_WRITE → 열림(잠금) | COMMITTED → 숨김 |
+| 빈 `START TRANSACTION` | INNODB_TRX 행 없음, MDL 없음, ACTIVE → 열림(잠금, 명시적) | ACTIVE → 열림(명시적) |
+| DML 뒤 오류(없는 테이블) | 변경 1, MDL → 열림(잠금) | COMMITTED → 숨김 |
+| DML 뒤 `COMMIT` / `ROLLBACK` | COMMITTED / ROLLED BACK → 숨김 | 숨김 |
+| `START TRANSACTION` + DML, 상태 줄 메뉴 Commit | 잠금 구조 2, MDL → 열림 → Commit 뒤 COMMITTED, 숨김 | 같음 |
+
+사용자 로그인에 PROCESS가 없으면 쥔 것의 설명은 "잠금"(MDL)뿐이다(DML의 변경은 도구 설명의 "데이터 변경 N개"에 있다). 열림·닫힘은 같다.
+수동 커밋 일반 SELECT의 MDL이 실제로 다른 세션을 막는지는 JDBC 시험으로 확인했다: 다른 세션의 `ALTER TABLE t ADD COLUMN`이 `lock_wait_timeout` 1초로 1205.
+PROCESS가 있는 로그인으로도 같은 표를 돌렸다(`my-p-m`): 열림·닫힘은 같고, DML은 "커밋하지 않은 변경", 빈 `START TRANSACTION`은 "명시적으로 시작함"만 보인다.
+`INNODB_TRX`가 0.1초마다만 새로 고쳐져 막 실행한 문장의 행이 아직 없을 때가 있어(SERIALIZABLE SELECT는 쥔 것 설명 없이 "열린 트랜잭션"만) 설명은 덜할 수 있다.
+
+**MariaDB 11.8** (DB 뷰: 관찰 로그인의 `INNODB_TRX`. MariaDB는 `performance_schema`가 꺼져 있어 MDL은 보이지 않는다)
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT(REPEATABLE READ) | INNODB_TRX 행(변경 0, 잠금 구조 0) → 열림(잠금) | 행 없음 → 숨김 |
+| `SELECT 1` | 행 없음 → 숨김 | 숨김 |
+| SELECT FOR UPDATE / LOCK IN SHARE MODE | 잠금 구조 2 → 열림(잠금) | 숨김 |
+| SERIALIZABLE SELECT | 잠금 구조 2 → 열림(잠금) | 숨김 |
+| DML | 변경 1, 잠금 구조 2 → 열림(잠금) | 숨김 |
+| 빈 `START TRANSACTION` | 행 없음(`@@in_transaction` 1) → 열림(잠금, 명시적) | 열림(명시적) |
+| DML 뒤 오류 | 변경 1 → 열림(잠금) | 숨김 |
+| DML 뒤 `COMMIT` / `ROLLBACK` | 행 없음 → 숨김 | 숨김 |
+| `START TRANSACTION` + DML, 상태 줄 메뉴 Commit | 잠금 구조 2 → 열림 → Commit 뒤 숨김 | 같음 |
+
+PROCESS가 있는 로그인(`ma-p-m`)은 MySQL과 같다(DML "커밋하지 않은 변경", 빈 START TRANSACTION "명시적으로 시작함"). 수동 커밋 일반 SELECT의 MDL이 다른 세션의
+`ALTER TABLE`을 막는 것은 JDBC 시험으로 확인했다(1205).
+
+**Oracle Free 23ai** (DB 뷰: 관찰 로그인의 `V$TRANSACTION`·`V$LOCK`, 사용자 세션의 `DBMS_TRANSACTION.LOCAL_TRANSACTION_ID`(PL/SQL 호출))
+
+| 경우 | 수동 커밋 | 자동 커밋 |
+|---|---|---|
+| 일반 SELECT | 트랜잭션 없음 → 숨김 | 없음 → 숨김 |
+| SELECT FOR UPDATE | TX 6, TM 3, 트랜잭션 ID → 열림(잠금) | 없음 → 숨김 |
+| `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE` + SELECT | TX 6, 트랜잭션 ID → 열림 | 없음 → 숨김 |
+| `SET TRANSACTION READ ONLY` + SELECT | TX 6, 트랜잭션 ID → 열림 | 없음 → 숨김 |
+| `ALTER SESSION SET ISOLATION_LEVEL = SERIALIZABLE` + SELECT | TX 6, 트랜잭션 ID → 열림 | 없음 → 숨김 |
+| DML / 행이 없는 DML | TX 6, TM 3 → 열림(변경) | 없음 → 숨김 |
+| 빈 `SET TRANSACTION NAME` | TX 6, 트랜잭션 ID → 열림 | 없음 → 숨김 |
+| DML 뒤 오류(`1/0`, 문장 단위 롤백이라 트랜잭션은 남음) | TX 6, TM 3 → 열림(변경) | 없음 → 숨김 |
+| DML 뒤 `COMMIT` / `ROLLBACK` | 없음 → 숨김 | 숨김 |
+| `LOCK TABLE … IN SHARE MODE` | TM 4, TX 6 → 열림(변경, 잠금) | 없음 → 숨김 |
+
+Chromite 세션에서는 `SET TRANSACTION`·직렬화 트랜잭션에도 `V$TRANSACTION` 행(되돌림 레코드 1)과 TX 잠금이 보였다(JDBC 시험의 맨 연결에서는 없었다).
+Oracle은 쥔 것을 알려 주지 않으므로 도구 설명의 쥔 것은 문장 분류다(직렬화·READ ONLY·빈 SET TRANSACTION은 설명 없이 "열린 트랜잭션"). "변경"은 쿼리 관리자의
+데이터 변경 문장(LOCK TABLE 포함)에서 온다.
+
+**같은 규칙: 끝낼 때·끊을 때 질문** — SQL Server 수동·자동 커밋, Oracle 수동 커밋 표를 다시 돌리며 경우마다 `ExitTransactionCheck.findActive`(끝낼 때·끊을 때 질문의 목록)를
+불렀다. 모든 경우에 상태 줄이 열림이면 목록에 있고 숨김이면 없었다(일반 SELECT·NOLOCK 없음, HOLDLOCK·SNAPSHOT·DML·빈 BEGIN TRAN 있음, 자동 커밋은 BEGIN TRAN만 있음).
+
+**Chromite Agent** (`AgentSql.run`, 쓰기 도구와 같은 NATIVE 모드로 실행한 뒤 기록한 `pending`과 DB 뷰, 그다음 `endTransaction`(commitTransaction))
+
+| 연결 | 실행 | pending / DB | commitTransaction 뒤 |
+|---|---|---|---|
+| SQL Server 자동 커밋 | `BEGIN TRAN; UPDATE …` | 열림 / 트랜잭션 1, 로그 2, 잠금 | 끝낸 1개, pending 없음 / 트랜잭션 0 |
+| SQL Server 자동 커밋 | `SELECT …` | 없음 / 트랜잭션 0 | — |
+| SQL Server 자동 커밋 | `BEGIN TRAN; BEGIN TRAN; UPDATE …` | 열림 / 트랜잭션 2 | `COMMIT` 두 번, pending 없음 / 트랜잭션 0 |
+| SQL Server 수동 커밋 | `SELECT …` | 없음 / 트랜잭션 1, 쥔 것 없음 (예전 질의는 `@@TRANCOUNT` 1이라 열림) | — |
+| SQL Server 수동 커밋 | `UPDATE …` | 열림 / 로그 2, 잠금 | pending 없음 / 트랜잭션 0 |
 
 ### 열린 트랜잭션 표시(쿼리 창 상태 줄)
 
 - 자리: 커밋 방식 칸(자동 커밋/수동 커밋 점) 바로 뒤.
-- 보이는 때: 쿼리 창 실행 문맥(기본은 창마다 자기 세션, 설정에 따라 같은 연결의 쿼리 창이 함께 쓰는 주 문맥, [transactions.md](transactions.md) "쿼리 창마다 별도 연결")에 열린 트랜잭션이 있을 때만. 자동 커밋이거나 실행한 문장이 없으면 숨긴다.
+- 보이는 때: 쿼리 창 실행 문맥(기본은 창마다 자기 세션, 설정에 따라 같은 연결의 쿼리 창이 함께 쓰는 주 문맥, [transactions.md](transactions.md) "쿼리 창마다 별도 연결")에 열린 트랜잭션(위 "트랜잭션 상태")이 있을 때만. 자동 커밋 모드의 명시적 트랜잭션도 보인다. 쥔 것이 없으면 숨긴다.
 - 모양: `status.warning` 점(커밋 방식 점과 같은 크기, 주의이지 오류가 아님) + `열린 트랜잭션 00:03:15 (문장 3개)`. 경과 시간은 트랜잭션 시작부터이고 1초마다 갱신한다.
-- 도구 설명: 시작 시각, 문장 수와 데이터 변경 문장 수, 마지막 문장 끝 시각, "클릭하면 커밋하거나 롤백합니다".
+  DB에 확인할 수 없으면 `트랜잭션 확인할 수 없음 00:03:15 (문장 3개)`(영어 `Transaction unverified …`).
+- 도구 설명: DB가 쥐고 있는 것(커밋하지 않은 변경, 잠금, 스냅숏, 명시적으로 시작함, 오류로 중단됨. DB에 물을 수 없어 문장으로 판단했으면 "실행한 문장으로 판단"),
+  확인할 수 없으면 그 이유, 시작 시각, 문장 수와 데이터 변경 문장 수, 마지막 문장 끝 시각, "클릭하면 커밋하거나 롤백합니다".
 - 클릭: 칸 위에 커밋 / 롤백 메뉴. 고르면 메뉴를 연 때의 트랜잭션만 끝낸다(아래 "커밋·롤백 공용 경로"). 사용자가 직접 고르는 동작이므로 허용된다.
   같은 메뉴의 트랜잭션 로그…는 그 트랜잭션의 문장을 보인다([transactions.md](transactions.md)).
 
@@ -84,7 +330,12 @@
 2026-11-07부터 Query 메뉴·SQL Editor 도구 막대·단축키의 Commit / Roll Back과 열린 트랜잭션 목록도 이 경로를 쓴다([transactions.md](transactions.md)).
 
 - 그 문맥의 트랜잭션이 보여 준 트랜잭션(시작 시각)과 같고 실행 중이 아닐 때만 한다. 그 사이 다른 트랜잭션이 시작되었으면 건드리지 않고 "아무것도 하지 않았습니다"라고 알린다.
-- 커밋·롤백 자체는 다른 기능과 같은 트랜잭션 관리자 호출(`DBCTransactionManager.commit` / `rollback`, UTIL 세션)이다. 새 JDBC 호출을 만들지 않았다.
+- 커밋·롤백 자체는 `IdleTransactionMonitor.commitOrRollback`(UTIL 세션)이다. 끝낼 때·끊을 때 질문과 Chromite Agent의 `disconnect` 답도 이것을 쓴다(2026-11-08).
+  - 수동 커밋: 다른 기능과 같은 트랜잭션 관리자 호출(`DBCTransactionManager.commit` / `rollback`).
+  - 자동 커밋(사용자가 `BEGIN TRAN`·`BEGIN`·`START TRANSACTION`으로 연 트랜잭션): `COMMIT` / `ROLLBACK` 문장. 드라이버는 자동 커밋 모드에서 `commit()`을 거절한다
+    (mssql-jdbc "AutoCommit 모드가 true로 설정된 경우 롤백 작업을 호출할 수 없습니다", 2026-11-08 확인).
+  - 커밋은 DB가 아직 트랜잭션이 있다고 답하는 동안 되풀이한다(최대 32번). SQL Server의 `COMMIT`은 중첩 `BEGIN TRAN`의 안쪽 하나만 끝내므로, 한 번으로 그치면
+    사용자가 커밋을 골랐는데 나중에 세션을 닫을 때 나머지가 롤백된다. 롤백은 한 번으로 모두 끝난다.
 - Swing 쪽은 작업 스레드에서 하고(`SwingIdleTransactionService.endTransaction`), 실패하면 오류 대화상자를 띄운다.
 
 ## 설정
@@ -107,7 +358,12 @@
 ## 설계 결정과 이유
 
 - **감지는 모델, 묻기는 UI 서비스**: AGENTS-Architecture.md의 모델/UI 분리. 모델은 `UIServiceIdleTransactions`만 알고 Swing 번들이 구현을 등록한다.
-- **QM 기반**: 드라이버에 묻지 않으므로 1초마다 표시해도 부담이 없고, 연결이 막혀 있어도 감시가 멈추지 않는다.
+- **DB에 묻고 메모리에 둔다**(2026-11-08): 열림은 DB의 답으로 정한다(문장 종류로 짐작하면 SQL Server SELECT처럼 쥔 것 없는 트랜잭션을 보이거나 자동 커밋의
+  BEGIN TRAN을 놓친다). 묻는 것은 사용자 작업이 끝날 때 실행 작업 스레드에서 한 번이고, 표시·감시는 그 답을 메모리에서 읽는다. 그래서 1초마다 표시해도 DB에
+  부담이 없고, 연결이 막혀 있어도 감시가 멈추지 않는다. 주기적으로 묻지 않는 것은 다른 스레드가 같은 연결을 쓰는 중에 끼어들지 않기 위해서다.
+- **확인할 수 없음을 따로**: 권한이 없거나 묻지 못하면 열림·닫힘 어느 쪽으로 꾸며도 원칙을 어긴다. 표시는 따로 하고 안전 동작은 열림처럼 다룬다.
+- **한 규칙**: 상태 줄, 유휴 감시, 끝낼 때·끊을 때·창을 닫을 때 질문, 자동 커밋 적용 질문, 오류 복구 멈춤, 유휴 연결 닫기, Chromite Agent가 같은 방언 질의와
+  같은 합치기를 쓴다(`QMTransactionState.isOpen()`, 에이전트는 `JDBCTransactionProbe`).
 - **한 메커니즘**: 업스트림의 유휴 트랜잭션 롤백을 이 감시로 바꾸었다(아래).
 - **열어 두기 = 한 기간 미루기**: 3초마다 다시 묻지 않는다.
 - **오래된 알림 보호**: 알림 단추와 상태 줄 메뉴는 보여 준 트랜잭션만 끝낸다.
@@ -130,6 +386,9 @@
   사용 기준이고 열린 트랜잭션·실행 중이면 닫지 않으며, 끊기 직전 다시 확인한다. 알림 종류는 오류에서 경고로 바꿨다(설정대로 한 일이지 실패가 아니다,
   유휴 트랜잭션 롤백 알림과 같은 종류). `DBPApplication.getLastUserActivityTime`을 지웠다.
 - 모델 알림 처리기(아래 "모델 알림")를 Swing에 등록했다. SWT의 알림 설정(알림 끄기, 소리)은 없다.
+- 열린 트랜잭션의 기준(2026-11-08): 업스트림은 쿼리 관리자의 문장 기록만 보았다(`QMUtils.isTransactionActive`: 수동 커밋에서 "트랜잭션에 영향을 주는 문장"이
+  있음). Chromite는 DB에 묻는다(위 "트랜잭션 상태"). 바꾼 업스트림 파일: `QMUtils.getTransactionState`(합치기), `QMRegistryImpl`(추적기 등록),
+  `JDBCExecutionContext`(`DBCTransactionProbe` 구현), 방언 4개(질의). `QMUtils.isTransactionActive` 자체는 그대로 두었다(업스트림 작업 `SQLScriptExecuteHandler`가 씀).
 
 ## 연결 끊기 전 질문
 
@@ -137,8 +396,9 @@
 Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이것을 묻지 않았다(앱 종료만 물었다). SWT는 `DataSourceHandler.checkAndCloseActiveTransaction`으로 물었다.
 
 - 네 동작이 모두 지나는 `ConnectionCommands`의 끊기 경로에서, `DisconnectJob`을 예약하기 전에 `ExitTransactionCheck.confirmDisconnect`를 부른다.
-- 찾기·질문·끝내기는 앱 종료 질문과 같은 코드다: 그 연결의 모든 실행 문맥에서 `QMUtils.isTransactionActive`, Chromite Agent·MCP 도구 격리 문맥은
-  `AgentSql.hasPendingTransaction`. 있으면 목록과 함께 커밋 / 롤백 / 취소를 묻는다.
+- 찾기·질문·끝내기는 앱 종료 질문과 같은 코드다: 그 연결의 모든 실행 문맥에서 `QMTransactionState.isOpen()`(2026-11-08부터, 상태 줄과 같은 규칙. 전에는
+  `QMUtils.isTransactionActive`: 수동 커밋의 변경 문장만 보아 자동 커밋의 BEGIN TRAN과 SELECT FOR UPDATE의 잠금을 놓쳤다), Chromite Agent·MCP 도구 격리 문맥은
+  `AgentSql.hasPendingTransaction`. 있으면 목록과 함께 커밋 / 롤백 / 취소를 묻는다. 끝내기는 공용 경로(`IdleTransactionMonitor.commitOrRollback`)다.
 - 취소하면 끊지 않고 트랜잭션도 그대로 둔다. 다시 연결·삭제도 하지 않고, Object Explorer의 Disconnect는 서버를 창에서 빼지 않는다.
 - 커밋·롤백이 실패하면 오류를 보이고 끊지 않는다.
 - 클래스 이름(`ExitTransactionCheck`)은 바꾸지 않았다. 바꾸면 기존 설계 문서(auto-update.md, ai-agent.md)의 참조까지 고쳐야 해서 변경이 커진다.
@@ -160,14 +420,15 @@ Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이�
   - Chromite Agent·MCP 도구 세션의 마지막 작업 끝(`DBServiceUnrecordedSessions.getLastUseTime`). 이 세션은 JDBC를 직접 써서 쿼리 관리자에 기록이 없다.
   - 연결 유지(keep-alive) 핑은 사용이 아니다. 핑은 JDBC 연결에 직접 보내 쿼리 관리자에 남지 않는다(`JDBCUtils.isConnectionAlive`).
 - 닫지 않는 경우(하나라도 맞으면 그 연결은 유휴가 아니다):
-  - 어느 문맥이든 열린 트랜잭션이 있다: `QMTransactionState.isOpen()`(수동 커밋에서 사용자 문장 실행, SELECT 포함) 또는 `QMUtils.isTransactionActive`
-    (다른 목적의 변경 문장). 연결을 닫으면 JDBC 연결이 닫히며 묻지 않고 롤백되기 때문이다(사용자 규칙 "트랜잭션 안전").
+  - 어느 문맥이든 열린 트랜잭션이 있다: `QMTransactionState.isOpen()`(위 "트랜잭션 상태": DB가 무언가를 쥐었다고 답했거나 명시적으로 시작했거나 확인할 수 없음)
+    또는 `QMUtils.isTransactionActive`(다른 목적의 변경 문장). 연결을 닫으면 JDBC 연결이 닫히며 묻지 않고 롤백되기 때문이다(사용자 규칙 "트랜잭션 안전").
   - Chromite Agent가 그 연결에 열린 트랜잭션을 남겼거나 지금 쓰고 있다(`DBServiceUnrecordedSessions.isConnectionInUse` → `AgentSql.isInUse`).
   - 문장이 실행 중이거나, 그 문맥의 Job(SQL 편집기 실행 등)이나 연결의 작업(`DBPDataSourceTask.isActiveTask`)이 있다. 끊기는 실행 중인 Job을 취소하기 때문이다.
   - 그 연결의 연결·끊기 Job이 예약되었거나 실행 중이다.
 - 열린 트랜잭션 정책(#97과 맞춤): 연결을 열어 둔다. 그 트랜잭션은 이 문서의 유휴 트랜잭션 감시가 맡는다(기본: 알리고 묻기, 연결에서 켰을 때만 자동 롤백 뒤 알림).
   커밋·롤백으로 트랜잭션이 끝나면 그때부터 다시 한 기간을 재고 닫는다. 유휴 트랜잭션 알림을 끈 연결은 트랜잭션이 끝날 때까지 열려 있다(조용히 닫지 않는다).
-  수동 커밋 연결은 SELECT만 실행해도 트랜잭션이 열린 것으로 보므로(위 "트랜잭션 상태") 커밋·롤백 전에는 닫히지 않는다.
+  2026-11-08부터 쥔 것 없는 트랜잭션(SQL Server 수동 커밋의 일반 SELECT 등)만 남은 연결은 닫을 수 있다(닫아도 잃는 것이 없다). PostgreSQL·MySQL의 SELECT처럼
+  테이블 잠금을 쥔 트랜잭션과 DB에 확인할 수 없는 트랜잭션은 커밋·롤백 전에는 닫히지 않는다.
 - 닫기: `DisconnectJob`을 예약하고, Job이 끊기 직전에 같은 조건을 다시 본다(그 사이 쿼리를 실행했거나 트랜잭션이 열렸으면 아무것도 하지 않는다).
   끊은 뒤 경고 알림을 보낸다: 제목은 연결 이름, 내용 "20초 동안 쓰지 않아 연결을 닫았습니다. 다시 쓰면 다시 연결합니다."(`ModelMessages.model_connection_idle_closed`,
   기간은 `DurationFormatter`). 끊긴 뒤라 데이터 소스가 없으므로 제목을 받는 `ChromiteNotifications.showNotification`을 쓴다.
@@ -211,6 +472,19 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 ## 남은 일
 
 - Chromite Agent·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
+- 트랜잭션 상태(2026-11-08)에서 남은 것:
+  - MySQL·MariaDB 수동 커밋에서 MyISAM 등 트랜잭션이 없는 엔진의 테이블만 읽은 경우는 MDL을 쥐어도 서버가 트랜잭션으로 알리지 않아 닫힘으로 보인다
+    (`performance_schema.metadata_locks`를 읽을 수 있는 로그인이면 찾을 수 있지만 권한이 필요하고 드문 조합이라 넣지 않았다).
+  - SQL Server에 `VIEW SERVER STATE` 권한이 없는 로그인의 수동 커밋 SELECT는 "확인할 수 없음"이다(위 "SQL Server"). Azure SQL Database는 서버 수준 권한이 없어
+    늘 이 경우다(데이터베이스 수준 `VIEW DATABASE STATE`로 읽는 방법은 확인하지 않았다, 시험 서버 없음).
+  - 질의가 없는 DB(DB2, SQLite, H2, Altibase 등)는 문장 분류만 한다. 수동 커밋의 SELECT는 "확인할 수 없음"이다.
+  - 트랜잭션 로그(`TransactionLogDialog`)는 자동 커밋 모드면 "자동 커밋"이라고만 하고, 자동 커밋의 명시적 트랜잭션 문장은 보이지 않는다(쿼리 관리자는
+    자동 커밋에서 트랜잭션 기록을 만들지 않는다). 열린 트랜잭션 목록(`OpenTransactionsDialog`)은 확인할 수 없는 세션도 보이지만 따로 표시하지 않는다.
+  - 커밋 방식 전환(`CommitModeSwitch`)·스마트 커밋·오류 복구·유휴 연결 닫기는 새 규칙에 쿼리 관리자의 `isTransactionActive`를 함께 본다(더 많이 묻는 쪽).
+    서버가 스스로 롤백한 뒤(SQL Server `XACT_ABORT`, 교착 상태 희생자)에도 그 기록이 남아 한 번 더 물을 수 있다.
+  - 상태 줄은 DB의 답을 실행 작업·커밋·롤백이 끝날 때만 새로 받는다(주기적으로 묻지 않음). 그래서 서버가 세션을 끊은 경우(PostgreSQL
+    `idle_in_transaction_session_timeout` 등)와 기록을 끈 세션(`enableLogging(false)`, 비밀번호 바꾸기 등)의 커밋·롤백 뒤에는 다음 작업까지 이전 답이 남는다
+    (끊긴 세션은 [transactions.md](transactions.md) "끊긴 세션의 쿼리 창"이 다음 실행에서 다룬다).
 - 연결 유형별 자동 롤백 기본값(연결 유형 편집기는 2026-11-07에 생겼고 알림·기간은 그 화면에 있다). 넣는다면 사용자 결정을 다시 받는다.
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
@@ -227,3 +501,7 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 2026-11-07 같은 UI 서비스(`UIServiceIdleTransactions`)에 오류 복구가 멈춘 알림 두 가지를 더함. 다시 연결 알림이 언제 뜨는지 고침
   ([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션")
 - 2026-11-08 절전 때 연결 닫기·깨어난 뒤 다시 초기화가 쓰는 중인 연결을 건너뜀(유휴 연결 닫기의 조건을 `isInUse`로 뺌)([connection-lifecycle.md](connection-lifecycle.md) "절전")
+- 2026-11-09 트랜잭션 상태를 DB의 답으로(앱 변경 #1, `chromite/txn-real-state`): 실제로 쥐고 있을 때만 열림(SQL Server 수동 커밋의 일반 SELECT는 숨김,
+  자동 커밋의 BEGIN TRAN은 보임), 확인할 수 없음을 따로 보임, DB별 질의를 모델 계층 방언으로(`JDBCTransactionProbe`, Chromite Agent 질의를 옮김),
+  상태 줄·유휴 감시·끝낼 때·끊을 때 질문·자동 커밋 적용·Agent가 한 규칙, 자동 커밋 트랜잭션은 COMMIT/ROLLBACK 문장으로 끝내고 중첩 BEGIN TRAN은 끝까지 커밋.
+  SQL Server·PostgreSQL·MySQL·MariaDB·Oracle 컨테이너에서 수동·자동 커밋 경우표("확인: DB별 경우표")
