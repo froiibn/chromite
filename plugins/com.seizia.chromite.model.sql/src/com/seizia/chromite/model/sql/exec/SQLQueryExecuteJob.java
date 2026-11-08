@@ -84,6 +84,8 @@ import java.util.Map;
  * - 2026-11-08 {@code @include}: 명령이 돌려준 {@link SQLIncludedScript}의 문장을 남은 문장 앞에 끼워 같은 루프로 실행한다(오류 처리·취소·
  *   진행·통계가 스크립트 자신의 문장과 같다). 끼운 문장은 그 파일의 스크립트 문맥으로 실행한다(매개변수, 명령, 중첩 포함의 기준 폴더).
  *   다시 실행하면 처음 받은 문장부터 다시 읽는다 (docs/chromite/swing-query-commands.md "@include").
+ * - 2026-11-08 문장이 오류 없이 끝나고 결과를 다 읽은 뒤, 닫기 전에 {@link SQLQueryExecuteHandler#afterStatementExecuted}를 부른다
+ *   (Altibase 실제 계획, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -924,6 +926,8 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                     break;
                 }
             };
+            // Still open: some drivers give the statement's actual plan only now (Altibase EXPLAIN PLAN = ON)
+            handler.afterStatementExecuted(session, dbcStatement, sqlQuery);
         }
         finally {
             try {

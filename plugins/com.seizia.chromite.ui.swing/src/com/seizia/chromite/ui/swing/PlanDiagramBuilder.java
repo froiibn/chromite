@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ext.mssql.model.plan.SQLServerPlanNode;
 import com.seizia.chromite.ext.mysql.model.plan.MySQLPlanNodeJSON;
+import com.seizia.chromite.ext.oracle.model.plan.OracleActualPlanNode;
 import com.seizia.chromite.ext.oracle.model.plan.OraclePlanNode;
 import com.seizia.chromite.ext.postgresql.model.plan.PostgrePlanNodeBase;
 import com.seizia.chromite.model.exec.plan.DBCPlanCostNode;
@@ -51,7 +52,8 @@ import java.util.regex.Pattern;
  *     문장 종류(SQL 첫 단어)로 뿌리 상자를 만든다.</li>
  *     <li>그 밖({@link OraclePlanNode}, {@link MySQLPlanNodeJSON}, 다른 DB): 이름·개체·조건과 {@link DBCPlanCostNode}의 비용·행 수다.
  *     비용은 하위 트리 비용으로 보고 PostgreSQL과 같이 자식 비용을 빼 연산자 비용 %를 만든다(Oracle COST가 이 정의다).
- *     실제 행이 없으므로 예상만 보인다.</li>
+ *     실제 행이 없으므로 예상만 보인다. 다만 Oracle 실제 계획({@link OracleActualPlanNode})은 실제 행(A-Rows, 모든 시작의 합)과
+ *     예상 행(E-Rows는 시작 1회 값이라 × Starts로 모든 실행), 실행 횟수, 시간을 더한다.</li>
  *     <li>예상이 크게 어긋남: 실제와 예상 중 큰 값이 작은 값(1 이상)의 {@value #MISESTIMATE_FACTOR}배 이상이고 차이가
  *     {@value #MISESTIMATE_ROWS}행 이상이면 표시한다(몇 행 차이로 표시가 넘치지 않게).</li>
  *     <li>아이콘은 연산 이름의 낱말로 고른다({@link #classify}). 같은 연산이라도 DB마다 이름이 달라 종류(DBCPlanNodeKind)만으로는
@@ -60,6 +62,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
+ * - 2026-11-08 Oracle 실제 계획의 실제 행·실행 횟수·시간 (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 final class PlanDiagramBuilder {
 
@@ -379,6 +382,15 @@ final class PlanDiagramBuilder {
             }
             op.estimatedRows = costNode.getNodeRowCount() == null ? null : costNode.getNodeRowCount().doubleValue();
         }
+        OracleActualPlanNode oracleActual = node instanceof OracleActualPlanNode actual ? actual : null;
+        if (oracleActual != null) {
+            // E-Rows is for one start, A-Rows for all of them: both as all executions, like the other databases
+            Long starts = oracleActual.getStarts();
+            if (op.estimatedRows != null && starts != null && starts > 1) {
+                op.estimatedRows = op.estimatedRows * starts;
+            }
+            op.actualRows = oracleActual.getActualRows() == null ? null : oracleActual.getActualRows().doubleValue();
+        }
         op.properties.add(new String[]{PlanMessages.plan_tip_operation, title});
         addProperty(op, PlanMessages.plan_tip_object, detail);
         if (op.costPercent != null) {
@@ -386,6 +398,10 @@ final class PlanDiagramBuilder {
         }
         if (node instanceof DBCPlanCostNode costNode && costNode.getNodeCost() != null) {
             addProperty(op, PlanMessages.plan_tip_subtree_cost, formatNumber(costNode.getNodeCost().doubleValue()));
+        }
+        if (oracleActual != null) {
+            addProperty(op, PlanMessages.plan_tip_executions, formatNumber(oracleActual.getStarts()));
+            addProperty(op, PlanMessages.plan_tip_time, oracleActual.getActualTime() == null ? null : formatNumber(oracleActual.getActualTime()) + " ms"); //$NON-NLS-1$
         }
         addProperty(op, PlanMessages.plan_tip_condition, node.getNodeCondition());
         return op;

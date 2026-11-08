@@ -59,6 +59,8 @@ import java.util.List;
  * - 2026-11-07 최초 작성: 쿼리 창 도구 막대를 메인 창 둘째 줄로 옮김(사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 Commit / Roll Back 단추 (docs/chromite/transactions.md)
  * - 2026-11-08 커밋 방식 단추(활성 쿼리 창 세션의 자동/수동 커밋 전환, B-S18) (docs/chromite/transactions.md "커밋 방식 전환")
+ * - 2026-11-08 실제 계획을 주지 않는 연결에서는 실제 계획 단추가 꺼지고 도구 설명이 이유를 말함({@link #setActualPlanUnsupported})
+ *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  */
 final class SqlEditorToolBar {
 
@@ -72,6 +74,7 @@ final class SqlEditorToolBar {
     private JComboBox<?> connectionCombo = emptyConnectionCombo;
     private JComboBox<?> schemaCombo = emptySchemaCombo;
     private final JButton commitModeButton;
+    private final JToggleButton actualPlanButton;
     @Nullable
     private SqlEditorPanel editor;
 
@@ -102,7 +105,8 @@ final class SqlEditorToolBar {
         toolBar.add(createButton(UiIcons.createActionButton(cancelAction, "stop"), EditorMessages.editor_sql_cancel_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createButton(UiIcons.createActionButton(estimatedPlanAction, "plan"), EditorMessages.editor_sql_estimated_plan_tip)); //$NON-NLS-1$
-        toolBar.add(createActualPlanButton(actualPlanAction));
+        actualPlanButton = createActualPlanButton(actualPlanAction);
+        toolBar.add(actualPlanButton);
         toolBar.addSeparator();
         // The shortcut differs by platform (MainFrame), so the tool tip takes it from the action
         toolBar.add(createButton(UiIcons.createActionButton(commitAction, "commit"), //$NON-NLS-1$
@@ -138,6 +142,14 @@ final class SqlEditorToolBar {
      * The active document changed: puts that query window's pickers into the tool bar, or the empty ones when the active
      * document is not a query window. Execute, Stop and the plan buttons follow the Query menu actions.
      */
+    /**
+     * The Actual Plan button's tool tip: its shortcut, or why it is off on the active query window's connection. Called after
+     * the action's description changed, which the button also takes.
+     */
+    void setActualPlanUnsupported(boolean unsupported) {
+        actualPlanButton.setToolTipText(unsupported ? EditorMessages.editor_sql_actual_plan_unsupported : EditorMessages.editor_sql_actual_plan_tip);
+    }
+
     void setActiveEditor(@Nullable SqlEditorPanel editor) {
         this.editor = editor;
         connectionCombo = replace(connectionCombo, editor != null ? editor.getConnectionCombo() : emptyConnectionCombo);
