@@ -77,7 +77,8 @@ import java.util.stream.Stream;
  *     <li>폴더(Tables, Columns 등)를 열면 그 자식 목록 하나, 객체(테이블, 스키마, 루틴 등)를 열면 자식 폴더마다 탭 하나다. 폴더가 아닌 자식
  *     (루틴 매개 변수처럼 객체 바로 아래 항목)은 탐색기 메타({@link DBXTreeNode})별로 탭을 묶는다. 그래서 테이블에서는 SWT 객체 편집기의
  *     Columns·Constraints·Foreign Keys·Indexes·References·Dependencies·Triggers·Partitions 탭이 된다. 어떤 탭이 있는지는 드라이버 모델의
- *     탐색기 구성({@code plugin.xml})이 정한다(가상 폴더 References·Dependencies 포함). 이 앱에는 SWT 객체 편집기가 없어 이 문서가 그 목록 탭을 대신한다.</li>
+ *     탐색기 구성({@code plugin.xml})이 정한다(가상 폴더 References·Dependencies 포함). 이 앱에는 SWT 객체 편집기가 없어 이 문서가 그 목록 탭을 대신한다.
+ *     객체를 열면 첫 탭은 SWT 편집기처럼 속성 탭이다(속성 창과 같은 {@link PropertiesPanel}, 고칠 수 있는 속성은 거기서 고친다).</li>
  *     <li>열은 자식 클래스의 {@code @Property} 중 {@code viewable}이고 숨김이 아닌 것({@link ObjectListTable}과 같은 규칙, 연결의 속성 필터
  *     {@link DataSourcePropertyFilter})이다. 자식의 클래스가 여럿이면 처음 나온 순서로 합친다. 첫 열이 노드 글자(이름, 겹친 이름은 형식까지)와 아이콘이라
  *     {@code name} 속성 열은 뺀다.</li>
@@ -93,6 +94,8 @@ import java.util.stream.Stream;
  * - 2026-11-08 최초 작성: 폴더 내용 표(C-16)와 객체의 종속성·참조 등 목록 탭(B-E7) (docs/chromite/swing-explorer-productivity.md "Object Details")
  * - 2026-11-08 암호 속성(사용자의 암호 해시 등)을 읽는 자리에서 가림({@link ObjectListTable#maskPassword},
  *   docs/chromite/password-handling.md)
+ * - 2026-11-08 객체의 첫 탭으로 속성 탭(고칠 수 있는 속성 편집, {@link PropertiesPanel}, SWT 객체 편집기의 Properties 탭, C-15).
+ *   자식이 없는 객체(시퀀스)도 속성 탭으로 열린다 (docs/chromite/swing-object-properties.md)
  */
 final class ObjectDetailsPanel extends JPanel implements ToolDocument {
 
@@ -110,6 +113,11 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
 
     private final DBNDatabaseNode node;
     private final Consumer<DBNNode> reveal;
+    /**
+     * The Properties tab of an object (not of a folder), first as in the SWT object editor.
+     */
+    @Nullable
+    private final PropertiesPanel propertiesPanel;
     private final JPanel body = new JPanel(new BorderLayout());
     private final JTextField searchField = new JTextField(18);
     private final JLabel statusLabel = new JLabel(" ");
@@ -122,12 +130,14 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
     private boolean disposed;
 
     /**
-     * @param reveal selects a node in Object Explorer (double click on a row)
+     * @param reveal       selects a node in Object Explorer (double click on a row)
+     * @param queryWindows opens a property change script in a query window
      */
-    ObjectDetailsPanel(@NotNull DBNDatabaseNode node, @NotNull Consumer<DBNNode> reveal) {
+    ObjectDetailsPanel(@NotNull DBNDatabaseNode node, @NotNull Consumer<DBNNode> reveal, @NotNull ObjectExplorerPanel.QueryWindows queryWindows) {
         super(new BorderLayout());
         this.node = node;
         this.reveal = reveal;
+        propertiesPanel = node instanceof DBNDatabaseFolder ? null : new PropertiesPanel(queryWindows, false);
 
         JLabel titleLabel = new JLabel(ObjectExplorerPanel.getNodeText(node), NodeIcons.getNodeIcon(node, false), SwingConstants.LEADING);
         titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h4"); //$NON-NLS-1$
@@ -216,6 +226,10 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
         disposed = true;
         cancelGroups();
         views.forEach(ListView::cancel);
+        if (propertiesPanel != null) {
+            // Cancels its reading
+            propertiesPanel.showNode(null);
+        }
     }
 
     /**
@@ -304,7 +318,7 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
         int selectedIndex = tabs != null ? tabs.getSelectedIndex() : 0;
         body.removeAll();
         views.clear();
-        if (error != null || groups.isEmpty()) {
+        if (error != null || groups.isEmpty() && propertiesPanel == null) {
             tabs = null;
             String message = error != null
                 ? NLS.bind(ObjectExplorerMessages.oe_details_error, ObjectExplorerPanel.getNodeText(node), ErrorText.describe(error))
@@ -314,6 +328,11 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
         } else {
             JTabbedPane groupTabs = new JTabbedPane();
             groupTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+            if (propertiesPanel != null) {
+                // An object without children (a sequence) still has its properties; read again on Refresh
+                groupTabs.addTab(CoreMessages.main_properties, propertiesPanel);
+                propertiesPanel.showNode(node);
+            }
             for (Group group : groups) {
                 ListView view = new ListView(group.folder(), group.items());
                 views.add(view);
@@ -323,6 +342,8 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
             groupTabs.addChangeListener(e -> {
                 if (groupTabs.getSelectedComponent() instanceof ListView view) {
                     view.showing();
+                } else {
+                    statusLabel.setText(" ");
                 }
             });
             tabs = groupTabs;
@@ -330,6 +351,8 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
             groupTabs.setSelectedIndex(Math.clamp(selectedIndex, 0, groupTabs.getTabCount() - 1));
             if (groupTabs.getSelectedComponent() instanceof ListView view) {
                 view.showing();
+            } else {
+                statusLabel.setText(" ");
             }
         }
         body.revalidate();

@@ -40,6 +40,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Runs the MySQL/MariaDB client tools (mysqldump, mysql). The password goes through MYSQL_PWD (or the credentials file of
+ * the override option, which the Swing dialog does not offer).
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 도구 계정(tool user)에 암호가 없으면 연결의 암호를 MYSQL_PWD로 넘기지 않음. 연결의 암호는 연결 사용자의
+ *   것이다. 그러면 도구는 옵션 파일의 암호를 쓰거나 암호 없이 로그인한다(-p를 넘기지 않으므로 묻지 않음)
+ *   (docs/chromite/swing-backup-restore.md "도구 계정")
+ */
 public abstract class MySQLNativeToolHandler<SETTINGS extends AbstractNativeToolSettings<BASE_OBJECT>, BASE_OBJECT extends DBSObject, PROCESS_ARG>
     extends AbstractNativeToolHandler<SETTINGS, BASE_OBJECT, PROCESS_ARG> {
 
@@ -64,7 +73,8 @@ public abstract class MySQLNativeToolHandler<SETTINGS extends AbstractNativeTool
     protected void setupProcessParameters(DBRProgressMonitor monitor, SETTINGS settings, PROCESS_ARG arg, ProcessBuilder process) {
         if (!isOverrideCredentials(settings)) {
             String toolUserPassword = settings.getToolUserPassword();
-            if (CommonUtils.isEmpty(toolUserPassword)) {
+            if (CommonUtils.isEmpty(toolUserPassword) && CommonUtils.isEmpty(settings.getToolUserName())) {
+                // The connection's password is for the connection's user only
                 toolUserPassword = getDataSourcePassword(monitor, settings);
             }
 

@@ -23,6 +23,7 @@ import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import com.seizia.chromite.ui.swing.internal.GridSqlMessages;
+import com.seizia.chromite.ui.swing.internal.ValueEditMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -75,6 +76,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,6 +154,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 결과 탐색(SWT 대조 B4): 외래 키 따라가기와 뒤로·앞으로, 참조·집계 패널, 가상 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소,
  *   찾기, 텍스트 보기, 전체 행 수. 레코드 보기의 줄은 모델 열 번호라 표의 열을 숨기거나 옮겨도 같은 칸을 가리키게 바꿈
  *   (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 16진수로 편집…({@link ResultSetHexEditor}), 외부 편집기로 열기({@link ResultSetExternalEditor}, 저장하면 셀에 넣음,
+ *   결과를 닫으면 멈춤). 배열·구조체 값은 "Filter by Value"에 넣지 않음 (docs/chromite/swing-value-editors.md)
  * - 2026-11-08 결과 행에서 SQL 만들기: 오른쪽 클릭 메뉴의 "SQL 생성"(Copy As 다음, {@link ResultSetGenerateSql}). 고른 행의 칸 값을
  *   저장하지 않은 변경까지 넘김 (docs/chromite/swing-result-generate-sql.md)
  */
@@ -242,6 +246,9 @@ final class ResultSetViewerPanel extends JPanel {
     private final JToggleButton recordToggle;
     private final Action loadFileAction;
     private final Action saveFileAction;
+    private final Action hexAction;
+    private final Action externalAction;
+    private final ResultSetExternalEditor externalEditor = new ResultSetExternalEditor();
     private final JToggleButton chartToggle;
     private final JToggleButton spatialToggle;
     private final JToggleButton textToggle;
@@ -385,6 +392,10 @@ final class ResultSetViewerPanel extends JPanel {
         loadFileAction.setEnabled(false);
         saveFileAction.setEnabled(false);
         valuePanel.setFileActions(loadFileAction, saveFileAction);
+        hexAction = createAction(ValueEditMessages.valueedit_hex_menu, null, this::editCellAsHex);
+        externalAction = createAction(ValueEditMessages.valueedit_external_menu, null, this::openCellExternally);
+        hexAction.setEnabled(false);
+        externalAction.setEnabled(false);
         chartView = new ResultSetChartView(new ChartSource());
         spatialView = new ResultSetSpatialView(new SpatialSource());
 
@@ -494,10 +505,12 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     /**
-     * Releases the LOB values kept for the value panel (the results are cleared).
+     * Releases the LOB values kept for the value panel and stops the external editor's watches, deleting their
+     * files (the results are cleared).
      */
     void dispose() {
         selectionTimer.stop();
+        externalEditor.stopAll();
         valuePanel.dispose();
         referencesPanel.dispose();
         releaseContents(fetched.source().cellValues());
@@ -1032,6 +1045,8 @@ final class ResultSetViewerPanel extends JPanel {
         menu.addSeparator();
         menu.add(loadFileItem);
         menu.add(saveFileItem);
+        menu.add(new JMenuItem(hexAction));
+        menu.add(new JMenuItem(externalAction));
         menu.addSeparator();
         menu.add(filterMenu);
         menu.add(clearFilter);
@@ -1099,8 +1114,9 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeBinding binding = fetched.data().bindings()[modelColumn];
         Object value = getCellValue(row, modelColumn);
         String name = binding.getName();
-        // Geometries are kept for the spatial view only; they are not offered as filter values
-        if (value != null && !(value instanceof ResultSetCellContent) && !(value instanceof DBGeometry)) {
+        // Geometries are kept for the spatial view only, arrays and structures for their editors; they are not offered as
+        // filter values
+        if (value != null && !(value instanceof ResultSetCellContent) && !(value instanceof DBGeometry) && !ResultSetGridReceiver.isComplexValue(value)) {
             String shown = CommonUtils.truncateString(String.valueOf(getDisplayValue(row, modelColumn)).replaceAll("\\s+", " "), 60); //$NON-NLS-1$ //$NON-NLS-2$
             for (DBCLogicalOperator operator : new DBCLogicalOperator[]{
                 DBCLogicalOperator.EQUALS, DBCLogicalOperator.NOT_EQUALS, DBCLogicalOperator.GREATER, DBCLogicalOperator.LESS}) {
@@ -1235,6 +1251,128 @@ final class ResultSetViewerPanel extends JPanel {
             || value instanceof DBDContent content && !DBUtils.isNullValue(content);
         loadFileAction.setEnabled(load && !reading);
         saveFileAction.setEnabled(save);
+        // Hex: a binary value, or an editable binary LOB cell (also NULL: new bytes are typed)
+        boolean binary = value instanceof byte[] || (value instanceof ResultSetCellContent content && !content.isText())
+            || (value instanceof DBDContent content && !DBUtils.isNullValue(content) && !ResultSetLobFiles.isText(content));
+        hexAction.setEnabled(cell != null && (binary || load && !editModel.isTextContentColumn(cell[1])) && !reading);
+        // External editor: a value to open, or an editable cell to fill
+        externalAction.setEnabled(cell != null && (save || isTextEditable(cell[0], cell[1]) || load
+            || getDisplayValue(cell[0], cell[1]) instanceof String) && !reading);
+    }
+
+    /**
+     * Edit as Hex… (SWT hex editor of binary values): the whole value, up to what the value panel reads, in the hex
+     * dialog; an editable binary LOB cell gets the edited bytes through the column's handler (as Load from File).
+     */
+    private void editCellAsHex() {
+        int[] cell = getSelectedCell();
+        if (cell == null || grid == null) {
+            return;
+        }
+        ResultSetEditModel editModel = fetched.editModel();
+        boolean editable = editModel != null && editModel.isContentColumn(cell[1]) && isCellEditable(cell[0], cell[1]);
+        Object value = getCellValue(cell[0], cell[1]);
+        String columnName = fetched.data().bindings()[cell[1]].getName();
+        ResultSetCellContent.Loaded loaded;
+        try {
+            loaded = ProgressDialog.runTask(ValueEditMessages.valueedit_hex_read_title, monitor -> loadBytes(monitor, value));
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ValueEditMessages.valueedit_hex_read_title, ErrorText.describeLine(e), e);
+            return;
+        }
+        if (loaded.truncated()) {
+            JOptionPane.showMessageDialog(this, NLS.bind(ValueEditMessages.valueedit_hex_too_large,
+                    String.format("%,d", loaded.length()), String.format("%,d", ResultSetCellContent.MAX_LOAD_SIZE)), //$NON-NLS-1$ //$NON-NLS-2$
+                ValueEditMessages.valueedit_hex_read_title, JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        byte[] bytes = loaded.bytes() != null ? loaded.bytes() : CommonUtils.notEmpty(loaded.text()).getBytes(StandardCharsets.UTF_8);
+        byte[] edited = ResultSetHexEditor.edit(this, columnName, bytes, editable);
+        if (edited == null || grid == null) {
+            return;
+        }
+        String error = grid.setCellObject(cell[0], cell[1], edited);
+        if (error != null) {
+            DBWorkbench.getPlatformUI().showError(ValueEditMessages.valueedit_hex_read_title, error);
+        }
+    }
+
+    /**
+     * The content of a cell for the hex editor (job thread): read as the value panel reads it, so a value larger than
+     * {@link ResultSetCellContent#MAX_LOAD_SIZE} comes back truncated and is not opened. NULL is no bytes.
+     */
+    @NotNull
+    private static ResultSetCellContent.Loaded loadBytes(@NotNull DBRProgressMonitor monitor, @Nullable Object value) throws DBException {
+        if (value instanceof byte[] bytes) {
+            return new ResultSetCellContent.Loaded(bytes, null, bytes.length, false);
+        }
+        ResultSetCellContent content = value instanceof ResultSetCellContent cellContent ? cellContent
+            : value instanceof DBDContent dbContent && !DBUtils.isNullValue(dbContent) ? ResultSetCellContent.capture(dbContent) : null;
+        return content == null ? new ResultSetCellContent.Loaded(new byte[0], null, 0, false) : content.load(monitor);
+    }
+
+    /**
+     * Open in External Editor: the cell's value in a file opened by the default application of its type; for an
+     * editable cell, each save of the file is put in the cell ({@link ResultSetExternalEditor}).
+     */
+    private void openCellExternally() {
+        int[] cell = getSelectedCell();
+        ResultSetGrid ownerGrid = grid;
+        if (cell == null || ownerGrid == null) {
+            return;
+        }
+        int column = cell[1];
+        DBDAttributeBinding binding = fetched.data().bindings()[column];
+        ResultSetEditModel editModel = fetched.editModel();
+        boolean contentColumn = editModel != null && editModel.isContentColumn(column);
+        boolean editable = isCellEditable(cell[0], column) && (contentColumn || isTextEditable(cell[0], column));
+        Object value = getCellValue(cell[0], column);
+        boolean text;
+        ResultSetExternalEditor.ContentWriter writer;
+        if (value instanceof ResultSetCellContent content) {
+            text = content.isText();
+            writer = content::writeTo;
+        } else if (value instanceof byte[] bytes) {
+            text = false;
+            writer = (monitor, file) -> ResultSetLobFiles.writeLoaded(null, bytes, file);
+        } else if (value instanceof DBDContent content && !DBUtils.isNullValue(content)) {
+            text = ResultSetLobFiles.isText(content);
+            writer = (monitor, file) -> ResultSetLobFiles.writeContent(monitor, content, file, text);
+        } else if (contentColumn) {
+            // A NULL LOB cell: an empty file to fill
+            text = editModel.isTextContentColumn(column);
+            writer = (monitor, file) -> ResultSetLobFiles.writeLoaded(text ? "" : null, text ? null : new byte[0], file); //$NON-NLS-1$
+        } else {
+            text = true;
+            Object display = getDisplayValue(cell[0], column);
+            String cellText = editable ? editModel.getEditText(cell[0], column)
+                : display == null || display == ResultSetGrid.NULL_VALUE ? "" : display.toString(); //$NON-NLS-1$
+            writer = (monitor, file) -> ResultSetLobFiles.writeLoaded(cellText, null, file);
+        }
+        ResultSetExternalEditor.Target target = null;
+        if (editable) {
+            ResultSetEditModel.Row row = editModel.getRow(cell[0]);
+            target = new ResultSetExternalEditor.Target() {
+                @Nullable
+                @Override
+                public String apply(@NotNull Object input) {
+                    return isAlive() ? ownerGrid.setCellObject(editModel.indexOf(row), column, input) : EditorMessages.editor_grid_cell_read_only;
+                }
+
+                @Override
+                public boolean isAlive() {
+                    return grid == ownerGrid && editModel.indexOf(row) >= 0;
+                }
+
+                @Override
+                public void showStatus(@NotNull String text) {
+                    if (grid == ownerGrid) {
+                        ownerGrid.showStatus(text);
+                    }
+                }
+            };
+        }
+        externalEditor.open(this, binding.getName(), binding.getTypeName(), text, writer, target);
     }
 
     /**

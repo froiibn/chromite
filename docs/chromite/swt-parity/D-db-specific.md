@@ -16,13 +16,13 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 18 | 7 | 4 | 0 | 0 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 19 | 6 | 4 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 13 | 1 | 0 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 16 | 3 | 0 | 0 | 0 |
 | Oracle (`ext.oracle.ui`) | 24 | 23 | 0 | 0 | 1 | 0 |
 | Altibase (`ext.altibase.ui`) | 9 | 7 | 0 | 2 | 0 | 0 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 15 | 12 | 2 | 0 | 0 |
-| **합계** | **124** | **92** | **23** | **8** | **1** | **0** |
+| **합계** | **124** | **93** | **22** | **8** | **1** | **0** |
 
 2026-11-08 다시 셈(devel #165 기준, 모든 행을 코드와 다시 대조): 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"·고침은 있음으로 셈).
 그 전 표는 바뀐 행을 반영하지 않은 수였다. 조사 당시 수는 있음 41, 일부 31, 없음 46, 의도적 제외 1, 조용히 끊김 5였다.
@@ -70,8 +70,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P15 | 시퀀스·트리거·이벤트 트리거·행 보안 정책 만들기 | `PostgreSequenceConfigurator`, `PostgreTriggerConfigurator`(+`PostgreTriggerEditPage`), `PostgreEventTriggerConfigurator`, `PropertyObjectConfigurator`(Policy) | 있음(2026-11-08) | 폴더의 New Sequence…/New Trigger…/New Event Trigger…/New Policy…/New Data type…가 실행할 수 있는 CREATE 틀을 쿼리 창에 연다(`SourceScripts.getTemplateKind`, 트리거·이벤트 트리거는 함수까지). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. 대화상자 대신 틀(본문은 사용자가 씀) |
 | P16 | 인덱스·제약·외래 키 만들기 | `PostgreIndexConfigurator`, `PostgreConstraintConfigurator`, `PostgreForeignKeyConfigurator` | 있음 | `TableDesignerPanel` + `design/PostgreTableDesignerDriver`(swing-table-designer.md 58행) | 중간 | |
 | P17 | 함수·프로시저 만들기 | `PostgreProcedureConfigurator` | 있음 | `SourceEditCommands` New Function/Procedure(`SourceScripts`) | 중간 | |
-| P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 스키마·테이블 고르기, 도구 사용자·추가 인수 없음(swing-backup-restore.md 200행) |
-| P19 | Global Backup(pg_dumpall) | 도구 `PostgreToolBackupAll`, `PostgreBackupAllWizard*` | 없음 | swing-backup-restore.md 200행 "전체 클러스터 백업(pg_dumpall)" 남긴 것 | 중간 | 역할·테이블스페이스 백업 수단이 없다. 2026-11-08 다시 확인: 그대로. SWT에서 저장한 `pgDatabaseBackupAll` 작업은 Database Tasks에서 실행만 됨(model.admin `NativeBackupRestore.java`:355-361) |
+| P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 있음 | `NativeBackupRestoreDialog`. 2026-11-08 (`chromite/native-backup-advanced`) 개체 페이지의 스키마·테이블 고르기(모델 `PostgreDatabaseBackupSelection`, SWT와 같은 규칙), 도구 계정, 추가 인수(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 일부(스키마·테이블 고르기, 도구 사용자·추가 인수 없음) |
+| P19 | Global Backup(pg_dumpall) | 도구 `PostgreToolBackupAll`, `PostgreBackupAllWizard*` | 있음 | 2026-11-08 (`chromite/native-backup-advanced`) 백업 대화상자의 백업 범위 "서버의 전역 개체"(역할·테이블스페이스, `--globals-only`/`--roles-only`/`--tablespaces-only`)와 "전체 클러스터"(데이터베이스 고르기 → `--exclude-database`), pg_dumpall 옵션. `pgDatabaseBackupAll` 작업도 편집·저장(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 없음. 복원은 일반 형식(psql)으로 |
 | P20 | Restore(pg_restore/psql) | 도구 `PostgreToolRestore`, `PostgreRestoreWizard` | 있음 | `NativeBackupRestoreDialog`(+ 첫 오류에서 멈춤) | 중간 | |
 | P21 | psql로 스크립트 실행(도구) + SQL 편집기 "네이티브 클라이언트로 실행"(`sql.executors`) | `PostgreScriptExecuteWizard`, `PostgreScriptExecutor` | 있음(2026-11-08) | Tasks &gt; Run Script with Native Client…, Query &gt; Run with Native Client…, 작업 `pgScriptExecute` 저장·실행([swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 일반 형식 복원이 psql로 파일을 실행함. 편집기 연동은 grep `ScriptExecute`·`sql.executors` → `ui.swing` 0건(MySQL 복원용 1건 제외) |
 | P22 | 유지 관리: ANALYZE, VACUUM | 도구 `PostgreToolAnalyze`, `PostgreToolVacuum` | 있음 | `MaintenanceDialog` + `PostgreMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | Swing이 REINDEX·CLUSTER·부풀림 추정을 더함 |
@@ -80,7 +80,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P25 | pgAgent 작업·일정 편집(분·시·요일 표) | `PostgreScheduleEditor`(+ 범용 편집기) | 일부 | 탐색기에 pgAgent 폴더는 모델 트리로 보임. 만들기·편집 없음. pg_cron은 Swing 새 기능(swing-job-schedulers.md 13, 75행) | 낮음 | 2026-11-08 다시 확인: 작업·일정·단계는 폴더의 New 명령(이름만)과 Delete·Rename으로 만들고 지움(`NewObjectCommands`, `ExplorerObjectCommands`). 일정 편집기(분·시·요일 표)는 없음 |
 | P26 | EXPLAIN 옵션(ANALYZE, VERBOSE, COSTS, BUFFERS, SETTINGS, WAL, TIMING, SUMMARY) | `PostgreExplainPlanConfigurator` | 일부 | `SqlPlanExplainer.java:123-126`(실제 계획 = ANALYZE만) | 낮음 | BUFFERS 등 진단 옵션 없음 |
 | P27 | plpgsql_check로 함수 검사(SQL 생성기, 편집기 명령) | `SQLGeneratorProcedureCheck`, `SQLEditorHandlerCheckProcedureConsole` | 없음 | grep `plpgsql_check` → 0건 | 낮음 | |
-| P28 | 값 편집기: ENUM 콤보, hstore(구조), money, bit string | `dataManager`: `PostgreEnumValueManager` 등 | 일부 (2026-11-08) | ENUM 열은 허용 값 목록으로 편집(`ResultSetEnumValues`, [swing-grid-editing.md](../swing-grid-editing.md)) | 낮음 | hstore·money·bit string은 글자로 입력 |
+| P28 | 값 편집기: ENUM 콤보, hstore(구조), money, bit string | `dataManager`: `PostgreEnumValueManager` 등 | 있음 (2026-11-08) | ENUM 열은 허용 값 목록으로 편집(`ResultSetEnumValues`, [swing-grid-editing.md](../swing-grid-editing.md)). hstore 키·값 대화상자, bit string은 0·1만 입력, money는 글자(SWT도 주석 처리), 배열·복합 형식 대화상자([swing-value-editors.md](../swing-value-editors.md)) | 낮음 | bit string 길이는 저장 때 DB가 검사 |
 | P29 | PL/pgSQL 디버거(중단점, 단계 실행) | `ext.postgresql.debug.ui`(+ 모델 `debug.core`, `ext.postgresql.debug.core`도 함께 삭제) | 있음(2026-11-07) | 모델 복원, Swing 디버거 탭([procedure-debugger.md](../procedure-debugger.md)) | 중간 | Step Out은 pldbgapi에 없음 |
 
 ## 2. SQL Server (`ext.mssql.ui`, 16 클래스)
@@ -118,12 +118,12 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M10 | 이벤트 만들기 | `MySQLEventConfigurator` | 있음 | `MySQLEventDialog`(swing-job-schedulers.md 14행) | 낮음 | Swing이 사용/사용 안 함·스케줄러 상태를 더함 |
 | M11 | 시퀀스 만들기(MariaDB) | `MySQLSequenceConfigurator` | 있음(2026-11-08) | Sequences 폴더 New Sequence…: CREATE SEQUENCE 틀. MariaDB 패키지(Packages 폴더 New Package…)도 같은 길. [swing-create-objects.md](../swing-create-objects.md) | 낮음 | 조사 당시: 없음 |
 | M12 | Source 탭, 패키지 본문(MariaDB Oracle 모드) | `MySQLSourceViewEditor`, `MySQLPackageBodyEditor` | 일부 | View DDL, Modify(swing-source-editor.md 53행) | 낮음 | |
-| M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 테이블 고르기 없음(swing-backup-restore.md 200행) |
+| M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 있음 | `NativeBackupRestoreDialog`. 2026-11-08 (`chromite/native-backup-advanced`) 개체 페이지의 테이블·뷰 고르기, `--compress`, 도구 계정, 추가 인수(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 일부(테이블 고르기 없음). 여러 데이터베이스를 한 번에 고르기는 없음 |
 | M14 | 가져오기(mysql로 덤프 복원) | 도구 `MySQLToolImport` | 있음 | `NativeBackupRestoreDialog` | 중간 | |
 | M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 있음(2026-11-08) | 같은 메뉴, 작업 `mysqlScriptExecute`(MariaDB 11.8 클라이언트로 확인, [swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`). 편집기 연동 없음 |
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
 | M17 | TRUNCATE | `MySQLToolTruncate` | 있음(2026-11-08) | P23과 같음(MariaDB 확인) | 중간 | 조사 당시: 없음. "외래 키 검사 끄기" 옵션 화면은 없음 |
-| M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 있음 (2026-11-08) | `ENUM` 열은 허용 값 목록으로 편집(`ResultSetEnumValues`) | 낮음 | `SET`은 글자로 입력 |
+| M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 있음 (2026-11-08) | `ENUM` 열은 허용 값 목록으로 편집(`ResultSetEnumValues`). `SET` 열은 확인란으로 여러 값 고르기([swing-value-editors.md](../swing-value-editors.md)) | 낮음 | |
 | M19 | 스크립트의 `source`(다른 파일 포함) 명령 | `sqlCommand` `mysql.source` → `SQLCommandInclude`(`ui.editors.sql`) | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): ext.mysql `plugin.xml`이 `mysql.source`를 model.sql `SQLCommandInclude`에 등록, MariaDB 확인). 조사 당시: 없음 | 모델 명령 등록에 include 없음, grep `SQLCommandInclude` → 0건. 알 수 없는 명령은 오류(`SQLQueryExecuteJob.java:454-475`) | 낮음 | |
 
 ## 4. Oracle (`ext.oracle.ui`, 42 클래스)
@@ -239,6 +239,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
   (2026-11-07 고침, #119: 객체 관리자가 있는 모든 DB 객체를 지우고 이름을 바꿈(`ExplorerObjectCommands`), C-10·C-11, B-E11)
 - **객체 속성 편집:** 속성 창은 읽기 전용(`PropertiesPanel.java:68`). SWT `databaseEditor`(17개 번들)·`*Configurator`로 하던 속성 편집은
   테이블 디자이너의 Table 탭(PostgreSQL·SQL Server·MySQL)에서만 된다(swing-table-designer.md 121행).
+  (2026-11-08 고침: Properties 창과 Object Details 속성 탭에서 객체 관리자가 고칠 수 있다고 하는 속성을 고침, `ObjectPropertyEdits`, [swing-object-properties.md](../swing-object-properties.md), B-E1·B-E2·C-15)
 - **서버 출력 패널:** K1–K3의 원인. SQL 편집기 영역. (2026-11-07 Messages 탭으로 고침)
 - **DB별 환경설정 페이지 전부(PostgreSQL, Oracle, Altibase, CUBRID, H2, Mimer):** Swing `OptionsDialog`에 없다(`OptionsDialog.java:178-180`).
   (2026-11-07·08 Oracle·Altibase·CUBRID·Mimer SQL 페이지를 더함(`OptionsDialog.java`:135, O8, A3, §7). PostgreSQL(P7)·H2는 남음)
@@ -258,7 +259,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 남음)
 
-다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall, O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
+다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall(2026-11-08 고침), O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음). (2026-11-08 고침, [swing-routines.md](../swing-routines.md))
 
 ## 확인하지 못한 것
@@ -281,3 +282,5 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 - 2026-11-08 4순위 연결 칸: P3·S4·S5·O7 → 있음, P5 비고(프록시 서비스), §6 연결 설정 표, §7 bigquery·clickhouse·databend·firebird·hana·mimer·snowflake·spanner·tidblake 줄 갱신(요약 표 수는 메인 세션이 다시 셈)
   ([swing-conn-advanced.md](../swing-conn-advanced.md)).
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): O8·A3·dameng·kingbase·vertica·yashandb → 있음, cubrid → 일부, P7·P19·P25·A8·O24·A4·db2·gaussdb 비고, §8 두 줄에 고친 것 표시. 요약 표를 행 상태로 다시 셈(있음 92, 일부 23, 없음 8, 의도적 제외 1, 조용히 끊김 0).
+- 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): P28 일부 → 있음(hstore 대화상자, bit string 입력),
+  M18 비고(SET 고르기). 요약 표: PostgreSQL 있음 18 → 19, 일부 7 → 6(합계 있음 93, 일부 22).

@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ext.postgresql.model.data.PostgreStructValueHandler;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -74,8 +75,12 @@ import java.util.Objects;
  *     단일 원본 테이블({@link DBExecUtils#detectSingleSourceTable}, 조인·식만 있는 결과는 없음), 완전한 기본 행 식별자(기본 키·고유 키),
  *     테이블의 데이터 변경 기능({@link DBSDataManipulator}). SWT의 {@code ResultSetViewer.isReadOnly}/{@code ResultSetModel.getReadOnlyStatus}와 같은 판단이며,
  *     SWT가 키가 없을 때 띄우는 가상 키 정의 대화상자({@code ValidateUniqueKeyUsageDialog}) 대신 읽기 전용으로 둔다.</li>
- *     <li>칸 안 편집은 글자(또는 불리언·ENUM 콤보, 날짜 선택)로 하므로 문자열·숫자·불리언·날짜 열만 칸에서 편집한다({@link #isInlineEditable}).
- *     배열·구조체처럼 값 객체({@code DBDValue})로 오는 열과 값을 읽지 못한 열은 읽기 전용이다.</li>
+ *     <li>칸 안 편집은 글자(또는 불리언·ENUM 콤보, 날짜 선택)로 하므로 문자열·숫자·불리언·날짜 열과, SWT {@code StringValueManager}처럼
+ *     글자로 고치는 {@code OBJECT} 열(PostgreSQL uuid·inet 등: 값 처리기가 글자로 값을 만듦)을 칸에서 편집한다({@link #isInlineEditable}).
+ *     배열·구조체({@code ARRAY}·{@code STRUCT})는 수신기가 남긴 값 객체로 편집한다(글자는 값 처리기의 형식, 대화상자는
+ *     {@link ResultSetValueDialogs}). 구조체는 PostgreSQL 복합 형식만이다: 일반 JDBC 구조체 처리기는 읽어 온 구조체를 그대로 바인딩해
+ *     바꾼 속성이 저장되지 않는다. 그 밖의 값 객체({@code DBDValue})로 오는 열과 값을 읽지 못한 열은 읽기 전용이다.</li>
+ *     <li>MySQL/MariaDB {@code SET} 열은 허용 값 여러 개를 확인란으로 고른다({@link #isMultiValueColumn}). ENUM 콤보와 같은 값 목록을 쓴다.</li>
  *     <li>LOB·이진 열(자료형 {@code CONTENT}: JSON, XML, CLOB, BLOB, {@code BINARY}: bytea 등, 그리고 드라이버가 LOB 값으로 준 문자열 열:
  *     MariaDB {@code LONGTEXT}·{@code JSON})은 값 전체를 바꾸는 방식으로만 편집한다(값 패널의 JSON·XML·글자 편집기, 파일에서 불러오기).
  *     수신기는 이 값 객체를 표시 문자열로 바꾸고 놓아 주므로 행에는 값이 없다(읽지 않은 값, {@link #hasValue}). 읽지 않은 칸은 원래 값을 모르므로
@@ -92,6 +97,7 @@ import java.util.Objects;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-08 LOB 열 편집(읽지 않은 값), ENUM 값, 실행 취소·다시 실행, 행 복제, 위·아래 행 값 복사, 칸 되돌리기, 기본값으로
  *   (docs/chromite/swing-grid-editing.md)
+ * - 2026-11-08 {@code OBJECT}·배열·구조체 열 편집, SET 열(여러 값) (docs/chromite/swing-value-editors.md)
  */
 final class ResultSetEditModel implements DBDResultSetModel {
 
@@ -221,6 +227,7 @@ final class ResultSetEditModel implements DBDResultSetModel {
     private final boolean[] unreadColumns;
     private final boolean[] lobColumns;
     private final String[][] enumValues;
+    private final boolean[] multiValueColumns;
     private final boolean insertSupported;
     private final boolean deleteSupported;
     private final List<Row> rows = new ArrayList<>();
@@ -261,7 +268,9 @@ final class ResultSetEditModel implements DBDResultSetModel {
         this.unreadColumns = new boolean[bindings.length];
         this.lobColumns = lobColumns.clone();
         this.enumValues = enumValues != null && enumValues.length == bindings.length ? enumValues : new String[bindings.length][];
+        this.multiValueColumns = new boolean[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
+            multiValueColumns[i] = this.enumValues[i] != null && ResultSetEnumValues.isMultiple(bindings[i]);
             editableColumns[i] = isEditableColumn(bindings[i], singleSource, unreadableColumns[i], lobColumns[i]);
             contentColumns[i] = editableColumns[i] && isWholeValueColumn(bindings[i], lobColumns[i]);
             unreadColumns[i] = unreadableColumns[i];
@@ -333,7 +342,8 @@ final class ResultSetEditModel implements DBDResultSetModel {
 
     /**
      * A column of the source table that the model can update ({@link DBExecUtils#isAttributeReadOnly}) and that is
-     * edited as text, or a LOB or binary column, edited as a whole value (LOB values are not kept, so it may be
+     * edited as text (also {@code OBJECT} columns, as SWT's string editor, and arrays and composites whose values the
+     * receiver kept), or a LOB or binary column, edited as a whole value (LOB values are not kept, so it may be
      * "unreadable").
      */
     private static boolean isEditableColumn(@NotNull DBDAttributeBinding binding, @Nullable DBSEntity source, boolean unreadable, boolean lob) {
@@ -348,8 +358,13 @@ final class ResultSetEditModel implements DBDResultSetModel {
             return true;
         }
         DBPDataKind dataKind = binding.getDataKind();
-        return !unreadable && (dataKind == DBPDataKind.STRING || dataKind == DBPDataKind.NUMERIC
-            || dataKind == DBPDataKind.BOOLEAN || dataKind == DBPDataKind.DATETIME);
+        return !unreadable && switch (dataKind) {
+            case STRING, NUMERIC, BOOLEAN, DATETIME, OBJECT, ARRAY -> true;
+            // The generic JDBC composite binds the struct it was fetched as (JDBCComposite.getStructValue), so changed
+            // attributes would not be saved; PostgreSQL's handler writes the attribute values
+            case STRUCT -> binding.getValueHandler() instanceof PostgreStructValueHandler;
+            default -> false;
+        };
     }
 
     private static boolean isFeatureSupported(@Nullable DBSEntity source, @NotNull String feature) {
@@ -559,6 +574,13 @@ final class ResultSetEditModel implements DBDResultSetModel {
     @NotNull
     String[][] getEnumValues() {
         return enumValues;
+    }
+
+    /**
+     * A column that holds several of its allowed values ({@link #getEnumValues}) at once: MySQL/MariaDB {@code SET}.
+     */
+    boolean isMultiValueColumn(int column) {
+        return multiValueColumns[column];
     }
 
     @NotNull

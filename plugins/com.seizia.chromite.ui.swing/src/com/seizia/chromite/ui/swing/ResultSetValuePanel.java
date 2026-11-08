@@ -103,6 +103,8 @@ import java.util.Locale;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 설계 설명의 글꼴을 코드와 맞춤: SQL 편집기 글꼴이 아니라 {@code monospaced.font}(docs/chromite/swing-result-viewer.md "값 패널")
  * - 2026-11-08 글자 LOB 편집, JSON·XML 정리(Format)와 검사, 파일 불러오기·저장 단추 (docs/chromite/swing-grid-editing.md "JSON·XML 편집기")
+ * - 2026-11-08 NULL 배열·구조체(값이 없는 값 객체)를 NULL로 보임: 편집 모델이 배열·구조체 값을 남기게 되어 "NULL" 글자로 보이던 것
+ *   (docs/chromite/swing-value-editors.md)
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -440,7 +442,8 @@ final class ResultSetValuePanel extends JPanel {
             // A LOB value set in the grid (panel, file): read like a fetched one, without releasing it
             value = DBUtils.isNullValue(content) ? null : ResultSetCellContent.capture(content);
         }
-        boolean isNull = cell.display() == ResultSetGrid.NULL_VALUE && value == null;
+        // A NULL array or structure is a value object that holds no value
+        boolean isNull = cell.display() == ResultSetGrid.NULL_VALUE && (value == null || DBUtils.isNullValue(value));
         if (isNull) {
             // A NULL JSON or XML cell is typed with that editor
             Mode nullMode = mode == Mode.AUTO ? detectTypeMode(binding) : mode;
