@@ -58,6 +58,7 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 설정 가져오기·되돌리기가 파일을 바꾼 뒤 다시 읽게 {@link #reload()} (docs/chromite/settings-transfer.md)
  */
 final class SqlTemplates {
 
@@ -161,6 +162,13 @@ final class SqlTemplates {
         List<Template> result = new ArrayList<>(byId.values());
         result.addAll(custom);
         return result;
+    }
+
+    /**
+     * Reads the templates from the configuration file again when they are next used (Import Settings wrote the file).
+     */
+    static synchronized void reload() {
+        templates = null;
     }
 
     /**

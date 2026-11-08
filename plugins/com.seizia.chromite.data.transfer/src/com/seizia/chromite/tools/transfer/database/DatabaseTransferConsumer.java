@@ -61,6 +61,11 @@ import java.util.Map;
 
 /**
  * Stream transfer consumer
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 대상 테이블을 비우기(TRUNCATE) 전에 그 열 메타데이터를 읽어 둠. 비우기는 넣기 트랜잭션 안에서 테이블을 잠그고
+ *   (SQL Server Sch-M), 넣기({@code JDBCTable.insertData})가 다른 세션(메타데이터 문맥)으로 열을 다시 읽으면 그 잠금을 기다리며 멈췄다
+ *   (같은 스키마에 새 테이블을 만들면 열 캐시가 비워짐) (docs/chromite/swing-data-transfer.md "고급 옵션")
  */
 @DBSerializable(DatabaseTransferConsumer.NODE_ID)
 public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
@@ -191,6 +196,15 @@ public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseC
             // Truncate target tables
             // Note: all implementations support truncate in some way (e.g. DELETE FROM)
             // even if DBSDataManipulator.FEATURE_DATA_TRUNCATE is reported to be not supported.
+            if (targetObject instanceof DBSEntity targetEntity) {
+                // The truncate locks the table until the load transaction ends; metadata is read with another session
+                // (the metadata context), so the columns the insert needs must be cached before or that read waits forever
+                try {
+                    targetEntity.getAttributes(targetSession.getProgressMonitor());
+                } catch (DBException e) {
+                    throw new DBCException("Can't read the columns of " + targetObject.getName(), e);
+                }
+            }
             try {
                 targetObject.truncateData(targetSession, executionSource);
             } catch (DBCFeatureNotSupportedException e) {

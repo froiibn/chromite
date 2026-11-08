@@ -31,6 +31,7 @@ import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
 import com.seizia.chromite.ui.swing.internal.ScriptsMessages;
+import com.seizia.chromite.ui.swing.internal.SettingsTransferMessages;
 import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
@@ -255,6 +256,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-object-properties.md)
  * - 2026-11-08 Query &gt; Auto-Commit(확인 표시)과 SQL Editor 도구 막대의 커밋 방식 단추: 활성 쿼리 창 세션의 자동/수동 커밋 전환({@link CommitModeSwitch}, B-S18)
  *   (docs/chromite/transactions.md "커밋 방식 전환")
+ * - 2026-11-08 File &gt; Export Settings… / Import Settings… / Undo Settings Import… ({@link SettingsTransferCommands},
+ *   docs/chromite/settings-transfer.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -2101,6 +2104,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem exportConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_export);
         exportConnectionsItem.addActionListener(e -> ConnectionTransferCommands.exportConnections(this, null));
         fileMenu.add(exportConnectionsItem);
+        fileMenu.addSeparator();
+        JMenuItem exportSettingsItem = new JMenuItem(SettingsTransferMessages.settings_menu_export);
+        exportSettingsItem.addActionListener(e -> SettingsTransferCommands.exportSettings(this));
+        fileMenu.add(exportSettingsItem);
+        JMenuItem importSettingsItem = new JMenuItem(SettingsTransferMessages.settings_menu_import);
+        importSettingsItem.addActionListener(e -> SettingsTransferCommands.importSettings(this, () -> scriptsPanel.reload()));
+        fileMenu.add(importSettingsItem);
+        JMenuItem undoSettingsItem = new JMenuItem(SettingsTransferMessages.settings_menu_undo);
+        undoSettingsItem.addActionListener(e -> SettingsTransferCommands.undoImport(this, () -> scriptsPanel.reload()));
+        fileMenu.add(undoSettingsItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
