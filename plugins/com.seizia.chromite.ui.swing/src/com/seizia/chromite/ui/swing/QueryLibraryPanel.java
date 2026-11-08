@@ -100,6 +100,8 @@ import java.util.Set;
  * - 2026-11-08 삭제 확인은 삭제 / 취소, 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 마우스를 올린 행을 그리는 트리({@link LibraryTree})를 Scripts 도구 창도 쓰도록 패키지 안에 엶 (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
+ * - 2026-11-08 {@link Host#getSaveAction}: 쿼리 창 머리말의 저장 단추가 메인 창의 Save(Ctrl+S)를 그대로 씀
+ *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -136,6 +138,12 @@ final class QueryLibraryPanel extends JPanel {
          */
         @NotNull
         SqlEditorPanel openQueryWindow(@Nullable DBPDataSourceContainer container, @NotNull String fileName);
+
+        /**
+         * File &gt; Save (Ctrl+S): saves the active query window.
+         */
+        @NotNull
+        Action getSaveAction();
     }
 
     private final Host host;

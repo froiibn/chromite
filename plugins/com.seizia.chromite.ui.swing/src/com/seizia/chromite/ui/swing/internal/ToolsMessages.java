@@ -377,6 +377,12 @@ public class ToolsMessages extends NLS {
     public static String library_editor_target;
     public static String library_editor_parameters_count;
     public static String library_editor_parameters;
+    public static String library_editor_save_tip;
+    public static String library_editor_list_target;
+    public static String library_editor_list_window;
+    public static String library_editor_list_missing;
+    public static String library_editor_database_unused;
+    public static String library_editor_schema_unused;
     public static String library_connection_not_found;
     public static String library_target_ask;
     public static String library_target_current;

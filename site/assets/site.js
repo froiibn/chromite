@@ -32,12 +32,16 @@
  *     (<html data-visitor-os>) and the stylesheet hides the other mark, before and apart from the feed check: the
  *     button only scrolls to the download block, so its icon does not depend on a file being there. Unknown
  *     systems and pages without script keep both marks.
+ *   - The same button downloads the visitor's newest file directly (user request 2026-11-08: no detour through the
+ *     download block) once that card is filled from the checked feed. Unknown systems, a feed error and pages
+ *     without script keep its #download target.
  *
  * Change history:
  * - 2026-11-07 Created.
  * - 2026-11-07 Visitor's platform first, the other behind a button.
  * - 2026-11-08 The SHA-256 row and its copy button are gone from the cards: no checksum output, no copy handler.
  * - 2026-11-08 The hero button shows only the visitor's platform mark (user request).
+ * - 2026-11-08 The hero button downloads the visitor's file directly (user request).
  */
 (function () {
   'use strict';
@@ -150,6 +154,16 @@
     other.hidden = true;
   }
 
+  /** The hero button downloads the visitor's file directly; it keeps #download when the platform or the file is unknown. */
+  function linkHeroButton() {
+    var hero = document.querySelector('.hero-cta .btn');
+    var card = visitorOs && area.querySelector('.card[data-platform="' + visitorOs + '"]');
+    if (!hero || !card || card.getAttribute('data-ready') !== 'true') {
+      return;
+    }
+    hero.setAttribute('href', field(card, 'link').getAttribute('href'));
+  }
+
   var feed = window.chromiteReleases;
   if (!feed || feed.format !== 1 || !Array.isArray(feed.files)) {
     area.setAttribute('data-state', 'error');
@@ -168,6 +182,7 @@
     area.setAttribute('data-state', any ? 'ready' : 'empty');
     if (any) {
       preferVisitorPlatform();
+      linkHeroButton();
     }
   }
 }());

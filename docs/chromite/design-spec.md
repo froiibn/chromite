@@ -152,7 +152,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 행 번호 열 | 맨 왼쪽 열, 왼쪽 정렬 [M] | 바탕 = 그리드 바탕, 글자 `text.secondary`, 폭 ≈40 [S] | 머리글 바탕, 오른쪽 정렬 [C] `ResultSetGrid.java:194-205` | 바탕 `bg.editor`, 글자 `text.secondary`, 왼쪽 여백 8, 오른쪽 1px `grid.line` | P1 |
 | NULL | `NULL`(옅은 노란 바탕, SSMS 21부터 색 설정 가능) [M] | `<null>` 회색 | `NULL` 회색 기울임꼴 [C] | 글자 `NULL`(SSMS) + `text.secondary`, 기울임 없음 | P2 |
 | 숫자 정렬 | 오른쪽 | 오른쪽 | 오른쪽(맞음) [C] | 유지 | — |
-| 선택 | 진한 파랑 | 셀 선택 `selection.bg`, 글자색 유지 | FlatLaf 강조색 + 흰 글자 | `selection.bg`/`selection.inactiveBg`, 현재 셀 1px `focus.ring` 테두리, 선택 행의 행 번호도 `selection.bg` | P0 |
+| 선택 | 진한 파랑 | 셀 선택 `selection.bg`, 글자색 유지 | FlatLaf 강조색 + 흰 글자 | `selection.bg`/`selection.inactiveBg`, 현재 셀 1px `focus.ring` 테두리. 행 번호는 선택해도 그리드 바탕(2026-11-08, 선택이 번호 열에서 끊겨 보이지 않게) | P0 |
 | 메시지 글 | 고정폭, 오류 빨강 | 콘솔 출력: 일반 L `#080808` / D `#BCBEC4`, 오류 D `#F75464` [E `CONSOLE_*`] | 오류 `Actions.Red` [C] `QueryResultsView.java:117` | 글꼴 `font.code`, 오류 `status.error` | P1 |
 
 ### 9. 쿼리 상태 줄과 주 상태 표시줄
@@ -667,7 +667,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 ### P1·P2 중 함께 적용한 것
 
 - 트리: 이름 뒤 보조 글자(`text.secondary`: 열 형식, 읽은 폴더의 객체 수, 연결의 `호스트:포트`), 마우스 올림 바탕 `#EDF3FF`/`#393B40`(FlatLaf에 키가 없어 트리가 직접 그림).
-- 결과: 행 번호 열(그리드 바탕, 보조 글자, 왼쪽 정렬, 선택한 행의 번호도 선택색), NULL은 기울임 없이 보조 글자색, 편집 색(추가·삭제·변경)을 테마 키 `Chromite.Table.*Background`로 옮김, Messages 글꼴 `font.code`·오류 `status.error`.
+- 결과: 행 번호 열(그리드 바탕, 보조 글자, 왼쪽 정렬, 선택한 행의 번호도 선택색 — 2026-11-08부터 선택색 없음, swing-result-viewer.md "표 편의 기능"), NULL은 기울임 없이 보조 글자색, 편집 색(추가·삭제·변경)을 테마 키 `Chromite.Table.*Background`로 옮김, Messages 글꼴 `font.code`·오류 `status.error`.
 - 편집기: 여백(거터) 구분선 없음, 짝 괄호·같은 이름 강조 색.
 - 메뉴·목록·콤보 목록 선택 arc 8 + 좌우 4 안쪽, 팝업 모서리 8, 도구 설명 색, 메뉴 단축키 글자 `text.secondary`.
 - Object Explorer Filter(SSMS): 객체 폴더에 이름 마스크(`%`가 없으면 "포함")를 건다. DBeaver 탐색기 필터(`DBSObjectFilter`)라 연결 설정에 저장된다. 빈 글자는 필터 해제.
