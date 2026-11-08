@@ -96,7 +96,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
 | `plugins/com.seizia.chromite.splash/splash.png` | 560×320 | 시작 화면. 네이티브 런처가 JVM보다 먼저 띄운다(아래 "시작 화면") |
 | `plugins/com.seizia.chromite.splash/splash@2x.png` | 1120×640 | 같은 시작 화면의 HiDPI 판. Java가 돈 뒤 Swing 시작 화면(`StartupSplash`)이 그린다 |
-| `site/favicon.ico`, `site/assets/icons/icon-{32,192}.png`, `apple-touch-icon.png`, `site/assets/og/og-{ko,en}.png` | 16/32/48, 32, 192, 180, 1200×630 | 다운로드 사이트 파비콘과 공유 이미지. `tools/branding/gen_site_images.py`가 이 스크립트의 크기별 그림으로 만든다([distribution.md](distribution.md) "파비콘과 공유 이미지") |
+| `site/favicon.ico`, `site/assets/icons/icon-{32,192}.png`, `apple-touch-icon.png`, `site/assets/og/og-{ko,en}-2.png` | 16/32/48, 32, 192, 180, 1200×630 | 다운로드 사이트 파비콘과 공유 이미지. `tools/branding/gen_site_images.py`가 이 스크립트의 크기별 그림으로 만든다([distribution.md](distribution.md) "파비콘과 공유 이미지") |
 
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
 - SWT 제품의 창 아이콘·About 이미지·스플래시·`UIIcon` 로고는 SWT 프런트엔드와 함께 삭제했다([swt-removal.md](swt-removal.md)).
@@ -281,5 +281,6 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 제품 아이콘을 `product/swing/icons*`로 옮기고, 파생 이미지·제품 정보 파일 표를 Swing 제품 기준으로 고침.
 - 2026-11-07 결정 사항에 에이전트 기능 이름 `Chromite Agent` 추가(사용자 결정, [ai-agent.md](ai-agent.md) "명칭").
 - 2026-11-07 다운로드 사이트 파비콘·공유 이미지와 생성기 `tools/branding/gen_site_images.py`를 파생 이미지 표에 추가(사용자 요청, [distribution.md](distribution.md)).
+- 2026-11-08 공유 이미지 파일 이름을 `og-{ko,en}-2.png`로 바꿈(메신저 미리 보기 캐시, [distribution.md](distribution.md) "파비콘과 공유 이미지").
 - 2026-11-08 Swing 제품의 시작 화면(감사 행 A-S15, `chromite/startup-splash`): 그림 번들 `com.seizia.chromite.splash`와 런처 `-showsplash`, Swing이 이어받는 `StartupSplash`(버전·상태 줄),
   `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.

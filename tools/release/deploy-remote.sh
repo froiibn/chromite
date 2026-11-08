@@ -15,12 +15,13 @@
 #   releases-meta.tsv     data_generation and notes_url per version (read by releases.sh, not served)
 #   bin/releases.sh       the feed generator
 #   incoming/<stamp>/     what each deploy brought (the two newest are kept, see step 5)
-#   old/<stamp>/          what each deploy moved aside (kept)
+#   old/<stamp>/          what each deploy moved aside (the three newest are kept, see step 6)
 #
 # Design:
 #   * Nothing served is deleted or overwritten in place: a replaced file is moved to old/<stamp>/ first.
-#     The only deletion is step 5: staging folders in incoming/ beyond the two newest. Each holds a full
-#     copy of a release (about 0.5 GB) that is already served from downloads/ or kept in old/<stamp>/.
+#     The only deletions are steps 5 and 6: staging folders in incoming/ beyond the two newest (each a full
+#     copy of a release, about 0.5 GB), and old/<stamp>/ folders beyond the three newest (rollback copies of
+#     older deploys; their release files are also on the GitHub releases).
 #   * Every check runs before the first change. A release file that is already there with other
 #     bytes, an older version than the newest one there, or a different meta line for the version
 #     stops the script (a version number is never reused).
@@ -35,6 +36,8 @@
 # - 2026-11-07 Created.
 # - 2026-11-08 Step 5: keep only the two newest incoming/<stamp>/ folders (user decision: the copies piled up
 #   to 2 GB). old/<stamp>/ is untouched, so rolling back with -Back still works.
+# - 2026-11-08 Step 6: keep only the three newest old/<stamp>/ folders (user decision: each release moves
+#   about 0.5 GB of older setups there). The three newest still allow rolling back the last deploys.
 set -eu
 [ $# -eq 5 ] || { echo 'usage: deploy-remote.sh <root> <stamp> <version> <data_generation> <notes_url>' >&2; exit 2; }
 root=$1 stamp=$2 version=$3 generation=$4 notes=$5
@@ -143,6 +146,13 @@ for d in $(find "$root/incoming" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*T[
   [ "$d" = "$stage" ] && continue
   rm -rf -- "$d"
   say "incoming/${d##*/}: deleted (older than the two newest staging folders)"
+done
+
+# ---- 6. old/: keep the three newest moved-aside folders (this deploy's included), delete the older ones
+for d in $(find "$root/old" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*T[0-9]*Z' | sort | head -n -3); do
+  [ "$d" = "$old" ] && continue
+  rm -rf -- "$d"
+  say "old/${d##*/}: deleted (older than the three newest moved-aside folders)"
 done
 
 say "DONE: $version deployed (moved aside: $old)"

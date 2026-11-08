@@ -37,15 +37,16 @@ import java.util.List;
  *     제한은 드라이버 속성이다.</li>
  *     <li>연결 자동 복구와 재시도 횟수: {@code DBExecUtils.tryExecuteRecover}. 끊긴 연결이나 중단된 트랜잭션이면 다시 연결해 한 번 더 한다.
  *     Chromite의 {@code TransactionRecoveryGuard}가 복구가 사용자의 열린 트랜잭션을 버리게 되면 복구하지 않고 오류로 멈춘다(트랜잭션 안전 규칙).</li>
- *     <li>두지 않은 SWT 키: "오류가 나면 롤백"({@code query.rollback-on-error})은 문장이 실패하면 수동 커밋 세션의 트랜잭션을 묻지 않고 롤백한다
- *     ({@code JDBCStatementImpl.handleExecuteError}). 트랜잭션 안전 규칙에 어긋나 두지 않는다. "취소가 안 되면 시간 뒤 연결 닫기"
- *     ({@code execute.cancel.checkTimeout})는 문장 취소가 안 되면 세션 단위 취소(일반 JDBC는 실행 스레드 인터럽트, {@code JDBCDataSource.cancelCurrentExecution})로
- *     넘어간다. 드라이버에 따라 연결이 끊겨 열린 트랜잭션을 묻지 않고 잃을 수 있어 확인 전까지 두지 않는다(docs/chromite/swing-options.md).</li>
+ *     <li>두지 않은 SWT 키: "오류가 나면 롤백"({@code query.rollback-on-error})은 문장이 실패하면 수동 커밋 세션의 트랜잭션을 묻지 않고 롤백했다.
+ *     "취소가 안 되면 시간 뒤 연결 닫기"({@code execute.cancel.checkTimeout})는 문장 취소가 안 되면 세션 단위 취소(일반 JDBC는 실행 스레드
+ *     인터럽트, {@code JDBCDataSource.cancelCurrentExecution})로 넘어가 연결과 열린 트랜잭션을 묻지 않고 잃을 수 있었다. 트랜잭션 안전 규칙에
+ *     어긋나 2026-11-08에 모델이 두 키를 읽지 않게 했고, 남은 값은 시작할 때 지운다({@code RemovedPreferences}, docs/chromite/swing-options.md).</li>
  *     <li>모든 키를 그 작업을 할 때마다 연결의 설정 저장소에서 읽으므로 연결별 값이 효과가 있고, 다시 연결하지 않아도 된다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "Errors and Timeouts")
+ * - 2026-11-08 두지 않은 두 키를 모델이 읽지 않게 되어 설명을 고침
  */
 final class ConnectionErrorsOptionsPage extends SettingsPage {
 
