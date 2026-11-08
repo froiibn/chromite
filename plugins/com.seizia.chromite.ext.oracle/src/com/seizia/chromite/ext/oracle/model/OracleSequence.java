@@ -36,11 +36,28 @@ import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Oracle sequence
+ *
+ * 설계: CREATE는 모든 절을 적고({@link #buildStatement()}), ALTER는 바뀐 속성의 절만 적는다({@link #buildAlterStatement}).
+ * Oracle은 ALTER SEQUENCE의 절마다 지금 값과 맞는지 검사하므로 바꾸지 않은 절을 다시 적으면 실패할 수 있다(23ai에서 한 번도 쓰지 않은
+ * 시퀀스의 MINVALUE를 다시 적으면 ORA-04007).
+ *
+ * 변경 이력:
+ * - 2026-11-08 ALTER SEQUENCE는 바뀐 절만 적음(전에는 MINVALUE·MAXVALUE·CYCLE·CACHE·ORDER를 늘 다시 적어 ORA-04007),
+ *   CREATE와 ALTER 문을 나눔 (docs/chromite/model-fixes.md "Oracle ALTER SEQUENCE")
  */
 public class OracleSequence extends OracleSchemaObject implements DBSSequence, DBPScriptObject, DBSTypedObjectEx2 {
+
+    // Ids of the updatable properties (the getter names without get/is), as the property commands record them
+    private static final String PROP_INCREMENT_BY = "incrementBy"; //$NON-NLS-1$
+    private static final String PROP_MIN_VALUE = "minValue"; //$NON-NLS-1$
+    private static final String PROP_MAX_VALUE = "maxValue"; //$NON-NLS-1$
+    private static final String PROP_CYCLE = "cycle"; //$NON-NLS-1$
+    private static final String PROP_CACHE_SIZE = "cacheSize"; //$NON-NLS-1$
+    private static final String PROP_ORDER = "order"; //$NON-NLS-1$
 
     private BigDecimal minValue;
     private BigDecimal maxValue;
@@ -172,13 +189,13 @@ public class OracleSequence extends OracleSchemaObject implements DBSSequence, D
         this.flagOrder = flagOrder;
     }
 
-    public String buildStatement(boolean forUpdate) {
+    /**
+     * CREATE SEQUENCE with every clause (new sequences and the DDL view).
+     */
+    @NotNull
+    public String buildStatement() {
         StringBuilder sb = new StringBuilder();
-        if (forUpdate) {
-            sb.append("ALTER SEQUENCE ");
-        } else {
-            sb.append("CREATE SEQUENCE ");
-        }
+        sb.append("CREATE SEQUENCE ");
         sb.append(getFullyQualifiedName(DBPEvaluationContext.DDL)).append(" ");
 
         if (getIncrementBy() != null) {
@@ -190,33 +207,69 @@ public class OracleSequence extends OracleSchemaObject implements DBSSequence, D
         if (getMaxValue() != null) {
             sb.append("MAXVALUE ").append(getMaxValue()).append(" ");
         }
+        appendCycle(sb);
+        appendCache(sb);
+        appendOrder(sb);
 
-        if (isCycle()) {
-            sb.append("CYCLE ");
-        } else {
-            sb.append("NOCYCLE ");
+        return sb.toString();
+    }
+
+    /**
+     * ALTER SEQUENCE with the clauses of the changed properties only, or {@code null} when none of them has a clause
+     * here (the last value is not written by CREATE or ALTER).
+     * Oracle validates every clause of the statement against the sequence's current value, so restating an unchanged
+     * clause can fail: 23ai rejects the unchanged MINVALUE of a sequence that was never used (ORA-04007).
+     *
+     * @param changed tells whether the property with this id was changed
+     */
+    @Nullable
+    public String buildAlterStatement(@NotNull Predicate<String> changed) {
+        StringBuilder clauses = new StringBuilder();
+        if (changed.test(PROP_INCREMENT_BY)) {
+            clauses.append("INCREMENT BY ").append(getIncrementBy()).append(" ");
         }
+        if (changed.test(PROP_MIN_VALUE)) {
+            clauses.append(getMinValue() == null ? "NOMINVALUE " : "MINVALUE " + getMinValue() + " ");
+        }
+        if (changed.test(PROP_MAX_VALUE)) {
+            clauses.append(getMaxValue() == null ? "NOMAXVALUE " : "MAXVALUE " + getMaxValue() + " ");
+        }
+        if (changed.test(PROP_CYCLE)) {
+            appendCycle(clauses);
+        }
+        if (changed.test(PROP_CACHE_SIZE)) {
+            appendCache(clauses);
+        }
+        if (changed.test(PROP_ORDER)) {
+            appendOrder(clauses);
+        }
+        if (clauses.isEmpty()) {
+            return null;
+        }
+        return "ALTER SEQUENCE " + getFullyQualifiedName(DBPEvaluationContext.DDL) + " " + clauses.toString().trim();
+    }
 
+    private void appendCycle(@NotNull StringBuilder sb) {
+        sb.append(isCycle() ? "CYCLE " : "NOCYCLE ");
+    }
+
+    private void appendCache(@NotNull StringBuilder sb) {
         if (getCacheSize() > 0) {
             sb.append("CACHE ").append(getCacheSize()).append(" ");
         } else {
             sb.append("NOCACHE ");
         }
+    }
 
-        if (isOrder()) {
-            sb.append("ORDER ");
-        } else {
-            sb.append("NOORDER ");
-        }
-
-        return sb.toString();
+    private void appendOrder(@NotNull StringBuilder sb) {
+        sb.append(isOrder() ? "ORDER " : "NOORDER ");
     }
 
     @NotNull
     @Override
     public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) throws DBException {
         if (sourceText == null) {
-            sourceText = buildStatement(false);
+            sourceText = buildStatement();
         }
         return sourceText;
     }

@@ -23,14 +23,23 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.ext.mysql.model.MySQLTableBase;
+import com.seizia.chromite.ext.mysql.tasks.MySQLDatabaseExportInfo;
 import com.seizia.chromite.ext.mysql.tasks.MySQLExportSettings;
 import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteSettings;
 import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableBase;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreBackupAllSettings;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreBackupRestoreSettings;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSelection;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSettings;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
@@ -46,6 +55,7 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -54,6 +64,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * PostgreSQL·MySQL/MariaDB 백업·복원 대화상자(Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…)와
@@ -87,6 +100,12 @@ import java.util.List;
  *     (SQL*Plus 로그온, 암호는 가림)을 보인다.</li>
  *     <li>저장된 작업: Script 메뉴의 Save as Task…가 설정을 프로젝트의 작업으로 저장하고, Database Tasks 보기의 Edit…가
  *     {@link #openTask}로 다시 연다(그 뒤의 저장은 같은 작업을 고침).</li>
+ *     <li>고급 백업(SWT 백업 마법사의 개체 페이지와 설정): PostgreSQL은 백업 범위(이 데이터베이스 pg_dump / 전역 개체 pg_dumpall /
+ *     전체 클러스터 pg_dumpall)를 General에서 고르고, 개체 페이지에서 스키마·테이블(모델의 {@link PostgreDatabaseBackupSelection},
+ *     SWT와 같은 규칙), 클러스터의 데이터베이스, 역할·테이블스페이스를 고른다. MySQL은 테이블을 고른다. 모두 고르면 지금처럼
+ *     데이터베이스 전체다(인수 없음). 개체 목록은 대화상자를 열 때 읽고(PostgreSQL 테이블은 스키마를 고를 때), 읽지 못하면 전체 백업만 된다.</li>
+ *     <li>도구 계정과 추가 인수(Local Client 페이지): 암호는 처리기가 환경 변수(PGPASSWORD, MYSQL_PWD)로만 넘기고 작업에 저장하지 않는다.
+ *     추가 인수는 공백으로 나눠 명령줄 끝 쪽에 붙는다(모델이 따옴표를 풀지 않음). "첫 오류에서 멈춤" 인수는 이 칸과 따로 두고 뒤에 붙인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -97,15 +116,30 @@ import java.util.List;
  * - 2026-11-08 모델 부분을 {@link NativeBackupRestore}(model.admin)로 옮김: Chromite Agent 백업·복원 도구와 같은 실행 경로 (docs/chromite/ai-agent.md)
  * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus), 작업으로 저장·저장된 작업 편집, 클라이언트 폴더 더하기를 모델로 옮김
  *   (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 고급 백업·복원: PostgreSQL 스키마·테이블 고르기, pg_dumpall(전역 개체, 전체 클러스터), MySQL 테이블 고르기와 --compress,
+ *   도구 계정, 추가 인수 (docs/chromite/swing-backup-restore.md "고급 백업·복원")
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     private static final Log log = Log.getLog(NativeBackupRestoreDialog.class);
 
+    // The stop-at-the-first-error option is passed in the extra arguments, after the user's own
+    private static final String PSQL_STOP_ON_ERROR = "-v ON_ERROR_STOP=1"; //$NON-NLS-1$
+    private static final String PG_RESTORE_STOP_ON_ERROR = "--exit-on-error"; //$NON-NLS-1$
+
     private enum Kind {
         POSTGRES,
         MYSQL,
         ORACLE
+    }
+
+    /**
+     * What a PostgreSQL backup covers: this database (pg_dump), the global objects of the server or the whole cluster (pg_dumpall).
+     */
+    private enum PgScope {
+        DATABASE,
+        GLOBALS,
+        CLUSTER
     }
 
     private final Kind kind;
@@ -139,6 +173,28 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     private boolean fileNameEdited;
     private boolean settingFileName;
 
+    // Advanced backup: scope (PostgreSQL), objects, tool account, extra arguments
+    private final JComboBox<PgScope> scopeCombo = new JComboBox<>(PgScope.values());
+    private final CardLayout objectCards = new CardLayout();
+    private final JPanel objectPanel = new JPanel(objectCards);
+    private final CardLayout optionCards = new CardLayout();
+    private final JPanel optionPanel = new JPanel(optionCards);
+    private final JCheckBox showViewsCheck = new JCheckBox(BackupRestoreMessages.native_objects_show_views);
+    // PostgreSQL schemas to choose from (empty when they could not be read: then the whole database is backed up)
+    private final List<PostgreSchema> pgSchemas = new ArrayList<>();
+    private final Map<PostgreSchema, List<PostgreTableBase>> pgTables = new HashMap<>();
+    private final PostgreDatabaseBackupSelection pgSelection = new PostgreDatabaseBackupSelection();
+    @Nullable
+    private PostgreSchema pgCurrentSchema;
+    // MySQL tables and views of the database
+    private final List<MySQLTableBase> myTables = new ArrayList<>();
+    private final CheckList<PostgreSchema> schemaList = new CheckList<>(BackupRestoreMessages.native_objects_schemas, PostgreSchema::getName, null);
+    private final CheckList<DBSObject> tableList = new CheckList<>(BackupRestoreMessages.native_objects_tables, DBSObject::getName, showViewsCheck);
+    private final CheckList<PostgreDatabase> databaseList = new CheckList<>(BackupRestoreMessages.native_objects_databases, PostgreDatabase::getName, null);
+    private final JTextField toolUserField = new JTextField();
+    private final JPasswordField toolPasswordField = new JPasswordField();
+    private final JTextField extraArgsField = new JTextField();
+
     private NativeBackupRestoreDialog(
         @NotNull Component owner,
         @NotNull DBSObject database,
@@ -165,6 +221,18 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         JTextField databaseField = new JTextField(database.getName());
         databaseField.setEditable(false);
         general.addRow(script ? BackupRestoreMessages.native_script_target : BackupRestoreMessages.backup_database, databaseField);
+        if (kind == Kind.POSTGRES && !restore && !script) {
+            scopeCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    return super.getListCellRendererComponent(list, value instanceof PgScope scope
+                        ? scopeTitle(scope) : value, index, isSelected, cellHasFocus);
+                }
+            });
+            scopeCombo.addActionListener(e -> scopeChanged());
+            general.addRow(BackupRestoreMessages.native_pg_scope, scopeCombo);
+            general.addFull(FormPanel.note(BackupRestoreMessages.native_pg_scope_note));
+        }
         if (script) {
             general.addSection(BackupRestoreMessages.native_script_section_script);
             general.addRow(BackupRestoreMessages.native_script_file, withBrowse(inputFileField, true));
@@ -242,11 +310,34 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             addOption(options, "comments", BackupRestoreMessages.native_mysql_comments, false); //$NON-NLS-1$
             addOption(options, "removeDefiner", BackupRestoreMessages.native_mysql_remove_definer, false); //$NON-NLS-1$
             addOption(options, "hexBlob", BackupRestoreMessages.native_mysql_hex_blob, false); //$NON-NLS-1$
+            addOption(options, "compress", BackupRestoreMessages.native_mysql_compress, false); //$NON-NLS-1$
         } else {
             addOption(options, "disableFk", BackupRestoreMessages.native_mysql_disable_fk, false); //$NON-NLS-1$
             addOption(options, "verbose", BackupRestoreMessages.native_mysql_verbose, false); //$NON-NLS-1$
         }
         options.finish();
+        JComponent optionsPage = options;
+        JComponent objectsPage = null;
+        if (!restore && !script) {
+            if (kind == Kind.POSTGRES) {
+                // pg_dumpall has options of its own: the page shows those of the chosen scope
+                FormPanel allOptions = new FormPanel();
+                allOptions.addSection(BackupRestoreMessages.native_section_options);
+                addOption(allOptions, "allSchemaOnly", BackupRestoreMessages.native_pg_all_schema_only, false); //$NON-NLS-1$
+                addOption(allOptions, "allNoOwner", BackupRestoreMessages.native_pg_all_no_owner, false); //$NON-NLS-1$
+                addOption(allOptions, "allNoPrivileges", BackupRestoreMessages.native_pg_no_privileges, false); //$NON-NLS-1$
+                // Off by default, as in DBeaver (--no-role-passwords): the backup file would hold the password hashes
+                addOption(allOptions, "allRolePasswords", BackupRestoreMessages.native_pg_all_role_passwords, false); //$NON-NLS-1$
+                allOptions.addFull(FormPanel.note(BackupRestoreMessages.native_pg_all_note));
+                allOptions.finish();
+                optionPanel.add(options, "dump"); //$NON-NLS-1$
+                optionPanel.add(allOptions, "all"); //$NON-NLS-1$
+                optionsPage = optionPanel;
+                objectsPage = createPostgresObjects();
+            } else if (kind == Kind.MYSQL) {
+                objectsPage = createMySQLObjects();
+            }
+        }
 
         // Local client and command line
         FormPanel client = new FormPanel();
@@ -268,6 +359,16 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         client.addRow(BackupRestoreMessages.native_client, clientPanel);
         client.addFull(clientStatus);
         client.addFull(FormPanel.note(NLS.bind(BackupRestoreMessages.native_client_note, getToolNames())));
+        if (kind != Kind.ORACLE) {
+            // SQL*Plus logs on with the connection's account through its standard input; the model handler has no tool account for it
+            client.addSection(BackupRestoreMessages.native_section_account);
+            client.addRow(BackupRestoreMessages.native_tool_user, toolUserField);
+            client.addRow(BackupRestoreMessages.native_tool_password, toolPasswordField);
+            client.addFull(FormPanel.note(NLS.bind(BackupRestoreMessages.native_tool_account_note,
+                kind == Kind.POSTGRES ? "PGPASSWORD" : "MYSQL_PWD"))); //$NON-NLS-1$ //$NON-NLS-2$
+            client.addRow(BackupRestoreMessages.native_extra_args, extraArgsField);
+            client.addFull(FormPanel.note(BackupRestoreMessages.native_extra_args_note));
+        }
         client.addSection(BackupRestoreMessages.native_section_command);
         commandArea.setEditable(false);
         commandArea.setLineWrap(true);
@@ -311,18 +412,244 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         inputFileField.getDocument().addDocumentListener(previewListener);
         compressionField.getDocument().addDocumentListener(previewListener);
         encodingField.getDocument().addDocumentListener(previewListener);
+        toolUserField.getDocument().addDocumentListener(previewListener);
+        // The password is never shown; it only decides whether pg_* gets --no-password
+        toolPasswordField.getDocument().addDocumentListener(previewListener);
+        extraArgsField.getDocument().addDocumentListener(previewListener);
         updateDefaultFileName();
         loadClients(container.getConnectionConfiguration().getClientHomeId());
+        if (objectsPage != null) {
+            loadObjects();
+        }
         if (savedSettings != null) {
             applySettings(savedSettings);
         }
+        if (kind == Kind.POSTGRES && !restore && !script) {
+            scopeChanged();
+        }
 
-        initDialog(List.of(
-            new Page(BackupRestoreMessages.task_page_general, general),
-            new Page(script ? BackupRestoreMessages.native_script_page_options
-                : restore ? BackupRestoreMessages.restore_page_options : BackupRestoreMessages.backup_page_options, options),
-            new Page(BackupRestoreMessages.native_page_client, client)));
+        List<Page> pages = new ArrayList<>();
+        pages.add(new Page(BackupRestoreMessages.task_page_general, general));
+        if (objectsPage != null) {
+            pages.add(new Page(BackupRestoreMessages.native_page_objects, objectsPage));
+        }
+        pages.add(new Page(script ? BackupRestoreMessages.native_script_page_options
+            : restore ? BackupRestoreMessages.restore_page_options : BackupRestoreMessages.backup_page_options, optionsPage));
+        pages.add(new Page(BackupRestoreMessages.native_page_client, client));
+        initDialog(pages);
         updatePreview();
+    }
+
+    //////////////////////////////////////////////////////////
+    // Objects page
+
+    /**
+     * PostgreSQL objects: one card per scope. This database: schemas, and the tables of the schema selected in the list
+     * (pg_dump -n / -t, as the SWT backup wizard). Global objects: roles and tablespaces. Whole cluster: its databases.
+     */
+    @NotNull
+    private JComponent createPostgresObjects() {
+        JPanel databaseCard = new JPanel(new BorderLayout(0, 8));
+        databaseCard.add(FormPanel.note(BackupRestoreMessages.native_objects_pg_note), BorderLayout.NORTH);
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, schemaList, tableList);
+        split.setResizeWeight(0.4);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        databaseCard.add(split, BorderLayout.CENTER);
+        schemaList.setOnChange(this::pgSchemasChecked);
+        schemaList.setOnSelect(this::showPgTables);
+        tableList.setOnChange(this::pgTablesChecked);
+        showViewsCheck.addActionListener(e -> showPgTables(pgCurrentSchema));
+
+        FormPanel globalsCard = new FormPanel();
+        globalsCard.addSection(BackupRestoreMessages.native_objects_globals);
+        addOption(globalsCard, "globalsRoles", BackupRestoreMessages.native_objects_roles, true); //$NON-NLS-1$
+        addOption(globalsCard, "globalsTablespaces", BackupRestoreMessages.native_objects_tablespaces, true); //$NON-NLS-1$
+        globalsCard.addFull(FormPanel.note(BackupRestoreMessages.native_objects_globals_note));
+        globalsCard.finish();
+
+        JPanel clusterCard = new JPanel(new BorderLayout(0, 8));
+        clusterCard.add(FormPanel.note(BackupRestoreMessages.native_objects_cluster_note), BorderLayout.NORTH);
+        clusterCard.add(databaseList, BorderLayout.CENTER);
+        databaseList.setOnChange(this::schedulePreview);
+
+        objectPanel.add(databaseCard, PgScope.DATABASE.name());
+        objectPanel.add(globalsCard, PgScope.GLOBALS.name());
+        objectPanel.add(clusterCard, PgScope.CLUSTER.name());
+        return objectPanel;
+    }
+
+    /**
+     * MySQL objects: the tables (and views) of the database. All checked backs up the whole database (with its routines);
+     * some backs up only those tables (mysqldump db table…, without routines), as the SWT export wizard.
+     */
+    @NotNull
+    private JComponent createMySQLObjects() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.add(FormPanel.note(BackupRestoreMessages.native_objects_mysql_note), BorderLayout.NORTH);
+        panel.add(tableList, BorderLayout.CENTER);
+        tableList.setOnChange(this::schedulePreview);
+        showViewsCheck.addActionListener(e -> showMySQLTables());
+        return panel;
+    }
+
+    /**
+     * Reads the objects to choose from when the dialog opens: the PostgreSQL schemas (their tables are read when a schema
+     * is selected) and databases, or the MySQL tables and views. Everything is checked: the whole database, as before.
+     * When they can't be read, the page says so and the whole database is backed up.
+     */
+    private void loadObjects() {
+        try {
+            if (database instanceof PostgreDatabase pg) {
+                pgSchemas.addAll(ProgressDialog.runTask(NLS.bind(BackupRestoreMessages.native_objects_loading, database.getName()), monitor -> {
+                    List<PostgreSchema> schemas = new ArrayList<>();
+                    for (PostgreSchema schema : pg.getSchemas(monitor)) {
+                        if (!schema.isSystem() && !schema.isUtility()) {
+                            schemas.add(schema);
+                        }
+                    }
+                    return schemas;
+                }));
+            } else if (database instanceof MySQLCatalog catalog) {
+                myTables.addAll(ProgressDialog.runTask(NLS.bind(BackupRestoreMessages.native_objects_loading, database.getName()), monitor -> {
+                    List<MySQLTableBase> tables = new ArrayList<>(catalog.getTables(monitor));
+                    tables.addAll(catalog.getViews(monitor));
+                    tables.sort(DBUtils.nameComparator());
+                    return tables;
+                }));
+            }
+        } catch (DBException e) {
+            log.debug("Can't read the objects of " + database.getName(), e);
+            JOptionPane.showMessageDialog(getOwner(), NLS.bind(BackupRestoreMessages.native_objects_error, ErrorText.describe(e)),
+                getTitle(), JOptionPane.WARNING_MESSAGE);
+        }
+        if (database instanceof PostgreDatabase pg) {
+            pgSelection.selectSchemas(pgSchemas, true);
+            schemaList.setItems(pgSchemas, pgSelection::isSchemaSelected);
+            databaseList.setItems(pg.getDataSource().getDatabases(), db -> true);
+            if (!pgSchemas.isEmpty()) {
+                schemaList.select(pgSchemas.get(0));
+            }
+        } else {
+            showMySQLTables();
+            tableList.setAllChecked(true);
+        }
+    }
+
+    /**
+     * Shows the tables (and views, if chosen) of the schema with their checks from the selection.
+     */
+    private void showPgTables(@Nullable PostgreSchema schema) {
+        pgCurrentSchema = schema;
+        if (schema == null) {
+            tableList.setItems(List.of(), t -> false);
+            return;
+        }
+        List<DBSObject> items = new ArrayList<>();
+        for (PostgreTableBase table : getPgTables(schema)) {
+            if (showViewsCheck.isSelected() || !table.isView()) {
+                items.add(table);
+            }
+        }
+        tableList.setItems(items, t -> pgSelection.isTableSelected(schema, (PostgreTableBase) t));
+    }
+
+    @NotNull
+    private List<PostgreTableBase> getPgTables(@NotNull PostgreSchema schema) {
+        List<PostgreTableBase> tables = pgTables.get(schema);
+        if (tables == null) {
+            try {
+                tables = ProgressDialog.runTask(NLS.bind(BackupRestoreMessages.native_objects_loading, schema.getName()), monitor -> {
+                    List<PostgreTableBase> list = new ArrayList<>(schema.getTables(monitor));
+                    list.addAll(schema.getViews(monitor));
+                    list.sort(DBUtils.nameComparator());
+                    return list;
+                });
+            } catch (DBException e) {
+                log.debug("Can't read the tables of " + schema.getName(), e);
+                ErrorDialog.show(this, getTitle(), NLS.bind(BackupRestoreMessages.native_objects_error, ErrorText.describe(e)), e);
+                tables = List.of();
+            }
+            pgTables.put(schema, tables);
+        }
+        return tables;
+    }
+
+    /**
+     * Schema checks changed: a checked schema that was not selected is selected whole, an unchecked one is dropped. A schema
+     * that stays checked keeps its table choice.
+     */
+    private void pgSchemasChecked() {
+        for (PostgreSchema schema : pgSchemas) {
+            boolean checked = schemaList.isChecked(schema);
+            if (checked != pgSelection.isSchemaSelected(schema)) {
+                pgSelection.selectSchema(schema, checked);
+            }
+        }
+        showPgTables(pgCurrentSchema);
+        schedulePreview();
+    }
+
+    /**
+     * Table checks of the current schema changed: all listed tables select the whole schema (as the SWT wizard), none drops it.
+     */
+    private void pgTablesChecked() {
+        if (pgCurrentSchema == null || tableList.isEmpty()) {
+            // A schema without tables is chosen with its own check
+            return;
+        }
+        List<DBSObject> checked = tableList.getChecked();
+        List<PostgreTableBase> tables = new ArrayList<>();
+        for (DBSObject object : checked) {
+            tables.add((PostgreTableBase) object);
+        }
+        pgSelection.selectTables(pgCurrentSchema, tables, tableList.isAllChecked());
+        schemaList.setChecked(pgCurrentSchema, pgSelection.isSchemaSelected(pgCurrentSchema));
+        schedulePreview();
+    }
+
+    /**
+     * Lists the MySQL tables (and views, if chosen). The checks stay; views that appear are checked when everything listed was.
+     */
+    private void showMySQLTables() {
+        boolean all = tableList.isAllChecked();
+        Set<DBSObject> checked = new HashSet<>(tableList.getChecked());
+        List<DBSObject> items = new ArrayList<>();
+        for (MySQLTableBase table : myTables) {
+            if (showViewsCheck.isSelected() || !table.isView()) {
+                items.add(table);
+            }
+        }
+        tableList.setItems(items, t -> checked.contains(t) || all && ((MySQLTableBase) t).isView());
+        schedulePreview();
+    }
+
+    @NotNull
+    private PgScope getScope() {
+        return kind == Kind.POSTGRES && !restore && !script ? (PgScope) Objects.requireNonNull(scopeCombo.getSelectedItem()) : PgScope.DATABASE;
+    }
+
+    @NotNull
+    private static String scopeTitle(@NotNull PgScope scope) {
+        return switch (scope) {
+            case DATABASE -> BackupRestoreMessages.native_pg_scope_database;
+            case GLOBALS -> BackupRestoreMessages.native_pg_scope_globals;
+            case CLUSTER -> BackupRestoreMessages.native_pg_scope_cluster;
+        };
+    }
+
+    /**
+     * pg_dumpall writes a plain SQL script: the format and compression of pg_dump don't apply to it.
+     */
+    private void scopeChanged() {
+        PgScope scope = getScope();
+        boolean dump = scope == PgScope.DATABASE;
+        formatCombo.setEnabled(dump);
+        compressionField.setEnabled(dump);
+        objectCards.show(objectPanel, scope.name());
+        optionCards.show(optionPanel, dump ? "dump" : "all"); //$NON-NLS-1$ //$NON-NLS-2$
+        setOptionEnabled("allSchemaOnly", scope == PgScope.CLUSTER); //$NON-NLS-1$
+        updateDefaultFileName();
+        schedulePreview();
     }
 
     /**
@@ -386,14 +713,32 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             setOption("inserts", pg.isUseInserts()); //$NON-NLS-1$
             setOption("clean", pg.isDropObjects()); //$NON-NLS-1$
             setOption("create", pg.isCreateDatabase()); //$NON-NLS-1$
+            applyPgSelection(pg);
+        } else if (settings instanceof PostgreBackupAllSettings pg) {
+            setOutputPatterns(pg.getOutputFolderPattern(), pg.getOutputFilePattern());
+            encodingField.setText(CommonUtils.notEmpty(pg.getEncoding()));
+            boolean globals = pg.isExportOnlyGlobals() || pg.isExportOnlyRoles() || pg.isExportOnlyTablespaces();
+            scopeCombo.setSelectedItem(globals ? PgScope.GLOBALS : PgScope.CLUSTER);
+            setOption("globalsRoles", !pg.isExportOnlyTablespaces()); //$NON-NLS-1$
+            setOption("globalsTablespaces", !pg.isExportOnlyRoles()); //$NON-NLS-1$
+            setOption("allSchemaOnly", pg.isExportOnlyMetadata()); //$NON-NLS-1$
+            setOption("allNoOwner", pg.isNoOwner()); //$NON-NLS-1$
+            setOption("allNoPrivileges", pg.isNoPrivileges()); //$NON-NLS-1$
+            setOption("allRolePasswords", pg.isAddRolesPasswords()); //$NON-NLS-1$
+            // No databases saved: all of them (pg_dumpall gets no --exclude-database)
+            Set<String> names = new HashSet<>();
+            for (PostgreDatabaseBackupAllInfo info : pg.getExportObjects()) {
+                for (PostgreDatabase db : CommonUtils.safeCollection(info.getDatabases())) {
+                    names.add(db.getName());
+                }
+            }
+            databaseList.setItems(databaseList.getItems(), db -> names.isEmpty() || names.contains(db.getName()));
         } else if (settings instanceof PostgreDatabaseRestoreSettings pg) {
             formatCombo.setSelectedItem(pg.getFormat());
             inputFileField.setText(CommonUtils.notEmpty(pg.getInputFile()));
             setOption("clean", pg.isCleanFirst()); //$NON-NLS-1$
             setOption("noOwner", pg.isNoOwner()); //$NON-NLS-1$
             setOption("create", pg.isCreateDatabase()); //$NON-NLS-1$
-            // The only extra arguments this dialog writes (see createSettings)
-            setOption("stopOnError", !CommonUtils.isEmptyTrimmed(pg.getExtraCommandArgs())); //$NON-NLS-1$
         } else if (settings instanceof MySQLExportSettings my) {
             methodCombo.setSelectedIndex(switch (my.getMethod()) {
                 case ONLINE -> 0;
@@ -411,15 +756,105 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             setOption("comments", my.isComments()); //$NON-NLS-1$
             setOption("removeDefiner", my.isRemoveDefiner()); //$NON-NLS-1$
             setOption("hexBlob", my.isBinariesInHex()); //$NON-NLS-1$
+            setOption("compress", my.isCompressed()); //$NON-NLS-1$
+            applyMySQLSelection(my);
         } else if (settings instanceof AbstractScriptExecuteSettings<?> scriptSettings) {
             inputFileField.setText(CommonUtils.notEmpty(scriptSettings.getInputFile()));
             if (scriptSettings instanceof MySQLScriptExecuteSettings my) {
                 setOption("disableFk", my.isForeignKeyCheckDisabled()); //$NON-NLS-1$
                 setOption("verbose", my.getLogLevel() == MySQLScriptExecuteSettings.LogLevel.Verbose); //$NON-NLS-1$
-            } else {
-                setOption("stopOnError", !CommonUtils.isEmptyTrimmed(scriptSettings.getExtraCommandArgs())); //$NON-NLS-1$
             }
         }
+        if (kind != Kind.ORACLE) {
+            toolUserField.setText(CommonUtils.notEmpty(settings.getToolUserName()));
+            // Only a task saved by an older version has a password (this dialog never saves one): kept for this run
+            toolPasswordField.setText(CommonUtils.notEmpty(settings.getToolUserPassword()));
+            extraArgsField.setText(takeStopOnError(settings.getExtraCommandArgs()));
+        }
+    }
+
+    /**
+     * The extra arguments of saved settings without the stop-at-the-first-error argument this dialog appends (its option is
+     * checked instead). Tasks saved before the extra arguments field had only that argument.
+     */
+    @NotNull
+    private String takeStopOnError(@Nullable String args) {
+        String text = CommonUtils.notEmpty(args).trim();
+        if (!optionChecks.containsKey("stopOnError")) { //$NON-NLS-1$
+            return text;
+        }
+        for (String stop : List.of(PSQL_STOP_ON_ERROR, PG_RESTORE_STOP_ON_ERROR)) {
+            if (text.equals(stop) || text.endsWith(" " + stop)) { //$NON-NLS-1$
+                setOption("stopOnError", true); //$NON-NLS-1$
+                return text.substring(0, text.length() - stop.length()).trim();
+            }
+        }
+        setOption("stopOnError", false); //$NON-NLS-1$
+        return text;
+    }
+
+    /**
+     * Checks the schemas and tables of saved PostgreSQL backup settings, matched by name, as the SWT wizard reads them:
+     * a part without tables is a whole schema; one with tables is those tables of its (single) schema.
+     */
+    private void applyPgSelection(@NotNull PostgreDatabaseBackupSettings settings) {
+        boolean partial = false;
+        for (PostgreDatabaseBackupInfo info : settings.getExportObjects()) {
+            partial |= !CommonUtils.isEmpty(info.getSchemas());
+        }
+        if (settings.isFullSchemaBackup() || !partial || pgSchemas.isEmpty()) {
+            return;
+        }
+        pgSelection.clear();
+        for (PostgreDatabaseBackupInfo info : settings.getExportObjects()) {
+            for (PostgreSchema saved : CommonUtils.safeCollection(info.getSchemas())) {
+                PostgreSchema schema = DBUtils.findObject(pgSchemas, saved.getName());
+                if (schema == null) {
+                    continue;
+                }
+                if (CommonUtils.isEmpty(info.getTables())) {
+                    pgSelection.selectSchema(schema, true);
+                    continue;
+                }
+                List<PostgreTableBase> tables = new ArrayList<>();
+                for (PostgreTableBase savedTable : info.getTables()) {
+                    PostgreTableBase table = DBUtils.findObject(getPgTables(schema), savedTable.getName());
+                    if (table != null) {
+                        tables.add(table);
+                        if (table.isView()) {
+                            showViewsCheck.setSelected(true);
+                        }
+                    }
+                }
+                pgSelection.selectTables(schema, tables, false);
+                // Only the first schema of a part with tables (see PostgreDatabaseBackupSelection)
+                break;
+            }
+        }
+        schemaList.setItems(pgSchemas, pgSelection::isSchemaSelected);
+        showPgTables(pgCurrentSchema);
+    }
+
+    /**
+     * Checks the tables of saved MySQL backup settings, matched by name; none saved is the whole database.
+     */
+    private void applyMySQLSelection(@NotNull MySQLExportSettings settings) {
+        Set<String> names = new HashSet<>();
+        for (MySQLDatabaseExportInfo info : settings.getExportObjects()) {
+            for (MySQLTableBase table : CommonUtils.safeCollection(info.getTables())) {
+                names.add(table.getName());
+            }
+        }
+        if (names.isEmpty()) {
+            return;
+        }
+        for (MySQLTableBase table : myTables) {
+            if (table.isView() && names.contains(table.getName())) {
+                showViewsCheck.setSelected(true);
+            }
+        }
+        showMySQLTables();
+        tableList.setItems(tableList.getItems(), t -> names.contains(t.getName()));
     }
 
     private void setOutputPatterns(@Nullable String folder, @Nullable String fileName) {
@@ -435,6 +870,13 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         JCheckBox check = optionChecks.get(id);
         if (check != null) {
             check.setSelected(selected);
+        }
+    }
+
+    private void setOptionEnabled(@NotNull String id, boolean enabled) {
+        JCheckBox check = optionChecks.get(id);
+        if (check != null) {
+            check.setEnabled(enabled);
         }
     }
 
@@ -457,7 +899,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     private boolean option(@NotNull String id) {
         JCheckBox check = optionChecks.get(id);
-        return check != null && check.isSelected();
+        return check != null && check.isSelected() && check.isEnabled();
     }
 
     @NotNull
@@ -478,6 +920,10 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     @NotNull
     private String getToolNames() {
+        if (kind == Kind.POSTGRES && !restore && !script) {
+            // The scope decides the tool; the client folder is the same
+            return "pg_dump, pg_dumpall"; //$NON-NLS-1$
+        }
         return script ? NativeBackupRestore.getScriptToolName(database) : NativeBackupRestore.getToolNames(kind == Kind.POSTGRES, restore);
     }
 
@@ -488,17 +934,24 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     }
 
     /**
-     * Default file name: as the SWT wizards, "dump-${database}-${timestamp}" with the format's extension.
+     * Default file name: as the SWT wizards, "dump-${database}-${timestamp}" with the format's extension. A pg_dumpall
+     * backup is of the server, not of a database: "globals-${host}-…" or "cluster-${host}-…", a plain SQL script.
      */
     private void updateDefaultFileName() {
         if (restore || script || fileNameEdited) {
             return;
         }
-        String extension = kind == Kind.MYSQL ? "sql" //$NON-NLS-1$
+        PgScope scope = getScope();
+        String extension = kind == Kind.MYSQL || scope != PgScope.DATABASE ? "sql" //$NON-NLS-1$
             : ((PostgreBackupRestoreSettings.ExportFormat) Objects.requireNonNull(formatCombo.getSelectedItem())).getExt();
+        String name = switch (scope) {
+            case DATABASE -> "dump-${database}-${timestamp}"; //$NON-NLS-1$
+            case GLOBALS -> "globals-${host}-${timestamp}"; //$NON-NLS-1$
+            case CLUSTER -> "cluster-${host}-${timestamp}"; //$NON-NLS-1$
+        };
         settingFileName = true;
         try {
-            fileNameField.setText("dump-${database}-${timestamp}" + (extension.isEmpty() ? "" : "." + extension)); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            fileNameField.setText(name + (extension.isEmpty() ? "" : "." + extension)); //$NON-NLS-1$ //$NON-NLS-2$
         } finally {
             settingFileName = false;
         }
@@ -562,6 +1015,8 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         DBPProject project = container.getProject();
         DBPNativeClientLocation client = getSelectedClient();
         AbstractNativeToolSettings<?> settings;
+        // Appended to the user's extra arguments
+        String stopOnErrorArgs = null;
         if (script) {
             AbstractScriptExecuteSettings<?> scriptSettings = NativeBackupRestore.createScriptSettings(database);
             scriptSettings.setInputFile(inputFileField.getText().trim());
@@ -570,9 +1025,11 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
                 my.setLogLevel(option("verbose") ? MySQLScriptExecuteSettings.LogLevel.Verbose : MySQLScriptExecuteSettings.LogLevel.Normal); //$NON-NLS-1$
             } else if (option("stopOnError")) { //$NON-NLS-1$
                 // psql runs the script to the end and exits with 0 whatever failed; with ON_ERROR_STOP it stops and exits with 3
-                scriptSettings.setExtraCommandArgs("-v ON_ERROR_STOP=1"); //$NON-NLS-1$
+                stopOnErrorArgs = PSQL_STOP_ON_ERROR;
             }
             settings = scriptSettings;
+        } else if (kind == Kind.POSTGRES && !restore && getScope() != PgScope.DATABASE) {
+            settings = createBackupAllSettings(project);
         } else if (kind == Kind.POSTGRES && !restore) {
             PostgreDatabaseBackupSettings pg = new PostgreDatabaseBackupSettings(project);
             pg.loadSettingsFromInput(List.of(database), Map.of());
@@ -586,6 +1043,15 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             pg.setUseInserts(option("inserts")); //$NON-NLS-1$
             pg.setDropObjects(option("clean")); //$NON-NLS-1$
             pg.setCreateDatabase(option("create")); //$NON-NLS-1$
+            pg.setShowViews(showViewsCheck.isSelected());
+            // Everything chosen (or the schemas could not be read): the whole database with no -n/-t, as before; also
+            // database-level objects such as extensions, which -n for every schema would leave out
+            boolean complete = pgSchemas.isEmpty() || pgSelection.isCompleteBackup(pgSchemas);
+            pg.setFullSchemaBackup(complete);
+            if (!complete) {
+                pg.getExportObjects().clear();
+                pg.getExportObjects().addAll(pgSelection.getExportObjects((PostgreDatabase) database, false));
+            }
             settings = pg;
         } else if (kind == Kind.POSTGRES) {
             PostgreDatabaseRestoreSettings pg = new PostgreDatabaseRestoreSettings(project);
@@ -599,8 +1065,8 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             if (option("stopOnError")) { //$NON-NLS-1$
                 // psql runs a plain script to the end and exits with 0 whatever failed; with ON_ERROR_STOP it stops and
                 // exits with 3. pg_restore goes on after errors too (exit code 1 at the end) unless --exit-on-error.
-                pg.setExtraCommandArgs(pg.getFormat() == PostgreBackupRestoreSettings.ExportFormat.PLAIN
-                    ? "-v ON_ERROR_STOP=1" : "--exit-on-error"); //$NON-NLS-1$ //$NON-NLS-2$
+                stopOnErrorArgs = pg.getFormat() == PostgreBackupRestoreSettings.ExportFormat.PLAIN
+                    ? PSQL_STOP_ON_ERROR : PG_RESTORE_STOP_ON_ERROR;
             }
             settings = pg;
         } else if (!restore) {
@@ -623,6 +1089,17 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             my.setComments(option("comments")); //$NON-NLS-1$
             my.setRemoveDefiner(option("removeDefiner")); //$NON-NLS-1$
             my.setBinariesInHex(option("hexBlob")); //$NON-NLS-1$
+            my.setCompressed(option("compress")); //$NON-NLS-1$
+            my.setShowViews(showViewsCheck.isSelected());
+            if (!tableList.isAllChecked()) {
+                // Some tables: mysqldump db table… (the handler leaves out the routines then, as the SWT wizard)
+                List<MySQLTableBase> tables = new ArrayList<>();
+                for (DBSObject table : tableList.getChecked()) {
+                    tables.add((MySQLTableBase) table);
+                }
+                my.getExportObjects().clear();
+                my.getExportObjects().add(new MySQLDatabaseExportInfo((MySQLCatalog) database, tables));
+            }
             settings = my;
         } else {
             MySQLScriptExecuteSettings my = new MySQLScriptExecuteSettings(project);
@@ -637,7 +1114,75 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             settings.setDataSourceContainer(container);
         }
         settings.setClientHome(client);
+        if (kind != Kind.ORACLE) {
+            String toolUser = toolUserField.getText().trim();
+            settings.setToolUserName(toolUser.isEmpty() ? null : toolUser);
+            char[] password = toolPasswordField.getPassword();
+            // The handler passes it in PGPASSWORD / MYSQL_PWD only (never on the command line); saveTask leaves it out
+            settings.setToolUserPassword(password.length == 0 ? null : new String(password));
+            Arrays.fill(password, '\0');
+            // One space between the arguments: the model splits them at each space
+            String extra = String.join(" ", extraArgsField.getText().trim().split("\\s+")).trim(); //$NON-NLS-1$ //$NON-NLS-2$
+            if (stopOnErrorArgs != null) {
+                extra = extra.isEmpty() ? stopOnErrorArgs : extra + " " + stopOnErrorArgs; //$NON-NLS-1$
+            }
+            settings.setExtraCommandArgs(extra.isEmpty() ? null : extra);
+        }
         return settings;
+    }
+
+    /**
+     * pg_dumpall settings: the global objects (roles, tablespaces, or both) or the whole cluster, all databases or the
+     * chosen ones (the handler turns the others into --exclude-database).
+     */
+    @NotNull
+    private PostgreBackupAllSettings createBackupAllSettings(@NotNull DBPProject project) {
+        PostgreDatabase pgDatabase = (PostgreDatabase) database;
+        PgScope scope = getScope();
+        PostgreBackupAllSettings settings = new PostgreBackupAllSettings(project);
+        // The database the dialog was opened on is the saved task's object; pg_dumpall itself backs up the server
+        settings.getDatabaseObjects().add(pgDatabase);
+        // An empty list: all databases (no --exclude-database)
+        List<PostgreDatabase> databases = new ArrayList<>();
+        if (scope == PgScope.CLUSTER && !databaseList.isAllChecked()) {
+            databases.addAll(databaseList.getChecked());
+        }
+        settings.getExportObjects().add(new PostgreDatabaseBackupAllInfo(pgDatabase.getDataSource(), databases));
+        settings.setOutputFolderPattern(folderField.getText().trim());
+        settings.setOutputFilePattern(fileNameField.getText().trim());
+        settings.setEncoding(encodingField.getText().trim());
+        boolean globals = scope == PgScope.GLOBALS;
+        boolean roles = option("globalsRoles"); //$NON-NLS-1$
+        boolean tablespaces = option("globalsTablespaces"); //$NON-NLS-1$
+        settings.setExportOnlyGlobals(globals && roles && tablespaces);
+        settings.setExportOnlyRoles(globals && roles && !tablespaces);
+        settings.setExportOnlyTablespaces(globals && tablespaces && !roles);
+        settings.setExportOnlyMetadata(option("allSchemaOnly")); //$NON-NLS-1$
+        settings.setNoOwner(option("allNoOwner")); //$NON-NLS-1$
+        settings.setNoPrivileges(option("allNoPrivileges")); //$NON-NLS-1$
+        settings.setAddRolesPasswords(option("allRolePasswords")); //$NON-NLS-1$
+        settings.setDataSourceContainer(container);
+        return settings;
+    }
+
+    /**
+     * Why the chosen objects can't be backed up, or null.
+     */
+    @Nullable
+    private String validateObjects() {
+        if (restore || script) {
+            return null;
+        }
+        if (kind == Kind.POSTGRES) {
+            return switch (getScope()) {
+                case DATABASE -> pgSchemas.isEmpty() || pgSelection.isCompleteBackup(pgSchemas)
+                    || !pgSelection.getExportObjects((PostgreDatabase) database, false).isEmpty() ? null : BackupRestoreMessages.native_objects_error_schemas;
+                case GLOBALS -> option("globalsRoles") || option("globalsTablespaces") ? null : BackupRestoreMessages.native_objects_error_globals; //$NON-NLS-1$ //$NON-NLS-2$
+                case CLUSTER -> !databaseList.isEmpty() && databaseList.getChecked().isEmpty() ? BackupRestoreMessages.native_objects_error_databases : null;
+            };
+        }
+        // No tables listed (none, or they could not be read): the whole database
+        return kind == Kind.MYSQL && !tableList.isEmpty() && tableList.getChecked().isEmpty() ? BackupRestoreMessages.native_objects_error_tables : null;
     }
 
     private void schedulePreview() {
@@ -649,6 +1194,12 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         if (client == null) {
             clientStatus.setText(NLS.bind(BackupRestoreMessages.native_client_missing, getToolNames()));
             commandArea.setText(""); //$NON-NLS-1$
+            return;
+        }
+        String objectsProblem = validateObjects();
+        if (objectsProblem != null) {
+            commandArea.setText(objectsProblem);
+            clientStatus.setText(NLS.bind(BackupRestoreMessages.native_client_found, client.getPath().getAbsolutePath()));
             return;
         }
         try {
@@ -689,6 +1240,10 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             }
         } else if (folderField.getText().trim().isEmpty() || fileNameField.getText().trim().isEmpty()) {
             return BackupRestoreMessages.native_error_no_output;
+        }
+        String objectsProblem = validateObjects();
+        if (objectsProblem != null) {
+            return objectsProblem;
         }
         DBPNativeClientLocation client = getSelectedClient();
         if (client == null) {
@@ -768,6 +1323,10 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     @NotNull
     @Override
     protected String getSuccessText() {
+        PgScope scope = getScope();
+        if (scope != PgScope.DATABASE) {
+            return scope == PgScope.GLOBALS ? BackupRestoreMessages.native_pg_globals_success : BackupRestoreMessages.native_pg_cluster_success;
+        }
         return NLS.bind(script ? BackupRestoreMessages.native_script_success
             : restore ? BackupRestoreMessages.restore_success : BackupRestoreMessages.backup_success, database.getName());
     }
@@ -819,6 +1378,196 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         }
         JOptionPane.showMessageDialog(this, NLS.bind(BackupRestoreMessages.native_task_saved, savedTask.getName()),
             BackupRestoreMessages.native_task_save_title, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * A titled list of objects with check boxes and All / None buttons (the check tables of the SWT backup wizards).
+     * {@link #setOnChange} runs after the user changed checks; {@link #setOnSelect} when the selected row changes.
+     * Changes made by the code ({@link #setItems}, {@link #setChecked}) run neither.
+     */
+    private static final class CheckList<T> extends JPanel {
+        private final Function<T, String> names;
+        private final List<T> items = new ArrayList<>();
+        private final Set<T> checked = new HashSet<>();
+        private final JTable table;
+        private final AbstractTableModel model = new AbstractTableModel() {
+            @Override
+            public int getRowCount() {
+                return items.size();
+            }
+
+            @Override
+            public int getColumnCount() {
+                return 2;
+            }
+
+            @Override
+            public Class<?> getColumnClass(int column) {
+                return column == 0 ? Boolean.class : String.class;
+            }
+
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0;
+            }
+
+            @Override
+            public Object getValueAt(int row, int column) {
+                T item = items.get(row);
+                return column == 0 ? checked.contains(item) : names.apply(item);
+            }
+
+            @Override
+            public void setValueAt(Object value, int row, int column) {
+                T item = items.get(row);
+                if (Boolean.TRUE.equals(value)) {
+                    checked.add(item);
+                } else {
+                    checked.remove(item);
+                }
+                fireTableCellUpdated(row, column);
+                onChange.run();
+            }
+        };
+        private Runnable onChange = () -> { };
+        private Consumer<T> onSelect = item -> { };
+        // Set while the code replaces the items: the selection events of that are not the user's
+        private boolean updating;
+
+        CheckList(@NotNull String title, @NotNull Function<T, String> names, @Nullable JComponent extra) {
+            super(new BorderLayout(0, 4));
+            this.names = names;
+            table = new JTable(model);
+            table.setTableHeader(null);
+            table.setShowGrid(false);
+            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.getColumnModel().getColumn(0).setMaxWidth(32);
+            table.getSelectionModel().addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting() && !updating) {
+                    onSelect.accept(getSelected());
+                }
+            });
+            JLabel label = new JLabel(title);
+            label.putClientProperty(com.formdev.flatlaf.FlatClientProperties.STYLE_CLASS, "semibold"); //$NON-NLS-1$
+            add(label, BorderLayout.NORTH);
+            add(new JScrollPane(table), BorderLayout.CENTER);
+            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+            JButton all = new JButton(BackupRestoreMessages.native_objects_all);
+            all.addActionListener(e -> {
+                setAllChecked(true);
+                onChange.run();
+            });
+            JButton none = new JButton(BackupRestoreMessages.native_objects_none);
+            none.addActionListener(e -> {
+                setAllChecked(false);
+                onChange.run();
+            });
+            buttons.add(all);
+            buttons.add(none);
+            JPanel south = new JPanel(new BorderLayout());
+            if (extra != null) {
+                south.add(extra, BorderLayout.WEST);
+            }
+            south.add(buttons, BorderLayout.EAST);
+            add(south, BorderLayout.SOUTH);
+        }
+
+        void setOnChange(@NotNull Runnable onChange) {
+            this.onChange = onChange;
+        }
+
+        void setOnSelect(@NotNull Consumer<T> onSelect) {
+            this.onSelect = onSelect;
+        }
+
+        void setItems(@NotNull List<? extends T> newItems, @NotNull Predicate<T> isChecked) {
+            List<T> copy = new ArrayList<>(newItems);
+            T selected = getSelected();
+            updating = true;
+            try {
+                items.clear();
+                items.addAll(copy);
+                checked.clear();
+                for (T item : items) {
+                    if (isChecked.test(item)) {
+                        checked.add(item);
+                    }
+                }
+                model.fireTableDataChanged();
+                // Keep the selected row (the list of tables follows the selected schema)
+                int row = selected == null ? -1 : items.indexOf(selected);
+                if (row >= 0) {
+                    table.getSelectionModel().setSelectionInterval(row, row);
+                }
+            } finally {
+                updating = false;
+            }
+        }
+
+        @NotNull
+        List<T> getItems() {
+            return new ArrayList<>(items);
+        }
+
+        void setChecked(@NotNull T item, boolean check) {
+            int row = items.indexOf(item);
+            if ((check ? checked.add(item) : checked.remove(item)) && row >= 0) {
+                model.fireTableRowsUpdated(row, row);
+            }
+        }
+
+        void setAllChecked(boolean check) {
+            checked.clear();
+            if (check) {
+                checked.addAll(items);
+            }
+            // Rows updated, not the data changed: that would clear the selection
+            if (!items.isEmpty()) {
+                model.fireTableRowsUpdated(0, items.size() - 1);
+            }
+        }
+
+        boolean isChecked(@NotNull T item) {
+            return checked.contains(item);
+        }
+
+        /**
+         * Every listed item is checked (also when the list is empty).
+         */
+        boolean isAllChecked() {
+            return checked.containsAll(items);
+        }
+
+        boolean isEmpty() {
+            return items.isEmpty();
+        }
+
+        /**
+         * The checked items in list order.
+         */
+        @NotNull
+        List<T> getChecked() {
+            List<T> result = new ArrayList<>();
+            for (T item : items) {
+                if (checked.contains(item)) {
+                    result.add(item);
+                }
+            }
+            return result;
+        }
+
+        void select(@NotNull T item) {
+            int row = items.indexOf(item);
+            if (row >= 0) {
+                table.getSelectionModel().setSelectionInterval(row, row);
+            }
+        }
+
+        @Nullable
+        private T getSelected() {
+            int row = table.getSelectedRow();
+            return row >= 0 && row < items.size() ? items.get(row) : null;
+        }
     }
 
     /**

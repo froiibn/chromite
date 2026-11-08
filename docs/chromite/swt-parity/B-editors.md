@@ -11,10 +11,10 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 34 | 17 | 6 | 16 | 2 | **75** |
-| 일부 | 7 | 7 | 5 | 6 | 5 | **30** |
+| 있음 | 34 | 17 | 7 | 17 | 2 | **77** |
+| 일부 | 7 | 7 | 5 | 5 | 5 | **29** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
-| 조용히 끊김 | 0 | 0 | 1 | 0 | 0 | **1** |
+| 조용히 끊김 | 0 | 0 | 0 | 0 | 0 | **0** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
 
@@ -46,6 +46,7 @@
    SWT 시절에 저장한 제한(연결·연결 종류의 `permissions`)은 파일에 남아 있지만 쿼리 창에서는 무시된다(데이터 편집 제한 `PERMISSION_EDIT_DATA`는 모델이 검사하므로 동작한다).
 8. **E12 `openEntityEditor`가 아무것도 하지 않는다.** `SwingPlatformUI.java:496-505`는 디버그 로그만 남긴다. 호출하는 곳: 데이터 전송 뒤 새 테이블 열기(`DatabaseTransferConsumer.java:815`). 영향은 작다.
    (2026-11-08 다시 확인: 남은 유일한 조용히 끊김. Swing 마법사는 그 옵션을 끄고 시작하지만 SWT에서 저장한 전송 작업은 여기에 닿는다. 표의 E12)
+   (2026-11-08 고침: 개체 탐색기에서 그 테이블을 보인다, `chromite/transfer-tasks`, [swing-database-tasks.md](../swing-database-tasks.md) "데이터 전송 작업")
 
 ## A. SQL 편집기 (`ui.editors.sql`, `ui.editors.sql.terminal`, 트랜잭션 도구는 `core`)
 
@@ -138,7 +139,7 @@
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
 | E1 | 속성 탭(보기) | `EntityEditor` 속성 페이지 | 있음(2026-11-08) | Properties 창과 Object Details 첫 탭인 속성 탭(`PropertiesPanel`, `ObjectDetailsPanel`), 자식이 없는 객체(시퀀스)도 F7로 열림. [swing-object-properties.md](../swing-object-properties.md) | 중간 | 조사 당시: 일부(`PropertiesPanel` Javadoc "읽기 전용이다"). 고치기는 E2 |
-| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). 2026-11-08 속성 편집: 객체 관리자가 있고 `updatable`인 속성을 Properties 창·Object Details 속성 탭에서 고침(`ObjectPropertyEdits`: 미리 보기(취소가 기본) → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림), PostgreSQL·SQL Server·Oracle·MariaDB에서 확인, [swing-object-properties.md](../swing-object-properties.md). 남은 것: 값을 모아 한 번에 저장하는 방식, 모델에 관리자·`updatable`이 없는 속성(MariaDB·SQL Server 시퀀스 등) |
+| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). 2026-11-08 속성 편집: 객체 관리자가 있고 `updatable`인 속성을 Properties 창·Object Details 속성 탭에서 고침(`ObjectPropertyEdits`: 미리 보기(취소가 기본) → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림), PostgreSQL·SQL Server·Oracle·MariaDB에서 확인, [swing-object-properties.md](../swing-object-properties.md). 남은 것: 값을 모아 한 번에 저장하는 방식, 모델에 관리자·`updatable`이 없는 속성(MariaDB·SQL Server 시퀀스 등). 2026-11-08 모델 수정: Oracle ALTER SEQUENCE는 바꾼 절만 적음(ORA-04007), PostgreSQL Partition by·파티션 식은 저장된 테이블에서 읽기 전용([model-fixes.md](../model-fixes.md) "모델 DDL 수정") |
 | E3 | DDL 탭 | `SQLSourceViewer` | 있음 | `DdlViewerPanel`, Script as CREATE(`ObjectScripts`) | 중간 | |
 | E4 | 소스 편집(뷰·프로시저·함수·트리거·패키지) | 소스 탭 + Ctrl+S | 있음 | `SourceEditCommands`, `SourceScripts`(swing-source-editor.md) | 높음 | Modify → 쿼리 창 실행으로 흐름을 바꿈 |
 | E5 | 데이터 탭 | `DatabaseDataEditor` | 있음 | Select Top 1000 Rows(쿼리 창, 편집 가능) | 중간 | |
@@ -148,7 +149,7 @@
 | E9 | 개체 만들기 대화상자(열·제약·FK·인덱스·시퀀스·프로시저 이름, 사전) | `EditObjectDialog`, `Edit*Page`, `CreateSequencePage`, `EditDictionaryPage` | 일부 | `DesignerDialogs`(PostgreSQL·SQL Server·MySQL/MariaDB·Oracle), New View/Procedure/Function 틀, 2026-11-08 폴더의 New Sequence… 등 틀과 이름·데이터베이스 대화상자([swing-create-objects.md](../swing-create-objects.md)) | 중간 | 사전(가상 모델 설명 열) 없음: Swing에 쓰는 곳이 없음. 조사 당시: 시퀀스·사전 없음 |
 | E10 | 저장 흐름과 스크립트 미리 보기 | `EntityEditor` 저장 확인 | 있음 | `ScriptPreviewDialog`(Execute / Open in Query Window / Copy) | 높음 | 디자이너·보안 창에서 |
 | E11 | 개체 삭제·이름 바꾸기(스크립트 미리 보기, 연쇄 옵션) | `DBEObjectMaker.deleteObject`, `DBEObjectRenamer` | **있음** (2026-11-07, #119: Object Explorer의 Delete·Rename(F2)이 객체 관리자가 있는 DB 객체에서 켜짐, 연쇄 삭제·기존 연결 닫기 옵션, 늘 스크립트 미리 보기(`ExplorerObjectCommands.java`:318-420, :530), C-10·C-11, [swing-explorer-object-actions.md](../swing-explorer-object-actions.md)). 조사 당시: 없음 | Delete는 연결·로그인·사용자·역할만(swing-security.md), Rename은 연결만 | 중간 | DROP은 쿼리로 직접. 영역 A(탐색기)와 겹칠 수 있음 |
-| E12 | `openEntityEditor` 호출 | `DesktopUI.openEntityEditor` | **조용히 끊김** | 위 요약 8 | 낮음 | 2026-11-08 다시 확인: 그대로(`SwingPlatformUI.java`:585-595, 디버그 로그만). Swing 가져오기·복사 마법사는 "끝나면 테이블 열기"를 끄고 시작하지만(`DataImportWizard.java`:196, `DatabaseCopyPages.java`:251), SWT에서 저장한 데이터 전송 작업은 기본값이 켜짐이라 여기에 닿는다 |
+| E12 | `openEntityEditor` 호출 | `DesktopUI.openEntityEditor` | 수정함(2026-11-08, `chromite/transfer-tasks`) | 위 요약 8 | 낮음 | `SwingPlatformUI.openEntityEditor`가 개체 탐색기에서 그 객체를 보임(Swing에는 객체 편집기가 없음). SWT에서 저장한 복사 작업("끝나면 테이블 열기" 켜짐)을 Database Tasks에서 실행하면 새 테이블이 개체 탐색기에서 골라짐을 확인. 그 작업은 데이터 전송 마법사로도 열림([swing-database-tasks.md](../swing-database-tasks.md) "데이터 전송 작업"). 조사 당시: 조용히 끊김(디버그 로그만) |
 
 ## D. 연결 편집기 (`ui.editors.connection`)
 
@@ -168,7 +169,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C10 | 연결 직후 SQL(bootstrap) | `EditBootstrapQueriesDialog` | 있음 | `BootstrapQueriesDialog` | 중간 | |
 | C11 | 초기화 설정(자동 커밋, 기본 DB/스키마, keep-alive, 유휴 연결 닫기, 격리 수준) | `ConnectionPageInitialization` | **있음** (2026-11-07, 연결 대화상자의 기본 격리 수준(`ConnectionSettingsPanel.java`:187, 882, 1236), [swing-options.md](../swing-options.md)). 조사 당시: 일부 | `ConnectionSettingsPanel` Options; 격리 수준 grep 0건 | 중간 | 조사 당시: 격리 수준만 없음 |
 | C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 있음 (2026-11-08). 조사 당시: 없음 | Options의 Shell Commands 탭(`ConnectionShellCommandsPage`, [swing-conn-advanced.md](../swing-conn-advanced.md) "셸 명령") | 낮음 | 실행 전 승인(#99)은 그대로. 편집한 명령도 처음 실행할 때 묻는다 |
-| C13 | 연결 보안 제한(권한 편집), 연결 잠금 | `EditConnectionPermissionsDialog` | **일부** (2026-11-07, 연결 유형마다 제한 확인란(데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기), Options &gt; Connection Types(`ConnectionTypesPage.java`:109, 209)). 연결마다 제한 편집과 연결 잠금은 없음. 조사 당시: 없음 | grep `setModifyPermission` 0건 | 중간 | 조사 당시: 편집 화면이 없고 S8처럼 일부 제한은 무시됨(S8은 2026-11-07 고침) |
+| C13 | 연결 보안 제한(권한 편집), 연결 잠금 | `EditConnectionPermissionsDialog` | **있음** (2026-11-08, 연결 대화상자 Connection Properties의 "제한"(`ConnectionRestrictionsDialog`, 연결 유형을 따르거나 이 연결만 정함)과 잠긴 연결의 잠금 비밀번호 확인(`ConnectionDialog.checkLockPassword`), [swing-conn-advanced.md](../swing-conn-advanced.md) "연결별 제한과 연결 잠금". 연결 유형의 제한은 2026-11-07 Options &gt; Connection Types). 조사 당시: 없음 | grep `setModifyPermission` 0건 | 중간 | 조사 당시: 편집 화면이 없고 S8처럼 일부 제한은 무시됨(S8은 2026-11-07 고침). 잠금 비밀번호를 정하는 화면은 SWT(CE)에도 없었다(`data-sources.json`의 `lockPassword`를 읽고 확인만 함) |
 | C14 | 연결 종류 편집기(새 종류, 자동 커밋·실행 확인·데이터 변경 확인·스마트 커밋·자동 닫기 기간·색) | `PrefPageConnectionTypes` | **있음** (2026-11-07, Options &gt; Connection Types(`ConnectionTypesPage.java`:84-108, `OptionsDialog.java`:132): 새 종류·삭제, 이름·설명·색, 자동 커밋, 실행 확인, 데이터 변경 확인, 유휴 트랜잭션·연결. 스마트 커밋·되돌리기는 2026-11-08, [swing-options.md](../swing-options.md)). 조사 당시: 없음 | `ConnectionSettingsPanel.java:632`는 종류 목록만 고름 | 중간 | 조사 당시: 기본 3종류의 값을 바꿀 수 없음 |
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 일부 (2026-11-08 스마트 커밋·되돌리기는 Options > Connection Types, [connection-lifecycle.md](../connection-lifecycle.md). 유휴 트랜잭션은 연결 대화상자, [idle-transactions.md](../idle-transactions.md)). 조사 당시: 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
 | C16 | 클라이언트 식별(애플리케이션 이름 끄기·바꾸기, 환경 변수 쓰기) | `PrefPageConnectionClient` | **있음** (2026-11-08, Options &gt; Client Identification과 연결별 값(`ClientIdentificationOptionsPage.java`:88-89), [swing-options.md](../swing-options.md)). 조사 당시: 없음 | Swing grep `META_CLIENT_NAME` 0건, 모델 키 `ModelPreferences.java:216-218` | 낮음 | 이름은 늘 `GeneralUtils.getProductTitle()`(swing-followup-fixes.md "Oracle 프로그램 이름") |
@@ -216,3 +217,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 - 2026-11-08 S41 → 있음(`chromite/sql-from-results`, 결과 표 "SQL 생성"). 요약 수: SQL 편집기 있음 33 → 34, 일부 8 → 7(합계 있음 75, 일부 30).
 - 2026-11-08 5순위 값 편집기 나머지(`chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)): R14 근거·남은 것 갱신(일부 그대로, 영향 중간 → 낮음).
   요약 수 변화 없음.
+- 2026-11-08 모델 DDL 수정과 연결 제한(`chromite/model-ddl-fixes`): C13 일부 → 있음(연결별 제한 편집, 잠긴 연결의 잠금 비밀번호 확인), E2 비고(Oracle 시퀀스, PostgreSQL Partition by).
+  요약 수: 연결 편집기 있음 16 → 17, 일부 6 → 5(합계 있음 76, 일부 29).
+- 2026-11-08 E12 조용히 끊김 → 수정함(`chromite/transfer-tasks`, `openEntityEditor`가 개체 탐색기에서 보임), 요약 8에 고친 것 표시.
+  요약 수: 개체 편집기 있음 6 → 7, 조용히 끊김 1 → 0(합계 있음 77, 조용히 끊김 0).

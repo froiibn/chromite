@@ -41,6 +41,12 @@ import java.util.Map;
 
 /**
  * Postgre table manager
+ *
+ * 설계: 저장된 테이블의 속성 변경은 PostgreSQL에 ALTER 문이 있는 속성만 다룬다(OIDS, 행 수준 보안, 테이블스페이스).
+ *
+ * 변경 이력:
+ * - 2026-11-08 ALTER TABLE … PARTITION BY를 지움: PostgreSQL에 없는 문장이고 Partition by는 이제 저장된 테이블에서 고칠 수 없음
+ *   (docs/chromite/model-fixes.md "PostgreSQL Partition by")
  */
 public class PostgreTableManager extends PostgreTableManagerBase implements DBEObjectRenamer<PostgreTableBase> {
 
@@ -177,9 +183,6 @@ public class PostgreTableManager extends PostgreTableManagerBase implements DBEO
         final String alterPrefix = "ALTER " + table.getTableTypeName() + " " + //$NON-NLS-1$
             command.getObject().getFullyQualifiedName(DBPEvaluationContext.DDL) + " ";
 
-        if (command.hasProperty("partitionKey")) {//$NON-NLS-1$
-            actionList.add(new SQLDatabasePersistAction(alterPrefix + "PARTITION BY " + table.getPartitionKey()));//$NON-NLS-1$
-        }
         if (command.hasProperty("hasOids") && table.getDataSource().getServerType().supportsHasOidsColumn()) {//$NON-NLS-1$
             actionList.add(new SQLDatabasePersistAction(alterPrefix + (table.isHasOids() ? "SET WITH OIDS" : "SET WITHOUT OIDS")));//$NON-NLS-1$ //$NON-NLS-2$
         }

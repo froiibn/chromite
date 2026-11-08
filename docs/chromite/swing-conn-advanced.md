@@ -27,8 +27,9 @@ SWT 연결 편집기(`com.seizia.chromite.ui.editors.connection`, `ext.*.ui`의 
 | `SslHandlerPanel` (새로) | PostgreSQL·MySQL/MariaDB·SQL Server·ClickHouse SSL 칸, Databend·TiDB Lake SSL 안내 | `SSLConfiguratorTrustStoreUI`, `PostgreSSLConfigurator`, `MySQLSSLConfigurator`, `SQLServerSSLConfigurator`, `ClickhouseSSLConfigurator`, `DatabendSSLConfigurator`, `TiDBLakeSSLConfigurator` |
 | `ConnectionColors` (새로) | 연결 색(연결에 정한 색, 없으면 연결 종류 색) | `UIUtils.getConnectionColor`, `getConnectionTypeColor`, `getConnectionColorByRGB` |
 | `BootstrapQueriesDialog` (새로) | 연결 직후 SQL 목록 편집 | `EditBootstrapQueriesDialog` |
-| `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함, 연결 설명 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
-| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명만 바꾸면 다시 연결을 묻지 않음 | `ConnectionWizard.testConnection` |
+| `ConnectionRestrictionsDialog` (새로, 2026-11-08) | 연결별 제한(연결 유형을 따름 / 이 연결만 정함) | `EditConnectionPermissionsDialog` |
+| `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함, 연결 설명, 연결별 제한 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
+| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명·제한만 바꾸면 다시 연결을 묻지 않음, 잠긴 연결의 잠금 비밀번호 확인 | `ConnectionWizard.testConnection`, `EditConnectionWizard.checkLockPassword` |
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
 | `ObjectExplorerPanel` (변경) | 연결 노드 이름의 알약 = 연결 색(`ConnectionPill`, 2026-11-06 노드 바탕에서 바꿈) | `DatabaseNavigatorLabelProvider`의 연결 색 |
 
@@ -297,6 +298,30 @@ Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 �
 - **Bootstrap queries**: Edit… (N) 단추 → `BootstrapQueriesDialog`(목록, Add/Edit/Remove, Ignore SQL errors) → `bootstrap.initQueries`, `bootstrap.ignoreErrors`.
   모델이 연결 직후 이 SQL을 실행한다(`AbstractExecutionContext`의 bootstrap 처리).
 
+### 연결별 제한과 연결 잠금 (2026-11-08)
+
+SWT 감사 B-C13. SWT `ConnectionPageGeneral`의 Security 묶음(읽기 전용, Edit permissions)과 `EditConnectionWizard`의 잠금 비밀번호 확인을 옮겼다.
+모델은 이미 모두 있었다: 연결의 제한 목록(`DataSourceDescriptor.setModifyPermissions`, `data-sources.json`의 `security.permission-restrictions`),
+판단(`hasModifyPermission`: 읽기 전용이면 데이터·구조 편집을 막고, 연결의 목록이 비어 있으면 연결 유형의 제한), 잠금 비밀번호 해시(`lockPassword`).
+
+- **읽기 전용 연결**: 전부터 있던 확인란(Connection Properties). 바꾸면 다시 연결을 묻는다(JDBC 연결에 읽기 전용을 정하므로).
+- **제한**(읽기 전용 아래): 단추 글이 지금 적용되는 쪽과 수를 보인다. "Same as the connection type (N)" / "연결 유형과 같음(N)",
+  "This connection only (N)" / "이 연결만(N)". 도구 설명에 적용되는 제한 목록. 누르면 `ConnectionRestrictionsDialog`:
+  - "Use the restrictions of the connection type '…'"(연결 유형의 제한을 흐린 확인란으로 보임) 또는 "Set the restrictions of this connection"
+    (데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기 제한 확인란. 처음 고르면 연결 유형의 제한에서 시작).
+  - 모델에서 빈 목록은 "연결 유형을 따름"이라 "이 연결만"에서 아무것도 고르지 않으면 같은 뜻이다. 그때 "With no restriction checked, the connection type's
+    restrictions apply." 줄을 보인다. SWT 대화상자는 확인란만 있어 이 차이가 보이지 않았다.
+  - 값은 Save에서 저장한다(`ConnectionSettingsPanel.saveConnectionProperties` → `setModifyPermissions`). 명령마다 그때 제한을 읽으므로(쿼리 창 실행
+    `SqlExecutionSafety.checkExecutePermission`, 결과 편집, 개체 명령, 가져오기) 제한만 바꾸면 다시 연결을 묻지 않는다(`ConnectionDialog.save`가 비교에서 뺌).
+- **데이터 변경 확인**: 연결 유형의 "데이터 변경 확인"(Options &gt; Connection Types, 결과 저장 전 미리 보기 `ResultSetGrid`)은 2026-11-07부터 있다. 모델에 연결 단위 값이 없어
+  연결 대화상자에는 두지 않았다.
+- **잠긴 연결**: 연결에 `lockPassword`(다른 DBeaver 기반 제품이 쓰는 값, 비밀번호 UTF-8의 MD5 소문자 16진수)가 있으면 Save에서 로그인(사용자 이름·비밀번호) 말고 다른 값이
+  바뀌었을 때 "Locked Connection" / "잠긴 연결"이 잠금 비밀번호를 묻는다(SWT `EditConnectionWizard.checkLockPassword`·`isOnlyUserCredentialChanged`와 같은 규칙).
+  - 맞으면 저장한다. 틀리면 "Wrong lock password. The changes were not saved." 뒤 대화상자가 바뀐 값을 가진 채 열려 있다. 취소도 저장하지 않는다.
+  - 잠금 비밀번호를 정하거나 지우는 화면은 없다. SWT(CE)에도 없었다(값을 읽고 확인만 함). 해시 형식(소금 없는 MD5)이 약해 Chromite에서 새로 만드는 기능으로 넓히지 않았다.
+  - 잠금은 연결 대화상자의 저장만 막는다(SWT와 같음). 이름 바꾸기·지우기·폴더 옮기기는 막지 않는다.
+- 트랜잭션: 이 기능은 세션을 닫거나 커밋 방식을 바꾸지 않는다. 읽기 전용 등으로 다시 연결할 때는 기존 다시 연결 경로가 열린 트랜잭션을 먼저 묻는다.
+
 ## 5. Test Connection
 
 - 임시 연결에 폼 전체(인증 추가 칸, 드라이버별 칸, 핸들러)를 쓰므로 SSH 터널·SSL·프록시를 거쳐 연결해 본다.
@@ -350,6 +375,8 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
   Server name이 `https://…` 같은 URL이면 첫 `:`를 포트 구분으로 보지 않음(BigQuery 기본 호스트, 끝의 `:숫자`만 포트).
   2026-11-08: 연결 설명은 Connection Properties 탭(SWT는 General 페이지), SSL 칸을 핸들러 ID로 고름(SWT는 구현 클래스, Databend·TiDB Lake가 겹침),
   PostgreSQL 프록시 서비스는 저장값이 켜져 있을 때만 보임, Snowflake·Spanner 빈 값은 속성을 지움(1절).
+  2026-11-08: 연결별 제한은 "연결 유형을 따름"과 "이 연결만"을 고르게 함(SWT는 확인란만), 제한만 바꾸면 다시 연결을 묻지 않음(SWT는 물음),
+  잠금 비밀번호가 틀리면 그 이유를 알림(SWT와 같음).
 
 ## 확인
 
@@ -414,8 +441,35 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
   새 BigQuery 연결의 저장값: 호스트 `https://www.googleapis.com/bigquery/v2`, 포트 443, URL `jdbc:bigquery://https://www.googleapis.com/bigquery/v2:443;…`.
 - 확인하지 못한 것: 실제 SSH 점프 서버·프로필을 거친 연결(시험 SSH 서버 없음), 승인 기록 Always Allow 뒤 묻지 않는지(#99에서 확인함), 한국어 화면.
 
+### 확인 (2026-11-08, 연결 제한)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 앱 하나를 작업 공간 사본·별도 데이터 폴더(`CHROMITE_DATA`)로 한국어, 다시 `-nl en`으로 열고, 같은 프로세스에 붙인 시험
+드라이버가 Registered Servers의 속성… → 연결 편집 대화상자를 조작했다(OS 입력 없음). 잠금 시험을 위해 사본의 SQL Server 연결에만 `lockPassword`(시험 비밀번호의 MD5)를 넣었다.
+화면 `D:\Tools\_scratch\chromite-model-ddl-fixes\shots\`.
+
+| 확인 | 결과 |
+|---|---|
+| PostgreSQL 연결 편집 → 옵션 >> → 연결 속성 | 읽기 전용 연결 아래 "제한" 줄, 단추 "연결 유형과 같음(0)", 도구 설명에 제한 설명 |
+| 단추 → "연결 제한" | "연결 유형 '개발'의 제한 사용" 선택, 확인란 4개 흐림(유형 제한 없음), 확인이 기본 |
+| "이 연결의 제한을 직접 정함" | 확인란이 켜지고 "아무것도 선택하지 않으면 연결 유형의 제한이 적용됩니다." 줄. 스크립트 실행 제한 선택 → 줄이 사라짐 |
+| 확인 → 저장 | 단추 "이 연결만(1)", 도구 설명에 "• 스크립트 실행 제한". `data-sources.json` `security.permission-restrictions` = `["edit.execute"]` |
+| 그 연결의 새 쿼리 창에서 `select 1` 실행 | "쿼리를 실행할 수 없음": 연결 "PostgreSQL 테스트" 또는 그 연결 유형의 설정(스크립트 실행 제한)으로 쿼리 실행이 제한되어 있습니다. |
+| 제한에 데이터 편집 제한을 더해 저장 | `["edit.data","edit.execute"]`, 다시 연결 질문 없음 |
+| "연결 유형의 제한 사용"으로 저장 | 그 연결의 `security` 항목이 없어짐 |
+| 잠긴 SQL Server 연결, 바꾸지 않고 저장(처음 한 번) | "잠긴 연결" 질문(사본을 손으로 만들어 처음 저장에 `auth-model` 등이 더해져 "바뀜"이 됨). 잠금 비밀번호 칸에 포커스, 확인이 기본 |
+| 틀린 비밀번호 | "잠금 비밀번호가 틀립니다. 변경 내용을 저장하지 않았습니다.", 연결 편집 대화상자는 열린 채 |
+| 맞는 비밀번호 | 저장, `lockPassword` 그대로. 다시 열어 그대로 저장 → 질문 없음 |
+| 로그인만 `sa` → `sa2`, 다시 `sa` | 두 번 모두 잠금 질문 없이 저장(SWT `isOnlyUserCredentialChanged`와 같음) |
+| 읽기 전용 연결을 켜고 저장 → 취소 | 저장하지 않음(`read-only` 없음), 대화상자 열린 채 |
+| 영어(`-nl en`) | "Restrictions", "Same as the connection type (0)", "Connection Restrictions", "Use the restrictions of the connection type 'Development'", "This connection only (1)", "With no restriction checked, the connection type's restrictions apply.", "Locked Connection", "Wrong lock password. The changes were not saved.". 읽기 전용 + 맞는 비밀번호 → `"read-only": true` |
+
+- 확인하지 못한 것: 연결 중인 연결에서 제한만 바꿀 때 다시 연결을 묻지 않는 경로는 끊긴 연결로만 확인했다(비교 코드는 같음). 데이터 편집·구조 편집·가져오기 제한이 각 화면을 막는 것은
+  기존 기능이라 다시 확인하지 않았다.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 연결 편집 대화상자의 저장과 다시 연결 질문, 연결 설정 파일의 `security` 항목.
+
 ## 남긴 것
 
+- 잠금 비밀번호를 정하거나 지우는 화면(SWT CE에도 없음, 소금 없는 MD5 형식).
 - HTTP 프록시(모델에 구현 없음). 2026-11-08 점프 서버 목록 편집, 네트워크 프로필 편집·고르기, 셸 명령 편집, 비밀번호 바꾸기를 더함.
 - 셸 명령 출력을 보는 프로세스 보기(SWT `ShellProcessView`, A-C11)와 승인 기록 관리 화면은 없다.
 - 인증서 내용 붙여 넣기(분산 제품용 `.value` 속성).
@@ -426,6 +480,8 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 
 ## 변경 이력
 
+- 2026-11-08 연결별 제한과 연결 잠금(`chromite/model-ddl-fixes`, SWT 감사 B-C13): Connection Properties의 "제한"(`ConnectionRestrictionsDialog`),
+  잠긴 연결의 잠금 비밀번호 확인, 제한만 바꾸면 다시 연결을 묻지 않음. "연결별 제한과 연결 잠금", "확인 (2026-11-08, 연결 제한)" 절.
 - 2026-11-08 연결 도구(`chromite/p4-connection-tools`): 셸 명령 탭, SSH 점프 서버 편집, 네트워크 프로필 편집·고르기, 비밀번호 바꾸기 메뉴,
   Server name의 URL 호스트(BigQuery) 나누기 고침. "확인 (2026-11-08, 연결 도구)" 절.
 - 2026-11-08 Oracle 세션 설정(NLS) 탭, 드라이버별 Options 탭 고리(`ConnectionDriverFields#getOptionsPage`).

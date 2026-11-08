@@ -37,7 +37,12 @@ import com.seizia.chromite.model.task.DBTTaskFolderEvent;
 import com.seizia.chromite.model.task.DBTTaskListener;
 import com.seizia.chromite.model.task.DBTTaskManager;
 import com.seizia.chromite.model.task.DBTTaskRun;
+import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.sql.SQLScriptExecuteSettings;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferProducer;
+import com.seizia.chromite.tools.transfer.task.DTSavedTasks;
 import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -71,8 +76,13 @@ import java.util.Set;
  *     처리기가 도구를 시작하기 전에 실제 명령줄을 셸 명령 승인 대화상자(Cancel이 기본)로 묻는다(저장된 설정이므로,
  *     docs/chromite/shell-command-approval.md). 그 밖의 형식은 이 창이 먼저 실행할지 묻는다(Cancel이 기본).
  *     연결에 로컬 클라이언트가 정해져 있지 않으면 실행하지 않는다: 처리기가 내려받는 클라이언트를 고를 수 있다.</li>
- *     <li>편집: 백업·복원·스크립트 실행 작업은 같은 대화상자로 연다({@link NativeBackupRestoreDialog#openTask}). 다른 형식(예전 SWT에서
- *     저장한 데이터 전송 등)은 아직 편집 화면이 없어 실행·삭제만 된다.</li>
+ *     <li>편집: 백업·복원·스크립트 실행 작업은 같은 대화상자로 연다({@link NativeBackupRestoreDialog#openTask}). 데이터 전송 작업(내보내기,
+ *     가져오기, 테이블 복사; Swing이나 SWT에서 저장한 것)은 모델이 설정을 읽은 뒤(원본·대상을 찾으므로 연결함) 원본·대상 노드에 맞는 마법사를
+ *     그 설정으로 연다: 파일 원본이면 가져오기, 아니면 내보내기·복사({@link DataImportWizard#openForTask}, {@link DataExportWizard#openForTask}).
+ *     SQL 스크립트 작업은 {@link SqlScriptTaskDialog}로 연다. 그 밖의 형식은 편집 화면이 없어 실행·삭제만 된다.</li>
+ *     <li>새 SQL 스크립트 작업: 여러 스크립트 파일을 연결에서 차례로 실행하는 작업은 저장할 다른 화면이 없으므로 이 창에서 만든다.</li>
+ *     <li>네이티브 도구가 아닌 작업의 실행 확인에는 그 작업이 하는 일 중 되돌릴 수 없는 것을 적는다: 데이터 전송이 대상 테이블을 비우거나
+ *     다시 만드는지, SQL 스크립트 작업이 어떤 스크립트를 어느 연결에서 돌리는지(저장된 JSON에서 읽음, 연결하지 않음).</li>
  *     <li>삭제는 확인한다(Delete / Cancel, Cancel이 기본).</li>
  *     <li>작업 관리자의 변경 알림({@link DBTTaskListener})으로 다른 곳에서 저장한 작업도 바로 보인다. 알림은 아무 스레드에서나 오므로
  *     EDT에서 다시 읽는다.</li>
@@ -80,6 +90,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 데이터 전송·SQL 스크립트 작업 편집, 새 SQL 스크립트 작업, 실행 확인의 작업 내용, 그 작업들의 연결 열
+ *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
  */
 final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
 
@@ -99,11 +111,14 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
     private final Action showLogAction;
     private final Action deleteAction;
     private final Action refreshAction;
+    private final Action newScriptAction;
     @Nullable
     private DBTTaskManager listenedManager;
 
     DatabaseTasksPanel() {
         super(new BorderLayout());
+        newScriptAction = createAction(DatabaseTasksMessages.tasks_new_script, DatabaseTasksMessages.tasks_new_script_tip,
+            () -> SqlScriptTaskDialog.openNew(this));
         runAction = createAction(DatabaseTasksMessages.tasks_run, DatabaseTasksMessages.tasks_run_tip, this::runSelected);
         editAction = createAction(DatabaseTasksMessages.tasks_edit, DatabaseTasksMessages.tasks_edit_tip, this::editSelected);
         showLogAction = createAction(DatabaseTasksMessages.tasks_show_log, DatabaseTasksMessages.tasks_show_log_tip, this::showLog);
@@ -117,6 +132,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         toolBar.add(UiIcons.createActionButton(editAction, "properties")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(showLogAction, "history")); //$NON-NLS-1$
         toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(newScriptAction, "new-query")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         add(toolBar, BorderLayout.NORTH);
 
@@ -255,7 +271,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         DBTTask task = getSelectedTask();
         boolean selected = task != null;
         runAction.setEnabled(selected && !running.contains(task.getId()));
-        editAction.setEnabled(selected && NativeBackupRestore.isEditableTaskType(task.getType()));
+        editAction.setEnabled(selected && isEditable(task));
         editAction.putValue(Action.SHORT_DESCRIPTION, !selected || editAction.isEnabled() ? DatabaseTasksMessages.tasks_edit_tip
             : NLS.bind(DatabaseTasksMessages.tasks_edit_unsupported, task.getType().getName()));
         showLogAction.setEnabled(selected && task.getLastRun() != null);
@@ -279,8 +295,23 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
             menu.add(deleteAction);
             menu.addSeparator();
         }
+        menu.add(newScriptAction);
         menu.add(refreshAction);
         menu.show(table, e.getX(), e.getY());
+    }
+
+    private static boolean isEditable(@NotNull DBTTask task) {
+        return NativeBackupRestore.isEditableTaskType(task.getType()) || DTSavedTasks.isTransferTask(task.getType())
+            || DTSavedTasks.isScriptTask(task.getType());
+    }
+
+    /**
+     * The connection of a task for the list, from its saved settings (no connecting).
+     */
+    @Nullable
+    private static DBPDataSourceContainer getTaskConnection(@NotNull DBTTask task) {
+        return NativeBackupRestore.isNativeToolTask(task.getType()) ? NativeBackupRestore.getTaskConnection(task)
+            : DTSavedTasks.findTaskConnection(task);
     }
 
     //////////////////////////////////////////////////////////
@@ -304,10 +335,14 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
                     task.getName(), JOptionPane.WARNING_MESSAGE);
                 return;
             }
-        } else if (!SwingPlatformUI.confirmChange(this,
-            NLS.bind(DatabaseTasksMessages.tasks_run_confirm, task.getName(), task.getType().getName()),
-            DatabaseTasksMessages.tasks_run_confirm_title, DatabaseTasksMessages.tasks_run, JOptionPane.QUESTION_MESSAGE)) {
-            return;
+        } else {
+            String details = describeRun(task);
+            String question = NLS.bind(DatabaseTasksMessages.tasks_run_confirm, task.getName(), task.getType().getName());
+            if (!SwingPlatformUI.confirmChange(this, details == null ? question : question + "\n\n" + details, //$NON-NLS-1$
+                DatabaseTasksMessages.tasks_run_confirm_title, DatabaseTasksMessages.tasks_run,
+                details == null ? JOptionPane.QUESTION_MESSAGE : JOptionPane.WARNING_MESSAGE)) {
+                return;
+            }
         }
         Job job;
         try {
@@ -382,11 +417,73 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         return ErrorText.clean(message);
     }
 
+    /**
+     * What the run of a saved transfer or script task does that can't be undone, from its saved settings (no connecting),
+     * or null: a transfer that empties or recreates destination tables, the scripts of a script task and where they run.
+     */
+    @Nullable
+    private static String describeRun(@NotNull DBTTask task) {
+        if (DTSavedTasks.isTransferTask(task.getType())) {
+            DTSavedTasks.TargetChanges changes = DTSavedTasks.getTargetChanges(task);
+            List<String> lines = new ArrayList<>();
+            if (changes.truncate()) {
+                lines.add(DatabaseTasksMessages.tasks_run_confirm_truncate);
+            }
+            if (!changes.recreated().isEmpty()) {
+                lines.add(NLS.bind(DatabaseTasksMessages.tasks_run_confirm_recreate, String.join(", ", changes.recreated()))); //$NON-NLS-1$
+            }
+            return lines.isEmpty() ? null : String.join("\n", lines); //$NON-NLS-1$
+        }
+        if (DTSavedTasks.isScriptTask(task.getType())) {
+            try {
+                SQLScriptExecuteSettings settings = DTSavedTasks.loadScriptTask(task);
+                List<String> connections = new ArrayList<>();
+                settings.getDataSources().forEach(connection -> connections.add(connection.getName()));
+                return NLS.bind(DatabaseTasksMessages.tasks_run_confirm_scripts,
+                    String.join("\n", settings.getScriptFiles()), String.join(", ", connections)); //$NON-NLS-1$ //$NON-NLS-2$
+            } catch (DBException e) {
+                log.debug("Can't read the script task settings", e);
+            }
+        }
+        return null;
+    }
+
     private void editSelected() {
         DBTTask task = getSelectedTask();
-        if (task != null && NativeBackupRestore.isEditableTaskType(task.getType())) {
+        if (task == null) {
+            return;
+        }
+        if (NativeBackupRestore.isEditableTaskType(task.getType())) {
             NativeBackupRestoreDialog.openTask(this, task);
-            reload();
+        } else if (DTSavedTasks.isTransferTask(task.getType())) {
+            editTransferTask(task);
+        } else if (DTSavedTasks.isScriptTask(task.getType())) {
+            SqlScriptTaskDialog.openTask(this, task);
+        }
+        reload();
+    }
+
+    /**
+     * Reads a saved transfer (this connects to its source and destination) and opens the wizard of its kind with it:
+     * Import Data for a file source, else Export Data or Copy Tables.
+     */
+    private void editTransferTask(@NotNull DBTTask task) {
+        DataTransferSettings settings;
+        try {
+            settings = ProgressDialog.runTask(NLS.bind(DatabaseTasksMessages.tasks_loading, task.getName()),
+                monitor -> DataTransferWizard.loadTaskSettings(monitor, task));
+        } catch (DBInterruptedException e) {
+            return;
+        } catch (DBException e) {
+            log.debug("Can't read the task settings", e);
+            ErrorDialog.show(this, task.getName(), ErrorText.describe(e), e);
+            return;
+        }
+        boolean fileSource = settings.getProducer() != null && settings.getProducer().getNodeClass() == StreamTransferProducer.class;
+        boolean opened = fileSource ? DataImportWizard.openForTask(this, task, settings) : DataExportWizard.openForTask(this, task, settings, null);
+        if (!opened) {
+            JOptionPane.showMessageDialog(this, NLS.bind(DatabaseTasksMessages.tasks_edit_transfer_unsupported, task.getName()),
+                task.getName(), JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -490,7 +587,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
                 case 1 -> describeResult(task, run);
                 case 2 -> run == null ? "" : formatTime(run); //$NON-NLS-1$
                 case 3 -> {
-                    DBPDataSourceContainer container = NativeBackupRestore.getTaskConnection(task);
+                    DBPDataSourceContainer container = getTaskConnection(task);
                     yield container == null ? "" : container.getName(); //$NON-NLS-1$
                 }
                 case 4 -> task.getType().getName();

@@ -24,8 +24,10 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.MonitorRunnableContext;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
@@ -34,6 +36,7 @@ import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.properties.PropertySourceCustom;
@@ -90,6 +93,10 @@ import java.util.Set;
  *     테이블 복사와 같은 {@link DatabaseCopyMappings#setTableTarget}으로 매핑(create)을 만들어 모델이 실행 때 테이블을 만든다(직접 DDL을 쓰지 않음).
  *     새 테이블의 열 단계에서는 열 이름·형식을 고치고(형식 목록은 {@link DatabaseCopyMappings#getTargetTypes}) 대상 DDL을 미리 본다.
  *     이름을 비워 두면 SWT {@code StreamProducerPageSettings.generateTableName}처럼 파일 이름에서 만든다.</li>
+ *     <li>저장된 작업 편집({@link #openForTask}): 모델이 작업에서 읽은 설정으로 파일·형식·형식 설정·넣기 설정을 칸에 채운다. 대상이 있는 테이블이면
+ *     테이블에서 연 것처럼, 아직 없는 새 테이블이면 데이터베이스에서 연 것처럼 첫 단계에 그 스키마와 이름을 넣는다. 열 매핑은 파일을 읽을 때마다
+ *     자동으로 다시 만들므로, 작업의 열 선택(건너뛰기, 대상 열, 새 열의 이름·형식)을 원본 열 이름으로 기억해 두었다가 그 위에 다시 적용한다.
+ *     파일 여러 개를 가져오는 SWT 작업은 이 마법사가 다루지 않는다(파일 하나만 받음).</li>
  * </ul>
  *
  * 변경 이력:
@@ -98,8 +105,12 @@ import java.util.Set;
  * - 2026-11-06 데이터베이스 노드에서 Import Data…: 대상 테이블 고르기, 새 테이블로 가져오기 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-08 TRUNCATE 확인은 잘라내기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 작업으로 저장(실행하지 않으므로 TRUNCATE를 묻지 않음), 저장된 가져오기 작업 편집({@link #openForTask})
+ *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 final class DataImportWizard extends DataTransferWizard {
+
+    private static final Log log = Log.getLog(DataImportWizard.class);
 
     private static final int PREVIEW_LINES = 20;
     private static final String PROP_ENCODING = "encoding"; //$NON-NLS-1$
@@ -152,6 +163,23 @@ final class DataImportWizard extends DataTransferWizard {
      * Was the last read mapped to a table that exists (existing columns), or to a new table (create)?
      */
     private boolean creating;
+    /**
+     * Opened for a database: the first page.
+     */
+    @Nullable
+    private DataImportTargetPage targetPage;
+    /**
+     * Opened for a saved task: its column choices by source column name (lower case), applied each time the file's
+     * columns are mapped; null otherwise.
+     */
+    @Nullable
+    private Map<String, ColumnPreset> columnPresets;
+
+    /**
+     * A saved task's choice for a source column: skipped, or the target column (and the type of a new column).
+     */
+    private record ColumnPreset(@NotNull DatabaseMappingType type, @Nullable String targetName, @Nullable String targetType) {
+    }
 
     // Source
     private final JTextField fileField = new JTextField(30);
@@ -197,7 +225,8 @@ final class DataImportWizard extends DataTransferWizard {
         setImporter(importers.getFirst());
         List<Page> pages = new ArrayList<>();
         if (targets != null) {
-            pages.add(new DataImportTargetPage(this, targets, this::setTarget));
+            targetPage = new DataImportTargetPage(this, targets, this::setTarget);
+            pages.add(targetPage);
         }
         pages.addAll(List.of(new SourcePage(), new MappingPage(), new LoadSettingsPage(), new SummaryPage()));
         initWizard(pages);
@@ -231,7 +260,7 @@ final class DataImportWizard extends DataTransferWizard {
         if (table == null) {
             DBSObjectContainer database = (DBSObjectContainer) object;
             try {
-                targets = ProgressDialog.runTask(ToolsMessages.import_title, monitor -> DataImportTargetPage.readTargets(monitor, database));
+                targets = ProgressDialog.runTask(ToolsMessages.import_title, monitor -> DataImportTargetPage.readTargets(monitor, database, null));
             } catch (DBInterruptedException e) {
                 return;
             } catch (DBException e) {
@@ -248,6 +277,153 @@ final class DataImportWizard extends DataTransferWizard {
             new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, targets, producerNode, importers).open();
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_start, e);
+        }
+    }
+
+    /**
+     * Opens the wizard for a saved import task (Database Tasks > Edit) with the settings read from it
+     * ({@link DataTransferWizard#loadTaskSettings}): the file, its format and format settings, the destination (an existing
+     * table, or a new table on the first page), the column choices and the load settings. Save updates the task; Finish
+     * runs it.
+     *
+     * @return false when the task is not an import of one file into a database this wizard shows
+     */
+    static boolean openForTask(@NotNull Component parent, @NotNull DBTTask task, @NotNull DataTransferSettings loaded) {
+        DataTransferRegistry registry = DataTransferRegistry.getInstance();
+        DataTransferNodeDescriptor producerNode = registry.getNodeByType(StreamTransferProducer.class);
+        DataTransferNodeDescriptor consumerNode = registry.getNodeByType(DatabaseTransferConsumer.class);
+        DataTransferProcessorDescriptor importer = loaded.getProcessor();
+        List<DataTransferPipe> pipes = loaded.getDataPipes();
+        if (producerNode == null || consumerNode == null || importer == null || pipes.size() != 1
+            || !(pipes.getFirst().getProducer() instanceof StreamTransferProducer producer) || producer.getEntityMapping() == null
+            || !(loaded.getNodeSettings(consumerNode) instanceof DatabaseConsumerSettings loadedConsumer)
+            || loadedConsumer.getContainer() == null) {
+            return false;
+        }
+        List<DataTransferProcessorDescriptor> importers = new ArrayList<>();
+        for (DataTransferProcessorDescriptor descriptor : producerNode.getProcessors()) {
+            importers.add(descriptor);
+        }
+        if (!importers.contains(importer)) {
+            return false;
+        }
+        DBSObjectContainer container = loadedConsumer.getContainer();
+        DatabaseMappingContainer loadedMapping = loadedConsumer.getDataMappings().values().stream().findFirst().orElse(null);
+        DBSDataManipulator table = loadedMapping == null ? null : loadedMapping.getTarget();
+        DataImportTargetPage.Targets targets = null;
+        if (table == null) {
+            // A new table (not created yet): the database page with the task's schema and table name
+            DBSObjectContainer database = DataTransferObjects.isDatabase(container) ? container
+                : container.getParentObject() instanceof DBSObjectContainer parentContainer && DataTransferObjects.isDatabase(parentContainer)
+                ? parentContainer : null;
+            if (database == null) {
+                return false;
+            }
+            try {
+                targets = ProgressDialog.runTask(ToolsMessages.import_title, monitor -> DataImportTargetPage.readTargets(monitor, database, container));
+            } catch (DBInterruptedException e) {
+                return true;
+            } catch (DBException e) {
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, NLS.bind(DbCopyMessages.error_read, database.getName()), e);
+                return true;
+            }
+        }
+        DataImportWizard wizard;
+        try {
+            wizard = new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, targets, producerNode, importers);
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_start, e);
+            return true;
+        }
+        wizard.fileField.setText(producer.getEntityMapping().getInputFile().toString());
+        wizard.importerCombo.setSelectedItem(importer);
+        if (wizard.importer != importer) {
+            wizard.setImporter(importer);
+        }
+        wizard.importerProperties = new PropertySourceCustom(importer.getProperties(),
+            DataTransferObjects.convertProcessorProperties(importer, loaded.getProcessorProperties()));
+        if (wizard.targetPage != null && loadedMapping != null) {
+            wizard.targetPage.presetNewTable(CommonUtils.notEmpty(loadedMapping.getTargetName()));
+        }
+        if (loadedMapping != null) {
+            wizard.columnPresets = readColumnPresets(loadedConsumer, loadedMapping);
+        }
+        wizard.truncateCheck.setSelected(loadedConsumer.isTruncateBeforeLoad());
+        wizard.newConnectionCheck.setSelected(loadedConsumer.isOpenNewConnections());
+        wizard.transactionsCheck.setSelected(loadedConsumer.isUseTransactions());
+        wizard.commitSpinner.setValue(Math.max(1, loadedConsumer.getCommitAfterRows()));
+        wizard.multiRowCheck.setSelected(loadedConsumer.isUseMultiRowInsert());
+        wizard.multiRowSpinner.setValue(Math.max(2, loadedConsumer.getMultiRowInsertBatch()));
+        wizard.disableBatchesCheck.setSelected(loadedConsumer.isDisableUsingBatches());
+        wizard.setSavedTask(task);
+        wizard.open();
+        return true;
+    }
+
+    /**
+     * The column choices of a saved task's mapping, by source column name (lower case).
+     */
+    @NotNull
+    private static Map<String, ColumnPreset> readColumnPresets(
+        @NotNull DatabaseConsumerSettings consumerSettings,
+        @NotNull DatabaseMappingContainer mapping
+    ) {
+        Map<String, ColumnPreset> presets = new HashMap<>();
+        // Read when the task was loaded (no metadata is read here)
+        for (DatabaseMappingAttribute attribute : mapping.getAttributeMappings(new VoidProgressMonitor())) {
+            DBSAttributeBase source = attribute.getSource();
+            if (source != null && attribute.getMappingType() != null) {
+                presets.put(source.getName().toLowerCase(Locale.ROOT), new ColumnPreset(attribute.getMappingType(), attribute.getTargetName(),
+                    attribute.getMappingType() == DatabaseMappingType.create
+                        ? attribute.getTargetType(consumerSettings.getTargetDataSource(attribute), true) : null));
+            }
+        }
+        return presets;
+    }
+
+    /**
+     * Applies a saved task's column choices to the columns just mapped (in the mapping job): skipped columns, the target
+     * column of an existing table, the name and type of a new table's column. Columns the task does not know keep the
+     * automatic mapping.
+     */
+    private void applyColumnPresets(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull List<DatabaseMappingAttribute> attributes,
+        @NotNull List<DBSEntityAttribute> columns,
+        boolean newTable
+    ) throws DBException {
+        Map<String, ColumnPreset> presets = columnPresets;
+        if (presets == null) {
+            return;
+        }
+        for (DatabaseMappingAttribute attribute : attributes) {
+            DBSAttributeBase source = attribute.getSource();
+            ColumnPreset preset = source == null ? null : presets.get(source.getName().toLowerCase(Locale.ROOT));
+            if (preset == null) {
+                continue;
+            }
+            if (preset.type() == DatabaseMappingType.skip) {
+                attribute.setTarget(null);
+                attribute.setMappingType(DatabaseMappingType.skip);
+            } else if (newTable) {
+                if (!CommonUtils.isEmpty(preset.targetName())) {
+                    DatabaseCopyMappings.setColumnTarget(monitor, consumerSettings, attribute, preset.targetName());
+                }
+                if (!CommonUtils.isEmpty(preset.targetType())) {
+                    attribute.setTargetType(preset.targetType());
+                }
+            } else if (!CommonUtils.isEmpty(preset.targetName())) {
+                for (DBSEntityAttribute column : columns) {
+                    String name = column.getDataSource() == null ? preset.targetName()
+                        : DBUtils.getUnQuotedIdentifier(column.getDataSource(), preset.targetName());
+                    if (column.getName().equalsIgnoreCase(name)) {
+                        attribute.setTarget(column);
+                        attribute.setTargetName(column.getName());
+                        attribute.setMappingType(DatabaseMappingType.existing);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -308,11 +484,11 @@ final class DataImportWizard extends DataTransferWizard {
 
     @Nullable
     @Override
-    protected DataTransferSettings prepareTransfer() {
+    protected DataTransferSettings prepareTransfer(boolean run) {
         if (mapping == null) {
             return null;
         }
-        if (truncateCheck.isSelected() && !SwingPlatformUI.confirmChange(this,
+        if (run && truncateCheck.isSelected() && !SwingPlatformUI.confirmChange(this,
             NLS.bind(ToolsMessages.import_confirm_truncate, getTableName()),
             getTitle(), ObjectMaintenanceMessages.objmaint_truncate_button, JOptionPane.WARNING_MESSAGE)) {
             return null;
@@ -388,6 +564,7 @@ final class DataImportWizard extends DataTransferWizard {
                         }
                     }
                 }
+                applyColumnPresets(monitor, attributes, columns, target == null);
                 consumerSettings.addDataMappings(new MonitorRunnableContext(monitor), entityMapping, newMapping);
                 return new LoadedMapping(producer, newMapping, attributes, columns);
             });

@@ -123,7 +123,9 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
   `datadam-api`는 `dbeaver-common`이 옆 폴더에 있다고 가정한다.
   - `deps/datadam-api/apis/pom.xml`의 부모 `relativePath`: `../../dbeaver-common`
   - `deps/datadam-api/apis/aggregate/pom.xml`의 모듈: `../../../dbeaver-common`
-- 그래서 가져온 파일을 하나도 고치지 않았고, 나중에 upstream 버전으로 갱신할 때 충돌이 생기지 않는다.
+- 그래서 가져온 파일은 고치지 않는다. 예외는 하나: 두 저장소의 `LICENSE.md` 212행 JSch 항목이 "LGPL"이라고 잘못 적혀 있어
+  2026-11-08 사용자 승인으로 저장소 루트 `LICENSE.md`와 같은 BSD 계열 표기로 고쳤다(번들한 JSch는 mwiede 포크, Revised BSD·ISC·Apache 2.0).
+  `NOTICE`에도 이 한 줄을 고쳤다고 적었다.
 
 ### `.mvn/` 폴더를 만들지 않은 이유
 
@@ -165,6 +167,7 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 갱신 전에 바뀌는 내용(특히 `root/pom.xml`의 Tycho·Eclipse 버전, P2 저장소 주소, 버전 번호)을 사용자에게 알린다.
 - `com.dbeaver.common.main` 버전이 바뀌면 Chromite `pom.xml`의 `<parent>` 버전도 같이 바꾼다.
 - 갱신한 뒤 이 문서의 커밋 ID 표와 `NOTICE`의 커밋 ID를 고치고, 변경 이력에 적는다.
+- 갱신하면 두 `LICENSE.md`의 JSch 줄이 upstream 표기로 돌아오므로, upstream이 고치지 않았으면 같은 수정을 다시 적용한다.
 
 ## 남은 위험과 미완료 항목
 
@@ -189,3 +192,4 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
   Snap(`snap-build`)과 그것만 쓰던 코드·메시지 키. `tools/build.*`의 프로파일을 `product-chromite-swt`만 남김. "빌드하는 제품" 절 추가.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 빌드 명령과 `tools/build.*`의 프로파일을 `product-chromite-swing`으로, "빌드하는 제품" 표에서 SWT 제품 삭제.
 - 2026-11-07 "버전" 절 추가: 제품 버전 체계 `major.minor.dev`(0.1.0), `tools/release/bump-version.ps1`([versioning.md](versioning.md)).
+- 2026-11-08 `deps/` 두 `LICENSE.md`의 JSch 항목을 LGPL에서 BSD 계열로 고침(사용자 승인). "deps/ 폴더에 둔 이유"와 갱신 방법에 예외와 재적용을 적음.

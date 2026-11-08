@@ -32,6 +32,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Runs the PostgreSQL client tools (pg_dump, pg_dumpall, pg_restore, psql). The password goes through PGPASSWORD only.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 도구 계정(tool user)에 암호가 없으면 연결의 암호를 PGPASSWORD로 넘기지 않고 {@code --no-password}를 붙임.
+ *   연결의 암호는 연결 사용자의 것이라 다른 계정에 넘기면 틀린 암호로 로그인하고, PGPASSWORD가 있으면 클라이언트가 pgpass 파일을
+ *   읽지 않는다. 표준 입력이 파이프라 암호를 물으면 도구가 멈추므로 묻지 않게 한다 (docs/chromite/swing-backup-restore.md "도구 계정")
+ */
 public abstract class PostgreNativeToolHandler<SETTINGS extends AbstractNativeToolSettings<BASE_OBJECT>, BASE_OBJECT extends DBSObject, PROCESS_ARG>
     extends AbstractNativeToolHandler<SETTINGS, BASE_OBJECT, PROCESS_ARG> {
 
@@ -42,7 +50,8 @@ public abstract class PostgreNativeToolHandler<SETTINGS extends AbstractNativeTo
     @Override
     protected void setupProcessParameters(DBRProgressMonitor monitor, SETTINGS settings, PROCESS_ARG arg, ProcessBuilder process) {
         String userPassword = settings.getToolUserPassword();
-        if (CommonUtils.isEmpty(userPassword)) {
+        if (CommonUtils.isEmpty(userPassword) && CommonUtils.isEmpty(settings.getToolUserName())) {
+            // The connection's password is for the connection's user only
             userPassword = getDataSourcePassword(monitor, settings);
         }
         if (!CommonUtils.isEmpty(userPassword)) {
@@ -74,6 +83,9 @@ public abstract class PostgreNativeToolHandler<SETTINGS extends AbstractNativeTo
         String toolUserName = settings.getToolUserName();
         if (CommonUtils.isEmpty(toolUserName)) {
             toolUserName = dataSourceContainer.getActualConnectionConfiguration().getUserName();
+        } else if (CommonUtils.isEmpty(settings.getToolUserPassword())) {
+            // No password for the tool account: the tool reads the pgpass file or fails, it must not wait for a password prompt
+            cmd.add("--no-password");
         }
         cmd.add("--username=" + toolUserName);
 

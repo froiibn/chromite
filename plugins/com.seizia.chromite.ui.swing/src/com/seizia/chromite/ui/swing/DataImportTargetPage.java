@@ -56,6 +56,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 데이터베이스 노드에서 Import Data… (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-08 저장된 가져오기 작업의 스키마와 새 테이블 이름을 미리 고름({@link #presetNewTable}, {@link #readTargets}의 schema)
+ *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 final class DataImportTargetPage implements DataTransferWizard.Page {
 
@@ -173,14 +175,20 @@ final class DataImportTargetPage implements DataTransferWizard.Page {
 
     /**
      * Reads the schemas of a database (or takes the database when it holds the tables), preselects the default schema
-     * and reads its tables. Runs in a job before the wizard opens.
+     * (or the given one) and reads its tables. Runs in a job before the wizard opens.
+     *
+     * @param schema the schema to preselect (a saved task's), or null for the connection's default schema
      */
     @NotNull
-    static Targets readTargets(@NotNull DBRProgressMonitor monitor, @NotNull DBSObjectContainer database) throws DBException {
+    static Targets readTargets(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSObjectContainer database,
+        @Nullable DBSObjectContainer schema
+    ) throws DBException {
         boolean tables = DatabaseCopyMappings.isTableContainer(monitor, database);
         List<DBSObjectContainer> containers = tables ? List.of(database) : DatabaseCopyMappings.readChildContainers(monitor, database);
-        DBSObjectContainer preferred = tables ? database : null;
-        if (!tables) {
+        DBSObjectContainer preferred = tables ? database : containers.contains(schema) ? schema : null;
+        if (preferred == null) {
             // The connection's default schema, or a schema of that name in another database (dbo, public), else the first one
             DBCExecutionContext context = DBUtils.getDefaultContext(database, true);
             DBCExecutionContextDefaults<?, ?> defaults = context == null ? null : context.getContextDefaults();
@@ -215,6 +223,15 @@ final class DataImportTargetPage implements DataTransferWizard.Page {
         }
         result.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         return result;
+    }
+
+    /**
+     * Chooses a new table with the name (a saved task whose table is not created yet).
+     */
+    void presetNewTable(@NotNull String name) {
+        newRadio.setSelected(true);
+        nameField.setText(name);
+        updateState();
     }
 
     /**

@@ -27,6 +27,8 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 데이터 전송 마법사의 작업으로 저장, 데이터 전송·SQL 스크립트 작업 편집, SQL 스크립트 작업 대화상자 문구
+ *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
  */
 public class DatabaseTasksMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages"; //$NON-NLS-1$
@@ -65,6 +67,43 @@ public class DatabaseTasksMessages extends NLS {
     public static String tasks_refresh_tip;
     public static String tasks_finished;
     public static String tasks_failed;
+    public static String tasks_run_confirm_truncate;
+    public static String tasks_run_confirm_recreate;
+    public static String tasks_run_confirm_scripts;
+    public static String tasks_loading;
+    public static String tasks_edit_transfer_unsupported;
+    public static String tasks_new_script;
+    public static String tasks_new_script_tip;
+    public static String tasks_save_as;
+    public static String tasks_save;
+    public static String tasks_save_tip;
+    public static String tasks_save_title;
+    public static String tasks_save_filter;
+    public static String tasks_name;
+    public static String tasks_saving;
+    public static String tasks_saved;
+    public static String tasks_wizard_title;
+    public static String script_title_new;
+    public static String script_title_edit;
+    public static String script_name;
+    public static String script_connections;
+    public static String script_add_connection;
+    public static String script_scripts;
+    public static String script_add_files;
+    public static String script_choose_title;
+    public static String script_files_filter;
+    public static String script_remove;
+    public static String script_up;
+    public static String script_down;
+    public static String script_stop_on_error;
+    public static String script_auto_commit;
+    public static String script_dump_results;
+    public static String script_note;
+    public static String script_save;
+    public static String script_error_name;
+    public static String script_error_connections;
+    public static String script_error_scripts;
+    public static String script_error_missing;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, DatabaseTasksMessages.class);
