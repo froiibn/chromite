@@ -55,6 +55,7 @@ import java.awt.event.WindowEvent;
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-08 받는 동안 제목 표시줄 단추가 업데이트 진행 창을 엶, 열린 창이 상태를 따라감 (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-08 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-09 모든 사용자 설치의 "받아서 확인함" 툴팁: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 final class UpdateUi {
 
@@ -180,8 +181,10 @@ final class UpdateUi {
         switch (state.phase()) {
             case DOWNLOADING -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 UpdateMessages.update_window_head_downloading, "foreground: $Component.linkColor"); //$NON-NLS-1$
+            // An installation for all users installs only with [Restart now] (administrator prompt), not at a close
             case READY -> showButton(NLS.bind(UpdateMessages.update_button_ready, version),
-                NLS.bind(UpdateMessages.update_button_ready_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
+                NLS.bind(service.isAllUsers() ? UpdateMessages.update_button_ready_tip_all_users : UpdateMessages.update_button_ready_tip,
+                    version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case AVAILABLE -> showButton(NLS.bind(UpdateMessages.update_button_available, version),
                 NLS.bind(UpdateMessages.update_button_available_tip, version), "foreground: $Component.linkColor"); //$NON-NLS-1$
             case FAILED -> {
