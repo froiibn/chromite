@@ -19,6 +19,8 @@
 
     <!-- Swing UI -->
     <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>
+    <!-- Startup splash (-showsplash in chromite-swing.product), installed as a folder: docs/chromite/branding.md -->
+    <plugin id="com.seizia.chromite.splash" version="0.0.0"/>
     <!-- Server administration model of the Swing tools: session filters/commands per database, SQL Server and MySQL lock managers -->
     <plugin id="com.seizia.chromite.model.admin" version="0.0.0"/>
     <!-- In-app updater model: update list, checks of release files, update helper (docs/chromite/auto-update.md) -->

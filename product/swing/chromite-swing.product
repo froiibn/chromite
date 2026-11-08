@@ -12,7 +12,10 @@
     </configIni>
 
     <launcherArgs>
-        <programArgs></programArgs>
+        <!-- Startup splash, shown by the native launcher before the JVM starts. A bundle id makes the launcher read
+             splash.png from plugins/com.seizia.chromite.splash_<version>/ wherever the current folder is
+             (docs/chromite/branding.md "시작 화면") -->
+        <programArgs>-showsplash com.seizia.chromite.splash</programArgs>
         <!-- Bundled runtime Contents/Eclipse/jre (tools/jre/BundleJre.java, docs/chromite/runtime.md).
              Windows needs no -vm: the launcher uses jre\ next to chromite-swing.exe before PATH. -->
         <programArgsMac>-vm ../Eclipse/jre/lib/libjli.dylib</programArgsMac>

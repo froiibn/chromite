@@ -177,8 +177,11 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 3. `workspace`: 데이터 폴더(`CHROMITE_DATA`)와 작업 공간을 임시 폴더에 만든다. 프로젝트 `General`에 SQLite 연결 하나(연결 유형 `smoke`: 수동 커밋, 실행 전 확인 없음)와
    #111 이전 형식의 `credentials-config.json`(고정 키 AES, 가짜 비밀번호)을 둔다. 첫 시작이 이 파일을 보안 저장소로 옮기므로 키체인 항목이 생긴다.
 4. `launch <이름>`: `open -n --env CHROMITE_DATA=… --stdout … --stderr … <앱> --args -data <작업 공간>`. 120초 안에 디버그 로그(`<작업 공간>/.metadata/chromite-debug.log`)에
-   `SSL trust store type`(`ChromiteSwingApplication.start`가 플랫폼을 만들기 전에 남김)이 나오고 앱 프로세스에 창이 생기기를 기다린다. 메인 창을 띄웠다는 로그 줄은 코드에 없어
-   창은 System Events(손쉬운 사용 API)로 센다. Gatekeeper의 첫 실행 질문이 보이면 스크린숏을 찍고 System Events로 "Open"을 한 번 누른다.
+   `Startup times`(`ChromiteSwingApplication.run`이 메인 창을 띄운 뒤 남김, 프로세스 시작부터 단계별 ms)가 나오고 앱 프로세스에 창이 생기기를 기다린다.
+   창은 System Events(손쉬운 사용 API)로 센다. 그 줄보다 먼저 보이는 창은 시작 화면이라 스크린숏(`*-splash.png`)과 창 목록을 남긴다.
+   메인 창이 뜬 뒤 시작 화면 크기(560×320 pt)의 창이 남아 있으면 실패, 시작 화면을 봤고 닫혔으면 PASS, 시간 줄은 NOTE로 남긴다([branding.md](branding.md) "시작 화면").
+   (2026-11-08 전에는 플랫폼을 만들기 전의 `SSL trust store type` 줄을 기다렸다. 시작 화면이 생긴 뒤로는 그 시점의 창이 메인 창이 아닐 수 있다.)
+   Gatekeeper의 첫 실행 질문이 보이면 스크린숏을 찍고 System Events로 "Open"을 한 번 누른다.
    창이 뜨지 않으면 프로세스·작업 공간·데이터 폴더·Equinox 로그·통합 로그(`*-diagnostics.txt`), 네이티브 스택(`sample`, `*-sample.txt`), JVM 스레드 덤프(SIGQUIT, `*-stdout.txt`)를 남긴다.
 5. `secure-storage`: `<데이터 폴더>/ChromiteData/secure/secure_storage`가 있고 평문 비밀번호가 없으며 값이 키체인 제공자(`MacOSSecureStorageKeychain`)로 암호화됐는지,
    예전 파일이 옮겨지고 지워졌는지(`credentials-storage.properties`의 `legacy.migrated.…`), 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목이 있는지
@@ -326,3 +329,4 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
   앱 시작은 런처가 JVM을 AppKit 메인 스레드에서 돌려 AWT와 교착해 실패함을 확인(제품 결함, 보고). "알려진 제약"의 macOS 실행 항목을 고침.
 - 2026-11-08 macOS 시작 수정([platform-startup.md](platform-startup.md))과 함께 `macos-smoke.sh`의 처음 실행된 단계를 고침(디버그 로그 교체, System Events 창 세기·AX 설명,
   트리 선택 키, 보안 저장소 확인). 서명 없는 빌드로 모든 단계 통과(실행 42407606192, "결과 (시작 수정 뒤)").
+- 2026-11-08 시작 화면(`chromite/startup-splash`, [branding.md](branding.md) "시작 화면"): `launch`가 메인 창 뒤의 `Startup times` 줄을 기다리고, 그 전에 보인 시작 화면을 찍고, 메인 창이 뜬 뒤 시작 화면이 닫혔는지 확인한다.

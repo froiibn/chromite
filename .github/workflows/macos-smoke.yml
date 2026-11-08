@@ -1,7 +1,8 @@
 # Chromite macOS install-and-run smoke test on a GitHub-hosted macos-15 (arm64) runner, which has a logged-in
 # GUI session. It checks what had only been checked by reading code: the signed, notarized disk image installs and
-# the app starts from a quarantined copy, Quit goes through the main window's closing path, saved passwords go to the
-# Keychain-protected secure storage, About and Preferences of the app menu. Every check is a subcommand of
+# the app starts from a quarantined copy, the startup splash shows and closes when the main window is up, Quit goes
+# through the main window's closing path, saved passwords go to the Keychain-protected secure storage, About and
+# Preferences of the app menu. Every check is a subcommand of
 # tools/release/macos-smoke.sh; logs and screenshots are uploaded as the artifact macos-smoke-<source>.
 # Design and results: docs/chromite/ci.md "macOS 설치·실행 시험".
 #

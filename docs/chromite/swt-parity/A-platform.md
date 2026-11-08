@@ -152,7 +152,7 @@
 | A-S12 | 도움말(위키 도움말, 가벼운 도움말 보기) | `help/GitHubWikiHelpUI`, `LightweightHelpView` | 없음 | Help 메뉴는 About뿐 | 낮음 | |
 | A-S13 | 파일 열기, 최근 파일 | `OpenLocalFileActionExt` | 있음 | File > Open File, Recent Files(`RecentFiles`) | - | |
 | A-S14 | 비상 종료, 창 최소화 명령 | `EmergentExitAction`, `MinimizeWindowHandler` | 없음 | | 낮음 | |
-| A-S15 | 스플래시 | `ChromiteSplashHandler` | 없음 | swt-removal.md:69(SWT 스플래시 생성 삭제) | 낮음 | |
+| A-S15 | 스플래시 | `ChromiteSplashHandler` | 있음(2026-11-08, `chromite/startup-splash`. 조사 당시: 없음) | 런처 시작 화면(`-showsplash com.seizia.chromite.splash`, JVM 전)을 Swing `StartupSplash`가 이어받아 버전과 "Loading…"을 보이고, 메인 창이나 시작 대화상자가 열리면 닫힘. 조사 당시: swt-removal.md:69(SWT 스플래시 생성 삭제) | - | 진행 막대는 없음(상태 줄 한 줄). [branding.md](../branding.md) "시작 화면" |
 | A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 일부 (2026-11-08 다시 확인: S6·S7·S8·S12·S13 수정함(`ChromiteSwingApplication.java`:167, 179, 297, 339-353). Eclipse 프록시 서비스만 남음(A-C28)). 조사 당시: 조용히 끊김 | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
 | A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 있음(2026-11-08. 조사 당시: 없음) | 쿼리 창 자동 저장·복원(`QueryWindowRecovery`): 시작할 때 한 번 묻고(Restore가 기본) 연결하지 않고 엶. 연결을 끊어도 쿼리 창은 닫히지 않음(`MainFrame`은 탭 닫기에서만 창을 뺌). 조사 당시: Swing에 쿼리 창 복원 없음 | - | 켜고 끄는 설정은 없음(매번 묻고, Discard로 버림). [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 
@@ -287,3 +287,4 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
   §7 집계: 있음 36 → 37, 일부 14 → 13.
 - 2026-11-08 Errors and Timeouts 행 비고: 두지 않은 두 키(`query.rollback-on-error`, `execute.cancel.checkTimeout`)를 모델이 읽지 않게 함
   (`chromite/safety-defaults`). 상태는 그대로.
+- 2026-11-08 A-S15 없음 → 있음(`chromite/startup-splash`, [branding.md](../branding.md) "시작 화면"). §7 집계는 고치지 않음(병합 뒤 다시 셈).

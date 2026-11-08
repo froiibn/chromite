@@ -68,6 +68,7 @@ product/swing/icons/           chromite.ico, chromite.icns, chromite_back.bmp (i
 product/swing/icons-sources/icon_*.png   macOS iconset
 plugins/com.seizia.chromite.ui.swing/icons/  chromite{16,20,24,32,40,48,64,128,256}.png,
                                brand/lockup-{light,dark}.svg (empty document area, drawn by JSVG)
+plugins/com.seizia.chromite.splash/  splash.png (launcher splash, 1x) and splash@2x.png (Swing splash)
 
 Usage
 -----
@@ -96,6 +97,8 @@ Change history:
   document area that replaces the Welcome tab.
 - 2026-11-07 SWT frontend removed (docs/chromite/swt-removal.md): no more SWT window/About/splash
   images; the product icons moved from product/community to product/swing.
+- 2026-11-08 Startup splash for the Swing product (com.seizia.chromite.splash): the native launcher shows it
+  before the JVM starts, the Swing splash takes over with the version and a status line.
 """
 import argparse
 import io
@@ -110,7 +113,7 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / "chromite_logo_pack"
@@ -619,6 +622,13 @@ ACCENT_STOPS = [(0, "#1D95FD"), (1, "#1478F5")]
 LOCKUP_INK = {True: ("#FFFFFF", "#B9BCC6", "#BDC3CF"), False: ("#18253B", "#18253B", "#18253B")}
 LOCKUP_DARK_BG = "#01041A"     # background of the original dark lockup
 LIGHT_BG = "#FFFFFF"
+# Startup splash (1x size; the Windows launcher scales the 1x file by the display DPI itself). Colours are the dark
+# theme's bg.chrome and border.popup tokens (docs/chromite/design-spec.md); StartupSplash uses the same layout.
+SPLASH_SIZE = (560, 320)
+SPLASH_BG = "#2B2D30"
+SPLASH_BORDER = "#43454A"
+SPLASH_LOCKUP_WIDTH = 420
+SPLASH_LOCKUP_TOP = 104
 
 
 def title_d():
@@ -657,6 +667,19 @@ def lockup_svg(inter, dark, bg=None, scale=1.0, pad=30.0):
 def render(svg, w, h=None):
     data = resvg_py.svg_to_bytes(svg_string=svg, width=w, height=h or w)
     return Image.open(io.BytesIO(bytes(data))).convert("RGBA")
+
+
+def splash_png(inter, scale):
+    """Startup splash card at 1x or 2x (docs/chromite/branding.md "시작 화면"): the dark lockup on the dark
+    theme's chrome background with its popup border, so one image sits well on light and dark desktops. Opaque,
+    because the Windows launcher converts the image to 24-bit RGB. The bottom row stays empty: the Swing splash
+    (StartupSplash) draws the version and a status line there."""
+    w, h = SPLASH_SIZE
+    card = Image.new("RGBA", (w * scale, h * scale), SPLASH_BG)
+    ImageDraw.Draw(card).rectangle((0, 0, w * scale - 1, h * scale - 1), outline=SPLASH_BORDER, width=scale)
+    lockup = render(lockup_svg(inter, True, pad=0), SPLASH_LOCKUP_WIDTH * scale, None)
+    card.alpha_composite(lockup, ((w * scale - lockup.width) // 2, SPLASH_LOCKUP_TOP * scale))
+    return card.convert("RGB")
 
 
 def icon_png(size):
@@ -849,6 +872,12 @@ def main():
     # background, so it sits on the editor background of either theme
     write_text(swing / "brand" / "lockup-light.svg", lockup_svg(inter, False, pad=0))
     write_text(swing / "brand" / "lockup-dark.svg", lockup_svg(inter, True, pad=0))
+
+    # Startup splash: splash.png is what the native launcher shows before the JVM starts (it scales the 1x file by
+    # the display DPI); splash@2x.png is the HiDPI variant the Swing splash draws once Java runs
+    splash = ROOT / "plugins" / "com.seizia.chromite.splash"
+    save_png(splash_png(inter, 1), splash / "splash.png")
+    save_png(splash_png(inter, 2), splash / "splash@2x.png")
     print("ok")
 
 
