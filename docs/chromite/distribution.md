@@ -238,11 +238,11 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | 경로 | 내용 |
 |---|---|
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
-| `/ko/`, `/en/` | 홈: 어두운 스크롤 무대(첫 화면과 특장점 8장면, 마지막이 오픈 소스: GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크, 아래 "스크롤 무대"), 다운로드 블록(`#download`: 제품 소개, 들어 있는 것, Windows 설치 파일, macOS 디스크 이미지: 버전, 크기, 게시일, SHA-256과 복사 단추, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침), 서명·자동 업데이트 안내 |
+| `/ko/`, `/en/` | 홈: 어두운 무대(첫 화면: 제목·부제·근거 두 묶음과 앱 창, 특장점 8장면, 마지막이 오픈 소스: GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크, 아래 "홈 무대"), 다운로드 블록(`#download`: 제품 소개, 들어 있는 것, Windows 설치 파일, macOS 디스크 이미지: 버전, 크기, 게시일, SHA-256과 복사 단추, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침), 서명·자동 업데이트 안내 |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, Chromite Agent(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
 | `/favicon.ico` | 16·32·48px 아이콘(아래 "파비콘과 공유 이미지") |
-| `/assets/` | `site.css`, `site.js`, `stage.js`(스크롤 무대), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장: 첫 화면은 `-dark`, `-light`는 공유 이미지 생성기 입력, `shots/tour/` 기능 장면 화면 14장 `-dark`), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장) |
+| `/assets/` | `site.css`, `site.js`, `reveal.js`(무대의 한 번 등장), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장: 첫 화면은 `-dark`, `-light`는 공유 이미지 생성기 입력, `shots/tour/` 기능 장면 화면 14장 `-dark`), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장, `og-<언어>-2.png`) |
 
 모든 페이지 머리글에 GitHub 마크와 저장소 링크(`https://github.com/froiibn/chromite`)가 있고, 바닥글에 Apache License 2.0(`LICENSE.md`)과 GitHub 링크가 있다.
 
@@ -253,16 +253,18 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - 방향: 사이트가 앱의 화면 언어를 그대로 쓴다. 다운로드 상자는 앱의 도구 창(40px 제목 줄, 8px 모서리, 옅은 구분선), 릴리스 정보는 앱 속성 창 같은
   이름 | 값 격자다. 그 아래에 실제 앱 화면이 오므로 사이트와 화면이 한 제품으로 읽힌다. 색은 디자인 토큰([design-spec.md](design-spec.md)) 그대로이고,
   단추·링크 파랑만 글자 대비 4.5:1을 넘게 강조색을 조금 어둡게 했다(흰 글자 / `#3574F0`는 4.3:1, 단추 `#2F6AE6` 4.9:1, 링크 `#2C62D0` 5.6:1, 어두운 테마 링크 `#6F9CF9` 6.1:1).
-- 다운로드 블록(2026-11-08까지는 첫 화면, 지금은 스크롤 무대 다음의 `section.get#download`): 왼쪽에 제목·소개와 "들어 있는 것"(지원 DB, 기능, 지원 환경), 오른쪽에 다운로드 상자.
+- 다운로드 블록(2026-11-08까지는 첫 화면, 지금은 홈 무대 다음의 `section.get#download`): 왼쪽에 제목·소개와 "들어 있는 것"(지원 DB, 기능, 지원 환경), 오른쪽에 다운로드 상자.
   860px 아래에서는 소개 → 다운로드 → 들어 있는 것 순서로 쌓여(CSS `grid-template-areas`) 휴대폰에서도 내려받기 단추가 먼저 보인다.
 - 나머지 절은 모두 "왼쪽 제목, 오른쪽 내용"(`.sect`) 한 가지 배치다. 홈, 변경 내역, 개인정보가 같은 리듬을 쓰고 760px 아래에서는 세로로 쌓인다.
 - 피한 것: 그라데이션·빛나는 배경, 이모지 아이콘, 같은 모양 카드 세 장, 과장 문구, 대문자 꼬리표, 가운데 정렬 일색. 문구는 할 수 있는 일을 그대로 적는다.
 - 글꼴은 이미 있는 Pretendard 400·600뿐이다(굵기를 늘리면 부분 집합 파일이 더 필요). 위계는 크기와 색으로 만든다. 한국어는 `word-break: keep-all`.
-- 움직임은 홈의 스크롤 무대뿐이다(아래 "스크롤 무대", 움직임 줄이기면 없음). 그 밖에는 복사 단추의 "복사됨" 바뀜만. 키보드 초점은 강조색 2px 테두리.
+- 움직임은 홈 무대의 한 번 등장뿐이다(아래 "홈 무대", 움직임 줄이기면 없음). 그 밖에는 복사 단추의 "복사됨" 바뀜만. 키보드 초점은 강조색 2px 테두리.
 - 앱 화면(`assets/shots/<ko|en>-<light|dark>.webp`, 1899×1188, 무손실 WebP 86~105KB): 테스트 빌드의 **사본**(`D:\Tools\_scratch\site-redesign\app`)을 사본 작업 공간으로
   실행해 창만 그렸다(앱 안에서 창을 그리는 시험 에이전트, 화면 전체가 아님). 한국어 화면은 `주문내역`, 영어 화면(`-nl en`)은 `orders`/`customers` 집계 쿼리.
   보이는 것은 연결 이름, `127.0.0.1` 주소, 시험 DB 이름, 로그인 이름 `sa`뿐이고 비밀번호는 없다. 개체 탐색기는 다른 제품 이름이 든 시험 DB 이름이 보이지 않게 스크롤했다.
   2026-11-08부터 홈은 어두운 무대에 `-dark` 한 장만 쓴다(`-light`는 공유 이미지 생성기가 읽어서 남김). 너비·높이 속성으로 자리를 미리 잡는다.
+  2026-11-08 네 장 모두 다시 찍었다: 한 벤더처럼 보이던 "QMS SQL Server"·`TOP (100)`·시험 DB 이름 대신 "Sales DB"(PostgreSQL)의 `sales` 집계 쿼리와
+  등록된 서버의 ERP·HR·Sales DB·Shop(아래 "파비콘과 공유 이미지"의 "그림"). 로그인 이름은 `postgres`.
 - GitHub 마크는 Octicons `mark-github`(MIT) 파일을 고치지 않고 두고, CSS `mask`로 글자색을 입힌다(밝은·어두운 테마 모두). 출처는 `NOTICE`.
 - 오픈 소스 절에 "Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했다"는 문장과 `NOTICE` 링크를 둔다. 원래 프로젝트의 상표 이름은 쓰지 않는다(CLAUDE.md "브랜딩").
 - 개편 때 `site.js`, `lang.js`, 데이터 계약(`data-platform`·`data-field`·`data-state`·`data-ready`)은 바꾸지 않았다. 개인정보 내용도 그대로다(배치만 바뀜).
@@ -284,45 +286,53 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   파일 이름·크기·SHA-256은 `releases.json`에 있고 `/downloads/<파일 이름>`으로 받는다는 안내, GitHub 릴리스 링크를 보여 준다.
   `site.js`는 실행되면 언제나 `ready`·`error`·`empty` 중 하나로 바꾼다. `state-loading` 문구와 CSS는 지웠다.
 
-### 스크롤 무대 (2026-11-08)
+### 홈 무대 (2026-11-08)
 
 사용자 요청: "애플 제품 페이지같이 슬라이드를 넘길때마다 변하는 스타일", "메인페이지를 수정대상으로 하고 애플 느낌으로 바꾼다. 움직임은 C"(스크롤에 맞춰 계속 움직이는 방식).
 처음에는 첫 화면과 기능 두 개만 시제품으로 만들라고 했다가 "일단 페이지에 반영해봐"로 바뀌어 홈 전체(한국어·영어)를 바꿨다.
 2026-11-07의 기능 둘러보기(한 화면씩 스냅, 화면이 보일 때 한 번 나타나기)는 사용자가 말한 방식이 아니어서 이것으로 대신했다.
 
+같은 날 사용자가 스크롤에 묶인 움직임이 버벅이고 방문자도 불편해할 것이라고 해서, 화면 전환은 보이게 두되 훨씬 정적인 **A안, 등장형**(장면이 처음 보일 때 한 번 나타남)으로 바꿨다.
+
+- 스크롤 연동을 버린 이유(`stage.js`와 `site.css`에서 찾은 원인):
+  큰 화면 사진을 1.8배까지 키우고 스크롤 프레임마다 옮겼는데 레이어 승격이 없어 계속 다시 그렸다. 움직임이 스크롤 위치에 1:1로 묶여 있어
+  Windows 마우스 휠(한 칸 약 100px)에서는 계단처럼 튀었다. 프레임마다 레이아웃을 읽고 스타일을 쓴 뒤 다시 읽었다(강제 레이아웃).
+  장면이 190~370vh에 sticky로 붙어 있어 페이지가 붙잡히는 느낌이었다.
 - 순서: 머리글 → 어두운 무대(`div.stage`, 장면 9개) → 다운로드 블록(`section.get#download`: 제목, 소개, 들어 있는 것, 다운로드 상자) → 서명·자동 업데이트(`.sect`) → 바닥글.
-  장면: 첫 화면(이름 "Chromite", 부제, 다운로드 단추), 트랜잭션 보호(`#transactions`), 쿼리 라이브러리(`#query-library`), Chromite Agent(`#chromite-agent`),
+  장면: 첫 화면, 트랜잭션 보호(`#transactions`), 쿼리 라이브러리(`#query-library`), Chromite Agent(`#chromite-agent`),
   폐쇄망(`#closed-networks`), 프로시저 디버거(`#debugger`), 서버 관리(`#administration`, Altibase 줄 포함), 비밀번호(`#passwords`), 오픈 소스(`#open-source`).
-  순서와 문구 출처는 2026-11-07에 승인된 둘러보기이고, 문장을 줄이기만 하고 새 주장은 넣지 않았다. 앵커 id는 그대로다.
-- 다운로드 자리: 첫 화면의 "다운로드" 단추가 `#download`(다운로드 블록)로 바로 간다. 무대가 길어서(1440×900에서 약 24화면) 다운로드 블록은 무대 바로 뒤에 둔다.
-  다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다. 예전 `h1`(지원 DB 문장)은 첫 화면 마지막 문장이 되고(2026-11-08부터 드라이버 수 문장, 아래 "데이터베이스 지원 문구"), 다운로드 블록 제목은 `h2` "Windows와 macOS용 Chromite 받기".
-- 장면 구조: `section.scene` 안에 `div.pin`(제목 `.scene-head`, 그림 `.scene-media`, 짧은 문장 목록 `ul.slot`). 넓은 앱 화면은 위에서 아래로(`.scene-wide`),
-  세로로 긴 화면·대화상자·저장소 카드는 글 옆에(`.scene-side`, 860px 아래에서는 위에서 아래로).
-- 움직임(`assets/stage.js`): 장면이 화면보다 길고(문장 수에 따라 190~370vh) `.pin`이 `position: sticky`로 한 화면 높이에 머문다. 장면 안의 스크롤 위치가 진행도 p(0~1)이고
-  모든 움직임이 p의 함수라서 되돌려 스크롤하면 거꾸로 움직이고, 중간에서 새로 고쳐도 그 자리 모습이 바로 나온다.
-  - 무엇이 움직이는지는 페이지의 `data-t`에 적는다. 예: `data-t="s 1 1.7 .03 .17; x 0% -56% .03 .17"`(p가 .03→.17일 때 배율 1→1.7, 가로 이동 0→-56%).
-    속성은 `o`(불투명도), `x`·`y`(이동, 단위 포함), `s`(배율), `r`(`rotateX`, 도). 언어별 화면 사진의 위치가 달라서 확대 목표를 페이지마다 적는다.
-  - 첫 화면: 이름과 단추가 위로 사라지는 동안 앱 창이 기울어진 채(34°, 0.84배) 아래에서 올라와 평평하게 놓이고, 마지막에 지원 문장(드라이버 수)이 나타난다.
-  - 기능 장면: 그림은 테두리(`.frame`, `overflow: hidden`) 안에서만 확대·이동한다(앱 창의 가장자리를 넘지 않음). 확대 위치는 원점 0,0 기준 이동으로 적고,
-    이동 값을 -(배율-1)~0 사이에 두어 확대 중에도 틀 안이 비지 않는다.
-    트랜잭션: 상태 줄의 열린 트랜잭션 칸과 커밋/롤백 메뉴로 확대했다가 돌아온다. 쿼리 라이브러리: Git 루트("팀 쿼리 main ↑1")에 확대된 채 시작해 전체로 물러난다.
-    디버거: 14번 줄 중단점 → 변수 탭 → 전체. 서버 관리: 차단 체인 → 전체. 폐쇄망: 체크한 드라이버 줄. 비밀번호: 암호 입력란. Chromite Agent: 창이 조금 올라온다. 오픈 소스: 저장소 카드가 나타난다.
-  - 문장(`ul.slot`의 `li`): 짧은 도입(진행도 0.08) 뒤 남은 진행도를 문장 수로 나눠 한 줄씩 바뀌고, 마지막 줄은 남는다. 경계에서는 앞 줄이 먼저 사라지고
-    다음 줄이 올라온다. 처음에는 겹쳐 바꿨는데 반투명한 두 줄이 같은 자리에 겹쳐 읽을 수 없었다(리허설 화면 사진으로 확인).
-    흐려진 줄은 클릭을 받지 않지만(`pointer-events`) 접근성 트리에는 남아 화면 읽기 프로그램이 모든 줄을 읽는다.
-  - `transform`과 `opacity`만 바꾼다. 스크롤마다 `requestAnimationFrame` 한 번, `IntersectionObserver`가 보이는 장면만 갱신한다(시작과 창 크기 바뀜 때는 전부).
-  - 속도: 문장 한 줄에 화면 높이의 절반쯤 스크롤한다("보통", 사용자 기본값). CSS `animation-timeline`은 쓰지 않았다(Firefox 미지원, 스크립트 하나로 충분).
-- 움직이지 않는 경우: `stage.js`는 `<head>`에서 `defer` 없이 읽혀 첫 그리기 전에 `html.motion`을 붙인다. `IntersectionObserver`가 없거나, 움직임 줄이기를 켰거나
-  (열린 뒤 켜도 바로 멈춤), JavaScript가 없으면 `motion`이 없고, CSS가 장면마다 보통 절(제목, 그림, 모든 문장 목록)로 보여 준다.
+  특장점 순서와 문구 출처는 2026-11-07에 승인된 둘러보기이고, 문장을 줄이기만 하고 새 주장은 넣지 않았다. 앵커 id는 그대로다.
+- 첫 화면: 이름 "Chromite"(`h1`), 제목(`.hero-sub`), 부제(`.hero-lead`), 다운로드 단추, 근거 두 묶음(`.hero-proof`: 편하게·안전하게), 앱 창. 제목·부제·근거는 아래 "데이터베이스 지원 문구".
+- 다운로드 자리: 첫 화면의 "다운로드" 단추가 `#download`(다운로드 블록)로 바로 간다. 다운로드 블록의 내용과 `site.js` 계약은 바꾸지 않았다.
+  다운로드 블록 제목은 `h2` "Windows와 macOS용 Chromite 받기". 페이지 높이는 1440×900에서 한국어 약 10,900px, 영어 약 12,200px(스크롤 연동 때 약 22,800px).
+- 장면 구조: `section.scene` 안에 `div.scene-body`(제목 `.scene-head`, 그림 `.scene-media`, 문장 목록 `ul.lines`). 장면은 보통 높이의 절이고 문장은 모두 보이는 목록이다.
+  넓은 앱 화면은 위에서 아래로(`.scene-wide`), 세로로 긴 화면·대화상자·저장소 카드는 글 옆에(`.scene-side`, 860px 아래에서는 위에서 아래로).
+- 등장(`assets/reveal.js`, CSS는 `site.css`의 `.reveal`): 장면의 위쪽 끝이 화면 아래 20% 선을 지나면(`IntersectionObserver`, `rootMargin` 아래 -20%, 문턱 0)
+  `is-in`을 붙이고 관찰을 끝낸다. 장면 비율(예: 25% 보임)로 하지 않은 것은 휴대폰에서 몇 화면 높이인 장면이 그 비율에 닿지 않기 때문이다.
+  - 제목·설명은 0.5~0.6초 동안 나타나며 24px 올라오고, 그림은 0.12초 뒤 16px 올라오며 0.98→1배, 문장은 0.24초부터 0.08초 간격으로 한 줄씩,
+    강조 상자는 0.7초 뒤 나타난다. 첫 화면은 이름·제목·부제·단추·근거·앱 창 순서(0.08초 간격). 34° 기울어진 채 올라오던 앱 창과 마지막 지원 문장은 없앴다.
+  - 시간 기반 CSS 전환이고 `transform`·`opacity`만 바뀐다. 스크립트는 스크롤 처리기, `requestAnimationFrame`, 레이아웃 읽기가 없다(클래스만 붙임).
+    `will-change`도 없다: 전환이 도는 동안만 레이어가 생기고 끝나면 돌려준다.
+- 강조 상자(`.mark`): 예전에 화면 사진의 한 곳으로 확대하던 자리(`data-t`의 확대 목표)에 상자를 둔다. 위치는 그림 틀(`.frame`, 그림과 같은 크기) 기준 %이고
+  한국어·영어 화면 사진이 달라 `:lang(ko)` 규칙이 따로 있다. 짧은 이름표(`aria-hidden`, 그림의 alt가 이미 설명함)는 상자 위(기본)·위 오른쪽(`end`)·아래(`below`)·
+  오른쪽(`side`)·안 오른쪽(`inside`) 중 그림의 빈 곳에 둔다. 600px 아래에서는 그림이 작아 이름표가 가리므로 상자만 보인다.
+  트랜잭션: 상태 줄의 열린 트랜잭션 칸. 쿼리 라이브러리: Git 루트("팀 쿼리 main ↑1"). 폐쇄망: 체크한 드라이버 두 줄(Derby Embedded, DuckDB). 디버거: 14번 줄 중단점.
+  서버 관리: 차단 체인 표의 두 줄. 비밀번호: 암호·암호 확인 입력란.
+- 움직이지 않는 경우: `reveal.js`는 `<head>`에서 `defer` 없이 읽혀 첫 그리기 전에 `html.reveal`을 붙인다. 숨김 상태는 `html.reveal`이 있고
+  `@media screen and (prefers-reduced-motion: no-preference)`일 때만 있다. 그래서 JavaScript가 없거나, `IntersectionObserver`가 없거나, 움직임 줄이기를 켰거나
+  (열린 뒤 켜도 CSS가 바로 모두 보임), 인쇄할 때는 처음부터 모두 보인다. 관찰자 설정이 실패하면 `reveal`을 다시 뗀다(내용이 숨은 채 남지 않음).
 - 무대 색: 테마와 상관없이 늘 어둡다(바탕 `#000000`, 글 `#F7F8FA`, 보조 글 `#9DA0A8`, 선 `#393B40`, 링크 `#6F9CF9`, 앱 토큰). 무대의 화면 사진이 앱의 어두운 테마이고,
-  장면마다 밝고 어두움이 바뀌면 스크롤 중에 번쩍인다. 머리글·다운로드 블록·서명 절·바닥글은 지금처럼 밝은/어두운 테마를 따른다(밝은 테마에서는 흰 머리글 → 검은 무대 → 밝은 다운로드).
-- 글자: Pretendard 600, 첫 화면 이름 `clamp(76px, 14vw, 208px)`·자간 -0.055em, 장면 제목 `clamp(32px, 4.4vw, 64px)`·-0.035em, 문장 `clamp(19px, 1.75vw, 25px)`.
-  글은 왼쪽 정렬이고 첫 화면의 앱 창과 마지막 문장만 가운데. 무대와 다운로드 블록이 같은 폭(`--page` 1180px)이라 왼쪽 끝이 맞는다.
+  장면마다 밝고 어두움이 바뀌면 스크롤 중에 번쩍인다. 머리글·다운로드 블록·서명 절·바닥글은 밝은/어두운 테마를 따른다(밝은 테마에서는 흰 머리글 → 검은 무대 → 밝은 다운로드).
+  강조 상자는 `#6F9CF9` 2px 테두리, 이름표는 단추 파랑 `#2F6AE6`에 흰 글자(4.9:1).
+- 글자: Pretendard 600, 첫 화면 이름 `clamp(76px, 14vw, 208px)`·자간 -0.055em, 첫 화면 제목 `clamp(26px, 3.2vw, 46px)`, 장면 제목 `clamp(32px, 4.4vw, 64px)`·-0.035em,
+  문장 `clamp(19px, 1.75vw, 25px)`. 글은 왼쪽 정렬이고 첫 화면의 앱 창만 가운데. 무대와 다운로드 블록이 같은 폭(`--page` 1180px)이라 왼쪽 끝이 맞는다.
 - 화면 사진: 기능 장면은 `assets/shots/tour/<화면>-<ko|en>-dark.webp` 14장(2026-11-07 둘러보기의 사진 그대로, 1.5배 캡처)을 `srcset="… 1.25x"`로 넣어 앱보다 조금 크게 보인다.
   첫 화면은 `assets/shots/<ko|en>-dark.webp`(1899×1188). 첫 화면 사진만 바로 받고 나머지는 `loading="lazy"`.
-  `*-light.webp`는 기능 장면 14장을 지웠고, `assets/shots/<ko|en>-light.webp` 두 장은 공유 이미지 생성기(`tools/branding/gen_site_images.py`)가 읽으므로 남겼다.
-- 지운 것: `assets/tour.js`, CSS의 `.tour`·`.tour-index`·`.feature*`·`.more`·`.shot`·`.visually-hidden`·스크롤 스냅·`--shot-shadow`, 홈의 앱 화면 `figure.shot`, 둘러보기 목록.
-  `.hero`(다운로드 블록)는 `.get`으로 이름을 바꿨다(이제 첫 화면이 아니므로).
+  `assets/shots/<ko|en>-light.webp` 두 장은 공유 이미지 생성기의 입력이다(아래 "파비콘과 공유 이미지").
+- 지운 것(스크롤 무대 → 등장형): `assets/stage.js`, CSS의 `.motion`·`.pin`·`.slot`·`.hero-statement`·`.slot .small`(쓰는 곳 없음)과 그림의 `transform-origin`·`perspective`,
+  페이지의 `data-t` 속성 10개씩과 장면 높이용 `n2`·`n3`·`n6` 클래스, 첫 화면의 지원 문장. `div.pin`은 `div.scene-body`, `ul.slot`은 `ul.lines`로 바꿨다.
+  (2026-11-08 처음 무대를 만들 때 지운 것: `assets/tour.js`, CSS의 `.tour`·`.tour-index`·`.feature*`·`.more`·`.shot`·`.visually-hidden`·스크롤 스냅·`--shot-shadow`,
+  홈의 앱 화면 `figure.shot`, 둘러보기 목록. `.hero`(다운로드 블록)는 `.get`으로 이름을 바꿨다.)
 - 둘러보기 화면 사진의 출처(2026-11-07): 테스트 빌드(#119)의 **사본**을 사본 작업 공간으로 실행하고, 앱 안에서 도는 시험 에이전트가 Swing 공개 API로 조작하고 창만 그렸다(OS 입력 없음).
   화면 배율 1.5. 연결 이름(Sales DB, Billing 등)과 `127.0.0.1` 외에 비밀번호·키·개인 정보는 없다. Chromite Agent 화면은 [ai-agent.md](ai-agent.md)의 방식대로 로컬 가짜
   Messages API(가짜 키)로 찍었고, 도구 호출과 결과는 실제 DB 값이며 답의 글은 시험용 제공자가 돌려준 것이다. 이 사실을 그림 아래 설명(`figcaption`)에 적었으나 2026-11-08 사용자 요청으로 그림 설명을 모두 지웠다.
@@ -346,16 +356,40 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   ([ai-agent.md](ai-agent.md) "도구 카탈로그"의 MS·PG·MY·OR). 이 장면은 375px에서 문장 목록이 원래도 화면 아래로 조금 넘친다(영어 약 24px). 설명을 길게 쓰면 더 넘쳐서
   예전 설명과 같은 줄 수로 줄였다(헤드리스 Edge로 잼). 넘침 자체는 이 작업 범위 밖이라 그대로 두었다.
 - 변경 내역(0.1.0의 "JDBC 드라이버 내장", 0.1.1의 MySQL 드라이버 안내)은 그 버전에서 있었던 일이라 고치지 않았다.
+- 2026-11-08 두 번째 의견: "데이터베이스 개수는 특장점이 아니다". 드라이버 수도 제목·특장점으로 쓰지 않는다. 첫 화면 문장(드라이버 수)을 지우고,
+  홈의 설명 태그 3개와 공유 이미지·alt를 아래 제목으로, 폐쇄망 장면 첫 줄은 미리 설치된 드라이버부터 적게 바꿨다. 다운로드 블록 "데이터베이스" 줄은 정보로 남기되
+  수로 시작하지 않는다("…미리 설치되어 있고, 그 밖의 드라이버(모두 100가지가 넘음)는…").
+- 제목과 부제(사용자 결정, 2026-11-08. 처음 고른 "누구나 안전하게 다루는"에 "편하게"를 더함: 쿼리 라이브러리가 편한 쪽, 트랜잭션 기능이 안전한 쪽):
+  - 한국어: "누구나 편하고 안전하게 다루는 데이터베이스 도구" / "시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이"
+  - 영어: "A database tool anyone can use easily and safely" / "Even system and application operators can query and fix data with ease and without slip-ups"
+  - 쓰는 곳: 첫 화면(`.hero-sub`·`.hero-lead`), 홈의 `description`·`og:description`·`twitter:description`("Chromite - 제목. 부제. Windows와 macOS용 설치 파일을 받습니다."),
+    공유 이미지(생성기 `OG_COPY`), 7쪽의 `og:image:alt`·`twitter:image:alt`. 문구를 바꾸면 이 네 곳을 같이 고치고 생성기를 다시 실행한다.
+- 첫 화면 근거 두 묶음(`.hero-proof`). 문장마다 지금 앱에서 참인지 코드로 확인했다:
+  - 편하게: 자주 쓰는 쿼리를 쿼리 라이브러리에 저장하고 값만 넣어 실행(#137, 실행할 때 매개 변수 대화상자. 공유 이미지 촬영 중에도 "Parameters - …" 창이 뜸),
+    팀과 공유 폴더나 Git으로 함께 씀(#112, 라이브러리 루트, `library_git_pull`·`library_git_commit_push`).
+  - 안전하게: WHERE 없는 UPDATE·DELETE, DROP, TRUNCATE는 실행 전에 확인(`SqlExecutionSafety.confirmDangerousStatements`, 기본값 묻기).
+    결과 표 편집의 SQL 미리 보기는 **"볼 수 있음"**으로 적었다: 저장 전 스크립트 표시(`ResultSetGrid.isSavePreviewRequired`)는 설정
+    `resultset.confirm.beforeSave`(기본 꺼짐) 또는 연결 종류의 "데이터 변경 확인"일 때만 저절로 나오고, 그 밖에는 "변경 미리 보기…" 명령으로 본다.
+    받은 문구 "저장 전에 SQL을 미리 보여 줌"은 기본 설정의 개발 연결에서는 참이 아니다.
+    열린 트랜잭션 표시와 묻지 않는 커밋·롤백 없음([transactions.md](transactions.md), [idle-transactions.md](idle-transactions.md)). 예외는 사용자가 연결 종류에서
+    직접 켠 유휴 트랜잭션 자동 롤백(알림이 뒤따름)뿐이다.
 
 ### 파비콘과 공유 이미지 (2026-11-07)
 
 사용자 요청: "웹사이트는 파비콘과 og 이미지도 만들어서 반영한다".
 
 - 파일: `/favicon.ico`(16·32·48px), `/assets/icons/icon-32.png`, `icon-192.png`, `apple-touch-icon.png`(180px, 불투명 남색 바탕), 기존 `/assets/chromite-icon.svg`,
-  공유 이미지 `/assets/og/og-ko.png`, `og-en.png`(1200×630). 생성기 `tools/branding/gen_site_images.py`가 `gen_app_icons.py`의 크기별 아이콘 그림(16px는 16px용
-  그림)과 `chromite_logo_pack/chromite_wordmark_light.svg`, 사이트의 Pretendard 부분 집합, 홈의 실제 앱 화면(`assets/shots/<언어>-light.webp`) 일부로 만든다.
-  공유 이미지 문구(`OG_COPY`)는 "100가지가 넘는 드라이버로 / 여러 데이터베이스를 / 한 창에서 다룹니다", "More than 100 drivers, / many databases, / one window"이고,
-  모든 페이지의 `og:image:alt`·`twitter:image:alt`가 이 문구를 그대로 적는다. 문구를 바꾸면 생성기를 다시 실행하고 alt 7쪽을 같이 고친다.
+  공유 이미지 `/assets/og/og-ko-2.png`, `og-en-2.png`(1200×630). 생성기 `tools/branding/gen_site_images.py`가 `gen_app_icons.py`의 크기별 아이콘 그림(16px는 16px용
+  그림)과 `chromite_logo_pack/chromite_wordmark_light.svg`, 사이트의 Pretendard 부분 집합, 실제 앱 화면(`assets/shots/<언어>-light.webp`) 일부로 만든다.
+  공유 이미지 문구(`OG_COPY`)는 홈의 제목과 부제(위 "데이터베이스 지원 문구")와 작은 줄 "Windows와 macOS용 무료 오픈 소스"이고, 생성기가 글 칸 폭에 맞춰 띄어쓰기에서 줄을 나눈다
+  (작은 줄은 아래 여백이 남을 때만). 모든 페이지의 `og:image:alt`·`twitter:image:alt`가 제목을 적는다. 문구를 바꾸면 생성기를 다시 실행하고 alt 7쪽을 같이 고친다.
+- 파일 이름의 `-2`(`OG_VERSION`): 카카오톡 등 메신저와 SNS는 링크 미리 보기를 이미지 주소로 캐시해서, 같은 이름에 새 그림을 올려도 예전 그림(네 DB 이름을 적은 첫 판)을
+  계속 보여 준다. 그림을 바꿀 때는 `OG_VERSION`을 올리고 7쪽의 `og:image`·`twitter:image`를 새 이름으로 바꾼다. 예전 `og-ko.png`·`og-en.png`는 다른 곳에서 쓰지 않아 지웠다.
+- 그림(2026-11-08): 메인 창(개체 탐색기, 쿼리, 결과 표, 등록된 서버)을 중립 이름으로 다시 찍었다. 한 벤더 이름처럼 보이던 "QMS SQL Server"·`TOP (100)` 대신
+  연결 "Sales DB"(PostgreSQL)의 `sales` DB와 `orders`·`customers` 도시별 집계이고, 등록된 서버에 ERP·HR·Sales DB·Shop(SQL Server·Oracle·PostgreSQL·MariaDB 아이콘)이
+  보인다. 첫 화면의 `<언어>-dark.webp`도 같은 이유("QMS SQL Server"가 보였음)로 같은 장면을 어두운 테마로 다시 찍었다. 드라이버 고르기 화면은 다시 수를 파는 그림이라 쓰지 않았다. 촬영: v0.1.3 zip의 **사본**(`D:\Tools\_scratch\site-reveal\app`)을 `CHROMITE_DATA`와 사본 작업 공간으로
+  실행하고 앱 안의 시험 에이전트가 창만 그렸다(OS 입력 없음, 화면 배율 1.5, 창 1266×792). 시험 데이터는 공유 PostgreSQL에 임시 `sales` DB를 만들어 넣고 촬영 뒤 지웠다.
+  비밀번호·키·개인 정보는 없다.
   새 한글은 Pretendard 부분 집합에 있는 글자인지 확인한다(없는 글자는 빈 네모로 그려진다).
   색은 디자인 토큰(바탕 `#F7F8FA`, 글 `#1E1F22`·`#6C707E`, 테두리 `#DFE1E5`)이고 그라데이션 바탕은 없다.
 - 모든 페이지(`/`, `/ko|en/`, 변경 내역, 개인정보)의 `<head>`: 아이콘 링크 5개, `<link rel="canonical">`(https://chromite.seizia.com/… ), `og:type`·`og:site_name`·`og:title`·
@@ -438,6 +472,19 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   JavaScript 끔에서 다운로드 상자는 `static`(두 카드와 파일 위치 안내). 페이지 높이: 움직일 때 약 22,800px(1440×900), 움직이지 않을 때 약 10,900px.
   장면마다 진행도 0·25·50·75·100%(한국어 9장면, 영어 0·50·100%), 375px 한 장씩, 밝은 테마 첫 화면·무대에서 다운로드로 넘어가는 곳, 무대 전체를 100px씩
   스크롤한 GIF(720×450, 7.5MB): `D:\Tools\_scratch\site-apple-scroll\proto\`. 움직임 줄이기·JavaScript 끔 전체 페이지: `D:\Tools\_scratch\site-apple-scroll\check\`.
+- 홈 무대 등장형·제목·공유 이미지(2026-11-08): `-Down` 뒤 리허설을 처음부터 실행(`rehearse.ps1 -Tag v0.1.2`, 이어서 `-Tag v0.1.3`, `-DataGeneration 2`, 실제 릴리스 파일) 둘 다 `ALL CHECKS OK`(사이트 파일 47개).
+  리허설 서버(실제 CSP)에서 헤드리스 Edge(CDP, 실행마다 새 프로필)로 한국어·영어 × 밝은·어두운 × 1440×900·375×812 홈 8가지, 움직임 줄이기·JavaScript 끔 8가지,
+  변경 내역·개인정보 4쪽과 `/`: 가로 스크롤 없음, 콘솔·CSP 오류 없음(정보 수준 지연 로드 알림만), 깨진 이미지 없음, 7쪽의 `og:image`·`twitter:image`가 `og-<언어>-2.png`,
+  `og-ko-2.png`·`og-en-2.png` 200 `image/png`(137,878·148,595 B), 예전 `og-ko.png`·`og-en.png`·`stage.js`는 404. 움직일 때 처음에는 숨는 부분 59개 중 53개(첫 화면의 보이는 것은 바로 등장),
+  장면마다 화면에 들인 뒤 1.3초 후 화면 안에서 숨은 부분 0개. 움직임 줄이기·JavaScript 끔은 처음부터 숨은 부분 0개(`html.reveal` 없음), JavaScript 끔에서 다운로드 상자 `static`.
+  같은 브라우저로 쪽을 20번 넘게 연달아 읽으면 아래쪽 장면 몇 개에서 관찰자 알림이 오지 않는 일이 있었다(같은 쪽을 새 브라우저로 읽으면 재현되지 않음). 시험 도구 쪽 현상으로 보고
+  변형을 묶음마다 새 브라우저로 나눠 확인했다. 강조 상자 위치: 6장면 × 2언어 × 1440·375px 화면 사진으로 하나씩 봄.
+  성능(정적 서버, 1440×900 어두운 한국어 홈, 휠 100px씩 50ms 간격으로 무대 끝까지, 성능 추적): 긴 작업(50ms 넘는 작업)은 예전·지금 모두 0개.
+  예전은 215칸 동안 스크립트 18ms, `requestAnimationFrame` 229번·함수 호출 461번(스크롤마다), 그리기 380번. 지금은 80칸(무대 길이가 약 1/3) 동안 스크립트 0ms,
+  함수 호출 7번(관찰자 알림), 처음 지날 때만 등장 전환과 지연 로드 그림 때문에 스타일 계산 618번·그리기 439번. 한 번 다 본 뒤 다시 지나가면 예전은 그대로(스크립트 18ms,
+  그리기 343번, 작업 212ms), 지금은 스크립트 0ms·스타일 계산 0번·그리기 16번·작업 64ms. 헤드리스라 GPU 래스터 비용은 추적에 다 잡히지 않는다.
+  공유 이미지 두 장은 1200×630으로 직접 봄. 화면 사진: 강조 상자 `D:\Tools\_scratch\site-reveal\marks\`, 전체 쪽 `D:\Tools\_scratch\site-reveal\check\`,
+  성능 결과 `D:\Tools\_scratch\site-reveal\perf\`.
 - 데이터베이스 지원 문구(2026-11-08): `-Down` 뒤 리허설을 처음부터 실행(`rehearse.ps1 -Tag v0.1.1 -DataGeneration 2`, 실제 0.1.1 파일) `ALL CHECKS OK`, 사이트 파일 42개.
   헤드리스 Edge(CDP, 자기 프로필)로 한국어·영어 × 밝은·어두운 × 1440×900·375×812 홈: 가로 스크롤 없음, 깨진 이미지 없음, 콘솔·CSP 오류 없음(정보 수준 지연 로드 알림만),
   Pretendard 400·600 로드, 첫 화면·Chromite Agent·폐쇄망·서버 관리·"데이터베이스" 줄과 설명 태그 3개가 새 문구. 변경 내역·개인정보 4쪽과 `/`의 `og:image:alt`·`twitter:image:alt`가 새 문구,
@@ -512,4 +559,8 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-08 macOS 시작 교착과 `Info.plist` 이름 수정을 "확인하지 못한 것"의 macOS 항목에 기록(서명한 dmg 확인은 다음 릴리스 뒤).
 - 2026-11-08 홈(ko·en)의 그림 아래 작은 설명(`figcaption`) 7개씩과 CSS `.scene-media figcaption` 규칙 두 개를 지움(사용자 요청). 디버거 장면 설명에 있던 서버 조건(pldebugger, Oracle 디버그 권한, SQL Server 미지원)과 Chromite Agent 화면의 답이 시험용 제공자 글이라는 안내도 함께 빠짐.
 - 2026-11-08 서버 `incoming/`에 배포마다 전체 묶음(약 0.5 GB)이 쌓여 2 GB가 되어, `deploy-remote.sh` 5단계에서 가장 최근 2개만 남기고 지우게 함(사용자 결정). 리허설 0.1.0→0.1.1→0.1.2 세 번째 배포에서 가장 오래된 묶음 하나가 지워지고 `ALL CHECKS OK`.
+- 2026-11-08 홈 무대를 스크롤 연동에서 등장형으로 바꿈("사이트" > "홈 무대", 사용자: 버벅임): 보통 높이 장면, 장면이 처음 보일 때 한 번 CSS 전환
+  (`assets/reveal.js`, `transform`·`opacity`만, 스크롤마다 하는 일 없음), 확대 대신 강조 상자(언어별 % 위치). `assets/stage.js`, `.motion`·`.pin`·`.slot` CSS, `data-t`를 지움.
+  첫 화면 제목·부제를 사용자가 고른 문구로, 근거 두 묶음(편하게·안전하게)을 더함. 드라이버 수를 제목·설명·공유 이미지에서 뺌(사용자: "데이터베이스 개수는 특장점이 아니다").
+  공유 이미지를 중립 이름의 메인 창 화면으로 다시 찍고 `og-<언어>-2.png`로 이름을 바꿈(메신저 미리 보기 캐시). 배포하지 않음.
 - 2026-11-08 서버 `old/`에 판마다 옛 설치 파일(약 0.5 GB)이 쌓여, `deploy-remote.sh` 6단계에서 가장 최근 3개 폴더만 남기고 지우게 함(사용자 결정: 권장대로). 옛 설치 파일은 GitHub 릴리스에 남아 있다.

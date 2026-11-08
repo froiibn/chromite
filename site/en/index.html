@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Download Chromite</title>
-<meta name="description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
+<meta name="description" content="Chromite - A database tool anyone can use easily and safely. Even system and application operators can query and fix data with ease and without slip-ups. Download the installer for Windows or macOS.">
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
@@ -15,25 +15,25 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Chromite">
 <meta property="og:title" content="Chromite - Database Workbench">
-<meta property="og:description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
+<meta property="og:description" content="Chromite - A database tool anyone can use easily and safely. Even system and application operators can query and fix data with ease and without slip-ups. Download the installer for Windows or macOS.">
 <meta property="og:url" content="https://chromite.seizia.com/en/">
-<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en.png">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en-2.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Chromite logo, the line &#x27;More than 100 drivers, many databases, one window&#x27; and the Chromite window">
+<meta property="og:image:alt" content="The Chromite logo, the line &#x27;A database tool anyone can use easily and safely&#x27; and the Chromite window with Object Explorer, a query and its results">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Chromite - Database Workbench">
-<meta name="twitter:description" content="Chromite - Database Workbench. A desktop app for many databases in one window, with more than 100 drivers. Download the installer for Windows or macOS.">
-<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en.png">
-<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;More than 100 drivers, many databases, one window&#x27; and the Chromite window">
+<meta name="twitter:description" content="Chromite - A database tool anyone can use easily and safely. Even system and application operators can query and fix data with ease and without slip-ups. Download the installer for Windows or macOS.">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en-2.png">
+<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;A database tool anyone can use easily and safely&#x27; and the Chromite window with Object Explorer, a query and its results">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="ko" href="/ko/">
 <script src="/downloads/releases.js" defer></script>
 <script src="/assets/site.js" defer></script>
-<script src="/assets/stage.js"></script>
+<script src="/assets/reveal.js"></script>
 </head>
 <body>
 <header class="top">
@@ -52,28 +52,45 @@
 
 <div class="stage">
   <section class="scene scene-hero" aria-labelledby="hero-title">
-    <div class="pin">
-      <div class="hero-copy" data-t="o 1 0 .08 .34; y 0px -90px 0 .34">
+    <div class="scene-body">
+      <div class="hero-copy">
         <h1 id="hero-title">Chromite</h1>
-        <p class="hero-sub">Database workbench</p>
+        <p class="hero-sub">A database tool anyone can use easily and safely</p>
+        <p class="hero-lead">Even system and application operators can query and fix data with ease and without slip-ups</p>
         <p class="hero-cta"><a class="btn" href="#download">Download</a><span>For Windows and macOS. Free and open source.</span></p>
       </div>
-      <div class="hero-shot">
-        <img src="/assets/shots/en-dark.webp" width="1899" height="1188" fetchpriority="high" decoding="async" data-t="y 62% -4% 0 .62; r 34 0 0 .62; s .84 1 0 .62" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
+      <div class="hero-proof">
+        <div class="proof">
+          <p class="proof-title">Easy</p>
+          <ul>
+            <li>Save frequent queries in the Query Library and run them by filling in values</li>
+            <li>Share queries with your team through a shared folder or Git</li>
+          </ul>
+        </div>
+        <div class="proof">
+          <p class="proof-title">Safe</p>
+          <ul>
+            <li>DELETE and UPDATE without WHERE, DROP and TRUNCATE are checked before they run</li>
+            <li>Grid edits can show their SQL before you save</li>
+            <li>Open transactions are shown, and nothing is committed or rolled back without asking</li>
+          </ul>
+        </div>
       </div>
-      <p class="hero-statement" data-t="o 0 1 .6 .78; y 36px 0px .6 .78">Many databases in one window, through more than 100 drivers. The common ones come pre-installed.</p>
+      <div class="hero-shot">
+        <img src="/assets/shots/en-dark.webp" width="1899" height="1188" fetchpriority="high" decoding="async" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
+      </div>
     </div>
   </section>
 
   <section class="scene scene-wide" id="transactions" aria-labelledby="transactions-title">
-    <div class="pin">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="transactions-title">Transactions are never closed behind your back.</h2>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/transactions-en-dark.webp" srcset="/assets/shots/tour/transactions-en-dark.webp 1.25x" width="994" height="342" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -42% .03 .17; y 0% -70% .03 .17; s 1.7 1 .52 .66; x -42% 0% .52 .66; y -70% 0% .52 .66" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log."></div>
+        <div class="frame"><img src="/assets/shots/tour/transactions-en-dark.webp" srcset="/assets/shots/tour/transactions-en-dark.webp 1.25x" width="994" height="342" loading="lazy" decoding="async" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log."><span class="mark end" aria-hidden="true"><span>Open transaction</span></span></div>
       </figure>
-      <ul class="slot">
+      <ul class="lines">
         <li>The status line shows the open transaction, how long it has been open and how many statements it holds. Click it to commit, roll back or open the transaction log.</li>
         <li>A transaction left open and unused is brought back to you as a notification after the time you set.</li>
         <li>Disconnecting, closing the app or reconnecting after an error asks first: Commit / Roll Back / Cancel.</li>
@@ -83,14 +100,14 @@
   </section>
 
   <section class="scene scene-wide" id="query-library" aria-labelledby="query-library-title">
-    <div class="pin">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="query-library-title">A query library the team shares.</h2>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/library-en-dark.webp" srcset="/assets/shots/tour/library-en-dark.webp 1.25x" width="1401" height="584" loading="lazy" decoding="async" data-t="s 1.6 1 .18 .36; x -60% 0% .18 .36; y 0% 0% .18 .36" alt="The Query Library window with the roots My queries and Team queries, a Git repository shown as main ↑1. The query window in the middle has Name, Description, Target, Parameters (1) and Thresholds, the SQL, and one long open transaction in the result grid."></div>
+        <div class="frame"><img src="/assets/shots/tour/library-en-dark.webp" srcset="/assets/shots/tour/library-en-dark.webp 1.25x" width="1401" height="584" loading="lazy" decoding="async" alt="The Query Library window with the roots My queries and Team queries, a Git repository shown as main ↑1. The query window in the middle has Name, Description, Target, Parameters (1) and Thresholds, the SQL, and one long open transaction in the result grid."><span class="mark side" aria-hidden="true"><span>Git repository</span></span></div>
       </figure>
-      <ul class="slot">
+      <ul class="lines">
         <li>Add a network folder or a Git working copy as a library root. The tree shows the branch and the commits not pushed yet, and you pull or commit and push from the app.</li>
         <li>Each query is a plain <code>.sql</code> file, so other tools can open it too.</li>
         <li>Parameters are asked for when the query runs (numbers, dates, choice lists, defaults), and thresholds judge result columns as warning or critical.</li>
@@ -99,16 +116,16 @@
     </div>
   </section>
 
-  <section class="scene scene-side n6" id="chromite-agent" aria-labelledby="chromite-agent-title">
-    <div class="pin">
+  <section class="scene scene-side" id="chromite-agent" aria-labelledby="chromite-agent-title">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
         <p class="scene-lead">Ask, and it gathers evidence with its tools, then answers. Schema, data and query tools work with any database; diagnostics (plans, locks, health) cover SQL Server, PostgreSQL, MariaDB/MySQL and Oracle.</p>
       </div>
-      <figure class="scene-media" data-t="y 8vh 0vh 0 .3">
+      <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
       </figure>
-      <ul class="slot tasks">
+      <ul class="lines tasks">
         <li><strong>Slow query tuning</strong> Reads the estimated and actual plan, compares plans before and after an index, and looks at statistics, index usage, missing and unused indexes and fragmentation. It creates an index only after you confirm.</li>
         <li><strong>Blocking and deadlocks</strong> Builds the blocking chain from the head blocker, lists locks and sessions with long open or idle transactions, and reads recent deadlock graphs. Ending a session always asks you first.</li>
         <li><strong>Health check</strong> Sessions, wait statistics, top CPU and I/O queries, database and file space, backup and job history, the server error log, and settings that differ from their defaults.</li>
@@ -119,17 +136,17 @@
     </div>
   </section>
 
-  <section class="scene scene-side n3" id="closed-networks" aria-labelledby="closed-networks-title">
-    <div class="pin">
+  <section class="scene scene-side" id="closed-networks" aria-labelledby="closed-networks-title">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="closed-networks-title">Works on networks without internet.</h2>
         <p class="scene-lead">One installer connects to the main databases right away, with no driver download.</p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; y 0% -34% .3 .42; s 1.6 1 .63 .75; y -34% 0% .63 .75" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."></div>
+        <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."><span class="mark inside" aria-hidden="true"><span>Checked drivers</span></span><span class="mark" aria-hidden="true"></span></div>
       </figure>
-      <ul class="slot">
-        <li>There are more than 100 drivers. The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; the rest, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
+      <ul class="lines">
+        <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed. Other drivers, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
         <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC. Every file's SHA-256 is checked before it is installed.</li>
         <li>With offline mode on, Chromite does not try to download driver files. The automatic update check can be turned off in Options.</li>
       </ul>
@@ -137,14 +154,14 @@
   </section>
 
   <section class="scene scene-wide" id="debugger" aria-labelledby="debugger-title">
-    <div class="pin">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="debugger-title">Step through procedures.</h2>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" data-t="s 1 1.8 .22 .34; x 0% 0% .22 .34; y 0% -43% .22 .34; s 1.8 1.5 .47 .6; x 0% -25% .47 .6; y -43% -50% .47 .6; s 1.5 1 .72 .84; x -25% 0% .72 .84; y -50% 0% .72 .84" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."></div>
+        <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."><span class="mark side" aria-hidden="true"><span>Breakpoint</span></span></div>
       </figure>
-      <ul class="slot">
+      <ul class="lines">
         <li>Run PostgreSQL (PL/pgSQL) and Oracle (PL/SQL) functions and procedures in a debugger.</li>
         <li>Click the margin to set a breakpoint, then follow the code with Step Over and Step Into. Oracle also has Step Out.</li>
         <li>See variables, the call stack, server messages and results. While stopped, you can change a variable's value.</li>
@@ -154,15 +171,15 @@
   </section>
 
   <section class="scene scene-wide" id="administration" aria-labelledby="administration-title">
-    <div class="pin">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="administration-title">DBA tools built in.</h2>
         <p class="scene-lead">The admin tools in the Activity Monitor currently cover SQL Server, Oracle, PostgreSQL and MariaDB, with sessions and locks for Altibase. Other databases connect too, for queries and object browsing.</p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -44% .03 .17; s 1.7 1 .22 .36; x -44% 0% .22 .36" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."></div>
+        <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."><span class="mark below" aria-hidden="true"><span>Blocking chain</span></span></div>
       </figure>
-      <ul class="slot">
+      <ul class="lines">
         <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
         <li>Job schedulers: SQL Server Agent, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron and MariaDB events.</li>
         <li>Disk usage, server logs (errors, warnings, slow queries), maintenance with a preview and a confirmation, and replication status.</li>
@@ -171,16 +188,16 @@
     </div>
   </section>
 
-  <section class="scene scene-side n3" id="passwords" aria-labelledby="passwords-title">
-    <div class="pin">
+  <section class="scene scene-side" id="passwords" aria-labelledby="passwords-title">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="passwords-title">Passwords stay on your PC.</h2>
         <p class="scene-lead">Saved connection passwords and API keys are never written to workspace files.</p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/credentials-en-dark.webp" srcset="/assets/shots/tour/credentials-en-dark.webp 1.25x" width="707" height="700" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; x 0% -6% .3 .42; y 0% -60% .3 .42; s 1.6 1 .63 .75; x -6% 0% .63 .75; y -60% 0% .63 .75" alt="The Export Connections dialog: the list of connections to export, the check box to include passwords and encrypt the file, Passphrase and Confirm fields, and a note that it needs 12 characters or more."></div>
+        <div class="frame"><img src="/assets/shots/tour/credentials-en-dark.webp" srcset="/assets/shots/tour/credentials-en-dark.webp 1.25x" width="707" height="700" loading="lazy" decoding="async" alt="The Export Connections dialog: the list of connections to export, the check box to include passwords and encrypt the file, Passphrase and Confirm fields, and a note that it needs 12 characters or more."><span class="mark end" aria-hidden="true"><span>Passphrase</span></span></div>
       </figure>
-      <ul class="slot">
+      <ul class="lines">
         <li>They are encrypted in the operating system's secure storage: DPAPI tied to your Windows account, or the Keychain on macOS.</li>
         <li>To move to a new PC, export your connections to a file encrypted with a passphrase you choose (12 characters or more) and import it there.</li>
         <li>No usage statistics are collected or sent. The only requests that leave the PC are the update check, downloads of drivers that are not bundled, and calls to a Chromite Agent provider you set up. See <a href="/en/privacy.html">Privacy</a> for the details.</li>
@@ -188,13 +205,13 @@
     </div>
   </section>
 
-  <section class="scene scene-side n2" id="open-source" aria-labelledby="open-source-title">
-    <div class="pin">
+  <section class="scene scene-side" id="open-source" aria-labelledby="open-source-title">
+    <div class="scene-body">
       <div class="scene-head">
         <h2 id="open-source-title">Free and open source.</h2>
         <p class="scene-lead">Chromite's source code is public on GitHub under the Apache License 2.0. Anyone can read it, build it, change it and redistribute it.</p>
       </div>
-      <div class="scene-media oss" data-t="o .3 1 0 .3; y 40px 0px 0 .3">
+      <div class="scene-media oss">
         <a class="oss-repo" href="https://github.com/froiibn/chromite">
           <span class="mark-github large" aria-hidden="true"></span>
           <span><strong>froiibn/chromite</strong><span class="where">View the source code on GitHub</span></span>
@@ -204,7 +221,7 @@
           <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
         </ul>
       </div>
-      <ul class="slot">
+      <ul class="lines">
         <li>A code-signed installer for Windows and a disk image for macOS are provided. New versions are downloaded automatically and installed when you restart the app.</li>
         <li>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</li>
       </ul>
@@ -221,7 +238,7 @@
     <div class="included">
       <h2 class="spec-title">What is included</h2>
       <dl class="spec">
-        <dt>Databases</dt><dd>More than 100 drivers. The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; others are downloaded on first connect or installed from an offline bundle. You can also add another JDBC driver in the Driver Manager.</dd>
+        <dt>Databases</dt><dd>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; the other drivers (more than 100 in all) are downloaded on first connect or installed from an offline bundle. You can also add another JDBC driver in the Driver Manager.</dd>
         <dt>Queries</dt><dd>SQL editor, a result grid you can filter and edit in place, execution plans, Query Library</dd>
         <dt>Objects</dt><dd>Object Explorer, Registered Servers, Properties, table designer, ER diagrams</dd>
         <dt>Data</dt><dd>Import and export, backup and restore</dd>
