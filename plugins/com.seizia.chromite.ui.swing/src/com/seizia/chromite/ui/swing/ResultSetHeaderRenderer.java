@@ -48,7 +48,8 @@ import java.util.function.BiConsumer;
  *     강조색({@code Chromite.Table.headerIconActiveForeground})이다. 16 격자의 1px 선(0.5 좌표)이라 팩 아이콘과 굵기가 같다.</li>
  *     <li>열 아이콘은 팩의 {@code column}, 결과의 행 식별자가 기본 키이고 그 열이 키에 들면 {@code column-pk}다
  *     (DataGrip은 머리글에 자료형 대신 열 아이콘을 쓴다, design-spec "아이콘 요구 사항").</li>
- *     <li>누른 자리는 {@link #zoneAt}이 그릴 때와 같은 치수로 계산한다. 누를 때의 동작(팝업, 정렬)은 결과 뷰어가 정한다.</li>
+ *     <li>누른 자리는 {@link #zoneAt}이 그릴 때와 같은 치수로 계산한다. 누를 때의 동작(깔때기는 필터 팝업, 정렬 아이콘은 정렬,
+ *     이름 자리는 열 선택)은 결과 뷰어가 정한다.</li>
  * </ul>
  * EDT에서만 쓴다(렌더러 상태를 그릴 때마다 바꾼다).
  *
@@ -56,6 +57,7 @@ import java.util.function.BiConsumer;
  * - 2026-11-07 최초 작성: 결과 필터 줄을 열별 필터로 바꿈 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 상태 줄 정렬 요약의 강조색 정렬 화살표 아이콘 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  * - 2026-11-08 깔때기를 열마다 끌 수 있게: 가상(계산) 열은 DB가 거를 수 없다 (docs/chromite/swing-saved-filters-virtual-columns.md)
+ * - 2026-11-08 이름 자리를 누르면 정렬 대신 열 선택(결과 뷰어), 설계 문단만 고침 (docs/chromite/swing-grid-column-filters.md "머리글 누르기")
  */
 final class ResultSetHeaderRenderer implements TableCellRenderer {
 

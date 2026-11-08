@@ -6,7 +6,7 @@ DBeaver SWT 결과 뷰어(`com.seizia.chromite.ui.editors.data`의 `ResultSetVie
 ([swing-frontend.md](swing-frontend.md) C·G단계의 `ResultSetGrid`)에 옮긴다. 우선순위는 다음과 같다.
 
 1. 값 패널: 고른 칸의 값을 표 옆에서 크게 보기(줄 바꿈 글자, JSON·XML 정리, 이진 이미지 미리 보기, 16진수), 편집할 수 있는 표에서는 고치기
-2. 정렬·필터: 머리글 눌러 정렬(서버 또는 표 안), 칸 값으로 거르기. WHERE 필터 줄과 기록은 2026-11-07 열 머리글 필터로 바뀜([swing-grid-column-filters.md](swing-grid-column-filters.md))
+2. 정렬·필터: 머리글의 정렬 아이콘을 눌러 정렬(서버 또는 표 안), 칸 값으로 거르기. WHERE 필터 줄과 기록은 2026-11-07 열 머리글 필터로 바뀜([swing-grid-column-filters.md](swing-grid-column-filters.md))
 3. 다음 페이지: 끝까지 내리면 더 읽기, 모두 읽기, 읽은 행 수 표시
 4. 레코드 보기: 한 행을 세로로
 5. 표 편의 기능: 열 너비 맞춤, 복사 형식(CSV·TSV·SQL IN·Markdown), 선택 집계, NULL 표시, 날짜·숫자 형식
@@ -83,7 +83,7 @@ SWT: `ResultSetViewer.toggleSortOrder`(ResultSetViewer.java:2700), `reorderLocal
 `ResultSetModel.createDataFilter`(:183), `ResultSetFilterPanel.setCustomDataFilter`(ResultSetFilterPanel.java:618), `addFiltersHistory`(:651),
 `ResultSetViewer.fillFiltersMenu`(:3893), `FilterByAttributeAction.run`(:42).
 
-- **정렬 순서:** 머리글을 누르면 오름차순 → 내림차순 → 정렬 없음. Ctrl을 누른 채 누르면 다른 열의 정렬을 두고 이 열을 더한다(여러 열 정렬).
+- **정렬 순서:** 머리글의 정렬 아이콘을 누르면 오름차순 → 내림차순 → 정렬 없음(2026-11-08 전에는 이름 자리를 눌러도 정렬했고, 지금 이름 자리는 열 선택이다). Ctrl을 누른 채 누르면 다른 열의 정렬을 두고 이 열을 더한다(여러 열 정렬).
   SWT는 그냥 눌러도 열을 더하지만, Swing은 한 열 정렬을 기본으로 했다(다른 데이터베이스 도구에서 흔한 방식). 머리글 오른쪽 클릭에 Sort Ascending / Sort Descending / Clear Sorting.
   정렬 상태는 2026-11-07부터 머리글 오른쪽 끝의 정렬 아이콘(정렬 없음: 흐린 ⇅, 정렬: 강조색 화살표)이 보이고, 그 아이콘을 눌러도 같은 순서로 바뀐다
   (전에는 Look and Feel의 정렬 화살표 `Table.ascendingSortIcon`/`descendingSortIcon`, [swing-grid-column-filters.md](swing-grid-column-filters.md)).
@@ -173,7 +173,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 ## upstream 대비 변경점
 
 - upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)와 아주 작은 수의 표시(`NumberFormatSample`의 기본값, `DBValueFormatting.convertNumberToNativeString`)를 고쳤다(SWT에도 적용).
-- SWT와 다른 동작: 머리글 클릭은 한 열 정렬(Ctrl로 더하기), 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
+- SWT와 다른 동작: 정렬 아이콘 클릭은 한 열 정렬(Ctrl로 더하기), 머리글 이름 클릭은 열 전체 선택, 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
 ## 확인 (2026-11-06)
@@ -225,4 +225,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   전체 행 수. "남긴 것" 갱신. [swing-grid-navigation.md](swing-grid-navigation.md).
 - 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 2026-11-08 배치 결과 다시 읽기: 결과를 만든 SELECT만 실행, 정할 수 없으면 막고 이유를 보임. [sql-batch-reread.md](sql-batch-reread.md).
-- 2026-11-08 행 번호 칸을 선택·포커스와 관계없이 늘 그리드 바탕으로("표 편의 기능").
+- 2026-11-08 행 번호 칸을 선택·포커스와 관계없이 늘 그리드 바탕으로("표 편의 기능"), 머리글 이름 자리는 정렬 대신 열 선택(swing-grid-column-filters.md "머리글 누르기").
