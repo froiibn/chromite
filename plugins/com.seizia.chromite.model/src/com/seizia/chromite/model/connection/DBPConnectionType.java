@@ -48,6 +48,9 @@ import java.util.*;
  *   (docs/chromite/idle-transactions.md)
  * - 2026-11-08 기본 유형의 이름·설명을 언어와 상관없이 저장·읽기({@link #toStoredText}, {@link #fromStoredText}). 전에는 저장할 때의 화면 언어
  *   문구가 그대로 저장돼, 영어로 저장한 뒤 한국어 화면에서 "Development"로 보였다 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-09 {@link #isAutoEndReadOnlyTransactions()}: 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기(앱 변경 #31, 사용자 결정으로
+ *   연결 종류마다 켜고 기본은 꺼짐). 생성자 인자가 아니라 속성으로 두어 업스트림 생성자를 부르는 곳을 바꾸지 않는다
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
@@ -175,6 +178,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
     private int closeIdleTransactionPeriod;
     private boolean autoCloseConnections;
     private int closeIdleConnectionPeriod;
+    private boolean autoEndReadOnlyTransactions;
     private final String colorConstant;
 
     private boolean predefined;
@@ -200,6 +204,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             source.connectionModifyRestrictions,
             source.colorConstant
         );
+        this.autoEndReadOnlyTransactions = source.autoEndReadOnlyTransactions;
     }
 
     public DBPConnectionType(
@@ -412,6 +417,18 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
         this.closeIdleConnectionPeriod = closeIdleConnectionPeriod;
     }
 
+    /**
+     * End a transaction of the type's connections that only read (read locks and a snapshot, confirmed by the database)
+     * right after each statement, with a rollback that discards nothing (IdleTransactionMonitor). Off by default.
+     */
+    public boolean isAutoEndReadOnlyTransactions() {
+        return autoEndReadOnlyTransactions;
+    }
+
+    public void setAutoEndReadOnlyTransactions(boolean autoEndReadOnlyTransactions) {
+        this.autoEndReadOnlyTransactions = autoEndReadOnlyTransactions;
+    }
+
     @Override
     public boolean hasModifyPermission(@NotNull DBPDataSourcePermission permission) {
         return connectionModifyRestrictions == null || !connectionModifyRestrictions.contains(permission);
@@ -478,6 +495,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
                 CommonUtils.equalObjects(closeIdleTransactionPeriod, ct.closeIdleTransactionPeriod) &&
                 autoCloseConnections == ct.autoCloseConnections &&
                 CommonUtils.equalObjects(closeIdleConnectionPeriod, ct.closeIdleConnectionPeriod) &&
+                autoEndReadOnlyTransactions == ct.autoEndReadOnlyTransactions &&
                 predefined == ct.predefined &&
                 CommonUtils.equalObjects(connectionModifyRestrictions, ct.connectionModifyRestrictions);
         }

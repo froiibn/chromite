@@ -33,6 +33,8 @@ import org.eclipse.osgi.util.NLS;
  *   Drivers({@code drivers_*}), Logs({@code logs_*}), Object Explorer({@code nav_*}), Notifications({@code notify_*}), Data Transfer
  *   ({@code transfer_*}), Code Completion({@code completion_*}), Altibase·CUBRID·Mimer SQL 탭 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-08 Logs 탭의 기록할 것이 Query Manager 창의 보일 항목이기도 하다는 안내({@code logs_objects_hint}) (docs/chromite/swing-query-manager.md)
+ * - 2026-11-09 Connection Types의 조회만 한 트랜잭션 자동으로 끝내기({@code types_end_read_only*})
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class SettingsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SettingsMessages"; //$NON-NLS-1$
@@ -112,6 +114,8 @@ public class SettingsMessages extends NLS {
     public static String types_idle_transactions;
     public static String types_idle_transactions_tip;
     public static String types_idle_transactions_period;
+    public static String types_end_read_only;
+    public static String types_end_read_only_tip;
     public static String types_minutes;
     public static String types_section_connections;
     public static String types_close_idle;

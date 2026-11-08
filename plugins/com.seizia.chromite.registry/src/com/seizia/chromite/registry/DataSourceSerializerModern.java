@@ -67,6 +67,8 @@ import java.util.stream.Collectors;
  *   있는 고정 키로 암호화) 대신 OS 보안 저장소에 읽고 씀({@link ProjectCredentialsStorage}). 저장 실패는 로그만 남기지 않고 예외로
  *   올려 레지스트리의 마지막 오류로 사용자에게 보인다 (docs/chromite/credential-storage.md)
  * - 2026-11-08 연결 설정에서 Chromite가 지운 키({@link RemovedPreferences})를 읽을 때 뺌 (docs/chromite/swing-options.md "Errors and Timeouts")
+ * - 2026-11-09 연결 유형 사본의 조회만 한 트랜잭션 자동으로 끝내기({@code auto-end-read-only-transactions})를 읽고 씀
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class DataSourceSerializerModern<T extends DataSourceDescriptor> implements DataSourceSerializer<T> {
 
@@ -228,6 +230,7 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
                             JSONUtils.field(jsonWriter, "smart-commit-recover", ct.isSmartCommitRecover());
                             JSONUtils.field(jsonWriter, "auto-close-transactions", ct.isAutoCloseTransactions());
                             JSONUtils.field(jsonWriter, "close-transactions-period", ct.getCloseIdleTransactionPeriod());
+                            JSONUtils.field(jsonWriter, "auto-end-read-only-transactions", ct.isAutoEndReadOnlyTransactions());
                             JSONUtils.field(jsonWriter, "auto-close-connections", ct.isAutoCloseConnections());
                             JSONUtils.field(jsonWriter, "close-connections-period", ct.getCloseIdleConnectionPeriod());
                             serializeModifyPermissions(jsonWriter, ct, true);
@@ -492,6 +495,7 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
                     Boolean smartCommitRecover = JSONUtils.getObjectProperty(ctConfig, "smart-commit-recover");
                     Boolean autoCloseTransactions = JSONUtils.getObjectProperty(ctConfig, "auto-close-transactions");
                     Object closeTransactionsPeriod = JSONUtils.getObjectProperty(ctConfig, "close-transactions-period");
+                    Boolean autoEndReadOnlyTransactions = JSONUtils.getObjectProperty(ctConfig, "auto-end-read-only-transactions");
                     Boolean autoCloseConnections = JSONUtils.getObjectProperty(ctConfig, "auto-close-connections");
                     Object closeConnectionsPeriod = JSONUtils.getObjectProperty(ctConfig, "close-connections-period");
                     DBPConnectionType ct = new DBPConnectionType(
@@ -510,6 +514,7 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
                         CommonUtils.toBoolean(autoCloseConnections),
                         CommonUtils.toInt(closeConnectionsPeriod)
                     );
+                    ct.setAutoEndReadOnlyTransactions(CommonUtils.toBoolean(autoEndReadOnlyTransactions));
                     providerRegistry.addConnectionType(ct);
                     deserializeModifyPermissions(ctConfig, ct);
                 }

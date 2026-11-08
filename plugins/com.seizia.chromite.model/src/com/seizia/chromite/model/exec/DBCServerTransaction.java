@@ -30,11 +30,19 @@ import java.util.Set;
  * 짐작하지 않고 DB에 물은 답을 담는다. 서버에 트랜잭션이 있어도 쥔 것이 없을 수 있고(SQL Server 암시적 트랜잭션의 일반 SELECT,
  * PostgreSQL {@code SELECT 1}), 무엇을 쥐었는지 읽을 권한이 없을 수도 있어서(SQL Server DMV) 종류를 나눈다. 명시적 BEGIN을 문장으로
  * 보았는지, 데이터를 바꾼 문장이 있었는지는 서버가 모르는 경우가 있어 쿼리 관리자({@code QMUtils.getTransactionState})가 합친다.
+ * {@link #readsOnly()}(2026-11-09): 끝내도 잃는 것이 없다는 것은 DB가 직접 확인한 때만 참이다. 잠금의 종류(읽기 잠금인지)와 변경 유무를
+ * 권한 없이 확실히 읽을 수 있는 DB만 방언이 켜고, 그 밖의 답(SQL Server, Oracle, 권한 없는 MySQL)은 늘 거짓이다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 {@link #readsOnly()}: 읽기 잠금·스냅숏만 쥔 트랜잭션을 한 번에 끝내기와 자동으로 끝내기(앱 변경 #31)
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ *
+ * @param readsOnly the database confirmed that the transaction holds nothing but read locks and a snapshot (no data
+ *                  change, no row lock, no lock of another kind): a rollback discards nothing. Only for {@link Kind#HOLDING}
+ *                  with {@link Hold#LOCKS} and {@link Hold#SNAPSHOT} at most; false otherwise.
  */
-public record DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds) {
+public record DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds, boolean readsOnly) {
 
     public enum Kind {
         /** No transaction on the server. */
@@ -62,6 +70,9 @@ public record DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds)
         ABORTED
     }
 
+    // What a transaction that only reads may hold (before the constants below, which the constructor checks against it)
+    private static final Set<Hold> READ_HOLDS = EnumSet.of(Hold.LOCKS, Hold.SNAPSHOT);
+
     public static final DBCServerTransaction NONE = new DBCServerTransaction(Kind.NONE, Set.of());
     public static final DBCServerTransaction EMPTY = new DBCServerTransaction(Kind.EMPTY, Set.of());
     public static final DBCServerTransaction UNVERIFIED = new DBCServerTransaction(Kind.UNVERIFIED, Set.of());
@@ -69,6 +80,14 @@ public record DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds)
 
     public DBCServerTransaction {
         holds = holds.isEmpty() ? Set.of() : Collections.unmodifiableSet(EnumSet.copyOf(holds));
+        readsOnly = readsOnly && kind == Kind.HOLDING && !holds.isEmpty() && READ_HOLDS.containsAll(holds);
+    }
+
+    /**
+     * An answer that does not say whether the transaction only reads.
+     */
+    public DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds) {
+        this(kind, holds, false);
     }
 
     /**
@@ -76,6 +95,16 @@ public record DBCServerTransaction(@NotNull Kind kind, @NotNull Set<Hold> holds)
      */
     @NotNull
     public static DBCServerTransaction holding(@NotNull Set<Hold> holds) {
-        return holds.isEmpty() ? EMPTY : new DBCServerTransaction(Kind.HOLDING, holds);
+        return holding(holds, false);
+    }
+
+    /**
+     * A transaction that holds the given things; {@link #EMPTY} when there are none.
+     *
+     * @param readsOnly the database confirmed that the holds are read locks and a snapshot only ({@link #readsOnly()})
+     */
+    @NotNull
+    public static DBCServerTransaction holding(@NotNull Set<Hold> holds, boolean readsOnly) {
+        return holds.isEmpty() ? EMPTY : new DBCServerTransaction(Kind.HOLDING, holds, readsOnly);
     }
 }

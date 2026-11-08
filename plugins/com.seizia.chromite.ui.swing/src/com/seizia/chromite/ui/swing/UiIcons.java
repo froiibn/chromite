@@ -59,6 +59,8 @@ import java.util.Map;
  * - 2026-11-08 촘촘한 모드: 글자 단추의 여백을 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 {@link #useToolButtonMargin}: 글자 단추 여백을 토글 단추(주 도구 막대의 Chromite Agent, 앱 변경 #6)에도
  *   (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-09 {@link Status#QUIET}: 쿼리 상태 줄의 조회 트랜잭션 점(보조 글자 색, 주의가 아님) (docs/chromite/idle-transactions.md
+ *   "조회만 한 트랜잭션 끝내기")
  */
 final class UiIcons {
 
@@ -76,7 +78,9 @@ final class UiIcons {
         CONNECTING("Chromite.status.warning"), //$NON-NLS-1$
         ERROR("Chromite.status.error"), //$NON-NLS-1$
         // Attention without an error (an open transaction)
-        WARNING("Chromite.status.warning"); //$NON-NLS-1$
+        WARNING("Chromite.status.warning"), //$NON-NLS-1$
+        // A state to know about, not to act on (a read-only transaction that only holds read locks or a snapshot)
+        QUIET("Chromite.secondaryForeground"); //$NON-NLS-1$
 
         private final String colorKey;
 

@@ -68,6 +68,8 @@ import java.util.Set;
  *   (docs/chromite/connection-lifecycle.md "트랜잭션 로그의 지난 트랜잭션")
  * - 2026-11-08 {@link #getTransactionState}: 열림을 DB의 답({@link QMTransactionTracker})으로 정하고, 답할 수 없을 때만 문장 분류로.
  *   세는 문장은 트랜잭션이 없다고 확인된 뒤의 것(자동 커밋 모드 포함) (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 조회만 한 트랜잭션({@link QMTransactionState#isReadOnly()}), 끝내기 직전에 다시 묻기({@link #refreshTransactionState}),
+ *   자동으로 끝낸 시각({@link #getReadOnlyEndTime}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class QMUtils {
 
@@ -180,7 +182,7 @@ public class QMUtils {
     public static QMTransactionState getTransactionState(@Nullable DBCExecutionContext executionContext) {
         QMMConnectionInfo sessionInfo = executionContext == null || qmRegistry == null ? null : getCurrentConnection(executionContext);
         if (sessionInfo == null || sessionInfo.isClosed()) {
-            return new QMTransactionState(0, 0, false, 0, 0, false, QMTransactionState.Status.NONE, Set.of(), false);
+            return new QMTransactionState(0, 0, false, 0, 0, false, QMTransactionState.Status.NONE, Set.of(), false, false);
         }
         // The last statement of the context, of any purpose and transaction mode
         QMMStatementExecuteInfo lastExec = sessionInfo.getExecutionStack();
@@ -247,6 +249,9 @@ public class QMUtils {
         } else {
             status = QMTransactionState.Status.UNKNOWN;
         }
+        // Ending it discards nothing only when both the database and the statements say so (and some were seen)
+        boolean readOnly = status == QMTransactionState.Status.OPEN && kind == DBCServerTransaction.Kind.HOLDING && server.readsOnly()
+            && !explicit && counts.count > 0 && counts.updates == 0 && !counts.lockingRead;
         int execCount = counts.count;
         int updateCount = counts.updates;
         long txnStartTime = counts.start;
@@ -259,7 +264,30 @@ public class QMUtils {
             lastExecTime = lastExecTime > 0 ? lastExecTime : since;
         }
         return new QMTransactionState(execCount, updateCount, txnMode, txnStartTime, lastExecTime, executing,
-            status, holds.isEmpty() ? Set.of() : Collections.unmodifiableSet(holds), serverChecked);
+            status, holds.isEmpty() ? Set.of() : Collections.unmodifiableSet(holds), serverChecked, readOnly);
+    }
+
+    /**
+     * Asks the database about the context's transaction now and returns the new state ({@link #getTransactionState}):
+     * before an action that relies on what the transaction holds. Runs a server round trip; never call in the UI thread.
+     */
+    @NotNull
+    public static QMTransactionState refreshTransactionState(@NotNull DBCExecutionContext executionContext) {
+        QMTransactionTracker tracker = qmRegistry == null ? null : qmRegistry.getTransactionTracker();
+        if (tracker != null) {
+            tracker.refresh(executionContext);
+        }
+        return getTransactionState(executionContext);
+    }
+
+    /**
+     * When Chromite last ended a read-only transaction of the context by itself after the user's work (the connection
+     * type's setting), or 0 when it did not since the last user statement. In-memory, cheap like {@link #getTransactionState}.
+     */
+    public static long getReadOnlyEndTime(@Nullable DBCExecutionContext executionContext) {
+        QMTransactionTracker tracker = executionContext == null || qmRegistry == null ? null : qmRegistry.getTransactionTracker();
+        QMTransactionTracker.Snapshot tracked = tracker == null ? null : tracker.get(executionContext);
+        return tracked == null ? 0 : tracked.readOnlyEnded();
     }
 
     /**

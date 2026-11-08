@@ -71,6 +71,9 @@ import java.util.*;
  *   gets no modifiers in a new column; numeric(131089) failed (docs/chromite/swing-result-generate-sql.md).
  * - 2026-11-08 Chromite: {@link #probeTransaction}: what the session's transaction holds, asked from the server
  *   (docs/chromite/idle-transactions.md "PostgreSQL").
+ * - 2026-11-09 Chromite: {@link #probeTransaction} also tells whether the transaction only reads (relation AccessShareLock
+ *   and predicate SIReadLock only, no transaction id), for ending it in one click or automatically
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기").
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
     SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -85,14 +88,19 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
     // The session's granted locks besides its own virtual transaction id. Relations below FirstNormalObjectId (16384)
     // are system catalogs and views, pg_locks among them: their AccessShareLock blocks nobody's DDL and the probe itself
     // takes the one on pg_locks. A transaction id is assigned by the first write or row lock (FOR UPDATE/SHARE); with a
-    // write-mode relation lock it means changes.
+    // write-mode relation lock it means changes. The fourth column: no granted lock but relation AccessShareLock and the
+    // predicate SIReadLock of SERIALIZABLE (a plain read); a transaction id (any write or row lock), an advisory lock or a
+    // stronger relation lock (LOCK TABLE, nextval's RowExclusiveLock on a sequence) means more than reads.
     private static final String TRANSACTION_PROBE =
         "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.locktype = 'transactionid')" //$NON-NLS-1$
             + " AND EXISTS (SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.locktype = 'relation'" //$NON-NLS-1$
             + " AND l.mode NOT IN ('AccessShareLock', 'RowShareLock') AND l.relation >= 16384)," //$NON-NLS-1$
             + " (SELECT count(*) FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.granted" //$NON-NLS-1$
             + " AND l.locktype NOT IN ('virtualxid', 'transactionid') AND (l.relation IS NULL OR l.relation >= 16384))," //$NON-NLS-1$
-            + " pg_catalog.current_setting('transaction_isolation')"; //$NON-NLS-1$
+            + " pg_catalog.current_setting('transaction_isolation')," //$NON-NLS-1$
+            + " NOT EXISTS (SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid = pg_catalog.pg_backend_pid() AND l.granted" //$NON-NLS-1$
+            + " AND l.locktype <> 'virtualxid' AND (l.relation IS NULL OR l.relation >= 16384)" //$NON-NLS-1$
+            + " AND NOT (l.mode IN ('AccessShareLock', 'SIReadLock') AND l.locktype IN ('relation', 'page', 'tuple')))"; //$NON-NLS-1$
     private static final String PROBE_SAVEPOINT = "chromite_txn_probe"; //$NON-NLS-1$
 
     @NotNull
@@ -108,6 +116,9 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
      * ALTER, DROP and TRUNCATE of another session; {@code SELECT 1} holds nothing. REPEATABLE READ and SERIALIZABLE keep
      * their snapshot. The query runs in a savepoint: an error (a statement timeout) would otherwise abort the user's
      * transaction. Only PostgreSQL servers; the other server types behind this dialect fall back to statement classification.
+     * The transaction only reads ({@link DBCServerTransaction#readsOnly()}) in manual commit when it has no transaction
+     * id and no lock but the AccessShareLock of its reads and the SIReadLock of SERIALIZABLE: every data change and row
+     * lock assigns a transaction id first, also one made by a function called from a SELECT.
      */
     @Nullable
     @Override
@@ -137,6 +148,7 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
             // The driver never begins one in auto-commit mode
             holds.add(DBCServerTransaction.Hold.EXPLICIT);
         }
+        boolean readLocksOnly = false;
         try (Statement statement = connection.createStatement()) {
             statement.setQueryTimeout(TIMEOUT_SECONDS);
             statement.execute("SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
@@ -152,6 +164,7 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
                     if ("repeatable read".equals(isolation) || "serializable".equals(isolation)) { //$NON-NLS-1$ //$NON-NLS-2$
                         holds.add(DBCServerTransaction.Hold.SNAPSHOT);
                     }
+                    readLocksOnly = rs.getBoolean(4);
                 }
             } catch (SQLException e) {
                 statement.execute("ROLLBACK TO SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
@@ -160,7 +173,9 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
             }
             statement.execute("RELEASE SAVEPOINT " + PROBE_SAVEPOINT); //$NON-NLS-1$
         }
-        return DBCServerTransaction.holding(holds);
+        // Reads only: no changes, not begun explicitly (auto-commit), and the locks are those of plain reads
+        return DBCServerTransaction.holding(holds, readLocksOnly && !holds.contains(DBCServerTransaction.Hold.CHANGES)
+            && !holds.contains(DBCServerTransaction.Hold.EXPLICIT));
     }
 
     private static class DialectFeatures extends SQLDialectFeatures {

@@ -32,6 +32,7 @@ import com.seizia.chromite.model.exec.DBCTransactionProbe;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
 import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.UIServiceIdleTransactions;
@@ -75,6 +76,12 @@ import java.util.Map;
  *     (첫 문장 시각) 확인한 뒤에만 한다. 그 사이 다른 트랜잭션이 시작되었으면 그 트랜잭션을 건드리지 않는다.</li>
  *     <li>업스트림의 유휴 트랜잭션 롤백(사용자 활동 시각 기준, 확인 서비스가 없으면 묻지 않고 롤백)은 이 클래스로 바꾸었다.
  *     유휴 연결 닫기({@link DataSourceMonitorJob})는 열린 트랜잭션이 있는 연결을 닫지 않고 그 트랜잭션을 이 클래스에 맡긴다.</li>
+ *     <li>조회만 한 트랜잭션(2026-11-09, 앱 변경 #31, 사용자 결정 "한 번에 끝내기 + 자동 설정"): PostgreSQL·MySQL·MariaDB는 일반 SELECT도
+ *     테이블 잠금을 쥐어 열린 트랜잭션으로 보이지만({@link QMTransactionState#isReadOnly()}) 끝내도 잃는 것이 없다. 그래서
+ *     (A) 사용자가 상태 줄에서 고르면 DB에 다시 묻고 아직 조회만 했을 때만 롤백으로 끝낸다({@link #endReadOnlyTransaction}). 그 사이 변경이
+ *     생겼으면 끝내지 않고 알려 보통의 커밋/롤백 질문으로 넘긴다. (B) 연결 종류에서 켠 경우({@link DBPConnectionType#isAutoEndReadOnlyTransactions()},
+ *     기본 꺼짐)에만 사용자 작업이 끝난 직후 끝내고 상태 줄에 알린다({@link #endReadOnlyAfterWork}). 롤백인 이유: 둘 다 쥔 것을 풀지만 롤백은
+ *     혹시 놓친 변경이 있어도 남기지 않는다. 데이터 변경, 명시적 BEGIN, 잠그는 읽기, DB에 확인할 수 없는 상태에서는 절대 하지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -83,6 +90,8 @@ import java.util.Map;
  * - 2026-11-08 열린 트랜잭션을 DB의 답으로 정함(쥔 것 없는 SELECT는 알리지 않음, 자동 커밋의 명시적 트랜잭션은 알림).
  *   커밋·롤백 공용 경로({@link #commitOrRollback}): 자동 커밋 모드는 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN은 끝까지 커밋
  *   (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 조회만 한 트랜잭션 끝내기: 한 번에 끝내기({@link #endReadOnlyTransaction})와 연결 종류 설정의 자동으로 끝내기
+ *   ({@link #endReadOnlyAfterWork}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public final class IdleTransactionMonitor {
 
@@ -90,6 +99,18 @@ public final class IdleTransactionMonitor {
 
     // Commits of one Commit at most (nested BEGIN TRANs of SQL Server)
     private static final int MAX_NESTED_COMMITS = 32;
+
+    /**
+     * What {@link #endReadOnlyTransaction} did.
+     */
+    public enum ReadOnlyEnd {
+        /** Ended with a rollback: it only read. */
+        ENDED,
+        /** Not ended: the database now reports more than reads (changes, row locks), or cannot tell. Ask the usual question. */
+        NOT_READ_ONLY,
+        /** Not ended: the transaction already ended or is another one, or a statement runs in it. */
+        NOT_ENDED
+    }
 
     /**
      * What the monitor knows about the open transaction of one context.
@@ -139,6 +160,13 @@ public final class IdleTransactionMonitor {
      */
     public static boolean isAutoRollback(@NotNull DBPDataSourceContainer container) {
         return container.getConnectionConfiguration().isIdleTransactionRollback() && getReminderPeriodSeconds(container) > 0;
+    }
+
+    /**
+     * The connection's type ends read-only transactions automatically after the user's work (off by default).
+     */
+    public static boolean isAutoEndReadOnly(@NotNull DBPDataSourceContainer container) {
+        return container.getConnectionConfiguration().getConnectionType().isAutoEndReadOnlyTransactions();
     }
 
     /**
@@ -314,6 +342,87 @@ public final class IdleTransactionMonitor {
             commitOrRollback(session, commit);
         }
         return true;
+    }
+
+    /**
+     * Ends the context's read-only transaction ({@link QMTransactionState#isReadOnly()}) with a rollback, as the user
+     * chose ("End transaction (release locks)"). Asks the database again first: when something more than reads appeared
+     * meanwhile, nothing is done and the caller asks the usual Commit / Roll back question.
+     *
+     * @param transactionStart the transaction shown to the user ({@link QMTransactionState#getTransactionStartTime()})
+     */
+    @NotNull
+    public static ReadOnlyEnd endReadOnlyTransaction(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        long transactionStart
+    ) throws DBException {
+        if (!isIdleTransaction(QMUtils.getTransactionState(context), context, transactionStart, false)) {
+            return ReadOnlyEnd.NOT_ENDED;
+        }
+        QMTransactionState transaction = QMUtils.refreshTransactionState(context);
+        if (!isIdleTransaction(transaction, context, transactionStart, false)) {
+            return ReadOnlyEnd.NOT_ENDED;
+        }
+        if (!transaction.isReadOnly()) {
+            return ReadOnlyEnd.NOT_READ_ONLY;
+        }
+        try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "End read-only transaction")) {
+            commitOrRollback(session, false);
+        }
+        return ReadOnlyEnd.ENDED;
+    }
+
+    /**
+     * Ends the context's transaction with a rollback right after the user's work when the connection type says so
+     * ({@link #isAutoEndReadOnly}) and the database's fresh answer and the statements say it only read. Called by the
+     * query manager's transaction tracker on the thread of the work that just ended (the job of the SQL editor run).
+     * Never throws.
+     *
+     * @return true when the transaction was ended
+     */
+    public static boolean endReadOnlyAfterWork(@NotNull DBCExecutionContext context) {
+        DBPDataSourceContainer container = context.getDataSource().getContainer();
+        if (!isAutoEndReadOnly(container) || DBWorkbench.findService(UIServiceIdleTransactions.class) == null) {
+            // Without a UI the end would not be visible
+            return false;
+        }
+        QMTransactionState transaction = QMUtils.getTransactionState(context);
+        if (!transaction.isReadOnly() || !isIdleTransaction(transaction, context, transaction.getTransactionStartTime(), true)) {
+            return false;
+        }
+        try (DBCSession session = context.openSession(new LoggingProgressMonitor(log), DBCExecutionPurpose.UTIL, "End read-only transaction")) {
+            commitOrRollback(session, false);
+        } catch (Exception e) {
+            log.warn("Cannot end the read-only transaction of " + container.getName() + " (" + context.getContextName() + ")", e);
+            return false;
+        }
+        log.info("Ended the read-only transaction of " + container.getName() + " (" + context.getContextName() + ") after the statement"
+            + " (connection type setting), holds were " + transaction.getHolds());
+        return true;
+    }
+
+    /**
+     * The transaction is open, the one given, and nothing runs in its context.
+     *
+     * @param inOwnJob called from the job whose work just ended in the context: that job does not count as running
+     */
+    private static boolean isIdleTransaction(
+        @NotNull QMTransactionState transaction,
+        @NotNull DBCExecutionContext context,
+        long transactionStart,
+        boolean inOwnJob
+    ) {
+        if (!transaction.isOpen() || transaction.getTransactionStartTime() != transactionStart || transaction.isExecuting()) {
+            return false;
+        }
+        Job current = inOwnJob ? Job.getJobManager().currentJob() : null;
+        for (Job job : Job.getJobManager().find(context)) {
+            if (job != current) {
+                return false;
+            }
+        }
+        return DBUtils.getTransactionManager(context) != null;
     }
 
     /**

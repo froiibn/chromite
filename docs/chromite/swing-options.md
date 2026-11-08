@@ -103,6 +103,7 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
 | SQL 실행 확인 | `confirmExecute` | `SQLQueryExecuteJob`(SELECT가 아닌 문), Chromite Agent 도구 정책 |
 | 데이터 변경 확인 | `confirmDataChange` | `ResultSetGrid.isSavePreviewRequired` |
 | 유휴 트랜잭션 알림, 시간(분) | `autoCloseTransactions`, `closeIdleTransactionPeriod` | `IdleTransactionMonitor`(연결이 자체 값을 정하지 않았을 때) |
+| 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기(2026-11-09, 기본 꺼짐) | `autoEndReadOnlyTransactions`(Chromite가 더함) | `IdleTransactionMonitor.endReadOnlyAfterWork`([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기") |
 | 유휴 연결 닫기, 시간(초) | `autoCloseConnections`, `closeIdleConnectionPeriod` | `DataSourceMonitorJob.getDisconnectTimeoutSeconds`, 새 연결의 기본값 |
 | 제한(데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기) | `modifyPermission` | `hasModifyPermission`(DBExecUtils, 데이터 전송, `SqlExecutionSafety`) |
 
@@ -608,6 +609,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-08 왼쪽 목록을 `JTabbedPane`에서 `JList` + `CardLayout`으로 바꾸고 넓힘(최소 220), 고정 찾기 칸(페이지 이름 + 설정 글, 일치 강조),
   창을 pack 크기의 1.18배로(화면 90% 이내), 페이지 왼쪽 여백 20, Agent Providers 양식 폭, 페이지 식별자로 열기와 Agent 창 설정 단추
   (app round 1 #8·#13, 위 "목록, 찾기, 페이지 열기").
+- 2026-11-09 Connection Types에 "조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기"(앱 변경 #31, 기본 꺼짐, 사용자 결정으로 연결 유형마다)
+  ([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기"). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 
 ## 부록: 키별 상태
 

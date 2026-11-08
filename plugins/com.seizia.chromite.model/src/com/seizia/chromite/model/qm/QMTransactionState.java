@@ -42,6 +42,9 @@ import java.util.Set;
  *     세는 범위는 트랜잭션이 없다고 확인된 뒤의 문장이다(자동 커밋 모드의 명시적 트랜잭션 포함).</li>
  *     <li>{@link #isExecuting()}은 목적과 관계없이 그 문맥에서 아직 끝나지 않은 문장이 있는지다. 실행 중에는 유휴가 아니다.</li>
  *     <li>{@link #getTransactionStartTime()}은 트랜잭션을 구별하는 값으로도 쓴다. 커밋·롤백 뒤의 새 트랜잭션은 첫 문장 시각이 다르다.</li>
+ *     <li>{@link #isReadOnly()}(2026-11-09, 앱 변경 #31): 끝내도 잃는 것이 없는 트랜잭션. DB가 읽기 잠금·스냅숏만 쥐었다고 확인했고
+ *     ({@link DBCServerTransaction#readsOnly()}), 쿼리 관리자가 본 문장에도 데이터 변경, 잠그는 읽기(FOR UPDATE 등), 명시적 BEGIN이 없을 때만
+ *     참이다. 한 번에 끝내기와 자동으로 끝내기가 이것만 본다. 둘 중 하나라도 모르면 거짓이다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -49,6 +52,7 @@ import java.util.Set;
  *   쿼리 관리자의 "트랜잭션에 영향을 주는 문장" 기준으로 바꿈. 열린 트랜잭션이 없으면 시작 시각은 0 (docs/chromite/idle-transactions.md)
  * - 2026-11-08 열림을 DB의 답으로 정함(상태 {@link #getStatus()}, 쥔 것 {@link #getHolds()}): 수동 커밋에서 SELECT만 해도 열림이던
  *   것을 고치고 자동 커밋의 명시적 트랜잭션도 열림으로 (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 {@link #isReadOnly()}: 조회만 한 트랜잭션 끝내기 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class QMTransactionState {
 
@@ -70,6 +74,7 @@ public class QMTransactionState {
     private final Status status;
     private final Set<DBCServerTransaction.Hold> holds;
     private final boolean serverChecked;
+    private final boolean readOnly;
 
     QMTransactionState(
         int executeCount,
@@ -80,7 +85,8 @@ public class QMTransactionState {
         boolean executing,
         @NotNull Status status,
         @NotNull Set<DBCServerTransaction.Hold> holds,
-        boolean serverChecked
+        boolean serverChecked,
+        boolean readOnly
     ) {
         this.executeCount = executeCount;
         this.updateCount = updateCount;
@@ -91,6 +97,7 @@ public class QMTransactionState {
         this.status = status;
         this.holds = holds;
         this.serverChecked = serverChecked;
+        this.readOnly = readOnly;
     }
 
     /**
@@ -149,6 +156,15 @@ public class QMTransactionState {
      */
     public boolean isServerChecked() {
         return serverChecked;
+    }
+
+    /**
+     * The open transaction only read: the database confirmed that it holds nothing but read locks and a snapshot, and
+     * none of its statements changed data, locked rows (FOR UPDATE, LOCK TABLE, locking hints) or began it explicitly.
+     * Ending it with a rollback discards nothing and releases the locks.
+     */
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     /**
