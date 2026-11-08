@@ -406,6 +406,39 @@ Oracle은 쥔 것을 알려 주지 않으므로 도구 설명의 쥔 것은 문�
 **롤백으로 끝내는 이유**: 조회만 한 트랜잭션은 커밋과 롤백이 같은 일(잠금·스냅숏 해제)이지만, 혹시 놓친 변경이 있어도 롤백은 남기지 않는다.
 문구는 "끝내기"이고 버리는 변경이 없다는 것을 함께 적는다.
 
+**확인 (2026-11-09)**: 이 브랜치의 Swing 제품 복사본(한국어 OS)에서 앱 안 시험 에이전트(Attach API, Swing 객체를 EDT에서 직접 다룸, 화면 입력 없음)가
+쿼리 창에 경우마다 SQL을 실행하고 1.5초 뒤 상태 줄 칸(글자, 점, 도구 설명), 메뉴 항목, 끝낼 때·끊을 때 질문의 줄, 별도 관찰 연결로 읽은 DB 뷰,
+**다른 세션의 `ALTER TABLE … ADD COLUMN`**(PostgreSQL `lock_timeout` 1초, MySQL·MariaDB `lock_wait_timeout` 1초)을 기록했다. 시험 DB: 공유 컨테이너 PostgreSQL 17,
+MariaDB 11, SQL Server 2022, Oracle Free 23ai, 이 브랜치가 띄운 MySQL 8.4(끝난 뒤 지움, MariaDB Connector/J로 연결). 연결은 모두 수동 커밋.
+증거: `D:\Tools\_scratch\chromite-readonly-txn-end\logs\*.log`, 화면 `shots\`.
+
+설정 꺼짐(A):
+
+| 경우 | PostgreSQL | MySQL·MariaDB(PROCESS 있음) | MySQL·MariaDB(PROCESS 없음) |
+|---|---|---|---|
+| 일반 SELECT | 조회 트랜잭션 · 잠금 유지(보조 색 점), 메뉴 [트랜잭션 끝내기(잠금 해제), 트랜잭션 로그]. 다른 세션 ALTER 막힘(55P03) → 끝내기 → 트랜잭션 없음, ALTER 통과 | 같음(INNODB_TRX 변경 0·잠금 구조 0, ALTER 1205 → 끝내기 → 통과) | 열린 트랜잭션(주의 점), 메뉴 커밋/롤백(DB가 확인해 주지 않음) |
+| 일반 SELECT 뒤 같은 세션에 UPDATE(쿼리 관리자 밖), 그다음 끝내기 | 다시 물어 변경 발견 → 끝내지 않고 "더 이상 조회만 한 트랜잭션이 아닙니다 …" 커밋/롤백/취소(취소 기본) → 취소 → 트랜잭션 그대로(xid, RowExclusiveLock), 칸 "(변경 있음)" | 같음(INNODB_TRX 변경 1) | — |
+| SELECT FOR UPDATE / LOCK IN SHARE MODE | 열린 트랜잭션, 커밋/롤백 | 같음 | 같음 |
+| DML | 열린 트랜잭션 (변경 있음), 커밋/롤백 | 같음 | 열린 트랜잭션(문장 수), 커밋/롤백 |
+| 명시적 BEGIN / START TRANSACTION + SELECT | 열린 트랜잭션, 커밋/롤백 | 같음 | 같음 |
+| SELECT bump()(UPDATE 하는 함수) | xid 있음 → 열린 트랜잭션 (변경 있음) | — | — |
+| REPEATABLE READ / SERIALIZABLE SELECT | 조회 트랜잭션 · 잠금 유지(잠금, 스냅숏; SIReadLock 포함) | SERIALIZABLE은 잠금 구조 2 → 열린 트랜잭션 | 열린 트랜잭션 |
+| LOCK TABLE … IN ACCESS SHARE MODE | 잠그는 읽기 → 열린 트랜잭션 | — | — |
+
+끝낼 때·끊을 때 질문의 줄: 조회 트랜잭션은 "… - 조회 트랜잭션: 읽기 잠금·스냅숏만 유지, 데이터 변경 없음", DML·UPDATE 함수는 "… - 열린 트랜잭션: 데이터 변경 있음",
+FOR UPDATE·BEGIN은 "… - 열린 트랜잭션: 잠금 유지 또는 명시적으로 시작함".
+
+설정 켬(B, Options > Connection Types > 개발에서 켜고 확인 → `connection-types.xml`에 `autoEndReadOnlyTransactions="true"`):
+
+- PostgreSQL 일반 SELECT·REPEATABLE READ·SERIALIZABLE SELECT: 실행이 끝나면 트랜잭션 없음, 칸 "조회 트랜잭션을 끝냈습니다(잠금 해제)", 다른 세션 ALTER 바로 통과.
+  FOR UPDATE·DML·BEGIN + SELECT·`SELECT bump()`·LOCK TABLE: 끝내지 않음(위와 같은 표시, ALTER 막힘).
+- MySQL·MariaDB(PROCESS 있음) 일반 SELECT: 끝냄, ALTER 통과. FOR UPDATE·LOCK IN SHARE MODE·DML·START TRANSACTION·SERIALIZABLE: 끝내지 않음.
+  처음 시험에서 앞 경우 바로 뒤의 일반 SELECT가 끝나지 않았다(MySQL·MariaDB 모두 A2: INNODB_TRX 사본에 아직 행이 없음, 안전 쪽). 0.11초 뒤 다시 읽기를 넣고
+  다시 돌리자 두 DB 모두 일반 SELECT가 매번 끝났다(`my-p-on-2.log`, `ma-p-on-2.log`).
+- MySQL·MariaDB(PROCESS 없음): 어느 경우도 끝내지 않음.
+- SQL Server(일반 SELECT 숨김, HOLDLOCK·REPEATABLE READ·DML 열린 트랜잭션), Oracle(일반 SELECT 숨김, FOR UPDATE·SET TRANSACTION READ ONLY·DML 열린 트랜잭션):
+  설정을 켜도 끄도 같다. 메뉴는 커밋/롤백.
+
 ## 설정
 
 연결 편집 > 연결 속성 탭, 유휴 연결 닫기 아래.
