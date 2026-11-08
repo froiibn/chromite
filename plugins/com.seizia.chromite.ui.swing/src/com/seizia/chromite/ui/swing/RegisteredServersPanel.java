@@ -106,6 +106,7 @@ import java.util.Set;
  * - 2026-11-08 메뉴에 다른 연결 끊기·모두 끊기(서버), 그룹 끊기(그룹, 하위 그룹 포함), 모두 끊기(빈 곳): 열린 트랜잭션은 한 질문으로
  *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
  * - 2026-11-08 서버 메뉴의 Change Password…(연결한 사용자의 비밀번호, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
+ * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -817,6 +818,14 @@ final class RegisteredServersPanel extends JPanel {
      * background and the rows. The connection color is the renderer's pill ({@link ConnectionPill}), not a row background.
      */
     private static final class ServersTree extends JTree {
+        /**
+         * Logical pixels repainted above and below a row whose hover changes. At a display scale above 100% the
+         * anti-aliased, stroke-normalized hover shape reaches into a device pixel row next to its row; repainting only
+         * the row bounds left that pixel row in the hover color (an afterimage when the mouse moved up at 150%, either
+         * way at 125%). One logical pixel is at least one device pixel.
+         */
+        private static final int HOVER_REPAINT_MARGIN = 1;
+
         private int hoverRow = -1;
 
         ServersTree(@NotNull DefaultTreeModel model) {
@@ -853,7 +862,7 @@ final class RegisteredServersPanel extends JPanel {
         private void repaintRow(int row) {
             Rectangle bounds = row >= 0 ? getRowBounds(row) : null;
             if (bounds != null) {
-                repaint(0, bounds.y, getWidth(), bounds.height);
+                repaint(0, bounds.y - HOVER_REPAINT_MARGIN, getWidth(), bounds.height + 2 * HOVER_REPAINT_MARGIN);
             }
         }
 
