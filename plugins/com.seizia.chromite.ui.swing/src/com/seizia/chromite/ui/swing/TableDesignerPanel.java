@@ -82,6 +82,7 @@ import java.util.Set;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-08 저장 전 열린 트랜잭션 질문({@link ExitTransactionCheck#confirmObjectChange}): 저장 경로는 명령마다 커밋하고
  *   MySQL·Oracle DDL은 암묵 커밋하므로 연결의 열린 트랜잭션이 함께 커밋되던 것 (docs/chromite/swing-create-objects.md "트랜잭션")
+ * - 2026-11-08 일부만 적용된 저장의 오류 창에 적용한 문장과 적용하지 못한 문장을 보임 (docs/chromite/swing-table-designer.md "저장이 중간에 실패할 때")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -625,6 +626,12 @@ final class TableDesignerPanel extends JPanel {
             }));
             return true;
         } catch (DBInterruptedException e) {
+            reload();
+            return false;
+        } catch (TableDesignSession.PartialSaveException e) {
+            // Part of the script is in the database: say which part, the grids now show the table read again
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_save, NLS.bind(ToolsMessages.designer_error_save_partial,
+                new Object[]{session.getTable().getName(), e.getAppliedScript().strip(), e.getNotAppliedScript().strip()}), e.getCause());
             reload();
             return false;
         } catch (DBException e) {
