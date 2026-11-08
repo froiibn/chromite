@@ -621,7 +621,8 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
 - 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다
   (아래 "글 조각 그리기").
-- 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
+- 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 엔진을 닫으면 받는 중인 응답도 끝낸다(`MonitoredHttpClient.close`, 아래 "실제 API 확인").
+  실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
   실행 중에는 대화·제공자·연결을 바꿀 수 없다.
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
   `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
@@ -727,7 +728,7 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 | 쓰기 + 허용 | 같은 요청에 Allow → 1행 들어감(psql 6행), 자동 커밋 연결이라 `transactionOpen: false`, 열린 트랜잭션 없음(`pg_stat_activity`) |
 | 수동 커밋 | 연결의 자동 커밋을 끔 → `insertRows` 허용 → `transactionOpen: true`, 다른 세션에서 행이 안 보이고 에이전트 세션은 `idle in transaction`. `rollbackTransaction`이 "Open Transaction"(Commit / Roll Back / Cancel, 기본 Cancel) → Roll Back → 행 없음, 트랜잭션 없음 |
 | 운영 연결 | 연결 종류를 Production으로 → `insertRows` BLOCKED("production connection …"), DB 그대로 |
-| 중지 | 긴 답 중 중지 → 글은 멈췄지만 상태가 "Stopping…"으로 약 20초 남고 그동안 보내기가 안 됨. 오류 대화상자 없음, 끝난 뒤 다시 보낼 수 있음 |
+| 중지 | 긴 답 중 중지 → 글은 멈췄지만 상태가 "Stopping…"으로 약 20초 남고 그동안 보내기가 안 됨(아래 2). 오류 대화상자 없음, 끝난 뒤 다시 보낼 수 있음 |
 | API 오류 | 없는 모델 이름 → 대화에 "Anthropic request failed: model: claude-does-not-exist-9"(404 `not_found_error`의 문구). 키 없음 |
 | 감사 기록 | 도구 호출 9건이 정책(AUTO/CONFIRM/BLOCKED)과 결과(SUCCESS/DENIED/BLOCKED)로 남음. 트랜잭션 질문의 답(Roll back)은 없었다 |
 | 키 | 사본 작업 공간·데이터 폴더·로그·증거 파일에서 `sk-ant-` 0건 |
@@ -739,6 +740,11 @@ Markdown 글자색이 그대로(외형 값을 따르게).
    temperature를 정하는 곳이 없으므로(`setTemperature` 호출 없음), `AnthropicProperties.getRequestTemperature()`가 명시적으로 정했을 때만 값을 돌려주게 했다.
    고친 빌드에서 사용자 설정 그대로(우회 없이) 요청이 성공했다. OpenAI 엔진도 같은 기본값을 보내지만(`OpenAIProperties.getTemperature`는 전역 설정값) 키가 없어
    확인하지 못했다(아래 "위험과 남은 일").
+2. **중지가 답이 끝날 때까지 기다림**: 중지하면 실행기는 스트림 대기를 끝내고 엔진을 닫는데, `MonitoredHttpClient.close()`의 `HttpClient.close()`는 진행 중인
+   요청이 끝날 때까지 기다린다. 받는 중인 응답을 먼저 닫는 코드는 콜백 스레드의 `ThreadLocal`만 보아 작업 스레드에서 닫을 때는 아무것도 닫지 않았다. 그래서
+   모델이 답을 다 쓸 때까지(약 20초) 받기가 이어지고(그만큼 과금), 화면은 "Stopping…"이었다. `close()`가 `HttpClient.shutdownNow()`로 진행 중인 요청을 먼저 끝내게
+   했다. 엔진을 닫는 곳(`AIAgentChatRunner`, `AIEngineResponseConsumerImpl`, 모델 목록·`generateText`의 try-with-resources)은 모두 응답을 다 받았거나 사용자가
+   멈춘 뒤다. 고친 빌드에서 같은 시험: 중지 후 250 ms 안에 "Stopped.", 보내기 단추가 돌아옴.
 
 ## 1b단계 도구 (2026-11-08)
 
@@ -1036,6 +1042,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 ## 변경 이력
 
 - 2026-11-08 실제 Anthropic API 확인(`chromite/agent-real-api-test`): Anthropic 요청에 temperature를 명시적으로 정했을 때만 넣음. 위 "실제 API 확인".
+- 2026-11-08 AI 엔진을 닫으면 받는 중인 응답을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다리던 것. 위 "실제 API 확인" 2.
 - 2026-11-08 확인 대화상자의 미리 보기 제목을 "실행할 내용"(What will run)으로(명령줄 미리 보기도 있음), `backupDatabase`가 SQL Server가 아닌 연결을
   확인 전에 거절(evening #27 2·3부, `chromite/followups-3`). 위 "위험과 남은 일".
 - 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
