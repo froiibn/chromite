@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import com.seizia.chromite.ui.swing.internal.TransferOptionsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -30,6 +31,7 @@ import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.DBValueFormatting;
 import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
@@ -57,6 +59,7 @@ import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
 import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
 import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
 import com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingContainer;
 import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
@@ -69,6 +72,8 @@ import java.awt.*;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -107,9 +112,13 @@ import java.util.Set;
  *     하기 위해서다. 시스템 스키마는 기본으로 숨기고 체크 상자로 보일 때 그 스키마만 읽는다. producer는 스키마와 관계없이 고른 원본마다 만든다.
  *     여러 스키마에 같은 이름의 테이블이 있으면 파일 이름 패턴에 {@code ${schema}}가 있어야 다음으로 간다(파일이 서로 덮어쓰지 않도록).</li>
  *     <li>{@code @export} 명령({@link SqlExportPragma}): SWT처럼 마법사를 열고 명령의 형식, 형식 속성, 출력({@code consumer})·원본({@code producer})
- *     옵션을 미리 채운다. 화면에 칸이 있는 옵션은 칸에 넣어 사용자가 보고 고칠 수 있게 하고, 칸이 없는 옵션(파일 나누기, 시각 형식, 가져오기 크기 등)은
- *     내보낼 때 설정에 넣는다. 받는 옵션은 {@link #EXPORT_CONSUMER_OPTIONS}·{@link #EXPORT_PRODUCER_OPTIONS}이고 나머지는 명령 처리기가 거절한다.
+ *     옵션을 미리 채운다. 받는 옵션은 모두 화면의 칸(출력 페이지, 원본 읽기 설정 페이지)에 넣어 사용자가 보고 고칠 수 있게 한다.
+ *     받는 옵션은 {@link #EXPORT_CONSUMER_OPTIONS}·{@link #EXPORT_PRODUCER_OPTIONS}이고 나머지는 명령 처리기가 거절한다.
  *     명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.</li>
+ *     <li>고급 옵션(SWT {@code DatabaseProducerPageExtractSettings}, {@code StreamConsumerPageOutput}, {@code ConfigureColumnsDialog}):
+ *     원본 읽기 설정({@link DataTransferExtractPage}, 파일과 테이블 복사가 함께 씀), 시각 형식, 파일 나누기, 데이터 형식 프로필, 내보낼 열 고르기.
+ *     모두 모델의 노드 설정({@link DatabaseProducerSettings}, {@link StreamConsumerSettings}과 그 열 매핑)에 넣으므로 작업으로 저장하면 함께 저장된다.
+ *     열 고르기는 파일 내보내기만 쓴다(테이블 복사는 열 매핑 단계의 건너뛰기).</li>
  * </ul>
  *
  * 변경 이력:
@@ -122,6 +131,8 @@ import java.util.Set;
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-07 스크립트의 {@code @export} 명령: 다음 쿼리를 원본으로, 명령의 형식·옵션을 미리 채워 연다({@link #openForExportCommand},
  *   {@link ExportCommand}) (docs/chromite/swing-data-transfer.md "@export 명령")
+ * - 2026-11-08 고급 옵션: 원본 읽기 설정 단계, 시각 형식, 파일 나누기, 데이터 형식 프로필, 내보낼 열 고르기. {@code @export}의 원본 옵션과
+ *   시각 형식·파일 나누기 옵션은 이제 화면 칸에 들어간다(전에는 칸 없이 설정에 넣음) (docs/chromite/swing-data-transfer.md "고급 옵션")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -149,11 +160,6 @@ final class DataExportWizard extends DataTransferWizard {
     private static final String EXPORT_TIMESTAMP_PATTERN = "outputTimestampPattern"; //$NON-NLS-1$
     private static final String EXPORT_SPLIT_FILES = "splitOutFiles"; //$NON-NLS-1$
     private static final String EXPORT_MAX_FILE_SIZE = "maxOutFileSize"; //$NON-NLS-1$
-    private static final String EXPORT_FETCH_SIZE = "fetchSize"; //$NON-NLS-1$
-    private static final String EXPORT_OPEN_NEW_CONNECTIONS = "openNewConnections"; //$NON-NLS-1$
-    private static final String EXPORT_QUERY_ROW_COUNT = "queryRowCount"; //$NON-NLS-1$
-    private static final String EXPORT_EXTRACT_TYPE = "extractType"; //$NON-NLS-1$
-    private static final String EXPORT_SEGMENT_SIZE = "segmentSize"; //$NON-NLS-1$
 
     /**
      * The {@code consumer} options of {@code @export} the wizard applies; others are refused by the command's handler.
@@ -166,8 +172,9 @@ final class DataExportWizard extends DataTransferWizard {
      * The {@code producer} options of {@code @export} the wizard applies. The grid selection options (selected rows or
      * columns, fetched rows only) do not apply to a query that has not run.
      */
-    static final Set<String> EXPORT_PRODUCER_OPTIONS = Set.of(EXPORT_FETCH_SIZE, EXPORT_OPEN_NEW_CONNECTIONS, EXPORT_QUERY_ROW_COUNT,
-        EXPORT_EXTRACT_TYPE, EXPORT_SEGMENT_SIZE);
+    static final Set<String> EXPORT_PRODUCER_OPTIONS = Set.of(DataTransferExtractPage.OPTION_FETCH_SIZE,
+        DataTransferExtractPage.OPTION_OPEN_NEW_CONNECTIONS, DataTransferExtractPage.OPTION_QUERY_ROW_COUNT,
+        DataTransferExtractPage.OPTION_EXTRACT_TYPE, DataTransferExtractPage.OPTION_SEGMENT_SIZE);
 
     /**
      * Options of an {@code @export} script command, checked by its handler ({@link SqlExportPragma}).
@@ -263,6 +270,16 @@ final class DataExportWizard extends DataTransferWizard {
         new JComboBox<>(StreamConsumerSettings.LobExtractType.values());
     private final JComboBox<StreamConsumerSettings.LobEncoding> lobEncodingCombo =
         new JComboBox<>(StreamConsumerSettings.LobEncoding.values());
+    /**
+     * Null (the source connection's format) or a data format profile.
+     */
+    private final JComboBox<DBDDataFormatterProfile> profileCombo = new JComboBox<>();
+    private final JLabel columnsLabel = new JLabel();
+    /**
+     * The exported columns of the sources whose columns were chosen (a source without one exports all its columns).
+     */
+    private final Map<DBSDataContainer, StreamMappingContainer> columnMappings = new HashMap<>();
+    private final DataTransferExtractPage extractPage = new DataTransferExtractPage();
 
     // Output
     private final JTextField folderField = new JTextField(30);
@@ -276,6 +293,10 @@ final class DataExportWizard extends DataTransferWizard {
         new JComboBox<>(StreamConsumerSettings.DataFileConflictBehavior.values());
     private final JCheckBox openFolderCheck = new JCheckBox(ToolsMessages.export_output_open_folder);
     private final JCheckBox deleteOnFailureCheck = new JCheckBox(ToolsMessages.export_output_delete_on_failure, true);
+    private final JTextField timestampField = new JTextField(20);
+    private final JCheckBox splitCheck = new JCheckBox(TransferOptionsMessages.output_split);
+    private final JSpinner maxSizeSpinner = new JSpinner(new SpinnerNumberModel(Long.valueOf(1), Long.valueOf(1), Long.valueOf(Long.MAX_VALUE),
+        Long.valueOf(1_000_000)));
     /**
      * Options of the {@code @export} command the wizard was opened for, or null.
      */
@@ -343,7 +364,7 @@ final class DataExportWizard extends DataTransferWizard {
         copy = databaseNode == null ? null : new DatabaseCopyPages(this, databaseNode, this::getSelectedSources, () -> toDatabase,
             queryWindows, sourceDataSource == null ? null : sourceDataSource.getContainer());
         toDatabase = copyOnly && copy != null;
-        List<Page> pages = new ArrayList<>(List.of(new SourcePage(), new FormatPage()));
+        List<Page> pages = new ArrayList<>(List.of(new SourcePage(), new FormatPage(), extractPage));
         if (copy != null) {
             pages.addAll(copy.createPages());
         }
@@ -351,6 +372,7 @@ final class DataExportWizard extends DataTransferWizard {
         if (exportCommand != null) {
             // After the pages: they put the remembered values into the fields first
             applyExportCommandFields(exportCommand.consumer());
+            extractPage.applyCommandOptions(exportCommand.producer());
         }
         initWizard(pages);
     }
@@ -546,48 +568,18 @@ final class DataExportWizard extends DataTransferWizard {
             lobEncodingCombo.setSelectedItem(CommonUtils.valueOf(StreamConsumerSettings.LobEncoding.class,
                 CommonUtils.toString(consumer.get(EXPORT_LOB_ENCODING)), (StreamConsumerSettings.LobEncoding) lobEncodingCombo.getSelectedItem()));
         }
+        if (consumer.containsKey(EXPORT_TIMESTAMP_PATTERN)) {
+            timestampField.setText(CommonUtils.toString(consumer.get(EXPORT_TIMESTAMP_PATTERN)));
+        }
+        applyCheck(consumer, EXPORT_SPLIT_FILES, splitCheck);
+        if (consumer.containsKey(EXPORT_MAX_FILE_SIZE)) {
+            maxSizeSpinner.setValue(Math.max(1, CommonUtils.toLong(consumer.get(EXPORT_MAX_FILE_SIZE), getMaxFileSize())));
+        }
     }
 
     private static void applyCheck(@NotNull Map<String, Object> options, @NotNull String key, @NotNull JCheckBox check) {
         if (options.containsKey(key)) {
             check.setSelected(CommonUtils.toBoolean(options.get(key)));
-        }
-    }
-
-    /**
-     * The {@code @export} options without a field on the pages, into the settings of the transfer.
-     */
-    private static void applyExportCommandSettings(
-        @NotNull ExportCommand command,
-        @NotNull DatabaseProducerSettings producerSettings,
-        @NotNull StreamConsumerSettings output
-    ) {
-        Map<String, Object> producer = command.producer();
-        if (producer.containsKey(EXPORT_FETCH_SIZE)) {
-            producerSettings.setFetchSize(CommonUtils.toInt(producer.get(EXPORT_FETCH_SIZE), producerSettings.getFetchSize()));
-        }
-        if (producer.containsKey(EXPORT_OPEN_NEW_CONNECTIONS)) {
-            producerSettings.setOpenNewConnections(CommonUtils.toBoolean(producer.get(EXPORT_OPEN_NEW_CONNECTIONS)));
-        }
-        if (producer.containsKey(EXPORT_QUERY_ROW_COUNT)) {
-            producerSettings.setQueryRowCount(CommonUtils.toBoolean(producer.get(EXPORT_QUERY_ROW_COUNT)));
-        }
-        if (producer.containsKey(EXPORT_EXTRACT_TYPE)) {
-            producerSettings.setExtractType(CommonUtils.valueOf(DatabaseProducerSettings.ExtractType.class,
-                CommonUtils.toString(producer.get(EXPORT_EXTRACT_TYPE)), producerSettings.getExtractType()));
-        }
-        if (producer.containsKey(EXPORT_SEGMENT_SIZE)) {
-            producerSettings.setSegmentSize(CommonUtils.toInt(producer.get(EXPORT_SEGMENT_SIZE), producerSettings.getSegmentSize()));
-        }
-        Map<String, Object> consumer = command.consumer();
-        if (consumer.containsKey(EXPORT_TIMESTAMP_PATTERN)) {
-            output.setOutputTimestampPattern(CommonUtils.toString(consumer.get(EXPORT_TIMESTAMP_PATTERN)));
-        }
-        if (consumer.containsKey(EXPORT_SPLIT_FILES)) {
-            output.setSplitOutFiles(CommonUtils.toBoolean(consumer.get(EXPORT_SPLIT_FILES)));
-        }
-        if (consumer.containsKey(EXPORT_MAX_FILE_SIZE)) {
-            output.setMaxOutFileSize(CommonUtils.toLong(consumer.get(EXPORT_MAX_FILE_SIZE)));
         }
     }
 
@@ -637,9 +629,24 @@ final class DataExportWizard extends DataTransferWizard {
     @Nullable
     @Override
     protected DataTransferSettings prepareTransfer() {
-        if (toDatabase) {
-            return copy == null ? null : copy.prepareTransfer();
+        DataTransferSettings settings = toDatabase ? copy == null ? null : copy.prepareTransfer() : prepareExport();
+        if (settings == null) {
+            return null;
         }
+        try {
+            extractPage.apply(settings);
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(getTitle(), ToolsMessages.export_error_configure, e);
+            return null;
+        }
+        return settings;
+    }
+
+    /**
+     * The settings of an export to files, or null if it can't start.
+     */
+    @Nullable
+    private DataTransferSettings prepareExport() {
         if (consumerNode == null || processor == null || processorProperties == null) {
             return null;
         }
@@ -661,19 +668,6 @@ final class DataExportWizard extends DataTransferWizard {
             processorPropertiesHistory.put(processor.getId(), new HashMap<>(processorProperties.getPropertyValues()));
         }
 
-        try {
-            if (settings.getNodeSettings(producers.getFirst()) instanceof DatabaseProducerSettings producerSettings) {
-                // Field defaults of the SWT wizard's first run: own connection (isolated), row count for the progress
-                producerSettings.setOpenNewConnections(true);
-                producerSettings.setQueryRowCount(true);
-                if (exportCommand != null && settings.getNodeSettings(consumerNode) instanceof StreamConsumerSettings output) {
-                    applyExportCommandSettings(exportCommand, producerSettings, output);
-                }
-            }
-        } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title, ToolsMessages.export_error_configure, e);
-            return null;
-        }
         if (!(settings.getNodeSettings(consumerNode) instanceof StreamConsumerSettings output)) {
             return null;
         }
@@ -689,6 +683,16 @@ final class DataExportWizard extends DataTransferWizard {
         output.setCompressResults(compressCheck.isSelected() && compressCheck.isEnabled());
         output.setDataFileConflictBehavior((StreamConsumerSettings.DataFileConflictBehavior) conflictCombo.getSelectedItem());
         output.setBlobFileConflictBehavior(StreamConsumerSettings.BlobFileConflictBehavior.PATCHNAME);
+        output.setOutputTimestampPattern(timestampField.getText().trim());
+        output.setSplitOutFiles(splitCheck.isSelected() && splitCheck.isEnabled());
+        output.setMaxOutFileSize(getMaxFileSize());
+        output.setFormatterProfile((DBDDataFormatterProfile) profileCombo.getSelectedItem());
+        for (DatabaseTransferProducer producer : producers) {
+            StreamMappingContainer mapping = columnMappings.get(producer.getDatabaseObject());
+            if (mapping != null) {
+                output.addDataMapping(mapping);
+            }
+        }
         if (openFolderCheck.isSelected() && !isClipboardOutput()) {
             output.getEventProcessorSettings(ShowInExplorerEventProcessor.ID);
         }
@@ -737,6 +741,10 @@ final class DataExportWizard extends DataTransferWizard {
         if (toDatabase && copy != null) {
             copy.transferSucceeded();
         }
+    }
+
+    private long getMaxFileSize() {
+        return ((Number) maxSizeSpinner.getValue()).longValue();
     }
 
     private boolean isClipboardOutput() {
@@ -1164,7 +1172,30 @@ final class DataExportWizard extends DataTransferWizard {
     }
 
     /**
-     * Properties of the chosen format, and the value format and binary handling of the stream consumer.
+     * How many of the checked sources export only some columns (unchecked sources keep their choice for later).
+     */
+    private void updateColumnsLabel() {
+        int chosen = 0;
+        for (DBSDataContainer source : getSelectedSources()) {
+            if (columnMappings.containsKey(source)) {
+                chosen++;
+            }
+        }
+        columnsLabel.setText(chosen == 0 ? TransferOptionsMessages.format_columns_all
+            : NLS.bind(TransferOptionsMessages.format_columns_some, chosen));
+    }
+
+    @NotNull
+    private static String getProfileLabel(@Nullable DBDDataFormatterProfile profile) {
+        if (profile == null) {
+            return TransferOptionsMessages.format_profile_connection;
+        }
+        return profile == DBWorkbench.getPlatform().getDataFormatterRegistry().getGlobalProfile()
+            ? TransferOptionsMessages.format_profile_global : profile.getProfileName();
+    }
+
+    /**
+     * Properties of the chosen format, the exported columns, and the value format and binary handling of the stream consumer.
      */
     private final class FormatSettingsPage implements Page {
         private final JPanel panel = new JPanel(new BorderLayout(0, 12));
@@ -1214,11 +1245,35 @@ final class DataExportWizard extends DataTransferWizard {
             lobEncodingCombo.setSelectedItem(StreamConsumerSettings.LobEncoding.BINARY);
             lobExtractCombo.addActionListener(e -> lobEncodingCombo.setEnabled(
                 lobExtractCombo.getSelectedItem() == StreamConsumerSettings.LobExtractType.INLINE));
+            profileCombo.addItem(null);
+            profileCombo.addItem(DBWorkbench.getPlatform().getDataFormatterRegistry().getGlobalProfile());
+            for (DBDDataFormatterProfile profile : DBWorkbench.getPlatform().getDataFormatterRegistry().getCustomProfiles()) {
+                profileCombo.addItem(profile);
+            }
+            profileCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> l, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
+                    setText(getProfileLabel((DBDDataFormatterProfile) value));
+                    return this;
+                }
+            });
+            JButton columnsButton = new JButton(TransferOptionsMessages.format_columns_button);
+            columnsButton.addActionListener(e -> {
+                DataTransferOptionDialogs.openExportColumns(DataExportWizard.this, getSelectedSources(), columnMappings);
+                updateColumnsLabel();
+            });
+            JPanel columnsRow = new JPanel(new BorderLayout(12, 0));
+            columnsRow.add(columnsLabel, BorderLayout.CENTER);
+            columnsRow.add(columnsButton, BorderLayout.EAST);
 
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
+            row = DataTransferObjects.addRow(form, row, TransferOptionsMessages.format_columns, columnsRow, null);
             row = DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_value_format, valueFormatCombo,
                 ToolsMessages.export_settings_value_format_note);
+            row = DataTransferObjects.addRow(form, row, TransferOptionsMessages.format_profile, profileCombo,
+                TransferOptionsMessages.format_profile_note);
             row = DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_lob, lobExtractCombo, ToolsMessages.export_settings_lob_note);
             DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_lob_encoding, lobEncodingCombo,
                 ToolsMessages.export_settings_lob_encoding_note);
@@ -1253,6 +1308,7 @@ final class DataExportWizard extends DataTransferWizard {
         @Override
         public void activate() {
             propertiesTable.setSource(getProcessorProperties(), null);
+            updateColumnsLabel();
         }
 
         @Nullable
@@ -1305,6 +1361,13 @@ final class DataExportWizard extends DataTransferWizard {
             });
             conflictCombo.setSelectedItem(StreamConsumerSettings.DataFileConflictBehavior.ASK);
             clipboardCheck.addActionListener(e -> updateEnablement());
+            StreamConsumerSettings defaults = new StreamConsumerSettings();
+            timestampField.setText(defaults.getOutputTimestampPattern());
+            splitCheck.setSelected(defaults.isSplitOutFiles());
+            maxSizeSpinner.setValue(defaults.getMaxOutFileSize());
+            // Byte counts with digit grouping (10,000,000)
+            maxSizeSpinner.setEditor(new JSpinner.NumberEditor(maxSizeSpinner, "#,##0")); //$NON-NLS-1$
+            splitCheck.addActionListener(e -> updateEnablement());
 
             JButton browse = new JButton(ToolsMessages.button_browse);
             browse.addActionListener(e -> chooseFolder());
@@ -1322,11 +1385,17 @@ final class DataExportWizard extends DataTransferWizard {
             row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_pattern, patternField, null);
             row = DataTransferObjects.addRow(form, row, null,
                 DataTransferObjects.createNote(NLS.bind(ToolsMessages.export_output_variables, variables)), null);
+            // The note is the tooltip: a hint column would push the "bytes" hint of the file size away from it
+            timestampField.setToolTipText(TransferOptionsMessages.output_timestamp_note);
+            row = DataTransferObjects.addRow(form, row, TransferOptionsMessages.output_timestamp, timestampField, null);
             row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_encoding, encodingCombo, null);
             row = DataTransferObjects.addRow(form, row, null, bomCheck, null);
             row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_conflict, conflictCombo, null);
             row = DataTransferObjects.addRow(form, row, null, singleFileCheck, null);
             row = DataTransferObjects.addRow(form, row, null, compressCheck, null);
+            row = DataTransferObjects.addRow(form, row, null, splitCheck, null);
+            row = DataTransferObjects.addRow(form, row, TransferOptionsMessages.output_max_size, maxSizeSpinner,
+                TransferOptionsMessages.output_max_size_note);
             row = DataTransferObjects.addRow(form, row, null, clipboardCheck, null);
             row = DataTransferObjects.addRow(form, row, null, openFolderCheck, null);
             DataTransferObjects.addRow(form, row, null, deleteOnFailureCheck, null);
@@ -1355,6 +1424,10 @@ final class DataExportWizard extends DataTransferWizard {
             conflictCombo.setEnabled(toFile);
             singleFileCheck.setEnabled(toFile && appendable && getSelectedCount() > 1);
             compressCheck.setEnabled(toFile);
+            timestampField.setEnabled(toFile);
+            // The model splits text output only (StreamTransferConsumer.fetchRow)
+            splitCheck.setEnabled(toFile && !binary);
+            maxSizeSpinner.setEnabled(splitCheck.isSelected() && splitCheck.isEnabled());
             openFolderCheck.setEnabled(toFile);
             deleteOnFailureCheck.setEnabled(toFile);
         }
@@ -1396,6 +1469,14 @@ final class DataExportWizard extends DataTransferWizard {
                 }
                 if (patternField.getText().isBlank()) {
                     return ToolsMessages.export_output_error_pattern;
+                }
+                try {
+                    maxSizeSpinner.commitEdit();
+                    new SimpleDateFormat(timestampField.getText().trim());
+                } catch (IllegalArgumentException e) {
+                    return NLS.bind(TransferOptionsMessages.output_error_timestamp, timestampField.getText().trim());
+                } catch (ParseException e) {
+                    // The spinner keeps its last valid value
                 }
             }
             String encoding = getEncoding();
@@ -1476,6 +1557,8 @@ final class DataExportWizard extends DataTransferWizard {
                     summary.append("    ").append(orderNote).append('\n');
                 }
             }
+            summary.append('\n');
+            extractPage.appendSummary(summary);
             if (toDatabase && copy != null) {
                 summary.append('\n');
                 copy.appendSummary(summary);
@@ -1488,8 +1571,18 @@ final class DataExportWizard extends DataTransferWizard {
             for (Map.Entry<String, Object> entry : changed.entrySet()) {
                 summary.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append('\n');
             }
+            for (SourceItem item : sources) {
+                String columns = item.selected()[0] ? DataTransferOptionDialogs.describeExportColumns(columnMappings.get(item.container())) : null;
+                if (columns != null) {
+                    summary.append(NLS.bind(TransferOptionsMessages.summary_columns, item.container().getName(), columns)).append('\n');
+                }
+            }
             if (valueFormatCombo.getSelectedItem() instanceof DBDDisplayFormat format) {
                 summary.append(NLS.bind(ToolsMessages.export_summary_value_format, getValueFormatLabel(format))).append('\n');
+            }
+            if (profileCombo.getSelectedItem() != null) {
+                summary.append(NLS.bind(TransferOptionsMessages.summary_profile,
+                    getProfileLabel((DBDDataFormatterProfile) profileCombo.getSelectedItem()))).append('\n');
             }
             summary.append('\n').append(ToolsMessages.export_summary_output).append(' ');
             if (isClipboardOutput()) {
@@ -1507,6 +1600,12 @@ final class DataExportWizard extends DataTransferWizard {
                 }
                 if (compressCheck.isSelected()) {
                     summary.append(ToolsMessages.export_summary_compress).append('\n');
+                }
+                if (splitCheck.isSelected() && splitCheck.isEnabled()) {
+                    summary.append(NLS.bind(TransferOptionsMessages.summary_split, String.format("%,d", getMaxFileSize()))).append('\n'); //$NON-NLS-1$
+                }
+                if (patternField.getText().contains(GeneralUtils.variablePattern(StreamTransferConsumer.VARIABLE_TIMESTAMP))) {
+                    summary.append(NLS.bind(TransferOptionsMessages.summary_timestamp, timestampField.getText().trim())).append('\n');
                 }
                 if (openFolderCheck.isSelected()) {
                     summary.append(ToolsMessages.export_summary_open_folder).append('\n');

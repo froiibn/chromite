@@ -88,7 +88,6 @@ public class DbCopyMessages extends NLS {
     public static String ddl_added_columns;
     public static String ddl_error;
     public static String confirm_recreate;
-    public static String confirm_truncate;
     public static String load_title;
     public static String load_description;
     public static String load_new_connection;
@@ -107,7 +106,6 @@ public class DbCopyMessages extends NLS {
     public static String load_note;
     public static String summary_description;
     public static String summary_destination;
-    public static String summary_truncate;
     public static String summary_commit;
     public static String summary_no_transactions;
     public static String summary_multi_row;

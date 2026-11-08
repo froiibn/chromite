@@ -28,6 +28,9 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
 | `ResultSetGrid` (변경) | 오른쪽 클릭 **Export Data…**, `Fetched.exportQuery`(다시 실행할 쿼리) |
 | `SqlEditorPanel` (변경) | 쿼리의 첫 결과 표에 그 쿼리의 `SQLQueryDataContainer`를 넘김 |
 | `ConnectionPropertiesTable` (변경, Javadoc만) | 처리기 속성 편집에도 쓴다는 설명 |
+| `DataTransferExtractPage` (새, 2026-11-08) | 원본 읽기 설정 단계(별도 연결, 행 수 세기, 가져오기 크기, 구간으로 나눠 읽기). 파일 내보내기와 테이블 복사가 함께 씀. 아래 "고급 옵션" |
+| `DataTransferOptionDialogs` (새, 2026-11-08) | 매핑 규칙, 열 값(NULL·상수·식), 내보낼 열 고르기 대화상자 |
+| `internal/TransferOptionsMessages` (새, 2026-11-08) | 고급 옵션 화면 문구(영어 기본 + `_ko`) |
 | `SqlExportPragma` (새, 2026-11-07) | 스크립트의 `@export` 명령 처리기(`plugin.xml`의 `com.seizia.chromite.sqlCommand` pragma `export`): 옵션 검사, 마법사 열기. 아래 "@export 명령" |
 
 마법사를 위해 모델을 고치지는 않았다(새 테이블 형식 매핑의 모델·방언 수정은 아래 "새 테이블의 형식 매핑"). Swing 번들은 이미 `com.seizia.chromite.data.transfer`·`data.office`를 `Require-Bundle`로 쓰고 있었고(F단계), 새 번들 의존은 없다.
@@ -442,10 +445,11 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 명령 형식(SWT와 같음): `@export {"type": "csv", "processor": {...}, "consumer": {...}, "producer": {...}}` 다음 줄에 내보낼 SELECT.
   - `type`: 처리기 `stream.<type>`(csv, json, xml, html, markdown.table, sql, txt, xlsx 등). `"searchSimilar": true`이면 AI 형식 이름·짧은 이름·파일 확장자도 찾는다.
   - `processor`: 형식 속성(예: CSV `delimiter`). 형식의 기본값 위에 덮어 형식 설정 단계에 보인다.
-  - `consumer`: 출력 단계의 칸에 들어가는 것 — `outputFolder`, `outputFilePattern`, `outputEncoding`, `outputEncodingBOM`, `outputClipboard`, `compressResults`,
-    `useSingleFile`, `openFolderOnFinish`, `deleteFileInCaseOfFail`, `dataFileConflictBehavior`, `valueFormat`, `lobExtractType`, `lobEncoding`.
-    칸 없이 내보낼 때 설정에 넣는 것 — `outputTimestampPattern`, `splitOutFiles`, `maxOutFileSize`.
-  - `producer`: `fetchSize`, `openNewConnections`, `queryRowCount`, `extractType`, `segmentSize`(마법사 기본: 새 연결, 행 수 세기).
+  - `consumer`: 형식 설정·출력 단계의 칸에 들어가는 것 — `outputFolder`, `outputFilePattern`, `outputEncoding`, `outputEncodingBOM`, `outputClipboard`, `compressResults`,
+    `useSingleFile`, `openFolderOnFinish`, `deleteFileInCaseOfFail`, `dataFileConflictBehavior`, `valueFormat`, `lobExtractType`, `lobEncoding`,
+    `outputTimestampPattern`, `splitOutFiles`, `maxOutFileSize`(2026-11-08까지 마지막 셋은 칸 없이 설정에 넣었다).
+  - `producer`: 원본 읽기 설정 단계의 칸에 들어가는 것 — `fetchSize`, `openNewConnections`, `queryRowCount`, `extractType`, `segmentSize`
+    (기본: 새 연결, 행 수 세기, 모델 필드 기본값).
 - 거절(오류로 멈춤, Messages에 이유와 받는 값 목록): `type` 없음, 모르는 형식, 모르는 형식 속성, 위 목록 밖의 `consumer`/`producer` 옵션(`includePipesConfiguration`,
   `formatterProfile`, 실행 명령, 열 매핑, 결과 표 선택 옵션 등), 다음 문장이 데이터를 바꾸지 않는 SELECT 하나가 아님(`DataExportWizard.canExportQuery`).
   SWT는 모르는 형식 속성을 로그만 남기고 건너뛰었지만 그러면 사용자가 준 옵션이 조용히 무시된다. SELECT만 받는 것은 내보내기가 새 연결에서 쿼리를 실행하므로
@@ -487,12 +491,62 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   열의 매개변수에 앞 행 값이 남고 뒤 매개변수가 한 칸씩 밀렸다. 조건을 "준비한 문장이 있을 때"로 바꿨다(일괄 처리면 전처럼 먼저 실행). 같은 경로를 쓰는 스크립트 생성(값을 넣은
   INSERT 미리 보기)도 같은 원인이었다. 이 복사가 왜 일괄 처리를 쓰지 않았는지(SQL Server `supportsBatchUpdates`는 참, "행을 하나씩 삽입"은 꺼짐)는 찾지 못했다.
 
+### 고급 옵션 (2026-11-08)
+
+SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브리프 G9(`chromite/transfer-advanced-options`).
+
+- **작업 저장과의 관계:** 모든 값은 모델의 노드 설정(`DatabaseProducerSettings`, `DatabaseConsumerSettings`, `StreamConsumerSettings`)과
+  매핑(`DatabaseMappingAttribute`의 변환기, `StreamMappingContainer`)에 넣는다. 그래서 작업으로 저장하면(병렬 작업 G7 `chromite/transfer-tasks`)
+  각 설정의 `saveSettings`로 함께 저장된다. 매핑 규칙만 SWT처럼 연결·전역 설정에 둔다(작업이 아니라 대상 데이터베이스의 규칙).
+- **원본 읽기 설정 단계(`DataTransferExtractPage`, SWT `DatabaseProducerPageExtractSettings`):** 형식 단계 뒤(Copy Tables…는 원본 단계 뒤)에 두고
+  파일 내보내기와 테이블 복사가 함께 쓴다. 별도 연결, 먼저 행 수 세기, 가져오기 크기, 구간으로 나눠 읽기와 구간당 행 수. 기본값은 모델 필드 기본값이다
+  (새 연결 켬, 행 수 세기 켬, 10000, 한 쿼리, 100000). 그 전에는 두 경로가 새 연결·행 수 세기를 코드에서 늘 켰다(같은 값). `@export`의 원본 옵션도 이 칸에 들어간다.
+  - 두지 않은 것: SWT의 동시 추출 수(여러 Job). 진행 페이지가 파이프를 차례로 가져간다고 보고 다음 파이프를 가져가면 앞 파이프를 성공으로 표시하기 때문이다
+    (`DataTransferWizard.createSettings`의 `acquireDataPipe`). 결과 표의 "가져온 행만/선택한 행만"은 아래 "남긴 것".
+- **내보내기 출력(`DataExportWizard` 출력 단계, SWT `StreamConsumerPageOutput`):** 시각 형식(`${timestamp}`에 쓰임, `SimpleDateFormat`으로 검사해 잘못된
+  형식이면 다음으로 가지 않음), 출력을 여러 파일로 나누기와 최대 파일 크기(바이트). 모델은 텍스트 형식만 나누므로(`StreamTransferConsumer.fetchRow`)
+  이진 형식(XLSX)에서는 꺼진다. 나눈 파일 이름은 모델이 정한다(`_1`, `_2`…). 이미 있던 문자 집합·BOM·ZIP·폴더·파일 이름 패턴은 그대로다.
+- **내보내기 형식 설정(SWT `ConfigureColumnsDialog`, `StreamConsumerPageSettings`의 형식 프로필):**
+  - 열 고르기: "열 선택…"에서 체크한 원본마다 열을 체크한다. 원본마다 `StreamMappingContainer`를 만들어 모든 열을 내보내기/건너뛰기로 정한다.
+    모델은 매핑이 완전할 때(모든 열이 정해지고 하나 이상 내보냄)만 열을 거르므로 둘 중 하나로만 둔다. 모든 열을 고르면 매핑을 두지 않는다.
+    쿼리 원본은 열을 알기 위해 쿼리를 한 행만 실행한다(모델 `DTUtils.getAttributes`, 바꾸지 않는 SELECT만 받으므로 안전). 테이블 복사는 열 매핑 단계의 `[skip]`을 쓴다.
+  - 데이터 형식 프로필: 원본 연결의 형식(기본, 모델이 프로필을 바꾸지 않음), 전역 형식, 이름 붙인 프로필(`DBPDataFormatterRegistry.getCustomProfiles`).
+    작업으로 저장하면 모델이 프로필 이름으로 다시 찾으므로(`StreamConsumerSettings.loadSettings`의 `getCustomProfile`) 이름 붙인 프로필만 다시 읽히고
+    전역 형식은 원본 연결의 형식으로 돌아간다. Swing에는 이름 붙인 프로필을 만드는 화면이 없다(전역·연결 프로필만 옵션에서 고침).
+- **테이블 복사 넣기 설정(SWT `DatabaseConsumerPageLoadSettings`):** 조건은 SWT와 같다.
+  - 중복 키일 때: 대상 방언의 INSERT 변형(`getSupportedInsertReplaceMethodsDescriptors`: MariaDB·MySQL `REPLACE INTO`/`INSERT IGNORE`/`ON DUPLICATE KEY UPDATE`,
+    PostgreSQL `ON CONFLICT DO NOTHING`/`ON CONFLICT DO UPDATE SET` 등). 변형이 없는 대상(SQL Server, Oracle)은 꺼지고 도구 설명에 이유. 대량 로드를 켜면 꺼진다.
+  - 고유 키를 어기는 행 건너뛰기: 행을 하나씩 삽입할 때만(일괄 처리는 한꺼번에 실패), 대량 로드가 아닐 때만.
+  - 여러 행 INSERT에 값을 직접 쓰기(매개 변수 없음): 여러 행 INSERT를 켜고 대상 드라이버가 문장 바인딩을 쓸 때만(SWT도 다른 드라이버에서는 숨김).
+  - INSERT 문을 쿼리 관리자에 기록(`enableQmLogging`).
+- **매핑 규칙(매핑 단계 "매핑 규칙…", SWT `MappingRulesDialog`):** 새 테이블·열 이름의 대소문자(기본/대문자/소문자), 이름의 공백(그대로/밑줄/카멜 표기),
+  새 열의 최대 형식 길이. 옵션 > 데이터 전송과 연결 설정의 같은 페이지(`DataTransferOptionsPage`)가 쓰는 세 키다.
+  모델은 대상 연결 저장소에 키가 있으면 그 값을, 없으면 데이터 전송 번들 저장소를 읽는다. 그래서 대상 연결에 세 키를 모두 쓰고(연결 설정에서 그 페이지를 켠 것과 같음),
+  "모든 연결의 기본값으로도 쓰기"를 고르면 전역에도 쓴다. 전역에만 쓰면 연결이 자기 값을 가질 때 적용되지 않기 때문이다.
+  저장한 뒤 대상 컨테이너를 바꿀 때처럼 매핑을 다시 만든다. 새 테이블 이름은 SWT처럼 원본 이름에서 다시 만든다. 지금 이름은 대상 방언으로 이미 따옴표를 친 이름
+  (공백이 있는 원본은 `[Order Lines]`)이라 그대로 바꾸면 따옴표 안만 바뀌기 때문이다(첫 확인에서 `[order_lines]`로 나와 고침). 직접 입력한 새 이름도 바뀐다(대화상자에 적음).
+- **열 값(열 탭 "열 값…", 값 열, SWT `AttributeTransformerSettingsDialog`):** 모델이 등록한 변환기 — NULL로 설정, 상수, 식(JEXL, 원본 행의 열을 이름으로 씀).
+  변환기 이름은 `plugin.xml`에 영어로만 있어 알려진 id(`null`, `constant`, `expression`)는 이 번들의 문구를 쓴다. 요약에 열마다 한 줄.
+- **행을 지우는 작업(브리프: 미리 보기에 보이고 먼저 묻기):**
+  - 대상 DDL 탭: 비우기를 켜면 기존 테이블에 `-- 복사하기 전에 … 모든 행을 삭제합니다(TRUNCATE TABLE, 지원하지 않으면 DELETE).` 줄. 다시 만들기는 전부터 `DROP TABLE` + `CREATE TABLE`.
+  - 요약: 비울 테이블과 삭제하고 다시 만들 테이블의 목록(전에는 "기존 대상 테이블의 행을 먼저 모두 삭제합니다." 한 줄).
+  - Finish: 비울 테이블과 다시 만들 테이블을 한 번에 묻는다(삭제하고 복사 / 취소, 취소가 기본). 전에는 비우기만 Finish에서 묻고 다시 만들기는 고를 때만 물었다.
+    고를 때의 확인은 그대로 두고 Finish에서도 묻는 것은, 그 뒤에 바뀐 매핑이나 작업에서 불러온 설정도 실행 전에 확인하기 위해서다.
+- **비우기 뒤 멈춤(확인 중 찾음, 모델 `DatabaseTransferConsumer`):** PostgreSQL → SQL Server에서 기존 테이블 비우기와 새 테이블을 함께 복사하면 진행이
+  "Complete metadata load"에서 멈췄다. SQL Server 세션을 보면 메타데이터 세션(`Chromite - Metadata`)이 넣기 세션(`Data transfer consumer`, 열린 트랜잭션 1)을
+  `LCK_M_SCH_S`로 기다렸다. 원인: 비우기(`TRUNCATE`)는 넣기 트랜잭션 안에서 실행되어 테이블에 Sch-M 잠금을 커밋까지 쥐는데, 넣기(`JDBCTable.insertData` →
+  `readRequiredMeta`)가 열을 메타데이터 문맥(다른 세션)으로 다시 읽는다. 열 캐시는 새 테이블을 만든 뒤 스키마를 새로 고치며 비워진다. 고친 것: 비우기 전에
+  대상 테이블의 열을 읽어 둔다(그 세션은 아직 잠금이 없다). SWT에도 같은 코드라 같은 결함이 있었다.
+  - 그때 취소하면 작업은 끝나지만 넣기 세션이 열린 트랜잭션(비우기)을 쥔 채 남았다(아래 "남긴 것"). 시험에서는 그 세션을 서버에서 끊어 되돌렸다.
+
 ## upstream 대비 변경점
 
-- SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 작업(task) 저장·편집, 형식 프로필, 열 고르기(`StreamMappingContainer`),
-  분할 파일, 실행 명령 이벤트 처리기, 원격 파일 시스템은 이 화면에 없다.
-- 테이블 복사의 대상은 트리 대화상자 대신 연결·데이터베이스·스키마 콤보로 고른다. 매핑 규칙 대화상자(이름 대소문자·공백 바꾸기), 열 변환기(transformer),
-  새 테이블 속성 편집, 기존 테이블 고르기 대화상자([browse]), 매핑 저장·불러오기, 중복 키 처리 방법은 없다.
+- SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 실행 명령 이벤트 처리기, 원격 파일 시스템, 동시 추출 수는 이 화면에 없다.
+  형식 프로필, 열 고르기, 분할 파일, 원본 읽기 설정은 2026-11-08에 더했다(위 "고급 옵션").
+- 테이블 복사의 대상은 트리 대화상자 대신 연결·데이터베이스·스키마 콤보로 고른다. 새 테이블 속성 편집, 기존 테이블 고르기 대화상자([browse]),
+  매핑 저장·불러오기(작업 저장으로 대신)는 없다. 매핑 규칙, 열 값(변환기), 중복 키 처리는 2026-11-08에 더했다.
+- 비우기·다시 만들기를 대상 DDL 탭과 요약에 보이고 Finish에서 한 번 묻는다(SWT는 비우기를 체크할 때 묻고 다시 만들기는 고를 때만).
+- 비우기 전에 대상 테이블의 열을 읽어 두는 모델 수정(`DatabaseTransferConsumer`, 위 "비우기 뒤 멈춤").
 - 원본 테이블 자신을 대상으로 한 매핑을 막고, 건너뛴 테이블의 파이프는 실행하지 않는다.
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
 - 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
@@ -606,10 +660,50 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 새 테이블을 만드는 모든 데이터 전송(기본 키 추가, 키 열 NOT NULL), 행마다 실행하는
   모든 삽입(데이터 전송, `ExecuteBatchImpl`을 쓰는 결과 저장의 INSERT)과 값을 넣은 INSERT 스크립트, PostgreSQL 대상의 `bit` 매핑, Oracle 열 복사, Oracle 대상 문자열 한도.
 
+### 고급 옵션 확인 (2026-11-08)
+
+`-Pproduct-chromite-swing` 빌드를 작업 공간·`CHROMITE_DATA`를 scratch에 둔 앱 하나로 띄우고, 같은 프로세스 안의 시험 코드(Swing API로 칸·단추·표를 다룸,
+화면 좌표·전면 창 입력 없음)로 마법사를 진행했다. Docker DB의 `chr_transfer_adv` 데이터베이스(PostgreSQL `public.customers` 1,000행·`"Order Lines"` 300행·`copy.items`·`copy.tags`,
+MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국어(OS 기본)와 `-nl en`. 그림은 `D:\Tools\_scratch\transfer-advanced-options\shots\`.
+
+- **PostgreSQL → SQL Server(한국어):** 원본 읽기 가져오기 크기 500, 매핑 규칙 소문자·밑줄 → `"Order Lines"`가 `order_lines`, 열 `line_amount`·`product_name`
+  (DDL 탭 `CREATE TABLE chr_transfer_adv.dbo.order_lines …`). `customers.note`에 상수 `(copied)`, 비우기 → DDL 탭에 `-- 복사하기 전에 chr_transfer_adv.dbo.customers의
+  모든 행을 삭제합니다…`. 넣기: 중복 키 콤보는 SQL Server에 변형이 없어 꺼짐, 여러 행 INSERT, 커밋 200, 쿼리 관리자 기록. Finish → "복사 전 행 삭제"(기본 단추·초점 취소)
+  → 취소 → 마법사 그대로, 대상 2행 그대로·`order_lines` 없음. 다시 Finish → 삭제하고 복사 → 1,000·300행 성공. 확인: 1,000행, `sum(amount)` 625625.00(원본과 같음),
+  `count(email)` 800, `note`는 모두 `(copied)`, 지울 행 0, `고객 10` 한글 유지, `order_lines` 300행·합계 22575.00, 열린 트랜잭션 세션 없음.
+  - 고치기 전에는 같은 복사가 "Complete metadata load"에서 멈췄다(위 "비우기 뒤 멈춤").
+- **MariaDB → PostgreSQL(한국어):** 구간 읽기(2행씩), 대상 `copy` 스키마. `tags` "삭제 후 다시 만들기" → 확인(취소 기본) → 취소하면 "기존" 그대로, 다시 골라 확인 →
+  DDL `DROP TABLE "copy".tags;` + `CREATE TABLE`. `items.price`에 식 `price * 2`, 중복 키일 때 `ON CONFLICT DO UPDATE SET`(목록: 삽입, `ON CONFLICT DO NOTHING`,
+  `ON CONFLICT DO UPDATE SET`). 대량 로드를 켜면 중복 키 콤보가 꺼지고, 하나씩 삽입을 켜면 "고유 키를 어기는 행 건너뛰기"가 켜짐. Finish 확인에 다시 만들 테이블 목록.
+  결과: `items` 1 `new one` 3.00(기존 행 갱신), 2 `second` 5.00, 3 `세 번째` 7.00, 99 `keep me` 9.99(그대로), `tags` 1 red·2 blue(기존 500 없어짐).
+- **내보내기(한국어):**
+  - CSV: 시각 형식 `yyyy-MM-dd'T'HHq` → "시각 형식이 올바르지 않습니다"로 다음으로 가지 않음. `yyyy-MM-dd'T'HH`, BOM, 나누기 20,000바이트 → `customers_2026-11-08T09.csv`,
+    `_2`…`_5` 다섯 파일, 첫 3바이트 `EF BB BF`, 줄 1,005(머리글 5 + 1,000행).
+  - JSON: 열 선택에서 `email`·`note`·`created`를 끔 → "테이블 1개에서 일부 열", 요약 `customers의 열: id, name, amount (3/6)`, 전역 형식 프로필, ZIP →
+    `customers.json.zip` 안의 1,000개 객체가 `id`·`name`·`amount`만 가짐.
+  - SQL: 가져오기 크기 100, 300행씩 구간 → 파일 1,000행. 진행 표 행 수는 고치기 전 900(마지막 구간 통계 빠짐, 위 모델 수정), 고친 뒤 1,000.
+  - `@export {"type": "csv", "consumer": {…"outputTimestampPattern": "yyyyMMdd", "splitOutFiles": true, "maxOutFileSize": 15000}, "producer": {"fetchSize": 250,
+    "extractType": "SEGMENTS", "segmentSize": 400, "queryRowCount": false}}`: 마법사의 원본 읽기 칸(250, 구간 켬, 400, 행 수 세기 끔)과 출력 칸(yyyyMMdd, 나누기, 15000)에
+    값이 들어감. 결과 `cmd_customers.csv`·`cmd_customers_2.csv` 1,000행.
+- **영어(`-nl en`):** PostgreSQL → SQL Server 다시: 매핑 규칙 대화상자, `order_lines`가 기존 테이블이 되어 "Drop and re-create" 확인(기본 Cancel), `customers.name`에 식
+  `name + ' (en)'`, 비우기, 하나씩 삽입 + 고유 키 위반 행 건너뛰기. Finish 확인에 두 목록("All rows of these tables are deleted…", "These tables are dropped and created again…").
+  결과 1,000행(`고객 10 (en)`), `order_lines` 300행. CSV 내보내기: 열 4/6, `yyyyMMdd`, BOM, 30,000바이트 → `customers_20261108.csv`·`_2` 두 파일.
+  - 같은 영어 복사의 첫 실행 한 번은 `customers` 19번째 행에서 SQL Server 오류 "The value is not set for the parameter number 2"(Stop/Retry/Skip 질문)로 멈췄다.
+    같은 설정을 두 번 더 실행했을 때와 식 없이·일괄 처리로 나눠 실행했을 때는 모두 성공해 다시 만들지 못했다(아래 "남긴 것"). "고유 키 위반 행 건너뛰기"는 모델이
+    행마다 커밋하므로(`DatabaseTransferConsumer.insertBatch`) Stop 때 비우기와 앞 18행은 이미 커밋되어 있었다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 Export Data·Copy Tables(원본 설정이 새 페이지에서 옴), `@export` 명령, 비우기를 쓰는
+  모든 데이터 전송(비우기 전 열 읽기), 구간 읽기의 행 수 통계, 매핑 규칙을 쓰는 연결 설정(같은 키).
+- 시험 DB(`chr_transfer_adv` 세 개), 앱 작업 공간·데이터 폴더는 확인 뒤 지웠다.
+
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
-- 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 작업으로 저장, 외래 키 옮기기.
+- 테이블 복사의 새 테이블 속성 편집, 기존 테이블 고르기 대화상자, 외래 키 옮기기. 매핑 저장·불러오기와 작업으로 저장은 G7(`chromite/transfer-tasks`).
+- 원본 읽기의 동시 추출 수(위 "고급 옵션").
+- 이름 붙인 데이터 형식 프로필을 만드는 화면(내보내기는 있는 프로필을 고르기만 함).
+- SQL Server로 하나씩 삽입할 때 한 번 본 "The value is not set for the parameter number 2"(위 "고급 옵션 확인"). 다시 만들지 못해 원인을 찾지 못했다.
+- 복사를 취소할 때 넣기 세션이 열린 트랜잭션을 쥔 채 남는 경우(2026-11-08 확인, 메타데이터 읽기가 막혀 있던 중 취소). 넣기 소비자의 `close`가 그 경로에서 불리지 않는 것으로 보이며
+  모델 `DataTransferJob`·`DTTaskHandlerTransfer`의 취소 경로를 따로 확인해야 한다. 위 멈춤을 고친 뒤로는 그 상황이 생기지 않았다.
 - XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
 - 형식 매핑에 남은 것: MariaDB `TIME`의 24시간 넘는 값 → Oracle. (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
   정밀도 없는 `numeric`을, 밤에 `bit` → `boolean`, Oracle 열 복사의 길이 단위, `MAX_STRING_SIZE`를 고쳤고 `NUMBER(p,0)` → `numeric(p,0)`을 확인 —
@@ -618,7 +712,6 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - `MAX_STRING_SIZE = EXTENDED` 경로는 시험 DB에서 확인하지 못했다.
 - 여러 스키마를 복사할 때 원본 스키마마다 같은 이름의 대상 스키마로 나눠 보내기(모델의 대상 컨테이너가 하나라 다루지 않음).
 - 데이터베이스가 여럿인 연결 노드에서 데이터베이스를 고르게 하기(지금은 꺼짐), 펼치지 않은 연결 노드에서 켜기(메타데이터를 EDT에서 읽지 않기 위해 꺼짐).
-- 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일, 작업으로 저장.
 - 결과 표의 "가져온 행만/선택한 행만" 내보내기를 마법사에서 고르기(지금은 CSV·XLSX 항목).
 
 ## 변경 이력
@@ -651,3 +744,7 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   [regression-tests.md](regression-tests.md) "실행 결과".
 - 2026-11-08 쿼리 내보내기의 "행 수 세기"가 동작함: 모델 `SQLQueryDataContainer.countData`가 늘 -1이라 쿼리 결과는 전체 행 수를 몰랐다.
   이제 내보내기 전에 COUNT 쿼리 하나를 더 실행한다(SWT 쿼리 결과와 같음, 옵션을 끄면 실행하지 않음). [swing-grid-navigation.md](swing-grid-navigation.md) "전체 행 수".
+- 2026-11-08 고급 옵션(SWT 대조 C-36, C-37): 원본 읽기 설정 단계(`DataTransferExtractPage`), 내보내기의 시각 형식·파일 나누기·데이터 형식 프로필·열 고르기,
+  테이블 복사의 중복 키 처리·고유 키 위반 행 건너뛰기·값 직접 쓰기·쿼리 관리자 기록·매핑 규칙·열 값(`DataTransferOptionDialogs`), 비우기를 DDL 탭·요약에 보이고
+  Finish에서 비우기와 다시 만들기를 한 번에 묻기. `@export`의 원본·나누기·시각 옵션은 화면 칸으로. 모델: 비우기 전에 대상 열 읽기(`DatabaseTransferConsumer`,
+  SQL Server 멈춤), 마지막 구간 통계(`DatabaseTransferProducer`). 위 "고급 옵션".
