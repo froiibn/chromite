@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           java tools/jre/BundleJre.java osx-aarch64
-          for jre in "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/ChromiteSwing.app/Contents/Eclipse/jre"; do
+          for jre in "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/Chromite.app/Contents/Eclipse/jre"; do
             for f in lib/libjli.dylib lib/server/libjvm.dylib; do
               [ -f "$jre/$f" ] || { echo "::error::$jre/$f is missing"; exit 1; }
             done
@@ -140,17 +140,17 @@ jobs:
       # to keep the launcher executable bits. p2's chmod touchpoint ignores chmod failures, so the
       # launcher bit is checked before packing instead of shipping an .app that cannot start.
       # The launcher is "chromite-swing" (product/swing/chromite-swing.product) and the root folder is
-      # ChromiteSwing.app (product/swing/pom.xml).
+      # Chromite.app (product/swing/pom.xml).
       - name: Pack macOS arm64 Swing product
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          app_dir="$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/ChromiteSwing.app"
+          app_dir="$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/Chromite.app"
           if [ ! -x "$app_dir/Contents/MacOS/chromite-swing" ]; then
             echo "::error::$app_dir/Contents/MacOS/chromite-swing is missing or not executable"
             exit 1
           fi
-          tar -czf "$RUNNER_TEMP/chromite-swing-macos-aarch64.tar.gz" -C "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" ChromiteSwing.app
+          tar -czf "$RUNNER_TEMP/chromite-swing-macos-aarch64.tar.gz" -C "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app
 
       - name: Upload macOS arm64 Swing product
         if: runner.os == 'Linux'

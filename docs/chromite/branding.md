@@ -222,7 +222,7 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 | 파일 | 바꾼 내용 |
 |---|---|
 | `product/swing/chromite-swing.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="chromite-swing"`, 아이콘 `icons/chromite.ico`·`icons/chromite.icns` |
-| `product/swing/pom.xml` | 배포 파일 이름 `chromite-swing-${dbeaver-version}`, 루트 폴더 `ChromiteSwing.app` / `chromite-swing` |
+| `product/swing/pom.xml` | 배포 파일 이름 `chromite-swing-${dbeaver-version}`, 루트 폴더 `Chromite.app` / `chromite-swing` |
 | `plugins/com.seizia.chromite.ui.swing/plugin.xml` | 제품 확장: 이름 `Chromite`, `appName`, 부제 `Database Workbench`, 저작권 |
 | `NOTICE` | 출처, 원본 저작권, 상표 고지 (신규) |
 
@@ -320,3 +320,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.
 - 2026-11-08 "사이트의 출처 고지" 절 추가(사이트 2차 수정 요청 15번, `chromite/site-round2`): 바닥글과 지원 범위 페이지의 출처 고지 문구가 사이트에서 원래 프로젝트 이름을 쓰는 유일한 자리.
 - 2026-11-08 업데이트 뒤 첫 시작에는 Swing 시작 화면 대신 업데이트 진행 창이 뜬다(앱 항목 #11, `chromite/update-window`, "시작 순서" 행). 앱의 사본은 런처를 `-nosplash`로 띄운다.
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

@@ -37,18 +37,24 @@ import java.util.Map;
  *     <li>{@link Mode#OFF}: 확인하지 않는다. 지원하지 않는 OS·CPU, 런처 없이 실행(IDE 등, {@code eclipse.launcher} 속성 없음),
  *     Maven 결과물({@code .../target/products/...} 아래)인 개발 빌드.</li>
  *     <li>{@link Mode#NOTIFY}: 새 버전이 있다고만 알리고 내려받는 곳을 연다(Turbrix의 포터블 빌드와 같음).
- *     Windows: 설치 프로그램으로 설치하지 않은 복사본(릴리스 zip을 푼 폴더 등)이나 쓸 수 없는 설치 폴더(관리자 설치).
+ *     Windows: 설치 프로그램으로 설치하지 않은 복사본(릴리스 zip을 푼 폴더 등)이나 쓸 수 없는 사용자별 설치 폴더.
  *     macOS: Gatekeeper가 옮겨 실행 중인 앱({@code /AppTranslocation/}), 쓸 수 없는 앱이나 폴더.</li>
- *     <li>{@link Mode#APPLY}: 받아서 확인하고, 끝날 때 바꿔 넣는다.</li>
+ *     <li>{@link Mode#APPLY}: 받아서 확인하고, 끝날 때 바꿔 넣는다. Windows의 모든 사용자 설치({@link #allUsers})는 쓸 수 없는 폴더(Program Files)라도
+ *     여기다: 설치 프로그램을 관리자 권한으로(UAC) 실행한다({@link UpdateHandOver}).</li>
  * </ul>
  * "설치 프로그램으로 설치됨"(Windows)은 앱 및 기능의 제거 정보로 판단한다: HKCU·HKLM(64·32비트 보기)의
  * {@code Software\Microsoft\Windows\CurrentVersion\Uninstall\*} 중 {@code InstallLocation}이 이 폴더이거나
  * {@code UninstallString}의 실행 파일이 이 폴더에 있는 항목이 있어야 한다. 제거 정보의 키 이름은 보지 않는다
  * (설치 프로그램이 정한다, docs/chromite/distribution.md). {@code UninstallString}은 앱 및 기능 항목에 반드시 있다.
+ * 설치 범위는 그 항목이 있는 곳으로 정한다: HKLM이면 모든 사용자, HKCU면 사용자별이다(설치 프로그램이 범위마다 그곳에 쓴다).
  * 개발 빌드의 시험 모드는 {@link UpdateTestMode}가 정하는 조건에서만 켠다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-09 설치 범위({@link #allUsers}): 모든 사용자 설치(HKLM)는 "알리기만"이 아니라 받고 확인하고 관리자 권한으로 설치
+ *   (docs/chromite/auto-update.md "업데이트하는 복사본")
+ *
+ * @param allUsers Windows: installed for all users (its Apps &amp; Features entry is in HKLM); the installer runs elevated
  */
 public record UpdatePlace(
     @NotNull Mode mode,
@@ -56,7 +62,8 @@ public record UpdatePlace(
     @Nullable Path home,
     @Nullable Path launcher,
     @NotNull String reason,
-    @Nullable UpdateTestMode test
+    @Nullable UpdateTestMode test,
+    boolean allUsers
 ) {
 
     private static final Log log = Log.getLog(UpdatePlace.class);
@@ -76,7 +83,7 @@ public record UpdatePlace(
      */
     @NotNull
     public static UpdatePlace off(@NotNull String reason) {
-        return new UpdatePlace(Mode.OFF, null, null, null, reason, null);
+        return new UpdatePlace(Mode.OFF, null, null, null, reason, null, false);
     }
 
     /**
@@ -107,24 +114,28 @@ public record UpdatePlace(
             }
             Path dir = launcher.getParent();
             UpdateTarget target = new UpdateTarget(UpdateTarget.PLATFORM_WINDOWS, UpdateTarget.ARCH_X64, UpdateTarget.KIND_SETUP, version);
-            boolean installed = isRegisteredInstall(dir);
+            Boolean allUsers = installScope(dir);
             if (test != null) {
-                if (installed || WindowsUpdateVerifier.isSignedBy(launcher, WindowsUpdateVerifier.PUBLISHER)) {
+                if (allUsers != null || WindowsUpdateVerifier.isSignedBy(launcher, WindowsUpdateVerifier.PUBLISHER)) {
                     log.warn("Update test mode ignored: this is not a dev build"); //$NON-NLS-1$
                 } else {
-                    return new UpdatePlace(Mode.APPLY, target, dir, launcher, "test mode", test); //$NON-NLS-1$
+                    return new UpdatePlace(Mode.APPLY, target, dir, launcher, "test mode", test, test.allUsers()); //$NON-NLS-1$
                 }
             }
             if (isBuildOutput(dir)) {
                 return off("dev build"); //$NON-NLS-1$
             }
-            if (!installed) {
-                return new UpdatePlace(Mode.NOTIFY, target, dir, launcher, "not installed by the setup", null); //$NON-NLS-1$
+            if (allUsers == null) {
+                return new UpdatePlace(Mode.NOTIFY, target, dir, launcher, "not installed by the setup", null, false); //$NON-NLS-1$
+            }
+            // Program Files is not writable without administrator rights: the installer runs elevated
+            if (allUsers) {
+                return new UpdatePlace(Mode.APPLY, target, dir, launcher, "installed for all users", null, true); //$NON-NLS-1$
             }
             if (!Files.isWritable(dir)) {
-                return new UpdatePlace(Mode.NOTIFY, target, dir, launcher, "installation folder not writable", null); //$NON-NLS-1$
+                return new UpdatePlace(Mode.NOTIFY, target, dir, launcher, "installation folder not writable", null, false); //$NON-NLS-1$
             }
-            return new UpdatePlace(Mode.APPLY, target, dir, launcher, "installed", null); //$NON-NLS-1$
+            return new UpdatePlace(Mode.APPLY, target, dir, launcher, "installed", null, false); //$NON-NLS-1$
         }
         if (os.startsWith("Mac")) { //$NON-NLS-1$
             if (!"aarch64".equals(arch)) { //$NON-NLS-1$
@@ -142,19 +153,19 @@ public record UpdatePlace(
                 if (own == null || own.team() != null) {
                     log.warn("Update test mode ignored: this is not an ad hoc dev build"); //$NON-NLS-1$
                 } else {
-                    return new UpdatePlace(Mode.APPLY, target, bundle, launcher, "test mode", test); //$NON-NLS-1$
+                    return new UpdatePlace(Mode.APPLY, target, bundle, launcher, "test mode", test, false); //$NON-NLS-1$
                 }
             }
             if (isBuildOutput(bundle)) {
                 return off("dev build"); //$NON-NLS-1$
             }
             if (bundle.toString().contains(TRANSLOCATED)) {
-                return new UpdatePlace(Mode.NOTIFY, target, bundle, launcher, "translocated", null); //$NON-NLS-1$
+                return new UpdatePlace(Mode.NOTIFY, target, bundle, launcher, "translocated", null, false); //$NON-NLS-1$
             }
             if (!Files.isWritable(bundle) || bundle.getParent() == null || !Files.isWritable(bundle.getParent())) {
-                return new UpdatePlace(Mode.NOTIFY, target, bundle, launcher, "app not writable", null); //$NON-NLS-1$
+                return new UpdatePlace(Mode.NOTIFY, target, bundle, launcher, "app not writable", null, false); //$NON-NLS-1$
             }
-            return new UpdatePlace(Mode.APPLY, target, bundle, launcher, "installed", null); //$NON-NLS-1$
+            return new UpdatePlace(Mode.APPLY, target, bundle, launcher, "installed", null, false); //$NON-NLS-1$
         }
         return off("os " + os); //$NON-NLS-1$
     }
@@ -175,9 +186,11 @@ public record UpdatePlace(
     }
 
     /**
-     * Whether an Apps &amp; Features entry names {@code dir} as its installation folder.
+     * Whose installation {@code dir} is, by where the Apps &amp; Features entry that names it as its installation folder
+     * is: {@code false} the current user's (HKCU), {@code true} all users' (HKLM), null when no entry names it.
      */
-    static boolean isRegisteredInstall(@NotNull Path dir) {
+    @Nullable
+    static Boolean installScope(@NotNull Path dir) {
         for (WinReg.HKEY root : new WinReg.HKEY[]{WinReg.HKEY_CURRENT_USER, WinReg.HKEY_LOCAL_MACHINE}) {
             for (int view : new int[]{WinNT.KEY_WOW64_64KEY, WinNT.KEY_WOW64_32KEY}) {
                 try {
@@ -188,7 +201,7 @@ public record UpdatePlace(
                         Map<String, Object> values = Advapi32Util.registryGetValues(root, UNINSTALL_KEY + "\\" + key, view); //$NON-NLS-1$
                         if (sameFolder(folderOfLocation(values.get("InstallLocation")), dir) //$NON-NLS-1$
                             || sameFolder(folderOfCommand(values.get("UninstallString")), dir)) { //$NON-NLS-1$
-                            return true;
+                            return root == WinReg.HKEY_LOCAL_MACHINE;
                         }
                     }
                 } catch (RuntimeException | UnsatisfiedLinkError e) {
@@ -196,7 +209,7 @@ public record UpdatePlace(
                 }
             }
         }
-        return false;
+        return null;
     }
 
     @Nullable

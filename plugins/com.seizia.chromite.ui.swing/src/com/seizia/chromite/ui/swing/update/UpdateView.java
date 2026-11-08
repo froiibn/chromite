@@ -40,11 +40,13 @@ import java.util.Locale;
  *     실패는 막대 없음(실패는 제목의 표시와 실패한 단계 하나로 말한다).</li>
  *     <li>진행 중(설치 중·시작 중·완료)에는 단추가 없고 창을 닫을 수 없다. 단추가 있는 상태에서 창을 닫으면 그 상태의 Esc 단추와 같다.</li>
  *     <li>설치 실패의 "지금 쓰는 버전은 {0}입니다."는 설치 폴더가 아직 옛 버전일 때만 붙인다(사실일 때만).</li>
+ *     <li>모든 사용자 설치에서 관리자 확인(UAC)을 거부해 설치하지 못했으면 그 까닭과 [다시 시도] 안내를 보인다(단추는 같다).</li>
  * </ul>
  * 이 클래스와 같은 패키지의 창은 앱의 사본에서도 돌므로 FlatLaf·JDK·{@link UpdateMessages}·업데이트 모델만 쓴다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 관리자 확인 거부의 설치 실패 문구({@link Input#elevationRefused}) (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 public final class UpdateView {
 
@@ -130,6 +132,8 @@ public final class UpdateView {
         public boolean notes;
         /** A failed installation left the version {@link #from} in place. */
         public boolean versionKept;
+        /** The installation failed because the administrator prompt (UAC) was refused. */
+        public boolean elevationRefused;
         /** Going back to the version before is possible. */
         public boolean back;
         /** Why the start failed. */
@@ -237,12 +241,14 @@ public final class UpdateView {
             case STARTING -> UpdateMessages.update_window_sub_starting;
             case DONE -> UpdateMessages.update_window_sub_done;
             case FAILED_INSTALL -> {
-                StringBuilder s = new StringBuilder(UpdateMessages.update_window_install_failed);
+                StringBuilder s = new StringBuilder(in.elevationRefused
+                    ? UpdateMessages.update_window_elevation_refused : UpdateMessages.update_window_install_failed);
                 // Only when it is true: the installer stopped before the files of the version in use were removed
                 if (in.versionKept && in.from != null) {
                     s.append(' ').append(NLS.bind(UpdateMessages.update_window_version_kept, in.from));
                 }
-                yield s.append(' ').append(UpdateMessages.update_window_try_or_download).toString();
+                yield s.append(' ').append(in.elevationRefused
+                    ? UpdateMessages.update_window_elevation_try_again : UpdateMessages.update_window_try_or_download).toString();
             }
             case FAILED_START -> in.error != null && !in.error.isBlank()
                 ? in.error.strip() + "\n" + UpdateMessages.update_window_sub_failed_start //$NON-NLS-1$

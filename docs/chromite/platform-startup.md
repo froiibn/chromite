@@ -118,7 +118,7 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
 | `Eclipse`(런처 인수 배열) | `-keyring ~/.eclipse_keyring` | 지움. 이 인수는 옛 Platform 인증 저장소(`InternalPlatform` → `AuthorizationHandler.setKeyringFile`)만 읽고 Chromite는 쓰지 않는다. 보안 저장소는 `-eclipse.keyring`만 읽는다(`SecurePreferencesMapper`, [credential-storage.md](credential-storage.md)) |
 | `NSRequiresAquaSystemAppearance` | `true` | 지움(시스템 어두운 모드가 창 테두리에 닿음) |
 
-`CFBundleExecutable`(`chromite-swing`), `CFBundleIdentifier`, 앱 폴더 이름(`ChromiteSwing.app`)은 서명·업데이트·배포 파일이 쓰므로 그대로다.
+`CFBundleExecutable`(`chromite-swing`), `CFBundleIdentifier`는 서명·업데이트·배포 파일이 쓰므로 그대로다. 앱 폴더 이름은 2026-11-09에 `ChromiteSwing.app`에서 `Chromite.app`으로 바꿨다([distribution.md](distribution.md) "macOS 앱 이름").
 고친 뒤 값이 예상과 다르면(틀이 바뀌어 정규식이 맞지 않으면) 빌드가 실패한다(`<fail>` 조건).
 
 ## 설계 결정과 이유
@@ -224,3 +224,4 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
   런처가 만든 `NSApplication`에 앱 메뉴와 끝내기 위임자를 둔다(`MacOSAppMenu`, "macOS 앱 메뉴"). `Info.plist`의 이름(Chromite)과 Eclipse 틀 값 정리("macOS Info.plist").
   `macos-smoke.yml` 서명 없는 빌드로 시작·앱 메뉴·끝내기·열린 트랜잭션·키체인을 확인("macOS 확인 기록"). Windows 시작은 그대로임을 로컬 실행으로 확인.
 - 2026-11-08 시작 화면([branding.md](branding.md) "시작 화면"): `applicationRunning`을 메인 창 직전에서 Swing 시작 화면 직후로 옮김(런처 시작 화면을 내리는 호출). macOS에서는 작업 스레드에서 불려도 런처가 닫기를 AppKit 스레드로 넘기고 기다리지 않아 AppKit 스레드를 막지 않는다. `runWithSplash` 추가.
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

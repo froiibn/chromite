@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * <ol>
  *     <li>옛 앱: 버전, [지금 다시 시작]을 누른 때(또는 그냥 닫은 때), 받는 데 걸린 시간, 다시 확인을 마친 때, 창의 자리·언어·테마,
  *     로그 폴더, 되돌리기용 이전 버전 설치 파일. Windows에서 앱의 사본이 설치를 맡으면 설치 파일과 옛 앱이 확인한 SHA-256,
- *     설치 폴더, 런처, 옛 앱의 PID도 쓴다.</li>
+ *     설치 폴더, 런처, 옛 앱의 PID, 설치 범위(모든 사용자면 관리자 권한으로 설치)도 쓴다.</li>
  *     <li>앱의 사본({@code <updates>/window-app/}, {@link UpdateHandOver}): 창이 떴다는 것, 설치 프로그램을 시작·끝낸 때와 종료 코드.</li>
  *     <li>새 버전의 첫 시작: 창을 이어받았다는 것({@code takenAt}, 사본이 보고 끝남). 끝나면 기록을 지운다.</li>
  * </ol>
@@ -57,6 +57,7 @@ import java.util.stream.Stream;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 기록에 설치 범위({@code allUsers}) (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 public final class UpdateRun {
 
@@ -113,6 +114,8 @@ public final class UpdateRun {
         public Installer installer;
         public String installDir;
         public String launcher;
+        /** Installed for all users: the installer runs elevated (UAC). */
+        public Boolean allUsers;
         public Boolean dryRun;
         /** Test mode: the exit code the dry run reports. */
         public Integer testCode;

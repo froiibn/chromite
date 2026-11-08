@@ -139,7 +139,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   배포판이 하나가 된 뒤(2026-11-07)에도 ID는 바꾸지 않았다. 제품 feature, 모듈 목록, 문서에 걸친 이름 변경이라 동작은 같고 바뀌는 곳만 많다.
 - **설치 위치:** Windows는 `<설치폴더>/drivers/`, macOS는 `Chromite.app/Contents/Eclipse/drivers/`(Eclipse 설치 위치 =
   `Platform.getInstallLocation()`, 기존 `licenses/`와 같은 곳). Swing 제품은 Windows `chromite-swing/drivers/`,
-  macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`다.
+  macOS `Chromite.app/Contents/Eclipse/drivers/`다.
 
 ### 설치 폴더 구성
 
@@ -380,3 +380,4 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   MySQL 5 (Legacy)·StarRocks 라이선스 표기를 고치고(evening #12) 미완료 항목에서 뺌.
 - 2026-11-08 "로컬 파일 우선" 절 추가(후속 #62): 사용자가 추가한 로컬 jar·폴더에 드라이버 클래스가 있으면 미리 정의된 다운로드 항목을
   받지도 클래스패스에 넣지도 않는다(`DriverLoaderDescriptor`).
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

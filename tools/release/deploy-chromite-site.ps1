@@ -38,6 +38,7 @@
   Change history:
   - 2026-11-07 Created.
   - 2026-11-08 The live check also asks for the support pages and support.js (the new feature/database table).
+  - 2026-11-09 The macOS zip's bundle is Chromite.app; ChromiteSwing.app is accepted for 0.1.4 only (app change #22).
 
 .EXAMPLE
   pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 -Target ubuntu@<host> -IdentityFile <key> -KnownHosts <file>
@@ -134,7 +135,12 @@ $archive = [IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $entries = @{}
     foreach ($e in $archive.Entries) { $entries[$e.FullName] = $e }
-    $app = 'ChromiteSwing.app/Contents'
+    # The zip's one bundle: Chromite.app; ChromiteSwing.app in 0.1.4 only (the old name, for the 0.1.3 updater;
+    # release.yml "Zip and disk image"). Drop ChromiteSwing.app here with release.yml's argument from 0.1.5.
+    $tops = @($entries.Keys | ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique)
+    Expect "$($names[1]) holds one app bundle, Chromite.app or (0.1.4) ChromiteSwing.app" ($tops.Count -eq 1 -and $tops[0] -in 'Chromite.app', 'ChromiteSwing.app') "$($tops -join ', ')"
+    $bundle = if ($tops.Count -eq 1) { $tops[0] } else { 'Chromite.app' }
+    $app = "$bundle/Contents"
     Expect "$($names[1]) holds $app/MacOS/chromite-swing" ($entries.ContainsKey("$app/MacOS/chromite-swing")) 'missing'
     Lenient "$($names[1]) app is signed ($app/_CodeSignature/CodeResources)" ($entries.ContainsKey("$app/_CodeSignature/CodeResources")) 'missing'
     Lenient "$($names[1]) app carries its notarization ticket ($app/CodeResources)" ($entries.ContainsKey("$app/CodeResources")) 'missing'
@@ -152,9 +158,9 @@ if (Get-Command codesign -ErrorAction SilentlyContinue) {
     $x = Join-Path $WorkDir 'zip-check'
     Remove-Item -Recurse -Force $x -ErrorAction SilentlyContinue
     & ditto -x -k $zip $x
-    & codesign --verify --deep --strict "$x/ChromiteSwing.app"
+    & codesign --verify --deep --strict "$x/$bundle"
     Lenient "$($names[1]) codesign --verify --deep --strict" ($LASTEXITCODE -eq 0) "exit $LASTEXITCODE"
-    $spctl = (& spctl -a -t exec -vv "$x/ChromiteSwing.app" 2>&1) -join ' '
+    $spctl = (& spctl -a -t exec -vv "$x/$bundle" 2>&1) -join ' '
     Lenient "$($names[1]) Gatekeeper: Notarized Developer ID" ($spctl -match 'accepted' -and $spctl -match 'source=Notarized Developer ID') $spctl
 } else {
     Write-Host "  (codesign is not on this PC: the macOS signature and notarization were checked by release.yml only)"

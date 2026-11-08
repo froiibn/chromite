@@ -47,9 +47,16 @@ import java.util.concurrent.TimeoutException;
  * {@code jvm.dll}을 쥐고 있기 때문이다(그대로 두면 설치 프로그램이 60초 뒤 2로 끝남). Chromite를 다시 띄울 때 런처에 {@value #NO_SPLASH}를
  * 준다: 새 버전의 첫 시작은 진행 창이 시작 화면 몫을 하므로 런처의 그림이 그 위에 잠깐 뜨지 않게 한다.
  * 이 클래스는 사본에서 돌기 때문에 OSGi와 {@code Log}를 쓰지 않는다. 기록은 {@link UpdateRun#log}다.
+ * <p>
+ * 설치 범위(기록의 {@code allUsers}): 사용자별 설치는 {@code setup.exe /CurrentUser /S}를 자식으로 실행한다(관리자 확인 없음).
+ * 모든 사용자 설치(Program Files)는 관리자 권한이 필요하다. 승격된 프로세스는 자식으로 만들 수 없으므로 PowerShell이 셸의 {@code runas}로
+ * {@code /AllUsers /S}를 실행하고 종료 코드를 돌려준다({@link #runElevated}). 관리자 확인을 거부하면 설치 프로그램은 실행되지 않고
+ * {@link #isElevationRefused}가 참인 코드가 되며, 창은 그 실패 문구와 [다시 시도]를 보인다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 설치 범위: 모든 사용자 설치는 관리자 권한으로 설치({@link #runElevated}), 사용자별은 {@code /CurrentUser}
+ *   (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 public final class UpdateHandOver {
 
@@ -59,7 +66,23 @@ public final class UpdateHandOver {
      */
     public static final long TAKE_MS = 60_000;
     static final String NO_SPLASH = "-nosplash"; //$NON-NLS-1$
-    private static final String SILENT = "/S"; //$NON-NLS-1$
+    private static final String V_INSTALLER = "CHROMITE_UPDATE_INSTALLER"; //$NON-NLS-1$
+    private static final String V_ARGUMENTS = "CHROMITE_UPDATE_ARGUMENTS"; //$NON-NLS-1$
+
+    /**
+     * Runs the installer elevated ({@link UpdateApplier#RUN_INSTALLER}) and exits with its exit code; with
+     * {@value UpdateApplier#RESULT_HELPER_FAILED} when it could not be started (an uncaught error would exit with 1, the
+     * installer's "cancelled").
+     */
+    static final String ELEVATED_RUN = String.join("\n", //$NON-NLS-1$
+        "$ErrorActionPreference = 'Stop'", //$NON-NLS-1$
+        "$installer = $env:" + V_INSTALLER, //$NON-NLS-1$
+        "$arguments = $env:" + V_ARGUMENTS, //$NON-NLS-1$
+        "$elevate = $true", //$NON-NLS-1$
+        "try {", //$NON-NLS-1$
+        UpdateApplier.RUN_INSTALLER,
+        "} catch { [Console]::Error.WriteLine($_.Exception.Message); exit " + UpdateApplier.RESULT_HELPER_FAILED + " }", //$NON-NLS-1$ //$NON-NLS-2$
+        "exit $code"); //$NON-NLS-1$
 
     private UpdateHandOver() {
     }
@@ -132,7 +155,8 @@ public final class UpdateHandOver {
 
     /**
      * Runs the installer silently as a child of this process and returns its exit code; {@link UpdateApplier}'s
-     * negative results when it did not run. The test mode does not run it: it reports the record's test code.
+     * negative results when it did not run. An installation for all users runs it elevated ({@link #runElevated}).
+     * The test mode does not run it: it reports the record's test code.
      */
     public static int runInstaller(@NotNull UpdateRun run, @NotNull UpdateRun.Record record) throws InterruptedException {
         UpdateRun.Installer installer = record.installer;
@@ -140,13 +164,19 @@ public final class UpdateHandOver {
             run.log("the installer changed after its check: nothing changed"); //$NON-NLS-1$
             return UpdateApplier.RESULT_CHANGED;
         }
+        boolean elevate = Boolean.TRUE.equals(record.allUsers);
+        String scope = elevate ? UpdateApplier.SWITCH_ALL_USERS : UpdateApplier.SWITCH_CURRENT_USER;
+        String how = installer.file + " " + scope + " " + UpdateApplier.SWITCH_SILENT + (elevate ? " (elevated)" : ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         if (Boolean.TRUE.equals(record.dryRun)) {
             int code = record.testCode != null ? record.testCode : 0;
-            run.log("test mode: not run: " + installer.file + " (code " + code + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            run.log("test mode: not run: " + how + " (code " + code + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             return code;
         }
-        run.log("running " + installer.file + " " + SILENT); //$NON-NLS-1$ //$NON-NLS-2$
-        ProcessBuilder builder = UpdateProcess.builder(List.of(installer.file, SILENT), Map.of());
+        run.log("running " + how); //$NON-NLS-1$
+        if (elevate) {
+            return runElevated(run, installer.file, scope + " " + UpdateApplier.SWITCH_SILENT); //$NON-NLS-1$
+        }
+        ProcessBuilder builder = UpdateProcess.builder(List.of(installer.file, scope, UpdateApplier.SWITCH_SILENT), Map.of());
         // Not the installation folder: the installer replaces it
         builder.directory(run.getFolder().toFile());
         builder.redirectInput(ProcessBuilder.Redirect.from(UpdateProcess.nullDevice()));
@@ -160,6 +190,42 @@ public final class UpdateHandOver {
             run.log("the installer did not start: " + e.getMessage()); //$NON-NLS-1$
             return UpdateApplier.RESULT_HELPER_FAILED;
         }
+    }
+
+    /**
+     * Runs the installer elevated (UAC) through Windows PowerShell and the shell's {@code runas} verb, and waits for it: a
+     * process cannot be started elevated as a child of this one, but the shell hands back its exit code. What PowerShell
+     * says goes to the log.
+     *
+     * @return the installer's exit code, {@value UpdateApplier#RESULT_ELEVATION_REFUSED} when the administrator prompt
+     * was refused, {@value UpdateApplier#RESULT_HELPER_FAILED} when it did not start
+     */
+    static int runElevated(@NotNull UpdateRun run, @NotNull String installer, @NotNull String arguments) throws InterruptedException {
+        ProcessBuilder builder = UpdateProcess.builder(List.of(WindowsUpdateVerifier.powerShell(), "-NoLogo", "-NoProfile", //$NON-NLS-1$ //$NON-NLS-2$
+            "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", UpdateProcess.encodePowerShell(ELEVATED_RUN)), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+            Map.of(V_INSTALLER, installer, V_ARGUMENTS, arguments));
+        // Not the installation folder: the installer replaces it
+        builder.directory(run.getFolder().toFile());
+        builder.redirectInput(ProcessBuilder.Redirect.from(UpdateProcess.nullDevice()));
+        builder.redirectErrorStream(true);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(run.getFolder().resolve(UpdateApplier.LOG_FILE).toFile()));
+        try {
+            int code = builder.start().waitFor();
+            run.log(code == UpdateApplier.RESULT_ELEVATION_REFUSED
+                ? "the administrator prompt was refused: nothing changed" //$NON-NLS-1$
+                : "installer exit code " + code); //$NON-NLS-1$
+            return code;
+        } catch (IOException e) {
+            run.log("the installer did not start: " + e.getMessage()); //$NON-NLS-1$
+            return UpdateApplier.RESULT_HELPER_FAILED;
+        }
+    }
+
+    /**
+     * Whether an installation failed because the administrator prompt (UAC) was refused: the window says so.
+     */
+    public static boolean isElevationRefused(int code) {
+        return code == UpdateApplier.RESULT_ELEVATION_REFUSED;
     }
 
     /**

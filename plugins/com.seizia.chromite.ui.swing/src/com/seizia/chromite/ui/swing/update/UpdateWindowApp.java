@@ -52,7 +52,8 @@ import java.util.concurrent.Executors;
  *     <li>잘 끝나면 Chromite를 띄우고, 새 버전이 창을 이어받으면({@code takenAt}) 닫는다. 1분 안에 오지 않으면 한 번 더 띄우고,
  *     다시 1분 안에 오지 않으면 "Chromite를 시작하지 못했습니다"를 보인다(Turbrix는 조용히 끝나지만 사용자 결정 "시작 실패 → 로그·닫기
  *     (+ 되돌리기)"를 따른다),</li>
- *     <li>설치 프로그램이 실패하면 설치 실패를 보인다: [다시 시도]·[받는 곳 열기]·[닫기].</li>
+ *     <li>설치 프로그램이 실패하면 설치 실패를 보인다: [다시 시도]·[받는 곳 열기]·[닫기]. 모든 사용자 설치에서 관리자 확인(UAC)을
+ *     거부했으면 그 까닭을 말한다. [다시 시도]는 관리자 확인부터 다시 한다.</li>
  * </ol>
  * OSGi 없이 도는 평범한 Java 프로그램이다. 설정 저장소와 작업 공간을 읽지 않고 잠금을 쥐지 않는다. 언어·테마·자리는 기록에서 읽는다.
  * Pretendard 글꼴은 앱({@code UiFont})과 같은 파일을 같은 이름으로 등록한다({@code UiFont}는 {@code Log}를 써서 여기서 부를 수 없다).
@@ -60,6 +61,7 @@ import java.util.concurrent.Executors;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 관리자 확인 거부를 설치 실패 문구로 알림 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 public final class UpdateWindowApp {
 
@@ -80,6 +82,7 @@ public final class UpdateWindowApp {
     private UpdateWindow window;
     private UpdateView.State state = UpdateView.State.INSTALLING;
     private boolean versionKept;
+    private boolean elevationRefused;
     private int ticks;
     private Timer ticker;
     /**
@@ -158,7 +161,7 @@ public final class UpdateWindowApp {
                 if (result == 0) {
                     installed();
                 } else {
-                    failed(kept);
+                    failed(kept, UpdateHandOver.isElevationRefused(result));
                 }
             });
         });
@@ -201,13 +204,14 @@ public final class UpdateWindowApp {
         wait.start();
     }
 
-    private void failed(boolean kept) {
+    private void failed(boolean kept, boolean refused) {
         UpdateRun.Record now = run.read();
         if (now != null && now.takenAt != null) {
             quit();
             return;
         }
         versionKept = kept;
+        elevationRefused = refused;
         state = UpdateView.State.FAILED_INSTALL;
         push();
     }
@@ -285,6 +289,7 @@ public final class UpdateWindowApp {
         in.times[2] = span(record.checkEndAt, record.installEndAt);
         in.elapsedMs = record.restartAt != null ? now - record.restartAt : null;
         in.versionKept = versionKept;
+        in.elevationRefused = elevationRefused;
         in.back = record.previous != null;
         return in;
     }
