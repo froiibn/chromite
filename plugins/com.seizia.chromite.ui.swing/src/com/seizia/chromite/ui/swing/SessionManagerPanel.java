@@ -87,6 +87,7 @@ import java.util.Map;
  * - 2026-11-07 권한 안내 줄과 권한에 따른 명령 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  * - 2026-11-08 세션 명령 확인은 명령 이름 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 세션 상세의 암호 속성 가리기({@link ObjectListTable#maskPassword}, docs/chromite/password-handling.md)
+ * - 2026-11-09 명령 실행 중 상태 문구를 명령 이름 + "…" 대신 NLS 문구로 만듦(한국어 문구 끝에 말줄임표를 쓰지 않음, docs/chromite/swing-l10n.md)
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -435,7 +436,7 @@ final class SessionManagerPanel extends JPanel {
         if (immediateCheck != null && immediateCheck.isSelected()) {
             options.put(action.immediateOptionKey(), true);
         }
-        statusLabel.setText(action.label() + "…");
+        statusLabel.setText(NLS.bind(ConnectionMessages.sessions_action_running, action.label()));
         connection.run(action.label(), (monitor, session, connectedProfile) -> {
             DBAServerSessionManager<DBAServerSession> manager = connectedProfile.getSessionManager();
             if (manager == null) {
