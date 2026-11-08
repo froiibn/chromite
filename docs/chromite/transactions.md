@@ -238,6 +238,8 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 - 절전 뒤 다시 검증(`DataSourceMonitorJob.invalidateSleptConnections`)과 절전 때 연결 닫기는 2026-11-08부터 쓰는 중인 연결(열린 트랜잭션 등)을 건너뛴다
   ([connection-lifecycle.md](connection-lifecycle.md) "절전"). 쿼리 창의 "실행 전 연결 다시 검증"(`isInvalidateBeforeExecute`)은 Swing이 켜지 않는다(기본 `false`, 재정의 없음).
   오류로 멈춘 스크립트의 자동 롤백(`STOP_ROLLBACK`)은 #117이 고쳤다([swing-options.md](swing-options.md)).
+- 문장 오류 때 롤백(`query.rollback-on-error`)과 취소가 안 될 때 세션 단위 취소(`execute.cancel.checkTimeout`)는 2026-11-08부터 모델이 읽지 않는다.
+  설정 파일이나 가져오기로 다시 켤 수 없고, 남은 값은 시작할 때 지운다([swing-options.md](swing-options.md) "Errors and Timeouts"의 "두 키를 끄는 방법").
 
 ### 확인 (2026-11-07)
 
@@ -436,3 +438,4 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 - 2026-11-08 커밋 방식 전환(SWT 대조 B-S18, 사용자 결정: Query 메뉴와 SQL Editor 도구 막대): Query &gt; Auto-Commit과 도구 막대 단추가 활성 창 세션만 바꿈,
   수동 → 자동은 열린 트랜잭션이 있으면 커밋하고 바꾸기 / 롤백하고 바꾸기 / 취소(취소 기본), 세션을 함께 쓰면 그 창들을 알리고 확인, 실행 중 꺼짐,
   연결의 기본값은 그대로(`chromite/commit-mode-toggle`). PostgreSQL·SQL Server·Oracle, 한국어·영어에서 확인("커밋 방식 전환 > 확인")
+- 2026-11-08 문장 오류 때 롤백과 세션 단위 취소의 두 키를 모델이 읽지 않음(`chromite/safety-defaults`, [swing-options.md](swing-options.md))

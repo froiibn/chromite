@@ -49,6 +49,8 @@ import java.util.Locale;
  * - 2026-11-07 SWT 프런트엔드 삭제: {@link #UI_DRIVERS_OFFLINE} 설명의 설정 노드를 Swing 제품 번들로 고침(docs/chromite/swt-removal.md)
  * - 2026-11-07 데이터 소스별 유휴 트랜잭션 설정 {@code transaction.auto.close.*}를 지움: 연결 설정의 유휴 트랜잭션 설정으로 바뀜
  *   (docs/chromite/idle-transactions.md)
+ * - 2026-11-08 {@code query.rollback-on-error}, {@code execute.cancel.checkTimeout}을 지움: 모델이 더 읽지 않고, 남은 값은 시작할 때
+ *   {@code com.seizia.chromite.registry.RemovedPreferences}가 지움 (docs/chromite/swing-options.md "Errors and Timeouts")
  */
 public final class ModelPreferences
 {
@@ -185,11 +187,8 @@ public final class ModelPreferences
 
     public static final String DICTIONARY_MAX_ROWS = "dictionary.max.rows";
 
-    public static final String QUERY_ROLLBACK_ON_ERROR = "query.rollback-on-error"; //$NON-NLS-1$
-
     public static final String EXECUTE_RECOVER_ENABLED = "execute.recover.enabled"; //$NON-NLS-1$
     public static final String EXECUTE_RECOVER_RETRY_COUNT = "execute.recover.retryCount"; //$NON-NLS-1$
-    public static final String EXECUTE_CANCEL_CHECK_TIMEOUT = "execute.cancel.checkTimeout"; //$NON-NLS-1$
 
     public static final String DEFAULT_CONNECTION_NAME_PATTERN = "navigator.settings.default.connectionPattern";
     public static final String CONNECTION_OPEN_TIMEOUT = "connection.open.timeout"; //$NON-NLS-1$
@@ -325,10 +324,8 @@ public final class ModelPreferences
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.NOTIFICATIONS_SOUND_VOLUME, 100);
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.DICTIONARY_MAX_ROWS, 200);
         // Common
-        PrefUtils.setDefaultPreferenceValue(store, QUERY_ROLLBACK_ON_ERROR, false);
         PrefUtils.setDefaultPreferenceValue(store, EXECUTE_RECOVER_ENABLED, true);
         PrefUtils.setDefaultPreferenceValue(store, EXECUTE_RECOVER_RETRY_COUNT, 1);
-        PrefUtils.setDefaultPreferenceValue(store, EXECUTE_CANCEL_CHECK_TIMEOUT, 0);
         PrefUtils.setDefaultPreferenceValue(store, DEFAULT_CONNECTION_NAME_PATTERN, GeneralUtils.variablePattern(DBPConnectionConfiguration.VAR_HOST_OR_DATABASE));
         PrefUtils.setDefaultPreferenceValue(store, CLIENT_TIMEZONE, DBConstants.DEFAULT_TIMEZONE);
         PrefUtils.setDefaultPreferenceValue(store, CLIENT_BROWSER, "");
