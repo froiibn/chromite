@@ -1821,6 +1821,8 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 - **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
   Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
+  창의 연결이 실제 계획을 주지 않으면(SQL Server·Oracle·Altibase 밖, 연결된 뒤 판단) Actual Plan은 꺼지고 도구 설명이 이유를 말한다
+  ([swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로").
 - **쿼리 창이 아닐 때:** 활성 문서가 테이블 디자이너·ER 다이어그램·도구 문서·DDL 탭이거나 문서가 없으면 2줄은 보인 채 모든 컨트롤이 꺼진다(SSMS).
   콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다.
 - **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
@@ -2686,3 +2688,4 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
   ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 - 2026-11-08 결과 편집(B3): G단계 "남긴 것" 갱신, 수동 커밋 저장 안내 문구가 저장하고 커밋·쿼리 > 커밋을 가리킴. [swing-grid-editing.md](swing-grid-editing.md).
 - 2026-11-08 "자동 커밋 상태"에 B-S18 사용자 결정(세션 전환은 Query 메뉴와 SQL Editor 도구 막대) 안내. [transactions.md](transactions.md) "커밋 방식 전환".
+- 2026-11-08 SQL Editor 도구 막대: Actual Plan이 실제 계획을 주지 않는 연결에서 꺼지고 도구 설명이 이유를 말함. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로".

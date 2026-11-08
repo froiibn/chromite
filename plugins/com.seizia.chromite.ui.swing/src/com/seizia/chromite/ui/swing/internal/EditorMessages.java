@@ -49,6 +49,8 @@ import org.eclipse.osgi.util.NLS;
  *   ({@code QueryParameterDialog}의 스크립트 모드)가 씀 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 편집 편의 문구({@code editor_edit_*} 추가, {@code editor_text_*}, {@code editor_nav_*}, {@code editor_outline_none},
  *   결과 고정 {@code editor_results_*}) (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-08 실제 계획 토글을 Oracle·Altibase로: {@code editor_sql_actual_plan_unsupported}(그 밖의 연결), {@code editor_sql_cant_restore_actual_plan}.
+ *   다시 실행하는 실제 계획을 지우며 {@code editor_sql_actual_plan_select_only}, {@code editor_sql_making_actual_plan} 삭제
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -109,8 +111,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_plan_canceled;
     public static String editor_sql_plan_none_returned;
     public static String editor_sql_no_plans;
-    public static String editor_sql_actual_plan_select_only;
-    public static String editor_sql_making_actual_plan;
+    public static String editor_sql_actual_plan_unsupported;
     public static String editor_sql_nothing_to_explain;
     public static String editor_sql_making_estimated_plan;
     public static String editor_sql_not_connected_to;
@@ -118,6 +119,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_no_statements;
     public static String editor_sql_no_context;
     public static String editor_sql_cant_include_actual_plan;
+    public static String editor_sql_cant_restore_actual_plan;
     public static String editor_sql_rows_affected_one;
     public static String editor_sql_rows_affected_many;
     public static String editor_sql_rows_affected_max;

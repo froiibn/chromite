@@ -39,6 +39,13 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Altibase execution plan: the plan text the driver gives for a statement, as plan nodes.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 실행한 문장의 실제 계획 글자로 만드는 생성자(실제 계획 토글, {@link AltibaseActualPlanProvider},
+ *   docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ */
 public class AltibaseExecutionPlan extends AbstractExecutionPlan {
 
     static final Log log = Log.getLog(AltibaseExecutionPlan.class);
@@ -61,6 +68,16 @@ public class AltibaseExecutionPlan extends AbstractExecutionPlan {
         this.planQuery = "";
     }
     
+    /**
+     * Plan of a statement that was executed: the plan text the driver gave for it, which is also the plan source.
+     */
+    AltibaseExecutionPlan(AltibaseDataSource dataSource, String query, String planText) {
+        this.dataSource = dataSource;
+        this.query = query;
+        this.planQuery = planText;
+        this.rootNodes = AltibasePlanBuilder.build(dataSource, planText);
+    }
+
     /** 
      * Deserialize execution plan
      */

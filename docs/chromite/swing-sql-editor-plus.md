@@ -18,8 +18,11 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 
 | 파일 | 역할 |
 |---|---|
-| `plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/exec/SQLActualPlanProvider.java` | 실행 중 실제 계획을 결과 집합으로 돌려주는 연결의 어댑터(켜는 문장, 끄는 문장, 계획 결과 집합 판별, 계획 해석) |
+| `plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/exec/SQLActualPlanProvider.java` | 실행하면서 실제 계획을 받는 연결의 어댑터. 실행마다 `startRun`이 세션에서 켜고 `Run`이 문장마다 계획을 읽고(결과 집합, 열린 문장, 닫은 문장) `finish`가 되돌림 |
+| `plugins/com.seizia.chromite.model.sql/.../exec/SQLQueryExecuteHandler.java`, `SQLQueryExecuteJob.java` | `afterStatementExecuted`: 문장이 오류 없이 끝나고 결과를 다 읽은 뒤, 닫기 전에 부름(Altibase 실제 계획) |
 | `plugins/com.seizia.chromite.ext.mssql/src/com/seizia/chromite/ext/mssql/model/plan/SQLServerQueryPlanner.java` | SQL Server 계획기: `DBCQueryPlanner`(예상, `SET SHOWPLAN_XML`) + `SQLActualPlanProvider`(실제, `SET STATISTICS XML`) |
+| `plugins/com.seizia.chromite.ext.oracle/.../plan/OracleActualPlanProvider.java`, `OracleActualPlanNode.java` | Oracle 실제 계획: 세션 `statistics_level = ALL`, 문장마다 커서의 `V$SQL_PLAN_STATISTICS_ALL` 행과 `DISPLAY_CURSOR('ALLSTATS LAST')` 글자. 노드는 실행 통계(Starts, A-Rows, A-Time, Buffers, Reads)를 더한 하위 클래스 |
+| `plugins/com.seizia.chromite.ext.altibase/.../plan/AltibaseActualPlanProvider.java` | Altibase 실제 계획: 드라이버 `setExplainPlan(ON)`, 열린 문장의 `getExplainPlan()` 글자 |
 | `.../plan/SQLServerExecutionPlan.java`, `SQLServerPlanNode.java` | showplan XML을 DBeaver 계획 모델(`DBCPlan`, `DBCPlanCostNode`)로 바꿈 |
 | `plugins/com.seizia.chromite.ext.mssql/.../model/SQLServerDataSource.java` | `getAdapter`에서 위 계획기를 돌려줌(Babelfish 제외) |
 | `plugins/com.seizia.chromite.registry/.../BasePlatformImpl.java` | `getLocalConfigurationFile`이 작업 공간 설정 폴더를 만듦(매개변수 값 저장) |
@@ -29,7 +32,7 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | `.../PlanRawView.java` | 원본 보기: 계획 원문(읽기 전용, XML·JSON 구문 색), 복사, 다른 이름으로 저장 |
 | `.../internal/PlanMessages*.properties` | 세 보기의 화면 문구(영어, 한국어) |
 | `plugins/com.seizia.chromite.ext.oracle/.../plan/OracleExecutionPlan.java` | `DBMS_XPLAN.DISPLAY` 글자를 계획 원문으로 남김 |
-| `.../SqlPlanExplainer.java` | 계획기로 문장들의 계획을 구하는 Job(예상, ANALYZE) |
+| `.../SqlPlanExplainer.java` | 계획기로 문장들의 예상 계획을 구하는 Job |
 | `.../ActualPlanReceiver.java` | 실행 중 계획 결과 집합을 계획으로, 나머지는 결과 표로 보내는 수신기 |
 | `.../QueryHistory.java`, `QueryHistoryDialog.java` | 쿼리 기록 저장소(작업 공간 `.metadata/chromite-query-history.jsonl`)와 Query History 창 |
 | `.../SqlEditCommands.java` | Format SQL, 대소문자, 주석, 들여쓰기, Edit > Advanced 메뉴, 서식 설정 |
@@ -71,17 +74,15 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
   SET 문은 일괄 처리에 혼자 있어야 해서 따로 실행한다. 비용 %는 연산자 자신의 비용(하위 트리 비용 - 자식 하위 트리 비용) / 문장 비용으로,
   SQL Server 계획 도구의 "Cost: N %"와 같은 정의다. 문장 행의 %는 일괄 처리 대비다. `GO` 배치 하나는 계획 하나이고 그 아래에 문장마다
   SELECT 등의 문장 노드가 있다(머리말의 문장 수는 문장 노드 수).
-- **실제 계획은 두 방식이다.**
-  1. 실행 중 결과 집합으로 받는 연결(SQL Server): 새 어댑터 `SQLActualPlanProvider`. 편집기는 실행 직전에 같은 실행 문맥(같은 JDBC 연결)에서
-     `SET STATISTICS XML ON`을 실행하고, 실행 Job이 끝나면(오류·취소 포함) `OFF`를 실행한다. 문장은 **한 번만** 실행된다.
-     엔진은 열 정보를 `fetchStart`에서야 알려 주므로 `ActualPlanReceiver`가 먼저 받아 열 이름이
-     `Microsoft SQL Server 2005 XML Showplan`이면 원래 값(XML 전체)을 읽어 계획으로, 아니면 결과 표 수신기에 그대로 넘긴다.
-     `DBCQueryPlanner`는 "계획만 따로 구하기" API라 이 방식을 나타낼 수 없어서 어댑터를 따로 만들었다.
-     계획마다 "Query N" 행의 글자는 계획 XML의 `StatementText`(배치 전체가 아니라 그 문장)이고, 계획 결과 집합은 Messages의 행 수에 넣지 않는다.
-  2. 그 밖의 연결: 실행이 끝난 뒤, 성공했고 데이터를 바꾸지 않는 SELECT(`SQLQuery.getType() == SELECT && !isModifying()`)만 계획기에
-     `ANALYZE` 설정(`PostgreQueryPlaner.PARAM_ANALYSE`)을 켜고 다시 계획한다. PostgreSQL은 `EXPLAIN (ANALYZE)`로 문장을 다시 실행하고
-     계획기가 롤백한다. 이 키를 모르는 계획기(MySQL/MariaDB)는 예상 계획을 돌려주므로, 실제인지는 계획기가 실행한 계획 문장에 `ANALYZE`가
-     있는지로 판단해 머리말에 "Estimated"/"Actual"을 그대로 보인다(추측해서 "Actual"이라 쓰지 않음).
+- **실제 계획은 문장을 한 번만 실행하면서 받는다(SSMS와 같음).** 어댑터 `SQLActualPlanProvider`가 있는 연결(SQL Server, Oracle, Altibase)만
+  토글을 켤 수 있다. 편집기는 실행 직전에 창의 실행 문맥(같은 JDBC 연결)에서 `startRun`으로 켜고, 실행 Job이 끝나면(오류·취소 포함) `finish`로 되돌린다.
+  `DBCQueryPlanner`는 "계획만 따로 구하기" API라 이 방식을 나타낼 수 없어서 어댑터를 따로 만들었다. DB별로 계획을 받는 때가 다르다
+  (아래 "실제 계획 토글을 Altibase·Oracle로").
+  - SQL Server: `SET STATISTICS XML ON` / `OFF`. 서버가 문장마다 계획 XML 결과 집합을 하나 더 돌려준다. 엔진은 열 정보를 `fetchStart`에서야 알려 주므로
+    `ActualPlanReceiver`가 먼저 받아 열 이름이 `Microsoft SQL Server 2005 XML Showplan`이면 원래 값(XML 전체)을 읽어 계획으로, 아니면 결과 표 수신기에
+    그대로 넘긴다. 계획마다 "Query N" 행의 글자는 계획 XML의 `StatementText`(배치 전체가 아니라 그 문장)이고, 계획 결과 집합은 Messages의 행 수에 넣지 않는다.
+  - 어댑터가 없는 연결(PostgreSQL, MySQL/MariaDB 등): 토글이 꺼지고 도구 설명이 이유를 말한다. 처음에는 실행이 끝난 뒤 성공한 읽기 SELECT를 계획기의
+    `ANALYZE`(PostgreSQL `EXPLAIN (ANALYZE)`)로 **다시 실행**해 보였는데, 2026-11-08 사용자 결정으로 지웠다(문장을 두 번 실행하는 실제 계획은 따로 설계).
 - **탭 배치**: 메인 창의 Results / Messages 옆에 Execution plan 탭을 늘 둔다(SQL Server 도구는 계획이 있을 때만 탭을 보이지만,
   탭을 넣고 빼면 `MainFrame`의 탭 번호 처리가 늘어 다른 작업과 겹치기 쉬워 고정 탭으로 했다). 쿼리 창마다 마지막으로 본 탭을 기억한다.
   Ctrl+L은 계획 탭을 앞으로 가져오고, 실제 계획은 결과를 먼저 보인다(계획 탭은 눌러서 본다).
@@ -174,7 +175,8 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 | SQL Server | 전체: 연산자 아이콘(Key Lookup 포함), 연산자 비용 %, 예상·실제 행(모든 실행), 어긋남 표시, 경고 배지 전부, 누락 인덱스 머리말, 일괄 처리 기준 문장 비용 | showplan XML |
 | PostgreSQL | 전체: 비용 %(Total-Cost에서 자식 비용을 뺀 값), 예상·실제 행(× Actual-Loops), 어긋남 표시, 넘침 경고, 문장 상자(SQL 첫 단어) | EXPLAIN XML |
 | MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식. 자기 비용이 없는 중간 노드는 0%, 하위 트리 비용은 자식 비용의 합 — 2026-11-07 모델 수정, [model-fixes.md](model-fixes.md)). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
-| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 적응 계획은 쓰는 행만(아래 "Oracle 적응 계획"). 실제 계획 없음 | DBMS_XPLAN 글자 |
+| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 적응 계획은 쓰는 행만(아래 "Oracle 적응 계획"). 실제 계획(2026-11-08): 실제 행(A-Rows), 예상 행 × Starts, 어긋남 표시, 실행 횟수, 시간 | 예상 DBMS_XPLAN.DISPLAY, 실제 DISPLAY_CURSOR(ALLSTATS LAST) 글자 |
+| Altibase | 공통 모델: 계획 줄 이름(`PROJECT`, `SCAN`…). 실제 계획(2026-11-08)은 같은 모양이고 계획 글자의 ACCESS가 그 실행의 실제 접근 수(예상은 `??`) | 드라이버가 준 계획 글자 |
 | 그 밖의 DB | 공통 모델(`DBCPlanNode` 이름·개체·조건, `DBCPlanCostNode` 비용·행). 아이콘은 연산 이름의 낱말로 | 모델이 남긴 원문 |
 
 #### 모델 변경
@@ -199,11 +201,88 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
   `OraclePlanNode.clearNested`·`linkToDisplayParent`). 문장 행(ID 0)은 맵에 없어 그대로다. 비용 합계(`updateCosts`)는 다시 이은 뒤에 한다.
   모델에서 거르므로 트리·그림 보기와 Chromite Agent의 계획 도구(`PlanTools`)가 같은 계획을 본다. 원본 보기(DBMS_XPLAN 글자)는 원래 쓰는 행만 보였다.
 - 적응 계획이 아니거나 쓰지 않는 행이 없으면, 또는 `OTHER_XML`을 읽지 못하면 예전처럼 모든 행을 PARENT_ID로 잇는다.
-- `EXPLAIN PLAN`의 적응 계획은 실행 전 기본 계획(옵티마이저가 처음 고른 쪽)이다. 실행 중 통계 수집기가 다른 조인으로 바꿀 수 있지만 그것은 실제 계획(V$SQL_PLAN)에서만 보이며
-  Oracle 실제 계획은 아직 없다(위 표).
+- `EXPLAIN PLAN`의 적응 계획은 실행 전 기본 계획(옵티마이저가 처음 고른 쪽)이다. 실행 중 통계 수집기가 다른 조인으로 바꿀 수 있지만 그것은 실제 계획(V$SQL_PLAN)에서만 보인다.
+  2026-11-08부터 실제 계획 토글이 커서 계획을 같은 코드로 거른다(커서의 display_map은 실행 중 고른 계획, 아래 "실제 계획 토글을 Altibase·Oracle로").
 - 확인(2026-11-08, Oracle 23ai, 시험 스키마 `CHR_RESULTS_PLAN`의 t1 10,000행·t2 50,000행): 트리 `SELECT STATEMENT`(77) → `HASH JOIN`(77) → `TABLE ACCESS (FULL) T1`(9),
   `TABLE ACCESS (FULL) T2`(68). 그림은 `HASH JOIN` 0%·`T1` 12%·`T2` 88%. 적응 계획이 아닌 `WHERE id = 7`은 `TABLE ACCESS (BY INDEX ROWID)` → `INDEX (UNIQUE SCAN)` 그대로.
   같은 계획의 PLAN_TABLE 9행과 display_map은 `sqlplus`로 읽어 맞춰 보았다.
+
+### 실제 계획 토글을 Altibase·Oracle로 (2026-11-08)
+
+사용자 결정: 실행 계획은 SSMS처럼 동작한다. 실제 계획은 사용자가 쿼리 창마다 켤 때만(기본 꺼짐) 실행 결과와 함께 보이고, 예상 계획(Ctrl+L)은 실행하지 않는다.
+SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **한 번**, 창의 세션·트랜잭션에서 실행되고, 아무것도 암묵적으로 커밋·롤백하지 않으며,
+바꾼 세션 설정은 문장이 실패해도 되돌린다.
+
+#### 어댑터 모양
+
+예전 `SQLActualPlanProvider`는 "켜는 SQL 목록, 끄는 SQL 목록, 계획 결과 집합 판별"이었다. Altibase는 드라이버 API로 켜야 하고, Oracle은 켜기 전 값을 읽어 두었다
+되돌려야 해서 SQL 목록으로 나타낼 수 없다. 그래서 `startRun(session)`이 실행 단위 `Run`(켜기 전 값을 담음)을 돌려주고, `Run`에 계획을 받는 세 자리를 두었다.
+
+| 자리 | 언제 | 쓰는 DB |
+|---|---|---|
+| `isPlanResultSet` / `parsePlan` | 결과 집합을 받을 때(`ActualPlanReceiver`) | SQL Server |
+| `readOpenStatementPlan` | 문장이 오류 없이 끝나고 결과를 다 읽은 뒤, 닫기 전. 엔진 처리기의 새 훅 `afterStatementExecuted`(엔진 `SQLQueryExecuteJob.executeStatement`) | Altibase |
+| `readStatementPlan` | 문장을 닫은 뒤, 문장 끝 이벤트(`onEndQuery`)의 맨 앞(서버 출력 읽기·스마트 커밋보다 먼저) | Oracle |
+| `finish` | 실행 Job이 끝날 때(오류·취소 포함), 준비 중 예외로 Job이 시작하지 못했을 때, 한 번만 | 모두 |
+
+켜기에 실패하면(권한 등) Messages에 이유를 쓰고 문장은 원래대로(계획 없이) 실행한다. 계획 탭에는 같은 이유가 보인다.
+되돌리기에 실패하면 Messages에 오류로 알린다.
+
+#### Oracle
+
+- 세션 `ALTER SESSION SET STATISTICS_LEVEL = ALL`로 행 원천 통계를 모으고, 실행이 끝나면 켜기 전 값(`V$PARAMETER`는 이 세션의 값, 보통 TYPICAL)으로 되돌린다.
+  이미 ALL이면 바꾸지 않는다. 켜기 전 값을 읽지 못하면 되돌릴 값을 모르므로 켜지 않는다. `ALTER SESSION`은 트랜잭션을 끝내지 않는다.
+- Chromite Agent의 `getActualPlan`(`PlanTools`)은 `GATHER_PLAN_STATISTICS` 힌트와 표시 주석을 문장에 끼우고 V$SQL에서 그 주석으로 커서를 찾는다.
+  쿼리 창에서는 쓰지 않았다: 사용자 문장 글자가 바뀌면 오류 위치(드라이버가 주는 글자 위치)가 어긋나고, 원본 보기에 힌트가 보이며, 사용자의 힌트와 합쳐야 한다.
+  가져온 것은 같은 계획 행 뷰(`V$SQL_PLAN_STATISTICS_ALL`), `DISPLAY_CURSOR(sql_id, child, 'ALLSTATS LAST')` 글자, 권한 안내(`GRANT SELECT_CATALOG_ROLE`),
+  DISPLAY_CURSOR가 권한 없음을 글자로 돌려주는 경우의 판별이다.
+- 커서 찾기: 문장을 닫은 직후 같은 세션의 `V$SESSION.PREV_SQL_ID/PREV_CHILD_NUMBER`. 커서를 닫아야 그 실행의 통계가 끝난다(200행만 가져온 SELECT도 A-Rows는
+  가져온 만큼). 그 사이 같은 세션에서 다른 문장이 돌았으면 엉뚱한 계획을 보이지 않도록, 커서 글자(`V$SQL.SQL_TEXT`, 앞 1,000자)가 실행한 글자와 같은지 본다
+  (공백 차이, 드라이버가 `?`를 바꾼 `:1`은 같게 본다). 다르면 그 문장 항목에 이유를 보인다.
+- 계획이 없는 문장(PL/SQL 블록, DDL, COMMIT 등)은 첫 낱말(앞 주석·괄호 다음, SELECT/WITH/INSERT/UPDATE/DELETE/MERGE)로 걸러 서버에 묻지 않는다.
+- 계획 모델: `OracleExecutionPlan.readCursorPlan`이 커서 계획 행을 PLAN_TABLE과 같은 코드(`readNodes`)로 잇는다. 열 이름이 같고, 적응 계획 거르기(`hideInactiveRows`)도
+  그대로 쓴다. 노드는 `OracleActualPlanNode`(마지막 실행의 Starts, A-Rows, A-Time(ms), Buffers(일관+현재 모드), Reads). 하위 클래스로 둔 이유는 트리 열이 노드
+  클래스의 보이는 속성이라 예상 계획에 빈 열이 생기지 않게 하려는 것이다. 문장 행(ID 0)의 CARDINALITY는 커서 계획에서 NULL이라 예상 행을 비운다.
+  그래픽 보기는 실제 행, 예상 행 × Starts(E-Rows는 시작 1회 값), 실행 횟수, 시간을 보인다(`PlanDiagramBuilder`). 원본 보기는 DISPLAY_CURSOR 글자다.
+- 필요한 권한: `V$PARAMETER`, `V$SESSION`, `V$SQL`, `V$SQL_PLAN_STATISTICS_ALL` 읽기(`SELECT_CATALOG_ROLE` 또는 `SELECT ANY DICTIONARY`). Diagnostics/Tuning Pack은 필요 없다.
+
+#### Altibase
+
+- 세션의 계획 모드를 드라이버 API `setExplainPlan(byte)`로 `EXPLAIN PLAN = ON`(1)으로 바꾸고, 끝나면 켜기 전 값으로 되돌린다(보통 OFF 0).
+  SQL(`ALTER SESSION SET EXPLAIN PLAN = ON`)로 바꾸지 않는 이유: 드라이버가 모드를 따로 기억하고 그 값이 꺼짐이면 `getExplainPlan()`이 오류(334404)를 낸다
+  (드라이버 7.3 바이트코드 `AltibaseConnection.setExplainPlan`, `AltibaseStatement.throwErrorForExplainTurnedOff`로 확인). 켜기 전 값은 드라이버의
+  `explainPlanMode()`(패키지 전용)로 읽는다. 읽지 못하면 켜지 않는다.
+- 계획은 문장이 열려 있는 동안 `getExplainPlan()`으로 받는다(준비된 문장의 id로 서버에 묻는다). 결과를 다 읽은 뒤라 ACCESS는 그 실행의 실제 접근 수다.
+  모델은 예상 계획과 같은 `AltibaseExecutionPlan`(계획 글자 → `AltibasePlanBuilder`)이고, 원본 보기는 그 글자다. 계획이 없는 문장은 항목을 만들지 않는다.
+- `setExplainPlan`은 세션 속성만 보내므로 트랜잭션을 끝내지 않는다(열린 트랜잭션에서 모드를 바꾼 뒤 다른 세션에서 미확정 값이 보이지 않고 롤백되는 것을 확인).
+- 예상 계획(Ctrl+L)은 그대로 `EXPLAIN PLAN = ONLY`(전역 설정 `altibase.explain.plan.type`의 기본값)이고, 그 설정은 Options에 두지 않는다.
+
+#### 지원하지 않는 연결
+
+- 토글은 창의 연결이 연결된 뒤 어댑터가 없으면 꺼지고, 도구 설명(메뉴 항목과 SQL Editor 도구 막대 단추)이 이유를 말한다
+  ("실제 실행 계획은 SQL Server, Oracle, Altibase 연결에서 쓸 수 있습니다. 이 연결에서는 계획을 보려면 문장을 한 번 더 실행해야 합니다.").
+  연결 전에는 어댑터를 알 수 없어(데이터 소스가 만든다) 켤 수 있고, 켜고 실행했는데 어댑터가 없으면 계획 탭에 같은 이유를 보인다.
+  어댑터가 없는 연결의 창은 토글이 켜져 있었어도 실행할 때 계획을 구하지 않는다.
+- SQL Server 연결이라도 Babelfish는 어댑터가 없다(`SQLServerDataSource.getAdapter`, 원래 그대로).
+
+#### 확인 (2026-11-08)
+
+빌드 `BUILD SUCCESS`, `tools/rename/gate.py` ALL GATES PASSED. 빌드한 제품을 개인 작업 공간과 `CHROMITE_DATA`로 한 벌 띄우고, 시험용 EDT 에이전트(제품에 넣지 않음)가
+자기 프로세스 안에서 Query 메뉴 동작(Ctrl+M과 같은 `Action`)과 실행을 불러 확인했다(화면 좌표·전경 창 입력 없음). 영어(`-nl en`)와 한국어(`-nl ko`).
+
+| 항목 | 결과 |
+|---|---|
+| Oracle 23ai SELECT(수동 커밋, 시험 사용자 `CHR_APLAN` + `SELECT_CATALOG_ROLE`) | 결과 10행과 계획 1개. 트리 열에 시작 횟수·실제 행·실제 시간·버퍼·디스크 읽기, `HASH JOIN` 예상 6,080 / 실제 5,560, 원본은 DISPLAY_CURSOR(ALLSTATS LAST) 글자 |
+| Oracle UPDATE(수동 커밋) | 1,000행, 계획 1개(`UPDATE STATEMENT` → `UPDATE` → `TABLE ACCESS (FULL)` A-Rows 1,000). 다른 세션(system)에서: 바뀐 행 0(미확정), 그 창 세션의 `V$TRANSACTION` 1건(USED_UREC 1000), 커서 `EXECUTIONS=1`, 세션 `statistics_level=typical`(되돌림) |
+| Oracle 오류 문장 | ORA-00942, 계획 없음, `statistics_level=typical`, 앞의 트랜잭션은 그대로 열림 |
+| Oracle 섞인 스크립트 | PL/SQL 블록·CREATE TABLE·COMMIT은 계획 없음(서버에 묻지 않음), INSERT와 머리 주석이 있는 SELECT는 계획 2개 |
+| Oracle 적응 계획 | `t1.val LIKE 'v12%' AND t1.grp = 2`: "this is an adaptive plan", 실행 중 해시 조인으로 바뀜. V$SQL_PLAN 9행 중 쓰는 4행만 트리·그림에(문장 행 포함 5행), T2 예상 5 / 실제 50,000 어긋남 표시 |
+| Oracle 권한 없음(`CHR_APLAN_NOPRIV`) | Messages와 계획 탭에 "Can't include … GRANT SELECT_CATALOG_ROLE …", 문장은 그대로 실행(1행) |
+| Altibase 7.3(`chromite-test-altibase`, 수동 커밋) | SELECT: 계획 글자의 ACCESS 400·10(실제), 원본 보기. UPDATE: 50행, 계획 1개(ACCESS 500), 다른 세션에서 바뀐 행 0(미확정), 상태 줄 열린 트랜잭션. 끝난 뒤 창 연결의 드라이버 모드 0(OFF, 되돌림) |
+| SQL Server | 두 문장: 결과 5행·1행, 계획 2개(실제 / 예상 행, 실행 횟수), 계획 결과 집합은 행 수에 없음(이전과 같음) |
+| PostgreSQL | 연결 전 토글 켜고 실행: 계획 탭에 지원 안 함 이유. 연결 뒤 토글·도구 막대 단추 꺼짐, 도구 설명이 이유(영어·한국어) |
+
+화면: `D:\Tools\_scratch\actual-plan-more-dbs\shots\`(en/ko Oracle 그래픽·트리·원본, Altibase 그래픽·원본·트리, PostgreSQL 꺼진 토글). 회귀 테스트는 실행하지 않았다.
 
 ### 쿼리 기록
 
@@ -286,8 +365,8 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
   `nested_loop#1` 하위 트리 비용 0.205, `nested_loop#2` 0.981, 그림은 `t1` 17%·`t2` 83%(합 100%), 중간 노드 0%.
 - ~~Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행도 있어 트리·그림에 함께 보인다.~~ 2026-11-08 고침(위 "Oracle 적응 계획").
 - 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
-- MySQL/MariaDB 실제 계획: DBeaver MySQL 계획기는 `ANALYZE` 설정을 모른다. MariaDB `ANALYZE FORMAT=JSON` / MySQL `EXPLAIN ANALYZE`를 계획기에 넣는 일은
-  `ext.mysql` 수정이 필요해 미뤘다(지금은 예상 계획을 "Estimated"로 표시).
+- PostgreSQL·MySQL/MariaDB 등의 실제 계획: `EXPLAIN ANALYZE`(MariaDB `ANALYZE FORMAT=JSON`)는 결과를 보이려면 문장을 한 번 더 실행해야 해서
+  토글을 끈다(2026-11-08 사용자 결정). 별도 설계로 미룸.
 - 템플릿 변수의 같은 이름 동시 편집(linked mode)과 문맥 값 제안(테이블 이름 목록).
 - 매개변수 대화상자의 Cancel은 그 문장을 실행하지 않고 끝내지만, 엔진이 이를 오류나 취소로 알리지 않아 상태 줄은 "Query executed successfully"로 남는다(실행 엔진 `SQLQueryExecuteJob`의 결과 보고를 바꿔야 함).
 
@@ -348,3 +427,6 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-08 Oracle 적응 계획(#71): `OTHER_XML`의 display_map으로 쓰지 않는 행을 빼고 보이는 부모로 다시 이음. "미룬 일"의 항목을 닫음. #70을 MariaDB에서 다시 확인.
 - 2026-11-08 매개변수 대화상자를 Query Library의 `QueryParameterDialog`(스크립트 모드)로 합치고 `SqlParameterDialog`를 지움. 엔진 제공자는 `QueryParameterBinder.ScriptProvider`.
   바인딩한 실행의 기록은 리터럴 대신 `:name` 글자와 값. "미룬 일"의 대화상자 통합 항목을 닫음.
+- 2026-11-08 실제 계획 토글을 Oracle·Altibase로(사용자 결정, "실제 계획 토글을 Altibase·Oracle로"): 어댑터를 실행 단위(`startRun`/`Run`)로 바꾸고 엔진 훅
+  `afterStatementExecuted`를 더함. Oracle은 `statistics_level = ALL` + 커서 계획(`OracleActualPlanProvider`, `OracleActualPlanNode`), Altibase는 드라이버
+  `EXPLAIN PLAN = ON`(`AltibaseActualPlanProvider`). 어댑터가 없는 연결에서 SELECT를 `EXPLAIN ANALYZE`로 다시 실행하던 실제 계획을 지우고 토글을 끔(도구 설명에 이유).
