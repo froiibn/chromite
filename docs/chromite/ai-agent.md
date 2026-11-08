@@ -382,6 +382,7 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 | `permission`, `reason` | 정책 판정과 이유 |
 | `outcome` | `SUCCESS`, `ERROR`, `DENIED`, `BLOCKED`, `READ_ONLY`, `CANCELED`, `INVALID` |
 | `durationMs`, `error` | 실행 시간, 오류 문구 |
+| `transactionsBeforeCall` | 트랜잭션 질문에 Commit / Roll back으로 답했을 때만: `{"action": "COMMITTED"\|"ROLLED_BACK", "count": n}`. 그런 호출의 정책 판정은 대개 AUTO라 이것이 사용자의 결정을 남긴다. Cancel은 `outcome` DENIED와 `error`로 남는다 |
 
 파일이 10 MB를 넘으면 `audit.1.jsonl`로 바꾸고 새로 시작한다(하나만 보관).
 
@@ -730,7 +731,7 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 | 운영 연결 | 연결 종류를 Production으로 → `insertRows` BLOCKED("production connection …"), DB 그대로 |
 | 중지 | 긴 답 중 중지 → 글은 멈췄지만 상태가 "Stopping…"으로 약 20초 남고 그동안 보내기가 안 됨(아래 2). 오류 대화상자 없음, 끝난 뒤 다시 보낼 수 있음 |
 | API 오류 | 없는 모델 이름 → 대화에 "Anthropic request failed: model: claude-does-not-exist-9"(404 `not_found_error`의 문구). 키 없음 |
-| 감사 기록 | 도구 호출 9건이 정책(AUTO/CONFIRM/BLOCKED)과 결과(SUCCESS/DENIED/BLOCKED)로 남음. 트랜잭션 질문의 답(Roll back)은 없었다 |
+| 감사 기록 | 도구 호출 9건이 정책(AUTO/CONFIRM/BLOCKED)과 결과(SUCCESS/DENIED/BLOCKED)로 남음. 트랜잭션 질문의 답(Roll back)은 없었다(아래 3) |
 | 키 | 사본 작업 공간·데이터 폴더·로그·증거 파일에서 `sk-ant-` 0건 |
 
 찾아 고친 것:
@@ -745,6 +746,9 @@ Markdown 글자색이 그대로(외형 값을 따르게).
    모델이 답을 다 쓸 때까지(약 20초) 받기가 이어지고(그만큼 과금), 화면은 "Stopping…"이었다. `close()`가 `HttpClient.shutdownNow()`로 진행 중인 요청을 먼저 끝내게
    했다. 엔진을 닫는 곳(`AIAgentChatRunner`, `AIEngineResponseConsumerImpl`, 모델 목록·`generateText`의 try-with-resources)은 모두 응답을 다 받았거나 사용자가
    멈춘 뒤다. 고친 빌드에서 같은 시험: 중지 후 250 ms 안에 "Stopped.", 보내기 단추가 돌아옴.
+3. **감사 기록에 트랜잭션 답이 없음**: `rollbackTransaction`은 READ(AUTO)라 기록이 `permission: AUTO`, `outcome: SUCCESS`뿐이었고, 사용자가 "Open Transaction"
+   질문에 Roll back을 고른 것은 결과 JSON(`transactionsBeforeCall`)에만 있었다. 실행기가 감사 기록에도 같은 답을 넣는다(위 "감사 기록"). 고친 빌드에서 수동 커밋
+   연결에 `insertRows`(허용) → `rollbackTransaction`(Roll Back)을 실행기로 직접 불러 확인: 기록에 `"transactionsBeforeCall":{"action":"ROLLED_BACK","count":1}`.
 
 ## 1b단계 도구 (2026-11-08)
 
@@ -1043,6 +1047,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 - 2026-11-08 실제 Anthropic API 확인(`chromite/agent-real-api-test`): Anthropic 요청에 temperature를 명시적으로 정했을 때만 넣음. 위 "실제 API 확인".
 - 2026-11-08 AI 엔진을 닫으면 받는 중인 응답을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다리던 것. 위 "실제 API 확인" 2.
+- 2026-11-08 감사 기록에 트랜잭션 질문의 Commit/Roll back 답(`transactionsBeforeCall`)을 남김. 위 "감사 기록", "실제 API 확인" 3.
 - 2026-11-08 확인 대화상자의 미리 보기 제목을 "실행할 내용"(What will run)으로(명령줄 미리 보기도 있음), `backupDatabase`가 SQL Server가 아닌 연결을
   확인 전에 거절(evening #27 2·3부, `chromite/followups-3`). 위 "위험과 남은 일".
 - 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
