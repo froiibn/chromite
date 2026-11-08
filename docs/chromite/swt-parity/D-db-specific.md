@@ -70,8 +70,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P15 | 시퀀스·트리거·이벤트 트리거·행 보안 정책 만들기 | `PostgreSequenceConfigurator`, `PostgreTriggerConfigurator`(+`PostgreTriggerEditPage`), `PostgreEventTriggerConfigurator`, `PropertyObjectConfigurator`(Policy) | 있음(2026-11-08) | 폴더의 New Sequence…/New Trigger…/New Event Trigger…/New Policy…/New Data type…가 실행할 수 있는 CREATE 틀을 쿼리 창에 연다(`SourceScripts.getTemplateKind`, 트리거·이벤트 트리거는 함수까지). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. 대화상자 대신 틀(본문은 사용자가 씀) |
 | P16 | 인덱스·제약·외래 키 만들기 | `PostgreIndexConfigurator`, `PostgreConstraintConfigurator`, `PostgreForeignKeyConfigurator` | 있음 | `TableDesignerPanel` + `design/PostgreTableDesignerDriver`(swing-table-designer.md 58행) | 중간 | |
 | P17 | 함수·프로시저 만들기 | `PostgreProcedureConfigurator` | 있음 | `SourceEditCommands` New Function/Procedure(`SourceScripts`) | 중간 | |
-| P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 스키마·테이블 고르기, 도구 사용자·추가 인수 없음(swing-backup-restore.md 200행) |
-| P19 | Global Backup(pg_dumpall) | 도구 `PostgreToolBackupAll`, `PostgreBackupAllWizard*` | 없음 | swing-backup-restore.md 200행 "전체 클러스터 백업(pg_dumpall)" 남긴 것 | 중간 | 역할·테이블스페이스 백업 수단이 없다. 2026-11-08 다시 확인: 그대로. SWT에서 저장한 `pgDatabaseBackupAll` 작업은 Database Tasks에서 실행만 됨(model.admin `NativeBackupRestore.java`:355-361) |
+| P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 있음 | `NativeBackupRestoreDialog`. 2026-11-08 (`chromite/native-backup-advanced`) 개체 페이지의 스키마·테이블 고르기(모델 `PostgreDatabaseBackupSelection`, SWT와 같은 규칙), 도구 계정, 추가 인수(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 일부(스키마·테이블 고르기, 도구 사용자·추가 인수 없음) |
+| P19 | Global Backup(pg_dumpall) | 도구 `PostgreToolBackupAll`, `PostgreBackupAllWizard*` | 있음 | 2026-11-08 (`chromite/native-backup-advanced`) 백업 대화상자의 백업 범위 "서버의 전역 개체"(역할·테이블스페이스, `--globals-only`/`--roles-only`/`--tablespaces-only`)와 "전체 클러스터"(데이터베이스 고르기 → `--exclude-database`), pg_dumpall 옵션. `pgDatabaseBackupAll` 작업도 편집·저장(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 없음. 복원은 일반 형식(psql)으로 |
 | P20 | Restore(pg_restore/psql) | 도구 `PostgreToolRestore`, `PostgreRestoreWizard` | 있음 | `NativeBackupRestoreDialog`(+ 첫 오류에서 멈춤) | 중간 | |
 | P21 | psql로 스크립트 실행(도구) + SQL 편집기 "네이티브 클라이언트로 실행"(`sql.executors`) | `PostgreScriptExecuteWizard`, `PostgreScriptExecutor` | 있음(2026-11-08) | Tasks &gt; Run Script with Native Client…, Query &gt; Run with Native Client…, 작업 `pgScriptExecute` 저장·실행([swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 일반 형식 복원이 psql로 파일을 실행함. 편집기 연동은 grep `ScriptExecute`·`sql.executors` → `ui.swing` 0건(MySQL 복원용 1건 제외) |
 | P22 | 유지 관리: ANALYZE, VACUUM | 도구 `PostgreToolAnalyze`, `PostgreToolVacuum` | 있음 | `MaintenanceDialog` + `PostgreMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | Swing이 REINDEX·CLUSTER·부풀림 추정을 더함 |
@@ -118,7 +118,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M10 | 이벤트 만들기 | `MySQLEventConfigurator` | 있음 | `MySQLEventDialog`(swing-job-schedulers.md 14행) | 낮음 | Swing이 사용/사용 안 함·스케줄러 상태를 더함 |
 | M11 | 시퀀스 만들기(MariaDB) | `MySQLSequenceConfigurator` | 있음(2026-11-08) | Sequences 폴더 New Sequence…: CREATE SEQUENCE 틀. MariaDB 패키지(Packages 폴더 New Package…)도 같은 길. [swing-create-objects.md](../swing-create-objects.md) | 낮음 | 조사 당시: 없음 |
 | M12 | Source 탭, 패키지 본문(MariaDB Oracle 모드) | `MySQLSourceViewEditor`, `MySQLPackageBodyEditor` | 일부 | View DDL, Modify(swing-source-editor.md 53행) | 낮음 | |
-| M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 테이블 고르기 없음(swing-backup-restore.md 200행) |
+| M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 있음 | `NativeBackupRestoreDialog`. 2026-11-08 (`chromite/native-backup-advanced`) 개체 페이지의 테이블·뷰 고르기, `--compress`, 도구 계정, 추가 인수(swing-backup-restore.md "고급 백업·복원") | 중간 | 조사 당시: 일부(테이블 고르기 없음). 여러 데이터베이스를 한 번에 고르기는 없음 |
 | M14 | 가져오기(mysql로 덤프 복원) | 도구 `MySQLToolImport` | 있음 | `NativeBackupRestoreDialog` | 중간 | |
 | M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 있음(2026-11-08) | 같은 메뉴, 작업 `mysqlScriptExecute`(MariaDB 11.8 클라이언트로 확인, [swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`). 편집기 연동 없음 |
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
@@ -258,7 +258,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 남음)
 
-다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall, O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
+다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall(2026-11-08 고침), O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음). (2026-11-08 고침, [swing-routines.md](../swing-routines.md))
 
 ## 확인하지 못한 것

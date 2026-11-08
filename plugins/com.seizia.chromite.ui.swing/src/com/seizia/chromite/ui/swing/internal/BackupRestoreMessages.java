@@ -33,6 +33,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(native_pg_restore_stop_on_error)과 일반 형식 안내 문구 수정
  * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(native_script_*), 작업으로 저장(native_task_*), 표준 입력 미리 보기(native_stdin)
  *   (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 고급 백업·복원: 백업 범위(native_pg_scope*), 개체 페이지(native_objects_*), pg_dumpall 옵션(native_pg_all_*),
+ *   도구 계정·추가 인수(native_tool_*, native_extra_args*), MySQL --compress (docs/chromite/swing-backup-restore.md "고급 백업·복원")
  */
 public class BackupRestoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.BackupRestoreMessages"; //$NON-NLS-1$
@@ -253,6 +255,46 @@ public class BackupRestoreMessages extends NLS {
     public static String native_task_saved;
     public static String native_task_loading;
     public static String native_task_no_target;
+
+    // Advanced backup: scope, objects, pg_dumpall options, tool account, extra arguments
+    public static String native_page_objects;
+    public static String native_pg_scope;
+    public static String native_pg_scope_database;
+    public static String native_pg_scope_globals;
+    public static String native_pg_scope_cluster;
+    public static String native_pg_scope_note;
+    public static String native_objects_show_views;
+    public static String native_objects_schemas;
+    public static String native_objects_tables;
+    public static String native_objects_databases;
+    public static String native_objects_all;
+    public static String native_objects_none;
+    public static String native_objects_pg_note;
+    public static String native_objects_globals;
+    public static String native_objects_roles;
+    public static String native_objects_tablespaces;
+    public static String native_objects_globals_note;
+    public static String native_objects_cluster_note;
+    public static String native_objects_mysql_note;
+    public static String native_objects_loading;
+    public static String native_objects_error;
+    public static String native_objects_error_schemas;
+    public static String native_objects_error_globals;
+    public static String native_objects_error_databases;
+    public static String native_objects_error_tables;
+    public static String native_pg_all_schema_only;
+    public static String native_pg_all_no_owner;
+    public static String native_pg_all_role_passwords;
+    public static String native_pg_all_note;
+    public static String native_pg_globals_success;
+    public static String native_pg_cluster_success;
+    public static String native_mysql_compress;
+    public static String native_section_account;
+    public static String native_tool_user;
+    public static String native_tool_password;
+    public static String native_tool_account_note;
+    public static String native_extra_args;
+    public static String native_extra_args_note;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, BackupRestoreMessages.class);
