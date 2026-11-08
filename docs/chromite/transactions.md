@@ -66,7 +66,9 @@
 - SWT와 다른 점:
   - SWT는 기본으로 데이터를 바꾸는 문장만 보이고 "모든 문장 보이기"를 두었다. Chromite는 SELECT도 트랜잭션을 연 것으로 보므로(잠금·스냅숏, [idle-transactions.md](idle-transactions.md)) 모두 보인다.
   - "지난 트랜잭션 보이기"는 2026-11-08에 더했다([connection-lifecycle.md](connection-lifecycle.md) "트랜잭션 로그의 지난 트랜잭션").
-  - SWT는 쿼리 관리자 보기(`QueryLogViewer`)를 그대로 썼다. Swing에는 그 보기가 없어(A-C6) 표를 새로 만들었다.
+  - SWT는 쿼리 관리자 보기(`QueryLogViewer`)를 그대로 썼다. 만들 때 Swing에는 그 보기가 없어(A-C6) 표를 새로 만들었다.
+    2026-11-08부터 View > Query Manager가 있다([swing-query-manager.md](swing-query-manager.md)). 그 창의 트랜잭션 보기는 지난 트랜잭션도 고를 수 있고 메타데이터·내부 쿼리도 보일 수 있다.
+    이 창은 한 문맥의 지금 트랜잭션을 늘 보는 용도라 그대로 둔다.
 
 ## 열린 트랜잭션 목록
 

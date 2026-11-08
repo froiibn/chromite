@@ -318,6 +318,8 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 - 디버그 로그 두 키는 모델 번들 저장소 객체(`ModelPreferences.getPreferences`)에 쓴다. 플랫폼 저장소와 같은 설정 노드지만 변경 알림은 저장소 객체마다
   따로라서, 그 객체로 써야 실행 중인 로그가 바로 새 값을 쓴다.
 - 쿼리 창의 쿼리 기록(General > Query History)과는 다른 기능이다. 이 파일은 메타데이터 읽기 같은 내부 쿼리까지 담는 글자 로그다.
+- 2026-11-08: 기록할 것·쿼리 종류(`qm.objectTypes`, `qm.queryTypes`)는 View > Query Manager가 보일 항목이기도 하다(SWT와 같은 키, 그 창의 보일 항목 메뉴가
+  같은 키를 바꿈). 그래서 로그 파일을 꺼도 이 두 줄은 켜 두고 "보기 > 쿼리 관리자에 보일 항목도 같음" 안내를 붙였다([swing-query-manager.md](swing-query-manager.md)).
 - 범위 밖에서 확인한 것(고치지 않음): `QMLogFileWriter.initLogFile`은 켜진 상태에서 다시 만들 때 앞의 `FileWriter`를 닫지 않는다. `qm.` 키가 하나
   바뀔 때마다 불리므로 OK 한 번에 여러 키를 바꾸면 같은 파일의 쓰기 핸들이 여러 개 남는다(upstream 그대로).
 

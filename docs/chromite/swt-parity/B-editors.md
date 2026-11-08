@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 34 | 17 | 7 | 17 | 2 | **77** |
-| 일부 | 7 | 7 | 5 | 5 | 5 | **29** |
+| 있음 | 35 | 17 | 7 | 17 | 2 | **78** |
+| 일부 | 6 | 7 | 5 | 5 | 5 | **28** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
 | 조용히 끊김 | 0 | 0 | 0 | 0 | 0 | **0** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
@@ -78,7 +78,7 @@
 | S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문", 영역 A-S3). 조사 당시: 조용히 끊김 | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
 | S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 마지막 문장 기준 유휴, 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림, 영역 A-S1). 조사 당시: 조용히 끊김 | 위 요약 5 | 높음 | 영역 A와 중복 |
 | S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴. 2026-11-08: Oracle 설정을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용([model-fixes.md](../model-fixes.md)) |
-| S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
+| S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 있음 (2026-11-08, `chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): View &gt; Query Manager 도구 창. 쿼리 창마다 자기 세션(`SQLEditor <SQLQueryN.sql>`)이라 세션 열과 찾기 글자(창 이름)로 한 쿼리 창의 실행·내부 쿼리·트랜잭션을 거름). 조사 당시: 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | SWT처럼 쿼리 창 안의 패널이 아니라 한 도구 창이다. 조사 당시: 편집기가 실행한 문만 기록, 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
 | S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 일부 | 2026-11-08 View &gt; Outline 도구 창(`SqlOutlinePanel`, Ctrl+Alt+O): 문장 목록, 고르면 편집기에서 선택 ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 문장 안 구조(SELECT 목록, FROM 표) 나무 없음 |
 | S29 | 템플릿 | `SQLTemplateStore`, `PrefPageSQLTemplates` | 있음 | `SqlTemplates`, `SqlTemplatesPage` | 낮음 | 테이블·열 이름 변수 해석기, linked mode 없음(swing-sql-editor-plus.md:270) |
@@ -223,3 +223,5 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
   요약 수: 개체 편집기 있음 6 → 7, 조용히 끊김 1 → 0(합계 있음 77, 조용히 끊김 0).
 - 2026-11-08 S18 없음 → 있음(`chromite/commit-mode-toggle`, Query &gt; Auto-Commit과 SQL Editor 도구 막대의 커밋 방식 단추), 요약 7에 고친 것 표시.
   요약 수는 고치지 않음(합치는 쪽에서 다시 셈).
+- 2026-11-08 S26 일부 → 있음(`chromite/query-manager-view`, [swing-query-manager.md](../swing-query-manager.md): Query Manager 도구 창).
+  요약 수: SQL 편집기 있음 34 → 35, 일부 7 → 6(합계 있음 78, 일부 28).

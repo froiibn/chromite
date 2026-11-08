@@ -46,6 +46,8 @@ import java.util.Map;
  *     <li>SQL 로그 파일: {@code QMLogFileWriter}(Swing 플랫폼이 {@code QMUtils.initPlatform(true)}로 켬)가 플랫폼 저장소의 {@code qm.*} 키를 읽는다.
  *     {@code qm.}으로 시작하는 키가 바뀌면 그 저장소의 변경 알림으로 파일과 거르기를 다시 만든다. 그래서 OK 뒤 바로 적용된다. 보관 일수가 지난 파일은
  *     다시 만들 때 지운다. 기록할 것(연결·트랜잭션·쿼리)과 쿼리 종류는 {@code DefaultEventFilter}가 거른다.</li>
+ *     <li>기록할 것과 쿼리 종류는 View &gt; Query Manager({@link QueryManagerPanel})가 보일 항목이기도 하다(SWT와 같은 키, 그 창의 "보일 항목" 메뉴가
+ *     같은 키를 바꾼다). 그래서 로그 파일을 끈 동안에도 바꿀 수 있다.</li>
  *     <li>쿼리 창의 쿼리 기록(General 탭 Query History, {@link QueryHistory})과는 다르다. 이 파일은 메타데이터 읽기 같은 내부 쿼리까지 담는 글자 로그다.</li>
  *     <li>디버그 로그: {@code LogOutputStream}이 모델 번들 저장소({@link ModelPreferences#getPreferences})에 변경 알림을 걸어 크기와 파일 수를 바로 바꾼다.
  *     플랫폼 저장소와 같은 설정 노드지만 알림은 저장소 객체마다 따로라서 이 두 키는 그 저장소 객체로 쓴다.</li>
@@ -54,6 +56,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 기록할 것·쿼리 종류는 Query Manager 창의 보일 항목이기도 해서 로그 파일을 꺼도 켜 둠, 그 안내 (docs/chromite/swing-query-manager.md)
  */
 final class LogsOptionsPage extends SettingsPage {
 
@@ -98,7 +101,7 @@ final class LogsOptionsPage extends SettingsPage {
         row = OptionsDialog.addRow(form, row, null, storeLogsBox, null);
         row = OptionsDialog.addRow(form, row, SettingsMessages.logs_days, historyDaysSpinner, null);
         row = OptionsDialog.addRow(form, row, SettingsMessages.logs_folder, folderRow, SettingsMessages.logs_folder_hint);
-        row = OptionsDialog.addRow(form, row, SettingsMessages.logs_objects, objectsRow, null);
+        row = OptionsDialog.addRow(form, row, SettingsMessages.logs_objects, objectsRow, SettingsMessages.logs_objects_hint);
         row = OptionsDialog.addRow(form, row, SettingsMessages.logs_query_types, queryTypesRow, null);
         row = OptionsDialog.addSection(form, row, SettingsMessages.logs_section_debug);
         row = OptionsDialog.addRow(form, row, SettingsMessages.logs_debug_size, debugSizeSpinner, SettingsMessages.logs_debug_hint);
@@ -183,8 +186,10 @@ final class LogsOptionsPage extends SettingsPage {
         historyDaysSpinner.setEnabled(enabled);
         logFolderField.setEnabled(enabled);
         browseButton.setEnabled(enabled);
-        objectTypeBoxes.values().forEach(box -> box.setEnabled(enabled));
-        boolean queries = enabled && objectTypeBoxes.get(QMObjectType.query).isSelected();
+        // What to record also sets what the Query Manager shows, so it stays editable without the log file
+        boolean types = storeLogsBox.isEnabled();
+        objectTypeBoxes.values().forEach(box -> box.setEnabled(types));
+        boolean queries = types && objectTypeBoxes.get(QMObjectType.query).isSelected();
         queryTypeBoxes.values().forEach(box -> box.setEnabled(queries));
     }
 
