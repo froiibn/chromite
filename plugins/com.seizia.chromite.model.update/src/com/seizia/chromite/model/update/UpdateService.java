@@ -58,8 +58,8 @@ import java.util.stream.Stream;
  *     <li>되돌리기용으로 지금 버전의 설치 파일도 한 번 받아 같은 확인을 거친다(Windows, {@code previous/<버전>/}).
  *     업데이트 뒤 새 버전이 시작하지 못하면 업데이트 진행 창의 [이전 버전으로 되돌리기]가 이 파일을 설치한다(기록의 {@code previous}).</li>
  *     <li>적용: 끝날 때({@link #applyAtExit}) 확인한 파일을 한 번 더 확인한 뒤 도우미({@link UpdateApplier})를 띄운다.
- *     사용자의 정상 종료 경로(저장 안 한 편집기·트랜잭션 질문)를 거친 뒤에만 불린다. 자동 확인이 꺼져 있으면
- *     [다시 시작]을 눌렀을 때만 적용한다. 지난번 끝날 때 설치하지 못한 버전({@link #getInstallFailure}, 도우미가 남긴 결과)은
+ *     사용자의 정상 종료 경로(저장 안 한 편집기·트랜잭션 질문)를 거친 뒤에만 불린다. 자동 확인이 꺼져 있거나 Windows 모든 사용자 설치이면
+ *     [다시 시작]을 눌렀을 때만 적용한다(모든 사용자 설치는 관리자 확인 창이 뜨므로 진행 창과 함께만). 지난번 끝날 때 설치하지 못한 버전({@link #getInstallFailure}, 도우미가 남긴 결과)은
  *     다음 시작에 한 번 알리고, 그냥 닫을 때는 다시 적용하지 않는다([다시 시작]은 다시 시도한다, 끝날 때마다 실패를 되풀이하지 않게).</li>
  * </ul>
  * 모든 확인·받기는 데몬 스레드 하나({@value #THREAD_NAME})에서 차례로 돈다(겹치지 않아 잠금이 거의 필요 없다).
@@ -76,6 +76,8 @@ import java.util.stream.Stream;
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-08 업데이트 진행 창: 업데이트 기록, [지금 다시 시작]의 창과 앱의 사본({@link ExitWindow}), 받기 시각({@link #getDetail}),
  *   업데이트 뒤 첫 시작의 판단({@link #detectFirstStart}) (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 Windows 모든 사용자 설치({@link #isAllUsers}): [지금 다시 시작]에서만 관리자 권한으로 설치하고 그냥 닫을 때는 적용하지 않음.
+ *   macOS: 새 앱 묶음을 zip 안의 이름으로 놓음 (docs/chromite/auto-update.md "관리자 권한으로 설치", "적용")
  */
 public final class UpdateService {
 
@@ -395,6 +397,14 @@ public final class UpdateService {
     public URI getOrigin() {
         UpdateTestMode test = place.test();
         return test != null ? test.origin() : ORIGIN;
+    }
+
+    /**
+     * Windows: this copy is installed for all users. A version received is installed by [Restart now] only, after the
+     * administrator prompt; a plain close does not install it.
+     */
+    public boolean isAllUsers() {
+        return place.allUsers();
     }
 
     /**
@@ -727,12 +737,13 @@ public final class UpdateService {
                 }
                 writeRecord(record);
                 UpdateApplier.startWindowsHelper(folder, plan != null ? plan.file() : null, plan != null ? plan.entry().sha256() : null,
-                    plan != null ? plan.entry().version() : null, restart ? here.launcher() : null, here.test() != null);
+                    plan != null ? plan.entry().version() : null, restart ? here.launcher() : null, here.test() != null, here.allUsers());
             } else {
                 writeRecord(record);
                 Path app = here.home();
                 Path aside = folder.resolve(ASIDE_PREFIX + (plan != null ? plan.entry().version() : "restart")).resolve(app.getFileName()); //$NON-NLS-1$
-                UpdateApplier.startMacHelper(folder, app, plan != null && here.test() == null ? plan.app() : null, aside,
+                Path next = plan != null && here.test() == null ? plan.app() : null;
+                UpdateApplier.startMacHelper(folder, app, next, UpdateApplier.macTarget(app, next), aside,
                     plan != null ? plan.entry().version() : null, restart);
             }
             log.debug("Update helper started" + (plan != null ? " for " + plan.entry().version() : "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -788,6 +799,7 @@ public final class UpdateService {
             r.installDir = here.home().toString();
             r.launcher = here.launcher().toString();
             r.pid = ProcessHandle.current().pid();
+            r.allUsers = here.allUsers() ? Boolean.TRUE : null;
             if (here.test() != null) {
                 r.dryRun = true;
                 r.testCode = here.test().installerCode();
@@ -800,6 +812,7 @@ public final class UpdateService {
             r.installDir = null;
             r.launcher = null;
             r.pid = null;
+            r.allUsers = null;
             r.dryRun = null;
             r.testCode = null;
             return false;
@@ -832,7 +845,10 @@ public final class UpdateService {
         }
         if (ready == null || place.mode() != UpdatePlace.Mode.APPLY || (!prefs.enabled && !restart)
             // An installation that failed at the last end is tried again only when the user asks ([Restart now])
-            || (!restart && ready.entry().version().equals(failedInstallVersion))) {
+            || (!restart && ready.entry().version().equals(failedInstallVersion))
+            // An installation for all users asks for administrator rights: only with the update window ([Restart now]),
+            // never as a prompt out of nowhere after the window was closed
+            || (!restart && place.allUsers())) {
             return null;
         }
         UpdateVerifier.Verdict again = verifier.verify(ready.file(), ready.entry());

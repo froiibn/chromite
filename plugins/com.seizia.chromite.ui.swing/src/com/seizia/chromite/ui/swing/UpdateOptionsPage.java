@@ -37,6 +37,7 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-09 모든 사용자 설치의 "준비됨" 문구: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 final class UpdateOptionsPage extends JPanel {
 
@@ -148,7 +149,9 @@ final class UpdateOptionsPage extends JPanel {
             case DOWNLOADING:
                 return NLS.bind(UpdateMessages.update_options_downloading, version, state.progress());
             case READY:
-                return NLS.bind(UpdateMessages.update_options_ready, version);
+                // An installation for all users installs only with [Restart now] (administrator prompt), not at a close
+                return NLS.bind(service.isAllUsers() ? UpdateMessages.update_options_ready_all_users : UpdateMessages.update_options_ready,
+                    version);
             case AVAILABLE:
                 return NLS.bind(UpdateMessages.update_options_available, version);
             case FAILED:

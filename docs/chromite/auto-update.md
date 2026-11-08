@@ -59,8 +59,9 @@ updates/
 | 경우 | 동작 |
 |---|---|
 | 런처 없이 실행(IDE), Maven 결과물(`.../target/products/...`)에서 실행한 개발 빌드, 지원하지 않는 OS·CPU | 확인하지 않는다(목록도 읽지 않음) |
-| Windows: 설치 프로그램이 설치한 폴더(앱 및 기능 제거 정보의 `InstallLocation`이나 `UninstallString`의 실행 파일이 이 폴더)이고 쓸 수 있음 | 받아서 확인하고, 끝날 때 설치 |
-| Windows: 그 밖(릴리스 zip을 푼 폴더 등), 쓸 수 없는 설치 폴더(관리자 설치) | 새 버전이 있다고만 알리고 내려받는 곳을 연다 |
+| Windows: 설치 프로그램이 사용자별로 설치한 폴더(HKCU 앱 및 기능 제거 정보의 `InstallLocation`이나 `UninstallString`의 실행 파일이 이 폴더)이고 쓸 수 있음 | 받아서 확인하고, 끝날 때 설치(`setup.exe /CurrentUser /S`, 관리자 확인 없음) |
+| Windows: 설치 프로그램이 모든 사용자용으로 설치한 폴더(그 제거 정보가 HKLM, 보통 Program Files) | 받아서 확인하고, [지금 다시 시작]의 진행 창에서 관리자 권한으로 설치(아래 "관리자 권한으로 설치"). 그냥 닫을 때는 설치하지 않는다 |
+| Windows: 그 밖(릴리스 zip을 푼 폴더 등), 쓸 수 없는 사용자별 설치 폴더 | 새 버전이 있다고만 알리고 내려받는 곳을 연다 |
 | macOS: `<이름>.app` 묶음, Gatekeeper가 옮겨 실행 중(`/AppTranslocation/`)이 아니고 앱과 그 폴더에 쓸 수 있음 | 받아서 확인하고, 끝날 때 바꿔 넣기 |
 | macOS: 옮겨 실행 중이거나 쓸 수 없음(디스크 이미지 등) | 알리기만 |
 
@@ -117,7 +118,9 @@ updates/
 ### macOS 확인 (`MacUpdateVerifier`)
 
 1. 크기, SHA-256이 목록과 같다.
-2. zip 안의 이름이 모두 실행 중인 앱 묶음 이름(`<이름>.app/`)으로 시작하고 `..`, 역슬래시, NUL이 없다(`zipinfo -1`, 풀기 전).
+2. zip 안의 이름이 모두 한 앱 묶음(`<이름>.app/`) 안에 있고 `..`, 역슬래시, NUL이 없다(`zipinfo -1`, 풀기 전). 그 묶음은 실행 중인 앱의 이름이거나
+   지금 이름 `Chromite.app`이다(2026-11-09: 0.1.3까지의 `ChromiteSwing.app`이 새 이름의 zip을 받는다, [distribution.md](distribution.md) "macOS 앱 이름").
+   이름이 달라도 받는 근거는 5번의 번들 ID·Team ID다.
 3. `ditto -x -k`로 `<버전>/staging/`에 한 번 푼다.
 4. `codesign --verify --deep --strict`가 통과한다.
 5. `codesign -dv`의 번들 ID와 Team ID가 실행 중인 앱과 같다. 실행 중인 앱에 Team ID가 없으면(서명 없는 빌드) 통과하지 않는다.
@@ -147,7 +150,10 @@ updates/
   알림 "업데이트를 설치하지 못함 — 버전 X를 설치하지 못했습니다(코드 N). 지금 버전을 계속 씁니다."을 보인다(사본의 창이 이미 설치 실패를 보였으면 알림은 없다).
   그 버전은 그냥 닫을 때 다시 적용하지 않고(끝날 때마다 실패를 되풀이하지 않게), [지금 다시 시작]은 다시 시도한다.
 - macOS 도우미(`apply-update.sh`, 경로는 인자로): 앱이 끝나기를 기다리고, 지금 앱 묶음을 `before-<새 버전>/`으로 옮기고,
-  새 앱 묶음을 같은 경로로 옮긴다. 새 앱을 옮기지 못하면 옛 앱을 제자리로 돌린다. 다시 시작이면 `open`으로 띄운다.
+  새 앱 묶음을 같은 폴더에 zip 안의 이름으로 옮긴다(`UpdateApplier.macTarget`, 2026-11-09): `ChromiteSwing.app`(0.1.3까지)은 `Chromite.app`이 되고
+  옛 묶음은 `before-<새 버전>/ChromiteSwing.app`에 남는다. 같은 폴더에 `Chromite.app`이 이미 있으면(다른 복사본) 그것을 건드리지 않고 지금 앱의 자리에
+  옛 이름 그대로 놓는다(앱이 정할 때와 도우미가 옮기기 직전에 한 번 더 본다). 새 앱을 옮기지 못하면 옛 앱을 제자리로 돌린다. 다시 시작이면 새 앱의 경로를 `open`으로 띄운다.
+  이름이 바뀌면 Dock에 고정한 옛 항목과 로그인 항목은 옛 경로를 가리킨다([distribution.md](distribution.md) "macOS 앱 이름"의 "사용자가 보는 것").
 - 잠금(`apply.lock`, 도우미나 사본의 PID): 도우미가 설치하는 동안 Chromite를 다시 열면 "Chromite를 업데이트하는 중입니다. 잠시 후 다시 여십시오."를
   보이고 시작하지 않는다. 도우미는 다시 띄우기 직전에, 사본은 설치 프로그램이 끝나면 잠금을 지운다. 15분 넘은 잠금과 끝난 PID의 잠금은 버린다.
 - 자동 확인이 꺼져 있으면 받아 둔 버전은 [지금 다시 시작]을 눌렀을 때만 적용한다(그냥 닫을 때는 적용하지 않음).
@@ -231,6 +237,32 @@ Turbrix #747(main `fb55abc6`, 0.4.21부터)을 그대로 옮겼다. 원본: Turb
 - 사본을 쓰는 첫 업데이트는 0.1.4 → 0.1.5다.
 - 설치 중 비율은 설치 프로그램이 알리지 않아 길이를 모르는 막대다.
 
+### 관리자 권한으로 설치 (2026-11-09, 앱 변경 #23)
+
+설치 프로그램의 기본이 모든 사용자(Program Files, HKLM)가 되었다([distribution.md](distribution.md) "설치 범위"). 일반 사용자는 Program Files에 쓸 수 없으므로
+전에는 이런 설치가 "알리기만"이었다. 이제:
+
+| 설치 범위(앱 및 기능 항목의 위치) | 받기·확인 | 설치하는 때 | 설치 명령 | 관리자 확인 |
+|---|---|---|---|---|
+| 사용자별(HKCU, 0.1.3까지 모두) | 지금처럼 | 끝날 때마다, [지금 다시 시작] | `setup.exe /CurrentUser /S`(사본의 자식) | 없음 |
+| 모든 사용자(HKLM) | 지금처럼 | [지금 다시 시작]만(진행 창과 함께) | `setup.exe /AllUsers /S`, 셸 `runas` | UAC 1번 |
+
+- **범위 판단**(`UpdatePlace`): 이 설치 폴더를 가리키는 제거 정보가 HKLM에 있으면 모든 사용자(`allUsers`), HKCU면 사용자별. 쓸 수 없는 폴더여도 모든 사용자 설치는 `APPLY`다.
+- **승격 실행**(`UpdateHandOver.runElevated`, 앱의 사본): 승격된 프로세스는 자식으로 만들 수 없어서(`CreateProcess`) Windows PowerShell 5.1이
+  `System.Diagnostics.Process.Start`(셸 실행, 동사 `runas`)로 설치 프로그램을 띄우고 끝나기를 기다려 그 종료 코드로 끝난다(`UpdateApplier.RUN_INSTALLER`,
+  스크립트는 `-EncodedCommand`, 경로는 환경 변수). 사본의 창은 그동안 "설치" 단계다. 사본 자신과 다시 띄우는 Chromite는 승격되지 않는다.
+- **UAC 거부**: 셸은 `ERROR_CANCELLED`(1223)로 답한다. 결과 코드 `-5`(`RESULT_ELEVATION_REFUSED`)가 되고 설치 프로그램은 실행되지 않는다. 창은 설치 실패로
+  "관리자 확인이 취소되어 설치하지 못했습니다. 모든 사용자용으로 설치된 Chromite는 업데이트에 관리자 권한이 필요합니다." + "[다시 시도]를 누르고 사용자 계정 컨트롤 창에서
+  [예]를 고르세요."와 [다시 시도]·[받는 곳 열기]·[닫기]를 보인다. [다시 시도]는 관리자 확인부터 다시 한다. 옛 버전 파일은 그대로라 "지금 쓰는 버전은 …"도 붙는다.
+- **시간 초과**: 따로 두지 않았다. 기다리는 프로세스를 끝내도 UAC 창은 사라지지 않고, 나중에 [예]를 누르면 아무도 기다리지 않는 설치가 시작되기 때문이다.
+  Windows가 답 없이 닫은 창도 같은 `ERROR_CANCELLED`로 올 것으로 보지만 확인하지 못했다(이 PC에서 UAC를 띄우지 않음).
+- **그냥 닫을 때**: 모든 사용자 설치는 적용하지 않는다(`UpdateService.toApply`). 창을 닫은 뒤 맥락 없이 UAC 창이 뜨거나, 자리를 비운 사이 설치가 멈추지 않게.
+  그래서 제목 표시줄 단추의 툴팁과 옵션의 "준비됨" 줄은 "모든 사용자용 설치라 [지금 다시 시작]을 누르고 관리자 확인을 허용하면 설치됩니다."다.
+- **사본을 만들지 못했을 때**(도우미로 대신): PowerShell 도우미도 같은 `RUN_INSTALLER`로 승격 실행하고 거부는 `-5`로 결과 파일에 적는다. 다음 시작이 "업데이트를 설치하지 못함(코드 -5)"을 알린다.
+- **되돌리기**(시작 실패의 [이전 버전으로 되돌리기]): 기록의 `allUsers`가 같이 넘어가 이전 버전 설치 파일도 같은 방법으로 승격 실행한다.
+- **설치 프로그램 쪽**: `/AllUsers`인데 관리자가 아니면 조용한 실행은 종료 코드 2로 아무것도 바꾸지 않는다. 그래서 업데이터가 승격해서 띄운다.
+  사용자별 업데이트에 `/CurrentUser`를 명시하는 것은 범위를 분명히 하려는 것이다(0.1.3의 설치 프로그램은 모르는 스위치를 무시한다, 되돌리기에 쓰일 수 있음).
+
 ### 실패
 
 - 받은 파일이 확인을 통과하지 못하면 그 버전 폴더를 지우고 실패로 적는다(`update.json`의 `failed`: 버전, 시각, 단계).
@@ -280,7 +312,8 @@ Chromite Agent·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 �
 | `chromite.update.test.origin` | 사이트 주소 `http(s)://host[:port]`. 이 속성이 있어야 시험 모드 |
 | `chromite.update.test.publisher` | 기대하는 서명자 주체(없으면 실제 게시자) |
 | `chromite.update.test.product` | 기대하는 ProductName(없으면 `Chromite`) |
-| `chromite.update.test.installer.code` | 앱의 사본이 dry run에서 설치 프로그램의 종료 코드로 알릴 값(없으면 0). 설치 실패 화면 확인용 |
+| `chromite.update.test.installer.code` | 앱의 사본이 dry run에서 설치 프로그램의 종료 코드로 알릴 값(없으면 0). 설치 실패 화면 확인용(`-5` = 관리자 확인 거부) |
+| `chromite.update.test.allusers` | `true`면 이 개발 빌드를 모든 사용자 설치(HKLM)처럼 다룬다. 사본이 승격 실행 경로를 타되 dry run이라 실행하지 않고 그 명령(`/AllUsers /S (elevated)`)을 기록한다 (2026-11-09) |
 
 - 켜지는 조건(모두): 이 복사본이 설치 프로그램으로 설치된 것이 아니고, Windows는 실행 중인 런처가 우리 게시자로 `Valid` 서명되어 있지 않다
   (릴리스 빌드의 런처는 CI가 서명한다), macOS는 실행 중인 앱에 Team ID가 없다(ad hoc). 아니면 속성을 무시하고 로그에 남긴다.
@@ -302,13 +335,15 @@ Chromite Agent·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 �
 - `ProductVersion` 문자열은 정확히 `<v>`(예: `0.1.1`)여야 한다. `0.1.1.0`은 통과하지 않는다(NSIS `VIProductVersion`은 네 자리지만
   `VIAddVersionKey ProductVersion`은 세 자리 문자열로).
 - 설치본 판정: 앱 및 기능 항목의 `InstallLocation` 또는 `UninstallString`이 실제 설치 폴더(`chromite-swing.exe`가 있는 폴더)를 가리켜야 한다.
-- 조용한 업데이트: `setup.exe /S`가 같은 폴더에 덮어쓰고, 끝나면 종료 코드 0. 업데이트는 사용자별 설치(쓸 수 있는 폴더)에서만 적용한다.
+- 조용한 업데이트: `setup.exe /S`가 같은 폴더에 덮어쓰고, 끝나면 종료 코드 0. 2026-11-09부터 범위 스위치를 붙인다: 사용자별 `/CurrentUser /S`,
+  모든 사용자 `/AllUsers /S`(승격, 위 "관리자 권한으로 설치"). 스위치가 없으면 설치 프로그램이 이미 있는 설치의 범위를 쓴다(0.1.3 업데이터의 `/S`).
 - 2026-11-07 Part A의 설치 프로그램(`tools/installer/chromite.nsi`, 그 작업 트리에서 읽음)과 그 로컬 빌드
   `Chromite-0.1.1-x64-setup.exe`(서명 없음)로 위 조건을 확인했다: `ProductName` = `Chromite`, `ProductVersion` = `0.1.1`,
   HKCU `...\Uninstall\Chromite`의 `InstallLocation`·`UninstallString`, `RequestExecutionLevel user`, 설치 폴더 `%LOCALAPPDATA%\Programs\Chromite`.
   서명이 없어서 이 파일은 "서명" 단계에서 통과하지 않는다(의도한 동작).
-- macOS zip: 맨 위가 실행 중인 앱과 같은 이름의 묶음 하나(`ditto -c -k --keepParent`, `__MACOSX/`가 생기는 `--sequesterRsrc`를 쓰지 않음).
-  앱 묶음 이름을 바꾸면 이전 이름의 앱은 그 zip을 받지 않는다(이름 확인).
+- macOS zip: 맨 위가 묶음 하나(`ditto -c -k --keepParent`, `__MACOSX/`가 생기는 `--sequesterRsrc`를 쓰지 않음).
+  0.1.3까지의 업데이터는 실행 중인 앱과 같은 이름만 받으므로 0.1.4의 zip은 옛 이름 `ChromiteSwing.app`이다. 0.1.4부터의 업데이터는 `Chromite.app`도 받는다
+  ([distribution.md](distribution.md) "macOS 앱 이름", 0.1.5부터 zip은 `Chromite.app`).
 - 사이트의 개인정보 안내: 업데이터는 고정 User-Agent `Chromite`만 보낸다.
 
 ## 설계 결정과 이유
@@ -404,8 +439,26 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
 - 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` `BUILD SUCCESS`, `java tools/jre/BundleJre.java windows-x64`,
   `python tools/rename/gate.py` `ALL GATES PASSED`. 회귀 테스트는 요청되지 않아 작성·실행하지 않았다.
 
+### 설치 범위와 macOS 이름 (2026-11-09, `chromite/install-update-2`)
+
+빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` `BUILD SUCCESS`(결과물 `macosx/cocoa/aarch64/Chromite.app`, `Info.plist` 확인 통과).
+모델 함수는 OSGi 없이 같은 jar로 시험했다(작업 폴더 `D:\Tools\_scratch\chromite-install-update-2\harness`, 저장소에 넣지 않음). 회귀 테스트는 요청되지 않아 작성·실행하지 않았다.
+
+| 확인 | 결과 |
+|---|---|
+| `MacUpdateVerifier.bundleInside` | 새 이름 zip: 실행 중 `ChromiteSwing.app`·`Chromite.app`·이름을 바꾼 앱 모두 `Chromite.app`. 옛 이름 zip: `ChromiteSwing.app` 앱만 받음(`Chromite.app` 앱은 null). 다른 앱·묶음 둘·`..`·빈 목록은 null |
+| `UpdateApplier.macTarget` | `ChromiteSwing.app` + 새 `Chromite.app` → 같은 폴더 `Chromite.app`. 같은 이름·새 앱 없음 → 지금 자리. `Chromite.app`이 이미 있으면 지금 자리 |
+| macOS 도우미 스크립트(Git Bash의 sh, 가짜 묶음, `open`은 기록으로 바꿈) | 이름 바꿈: `apps/Chromite.app`=새 것, `before-0.1.5/ChromiteSwing.app`=옛 것, 결과 코드 0, 새 경로를 염. 새 이름이 이미 있음: 그 복사본 그대로, `ChromiteSwing.app` 자리에 새 것. 같은 이름, 다시 시작만도 지금처럼 |
+| `UpdatePlace.installScope` | 시험 설치(HKCU) 폴더 false, HKLM 항목의 폴더(7-Zip) true, 등록되지 않은 폴더 null |
+| `RUN_INSTALLER`/`ELEVATED_RUN`(Windows PowerShell 5.1, UAC 없이: 동사를 끄거나 예외를 흉내) | 설치 프로그램 종료 코드 3·0이 그대로 나옴. `Win32Exception(1223)`(PowerShell이 감싼 것과 직접 던진 것 모두) → -5. 없는 파일(오류 2) → -1 |
+| Windows 도우미(PowerShell, 가짜 설치 파일) | 사용자별: `running …\fake-setup.exe /CurrentUser /S`, 종료 코드가 결과 파일에. 모든 사용자 dry run: `test mode: not run: … /AllUsers /S (elevated)` |
+| 앱의 사본(`UpdateWindowApp`, 기록 `allUsers=true`·dry run·코드 -5) | 기록 `test mode: not run: …\fake-setup.exe /AllUsers /S (elevated) (code -5)`, 창이 "새 버전을 설치하지 못했습니다" + 관리자 확인 거부 문구, 단계 "설치" 실패, [다시 시도]가 Enter 단추(한국어 라이트 `01-allusers-uac-refused-ko.png`, 영어 다크 `02-…-en-dark.png`, 150%로 그린 창, `D:\Tools\_scratch\chromite-install-update-2\shots\`). 사용자별 코드 2는 지금 문구 그대로(`03`), 명령은 `/CurrentUser /S` |
+
 ## 확인하지 못한 것
 
+- 모든 사용자 설치의 실제 승격 업데이트(UAC 창, [예]·[아니요], 시간 초과, 창이 앞에 뜨는지): 이 PC에서 UAC를 띄우지 않았다(브리프). 승격 경로는 시험 모드의 명령 기록과
+  PowerShell 스크립트의 분기(흉내 낸 1223)로만 확인했다. 숨긴 PowerShell이 요청한 UAC 창이 바로 앞에 뜨는지, 작업 표시줄에서 깜박이는지도 확인하지 못했다.
+- macOS 이름 바꿈의 실제 한 바퀴(0.1.4 `ChromiteSwing.app` → 0.1.5 `Chromite.app`), Dock·Spotlight·로그인 항목의 실제 모습: Mac이 없고 서명된 두 릴리스가 필요하다.
 - 실제 서명된 Chromite 릴리스(첫 `v*` 태그) 사이의 업데이트: 0.1.0 설치본 → 0.1.1 설치 파일 받기 → 확인 → `setup.exe /S` → 다시 시작.
   Chromite 설치 프로그램(Part A)이 아직 없어서 이 PC에서는 SEIZIA가 서명한 Turbrix 설치 파일로 확인 단계까지만, 설치는 dry run으로 했다.
 - macOS 전체(확인 도구 호출, 바꿔 넣기, `open`으로 다시 시작, Gatekeeper "앱 관리" 보호). Windows에서는 순수 함수(이름 검사,
@@ -438,3 +491,6 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
   자식으로 실행, 새 버전의 첫 시작 창(시작 화면 대신), 설치 실패·시작 실패와 되돌리기, 업데이트 기록 `update-run.json`, 시험 모드 `chromite.update.test.installer.code`.
 - 2026-11-08 상태 표시줄 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2, `chromite/result-tabs`).
 - 2026-11-08 후속 26 점검(`chromite/followups-4`): `macos-smoke.yml`이 릴리스 없이 볼 수 있는 것과 없는 것, 더할 수 있는 smoke 단계를 "확인하지 못한 것"에 적음(코드 변경 없음).
+- 2026-11-09 설치 범위(앱 변경 #23, `chromite/install-update-2`): 모든 사용자 설치(HKLM)는 "알리기만"이 아니라 받고 확인하고 [지금 다시 시작]의 진행 창에서
+  관리자 권한으로 설치("관리자 권한으로 설치"), UAC 거부 문구와 [다시 시도], 그냥 닫을 때는 적용하지 않음, 사용자별 설치는 `/CurrentUser /S`, 시험 모드 `chromite.update.test.allusers`.
+  macOS 앱 이름(앱 변경 #22): `Chromite.app` zip을 옛 이름 앱도 받고 적용 때 `Chromite.app`으로 놓음("macOS 확인", "적용").

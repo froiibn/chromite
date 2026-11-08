@@ -28,7 +28,7 @@
                             <archiveFileName>chromite-swing-${unqualifiedVersion}</archiveFileName>
                             <rootFolders>
                                 <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
-                                <macosx>ChromiteSwing.app</macosx>
+                                <macosx>Chromite.app</macosx>
                                 <win32>chromite-swing</win32>
                             </rootFolders>
                         </product>
@@ -88,7 +88,7 @@
                         </goals>
                         <configuration>
                             <target>
-                                <property name="plist" value="${project.build.directory}/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app/Contents/Info.plist"/>
+                                <property name="plist" value="${project.build.directory}/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/Chromite.app/Contents/Info.plist"/>
                                 <!-- Menu bar, Dock, Finder and system dialogs show the product name -->
                                 <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
                                     match="(&lt;key&gt;CFBundleName&lt;/key&gt;\s*&lt;string&gt;)[^&lt;]*(&lt;/string&gt;)" replace="\1Chromite\2"/>

@@ -48,9 +48,9 @@ SWT 제품의 결과물(`chromite-windows-x64`, `chromite-macos-aarch64`)은 SWT
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
 | `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`chromite-swing.exe` 포함) |
-| `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`ChromiteSwing.app`, 런처 `Contents/MacOS/chromite-swing`) |
+| `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`Chromite.app`, 런처 `Contents/MacOS/chromite-swing`) |
 
-Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product/swing/pom.xml`의 `rootFolders`, 런처 이름(`chromite-swing`)은
+Swing 제품의 루트 폴더(`chromite-swing`, `Chromite.app`)는 `product/swing/pom.xml`의 `rootFolders`, 런처 이름(`chromite-swing`)은
 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`이다. 로컬 빌드 결과
 (`product/swing/target/products/com.seizia.chromite.swing.product/`)에서 `win32/win32/x86_64/chromite-swing/chromite-swing.exe`와
 `macosx/cocoa/aarch64/ChromiteSwing.app/Contents/MacOS/chromite-swing`이 있는 것을 확인했다.
@@ -117,7 +117,7 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
 
 ### macOS 결과물을 tar로 묶는 이유
 
-`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `ChromiteSwing.app/Contents/MacOS/`
+`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `Chromite.app/Contents/MacOS/`
 실행 파일의 실행 권한을 지키려고 `tar -czf`로 묶어서 올린다. 이미 압축한 파일이라 `compression-level: 0`으로 다시 압축하지 않는다.
 Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 폴더를 올려 결과물 안에 `chromite-swing/` 폴더가 남는다).
 
@@ -165,12 +165,12 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 | 작업 | 러너 | 권한 | 하는 일 |
 |---|---|---|---|
 | `release-assets` | `ubuntu-latest` | `contents: write` | 태그(입력 `tag`, `workflow_run`이면 그 태그, 비면 가장 최근 릴리스)의 `Chromite-<v>-arm64.dmg`와 `SHA256SUMS`를 `gh release download`로 받아 SHA-256을 확인하고 결과물 `smoke-input-release-dmg`(보관 1일)로 넘김. 릴리스가 없으면(서명 없는 릴리스 실행은 초안을 만들지 않음) 안내만 하고 끝 |
-| `build` | `ubuntu-latest` | 읽기 | `source: build`일 때만. 실행한 브랜치를 `release.yml`의 `macos-build`와 같은 단계로 빌드해 `ChromiteSwing.app`을 tar로 넘김 |
+| `build` | `ubuntu-latest` | 읽기 | `source: build`일 때만. 실행한 브랜치를 `release.yml`의 `macos-build`와 같은 단계로 빌드해 `Chromite.app`을 tar로 넘김 |
 | `smoke` | `macos-15` | 읽기 | 아래 단계. 로그·스크린숏을 결과물 `macos-smoke-<source>`(보관 14일)로 올리고 `result.txt`를 작업 요약에 씀 |
 
 `smoke` 단계(`macos-smoke.sh` 하위 명령):
 
-1. `install <dmg>`(release): dmg에 `com.apple.quarantine`을 붙이고(브라우저로 받은 파일처럼) `hdiutil attach` → `ditto`로 `/Applications/ChromiteSwing.app`에 복사 → `hdiutil detach`.
+1. `install <dmg>`(release): dmg에 `com.apple.quarantine`을 붙이고(브라우저로 받은 파일처럼) `hdiutil attach` → `ditto`로 `/Applications/Chromite.app`에 복사 → `hdiutil detach`.
    복사본이 이미지의 격리 속성을 물려받는지 확인한다. `unpack <tar.gz>`(build): 풀고 임시 서명(`codesign --sign -`, Apple silicon은 서명 없는 코드를 실행하지 않음). 격리·서명 확인은 하지 않는다.
 2. `verify <dmg>`(release): `codesign --verify --deep --strict`, Developer ID·타임스탬프, `spctl --assess --type execute`(격리된 복사본, "accepted", `source=Notarized Developer ID`),
    앱과 dmg의 `xcrun stapler validate`, dmg의 `spctl --assess --type open`, `syspolicy_check distribution`. Gatekeeper가 꺼져 있으면 러너에서만 켠다(`release-macos.sh`와 같음).
@@ -330,3 +330,4 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 2026-11-08 macOS 시작 수정([platform-startup.md](platform-startup.md))과 함께 `macos-smoke.sh`의 처음 실행된 단계를 고침(디버그 로그 교체, System Events 창 세기·AX 설명,
   트리 선택 키, 보안 저장소 확인). 서명 없는 빌드로 모든 단계 통과(실행 42407606192, "결과 (시작 수정 뒤)").
 - 2026-11-08 시작 화면(`chromite/startup-splash`, [branding.md](branding.md) "시작 화면"): `launch`가 메인 창 뒤의 `Startup times` 줄을 기다리고, 그 전에 보인 시작 화면을 찍고, 메인 창이 뜬 뒤 시작 화면이 닫혔는지 확인한다.
+- 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

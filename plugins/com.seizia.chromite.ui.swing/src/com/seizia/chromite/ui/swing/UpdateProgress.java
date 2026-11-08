@@ -63,6 +63,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-09 되돌리기 기록에 설치 범위: 모든 사용자 설치는 이전 버전도 관리자 권한으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  */
 final class UpdateProgress {
 
@@ -577,6 +578,7 @@ final class UpdateProgress {
                     r.installDir = place.home().toString();
                     r.launcher = place.launcher().toString();
                     r.pid = ProcessHandle.current().pid();
+                    r.allUsers = place.allUsers() ? Boolean.TRUE : null;
                     UpdateTestMode test = place.test();
                     if (test != null) {
                         r.dryRun = true;
