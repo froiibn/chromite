@@ -16,9 +16,10 @@ original source code were renamed from org.jkiss.dbeaver to
 com.seizia.chromite.
 
 This product also includes the following DBeaver Corp projects, which are
-licensed under the Apache License, Version 2.0. They are kept unmodified
-in the deps/ directory so that Chromite can be built from this repository
-alone:
+licensed under the Apache License, Version 2.0. They are kept in the deps/
+directory so that Chromite can be built from this repository alone. They are
+unmodified except for one corrected line in each LICENSE.md: the JSch entry
+said LGPL, but the bundled JSch (mwiede fork) is BSD-style (2026-11-08):
 
   dbeaver-common (deps/dbeaver-common)
   https://github.com/dbeaver/dbeaver-common
