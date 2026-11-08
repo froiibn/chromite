@@ -29,6 +29,7 @@ import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
+import com.seizia.chromite.ui.swing.internal.QueryManagerMessages;
 import com.seizia.chromite.ui.swing.internal.ScriptsMessages;
 import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
@@ -252,6 +253,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-query-window-recovery.md, docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  * - 2026-11-08 Properties 창과 Object Details 속성 탭이 변경 스크립트를 쿼리 창으로 열 수 있게 쿼리 창 호스트를 넘김(속성 편집)
  *   (docs/chromite/swing-object-properties.md)
+ * - 2026-11-08 Query Manager 도구 창({@link QueryManagerPanel}, 메인 창 아래 가장자리, 기본 숨김): 쿼리 관리자가 기록한 모든 실행,
+ *   문장은 새 쿼리 창에 넣기만 함 (docs/chromite/swing-query-manager.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -269,6 +272,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private static final double DEFAULT_LEFT_SHARE = 0.22;
     private static final double DEFAULT_RIGHT_SHARE = 0.18;
+    /**
+     * Default share of the main window height for the Query Manager along the bottom edge.
+     */
+    private static final double DEFAULT_QUERY_MANAGER_SHARE = 0.3;
     /**
      * Height of the Results card until the user resizes it (user decision 2026-11-07: 280, before 220). A layout default
      * like {@link #DEFAULT_SIZE}, not a density token ({@link UiSizes}): the user's own size is saved and wins, and
@@ -304,6 +311,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final RegisteredServersPanel registeredServersPanel;
     private final QueryLibraryPanel queryLibraryPanel;
     private final ScriptsPanel scriptsPanel;
+    private final QueryManagerPanel queryManagerPanel;
     private final AiAssistantPanel aiAssistantPanel;
     private final ToolWindow aiWindow;
     private final StatusBar statusBar;
@@ -592,7 +600,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
             ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.CENTER, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, outlineWindow, tasksWindow, aiWindow, resultsWindow);
+        // Every statement the query manager recorded: a wide table along the bottom edge, like SWT's bottom views; hidden until
+        // opened. Statements open in a new query window and never run
+        queryManagerPanel = new QueryManagerPanel((connection, sql) -> {
+            SqlEditorPanel editor = openQueryEditor(connection, null);
+            editor.setContent(SqlFileContent.newFile(sql), null);
+        });
+        ToolWindow queryManagerWindow = new ToolWindow("queryManager", QueryManagerMessages.qm_title, null); //$NON-NLS-1$
+        toolWindowDocking.addToolWindow(queryManagerWindow, queryManagerPanel, false,
+            ToolWindowDocking.Place.edge(DockingRegion.SOUTH, DEFAULT_QUERY_MANAGER_SHARE));
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, outlineWindow, tasksWindow,
+            queryManagerWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -841,6 +859,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         explorerPanel.dispose();
         registeredServersPanel.dispose();
         queryLibraryPanel.dispose();
+        queryManagerPanel.dispose();
         aiAssistantPanel.dispose();
         AIAgentServices.setConfirmationHandler(null);
         AIAgentServices.setEditorBridge(null);

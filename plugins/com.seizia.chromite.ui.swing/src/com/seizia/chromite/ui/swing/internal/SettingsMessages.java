@@ -32,6 +32,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 남은 설정 키: Query Results의 읽기와 정렬({@code results_*}), Binary and LOB({@code content_*}), Connections({@code conn_*}),
  *   Drivers({@code drivers_*}), Logs({@code logs_*}), Object Explorer({@code nav_*}), Notifications({@code notify_*}), Data Transfer
  *   ({@code transfer_*}), Code Completion({@code completion_*}), Altibase·CUBRID·Mimer SQL 탭 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 Logs 탭의 기록할 것이 Query Manager 창의 보일 항목이기도 하다는 안내({@code logs_objects_hint}) (docs/chromite/swing-query-manager.md)
  */
 public class SettingsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SettingsMessages"; //$NON-NLS-1$
@@ -263,6 +264,7 @@ public class SettingsMessages extends NLS {
     public static String logs_folder;
     public static String logs_folder_hint;
     public static String logs_objects;
+    public static String logs_objects_hint;
     public static String logs_object_session;
     public static String logs_object_txn;
     public static String logs_object_query;

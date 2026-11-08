@@ -45,6 +45,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
+| [swing-query-manager.md](swing-query-manager.md) | Swing Query Manager 도구 창(View > Query Manager): 쿼리 관리자가 기록한 모든 실행(내부·메타데이터 쿼리, 커밋·롤백, 연결), 연결·종류·글자 필터(종류는 Options > Logs와 같은 `qm.*` 키), 문장 복사, 쿼리 창에서 열기(실행 안 함), 트랜잭션 보기, 지우기 |
 | [connection-lifecycle.md](connection-lifecycle.md) | 연결 수명 주기: 여러 연결 끊기, 무효화·다시 연결, 연결 끊김·드라이버 오류 대화상자, 끝낼 때 실행 중인 작업, 스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, H2 초기화 SQL·SQLite 확장 승인, 절전, 세션을 닫는 모든 경로의 트랜잭션 질문 점검 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정, 머리글 정렬이 쿼리의 ORDER BY를 바꿈·감싼 쿼리의 ORDER BY 옮기기 |
 | [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |
