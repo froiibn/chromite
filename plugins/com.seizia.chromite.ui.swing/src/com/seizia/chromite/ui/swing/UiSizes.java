@@ -46,6 +46,7 @@ import java.awt.*;
  * - 2026-11-07 결과 필터 줄을 없애고 열 머리글 아이콘 치수(필터·정렬 아이콘, 간격)를 더함 (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 촘촘한 모드: 여백 테두리가 값을 매번 읽음(실행 중 전환), SQL Editor 도구 막대 선택 상자 여백 키를 더함
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 size.statusLine.query 삭제: 쿼리 창 상태 칸이 메인 창 상태 표시줄로 옮겨 size.statusBar를 씀 (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  */
 final class UiSizes {
 
@@ -67,10 +68,8 @@ final class UiSizes {
     static final String DOCUMENT_TAB_PILL_INSET = "Chromite.size.documentTab.pillInset"; //$NON-NLS-1$
     /** size.tab.tool: tool tab row height (results, tool window tabs, detail tabs). */
     static final String TOOL_TAB_HEIGHT = "Chromite.size.toolTab.height"; //$NON-NLS-1$
-    /** size.statusBar: the main window's status bar. */
+    /** size.statusBar: the main window's status bar, also the active query window's status cells in it. */
     static final String STATUS_BAR_HEIGHT = "Chromite.size.statusBar.height"; //$NON-NLS-1$
-    /** size.statusLine.query: the query window's status line (a 1px line above comes on top). */
-    static final String QUERY_STATUS_LINE_HEIGHT = "Chromite.size.queryStatusLine.height"; //$NON-NLS-1$
     /** size.row.properties: Properties grid rows. */
     static final String PROPERTY_ROW_HEIGHT = "Chromite.size.propertyRow.height"; //$NON-NLS-1$
     /** Tree rows: gap between the node icon and its text. */
