@@ -87,6 +87,8 @@ public class EditorMessages extends NLS {
     public static String editor_sql_actual_plan_off;
     public static String editor_sql_connection_tip;
     public static String editor_sql_schema_tip;
+    public static String editor_sql_connection_selected_tip;
+    public static String editor_sql_schema_selected_tip;
     public static String editor_sql_saving_changes;
     public static String editor_sql_nothing_to_execute;
     public static String editor_sql_choose_connection;

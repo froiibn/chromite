@@ -1746,8 +1746,8 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** |
-| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
+| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
 |---|---|---|
@@ -1814,6 +1814,20 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
 
+### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
+
+사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
+"가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
+
+- **자리와 모양:** 주 도구 막대 마지막 단추(Find) 뒤, 남는 공간 다음 오른쪽 끝. 아이콘 `ai-assistant` + 글자 "Chromite Agent"(토글 동작의 이름 = `AiMessages.ai_title`).
+  글자 단추 여백은 New Query와 같다(`UiIcons.useToolButtonMargin`, 이번에 `createToolButton`의 여백 코드를 토글 단추도 쓰게 떼어 냄). 도구 창 단추 묶음에서는 빠졌고
+  Properties 뒤 구분선 다음이 Find다.
+- **그대로인 것:** 도구 창 토글 동작(`ToolWindow#getToggleAction`, 보이면 눌린 모양), 도구 설명 "Chromite Agent (Ctrl+Alt+I)", View 메뉴와 단축키.
+- **오른쪽 끝 정렬(`OverflowToolBar.setTrailing`):** 이 배치 관리자는 컴포넌트를 기본 폭으로만 놓으므로 접착 컴포넌트(`Box.createHorizontalGlue`)로 공간을 채울 수 없고,
+  넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
+  폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
+  (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
+
 ## SQL Editor 도구 막대 (2026-11-07)
 
 사용자 결정(2026-11-07): 메인 창 위의 도구 막대를 SSMS처럼 **두 줄**로 한다. 1줄은 지금의 Standard 도구 막대(그대로), 2줄은 **활성 쿼리 창**에 적용하는
@@ -1821,8 +1835,10 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 ### 구성과 동작
 
-| 2줄 (│ = 구분선) | Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ 연결 ▾ │ DB/스키마 ▾ │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+| 2줄 (│ = 구분선) | 연결 ▾ │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
 |---|---|
+
+(2026-11-08 순서: 콤보가 맨 앞이다. 아래 "콤보를 맨 앞으로, 연결 콤보 220" 참고. Commit·Roll Back·커밋 방식은 [transactions.md](transactions.md).)
 
 - **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
   Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
@@ -1895,6 +1911,22 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   `ArrayIndexOutOfBoundsException`이 나고 문서 탭이 깨진다. `MainFrame`의 문서 탭 `ContainerListener`(`updateDocumentCard`의 `CardLayout.show` → validate)가
   테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
 - Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
+
+### 콤보를 맨 앞으로, 연결 콤보 220 (2026-11-08, 앱 변경 #3)
+
+사용자 요청(2026-11-08): "연결선택 콤보가 1번 DB 스키마 선택이 2번으로 되게 한다", "연결 선택 콤보의 크기를 조금 더 줄인다".
+
+- **순서:** 연결 ▾ │ DB/스키마 ▾ │ Execute, Stop │ 예상 계획, 실제 계획 │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │
+  Format SQL │ Query History. 콤보 뒤의 순서와 구분선은 그대로다(`SqlEditorToolBar` 생성자).
+- **연결 콤보 폭:** `SqlEditorPanel.CONNECTION_PICKER_WIDTH` 260 → 220(약 15%, DB/스키마 200보다는 넓게). 빈 콤보(`emptyConnectionCombo`)도 같은 상수라 같이 바뀐다.
+- **긴 이름:** 콤보는 폭이 고정이라 긴 이름은 렌더러(JLabel)가 말줄임표로 줄인다. 그래서 두 콤보의 도구 설명에 고른 항목의 전체 이름을 넣었다
+  (`editor_sql_connection_selected_tip` "이 쿼리 창의 연결: {0}", `editor_sql_schema_selected_tip`). 고른 것이 없으면 이전 도구 설명이다.
+  항목은 `setModel`로 다시 채우므로(항목 이벤트 없음) 선택 이벤트와 `model` 속성 변경, 연결 이름 변경(`connectionChanged`)에서 다시 쓴다.
+  DB/스키마 콤보도 같은 원인(고정 폭 200)이라 같이 고쳤다. 펼친 목록은 FlatLaf가 항목 폭에 맞춰 넓히므로 잘리지 않는다(아래 확인).
+- **위치로 바꿔 끼우기:** 활성 쿼리 창이 바뀌면 `replace`가 빼낸 콤보의 위치(`getComponentIndex`)에 새 콤보를 넣으므로 순서와 상관없이 맞다(아래 확인).
+- **좁은 창:** 배치(`OverflowToolBar`)는 그대로다. 콤보가 먼저 최소 100까지 줄고, 그래도 넘치면 뒤쪽 단추(Query History)부터 » 메뉴로 간다.
+  콤보가 앞이라 Execute는 콤보 두 개가 최소 폭이 된 뒤에도 남는다.
+- 확인 결과는 "도구 창 도킹"의 "확인 (2026-11-08, 앱 변경 #3·#6·#12)"에 함께 적었다.
 
 ## 자동 커밋 상태 (2026-11-07)
 
@@ -2003,6 +2035,8 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 - **기본 배치:** 왼쪽 열 = Object Explorer(위 60%) + Registered Servers(아래 40%), 오른쪽 열 = Properties, Query Library는 숨김(Ctrl+Alt+T로 보이면 Properties 위 50%).
   이전 배치는 Registered Servers가 Object Explorer 위였다(사용자 결정으로 바꿈).
+  **2026-11-08부터 오른쪽 열은 Query Library(위) + Chromite Agent(아래)이고 Properties는 숨김이다: 아래 "기본 배치: Query Library와 Chromite Agent".**
+  위 그림과 너비(오른쪽 18%)는 그 전의 것이다.
 - **너비:** 기본 열 너비는 픽셀이 아니라 비율이다(왼쪽 22%, 오른쪽 18%). 1280px 창에서 두 열이 300px이면 쿼리 창이 좁아(합친 뒤 약 215px) 문서 영역이 60%를 갖게 했다.
 - **가운데:** 문서 영역(문서 탭 카드 + 그 아래 Results 카드)은 움직이지 않는 도킹 대상 하나다. Results/Messages/실행 계획은 SSMS처럼 쿼리 창 안이라 도킹하지 않고
   지금처럼 문서 영역의 분할 창 아래쪽이다(`ToolWindow.SplitHost`, Ctrl+R, 크기는 `results.size`. 표시 여부는 활성 쿼리 창이 정한다: "Results 자동 숨김").
@@ -2163,6 +2197,71 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 | S6 분할 창 설정을 옮긴 작업 공간 → Properties 보임 | `H(... | queryLibrary) | properties` | `V(queryLibrary / properties)` |
 | S7 닫고 다시 시작 | | 배치 파일에서 `V(queryLibrary / properties)` 그대로 |
 | 다크 테마 | | 카드·머리말 색 정상 |
+
+### 기본 배치: Query Library와 Chromite Agent (2026-11-08, 앱 변경 #12)
+
+사용자 요청(2026-11-08): "앱 최초 실행 시 우측의 기본 패널을 속성이 아닌 위에는 쿼리라이브러리, 아래는 Chromite Agent가 나타나게 하라".
+기본 배치는 첫 실행(배치 파일 없음)과 Window > Reset Window Layout이 쓴다.
+
+```
+┌ 메뉴 · 주 도구 막대 (… Find ──── 남는 공간 ──── [Chromite Agent]) ───────────────────────┐
+│ SQL Editor 도구 막대 ([연결 ▾] │ [DB/스키마 ▾] │ 실행 …)                                     │
+│ Object Explorer   │ 문서 탭                                       │ Query Library (위 40%)  │
+│  (왼쪽 22%)        │                                               │  Properties·Scripts·    │
+├───────────────────┤                                               │  Outline·Database Tasks │
+│ Registered Servers│                                               │  는 열면 이 자리의 탭     │
+│                   │───────────────────────────────────────────────├─────────────────────────┤
+│                   │ 결과 탭 (쿼리 창 안)                             │ Chromite Agent (아래 60%) │
+├───────────────────┴───────────────────────────────────────────────┴─────────────────────────┤
+│ 상태 표시줄                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **오른쪽 열:** Query Library(위, 보임) + Chromite Agent(아래, 보임), 높이 0.4 / 0.6(대화가 높이를 더 씀, `MainFrame.UPPER_RIGHT_SHARE`).
+  폭은 지금까지의 Agent 열 폭(오른쪽 18% + 7% = 25%)이고, 한 열이므로 `DEFAULT_RIGHT_SHARE`를 0.18에서 0.25로 바꾸고 Agent의 `+ 0.07`을 지웠다.
+  왼쪽 22%와 합쳐 문서 영역은 53%다(1280×800 창: 오른쪽 카드 312, 문서 영역 658).
+- **Properties:** 기본 숨김. 열면(F4, View, 도구 막대) 오른쪽 열 위쪽, Query Library 자리의 탭이 된다.
+- **Scripts·Outline·Database Tasks:** 지금까지 Properties를 기준으로(그 위, 또는 Query Library 탭) 놓였다. 이제 Properties와 같은 기본 자리 목록을 쓴다:
+  Query Library의 탭 → 없으면 Properties의 탭 → 둘 다 없으면 Chromite Agent 위(0.4) → 그것도 없으면 오른쪽 가장자리의 열(`MainFrame`의 `upperRightPlaces`).
+  자기 자신을 가리키는 자리는 건너뛴다(`ToolWindowDocking.show`가 자기 자신은 대상으로 쓰지 않음).
+- **한 열의 이웃:** Query Library의 기본 자리는 위 목록(→ Properties 탭 또는 Agent 위), Chromite Agent의 기본 자리는 Query Library 아래 → Properties 아래 → 오른쪽 가장자리다.
+  한쪽을 숨긴 사이 다른 쪽을 보였다 다시 보여도 같은 열에 들어간다("Query Library 자리"의 이웃 규칙). 기본 배치는 앞에 놓인 이웃만 쓰므로 등록 순서상
+  Query Library가 오른쪽 가장자리의 열을 만들고 Agent가 그 아래에 들어간다.
+- **바꾸지 않은 것:** 창 id(`queryLibrary`, `aiAssistant`, `properties` 등), 배치 파일 이름·형식(`chromite-window-layout-1.xml`), `<id>.restorePlace` 형식.
+  배치 파일이 있는 사용자는 저장한 배치 그대로 열리고, Reset Window Layout을 누르면 새 기본 배치가 된다.
+- **Chromite Agent 공급자 미설정 안내:** 기본 배치에서 Agent가 시작할 때부터 보이자, 공급자를 설정하지 않았는데도 안내("시작하려면 AI 제공자…를 설정하세요" + 설정 단추)가
+  보이지 않았다. 원인: 안내는 창이 보이게 될 때(`HierarchyEvent.SHOWING_CHANGED`) 모델 선택의 공급자로 정하는데, 대화 목록은 작업(`loadChats`)이 읽은 뒤에야
+  모델 선택을 채운다. 시작할 때는 보이는 시점에 모델 선택이 비어 있어 안내를 숨긴 채로 남았다(전에도 저장한 배치에서 Agent가 보이던 사용자에게 같은 일이 있었고,
+  Agent를 한 번 숨겼다 보이면 나타났다). `AiAssistantPanel.showChat`이 모델 선택을 채운 뒤 안내를 다시 정하게 고쳤다([ai-agent.md](ai-agent.md) "채팅 도구 창").
+
+### 확인 (2026-11-08, 앱 변경 #3·#6·#12)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 제품 사본 하나를 JBR 25(`-vm ...\server\jvm.dll`)로, 빈 작업 공간, `CHROMITE_DATA`와 `-eclipse.keyring`을 작업 폴더로,
+AI 관련 환경 변수를 지운 채 실행했다. Windows 11, 150%, 한국어. 프로세스 안 시험 에이전트(Attach API, EDT에서 Swing 객체를 직접 다룸, OS 입력 없음)로 확인했다.
+채팅 요청은 보내지 않았다. 캡처는 `D:\Tools\_scratch\chromite-ui-layout\shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| 첫 실행(빈 작업 공간) | `H(H(V(objectExplorer / registeredServers @0.60) | documents @0.29) | V(queryLibrary / aiAssistant @0.40) @0.75)`. Properties·Scripts·Outline·Database Tasks·Query Manager 숨김, Query Library·Agent 토글 눌림. 1280 창에서 오른쪽 카드 312, Query Library 226 높이, Agent 358 높이 |
+| 공급자 미설정 안내 | 고치기 전: 첫 실행에서 `configured=false`인데 안내 숨김(Agent를 숨겼다 보이면 나타남). 고친 뒤: 첫 실행부터 안내와 "Chromite Agent 설정…" 단추가 보임(`ko-light-07-first-run-notice`) |
+| Properties·Scripts·Outline·Database Tasks 차례로 열기 | `Tabs[queryLibrary properties scripts outline databaseTasks] / aiAssistant` (`ko-light-03-upper-right-tabs`) |
+| 탭을 모두 닫고 Query Library 숨김 → Properties 열기 | `V(properties / aiAssistant)` (Agent 위) |
+| Agent 숨김 → Query Library 숨김 → Agent 열기 | `V(properties / aiAssistant)` (같은 열, 따로 열을 만들지 않음) |
+| Window > Reset Window Layout | 첫 실행과 같은 배치, Properties 숨김 |
+| 주 도구 막대 Agent 단추 | 오른쪽 끝(1266 폭에서 x 1144, 폭 114), 아이콘 + "Chromite Agent", 도구 설명 "Chromite Agent (Ctrl+Alt+I)", 누르면 숨김·다시 누르면 Query Library 아래로 돌아오고 눌린 모양이 따라감 |
+| 좁은 창(폭 900·700·560·460) | 주 도구 막대: 460에서 도구 창 토글·Find가 » 메뉴로 가고 » 단추는 Agent 단추 바로 왼쪽(x 298), Agent 단추는 오른쪽 끝에 그대로. SQL Editor 도구 막대: 900에서 콤보만 줄고(193·178), 700에서 콤보 최소(100·100)와 Format SQL·Query History 넘침, 460에서도 Execute(x 222) 보임 (`ko-light-02-width-*`) |
+| SQL Editor 도구 막대 순서 | 연결(x 8, 폭 220) │ DB/스키마(x 235, 폭 200) │ 실행 │ … │ Query History. 쿼리 창이 없으면 빈 콤보 220·200 꺼짐 |
+| 긴 연결 이름(78자) | 콤보에 "PostgreSQL production re..."(말줄임표), 도구 설명 "이 쿼리 창의 연결: PostgreSQL production reporting replica (Seoul region, read only) - analytics", 펼친 목록 폭 461(콤보 220)로 이름 전체가 보임 (`crop-sql-toolbar-long-name`, `ko-light-connection-popup-list`) |
+| 활성 쿼리 창 바꾸기(위치로 끼우기) | 긴 이름 창 → 짧은 이름 창 → 긴 이름 창: 콤보가 매번 맨 앞(x 8) 자리에 바뀌어 들어감 |
+| Tab 순서 | 연결 콤보 다음이 DB/스키마 콤보(연결되지 않은 창에서는 DB/스키마 콤보가 꺼져 있어 시험 동안만 켜고 확인), 그 다음은 Object Explorer 거르기 칸. 도구 막대 단추는 초점을 받지 않음(이전과 같음) |
+| 저장된 배치(이전 기본 배치 모양: Properties만 오른쪽, Query Library·Agent 숨김)로 다시 시작 | 그대로 복원(`... | properties @0.75)`). 여기서 Agent를 열면 Properties 아래, Query Library를 열면 Properties의 탭. Reset Window Layout은 새 기본 배치 |
+| 다크 테마 | Agent 단추·오른쪽 열 카드 정상 (`ko-dark-05-default`) |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 도구 창 보이기·숨기기와 단축키(F4, Ctrl+Alt+T/L/O/I), Reset Window Layout, 좁은 창의 주 도구 막대·SQL Editor 도구 막대 넘침,
+  연결·DB 콤보의 도구 설명, Chromite Agent 창의 공급자 미설정 안내.
+- 알려진 차이: 숨긴 도구 창은 숨기기 전 자리(다른 도구 창 옆)로 먼저 돌아간다. 예를 들어 Properties가 위에 있을 때 Agent 위에서 숨겼던 Query Library를 다시 열면
+  Properties의 탭이 아니라 Agent 바로 위에 들어간다(`V(V(properties / queryLibrary) / aiAssistant)`). "Query Library 자리"의 기존 규칙(마지막 자리가 다른 도구 창 옆이면 그대로)이다.
+- 관찰(범위 밖, 고치지 않음): 1280×800에서 Agent 카드 높이 358 중 입력 칸과 안내가 아래를 차지해 대화 영역이 짧다(플레이북 목록은 스크롤).
 
 ## 빈 문서 영역 (2026-11-06)
 
@@ -2847,3 +2946,7 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
   중간 오류 규칙, Messages 오류 점·개수, 상태 줄 행 수는 고른 결과 탭. "결과 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages 절에 표시.
 - 2026-11-08 상태 표시줄의 쿼리 창 칸(앱 변경 #2, 사용자 결정): 쿼리 상태 칸을 결과 아래에서 메인 창 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로 칠함,
   `size.statusLine.query` 삭제. "상태 표시줄의 쿼리 창 칸" 절 추가, P1 쿼리 상태 줄·Results 자동 숨김 절에 표시.
+- 2026-11-08 SQL Editor 도구 막대의 연결·DB 콤보를 맨 앞으로, 연결 콤보 260 → 220, 콤보 도구 설명에 전체 이름(앱 변경 #3): "콤보를 맨 앞으로, 연결 콤보 220" 절.
+- 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6, `OverflowToolBar.setTrailing`): "Chromite Agent 단추를 오른쪽 끝으로" 절.
+- 2026-11-08 기본 배치의 오른쪽 열을 Query Library(위) + Chromite Agent(아래)로, Properties 기본 숨김(앱 변경 #12): "기본 배치: Query Library와 Chromite Agent" 절과
+  "확인 (2026-11-08, 앱 변경 #3·#6·#12)", "도구 창 도킹" 배치 절에 표시.
