@@ -39,10 +39,17 @@ import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 /**
@@ -91,6 +98,8 @@ import java.util.StringTokenizer;
  * - 2026-11-08 모델이 작업마다 읽는 연결별 설정(Settings 탭의 Query Execution·Query Results·Data Formats·Errors and Timeouts·Metadata)도
  *   다시 연결을 묻지 않음({@link ConnectionSettingsPanel#getPreferencesAppliedWithoutReconnect}) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 연결 설명만 바꾸면 다시 연결을 묻지 않음: 세션과 관계없는 값 (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
+ * - 2026-11-08 잠긴 연결(SWT {@code EditConnectionWizard.checkLockPassword}): 로그인 말고 다른 설정을 바꾸면 잠금 비밀번호를 물음.
+ *   연결별 제한만 바꾸면 다시 연결을 묻지 않음(명령마다 읽음) (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -443,10 +452,13 @@ final class ConnectionDialog extends JDialog {
         boolean changed;
         boolean autoCommitChanged;
         boolean otherChanged;
+        boolean lockedChange;
         try {
             settingsPanel.saveSettings(after, false);
             applyName(after);
             changed = !before.equalSettings(after);
+            // EditConnectionWizard: a locked connection needs the lock password for any change but the login
+            lockedChange = changed && original.isLocked() && !equalSettingsWithoutLogin(before, after);
             // The commit mode is applied to the open sessions (AutoCommitApplier); anything else needs a reconnect
             autoCommitChanged = before.isDefaultAutoCommit() != after.isDefaultAutoCommit();
             after.getConnectionConfiguration().getBootstrap().setDefaultAutoCommit(
@@ -462,10 +474,16 @@ final class ConnectionDialog extends JDialog {
             }
             // The description is not used by the sessions either
             after.setDescription(before.getDescription());
+            // Nor the restrictions: each command reads them when it runs (hasModifyPermission)
+            after.setModifyPermissions(before.getModifyPermission());
             otherChanged = !before.equalSettings(after);
         } finally {
             before.dispose();
             after.dispose();
+        }
+        if (lockedChange && !checkLockPassword(original)) {
+            // The dialog stays open with the changes, as in SWT
+            return;
         }
         if (changed) {
             settingsPanel.saveSettings(original, false);
@@ -491,6 +509,79 @@ final class ConnectionDialog extends JDialog {
             AutoCommitApplier.apply(getOwner(), original, askReconnect);
         } else {
             askReconnect.run();
+        }
+    }
+
+    /**
+     * EditConnectionWizard.isOnlyUserCredentialChanged: the settings are the same apart from the user name and password.
+     * Compared on copies, the given descriptors stay as they are.
+     */
+    private boolean equalSettingsWithoutLogin(@NotNull DataSourceDescriptor before, @NotNull DataSourceDescriptor after) {
+        DataSourceDescriptor beforeCopy = registry.createDataSource(before);
+        beforeCopy.setId(before.getId());
+        DataSourceDescriptor afterCopy = registry.createDataSource(after);
+        afterCopy.setId(after.getId());
+        try {
+            for (DataSourceDescriptor copy : new DataSourceDescriptor[] {beforeCopy, afterCopy}) {
+                copy.getConnectionConfiguration().setUserName(null);
+                copy.getConnectionConfiguration().setUserPassword(null);
+            }
+            return beforeCopy.equalSettings(afterCopy);
+        } finally {
+            beforeCopy.dispose();
+            afterCopy.dispose();
+        }
+    }
+
+    /**
+     * EditConnectionWizard.checkLockPassword: asks for the lock password of a locked connection (the {@code lockPassword}
+     * of data-sources.json, written by other DBeaver-based products; Chromite only checks it). The saved value is the
+     * lower-case hex MD5 of the UTF-8 password, so the same format is computed here.
+     *
+     * @return {@code true} when the password matches
+     */
+    private boolean checkLockPassword(@NotNull DataSourceDescriptor locked) {
+        JPasswordField passwordField = new JPasswordField(20);
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.add(new JLabel(NLS.bind(ConnectionMessages.lock_prompt, locked.getName())), BorderLayout.NORTH);
+        JPanel passwordRow = new JPanel(new BorderLayout(8, 0));
+        passwordRow.add(new JLabel(ConnectionMessages.lock_password), BorderLayout.WEST);
+        passwordRow.add(passwordField, BorderLayout.CENTER);
+        panel.add(passwordRow, BorderLayout.CENTER);
+        // The option pane focuses its OK button; the password is typed right away
+        passwordField.addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                SwingUtilities.invokeLater(passwordField::requestFocusInWindow);
+            }
+
+            @Override
+            public void ancestorRemoved(AncestorEvent event) {
+            }
+
+            @Override
+            public void ancestorMoved(AncestorEvent event) {
+            }
+        });
+        int result = JOptionPane.showConfirmDialog(this, panel, ConnectionMessages.lock_title, JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE);
+        char[] password = passwordField.getPassword();
+        try {
+            if (result != JOptionPane.OK_OPTION || password.length == 0) {
+                return false;
+            }
+            byte[] hash = MessageDigest.getInstance("MD5").digest(new String(password).getBytes(StandardCharsets.UTF_8)); //$NON-NLS-1$
+            if (CommonUtils.toHexString(hash).toLowerCase(Locale.ENGLISH).equals(locked.getLockPasswordHash())) {
+                return true;
+            }
+            JOptionPane.showMessageDialog(this, ConnectionMessages.lock_wrong_password, ConnectionMessages.lock_title, JOptionPane.ERROR_MESSAGE);
+            return false;
+        } catch (NoSuchAlgorithmException e) {
+            // Java SE requires MD5, so this is not expected
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.lock_title, ConnectionMessages.lock_check_error, e);
+            return false;
+        } finally {
+            Arrays.fill(password, '\0');
         }
     }
 
