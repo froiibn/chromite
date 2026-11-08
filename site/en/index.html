@@ -41,6 +41,7 @@
     <a class="brand" href="/en/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
     <nav class="nav" aria-label="Site">
       <a href="/en/" aria-current="page">Download</a>
+      <a href="/en/support.html">Database support</a>
       <a href="/en/changelog.html">Changelog</a>
       <a href="/en/privacy.html">Privacy</a>
       <span class="sep" aria-hidden="true"></span>
@@ -57,7 +58,10 @@
         <h1 id="hero-title"><img src="/assets/brand/logo-dark.svg" width="1136" height="250" fetchpriority="high" alt="Chromite"></h1>
         <p class="hero-sub">A database tool anyone can use easily and safely</p>
         <p class="hero-lead">Even system and application operators can query and fix data with ease and without slip-ups</p>
-        <p class="hero-cta"><a class="btn" href="#download">Download</a><span>For Windows and macOS. Every feature free, at work or at home.</span></p>
+        <div class="hero-cta">
+          <a class="btn" href="#download"><span class="os-marks" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M0 0h11.4v11.4H0zM12.6 0H24v11.4H12.6zM0 12.6h11.4V24H0zM12.6 12.6H24V24H12.6z"/></svg><svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg></span>Download free</a>
+          <p>For Windows and macOS. Every feature free, at work or at home.</p>
+        </div>
       </div>
       <div class="hero-proof">
         <div class="proof">
@@ -72,7 +76,7 @@
           <ul>
             <li>DELETE and UPDATE without WHERE, DROP and TRUNCATE are checked before they run</li>
             <li>Grid edits can show their SQL before you save</li>
-            <li>Open transactions are shown, and nothing is committed or rolled back without asking</li>
+            <li>Open transactions are shown, nothing is committed without asking, and automatic rollback happens only if you turn it on</li>
           </ul>
         </div>
       </div>
@@ -92,7 +96,7 @@
       </figure>
       <ul class="lines">
         <li>The status line shows the open transaction, how long it has been open and how many statements it holds. Click it to commit, roll back or open the transaction log.</li>
-        <li>A transaction left open and unused is brought back to you as a notification after the time you set.</li>
+        <li>A transaction left open and unused is brought back to you as a notification after the time you set, or rolled back automatically.</li>
         <li>Disconnecting, closing the app or reconnecting after an error asks first: Commit / Roll Back / Cancel.</li>
         <li>UPDATE and DELETE without WHERE, DROP and TRUNCATE ask before they run, and edits in the result grid can show the SQL they will run before you save them.</li>
       </ul>
@@ -121,12 +125,13 @@
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
         <p class="scene-lead">Ask in plain words. It checks the real database and answers with the evidence.</p>
+        <p class="scene-more"><a href="/en/support.html">Database support details</a></p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
       </figure>
       <ul class="lines">
-        <li>Ask about a slow query, an UPDATE that never finishes or the server's health, and it reads the plans, locks and blocking chain, sessions, waits and space itself, then tells you the cause and what to do. These diagnostics cover SQL Server, PostgreSQL, MariaDB/MySQL and Oracle.</li>
+        <li>Ask about a slow query, an UPDATE that never finishes or the server's health, and it reads the plans, locks and blocking chain, sessions, waits and space itself, then tells you the cause and what to do. With any database it works with schemas, data and queries, and diagnoses locks, plans and server health by querying the system information directly.</li>
         <li>Anything that changes the database, such as creating an index or ending a session, shows its SQL and runs only after you confirm, and writes on production connections are blocked (default settings).</li>
         <li>Every tool call is written to the audit log.</li>
         <li>Providers are Claude, OpenAI (with your own API key) and Ollama. Turn on the local MCP server, and other AI tools on this PC can use the same tools.</li>
@@ -139,12 +144,13 @@
       <div class="scene-head">
         <h2 id="closed-networks-title">Made for closed corporate networks</h2>
         <p class="scene-lead">One installer connects to the main databases right away, with no driver download, even on a closed network.</p>
+        <p class="scene-more"><a href="/en/support.html">Database support details</a></p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."></div>
+        <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" alt="The Create Offline Driver Bundle dialog. Two drivers are checked in the driver list, with 3 selected and a Create button below."></div>
       </figure>
       <ul class="lines">
-        <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed. Other drivers, MySQL included, are downloaded on first connect or installed from an offline bundle.</li>
+        <li>Commonly used drivers come pre-installed; other drivers are downloaded on first connect or installed from an offline bundle.</li>
         <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC.</li>
         <li>With offline mode on, Chromite does not try to download driver files. The automatic update check can be turned off in Options.</li>
       </ul>
@@ -154,14 +160,15 @@
   <section class="scene scene-wide" id="debugger" aria-labelledby="debugger-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="debugger-title">Step through procedures.</h2>
+        <h2 id="debugger-title">Procedure debugging</h2>
+        <p class="scene-more"><a href="/en/support.html">Database support details</a></p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."></div>
+        <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" alt="The debugger tab. The function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."></div>
       </figure>
       <ul class="lines">
-        <li>Run PostgreSQL (PL/pgSQL) and Oracle (PL/SQL) functions and procedures in a debugger.</li>
-        <li>Click the margin to set a breakpoint, then follow the code with Step Over and Step Into. Oracle also has Step Out.</li>
+        <li>Run functions and procedures in a debugger.</li>
+        <li>Click the margin to set a breakpoint, then debug with Step Over and Step Into, and Step Out where the database supports it.</li>
         <li>See variables, the call stack, server messages and results. While stopped, you can change a variable's value.</li>
         <li>When the debugger ends with a transaction not committed in its session, it asks: Commit / Roll Back / Cancel.</li>
       </ul>
@@ -172,16 +179,16 @@
     <div class="scene-body">
       <div class="scene-head">
         <h2 id="administration-title">DBA tools built in.</h2>
-        <p class="scene-lead">The admin tools in the Activity Monitor currently cover SQL Server, Oracle, PostgreSQL and MariaDB, with sessions and locks for Altibase. Other databases connect too, for queries and object browsing.</p>
+        <p class="scene-lead">The Activity Monitor brings sessions and locks, job schedulers, space and logs, maintenance and replication status into one place.</p>
+        <p class="scene-more"><a href="/en/support.html">Database support details</a></p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."></div>
       </figure>
       <ul class="lines">
         <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
-        <li>Job schedulers: SQL Server Agent, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron and MariaDB events.</li>
+        <li>Job schedulers: view, create and change the jobs in the database's own job scheduler.</li>
         <li>Disk usage, server logs (errors, warnings, slow queries), maintenance with a preview and a confirmation, and replication status.</li>
-        <li>Altibase has tables coloured by storage type, server output, and sessions and locks.</li>
       </ul>
     </div>
   </section>
@@ -220,7 +227,7 @@
         </ul>
       </div>
       <ul class="lines">
-        <li>This rests on the Apache License 2.0, which allows commercial use. The source code is public on GitHub, so anyone can read it, build it, change it and redistribute it.</li>
+        <li>Chromite is licensed under the Apache License 2.0, which allows commercial use. The source code is public on GitHub, so anyone can read it, build it, change it and redistribute it.</li>
         <li>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</li>
       </ul>
     </div>
@@ -236,7 +243,7 @@
     <div class="included">
       <h2 class="spec-title">What is included</h2>
       <dl class="spec">
-        <dt>Databases</dt><dd>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are pre-installed; the other drivers (more than 100 in all) are downloaded on first connect or installed from an offline bundle. You can also add another JDBC driver in the Driver Manager.</dd>
+        <dt>Databases</dt><dd>Commonly used drivers come pre-installed; other drivers are downloaded on first connect or installed from an offline bundle. You can also add another JDBC driver in the Driver Manager. <a href="/en/support.html">Database support details</a></dd>
         <dt>Queries</dt><dd>SQL editor, a result grid you can filter and edit in place, execution plans, Query Library</dd>
         <dt>Objects</dt><dd>Object Explorer, Registered Servers, Properties, table designer, ER diagrams</dd>
         <dt>Data</dt><dd>Import and export, backup and restore</dd>
@@ -289,9 +296,11 @@
   <div class="wrap">
     <span>© 2026 Chromite contributors</span>
     <span class="right">
+      <a href="/en/support.html">Database support</a>
       <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
       <a href="https://github.com/froiibn/chromite">GitHub</a>
     </span>
+    <p class="attribution">Chromite is based on DBeaver Community (Apache License 2.0). DBeaver is a trademark of DBeaver Corp; Chromite is not affiliated with DBeaver Corp. <a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></p>
   </div>
 </footer>
 </body>

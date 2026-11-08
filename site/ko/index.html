@@ -41,6 +41,7 @@
     <a class="brand" href="/ko/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
     <nav class="nav" aria-label="사이트">
       <a href="/ko/" aria-current="page">다운로드</a>
+      <a href="/ko/support.html">지원 범위</a>
       <a href="/ko/changelog.html">변경 내역</a>
       <a href="/ko/privacy.html">개인정보</a>
       <span class="sep" aria-hidden="true"></span>
@@ -57,7 +58,10 @@
         <h1 id="hero-title"><img src="/assets/brand/logo-dark.svg" width="1136" height="250" fetchpriority="high" alt="Chromite"></h1>
         <p class="hero-sub">누구나 편하고 안전하게 다루는 데이터베이스 도구</p>
         <p class="hero-lead">시스템·애플리케이션 운영자도 조회부터 데이터 수정까지 쉽고 실수 없이</p>
-        <p class="hero-cta"><a class="btn" href="#download">다운로드</a><span>Windows와 macOS용. 회사에서도 개인도, 모든 기능 무료.</span></p>
+        <div class="hero-cta">
+          <a class="btn" href="#download"><span class="os-marks" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M0 0h11.4v11.4H0zM12.6 0H24v11.4H12.6zM0 12.6h11.4V24H0zM12.6 12.6H24V24H12.6z"/></svg><svg viewBox="0 0 24 24" width="16" height="16" focusable="false"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg></span>무료로 다운로드</a>
+          <p>Windows와 macOS용. 회사에서도 개인도, 모든 기능 무료.</p>
+        </div>
       </div>
       <div class="hero-proof">
         <div class="proof">
@@ -72,7 +76,7 @@
           <ul>
             <li>WHERE 없는 UPDATE·DELETE, DROP, TRUNCATE는 실행 전에 확인</li>
             <li>결과 표 편집은 저장 전에 실행할 SQL을 미리 볼 수 있음</li>
-            <li>열린 트랜잭션을 표시하고, 묻지 않고 커밋·롤백하지 않음</li>
+            <li>열린 트랜잭션을 표시하고, 묻지 않고 커밋하지 않음, 자동 롤백은 켠 경우에만</li>
           </ul>
         </div>
       </div>
@@ -92,7 +96,7 @@
       </figure>
       <ul class="lines">
         <li>상태 줄에 열린 트랜잭션, 열린 뒤 지난 시간, 문장 수가 보입니다. 누르면 커밋, 롤백, 트랜잭션 로그를 고릅니다.</li>
-        <li>열어 둔 채 쓰지 않는 트랜잭션은 정한 시간이 지나면 알림으로 다시 묻습니다.</li>
+        <li>열어 둔 채 쓰지 않는 트랜잭션은 정한 시간이 지나면 알림으로 다시 묻거나 자동 롤백 처리합니다.</li>
         <li>연결을 끊거나 앱을 끝낼 때, 오류 뒤 다시 연결할 때도 커밋 / 롤백 / 취소를 묻습니다.</li>
         <li>WHERE 없는 UPDATE·DELETE, DROP, TRUNCATE는 실행하기 전에 확인하고, 결과 표에서 고친 값은 저장하기 전에 실행할 SQL을 미리 봅니다.</li>
       </ul>
@@ -121,12 +125,13 @@
       <div class="scene-head">
         <h2 id="chromite-agent-title">Chromite Agent</h2>
         <p class="scene-lead">평소 말로 물으면, 실제 데이터베이스를 확인하고 근거를 들어 답합니다.</p>
+        <p class="scene-more"><a href="/ko/support.html">지원 범위 자세히</a></p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/agent-ko-dark.webp" srcset="/assets/shots/tour/agent-ko-dark.webp 1.25x" width="355" height="749" loading="lazy" decoding="async" alt="Chromite Agent 창. 질문 '주문 42번을 고치는 UPDATE가 끝나지 않아요. 왜 기다리나요?' 아래에 읽기 도구 '차단 체인 가져오기'와 '열린 트랜잭션 목록'이 완료로 표시되고, 원인과 할 일을 적은 답이 있다."></div>
       </figure>
       <ul class="lines">
-        <li>느린 쿼리, 끝나지 않는 UPDATE, 서버 상태를 물으면 실행 계획, 잠금과 차단 체인, 세션·대기·공간을 직접 읽고 원인과 할 일을 알려 줍니다. 이런 진단은 SQL Server, PostgreSQL, MariaDB·MySQL, Oracle에서 합니다.</li>
+        <li>느린 쿼리, 끝나지 않는 UPDATE, 서버 상태를 물으면 실행 계획, 잠금과 차단 체인, 세션·대기·공간을 직접 읽고 원인과 할 일을 알려 줍니다. 어느 데이터베이스에서나 스키마·데이터·쿼리를 다루고, 시스템 정보를 직접 조회해 잠금·실행 계획·서버 상태를 진단합니다.</li>
         <li>인덱스 만들기나 세션 끝내기처럼 무언가를 바꾸는 일은 실행할 SQL을 보여 주고 확인을 받은 뒤에 하고, 운영 연결에서는 쓰기를 막습니다(기본 설정).</li>
         <li>모든 도구 호출은 감사 기록에 남습니다.</li>
         <li>제공자는 Claude, OpenAI(직접 넣은 API 키), Ollama입니다. 로컬 MCP 서버를 켜면 이 PC의 다른 AI 도구도 같은 도구를 씁니다.</li>
@@ -139,12 +144,13 @@
       <div class="scene-head">
         <h2 id="closed-networks-title">기업용 폐쇄망을 위한 편의성</h2>
         <p class="scene-lead">설치 파일 하나로 주요 데이터베이스에 바로 연결합니다. 폐쇄망에서도 드라이버를 따로 받을 필요가 없습니다.</p>
+        <p class="scene-more"><a href="/ko/support.html">지원 범위 자세히</a></p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/drivers-ko-dark.webp" srcset="/assets/shots/tour/drivers-ko-dark.webp 1.25x" width="731" height="670" loading="lazy" decoding="async" alt="'오프라인 드라이버 묶음 만들기' 대화상자. 드라이버 목록에서 Derby Embedded와 DuckDB가 체크되어 있고 아래에 '3개 선택'과 만들기 단추가 있다."></div>
+        <div class="frame"><img src="/assets/shots/tour/drivers-ko-dark.webp" srcset="/assets/shots/tour/drivers-ko-dark.webp 1.25x" width="731" height="670" loading="lazy" decoding="async" alt="'오프라인 드라이버 묶음 만들기' 대화상자. 드라이버 목록에서 드라이버 두 개가 체크되어 있고 아래에 '3개 선택'과 만들기 단추가 있다."></div>
       </figure>
       <ul class="lines">
-        <li>SQL Server, Oracle, PostgreSQL, MariaDB, SQLite 드라이버는 설치 파일에 미리 들어 있습니다. MySQL을 비롯한 다른 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다.</li>
+        <li>자주 쓰는 드라이버는 설치 파일에 미리 들어 있고, 다른 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다.</li>
         <li>그 밖의 드라이버는 인터넷이 되는 PC의 드라이버 관리자에서 오프라인 묶음 파일 하나로 만들어 폐쇄망 PC로 옮깁니다.</li>
         <li>오프라인 모드를 켜면 드라이버 파일을 내려받으려 하지 않습니다. 자동 업데이트 확인은 옵션에서 끌 수 있습니다.</li>
       </ul>
@@ -154,14 +160,15 @@
   <section class="scene scene-wide" id="debugger" aria-labelledby="debugger-title">
     <div class="scene-body">
       <div class="scene-head">
-        <h2 id="debugger-title">프로시저를 한 줄씩 따라갑니다.</h2>
+        <h2 id="debugger-title">프로시저 디버깅 지원</h2>
+        <p class="scene-more"><a href="/ko/support.html">지원 범위 자세히</a></p>
       </div>
       <figure class="scene-media">
-        <div class="frame"><img src="/assets/shots/tour/debugger-ko-dark.webp" srcset="/assets/shots/tour/debugger-ko-dark.webp 1.25x" width="1090" height="696" loading="lazy" decoding="async" alt="디버거 탭. PL/pgSQL 함수 order_total의 14번 줄에 중단점이 있고 실행이 그 줄에서 멈춰 있다. 아래 변수 탭에 p_order_id 42, p_discount 0.05, v_total 126.50, v_lines 1이 보인다."></div>
+        <div class="frame"><img src="/assets/shots/tour/debugger-ko-dark.webp" srcset="/assets/shots/tour/debugger-ko-dark.webp 1.25x" width="1090" height="696" loading="lazy" decoding="async" alt="디버거 탭. 함수 order_total의 14번 줄에 중단점이 있고 실행이 그 줄에서 멈춰 있다. 아래 변수 탭에 p_order_id 42, p_discount 0.05, v_total 126.50, v_lines 1이 보인다."></div>
       </figure>
       <ul class="lines">
-        <li>PostgreSQL(PL/pgSQL)과 Oracle(PL/SQL)의 함수와 프로시저를 디버거에서 실행합니다.</li>
-        <li>여백을 눌러 중단점을 놓고, 프로시저 단위 실행과 한 단계씩 코드 실행으로 따라갑니다. Oracle에서는 프로시저 나가기도 됩니다.</li>
+        <li>함수와 프로시저를 디버거에서 실행합니다.</li>
+        <li>여백을 눌러 중단점을 놓고, 프로시저 단위 실행과 한 단계씩 코드 실행으로 디버깅합니다. 데이터베이스가 지원하면 프로시저 나가기도 씁니다.</li>
         <li>변수, 호출 스택, 서버 메시지, 결과를 봅니다. 멈춘 동안 변수 값을 고칠 수 있습니다.</li>
         <li>디버거를 끝낼 때 그 세션에 커밋하지 않은 트랜잭션이 있으면 커밋 / 롤백 / 취소를 묻습니다.</li>
       </ul>
@@ -172,16 +179,16 @@
     <div class="scene-body">
       <div class="scene-head">
         <h2 id="administration-title">DBA 도구가 처음부터 들어 있습니다.</h2>
-        <p class="scene-lead">작업 모니터의 관리 도구는 지금 SQL Server, Oracle, PostgreSQL, MariaDB를 지원하고, Altibase는 세션과 잠금을 봅니다. 다른 데이터베이스도 연결해서 쿼리를 실행하고 개체를 탐색합니다.</p>
+        <p class="scene-lead">작업 모니터에서 세션과 잠금, 작업 스케줄러, 공간과 로그, 유지 관리, 복제 상태를 한곳에서 다룹니다.</p>
+        <p class="scene-more"><a href="/ko/support.html">지원 범위 자세히</a></p>
       </div>
       <figure class="scene-media">
         <div class="frame"><img src="/assets/shots/tour/admin-ko-dark.webp" srcset="/assets/shots/tour/admin-ko-dark.webp 1.25x" width="997" height="749" loading="lazy" decoding="async" alt="작업 모니터의 잠금 탭. 차단 체인에 세션 34547이 세션 34516을 막고 있고, 대기 리소스 orders (row 0,42), 대기 모드 ShareLock이 보인다. 아래에 두 세션의 잠금 목록이 있다."></div>
       </figure>
       <ul class="lines">
         <li>세션과 잠금: 맨 앞 블로커부터 차단 체인과 세션별 잠금을 보고, 세션을 끝냅니다.</li>
-        <li>작업 스케줄러: SQL Server 에이전트, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron, MariaDB 이벤트.</li>
+        <li>작업 스케줄러: 데이터베이스의 작업 스케줄러에 등록된 작업을 보고, 만들고, 고칩니다.</li>
         <li>공간 사용량, 서버 로그(오류·경고·느린 쿼리), 미리 보기와 확인을 거치는 유지 관리, 복제 상태.</li>
-        <li>Altibase는 저장 방식별 테이블 색, 서버 출력, 세션과 잠금을 지원합니다.</li>
       </ul>
     </div>
   </section>
@@ -220,7 +227,7 @@
         </ul>
       </div>
       <ul class="lines">
-        <li>근거는 상업적 사용을 허용하는 Apache License 2.0입니다. 소스 코드는 GitHub에 공개되어 있어 누구나 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</li>
+        <li>Chromite는 상업적 사용을 허용하는 Apache License 2.0을 따릅니다. 소스 코드는 GitHub에 공개되어 있어 누구나 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</li>
         <li>Chromite는 Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했습니다. 원저작자 표시와, 함께 배포되는 JDBC 드라이버, Java 런타임, 글꼴의 라이선스는 NOTICE에 있습니다.</li>
       </ul>
     </div>
@@ -236,7 +243,7 @@
     <div class="included">
       <h2 class="spec-title">들어 있는 것</h2>
       <dl class="spec">
-        <dt>데이터베이스</dt><dd>SQL Server, Oracle, PostgreSQL, MariaDB, SQLite 드라이버는 미리 설치되어 있고, 그 밖의 드라이버(모두 100가지가 넘음)는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다. 드라이버 관리자에서 다른 JDBC 드라이버를 더할 수도 있습니다.</dd>
+        <dt>데이터베이스</dt><dd>자주 쓰는 드라이버는 미리 설치되어 있고, 다른 드라이버는 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다. 드라이버 관리자에서 다른 JDBC 드라이버를 더할 수도 있습니다. <a href="/ko/support.html">지원 범위 자세히</a></dd>
         <dt>쿼리</dt><dd>SQL 편집기, 필터와 바로 편집이 되는 결과 표, 실행 계획, 쿼리 라이브러리</dd>
         <dt>개체</dt><dd>개체 탐색기, 등록된 서버, 속성 창, 테이블 디자이너, ER 다이어그램</dd>
         <dt>데이터</dt><dd>가져오기와 내보내기, 백업과 복원</dd>
@@ -289,9 +296,11 @@
   <div class="wrap">
     <span>© 2026 Chromite contributors</span>
     <span class="right">
+      <a href="/ko/support.html">지원 범위</a>
       <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
       <a href="https://github.com/froiibn/chromite">GitHub</a>
     </span>
+    <p class="attribution">Chromite는 DBeaver Community(Apache License 2.0)를 바탕으로 만들었습니다. DBeaver는 DBeaver Corp의 상표이며, Chromite는 DBeaver Corp과 관계가 없습니다. <a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></p>
   </div>
 </footer>
 </body>

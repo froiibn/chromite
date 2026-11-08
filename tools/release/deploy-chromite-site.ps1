@@ -37,6 +37,7 @@
 
   Change history:
   - 2026-11-07 Created.
+  - 2026-11-08 The live check also asks for the support pages and support.js (the new feature/database table).
 
 .EXAMPLE
   pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 -Target ubuntu@<host> -IdentityFile <key> -KnownHosts <file>
@@ -225,7 +226,7 @@ if ($feed) {
     $setups = @($feed.files | Where-Object { $_.kind -eq 'setup' } | ForEach-Object { $_.version })
     Write-Host "  setups listed: $($setups -join ', ') (the previous one stays for rollback)"
 }
-foreach ($path in '/', '/ko/', '/en/', '/ko/changelog.html', '/en/changelog.html', '/ko/privacy.html', '/en/privacy.html', '/assets/site.js', '/assets/site.css') {
+foreach ($path in '/', '/ko/', '/en/', '/ko/changelog.html', '/en/changelog.html', '/ko/privacy.html', '/en/privacy.html', '/ko/support.html', '/en/support.html', '/assets/site.js', '/assets/support.js', '/assets/site.css') {
     $code = curl.exe -s -m 20 -o NUL -w '%{http_code}' "$SiteUrl$path"
     Expect "$path answers 200" ($code -eq '200') $code
 }

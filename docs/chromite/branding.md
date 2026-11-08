@@ -108,7 +108,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 | 자리 | 그림 | 밝은 테마 / 어두운 테마 |
 |---|---|---|
-| 모든 페이지 머리글 왼쪽(`.brand`, 홈·변경 내역·개인정보) | 워드마크: `CHROMITE` 글자와 E의 파란 강조 획만(아이콘·구분선·부제 없음), 높이 16px | `wordmark-light.svg`(남색 `#18253B`) / `wordmark-dark.svg`(흰색). `<picture>`의 `prefers-color-scheme` |
+| 모든 페이지 머리글 왼쪽(`.brand`, 홈·변경 내역·개인정보·지원 범위) | 워드마크: `CHROMITE` 글자와 E의 파란 강조 획만(아이콘·구분선·부제 없음), 높이 16px | `wordmark-light.svg`(남색 `#18253B`) / `wordmark-dark.svg`(흰색). `<picture>`의 `prefers-color-scheme` |
 | 홈 첫 화면 맨 위(`h1`, 예전 큰 글자 "Chromite" 자리) | 가로 로고(아이콘 + `CHROMITE` + `DATABASE WORKBENCH`), 폭 `clamp(260px, 40vw, 560px)` | 무대가 테마와 상관없이 늘 어두워서 두 테마 모두 `logo-dark.svg`(흰 글자) |
 | 언어 선택 페이지 `/`(아이콘 + "Chromite" 자리) | 가로 로고, 폭 320px | `logo-light.svg` / `logo-dark.svg` |
 
@@ -121,6 +121,20 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - SWT 제품의 창 아이콘·About 이미지·스플래시·`UIIcon` 로고는 SWT 프런트엔드와 함께 삭제했다([swt-removal.md](swt-removal.md)).
   Swing 제품의 시작 화면은 2026-11-08에 새로 만들었다(아래 "시작 화면").
   제품 아이콘(`.ico`, `.icns`, 아이콘 세트, 설치 이미지)은 `product/community/icons*`에서 `product/swing/icons*`로 옮겼다.
+
+### 사이트의 출처 고지 (2026-11-08)
+
+사용자 결정(사이트 2차 수정 요청 15번): 다운로드 사이트에서 원래 프로젝트 이름은 **법적 출처 고지로만** 쓴다. 이것이 사이트에서 "DBeaver"를 쓸 수 있는 유일한 자리다.
+
+- 자리: 모든 페이지의 바닥글(`footer.foot`의 `p.attribution`, 홈·변경 내역·개인정보·지원 범위, 한국어·영어)과 지원 범위 페이지 맨 아래 "라이선스와 출처" 절.
+  언어 선택 페이지 `/`는 바닥글이 없는 가운데 정렬 화면이라 넣지 않았다.
+- 문구(고치지 않고 그대로 쓴다):
+  - ko: "Chromite는 DBeaver Community(Apache License 2.0)를 바탕으로 만들었습니다. DBeaver는 DBeaver Corp의 상표이며, Chromite는 DBeaver Corp과 관계가 없습니다."
+  - en: "Chromite is based on DBeaver Community (Apache License 2.0). DBeaver is a trademark of DBeaver Corp; Chromite is not affiliated with DBeaver Corp."
+  - 뒤에 저장소 `NOTICE` 링크(`https://github.com/froiibn/chromite/blob/devel/NOTICE`).
+- 쓰지 않는 곳: 홈 본문, 첫 화면, 메타 태그(`description`, `og:*`, `twitter:*`), 공유 이미지, 그림 설명. 홈의 오픈 소스 장면은 지금처럼 "다른 오픈 소스 프로젝트에서 출발했다"와 `NOTICE` 링크만 둔다.
+- 이름 변경 게이트(`tools/rename/gate.py`)는 이 문구를 막지 않는다: G3은 `DBeaver` 바로 뒤에 대문자가 붙은 형식 이름(`DBeaver<Name>`)만 찾고, "DBeaver Community"·"DBeaver Corp"·"DBeaver는"은
+  공백이나 한글이 뒤따른다. 게이트의 예외 목록은 고치지 않았다(2026-11-08 `ALL GATES PASSED`).
 
 ### 시작 화면
 
@@ -304,3 +318,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 - 2026-11-08 다운로드 사이트의 머리글을 워드마크, 홈 첫 화면과 언어 선택 페이지를 가로 로고 그림으로 바꿈(사용자 요청, "사이트의 로고" 절, `site/assets/brand/`). 공유 이미지를 `og-{ko,en}-3.png`로 다시 만듦(작은 줄 문구).
 - 2026-11-08 Swing 제품의 시작 화면(감사 행 A-S15, `chromite/startup-splash`): 그림 번들 `com.seizia.chromite.splash`와 런처 `-showsplash`, Swing이 이어받는 `StartupSplash`(버전·상태 줄),
   `gen_app_icons.py`의 `splash_png`, 단계별 시작 시간 디버그 로그. "시작 화면" 절 추가.
+- 2026-11-08 "사이트의 출처 고지" 절 추가(사이트 2차 수정 요청 15번, `chromite/site-round2`): 바닥글과 지원 범위 페이지의 출처 고지 문구가 사이트에서 원래 프로젝트 이름을 쓰는 유일한 자리.

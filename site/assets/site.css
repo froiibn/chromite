@@ -66,6 +66,10 @@
  *   (user request: the site does not talk about them), and with them .sects, .hash, .copy and the selection
  *   token that only the copy button used. The Chromite Agent scene is short lines instead of a task list
  *   (.lines.tasks removed), and its loop emphasises the first line.
+ * - 2026-11-08 Round 2 (user requests): only the hero's download button is centred, a pill with the Windows and
+ *   Apple marks (.os-marks, inline SVG) and its note under it; "support details" links in the scenes
+ *   (.scene-more); the legal attribution row in the footer (.foot .attribution); the support page's table
+ *   (.matrix, sticky header row and first column inside its own scroll box, the filter box, the state tokens).
  */
 @font-face {
   font-family: "Pretendard";
@@ -98,6 +102,10 @@
   --code-bg: #f2f3f5;
   --notice-bg: #fff4e5;
   --notice-line: #f2c98b;
+  --state-yes: #208a3c;
+  --state-part: #c27d0e;
+  --state-no: #a8adbd;
+  --state-check: #8a63d2;
   --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
   --page: 1180px;
@@ -117,6 +125,10 @@
     --code-bg: #1e1f22;
     --notice-bg: #3d3223;
     --notice-line: #7a5b2e;
+    --state-yes: #5fb865;
+    --state-part: #e0a43a;
+    --state-no: #6f737a;
+    --state-check: #a98be8;
   }
 }
 
@@ -302,8 +314,12 @@ li + li { margin-top: 6px; }
 .hero-copy h1 img { display: block; width: clamp(260px, 40vw, 560px); max-width: 100%; height: auto; }
 .hero-sub { margin-top: 20px; font-size: clamp(26px, 3.2vw, 46px); font-weight: 600; line-height: 1.2; letter-spacing: -0.03em; max-width: 22em; }
 .hero-lead { margin-top: 14px; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.5; color: var(--stage-ink-2); max-width: 36em; }
-.hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 32px; font-size: 15px; color: var(--stage-ink-2); }
-.hero-cta .btn { min-height: 44px; padding: 0 22px; font-size: 16px; }
+/* only the download button and its note are centred (user, 2026-11-08); the rest of the hero stays left-aligned */
+.hero-cta { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 40px; text-align: center; }
+.hero-cta .btn { gap: 10px; min-height: 48px; padding: 0 28px; border-radius: 999px; font-size: 17px; }
+.hero-cta p { font-size: 15px; color: var(--stage-ink-2); }
+.os-marks { display: inline-flex; gap: 6px; }
+.os-marks svg { display: block; }
 /* what backs the headline: the easy side (Query Library) and the safe side (transactions, confirmations) */
 .hero-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 64px; max-width: 1000px; }
 .proof-title { padding-bottom: 8px; border-bottom: 1px solid var(--stage-line); font-size: 15px; font-weight: 600; }
@@ -322,6 +338,7 @@ li + li { margin-top: 6px; }
 .scene-head h2 { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.1; letter-spacing: -0.035em; max-width: 15em; }
 .scene-lead { margin-top: 16px; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.55; color: var(--stage-ink-2); max-width: 36em; }
 .scene-head { grid-area: head; }
+.scene-more { margin-top: 14px; font-size: 15px; }
 .scene-media { grid-area: media; min-width: 0; }
 .lines { grid-area: lines; }
 .scene-wide .scene-body { grid-template-areas: "head" "media" "lines"; }
@@ -544,6 +561,36 @@ li + li { margin-top: 6px; }
 .foot a { color: var(--ink-2); }
 .foot a:hover { color: var(--ink); }
 .foot .right { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+/* the legal attribution (the only place the original project is named, docs/chromite/branding.md) on its own row */
+.foot .attribution { flex-basis: 100%; font-size: 13px; line-height: 1.6; }
+
+/* support page: the feature x database table. The box scrolls both ways inside the page so its header row and
+   first column can stick (a sticky cell sticks to its nearest scrolling box); the page itself never scrolls
+   sideways. Each cell says its state in words; the dot only repeats it in colour. */
+.matrix-area { padding: 32px 0 48px; border-top: 1px solid var(--line); }
+.filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; font-size: 15px; }
+.filter[hidden], .filter-none[hidden] { display: none; }
+.filter input { width: min(100%, 320px); min-width: 0; padding: 6px 10px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.filter input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.filter-count { font-size: 14px; color: var(--ink-2); }
+.filter-none { margin-bottom: 16px; color: var(--ink-2); }
+.matrix { max-height: calc(100vh - 96px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.matrix:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.matrix table { border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 1.45; }
+.matrix caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.matrix th, .matrix td { min-width: 132px; max-width: 200px; padding: 8px 10px; text-align: left; vertical-align: top; border-right: 1px solid var(--line-subtle); border-bottom: 1px solid var(--line-subtle); }
+.matrix thead th { position: sticky; top: 0; z-index: 2; vertical-align: bottom; font-weight: 600; background: var(--surface); border-bottom-color: var(--line); }
+.matrix tbody th { position: sticky; left: 0; z-index: 1; min-width: 172px; font-weight: 600; background: var(--surface); border-right-color: var(--line); }
+.matrix thead th.db { left: 0; z-index: 3; min-width: 172px; border-right-color: var(--line); }
+.matrix tr.group th { position: static; max-width: none; padding: 14px 10px 6px; font-size: 13px; color: var(--ink-2); background: var(--canvas); border-right: 0; }
+.matrix tr.group th span { position: sticky; left: 10px; }
+.matrix td small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-2); }
+.matrix td::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; }
+.matrix td.y::before { background: var(--state-yes); }
+.matrix td.p::before { background: var(--state-part); }
+.matrix td.n::before { border: 1.5px solid var(--state-no); }
+.matrix td.u::before { border: 1.5px dashed var(--state-check); }
+.matrix td.n { color: var(--ink-2); }
 
 /* language chooser (/index.html) */
 .choose { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; }
@@ -579,6 +626,9 @@ li + li { margin-top: 6px; }
   .spec dd { border-top: 0; padding-top: 0; }
   .spec dt:first-of-type + dd { padding-top: 0; }
   .foot .right { margin-left: 0; }
+  .matrix { max-height: 75vh; }
+  .matrix th, .matrix td { min-width: 116px; }
+  .matrix tbody th, .matrix thead th.db { min-width: 120px; }
 }
 
 /* the stage on narrower screens: text, picture and lines in one column */
