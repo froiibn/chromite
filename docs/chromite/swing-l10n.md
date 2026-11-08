@@ -318,7 +318,7 @@ Swing과 SWT가 같은 탐색기 모델(`plugin.xml`의 `<folder>`/`<items>`)을
 
 브리핑 용어집과 영역별 추가분(`D:\Tools\_briefs\l10n-glossary-additions.md`)을 합친 것이다. 한국어 SSMS/Windows 용어를 우선한다.
 라벨·단추·메뉴는 짧은 명사구, 메시지는 합니다체("연결하지 못했습니다.")로 쓴다. SQL, JDBC, SSH, SSL, TNS, SID, PK, FK, CSV, JSON,
-XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"는 영어와 같이 둔다.
+XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. 한국어 문구 끝에 말줄임표를 쓰지 않는다(아래 "한국어 문구 끝의 말줄임표").
 
 조사: `{0}을(를)`, `{0}이(가)`, `{0}은(는)` 같은 겸용 조사는 `{0}`에 사용자가 정한 이름(연결·파일·작업 이름, 세션 ID 등)이
 들어갈 때만 쓴다. `{0}`에 번역된 고정 문구(작업 이름 "쿼리 취소", 디자이너 구역 "인덱스" 등)가 들어가면 받침을 번역할 때 알 수 있으므로
@@ -342,25 +342,25 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 | Procedure / Function | 프로시저 / 함수 |
 | Script as / CREATE To / SELECT To / Script as CREATE | 스크립팅 / CREATE 대상 / SELECT 대상 / CREATE로 스크립팅 |
 | Select Top 1000 Rows / View DDL | 상위 1000개 행 선택 / DDL 보기 |
-| Design / New Table… / Table Designer | 디자인 / 새 테이블… / 테이블 디자이너 |
+| Design / New Table… / Table Designer | 디자인 / 새 테이블 / 테이블 디자이너 |
 | Generate Script / Change script / Pending changes / Save Changes | 스크립트 생성 / 변경 스크립트 / 보류 중인 변경 내용 / 변경 내용 저장 |
-| Save / Save As… / Revert / Open File… / Recent Files / Exit | 저장 / 다른 이름으로 저장… / 되돌리기 / 파일 열기… / 최근 파일 / 끝내기 |
+| Save / Save As… / Revert / Open File… / Recent Files / Exit | 저장 / 다른 이름으로 저장 / 되돌리기 / 파일 열기 / 최근 파일 / 끝내기 |
 | Refresh / Filter / Collapse All / Expand All | 새로 고침 / 필터 / 모두 축소 / 모두 확장 |
 | Rename / Delete / Move To / Remove / Duplicate | 이름 바꾸기 / 삭제 / 이동 / 제거 / 복제 |
 | Undo / Redo / Cut / Copy / Paste / Select All | 실행 취소 / 다시 실행 / 잘라내기 / 복사 / 붙여넣기 / 모두 선택 |
-| Find… / Replace… / Match case / Use regular expressions | 찾기… / 바꾸기… / 대/소문자 구분 / 정규식 사용 |
-| Options… / General / Editor / Editor Colors / Reset to Defaults | 옵션… / 일반 / 편집기 / 편집기 색 / 기본값으로 다시 설정 |
+| Find… / Replace… / Match case / Use regular expressions | 찾기 / 바꾸기 / 대/소문자 구분 / 정규식 사용 |
+| Options… / General / Editor / Editor Colors / Reset to Defaults | 옵션 / 일반 / 편집기 / 편집기 색 / 기본값으로 다시 설정 |
 | Theme / Light / Dark / Icon Style / Duo-tone / Full color | 테마 / 라이트 / 다크 / 아이콘 스타일 / 두 가지 색 / 풀 컬러 |
 | Activity Monitor / Processes / Locks / Kill Session | 작업 모니터 / 프로세스 / 잠금 / 세션 종료 |
-| Find Objects… / Tasks / Import Data… / Export Data… | 개체 찾기… / 작업 / 데이터 가져오기… / 데이터 내보내기… |
+| Find Objects… / Tasks / Import Data… / Export Data… | 개체 찾기 / 작업 / 데이터 가져오기 / 데이터 내보내기 |
 | Value Panel / Record / Fetch next / Fetch all | 값 패널 / 레코드 / 다음 행 가져오기 / 모두 가져오기 |
 | Copy with Headers / Copy As | 머리글과 함께 복사 / 다른 형식으로 복사 |
 | Parameters / Bind Parameters | 매개 변수 / 매개 변수 바인딩 |
-| Schedule / Scheduled Queries / History… / Run Now | 일정 / 예약된 쿼리 / 기록… / 지금 실행 |
+| Schedule / Scheduled Queries / History… / Run Now | 일정 / 예약된 쿼리 / 기록 / 지금 실행 |
 | Template(s) / Format SQL / Complete / Auto-Complete While Typing | 템플릿 / SQL 서식 지정 / 자동 완성 / 입력할 때 자동 완성 |
 | Test Connection / Driver / Driver Properties / Authentication / Bootstrap queries | 연결 테스트 / 드라이버 / 드라이버 속성 / 인증 / 시작 쿼리 |
 | User name / Password / Save (Remember) password | 사용자 이름 / 암호 / 암호 저장 |
-| Server name / Login / Browse… | 서버 이름 / 로그인 / 찾아보기… |
+| Server name / Login / Browse… | 서버 이름 / 로그인 / 찾아보기 |
 | Window / Reset Window Layout / Welcome / Ready / Workspace | 창 / 창 레이아웃 다시 설정 / 시작 / 준비 / 작업 영역 |
 | < Back / Next > / Finish / Source / Destination | < 이전 / 다음 > / 마침 / 원본 / 대상 |
 | Statement / Grid | 문 / 표 |
@@ -392,6 +392,22 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 | Header (CSV) / Delimiter / Row delimiter / Quote character / File extension | 머리글 / 구분 기호 / 행 구분 기호 / 따옴표 문자 / 파일 확장명 |
 | Truncate table / Definer / Body / Deterministic / Engine | 테이블 잘라내기 / 정의자 / 본문 / 결정적 / 엔진 |
 | Recycle Bin / Scheduler / Job / Timezone | 휴지통 / 스케줄러 / 작업 / 표준 시간대 |
+
+### 한국어 문구 끝의 말줄임표
+
+사용자 결정(2026-11-08, 앱 변경 #9): **한국어 문구 끝에 말줄임표를 쓰지 않는다.** 단추·메뉴·라벨·탭·도구 설명·입력란 안내·
+진행 상태 문구 모두 끝의 `...`/`…`를 쓰지 않는다("파일 열기…" → "파일 열기", "읽는 중…" → "읽는 중"). 새로 쓰거나 고치는 한국어 문구에도 적용한다.
+
+- 영어는 대화상자를 여는 메뉴 항목의 "..." 관례를 그대로 둔다. 영어 파일은 바꾸지 않았다.
+- 그대로 둔 것: 문장 가운데의 `...`(SQL 자리 표시 "ALTER ... COMPILE", "GRANT USAGE ON SCHEMA cron TO ..."), 한글이 없는 값
+  (`ToolsMessages_ko`의 `library_git_commit_push = Commit & Push…`, git 용어라 영어로 둔 값), 길어서 잘린 값을 그릴 때 붙이는 "…"
+  (표 칸·라벨·도구 설명의 잘림 표시, `+ "…"`로 자르는 코드), 사용자 데이터.
+- 코드가 문구 뒤에 말줄임표를 붙이던 곳: 작업 모니터 세션 명령의 상태 줄(`SessionManagerPanel`, 명령 이름 + "…")을
+  `ConnectionMessages.sessions_action_running`(영어 `{0}…`, 한국어 `{0} 작업을 실행하는 중`)으로 바꿨다. 나머지 `+ "…"`/`+ "..."`는 모두 잘림 표시다.
+  `WelcomePanel.getActionName`은 메뉴 이름 끝의 "…"를 떼는 코드로, 영어 메뉴 이름 때문에 그대로 둔다.
+- 2026-11-09 정리: `*_ko.properties` 41개 파일의 값 233개(진행 문구 포함)에서 끝 말줄임표를 지웠다. NLS 키, 파일 인코딩(UTF-8), 줄바꿈(CRLF)은 그대로다.
+  Java 안의 한글 문자열 리터럴에는 끝 말줄임표가 없었다(한글 + 말줄임표는 주석뿐). 지금 문구를 인용하는 주석 3곳은 고쳤고, 변경 이력의 옛 문구는 기록이라 두었다.
+  확인 스크립트: `D:\Tools\_scratch\chromite-ko-ellipsis\sweep.py`(값을 파싱해 한글이 있고 끝이 말줄임표인 값을 찾음, `--apply`로 고침).
 
 ## 영어로 남긴 것과 이유
 
@@ -457,3 +473,5 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   값을 지역화된 이름으로, SQL Server·Oracle 인증 방식과 네 데이터베이스의 드라이버 속성·Oracle `Java`/`Jobs` 폴더·SQL Server 관리 폴더 설명을
   `%키`로, 루틴 라벨 "Procedure Name" → "Name", `ConnectJob` 작업 이름과 무효화 알림을 `ModelMessages`로, 드라이버 범주 이름 표시,
   AI 도구 표시 이름 86개와 열린 트랜잭션 확인 문구 한국어("남은 한국어 문구 정리").
+- 2026-11-09 한국어 문구 끝에 말줄임표를 쓰지 않는 규칙(앱 변경 #9, "한국어 문구 끝의 말줄임표"): `_ko` 값 233개 정리, 세션 명령 상태 문구를
+  NLS(`sessions_action_running`)로, 용어집의 한국어 열에서 말줄임표를 뺌.
