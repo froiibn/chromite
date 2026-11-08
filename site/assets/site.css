@@ -53,6 +53,11 @@
  *   .hero-statement) are removed.
  * - 2026-11-08 The hero carries the user's headline and subline (.hero-sub, .hero-lead) instead of a
  *   driver count, and two short proof groups under it (.hero-proof: easy and safe).
+ * - 2026-11-08 The highlight boxes (.mark) are replaced by a loop on a static page (user: "like a GIF, the
+ *   page should feel alive"): each scene's screenshot zooms into the part being described, holds, moves on
+ *   and zooms back out on a timer, the zooms the scroll stage used to make, and the line about that part is
+ *   emphasised while the others dim. CSS keyframes of transform (picture) and opacity (lines) only;
+ *   reveal.js only says which scenes are in view (.is-playing), so off-screen scenes are paused.
  */
 @font-face {
   font-family: "Pretendard";
@@ -331,35 +336,10 @@ li + li { margin-top: 6px; }
 .scene-side .scene-head { align-self: end; }
 .scene-side .scene-media { align-self: center; justify-self: center; }
 
-/* the frame is exactly the picture's size, so a highlight box placed in % lands on the same spot of the
-   screenshot at every width */
-.frame { position: relative; display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
+/* the frame is exactly the picture's size and clips it, so a zoom (a transform of the img, below) stays
+   inside the window's edges and a translate in % of the picture lands on the same spot at every width */
+.frame { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
 .frame img { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--media-max); }
-
-/* a highlight box over the part of the screenshot a scene is about, with a short label beside it. The
-   positions are per screenshot, and the Korean and English screenshots differ, so each page language has
-   its own. The label sits above the box unless the class says otherwise: end (above, right-aligned), below,
-   side (right of the box) or inside (inside, at the right end). */
-.mark { position: absolute; border: 2px solid #6f9cf9; border-radius: 6px; box-shadow: 0 0 0 3px rgba(111, 156, 249, 0.25); pointer-events: none; }
-.mark > span { position: absolute; left: -2px; bottom: calc(100% + 6px); padding: 1px 8px; border-radius: 4px; background: var(--button); color: #ffffff; font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
-.mark.end > span { left: auto; right: -2px; }
-.mark.below > span { bottom: auto; top: calc(100% + 6px); }
-.mark.side > span { bottom: auto; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); }
-.mark.inside > span { bottom: auto; left: auto; right: 6px; top: 50%; transform: translateY(-50%); }
-#transactions .mark { left: 39.5%; top: 90%; width: 29.4%; height: 7.9%; }
-:lang(ko) #transactions .mark { left: 52%; width: 22.5%; }
-#query-library .mark { left: 75%; top: 28.9%; width: 13.2%; height: 4.9%; }
-:lang(ko) #query-library .mark { left: 79.8%; top: 31.6%; width: 12.2%; height: 5.4%; }
-#closed-networks .mark { left: 4.4%; top: 42%; width: 49.2%; height: 4.3%; }
-#closed-networks .mark + .mark { top: 59.2%; }
-:lang(ko) #closed-networks .mark { top: 41.9%; }
-:lang(ko) #closed-networks .mark + .mark { top: 59.1%; }
-#debugger .mark { left: 0.2%; top: 49.9%; width: 35.4%; height: 3.1%; }
-:lang(ko) #debugger .mark { left: 0.1%; top: 52.5%; width: 33.5%; height: 3.2%; }
-#administration .mark { left: 26%; top: 18.7%; width: 62.9%; height: 7.2%; }
-:lang(ko) #administration .mark { left: 19.7%; top: 19.9%; width: 76.6%; height: 7.7%; }
-#passwords .mark { left: 2.7%; top: 72%; width: 94.6%; height: 11%; }
-:lang(ko) #passwords .mark { top: 73.9%; height: 11.3%; }
 
 .lines { margin: 0; padding: 0; list-style: none; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.45; letter-spacing: -0.012em; max-width: 34em; }
 .lines li + li { margin-top: 18px; }
@@ -377,11 +357,11 @@ li + li { margin-top: 6px; }
 .oss-links li + li { margin-top: 0; }
 
 /* reveal on enter (reveal.js adds "reveal" to html, then "is-in" to a scene the first time it comes into
-   view): the heading rises in, the picture follows with a slight scale, the lines come one after another and
-   the highlight box appears last. Time-based transitions of transform and opacity only, played once, so
+   view): the heading rises in, the picture follows with a slight scale and the lines come one after another.
+   Time-based transitions of transform and opacity only, played once, so
    nothing is tied to the scroll position and nothing runs while scrolling. The hidden states are only for
-   screens that allow motion; printing, "reduce motion" or a page without the class shows everything. No
-   will-change: a transition gets its own layer while it runs and gives it back when it ends. */
+   screens that allow motion; printing, "reduce motion" or a page without the class shows everything. The
+   reveal sets no will-change: a transition gets its own layer while it runs and gives it back when it ends. */
 @media screen and (prefers-reduced-motion: no-preference) {
   .reveal .hero-copy > *,
   .reveal .hero-proof,
@@ -406,14 +386,157 @@ li + li { margin-top: 6px; }
   .reveal .lines > li:nth-child(4) { transition-delay: 0.48s; }
   .reveal .lines > li:nth-child(5) { transition-delay: 0.56s; }
   .reveal .lines > li:nth-child(n+6) { transition-delay: 0.64s; }
-  .reveal .mark { opacity: 0; transition: opacity 0.4s ease-out 0.7s; }
   .reveal .is-in .hero-copy > *,
   .reveal .is-in .hero-proof,
   .reveal .is-in .scene-head,
   .reveal .is-in .scene-media,
   .reveal .is-in .hero-shot,
   .reveal .is-in .lines > li { opacity: 1; transform: none; }
-  .reveal .is-in .mark { opacity: 1; }
+}
+
+/* the loop, like a GIF on a static page (user, 2026-11-08): each screenshot zooms into the part a scene is
+   about, holds, moves to the next part or back out, and starts again; the line about the part in view stays
+   bright while the others dim, so the text follows the picture without hiding or swapping anything.
+   - The zooms are the ones the scroll stage made (its data-t timelines): translate in % of the picture, then
+     scale, from the top-left corner. The Korean and English screenshots differ, so each page language has
+     its own keyframes; the timing is shared.
+   - One part: 8 s (full view 2 s, ease in 1 s, hold 2.5 s, ease out 1 s, full view 1.5 s). Two parts: 12 s
+     (full view 2 s, in 1 s, hold 2.5 s, move 1 s, hold 2.5 s, out 1 s, full view 2 s). Every cycle starts
+     and ends at the full view, so the restart does not jump.
+   - Only transform (picture, on its own layer through will-change) and opacity (lines) are animated, which
+     the compositor runs without layout or paint. Nothing runs from script: reveal.js toggles .is-playing
+     while a scene is in view and the tab is visible; otherwise the animation is paused where it is.
+   - The 1.5 s delay counts only while running (after .is-in), so the reveal's own fade and rise of the
+     picture and lines finish before the loop takes over their opacity.
+   - Like the reveal, it exists only under html.reveal and with prefers-reduced-motion: no-preference: no
+     script, an old browser or "reduce motion" show the full screenshot and every line as they are. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .reveal .frame img { transform-origin: 0 0; will-change: transform; }
+  .reveal .frame img,
+  .reveal .lines > li { animation: none 8s cubic-bezier(0.45, 0, 0.25, 1) 1.5s infinite paused; }
+  .reveal #chromite-agent .frame img,
+  .reveal #chromite-agent .lines > li,
+  .reveal #debugger .frame img,
+  .reveal #debugger .lines > li { animation-duration: 12s; }
+  .reveal .is-in.is-playing .frame img,
+  .reveal .is-in.is-playing .lines > li { animation-play-state: running; }
+
+  .reveal #transactions .frame img { animation-name: zoom-transactions; }
+  .reveal:lang(ko) #transactions .frame img { animation-name: zoom-transactions-ko; }
+  .reveal #query-library .frame img { animation-name: zoom-library; }
+  .reveal:lang(ko) #query-library .frame img { animation-name: zoom-library-ko; }
+  .reveal #chromite-agent .frame img { animation-name: zoom-agent; }
+  .reveal:lang(ko) #chromite-agent .frame img { animation-name: zoom-agent-ko; }
+  .reveal #closed-networks .frame img { animation-name: zoom-drivers; }
+  .reveal #debugger .frame img { animation-name: zoom-debugger; }
+  .reveal:lang(ko) #debugger .frame img { animation-name: zoom-debugger-ko; }
+  .reveal #administration .frame img { animation-name: zoom-admin; }
+  .reveal:lang(ko) #administration .frame img { animation-name: zoom-admin-ko; }
+  .reveal #passwords .frame img { animation-name: zoom-passwords; }
+
+  /* which line goes with which part: transactions, Query Library and administration the first line, closed
+     networks and passwords the second, the agent the second (blocking) for both parts, the debugger the
+     second (breakpoints) and then the third (variables) */
+  .reveal #transactions .lines > li:not(:nth-child(1)),
+  .reveal #query-library .lines > li:not(:nth-child(1)),
+  .reveal #administration .lines > li:not(:nth-child(1)),
+  .reveal #closed-networks .lines > li:not(:nth-child(2)),
+  .reveal #passwords .lines > li:not(:nth-child(2)) { animation-name: dim-one; }
+  .reveal #chromite-agent .lines > li:not(:nth-child(2)),
+  .reveal #debugger .lines > li:not(:nth-child(2)):not(:nth-child(3)) { animation-name: dim-two; }
+  .reveal #debugger .lines > li:nth-child(2) { animation-name: dim-second; }
+  .reveal #debugger .lines > li:nth-child(3) { animation-name: dim-first; }
+}
+@keyframes dim-one {
+  0%, 25% { opacity: 1; }
+  37.5%, 68.75% { opacity: 0.45; }
+  81.25%, 100% { opacity: 1; }
+}
+@keyframes dim-two {
+  0%, 16.667% { opacity: 1; }
+  25%, 75% { opacity: 0.45; }
+  83.333%, 100% { opacity: 1; }
+}
+@keyframes dim-first {
+  0%, 16.667% { opacity: 1; }
+  25%, 45.833% { opacity: 0.45; }
+  54.167%, 100% { opacity: 1; }
+}
+@keyframes dim-second {
+  0%, 45.833% { opacity: 1; }
+  54.167%, 75% { opacity: 0.45; }
+  83.333%, 100% { opacity: 1; }
+}
+/* one part: the open-transaction cell with the Commit / Roll Back menu it opens */
+@keyframes zoom-transactions {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-42%, -70%) scale(1.7); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes zoom-transactions-ko {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-56%, -70%) scale(1.7); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the library tree with the Git root (branch and unpushed commits) */
+@keyframes zoom-library {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-60%, 0%) scale(1.6); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes zoom-library-ko {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-60%, -4.7%) scale(1.6); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the read tools it called (blocking chain, open transactions), then its answer, zooming out a little */
+@keyframes zoom-agent {
+  0%, 16.667% { transform: translate(0, 0) scale(1); }
+  25%, 45.833% { transform: translate(0%, -32%) scale(1.6); }
+  54.167%, 75% { transform: translate(0%, -40%) scale(1.4); }
+  83.333%, 100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes zoom-agent-ko {
+  0%, 16.667% { transform: translate(0, 0) scale(1); }
+  25%, 45.833% { transform: translate(0%, -32%) scale(1.6); }
+  54.167%, 75% { transform: translate(0%, -40%) scale(1.4); }
+  83.333%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the two checked driver rows */
+@keyframes zoom-drivers {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(0%, -34%) scale(1.6); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the breakpoint on line 14, then the variables, call stack, messages and results tabs */
+@keyframes zoom-debugger {
+  0%, 16.667% { transform: translate(0, 0) scale(1); }
+  25%, 45.833% { transform: translate(0%, -43%) scale(1.8); }
+  54.167%, 75% { transform: translate(0%, -50%) scale(1.5); }
+  83.333%, 100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes zoom-debugger-ko {
+  0%, 16.667% { transform: translate(0, 0) scale(1); }
+  25%, 45.833% { transform: translate(0%, -47%) scale(1.8); }
+  54.167%, 75% { transform: translate(0%, -50%) scale(1.5); }
+  83.333%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the blocking chain */
+@keyframes zoom-admin {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-44%, 0%) scale(1.7); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+@keyframes zoom-admin-ko {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(-45%, 0%) scale(1.7); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
+}
+/* the passphrase fields of the connection export */
+@keyframes zoom-passwords {
+  0%, 25% { transform: translate(0, 0) scale(1); }
+  37.5%, 68.75% { transform: translate(0%, -60%) scale(1.6); }
+  81.25%, 100% { transform: translate(0, 0) scale(1); }
 }
 
 /* text pages */
@@ -477,6 +600,4 @@ li + li { margin-top: 6px; }
 @media (max-width: 600px) {
   .scene-body { padding-top: 88px; gap: 24px; }
   .scene-hero .scene-body { padding-top: 64px; }
-  /* on a phone the screenshot is about a third of its size: the labels would cover what they point at */
-  .mark > span { display: none; }
 }
