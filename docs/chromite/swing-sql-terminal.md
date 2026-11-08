@@ -10,8 +10,8 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 
 ## 동작
 
-- Query > SQL Terminal(체크 메뉴, Ctrl+T)은 활성 쿼리 창에만 적용된다. 켜면 결과 영역에 넷째 탭 **Terminal**이 붙고 앞으로 온다.
-  끄면 탭이 빠지고, 그 창이 마지막으로 보던 Results / Messages / Execution plan 탭으로 돌아간다.
+- Query > SQL Terminal(체크 메뉴, Ctrl+T)은 활성 쿼리 창에만 적용된다. 켜면 그 창의 결과 탭 줄 끝(Execution plan 뒤)에 **Terminal** 탭이 붙고 앞으로 온다.
+  끄면 탭이 빠지고, 터미널이 앞이었으면 결과 탭(없으면 Messages)이 앞으로 온다(2026-11-08 결과 탭, [swing-frontend.md](swing-frontend.md) "결과 탭").
 - 켠 채로 실행하면(F5) 결과 표와 Messages 탭은 지금과 똑같이 채워지고, Terminal 탭에도 문장마다 다음을 쓴다.
 
   ```
@@ -41,7 +41,7 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 |---|---|
 | `ui.swing` `SqlTerminalView` (새로 만듦) | 창 하나의 터미널(고정폭 `JTextPane`, 오른쪽 클릭 메뉴, 200만 자 상한). 글자 표·문장 서식(`formatTable`, `formatStatement`, 어느 스레드에서나) |
 | `ui.swing` `SqlEditorPanel` | 창마다 켜짐 상태와 Terminal 탭 선택 기억. 실행(`Execution.terminal`)이 켜고 시작했으면 결과 수신기(작업 스레드)가 글자 표를 만들어 두고, 문장 끝(`reportQueryResult`)에 메시지와 함께 한 번에 EDT로 넘김. `showRunOutput`이 Terminal 또는 Results/Messages를 앞으로 |
-| `ui.swing` `MainFrame` | Query > SQL Terminal 동작(`terminalAction`, Ctrl+T, 선택 상태), 활성 창이 켰을 때만 붙는 넷째 결과 탭(`updateTerminalTab`, `selectResultTab`), `Host.showTerminal` |
+| `ui.swing` `MainFrame` | Query > SQL Terminal 동작(`terminalAction`, Ctrl+T, 선택 상태), 활성 창이 켰을 때만 붙는 넷째 결과 탭(`updateTerminalTab`, `selectResultTab`. 2026-11-08부터는 창의 탭 줄 `QueryResultsView.setTerminalComponent`), `Host.showTerminal` |
 | `ui.swing` `internal.TerminalMessages` (새로 만듦) | 화면 문구(영어, 한국어) |
 | `tools/branding/gen_ui_icons.py`, `icons/ui/*/*/terminal.svg` | Terminal 탭 아이콘(Tabler `terminal-2`를 16px 격자로 다시 그림, 두 팩·밝은/어두운 테마) |
 
@@ -109,3 +109,4 @@ Query Library 쿼리 `SELECT id, name, price FROM dbo.fu3_items WHERE price > :m
 
 - 2026-11-08 최초 작성: Query > SQL Terminal(Ctrl+T), 창마다 켜는 Terminal 탭, 글자 표, 아이콘
 - 2026-11-08 바인딩한 실행의 값을 문장 아래 `-- :name = 값` 줄로 씀(evening #28, `chromite/followups-3`)
+- 2026-11-08 결과 탭(앱 변경 #7): Terminal 탭은 쿼리 창마다의 탭 줄 끝에 붙고, 끄면 결과 탭(없으면 Messages)이 앞으로 옴

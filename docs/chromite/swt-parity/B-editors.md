@@ -54,7 +54,7 @@
 |---|---|---|---|---|---|---|
 | S1 | 선택 영역·전체 실행, `GO` 배치 | `run.script`, `SQLEditor.processQueries` | 있음 | `SqlEditorPanel`(F5), `SQLScriptBatches`(model.sql), swing-frontend.md "쿼리 실행 사양" | 높음 | SSMS 방식. 선택 1자부터 선택으로 봄 |
 | S2 | 커서 위치 문장 실행(Ctrl+Enter) | `run.statement` | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): Query > Execute Current Statement, Ctrl+Enter, 선택은 한 문장, `SqlQueryCommands`). 조사 당시: 일부 | Query 메뉴는 Execute·Cancel·완성·계획·기록뿐(`MainFrame.java:1511-1529`) | 중간 | 조사 당시: 문장을 선택해야 함 |
-| S3 | 새 탭에 결과, 탭마다 결과 여러 개 | `run.statementNew`, `run.scriptNew`, `multipleResultsPerTab` | 일부 | `QueryResultsView`가 결과를 한 카드에 쌓음. 2026-11-08 결과 고정(Query &gt; Pin Results, Ctrl+Shift+P): 고정 탭은 다음 실행이 지우지 않음(`QueryResultsView.pinResults`, [swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 탭 이름 바꾸기·분리, "새 탭에서 실행" 명령 없음 |
+| S3 | 새 탭에 결과, 탭마다 결과 여러 개 | `run.statementNew`, `run.scriptNew`, `multipleResultsPerTab` | 일부 | 2026-11-08부터 결과 집합마다 탭(Result1, Result2…, Messages 탭 옆, `QueryResultsView`, [swing-frontend.md](../swing-frontend.md) "결과 탭", 사용자 결정). 결과 고정(Query &gt; Pin Results, Ctrl+Shift+P): 고른 결과 탭을 고정하고 다음 실행이 지우지 않음(`QueryResultsView.pinResults`, [swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 탭 이름 바꾸기·분리, "새 탭에서 실행" 명령 없음 |
 | S4 | 커서부터 스크립트 실행, 이전·다음 문장 이동, 현재 쿼리 복사 | `run.scriptFromPosition`, `query.next/prev`, `copy.query` | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): Execute from Cursor Alt+P, Previous/Next Statement Alt+PageUp/PageDown, Copy Current Statement). 조사 당시: 없음 | grep `FromPosition`, `query.next` 0건 | 낮음 | 이동 키는 SWT Alt+Up/Down 대신(편집기의 줄 옮기기) |
 | S5 | 식 평가, 쿼리 행 수 세기 | `run.expression`, `run.count` | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): Evaluate Expression Ctrl+Alt+', Count Rows, 모델 변환기). 조사 당시: 없음 | grep 0건 | 낮음 | |
 | S6 | 연결 종류 "SQL 실행 확인"(Production) | `SQLQueryJob` 확인 | 있음 | 모델 `SQLQueryExecuteJob.java:507` → 핸들러 기본 `confirmQueryExecution` → `SwingPlatformUI.confirmAction`(`:183`) | 높음 | 예/취소뿐. SWT의 "건너뛰기", "모두 예" 없음 |
@@ -228,3 +228,4 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 - 2026-11-08 R10·R22 일부 → 있음(`chromite/saved-filters-virtual-columns`: 저장한 필터·최근 필터, 가상(계산) 열).
   요약 수: 결과 뷰어 있음 17 → 19, 일부 7 → 5(합계 있음 79, 일부 27).
 - 2026-11-08 S27 비고: 실제 계획 토글을 Oracle·Altibase로 넓히고 그 밖의 연결은 끔(`chromite/actual-plan-more-dbs`). 상태는 그대로, 요약 수는 고치지 않음.
+- 2026-11-08 S3 근거: 결과 집합마다 탭, 고정은 고른 결과 탭 하나(앱 변경 #7, `chromite/result-tabs`). 상태는 그대로, 요약 수는 고치지 않음.
