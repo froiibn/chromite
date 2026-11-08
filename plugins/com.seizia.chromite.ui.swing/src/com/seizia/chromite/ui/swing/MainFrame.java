@@ -69,7 +69,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
@@ -78,6 +77,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -92,9 +92,11 @@ import java.util.function.Supplier;
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
- * 설계: 가운데 문서 영역(문서 탭, 그 아래 Results / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
- * Query Library, Scripts)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
- * 오른쪽 열에 Properties(Query Library와 Scripts {@link ScriptsPanel}는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * 설계: 가운데 문서 영역(문서 탭, 그 아래 결과 탭 Result1… / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
+ * Query Library, Scripts, Outline, Database Tasks, Chromite Agent, Query Manager)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치(첫 실행과
+ * Window &gt; Reset Window Layout)는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래), 오른쪽 열에 Query Library(위 40%)와 Chromite Agent
+ * (아래 60%)다(2026-11-08 사용자 결정: 첫 화면에서 대화를 바로 쓰게). 오른쪽 열 폭은 예전 Agent 열 폭이다. Properties, Scripts {@link ScriptsPanel},
+ * Outline, Database Tasks는 처음에 숨김이고 보이면 오른쪽 열 위쪽(Query Library 자리)의 탭이 된다. 저장된 배치는 그대로 복원한다(창 id와 저장 형식 같음).
  * 도구 창은 머리말을 끌어 옮기거나 탭으로 합치거나 떠 있는 창으로 띄울 수 있다. Results는 쿼리 창 안에 있으므로 도킹하지 않고
  * 문서 영역의 분할 창 아래쪽이다({@link ToolWindow.SplitHost}).
  * <ul>
@@ -102,7 +104,8 @@ import java.util.function.Supplier;
  *     ({@link ChromiteTheme}, {@link ToolWindowDocking} 참고). 저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>Results 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 적용하고, 떠 있는 도구 창도 그때 연다.</li>
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
- *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
+ *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다
+ *     (상태 표시줄은 활성 쿼리 창의 연결에 색이 있으면 그 색).</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
  *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Network Profiles {@link NetworkProfilesDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
@@ -115,12 +118,12 @@ import java.util.function.Supplier;
  *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
  *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
- *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼운다.
- *     편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
- *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
- *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.
- *     Terminal 탭(Query &gt; SQL Terminal, Ctrl+T)은 활성 쿼리 창이 터미널을 켰을 때만 넷째 탭으로 붙인다. 켜는 것이 창마다라서
- *     탭이 늘 있으면 꺼진 창에서 빈 탭이 되기 때문이다.</li>
+ *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다. 탭 줄 {@code Result1 | Result2 | … | Messages | Execution plan | Terminal}도 쿼리 창마다 하나이고
+ *     ({@link QueryResultsView}, 2026-11-08 사용자 결정), Results 카드에는 활성 쿼리 창의 탭 줄을 통째로 끼운다({@link #attachResults}). 그래서 고른 탭은
+ *     창마다 그대로 남는다. 숨기기 단추는 끼운 탭 줄의 오른쪽 끝으로 옮긴다. 탭 줄에서 빠져 있던 동안의 테마 전환은 끼울 때 맞춘다.
+ *     쿼리 상태 칸({@link QueryStatusLine})도 같은 방식으로, 활성 쿼리 창의 것을 메인 창 상태 표시줄에 끼운다(2026-11-08 사용자 요청). 그동안 상태 표시줄 전체가
+ *     그 창 연결의 색이다. 빈 문서 영역과 쿼리 창이 아닌 문서(DDL 탭, 도구 문서)에서는 상태 표시줄이 작업 공간 연결 수다.
+ *     Terminal 탭(Query &gt; SQL Terminal, Ctrl+T)은 쿼리 창이 터미널을 켰을 때만 그 창의 탭 줄 끝에 붙는다.</li>
  *     <li>Results 카드는 DataGrip처럼 활성 문서가 쿼리 창일 때만 보인다. 빈 문서 영역과 다른 문서(테이블 디자이너, ER 다이어그램, 도구 문서, DDL 탭)에서는
  *     숨겨 빈 화면·문서가 문서 영역을 다 쓴다. 사용자가 숨긴 것(Ctrl+R, View 메뉴, — 단추)은 전역이 아니라 그 쿼리 창에 기억하고
  *     ({@link #RESULTS_HIDDEN_KEY}), 실행·실행 계획은 그 쿼리 창의 Results를 다시 보인다. 활성 문서가 바뀔 때 {@link ToolWindow.SplitHost#update()}가
@@ -143,12 +146,14 @@ import java.util.function.Supplier;
  *     <li>테이블 디자이너 탭({@link TableDesignerPanel}): Object Explorer의 Design·New Table…. 같은 테이블은 열린 탭을 보여 준다.
  *     Ctrl+S는 디자이너의 Save(스크립트 미리 보기 후 적용), 닫을 때·끝낼 때 저장하지 않은 변경을 디자이너마다 묻는다.</li>
  *     <li>주 도구 막대는 SSMS Standard 도구 막대 순서다: New Query(아이콘 + 글자), New Connection │ Open, Save, Save All │ Undo, Redo │
- *     Activity Monitor │ Registered Servers, Object Explorer, Query Library, Properties(도구 창 켜고 끄기, 보이면 눌린 모양) │ Find.
- *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 간다({@link OverflowToolBar}).
+ *     Activity Monitor │ Registered Servers, Object Explorer, Query Library, Properties(도구 창 켜고 끄기, 보이면 눌린 모양) │ Find, 그리고
+ *     남는 공간 뒤 오른쪽 끝에 Chromite Agent(아이콘 + 글자, 도구 창 토글, 2026-11-08 사용자 결정: DataGrip의 AI 단추 자리).
+ *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 가고
+ *     Chromite Agent는 그 앞 단추들이 먼저 넘친 뒤에도 오른쪽 끝에 남는다({@link OverflowToolBar}).
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}: 실행, 중지, 계획, 연결·DB 콤보, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
+ *     ({@link SqlEditorToolBar}: 연결·DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
  *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
  *     그 창의 연결·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
  * </ul>
@@ -264,6 +269,22 @@ import java.util.function.Supplier;
  *   문장은 새 쿼리 창에 넣기만 함 (docs/chromite/swing-query-manager.md)
  * - 2026-11-08 Include Actual Execution Plan: 활성 쿼리 창의 연결이 실제 계획을 주지 않으면 꺼지고 도구 설명이 이유를 말함
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-08 결과 탭에 활성 쿼리 창의 컴포넌트를 끼운 뒤 다시 그림: 결과 표가 없는 쿼리 창(Query Library 탭)으로 가면 앞 창의 결과 그림이
+ *   남던 문제 (docs/chromite/swing-frontend.md "앞 쿼리 창의 결과가 남던 문제")
+ * - 2026-11-08 결과 집합마다 탭(앱 변경 #7): Results / Messages / Execution plan / Terminal 바깥 탭과 탭 번호 상수, 창마다 고른 탭 기억을 지우고
+ *   활성 쿼리 창의 탭 줄({@link QueryResultsView})을 Results 카드에 끼움, 쿼리 창이 활성이 아니어도 그 창의 탭 줄은 실행 결과를 따름
+ *   (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-08 쿼리 상태 칸을 메인 창 상태 표시줄로(앱 변경 #2): 결과 아래·편집기 아래의 상태 줄 자리({@code resultsStatusHolder},
+ *   {@code documentStatusHolder}, {@code placeStatusLine})를 지우고 상태 표시줄이 활성 쿼리 창의 칸을 보이며 그 연결 색으로 칠함
+ *   (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-08 Query Library 머리말의 저장 단추가 쓰도록 Save 동작을 넘김({@link #getSaveAction}) (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-08 Chromite Agent 창의 설정 단추는 Options를 그 페이지로 엶({@link OptionsDialog#open(Frame, String)},
+ *   docs/chromite/ai-agent.md "설정 열기")
+ * - 2026-11-08 Chromite Agent 편집기 연결을 {@link AiQueryWindowBridge}로: 쿼리 창 목록·읽기·고치기 도구 (docs/chromite/ai-agent.md "편집기 도구")
+ * - 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6) (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-08 기본 도구 창 배치(앱 변경 #12): 오른쪽 열 = Query Library(위 0.4) + Chromite Agent(아래 0.6), 둘 다 보임, 폭 = 예전 Agent 열
+ *   ({@link #DEFAULT_RIGHT_SHARE} 0.18 → 0.25). Properties는 기본 숨김, Properties·Scripts·Outline·Database Tasks는 오른쪽 위 탭으로
+ *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -276,11 +297,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final String PREF_RESULTS_BESIDE = "results.beside"; //$NON-NLS-1$
     private static final Dimension DEFAULT_SIZE = new Dimension(1280, 800);
     /**
-     * Default shares of the main window width for the left and right tool window columns: the documents keep 60% (a
-     * query window stays usable at 1280 px with both columns shown).
+     * Default shares of the main window width for the left and right tool window columns. The right column holds the
+     * Chromite Agent's chat and is as wide as the Agent's own column was (user decision 2026-11-08): the former
+     * Properties column's 0.18 + 0.07. The documents keep 53%.
      */
     private static final double DEFAULT_LEFT_SHARE = 0.22;
-    private static final double DEFAULT_RIGHT_SHARE = 0.18;
+    private static final double DEFAULT_RIGHT_SHARE = 0.25;
+    /**
+     * Default share of the right column's height for its upper part (Query Library); the Chromite Agent below gets the
+     * rest, as a conversation uses the height (user decision 2026-11-08).
+     */
+    private static final double UPPER_RIGHT_SHARE = 0.4;
     /**
      * Default share of the main window height for the Query Manager along the bottom edge.
      */
@@ -292,6 +319,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private static final int DEFAULT_RESULTS_HEIGHT = 280;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
+    /**
+     * Client property of the status bar: the text color on the active query window's connection color when the theme's
+     * text is unreadable on it, else null. Labels on the bar that are not the query window's ({@link UpdateUi}) read it.
+     */
+    static final String STATUS_BAR_FOREGROUND_KEY = "chromite.statusBarForeground"; //$NON-NLS-1$
     /**
      * Name of a new query window: {@code SQLQueryN.sql} as in SSMS.
      */
@@ -307,14 +339,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final String TOOL_DOCUMENT_KEY = "chromite.toolDocumentKey"; //$NON-NLS-1$
     private static final String DOCUMENTS_CARD = "documents"; //$NON-NLS-1$
     private static final String WELCOME_CARD = "welcome"; //$NON-NLS-1$
-    private static final int RESULTS_TAB = 0;
-    private static final int MESSAGES_TAB = 1;
-    private static final int PLAN_TAB = 2;
-    /**
-     * Index of the Terminal tab, which is there only while the active query window has Query &gt; SQL Terminal on
-     * ({@link #updateTerminalTab}).
-     */
-    private static final int TERMINAL_TAB = 3;
 
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
@@ -339,15 +363,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * The document tabs, or the welcome content while no document is open.
      */
     private final JPanel documentCards = new JPanel(new CardLayout());
-    private final JTabbedPane resultTabs;
     /**
-     * Hold the active editor's query status line at the bottom of the query window (SSMS): inside the Results card below
-     * the results, or at the bottom of the document card while the Results tool window is hidden.
+     * The Results card's content: the active query window's tab row ({@link QueryResultsView}) in the center.
      */
-    private final JPanel resultsStatusHolder = new JPanel(new BorderLayout());
-    private final JPanel documentStatusHolder = new JPanel(new BorderLayout());
+    private final JPanel resultsArea = new JPanel(new BorderLayout());
+    /**
+     * The tab row in the Results card now, or null without a query window.
+     */
     @Nullable
-    private JComponent attachedStatusLine;
+    private JTabbedPane attachedResults;
+    /**
+     * The Results card's hide button at the right end of the attached tab row.
+     */
+    private final JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
     private final ToolWindow resultsWindow;
     private final ToolWindow.SplitHost resultsSplit;
     private final ToolWindowDocking toolWindowDocking;
@@ -429,7 +457,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     @Nullable
     private Path lastDirectory;
-    private boolean switchingResults;
     // View menu order; Object Explorer first
     private final List<ToolWindow> toolWindows;
     @Nullable
@@ -451,36 +478,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             // Activity Monitor opens for the selected connection
             updateActivityMonitorAction();
         }, this);
-        resultTabs = new JTabbedPane();
-        // size.tab.tool with a 3px underline (size.tabUnderline), icons results.grid / results.messages
-        resultTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
-        // The tabs get the active query window's components (activeEditorChanged); without one the Results card is hidden
-        resultTabs.addTab(CoreMessages.main_results, UiIcons.get("results"), null); //$NON-NLS-1$
-        resultTabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), null); //$NON-NLS-1$
-        resultTabs.addTab(CoreMessages.main_execution_plan, UiIcons.get("plan"), null); //$NON-NLS-1$
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        // Islands: the document tabs and their editors are one card; the query status line goes to its bottom only
-        // while the Results card is hidden (attachStatusLine)
+        // Islands: the document tabs and their editors are one card
         JPanel documentArea = new JPanel(new BorderLayout());
         // No open document: the document area shows the welcome content instead of the tabs (updateDocumentCard)
         documentCards.add(documentTabs, DOCUMENTS_CARD);
         documentArea.add(documentCards, BorderLayout.CENTER);
-        documentArea.add(documentStatusHolder, BorderLayout.SOUTH);
         documentSplit.setTopComponent(new IslandPanel(documentArea));
-        JPanel resultsArea = new JPanel(new BorderLayout());
+        // The center gets the active query window's tab row (activeEditorChanged); without one the Results card is hidden
         resultsArea.setOpaque(false);
-        resultsArea.add(resultTabs, BorderLayout.CENTER);
-        resultsArea.add(resultsStatusHolder, BorderLayout.SOUTH);
-        // The status line follows the Results card when it is hidden or shown again (Ctrl+R, hide button, another document)
-        resultsArea.addHierarchyListener(e -> {
-            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
-                placeStatusLine();
-            }
-        });
-        resultsStatusHolder.setVisible(false);
-        documentStatusHolder.setVisible(false);
         // The document area (document card + results card) is the fixed center of the docking layout
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
 
@@ -507,12 +515,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(registeredServersWindow, registeredServersPanel, true,
             ToolWindowDocking.Place.next(explorerWindow.getId(), DockingRegion.SOUTH, 0.4),
             ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
+        // Default layout of the right column (user decision 2026-11-08): Query Library above the Chromite Agent, both shown.
+        // The other right-hand tool windows (Properties, Scripts, Outline, Database Tasks) are hidden and open as tabs of
+        // the upper part: next to the Query Library, else Properties, else above the Agent, else a column of their own
+        ToolWindowDocking.Place[] upperRightPlaces = {
+            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.CENTER, 0.5), //$NON-NLS-1$
+            ToolWindowDocking.Place.next("properties", DockingRegion.CENTER, 0.5), //$NON-NLS-1$
+            ToolWindowDocking.Place.next("aiAssistant", DockingRegion.NORTH, UPPER_RIGHT_SHARE), //$NON-NLS-1$
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE)};
         ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
-        toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, true,
-            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.SOUTH, 0.5), //$NON-NLS-1$
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
-        // The Results/Messages tabs are their own header; the hide button sits next to the tabs. The results stay in the
+        toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, false, upperRightPlaces);
+        // The query window's result tabs are their own header; the hide button sits next to the tabs. The results stay in the
         // query window (below the documents), so they are not dockable
         resultsWindow = new ToolWindow("results", CoreMessages.main_results, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
@@ -532,19 +546,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 }
             }
         });
-        // The trailing component fills the rest of the tab row; keep the button at its right end
-        JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        // The trailing component fills the rest of the tab row; keep the button at its right end. It moves to the active
+        // query window's tab row (attachResults)
         resultTabsTrailing.setOpaque(false);
         resultTabsTrailing.add(resultsWindow.createHideButton());
-        resultTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, resultTabsTrailing);
         queryLibraryPanel = new QueryLibraryPanel(this);
-        // Query Library above Properties in the right column (SSMS docks its Template Browser on the right), hidden until opened;
-        // a column of its own would narrow the documents
+        // Query Library at the top of the right column, shown (SSMS docks its Template Browser on the right). Placed before
+        // the Agent, it makes the column in the default layout
         ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, true, upperRightPlaces);
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
         scriptsPanel = new ScriptsPanel(new ScriptsPanel.Host() {
             @NotNull
@@ -564,20 +575,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 openFile(file);
             }
         });
-        // Scripts above Properties in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L,
-        // the Solution Explorer shortcut)
+        // Scripts in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L, the Solution Explorer
+        // shortcut)
         ToolWindow scriptsWindow = new ToolWindow("scripts", ScriptsMessages.scripts_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false, upperRightPlaces);
         // The statements of the active query window, in the right column like the SWT Outline view; hidden until opened
         outlinePanel = new SqlOutlinePanel();
         ToolWindow outlineWindow = new ToolWindow("outline", CoreMessages.main_outline, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false,
-            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false, upperRightPlaces);
         aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
@@ -599,22 +606,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
 
             @Override
-            public void openOptions() {
-                OptionsDialog.open(MainFrame.this);
+            public void openOptions(@NotNull String pageId) {
+                OptionsDialog.open(MainFrame.this, pageId);
             }
         });
-        // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
-        toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, false,
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE + 0.07));
-        // Tool calls of the in-app chat and of the MCP server ask in this window; the openInEditor tool opens query windows here
+        // Below the Query Library in the right column, shown; the chat gets the larger part of the height. Without the Query
+        // Library it goes below the upper tool window that is shown instead (Properties), else it makes the column
+        toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, true,
+            ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.SOUTH, 1 - UPPER_RIGHT_SHARE),
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.SOUTH, 1 - UPPER_RIGHT_SHARE),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        // Tool calls of the in-app chat and of the MCP server ask in this window; the editor tools open, read and edit its query windows
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
-        AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
-            SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
+        AIAgentServices.setEditorBridge(new AiQueryWindowBridge(this::getEditors, this::getActiveEditor, this::showQueryWindow, aiAssistantPanel));
         // Saved tasks (backups, restores, native script runs): a tab next to the Query Library, hidden until opened
         ToolWindow tasksWindow = new ToolWindow("databaseTasks", DatabaseTasksMessages.tasks_title, null); //$NON-NLS-1$
-        toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
-            ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.CENTER, 0.5),
-            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false, upperRightPlaces);
         // Every statement the query manager recorded: a wide table along the bottom edge, like SWT's bottom views; hidden until
         // opened. Statements open in a new query window and never run
         queryManagerPanel = new QueryManagerPanel((connection, sql) -> {
@@ -708,12 +715,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
+                    // Turned off, the Terminal tab goes away and a result (or Messages) comes to the front
                     editor.setTerminalEnabled(!editor.isTerminalEnabled());
                     if (editor.isTerminalEnabled()) {
                         showTerminal(editor);
-                    } else {
-                        // The Terminal tab goes away; the tab the window showed before it comes back
-                        selectResultTab(editor);
                     }
                 }
                 updateQueryActions();
@@ -797,14 +802,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             commitAction, rollbackAction, commitModeAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
-        resultTabs.addChangeListener(e -> {
-            SqlEditorPanel editor = getActiveEditor();
-            if (editor != null && !switchingResults) {
-                editor.getResultsView().setMessagesTabSelected(resultTabs.getSelectedIndex() == MESSAGES_TAB);
-                editor.setPlanTabSelected(resultTabs.getSelectedIndex() == PLAN_TAB);
-                editor.setTerminalTabSelected(resultTabs.getSelectedIndex() == TERMINAL_TAB);
-            }
-        });
         updateQueryActions();
         documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, CoreMessages.main_welcome_next),
             List.of(newQueryAction, openFileAction, registeredServersWindow.getToggleAction())), WELCOME_CARD);
@@ -961,7 +958,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         // The component the key went to: the focus owner when the key was pressed
         Component focus = keyEvent.getComponent() != null ? keyEvent.getComponent() : KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        return focus == null || !SwingUtilities.isDescendingFrom(focus, editor) && !SwingUtilities.isDescendingFrom(focus, resultTabs);
+        return focus == null || !SwingUtilities.isDescendingFrom(focus, editor) && !SwingUtilities.isDescendingFrom(focus, resultsArea);
     }
 
     @NotNull
@@ -979,9 +976,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
-     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find]; the other buttons
-     * are icons with tool tips that name the menu shortcut (size.toolbar.main 32 = 24px buttons + 4px above and below;
-     * 28 = 22 + 3 in compact mode).
+     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find], then at the right
+     * end [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
+     * (size.toolbar.main 32 = 24px buttons + 4px above and below; 28 = 22 + 3 in compact mode).
      */
     @NotNull
     private JComponent createToolBar(
@@ -1011,9 +1008,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(libraryWindow, "library", ToolbarMessages.toolbar_query_library_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
-        toolBar.add(createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createIconButton(editMenu.getFindAction(), "search", ToolbarMessages.toolbar_find_tip)); //$NON-NLS-1$
+        // Chromite Agent at the right end with icon and name, where DataGrip has its AI button (user decision 2026-11-08);
+        // in a narrow window the buttons before it overflow first
+        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip); //$NON-NLS-1$
+        agentButton.setHideActionText(false);
+        UiIcons.useToolButtonMargin(agentButton);
+        OverflowToolBar.setTrailing(agentButton);
+        toolBar.add(agentButton);
         return toolBar;
     }
 
@@ -1789,6 +1792,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return openQueryEditor(container, fileName);
     }
 
+    @NotNull
+    @Override
+    public Action getSaveAction() {
+        return saveAction;
+    }
+
     @Nullable
     private SqlEditorPanel getActiveEditor() {
         return documentTabs.getSelectedComponent() instanceof SqlEditorPanel editor ? editor : null;
@@ -1808,17 +1817,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     private void activeEditorChanged() {
         SqlEditorPanel editor = getActiveEditor();
-        switchingResults = true;
-        try {
-            // No query window: the tabs let go of the last editor's components (the Results card is hidden)
-            attachResultTab(RESULTS_TAB, editor != null ? editor.getResultsView().getResultsComponent() : null);
-            attachResultTab(MESSAGES_TAB, editor != null ? editor.getResultsView().getMessagesComponent() : null);
-            attachResultTab(PLAN_TAB, editor != null ? editor.getPlanView().getComponent() : null);
-        } finally {
-            switchingResults = false;
-        }
-        selectResultTab(editor);
-        // Before the status line, which goes below the results only while they are shown
+        // No query window: the card lets go of the last window's tab row (the Results card is hidden)
+        attachResults(editor != null ? editor.getResultsView().getComponent() : null);
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
         outlinePanel.setTextArea(getActiveTextArea());
@@ -1832,47 +1832,31 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Shows the Terminal tab of the window (or none) and brings back the result tab the window showed last.
+     * Puts a query window's tab row (its results, Messages, plan and terminal, {@link QueryResultsView}) into the Results
+     * card, with the hide button at its right end. The tab row keeps the window's selected tab. A tab row of an inactive
+     * window is not in the window and misses theme switches, so its look and feel is brought up to date here (also for
+     * the hide button, which is out of the window while no query window is active).
+     * The card is repainted: a tab row that had the card's bounds before is not moved by the layout, so without it
+     * nothing asked to paint it and the previous window's results stayed on the screen (app change #18, a query window
+     * with no results such as a Query Library tab).
      */
-    private void selectResultTab(@Nullable SqlEditorPanel editor) {
-        switchingResults = true;
-        try {
-            updateTerminalTab(editor);
-            resultTabs.setSelectedIndex(editor != null && editor.isTerminalEnabled() && editor.isTerminalTabSelected() ? TERMINAL_TAB
-                : editor != null && editor.isPlanTabSelected() ? PLAN_TAB
-                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
-        } finally {
-            switchingResults = false;
-        }
-    }
-
-    /**
-     * The Terminal tab is there only while the active query window has Query &gt; SQL Terminal on, with that window's
-     * terminal. Call with {@link #switchingResults} set: removing the selected tab selects another one.
-     */
-    private void updateTerminalTab(@Nullable SqlEditorPanel editor) {
-        if (editor != null && editor.isTerminalEnabled()) {
-            if (resultTabs.getTabCount() <= TERMINAL_TAB) {
-                resultTabs.addTab(TerminalMessages.terminal_tab, UiIcons.get("terminal"), null); //$NON-NLS-1$
-            }
-            attachResultTab(TERMINAL_TAB, editor.getTerminalView().getComponent());
-        } else if (resultTabs.getTabCount() > TERMINAL_TAB) {
-            resultTabs.removeTabAt(TERMINAL_TAB);
-        }
-    }
-
-    /**
-     * Puts an editor's results component into the Results / Messages tab. Components of inactive editors are not in
-     * the window and miss theme switches, so their look and feel is brought up to date here (also for the status line).
-     */
-    private void attachResultTab(int index, @Nullable JComponent component) {
-        if (resultTabs.getComponentAt(index) == component) {
+    private void attachResults(@Nullable JTabbedPane tabs) {
+        if (tabs == attachedResults) {
             return;
         }
-        if (component != null) {
-            updateLookAndFeel(component);
+        if (attachedResults != null) {
+            attachedResults.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, null);
+            resultsArea.remove(attachedResults);
         }
-        resultTabs.setComponentAt(index, component);
+        attachedResults = tabs;
+        if (tabs != null) {
+            updateLookAndFeel(tabs);
+            updateLookAndFeel(resultTabsTrailing);
+            tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, resultTabsTrailing);
+            resultsArea.add(tabs, BorderLayout.CENTER);
+        }
+        resultsArea.revalidate();
+        resultsArea.repaint();
     }
 
     /**
@@ -1888,37 +1872,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Shows the active editor's query status line at the bottom of the query window; other documents (DDL) and the empty document area
-     * have none.
+     * Shows the active query window's status cells in the main window's status bar; other documents (DDL, tool
+     * documents) and the empty document area show the workspace text there.
      */
-    private void attachStatusLine(@Nullable JComponent statusLine) {
-        if (statusLine == attachedStatusLine) {
+    private void attachStatusLine(@Nullable QueryStatusLine statusLine) {
+        // The status bar is made after the document tabs, whose listener calls this
+        if (statusBar == null) {
             return;
         }
-        attachedStatusLine = statusLine;
         if (statusLine != null) {
             updateLookAndFeel(statusLine);
         }
-        placeStatusLine();
-    }
-
-    /**
-     * Puts the status line below the results (SSMS), or below the editor while the Results card is hidden.
-     */
-    private void placeStatusLine() {
-        JPanel target = resultsWindow != null && resultsWindow.isShown() ? resultsStatusHolder : documentStatusHolder;
-        for (JPanel holder : List.of(resultsStatusHolder, documentStatusHolder)) {
-            boolean show = holder == target && attachedStatusLine != null;
-            if (show && (holder.getComponentCount() == 0 || holder.getComponent(0) != attachedStatusLine)) {
-                holder.removeAll();
-                holder.add(attachedStatusLine, BorderLayout.CENTER);
-            } else if (!show) {
-                holder.removeAll();
-            }
-            holder.setVisible(show);
-            holder.revalidate();
-            holder.repaint();
-        }
+        statusBar.setLine(statusLine);
     }
 
     private void updateQueryActions() {
@@ -1984,16 +1949,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             enabled ? ToolbarMessages.toolbar_activity_monitor_tip : ToolbarMessages.toolbar_activity_monitor_disabled_tip);
     }
 
+    /**
+     * The window's own tab row changes also while it is not active, so it shows the output of its run when the user comes
+     * back; the Results card is shown for the active window only.
+     */
     @Override
     public void showResults(@NotNull SqlEditorPanel editor, boolean messages) {
-        if (editor != getActiveEditor()) {
-            return;
+        if (messages) {
+            editor.getResultsView().showMessages();
+        } else {
+            editor.getResultsView().showResult();
         }
-        editor.getResultsView().setMessagesTabSelected(messages);
-        editor.setPlanTabSelected(false);
-        editor.setTerminalTabSelected(false);
-        resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
-        resultsWindow.setShown(true);
+        showResultsCard(editor);
+    }
+
+    private void showResultsCard(@NotNull SqlEditorPanel editor) {
+        if (editor == getActiveEditor()) {
+            resultsWindow.setShown(true);
+        }
     }
 
     @Override
@@ -2005,29 +1978,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @Override
     public void showPlan(@NotNull SqlEditorPanel editor) {
-        if (editor != getActiveEditor()) {
-            return;
-        }
-        editor.setPlanTabSelected(true);
-        editor.setTerminalTabSelected(false);
-        resultTabs.setSelectedIndex(PLAN_TAB);
-        resultsWindow.setShown(true);
+        editor.getResultsView().showPlan();
+        showResultsCard(editor);
     }
 
     @Override
     public void showTerminal(@NotNull SqlEditorPanel editor) {
-        if (editor != getActiveEditor()) {
-            return;
-        }
         if (!editor.isTerminalEnabled()) {
             // Turned off while a run that started with it was going on: its output still goes to the (hidden) terminal
             showResults(editor, false);
             return;
         }
-        editor.setPlanTabSelected(false);
-        editor.setTerminalTabSelected(true);
-        selectResultTab(editor);
-        resultsWindow.setShown(true);
+        editor.getResultsView().showTerminal();
+        showResultsCard(editor);
     }
 
     /**
@@ -2315,8 +2278,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library
-     * hidden) and the results with their default height, shown again in every query window (still hidden without one).
+     * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library and
+     * Chromite Agent shown in the right column, Properties hidden) and the results with their default height, shown again
+     * in every query window (still hidden without one).
      */
     private void resetWindowLayout() {
         toolWindowDocking.resetLayout();
@@ -2652,9 +2616,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
      * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
+     * While a query window is active it shows that window's status cells ({@link QueryStatusLine}) instead of the
+     * workspace text, and the whole bar is painted in the window connection's color (user decision 2026-11-08), with
+     * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
+     * also read by the update progress at the right end, {@link UpdateUi}).
      */
     private static final class StatusBar extends JPanel {
         private final JLabel statusLabel;
+        @Nullable
+        private QueryStatusLine line;
+        private final PropertyChangeListener bandListener = e -> applyBand();
 
         StatusBar(@NotNull String statusText) {
             super(new BorderLayout());
@@ -2674,13 +2645,47 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             statusLabel.setText(text);
         }
 
+        /**
+         * The active query window's status cells in place of the workspace text, or null for none.
+         */
+        void setLine(@Nullable QueryStatusLine line) {
+            if (line == this.line) {
+                return;
+            }
+            if (this.line != null) {
+                this.line.removePropertyChangeListener(QueryStatusLine.BAND_PROPERTY, bandListener);
+                remove(this.line);
+            }
+            this.line = line;
+            if (line != null) {
+                // Its connection color follows tab switches, connection settings and theme changes
+                line.addPropertyChangeListener(QueryStatusLine.BAND_PROPERTY, bandListener);
+                add(line, BorderLayout.CENTER);
+            }
+            statusLabel.setVisible(line == null);
+            applyBand();
+            revalidate();
+        }
+
+        /**
+         * The connection color of the shown query window as the background (the canvas without one), and its text color
+         * for the update progress.
+         */
+        private void applyBand() {
+            Color band = line != null ? line.getBandColor() : null;
+            Color background = band != null ? band : UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (background != null) {
+                setBackground(background);
+            }
+            putClientProperty(STATUS_BAR_FOREGROUND_KEY, line != null ? line.getBandForeground() : null);
+            repaint();
+        }
+
         @Override
         public void updateUI() {
             super.updateUI();
-            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
-            if (canvas != null) {
-                setBackground(canvas);
-            }
+            // Called by the super constructor too, before the fields are set
+            applyBand();
         }
     }
 }

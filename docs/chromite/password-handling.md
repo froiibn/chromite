@@ -108,7 +108,9 @@
 - HANA 암호 바꾸기의 사용자 이름은 따옴표 없이 문장에 들어간다(`"ALTER USER " + userName`). 연결 설정의 사용자 이름이고, HANA는
   따옴표 없는 이름을 대문자로 바꾸므로 Oracle처럼 대소문자 변환 뒤 따옴표를 붙여야 맞다. HANA 서버로 확인하지 못해 바꾸지 않았다.
 - HANA 암호의 `"` 두 번 쓰기는 구분 식별자 규칙을 따른 것이다. HANA 서버로 실행해 보지 못했다(Exasol·YashanDB·Mimer·CUBRID도 같음).
-- 속성 편집(G4, `chromite/object-properties-edit`)이 Properties 창에서 암호 속성을 고칠 때도 가린 입력 칸을 써야 한다.
+- ~~속성 편집(G4, `chromite/object-properties-edit`)이 Properties 창에서 암호 속성을 고칠 때도 가린 입력 칸을 써야 한다.~~
+  2026-11-08 확인(후속 34, `chromite/followups-4`): 속성 편집(#171)은 암호 속성을 고칠 수 있는 칸으로 만들지 않는다
+  (`ObjectPropertyEdits.describe`가 `PROP_FEATURE_PASSWORD` 속성을 뺌, [swing-object-properties.md](swing-object-properties.md) "암호 속성"). 암호는 보안 대화상자의 가린 칸에서 바꾼다.
 
 ## 확인 (2026-11-08)
 
@@ -170,3 +172,5 @@
 - 2026-11-08 최초 작성(`chromite/password-handling-fixes`): 암호 바꾸기의 따옴표(Exasol·Oracle·YashanDB·HANA), Oracle 새 스키마의 암호,
   Mimer·Exasol CONNECTION·CUBRID의 기록 끄기, Exasol LDAP·Kerberos 작은따옴표, Exasol New Connection…의 NullPointerException,
   Swing 속성 표의 암호 가리기.
+- 2026-11-08 후속 34 확인(`chromite/followups-4`): Exasol LDAP `AS` 절은 #170에서 고쳐짐(`ExasolUserManager` CREATE·ALTER가 `ExasolUtils.quoteString`).
+  "남긴 것"의 속성 편집 항목은 #171이 암호 속성을 편집하지 않아 닫음. HANA 사용자 이름 따옴표는 HANA 서버가 없어 그대로 남김.

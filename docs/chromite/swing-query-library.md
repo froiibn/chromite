@@ -24,7 +24,8 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `QueryLibraryParameter` | 매개변수 정의(표시 이름, 형식, 기본값, 필수, 선택 목록, 조회 쿼리)와 형식 변환·검사 |
 | `QueryLibraryFile` | 파일 형식 읽기·쓰기(머리말 주석 + SQL) |
 | `QueryLibraryState` | 이 PC에만 두는 쿼리별 상태(매개변수 마지막 입력값) |
-| `QueryLibraryEditor` | 쿼리 창 확장: 이름·설명·대상·DB/스키마·매개변수 머리말, 라이브러리로 저장, 실행 전 매개변수 묻기, 실행 대상 찾기 |
+| `QueryLibraryEditor` | 쿼리 창 확장: 이름·설명·대상·DB/스키마·매개변수 머리말과 저장 단추, 라이브러리로 저장, 실행 전 매개변수 묻기, 실행 대상 찾기 |
+| `QueryLibraryDefaultsPicker` | 머리말의 Database·Schema 칸: 직접 입력할 수 있는 콤보와 연결의 DB/스키마 목록(작업 스레드에서 읽음), 연결이 쓰지 않는 칸 끄기 |
 | `QueryParameterBinder` | 쿼리 창의 매개변수 바인딩 하나: `:name` → `?` + JDBC 바인딩, `${name}` → SQL 글자, 결과 다시 읽기의 바인딩, 기록용 글자·값, 기록에서 연 실행(`Recorded`), 평범한 쿼리 창의 엔진 매개변수 제공자(`ScriptProvider`), 연결 없이 매개변수 찾기 |
 | `QueryParameterDialog` | 실행할 때 값을 묻는 대화상자 하나(라이브러리 쿼리, 기록에서 연 실행, 평범한 쿼리 창의 스크립트 모드) |
 | `QueryParameterDefinitionsDialog` | 편집기의 "Parameters…": 매개변수 정의 표 |
@@ -53,6 +54,7 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `MainFrame` (④) | 확장이 붙은 쿼리 창의 Save As는 `SqlEditorExtension.saveAs`(라이브러리 쿼리는 SQL만 평범한 `.sql`로 내보냄) |
 | `SqlEditorExtension` (④) | `saveAs` 추가(Save As를 저장과 나눔) |
 | `SqlFileContent` (④) | `parse(byte[])`: 디스크에 없는 바이트(묶음 파일 항목)를 같은 문자 집합·BOM·줄바꿈 규칙으로 읽음 |
+| `SqlEditorPanel`, `QueryLibraryPanel.Host`, `MainFrame` (2026-11-08) | 머리말 저장 단추: 고침 상태 속성 `DIRTY_PROPERTY`(바뀔 때 알림), `Host.getSaveAction`(메인 창의 Save 동작을 넘김) |
 
 ## 화면
 
@@ -73,6 +75,8 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
   문서 영역이 좁아져 시작 화면 글자가 잘려 합칠 때 오른쪽 열로 옮겼다(되돌리기: `MainFrame`에서 `propertiesWindow.stackBelow(libraryWindow)` 대신
   예전처럼 가로 분할 열을 만든다).
   Properties를 숨긴 사이에 보였다가 Properties를 다시 보여도 같은 열에 쌓인다(2026-11-07, [swing-frontend.md](swing-frontend.md) "Query Library 자리").
+  **2026-11-08 바뀜(앱 변경 #12, 사용자 결정):** 기본 배치에서 보이고 오른쪽 열 위(0.4), 아래는 Chromite Agent다. Properties는 기본 숨김이고 열면 Query Library의 탭이다.
+  Reset Window Layout도 이 배치로 되돌린다([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent").
   Ctrl+Alt+T는 SSMS의 Template Browser 단축키이고 이 번들에서 비어 있다(2026-11-06 `KeyStroke.getKeyStroke` 전체 검색).
 - **트리:** 루트(책 아이콘, 읽기 전용이면 "read-only") → 폴더 → 쿼리(이름 뒤 보조 글자: 고정 대상 연결 이름, 또는 "ask"). 폴더가 쿼리보다 앞이고, 둘 다 자연 정렬("2. …" < "10. …").
   도구 설명은 설명과 파일 경로다. 모양(아이콘 팩, 행 높이, 마우스 올림 둥근 바탕, 보조 글자)은 Object Explorer와 같다.
@@ -197,8 +201,8 @@ WHERE state = :state
 
 ```
 [▶ Execute] [■] | [연결 ▾] [DB/스키마 ▾]
-Name [02. 대기          ]  Description [대기 이벤트 상위 10개                ]
-Target [QL SQL Server ▾]   Database [master  ] [Schema ] [Parameters (1)…]
+Name [02. 대기          ]  Description [대기 이벤트 상위 10개                ]                   [저장 아이콘]
+Target [QL SQL Server ▾]   [master        ▾] [Schema        ▾] [Parameters (1)…] [Thresholds…]
 SELECT ...
 ```
 
@@ -208,11 +212,44 @@ SELECT ...
   ("Parameters (1)…", "매개변수(1)…")가 최소 크기다. 2026-11-08 전에는 만들 때 최소 크기를 고정했는데, 단추의 글자는 그 뒤에(`loadFields`) 들어가
   빈 단추의 크기(FlatLaf 최소 너비 72)가 최소 크기가 되었다. `GridBagLayout`은 줄이 우선 크기만큼 들어가지 않으면 모든 칸을 최소 크기로 두므로, 문서 영역이 좁은 창
   (1200 px 창에 Chromite Agent·Query Library 열을 연 경우 등)에서 단추가 "Para…", "Thres…"로 잘렸다. 칸의 최소 크기 합보다 좁으면 칸이 더 줄고 단추 글자는 그대로다.
+  저장 아이콘 단추는 첫 줄 오른쪽 끝, Thresholds… 단추 위 칸에 오른쪽으로 붙는다(아래 "머리말 저장 단추").
 - Target 콤보: "Ask when run", "Current connection", 연결 목록. 이 PC에 없는 연결이 저장된 쿼리는 "<이름> (not found)" 항목으로 보여 주고 그대로 저장한다(동료의 설정을 지우지 않음).
 - 저장(Ctrl+S, File > Save, 닫을 때·끝낼 때 Save)은 `QueryLibrary.save`: 파일을 ID로 다시 찾고, 머리말과 SQL을 쓰고, 이름이 바뀌었으면 파일 이름도 바꾼다.
   읽기 전용 루트의 쿼리는 저장하지 않고 Duplicate를 안내한다. 다른 사람이 먼저 저장했으면 덮어쓰기 전에 묻는다(④).
   File > Save As는 라이브러리 쿼리를 바꾸지 않고 SQL만 평범한 `.sql`로 내보낸다(④ "Save As .sql").
 - SQL에서 빠진 매개변수의 정의는 저장할 때 버린다.
+
+### 머리말 저장 단추 (2026-11-08)
+
+사용자: "쿼리라이브러리 편집 화면에서 저장버튼이 없다". 저장은 Ctrl+S, 주 도구 막대 Save, File > Save, 닫을 때 묻기로만 할 수 있었다.
+
+- 머리말 첫 줄 오른쪽 끝에 저장 단추. 아이콘 팩의 `save` 아이콘만 보이는 단추이고(사용자 결정 2026-11-08: "아이콘으로만 표시"), 모양은 도구 막대의 아이콘 단추와 같다
+  (`UiIcons.createActionButton`). 도구 설명은 "Save (Ctrl+S)"(한국어 "저장 (Ctrl+S)"), 화면 읽기 프로그램용 이름은 "Save"("저장")다.
+- 누르면 메인 창의 Save 동작(`MainFrame.saveAction`, Ctrl+S)을 그대로 부른다(`QueryLibraryPanel.Host.getSaveAction`). 그 동작은 활성 쿼리 창을 저장하므로
+  먼저 이 창을 앞에 둔다. 저장 경로가 하나라 읽기 전용 루트 안내, 이름 검사, 다른 사람이 먼저 저장했을 때의 질문이 단축키와 똑같다.
+- 창이 고침 상태(탭 제목의 `*`)일 때만 켜진다. 쿼리 창이 고침 상태가 바뀔 때마다 `SqlEditorPanel.DIRTY_PROPERTY` 속성 변경을 알리고(글 입력, 머리말 변경,
+  저장, 다시 읽기) 단추가 그것을 따른다. 저장하거나 Reload로 다시 읽으면 꺼진다.
+
+### 머리말 DB/스키마 목록 (2026-11-08)
+
+사용자: "쿼리라이브러리 대상에서 데이터베이스나 스키마는 자동으로 불러오지 못하는건가?". 두 칸은 자리 표시 글만 있는 글 칸이었다.
+
+- 두 칸 모두 직접 입력할 수 있는 콤보다(`QueryLibraryDefaultsPicker`). 공유 쿼리는 다른 서버, 다른 DB 이름에서도 쓰므로 목록에 없는 값(저장된 값 포함)도
+  그대로 보이고 저장된다. 자리 표시 글("Database", "Schema")은 그대로다.
+- 목록을 읽는 연결: 대상이 정해진 연결이면 그 연결, "Ask when run"·"Current connection"이면 이 쿼리 창의 연결. 이 PC에 없는 대상 연결("(not found)")이나
+  연결이 없는 창은 목록이 비고, 도구 설명 둘째 줄이 목록을 어디서 읽는지(또는 목록이 없는 이유)를 말한다.
+- 목록은 펼칠 때 작업 스레드(`AbstractJob`)에서 읽는다. 연결되어 있지 않으면 그때 평소 연결 경로(`DBUtils.initDataSource` → `SwingConnectionService`:
+  비밀번호 묻기, 오류 대화상자)로 연결한다. 머리말을 여는 것만으로는 연결하지 않는다. 읽은 뒤 열려 있는 목록은 새 항목 수에 맞게 다시 펼친다.
+- 읽는 모델은 SQL Editor 도구 막대의 DB/스키마 콤보와 같다(데이터 소스의 `DBSObjectContainer`와 첫째 자식 형식, 같은 순서: 카탈로그 먼저).
+  도구 막대의 `ContextDefaultObjectsReader`는 창 세션이 바꿀 수 있는 한 단계만 주므로 쓰지 않고 직접 읽는다.
+  - 첫째 자식이 `DBSCatalog`: Database 목록은 카탈로그들. Schema 목록은 Database 칸의 카탈로그(대소문자 무시, 비었으면 연결의 기본 카탈로그)의 `DBSSchema` 자식.
+    Database 칸에 이 연결에 없는 이름이 있으면 Schema 목록은 비어 있다.
+  - 첫째 자식이 `DBSSchema`: Schema 목록만.
+- 연결이 쓰지 않는 칸은 끈다(도구 막대 콤보와 같은 규칙): 카탈로그가 없으면 Database(Oracle 등), 카탈로그 아래 스키마가 없으면 Schema(MySQL·MariaDB 등).
+  도구 설명 둘째 줄이 이유를 말한다. 다음 경우는 끄지 않는다.
+  - 칸에 값이 있으면 지울 수 있게 켜 둔다.
+  - "Ask when run"·"Current connection"은 실행할 때마다 다른 종류의 DB일 수 있어 끄지 않는다.
+  - 무엇을 쓰는지는 연결되어 있어야 안다. 정해진 대상이 연결되어 있으면 머리말을 열 때(연결하지 않고) 읽고, 아니면 목록을 처음 펼칠 때 안다. 그 전에는 두 칸이 켜져 있다.
 
 ## 매개변수
 
@@ -576,6 +613,34 @@ DB는 공유 테스트 컨테이너에 만든 `chr_query_library_params`(Postgre
 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 매개변수 입력(평범한 창, 라이브러리, 기록), 결과 다시 읽기(필터, 정렬, 다음 페이지,
 열 필터 값 목록, Export Data, 편집 저장 뒤 행 다시 읽기), Query History, 라이브러리 저장·충돌 질문, 가져오기·복제.
 
+## 확인 (2026-11-08, 머리말 저장 단추와 DB/스키마 목록)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS. 빌드한 제품을 데이터 폴더(`CHROMITE_DATA`)와 작업 공간을
+scratch에 두고 한국어(OS 언어), 화면 배율 150%로 실행했다. 화면 조작은 이 프로세스에 붙인 테스트용 Java 에이전트가 Swing API와 앱의 메서드로 했다(OS 입력 없음).
+DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, Oracle Free 23)이고 아무것도 만들거나 바꾸지 않았다.
+증거: `D:\Tools\_scratch\chromite-library-editor-2\run\`(스크립트 로그, `shots\`).
+
+| 확인 | 결과 |
+|---|---|
+| 저장 단추 모양 | 첫 줄 오른쪽 끝, `save` 아이콘만(글자 없음), 도구 막대 아이콘 단추 모양, 도구 설명 "저장 (Ctrl+S)", 접근성 이름 "저장" |
+| 켜짐·꺼짐 | 연 직후 꺼짐 → SQL 고침·목록에서 스키마 고름 → 켜짐(탭 `*`) → 누르면 파일에 저장되고 꺼짐 |
+| 이름 검사 | 이름을 비우고 누름 → "쿼리 이름을 입력하십시오." (Ctrl+S와 같은 메시지) |
+| 저장 충돌 | 바깥에서 파일을 바꾼 뒤 누름 → "다른 사람이 바꾼 쿼리"(덮어쓰기 / 다시 읽기 / 취소, 취소가 기본) → 취소: 파일 그대로, 단추 켜진 채 → 다시 누르고 덮어쓰기: 파일이 창의 내용 |
+| 연결하지 않음 | PostgreSQL·SQL Server·MariaDB 대상 쿼리를 열고 기다림 → 연결 안 됨 |
+| PostgreSQL | Database 목록을 펼침 → 연결되고 `postgres`, Schema 목록 `information_schema, pg_catalog, public` |
+| SQL Server | Database 51개(`master`, `model`, `msdb`, `tempdb`, 테스트 DB), `master`의 Schema `dbo, INFORMATION_SCHEMA, sys` |
+| MariaDB | Database 41개, Schema 칸 꺼짐("대상 연결에는 전환할 스키마가 없습니다") |
+| Oracle | Schema 52개, Database 칸 꺼짐("대상 연결에는 전환할 데이터베이스(카탈로그)가 없습니다") |
+| 목록에 없는 값 | Database에 `db_not_here` → 그대로 보이고 저장됨, 그 DB의 Schema 목록은 비어 있음. "Ask when run" 쿼리의 `db_on_another_server`도 그대로 |
+| 실행 때 묻기 | 연결 없는 창: 목록 비어 있음, 도구 설명 "목록: 이 쿼리 창의 연결에서 읽습니다", 두 칸 켜짐 |
+| 없는 연결 | "Colleague server (not found)" 대상: 목록 없음, 도구 설명 "목록 없음: 대상 연결이 이 컴퓨터에 없습니다", 저장된 Schema `sales` 그대로 |
+| 대상 바꾸기 | MariaDB 창의 대상을 연결된 PostgreSQL로 → 목록을 펼치지 않고 두 칸 켜짐(연결 없이 읽음), 다시 MariaDB → Schema 꺼짐, "Ask when run" → 두 칸 켜짐, 앞 연결의 목록은 지워짐 |
+
+확인하지 못한 것: 펼친 목록의 화면(앱 창이 앞에 있지 않아 열린 목록이 바로 닫힘. 목록 내용은 콤보 모델로 확인), 비밀번호를 묻는 연결(테스트 연결은 비밀번호가 저장되어 있음),
+테마·밀도를 바꾼 뒤의 입력 감지(편집기가 바뀌면 다시 붙이도록 함). 회귀 테스트는 실행하지 않았다(요청 없음).
+영향받을 수 있는 기능: 쿼리 창의 고침 표시와 제목(`SqlEditorPanel.setDirty`·`setContent`·`saved`가 속성 변경을 알림), File > Save(같은 동작을 머리말 단추가 부름),
+라이브러리 쿼리 저장·다시 읽기의 DB/스키마 값.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
@@ -597,3 +662,6 @@ DB는 공유 테스트 컨테이너에 만든 `chr_query_library_params`(Postgre
   `:name` 글자와 값을 남기고 Open·Execute가 다시 바인딩. "매개변수 바인딩", "매개변수 대화상자와 바인딩 하나로", "확인 (2026-11-08, …)".
 - 2026-11-08 `@updated`를 파일에 쓰지 않음(저녁 후속 #6): 동시에 고친 쿼리가 Git에서 그 줄로 늘 충돌하던 문제. 저장 충돌 질문의 시각은 파일의 수정 시각.
   "고친 시각을 파일에 두지 않음", "Git 루트", "남긴 것".
+- 2026-11-08 머리말 오른쪽 끝에 저장 아이콘 단추(Ctrl+S와 같은 동작, 고쳤을 때만 켜짐), Database·Schema 칸을 대상 연결의 목록이 있는 콤보로 바꿈(목록을 펼칠 때만 연결,
+  연결이 쓰지 않는 칸은 끔). "머리말 저장 단추", "머리말 DB/스키마 목록".
+- 2026-11-08 기본 배치(앱 변경 #12): Query Library가 처음부터 보이고 오른쪽 열 위, 아래는 Chromite Agent, Properties는 숨김. "열기"에 표시(`chromite/ui-layout`).

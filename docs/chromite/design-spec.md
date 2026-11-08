@@ -152,15 +152,15 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 행 번호 열 | 맨 왼쪽 열, 왼쪽 정렬 [M] | 바탕 = 그리드 바탕, 글자 `text.secondary`, 폭 ≈40 [S] | 머리글 바탕, 오른쪽 정렬 [C] `ResultSetGrid.java:194-205` | 바탕 `bg.editor`, 글자 `text.secondary`, 왼쪽 여백 8, 오른쪽 1px `grid.line` | P1 |
 | NULL | `NULL`(옅은 노란 바탕, SSMS 21부터 색 설정 가능) [M] | `<null>` 회색 | `NULL` 회색 기울임꼴 [C] | 글자 `NULL`(SSMS) + `text.secondary`, 기울임 없음 | P2 |
 | 숫자 정렬 | 오른쪽 | 오른쪽 | 오른쪽(맞음) [C] | 유지 | — |
-| 선택 | 진한 파랑 | 셀 선택 `selection.bg`, 글자색 유지 | FlatLaf 강조색 + 흰 글자 | `selection.bg`/`selection.inactiveBg`, 현재 셀 1px `focus.ring` 테두리, 선택 행의 행 번호도 `selection.bg` | P0 |
+| 선택 | 진한 파랑 | 셀 선택 `selection.bg`, 글자색 유지 | FlatLaf 강조색 + 흰 글자 | `selection.bg`/`selection.inactiveBg`, 현재 셀 1px `focus.ring` 테두리. 행 번호는 선택해도 그리드 바탕(2026-11-08, 선택이 번호 열에서 끊겨 보이지 않게) | P0 |
 | 메시지 글 | 고정폭, 오류 빨강 | 콘솔 출력: 일반 L `#080808` / D `#BCBEC4`, 오류 D `#F75464` [E `CONSOLE_*`] | 오류 `Actions.Red` [C] `QueryResultsView.java:117` | 글꼴 `font.code`, 오류 `status.error` | P1 |
 
 ### 9. 쿼리 상태 줄과 주 상태 표시줄
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2. 2026-11-07 커밋 방식 칸 추가(사용자 요청): DB 뒤에 점(`size.statusDot`, 자동 `status.success` / 수동 `status.error`) + 글자, 누르면 연결 설정의 Auto-commit으로 안내만 함([swing-frontend.md](swing-frontend.md) "자동 커밋 상태"). 2026-11-07 열린 트랜잭션 칸 추가: 커밋 방식 뒤에 `status.warning` 점 + 경과 시간·문장 수, 열린 트랜잭션이 있을 때만, 누르면 커밋/롤백 메뉴([idle-transactions.md](idle-transactions.md)) | P1 |
-| 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`, 높이 28 | P1 |
+| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2. 2026-11-07 커밋 방식 칸 추가(사용자 요청): DB 뒤에 점(`size.statusDot`, 자동 `status.success` / 수동 `status.error`) + 글자, 누르면 연결 설정의 Auto-commit으로 안내만 함([swing-frontend.md](swing-frontend.md) "자동 커밋 상태"). 2026-11-07 열린 트랜잭션 칸 추가: 커밋 방식 뒤에 `status.warning` 점 + 경과 시간·문장 수, 열린 트랜잭션이 있을 때만, 누르면 커밋/롤백 메뉴([idle-transactions.md](idle-transactions.md)). 2026-11-08 사용자 요청: 칸을 결과 아래에서 주 상태 표시줄로 옮김(아래 줄) | P1 |
+| 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`, 높이 28. 2026-11-08(사용자 결정): 쿼리 창이 활성이면 그 창의 쿼리 상태 칸(상태 문구 … `Ln, Col`)을 보이고 표시줄 전체를 그 연결 색으로 칠함(글자는 4.5:1이 안 되면 대비 색, 업데이트 진행 글자 포함). 쿼리 창이 아니면 작업 공간 연결 수. 업데이트 진행은 오른쪽 끝([swing-frontend.md](swing-frontend.md) "상태 표시줄의 쿼리 창 칸") | P1 |
 
 ### 10. Properties 창
 
@@ -346,8 +346,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 | `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
 | `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너). 연결·DB 선택 상자 여백 `Chromite.size.editorToolBar.comboBox.padding = @componentMargin`(촘촘한 모드에서 24로 낮춤) |
-| `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
-| `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
+| `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height`. 활성 쿼리 창의 상태 칸도 이 높이다(2026-11-08 `size.statusLine.query` 삭제). 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
 | `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 15(12px) + 위 6·아래 5 + 테두리 2: `@componentMargin = 6,8,5,8`(입력·콤보·스피너), `Button.margin = 6,14,5,14`. 13px일 때는 글자 줄 17 + 위 5·아래 4 |
 | `size.button.minWidth` | 72 | [T] | `Button.minimumWidth = 72` |
 | `size.actionButton` | 24 (26) | [S] | `Button.toolbar.margin = 4,4,4,4` (16 + 8). 글자 단추(새 쿼리, 실행)는 글자 줄이 아이콘(16)보다 높으면 그만큼 위 여백을 줄인다(`UiIcons.createToolButton`). 12px 글자 줄(15)은 아이콘보다 낮아 줄이지 않는다(13px일 때 17이라 1 줄였다) |
@@ -667,7 +666,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 ### P1·P2 중 함께 적용한 것
 
 - 트리: 이름 뒤 보조 글자(`text.secondary`: 열 형식, 읽은 폴더의 객체 수, 연결의 `호스트:포트`), 마우스 올림 바탕 `#EDF3FF`/`#393B40`(FlatLaf에 키가 없어 트리가 직접 그림).
-- 결과: 행 번호 열(그리드 바탕, 보조 글자, 왼쪽 정렬, 선택한 행의 번호도 선택색), NULL은 기울임 없이 보조 글자색, 편집 색(추가·삭제·변경)을 테마 키 `Chromite.Table.*Background`로 옮김, Messages 글꼴 `font.code`·오류 `status.error`.
+- 결과: 행 번호 열(그리드 바탕, 보조 글자, 왼쪽 정렬, 선택한 행의 번호도 선택색 — 2026-11-08부터 선택색 없음, swing-result-viewer.md "표 편의 기능"), NULL은 기울임 없이 보조 글자색, 편집 색(추가·삭제·변경)을 테마 키 `Chromite.Table.*Background`로 옮김, Messages 글꼴 `font.code`·오류 `status.error`.
 - 편집기: 여백(거터) 구분선 없음, 짝 괄호·같은 이름 강조 색.
 - 메뉴·목록·콤보 목록 선택 arc 8 + 좌우 4 안쪽, 팝업 모서리 8, 도구 설명 색, 메뉴 단축키 글자 `text.secondary`.
 - Object Explorer Filter(SSMS): 객체 폴더에 이름 마스크(`%`가 없으면 "포함")를 건다. DBeaver 탐색기 필터(`DBSObjectFilter`)라 연결 설정에 저장된다. 빈 글자는 필터 해제.
@@ -1015,6 +1014,39 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   C 여백은 아이콘 줄에 맞춰 24로 했다(빈 선택 상자는 23).
 - 캡처: `D:\Tools\_scratch\chromite-compact-mode\run\shots\`(ko·en × light·dark × B·C, View 메뉴).
 
+### 마우스 올림 다시 그리기 (2026-11-08)
+
+사용자 보고(앱 1차 #10): 다크 테마 150%에서 개체 탐색기의 마우스를 위로 움직이면 희미한 잔상이 남고, 아래로 움직이면 남지 않는다.
+
+- **원인(재현으로 확인):** 마우스 올림 둥근 사각형은 `FlatUIUtils.setRenderingHints`(안티앨리어싱 + `STROKE_NORMALIZE`)로 그린다.
+  화면 배율이 1보다 크면 정규화된 안티앨리어싱 가장자리가 행 밖의 장치 픽셀 한 줄을 반쯤 칠한다. 그런데 `setHoverRow`는 옛 행과 새 행의
+  `getRowBounds`만 다시 그려, 그 줄이 다시 그리는 영역 밖에 남았다.
+  - 150%: 행 경계가 정수 장치 픽셀에 있을 때 사각형 아래 가장자리가 다음 행의 첫 줄을 칠한다(다크 `#202123`, 바탕 `#191A1C`.
+    라이트 `#FBFBFB`, 바탕 `#FFFFFF`라 거의 안 보임). 위로 움직이면 남고, 아래로 움직이면 그 줄이 새 강조 행 안이라 지워진다(사용자 보고와 같음).
+    행 경계가 반 픽셀(.5)에 걸리는 위치(스크롤·도구 창 위치에 따라 다름)에서는 남지 않았다.
+  - 125%: 행 경계가 .0·.25·.5·.75로 바뀌어, 위·아래 어느 쪽으로 움직여도 줄이 남는 위치가 있다.
+  - 100%: 남지 않는다.
+- **수정:** 세 트리(`ObjectExplorerPanel.ExplorerTree`, `RegisteredServersPanel.ServersTree`, `QueryLibraryPanel.LibraryTree`.
+  Scripts 도구 창도 `LibraryTree`를 씀)의 `repaintRow`가 행 위아래로 `HOVER_REPAINT_MARGIN`(1 논리 픽셀, 배율 1 이상에서 1 장치 픽셀 이상)만큼
+  넓혀 다시 그린다. 강조 모양과 그리기 힌트는 그대로라 선택 사각형과 같은 모양을 유지한다.
+- **공통 도우미로 묶지 않은 이유:** 세 클래스는 원래부터 각자 마우스 올림 코드를 가진다(swing-registered-servers.md 설계 결정).
+  이번에는 같은 한 줄과 상수만 바꿔 최소 변경으로 두었다.
+- **확인 방법:** 시험 에이전트가 트리에 `MOUSE_MOVED`를 직접 보내 한 행씩 위로(또는 아래로) 옮기고, 창을 `PrintWindow`로 찍은 그림과
+  같은 상태를 전체 다시 그린 그림의 픽셀을 비교한다(화면 입력 없음).
+
+측정(Windows 11, 1280×800 창, 트리 행 22, 125%·100%는 `-Dsun.java2d.uiScale`. 세 트리 × 라이트·다크 × 스크롤 0·1px × 위·아래, 배율마다 24회).
+값은 한 행씩 옮긴 뒤 전체 다시 그린 그림과 다른 픽셀 수(트리 영역):
+
+| 배율 | 수정 전 | 수정 후 |
+|---|---|---|
+| 150% | 위로 12회 중 행 경계가 정수 장치 픽셀인 6회 모두 잔상(지나간 행마다 한 줄, 트리 폭). 아래로는 잔상 없음(마지막 행 아래 가장자리가 덜 그려진 한 줄만 다름) | 24회 모두 0 |
+| 125% | 24회 중 20회 다름. 위로 12회 모두 잔상, 아래로도 잔상이 남는 위치가 있음(개체 탐색기 스크롤 0에서 4줄) | 24회 모두 0 |
+| 100% | 24회 모두 0 | 24회 모두 0 |
+
+- 수정 후 두 번(150% 다크 Query Library, 125% 라이트 Registered Servers)은 0이 아니었는데, 다른 픽셀이 모두 창 제목 표시줄 아이콘(y 20–39)에 있고
+  트리 영역은 0이었다.
+- 캡처: `D:\Tools\_scratch\chromite-hover-repaint\shots\`(`evidence-150-dark-explorer.png`: 수정 전 위로 움직인 뒤 / 전체 다시 그림 / 수정 후).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1137,3 +1169,5 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   치수 토큰 `size.gridHeader.*`(필터 막대 여백 삭제), `font.code` 쓰는 곳 갱신, "적용 현황 — 열 필터" 절 추가.
 - 2026-11-08 촘촘한 모드(사용자 결정 2026-11-07 후속 #46): View > Compact Mode. 14절 표, "치수 토큰"의 C 값과 실행 중 전환 설명,
   `size.toolbar.editor` 행(선택 상자 여백 키), 설계 결정(촘촘한 모드 범위), 미룬 결정 갱신. "적용 현황 — 촘촘한 모드" 절(구조, B·C 측정) 추가.
+- 2026-11-08 9절: 쿼리 상태 칸을 주 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로(앱 변경 #2). 치수 토큰 `size.statusLine.query` 삭제(`size.statusBar`를 씀).
+- 2026-11-08 마우스 올림 잔상(앱 1차 #10): "마우스 올림 다시 그리기" 절 추가(원인, 세 트리의 다시 그리는 영역을 위아래 1px 넓힘, 측정).

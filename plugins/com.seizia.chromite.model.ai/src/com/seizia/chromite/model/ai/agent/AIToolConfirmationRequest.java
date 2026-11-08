@@ -32,12 +32,14 @@ import java.util.Map;
  * @param access     effective permission class of this call
  * @param connection connection the tool works on, or null
  * @param arguments  call arguments with secrets masked
- * @param preview    the exact SQL/DDL (or a description) the tool will run, or null when the tool has no preview
+ * @param preview    the exact SQL/DDL (or a description) the tool will run, or the text change it makes, or null when the tool has no preview
+ * @param previewKind what the preview shows
  * @param reason     policy rule that asked for confirmation
  * @param pendingTransactions uncommitted transactions the call would end (ask Commit / Roll back / Cancel), usually empty
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "확인")
+ * - 2026-11-08 미리 보기 종류(previewKind): 쿼리 창 글 고치기는 실행할 내용이 아니라 바뀌는 글을 보인다 (docs/chromite/ai-agent.md "편집기 도구")
  */
 public record AIToolConfirmationRequest(
     @NotNull AIToolClient client,
@@ -47,6 +49,7 @@ public record AIToolConfirmationRequest(
     @Nullable DBPDataSourceContainer connection,
     @NotNull Map<String, Object> arguments,
     @Nullable String preview,
+    @NotNull AIToolPreviewProvider.Kind previewKind,
     @NotNull String reason,
     @NotNull List<AIPendingTransaction> pendingTransactions
 ) {

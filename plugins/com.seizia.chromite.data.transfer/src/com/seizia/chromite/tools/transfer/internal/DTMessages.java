@@ -24,6 +24,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
  * - 2026-11-07 "프로세스 실행" 단계의 셸 명령 승인 문구(data_transfer_shell_command_*) 추가(docs/chromite/shell-command-approval.md)
  * - 2026-11-08 SQL 스크립트 작업의 열린 트랜잭션 질문 문구(sql_script_task_txn_*) 추가(docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 데이터 넣기 트랜잭션의 질문·롤백 알림 문구(database_transfer_consumer_txn_before, _rolled_back*, _rollback_failed) 추가
+ *   (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
  */
 public class DTMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.tools.transfer.internal.DTMessages"; //$NON-NLS-1$
@@ -115,6 +117,13 @@ public class DTMessages extends NLS {
     public static String sql_script_task_txn_cancel;
     public static String sql_script_task_txn_keep;
     public static String sql_script_task_txn_error;
+
+    public static String database_transfer_consumer_txn_before;
+    public static String database_transfer_consumer_rolled_back_title;
+    public static String database_transfer_consumer_rolled_back;
+    public static String database_transfer_consumer_rolled_back_truncate;
+    public static String database_transfer_consumer_rolled_back_rows;
+    public static String database_transfer_consumer_rollback_failed;
 
     static {
         // initialize resource bundle

@@ -111,7 +111,7 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   `WHEN_IN_FOCUSED_WINDOW`), 많은 채팅 입력이 보내기로 쓰는 Ctrl+Enter를 Chromite Agent 입력칸에서 누르면 활성 쿼리 창의 문장이 실행되었다
   (F5도 같았다). 글자 칸마다 키를 막으면 새 칸이 생길 때마다 빠지므로, 실행 동작 쪽에서 막는다. 지금 처리 중인 이벤트
   (`EventQueue.getCurrentEvent`)가 그 동작의 단축키와 같은 키 이벤트이면 단축키로 보고 초점 위치를 본다. 마우스 클릭, 도구 막대 단추, 열린 메뉴에서
-  Enter로 고르기는 다른 이벤트라 그대로 동작한다. 쿼리 창은 편집기(`SqlEditorPanel`)와 활성 창의 결과를 보이는 결과 탭(`resultTabs`)이다.
+  Enter로 고르기는 다른 이벤트라 그대로 동작한다. 쿼리 창은 편집기(`SqlEditorPanel`)와 활성 창의 결과를 보이는 결과 탭(`resultTabs`, 2026-11-08부터 활성 창의 탭 줄을 끼우는 `resultsArea`)이다.
   Commit / Roll Back(Ctrl+Alt+Shift+K/R)은 실행 명령이 아니라 바꾸지 않았다.
 - **화면 문구는 새 묶음(`QueryCommandMessages`).** 같은 때 쿼리 창을 고치는 다른 작업과 `EditorMessages`를 함께 고치지 않으려는 것이다(SQL 터미널의
   `TerminalMessages`와 같은 방식). 모델의 오류 문구는 영어다(예외 문구 규칙).
@@ -175,3 +175,4 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   DDL 뒤 탐색기 갱신
 - 2026-11-08 실행 단축키(F5, Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L, Alt+PageUp/PageDown)는 키보드 초점이 쿼리 창의 편집기나 결과에 있을 때만 동작.
   다른 글자 칸(Chromite Agent 입력 등)에서 누르면 활성 쿼리 창을 실행하던 것을 고침
+- 2026-11-08 결과 탭(앱 변경 #7): 초점 검사의 결과 쪽이 메인 창의 결과 탭(`resultTabs`)에서 활성 창의 탭 줄을 끼우는 `resultsArea`로 바뀜

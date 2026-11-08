@@ -330,6 +330,8 @@ CONCEPTS = [
     ("plan-operator", "계획: 기타 연산", "Plan: other operator", "square + point"),
     # AI assistant tool window (main tool bar and View menu)
     ("ai-assistant", "AI 도우미", "AI assistant", "message + sparkles"),
+    # Result tabs: a pinned result (Query > Pin Results)
+    ("pin", "고정한 결과", "Pinned result", "pin"),
 ]
 
 
@@ -509,6 +511,9 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     body, defs = with_badge(table, path("M9.5 9.5L15 15M15 9.5L9.5 15", None, red, 2, cap="butt"), halo)
     I["plan-delete"] = svg(body, defs)
     I["plan-operator"] = svg(tile(doc_fill, n) + circle(8, 8, 2.25, blue_fill, blue, sw))
+    # Pinned result tab: Tabler pin, a pin head (blue) on a short needle (neutral)
+    I["pin"] = svg(path("M10 2.5L13.5 6L10.5 9L10 11.5L4.5 6L7 5.5Z", blue_fill, blue, sw)
+                   + path("M7 9L2.5 13.5", None, n, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone

@@ -103,7 +103,8 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 - **SQL Server:** SSMS처럼 `GO`를 기준으로 배치를 나눠 배치 단위로 서버에 보낸다.
   같은 배치 안에서 `DECLARE`한 변수를 이어서 쓸 수 있어야 한다.
   (기존 DBeaver 방식은 구분자로 문장을 나눠 하나씩 실행한다.)
-- **결과 표시:** 결과 창 하나에 결과 표를 위아래로 쌓고, 메시지(영향받은 행 수, 오류, PRINT 출력)는 Messages 탭에 모은다.
+- **결과 표시:** 결과 집합마다 탭 하나(Result1, Result2…)이고, 메시지(영향받은 행 수, 오류, PRINT 출력)는 같은 탭 줄의 Messages 탭에 모은다.
+  처음에는 SSMS처럼 결과 창 하나에 결과 표를 위아래로 쌓았는데, 2026-11-08 사용자 결정으로 SSMS를 따르지 않고 결과별 탭으로 바꿨다("결과 탭").
 - F5 사양은 Swing 버전에만 적용한다. SWT 버전의 단축키는 바꾸지 않는다.
 
 ## 쿼리 실행 계층
@@ -645,7 +646,9 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 
 - SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭에는 활성 편집기의 두 컴포넌트를 끼운다(편집기가 없으면 자리 표시. 2026-11-07부터는 Results 카드를 숨김, "Results 자동 숨김").
   탭에서 빠져 있던 컴포넌트는 테마 전환을 받지 못했을 수 있어 끼울 때 Look and Feel을 맞춘다(`updateComponentTreeUI`, 마지막으로 맞춘 Look and Feel을 기억).
+  2026-11-08부터 바깥 탭은 없고 쿼리 창마다의 탭 줄 `Result1 | … | Messages | Execution plan`을 통째로 끼운다("결과 탭").
 - **Results:** 결과 집합마다 표 하나를 위아래로 쌓는다. 모두 최소 높이(140px) 이상으로 들어가면 높이를 똑같이 나눠 채우고, 아니면 바깥 세로 스크롤.
+  2026-11-08부터 결과 집합마다 탭이다("결과 탭").
   - 값은 `ResultSetGridReceiver`가 Job 스레드에서 결과 집합이 열려 있는 동안 읽어(`DBUtils.getAttributeBindings`, `fetchValueObject`) 표시 문자열(`DBDDisplayFormat.UI`)로 바꾸고
     값을 놓아 준다(`DBUtils.releaseValue`). EDT는 문자열만 다룬다. 행은 모아 두었다가 `fetchEnd`에서 한 번에 넘긴다(실패로 `fetchEnd`가 없으면 `close`에서).
   - 열 이름은 바인딩 이름(열 별칭), NULL은 흐린 기울임꼴 "NULL", 숫자 열(`DBPDataKind.NUMERIC`)은 오른쪽 정렬, 열 너비는 머리글과 앞 200행 글자 너비(40–320px),
@@ -656,7 +659,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
   `Execution time: N ms`를 쓴다. 오류는 빨간색으로 `Msg <오류 코드>, State <SQLSTATE>, Line L, Column C`와 예외 메시지를 쓴다.
   위치는 방언의 `DBPErrorAssistant.getErrorPosition`이 찾으면 그 위치(편집기 기준 줄·열), 못 찾으면 쿼리 시작 줄이다. 끝에 `Completion time`.
 - **탭 전환:** 오류가 있거나 결과 표가 하나도 없으면 SSMS처럼 Messages 탭을, 아니면 Results 탭을 보여 주고, Results 도구 창이 숨어 있으면 다시 보인다.
-  편집기마다 마지막으로 본 탭을 기억해 편집기 탭을 바꾸면 그 탭을 다시 보여 준다.
+  편집기마다 마지막으로 본 탭을 기억해 편집기 탭을 바꾸면 그 탭을 다시 보여 준다. 2026-11-08부터의 규칙은 "결과 탭".
 - **상태 줄(쿼리 창 아래):** "Executing query…" / "Query executed successfully." / "Query completed with errors." / "Query was canceled.", 경과 시간(`hh:mm:ss.SSS`), 읽은 행 수.
 
 ### 메뉴와 단축키
@@ -1636,7 +1639,7 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - `QueryStatusLine`: 상태 아이콘 16 + 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수. 높이 28, 위 1px 선, 글자 `text.secondary`, 칸 사이 1px 구분선.
   상태 아이콘은 실행 전 연결 아이콘(연결되어 있으면 초록 상태 점), 실행 중 ▶, 성공 체크, 오류, 취소 경고다.
 - 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
-- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역(예전 시작 탭)·DDL 탭에는 없다.
+- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다(2026-11-08부터 메인 창 상태 표시줄, "상태 표시줄의 쿼리 창 칸"). 빈 문서 영역(예전 시작 탭)·DDL 탭에는 없다.
   상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
 
 ### Properties (SSMS 속성 그리드)
@@ -1743,8 +1746,8 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** |
-| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
+| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
 |---|---|---|
@@ -1811,6 +1814,20 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
 
+### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
+
+사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
+"가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
+
+- **자리와 모양:** 주 도구 막대 마지막 단추(Find) 뒤, 남는 공간 다음 오른쪽 끝. 아이콘 `ai-assistant` + 글자 "Chromite Agent"(토글 동작의 이름 = `AiMessages.ai_title`).
+  글자 단추 여백은 New Query와 같다(`UiIcons.useToolButtonMargin`, 이번에 `createToolButton`의 여백 코드를 토글 단추도 쓰게 떼어 냄). 도구 창 단추 묶음에서는 빠졌고
+  Properties 뒤 구분선 다음이 Find다.
+- **그대로인 것:** 도구 창 토글 동작(`ToolWindow#getToggleAction`, 보이면 눌린 모양), 도구 설명 "Chromite Agent (Ctrl+Alt+I)", View 메뉴와 단축키.
+- **오른쪽 끝 정렬(`OverflowToolBar.setTrailing`):** 이 배치 관리자는 컴포넌트를 기본 폭으로만 놓으므로 접착 컴포넌트(`Box.createHorizontalGlue`)로 공간을 채울 수 없고,
+  넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
+  폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
+  (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
+
 ## SQL Editor 도구 막대 (2026-11-07)
 
 사용자 결정(2026-11-07): 메인 창 위의 도구 막대를 SSMS처럼 **두 줄**로 한다. 1줄은 지금의 Standard 도구 막대(그대로), 2줄은 **활성 쿼리 창**에 적용하는
@@ -1818,8 +1835,10 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 ### 구성과 동작
 
-| 2줄 (│ = 구분선) | Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ 연결 ▾ │ DB/스키마 ▾ │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+| 2줄 (│ = 구분선) | 연결 ▾ │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
 |---|---|
+
+(2026-11-08 순서: 콤보가 맨 앞이다. 아래 "콤보를 맨 앞으로, 연결 콤보 220" 참고. Commit·Roll Back·커밋 방식은 [transactions.md](transactions.md).)
 
 - **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
   Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
@@ -1892,6 +1911,22 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   `ArrayIndexOutOfBoundsException`이 나고 문서 탭이 깨진다. `MainFrame`의 문서 탭 `ContainerListener`(`updateDocumentCard`의 `CardLayout.show` → validate)가
   테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
 - Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
+
+### 콤보를 맨 앞으로, 연결 콤보 220 (2026-11-08, 앱 변경 #3)
+
+사용자 요청(2026-11-08): "연결선택 콤보가 1번 DB 스키마 선택이 2번으로 되게 한다", "연결 선택 콤보의 크기를 조금 더 줄인다".
+
+- **순서:** 연결 ▾ │ DB/스키마 ▾ │ Execute, Stop │ 예상 계획, 실제 계획 │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │
+  Format SQL │ Query History. 콤보 뒤의 순서와 구분선은 그대로다(`SqlEditorToolBar` 생성자).
+- **연결 콤보 폭:** `SqlEditorPanel.CONNECTION_PICKER_WIDTH` 260 → 220(약 15%, DB/스키마 200보다는 넓게). 빈 콤보(`emptyConnectionCombo`)도 같은 상수라 같이 바뀐다.
+- **긴 이름:** 콤보는 폭이 고정이라 긴 이름은 렌더러(JLabel)가 말줄임표로 줄인다. 그래서 두 콤보의 도구 설명에 고른 항목의 전체 이름을 넣었다
+  (`editor_sql_connection_selected_tip` "이 쿼리 창의 연결: {0}", `editor_sql_schema_selected_tip`). 고른 것이 없으면 이전 도구 설명이다.
+  항목은 `setModel`로 다시 채우므로(항목 이벤트 없음) 선택 이벤트와 `model` 속성 변경, 연결 이름 변경(`connectionChanged`)에서 다시 쓴다.
+  DB/스키마 콤보도 같은 원인(고정 폭 200)이라 같이 고쳤다. 펼친 목록은 FlatLaf가 항목 폭에 맞춰 넓히므로 잘리지 않는다(아래 확인).
+- **위치로 바꿔 끼우기:** 활성 쿼리 창이 바뀌면 `replace`가 빼낸 콤보의 위치(`getComponentIndex`)에 새 콤보를 넣으므로 순서와 상관없이 맞다(아래 확인).
+- **좁은 창:** 배치(`OverflowToolBar`)는 그대로다. 콤보가 먼저 최소 100까지 줄고, 그래도 넘치면 뒤쪽 단추(Query History)부터 » 메뉴로 간다.
+  콤보가 앞이라 Execute는 콤보 두 개가 최소 폭이 된 뒤에도 남는다.
+- 확인 결과는 "도구 창 도킹"의 "확인 (2026-11-08, 앱 변경 #3·#6·#12)"에 함께 적었다.
 
 ## 자동 커밋 상태 (2026-11-07)
 
@@ -2000,6 +2035,8 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 - **기본 배치:** 왼쪽 열 = Object Explorer(위 60%) + Registered Servers(아래 40%), 오른쪽 열 = Properties, Query Library는 숨김(Ctrl+Alt+T로 보이면 Properties 위 50%).
   이전 배치는 Registered Servers가 Object Explorer 위였다(사용자 결정으로 바꿈).
+  **2026-11-08부터 오른쪽 열은 Query Library(위) + Chromite Agent(아래)이고 Properties는 숨김이다: 아래 "기본 배치: Query Library와 Chromite Agent".**
+  위 그림과 너비(오른쪽 18%)는 그 전의 것이다.
 - **너비:** 기본 열 너비는 픽셀이 아니라 비율이다(왼쪽 22%, 오른쪽 18%). 1280px 창에서 두 열이 300px이면 쿼리 창이 좁아(합친 뒤 약 215px) 문서 영역이 60%를 갖게 했다.
 - **가운데:** 문서 영역(문서 탭 카드 + 그 아래 Results 카드)은 움직이지 않는 도킹 대상 하나다. Results/Messages/실행 계획은 SSMS처럼 쿼리 창 안이라 도킹하지 않고
   지금처럼 문서 영역의 분할 창 아래쪽이다(`ToolWindow.SplitHost`, Ctrl+R, 크기는 `results.size`. 표시 여부는 활성 쿼리 창이 정한다: "Results 자동 숨김").
@@ -2161,6 +2198,71 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 | S7 닫고 다시 시작 | | 배치 파일에서 `V(queryLibrary / properties)` 그대로 |
 | 다크 테마 | | 카드·머리말 색 정상 |
 
+### 기본 배치: Query Library와 Chromite Agent (2026-11-08, 앱 변경 #12)
+
+사용자 요청(2026-11-08): "앱 최초 실행 시 우측의 기본 패널을 속성이 아닌 위에는 쿼리라이브러리, 아래는 Chromite Agent가 나타나게 하라".
+기본 배치는 첫 실행(배치 파일 없음)과 Window > Reset Window Layout이 쓴다.
+
+```
+┌ 메뉴 · 주 도구 막대 (… Find ──── 남는 공간 ──── [Chromite Agent]) ───────────────────────┐
+│ SQL Editor 도구 막대 ([연결 ▾] │ [DB/스키마 ▾] │ 실행 …)                                     │
+│ Object Explorer   │ 문서 탭                                       │ Query Library (위 40%)  │
+│  (왼쪽 22%)        │                                               │  Properties·Scripts·    │
+├───────────────────┤                                               │  Outline·Database Tasks │
+│ Registered Servers│                                               │  는 열면 이 자리의 탭     │
+│                   │───────────────────────────────────────────────├─────────────────────────┤
+│                   │ 결과 탭 (쿼리 창 안)                             │ Chromite Agent (아래 60%) │
+├───────────────────┴───────────────────────────────────────────────┴─────────────────────────┤
+│ 상태 표시줄                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **오른쪽 열:** Query Library(위, 보임) + Chromite Agent(아래, 보임), 높이 0.4 / 0.6(대화가 높이를 더 씀, `MainFrame.UPPER_RIGHT_SHARE`).
+  폭은 지금까지의 Agent 열 폭(오른쪽 18% + 7% = 25%)이고, 한 열이므로 `DEFAULT_RIGHT_SHARE`를 0.18에서 0.25로 바꾸고 Agent의 `+ 0.07`을 지웠다.
+  왼쪽 22%와 합쳐 문서 영역은 53%다(1280×800 창: 오른쪽 카드 312, 문서 영역 658).
+- **Properties:** 기본 숨김. 열면(F4, View, 도구 막대) 오른쪽 열 위쪽, Query Library 자리의 탭이 된다.
+- **Scripts·Outline·Database Tasks:** 지금까지 Properties를 기준으로(그 위, 또는 Query Library 탭) 놓였다. 이제 Properties와 같은 기본 자리 목록을 쓴다:
+  Query Library의 탭 → 없으면 Properties의 탭 → 둘 다 없으면 Chromite Agent 위(0.4) → 그것도 없으면 오른쪽 가장자리의 열(`MainFrame`의 `upperRightPlaces`).
+  자기 자신을 가리키는 자리는 건너뛴다(`ToolWindowDocking.show`가 자기 자신은 대상으로 쓰지 않음).
+- **한 열의 이웃:** Query Library의 기본 자리는 위 목록(→ Properties 탭 또는 Agent 위), Chromite Agent의 기본 자리는 Query Library 아래 → Properties 아래 → 오른쪽 가장자리다.
+  한쪽을 숨긴 사이 다른 쪽을 보였다 다시 보여도 같은 열에 들어간다("Query Library 자리"의 이웃 규칙). 기본 배치는 앞에 놓인 이웃만 쓰므로 등록 순서상
+  Query Library가 오른쪽 가장자리의 열을 만들고 Agent가 그 아래에 들어간다.
+- **바꾸지 않은 것:** 창 id(`queryLibrary`, `aiAssistant`, `properties` 등), 배치 파일 이름·형식(`chromite-window-layout-1.xml`), `<id>.restorePlace` 형식.
+  배치 파일이 있는 사용자는 저장한 배치 그대로 열리고, Reset Window Layout을 누르면 새 기본 배치가 된다.
+- **Chromite Agent 공급자 미설정 안내:** 기본 배치에서 Agent가 시작할 때부터 보이자, 공급자를 설정하지 않았는데도 안내("시작하려면 AI 제공자…를 설정하세요" + 설정 단추)가
+  보이지 않았다. 원인: 안내는 창이 보이게 될 때(`HierarchyEvent.SHOWING_CHANGED`) 모델 선택의 공급자로 정하는데, 대화 목록은 작업(`loadChats`)이 읽은 뒤에야
+  모델 선택을 채운다. 시작할 때는 보이는 시점에 모델 선택이 비어 있어 안내를 숨긴 채로 남았다(전에도 저장한 배치에서 Agent가 보이던 사용자에게 같은 일이 있었고,
+  Agent를 한 번 숨겼다 보이면 나타났다). `AiAssistantPanel.showChat`이 모델 선택을 채운 뒤 안내를 다시 정하게 고쳤다([ai-agent.md](ai-agent.md) "채팅 도구 창").
+
+### 확인 (2026-11-08, 앱 변경 #3·#6·#12)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 제품 사본 하나를 JBR 25(`-vm ...\server\jvm.dll`)로, 빈 작업 공간, `CHROMITE_DATA`와 `-eclipse.keyring`을 작업 폴더로,
+AI 관련 환경 변수를 지운 채 실행했다. Windows 11, 150%, 한국어. 프로세스 안 시험 에이전트(Attach API, EDT에서 Swing 객체를 직접 다룸, OS 입력 없음)로 확인했다.
+채팅 요청은 보내지 않았다. 캡처는 `D:\Tools\_scratch\chromite-ui-layout\shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| 첫 실행(빈 작업 공간) | `H(H(V(objectExplorer / registeredServers @0.60) | documents @0.29) | V(queryLibrary / aiAssistant @0.40) @0.75)`. Properties·Scripts·Outline·Database Tasks·Query Manager 숨김, Query Library·Agent 토글 눌림. 1280 창에서 오른쪽 카드 312, Query Library 226 높이, Agent 358 높이 |
+| 공급자 미설정 안내 | 고치기 전: 첫 실행에서 `configured=false`인데 안내 숨김(Agent를 숨겼다 보이면 나타남). 고친 뒤: 첫 실행부터 안내와 "Chromite Agent 설정…" 단추가 보임(`ko-light-07-first-run-notice`) |
+| Properties·Scripts·Outline·Database Tasks 차례로 열기 | `Tabs[queryLibrary properties scripts outline databaseTasks] / aiAssistant` (`ko-light-03-upper-right-tabs`) |
+| 탭을 모두 닫고 Query Library 숨김 → Properties 열기 | `V(properties / aiAssistant)` (Agent 위) |
+| Agent 숨김 → Query Library 숨김 → Agent 열기 | `V(properties / aiAssistant)` (같은 열, 따로 열을 만들지 않음) |
+| Window > Reset Window Layout | 첫 실행과 같은 배치, Properties 숨김 |
+| 주 도구 막대 Agent 단추 | 오른쪽 끝(1266 폭에서 x 1144, 폭 114), 아이콘 + "Chromite Agent", 도구 설명 "Chromite Agent (Ctrl+Alt+I)", 누르면 숨김·다시 누르면 Query Library 아래로 돌아오고 눌린 모양이 따라감 |
+| 좁은 창(폭 900·700·560·460) | 주 도구 막대: 460에서 도구 창 토글·Find가 » 메뉴로 가고 » 단추는 Agent 단추 바로 왼쪽(x 298), Agent 단추는 오른쪽 끝에 그대로. SQL Editor 도구 막대: 900에서 콤보만 줄고(193·178), 700에서 콤보 최소(100·100)와 Format SQL·Query History 넘침, 460에서도 Execute(x 222) 보임 (`ko-light-02-width-*`) |
+| SQL Editor 도구 막대 순서 | 연결(x 8, 폭 220) │ DB/스키마(x 235, 폭 200) │ 실행 │ … │ Query History. 쿼리 창이 없으면 빈 콤보 220·200 꺼짐 |
+| 긴 연결 이름(78자) | 콤보에 "PostgreSQL production re..."(말줄임표), 도구 설명 "이 쿼리 창의 연결: PostgreSQL production reporting replica (Seoul region, read only) - analytics", 펼친 목록 폭 461(콤보 220)로 이름 전체가 보임 (`crop-sql-toolbar-long-name`, `ko-light-connection-popup-list`) |
+| 활성 쿼리 창 바꾸기(위치로 끼우기) | 긴 이름 창 → 짧은 이름 창 → 긴 이름 창: 콤보가 매번 맨 앞(x 8) 자리에 바뀌어 들어감 |
+| Tab 순서 | 연결 콤보 다음이 DB/스키마 콤보(연결되지 않은 창에서는 DB/스키마 콤보가 꺼져 있어 시험 동안만 켜고 확인), 그 다음은 Object Explorer 거르기 칸. 도구 막대 단추는 초점을 받지 않음(이전과 같음) |
+| 저장된 배치(이전 기본 배치 모양: Properties만 오른쪽, Query Library·Agent 숨김)로 다시 시작 | 그대로 복원(`... | properties @0.75)`). 여기서 Agent를 열면 Properties 아래, Query Library를 열면 Properties의 탭. Reset Window Layout은 새 기본 배치 |
+| 다크 테마 | Agent 단추·오른쪽 열 카드 정상 (`ko-dark-05-default`) |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 도구 창 보이기·숨기기와 단축키(F4, Ctrl+Alt+T/L/O/I), Reset Window Layout, 좁은 창의 주 도구 막대·SQL Editor 도구 막대 넘침,
+  연결·DB 콤보의 도구 설명, Chromite Agent 창의 공급자 미설정 안내.
+- 알려진 차이: 숨긴 도구 창은 숨기기 전 자리(다른 도구 창 옆)로 먼저 돌아간다. 예를 들어 Properties가 위에 있을 때 Agent 위에서 숨겼던 Query Library를 다시 열면
+  Properties의 탭이 아니라 Agent 바로 위에 들어간다(`V(V(properties / queryLibrary) / aiAssistant)`). "Query Library 자리"의 기존 규칙(마지막 자리가 다른 도구 창 옆이면 그대로)이다.
+- 관찰(범위 밖, 고치지 않음): 1280×800에서 Agent 카드 높이 358 중 입력 칸과 안내가 아래를 차지해 대화 영역이 짧다(플레이북 목록은 스크롤).
+
 ## 빈 문서 영역 (2026-11-06)
 
 사용자 결정(2026-11-06): "Welcome"/"시작" 문서 탭을 없앤다. 문서가 하나도 열려 있지 않으면 가운데 문서 영역 자체가 시작 내용을 바탕으로 보인다(IDE의 빈 편집기 화면).
@@ -2209,6 +2311,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   사용자가 높이를 바꾸지 않았으면 기본 높이를 쓴다. 설정 저장소는 기본값과 같은 값을 저장하지 않으므로(`SplitHost.load`), 기본 높이를 바꾸면 높이를 바꾼 적 없는 사용자에게도 새 기본값이 적용된다.
 - **Window > Reset Window Layout:** 기본 도킹 배치, Results 기본 높이(280. 2026-11-07 사용자 결정으로 220에서 바꿈, `MainFrame.DEFAULT_RESULTS_HEIGHT`), 열린 모든 쿼리 창의 "숨김"을 지운다(기본 = 보임). 쿼리 창이 활성이 아니면 숨긴 채로 둔다.
 - **쿼리 상태 줄:** 지금처럼 Results가 보이면 Results 카드 아래, 숨겨져 있으면 문서 카드 아래(편집기 아래)다. 쿼리 창이 아니면 상태 줄이 없다.
+  (2026-11-08부터 활성 쿼리 창의 칸은 Results 표시와 상관없이 메인 창 상태 표시줄에 있다, "상태 표시줄의 쿼리 창 칸".)
   활성 문서가 바뀔 때 먼저 Results를 보이거나 숨기고(`SplitHost.update`) 그다음 상태 줄을 끼우므로 두 위치가 항상 맞다.
 
 ### 설계
@@ -2567,6 +2670,153 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 영향받을 수 있는 기능: 위 표의 모든 확인(Enter가 이제 취소), 데이터베이스 작업 대화상자와 전송 마법사 마지막 페이지(Enter가 아무것도 하지 않음),
   모델의 경고 확인을 쓰는 확인 필요 연결 유형의 쿼리 실행.
 
+## 앞 쿼리 창의 결과가 남던 문제 (2026-11-08)
+
+사용자 보고(앱 변경 #18): 일반 쿼리 창에서 실행해 결과가 보이는 상태에서 Query Library > New Query로 연 탭(또는 이미 열린 그 탭)으로 가면
+결과 창에 앞 창의 결과가 그대로 남았다.
+
+### 재현과 근본 원인
+
+- **재현:** 프로세스 안 시험 에이전트(OS 입력 없음)로 SQLite 쿼리 창 A를 실행하고, Query Library > New Query(`RtLib1`)를 만든 뒤 A → `RtLib1`로 돌아갔다.
+  컴포넌트 트리는 맞았다: Results 탭의 컴포넌트는 `RtLib1`의 것이고 A의 결과 뷰어는 보이지 않았다(`isShowing() = false`).
+  그런데 `RepaintManager`에 들어온 다시 그리기 요청을 기록하니 결과 영역에는 상태 줄과 26px 띠뿐이었다. 화면에는 A의 표 그림이 그대로 남는다.
+- **근본 원인:** `MainFrame.attachResultTab`(origin/devel `MainFrame.java` 1868–1876행)은 `JTabbedPane.setComponentAt`으로 활성 쿼리 창의 컴포넌트를 끼운다.
+  JDK의 `setComponentAt`은 컴포넌트를 바꿀 때 `revalidate()`만 하고 `repaint()`는 `null`로 바꿀 때만 한다. 끼운 컴포넌트가 전에 같은 탭에서 같은 크기로 배치된 적이 있으면
+  배치가 위치·크기를 바꾸지 않으므로 다시 그리기 요청이 생기지 않는다. 결과 표가 있는 창은 표가 스스로 다시 그려 문제가 가려졌고, 결과가 없는 창(실행하지 않은 Query Library 편집 창)에서 드러났다.
+- **같은 원인의 다른 경우:** 한 번 보였던 쿼리 창 중 결과 표가 없는 창은 모두 같다(실행 전 일반 쿼리 창, Query Library 실행·편집 창, 기록·Query Manager에서 연 창, 결과 없이 끝난 창).
+  Messages·Execution plan·Terminal 탭도 같은 `attachResultTab`을 쓴다. 처음 여는 창은 컴포넌트 크기가 0에서 바뀌어 다시 그려졌고,
+  DDL 탭·도구 문서 탭·빈 문서 영역은 Results 카드를 숨겼다가 다시 보이므로 카드 전체가 다시 그려졌다(같은 기록으로 확인).
+- **수정:** 컴포넌트를 바꾼 뒤 탭 영역을 다시 그린다(`resultTabs.repaint()`). 같은 날 "결과 탭"으로 끼우는 단위가 쿼리 창의 탭 줄 전체가 되었고,
+  그 끼우기(`MainFrame.attachResults`)도 바꾼 뒤 Results 카드를 다시 그린다. 같은 기록으로 모든 전환(쿼리 창 ↔ 쿼리 창, 실행하지 않은 Query Library 탭,
+  새 쿼리 창, 새 Query Library 쿼리, DDL 탭에서 돌아오기)에서 카드 전체(745×279)가 다시 그려지는 것을 확인했다.
+
+## 결과 탭 (2026-11-08)
+
+사용자 요청(앱 변경 #7): "여러 쿼리를 실행한 결과가 한 화면의 스크롤로 나타난다. 이 부분은 ssms를 따라가지 말고 쿼리 결과별 탭으로 분리한다.
+Result1, Result2 이런식으로 표시하면 된다". 결정: 한 줄에 나란히 `Result1 | Result2 | … | Messages`(메인 창 아래 Results / Messages 바깥 탭을 이 한 줄로 바꿈).
+
+### 동작
+
+- **탭 줄:** `결과 탭… | Messages | Execution plan | Terminal`(Terminal은 그 쿼리 창이 SQL Terminal을 켰을 때만). 결과가 하나여도 "Result1"(한국어 "결과1")이다.
+  번호는 실행마다 1부터 결과가 나온 순서다. 결과 탭의 도구 설명은 그 결과를 만든 SQL의 첫 줄(120자까지)이다. 탭이 넘치면 한 줄 스크롤과 숨은 탭 목록(FlatLaf).
+- **앞으로 오는 탭:** 실행을 시작하면 Messages(아직 결과가 없다). 그 실행의 첫 결과가 나오면 Result1. 뒤의 결과는 탭만 생기고 사용자가 고른 탭을 빼앗지 않는다.
+  끝났을 때 오류로 멈췄거나 결과가 하나도 없으면 Messages, 아니면 그대로다. SQL Terminal을 켠 실행은 지금처럼 Terminal이 앞이다.
+- **중간 오류(기본, 멈춤):** `SELECT t1; SELECT t2; SELECT nope; SELECT t3` → Result1·Result2는 남고, 셋째 뒤는 실행하지 않으며, Messages가 앞으로 와 오류
+  (`메시지 1, 줄 3`, 오류 위치로 가기)를 보인다. 오류 문장용 빈 Result3은 없다. 엔진은 오류에서 멈추고 커밋도 롤백도 하지 않는다(커밋 방식 `NO_COMMIT`, 트랜잭션 안전 규칙).
+- **건너뛰고 계속(Options):** 실패한 문장은 Messages에 쓰고 다음 결과가 이어서 Result3이 된다. 끝난 뒤 결과가 있으면 결과 탭을 그대로 두고,
+  Messages 탭에 오류 점(아이콘 오른쪽 아래 빨간 점)과 개수(`Messages (1)`, 도구 설명 "Errors in the messages: 1")를 붙인다. 오류 점·개수는 멈춤 모드에서도 붙고 다음 실행에서 지운다.
+- **행 수(쿼리 상태 줄):** 고른 결과 탭의 행 수다. 다른 탭(Messages, 계획, 터미널)이 앞이면 그 실행에서 읽은 모든 결과의 행 수다. 탭을 바꾸거나 결과를 다시 읽으면(필터, 정렬, 더 읽기) 바뀐다.
+- **결과 고정(Query &gt; Pin Results, Ctrl+Shift+P):** 고른 결과 탭(다른 탭이 앞이면 마지막으로 고른 결과 탭)을 고정한다. 탭에 핀 아이콘과 고정 시각
+  (`Result3 (23:15:58)`, 도구 설명 `SELECT * FROM t3 (pinned at 23:15:58)`)이 붙고 닫기 단추가 생긴다. 다음 실행은 고정하지 않은 결과 탭만 지우고 새 결과(번호는 1부터)를
+  고정 탭 앞에 놓는다. 이미 고정한 탭을 다시 고정하면 상태 줄에 "These results are pinned already."다. 고정 탭 닫기와 저장하지 않은 변경 묻기(기본 Cancel)는 그대로다.
+- **쿼리 창마다:** 탭 줄은 쿼리 창마다 하나이고 메인 창이 활성 쿼리 창의 탭 줄을 Results 카드에 끼운다. 고른 탭은 창에 남아 다른 창에 갔다 돌아와도 그대로다.
+  활성이 아닌 창의 실행도 그 창의 탭 줄을 바꾼다(돌아오면 그 실행의 결과나 Messages가 앞이다). Results 카드를 보이는 것은 활성 창만이다.
+
+### 설계
+
+- **탭 줄의 주인은 쿼리 창(`QueryResultsView`):** 전에는 메인 창의 탭 하나(`resultTabs`)에 활성 창의 Results·Messages·계획·터미널 컴포넌트를 탭 번호로 끼우고,
+  창마다 마지막으로 본 탭을 따로 기억했다(`messagesTabSelected`, `planTabSelected`, `terminalTabSelected`). 결과 탭 수가 창마다·실행마다 달라지면 탭 번호가 고정일 수 없으므로,
+  쿼리 창이 탭 줄 전체(`JTabbedPane`)를 갖고 메인 창은 그것을 통째로 끼운다(`MainFrame.attachResults`). 고른 탭은 탭 줄 자체가 기억하므로 따로 기억할 상태와 탭 번호 상수를 지웠다.
+- **숨기기 단추:** Results 카드의 — 단추는 하나이고 끼운 탭 줄의 뒤쪽 컴포넌트(FlatLaf `JTabbedPane.trailingComponent`)로 옮긴다. 빼는 탭 줄에서는 속성을 지운다
+  (FlatLaf가 다른 부모에 들어간 단추의 위치를 바꾸지 않게).
+- **결과 탭 내용:** 결과 뷰어(`ResultSetViewerPanel`) 하나가 탭을 채운다. 높이를 나누던 `GridStack`, 최소 높이 `MIN_GRID_HEIGHT`, 바깥 스크롤, 결과가 없을 때의 자리 표시
+  ("No results.", `editor_results_none`)와 고정 탭 줄의 첫 탭 이름(`editor_results_current`)을 지웠다. 결과가 없는 창은 Messages와 Execution plan 탭만 있다.
+- **고정의 단위:** 전에는 지금 결과 표 전부를 고정 탭 하나로 옮겼다. 결과가 탭으로 나뉘었으므로 고른 결과 탭 하나를 고정한다. 탭은 그 자리에 두고(이름과 아이콘만 바뀜)
+  다음 실행이 새 결과를 고정 탭 앞에 넣는다.
+- **오류 뒤 Messages:** 멈춤 모드에서 오류가 났거나(`hasErrors && !continueOnError`) 결과가 없으면 Messages를 앞으로. 건너뛰고 계속은 결과가 남아 있으므로 결과를 두고
+  탭의 점·개수로 알린다. 오류 처리 방식은 준비 Job이 엔진에 넘기는 값과 같은 값을 실행 객체에 둔다(`Execution.continueOnError`).
+- **핀 아이콘:** 아이콘 생성기(`tools/branding/gen_ui_icons.py`)에 `pin`(Tabler pin을 16px 격자로 다시 그림, 두 팩·밝은/어두운 테마)을 더했다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `QueryResultsView` | 탭 줄(결과 탭, Messages, Execution plan, Terminal), 결과 탭 더하기·지우기, 고른 결과 탭 고정, Messages 오류 점·개수, 고른 결과 탭의 행 수. `GridStack`·자리 표시 삭제 |
+| `SqlEditorPanel` | 탭 줄에 계획 탭을 넘김, 실행 시작 Messages, 첫 결과만 앞으로, 끝의 Messages 규칙(`continueOnError`), 상태 줄 행 수(`updateRowCount`), 고정 결과 문구, 터미널 탭 붙이고 빼기. `planTabSelected`·`terminalTabSelected`와 접근자, `getPlanView`·`getTerminalView` 삭제 |
+| `MainFrame` | 바깥 Results / Messages / Execution plan / Terminal 탭과 탭 번호 상수·`switchingResults`·`selectResultTab`·`updateTerminalTab`·`attachResultTab` 삭제, `attachResults`, 숨기기 단추 옮기기, `showResults`·`showPlan`·`showTerminal`이 창의 탭 줄을 바꿈 |
+| `internal/EditorMessages`(`_ko`) | `editor_results_tab`, `editor_results_pinned_tip`, `editor_results_already_pinned`, `editor_results_messages_errors`(`_tip`) 추가, `editor_results_pinned` 형식, `editor_results_none`·`editor_results_current` 삭제 |
+| `tools/branding/gen_ui_icons.py`, `icons/ui/*/*/pin.svg` | 고정 탭 아이콘 |
+
+### 확인 (2026-11-08)
+
+빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. Windows 11, 150%, 빌드 결과물 한 벌(`D:\Tools\_scratch\chromite-result-tabs\app`),
+`CHROMITE_DATA`와 작업 공간을 scratch에 두고 실행했다. 조작은 같은 프로세스에 붙인 시험 에이전트가 EDT에서 Swing 객체를 직접 다뤘다(화면 좌표·키보드 입력 없음).
+SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromite-result-tabs\shots\7-*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SELECT 세 개 | `결과1 결과2 결과3 메시지 실행 계획`, 결과1이 앞, 도구 설명은 각 SQL, 상태 줄 `3개 행` |
+| 결과2 / 메시지 고름 | 상태 줄 `5개 행` / `15개 행`(실행 전체) |
+| 결과3 고정, 다시 고정 | `결과3 (23:15:58)`, 핀 아이콘, 닫기 단추 / "이미 고정한 결과입니다." |
+| 다시 실행(SELECT 두 개) | `결과1 결과2 결과3 (23:15:58) 메시지 실행 계획`, 새 결과1이 앞, `1개 행` |
+| 셋째 문장 오류(멈춤) | `결과1 결과2 [고정] 메시지 (1)`, 메시지가 앞(빨간 점), 결과3 없음, t3는 실행 안 됨. 오류 위치로 가기 → 3줄 |
+| 셋째 문장 오류(건너뛰고 계속) | `결과1 결과2 결과3 [고정] 메시지 (1)`, 결과1이 앞 |
+| 오류만 / UPDATE만 | 메시지가 앞, 결과 탭 없음(고정 탭만), `0개 행` |
+| 새 창 Y → X로 돌아옴 | Y는 `메시지 실행 계획`만. X는 고른 결과2 그대로, `5개 행` |
+| SQL Terminal 켬·실행·끔 | 실행 계획 뒤에 터미널 탭, 실행 중 터미널이 앞 / 끄면 탭이 빠지고 결과1이 앞 |
+| SELECT 14개 | 결과1–결과14, 탭 줄 스크롤과 숨은 탭 목록 단추 |
+| 고정 탭 닫기(변경 없음) | 묻지 않고 닫힘 |
+| 탭 전환 다시 그리기(#18 기록) | 모든 전환에서 Results 카드 전체가 다시 그려짐 |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 표 편집·저장과 다시 실행 전 버리기 묻기, 창을 닫을 때 결과 저장 묻기, 결과 다시 읽기(필터·정렬·더 읽기),
+  Generate SQL, 실행 계획 탭(Ctrl+L, 실제 계획), SQL Terminal, Results 숨기기·옆에 놓기·최대화, 테마 전환 뒤 활성이 아니던 창의 탭 줄 모양, Chromite Agent·MCP가 연 쿼리 창.
+
+## 상태 표시줄의 쿼리 창 칸 (2026-11-08)
+
+사용자 요청(앱 변경 #2): "결과 표 아래 상태표시줄에 나타나는 항목들을 화면전체 상태표시줄로 옮긴다". 결정: 표시줄 전체를 연결 색으로 칠한다.
+
+### 동작
+
+- **칸:** 활성 쿼리 창의 상태 칸(상태 아이콘·문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │ 줄·열)이 메인 창 상태 표시줄에 있다.
+  상태 문구는 왼쪽, 칸은 오른쪽으로 붙고, 업데이트 받기 진행("새 버전 X 받는 중 (n%)"과 막대)은 그 뒤 오른쪽 끝이다. 폭이 모자라면 지금처럼 서버 칸이 먼저 줄거나 빠진다.
+- **쿼리 창이 아닐 때:** 빈 문서 영역, DDL 탭, 도구 문서(테이블 디자이너, ER 다이어그램, Activity Monitor 등)에서는 지금 문구(작업 공간 연결 수)이고 바탕은 캔버스다.
+- **연결 색:** 활성 쿼리 창의 연결에 색(연결에 정한 색, 없으면 연결 종류의 색)이 있으면 상태 표시줄 전체 바탕이 그 색이다. 테마 글자 색이 그 색과 4.5:1이 안 되면
+  모든 글자를 대비 색(`ConnectionColors.getTextColor`)으로 그린다. 업데이트 진행 글자도 같다. 색이 없는 연결(기본 Development)은 캔버스 그대로다.
+  탭을 바꿀 때, 연결 설정을 바꿀 때(`connectionChanged` → `setConnection`), 테마를 바꿀 때 바로 바뀐다.
+- **누르기와 도구 설명:** 커밋 방식 칸(누르면 연결 설정의 Auto-commit으로 안내), 열린 트랜잭션 칸(누르면 커밋 / 롤백 / 트랜잭션 로그 메뉴), 모든 칸의 도구 설명은 그대로다.
+- **결과 아래 줄은 없다:** Results 카드 아래(숨기면 편집기 아래)에 있던 쿼리 상태 줄 자리를 지웠다(규칙 4).
+
+### 설계
+
+- **칸은 쿼리 창의 것, 칠하기는 상태 표시줄:** `QueryStatusLine`은 쿼리 창마다 하나이고 그 창이 값을 넣는다(실행, 커밋 방식, 열린 트랜잭션 1초 갱신). 메인 창은 활성 창의
+  줄을 상태 표시줄 가운데에 끼우고(`StatusBar.setLine`), 작업 공간 문구는 그동안 숨긴다. 줄은 바탕을 그리지 않고(투명) 연결 색과 대비 글자 색을 정해 속성
+  `chromite.band`(`QueryStatusLine.BAND_PROPERTY`)로 알린다. 상태 표시줄이 그 값으로 바탕을 칠하고 대비 글자 색을 클라이언트 속성 `chromite.statusBarForeground`에 둔다.
+  업데이트 진행 글자(`UpdateUi`)는 그릴 때 이 속성을 읽는다(FlatLaf 스타일은 이 번들의 익명 클래스에 색을 넣지 못하므로 보조 글자 색도 직접 읽는다, `QueryStatusLine`의 `BandLabel`과 같은 방식).
+- **위 선과 높이:** 쿼리 상태 줄의 위 1px 선은 상태 표시줄에 구분선이 없으므로(`StatusBar.background` = 캔버스, `topBorderWidth 0`) 지웠다. 칸 높이는 상태 표시줄 높이
+  (`size.statusBar`)이고 따로 있던 `size.statusLine.query`(`Chromite.size.queryStatusLine.height`, 테마 세 파일)를 지웠다. 두 값은 같았다(26, 촘촘한 모드 24).
+- **테마 전환:** 활성이 아니던 창의 줄은 끼울 때 Look and Feel을 맞추고(`updateLookAndFeel`), 줄의 `updateUI`가 테마별 연결 종류 색을 다시 정해 알린다.
+  상태 표시줄의 `updateUI`도 지금 줄의 색을 다시 칠한다(부모가 자식보다 먼저 불리므로 둘 다 필요하다).
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `MainFrame` | `StatusBar.setLine`·`applyBand`(연결 색, 대비 글자 색 속성 `STATUS_BAR_FOREGROUND_KEY`), `attachStatusLine`이 상태 표시줄에 끼움. `resultsStatusHolder`·`documentStatusHolder`·`placeStatusLine`·Results 카드의 표시 리스너 삭제, 클래스 Javadoc |
+| `QueryStatusLine` | 투명, 위 1px 선 삭제, 연결 색을 `BAND_PROPERTY`로 알림(`getBandColor`, `getBandForeground`), 높이 `size.statusBar`, 클래스 Javadoc |
+| `UpdateUi` | 진행 글자가 상태 표시줄의 대비 글자 색을 따름 |
+| `UiSizes`, `ChromiteLightLaf`·`ChromiteDarkLaf`·`ChromiteCompact.properties` | `QUERY_STATUS_LINE_HEIGHT`(`Chromite.size.queryStatusLine.height`) 삭제 |
+| `SqlEditorPanel` | 주석(상태 줄이 메인 창 상태 표시줄에 보임) |
+
+### 확인 (2026-11-08)
+
+"결과 탭"과 같은 환경(빌드 결과물 한 벌, scratch 작업 공간, EDT 시험 에이전트, 150%). 연결: RT Plain(색 없음), RT Prod(Production 유형 색), RT Dark(연결 색 40,40,120).
+캡처는 `D:\Tools\_scratch\chromite-result-tabs\shots\2-*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| 문서 없음 / DDL 탭 | 바탕 캔버스(233,234,238), "작업 영역의 연결 3개", 쿼리 칸 없음 |
+| RT Plain | 바탕 캔버스, 쿼리 칸(상태, `rt.db`, 자동 커밋, 시간, `3개 행`, `줄 1, 열 18`), 작업 공간 문구 숨김, 높이 26, 결과 카드에는 탭 줄만 |
+| RT Prod(밝은 테마 / 어두운 테마) | 바탕 250,207,207 / 97,61,63, 글자는 테마 색(대비 충분) |
+| RT Dark + 업데이트 진행 | 바탕 40,40,120, 모든 칸과 진행 글자 흰색(대비 색), 진행은 오른쪽 끝 |
+| RT Plain에 연결 색 255,200,0을 넣고 연결 변경 알림 / 지움 | 바탕 255,200,0 / 캔버스 |
+| 수동 커밋으로 바꾸고 UPDATE | 열린 트랜잭션 칸(손 모양 커서, 도구 설명). 누르면 메뉴 `[커밋] [롤백] [트랜잭션 로그…]`, 롤백 → 칸 사라짐 |
+| 커밋 방식 칸 | 손 모양 커서와 도구 설명(누르기 동작은 그대로) |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 상태 표시줄의 작업 공간 연결 수, 업데이트 받기 진행 표시, 쿼리 상태 칸의 커밋 방식·열린 트랜잭션 누르기,
+  촘촘한 모드의 상태 표시줄 높이, Results 숨기기(Ctrl+R) 뒤의 상태 칸 위치.
+- 그대로 둔 것(보고): 대비 색은 지금처럼 본문 글자 색(`Label.foreground`)으로만 판단한다. 어두운 테마의 Production 색(97,61,63) 위의 보조 글자(`#73767c`)는 대비가 낮다
+  (전에도 같은 색의 줄이었다).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2691,3 +2941,12 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 - 2026-11-08 결과 편집(B3): G단계 "남긴 것" 갱신, 수동 커밋 저장 안내 문구가 저장하고 커밋·쿼리 > 커밋을 가리킴. [swing-grid-editing.md](swing-grid-editing.md).
 - 2026-11-08 "자동 커밋 상태"에 B-S18 사용자 결정(세션 전환은 Query 메뉴와 SQL Editor 도구 막대) 안내. [transactions.md](transactions.md) "커밋 방식 전환".
 - 2026-11-08 SQL Editor 도구 막대: Actual Plan이 실제 계획을 주지 않는 연결에서 꺼지고 도구 설명이 이유를 말함. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로".
+- 2026-11-08 앞 쿼리 창의 결과가 남던 문제(앱 변경 #18): 결과 탭에 컴포넌트를 끼운 뒤 다시 그림. "앞 쿼리 창의 결과가 남던 문제" 절.
+- 2026-11-08 결과 탭(앱 변경 #7, 사용자 결정): 결과 집합마다 탭 Result1…, 쿼리 창마다의 탭 줄이 바깥 Results / Messages 탭을 대신함, 고른 결과 탭 고정,
+  중간 오류 규칙, Messages 오류 점·개수, 상태 줄 행 수는 고른 결과 탭. "결과 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages 절에 표시.
+- 2026-11-08 상태 표시줄의 쿼리 창 칸(앱 변경 #2, 사용자 결정): 쿼리 상태 칸을 결과 아래에서 메인 창 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로 칠함,
+  `size.statusLine.query` 삭제. "상태 표시줄의 쿼리 창 칸" 절 추가, P1 쿼리 상태 줄·Results 자동 숨김 절에 표시.
+- 2026-11-08 SQL Editor 도구 막대의 연결·DB 콤보를 맨 앞으로, 연결 콤보 260 → 220, 콤보 도구 설명에 전체 이름(앱 변경 #3): "콤보를 맨 앞으로, 연결 콤보 220" 절.
+- 2026-11-08 주 도구 막대의 Chromite Agent 단추를 오른쪽 끝에 아이콘 + 글자로(앱 변경 #6, `OverflowToolBar.setTrailing`): "Chromite Agent 단추를 오른쪽 끝으로" 절.
+- 2026-11-08 기본 배치의 오른쪽 열을 Query Library(위) + Chromite Agent(아래)로, Properties 기본 숨김(앱 변경 #12): "기본 배치: Query Library와 Chromite Agent" 절과
+  "확인 (2026-11-08, 앱 변경 #3·#6·#12)", "도구 창 도킹" 배치 절에 표시.

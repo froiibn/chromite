@@ -467,6 +467,25 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
   기존 기능이라 다시 확인하지 않았다.
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 연결 편집 대화상자의 저장과 다시 연결 질문, 연결 설정 파일의 `security` 항목.
 
+### 확인 (2026-11-08, 실제 SSH 서버, 후속 "확인 작업")
+
+`chromite/followups-4` 빌드의 앱 한 벌(개인 `CHROMITE_DATA`·작업 공간, 한국어)에 붙인 시험 코드가 연결 편집 대화상자의 부품을 직접 눌렀다(화면 입력 없음).
+SSH 서버는 이 확인만을 위해 만든 일회용 Docker 컨테이너(`debian:bookworm-slim` + OpenSSH 9.2p1, `127.0.0.1:52222`, 암호 인증 사용자 하나)이고 끝나고 지웠다.
+DB는 공용 Docker PostgreSQL 17, 연결의 호스트는 SSH 서버에서 본 이름 `host.docker.internal:55432`. 증거 `D:\Tools\_scratch\chromite-followups-4\run\s1.txt.log`, `s2.txt.log`, `shots\s-*.png`.
+
+| 동작 | 결과 |
+|---|---|
+| 연결 편집 → 옵션 → SSH 탭: SSH 사용, 호스트 `127.0.0.1`, 포트 52222, 사용자, 인증 "암호", 암호, 암호 저장 | 탭 목록 연결 속성, SSH, SSL, Proxy, 셸 명령, 설정, 드라이버 속성, 공급자 속성, 추가 연결 매개 변수 |
+| 터널 테스트 | "SSH 터널을 열었습니다(522ms). 클라이언트: SSHJ_0.40.0 서버: OpenSSH_9.2p1 Debian-2+deb12u10" |
+| 연결 테스트 | "연결되었습니다(356ms). 서버: PostgreSQL 17.11 … 네트워크: SSH" |
+| 저장 → 다시 열기 | SSH 사용·호스트·포트·사용자·인증·암호(19자)·암호 저장이 그대로. 연결 설정의 핸들러 `ssh_tunnel` 켜짐, 암호 저장됨 |
+| 연결 | 연결됨. SSH 컨테이너의 `/proc/net/tcp`에 sshd(uid 1000)에서 `192.168.65.254:55432`(호스트)로 가는 ESTABLISHED 연결 2개(주·메타데이터 세션): DB 연결이 터널을 지남 |
+
+- 이번에는 Windows 방화벽 확인 창이 뜨지 않았다(포워더가 `127.0.0.1`에서만 들음, 위 "SSH 터널의 로컬 주소").
+- 같은 대화상자의 연결 속성 탭에 "로컬 클라이언트" 줄이 있다(PostgreSQL, 후속 27: `ConnectionSettingsPanel.createLocalClientField`, #156). 화면 `shots\27-local-client.png`.
+- 확인하지 못한 것: 공개 키·에이전트 인증, 점프 서버를 거치는 실제 연결, 처음 보는 호스트 키의 확인 질문(이번에는 질문 없이 연결됨, 기본 구현 SSHJ).
+- 회귀 테스트는 실행하지 않았다(코드 변경 없음).
+
 ## 남긴 것
 
 - 잠금 비밀번호를 정하거나 지우는 화면(SWT CE에도 없음, 소금 없는 MD5 형식).
@@ -493,3 +512,4 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.
 - 2026-11-06 Object Explorer 연결 노드 바탕을 이름 알약(`ConnectionPill`, Registered Servers와 같음)으로 바꿈. [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
 - 2026-11-06 연결 색 위 글자가 읽히지 않으면 대비 색(상태 줄, 알약). 남긴 것에서 해당 항목 삭제.
+- 2026-11-08 실제 SSH 서버(일회용 Docker OpenSSH)로 터널 테스트·연결 테스트·저장·다시 열기·연결 확인(`chromite/followups-4`, 위 "확인 (2026-11-08, 실제 SSH 서버, 후속 "확인 작업")").

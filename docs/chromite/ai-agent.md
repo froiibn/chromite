@@ -278,6 +278,9 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
 | `openInEditor` | SQL 텍스트를 새 쿼리 창에 연다(실행하지 않음). 화면 쪽 `AIEditorBridge`가 없으면 오류 | R | `connection`, `sql`, `title` | 결과 | — | 1 (Swing 구현은 2단계) |
+| `listQueryWindows` | 열린 쿼리 창 목록: ID(`w1`…), 제목(파일 이름), 연결, DB/스키마, 저장 파일, 저장 안 됨, 활성 창, 실행 중, 길이, 커서·선택 | R | — | `windows[]` | — | 2026-11-08 |
+| `getQueryWindowText` | 쿼리 창(기본: 활성 창)의 글: 전체, 선택, 커서의 문장(연결 방언의 파서, 연결이 없으면 전체)과 위치 | R | `window`, `part`(all/selection/statement), `maxChars`(기본 100,000) | `text`, `start`, `end` | — | 2026-11-08 |
+| `editQueryWindow` | 쿼리 창의 글 고치기: 커서에 넣기, 선택 바꾸기, 전체 바꾸기. 실행·저장하지 않고 Ctrl+Z 한 번으로 되돌림. 확인 미리 보기는 바뀌는 글의 줄 차이 | W (`writes="none"`) | `window`, `mode`(insert/replaceSelection/replaceAll), `text` | 바뀐 범위 | — | 2026-11-08 |
 
 ### 에이전트 (`agent.meta`)
 
@@ -333,7 +336,9 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 
 - CONFIRM이면 실행기가 `AIAgentServices.getConfirmationHandler()`의 `confirm(monitor, AIToolConfirmationRequest)`를 부른다(답: `AIToolConfirmationAnswer`). 이 호출은 작업 스레드에서
   결과가 나올 때까지 막는다(화면 쪽이 EDT로 넘겨 대화상자를 띄우고 기다린다).
-- 요청에는 클라이언트(CHAT/MCP), 도구 ID·이름, 실제 분류, 연결, 비밀을 지운 인수, **미리 보기**(실행할 SQL·DDL 전체), 이유가 있다.
+- 요청에는 클라이언트(CHAT/MCP), 도구 ID·이름, 실제 분류, 연결, 비밀을 지운 인수, **미리 보기**(실행할 SQL·DDL·명령줄 전체, 또는 쿼리 창에서 바뀌는 글)와
+  그 종류(`AIToolPreviewProvider.Kind`: `RUN` / `TEXT_CHANGE`, 2026-11-08), 이유가 있다. 확인 대화상자는 종류로 미리 보기 제목("실행할 내용" / "바뀌는 글")과
+  첫 줄을 고른다.
 - 처리기가 없으면(화면 없음, 헤드리스) **거부**한다(`DENIED`, "no confirmation UI"). MCP의 기본값도 같다: 실행 중인 앱의 대화상자, 없으면 거부.
 - 확인 대화상자의 "이 연결에서 항상 허용"은 2단계가 `AIToolPolicy.setPermission(연결 ID, 도구 ID, AUTO)`로 구현한다.
 
@@ -444,7 +449,7 @@ claude mcp add --transport http chromite http://127.0.0.1:47821/mcp --header "Au
 
 | 엔진 | 상태 | 도구 사용 |
 |---|---|---|
-| OpenAI (`openai`) | 기존. Responses API(`OpenAiUtils.createOpenAiRequest`)가 `AIFunctionDescriptor` 목록을 `function` 도구로 보낸다. 이 작업의 도구도 같은 경로로 간다 | 예 |
+| OpenAI (`openai`) | 기존. Responses API(`OpenAiUtils.createOpenAiRequest`)가 `AIFunctionDescriptor` 목록을 `function` 도구로 보낸다. 이 작업의 도구도 같은 경로로 간다. `temperature`는 명시적으로 정했을 때만 보낸다(`OpenAIProperties.getRequestTemperature`, 2026-11-08, Anthropic과 같은 원인) | 예 |
 | Ollama (`ollama`) | 이미 `plugin.xml`에 등록되어 있다(브리프의 "등록 안 됨"은 이전 상태). `/api/chat`의 `tools` | 예(응답의 첫 도구 호출) |
 | Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록. `temperature`는 명시적으로 정했을 때만 보낸다(`AnthropicProperties.getRequestTemperature`, 아래 "실제 API 확인") | 예 |
 
@@ -615,8 +620,25 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 - 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > Chromite Agent(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
   같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
-- 위에서 아래로: 대화 목록(최근 순) + 새 대화·대화 삭제·플레이북·Chromite Agent 설정 단추 / 제공자(Anthropic Claude, OpenAI, Ollama)와 모델(편집 가능, 알려진 이름 +
-  Test로 받은 목록) / 연결과 데이터베이스(편집 가능, 연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈), 보내기·중지, 상태 줄.
+  **2026-11-08 바뀜(앱 변경 #6·#12):** 기본 배치에서 보이고, 오른쪽 열의 아래(Query Library 아래, 높이 0.6)에 있다. 열 폭은 이전 Agent 열 폭(25%)이다.
+  주 도구 막대의 단추는 오른쪽 끝에 아이콘 + 글자 "Chromite Agent"로 있다([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent",
+  "Chromite Agent 단추를 오른쪽 끝으로"). 시작할 때부터 보이므로 공급자 미설정 안내는 대화를 읽어 모델 선택을 채운 뒤(`showChat`)에도 다시 정한다.
+- 위에서 아래로(2026-11-08 바꿈): 도구 막대(새 대화·대화 삭제·대화 기록 │ 플레이북·Chromite Agent 설정, 다른 도구 창처럼 왼쪽 정렬) / 연결과 데이터베이스(편집 가능,
+  연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈) / 모델 선택(왼쪽)과 보내기·중지(오른쪽) / 상태 줄.
+- **모델 선택**(2026-11-08, 앱 변경 #14): 제공자와 모델을 콤보 하나로 고른다. 목록은 제공자 이름(굵게, 고를 수 없음) 아래에 그 제공자의 모델(알려진 이름 + Test로 받은
+  목록 + 마지막에 쓴 모델)을 들여 쓰고, 설정되지 않은 제공자(키 없음 등)는 모델 대신 "설정 필요"(고르면 Options의 Chromite Agent 페이지 = Providers 탭, 아래 "설정 열기"와 같은 경로)를, 끝에는 "모델 이름 직접 입력"
+  (제공자와 이름을 묻는 작은 대화상자, 전의 편집 가능 모델 콤보를 대신함)을 둔다. 닫힌 콤보는 "제공자 · 모델"이고, 좁은 창에서는 줄임표로 줄고 도구 설명에 전체가
+  보인다. 제목·"설정 필요"·"직접 입력"은 목록이 닫힐 때 처리하고 선택을 대화의 모델로 되돌린다(키보드로 지나가기만 해서는 동작하지 않음, Esc나 바깥 클릭은 취소).
+  실행 중에는 바꿀 수 없다. 저장은 그대로다: 대화마다 제공자·모델, 마지막 사용은 `ai.chat.engine`, `ai.chat.model.<엔진>`. 위쪽 제공자·모델 줄과 그 문구 키
+  (`ai_provider_tip`)는 지웠다.
+- **대화 기록**(2026-11-08, 앱 변경 #15): 맨 위의 대화 콤보를 지우고(문구 키 `ai_chats_tip`도) 도구 막대에 "대화 기록" 단추(시계 아이콘)를 두었다. 누르면 단추 아래에
+  팝업 목록이 열린다: 위에 거르기 입력란(제목·연결 이름), 최근 순, 줄마다 제목(지금 대화는 굵게 + 체크 표시)과 마지막 시각 · 연결 이름, 고른 줄 오른쪽 끝의 ×.
+  줄을 누르거나 Enter면 그 대화로 간다(대화 전환과 같은 `showChat`). ×나 Delete(거르기 칸이 비어 있을 때, 아니면 Shift+Delete)는 삭제를 묻고(기본 취소, 빈 대화는
+  목록에 없음) 답한 뒤(지웠든 취소했든) 같은 거르기로 목록을 다시 연다. 지금 대화를 지우면 가장 최근 대화를 보인다. 실행 중에는 단추가 꺼진다. 위·아래 화살표는 거르기 칸에 초점을 둔 채
+  목록을 움직인다.
+- **토큰 사용량**(2026-11-08, 후속 39): 차례가 끝나면 상태 줄에 그 차례의 토큰(입력·출력, 캐시가 있으면 캐시)을 보인다. 한 차례의 요청(도구마다 한 번)이 엔진에서 받은
+  사용량(`AIEngineResponseConsumer.usage`, 요청마다 마지막 값)을 `AIAgentChatRunner`가 더해 `Listener.usage`로 알린다. 요청마다 대화를 다시 보내므로 입력은 요청들의
+  합이다. 중지하면 "중지했습니다."가 우선하고, 다른 대화로 옮기면 지운다. 대화에 저장하지는 않는다.
 - 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 쿼리 창의 실행 문맥, 곧 창의 자기 세션 또는 함께 쓰는 주 문맥의 기본 카탈로그·스키마)로 시작한다.
   "이 쿼리에 대해 묻기"도 그 창의 문맥이다. 대화에서 연결만 바꾸면 그 연결의 주 문맥 값이다([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). 마지막에 쓴 제공자·모델은
   이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
@@ -659,7 +681,52 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 ### 편집기 연결
 
 `AIAgentServices.setEditorBridge`: `openInEditor` 도구가 부르면 EDT에서 새 쿼리 창을 연다(연결, 글, 제목 → 파일 이름 `제목.sql`). 실행하지 않는다.
-모델 글의 코드 블록 "쿼리 창에서 열기"도 같은 경로(대화의 연결)다.
+모델 글의 코드 블록 "쿼리 창에서 열기"도 같은 경로(대화의 연결)다. 2026-11-08부터 Swing 구현은 `AiQueryWindowBridge`이고 쿼리 창 목록·읽기·고치기도 맡는다
+(아래 "편집기 도구").
+
+### 편집기 도구 (2026-11-08, 앱 변경 #16)
+
+사용자 질문 "현재 열려있는 쿼리 창을 보거나 쓸 수 있는 도구가 없나?"에 대한 결정(읽기·쓰기 모두)이다. 전에는 쿼리 창 관련 도구가 새 창을 여는 `openInEditor`
+하나였고, 모델이 열린 창의 글을 읽거나 고칠 방법이 없었다(사용자가 오른쪽 클릭 "이 쿼리에 대해 Chromite Agent에게 묻기"로 보내는 길만 있었다).
+
+| 위치 | 내용 |
+|---|---|
+| `model.ai` `AIEditorBridge` | 메서드 3개와 값 레코드(`QueryWindow`, `TextPart`, `QueryWindowText`, `EditMode`, `QueryWindowEdit`). 고치기는 `apply` 인수 하나로 미리 보기(계산만)와 실제 고치기가 같은 범위 계산을 쓴다 |
+| `model.ai` `AIToolPreviewProvider.Kind`, `AIToolConfirmationRequest.previewKind` | 미리 보기 종류 `RUN`(실행할 SQL·DDL·명령줄) / `TEXT_CHANGE`(바뀌는 글). 모델 번들은 종류만 알리고 문구는 화면이 정한다 |
+| `model.ai.tools` `EditorTools` | 세 도구. 인수 읽기, 결과 JSON, 확인 미리 보기(줄 차이). `plugin.xml` 분류 `agent.editor` |
+| Swing `AiQueryWindowBridge` | 브리지 구현. 모든 읽기·고치기를 EDT에서(`invokeAndWait`) 하고 결과를 돌려준다. `MainFrame`이 시작할 때 등록하고 닫을 때 지운다 |
+| Swing `AiConfirmationDialog` | `TEXT_CHANGE`면 제목 "바뀌는 글(- 지움, + 넣음)", 첫 줄 "…쿼리 창의 글을 바꾸려고 합니다. 실행하거나 저장하지 않습니다.", 기본 정책의 묻는 이유 "쿼리 창의 글을 바꾸는 도구는 실행 전에 묻습니다(기본값, Tool Policy에서 묻지 않게 할 수 있음)", 지운 줄·넣은 줄을 결과 표의 지운 행·넣은 행 색(`Chromite.Table.removedBackground`/`addedBackground`)으로 칠함 |
+
+- **창 ID**: 창 객체마다 처음 볼 때 `w1`, `w2`…를 정한다(약한 참조, 닫힌 창은 잊음). 탭 위치는 닫거나 옮기면 바뀌고 제목은 겹칠 수 있어서다. `window`를 빼면 활성 창
+  (활성 창이 없고 창이 하나면 그 창), ID가 맞지 않으면 제목이 하나로 정해질 때만 받는다. 못 찾으면 열린 창의 ID와 제목을 오류에 적는다.
+- **읽기**(`getQueryWindowText`): `part=statement`는 "이 쿼리에 대해 묻기"와 같은 파서(`SQLScriptParser.extractQueryAtPos`, `AiAssistantPanel.findStatementAtCaret`)이고
+  연결이 연결되어 있지 않으면 전체 글(`part: all`로 알림)이다. `maxChars`를 넘으면 자르고 `truncated`와 안내를 넣는다.
+- **고치기**(`editQueryWindow`): `insert`(커서, 빈 글이면 INVALID), `replaceSelection`(선택이 없으면 오류: insert나 replaceAll을 쓰라고 알림, 빈 글이면 선택 삭제),
+  `replaceAll`. 결과의 `window`는 고친 뒤의 창(저장 안 됨, 새 글 선택)이다. 줄 바꿈은 문서 형식(`\n`)으로 바꾸고 저장할 때 파일의 줄 바꿈으로 돌아간다. `beginAtomicEdit`/`endAtomicEdit`로 묶어 Ctrl+Z 한 번에 되돌아간다.
+  고친 뒤 그 창 탭을 앞에 두고 새 글을 선택한다(초점은 옮기지 않음: 사용자가 채팅에 쓰는 중일 수 있다). 창은 "저장 안 됨"이 되고 실행·저장하지 않는다.
+  쿼리가 실행 중인 창과 편집할 수 없는 창은 거절한다. 이 검사는 미리 보기에서도 해서 확인을 묻기 전에 거절한다.
+- **정책**: WRITE, `writes="none"`(DB를 바꾸지 않으므로 읽기 전용 연결 규칙과 상관없음), 연결 인수가 없어 운영 연결 규칙도 걸리지 않는다. 기본은 실행 전 확인이고
+  Options > Chromite Agent > Tool Policy에서 이 도구를 "자동 실행"으로 둘 수 있다(전역 도구 규칙, 판정 순서 5). 확인 대화상자의 "이 연결에서 항상 허용"은 연결이 없어
+  보이지 않는다.
+- **미리 보기**: 첫 줄 `@@ <창 제목> - <연결>`, 그다음 바뀐 곳마다 `@@ line N`(고친 뒤 글의 줄 번호)과 앞뒤 2줄의 바뀌지 않은 줄, `- `/`+ ` 줄. 줄 차이는 쿼리 재구성에
+  쓰는 Myers 차이(`com.seizia.chromite.model.sql.Diff`)로 구하고, 앞뒤의 같은 줄을 먼저 잘라 바뀐 부분만 비교한다. 바뀐 줄이 합쳐 5,000줄을 넘으면 비교하지 않고 지운 줄과
+  넣은 줄을 그대로 보이고, 미리 보기는 2,000줄에서 자르고 남은 바뀐 줄 수를 적는다.
+- **감사**: 세 도구 모두 다른 도구처럼 실행기가 감사 기록에 남긴다(MCP로 붙은 외부 에이전트가 사용자의 글을 읽는 것 포함, 위 "감사 기록"). 기록에는 인수만 있고 읽은 글은 없다.
+- **도구 수**: MCP `tools/list`는 101개(READ 75, WRITE 21, DANGEROUS 5)다. 채팅은 연결 인수가 없는 도구라 늘 보낸다(`AIAgentToolSelection`). 사이트의 지원 범위 페이지는
+  Agent 도구 수를 말하지 않아 고치지 않았다.
+
+#### 확인 (2026-11-08, `chromite/agent-panel-2`)
+
+빌드한 Swing 제품을 개인 작업 공간·데이터 폴더로 띄우고, 가짜 Messages API·Responses API(로컬, 스크립트로 정한 도구 호출, 사용량 보고)를 제공자 주소로 두어
+앱 안의 시험 에이전트(Attach API, Swing 객체를 직접 다룸, 화면 좌표·OS 입력 없음)와 Python MCP 클라이언트로 확인했다. 한국어 다크, 영어(`-nl en`), 화면 배율 150%.
+
+| 시험 | 결과 |
+|---|---|
+| 모델 선택 | 목록: 제공자 제목(굵게) 아래 모델(들여 씀), 설정되지 않은 Ollama에 "설정 필요", 끝에 "모델 이름 직접 입력". 닫힌 콤보 "Anthropic Claude · claude-sonnet-5-5"와 같은 도구 설명. 모델을 고르면 대화의 엔진·모델이 바뀜, 취소(Esc)·제목은 대화의 모델로 되돌림, "설정 필요"는 Options의 Chromite Agent 페이지를 엶, 직접 입력(제공자 + 이름)은 대화와 목록에 들어감. 보내기 줄 왼쪽에 글자 폭만큼, 좁은 창에서는 줄임표 |
+| 대화 기록 | 최근 순 3개, 지금 대화 굵게 + 체크, 거르기("인덱스") → 1개 → Enter로 그 대화, 위·아래 화살표, Esc로 닫힘, × → 삭제 질문(취소 기본) → 취소하면 목록이 다시 열리고 거르기에 초점, 삭제하면 목록에서 빠짐, 지금 대화를 지우면 가장 최근 대화 |
+| 편집기 도구(채팅) | `listQueryWindows`(w1, 선택 범위), `getQueryWindowText`(연결 없으면 statement → all, 선택), `editQueryWindow` 넣기: 확인 대화상자 제목 "바뀌는 글", 지운 줄·넣은 줄 색, 거부 → 글 그대로, 허용 → 넣은 글 선택·저장 안 됨 표시, Ctrl+Z(`undoLastAction`) 한 번에 원래 글. 선택 없음 `replaceSelection` → 묻기 전에 오류. `replaceAll`의 줄 차이. Tool Policy 전역 규칙 AUTO → 묻지 않고 고침(감사 `global rule for editQueryWindow`) |
+| 편집기 도구(MCP) | `tools/list` 101개(READ 75, W 21, D 5), 세 도구의 한국어 제목과 `readOnlyHint`. `listQueryWindows`·`getQueryWindowText`가 감사 기록에 `client: MCP`로 남음. PostgreSQL에 연결된 창에서 `part=statement`가 커서의 둘째 문장만(시작 16, 끝 52). MCP `editQueryWindow` → "외부 에이전트(MCP)가 쿼리 창의 글을 바꾸려고 합니다" 확인 → 거부 → `isError` |
+| 후속 39 | 상태 줄 "토큰: 입력 14,863(캐시 100), 출력 50"(영어 "Tokens: 14,418 in (100 cached), 50 out"), 도구가 있는 차례는 요청들의 합. 가짜 API가 받은 요청에 `temperature` 없음(Anthropic·OpenAI 모두). 없는 모델: "Anthropic request failed: model: claude-does-not-exist-9 (not found, HTTP 404)", OpenAI "… does not exist or you do not have access to it. (not found, HTTP 404)" |
 
 ### 설정 (Tools > Options > Chromite Agent)
 
@@ -669,6 +736,15 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | Tool Policy | 맨 위에 늘 보이는 규칙 3개(운영 연결은 쓰기·위험 막힘, 읽기 전용 연결은 어떤 규칙으로도 바꿀 수 없음, 위험 도구 자동 실행은 연결 하나·도구 하나 규칙으로만). 규칙 대상(모든 연결 = 기본값, 또는 연결 하나, 운영 연결은 "(운영)" 표시), 분류별 규칙 3개, 도구 필터, 도구 표(도구, 그룹, 분류, 규칙: 상속/자동 실행/실행 전 확인/막음, 실제 권한). 실제 권한은 저장 전 규칙으로 `AIToolPolicy.resolve(Settings, …)` 판정(읽기 전용 연결이면 "실행 안 함"). OK에서 `setSettings` |
 | MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
 | Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
+
+#### 설정 열기 (2026-11-08)
+
+- Chromite Agent 창의 도구 막대 설정 단추와 공급자 미설정 안내의 설정 단추는 Options를 Chromite Agent 페이지로 연다(전에는 첫 페이지 General).
+  `AiAssistantPanel.Host.openOptions(OptionsDialog.PAGE_AGENT)` → `OptionsDialog.open(owner, pageId)`. 페이지는 화면 이름이 아니라 식별자(`agent`)로 고른다
+  ([swing-options.md](swing-options.md) "목록, 찾기, 페이지 열기").
+- 모델 선택의 "설정 필요" 항목(앱 변경 #14, 위 "채팅 도구 창")도 같은 경로로 연다.
+- 새 대화상자의 Agent 페이지는 첫 탭 Providers를 보인다. 미설정 안내에서 열 때 필요한 탭이 이것이라 하위 탭을 따로 고르는 식별자는 두지 않았다.
+- Providers 양식은 자기 폭(입력란 28자)을 지킨다. Options 창이 넓어져 입력란이 오른쪽 끝까지 늘어나던 것.
 
 ### Query Library 기준값 편집
 
@@ -723,14 +799,14 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 | 시험 | 결과 |
 |---|---|
 | 첫 요청 | 사용자 설정 그대로 모든 요청이 "Anthropic request failed: \`temperature\` is deprecated for this model."로 실패(아래 1). 사본의 설정에 `ai.useServerDefaultTemperature: true`를 넣어 우회하고 나머지를 시험했다 |
-| 대화 | 한국어·영어 질문 모두 답이 스트리밍되어 끝남. 토큰·사용량 표시는 없다(`AIAgentChatRunner.StreamCollector.usage`가 받지만 보이지 않음) |
+| 대화 | 한국어·영어 질문 모두 답이 스트리밍되어 끝남. 토큰·사용량 표시는 없다(`AIAgentChatRunner.StreamCollector.usage`가 받지만 보이지 않음). 2026-11-08 고침: 차례가 끝나면 상태 줄에 보인다(위 "채팅 도구 창") |
 | 읽기 도구 | "public 스키마의 테이블과 정확한 행 수" → `listTables`, `countRows` 2번(자동 실행, 카드 3개) → 표에 5·12(psql과 같음) |
 | 쓰기 + 거부 | `insertRows` 확인 대화상자(쓰기 배지, 실행할 내용, 인수, 기본 단추 Deny에 초점) → Deny → 카드 "거부됨", DB 그대로(psql 5행) |
 | 쓰기 + 허용 | 같은 요청에 Allow → 1행 들어감(psql 6행), 자동 커밋 연결이라 `transactionOpen: false`, 열린 트랜잭션 없음(`pg_stat_activity`) |
 | 수동 커밋 | 연결의 자동 커밋을 끔 → `insertRows` 허용 → `transactionOpen: true`, 다른 세션에서 행이 안 보이고 에이전트 세션은 `idle in transaction`. `rollbackTransaction`이 "Open Transaction"(Commit / Roll Back / Cancel, 기본 Cancel) → Roll Back → 행 없음, 트랜잭션 없음 |
 | 운영 연결 | 연결 종류를 Production으로 → `insertRows` BLOCKED("production connection …"), DB 그대로 |
 | 중지 | 긴 답 중 중지 → 글은 멈췄지만 상태가 "Stopping…"으로 약 20초 남고 그동안 보내기가 안 됨(아래 2). 오류 대화상자 없음, 끝난 뒤 다시 보낼 수 있음 |
-| API 오류 | 없는 모델 이름 → 대화에 "Anthropic request failed: model: claude-does-not-exist-9"(404 `not_found_error`의 문구). 키 없음 |
+| API 오류 | 없는 모델 이름 → 대화에 "Anthropic request failed: model: claude-does-not-exist-9"(404 `not_found_error`의 문구). 키 없음. 2026-11-08 고침: 404 응답의 글에 "not found"가 없으면 "(not found, HTTP 404)"를 덧붙인다(`AIHttpUtils.parseOpenAIStyleErrorMessage`, 모든 엔진). OpenAI의 "The model … does not exist …"도 같다 |
 | 감사 기록 | 도구 호출 9건이 정책(AUTO/CONFIRM/BLOCKED)과 결과(SUCCESS/DENIED/BLOCKED)로 남음. 트랜잭션 질문의 답(Roll back)은 없었다(아래 3) |
 | 키 | 사본 작업 공간·데이터 폴더·로그·증거 파일에서 `sk-ant-` 0건 |
 
@@ -1013,7 +1089,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 ## 위험과 남은 일
 
 - **실제 LLM은 Anthropic만 시험했다**: 2026-11-08에 실제 Anthropic API(`claude-sonnet-5-5`)로 확인했다(위 "실제 API 확인"). OpenAI Responses·Ollama 스트림의
-  도구 호출 흐름은 확인하지 못했다. OpenAI 엔진도 요청마다 temperature(전역 설정값, 기본 0.0)를 보내므로 그것을 받지 않는 모델에서는 같은 식으로 실패할 수 있다.
+  도구 호출 흐름은 확인하지 못했다. ~~OpenAI 엔진도 요청마다 temperature(전역 설정값, 기본 0.0)를 보내므로 그것을 받지 않는 모델에서는 같은 식으로 실패할 수 있다.~~
+  2026-11-08 고침(후속 39): OpenAI도 명시적으로 정했을 때만 보낸다(`OpenAIProperties.getRequestTemperature`). 같은 클래스를 잇는 DataDam 엔진 설정도 같다.
+  Ollama는 여전히 설정값(기본 0.0)을 보낸다. Ollama는 이 값을 받아들이므로(거부하지 않음) 바꾸지 않았다.
   긴 대화의 문맥 크기는 2026-11-08에 줄였다(위 "요청 크기").
 - **요청 크기의 남은 점(2026-11-08)**: 도구 정의 약 52 KB(≈13k 토큰)가 요청마다 간다. SQL Server 연결은 거의 모든 도구를 쓸 수 있어 고르기로 줄지 않는다.
   더 줄이려면 도구 설명을 짧게 하거나, 제공자의 프롬프트 캐시(Anthropic `cache_control`)를 쓰거나, 묶음을 필요할 때만 여는 방식(도구 검색)이 필요하다.
@@ -1045,6 +1123,14 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 앱 변경 #6·#12(`chromite/ui-layout`): Agent 창이 기본 배치에서 보이고 오른쪽 열 아래(Query Library 아래), 주 도구 막대 단추는 오른쪽 끝에 아이콘 + 글자.
+  시작할 때부터 보이는 Agent 창에서 공급자 미설정 안내가 안 보이던 문제: `showChat`이 모델 선택을 채운 뒤 안내를 다시 정함. 위 "채팅 도구 창".
+- 2026-11-08 Chromite Agent 창의 설정 단추 두 개가 Options를 Chromite Agent 페이지(Providers)로 엶, Providers 양식 폭(app round 1 #13·#8,
+  위 "설정 열기").
+- 2026-11-08 앱 변경 #14·#15·#16과 후속 39(`chromite/agent-panel-2`): 제공자를 함께 고르는 모델 선택 하나를 보내기 줄 왼쪽에(위쪽 제공자·모델 줄 지움), 맨 위 대화
+  콤보를 지우고 대화 기록 팝업(거르기, 이동, 삭제), 편집기 도구 `listQueryWindows`·`getQueryWindowText`·`editQueryWindow`(확인 미리 보기 종류 `TEXT_CHANGE`),
+  OpenAI temperature를 명시적으로 정했을 때만, 채팅 상태 줄에 차례의 토큰 사용량, 404 오류 글에 "not found". evening #27의 Agent 부분 2개는 이미 고쳐져 있어 확인만
+  했다(`chromite/followups-3`). 위 "채팅 도구 창", "편집기 도구", "엔진", "실제 API 확인".
 - 2026-11-08 실제 Anthropic API 확인(`chromite/agent-real-api-test`): Anthropic 요청에 temperature를 명시적으로 정했을 때만 넣음. 위 "실제 API 확인".
 - 2026-11-08 AI 엔진을 닫으면 받는 중인 응답을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다리던 것. 위 "실제 API 확인" 2.
 - 2026-11-08 감사 기록에 트랜잭션 질문의 Commit/Roll back 답(`transactionsBeforeCall`)을 남김. 위 "감사 기록", "실제 API 확인" 3.
