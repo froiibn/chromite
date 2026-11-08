@@ -27,6 +27,7 @@ import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourcePermission;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.DatabaseURL;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
@@ -83,7 +84,7 @@ import java.util.Set;
  *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service,
  *     BigQuery·Snowflake·SAP HANA·Firebird Embedded·Mimer SQL의 칸)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결별 제한({@link ConnectionRestrictionsDialog}), 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백, 네이티브 도구 드라이버면 로컬 클라이언트. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Shell Commands(연결 이벤트 명령, {@link ConnectionShellCommandsPage}), Settings(Tools &gt; Options 페이지의 연결별 값, {@link ConnectionSettingsOverrides}), Driver Properties,
@@ -130,6 +131,8 @@ import java.util.Set;
  * - 2026-11-08 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않음(HANA의 빈 표)
  * - 2026-11-08 Connection Properties에 로컬 클라이언트(네이티브 도구의 클라이언트 폴더, 연결의 {@code clientHomeId}). 전에는 백업·복원
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
+ * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
+ *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -189,6 +192,9 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JTextField defaultCatalogField = new JTextField();
     private final JTextField defaultSchemaField = new JTextField();
     private final JCheckBox readOnlyCheck = new JCheckBox(ConnectionMessages.settings_read_only);
+    private final JButton restrictionsButton = new JButton();
+    // The connection's own restrictions; empty: the connection type's restrictions apply
+    private List<DBPDataSourcePermission> restrictions = new ArrayList<>();
     private final JSpinner keepAliveSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
     private final JCheckBox closeIdleCheck = new JCheckBox(ConnectionMessages.settings_close_idle);
     private final JSpinner closeIdleSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
@@ -842,6 +848,7 @@ final class ConnectionSettingsPanel extends JPanel {
                 updateIdleTransactionFields();
             }
             updateColorButton();
+            updateRestrictionsButton();
         });
         closeIdleCheck.addActionListener(e -> closeIdleSpinner.setEnabled(closeIdleCheck.isSelected()));
         closeIdleCheck.setToolTipText(ConnectionMessages.settings_close_idle_tip);
@@ -886,6 +893,17 @@ final class ConnectionSettingsPanel extends JPanel {
         form.addRow(ConnectionMessages.settings_default_database, defaultCatalogField);
         form.addRow(ConnectionMessages.settings_default_schema, defaultSchemaField);
         form.addRow((JLabel) null, readOnlyCheck);
+        restrictionsButton.setToolTipText(ConnectionMessages.settings_restrictions_tip);
+        restrictionsButton.addActionListener(e -> {
+            if (connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type) {
+                List<DBPDataSourcePermission> edited = ConnectionRestrictionsDialog.edit(this, restrictions, type);
+                if (edited != null) {
+                    restrictions = new ArrayList<>(edited);
+                    updateRestrictionsButton();
+                }
+            }
+        });
+        form.addRow(ConnectionMessages.settings_restrictions, leftAligned(restrictionsButton));
         JPanel colorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         colorPanel.add(customColorCheck);
         colorPanel.add(Box.createHorizontalStrut(6));
@@ -1051,6 +1069,8 @@ final class ConnectionSettingsPanel extends JPanel {
         defaultCatalogField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultCatalogName()));
         defaultSchemaField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultSchemaName()));
         readOnlyCheck.setSelected(dataSource.isConnectionReadOnly());
+        restrictions = new ArrayList<>(dataSource.getModifyPermission());
+        updateRestrictionsButton();
         keepAliveSpinner.setValue(Math.max(0, configuration.getKeepAliveInterval()));
         closeIdleCheck.setSelected(configuration.isCloseIdleConnection());
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
@@ -1209,13 +1229,29 @@ final class ConnectionSettingsPanel extends JPanel {
         updateColorButton();
     }
 
+    /**
+     * The button shows whose restrictions apply and how many; the tooltip lists them.
+     */
+    private void updateRestrictionsButton() {
+        List<DBPDataSourcePermission> applied = !restrictions.isEmpty() ? restrictions
+            : connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type ? ConnectionRestrictionsDialog.typeRestrictions(type)
+            : List.of();
+        restrictionsButton.setText(NLS.bind(restrictions.isEmpty() ? ConnectionMessages.settings_restrictions_type
+            : ConnectionMessages.settings_restrictions_own, applied.size()));
+        StringBuilder tip = new StringBuilder("<html>").append(ConnectionMessages.settings_restrictions_tip); //$NON-NLS-1$
+        for (DBPDataSourcePermission permission : applied) {
+            tip.append("<br>• ").append(permission.getLabel()); //$NON-NLS-1$
+        }
+        restrictionsButton.setToolTipText(tip.append("</html>").toString()); //$NON-NLS-1$
+    }
+
     private void updateBootstrapButton() {
         bootstrapButton.setText(bootstrapQueries.isEmpty() ? ConnectionMessages.common_edit
             : NLS.bind(ConnectionMessages.settings_bootstrap_edit_count, bootstrapQueries.size()));
     }
 
     /**
-     * Same values as ConnectionPageGeneral.saveSettings (description, type, read-only) and ConnectionPageInitialization.saveSettings
+     * Same values as ConnectionPageGeneral.saveSettings (description, type, read-only, restrictions) and ConnectionPageInitialization.saveSettings
      * (auto-commit, isolation level, default catalog and schema, keep-alive, idle connections), and Chromite's idle
      * transaction settings.
      * Empty names are saved as "not set".
@@ -1254,6 +1290,8 @@ final class ConnectionSettingsPanel extends JPanel {
         // ConnectionPageGeneral.saveSettings: the custom color, or none (the connection type's color)
         configuration.setConnectionColor(customColorCheck.isSelected() && customColor != null ? ConnectionColors.format(customColor) : null);
         target.setConnectionReadOnly(readOnlyCheck.isSelected());
+        // ConnectionPageGeneral.saveSettings: empty restrictions are "the connection type's"
+        target.setModifyPermissions(restrictions);
         configuration.setKeepAliveInterval((Integer) keepAliveSpinner.getValue());
         configuration.setCloseIdleConnection(closeIdleCheck.isSelected());
         int closeIdlePeriod = (Integer) closeIdleSpinner.getValue();
