@@ -29,9 +29,11 @@ import java.util.Map;
  * 설계: 속성 대화상자는 DB에서 읽은 원본({@link #copy()}로 떠 둔다)과 사용자가 고치는 편집본을 따로 들고 있다가,
  * {@link SecurityDialect#generateScript}로 두 벌의 차이만 SQL로 만든다(SSMS 속성 창과 같이 OK·Script에서 한 번에 적용).
  * 그래서 DB마다 지원하지 않는 항목은 null로 둔다(화면은 null인 칸을 숨긴다). 암호는 바꿀 때만 값이 있다(읽은 원본에는 없다).
+ * 수치 제한({@link #getLimits()})은 켜고 끄는 옵션({@link #getOptions()})과 값의 형식이 달라 따로 둔다. 비어 있으면 화면에 칸이 없다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 수치 제한(MySQL/MariaDB 자원 제한) (docs/chromite/swing-security.md "MySQL/MariaDB 자원 제한")
  */
 public final class SecurityPrincipal {
 
@@ -119,6 +121,7 @@ public final class SecurityPrincipal {
     @Nullable
     private String expiry;
     private final Map<String, Boolean> options = new LinkedHashMap<>();
+    private final Map<String, Long> limits = new LinkedHashMap<>();
     private final Map<String, Boolean> memberships = new LinkedHashMap<>();
     private final Map<String, DatabaseMapping> mappings = new LinkedHashMap<>();
     private PermissionGrid<Securable> permissions = new PermissionGrid<>();
@@ -225,6 +228,14 @@ public final class SecurityPrincipal {
     }
 
     /**
+     * Database specific numeric limits (limit id → value), e.g. MySQL {@code MAX_QUERIES_PER_HOUR} (0 = no limit); empty if not supported.
+     */
+    @NotNull
+    public Map<String, Long> getLimits() {
+        return limits;
+    }
+
+    /**
      * Roles the principal can be a member of (role name → member).
      */
     @NotNull
@@ -254,6 +265,7 @@ public final class SecurityPrincipal {
         copy.defaultDatabase = defaultDatabase;
         copy.expiry = expiry;
         copy.options.putAll(options);
+        copy.limits.putAll(limits);
         copy.memberships.putAll(memberships);
         for (Map.Entry<String, DatabaseMapping> entry : mappings.entrySet()) {
             copy.mappings.put(entry.getKey(), entry.getValue().copy());

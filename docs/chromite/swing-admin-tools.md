@@ -72,7 +72,8 @@ com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
   maintenance/MaintenanceDialect(+Target, Operation, Option, Plan, Command, Result, Report, Action, Runner, MaintenanceMessages)
     └ mssql/SQLServerMaintenanceDialect, postgresql/PostgreMaintenanceDialect, mysql/MySQLMaintenanceDialect, oracle/OracleMaintenanceDialect
   replication/ReplicationDialect(+ReplicationReport, ReplicationMessages)
-    └ mssql/SQLServerReplicationDialect, postgresql/PostgreReplicationDialect, mysql/MySQLReplicationDialect, oracle/OracleReplicationDialect
+    └ mssql/SQLServerReplicationDialect, postgresql/PostgreReplicationDialect, mysql/MySQLReplicationDialect, oracle/OracleReplicationDialect,
+      altibase/AltibaseReplicationDialect
         │
         ▼
 DBeaver 모델 (그대로 재사용)
@@ -462,6 +463,7 @@ DB 관리 축 6, 읽기 전용. Activity Monitor의 Replication 탭(7번째, `Ac
 | PostgreSQL 10+ | 역할(주/대기), 스트리밍·논리 복제 구성 여부, wal_level 등 설정, 현재(대기 서버는 받은·재생한) WAL 위치, 마지막 재생 뒤 경과 | 대기 서버(`pg_stat_replication`: 상태, 동기화, 보낸·재생한 LSN, 지연 바이트, write/flush/replay 지연 초), 복제 슬롯(활성, 재시작 LSN, 보존 중인 WAL 바이트, wal_status 13+), WAL 수신기(`pg_stat_wal_receiver`), 구독(`pg_stat_subscription` 적용 작업자), 게시(테이블 수, 작업) | "연결된 대기 서버가 없습니다(스트리밍 복제가 구성되지 않음)", "복제 슬롯이 없습니다" 등 |
 | MySQL·MariaDB | 역할(복제본/아님), 바이너리 로그와 등록된 복제본, server_id·log_bin·binlog_format·GTID 변수, 바이너리 로그 위치 | 복제본 연결(`SHOW REPLICA STATUS`/`SHOW SLAVE STATUS`, MariaDB `SHOW ALL SLAVES STATUS`: IO/SQL 스레드, Seconds_Behind, 원본 로그, 실행 위치, GTID, 마지막 IO/SQL 오류), 연결된 복제본(`SHOW REPLICAS`/`SHOW SLAVE HOSTS`) | "이 서버는 복제본이 아닙니다", "등록된 복제본이 없습니다" |
 | Oracle | Data Guard 구성 여부, `V$DATABASE`의 DATABASE_ROLE·PROTECTION_MODE/LEVEL·SWITCHOVER_STATUS·DATAGUARD_BROKER·FORCE_LOGGING·LOG_MODE·OPEN_MODE | 보관 대상(`V$ARCHIVE_DEST_STATUS`, INACTIVE 제외), Data Guard 통계(`V$DATAGUARD_STATS`, 읽을 수 있을 때) | "구성되지 않음(주 역할, 대기 대상 없음, Broker 꺼짐)", "Data Guard 통계가 없습니다" |
+| Altibase (2026-11-08) | 복제 포트(0 = 꺼짐), 복제 수와 시작된 수 | 복제(`SYS_REPLICATIONS_`·`SYS_REPL_HOSTS_`), 송신(`V$REPSENDER`·`V$REPGAP`), 수신(`V$REPRECEIVER`). 시작·중지·동기화는 Object Explorer의 복제 노드([altibase.md](altibase.md) "복제 시작·중지·동기화") | "이 서버에 정의된 복제가 없습니다", "실행 중인 송신 스레드가 없습니다" |
 | SQL Server | Always On(IsHadrEnabled, 그룹 수), 복제(게시·배포 데이터베이스 수), 배포 데이터베이스 | 가용성 복제본(역할, 연결, 동기화 상태, 가용성·장애 조치 모드), 가용성 데이터베이스(동기화 상태, 일시 중단 이유, 로그 전송·다시 실행 큐 크기, 마지막 커밋), 복제 데이터베이스(`sys.databases`의 is_published·is_merge_published·is_distributor) | "Always On 가용성 그룹을 사용하지 않습니다(구성되지 않음)", "게시되었거나 배포 데이터베이스로 쓰이는 데이터베이스가 없습니다" |
 
 ### 설계 결정
@@ -748,3 +750,4 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 - 2026-11-08 Oracle 테이블 구조 검증(VALIDATE STRUCTURE, SWT 감사 O20) 동작. Oracle Free 23ai에서 확인([swing-routines.md](swing-routines.md)).
 - 2026-11-08 후속 #69: Oracle RAC(인스턴스 2개 이상)에서 잠금을 `GV$`로 읽고 세션을 인스턴스와 SID로 가리킴(Kill·Disconnect·잠금 상세), Oracle 18c+ Cancel Query
   (`ALTER SYSTEM CANCEL SQL`, 목록의 SQL_ID 사용, ALTER SYSTEM 권한, 취소가 기본인 확인). 위 "Oracle RAC와 쿼리 취소".
+- 2026-11-08 복제 탭에 Altibase(`AltibaseReplicationDialect`, SWT 감사 D-A7). Docker Altibase 7.3(복제 꺼짐)에서 확인([altibase.md](altibase.md) "복제 시작·중지·동기화").

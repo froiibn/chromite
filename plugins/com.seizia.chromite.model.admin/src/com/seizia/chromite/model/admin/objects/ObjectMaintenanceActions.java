@@ -18,14 +18,18 @@ package com.seizia.chromite.model.admin.objects;
 
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
 import com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView;
 import com.seizia.chromite.ext.altibase.model.AltibasePackage;
 import com.seizia.chromite.ext.altibase.model.AltibaseProcedureStandAlone;
+import com.seizia.chromite.ext.altibase.model.AltibaseReplication;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
 import com.seizia.chromite.ext.altibase.model.AltibaseView;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolMViewRefresh;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolPackageCompile;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolProcedureCompile;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolReplicationStart;
+import com.seizia.chromite.ext.altibase.tasks.AltibaseToolReplicationStop;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolTableTruncate;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolViewCompile;
 import com.seizia.chromite.ext.mssql.model.SQLServerTable;
@@ -108,6 +112,11 @@ import java.util.function.Consumer;
  *     {@link AltibaseToolProcedureCompile}, {@link AltibaseToolPackageCompile})의 문장이다. Oracle은 컴파일 오류가 예외가 아니라 경고로
  *     오므로 실행 뒤 {@link #readCompileErrors}로 {@code ALL_ERRORS}를 읽는다. Altibase는 컴파일 오류가 예외로 온다(7.3에서 확인).
  *     실행 뒤 {@link #refreshObjectStates}가 객체의 유효 상태를 다시 읽고 바뀌었으면 알린다(SWT {@code CompileHandler.compileUnit}과 같음).</li>
+ *     <li>Altibase 복제 시작·중지·동기화 — 시작·중지는 SWT 도구({@link AltibaseToolReplicationStart}, {@link AltibaseToolReplicationStop})의
+ *     {@code ALTER REPLICATION r START|STOP}이다. 동기화는 모델에 도구가 없어 같은 모양으로 {@code ALTER REPLICATION r SYNC}를 쓴다
+ *     (Altibase 문서: 복제 대상 테이블의 모든 행을 원격 서버로 보낸 뒤 복제를 시작한다). 시작 여부는 모델이 읽은
+ *     {@link AltibaseReplication#getIsStarted()}다. 모델의 {@code AltibaseReplication.refreshObjectState}는 복제가 아니라 프로시저
+ *     카탈로그를 읽으므로(범위 밖 모델 버그) 상태 다시 읽기는 노드 새로 고침({@code refreshObject})에 맡긴다.</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -120,6 +129,7 @@ import java.util.function.Consumer;
  * - 2026-11-08 최초 작성: TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 Altibase TRUNCATE·구체화된 뷰 새로 고침(A5), Oracle·Altibase 컴파일(O11, A6), 컴파일 오류 읽기, 상태 다시 읽기
  *   (docs/chromite/swing-routines.md)
+ * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  */
 public final class ObjectMaintenanceActions {
 
@@ -133,7 +143,10 @@ public final class ObjectMaintenanceActions {
         ENABLE_TRIGGER,
         DISABLE_TRIGGER,
         REFRESH_MATERIALIZED_VIEW,
-        COMPILE
+        COMPILE,
+        START_REPLICATION,
+        STOP_REPLICATION,
+        SYNC_REPLICATION
     }
 
     /**
@@ -173,7 +186,16 @@ public final class ObjectMaintenanceActions {
                 || object instanceof AltibaseView
                 || object instanceof AltibaseProcedureStandAlone
                 || object instanceof AltibasePackage;
+            case START_REPLICATION, STOP_REPLICATION, SYNC_REPLICATION -> object instanceof AltibaseReplication;
         };
+    }
+
+    /**
+     * Whether an Altibase replication was started when the model read it, or null if the object is not a replication.
+     */
+    @Nullable
+    public static Boolean isReplicationStarted(@NotNull DBSObject object) {
+        return object instanceof AltibaseReplication replication ? replication.getIsStarted() : null;
     }
 
     /**
@@ -431,6 +453,22 @@ public final class ObjectMaintenanceActions {
                     generate(new AltibaseToolProcedureCompile(), null, session, procedure, actions);
                 } else if (object instanceof AltibasePackage altibasePackage) {
                     generate(new AltibaseToolPackageCompile(), null, session, altibasePackage, actions);
+                }
+            }
+            case START_REPLICATION -> {
+                if (object instanceof AltibaseReplication replication) {
+                    generate(new AltibaseToolReplicationStart(), null, session, replication, actions);
+                }
+            }
+            case STOP_REPLICATION -> {
+                if (object instanceof AltibaseReplication replication) {
+                    generate(new AltibaseToolReplicationStop(), null, session, replication, actions);
+                }
+            }
+            case SYNC_REPLICATION -> {
+                if (object instanceof AltibaseReplication replication) {
+                    // Written like the START and STOP tools (the name as the catalog holds it)
+                    actions.add(new SQLDatabasePersistAction(AltibaseConstants.ALTER_REPL_PREFIX + " " + replication.getName() + " SYNC")); //$NON-NLS-1$ //$NON-NLS-2$
                 }
             }
         }

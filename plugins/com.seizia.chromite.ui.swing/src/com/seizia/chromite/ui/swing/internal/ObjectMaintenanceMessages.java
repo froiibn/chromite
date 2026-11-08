@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing.internal;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * Object Explorer의 유지 관리 명령(테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침, 컴파일)의 화면 문구.
+ * Object Explorer의 유지 관리 명령(테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침, 컴파일, Altibase 복제 시작·중지·동기화)의 화면 문구.
  *
  * 설계: 기능별 묶음 규칙(docs/chromite/swing-l10n.md)에 따라 이 기능만의 {@link NLS} 묶음을 둔다. 영어가 기본
  * ({@code ObjectMaintenanceMessages.properties}), 한국어는 {@code ObjectMaintenanceMessages_ko.properties}이고 OS 언어를 따른다.
@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 Compile 명령 문구 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 Altibase 복제 시작·중지·동기화 문구 (docs/chromite/altibase.md)
  */
 public class ObjectMaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
@@ -57,6 +58,21 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_compile_done_one;
     public static String objmaint_compile_done_many;
     public static String objmaint_compile_errors;
+    public static String objmaint_repl_start;
+    public static String objmaint_repl_start_tip;
+    public static String objmaint_repl_start_title;
+    public static String objmaint_repl_start_question;
+    public static String objmaint_repl_start_button;
+    public static String objmaint_repl_stop;
+    public static String objmaint_repl_stop_tip;
+    public static String objmaint_repl_stop_title;
+    public static String objmaint_repl_stop_question;
+    public static String objmaint_repl_stop_button;
+    public static String objmaint_repl_sync;
+    public static String objmaint_repl_sync_tip;
+    public static String objmaint_repl_sync_title;
+    public static String objmaint_repl_sync_question;
+    public static String objmaint_repl_sync_button;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ObjectMaintenanceMessages.class);
