@@ -264,6 +264,8 @@ import java.util.function.Supplier;
  *   문장은 새 쿼리 창에 넣기만 함 (docs/chromite/swing-query-manager.md)
  * - 2026-11-08 Include Actual Execution Plan: 활성 쿼리 창의 연결이 실제 계획을 주지 않으면 꺼지고 도구 설명이 이유를 말함
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-08 Chromite Agent 창의 설정 단추는 Options를 그 페이지로 엶({@link OptionsDialog#open(Frame, String)},
+ *   docs/chromite/ai-agent.md "설정 열기")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -599,8 +601,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
 
             @Override
-            public void openOptions() {
-                OptionsDialog.open(MainFrame.this);
+            public void openOptions(@NotNull String pageId) {
+                OptionsDialog.open(MainFrame.this, pageId);
             }
         });
         // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
