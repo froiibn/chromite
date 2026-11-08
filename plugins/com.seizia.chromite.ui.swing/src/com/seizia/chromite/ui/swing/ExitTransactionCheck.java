@@ -20,16 +20,16 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPErrorAssistant;
-import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.ai.tools.AgentSql;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
-import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
 import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -62,12 +62,13 @@ import java.util.function.Function;
  * 끝낼 때 플랫폼이 모든 연결을 닫으므로 그 전에 묻는다. SWT의 {@code ApplicationWorkbenchAdvisor.closeActiveTransactions}와
  * {@code DataSourceHandler.checkAndCloseActiveTransaction}(com.seizia.chromite.ui.editors.connection, #68에서 삭제)을 옮겼다.
  * <ul>
- *     <li>찾기: 열린 모든 연결의 모든 실행 문맥에 {@link QMUtils#isTransactionActive}(쿼리 관리자가 본 트랜잭션 안의 실행이 있음).
+ *     <li>찾기: 열린 모든 연결의 모든 실행 문맥에 {@link QMTransactionState#isOpen()}(상태 줄·유휴 감시와 같은 규칙: DB가 무언가를
+ *     쥐었다고 답했거나 명시적으로 시작한 트랜잭션, 자동 커밋 모드 포함. DB에 확인할 수 없는 것도 물으며 목록에 그렇게 적는다).
  *     AI 도우미·MCP 도구의 격리 문맥은 JDBC 연결을 직접 써서 쿼리 관리자에 기록이 없으므로 {@link AgentSql#hasPendingTransaction}으로
  *     따로 찾고, 같은 답으로 {@link AgentSql#endTransaction}이 끝낸다(도구의 커밋·롤백과 같은 경로).</li>
  *     <li>묻기: SWT는 문맥마다 물었지만 끝낼 때는 목록을 한 번에 보이고 답 하나를 모두에 적용한다(편집기 저장 질문과 같은 방식).
  *     취소하면 앱이 닫히지 않는다.</li>
- *     <li>끝내기: {@link DBCTransactionManager#commit}/{@code rollback}을 진행 대화상자에서 한다. 하나라도 실패하면 오류를 보이고
+ *     <li>끝내기: 다른 커밋·롤백과 같은 경로({@link IdleTransactionMonitor#commitOrRollback})를 진행 대화상자에서 한다. 하나라도 실패하면 오류를 보이고
  *     앱을 닫지 않는다(사용자가 직접 정하게).</li>
  *     <li>연결 끊기({@link #confirmDisconnect}): 연결을 끊으면 JDBC 연결을 닫으며 열린 트랜잭션이 롤백된다
  *     ({@code JDBCExecutionContext.close}). SWT는 끊기 전에 {@code DataSourceHandler.checkAndCloseActiveTransaction}으로 물었다.
@@ -94,6 +95,9 @@ import java.util.function.Function;
  * - 2026-11-08 여러 연결 끊기(모두 끊기, 다른 연결 끊기, 서버 그룹 끊기)는 한 질문으로, 무효화·다시 연결(세션을 다시 엶) 전 질문
  *   ({@link #confirmReconnect}) (docs/chromite/connection-lifecycle.md)
  * - 2026-11-08 주석만: {@link #confirmObjectChange}를 새 개체 만들기와 테이블 디자이너 저장도 씀 (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 열린 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 찾음: 쥔 것 없는 SELECT만 한 세션은 묻지 않고, 자동 커밋 모드의
+ *   BEGIN TRAN은 물음. 끝내기는 공용 경로(자동 커밋의 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN). 확인할 수 없는 세션은 목록에 그렇게 적음
+ *   (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 final class ExitTransactionCheck {
 
@@ -150,7 +154,7 @@ final class ExitTransactionCheck {
      * @return true when the session may end: no open transaction, or it was committed or rolled back as asked
      */
     static boolean confirmEndSession(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String windowName) {
-        if (!QMUtils.isTransactionActive(context)) {
+        if (!QMUtils.getTransactionState(context).isOpen()) {
             return true;
         }
         return confirm(parent, List.of(context), List.of(), list -> NLS.bind(ConnectionMessages.window_txn_message, windowName, list),
@@ -167,7 +171,7 @@ final class ExitTransactionCheck {
      * @return true when the default may change: no open transaction, or it was committed or rolled back as asked
      */
     static boolean confirmDefaultChange(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String target) {
-        if (!QMUtils.isTransactionActive(context)) {
+        if (!QMUtils.getTransactionState(context).isOpen()) {
             return true;
         }
         DBPDataSourceContainer container = context.getDataSource().getContainer();
@@ -239,14 +243,7 @@ final class ExitTransactionCheck {
             try {
                 ProgressDialog.runTask(UpdateMessages.exit_txn_progress, monitor -> {
                     try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "End active transaction")) { //$NON-NLS-1$
-                        DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
-                        if (txnManager != null) {
-                            if (commit) {
-                                txnManager.commit(session);
-                            } else {
-                                txnManager.rollback(session, null);
-                            }
-                        }
+                        IdleTransactionMonitor.commitOrRollback(session, commit);
                     }
                     return null;
                 });
@@ -346,14 +343,15 @@ final class ExitTransactionCheck {
         List<String> names = new ArrayList<>();
         for (DBCExecutionContext context : contexts) {
             String windows = SwingIdleTransactionService.describeQueryWindows(context);
-            names.add(context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+            String name = context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"; //$NON-NLS-1$ //$NON-NLS-2$
+            names.add(QMUtils.getTransactionState(context).isUnknown() ? NLS.bind(UpdateMessages.exit_txn_unknown_item, name) : name);
         }
         return names;
     }
 
     /**
      * Connections where the AI agent tools left a transaction open. The agent runs SQL on raw JDBC connections of its own
-     * isolated contexts, so the query manager never sees those statements and {@link QMUtils#isTransactionActive} is false
+     * isolated contexts, so the query manager never sees those statements and {@link QMUtils#getTransactionState} is closed
      * for them; {@link AgentSql} keeps the state itself (asked from the database after each write).
      */
     @NotNull
@@ -378,7 +376,7 @@ final class ExitTransactionCheck {
             try {
                 for (DBSInstance instance : dataSource.getAvailableInstances()) {
                     for (DBCExecutionContext context : instance.getAllContexts()) {
-                        if (QMUtils.isTransactionActive(context)) {
+                        if (QMUtils.getTransactionState(context).isOpen()) {
                             active.add(context);
                         }
                     }

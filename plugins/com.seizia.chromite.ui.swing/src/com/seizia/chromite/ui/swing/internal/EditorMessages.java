@@ -51,6 +51,8 @@ import org.eclipse.osgi.util.NLS;
  *   결과 고정 {@code editor_results_*}) (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-08 실제 계획 토글을 Oracle·Altibase로: {@code editor_sql_actual_plan_unsupported}(그 밖의 연결), {@code editor_sql_cant_restore_actual_plan}.
  *   다시 실행하는 실제 계획을 지우며 {@code editor_sql_actual_plan_select_only}, {@code editor_sql_making_actual_plan} 삭제
+ * - 2026-11-08 열린 트랜잭션 칸의 "확인할 수 없음"과 쥔 것 문구({@code editor_status_txn_unknown_*}, {@code editor_status_txn_tip_holds*},
+ *   {@code editor_status_txn_hold_*}) (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -265,6 +267,16 @@ public class EditorMessages extends NLS {
     public static String editor_status_commit_default_differs;
     public static String editor_status_txn_open_one;
     public static String editor_status_txn_open_many;
+    public static String editor_status_txn_unknown_one;
+    public static String editor_status_txn_unknown_many;
+    public static String editor_status_txn_tip_unknown;
+    public static String editor_status_txn_tip_holds;
+    public static String editor_status_txn_tip_holds_statements;
+    public static String editor_status_txn_hold_changes;
+    public static String editor_status_txn_hold_locks;
+    public static String editor_status_txn_hold_snapshot;
+    public static String editor_status_txn_hold_explicit;
+    public static String editor_status_txn_hold_aborted;
     public static String editor_status_txn_tip_started;
     public static String editor_status_txn_tip_statements;
     public static String editor_status_txn_tip_last;

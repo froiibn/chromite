@@ -18,6 +18,7 @@
 package com.seizia.chromite.runtime.qm;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.qm.*;
 import com.seizia.chromite.model.qm.filters.QMCursorFilter;
@@ -38,6 +39,10 @@ import java.util.List;
 
 /**
  * QMController default implementation
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link QMTransactionTracker}(DB가 말한 세션의 트랜잭션 상태)를 수집기 다음에 등록. 수집기가 기록한 실행을
+ *   추적기가 읽으므로 순서가 중요하다 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 public class QMRegistryImpl implements QMRegistry {
 
@@ -46,6 +51,7 @@ public class QMRegistryImpl implements QMRegistry {
     private QMLogFileWriter logWriter;
     private QMExecutionHandler defaultHandler;
     private QMMCollectorImpl metaHandler;
+    private QMTransactionTracker transactionTracker;
     private final List<QMExecutionHandler> handlers = new ArrayList<>();
     private QMEventBrowser eventBrowser;
     private final DefaultEventBrowser defaultEventBrowser = new DefaultEventBrowser();
@@ -58,6 +64,8 @@ public class QMRegistryImpl implements QMRegistry {
 
         metaHandler = new QMMCollectorImpl();
         registerHandler(metaHandler);
+        transactionTracker = new QMTransactionTracker();
+        registerHandler(transactionTracker);
 
         if (useLogWriter) {
             this.logWriter = new QMLogFileWriter();
@@ -76,6 +84,10 @@ public class QMRegistryImpl implements QMRegistry {
             unregisterHandler(metaHandler);
             metaHandler.dispose();
             metaHandler = null;
+        }
+        if (transactionTracker != null) {
+            unregisterHandler(transactionTracker);
+            transactionTracker = null;
         }
 
         synchronized (handlers) {
@@ -98,6 +110,14 @@ public class QMRegistryImpl implements QMRegistry {
     public QMMCollector getMetaCollector()
     {
         return metaHandler;
+    }
+
+    /**
+     * What the databases last said about the transactions of the execution contexts; null after {@link #dispose}.
+     */
+    @Nullable
+    public QMTransactionTracker getTransactionTracker() {
+        return transactionTracker;
     }
 
     @NotNull

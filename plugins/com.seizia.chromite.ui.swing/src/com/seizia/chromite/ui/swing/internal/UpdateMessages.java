@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-07 {@code exit_txn_agent_item}: 끝낼 때 질문의 AI 도우미·MCP 도구 트랜잭션 줄
  * - 2026-11-07 {@code exit_txn_agent_item}: 기능 이름을 Chromite Agent로 바꿈(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 {@code exit_txn_unknown_item}: DB에 확인할 수 없는 트랜잭션 줄(docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 public class UpdateMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.UpdateMessages"; //$NON-NLS-1$
@@ -82,6 +83,7 @@ public class UpdateMessages extends NLS {
     public static String exit_txn_progress;
     public static String exit_txn_error;
     public static String exit_txn_agent_item;
+    public static String exit_txn_unknown_item;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, UpdateMessages.class);

@@ -302,6 +302,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 배치 결과 다시 읽기: 결과마다 데이터 컨테이너가 그 결과를 만든 문장만 갖게 함({@code restrictToResultSet}, 쿼리 안의
  *   결과 집합 번호). 첫 결과 집합만 Export Data 쿼리로 넘기던 것을 모든 결과로 넓힘(다시 읽을 수 있는지는 컨테이너가 정함)
  *   (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-08 주석만: 상태 줄의 열린 트랜잭션은 DB의 답으로 정함(자동 커밋 포함, 확인할 수 없음 따로) (docs/chromite/idle-transactions.md "트랜잭션 상태")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -2540,8 +2541,10 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * Shows the open transaction of the execution context this window runs in (its own session, or the connection's
-     * main context shared by the windows that do not have one): hidden in auto-commit mode and when nothing ran since
-     * the last commit or rollback. Reads only the query manager's in-memory state, so it runs in the EDT. When the
+     * main context shared by the windows that do not have one): shown while the database holds something for it or it
+     * was begun explicitly, also in auto-commit mode, and as unverified when the database could not be asked
+     * ({@link QMTransactionState#isOpen()}). Reads only the in-memory state (the database was asked when the execution
+     * job ended), so it runs in the EDT. When the
      * transaction opens, ends, changes or starts or stops running a statement, the main window updates Query &gt;
      * Commit / Roll Back. Also the session line of the commit mode's tool tip (sessions open on the connection).
      */

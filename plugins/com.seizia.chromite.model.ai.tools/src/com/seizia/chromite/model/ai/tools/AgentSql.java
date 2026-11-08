@@ -32,8 +32,10 @@ import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.runtime.DBRBlockingObject;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -71,8 +73,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>실행은 JDBC를 직접 쓴다({@link JDBCSession#getOriginal()}). 여러 결과 집합, 서버 메시지(SQLWarning: SQL Server PRINT,
  *     SET STATISTICS IO/TIME), 실행 중 취소를 DBeaver 문장 래퍼보다 직접 다루기 쉽다.</li>
  *     <li>트랜잭션 안전(사용자 규칙 2026-11-07, docs/chromite/ai-agent.md "트랜잭션 안전"): 열린 트랜잭션을 조용히 커밋·롤백하지 않는다.
- *     에이전트 문맥은 연결의 기본 커밋 방식을 그대로 쓰고, 수동 커밋 문맥에서 쓰기 뒤에 DB에 직접 물어
- *     ({@link #probeOpenTransaction}) 열린 트랜잭션을 {@code pending}으로 기록한다. 커밋·롤백은 {@link #endTransaction}만 한다
+ *     에이전트 문맥은 연결의 기본 커밋 방식을 그대로 쓰고, 쓰기 뒤에 DB에 직접 물어({@link #isTransactionOpen}: 쿼리 창과 같은
+ *     방언의 질의 {@link JDBCTransactionProbe}) 무언가를 쥔 트랜잭션을 {@code pending}으로 기록한다. 자동 커밋 문맥에서 runSql로
+ *     BEGIN TRAN을 연 경우도 포함한다. 커밋·롤백은 {@link #endTransaction}만 한다
  *     (확인을 거친 commitTransaction/rollbackTransaction, 또는 실행기의 Commit/Roll back 답).</li>
  *     <li>{@link Mode#READ_ONLY}: 열린 트랜잭션이 없으면 자동 커밋 끔, 읽기 전용 트랜잭션(PostgreSQL {@code setReadOnly}, MySQL/MariaDB·Oracle
  *     {@code SET TRANSACTION READ ONLY}), 끝나면 롤백(쓴 것이 없어 잃는 것이 없음). 열린 트랜잭션이 있으면 그 안에서 그대로 읽고 롤백하지 않는다.
@@ -99,6 +102,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 2026-11-07 격리 문맥 이름을 기능의 공식 이름 "Chromite Agent"로 바꿈. 서버 세션 목록의 프로그램 이름에 보이는 값이다
  *   (docs/chromite/ai-agent.md "명칭", "실행 문맥")
  * - 2026-11-08 열린 에이전트 트랜잭션 안의 호출은 PostgreSQL 통계 스냅숏을 먼저 비움(docs/chromite/ai-agent.md "실행 문맥")
+ * - 2026-11-08 DB에 묻는 질의를 모델 계층의 방언 질의({@link JDBCTransactionProbe})로 옮김. SELECT만 한 MySQL의 INNODB_TRX 행이나
+ *   SQL Server 암시적 트랜잭션처럼 쥔 것 없는 트랜잭션은 열림이 아니고, 자동 커밋 문맥의 명시적 트랜잭션은 열림이다. 자동 커밋 문맥의
+ *   커밋·롤백은 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN은 끝까지 커밋 (docs/chromite/ai-agent.md "트랜잭션 안전")
  */
 public final class AgentSql {
 
@@ -142,6 +148,8 @@ public final class AgentSql {
     }
 
     private static final int MAX_CONTEXTS = 4;
+    // Commits of one commitTransaction at most (nested BEGIN TRANs of SQL Server)
+    private static final int MAX_NESTED_COMMITS = 32;
     // Pools of agent contexts; a pool list is guarded by synchronizing on it
     private static final Map<ContextKey, List<AgentContext>> pools = new ConcurrentHashMap<>();
     private static final Map<String, Set<Statement>> running = new ConcurrentHashMap<>();
@@ -235,8 +243,8 @@ public final class AgentSql {
                         case ROLLBACK -> runRolledBack(connection, runner, work);
                     };
                 } finally {
-                    if ((mode == Mode.NATIVE || mode == Mode.ATOMIC) && !connection.getAutoCommit()) {
-                        agentContext.pending = probeOpenTransaction(connection, family);
+                    if (mode == Mode.NATIVE || mode == Mode.ATOMIC) {
+                        agentContext.pending = isTransactionOpen(dataSource, connection);
                     }
                 }
             } catch (DBException e) {
@@ -352,27 +360,29 @@ public final class AgentSql {
     }
 
     /**
-     * Whether the connection has an open transaction with work in it (asked from the database).
-     * Unknown counts as open: a false "closed" could let a later call end the transaction silently.
+     * Whether the agent's connection has a transaction that holds something or was begun explicitly, asked from the
+     * database with the same rule as the query windows ({@link JDBCTransactionProbe}). Unknown counts as open: a false
+     * "closed" could let a later call end the transaction silently. A database without a probe is unknown in manual
+     * commit; in auto-commit mode its statements ended their own transactions.
      */
-    static boolean probeOpenTransaction(@NotNull Connection connection, @NotNull DbFamily family) {
-        String sql = switch (family) {
-            case SQLSERVER -> "SELECT CASE WHEN @@TRANCOUNT > 0 THEN 1 ELSE 0 END"; //$NON-NLS-1$
-            case POSTGRESQL -> "SELECT CASE WHEN txid_current_if_assigned() IS NULL THEN 0 ELSE 1 END"; //$NON-NLS-1$
-            case MYSQL, MARIADB -> "SELECT COUNT(*) FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id = CONNECTION_ID()"; //$NON-NLS-1$
-            case ORACLE -> "SELECT CASE WHEN DBMS_TRANSACTION.LOCAL_TRANSACTION_ID IS NULL THEN 0 ELSE 1 END FROM dual"; //$NON-NLS-1$
-            default -> null;
+    static boolean isTransactionOpen(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        DBCServerTransaction answer = JDBCTransactionProbe.probe(dataSource, connection);
+        if (answer == null) {
+            return !connection.getAutoCommit();
+        }
+        return switch (answer.kind()) {
+            case NONE, EMPTY -> false;
+            case HOLDING, UNVERIFIED, FAILED -> true;
         };
-        if (sql == null) {
-            return true;
-        }
-        try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(sql)) {
-            return !rs.next() || rs.getInt(1) > 0;
-        } catch (SQLException e) {
-            // PostgreSQL: "current transaction is aborted" also means a transaction is open
-            log.debug("Can't check the agent transaction state", e);
-            return true;
-        }
+    }
+
+    /**
+     * After a commit or rollback: whether the database says a transaction is still there. A database without a probe,
+     * or a failed question, counts as ended: the driver's commit or rollback succeeded.
+     */
+    private static boolean isStillOpen(@NotNull DBPDataSource dataSource, @NotNull Connection connection) {
+        DBCServerTransaction answer = JDBCTransactionProbe.probe(dataSource, connection);
+        return answer != null && (answer.kind() == DBCServerTransaction.Kind.HOLDING || answer.kind() == DBCServerTransaction.Kind.UNVERIFIED);
     }
 
     /**
@@ -451,12 +461,24 @@ public final class AgentSql {
                     monitor, DBCExecutionPurpose.UTIL, CONTEXT_NAME)
                 ) {
                     Connection connection = session.getOriginal();
-                    if (commit) {
-                        connection.commit();
-                    } else {
-                        connection.rollback();
+                    DBPDataSource dataSource = agentContext.context.getDataSource();
+                    // Commit until the database has no transaction left (SQL Server: one COMMIT per nested BEGIN TRAN)
+                    for (int i = 0; i < MAX_NESTED_COMMITS && (i == 0 || isStillOpen(dataSource, connection)); i++) {
+                        if (connection.getAutoCommit()) {
+                            // A transaction begun explicitly (BEGIN TRAN, BEGIN): the drivers refuse commit() in auto-commit mode
+                            try (Statement statement = connection.createStatement()) {
+                                statement.execute(commit ? "COMMIT" : "ROLLBACK"); //$NON-NLS-1$ //$NON-NLS-2$
+                            }
+                        } else if (commit) {
+                            connection.commit();
+                        } else {
+                            connection.rollback();
+                        }
+                        if (!commit) {
+                            break;
+                        }
                     }
-                    agentContext.pending = false;
+                    agentContext.pending = isStillOpen(dataSource, connection);
                     count++;
                 } catch (SQLException ex) {
                     throw new DBException((commit ? "Commit" : "Rollback") + " failed: " + ex.getMessage(), ex);
