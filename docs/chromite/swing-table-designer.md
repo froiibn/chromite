@@ -115,8 +115,27 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 저장된 열 삭제와 새 열 추가의 스크립트(`DROP COLUMN`, `ADD`), Open in Query Window, 닫을 때 Save / Don't Save / Cancel(Don't Save 뒤 DB 그대로).
 - 확인 중 고친 것: PostgreSQL 새 외래 키가 표에 안 보이던 것(관리자가 다른 캐시에 넣음 → 명령 묶음의 새 객체를 함께 보여 줌),
   인덱스 표의 Table 열(소유 테이블 열 숨김).
-- **확인하지 못한 것:** SQL Server·MariaDB 화면 확인, 다크 테마 화면, 저장된 열의 형식 바꾸기(PostgreSQL에서 편집기가 열리지 않은 적이 있으나,
+- **확인하지 못한 것**(2026-11-08 아래에서 SQL Server·MariaDB·다크 테마·형식 바꾸기를 확인함)**:** SQL Server·MariaDB 화면 확인, 다크 테마 화면, 저장된 열의 형식 바꾸기(PostgreSQL에서 편집기가 열리지 않은 적이 있으나,
   같은 시간에 다른 에이전트의 자동 입력이 이 창에 들어왔다는 보고가 있어 원인을 확정하지 못함). Windows 방화벽 확인 창이 화면 앞을 막아 더 진행하지 못했다.
+
+### 확인 (2026-11-08, SQL Server·MariaDB, 후속 "확인 작업")
+
+`chromite/followups-4` 빌드의 앱 한 벌(개인 데이터 폴더·작업 공간, 한국어)에 붙인 시험 코드가 디자이너를 `MainFrame.designTable`로 열고, 표 모델에 값을 넣어
+(칸 편집기가 커밋하는 것과 같은 `setValueAt`) 편집하고, 도구 막대 동작(스크립트 생성, 저장, 되돌리기)을 실행했다(화면 입력 없음). 공용 Docker DB의 `chr_followups4`.
+증거 `D:\Tools\_scratch\chromite-followups-4\run\d*.txt.log`, `shots\d-*.png`.
+
+- **MariaDB 11 `designer_t`:** 저장된 열 `title`의 형식 `varchar(50)` → `varchar(80)`과 NOT NULL, 새 열 → 스크립트
+  `ALTER TABLE … MODIFY COLUMN title varchar(80) DEFAULT 'x' NOT NULL; ALTER TABLE … ADD Column1 varchar(100) NULL;` → 실행 → `SHOW CREATE TABLE`이 같음(기본값 유지).
+  다크 테마 화면(`d-07-maria-designer-dark.png`)도 읽힘.
+- **SQL Server 2022 `designer_t`(기본값 제약 조건 `df_designer_title`이 있는 열):** 저장된 열의 길이 50 → 80과 NOT NULL은 `DROP CONSTRAINT` → `ALTER COLUMN … NOT NULL` →
+  `ADD DEFAULT … FOR title` 순서로 실행되어 성공했다(위 2026-11-08 오류 5074 수정이 화면에서도 맞음). 화면은 열 표·열 속성 시트·키·인덱스·테이블 탭이 열림(`d-01-ms-designer.png`).
+- **찾은 결함(고치지 않음, 아래 "남긴 것"):**
+  1. SQL Server에서 저장된 열의 이름을 표에서 바꾸면 `sp_rename`이 나오지 않고 새 이름으로 `ALTER COLUMN`만 나온다. 실행하면 오류 4924
+     "column '…' does not exist". 이름 칸 편집이 모델 `PropertySourceEditable.setPropertyValue`의 속성 변경 명령으로만 가고, SQL Server 열 관리자의 `DBEObjectRenamer`(`sp_rename`)를 부르지 않는다.
+  2. 저장 스크립트가 중간에 실패해도 앞 문장은 이미 실행·커밋되어 있다(SQL Server 자동 커밋). 위 경우 `title` 변경과 새 열은 DB에 들어갔는데 디자이너는 모든 변경을 보류 중으로 보이고,
+     되돌리기 뒤에도 모델 캐시의 옛 정의(길이 50, 새 열)를 보인다.
+  3. SQL Server 기본값을 다시 만들 때 이름을 넣지 않아(`ADD DEFAULT N'x' FOR title`) 원래 이름 `df_designer_title`이 시스템 이름 `DF__designer___title__…`로 바뀐다.
+- 회귀 테스트는 실행하지 않았다(코드 변경 없음).
 
 ## 남긴 것
 
@@ -125,6 +144,8 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 열 순서 바꾸기(SSMS 끌어 놓기), 실행 취소·다시 실행(Ctrl+Z), 저장된 키·인덱스의 열 구성 편집(지금은 지우고 다시 추가).
 - 다른 스키마의 테이블을 참조하는 외래 키(대화상자는 같은 스키마·카탈로그의 테이블만 보여 줌).
 - DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
+- (2026-11-08 확인에서 찾음) SQL Server 저장된 열 이름 바꾸기가 `sp_rename` 없이 `ALTER COLUMN`으로 나가는 것, 저장 스크립트가 중간에 실패할 때 앞 문장이 남는 것과
+  디자이너가 보이는 상태, 다시 만든 기본값 제약 조건의 이름(위 "확인 (2026-11-08, SQL Server·MariaDB…)").
 
 ## 변경 이력
 
@@ -143,3 +164,4 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   Object Explorer 테이블 자식 폴더의 New Column…/New Index… 등이 디자이너를 연다. [swing-create-objects.md](swing-create-objects.md).
 - 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
   참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".
+- 2026-11-08 SQL Server·MariaDB 화면 확인과 다크 테마(`chromite/followups-4`): 저장된 열의 형식 바꾸기 성공, SQL Server 열 이름 바꾸기·중간 실패·기본값 이름 결함을 "남긴 것"에 적음.

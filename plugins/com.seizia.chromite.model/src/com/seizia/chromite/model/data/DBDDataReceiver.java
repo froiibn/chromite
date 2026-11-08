@@ -32,6 +32,11 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
  * Data receiver.
  * Used to receive some result set data.
  * Result set can be a result of some query execution, cursor returned from stored procedure, generated keys result set, etc.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link #startFetchWorkflow}에서 {@code fetchStart}가 실패해도 {@link #close()}를 부름(이 인터페이스가 약속한 대로).
+ *   전에는 닫기가 문장 닫기에 걸리기 전에 실패하면 불리지 않아, 데이터 전송 넣기 소비자가 비우기(TRUNCATE)를 한 넣기 연결을
+ *   커밋하지 않은 트랜잭션째 열어 둔 채 남겼다 (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
  */
 public interface DBDDataReceiver extends AutoCloseable {
 
@@ -71,7 +76,18 @@ public interface DBDDataReceiver extends AutoCloseable {
         long offset,
         long maxRows
     ) throws DBException {
-        dataReceiver.fetchStart(session, resultSet, offset, maxRows);
+        try {
+            dataReceiver.fetchStart(session, resultSet, offset, maxRows);
+        } catch (Throwable e) {
+            // The close below is bound to the statement only after a successful start. A receiver may have opened
+            // resources in fetchStart before it failed (the data transfer's load connection and its transaction)
+            try {
+                dataReceiver.close();
+            } catch (Throwable closeError) {
+                e.addSuppressed(closeError);
+            }
+            throw e;
+        }
         resultSet.getSourceStatement().autoCloseDependant(() -> {
             try (dataReceiver) {
                 dataReceiver.fetchEnd(session, resultSet);
