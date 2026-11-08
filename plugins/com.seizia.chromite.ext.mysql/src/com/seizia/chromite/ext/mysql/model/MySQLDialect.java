@@ -67,6 +67,8 @@ import java.util.regex.Pattern;
  *   TINYINT of other databases.
  * - 2026-11-08 Chromite: {@link #probeTransaction}: whether the session has a transaction, asked from the server
  *   (docs/chromite/idle-transactions.md "MySQL, MariaDB").
+ * - 2026-11-09 Chromite: {@link #probeTransaction} tells that the transaction only reads when INNODB_TRX shows no changed
+ *   row and no InnoDB lock (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기").
  */
 public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe {
 
@@ -97,6 +99,10 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
      * structures; the view is refreshed at most every 0.1 s, so it is a description, not the decision), else it is the
      * tables' metadata locks. Not seen: a read of a non-transactional (MyISAM) table in manual commit, whose metadata lock
      * the server does not report as a transaction.
+     * The transaction only reads ({@link DBCServerTransaction#readsOnly()}) in manual commit when INNODB_TRX lists it with
+     * no modified row and no InnoDB lock structure (a plain read: its read view and the tables' shared metadata locks).
+     * Without PROCESS, or before the view lists the transaction, that is unknown and the answer does not say so: the
+     * statements alone cannot tell, a SELECT may call a function that changes data.
      */
     @Nullable
     @Override
@@ -125,14 +131,16 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
                 // An error does not end a MySQL transaction; the login lacks PROCESS, so it is not asked again
                 try (ResultSet rs = statement.executeQuery(
                     "SELECT trx_rows_modified, trx_lock_structs FROM information_schema.INNODB_TRX WHERE trx_mysql_thread_id = CONNECTION_ID()")) { //$NON-NLS-1$
+                    boolean readsOnly = false;
                     if (rs.next()) {
                         if (rs.getLong(1) > 0) {
                             holds.add(DBCServerTransaction.Hold.CHANGES);
                         }
                         // With no row lock, the read view and the tables' metadata locks
                         holds.add(DBCServerTransaction.Hold.LOCKS);
+                        readsOnly = rs.getLong(1) == 0 && rs.getLong(2) == 0 && !connection.getAutoCommit();
                     }
-                    return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds);
+                    return new DBCServerTransaction(DBCServerTransaction.Kind.HOLDING, holds, readsOnly);
                 } catch (SQLException e) {
                     innodbTrxReadable = false;
                 }

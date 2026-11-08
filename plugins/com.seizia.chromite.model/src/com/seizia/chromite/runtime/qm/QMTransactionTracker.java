@@ -29,6 +29,7 @@ import com.seizia.chromite.model.qm.meta.QMMConnectionInfo;
 import com.seizia.chromite.model.qm.meta.QMMStatementExecuteInfo;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
@@ -56,10 +57,16 @@ import java.util.Set;
  *     시작했다(쥔 것이 없던 SELECT라도). 쥔 것이 생긴 뒤에도 같은 값을 써서 커밋·롤백 메뉴와 알림이 같은 트랜잭션을 가리킨다.</li>
  *     <li>답이 늦게 오면: 묻는 동안 새 작업이 시작되었으면 답은 저장하되 "다시 물을 것"을 지우지 않는다.</li>
  *     <li>질의는 문맥의 JDBC 연결에 직접 보내므로 쿼리 관리자에 기록되지 않고 이 처리기를 다시 부르지 않는다.</li>
+ *     <li>조회만 한 트랜잭션 자동으로 끝내기(2026-11-09, 앱 변경 #31): 사용자 작업 뒤에 물은 답이 그 사이 새 작업 없이 그대로이면
+ *     {@code IdleTransactionMonitor.endReadOnlyAfterWork}가 연결 종류의 설정을 보고 같은 스레드에서 끝낸다. 문장이 끝난 바로 그 자리라서
+ *     다른 작업이 끼어들 틈이 가장 작고, 별도 작업으로 미루면 끝나 가는 실행 작업 자신 때문에 늘 "실행 중"으로 보이기 때문이다. 끝낸 시각은
+ *     다음 사용자 문장까지 남겨 상태 줄이 짧게 알린다({@link Snapshot#readOnlyEnded()}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-09 다시 묻기({@link #refresh}), 조회만 한 트랜잭션 자동으로 끝내기와 끝낸 시각
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class QMTransactionTracker extends DefaultExecutionHandler {
 
@@ -71,8 +78,10 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
      * @param server  the database's last answer; null when it has none (no probe for this database, or not asked yet)
      * @param pending user work, a commit, a rollback or a commit mode change happened after the last answer
      * @param since   start time of the first user statement since the transaction was last seen ended, 0 when none
+     * @param readOnlyEnded when a read-only transaction was ended automatically after the user's work, 0 when not since
+     *                      the last user statement
      */
-    public record Snapshot(@Nullable DBCServerTransaction server, boolean pending, long since) {
+    public record Snapshot(@Nullable DBCServerTransaction server, boolean pending, long since, long readOnlyEnded) {
     }
 
     private static final class Tracked {
@@ -84,6 +93,7 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
         @Nullable
         DBCServerTransaction server;
         long since;
+        long readOnlyEnded;
     }
 
     // Guarded by itself
@@ -99,7 +109,7 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
     public Snapshot get(@NotNull DBCExecutionContext context) {
         synchronized (contexts) {
             Tracked tracked = contexts.get(context);
-            return tracked == null ? null : new Snapshot(tracked.server, tracked.pending, tracked.since);
+            return tracked == null ? null : new Snapshot(tracked.server, tracked.pending, tracked.since, tracked.readOnlyEnded);
         }
     }
 
@@ -129,6 +139,28 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
             }
             generation = tracked.generation;
         }
+        if (probe(context, generation) && IdleTransactionMonitor.endReadOnlyAfterWork(context)) {
+            synchronized (contexts) {
+                Tracked tracked = contexts.get(context);
+                if (tracked != null) {
+                    tracked.readOnlyEnded = System.currentTimeMillis();
+                }
+            }
+        }
+    }
+
+    /**
+     * Asks the database about the context's transaction now, on the calling thread (not the UI thread).
+     */
+    public void refresh(@NotNull DBCExecutionContext context) {
+        long generation;
+        synchronized (contexts) {
+            Tracked tracked = contexts.get(context);
+            if (tracked == null) {
+                return;
+            }
+            generation = tracked.generation;
+        }
         probe(context, generation);
     }
 
@@ -147,6 +179,7 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
         synchronized (contexts) {
             Tracked tracked = tracked(context);
             tracked.workingSessions.add(session);
+            tracked.readOnlyEnded = 0;
             markPending(tracked);
             if (tracked.since == 0) {
                 tracked.since = start;
@@ -210,8 +243,12 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
         }.schedule();
     }
 
-    private void probe(@NotNull DBCExecutionContext context, long generation) {
+    /**
+     * @return true when the answer is current: no user work, commit or rollback happened while asking
+     */
+    private boolean probe(@NotNull DBCExecutionContext context, long generation) {
         DBCServerTransaction answer = null;
+        boolean current;
         long asked = System.currentTimeMillis();
         if (context instanceof DBCTransactionProbe probe && context.isConnected()) {
             answer = probe.probeTransaction();
@@ -219,7 +256,7 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
         synchronized (contexts) {
             Tracked tracked = contexts.get(context);
             if (tracked == null) {
-                return;
+                return false;
             }
             tracked.server = answer;
             if (answer != null) {
@@ -230,14 +267,16 @@ public class QMTransactionTracker extends DefaultExecutionHandler {
                     tracked.since = asked;
                 }
             }
-            if (tracked.generation == generation) {
+            current = tracked.generation == generation;
+            if (current) {
                 tracked.pending = false;
             }
         }
         if (log.isDebugEnabled()) {
             log.debug("Transaction of " + context.getDataSource().getContainer().getName() + "::" + context.getContextName()
-                + ": " + (answer == null ? "no probe" : answer.kind() + " " + answer.holds()));
+                + ": " + (answer == null ? "no probe" : answer.kind() + " " + answer.holds() + (answer.readsOnly() ? " reads only" : "")));
         }
+        return current;
     }
 
     private static void markPending(@NotNull Tracked tracked) {

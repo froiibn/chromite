@@ -315,6 +315,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
  * - 2026-11-08 연결 콤보 폭 260 → 220(앱 변경 #3), 연결·DB 콤보의 도구 설명에 고른 항목의 전체 이름(긴 이름은 콤보에서 말줄임표)
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-09 상태 줄의 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기({@link SwingIdleTransactionService#endReadOnlyTransaction}),
+ *   자동으로 끝낸 뒤의 짧은 알림 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -566,6 +568,15 @@ final class SqlEditorPanel extends JPanel {
             @Override
             public void end(@NotNull QMTransactionState transaction, boolean commit) {
                 endOpenTransaction(transaction, commit);
+            }
+
+            @Override
+            public void endReadOnly(@NotNull QMTransactionState transaction) {
+                DBCExecutionContext context = getExecutionContext();
+                if (context != null) {
+                    SwingIdleTransactionService.endReadOnlyTransaction(SqlEditorPanel.this, context, transaction.getTransactionStartTime(),
+                        SqlEditorPanel.this::refreshOpenTransaction);
+                }
             }
 
             @Override
@@ -2574,7 +2585,8 @@ final class SqlEditorPanel extends JPanel {
      * ({@link QMTransactionState#isOpen()}). Reads only the in-memory state (the database was asked when the execution
      * job ended), so it runs in the EDT. When the
      * transaction opens, ends, changes or starts or stops running a statement, the main window updates Query &gt;
-     * Commit / Roll Back. Also the session line of the commit mode's tool tip (sessions open on the connection).
+     * Commit / Roll Back. Also the session line of the commit mode's tool tip (sessions open on the connection), and for a
+     * while after Chromite ended a read-only transaction by itself (connection type setting), a note saying so.
      */
     private void refreshOpenTransaction() {
         DBCExecutionContext context = getExecutionContext();
@@ -2585,7 +2597,7 @@ final class SqlEditorPanel extends JPanel {
         QMTransactionState shown = transaction != null && transaction.isOpen() ? transaction : null;
         QMTransactionState previous = openTransaction;
         openTransaction = shown;
-        statusLine.setOpenTransaction(shown);
+        statusLine.setOpenTransaction(shown, shown == null && context != null ? QMUtils.getReadOnlyEndTime(context) : 0);
         if (shown == null && execution == null) {
             // DDL of the window's runs is visible to Object Explorer's metadata session once it is committed
             metadataRefresh.refreshPending();

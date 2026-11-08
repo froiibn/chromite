@@ -56,6 +56,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 결과 집합마다 탭: {@code editor_results_tab}, {@code editor_results_pinned_tip}, {@code editor_results_already_pinned},
  *   {@code editor_results_messages_errors*} 추가, {@code editor_results_pinned}가 결과 탭 이름과 고정 시각을 받음, 결과 쌓기의 자리 표시
  *   {@code editor_results_none}과 고정 탭 줄의 {@code editor_results_current} 삭제 (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-09 조회만 한 트랜잭션 끝내기({@code editor_status_txn_end_read_only}, {@code editor_status_txn_tip_click_read_only},
+ *   {@code editor_status_txn_read_only_ended*}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -289,6 +291,10 @@ public class EditorMessages extends NLS {
     public static String editor_status_txn_commit;
     public static String editor_status_txn_rollback;
     public static String editor_status_txn_log;
+    public static String editor_status_txn_end_read_only;
+    public static String editor_status_txn_tip_click_read_only;
+    public static String editor_status_txn_read_only_ended;
+    public static String editor_status_txn_read_only_ended_tip;
     public static String editor_sql_commit_tip;
     public static String editor_sql_rollback_tip;
     public static String editor_txn_log_title;

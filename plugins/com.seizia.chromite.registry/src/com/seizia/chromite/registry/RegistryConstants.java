@@ -24,6 +24,7 @@ package com.seizia.chromite.registry;
  * - 2026-11-07 옛 XML 연결 설정 읽기({@code DataSourceSerializerLegacy})만 쓰던 태그·속성 이름을 지움
  *   (docs/chromite/internal-rename.md "사용자 데이터 이전")
  * - 2026-11-07 연결의 유휴 트랜잭션 설정 속성 이름 (docs/chromite/idle-transactions.md)
+ * - 2026-11-09 연결 유형의 조회만 한 트랜잭션 자동으로 끝내기 속성 이름 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class RegistryConstants {
 
@@ -130,6 +131,7 @@ public class RegistryConstants {
     public static final String ATTR_SMART_COMMIT_RECOVER = "smartCommitRecover"; //$NON-NLS-1$
     public static final String ATTR_AUTO_CLOSE_TRANSACTIONS = "autoCloseTransactions"; //$NON-NLS-1$
     public static final String ATTR_CLOSE_TRANSACTIONS_PERIOD = "closeTransactionsPeriod"; //$NON-NLS-1$
+    public static final String ATTR_AUTO_END_READ_ONLY_TRANSACTIONS = "autoEndReadOnlyTransactions"; //$NON-NLS-1$
     public static final String ATTR_AUTO_CLOSE_CONNECTIONS = "autoCloseConnections"; //$NON-NLS-1$
     public static final String ATTR_CLOSE_CONNECTIONS_PERIOD = "closeConnectionsPeriod"; //$NON-NLS-1$
     public static final String ATTR_PARENT = "parent"; //$NON-NLS-1$

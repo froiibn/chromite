@@ -62,9 +62,10 @@ import java.util.Set;
  *     ({@code DataSourceDescriptor.isDefaultAutoCommit}), 실행 확인({@code SQLQueryExecuteJob}), 데이터 변경 확인({@link ResultSetGrid}),
  *     유휴 트랜잭션 알림과 기간({@code IdleTransactionMonitor}), 유휴 연결 닫기와 기간({@code DataSourceMonitorJob}), 수정 제한
  *     ({@code hasModifyPermission}: 데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기), 스마트 커밋과 그 뒤 자동 커밋으로 돌아가기
- *     ({@link SmartCommit}, 2026-11-08부터 쿼리 창이 씀).</li>
+ *     ({@link SmartCommit}, 2026-11-08부터 쿼리 창이 씀), 조회만 한 트랜잭션 자동으로 끝내기({@code IdleTransactionMonitor.endReadOnlyAfterWork}).</li>
  *     <li>유휴 트랜잭션은 "알림"이다(롤백 동의가 아님, docs/chromite/idle-transactions.md). 묻지 않는 자동 롤백은 연결마다 사용자가 켜고,
- *     유형에는 두지 않는다.</li>
+ *     유형에는 두지 않는다. 조회만 한 트랜잭션 자동으로 끝내기(2026-11-09, 앱 변경 #31)는 사용자 결정대로 유형에 두고 기본은 꺼짐이다.
+ *     버리는 것이 없는 롤백이라 자동 롤백과 달리 경고 문구는 두지 않고 도구 설명에 언제 하고 언제 하지 않는지를 적는다.</li>
  *     <li>지우기: 미리 정의된 유형(개발·테스트·운영)은 지울 수 없다. 지운 유형을 쓰던 연결은 새 연결의 기본 유형으로 바뀌고 저장된다(SWT는
  *     {@code DEFAULT_TYPE}). 지우기 전에 그 유형을 쓰는 연결 수를 보여 주고 묻는다.</li>
  *     <li>트랜잭션 안전: 유형의 자동 커밋 기본값을 바꾸거나 유형을 지우면 연결의 실제 커밋 방식이 바뀔 수 있다. 그래서 저장 전에 연결된 연결마다
@@ -77,6 +78,7 @@ import java.util.Set;
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md "연결 유형")
  * - 2026-11-08 연결 유형 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 스마트 커밋·자동 커밋으로 돌아가기 칸: 쿼리 창이 스마트 커밋을 쓰게 되어 효과가 생김 (docs/chromite/connection-lifecycle.md "스마트 커밋")
+ * - 2026-11-09 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기 칸 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 final class ConnectionTypesPage extends JPanel {
 
@@ -104,6 +106,7 @@ final class ConnectionTypesPage extends JPanel {
     private final JCheckBox confirmDataChangeBox = new JCheckBox(SettingsMessages.types_confirm_data_change);
     private final JCheckBox idleTxnBox = new JCheckBox(SettingsMessages.types_idle_transactions);
     private final JSpinner idleTxnSpinner = new JSpinner(new SpinnerNumberModel(1, 1, MAX_SECONDS / 60, 1));
+    private final JCheckBox endReadOnlyBox = new JCheckBox(SettingsMessages.types_end_read_only);
     private final JCheckBox closeIdleBox = new JCheckBox(SettingsMessages.types_close_idle);
     private final JSpinner closeIdleSpinner = new JSpinner(new SpinnerNumberModel(1, 1, MAX_SECONDS, 60));
     private final Map<DBPDataSourcePermission, JCheckBox> restrictionBoxes = new EnumMap<>(DBPDataSourcePermission.class);
@@ -177,8 +180,10 @@ final class ConnectionTypesPage extends JPanel {
         confirmExecuteBox.setToolTipText(SettingsMessages.types_confirm_execute_tip);
         confirmDataChangeBox.setToolTipText(SettingsMessages.types_confirm_data_change_tip);
         idleTxnBox.setToolTipText(SettingsMessages.types_idle_transactions_tip);
+        endReadOnlyBox.setToolTipText(SettingsMessages.types_end_read_only_tip);
         closeIdleBox.setToolTipText(SettingsMessages.types_close_idle_tip);
-        for (JCheckBox box : List.of(autoCommitBox, smartCommitBox, smartCommitRecoverBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
+        for (JCheckBox box : List.of(autoCommitBox, smartCommitBox, smartCommitRecoverBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox,
+            endReadOnlyBox, closeIdleBox)) {
             box.addActionListener(e -> storeSelected());
         }
         for (JSpinner spinner : List.of(idleTxnSpinner, closeIdleSpinner)) {
@@ -202,6 +207,7 @@ final class ConnectionTypesPage extends JPanel {
         row = OptionsDialog.addRow(form, row, null, confirmDataChangeBox, null);
         row = OptionsDialog.addRow(form, row, null, idleTxnBox, null);
         row = OptionsDialog.addRow(form, row, SettingsMessages.types_idle_transactions_period, idleTxnSpinner, SettingsMessages.types_minutes);
+        row = OptionsDialog.addRow(form, row, null, endReadOnlyBox, null);
         row = OptionsDialog.addSection(form, row, SettingsMessages.types_section_connections);
         row = OptionsDialog.addRow(form, row, null, closeIdleBox, null);
         row = OptionsDialog.addRow(form, row, SettingsMessages.types_close_idle_period, closeIdleSpinner, SettingsMessages.types_seconds);
@@ -255,6 +261,7 @@ final class ConnectionTypesPage extends JPanel {
             confirmDataChangeBox.setSelected(type != null && type.isConfirmDataChange());
             idleTxnBox.setSelected(type != null && type.isAutoCloseTransactions());
             idleTxnSpinner.setValue(type == null ? 1 : Math.clamp(Math.round(type.getCloseIdleTransactionPeriod() / 60f), 1, MAX_SECONDS / 60));
+            endReadOnlyBox.setSelected(type != null && type.isAutoEndReadOnlyTransactions());
             closeIdleBox.setSelected(type != null && type.isAutoCloseConnections());
             closeIdleSpinner.setValue(type == null ? 1 : Math.clamp(type.getCloseIdleConnectionPeriod(), 1, MAX_SECONDS));
             for (Map.Entry<DBPDataSourcePermission, JCheckBox> entry : restrictionBoxes.entrySet()) {
@@ -262,7 +269,7 @@ final class ConnectionTypesPage extends JPanel {
                 entry.getValue().setEnabled(editable);
             }
             for (JComponent component : List.of(nameField, descriptionField, colorButton, colorNoneButton, darkColorButton,
-                darkColorNoneButton, autoCommitBox, smartCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, closeIdleBox)) {
+                darkColorNoneButton, autoCommitBox, smartCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, endReadOnlyBox, closeIdleBox)) {
                 component.setEnabled(editable);
             }
             deleteButton.setEnabled(type != null && !type.isPredefined());
@@ -290,6 +297,7 @@ final class ConnectionTypesPage extends JPanel {
         type.setConfirmDataChange(confirmDataChangeBox.isSelected());
         type.setAutoCloseTransactions(idleTxnBox.isSelected());
         type.setCloseIdleTransactionPeriod((Integer) idleTxnSpinner.getValue() * 60);
+        type.setAutoEndReadOnlyTransactions(endReadOnlyBox.isSelected());
         type.setAutoCloseConnections(closeIdleBox.isSelected());
         type.setCloseIdleConnectionPeriod((Integer) closeIdleSpinner.getValue());
         List<DBPDataSourcePermission> restrictions = new ArrayList<>();
@@ -498,6 +506,7 @@ final class ConnectionTypesPage extends JPanel {
         to.setSmartCommitRecover(from.isSmartCommitRecover());
         to.setAutoCloseTransactions(from.isAutoCloseTransactions());
         to.setCloseIdleTransactionPeriod(from.getCloseIdleTransactionPeriod());
+        to.setAutoEndReadOnlyTransactions(from.isAutoEndReadOnlyTransactions());
         to.setAutoCloseConnections(from.isAutoCloseConnections());
         to.setCloseIdleConnectionPeriod(from.getCloseIdleConnectionPeriod());
     }

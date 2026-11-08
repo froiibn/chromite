@@ -59,6 +59,8 @@ import java.util.stream.Collectors;
  * - 2026-11-08 Chromite: {@code connection-types.xml}에 기본 연결 유형의 이름·설명을 화면 언어와 상관없이 저장하고 읽음
  *   ({@link DBPConnectionType#toStoredText}, {@link DBPConnectionType#fromStoredText})
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-09 Chromite: 연결 유형의 조회만 한 트랜잭션 자동으로 끝내기({@link DBPConnectionType#isAutoEndReadOnlyTransactions})를
+ *   저장하고 읽음. 없는 파일은 꺼짐 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry {
     private static final Log log = Log.getLog(DataSourceProviderRegistry.class);
@@ -800,6 +802,7 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
                         xml.addAttribute(RegistryConstants.ATTR_SMART_COMMIT_RECOVER, connectionType.isSmartCommitRecover());
                         xml.addAttribute(RegistryConstants.ATTR_AUTO_CLOSE_TRANSACTIONS, connectionType.isAutoCloseTransactions());
                         xml.addAttribute(RegistryConstants.ATTR_CLOSE_TRANSACTIONS_PERIOD, connectionType.getCloseIdleTransactionPeriod());
+                        xml.addAttribute(RegistryConstants.ATTR_AUTO_END_READ_ONLY_TRANSACTIONS, connectionType.isAutoEndReadOnlyTransactions());
                         xml.addAttribute(RegistryConstants.ATTR_AUTO_CLOSE_CONNECTIONS, connectionType.isAutoCloseConnections());
                         xml.addAttribute(RegistryConstants.ATTR_CLOSE_CONNECTIONS_PERIOD, connectionType.getCloseIdleConnectionPeriod());
                         List<DBPDataSourcePermission> modifyPermission = connectionType.getModifyPermission();
@@ -990,6 +993,8 @@ public class DataSourceProviderRegistry implements DBPDataSourceProviderRegistry
                         origType != null ? origType.getCloseIdleConnectionPeriod() : DBPConnectionType.DEFAULT_TYPE.getCloseIdleConnectionPeriod())
                     );
                 connectionType.setPredefined(origType != null);
+                connectionType.setAutoEndReadOnlyTransactions(
+                    CommonUtils.getBoolean(attributes.getValue(RegistryConstants.ATTR_AUTO_END_READ_ONLY_TRANSACTIONS), false));
                 String modifyPermissionList = attributes.getValue("modifyPermission");
                 if (!CommonUtils.isEmpty(modifyPermissionList)) {
                     List<DBPDataSourcePermission> permList = new ArrayList<>();

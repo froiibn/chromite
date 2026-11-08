@@ -27,6 +27,7 @@ import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
 import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.runtime.ui.UIServiceIdleTransactions;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -66,6 +67,9 @@ import java.util.Map;
  *     떠 있으면 다시 띄우지 않는다. 멈춘 뒤의 문장마다 같은 오류가 나기 때문이다.</li>
  *     <li>격리 세션 하나만 끊겨 그 세션만 다시 연 알림({@link #showSessionReopened}): 커밋하지 않은 문장이 있었으면 그 수와 시작 시각을 적고
  *     닫을 때까지 남는다(사라진 작업이라 사용자가 놓치면 안 된다). 없었으면 잠시 보이는 정보 알림이다(업스트림의 "다시 연결함" 알림과 같은 무게).</li>
+ *     <li>조회만 한 트랜잭션 끝내기({@link #endReadOnlyTransaction}, 2026-11-09 앱 변경 #31): 모델이 DB에 다시 묻고 아직 조회만 했을 때만
+ *     롤백으로 끝낸다. 그 사이 변경이나 다른 잠금이 생겼으면 끝내지 않고 보통의 커밋 / 롤백 / 취소를 묻는다(취소가 기본). 답은
+ *     {@link #endTransaction}으로 같은 트랜잭션만 끝낸다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -77,6 +81,7 @@ import java.util.Map;
  * - 2026-11-07 오류 복구가 멈춘 알림({@link #showTransactionAborted}, {@link #showReconnectHeld})
  *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@link #showSessionReopened}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-09 조회만 한 트랜잭션 끝내기({@link #endReadOnlyTransaction}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -335,6 +340,64 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
                     } else {
                         log.info((commit ? "Committed" : "Rolled back") + " the transaction of " + container.getName() //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                             + " (" + context.getContextName() + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+                    }
+                    if (afterwards != null) {
+                        afterwards.run();
+                    }
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Ends the shown read-only transaction ({@link QMTransactionState#isReadOnly()}) in a job, as the user chose in the
+     * query window's open transaction menu. When the database now reports more than reads, nothing is ended and the
+     * usual Commit / Roll back / Cancel question follows. Call in the EDT.
+     *
+     * @param transactionStart the shown transaction ({@link QMTransactionState#getTransactionStartTime()})
+     * @param afterwards       run in the EDT when done (also when nothing was done or the question was cancelled), or null
+     */
+    static void endReadOnlyTransaction(
+        @Nullable Component parent,
+        @NotNull DBCExecutionContext context,
+        long transactionStart,
+        @Nullable Runnable afterwards
+    ) {
+        DBPDataSourceContainer container = context.getDataSource().getContainer();
+        new AbstractJob("End read-only transaction of " + container.getName()) { //$NON-NLS-1$
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                IdleTransactionMonitor.ReadOnlyEnd result = null;
+                Exception error = null;
+                try {
+                    result = IdleTransactionMonitor.endReadOnlyTransaction(monitor, context, transactionStart);
+                } catch (Exception e) {
+                    error = e;
+                }
+                IdleTransactionMonitor.ReadOnlyEnd finalResult = result;
+                Exception finalError = error;
+                SwingUtilities.invokeLater(() -> {
+                    if (finalError != null) {
+                        log.warn("Cannot end the read-only transaction of " + container.getName(), finalError); //$NON-NLS-1$
+                        ErrorDialog.show(parent, ConnectionMessages.idle_txn_title,
+                            NLS.bind(ConnectionMessages.idle_txn_error, container.getName()), finalError);
+                    } else if (finalResult == IdleTransactionMonitor.ReadOnlyEnd.ENDED) {
+                        log.info("Ended the read-only transaction of " + container.getName() //$NON-NLS-1$
+                            + " (" + context.getContextName() + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+                    } else if (finalResult == IdleTransactionMonitor.ReadOnlyEnd.NOT_READ_ONLY) {
+                        String[] options = {ConnectionMessages.idle_txn_commit, ConnectionMessages.idle_txn_rollback, CoreMessages.common_cancel};
+                        int answer = JOptionPane.showOptionDialog(parent,
+                            NLS.bind(ConnectionMessages.idle_txn_read_only_changed, describeContext(context)), ConnectionMessages.idle_txn_title,
+                            JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
+                        if (answer == 0 || answer == 1) {
+                            endTransaction(parent, context, transactionStart, answer == 0, afterwards);
+                            return;
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(parent, ConnectionMessages.idle_txn_not_ended, ConnectionMessages.idle_txn_title,
+                            JOptionPane.INFORMATION_MESSAGE);
                     }
                     if (afterwards != null) {
                         afterwards.run();

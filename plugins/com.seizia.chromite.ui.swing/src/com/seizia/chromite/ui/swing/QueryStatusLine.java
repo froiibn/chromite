@@ -67,7 +67,10 @@ import java.util.Objects;
  *     문장 수다. 도구 설명은 DB가 알려 준 쥔 것(변경, 잠금, 스냅숏, 명시적 시작, 오류로 중단됨), 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수,
  *     마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
  *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.
- *     같은 메뉴의 Transaction Log는 그 트랜잭션의 문장 목록을 연다(SWT 트랜잭션 모니터를 누르면 로그가 열리던 것과 같은 자리).</li>
+ *     같은 메뉴의 Transaction Log는 그 트랜잭션의 문장 목록을 연다(SWT 트랜잭션 모니터를 누르면 로그가 열리던 것과 같은 자리).
+ *     조회만 한 트랜잭션({@link QMTransactionState#isReadOnly()}, 2026-11-09 앱 변경 #31)이면 메뉴는 "트랜잭션 끝내기(잠금 해제)" 하나와
+ *     Transaction Log다. 커밋과 롤백은 이때 같은 일이고, 버리는 변경이 없다는 것을 문구로 분명히 하려고 둘 대신 하나를 보인다.
+ *     연결 유형 설정으로 Chromite가 문장 뒤에 스스로 끝냈으면 칸은 잠시({@link #READ_ONLY_ENDED_NOTE_MILLIS}) 그렇게 알린다.</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>폭이 모자라면 서버 칸이 먼저 줄어든다({@link LineLayout}): 서버 칸은 도구 설명에 전체 위치와 버전이 있지만 상태 문구(오류, 취소)는
  *     다른 곳에 없다. 서버 칸은 최소 폭(64)까지 줄임표로 줄고, 그래도 모자라면 빠진다(연결은 도구 막대와 탭 제목에 있다). 그 뒤에야 상태 문구가 잘린다.</li>
@@ -101,6 +104,8 @@ import java.util.Objects;
  * - 2026-11-08 열린 트랜잭션 칸: "확인할 수 없음" 문구와 도구 설명의 쥔 것 줄 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  * - 2026-11-08 메인 창 상태 표시줄로 옮김(앱 변경 #2): 바탕과 위 1px 선을 그리지 않고 연결 색을 상태 표시줄에 알림({@link #BAND_PROPERTY}),
  *   높이는 size.statusBar(size.statusLine.query 삭제) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-09 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기(잠금 해제), 자동으로 끝냈다는 짧은 알림 (docs/chromite/idle-transactions.md
+ *   "조회만 한 트랜잭션 끝내기")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -112,13 +117,21 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * The menu of the open transaction segment: Commit / Roll back of the shown transaction, Transaction Log.
+     * The menu of the open transaction segment: Commit / Roll back of the shown transaction (End transaction for one that
+     * only read), Transaction Log.
      */
     interface OpenTransactionActions {
         /**
          * @param transaction the transaction shown when the menu opened
          */
         void end(@NotNull QMTransactionState transaction, boolean commit);
+
+        /**
+         * Ends the shown read-only transaction ({@link QMTransactionState#isReadOnly()}) after asking the database again.
+         *
+         * @param transaction the transaction shown when the menu opened
+         */
+        void endReadOnly(@NotNull QMTransactionState transaction);
 
         /**
          * Opens the transaction log of the window's execution context.
@@ -137,6 +150,10 @@ final class QueryStatusLine extends JPanel {
      * out.
      */
     private static final int SERVER_MIN_WIDTH = 64;
+    /**
+     * How long the open transaction segment says that a read-only transaction was ended automatically.
+     */
+    static final long READ_ONLY_ENDED_NOTE_MILLIS = 15_000;
 
     private final JLabel stateLabel = new BandLabel(false);
     private final JLabel serverLabel = createSegment();
@@ -337,11 +354,19 @@ final class QueryStatusLine extends JPanel {
      * The open transaction of the window's execution context ({@link QMTransactionState#isOpen()}: the database holds
      * something for it, it was begun explicitly, or that cannot be told), or null to hide the segment. Called about once
      * a second, so the elapsed time counts up.
+     *
+     * @param readOnlyEnded without an open transaction: when Chromite ended a read-only one automatically, to say so
+     *                      for {@link #READ_ONLY_ENDED_NOTE_MILLIS}; 0 for none
      */
-    void setOpenTransaction(@Nullable QMTransactionState transaction) {
+    void setOpenTransaction(@Nullable QMTransactionState transaction, long readOnlyEnded) {
         openTransaction = transaction;
         if (transaction == null) {
-            setSegment(openTransactionLabel, null, null);
+            if (readOnlyEnded > 0 && System.currentTimeMillis() - readOnlyEnded < READ_ONLY_ENDED_NOTE_MILLIS) {
+                setSegment(openTransactionLabel, EditorMessages.editor_status_txn_read_only_ended,
+                    NLS.bind(EditorMessages.editor_status_txn_read_only_ended_tip, formatTime(readOnlyEnded)));
+            } else {
+                setSegment(openTransactionLabel, null, null);
+            }
             openTransactionLabel.setIcon(null);
             return;
         }
@@ -374,7 +399,8 @@ final class QueryStatusLine extends JPanel {
             .append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_last, //$NON-NLS-1$
                 formatTime(transaction.getLastExecuteTime()))));
         if (openTransactionActions != null) {
-            tip.append("<br>").append(CommonUtils.escapeHtml(EditorMessages.editor_status_txn_tip_click)); //$NON-NLS-1$
+            tip.append("<br>").append(CommonUtils.escapeHtml(transaction.isReadOnly() //$NON-NLS-1$
+                ? EditorMessages.editor_status_txn_tip_click_read_only : EditorMessages.editor_status_txn_tip_click));
         }
         setSegment(openTransactionLabel, text, tip.append("</html>").toString()); //$NON-NLS-1$
         openTransactionLabel.setIcon(UiIcons.statusDot(UiIcons.Status.WARNING));
@@ -389,8 +415,8 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * Commit / Roll back for the transaction shown now and Transaction Log, above the segment (the line is at the
-     * bottom of the window).
+     * Commit / Roll back for the transaction shown now (End transaction when it only read) and Transaction Log, above
+     * the segment (the line is at the bottom of the window).
      */
     private void showOpenTransactionMenu() {
         QMTransactionState transaction = openTransaction;
@@ -399,8 +425,12 @@ final class QueryStatusLine extends JPanel {
             return;
         }
         JPopupMenu menu = new JPopupMenu();
-        menu.add(new JMenuItem(EditorMessages.editor_status_txn_commit)).addActionListener(e -> actions.end(transaction, true));
-        menu.add(new JMenuItem(EditorMessages.editor_status_txn_rollback)).addActionListener(e -> actions.end(transaction, false));
+        if (transaction.isReadOnly()) {
+            menu.add(new JMenuItem(EditorMessages.editor_status_txn_end_read_only)).addActionListener(e -> actions.endReadOnly(transaction));
+        } else {
+            menu.add(new JMenuItem(EditorMessages.editor_status_txn_commit)).addActionListener(e -> actions.end(transaction, true));
+            menu.add(new JMenuItem(EditorMessages.editor_status_txn_rollback)).addActionListener(e -> actions.end(transaction, false));
+        }
         menu.addSeparator();
         menu.add(new JMenuItem(EditorMessages.editor_status_txn_log)).addActionListener(e -> actions.showLog());
         menu.show(openTransactionLabel, 0, -menu.getPreferredSize().height);
