@@ -54,6 +54,24 @@
     <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
   </div>
 
+  <section class="sect release" id="v0.1.4">
+    <h2>0.1.4</h2>
+    <div class="body">
+      <p>Screens and behaviour refined from hands-on feedback, with fixes to transaction and data safety, installation and updates.</p>
+      <ul>
+        <li>Transactions: an open transaction is shown only when the database really holds something (asked from the database), transactions opened with BEGIN TRAN in auto-commit are shown too, an unknown state is shown as unverified, and a read-only transaction can be ended in one click or automatically (setting, off by default)</li>
+        <li>Results: one tab per result set (Result1, Result2, …), a mid-script error keeps the earlier results and stops, results no longer stay behind when switching tabs, clicking a header selects the column (sort and filter by their icons), no selection highlight on row numbers</li>
+        <li>Screens: query window status in the main status bar painted in the connection colour, connection and database pickers first in the SQL Editor tool bar, Chromite Agent button at the right end, Query Library and Chromite Agent on the right on first start, a startup splash, hover afterimage in trees at 150% scaling fixed</li>
+        <li>Chromite Agent: provider and model in one picker under the input, conversation history, tools that read and edit open query windows (never run or save; edits are confirmed first), token usage shown</li>
+        <li>Options: a larger window with a settings search above the page list, Chromite Agent settings opened directly</li>
+        <li>Query Library: a Save button in the editor, database and schema lists of the target connection</li>
+        <li>Safety: a cancelled or failed data transfer closes its load connection and reports what was undone, skipping a failed row no longer loses earlier rows and Retry no longer drops rows, SSH host keys are checked behind jump servers too</li>
+        <li>Table designer: renaming saved columns, keys and tables, a partly failed save shows what was applied and reloads, DEFAULT names are kept</li>
+        <li>Install and update: Windows installs for all users (Program Files) by default with "only for me" as an option, an installation progress window after the app closes, the macOS app is named Chromite, disk image window layout</li>
+        <li>macOS: menus in the screen menu bar, Command (⌘) shortcuts</li>
+      </ul>
+    </div>
+  </section>
   <section class="sect release" id="v0.1.3">
     <h2>0.1.3</h2>
     <div class="body">
