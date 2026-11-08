@@ -385,6 +385,72 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
   - PostgreSQL `show-database-statistics`: 연결의 공급자 속성으로 읽지만 `collectObjectStatistics`를 부르는 곳이 Swing에(모델에도) 없고, 공급자
     속성으로 선언되지도 않았다. 효과가 없다.
 
+## 목록, 찾기, 페이지 열기 (2026-11-08, app round 1 #8·#13)
+
+사용자 요청: "옵션 화면의 크기를 조금 더 키운다. 옵션의 좌측 항목의 영역이 너무 좁다", "옵션의 우측 페이지의 좌측에 여백이 없다",
+"옵션의 좌측 패널 상단에 고정된 검색 영역을 추가한다", Chromite Agent 창의 설정 단추는 "에이전트 설정 탭으로 이동하게 하라".
+
+### 구조 (`OptionsDialog`)
+
+- 왼쪽: 찾기 칸(고정) + "일치 없음" 글 + 페이지 목록(`JList`, 스크롤). 오른쪽: 페이지 자리(`CardLayout`)를 `JLayer`로 감싼 것.
+- 전에는 `JTabbedPane(LEFT, SCROLL_TAB_LAYOUT)`이었다. 탭은 숨길 수 없어 찾기로 걸러 보일 수 없으므로 목록 + 카드로 바꿨다.
+  페이지 클래스와 저장(`apply`)은 그대로다.
+- 페이지마다 식별자가 있다: `general`, `editor`, `editor-colors`, `connection-types`, `templates`, `updates`, `agent`(`OptionsDialog.PAGE_AGENT`),
+  설정 키 페이지(`SettingsPage`)는 클래스 이름(`SqlExecutionOptionsPage` 등). 카드 이름도 이 식별자다.
+- `OptionsDialog.open(owner, pageId)`: 그 페이지를 고른 채 연다. 화면 이름(언어마다 다름)이 아니라 식별자로 고르므로 목록 구조가 바뀌어도 동작한다.
+  없는 식별자면 로그에 남기고 첫 페이지를 연다. `open(owner)`(Tools > Options, macOS 설정 메뉴)는 전처럼 첫 페이지.
+
+### 크기와 여백
+
+- 목록 폭: 최소 220(UIScale), 가장 긴 이름 + 스크롤 막대가 더 넓으면 그 폭. 목록 높이는 8줄로 잡아 대화상자 높이는 페이지가 정한다.
+  이름은 목록 기본대로 왼쪽 정렬이고 잘리지 않는다(영어 가장 긴 이름 121, 한국어 97, 목록 안쪽 폭 218).
+- 창 크기: `pack()` 크기를 최소 크기로 두고, 여는 크기는 그 1.18배(화면 작업 영역의 90%를 넘지 않음, pack 크기보다 작지 않음).
+  실측(150%, 4K 화면 = 논리 2560×1440): 영어 pack 1265×762 → 1493×899, 한국어 1159×762 → 1368×899.
+- 왼쪽 여백: 페이지 자리(`pageHolder`)에 왼쪽 20(디자인 토큰의 그룹 간격)을 한 번 준다. `wrapPage`는 탭이 위에 있는 다른 대화상자 23곳도 쓰므로
+  바꾸지 않았다(위 12만 띄움). 오른쪽 여백은 대화상자 안쪽 여백 12(디자인 토큰 Dialog insets)로 전과 같다. 실측: 페이지 왼쪽 x = 252(목록 220 + 여백 12 + 20),
+  오른쪽 간격 12.
+- 넓어진 공간: 설정 키 페이지와 General·Editor 페이지는 `addRow` 격자가 마지막 열(설명)에 남는 폭을 주어 입력란이 늘어나지 않는다.
+  표가 있는 페이지(Connection Types, Templates, Drivers의 Maven 저장소, Data Formats)는 표가 넓어진다(의도). Chromite Agent > Providers만
+  입력란이 오른쪽 끝까지 늘어나서, 양식 묶음을 자기 폭으로 두었다(`AiOptionsPage.createProvidersTab`).
+
+### 찾기
+
+- 찾기 칸: 자리 표시 "설정 찾기"/"Search settings"(`CoreMessages.options_search_placeholder`), 돋보기 아이콘, 지우기 단추.
+- 찾는 글: 페이지 이름 + 페이지 안의 라벨, 단추·체크 상자 글, 제목 테두리 글, 하위 탭 이름. 숨긴 하위 탭과 카드의 내용도 찾는다(누르면 보이므로).
+  다른 숨긴 구성 요소와 셀 그리기용 구성 요소(`CellRendererPane`, 마지막에 그린 칸의 글을 가짐)는 뺀다. 콤보 상자 항목, 표 내용, 입력란 값은 찾지 않는다.
+- 비교: 소문자로 바꾸고 공백을 모두 뺀 글에 찾는 글이 들어 있는지("API키"가 "API 키:"와 일치). HTML 라벨은 태그와 흔한 엔터티를 뺀다.
+- 결과: 일치하는 페이지만 목록에 남는다. 고른 페이지가 남으면 그대로, 아니면 첫 일치 페이지. 일치가 없으면 "일치하는 설정이 없습니다"/"No matching settings"
+  (`options_search_no_match`)를 찾기 칸 아래에 보이고 마지막 페이지를 그대로 둔다.
+- 강조: 보이는 페이지에서 일치한 글을 `JLayer`(`MatchHighlighter`)가 위에 반투명으로 칠한다(`Component.focusedBorderColor`, 채움 알파 56 + 테두리).
+  페이지 구성 요소는 바꾸지 않는다. 라벨·체크 상자는 선호 폭(늘어난 체크 상자 전체가 아니라 글), 제목 테두리는 제목 줄, 하위 탭은 탭 자리를 칠한다.
+  안에 일치가 있는 하위 탭도 칠해서 숨은 일치가 어느 탭에 있는지 보인다.
+- 키: Ctrl+F는 찾기 칸으로(글 전체 선택). 찾기 칸의 Esc는 글이 있으면 지우고(모든 페이지), 비어 있으면 대화상자의 Esc(닫기)로 넘어간다.
+  대화상자를 열 때 포커스는 찾기 칸이 아니라 목록에 둔다(첫 페이지 그대로).
+
+### 특정 페이지로 여는 곳
+
+- Chromite Agent 창의 도구 막대 설정 단추와 공급자 미설정 안내의 설정 단추: `AiAssistantPanel.Host.openOptions(OptionsDialog.PAGE_AGENT)`.
+  새 대화상자의 Agent 페이지는 첫 탭 Providers를 보인다([ai-agent.md](ai-agent.md) "설정 열기").
+- 설정 화면을 글로만 가리키는 곳(바꾸지 않음, 같은 방식으로 바로 열 수 있는 후보):
+  - 확인 대화상자 "항상 허용" 도움말 "Options > Chromite Agent > Policy"(`AiConfirmationDialog` 198행, `ai_confirm_always_allow_tip`)와 위험 도구 안내
+    (201행, `ai_confirm_dangerous_note`).
+  - 쿼리 기록 대화상자의 개수 글 "(Tools > Options)"(`QueryHistoryDialog` 300행, `editor_history_count_*`, General > Query History).
+  - 개체 탐색기 "더 보기" 도움말 "Options > General > Object Explorer"(`ObjectExplorerPanel` 2407행, `oe_load_more_tip`).
+  - Query Manager 보기 단추 도움말 "Tools > Options > Logs"(`QueryManagerPanel` 203행, `qm_show_tip`).
+  - 연결 대화상자 Settings의 "Otherwise the settings of Tools > Options apply"(`ConnectionSettingsOverrides` 167행, `overrides_hint`).
+  - 상태 줄 커밋 방식 칸의 "Click to open the Auto-commit setting of the connection"(`QueryStatusLine` 287행)은 Options가 아니라 연결 대화상자를 연다.
+  - 업데이트 알림은 Options를 열지 않는다(`OptionsDialog.open` 호출은 MainFrame 메뉴, macOS 설정 메뉴, Agent 창뿐).
+
+### 확인 (2026-11-08)
+
+Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS 입력 없음), 150%, 영어·한국어. 기록과 화면: `D:\Tools\_scratch\chromite-options-dialog-2\`.
+
+- 첫 페이지 General, 포커스 목록, 목록 25개, 크기·여백 위 실측.
+- "timeout"/"시간 제한" → Errors and Timeouts 하나, 절 제목과 설명 글 2곳 강조. "api key"/"API키" → Chromite Agent, Providers 탭·안내·API 키 라벨 2개.
+  "token"/"토큰" → Chromite Agent, MCP Server 탭 강조, MCP 탭으로 바꾸면 라벨·안내 강조가 보임. "zzzz-nothing" → 목록 0개, 일치 없음 글.
+- Esc(글 있음) → 글 지움, 목록 25개. Esc(빈 칸) → 대화상자 닫힘. Ctrl+F(목록에서) → 포커스 찾기 칸.
+- Agent 창 도구 막대 설정 단추, 미설정 안내 단추(`doClick`), `open(owner, "agent")` → 모두 Chromite Agent 페이지, Providers 탭.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -504,7 +570,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   (`query.rollback-on-error`, `execute.cancel.checkTimeout`)를 읽지 않고, 남은 값은 시작할 때 지운다(모델 변경: `JDBCStatementImpl`, `AbstractJob`,
   `ModelPreferences`, `BasePlatformImpl`, `DataSourceSerializerModern`).
 - 데이터 형식의 이름 있는 프로필 관리가 없다.
-- Options의 페이지 목록이 왼쪽에 있다(SSMS Options처럼). Query Results는 General 탭의 절에서 탭으로 옮겼다.
+- Options의 페이지 목록이 왼쪽에 있다(SSMS Options처럼). Query Results는 General 탭의 절에서 탭으로 옮겼다. 2026-11-08부터 목록 위의 찾기 칸이
+  페이지 이름과 설정 글로 페이지를 거른다.
 - 모델 변경: `DataFormatterProfile`의 로캘 키 상수 세 개를 공개로 바꿨다(값 변경 없음).
 - 모델 변경(2026-11-08 오후): `MavenRegistry.saveConfiguration`의 속성 순서(그룹이 있는 저장소 저장 실패 고침).
 - 2026-11-08 오후: 클라이언트 시간대를 바꿔도 실행 중에 JVM 시간대를 바꾸지 않는다(SWT는 OK에서 바꿈). Altibase 실행 계획 방식을 고를 수 없다.
@@ -538,6 +605,9 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-08 `query.rollback-on-error`, `execute.cancel.checkTimeout`을 모델이 읽지 않게 하고 남은 값을 시작할 때 지움(`chromite/safety-defaults`,
   "Errors and Timeouts"의 "두 키를 끄는 방법"). SWT 설정을 가져오면 두 키가 동작하던 남은 위험이 없어짐. `postgresql.dd.*` 전역 기본값을 두지 않기로 한
   사용자 결정 5를 "다음 작업" 13순위에 적음.
+- 2026-11-08 왼쪽 목록을 `JTabbedPane`에서 `JList` + `CardLayout`으로 바꾸고 넓힘(최소 220), 고정 찾기 칸(페이지 이름 + 설정 글, 일치 강조),
+  창을 pack 크기의 1.18배로(화면 90% 이내), 페이지 왼쪽 여백 20, Agent Providers 양식 폭, 페이지 식별자로 열기와 Agent 창 설정 단추
+  (app round 1 #8·#13, 위 "목록, 찾기, 페이지 열기").
 
 ## 부록: 키별 상태
 
