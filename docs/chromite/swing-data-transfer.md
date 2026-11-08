@@ -609,7 +609,8 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
-- 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 작업으로 저장, 외래 키 옮기기.
+- 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 외래 키 옮기기. (작업으로 저장은 2026-11-08에 더함:
+  [swing-database-tasks.md](swing-database-tasks.md) "데이터 전송 작업")
 - XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
 - 형식 매핑에 남은 것: MariaDB `TIME`의 24시간 넘는 값 → Oracle. (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
   정밀도 없는 `numeric`을, 밤에 `bit` → `boolean`, Oracle 열 복사의 길이 단위, `MAX_STRING_SIZE`를 고쳤고 `NUMBER(p,0)` → `numeric(p,0)`을 확인 —
@@ -618,7 +619,7 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - `MAX_STRING_SIZE = EXTENDED` 경로는 시험 DB에서 확인하지 못했다.
 - 여러 스키마를 복사할 때 원본 스키마마다 같은 이름의 대상 스키마로 나눠 보내기(모델의 대상 컨테이너가 하나라 다루지 않음).
 - 데이터베이스가 여럿인 연결 노드에서 데이터베이스를 고르게 하기(지금은 꺼짐), 펼치지 않은 연결 노드에서 켜기(메타데이터를 EDT에서 읽지 않기 위해 꺼짐).
-- 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일, 작업으로 저장.
+- 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일. (작업으로 저장은 2026-11-08에 더함, 위와 같은 문서)
 - 결과 표의 "가져온 행만/선택한 행만" 내보내기를 마법사에서 고르기(지금은 CSV·XLSX 항목).
 
 ## 변경 이력
@@ -651,3 +652,5 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   [regression-tests.md](regression-tests.md) "실행 결과".
 - 2026-11-08 쿼리 내보내기의 "행 수 세기"가 동작함: 모델 `SQLQueryDataContainer.countData`가 늘 -1이라 쿼리 결과는 전체 행 수를 몰랐다.
   이제 내보내기 전에 COUNT 쿼리 하나를 더 실행한다(SWT 쿼리 결과와 같음, 옵션을 끄면 실행하지 않음). [swing-grid-navigation.md](swing-grid-navigation.md) "전체 행 수".
+- 2026-11-08 세 마법사에 작업으로 저장… 단추, Database Tasks 편집…이 저장된 데이터 전송 작업(SWT 작업 포함)을 마법사로 엶(`chromite/transfer-tasks`,
+  [swing-database-tasks.md](swing-database-tasks.md) "데이터 전송 작업"). 복사 단계는 건너뛴 테이블의 파이프를 실행·저장 때만 빼고 되살린다.

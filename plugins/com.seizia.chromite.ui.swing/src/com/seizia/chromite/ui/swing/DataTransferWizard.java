@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -25,6 +26,7 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.exec.DBCStatistics;
@@ -42,6 +44,7 @@ import com.seizia.chromite.tools.transfer.DataTransferSettings;
 import com.seizia.chromite.tools.transfer.DataTransferState;
 import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
 import com.seizia.chromite.tools.transfer.IDataTransferProducer;
+import com.seizia.chromite.tools.transfer.task.DTSavedTasks;
 import com.seizia.chromite.tools.transfer.task.DTTaskHandlerTransfer;
 import org.jkiss.utils.CommonUtils;
 
@@ -58,6 +61,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * SSMS "SQL Server Import and Export Wizard"처럼 단계를 따라 데이터 내보내기·가져오기를 설정하고 실행하는 대화상자의 공통 틀.
@@ -77,6 +81,10 @@ import java.util.Locale;
  *     "Insert rows (N)")은 그 행의 메시지 칸에 보인다. 끝나면 원본·대상 통계로 행 수를 쓴다.</li>
  *     <li>오류는 모델처럼 {@link DBTTaskExecutionListener#taskFinished}의 오류로 받는다. 행을 넣다 난 오류는 모델이
  *     {@code showErrorStopRetryIgnore}(Stop / Retry / Skip / Skip All)로 묻는다({@link SwingPlatformUI}).</li>
+ *     <li>작업으로 저장("Save as Task…", SWT 마법사의 같은 단추): 마침과 같이 모든 단계를 떠나 설정을 만들되({@link #prepareTransfer}의
+ *     {@code run}이 false: 실행 확인과 기본값 기억은 하지 않음) 실행하지 않고 {@link DTSavedTasks#saveTransferTask}로 저장한다.
+ *     저장한 작업(또는 Database Tasks의 편집으로 연 작업)이 있으면 다음 저장은 그 작업을 고친다. 저장한 작업을 실행할 때의 확인은
+ *     Database Tasks가 한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -85,6 +93,7 @@ import java.util.Locale;
  * - 2026-11-06 테이블 복사: 성공 뒤 처리({@link #transferSucceeded}), 선택에 따라 단계 목록 다시 그리기({@link #refreshSteps})
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 오류 영역에 스택 추적을 여는 "자세히…" 단추를 더함 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-08 마지막 페이지에서 Finish를 기본 단추로 두지 않음: Enter로 전송이 시작되지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 작업으로 저장, 저장된 작업 고치기({@link #saveAsTask}, {@link #setSavedTask}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 abstract class DataTransferWizard extends JDialog {
 
@@ -167,6 +176,7 @@ abstract class DataTransferWizard extends JDialog {
     private final JButton nextButton = new JButton(ToolsMessages.wizard_button_next);
     private final JButton finishButton = new JButton(ToolsMessages.wizard_button_finish);
     private final JButton cancelButton = new JButton(ToolsMessages.button_cancel);
+    private final JButton saveTaskButton = new JButton(DatabaseTasksMessages.tasks_save_as);
     private final JLabel progressLabel = new JLabel(" ");
     private final JProgressBar progressBar = new JProgressBar();
     private final JTextArea errorArea = new JTextArea(4, 40);
@@ -179,6 +189,11 @@ abstract class DataTransferWizard extends JDialog {
     @Nullable
     private AbstractJob runningJob;
     private boolean finished;
+    /**
+     * The task the settings were saved into, or opened from (Database Tasks > Edit); the next save updates it.
+     */
+    @Nullable
+    private DBTTask savedTask;
 
     DataTransferWizard(@Nullable Window owner, @NotNull String title) {
         super(owner, title, ModalityType.APPLICATION_MODAL);
@@ -233,6 +248,9 @@ abstract class DataTransferWizard extends JDialog {
         nextButton.addActionListener(e -> goNext());
         finishButton.addActionListener(e -> finish());
         cancelButton.addActionListener(e -> cancelOrClose());
+        saveTaskButton.addActionListener(e -> saveAsTask());
+        JPanel taskButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        taskButtons.add(saveTaskButton);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(backButton);
         buttons.add(nextButton);
@@ -240,8 +258,11 @@ abstract class DataTransferWizard extends JDialog {
         buttons.add(cancelButton);
         JPanel south = new JPanel(new BorderLayout());
         south.add(new JSeparator(), BorderLayout.NORTH);
-        buttons.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        south.add(buttons, BorderLayout.CENTER);
+        JPanel buttonBar = new JPanel(new BorderLayout());
+        buttonBar.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        buttonBar.add(taskButtons, BorderLayout.WEST);
+        buttonBar.add(buttons, BorderLayout.EAST);
+        south.add(buttonBar, BorderLayout.CENTER);
 
         JPanel content = new JPanel(new BorderLayout());
         content.add(leftWithLine, BorderLayout.WEST);
@@ -266,10 +287,29 @@ abstract class DataTransferWizard extends JDialog {
     /**
      * Builds the transfer from the pages, on the EDT after the last settings page was left.
      *
+     * @param run true when the transfer runs now (Finish): asks the confirmations of the run (emptying tables) and
+     *            remembers the values as the wizard's defaults; false when it is saved as a task
      * @return the settings to run, or null if the transfer can't start (the reason was shown)
      */
     @Nullable
-    protected abstract DataTransferSettings prepareTransfer();
+    protected abstract DataTransferSettings prepareTransfer(boolean run);
+
+    /**
+     * Why the transfer can't be saved as a task (shown as the button's tool tip), or null.
+     */
+    @Nullable
+    protected String getTaskSaveProblem() {
+        return null;
+    }
+
+    /**
+     * Opens the wizard for a saved task: Save updates it. Called by the subclass before the dialog is shown.
+     */
+    protected final void setSavedTask(@NotNull DBTTask task) {
+        savedTask = task;
+        setTitle(NLS.bind(DatabaseTasksMessages.tasks_wizard_title, getTitle(), task.getName()));
+        updateButtons();
+    }
 
     /**
      * Name of a pipe's source in the progress table.
@@ -314,15 +354,57 @@ abstract class DataTransferWizard extends JDialog {
         @Nullable Collection<? extends IDataTransferConsumer<?, ?>> consumers,
         boolean export
     ) {
-        return new DataTransferSettings(producers, consumers, new HashMap<>(), new DataTransferState(), true, export, false, false) {
-            @Nullable
-            @Override
-            public synchronized DataTransferPipe acquireDataPipe(@NotNull DBRProgressMonitor monitor, @Nullable DBTTask task) {
-                DataTransferPipe pipe = super.acquireDataPipe(monitor, task);
-                SwingUtilities.invokeLater(() -> pipeStarted(pipe));
-                return pipe;
+        ReportingSettings settings = new ReportingSettings(producers, consumers, export);
+        settings.wizard = this;
+        return settings;
+    }
+
+    /**
+     * Reads the settings of a saved transfer task (this connects), as settings a wizard can run with its progress page.
+     */
+    @NotNull
+    static DataTransferSettings loadTaskSettings(@NotNull DBRProgressMonitor monitor, @NotNull DBTTask task) throws DBException {
+        return DTSavedTasks.loadTransferTask(monitor, task, ReportingSettings::new);
+    }
+
+    /**
+     * Data transfer settings that report each pipe the model's transfer job takes ({@link #acquireDataPipe}) to the progress
+     * page of the wizard that runs them. The settings of a saved task are read before its wizard exists, so the wizard is
+     * set when it runs them ({@link #startTransfer}).
+     */
+    static final class ReportingSettings extends DataTransferSettings {
+        @Nullable
+        private volatile DataTransferWizard wizard;
+
+        ReportingSettings(
+            @Nullable Collection<? extends IDataTransferProducer<?>> producers,
+            @Nullable Collection<? extends IDataTransferConsumer<?, ?>> consumers,
+            boolean export
+        ) {
+            super(producers, consumers, new HashMap<>(), new DataTransferState(), true, export, false, false);
+        }
+
+        ReportingSettings(
+            @NotNull DBRProgressMonitor monitor,
+            @NotNull DBTTask task,
+            @NotNull Log taskLog,
+            @NotNull Map<String, Object> configuration,
+            @NotNull DataTransferState state,
+            boolean isTaskRunning
+        ) {
+            super(monitor, task, taskLog, configuration, state, isTaskRunning);
+        }
+
+        @Nullable
+        @Override
+        public synchronized DataTransferPipe acquireDataPipe(@NotNull DBRProgressMonitor monitor, @Nullable DBTTask task) {
+            DataTransferPipe pipe = super.acquireDataPipe(monitor, task);
+            DataTransferWizard target = wizard;
+            if (target != null) {
+                SwingUtilities.invokeLater(() -> target.pipeStarted(pipe));
             }
-        };
+            return pipe;
+        }
     }
 
     //////////////////////////////////////////////////////////
@@ -368,6 +450,10 @@ abstract class DataTransferWizard extends JDialog {
         finishButton.setEnabled(!progress);
         cancelButton.setText(finished ? ToolsMessages.button_close : ToolsMessages.button_cancel);
         cancelButton.setEnabled(!progress || runningJob != null || finished);
+        String saveProblem = getTaskSaveProblem();
+        saveTaskButton.setText(savedTask == null ? DatabaseTasksMessages.tasks_save_as : DatabaseTasksMessages.tasks_save);
+        saveTaskButton.setEnabled(!progress && saveProblem == null);
+        saveTaskButton.setToolTipText(saveProblem != null ? saveProblem : DatabaseTasksMessages.tasks_save_tip);
         // Finish is never the default button: Enter on the last page must not start the transfer (it can truncate or
         // drop target tables)
         getRootPane().setDefaultButton(progress ? cancelButton : nextButton.isEnabled() ? nextButton : null);
@@ -407,7 +493,22 @@ abstract class DataTransferWizard extends JDialog {
     }
 
     private void finish() {
-        // Leave the current page and every following applicable page, as Next would
+        if (!leavePages()) {
+            return;
+        }
+        DataTransferSettings settings = prepareTransfer(true);
+        if (settings == null) {
+            return;
+        }
+        startTransfer(settings);
+    }
+
+    /**
+     * Leaves the current page and every following applicable page, as Next would.
+     *
+     * @return false when a page can't be left (it is shown with the reason)
+     */
+    private boolean leavePages() {
         for (int i = currentPage; i >= 0 && i < pages.size() - 1; i = findPage(i, 1)) {
             Page page = pages.get(i);
             if (i != currentPage) {
@@ -417,14 +518,41 @@ abstract class DataTransferWizard extends JDialog {
             if (error != null) {
                 showPage(i);
                 JOptionPane.showMessageDialog(this, error, getTitle(), JOptionPane.WARNING_MESSAGE);
-                return;
+                return false;
             }
         }
-        DataTransferSettings settings = prepareTransfer();
+        return true;
+    }
+
+    /**
+     * Saves the settings as a task of the project (Database Tasks), or into the task this wizard edits, without running
+     * it. The pages are left as for Finish, so the saved settings are those Finish would run.
+     */
+    private void saveAsTask() {
+        if (getTaskSaveProblem() != null || !leavePages()) {
+            return;
+        }
+        DataTransferSettings settings = prepareTransfer(false);
         if (settings == null) {
             return;
         }
-        startTransfer(settings);
+        Object name = JOptionPane.showInputDialog(this, DatabaseTasksMessages.tasks_name, DatabaseTasksMessages.tasks_save_title,
+            JOptionPane.QUESTION_MESSAGE, null, null, savedTask != null ? savedTask.getName() : getTitle());
+        if (name == null || name.toString().isBlank()) {
+            return;
+        }
+        DBTTask existing = savedTask;
+        try {
+            savedTask = ProgressDialog.runTask(DatabaseTasksMessages.tasks_saving,
+                monitor -> DTSavedTasks.saveTransferTask(monitor, settings, name.toString().strip(), existing));
+        } catch (DBException e) {
+            log.debug("Can't save the task", e);
+            ErrorDialog.show(this, DatabaseTasksMessages.tasks_save_title, ErrorText.describe(e), e);
+            return;
+        }
+        updateButtons();
+        JOptionPane.showMessageDialog(this, NLS.bind(DatabaseTasksMessages.tasks_saved, savedTask.getName()),
+            DatabaseTasksMessages.tasks_save_title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void cancelOrClose() {
@@ -441,6 +569,9 @@ abstract class DataTransferWizard extends JDialog {
     // Transfer
 
     private void startTransfer(@NotNull DataTransferSettings settings) {
+        if (settings instanceof ReportingSettings reporting) {
+            reporting.wizard = this;
+        }
         pipeRows.clear();
         for (DataTransferPipe pipe : settings.getDataPipes()) {
             pipeRows.add(new PipeRow(pipe, describeSource(pipe), describeTarget(pipe)));

@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
@@ -44,12 +45,14 @@ import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.properties.PropertySourceCustom;
 import com.seizia.chromite.tools.transfer.DataTransferPipe;
 import com.seizia.chromite.tools.transfer.DataTransferSettings;
 import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
 import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
 import com.seizia.chromite.tools.transfer.processor.FailedExportFileCleanerProcessor;
 import com.seizia.chromite.tools.transfer.processor.ShowInExplorerEventProcessor;
@@ -110,6 +113,11 @@ import java.util.Set;
  *     옵션을 미리 채운다. 화면에 칸이 있는 옵션은 칸에 넣어 사용자가 보고 고칠 수 있게 하고, 칸이 없는 옵션(파일 나누기, 시각 형식, 가져오기 크기 등)은
  *     내보낼 때 설정에 넣는다. 받는 옵션은 {@link #EXPORT_CONSUMER_OPTIONS}·{@link #EXPORT_PRODUCER_OPTIONS}이고 나머지는 명령 처리기가 거절한다.
  *     명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.</li>
+ *     <li>저장된 작업 편집({@link #openForTask}): 파일로 내보내는 작업은 {@code @export} 명령과 같은 길로 채운다. 작업의 형식·형식 속성·
+ *     출력·원본 옵션을 {@link ExportCommand}로 만들어 넘기므로 칸이 있는 옵션은 칸에, 없는 옵션은 설정에 들어가고 Export Data…의 기본값은
+ *     바뀌지 않는다. 화면에 없는 SWT 설정(날짜·숫자 형식 프로필, 끝난 뒤 명령)은 그대로 다시 저장한다. 테이블 복사 작업은 읽은 설정과
+ *     매핑을 그대로 복사 단계에 넘긴다(모델이 저장한 매핑이 SWT와 같게 되살아나도록). 결과 표 필터가 걸린 쿼리는 작업으로 저장하지 않는다:
+ *     모델이 producer의 필터를 저장하지만 다시 읽지 않아 다른 행을 내보내게 되기 때문이다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -122,6 +130,7 @@ import java.util.Set;
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-07 스크립트의 {@code @export} 명령: 다음 쿼리를 원본으로, 명령의 형식·옵션을 미리 채워 연다({@link #openForExportCommand},
  *   {@link ExportCommand}) (docs/chromite/swing-data-transfer.md "@export 명령")
+ * - 2026-11-08 작업으로 저장, 저장된 내보내기·복사 작업 편집({@link #openForTask}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -281,6 +290,11 @@ final class DataExportWizard extends DataTransferWizard {
      */
     @Nullable
     private final ExportCommand exportCommand;
+    /**
+     * The output settings of the saved task the wizard was opened for ({@link #openForTask}), or null.
+     */
+    @Nullable
+    private StreamConsumerSettings taskOutput;
 
     private DataExportWizard(
         @Nullable Window owner,
@@ -513,6 +527,139 @@ final class DataExportWizard extends DataTransferWizard {
     }
 
     /**
+     * Opens the wizard for a saved export or copy task (Database Tasks > Edit) with the settings read from it
+     * ({@link DataTransferWizard#loadTaskSettings}). Save updates the task; Finish runs it.
+     * <ul>
+     *     <li>Tables and views: listed with the other tables and views of their schema (as Export Data… on a table), the task's
+     *     ones checked. A query: the query page.</li>
+     *     <li>Files: the task's format, format properties and output options go into the fields as the options of an
+     *     {@code @export} command do ({@link ExportCommand}); the options without a field are applied as they are.</li>
+     *     <li>A database (Copy Tables): the task's settings and mappings become those of the copy pages
+     *     ({@link DatabaseCopyPages#applyTask}).</li>
+     * </ul>
+     *
+     * @return false when the task is not an export or a copy this wizard shows (another source or destination)
+     */
+    static boolean openForTask(
+        @NotNull Component parent,
+        @NotNull DBTTask task,
+        @NotNull DataTransferSettings loaded,
+        @Nullable ObjectExplorerPanel.QueryWindows queryWindows
+    ) {
+        List<DBSDataContainer> taskSources = new ArrayList<>();
+        DatabaseTransferProducer firstProducer = null;
+        for (DataTransferPipe pipe : loaded.getDataPipes()) {
+            if (!(pipe.getProducer() instanceof DatabaseTransferProducer producer) || !(producer.getDatabaseObject() instanceof DBSDataContainer source)) {
+                return false;
+            }
+            if (firstProducer == null) {
+                firstProducer = producer;
+            }
+            taskSources.add(source);
+        }
+        DataTransferNodeDescriptor consumer = loaded.getConsumer();
+        boolean toDatabase = consumer != null && consumer.getNodeClass() == DatabaseTransferConsumer.class;
+        boolean toFiles = consumer != null && consumer.getNodeClass() == StreamTransferConsumer.class;
+        if (firstProducer == null || !toDatabase && !toFiles) {
+            return false;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(parent);
+        ExportCommand preset = toFiles ? createTaskPreset(loaded) : null;
+        if (toFiles && preset == null) {
+            return false;
+        }
+        DataExportWizard wizard;
+        if (taskSources.getFirst() instanceof SQLQueryContainer query) {
+            if (toDatabase || taskSources.size() != 1 || !canExportQuery(taskSources.getFirst())) {
+                return false;
+            }
+            wizard = new DataExportWizard(owner, taskSources, Set.copyOf(taskSources), query, null, null, false, null, null, preset);
+            // The query runs in the catalog and schema it was saved with
+            wizard.sourceCatalog = firstProducer.getDefaultCatalog();
+            wizard.sourceSchema = firstProducer.getDefaultSchema();
+        } else {
+            List<DBSDataContainer> containers = listTaskSources(parent, taskSources);
+            if (containers == null) {
+                return true;
+            }
+            wizard = new DataExportWizard(owner, containers, new LinkedHashSet<>(taskSources), null, null, null, toDatabase, queryWindows, null, preset);
+        }
+        if (toDatabase) {
+            if (wizard.copy == null || !wizard.copy.applyTask(loaded, wizard.getSelectedSources())) {
+                wizard.dispose();
+                return false;
+            }
+        } else if (loaded.getNodeSettings(consumer) instanceof StreamConsumerSettings output) {
+            wizard.taskOutput = output;
+        }
+        wizard.setSavedTask(task);
+        wizard.open();
+        return true;
+    }
+
+    /**
+     * The tables and views of a saved task, with the other tables and views of their schema when they all have the same one.
+     *
+     * @return null when reading the schema was canceled
+     */
+    @Nullable
+    private static List<DBSDataContainer> listTaskSources(@NotNull Component parent, @NotNull List<DBSDataContainer> taskSources) {
+        DBSObject container = taskSources.getFirst().getParentObject();
+        for (DBSDataContainer source : taskSources) {
+            if (source.getParentObject() != container) {
+                container = null;
+                break;
+            }
+        }
+        List<DBSDataContainer> containers = new ArrayList<>();
+        if (container != null && DataTransferObjects.isDataContainerParent(container)) {
+            DBSObject schema = container;
+            try {
+                containers.addAll(ProgressDialog.runTask(ToolsMessages.export_title, monitor -> DataTransferObjects.readDataContainers(monitor, schema)));
+            } catch (DBInterruptedException e) {
+                return null;
+            } catch (DBException e) {
+                // The task's own tables are enough to edit it
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title,
+                    NLS.bind(ToolsMessages.export_error_read_tables, DBUtils.getObjectFullName(schema, DBPEvaluationContext.UI)), e);
+            }
+        }
+        for (DBSDataContainer source : taskSources.reversed()) {
+            if (!containers.contains(source)) {
+                containers.addFirst(source);
+            }
+        }
+        return containers;
+    }
+
+    /**
+     * The format, format properties and output and source options of a saved export to files, as the options of an
+     * {@code @export} command; null if its format is not a format of the export.
+     */
+    @Nullable
+    private static ExportCommand createTaskPreset(@NotNull DataTransferSettings loaded) {
+        DataTransferProcessorDescriptor processor = loaded.getProcessor();
+        DataTransferNodeDescriptor consumerNode = loaded.getConsumer();
+        DataTransferNodeDescriptor producerNode = loaded.getProducer();
+        if (processor == null || consumerNode == null || producerNode == null
+            || !(loaded.getNodeSettings(consumerNode) instanceof StreamConsumerSettings output)) {
+            return null;
+        }
+        Map<String, Object> properties = DataTransferObjects.convertProcessorProperties(processor, loaded.getProcessorProperties());
+        Map<String, Object> outputSettings = new HashMap<>();
+        output.saveSettings(outputSettings);
+        outputSettings.keySet().retainAll(EXPORT_CONSUMER_OPTIONS);
+        outputSettings.put(EXPORT_OPEN_FOLDER, output.hasEventProcessor(ShowInExplorerEventProcessor.ID));
+        outputSettings.put(EXPORT_DELETE_ON_FAILURE, output.hasEventProcessor(FailedExportFileCleanerProcessor.ID));
+        Map<String, Object> sourceSettings = new HashMap<>();
+        if (loaded.getNodeSettings(producerNode) instanceof DatabaseProducerSettings producerSettings) {
+            producerSettings.saveSettings(sourceSettings);
+            sourceSettings.keySet().retainAll(EXPORT_PRODUCER_OPTIONS);
+        }
+        return new ExportCommand(processor, properties, outputSettings, sourceSettings);
+    }
+
+    /**
      * Puts the {@code @export} output options that have a field on the pages into the fields, so the user sees them.
      */
     private void applyExportCommandFields(@NotNull Map<String, Object> consumer) {
@@ -636,9 +783,9 @@ final class DataExportWizard extends DataTransferWizard {
 
     @Nullable
     @Override
-    protected DataTransferSettings prepareTransfer() {
+    protected DataTransferSettings prepareTransfer(boolean run) {
         if (toDatabase) {
-            return copy == null ? null : copy.prepareTransfer();
+            return copy == null ? null : copy.prepareTransfer(run);
         }
         if (consumerNode == null || processor == null || processorProperties == null) {
             return null;
@@ -695,10 +842,28 @@ final class DataExportWizard extends DataTransferWizard {
         if (deleteOnFailureCheck.isSelected()) {
             output.getEventProcessorSettings(FailedExportFileCleanerProcessor.ID);
         }
-        if (exportCommand == null) {
+        if (taskOutput != null) {
+            // Settings of the saved task that have no field on the pages (an SWT task's data format profile, its command
+            // after the export): kept as they were
+            output.setFormatterProfile(taskOutput.getFormatterProfile());
+            for (Map.Entry<String, Map<String, Object>> processorSettings : taskOutput.getEventProcessors().entrySet()) {
+                if (!processorSettings.getKey().equals(ShowInExplorerEventProcessor.ID)
+                    && !processorSettings.getKey().equals(FailedExportFileCleanerProcessor.ID)) {
+                    output.getEventProcessorSettings(processorSettings.getKey()).putAll(processorSettings.getValue());
+                }
+            }
+        }
+        if (run && exportCommand == null) {
             saveOutputPreferences();
         }
         return settings;
+    }
+
+    @Nullable
+    @Override
+    protected String getTaskSaveProblem() {
+        // The model saves a producer's filter but does not read it back (DatabaseTransferProducer.ObjectSerializer)
+        return queryFilter != null ? DatabaseTasksMessages.tasks_save_filter : null;
     }
 
     @NotNull

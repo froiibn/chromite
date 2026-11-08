@@ -27,9 +27,11 @@ import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBPSystemObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.navigator.DBNDataSource;
 import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
@@ -41,6 +43,7 @@ import com.seizia.chromite.model.struct.DBSObjectContainer;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -48,7 +51,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 데이터 내보내기·가져오기 마법사가 함께 쓰는 것: 원본 객체 찾기, 양식 줄, 안내 문구, 객체 칸 렌더러.
@@ -66,6 +71,7 @@ import java.util.List;
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 데이터베이스 노드에서 가져오기·내보내기·테이블 복사: 스키마를 담는 컨테이너, 연결의 유일한 데이터베이스, 스키마별 원본 읽기
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-08 저장된 작업의 형식 속성 바꾸기({@link #convertProcessorProperties}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  */
 final class DataTransferObjects {
 
@@ -275,6 +281,27 @@ final class DataTransferObjects {
             form.add(hintLabel, c);
         }
         return row + 1;
+    }
+
+    /**
+     * The format properties of a saved task (saved as text), converted to the property types as the wizards edit them;
+     * properties the format does not have are left out.
+     */
+    @NotNull
+    static Map<String, Object> convertProcessorProperties(
+        @NotNull DataTransferProcessorDescriptor processor,
+        @Nullable Map<String, Object> saved
+    ) {
+        Map<String, Object> properties = new HashMap<>();
+        if (saved != null) {
+            for (Map.Entry<String, Object> entry : saved.entrySet()) {
+                DBPPropertyDescriptor descriptor = processor.getProperty(entry.getKey());
+                if (descriptor != null && entry.getValue() != null) {
+                    properties.put(entry.getKey(), PropertyDescriptor.convertString(CommonUtils.toString(entry.getValue()), descriptor.getDataType()));
+                }
+            }
+        }
+        return properties;
     }
 
     /**
