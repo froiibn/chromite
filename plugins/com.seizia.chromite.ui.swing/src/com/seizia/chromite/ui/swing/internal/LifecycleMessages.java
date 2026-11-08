@@ -20,14 +20,15 @@ import org.eclipse.osgi.util.NLS;
 
 /**
  * Texts of the connection lifecycle: initialization SQL and SQLite extension approval, several connections' disconnect,
- * Invalidate/Reconnect, the connection lost and driver error dialogs, running jobs at exit, smart commit and the
- * transaction log's previous transactions.
+ * Invalidate/Reconnect, the connection lost and driver error dialogs, running jobs at exit, smart commit, the commit
+ * mode switch and the transaction log's previous transactions.
  *
  * 설계: 다른 작업과 같은 파일을 고치지 않도록 이 클래스에 따로 둔다
  * (영어 {@code LifecycleMessages.properties}, 한국어 {@code LifecycleMessages_ko.properties}).
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/connection-lifecycle.md)
+ * - 2026-11-08 커밋 방식 전환 문구({@code commit_mode_*}, Query &gt; Auto-Commit) (docs/chromite/transactions.md "커밋 방식 전환")
  */
 public class LifecycleMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.LifecycleMessages"; //$NON-NLS-1$
@@ -86,6 +87,26 @@ public class LifecycleMessages extends NLS {
     public static String smart_commit_tip;
     public static String smart_commit_recover;
     public static String smart_commit_recover_tip;
+
+    // Query > Auto-Commit and the SQL Editor tool bar's commit mode button (CommitModeSwitch)
+    public static String commit_mode_auto;
+    public static String commit_mode_manual;
+    public static String commit_mode_unknown;
+    public static String commit_mode_tip_auto;
+    public static String commit_mode_tip_manual;
+    public static String commit_mode_tip_shared;
+    public static String commit_mode_tip_unavailable;
+    public static String commit_mode_title;
+    public static String commit_mode_txn_message;
+    public static String commit_mode_txn_cancel_note;
+    public static String commit_mode_commit_switch;
+    public static String commit_mode_rollback_switch;
+    public static String commit_mode_shared_note;
+    public static String commit_mode_switch_to;
+    public static String commit_mode_progress;
+    public static String commit_mode_running;
+    public static String commit_mode_changed;
+    public static String commit_mode_error;
 
     // Transaction log: previous transactions (TransactionLogDialog)
     public static String txn_log_show_previous;
