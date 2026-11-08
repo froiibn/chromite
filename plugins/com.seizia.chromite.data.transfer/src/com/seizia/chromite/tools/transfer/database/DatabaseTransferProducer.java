@@ -62,6 +62,10 @@ import java.util.Map;
 
 /**
  * Data container transfer producer
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 구간으로 나눠 읽을 때 마지막(덜 찬) 구간의 통계도 더함. 전에는 그 구간의 행이 파일에는 쓰였지만 읽은 행 수에서
+ *   빠졌다(1000행을 300행씩 읽으면 900) (docs/chromite/swing-data-transfer.md "고급 옵션")
  */
 @DBSerializable("databaseTransferProducer")
 public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseProducerSettings>, IDataTransferNodePrimary {
@@ -311,11 +315,12 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
                                 DBCStatistics statistics = dataContainer.readData(
                                     transferSource, session, consumer, dataFilter, offset, segmentSize, readFlags, settings.getFetchSize());
                                 checkCanceled(monitor);
+                                // The last segment is not full: its rows count too
+                                producerStatistics.accumulate(statistics);
                                 if (statistics.getRowsFetched() < segmentSize) {
                                     // Done
                                     break;
                                 }
-                                producerStatistics.accumulate(statistics);
                                 offset += statistics.getRowsFetched();
                             }
                         }

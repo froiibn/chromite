@@ -18,7 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
-import com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages;
+import com.seizia.chromite.ui.swing.internal.TransferOptionsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -34,9 +34,11 @@ import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
 import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSDataBulkLoader;
 import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -49,7 +51,6 @@ import com.seizia.chromite.tools.transfer.database.DatabaseConsumerSettings;
 import com.seizia.chromite.tools.transfer.database.DatabaseMappingAttribute;
 import com.seizia.chromite.tools.transfer.database.DatabaseMappingContainer;
 import com.seizia.chromite.tools.transfer.database.DatabaseMappingType;
-import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings;
 import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
 import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
 import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
@@ -89,6 +90,12 @@ import java.util.function.Supplier;
  *     복사하면 같은 대상 스키마로 가므로, 두 원본이 같은 대상 테이블로 가면 다음으로 가지 않는다.</li>
  *     <li>끝난 뒤 테이블 열기: Swing에는 객체 편집기가 없어 모델의 {@code openTableOnFinish}는 끄고, 성공하면 대상 테이블마다
  *     "상위 1000개 행 선택" 쿼리 창을 연다(최대 {@link #MAX_OPENED_TABLES}개).</li>
+ *     <li>고급 옵션(SWT {@code DatabaseConsumerPageLoadSettings}, {@code MappingRulesDialog}, {@code AttributeTransformerSettingsDialog}):
+ *     중복 키일 때의 INSERT 변형, 고유 키를 어기는 행 건너뛰기, 값을 문장에 직접 쓰기, 쿼리 관리자 기록, 매핑 규칙, 열 값(NULL·상수·식).
+ *     모두 모델의 {@link DatabaseConsumerSettings}와 열 매핑에 넣으므로 작업으로 저장하면 함께 저장된다. 원본 읽기 설정은
+ *     {@link DataTransferExtractPage}가 원본 설정에 넣는다(파일 내보내기와 같은 페이지).</li>
+ *     <li>행을 지우는 작업(비우기, 삭제 후 다시 만들기)은 대상 DDL 탭과 요약에 보이고, Finish 때 한 번 묻는다(취소가 기본).
+ *     다시 만들기는 고를 때도 묻는다. Finish에서 다시 묻는 것은 그 뒤에 바뀐 매핑이나 작업에서 불러온 설정도 실행 전에 확인하게 하기 위해서다.</li>
  *     <li>저장된 복사 작업 편집({@link #applyTask}): 모델이 작업에서 읽은 설정과 매핑을 이 단계의 설정으로 쓴다. 다시 매핑하지 않으므로 작업의
  *     대상 테이블·열 이름·형식·다시 만들기가 그대로 보이고, 대상 단계는 그 연결·데이터베이스·스키마를 미리 고른다. 다른 대상이나 원본을 고르면
  *     처음 열 때처럼 다시 매핑한다. 건너뛴 테이블의 파이프는 실행과 저장 때만 빼고({@link #prepareTransfer}) 단계로 돌아오면 되살린다
@@ -102,6 +109,9 @@ import java.util.function.Supplier;
  * - 2026-11-08 TRUNCATE 확인은 잘라내기 / 취소, 다시 만들기 확인은 삭제 후 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 작업으로 저장(실행하지 않으므로 TRUNCATE를 묻지 않음), 저장된 복사 작업 편집({@link #applyTask})
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-08 고급 옵션: 중복 키 처리, 고유 키 위반 행 건너뛰기, 값 직접 쓰기, 쿼리 관리자 기록, 매핑 규칙, 열 값. 비우기를 대상 DDL 탭에 보이고,
+ *   Finish 확인에 비울 테이블과 다시 만들 테이블을 함께 묻는다. 원본 설정은 원본 읽기 설정 페이지로 옮김
+ *   (docs/chromite/swing-data-transfer.md "고급 옵션")
  */
 final class DatabaseCopyPages {
 
@@ -167,6 +177,7 @@ final class DatabaseCopyPages {
     private final JComboBox<String> columnNameCombo = new JComboBox<>();
     private final JLabel mappingStatus = new JLabel(" ");
     private final JCheckBox truncateCheck = new JCheckBox(DbCopyMessages.mapping_truncate);
+    private final JButton columnValueButton = new JButton(TransferOptionsMessages.transform_button);
     private final List<String> targetTableNames = new ArrayList<>();
     private final List<DBSEntityAttribute> targetColumns = new ArrayList<>();
     @Nullable
@@ -187,6 +198,22 @@ final class DatabaseCopyPages {
     private final JCheckBox referentialIntegrityCheck = new JCheckBox(DbCopyMessages.load_disable_integrity);
     private final JCheckBox bulkLoadCheck = new JCheckBox(DbCopyMessages.load_bulk_load);
     private final JCheckBox openTablesCheck = new JCheckBox(DbCopyMessages.load_open_tables);
+    /**
+     * {@link DBSDataManipulator#INSERT_NONE_METHOD} or a {@link SQLDialectInsertReplaceMethod} of the destination dialect.
+     */
+    private final JComboBox<Object> onDuplicateCombo = new JComboBox<>();
+    private final JCheckBox ignoreDuplicatesCheck = new JCheckBox(TransferOptionsMessages.load_ignore_duplicates);
+    private final JCheckBox skipBindCheck = new JCheckBox(TransferOptionsMessages.load_skip_bind);
+    private final JCheckBox qmLoggingCheck = new JCheckBox(TransferOptionsMessages.load_qm_logging);
+    /**
+     * Whether the destination binds statement values (only then the values can be written into the statement text instead).
+     */
+    private boolean destinationBindsValues;
+    /**
+     * The INSERT variant of a saved task, chosen when the variants of the destination are listed ({@link #applyTask}).
+     */
+    @Nullable
+    private String taskOnDuplicateMethodId;
 
     /**
      * @param sources      the checked source tables and views
@@ -267,6 +294,11 @@ final class DatabaseCopyPages {
         autoGeneratedCheck.setSelected(taskConsumer.isTransferAutoGeneratedColumns());
         referentialIntegrityCheck.setSelected(taskConsumer.isDisableReferentialIntegrity());
         bulkLoadCheck.setSelected(taskConsumer.isUseBulkLoad());
+        // The INSERT variants are listed when the load settings page knows the destination dialect
+        taskOnDuplicateMethodId = taskConsumer.getOnDuplicateKeyInsertMethodId();
+        ignoreDuplicatesCheck.setSelected(taskConsumer.isIgnoreDuplicateRows());
+        skipBindCheck.setSelected(taskConsumer.isSkipBindValues());
+        qmLoggingCheck.setSelected(taskConsumer.isEnableQmLogging());
         return true;
     }
 
@@ -292,21 +324,11 @@ final class DatabaseCopyPages {
             return null;
         }
         restorePipes();
-        boolean truncate = truncateCheck.isSelected();
-        if (truncate && run) {
-            List<String> truncated = new ArrayList<>();
-            for (DatabaseMappingContainer mapping : mappings) {
-                if (mapping.getMappingType() == DatabaseMappingType.existing && mapping.getTarget() != null) {
-                    truncated.add(DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI));
-                }
-            }
-            if (!truncated.isEmpty() && !SwingPlatformUI.confirmChange(wizard,
-                NLS.bind(DbCopyMessages.confirm_truncate, String.join("\n", truncated)),
-                wizard.getTitle(), ObjectMaintenanceMessages.objmaint_truncate_button, JOptionPane.WARNING_MESSAGE)) {
-                return null;
-            }
+        // Asked on Finish only: Save as Task does not run anything
+        if (run && !confirmDeletions()) {
+            return null;
         }
-        consumerSettings.setTruncateBeforeLoad(truncate);
+        consumerSettings.setTruncateBeforeLoad(truncateCheck.isSelected());
         consumerSettings.setOpenNewConnections(newConnectionCheck.isSelected());
         consumerSettings.setUseTransactions(transactionsCheck.isSelected());
         consumerSettings.setCommitAfterRows(((Number) commitSpinner.getValue()).intValue());
@@ -316,6 +338,10 @@ final class DatabaseCopyPages {
         consumerSettings.setTransferAutoGeneratedColumns(autoGeneratedCheck.isSelected());
         consumerSettings.setDisableReferentialIntegrity(referentialIntegrityCheck.isSelected() && referentialIntegrityCheck.isEnabled());
         consumerSettings.setUseBulkLoad(bulkLoadCheck.isSelected() && bulkLoadCheck.isEnabled());
+        consumerSettings.setOnDuplicateKeyInsertMethodId(getOnDuplicateMethodId());
+        consumerSettings.setIgnoreDuplicateRows(ignoreDuplicatesCheck.isSelected() && ignoreDuplicatesCheck.isEnabled());
+        consumerSettings.setSkipBindValues(skipBindCheck.isSelected() && skipBindCheck.isEnabled());
+        consumerSettings.setEnableQmLogging(qmLoggingCheck.isSelected());
         // There is no object editor to open (see the class comment)
         consumerSettings.setOpenTableOnFinish(false);
         // Skipped tables are not run (see the class comment)
@@ -324,6 +350,69 @@ final class DatabaseCopyPages {
             return mapping == null || mapping.getMappingType() == DatabaseMappingType.skip;
         });
         return settings;
+    }
+
+    /**
+     * Asks once before the copy deletes rows: the existing tables that are emptied (truncate) and the ones that are
+     * dropped and created again. Cancel is the default. Both are also in the destination DDL tab and the summary.
+     *
+     * @return whether the copy may run
+     */
+    private boolean confirmDeletions() {
+        List<String> truncated = getTruncatedTables();
+        List<String> recreated = getRecreatedTables();
+        if (truncated.isEmpty() && recreated.isEmpty()) {
+            return true;
+        }
+        StringBuilder message = new StringBuilder();
+        if (!truncated.isEmpty()) {
+            message.append(NLS.bind(TransferOptionsMessages.confirm_truncate, String.join("\n", truncated))).append("\n\n"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        if (!recreated.isEmpty()) {
+            message.append(NLS.bind(TransferOptionsMessages.confirm_recreate, String.join("\n", recreated))).append("\n\n"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        message.append(TransferOptionsMessages.confirm_question);
+        return SwingPlatformUI.confirmChange(wizard, message.toString(), TransferOptionsMessages.confirm_title,
+            TransferOptionsMessages.confirm_button, JOptionPane.WARNING_MESSAGE);
+    }
+
+    /**
+     * Existing destination tables whose rows are deleted before copying (truncate is checked).
+     */
+    @NotNull
+    private List<String> getTruncatedTables() {
+        List<String> truncated = new ArrayList<>();
+        if (truncateCheck.isSelected()) {
+            for (DatabaseMappingContainer mapping : mappings) {
+                if (mapping.getMappingType() == DatabaseMappingType.existing && mapping.getTarget() != null) {
+                    truncated.add(DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI));
+                }
+            }
+        }
+        return truncated;
+    }
+
+    /**
+     * Existing destination tables that are dropped and created again.
+     */
+    @NotNull
+    private List<String> getRecreatedTables() {
+        List<String> recreated = new ArrayList<>();
+        for (DatabaseMappingContainer mapping : mappings) {
+            if (mapping.getMappingType() == DatabaseMappingType.recreate && mapping.getTarget() != null) {
+                recreated.add(DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI));
+            }
+        }
+        return recreated;
+    }
+
+    /**
+     * The chosen INSERT variant for duplicate keys, or null for a plain INSERT (also with bulk load, which ignores it).
+     */
+    @Nullable
+    private String getOnDuplicateMethodId() {
+        return onDuplicateCombo.isEnabled() && onDuplicateCombo.getSelectedItem() instanceof SQLDialectInsertReplaceMethod method
+            ? method.getId() : null;
     }
 
     @NotNull
@@ -385,9 +474,26 @@ final class DatabaseCopyPages {
             summary.append("    ").append(source == null ? "?" : DBUtils.getObjectFullName(source, DBPEvaluationContext.UI)) //$NON-NLS-1$ //$NON-NLS-2$
                 .append(" -> ").append(mapping.getTargetName()).append("  (").append(getMappingLabel(mapping.getMappingType())).append(")\n"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         }
+        for (DatabaseMappingContainer mapping : mappings) {
+            if (mapping.getMappingType() == DatabaseMappingType.skip) {
+                continue;
+            }
+            for (DatabaseMappingAttribute attribute : mapping.getAttributeMappings(new LoggingProgressMonitor(log))) {
+                String value = DataTransferOptionDialogs.describeColumnValue(attribute);
+                if (!value.isEmpty() && attribute.getMappingType() != DatabaseMappingType.skip) {
+                    summary.append("    ").append(NLS.bind(TransferOptionsMessages.summary_transform, //$NON-NLS-1$
+                        mapping.getTargetName(), attribute.getTargetName(), value)).append('\n');
+                }
+            }
+        }
         summary.append('\n');
-        if (truncateCheck.isSelected()) {
-            summary.append(DbCopyMessages.summary_truncate).append('\n');
+        List<String> truncated = getTruncatedTables();
+        if (!truncated.isEmpty()) {
+            summary.append(NLS.bind(TransferOptionsMessages.summary_truncate, String.join(", ", truncated))).append('\n'); //$NON-NLS-1$
+        }
+        List<String> recreated = getRecreatedTables();
+        if (!recreated.isEmpty()) {
+            summary.append(NLS.bind(TransferOptionsMessages.summary_recreate, String.join(", ", recreated))).append('\n'); //$NON-NLS-1$
         }
         summary.append(transactionsCheck.isSelected() ? NLS.bind(DbCopyMessages.summary_commit, commitSpinner.getValue())
             : DbCopyMessages.summary_no_transactions).append('\n');
@@ -405,6 +511,18 @@ final class DatabaseCopyPages {
         }
         if (bulkLoadCheck.isSelected() && bulkLoadCheck.isEnabled()) {
             summary.append(DbCopyMessages.summary_bulk_load).append('\n');
+        }
+        if (getOnDuplicateMethodId() != null && onDuplicateCombo.getSelectedItem() instanceof SQLDialectInsertReplaceMethod method) {
+            summary.append(NLS.bind(TransferOptionsMessages.summary_on_duplicate, method.getLabel())).append('\n');
+        }
+        if (ignoreDuplicatesCheck.isSelected() && ignoreDuplicatesCheck.isEnabled()) {
+            summary.append(TransferOptionsMessages.summary_ignore_duplicates).append('\n');
+        }
+        if (skipBindCheck.isSelected() && skipBindCheck.isEnabled()) {
+            summary.append(TransferOptionsMessages.summary_skip_bind).append('\n');
+        }
+        if (qmLoggingCheck.isSelected()) {
+            summary.append(TransferOptionsMessages.summary_qm_logging).append('\n');
         }
         if (openTablesCheck.isSelected() && queryWindows != null) {
             summary.append(DbCopyMessages.summary_open_tables).append('\n');
@@ -460,16 +578,7 @@ final class DatabaseCopyPages {
             if (!(newSettings.getNodeSettings(consumerNode) instanceof DatabaseConsumerSettings newConsumerSettings)) {
                 return DbCopyMessages.error_configure;
             }
-            try {
-                if (newSettings.getNodeSettings(producers.getFirst()) instanceof DatabaseProducerSettings producerSettings) {
-                    // Field defaults of the SWT wizard's first run: own connection (isolated), row count for the progress
-                    producerSettings.setOpenNewConnections(true);
-                    producerSettings.setQueryRowCount(true);
-                }
-            } catch (DBException e) {
-                log.debug("Can't configure the source", e);
-                return DbCopyMessages.error_configure;
-            }
+            // The source settings are set from the wizard's source settings page when the copy runs (DataTransferExtractPage)
             settings = newSettings;
             consumerSettings = newConsumerSettings;
             settingsSources = List.copyOf(current);
@@ -839,18 +948,33 @@ final class DatabaseCopyPages {
             columnMappings.getColumnModel().getColumn(3).setCellEditor(new ColumnTypeEditor(columnTypeCombo));
             columnMappings.getColumnModel().getColumn(4).setCellRenderer(new MappingTypeRenderer());
             columnMappings.getColumnModel().getColumn(4).setPreferredWidth(110);
+            columnMappings.getColumnModel().getColumn(5).setPreferredWidth(160);
+            columnMappings.getSelectionModel().addListSelectionListener(e -> updateColumnValueButton());
+            columnValueButton.addActionListener(e -> editColumnValue());
 
             ddlArea.setEditable(false);
             ddlArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
-            details.addTab(DbCopyMessages.mapping_tab_columns, new JScrollPane(columnMappings));
+            JPanel columnsPanel = new JPanel(new BorderLayout(0, 6));
+            columnsPanel.add(new JScrollPane(columnMappings), BorderLayout.CENTER);
+            JPanel columnButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            columnButtons.add(columnValueButton);
+            columnsPanel.add(columnButtons, BorderLayout.SOUTH);
+            details.addTab(DbCopyMessages.mapping_tab_columns, columnsPanel);
             details.addTab(DbCopyMessages.mapping_tab_ddl, new JScrollPane(ddlArea));
             details.addChangeListener(e -> updateDdl());
 
             mappingStatus.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.error.focusedBorderColor"); //$NON-NLS-1$
             JPanel tablePanel = new JPanel(new BorderLayout(0, 6));
             tablePanel.add(new JScrollPane(tableMappings), BorderLayout.CENTER);
+            // The destination DDL tab shows the truncate before the copy
+            truncateCheck.addActionListener(e -> updateDdl());
+            JButton rulesButton = new JButton(TransferOptionsMessages.rules_button);
+            rulesButton.addActionListener(e -> editMappingRules());
+            JPanel optionsRow = new JPanel(new BorderLayout(12, 0));
+            optionsRow.add(truncateCheck, BorderLayout.CENTER);
+            optionsRow.add(rulesButton, BorderLayout.EAST);
             JPanel options = new JPanel(new BorderLayout(0, 4));
-            options.add(truncateCheck, BorderLayout.NORTH);
+            options.add(optionsRow, BorderLayout.NORTH);
             options.add(mappingStatus, BorderLayout.SOUTH);
             tablePanel.add(options, BorderLayout.SOUTH);
 
@@ -943,6 +1067,66 @@ final class DatabaseCopyPages {
     }
 
     /**
+     * Edits the name and type rules of new tables and columns, then makes the mappings again with them (as when another
+     * destination container is chosen, so the names of new tables and columns follow the rules). A new table's name is
+     * made again from its source name, as SWT {@code MappingRulesDialog} does: the current name is already quoted for the
+     * destination (a source name with spaces), and the rules would only change the text inside the quotes.
+     */
+    private void editMappingRules() {
+        stopEditing();
+        DBSObjectContainer container = consumerSettings == null ? null : consumerSettings.getContainer();
+        DBPDataSource dataSource = container == null ? null : container.getDataSource();
+        if (settings == null || dataSource == null || !DataTransferOptionDialogs.openMappingRules(wizard, dataSource.getContainer())) {
+            return;
+        }
+        for (DatabaseMappingContainer mapping : mappings) {
+            if (mapping.getMappingType() == DatabaseMappingType.create && mapping.getSource() != null) {
+                mapping.setTargetName(mapping.getSource().getName());
+            }
+        }
+        DataTransferSettings transfer = settings;
+        DatabaseConsumerSettings target = consumerSettings;
+        try {
+            List<String> errors = ProgressDialog.runTask(DbCopyMessages.progress_map,
+                monitor -> DatabaseCopyMappings.createMappings(monitor, transfer, target, true));
+            mappingErrors.clear();
+            mappingErrors.addAll(errors);
+        } catch (DBInterruptedException e) {
+            // Keep the mappings as they are
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(wizard.getTitle(), DbCopyMessages.error_map, e);
+        }
+        refreshMappings();
+    }
+
+    /**
+     * Chooses what the selected destination column receives (the source value, NULL, a constant or an expression).
+     */
+    private void editColumnValue() {
+        DatabaseMappingAttribute attribute = getSelectedColumn();
+        if (attribute != null && DataTransferOptionDialogs.openColumnValue(wizard, attribute)) {
+            int row = columnMappings.getSelectedRow();
+            columnModel.fireTableRowsUpdated(row, row);
+        }
+    }
+
+    @Nullable
+    private DatabaseMappingAttribute getSelectedColumn() {
+        int row = columnMappings.getSelectedRow();
+        List<DatabaseMappingAttribute> attributes = columnModel.getAttributes();
+        return row >= 0 && row < attributes.size() ? attributes.get(row) : null;
+    }
+
+    /**
+     * A column value can be set for a column that is copied.
+     */
+    private void updateColumnValueButton() {
+        DatabaseMappingAttribute attribute = getSelectedColumn();
+        columnValueButton.setEnabled(attribute != null && selectedMapping != null
+            && selectedMapping.getMappingType() != DatabaseMappingType.skip && attribute.getMappingType() != DatabaseMappingType.skip);
+    }
+
+    /**
      * A destination table that two copied tables go to, or null. Tables of several schemas of a database go to one
      * destination schema, so tables with the same name meet there (the second would fail to create it, or a TRUNCATE
      * would remove the first one's rows).
@@ -1012,6 +1196,7 @@ final class DatabaseCopyPages {
             columnNameCombo.addItem(column.getName());
         }
         columnModel.fireTableDataChanged();
+        updateColumnValueButton();
         updateDdl();
     }
 
@@ -1044,6 +1229,10 @@ final class DatabaseCopyPages {
             }
             text = added.isEmpty() ? DbCopyMessages.ddl_no_changes
                 : NLS.bind(DbCopyMessages.ddl_added_columns, mapping.getTargetName(), String.join("\n    ", added)); //$NON-NLS-1$
+            if (truncateCheck.isSelected() && mapping.getTarget() != null) {
+                text = NLS.bind(TransferOptionsMessages.ddl_truncate, DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI))
+                    + "\n\n" + text; //$NON-NLS-1$
+            }
         } else {
             try {
                 String ddl = ProgressDialog.runTask(DbCopyMessages.progress_ddl,
@@ -1171,7 +1360,8 @@ final class DatabaseCopyPages {
 
     private final class ColumnMappingModel extends AbstractTableModel {
         private final String[] columns = {DbCopyMessages.columns_source, DbCopyMessages.columns_source_type,
-            DbCopyMessages.columns_destination, DbCopyMessages.columns_destination_type, DbCopyMessages.columns_mapping};
+            DbCopyMessages.columns_destination, DbCopyMessages.columns_destination_type, DbCopyMessages.columns_mapping,
+            TransferOptionsMessages.columns_value};
 
         @NotNull
         private List<DatabaseMappingAttribute> getAttributes() {
@@ -1215,7 +1405,8 @@ final class DatabaseCopyPages {
                     case create -> consumerSettings == null ? "" : attribute.getTargetType(consumerSettings.getTargetDataSource(attribute), true);
                     default -> "";
                 };
-                default -> type;
+                case 4 -> type;
+                default -> type == DatabaseMappingType.skip ? "" : DataTransferOptionDialogs.describeColumnValue(attribute);
             };
         }
 
@@ -1296,6 +1487,14 @@ final class DatabaseCopyPages {
             multiRowCheck.addActionListener(e -> updateEnablement());
             disableBatchesCheck.addActionListener(e -> updateEnablement());
             bulkLoadCheck.addActionListener(e -> updateEnablement());
+            onDuplicateCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    setText(value instanceof SQLDialectInsertReplaceMethod method ? method.getLabel() : TransferOptionsMessages.load_on_duplicate_none);
+                    return this;
+                }
+            });
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
             row = DataTransferObjects.addRow(form, row, null, newConnectionCheck, null);
@@ -1303,10 +1502,15 @@ final class DatabaseCopyPages {
             row = DataTransferObjects.addRow(form, row, DbCopyMessages.load_commit, commitSpinner, DbCopyMessages.load_commit_note);
             row = DataTransferObjects.addRow(form, row, null, multiRowCheck, null);
             row = DataTransferObjects.addRow(form, row, DbCopyMessages.load_rows_per_insert, multiRowSpinner, null);
+            row = DataTransferObjects.addRow(form, row, null, skipBindCheck, null);
             row = DataTransferObjects.addRow(form, row, null, disableBatchesCheck, null);
+            row = DataTransferObjects.addRow(form, row, null, ignoreDuplicatesCheck, null);
+            // The note is the tooltip: a hint column would push the hints of the spinners away from them
+            row = DataTransferObjects.addRow(form, row, TransferOptionsMessages.load_on_duplicate, onDuplicateCombo, null);
             row = DataTransferObjects.addRow(form, row, null, autoGeneratedCheck, null);
             row = DataTransferObjects.addRow(form, row, null, referentialIntegrityCheck, null);
             row = DataTransferObjects.addRow(form, row, null, bulkLoadCheck, null);
+            row = DataTransferObjects.addRow(form, row, null, qmLoggingCheck, null);
             if (queryWindows != null) {
                 DataTransferObjects.addRow(form, row, null, openTablesCheck, null);
             }
@@ -1317,11 +1521,40 @@ final class DatabaseCopyPages {
             updateEnablement();
         }
 
+        /**
+         * Option dependencies as in SWT {@code DatabaseConsumerPageLoadSettings}: duplicate rows can be skipped only when rows are
+         * inserted one by one (a batch fails as a whole), and bulk load ignores the INSERT variant.
+         */
         private void updateEnablement() {
             boolean bulk = bulkLoadCheck.isSelected() && bulkLoadCheck.isEnabled();
             commitSpinner.setEnabled(transactionsCheck.isSelected());
             multiRowCheck.setEnabled(!disableBatchesCheck.isSelected() && !bulk);
             multiRowSpinner.setEnabled(multiRowCheck.isSelected() && multiRowCheck.isEnabled());
+            skipBindCheck.setEnabled(destinationBindsValues && multiRowCheck.isSelected() && multiRowCheck.isEnabled());
+            ignoreDuplicatesCheck.setEnabled(disableBatchesCheck.isSelected() && !bulk);
+            onDuplicateCombo.setEnabled(onDuplicateCombo.getItemCount() > 1 && !bulk);
+        }
+
+        /**
+         * The INSERT variants for duplicate keys of the destination dialect (SWT {@code loadInsertMethods}); the chosen one (or a
+         * saved task's) stays when the destination has it.
+         */
+        private void loadInsertMethods(@Nullable DBPDataSource dataSource) {
+            Object selected = onDuplicateCombo.getSelectedItem();
+            String selectedId = selected instanceof SQLDialectInsertReplaceMethod method ? method.getId() : taskOnDuplicateMethodId;
+            taskOnDuplicateMethodId = null;
+            onDuplicateCombo.removeAllItems();
+            onDuplicateCombo.addItem(DBSDataManipulator.INSERT_NONE_METHOD);
+            List<SQLDialectInsertReplaceMethod> methods = dataSource == null ? List.of()
+                : dataSource.getContainer().getScriptDialect().getSupportedInsertReplaceMethodsDescriptors();
+            for (SQLDialectInsertReplaceMethod method : methods) {
+                onDuplicateCombo.addItem(method);
+                if (method.getId().equals(selectedId)) {
+                    onDuplicateCombo.setSelectedItem(method);
+                }
+            }
+            onDuplicateCombo.setToolTipText(methods.isEmpty() ? TransferOptionsMessages.load_on_duplicate_unsupported
+                : TransferOptionsMessages.load_on_duplicate_note);
         }
 
         /**
@@ -1399,6 +1632,9 @@ final class DatabaseCopyPages {
             if (!bulk) {
                 bulkLoadCheck.setSelected(false);
             }
+            // SWT offers this for statement-binding drivers only: it may break the others
+            destinationBindsValues = dataSource != null && dataSource.getInfo().supportsStatementBinding();
+            loadInsertMethods(dataSource);
             updateEnablement();
         }
     }

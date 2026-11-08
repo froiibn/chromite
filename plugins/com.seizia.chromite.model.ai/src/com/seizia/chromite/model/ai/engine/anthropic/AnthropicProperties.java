@@ -39,10 +39,13 @@ import java.util.List;
  *     <li>모델 목록은 제공자의 목록 API에서 받는다(docs/chromite/ai.md "내장 정적 모델 목록을 두지 않는다"). 기본 모델 이름만 둔다.</li>
  *     <li>temperature, 로그, 시간 제한 같은 공통 값은 {@link BaseAIEngineProperties}가 다룬다. 그 클래스의 직렬화 이름에 이미
  *     {@code anthropic.temperature} 같은 옛 이름이 대체 이름으로 있다.</li>
+ *     <li>요청에는 temperature를 명시적으로 정했을 때만 넣는다({@link #getRequestTemperature}). 설정 파일에는 늘 기본값 0.0이 저장되는데,
+ *     지금의 Claude 모델은 이 매개변수를 받지 않고 요청 전체를 거부한다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "엔진")
+ * - 2026-11-08 temperature를 명시적으로 정했을 때만 보냄: 실제 API가 claude-sonnet-5-5 요청을 모두 거부함 (docs/chromite/ai-agent.md "실제 API 확인")
  */
 public class AnthropicProperties extends BaseAIEngineProperties {
 
@@ -134,6 +137,17 @@ public class AnthropicProperties extends BaseAIEngineProperties {
     @Property(order = 6)
     public double getTemperature() {
         return AIUtils.normalizeTemperature(temperature);
+    }
+
+    /**
+     * The temperature only when one was set explicitly ({@link #setTemperature}); otherwise none, so the model uses its own
+     * default. Current Claude models reject the parameter ("`temperature` is deprecated for this model"), and the settings
+     * file always holds the field's default 0.0, which the base class would send.
+     */
+    @Nullable
+    @Override
+    public Double getRequestTemperature() {
+        return hasExplicitTemperature() ? getTemperature() : null;
     }
 
     @Nullable
