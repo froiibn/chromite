@@ -286,7 +286,8 @@ import java.util.function.Supplier;
  *   ({@link #DEFAULT_RIGHT_SHARE} 0.18 → 0.25). Properties는 기본 숨김, Properties·Scripts·Outline·Database Tasks는 오른쪽 위 탭으로
  *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 실제 계획 ⇧⌘M), 도구 설명의 키 글자는 단축키에서 만듦(앱 변경 #24)
- *   (docs/chromite/shortcuts.md)
+ *   (docs/chromite/shortcuts.md); macOS: 메뉴는 화면 메뉴 막대({@link MacOSScreenMenuBar}), 앱 메뉴와 겹치는 Exit·Options·Help(About)는
+ *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -2074,6 +2075,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @NotNull
     private JMenuBar createMenuBar() {
+        // macOS: the application menu has About, Options (Cmd+,) and Quit (Cmd+Q) (MacOSAppMenu, installDesktopHandlers in
+        // ChromiteSwingApplication), so the window menus leave them out, as macOS applications do
+        boolean appMenu = RuntimeUtils.isMacOS();
         JMenuItem exitItem = new JMenuItem(CoreMessages.main_menu_exit);
         exitItem.setMnemonic(KeyEvent.VK_X);
         exitItem.addActionListener(e -> requestExit());
@@ -2113,8 +2117,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem undoSettingsItem = new JMenuItem(SettingsTransferMessages.settings_menu_undo);
         undoSettingsItem.addActionListener(e -> SettingsTransferCommands.undoImport(this, () -> scriptsPanel.reload()));
         fileMenu.add(undoSettingsItem);
-        fileMenu.addSeparator();
-        fileMenu.add(exitItem);
+        if (!appMenu) {
+            fileMenu.addSeparator();
+            fileMenu.add(exitItem);
+        }
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
         fillRecentFilesMenu(recentMenu);
 
@@ -2232,7 +2238,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(networkProfilesItem);
-        toolsMenu.add(optionsItem);
+        if (!appMenu) {
+            toolsMenu.add(optionsItem);
+        }
 
         JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);
         windowMenu.setMnemonic(KeyEvent.VK_W);
@@ -2240,7 +2248,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fillWindowMenu(windowMenu);
 
         // SSMS order
-        JMenuBar menuBar = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar() {
+            @Override
+            public void updateUI() {
+                super.updateUI();
+                // macOS: the menus go to the screen menu bar, also after a theme change
+                MacOSScreenMenuBar.attach(this);
+            }
+        };
         menuBar.add(fileMenu);
         editMenu.getMenu().addSeparator();
         editMenu.getMenu().add(SqlEditCommands.createAdvancedMenu(this::getActiveTextArea));
@@ -2249,7 +2264,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         menuBar.add(queryMenu);
         menuBar.add(toolsMenu);
         menuBar.add(windowMenu);
-        menuBar.add(helpMenu);
+        // Help has only About, which the macOS application menu has
+        if (!appMenu) {
+            menuBar.add(helpMenu);
+        }
         return menuBar;
     }
 

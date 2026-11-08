@@ -438,3 +438,4 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
   자식으로 실행, 새 버전의 첫 시작 창(시작 화면 대신), 설치 실패·시작 실패와 되돌리기, 업데이트 기록 `update-run.json`, 시험 모드 `chromite.update.test.installer.code`.
 - 2026-11-08 상태 표시줄 진행 글자가 연결 색으로 칠한 상태 표시줄 위의 대비 색을 따름(앱 변경 #2, `chromite/result-tabs`).
 - 2026-11-08 후속 26 점검(`chromite/followups-4`): `macos-smoke.yml`이 릴리스 없이 볼 수 있는 것과 없는 것, 더할 수 있는 smoke 단계를 "확인하지 못한 것"에 적음(코드 변경 없음).
+- 2026-11-09 macOS 화면 메뉴 막대에는 메뉴만 보이므로 업데이트 단추를 상태 표시줄 오른쪽 끝, 진행 옆에 둠. Windows는 그대로(앱 변경 #27, `chromite/mac-ui`, [mac-ui.md](mac-ui.md)).
