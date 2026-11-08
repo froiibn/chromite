@@ -493,11 +493,13 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 
 ### 고급 옵션 (2026-11-08)
 
-SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브리프 G9(`chromite/transfer-advanced-options`).
+SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `chromite/transfer-advanced-options`.
 
 - **작업 저장과의 관계:** 모든 값은 모델의 노드 설정(`DatabaseProducerSettings`, `DatabaseConsumerSettings`, `StreamConsumerSettings`)과
-  매핑(`DatabaseMappingAttribute`의 변환기, `StreamMappingContainer`)에 넣는다. 그래서 작업으로 저장하면(병렬 작업 G7 `chromite/transfer-tasks`)
-  각 설정의 `saveSettings`로 함께 저장된다. 매핑 규칙만 SWT처럼 연결·전역 설정에 둔다(작업이 아니라 대상 데이터베이스의 규칙).
+  매핑(`DatabaseMappingAttribute`의 변환기, `StreamMappingContainer`)에 넣는다. 그래서 작업으로 저장하면(작업으로 저장…, [swing-database-tasks.md](swing-database-tasks.md)
+  "데이터 전송 작업") 각 설정의 `saveSettings`로 함께 저장된다. 저장된 작업을 열면 칸에 다시 채운다: 파일 작업은 `@export`와 같은 길(원본 옵션, 시각 형식·나누기)에 더해
+  데이터 형식 프로필과 내보낼 열, 복사 작업은 `DatabaseCopyPages.applyTask`가 중복 키 처리·고유 키 위반 건너뛰기·값 직접 쓰기·쿼리 관리자 기록과 원본 옵션까지.
+  비우기·다시 만들기 확인은 Finish(실행) 때만 묻고 작업으로 저장할 때는 묻지 않는다(실행하지 않으므로). 매핑 규칙만 SWT처럼 연결·전역 설정에 둔다(작업이 아니라 대상 데이터베이스의 규칙).
 - **원본 읽기 설정 단계(`DataTransferExtractPage`, SWT `DatabaseProducerPageExtractSettings`):** 형식 단계 뒤(Copy Tables…는 원본 단계 뒤)에 두고
   파일 내보내기와 테이블 복사가 함께 쓴다. 별도 연결, 먼저 행 수 세기, 가져오기 크기, 구간으로 나눠 읽기와 구간당 행 수. 기본값은 모델 필드 기본값이다
   (새 연결 켬, 행 수 세기 켬, 10000, 한 쿼리, 100000). 그 전에는 두 경로가 새 연결·행 수 세기를 코드에서 늘 켰다(같은 값). `@export`의 원본 옵션도 이 칸에 들어간다.
@@ -691,6 +693,10 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   - 같은 영어 복사의 첫 실행 한 번은 `customers` 19번째 행에서 SQL Server 오류 "The value is not set for the parameter number 2"(Stop/Retry/Skip 질문)로 멈췄다.
     같은 설정을 두 번 더 실행했을 때와 식 없이·일괄 처리로 나눠 실행했을 때는 모두 성공해 다시 만들지 못했다(아래 "남긴 것"). "고유 키 위반 행 건너뛰기"는 모델이
     행마다 커밋하므로(`DatabaseTransferConsumer.insertBatch`) Stop 때 비우기와 앞 18행은 이미 커밋되어 있었다.
+- **작업 저장(#175를 병합한 뒤, 한국어):** MariaDB → PostgreSQL 복사(구간 2행·가져오기 크기 700, `tags` 다시 만들기, `price * 2`, `ON CONFLICT DO UPDATE SET`,
+  여러 행 INSERT·값 직접 쓰기·쿼리 관리자 기록)를 작업으로 저장 → 저장 때는 삭제 확인이 나오지 않음 → 데이터베이스 작업 편집으로 다시 열면 모든 칸과 매핑이 그대로
+  → Finish에서 다시 만들기 확인(취소 기본) → 같은 결과(`items` 3.00/5.00/7.00/9.99, `tags` 2행). CSV 내보내기 작업(가져오기 크기 333, 행 수 세기 끔, 열 4/6, 시각 형식
+  `yyyyMMdd`, 나누기 25,000바이트)도 다시 열면 칸이 그대로이고 두 파일로 1,000행. 전역 형식 프로필은 다시 열면 "원본 연결의 형식"으로 돌아간다(위 "고급 옵션"의 프로필 항목).
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 Export Data·Copy Tables(원본 설정이 새 페이지에서 옴), `@export` 명령, 비우기를 쓰는
   모든 데이터 전송(비우기 전 열 읽기), 구간 읽기의 행 수 통계, 매핑 규칙을 쓰는 연결 설정(같은 키).
 - 시험 DB(`chr_transfer_adv` 세 개), 앱 작업 공간·데이터 폴더는 확인 뒤 지웠다.
@@ -698,7 +704,8 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
-- 테이블 복사의 새 테이블 속성 편집, 기존 테이블 고르기 대화상자, 외래 키 옮기기. 매핑 저장·불러오기와 작업으로 저장은 G7(`chromite/transfer-tasks`).
+- 테이블 복사의 새 테이블 속성 편집, 기존 테이블 고르기 대화상자, 외래 키 옮기기. 매핑은 작업으로 저장한다(2026-11-08:
+  [swing-database-tasks.md](swing-database-tasks.md) "데이터 전송 작업").
 - 원본 읽기의 동시 추출 수(위 "고급 옵션").
 - 이름 붙인 데이터 형식 프로필을 만드는 화면(내보내기는 있는 프로필을 고르기만 함).
 - SQL Server로 하나씩 삽입할 때 한 번 본 "The value is not set for the parameter number 2"(위 "고급 옵션 확인"). 다시 만들지 못해 원인을 찾지 못했다.
@@ -744,6 +751,8 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   [regression-tests.md](regression-tests.md) "실행 결과".
 - 2026-11-08 쿼리 내보내기의 "행 수 세기"가 동작함: 모델 `SQLQueryDataContainer.countData`가 늘 -1이라 쿼리 결과는 전체 행 수를 몰랐다.
   이제 내보내기 전에 COUNT 쿼리 하나를 더 실행한다(SWT 쿼리 결과와 같음, 옵션을 끄면 실행하지 않음). [swing-grid-navigation.md](swing-grid-navigation.md) "전체 행 수".
+- 2026-11-08 세 마법사에 작업으로 저장… 단추, Database Tasks 편집…이 저장된 데이터 전송 작업(SWT 작업 포함)을 마법사로 엶(`chromite/transfer-tasks`,
+  [swing-database-tasks.md](swing-database-tasks.md) "데이터 전송 작업"). 복사 단계는 건너뛴 테이블의 파이프를 실행·저장 때만 빼고 되살린다.
 - 2026-11-08 고급 옵션(SWT 대조 C-36, C-37): 원본 읽기 설정 단계(`DataTransferExtractPage`), 내보내기의 시각 형식·파일 나누기·데이터 형식 프로필·열 고르기,
   테이블 복사의 중복 키 처리·고유 키 위반 행 건너뛰기·값 직접 쓰기·쿼리 관리자 기록·매핑 규칙·열 값(`DataTransferOptionDialogs`), 비우기를 DDL 탭·요약에 보이고
   Finish에서 비우기와 다시 만들기를 한 번에 묻기. `@export`의 원본·나누기·시각 옵션은 화면 칸으로. 모델: 비우기 전에 대상 열 읽기(`DatabaseTransferConsumer`,

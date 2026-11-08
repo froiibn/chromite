@@ -23,6 +23,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
  * - 2026-11-07 "프로세스 실행" 단계의 셸 명령 승인 문구(data_transfer_shell_command_*) 추가(docs/chromite/shell-command-approval.md)
+ * - 2026-11-08 SQL 스크립트 작업의 열린 트랜잭션 질문 문구(sql_script_task_txn_*) 추가(docs/chromite/swing-database-tasks.md)
  */
 public class DTMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.tools.transfer.internal.DTMessages"; //$NON-NLS-1$
@@ -106,6 +107,14 @@ public class DTMessages extends NLS {
     public static String pref_data_transfer_replacing_combo_camel_case;
     public static String data_transfer_shell_command_context_task;
     public static String data_transfer_shell_command_event_finished;
+    public static String sql_script_task_txn_title;
+    public static String sql_script_task_txn_before;
+    public static String sql_script_task_txn_after;
+    public static String sql_script_task_txn_commit;
+    public static String sql_script_task_txn_rollback;
+    public static String sql_script_task_txn_cancel;
+    public static String sql_script_task_txn_keep;
+    public static String sql_script_task_txn_error;
 
     static {
         // initialize resource bundle

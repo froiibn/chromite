@@ -51,6 +51,13 @@ import java.util.stream.Collectors;
 
 /**
  * PostgreTable
+ *
+ * 설계: 파티션 키(Partition by)는 CREATE TABLE에서만 정한다. PostgreSQL은 있는 테이블의 파티션 방식을 바꾸는 문장이 없어
+ * 저장된 테이블에서는 고칠 수 없는 속성이다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Partition by를 저장된 테이블에서 읽기 전용으로 함(전에는 고칠 수 있어 잘못된 ALTER TABLE … PARTITION BY를 만듦)
+ *   (docs/chromite/model-fixes.md "PostgreSQL Partition by")
  */
 public abstract class PostgreTable extends PostgreTableReal
     implements PostgreTableContainer, DBDPseudoAttributeContainer, DBSEntityConstrainable
@@ -181,7 +188,8 @@ public abstract class PostgreTable extends PostgreTableReal
         return hasPartitions;
     }
 
-    @Property(viewable = true, editable = true, updatable = true, order = 43)
+    // Set by CREATE TABLE only: PostgreSQL can't partition an existing table (no ALTER TABLE … PARTITION BY)
+    @Property(viewable = true, editable = true, order = 43)
     public String getPartitionKey() {
         return partitionKey;
     }

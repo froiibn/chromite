@@ -48,6 +48,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 로컬 클라이언트({@code settings_local_client*}) (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 셸 명령 탭({@code shell_*}), 비밀번호 바꾸기({@code commands_change_password*}), 점프 서버({@code ssh_jump_*}),
  *   네트워크 프로필({@code profiles_*}) (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-08 연결별 제한({@code settings_restrictions*}, {@code restrictions_*})과 잠긴 연결({@code lock_*})
+ *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -141,6 +143,19 @@ public class ConnectionMessages extends NLS {
     public static String settings_default_schema;
     public static String settings_default_schema_tip;
     public static String settings_read_only;
+    public static String settings_restrictions;
+    public static String settings_restrictions_tip;
+    public static String settings_restrictions_type;
+    public static String settings_restrictions_own;
+    public static String restrictions_title;
+    public static String restrictions_use_type;
+    public static String restrictions_own;
+    public static String restrictions_none_note;
+    public static String lock_title;
+    public static String lock_prompt;
+    public static String lock_password;
+    public static String lock_wrong_password;
+    public static String lock_check_error;
     public static String settings_color;
     public static String settings_custom_color;
     public static String settings_custom_color_tip;
