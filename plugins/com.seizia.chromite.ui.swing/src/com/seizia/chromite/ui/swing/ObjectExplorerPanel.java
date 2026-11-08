@@ -263,6 +263,8 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Recent Scripts 하위 메뉴: 선택한 노드의 연결에 묶은 스크립트를 최근 고친 순으로 열기({@link ScriptFiles#findLinkedScripts},
  *   docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  * - 2026-11-08 Object Details(F7)를 자식이 없는 객체(시퀀스)에서도 켬: 첫 탭인 속성 탭에서 속성을 고친다 (docs/chromite/swing-object-properties.md)
+ * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림. 125%·150% 배율에서 둥근 사각형의 안티앨리어싱
+ *   가장자리가 행 밖의 장치 픽셀 한 줄까지 칠해, 행만 다시 그리면 그 줄이 남았다 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -2279,6 +2281,14 @@ final class ObjectExplorerPanel extends JPanel {
      * background and the rows. FlatLaf has no hover for trees.
      */
     private static final class ExplorerTree extends JTree {
+        /**
+         * Logical pixels repainted above and below a row whose hover changes. At a display scale above 100% the
+         * anti-aliased, stroke-normalized hover shape reaches into a device pixel row next to its row; repainting only
+         * the row bounds left that pixel row in the hover color (an afterimage when the mouse moved up at 150%, either
+         * way at 125%). One logical pixel is at least one device pixel.
+         */
+        private static final int HOVER_REPAINT_MARGIN = 1;
+
         private int hoverRow = -1;
 
         ExplorerTree(@NotNull DefaultTreeModel model) {
@@ -2315,7 +2325,7 @@ final class ObjectExplorerPanel extends JPanel {
         private void repaintRow(int row) {
             Rectangle bounds = row >= 0 ? getRowBounds(row) : null;
             if (bounds != null) {
-                repaint(0, bounds.y, getWidth(), bounds.height);
+                repaint(0, bounds.y - HOVER_REPAINT_MARGIN, getWidth(), bounds.height + 2 * HOVER_REPAINT_MARGIN);
             }
         }
 
