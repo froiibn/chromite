@@ -670,6 +670,14 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
 | Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
 
+#### 설정 열기 (2026-11-08)
+
+- Chromite Agent 창의 도구 막대 설정 단추와 공급자 미설정 안내의 설정 단추는 Options를 Chromite Agent 페이지로 연다(전에는 첫 페이지 General).
+  `AiAssistantPanel.Host.openOptions(OptionsDialog.PAGE_AGENT)` → `OptionsDialog.open(owner, pageId)`. 페이지는 화면 이름이 아니라 식별자(`agent`)로 고른다
+  ([swing-options.md](swing-options.md) "목록, 찾기, 페이지 열기").
+- 새 대화상자의 Agent 페이지는 첫 탭 Providers를 보인다. 미설정 안내에서 열 때 필요한 탭이 이것이라 하위 탭을 따로 고르는 식별자는 두지 않았다.
+- Providers 양식은 자기 폭(입력란 28자)을 지킨다. Options 창이 넓어져 입력란이 오른쪽 끝까지 늘어나던 것.
+
 ### Query Library 기준값 편집
 
 Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값…"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
@@ -1045,6 +1053,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 Chromite Agent 창의 설정 단추 두 개가 Options를 Chromite Agent 페이지(Providers)로 엶, Providers 양식 폭(app round 1 #13·#8,
+  위 "설정 열기").
 - 2026-11-08 실제 Anthropic API 확인(`chromite/agent-real-api-test`): Anthropic 요청에 temperature를 명시적으로 정했을 때만 넣음. 위 "실제 API 확인".
 - 2026-11-08 AI 엔진을 닫으면 받는 중인 응답을 끝냄: 채팅의 중지가 답이 끝날 때까지 기다리던 것. 위 "실제 API 확인" 2.
 - 2026-11-08 감사 기록에 트랜잭션 질문의 Commit/Roll back 답(`transactionsBeforeCall`)을 남김. 위 "감사 기록", "실제 API 확인" 3.

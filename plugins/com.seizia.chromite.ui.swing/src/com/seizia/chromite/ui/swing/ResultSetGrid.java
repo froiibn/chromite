@@ -53,8 +53,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -73,7 +71,8 @@ import java.util.UUID;
  * ({@link Data}). 그래서 EDT에서는 모델 계층(값 처리기, LOB 읽기)을 부르지 않고, 결과 집합을 닫은 뒤에도 값을 그대로 보여 줄 수 있다.
  * NULL은 표시 문자열과 구분되는 표지({@link #NULL_VALUE})로 두어 "NULL"이라는 문자열 값과 다르게 그린다(SSMS처럼 "NULL", 보조 글자색 text.secondary).
  * 숫자 열은 오른쪽 정렬한다. 열 너비는 머리글과 앞쪽 행들의 글자 너비로 정하고, 표는 자동 맞춤을 끄고 가로 스크롤한다.
- * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택, 새 행은 {@code *}).
+ * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택, 새 행은 {@code *}). 행 번호 칸은 선택·포커스와 관계없이 늘 그리드 바탕이다:
+ * 선택한 행의 번호를 칠하면 셀 선택이 번호 열까지 이어졌다가 끊긴 것처럼 보였다.
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
  * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
  * Export Data…는 쿼리를 다시 실행해 모든 행을 모델의 모든 형식으로 내보내는 마법사({@link DataExportWizard})다. 다시 실행할 수 있는 결과
@@ -141,6 +140,8 @@ import java.util.UUID;
  *   (docs/chromite/swing-result-generate-sql.md)
  * - 2026-11-08 Export Data 쿼리를 첫 결과 집합만이 아니라 쿼리 창의 모든 결과가 가짐: 배치 결과도 그 결과를 만든 문장으로 다시 실행
  *   (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-08 행 번호 칸에 선택·포커스 바탕을 칠하지 않음, 그 칠하기만을 위한 선택·포커스 리스너 삭제(사용자 요청)
+ *   (docs/chromite/swing-result-viewer.md "표 편의 기능")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -1492,34 +1493,19 @@ final class ResultSetGrid extends JPanel {
         header.setRowHeight(table.getRowHeight());
         // The grid's row height comes from the theme (size.row.grid) and changes with the density (UiDensity)
         table.addPropertyChangeListener("rowHeight", e -> header.setRowHeight(table.getRowHeight())); //$NON-NLS-1$
-        // DataGrip row numbers: grid background, text.secondary, left-aligned; the numbers of selected rows get the
-        // selection background of the grid
+        // DataGrip row numbers: grid background, text.secondary, left-aligned. A number never takes the selection or
+        // focus look: a selected cell would seem to run on into the number column and then break off (user, 2026-11-08)
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable rowTable, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(rowTable, value, false, false, row, column);
-                boolean rowSelected = row < table.getRowCount() && table.isRowSelected(row);
-                setBackground(rowSelected
-                    ? UIManager.getColor(table.isFocusOwner() ? "Table.selectionBackground" : "Table.selectionInactiveBackground") //$NON-NLS-1$ //$NON-NLS-2$
-                    : rowTable.getBackground());
+                setBackground(rowTable.getBackground());
                 setForeground(UIManager.getColor("Chromite.secondaryForeground")); //$NON-NLS-1$
                 return this;
             }
         };
         renderer.setHorizontalAlignment(SwingConstants.LEFT);
         header.setDefaultRenderer(Object.class, renderer);
-        table.getSelectionModel().addListSelectionListener(e -> header.repaint());
-        table.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                header.repaint();
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                header.repaint();
-            }
-        });
         int rowCount = gridModel.getRowCount();
         int width = getRowNumberWidth(header, rowCount) + getCellPadding(table);
         header.getColumnModel().getColumn(0).setPreferredWidth(width);

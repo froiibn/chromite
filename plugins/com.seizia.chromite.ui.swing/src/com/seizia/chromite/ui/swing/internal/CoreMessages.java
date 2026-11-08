@@ -250,6 +250,8 @@ public class CoreMessages extends NLS {
     public static String options_preview;
     public static String options_save_failed_title;
     public static String options_save_failed;
+    public static String options_search_placeholder;
+    public static String options_search_no_match;
 
     public static String editor_colors_text;
     public static String editor_colors_keyword;
