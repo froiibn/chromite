@@ -28,14 +28,24 @@
  *     from navigator.platform, otherwise from the user agent. An iPad reports "MacIntel" like a Mac, so a
  *     "Mac" with a touch screen counts as unknown. An Intel Mac cannot be told from an Apple silicon one
  *     in the browser, which is why the macOS card keeps its "Apple silicon" requirement in view.
+ *   - The hero's download button carries a Windows and an Apple mark. The same platform reading marks the page
+ *     (<html data-visitor-os>) and the stylesheet hides the other mark, before and apart from the feed check: the
+ *     button only scrolls to the download block, so its icon does not depend on a file being there. Unknown
+ *     systems and pages without script keep both marks.
  *
  * Change history:
  * - 2026-11-07 Created.
  * - 2026-11-07 Visitor's platform first, the other behind a button.
  * - 2026-11-08 The SHA-256 row and its copy button are gone from the cards: no checksum output, no copy handler.
+ * - 2026-11-08 The hero button shows only the visitor's platform mark (user request).
  */
 (function () {
   'use strict';
+
+  var visitorOs = visitorPlatform();
+  if (visitorOs) {
+    document.documentElement.setAttribute('data-visitor-os', visitorOs);
+  }
 
   var area = document.querySelector('.downloads-area');
   if (!area) {
@@ -114,7 +124,7 @@
 
   /** Puts the visitor's card first and the other card behind a button; leaves both when unsure. */
   function preferVisitorPlatform() {
-    var platform = visitorPlatform();
+    var platform = visitorOs;
     var mine = platform && area.querySelector('.card[data-platform="' + platform + '"]');
     var other = platform && area.querySelector('.card[data-platform]:not([data-platform="' + platform + '"])');
     if (!mine || !other || mine.getAttribute('data-ready') !== 'true') {
