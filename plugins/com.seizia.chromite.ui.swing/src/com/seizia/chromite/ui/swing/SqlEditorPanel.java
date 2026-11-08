@@ -312,6 +312,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 상태 줄은 메인 창 상태 표시줄에 보임(앱 변경 #2, 주석만) (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  * - 2026-11-08 고침 상태가 바뀌면 {@link #DIRTY_PROPERTY} 속성 변경을 알림: Query Library 머리말의 저장 단추가 따름
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
+ * - 2026-11-08 연결 콤보 폭 260 → 220(앱 변경 #3), 연결·DB 콤보의 도구 설명에 고른 항목의 전체 이름(긴 이름은 콤보에서 말줄임표)
+ *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -372,9 +374,10 @@ final class SqlEditorPanel extends JPanel {
     static final String DIRTY_PROPERTY = "dirty"; //$NON-NLS-1$
     /**
      * Widths of the connection and database/schema pickers, also of the empty pickers shown without a query window so
-     * that the tool bar does not move.
+     * that the tool bar does not move. The connection picker stays wider than the database/schema one (user decision
+     * 2026-11-08: 260 before); longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
      */
-    static final int CONNECTION_PICKER_WIDTH = 260;
+    static final int CONNECTION_PICKER_WIDTH = 220;
     static final int SCHEMA_PICKER_WIDTH = 200;
     private static final int PICKER_MIN_WIDTH = 100;
 
@@ -820,6 +823,8 @@ final class SqlEditorPanel extends JPanel {
     void connectionChanged() {
         host.titleChanged(this);
         connectionCombo.repaint();
+        // A new name
+        updatePickerToolTips();
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
         // Connected or disconnected: whether the connection gives actual plans is known after connecting
@@ -1142,7 +1147,6 @@ final class SqlEditorPanel extends JPanel {
      * state); the main window shows the active window's pickers in its SQL Editor tool bar ({@link SqlEditorToolBar}).
      */
     private void createPickers() {
-        connectionCombo.setToolTipText(EditorMessages.editor_sql_connection_tip);
         connectionCombo.setRenderer(new ConnectionRenderer());
         sizePicker(connectionCombo, CONNECTION_PICKER_WIDTH);
         connectionCombo.addActionListener(e -> {
@@ -1183,7 +1187,6 @@ final class SqlEditorPanel extends JPanel {
             }
         });
 
-        schemaCombo.setToolTipText(EditorMessages.editor_sql_schema_tip);
         schemaCombo.setRenderer(new SchemaRenderer());
         sizePicker(schemaCombo, SCHEMA_PICKER_WIDTH);
         schemaCombo.addActionListener(e -> {
@@ -1191,6 +1194,23 @@ final class SqlEditorPanel extends JPanel {
                 changeDefaultObject(selected);
             }
         });
+        // The items are reloaded with new models (setModel fires no item event)
+        for (JComboBox<?> picker : List.of(connectionCombo, schemaCombo)) {
+            picker.addItemListener(e -> updatePickerToolTips());
+            picker.addPropertyChangeListener("model", e -> updatePickerToolTips()); //$NON-NLS-1$
+        }
+        updatePickerToolTips();
+    }
+
+    /**
+     * Tool tips of the pickers with the whole name of the selected connection and database/schema: the pickers have a
+     * fixed width and their renderers cut longer names with an ellipsis. The opened list is as wide as its items.
+     */
+    private void updatePickerToolTips() {
+        connectionCombo.setToolTipText(connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer container
+            ? NLS.bind(EditorMessages.editor_sql_connection_selected_tip, container.getName()) : EditorMessages.editor_sql_connection_tip);
+        schemaCombo.setToolTipText(schemaCombo.getSelectedItem() instanceof DBSObject object
+            ? NLS.bind(EditorMessages.editor_sql_schema_selected_tip, object.getName()) : EditorMessages.editor_sql_schema_tip);
     }
 
     /**

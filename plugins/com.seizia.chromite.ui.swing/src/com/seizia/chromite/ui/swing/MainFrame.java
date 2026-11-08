@@ -149,7 +149,7 @@ import java.util.function.Supplier;
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}: 실행, 중지, 계획, 연결·DB 콤보, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
+ *     ({@link SqlEditorToolBar}: 연결·DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
  *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
  *     그 창의 연결·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
  * </ul>

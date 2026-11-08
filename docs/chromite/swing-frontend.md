@@ -1747,7 +1747,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
 | 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** |
-| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** |
+| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
 |---|---|---|
@@ -1821,8 +1821,10 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 ### 구성과 동작
 
-| 2줄 (│ = 구분선) | Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ 연결 ▾ │ DB/스키마 ▾ │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+| 2줄 (│ = 구분선) | 연결 ▾ │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
 |---|---|
+
+(2026-11-08 순서: 콤보가 맨 앞이다. 아래 "콤보를 맨 앞으로, 연결 콤보 220" 참고. Commit·Roll Back·커밋 방식은 [transactions.md](transactions.md).)
 
 - **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
   Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
@@ -1895,6 +1897,22 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   `ArrayIndexOutOfBoundsException`이 나고 문서 탭이 깨진다. `MainFrame`의 문서 탭 `ContainerListener`(`updateDocumentCard`의 `CardLayout.show` → validate)가
   테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
 - Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
+
+### 콤보를 맨 앞으로, 연결 콤보 220 (2026-11-08, 앱 변경 #3)
+
+사용자 요청(2026-11-08): "연결선택 콤보가 1번 DB 스키마 선택이 2번으로 되게 한다", "연결 선택 콤보의 크기를 조금 더 줄인다".
+
+- **순서:** 연결 ▾ │ DB/스키마 ▾ │ Execute, Stop │ 예상 계획, 실제 계획 │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │
+  Format SQL │ Query History. 콤보 뒤의 순서와 구분선은 그대로다(`SqlEditorToolBar` 생성자).
+- **연결 콤보 폭:** `SqlEditorPanel.CONNECTION_PICKER_WIDTH` 260 → 220(약 15%, DB/스키마 200보다는 넓게). 빈 콤보(`emptyConnectionCombo`)도 같은 상수라 같이 바뀐다.
+- **긴 이름:** 콤보는 폭이 고정이라 긴 이름은 렌더러(JLabel)가 말줄임표로 줄인다. 그래서 두 콤보의 도구 설명에 고른 항목의 전체 이름을 넣었다
+  (`editor_sql_connection_selected_tip` "이 쿼리 창의 연결: {0}", `editor_sql_schema_selected_tip`). 고른 것이 없으면 이전 도구 설명이다.
+  항목은 `setModel`로 다시 채우므로(항목 이벤트 없음) 선택 이벤트와 `model` 속성 변경, 연결 이름 변경(`connectionChanged`)에서 다시 쓴다.
+  DB/스키마 콤보도 같은 원인(고정 폭 200)이라 같이 고쳤다. 펼친 목록은 FlatLaf가 항목 폭에 맞춰 넓히므로 잘리지 않는다(아래 확인).
+- **위치로 바꿔 끼우기:** 활성 쿼리 창이 바뀌면 `replace`가 빼낸 콤보의 위치(`getComponentIndex`)에 새 콤보를 넣으므로 순서와 상관없이 맞다(아래 확인).
+- **좁은 창:** 배치(`OverflowToolBar`)는 그대로다. 콤보가 먼저 최소 100까지 줄고, 그래도 넘치면 뒤쪽 단추(Query History)부터 » 메뉴로 간다.
+  콤보가 앞이라 Execute는 콤보 두 개가 최소 폭이 된 뒤에도 남는다.
+- 확인 결과는 "도구 창 도킹"의 "확인 (2026-11-08, 앱 변경 #3·#6·#12)"에 함께 적었다.
 
 ## 자동 커밋 상태 (2026-11-07)
 
@@ -2847,3 +2865,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
   중간 오류 규칙, Messages 오류 점·개수, 상태 줄 행 수는 고른 결과 탭. "결과 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages 절에 표시.
 - 2026-11-08 상태 표시줄의 쿼리 창 칸(앱 변경 #2, 사용자 결정): 쿼리 상태 칸을 결과 아래에서 메인 창 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로 칠함,
   `size.statusLine.query` 삭제. "상태 표시줄의 쿼리 창 칸" 절 추가, P1 쿼리 상태 줄·Results 자동 숨김 절에 표시.
+- 2026-11-08 SQL Editor 도구 막대의 연결·DB 콤보를 맨 앞으로, 연결 콤보 260 → 220, 콤보 도구 설명에 전체 이름(앱 변경 #3): "콤보를 맨 앞으로, 연결 콤보 220" 절.
