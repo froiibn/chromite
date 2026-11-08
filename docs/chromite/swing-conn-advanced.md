@@ -149,6 +149,33 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
   비밀번호는 핸들러 설정과 함께 레지스트리가 보안 저장소에 둔다. 서버 제품이 저장한 키 내용(`KeyData`)은 키 파일을 고르지 않으면 그대로 둔다.
 - Test Tunnel은 폼의 점프 서버까지 넣은 설정으로 시험한다(`saveSettings`를 그대로 쓴다).
 
+### SSH 호스트 키 확인 (2026-11-08, 후속 29 a)
+
+"호스트 키 확인 건너뛰기"를 끈 연결이 처음 보는 호스트 키를 묻지 않고 받아들였다(후속 확인 작업에서 `127.0.0.1:52222`의 서버가 질문 없이 연결됨).
+
+- **근본 원인 1(모델 `net.ssh.sshj` `KnownHostsVerifier.verify`):** 호스트 이름이 `localhost`나 `127.0.0.1`이면 known_hosts를 보지 않고 `true`를 돌려주었다.
+  upstream이 넣은 예외로, 점프 서버 뒤의 서버가 앞 서버가 연 로컬 포워드(`127.0.0.1:임의 포트`)로 열리기 때문으로 보인다. 그래서
+  ① 이 PC나 Docker가 `127.0.0.1`로 내놓은 SSH 서버는 키를 묻지도, 바뀐 키를 거절하지도 않았고 ② **점프 서버 뒤의 모든 서버**가 키 확인 없이 연결됐다.
+  `findExistingAlgorithms`는 `localhost`를 실제 호스트로 바꾸려 했으나, 실제 호스트 설정 자리에도 포워드 주소가 들어 있어 바뀌는 것이 없었다.
+- **근본 원인 2(모델 `net.ssh` `AbstractSessionController.JumpSession.connect`):** 점프 서버 뒤의 서버를 포워드 주소만 가진 `SSHHostConfiguration`으로 열어
+  서버의 이름이 사라졌다. JSch는 호스트 키 별칭을 `destination.hostname()`(=`127.0.0.1`)으로 두어, 점프 서버 뒤의 서버가 모두 `127.0.0.1` 한 이름으로 확인됐다
+  (두 번째 서버부터는 "키가 바뀜"으로 거절).
+- **고친 것:**
+  - `SSHHostConfiguration`에 키 이름(`hostKeyHostname`, `hostKeyPort`)을 더했다. 직접 연결은 소켓 주소와 같고(4개 인자 생성자), 점프 서버 뒤의 서버는
+    `forwardedTo(로컬 주소, 포트)`로 소켓만 포워드로 가고 키 이름은 원래 서버의 이름·포트를 가진다(OpenSSH ProxyJump와 같음).
+  - `KnownHostsVerifier`: localhost 예외를 지우고 늘 키 이름으로 known_hosts를 찾는다(`verify`, `findExistingAlgorithms`). 처음 보는 키는 질문
+    (`confirmAction`, 경고, 기본 단추 "아니요"), 바뀐 키는 경고만 보이고 거절(upstream과 같음).
+  - 질문과 경고의 지문을 MD5(`SecurityUtils.getFingerprint`) 대신 OpenSSH 기본(`ssh-keygen -l`)과 같은 `SHA256:…`으로 보인다(`getFingerprint`).
+    서버 관리자가 알려 주는 지문과 바로 비교할 수 있게 하려는 것이다. JSch 질문은 JSch가 이미 SHA-256으로 보인다.
+  - `JSCHSessionController`: 호스트 키 별칭을 `hostKeyHostname`으로.
+  - SSHJ 질문 문구의 한국어(`SSHJUIMessages_ko.properties`)를 더했다(전에는 한국어 화면에서도 영어).
+- **같은 원인의 다른 경로:** 터널 열기(연결), Test Tunnel 단추, 점프 서버는 모두 `AbstractSessionController.acquireSession` → 구현의 `createNewSession`을 지나
+  이 수정이 모두에 걸린다. 공유 터널은 처음 열 때 확인한다. 건너뛰기를 켠 연결과 headless 앱은 그대로 확인하지 않는다(`PromiscuousVerifier`, 사용자가 고른 것).
+- **known_hosts:** 저장은 SWT와 같은 파일(`SSHUtils.getKnownSshHostsFileOrDefault`, 기본 `~/.ssh/known_hosts`, 환경 설정 `org.eclipse.jsch.core/SSH2HOME`).
+  SSHJ는 그 뒤에 `~/.ssh/known_hosts`·`known_hosts2`를 읽기만 하는 검사기로 더 본다(키 이름 아닌 소켓 주소로 찾으므로 점프 서버 뒤의 서버에는 맞는 줄이 없다).
+- 결정: JSch 별칭은 upstream처럼 포트 없이 이름만 쓴다(직접 연결과 같음). 그래서 JSch와 SSHJ가 포트가 22가 아닌 서버를 known_hosts에 다른 이름
+  (`127.0.0.1` / `[127.0.0.1]:52322`)으로 적는다. 묻거나 거절하는 쪽으로만 다르므로 바꾸지 않았다.
+
 ### Proxy (`SocksProxyPanel`)
 
 - Proxy host, Port(1080), User name, Password, Remember password(끄면 비밀번호 칸이 꺼짐). 키는 `SocksConstants.PROP_HOST`/`PROP_PORT`, 사용자·비밀번호는 핸들러의 것.
@@ -377,6 +404,8 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
   PostgreSQL 프록시 서비스는 저장값이 켜져 있을 때만 보임, Snowflake·Spanner 빈 값은 속성을 지움(1절).
   2026-11-08: 연결별 제한은 "연결 유형을 따름"과 "이 연결만"을 고르게 함(SWT는 확인란만), 제한만 바꾸면 다시 연결을 묻지 않음(SWT는 물음),
   잠금 비밀번호가 틀리면 그 이유를 알림(SWT와 같음).
+- 2026-11-08 SSH 호스트 키(모델, SWT에도 같은 결함이 있었음): upstream `KnownHostsVerifier`의 localhost 예외를 지움, 점프 서버 뒤의 서버를 자기 이름으로 확인
+  (`SSHHostConfiguration.hostKeyHostname`/`forwardedTo`, JSch 별칭), 지문을 SHA-256으로 보임. 위 "SSH 호스트 키 확인".
 
 ## 확인
 
@@ -484,7 +513,32 @@ DB는 공용 Docker PostgreSQL 17, 연결의 호스트는 SSH 서버에서 본 �
 - 이번에는 Windows 방화벽 확인 창이 뜨지 않았다(포워더가 `127.0.0.1`에서만 들음, 위 "SSH 터널의 로컬 주소").
 - 같은 대화상자의 연결 속성 탭에 "로컬 클라이언트" 줄이 있다(PostgreSQL, 후속 27: `ConnectionSettingsPanel.createLocalClientField`, #156). 화면 `shots\27-local-client.png`.
 - 확인하지 못한 것: 공개 키·에이전트 인증, 점프 서버를 거치는 실제 연결, 처음 보는 호스트 키의 확인 질문(이번에는 질문 없이 연결됨, 기본 구현 SSHJ).
+  (2026-11-08 아래 "확인 (2026-11-08, SSH 호스트 키)"에서 점프 서버 연결과 호스트 키 질문을 확인함. 질문이 없던 원인은 위 "SSH 호스트 키 확인")
 - 회귀 테스트는 실행하지 않았다(코드 변경 없음).
+
+### 확인 (2026-11-08, SSH 호스트 키, `chromite/followups-5`)
+
+이 브랜치 빌드의 앱 한 벌(개인 `CHROMITE_DATA`·작업 공간, 한국어, known_hosts는 작업 공간 설정 `SSH2HOME`으로 scratch 폴더)에 붙인 시험 코드가
+연결 편집 대화상자의 SSH 탭과 단추를 직접 눌렀다(화면 입력 없음). SSH 서버는 일회용 Docker 컨테이너 2개(`debian:bookworm-slim` + OpenSSH 9.2p1, 같은 Docker 네트워크):
+A(점프 서버) `127.0.0.1:52322`, B(대상) `127.0.0.1:52323`이자 A에서 본 `chr-fu5-ssh-b:22`. DB는 공용 PostgreSQL 17(B에서 본 `host.docker.internal:55432`).
+known_hosts는 시험마다 비우거나 서버 키를 다시 만들어(`ssh-keygen -A`) "바뀐 키"를 만들었다. 증거 `D:\Tools\_scratch\chromite-followups-5\run\s*.txt.log`, `shots\a*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| 직접 B(`127.0.0.1:52323`), 처음 보는 키, 터널 테스트 | "호스트 키 확인: 호스트 [127.0.0.1]:52323의 진위를 확인할 수 없습니다. ssh-ed25519 키 지문은 SHA256:WoMG…JjY입니다. 계속 연결할까요?", 기본 단추 "아니오". 서버의 `ssh-keygen -l` 지문과 같음 |
+| → 아니오 | "SSH 터널을 열지 못했습니다 … HOST_KEY_NOT_VERIFIABLE", known_hosts 파일 없음(아무것도 쓰지 않음) |
+| 다시 테스트 → 예 | 경고 "[127.0.0.1]:52323(ssh-ed25519)을(를) 알려진 호스트 목록에 영구히 추가했습니다." → 터널 열림. known_hosts에 `[127.0.0.1]:52323 ssh-ed25519` |
+| 다시 테스트, 저장 → 연결 | 질문 없이 열림, 연결됨 |
+| B의 키를 다시 만듦 → 터널 테스트 | 경고 "원격 호스트의 식별 정보가 바뀌었습니다 … 키의 지문은 SHA256:tuIc…kPM입니다. 연결하지 않았습니다 …" → 실패. 저장된 연결의 연결도 같은 경고 뒤 "Error initializing tunnel" |
+| 점프 A → B(`chr-fu5-ssh-b:22`), known_hosts 비움 | A 질문([127.0.0.1]:52322, A의 지문) → 예 → B 질문 "호스트 chr-fu5-ssh-b의 진위를 … SHA256:tuIc…kPM" → 아니오: 실패, known_hosts에 A만 |
+| 다시 테스트 → B 예 | 터널 열림, known_hosts에 `chr-fu5-ssh-b` 추가. 다음 테스트는 질문 없음, 저장 → 연결됨 |
+| B의 키를 다시 만듦 → 연결 | 바뀐 키 경고 → "Error initializing tunnel"(HOST_KEY_NOT_VERIFIABLE) |
+| 구현 JSch, 같은 점프(B 키는 바뀐 상태) | A 질문("127.0.0.1", 포트 없는 별칭) → 예 → "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! … sent by the remote host chr-fu5-ssh-b" → 아니오: "HostKey has been changed: chr-fu5-ssh-b" |
+| "호스트 키 확인 건너뛰기" 켬, B 키 바뀐 상태 | 질문 없이 열림(사용자가 고른 대로) |
+
+- 고치기 전의 동작은 `chromite/followups-4` 확인(위 표, 127.0.0.1의 서버가 질문 없이 연결됨)으로 갈음했다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 SSH 터널(직접·점프 서버·공유 터널·터널 테스트)의 호스트 키 확인,
+  `127.0.0.1`·`localhost`의 SSH 서버를 쓰던 연결(이제 처음 한 번 묻는다).
 
 ## 남긴 것
 
@@ -513,3 +567,6 @@ DB는 공용 Docker PostgreSQL 17, 연결의 호스트는 SSH 서버에서 본 �
 - 2026-11-06 Object Explorer 연결 노드 바탕을 이름 알약(`ConnectionPill`, Registered Servers와 같음)으로 바꿈. [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
 - 2026-11-06 연결 색 위 글자가 읽히지 않으면 대비 색(상태 줄, 알약). 남긴 것에서 해당 항목 삭제.
 - 2026-11-08 실제 SSH 서버(일회용 Docker OpenSSH)로 터널 테스트·연결 테스트·저장·다시 열기·연결 확인(`chromite/followups-4`, 위 "확인 (2026-11-08, 실제 SSH 서버, 후속 "확인 작업")").
+- 2026-11-08 후속 29 a(`chromite/followups-5`): 호스트 키 확인을 끄지 않은 연결이 `127.0.0.1`의 서버와 점프 서버 뒤의 서버를 키 확인 없이 받아들이던 것
+  (`KnownHostsVerifier`의 localhost 예외, 점프 세션이 서버 이름을 잃음). 키 이름(`SSHHostConfiguration.hostKeyHostname`), SHA-256 지문, JSch 별칭,
+  SSHJ 질문의 한국어. 위 "SSH 호스트 키 확인", "확인 (2026-11-08, SSH 호스트 키)".

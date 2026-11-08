@@ -37,6 +37,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
+/**
+ * JSch SSH sessions.
+ *
+ * 변경 이력:
+ * - 2026-11-08 호스트 키 별칭을 키 이름({@link SSHHostConfiguration#hostKeyHostname})으로: 점프 서버 뒤 서버가 모두
+ *   {@code 127.0.0.1}로 확인되던 것을 고침(후속 29 a)
+ */
 public class JSCHSessionController extends AbstractSessionController<JSCHSession> {
     private static final Log log = Log.getLog(JSCHSessionController.class);
 
@@ -97,7 +104,8 @@ public class JSCHSessionController extends AbstractSessionController<JSCHSession
             }
 
             session.setUserInfo(userInfo);
-            session.setHostKeyAlias(destination.hostname());
+            // A server behind a jump server is reached through a local forward; its key is known under its own name
+            session.setHostKeyAlias(destination.hostKeyHostname());
             session.setServerAliveInterval(configuration.getIntProperty(SSHConstants.PROP_ALIVE_INTERVAL));
             session.setTimeout(configuration.getIntProperty(
                 SSHConstants.PROP_CONNECT_TIMEOUT,

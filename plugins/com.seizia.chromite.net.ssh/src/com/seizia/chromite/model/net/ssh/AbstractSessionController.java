@@ -44,6 +44,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * Opens direct, shared and jump-server SSH sessions for the implementations (SSHJ, JSch).
+ *
+ * 변경 이력:
+ * - 2026-11-08 점프 서버 뒤 서버의 세션은 로컬 포워드 주소로 열되 호스트 키는 그 서버의 이름으로 확인한다
+ *   ({@link SSHHostConfiguration#forwardedTo}). 전에는 {@code 127.0.0.1:임의 포트}로 확인해 SSHJ는 묻지 않고 받아들였다(후속 29 a).
+ */
 public abstract class AbstractSessionController<T extends AbstractSession> implements SSHSessionController {
     private static final Log log = Log.getLog(AbstractSessionController.class);
 
@@ -265,12 +272,8 @@ public abstract class AbstractSessionController<T extends AbstractSession> imple
                 host.port()
             ));
 
-            final SSHHostConfiguration jumpHost = new SSHHostConfiguration(
-                host.username(),
-                jumpPortForward.localHost(),
-                jumpPortForward.localPort(),
-                host.auth()
-            );
+            // The host key is still checked under the server's own name, not the local forward's address
+            final SSHHostConfiguration jumpHost = host.forwardedTo(jumpPortForward.localHost(), jumpPortForward.localPort());
 
             jumpDestination = controller.createDirectSession(configuration, jumpHost, null);
             jumpDestination.connect(monitor, jumpHost, configuration);

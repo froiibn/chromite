@@ -80,6 +80,8 @@ SWT 대조 감사의 2순위 항목이다([swt-parity-audit.md](swt-parity-audit
 - **저장된 값의 쓰임.** 비밀번호 방식의 값은 로그인 비밀번호로만, 키 방식의 값은 개인 키 암호로만 쓴다.
   SWT와 모델 기본값은 같은 값을 두 질문에 모두 답해, 키 방식에서 개인 키 암호가 서버에 비밀번호로 갈 수 있었다.
 - **SSHJ.** 어댑터는 `JSCHSessionController`에만 걸린다. 기본 구현 SSHJ는 그대로 `KnownHostsVerifier` → `confirmAction`을 쓴다.
+  (2026-11-08: SSHJ가 `127.0.0.1`과 점프 서버 뒤의 서버를 묻지 않고 받아들이던 것을 고쳤고, JSch 별칭이 점프 서버 뒤의 서버 이름을 쓴다.
+  [swing-conn-advanced.md](swing-conn-advanced.md) "SSH 호스트 키 확인")
 - JSch는 비밀번호 방식을 취소하면 다음 방식(키보드 대화형)으로 넘어간다. 그래서 비밀번호 대화상자를 취소하면 키보드 대화형 "Password:" 대화상자가
   한 번 더 나올 수 있다. 두 번째도 취소하면 연결 오류로 끝난다. Eclipse `UserInfoPrompter`와 같은 동작이다.
 
@@ -115,3 +117,4 @@ SWT 대조 감사의 2순위 항목이다([swt-parity-audit.md](swt-parity-audit
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 인증 방식 자격 증명 질문(`SwingPlatformUI.promptAuthModelCredentials`)과 JSch SSH 질문(`JschUserInfoPrompter`, `JschPromptAdapterFactory`)
+- 2026-11-08 후속 29 a: JSch 호스트 키 별칭을 점프 서버 뒤 서버의 이름으로, SSHJ의 localhost 예외 삭제([swing-conn-advanced.md](swing-conn-advanced.md) "SSH 호스트 키 확인")
