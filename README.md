@@ -2,6 +2,7 @@
 
 # Chromite
 
+[![Download latest release](https://img.shields.io/github/v/release/froiibn/chromite?label=Download&color=2ea44f)](https://github.com/froiibn/chromite/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
 [![Java: 21+](https://img.shields.io/badge/Java-21%2B-orange.svg)](#building-from-sources)
 [![Based on DBeaver Community](https://img.shields.io/badge/Based%20on-DBeaver%20Community-795548.svg)](https://github.com/dbeaver/dbeaver)
