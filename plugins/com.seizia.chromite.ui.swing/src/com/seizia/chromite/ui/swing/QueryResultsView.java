@@ -41,28 +41,35 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * 쿼리 창 하나의 결과 탭 줄: {@code Result1 | Result2 | … | Messages | Execution plan | Terminal}.
+ * 쿼리 창 하나의 결과 영역: 위 탭 {@code Grid | Text | Messages | Server Output | Execution plan | Terminal}, Grid 안 아래쪽 자식 탭
+ * {@code Result 1 | Result 2 | …}.
  *
- * 설계: 결과는 쿼리 창마다 따로 있다. 탭 줄도 쿼리 창마다 하나이고, 메인 창이 활성 쿼리 창의 탭 줄을 Results 카드에 통째로 끼운다
- * ({@link MainFrame}). 탭 줄이 쿼리 창의 것이라 고른 탭은 창을 바꿨다 돌아와도 그대로다(따로 기억할 상태가 없다).
+ * 설계: 결과는 쿼리 창마다 따로 있다. 탭 줄도 쿼리 창마다 하나이고, 메인 창이 활성 쿼리 창의 위 탭 줄을 Results 카드에 통째로 끼운다
+ * ({@link MainFrame}). 탭 줄이 쿼리 창의 것이라 고른 탭(위 탭과 자식 탭)은 창을 바꿨다 돌아와도 그대로다(따로 기억할 상태가 없다).
  * <ul>
- *     <li>결과 탭(2026-11-08 사용자 결정, SSMS와 다르게): 결과 집합마다 탭 하나 "Result1", "Result2"…이고 탭은 결과 뷰어
- *     ({@link ResultSetViewerPanel}) 하나를 채운다. 결과가 하나여도 "Result1"이다. 번호는 실행마다 1부터, 결과가 나온 순서다.
- *     탭 도구 설명은 그 결과를 만든 SQL의 첫 줄이다. 전에는 결과 표를 한 탭 안에 위아래로 쌓고 높이를 나눴는데(SSMS), 결과가 많으면
- *     표마다 낮아지고 바깥 스크롤로 넘겨야 했다.</li>
- *     <li>그 뒤에 Messages, Execution plan, 켜져 있으면 Terminal(쿼리 창이 켰을 때만) 탭이다. 계획과 터미널 내용은 쿼리 창이 넘긴다.</li>
- *     <li>앞으로 오는 탭: 실행을 시작하면 Messages(아직 결과가 없다), 그 실행의 첫 결과가 나오면 Result1이다. 뒤의 결과는 탭만 생기고
- *     사용자가 고른 탭을 빼앗지 않는다. 오류로 멈췄거나 결과가 없으면 쿼리 창이 Messages를 앞으로 가져온다. 탭이 넘치면 FlatLaf의 탭 줄 스크롤과
- *     숨은 탭 목록이다.</li>
- *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고(PRINT 출력 포함), 오류를 차례로 쓴다. 오류는 빨간색이다. 결과 표의 저장 결과와 저장 오류도 여기에 쓴다.
+ *     <li>두 단계 탭(2026-11-11 사용자 결정, 앱 변경 #54, 2026-11-08 #7의 한 줄 탭을 바꿈): 위 탭은 종류별이고 순서가 고정이다. 결과가 몇 개든
+ *     Messages·Server Output·계획 탭 자리가 밀리지 않게 하려는 것이다. 결과 집합은 Grid 안의 자식 탭(엑셀 시트처럼 아래쪽) "Result 1",
+ *     "Result 2"…이고 자식 탭은 결과 뷰어({@link ResultSetViewerPanel}) 하나를 채운다. 이름은 화면 언어와 관계없이 영어다. 결과가 하나여도 자식 탭
+ *     줄을 보인다. 번호는 실행마다 1부터, 결과가 나온 순서다. 자식 탭 도구 설명은 그 결과를 만든 SQL의 첫 줄이다. 자식 탭이 넘치면 FlatLaf의 탭 줄
+ *     스크롤과 숨은 탭 목록이다.</li>
+ *     <li>Text: Grid의 자식 탭 모두를 그 순서대로 고정폭 글자로 이어 쓴다(SSMS "Results to Text"를 실행 뒤에 고르는 보기). 탭이 앞에 있을 때만
+ *     만들고, 결과가 늘거나 다시 읽히면 다시 만든다. 결과마다의 보기 단추(텍스트 보기 포함)는 결과 뷰어에 그대로 있다.</li>
+ *     <li>계획과 터미널 내용은 쿼리 창이 넘긴다. Terminal은 쿼리 창이 켰을 때만 맨 끝에 붙는다.</li>
+ *     <li>앞으로 오는 탭: 실행을 시작하면 Messages(아직 결과가 없다), 그 실행의 첫 결과가 나오면 Grid와 Result 1이다. 뒤의 결과는 자식 탭만
+ *     생기고 사용자가 고른 탭을 빼앗지 않는다. 오류로 멈췄거나 결과가 없으면 쿼리 창이 Messages를 앞으로 가져온다.</li>
+ *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고, 오류를 차례로 쓴다. 오류는 빨간색이다. 결과 표의 저장 결과와 저장 오류도 여기에 쓴다.
  *     오류가 있으면 탭에 오류 점과 개수를 붙인다(오류에서 멈추지 않고 이어 가는 설정에서도 오류가 있었음을 알린다). 다음 실행에서 지운다.</li>
+ *     <li>Server Output: 서버가 낸 출력만(DBMS_OUTPUT, PRINT, RAISE NOTICE 등, 무엇이 출력인지는 쿼리 창이 가른다). 오류·행 수와 성격이 달라
+ *     Messages와 따로 둔다. 출력이 없는 실행에서도 탭은 그 자리에 비어 있다(위치 고정). 탭이 앞에 있지 않을 때 새 출력이 오면 탭에 점을 붙이고,
+ *     탭을 고르면 지운다. 다음 실행에서 비운다.</li>
  *     <li>결과 편집: 결과 표마다 바뀐 내용을 따로 가진다. 쿼리 창은 이 객체를 통해 저장하지 않은 변경이 있는지, 저장 중인지 묻고
  *     닫거나 다시 실행하기 전에 모두 저장한다({@link #saveChanges}).</li>
- *     <li>결과 고정(SWT의 결과 탭 고정, Query &gt; Pin Results): 고른 결과 탭(다른 탭이 앞에 있으면 마지막으로 고른 결과 탭)을 고정한다.
- *     탭에 핀 아이콘과 고정 시각이 붙고, 다음 실행은 고정하지 않은 결과 탭만 지우고 새 결과를 고정 탭 앞에 놓는다. 고정 탭은 닫을 수 있고,
+ *     <li>결과 고정(SWT의 결과 탭 고정, Query &gt; Pin Results): Grid에서 고른 자식 탭(다른 위 탭이 앞에 있어도 Grid 안에서 고른 탭)을 고정한다.
+ *     탭에 핀 아이콘과 고정 시각이 붙고, 다음 실행은 고정하지 않은 자식 탭만 지우고 새 결과를 고정 탭 앞에 놓는다. 고정 탭은 닫을 수 있고,
  *     저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel). 고정 결과도 실행한 문맥으로 다시 읽고 저장하며, 창을 닫을 때의 저장 묻기
  *     ({@link #getChangeCount})에 들어간다. 다시 실행 전의 버리기 묻기는 지울 결과만 본다({@link #getCurrentChangeCount}).</li>
- *     <li>행 수(쿼리 상태 줄)는 고른 결과 탭의 행 수다({@link #getRowCount}). 결과가 아닌 탭이 앞에 있으면 쿼리 창이 실행에서 읽은 행 수를 보인다.</li>
+ *     <li>행 수(쿼리 상태 줄)는 Grid가 앞일 때 고른 자식 탭의 행 수다({@link #getRowCount}). 다른 위 탭이 앞에 있으면 쿼리 창이 실행에서 읽은
+ *     행 수를 보인다.</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -84,6 +91,9 @@ import java.util.function.IntConsumer;
  * - 2026-11-08 결과 집합마다 탭(사용자 결정, 앱 변경 #7): 쿼리 창마다의 탭 줄 Result1… | Messages | Execution plan | Terminal이 메인 창의
  *   Results / Messages 바깥 탭과 결과 표 쌓기({@code GridStack})를 대신함, 고정은 고른 결과 탭 하나, Messages 탭의 오류 점·개수, 행 수는 고른 결과 탭
  *   (docs/chromite/swing-frontend.md "결과 탭")
+ * - 2026-11-12 두 단계 탭(사용자 결정, 앱 변경 #54): 위 탭 Grid | Text | Messages | Server Output | Execution plan | Terminal, Grid 안 아래쪽
+ *   자식 탭 "Result 1"…(영어), 서버 출력은 Messages에서 Server Output 탭으로(새 출력 점), Text 탭, 고정은 Grid에서 고른 자식 탭이라
+ *   마지막으로 고른 결과 탭을 따로 기억하던 {@code lastResultTab}을 지움 (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  */
 final class QueryResultsView {
 
@@ -142,22 +152,26 @@ final class QueryResultsView {
      */
     private static final int TOOL_TIP_SQL_LENGTH = 120;
 
+    // The top tabs, in a fixed order
     private final JTabbedPane tabs = new JTabbedPane();
+    // The Grid tab: a child tab per result, at the bottom like the sheets of a spreadsheet. Its selected tab is the one
+    // Pin Results pins and the one shown when the Grid tab comes back
+    private final JTabbedPane resultTabs = new JTabbedPane(JTabbedPane.BOTTOM);
     // The results of the last run, in tab order; a new run replaces them
     private final List<ResultTab> currentTabs = new ArrayList<>();
     // Pinned results, kept by the next runs until their tabs are closed
     private final List<ResultTab> pinnedTabs = new ArrayList<>();
-    /**
-     * The selected result tab, or the one selected last while another tab (Messages, plan, terminal) is in front: Pin
-     * Results pins it, and showing the results brings it back.
-     */
-    @Nullable
-    private ResultTab lastResultTab;
+    private final JTextArea textArea = new JTextArea();
+    private final JScrollPane textComponent;
     private final JTextPane messagesPane = new JTextPane();
     private final JScrollPane messagesComponent;
+    private final JTextArea outputArea = new JTextArea();
+    private final JScrollPane outputComponent;
     private final JComponent planComponent;
     // Errors written to Messages since the last clear
     private int errorCount;
+    // Server output came while the Server Output tab was not in front
+    private boolean outputUnread;
     @Nullable
     private JComponent terminalComponent;
     private final Listener listener;
@@ -184,6 +198,7 @@ final class QueryResultsView {
 
         @Override
         public void rowsChanged() {
+            refreshTextIfShown();
             listener.resultsRowsChanged();
         }
 
@@ -207,29 +222,45 @@ final class QueryResultsView {
         // size.tab.tool with a 3px underline (size.tabUnderline); one row that scrolls, with FlatLaf's list of hidden tabs
         tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closePinned);
+        resultTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+        resultTabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        resultTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closePinned);
 
-        messagesPane.setEditable(false);
         // font.code, like the DataGrip console output
+        textArea.setEditable(false);
+        textArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        textComponent = new JScrollPane(textArea);
+        textComponent.setBorder(BorderFactory.createEmptyBorder());
+        messagesPane.setEditable(false);
         messagesPane.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
         installGoToError();
         messagesComponent = new JScrollPane(messagesPane);
         messagesComponent.setBorder(BorderFactory.createEmptyBorder());
+        outputArea.setEditable(false);
+        outputArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        outputComponent = new JScrollPane(outputArea);
+        outputComponent.setBorder(BorderFactory.createEmptyBorder());
+        tabs.addTab(EditorMessages.editor_results_grid, UiIcons.get("results"), resultTabs); //$NON-NLS-1$
+        tabs.addTab(EditorMessages.editor_results_text, UiIcons.get("format"), textComponent); //$NON-NLS-1$
         tabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), messagesComponent); //$NON-NLS-1$
+        tabs.addTab(EditorMessages.editor_results_server_output, UiIcons.get("comment"), outputComponent); //$NON-NLS-1$
         tabs.addTab(CoreMessages.main_execution_plan, UiIcons.get("plan"), planComponent); //$NON-NLS-1$
         clear();
         // After the first tabs: the query window is still being built while they are added
         tabs.addChangeListener(e -> {
-            ResultTab selected = findTab(tabs.getSelectedComponent());
-            if (selected != null) {
-                lastResultTab = selected;
+            Component selected = tabs.getSelectedComponent();
+            if (selected == outputComponent && outputUnread) {
+                outputUnread = false;
+                updateOutputTab();
             }
+            refreshTextIfShown();
             listener.resultsRowsChanged();
         });
+        resultTabs.addChangeListener(e -> listener.resultsRowsChanged());
     }
 
     /**
-     * The tab row with its contents, put into the main window's Results card while the query window is active.
+     * The top tab row with its contents, put into the main window's Results card while the query window is active.
      */
     @NotNull
     JTabbedPane getComponent() {
@@ -237,7 +268,8 @@ final class QueryResultsView {
     }
 
     /**
-     * Removes the results of the last run and clears the messages for a new run; pinned results stay.
+     * Removes the results of the last run and clears the messages and the server output for a new run; pinned results
+     * stay.
      */
     void clear() {
         for (ResultTab tab : currentTabs) {
@@ -247,14 +279,15 @@ final class QueryResultsView {
         messagesPane.setText("");
         errorCount = 0;
         updateMessagesTab();
+        outputArea.setText("");
+        outputUnread = false;
+        updateOutputTab();
+        refreshTextIfShown();
     }
 
     private void removeTab(@NotNull ResultTab tab) {
         tab.viewer.dispose();
-        tabs.remove(tab.viewer);
-        if (tab == lastResultTab) {
-            lastResultTab = null;
-        }
+        resultTabs.remove(tab.viewer);
     }
 
     @Nullable
@@ -270,16 +303,23 @@ final class QueryResultsView {
     }
 
     /**
-     * Adds a result of the running query as the next "ResultN" tab, before the pinned ones. The tab in front does not
-     * change (the query window brings the run's first result to the front, {@link #showResult}).
+     * Adds a result of the running query as the next "Result N" child tab of Grid, before the pinned ones. The tab in
+     * front does not change (the query window brings the run's first result to the front, {@link #showResult}).
      *
      * @param sql the query that gave the result; its first line is the tab's tool tip
      */
     void addGrid(@NotNull ResultSetGrid.Fetched fetched, @NotNull String sql) {
         ResultTab tab = new ResultTab(new ResultSetViewerPanel(fetched, gridHost),
             NLS.bind(EditorMessages.editor_results_tab, currentTabs.size() + 1), firstLine(sql));
-        tabs.insertTab(tab.name, UiIcons.get("results"), tab.viewer, tab.sql, currentTabs.size()); //$NON-NLS-1$
+        // No icon: the sheet tabs are told apart by their names; a pinned one gets the pin
+        resultTabs.insertTab(tab.name, null, tab.viewer, tab.sql, currentTabs.size());
         currentTabs.add(tab);
+        if (currentTabs.size() == 1 && tabs.getSelectedComponent() != resultTabs) {
+            // The run's first result is the one Grid shows when it comes to the front (also later, after a run with the
+            // terminal in front); a Grid that is in front keeps the child tab the user is looking at
+            resultTabs.setSelectedComponent(tab.viewer);
+        }
+        refreshTextIfShown();
     }
 
     @NotNull
@@ -294,11 +334,12 @@ final class QueryResultsView {
     }
 
     /**
-     * Query &gt; Pin Results: pins the selected result tab (or the one selected last), so the next runs leave it.
+     * Query &gt; Pin Results: pins the child tab selected in Grid (also while another top tab is in front), so the next
+     * runs leave it; Grid comes to the front with it.
      */
     @NotNull
     PinResult pinResults() {
-        ResultTab tab = lastResultTab;
+        ResultTab tab = findTab(resultTabs.getSelectedComponent());
         if (tab == null) {
             return PinResult.NOTHING_TO_PIN;
         }
@@ -309,13 +350,13 @@ final class QueryResultsView {
         currentTabs.remove(tab);
         pinnedTabs.add(tab);
         String time = LocalTime.now().format(PIN_TIME_FORMAT);
-        int index = tabs.indexOfComponent(tab.viewer);
+        int index = resultTabs.indexOfComponent(tab.viewer);
         tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, EditorMessages.editor_results_unpin_tip);
-        tabs.setTitleAt(index, NLS.bind(EditorMessages.editor_results_pinned, tab.name, time));
-        tabs.setIconAt(index, UiIcons.get("pin")); //$NON-NLS-1$
-        tabs.setToolTipTextAt(index, NLS.bind(EditorMessages.editor_results_pinned_tip, tab.sql, time));
-        tabs.setSelectedIndex(index);
+        resultTabs.setTitleAt(index, NLS.bind(EditorMessages.editor_results_pinned, tab.name, time));
+        resultTabs.setIconAt(index, UiIcons.get("pin")); //$NON-NLS-1$
+        resultTabs.setToolTipTextAt(index, NLS.bind(EditorMessages.editor_results_pinned_tip, tab.sql, time));
+        tabs.setSelectedComponent(resultTabs);
         return PinResult.PINNED;
     }
 
@@ -323,7 +364,7 @@ final class QueryResultsView {
      * Closes a pinned tab; unsaved changes of its grid are discarded after asking (Cancel is the default).
      */
     private void closePinned(int tabIndex) {
-        ResultTab tab = findTab(tabs.getComponentAt(tabIndex));
+        ResultTab tab = findTab(resultTabs.getComponentAt(tabIndex));
         if (tab == null || !pinnedTabs.contains(tab) || tab.viewer.getGrid().isSaving()) {
             return;
         }
@@ -332,12 +373,13 @@ final class QueryResultsView {
             String[] options = {EditorMessages.editor_results_unpin_discard, EditorMessages.editor_common_cancel};
             if (JOptionPane.showOptionDialog(tabs,
                 NLS.bind(changes == 1 ? EditorMessages.editor_results_unpin_confirm_one : EditorMessages.editor_results_unpin_confirm_many, changes),
-                tabs.getTitleAt(tabIndex), JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
+                resultTabs.getTitleAt(tabIndex), JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
                 return;
             }
         }
         pinnedTabs.remove(tab);
         removeTab(tab);
+        refreshTextIfShown();
         listener.resultsEditStateChanged();
     }
 
@@ -349,15 +391,11 @@ final class QueryResultsView {
     }
 
     /**
-     * Brings a result to the front: the selected result tab stays, else the first result of the last run (a run's first
-     * result), else the result tab selected last (a pinned one); Messages when there is no result.
+     * Brings a result to the front: Grid with the child tab selected in it (the run's first result unless the user picked
+     * another, {@link #addGrid}); Messages when there is no result.
      */
     void showResult() {
-        if (findTab(tabs.getSelectedComponent()) != null) {
-            return;
-        }
-        ResultTab tab = !currentTabs.isEmpty() ? currentTabs.get(0) : lastResultTab;
-        tabs.setSelectedComponent(tab != null ? tab.viewer : messagesComponent);
+        tabs.setSelectedComponent(resultTabs.getTabCount() > 0 ? resultTabs : messagesComponent);
     }
 
     void showPlan() {
@@ -401,12 +439,59 @@ final class QueryResultsView {
     }
 
     /**
-     * Rows shown now (after filters and fetching more rows) in the selected result tab; -1 while another tab is in
-     * front.
+     * Rows shown now (after filters and fetching more rows) in the child tab selected in Grid; -1 while another top tab
+     * is in front.
      */
     long getRowCount() {
-        ResultTab tab = findTab(tabs.getSelectedComponent());
+        ResultTab tab = tabs.getSelectedComponent() == resultTabs ? findTab(resultTabs.getSelectedComponent()) : null;
         return tab != null ? tab.viewer.getRowCount() : -1;
+    }
+
+    /**
+     * Makes the Text tab's text again while it is in front; it is made when the tab is selected otherwise (a grid's text
+     * is made in the EDT, so only for a tab that is seen).
+     */
+    private void refreshTextIfShown() {
+        if (tabs.getSelectedComponent() != textComponent) {
+            return;
+        }
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < resultTabs.getTabCount(); i++) {
+            ResultTab tab = findTab(resultTabs.getComponentAt(i));
+            if (tab == null) {
+                continue;
+            }
+            if (!text.isEmpty()) {
+                text.append('\n');
+            }
+            // The child tab's title (with the pin time) and the query's first line tell the results apart
+            text.append(NLS.bind(EditorMessages.editor_results_text_title, resultTabs.getTitleAt(i), tab.sql)).append('\n');
+            text.append(tab.viewer.formatText());
+        }
+        textArea.setText(text.toString());
+        textArea.setCaretPosition(0);
+    }
+
+    /**
+     * Writes a line the server printed (DBMS_OUTPUT, PRINT, RAISE NOTICE) to the Server Output tab; the tab gets a dot
+     * while it is not in front.
+     */
+    void appendServerOutput(@NotNull String text) {
+        outputArea.append(text.endsWith("\n") ? text : text + "\n"); //$NON-NLS-1$ //$NON-NLS-2$
+        if (tabs.getSelectedComponent() != outputComponent && !outputUnread) {
+            outputUnread = true;
+            updateOutputTab();
+        }
+    }
+
+    /**
+     * The Server Output tab with a dot while it has output that was not seen.
+     */
+    private void updateOutputTab() {
+        int index = tabs.indexOfComponent(outputComponent);
+        Icon icon = UiIcons.get("comment"); //$NON-NLS-1$
+        tabs.setIconAt(index, outputUnread ? UiIcons.withStatusDot(icon, UiIcons.Status.WARNING) : icon);
+        tabs.setToolTipTextAt(index, outputUnread ? EditorMessages.editor_results_server_output_new_tip : null);
     }
 
     /**
@@ -591,7 +676,7 @@ final class QueryResultsView {
     }
 
     /**
-     * A result tab: its viewer (the tab's content), "ResultN", and the first line of the query that gave it.
+     * A child tab of Grid: its viewer (the tab's content), "Result N", and the first line of the query that gave it.
      */
     private record ResultTab(@NotNull ResultSetViewerPanel viewer, @NotNull String name, @NotNull String sql) {
     }

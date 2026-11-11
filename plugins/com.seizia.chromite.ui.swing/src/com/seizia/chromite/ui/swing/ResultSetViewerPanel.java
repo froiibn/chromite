@@ -173,6 +173,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 머리글 이름 자리를 누르면 정렬 대신 열 전체 선택(Ctrl+클릭 더하기, Shift+클릭 범위). 정렬은 정렬 아이콘으로만
  *   (사용자 요청, docs/chromite/swing-grid-column-filters.md "머리글 누르기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 열 머리글 Ctrl+클릭도 명령 키, 텍스트 보기는 macOS에서도 Control+`
+ * - 2026-11-12 결과 영역의 Text 탭이 결과마다의 글을 얻는 {@link #formatText}(텍스트 보기와 같은 글, 앱 변경 #54)
+ *   (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -517,6 +519,16 @@ final class ResultSetViewerPanel extends JPanel {
     @NotNull
     ResultSetGrid getGrid() {
         return grid;
+    }
+
+    /**
+     * The grid's rows as the text view shows them, for the results view's Text tab.
+     */
+    @NotNull
+    String formatText() {
+        ResultSetTextView.Source source = new TextSource();
+        JTable table = source.getTable();
+        return table == null ? "" : ResultSetTextView.format(table, source::isNumeric); //$NON-NLS-1$
     }
 
     /**
