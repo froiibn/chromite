@@ -288,6 +288,7 @@ import java.util.function.Supplier;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 실제 계획 ⇧⌘M), 도구 설명의 키 글자는 단축키에서 만듦(앱 변경 #24)
  *   (docs/chromite/shortcuts.md); macOS: 메뉴는 화면 메뉴 막대({@link MacOSScreenMenuBar}), 앱 메뉴와 겹치는 Exit·Options·Help(About)는
  *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
+ * - 2026-11-11 View &gt; Theme에 시스템 설정 따르기를 더하고 저장된 선택을 표시 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -2348,14 +2349,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenu themeMenu = new JMenu(CoreMessages.main_menu_theme);
         themeMenu.setMnemonic(KeyEvent.VK_T);
         ButtonGroup group = new ButtonGroup();
-        ChromiteTheme current = ChromiteTheme.getCurrent();
+        ChromiteTheme.Choice current = ChromiteTheme.getSavedChoice();
         List<JRadioButtonMenuItem> themeItems = new ArrayList<>();
-        for (ChromiteTheme theme : ChromiteTheme.values()) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.getLabel(), theme == current);
-            item.setMnemonic(theme.getLabel().charAt(0));
+        for (ChromiteTheme.Choice choice : ChromiteTheme.Choice.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(choice.getLabel(), choice == current);
+            item.setMnemonic(choice.getLabel().charAt(0));
             item.addActionListener(e -> {
-                if (ChromiteTheme.getCurrent() != theme) {
-                    theme.apply();
+                if (ChromiteTheme.getSavedChoice() != choice) {
+                    choice.apply();
                 }
             });
             group.add(item);
@@ -2380,10 +2381,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         themeMenu.add(iconStyleMenu);
         // Tools > Options changes the same settings
         onMenuSelected(themeMenu, () -> {
-            ChromiteTheme theme = ChromiteTheme.getCurrent();
+            ChromiteTheme.Choice choice = ChromiteTheme.getSavedChoice();
             UiIconStyle iconStyle = UiIconStyle.getCurrent();
             for (int i = 0; i < themeItems.size(); i++) {
-                themeItems.get(i).setSelected(ChromiteTheme.values()[i] == theme);
+                themeItems.get(i).setSelected(ChromiteTheme.Choice.values()[i] == choice);
             }
             for (int i = 0; i < iconStyleMenu.getItemCount(); i++) {
                 iconStyleMenu.getItem(i).setSelected(UiIconStyle.values()[i] == iconStyle);

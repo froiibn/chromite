@@ -114,6 +114,7 @@ import java.util.regex.Pattern;
  * - 2026-11-08 왼쪽 목록을 넓히고(최소 220) 찾기 칸, 창을 pack 크기보다 크게, 페이지 왼쪽 여백, 페이지 식별자로 열기(app round 1 #8, #13,
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 서식 안내의 두 키 조합 글자
+ * - 2026-11-11 General의 테마 목록에 시스템 설정 따르기를 더하고 저장된 선택을 보임 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  */
 final class OptionsDialog extends JDialog {
 
@@ -140,7 +141,7 @@ final class OptionsDialog extends JDialog {
         FROM Album a
         WHERE a.Title LIKE N'%한글%' AND a.AlbumId > 42.5 OR a.Note IS NULL;"""; //$NON-NLS-1$
 
-    private final JComboBox<ChromiteTheme> themeCombo = new JComboBox<>(ChromiteTheme.values());
+    private final JComboBox<ChromiteTheme.Choice> themeCombo = new JComboBox<>(ChromiteTheme.Choice.values());
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
@@ -209,7 +210,7 @@ final class OptionsDialog extends JDialog {
         super(owner, CoreMessages.options_title, true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        themeCombo.setSelectedItem(ChromiteTheme.getCurrent());
+        themeCombo.setSelectedItem(ChromiteTheme.getSavedChoice());
         themeCombo.setRenderer(new LabelRenderer());
         iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
         iconStyleCombo.setRenderer(new LabelRenderer());
@@ -905,8 +906,8 @@ final class OptionsDialog extends JDialog {
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
             iconStyle.apply();
         }
-        if (themeCombo.getSelectedItem() instanceof ChromiteTheme theme && theme != ChromiteTheme.getCurrent()) {
-            theme.apply();
+        if (themeCombo.getSelectedItem() instanceof ChromiteTheme.Choice choice && choice != ChromiteTheme.getSavedChoice()) {
+            choice.apply();
         }
     }
 
@@ -1050,6 +1051,8 @@ final class OptionsDialog extends JDialog {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof ChromiteTheme theme) {
                 setText(theme.getLabel());
+            } else if (value instanceof ChromiteTheme.Choice choice) {
+                setText(choice.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
             } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {
