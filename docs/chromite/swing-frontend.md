@@ -1746,7 +1746,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** │ Chromite Agent(아이콘 + 글자, 2026-11-12 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로") |
 | 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
@@ -1816,6 +1816,9 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
 
+> 2026-11-12 바뀜(앱 변경 #53): 사용자 뜻은 창 오른쪽 끝이 아니라 단추 묶음의 마지막이었다. 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로".
+> 이 절의 오른쪽 끝 정렬(`OverflowToolBar.setTrailing`)은 삭제했다.
+
 사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
 "가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
 
@@ -1827,6 +1830,17 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
   폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
   (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
+
+### Chromite Agent 단추를 단추 묶음의 마지막으로 (2026-11-12, 앱 변경 #53)
+
+사용자 요청(2026-11-11): "가장 우측에 배치하라고 했는데 현재 화면의 우측에 배치되어 있다. 위치를 수정한다". 뜻은 도구 막대 단추들 가운데 맨 마지막(가장 오른쪽 단추)이다.
+
+- **자리:** Find 뒤 구분선 다음, 단추 묶음의 마지막. 남는 공간은 그 뒤(오른쪽)에 남는다. 아이콘 + 글자, 토글 동작, 도구 설명 "Chromite Agent (Ctrl+Alt+I)", 단축키는 그대로다.
+- **좁은 창:** 다른 단추처럼 뒤에서부터 » 메뉴로 넘친다. 맨 마지막이라 가장 먼저 넘친다(넘침 메뉴 항목은 체크 표시가 있는 "Chromite Agent").
+- **삭제:** 오른쪽 끝 정렬만을 위해 넣은 `OverflowToolBar.setTrailing`, 그 표시 키(`chromite.toolBar.trailing`)와 배치 코드. 다른 곳에서 쓰지 않았다(검색으로 확인).
+  » 단추 자리는 #6 전처럼 도구 막대 오른쪽 끝이다.
+- **확인(2026-11-12, 150%·100%, 테스트 에이전트):** 1280px 창에서 Find(x 394) 뒤 구분선(x 420) 다음 Agent 단추(x 427, 폭 114), 그 뒤는 빈 공간.
+  창 폭 420에서 Properties·Find·Agent가 » 메뉴로 넘침(폭 0). 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\53-toolbar-150.png`, `53-42-100.png`.
 
 ## SQL Editor 도구 막대 (2026-11-07)
 
@@ -2999,3 +3013,5 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-11 `ui.theme`에 `SYSTEM`(기본값)을 더하고 시작 순서의 첫 테마를 운영체제 설정의 테마로(앱 변경 #38, [swing-options.md](swing-options.md) "테마").
 - 2026-11-11 도구 창 크기 바꾸기(앱 변경 #45): 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 도킹 분할 창의 resizeWeight를 문서 영역 쪽으로, 한 열을 하나씩 숨긴 뒤 보일 때 열 폭 유지. "도구 창 크기 바꾸기" 절 추가, 도구 창 도킹 확인 표의 1280px 줄에 표시.
+- 2026-11-12 Chromite Agent 단추를 창 오른쪽 끝에서 단추 묶음의 마지막(Find 뒤)으로, `OverflowToolBar.setTrailing` 삭제(앱 변경 #53, `chromite/tabs-toolbar`):
+  "Chromite Agent 단추를 단추 묶음의 마지막으로" 절 추가, 구성 표와 "Chromite Agent 단추를 오른쪽 끝으로" 절에 표시. 회귀 테스트는 실행하지 않았다.

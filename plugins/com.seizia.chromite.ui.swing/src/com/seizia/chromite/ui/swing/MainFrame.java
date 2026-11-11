@@ -290,6 +290,8 @@ import java.util.function.Supplier;
  *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  * - 2026-11-11 View &gt; Theme에 시스템 설정 따르기를 더하고 저장된 선택을 표시 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-11 제목 줄 높이를 루트 창 속성으로 40 유지: 대화상자 제목 줄은 테마 값 30으로 낮춤 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
+ * - 2026-11-12 주 도구 막대의 Chromite Agent 단추를 창 오른쪽 끝에서 단추 묶음의 마지막(Find 뒤 구분선 다음)으로(앱 변경 #53)
+ *   (docs/chromite/swing-frontend.md "Chromite Agent 단추를 단추 묶음의 마지막으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -987,8 +989,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
-     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find], then at the right
-     * end [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
+     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find] |
+     * [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
      * (size.toolbar.main 32 = 24px buttons + 4px above and below; 28 = 22 + 3 in compact mode).
      */
     @NotNull
@@ -1022,12 +1024,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createIconButton(editMenu.getFindAction(), "search", UiKeys.format(ToolbarMessages.toolbar_find_tip, editMenu.getFindAction()))); //$NON-NLS-1$
-        // Chromite Agent at the right end with icon and name, where DataGrip has its AI button (user decision 2026-11-08);
-        // in a narrow window the buttons before it overflow first
+        // Chromite Agent as the last button of the group, right after Find, with icon and name (user decision 2026-11-11:
+        // "rightmost" is the last button, not the window's right edge); in a narrow window it overflows like the others
+        toolBar.addSeparator();
         JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", UiKeys.format(AiMessages.ai_toolbar_tip, aiWindow.getToggleAction())); //$NON-NLS-1$
         agentButton.setHideActionText(false);
         UiIcons.useToolButtonMargin(agentButton);
-        OverflowToolBar.setTrailing(agentButton);
         toolBar.add(agentButton);
         return toolBar;
     }
