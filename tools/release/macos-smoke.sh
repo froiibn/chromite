@@ -694,8 +694,9 @@ cmd_txn() {
   # (Home is not bound to the tree's first row on macOS)
   on_app "$pid" 'key code 125' > /dev/null
   sleep 1
-  # Ctrl+N: new query window for the selected connection (MainFrame.newQueryAction, Control, not Command)
-  on_app "$pid" 'keystroke "n" using control down' > /dev/null
+  # Cmd+N: new query window for the selected connection (MainFrame.newQueryAction, UiKeys.command: Command on macOS
+  # since 0.1.4; the Ctrl+N this step sent before did nothing there, so Cmd+Q ended the app without a question)
+  on_app "$pid" 'keystroke "n" using command down' > /dev/null
   sleep 4
   shot txn-1-new-query
   on_app "$pid" "keystroke \"insert into smoke(note) values ('during');\"" > /dev/null
