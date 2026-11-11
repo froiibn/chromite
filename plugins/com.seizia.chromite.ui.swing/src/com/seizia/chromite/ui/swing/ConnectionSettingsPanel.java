@@ -136,6 +136,8 @@ import java.util.Set;
  * - 2026-11-11 URL 방식으로 저장하면 주소(호스트·포트·서버·DB)를 URL에서 읽어 씀({@link #writeAddressFromUrl}). 전에는 꺼진 주소 칸의
  *   자리 값(드라이버 기본 호스트 localhost, 마지막 서버)을 저장해 등록된 서버·탐색기에 localhost로 보였다(앱 변경 #41,
  *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-11 유휴 연결 닫기 칸은 실제로 닫을 때만 켜져 보이고, 닫지 않는 연결 종류에서 켜면 이 연결의 기간을 저장하고 끄면 종류를 따름(앱 변경 #48,
+ *   유휴 연결 닫기 기본값 끔, docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -1079,7 +1081,10 @@ final class ConnectionSettingsPanel extends JPanel {
         restrictions = new ArrayList<>(dataSource.getModifyPermission());
         updateRestrictionsButton();
         keepAliveSpinner.setValue(Math.max(0, configuration.getKeepAliveInterval()));
-        closeIdleCheck.setSelected(configuration.isCloseIdleConnection());
+        // On only when it acts: the connection's own period, or its type's when the type closes idle connections
+        // (DataSourceMonitorJob.getDisconnectTimeoutSeconds); the flag alone defaults to true for every connection
+        closeIdleCheck.setSelected(configuration.isCloseIdleConnection()
+            && (configuration.getCloseIdleInterval() > 0 || type.isAutoCloseConnections()));
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
             ? configuration.getCloseIdleInterval() : type.getCloseIdleConnectionPeriod()));
         closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
@@ -1300,11 +1305,15 @@ final class ConnectionSettingsPanel extends JPanel {
         // ConnectionPageGeneral.saveSettings: empty restrictions are "the connection type's"
         target.setModifyPermissions(restrictions);
         configuration.setKeepAliveInterval((Integer) keepAliveSpinner.getValue());
-        configuration.setCloseIdleConnection(closeIdleCheck.isSelected());
         int closeIdlePeriod = (Integer) closeIdleSpinner.getValue();
-        // Saved only when enabled and different from the connection type's default
-        configuration.setCloseIdleInterval(configuration.isCloseIdleConnection()
-            && closeIdlePeriod != configuration.getConnectionType().getCloseIdleConnectionPeriod() ? closeIdlePeriod : 0);
+        DBPConnectionType idleType = configuration.getConnectionType();
+        // Off under a type that doesn't close idle connections keeps "follow the type" (true without a period), so the
+        // connection follows if the type is turned on later; off under a type that closes them opts this one out
+        configuration.setCloseIdleConnection(closeIdleCheck.isSelected() || !idleType.isAutoCloseConnections());
+        // The period is saved only when enabled and the type would not close after the same period (a type that
+        // doesn't close idle connections needs the connection's own period)
+        configuration.setCloseIdleInterval(closeIdleCheck.isSelected()
+            && (!idleType.isAutoCloseConnections() || closeIdlePeriod != idleType.getCloseIdleConnectionPeriod()) ? closeIdlePeriod : 0);
         // Idle transactions: the reminder and its period are saved only when they differ from the connection type's
         // defaults (the connection keeps following its type); the automatic rollback is saved as chosen
         DBPConnectionType type = configuration.getConnectionType();
