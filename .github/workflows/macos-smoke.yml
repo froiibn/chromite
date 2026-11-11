@@ -240,6 +240,11 @@ jobs:
         shell: bash
         run: bash tools/release/macos-smoke.sh menus
 
+      - name: Unified title bar (light, dark, full screen)
+        if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
+        shell: bash
+        run: bash tools/release/macos-smoke.sh titlebar
+
       - name: Quit (Apple event quit)
         if: ${{ !cancelled() && steps.launch1.outcome == 'success' }}
         shell: bash
