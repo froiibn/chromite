@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md)
+ * - 2026-11-12 "더 읽기" 줄의 메뉴 항목 Page Size Settings (B12)
  */
 public class ObjectExplorerMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages"; //$NON-NLS-1$
@@ -50,6 +51,7 @@ public class ObjectExplorerMessages extends NLS {
     public static String oe_quick_filter_tip;
     public static String oe_load_more;
     public static String oe_load_more_tip;
+    public static String oe_page_size_settings;
     public static String oe_link_editor;
     public static String oe_link_editor_tip;
 

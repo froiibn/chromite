@@ -58,6 +58,8 @@ import java.util.TreeSet;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 기록 지우기 확인은 기록 지우기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 바인딩한 실행의 값: 미리 보기에 보이고 Open·Execute에 기록 전체를 넘김 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-12 개수 글의 "(Tools &gt; Options)" 대신 General 페이지를 여는 링크, 닫으면 보관 일수를 다시 읽음
+ *   (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 final class QueryHistoryDialog extends JDialog {
 
@@ -203,8 +205,12 @@ final class QueryHistoryDialog extends JDialog {
         buttons.add(openButton);
         buttons.add(executeButton);
         buttons.add(closeButton);
+        // The retention is a setting (General > Query History): a link next to the count opens that page
+        JPanel count = new JPanel(new BorderLayout(6, 0));
+        count.add(countLabel, BorderLayout.WEST);
+        count.add(OptionsLinks.createLink(OptionsLinks.PAGE_GENERAL, this::applyFilter), BorderLayout.CENTER);
         JPanel bottom = new JPanel(new BorderLayout());
-        bottom.add(countLabel, BorderLayout.WEST);
+        bottom.add(count, BorderLayout.WEST);
         bottom.add(buttons, BorderLayout.EAST);
 
         JPanel content = new JPanel(new BorderLayout(0, 10));

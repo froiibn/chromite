@@ -6,10 +6,10 @@ Object Explorer에서 로그인·사용자·역할을 SSMS의 보안 화면처�
 
 - 로그인·사용자·역할의 **속성** 창: 일반(이름, 암호 바꾸기, 기본 데이터베이스, 로그인 사용/계정 잠금, 만료 시각, 역할 옵션),
   역할 멤버 자격(확인란 목록), SQL Server **사용자 매핑**(데이터베이스별 사용자·기본 스키마·데이터베이스 역할),
-  **사용 권한**(보안 개체 목록 + 개체별 허용/권한 부여/거부, "개체 추가…").
-- Logins·Roles·Users 폴더의 **새 로그인… / 새 역할… / 새 사용자…**(같은 창, 빈 값으로 시작).
+  **사용 권한**(보안 개체 목록 + 개체별 허용/권한 부여/거부, "개체 추가").
+- Logins·Roles·Users 폴더의 **새 로그인 / 새 역할 / 새 사용자**(같은 창, 빈 값으로 시작).
 - 로그인·사용자·역할의 **삭제**(Delete 키 또는 메뉴, 확인(삭제 / 취소) 후 스크립트).
-- 테이블·뷰·시퀀스·함수·프로시저의 **사용 권한…**: 사용자·역할별 권한 허용/취소/거부.
+- 테이블·뷰·시퀀스·함수·프로시저의 **사용 권한**: 사용자·역할별 권한 허용/취소/거부.
 
 모든 변경은 OK를 누르면 테이블 디자이너처럼 스크립트를 먼저 보여 주고(Execute / Open in Query Window / Copy / Cancel, 기본 단추는 Cancel)
 Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크립트만 보여 준다.
@@ -52,7 +52,7 @@ Execute를 고르면 실행한다. "스크립트" 단추는 실행 없이 스크
 | | `SecurityPickerDialog` | 개체 추가 / 사용자 또는 역할 추가 |
 | | `SecurityLabels`, `internal/SecurityMessages`(+ `_ko`) | 화면 문구 |
 
-- 진입점: `ObjectExplorerPanel` 오른쪽 클릭 메뉴 — 새 로그인/역할/사용자…(폴더에 따라 이름이 바뀜), 사용 권한…, 속성(맨 아래),
+- 진입점: `ObjectExplorerPanel` 오른쪽 클릭 메뉴 — 새 로그인/역할/사용자(폴더에 따라 이름이 바뀜), 사용 권한, 속성(맨 아래),
   기존 Delete(연결 노드 외에 로그인·사용자·역할에서도). 탐색기 파일은 메뉴 항목·활성화 줄과 새로 고침 메서드 하나(`refreshNavigatorNode`)만 더했다.
 - 실행 뒤 Logins·Roles·Users 폴더를 다시 읽어 새 주체·이름 변경·삭제가 트리에 보인다. 트리가 그 폴더를 보여 주고 있으면 Object Explorer의
   새로 고침(F5와 같은 경로, `ObjectExplorerPanel.refreshNavigatorNode`)으로, 아니면 탐색기 모델 노드만 `FORCE_REFRESH`로 다시 읽는다.
@@ -159,7 +159,7 @@ Swing 번들은 고치지 않았다.
 
 | 항목 | 동작 | 문 |
 |---|---|---|
-| Security ▸ Users / Roles 폴더 | 새 사용자… / 새 역할… | `CREATE USER u IDENTIFIED BY "…"`(미리 보기는 가림, 암호를 비우면 `NO AUTHENTICATION`), 계정 잠김이면 `ACCOUNT LOCK` / `CREATE ROLE r` |
+| Security ▸ Users / Roles 폴더 | 새 사용자 / 새 역할 | `CREATE USER u IDENTIFIED BY "…"`(미리 보기는 가림, 암호를 비우면 `NO AUTHENTICATION`), 계정 잠김이면 `ACCOUNT LOCK` / `CREATE ROLE r` |
 | 사용자·역할 속성 | 일반(암호, 계정 잠김), 역할(소속), 사용 권한 | `ALTER USER … IDENTIFIED BY`, `ALTER USER … ACCOUNT LOCK/UNLOCK`, `GRANT/REVOKE <role> TO/FROM` |
 | 사용 권한 탭의 데이터베이스 행(현재 PDB 이름) | 시스템 권한(`SYSTEM_PRIVILEGE_MAP`), "권한 부여" = ADMIN OPTION | `GRANT CREATE SESSION TO u [WITH ADMIN OPTION]`, `REVOKE … FROM u` |
 | 사용 권한 탭의 객체 행, 테이블·뷰·시퀀스·함수·프로시저의 사용 권한… | 객체 권한(`DBA_TAB_PRIVS`), "권한 부여" = GRANT OPTION | `GRANT SELECT ON s.t TO u [WITH GRANT OPTION]`, `REVOKE … ON s.t FROM u` |
@@ -202,8 +202,8 @@ SWT 감사 D-P10의 남은 부분(SWT `PostgresPermissionsEditor`의 열 권한,
 | 위치 | 동작 | 문 |
 |---|---|---|
 | 역할 속성 ▸ 사용 권한 | 열 행(종류 "열", 이름 `스키마.테이블.열`). 개체 추가 목록에 테이블·뷰·구체화된 뷰·외부 테이블의 열도 나온다. 권한은 SELECT·INSERT·UPDATE·REFERENCES | `GRANT UPDATE (id) ON TABLE app.orders TO chr_g14_reader` |
-| Object Explorer 열 노드 ▸ 사용 권한… | 그 열의 사용자·역할별 권한(테이블과 같은 창) | `GRANT SELECT (amount) ON TABLE app.orders TO chr_g14_reader` |
-| 역할 속성 ▸ 기본 권한(새 탭) | 이 역할이 받을 기본 권한. "기본 권한 추가…"에서 개체를 만드는 역할(FOR ROLE), 스키마((모든 스키마) 또는 하나), 개체 종류(테이블, 시퀀스, 함수, 형식 9.2+, 스키마 10+)를 고른다 | `ALTER DEFAULT PRIVILEGES FOR ROLE chr_g14_owner IN SCHEMA app GRANT INSERT ON TABLES TO chr_g14_reader` |
+| Object Explorer 열 노드 ▸ 사용 권한 | 그 열의 사용자·역할별 권한(테이블과 같은 창) | `GRANT SELECT (amount) ON TABLE app.orders TO chr_g14_reader` |
+| 역할 속성 ▸ 기본 권한(새 탭) | 이 역할이 받을 기본 권한. "기본 권한 추가"에서 개체를 만드는 역할(FOR ROLE), 스키마((모든 스키마) 또는 하나), 개체 종류(테이블, 시퀀스, 함수, 형식 9.2+, 스키마 10+)를 고른다 | `ALTER DEFAULT PRIVILEGES FOR ROLE chr_g14_owner IN SCHEMA app GRANT INSERT ON TABLES TO chr_g14_reader` |
 
 - **같은 권한 표, 두 탭.** 기본 권한 행은 `Securable.Kind`의 `DEFAULT_TABLES`·`DEFAULT_SEQUENCES`·`DEFAULT_FUNCTIONS`·`DEFAULT_TYPES`·`DEFAULT_SCHEMAS`이고
   사용 권한 탭과 같은 `SecurityPrincipal.getPermissions()`에 들어 있다. 두 탭은 행 거르기만 다르다. 스크립트를 만드는 차이 계산(`generateScript`)이 행 종류와 상관없이

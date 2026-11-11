@@ -497,7 +497,7 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `chromite/transfer-advanced-options`.
 
 - **작업 저장과의 관계:** 모든 값은 모델의 노드 설정(`DatabaseProducerSettings`, `DatabaseConsumerSettings`, `StreamConsumerSettings`)과
-  매핑(`DatabaseMappingAttribute`의 변환기, `StreamMappingContainer`)에 넣는다. 그래서 작업으로 저장하면(작업으로 저장…, [swing-database-tasks.md](swing-database-tasks.md)
+  매핑(`DatabaseMappingAttribute`의 변환기, `StreamMappingContainer`)에 넣는다. 그래서 작업으로 저장하면(작업으로 저장, [swing-database-tasks.md](swing-database-tasks.md)
   "데이터 전송 작업") 각 설정의 `saveSettings`로 함께 저장된다. 저장된 작업을 열면 칸에 다시 채운다: 파일 작업은 `@export`와 같은 길(원본 옵션, 시각 형식·나누기)에 더해
   데이터 형식 프로필과 내보낼 열, 복사 작업은 `DatabaseCopyPages.applyTask`가 중복 키 처리·고유 키 위반 건너뛰기·값 직접 쓰기·쿼리 관리자 기록과 원본 옵션까지.
   비우기·다시 만들기 확인은 Finish(실행) 때만 묻고 작업으로 저장할 때는 묻지 않는다(실행하지 않으므로). 매핑 규칙만 SWT처럼 연결·전역 설정에 둔다(작업이 아니라 대상 데이터베이스의 규칙).
@@ -510,7 +510,7 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   형식이면 다음으로 가지 않음), 출력을 여러 파일로 나누기와 최대 파일 크기(바이트). 모델은 텍스트 형식만 나누므로(`StreamTransferConsumer.fetchRow`)
   이진 형식(XLSX)에서는 꺼진다. 나눈 파일 이름은 모델이 정한다(`_1`, `_2`…). 이미 있던 문자 집합·BOM·ZIP·폴더·파일 이름 패턴은 그대로다.
 - **내보내기 형식 설정(SWT `ConfigureColumnsDialog`, `StreamConsumerPageSettings`의 형식 프로필):**
-  - 열 고르기: "열 선택…"에서 체크한 원본마다 열을 체크한다. 원본마다 `StreamMappingContainer`를 만들어 모든 열을 내보내기/건너뛰기로 정한다.
+  - 열 고르기: "열 선택"에서 체크한 원본마다 열을 체크한다. 원본마다 `StreamMappingContainer`를 만들어 모든 열을 내보내기/건너뛰기로 정한다.
     모델은 매핑이 완전할 때(모든 열이 정해지고 하나 이상 내보냄)만 열을 거르므로 둘 중 하나로만 둔다. 모든 열을 고르면 매핑을 두지 않는다.
     쿼리 원본은 열을 알기 위해 쿼리를 한 행만 실행한다(모델 `DTUtils.getAttributes`, 바꾸지 않는 SELECT만 받으므로 안전). 테이블 복사는 열 매핑 단계의 `[skip]`을 쓴다.
   - 데이터 형식 프로필: 원본 연결의 형식(기본, 모델이 프로필을 바꾸지 않음), 전역 형식, 이름 붙인 프로필(`DBPDataFormatterRegistry.getCustomProfiles`).
@@ -522,13 +522,13 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   - 고유 키를 어기는 행 건너뛰기: 행을 하나씩 삽입할 때만(일괄 처리는 한꺼번에 실패), 대량 로드가 아닐 때만.
   - 여러 행 INSERT에 값을 직접 쓰기(매개 변수 없음): 여러 행 INSERT를 켜고 대상 드라이버가 문장 바인딩을 쓸 때만(SWT도 다른 드라이버에서는 숨김).
   - INSERT 문을 쿼리 관리자에 기록(`enableQmLogging`).
-- **매핑 규칙(매핑 단계 "매핑 규칙…", SWT `MappingRulesDialog`):** 새 테이블·열 이름의 대소문자(기본/대문자/소문자), 이름의 공백(그대로/밑줄/카멜 표기),
+- **매핑 규칙(매핑 단계 "매핑 규칙", SWT `MappingRulesDialog`):** 새 테이블·열 이름의 대소문자(기본/대문자/소문자), 이름의 공백(그대로/밑줄/카멜 표기),
   새 열의 최대 형식 길이. 옵션 > 데이터 전송과 연결 설정의 같은 페이지(`DataTransferOptionsPage`)가 쓰는 세 키다.
   모델은 대상 연결 저장소에 키가 있으면 그 값을, 없으면 데이터 전송 번들 저장소를 읽는다. 그래서 대상 연결에 세 키를 모두 쓰고(연결 설정에서 그 페이지를 켠 것과 같음),
   "모든 연결의 기본값으로도 쓰기"를 고르면 전역에도 쓴다. 전역에만 쓰면 연결이 자기 값을 가질 때 적용되지 않기 때문이다.
   저장한 뒤 대상 컨테이너를 바꿀 때처럼 매핑을 다시 만든다. 새 테이블 이름은 SWT처럼 원본 이름에서 다시 만든다. 지금 이름은 대상 방언으로 이미 따옴표를 친 이름
   (공백이 있는 원본은 `[Order Lines]`)이라 그대로 바꾸면 따옴표 안만 바뀌기 때문이다(첫 확인에서 `[order_lines]`로 나와 고침). 직접 입력한 새 이름도 바뀐다(대화상자에 적음).
-- **열 값(열 탭 "열 값…", 값 열, SWT `AttributeTransformerSettingsDialog`):** 모델이 등록한 변환기 — NULL로 설정, 상수, 식(JEXL, 원본 행의 열을 이름으로 씀).
+- **열 값(열 탭 "열 값", 값 열, SWT `AttributeTransformerSettingsDialog`):** 모델이 등록한 변환기 — NULL로 설정, 상수, 식(JEXL, 원본 행의 열을 이름으로 씀).
   변환기 이름은 `plugin.xml`에 영어로만 있어 알려진 id(`null`, `constant`, `expression`)는 이 번들의 문구를 쓴다. 요약에 열마다 한 줄.
 - **행을 지우는 작업(브리프: 미리 보기에 보이고 먼저 묻기):**
   - 대상 DDL 탭: 비우기를 켜면 기존 테이블에 `-- 복사하기 전에 … 모든 행을 삭제합니다(TRUNCATE TABLE, 지원하지 않으면 DELETE).` 줄. 다시 만들기는 전부터 `DROP TABLE` + `CREATE TABLE`.

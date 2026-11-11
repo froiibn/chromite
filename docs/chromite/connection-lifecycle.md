@@ -96,7 +96,7 @@ SWT `DesktopUI.showDatabaseError`는 모델이 `showError`로 넘긴 오류의 �
 | 드라이버 라이선스 | 원인 사슬에 `DBCDriverLicenseException` | "연결 오류: {드라이버}의 드라이버 라이선스가 활성화되어 있지 않습니다" + 오류 상세 | 확인 |
 | 연결 끊김 | `CONNECTION_LOST`이고 연결이 열려 있음(연결 중 오류는 일반 오류 창) | 제목 "연결 끊김: {연결}", 원래 문구, 안내, 오류 상세(접힘)·복사 | **다시 연결** / 닫기 |
 | 다시 연결 실패 | 무효화·다시 연결에서 세션을 다시 열지 못함 | 같은 제목, "다시 열지 못했습니다" | **연결 끊기** / **다시 시도** / 닫기 |
-| 드라이버 클래스 없음 | `DRIVER_CLASS_MISSING`(연결 중 `ClassNotFoundException`) | "{드라이버}의 드라이버 클래스를 찾지 못했습니다 …" + 오류 상세 | **드라이버 편집…** / 닫기 |
+| 드라이버 클래스 없음 | `DRIVER_CLASS_MISSING`(연결 중 `ClassNotFoundException`) | "{드라이버}의 드라이버 클래스를 찾지 못했습니다 …" + 오류 상세 | **드라이버 편집** / 닫기 |
 
 - 다시 연결과 다시 시도는 위 무효화·다시 연결로 가서 열린 트랜잭션을 먼저 묻는다. 연결 끊기는 `ConnectionCommands.disconnect`로 가서 같은 질문을 거친다.
 - 기본 단추: 세션을 바꾸는 동작이라 닫기가 기본이다(사용자 규칙 "실행 확인의 기본 단추"). SWT는 다시 연결·끊기가 기본이었고 다시 연결 실패 창을 닫으면 끊었다.
@@ -181,7 +181,7 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 | 모두·다른·그룹 연결 끊기 | `ConnectionCommands.disconnect(Component, Collection)` | 한 질문(`confirmDisconnect(Component, Collection)`) | 이번에 더함 |
 | 무효화·다시 연결, 연결 끊김 대화상자의 다시 연결·다시 시도 | `ConnectionCommands.invalidate` | `confirmReconnect`(같은 터널의 연결 포함) | 이번에 더함 |
 | 연결 끊김 대화상자의 연결 끊기 | `ConnectionCommands.disconnect` | `confirmDisconnect` | 이번에 더함 |
-| 쿼리 창 닫기, 연결 바꾸기, DB 인스턴스 바꾸기 | `SqlEditorPanel` | `ExitTransactionCheck.confirmEndSession` | 이미 있음 |
+| 쿼리 창 닫기, DB 인스턴스 바꾸기(연결 바꾸기는 2026-11-12에 없어짐, [swing-frontend.md](swing-frontend.md) "쿼리 창은 한 서버의 창") | `SqlEditorPanel` | `ExitTransactionCheck.confirmEndSession` | 이미 있음 |
 | Chromite 끝내기(창 닫기, File > Exit, 업데이트 다시 시작, macOS 끝내기) | `MainFrame.requestExit` | 실행 중인 작업 질문 뒤 `ExitTransactionCheck.confirm`. 그 뒤 플랫폼 종료(`DataSourceRegistry.closeConnections`)는 질문으로 끝난 뒤라 남은 트랜잭션이 없다 | 작업 질문을 이번에 더함 |
 | 유휴 연결 닫기 | `DataSourceMonitorJob.endIdleConnection` | 쓰는 중이면 닫지 않음, 끊기 직전 다시 확인 | 이미 있음(`isInUse`로 뺌) |
 | 유휴 트랜잭션 자동 롤백 | `EndIdleTransactionsJob` | 연결에서 사용자가 켰을 때만, 뒤에 알림(규칙의 예외) | 이미 있음 |

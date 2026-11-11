@@ -150,4 +150,6 @@ Oracle `DBMS_OUTPUT`, SQL Server `PRINT`·`RAISERROR`, Altibase `PRINT`, CUBRID�
   [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정"). "남은 일과 한계"의 설정 화면 항목 갱신.
 - 2026-11-08 Altibase·CUBRID도 설정을 바꾸면 열린 세션에 다음 문장부터 적용(evening #19, `chromite/followups-3`). Altibase 콜백 등록·해제,
   CUBRID `ENABLE`/`DISABLE`과 버퍼 크기. 확인은 아래 "확인 (2026-11-08)".
+- 2026-11-11 Oracle 쿼리 창의 `SET SERVEROUTPUT`이 그 창 세션만 켜고 끔(설정보다 앞섬, 설정은 그대로). 읽을지는 세션 기준
+  `DBCServerOutputReader.isServerOutputEnabled(context)` ([oracle-sqlplus-commands.md](oracle-sqlplus-commands.md), `chromite/oracle-sqlplus`)
 - 2026-11-12 서버 출력을 Messages 대신 결과 영역의 Server Output 탭에 씀, 경고 중 PRINT·NOTICE를 출력으로 가름(`isServerOutput`), 새 출력 점(앱 변경 #54, `chromite/result-area-2`). 확인은 "확인 (2026-11-12)".

@@ -18,6 +18,7 @@
 package com.seizia.chromite.ext.oracle.model;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBUtils;
@@ -41,12 +42,18 @@ import java.sql.SQLException;
  * - 2026-11-08 Chromite: 이 세션에서 DBMS_OUTPUT이 켜져 있는지 기억함({@link #isServerOutputEnabled}). 설정은 언제든 바뀌지만 서버 상태는
  *   세션마다 따로 있어서, 설정과 다를 때만 그 세션에 ENABLE/DISABLE을 보낸다({@code OracleOutputReader.syncServerOutput})
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-11 Chromite: 쿼리 창의 {@code SET SERVEROUTPUT}이 이 세션만 켜고 끈 값({@link #getServerOutputOverride}). 연결 설정보다 앞서고
+ *   설정은 바꾸지 않는다. 세션 객체가 살아 있는 동안(다시 연결해도) 유지된다 (docs/chromite/oracle-sqlplus-commands.md)
  */
 public class OracleExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<DBSCatalog, OracleSchema> {
     private static final Log log = Log.getLog(OracleExecutionContext.class);
 
     private String activeSchemaName;
     private volatile boolean serverOutputEnabled;
+    // SET SERVEROUTPUT of the query window that runs on this session (null: follow the connection's setting)
+    private volatile Boolean serverOutputOverride;
+    // Buffer size of SET SERVEROUTPUT ON SIZE n (null: UNLIMITED)
+    private volatile Integer serverOutputSize;
 
     OracleExecutionContext(@NotNull JDBCRemoteInstance instance, String purpose) {
         super(instance, purpose);
@@ -77,6 +84,27 @@ public class OracleExecutionContext extends JDBCExecutionContext implements DBCE
 
     void setServerOutputEnabled(boolean serverOutputEnabled) {
         this.serverOutputEnabled = serverOutputEnabled;
+    }
+
+    /**
+     * Whether the query window turned DBMS_OUTPUT on (true) or off (false) on this session, or null if it did not.
+     */
+    @Nullable
+    Boolean getServerOutputOverride() {
+        return serverOutputOverride;
+    }
+
+    /**
+     * The buffer size of the window's {@code SET SERVEROUTPUT ON} (null: UNLIMITED).
+     */
+    @Nullable
+    Integer getServerOutputSize() {
+        return serverOutputSize;
+    }
+
+    void setServerOutputOverride(boolean enabled, @Nullable Integer size) {
+        this.serverOutputSize = size;
+        this.serverOutputOverride = enabled;
     }
 
     @Override

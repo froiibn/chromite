@@ -258,7 +258,7 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 | 단계 | 기대 결과 |
 |---|---|
 | 앱을 켜고 화면 맨 위 메뉴 막대를 봄 | Chromite(앱 메뉴), File, Edit, View, Query, Tools, Window. 창 안에는 메뉴 막대가 없음 |
-| File, Tools 메뉴, Help 메뉴 | Exit·Options가 없고 Help 메뉴가 없음. 앱 메뉴에 Chromite 정보, 옵션…(⌘,), Chromite 끝내기(⌘Q) |
+| File, Tools 메뉴, Help 메뉴 | Exit·Options가 없고 Help 메뉴가 없음. 앱 메뉴에 Chromite 정보, 옵션(⌘,), Chromite 끝내기(⌘Q) |
 | View > Theme으로 테마를 바꿈 | 메뉴가 화면 메뉴 막대에 그대로 있음 |
 | File > Recent Files, Window 메뉴 | 열 때마다 항목이 채워짐(동적 메뉴), Query 메뉴의 체크 항목(Include Actual Plan)이 상태를 보임 |
 | ⌘N, ⌘S, ⌘F, ⌥⌘F, ⇧⌘M, ⌘Enter, ⇧⌘Z | 새 쿼리, 저장, 찾기, 바꾸기, 실제 계획 토글, 현재 문장 실행, 다시 실행. 한 번씩만 동작(메뉴와 편집기가 두 번 하지 않음) |

@@ -44,6 +44,8 @@ import org.jkiss.utils.CommonUtils;
  *
  * 변경 이력:
  * - 2026-11-11 최초 작성: vLLM·Google Gemini 제공자 (app round 2 #34, #35, docs/chromite/ai-agent.md "Chat Completions 엔진")
+ * - 2026-11-12 컨텍스트 크기(토큰) 설정: 채팅이 도구 묶음을 고르고 요청이 들어가는지 미리 재는 데 씀. vLLM 서버의 크기는 서버를 띄울 때 정해지고
+ *   요청마다 알 수 없어서 사용자가 적는다(Test가 모델 목록의 {@code max_model_len}으로 채움) (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  */
 public abstract class ChatCompletionsProperties extends BaseAIEngineProperties {
 
@@ -59,6 +61,10 @@ public abstract class ChatCompletionsProperties extends BaseAIEngineProperties {
     @Nullable
     @SerializedName("chat.model")
     private String model;
+
+    @Nullable
+    @SerializedName("chat.contextWindowSize")
+    private Integer contextWindowSize;
 
     /**
      * Provider name for error texts, e.g. "vLLM".
@@ -143,12 +149,17 @@ public abstract class ChatCompletionsProperties extends BaseAIEngineProperties {
     }
 
     /**
-     * None: the server knows the model's context window, and the callers that need a size use their default.
+     * The model's context window in tokens as the user set it (vLLM: the server's max-model-len), or null when not set: the
+     * Chromite Agent chat then assumes a size (docs/chromite/ai-agent.md "도구 묶음").
      */
     @Nullable
     @Override
     public Integer getContextWindowSize() {
-        return null;
+        return contextWindowSize;
+    }
+
+    public void setContextWindowSize(@Nullable Integer contextWindowSize) {
+        this.contextWindowSize = contextWindowSize == null || contextWindowSize <= 0 ? null : contextWindowSize;
     }
 
     @Override

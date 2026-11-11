@@ -31,8 +31,8 @@
 | `ResultSetHexEditor` | 새 | 16진수 편집 대화상자 |
 | `ResultSetExternalEditor` | 새 | 임시 파일로 기본 프로그램 열기, 저장 감지, 셀에 넣기 |
 | `internal/ValueEditMessages` (+ `.properties`, `_ko.properties`) | 새 | 이 기능의 화면 문구(영어·한국어) |
-| `ResultSetGrid` | 변경 | "값 편집…"(Shift+Enter), "UUID 만들기", 글자 편집기 끝의 대화상자 단추, 비트 문자열 입력 거르기, `showStatus` |
-| `ResultSetViewerPanel` | 변경 | "16진수로 편집…", "외부 편집기로 열기" 메뉴, 결과를 닫을 때 외부 편집 멈춤, 배열·구조체 값은 "값으로 필터"에 넣지 않음 |
+| `ResultSetGrid` | 변경 | "값 편집"(Shift+Enter), "UUID 만들기", 글자 편집기 끝의 대화상자 단추, 비트 문자열 입력 거르기, `showStatus` |
+| `ResultSetViewerPanel` | 변경 | "16진수로 편집", "외부 편집기로 열기" 메뉴, 결과를 닫을 때 외부 편집 멈춤, 배열·구조체 값은 "값으로 필터"에 넣지 않음 |
 | `ResultSetEditModel` | 변경 | `OBJECT`·`ARRAY`·`STRUCT`(PostgreSQL) 열 편집, SET 열 표시(`isMultiValueColumn`) |
 | `ResultSetGridReceiver` | 변경 | 배열·구조체 값(`isComplexValue`)을 놓아 주지 않고 원래 값으로 남김 |
 | `ResultSetEditPersister` | 변경 | 저장 뒤 다시 읽은 행의 배열·구조체 값도 남김 |
@@ -50,8 +50,8 @@ SWT는 값 관리자 확장점이 형식마다 편집기를 골랐다. Swing에�
 3. 자료형 `ARRAY`, `STRUCT`
 4. 값 처리기가 `PostgreHStoreValueHandler`
 
-여는 길은 세 가지다: 오른쪽 클릭 "값 편집…", Shift+Enter(SWT "Open value editor"와 같은 키), 셀 글자 편집기 끝의 단추(외래 키는 돋보기, 나머지는 "…").
-대화상자가 없는 칸에서 "값 편집…"은 상태 줄에 "글자로 편집하세요"를 쓴다. LOB 칸은 #154처럼 값 패널을 연다.
+여는 길은 세 가지다: 오른쪽 클릭 "값 편집", Shift+Enter(SWT "Open value editor"와 같은 키), 셀 글자 편집기 끝의 단추(외래 키는 돋보기, 나머지는 "…").
+대화상자가 없는 칸에서 "값 편집"은 상태 줄에 "글자로 편집하세요"를 쓴다. LOB 칸은 #154처럼 값 패널을 연다.
 대화상자는 셀만 바꾸므로 OK가 기본 단추이고 Esc는 취소다(날짜 선택기와 같음).
 
 ### 참조 값 고르기
@@ -99,7 +99,7 @@ SWT는 값 관리자 확장점이 형식마다 편집기를 골랐다. Swing에�
 
 - SWT 16진수 편집기는 바이트 칸마다 커서가 움직이는 전용 컨트롤이었다. Swing에는 그런 컨트롤이 없어 16진수 글자를 고치는 글 상자로 했다: 한 줄 16바이트,
   왼쪽 오프셋, 오른쪽 글자(ASCII) 미리 보기. 공백·줄 바꿈은 무시하고, 16진수가 아닌 글자나 홀수 개 숫자는 이유를 쓰고 OK를 끈다. "정리"가 16바이트 줄로 다시 맞춘다.
-- 결과 오른쪽 클릭 "16진수로 편집…"(파일 불러오기·저장 옆). 이진 값(바이트, 이진 LOB)이나 편집할 수 있는 이진 LOB 칸(NULL이면 새 바이트를 입력)에서 켜진다.
+- 결과 오른쪽 클릭 "16진수로 편집"(파일 불러오기·저장 옆). 이진 값(바이트, 이진 LOB)이나 편집할 수 있는 이진 LOB 칸(NULL이면 새 바이트를 입력)에서 켜진다.
 - 값 패널이 읽는 크기(1,000,000바이트)까지 연다. 더 큰 값은 파일 불러오기나 외부 편집기를 안내한다.
 - OK는 바이트를 열의 값 처리기에 준다(파일 불러오기와 같은 길). 읽기 전용 칸은 보기만 한다. Enter는 줄 바꿈이라 OK는 Ctrl+Enter다.
 

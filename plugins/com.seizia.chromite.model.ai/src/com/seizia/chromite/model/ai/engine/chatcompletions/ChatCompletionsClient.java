@@ -75,6 +75,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-11 최초 작성: vLLM·Google Gemini 제공자 (app round 2 #34, #35)
+ * - 2026-11-12 모델 목록에서 vLLM의 {@code max_model_len}(모델의 컨텍스트 크기)도 읽음 (앱 변경 #64)
  */
 public class ChatCompletionsClient extends AbstractHttpAIClient {
 
@@ -114,27 +115,37 @@ public class ChatCompletionsClient extends AbstractHttpAIClient {
     }
 
     /**
-     * Model IDs from {@code GET models}.
+     * A model of {@code GET models}.
+     *
+     * @param contextSize the model's context window in tokens when the server tells it (vLLM {@code max_model_len}), or null
+     */
+    public record ModelInfo(@NotNull String id, @Nullable Integer contextSize) {
+    }
+
+    /**
+     * Models from {@code GET models}.
      */
     @NotNull
-    public List<String> loadModels(@NotNull DBRProgressMonitor monitor) throws DBException {
+    public List<ModelInfo> loadModels(@NotNull DBRProgressMonitor monitor) throws DBException {
         HttpRequest request = newRequestBuilder()
             .uri(AIHttpUtils.resolve(baseUrl, "models")) //$NON-NLS-1$
             .GET()
             .timeout(timeout)
             .build();
         JsonElement json = JsonParser.parseString(client.send(monitor, request));
-        List<String> ids = new ArrayList<>();
+        List<ModelInfo> models = new ArrayList<>();
         JsonArray data = json.isJsonObject() ? json.getAsJsonObject().getAsJsonArray("data") : null; //$NON-NLS-1$
         if (data != null) {
             for (JsonElement model : data) {
-                JsonElement id = model.getAsJsonObject().get("id"); //$NON-NLS-1$
+                JsonObject object = model.getAsJsonObject();
+                JsonElement id = object.get("id"); //$NON-NLS-1$
                 if (id != null && !id.isJsonNull()) {
-                    ids.add(id.getAsString());
+                    int contextSize = getInt(object, "max_model_len"); //$NON-NLS-1$
+                    models.add(new ModelInfo(id.getAsString(), contextSize > 0 ? contextSize : null));
                 }
             }
         }
-        return ids;
+        return models;
     }
 
     @NotNull

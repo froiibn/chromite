@@ -796,7 +796,7 @@ Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜
 
 ### Query Library 기준값 편집
 
-Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값…"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
+Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
 평가기와 같은 문법(`<연산자> <값>`)만 받는다. 기준값은 Swing 파서가 모르는 머리말 줄(`QueryLibraryItem.getExtraHeader()`)로 보관되므로, 저장할 때 파일의 모르는 머리말에서
 `@threshold` 블록만 바꾸고 다른 줄은 그대로 둔다. Swing 파서·항목 클래스에 필드를 더하지 않았다(형식의 주인은 에이전트 도구 `LibraryReader`).
 
@@ -1041,9 +1041,9 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
   - 연결 인수가 없는 도구(`listConnections`, `formatSql` 등)는 늘 보낸다. 대화에 연결이 없으면 모두 보낸다.
 - 빠진 도구 ID는 시스템 프롬프트 끝에 알린다("Tools the user's policy blocks on this connection are not offered: …", "Tools for other database types are not
   offered: …"). 모델이 막힌 도구를 사용자에게 설명하거나 연결을 바꾸라고 할 수 있게 하기 위해서다.
-- **"도구를 모두 보냄"**: Options > Chromite Agent > Tool Policy 맨 위 확인란(`ai_policy_send_all_tools`, 기본 꺼짐, OK에서 저장). 번들 설정
-  `chromite.ai.chat.sendAllTools`(`com.seizia.chromite.model.ai.tools.prefs`). 한 대화에서 DB 종류가 다른 여러 연결을 다룰 때 켠다. 화면은 이번에 눈으로
-  확인하지 않았다(아래 "위험과 남은 일").
+- ~~**"도구를 모두 보냄"**: Options > Chromite Agent > Tool Policy 맨 위 확인란(`ai_policy_send_all_tools`, 기본 꺼짐). 번들 설정
+  `chromite.ai.chat.sendAllTools`.~~ 2026-11-12 지움: 제공자별 도구 묶음의 "전체"가 같은 동작이고 저장값은 그리로 옮긴다(아래 "도구 묶음").
+- 2026-11-12부터 이 거르기는 최소·핵심 묶음 안에서 한다(아래 "도구 묶음").
 
 ### 기록 줄이기 (`AIAgentChat.toModelMessages`)
 
@@ -1188,6 +1188,127 @@ ID나 인수를 바꾸면 저장된 정책(`AIToolPolicy`의 도구별 규칙), 
 일부 제공자는 자체 "도구 검색"(도구 정의를 나중에 싣는 기능)을 제공하지만, Chromite는 Anthropic·OpenAI 호환·Ollama를 함께 지원하므로 앱 쪽에서 하는 B가 맞다.
 제공자 기능은 이번에 확인하지 않았다.
 
+**구현(2026-11-12, 앱 변경 #64)**: B를 세 단계 묶음으로 구현했다. 아래 "도구 묶음".
+
+## 도구 묶음 (앱 변경 #64, 2026-11-12)
+
+사용자(2026-11-12): "43개도 많지 않나? 가장 걱정되는 건 vllm이다.. 이걸 받을 수 있을지 모르겠다". 결정: 세 단계 도구 묶음으로 진행. 회사 vLLM의
+모델·컨텍스트·도구 호출 옵션은 아직 모르므로 가장 보수적인 조건(컨텍스트 8k, 도구 호출 불확실)을 기준으로 했다. 합치기·이름 바꾸기·인수 통일
+(위 "사용자가 정할 것")은 이번 범위가 아니다.
+
+### 묶음
+
+| 묶음 | 도구 | 설명 | 연결로 거르기 |
+|---|---|---|---|
+| 최소 | 13개: `listConnections`, `listTables`, `searchObjects`, `describeTable`, `runReadOnlySql`, `explainQuery`, `runSql`, `getTransactionStatus`, `commitTransaction`, `rollbackTransaction`, `getQueryWindowText`, `openInEditor`, `findTools` | 짧은 판(`shortDescription`, 도구·인수마다 한두 문장) | 함 |
+| 핵심 | 44개: 최소 + `getConnectionInfo`, `getServerInfo`, `probePermissions`, `listDatabases`, `listSchemas`, `listRoutines`, `getRoutineSource`, `getObjectDdl`, `runSelect`, `runScript`, `getActualPlan`, `comparePlans`, `validateSql`, `sampleRows`, `countRows`, `listSessions`, `getBlockingChain`, `listLocks`, `getDeadlocks`, `listOpenTransactions`, `getLongRunningQueries`, `getWaitStats`, `getTopQueries`, `getDatabaseSizes`, `getSpaceUsage`, `getBackupHistory`, `getServerConfig`, `getTableStatistics`, `getIndexUsage`, `getMissingIndexes`, `getUnusedIndexes` | 긴 판 | 함 |
+| 전체 | 101개(`findTools` 없음: 밖에 찾을 도구가 없다) | 긴 판 | 안 함(예전 "도구를 모두 보냄"과 같음) |
+
+- 구성원은 `plugin.xml`의 `toolSet="minimal|core"` 속성이다(`AIFunctionDescriptor.getToolSet`, 확장점 스키마에 더함). 최소 ⊂ 핵심 ⊂ 전체. 코드 목록으로
+  두지 않은 것은 도구를 더할 때 한 곳만 고치게 하기 위해서다. 새 도구는 속성 없이 두면 `findTools`로 찾힌다(`plugin.xml` 머리 주석).
+- **최소 묶음을 행의 설계와 맞춰 본 것**: 행의 "listTables/findObjects"는 실제 ID로 `listTables`(한 스키마 둘러보기)와 `searchObjects`(이름·열로 모든
+  스키마에서 찾기) 둘이다. 하나로는 평가 질문 1(어떤 표가 있나)과 3(어느 표에 열이 있나)을 함께 덮지 못해 둘 다 넣었다. `commitTransaction`·
+  `rollbackTransaction`을 더했다: `runSql`은 수동 커밋 연결에서 트랜잭션을 열어 둔 채 끝나는데(`runSql` 설명), 끝낼 도구가 없으면 작은 모델이 "커밋해 줘"
+  (평가 46)를 `findTools` 없이는 할 수 없다. 나머지(`listConnections`, `describeTable`, `runReadOnlySql`, `explainQuery`, `runSql`, `getTransactionStatus`,
+  `getQueryWindowText`, `openInEditor`, `findTools`)는 행 그대로다. 그래서 행의 "약 10개"보다 3개 많은 13개다.
+- **핵심 묶음**: #61의 "드물게 쓰는 도구"를 빼고, 평가 세트의 허용 첫 도구와 공용 지시문(`AIAgentPlaybooks.INSTRUCTIONS`)이 이름으로 부르는 도구를 남겼다.
+  권한 3종(`listPermissions`, `listPrincipals`, `getToolPolicy`), 작업·백업 실행, DDL, 행 편집, 전송, Query Library, Query Store, `getErrorLog`·`getJobHistory`는
+  `findTools`로 찾는다. 질문별로 필요한 묶음은 [agent-tool-eval.md](agent-tool-eval.md) "도구 묶음별 필요".
+
+### findTools (`FindTools`, READ, 채팅만)
+
+- 인수: `query`(영어 낱말), `area`(connections, metadata, query, data, ddl, transfer, health, performance, library, editor), `connection`, `limit`(기본 8, 최대 20).
+  분야 `agent.meta`("Agent")를 새로 두었다.
+- 찾는 범위: 지금 요청에 없는 채팅 도구. 연결이 있으면 요청 고르기와 같은 거르기(`AIAgentToolSelection.select`: DB 종류, 정책)로 쓸 수 없는 도구는
+  찾지 않는다. 지금 요청의 도구는 실행기가 도는 같은 스레드에서 읽는다(`AIAgentToolSets.getOffered`).
+- 점수: ID 낱말(camelCase로 나눔)과 같으면 3, ID에 들어 있으면 2, 설명·분야에 있으면 1. 끝의 s/es를 떼고 비교한다. 결과는 `tools[{id, area, access,
+  description(첫 문장)}]`과 "다음 단계부터 쓸 수 있다"는 안내. 맞는 것이 없으면 분야별 도구 ID 목록(`areas`)을 돌려 다시 찾게 한다.
+- 결과의 도구는 그 대화의 "찾은 도구"(`AIAgentChat.foundTools`, 대화 파일에 저장, 예전 대화는 없음으로 읽힘)에 더해져 다음 요청부터 함께 간다(최소
+  묶음이어도 긴 설명으로). 모델이 제공되지 않은 도구를 이름으로 부르면(플레이북·`areas` 목록을 보고) 실행기가 평소처럼 정책을 적용해 실행하고 그 도구도
+  찾은 도구에 더한다. 사용자 글이 도구 ID를 그대로 쓰면(플레이북 글) 그 도구들도 차례 시작에 더한다. 플레이북이 최소·핵심 묶음에서도 동작하게 하기 위해서다.
+- 정책·확인·트랜잭션 안전·감사는 모두 실행기(`AIToolExecutor`)에 있으므로 이렇게 들어온 도구에도 그대로 적용된다. `findTools` 자신도 감사 기록에 남는다.
+- MCP `tools/list`에는 없다(`purpose="TOOL"`). MCP 클라이언트는 지금처럼 전체 101개를 받는다.
+- 시스템 프롬프트: 핵심 묶음은 공용 지시문 + "Only part of the tools are offered. If none fits the task, call findTools …" 한 줄. 최소 묶음은 공용 지시문
+  (최소 묶음에 없는 `getServerInfo`·`probePermissions`·`getBlockingChain` 등을 이름으로 부름) 대신 짧은 지시문: 표는 `listTables`/`searchObjects`/
+  `describeTable`, 데이터와 진단은 시스템 뷰 SQL을 직접 써서 `runReadOnlySql`, 느린 쿼리는 `explainQuery`, 없는 도구는 `findTools`. 전체 묶음은 공용 지시문만.
+
+### 설정: 제공자마다 채팅 도구 묶음
+
+- Options > Chromite Agent > 제공자의 각 양식에 "채팅 도구 묶음"(자동 / 최소(도구 N개, 짧은 설명) / 핵심(도구 N개) / 전체(도구 N개), 개수는 카탈로그에서
+  셈)과, Ollama·vLLM은 "컨텍스트 크기(토큰)"를 더했다. 둘 다 값이라 저장 표준의 [저장]/[되돌리기]를 따른다(바꾸면 바뀐 수가 늘고 [저장]이 켜짐,
+  [swing-options.md](swing-options.md) "옵션 화면 모양과 저장 (#59)"). 양식의 기존 행 도우미(`ProviderForm.addRow`, 제목 테두리 양식이라 `OptionsForm.addRow`
+  카드는 쓰지 않음)로 모델 행 아래에 둔다. 번들 설정 `chromite.ai.chat.toolSet.<엔진>`(`com.seizia.chromite.model.ai.tools.prefs`).
+- 기본값: vLLM·Ollama = 최소, Anthropic Claude·OpenAI·Google Gemini = 핵심(`AIAgentToolSets.getDefaultToolSet`).
+- 자동: 도구 정의가 컨텍스트의 25%(`AUTOMATIC_SHARE_PERCENT`)를 넘지 않는 가장 큰 묶음(전체 → 핵심 → 최소, 최소보다 아래 없음). 연결로 거른 뒤의
+  정의 크기로 판단한다.
+- 컨텍스트 크기(`AIAgentProviders.getContextTokens`): 제공자 설정의 값. Ollama는 원래 있던 값(`num_ctx`로 서버에 보냄, 기본 30,000), vLLM은 새 설정
+  `chat.contextWindowSize`(`ChatCompletionsProperties`, 비우면 8,192로 봄 — 회사 서버의 가장 작은 경우), Anthropic은 원래 값(기본 200,000), OpenAI·Gemini는
+  값이 없으면 128,000. vLLM의 Test는 모델 목록(`GET /v1/models`)의 `max_model_len`이 있으면 빈 칸을 그 값으로 채운다.
+- **"도구를 모두 보냄"을 지움**: Tool Policy의 확인란(`ai_policy_send_all_tools`)과 설정 `chromite.ai.chat.sendAllTools`를 지웠다. 전체 묶음이 같은 동작이다.
+  저장된 값이 켜짐이면 처음 읽을 때 모든 제공자의 묶음 설정(직접 정한 것이 없을 때)을 "전체"로 옮기고 옛 키를 지운다(`AIAgentToolSets.getStore`).
+
+### 보내기 전 크기 확인
+
+- 요청마다 `도구 정의 + 시스템 프롬프트 + 답할 몫(컨텍스트의 1/8, 최대 4,096토큰)`을 컨텍스트에서 빼고, 남은 토큰에 맞게 기록을 줄인다(위 "기록 줄이기"의
+  글자 예산을 그 토큰에 맞춰 좁힘. 한국어는 글자당 토큰이 많아 어림한 토큰이 넘으면 예산을 비율로 다시 좁혀 최대 3번).
+- 그래도 넘으면(남겨 두는 최근 2차례만으로도 큼) 요청하지 않고 대화에 오류 항목으로 알린다(`AIToolsMessages.chat_request_too_large`, 화면 언어): 컨텍스트,
+  도구 정의, 대화, 지시·답 몫의 토큰과 할 일(새 대화, 글 줄이기, 최소 묶음, 컨텍스트 크기 확인). 전에는 서버의 문맥 초과 오류로만 드러났다.
+- 토큰 어림(`AIAgentToolSets.estimateTokens`): ASCII 4글자 = 1토큰, 그 밖의 글자 1글자 = 1토큰. 토크나이저는 모델마다 달라 요청 전에 알 수 없다.
+  한국어를 넉넉히 세어 작은 컨텍스트를 넘기지 않는 쪽을 골랐다.
+
+### 도구 없음 방식
+
+- vLLM을 도구 호출 옵션(`--enable-auto-tool-choice --tool-call-parser`) 없이 띄우면 도구가 실린 요청을 400으로 거부한다(위 "Chat Completions 엔진").
+  이것을 Test(`checkToolCalls`)나 채팅 요청의 400(`ChatCompletionsClient.ToolCallsUnsupportedException`)이 알아내면 그 제공자·모델을 기억한다
+  (`chromite.ai.chat.toolsOff.<엔진>`, 모델 이름 목록). 채팅은 400을 받은 요청을 도구 없이 바로 다시 보내므로 사용자는 답을 받는다.
+- 그 뒤 요청은 도구 정의를 싣지 않고, 기록의 도구 호출·결과도 빼며(도구 호출을 모르는 서버가 거부할 수 있음, 화면과 저장된 대화는 그대로), 시스템
+  프롬프트는 "도구를 부를 수 없다, SQL은 ```sql 블록으로 제안하면 사용자가 쿼리 창에서 열어 실행한다"고 한다. 사용자는 지금 있는 [쿼리 창에서 열기]를 쓴다.
+- 채팅 창 입력란 위에 늘 보이는 경고 글(`ai_tools_off_notice`): 이 모델은 도구 없이 동작하고, 서버에서 도구 호출을 켠 뒤에는 Test를 누르라고 한다.
+  Test가 도구 호출이 되는 것을 확인하면 그 기억을 지운다. 대화의 모델이 바뀌면 그 모델 기준으로 다시 정한다.
+- Ollama의 "does not support tools" 오류는 Ollama 엔진이 따로 처리하므로 이번에 알아보지 않는다(아래 "위험과 남은 일").
+
+### 크기 (2026-11-12 측정)
+
+가짜 서버가 받은 요청에서 쟀다. 도구 정의 = `tools` 배열을 Messages API 모양의 빈칸 없는 JSON으로 다시 쓴 바이트(Chat Completions는 도구마다 감싸개
+`{"type":"function","function":…}`가 조금 더 붙음). 토큰은 `AIAgentToolSets.estimateTokens` 어림(영어·JSON은 바이트/4). "전"은 이 변경 전 devel(#224)의
+동작으로, 연결 없는 대화는 요청마다 도구 101개를 보냈다(#61의 69,400 B는 같은 101개를 빈칸 있는 `json.dumps`로 잰 값).
+
+| 묶음 | 도구 수 | 도구 정의 | 어림 토큰 | 8k 컨텍스트 대비 | 32k 대비 | 첫 요청 본문(연결 없음, 짧은 질문) |
+|---|---|---|---|---|---|---|
+| 전 (모두) | 101 | 66,553 B | 약 16.7k | 204% | 51% | 68,367 B |
+| 최소 (vLLM·Ollama 기본) | 13 | 5,316 B | 약 1.3k (1,341) | 16% | 4% | 7,071 B |
+| 핵심 (호스팅 모델 기본) | 44 | 27,846 B | 약 7.0k (6,988) | 85% | 21% | 29,559 B |
+| 전체 | 101 | 66,553 B | 약 16.7k (16,732) | 204% | 51% | 68,367 B |
+
+- 최소 묶음은 전보다 도구 정의가 92% 작다.
+- findTools로 8개를 찾은 뒤의 요청: 최소 13 → 21개 12,733 B, 핵심 44 → 52개 35,104 B.
+- 자동(컨텍스트의 25%): 8,192·16,384 → 최소, 32,768·65,536 → 핵심, 128,000 이상 → 전체.
+- 8k 컨텍스트의 최소 묶음 요청은 도구 약 1.3k + 시스템 프롬프트 약 0.3k + 답할 몫 1k(1/8)를 빼면 기록에 약 5.5k 토큰이 남는다.
+
+### 확인 (2026-11-12)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. 빌드한 앱 사본을 빈 작업 공간·설정·데이터·키링으로
+띄우고(`CHROMITE_DATA` 포함), 127.0.0.1의 가짜 서버(Anthropic 꼴 `/anthropic/v1/…`, vLLM 꼴 `/v1/…`)만 쓰도록 두 제공자를 정했다. 첫 채팅 요청 전에
+Providers의 Test가 가짜 서버에 닿은 것(`GET /anthropic/v1/models`, `GET /v1/models`)을 서버 기록으로 확인했다. 실제 제공자는 부르지 않았다. 앱 안 시험
+에이전트(채팅 실행기를 직접 부르고 Swing 객체를 직접 다룸)로 확인했다. 회귀 테스트는 요청되지 않아 실행하지 않았다(지운 설정을 가정하던 기존 테스트 한 줄만 고침).
+
+| 시험 | 결과 |
+|---|---|
+| 예전 설정 옮기기 | 작업 공간 설정에 `chromite.ai.chat.sendAllTools=true`를 넣고 시작 → 다섯 제공자 모두 "전체", 옛 키는 설정 파일에서 사라짐 |
+| 카탈로그 | 채팅 도구 102개(`findTools` 포함), MCP 도구 101개(`findTools` 없음) |
+| 핵심(Anthropic) | 요청 도구 44개, `findTools` 있음, 긴 설명 |
+| findTools(핵심) | 모델이 `findTools(query="backup history")` → 결과 8개(`backupDatabase`, `getAgentJobHistory`, `getJobHistory`, …. 이미 있던 `getBackupHistory`는 빠짐) → 같은 차례의 다음 요청 도구 52개, 다음 차례에도 52개. 대화 파일에 `foundTools` 저장 |
+| 전체(Anthropic) | 도구 101개, `findTools` 없음 |
+| 자동(Anthropic, 200k) | 전체(101개) |
+| 최소(vLLM, 8,192) | 도구 13개, 짧은 설명(`listConnections`: "Lists the connections: id, name, driver, production, readOnly. …"), 최소 묶음 지시문 |
+| findTools(최소) | 결과 8개(`getBackupHistory` 첫째) → 다음 요청 21개 |
+| 이름으로 부른 도구 | 사용자 글 "Please run getErrorLog and getJobHistory" → 그 차례 요청에 `getErrorLog` 더해짐(`getJobHistory`는 이미 찾음) |
+| 도구 없음 | 모델 `fake-notools`: 도구 13개 요청이 400 → 같은 요청을 도구 0개·도구 없음 지시문으로 다시 보내 답을 받음. 다음 차례도 도구 0개. 설정에 `chromite.ai.chat.toolsOff.vllm=fake-notools` |
+| 보내기 전 확인 | vLLM 8,192에 한국어 약 35,000자 글 → 서버에 요청하지 않고 대화에 "이 요청은 모델의 컨텍스트(8,192토큰)에 들어가지 않습니다. 도구 정의 약 1,341, 대화 약 28,127, 지시와 답할 몫 약 1,307토큰입니다. …" |
+| 예전 대화 | 0.1.4 형식 대화 파일(`foundTools` 없음, 도구 항목 포함)을 넣고 `AIAgentChatStore.loadAll` → 읽힘(항목 4개, 찾은 도구 없음) |
+| Providers 화면 | 150%와 100%, 한국어: 다섯 양식에 "채팅 도구 묶음:"(자동(컨텍스트 크기로) / 최소(도구 13개, 짧은 설명) / 핵심(도구 44개) / 전체(도구 101개)), Ollama·vLLM에 "컨텍스트 크기(토큰):"(vLLM 자리 표시 "비우면 8192"). 묶음·크기를 바꾸면 "저장하지 않은 변경 N개"와 [저장]·[되돌리기]가 켜지고, [저장]은 설정 파일에, [되돌리기]는 저장된 값으로. vLLM Test가 빈 칸을 `max_model_len` 8192로 채움. Tool Policy 탭은 눈으로 보지 않았다(확인란 코드만 지움) |
+| 채팅 창 안내 | 모델을 vLLM `fake-notools`로 고르면 입력란 위에 경고 색 안내 "이 모델은 도구를 호출할 수 없어 도구 없이 답합니다. …"가 보이고 `fake-qwen`으로 바꾸면 사라짐 |
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1261,6 +1382,13 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   2026-11-12 도구 설명에 "언제 쓰고 대신 무엇을 쓸지"를 넣어 설명 글이 약 11 KB 늘었다. 줄이는 방식은 위 "요청마다 보내는 도구 줄이기 제안"(권함: 핵심 묶음 + 도구 찾기).
   예산 60,000자는 고정값이다. 32k 문맥의 로컬 모델(Ollama)에는 도구 정의와 합쳐 클 수 있고, 모델의 문맥 크기 설정(`AnthropicProperties.contextWindowSize` 등)을
   따르게 하지 않았다. 대화의 연결과 다른 연결의 DB 종류 도구는 "도구를 모두 보냄"을 켜야 보인다. 이 확인란은 눈으로 확인하지 않았다(빌드·NLS 키만 확인).
+  **2026-11-12 후속(앱 변경 #64)**: 도구 묶음(최소 13·핵심 44·전체 101)과 `findTools`, 컨텍스트 크기에 맞춘 기록 예산과 보내기 전 확인을 넣었다(위 "도구 묶음").
+  "도구를 모두 보냄"은 묶음의 "전체"로 바뀌었다.
+- **도구 묶음의 남은 점(2026-11-12)**: 실제 모델로 묶음별 정확도를 재지 않았다([agent-tool-eval.md](agent-tool-eval.md), 사용자가 실행). 묶음 구성은 그 결과로
+  고칠 수 있다(`toolSet` 속성). 토큰 수는 어림이라 실제 토크나이저와 다르다(한국어는 넉넉히 셈). 도구 없음 방식은 vLLM(Chat Completions 엔진)의 400만
+  알아본다. Ollama에서 도구를 모르는 모델("does not support tools")은 지금처럼 오류로 끝나고, 사용자가 다른 모델을 고르거나 Ollama 설정에서 바꿔야 한다.
+  OpenAI·Gemini는 컨텍스트 크기 칸이 없어(호스팅 모델) 설정값이 없으면 128,000으로 본다. `findTools`는 영어 낱말로 찾으므로 모델이 한국어 낱말만 주면
+  분야 목록으로 답한다. 실제 vLLM 서버와 사내 소형 모델로는 확인하지 않았다(회사 vLLM 정보 없음).
 - **열린 에이전트 트랜잭션과 앱 종료**: 2026-11-07 확인 결과 `ExitTransactionCheck`는 쿼리 관리자만 보아 에이전트 격리 문맥의 트랜잭션을 찾지 못했다
   (에이전트는 JDBC 연결을 직접 쓴다). 이제 `AgentSql.hasPendingTransaction`도 보고 같은 질문으로 끝낸다([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
 - **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 이 계약은 그대로 두고
@@ -1286,6 +1414,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #64 도구 묶음(`chromite/agent-tool-sets`): 최소 13·핵심 44·전체 101 묶음(`plugin.xml` `toolSet`, 최소는 `shortDescription`),
+  메타 도구 `findTools`와 대화별 찾은 도구, 제공자별 "채팅 도구 묶음"·Ollama/vLLM 컨텍스트 크기 설정, "도구를 모두 보냄" 지움(전체로 옮김), 보내기 전 크기
+  확인, 도구 없음 방식과 채팅 창 안내, vLLM Test가 `max_model_len`으로 컨텍스트 크기를 채움. 위 "도구 묶음".
 
 - 2026-11-12 앱 변경 #53(`chromite/tabs-toolbar`): 주 도구 막대의 Chromite Agent 단추를 단추 묶음의 마지막(Find 뒤)으로. 위 창 배치 설명을 고침.
 - 2026-11-12 앱 변경 #61(`chromite/agent-tool-review`): 도구 선택 정적 점검. 헷갈리는 묶음 15개, 도구 설명 99개와 인수 설명 14개를 "하는 일·언제·대신 쓸 도구"

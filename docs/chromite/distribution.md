@@ -479,7 +479,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
     팀과 공유 폴더나 Git으로 함께 씀(#112, 라이브러리 루트, `library_git_pull`·`library_git_commit_push`).
   - 안전하게: WHERE 없는 UPDATE·DELETE, DROP, TRUNCATE는 실행 전에 확인(`SqlExecutionSafety.confirmDangerousStatements`, 기본값 묻기).
     결과 표 편집의 SQL 미리 보기는 **"볼 수 있음"**으로 적었다: 저장 전 스크립트 표시(`ResultSetGrid.isSavePreviewRequired`)는 설정
-    `resultset.confirm.beforeSave`(기본 꺼짐) 또는 연결 종류의 "데이터 변경 확인"일 때만 저절로 나오고, 그 밖에는 "변경 미리 보기…" 명령으로 본다.
+    `resultset.confirm.beforeSave`(기본 꺼짐) 또는 연결 종류의 "데이터 변경 확인"일 때만 저절로 나오고, 그 밖에는 "변경 미리 보기" 명령으로 본다.
     받은 문구 "저장 전에 SQL을 미리 보여 줌"은 기본 설정의 개발 연결에서는 참이 아니다.
     열린 트랜잭션 표시와 묻지 않는 커밋·롤백 없음([transactions.md](transactions.md), [idle-transactions.md](idle-transactions.md)). 예외는 사용자가 연결 종류에서
     직접 켠 유휴 트랜잭션 자동 롤백(알림이 뒤따름)뿐이다. 2차 수정부터 이 줄은 "묻지 않고 커밋하지 않음, 자동 롤백은 켠 경우에만"이다(아래).

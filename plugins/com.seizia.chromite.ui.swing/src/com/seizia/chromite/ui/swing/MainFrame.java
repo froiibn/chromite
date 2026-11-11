@@ -83,7 +83,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -153,9 +152,9 @@ import java.util.function.Supplier;
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}: 연결·DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
+ *     ({@link SqlEditorToolBar}: 서버 표시·DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
  *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
- *     그 창의 연결·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
+ *     그 창의 서버 표시·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -246,7 +245,7 @@ import java.util.function.Supplier;
  *   F5·Ctrl+Enter가 활성 쿼리 창을 실행하던 것 (docs/chromite/swing-query-commands.md "단축키는 쿼리 창 안에서만")
  * - 2026-11-08 탐색기 생산성: Object Details 문서 탭({@link ObjectDetailsPanel}, 같은 노드는 열린 탭), 활성 문서를 Object Explorer에 알림
  *   (Link with Editor, {@link #linkExplorerToDocument}), Query &gt; Select Connection…(Ctrl+9)·Select Database/Schema…(Ctrl+0)는
- *   걸러 고르는 목록({@link ObjectChooserDialog})으로 활성 쿼리 창의 콤보를 바꿈, Set as Default 뒤 그 연결의 쿼리 창 DB 콤보를 다시 읽음
+ *   걸러 고르는 목록({@link ObjectChooserDialog})으로 활성 쿼리 창의 콤보를 바꿈(Ctrl+9는 2026-11-12부터 서버 없는 창에서만), Set as Default 뒤 그 연결의 쿼리 창 DB 콤보를 다시 읽음
  *   (docs/chromite/swing-explorer-productivity.md)
  * - 2026-11-08 편집 편의: Outline 도구 창({@link SqlOutlinePanel}, 기본 숨김, Ctrl+Alt+O), Query &gt; Pin Results(Ctrl+Shift+P),
  *   View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, 놓는 방향은 저장), 쿼리 창의 Ctrl+클릭을 Object Explorer에 보임
@@ -296,7 +295,13 @@ import java.util.function.Supplier;
  *   경로 복사, 상위 폴더 열기, 탭 고정, 탭 위치, 여러 행), 닫기가 취소를 돌려줌({@link #closeDocument}) (앱 변경 #42,
  *   docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 macOS 통합 제목 줄: Standard 도구 막대 줄이 신호등 단추 줄로 올라감({@link MacOSUnifiedTitleBar}, 앱 변경 #62,
+ *   docs/chromite/mac-ui.md "통합 제목 줄")
  * - 2026-11-12 클래스 설명의 결과 탭 줄을 두 단계 탭으로 고침(코드는 그대로, 앱 변경 #54, docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 Query &gt; Select Connection…(Ctrl+9)은 서버가 없는 쿼리 창의 서버만 한 번 고름({@link SqlEditorPanel#chooseServer}). 쿼리 창은
+ *   한 서버의 창이라 창의 서버를 바꾸지 않음(앱 변경 #69, docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 View &gt; Maximize Results 단축키를 Ctrl+Shift+T에서 Ctrl+Shift+R(macOS ⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기
+ *   (앱 변경 #66, docs/chromite/shortcuts.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -778,7 +783,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateQueryActions();
         });
         commitModeAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
-        // SWT keys: Ctrl+Shift+P pins the result tab, Ctrl+Shift+T maximizes the results
+        // Ctrl+Shift+P pins the result tab (SWT key). Maximize Results is Ctrl+Shift+R, the pair of Ctrl+R (show or hide the
+        // results); SWT's Ctrl+Shift+T reopens a closed tab, as in browsers (DocumentTabMenu)
         pinResultsAction = createAction(CoreMessages.main_pin_results, CoreMessages.main_pin_results_tip,
             UiKeys.command(KeyEvent.VK_P, InputEvent.SHIFT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -792,7 +798,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         });
         resultsBesideAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         maximizeResultsAction = createAction(CoreMessages.main_maximize_results, CoreMessages.main_maximize_results_tip,
-            UiKeys.command(KeyEvent.VK_T, InputEvent.SHIFT_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_R, InputEvent.SHIFT_DOWN_MASK), () -> {
                 if (getActiveEditor() == null) {
                     return;
                 }
@@ -833,7 +839,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Two tool bar rows as in SSMS: Standard, then SQL Editor (user decision 2026-11-07)
         JPanel toolBars = new JPanel(new BorderLayout());
         toolBars.setOpaque(false);
-        toolBars.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
+        // macOS: the Standard row is in the title bar, after the traffic-light buttons (app change #62)
+        toolBars.add(MacOSUnifiedTitleBar.install(this, createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow)),
+            BorderLayout.NORTH);
         toolBars.add(sqlEditorToolBar.getComponent(), BorderLayout.SOUTH);
         content.add(toolBars, BorderLayout.NORTH);
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
@@ -1238,8 +1246,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Query &gt; Select Connection… (Ctrl+9, SWT): chooses the active query window's connection from a filtered list; the
-     * window's connection picker then changes it (asking about its own session's transaction first).
+     * Query &gt; Select Connection… (Ctrl+9, SWT): chooses the server of an active query window that has none, from a
+     * filtered list. A query window belongs to one server (app change #69): on a window with a server it only says so.
      */
     private void selectActiveConnection() {
         SqlEditorPanel editor = getActiveEditor();
@@ -1248,26 +1256,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        List<DBPDataSourceContainer> connections = new ArrayList<>();
-        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
-        if (project != null) {
-            for (DBPDataSourceContainer container : project.getDataSourceRegistry().getDataSources()) {
-                if (!container.isHidden() && !container.isTemporary()) {
-                    connections.add(container);
-                }
-            }
-        }
-        connections.sort(Comparator.comparing(DBPDataSourceContainer::getName, String.CASE_INSENSITIVE_ORDER));
-        DBPDataSourceContainer chosen = ObjectChooserDialog.choose(this, ObjectExplorerMessages.oe_select_connection, connections,
-            editor.getDataSourceContainer(), DBPDataSourceContainer::getName, container -> NodeIcons.getIcon(container.getDriver().getIcon()));
-        if (chosen != null && chosen != editor.getDataSourceContainer()) {
-            JComboBox<DBPDataSourceContainer> combo = editor.getConnectionCombo();
-            if (combo.getModel() instanceof DefaultComboBoxModel<DBPDataSourceContainer> model && model.getIndexOf(chosen) < 0) {
-                // Created since the picker was filled
-                model.addElement(chosen);
-            }
-            combo.setSelectedItem(chosen);
-        }
+        editor.chooseServer();
     }
 
     /**
@@ -1371,7 +1360,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Adds a query window tab.
      *
-     * @param dataSource connection of the window, or null (chosen in its tool bar)
+     * @param dataSource connection of the window, or null (chosen once later, {@link SqlEditorPanel#chooseServer})
      * @param fileName   name of the window, or null for the next {@code SQLQueryN.sql}; a given {@code SQLQueryN.sql} (a restored
      *                   window) moves the counter past N
      */
@@ -1930,7 +1919,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Brings a component that was out of the window (and missed theme switches) up to the current look and feel; also
-     * used by {@link SqlEditorToolBar} for the pickers it puts in.
+     * used by {@link SqlEditorToolBar} for the server indicators and pickers it puts in.
      */
     static void updateLookAndFeel(@NotNull JComponent component) {
         LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
