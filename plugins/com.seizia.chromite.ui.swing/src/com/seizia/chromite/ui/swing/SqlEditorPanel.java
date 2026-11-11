@@ -106,8 +106,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
+import java.awt.event.InputMethodEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -3118,6 +3120,12 @@ final class SqlEditorPanel extends JPanel {
     /**
      * SQL text area with the Chromite colors of the current theme and the editor font (also used read-only by
      * {@link DdlViewerPanel} and by the Options preview).
+     *
+     * 설계: 열(사각형) 선택은 {@link SqlColumnSelection}이 맡고, 이 클래스는 마우스·IME·replaceSelection·복사/잘라내기·편집 명령을
+     * 그쪽에 먼저 넘기기만 한다(docs/chromite/swing-sql-column-selection.md).
+     *
+     * 변경 이력:
+     * - 2026-11-12 열 선택 연결: Alt+끌기, Shift+Alt+방향키, 사각형에 입력·붙여넣기·복사(앱 변경 #49)
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3139,6 +3147,8 @@ final class SqlEditorPanel extends JPanel {
         private boolean chordPending;
         @Nullable
         private SqlTemplates.Session templateSession;
+        // Null only while the RSyntaxTextArea constructor runs
+        private final SqlColumnSelection columnSelection;
 
         SqlTextArea() {
             // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
@@ -3191,6 +3201,69 @@ final class SqlEditorPanel extends JPanel {
                     chordPending = false;
                 }
             });
+            // Alt+drag, Shift+Alt+arrows (macOS: Option+drag, Shift+Option+Command+arrows)
+            columnSelection = new SqlColumnSelection(this);
+        }
+
+        /**
+         * Whether a column selection with a width is shown (Edit &gt; Copy and Cut).
+         */
+        boolean hasColumnSelection() {
+            return columnSelection.hasSelectedText();
+        }
+
+        @Override
+        protected void processMouseEvent(MouseEvent e) {
+            if (columnSelection == null || !columnSelection.processMouseEvent(e)) {
+                super.processMouseEvent(e);
+            }
+        }
+
+        @Override
+        protected void processMouseMotionEvent(MouseEvent e) {
+            if (columnSelection == null || !columnSelection.processMouseEvent(e)) {
+                super.processMouseMotionEvent(e);
+            }
+        }
+
+        @Override
+        protected void processInputMethodEvent(InputMethodEvent e) {
+            if (columnSelection == null) {
+                super.processInputMethodEvent(e);
+            } else {
+                columnSelection.processInputMethodEvent(() -> super.processInputMethodEvent(e));
+            }
+        }
+
+        @Override
+        public void replaceSelection(String content) {
+            if (columnSelection == null || !columnSelection.replaceSelection(content)) {
+                super.replaceSelection(content);
+            }
+        }
+
+        @Override
+        public void copy() {
+            if (!columnSelection.copy(false)) {
+                super.copy();
+            }
+        }
+
+        @Override
+        public void cut() {
+            if (!columnSelection.copy(true)) {
+                super.cut();
+            }
+        }
+
+        @Override
+        protected void configurePopupMenu(JPopupMenu popupMenu) {
+            super.configurePopupMenu(popupMenu);
+            if (columnSelection.hasSelectedText()) {
+                // The text area enables Copy and Cut by its own (empty) selection
+                copyAction.setEnabled(true);
+                cutAction.setEnabled(isEditable());
+            }
         }
 
         /**
@@ -3226,6 +3299,9 @@ final class SqlEditorPanel extends JPanel {
          */
         void runCommand(@NotNull Command command) {
             if (command.isEdit() && !isEditable()) {
+                return;
+            }
+            if (columnSelection.runCommand(command)) {
                 return;
             }
             switch (command) {
@@ -3299,7 +3375,8 @@ final class SqlEditorPanel extends JPanel {
 
         private void tab() {
             Action defaultTab = getActionMap().get(DefaultEditorKit.insertTabAction);
-            if (isEditable() && getSelectionStart() == getSelectionEnd()) {
+            // A column selection takes the tab on every line (replaceSelection)
+            if (isEditable() && getSelectionStart() == getSelectionEnd() && !columnSelection.isActive()) {
                 SqlTemplates.Session session = templateSession;
                 if (session != null && session.contains(getCaretPosition())) {
                     session.selectNext(this);
