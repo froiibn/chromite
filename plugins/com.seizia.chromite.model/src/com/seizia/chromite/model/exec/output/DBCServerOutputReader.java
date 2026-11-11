@@ -32,17 +32,28 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
  * 설계: 서버 출력 설정({@link #isServerOutputEnabled})은 언제든 바뀌지만, 서버 쪽에서 켜고 끄는 상태(Oracle {@code DBMS_OUTPUT.ENABLE})는
  * 세션마다 있고 세션을 열 때만 맞춰졌다. {@link #syncServerOutput}으로 열린 세션도 다음 문장 전에 설정에 맞춘다. 서버 상태가 없는
  * 리더(경고만 다시 읽는 기본 리더 등)는 아무것도 하지 않는다.
+ * 쿼리 창이 스크립트로 자기 세션만 켜고 끌 수 있으므로(Oracle {@code SET SERVEROUTPUT}) 읽을지는 세션 기준
+ * {@link #isServerOutputEnabled(DBCExecutionContext)}로 묻는다. 세션별 값이 없는 리더는 설정 값을 그대로 돌려준다.
  *
  * 변경 이력:
  * - 2026-11-08 Chromite: {@link #syncServerOutput} 추가 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-11 Chromite: {@link #isServerOutputEnabled(DBCExecutionContext)} 추가 (docs/chromite/oracle-sqlplus-commands.md)
  */
 public interface DBCServerOutputReader extends DBPObject
 {
     boolean isServerOutputEnabled();
 
     /**
-     * Brings the server side of the context's session in line with {@link #isServerOutputEnabled()} when the setting
-     * changed after the session opened. Called before a statement in the job thread that runs it.
+     * Whether the server output of the context's session is on: the setting, unless the session was switched on or off
+     * by itself (Oracle {@code SET SERVEROUTPUT} in a query window).
+     */
+    default boolean isServerOutputEnabled(@NotNull DBCExecutionContext context) {
+        return isServerOutputEnabled();
+    }
+
+    /**
+     * Brings the server side of the context's session in line with {@link #isServerOutputEnabled(DBCExecutionContext)}
+     * when the setting changed after the session opened. Called before a statement in the job thread that runs it.
      */
     default void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
     }

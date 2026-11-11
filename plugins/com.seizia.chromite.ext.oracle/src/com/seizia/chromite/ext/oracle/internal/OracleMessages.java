@@ -20,6 +20,10 @@ package com.seizia.chromite.ext.oracle.internal;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * 변경 이력:
+ * - 2026-11-11 Chromite: SQL*Plus 명령의 Messages 문구({@code sqlplus_*}) (docs/chromite/oracle-sqlplus-commands.md)
+ */
 public class OracleMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.ext.oracle.internal.OracleMessages"; //$NON-NLS-1$
 
@@ -56,4 +60,11 @@ public class OracleMessages extends NLS {
     public static String global_variable_ora_invoking_userid;
     public static String global_variable_uid;
     public static String global_variable_user;
+    public static String sqlplus_server_output_on;
+    public static String sqlplus_server_output_off;
+    public static String sqlplus_server_output_unlimited;
+    public static String sqlplus_server_output_format_ignored;
+    public static String sqlplus_define_off;
+    public static String sqlplus_define_on;
+    public static String sqlplus_ignored;
 }
