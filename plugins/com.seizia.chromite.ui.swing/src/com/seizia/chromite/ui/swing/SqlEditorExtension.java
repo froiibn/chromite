@@ -34,6 +34,7 @@ import javax.swing.*;
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md)
  * - 2026-11-07 쿼리 창 도구 막대가 메인 창으로 옮겨져 머리말 위치 설명을 "편집기 위"로 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 {@link #saveAs}: Save As를 저장과 나눔(라이브러리 쿼리는 평범한 .sql로 내보냄) (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-12 {@link #rename}: 문서 탭 메뉴의 이름 바꾸기(앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  */
 interface SqlEditorExtension {
 
@@ -62,6 +63,11 @@ interface SqlEditorExtension {
      * @return false if it was not saved (canceled or failed)
      */
     boolean saveAs(@NotNull SqlEditorPanel editor);
+
+    /**
+     * Rename in the document tab menu: renames the window's document (asks for the name).
+     */
+    void rename(@NotNull SqlEditorPanel editor);
 
     /**
      * Called before a run: asks for parameter values.
