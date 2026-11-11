@@ -62,6 +62,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 결과 영역 두 단계 탭: 위 탭 이름 {@code editor_results_grid}, {@code editor_results_text}, {@code editor_results_server_output},
  *   Text 탭의 결과 제목 {@code editor_results_text_title}, 새 서버 출력 도구 설명 {@code editor_results_server_output_new_tip} 추가,
  *   {@code editor_results_tab}은 언어와 관계없이 "Result N" (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69): 연결 콤보 문구 {@code editor_sql_connection_tip}, {@code editor_sql_connection_selected_tip},
+ *   {@code editor_sql_select_connection}과 콤보로 고르라는 안내 {@code editor_sql_choose_connection}을 지우고 서버 표시 문구
+ *   {@code editor_sql_select_server*}, {@code editor_sql_server_fixed*} 추가 (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -93,13 +96,10 @@ public class EditorMessages extends NLS {
     public static String editor_sql_tip_connection;
     public static String editor_sql_actual_plan_on;
     public static String editor_sql_actual_plan_off;
-    public static String editor_sql_connection_tip;
     public static String editor_sql_schema_tip;
-    public static String editor_sql_connection_selected_tip;
     public static String editor_sql_schema_selected_tip;
     public static String editor_sql_saving_changes;
     public static String editor_sql_nothing_to_execute;
-    public static String editor_sql_choose_connection;
     public static String editor_sql_execution_restricted_title;
     public static String editor_sql_execution_restricted;
     public static String editor_sql_danger_title;
@@ -147,7 +147,10 @@ public class EditorMessages extends NLS {
     public static String editor_sql_error_column;
     public static String editor_sql_change_schema_title;
     public static String editor_sql_change_schema_error;
-    public static String editor_sql_select_connection;
+    public static String editor_sql_select_server;
+    public static String editor_sql_select_server_tip;
+    public static String editor_sql_server_fixed;
+    public static String editor_sql_server_fixed_tip;
 
     // Edit > Advanced (SqlEditCommands)
     public static String editor_edit_advanced;
