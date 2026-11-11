@@ -46,6 +46,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-11 최초 작성 (app round 2 #34, #35, docs/chromite/ai-agent.md "Chat Completions 엔진")
+ * - 2026-11-12 모델의 컨텍스트 크기(vLLM {@code max_model_len})를 {@link AIModel}에 담음: Providers의 Test가 컨텍스트 크기 칸을 채움 (앱 변경 #64)
  */
 public class ChatCompletionsEngine extends BaseCompletionEngine<ChatCompletionsProperties> {
 
@@ -82,8 +83,8 @@ public class ChatCompletionsEngine extends BaseCompletionEngine<ChatCompletionsP
     @Override
     public List<AIModel> getModels(@NotNull DBRProgressMonitor monitor) throws DBException {
         List<AIModel> models = new ArrayList<>();
-        for (String id : client.getInstance().loadModels(monitor)) {
-            models.add(new AIModel(properties.toModelName(id), null, Set.of(
+        for (ChatCompletionsClient.ModelInfo model : client.getInstance().loadModels(monitor)) {
+            models.add(new AIModel(properties.toModelName(model.id()), model.contextSize(), Set.of(
                 AIModelFeature.CHAT, AIModelFeature.STREAMING, AIModelFeature.TOOL_CALL)));
         }
         return models;

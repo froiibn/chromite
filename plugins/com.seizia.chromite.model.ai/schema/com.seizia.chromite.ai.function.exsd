@@ -141,6 +141,22 @@
                </restriction>
             </simpleType>
          </attribute>
+         <attribute name="toolSet">
+            <annotation>
+               <documentation>Smallest tool set of the Chromite Agent chat that contains the tool (docs/chromite/ai-agent.md): minimal (sent to small models; also in core), core (sent by default to hosted models), or none for the full set only</documentation>
+            </annotation>
+            <simpleType>
+               <restriction base="string">
+                  <enumeration value="minimal"/>
+                  <enumeration value="core"/>
+               </restriction>
+            </simpleType>
+         </attribute>
+         <attribute name="shortDescription" type="string">
+            <annotation>
+               <documentation>One or two sentences sent instead of the description in the minimal tool set</documentation>
+            </annotation>
+         </attribute>
          <attribute name="system" type="boolean">
             <annotation>
                <documentation>If true, this is a system function</documentation>
@@ -192,6 +208,11 @@
          <attribute name="description" type="string">
             <annotation>
                <documentation>Parameter description passed to the AI to explain its purpose</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="shortDescription" type="string">
+            <annotation>
+               <documentation>Shorter description sent in the minimal tool set of the Chromite Agent chat</documentation>
             </annotation>
          </attribute>
          <attribute name="required" type="boolean">
