@@ -46,7 +46,7 @@ import java.util.List;
  * <ul>
  *     <li>임시 연결은 Test Connection과 같은 방법으로 만든다(대화상자가 넘긴 {@link Source}, 새 ID·임시·메타데이터 연결 없음).
  *     SSH 터널·프록시 같은 네트워크 설정도 따르고, {@link ConnectionTestJob}이 읽은 뒤 연결을 끊는다. 작업 스레드에서 돌고 대화상자를
- *     막지 않으며, 그동안 칸 아래에 회전하는 도넛({@link DonutSpinner}, 길이를 모르는 짧은 기다림, 앱 변경 #60)과 문구를 보인다.</li>
+ *     막지 않으며, 그동안 칸 아래에 회전하는 도넛({@link SpinnerIcon#createLabel()}, 길이를 모르는 짧은 기다림, 앱 변경 #60)과 문구를 보인다.</li>
  *     <li>목록은 입력한 DB와 상관없이 읽는다(아직 없는 DB이거나 잘못 적었을 수 있다): 임시 연결의 DB는 드라이버 기본값(PostgreSQL
  *     {@code postgres}, 없으면 로그인의 기본 DB)이다.</li>
  *     <li>저장하지 않은 비밀번호(칸이 비고 저장 안 함)는 연결할 때 모델이 묻는다({@code DataSourceDescriptor.askForPassword}).</li>
@@ -59,6 +59,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-11 최초 작성 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  * - 2026-11-11 진행 표시를 길이 모르는 막대에서 도넛 스피너로(사용자 결정, 앱 변경 #60)
+ * - 2026-11-12 스피너를 상태 표시줄과 같은 {@link SpinnerIcon}으로(스피너 구현 하나, 앱 변경 #60)
  */
 final class ConnectionDatabaseList {
 
@@ -86,7 +87,7 @@ final class ConnectionDatabaseList {
     /**
      * Unknown length, short wait: a donut, not a bar (user decision, app change 60).
      */
-    private final DonutSpinner spinner = new DonutSpinner(14);
+    private final JLabel spinner = SpinnerIcon.createLabel();
     private final JLabel statusLabel = new JLabel() {
         @Override
         public Dimension getPreferredSize() {

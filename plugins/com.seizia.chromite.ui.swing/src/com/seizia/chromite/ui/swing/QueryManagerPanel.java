@@ -114,6 +114,7 @@ import java.util.TreeMap;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-manager.md)
  * - 2026-11-09 복사 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 보일 항목 메뉴 끝에 Options의 Logs 페이지를 여는 Log Settings (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPreferenceListener {
 
@@ -771,6 +772,11 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
             purposeItems.put(purpose, item);
             menu.add(item);
         }
+        // The same settings, with the log file's own, are on the Logs page of the Options
+        menu.addSeparator();
+        JMenuItem settingsItem = new JMenuItem(QueryManagerMessages.qm_log_settings);
+        settingsItem.addActionListener(e -> OptionsLinks.open(invoker, LogsOptionsPage.class.getSimpleName()));
+        menu.add(settingsItem);
         menu.show(invoker, 0, invoker.getHeight());
     }
 

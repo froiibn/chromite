@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
- * [연결 ▾] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
+ * [서버 표시] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
  * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
  *
  * 설계:
@@ -46,12 +46,15 @@ import java.util.List;
  *     <li>커밋 방식 단추(B-S18, SWT 도구 막대의 자동 커밋 토글)는 Query &gt; Auto-Commit과 같은 동작이다. 지금 방식을 상태 줄과 같은 점(자동 커밋 초록,
  *     수동 커밋 빨강)과 글자로 보이고, 누르면 다른 방식으로 바꾼다({@link CommitModeSwitch}). Swing 아이콘 팩에 트랜잭션 방식 아이콘이 없어
  *     상태 줄의 점을 쓴다. 글자가 지금 방식을 말하므로 눌림 상태(토글 단추)는 쓰지 않는다.</li>
- *     <li>연결·DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getConnectionCombo()}): 모델·리스너·켜짐이 창마다의 상태라
- *     한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 콤보를 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면
- *     연결·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다. 끼울 때는 빼낸 콤보의 위치(index)에
- *     넣으므로 막대 안 순서와 상관없다.</li>
- *     <li>콤보가 맨 앞이다(사용자 결정 2026-11-08): 무엇에 실행할지(연결, DB/스키마)를 고른 뒤 실행한다. 좁은 창에서는 콤보가 먼저 줄고 넘치는
- *     단추는 뒤쪽(Query History)부터 메뉴로 가므로 실행 단추는 콤보가 최소 폭이 되어도 남는다. 키보드 Tab 순서도 화면 순서(연결, DB/스키마)다.</li>
+ *     <li>서버 표시와 DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getServerIndicator()}, {@link SqlEditorPanel#getSchemaCombo()}):
+ *     상태·리스너·켜짐이 창마다의 상태라 한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 것을 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식).
+ *     그래서 탭을 바꾸면 서버·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 표시와 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다. 끼울 때는
+ *     빼낸 것의 위치(index)에 넣으므로 막대 안 순서와 상관없다.</li>
+ *     <li>서버는 고를 수 없는 표시다(앱 변경 #69, 사용자 결정 2026-11-12: 쿼리 창은 한 서버의 창, {@link QueryWindowServerIndicator}).
+ *     예전 연결 콤보는 클릭이나 방향키 하나로 같은 글을 다른 서버에서 돌게 했다.</li>
+ *     <li>서버 표시와 DB 콤보가 맨 앞이다(사용자 결정 2026-11-08): 무엇에 실행할지(서버, DB/스키마)를 본 뒤 실행한다. 좁은 창에서는 둘이 먼저 줄고
+ *     넘치는 단추는 뒤쪽(Query History)부터 메뉴로 가므로 실행 단추는 둘이 최소 폭이 되어도 남는다. 서버 표시는 포커스를 받지 않으므로
+ *     키보드 Tab은 DB/스키마 콤보부터다.</li>
  *     <li>편집 명령(주석, 들여쓰기, 서식)과 Query History는 이 막대의 동작이고, 활성 쿼리 창이 없으면 꺼진다. 편집 명령은
  *     Edit &gt; Advanced와 같은 명령({@link SqlEditorPanel.SqlTextArea#runCommand})이다.</li>
  *     <li>활성 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS).</li>
@@ -69,18 +72,20 @@ import java.util.List;
  * - 2026-11-09 도구 설명의 키 글자를 단축키에서 만듦({@link UiKeys}, 두 키 조합은 {@code SqlTextArea.getChordText}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 Actual Plan·커밋 방식 글자 단추에 도구 단추 여백({@link UiIcons#useToolButtonMargin}): UI 글꼴 13의 글자 줄(18)이 아이콘(16)보다
  *   높아 단추가 26이 되던 것을 아이콘 단추와 같은 24로 (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
+ * - 2026-11-12 연결 콤보 자리에 활성 창의 서버 표시, 빈 연결 콤보({@code emptyConnectionCombo})를 빈 서버 표시로(앱 변경 #69)
+ *   (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  */
 final class SqlEditorToolBar {
 
     private final JToolBar toolBar = new OverflowToolBar();
     /**
-     * Shown in the picker places while no query window is active.
+     * Shown in the server and picker places while no query window is active.
      */
-    private final JComboBox<Object> emptyConnectionCombo = createEmptyCombo(SqlEditorPanel.CONNECTION_PICKER_WIDTH);
+    private final QueryWindowServerIndicator emptyServerIndicator = new QueryWindowServerIndicator(null);
     private final JComboBox<Object> emptySchemaCombo = createEmptyCombo(SqlEditorPanel.SCHEMA_PICKER_WIDTH);
     private final List<Action> editorActions = new ArrayList<>();
-    private JComboBox<?> connectionCombo = emptyConnectionCombo;
-    private JComboBox<?> schemaCombo = emptySchemaCombo;
+    private JComponent serverIndicator = emptyServerIndicator;
+    private JComponent schemaCombo = emptySchemaCombo;
     private final JButton commitModeButton;
     private final JToggleButton actualPlanButton;
     @Nullable
@@ -110,7 +115,7 @@ final class SqlEditorToolBar {
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
         // The pickers first (user decision 2026-11-08): what the run applies to, then the run
-        toolBar.add(connectionCombo);
+        toolBar.add(serverIndicator);
         toolBar.addSeparator();
         toolBar.add(schemaCombo);
         toolBar.addSeparator();
@@ -153,7 +158,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * The active document changed: puts that query window's pickers into the tool bar, or the empty ones when the active
+     * The active document changed: puts that query window's server indicator and picker into the tool bar, or the empty ones when the active
      * document is not a query window. Execute, Stop and the plan buttons follow the Query menu actions.
      */
     /**
@@ -167,7 +172,7 @@ final class SqlEditorToolBar {
 
     void setActiveEditor(@Nullable SqlEditorPanel editor) {
         this.editor = editor;
-        connectionCombo = replace(connectionCombo, editor != null ? editor.getConnectionCombo() : emptyConnectionCombo);
+        serverIndicator = replace(serverIndicator, editor != null ? editor.getServerIndicator() : emptyServerIndicator);
         schemaCombo = replace(schemaCombo, editor != null ? editor.getSchemaCombo() : emptySchemaCombo);
         for (Action action : editorActions) {
             action.setEnabled(editor != null);
@@ -177,11 +182,11 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Puts a picker into the place of another one. Pickers out of the tool bar (inactive query windows, the empty ones)
-     * missed theme switches, so their look and feel is brought up to date first.
+     * Puts a picker or server indicator into the place of another one. The ones out of the tool bar (inactive query
+     * windows, the empty ones) missed theme switches, so their look and feel is brought up to date first.
      */
     @NotNull
-    private JComboBox<?> replace(@NotNull JComboBox<?> current, @NotNull JComboBox<?> replacement) {
+    private JComponent replace(@NotNull JComponent current, @NotNull JComponent replacement) {
         if (current != replacement) {
             MainFrame.updateLookAndFeel(replacement);
             int index = toolBar.getComponentIndex(current);

@@ -39,6 +39,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 {@code access}, {@code writes} 속성 읽기(에이전트 도구 권한 정책, docs/chromite/ai-agent.md)
+ * - 2026-11-12 {@code toolSet}, {@code shortDescription} 속성 읽기(채팅의 도구 묶음, docs/chromite/ai-agent.md "도구 묶음")
  */
 public class AIFunctionInternalDescriptor extends AbstractDescriptor implements AIFunctionDescriptor {
 
@@ -66,6 +67,8 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     private final AIToolWrites writes;
     private final String[] dependsOn;
     private final String aiDescription;
+    private final String shortAiDescription;
+    private final String toolSet;
     private final String userDescription;
     private final String categoryId;
     private final AIFunctionInternalParameter[] parameters;
@@ -103,6 +106,8 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
         this.purpose = CommonUtils.valueOf(AIFunctionPurpose.class, config.getAttribute("purpose"), AIFunctionPurpose.TOOL);
         this.categoryId = config.getAttribute("categoryId");
         this.aiDescription = config.getAttribute(RegistryConstants.ATTR_DESCRIPTION);
+        this.shortAiDescription = config.getAttribute("shortDescription");
+        this.toolSet = config.getAttribute("toolSet");
         this.userDescription = config.getAttribute("userDescription");
         this.dependsOn = CommonUtils.splitString(config.getAttribute("dependsOn"), ',').toArray(new String[0]);
         this.type = CommonUtils.valueOf(
@@ -190,6 +195,18 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     @Nullable
     public String getAiDescription() {
         return aiDescription;
+    }
+
+    @Nullable
+    @Override
+    public String getShortAiDescription() {
+        return shortAiDescription;
+    }
+
+    @Nullable
+    @Override
+    public String getToolSet() {
+        return toolSet;
     }
 
     @Nullable

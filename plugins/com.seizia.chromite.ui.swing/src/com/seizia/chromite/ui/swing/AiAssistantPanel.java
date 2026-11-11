@@ -29,6 +29,7 @@ import com.seizia.chromite.model.ai.tools.chat.AIAgentChat;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentChatRunner;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentChatStore;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentProviders;
+import com.seizia.chromite.model.ai.tools.chat.AIAgentToolSets;
 import com.seizia.chromite.model.ai.tools.mcp.AIAgentPlaybooks;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
@@ -115,6 +116,8 @@ import java.util.Set;
  *   선택으로 정해 안내가 안 보이던 문제 (docs/chromite/ai-agent.md "채팅 도구 창")
  * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
  *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 도구 호출을 못 하는 제공자·모델이면 입력란 위에 늘 보이는 안내({@code toolsOffNotice}): 채팅은 도구 없이 SQL을 제안하고 사용자가
+ *   [쿼리 창에서 열기]로 연다 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -187,6 +190,8 @@ final class AiAssistantPanel extends JPanel {
     private final JButton stopButton = new JButton(AiMessages.ai_stop);
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
     private final JPanel setupNotice = new JPanel(new BorderLayout(8, 0));
+    // The provider's model can't call tools: the chat works without them (AIAgentToolSets.isToolsOff)
+    private final JLabel toolsOffNotice = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_tools_off_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
     private final Action newChatAction;
     private final Action deleteChatAction;
     private final Action historyAction;
@@ -384,7 +389,13 @@ final class AiAssistantPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(4)));
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(6), UIScale.scale(8)));
-        panel.add(setupNotice, BorderLayout.NORTH);
+        toolsOffNotice.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
+        toolsOffNotice.setVisible(false);
+        JPanel notices = new JPanel(new BorderLayout(0, UIScale.scale(4)));
+        notices.setOpaque(false);
+        notices.add(setupNotice, BorderLayout.NORTH);
+        notices.add(toolsOffNotice, BorderLayout.SOUTH);
+        panel.add(notices, BorderLayout.NORTH);
         panel.add(inputScroll, BorderLayout.CENTER);
         panel.add(statusRow, BorderLayout.SOUTH);
         return panel;
@@ -888,6 +899,9 @@ final class AiAssistantPanel extends JPanel {
         String engineId = modelPicker.getSelectedItem() instanceof ModelChoice choice ? choice.engineId() : null;
         // Reading the profile resolves secrets from the secure storage: cheap, but not on every repaint
         setupNotice.setVisible(engineId != null && !AIAgentProviders.isConfigured(engineId));
+        String model = modelPicker.getSelectedItem() instanceof ModelChoice choice ? choice.model() : null;
+        toolsOffNotice.setVisible(engineId != null && AIAgentToolSets.isToolsOff(engineId,
+            CommonUtils.isEmptyTrimmed(model) ? AIAgentProviders.getDefaultModel(engineId) : model));
     }
 
     //////////////////////////////////////////////////////////
@@ -973,6 +987,11 @@ final class AiAssistantPanel extends JPanel {
                         card.update();
                     }
                 });
+            }
+
+            @Override
+            public void toolsOff() {
+                SwingUtilities.invokeLater(panel::updateSetupNotice);
             }
 
             @Override

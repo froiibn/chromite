@@ -210,6 +210,7 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   - `SQLServerDatabase` 스키마 목록(Babelfish만): 데이터베이스 이름을 식별자 따옴표(`getQuotedIdentifier`)로 문자열에 넣어, 따옴표가 필요한 이름은
     `[이름]`이 되어 맞지 않았고 `'`가 있으면 질의가 깨졌다. 이스케이프한 이름으로. Babelfish 서버가 없어 실행해 보지 않았다.
 - **같은 확인에서 본 것(범위 밖, 고치지 않음):** 인덱스 DDL의 열 목록은 서버 질의가 열 이름을 따옴표 없이 이어 붙여 `c'ol ASC`처럼 나온다.
+  2026-11-12 고침(아래 "인덱스 DDL의 열 이름").
 
 ### 확인 (2026-11-09, `chromite/followups-6`)
 
@@ -224,6 +225,29 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: SQL Server 테이블·뷰·프로시저 이름 바꾸기(탐색기, 디자이너 테이블 탭), 인덱스 DDL 보기,
   Babelfish 스키마 목록.
+
+## 인덱스 DDL의 열 이름 (2026-11-12, B9, `chromite/small-fixes-r2`)
+
+- **원인:** `SQLServerTableIndex.readIndexDefinition`은 SQL Server에서 인덱스 DDL을 글로 만드는 질의(MS TechNet 스크립트)다. 키 열과 포함 열은
+  `' , ' + C.name`을 `FOR XML PATH('')`로 이어 붙이고, 파일 그룹은 `'ON [' + DS.name + ' ]'`로 붙였다. 그래서
+  - 열 이름이 따옴표 없이 나왔다(`c'ol ASC`, `x]y`). 공백·예약어·특수 문자가 있는 이름은 DDL이 실행되지 않았다.
+  - `FOR XML PATH('')`의 결과는 XML 글이라 `&`·`<`·`>`가 `&amp;`·`&lt;`·`&gt;`로 바뀌었다(같은 이어 붙이기의 다른 증상).
+  - 파일 그룹은 `[PRIMARY ]`(닫는 괄호 앞 공백)이었고 이름에 `]`가 있으면 깨졌다.
+- **고친 것:** 키 열·포함 열·파일 그룹 이름을 `QUOTENAME`으로 감싸고(`[c'ol]`, `[x]]y]`), 열 목록은 `FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)')`로
+  XML 값이 아니라 글로 읽는다. 인덱스·테이블 이름은 전처럼 모델의 따옴표 규칙(필요할 때만)을 따른다. 질의 안에서는 방언의 규칙을 쓸 수 없어 열은 늘 `[…]`다(SSMS 스크립트와 같음).
+- XML `value()`는 세션의 `QUOTED_IDENTIFIER`가 ON이어야 한다. JDBC 드라이버(mssql-jdbc, jTDS)의 기본값이 ON이고, 메타데이터는 따로 연 세션(`openMetaSession`)에서 읽는다.
+  사용자가 메타데이터 세션을 따로 쓰지 않게 하고 쿼리 창에서 `SET QUOTED_IDENTIFIER OFF`를 실행했다면 인덱스 DDL 읽기가 오류(1934)를 낸다(틀린 DDL 대신 오류).
+- Babelfish는 전처럼 이 질의를 쓰지 않는다(`getObjectDefinitionText`).
+
+### 확인 (2026-11-12)
+
+클라우드 VM의 SQL Server(`chromite-test-mssql`)에 임시 DB `chromite_small_fixes_r2`를 만들고 `dbo.[t'ab]`에 `[i'x]`(키 `[c'ol] ASC`, `[a&b<c] DESC`, `[x]]y]`,
+포함 `[inc&1]`, `plain`)를 만든 뒤, 고친 질의를 그대로(시스템 표 이름만 이 DB로) `sqlcmd -I`(JDBC처럼 QUOTED_IDENTIFIER ON)로 실행했다. 앱에서 View DDL로 보지는 않았다.
+
+- 나온 DDL: `CREATE NONCLUSTERED INDEX [i'x] ON dbo.[t'ab] (  [c'ol] ASC  , [a&b<c] DESC  , [x]]y] ASC  ) INCLUDE ( [inc&1] , [plain] ) WITH (…) ON [PRIMARY]`.
+- 인덱스를 지우고 그 DDL을 `EXEC`하면 같은 열·순서·DESC·포함 열로 다시 만들어진다. 임시 DB는 지웠다.
+- `QUOTED_IDENTIFIER` OFF(`sqlcmd` 기본)에서는 오류 1934로 질의가 실패한다(위 설명).
+- 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: SQL Server 인덱스의 DDL 글(`getObjectDefinitionText`)을 쓰는 곳(View DDL 등).
 
 ## 남긴 것
 
@@ -259,3 +283,4 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   중간에 실패한 저장의 적용·미적용 알림과 다시 읽기(`AbstractCommandContext`, `PartialSaveException`), 다시 만든 SQL Server 기본값 제약 조건의 이름. 위 "후속 29 d–f".
 - 2026-11-09 후속 30 b(`chromite/followups-6`): SQL Server 테이블·프로시저 `sp_rename`의 옛 이름, 인덱스 DDL 질의와 Babelfish 스키마 목록의 이름을 문자열로
   이스케이프. 위 "sp_rename의 옛 이름".
+- 2026-11-12 B9(`chromite/small-fixes-r2`): SQL Server 인덱스 DDL의 키 열·포함 열·파일 그룹 이름을 `QUOTENAME`으로, 열 목록의 XML 엔터티를 없앰. 위 "인덱스 DDL의 열 이름".

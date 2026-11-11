@@ -56,8 +56,9 @@ import java.util.function.UnaryOperator;
  * 설계 (앱 변경 #49, docs/chromite/swing-sql-column-selection.md):
  * <ul>
  *     <li>RSyntaxTextArea에는 사각형 선택도 다중 캐럿도 없다. 그래서 Swing 선택은 비워 두고(캐럿은 사각형의 캐럿 쪽 모서리) 사각형은 이 클래스가
- *     줄·열 번호로 따로 기억하고 그린다. Swing 선택을 비워 두기 때문에 선택을 읽는 기존 코드(실행, 찾기, 자동완성)는 사각형을 보지 않고
- *     캐럿 하나로 동작하며, 열 선택이 꺼져 있으면 이 클래스는 Alt+누르기 말고는 아무 입력도 가로채지 않는다(보통 선택은 예전 그대로).</li>
+ *     줄·열 번호로 따로 기억하고 그린다. Swing 선택을 비워 두기 때문에 선택을 읽는 기존 코드(찾기, 자동완성)는 사각형을 보지 않고
+ *     캐럿 하나로 동작한다. 실행만은 보통 선택처럼 사각형의 글을 실행한다({@link #getRunText}: 사각형 밖 글자를 공백으로 바꾼 같은 길이의 글이라
+ *     문장 위치가 편집기 글의 위치와 같다). 그리고 열 선택이 꺼져 있으면 이 클래스는 Alt+누르기 말고는 아무 입력도 가로채지 않는다(보통 선택은 예전 그대로).</li>
  *     <li>열은 글자 칸이다. 탭은 다음 탭 위치까지, 한글·한자 같은 전각 글자({@link #getCellWidth})는 2칸, 결합 문자는 0칸이다. 칸 경계가
  *     전각 글자나 탭 가운데에 떨어지면 사각형의 왼쪽 끝은 그 글자 앞, 오른쪽 끝은 그 글자 뒤로 넓힌다(걸친 글자는 선택된다). 폭이 0인 세로 캐럿은
  *     가까운 경계에 놓는다. 줄 끝보다 오른쪽은 빈 칸(가상 공간)이다: 그리기·마우스는 공백 폭으로 재고, 입력하면 그 줄을 공백으로 채운 뒤 넣는다.</li>
@@ -80,6 +81,7 @@ import java.util.function.UnaryOperator;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성(앱 변경 #49)
+ * - 2026-11-12 사각형이 있으면 실행(F5)과 문장 명령이 사각형의 글을 실행({@link #getRunText}) (docs/chromite/swing-sql-column-selection.md "실행")
  */
 final class SqlColumnSelection {
 
@@ -124,6 +126,13 @@ final class SqlColumnSelection {
      * Rectangle part of one line: document offsets and the virtual spaces beyond the line end before each.
      */
     private record Span(int line, int lineStart, int start, int end, int startVirtual, int endVirtual) {
+    }
+
+    /**
+     * What Execute runs for the rectangle: {@code text} is the document text with the same offsets, {@code offset} and
+     * {@code length} the range from the rectangle's first to its last character.
+     */
+    record RunText(@NotNull String text, int offset, int length) {
     }
 
     private final RSyntaxTextArea textArea;
@@ -239,6 +248,37 @@ final class SqlColumnSelection {
      */
     boolean hasSelectedText() {
         return active && getLeftColumn() != getRightColumn();
+    }
+
+    /**
+     * The text Execute (F5) and the statement commands run for the rectangle, as they run a normal selection: its lines one
+     * under another. Every character between the rectangle's first and last character that is not in the rectangle (left and
+     * right of it, folded lines) is a space; line breaks stay. So the statements keep their document offsets, and the running
+     * statement's highlight, the error lines and the error links of Messages point at the editor text.
+     *
+     * @return null when no rectangle with a width is shown
+     */
+    @Nullable
+    RunText getRunText() {
+        if (!hasSelectedText()) {
+            return null;
+        }
+        List<Span> spans = getSpans();
+        if (spans.isEmpty()) {
+            return null;
+        }
+        char[] text = textArea.getText().toCharArray();
+        int start = spans.get(0).start();
+        int position = start;
+        for (Span span : spans) {
+            for (int i = position; i < span.start(); i++) {
+                if (text[i] != '\n') {
+                    text[i] = ' ';
+                }
+            }
+            position = span.end();
+        }
+        return new RunText(new String(text), start, position - start);
     }
 
     /**

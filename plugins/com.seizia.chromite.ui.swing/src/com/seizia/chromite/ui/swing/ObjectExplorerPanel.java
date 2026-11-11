@@ -270,6 +270,8 @@ import java.util.regex.Pattern;
  *   (앱 변경 #51, docs/chromite/swing-registered-servers.md "펼치기 단추")
  * - 2026-11-11 연결 메뉴에 Disconnect Others / Disconnect All(Registered Servers에서 옮김, 앱 변경 #48): 끊은 서버는 Disconnect처럼 이 창에서 뺀다
  *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
+ * - 2026-11-12 "더 읽기" 줄의 오른쪽 클릭 메뉴에 Options의 General 페이지(긴 폴더에 표시할 개체 수)를 여는 항목 (B12,
+ *   docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -867,6 +869,12 @@ final class ObjectExplorerPanel extends JPanel {
             quickFilterField::requestFocusInWindow);
 
         JPopupMenu popupMenu = new JPopupMenu();
+        // Only on "Load more…": how many objects a long folder shows is a setting (General > Object Explorer)
+        JMenuItem pageSizeItem = new JMenuItem(ObjectExplorerMessages.oe_page_size_settings);
+        pageSizeItem.addActionListener(e -> OptionsLinks.open(tree, OptionsLinks.PAGE_GENERAL));
+        JPopupMenu.Separator pageSizeSeparator = new JPopupMenu.Separator();
+        popupMenu.add(pageSizeItem);
+        popupMenu.add(pageSizeSeparator);
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
@@ -929,6 +937,10 @@ final class ObjectExplorerPanel extends JPanel {
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                 // The connection state may have changed since the selection did
                 updateActions();
+                TreePath path = tree.getSelectionPath();
+                boolean more = path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof MoreItem;
+                pageSizeItem.setVisible(more);
+                pageSizeSeparator.setVisible(more);
             }
 
             @Override

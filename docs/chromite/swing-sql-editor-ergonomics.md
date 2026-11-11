@@ -44,7 +44,7 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 | Outline | View &gt; Outline | Ctrl+Alt+O | Window &gt; Outline |
 | 결과 고정 | Query &gt; Pin Results | Ctrl+Shift+P | 같음(탭 고정) |
 | 결과를 편집기 옆에 | View &gt; Results Beside Editor | 없음 | 없음(도구 단추) |
-| 결과 최대화 | View &gt; Maximize Results | Ctrl+Shift+T | 같음 |
+| 결과 최대화 | View &gt; Maximize Results | Ctrl+Shift+R(2026-11-12부터, 앱 변경 #66) | Ctrl+Shift+T |
 | 개체 설명 | 이름 위에 마우스 | — | 같음 |
 | 개체로 이동 | Ctrl+클릭 | — | 같음(F3도 있었음) |
 
@@ -185,3 +185,4 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 - 2026-11-08 Outline 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위(`chromite/ui-layout`)
 - 2026-11-09 블록 주석 토글의 macOS 키 ⌥⌘/(⇧⌘/는 도움말 메뉴 검색, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md))
 - 2026-11-12 결과 고정(S3): 결과 탭이 Grid 안의 자식 탭(Result 1…)이 되어 Grid에서 고른 탭을 고정(앱 변경 #54, `chromite/result-area-2`)
+- 2026-11-12 결과 최대화 키를 Ctrl+Shift+T에서 Ctrl+Shift+R(⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기(앱 변경 #66, `chromite/small-fixes-r2`, [shortcuts.md](shortcuts.md))

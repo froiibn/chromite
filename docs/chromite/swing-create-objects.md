@@ -35,7 +35,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | 테이블의 Columns, Constraints/Keys, Foreign Keys, Indexes | **New Column… / New Index…** 등 | 테이블 디자이너를 연다 |
 | 그 밖에 객체 관리자가 있는 폴더 | **New &lt;종류&gt;…** | 이름 대화상자 → 미리 보기 → 실행 |
 
-- 메뉴 항목은 하나이고 이름이 폴더의 종류를 따른다(종류 이름은 드라이버 번들의 탐색기 이름이라 한국어 화면에서는 "새 시퀀스…").
+- 메뉴 항목은 하나이고 이름이 폴더의 종류를 따른다(종류 이름은 드라이버 번들의 탐색기 이름이라 한국어 화면에서는 "새 시퀀스").
   New View…/New Procedure… 바로 아래에 있고, 맞는 폴더에서만 보인다(SQL Server 에이전트 항목과 같은 방식).
 - New Table·New View·New Procedure·New Function·보안 주체(New Login/User/Role)·MySQL 이벤트(New Event)처럼 따로 항목이 있는 폴더에는
   나오지 않는다.

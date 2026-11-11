@@ -71,12 +71,13 @@ import java.util.stream.Stream;
  *     <li>열린 쿼리 창: 이름을 바꾼 스크립트(바꾼 폴더 안의 스크립트)를 연 창은 새 경로로 따라간다({@link SqlEditorPanel#fileMoved}).
  *     열린 스크립트(또는 그것이 든 폴더)는 지우지 않고 먼저 창을 닫으라고 알린다(고치던 글이 파일 없이 남지 않게).</li>
  *     <li>연결 묶기({@link ScriptFiles}): 스크립트를 열 때 쓸 연결이다. 이름 뒤 보조 글자로 연결 이름을 보인다. 묶기를 바꿔도 이미 열린
- *     쿼리 창의 연결은 바꾸지 않는다(창의 세션을 끝내려면 트랜잭션을 물어야 하므로, 창의 연결 콤보로 사용자가 바꾼다).</li>
+ *     쿼리 창의 연결은 바꾸지 않는다(쿼리 창은 한 서버의 창이다. 앱 변경 #69).</li>
  *     <li>모양은 Query Library와 같다: 같은 트리({@link QueryLibraryPanel.LibraryTree}), 머리말 아래 아이콘 도구 막대, 이름 뒤 보조 글자.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: SWT 프로젝트·스크립트 탐색기의 스크립트 부분 (docs/chromite/swing-scripts-explorer.md)
+ * - 2026-11-12 주석만: 열린 창의 연결을 바꾸지 않는 이유를 고침(창의 연결 콤보가 없어짐, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  */
 final class ScriptsPanel extends JPanel {
 

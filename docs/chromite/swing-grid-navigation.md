@@ -33,7 +33,7 @@ Swing 클래스는 모두 `com.seizia.chromite.ui.swing` 번들이다. 새 번�
 | `ResultSetFindBar` | 새 | 결과 안 찾기 줄 |
 | `ResultSetTextView` | 새 | 텍스트 보기 |
 | `ResultSetVirtualKeys` | 새 | 가상 고유 키 대화상자, 가상 외래 키 추가·지우기, 가상 모델 저장 |
-| `ResultSetGrid` | 변경(작은 연결점) | 읽기 전용 줄에 "가상 키 정하기…" 링크(`Host.defineVirtualKey`), `cancelChanges`를 패키지 공개로 |
+| `ResultSetGrid` | 변경(작은 연결점) | 읽기 전용 줄에 "가상 키 정하기" 링크(`Host.defineVirtualKey`), `cancelChanges`를 패키지 공개로 |
 | `DesignerDialogs` | 변경 | 외래 키 대화상자에 가상 모드(이름·규칙 없음, 참조 테이블의 가상 고유 키 포함) |
 | `QueryResultsView` | 변경 | 오류 글자에 위치 속성, 두 번 누르기·오른쪽 클릭 "오류 위치로 가기", Messages 복사 |
 | `SqlEditorPanel` | 변경 | 오류 머리글의 위치를 편집기 오프셋으로 넘김(`ErrorReport`), `goToSource` |
@@ -91,7 +91,7 @@ SWT: `ValidateUniqueKeyUsageDialog`, `VirtualUniqueKeyEditAction`, `VirtualForei
 
 - **저장 위치:** 모델이 하던 대로 연결의 가상 모델(`DBVEntity`의 `VIRTUAL_KEY` 제약, `DBVEntityForeignKey`)에 넣고 `persistConfiguration()`으로
   연결 설정(data-sources.json의 가상 메타데이터)에 쓴다. DB는 바꾸지 않는다. SWT로 정한 가상 키도 그대로 읽힌다.
-- **가상 고유 키:** 기본 키·고유 키·고유 인덱스·ROWID가 없는 테이블의 결과는 "읽기 전용: 고유 키 없음"이었다. 그 줄에 "가상 키 정하기…" 링크가 생기고
+- **가상 고유 키:** 기본 키·고유 키·고유 인덱스·ROWID가 없는 테이블의 결과는 "읽기 전용: 고유 키 없음"이었다. 그 줄에 "가상 키 정하기" 링크가 생기고
   (오른쪽 클릭 Virtual Keys에도), 결과에 보이는 그 테이블의 열을 고르거나 "모든 열 쓰기"(SWT "Use all columns")를 고른다. 저장하면 결과를 다시 읽고,
   모델이 행 식별자로 그 키를 써서(`DBExecUtils`의 식별자 찾기: 실제 키가 없을 때만 가상 키) 편집할 수 있게 된다. 다시 읽을 수 없는 결과는 "쿼리를 다시
   실행하면 쓰입니다"를 알린다. 실제 키가 있는 테이블에서는 메뉴가 꺼진다. 대화상자의 기본 단추는 Cancel이다(설정을 바꾸는 대화상자). "키 지우기"도 있다.

@@ -20,6 +20,10 @@ import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.sun.jna.NativeLibrary;
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -35,6 +39,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * The startup splash once Java runs: the launcher's splash image with the version and a status line, until the first
@@ -45,7 +50,11 @@ import java.nio.file.Path;
  *     <li>네이티브 런처가 JVM보다 먼저 {@code com.seizia.chromite.splash}의 {@code splash.png}를 띄운다(가장 빠르다).
  *     런처 창은 그림만 보여 주고 글자를 그릴 수 없다. Windows에서는 런처가 그 창을 첫 스레드에 만들고, 그 스레드는 곧 Java를
  *     돌리느라 창의 메시지를 처리하지 않는다. 플랫폼 초기화가 길면 Windows가 창을 "응답 없음"으로 바꿀 수 있다.</li>
- *     <li>Look and Feel을 설치한 직후 이 클래스가 같은 그림을 같은 자리(주 화면 가운데)에 띄우고 버전과 "Loading…"을 얹는다.
+ *     <li>Look and Feel을 설치한 직후 이 클래스가 같은 그림을 런처 창과 같은 자리에 띄우고 버전과 "Loading…"을 얹는다.
+ *     자리를 정하는 규칙이 운영체제마다 다르다. Windows 런처는 주 화면 전체의 정가운데에 둔다({@code eclipseWin.c showSplash}:
+ *     {@code SM_CXSCREEN}, 화면 배율만큼 키운 그림) — 같은 계산을 한다. macOS 런처는 {@code [NSWindow center]}로 두는데, AppKit은
+ *     창을 가로 가운데, 세로는 가운데보다 약간 위에 둔다(정확한 계산은 문서에 없음). 그래서 macOS에서는 계산하지 않고 런처 창의
+ *     실제 자리({@code -[NSWindow frame]}, {@value #PROP_LAUNCHER_SPLASH_HANDLE})를 읽어 그대로 쓴다. 읽지 못하면 가운데에 둔다.
  *     그다음 애플리케이션이 런처 창을 내린다({@code IApplicationContext.applicationRunning}). 이 창은 EDT가 그리므로
  *     초기화가 오래 걸려도 응답하고, {@code @2x} 그림이 있으면 HiDPI 화면에서 선명하다.</li>
  * </ol>
@@ -65,6 +74,8 @@ import java.nio.file.Path;
  * 변경 이력:
  * - 2026-11-08 최초 작성: 시작 화면 (docs/chromite/branding.md "시작 화면", 감사 행 A-S15)
  * - 2026-11-12 글자 크기를 고정 12 대신 UI 글꼴 그대로(13): 고정값이 UI 글꼴 크기 변경을 따르지 않았음 (앱 변경 #67)
+ * - 2026-11-12 macOS: 런처 창이 있던 자리에 그대로 띄움. 화면 정가운데에 두어 가운데보다 약간 위의 런처 창에서 아래로 움직여
+ *   보였다(앱 변경 #52, docs/chromite/branding.md "시작 화면")
  */
 final class StartupSplash {
 
@@ -74,6 +85,10 @@ final class StartupSplash {
      * Set by the Equinox launcher ({@code org.eclipse.equinox.launcher.Main}) to the splash image it shows.
      */
     private static final String PROP_LAUNCHER_SPLASH = "org.eclipse.equinox.launcher.splash.location"; //$NON-NLS-1$
+    /**
+     * Set by the Equinox launcher with {@link #PROP_LAUNCHER_SPLASH}: the native splash window (on macOS its {@code NSWindow}).
+     */
+    private static final String PROP_LAUNCHER_SPLASH_HANDLE = "org.eclipse.equinox.launcher.splash.handle"; //$NON-NLS-1$
     private static final String HIDPI_SUFFIX = "@2x"; //$NON-NLS-1$
     /**
      * Root pane property of the macOS AWT window ({@code CPlatformWindow.WINDOW_HIDES_ON_DEACTIVATE}).
@@ -90,6 +105,8 @@ final class StartupSplash {
     // EDT only
     private static JFrame window;
     private static AWTEventListener otherWindowListener;
+    @Nullable
+    private static volatile String placement;
 
     private StartupSplash() {
     }
@@ -112,6 +129,15 @@ final class StartupSplash {
         } catch (InvocationTargetException e) {
             log.warn("Can't show the startup splash", e.getTargetException());
         }
+    }
+
+    /**
+     * Where the splash was shown (its bounds, and whether they are the launcher's splash's), or null without a splash.
+     * The splash opens before the debug log does, so the application logs this later.
+     */
+    @Nullable
+    static String getPlacement() {
+        return placement;
     }
 
     /**
@@ -166,9 +192,17 @@ final class StartupSplash {
         Content content = new Content(image);
         frame.setContentPane(content);
         frame.pack();
-        // The middle of the whole main screen, where the launcher centres its splash (not the area without the taskbar)
-        Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
-        frame.setLocation(screen.x + (screen.width - frame.getWidth()) / 2, screen.y + (screen.height - frame.getHeight()) / 2);
+        Rectangle launcherBounds = RuntimeUtils.isMacOS() ? getMacLauncherSplashBounds() : null;
+        if (launcherBounds != null) {
+            // macOS: exactly over the launcher's splash, which AppKit placed somewhat above the middle ([NSWindow center])
+            frame.setBounds(launcherBounds);
+        } else {
+            // The middle of the whole main screen, where the Windows launcher centres its splash (not the area without the taskbar)
+            Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+            frame.setLocation(screen.x + (screen.width - frame.getWidth()) / 2, screen.y + (screen.height - frame.getHeight()) / 2);
+        }
+        // Logged by the application once the debug log is open (macos-smoke reads it)
+        placement = frame.getBounds() + (launcherBounds != null ? " (the launcher's splash)" : ""); //$NON-NLS-1$ //$NON-NLS-2$
         frame.setVisible(true);
         // Painted before the launcher's splash goes, so nothing blank shows in between
         content.paintImmediately(0, 0, content.getWidth(), content.getHeight());
@@ -179,6 +213,64 @@ final class StartupSplash {
             }
         };
         Toolkit.getDefaultToolkit().addAWTEventListener(otherWindowListener, AWTEvent.WINDOW_EVENT_MASK);
+    }
+
+    /**
+     * The macOS launcher's splash window in AWT screen coordinates, or null. The launcher puts the address of its
+     * {@code NSWindow} in {@value #PROP_LAUNCHER_SPLASH_HANDLE}; this reads {@code -[NSWindow frame]}. The window lives on
+     * the AppKit thread, but nothing moves it while the launcher shows it, so the read needs no dispatch.
+     */
+    @Nullable
+    private static Rectangle getMacLauncherSplashBounds() {
+        String handle = System.getProperty(PROP_LAUNCHER_SPLASH_HANDLE);
+        if (handle == null) {
+            return null;
+        }
+        try {
+            Pointer window = new Pointer(Long.parseLong(handle));
+            NativeLibrary process = NativeLibrary.getProcess();
+            Pointer frameSelector = (Pointer) process.getFunction("sel_registerName").invoke(Pointer.class, new Object[] {"frame"}); //$NON-NLS-1$ //$NON-NLS-2$
+            // A 32-byte struct comes back in registers on arm64 (four doubles) and through memory on x86_64 (the _stret entry)
+            String msgSend = "aarch64".equals(System.getProperty("os.arch")) ? "objc_msgSend" : "objc_msgSend_stret"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+            NSRect frame = (NSRect) process.getFunction(msgSend).invoke(NSRect.class, new Object[] {window, frameSelector});
+            if (frame.width <= 0 || frame.height <= 0) {
+                return null;
+            }
+            // Cocoa's origin is the bottom left of the main screen (the one with the menu bar), AWT's its top left
+            Rectangle main = null;
+            for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+                Rectangle bounds = device.getDefaultConfiguration().getBounds();
+                if (bounds.x == 0 && bounds.y == 0) {
+                    main = bounds;
+                }
+            }
+            if (main == null) {
+                return null;
+            }
+            return new Rectangle(
+                (int) Math.round(frame.x),
+                (int) Math.round(main.height - frame.y - frame.height),
+                (int) Math.round(frame.width),
+                (int) Math.round(frame.height));
+        } catch (RuntimeException | LinkageError e) {
+            log.warn("Can't read the launcher's splash window, the startup splash is centred instead", e);
+            return null;
+        }
+    }
+
+    /**
+     * Cocoa's {@code NSRect} (CGFloat is a double on 64-bit macOS), returned by value.
+     */
+    public static final class NSRect extends Structure implements Structure.ByValue {
+        public double x;
+        public double y;
+        public double width;
+        public double height;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return List.of("x", "y", "width", "height"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        }
     }
 
     private static final class Content extends JComponent {

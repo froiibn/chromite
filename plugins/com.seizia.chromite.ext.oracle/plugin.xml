@@ -499,6 +499,11 @@
         </factory>
     </extension>
 
+    <!-- SQL*Plus command lines of Oracle scripts (SET SERVEROUTPUT, SET DEFINE, PROMPT, EXEC, SPOOL; OracleSqlPlusRule) run on the client -->
+    <extension point="com.seizia.chromite.sqlCommand">
+        <command id="oracle.sqlplus" class="com.seizia.chromite.ext.oracle.sql.OracleSqlPlusCommandHandler" label="SQL*Plus" description="Runs a SQL*Plus command of an Oracle script on the client"/>
+    </extension>
+
     <extension point="org.eclipse.core.runtime.preferences">
         <initializer class="com.seizia.chromite.ext.oracle.internal.OraclePreferencesInitializer"/>
     </extension>

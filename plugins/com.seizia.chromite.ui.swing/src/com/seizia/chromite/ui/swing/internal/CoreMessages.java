@@ -49,6 +49,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-11 Object Explorer 도구 막대의 읽은 항목 펼치기 (앱 변경 #51, docs/chromite/swing-registered-servers.md "펼치기 단추")
  * - 2026-11-11 테마 선택지 "시스템 설정 따르기" 문구 (앱 변경 #38)
  * - 2026-11-12 UI 글꼴 선택(자동·시스템 글꼴, Options 행과 안내 글) 문구를 지움: UI 글꼴은 운영체제 글꼴 하나 (앱 변경 #67)
+ * - 2026-11-12 설정 페이지를 바로 여는 링크 문구(B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -129,6 +130,7 @@ public class CoreMessages extends NLS {
     public static String main_results_beside_tip;
     public static String main_maximize_results;
     public static String main_maximize_results_tip;
+    public static String main_open_settings_link;
     public static String main_menu_view;
     public static String main_about;
     public static String main_menu_help;

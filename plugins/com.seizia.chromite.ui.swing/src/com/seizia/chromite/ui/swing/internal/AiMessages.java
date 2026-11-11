@@ -32,13 +32,16 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 {@code ai_options_save_failed_secure_storage}: OS 보안 저장소에 키를 저장하지 못했을 때의 안내
  * - 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정). "AI 도우미"·"AI Assistant"·"도우미"로 기능을 가리키던 문구를
  *   영어·한국어 모두 "Chromite Agent"로 바꿈. 모델 제공자를 뜻하는 "AI 제공자"는 그대로 둠(docs/chromite/ai-agent.md "명칭")
- * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기")
+ * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기").
+ *   2026-11-12 지움: 제공자별 도구 묶음의 "전체"가 대신함
  * - 2026-11-08 {@code ai_tool_running_progress}: 실행 중인 도구의 진행 글(백업·복원 도구, docs/chromite/ai-agent.md)
  * - 2026-11-08 대화 콤보·제공자 콤보를 없애고 대화 기록({@code ai_history*})과 제공자를 함께 고르는 모델 선택({@code ai_model_*})을 둠,
  *   차례의 토큰 사용량({@code ai_status_usage*}), 쿼리 창 글 고치기의 확인({@code ai_confirm_headline_edit*}, {@code ai_confirm_preview_change}, {@code ai_reason_default_edit})
  *   (docs/chromite/ai-agent.md "채팅 도구 창", "편집기 도구")
  * - 2026-11-11 {@code ai_options_api_key_optional}(vLLM), {@code ai_options_test_no_tools}: Test가 도구 호출을 받지 않는 서버를 알림
  *   (app round 2 #34, docs/chromite/ai-agent.md "Chat Completions 엔진")
+ * - 2026-11-12 {@code ai_options_tool_set*}, {@code ai_options_context_size*}: 제공자별 채팅 도구 묶음과 컨텍스트 크기,
+ *   {@code ai_tools_off_notice}: 도구 호출을 못 하는 제공자의 채팅 안내 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -175,6 +178,16 @@ public class AiMessages extends NLS {
     public static String ai_options_test_ok;
     public static String ai_options_test_failed;
     public static String ai_options_test_no_tools;
+    public static String ai_options_tool_set;
+    public static String ai_options_tool_set_tip;
+    public static String ai_options_tool_set_automatic;
+    public static String ai_options_tool_set_minimal;
+    public static String ai_options_tool_set_core;
+    public static String ai_options_tool_set_all;
+    public static String ai_options_context_size;
+    public static String ai_options_context_size_assumed;
+    public static String ai_options_context_size_invalid;
+    public static String ai_tools_off_notice;
     public static String ai_options_save_failed_secure_storage;
     public static String ai_policy_rule_production;
     public static String ai_policy_rule_read_only;
@@ -186,8 +199,6 @@ public class AiMessages extends NLS {
     public static String ai_policy_scope_production;
     public static String ai_policy_scope_read_only;
     public static String ai_policy_filter;
-    public static String ai_policy_send_all_tools;
-    public static String ai_policy_send_all_tools_tip;
     public static String ai_policy_inherit;
     public static String ai_policy_auto;
     public static String ai_policy_confirm;
