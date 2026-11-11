@@ -796,7 +796,7 @@ Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜
 
 ### Query Library 기준값 편집
 
-Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값…"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
+Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
 평가기와 같은 문법(`<연산자> <값>`)만 받는다. 기준값은 Swing 파서가 모르는 머리말 줄(`QueryLibraryItem.getExtraHeader()`)로 보관되므로, 저장할 때 파일의 모르는 머리말에서
 `@threshold` 블록만 바꾸고 다른 줄은 그대로 둔다. Swing 파서·항목 클래스에 필드를 더하지 않았다(형식의 주인은 에이전트 도구 `LibraryReader`).
 

@@ -46,7 +46,7 @@ Swing은 `apple.laf.useScreenMenuBar=true`일 때만 `JMenuBar`를 화면 메뉴
 ### 앱 메뉴 이름
 
 화면 메뉴 막대의 굵은 앱 메뉴 이름은 앱 묶음의 `CFBundleName`(Chromite, [platform-startup.md](platform-startup.md) "macOS Info.plist")이고,
-메뉴 내용은 `MacOSAppMenu`가 "Chromite 정보", "옵션…"(⌘,), 가리기, "Chromite 끝내기"(⌘Q)로 만든다(2026-11-08 macOS 확인 기록:
+메뉴 내용은 `MacOSAppMenu`가 "Chromite 정보", "옵션"(⌘,), 가리기, "Chromite 끝내기"(⌘Q)로 만든다(2026-11-08 macOS 확인 기록:
 About Chromite, Options…, Hide Chromite, Hide Others, Show All, Quit Chromite). 이번에 바꾸지 않았다.
 
 ### 메뉴 순서와 앱 메뉴
@@ -62,7 +62,7 @@ macOS 관례대로 창 메뉴에서 뺐다. 앱 메뉴, ⌘Q, ⌘,가 같은 경
 | 창 메뉴 (Windows) | macOS |
 |---|---|
 | File > Exit | 앱 메뉴 > Chromite 끝내기(⌘Q). 같은 창 닫기 경로(저장·열린 트랜잭션 질문) |
-| Tools > Options… | 앱 메뉴 > 옵션…(⌘,) |
+| Tools > Options… | 앱 메뉴 > 옵션(⌘,) |
 | Help > About Chromite | 앱 메뉴 > Chromite 정보. Help 메뉴에는 About만 있어 메뉴째 뺌 |
 
 이 세 항목은 화면 메뉴 막대를 켜지 못해 메뉴가 창 안에 남아도 macOS에서는 빠진다(앱 메뉴는 언제나 있다).

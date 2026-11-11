@@ -144,7 +144,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 1. **런처 시작 화면(JVM 전):** `chromite-swing.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
    네이티브 런처가 `plugins/com.seizia.chromite.splash_<버전>/splash.png`를 JVM을 띄우기 전에 보여 준다. 그림만 보이고 글자는 없다.
 2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 런처 창과 같은 자리(아래 "자리")에 띄우고
-   아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중…` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
+   아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
    그 직후 애플리케이션이 런처 시작 화면을 내린다(`IApplicationContext.applicationRunning`). 메인 창이나 시작 대화상자가 열리면 닫힌다.
 
 | 구성 | 위치 | 하는 일 |

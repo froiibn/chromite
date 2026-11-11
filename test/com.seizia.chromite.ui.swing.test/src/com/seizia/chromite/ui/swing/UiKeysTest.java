@@ -38,6 +38,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-09 최초 작성(앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 Ctrl+Shift+R(결과 최대화)을 목록에 더함, Ctrl+Shift+T는 닫은 탭 다시 열기로 남음(앱 변경 #66)
  */
 public class UiKeysTest {
 
@@ -57,7 +58,7 @@ public class UiKeysTest {
         key(KeyEvent.VK_N), key(KeyEvent.VK_O), key(KeyEvent.VK_S), key(KeyEvent.VK_S, SHIFT), key(KeyEvent.VK_A, ALT),
         key(KeyEvent.VK_ENTER), key(KeyEvent.VK_QUOTE, ALT), key(KeyEvent.VK_L), key(KeyEvent.VK_M), key(KeyEvent.VK_T),
         key(KeyEvent.VK_4), key(KeyEvent.VK_8), key(KeyEvent.VK_K, ALT | SHIFT), key(KeyEvent.VK_R, ALT | SHIFT),
-        key(KeyEvent.VK_P, SHIFT), key(KeyEvent.VK_T, SHIFT), key(KeyEvent.VK_9), key(KeyEvent.VK_0), key(KeyEvent.VK_R),
+        key(KeyEvent.VK_P, SHIFT), key(KeyEvent.VK_T, SHIFT), key(KeyEvent.VK_R, SHIFT), key(KeyEvent.VK_9), key(KeyEvent.VK_0), key(KeyEvent.VK_R),
         key(KeyEvent.VK_G, ALT), key(KeyEvent.VK_T, ALT), key(KeyEvent.VK_L, ALT), key(KeyEvent.VK_O, ALT), key(KeyEvent.VK_I, ALT),
         // Query editor
         key(KeyEvent.VK_K), key(KeyEvent.VK_D), key(KeyEvent.VK_U), key(KeyEvent.VK_F, SHIFT), key(KeyEvent.VK_U, SHIFT),

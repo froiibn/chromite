@@ -29,7 +29,7 @@ SWT 연결 편집기(`com.seizia.chromite.ui.editors.connection`, `ext.*.ui`의 
 | `BootstrapQueriesDialog` (새로) | 연결 직후 SQL 목록 편집 | `EditBootstrapQueriesDialog` |
 | `ConnectionRestrictionsDialog` (새로, 2026-11-08) | 연결별 제한(연결 유형을 따름 / 이 연결만 정함) | `EditConnectionPermissionsDialog` |
 | `ConnectionDatabaseList` (새로, 2026-11-11) | Database 칸을 서버 목록에서 고르는 편집 가능한 콤보(SQL Server·PostgreSQL·MySQL·MariaDB), 칸 아래 진행·오류 줄 |
-| `DonutSpinner` (새로, 2026-11-11) | 길이를 모르는 짧은 기다림의 회전 도넛(테마 강조색, 보일 때만 타이머) | — | — (SSMS "데이터베이스에 연결: &lt;서버 찾아보기&gt;") |
+| `SpinnerIcon.createLabel` (2026-11-12, 처음에는 `DonutSpinner`) | 길이를 모르는 짧은 기다림의 회전 도넛(상태 표시줄과 같은 스피너, 보일 때만 돎) | — | — (SSMS "데이터베이스에 연결: &lt;서버 찾아보기&gt;") |
 | `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함, 연결 설명, 연결별 제한 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
 | `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명·제한만 바꾸면 다시 연결을 묻지 않음, 잠긴 연결의 잠금 비밀번호 확인, 임시 연결 만들기를 데이터베이스 목록과 함께 씀 | `ConnectionWizard.testConnection`, `EditConnectionWizard.checkLockPassword` |
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
@@ -282,8 +282,8 @@ SSMS "연결 속성 &gt; 데이터베이스에 연결: &lt;서버 찾아보기&g
   로그인의 기본 DB다(SQL Server·MySQL. PostgreSQL은 새 연결에 `postgres`를 채운다). 도구 설명이 이것을 알린다.
 - **목록 읽기**: 목록을 펼치면 대화상자의 값으로 Test Connection과 같은 임시 연결(`ConnectionDialog.createTestDataSource`: 새 ID, 임시, 메타데이터 연결 없음,
   폼 전체를 씀)을 만들어 `ConnectionTestJob`으로 연결하고, 그 세션에서 목록을 읽은 뒤 연결을 끊는다. 작업 스레드에서 돌아 대화상자를 막지 않고,
-  그동안 칸 아래 줄에 회전하는 도넛 스피너(`DonutSpinner`)와 "데이터베이스 목록을 불러오는 중"을 보인다.
-  길이를 모르는 짧은 기다림이라 막대가 아니라 도넛이다(사용자 결정, 앱 변경 #60. 상태 표시줄 스피너 #44와 같은 원칙, 병합 때 구현을 하나로 합친다). 다 읽으면 그 줄을 숨기고 목록을 펼친다.
+  그동안 칸 아래 줄에 회전하는 도넛 스피너(`SpinnerIcon.createLabel`, 상태 표시줄과 같은 구현)와 "데이터베이스 목록을 불러오는 중"을 보인다.
+  길이를 모르는 짧은 기다림이라 막대가 아니라 도넛이다(사용자 결정, 앱 변경 #60. 상태 표시줄 스피너 #44와 같은 원칙, 2026-11-12 구현을 `SpinnerIcon` 하나로 합침). 다 읽으면 그 줄을 숨기고 목록을 펼친다.
   - 임시 연결의 DB는 입력한 값이 아니라 드라이버 기본값이다(PostgreSQL `postgres`, SQL Server·MySQL은 비움 = 로그인의 기본 DB). 아직 없거나 잘못 적은 이름이 목록 읽기를 막지 않게 하려는 것이다.
     PostgreSQL에서 DB가 필수여도 목록은 DB 없이 펼칠 수 있다(`ConnectionSettingsPanel.validateSettings(false)`).
   - 네트워크 설정(SSH 터널, 프록시, SSL)도 폼에서 그대로 쓴다(Test Connection과 같은 저장 경로).
@@ -659,3 +659,4 @@ SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(�
 - 2026-11-11 URL 방식으로 저장하면 주소를 URL에서 읽음(앱 변경 #41, `chromite/servers-tree`): 꺼진 주소 칸의 자리 값(`localhost`, 마지막 서버)이 호스트로 저장돼 등록된 서버에 localhost로 보이던 것. 위 "URL 방식 연결의 주소"
 - 2026-11-11 앱 변경 39(`chromite/conn-db-list`): SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로
   (`ConnectionDatabaseList`, 모델 `ServerDatabaseNames`). 진행 표시는 도넛 스피너(`DonutSpinner`, 앱 변경 60). 위 "데이터베이스 목록에서 고르기", "확인 (2026-11-11, 데이터베이스 목록)".
+- 2026-11-12 데이터베이스 목록의 스피너를 `DonutSpinner`에서 상태 표시줄과 같은 `SpinnerIcon.createLabel`로, `DonutSpinner` 삭제(앱 변경 #60, `chromite/small-fixes-r2`).

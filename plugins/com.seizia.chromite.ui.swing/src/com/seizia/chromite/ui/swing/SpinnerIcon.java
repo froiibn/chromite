@@ -25,17 +25,20 @@ import com.seizia.chromite.Log;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.HierarchyEvent;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * A rotating donut spinner (16, the size of the pack icons) for a running query: the state cell of the status bar and the
- * query window's tab.
+ * A rotating donut spinner (16, the size of the pack icons): a running query (the state cell of the status bar and the query
+ * window's tab), and the short waits of unknown length in dialogs and panels ({@link #createLabel()}).
  *
  * 설계:
  * <ul>
+ *     <li>앱의 도넛 스피너는 이것 하나다(앱 변경 #60). 길이를 모르는 짧은 기다림은 막대가 아니라 이 스피너를 쓰고, 길이를 아는 진행(받기 %,
+ *     전송한 파이프 수, 업데이트 창의 단계)은 막대를 쓴다.</li>
  *     <li>그림 파일이 아니라 Java2D로 그린다(옅은 고리 위에 테마 강조 색 호 하나). 벡터라 150%에서도 선명하고 테마를 바꾸면 다음 그림부터 새 색이다.</li>
  *     <li>아이콘은 자기를 그린 부품과 자리를 기억해 두고 타이머가 그 자리만 다시 그리게 한다. 탭 줄처럼 큰 부품 전체를 다시 그리지 않기 위해서다.
  *     각도는 시각에서 정하므로 여러 부품에 그려도 같이 돈다. {@link #stop()}하면 타이머가 멈추고 기억한 부품을 놓는다.</li>
@@ -45,6 +48,8 @@ import java.util.WeakHashMap;
  *
  * 변경 이력:
  * - 2026-11-11 최초 작성: 쿼리 실행 중 표시(앱 변경 #44, docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
+ * - 2026-11-12 대화상자·패널용 {@link #createLabel()}: 연결 대화상자의 {@code DonutSpinner}(#39)를 지우고 이 스피너 하나로 합침,
+ *   진행 대화상자({@link ProgressDialog})도 막대 대신 이 스피너(앱 변경 #60, docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  */
 final class SpinnerIcon implements Icon {
 
@@ -87,6 +92,26 @@ final class SpinnerIcon implements Icon {
         running = false;
         timer.stop();
         painted.clear();
+    }
+
+    /**
+     * A label with its own spinner that turns while the label is showing: hiding the label (or its parent) or closing the
+     * window stops the timer.
+     */
+    @NotNull
+    static JLabel createLabel() {
+        SpinnerIcon icon = new SpinnerIcon();
+        JLabel label = new JLabel(icon);
+        label.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                if (label.isShowing()) {
+                    icon.start();
+                } else {
+                    icon.stop();
+                }
+            }
+        });
+        return label;
     }
 
     private void repaintPainted() {

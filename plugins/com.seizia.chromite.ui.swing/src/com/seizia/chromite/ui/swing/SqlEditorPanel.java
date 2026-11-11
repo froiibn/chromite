@@ -336,6 +336,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   앱 변경 #54 두 단계 탭) (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭", docs/chromite/swing-server-output.md)
  * - 2026-11-11 서버 출력을 읽을지 세션 기준으로 물음({@code isServerOutputEnabled(context)}): Oracle {@code SET SERVEROUTPUT ON}으로
  *   설정이 꺼진 연결에서도 그 창의 출력을 읽음 (docs/chromite/oracle-sqlplus-commands.md)
+ * - 2026-11-12 열(사각형) 선택이 있으면 실행(F5)과 문장 명령이 보통 선택처럼 사각형의 글을 실행(Execute From Cursor는 캐럿부터 그대로)
+ *   (docs/chromite/swing-sql-column-selection.md "실행")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1450,8 +1452,9 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * Executes what the mode says: F5's selection or whole text, or a statement command of the Query menu (the statement
-     * at the caret, from the caret, its row count, an expression). The statement commands find their statements in the
-     * preparation job, with the connection's dialect ({@link SqlQueryCommands#extractElements}).
+     * at the caret, from the caret, its row count, an expression). A column selection counts as the selection, except
+     * for From Cursor. The statement commands find their statements in the preparation job, with the connection's
+     * dialect ({@link SqlQueryCommands#extractElements}).
      */
     void execute(@NotNull SqlQueryCommands.ExecuteMode mode) {
         if (execution != null || explaining) {
@@ -1461,9 +1464,21 @@ final class SqlEditorPanel extends JPanel {
             statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_saving_changes);
             return;
         }
-        String text = textArea.getText();
+        // A column selection runs as a selection: its text has the editor's offsets, so the statement marks and the error
+        // positions below stay right. From Cursor runs from the caret as before
+        SqlColumnSelection.RunText columnText = mode == SqlQueryCommands.ExecuteMode.FROM_CURSOR ? null : textArea.getColumnRunText();
+        if (columnText != null && columnText.length() == 0) {
+            // Only virtual space (right of the line ends) is selected: not the whole text, as an empty selection would
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_execute);
+            return;
+        }
+        String text = columnText != null ? columnText.text() : textArea.getText();
         int selectionStart = textArea.getSelectionStart();
         int selectionEnd = textArea.getSelectionEnd();
+        if (columnText != null) {
+            selectionStart = columnText.offset();
+            selectionEnd = columnText.offset() + columnText.length();
+        }
         int offset = 0;
         int length = text.length();
         if (mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
@@ -1715,10 +1730,15 @@ final class SqlEditorPanel extends JPanel {
         if (execution != null || explaining) {
             return;
         }
-        String text = textArea.getText();
+        // A column selection is explained as a selection, as Execute runs it
+        SqlColumnSelection.RunText columnText = textArea.getColumnRunText();
+        String text = columnText != null ? columnText.text() : textArea.getText();
         int offset = 0;
         int length = text.length();
-        if (textArea.getSelectionEnd() - textArea.getSelectionStart() >= 1) {
+        if (columnText != null) {
+            offset = columnText.offset();
+            length = columnText.length();
+        } else if (textArea.getSelectionEnd() - textArea.getSelectionStart() >= 1) {
             offset = textArea.getSelectionStart();
             length = textArea.getSelectionEnd() - offset;
         }
@@ -3130,6 +3150,7 @@ final class SqlEditorPanel extends JPanel {
      *
      * 변경 이력:
      * - 2026-11-12 열 선택 연결: Alt+끌기, Shift+Alt+방향키, 사각형에 입력·붙여넣기·복사(앱 변경 #49)
+     * - 2026-11-12 실행이 읽는 사각형의 글({@link #getColumnRunText})
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3214,6 +3235,14 @@ final class SqlEditorPanel extends JPanel {
          */
         boolean hasColumnSelection() {
             return columnSelection.hasSelectedText();
+        }
+
+        /**
+         * What Execute runs for the column selection, null when none with a width is shown.
+         */
+        @Nullable
+        SqlColumnSelection.RunText getColumnRunText() {
+            return columnSelection.getRunText();
         }
 
         @Override

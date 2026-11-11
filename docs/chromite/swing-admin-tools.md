@@ -334,7 +334,7 @@ DB 관리 기능 축 5. 연결마다 서버의 로그를 최신 항목부터 한
 ### 화면
 
 - 도구 막대 첫 줄: Refresh(로그 목록과 최신 항목을 다시 읽음), 로그, 보관본(SQL Server 보관 번호, PostgreSQL 파일; 보관본이 없는 로그는 숨김), 시간(최근 1시간·24시간(기본)·7일·30일,
-  전체, 직접 지정…). 둘째 줄: 수준, 메시지 검색(Enter로 적용: 글자마다 서버를 읽지 않게). 직접 지정을 고르면 셋째 줄에 시작·끝 칸과 적용 단추가 나온다
+  전체, 직접 지정). 둘째 줄: 수준, 메시지 검색(Enter로 적용: 글자마다 서버를 읽지 않게). 직접 지정을 고르면 셋째 줄에 시작·끝 칸과 적용 단추가 나온다
   (로그에 적힌 시각, `yyyy-MM-dd HH:mm[:ss]`, 비우면 제한 없음). 한 줄로는 좁은 문서 탭에서 검색 칸이 잘려 나눴다.
 - 표: 시간, 수준(로그에 수준이 있을 때), 출처(프로세스·하위 시스템·사용자@호스트·구성 요소; 로그에 있을 때), 메시지(한 줄). 아래 칸에 고른 항목의 전체 메시지와
   상세(SQLSTATE, DETAIL, HINT, STATEMENT, ERROR_CODE, MESSAGE_TYPE, 느린 쿼리의 쿼리 시간·검사한 행 등)를 보인다(선택해 복사할 수 있다). 표의 복사는 공간 사용량과 같다.
@@ -392,8 +392,8 @@ DB 관리 축 4. 테이블·인덱스·스키마·데이터베이스에 VACUUM/A
 | 명령 | 위치 | 동작 |
 |---|---|---|
 | Maintenance(유지 관리) | Tools 메뉴, Object Explorer 오른쪽 클릭 메뉴 | Activity Monitor를 Maintenance 탭(6번째, `ActivityMonitorPanel.MAINTENANCE_TAB`)으로 연다(`AdminViewCommands`) |
-| Maintenance…(유지 관리…) | Object Explorer 오른쪽 클릭 메뉴(테이블, 인덱스, 스키마, 데이터베이스 노드) | 그 노드를 대상으로 유지 관리 대화상자를 연다(`MaintenanceCommands`). 할 수 없는 노드에서는 꺼져 있다 |
-| 작업 실행…(행 두 번 클릭, Enter) | Maintenance 탭 도구 막대 | 고른 행의 권장 작업으로 대화상자를 연다. 실행이 끝나면 탭을 다시 읽어 전후 숫자를 보인다 |
+| Maintenance…(유지 관리) | Object Explorer 오른쪽 클릭 메뉴(테이블, 인덱스, 스키마, 데이터베이스 노드) | 그 노드를 대상으로 유지 관리 대화상자를 연다(`MaintenanceCommands`). 할 수 없는 노드에서는 꺼져 있다 |
+| 작업 실행(행 두 번 클릭, Enter) | Maintenance 탭 도구 막대 | 고른 행의 권장 작업으로 대화상자를 연다. 실행이 끝나면 탭을 다시 읽어 전후 숫자를 보인다 |
 
 MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든다). ObjectExplorerPanel에는 `MaintenanceCommands`를 부르는 줄 4개와 변경 이력 1줄만 더했다.
 
@@ -417,7 +417,7 @@ MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든�
 - 권한이 없으면 맨 위 안내 줄에 이유와 무엇을 받아야 하는지를 보이고 실행을 끈다. 경고(VACUUM FULL·CLUSTER의 ACCESS EXCLUSIVE 잠금, CONCURRENTLY 없는 REINDEX,
   OPTIMIZE의 재생성, REPAIR의 엔진 제한, 오프라인 다시 작성, FULLSCAN, CHECKDB 부하, ONLINE 없는 Oracle 다시 작성, 컴파일의 영향)는 미리 보기 위 경고 줄에 보인다.
 - 명령 미리 보기: 실행할 문장 그대로(PL/SQL 블록은 `/`로 끝냄). "명령 복사"로 복사한다.
-- 실행: 확인 창(서버 이름, 문장 최대 8개, 경고, "별도 연결에서 자동 커밋으로 실행") → 백그라운드 작업, 진행 막대, 취소 단추. 창을 닫으려 하면 실행 중일 때 취소할지 묻는다.
+- 실행: 확인 창(서버 이름, 문장 최대 8개, 경고, "별도 연결에서 자동 커밋으로 실행") → 백그라운드 작업, 도넛 스피너(길이를 모름, 2026-11-12 앱 변경 #60), 취소 단추. 창을 닫으려 하면 실행 중일 때 취소할지 묻는다.
 - 결과: 메시지 탭(문장, 서버 메시지, 문장마다 걸린 시간, 오류)과 서버가 돌려준 표마다 탭 하나. 행이 있는 첫 표를 먼저 보인다.
 - 모달이 아니다: 오래 걸리는 CHECKDB 동안에도 앱을 쓸 수 있다.
 
@@ -751,3 +751,4 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 - 2026-11-08 후속 #69: Oracle RAC(인스턴스 2개 이상)에서 잠금을 `GV$`로 읽고 세션을 인스턴스와 SID로 가리킴(Kill·Disconnect·잠금 상세), Oracle 18c+ Cancel Query
   (`ALTER SYSTEM CANCEL SQL`, 목록의 SQL_ID 사용, ALTER SYSTEM 권한, 취소가 기본인 확인). 위 "Oracle RAC와 쿼리 취소".
 - 2026-11-08 복제 탭에 Altibase(`AltibaseReplicationDialect`, SWT 감사 D-A7). Docker Altibase 7.3(복제 꺼짐)에서 확인([altibase.md](altibase.md) "복제 시작·중지·동기화").
+- 2026-11-12 유지 관리 대화상자의 진행 표시를 길이를 모르는 막대에서 도넛 스피너로(앱 변경 #60, `chromite/small-fixes-r2`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "스피너 하나와 길이를 모르는 진행").

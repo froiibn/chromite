@@ -299,6 +299,8 @@ import java.util.function.Supplier;
  * - 2026-11-12 macOS 통합 제목 줄: Standard 도구 막대 줄이 신호등 단추 줄로 올라감({@link MacOSUnifiedTitleBar}, 앱 변경 #62,
  *   docs/chromite/mac-ui.md "통합 제목 줄")
  * - 2026-11-12 클래스 설명의 결과 탭 줄을 두 단계 탭으로 고침(코드는 그대로, 앱 변경 #54, docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 View &gt; Maximize Results 단축키를 Ctrl+Shift+T에서 Ctrl+Shift+R(macOS ⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기
+ *   (앱 변경 #66, docs/chromite/shortcuts.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -780,7 +782,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateQueryActions();
         });
         commitModeAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
-        // SWT keys: Ctrl+Shift+P pins the result tab, Ctrl+Shift+T maximizes the results
+        // Ctrl+Shift+P pins the result tab (SWT key). Maximize Results is Ctrl+Shift+R, the pair of Ctrl+R (show or hide the
+        // results); SWT's Ctrl+Shift+T reopens a closed tab, as in browsers (DocumentTabMenu)
         pinResultsAction = createAction(CoreMessages.main_pin_results, CoreMessages.main_pin_results_tip,
             UiKeys.command(KeyEvent.VK_P, InputEvent.SHIFT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -794,7 +797,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         });
         resultsBesideAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         maximizeResultsAction = createAction(CoreMessages.main_maximize_results, CoreMessages.main_maximize_results_tip,
-            UiKeys.command(KeyEvent.VK_T, InputEvent.SHIFT_DOWN_MASK), () -> {
+            UiKeys.command(KeyEvent.VK_R, InputEvent.SHIFT_DOWN_MASK), () -> {
                 if (getActiveEditor() == null) {
                     return;
                 }
