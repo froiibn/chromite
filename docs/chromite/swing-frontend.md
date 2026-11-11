@@ -3163,6 +3163,27 @@ File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 �
 - **확인(테스트 에이전트, 같은 계산으로 알약 위·아래와 라벨 높이 비교):** 서버 표시·두 트리 모두 안쪽. 100%·150% × 한국어·영어 × 밝은 새로 시작·어두운 전환 뒤
   × 촘촘한 모드 켬·끔. 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\a-pill.png`.
 
+### 서버 도구 설명의 제품 줄 (2026-11-12, 앱 변경 #71 d)
+
+- **결함:** 첫 실행 뒤 서버 표시의 도구 설명에 서버 배너 전체가 나왔다(SQL Server: 탭 문자가 든 다섯 줄, 저작권 줄까지).
+- **원인:** `QueryStatusLine.describeServerDetails`가 `getDatabaseProductVersion()`을 그대로 붙였다. 이 글은 한 줄이 아니다: SQL Server·PostgreSQL 모델은
+  드라이버의 버전 뒤에 서버 배너(`@@VERSION`, `version()`)를 다음 줄로 붙이고, Oracle 드라이버는 처음부터 두 줄이다. 같은 함수를 쓰는 문서 탭 도구 설명과
+  상태 표시줄의 서버 칸 도구 설명도 같았다.
+- **고침:** `QueryStatusLine.describeProduct`: 제품 이름 + 제품 버전 첫 줄의 첫 점 숫자(`\d+(\.\d+)+`), 숫자가 없으면 그 첫 줄. 세 도구 설명이 함께 바뀐다.
+  Database 정보 등 배너 전체를 보이는 다른 화면은 그대로다.
+
+| DB(테스트 VM) | 드라이버 이름 / 제품 버전(요약) | 표시 |
+|---|---|---|
+| SQL Server 2022 | `Microsoft SQL Server` / `16.00.4315` + 배너 4줄 | Microsoft SQL Server 16.00.4315 |
+| Oracle 26ai Free | `Oracle` / `Oracle AI Database 26ai Free Release 23.26.3.0.0 - …` + `Version 23.26.3.0.0` | Oracle 23.26.3.0.0 |
+| PostgreSQL 17 | `PostgreSQL` / `17.11 (Debian 17.11-1.pgdg13+2)` + `version()` 줄 | PostgreSQL 17.11 |
+| MariaDB 11 | `MariaDB` / `11.8.9-MariaDB-ubu2404` | MariaDB 11.8.9 |
+| MySQL 8.4 | `MySQL` / `8.4.13` | MySQL 8.4.13 |
+| Altibase 7.3 | `Altibase` / `7.3.0.0.7` | Altibase 7.3.0.0.7 |
+
+- **확인:** SQL Server·Oracle·PostgreSQL·MariaDB는 앱에서 연결해 서버 표시·문서 탭 도구 설명을 읽음. MySQL·Altibase 드라이버는 앱에 들어 있지 않아 같은 JDBC
+  드라이버로 잰 글(`getDatabaseProductName/Version`)을 `describeProduct`에 넣어 확인. 확대 `D:\Tools\_scratch\visual-recheck-fixes\sheets\d-server-tooltip.png`.
+
 ## 테마 전환 뒤 카드 테두리 (2026-11-12)
 
 증상(앱 변경 #67 검토 중 사용자 보고): 실행 중 테마를 바꾸면 도구 창 카드(둥근 모서리) 밖에 회색 사각형 1px 테두리가 생긴다(왼쪽·위에 ㄱ자로 보임).
@@ -3340,3 +3361,5 @@ File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 �
 - 2026-11-12 테마 설치의 두 번 설치를 프로세스의 첫 설치로 줄임(UiSemibold가 semibold 판단을 기억), "테마 전환 뒤 카드 테두리" 절에 측정 추가.
 - 2026-11-12 화면 재점검(앱 변경 #71 a, `chromite/visual-recheck-fixes`): 서버 표시 라벨이 알약의 넘치는 높이만큼 여백을 둠(`ConnectionPill.getOverhang`).
   "쿼리 창은 한 서버의 창" 아래 "운영 알약의 아래 테두리" 절. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 화면 재점검(앱 변경 #71 d, `chromite/visual-recheck-fixes`): 서버 도구 설명의 제품은 이름과 버전 한 줄(`QueryStatusLine.describeProduct`).
+  "서버 도구 설명의 제품 줄" 절. 회귀 테스트는 실행하지 않았다.
