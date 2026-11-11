@@ -49,6 +49,7 @@ import java.util.function.Supplier;
  * 밀도(촘촘한 모드, {@link UiDensity})는 테마와 따로 저장하고, 설치할 때마다 그 치수 값을 FlatLaf extra defaults로 테마 값 위에 얹는다.
  * 글꼴은 Look and Feel을 설치하기 전에 등록한다: UI 글꼴 Pretendard({@link UiFont}, 번들), 고정폭 JetBrains Mono(번들에 넣은 FlatLaf 글꼴 jar),
  * SQL 편집기 글꼴 Cascadia Mono({@link EditorFont}). 테마 properties의 {@code defaultFont}, {@code semibold.font}, {@code monospaced.font}가 이 이름을 쓴다.
+ * UI 글꼴 선택이 시스템 글꼴이면({@link UiFont.Choice}) {@code defaultFont}·{@code semibold.font}를 extra defaults로 바꾼다.
  * 테마 글꼴에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
  * 글꼴 객체의 스타일(PLAIN/BOLD)을 따르고 Java에는 semibold 스타일이 없다. 그래서 semibold 글꼴(PLAIN 스타일의 별도 패밀리)에 없는 글자는
  * 보통 굵기로 그려져 옆 글자보다 가늘게 보인다. 화면 언어의 글자가 테마의 semibold 글꼴에 없으면 semibold를 기본 글꼴의 BOLD로 바꿔
@@ -66,6 +67,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 촘촘한 모드: 설치할 때 {@link UiDensity}의 치수 값을 extra defaults로 넘김 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-11 테마 선택 {@link Choice}(시스템 설정 따르기·라이트·다크)를 저장하고 기본값을 시스템 설정 따르기로; 운영체제 설정이 바뀌면 따라감;
  *   인스턴스 {@code apply()}는 {@link Choice#apply()}로 바뀌어 지움 (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 설치할 때 UI 글꼴 선택({@link UiFont})의 extra defaults를 얹음 (앱 변경 #43, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 enum ChromiteTheme {
 
@@ -75,11 +77,11 @@ enum ChromiteTheme {
     private static final Log log = Log.getLog(ChromiteTheme.class);
 
     private static final String PREF_THEME = "ui.theme"; //$NON-NLS-1$
-    private static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
+    static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
     /**
      * FlatLaf font value: the default font in the BOLD style, a composite font whose fallback fonts are bold too.
      */
-    private static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
+    static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
     /**
      * Tooltip of the button that lists the tabs scrolled out of a tab strip (documents, tool windows, settings pages).
      */
@@ -110,8 +112,10 @@ enum ChromiteTheme {
         FlatJetBrainsMonoFont.installLazy();
         // SQL editor font (Cascadia Mono, bundled)
         EditorFont.installLazy();
-        // The density (compact mode) replaces size values of the theme properties (UiDensity)
+        // The density (compact mode) replaces size values of the theme properties (UiDensity), the UI font choice the
+        // theme's Pretendard by the system font (UiFont)
         Map<String, String> extraDefaults = new HashMap<>(UiDensity.getExtraDefaults());
+        extraDefaults.putAll(UiFont.getExtraDefaults());
         if (!FlatLaf.setup(createLaf(extraDefaults))) {
             log.warn("Can't install look and feel of theme " + name());
             return;

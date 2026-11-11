@@ -53,6 +53,8 @@ import java.util.Map;
  * - 2026-11-07 트랜잭션 질문에 Commit/Roll back으로 답한 호출은 머리말 상태 앞에 "열린 트랜잭션 n개 롤백 →"을 보임(전에는 "완료"만 보여
  *   롤백으로 답한 commitTransaction이 커밋처럼 보였음)
  * - 2026-11-08 실행 중인 도구가 알린 진행 글을 상태에 보임(백업·복원 도구)
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class AiToolCard extends JPanel {
 
@@ -131,7 +133,7 @@ final class AiToolCard extends JPanel {
             stateLabel.setText(NLS.bind(AiMessages.ai_tool_state, new Object[]{state, formatDuration(entry.getDurationMs()),
                 summary == null ? "" : " - " + summary})); //$NON-NLS-1$ //$NON-NLS-2$
             stateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: " + (outcome.equals("SUCCESS") //$NON-NLS-1$ //$NON-NLS-2$
-                ? "$Chromite.secondaryForeground" : outcome.equals("ERROR") ? "$Chromite.status.error" : "$Chromite.status.warning")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+                ? "$Chromite.secondaryForeground" : outcome.equals("ERROR") ? "$Chromite.status.error" : "$Chromite.status.warningForeground")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         }
         stateLabel.setToolTipText(stateLabel.getText());
         if (expanded) {
@@ -308,7 +310,7 @@ final class AiToolCard extends JPanel {
     @NotNull
     static JComponent createAccessBadge(@NotNull String access) {
         return switch (access) {
-            case "WRITE" -> createBadge(AiMessages.ai_access_write, "Chromite.status.warning"); //$NON-NLS-1$ //$NON-NLS-2$
+            case "WRITE" -> createBadge(AiMessages.ai_access_write, "Chromite.status.warningForeground"); //$NON-NLS-1$ //$NON-NLS-2$
             case "DANGEROUS" -> createBadge(AiMessages.ai_access_dangerous, "Chromite.status.error"); //$NON-NLS-1$ //$NON-NLS-2$
             default -> createBadge(AiMessages.ai_access_read, "Chromite.secondaryForeground"); //$NON-NLS-1$
         };
