@@ -296,6 +296,8 @@ import java.util.function.Supplier;
  *   경로 복사, 상위 폴더 열기, 탭 고정, 탭 위치, 여러 행), 닫기가 취소를 돌려줌({@link #closeDocument}) (앱 변경 #42,
  *   docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 macOS 통합 제목 줄: Standard 도구 막대 줄이 신호등 단추 줄로 올라감({@link MacOSUnifiedTitleBar}, 앱 변경 #62,
+ *   docs/chromite/mac-ui.md "통합 제목 줄")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -832,7 +834,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Two tool bar rows as in SSMS: Standard, then SQL Editor (user decision 2026-11-07)
         JPanel toolBars = new JPanel(new BorderLayout());
         toolBars.setOpaque(false);
-        toolBars.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
+        // macOS: the Standard row is in the title bar, after the traffic-light buttons (app change #62)
+        toolBars.add(MacOSUnifiedTitleBar.install(this, createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow)),
+            BorderLayout.NORTH);
         toolBars.add(sqlEditorToolBar.getComponent(), BorderLayout.SOUTH);
         content.add(toolBars, BorderLayout.NORTH);
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
