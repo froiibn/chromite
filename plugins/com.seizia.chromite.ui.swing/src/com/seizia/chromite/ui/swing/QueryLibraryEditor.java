@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DocumentTabMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -91,6 +92,8 @@ import java.util.Objects;
  * - 2026-11-08 Database·Schema 글 칸을 대상 연결의 목록이 있는 콤보로 바꿈({@link QueryLibraryDefaultsPicker})
  *   (docs/chromite/swing-query-library.md "머리말 DB/스키마 목록")
  * - 2026-11-09 저장 단추 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 {@link #rename}: 문서 탭 메뉴의 이름 바꾸기 = 트리의 Rename과 같은 경로, 고친 창은 이름 칸에(앱 변경 #42)
+ *   (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -384,6 +387,36 @@ final class QueryLibraryEditor implements SqlEditorExtension {
      * File &gt; Save As of a library query: its SQL (without the header) as a plain {@code .sql} file. The window stays
      * the library query.
      */
+    /**
+     * Rename in the document tab menu, the same as Rename in the Query Library tree ({@link QueryLibrary#renameQuery}:
+     * the name in the file and the file name), and the window follows the file. A window with unsaved changes gets the
+     * name in its Name field instead, which its next save writes (with the file name): renaming the file under it would
+     * offer Reload, which drops the changes.
+     */
+    @Override
+    public void rename(@NotNull SqlEditorPanel editor) {
+        Object input = JOptionPane.showInputDialog(editor, ToolsMessages.library_rename_query_prompt, ToolsMessages.library_rename,
+            JOptionPane.PLAIN_MESSAGE, null, null, nameField.getText().strip());
+        String name = input != null ? input.toString().strip() : ""; //$NON-NLS-1$
+        if (name.isEmpty() || name.equals(nameField.getText().strip())) {
+            return;
+        }
+        if (editor.isDirty()) {
+            nameField.setText(name);
+            JOptionPane.showMessageDialog(editor, NLS.bind(DocumentTabMessages.tab_library_rename_modified, editor.getFileName()),
+                ToolsMessages.library_rename, JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        try {
+            Path file = QueryLibrary.getInstance().renameQuery(item, name);
+            int caret = editor.getTextArea().getCaretPosition();
+            reload(QueryLibraryFile.read(file));
+            editor.getTextArea().setCaretPosition(Math.clamp(caret, 0, editor.getTextArea().getDocument().getLength()));
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_rename, NLS.bind(ToolsMessages.library_error_rename, editor.getFileName()), e);
+        }
+    }
+
     @Override
     public boolean saveAs(@NotNull SqlEditorPanel editor) {
         Path file = QueryLibrary.getInstance().resolveFile(item);

@@ -37,6 +37,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 대화 콤보·제공자 콤보를 없애고 대화 기록({@code ai_history*})과 제공자를 함께 고르는 모델 선택({@code ai_model_*})을 둠,
  *   차례의 토큰 사용량({@code ai_status_usage*}), 쿼리 창 글 고치기의 확인({@code ai_confirm_headline_edit*}, {@code ai_confirm_preview_change}, {@code ai_reason_default_edit})
  *   (docs/chromite/ai-agent.md "채팅 도구 창", "편집기 도구")
+ * - 2026-11-11 {@code ai_options_api_key_optional}(vLLM), {@code ai_options_test_no_tools}: Test가 도구 호출을 받지 않는 서버를 알림
+ *   (app round 2 #34, docs/chromite/ai-agent.md "Chat Completions 엔진")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -154,13 +156,13 @@ public class AiMessages extends NLS {
     public static String ai_reason_default_edit;
     public static String ai_reason_transaction;
     public static String ai_options_tab;
-    public static String ai_options_title;
     public static String ai_options_providers;
     public static String ai_options_policy;
     public static String ai_options_mcp;
     public static String ai_options_audit;
     public static String ai_options_providers_note;
     public static String ai_options_api_key;
+    public static String ai_options_api_key_optional;
     public static String ai_options_key_saved;
     public static String ai_options_key_none;
     public static String ai_options_remove_key;
@@ -172,7 +174,7 @@ public class AiMessages extends NLS {
     public static String ai_options_testing;
     public static String ai_options_test_ok;
     public static String ai_options_test_failed;
-    public static String ai_options_save_failed;
+    public static String ai_options_test_no_tools;
     public static String ai_options_save_failed_secure_storage;
     public static String ai_policy_rule_production;
     public static String ai_policy_rule_read_only;
@@ -196,7 +198,6 @@ public class AiMessages extends NLS {
     public static String ai_policy_column_class;
     public static String ai_policy_column_rule;
     public static String ai_policy_column_effective;
-    public static String ai_policy_save_failed;
     public static String ai_group_connections;
     public static String ai_group_metadata;
     public static String ai_group_query;

@@ -160,7 +160,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
 | 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2. 2026-11-07 커밋 방식 칸 추가(사용자 요청): DB 뒤에 점(`size.statusDot`, 자동 `status.success` / 수동 `status.error`) + 글자, 누르면 연결 설정의 Auto-commit으로 안내만 함([swing-frontend.md](swing-frontend.md) "자동 커밋 상태"). 2026-11-07 열린 트랜잭션 칸 추가: 커밋 방식 뒤에 `status.warning` 점 + 경과 시간·문장 수, 열린 트랜잭션이 있을 때만, 누르면 커밋/롤백 메뉴([idle-transactions.md](idle-transactions.md)). 2026-11-08 사용자 요청: 칸을 결과 아래에서 주 상태 표시줄로 옮김(아래 줄) | P1 |
-| 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`, 높이 28. 2026-11-08(사용자 결정): 쿼리 창이 활성이면 그 창의 쿼리 상태 칸(상태 문구 … `Ln, Col`)을 보이고 표시줄 전체를 그 연결 색으로 칠함(글자는 4.5:1이 안 되면 대비 색, 업데이트 진행 글자 포함). 쿼리 창이 아니면 작업 공간 연결 수. 업데이트 진행은 오른쪽 끝([swing-frontend.md](swing-frontend.md) "상태 표시줄의 쿼리 창 칸") | P1 |
+| 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`(2026-11-12부터 `text.primary`: 다크 테마 캔버스에서 3.2:1이라 잘 보이지 않음, 앱 변경 #55), 높이 28. 2026-11-08(사용자 결정): 쿼리 창이 활성이면 그 창의 쿼리 상태 칸(상태 문구 … `Ln, Col`)을 보이고 표시줄 전체를 그 연결 색으로 칠함(글자는 4.5:1이 안 되면 대비 색, 업데이트 진행 글자 포함). 쿼리 창이 아니면 작업 공간 연결 수. 업데이트 진행은 오른쪽 끝([swing-frontend.md](swing-frontend.md) "상태 표시줄의 쿼리 창 칸") | P1 |
 
 ### 10. Properties 창
 
@@ -215,7 +215,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 5. **트리 아이콘 교체**: DBeaver 아이콘 → 1px 선 16px 아이콘, 중립 회색 + 의미 강조색 규칙(지금 주황 채움 폴더·파란 표).
 6. **연결 상태 표시**: PNG 체크 겹침 → 지름 6 상태 점(연결됨 초록, 연결 중 노랑, 오류 빨강).
 7. **글꼴**: UI Inter 13, 편집기·그리드 JetBrains Mono 13(지금 Segoe UI 12, Consolas).
-8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, —)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
+8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, 닫기 ×. 2026-11-11 전에는 숨기기 —, 앱 변경 #57)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
 9. **주 도구 막대**: 아이콘 단추 16/26 + hover 바탕, New Query만 글자(지금 글자 단추 4개).
 10. **편집기 탭**: 높이 40, 탭 줄 바탕 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16(지금 32, 아이콘 없음).
 11. **쿼리 도구 막대**: `▶ Execute`(초록 아이콘 + 글자), `■` 중지 아이콘, 콤보 28·arc 8·공급자 아이콘(지금 글자 `Execute`/`Cancel`).
@@ -277,6 +277,9 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 | `status.error` | 오류 | `#DB3B4B` | `#DB5C5C` | `Label.errorForeground`(L Red4, D Red7) | `Chromite.status.error`, `Component.error.focusedBorderColor`, `Actions.Red` 대신 |
 | `completion.match` | 자동완성 맞는 글자 | `#3574F0` | `#548AF7` | `CompletionPopup.matchForeground`(L Blue4, D Blue8) | `Chromite.completion.matchForeground` |
 
+이 표는 처음(New UI) 설계 값이다. 적용 값은 "Islands 적용" 표이고, 글자 색(`text.secondary`, `text.disabled`, `status.*` 글자, `completion.match`)은
+2026-11-12 대비를 올린 값이다("적용 현황 — 글자 선명도와 대비").
+
 ### SQL 구문 색 (RSyntaxTextArea 토큰)
 
 2026-11-06 사용자 결정: 토큰 색은 **SSMS 기본 색**이다(처음 판의 DataGrip 값에서 바꿈). 숫자만 사용자가 연두색을 골랐다.
@@ -306,7 +309,7 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 | Background / 커서 | `TEXT`, `CARET_COLOR` [E] | | `#FFFFFF` / `#000000` | `#191A1C` / `#CED0D6` | |
 | Current line | `CARET_ROW_COLOR` [E] | | `#F5F8FE` | `#212326` | |
 | Selection | `SELECTION_BACKGROUND` [E] | | `#A6D2FF` | `#214283` | |
-| Line numbers / 현재 줄 번호 | `LINE_NUMBERS_COLOR`, `LINE_NUMBER_ON_CARET_ROW_COLOR` [E] | | `#AEB3C2` / `#767A8A` | `#4B5059` / `#A1A3AB` | |
+| Line numbers / 현재 줄 번호 | `LINE_NUMBERS_COLOR`, `LINE_NUMBER_ON_CARET_ROW_COLOR` [E](2026-11-12 대비를 올림: "적용 현황 — 글자 선명도와 대비") | | `#6E727D` / `#3B3E45` (전 `#AEB3C2` / `#767A8A`) | `#808389` / `#D1D3D9` (전 `#4B5059` / `#A1A3AB`) | 4.8 / 10.7, 4.6 / 11.6 |
 | 짝 괄호 | `MATCHED_BRACE_ATTRIBUTES` [E] | | 바탕 `#93D9D9` | 바탕 `#43454A` | |
 | 같은 이름 | `IDENTIFIER_UNDER_CARET_ATTRIBUTES` [E] | | `#EDEBFC` | `#373B39` | |
 | 오른쪽 여백 선 | `RIGHT_MARGIN_COLOR` [E] | | `#EBECF0` | `#393B40` | |
@@ -343,7 +346,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 | `size.tab.editor` | 36 (40) | [T `TabbedPane.tabHeight`] | 문서 탭 스타일 `tabHeight: $Chromite.size.documentTab.height`, 선택 알약 위아래 `Chromite.size.documentTab.pillInset` 5 (6) |
 | `size.tab.tool` | 28 (32) | Chromite 결정(쿼리 창 안 결과 탭은 낮게) | 결과·도구 창·세부 탭 스타일 `tabHeight: $Chromite.size.toolTab.height`(`UiSizes.TOOL_TABS_STYLE`) |
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
-| `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
+| `size.titleBar` | 40 (메인 창), 대화상자 30 (2026-11-11 앱 변경 #56) | [J] 주 도구 막대 40 | 메인 창: `Chromite.size.mainTitleBar.height = 40`(루트 창 `JRootPane.titleBarHeight`), 그 밖의 창: `TitlePane.buttonSize = 46,30` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
 | `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너). 연결·DB 선택 상자 여백 `Chromite.size.editorToolBar.comboBox.padding = @componentMargin`(촘촘한 모드에서 24로 낮춤) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height`. 활성 쿼리 창의 상태 칸도 이 높이다(2026-11-08 `size.statusLine.query` 삭제). 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
@@ -389,7 +392,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 
 | 토큰 | 값 | 쓰는 곳 | FlatLaf |
 |---|---|---|---|
-| `font.ui` | Pretendard 12 보통 (2026-11-07 전: Inter 13, 2026-11-07 Pretendard 13 → 12) | 모든 UI | `defaultFont = 12 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴) |
+| `font.ui` | Pretendard 12 보통 (2026-11-07 전: Inter 13, 2026-11-07 Pretendard 13 → 12). 2026-11-12부터 Options의 UI 글꼴 선택(기본 자동: 배율 150% 미만은 운영체제 UI 글꼴 12, 한국어 Windows는 맑은 고딕) | 모든 UI | `defaultFont = 12 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴). 시스템 글꼴일 때 extra defaults `defaultFont = 12`, `semibold.font = bold`(`UiFont`, "적용 현황 — 글자 선명도와 대비") |
 | `font.ui.semibold` | Pretendard 12 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
 | `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
 | `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
@@ -520,7 +523,7 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 | 실행 | `action.run`(초록, Execute), `action.stop`(빨강, 실행 취소), `action.parse`(중립 체크), `action.explainPlan` |
 | 결과 | `action.resultsToGrid`, `action.resultsToText`, `action.exportCsv`·`action.exportXlsx`(같은 내보내기 그림), `action.copyWithHeaders`, `action.sortAsc`, `action.sortDesc` |
 | 객체 | `action.scriptAs`(DDL), `action.selectTopRows`, `action.viewDdl`, `action.properties` |
-| 창·일반 | `action.more`(⋮), `action.hideToolWindow`(—), `action.close`(×), `action.settings`, `action.themeLight`·`action.themeDark` |
+| 창·일반 | `action.more`(⋮), `action.close`(×, 도구 창 닫기(숨기기)도 이것. 2026-11-11 `action.hideToolWindow`(—) 삭제, 앱 변경 #57), `action.settings`, `action.themeLight`·`action.themeDark` |
 
 (`action.exportCsv`·`action.exportXlsx`, `action.themeLight`·`action.themeDark`는 각각 1개로 셌다. `action.close`는 `icon.neutral`, 탭 닫기에도 쓴다.)
 
@@ -568,7 +571,9 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 탭 마우스 올림 `tabHoverBackground` | `#00000012` | `#FFFFFF17` | `EditorTabs.hoverBackground` = `tab-bg-hovered` |
 | `tabArc`, 알약 위아래 여백 | 12, 6 | 12, 6 | arc는 Chromite 결정(테마 파일에 탭 arc 없음), 여백은 `EditorTabs.tabInsets` -6 |
 | `@foreground` | `#000000` | `#D1D3D9` | `text-default` |
-| `Chromite.secondaryForeground`, 메뉴 단축키 | `#73767C` | `#73767C` | `text-secondary` |
+| `Chromite.secondaryForeground`, 메뉴 단축키, `TitlePane.foreground` | `#5E6168`(2026-11-12 전 `#73767C`) | `#9A9DA4`(2026-11-12 전 `#73767C`) | `text-secondary`. 2026-11-12 Chromite 결정: 카드·캔버스에서 4.5:1 이상("적용 현황 — 글자 선명도와 대비") |
+| `@disabledForeground`, `Label.disabledForeground`(비활성, 자리 표시 글, 안내 글) | `#7F8390`(2026-11-12 전 `#A8ADBD`) | `#777A81`(2026-11-12 전 `#5A5D63`) | Chromite 결정: 카드·캔버스에서 3:1 이상, text.secondary보다 흐림 |
+| `Chromite.status.warningForeground`(경고 글자) | `#8A5A00` | = `Chromite.status.warning` `#F2C55C` | 2026-11-12: 밝은 테마의 아이콘 호박색 `#FFAF0F`는 흰 바탕에서 1.8:1이라 글자용을 따로 둠(위 색 토큰 표 `status.warning`의 "글자/아이콘" 구분) |
 | `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
 | `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
 | `Chromite.Tree.storageMemoryForeground` / `storageDiskForeground` / `storageVolatileForeground` | `#B3261E` / `#1A4FB0` / `#8F4F00` | `#FF9999` / `#94B8FF` / `#F0A858` | Chromite 결정: Object Explorer 테이블 저장 방식 글자색, 바탕·선택 바탕에서 4.5:1 이상([altibase.md](altibase.md)) |
@@ -602,7 +607,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 |---|---|
 | 카드 | 도구 창 하나 또는 탭 묶음 하나가 카드(`Chromite.island.background`, arc 20). 도킹 루트가 카드 바탕을 칠하고 모서리를 캔버스로 덮는다(`IslandPanel.paintCorners`) |
 | 카드 사이 틈 | 라이브러리 분할 창의 분할선 = `SplitPane.dividerSize` 6, 선·손잡이 없음. 바깥 왼쪽·오른쪽 틈 `Chromite.island.gap` 6. 라이브러리 패널의 1px 테두리(`Component.borderColor`)와 마우스 올림 강조 테두리는 지움 |
-| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [— 숨기기 `hide`] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
+| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [× 닫기 `close`: 동작은 숨기기. 2026-11-11 전에는 — `hide`, 앱 변경 #57] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
 | 옵션 메뉴 | Float, Dock, Auto Hide(체크), ─, Hide. 테마 팝업 메뉴 그대로 |
 | 탭 묶음 | 아래쪽 탭(라이브러리 기본), `tabHeight 32`, 밑줄 3(Results 탭과 같음), 선택 탭의 머리말이 위에 보임 |
 | 놓을 자리 표시 | `ModernDocking.overlayBackground` = 강조색 `#3871E1` 30%(`#3871E14D`), 라이트·다크 같음 |
@@ -635,7 +640,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 5 | 트리 아이콘 | 1px 선 16px, 중립 + 의미 강조색 | 아이콘 팩 2종(아래 "아이콘 팩"), 폴더는 펼치면 열린 폴더 | 완료 |
 | 6 | 연결 상태 점 | 지름 6, 초록·노랑·빨강 | 지름 6 + 행 바탕색 1px 테두리. 연결됨 초록, 연결 실패 빨강(없는 폴더의 SQLite 파일, `x-broken2`) 확인 | 완료. 연결 중(노랑)은 잠깐이라 화면 확인은 못 함 |
 | 7 | 글꼴 | Inter 13, JetBrains Mono 13, 한글 대체 | Inter·JetBrains Mono(번들). 트리·메뉴·Properties·대화상자·편집기·그리드의 한글이 맑은 고딕으로 대체되어 보임(□ 없음) | 완료. 편집기 줄 간격 1.2는 못 함 |
-| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
+| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 닫기(×) 아이콘(2026-11-11 전에는 숨기기 —, 앱 변경 #57). Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
 | 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
 | 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로). 2026-11-07 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김(사용자 결정) | 완료 |
@@ -676,9 +681,11 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 95개씩(2026-11-08 Object Explorer Link with Editor의 `link` 추가, [swing-explorer-productivity.md](swing-explorer-productivity.md). P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
-  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 97개씩(2026-11-11 두 트리 도구 막대의 펼치기 `expand-all` 추가, [swing-registered-servers.md](swing-registered-servers.md) "펼치기 단추". 2026-11-08 Object Explorer Link with Editor의 `link` 추가, [swing-explorer-productivity.md](swing-explorer-productivity.md). P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`(2026-11-11 삭제, 앱 변경 #57), `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
+  2026-11-12 Options 화면용 4개 추가: `palette`(편집기 색), 테마 단추 `theme-system`(화면), `theme-light`(해), `theme-dark`(달)
+  ([swing-options.md](swing-options.md) "옵션 화면 모양과 저장 (#59)").
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
 - 배지 자리를 비우는 `<mask>`(view, mview, column-pk, column-fk, new-query, new-connection, export)는 JSVG 2.1이 그대로 그린다(JSVG로 따로 렌더링해 확인, 앱 화면의 기본 키 열 아이콘도 같음). 그래서 평평한 경로로 바꾸지 않았다.
 - 사양과 다른 점: "색 바꾸기" 규칙(`currentColor` 한 파일, 테마별 파일 없음) 대신 팩×테마마다 색을 넣은 파일을 쓴다. 고른 두 팩이 듀오톤(선 + 채움 두 색)과 여러 색이라 한 색 `currentColor`로 표현할 수 없고,
@@ -1047,6 +1054,166 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   트리 영역은 0이었다.
 - 캡처: `D:\Tools\_scratch\chromite-hover-repaint\shots\`(`evidence-150-dark-explorer.png`: 수정 전 위로 움직인 뒤 / 전체 다시 그림 / 수정 후).
 
+### 포커스 표시 — 내용 영역 테두리 없음 (2026-11-11, 앱 변경 #37)
+
+사용자 요청(기업 환경 2026-11-09): "출력결과 grid를 선택하면 주변에 테두리가 포커싱된다. 이 효과를 제거하고, 다른 화면에서도 이와 같은 효과를 제거한다".
+사용자 결정: "내용 영역만 제거"(입력란·콤보·단추의 포커스 표시는 유지).
+
+- **원인(그린 테두리를 읽어 확인):** FlatLaf의 스크롤 창 테두리(`FlatScrollPaneBorder`, 테마 키 `ScrollPane.border`와 표를 스크롤 창에 넣을 때
+  Swing이 붙이는 `Table.scrollPaneBorder`)는 `FlatBorder.isFocused`가 스크롤 창이면 그 안 보기(표·트리·목록·글 영역)의 포커스를 보고,
+  포커스가 있으면 테두리 색을 `Component.focusedBorderColor`(`#3871E1`)로 바꾼다. 결과 그리드의 스크롤 창(`ResultSetGrid`)은 테두리를 따로 정하지 않아
+  이 테두리를 쓴다. 측정(테스트 에이전트, 스크롤 창 왼쪽 테두리 픽셀): 포커스 있음 `#3871E1`, 없음 다크 `#40434A` / 라이트 `#D1D3D9`.
+- **고친 곳(한 곳):** 두 테마 properties가 `ScrollPane.border`, `Table.scrollPaneBorder`를 `ContentScrollPaneBorder`로 바꾼다.
+  이 클래스는 `FlatScrollPaneBorder`와 같고 `isFocused`만 다르다: 보기가 **편집할 수 있는 글 영역**(여러 줄 입력란: Agent 질문 칸, 대화상자의 여러 줄 입력)이면
+  FlatLaf 그대로 포커스 색, 그 밖(표·트리·목록·읽기 전용 글)은 늘 보통 테두리색. 입력란·콤보·단추는 다른 테두리(`FlatTextBorder`, `FlatRoundBorder`)라 그대로다.
+- **이미 테두리가 없던 곳:** SQL 편집기, Messages, 개체 탐색기·등록된 서버·쿼리 라이브러리 트리, 값 보기, 실행 계획은 스크롤 창에 빈 테두리를 주어 원래 포커스 테두리가 없었다.
+  이번 변경이 실제로 바꾸는 곳은 기본 테두리를 쓰는 스크롤 창: 결과 그리드, Options 페이지 목록, 대화상자의 표·목록·트리 등.
+- **포커스 위치:** 선택 바탕색으로 구분된다(FlatLaf가 포커스에 따라 바꿈). 결과 그리드: 다크 활성 `#2A4371` / 비활성 `#33353B`, 라이트 `#D0DFFE` / `#E9EAEE`.
+- **확인:** Attach API 테스트 에이전트, 실제 결과 그리드(SQLite), 포커스는 대체 키보드 포커스 관리자로 흉내 내고 화면 밖에 그림(OS 입력 없음), 100%·150%, 밝은·어두운 테마.
+  전(devel의 `FlatScrollPaneBorder`) 포커스 있음 `#3871E1` → 후 포커스 있음 `#40434A`(다크) / `#D1D3D9`(라이트), Options 목록도 같음. Agent 질문 칸(편집 가능)은 후에도 `#3871E1`.
+  입력란·콤보·단추의 포커스 테두리는 그대로. 캡처: `D:\Tools\_scratch\chromite-theme-look\shots\`(`grid-*.png`, `options-list-*.png`, `input-*.png`, `sel-grid-*.png`, `controls-*.png`).
+
+### 대화상자 제목 줄 (2026-11-11, 앱 변경 #56)
+
+사용자 요청(기업 환경 2026-11-11): 팝업·메시지 상자의 제목 영역이 너무 두꺼워 어색하다, 조금 더 얇게.
+
+- **원인:** FlatLaf 창 장식의 제목 줄 높이는 창 단추 높이(`TitlePane.buttonSize`, 단추가 세로로 채움)로 정해지고, 이 값이 모든 창에 같다.
+  메인 창(메뉴 막대를 품음)에 맞춘 46×40이 대화상자·메시지 상자에도 쓰였다. 측정: 메시지 상자 제목 줄 40(150%에서 60px), 본문 한 줄보다 훨씬 높다.
+- **고친 곳:** 테마 `TitlePane.buttonSize`를 46×30(Windows 기본 대화상자 제목 줄에 가까움)으로 낮추고, 메인 창만 루트 창 속성
+  `JRootPane.titleBarHeight`(`FlatClientProperties.TITLE_BAR_HEIGHT`)에 테마 키 `Chromite.size.mainTitleBar.height`(40)를 준다(`MainFrame` 생성자).
+  대화상자·메시지 상자·파일 선택 등 다른 장식 창은 따로 손대지 않아도 30이다. 테두리 없는 창(시작 화면, 업데이트 창)과 macOS(OS 제목 줄)는 대상이 아니다.
+- **확인(테스트 에이전트, 밝은·어두운 테마):** "지난 세션의 쿼리 창 1개를 복원할까요?" 메시지 상자 제목 줄 40 → 30(150%: 60 → 45px), 닫기 단추 46×40 → 46×30,
+  제목 글자 칸이 제목 줄 높이 전체(세로 가운데). 메인 창 제목 줄은 41 그대로(단추 46×40). 캡처: `title-before-*.png`, `title-after-*.png`(100%·150%).
+
+### 적용 현황 — 글자 선명도와 대비 (2026-11-12, 앱 변경 #43·#55)
+
+사용자 보고(기업 환경): 회사 PC(클라우드 VDI, 1920×1080, 100% 배율, ClearType 켜짐)에서 Chromite 글자만 흐리다. 같은 모니터의 SSMS·Orange는 선명하고,
+같은 VDI를 화소가 촘촘한 노트북으로 보면 견딜 만하다(#43). 다크 테마에서 일부 글자, 특히 오른쪽 아래 상태 표시줄이 잘 보이지 않는다(#55).
+측정 도구와 원본: `D:\Tools\_scratch\chromite-text-clarity\`(`probe\`: 독립 측정 프로그램, `agent\`: 앱 안 테스트 에이전트, `shots\`: 캡처).
+
+#### #43 글자 선명도: 측정
+
+**1. 실제로 쓰는 글자 다듬기 방식.** 이 PC(Windows 11, ClearType 켜짐, 로컬 세션)에서 JBR 25.0.4, `-Dsun.java2d.uiScale=1`:
+
+| 항목 | 값 |
+|---|---|
+| Windows 설정(SPI) | `win.text.fontSmoothingOn = true`, `fontSmoothingType = 2`(ClearType), 대비 1200, 방향 RGB |
+| `awt.font.desktophints` | `TEXT_ANTIALIAS_LCD_HRGB`, LCD 대비 120 |
+| 앱 안 `UIManager`의 `KEY_TEXT_ANTIALIASING` | `LCD_HRGB`(FlatLaf가 desktophints를 그대로 넣음) |
+| 앱 화면(오프스크린으로 그린 메인 창)의 색 번짐 평균 | 31.9(다크)·37.0(라이트): LCD 서브픽셀 글자(회색조라면 10 아래) |
+
+즉 앱은 ClearType(LCD) 다듬기를 이미 쓴다. **"회색조 안티앨리어싱이라 흐리다"는 원인이 아니다.**
+
+**2. 원격 세션에서 고르는 방식(JDK 소스로 판단, 재현하지 않음).** JDK의 Windows 경로는 원격 세션을 따로 다루지 않는다:
+`WDesktopProperties.getDesktopAAHints()`는 그 세션의 SPI 값만 보고(켜짐+ClearType → LCD, 켜짐+표준 → GASP, 꺼짐 → 기본(끔)),
+`SunToolkit.useSystemAAFontSettings()`의 추가 조건은 Windows에서 쓰이지 않으며, `FileFontStrike`의 GDI 글리프 경로에도 원격 검사가 없다.
+그래서 VDI에서 ClearType이 켜져 있으면(사용자 확인) 회사 PC에서도 LCD다. 이 PC에 RDP로 붙어 재현하면 Windows Pro는 콘솔 세션을 끊어 사용자 화면을
+방해하므로 하지 않았다(**미확인**). VDI 영상 압축(색 정보 줄임)은 모든 앱의 ClearType 색 번짐을 뭉개지만, 아래 3의 차이(획이 한 화소에 맞는지)는 그대로 남는다.
+
+**3. 글꼴마다 다른 그리는 길.** JDK `FileFontStrike`는 LCD 다듬기에서 **설치된** TrueType 글꼴이면 Windows GDI에 글리프를 맡기고(native 경로,
+Windows 기본 앱과 같은 ClearType+힌팅), **파일에서 등록한** 글꼴(`Font.createFont`, `useJavaRasterizer`)은 FreeType으로 그린다.
+번들 Pretendard는 파일 글꼴이고 CFF(PostScript) 윤곽이라 FreeType의 약한 CFF 힌팅을 받는다.
+측정(`probe\TextProbe`, `SizeProbe`, `GdiStats`): 같은 글줄("Connections 연결 탐색기 SELECT …")을 불투명 RGB 그림에 그려, 글자 화소 중 덮임 20–80%인
+화소(번짐)와 80% 넘는 화소(꽉 찬 획)의 비율을 셌다.
+
+| 글꼴, 12px(100%) | 그리는 길 | 다크 번짐 / 꽉 참 | 라이트 번짐 / 꽉 참 |
+|---|---|---|---|
+| Pretendard(번들), LCD | FreeType | 60.0% / 12.3% | 64.5% / 7.9% |
+| 맑은 고딕(설치됨), LCD | GDI | 52.6% / 18.6% | 52.6% / 18.6% |
+| 맑은 고딕, Windows 앱(`TextRenderer`, GDI ClearType) | — | 52.6% / 18.6% | 58.9% / 20.8% |
+| Segoe UI(설치됨), LCD | GDI | 40.3% / 29.5% | 40.2% / 29.5% |
+
+다크 테마에서 Java의 맑은 고딕 LCD 글자는 Windows 앱의 GDI 글자와 측정값이 같다(번짐·꽉 참 같음, 색 번짐 69.9 / 69.7; 라이트의 차이는 Windows의
+감마와 Java LCD 대비 값의 차이). Pretendard는 12px에서 꽉 찬 획이 맑은 고딕의 절반 정도라 획이 두 화소에 걸쳐 흐리다. 크기별(다크, LCD, 꽉 찬 획 비율):
+
+| 크기 | 12px(100%) | 13px | 15px(125%) | 18px(150%) |
+|---|---|---|---|---|
+| Pretendard(번들) | 12.3% | 24.1% | 23.3% | 27.2% |
+| 맑은 고딕 | 22.5% | 22.8% | 28.6% | 31.4% |
+| Cascadia Mono(번들, 편집기) | 35.1% | 33.2% | 34.0% | 42.6% |
+| Consolas(설치됨) | 23.9% | 28.6% | 25.5% | 35.2% |
+
+- 150%(개발 PC)에서는 차이가 작아 흐림이 가려졌다. 100%에서 차이가 가장 크다.
+- 편집기 글꼴 Cascadia Mono(번들 TTF, TrueType 힌팅)는 FreeType으로도 선명해 바꿀 필요가 없다. 고정폭 JetBrains Mono도 TrueType이다.
+- 색 대비(3)는 #55에서 따로 다뤘다.
+
+#### #43 고친 것
+
+- **UI 글꼴 선택**(`UiFont.Choice`, Options > General > UI 글꼴, [swing-options.md](swing-options.md) "UI 글꼴"): 자동 / Pretendard / 시스템 글꼴.
+- **기본값은 자동**: 기본 화면 배율이 150% 미만이면 시스템 글꼴(한국어 Windows는 맑은 고딕 12, 영어 Windows는 Segoe UI 12), 150% 이상이면 Pretendard 12.
+  이유: 측정에서 100%·125%의 Pretendard만 흐리고, 시스템 글꼴은 Windows 기본 앱과 같은 GDI ClearType 글자다. 사용자가 Pretendard를 고른 화면은 150%였고,
+  그 화면에서는 그대로 Pretendard다. Pretendard는 선택지로 남는다.
+- semibold(도구 창 제목 등)는 시스템 글꼴의 BOLD(맑은 고딕 Bold)다. 시스템 글꼴에는 semibold 패밀리가 없고, 한글 대체 글꼴도 굵게 되도록
+  기존 `semibold.font = bold` 방식을 쓴다.
+- LCD 다듬기를 강제하는 설정은 넣지 않았다: 이미 운영체제 설정(ClearType)을 따르고, 원격 세션에서 ClearType이 꺼져 있으면 Windows 앱도 다듬지 않은 글자라
+  그것이 그 환경에서 가장 또렷하다.
+
+#### #55 글자 대비: 측정과 고친 것
+
+WCAG 2 대비(`ConnectionColors.contrast`와 같은 식). 바탕: 카드(트리·그리드·편집기·패널), 캔버스(제목 표시줄·메뉴 막대·도구 막대·**상태 표시줄**·다크 메뉴 팝업),
+띠(Properties 분류 행, 다크 편집기 현재 줄), 선택(포커스 있음/없음), 문서 탭 알약. 목표(어두운 모니터·VDI 압축을 감안해 기준보다 여유):
+본문·상태 표시줄 7:1 이상, text.secondary 카드·캔버스·포커스 없는 선택에서 4.5:1 이상, text.disabled(안내 글·자리 표시 글로도 쓰임) 카드·캔버스에서 3:1 이상이면서
+text.secondary보다 흐림, 편집기 줄 번호 카드에서 4.5:1 이상. 굵게 표시한 값이 바뀐 뒤 값이다.
+
+다크:
+
+| 글자 | 전 → 후 | `#191A1C` 카드 | `#26282C` 캔버스 | `#212326` 띠 | `#2A4371` 선택 | `#33353B` 선택(포커스 없음) | `#233558` 탭 알약 |
+|---|---|---|---|---|---|---|---|
+| text.primary (`@foreground`) | `#D1D3D9` | 11.64 | 9.86 | 10.53 | 6.56 | 8.19 | 8.15 |
+| 상태 표시줄 칸·주 상태 문구·업데이트 진행 | `#73767C` → `#D1D3D9` | 3.82 → **11.64** | 3.24 → **9.86** | 3.46 → **10.53** | 2.16 → **6.56** | 2.69 → **8.19** | 2.68 → **8.15** |
+| text.secondary (그리드 NULL·행 번호, 트리 보조 글자, 메뉴 단축키, 창 제목, Options 안내) | `#73767C` → `#9A9DA4` | 3.82 → **6.41** | 3.24 → **5.44** | 3.46 → **5.80** | 2.16 → **3.61** | 2.69 → **4.51** | 2.68 → **4.49** |
+| text.disabled (비활성, 자리 표시 글, 비활성 창 제목, 연결 대화상자 등의 안내 글) | `#5A5D63` → `#777A81` | 2.64 → **4.05** | 2.24 → **3.43** | 2.39 → **3.66** | 1.49 → **2.28** | 1.86 → **2.85** | 1.85 → **2.84** |
+| 편집기 줄 번호 | `#4B5059` → `#808389` | 2.15 → **4.58** | 1.82 → **3.88** | 1.94 → **4.15** | 1.21 → **2.58** | 1.51 → **3.23** | 1.50 → **3.21** |
+| 편집기 현재 줄 번호 | `#A1A3AB` → `#D1D3D9` | 6.92 → **11.64** | 5.87 → **9.86** | 6.26 → **10.53** | 3.90 → **6.56** | 4.87 → **8.19** | 4.85 → **8.15** |
+| text.link | `#6B9BFA` | 6.38 | 5.41 | 5.77 | 3.60 | 4.49 | 4.47 |
+| status.error 글자 | `#DB5C5C` → `#E66A6A` | 4.72 → **5.50** | 4.01 → **4.66** | 4.27 → **4.98** | 2.66 → **3.10** | 3.33 → **3.87** | 3.31 → **3.85** |
+| status.warning 글자(`Chromite.status.warningForeground`) | `#F2C55C` | 10.71 | 9.08 | 9.69 | 6.04 | 7.54 | 7.50 |
+| status.success 글자 | `#5FAD65` | 6.35 | 5.38 | 5.74 | 3.58 | 4.47 | 4.44 |
+| completion.match | `#548AF7` → `#5C93FA` | 5.27 → **5.81** | 4.47 → **4.93** | 4.77 → **5.26** | 2.97 → **3.28** | 3.71 → **4.09** | 3.69 → **4.07** |
+
+라이트:
+
+| 글자 | 전 → 후 | `#FFFFFF` 카드 | `#E9EAEE` 캔버스 | `#F7F8F9` 띠 | `#D0DFFE` 선택 | `#E9EAEE` 선택(포커스 없음) | `#E3EBFE` 탭 알약 |
+|---|---|---|---|---|---|---|---|
+| text.primary (`@foreground`) | `#000000` | 21.00 | 17.47 | 19.75 | 15.67 | 17.47 | 17.58 |
+| 상태 표시줄 칸·주 상태 문구·업데이트 진행 | `#73767C` → `#000000` | 4.55 → **21.00** | 3.79 → **17.47** | 4.28 → **19.75** | 3.40 → **15.67** | 3.79 → **17.47** | 3.81 → **17.58** |
+| text.secondary | `#73767C` → `#5E6168` | 4.55 → **6.20** | 3.79 → **5.16** | 4.28 → **5.83** | 3.40 → **4.63** | 3.79 → **5.16** | 3.81 → **5.19** |
+| text.disabled | `#A8ADBD` → `#7F8390` | 2.24 → **3.78** | 1.86 → **3.15** | 2.11 → **3.56** | 1.67 → **2.82** | 1.86 → **3.15** | 1.87 → **3.17** |
+| 편집기 줄 번호 | `#AEB3C2` → `#6E727D` | 2.09 → **4.81** | 1.74 → **4.00** | 1.97 → **4.52** | 1.56 → **3.59** | 1.74 → **4.00** | 1.75 → **4.03** |
+| 편집기 현재 줄 번호 | `#767A8A` → `#3B3E45` | 4.27 → **10.71** | 3.55 → **8.91** | 4.01 → **10.07** | 3.18 → **7.99** | 3.55 → **8.91** | 3.57 → **8.97** |
+| text.link | `#315FBD` | 6.00 | 4.99 | 5.64 | 4.47 | 4.99 | 5.02 |
+| status.error 글자 | `#DB3B4B` → `#C9303F` | 4.43 → **5.28** | 3.69 → **4.39** | 4.17 → **4.96** | 3.31 → **3.94** | 3.69 → **4.39** | 3.71 → **4.42** |
+| status.warning 글자(`Chromite.status.warningForeground`) | `#FFAF0F` → `#8A5A00` | 1.84 → **5.93** | 1.53 → **4.93** | 1.73 → **5.57** | 1.38 → **4.42** | 1.53 → **4.93** | 1.54 → **4.96** |
+| status.success 글자 | `#208A3C` → `#1B7A34` | 4.41 → **5.41** | 3.67 → **4.50** | 4.15 → **5.09** | 3.29 → **4.04** | 3.67 → **4.50** | 3.69 → **4.53** |
+| completion.match | `#3871E1` → `#2F62C9` | 4.55 → **5.66** | 3.78 → **4.71** | 4.28 → **5.32** | 3.39 → **4.22** | 3.78 → **4.71** | 3.81 → **4.74** |
+
+- **상태 표시줄**: 쿼리 창 칸(`QueryStatusLine`), 작업 공간 문구(`MainFrame.StatusBar`), 업데이트 진행(`UpdateUi`)을 text.secondary에서 text.primary로.
+  상태 표시줄은 캔버스(다크 `#26282C`) 위라 카드보다 대비가 더 낮았다. 또 연결 색 띠의 대비 확인(`ConnectionColors.getTextColor`)은 text.primary로 하면서
+  칸은 더 흐린 text.secondary로 그려, 띠 위에서는 확인을 통과한 칸도 읽기 어려울 수 있었다. 이제 확인하는 색과 그리는 색이 같다.
+- **text.secondary·text.disabled 토큰 자체를 밝힘**(다크)·진하게(라이트): 그리드 NULL 표시·행 번호, 트리 보조 글자, 메뉴 단축키, 창 제목, 자리 표시 글,
+  비활성 글자가 함께 바뀐다. 코드의 안내 글 여러 곳이 `Label.disabledForeground`를 쓰므로 text.disabled도 3:1 이상으로 올렸다.
+  text.disabled는 여전히 text.secondary보다 흐려 비활성인 것이 구별된다. 비활성 창 제목(`TitlePane.inactiveForeground`)은 FlatLaf 기본대로 text.disabled다.
+- **경고 글자**: 밝은 테마의 `Chromite.status.warning`(`#FFAF0F`)은 아이콘용 호박색이라 흰 바탕에서 1.8:1이었다. 글자용 `Chromite.status.warningForeground`를 두고
+  글자로 쓰는 곳(Agent 패널 안내·모델 설정 항목, Agent 설정의 경고 글·도구 권한, 연결 설정의 유휴 롤백 경고, 도구 카드 상태·쓰기 배지, Query Library 실행 기록의 건너뜀)을
+  그 키로 바꿨다. 아이콘·테두리·바탕 섞기(연결 중 점, 실행 계획 테두리, 접근 알림 띠)는 그대로 `Chromite.status.warning`이다.
+- 편집기 줄 번호는 테마 XML의 기본값이다. Options > Editor Colors에서 줄 번호 색을 저장한 사용자는 그 색이 그대로다.
+- 선택 바탕(포커스 있음) 위의 보조 글자(3.61)는 여러 렌더러가 선택된 행에서 선택 글자색으로 바꾸므로 그대로 두었다.
+- 바꾸지 않은 것: 비선택 탭 글자(`TabbedPane.foreground` = text.primary, 9.86 이상), 도구 설명(15.4 / 14.7), 링크, 탭 밑줄 등 글자가 아닌 표시.
+
+#### 확인
+
+Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS 입력 없음), 빈 작업 공간, SQLite 연결 하나에서 쿼리 실행, 메인 창 1280×800을 오프스크린으로 그림.
+캡처: `D:\Tools\_scratch\chromite-text-clarity\shots\`(`before-*`, `after-*`, 3배 확대 비교 `crop-*.png`).
+
+- 100%(`-Dsun.java2d.uiScale=1`), 기본값(자동): 모든 UI 글꼴(`defaultFont`, `Label`·`Tree`·`Table`·`MenuBar`·`Menu`·`TitlePane`)이 맑은 고딕 12, 다듬기는 LCD 그대로.
+  상태 표시줄·그리드·메뉴·도구 막대 글자의 획이 한 화소에 맞는다(`crop-statusbar-dark.png`, `crop-grid-dark.png`, `crop-menu-dark.png`, 라이트 `crop-*-light.png`).
+  1280 창에서 잘리는 칸이나 겹치는 글자는 없다(맑은 고딕이 Pretendard보다 조금 넓다).
+- 실행 중 Options의 UI 글꼴 Pretendard 적용 → 테마를 다시 설치해 모든 글꼴이 Pretendard 12, 다시 자동 → 맑은 고딕(`after-pretendard-dark-100.png`).
+  Options > General에 "UI 글꼴" 행과 안내 글(`after-options-dark-100.png`).
+- 150%(`uiScale=1.5`), 자동: Pretendard 12 그대로(`after-dark-150.png`, `crop-statusbar-dark-150.png`).
+- 테마 값: `Chromite.secondaryForeground` `#9A9DA4`, `Label.disabledForeground`·자리 표시 글·비활성 창 제목 `#777A81`(다크)를 앱에서 읽음.
+- **확인하지 못함:** 회사 VDI 화면(원격 세션)에서의 모습, 실제 RDP 재현, macOS·영어 Windows(Segoe UI)의 시스템 글꼴 모습.
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1171,3 +1338,7 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   `size.toolbar.editor` 행(선택 상자 여백 키), 설계 결정(촘촘한 모드 범위), 미룬 결정 갱신. "적용 현황 — 촘촘한 모드" 절(구조, B·C 측정) 추가.
 - 2026-11-08 9절: 쿼리 상태 칸을 주 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로(앱 변경 #2). 치수 토큰 `size.statusLine.query` 삭제(`size.statusBar`를 씀).
 - 2026-11-08 마우스 올림 잔상(앱 1차 #10): "마우스 올림 다시 그리기" 절 추가(원인, 세 트리의 다시 그리는 영역을 위아래 1px 넓힘, 측정).
+- 2026-11-11 내용 영역의 포커스 테두리 제거(앱 변경 #37): "포커스 표시 — 내용 영역 테두리 없음" 절 추가.
+- 2026-11-11 대화상자 제목 줄 30, 메인 창 40(앱 변경 #56): "대화상자 제목 줄" 절 추가.
+- 2026-11-12 글자 선명도와 대비(앱 변경 #43·#55): "적용 현황 — 글자 선명도와 대비" 절(다듬기 방식·글꼴별 그리는 길 측정, UI 글꼴 선택과 기본값 자동,
+  두 테마의 글자 대비 측정표) 추가. Islands 표의 글자 색, `font.ui` 토큰, SQL 구문 색 표의 줄 번호, 9절 주 상태 표시줄 글자 갱신.

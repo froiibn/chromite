@@ -39,23 +39,20 @@ import java.util.List;
  *     <li>넘침 메뉴는 열 때마다 숨은 단추로 만든다. 항목은 단추의 아이콘과 동작 이름이고, 누르면 단추를 누른 것과 같다({@link AbstractButton#doClick()}).
  *     켜고 끄는 단추는 선택 표시가 있는 항목이다. 콤보처럼 단추가 아닌 컴포넌트는 메뉴에 넣지 않는다.</li>
  *     <li>넘친 자리 바로 앞의 구분선은 그리지 않는다(끝에 구분선만 남지 않게).</li>
- *     <li>오른쪽 끝 컴포넌트({@link #setTrailing}, 주 도구 막대의 Chromite Agent 단추): 남는 공간 뒤 오른쪽 끝에 놓고, 폭이 모자라면 나머지
- *     컴포넌트가 먼저 넘친다(넘침 단추는 오른쪽 끝 컴포넌트 바로 왼쪽). 오른쪽 끝 컴포넌트와 넘침 단추도 들어가지 않을 만큼 좁으면 다른
- *     컴포넌트와 같이 차례대로 놓고 넘친다. 빈 공간을 채우는 접착 컴포넌트(Box.createHorizontalGlue)는 이 배치가 기본 폭으로만 놓아
- *     쓸 수 없고, 넘침 순서도 정할 수 없어 표시로 정한다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 주 도구 막대와 쿼리 창 도구 막대 확장 (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄의 SQL Editor 도구 막대가 되어 주석을 고침(실제 계획 단추도 이제 동작을 가짐)
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
- * - 2026-11-08 오른쪽 끝 컴포넌트({@link #setTrailing}): Chromite Agent 단추를 주 도구 막대 오른쪽 끝에(앱 변경 #6)
+ * - 2026-11-08 오른쪽 끝 컴포넌트(setTrailing): Chromite Agent 단추를 주 도구 막대 오른쪽 끝에(앱 변경 #6)
  *   (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-12 오른쪽 끝 컴포넌트(setTrailing)를 삭제: Agent 단추는 단추 묶음의 마지막(Find 뒤)에 차례대로 놓임(앱 변경 #53)
+ *   (docs/chromite/swing-frontend.md "Chromite Agent 단추를 단추 묶음의 마지막으로")
  */
 final class OverflowToolBar extends JToolBar {
 
     private static final String SHRINKABLE_KEY = "chromite.toolBar.shrinkable"; //$NON-NLS-1$
-    private static final String TRAILING_KEY = "chromite.toolBar.trailing"; //$NON-NLS-1$
 
     private final JButton overflowButton;
 
@@ -77,17 +74,6 @@ final class OverflowToolBar extends JToolBar {
     static void setShrinkable(@NotNull JComponent component, int minimumWidth) {
         component.setMinimumSize(new Dimension(minimumWidth, component.getPreferredSize().height));
         component.putClientProperty(SHRINKABLE_KEY, Boolean.TRUE);
-    }
-
-    /**
-     * Keeps a component at the right end of the tool bar, after the free space; the other components overflow before it.
-     */
-    static void setTrailing(@NotNull JComponent component) {
-        component.putClientProperty(TRAILING_KEY, Boolean.TRUE);
-    }
-
-    private static boolean isTrailing(@NotNull Component component) {
-        return component instanceof JComponent c && Boolean.TRUE.equals(c.getClientProperty(TRAILING_KEY));
     }
 
     private void showOverflowMenu() {
@@ -118,7 +104,7 @@ final class OverflowToolBar extends JToolBar {
 
     /**
      * Left-to-right layout at preferred sizes, components centered vertically (separators take the full height).
-     * See the class comment for shrinking, overflow and trailing components.
+     * See the class comment for shrinking and overflow.
      */
     private final class OverflowLayout implements LayoutManager {
         @Override
@@ -156,26 +142,6 @@ final class OverflowToolBar extends JToolBar {
             int available = parent.getWidth() - insets.left - insets.right;
             int height = parent.getHeight() - insets.top - insets.bottom;
             List<Component> components = getLaidOutComponents();
-            // The trailing components keep the right end while they fit with the overflow button; the rest is laid out
-            // left of them. In a tool bar too narrow even for that they overflow like the others
-            List<Component> trailing = new ArrayList<>();
-            int trailingWidth = 0;
-            for (Component component : components) {
-                if (isTrailing(component)) {
-                    trailing.add(component);
-                    trailingWidth += component.getPreferredSize().width;
-                }
-            }
-            if (!trailing.isEmpty() && trailingWidth + overflowButton.getPreferredSize().width <= available) {
-                components.removeAll(trailing);
-                available -= trailingWidth;
-                int trailingX = parent.getWidth() - insets.right - trailingWidth;
-                for (Component component : trailing) {
-                    int width = component.getPreferredSize().width;
-                    place(component, trailingX, width, insets.top, height);
-                    trailingX += width;
-                }
-            }
             int[] widths = new int[components.size()];
             int total = 0;
             int shrinkable = 0;
@@ -222,9 +188,8 @@ final class OverflowToolBar extends JToolBar {
                 x += widths[i];
             }
             if (overflow) {
-                // At the right end of the space left of the trailing components
                 int width = overflowButton.getPreferredSize().width;
-                place(overflowButton, insets.left + available - width, width, insets.top, height);
+                place(overflowButton, parent.getWidth() - insets.right - width, width, insets.top, height);
             } else {
                 overflowButton.setBounds(0, 0, 0, 0);
             }

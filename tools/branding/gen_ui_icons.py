@@ -268,8 +268,8 @@ CONCEPTS = [
     ("connect", "연결하기", "Connect", "plug"),
     ("disconnect", "연결 끊기", "Disconnect", "plug"),
     ("collapse-all", "모두 접기", "Collapse all", "fold"),
+    ("expand-all", "펼치기", "Expand", "unfold"),
     ("link", "편집기와 연결", "Link with editor", "link"),
-    ("hide", "숨기기", "Hide tool window", "minus"),
     ("more", "더 보기", "More options", "dots-vertical"),
     ("close", "닫기", "Close", "x"),
     ("results", "결과", "Results", "table"),
@@ -332,6 +332,11 @@ CONCEPTS = [
     ("ai-assistant", "AI 도우미", "AI assistant", "message + sparkles"),
     # Result tabs: a pinned result (Query > Pin Results)
     ("pin", "고정한 결과", "Pinned result", "pin"),
+    # Options: the theme choice (system, light, dark) and the Editor Colors page
+    ("theme-system", "시스템 테마", "System theme", "device-desktop"),
+    ("theme-light", "밝은 테마", "Light theme", "sun"),
+    ("theme-dark", "어두운 테마", "Dark theme", "moon"),
+    ("palette", "편집기 색", "Editor colors", "palette"),
 ]
 
 
@@ -345,6 +350,12 @@ def plug(f, s):
 def collapse_arrows(s, sw=1):
     # Two chevrons pointing at a centre line (Tabler "fold")
     return (path("M5 2.5L8 5.5L11 2.5", None, s, sw) + path("M5 13.5L8 10.5L11 13.5", None, s, sw)
+            + path("M3.5 8H12.5", None, s, sw))
+
+
+def expand_arrows(s, sw=1):
+    # The pair of collapse_arrows: two chevrons pointing away from the centre line (Tabler "unfold")
+    return (path("M5 5.5L8 2.5L11 5.5", None, s, sw) + path("M5 10.5L8 13.5L11 10.5", None, s, sw)
             + path("M3.5 8H12.5", None, s, sw))
 
 
@@ -408,9 +419,9 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["connect"] = svg(plug(green_fill, green))
     I["disconnect"] = svg(plug(red_fill, red))
     I["collapse-all"] = svg(collapse_arrows(n, sw))
+    I["expand-all"] = svg(expand_arrows(n, sw))
     # Object Explorer Link with Editor: Tabler link, two chain links across a short bar
     I["link"] = svg(path("M6 10L10 6M7.5 4L7.8 3.6A3.3 3.3 0 0 1 12.4 8.2L12 8.5M8.5 12L8.2 12.4A3.3 3.3 0 0 1 3.6 7.8L4 7.5", None, n, sw))
-    I["hide"] = svg(path("M3.5 8H12.5", None, n, sw))
     I["more"] = svg(circle(8, 3.5, 1.25, n) + circle(8, 8, 1.25, n) + circle(8, 12.5, 1.25, n))
     I["close"] = svg(path("M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5", None, n, sw))
     I["results"] = svg(table)
@@ -514,6 +525,16 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     # Pinned result tab: Tabler pin, a pin head (blue) on a short needle (neutral)
     I["pin"] = svg(path("M10 2.5L13.5 6L10.5 9L10 11.5L4.5 6L7 5.5Z", blue_fill, blue, sw)
                    + path("M7 9L2.5 13.5", None, n, sw))
+    # Options theme choice: Tabler device-desktop (a screen on a stand), sun (a disc with eight rays), moon (a crescent)
+    I["theme-system"] = svg(rect(1.5, 2.5, 13, 9, 1.5, doc_fill, n, sw) + path("M5.5 14.5H10.5M8 11.5V14.5", None, n, sw))
+    I["theme-light"] = svg(circle(8, 8, 2.75, P["yf"] if "yf" in P else blue_fill, n, sw)
+                           + path("M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.4 3.4L4.5 4.5M11.5 11.5L12.6 12.6"
+                                  "M3.4 12.6L4.5 11.5M11.5 4.5L12.6 3.4", None, n, sw))
+    I["theme-dark"] = svg(path("M8.5 1.5A6.5 6.5 0 1 0 14.5 9.5A5 5 0 0 1 8.5 1.5Z", blue_fill, n, sw))
+    # Editor colors: Tabler palette, a paint palette with three color dots
+    I["palette"] = svg(path("M8 14.5A6.5 6.5 0 1 1 14.5 8C14.5 9.7 13.2 10.5 11.8 10.5H10.5A1.5 1.5 0 0 0 9.5 13.1"
+                            "A1 1 0 0 1 8 14.5Z", doc_fill, n, sw)
+                       + circle(5, 7, 1, red) + circle(8, 4.5, 1, blue) + circle(11, 6.5, 1, green))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone

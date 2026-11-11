@@ -21,6 +21,7 @@ import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
 import com.formdev.flatlaf.util.FontUtils;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.utils.PrefUtils;
@@ -40,9 +41,15 @@ import java.util.function.Supplier;
  * 인스턴스 설정)에 저장한다. SWT 버전의 테마 설정과 같은 위치 계열이고, 레지스트리(Java Preferences)를 건드리지 않으며,
  * 작업 공간을 복사한 스모크 테스트가 사용자 설정을 바꾸지 않는다.
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
+ * 저장하는 것은 사용자의 선택({@link Choice}: 시스템 설정 따르기·라이트·다크)이고, 설치하는 것은 그 선택이 가리키는 테마다.
+ * 저장값이 없으면 시스템 설정 따르기다(앱 변경 #38): 운영체제의 밝은/어두운 설정({@link SystemTheme})을 따르고, 앱이 켜진 동안 바뀌면
+ * 따라간다({@link #followSystem()}). 라이트·다크를 직접 고른 사용자의 저장값({@code LIGHT}, {@code DARK})은 그대로 그 테마다.
+ * 작업 공간을 잠그기 전(설정을 읽을 수 없을 때)에는 운영체제 설정의 테마를 설치한다. 기본값인 사용자는 메인 창을 열 때 다시 설치하지 않고,
+ * 시작 오류·작업 공간 잠금 대화상자도 운영체제와 같은 모습이다.
  * 밀도(촘촘한 모드, {@link UiDensity})는 테마와 따로 저장하고, 설치할 때마다 그 치수 값을 FlatLaf extra defaults로 테마 값 위에 얹는다.
  * 글꼴은 Look and Feel을 설치하기 전에 등록한다: UI 글꼴 Pretendard({@link UiFont}, 번들), 고정폭 JetBrains Mono(번들에 넣은 FlatLaf 글꼴 jar),
  * SQL 편집기 글꼴 Cascadia Mono({@link EditorFont}). 테마 properties의 {@code defaultFont}, {@code semibold.font}, {@code monospaced.font}가 이 이름을 쓴다.
+ * UI 글꼴 선택이 시스템 글꼴이면({@link UiFont.Choice}) {@code defaultFont}·{@code semibold.font}를 extra defaults로 바꾼다.
  * 테마 글꼴에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
  * 글꼴 객체의 스타일(PLAIN/BOLD)을 따르고 Java에는 semibold 스타일이 없다. 그래서 semibold 글꼴(PLAIN 스타일의 별도 패밀리)에 없는 글자는
  * 보통 굵기로 그려져 옆 글자보다 가늘게 보인다. 화면 언어의 글자가 테마의 semibold 글꼴에 없으면 semibold를 기본 글꼴의 BOLD로 바꿔
@@ -58,6 +65,9 @@ import java.util.function.Supplier;
  * - 2026-11-07 UI 글꼴을 Pretendard로 바꿈(Inter 등록 삭제). semibold 확인은 Inter 고정 이름 대신 설치한 테마의 {@code semibold.font}로 함
  * - 2026-11-07 FlatLaf 탭 넘침 단추의 도구 설명("Show Hidden Tabs")을 화면 언어로 바꿈 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
  * - 2026-11-08 촘촘한 모드: 설치할 때 {@link UiDensity}의 치수 값을 extra defaults로 넘김 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-11 테마 선택 {@link Choice}(시스템 설정 따르기·라이트·다크)를 저장하고 기본값을 시스템 설정 따르기로; 운영체제 설정이 바뀌면 따라감;
+ *   인스턴스 {@code apply()}는 {@link Choice#apply()}로 바뀌어 지움 (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 설치할 때 UI 글꼴 선택({@link UiFont})의 extra defaults를 얹음 (앱 변경 #43, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 enum ChromiteTheme {
 
@@ -67,11 +77,11 @@ enum ChromiteTheme {
     private static final Log log = Log.getLog(ChromiteTheme.class);
 
     private static final String PREF_THEME = "ui.theme"; //$NON-NLS-1$
-    private static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
+    static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
     /**
      * FlatLaf font value: the default font in the BOLD style, a composite font whose fallback fonts are bold too.
      */
-    private static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
+    static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
     /**
      * Tooltip of the button that lists the tabs scrolled out of a tab strip (documents, tool windows, settings pages).
      */
@@ -102,8 +112,10 @@ enum ChromiteTheme {
         FlatJetBrainsMonoFont.installLazy();
         // SQL editor font (Cascadia Mono, bundled)
         EditorFont.installLazy();
-        // The density (compact mode) replaces size values of the theme properties (UiDensity)
+        // The density (compact mode) replaces size values of the theme properties (UiDensity), the UI font choice the
+        // theme's Pretendard by the system font (UiFont)
         Map<String, String> extraDefaults = new HashMap<>(UiDensity.getExtraDefaults());
+        extraDefaults.putAll(UiFont.getExtraDefaults());
         if (!FlatLaf.setup(createLaf(extraDefaults))) {
             log.warn("Can't install look and feel of theme " + name());
             return;
@@ -156,6 +168,14 @@ enum ChromiteTheme {
     }
 
     /**
+     * The theme the operating system is set to ({@link SystemTheme}).
+     */
+    @NotNull
+    static ChromiteTheme forSystem() {
+        return SystemTheme.isDark() ? DARK : LIGHT;
+    }
+
+    /**
      * The theme of the installed look and feel.
      */
     @NotNull
@@ -164,26 +184,82 @@ enum ChromiteTheme {
     }
 
     /**
-     * The theme saved in the preferences (light by default).
+     * The theme of the saved choice.
      */
     @NotNull
     static ChromiteTheme getSaved() {
-        String name = getPreferences().getString(PREF_THEME);
-        return CommonUtils.valueOf(ChromiteTheme.class, name, LIGHT);
+        return getSavedChoice().resolve();
     }
 
     /**
-     * Installs the theme at runtime and saves it for the next start.
+     * The choice saved in the preferences ({@link Choice#SYSTEM} when none is saved).
      */
-    void apply() {
-        install(true);
-        DBPPreferenceStore preferences = getPreferences();
-        preferences.setValue(PREF_THEME, name());
-        PrefUtils.savePreferenceStore(preferences);
+    @NotNull
+    static Choice getSavedChoice() {
+        String name = getPreferences().getString(PREF_THEME);
+        return CommonUtils.valueOf(Choice.class, name, Choice.SYSTEM);
+    }
+
+    /**
+     * Follows changes of the operating system setting while the saved choice is {@link Choice#SYSTEM}. Once the
+     * preferences can be read; on the EDT.
+     */
+    static void followSystem() {
+        SystemTheme.watch(dark -> {
+            ChromiteTheme theme = dark ? DARK : LIGHT;
+            if (getSavedChoice() == Choice.SYSTEM && theme != getCurrent()) {
+                theme.install(true);
+            }
+        });
     }
 
     @NotNull
     private static DBPPreferenceStore getPreferences() {
         return ChromiteSwingActivator.getInstance().getPreferences();
+    }
+
+    /**
+     * The theme the user chose (View &gt; Theme, Tools &gt; Options), saved by its name. The names {@code LIGHT} and
+     * {@code DARK} are those saved before the choice {@code SYSTEM} existed.
+     */
+    enum Choice {
+        SYSTEM(CoreMessages.theme_system, null),
+        LIGHT(CoreMessages.theme_light, ChromiteTheme.LIGHT),
+        DARK(CoreMessages.theme_dark, ChromiteTheme.DARK);
+
+        private final String label;
+        @Nullable
+        private final ChromiteTheme theme;
+
+        Choice(@NotNull String label, @Nullable ChromiteTheme theme) {
+            this.label = label;
+            this.theme = theme;
+        }
+
+        @NotNull
+        String getLabel() {
+            return label;
+        }
+
+        /**
+         * The theme this choice stands for now.
+         */
+        @NotNull
+        ChromiteTheme resolve() {
+            return theme != null ? theme : forSystem();
+        }
+
+        /**
+         * Saves the choice for the next start and installs its theme at runtime when it is not the installed one.
+         */
+        void apply() {
+            DBPPreferenceStore preferences = getPreferences();
+            preferences.setValue(PREF_THEME, name());
+            PrefUtils.savePreferenceStore(preferences);
+            ChromiteTheme resolved = resolve();
+            if (resolved != getCurrent()) {
+                resolved.install(true);
+            }
+        }
     }
 }

@@ -26,6 +26,7 @@ import io.github.andrewauclair.moderndocking.api.RootDockingPanelAPI;
 import io.github.andrewauclair.moderndocking.api.WindowLayoutBuilderAPI;
 import io.github.andrewauclair.moderndocking.exception.DockingLayoutException;
 import io.github.andrewauclair.moderndocking.internal.DockedSimplePanel;
+import io.github.andrewauclair.moderndocking.internal.DockedSplitPanel;
 import io.github.andrewauclair.moderndocking.internal.DockedTabbedPanel;
 import io.github.andrewauclair.moderndocking.internal.FloatingFrame;
 import io.github.andrewauclair.moderndocking.layouts.ApplicationLayout;
@@ -47,6 +48,7 @@ import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.geom.RoundRectangle2D;
@@ -77,7 +79,8 @@ import java.util.StringJoiner;
  *     없으면 도구 창마다 정한 기본 위치를 차례로 쓴다. 한 열을 나누는 두 도구 창(Object Explorer와 Registered Servers, Query Library와
  *     Chromite Agent)은 기본 위치에 서로를 이웃으로 둔다. 마지막 위치가 문서 영역 옆 열(창 가장자리나 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이
  *     지금 문서 영역의 같은 쪽에 있으면, 새 열을 만들지 않고 이웃의 열에 들어간다. 마지막 위치는 이웃이 숨어 있을 때 계산되어 이웃의 열을
- *     모르기 때문이다(한쪽을 숨긴 사이에 다른 쪽을 보였다가 다시 보여도 같은 열).</li>
+ *     모르기 때문이다(한쪽을 숨긴 사이에 다른 쪽을 보였다가 다시 보여도 같은 열). 반대로 마지막 위치의 이웃이 아직 숨어 있으면(한 열을
+ *     하나씩 숨긴 뒤 먼저 숨긴 것부터 보일 때) 그 이웃의 마지막 위치를 쓴다. 기본 위치로 가면 열 폭이 기본 비율로 돌아가기 때문이다.</li>
  *     <li>저장: 작업 공간 {@code .metadata}의 {@value #LAYOUT_FILE}(라이브러리의 XML 형식, 떠 있는 창 포함)와 이 번들 설정의
  *     {@code <id>.restorePlace}(숨긴 도구 창의 위치). 메인 창 위치·크기는 {@link MainFrame}이 따로 저장하므로 배치 파일의 메인 창 크기는
  *     쓰지 않는다. 파일이 없거나, 읽을 수 없거나, 모르는 도구 창·문서 영역 없음 같은 맞지 않는 배치면 기본 배치로 시작한다
@@ -90,6 +93,11 @@ import java.util.StringJoiner;
  *     <li>최소 폭: 라이브러리의 분할 창(JSplitPane)은 카드를 최소 폭보다 좁히지 않는다. 내용의 최소 폭(긴 개체 이름 레이블, 도구 막대 전체,
  *     줄 바꿈 텍스트 영역의 현재 폭)을 따르면 카드가 데이터에 따라 넓어지거나 아예 줄지 않으므로, 카드의 최소 폭은 머리말({@link Header})이
  *     정하고 내용({@link ToolWindowDockable})은 최소 폭을 갖지 않는다. 내용은 좁게 배치되어 레이블은 말줄임표로, 도구 막대는 넘침 메뉴로 줄어든다.</li>
+ *     <li>크기 바꾸기: 라이브러리의 분할 창은 중첩되어 있고(바깥 분할 = [왼쪽 열 + 문서 영역 | 오른쪽 열]) 크기가 바뀌면 양쪽이 반씩 나눠 가진다
+ *     (resizeWeight 0.5). 그래서 오른쪽 경계를 끌면 안쪽 분할의 왼쪽 열도, 창 크기를 바꾸면 모든 열이 바뀌었다. 문서 영역을 가진 분할은 바뀐 크기를
+ *     문서 영역 쪽이 모두 갖고, 문서 영역의 한쪽에 있는 분할은 문서 영역에 가까운 쪽이 갖는다({@link #updateResizeWeights()}). 경계를 끌면
+ *     그 양옆만, 창 크기를 바꾸면 문서 영역만 바뀐다(DataGrip, SSMS와 같음). 문서 영역과 다른 방향(한 열의 위아래)과 떠 있는 창은 반씩 그대로다.
+ *     라이브러리가 분할선 두 번 클릭에 resizeWeight 위치로 옮기는 동작은 열을 한쪽 끝으로 접게 되므로 뗀다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -101,6 +109,9 @@ import java.util.StringJoiner;
  *   숨긴 사이 Query Library를 보이면 둘이 따로 열을 만들던 문제 (docs/chromite/swing-frontend.md "Query Library 자리")
  * - 2026-11-08 주석만: 한 열을 나누는 예를 새 기본 배치(Query Library와 Chromite Agent, 앱 변경 #12)로
  *   (docs/chromite/swing-frontend.md "기본 배치: Query Library와 Chromite Agent")
+ * - 2026-11-11 크기 바꾸기: 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 분할 창의 resizeWeight를 문서 영역 쪽으로. 오른쪽 열 경계를 끌면
+ *   왼쪽 열도 바뀌던 문제. 한 열을 하나씩 숨긴 뒤 먼저 숨긴 것부터 보이면 숨어 있는 이웃의 마지막 위치로(열 폭이 기본 비율로 돌아가던 문제)
+ *   (앱 변경 #45, docs/chromite/swing-frontend.md "도구 창 크기 바꾸기")
  */
 final class ToolWindowDocking {
 
@@ -119,6 +130,10 @@ final class ToolWindowDocking {
     private static final String OLD_PREF_SIZE_SUFFIX = ".size"; //$NON-NLS-1$
     private static final double MIN_PROPORTION = 0.05;
     private static final double MAX_PROPORTION = 0.95;
+    /**
+     * The library's resize weight: both sides of a split share a change of its size.
+     */
+    private static final double EVEN_RESIZE_WEIGHT = 0.5;
     private static final int PLACES_DELAY_MS = 500;
     /**
      * The text a clipped {@link JLabel} ends with (the label's UI draws it).
@@ -143,7 +158,9 @@ final class ToolWindowDocking {
     /**
      * Where a hidden tool window goes back to: next to another dockable ({@code targetId}) or along the main window edge
      * ({@code targetId == null}). {@code size} is the tool window's share of the target, or of the main window's docking
-     * area for an edge (proportions, not pixels, so the documents keep their share at any window width).
+     * area for an edge. It is a proportion, the unit of the library's layouts: a shown tool window keeps its width in
+     * pixels when the main window is resized ({@link #updateResizeWeights()}), but one hidden meanwhile comes back with
+     * its share of the new size.
      */
     record Place(@Nullable String targetId, @NotNull DockingRegion region, double size) {
         private static final String SEPARATOR = "|"; //$NON-NLS-1$
@@ -201,7 +218,11 @@ final class ToolWindowDocking {
             }
         });
         placesTimer.setRepeats(false);
-        docking.addDockingListener(e -> scheduleUpdate());
+        docking.addDockingListener(e -> {
+            // At once, not only in the scheduled update: the change is laid out before that runs
+            updateResizeWeights();
+            scheduleUpdate();
+        });
         lookAndFeelListener = e -> {
             // The library re-adds its panel borders on look and feel changes (invokeLater); decorate after it
             if ("lookAndFeel".equals(e.getPropertyName())) { //$NON-NLS-1$
@@ -486,12 +507,16 @@ final class ToolWindowDocking {
 
     private void show(@NotNull Dock dock) {
         List<Place> places = new ArrayList<>();
-        if (dock.restorePlace != null) {
-            Place neighbourPlace = getNeighbourColumnPlace(dock, dock.restorePlace);
+        // The last place, then, while its neighbour is hidden too (a column hidden one tool window after the other), the
+        // neighbour's last place: the column comes back where it was and with its width, not at the default share
+        Set<String> seen = new HashSet<>();
+        seen.add(dock.getId());
+        for (Place lastPlace = dock.restorePlace; lastPlace != null; lastPlace = getHiddenTargetPlace(lastPlace, seen)) {
+            Place neighbourPlace = getNeighbourColumnPlace(dock, lastPlace);
             if (neighbourPlace != null) {
                 places.add(neighbourPlace);
             }
-            places.add(dock.restorePlace);
+            places.add(lastPlace);
         }
         places.addAll(dock.defaultPlaces);
         for (Place place : places) {
@@ -543,6 +568,19 @@ final class ToolWindowDocking {
             }
             docking.autoHideDockable(dock.dockable);
         }
+    }
+
+    /**
+     * The last place of the tool window a place is next to, if that one is not in the main window either (each tool window
+     * once, {@code seen}).
+     */
+    @Nullable
+    private Place getHiddenTargetPlace(@NotNull Place place, @NotNull Set<String> seen) {
+        Dock target = place.targetId() != null ? docks.get(place.targetId()) : null;
+        if (target == null || !seen.add(target.getId()) || isInMainWindow(target.dockable)) {
+            return null;
+        }
+        return target.restorePlace;
     }
 
     @Nullable
@@ -705,6 +743,7 @@ final class ToolWindowDocking {
             updateScheduled = false;
             if (!disposed) {
                 decorate();
+                updateResizeWeights();
                 placesTimer.restart();
                 for (Dock dock : docks.values()) {
                     dock.toolWindow.shownChanged();
@@ -772,6 +811,58 @@ final class ToolWindowDocking {
                 decorate(nested);
             }
         }
+    }
+
+    /**
+     * Makes a change of a split's size go to the side toward the documents (see {@link #getResizeWeight}), so a dragged
+     * border changes only its two neighbours and a resized main window only the documents. The library gives every
+     * split half of a change: dragging the right column's border resized the left column too (the outer split holds
+     * the left column and the documents on one side), and resizing the window changed every column.
+     */
+    private void updateResizeWeights() {
+        for (RootDockingPanelAPI rootPanel : docking.getRootPanels().values()) {
+            updateResizeWeights(rootPanel);
+        }
+    }
+
+    private void updateResizeWeights(@NotNull Container container) {
+        for (Component child : container.getComponents()) {
+            if (child instanceof Dockable) {
+                continue;
+            }
+            if (child instanceof DockedSplitPanel splitPanel) {
+                JSplitPane splitPane = splitPanel.getSplitPane();
+                splitPane.setResizeWeight(getResizeWeight(splitPane));
+                // The library's double click moves the divider to the resize weight, which would now fold a side away
+                if (splitPane.getUI() instanceof BasicSplitPaneUI splitPaneUI && splitPaneUI.getDivider() != null) {
+                    splitPaneUI.getDivider().removeMouseListener(splitPanel);
+                }
+            }
+            if (child instanceof Container nested) {
+                updateResizeWeights(nested);
+            }
+        }
+    }
+
+    /**
+     * 1 (the left or top side gets all of a change) or 0 (the right or bottom side) for the side toward the documents:
+     * the side that has them, or for a split on one side of them along the same axis (two columns on the left), the side
+     * nearer to them. Even for splits across that axis (two tool windows above each other in a column) and in floating
+     * windows.
+     */
+    private double getResizeWeight(@NotNull JSplitPane splitPane) {
+        for (Component component = splitPane; component != null; component = component.getParent()) {
+            // The innermost split that has the documents: the split itself, or the one this split is on a side of
+            if (component instanceof JSplitPane split && SwingUtilities.isDescendingFrom(documents, split)) {
+                if (split.getOrientation() != splitPane.getOrientation()) {
+                    return EVEN_RESIZE_WEIGHT;
+                }
+                // Documents first: they are on this split's first side, or this split is after them (right of or below
+                // them) and its first side is the nearer one. Documents second: the same for the second side
+                return SwingUtilities.isDescendingFrom(documents, split.getLeftComponent()) ? 1 : 0;
+            }
+        }
+        return EVEN_RESIZE_WEIGHT;
     }
 
     /**

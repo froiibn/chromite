@@ -56,12 +56,13 @@ import java.util.List;
  *     연결 속성 페이지였던 것과 같음). 쿼리 창 세션은 연결 대화상자 Connection Properties에 따로 있어 연결별 페이지에는 두지 않는다.
  *     모든 키를 실행할 때마다 읽으므로 다시 연결하지 않아도 된다.</li>
  * </ul>
- * OK를 누를 때 바뀐 값만 저장한다.
+ * 켜고 끄는 설정은 누를 때 바로, 나머지 값은 페이지의 [저장]에서 저장한다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 문 구분 기호, 매개 변수, 오류 처리 (docs/chromite/swing-options.md)
  * - 2026-11-07 쿼리 창 세션(쿼리 창마다 별도 연결) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 {@link SettingsPage}로 바꿈: 연결별 값(연결 대화상자) (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-12 Options 저장 표준(앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class SqlExecutionOptionsPage extends SettingsPage {
 

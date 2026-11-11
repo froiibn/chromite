@@ -106,7 +106,11 @@ import java.util.concurrent.CountDownLatch;
  *   열리면 닫히고, 시작이 어떻게 끝나도 닫힌다({@code runWithSplash}). 프로세스 시작부터 단계별 시간을 디버그 로그 한 줄로 남김
  *   (docs/chromite/branding.md "시작 화면")
  * - 2026-11-08 업데이트 진행 창: 업데이트 뒤 첫 시작이면 시작 화면 대신 그 창을 띄우고({@link UpdateProgress#openFirstStart}), 시작이
- *   끝나거나 실패하면 그 창이 알림. 끝날 때 적용에 그 창을 넘김 (docs/chromite/auto-update.md "업데이트 진행 창") */
+ *   끝나거나 실패하면 그 창이 알림. 끝날 때 적용에 그 창을 넘김 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-11 작업 공간 잠금 전 테마를 라이트 대신 운영체제 설정의 테마로 설치하고, 메인 창을 열 때 운영체제 설정 바뀜을 따라가기 시작
+ *   (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 저장된 UI 글꼴 선택({@link UiFont})이 다른 글꼴이면 주 창을 열기 전에 테마를 다시 설치함 (앱 변경 #43,
+ *   docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -255,8 +259,9 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static void installLookAndFeel() throws InterruptedException, InvocationTargetException {
         SwingUtilities.invokeAndWait(() -> {
-            // The saved theme can't be read yet (the workspace is not locked); see openMainWindow
-            ChromiteTheme.LIGHT.install(false);
+            // The saved theme can't be read yet (the workspace is not locked); see openMainWindow. The theme of the
+            // operating system is the default choice, so most starts need no second install there
+            ChromiteTheme.forSystem().install(false);
             // Dialogs without a parent window (startup errors, SwingPlatformUI before the main window exists)
             // are owned by this shared frame and take its icon instead of the Java runtime's one
             JOptionPane.getRootFrame().setIconImages(ChromiteIcons.getWindowIcons());
@@ -294,11 +299,15 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     private void openMainWindow(@NotNull String statusText) {
         ChromiteTheme savedTheme = ChromiteTheme.getSaved();
         boolean savedCompact = UiDensity.isSavedCompact();
-        if (savedTheme != ChromiteTheme.getCurrent() || savedCompact != UiDensity.isCompact()) {
+        UiFont.Choice savedFont = UiFont.getSavedChoice();
+        boolean fontChanged = savedFont.usesSystemFont() != UiFont.getChoice().usesSystemFont();
+        UiFont.setChoice(savedFont);
+        if (savedTheme != ChromiteTheme.getCurrent() || savedCompact != UiDensity.isCompact() || fontChanged) {
             // Only the shared root frame of parentless dialogs exists yet
             UiDensity.setCompact(savedCompact);
             savedTheme.install(true);
         }
+        ChromiteTheme.followSystem();
         MainFrame frame = new MainFrame(GeneralUtils.getProductName(), statusText);
         frame.addWindowListener(new WindowAdapter() {
             @Override

@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
-import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
@@ -55,6 +54,9 @@ import java.awt.event.ActionEvent;
  *   쓰지 않게 된 전역 표시 여부 설정({@code results.visible})을 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
  * - 2026-11-08 Results 배치: 문서 오른쪽에 놓기({@link SplitHost#setBeside})와 최대화({@link SplitHost#setMaximized})
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-11 숨기기 단추: 도구 설명에 보이기·숨기기 단축키(앱 변경 #50: 사용자가 Ctrl+R이 있는 줄 몰랐다), 아이콘 "−"을 "×"(close)로,
+ *   도구 설명 "닫기"(앱 변경 #57: Windows 사용자는 "−"를 최소화로 읽는다)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "단축키를 도구 설명에")
  */
 final class ToolWindow {
 
@@ -121,17 +123,21 @@ final class ToolWindow {
     }
 
     /**
-     * The "hide" icon button (—) for the tool window header or for content with its own header.
+     * The close icon button (×) for the tool window header or for content with its own header. It hides the tool window
+     * (the View menu shows it again); a "−" read as minimize to Windows users.
      */
     @NotNull
     JButton createHideButton() {
-        Action hideAction = new AbstractAction(NLS.bind(CoreMessages.toolwindow_hide, title)) {
+        Action hideAction = new AbstractAction(CoreMessages.toolwindow_close) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 setShown(false);
             }
         };
-        return UiIcons.createActionButton(hideAction, "hide"); //$NON-NLS-1$
+        // The toggle's shortcut also hides the tool window: the button's tool tip names it ("Close (Ctrl+R)").
+        // A button does not bind its action's accelerator, so the key still goes through the View menu only
+        hideAction.putValue(Action.ACCELERATOR_KEY, toggleAction.getValue(Action.ACCELERATOR_KEY));
+        return UiIcons.createActionButton(hideAction, "close"); //$NON-NLS-1$
     }
 
     boolean isShown() {

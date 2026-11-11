@@ -43,6 +43,8 @@ import java.util.List;
  * - 2026-11-06 SQL 편집기 확장의 쿼리 기록 창({@link QueryHistoryDialog})과 이름이 겹쳐 QueryHistoryDialog에서 이름을 바꿈
  *   (docs/chromite/swing-query-library.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class QueryRunHistoryDialog extends JDialog {
 
@@ -205,7 +207,7 @@ final class QueryRunHistoryDialog extends JDialog {
             if (!isSelected && value instanceof QueryLibraryHistory.Status status) {
                 Color color = UIManager.getColor(switch (status) {
                     case ALERT, ERROR -> "Chromite.status.error"; //$NON-NLS-1$
-                    case SKIPPED -> "Chromite.status.warning"; //$NON-NLS-1$
+                    case SKIPPED -> "Chromite.status.warningForeground"; //$NON-NLS-1$
                     case OK -> "Chromite.status.success"; //$NON-NLS-1$
                 });
                 if (color != null) {

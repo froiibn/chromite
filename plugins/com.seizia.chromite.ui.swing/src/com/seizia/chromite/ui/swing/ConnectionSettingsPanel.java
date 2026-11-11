@@ -30,6 +30,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourcePermission;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.admin.ServerDatabaseNames;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionBootstrap;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Connect 대화상자의 설정 화면(MVP 2번 "범용 연결 화면 하나로 전체 드라이버 지원"). 드라이버 정의만 보고 입력 칸을 정한다.
@@ -133,6 +135,15 @@ import java.util.Set;
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-11 URL 방식으로 저장하면 주소(호스트·포트·서버·DB)를 URL에서 읽어 씀({@link #writeAddressFromUrl}). 전에는 꺼진 주소 칸의
+ *   자리 값(드라이버 기본 호스트 localhost, 마지막 서버)을 저장해 등록된 서버·탐색기에 localhost로 보였다(앱 변경 #41,
+ *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-11 유휴 연결 닫기 칸은 실제로 닫을 때만 켜져 보이고, 닫지 않는 연결 종류에서 켜면 이 연결의 기간을 저장하고 끄면 종류를 따름(앱 변경 #48,
+ *   유휴 연결 닫기 기본값 끔, docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-11 SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로({@link ConnectionDatabaseList}).
+ *   목록은 대화상자가 Test Connection처럼 만든 임시 연결로 읽는다 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -180,6 +191,10 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JLabel databaseLabel = new JLabel(ConnectionMessages.settings_database);
     @Nullable
     private JComponent databaseRow;
+    /**
+     * Makes the temporary connection of Test Connection from the form (owned by the dialog).
+     */
+    private final Supplier<DataSourceDescriptor> testConnectionFactory;
 
     private final JTextField descriptionField = new JTextField();
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
@@ -234,16 +249,20 @@ final class ConnectionSettingsPanel extends JPanel {
      * @param isNew              new connection: fields start with the driver defaults
      * @param databaseTypeCombo  the "Database type" row (owned by the dialog, it survives a driver change)
      * @param changeListener     called when a value changes (validation)
+     * @param testConnectionFactory makes the temporary connection of Test Connection from the form (the database list
+     *                              connects with it)
      */
     ConnectionSettingsPanel(
         @NotNull DataSourceDescriptor dataSource,
         boolean isNew,
         @NotNull JComponent databaseTypeCombo,
-        @NotNull Runnable changeListener
+        @NotNull Runnable changeListener,
+        @NotNull Supplier<DataSourceDescriptor> testConnectionFactory
     ) {
         super(new BorderLayout(0, 12));
         this.dataSource = dataSource;
         this.driver = dataSource.getDriver();
+        this.testConnectionFactory = testConnectionFactory;
         // Every change also updates the network tabs (used or not) and the address rows (Oracle TNS hides some)
         this.changeListener = () -> {
             updateNetworkTabs();
@@ -384,7 +403,15 @@ final class ConnectionSettingsPanel extends JPanel {
      */
     @Nullable
     String validateSettings() {
-        String problem = validateAddress();
+        return validateSettings(true);
+    }
+
+    /**
+     * @param databaseRequired a mandatory database must be typed (not for reading the database list)
+     */
+    @Nullable
+    private String validateSettings(boolean databaseRequired) {
+        String problem = validateAddress(databaseRequired);
         if (problem == null) {
             for (ConnectionNetworkPage page : networkPages) {
                 problem = page.getErrorMessage();
@@ -400,7 +427,7 @@ final class ConnectionSettingsPanel extends JPanel {
      * The address part of {@link #validateSettings}: the URL, the generic fields or the driver's own fields.
      */
     @Nullable
-    private String validateAddress() {
+    private String validateAddress(boolean databaseRequired) {
         if (isUrlMode()) {
             return urlField.getText().isBlank() ? ConnectionMessages.settings_enter_url : null;
         }
@@ -415,7 +442,7 @@ final class ConnectionSettingsPanel extends JPanel {
             String missing = switch (property) {
                 case DBConstants.PROP_HOST -> hostAndPort[0].isBlank() ? ConnectionMessages.settings_enter_server_name : null;
                 case DBConstants.PROP_PORT -> hostAndPort[1].isBlank() ? ConnectionMessages.settings_enter_port : null;
-                case DBConstants.PROP_DATABASE -> databaseField.getText().isBlank() ? ConnectionMessages.settings_enter_database : null;
+                case DBConstants.PROP_DATABASE -> databaseRequired && databaseField.getText().isBlank() ? ConnectionMessages.settings_enter_database : null;
                 case DBConstants.PROP_SERVER -> serverField.getText().isBlank() ? ConnectionMessages.settings_enter_server : null;
                 case DBConstants.PROP_FILE -> pathField.getText().isBlank() ? ConnectionMessages.settings_enter_file : null;
                 case DBConstants.PROP_FOLDER -> pathField.getText().isBlank() ? ConnectionMessages.settings_enter_folder : null;
@@ -442,7 +469,11 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
         boolean urlMode = isUrlMode();
         configuration.setConfigurationType(urlMode ? DBPDriverConfigurationType.URL : DBPDriverConfigurationType.MANUAL);
-        writeAddress(configuration);
+        if (urlMode) {
+            writeAddressFromUrl(configuration);
+        } else {
+            writeAddress(configuration);
+        }
 
         DBPAuthModelDescriptor authModel = getSelectedAuthModel();
         if (authModel != null) {
@@ -696,8 +727,21 @@ final class ConnectionSettingsPanel extends JPanel {
             manualComponents.add(serverField);
         }
         if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
-            databaseRow = driverFields == null ? databaseField : driverFields.decorateDatabaseField(databaseField);
+            // An empty field means the login's default database only where the driver has no default database of its own
+            // (SQL Server, MySQL; PostgreSQL fills in postgres)
+            ConnectionDatabaseList databaseList = ServerDatabaseNames.isSupported(driver)
+                ? new ConnectionDatabaseList(databaseField, createDatabaseListSource(), CommonUtils.isEmpty(driver.getDefaultDatabase())
+                    ? ConnectionMessages.settings_database_list_tip_optional : ConnectionMessages.settings_database_list_tip)
+                : null;
+            if (databaseList != null) {
+                databaseRow = databaseList.getCombo();
+            } else {
+                databaseRow = driverFields == null ? databaseField : driverFields.decorateDatabaseField(databaseField);
+            }
             form.addRow(databaseLabel, databaseRow);
+            if (databaseList != null) {
+                form.addRow((JLabel) null, databaseList.getStatusLine());
+            }
             manualComponents.add(databaseField);
         }
         if (urlProperties.contains(DBConstants.PROP_FILE) || urlProperties.contains(DBConstants.PROP_FOLDER)) {
@@ -857,7 +901,7 @@ final class ConnectionSettingsPanel extends JPanel {
         idleTxnRollbackCheck.addActionListener(e -> updateIdleTransactionFields());
         idleTxnRemindCheck.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
         idleTxnPeriodSpinner.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
-        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
         for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner, idleTxnPeriodSpinner)) {
             // Seconds without digit grouping
             JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#"); //$NON-NLS-1$
@@ -1072,7 +1116,10 @@ final class ConnectionSettingsPanel extends JPanel {
         restrictions = new ArrayList<>(dataSource.getModifyPermission());
         updateRestrictionsButton();
         keepAliveSpinner.setValue(Math.max(0, configuration.getKeepAliveInterval()));
-        closeIdleCheck.setSelected(configuration.isCloseIdleConnection());
+        // On only when it acts: the connection's own period, or its type's when the type closes idle connections
+        // (DataSourceMonitorJob.getDisconnectTimeoutSeconds); the flag alone defaults to true for every connection
+        closeIdleCheck.setSelected(configuration.isCloseIdleConnection()
+            && (configuration.getCloseIdleInterval() > 0 || type.isAutoCloseConnections()));
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
             ? configuration.getCloseIdleInterval() : type.getCloseIdleConnectionPeriod()));
         closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
@@ -1293,11 +1340,15 @@ final class ConnectionSettingsPanel extends JPanel {
         // ConnectionPageGeneral.saveSettings: empty restrictions are "the connection type's"
         target.setModifyPermissions(restrictions);
         configuration.setKeepAliveInterval((Integer) keepAliveSpinner.getValue());
-        configuration.setCloseIdleConnection(closeIdleCheck.isSelected());
         int closeIdlePeriod = (Integer) closeIdleSpinner.getValue();
-        // Saved only when enabled and different from the connection type's default
-        configuration.setCloseIdleInterval(configuration.isCloseIdleConnection()
-            && closeIdlePeriod != configuration.getConnectionType().getCloseIdleConnectionPeriod() ? closeIdlePeriod : 0);
+        DBPConnectionType idleType = configuration.getConnectionType();
+        // Off under a type that doesn't close idle connections keeps "follow the type" (true without a period), so the
+        // connection follows if the type is turned on later; off under a type that closes them opts this one out
+        configuration.setCloseIdleConnection(closeIdleCheck.isSelected() || !idleType.isAutoCloseConnections());
+        // The period is saved only when enabled and the type would not close after the same period (a type that
+        // doesn't close idle connections needs the connection's own period)
+        configuration.setCloseIdleInterval(closeIdleCheck.isSelected()
+            && (!idleType.isAutoCloseConnections() || closeIdlePeriod != idleType.getCloseIdleConnectionPeriod()) ? closeIdlePeriod : 0);
         // Idle transactions: the reminder and its period are saved only when they differ from the connection type's
         // defaults (the connection keeps following its type); the automatic rollback is saved as chosen
         DBPConnectionType type = configuration.getConnectionType();
@@ -1403,6 +1454,75 @@ final class ConnectionSettingsPanel extends JPanel {
         if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
             configuration.setDatabaseName(pathField.getText().trim());
         }
+    }
+
+    /**
+     * URL mode: the host, port, server and database of the URL as the driver's template reads them. The address fields
+     * are disabled in this mode and may hold only placeholders (the driver's default host "localhost", the last server
+     * used with the driver), so they are not written: saving them replaced the real address that the trees, the status
+     * line and the export show with "localhost" (app change #41). A URL the template can't read clears the host and
+     * port, so no stale address is shown; the URL itself is still what connects.
+     */
+    private void writeAddressFromUrl(@NotNull DBPConnectionConfiguration configuration) {
+        if (urlPattern == null) {
+            // A driver without a usable template has no address fields
+            return;
+        }
+        Map<String, String> address = urlPattern.tryRecognize(urlField.getText().trim());
+        if (address == null || address.isEmpty()) {
+            configuration.setHostName(null);
+            configuration.setHostPort(null);
+            return;
+        }
+        if (urlProperties.contains(DBConstants.PROP_HOST)) {
+            configuration.setHostName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_HOST)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_PORT)) {
+            configuration.setHostPort(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_PORT)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_SERVER)) {
+            configuration.setServerName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_SERVER)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_DATABASE)));
+        } else if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
+            String path = address.get(DBConstants.PROP_FOLDER);
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(path != null ? path : address.get(DBConstants.PROP_FILE)));
+        }
+    }
+
+    /**
+     * The connection the Database list reads with: Test Connection's temporary connection, to the driver's default
+     * database instead of the typed one (it may not exist or be misspelled; empty is the login's default database).
+     */
+    @NotNull
+    private ConnectionDatabaseList.Source createDatabaseListSource() {
+        return new ConnectionDatabaseList.Source() {
+            @Nullable
+            @Override
+            public String validate() {
+                return validateSettings(false);
+            }
+
+            @NotNull
+            @Override
+            public DataSourceDescriptor createConnection() {
+                DataSourceDescriptor connection = testConnectionFactory.get();
+                DBPConnectionConfiguration configuration = connection.getConnectionConfiguration();
+                configuration.setDatabaseName(CommonUtils.notEmpty(driver.getDefaultDatabase()));
+                try {
+                    configuration.setUrl(driver.getConnectionURL(configuration));
+                } catch (DBException e) {
+                    // Regenerated from the template when connecting, as saveSettings does
+                    configuration.setUrl(null);
+                }
+                if (savePasswordCheck.isVisible() && !savePasswordCheck.isSelected() && passwordField.getPassword().length == 0) {
+                    // A password that is neither saved nor typed: connecting asks for it (DataSourceDescriptor.askForPassword)
+                    connection.setSavePassword(false);
+                }
+                return connection;
+            }
+        };
     }
 
     /**

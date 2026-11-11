@@ -14,7 +14,7 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
 - **자동 저장**: 10초마다(`QueryWindowRecovery.SAVE_INTERVAL_MS`) 열린 쿼리 창의 상태를 만들어 지난번과 다를 때만 쓴다. 메인 창이 닫힐 때
   (File > Exit, 창 닫기, 업데이트의 다시 시작, 외부 종료 요청) 한 번 더 바로 쓴다. 프로세스를 강제로 끝내면 마지막 10초 주기의 상태가 남는다.
 - **저장하는 것**: 창 순서와 활성 창, 창 이름(`SQLQueryN.sql` 또는 파일 이름), 파일 경로, 연결(프로젝트 이름 + 연결 ID), 기본 DB/스키마,
-  고침 여부, 커서 위치. 글은 파일에 없는 것만 저장한다(고친 창, 한 번도 저장하지 않은 창). 고치지 않은 파일 창은 경로만 적는다.
+  고침 여부, 커서 위치, 탭 고정(2026-11-12). 글은 파일에 없는 것만 저장한다(고친 창, 한 번도 저장하지 않은 창). 고치지 않은 파일 창은 경로만 적는다.
 - **저장하지 않는 창**: Query Library 쿼리 창(라이브러리에 저장된다), 고치지 않은 Modify 창(그 사이 개체 정의가 바뀌었으면 옛 정의를 실행할 위험).
   고친 Modify 창은 글을 잃지 않도록 평범한 쿼리 창으로 복원한다(Debug·실행 뒤 탐색기 갱신 연결은 없다). DDL 탭, 테이블 디자이너, 도구 문서도 넣지 않는다.
 - **끝낼 때**: 저장 질문(Save / Don't Save / Cancel)은 그대로다. Save는 파일에 쓰고, Don't Save는 파일에 쓰지 않는다. 어느 쪽이든 창의 지금 상태가
@@ -36,6 +36,12 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
 - **질문 중에 앱이 끝날 때**(밖에서 끝냄, `ChromiteSwingApplication.stop` → 메인 창 `dispose`): 질문 대화상자가 메인 창과 함께 닫히지만 답이 아니다.
   복원도 버리기도 하지 않고 지난 세션의 파일을 그대로 두어 다음 시작에서 다시 묻는다(2026-11-08, 후속 38).
 
+- **탭 고정과 닫은 탭**(2026-11-12, 앱 변경 #42): 고정한 쿼리 창 탭은 `pinned`로 저장되고 복원하면 다시 고정된다(왼쪽에 모임).
+  `pinned`가 없는 옛 파일은 고정 안 함으로 읽는다(`version` 그대로 1). 문서 탭 메뉴의 **닫은 탭 다시 열기**는 창 하나의 기록과 복원을 이 클래스와 함께 쓴다
+  (`QueryWindowRecovery.capture`, `restore(Window)`): 닫을 때(질문에 답한 뒤) 같은 기록을 메모리에 최근 10개 두고, 다시 열 때 같은 규칙으로 연결하지 않고
+  아무것도 실행하지 않는다. 저장하지 않고 닫은 글도 고친 창으로 돌아온다. 넣지 않는 창도 같다(Query Library 창, 고치지 않은 Modify 창).
+  메뉴와 탭 고정은 [swing-frontend.md](swing-frontend.md) "문서 탭 메뉴".
+
 ## 구조
 
 | 위치 | 역할 |
@@ -44,6 +50,7 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
 | `ui.swing` `MainFrame` | `QueryWindowRecovery.Host` 구현(Query Library 호스트와 같은 메서드), 창이 열린 뒤 `start`, `dispose`에서 `stop`, 복원한 `SQLQueryN` 번호 뒤로 새 창 번호 |
 | `ui.swing` `SqlEditorPanel` | `DefaultObjectNames`(기본 DB/스키마 이름), `getDefaultObjectNames`, `setRestoredDefaults`, 세션 열기를 `openWindowContext` 하나로 모아 처음 열 때 복원값 적용, 연결 전 DB 콤보·상태 줄에 복원값 |
 | `ui.swing` `internal.ScriptsMessages` | 복원 질문 문구(영어, 한국어) |
+| `ui.swing` `DocumentTabMenu` | 탭 고정 상태(`isPinned`)와 고정(`setPinned`, 복원할 때 `Host.pinQueryWindow`로), 닫은 창 기록(`capture`)으로 다시 열기 |
 | 작업 공간 `.metadata/chromite-recovery/query-windows.json` | 복원 파일(JSON, UTF-8). `query-windows.discarded.json`은 마지막으로 버린 것 |
 
 복원 파일 모양(`version` 1):
@@ -51,7 +58,7 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
 ```json
 {"version":1,"active":1,"windows":[
   {"name":"SQLQuery1.sql","project":"General","connection":"<연결 ID>","catalog":"chr_db","schema":"dbo","modified":true,"text":"SELECT ...","caret":22},
-  {"name":"report.sql","file":"D:\\...\\Scripts\\report.sql","project":"General","connection":"<연결 ID>","catalog":"master","schema":"dbo","modified":false,"caret":0}
+  {"name":"report.sql","file":"D:\\...\\Scripts\\report.sql","project":"General","connection":"<연결 ID>","catalog":"master","schema":"dbo","modified":false,"caret":0,"pinned":true}
 ]}
 ```
 
@@ -114,3 +121,5 @@ Swing은 열린 쿼리 창을 작업 공간의 복원 파일에 저장하고, �
   `start()`는 질문이 돌아온 뒤 그 값을 보면 아무것도 하지 않는다. 확인: 창 2개를 남기고 다시 시작 → 질문이 열린 채 시험 코드가 `ChromiteSwingApplication.stop()` 호출 →
   앱이 끝나고 `.log`·`chromite-debug.log`에 `RejectedExecutionException` 없음, `query-windows.json` 그대로(`discarded` 없음) → 다음 시작에서 같은 질문, 복원으로 창 2개
   (증거 `D:\Tools\_scratch\chromite-followups-4\run\t38*.txt.log`, `g1.txt.log`, `shots\38-*.png`). 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #42(`chromite/tabs-toolbar`): 탭 고정(`pinned`)을 저장·복원, 창 하나의 기록·복원(`capture`, `restore(Window)`)을 문서 탭 메뉴의
+  닫은 탭 다시 열기가 함께 씀. "동작"의 "탭 고정과 닫은 탭". 회귀 테스트는 실행하지 않았다.

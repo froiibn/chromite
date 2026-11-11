@@ -45,6 +45,9 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-explorer-productivity.md "필터 대화상자")
  * - 2026-11-08 Outline 도구 창, Query &gt; Pin Results, View &gt; Results Beside Editor·Maximize Results 문구
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-11 Registered Servers 새 그룹의 위치 문구와 New Subgroup… / New Top-Level Group… (앱 변경 #47, docs/chromite/swing-registered-servers.md)
+ * - 2026-11-11 Object Explorer 도구 막대의 읽은 항목 펼치기 (앱 변경 #51, docs/chromite/swing-registered-servers.md "펼치기 단추")
+ * - 2026-11-11 테마 선택지 "시스템 설정 따르기" 문구 (앱 변경 #38)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -56,6 +59,7 @@ public class CoreMessages extends NLS {
     public static String common_replace;
     public static String common_error;
     public static String common_input;
+    public static String common_tip_shortcut;
     public static String common_loading;
     public static String common_no_active_project;
     public static String common_select_connection_first;
@@ -147,6 +151,8 @@ public class CoreMessages extends NLS {
     public static String explorer_refresh;
     public static String explorer_refresh_tip;
     public static String explorer_collapse_all;
+    public static String explorer_expand_loaded;
+    public static String explorer_expand_loaded_tip;
     public static String explorer_filter;
     public static String explorer_filter_tip;
     public static String explorer_select_top;
@@ -199,6 +205,8 @@ public class CoreMessages extends NLS {
     public static String options_environment;
     public static String options_theme;
     public static String options_icon_style;
+    public static String options_ui_font;
+    public static String options_ui_font_hint;
     public static String options_query_editor;
     public static String options_auto_complete;
     public static String options_completion_delay;
@@ -248,10 +256,21 @@ public class CoreMessages extends NLS {
     public static String options_bold;
     public static String options_italic;
     public static String options_preview;
-    public static String options_save_failed_title;
-    public static String options_save_failed;
     public static String options_search_placeholder;
     public static String options_search_no_match;
+    public static String options_revert;
+    public static String options_changes_one;
+    public static String options_changes;
+    public static String options_not_saved;
+    public static String options_leave_title;
+    public static String options_leave_message;
+    public static String options_discard;
+    public static String options_group_general;
+    public static String options_group_editor;
+    public static String options_group_results;
+    public static String options_group_connections;
+    public static String options_group_databases;
+    public static String options_group_chromite;
 
     public static String editor_colors_text;
     public static String editor_colors_keyword;
@@ -328,12 +347,15 @@ public class CoreMessages extends NLS {
     public static String platform_not_supported;
     public static String platform_external_fs_not_supported;
 
+    public static String theme_system;
     public static String theme_light;
     public static String theme_dark;
     public static String icon_style_duotone;
     public static String icon_style_color;
+    public static String ui_font_auto;
+    public static String ui_font_system;
 
-    public static String toolwindow_hide;
+    public static String toolwindow_close;
     public static String toast_click_details;
 
     public static String servers_new_registration;
@@ -369,6 +391,12 @@ public class CoreMessages extends NLS {
     public static String servers_server;
     public static String servers_enter_group_name;
     public static String servers_group_exists;
+    public static String servers_new_subgroup;
+    public static String servers_new_top_group;
+    public static String servers_group_name_label;
+    public static String servers_group_location;
+    public static String servers_location_top;
+    public static String servers_location_in;
 
     public static String ddl_header;
     public static String ddl_format;

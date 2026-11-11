@@ -49,7 +49,7 @@ import java.util.Objects;
  * 설계:
  * <ul>
  *     <li>내용은 SSMS 상태 줄(상태, 서버(버전), 사용자, DB, 시간, 행)이고 모양은 DataGrip 상태 표시줄 값(design-spec "9. 쿼리 상태 줄과 주 상태 표시줄"):
- *     높이는 메인 창 상태 표시줄(size.statusBar, 밀도 B 26, {@link UiSizes}), 글자 text.secondary, 칸 사이 1px 구분선. 바탕은 그리지 않는다(투명):
+ *     높이는 메인 창 상태 표시줄(size.statusBar, 밀도 B 26, {@link UiSizes}), 글자 text.primary, 칸 사이 1px 구분선. 바탕은 그리지 않는다(투명):
  *     상태 표시줄이 연결 색이나 캔버스를 칠한다. 상태 아이콘 16은 아이콘 팩의 메시지 아이콘이고,
  *     실행 전에는 연결 아이콘(연결되어 있으면 초록 상태 점)이라 연결 상태를 보인다.</li>
  *     <li>서버는 호스트[:포트], 호스트가 없는 파일 DB는 파일 이름이다. 전체 경로·URL과 DB 제품 버전은 도구 설명에 둔다(SSMS의 "서버 (버전)"을 줄이지 않고 보이면 칸이 길어진다).
@@ -80,8 +80,10 @@ import java.util.Objects;
  *     테마 글자 색이 띠와 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 줄의 모든 글자를 대비 색({@link ConnectionColors#getTextColor})으로 그린다
  *     (상태 표시줄의 업데이트 진행 글자도 같은 색, {@link #getBandForeground}).
  *     라벨에 색을 설정하지 않고 그릴 때 읽는 색을 바꾼다({@link BandLabel#getForeground}). 테마를 바꿀 때 부모의 {@code updateUI}가 자식보다 먼저 불려
- *     설정한 색이 자식의 테마 색으로 덮이기 때문이다. 같은 이유로 칸의 보조 글자 색도 FlatLaf 스타일({@code foreground: $Chromite.secondaryForeground}) 대신
- *     여기서 읽는다: FlatLaf 스타일은 리플렉션으로 {@code getForeground}를 부르는데 이 번들 밖에서 접근할 수 없는 클래스의 메서드라 스타일 적용이 실패한다.</li>
+ *     설정한 색이 자식의 테마 색으로 덮이기 때문이다.</li>
+ *     <li>모든 칸의 글자는 상태 문구와 같은 text.primary다(2026-11-12 앱 변경 #55). 전에는 칸을 text.secondary로 그렸는데, 다크 테마의 캔버스에서
+ *     3.2:1이라 어두운 모니터·원격 화면에서 잘 보이지 않았고, 띠 대비 확인은 text.primary로 하면서 칸은 더 흐린 색으로 그려 연결 색 띠 위에서는
+ *     확인을 통과한 칸도 읽기 어려울 수 있었다. 칸은 구분선으로 나뉘므로 색으로 위계를 두지 않는다.</li>
  *     <li>줄은 편집기마다 하나이고 메인 창이 활성 쿼리 창의 줄을 메인 창 상태 표시줄에 끼운다({@link MainFrame}, 2026-11-08 사용자 요청
  *     "결과 표 아래 상태표시줄에 나타나는 항목들을 화면전체 상태표시줄로 옮긴다"). 쿼리 창이 아니면(빈 문서 영역, DDL 탭, 도구 문서) 상태 표시줄은 작업 공간 연결 수다.</li>
  * </ul>
@@ -107,6 +109,10 @@ import java.util.Objects;
  * - 2026-11-09 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기(잠금 해제), 자동으로 끝냈다는 짧은 알림, 칸이 두 종류를 구별함(사용자
  *   "활성 트랜잭션과 lock은 구분하는게 좋지 않나?": 조회 트랜잭션은 보조 색 점과 "조회 트랜잭션 … · 잠금 유지", 변경이 있으면
  *   "열린 트랜잭션 … (변경 있음)") (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 실행 중 상태 아이콘을 재생 아이콘에서 회전 도넛 스피너({@link SpinnerIcon})로(앱 변경 #44: 실행 중인지 분명하지 않았다).
+ *   글자("실행 중 2/3 · 00:00:12")는 쿼리 창이 넣는다 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
+ * - 2026-11-12 칸 글자를 text.secondary에서 text.primary로(앱 변경 #55: 다크 테마에서 오른쪽 아래 칸이 잘 보이지 않음). {@code BandLabel}의
+ *   보조 색 플래그 삭제 (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -156,7 +162,7 @@ final class QueryStatusLine extends JPanel {
      */
     static final long READ_ONLY_ENDED_NOTE_MILLIS = 15_000;
 
-    private final JLabel stateLabel = new BandLabel(false);
+    private final JLabel stateLabel = new BandLabel();
     private final JLabel serverLabel = createSegment();
     private final JLabel userLabel = createSegment();
     private final JLabel databaseLabel = createSegment();
@@ -166,6 +172,8 @@ final class QueryStatusLine extends JPanel {
     private final JLabel rowsLabel = createSegment();
     private final JLabel caretLabel = createSegment();
     private State state = State.READY;
+    // The state icon while a query runs (turns until the state changes)
+    private final SpinnerIcon runningIcon = new SpinnerIcon();
     @Nullable
     private DBPDataSourceContainer container;
     @Nullable
@@ -508,11 +516,16 @@ final class QueryStatusLine extends JPanel {
     }
 
     private void updateStateIcon() {
+        if (state == State.EXECUTING) {
+            runningIcon.start();
+        } else {
+            runningIcon.stop();
+        }
         stateLabel.setIcon(switch (state) {
             case READY -> container != null && container.isConnected()
                 ? UiIcons.withStatusDot(UiIcons.get("connection"), UiIcons.Status.CONNECTED) //$NON-NLS-1$
                 : UiIcons.get("connection"); //$NON-NLS-1$
-            case EXECUTING -> UiIcons.get("run"); //$NON-NLS-1$
+            case EXECUTING -> runningIcon;
             case SUCCESS -> UiIcons.get("check"); //$NON-NLS-1$
             case ERROR -> UiIcons.get("error"); //$NON-NLS-1$
             case CANCELED -> UiIcons.get("warning"); //$NON-NLS-1$
@@ -527,7 +540,7 @@ final class QueryStatusLine extends JPanel {
 
     @NotNull
     private JLabel createSegment() {
-        JLabel label = new BandLabel(true);
+        JLabel label = new BandLabel();
         label.setBorder(createSegmentBorder());
         return label;
     }
@@ -638,22 +651,13 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * Label whose text color is {@link #bandForeground} while that is set, else the theme's text or text.secondary
-     * color (read when painting, see the class comment).
+     * Label whose text color is {@link #bandForeground} while that is set, else the theme's text color (read when
+     * painting, see the class comment).
      */
     private final class BandLabel extends JLabel {
-        private final boolean secondary;
-
-        BandLabel(boolean secondary) {
-            this.secondary = secondary;
-        }
-
         @Override
         public Color getForeground() {
             Color color = bandForeground;
-            if (color == null && secondary) {
-                color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
-            }
             return color != null ? color : super.getForeground();
         }
     }

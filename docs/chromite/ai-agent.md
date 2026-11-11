@@ -457,6 +457,8 @@ claude mcp add --transport http chromite http://127.0.0.1:47821/mcp --header "Au
 |---|---|---|
 | OpenAI (`openai`) | 기존. Responses API(`OpenAiUtils.createOpenAiRequest`)가 `AIFunctionDescriptor` 목록을 `function` 도구로 보낸다. 이 작업의 도구도 같은 경로로 간다. `temperature`는 명시적으로 정했을 때만 보낸다(`OpenAIProperties.getRequestTemperature`, 2026-11-08, Anthropic과 같은 원인) | 예 |
 | Ollama (`ollama`) | 이미 `plugin.xml`에 등록되어 있다(브리프의 "등록 안 됨"은 이전 상태). `/api/chat`의 `tools` | 예(응답의 첫 도구 호출) |
+| vLLM (`vllm`, 2026-11-11) | OpenAI 호환 Chat Completions(`POST <기본 URL>/chat/completions`, 스트리밍), 엔진 `ChatCompletionsEngine` + 설정 `VllmProperties`. 아래 "Chat Completions 엔진" | 예(`tools`/`tool_calls`, 서버가 도구 호출을 켜고 떠 있어야 함) |
+| Google Gemini (`gemini`, 2026-11-11) | Gemini API의 OpenAI 호환 엔드포인트, 같은 엔진 + `GeminiProperties`. 아래 "Chat Completions 엔진" | 예 |
 | Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록. `temperature`는 명시적으로 정했을 때만 보낸다(`AnthropicProperties.getRequestTemperature`, 아래 "실제 API 확인") | 예 |
 
 API 키는 설정 파일(`ai-configuration.json`)에 쓰지 않고(`@SecureProperty`) `AIUtils.setSecretValue`가 OS 보안 저장소에 둔다(아래 "API 키 저장").
@@ -472,7 +474,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 | 항목 | 내용 |
 |---|---|
-| 대상 | `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`를 쓰는 AI 비밀 전부: Anthropic·OpenAI API 키, OpenAI 사용자 헤더, Copilot 토큰(DataDam 엔진도 같은 경로) |
+| 대상 | `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`를 쓰는 AI 비밀 전부: Anthropic·OpenAI·Google Gemini·vLLM API 키(`gemini.apiKey`, `vllm.apiKey`, 2026-11-11), OpenAI 사용자 헤더, Copilot 토큰(DataDam 엔진도 같은 경로) |
 | 저장소 | Eclipse secure storage + OS 제공자(`DBSecurityUtils.findNativeOSProvider`): Windows는 `org.eclipse.equinox.security.win32`(마스터 비밀번호를 DPAPI로 보호, 값은 그 비밀번호로 암호화), macOS는 `model.security`의 키체인 제공자. 노드 `chromite`, 키 이름은 예전과 같다(`anthropic.apiKey_anthropic`). 파일은 기본 위치(`%USERPROFILE%\.eclipse\org.eclipse.equinox.security\secure_storage`, `-eclipse.keyring`으로 바꿀 수 있음)라 작업 공간이 아니라 OS 사용자 단위다. Swing 제품에 두 제공자 번들이 이미 있다(`com.seizia.chromite.swing.feature`) |
 | 쓰기 | 값을 쓰고 `isPrivateSecretEncrypted`로 암호화를 확인한 뒤 flush한다. 암호화되지 않았으면 지우고 예외. 이어서 같은 키의 평문 사본이 있으면 지운다 |
 | 이전 | 읽을 때 보안 저장소에 값이 없고 평문 사본이 있으면 보안 저장소에 쓰고(확인·flush) 평문 줄을 지운 뒤 설정 파일을 저장한다. 로그에는 키 이름만 남긴다(`AI secret '…' was moved from the workspace settings to the secure storage`). 보안 저장소에 이미 값이 있으면(다른 작업 공간이 먼저 옮김) 이 작업 공간의 평문 사본은 쓰이지 않으므로 지운다 |
@@ -497,6 +499,46 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | 3. 이전 | 빈 keyring + 설정 파일에 0.1.0 형식 평문 줄 → 시작 후 Test가 그 키로 동작, 평문 줄 사라짐, keyring에 암호문. 로그에 키 이름만 |
 | 3b. 남은 평문 | keyring에 키가 있는 상태에서 다른 가짜 키의 평문 줄을 넣음 → keyring의 키를 쓰고 평문 줄은 지워짐 |
 | 4. 저장소 실패 | keyring의 DPAPI 마스터 비밀번호를 망가뜨려 시작 → 앱 정상 시작(고치기 전에는 `Win32Exception`으로 시작이 멈춤), 키 입력 후 OK → "Settings of Anthropic Claude were not saved: the secure storage of this computer could not store the key. The key is never saved in a settings file instead." 설정 파일·작업 공간에 키 0건 |
+
+### Chat Completions 엔진 (vLLM, Google Gemini, 2026-11-11)
+
+앱 변경 #34(사용자: "llm을 연결하는 옵션에 vllm도 추가한다"), #35("코파일럿과 gemini도 추가한다" 중 Gemini). #36 Copilot은 사용자 결정을 기다려 이번 범위가 아니다.
+
+| 항목 | 내용 |
+|---|---|
+| 왜 따로 | OpenAI 엔진은 Responses API(`/v1/responses`, `OpenAiAPIStreamConsumer`)를 쓴다. vLLM은 Chat Completions가 기본이고 Responses 지원은 버전마다 다르다. Gemini의 OpenAI 호환 엔드포인트도 Chat Completions다. 그래서 OpenAI 엔진을 고치지 않고 Chat Completions 엔진 하나를 새로 두고 두 제공자가 같이 쓴다. 기존 `OpenAIClientChat`은 도구 호출이 없고 스트리밍이 Responses 요청이라 쓰지 않았다 |
+| 구조 | `model.ai` 패키지 `com.seizia.chromite.model.ai.engine.chatcompletions`: `ChatCompletionsEngine`(두 `completionEngine` 확장 `vllm`·`gemini`가 같은 클래스), `ChatCompletionsClient`(HTTP, 요청 조립, SSE 해석), `ChatCompletionsProperties`(기본 URL, 키, 모델; 키는 `@SecureProperty`), 하위 클래스 `VllmProperties`·`GeminiProperties`(기본 URL, 키 필요 여부, 오류 문구 이름, 도구 호출 안내, 모델 ID → 요청 이름). 채팅 쪽은 `AIAgentProviders.PROVIDERS`에 `gemini`·`vllm`을 더했을 뿐이라 모델 선택(제공자 제목)과 Providers 탭이 목록을 따라간다. 순서: Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM(호스팅 서비스 다음 직접 띄우는 서버) |
+| 요청 | `POST chat/completions`: `model`, `messages`(system 하나를 맨 앞에 모음, user는 글 또는 글+`image_url` data URL, 도구 호출은 assistant `tool_calls[{id, type: function, function: {name, arguments(JSON 글)}}]` + `tool` 메시지 `{tool_call_id, name, content}`), `tools[{type: function, function: {name, description, parameters}}]`, `tool_choice: "auto"`, 스트리밍이면 `stream: true`, `stream_options.include_usage: true`. `temperature`는 명시적으로 정했을 때만(`ChatCompletionsProperties.getRequestTemperature`), `max_tokens`는 보내지 않는다(서버 기본값). 인증은 키가 있을 때만 `Authorization: Bearer <키>` |
+| 응답 | SSE `data:` 줄. `delta.content`는 바로 조각으로, `delta.tool_calls` 조각은 `index`별로 모아 응답이 끝날 때 도구 호출로 넘긴다. `index`가 없거나 같은 `index`에 다른 `id`가 오면(호환 계층) 새 `id`를 새 호출로 본다. 사용량은 `usage`가 있는 조각에서. 흐름 중 `{"error": …}`는 오류로. 도구 호출의 `id`와 `extra_content`(Gemini 3 thought signature)는 `AIFunctionCall` 메타데이터에 두었다가 다음 요청에 그대로 돌려보낸다(대화 저장에도 남음) |
+| 도구 스키마 | 속성 없는 `object` 매개변수(지금은 `runLibraryQuery.parameters` 하나)는 "(JSON object text)"를 덧붙인 `string`으로 보낸다. Gemini는 속성 없는 OBJECT 스키마를 거부하고, 도구는 JSON 글을 받는다(`AgentArgs.getJson`) |
+| 도구 호출을 못 하는 서버 | vLLM은 `--enable-auto-tool-choice --tool-call-parser <모델별>` 없이 띄우면 `tool_choice: auto` 요청을 400("\"auto\" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set")으로 거부한다. `ChatCompletionsClient.mapHttpError`가 이를 알아보고 "This vLLM server does not support tool calls, which Chromite Agent needs to work with databases. Start the vLLM server with --enable-auto-tool-choice and the --tool-call-parser of the model (for example hermes, llama3_json or mistral). Server message: …"로 바꾼다(채팅 오류 항목). Providers의 Test는 모델 목록 뒤에 같은 모델로 1토큰 요청(가짜 도구 하나, `max_tokens: 1`)을 보내 미리 알린다: Test 줄에 "연결됨: 모델 N개. 하지만 도구 호출이 되지 않습니다", 그 아래 입력란 폭으로 줄 바꾼 경고 글에 위 안내 전체(긴 글을 한 줄 상태 글에 넣으면 모든 양식이 그 폭으로 늘어나 가로 스크롤이 생겼다). 이 확인은 도구 호출 안내가 있는 제공자(vLLM)만 한다 |
+| vLLM 설정 | 기본 URL(예 `http://host:8000/v1`, 기본값 없음, 끝 `/` 없어도 됨), API 키 선택(서버를 `--api-key`로 띄웠을 때만), 모델은 `GET <기본 URL>/models` 목록에서 고르거나 직접 입력 |
+| Gemini 설정 | API 키(필수), 기본 URL 기본값 `https://generativelanguage.googleapis.com/v1beta/openai/`(바꿀 수 있음), 모델 목록 `GET models`. 목록 ID의 `models/` 접두어는 뗀다(`GeminiProperties.toModelName`, 요청 예시는 접두어 없는 이름). 기본 모델은 두지 않는다(목록 API에서 고름) |
+| 네트워크 | 다른 엔진과 같은 `java.net.http.HttpClient`(`AbstractHttpAIClient`, HTTP/1.1)를 쓴다. 사내 인증서·프록시는 JVM 설정(신뢰 저장소, 시스템 프록시)을 따르고, 연결별 네트워크 설정(SSH·프록시 프로필)은 쓰지 않는다. 다른 AI 엔진과 같다 |
+| 환경 변수 | 읽지 않는다(요청되지 않은 설정을 늘리지 않음) |
+
+확인(2026-11-11, Windows 11, 150%와 100%, 한국어·영어): 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS,
+`python tools/rename/gate.py` ALL GATES PASSED. 실제 제공자는 부르지 않았다. 127.0.0.1의 가짜 OpenAI 호환 서버(vLLM 꼴 `/v1`, Gemini 꼴
+`/gemini/v1beta/openai/`: Bearer 키 검사, `models/` 접두어 ID, 한 조각에 `index` 없는 병렬 호출 2개와 thought signature)를 띄우고, 빈 작업 공간·
+`-configuration`·`CHROMITE_DATA`·`-eclipse.keyring`을 모두 개인 폴더로 둔 빌드 사본을 앱 안 시험 에이전트(Swing 객체 직접 조작)로 시험했다. Gemini의 기본 URL은
+Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜 서버 기록(33줄)에 남았다. 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+| 시험 | 결과 |
+|---|---|
+| 목록 | 모델 선택: Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM 제목(설정 전 "설정 필요"). Providers: 다섯 양식, vLLM "API 키(선택)"·자리 표시 `http://localhost:8000/v1`, Gemini 기본 URL이 보임 |
+| Test | vLLM "연결됨: 모델 2개"(`GET /v1/models` + 도구 확인 `POST`, `max_tokens: 1`), Gemini "연결됨: 모델 2개"(`Authorization: Bearer <가짜 키>`, 목록 `gemini-fake-pro`·`gemini-fake-flash`로 접두어 뗌). OK 뒤 `ai-configuration.json`에 URL·모델만 있고 키 없음, keyring에 `/chromite/gemini.apiKey_gemini`(암호문), 작업 공간·데이터 폴더에 키 0건 |
+| 도구 호출 못 하는 서버 | 모델 `fake-notools`(vLLM 400 문구): Test "연결됨: 모델 2개. 하지만 도구 호출이 되지 않습니다" + 그 아래 경고 글(양식 폭 그대로, 가로 스크롤 없음). 채팅은 오류 항목에 같은 안내 |
+| vLLM 채팅 | 글 조각 → `index` 있는 도구 호출 조각 3개 → `listConnections`(READ, 자동 실행) → 다음 요청에 assistant `tool_calls` + `tool`(`tool_call_id` 같음, `name`) → 답 글. `stream_options.include_usage`, 상태 줄 "토큰: 입력 2,468, 출력 112". `temperature` 없음, 설정 파일에 `ai.useServerDefaultTemperature: false`, `0.3`을 넣으면 `temperature: 0.3` |
+| Gemini 채팅 | `model: gemini-fake-pro`/`gemini-fake-flash`(접두어 없음), 병렬 호출 2개 모두 실행, 다음 요청에 두 `id` 짝과 첫 호출의 `extra_content.google.thought_signature`가 그대로 돌아감(가짜 서버 판정 ids-ok, signature-echoed) |
+| 도구 스키마 | 요청의 도구 101개, 매개변수 형식은 `boolean`·`integer`·`string`만(`object` 없음) |
+
+미룬 것(결정 필요):
+
+- **Vertex AI**: 기업은 Google Cloud 프로젝트·서비스 계정으로 Vertex AI의 Gemini를 쓸 수 있다. 인증(서비스 계정 JSON 또는 ADC, OAuth 액세스 토큰 갱신)과 주소
+  (`https://<region>-aiplatform.googleapis.com/v1/projects/<프로젝트>/locations/<region>/endpoints/openapi`)가 달라 이번 범위(API 키)에서 뺐다. 넣는다면
+  같은 Chat Completions 엔진에 토큰 공급자를 더하는 방식이 가장 작다.
+- **실제 서버 확인**: 실제 vLLM 서버와 실제 Gemini 키 없이 가짜 서버로만 확인했다(아래 표). Gemini 호환 엔드포인트의 실제 스트리밍 도구 호출 형식
+  (`index` 유무, thought signature 위치)은 공개 문서에 자세한 예가 없어 두 형식을 모두 받게 만들었다. 첫 실제 사용 때 확인이 필요하다.
 
 ## 시나리오 플레이북
 
@@ -627,8 +669,8 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 - 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > Chromite Agent(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
   같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
   **2026-11-08 바뀜(앱 변경 #6·#12):** 기본 배치에서 보이고, 오른쪽 열의 아래(Query Library 아래, 높이 0.6)에 있다. 열 폭은 이전 Agent 열 폭(25%)이다.
-  주 도구 막대의 단추는 오른쪽 끝에 아이콘 + 글자 "Chromite Agent"로 있다([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent",
-  "Chromite Agent 단추를 오른쪽 끝으로"). 시작할 때부터 보이므로 공급자 미설정 안내는 대화를 읽어 모델 선택을 채운 뒤(`showChat`)에도 다시 정한다.
+  주 도구 막대의 단추는 단추 묶음의 마지막(Find 뒤, 2026-11-12 앱 변경 #53, 그 전에는 창 오른쪽 끝)에 아이콘 + 글자 "Chromite Agent"로 있다
+  ([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent", "Chromite Agent 단추를 단추 묶음의 마지막으로"). 시작할 때부터 보이므로 공급자 미설정 안내는 대화를 읽어 모델 선택을 채운 뒤(`showChat`)에도 다시 정한다.
 - 위에서 아래로(2026-11-08 바꿈): 도구 막대(새 대화·대화 삭제·대화 기록 │ 플레이북·Chromite Agent 설정, 다른 도구 창처럼 왼쪽 정렬) / 연결과 데이터베이스(편집 가능,
   연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈) / 모델 선택(왼쪽)과 보내기·중지(오른쪽) / 상태 줄.
 - **모델 선택**(2026-11-08, 앱 변경 #14): 제공자와 모델을 콤보 하나로 고른다. 목록은 제공자 이름(굵게, 고를 수 없음) 아래에 그 제공자의 모델(알려진 이름 + Test로 받은
@@ -738,7 +780,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 | 탭 | 내용 |
 |---|---|
-| Providers | 제공자마다 API 키(Ollama 제외), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트), 기본 모델, Test. 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 OS 보안 저장소에만, 위 "API 키 저장". 보안 저장소가 키를 저장하지 못하면 그 이유를 알리고 아무것도 저장하지 않음) |
+| Providers | 제공자(Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM)마다 API 키(Ollama 제외, vLLM은 "선택"), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트, vLLM은 자리 표시 `http://localhost:8000/v1`, Gemini는 기본값이 보임), 기본 모델, Test. vLLM의 Test는 모델 목록 뒤에 그 모델로 도구 호출이 되는지도 확인한다(아래 "Chat Completions 엔진"). 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 OS 보안 저장소에만, 위 "API 키 저장". 보안 저장소가 키를 저장하지 못하면 그 이유를 알리고 아무것도 저장하지 않음) |
 | Tool Policy | 맨 위에 늘 보이는 규칙 3개(운영 연결은 쓰기·위험 막힘, 읽기 전용 연결은 어떤 규칙으로도 바꿀 수 없음, 위험 도구 자동 실행은 연결 하나·도구 하나 규칙으로만). 규칙 대상(모든 연결 = 기본값, 또는 연결 하나, 운영 연결은 "(운영)" 표시), 분류별 규칙 3개, 도구 필터, 도구 표(도구, 그룹, 분류, 규칙: 상속/자동 실행/실행 전 확인/막음, 실제 권한). 실제 권한은 저장 전 규칙으로 `AIToolPolicy.resolve(Settings, …)` 판정(읽기 전용 연결이면 "실행 안 함"). OK에서 `setSettings` |
 | MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
 | Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
@@ -1031,6 +1073,121 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
 - 12차례 대화의 56개 요청에서 기록 글자 수는 최대 59,739자로 예산 안이었고, 모든 요청에서 `tool_use`/`tool_result` 짝 오류 0건, 기록 첫 메시지는 늘 사용자 글.
 - 도구 정의(약 52 KB)가 이제 요청에서 가장 큰 고정 몫이다. SQL Server 연결에서는 고르기로 거의 줄지 않는다(아래 "위험과 남은 일").
 
+## 도구 선택 점검 (앱 변경 #61, 2026-11-12)
+
+사용자 질문: 도구가 많으면 모델이 도구를 잘못 고를 수 있으니 점검해 보자. 결정(2026-11-12): **정적 점검부터.** 실제 모델 호출은 하지 않았다.
+평가용 질문 60개와 도구 목록은 [agent-tool-eval.md](agent-tool-eval.md)에 있다.
+
+### 사실
+
+- 도구 101개(`plugin.xml`의 `<function>` 101개): READ 75, WRITE 21, DANGEROUS 5. 분야: 상태·관리 25, 메타데이터 15, 연결 13, 쿼리 11, 성능 11, DDL 8,
+  데이터 7, 쿼리 라이브러리 4, 편집기 4, 전송 3.
+- 채팅은 `AIAgentToolSelection.select`가 대화 연결의 DB 종류에 안 맞는 도구와 정책으로 막힌 도구만 뺀다. 질문 내용으로는 고르지 않는다. SQL Server 연결은
+  `whatIfIndex`(PG)와 `dumpDatabase`·`restoreDump`(PG·MySQL)만 빠진다. MCP `tools/list`는 늘 전체다.
+- 모델이 도구를 고르는 근거는 도구 ID, 설명, 인수 설명뿐이다(시스템 프롬프트 `AIAgentPlaybooks.INSTRUCTIONS`는 몇 개 도구만 이름으로 든다).
+
+### 헷갈리는 묶음
+
+| # | 묶음 | 도구 | 헷갈리는 점 (근거) |
+|---|---|---|---|
+| 1 | SQL 실행 | `runSelect`, `runReadOnlySql`, `runSql`, `runScript`, `sampleRows` | `runSelect`와 `runReadOnlySql`은 둘 다 같은 읽기 판정(`QueryTools.requireReadOnly`)을 쓴다. 차이는 결과 모양뿐이다: 한 페이지 + `nextOffset`(`AgentSql.Runner.queryPage`) 대 모든 결과 집합·메시지(`Runner.execute`). 옛 설명은 이 차이를 "diagnostic"이라는 말로만 보였다 |
+| 2 | 실행 계획 | `explainQuery`, `getActualPlan`, `comparePlans`, `getCachedPlans`, `whatIfIndex`, `validateSql` | 모두 "plan"을 말한다. 추정(실행 안 함)·실측(실행, 쓰기면 롤백)·두 문장 비교·서버 캐시의 계획·가상 인덱스로 갈리는데 옛 설명에 언제 어느 것인지 없었다 |
+| 3 | "권한"의 세 뜻 | `probePermissions`, `listPermissions`, `listPrincipals`, `getToolPolicy` | 진단에 필요한 로그인 권한, DB의 GRANT, DB 사용자·역할, Chromite의 도구 정책이 모두 "permission"이다. 가장 잘못 고르기 쉬운 묶음이다 |
+| 4 | 연결 확인 | `connect`, `testConnection`, `getConnectionInfo`, `getServerInfo`, `getCurrentDatabase`, `listDatabases` | `connect`는 `getConnectionInfo`의 결과 + `connectMs`(`ConnectionTools.connect`), `testConnection`은 연결 + 왕복 시간이다. 셋 다 "연결 정보"로 읽힌다 |
+| 5 | 표 구조 | `describeTable`, `listIndexes`, `listForeignKeys`, `getObjectDdl`, `getRoutineSource`, `generateDdl` | `describeTable`은 인덱스와 외래 키를 이미 담는다(`MetadataTools.describeTable`, 216–223행). `getObjectDdl`(있는 객체의 DDL)과 `generateDdl`(바꿀 DDL 만들기)은 이름이 비슷하다 |
+| 6 | 인덱스 | `listIndexes`, `getIndexUsage`, `getUnusedIndexes`, `getMissingIndexes`, `getIndexFragmentation`, `whatIfIndex`, `createIndex`, `dropIndex` | 정의·사용량·안 쓰는 것·없는 것·조각화가 모두 "index"다 |
+| 7 | 느린 쿼리의 출처 | `getTopQueries`, `getQueryStoreTopQueries`, `getQueryStoreRegressions`, `getLongRunningQueries`, `getRoutineStats`, `getQueryHistory` | 누적 통계·Query Store·지금 실행 중·루틴 안·사용자가 앱에서 실행한 기록. `getQueryHistory`는 서버가 아니라 앱의 기록이다 |
+| 8 | 세션·잠금·트랜잭션 | `listSessions`, `getBlockingChain`, `listLocks`, `getDeadlocks`, `listOpenTransactions`, `getTransactionStatus`, `killSession`, `cancelQuery`, `disconnect` | 지금의 블로킹과 지난 교착 상태, 서버 전체의 열린 트랜잭션과 에이전트 자신의 트랜잭션, 남의 세션 끝내기와 에이전트 문장 취소와 연결 닫기 |
+| 9 | 크기·행 수 | `getDatabaseSizes`, `getSpaceUsage`, `getTableStatistics`, `countRows` | 서버 전체 DB 크기, 한 DB 안의 파일·공간, 표별 추정 행 수·크기, 정확한 행 수 |
+| 10 | 백업·복원 | `backupDatabase`·`restoreDatabase`(SQL Server, 서버의 파일), `dumpDatabase`·`restoreDump`(PG·MySQL, 이 PC의 파일), `getBackupHistory`, `exportData` | 이름만으로는 DB 종류와 파일 위치가 갈리는 것을 알 수 없다. 채팅은 DB 종류로 한쪽만 보내지만(`AdminTools.supports`, `NativeBackupTools.supports`) MCP는 모두 보낸다 |
+| 11 | 작업 | `getJobHistory`, `getAgentJobHistory`, `listAgentJobs`, `getAgentJob` | SQL Server에서 `getJobHistory`와 `getAgentJobHistory`는 같은 `msdb.dbo.sysjobhistory`를 읽는다(`diag/getJobHistory.sql`). `failedOnly` 기본값이 true와 false로 다르다 |
+| 12 | 행 쓰기 | `insertRows`, `importCsv`, `copyTable`, `updateRows`, `deleteRows`, `runSql` | 키 기반 편집(도구)과 조건 기반 변경(`runSql`)의 경계가 설명에 없었다 |
+| 13 | 비교 | `comparePlans`, `compareQueryResults` | 계획 비교와 결과 행 비교 |
+| 14 | 라이브러리·기록 | `listLibraryQueries`, `getLibraryQuery`, `runLibraryQuery`, `runMonitoringChecks`, `getQueryHistory` | 저장한 쿼리와 실행 기록, 쿼리 하나와 폴더 전체 점검 |
+| 15 | 편집기 | `openInEditor`, `getQueryWindowText`, `editQueryWindow`, `listQueryWindows` | 새 창에 열기와 열린 창 고치기 |
+
+설명의 다른 문제(고치기 전): 언제 쓰고 언제 다른 도구를 쓸지 없는 설명이 대부분이었고(`listDatabases`, `listTables`, `cancelQuery`, `formatSql`, `dropView` 등은
+한 줄짜리), 결과 모양이 없는 설명(`listSchemas`, `getDatabaseSizes`, `getLibraryQuery` 등), DB 지원을 적지 않은 설명(`getWaitStats`, `getMissingIndexes`의 MySQL 없음,
+`getBackupHistory`의 MySQL 없음, `getIndexFragmentation`의 Oracle 없음)이 있었다.
+
+### 고친 것
+
+- **도구 설명 99개**를 같은 모양으로 고쳤다(101개 모두 보았고, `getQueryStoreTopQueries`·`getQueryStoreForcedPlans`는 이미 그 모양이라 그대로 둠):
+  하는 일과 결과 모양, 언제 쓰는지, 이웃한 경우에 대신 쓸 도구 이름, 쓰기 도구는 확인 방식, DB 지원.
+  `plugin.xml` 머리 주석에 이 모양을 지키라고 적었다(새 도구를 더하면 이웃 도구의 "대신" 안내에도 넣는다).
+- **인수 설명 14개**: `getQueryHistory.connection`(채팅에서는 채팅 연결로 거른다), `listLocks.session`, `backupDatabase.file`·`restoreDatabase.file`(서버의 경로),
+  `exportData.file`, `getJobHistory.failedOnly`(기본값 차이), `sampleRows.orderBy`(SQL 조각), `listPermissions.object`·`principal`, `getQueryWindowText.part`,
+  `editQueryWindow.mode`, `runSql.sql`, `listTables.schema`, `getRoutineStats.name`.
+- **선택값 2개**: 설명에만 있던 열거값을 `validValues`로 적었다(`getQueryWindowText.part` = all/selection/statement, `editQueryWindow.mode` =
+  insert/replaceSelection/replaceAll). 엔진이 JSON 스키마의 `enum`으로 보낸다. 실행기는 전처럼 대소문자·구분자를 가리지 않고 받는다(`EditorTools.normalize`).
+- 도구 ID, 인수 이름, 기본값, 분류(`access`), 도구 수는 바꾸지 않았다. 저장된 도구별 정책, 감사 기록, MCP 클라이언트가 ID에 묶여 있기 때문이다.
+- **크기**: 도구 설명 글은 16,128 B → 27,119 B, 인수 설명은 10,868 B → 11,207 B(UTF-8). 요청마다 약 11 KB(≈2.8k 토큰) 늘었다. 설명이 정확한 쪽을
+  골랐고, 크기는 아래 제안으로 줄인다.
+
+### 확인 (2026-11-12)
+
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS(10:30).
+- 빌드한 앱 사본(빈 작업 공간·설정·데이터·키링, 가짜 Anthropic 서버 127.0.0.1만)에서: 채팅 도구 101개·MCP 도구 101개(`AIToolCatalog.getTools`).
+  연결 없는 대화 두 차례(`listConnections`, `getToolPolicy` 호출)가 가짜 서버에 닿았고, 요청마다 도구 101개, 새 설명, `editQueryWindow.mode`의 `enum`이 실렸다.
+  `tool_use`/`tool_result` 짝 오류 0건. 도구 정의는 69,400 B(위 "크기" 표와 같은 셈법인 들여쓰기 없는 `json.dumps`. 2026-11-08에는 도구 96개 52,589 B),
+  첫 요청 본문 68,378 B. MCP `tools/list`는 101개이고 `getQueryWindowText.part`의 `enum`과 새 설명을 돌려준다.
+- 실제 모델로는 재지 않았다(평가 세트는 사용자가 실행).
+
+### 사용자가 정할 것: 이름 바꾸기·합치기·빼기 (하지 않음)
+
+ID나 인수를 바꾸면 저장된 정책(`AIToolPolicy`의 도구별 규칙), 감사 기록 검색, MCP 클라이언트 설정이 깨진다. 바꾸려면 옛 ID를 별칭으로 한 판 동안 받아야 한다.
+
+| 제안 | 대상 | 이유 | 비용 |
+|---|---|---|---|
+| 합치기 | `listIndexes`, `listForeignKeys` → `describeTable` | `describeTable`이 둘을 포함한다 | 정책·감사의 두 ID |
+| 합치기 | `connect` + `testConnection` → 하나 | 결과만 조금 다르다 | 작음 |
+| 합치기 | `runSelect` + `runReadOnlySql` → 읽기 실행 하나(페이지 인수 + 여러 결과 집합) | 같은 판정, 다른 결과 모양 | 플레이북·지시문 수정 |
+| 합치기 | DDL 도구 7개 + `generateDdl` → `changeSchema(operation, preview)` 하나 | 8개가 한 묶음의 인수를 나눠 쓴다(`DdlTools`가 이미 한 클래스) | 정책을 작업별로 나눌 수 없게 됨(`dropTable`만 DANGEROUS) |
+| 합치기 | `backupDatabase`+`dumpDatabase` → `backupDatabase`, `restoreDatabase`+`restoreDump` → `restoreDatabase`(DB 종류로 나눔) | 사용자에게는 같은 일이다 | 인수가 DB 종류마다 달라 설명이 길어짐 |
+| 합치기 | SQL Server 부분의 `getJobHistory` → `getAgentJobHistory` | 같은 표를 읽는다 | 다른 DB의 `getJobHistory`는 남김 |
+| 합치기 | `getQueryStoreTopQueries` → `getTopQueries(source=queryStore)` | 같은 질문의 다른 출처 | 작음 |
+| 이름 | `listPermissions` → `listGrants`, `probePermissions` → `checkDiagnosticAccess`, `getToolPolicy` → `getAgentToolPolicy` | 묶음 3의 "permission" 세 뜻을 이름으로 가름 | 별칭 필요 |
+| 이름 | `generateDdl` → `previewDdl` | `getObjectDdl`과 구분 | 별칭 필요 |
+| 이름 | `getQueryHistory` → `getEditorHistory` | 서버 통계로 오해함 | 별칭 필요 |
+| 인수 | 행 수 상한 `limit`·`top`·`maxRows` → `limit` | 같은 뜻에 세 이름(`getWaitStats`·`getTopQueries`·`getCachedPlans`·Query Store는 `top`, 전송·비교는 `maxRows`) | 정책과 무관, MCP 클라이언트만 |
+| 인수 | 이름 거르기 `pattern`·`contains`·`filter` → 하나 | 목록 도구마다 다름 | 같음 |
+| 인수 | 대상 객체 `table`·`object`·`name` | `getRoutineSource`·`getRoutineStats`는 `name`, `getObjectDdl`·`getObjectDependencies`·`listPermissions`는 `object` | 같음 |
+| 인수 | 한 이름 두 뜻: `format`(결과 모양 / 파일 형식 / 덤프 형식), `type`(열 형식 / 백업 종류), `orderBy`(SQL 조각 / 열거값) | 다른 도구에서 본 값을 넣기 쉽다 | 같음 |
+| 인수 | `session`의 형식: `listLocks`는 integer, `killSession`은 string(Oracle `sid,serial#`) | 같은 값을 다른 형식으로 | 같음 |
+| 분류 | `dropIndex`는 WRITE, `dropTable`·`dropView`는 DANGEROUS | DROP의 분류가 다르다(`runSql`은 모든 DROP을 DANGEROUS로 본다) | 사용자 정책이 바뀜 |
+| 빼기 | `connect`, `formatSql` | 다른 도구가 연결하고, 모델이 직접 정리할 수 있다 | 정책·감사의 ID |
+
+드물게 쓰는 도구(아래 "도구 찾기" 뒤로 보낼 후보): `whatIfIndex`, `getQueryStoreForcedPlans`, `getQueryStoreRegressions`, `listSequences`, `listTriggers`,
+`getAgentJob`, `startAgentJob`, `stopAgentJob`, `setAgentJobEnabled`, `backupDatabase`, `restoreDatabase`, `dumpDatabase`, `restoreDump`, `copyTable`, `importCsv`,
+`compareQueryResults`, `profileColumns`, `getIndexFragmentation`, `getObjectDependencies`, `formatSql`, `connect`, `disconnect`, `testConnection`, `setCurrentDatabase`,
+`getCurrentDatabase`, `cancelQuery`, `getToolPolicy`, `getQueryHistory`, DDL 도구 8개, `insertRows`·`updateRows`·`deleteRows`, `getLibraryQuery`, `runLibraryQuery`,
+`listQueryWindows`, `editQueryWindow`.
+
+### 요청마다 보내는 도구 줄이기 제안 (문서만, 구현 안 함)
+
+지금 SQL Server 연결은 요청마다 도구 98개를 보낸다. 줄이는 방법 넷을 견주었다. 크기 비율은 `plugin.xml`의 설명·인수 글자로 어림했다(READ 72%, WRITE·DANGEROUS 28%).
+
+| 방식 | 하는 일 | 좋은 점 | 나쁜 점 |
+|---|---|---|---|
+| A. 두 단계 고르기 | 첫 요청은 분야(연결, 메타데이터, 쿼리, ...) 목록만 보내고 모델이 분야를 고르면 그 분야 도구를 보냄 | 요청이 가장 작다 | 매 차례 왕복 하나가 늘고, 분야를 틀리면 그 차례 전체가 틀린다. 튜닝처럼 여러 분야(쿼리·성능·메타데이터)를 넘나드는 질문이 많다 |
+| B. 핵심 묶음 + 도구 찾기 | 자주 쓰는 도구(약 43개)는 늘 보내고, 나머지는 메타 도구 `findTools(query)`가 이름·설명을 찾아 돌려준 뒤 그 대화의 다음 요청부터 함께 보냄 | 흔한 질문은 지금과 같고 왕복이 늘지 않는다. 드문 일만 한 번 더 부른다. 언어와 상관없다 | 핵심 묶음을 정하고 관리해야 한다. 찾은 도구가 생기면 도구 목록이 바뀌어 제공자의 프롬프트 캐시가 한 번 깨진다 |
+| C. 쓰기 도구는 쓰기 차례에만 | 사용자 글이 변경을 요청할 때만 WRITE·DANGEROUS 도구를 보냄 | 약 28% 줄고, 묻기만 한 차례에 쓰기 도구를 부를 수 없어 안전하다 | "요청이 변경인지"를 판단해야 한다. 글 규칙은 한국어·영어 표현을 다 덮지 못하고, 모델에게 묻으면 왕복이 는다. 놓치면 모델이 "할 수 없다"고 답한다 |
+| D. 플레이북별 묶음 | 플레이북(튜닝, 상태 점검, 블로킹 등)으로 시작한 대화는 그 플레이북 도구만 보냄 | 플레이북 안에서는 가장 정확하다 | 채팅의 자유 질문 대부분은 플레이북으로 시작하지 않는다. 범위를 벗어나면 막힌다 |
+
+**권하는 것: B(핵심 묶음 + 도구 찾기).** 흔한 질문의 정확도와 왕복을 지키면서 정의 크기를 절반 넘게 줄인다(핵심 43개 ≈ 정의 글자의 42%).
+쓰기 도구 대부분(DDL 8개, 행 편집 3개, 전송, 백업, 작업)이 찾기 뒤로 가므로 C의 안전 효과도 상당 부분 얻는다(`runSql`, `runScript`,
+`commitTransaction`, `rollbackTransaction`은 핵심에 둠). 필요한 것:
+
+1. 핵심 묶음 정의: 도구의 `plugin.xml` 속성(예: `core="true"`) 하나. 후보는 [agent-tool-eval.md](agent-tool-eval.md)의 허용 첫 도구에 자주 나오는 것.
+2. 메타 도구 `findTools`(READ, 연결 인수 없음): 질문 글로 ID·설명·분야를 찾아 상위 몇 개의 이름과 한 줄 설명을 돌려준다. 정책·DB 종류로 빠진 도구는 찾지 않는다.
+3. `AIAgentToolSelection`이 대화마다 "찾은 도구" 집합을 기억해 다음 요청에 더한다(`AIAgentChat`에 저장, 대화를 다시 열면 이어짐).
+4. 시스템 프롬프트에 한 줄: 핵심에 없는 일은 `findTools`로 찾는다.
+5. MCP는 그대로 전체를 보낸다(클라이언트가 고르는 몫). "도구를 모두 보냄"은 지금처럼 고르기를 끈다.
+6. 바꾸기 전과 후를 [agent-tool-eval.md](agent-tool-eval.md)로 실제 모델에서 잰다(사용자가 실행). 첫 도구 정확도가 떨어지지 않아야 한다.
+
+일부 제공자는 자체 "도구 검색"(도구 정의를 나중에 싣는 기능)을 제공하지만, Chromite는 Anthropic·OpenAI 호환·Ollama를 함께 지원하므로 앱 쪽에서 하는 B가 맞다.
+제공자 기능은 이번에 확인하지 않았다.
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1058,7 +1215,7 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
 - 확장점 스키마 `com.seizia.chromite.ai.function.exsd`에 `access`, `writes` 속성 추가.
 - `AIFunctionDescriptor`에 `getAccess()`, `getWrites()` 기본 메서드 추가.
 - `AIAssistantImpl.callFunction`이 도구 실행기를 거친다(정책·감사).
-- 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, 새 번들 `model.ai.tools`.
+- 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, `model.ai.engine.chatcompletions`(2026-11-11), 새 번들 `model.ai.tools`.
 - `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`가 전역 비밀 컨트롤러 대신 OS 보안 저장소를 쓰고 평문 값을 옮긴다. upstream은 전역 비밀 컨트롤러(데스크톱은 평문 설정)를 쓴다.
 - `SecurePreferencesSecretController`가 OS 제공자의 unchecked 예외를 `DBSecurityException`으로 바꾼다.
 
@@ -1101,6 +1258,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   긴 대화의 문맥 크기는 2026-11-08에 줄였다(위 "요청 크기").
 - **요청 크기의 남은 점(2026-11-08)**: 도구 정의 약 52 KB(≈13k 토큰)가 요청마다 간다. SQL Server 연결은 거의 모든 도구를 쓸 수 있어 고르기로 줄지 않는다.
   더 줄이려면 도구 설명을 짧게 하거나, 제공자의 프롬프트 캐시(Anthropic `cache_control`)를 쓰거나, 묶음을 필요할 때만 여는 방식(도구 검색)이 필요하다.
+  2026-11-12 도구 설명에 "언제 쓰고 대신 무엇을 쓸지"를 넣어 설명 글이 약 11 KB 늘었다. 줄이는 방식은 위 "요청마다 보내는 도구 줄이기 제안"(권함: 핵심 묶음 + 도구 찾기).
   예산 60,000자는 고정값이다. 32k 문맥의 로컬 모델(Ollama)에는 도구 정의와 합쳐 클 수 있고, 모델의 문맥 크기 설정(`AnthropicProperties.contextWindowSize` 등)을
   따르게 하지 않았다. 대화의 연결과 다른 연결의 DB 종류 도구는 "도구를 모두 보냄"을 켜야 보인다. 이 확인란은 눈으로 확인하지 않았다(빌드·NLS 키만 확인).
 - **열린 에이전트 트랜잭션과 앱 종료**: 2026-11-07 확인 결과 `ExitTransactionCheck`는 쿼리 관리자만 보아 에이전트 격리 문맥의 트랜잭션을 찾지 못했다
@@ -1128,6 +1286,13 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+
+- 2026-11-12 앱 변경 #53(`chromite/tabs-toolbar`): 주 도구 막대의 Chromite Agent 단추를 단추 묶음의 마지막(Find 뒤)으로. 위 창 배치 설명을 고침.
+- 2026-11-12 앱 변경 #61(`chromite/agent-tool-review`): 도구 선택 정적 점검. 헷갈리는 묶음 15개, 도구 설명 99개와 인수 설명 14개를 "하는 일·언제·대신 쓸 도구"
+  모양으로 고침, `part`·`mode`에 `validValues`, 이름 바꾸기·합치기·빼기 제안(사용자 결정), 요청 크기 줄이기 제안(권함: 핵심 묶음 + 도구 찾기),
+  평가 세트 [agent-tool-eval.md](agent-tool-eval.md). 도구 ID·인수 이름·분류·도구 수(101)는 그대로. 위 "도구 선택 점검".
+- 2026-11-11 앱 변경 #34·#35(`chromite/agent-providers`): vLLM·Google Gemini 제공자. OpenAI 호환 Chat Completions 엔진(스트리밍, 도구 호출,
+  thought signature 돌려보내기), 도구 호출을 못 하는 vLLM 서버의 안내(채팅 오류와 Test), 모델 선택·Providers 탭·키 저장. 위 "Chat Completions 엔진".
 
 - 2026-11-09 에이전트 문맥의 열린 트랜잭션 확인을 쿼리 창과 같은 방언 질의로(`chromite/txn-real-state`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태"):
   SELECT만 한 트랜잭션(SQL Server 암시적, MySQL `INNODB_TRX` 행)을 열림으로 보던 것과 자동 커밋 문맥의 `BEGIN TRAN`을 놓치던 것을 고침, 자동 커밋 트랜잭션은

@@ -59,6 +59,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-09 조회만 한 트랜잭션 끝내기({@code editor_status_txn_end_read_only}, {@code editor_status_txn_tip_click_read_only},
  *   {@code editor_status_txn_read_only_ended*}), 칸이 조회 트랜잭션과 변경 있는 트랜잭션을 구별({@code editor_status_txn_read_only_locks},
  *   {@code editor_status_txn_read_only_snapshot}, {@code editor_status_txn_open_changes}) (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-12 결과 영역 두 단계 탭: 위 탭 이름 {@code editor_results_grid}, {@code editor_results_text}, {@code editor_results_server_output},
+ *   Text 탭의 결과 제목 {@code editor_results_text_title}, 새 서버 출력 도구 설명 {@code editor_results_server_output_new_tip} 추가,
+ *   {@code editor_results_tab}은 언어와 관계없이 "Result N" (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -109,9 +112,11 @@ public class EditorMessages extends NLS {
     public static String editor_sql_discard_confirm_one;
     public static String editor_sql_discard_confirm_many;
     public static String editor_sql_waiting_actual_plan;
-    public static String editor_sql_executing;
     public static String editor_sql_connecting;
     public static String editor_sql_canceling;
+    public static String editor_sql_executing_statement;
+    public static String editor_sql_executing_elapsed;
+    public static String editor_sql_state_elapsed;
     public static String editor_sql_canceled_by_user;
     public static String editor_sql_completion_time;
     public static String editor_sql_completed_with_errors;
@@ -189,14 +194,12 @@ public class EditorMessages extends NLS {
     public static String editor_outline_none;
 
     // Options > Templates (SqlTemplatesPage)
-    public static String editor_templates_title;
     public static String editor_templates_enabled;
     public static String editor_templates_remove;
     public static String editor_templates_new;
     public static String editor_templates_restore;
     public static String editor_templates_restore_tip;
     public static String editor_templates_hint;
-    public static String editor_templates_cant_save;
     public static String editor_templates_default_scount;
     public static String editor_templates_default_swhere;
     public static String editor_templates_default_scgb;
@@ -331,6 +334,11 @@ public class EditorMessages extends NLS {
     public static String editor_sql_export_command;
 
     // Results (QueryResultsView)
+    public static String editor_results_grid;
+    public static String editor_results_text;
+    public static String editor_results_text_title;
+    public static String editor_results_server_output;
+    public static String editor_results_server_output_new_tip;
     public static String editor_results_tab;
     public static String editor_results_pinned;
     public static String editor_results_pinned_tip;
