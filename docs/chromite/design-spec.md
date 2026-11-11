@@ -215,7 +215,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 5. **트리 아이콘 교체**: DBeaver 아이콘 → 1px 선 16px 아이콘, 중립 회색 + 의미 강조색 규칙(지금 주황 채움 폴더·파란 표).
 6. **연결 상태 표시**: PNG 체크 겹침 → 지름 6 상태 점(연결됨 초록, 연결 중 노랑, 오류 빨강).
 7. **글꼴**: UI Inter 13, 편집기·그리드 JetBrains Mono 13(지금 Segoe UI 12, Consolas).
-8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, —)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
+8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, 닫기 ×. 2026-11-11 전에는 숨기기 —, 앱 변경 #57)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
 9. **주 도구 막대**: 아이콘 단추 16/26 + hover 바탕, New Query만 글자(지금 글자 단추 4개).
 10. **편집기 탭**: 높이 40, 탭 줄 바탕 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16(지금 32, 아이콘 없음).
 11. **쿼리 도구 막대**: `▶ Execute`(초록 아이콘 + 글자), `■` 중지 아이콘, 콤보 28·arc 8·공급자 아이콘(지금 글자 `Execute`/`Cancel`).
@@ -520,7 +520,7 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 | 실행 | `action.run`(초록, Execute), `action.stop`(빨강, 실행 취소), `action.parse`(중립 체크), `action.explainPlan` |
 | 결과 | `action.resultsToGrid`, `action.resultsToText`, `action.exportCsv`·`action.exportXlsx`(같은 내보내기 그림), `action.copyWithHeaders`, `action.sortAsc`, `action.sortDesc` |
 | 객체 | `action.scriptAs`(DDL), `action.selectTopRows`, `action.viewDdl`, `action.properties` |
-| 창·일반 | `action.more`(⋮), `action.hideToolWindow`(—), `action.close`(×), `action.settings`, `action.themeLight`·`action.themeDark` |
+| 창·일반 | `action.more`(⋮), `action.close`(×, 도구 창 닫기(숨기기)도 이것. 2026-11-11 `action.hideToolWindow`(—) 삭제, 앱 변경 #57), `action.settings`, `action.themeLight`·`action.themeDark` |
 
 (`action.exportCsv`·`action.exportXlsx`, `action.themeLight`·`action.themeDark`는 각각 1개로 셌다. `action.close`는 `icon.neutral`, 탭 닫기에도 쓴다.)
 
@@ -602,7 +602,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 |---|---|
 | 카드 | 도구 창 하나 또는 탭 묶음 하나가 카드(`Chromite.island.background`, arc 20). 도킹 루트가 카드 바탕을 칠하고 모서리를 캔버스로 덮는다(`IslandPanel.paintCorners`) |
 | 카드 사이 틈 | 라이브러리 분할 창의 분할선 = `SplitPane.dividerSize` 6, 선·손잡이 없음. 바깥 왼쪽·오른쪽 틈 `Chromite.island.gap` 6. 라이브러리 패널의 1px 테두리(`Component.borderColor`)와 마우스 올림 강조 테두리는 지움 |
-| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [— 숨기기 `hide`] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
+| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [× 닫기 `close`: 동작은 숨기기. 2026-11-11 전에는 — `hide`, 앱 변경 #57] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
 | 옵션 메뉴 | Float, Dock, Auto Hide(체크), ─, Hide. 테마 팝업 메뉴 그대로 |
 | 탭 묶음 | 아래쪽 탭(라이브러리 기본), `tabHeight 32`, 밑줄 3(Results 탭과 같음), 선택 탭의 머리말이 위에 보임 |
 | 놓을 자리 표시 | `ModernDocking.overlayBackground` = 강조색 `#3871E1` 30%(`#3871E14D`), 라이트·다크 같음 |
@@ -635,7 +635,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 5 | 트리 아이콘 | 1px 선 16px, 중립 + 의미 강조색 | 아이콘 팩 2종(아래 "아이콘 팩"), 폴더는 펼치면 열린 폴더 | 완료 |
 | 6 | 연결 상태 점 | 지름 6, 초록·노랑·빨강 | 지름 6 + 행 바탕색 1px 테두리. 연결됨 초록, 연결 실패 빨강(없는 폴더의 SQLite 파일, `x-broken2`) 확인 | 완료. 연결 중(노랑)은 잠깐이라 화면 확인은 못 함 |
 | 7 | 글꼴 | Inter 13, JetBrains Mono 13, 한글 대체 | Inter·JetBrains Mono(번들). 트리·메뉴·Properties·대화상자·편집기·그리드의 한글이 맑은 고딕으로 대체되어 보임(□ 없음) | 완료. 편집기 줄 간격 1.2는 못 함 |
-| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
+| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 닫기(×) 아이콘(2026-11-11 전에는 숨기기 —, 앱 변경 #57). Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
 | 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
 | 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로). 2026-11-07 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김(사용자 결정) | 완료 |
@@ -677,7 +677,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
 - 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 95개씩(2026-11-08 Object Explorer Link with Editor의 `link` 추가, [swing-explorer-productivity.md](swing-explorer-productivity.md). P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
-  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
+  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`(2026-11-11 삭제, 앱 변경 #57), `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
 - 배지 자리를 비우는 `<mask>`(view, mview, column-pk, column-fk, new-query, new-connection, export)는 JSVG 2.1이 그대로 그린다(JSVG로 따로 렌더링해 확인, 앱 화면의 기본 키 열 아이콘도 같음). 그래서 평평한 경로로 바꾸지 않았다.

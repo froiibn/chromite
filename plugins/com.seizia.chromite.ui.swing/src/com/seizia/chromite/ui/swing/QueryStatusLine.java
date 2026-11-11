@@ -107,6 +107,8 @@ import java.util.Objects;
  * - 2026-11-09 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기(잠금 해제), 자동으로 끝냈다는 짧은 알림, 칸이 두 종류를 구별함(사용자
  *   "활성 트랜잭션과 lock은 구분하는게 좋지 않나?": 조회 트랜잭션은 보조 색 점과 "조회 트랜잭션 … · 잠금 유지", 변경이 있으면
  *   "열린 트랜잭션 … (변경 있음)") (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 실행 중 상태 아이콘을 재생 아이콘에서 회전 도넛 스피너({@link SpinnerIcon})로(앱 변경 #44: 실행 중인지 분명하지 않았다).
+ *   글자("실행 중 2/3 · 00:00:12")는 쿼리 창이 넣는다 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -166,6 +168,8 @@ final class QueryStatusLine extends JPanel {
     private final JLabel rowsLabel = createSegment();
     private final JLabel caretLabel = createSegment();
     private State state = State.READY;
+    // The state icon while a query runs (turns until the state changes)
+    private final SpinnerIcon runningIcon = new SpinnerIcon();
     @Nullable
     private DBPDataSourceContainer container;
     @Nullable
@@ -508,11 +512,16 @@ final class QueryStatusLine extends JPanel {
     }
 
     private void updateStateIcon() {
+        if (state == State.EXECUTING) {
+            runningIcon.start();
+        } else {
+            runningIcon.stop();
+        }
         stateLabel.setIcon(switch (state) {
             case READY -> container != null && container.isConnected()
                 ? UiIcons.withStatusDot(UiIcons.get("connection"), UiIcons.Status.CONNECTED) //$NON-NLS-1$
                 : UiIcons.get("connection"); //$NON-NLS-1$
-            case EXECUTING -> UiIcons.get("run"); //$NON-NLS-1$
+            case EXECUTING -> runningIcon;
             case SUCCESS -> UiIcons.get("check"); //$NON-NLS-1$
             case ERROR -> UiIcons.get("error"); //$NON-NLS-1$
             case CANCELED -> UiIcons.get("warning"); //$NON-NLS-1$
