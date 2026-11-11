@@ -22,9 +22,11 @@ import com.formdev.flatlaf.util.UIScale;
 import com.github.weisj.jsvg.SVGDocument;
 import com.github.weisj.jsvg.parser.SVGLoader;
 import com.github.weisj.jsvg.view.ViewBox;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 
 import javax.swing.*;
 import java.awt.*;
@@ -61,6 +63,8 @@ import java.util.Map;
  *   (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-09 {@link Status#QUIET}: 쿼리 상태 줄의 조회 트랜잭션 점(보조 글자 색, 주의가 아님) (docs/chromite/idle-transactions.md
  *   "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 아이콘 단추의 도구 설명이 동작의 단축키를 함께 보임({@link ShortcutTipButton}, 앱 변경 #50: 단축키가 있는 줄 몰랐다)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "단축키를 도구 설명에")
  */
 final class UiIcons {
 
@@ -169,12 +173,51 @@ final class UiIcons {
 
     @NotNull
     private static JButton createButton(@NotNull Action action, @NotNull String iconId) {
-        JButton button = new JButton(action);
+        JButton button = new ShortcutTipButton(action);
         button.setIcon(get(iconId));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);
         return button;
+    }
+
+    /**
+     * A button whose tool tip names the shortcut of its action ({@link Action#ACCELERATOR_KEY}), "Hide Results (Ctrl+R)",
+     * unless the tool tip already does ({@link UiKeys#formatDescription}). Read when the tool tip shows, so a description
+     * the action changes later (enabled or not, the active window) keeps the shortcut too.
+     */
+    private static final class ShortcutTipButton extends JButton {
+        ShortcutTipButton(@NotNull Action action) {
+            super(action);
+        }
+
+        @Override
+        public String getToolTipText() {
+            String tip = super.getToolTipText();
+            Action action = getAction();
+            if (tip == null || action == null || !(action.getValue(Action.ACCELERATOR_KEY) instanceof KeyStroke key)) {
+                return tip;
+            }
+            return withShortcut(tip, key);
+        }
+    }
+
+    /**
+     * A tool tip with the shortcut text after it ("Hide Results (Ctrl+R)", "⌘R" on macOS), unless it already names it.
+     * An HTML tool tip gets it before its end tag.
+     */
+    @NotNull
+    static String withShortcut(@NotNull String tip, @NotNull KeyStroke key) {
+        String keyText = UiKeys.getText(key);
+        if (tip.contains(keyText)) {
+            return tip;
+        }
+        String end = "</html>"; //$NON-NLS-1$
+        int endIndex = tip.regionMatches(true, 0, "<html>", 0, 6) ? tip.toLowerCase().lastIndexOf(end) : -1; //$NON-NLS-1$
+        if (endIndex >= 0) {
+            return tip.substring(0, endIndex) + NLS.bind(CoreMessages.common_tip_shortcut, "", keyText) + tip.substring(endIndex); //$NON-NLS-1$
+        }
+        return NLS.bind(CoreMessages.common_tip_shortcut, tip, keyText);
     }
 
     @Nullable

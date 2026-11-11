@@ -56,6 +56,7 @@ public class CoreMessages extends NLS {
     public static String common_replace;
     public static String common_error;
     public static String common_input;
+    public static String common_tip_shortcut;
     public static String common_loading;
     public static String common_no_active_project;
     public static String common_select_connection_first;
@@ -333,7 +334,7 @@ public class CoreMessages extends NLS {
     public static String icon_style_duotone;
     public static String icon_style_color;
 
-    public static String toolwindow_hide;
+    public static String toolwindow_close;
     public static String toast_click_details;
 
     public static String servers_new_registration;
