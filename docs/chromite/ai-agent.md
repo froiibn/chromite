@@ -457,6 +457,8 @@ claude mcp add --transport http chromite http://127.0.0.1:47821/mcp --header "Au
 |---|---|---|
 | OpenAI (`openai`) | 기존. Responses API(`OpenAiUtils.createOpenAiRequest`)가 `AIFunctionDescriptor` 목록을 `function` 도구로 보낸다. 이 작업의 도구도 같은 경로로 간다. `temperature`는 명시적으로 정했을 때만 보낸다(`OpenAIProperties.getRequestTemperature`, 2026-11-08, Anthropic과 같은 원인) | 예 |
 | Ollama (`ollama`) | 이미 `plugin.xml`에 등록되어 있다(브리프의 "등록 안 됨"은 이전 상태). `/api/chat`의 `tools` | 예(응답의 첫 도구 호출) |
+| vLLM (`vllm`, 2026-11-11) | OpenAI 호환 Chat Completions(`POST <기본 URL>/chat/completions`, 스트리밍), 엔진 `ChatCompletionsEngine` + 설정 `VllmProperties`. 아래 "Chat Completions 엔진" | 예(`tools`/`tool_calls`, 서버가 도구 호출을 켜고 떠 있어야 함) |
+| Google Gemini (`gemini`, 2026-11-11) | Gemini API의 OpenAI 호환 엔드포인트, 같은 엔진 + `GeminiProperties`. 아래 "Chat Completions 엔진" | 예 |
 | Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록. `temperature`는 명시적으로 정했을 때만 보낸다(`AnthropicProperties.getRequestTemperature`, 아래 "실제 API 확인") | 예 |
 
 API 키는 설정 파일(`ai-configuration.json`)에 쓰지 않고(`@SecureProperty`) `AIUtils.setSecretValue`가 OS 보안 저장소에 둔다(아래 "API 키 저장").
@@ -472,7 +474,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 | 항목 | 내용 |
 |---|---|
-| 대상 | `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`를 쓰는 AI 비밀 전부: Anthropic·OpenAI API 키, OpenAI 사용자 헤더, Copilot 토큰(DataDam 엔진도 같은 경로) |
+| 대상 | `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`를 쓰는 AI 비밀 전부: Anthropic·OpenAI·Google Gemini·vLLM API 키(`gemini.apiKey`, `vllm.apiKey`, 2026-11-11), OpenAI 사용자 헤더, Copilot 토큰(DataDam 엔진도 같은 경로) |
 | 저장소 | Eclipse secure storage + OS 제공자(`DBSecurityUtils.findNativeOSProvider`): Windows는 `org.eclipse.equinox.security.win32`(마스터 비밀번호를 DPAPI로 보호, 값은 그 비밀번호로 암호화), macOS는 `model.security`의 키체인 제공자. 노드 `chromite`, 키 이름은 예전과 같다(`anthropic.apiKey_anthropic`). 파일은 기본 위치(`%USERPROFILE%\.eclipse\org.eclipse.equinox.security\secure_storage`, `-eclipse.keyring`으로 바꿀 수 있음)라 작업 공간이 아니라 OS 사용자 단위다. Swing 제품에 두 제공자 번들이 이미 있다(`com.seizia.chromite.swing.feature`) |
 | 쓰기 | 값을 쓰고 `isPrivateSecretEncrypted`로 암호화를 확인한 뒤 flush한다. 암호화되지 않았으면 지우고 예외. 이어서 같은 키의 평문 사본이 있으면 지운다 |
 | 이전 | 읽을 때 보안 저장소에 값이 없고 평문 사본이 있으면 보안 저장소에 쓰고(확인·flush) 평문 줄을 지운 뒤 설정 파일을 저장한다. 로그에는 키 이름만 남긴다(`AI secret '…' was moved from the workspace settings to the secure storage`). 보안 저장소에 이미 값이 있으면(다른 작업 공간이 먼저 옮김) 이 작업 공간의 평문 사본은 쓰이지 않으므로 지운다 |
@@ -497,6 +499,46 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 | 3. 이전 | 빈 keyring + 설정 파일에 0.1.0 형식 평문 줄 → 시작 후 Test가 그 키로 동작, 평문 줄 사라짐, keyring에 암호문. 로그에 키 이름만 |
 | 3b. 남은 평문 | keyring에 키가 있는 상태에서 다른 가짜 키의 평문 줄을 넣음 → keyring의 키를 쓰고 평문 줄은 지워짐 |
 | 4. 저장소 실패 | keyring의 DPAPI 마스터 비밀번호를 망가뜨려 시작 → 앱 정상 시작(고치기 전에는 `Win32Exception`으로 시작이 멈춤), 키 입력 후 OK → "Settings of Anthropic Claude were not saved: the secure storage of this computer could not store the key. The key is never saved in a settings file instead." 설정 파일·작업 공간에 키 0건 |
+
+### Chat Completions 엔진 (vLLM, Google Gemini, 2026-11-11)
+
+앱 변경 #34(사용자: "llm을 연결하는 옵션에 vllm도 추가한다"), #35("코파일럿과 gemini도 추가한다" 중 Gemini). #36 Copilot은 사용자 결정을 기다려 이번 범위가 아니다.
+
+| 항목 | 내용 |
+|---|---|
+| 왜 따로 | OpenAI 엔진은 Responses API(`/v1/responses`, `OpenAiAPIStreamConsumer`)를 쓴다. vLLM은 Chat Completions가 기본이고 Responses 지원은 버전마다 다르다. Gemini의 OpenAI 호환 엔드포인트도 Chat Completions다. 그래서 OpenAI 엔진을 고치지 않고 Chat Completions 엔진 하나를 새로 두고 두 제공자가 같이 쓴다. 기존 `OpenAIClientChat`은 도구 호출이 없고 스트리밍이 Responses 요청이라 쓰지 않았다 |
+| 구조 | `model.ai` 패키지 `com.seizia.chromite.model.ai.engine.chatcompletions`: `ChatCompletionsEngine`(두 `completionEngine` 확장 `vllm`·`gemini`가 같은 클래스), `ChatCompletionsClient`(HTTP, 요청 조립, SSE 해석), `ChatCompletionsProperties`(기본 URL, 키, 모델; 키는 `@SecureProperty`), 하위 클래스 `VllmProperties`·`GeminiProperties`(기본 URL, 키 필요 여부, 오류 문구 이름, 도구 호출 안내, 모델 ID → 요청 이름). 채팅 쪽은 `AIAgentProviders.PROVIDERS`에 `gemini`·`vllm`을 더했을 뿐이라 모델 선택(제공자 제목)과 Providers 탭이 목록을 따라간다. 순서: Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM(호스팅 서비스 다음 직접 띄우는 서버) |
+| 요청 | `POST chat/completions`: `model`, `messages`(system 하나를 맨 앞에 모음, user는 글 또는 글+`image_url` data URL, 도구 호출은 assistant `tool_calls[{id, type: function, function: {name, arguments(JSON 글)}}]` + `tool` 메시지 `{tool_call_id, name, content}`), `tools[{type: function, function: {name, description, parameters}}]`, `tool_choice: "auto"`, 스트리밍이면 `stream: true`, `stream_options.include_usage: true`. `temperature`는 명시적으로 정했을 때만(`ChatCompletionsProperties.getRequestTemperature`), `max_tokens`는 보내지 않는다(서버 기본값). 인증은 키가 있을 때만 `Authorization: Bearer <키>` |
+| 응답 | SSE `data:` 줄. `delta.content`는 바로 조각으로, `delta.tool_calls` 조각은 `index`별로 모아 응답이 끝날 때 도구 호출로 넘긴다. `index`가 없거나 같은 `index`에 다른 `id`가 오면(호환 계층) 새 `id`를 새 호출로 본다. 사용량은 `usage`가 있는 조각에서. 흐름 중 `{"error": …}`는 오류로. 도구 호출의 `id`와 `extra_content`(Gemini 3 thought signature)는 `AIFunctionCall` 메타데이터에 두었다가 다음 요청에 그대로 돌려보낸다(대화 저장에도 남음) |
+| 도구 스키마 | 속성 없는 `object` 매개변수(지금은 `runLibraryQuery.parameters` 하나)는 "(JSON object text)"를 덧붙인 `string`으로 보낸다. Gemini는 속성 없는 OBJECT 스키마를 거부하고, 도구는 JSON 글을 받는다(`AgentArgs.getJson`) |
+| 도구 호출을 못 하는 서버 | vLLM은 `--enable-auto-tool-choice --tool-call-parser <모델별>` 없이 띄우면 `tool_choice: auto` 요청을 400("\"auto\" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set")으로 거부한다. `ChatCompletionsClient.mapHttpError`가 이를 알아보고 "This vLLM server does not support tool calls, which Chromite Agent needs to work with databases. Start the vLLM server with --enable-auto-tool-choice and the --tool-call-parser of the model (for example hermes, llama3_json or mistral). Server message: …"로 바꾼다(채팅 오류 항목). Providers의 Test는 모델 목록 뒤에 같은 모델로 1토큰 요청(가짜 도구 하나, `max_tokens: 1`)을 보내 미리 알린다: Test 줄에 "연결됨: 모델 N개. 하지만 도구 호출이 되지 않습니다", 그 아래 입력란 폭으로 줄 바꾼 경고 글에 위 안내 전체(긴 글을 한 줄 상태 글에 넣으면 모든 양식이 그 폭으로 늘어나 가로 스크롤이 생겼다). 이 확인은 도구 호출 안내가 있는 제공자(vLLM)만 한다 |
+| vLLM 설정 | 기본 URL(예 `http://host:8000/v1`, 기본값 없음, 끝 `/` 없어도 됨), API 키 선택(서버를 `--api-key`로 띄웠을 때만), 모델은 `GET <기본 URL>/models` 목록에서 고르거나 직접 입력 |
+| Gemini 설정 | API 키(필수), 기본 URL 기본값 `https://generativelanguage.googleapis.com/v1beta/openai/`(바꿀 수 있음), 모델 목록 `GET models`. 목록 ID의 `models/` 접두어는 뗀다(`GeminiProperties.toModelName`, 요청 예시는 접두어 없는 이름). 기본 모델은 두지 않는다(목록 API에서 고름) |
+| 네트워크 | 다른 엔진과 같은 `java.net.http.HttpClient`(`AbstractHttpAIClient`, HTTP/1.1)를 쓴다. 사내 인증서·프록시는 JVM 설정(신뢰 저장소, 시스템 프록시)을 따르고, 연결별 네트워크 설정(SSH·프록시 프로필)은 쓰지 않는다. 다른 AI 엔진과 같다 |
+| 환경 변수 | 읽지 않는다(요청되지 않은 설정을 늘리지 않음) |
+
+확인(2026-11-11, Windows 11, 150%와 100%, 한국어·영어): 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS,
+`python tools/rename/gate.py` ALL GATES PASSED. 실제 제공자는 부르지 않았다. 127.0.0.1의 가짜 OpenAI 호환 서버(vLLM 꼴 `/v1`, Gemini 꼴
+`/gemini/v1beta/openai/`: Bearer 키 검사, `models/` 접두어 ID, 한 조각에 `index` 없는 병렬 호출 2개와 thought signature)를 띄우고, 빈 작업 공간·
+`-configuration`·`CHROMITE_DATA`·`-eclipse.keyring`을 모두 개인 폴더로 둔 빌드 사본을 앱 안 시험 에이전트(Swing 객체 직접 조작)로 시험했다. Gemini의 기본 URL은
+Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜 서버 기록(33줄)에 남았다. 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+| 시험 | 결과 |
+|---|---|
+| 목록 | 모델 선택: Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM 제목(설정 전 "설정 필요"). Providers: 다섯 양식, vLLM "API 키(선택)"·자리 표시 `http://localhost:8000/v1`, Gemini 기본 URL이 보임 |
+| Test | vLLM "연결됨: 모델 2개"(`GET /v1/models` + 도구 확인 `POST`, `max_tokens: 1`), Gemini "연결됨: 모델 2개"(`Authorization: Bearer <가짜 키>`, 목록 `gemini-fake-pro`·`gemini-fake-flash`로 접두어 뗌). OK 뒤 `ai-configuration.json`에 URL·모델만 있고 키 없음, keyring에 `/chromite/gemini.apiKey_gemini`(암호문), 작업 공간·데이터 폴더에 키 0건 |
+| 도구 호출 못 하는 서버 | 모델 `fake-notools`(vLLM 400 문구): Test "연결됨: 모델 2개. 하지만 도구 호출이 되지 않습니다" + 그 아래 경고 글(양식 폭 그대로, 가로 스크롤 없음). 채팅은 오류 항목에 같은 안내 |
+| vLLM 채팅 | 글 조각 → `index` 있는 도구 호출 조각 3개 → `listConnections`(READ, 자동 실행) → 다음 요청에 assistant `tool_calls` + `tool`(`tool_call_id` 같음, `name`) → 답 글. `stream_options.include_usage`, 상태 줄 "토큰: 입력 2,468, 출력 112". `temperature` 없음, 설정 파일에 `ai.useServerDefaultTemperature: false`, `0.3`을 넣으면 `temperature: 0.3` |
+| Gemini 채팅 | `model: gemini-fake-pro`/`gemini-fake-flash`(접두어 없음), 병렬 호출 2개 모두 실행, 다음 요청에 두 `id` 짝과 첫 호출의 `extra_content.google.thought_signature`가 그대로 돌아감(가짜 서버 판정 ids-ok, signature-echoed) |
+| 도구 스키마 | 요청의 도구 101개, 매개변수 형식은 `boolean`·`integer`·`string`만(`object` 없음) |
+
+미룬 것(결정 필요):
+
+- **Vertex AI**: 기업은 Google Cloud 프로젝트·서비스 계정으로 Vertex AI의 Gemini를 쓸 수 있다. 인증(서비스 계정 JSON 또는 ADC, OAuth 액세스 토큰 갱신)과 주소
+  (`https://<region>-aiplatform.googleapis.com/v1/projects/<프로젝트>/locations/<region>/endpoints/openapi`)가 달라 이번 범위(API 키)에서 뺐다. 넣는다면
+  같은 Chat Completions 엔진에 토큰 공급자를 더하는 방식이 가장 작다.
+- **실제 서버 확인**: 실제 vLLM 서버와 실제 Gemini 키 없이 가짜 서버로만 확인했다(아래 표). Gemini 호환 엔드포인트의 실제 스트리밍 도구 호출 형식
+  (`index` 유무, thought signature 위치)은 공개 문서에 자세한 예가 없어 두 형식을 모두 받게 만들었다. 첫 실제 사용 때 확인이 필요하다.
 
 ## 시나리오 플레이북
 
@@ -738,7 +780,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 
 | 탭 | 내용 |
 |---|---|
-| Providers | 제공자마다 API 키(Ollama 제외), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트), 기본 모델, Test. 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 OS 보안 저장소에만, 위 "API 키 저장". 보안 저장소가 키를 저장하지 못하면 그 이유를 알리고 아무것도 저장하지 않음) |
+| Providers | 제공자(Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM)마다 API 키(Ollama 제외, vLLM은 "선택"), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트, vLLM은 자리 표시 `http://localhost:8000/v1`, Gemini는 기본값이 보임), 기본 모델, Test. vLLM의 Test는 모델 목록 뒤에 그 모델로 도구 호출이 되는지도 확인한다(아래 "Chat Completions 엔진"). 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 OS 보안 저장소에만, 위 "API 키 저장". 보안 저장소가 키를 저장하지 못하면 그 이유를 알리고 아무것도 저장하지 않음) |
 | Tool Policy | 맨 위에 늘 보이는 규칙 3개(운영 연결은 쓰기·위험 막힘, 읽기 전용 연결은 어떤 규칙으로도 바꿀 수 없음, 위험 도구 자동 실행은 연결 하나·도구 하나 규칙으로만). 규칙 대상(모든 연결 = 기본값, 또는 연결 하나, 운영 연결은 "(운영)" 표시), 분류별 규칙 3개, 도구 필터, 도구 표(도구, 그룹, 분류, 규칙: 상속/자동 실행/실행 전 확인/막음, 실제 권한). 실제 권한은 저장 전 규칙으로 `AIToolPolicy.resolve(Settings, …)` 판정(읽기 전용 연결이면 "실행 안 함"). OK에서 `setSettings` |
 | MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
 | Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
@@ -1058,7 +1100,7 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
 - 확장점 스키마 `com.seizia.chromite.ai.function.exsd`에 `access`, `writes` 속성 추가.
 - `AIFunctionDescriptor`에 `getAccess()`, `getWrites()` 기본 메서드 추가.
 - `AIAssistantImpl.callFunction`이 도구 실행기를 거친다(정책·감사).
-- 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, 새 번들 `model.ai.tools`.
+- 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, `model.ai.engine.chatcompletions`(2026-11-11), 새 번들 `model.ai.tools`.
 - `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`가 전역 비밀 컨트롤러 대신 OS 보안 저장소를 쓰고 평문 값을 옮긴다. upstream은 전역 비밀 컨트롤러(데스크톱은 평문 설정)를 쓴다.
 - `SecurePreferencesSecretController`가 OS 제공자의 unchecked 예외를 `DBSecurityException`으로 바꾼다.
 
@@ -1128,6 +1170,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+
+- 2026-11-11 앱 변경 #34·#35(`chromite/agent-providers`): vLLM·Google Gemini 제공자. OpenAI 호환 Chat Completions 엔진(스트리밍, 도구 호출,
+  thought signature 돌려보내기), 도구 호출을 못 하는 vLLM 서버의 안내(채팅 오류와 Test), 모델 선택·Providers 탭·키 저장. 위 "Chat Completions 엔진".
 
 - 2026-11-09 에이전트 문맥의 열린 트랜잭션 확인을 쿼리 창과 같은 방언 질의로(`chromite/txn-real-state`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태"):
   SELECT만 한 트랜잭션(SQL Server 암시적, MySQL `INNODB_TRX` 행)을 열림으로 보던 것과 자동 커밋 문맥의 `BEGIN TRAN`을 놓치던 것을 고침, 자동 커밋 트랜잭션은
