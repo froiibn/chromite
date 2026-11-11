@@ -1124,6 +1124,15 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
 - **크기**: 도구 설명 글은 16,128 B → 27,119 B, 인수 설명은 10,868 B → 11,207 B(UTF-8). 요청마다 약 11 KB(≈2.8k 토큰) 늘었다. 설명이 정확한 쪽을
   골랐고, 크기는 아래 제안으로 줄인다.
 
+### 확인 (2026-11-12)
+
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS(10:30).
+- 빌드한 앱 사본(빈 작업 공간·설정·데이터·키링, 가짜 Anthropic 서버 127.0.0.1만)에서: 채팅 도구 101개·MCP 도구 101개(`AIToolCatalog.getTools`).
+  연결 없는 대화 두 차례(`listConnections`, `getToolPolicy` 호출)가 가짜 서버에 닿았고, 요청마다 도구 101개, 새 설명, `editQueryWindow.mode`의 `enum`이 실렸다.
+  `tool_use`/`tool_result` 짝 오류 0건. 도구 정의는 69,400 B(위 "크기" 표와 같은 셈법인 들여쓰기 없는 `json.dumps`. 2026-11-08에는 도구 96개 52,589 B),
+  첫 요청 본문 68,378 B. MCP `tools/list`는 101개이고 `getQueryWindowText.part`의 `enum`과 새 설명을 돌려준다.
+- 실제 모델로는 재지 않았다(평가 세트는 사용자가 실행).
+
 ### 사용자가 정할 것: 이름 바꾸기·합치기·빼기 (하지 않음)
 
 ID나 인수를 바꾸면 저장된 정책(`AIToolPolicy`의 도구별 규칙), 감사 기록 검색, MCP 클라이언트 설정이 깨진다. 바꾸려면 옛 ID를 별칭으로 한 판 동안 받아야 한다.
