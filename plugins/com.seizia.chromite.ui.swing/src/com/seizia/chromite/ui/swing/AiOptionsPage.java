@@ -115,6 +115,8 @@ import java.util.Set;
  *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 Providers 양식에 도구 묶음·컨텍스트 크기, Test 결과로 도구 없음 방식을 정함. Tool Policy의 "도구를 모두 보냄"을 지움(묶음의
  *   "전체"가 대신함) (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 MCP 서버 설명을 줄 바꾸는 글({@link WrappingNote})로: 한 줄 라벨이 영어(모든 배율)·한국어 100%에서 잘렸다(앱 변경 #71 b,
+ *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -942,7 +944,7 @@ final class AiOptionsPage extends JPanel {
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
             row = addRow(form, row, null, enabledBox);
-            JLabel note = new JLabel(AiMessages.ai_mcp_note);
+            JTextArea note = new WrappingNote(AiMessages.ai_mcp_note);
             note.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             row = addRow(form, row, null, note);
             JPanel portRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
