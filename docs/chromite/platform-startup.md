@@ -89,7 +89,7 @@ JBR 25에서는 위임자를 두지 않았다.
 
 `MacOSAppMenu`가 이 둘을 맡는다(AppKit 스레드에서, main dispatch queue로).
 
-- 앱 메뉴: "Chromite 정보"(`main_about`), "옵션…"(`main_options`, Cmd+,), "Chromite 가리기"(Cmd+H), "기타 가리기"(Opt+Cmd+H),
+- 앱 메뉴: "Chromite 정보"(`main_about`), "옵션"(`main_options`, Cmd+,), "Chromite 가리기"(Cmd+H), "기타 가리기"(Opt+Cmd+H),
   "모두 보기", "Chromite 종료"(Cmd+Q, `terminate:`). 가리기·끝내기는 대상 없이 응답자 사슬로 `NSApp`에 간다.
 - 앱에 위임자가 없으면 런타임에 만든 Objective-C 클래스 `ChromiteAppMenuTarget`의 객체를 위임자로 둔다. `applicationShouldTerminate:`는
   `requestQuit`(창 닫기 단추와 같은 `WINDOW_CLOSING`)을 EDT에 맡기고 `NSTerminateCancel`을 돌려준다. `Desktop` 끝내기 처리기와 같은
@@ -136,7 +136,7 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
   `-vm …/bin/java`를 줘도 같은 프로세스). 별도 `java` 프로세스로 띄우려면 런처를 바꾸거나 새로 만들어야 하고 `jre/bin/java`에 JIT 권한
   서명도 필요하다. Java 쪽 수정은 서명한 앱 하나를 그대로 두고, 권한(entitlements)도 바꾸지 않는다: JVM은 계속 런처 프로세스 안에 있고
   JNA 콜백(Objective-C 메서드, dispatch 함수)은 이미 있는 `allow-unsigned-executable-memory`로 돈다.
-- **앱 메뉴 문구**: 앱의 도구 메뉴와 같은 "옵션…"을 쓴다(macOS 기본 이름 "설정…" 대신).
+- **앱 메뉴 문구**: 앱의 도구 메뉴와 같은 "옵션"을 쓴다(macOS 기본 이름 "설정…" 대신).
 
 ## upstream 대비 변경점
 

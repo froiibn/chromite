@@ -180,6 +180,9 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
    `Startup times`(`ChromiteSwingApplication.run`이 메인 창을 띄운 뒤 남김, 프로세스 시작부터 단계별 ms)가 나오고 앱 프로세스에 창이 생기기를 기다린다.
    창은 System Events(손쉬운 사용 API)로 센다. 그 줄보다 먼저 보이는 창은 시작 화면이라 스크린숏(`*-splash.png`)과 창 목록을 남긴다.
    메인 창이 뜬 뒤 시작 화면 크기(560×320 pt)의 창이 남아 있으면 실패, 시작 화면을 봤고 닫혔으면 PASS, 시간 줄은 NOTE로 남긴다([branding.md](branding.md) "시작 화면").
+   메인 창 전에는 0.3초마다 창의 자리·크기를 `*-splash-positions.txt`(시각 x y 너비 높이)에 남기고, 창이 바뀔 때마다 스크린숏을 찍는다(`*-splash.png`, `*-splash-2..4.png`).
+   시작 화면 크기 창의 자리가 하나뿐이면 PASS, 둘 이상이면 FAIL 줄(단계는 계속, 앱 변경 #52, branding.md "자리"). 디버그 로그의 `Startup splash at …` 줄과
+   `macOS unified title bar …` 줄은 NOTE로 남기고(네이티브 라이브러리 없음은 FAIL 줄), 메인 창 위쪽 90pt를 `*-title-bar.png`로 찍는다([mac-ui.md](mac-ui.md) "통합 제목 줄").
    (2026-11-08 전에는 플랫폼을 만들기 전의 `SSL trust store type` 줄을 기다렸다. 시작 화면이 생긴 뒤로는 그 시점의 창이 메인 창이 아닐 수 있다.)
    Gatekeeper의 첫 실행 질문이 보이면 스크린숏을 찍고 System Events로 "Open"을 한 번 누른다.
    창이 뜨지 않으면 프로세스·작업 공간·데이터 폴더·Equinox 로그·통합 로그(`*-diagnostics.txt`), 네이티브 스택(`sample`, `*-sample.txt`), JVM 스레드 덤프(SIGQUIT, `*-stdout.txt`)를 남긴다.
@@ -187,10 +190,13 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
    예전 파일이 옮겨지고 지워졌는지(`credentials-storage.properties`의 `legacy.migrated.…`), 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목이 있는지
    (`security find-generic-password`, `-g`/`-w` 없이 속성만), 디버그 로그에 보안 저장소 오류가 없는지. 키체인 잠금 상태(`security show-keychain-info`)도 남긴다.
 6. `menus`: System Events로 화면 메뉴 막대의 항목 이름을 읽어 주 창 메뉴(File…Window)가 있는지 보고([mac-ui.md](mac-ui.md), `menu-bar.txt`), 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Options…"(Chromite 앱 메뉴)·"Settings…"·"Preferences…" 중 있는 것을 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
+   이어서 `titlebar`(앱 변경 #62): 앱을 다시 활성화해 `title-bar-light.png`, 시스템 모양을 어둡게 바꾸고 Finder를 거쳐 앱을 다시 활성화해(`SystemTheme`이 그때 다시 읽음)
+   `title-bar-dark.png`·`main-window-dark.png`, 밝게 되돌린 뒤 손쉬운 사용 속성 `AXFullScreen`으로 전체 화면을 켜 `main-window-fullscreen.png`, 다시 끈다.
+   그림은 눈으로 판단한다([mac-ui.md](mac-ui.md) "통합 제목 줄" 확인).
 7. `quit appleevent`: `osascript -e 'tell application id "<번들 ID>" to quit'`(끝내기 처리기). 프로세스가 끝나고 디버그 로그에 `Main window closed`와 `(Swing) shutdown completed`가
    있어야 한다(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남). 새 크래시 보고서가 없어야 한다.
 8. 두 번째 시작(`launch second-launch`, 보안 저장소에서 비밀번호를 읽음) → `quit keystroke`(System Events의 Cmd+Q).
-9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(아래 화살표) → Ctrl+N 새 쿼리 창 → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
+9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(아래 화살표) → Cmd+N 새 쿼리 창(0.1.4부터 macOS는 Command 키, 2026-11-12에 Ctrl+N에서 고침) → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
    "Uncommitted Transactions" 질문 스크린숏 → Cancel이면 앱이 남는지 → 다시 Cmd+Q → "Roll Back" → 정상 종료와 SQLite 파일에 행이 없는지.
 10. `collect`(항상): 남은 앱 프로세스 정리, 디버그 로그, Equinox `.log`, `Info.plist`, 런처 ini, 크래시 보고서, Gatekeeper·키체인 통합 로그.
 
@@ -331,4 +337,6 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
   트리 선택 키, 보안 저장소 확인). 서명 없는 빌드로 모든 단계 통과(실행 42407606192, "결과 (시작 수정 뒤)").
 - 2026-11-08 시작 화면(`chromite/startup-splash`, [branding.md](branding.md) "시작 화면"): `launch`가 메인 창 뒤의 `Startup times` 줄을 기다리고, 그 전에 보인 시작 화면을 찍고, 메인 창이 뜬 뒤 시작 화면이 닫혔는지 확인한다.
 - 2026-11-09 `macos-smoke.sh menus`가 화면 메뉴 막대의 주 창 메뉴를 확인(앱 변경 #27, `chromite/mac-ui`, [mac-ui.md](mac-ui.md)). 아직 실행하지 않음.
+- 2026-11-12 `macos-smoke.sh launch`가 시작 화면 자리를 0.3초마다 기록·비교하고 바뀔 때 찍음(앱 변경 #52), 메인 창 제목 줄 캡처와 새 단계 `titlebar`
+  (밝은·어두운 모양, 전체 화면, 앱 변경 #62), `macos-smoke.yml`에 그 단계(`chromite/mac-ui-2`). 아직 실행하지 않음.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.

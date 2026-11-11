@@ -78,6 +78,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 요청한 쪽 설명을 고침(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 미리 보기 종류에 맞는 제목과 첫 줄: 쿼리 창 글 고치기는 "바뀌는 글"(지운 줄·넣은 줄 색 표시)이고 DB를 바꾸지 않는다고 알림
  *   (docs/chromite/ai-agent.md "편집기 도구")
+ * - 2026-11-12 항상 허용·위험 도구 안내 옆에 Options의 Chromite Agent 페이지를 여는 링크(B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 final class AiConfirmationDialog extends JDialog {
 
@@ -200,14 +201,20 @@ final class AiConfirmationDialog extends JDialog {
         content.add(body, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new BorderLayout(0, 8));
+        // The rules live in the settings (Chromite Agent > Policy): a link opens that page
+        JPanel rule = new JPanel(new BorderLayout(6, 0));
         if (!transaction && request.access() == AIToolAccess.WRITE && request.connection() != null) {
             alwaysAllowBox = new JCheckBox(NLS.bind(AiMessages.ai_confirm_always_allow, request.toolName(), request.connection().getName()));
             alwaysAllowBox.setToolTipText(AiMessages.ai_confirm_always_allow_tip);
-            bottom.add(alwaysAllowBox, BorderLayout.NORTH);
+            rule.add(alwaysAllowBox, BorderLayout.CENTER);
         } else if (!transaction && request.access() == AIToolAccess.DANGEROUS) {
             JLabel note = new JLabel(AiMessages.ai_confirm_dangerous_note);
             note.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
-            bottom.add(note, BorderLayout.NORTH);
+            rule.add(note, BorderLayout.CENTER);
+        }
+        if (rule.getComponentCount() > 0) {
+            rule.add(OptionsLinks.createLink(OptionsDialog.PAGE_AGENT), BorderLayout.EAST);
+            bottom.add(rule, BorderLayout.NORTH);
         }
         bottom.add(createButtons(transaction), BorderLayout.SOUTH);
         content.add(bottom, BorderLayout.SOUTH);

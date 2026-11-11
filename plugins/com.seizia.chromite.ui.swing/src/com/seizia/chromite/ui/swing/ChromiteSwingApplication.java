@@ -110,7 +110,9 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-11 작업 공간 잠금 전 테마를 라이트 대신 운영체제 설정의 테마로 설치하고, 메인 창을 열 때 운영체제 설정 바뀜을 따라가기 시작
  *   (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-12 저장된 UI 글꼴 선택({@link UiFont})이 다른 글꼴이면 주 창을 열기 전에 테마를 다시 설치함 (앱 변경 #43,
- *   docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비") */
+ *   docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 시작 화면의 자리({@link StartupSplash#getPlacement})를 디버그 로그가 열린 뒤 남김: 시작 화면은 로그보다 먼저 열린다
+ *   (앱 변경 #52, docs/chromite/branding.md "자리") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -198,6 +200,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             log.debug("Java version: " + System.getProperty(StandardConstants.ENV_JAVA_VERSION) +
                 " by " + System.getProperty(StandardConstants.ENV_JAVA_VENDOR));
             log.debug("Instance path: '" + instanceLoc.getURL() + "'");
+            String splashPlacement = StartupSplash.getPlacement();
+            if (splashPlacement != null) {
+                log.debug("Startup splash at " + splashPlacement);
+            }
             if (migrationResult != null) {
                 log.info(migrationResult);
             }

@@ -50,6 +50,9 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-09 Chromite: 인덱스 정의를 읽는 질의에 넣는 인덱스 이름을 이스케이프한 {@code N'…'} 문자열로(표 이름과 같게).
  *   이름에 {@code '}가 있으면 질의가 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
+ * - 2026-11-12 Chromite: 인덱스 DDL의 키 열·포함 열·파일 그룹 이름을 {@code QUOTENAME}으로 감쌈(따옴표 없이 이어 붙여 {@code c'ol ASC}처럼 나왔다),
+ *   열 목록은 {@code FOR XML PATH(''), TYPE}의 값으로 읽어 {@code &}·{@code <}가 XML 엔터티로 바뀌지 않게 함
+ *   (docs/chromite/swing-table-designer.md "인덱스 DDL의 열 이름")
  */
 public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServerTableBase>
     implements SQLServerObject, DBSTableConstraint, DBPNamedObject2, DBSObjectWithScript
@@ -239,14 +242,14 @@ public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServ
                 "    ' ONLINE = OFF '  + ','  + \n" +
                 "   CASE WHEN I.allow_row_locks = 1 THEN ' ALLOW_ROW_LOCKS = ON ' ELSE ' ALLOW_ROW_LOCKS = OFF ' END + ','  + \n" +
                 "   CASE WHEN I.allow_page_locks = 1 THEN ' ALLOW_PAGE_LOCKS = ON ' ELSE ' ALLOW_PAGE_LOCKS = OFF ' END  + ' )" +
-                "\n\t ON [' + \n" +
-                "   DS.name + ' ] '  [CreateIndexScript] \n" +
+                "\n\t ON ' + \n" +
+                "   QUOTENAME(DS.name) + ' '  [CreateIndexScript] \n" +
                 "FROM " + SQLServerUtils.getSystemTableName(getDatabase(), "indexes") + " I   \n" +
                 " JOIN " + SQLServerUtils.getSystemTableName(getDatabase(), "tables") + " T ON T.Object_id = I.Object_id    \n" +
                 " JOIN " + SQLServerUtils.getSystemTableName(getDatabase(), "sysindexes") + " SI ON I.Object_id = SI.id AND I.index_id = SI.indid   \n" +
                 " JOIN (SELECT * FROM (  \n" +
                 "    SELECT IC2.object_id , IC2.index_id ,  \n" +
-                "        STUFF((SELECT ' , ' + C.name + CASE WHEN MAX(CONVERT(INT,IC1.is_descending_key)) = 1 THEN ' DESC ' ELSE ' ASC ' END \n" +
+                "        STUFF((SELECT ' , ' + QUOTENAME(C.name) + CASE WHEN MAX(CONVERT(INT,IC1.is_descending_key)) = 1 THEN ' DESC ' ELSE ' ASC ' END \n" +
                 "    FROM " + SQLServerUtils.getSystemTableName(getDatabase(), "index_columns") + " IC1  \n" +
                 "    JOIN " + SQLServerUtils.getSystemTableName(getDatabase(), "columns") + " C   \n" +
                 "       ON C.object_id = IC1.object_id   \n" +
@@ -256,7 +259,7 @@ public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServ
                 "       AND IC1.index_id = IC2.index_id   \n" +
                 "    GROUP BY IC1.object_id,C.name,index_id  \n" +
                 "    ORDER BY MAX(IC1.key_ordinal)  \n" +
-                "       FOR XML PATH('')), 1, 2, '') KeyColumns   \n" +
+                "       FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') KeyColumns   \n" +
                 "    FROM " + SQLServerUtils.getSystemTableName(getDatabase(), "index_columns") + " IC2   \n" +
                 "    --WHERE IC2.Object_id = object_id('Person.Address') --Comment for all tables  \n" +
                 "    GROUP BY IC2.object_id ,IC2.index_id) tmp3 )tmp4   \n" +
@@ -266,7 +269,7 @@ public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServ
                 " JOIN " + SQLServerUtils.getSystemTableName(getDatabase(), "filegroups") + " FG ON I.data_space_id=FG.data_space_id   \n" +
                 " LEFT JOIN (SELECT * FROM (   \n" +
                 "    SELECT IC2.object_id , IC2.index_id ,   \n" +
-                "        STUFF((SELECT ' , ' + C.name  \n" +
+                "        STUFF((SELECT ' , ' + QUOTENAME(C.name)  \n" +
                 "    FROM " + SQLServerUtils.getSystemTableName(getDatabase(), "index_columns") + " IC1   \n" +
                 "    JOIN " + SQLServerUtils.getSystemTableName(getDatabase(), "columns") + " C    \n" +
                 "       ON C.object_id = IC1.object_id    \n" +
@@ -275,7 +278,7 @@ public class SQLServerTableIndex extends JDBCTableIndex<SQLServerSchema, SQLServ
                 "    WHERE IC1.object_id = IC2.object_id    \n" +
                 "       AND IC1.index_id = IC2.index_id    \n" +
                 "    GROUP BY IC1.object_id,C.name,index_id   \n" +
-                "       FOR XML PATH('')), 1, 2, '') IncludedColumns    \n" +
+                "       FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') IncludedColumns    \n" +
                 "   FROM " + SQLServerUtils.getSystemTableName(getDatabase(), "index_columns") + " IC2    \n" +
                 "   --WHERE IC2.Object_id = object_id('Person.Address') --Comment for all tables   \n" +
                 "   GROUP BY IC2.object_id ,IC2.index_id) tmp1   \n" +

@@ -527,7 +527,7 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 | 메서드 | B단계 구현 |
 |---|---|
-| `runWithProgress`, `runWithMonitor` | EDT에서 부르면 작업을 `AbstractJob`으로 돌리고 모달 진행 대화상자(`ProgressDialog`, 작업 이름, 진행 막대, Cancel)에서 기다린다. 다른 스레드면 그 스레드에서 실행 |
+| `runWithProgress`, `runWithMonitor` | EDT에서 부르면 작업을 `AbstractJob`으로 돌리고 모달 진행 대화상자(`ProgressDialog`, 도넛 스피너와 작업 이름(2026-11-12까지는 길이를 모르는 막대, 앱 변경 #60), Cancel)에서 기다린다. 다른 스레드면 그 스레드에서 실행 |
 | `executeWithProgressBlocking` | SWT `DesktopUI`와 같은 Job. EDT에서는 진행 대화상자에서 기다리고(취소 시 `runnable.cancel()`), 다른 스레드는 `join` |
 | `showNotification`, `showWarningNotification` | 로그 + 메인 창 오른쪽 아래의 비모달 알림(`NotificationToast`, 레이어 창에 올림, 몇 초 뒤 사라짐, 누르면 `feedback` 실행) |
 
@@ -1656,7 +1656,8 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
   휠로 행을 바꾸는 동작은 Swing 탭에 없어 넣지 않았다.
 - **부동(Float)은 넣지 않음**: 결과 카드, SQL Editor 도구 막대, 상태 표시줄의 쿼리 창 칸, Find, Outline이 모두 이 탭 창의 활성 탭을 따라가는 구조라, 탭 밖의 쿼리 창은
   결과와 명령을 잃는다. 도킹 라이브러리(ModernDocking)는 도구 창만 맡고 문서 탭은 도킹 밖의 고정 가운데 영역이다.
-- **단축키**: Reopen Closed Tab에는 단축키를 붙이지 않았다. 요청 행의 Ctrl+Shift+T는 이미 View > Maximize Results(SWT 키)가 쓰고 있다(결정 필요).
+- **단축키**: Reopen Closed Tab은 Ctrl+Shift+T(macOS ⇧⌘T, 앱 변경 #66). 키는 Window 메뉴 항목이 걸어서 탭 메뉴를 열지 않아도 된다. 전에 이 키를 쓰던
+  View > Maximize Results(SWT 키)는 Ctrl+Shift+R(⇧⌘R)로 옮겼다([shortcuts.md](shortcuts.md)).
 - 탭을 옮기는 API가 없어 고정·해제는 탭을 빼고 다시 넣는다(제목, 아이콘, 도구 설명, 선택을 옮김). 실행 중인 창의 스피너는 핀 아이콘 안에서도 돈다.
 - **확인(2026-11-12, 150%·100%, 테스트 에이전트, SQLite와 임시 PostgreSQL 17):** 메뉴 항목·켜짐 상태(저장 Ctrl+S 표시, 파일 없는 창은 경로 항목 꺼짐), 고정하면 맨 왼쪽으로 옮겨지고 핀 아이콘·닫기 단추 없음. 모든 탭 닫기에서 고친 창의 저장 질문에 취소 → 거기서 멈춤(고정 탭과 남은 탭 그대로), 다른 탭 닫기에서 저장 안 함 → 닫힘. 닫은 탭 다시 열기 → 저장하지 않은 글이 고침 상태로, 연결 창은 연결과 함께 돌아옴(Window 메뉴 항목도 켜짐/꺼짐이 따라감). 이름 바꾸기: 저장 전 창 → `Report Draft.sql`, 파일 창 → 디스크의 `renamed.sql`로 바뀌고 창이 따라감, Query Library 창 → 파일·`@name` 바뀜, 고친 Library 창 → 이름 칸에 넣고 안내. 전체 경로 복사 → 클립보드에 절대 경로. PostgreSQL 수동 커밋 창에 INSERT 뒤 메뉴의 닫기 → 저장 질문 다음 커밋하지 않은 트랜잭션 질문(커밋 / 롤백 / 취소, 취소가 기본): 취소하면 탭과 트랜잭션이 남고(`idle in transaction`), 롤백하면 닫힘(행 0). 그 창을 다시 열면 고정·글·연결 기본값과 함께 돌아오고 연결·실행하지 않음. 탭 위치 왼쪽과 고정이 다시 시작 뒤 복원됨. 한 행 배치에서 휠을 위로 굴리면 탭 줄이 왼쪽으로 넘어감. 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\42-*.png`.
 
@@ -2474,7 +2475,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 | 클래스 | 역할 |
 |---|---|
 | `ErrorText`(새) | 예외·`IStatus` → 화면 문구의 유일한 변환기. `describe`(여러 줄), `describeMessages`(SQL 머리말이 따로 있는 곳), `describeLine`(상태 줄·셀·도구 설명), `summary`(가장 안쪽 메시지, 표 셀), `describe(IStatus)`, `clean`(모델이 넘긴 문자열), `stackTrace`, `isStackTraceLine` |
-| `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히…") |
+| `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히") |
 | `SwingSystemAgent`(새) | `UIServiceSystemAgent`의 Swing 구현. `plugin.xml`의 `com.seizia.chromite.service` 확장으로 등록(SWT와 같은 방식). 오래 걸린 작업이 끝나면 알림 창(`NotificationToast`)으로 알린다 |
 | `internal/ErrorMessages`(새, `_ko`) | 위 문구. `CoreMessages`는 같은 날 PR #55가 고쳐 병합 충돌을 피하려고 따로 두었다 |
 
@@ -2496,7 +2497,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 
 **설계 결정 — 스택 추적은 접힌 자세히에만:** 스택 추적에는 패키지 이름(`com.seizia.chromite…`)이 그대로 있다. 버그 보고에 필요하므로 지우지 않고,
 처음 보이는 문구에는 넣지 않으며, 오류 대화상자의 접힌 "자세히"(펼치면 고정폭 글꼴, 14줄)와 "복사"(문구 + 스택 추적을 클립보드로)로만 볼 수 있게 했다.
-인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히…" 단추가 나타나 같은 대화상자를 연다.
+인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히" 단추가 나타나 같은 대화상자를 연다.
 쿼리 메시지 탭, 상태 줄, 표 셀, 도구 설명에는 자세히를 두지 않았다(서버 오류는 스택 추적이 쓸모없고, 공간이 없다). 스택 추적은 지금처럼 디버그 로그에 남는다.
 
 ### 적용한 곳
@@ -2506,8 +2507,8 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 | `SwingPlatformUI.showError(…, Throwable)`, `showError(…, IStatus)` | `getAllExceptionMessages`, 상태 메시지 그대로 | `ErrorText.describe` + `ErrorDialog`(자세히·복사) |
 | `SwingPlatformUI.showErrorStopRetryIgnore`(데이터 전송 중 "실행 오류") | `getAllExceptionMessages` | 같은 규칙 + 자세히·복사, 단추는 그대로 |
 | `SwingPlatformUI.showError(title, message)`, `showMessageBox(…, true)`, 알림 창 | 모델 문자열 그대로 | `ErrorText.clean` |
-| `DataTransferWizard` 진행 표 메시지 열 / 오류 영역 | `getRootCause().getMessage()` / `getAllExceptionMessages` | `summary` / `describe` + "자세히…" |
-| `DatabaseTaskDialog`(백업·복원) 메시지 페이지·스크립트·준비 오류 | `getAllExceptionMessages`, `JOptionPane` | `describe`, `ErrorDialog`, 실패 뒤 "자세히…" |
+| `DataTransferWizard` 진행 표 메시지 열 / 오류 영역 | `getRootCause().getMessage()` / `getAllExceptionMessages` | `summary` / `describe` + "자세히" |
+| `DatabaseTaskDialog`(백업·복원) 메시지 페이지·스크립트·준비 오류 | `getAllExceptionMessages`, `JOptionPane` | `describe`, `ErrorDialog`, 실패 뒤 "자세히" |
 | `SqlServerBackupDialog`·`SqlServerRestoreDialog` | `SQLServerBackupRestore.getErrorText`(SQL 아닌 오류는 가장 안쪽 메시지만) | SQL 오류는 서버 메시지 전부(그대로), 그 밖은 `describe` |
 | `NativeBackupRestoreDialog` 메시지 페이지 | `\tat`, `\t...` 줄만 뺌 | 스택 추적 머리줄(`…Exception: …`, `Caused by:`, `Suppressed:`)도 빼고 남은 줄은 `clean` |
 | `SqlEditorPanel` 메시지 탭(쿼리 오류 머리말 아래, 준비 오류, 실제 계획, 작업 상태 오류), 쿼리 기록 | `getAllExceptionMessages`, `status.getMessage()` | `describeMessages` / `describe` / `describe(IStatus)` |
@@ -2621,7 +2622,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
   객체 관리자는 이벤트 전에 객체를 캐시에 넣는다, `AbstractObjectManager.CreateObjectReflector`). 담는 폴더가 없으면 아직 읽지 않은 폴더,
   그것도 없으면 첫 폴더다. 폴더가 하나면 이전과 같고 아무것도 읽지 않는다. `cacheNodeChildren`은 필터로 걸러진 객체를 이 폴더에만 넣는다.
 - 특정 드라이버를 분기하지 않았다. 같은 클래스를 받는 형제 폴더(SQL Server·Oracle·generic의 프로시저/함수) 모두에 적용되고, 모델 수정이라 SWT에도 적용된다.
-- Swing의 "새 함수…"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
+- Swing의 "새 함수"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
   이 문제는 객체 관리자로 만든 객체(SWT의 스키마 노드에서 만들기 등)나 다른 곳에서 모델에 추가한 객체에서 생긴다.
 - 확인(SQL Server 2022): DB에 함수를 만든 뒤 시험 에이전트가 그 함수를 스키마의 루틴 캐시에 읽어 넣고 컨테이너 없이 `OBJECT_ADD`를 보냈다
   (객체 관리자와 같은 순서). 수정 전 빌드는 `getParentNode`가 `.../schema/dbo_1/procedure`를 돌려주고 새 함수가 "저장 프로시저" 아래에 붙었다
@@ -3135,3 +3136,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 - 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
   상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 결과 영역 두 단계 탭(앱 변경 #54, `chromite/result-area-2`): 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, Grid 안 아래쪽 자식 탭 "Result 1"…(영어), Text 탭, 서버 출력은 Server Output 탭(새 출력 점). "결과 영역 두 단계 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages·"결과 탭" 절에 표시.
+- 2026-11-12 Reopen Closed Tab에 Ctrl+Shift+T(⇧⌘T), View > Maximize Results는 Ctrl+Shift+R(⇧⌘R)로(앱 변경 #66, `chromite/small-fixes-r2`): "문서 탭 메뉴"의 단축키 줄을 고침.

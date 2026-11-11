@@ -106,7 +106,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. 2026-11-08에 `.nativetool` 패�
 - 페이지: **일반**(데이터베이스, 출력 폴더·파일 이름 패턴 또는 입력 파일, PostgreSQL 형식·압축·인코딩, MySQL 덤프 방법), **옵션**(SWT 마법사의 주요 옵션:
   PostgreSQL `--no-owner`, `--no-privileges`, `--inserts`, `--clean`, `--create`; MySQL `--no-create-info`, `--add-drop-table`, `--disable-keys`,
   `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 첫 오류에서 멈춤(2026-11-07), 외래 키 검사 끄기, `-v`),
-  **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"와 "작업으로 저장…"(2026-11-08)이다.
+  **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"와 "작업으로 저장"(2026-11-08)이다.
 - 2026-11-08 같은 대화상자에 세 번째 방식 "네이티브 클라이언트로 스크립트 실행"(psql, mysql, sqlplus)을 더하고, 설정을 작업으로 저장해 Database Tasks 보기에서
   다시 실행·편집하게 했다. 로컬 클라이언트는 연결 편집기(연결 속성)에서도 고른다. 자세한 것은 [swing-database-tasks.md](swing-database-tasks.md).
 - 파일은 **이 컴퓨터의 파일**이다(도구가 로컬에서 읽고 쓴다). 파일 이름 기본값은 SWT와 같은 `dump-${database}-${timestamp}` + 형식의 확장자.

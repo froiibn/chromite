@@ -14,7 +14,7 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
 
 ## 화면
 
-- 오른쪽 클릭 메뉴: "스크립팅" 아래에 "SQL 생성" 하위 메뉴, "연결 편집…" 아래에 "이름 복사", "정규화된 이름 복사", 그다음 기존 "이름 바꾸기", "삭제".
+- 오른쪽 클릭 메뉴: "스크립팅" 아래에 "SQL 생성" 하위 메뉴, "연결 편집" 아래에 "이름 복사", "정규화된 이름 복사", 그다음 기존 "이름 바꾸기", "삭제".
   다른 기능 항목(디버거 등)과 위치가 겹치지 않게 한 줄씩 넣었다.
 - 삭제 확인(경고 아이콘, 기본 단추 "취소"):
   - 한 개: "{연결}에서 {형식} "{정규화된 이름}"을(를) 삭제하시겠습니까?"
@@ -141,11 +141,11 @@ Swing 제품(`-Pproduct-chromite-swing`)을 복사한 작업 공간과 개인 �
 ## 유지 관리 명령 (2026-11-08)
 
 SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침"(D-db-specific P23·S14·M17·O21, C #44). SWT는 작업(task) 도구와 도구 마법사로
-실행했다(`pgToolTableTruncate`, `oracleToolTriggerEnable` 등, `SQLToolTaskWizard`). Swing은 Object Explorer 오른쪽 클릭 메뉴의 "유지 관리…" 아래에 둔다.
+실행했다(`pgToolTableTruncate`, `oracleToolTriggerEnable` 등, `SQLToolTaskWizard`). Swing은 Object Explorer 오른쪽 클릭 메뉴의 "유지 관리" 아래에 둔다.
 
 | 메뉴 | 보이는 노드 | 문 (모델 도구 처리기 `generateObjectQueries`) |
 |---|---|---|
-| 테이블 잘라내기… | PostgreSQL 테이블(외부 테이블 제외), MySQL/MariaDB·Oracle·Altibase·SQL Server 테이블 | PG `TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT`(`PostgreToolTableTruncate`), MySQL `TRUNCATE TABLE t`(`MySQLToolTableTruncate`), Oracle `TRUNCATE TABLE t`(`OracleToolTableTruncate`), Altibase `TRUNCATE TABLE t`(`AltibaseToolTableTruncate`), SQL Server `TRUNCATE TABLE db.schema.t`(모델 도구 없음, 직접) |
+| 테이블 잘라내기 | PostgreSQL 테이블(외부 테이블 제외), MySQL/MariaDB·Oracle·Altibase·SQL Server 테이블 | PG `TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT`(`PostgreToolTableTruncate`), MySQL `TRUNCATE TABLE t`(`MySQLToolTableTruncate`), Oracle `TRUNCATE TABLE t`(`OracleToolTableTruncate`), Altibase `TRUNCATE TABLE t`(`AltibaseToolTableTruncate`), SQL Server `TRUNCATE TABLE db.schema.t`(모델 도구 없음, 직접) |
 | 트리거 사용 / 트리거 사용 안 함 | PostgreSQL 테이블·이벤트 트리거, SQL Server 테이블 트리거, Oracle 테이블 트리거 | `ALTER TABLE t ENABLE/DISABLE TRIGGER tr`(PG, SQL Server), `ALTER TRIGGER s.tr ENABLE/DISABLE`(Oracle) |
 | 구체화된 뷰 새로 고침 | PostgreSQL·Oracle·Altibase 구체화된 뷰 | `REFRESH MATERIALIZED VIEW v WITH DATA`(PG), `CALL DBMS_MVIEW.REFRESH('s.v','')`(Oracle, 뷰의 새로 고침 방식), `EXEC SYSTEM_.REFRESH_MATERIALIZED_VIEW('S', 'V')`(Altibase) |
 | 컴파일 | Oracle 저장 코드·뷰·구체화된 뷰·트리거·사용자 형식, Altibase 뷰·프로시저·함수·패키지 | Oracle `getCompileActions`(`ALTER … COMPILE`, 패키지는 `COMPILE BODY`도), Altibase 도구의 `ALTER … COMPILE`. 결과와 오류 목록은 [swing-routines.md](swing-routines.md) "컴파일" |

@@ -87,6 +87,9 @@ import java.util.regex.Pattern;
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정").
  * - 2026-11-08 Chromite: actual plan adapter ({@link OracleActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md
  *   "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-11 Chromite: SQL*Plus {@code SET SERVEROUTPUT} of a query window turns DBMS_OUTPUT on or off on that window's
+ *   session only ({@link OracleOutputReader#setSessionServerOutput}); the session's value goes before the connection's
+ *   setting in reading, syncing and reconnecting, and the setting is not changed (docs/chromite/oracle-sqlplus-commands.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -345,11 +348,11 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
         if (outputReader == null) {
             outputReader = new OracleOutputReader();
         }
-        // Enable DBMS output
+        // Enable DBMS output (a reconnected session keeps the window's SET SERVEROUTPUT)
         outputReader.enableServerOutput(
             monitor,
             context,
-            outputReader.isServerOutputEnabled());
+            outputReader.isServerOutputEnabled(context));
         if (initFrom != null) {
             ((OracleExecutionContext)context).setCurrentSchema(monitor, ((OracleExecutionContext)initFrom).getDefaultSchema());
         } else {
@@ -999,13 +1002,46 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
         }
 
         @Override
+        public boolean isServerOutputEnabled(@NotNull DBCExecutionContext context) {
+            if (context instanceof OracleExecutionContext oracleContext) {
+                Boolean override = oracleContext.getServerOutputOverride();
+                if (override != null) {
+                    return override;
+                }
+            }
+            return isServerOutputEnabled();
+        }
+
+        @Override
         public boolean isAsyncOutputReadSupported() {
             return false;
         }
 
+        /**
+         * SQL*Plus {@code SET SERVEROUTPUT} of a query window: turns DBMS_OUTPUT on or off on the context's session now and
+         * keeps it so for that session, whatever the connection's setting (which is not changed).
+         *
+         * @param bufferSize buffer size of {@code ON} (null: UNLIMITED)
+         */
+        public void setSessionServerOutput(
+            @NotNull DBRProgressMonitor monitor,
+            @NotNull OracleExecutionContext context,
+            boolean enable,
+            @Nullable Integer bufferSize
+        ) throws DBCException {
+            context.setServerOutputOverride(enable, bufferSize);
+            enableServerOutput(monitor, context, enable);
+        }
+
         public void enableServerOutput(DBRProgressMonitor monitor, DBCExecutionContext context, boolean enable) throws DBCException {
+            String bufferSize = String.valueOf(OracleConstants.MAXIMUM_DBMS_OUTPUT_SIZE);
+            if (context instanceof OracleExecutionContext oracleContext && Boolean.TRUE.equals(oracleContext.getServerOutputOverride())) {
+                // The window's SET SERVEROUTPUT ON SIZE n; NULL is UNLIMITED
+                Integer size = oracleContext.getServerOutputSize();
+                bufferSize = size == null ? "NULL" : String.valueOf(size);
+            }
             String sql = enable ?
-                "BEGIN DBMS_OUTPUT.ENABLE(" + OracleConstants.MAXIMUM_DBMS_OUTPUT_SIZE + "); END;" :
+                "BEGIN DBMS_OUTPUT.ENABLE(" + bufferSize + "); END;" :
                 "BEGIN DBMS_OUTPUT.DISABLE; END;";
             try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, (enable ? "Enable" : "Disable ") + "DBMS output")) {
                 JDBCUtils.executeSQL((JDBCSession) session, sql);
@@ -1019,7 +1055,7 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
 
         @Override
         public void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
-            boolean enable = isServerOutputEnabled();
+            boolean enable = isServerOutputEnabled(context);
             if (context instanceof OracleExecutionContext oracleContext && oracleContext.isServerOutputEnabled() != enable) {
                 enableServerOutput(monitor, context, enable);
             }

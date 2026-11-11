@@ -199,7 +199,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     오류·행 수와 출력은 성격이 다르다. 전에는 SSMS처럼 모두 Messages에 차례대로 썼다).
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
- *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).
+ *     켜짐은 세션 기준이다: 스크립트의 Oracle {@code SET SERVEROUTPUT}은 이 창 세션만 켜고 끈다(docs/chromite/oracle-sqlplus-commands.md).</li>
  *     <li>Oracle 컴파일 오류: 저장 단위·뷰를 만든 CREATE 문이 성공하면 그 세션에서 {@code ALL_ERRORS}를 읽어({@link OracleCompileErrors})
  *     편집기 줄·열로 바꾼 오류를 Messages 탭에 쓰고 그 줄을 오류 색으로 표시한다. Oracle은 컴파일 오류를 경고로만 알려 창이 성공으로 끝나기
  *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
@@ -335,6 +336,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *   앱 변경 #54 두 단계 탭) (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭", docs/chromite/swing-server-output.md)
  * - 2026-11-12 실제 계획을 켠 실행이 끝나면 Execution plan 탭에 점({@link #finishActualPlan}, 앱 변경 #58)
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
+ * - 2026-11-11 서버 출력을 읽을지 세션 기준으로 물음({@code isServerOutputEnabled(context)}): Oracle {@code SET SERVEROUTPUT ON}으로
+ *   설정이 꺼진 연결에서도 그 창의 출력을 읽음 (docs/chromite/oracle-sqlplus-commands.md)
+ * - 2026-11-12 열(사각형) 선택이 있으면 실행(F5)과 문장 명령이 보통 선택처럼 사각형의 글을 실행(Execute From Cursor는 캐럿부터 그대로)
+ *   (docs/chromite/swing-sql-column-selection.md "실행")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1449,8 +1454,9 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * Executes what the mode says: F5's selection or whole text, or a statement command of the Query menu (the statement
-     * at the caret, from the caret, its row count, an expression). The statement commands find their statements in the
-     * preparation job, with the connection's dialect ({@link SqlQueryCommands#extractElements}).
+     * at the caret, from the caret, its row count, an expression). A column selection counts as the selection, except
+     * for From Cursor. The statement commands find their statements in the preparation job, with the connection's
+     * dialect ({@link SqlQueryCommands#extractElements}).
      */
     void execute(@NotNull SqlQueryCommands.ExecuteMode mode) {
         if (execution != null || explaining) {
@@ -1460,9 +1466,21 @@ final class SqlEditorPanel extends JPanel {
             statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_saving_changes);
             return;
         }
-        String text = textArea.getText();
+        // A column selection runs as a selection: its text has the editor's offsets, so the statement marks and the error
+        // positions below stay right. From Cursor runs from the caret as before
+        SqlColumnSelection.RunText columnText = mode == SqlQueryCommands.ExecuteMode.FROM_CURSOR ? null : textArea.getColumnRunText();
+        if (columnText != null && columnText.length() == 0) {
+            // Only virtual space (right of the line ends) is selected: not the whole text, as an empty selection would
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_execute);
+            return;
+        }
+        String text = columnText != null ? columnText.text() : textArea.getText();
         int selectionStart = textArea.getSelectionStart();
         int selectionEnd = textArea.getSelectionEnd();
+        if (columnText != null) {
+            selectionStart = columnText.offset();
+            selectionEnd = columnText.offset() + columnText.length();
+        }
         int offset = 0;
         int length = text.length();
         if (mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
@@ -1718,10 +1736,15 @@ final class SqlEditorPanel extends JPanel {
         if (execution != null || explaining) {
             return;
         }
-        String text = textArea.getText();
+        // A column selection is explained as a selection, as Execute runs it
+        SqlColumnSelection.RunText columnText = textArea.getColumnRunText();
+        String text = columnText != null ? columnText.text() : textArea.getText();
         int offset = 0;
         int length = text.length();
-        if (textArea.getSelectionEnd() - textArea.getSelectionStart() >= 1) {
+        if (columnText != null) {
+            offset = columnText.offset();
+            length = columnText.length();
+        } else if (textArea.getSelectionEnd() - textArea.getSelectionStart() >= 1) {
             offset = textArea.getSelectionStart();
             length = textArea.getSelectionEnd() - offset;
         }
@@ -2148,12 +2171,13 @@ final class SqlEditorPanel extends JPanel {
      * Server output of the finished statement (Oracle and CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT}), read in the
      * job thread after every statement, also after errors and cancels. Reading drains the server buffer (Oracle
      * {@code GET_LINE}) or the data source's message buffer (Altibase), so it does not fill up (ORU-10027) or grow while
-     * the connection is open. Off when the connection's server output preference is off.
+     * the connection is open. Off when the session's server output is off (the connection's preference, or the window's
+     * {@code SET SERVEROUTPUT}).
      */
     private static void readServerOutput(@NotNull DBCSession session, @NotNull List<String> output) {
         DBCExecutionContext context = session.getExecutionContext();
         DBCServerOutputReader reader = DBUtils.getAdapter(DBCServerOutputReader.class, context.getDataSource());
-        if (reader == null || !reader.isServerOutputEnabled()) {
+        if (reader == null || !reader.isServerOutputEnabled(context)) {
             return;
         }
         try {
@@ -3132,6 +3156,7 @@ final class SqlEditorPanel extends JPanel {
      *
      * 변경 이력:
      * - 2026-11-12 열 선택 연결: Alt+끌기, Shift+Alt+방향키, 사각형에 입력·붙여넣기·복사(앱 변경 #49)
+     * - 2026-11-12 실행이 읽는 사각형의 글({@link #getColumnRunText})
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3216,6 +3241,14 @@ final class SqlEditorPanel extends JPanel {
          */
         boolean hasColumnSelection() {
             return columnSelection.hasSelectedText();
+        }
+
+        /**
+         * What Execute runs for the column selection, null when none with a width is shown.
+         */
+        @Nullable
+        SqlColumnSelection.RunText getColumnRunText() {
+            return columnSelection.getRunText();
         }
 
         @Override

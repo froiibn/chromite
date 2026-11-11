@@ -57,7 +57,7 @@ import java.util.Map;
  * <ul>
  *     <li>열 때 대상의 상태와 로그인 권한을 서버에서 읽는다({@link MaintenanceRunner#prepare}, EDT 밖). 권한이 없는 작업은 안내 줄에 이유를 보이고 실행을 끈다.</li>
  *     <li>작업이나 옵션을 바꿀 때마다 명령 미리 보기를 다시 만든다(서버를 읽지 않는다). 실행하는 문장은 미리 보기에 보인 것 그대로다.</li>
- *     <li>실행은 확인 창(대상 서버, 경고, 별도 연결이라는 것)을 거친 뒤 백그라운드 작업에서 하고, 진행 막대와 취소를 보인다. 취소는 작업을 취소하고,
+ *     <li>실행은 확인 창(대상 서버, 경고, 별도 연결이라는 것)을 거친 뒤 백그라운드 작업에서 하고, 도넛 스피너와 취소를 보인다. 취소는 작업을 취소하고,
  *     작업의 모니터가 실행 중인 JDBC 문장을 취소한다(PostgreSQL 취소 요청, SQL Server 주의 신호, Oracle 중단).</li>
  *     <li>명령은 사용자의 트랜잭션에 넣지 않는다: 작업마다 새 격리 연결을 자동 커밋으로 열고 닫는다({@link MaintenanceRunner}). 그래서 SQL 편집기의
  *     열린 트랜잭션에 커밋·롤백을 묻을 일이 없다.</li>
@@ -68,6 +68,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-08 실행 확인은 실행 / 취소 단추(취소가 기본), 실행 중에 닫을 때의 취소 질문은 아니요가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-12 대상 읽기·실행 중 표시를 길이를 모르는 막대에서 도넛 스피너({@link SpinnerIcon})로 (앱 변경 #60,
+ *   docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  */
 final class MaintenanceDialog extends JDialog {
 
@@ -100,7 +102,8 @@ final class MaintenanceDialog extends JDialog {
     private final SqlEditorPanel.SqlTextArea previewArea = new SqlEditorPanel.SqlTextArea();
     private final JTabbedPane resultTabs = new JTabbedPane();
     private final JTextArea messagesArea = new JTextArea();
-    private final JProgressBar progressBar = new JProgressBar();
+    // The length of the reading and of the run is not known: a spinner, not an indeterminate bar (app change 60)
+    private final JLabel spinner = SpinnerIcon.createLabel();
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
     private final JButton runButton = new JButton(MaintenanceViewMessages.maintview_run);
     private final JButton cancelButton = new JButton(MaintenanceViewMessages.maintview_cancel);
@@ -192,8 +195,7 @@ final class MaintenanceDialog extends JDialog {
         split.setResizeWeight(0.6);
         split.setBorder(BorderFactory.createEmptyBorder());
 
-        progressBar.setIndeterminate(true);
-        progressBar.setVisible(false);
+        spinner.setVisible(false);
         runButton.setEnabled(false);
         runButton.addActionListener(e -> run());
         cancelButton.setEnabled(false);
@@ -211,7 +213,7 @@ final class MaintenanceDialog extends JDialog {
         buttons.add(cancelButton);
         buttons.add(closeButton);
         JPanel status = new JPanel(new BorderLayout(gap, 0));
-        status.add(progressBar, BorderLayout.WEST);
+        status.add(spinner, BorderLayout.WEST);
         status.add(statusLabel, BorderLayout.CENTER);
         JPanel south = new JPanel(new BorderLayout(gap, 0));
         south.setBorder(BorderFactory.createEmptyBorder(gap, gap, gap, gap));
@@ -260,7 +262,7 @@ final class MaintenanceDialog extends JDialog {
 
     private void readPlan() {
         statusLabel.setText(MaintenanceViewMessages.maintview_reading_target);
-        progressBar.setVisible(true);
+        spinner.setVisible(true);
         new AbstractJob("Read maintenance target") { //$NON-NLS-1$
             @NotNull
             @Override
@@ -270,7 +272,7 @@ final class MaintenanceDialog extends JDialog {
                     SwingUtilities.invokeLater(() -> showPlan(result));
                 } catch (Throwable e) {
                     SwingUtilities.invokeLater(() -> {
-                        progressBar.setVisible(false);
+                        spinner.setVisible(false);
                         factsArea.setText(NLS.bind(MaintenanceViewMessages.maintview_read_error, ErrorText.describeLine(e)));
                         statusLabel.setText(NLS.bind(MaintenanceViewMessages.maintview_read_error, ErrorText.describeLine(e)));
                     });
@@ -283,7 +285,7 @@ final class MaintenanceDialog extends JDialog {
 
     private void showPlan(@NotNull MaintenancePlan result) {
         plan = result;
-        progressBar.setVisible(false);
+        spinner.setVisible(false);
         statusLabel.setText(" "); //$NON-NLS-1$
         factsArea.setText(String.join("\n", result.getFacts())); //$NON-NLS-1$
         String select = requestedOperation != null && result.getOperation(requestedOperation) != null ? requestedOperation
@@ -440,7 +442,7 @@ final class MaintenanceDialog extends JDialog {
             resultTabs.removeTabAt(1);
         }
         messagesArea.setText(""); //$NON-NLS-1$
-        progressBar.setVisible(true);
+        spinner.setVisible(true);
         statusLabel.setText(MaintenanceViewMessages.maintview_running);
         AbstractJob job = new AbstractJob("Run maintenance") { //$NON-NLS-1$
             @NotNull
@@ -501,7 +503,7 @@ final class MaintenanceDialog extends JDialog {
 
     private void showResult(@NotNull MaintenanceResult result) {
         runningJob = null;
-        progressBar.setVisible(false);
+        spinner.setVisible(false);
         String seconds = String.format("%.1f", result.elapsedMillis() / 1000.0); //$NON-NLS-1$
         statusLabel.setText(NLS.bind(switch (result.status()) {
             case SUCCEEDED -> MaintenanceViewMessages.maintview_done;
