@@ -133,6 +133,9 @@ import java.util.Set;
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-11 URL 방식으로 저장하면 주소(호스트·포트·서버·DB)를 URL에서 읽어 씀({@link #writeAddressFromUrl}). 전에는 꺼진 주소 칸의
+ *   자리 값(드라이버 기본 호스트 localhost, 마지막 서버)을 저장해 등록된 서버·탐색기에 localhost로 보였다(앱 변경 #41,
+ *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -442,7 +445,11 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
         boolean urlMode = isUrlMode();
         configuration.setConfigurationType(urlMode ? DBPDriverConfigurationType.URL : DBPDriverConfigurationType.MANUAL);
-        writeAddress(configuration);
+        if (urlMode) {
+            writeAddressFromUrl(configuration);
+        } else {
+            writeAddress(configuration);
+        }
 
         DBPAuthModelDescriptor authModel = getSelectedAuthModel();
         if (authModel != null) {
@@ -1402,6 +1409,41 @@ final class ConnectionSettingsPanel extends JPanel {
         }
         if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
             configuration.setDatabaseName(pathField.getText().trim());
+        }
+    }
+
+    /**
+     * URL mode: the host, port, server and database of the URL as the driver's template reads them. The address fields
+     * are disabled in this mode and may hold only placeholders (the driver's default host "localhost", the last server
+     * used with the driver), so they are not written: saving them replaced the real address that the trees, the status
+     * line and the export show with "localhost" (app change #41). A URL the template can't read clears the host and
+     * port, so no stale address is shown; the URL itself is still what connects.
+     */
+    private void writeAddressFromUrl(@NotNull DBPConnectionConfiguration configuration) {
+        if (urlPattern == null) {
+            // A driver without a usable template has no address fields
+            return;
+        }
+        Map<String, String> address = urlPattern.tryRecognize(urlField.getText().trim());
+        if (address == null || address.isEmpty()) {
+            configuration.setHostName(null);
+            configuration.setHostPort(null);
+            return;
+        }
+        if (urlProperties.contains(DBConstants.PROP_HOST)) {
+            configuration.setHostName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_HOST)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_PORT)) {
+            configuration.setHostPort(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_PORT)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_SERVER)) {
+            configuration.setServerName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_SERVER)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_DATABASE)));
+        } else if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
+            String path = address.get(DBConstants.PROP_FOLDER);
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(path != null ? path : address.get(DBConstants.PROP_FILE)));
         }
     }
 

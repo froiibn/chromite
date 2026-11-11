@@ -373,6 +373,35 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
 - 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않는다(HANA).
 - CUBRID shard(`shardType`·`shardValue`)는 공급자 속성이 아니라 드라이버 속성이라 지금도 Driver Properties 표에서 고칠 수 있다(SWT의 값 검사는 없음). 선언하지 않았다.
 
+## URL 방식 연결의 주소 (2026-11-11, 앱 변경 #41)
+
+사용자(기업 환경): "등록된 서버에서 가져오기 기능을 사용하여 서버를 등록할 경우 또는 서버를 등록해놓고 일정 시간이 지나면 localhost로 나타나는 현상이 있다"
+(SSH·프록시·점프 서버는 쓰지 않음, Chromite에서 내보낸 파일을 다른 PC에서 가져옴).
+
+재현(빈 작업 공간 A·B, B는 다른 `CHROMITE_DATA`와 빈 보안 저장소, 증거 `D:\Tools\_scratch\chromite-servers-tree\logs\`):
+
+| 단계 | 결과 |
+|---|---|
+| A에서 내보내기(비밀번호 포함) → B에서 가져오기 직후 | 메모리·`data-sources.json`·Registered Servers 보조 글자 모두 원래 호스트(`127.0.0.1:55491`, `db-remote.corp.example:5432`) |
+| B를 다시 시작 | 같음 |
+| 연결 | 같음 |
+| 유휴 연결 닫기로 끊긴 뒤(30초로 줄여 확인) | 같음 |
+| **URL 방식 연결의 Properties를 열고 저장** | 저장된 호스트가 `localhost`로 바뀜, Registered Servers에 `localhost:5432` |
+
+내보내기·가져오기, 다시 시작, 연결, 유휴 끊김은 호스트를 바꾸지 않는다. 호스트를 바꾼 것은 연결 대화상자의 저장이다.
+
+- 원인: URL 방식(Connect with: URL)에서는 주소 칸(서버 이름, 포트, DB)이 꺼져 있고, 연결에 호스트가 없으면 `loadSettings`가 서버 이름 칸에 드라이버의 기본 호스트
+  (`localhost`)를, 새 연결이면 이 드라이버로 마지막에 쓴 서버를 채운다. 그런데 `saveSettings`가 URL 방식에서도 `writeAddress`로 이 칸들을 저장해,
+  URL이 가리키는 실제 서버 대신 자리 값이 연결의 호스트·포트가 되었다(데이터 문제: 설정 파일의 `host`가 바뀐다). 연결은 URL로 하므로 접속은 되지만
+  호스트를 읽는 모든 곳(Registered Servers·Object Explorer 보조 글자, 쿼리 창 상태 줄의 서버, 내보내기 미리 보기, 연결 이름 자동 생성)이 `localhost`를 보였다.
+  "일정 시간이 지나면"은 가져온(또는 만든) 뒤 언젠가 Properties에서 저장한 때로 본다. URL 방식 연결은 URL로 만든 연결, 다른 도구에서 가져온 사용자 URL 연결
+  (SQL Developer 사용자 URL 등)에서 생긴다.
+- 고친 것: URL 방식으로 저장하면 주소를 URL에서 읽는다(`ConnectionSettingsPanel.writeAddressFromUrl`: 드라이버 URL 틀의 `DatabaseURL.Pattern.tryRecognize`로
+  호스트·포트·서버·DB·경로). 틀로 읽을 수 없는 URL이면 호스트와 포트를 비워 낡은 주소가 보이지 않게 한다. 호스트 방식은 그대로다.
+- 이미 `localhost`로 저장된 URL 방식 연결은 Properties를 열고 한 번 저장하면 URL의 주소로 고쳐진다. 저장 파일을 자동으로 고치지는 않았다(사용자 데이터를 몰래 바꾸지 않음).
+- 같은 원인으로 영향을 받던 다른 경우: 새 연결을 URL 방식으로 만들 때(마지막 서버나 `localhost`가 저장됨), 호스트 방식에서 URL 방식으로 바꿔 URL을 고친 뒤
+  저장할 때(옛 호스트가 남음). 모두 같은 수정으로 URL의 주소가 저장된다.
+
 ## 설계 결정과 이유
 
 - **SWT 화면을 그대로 옮기지 않고 범용 양식에 고리를 둠**: SWT는 DB마다 연결 화면 전체를 따로 만든다. Swing은 SSMS식 한 화면을 유지하고, DB별 칸은
@@ -570,3 +599,4 @@ known_hosts는 시험마다 비우거나 서버 키를 다시 만들어(`ssh-key
 - 2026-11-08 후속 29 a(`chromite/followups-5`): 호스트 키 확인을 끄지 않은 연결이 `127.0.0.1`의 서버와 점프 서버 뒤의 서버를 키 확인 없이 받아들이던 것
   (`KnownHostsVerifier`의 localhost 예외, 점프 세션이 서버 이름을 잃음). 키 이름(`SSHHostConfiguration.hostKeyHostname`), SHA-256 지문, JSch 별칭,
   SSHJ 질문의 한국어. 위 "SSH 호스트 키 확인", "확인 (2026-11-08, SSH 호스트 키)".
+- 2026-11-11 URL 방식으로 저장하면 주소를 URL에서 읽음(앱 변경 #41, `chromite/servers-tree`): 꺼진 주소 칸의 자리 값(`localhost`, 마지막 서버)이 호스트로 저장돼 등록된 서버에 localhost로 보이던 것. 위 "URL 방식 연결의 주소"
