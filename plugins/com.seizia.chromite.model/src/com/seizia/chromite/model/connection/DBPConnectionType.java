@@ -51,6 +51,9 @@ import java.util.*;
  * - 2026-11-09 {@link #isAutoEndReadOnlyTransactions()}: 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기(앱 변경 #31, 사용자 결정으로
  *   연결 종류마다 켜고 기본은 꺼짐). 생성자 인자가 아니라 속성으로 두어 업스트림 생성자를 부르는 곳을 바꾸지 않는다
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 기본 유형(dev/test/prod)의 유휴 연결 닫기({@link #isAutoCloseConnections()}) 기본값을 끔: 연결한 세션은 사용자가 끊을 때까지
+ *   유지한다(사용자 요청). 기간 값은 사용자가 켤 때의 기본값으로 남기고, DEV 기간 주석을 실제 값(4시간)으로 고침. 이미 저장된 연결 종류 설정은
+ *   그대로 읽는다 (앱 변경 #48, docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public class DBPConnectionType implements DBPDataSourcePermissionOwner {
 
@@ -95,8 +98,8 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             true,
             true,
             1800, //30 minutes
-            true,
-            14400, //1 hour
+            false, // idle connections are not closed unless the user turns it on (app change #48)
+            14400, //4 hours
             true,
             null,
             null
@@ -114,7 +117,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             true,
             true,
             900, //15 minutes
-            true,
+            false, // idle connections are not closed unless the user turns it on (app change #48)
             7200, //2 hours
             true,
             null,
@@ -133,7 +136,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             false,
             true,
             600, //10 minutes
-            true,
+            false, // idle connections are not closed unless the user turns it on (app change #48)
             3600, //1 hour
             true,
             null,

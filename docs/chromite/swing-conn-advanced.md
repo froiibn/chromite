@@ -28,8 +28,10 @@ SWT 연결 편집기(`com.seizia.chromite.ui.editors.connection`, `ext.*.ui`의 
 | `ConnectionColors` (새로) | 연결 색(연결에 정한 색, 없으면 연결 종류 색) | `UIUtils.getConnectionColor`, `getConnectionTypeColor`, `getConnectionColorByRGB` |
 | `BootstrapQueriesDialog` (새로) | 연결 직후 SQL 목록 편집 | `EditBootstrapQueriesDialog` |
 | `ConnectionRestrictionsDialog` (새로, 2026-11-08) | 연결별 제한(연결 유형을 따름 / 이 연결만 정함) | `EditConnectionPermissionsDialog` |
+| `ConnectionDatabaseList` (새로, 2026-11-11) | Database 칸을 서버 목록에서 고르는 편집 가능한 콤보(SQL Server·PostgreSQL·MySQL·MariaDB), 칸 아래 진행·오류 줄 |
+| `DonutSpinner` (새로, 2026-11-11) | 길이를 모르는 짧은 기다림의 회전 도넛(테마 강조색, 보일 때만 타이머) | — | — (SSMS "데이터베이스에 연결: &lt;서버 찾아보기&gt;") |
 | `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함, 연결 설명, 연결별 제한 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
-| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명·제한만 바꾸면 다시 연결을 묻지 않음, 잠긴 연결의 잠금 비밀번호 확인 | `ConnectionWizard.testConnection`, `EditConnectionWizard.checkLockPassword` |
+| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명·제한만 바꾸면 다시 연결을 묻지 않음, 잠긴 연결의 잠금 비밀번호 확인, 임시 연결 만들기를 데이터베이스 목록과 함께 씀 | `ConnectionWizard.testConnection`, `EditConnectionWizard.checkLockPassword` |
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
 | `ObjectExplorerPanel` (변경) | 연결 노드 이름의 알약 = 연결 색(`ConnectionPill`, 2026-11-06 노드 바탕에서 바꿈) | `DatabaseNavigatorLabelProvider`의 연결 색 |
 
@@ -268,6 +270,39 @@ SWT `OracleConnectionExtraPage`의 "Session settings" 묶음(D-db-specific O5)�
 - 공급자 클래스를 내보내지 않는 HANA·Firebird는 `plugin.xml`의 공급자 ID(`hana`, `jaybird`)와 드라이버 ID(`jaybird_embedded`)로 고른다.
 - Spanner는 예시 URL에 자리 표시가 없어 Swing에서 JDBC URL로만 연결한다(키 파일은 인증 칸, 위 1절). SWT의 Project·Instance·Database 칸은 옮기지 않았다.
 
+### 데이터베이스 목록에서 고르기 (2026-11-11, 앱 변경 39)
+
+사용자 요청(기업 환경): "서버를 등록할 때 sql server의 database를 입력하는 항목이 있다. 사용자가 입력하지 않고, 연결되면 데이터베이스 목록을 나타내 선택할 수 있게 한다".
+SSMS "연결 속성 &gt; 데이터베이스에 연결: &lt;서버 찾아보기&gt;"와 같은 동작이다.
+
+- **대상**: 드라이버가 SQL Server(`SQLServerUtils.isDriverSqlServer`), PostgreSQL 공급자, MySQL 공급자(MariaDB 포함)인 연결의 Database 칸
+  (`ServerDatabaseNames.isSupported`, 모델 번들 `com.seizia.chromite.model.admin`). 같은 공급자를 쓰는 변형(Redshift, YugabyteDB, TiDB 등)도 들어간다.
+  Oracle은 이 칸이 서비스 이름(SID)이라 대상이 아니다. JDBC URL로 연결하는 방식이면 칸과 함께 꺼진다.
+- **칸**: 편집 가능한 콤보. 편집기는 원래의 글 칸이라 저장·검사·연결 이름 짓기는 그대로 그 글을 쓰고, 직접 입력도 된다. 비워 두면 지금처럼
+  로그인의 기본 DB다(SQL Server·MySQL. PostgreSQL은 새 연결에 `postgres`를 채운다). 도구 설명이 이것을 알린다.
+- **목록 읽기**: 목록을 펼치면 대화상자의 값으로 Test Connection과 같은 임시 연결(`ConnectionDialog.createTestDataSource`: 새 ID, 임시, 메타데이터 연결 없음,
+  폼 전체를 씀)을 만들어 `ConnectionTestJob`으로 연결하고, 그 세션에서 목록을 읽은 뒤 연결을 끊는다. 작업 스레드에서 돌아 대화상자를 막지 않고,
+  그동안 칸 아래 줄에 회전하는 도넛 스피너(`DonutSpinner`)와 "데이터베이스 목록을 불러오는 중"을 보인다.
+  길이를 모르는 짧은 기다림이라 막대가 아니라 도넛이다(사용자 결정, 앱 변경 #60. 상태 표시줄 스피너 #44와 같은 원칙, 병합 때 구현을 하나로 합친다). 다 읽으면 그 줄을 숨기고 목록을 펼친다.
+  - 임시 연결의 DB는 입력한 값이 아니라 드라이버 기본값이다(PostgreSQL `postgres`, SQL Server·MySQL은 비움 = 로그인의 기본 DB). 아직 없거나 잘못 적은 이름이 목록 읽기를 막지 않게 하려는 것이다.
+    PostgreSQL에서 DB가 필수여도 목록은 DB 없이 펼칠 수 있다(`ConnectionSettingsPanel.validateSettings(false)`).
+  - 네트워크 설정(SSH 터널, 프록시, SSL)도 폼에서 그대로 쓴다(Test Connection과 같은 저장 경로).
+  - 저장하지 않은 비밀번호: "암호 저장"을 끄고 암호 칸이 비어 있으면 임시 연결을 "비밀번호 저장 안 함"으로 두어, 연결할 때 모델이 그 자리에서 묻는다
+    (`DataSourceDescriptor.askForPassword`, 저장 확인란 없음). 취소하면 아무것도 알리지 않는다. 암호를 입력해 두었으면 묻지 않고 그 값을 쓴다.
+  - 실패(로그인 실패, 서버에 닿지 않음, SSH 실패 등)하면 오류를 칸 아래에 빨간 글로 보이고(도구 설명에 전체 문구) 대화상자는 그대로 둔다. 다시 펼치면 다시 시도한다.
+    오류 줄의 너비는 대화상자를 넓히지 않는다(긴 문구는 줄임표로 자르고 도구 설명에 둔다).
+  - 읽은 목록은 그때의 연결 설정(`DBPConnectionConfiguration.equals`, DB 이름은 고정값이라 빠짐)과 함께 기억한다. 설정이 같으면 다시 펼쳐도
+    연결하지 않고, 서버·로그인·암호·네트워크 설정 등이 바뀌었으면 다시 읽는다.
+- **목록 내용**(`ServerDatabaseNames.read`): 로그인이 연결할 수 있는 DB만 둔다. 들어갈 수 없는 DB를 고르면 저장한 연결이 실패하기 때문이다.
+
+| DB | 읽는 방법 |
+|---|---|
+| SQL Server | `sys.databases`에서 `state = 0`(ONLINE)이고 `HAS_DBACCESS(name) = 1`(보안 화면의 DB 목록과 같은 조건) |
+| PostgreSQL | `pg_database`에서 `datallowconn`이고 `has_database_privilege(datname, 'CONNECT')`. pgjdbc의 `getCatalogs`는 권한을 보지 않는다. 변형이 이 질의를 받지 못하면 자동 커밋 연결에서는 `getCatalogs`로 읽는다 |
+| MySQL·MariaDB | JDBC `DatabaseMetaData.getCatalogs`(서버가 로그인이 볼 수 있는 DB만 돌려줌, `SHOW DATABASES`와 같음) |
+
+- 트랜잭션: 임시 연결은 목록을 읽는 데만 쓰고 바로 끊는다. 사용자의 세션을 닫거나 바꾸지 않는다.
+
 ## 셸 명령 (2026-11-08, `ConnectionShellCommandsPage`)
 
 Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 값(`DBPConnectionConfiguration.setEvent`, `DBRShellCommand`)이다.
@@ -372,6 +407,35 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
 - 서버 인증서 신뢰는 주 양식 칸이 맡으므로 Azure·Babelfish 표에서도 빠진다(`ConnectionDriverFields#getHandledProviderProperties`).
 - 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않는다(HANA).
 - CUBRID shard(`shardType`·`shardValue`)는 공급자 속성이 아니라 드라이버 속성이라 지금도 Driver Properties 표에서 고칠 수 있다(SWT의 값 검사는 없음). 선언하지 않았다.
+
+## URL 방식 연결의 주소 (2026-11-11, 앱 변경 #41)
+
+사용자(기업 환경): "등록된 서버에서 가져오기 기능을 사용하여 서버를 등록할 경우 또는 서버를 등록해놓고 일정 시간이 지나면 localhost로 나타나는 현상이 있다"
+(SSH·프록시·점프 서버는 쓰지 않음, Chromite에서 내보낸 파일을 다른 PC에서 가져옴).
+
+재현(빈 작업 공간 A·B, B는 다른 `CHROMITE_DATA`와 빈 보안 저장소, 증거 `D:\Tools\_scratch\chromite-servers-tree\logs\`):
+
+| 단계 | 결과 |
+|---|---|
+| A에서 내보내기(비밀번호 포함) → B에서 가져오기 직후 | 메모리·`data-sources.json`·Registered Servers 보조 글자 모두 원래 호스트(`127.0.0.1:55491`, `db-remote.corp.example:5432`) |
+| B를 다시 시작 | 같음 |
+| 연결 | 같음 |
+| 유휴 연결 닫기로 끊긴 뒤(30초로 줄여 확인) | 같음 |
+| **URL 방식 연결의 Properties를 열고 저장** | 저장된 호스트가 `localhost`로 바뀜, Registered Servers에 `localhost:5432` |
+
+내보내기·가져오기, 다시 시작, 연결, 유휴 끊김은 호스트를 바꾸지 않는다. 호스트를 바꾼 것은 연결 대화상자의 저장이다.
+
+- 원인: URL 방식(Connect with: URL)에서는 주소 칸(서버 이름, 포트, DB)이 꺼져 있고, 연결에 호스트가 없으면 `loadSettings`가 서버 이름 칸에 드라이버의 기본 호스트
+  (`localhost`)를, 새 연결이면 이 드라이버로 마지막에 쓴 서버를 채운다. 그런데 `saveSettings`가 URL 방식에서도 `writeAddress`로 이 칸들을 저장해,
+  URL이 가리키는 실제 서버 대신 자리 값이 연결의 호스트·포트가 되었다(데이터 문제: 설정 파일의 `host`가 바뀐다). 연결은 URL로 하므로 접속은 되지만
+  호스트를 읽는 모든 곳(Registered Servers·Object Explorer 보조 글자, 쿼리 창 상태 줄의 서버, 내보내기 미리 보기, 연결 이름 자동 생성)이 `localhost`를 보였다.
+  "일정 시간이 지나면"은 가져온(또는 만든) 뒤 언젠가 Properties에서 저장한 때로 본다. URL 방식 연결은 URL로 만든 연결, 다른 도구에서 가져온 사용자 URL 연결
+  (SQL Developer 사용자 URL 등)에서 생긴다.
+- 고친 것: URL 방식으로 저장하면 주소를 URL에서 읽는다(`ConnectionSettingsPanel.writeAddressFromUrl`: 드라이버 URL 틀의 `DatabaseURL.Pattern.tryRecognize`로
+  호스트·포트·서버·DB·경로). 틀로 읽을 수 없는 URL이면 호스트와 포트를 비워 낡은 주소가 보이지 않게 한다. 호스트 방식은 그대로다.
+- 이미 `localhost`로 저장된 URL 방식 연결은 Properties를 열고 한 번 저장하면 URL의 주소로 고쳐진다. 저장 파일을 자동으로 고치지는 않았다(사용자 데이터를 몰래 바꾸지 않음).
+- 같은 원인으로 영향을 받던 다른 경우: 새 연결을 URL 방식으로 만들 때(마지막 서버나 `localhost`가 저장됨), 호스트 방식에서 URL 방식으로 바꿔 URL을 고친 뒤
+  저장할 때(옛 호스트가 남음). 모두 같은 수정으로 URL의 주소가 저장된다.
 
 ## 설계 결정과 이유
 
@@ -540,6 +604,26 @@ known_hosts는 시험마다 비우거나 서버 키를 다시 만들어(`ssh-key
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 SSH 터널(직접·점프 서버·공유 터널·터널 테스트)의 호스트 키 확인,
   `127.0.0.1`·`localhost`의 SSH 서버를 쓰던 연결(이제 처음 한 번 묻는다).
 
+### 확인 (2026-11-11, 데이터베이스 목록, `chromite/conn-db-list`)
+
+Docker가 멈춰 있어 공용 시험 DB 대신 이 브랜치의 일회용 서버(로컬 PostgreSQL 17 `127.0.0.1:55493`, MariaDB 11.8 `127.0.0.1:53393`)로 확인했다.
+앱 안 시험 에이전트(Swing 객체, OS 입력 없음), 150%, 한국어. 화면은 `D:\Tools\_scratch\chromite-conn-db-list\shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| PostgreSQL, postgres, 칸 비움 → 펼침 | 칸 아래 도넛 + "데이터베이스 목록을 불러오는 중", 약 0.8초 뒤 목록 `chr_conn_db_list_a, chr_conn_db_list_b, postgres, template1`이 펼쳐짐. 다시 펼치면 연결하지 않고 바로 보임 |
+| 목록에서 고름 / 직접 입력 | 고른 이름이 칸의 글이 됨, 직접 입력한 글도 그대로 |
+| CONNECT 권한 없는 DB(`chr_limited`) | `chr_conn_db_list_b`(CONNECT 회수)가 빠짐 |
+| 잘못된 비밀번호(칸에 `mydb` 입력) | 칸 아래 빨간 글 "데이터베이스 목록을 불러오지 못했습니다: FATAL: password authentication failed for user "postgres"", 대화상자 그대로 |
+| 닿지 않는 호스트(`10.255.255.1`) | 약 20초 동안 도넛, 그 뒤 "… 연결 시도가 시간 초과되었습니다." |
+| 암호 저장 끔 + 암호 비움 | 인증 대화상자가 그 자리에서 뜸(저장 확인란 없음) → 입력하면 목록, 취소하면 아무 문구 없음. 칸의 `nosuchdb`는 목록 읽기를 막지 않음 |
+| MariaDB root / 권한 하나뿐인 로그인 | 7개 전부 / `chr_conn_db_list_a, information_schema, test`. 도구 설명은 "비워 두면 로그인의 기본 데이터베이스" 문구 포함 |
+| 프록시 탭(일회용 SOCKS5) | 프록시 기록에 `CONNECT 127.0.0.1:55493`, 목록 읽힘. 다만 약 100초, 프록시 연결 1044번(모델 `GlobalProxySelector`가 연결 중인 모든 소켓에 프록시를 고름, Test Connection과 같은 경로, 아래 남긴 것) |
+| SSH 탭(닿지 않는 `127.0.0.1:2`) | "… Connection refused", 도구 설명 "Error initializing tunnel / Error establishing SSHJ tunnel" = 목록이 SSH 설정을 따름 |
+| 목록을 읽은 뒤 서버 세션 | PostgreSQL `pg_stat_activity`, MariaDB processlist 모두 앱 세션 0 |
+
+SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(다시 확인 예정).
+
 ## 남긴 것
 
 - 잠금 비밀번호를 정하거나 지우는 화면(SWT CE에도 없음, 소금 없는 MD5 형식).
@@ -550,6 +634,8 @@ known_hosts는 시험마다 비우거나 서버 키를 다시 만들어(`ssh-key
 - Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기, Snowflake의 Test 뒤 목록 채우기, Spanner Project·Instance·Database 칸(지금은 JDBC URL),
   CUBRID shard 칸(드라이버 속성 표로는 고칠 수 있음).
 - 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
+- 2026-11-11 SOCKS 프록시를 켠 연결에서 목록·Test Connection이 느림(일회용 SOCKS5로 약 100초, 프록시 연결 1044번): 모델 `GlobalProxySelector`가
+  연결 중인 데이터 소스의 모든 소켓에 프록시를 고른다. 원인은 확인하지 않았다(이 기능 밖, 실제 프록시로 다시 볼 것).
 
 ## 변경 이력
 
@@ -570,3 +656,6 @@ known_hosts는 시험마다 비우거나 서버 키를 다시 만들어(`ssh-key
 - 2026-11-08 후속 29 a(`chromite/followups-5`): 호스트 키 확인을 끄지 않은 연결이 `127.0.0.1`의 서버와 점프 서버 뒤의 서버를 키 확인 없이 받아들이던 것
   (`KnownHostsVerifier`의 localhost 예외, 점프 세션이 서버 이름을 잃음). 키 이름(`SSHHostConfiguration.hostKeyHostname`), SHA-256 지문, JSch 별칭,
   SSHJ 질문의 한국어. 위 "SSH 호스트 키 확인", "확인 (2026-11-08, SSH 호스트 키)".
+- 2026-11-11 URL 방식으로 저장하면 주소를 URL에서 읽음(앱 변경 #41, `chromite/servers-tree`): 꺼진 주소 칸의 자리 값(`localhost`, 마지막 서버)이 호스트로 저장돼 등록된 서버에 localhost로 보이던 것. 위 "URL 방식 연결의 주소"
+- 2026-11-11 앱 변경 39(`chromite/conn-db-list`): SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로
+  (`ConnectionDatabaseList`, 모델 `ServerDatabaseNames`). 진행 표시는 도넛 스피너(`DonutSpinner`, 앱 변경 60). 위 "데이터베이스 목록에서 고르기", "확인 (2026-11-11, 데이터베이스 목록)".
