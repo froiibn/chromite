@@ -31,7 +31,7 @@ SQL*Plus로 만든 것이 많아서 같은 원인으로 다른 SQL*Plus 줄도 �
 Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에서, **줄 첫 칸에서 시작하는** 다음 줄은 서버에 보내지 않고 Chromite가 처리한다.
 세미콜론은 없어도 되고 있어도 된다.
 
-| 줄 | 처리 | Messages |
+| 줄 | 처리 | Messages 탭 (DBMS_OUTPUT 줄은 Server Output 탭) |
 |---|---|---|
 | `SET SERVEROUTPUT ON [SIZE n\|UNLIMITED] [FORMAT …]` (`SET SERVEROUT`) | 이 쿼리 창이 쓰는 세션에서 `DBMS_OUTPUT.ENABLE(n)`(UNLIMITED는 `NULL`, SIZE가 없으면 무제한). 연결 설정은 바꾸지 않음 | `SET SERVEROUTPUT ON: 이 쿼리 창의 세션에서 서버 출력을 켰습니다(버퍼: 무제한). 연결 설정은 바뀌지 않습니다.` FORMAT이 있으면 무시했다는 줄 |
 | `SET SERVEROUTPUT OFF` | 그 세션에서 `DBMS_OUTPUT.DISABLE` | `… 서버 출력을 껐습니다 …` |
@@ -100,7 +100,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 - **Altibase:** 문장 구분자에 `;`와 `/`가 있다(`AltibaseSQLDialect.getScriptDelimiters`). 그래서 `/`만 있는 줄은 이미 문장을 끝낸다. 대신 줄
   가운데의 `/`도 구분자라 `SELECT 4/2 FROM dual`이 두 문장으로 나뉜다(아래 확인 표, 범위 밖이라 고치지 않고 보고만 한다). SQL*Plus 줄 규칙은
   Altibase에 붙이지 않았다: Altibase의 클라이언트 iSQL 명령은 SQL*Plus와 다르고(`SET SERVEROUTPUT`이 없음, 출력은 PRINT 콜백), Altibase
-  서버가 `EXEC`를 SQL로 받는지 등은 Docker 테스트 DB를 띄울 수 없어 확인하지 못했다.
+  서버가 `EXEC`를 SQL로 받는지 등은 확인하지 못했다(테스트 VM에 Altibase가 없다).
 - **Tibero:** Chromite에 Tibero 드라이버·방언이 없다(저장소에 `tibero` 없음). 확인할 대상이 없다.
 - **YashanDB:** 방언(`YashanDBSQLDialect`)과 실행 문맥이 Oracle 것을 물려받으므로 같은 규칙과 처리기가 적용된다(확인하지 않음).
 
@@ -119,9 +119,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 
 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS.
 
-**Docker 테스트 DB를 쓰지 못했다.** Docker Desktop이 시작 중 `sailor-ingest.sock`(오래된 소켓 파일, 지울 수 없음, Error 1920) 때문에 멈춰
-Oracle·Altibase 컨테이너를 띄울 수 없었다. 그래서 실제 Oracle 세션에서의 `SET SERVEROUTPUT`(ENABLE/DISABLE, 출력 읽기, SIZE), `EXEC` 실행,
-Altibase 서버가 이 명령들을 받는지는 **확인하지 못했다.** 확인한 것은 앱 안에서 연결 없이 돌릴 수 있는 부분이다.
+이날은 로컬 Docker Desktop이 시작하지 못해(`sailor-ingest.sock`) 연결 없이 돌릴 수 있는 부분만 확인했다. 실제 Oracle 확인은 아래 2026-11-12 절.
 
 - **문장 나누기**(Oracle 방언, `SQLScriptParser.parseScript`): 근본 원인 절의 스크립트가 고친 뒤 23개 요소가 되었다. `SET …` 9줄, `PROMPT`,
   `SPOOL`, `EXEC`/`execute`가 각각 명령(`oracle.sqlplus`), `BEGIN … END` 뒤 `/`는 사라지고 다음 문장 앞에 붙지 않음, `SELECT 1 FROM dual` 다음
@@ -135,9 +133,35 @@ Altibase 서버가 이 명령들을 받는지는 **확인하지 못했다.** 확
 - **Altibase 방언**(같은 스크립트): SQL*Plus 줄은 모두 SQL로 붙어 서버로 간다(이번 변경 범위 밖, 위 "다른 DB"). `/` 줄은 이미 구분자다.
   `SELECT 4/2 FROM dual`은 `SELECT 4`와 `2 FROM dual` 두 문장으로 나뉜다(기존 동작, 문장 구분자에 `/`가 있어서).
 
+## 확인 (2026-11-12, Oracle 26ai Free 23.26 `FREEPDB1` AL32UTF8과 PostgreSQL 17, GCP 테스트 VM, `origin/devel` #228까지 병합한 빌드)
+
+빈 작업 공간·설정·`CHROMITE_DATA`, 프로세스 안 시험 에이전트(Swing 객체 직접 조작). Oracle 연결의 "DBMS_OUTPUT 읽기" 설정은 **끔**으로 두고
+창의 `SET SERVEROUTPUT`만으로 출력이 나오는지 봤다. 임시 스키마 `CHR_ORACLE_SQLPLUS`(로그인 없는 스키마).
+#226 뒤로 결과 영역은 Messages와 Server Output 탭으로 나뉜다. 명령 안내는 Messages(스크립트 출력 `MessagesWriter`), DBMS_OUTPUT 줄은
+Server Output(`readServerOutput` → `output`)에 들어갔다.
+
+| 스크립트 | Messages | Server Output |
+|---|---|---|
+| `SET SERVEROUTPUT ON` + `BEGIN put_line('line-on-1') END;` + `/` | `SET SERVEROUTPUT ON: … 켰습니다(버퍼: 무제한)`, 명령 완료 | `line-on-1` |
+| 같은 창에서 `SET SERVEROUTPUT OFF` + 블록 | `… 껐습니다 …`, 명령 완료 | 비어 있음(설정도 꺼져 있으므로 읽지 않음) |
+| `SET SERVEROUT ON SIZE 2000 FORMAT WRAPPED` + 블록 + `SELECT 1 FROM dual` + `/` | `버퍼: 2000`, FORMAT 무시 안내, 명령 완료, `(1 row affected)` | `size-2000` |
+| `set serveroutput on size unlimited format word_wrapped;` + 블록 | `버퍼: 무제한`, FORMAT 무시 안내 | `unlimited` |
+| `SET SERVEROUTPUT ON SIZE abc` + `SELECT` | `Invalid SET SERVEROUTPUT SIZE: abc`, 스크립트가 거기서 멈춤(오류 처리 설정 "멈춤") | 비어 있음 |
+| `SET ECHO/FEEDBACK/TIMING/LINESIZE/PAGESIZE/VERIFY/HEADING/TERMOUT/TRIMSPOOL`, `PROMPT hello from prompt`, `SPOOL C:	emp\out.log`, `SELECT`, `SPOOL OFF` | 줄마다 무시 안내, `hello from prompt`, `(1 row affected)` | 비어 있음 |
+| `SET SERVEROUTPUT ON`, `EXEC chr_oracle_sqlplus.say('exec1')`, `execute …('exec2');`, `exec dbms_output.put_line('exec3');` | 켬 안내, 명령 완료 3번 | `say: exec1`, `say: exec2`, `exec3` |
+| `SELECT 10 … ` + `/` + `SELECT 20 …` + `/` (세미콜론 없음) | `(1 row affected)` 2번, 결과 탭 2개 | 비어 있음 |
+| `SET DEFINE OFF` + `SELECT :p FROM dual;` | 무시 안내 뒤 매개변수 대화상자 없이 서버로 가서 ORA-01008(값 없는 바인드). 다시 실행하면 드라이버가 "JDBC 드라이버 내부 오류"로 알림 | 비어 있음 |
+| 섞인 배포 스크립트(`SET SERVEROUTPUT ON SIZE 1000000`, `SET DEFINE OFF`, 화면 `SET`, `SPOOL`, `PROMPT` 4번, `CREATE TABLE`, `'A&B'` INSERT, `CREATE PROCEDURE … /`, `EXEC` 세미콜론 없음, `DECLARE … /`, `UPDATE` / `SET echo = 5`, `SELECT a,` / `prompt`, `COMMIT`) | 설정·무시 안내, PROMPT 4줄, 문장마다 행 수, 오류 없음 | `rows: 1`, `name: A&B` |
+
+- **PostgreSQL 17** 연결은 바뀌지 않았다: `SET search_path TO public;`은 서버에서 실행되고 `RAISE NOTICE`는 Server Output에 나왔다.
+  같은 `SET SERVEROUTPUT ON` 스크립트는 지금처럼 서버로 가서 `syntax error at or near "ON"`이다(Oracle 규칙은 Oracle 방언에만 붙는다).
+- 한국어 화면(`-nl ko`)에서 `sqlplus_*` 문구가 깨지지 않고 나왔다.
+- 확인하지 못한 것: Altibase(테스트 VM에 없음), YashanDB, KO16MSWIN949 DB(1522)에서의 실행, 다시 연결한 뒤 세션 값 유지.
+
 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번).
 
 ## 변경 이력
 
 - 2026-11-11 최초 작성: Oracle 쿼리 창의 SQL*Plus 명령(`SET SERVEROUTPUT`, `SET DEFINE`, 화면 `SET`, `PROMPT`, `EXEC`, `SPOOL`)과 `/` 줄
   (앱 변경 #46, `chromite/oracle-sqlplus`)
+- 2026-11-12 실제 Oracle(GCP 테스트 VM)에서 확인, #226 결과 영역에서 안내는 Messages·DBMS_OUTPUT은 Server Output 탭으로 가는 것 확인
