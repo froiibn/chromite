@@ -432,15 +432,21 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 
 - Chromite Agent 창의 도구 막대 설정 단추와 공급자 미설정 안내의 설정 단추: `AiAssistantPanel.Host.openOptions(OptionsDialog.PAGE_AGENT)`.
   새 대화상자의 Agent 페이지는 첫 탭 Providers를 보인다([ai-agent.md](ai-agent.md) "설정 열기").
-- 설정 화면을 글로만 가리키는 곳(바꾸지 않음, 같은 방식으로 바로 열 수 있는 후보):
-  - 확인 대화상자 "항상 허용" 도움말 "Options > Chromite Agent > Policy"(`AiConfirmationDialog` 198행, `ai_confirm_always_allow_tip`)와 위험 도구 안내
-    (201행, `ai_confirm_dangerous_note`).
-  - 쿼리 기록 대화상자의 개수 글 "(Tools > Options)"(`QueryHistoryDialog` 300행, `editor_history_count_*`, General > Query History).
-  - 개체 탐색기 "더 보기" 도움말 "Options > General > Object Explorer"(`ObjectExplorerPanel` 2407행, `oe_load_more_tip`).
-  - Query Manager 보기 단추 도움말 "Tools > Options > Logs"(`QueryManagerPanel` 203행, `qm_show_tip`).
-  - 연결 대화상자 Settings의 "Otherwise the settings of Tools > Options apply"(`ConnectionSettingsOverrides` 167행, `overrides_hint`).
+- 설정 화면을 글로만 가리키던 곳(2026-11-12, B12): 링크나 메뉴 항목이 그 페이지를 바로 연다. 공통 처리는 `OptionsLinks`
+  (`createLink`: 결과 표의 링크 단추와 같은 모양의 "Open Settings" / "설정 열기", `open`: 대화상자의 주인 사슬에서 프레임을 찾고 없으면 메인 창).
+  여는 방법은 `OptionsDialog.open(owner, pageId)` 하나이고 페이지 식별자만 쓴다(General은 `OptionsLinks.PAGE_GENERAL` = `"general"`,
+  설정 페이지는 클래스 이름).
+
+  | 곳 | 전의 안내 | 지금 | 여는 페이지 |
+  |---|---|---|---|
+  | Agent 확인 대화상자(`AiConfirmationDialog`) | "항상 허용" 도움말 "Options > Chromite Agent > Policy", 위험 도구 안내 | 확인란·안내 줄 오른쪽 끝에 링크 | Chromite Agent(`PAGE_AGENT`). 하위 탭은 고르지 못해 첫 탭(Providers)이 보인다 — Policy 탭을 고르려면 `OptionsDialog`에 하위 탭 인자가 필요하다(Options 재구성 브랜치 뒤) |
+  | 쿼리 기록 대화상자(`QueryHistoryDialog`) | 개수 글 끝 "(Tools > Options)" | 글에서 지우고 개수 글 옆에 링크. Options를 닫으면 보관 일수를 다시 읽는다 | General(Query History 묶음) |
+  | Object Explorer "더 읽기" 줄(`ObjectExplorerPanel`) | 도움말 "Options > General > Object Explorer"(도움말은 그대로) | 그 줄의 오른쪽 클릭 메뉴 맨 위에 Page Size Settings... / 한 번에 표시할 개수 설정(다른 줄에서는 숨김) | General(Object Explorer 묶음) |
+  | Query Manager 보일 항목(`QueryManagerPanel`) | 도움말 "Tools > Options > Logs"(도움말은 그대로) | 보일 항목 메뉴 끝에 Log Settings... / 로그 설정 | Logs(`LogsOptionsPage`) |
+  | 연결 대화상자 Settings(`ConnectionSettingsOverrides`) | "Otherwise the settings of Tools > Options apply." | 안내 옆에 링크 | 그 탭과 같은 설정 페이지(클래스 이름). 연결별 설정을 끈 탭이 보이는 Options 값은 연결 대화상자를 다시 열 때 다시 읽는다 |
+
   - 상태 줄 커밋 방식 칸의 "Click to open the Auto-commit setting of the connection"(`QueryStatusLine` 287행)은 Options가 아니라 연결 대화상자를 연다.
-  - 업데이트 알림은 Options를 열지 않는다(`OptionsDialog.open` 호출은 MainFrame 메뉴, macOS 설정 메뉴, Agent 창뿐).
+  - 업데이트 알림은 Options를 열지 않는다.
 
 ### 확인 (2026-11-08)
 
@@ -661,6 +667,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   ([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기"). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 - 2026-11-11 테마 선택에 시스템 설정 따르기(기본값), 운영체제 설정이 바뀌면 따라감(앱 변경 #38, 위 "테마").
 - 2026-11-12 General에 UI 글꼴(자동·Pretendard·시스템 글꼴, 기본값 자동)(앱 변경 #43, 위 "UI 글꼴").
+- 2026-11-12 설정을 글로만 가리키던 다섯 화면(여섯 곳)에 그 페이지를 여는 링크·메뉴 항목(`OptionsLinks`, B12, `chromite/small-fixes-r2`, 위 "특정 페이지로 여는 곳").
+  `OptionsDialog`는 고치지 않음(재구성 브랜치와 병합 충돌을 피하려고).
 
 ## 부록: 키별 상태
 

@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-manager.md)
+ * - 2026-11-12 보일 항목 메뉴의 Log Settings (B12)
  */
 public class QueryManagerMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.QueryManagerMessages"; //$NON-NLS-1$
@@ -37,6 +38,7 @@ public class QueryManagerMessages extends NLS {
     public static String qm_all_connections;
     public static String qm_show;
     public static String qm_show_tip;
+    public static String qm_log_settings;
     public static String qm_column_connection;
     public static String qm_column_session;
     public static String qm_type_transaction;

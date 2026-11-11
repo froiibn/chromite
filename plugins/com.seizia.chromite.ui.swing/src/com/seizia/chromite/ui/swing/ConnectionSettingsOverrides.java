@@ -54,6 +54,7 @@ import java.util.Set;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 Binary and LOB, Code Completion, Data Transfer 페이지와 Altibase·CUBRID 연결의 페이지, 끈 페이지는 페이지의 전역 저장소 값을 보임
  *   (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-12 "Tools &gt; Options의 설정을 따른다" 안내 옆에 Options의 같은 페이지를 여는 링크 (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  */
 final class ConnectionSettingsOverrides extends JPanel {
 
@@ -166,9 +167,16 @@ final class ConnectionSettingsOverrides extends JPanel {
             this.page = page;
             JLabel hint = new JLabel(SettingsMessages.overrides_hint);
             hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+            // The same page of the Options (its id is the page class, as there)
+            JPanel hintRow = new JPanel();
+            hintRow.setLayout(new BoxLayout(hintRow, BoxLayout.X_AXIS));
+            hintRow.add(hint);
+            hintRow.add(Box.createHorizontalStrut(6));
+            hintRow.add(OptionsLinks.createLink(page.getClass().getSimpleName()));
+            hintRow.add(Box.createHorizontalGlue());
             JPanel header = new JPanel(new GridLayout(0, 1, 0, 2));
             header.add(overrideBox);
-            header.add(hint);
+            header.add(hintRow);
             panel.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
             panel.add(header, BorderLayout.NORTH);
             panel.add(page, BorderLayout.CENTER);
