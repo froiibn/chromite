@@ -334,7 +334,7 @@ DB 관리 기능 축 5. 연결마다 서버의 로그를 최신 항목부터 한
 ### 화면
 
 - 도구 막대 첫 줄: Refresh(로그 목록과 최신 항목을 다시 읽음), 로그, 보관본(SQL Server 보관 번호, PostgreSQL 파일; 보관본이 없는 로그는 숨김), 시간(최근 1시간·24시간(기본)·7일·30일,
-  전체, 직접 지정…). 둘째 줄: 수준, 메시지 검색(Enter로 적용: 글자마다 서버를 읽지 않게). 직접 지정을 고르면 셋째 줄에 시작·끝 칸과 적용 단추가 나온다
+  전체, 직접 지정). 둘째 줄: 수준, 메시지 검색(Enter로 적용: 글자마다 서버를 읽지 않게). 직접 지정을 고르면 셋째 줄에 시작·끝 칸과 적용 단추가 나온다
   (로그에 적힌 시각, `yyyy-MM-dd HH:mm[:ss]`, 비우면 제한 없음). 한 줄로는 좁은 문서 탭에서 검색 칸이 잘려 나눴다.
 - 표: 시간, 수준(로그에 수준이 있을 때), 출처(프로세스·하위 시스템·사용자@호스트·구성 요소; 로그에 있을 때), 메시지(한 줄). 아래 칸에 고른 항목의 전체 메시지와
   상세(SQLSTATE, DETAIL, HINT, STATEMENT, ERROR_CODE, MESSAGE_TYPE, 느린 쿼리의 쿼리 시간·검사한 행 등)를 보인다(선택해 복사할 수 있다). 표의 복사는 공간 사용량과 같다.
@@ -392,8 +392,8 @@ DB 관리 축 4. 테이블·인덱스·스키마·데이터베이스에 VACUUM/A
 | 명령 | 위치 | 동작 |
 |---|---|---|
 | Maintenance(유지 관리) | Tools 메뉴, Object Explorer 오른쪽 클릭 메뉴 | Activity Monitor를 Maintenance 탭(6번째, `ActivityMonitorPanel.MAINTENANCE_TAB`)으로 연다(`AdminViewCommands`) |
-| Maintenance…(유지 관리…) | Object Explorer 오른쪽 클릭 메뉴(테이블, 인덱스, 스키마, 데이터베이스 노드) | 그 노드를 대상으로 유지 관리 대화상자를 연다(`MaintenanceCommands`). 할 수 없는 노드에서는 꺼져 있다 |
-| 작업 실행…(행 두 번 클릭, Enter) | Maintenance 탭 도구 막대 | 고른 행의 권장 작업으로 대화상자를 연다. 실행이 끝나면 탭을 다시 읽어 전후 숫자를 보인다 |
+| Maintenance…(유지 관리) | Object Explorer 오른쪽 클릭 메뉴(테이블, 인덱스, 스키마, 데이터베이스 노드) | 그 노드를 대상으로 유지 관리 대화상자를 연다(`MaintenanceCommands`). 할 수 없는 노드에서는 꺼져 있다 |
+| 작업 실행(행 두 번 클릭, Enter) | Maintenance 탭 도구 막대 | 고른 행의 권장 작업으로 대화상자를 연다. 실행이 끝나면 탭을 다시 읽어 전후 숫자를 보인다 |
 
 MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든다). ObjectExplorerPanel에는 `MaintenanceCommands`를 부르는 줄 4개와 변경 이력 1줄만 더했다.
 

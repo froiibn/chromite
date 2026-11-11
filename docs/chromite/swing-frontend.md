@@ -2475,7 +2475,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 | 클래스 | 역할 |
 |---|---|
 | `ErrorText`(새) | 예외·`IStatus` → 화면 문구의 유일한 변환기. `describe`(여러 줄), `describeMessages`(SQL 머리말이 따로 있는 곳), `describeLine`(상태 줄·셀·도구 설명), `summary`(가장 안쪽 메시지, 표 셀), `describe(IStatus)`, `clean`(모델이 넘긴 문자열), `stackTrace`, `isStackTraceLine` |
-| `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히…") |
+| `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히") |
 | `SwingSystemAgent`(새) | `UIServiceSystemAgent`의 Swing 구현. `plugin.xml`의 `com.seizia.chromite.service` 확장으로 등록(SWT와 같은 방식). 오래 걸린 작업이 끝나면 알림 창(`NotificationToast`)으로 알린다 |
 | `internal/ErrorMessages`(새, `_ko`) | 위 문구. `CoreMessages`는 같은 날 PR #55가 고쳐 병합 충돌을 피하려고 따로 두었다 |
 
@@ -2497,7 +2497,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 
 **설계 결정 — 스택 추적은 접힌 자세히에만:** 스택 추적에는 패키지 이름(`com.seizia.chromite…`)이 그대로 있다. 버그 보고에 필요하므로 지우지 않고,
 처음 보이는 문구에는 넣지 않으며, 오류 대화상자의 접힌 "자세히"(펼치면 고정폭 글꼴, 14줄)와 "복사"(문구 + 스택 추적을 클립보드로)로만 볼 수 있게 했다.
-인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히…" 단추가 나타나 같은 대화상자를 연다.
+인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히" 단추가 나타나 같은 대화상자를 연다.
 쿼리 메시지 탭, 상태 줄, 표 셀, 도구 설명에는 자세히를 두지 않았다(서버 오류는 스택 추적이 쓸모없고, 공간이 없다). 스택 추적은 지금처럼 디버그 로그에 남는다.
 
 ### 적용한 곳
@@ -2507,8 +2507,8 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
 | `SwingPlatformUI.showError(…, Throwable)`, `showError(…, IStatus)` | `getAllExceptionMessages`, 상태 메시지 그대로 | `ErrorText.describe` + `ErrorDialog`(자세히·복사) |
 | `SwingPlatformUI.showErrorStopRetryIgnore`(데이터 전송 중 "실행 오류") | `getAllExceptionMessages` | 같은 규칙 + 자세히·복사, 단추는 그대로 |
 | `SwingPlatformUI.showError(title, message)`, `showMessageBox(…, true)`, 알림 창 | 모델 문자열 그대로 | `ErrorText.clean` |
-| `DataTransferWizard` 진행 표 메시지 열 / 오류 영역 | `getRootCause().getMessage()` / `getAllExceptionMessages` | `summary` / `describe` + "자세히…" |
-| `DatabaseTaskDialog`(백업·복원) 메시지 페이지·스크립트·준비 오류 | `getAllExceptionMessages`, `JOptionPane` | `describe`, `ErrorDialog`, 실패 뒤 "자세히…" |
+| `DataTransferWizard` 진행 표 메시지 열 / 오류 영역 | `getRootCause().getMessage()` / `getAllExceptionMessages` | `summary` / `describe` + "자세히" |
+| `DatabaseTaskDialog`(백업·복원) 메시지 페이지·스크립트·준비 오류 | `getAllExceptionMessages`, `JOptionPane` | `describe`, `ErrorDialog`, 실패 뒤 "자세히" |
 | `SqlServerBackupDialog`·`SqlServerRestoreDialog` | `SQLServerBackupRestore.getErrorText`(SQL 아닌 오류는 가장 안쪽 메시지만) | SQL 오류는 서버 메시지 전부(그대로), 그 밖은 `describe` |
 | `NativeBackupRestoreDialog` 메시지 페이지 | `\tat`, `\t...` 줄만 뺌 | 스택 추적 머리줄(`…Exception: …`, `Caused by:`, `Suppressed:`)도 빼고 남은 줄은 `clean` |
 | `SqlEditorPanel` 메시지 탭(쿼리 오류 머리말 아래, 준비 오류, 실제 계획, 작업 상태 오류), 쿼리 기록 | `getAllExceptionMessages`, `status.getMessage()` | `describeMessages` / `describe` / `describe(IStatus)` |
@@ -2622,7 +2622,7 @@ Windows 11 150%, 한국어). 프로세스 안 시험 에이전트(Attach API, ED
   객체 관리자는 이벤트 전에 객체를 캐시에 넣는다, `AbstractObjectManager.CreateObjectReflector`). 담는 폴더가 없으면 아직 읽지 않은 폴더,
   그것도 없으면 첫 폴더다. 폴더가 하나면 이전과 같고 아무것도 읽지 않는다. `cacheNodeChildren`은 필터로 걸러진 객체를 이 폴더에만 넣는다.
 - 특정 드라이버를 분기하지 않았다. 같은 클래스를 받는 형제 폴더(SQL Server·Oracle·generic의 프로시저/함수) 모두에 적용되고, 모델 수정이라 SWT에도 적용된다.
-- Swing의 "새 함수…"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
+- Swing의 "새 함수"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
   이 문제는 객체 관리자로 만든 객체(SWT의 스키마 노드에서 만들기 등)나 다른 곳에서 모델에 추가한 객체에서 생긴다.
 - 확인(SQL Server 2022): DB에 함수를 만든 뒤 시험 에이전트가 그 함수를 스키마의 루틴 캐시에 읽어 넣고 컨테이너 없이 `OBJECT_ADD`를 보냈다
   (객체 관리자와 같은 순서). 수정 전 빌드는 `getParentNode`가 `.../schema/dbo_1/procedure`를 돌려주고 새 함수가 "저장 프로시저" 아래에 붙었다

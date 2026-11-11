@@ -315,7 +315,7 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | Maven 저장소(사용 여부, 추가·편집·제거) | `maven-repositories.xml` | `MavenRegistry`(드라이버 내려받기). 저장소 인증 정보는 보안 저장소 |
 
 - 전역 라이브러리(`ui.drivers.global.libraries`)와 드라이버의 Maven 아티팩트 편집은 드라이버 관리자에 있다(#148, Driver Manager > Global Libraries…,
-  드라이버 편집 창). 겹치지 않게 Drivers 페이지에는 "드라이버 관리자..." 단추만 두었다.
+  드라이버 편집 창). 겹치지 않게 Drivers 페이지에는 "드라이버 관리자" 단추만 두었다.
 - 기본 제공 Maven 저장소(plugin.xml)는 사용 여부만 바꾸고, 추가한 저장소만 편집·제거한다. 저장소 순서 바꾸기는 두지 않았다(추가한 저장소는 맨 뒤).
 - **고친 버그(모델)**: 그룹(scope)이 있는 저장소를 저장하면 `MavenRegistry.saveConfiguration`이 scope 자식 요소 뒤에 `snapshot` 속성을 쓰려다
   "Attribute outside of element"로 실패했다(upstream 그대로, SWT에서도 같음). 속성을 자식 요소보다 먼저 쓰게 고쳤다. 실행 확인 중 OK가 이 예외로 멈춰 찾았다.
