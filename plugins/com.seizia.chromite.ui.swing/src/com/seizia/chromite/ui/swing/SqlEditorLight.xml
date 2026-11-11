@@ -29,7 +29,8 @@
 
 	<gutterBackground color="ffffff"/>
 	<gutterBorder color="ffffff"/>
-	<lineNumbers fg="aeb3c2" currentFG="767a8a"/>
+	<!-- Line numbers 4.5:1 or more on the editor background, the current one darker (app change #55, design-spec "Applied - text contrast") -->
+	<lineNumbers fg="6e727d" currentFG="3b3e45"/>
 	<foldIndicator fg="aeb3c2" iconBg="ffffff"/>
 	<iconRowHeader activeLineRange="aeb3c2"/>
 
