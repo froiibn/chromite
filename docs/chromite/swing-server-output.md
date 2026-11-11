@@ -123,3 +123,5 @@ Altibase·CUBRID 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐
   [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정"). "남은 일과 한계"의 설정 화면 항목 갱신.
 - 2026-11-08 Altibase·CUBRID도 설정을 바꾸면 열린 세션에 다음 문장부터 적용(evening #19, `chromite/followups-3`). Altibase 콜백 등록·해제,
   CUBRID `ENABLE`/`DISABLE`과 버퍼 크기. 확인은 아래 "확인 (2026-11-08)".
+- 2026-11-11 Oracle 쿼리 창의 `SET SERVEROUTPUT`이 그 창 세션만 켜고 끔(설정보다 앞섬, 설정은 그대로). 읽을지는 세션 기준
+  `DBCServerOutputReader.isServerOutputEnabled(context)` ([oracle-sqlplus-commands.md](oracle-sqlplus-commands.md), `chromite/oracle-sqlplus`)

@@ -193,7 +193,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     Messages 탭인 것은 SQL Server PRINT·PostgreSQL NOTICE가 이미 여기 있어 SSMS처럼 한 곳에 차례대로 보이게 하려는 것이다.
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
- *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).
+ *     켜짐은 세션 기준이다: 스크립트의 Oracle {@code SET SERVEROUTPUT}은 이 창 세션만 켜고 끈다(docs/chromite/oracle-sqlplus-commands.md).</li>
  *     <li>Oracle 컴파일 오류: 저장 단위·뷰를 만든 CREATE 문이 성공하면 그 세션에서 {@code ALL_ERRORS}를 읽어({@link OracleCompileErrors})
  *     편집기 줄·열로 바꾼 오류를 Messages 탭에 쓰고 그 줄을 오류 색으로 표시한다. Oracle은 컴파일 오류를 경고로만 알려 창이 성공으로 끝나기
  *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
@@ -319,6 +320,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   {@link SqlTextArea#getChordText}가 만듦 (docs/chromite/shortcuts.md)
  * - 2026-11-09 상태 줄의 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기({@link SwingIdleTransactionService#endReadOnlyTransaction}),
  *   자동으로 끝낸 뒤의 짧은 알림 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 서버 출력을 읽을지 세션 기준으로 물음({@code isServerOutputEnabled(context)}): Oracle {@code SET SERVEROUTPUT ON}으로
+ *   설정이 꺼진 연결에서도 그 창의 출력을 읽음 (docs/chromite/oracle-sqlplus-commands.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1926,12 +1929,13 @@ final class SqlEditorPanel extends JPanel {
      * Server output of the finished statement (Oracle and CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT}), read in the
      * job thread after every statement, also after errors and cancels. Reading drains the server buffer (Oracle
      * {@code GET_LINE}) or the data source's message buffer (Altibase), so it does not fill up (ORU-10027) or grow while
-     * the connection is open. Off when the connection's server output preference is off.
+     * the connection is open. Off when the session's server output is off (the connection's preference, or the window's
+     * {@code SET SERVEROUTPUT}).
      */
     private static void readServerOutput(@NotNull DBCSession session, @NotNull List<String> messages) {
         DBCExecutionContext context = session.getExecutionContext();
         DBCServerOutputReader reader = DBUtils.getAdapter(DBCServerOutputReader.class, context.getDataSource());
-        if (reader == null || !reader.isServerOutputEnabled()) {
+        if (reader == null || !reader.isServerOutputEnabled(context)) {
             return;
         }
         try {

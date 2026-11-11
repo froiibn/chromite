@@ -25,6 +25,9 @@ import com.seizia.chromite.model.text.parser.*;
 
 /**
 * Oracle dialect rules
+*
+* 변경 이력:
+* - 2026-11-11 Chromite: SQL*Plus 명령 줄과 {@code /}만 있는 줄({@link OracleSqlPlusRule}) (앱 변경 #46, docs/chromite/oracle-sqlplus-commands.md)
 */
 public class OracleDialectRules implements TPRuleProvider {
 
@@ -33,6 +36,9 @@ public class OracleDialectRules implements TPRuleProvider {
     public TPRule[] extendRules(@Nullable DBPDataSourceContainer dataSource, @NotNull RulePosition position) {
         if (position == RulePosition.INITIAL || position == RulePosition.PARTITION) {
             return new TPRule[]{ new QStringRule() };
+        }
+        if (position == RulePosition.CONTROL) {
+            return new TPRule[]{ new OracleSqlPlusRule() };
         }
         return new TPRule[0];
     }
