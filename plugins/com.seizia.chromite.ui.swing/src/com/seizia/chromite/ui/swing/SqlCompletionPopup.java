@@ -39,6 +39,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -73,6 +74,9 @@ import java.util.function.Supplier;
  *     되돌리기 한 번에 취소되도록 한 편집으로 묶는다. Ctrl+Space로 띄웠는데 제안이 하나뿐이면 목록 없이 바로 넣는다(SWT 기본 설정과 같음).</li>
  *     <li>팝업은 초점을 가져가지 않는 소유 창({@link JWindow}, {@code focusableWindowState = false})이라 입력은 계속 편집기로 가고,
  *     목록 이동 키(위·아래, Page Up/Down, Enter, Tab, Esc)는 편집기의 키 리스너가 먼저 받아 소비한다. 편집기가 초점을 잃거나 창이 움직이면 닫는다.
+ *     목록 밖을 누르거나 휠을 돌려도 닫는다(앱 전체의 마우스 이벤트를 목록이 보이거나 계산하는 동안만 듣는다, {@code listenOutside}).
+ *     편집기 안이나 초점을 받지 않는 곳(빈 영역, 도구 막대, 도구 창 머리말)을 누르면 초점이 그대로라 초점 잃음만으로는 닫히지 않았다.
+ *     누른 동작은 소비하지 않으므로 편집기 안을 누르면 닫히고 커서도 그 자리로 간다.
  *     테마를 바꾸면 FlatLaf가 모든 창을 다시 그리므로 숨은 팝업도 함께 바뀌고, 팝업 창을 처음 만들 때는 편집기와 함께 만든 목록을 현재 테마로 맞춘다.</li>
  *     <li>설명 창: 고른 제안이 바뀌고 잠시({@value #DOC_DELAY}ms) 멈추면 그 설명을 작업 스레드에서 만들어 목록 옆(화면 오른쪽이 모자라면 왼쪽)의
  *     두 번째 소유 창에 보인다(SWT 자동완성의 추가 정보 창). 데이터베이스 개체 제안은 마우스 올림과 같은 설명(종류, 전체 이름, 열·매개변수, 주석,
@@ -93,6 +97,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 요청에 쿼리 창의 실행 문맥을 넣음(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  * - 2026-11-08 제안 설명 창(SWT 추가 정보 창). 행 도구 설명은 설명 창이 대신하므로 지움 (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-09 Ctrl+Space는 macOS에서도 Control({@link UiKeys#control}, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-11 목록 밖을 누르거나 휠을 돌리면 닫음(앱 변경 #40: Esc로만 닫혔다) (docs/chromite/swing-sql-editor-session-ui.md "자동완성 창 닫기")
  */
 final class SqlCompletionPopup {
 
@@ -163,6 +168,9 @@ final class SqlCompletionPopup {
     private AbstractJob docJob;
     @Nullable
     private Window listenedOwner;
+    // Mouse presses and wheel turns anywhere in the application while the list is shown or computed (listenOutside)
+    private final AWTEventListener outsideListener = this::outsideEvent;
+    private boolean outsideListened;
     private final ComponentAdapter ownerListener = new ComponentAdapter() {
         @Override
         public void componentMoved(ComponentEvent e) {
@@ -279,6 +287,39 @@ final class SqlCompletionPopup {
         hide();
     }
 
+    /**
+     * Listens to the application's mouse presses and wheel turns while the list is shown or computed (EDT).
+     */
+    private void listenOutside(boolean listen) {
+        if (listen != outsideListened) {
+            outsideListened = listen;
+            if (listen) {
+                Toolkit.getDefaultToolkit().addAWTEventListener(outsideListener,
+                    AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_WHEEL_EVENT_MASK);
+            } else {
+                Toolkit.getDefaultToolkit().removeAWTEventListener(outsideListener);
+            }
+        }
+    }
+
+    /**
+     * A mouse press or wheel turn outside the list and its description window closes them: in the editor (the click
+     * then moves the caret as usual, it is not consumed), another part of the main window (tool windows, tool bars,
+     * menus, the empty area), or another window. The list keeps its own clicks and wheel turns.
+     */
+    private void outsideEvent(@NotNull AWTEvent event) {
+        if (event.getID() != MouseEvent.MOUSE_PRESSED && event.getID() != MouseEvent.MOUSE_WHEEL
+            || !(event instanceof MouseEvent mouseEvent)) {
+            return;
+        }
+        Component component = mouseEvent.getComponent();
+        Window eventWindow = component instanceof Window w ? w : component == null ? null : SwingUtilities.getWindowAncestor(component);
+        if (eventWindow != null && (eventWindow == window || eventWindow == docWindow)) {
+            return;
+        }
+        cancel();
+    }
+
     static boolean isAutoActivateOnLetters() {
         return getPreferences().getBoolean(PREF_AUTO_ACTIVATE_ON_LETTERS);
     }
@@ -366,6 +407,8 @@ final class SqlCompletionPopup {
     private void schedule(boolean explicit) {
         pending = true;
         pendingExplicit = explicit;
+        // A click elsewhere before the proposals are shown: they are not shown
+        listenOutside(true);
         activationTimer.setInitialDelay(getAutoActivationDelay());
         activationTimer.restart();
     }
@@ -385,6 +428,8 @@ final class SqlCompletionPopup {
         }
         pending = true;
         pendingExplicit = explicit;
+        // A click elsewhere before the proposals are shown: they are not shown
+        listenOutside(true);
         SqlCompletionAnalysis.Request request = new SqlCompletionAnalysis.Request(
             container, contextSupplier.get(), textArea.getText(), textArea.getCaretPosition(), explicit);
         AbstractJob analysisJob = new AbstractJob("Search SQL completion proposals") {
@@ -508,6 +553,7 @@ final class SqlCompletionPopup {
         if (!popup.isVisible()) {
             popup.setVisible(true);
         }
+        listenOutside(true);
         // The list moved or its selection may have changed: the description window follows
         docTimer.restart();
     }
@@ -580,6 +626,9 @@ final class SqlCompletionPopup {
         shown = null;
         if (window != null && window.isVisible()) {
             window.setVisible(false);
+        }
+        if (!pending) {
+            listenOutside(false);
         }
         docTimer.stop();
         cancelDocJob();
