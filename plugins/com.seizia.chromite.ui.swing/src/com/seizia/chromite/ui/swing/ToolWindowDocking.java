@@ -48,9 +48,12 @@ import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.beans.PropertyChangeListener;
 import java.nio.file.Files;
@@ -92,12 +95,17 @@ import java.util.StringJoiner;
  *     분할선({@code SplitPane.dividerSize} 6)이다. 끌어 놓을 자리 표시는 강조색({@code ModernDocking.overlayBackground})이다.</li>
  *     <li>최소 폭: 라이브러리의 분할 창(JSplitPane)은 카드를 최소 폭보다 좁히지 않는다. 내용의 최소 폭(긴 개체 이름 레이블, 도구 막대 전체,
  *     줄 바꿈 텍스트 영역의 현재 폭)을 따르면 카드가 데이터에 따라 넓어지거나 아예 줄지 않으므로, 카드의 최소 폭은 머리말({@link Header})이
- *     정하고 내용({@link ToolWindowDockable})은 최소 폭을 갖지 않는다. 내용은 좁게 배치되어 레이블은 말줄임표로, 도구 막대는 넘침 메뉴로 줄어든다.</li>
+ *     정하고 내용({@link ToolWindowDockable})은 최소 폭을 갖지 않는다. 내용은 좁게 배치되어 레이블은 말줄임표로, 도구 막대는 넘침 메뉴로 줄어든다.
+ *     문서 영역({@link DocumentsDockable})도 같은 이유로 내용의 최소 크기(보이지 않는 탭까지 포함한 가장 넓은 내용) 대신 작은 고정값
+ *     ({@value #DOCUMENTS_MINIMUM_SIZE}, 논리 픽셀)을 쓴다.</li>
  *     <li>크기 바꾸기: 라이브러리의 분할 창은 중첩되어 있고(바깥 분할 = [왼쪽 열 + 문서 영역 | 오른쪽 열]) 크기가 바뀌면 양쪽이 반씩 나눠 가진다
  *     (resizeWeight 0.5). 그래서 오른쪽 경계를 끌면 안쪽 분할의 왼쪽 열도, 창 크기를 바꾸면 모든 열이 바뀌었다. 문서 영역을 가진 분할은 바뀐 크기를
  *     문서 영역 쪽이 모두 갖고, 문서 영역의 한쪽에 있는 분할은 문서 영역에 가까운 쪽이 갖는다({@link #updateResizeWeights()}). 경계를 끌면
  *     그 양옆만, 창 크기를 바꾸면 문서 영역만 바뀐다(DataGrip, SSMS와 같음). 문서 영역과 다른 방향(한 열의 위아래)과 떠 있는 창은 반씩 그대로다.
- *     라이브러리가 분할선 두 번 클릭에 resizeWeight 위치로 옮기는 동작은 열을 한쪽 끝으로 접게 되므로 뗀다.</li>
+ *     라이브러리가 분할선 두 번 클릭에 resizeWeight 위치로 옮기는 동작은 열을 한쪽 끝으로 접게 되므로 뗀다.
+ *     JSplitPane은 문서 영역이 최소 크기에 닿으면 나머지를 반대쪽 열에서 가져간다. 그래서 문서 영역을 둘러싼 분할선을 끄는 동안(AWT 이벤트
+ *     리스너가 누르기부터 놓기까지 기억) 문서 영역 쪽의 다른 열은 지금 크기를 최소 크기로 갖는다({@link #isKeptByDividerDrag}). 끄는 분할선은
+ *     문서 영역이 최소에 닿으면 멈춘다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -112,6 +120,9 @@ import java.util.StringJoiner;
  * - 2026-11-11 크기 바꾸기: 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 분할 창의 resizeWeight를 문서 영역 쪽으로. 오른쪽 열 경계를 끌면
  *   왼쪽 열도 바뀌던 문제. 한 열을 하나씩 숨긴 뒤 먼저 숨긴 것부터 보이면 숨어 있는 이웃의 마지막 위치로(열 폭이 기본 비율로 돌아가던 문제)
  *   (앱 변경 #45, docs/chromite/swing-frontend.md "도구 창 크기 바꾸기")
+ * - 2026-11-12 문서 영역 최소 크기를 내용(쿼리 창 753, 시작 화면 420) 대신 고정값으로, 문서 영역을 둘러싼 분할선을 끄는 동안 문서 영역
+ *   쪽의 다른 열은 지금 크기를 유지. 오른쪽 열을 넓히면 왼쪽 열이 좁아지던 문제(#218 뒤에도 남음)
+ *   (앱 변경 #68, docs/chromite/swing-frontend.md "도구 창 크기 바꾸기")
  */
 final class ToolWindowDocking {
 
@@ -134,6 +145,10 @@ final class ToolWindowDocking {
      * The library's resize weight: both sides of a split share a change of its size.
      */
     private static final double EVEN_RESIZE_WEIGHT = 0.5;
+    /**
+     * Minimum width and height of the document area (logical pixels), instead of its content's minimum.
+     */
+    private static final int DOCUMENTS_MINIMUM_SIZE = 100;
     private static final int PLACES_DELAY_MS = 500;
     /**
      * The text a clipped {@link JLabel} ends with (the label's UI draws it).
@@ -146,6 +161,13 @@ final class ToolWindowDocking {
     private final Root root;
     private final Map<String, Dock> docks = new LinkedHashMap<>();
     private final PropertyChangeListener lookAndFeelListener;
+    private final AWTEventListener dividerDragListener;
+    /**
+     * The split around the documents whose divider the mouse is dragging (pressed until released), see
+     * {@link #isKeptByDividerDrag}.
+     */
+    @Nullable
+    private JSplitPane draggedSplit;
     /**
      * Remembers the places shortly after a change: the library sets the split dividers of a new layout only once the
      * panels are laid out, so places read at once would have the dividers' old proportions.
@@ -230,6 +252,10 @@ final class ToolWindowDocking {
             }
         };
         UIManager.addPropertyChangeListener(lookAndFeelListener);
+        // An AWT event listener, not a listener on the dividers: it sees the press before the divider's own handler reads
+        // the minimum sizes for the drag, and it doesn't have to be added again to the dividers recreated by theme changes
+        dividerDragListener = this::dividerMouseEvent;
+        Toolkit.getDefaultToolkit().addAWTEventListener(dividerDragListener, AWTEvent.MOUSE_EVENT_MASK);
     }
 
     /**
@@ -325,6 +351,7 @@ final class ToolWindowDocking {
         disposed = true;
         placesTimer.stop();
         UIManager.removePropertyChangeListener(lookAndFeelListener);
+        Toolkit.getDefaultToolkit().removeAWTEventListener(dividerDragListener);
         docking.uninitialize();
     }
 
@@ -866,6 +893,60 @@ final class ToolWindowDocking {
     }
 
     /**
+     * Remembers the split around the documents whose divider is pressed, until the mouse is released. The tool window
+     * minimum sizes depend on it ({@link #isKeptByDividerDrag}), so their cached sizes are dropped both times.
+     */
+    private void dividerMouseEvent(@NotNull AWTEvent event) {
+        if (event.getID() == MouseEvent.MOUSE_PRESSED && event.getSource() instanceof BasicSplitPaneDivider divider
+            && divider.getBasicSplitPaneUI() != null) {
+            JSplitPane split = divider.getBasicSplitPaneUI().getSplitPane();
+            if (split != null && split.getParent() instanceof DockedSplitPanel && SwingUtilities.isDescendingFrom(documents, split)) {
+                draggedSplit = split;
+                revalidateToolWindows();
+            }
+        } else if (event.getID() == MouseEvent.MOUSE_RELEASED && draggedSplit != null) {
+            draggedSplit = null;
+            revalidateToolWindows();
+        }
+    }
+
+    private void revalidateToolWindows() {
+        for (Dock dock : docks.values()) {
+            if (dock.dockable != null) {
+                // Every ancestor: invalidate() stops at an ancestor that is already invalid (during a drag), and that one
+                // would keep the minimum size it cached meanwhile once it is laid out again
+                for (Component component = dock.dockable; component != null; component = component.getParent()) {
+                    component.invalidate();
+                }
+                dock.dockable.revalidate();
+            }
+        }
+    }
+
+    /**
+     * Whether a tool window keeps its size (along the dragged split) while a divider is dragged: it is inside the
+     * dragged split on the documents' side, and a split nearer to it separates it from the documents along the same axis
+     * (the left column while the right column's border is dragged). The change of the dragged split goes to the
+     * documents ({@link #getResizeWeight}), but {@code JSplitPane} takes it from the other side once the documents reach
+     * their minimum; with this minimum the dragged divider stops there instead. The tool windows beside the dragged
+     * divider and in other splits keep their own minimum.
+     */
+    private boolean isKeptByDividerDrag(@NotNull Component toolWindow) {
+        JSplitPane dragged = draggedSplit;
+        if (dragged == null || !SwingUtilities.isDescendingFrom(toolWindow, dragged)) {
+            return false;
+        }
+        Component child = toolWindow;
+        for (Container parent = toolWindow.getParent(); parent != dragged; child = parent, parent = parent.getParent()) {
+            if (parent instanceof JSplitPane split && split.getOrientation() == dragged.getOrientation()
+                && SwingUtilities.isDescendingFrom(documents, split) && !SwingUtilities.isDescendingFrom(documents, child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * A floating window's title: its tool windows (shown in the task bar).
      */
     private void updateFloatingTitles() {
@@ -1114,10 +1195,20 @@ final class ToolWindowDocking {
          * never make a card narrower than its minimum, and the content's minimum width is the full width of its labels
          * (a long object name in Properties), tool bars, or a wrapping text area's current width (so a card could only
          * grow). The content is laid out narrower instead: labels end with an ellipsis, tool bars overflow.
+         * While the border of a split around the documents is dragged, its current size along that split if the
+         * documents are to give the change ({@link #isKeptByDividerDrag}).
          */
         @Override
         public Dimension getMinimumSize() {
-            return new Dimension(0, super.getMinimumSize().height);
+            Dimension size = new Dimension(0, super.getMinimumSize().height);
+            if (isKeptByDividerDrag(this)) {
+                if (draggedSplit.getOrientation() == JSplitPane.HORIZONTAL_SPLIT) {
+                    size.width = getWidth();
+                } else {
+                    size.height = getHeight();
+                }
+            }
+            return size;
         }
 
         @Override
@@ -1261,6 +1352,19 @@ final class ToolWindowDocking {
             super(new BorderLayout());
             setOpaque(false);
             add(documentArea, BorderLayout.CENTER);
+        }
+
+        /**
+         * A small fixed size, not the content's minimum: the library's split panes never make the documents smaller
+         * than their minimum and take the rest from the column on their other side. The content's minimum was the full
+         * width of whatever any document or results tab holds, shown or not (753 with a query window: the execution
+         * plan tab's tool bar and hint label; 420 for the welcome logo), and wider than the documents themselves on a
+         * 1280 wide window, so widening the right column narrowed the left one. The content is laid out smaller
+         * instead: tab rows scroll, labels end with an ellipsis, tool bars and the grid are clipped or scroll.
+         */
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(UIScale.scale(DOCUMENTS_MINIMUM_SIZE), UIScale.scale(DOCUMENTS_MINIMUM_SIZE));
         }
 
         @Override
