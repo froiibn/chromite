@@ -100,6 +100,11 @@ public class ConnectionMessages extends NLS {
     public static String settings_server_tip;
     public static String settings_server_tip_port;
     public static String settings_database;
+    public static String settings_database_list_tip;
+    public static String settings_database_list_tip_optional;
+    public static String settings_database_list_loading;
+    public static String settings_database_list_error;
+    public static String settings_database_list_empty;
     public static String settings_folder;
     public static String settings_file;
     public static String settings_jdbc_url;

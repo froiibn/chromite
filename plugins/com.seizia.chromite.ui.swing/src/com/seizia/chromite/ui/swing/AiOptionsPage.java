@@ -107,6 +107,8 @@ import java.util.Set;
  * - 2026-11-11 Google Gemini·vLLM 양식(vLLM의 키는 선택), Test의 도구 호출 확인(app round 2 #34, #35, docs/chromite/ai-agent.md "Chat Completions 엔진")
  * - 2026-11-12 OK 대신 Options 저장 표준: 칸마다 바뀐 수·저장·되돌리기, 토글은 바로 저장, 저장 실패는 페이지 아래 줄에(앱 변경 #59,
  *   docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -238,7 +240,7 @@ final class AiOptionsPage extends JPanel {
             warningArea.setOpaque(false);
             warningArea.setBorder(BorderFactory.createEmptyBorder());
             warningArea.setFont(statusLabel.getFont());
-            warningArea.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+            warningArea.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
             warningArea.setVisible(false);
             // No label cell, so the hidden row takes no space
             GridBagConstraints warning = new GridBagConstraints();
@@ -575,7 +577,7 @@ final class AiOptionsPage extends JPanel {
             scopeRow.setAlignmentX(LEFT_ALIGNMENT);
             top.add(Box.createVerticalStrut(4));
             top.add(scopeRow);
-            scopeNote.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+            scopeNote.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
             scopeNote.setAlignmentX(LEFT_ALIGNMENT);
             top.add(scopeNote);
             filterField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, AiMessages.ai_policy_filter);
@@ -617,7 +619,7 @@ final class AiOptionsPage extends JPanel {
                         setText(describeAccess(access));
                         if (!isSelected) {
                             setForeground(UIManager.getColor(access == AIToolAccess.DANGEROUS ? "Chromite.status.error" //$NON-NLS-1$
-                                : access == AIToolAccess.WRITE ? "Chromite.status.warning" : "Label.foreground")); //$NON-NLS-1$ //$NON-NLS-2$
+                                : access == AIToolAccess.WRITE ? "Chromite.status.warningForeground" : "Label.foreground")); //$NON-NLS-1$ //$NON-NLS-2$
                         }
                     }
                     return this;

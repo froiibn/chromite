@@ -108,7 +108,9 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-08 업데이트 진행 창: 업데이트 뒤 첫 시작이면 시작 화면 대신 그 창을 띄우고({@link UpdateProgress#openFirstStart}), 시작이
  *   끝나거나 실패하면 그 창이 알림. 끝날 때 적용에 그 창을 넘김 (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-11 작업 공간 잠금 전 테마를 라이트 대신 운영체제 설정의 테마로 설치하고, 메인 창을 열 때 운영체제 설정 바뀜을 따라가기 시작
- *   (앱 변경 #38, docs/chromite/swing-options.md "테마") */
+ *   (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 저장된 UI 글꼴 선택({@link UiFont})이 다른 글꼴이면 주 창을 열기 전에 테마를 다시 설치함 (앱 변경 #43,
+ *   docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -297,7 +299,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     private void openMainWindow(@NotNull String statusText) {
         ChromiteTheme savedTheme = ChromiteTheme.getSaved();
         boolean savedCompact = UiDensity.isSavedCompact();
-        if (savedTheme != ChromiteTheme.getCurrent() || savedCompact != UiDensity.isCompact()) {
+        UiFont.Choice savedFont = UiFont.getSavedChoice();
+        boolean fontChanged = savedFont.usesSystemFont() != UiFont.getChoice().usesSystemFont();
+        UiFont.setChoice(savedFont);
+        if (savedTheme != ChromiteTheme.getCurrent() || savedCompact != UiDensity.isCompact() || fontChanged) {
             // Only the shared root frame of parentless dialogs exists yet
             UiDensity.setCompact(savedCompact);
             savedTheme.install(true);

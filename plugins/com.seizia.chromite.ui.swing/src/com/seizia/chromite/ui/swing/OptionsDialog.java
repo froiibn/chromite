@@ -58,7 +58,8 @@ import java.util.regex.Pattern;
  * 설계: 이 대화상자는 설정을 따로 저장하지 않고, 각 기능이 가진 설정의 저장 위치와 적용 방법을 그대로 쓴다.
  * <ul>
  *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).
- *     테마는 시스템·밝게·어둡게 아이콘 단추 세 개의 묶음이다(값이라 [저장]에서 적용).</li>
+ *     테마는 시스템·밝게·어둡게 아이콘 단추 세 개의 묶음이다(값이라 [저장]에서 적용).
+ *     UI font: {@link UiFont.Choice#apply()}(값이라 [저장]에서 저장, 글꼴이 바뀌면 테마를 다시 설치).</li>
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
  *     <li>위험한 문 확인(WHERE 없는 UPDATE/DELETE, DROP): {@link SqlExecutionSafety}의 설정(SWT 확인 대화상자와 같은 키).</li>
  *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
@@ -126,6 +127,7 @@ import java.util.regex.Pattern;
  * - 2026-11-11 General의 테마 목록에 시스템 설정 따르기를 더하고 저장된 선택을 보임 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-12 다시 디자인: 묶음·아이콘 목록, 카드 행({@link OptionsForm}), 테마 단추 셋, 확인/취소 대신 저장 표준({@link OptionsSaving})
  *   (앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
+ * - 2026-11-12 General의 Environment에 UI 글꼴 행(자동·Pretendard·시스템 글꼴) (앱 변경 #43, docs/chromite/swing-options.md "UI 글꼴")
  */
 final class OptionsDialog extends JDialog {
 
@@ -159,6 +161,7 @@ final class OptionsDialog extends JDialog {
     // Theme: one icon button per choice, in a group
     private final Map<ChromiteTheme.Choice, JToggleButton> themeButtons = new EnumMap<>(ChromiteTheme.Choice.class);
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
+    private final JComboBox<UiFont.Choice> uiFontCombo = new JComboBox<>(UiFont.Choice.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
     private final JCheckBox confirmDangerousSqlBox = new JCheckBox(CoreMessages.options_confirm_dangerous_sql);
@@ -231,6 +234,8 @@ final class OptionsDialog extends JDialog {
 
         iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
         iconStyleCombo.setRenderer(new LabelRenderer());
+        uiFontCombo.setSelectedItem(UiFont.getSavedChoice());
+        uiFontCombo.setRenderer(new LabelRenderer());
         autoCompleteBox.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
         showProceduresBox.setSelected(SqlCompletionPopup.isShowProcedures());
         showProceduresBox.setToolTipText(CoreMessages.options_show_procedures_tip);
@@ -251,6 +256,7 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, CoreMessages.options_environment);
         row = addRow(form, row, CoreMessages.options_theme, createThemeButtons(), null);
         row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
+        row = addRow(form, row, CoreMessages.options_ui_font, uiFontCombo, CoreMessages.options_ui_font_hint);
         row = addSection(form, row, ObjectExplorerMessages.oe_options_section);
         objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
         objectDoubleClickCombo.setRenderer(new LabelRenderer());
@@ -831,11 +837,13 @@ final class OptionsDialog extends JDialog {
     private void addGeneralParts(@NotNull OptionsSaving.PageState state) {
         state.add(OptionsSaving.part(CoreMessages.options_environment,
             () -> OptionsSaving.differs(getThemeChoice(), ChromiteTheme.getSavedChoice())
-                + OptionsSaving.differs(iconStyleCombo.getSelectedItem(), UiIconStyle.getCurrent()),
+                + OptionsSaving.differs(iconStyleCombo.getSelectedItem(), UiIconStyle.getCurrent())
+                + OptionsSaving.differs(uiFontCombo.getSelectedItem(), UiFont.getSavedChoice()),
             this::applyThemeSettings,
             () -> {
                 setThemeChoice(ChromiteTheme.getSavedChoice());
                 iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
+                uiFontCombo.setSelectedItem(UiFont.getSavedChoice());
             }));
         state.add(OptionsSaving.part(ObjectExplorerMessages.oe_options_section,
             () -> OptionsSaving.differs(objectDoubleClickCombo.getSelectedItem(), ExplorerPreferences.getObjectDoubleClick())
@@ -1176,7 +1184,7 @@ final class OptionsDialog extends JDialog {
     }
 
     /**
-     * Icon style, then the theme (it updates every window, this dialog included).
+     * Icon style, the theme, then the UI font (the theme and the font update every window, this dialog included).
      */
     private void applyThemeSettings() {
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
@@ -1185,6 +1193,9 @@ final class OptionsDialog extends JDialog {
         ChromiteTheme.Choice choice = getThemeChoice();
         if (choice != ChromiteTheme.getSavedChoice()) {
             choice.apply();
+        }
+        if (uiFontCombo.getSelectedItem() instanceof UiFont.Choice fontChoice && fontChoice != UiFont.getSavedChoice()) {
+            fontChoice.apply();
         }
     }
 
@@ -1402,6 +1413,8 @@ final class OptionsDialog extends JDialog {
                 setText(theme.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
+            } else if (value instanceof UiFont.Choice fontChoice) {
+                setText(fontChoice.getLabel());
             } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {
                 setText(action.getLabel());
             } else if (value instanceof ExplorerPreferences.ConnectionDoubleClick action) {
