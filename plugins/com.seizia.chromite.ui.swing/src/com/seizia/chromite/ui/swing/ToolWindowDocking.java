@@ -251,7 +251,9 @@ final class ToolWindowDocking {
         lookAndFeelListener = e -> {
             // The library re-adds its panel borders on every look and feel change, in a task it posts then
             // (DockingInternal.updateLAF -> ActiveDockableHighlighter.setNotSelectedBorder). A theme install can change the
-            // look and feel twice in one EDT task (ChromiteTheme.install, Korean semibold): scheduling the update directly
+            // look and feel twice in one EDT task (ChromiteTheme.install does so only in the first install of the process,
+            // before the main window, when the UI language needs the bold semibold font; this keeps the decoration last if an
+            // install with the main window open ever does): scheduling the update directly
             // would coalesce with the first change and run between the library's two tasks, so the second one would put the
             // borders back. Scheduling it from a task posted now queues the update behind every task of this install.
             if ("lookAndFeel".equals(e.getPropertyName())) { //$NON-NLS-1$

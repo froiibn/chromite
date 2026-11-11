@@ -67,7 +67,8 @@ import java.util.function.Supplier;
  *   인스턴스 {@code apply()}는 {@link Choice#apply()}로 바뀌어 지움 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-12 설치할 때 UI 글꼴 선택({@code UiFont})의 extra defaults를 얹음 (앱 변경 #43, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 UI 글꼴을 운영체제 글꼴 13으로(Windows Segoe UI): 번들 Pretendard 등록과 UI 글꼴 선택({@code UiFont})의 extra defaults를 지움.
- *   semibold 판단은 업데이트 진행 창도 쓰도록 {@link UiSemibold}로 옮김 (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
+ *   semibold 판단은 업데이트 진행 창도 쓰도록 {@link UiSemibold}로 옮김. 판단 결과를 기억해 첫 설치 뒤의 설치는 처음부터 BOLD를 넣어
+ *   Look and Feel을 한 번만 바꿈(한국어 화면에서 모든 설치가 두 번 바꾸던 것) (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
  */
 enum ChromiteTheme {
 
@@ -108,14 +109,20 @@ enum ChromiteTheme {
         EditorFont.installLazy();
         // The density (compact mode) replaces size values of the theme properties (UiDensity)
         Map<String, String> extraDefaults = new HashMap<>(UiDensity.getExtraDefaults());
+        // The semibold text of this UI language may come from the fallback font, which has the style of the font object:
+        // the semibold family is PLAIN, so it would be the regular weight (lighter than the letters beside it). Then the
+        // bold default font replaces it (Korean: Segoe UI Semibold has no Hangul). The answer is known after the first
+        // install of the process, so later installs put it in at once and change the look and feel only once; the first
+        // install has to set up the theme to learn the platform's semibold family, and sets it up again when bold is needed.
+        Boolean boldNeeded = UiSemibold.getKnownBoldNeeded();
+        if (Boolean.TRUE.equals(boldNeeded)) {
+            extraDefaults.put(UiSemibold.SEMIBOLD_FONT_KEY, UiSemibold.BOLD_FONT_VALUE);
+        }
         if (!FlatLaf.setup(createLaf(extraDefaults))) {
             log.warn("Can't install look and feel of theme " + name());
             return;
         }
-        if (!UiSemibold.isInSemiboldFont(CoreMessages.main_object_explorer)) {
-            // The semibold text of this UI language comes from the fallback font, which has the style of the font object:
-            // the semibold family is PLAIN, so it would be the regular weight (lighter than the letters beside it).
-            // The theme is set up again with the bold default font (Korean: Segoe UI Semibold has no Hangul).
+        if (boldNeeded == null && UiSemibold.checkBoldNeeded(CoreMessages.main_object_explorer)) {
             extraDefaults.put(UiSemibold.SEMIBOLD_FONT_KEY, UiSemibold.BOLD_FONT_VALUE);
             if (!FlatLaf.setup(createLaf(extraDefaults))) {
                 log.warn("Can't install look and feel of theme " + name());
