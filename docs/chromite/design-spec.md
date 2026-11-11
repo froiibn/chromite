@@ -1047,6 +1047,25 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   트리 영역은 0이었다.
 - 캡처: `D:\Tools\_scratch\chromite-hover-repaint\shots\`(`evidence-150-dark-explorer.png`: 수정 전 위로 움직인 뒤 / 전체 다시 그림 / 수정 후).
 
+### 포커스 표시 — 내용 영역 테두리 없음 (2026-11-11, 앱 변경 #37)
+
+사용자 요청(기업 환경 2026-11-09): "출력결과 grid를 선택하면 주변에 테두리가 포커싱된다. 이 효과를 제거하고, 다른 화면에서도 이와 같은 효과를 제거한다".
+사용자 결정: "내용 영역만 제거"(입력란·콤보·단추의 포커스 표시는 유지).
+
+- **원인(그린 테두리를 읽어 확인):** FlatLaf의 스크롤 창 테두리(`FlatScrollPaneBorder`, 테마 키 `ScrollPane.border`와 표를 스크롤 창에 넣을 때
+  Swing이 붙이는 `Table.scrollPaneBorder`)는 `FlatBorder.isFocused`가 스크롤 창이면 그 안 보기(표·트리·목록·글 영역)의 포커스를 보고,
+  포커스가 있으면 테두리 색을 `Component.focusedBorderColor`(`#3871E1`)로 바꾼다. 결과 그리드의 스크롤 창(`ResultSetGrid`)은 테두리를 따로 정하지 않아
+  이 테두리를 쓴다. 측정(테스트 에이전트, 스크롤 창 왼쪽 테두리 픽셀): 포커스 있음 `#3871E1`, 없음 다크 `#40434A` / 라이트 `#D1D3D9`.
+- **고친 곳(한 곳):** 두 테마 properties가 `ScrollPane.border`, `Table.scrollPaneBorder`를 `ContentScrollPaneBorder`로 바꾼다.
+  이 클래스는 `FlatScrollPaneBorder`와 같고 `isFocused`만 다르다: 보기가 **편집할 수 있는 글 영역**(여러 줄 입력란: Agent 질문 칸, 대화상자의 여러 줄 입력)이면
+  FlatLaf 그대로 포커스 색, 그 밖(표·트리·목록·읽기 전용 글)은 늘 보통 테두리색. 입력란·콤보·단추는 다른 테두리(`FlatTextBorder`, `FlatRoundBorder`)라 그대로다.
+- **이미 테두리가 없던 곳:** SQL 편집기, Messages, 개체 탐색기·등록된 서버·쿼리 라이브러리 트리, 값 보기, 실행 계획은 스크롤 창에 빈 테두리를 주어 원래 포커스 테두리가 없었다.
+  이번 변경이 실제로 바꾸는 곳은 기본 테두리를 쓰는 스크롤 창: 결과 그리드, Options 페이지 목록, 대화상자의 표·목록·트리 등.
+- **포커스 위치:** 선택 바탕색으로 구분된다(FlatLaf가 포커스에 따라 바꿈). 결과 그리드: 다크 활성 `#2A4371` / 비활성 `#33353B`, 라이트 `#D0DFFE` / `#E9EAEE`.
+- **확인:** Attach API 테스트 에이전트, 실제 결과 그리드(SQLite), 포커스는 대체 키보드 포커스 관리자로 흉내 내고 화면 밖에 그림(OS 입력 없음), 100%·150%, 밝은·어두운 테마.
+  전(devel의 `FlatScrollPaneBorder`) 포커스 있음 `#3871E1` → 후 포커스 있음 `#40434A`(다크) / `#D1D3D9`(라이트), Options 목록도 같음. Agent 질문 칸(편집 가능)은 후에도 `#3871E1`.
+  입력란·콤보·단추의 포커스 테두리는 그대로. 캡처: `D:\Tools\_scratch\chromite-theme-look\shots\`(`grid-*.png`, `options-list-*.png`, `input-*.png`, `sel-grid-*.png`, `controls-*.png`).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1171,3 +1190,4 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   `size.toolbar.editor` 행(선택 상자 여백 키), 설계 결정(촘촘한 모드 범위), 미룬 결정 갱신. "적용 현황 — 촘촘한 모드" 절(구조, B·C 측정) 추가.
 - 2026-11-08 9절: 쿼리 상태 칸을 주 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로(앱 변경 #2). 치수 토큰 `size.statusLine.query` 삭제(`size.statusBar`를 씀).
 - 2026-11-08 마우스 올림 잔상(앱 1차 #10): "마우스 올림 다시 그리기" 절 추가(원인, 세 트리의 다시 그리는 영역을 위아래 1px 넓힘, 측정).
+- 2026-11-11 내용 영역의 포커스 테두리 제거(앱 변경 #37): "포커스 표시 — 내용 영역 테두리 없음" 절 추가.
