@@ -30,6 +30,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -70,6 +72,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성(앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-12 닫은 탭 다시 열기에 Ctrl+Shift+T(macOS ⇧⌘T) (앱 변경 #66, docs/chromite/shortcuts.md)
  */
 final class DocumentTabMenu {
 
@@ -130,6 +133,9 @@ final class DocumentTabMenu {
                 reopenClosed();
             }
         };
+        // Ctrl+Shift+T reopens a closed tab in browsers and IDEs. The Window menu item carries the key, so it
+        // works while the tab menu is closed
+        reopenAction.putValue(Action.ACCELERATOR_KEY, UiKeys.command(KeyEvent.VK_T, InputEvent.SHIFT_DOWN_MASK));
         reopenAction.setEnabled(false);
         tabs.addMouseListener(new MouseAdapter() {
             @Override

@@ -1656,7 +1656,8 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
   휠로 행을 바꾸는 동작은 Swing 탭에 없어 넣지 않았다.
 - **부동(Float)은 넣지 않음**: 결과 카드, SQL Editor 도구 막대, 상태 표시줄의 쿼리 창 칸, Find, Outline이 모두 이 탭 창의 활성 탭을 따라가는 구조라, 탭 밖의 쿼리 창은
   결과와 명령을 잃는다. 도킹 라이브러리(ModernDocking)는 도구 창만 맡고 문서 탭은 도킹 밖의 고정 가운데 영역이다.
-- **단축키**: Reopen Closed Tab에는 단축키를 붙이지 않았다. 요청 행의 Ctrl+Shift+T는 이미 View > Maximize Results(SWT 키)가 쓰고 있다(결정 필요).
+- **단축키**: Reopen Closed Tab은 Ctrl+Shift+T(macOS ⇧⌘T, 앱 변경 #66). 키는 Window 메뉴 항목이 걸어서 탭 메뉴를 열지 않아도 된다. 전에 이 키를 쓰던
+  View > Maximize Results(SWT 키)는 Ctrl+Shift+R(⇧⌘R)로 옮겼다([shortcuts.md](shortcuts.md)).
 - 탭을 옮기는 API가 없어 고정·해제는 탭을 빼고 다시 넣는다(제목, 아이콘, 도구 설명, 선택을 옮김). 실행 중인 창의 스피너는 핀 아이콘 안에서도 돈다.
 - **확인(2026-11-12, 150%·100%, 테스트 에이전트, SQLite와 임시 PostgreSQL 17):** 메뉴 항목·켜짐 상태(저장 Ctrl+S 표시, 파일 없는 창은 경로 항목 꺼짐), 고정하면 맨 왼쪽으로 옮겨지고 핀 아이콘·닫기 단추 없음. 모든 탭 닫기에서 고친 창의 저장 질문에 취소 → 거기서 멈춤(고정 탭과 남은 탭 그대로), 다른 탭 닫기에서 저장 안 함 → 닫힘. 닫은 탭 다시 열기 → 저장하지 않은 글이 고침 상태로, 연결 창은 연결과 함께 돌아옴(Window 메뉴 항목도 켜짐/꺼짐이 따라감). 이름 바꾸기: 저장 전 창 → `Report Draft.sql`, 파일 창 → 디스크의 `renamed.sql`로 바뀌고 창이 따라감, Query Library 창 → 파일·`@name` 바뀜, 고친 Library 창 → 이름 칸에 넣고 안내. 전체 경로 복사 → 클립보드에 절대 경로. PostgreSQL 수동 커밋 창에 INSERT 뒤 메뉴의 닫기 → 저장 질문 다음 커밋하지 않은 트랜잭션 질문(커밋 / 롤백 / 취소, 취소가 기본): 취소하면 탭과 트랜잭션이 남고(`idle in transaction`), 롤백하면 닫힘(행 0). 그 창을 다시 열면 고정·글·연결 기본값과 함께 돌아오고 연결·실행하지 않음. 탭 위치 왼쪽과 고정이 다시 시작 뒤 복원됨. 한 행 배치에서 휠을 위로 굴리면 탭 줄이 왼쪽으로 넘어감. 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\42-*.png`.
 
@@ -3135,3 +3136,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 - 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
   상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 결과 영역 두 단계 탭(앱 변경 #54, `chromite/result-area-2`): 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, Grid 안 아래쪽 자식 탭 "Result 1"…(영어), Text 탭, 서버 출력은 Server Output 탭(새 출력 점). "결과 영역 두 단계 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages·"결과 탭" 절에 표시.
+- 2026-11-12 Reopen Closed Tab에 Ctrl+Shift+T(⇧⌘T), View > Maximize Results는 Ctrl+Shift+R(⇧⌘R)로(앱 변경 #66, `chromite/small-fixes-r2`): "문서 탭 메뉴"의 단축키 줄을 고침.
