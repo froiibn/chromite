@@ -22,6 +22,9 @@ import org.jkiss.code.Nullable;
 
 /**
  * Represents a parameter definition for an AI function/tool call
+ *
+ * 변경 이력:
+ * - 2026-11-12 {@link #getShortDescription()}: 최소 도구 묶음의 짧은 인수 설명 (docs/chromite/ai-agent.md "도구 묶음")
  */
 public interface AIFunctionParameter {
 
@@ -33,6 +36,14 @@ public interface AIFunctionParameter {
 
     @Nullable
     String getDescription();
+
+    /**
+     * A shorter description for the minimal tool set of the Chromite Agent chat, or null to send {@link #getDescription()}.
+     */
+    @Nullable
+    default String getShortDescription() {
+        return null;
+    }
 
     boolean isRequired();
 

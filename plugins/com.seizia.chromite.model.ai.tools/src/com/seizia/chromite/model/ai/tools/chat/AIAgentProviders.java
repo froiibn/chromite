@@ -55,6 +55,7 @@ import java.util.List;
  * - 2026-11-07 "설정하지 않음" 오류의 설정 경로를 바뀐 탭 이름(Options &gt; Chromite Agent &gt; Providers)으로 고침
  *   (docs/chromite/ai-agent.md "명칭")
  * - 2026-11-11 Google Gemini·vLLM 제공자(Chat Completions 엔진)와 Test의 도구 호출 확인({@link #checkToolCalls}) (app round 2 #34, #35)
+ * - 2026-11-12 모델의 컨텍스트 크기({@link #getContextTokens}), Test가 모델 목록의 컨텍스트 크기도 받음 (앱 변경 #64, "도구 묶음")
  */
 public final class AIAgentProviders {
 
@@ -68,6 +69,10 @@ public final class AIAgentProviders {
      * Providers of the assistant, in picker order: hosted services, then servers of one's own.
      */
     public static final List<String> PROVIDERS = List.of(ANTHROPIC, OPENAI, GEMINI, OLLAMA, VLLM);
+
+    // Context windows assumed when the provider's settings have none (getContextTokens)
+    private static final int ASSUMED_VLLM_CONTEXT_TOKENS = 8192;
+    private static final int ASSUMED_HOSTED_CONTEXT_TOKENS = 128_000;
 
     /**
      * Models offered before the provider's model list was loaded (Anthropic names its models; the others depend on the account
@@ -256,18 +261,33 @@ public final class AIAgentProviders {
      * Test button. Never logs the settings.
      */
     @NotNull
-    public static List<String> loadModels(
+    public static List<AIModel> loadModels(
         @NotNull DBRProgressMonitor monitor,
         @NotNull String engineId,
         @NotNull AIEngineProperties properties
     ) throws DBException {
         try (AIEngine<?> engine = getEngine(engineId).createEngineInstance(properties)) {
-            List<String> names = new ArrayList<>();
-            for (AIModel model : engine.getModels(monitor)) {
-                names.add(model.name());
-            }
-            return names;
+            return engine.getModels(monitor);
         }
+    }
+
+    /**
+     * Context window of the provider's model in tokens, for the chat's tool set and size check: the provider's setting, or
+     * an assumed size when it has none. vLLM gets the smallest size of the in-house servers it is meant for (8k), so an
+     * unknown server is not overrun; hosted models have at least 128k.
+     */
+    public static int getContextTokens(@NotNull String engineId) {
+        AIConfigurationProfile profile = getProfile(engineId);
+        Integer size = null;
+        try {
+            size = profile == null ? null : profile.getConfiguration().getContextWindowSize();
+        } catch (DBException e) {
+            // Not configured: the assumed size below
+        }
+        if (size != null && size > 0) {
+            return size;
+        }
+        return engineId.equals(VLLM) ? ASSUMED_VLLM_CONTEXT_TOKENS : ASSUMED_HOSTED_CONTEXT_TOKENS;
     }
 
     /**

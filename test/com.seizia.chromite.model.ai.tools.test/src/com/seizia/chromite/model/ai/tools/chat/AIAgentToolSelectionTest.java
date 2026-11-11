@@ -30,7 +30,6 @@ import com.seizia.chromite.model.connection.DBPConnectionType;
 import com.seizia.chromite.model.connection.DBPDriver;
 import org.jkiss.code.NotNull;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -45,6 +44,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/regression-tests.md "Chromite Agent")
+ * - 2026-11-12 "도구를 모두 보냄" 설정이 없어져 그 가정을 지움 (앱 변경 #64)
  */
 public class AIAgentToolSelectionTest extends ChromiteUnitTest {
 
@@ -59,7 +59,6 @@ public class AIAgentToolSelectionTest extends ChromiteUnitTest {
 
     @Test
     public void toolsOfOtherDatabasesAndBlockedWritesAreLeftOut() {
-        Assumptions.assumeFalse(AIAgentToolSelection.isSendAllTools(), "\"Send all tools\" is turned on in the test workspace");
         AIFunctionDescriptor noConnection = tool("formatSql", false, AIToolAccess.READ, false);
         AIFunctionDescriptor postgresRead = tool("getLocks", true, AIToolAccess.READ, true);
         AIFunctionDescriptor sqlServerOnly = tool("getAgentJobs", true, AIToolAccess.READ, false);
