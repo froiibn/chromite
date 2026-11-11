@@ -403,7 +403,10 @@ cmd_launch() {
   else
     note "$label: no splash-sized window was seen before the main window (startup may have been faster than one poll)"
   fi
-  # The launcher's splash and the Swing one: one place for every splash-sized window of every poll (reported, not fatal)
+  # The launcher's splash and the Swing one: one place for every splash-sized window of every poll (reported, not fatal).
+  # When the app is up before a poll sees a splash window, no poll wrote the file; awk on a missing file fails, and with
+  # pipefail that ended the script here with exit code 2 although the app had started (devel run of 2026-11-12)
+  [ -f "$OUT/$label-splash-positions.txt" ] || : > "$OUT/$label-splash-positions.txt"
   positions=$(awk -v size="$SPLASH_RECT_SIZE" '$4 " " $5 == size { print $2 ", " $3 }' "$OUT/$label-splash-positions.txt" 2> /dev/null | sort -u)
   n=$(printf '%s' "$positions" | grep -c . || true)
   if [ "$n" = 1 ]; then

@@ -180,7 +180,7 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
    `Startup times`(`ChromiteSwingApplication.run`이 메인 창을 띄운 뒤 남김, 프로세스 시작부터 단계별 ms)가 나오고 앱 프로세스에 창이 생기기를 기다린다.
    창은 System Events(손쉬운 사용 API)로 센다. 그 줄보다 먼저 보이는 창은 시작 화면이라 스크린숏(`*-splash.png`)과 창 목록을 남긴다.
    메인 창이 뜬 뒤 시작 화면 크기(560×320 pt)의 창이 남아 있으면 실패, 시작 화면을 봤고 닫혔으면 PASS, 시간 줄은 NOTE로 남긴다([branding.md](branding.md) "시작 화면").
-   메인 창 전에는 0.3초마다 창의 자리·크기를 `*-splash-positions.txt`(시각 x y 너비 높이)에 남기고, 창이 바뀔 때마다 스크린숏을 찍는다(`*-splash.png`, `*-splash-2..4.png`).
+   메인 창 전에는 0.3초마다 창의 자리·크기를 `*-splash-positions.txt`(시각 x y 너비 높이)에 남기고, 창이 바뀔 때마다 스크린숏을 찍는다(`*-splash.png`, `*-splash-2..4.png`). 메인 창이 첫 폴링보다 먼저 뜨면 시작 화면 창을 보지 못해 이 파일이 비어 있고, 결과에는 "no splash position was polled" 참고 줄만 남는다(2026-11-12: 이 경우 파일이 없어 스크립트가 종료 코드 2로 끝나던 것을 고침).
    시작 화면 크기 창의 자리가 하나뿐이면 PASS, 둘 이상이면 FAIL 줄(단계는 계속, 앱 변경 #52, branding.md "자리"). 디버그 로그의 `Startup splash at …` 줄과
    `macOS unified title bar …` 줄은 NOTE로 남기고(네이티브 라이브러리 없음은 FAIL 줄), 메인 창 위쪽 90pt를 `*-title-bar.png`로 찍는다([mac-ui.md](mac-ui.md) "통합 제목 줄").
    (2026-11-08 전에는 플랫폼을 만들기 전의 `SSL trust store type` 줄을 기다렸다. 시작 화면이 생긴 뒤로는 그 시점의 창이 메인 창이 아닐 수 있다.)
