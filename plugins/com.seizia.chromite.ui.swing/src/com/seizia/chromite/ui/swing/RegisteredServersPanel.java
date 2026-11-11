@@ -22,7 +22,6 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
-import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
@@ -83,12 +82,17 @@ import java.util.Set;
  *     <li>연결 색(연결에 정한 색, 없으면 dev/test/prod 연결 종류의 색): 서버 이름을 감싸는 알약({@link ConnectionPill})으로 칠한다.
  *     Object Explorer와 같은 색 규칙({@link ConnectionColors})과 같은 그리기라 같은 서버가 두 창에서 같게 보인다. 색이 없는 연결(흰색, 기본 dev)은 알약이 없다.
  *     줄 전체를 칠하지 않는 것은 줄 바탕을 선택·마우스 올림 표시에 남기기 위해서다(사용자 결정 2026-11-06).</li>
+ *     <li>이 창은 서버 정보만 둔다. 스스로 세션을 열지 않고(트리는 레지스트리의 메모리 목록, 아이콘은 연결 상태만 읽는다), 연결·끊기 메뉴도 없다.
+ *     연결은 Object Explorer(펼치기·Connect)와 New Query로 하고, 끊기는 Object Explorer에서 한다(사용자 요청, 앱 변경 #48).</li>
  *     <li>서버 메뉴: New Query(필요하면 연결하고 그 연결의 SQL 편집기를 연다. SSMS처럼 Object Explorer에는 넣지 않는다),
- *     Object Explorer(더블클릭·Enter도 같음: Object Explorer에 넣고 골라 펼친다 = 연결), Connect / Disconnect, Move To,
+ *     Object Explorer(더블클릭·Enter도 같음: Object Explorer에 넣고 골라 펼친다 = 연결), Move To,
  *     Properties…(연결 대화상자), Rename(F2), Delete(Delete, 확인), Export Connections…. 연결 명령은 Object Explorer와 같은 {@link ConnectionCommands}다.</li>
- *     <li>그룹 메뉴: New Server Registration…(그 그룹을 고른 연결 대화상자), New Server Group…, Expand All / Collapse All(그 그룹 아래),
- *     Move To, Rename(F2), Delete(Delete, 확인. 하위 그룹은 지우고 서버는 상위로 옮긴다는 것을 알린다), Export Connections….
- *     빈 곳의 메뉴에는 Import Connections… / Export Connections…(모든 연결)가 있다.</li>
+ *     <li>그룹 메뉴: New Server Registration…(그 그룹을 고른 연결 대화상자), New Subgroup…(그 그룹 안), New Top-Level Group…(최상위),
+ *     Expand All / Collapse All(그 그룹 아래), Move To, Rename(F2), Delete(Delete, 확인. 하위 그룹은 지우고 서버는 상위로 옮긴다는 것을 알린다),
+ *     Export Connections…. 빈 곳의 메뉴에는 Import Connections… / Export Connections…(모든 연결)가 있다.</li>
+ *     <li>그룹 만들 위치: 트리는 그룹이나 서버를 고르면 늘 무언가가 골라져 있어 최상위에 만들 길이 없었다(앱 변경 #47). 그래서 빈 곳을 누르면(어느 단추든)
+ *     선택을 풀고, 그룹 메뉴는 하위 그룹과 최상위 그룹을 따로 두고, 도구 막대·빈 곳의 New Server Group…은 고른 그룹이 있으면 대화상자에서 위치
+ *     (최상위 / 그 그룹 안, 기본은 그 그룹 안)를 고르게 한다({@link RegisteredServerCommands#newGroup}).</li>
  *     <li>끌어 놓기: 서버와 그룹을 그룹 위(또는 그룹 안의 서버 위, 빈 곳 = 최상위)로 옮긴다. 그룹을 자기 자신이나 하위 그룹으로는 옮길 수 없다.</li>
  *     <li>펼친 그룹은 이 번들의 설정 저장소에 그룹 경로로 저장해 다시 시작해도 남는다. 저장한 적이 없으면(처음) 모든 그룹을 펼친다.</li>
  *     <li>모양은 Object Explorer와 같다: 머리말 아래 아이콘 도구 막대, 이름 뒤 보조 글자(연결 호스트), 마우스를 올린 행의 둥근 바탕.</li>
@@ -107,6 +111,10 @@ import java.util.Set;
  *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
  * - 2026-11-08 서버 메뉴의 Change Password…(연결한 사용자의 비밀번호, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
+ * - 2026-11-11 최상위 그룹 만들기(앱 변경 #47): 빈 곳을 누르면 선택 해제, 그룹 메뉴의 New Subgroup… / New Top-Level Group…, 새 그룹 대화상자의 위치
+ * - 2026-11-11 이 창은 연결하지 않음(앱 변경 #48): Connect, Disconnect, Disconnect Others / All, 그룹 Disconnect를 뺌(Object Explorer에 있음)
+ *   (docs/chromite/swing-registered-servers.md "서버 정보만")
+ * - 2026-11-11 도구 막대에 Expand All(모든 그룹 펼치기, 앱 변경 #51)
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -142,6 +150,7 @@ final class RegisteredServersPanel extends JPanel {
     private final Action newServerAction;
     private final Action newGroupAction;
     private final Action collapseAllAction;
+    private final Action expandAllAction;
     private final DBPEventListener registryListener = event -> {
         // Registry events come from any thread
         if (event.getObject() instanceof DBPDataSourceContainer) {
@@ -200,9 +209,10 @@ final class RegisteredServersPanel extends JPanel {
 
         newServerAction = createAction(CoreMessages.servers_new_registration, () -> newServer(getSelectedGroup()));
         newServerAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.servers_new_registration_tip);
-        newGroupAction = createAction(CoreMessages.servers_new_group, () -> newGroup(getSelectedGroup()));
+        newGroupAction = createAction(CoreMessages.servers_new_group, () -> newGroup(getSelectedGroup(), true));
         newGroupAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.servers_new_group_tip);
         collapseAllAction = createAction(CoreMessages.explorer_collapse_all, () -> setSubtreeExpanded(null, false));
+        expandAllAction = createAction(CoreMessages.servers_expand_all, () -> setSubtreeExpanded(null, true));
         newServerAction.setEnabled(registry != null);
         newGroupAction.setEnabled(registry != null);
 
@@ -242,16 +252,19 @@ final class RegisteredServersPanel extends JPanel {
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                // The context menu acts on the row under the mouse, as in SSMS; on empty space it offers the top level
+                // The context menu acts on the row under the mouse, as in SSMS. A click on empty space (any button)
+                // clears the selection, so New Server Group and New Server Registration then work at the top level
+                TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
+                Rectangle bounds = path == null ? null : tree.getPathBounds(path);
+                boolean onRow = bounds != null && e.getY() >= bounds.y && e.getY() < bounds.y + bounds.height;
+                if (!onRow) {
+                    tree.clearSelection();
+                }
                 if (SwingUtilities.isRightMouseButton(e)) {
                     // The menu's keys (F2, Delete, Enter) then act on this tree
                     tree.requestFocusInWindow();
-                    TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
-                    Rectangle bounds = path == null ? null : tree.getPathBounds(path);
-                    if (bounds != null && e.getY() >= bounds.y && e.getY() < bounds.y + bounds.height) {
+                    if (onRow) {
                         tree.setSelectionPath(path);
-                    } else {
-                        tree.clearSelection();
                     }
                 }
             }
@@ -329,7 +342,7 @@ final class RegisteredServersPanel extends JPanel {
     }
 
     /**
-     * Tool bar below the header, as in Object Explorer: New Server Registration, New Server Group | Collapse All.
+     * Tool bar below the header, as in Object Explorer: New Server Registration, New Server Group | Expand All, Collapse All.
      * The buttons that don't fit a narrow tool window go to the overflow menu.
      */
     @NotNull
@@ -340,6 +353,7 @@ final class RegisteredServersPanel extends JPanel {
         toolBar.add(UiIcons.createActionButton(newServerAction, "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(newGroupAction, "new-group")); //$NON-NLS-1$
         toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(expandAllAction, "expand-all")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(collapseAllAction, "collapse-all")); //$NON-NLS-1$
         return toolBar;
     }
@@ -354,20 +368,11 @@ final class RegisteredServersPanel extends JPanel {
         popupMenu.removeAll();
         Object selected = getSelectedObject();
         if (selected instanceof DBPDataSourceContainer container) {
-            boolean connected = container.isConnected();
             popupMenu.add(menuItem(CoreMessages.main_new_query, null, () -> {
                 ConnectionCommands.connect(container);
                 host.openQuery(container);
             }));
             popupMenu.add(menuItem(CoreMessages.main_object_explorer, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), () -> host.showInObjectExplorer(container)));
-            popupMenu.addSeparator();
-            popupMenu.add(menuItem(CoreMessages.explorer_connect, null, () -> ConnectionCommands.connect(container))).setEnabled(!connected);
-            popupMenu.add(menuItem(CoreMessages.explorer_disconnect, null, () -> ConnectionCommands.disconnect(container))).setEnabled(connected);
-            List<DBPDataSourceContainer> others = getConnectedServers(null);
-            others.remove(container);
-            popupMenu.add(menuItem(LifecycleMessages.disconnect_others, null, () -> ConnectionCommands.disconnect(this, others)))
-                .setEnabled(!others.isEmpty());
-            addDisconnectAllItem();
             popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
@@ -380,14 +385,11 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, container)));
         } else if (selected instanceof DBPDataSourceFolder folder) {
             popupMenu.add(menuItem(CoreMessages.servers_new_registration, null, () -> newServer(folder)));
-            popupMenu.add(menuItem(CoreMessages.servers_new_group, null, () -> newGroup(folder)));
+            popupMenu.add(menuItem(CoreMessages.servers_new_subgroup, null, () -> newGroup(folder, false)));
+            popupMenu.add(menuItem(CoreMessages.servers_new_top_group, null, () -> newGroup(null, false)));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(folder, true)));
             popupMenu.add(menuItem(CoreMessages.explorer_collapse_all, null, () -> setSubtreeExpanded(folder, false)));
-            popupMenu.addSeparator();
-            List<DBPDataSourceContainer> inGroup = getConnectedServers(folder);
-            popupMenu.add(menuItem(LifecycleMessages.disconnect_group, null, () -> ConnectionCommands.disconnect(this, inGroup)))
-                .setEnabled(!inGroup.isEmpty());
             popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(folder));
             popupMenu.addSeparator();
@@ -399,51 +401,12 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(new JMenuItem(newServerAction));
             popupMenu.add(new JMenuItem(newGroupAction));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(null, true)));
+            popupMenu.add(new JMenuItem(expandAllAction));
             popupMenu.add(new JMenuItem(collapseAllAction));
-            popupMenu.addSeparator();
-            addDisconnectAllItem();
             popupMenu.addSeparator();
             popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_import, null, () -> ConnectionTransferCommands.importConnections(this)));
             popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, null)));
         }
-    }
-
-    /**
-     * "Disconnect All": every connected server of the project (SWT {@code DataSourceDisconnectProjectHandler}; the
-     * registered servers are the project's connections).
-     */
-    private void addDisconnectAllItem() {
-        List<DBPDataSourceContainer> connected = getConnectedServers(null);
-        popupMenu.add(menuItem(LifecycleMessages.disconnect_all, null, () -> ConnectionCommands.disconnect(this, connected)))
-            .setEnabled(!connected.isEmpty());
-    }
-
-    /**
-     * The connected servers of a group and its subgroups (SWT {@code FolderDisconnectHandler}), or of the whole
-     * project when the group is null.
-     */
-    @NotNull
-    private List<DBPDataSourceContainer> getConnectedServers(@Nullable DBPDataSourceFolder group) {
-        List<DBPDataSourceContainer> connected = new ArrayList<>();
-        if (registry == null) {
-            return connected;
-        }
-        for (DBPDataSourceContainer container : registry.getDataSources()) {
-            if (container.isConnected() && (group == null || isInGroup(container.getFolder(), group))) {
-                connected.add(container);
-            }
-        }
-        return connected;
-    }
-
-    private static boolean isInGroup(@Nullable DBPDataSourceFolder folder, @NotNull DBPDataSourceFolder group) {
-        for (DBPDataSourceFolder f = folder; f != null; f = f.getParent()) {
-            if (f == group) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @NotNull
@@ -497,11 +460,14 @@ final class RegisteredServersPanel extends JPanel {
         }
     }
 
-    private void newGroup(@Nullable DBPDataSourceFolder parent) {
+    /**
+     * @param chooseLocation the dialog offers the top level besides {@code parent} (the tool bar and the empty-space menu)
+     */
+    private void newGroup(@Nullable DBPDataSourceFolder parent, boolean chooseLocation) {
         if (registry == null) {
             return;
         }
-        DBPDataSourceFolder created = RegisteredServerCommands.newGroup(this, registry, parent);
+        DBPDataSourceFolder created = RegisteredServerCommands.newGroup(this, registry, parent, chooseLocation);
         if (created != null) {
             selectLater(created);
         }

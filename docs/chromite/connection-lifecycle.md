@@ -30,7 +30,7 @@ SWT 대조([swt-parity-audit.md](swt-parity-audit.md))의 4순위 B2 묶음이�
 | 승인 대화상자 | `ui.swing` | `ExecutionApprovalDialog`(셸 명령 승인과 같은 모양, `SwingShellCommandsService.createNote/createValue` 공용) |
 | 여러 연결 끊기, 무효화·다시 연결 | `ui.swing` | `ConnectionCommands.disconnect(Component, Collection)`, `ConnectionCommands.invalidate` |
 | 트랜잭션 질문 | `ui.swing` | `ExitTransactionCheck.confirmDisconnect(Component, Collection)`, `confirmReconnect` |
-| 메뉴 | `ui.swing` | `RegisteredServersPanel`(다른 연결 끊기, 모두 연결 끊기, 그룹 연결 끊기), `ObjectExplorerPanel`(무효화/다시 연결) |
+| 메뉴 | `ui.swing` | `ObjectExplorerPanel`(다른 연결 끊기, 모두 연결 끊기, 무효화/다시 연결) |
 | 다시 열 연결 범위 | `model` | `InvalidateJob.collectDependentDataSources`(공개로 바꿈) |
 | DB 오류 대화상자 | `ui.swing` | `DatabaseErrorDialogs`, `SwingPlatformUI.showError`, `SwingConnectionService`(연결 실패) |
 | 끝낼 때 실행 중인 작업 | `ui.swing` | `RunningJobsCheck`, `MainFrame.requestExit` |
@@ -61,9 +61,12 @@ SQLite에서 확장 불러오기를 켜면 연결이 "not approved. Connection c
 
 SWT의 모두 끊기(`DataSourceDisconnectAllHandler`), 다른 연결 끊기(`…OtherHandler`), 프로젝트 끊기(`…ProjectHandler`), 폴더 끊기(`FolderDisconnectHandler`)를 옮겼다.
 
-- 자리: Registered Servers 창의 메뉴. 서버: **다른 연결 끊기**, **모두 연결 끊기**. 서버 그룹: **연결 끊기**(하위 그룹 포함). 빈 곳: **모두 연결 끊기**.
-  등록된 서버는 프로젝트의 연결이므로 모두 끊기가 SWT의 프로젝트 끊기다. 끊을 연결이 없으면 메뉴가 꺼진다.
-- Object Explorer에는 두지 않았다. SSMS처럼 Object Explorer의 끊기는 서버를 그 창에서 빼는 동작이라 여러 서버를 한 번에 빼는 메뉴는 맞지 않는다.
+- 자리(2026-11-11부터, 앱 변경 #48): Object Explorer의 연결 메뉴. **연결 끊기** 아래에 **다른 연결 끊기**, **모두 연결 끊기**. 대상은 프로젝트의
+  연결된 연결 모두(Object Explorer에 보이지 않는 것 포함)라 모두 끊기가 SWT의 프로젝트 끊기다. 끊을 연결이 없으면 메뉴가 꺼진다. 끊은 서버는
+  **연결 끊기**처럼 Object Explorer에서 빠진다(SSMS).
+- 전에는 Registered Servers 창의 메뉴(서버, 그룹, 빈 곳)에 있었다. 사용자 요청 "등록된 서버는 커넥션을 맺는 게 아니고 서버 정보만 등록해 놓는 것이다"에 따라
+  그 창의 연결·끊기 메뉴를 모두 뺐다([swing-registered-servers.md](swing-registered-servers.md) "서버 정보만"). Object Explorer에는 그룹이 없어
+  그룹 연결 끊기(SWT `FolderDisconnectHandler`)는 옮기지 않고 없앴다(문구 `disconnect_group`도 지움).
 - 트랜잭션: SWT는 연결마다 물었다. Chromite는 끊을 연결 모두의 열린 트랜잭션을 **한 질문**으로 묻는다(`ExitTransactionCheck.confirmDisconnect(Component, Collection)`,
   끝낼 때 질문과 같은 찾기·끝내기, 끊긴 세션은 버리기). 취소하면 아무 연결도 끊지 않는다. 연결·끊기 Job이 이미 있는 연결은 빼고 묻는다(하나 끊기와 같음).
 
@@ -251,3 +254,4 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
   스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, 절전 닫기·깨어남 다시 초기화의 트랜잭션 안전, 닫기 경로 전수 점검 (`chromite/p4-conn-lifecycle`).
   실행 확인 중 찾아 함께 고침: `InvalidateJob`의 거짓 성공, 연결 실패의 드라이버 클래스 없음 판단, 상태 줄 커밋 방식 다시 읽기
 - 2026-11-08 B-S18(실행 중 커밋 방식 전환)을 [transactions.md](transactions.md) "커밋 방식 전환"에서 더해 범위 밖 줄을 고치고 남은 일에서 뺌
+- 2026-11-11 다른 연결 끊기·모두 연결 끊기를 Registered Servers에서 Object Explorer 연결 메뉴로 옮기고 그룹 연결 끊기는 없앰(앱 변경 #48, `chromite/servers-tree`)

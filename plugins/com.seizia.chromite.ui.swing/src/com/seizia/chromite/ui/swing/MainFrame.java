@@ -290,9 +290,15 @@ import java.util.function.Supplier;
  *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  * - 2026-11-11 View &gt; Theme에 시스템 설정 따르기를 더하고 저장된 선택을 표시 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-11 제목 줄 높이를 루트 창 속성으로 40 유지: 대화상자 제목 줄은 테마 값 30으로 낮춤 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
+ * - 2026-11-12 주 도구 막대의 Chromite Agent 단추를 창 오른쪽 끝에서 단추 묶음의 마지막(Find 뒤 구분선 다음)으로(앱 변경 #53)
+ *   (docs/chromite/swing-frontend.md "Chromite Agent 단추를 단추 묶음의 마지막으로")
+ * - 2026-11-12 문서 탭 오른쪽 클릭 메뉴({@link DocumentTabMenu}: 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도),
+ *   경로 복사, 상위 폴더 열기, 탭 고정, 탭 위치, 여러 행), 닫기가 취소를 돌려줌({@link #closeDocument}) (앱 변경 #42,
+ *   docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
-    QueryWindowRecovery.Host {
+    QueryWindowRecovery.Host, DocumentTabMenu.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -364,6 +370,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
     };
     private final JTabbedPane documentTabs;
+    private final DocumentTabMenu documentTabMenu;
     /**
      * The document tabs, or the welcome content while no document is open.
      */
@@ -487,6 +494,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateActivityMonitorAction();
         }, this);
         documentTabs = createDocumentTabs();
+        documentTabMenu = new DocumentTabMenu(documentTabs, this);
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
         // Islands: the document tabs and their editors are one card
@@ -987,8 +995,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
-     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find], then at the right
-     * end [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
+     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find] |
+     * [Chromite Agent (icon and text)]; the other buttons are icons with tool tips that name the menu shortcut
      * (size.toolbar.main 32 = 24px buttons + 4px above and below; 28 = 22 + 3 in compact mode).
      */
     @NotNull
@@ -1022,12 +1030,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createIconButton(editMenu.getFindAction(), "search", UiKeys.format(ToolbarMessages.toolbar_find_tip, editMenu.getFindAction()))); //$NON-NLS-1$
-        // Chromite Agent at the right end with icon and name, where DataGrip has its AI button (user decision 2026-11-08);
-        // in a narrow window the buttons before it overflow first
+        // Chromite Agent as the last button of the group, right after Find, with icon and name (user decision 2026-11-11:
+        // "rightmost" is the last button, not the window's right edge); in a narrow window it overflows like the others
+        toolBar.addSeparator();
         JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", UiKeys.format(AiMessages.ai_toolbar_tip, aiWindow.getToggleAction())); //$NON-NLS-1$
         agentButton.setHideActionText(false);
         UiIcons.useToolButtonMargin(agentButton);
-        OverflowToolBar.setTrailing(agentButton);
         toolBar.add(agentButton);
         return toolBar;
     }
@@ -1398,19 +1406,26 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return editor;
     }
 
-    private void closeDocumentTab(int index) {
+    /**
+     * Closes a document tab after its own questions: the close button, a middle click and the document tab menu.
+     *
+     * @return false if the user canceled
+     */
+    private boolean closeDocumentTab(int index) {
         Component component = documentTabs.getComponentAt(index);
         if (component instanceof SqlEditorPanel editor) {
             if (!confirmClose(editor)) {
-                return;
+                return false;
             }
+            // After the questions: the text that was not saved can come back with Reopen Closed Tab
+            documentTabMenu.queryWindowClosing(editor);
             editor.dispose();
             documentTabs.remove(editor);
         } else if (component instanceof DdlViewerPanel) {
             documentTabs.removeTabAt(index);
         } else if (component instanceof ToolDocument document) {
             if (!document.confirmClose()) {
-                return;
+                return false;
             }
             document.dispose();
             // By component: the question may have run events that moved the tab
@@ -1418,11 +1433,52 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } else if (component instanceof TableDesignerPanel designer) {
             documentTabs.setSelectedComponent(designer);
             if (!designer.confirmClose()) {
-                return;
+                return false;
             }
             designer.dispose();
             documentTabs.remove(designer);
         }
+        return true;
+    }
+
+    @Override
+    public boolean closeDocument(@NotNull Component document) {
+        int index = documentTabs.indexOfComponent(document);
+        return index < 0 || closeDocumentTab(index);
+    }
+
+    @Override
+    public boolean saveQueryWindow(@NotNull SqlEditorPanel editor) {
+        return saveEditor(editor, false);
+    }
+
+    @Override
+    public void queryFileRenamed(@NotNull Path from, @NotNull Path to) {
+        ScriptFiles.moved(from, to);
+        RecentFiles.remove(from);
+        RecentFiles.add(to);
+        if (ScriptFiles.findRoot(to) != null) {
+            scriptsPanel.reload();
+        }
+    }
+
+    @Nullable
+    @Override
+    public SqlEditorPanel reopenQueryWindow(@NotNull QueryWindowRecovery.Window window) {
+        // Its file may have been opened again since it was closed
+        Path file = window.file() != null ? Path.of(window.file()) : null;
+        for (SqlEditorPanel editor : getEditors()) {
+            if (file != null && file.equals(editor.getFile())) {
+                documentTabs.setSelectedComponent(editor);
+                return editor;
+            }
+        }
+        return recovery.restore(window);
+    }
+
+    @Override
+    public void pinQueryWindow(@NotNull SqlEditorPanel editor) {
+        documentTabMenu.setPinned(editor, true);
     }
 
     @NotNull
@@ -2034,7 +2090,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (index >= 0) {
             documentTabs.setTitleAt(index, editor.getTitle());
             documentTabs.setToolTipTextAt(index, editor.getToolTip());
-            documentTabs.setIconAt(index, editor.getTabIcon());
+            documentTabs.setIconAt(index, DocumentTabMenu.getTabIcon(editor, editor.getTabIcon()));
         }
         // Modified or saved (Save All), or another connection (Activity Monitor, Link with Editor)
         saveAllAction.setEnabled(hasModifiedDocuments());
@@ -2052,15 +2108,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Center document area: the document tabs (all closable). Without tabs the area shows {@link WelcomePanel}.
+     * Center document area: the document tabs (all closable, but not while pinned). Without tabs the area shows
+     * {@link WelcomePanel}. Their position, rows and menu are {@link DocumentTabMenu}'s.
      */
     @NotNull
     private JTabbedPane createDocumentTabs() {
         JTabbedPane tabs = new EditorTabbedPane(this::updateDocumentCard);
-        // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
-        tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
-        tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE);
+        // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline.
+        // In several rows (DocumentTabMenu) the rows stay where they are: the selected tab's row does not move next to the content
+        tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE + "; rotateTabRuns: false"); //$NON-NLS-1$
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -2277,8 +2333,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window menu (SSMS): Reset Window Layout, then the open document tabs (the active one checked), rebuilt each
-     * time the menu opens.
+     * Window menu (SSMS): Reset Window Layout, Reopen Closed Tab (also when no tab is left for the tab menu), then the
+     * open document tabs (the active one checked), rebuilt each time the menu opens.
      */
     private void fillWindowMenu(@NotNull JMenu windowMenu) {
         windowMenu.removeAll();
@@ -2286,6 +2342,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resetItem.setMnemonic(KeyEvent.VK_R);
         resetItem.addActionListener(e -> resetWindowLayout());
         windowMenu.add(resetItem);
+        windowMenu.add(new JMenuItem(documentTabMenu.getReopenAction()));
         if (documentTabs.getTabCount() > 0) {
             windowMenu.addSeparator();
         }
@@ -2644,7 +2701,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
-     * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
+     * main-window-bg, topBorderWidth 0); the background is set again on theme changes. Its text is text.primary like
+     * the query window's cells: text.secondary was hard to read on the dark canvas (app change #55).
      * While a query window is active it shows that window's status cells ({@link QueryStatusLine}) instead of the
      * workspace text, and the whole bar is painted in the window connection's color (user decision 2026-11-08), with
      * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
@@ -2660,7 +2718,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             super(new BorderLayout());
             statusLabel = new JLabel(statusText);
             statusLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
-            statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             add(statusLabel, BorderLayout.WEST);
         }
 

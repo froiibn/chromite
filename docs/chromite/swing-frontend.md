@@ -1628,6 +1628,35 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 닫기 단추(×)는 선택한 탭과 마우스를 올린 탭에만 그린다(`IslandTabbedPaneUI.paintTabCloseButton`). 단추 자리는 모든 탭에 남겨 두어 마우스를 움직여도 탭 폭이 바뀌지 않는다.
 - 가운데 단추로 누르면 닫는다(닫을 수 있는 탭만, 저장 확인은 닫기 단추와 같음).
 - 도구 설명: 전체 파일 경로(저장 안 한 쿼리는 `SQLQueryN.sql (not saved)`)와 연결 이름·위치(URL 또는 파일)·DB 제품 버전.
+- 오른쪽 클릭 메뉴, 탭 고정, 탭 위치, 여러 행(2026-11-12): 아래 "문서 탭 메뉴". 고정 탭은 닫기 단추와 가운데 단추 닫기가 없다.
+
+### 문서 탭 메뉴 (2026-11-12, 앱 변경 #42)
+
+사용자 요청(기업 환경 2026-11-09): 쿼리 편집창 위 탭의 오른쪽 클릭 메뉴가 없다. 다른 도구의 탭 메뉴 항목 가운데 적용할 수 있는 것을 넣는다.
+`DocumentTabMenu`(새 파일)가 메인 창 문서 탭(쿼리 창, DDL 탭, 도구 문서, 테이블 디자이너)에 붙는다. 문구는 `internal.DocumentTabMessages`(영어 + `_ko`).
+
+| 항목 (한국어) | 동작 | 켜지는 때 |
+|---|---|---|
+| Save (저장) | Ctrl+S와 같은 `MainFrame#saveEditor`(파일이 없으면 저장 대화상자, Query Library 창은 라이브러리에 저장). 메뉴에 Ctrl+S를 보임 | 쿼리 창 |
+| Rename... (이름 바꾸기) | 파일이 있으면 Scripts 창의 이름 바꾸기처럼 같은 폴더에서 파일 이름을 바꿈(확장자 유지, 같은 이름이 있으면 " (2)"), 창이 새 파일을 따라가고 스크립트 연결·최근 파일·Scripts 창도 따라감. 저장 전 창(`SQLQueryN.sql`, Modify 창)은 이름만(탭 제목, 저장할 때 제안하는 파일 이름). Query Library 창은 트리의 Rename과 같은 `QueryLibrary#renameQuery`, 고친 창은 이름을 머리말의 이름 칸에 넣고 저장할 때 적용(파일을 밑에서 바꾸면 Reload 제안이 고친 글을 버리게 하므로) | 쿼리 창 |
+| Close (닫기) | 탭마다 기존 닫기 경로(`closeDocumentTab`: 결과 표 변경, 저장하지 않은 변경, 열린 트랜잭션 질문 = 트랜잭션 안전 규칙, 테이블 디자이너·도구 문서의 확인) | 늘 (고정 탭도) |
+| Close All Tabs (모든 탭 닫기) / Close Other Tabs (다른 탭 닫기) | 고정 탭을 빼고 왼쪽부터 탭마다 위 닫기 경로, 하나라도 취소하면 거기서 멈춤 | 닫을 탭이 있을 때 |
+| Reopen Closed Tab (닫은 탭 다시 열기) | 최근 닫은 쿼리 창을 글·연결·파일·기본 DB/스키마·커서·고정과 함께 다시 엶. 자동 저장 기록([swing-query-window-recovery.md](swing-query-window-recovery.md) "탭 고정과 닫은 탭")과 같은 기록·복원, 최근 10개, 연결·실행하지 않음. 그 파일이 이미 열려 있으면 그 탭을 보임. 탭이 하나도 없으면 메뉴를 열 수 없어 Window 메뉴에도 둠 | 기록이 있을 때 |
+| Copy Full Path (전체 경로 복사) / Open Containing Folder (상위 폴더 열기) | 파일의 절대 경로를 클립보드에 / 파일이 있는 폴더를 OS 파일 탐색기로(Query Library의 Open Folder와 같은 `Desktop.open`) | 파일이 있는 쿼리 창 |
+| Pin Tab / Unpin Tab (탭 고정 / 탭 고정 해제) | 고정 탭은 왼쪽에 고정한 순서대로 모이고 아이콘 뒤에 핀(`pin`), 닫기 단추·가운데 단추 닫기 없음. 해제하면 고정 탭 바로 뒤로. 쿼리 창의 고정은 다시 시작 후 복원과 함께 저장 | 늘 |
+| Tab Position ▸ Top / Left / Right (탭 위치 ▸ 위쪽 / 왼쪽 / 오른쪽) | `JTabbedPane.setTabPlacement`, 설정 `documentTabs.placement`(`top`·`left`·`right`) | 늘 |
+| Show Tabs in Multiple Rows (여러 행에 탭 표시) | 켜면 줄바꿈 배치(`WRAP_TAB_LAYOUT`), 끄면 지금처럼 한 행 스크롤. 설정 `documentTabs.multipleRows` | 늘 |
+
+- 탭 줄의 빈 곳을 누르면 Reopen Closed Tab과 배치 항목(탭 위치, 여러 행)만 보인다. 한국어 메뉴 이름에는 끝 말줄임표가 없다(앱 변경 #9).
+- **여러 행**: 고른 탭의 행을 내용 쪽으로 옮기지 않는다(FlatLaf 스타일 `rotateTabRuns: false`). Swing 기본은 고른 탭의 행을 내용 바로 위로 돌려 놓아 누를 때마다
+  행 순서가 바뀐다.
+- **마우스 휠**: 한 행 배치에서는 FlatLaf의 휠 스크롤(`FlatWheelTabScroller`)이 탭 줄을 넘긴다(기존 동작). 여러 행 배치에서는 모든 탭이 보이므로 휠로 넘길 행이 없고,
+  휠로 행을 바꾸는 동작은 Swing 탭에 없어 넣지 않았다.
+- **부동(Float)은 넣지 않음**: 결과 카드, SQL Editor 도구 막대, 상태 표시줄의 쿼리 창 칸, Find, Outline이 모두 이 탭 창의 활성 탭을 따라가는 구조라, 탭 밖의 쿼리 창은
+  결과와 명령을 잃는다. 도킹 라이브러리(ModernDocking)는 도구 창만 맡고 문서 탭은 도킹 밖의 고정 가운데 영역이다.
+- **단축키**: Reopen Closed Tab에는 단축키를 붙이지 않았다. 요청 행의 Ctrl+Shift+T는 이미 View > Maximize Results(SWT 키)가 쓰고 있다(결정 필요).
+- 탭을 옮기는 API가 없어 고정·해제는 탭을 빼고 다시 넣는다(제목, 아이콘, 도구 설명, 선택을 옮김). 실행 중인 창의 스피너는 핀 아이콘 안에서도 돈다.
+- **확인(2026-11-12, 150%·100%, 테스트 에이전트, SQLite와 임시 PostgreSQL 17):** 메뉴 항목·켜짐 상태(저장 Ctrl+S 표시, 파일 없는 창은 경로 항목 꺼짐), 고정하면 맨 왼쪽으로 옮겨지고 핀 아이콘·닫기 단추 없음. 모든 탭 닫기에서 고친 창의 저장 질문에 취소 → 거기서 멈춤(고정 탭과 남은 탭 그대로), 다른 탭 닫기에서 저장 안 함 → 닫힘. 닫은 탭 다시 열기 → 저장하지 않은 글이 고침 상태로, 연결 창은 연결과 함께 돌아옴(Window 메뉴 항목도 켜짐/꺼짐이 따라감). 이름 바꾸기: 저장 전 창 → `Report Draft.sql`, 파일 창 → 디스크의 `renamed.sql`로 바뀌고 창이 따라감, Query Library 창 → 파일·`@name` 바뀜, 고친 Library 창 → 이름 칸에 넣고 안내. 전체 경로 복사 → 클립보드에 절대 경로. PostgreSQL 수동 커밋 창에 INSERT 뒤 메뉴의 닫기 → 저장 질문 다음 커밋하지 않은 트랜잭션 질문(커밋 / 롤백 / 취소, 취소가 기본): 취소하면 탭과 트랜잭션이 남고(`idle in transaction`), 롤백하면 닫힘(행 0). 그 창을 다시 열면 고정·글·연결 기본값과 함께 돌아오고 연결·실행하지 않음. 탭 위치 왼쪽과 고정이 다시 시작 뒤 복원됨. 한 행 배치에서 휠을 위로 굴리면 탭 줄이 왼쪽으로 넘어감. 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\42-*.png`.
 
 ### F5 (SSMS)
 
@@ -1746,7 +1775,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** │ Chromite Agent(아이콘 + 글자, 2026-11-12 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로") |
 | 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
@@ -1816,6 +1845,9 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
 
+> 2026-11-12 바뀜(앱 변경 #53): 사용자 뜻은 창 오른쪽 끝이 아니라 단추 묶음의 마지막이었다. 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로".
+> 이 절의 오른쪽 끝 정렬(`OverflowToolBar.setTrailing`)은 삭제했다.
+
 사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
 "가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
 
@@ -1827,6 +1859,17 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
   폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
   (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
+
+### Chromite Agent 단추를 단추 묶음의 마지막으로 (2026-11-12, 앱 변경 #53)
+
+사용자 요청(2026-11-11): "가장 우측에 배치하라고 했는데 현재 화면의 우측에 배치되어 있다. 위치를 수정한다". 뜻은 도구 막대 단추들 가운데 맨 마지막(가장 오른쪽 단추)이다.
+
+- **자리:** Find 뒤 구분선 다음, 단추 묶음의 마지막. 남는 공간은 그 뒤(오른쪽)에 남는다. 아이콘 + 글자, 토글 동작, 도구 설명 "Chromite Agent (Ctrl+Alt+I)", 단축키는 그대로다.
+- **좁은 창:** 다른 단추처럼 뒤에서부터 » 메뉴로 넘친다. 맨 마지막이라 가장 먼저 넘친다(넘침 메뉴 항목은 체크 표시가 있는 "Chromite Agent").
+- **삭제:** 오른쪽 끝 정렬만을 위해 넣은 `OverflowToolBar.setTrailing`, 그 표시 키(`chromite.toolBar.trailing`)와 배치 코드. 다른 곳에서 쓰지 않았다(검색으로 확인).
+  » 단추 자리는 #6 전처럼 도구 막대 오른쪽 끝이다.
+- **확인(2026-11-12, 150%·100%, 테스트 에이전트):** 1280px 창에서 Find(x 394) 뒤 구분선(x 420) 다음 Agent 단추(x 427, 폭 114), 그 뒤는 빈 공간.
+  창 폭 420에서 Properties·Find·Agent가 » 메뉴로 넘침(폭 0). 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\53-toolbar-150.png`, `53-42-100.png`.
 
 ## SQL Editor 도구 막대 (2026-11-07)
 
@@ -2999,3 +3042,7 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-11 `ui.theme`에 `SYSTEM`(기본값)을 더하고 시작 순서의 첫 테마를 운영체제 설정의 테마로(앱 변경 #38, [swing-options.md](swing-options.md) "테마").
 - 2026-11-11 도구 창 크기 바꾸기(앱 변경 #45): 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 도킹 분할 창의 resizeWeight를 문서 영역 쪽으로, 한 열을 하나씩 숨긴 뒤 보일 때 열 폭 유지. "도구 창 크기 바꾸기" 절 추가, 도구 창 도킹 확인 표의 1280px 줄에 표시.
+- 2026-11-12 Chromite Agent 단추를 창 오른쪽 끝에서 단추 묶음의 마지막(Find 뒤)으로, `OverflowToolBar.setTrailing` 삭제(앱 변경 #53, `chromite/tabs-toolbar`):
+  "Chromite Agent 단추를 단추 묶음의 마지막으로" 절 추가, 구성 표와 "Chromite Agent 단추를 오른쪽 끝으로" 절에 표시. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
+  상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.

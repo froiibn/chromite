@@ -54,7 +54,8 @@ import java.util.regex.Pattern;
  *
  * 설계: 이 대화상자는 설정을 따로 저장하지 않고, 각 기능이 가진 설정의 저장 위치와 적용 방법을 그대로 쓴다.
  * <ul>
- *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).</li>
+ *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).
+ *     UI font: {@link UiFont.Choice#apply()}(OK에서 저장, 글꼴이 바뀌면 테마를 다시 설치).</li>
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
  *     <li>위험한 문 확인(WHERE 없는 UPDATE/DELETE, DROP): {@link SqlExecutionSafety}의 설정(SWT 확인 대화상자와 같은 키).</li>
  *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
@@ -115,6 +116,7 @@ import java.util.regex.Pattern;
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 서식 안내의 두 키 조합 글자
  * - 2026-11-11 General의 테마 목록에 시스템 설정 따르기를 더하고 저장된 선택을 보임 (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 General의 Environment에 UI 글꼴 행(자동·Pretendard·시스템 글꼴) (앱 변경 #43, docs/chromite/swing-options.md "UI 글꼴")
  */
 final class OptionsDialog extends JDialog {
 
@@ -143,6 +145,7 @@ final class OptionsDialog extends JDialog {
 
     private final JComboBox<ChromiteTheme.Choice> themeCombo = new JComboBox<>(ChromiteTheme.Choice.values());
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
+    private final JComboBox<UiFont.Choice> uiFontCombo = new JComboBox<>(UiFont.Choice.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
     private final JCheckBox confirmDangerousSqlBox = new JCheckBox(CoreMessages.options_confirm_dangerous_sql);
@@ -214,6 +217,8 @@ final class OptionsDialog extends JDialog {
         themeCombo.setRenderer(new LabelRenderer());
         iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
         iconStyleCombo.setRenderer(new LabelRenderer());
+        uiFontCombo.setSelectedItem(UiFont.getSavedChoice());
+        uiFontCombo.setRenderer(new LabelRenderer());
         autoCompleteBox.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
         showProceduresBox.setSelected(SqlCompletionPopup.isShowProcedures());
         showProceduresBox.setToolTipText(CoreMessages.options_show_procedures_tip);
@@ -235,6 +240,7 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, CoreMessages.options_environment);
         row = addRow(form, row, CoreMessages.options_theme, themeCombo, null);
         row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
+        row = addRow(form, row, CoreMessages.options_ui_font, uiFontCombo, CoreMessages.options_ui_font_hint);
         row = addSection(form, row, ObjectExplorerMessages.oe_options_section);
         objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
         objectDoubleClickCombo.setRenderer(new LabelRenderer());
@@ -909,6 +915,9 @@ final class OptionsDialog extends JDialog {
         if (themeCombo.getSelectedItem() instanceof ChromiteTheme.Choice choice && choice != ChromiteTheme.getSavedChoice()) {
             choice.apply();
         }
+        if (uiFontCombo.getSelectedItem() instanceof UiFont.Choice fontChoice && fontChoice != UiFont.getSavedChoice()) {
+            fontChoice.apply();
+        }
     }
 
     /**
@@ -1055,6 +1064,8 @@ final class OptionsDialog extends JDialog {
                 setText(choice.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
+            } else if (value instanceof UiFont.Choice fontChoice) {
+                setText(fontChoice.getLabel());
             } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {
                 setText(action.getLabel());
             } else if (value instanceof ExplorerPreferences.ConnectionDoubleClick action) {

@@ -36,6 +36,8 @@ import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.AlphanumericComparator;
 
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -69,6 +71,8 @@ import java.util.Objects;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 {@link #updateConfig}를 패키지 안에 엶: 연결 가져오기가 가져온 그룹을 탐색기에 알린다 (docs/chromite/connection-transfer.md)
  * - 2026-11-08 그룹 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-11 새 그룹 대화상자에서 위치(최상위 / 고른 그룹 안)를 고름: 트리는 늘 무언가가 골라져 있어 최상위 그룹을 만들 길이 없었다
+ *   (앱 변경 #47, docs/chromite/swing-registered-servers.md "최상위 그룹 만들기")
  */
 final class RegisteredServerCommands {
 
@@ -113,16 +117,30 @@ final class RegisteredServerCommands {
     /**
      * New Server Group: asks for a name and adds the group.
      *
+     * @param parentGroup    the group to create it in (null: the top level)
+     * @param chooseLocation with a parent group, the dialog also offers the top level (the parent group is the default):
+     *                       the tool bar command works on the selection, and the tree always has one once a row was clicked
      * @return the new group, or null if canceled or failed
      */
     @Nullable
-    static DBPDataSourceFolder newGroup(@NotNull Component parent, @NotNull DBPDataSourceRegistry registry, @Nullable DBPDataSourceFolder parentGroup) {
-        String name = askGroupName(parent, CoreMessages.servers_new_group_title,
-            parentGroup == null ? CoreMessages.servers_group_name : NLS.bind(CoreMessages.servers_group_name_in, parentGroup.getName()), "", registry, parentGroup);
+    static DBPDataSourceFolder newGroup(
+        @NotNull Component parent,
+        @NotNull DBPDataSourceRegistry registry,
+        @Nullable DBPDataSourceFolder parentGroup,
+        boolean chooseLocation
+    ) {
+        DBPDataSourceFolder[] location = {parentGroup};
+        String name;
+        if (chooseLocation && parentGroup != null) {
+            name = askNewGroup(parent, registry, parentGroup, location);
+        } else {
+            name = askGroupName(parent, CoreMessages.servers_new_group_title,
+                parentGroup == null ? CoreMessages.servers_group_name : NLS.bind(CoreMessages.servers_group_name_in, parentGroup.getName()), "", registry, parentGroup);
+        }
         if (name == null) {
             return null;
         }
-        DBPDataSourceFolder folder = registry.addFolder(parentGroup, name);
+        DBPDataSourceFolder folder = registry.addFolder(location[0], name);
         updateConfig(registry);
         return folder;
     }
@@ -330,6 +348,63 @@ final class RegisteredServerCommands {
     }
 
     /**
+     * New Server Group with a location: the name and either the top level or {@code parentGroup}, asked until the name
+     * is valid and not used at the chosen location.
+     *
+     * @param location receives the chosen parent group (null: the top level)
+     * @return the name, or null if canceled
+     */
+    @Nullable
+    private static String askNewGroup(
+        @NotNull Component parent,
+        @NotNull DBPDataSourceRegistry registry,
+        @NotNull DBPDataSourceFolder parentGroup,
+        @NotNull DBPDataSourceFolder[] location
+    ) {
+        JTextField nameField = new JTextField(24);
+        JRadioButton topLevelRadio = new JRadioButton(CoreMessages.servers_location_top);
+        JRadioButton inGroupRadio = new JRadioButton(NLS.bind(CoreMessages.servers_location_in, parentGroup.getName()), true);
+        ButtonGroup locationGroup = new ButtonGroup();
+        locationGroup.add(topLevelRadio);
+        locationGroup.add(inGroupRadio);
+        JPanel locationPanel = new JPanel(new GridLayout(0, 1));
+        locationPanel.add(topLevelRadio);
+        locationPanel.add(inGroupRadio);
+        JPanel form = new JPanel(new GridBagLayout());
+        int row = OptionsDialog.addRow(form, 0, CoreMessages.servers_group_name_label, nameField, null);
+        OptionsDialog.addRow(form, row, CoreMessages.servers_group_location, locationPanel, null);
+        // The option pane focuses its OK button; the name is typed right away
+        nameField.addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                SwingUtilities.invokeLater(nameField::requestFocusInWindow);
+            }
+
+            @Override
+            public void ancestorRemoved(AncestorEvent event) {
+            }
+
+            @Override
+            public void ancestorMoved(AncestorEvent event) {
+            }
+        });
+        while (true) {
+            if (JOptionPane.showConfirmDialog(getWindow(parent), form, CoreMessages.servers_new_group_title, JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) {
+                return null;
+            }
+            DBPDataSourceFolder target = topLevelRadio.isSelected() ? null : parentGroup;
+            String value = nameField.getText().trim();
+            String problem = validateGroupName(registry, target, value, "");
+            if (problem == null) {
+                location[0] = target;
+                return value;
+            }
+            JOptionPane.showMessageDialog(getWindow(parent), problem, CoreMessages.servers_new_group_title, JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /**
      * Asks for a group name until it is valid and not used in the parent group.
      *
      * @return the name, or null if canceled
@@ -350,25 +425,38 @@ final class RegisteredServerCommands {
                 return null;
             }
             value = input.toString().trim();
-            String problem = null;
-            if (value.isEmpty()) {
-                problem = CoreMessages.servers_enter_group_name;
-            } else {
-                try {
-                    GeneralUtils.validateResourceNameUnconditionally(value);
-                } catch (DBException e) {
-                    problem = ErrorText.describe(e);
-                }
-                DBPDataSourceFolder existing = findGroup(registry, parentGroup, value);
-                if (problem == null && existing != null && !Objects.equals(existing.getName(), initial)) {
-                    problem = NLS.bind(CoreMessages.servers_group_exists, existing.getName());
-                }
-            }
+            String problem = validateGroupName(registry, parentGroup, value, initial);
             if (problem == null) {
                 return value;
             }
             JOptionPane.showMessageDialog(getWindow(parent), problem, title, JOptionPane.WARNING_MESSAGE);
         }
+    }
+
+    /**
+     * Why a group name can't be used in the parent group, or null: it is empty, breaks the resource name rules, or
+     * another group there has it ({@code initial} is the group's current name when renaming).
+     */
+    @Nullable
+    private static String validateGroupName(
+        @NotNull DBPDataSourceRegistry registry,
+        @Nullable DBPDataSourceFolder parentGroup,
+        @NotNull String value,
+        @NotNull String initial
+    ) {
+        if (value.isEmpty()) {
+            return CoreMessages.servers_enter_group_name;
+        }
+        try {
+            GeneralUtils.validateResourceNameUnconditionally(value);
+        } catch (DBException e) {
+            return ErrorText.describe(e);
+        }
+        DBPDataSourceFolder existing = findGroup(registry, parentGroup, value);
+        if (existing != null && !Objects.equals(existing.getName(), initial)) {
+            return NLS.bind(CoreMessages.servers_group_exists, existing.getName());
+        }
+        return null;
     }
 
     @Nullable

@@ -52,7 +52,6 @@ public class LifecycleMessages extends NLS {
     // Disconnecting several connections, Invalidate/Reconnect (ConnectionCommands, ExitTransactionCheck)
     public static String disconnect_others;
     public static String disconnect_all;
-    public static String disconnect_group;
     public static String disconnect_many_txn_message;
     public static String invalidate;
     public static String invalidate_tip;
