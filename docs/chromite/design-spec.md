@@ -343,7 +343,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 | `size.tab.editor` | 36 (40) | [T `TabbedPane.tabHeight`] | 문서 탭 스타일 `tabHeight: $Chromite.size.documentTab.height`, 선택 알약 위아래 `Chromite.size.documentTab.pillInset` 5 (6) |
 | `size.tab.tool` | 28 (32) | Chromite 결정(쿼리 창 안 결과 탭은 낮게) | 결과·도구 창·세부 탭 스타일 `tabHeight: $Chromite.size.toolTab.height`(`UiSizes.TOOL_TABS_STYLE`) |
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
-| `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
+| `size.titleBar` | 40 (메인 창), 대화상자 30 (2026-11-11 앱 변경 #56) | [J] 주 도구 막대 40 | 메인 창: `Chromite.size.mainTitleBar.height = 40`(루트 창 `JRootPane.titleBarHeight`), 그 밖의 창: `TitlePane.buttonSize = 46,30` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
 | `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너). 연결·DB 선택 상자 여백 `Chromite.size.editorToolBar.comboBox.padding = @componentMargin`(촘촘한 모드에서 24로 낮춤) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height`. 활성 쿼리 창의 상태 칸도 이 높이다(2026-11-08 `size.statusLine.query` 삭제). 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
@@ -1066,6 +1066,18 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   전(devel의 `FlatScrollPaneBorder`) 포커스 있음 `#3871E1` → 후 포커스 있음 `#40434A`(다크) / `#D1D3D9`(라이트), Options 목록도 같음. Agent 질문 칸(편집 가능)은 후에도 `#3871E1`.
   입력란·콤보·단추의 포커스 테두리는 그대로. 캡처: `D:\Tools\_scratch\chromite-theme-look\shots\`(`grid-*.png`, `options-list-*.png`, `input-*.png`, `sel-grid-*.png`, `controls-*.png`).
 
+### 대화상자 제목 줄 (2026-11-11, 앱 변경 #56)
+
+사용자 요청(기업 환경 2026-11-11): 팝업·메시지 상자의 제목 영역이 너무 두꺼워 어색하다, 조금 더 얇게.
+
+- **원인:** FlatLaf 창 장식의 제목 줄 높이는 창 단추 높이(`TitlePane.buttonSize`, 단추가 세로로 채움)로 정해지고, 이 값이 모든 창에 같다.
+  메인 창(메뉴 막대를 품음)에 맞춘 46×40이 대화상자·메시지 상자에도 쓰였다. 측정: 메시지 상자 제목 줄 40(150%에서 60px), 본문 한 줄보다 훨씬 높다.
+- **고친 곳:** 테마 `TitlePane.buttonSize`를 46×30(Windows 기본 대화상자 제목 줄에 가까움)으로 낮추고, 메인 창만 루트 창 속성
+  `JRootPane.titleBarHeight`(`FlatClientProperties.TITLE_BAR_HEIGHT`)에 테마 키 `Chromite.size.mainTitleBar.height`(40)를 준다(`MainFrame` 생성자).
+  대화상자·메시지 상자·파일 선택 등 다른 장식 창은 따로 손대지 않아도 30이다. 테두리 없는 창(시작 화면, 업데이트 창)과 macOS(OS 제목 줄)는 대상이 아니다.
+- **확인(테스트 에이전트, 밝은·어두운 테마):** "지난 세션의 쿼리 창 1개를 복원할까요?" 메시지 상자 제목 줄 40 → 30(150%: 60 → 45px), 닫기 단추 46×40 → 46×30,
+  제목 글자 칸이 제목 줄 높이 전체(세로 가운데). 메인 창 제목 줄은 41 그대로(단추 46×40). 캡처: `title-before-*.png`, `title-after-*.png`(100%·150%).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1191,3 +1203,4 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-08 9절: 쿼리 상태 칸을 주 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로(앱 변경 #2). 치수 토큰 `size.statusLine.query` 삭제(`size.statusBar`를 씀).
 - 2026-11-08 마우스 올림 잔상(앱 1차 #10): "마우스 올림 다시 그리기" 절 추가(원인, 세 트리의 다시 그리는 영역을 위아래 1px 넓힘, 측정).
 - 2026-11-11 내용 영역의 포커스 테두리 제거(앱 변경 #37): "포커스 표시 — 내용 영역 테두리 없음" 절 추가.
+- 2026-11-11 대화상자 제목 줄 30, 메인 창 40(앱 변경 #56): "대화상자 제목 줄" 절 추가.

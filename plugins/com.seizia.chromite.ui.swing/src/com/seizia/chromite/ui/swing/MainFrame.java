@@ -289,6 +289,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/shortcuts.md); macOS: 메뉴는 화면 메뉴 막대({@link MacOSScreenMenuBar}), 앱 메뉴와 겹치는 Exit·Options·Help(About)는
  *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  * - 2026-11-11 View &gt; Theme에 시스템 설정 따르기를 더하고 저장된 선택을 표시 (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-11 제목 줄 높이를 루트 창 속성으로 40 유지: 대화상자 제목 줄은 테마 값 30으로 낮춤 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -473,6 +474,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // The title stays the window's name for the taskbar and Alt+Tab, but the title bar does not paint it (user
         // decision 2026-11-07); dialogs keep their titles because this is set on the main window only
         getRootPane().putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false);
+        // The title bar embeds the menu bar and is higher than the one of dialogs (TitlePane.buttonSize, app change #56);
+        // FlatLaf scales the value
+        getRootPane().putClientProperty(FlatClientProperties.TITLE_BAR_HEIGHT, UIManager.getInt(UiSizes.MAIN_TITLE_BAR_HEIGHT));
         // Closing asks to save modified query windows first (requestExit)
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 

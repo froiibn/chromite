@@ -47,9 +47,12 @@ import java.awt.*;
  * - 2026-11-08 촘촘한 모드: 여백 테두리가 값을 매번 읽음(실행 중 전환), SQL Editor 도구 막대 선택 상자 여백 키를 더함
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 size.statusLine.query 삭제: 쿼리 창 상태 칸이 메인 창 상태 표시줄로 옮겨 size.statusBar를 씀 (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
+ * - 2026-11-11 size.titleBar(메인 창 제목 줄 40) 키: 대화상자 제목 줄은 30으로 낮추고 메인 창만 40 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
  */
 final class UiSizes {
 
+    /** size.titleBar: the main window's title bar height (dialogs take TitlePane.buttonSize, lower). */
+    static final String MAIN_TITLE_BAR_HEIGHT = "Chromite.size.mainTitleBar.height"; //$NON-NLS-1$
     /** size.header.toolWindow: tool window header height (a 1px line below comes on top). */
     static final String TOOL_WINDOW_HEADER_HEIGHT = "Chromite.size.toolWindowHeader.height"; //$NON-NLS-1$
     /** Tool window header padding (title on the left, buttons on the right). */
