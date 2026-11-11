@@ -196,7 +196,7 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 7. `quit appleevent`: `osascript -e 'tell application id "<번들 ID>" to quit'`(끝내기 처리기). 프로세스가 끝나고 디버그 로그에 `Main window closed`와 `(Swing) shutdown completed`가
    있어야 한다(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남). 새 크래시 보고서가 없어야 한다.
 8. 두 번째 시작(`launch second-launch`, 보안 저장소에서 비밀번호를 읽음) → `quit keystroke`(System Events의 Cmd+Q).
-9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(아래 화살표) → Ctrl+N 새 쿼리 창 → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
+9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(아래 화살표) → Cmd+N 새 쿼리 창(0.1.4부터 macOS는 Command 키, 2026-11-12에 Ctrl+N에서 고침) → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
    "Uncommitted Transactions" 질문 스크린숏 → Cancel이면 앱이 남는지 → 다시 Cmd+Q → "Roll Back" → 정상 종료와 SQLite 파일에 행이 없는지.
 10. `collect`(항상): 남은 앱 프로세스 정리, 디버그 로그, Equinox `.log`, `Info.plist`, 런처 ini, 크래시 보고서, Gatekeeper·키체인 통합 로그.
 
