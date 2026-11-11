@@ -36,8 +36,10 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.LayerUI;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
@@ -47,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
@@ -54,12 +57,13 @@ import java.util.regex.Pattern;
  *
  * 설계: 이 대화상자는 설정을 따로 저장하지 않고, 각 기능이 가진 설정의 저장 위치와 적용 방법을 그대로 쓴다.
  * <ul>
- *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).</li>
+ *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).
+ *     테마는 시스템·밝게·어둡게 아이콘 단추 세 개의 묶음이다(값이라 [저장]에서 적용).</li>
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
  *     <li>위험한 문 확인(WHERE 없는 UPDATE/DELETE, DROP): {@link SqlExecutionSafety}의 설정(SWT 확인 대화상자와 같은 키).</li>
  *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
  *     SWT 제품의 Colors and Fonts &gt; SQL Editor에 해당한다. 두 탭의 미리 보기는 저장하지 않은 값(한글 포함)을 바로 보여 주고,
- *     OK를 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
+ *     [저장]을 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
  *     <li>Editor 탭의 Formatting: SQL 서식기 종류와 키워드 대소문자({@link SqlEditCommands}, SWT 서식 설정과 같은 플랫폼 설정 키).
  *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
  *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.
@@ -76,17 +80,22 @@ import java.util.regex.Pattern;
  *     ({@link CubridOptionsPage})와 전역만 있는 Connections({@link ConnectionsOptionsPage}), Drivers({@link DriversOptionsPage}), Object Explorer
  *     ({@link NavigatorOptionsPage}), Notifications({@link NotificationsOptionsPage}), Logs({@link LogsOptionsPage}), Mimer SQL({@link MimerOptionsPage}).
  *     페이지가 많아 왼쪽 목록은 넘치면 스크롤한다.</li>
- *     <li>Connection Types 탭: 연결 유형 편집({@link ConnectionTypesPage}). 모두 OK에서 저장한다.
- *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}, {@link #wrapPage}다.</li>
+ *     <li>Connection Types 탭: 연결 유형 편집({@link ConnectionTypesPage}).
+ *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}({@link OptionsForm}), {@link #wrapPage}다.</li>
  *     <li>페이지는 SSMS Options의 왼쪽 목록처럼 왼쪽 목록에서 고른다. 페이지가 한 줄 탭에 들어가지 않는다. 목록은 {@link JList}, 페이지는
  *     {@link CardLayout}이다({@link JTabbedPane}은 탭을 숨길 수 없어 찾기로 걸러 보일 수 없다). 목록 위에는 찾기 칸을 고정하고, 페이지 이름과
  *     페이지 안의 설정 글자(라벨, 체크 상자, 단추, 테두리 제목, 하위 탭 이름)로 페이지를 거르고, 보이는 페이지에서 일치한 글자를 {@link JLayer}로
  *     칠한다(페이지 코드는 그대로).</li>
- *     <li>페이지 왼쪽 여백은 페이지 자리 한 곳에서 준다. {@link #wrapPage}는 탭이 위에 있는 다른 대화상자도 쓰므로 바꾸지 않는다.</li>
+ *     <li>목록은 작은 회색 묶음 제목(일반·편집기·결과·연결·데이터베이스·Chromite) 아래에 아이콘과 이름으로 페이지를 보인다. 묶음 제목은 고를 수
+ *     없다(고르면 다음 페이지로). 선택은 FlatLaf의 둥근 선택 모양이다.</li>
+ *     <li>페이지 여백은 페이지 자리 한 곳에서 준다. 페이지는 세로로 스크롤되는 칸 안에 있고 칸의 폭을 따른다(가로 스크롤 없음).
+ *     {@link #wrapPage}는 탭이 위에 있는 다른 대화상자도 쓰므로 바꾸지 않는다.</li>
  *     <li>다른 화면이 특정 페이지를 열 때는 화면 이름이 아니라 페이지 식별자({@link #PAGE_AGENT})로 고른다({@link #open(Frame, String)}).</li>
+ *     <li>저장(Turbrix와 같은 저장 표준, {@link OptionsSaving}): 확인/취소가 없다. 토글은 누를 때 저장하고, 나머지 값은 페이지 아래에 고정된 줄의
+ *     [저장]으로 저장한다. 바뀐 값이 있는 페이지를 떠나거나 창을 닫으면(×, Esc) 저장 / 버리기 / 취소를 묻는다. 바뀐 값이 있는 페이지는 찾기가
+ *     걸러도 목록에 남는다. 다시 세기는 페이지의 값 컨트롤이 바뀔 때와 이 창의 마우스·키 입력 뒤에 한다.</li>
  * </ul>
- * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다. 한 페이지의 저장이 실패해도 나머지 페이지는 저장하고, 실패한 페이지를
- * 마지막에 한 번에 알린다(전에는 예외가 OK 처리를 끊어 뒤 페이지가 말없이 저장되지 않았다).
+ * 읽기는 열 때 한 번 한다(각 칸의 되돌리기는 저장된 값을 다시 읽음).
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
@@ -115,6 +124,8 @@ import java.util.regex.Pattern;
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 서식 안내의 두 키 조합 글자
  * - 2026-11-11 General의 테마 목록에 시스템 설정 따르기를 더하고 저장된 선택을 보임 (앱 변경 #38, docs/chromite/swing-options.md "테마")
+ * - 2026-11-12 다시 디자인: 묶음·아이콘 목록, 카드 행({@link OptionsForm}), 테마 단추 셋, 확인/취소 대신 저장 표준({@link OptionsSaving})
+ *   (앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class OptionsDialog extends JDialog {
 
@@ -126,11 +137,15 @@ final class OptionsDialog extends JDialog {
     private static final Log log = Log.getLog(OptionsDialog.class);
     private static final int MAX_DELAY = 5000;
     // The page list is at least this wide (scaled), wider when a title needs it
-    private static final int PAGE_LIST_MIN_WIDTH = 220;
-    // Between the page list and the page: design-spec group spacing
-    private static final int PAGE_GAP = 20;
-    // The dialog opens this much larger than its packed size (the packed size stays the minimum), within this share of the screen
-    private static final double SIZE_FACTOR = 1.18;
+    private static final int PAGE_LIST_MIN_WIDTH = 236;
+    // Around the page list; the page's margins (top, sides, bottom)
+    private static final int LIST_PADDING = 12;
+    private static final int PAGE_MARGIN_TOP = 18;
+    private static final int PAGE_MARGIN_SIDE = 28;
+    private static final int PAGE_MARGIN_BOTTOM = 20;
+    // The dialog's opening and smallest size (scaled), within this share of the screen
+    private static final Dimension OPENING_SIZE = new Dimension(1080, 760);
+    private static final Dimension MINIMUM_SIZE = new Dimension(760, 520);
     private static final double MAX_SCREEN_SHARE = 0.9;
     private static final Pattern HTML_TAG = Pattern.compile("<[^>]*>"); //$NON-NLS-1$
     private static final Pattern WHITESPACE = Pattern.compile("\\s+"); //$NON-NLS-1$
@@ -141,7 +156,8 @@ final class OptionsDialog extends JDialog {
         FROM Album a
         WHERE a.Title LIKE N'%한글%' AND a.AlbumId > 42.5 OR a.Note IS NULL;"""; //$NON-NLS-1$
 
-    private final JComboBox<ChromiteTheme.Choice> themeCombo = new JComboBox<>(ChromiteTheme.Choice.values());
+    // Theme: one icon button per choice, in a group
+    private final Map<ChromiteTheme.Choice, JToggleButton> themeButtons = new EnumMap<>(ChromiteTheme.Choice.class);
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
@@ -153,19 +169,7 @@ final class OptionsDialog extends JDialog {
     private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
     private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{
         CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
-    // Pages of model keys that connections can also override (connection dialog, Options > Settings)
-    private final List<SettingsPage> settingsPages = List.of(
-        new SqlExecutionOptionsPage(true), new ResultSetOptionsPage(true), new ContentOptionsPage(true), new DataFormatOptionsPage(true),
-        new ConnectionErrorsOptionsPage(true), new MetadataOptionsPage(true), new ClientIdentificationOptionsPage(true),
-        new CodeCompletionOptionsPage(true), new DataTransferOptionsPage(true));
-    // Pages of model keys read from the global settings only (not in the connection dialog)
-    private final List<SettingsPage> globalPages = List.of(
-        new ConnectionsOptionsPage(), new DriversOptionsPage(), new NavigatorOptionsPage(), new NotificationsOptionsPage(),
-        new LogsOptionsPage());
     private final ConnectionTypesPage connectionTypesPage = new ConnectionTypesPage();
-    // Database pages, after Connection Types as before; Altibase and CUBRID connections can override theirs as Oracle ones do
-    private final List<SettingsPage> databasePages = List.of(
-        new OracleOptionsPage(true), new AltibaseOptionsPage(true), new CubridOptionsPage(true), new MimerOptionsPage());
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
     private final UpdateOptionsPage updatesPage = new UpdateOptionsPage();
     private final AiOptionsPage aiPage = new AiOptionsPage();
@@ -175,7 +179,7 @@ final class OptionsDialog extends JDialog {
     private final JSpinner fontSizeSpinner;
     private final SqlEditorPanel.SqlTextArea fontPreview = createPreview();
 
-    // Editor Colors tab: edited colors of both themes, saved on OK
+    // Editor Colors tab: edited colors of both themes, saved with the page's Save
     private final Map<ChromiteTheme, Map<EditorColors.Item, EditorColors.Setting>> colors = new EnumMap<>(ChromiteTheme.class);
     private final JComboBox<ChromiteTheme> colorThemeCombo = new JComboBox<>(ChromiteTheme.values());
     private final JList<EditorColors.Item> colorItemList = new JList<>(EditorColors.Item.values());
@@ -194,10 +198,10 @@ final class OptionsDialog extends JDialog {
     private final JSpinner explorerPageSizeSpinner = new JSpinner(new SpinnerNumberModel(ExplorerPreferences.getPageSize(),
         ExplorerPreferences.MIN_PAGE_SIZE, ExplorerPreferences.MAX_PAGE_SIZE, 100));
 
-    // The page list (filtered by the search field) and the shown page
+    // The page list (group titles and pages, filtered by the search field) and the shown page
     private final List<Page> pages = new ArrayList<>();
-    private final DefaultListModel<Page> pageListModel = new DefaultListModel<>();
-    private final JList<Page> pageList = new JList<>(pageListModel);
+    private final DefaultListModel<Object> pageListModel = new DefaultListModel<>();
+    private final JList<Object> pageList = new JList<>(pageListModel);
     private final CardLayout pageCards = new CardLayout();
     private final JPanel pageHolder = new JPanel(pageCards);
     private final JTextField searchField = new JTextField();
@@ -205,20 +209,32 @@ final class OptionsDialog extends JDialog {
     private final MatchHighlighter highlighter = new MatchHighlighter();
     // Matched texts per page id, for the search of the moment (empty without a search)
     private final Map<String, List<Match>> matches = new HashMap<>();
+    // Saving: the fixed line under the page, the shown page, the list index before a selection (to skip group titles)
+    private final OptionsSaving.Footer footer = new OptionsSaving.Footer();
+    private Page shownPage;
+    private int previousIndex;
+    // While the list selection is set back or rebuilt (no question, no page change)
+    private boolean selecting;
+    private boolean updateScheduled;
+    // Counts again after the user's mouse and key input in this dialog (values the page's listeners don't report)
+    private final AWTEventListener inputListener = event -> {
+        if (event.getSource() instanceof Component source && SwingUtilities.getWindowAncestor(source) == this
+            && (event.getID() == MouseEvent.MOUSE_RELEASED || event.getID() == KeyEvent.KEY_RELEASED)) {
+            scheduleUpdate();
+        }
+    };
 
     private OptionsDialog(@NotNull Frame owner, @Nullable String pageId) {
         super(owner, CoreMessages.options_title, true);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        // The window's close asks about unsaved changes first (requestClose)
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
-        themeCombo.setSelectedItem(ChromiteTheme.getSavedChoice());
-        themeCombo.setRenderer(new LabelRenderer());
         iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
         iconStyleCombo.setRenderer(new LabelRenderer());
         autoCompleteBox.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
         showProceduresBox.setSelected(SqlCompletionPopup.isShowProcedures());
         showProceduresBox.setToolTipText(CoreMessages.options_show_procedures_tip);
-        delaySpinner = new JSpinner(new SpinnerNumberModel(
-            Math.clamp(SqlCompletionPopup.getAutoActivationDelay(), 0, MAX_DELAY), 0, MAX_DELAY, 50));
+        delaySpinner = new JSpinner(new SpinnerNumberModel(getSavedDelay(), 0, MAX_DELAY, 50));
 
         fontFamilyCombo = new JComboBox<>(EditorFont.getMonospacedFamilies().toArray(String[]::new));
         fontFamilyCombo.setSelectedItem(EditorFont.getSavedFamily());
@@ -233,7 +249,7 @@ final class OptionsDialog extends JDialog {
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
         row = addSection(form, row, CoreMessages.options_environment);
-        row = addRow(form, row, CoreMessages.options_theme, themeCombo, null);
+        row = addRow(form, row, CoreMessages.options_theme, createThemeButtons(), null);
         row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
         row = addSection(form, row, ObjectExplorerMessages.oe_options_section);
         objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
@@ -260,64 +276,91 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, CoreMessages.options_keep_days, libraryHistoryDaysSpinner, CoreMessages.options_keep_days_hint);
         addRow(form, row, CoreMessages.options_library_refresh, libraryRefreshSpinner, CoreMessages.options_library_refresh_hint);
 
-        JButton okButton = new JButton(CoreMessages.common_ok);
-        okButton.addActionListener(e -> {
-            apply();
-            dispose();
-        });
-        JButton cancelButton = new JButton(CoreMessages.common_cancel);
-        cancelButton.addActionListener(e -> dispose());
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        buttons.add(okButton);
-        buttons.add(cancelButton);
+        // Pages in groups on the left, as the SSMS Options tree: more pages than one row of tabs holds. Settings pages are identified
+        // by their class.
+        String group = CoreMessages.options_group_general;
+        addGeneralParts(addPage("general", group, "settings", CoreMessages.options_general, wrapPage(form))); //$NON-NLS-1$ //$NON-NLS-2$
+        addSettingsPage(group, "object-explorer", new NavigatorOptionsPage()); //$NON-NLS-1$
+        addSettingsPage(group, "messages", new NotificationsOptionsPage()); //$NON-NLS-1$
+        addSettingsPage(group, "history", new LogsOptionsPage()); //$NON-NLS-1$
+        group = CoreMessages.options_group_editor;
+        addEditorParts(addPage("editor", group, "file-sql", CoreMessages.options_editor, createEditorPage())); //$NON-NLS-1$ //$NON-NLS-2$
+        addPage("editor-colors", group, "palette", CoreMessages.options_editor_colors, createColorsPage()) //$NON-NLS-1$ //$NON-NLS-2$
+            .add(OptionsSaving.part(CoreMessages.options_editor_colors, this::countColorChanges, this::saveColors, this::revertColors));
+        addSettingsPage(group, "function", new CodeCompletionOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "run", new SqlExecutionOptionsPage(true)); //$NON-NLS-1$
+        addPage("templates", group, "library-query", CoreMessages.options_templates, templatesPage) //$NON-NLS-1$ //$NON-NLS-2$
+            .add(OptionsSaving.part(CoreMessages.options_templates, templatesPage::getChangeCount, templatesPage::save, templatesPage::revert));
+        group = CoreMessages.options_group_results;
+        addSettingsPage(group, "results", new ResultSetOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "datatype", new ContentOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "format", new DataFormatOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "export", new DataTransferOptionsPage(true)); //$NON-NLS-1$
+        group = CoreMessages.options_group_connections;
+        addSettingsPage(group, "connection", new ConnectionsOptionsPage()); //$NON-NLS-1$
+        addPage("connection-types", group, "categorized", SettingsMessages.types_tab, connectionTypesPage) //$NON-NLS-1$ //$NON-NLS-2$
+            .add(OptionsSaving.part(SettingsMessages.types_tab, connectionTypesPage::getChangeCount, () -> connectionTypesPage.save(getOwner()),
+                connectionTypesPage::revert));
+        addSettingsPage(group, "warning", new ConnectionErrorsOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "properties", new MetadataOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "user", new ClientIdentificationOptionsPage(true)); //$NON-NLS-1$
+        addSettingsPage(group, "connect", new DriversOptionsPage()); //$NON-NLS-1$
+        group = CoreMessages.options_group_databases;
+        // Altibase and CUBRID connections can override theirs as Oracle ones do
+        for (SettingsPage page : List.of(new OracleOptionsPage(true), new AltibaseOptionsPage(true), new CubridOptionsPage(true), new MimerOptionsPage())) {
+            addSettingsPage(group, "database", page); //$NON-NLS-1$
+        }
+        group = CoreMessages.options_group_chromite;
+        addPage(PAGE_AGENT, group, "ai-assistant", AiMessages.ai_options_tab, aiPage).addAll(aiPage.getParts()); //$NON-NLS-1$
+        // Only a toggle and actions: no Save line
+        addPage("updates", group, "refresh", UpdateMessages.update_options_tab, updatesPage); //$NON-NLS-1$ //$NON-NLS-2$
+        for (Page page : pages) {
+            page.state().setListener(() -> {
+                if (page == shownPage) {
+                    footer.refresh();
+                }
+            });
+            OptionsSaving.watch(page.component(), this::scheduleUpdate);
+        }
 
-        JPanel content = new JPanel(new BorderLayout(0, 20));
-        // Dialog insets 10/12, groups 20 apart (design-spec space tokens)
-        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        // Pages on the left, as the SSMS Options tree: more pages than one row of tabs holds. Settings pages are identified by their class.
-        addPage("general", CoreMessages.options_general, wrapPage(form)); //$NON-NLS-1$
-        addPage("editor", CoreMessages.options_editor, createEditorPage()); //$NON-NLS-1$
-        addPage("editor-colors", CoreMessages.options_editor_colors, createColorsPage()); //$NON-NLS-1$
-        for (SettingsPage page : settingsPages) {
-            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
-        }
-        for (SettingsPage page : globalPages) {
-            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
-        }
-        addPage("connection-types", SettingsMessages.types_tab, connectionTypesPage); //$NON-NLS-1$
-        for (SettingsPage page : databasePages) {
-            addPage(page.getClass().getSimpleName(), page.getTitle(), page);
-        }
-        addPage("templates", CoreMessages.options_templates, templatesPage); //$NON-NLS-1$
-        addPage("updates", UpdateMessages.update_options_tab, updatesPage); //$NON-NLS-1$
-        addPage(PAGE_AGENT, AiMessages.ai_options_tab, aiPage);
+        JPanel right = new JPanel(new BorderLayout());
+        right.add(new JLayer<>(pageHolder, highlighter), BorderLayout.CENTER);
+        right.add(footer, BorderLayout.SOUTH);
+        JPanel content = new JPanel(new BorderLayout());
         content.add(createPageList(), BorderLayout.WEST);
-        // The left margin of every page, here once: wrapPage serves other dialogs too, and the other pages have none of their own
-        pageHolder.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(PAGE_GAP), 0, 0));
-        content.add(new JLayer<>(pageHolder, highlighter), BorderLayout.CENTER);
-        content.add(buttons, BorderLayout.SOUTH);
+        content.add(right, BorderLayout.CENTER);
         setContentPane(content);
         selectPage(pageId);
 
-        getRootPane().setDefaultButton(okButton);
-        getRootPane().registerKeyboardAction(e -> dispose(),
+        // Esc and the window's close do the same: ask about unsaved changes, then close
+        getRootPane().registerKeyboardAction(e -> requestClose(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         getRootPane().registerKeyboardAction(e -> {
             searchField.requestFocusInWindow();
             searchField.selectAll();
         }, UiKeys.command(KeyEvent.VK_F), JComponent.WHEN_IN_FOCUSED_WINDOW);
-        // The page list has the focus at first, not the search field above it (Ctrl+F goes there)
         addWindowListener(new WindowAdapter() {
+            // The page list has the focus at first, not the search field above it (Ctrl+F goes there)
             @Override
             public void windowOpened(WindowEvent e) {
                 pageList.requestFocusInWindow();
             }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                requestClose();
+            }
         });
-        pack();
-        Dimension packed = getSize();
-        setMinimumSize(packed);
-        setSize(getOpeningSize(packed, owner));
+        Toolkit.getDefaultToolkit().addAWTEventListener(inputListener, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.KEY_EVENT_MASK);
+        setMinimumSize(UIScale.scale(MINIMUM_SIZE));
+        setSize(getOpeningSize(owner));
         setLocationRelativeTo(owner);
+    }
+
+    @Override
+    public void dispose() {
+        Toolkit.getDefaultToolkit().removeAWTEventListener(inputListener);
+        super.dispose();
     }
 
     static void open(@NotNull Frame owner) {
@@ -331,16 +374,37 @@ final class OptionsDialog extends JDialog {
         new OptionsDialog(owner, pageId).setVisible(true);
     }
 
-    private void addPage(@NotNull String id, @NotNull String title, @NotNull JComponent component) {
-        Page page = new Page(id, title, component);
-        pages.add(page);
-        pageListModel.addElement(page);
-        pageHolder.add(component, id);
+    /**
+     * Adds a page (in a vertically scrolling view with the page margins) under a group title of the list.
+     *
+     * @return the page's saving state, to add its parts to
+     */
+    @NotNull
+    private OptionsSaving.PageState addPage(@NotNull String id, @NotNull String group, @NotNull String iconId, @NotNull String title,
+                                            @NotNull JComponent component) {
+        OptionsSaving.PageState state = new OptionsSaving.PageState(title);
+        pages.add(new Page(id, title, group, iconId, component, state));
+        PageView view = new PageView(component);
+        view.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(PAGE_MARGIN_TOP), UIScale.scale(PAGE_MARGIN_SIDE),
+            UIScale.scale(PAGE_MARGIN_BOTTOM), UIScale.scale(PAGE_MARGIN_SIDE)));
+        JScrollPane scrollPane = new JScrollPane(view, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(UIScale.scale(16));
+        pageHolder.add(scrollPane, id);
+        return state;
+    }
+
+    /**
+     * A model key page, saved through its {@code save(Writer)} ({@link OptionsSaving.SettingsPagePart}).
+     */
+    private void addSettingsPage(@NotNull String group, @NotNull String iconId, @NotNull SettingsPage page) {
+        OptionsSaving.PageState state = addPage(page.getClass().getSimpleName(), group, iconId, page.getTitle(), page);
+        state.add(new OptionsSaving.SettingsPagePart(page, state));
     }
 
     /**
      * The search field fixed above the page list, the "no match" text under it, and the list, at least {@link #PAGE_LIST_MIN_WIDTH}
-     * wide and as wide as its longest title with the scroll bar, so that no title is cut.
+     * wide and as wide as its longest title with the scroll bar, so that no title is cut. A line on the right parts it from the page.
      */
     @NotNull
     private JComponent createPageList() {
@@ -363,6 +427,8 @@ final class OptionsDialog extends JDialog {
                 filterPages();
             }
         });
+        // Enter goes to the list (the shown page is the first match or the page kept for its changes)
+        searchField.addActionListener(e -> pageList.requestFocusInWindow());
         // Esc empties a non-empty search; on an empty one it is disabled, so that the dialog's Esc closes the dialog
         searchField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "chromite.options.clearSearch"); //$NON-NLS-1$
         searchField.getActionMap().put("chromite.options.clearSearch", new AbstractAction() { //$NON-NLS-1$
@@ -381,23 +447,44 @@ final class OptionsDialog extends JDialog {
         noMatchLabel.setVisible(false);
 
         pageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pageList.setCellRenderer(new PageListRenderer());
         // A few rows: the list scrolls, the pages set the dialog height; the width then counts the scroll bar
         pageList.setVisibleRowCount(8);
         pageList.addListSelectionListener(e -> {
-            // The selection is empty while the search rebuilds the list; the shown page stays until one is selected
-            Page page = pageList.getSelectedValue();
-            if (page != null) {
-                pageCards.show(pageHolder, page.id());
-                highlighter.setMatches(matches.getOrDefault(page.id(), List.of()));
+            if (e.getValueIsAdjusting() || selecting) {
+                return;
+            }
+            int index = pageList.getSelectedIndex();
+            if (index < 0) {
+                // Empty while the search rebuilds the list; the shown page stays until one is selected
+                return;
+            }
+            if (pageListModel.get(index) instanceof Page page) {
+                previousIndex = index;
+                requestShow(page);
+            } else {
+                // A group title is not a page: on to the next page in the direction of the move
+                int next = index < previousIndex && index > 0 ? index - 1 : index + 1;
+                if (next < pageListModel.size() && pageListModel.get(next) instanceof Page) {
+                    pageList.setSelectedIndex(next);
+                } else if (shownPage != null) {
+                    setListSelection(shownPage);
+                }
             }
         });
+        rebuildList(pages);
 
         JPanel search = new JPanel(new BorderLayout());
+        search.setOpaque(false);
         search.add(searchField, BorderLayout.NORTH);
         search.add(noMatchLabel, BorderLayout.CENTER);
-        JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(6)));
+        JScrollPane listScroll = new JScrollPane(pageList);
+        listScroll.setBorder(BorderFactory.createEmptyBorder());
+        JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(10)));
+        panel.setBorder(OptionsForm.createDividerBorder(SwingConstants.RIGHT,
+            new Insets(UIScale.scale(LIST_PADDING), UIScale.scale(LIST_PADDING), UIScale.scale(LIST_PADDING), UIScale.scale(LIST_PADDING))));
         panel.add(search, BorderLayout.NORTH);
-        panel.add(new JScrollPane(pageList), BorderLayout.CENTER);
+        panel.add(listScroll, BorderLayout.CENTER);
         Dimension size = panel.getPreferredSize();
         size.width = Math.max(size.width, UIScale.scale(PAGE_LIST_MIN_WIDTH));
         panel.setPreferredSize(size);
@@ -405,48 +492,153 @@ final class OptionsDialog extends JDialog {
     }
 
     /**
-     * Selects a page by id, or the first page when there is none with that id.
+     * Fills the list with pages, each group's title before its first page.
      */
-    private void selectPage(@Nullable String pageId) {
-        int index = -1;
-        for (int i = 0; i < pageListModel.size(); i++) {
-            if (pageListModel.get(i).id().equals(pageId)) {
-                index = i;
-                break;
+    private void rebuildList(@NotNull List<Page> shown) {
+        selecting = true;
+        try {
+            pageListModel.clear();
+            String group = null;
+            for (Page page : shown) {
+                if (!page.group().equals(group)) {
+                    group = page.group();
+                    pageListModel.addElement(new Group(group));
+                }
+                pageListModel.addElement(page);
             }
+        } finally {
+            selecting = false;
         }
-        if (index < 0) {
-            if (pageId != null) {
-                log.warn("No options page with id " + pageId); //$NON-NLS-1$
-            }
-            index = 0;
-        }
-        pageList.setSelectedIndex(index);
-        pageList.ensureIndexIsVisible(index);
     }
 
     /**
-     * The packed size enlarged by {@link #SIZE_FACTOR}, within {@link #MAX_SCREEN_SHARE} of the owner's screen, never below the packed size.
+     * Selects a page by id, or the first page when there is none with that id.
+     */
+    private void selectPage(@Nullable String pageId) {
+        Page page = pages.stream().filter(p -> p.id().equals(pageId)).findFirst().orElse(null);
+        if (page == null) {
+            if (pageId != null) {
+                log.warn("No options page with id " + pageId); //$NON-NLS-1$
+            }
+            page = pages.getFirst();
+        }
+        setListSelection(page);
+        showPage(page);
+    }
+
+    /**
+     * Selects a page in the list without the question and without showing it (the caller shows it or it is shown already).
+     */
+    private void setListSelection(@NotNull Page page) {
+        selecting = true;
+        try {
+            pageList.setSelectedValue(page, true);
+            previousIndex = pageList.getSelectedIndex();
+        } finally {
+            selecting = false;
+        }
+    }
+
+    /**
+     * Shows a page chosen in the list. When the shown page has unsaved changes the list goes back to it first, and the page changes
+     * after the answer to Save / Discard / Cancel (asked after this list event, not inside it).
+     */
+    private void requestShow(@NotNull Page page) {
+        if (page == shownPage) {
+            return;
+        }
+        Page from = shownPage;
+        if (from != null && hasChanges(from)) {
+            setListSelection(from);
+            SwingUtilities.invokeLater(() -> {
+                if (from == shownPage && leave(from)) {
+                    setListSelection(page);
+                    showPage(page);
+                }
+            });
+            return;
+        }
+        showPage(page);
+    }
+
+    private void showPage(@NotNull Page page) {
+        shownPage = page;
+        pageCards.show(pageHolder, page.id());
+        highlighter.setMatches(matches.getOrDefault(page.id(), List.of()));
+        footer.setPage(page.state());
+        page.state().update();
+    }
+
+    private static boolean hasChanges(@NotNull Page page) {
+        page.state().update();
+        return page.state().getChangeCount() > 0;
+    }
+
+    /**
+     * Asks about the page's unsaved changes: Save (stays when a part could not be saved), Discard (the saved values back) or Cancel.
+     *
+     * @return whether the page may be left
+     */
+    private boolean leave(@NotNull Page page) {
+        return switch (OptionsSaving.askLeave(this, page.state())) {
+            case SAVE -> page.state().save();
+            case DISCARD -> {
+                page.state().revert();
+                yield true;
+            }
+            case CANCEL -> false;
+        };
+    }
+
+    /**
+     * Closes the dialog (Esc, the window's close) after the question about the shown page's unsaved changes.
+     */
+    private void requestClose() {
+        if (shownPage != null && hasChanges(shownPage) && !leave(shownPage)) {
+            return;
+        }
+        dispose();
+    }
+
+    /**
+     * Counts the shown page again once, after the events of the moment (not while a table cell is edited: counting would end the edit
+     * on pages whose save stops it; the table tells when the edit ends).
+     */
+    private void scheduleUpdate() {
+        if (updateScheduled) {
+            return;
+        }
+        updateScheduled = true;
+        SwingUtilities.invokeLater(() -> {
+            updateScheduled = false;
+            if (shownPage != null && isDisplayable() && !OptionsSaving.isEditingCell(shownPage.component())) {
+                shownPage.state().update();
+            }
+        });
+    }
+
+    /**
+     * {@link #OPENING_SIZE}, within {@link #MAX_SCREEN_SHARE} of the owner's screen; the pages scroll when it is smaller than they are.
      */
     @NotNull
-    private static Dimension getOpeningSize(@NotNull Dimension packed, @NotNull Frame owner) {
+    private static Dimension getOpeningSize(@NotNull Frame owner) {
         GraphicsConfiguration config = owner.getGraphicsConfiguration();
         Rectangle screen = config.getBounds();
         Insets screenInsets = Toolkit.getDefaultToolkit().getScreenInsets(config);
         int maxWidth = (int) ((screen.width - screenInsets.left - screenInsets.right) * MAX_SCREEN_SHARE);
         int maxHeight = (int) ((screen.height - screenInsets.top - screenInsets.bottom) * MAX_SCREEN_SHARE);
-        return new Dimension(
-            Math.max(packed.width, Math.min((int) Math.round(packed.width * SIZE_FACTOR), maxWidth)),
-            Math.max(packed.height, Math.min((int) Math.round(packed.height * SIZE_FACTOR), maxHeight)));
+        Dimension size = UIScale.scale(OPENING_SIZE);
+        return new Dimension(Math.min(size.width, maxWidth), Math.min(size.height, maxHeight));
     }
 
     /**
      * Shows the pages whose title or settings texts contain the search text (case and spaces ignored), all pages without one.
-     * The selected page stays when it matches, otherwise the first match is selected.
+     * The shown page stays when it matches or has unsaved changes (it stays in front until the question about them is answered),
+     * otherwise the first match is shown.
      */
     private void filterPages() {
         String key = normalize(searchField.getText());
-        Page selected = pageList.getSelectedValue();
+        Page held = shownPage != null && hasChanges(shownPage) ? shownPage : null;
         matches.clear();
         List<Page> shown = new ArrayList<>();
         for (Page page : pages) {
@@ -459,15 +651,18 @@ final class OptionsDialog extends JDialog {
             if (!pageMatches.isEmpty() || normalize(page.title()).contains(key)) {
                 matches.put(page.id(), pageMatches);
                 shown.add(page);
+            } else if (page == held) {
+                shown.add(page);
             }
         }
-        pageListModel.clear();
-        pageListModel.addAll(shown);
+        rebuildList(shown);
         noMatchLabel.setVisible(shown.isEmpty());
-        if (selected != null && shown.contains(selected)) {
-            pageList.setSelectedValue(selected, true);
+        if (shownPage != null && shown.contains(shownPage)) {
+            setListSelection(shownPage);
+            highlighter.setMatches(matches.getOrDefault(shownPage.id(), List.of()));
         } else if (!shown.isEmpty()) {
-            pageList.setSelectedIndex(0);
+            setListSelection(shown.getFirst());
+            showPage(shown.getFirst());
         } else {
             highlighter.setMatches(List.of());
         }
@@ -547,13 +742,8 @@ final class OptionsDialog extends JDialog {
         int row = addSection(form, 0, CoreMessages.options_font);
         row = addRow(form, row, CoreMessages.options_family, fontFamilyCombo, NLS.bind(CoreMessages.options_family_hint, EditorFont.DEFAULT_FAMILY));
         row = addRow(form, row, CoreMessages.options_size, fontSizeSpinner, NLS.bind(CoreMessages.options_size_hint, EditorFont.DEFAULT_SIZE));
-        formatterCombo.setSelectedIndex(SqlEditCommands.FORMATTER_COMPACT.equals(SqlEditCommands.getFormatterId()) ? 1 : 0);
-        DBPIdentifierCase keywordCase = SqlEditCommands.getKeywordCase();
-        keywordCaseCombo.setSelectedIndex(keywordCase == null ? 0 : switch (keywordCase) {
-            case UPPER -> 1;
-            case LOWER -> 2;
-            case MIXED -> 3;
-        });
+        formatterCombo.setSelectedIndex(getSavedFormatterIndex());
+        keywordCaseCombo.setSelectedIndex(getSavedKeywordCaseIndex());
         row = addSection(form, row, CoreMessages.options_formatting);
         row = addRow(form, row, CoreMessages.options_style, formatterCombo,
             NLS.bind(CoreMessages.options_style_hint, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D)));
@@ -561,6 +751,200 @@ final class OptionsDialog extends JDialog {
         addPreview(form, row, fontPreview);
         updatePreviews();
         return wrapPage(form);
+    }
+
+    private static int getSavedFormatterIndex() {
+        return SqlEditCommands.FORMATTER_COMPACT.equals(SqlEditCommands.getFormatterId()) ? 1 : 0;
+    }
+
+    private static int getSavedKeywordCaseIndex() {
+        DBPIdentifierCase keywordCase = SqlEditCommands.getKeywordCase();
+        return keywordCase == null ? 0 : switch (keywordCase) {
+            case UPPER -> 1;
+            case LOWER -> 2;
+            case MIXED -> 3;
+        };
+    }
+
+    /**
+     * The completion delay as the spinner can show it (a larger saved value shows as the largest).
+     */
+    private static int getSavedDelay() {
+        return Math.clamp(SqlCompletionPopup.getAutoActivationDelay(), 0, MAX_DELAY);
+    }
+
+    /**
+     * Theme: system, light and dark as icon buttons in one rounded group (the choice is a value, applied with Save).
+     */
+    @NotNull
+    private JComponent createThemeButtons() {
+        ButtonGroup group = new ButtonGroup();
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(2), UIScale.scale(2))) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(UIManager.getColor("Chromite.island.canvas")); //$NON-NLS-1$
+                    int arc = UIScale.scale(10);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                } finally {
+                    g2.dispose();
+                }
+            }
+        };
+        panel.setOpaque(false);
+        for (ChromiteTheme.Choice choice : ChromiteTheme.Choice.values()) {
+            JToggleButton button = new JToggleButton(UiIcons.get(switch (choice) {
+                case SYSTEM -> "theme-system"; //$NON-NLS-1$
+                case LIGHT -> "theme-light"; //$NON-NLS-1$
+                case DARK -> "theme-dark"; //$NON-NLS-1$
+            }));
+            button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+            button.setToolTipText(choice.getLabel());
+            button.getAccessibleContext().setAccessibleName(choice.getLabel());
+            group.add(button);
+            themeButtons.put(choice, button);
+            panel.add(button);
+        }
+        setThemeChoice(ChromiteTheme.getSavedChoice());
+        return panel;
+    }
+
+    @NotNull
+    private ChromiteTheme.Choice getThemeChoice() {
+        for (Map.Entry<ChromiteTheme.Choice, JToggleButton> entry : themeButtons.entrySet()) {
+            if (entry.getValue().isSelected()) {
+                return entry.getKey();
+            }
+        }
+        return ChromiteTheme.getSavedChoice();
+    }
+
+    private void setThemeChoice(@NotNull ChromiteTheme.Choice choice) {
+        themeButtons.get(choice).setSelected(true);
+    }
+
+    /**
+     * The blocks of General (each section; theme and icon style are one) and its toggles, saved when they are clicked.
+     */
+    private void addGeneralParts(@NotNull OptionsSaving.PageState state) {
+        state.add(OptionsSaving.part(CoreMessages.options_environment,
+            () -> OptionsSaving.differs(getThemeChoice(), ChromiteTheme.getSavedChoice())
+                + OptionsSaving.differs(iconStyleCombo.getSelectedItem(), UiIconStyle.getCurrent()),
+            this::applyThemeSettings,
+            () -> {
+                setThemeChoice(ChromiteTheme.getSavedChoice());
+                iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
+            }));
+        state.add(OptionsSaving.part(ObjectExplorerMessages.oe_options_section,
+            () -> OptionsSaving.differs(objectDoubleClickCombo.getSelectedItem(), ExplorerPreferences.getObjectDoubleClick())
+                + OptionsSaving.differs(connectionDoubleClickCombo.getSelectedItem(), ExplorerPreferences.getConnectionDoubleClick())
+                + OptionsSaving.differs(explorerPageSizeSpinner.getValue(), ExplorerPreferences.getPageSize()),
+            this::applyExplorerSettings,
+            () -> {
+                objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
+                connectionDoubleClickCombo.setSelectedItem(ExplorerPreferences.getConnectionDoubleClick());
+                explorerPageSizeSpinner.setValue(ExplorerPreferences.getPageSize());
+            }));
+        state.add(OptionsSaving.part(CoreMessages.options_query_editor,
+            () -> OptionsSaving.differs(delaySpinner.getValue(), getSavedDelay()),
+            () -> SqlCompletionPopup.setAutoActivationDelay(((Number) delaySpinner.getValue()).intValue()),
+            () -> delaySpinner.setValue(getSavedDelay())));
+        state.add(OptionsSaving.part(CoreMessages.options_query_history,
+            () -> OptionsSaving.differs(historyDaysSpinner.getValue(), getSavedHistoryDays()),
+            () -> QueryHistory.setRetentionDays(((Number) historyDaysSpinner.getValue()).intValue()),
+            () -> historyDaysSpinner.setValue(getSavedHistoryDays())));
+        state.add(OptionsSaving.part(CoreMessages.options_query_library,
+            () -> OptionsSaving.differs(libraryHistoryRunsSpinner.getValue(), QueryLibraryHistory.getMaxRuns())
+                + OptionsSaving.differs(libraryHistoryDaysSpinner.getValue(), QueryLibraryHistory.getMaxDays())
+                + OptionsSaving.differs(libraryRefreshSpinner.getValue(), QueryLibraryWatcher.getInterval()),
+            this::applyLibrarySettings,
+            () -> {
+                libraryHistoryRunsSpinner.setValue(QueryLibraryHistory.getMaxRuns());
+                libraryHistoryDaysSpinner.setValue(QueryLibraryHistory.getMaxDays());
+                libraryRefreshSpinner.setValue(QueryLibraryWatcher.getInterval());
+            }));
+        addToggle(state, autoCompleteBox, CoreMessages.options_auto_complete, SqlCompletionPopup::setAutoActivateOnLetters);
+        addToggle(state, showProceduresBox, CoreMessages.options_show_procedures, SqlCompletionPopup::setShowProcedures);
+        addToggle(state, confirmDangerousSqlBox, CoreMessages.options_confirm_dangerous_sql, SqlExecutionSafety::setConfirmDangerousSql);
+        addToggle(state, confirmDropSqlBox, CoreMessages.options_confirm_drop_sql, SqlExecutionSafety::setConfirmDropSql);
+    }
+
+    /**
+     * A toggle: its setting is saved when it is clicked; a failure is named under the page.
+     */
+    private static void addToggle(@NotNull OptionsSaving.PageState state, @NotNull JCheckBox box, @NotNull String name,
+                                  @NotNull Consumer<Boolean> setter) {
+        box.addActionListener(e -> {
+            try {
+                setter.accept(box.isSelected());
+            } catch (RuntimeException ex) {
+                state.toggleFailed(name, ex);
+            }
+        });
+    }
+
+    /**
+     * The history days as the spinner can show them.
+     */
+    private static int getSavedHistoryDays() {
+        return Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS);
+    }
+
+    /**
+     * The blocks of Editor: the font (open editors take it when it is saved) and the formatting.
+     */
+    private void addEditorParts(@NotNull OptionsSaving.PageState state) {
+        state.add(OptionsSaving.part(CoreMessages.options_font,
+            () -> OptionsSaving.differs(fontFamilyCombo.getSelectedItem(), EditorFont.getSavedFamily())
+                + OptionsSaving.differs(fontSizeSpinner.getValue(), EditorFont.getSavedSize()),
+            () -> {
+                if (applyFontSettings()) {
+                    SqlEditorPanel.SqlTextArea.applyThemeToAll();
+                }
+            },
+            () -> {
+                fontFamilyCombo.setSelectedItem(EditorFont.getSavedFamily());
+                fontSizeSpinner.setValue(EditorFont.getSavedSize());
+            }));
+        state.add(OptionsSaving.part(CoreMessages.options_formatting,
+            () -> OptionsSaving.differs(formatterCombo.getSelectedIndex(), getSavedFormatterIndex())
+                + OptionsSaving.differs(keywordCaseCombo.getSelectedIndex(), getSavedKeywordCaseIndex()),
+            this::applyFormatSettings,
+            () -> {
+                formatterCombo.setSelectedIndex(getSavedFormatterIndex());
+                keywordCaseCombo.setSelectedIndex(getSavedKeywordCaseIndex());
+            }));
+    }
+
+    /**
+     * The edited color settings (theme and item) that differ from the saved ones.
+     */
+    private int countColorChanges() {
+        int count = 0;
+        for (ChromiteTheme theme : ChromiteTheme.values()) {
+            Map<EditorColors.Item, EditorColors.Setting> saved = EditorColors.getSaved(theme);
+            for (EditorColors.Item item : EditorColors.Item.values()) {
+                count += OptionsSaving.differs(colors.get(theme).get(item), saved.get(item));
+            }
+        }
+        return count;
+    }
+
+    private void saveColors() {
+        if (applyColorSettings()) {
+            SqlEditorPanel.SqlTextArea.applyThemeToAll();
+        }
+    }
+
+    private void revertColors() {
+        for (ChromiteTheme theme : ChromiteTheme.values()) {
+            colors.put(theme, EditorColors.getSaved(theme));
+        }
+        colorItemList.repaint();
+        updateColorControls();
+        updatePreviews();
     }
 
     @NotNull
@@ -718,135 +1102,24 @@ final class OptionsDialog extends JDialog {
     }
 
     /**
-     * Section title: font.ui.semibold with a border.subtle line, 20 above (except the first) and 6 below.
+     * Section: a bold title over a rounded card that holds the next rows ({@link OptionsForm}).
      */
     static int addSection(@NotNull JPanel form, int row, @NotNull String title) {
-        JLabel label = new JLabel(title);
-        label.putClientProperty(FlatClientProperties.STYLE_CLASS, "semibold"); //$NON-NLS-1$
-        JPanel section = new JPanel(new BorderLayout(8, 0));
-        section.add(label, BorderLayout.WEST);
-        section.add(new JSeparator(), BorderLayout.CENTER);
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.gridy = row;
-        c.gridwidth = 3;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 1;
-        c.insets = new Insets(row == 0 ? 0 : 20, 0, 6, 0);
-        form.add(section, c);
-        return row + 1;
+        return OptionsForm.addSection(form, row, title);
     }
 
     /**
-     * Label (no colon, SSMS), control, and an optional hint in text.secondary; space.6 between them and between rows.
+     * Row in the current section's card: the name (no colon, SSMS) with an optional grey description under it on the left, the control
+     * at the right end; a check box's text is the name ({@link OptionsForm}).
      */
     static int addRow(@NotNull JPanel form, int row, @Nullable String label, @NotNull JComponent control, @Nullable String hint) {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridy = row;
-        c.anchor = GridBagConstraints.WEST;
-        c.insets = new Insets(0, 0, 6, 6);
-        if (label != null) {
-            c.gridx = 0;
-            form.add(new JLabel(label), c);
-        }
-        c.gridx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        if (control instanceof JSpinner spinner) {
-            ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField().setColumns(8);
-            c.fill = GridBagConstraints.NONE;
-        }
-        form.add(control, c);
-        if (hint != null) {
-            JLabel hintLabel = new JLabel(hint);
-            hintLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
-            c.gridx = 2;
-            c.fill = GridBagConstraints.NONE;
-            c.weightx = 1;
-            form.add(hintLabel, c);
-        }
-        return row + 1;
+        return OptionsForm.addRow(form, row, label, control, hint);
     }
 
-    /**
-     * Saves every page, also when one of them fails (a failed page would otherwise leave the pages after it unsaved
-     * with no notice), then reports the pages that failed.
-     */
-    private void apply() {
-        List<String> failures = new ArrayList<>();
-        applyStep(failures, UpdateMessages.update_options_tab, updatesPage::apply);
-        applyStep(failures, AiMessages.ai_options_tab, aiPage::apply);
-        applyStep(failures, CoreMessages.options_general, this::applyQueryEditorSettings);
-        for (SettingsPage page : settingsPages) {
-            applyStep(failures, page.getTitle(), page::apply);
-        }
-        for (SettingsPage page : globalPages) {
-            applyStep(failures, page.getTitle(), page::apply);
-        }
-        for (SettingsPage page : databasePages) {
-            applyStep(failures, page.getTitle(), page::apply);
-        }
-        applyStep(failures, SettingsMessages.types_tab, () -> connectionTypesPage.apply(getOwner()));
-        applyStep(failures, CoreMessages.options_general, this::applyExplorerAndHistorySettings);
-        applyStep(failures, CoreMessages.options_editor, this::applyFormatSettings);
-        applyStep(failures, CoreMessages.options_templates, templatesPage::apply);
-        boolean[] editorChanged = {false};
-        applyStep(failures, CoreMessages.options_editor, () -> editorChanged[0] |= applyFontSettings());
-        applyStep(failures, CoreMessages.options_editor_colors, () -> editorChanged[0] |= applyColorSettings());
-        if (editorChanged[0]) {
-            applyStep(failures, CoreMessages.options_editor, SqlEditorPanel.SqlTextArea::applyThemeToAll);
-        }
-        applyStep(failures, CoreMessages.options_general, this::applyLibrarySettings);
-        // Theme last: it updates every window, this dialog is about to close
-        applyStep(failures, CoreMessages.options_general, this::applyThemeSettings);
-        if (!failures.isEmpty()) {
-            JOptionPane.showMessageDialog(getOwner(), NLS.bind(CoreMessages.options_save_failed, String.join("\n", failures)), //$NON-NLS-1$
-                CoreMessages.options_save_failed_title, JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    /**
-     * Runs one saving step; a failure is logged and added to the list as "page: error" instead of stopping the others.
-     */
-    private static void applyStep(@NotNull List<String> failures, @NotNull String page, @NotNull Runnable step) {
-        try {
-            step.run();
-        } catch (RuntimeException e) {
-            log.error("Can't save the options of " + page, e);
-            failures.add(page + ": " + ErrorText.describeLine(e)); //$NON-NLS-1$
-        }
-    }
-
-    private void applyQueryEditorSettings() {
-        if (autoCompleteBox.isSelected() != SqlCompletionPopup.isAutoActivateOnLetters()) {
-            SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteBox.isSelected());
-        }
-        int delay = ((Number) delaySpinner.getValue()).intValue();
-        if (delay != SqlCompletionPopup.getAutoActivationDelay()) {
-            SqlCompletionPopup.setAutoActivationDelay(delay);
-        }
-        if (showProceduresBox.isSelected() != SqlCompletionPopup.isShowProcedures()) {
-            SqlCompletionPopup.setShowProcedures(showProceduresBox.isSelected());
-        }
-        if (confirmDangerousSqlBox.isSelected() != SqlExecutionSafety.isConfirmDangerousSql()) {
-            SqlExecutionSafety.setConfirmDangerousSql(confirmDangerousSqlBox.isSelected());
-        }
-        if (confirmDropSqlBox.isSelected() != SqlExecutionSafety.isConfirmDropSql()) {
-            SqlExecutionSafety.setConfirmDropSql(confirmDropSqlBox.isSelected());
-        }
-    }
-
-    private void applyExplorerAndHistorySettings() {
+    private void applyExplorerSettings() {
         if (objectDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ObjectDoubleClick objectDoubleClick
             && connectionDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ConnectionDoubleClick connectionDoubleClick) {
-            int pageSize = ((Number) explorerPageSizeSpinner.getValue()).intValue();
-            if (objectDoubleClick != ExplorerPreferences.getObjectDoubleClick() || connectionDoubleClick != ExplorerPreferences.getConnectionDoubleClick()
-                || pageSize != ExplorerPreferences.getPageSize()) {
-                ExplorerPreferences.save(objectDoubleClick, connectionDoubleClick, pageSize);
-            }
-        }
-        int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();
-        if (historyDays != QueryHistory.getRetentionDays()) {
-            QueryHistory.setRetentionDays(historyDays);
+            ExplorerPreferences.save(objectDoubleClick, connectionDoubleClick, ((Number) explorerPageSizeSpinner.getValue()).intValue());
         }
     }
 
@@ -864,7 +1137,7 @@ final class OptionsDialog extends JDialog {
     }
 
     /**
-     * @return whether the editor font changed (open editors are updated after the colors are saved)
+     * @return whether the editor font changed (the caller then updates the open editors)
      */
     private boolean applyFontSettings() {
         String family = (String) fontFamilyCombo.getSelectedItem();
@@ -902,22 +1175,98 @@ final class OptionsDialog extends JDialog {
         }
     }
 
+    /**
+     * Icon style, then the theme (it updates every window, this dialog included).
+     */
     private void applyThemeSettings() {
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
             iconStyle.apply();
         }
-        if (themeCombo.getSelectedItem() instanceof ChromiteTheme.Choice choice && choice != ChromiteTheme.getSavedChoice()) {
+        ChromiteTheme.Choice choice = getThemeChoice();
+        if (choice != ChromiteTheme.getSavedChoice()) {
             choice.apply();
         }
     }
 
     /**
-     * A page of the list: its id (for {@link #open(Frame, String)} and the card), its title (shown by the list) and its component.
+     * A page of the list: its id (for {@link #open(Frame, String)} and the card), its title, group title and icon (shown by the list),
+     * its component and its saving state.
      */
-    private record Page(@NotNull String id, @NotNull String title, @NotNull JComponent component) {
+    private record Page(@NotNull String id, @NotNull String title, @NotNull String group, @NotNull String iconId, @NotNull JComponent component,
+                        @NotNull OptionsSaving.PageState state) {
         @Override
         public String toString() {
             return title;
+        }
+    }
+
+    /**
+     * A group title of the list (not selectable).
+     */
+    private record Group(@NotNull String title) {
+        @Override
+        public String toString() {
+            return title;
+        }
+    }
+
+    /**
+     * Holds a page in its scroll pane: as wide as the view (no horizontal scrolling), as high as the view when the page is lower.
+     */
+    private static final class PageView extends JPanel implements Scrollable {
+        PageView(@NotNull JComponent page) {
+            super(new BorderLayout());
+            add(page, BorderLayout.CENTER);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return UIScale.scale(16);
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return orientation == SwingConstants.VERTICAL ? visibleRect.height : visibleRect.width;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return getParent() instanceof JViewport viewport && viewport.getHeight() > getPreferredSize().height;
+        }
+    }
+
+    /**
+     * Group titles small and grey with space above; pages with their icon, on roomy rows (the rounded selection is FlatLaf's,
+     * List.selectionArc).
+     */
+    private static final class PageListRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            if (value instanceof Group group) {
+                super.getListCellRendererComponent(list, group.title(), index, false, false);
+                setIcon(null);
+                setForeground(UIManager.getColor("Chromite.secondaryForeground")); //$NON-NLS-1$
+                setFont(list.getFont().deriveFont(list.getFont().getSize2D() - 1));
+                setBorder(BorderFactory.createEmptyBorder(UIScale.scale(index == 0 ? 2 : 14), UIScale.scale(10), UIScale.scale(4), UIScale.scale(10)));
+            } else {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Page page) {
+                    setIcon(UiIcons.get(page.iconId()));
+                }
+                setIconTextGap(UIScale.scale(10));
+                setBorder(BorderFactory.createEmptyBorder(UIScale.scale(7), UIScale.scale(10), UIScale.scale(7), UIScale.scale(10)));
+            }
+            return this;
         }
     }
 
@@ -1043,7 +1392,7 @@ final class OptionsDialog extends JDialog {
     }
 
     /**
-     * Theme and icon style items show their labels.
+     * Theme (Editor Colors), icon style and Object Explorer action items show their labels.
      */
     private static final class LabelRenderer extends DefaultListCellRenderer {
         @Override
@@ -1051,8 +1400,6 @@ final class OptionsDialog extends JDialog {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof ChromiteTheme theme) {
                 setText(theme.getLabel());
-            } else if (value instanceof ChromiteTheme.Choice choice) {
-                setText(choice.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
             } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {

@@ -156,7 +156,6 @@ public class AiMessages extends NLS {
     public static String ai_reason_default_edit;
     public static String ai_reason_transaction;
     public static String ai_options_tab;
-    public static String ai_options_title;
     public static String ai_options_providers;
     public static String ai_options_policy;
     public static String ai_options_mcp;
@@ -176,7 +175,6 @@ public class AiMessages extends NLS {
     public static String ai_options_test_ok;
     public static String ai_options_test_failed;
     public static String ai_options_test_no_tools;
-    public static String ai_options_save_failed;
     public static String ai_options_save_failed_secure_storage;
     public static String ai_policy_rule_production;
     public static String ai_policy_rule_read_only;
@@ -200,7 +198,6 @@ public class AiMessages extends NLS {
     public static String ai_policy_column_class;
     public static String ai_policy_column_rule;
     public static String ai_policy_column_effective;
-    public static String ai_policy_save_failed;
     public static String ai_group_connections;
     public static String ai_group_metadata;
     public static String ai_group_query;

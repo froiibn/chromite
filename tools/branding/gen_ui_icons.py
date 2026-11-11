@@ -331,6 +331,11 @@ CONCEPTS = [
     ("ai-assistant", "AI 도우미", "AI assistant", "message + sparkles"),
     # Result tabs: a pinned result (Query > Pin Results)
     ("pin", "고정한 결과", "Pinned result", "pin"),
+    # Options: the theme choice (system, light, dark) and the Editor Colors page
+    ("theme-system", "시스템 테마", "System theme", "device-desktop"),
+    ("theme-light", "밝은 테마", "Light theme", "sun"),
+    ("theme-dark", "어두운 테마", "Dark theme", "moon"),
+    ("palette", "편집기 색", "Editor colors", "palette"),
 ]
 
 
@@ -512,6 +517,16 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     # Pinned result tab: Tabler pin, a pin head (blue) on a short needle (neutral)
     I["pin"] = svg(path("M10 2.5L13.5 6L10.5 9L10 11.5L4.5 6L7 5.5Z", blue_fill, blue, sw)
                    + path("M7 9L2.5 13.5", None, n, sw))
+    # Options theme choice: Tabler device-desktop (a screen on a stand), sun (a disc with eight rays), moon (a crescent)
+    I["theme-system"] = svg(rect(1.5, 2.5, 13, 9, 1.5, doc_fill, n, sw) + path("M5.5 14.5H10.5M8 11.5V14.5", None, n, sw))
+    I["theme-light"] = svg(circle(8, 8, 2.75, P["yf"] if "yf" in P else blue_fill, n, sw)
+                           + path("M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.4 3.4L4.5 4.5M11.5 11.5L12.6 12.6"
+                                  "M3.4 12.6L4.5 11.5M11.5 4.5L12.6 3.4", None, n, sw))
+    I["theme-dark"] = svg(path("M8.5 1.5A6.5 6.5 0 1 0 14.5 9.5A5 5 0 0 1 8.5 1.5Z", blue_fill, n, sw))
+    # Editor colors: Tabler palette, a paint palette with three color dots
+    I["palette"] = svg(path("M8 14.5A6.5 6.5 0 1 1 14.5 8C14.5 9.7 13.2 10.5 11.8 10.5H10.5A1.5 1.5 0 0 0 9.5 13.1"
+                            "A1 1 0 0 1 8 14.5Z", doc_fill, n, sw)
+                       + circle(5, 7, 1, red) + circle(8, 4.5, 1, blue) + circle(11, 6.5, 1, green))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone

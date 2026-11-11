@@ -191,14 +191,12 @@ public class EditorMessages extends NLS {
     public static String editor_outline_none;
 
     // Options > Templates (SqlTemplatesPage)
-    public static String editor_templates_title;
     public static String editor_templates_enabled;
     public static String editor_templates_remove;
     public static String editor_templates_new;
     public static String editor_templates_restore;
     public static String editor_templates_restore_tip;
     public static String editor_templates_hint;
-    public static String editor_templates_cant_save;
     public static String editor_templates_default_scount;
     public static String editor_templates_default_swhere;
     public static String editor_templates_default_scgb;
