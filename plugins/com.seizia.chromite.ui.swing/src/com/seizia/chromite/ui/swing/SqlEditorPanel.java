@@ -40,6 +40,7 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.Gutter;
+import org.fife.ui.rtextarea.GutterIconInfo;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -81,6 +82,7 @@ import com.seizia.chromite.model.sql.SQLQueryResult;
 import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.SQLScriptErrorHandling;
+import com.seizia.chromite.model.sql.SqlJobResult;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSInstance;
@@ -120,6 +122,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -319,6 +322,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *   {@link SqlTextArea#getChordText}가 만듦 (docs/chromite/shortcuts.md)
  * - 2026-11-09 상태 줄의 조회만 한 트랜잭션: 메뉴의 트랜잭션 끝내기({@link SwingIdleTransactionService#endReadOnlyTransaction}),
  *   자동으로 끝낸 뒤의 짧은 알림 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 세션의 현재 DB/스키마를 문장 뒤(조회·DML 제외)와 실행 끝, 실행 밖 트랜잭션 끝에 서버에서 다시 읽음({@link #readSessionDefaults},
+ *   앱 변경 #33: USE 뒤 DB 선택이 바뀌지 않았다. SWT의 실행 뒤 다시 읽기가 빠져 있었다)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "현재 DB 따라가기")
+ * - 2026-11-11 실행 중 표시: 상태 칸 "실행 중 2/3 · 00:00:12"(경과 시간 칸은 끝난 뒤), 탭 스피너, 실행 중·오류 문장의 줄 강조와 줄 번호 옆 아이콘
+ *   (아이콘 열을 켬), 쓰지 않게 된 editor_sql_executing 삭제(앱 변경 #44) (docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -404,6 +412,9 @@ final class SqlEditorPanel extends JPanel {
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
     private int schemaSerial;
+    // The next read of the pickers first reads the session's database/schema from the server (refreshOpenTransaction)
+    private final AtomicBoolean sessionReadPending = new AtomicBoolean();
+    private final Object sessionReadLock = new Object();
     // EDT only: a newer read of the auto-commit state replaces older ones still running
     private int transactionSerial;
     @Nullable
@@ -493,6 +504,15 @@ final class SqlEditorPanel extends JPanel {
     private DBSObject sourceObject;
     // EDT only: line highlights of compile errors (cleared when a run starts)
     private final List<Object> errorLineMarks = new ArrayList<>();
+    // EDT only: the statement that runs now (line highlights and the gutter icon), and the statements that failed in
+    // the last run (kept until the next run)
+    private final List<Object> runningStatementMarks = new ArrayList<>();
+    @Nullable
+    private GutterIconInfo runningStatementIcon;
+    private final List<Object> failedStatementMarks = new ArrayList<>();
+    private final List<GutterIconInfo> failedStatementIcons = new ArrayList<>();
+    // The tab icon while the window runs
+    private final SpinnerIcon tabSpinner = new SpinnerIcon();
     // The window's session: its own context or the connection's main context
     private final QueryWindowContext windowContext = new QueryWindowContext(this::getFileName);
     // The @set variables of the window: the parent of each run's script context, so what a run sets stays for the next runs
@@ -552,6 +572,8 @@ final class SqlEditorPanel extends JPanel {
         });
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        // The icon column beside the line numbers: the statement that runs now and the ones that failed
+        scrollPane.setIconRowHeaderEnabled(true);
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
         textArea.applyTheme();
 
@@ -560,7 +582,7 @@ final class SqlEditorPanel extends JPanel {
 
         elapsedTimer = new Timer(250, e -> {
             if (execution != null) {
-                statusLine.setElapsed(formatElapsed(System.currentTimeMillis() - execution.startTime, false));
+                showRunState();
             }
         });
         // The open transaction segment counts up; the query manager's state is in memory, so a read each second is cheap
@@ -599,11 +621,17 @@ final class SqlEditorPanel extends JPanel {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 setDirty(true);
+                if (execution != null) {
+                    execution.edits.add(new int[]{e.getOffset(), e.getLength()});
+                }
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
                 setDirty(true);
+                if (execution != null) {
+                    execution.edits.add(new int[]{e.getOffset(), -e.getLength()});
+                }
             }
 
             @Override
@@ -806,6 +834,122 @@ final class SqlEditorPanel extends JPanel {
     private void clearErrorLines() {
         errorLineMarks.forEach(textArea::removeLineHighlight);
         errorLineMarks.clear();
+    }
+
+    /**
+     * The state cell while a run goes on (EDT): the spinner and "Executing 2/3 · 00:00:12", or the preparation or cancel
+     * text with the elapsed time.
+     */
+    private void showRunState() {
+        Execution run = execution;
+        if (run == null) {
+            return;
+        }
+        String elapsed = formatElapsed(System.currentTimeMillis() - run.startTime, false);
+        int count = run.elements.size();
+        String text;
+        if (run.stateText != null) {
+            text = NLS.bind(EditorMessages.editor_sql_state_elapsed, run.stateText, elapsed);
+        } else if (count > 1 && run.statementNumber > 0) {
+            text = NLS.bind(EditorMessages.editor_sql_executing_statement, new Object[]{run.statementNumber, count, elapsed});
+        } else {
+            text = NLS.bind(EditorMessages.editor_sql_executing_elapsed, elapsed);
+        }
+        statusLine.setState(QueryStatusLine.State.EXECUTING, text);
+    }
+
+    /**
+     * Marks the statement that starts now (EDT): background of its lines and an icon beside the first line number,
+     * replacing the previous statement's marks. The editor does not scroll to it: the user may be editing elsewhere.
+     *
+     * @param start statement start in the run's text
+     * @param end   statement end in the run's text
+     */
+    private void showRunningStatement(@NotNull Execution run, int start, int end) {
+        clearRunningStatement();
+        addStatementMarks(run, start, end, "Component.accentColor", UiIcons.get("run"), runningStatementMarks, //$NON-NLS-1$ //$NON-NLS-2$
+            icon -> runningStatementIcon = icon);
+    }
+
+    private void clearRunningStatement() {
+        runningStatementMarks.forEach(textArea::removeLineHighlight);
+        runningStatementMarks.clear();
+        if (runningStatementIcon != null) {
+            RSyntaxUtilities.getGutter(textArea).removeTrackingIcon(runningStatementIcon);
+            runningStatementIcon = null;
+        }
+    }
+
+    /**
+     * Marks a statement that failed with the error color (EDT); the mark stays until the next run. The Messages tab's
+     * error goes to the same place (Go to Error).
+     */
+    private void markFailedStatement(@NotNull Execution run, int start, int end) {
+        addStatementMarks(run, start, end, "Chromite.status.error", UiIcons.get("error"), failedStatementMarks, //$NON-NLS-1$ //$NON-NLS-2$
+            failedStatementIcons::add);
+    }
+
+    /**
+     * Removes the marks of the last run (EDT).
+     */
+    private void clearStatementMarks() {
+        clearRunningStatement();
+        failedStatementMarks.forEach(textArea::removeLineHighlight);
+        failedStatementMarks.clear();
+        Gutter gutter = RSyntaxUtilities.getGutter(textArea);
+        failedStatementIcons.forEach(gutter::removeTrackingIcon);
+        failedStatementIcons.clear();
+    }
+
+    private void addStatementMarks(
+        @NotNull Execution run,
+        int start,
+        int end,
+        @NotNull String colorKey,
+        @NotNull Icon icon,
+        @NotNull List<Object> marks,
+        @NotNull Consumer<GutterIconInfo> iconConsumer
+    ) {
+        // The run's offsets, moved by what was typed since it started
+        int length = textArea.getDocument().getLength();
+        int from = Math.min(mapOffset(run, start), length);
+        int to = Math.min(Math.max(from, mapOffset(run, end)), length);
+        Color base = UIManager.getColor(colorKey);
+        if (base == null) {
+            base = Color.GRAY;
+        }
+        // Light enough to read the text and the error lines' color under it, as the compile error lines
+        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 40);
+        try {
+            int firstLine = textArea.getLineOfOffset(from);
+            // A statement ends before the line break: its last line is the line of its last character
+            int lastLine = textArea.getLineOfOffset(Math.max(from, to - 1));
+            for (int line = firstLine; line <= lastLine; line++) {
+                marks.add(textArea.addLineHighlight(line, color));
+            }
+            iconConsumer.accept(RSyntaxUtilities.getGutter(textArea).addLineTrackingIcon(firstLine, icon));
+        } catch (BadLocationException e) {
+            log.debug("Statement out of the text: " + start); //$NON-NLS-1$
+        }
+    }
+
+    /**
+     * Where an offset of the run's text is now, after the edits made since the run started.
+     */
+    private static int mapOffset(@NotNull Execution run, int offset) {
+        int mapped = offset;
+        for (int[] edit : run.edits) {
+            int at = edit[0];
+            int length = edit[1];
+            if (length >= 0) {
+                if (mapped >= at) {
+                    mapped += length;
+                }
+            } else if (mapped > at) {
+                mapped = Math.max(at, mapped + length);
+            }
+        }
+        return mapped;
     }
 
     /**
@@ -1036,6 +1180,7 @@ final class SqlEditorPanel extends JPanel {
         cancel();
         completion.cancel();
         elapsedTimer.stop();
+        tabSpinner.stop();
         transactionTimer.stop();
         metadataRefresh.clear();
         windowContext.release();
@@ -1146,6 +1291,9 @@ final class SqlEditorPanel extends JPanel {
      */
     @NotNull
     Icon getTabIcon() {
+        if (execution != null) {
+            return tabSpinner;
+        }
         Icon extensionIcon = extension != null ? extension.getTabIcon() : null;
         if (extensionIcon != null) {
             return extensionIcon;
@@ -1355,11 +1503,17 @@ final class SqlEditorPanel extends JPanel {
         execution = run;
         resultsView.clear();
         clearErrorLines();
+        clearStatementMarks();
         if (run.includeActualPlan) {
             planView.clear(EditorMessages.editor_sql_waiting_actual_plan);
         }
-        statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? EditorMessages.editor_sql_executing : EditorMessages.editor_sql_connecting);
-        statusLine.setElapsed(formatElapsed(0, false));
+        // The state cell shows the elapsed time while running; the elapsed segment shows the run's time when it ends
+        run.stateText = container.isConnected() ? null : EditorMessages.editor_sql_connecting;
+        showRunState();
+        statusLine.setElapsed(null);
+        // The tab shows a spinner while the window runs, also when another tab is in front
+        tabSpinner.start();
+        host.titleChanged(this);
         runRows = null;
         statusLine.setRows(null);
         elapsedTimer.start();
@@ -1395,7 +1549,8 @@ final class SqlEditorPanel extends JPanel {
                 run.job.cancel();
             }
         }
-        statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_canceling);
+        run.stateText = EditorMessages.editor_sql_canceling;
+        showRunState();
         // Stop is disabled once it was pressed
         host.executionStateChanged(this);
     }
@@ -1437,6 +1592,10 @@ final class SqlEditorPanel extends JPanel {
         }
         execution = null;
         elapsedTimer.stop();
+        // The statement marks of errors stay until the next run; the running one goes
+        clearRunningStatement();
+        tabSpinner.stop();
+        host.titleChanged(this);
         long elapsed = System.currentTimeMillis() - run.startTime;
 
         if (status.getSeverity() == IStatus.ERROR && !run.hasErrors) {
@@ -1634,6 +1793,7 @@ final class SqlEditorPanel extends JPanel {
                 stopPreparation(run, Status.OK_STATUS);
                 return;
             }
+            run.elements = List.copyOf(elements);
             // Asked here, not in execute(): the statements are known only after splitting with the connection's dialect
             if (!SqlExecutionSafety.confirmDangerousStatements(this, dataSource, run.text, elements, null)) {
                 stopPreparation(run, Status.CANCEL_STATUS);
@@ -1677,7 +1837,12 @@ final class SqlEditorPanel extends JPanel {
                 run.job = job;
                 job.schedule();
             }
-            post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_executing));
+            post(run, () -> {
+                if (!run.cancelRequested) {
+                    run.stateText = null;
+                    showRunState();
+                }
+            });
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
             // The job that restores the session settings did not start
@@ -2146,6 +2311,17 @@ final class SqlEditorPanel extends JPanel {
         final Map<SQLQuery, List<String>> terminalTables = new IdentityHashMap<>();
         // Grid result sets of each query so far (job thread only), counted again when the query starts again (GO 2)
         final Map<SQLQuery, Integer> gridResultSets = new IdentityHashMap<>();
+        // The session's default database/schema was read after the last statement (job thread only)
+        boolean sessionDefaultsRead;
+        // The statements of the run (set in the preparation job), and the one that runs now (1-based, 0 before the first)
+        volatile List<SQLScriptElement> elements = List.of();
+        volatile int statementNumber;
+        // State text while preparing (connecting) or canceling, null while executing (EDT only)
+        @Nullable
+        String stateText;
+        // Edits of the window's text since the run started, oldest first, to find a statement's place now (EDT only):
+        // {offset, length}, a negative length for a removal
+        final List<int[]> edits = new ArrayList<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -2291,6 +2467,18 @@ final class SqlEditorPanel extends JPanel {
             run.gridResultSets.remove(query);
             wasAutoCommit = SmartCommit.isAutoCommit(session.getExecutionContext());
             syncServerOutput(session);
+            // The statement's place in the window's text; a statement of an included file has none, and the include
+            // command stays the running statement
+            if (!isIncludedStatement(run)) {
+                int start = query.getOffset();
+                int end = start + query.getLength();
+                int number = getStatementNumber(run, start);
+                post(run, () -> {
+                    run.statementNumber = number;
+                    showRunningStatement(run, start, end);
+                    showRunState();
+                });
+            }
         }
 
         @Override
@@ -2304,11 +2492,78 @@ final class SqlEditorPanel extends JPanel {
             if (SmartCommit.isEnabled(run.dataSourceContainer)) {
                 SmartCommit.afterStatement(session.getExecutionContext(), wasAutoCommit);
             }
+            // A statement that may change the session's database or schema (USE, SET search_path, ALTER SESSION, a batch, a
+            // procedure call, COMMIT/ROLLBACK of a SET): read the session's real value now, so that the history entry and
+            // the next statements' display have it. Plain queries and DML do not change it and cost no extra round trip.
+            run.sessionDefaultsRead = result.getError() == null && !isPlainDataStatement(result.getStatement());
+            if (run.sessionDefaultsRead) {
+                readSessionDefaults(session.getProgressMonitor(), context);
+            }
             reportQueryResult(run, session, result);
             recordHistory(run, context, result);
             if (result.getError() == null) {
                 metadataRefresh.collect(session, result.getStatement());
+            } else if (!isIncludedStatement(run)) {
+                int start = result.getStatement().getOffset();
+                int end = start + result.getStatement().getLength();
+                post(run, () -> markFailedStatement(run, start, end));
             }
+        }
+
+        @Override
+        public void onEndSqlJob(@NotNull DBCSession session, @NotNull SqlJobResult result) {
+            // After the last statement, unless it was read just now: a failed batch can still have run its USE, and a
+            // SELECT can call a function that changes the search path (PostgreSQL set_config)
+            if (!run.sessionDefaultsRead) {
+                readSessionDefaults(session.getProgressMonitor(), context);
+            }
+        }
+    }
+
+    /**
+     * Whether the statement that runs now comes from a file of an {@code @include} command (job thread).
+     */
+    private static boolean isIncludedStatement(@NotNull Execution run) {
+        SQLQueryExecuteJob engine = run.engine;
+        return engine != null && run.includedScripts.containsKey(engine.getCurrentScriptContext());
+    }
+
+    /**
+     * The 1-based number of the run's statement that starts at an offset of the run's text: a statement repeated by
+     * {@code GO n} keeps its number.
+     */
+    private static int getStatementNumber(@NotNull Execution run, int offset) {
+        int number = 0;
+        for (SQLScriptElement element : run.elements) {
+            if (element.getOffset() <= offset) {
+                number++;
+            }
+        }
+        return Math.max(number, 1);
+    }
+
+    /**
+     * Whether a statement is a query or data change, which cannot change the session's default database or schema.
+     */
+    private static boolean isPlainDataStatement(@NotNull SQLQuery query) {
+        return switch (query.getType()) {
+            case SELECT, INSERT, UPDATE, DELETE, MERGE -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * Reads the session's current database and schema from the server into its execution context (job thread, in the
+     * session's own connection), as SWT did after each run when "Refresh active schema after SQL execution" was on. The
+     * pickers, the status line, completion and the Agent read the context's cached values, so they show what the session
+     * really uses after USE, SET search_path or ALTER SESSION SET CURRENT_SCHEMA; a USE inside a stored procedure ends with
+     * the procedure and the read value stays. Failures are logged by {@link DBUtils#refreshContextDefaultsAndReflect}
+     * and keep the values known before.
+     */
+    private static void readSessionDefaults(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) {
+        DBCExecutionContextDefaults<?, ?> defaults = context.getContextDefaults();
+        if (defaults != null && context.isConnected()) {
+            DBUtils.refreshContextDefaultsAndReflect(monitor, defaults, context);
         }
     }
 
@@ -2458,6 +2713,13 @@ final class SqlEditorPanel extends JPanel {
                     log.debug("Can't open the session of the query window on '" + container.getName() + "'", e);
                 }
                 if (context != null && context.getContextDefaults() != null) {
+                    // One read at a time: the job that takes a pending session read does it before any later job reads
+                    // the cached values (the jobs of two quick calls may start in either order)
+                    synchronized (sessionReadLock) {
+                        if (sessionReadPending.getAndSet(false)) {
+                            readSessionDefaults(monitor, context);
+                        }
+                    }
                     ContextDefaultObjectsReader reader = new ContextDefaultObjectsReader(dataSource, context);
                     try {
                         reader.run(monitor);
@@ -2603,6 +2865,12 @@ final class SqlEditorPanel extends JPanel {
         if (shown == null && execution == null) {
             // DDL of the window's runs is visible to Object Explorer's metadata session once it is committed
             metadataRefresh.refreshPending();
+            if (previous != null) {
+                // Ended outside a run (status line, Query menu, idle transaction notice): a rolled back SET search_path is
+                // undone (PostgreSQL). Runs read the session themselves (QueryListener)
+                sessionReadPending.set(true);
+                refreshSchemas();
+            }
         }
         if (previous == null ? shown != null
             : shown == null || previous.getTransactionStartTime() != shown.getTransactionStartTime() || previous.isExecuting() != shown.isExecuting()) {

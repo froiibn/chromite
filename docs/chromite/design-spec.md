@@ -215,7 +215,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 5. **트리 아이콘 교체**: DBeaver 아이콘 → 1px 선 16px 아이콘, 중립 회색 + 의미 강조색 규칙(지금 주황 채움 폴더·파란 표).
 6. **연결 상태 표시**: PNG 체크 겹침 → 지름 6 상태 점(연결됨 초록, 연결 중 노랑, 오류 빨강).
 7. **글꼴**: UI Inter 13, 편집기·그리드 JetBrains Mono 13(지금 Segoe UI 12, Consolas).
-8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, —)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
+8. **도구 창 머리말**: 높이 40, semibold 제목, 아이콘 단추(⋮, 닫기 ×. 2026-11-11 전에는 숨기기 —, 앱 변경 #57)와 Object Explorer 아이콘 도구 막대(지금 28, 글자 `Refresh`, `×`).
 9. **주 도구 막대**: 아이콘 단추 16/26 + hover 바탕, New Query만 글자(지금 글자 단추 4개).
 10. **편집기 탭**: 높이 40, 탭 줄 바탕 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16(지금 32, 아이콘 없음).
 11. **쿼리 도구 막대**: `▶ Execute`(초록 아이콘 + 글자), `■` 중지 아이콘, 콤보 28·arc 8·공급자 아이콘(지금 글자 `Execute`/`Cancel`).
@@ -343,7 +343,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 | `size.tab.editor` | 36 (40) | [T `TabbedPane.tabHeight`] | 문서 탭 스타일 `tabHeight: $Chromite.size.documentTab.height`, 선택 알약 위아래 `Chromite.size.documentTab.pillInset` 5 (6) |
 | `size.tab.tool` | 28 (32) | Chromite 결정(쿼리 창 안 결과 탭은 낮게) | 결과·도구 창·세부 탭 스타일 `tabHeight: $Chromite.size.toolTab.height`(`UiSizes.TOOL_TABS_STYLE`) |
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
-| `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
+| `size.titleBar` | 40 (메인 창), 대화상자 30 (2026-11-11 앱 변경 #56) | [J] 주 도구 막대 40 | 메인 창: `Chromite.size.mainTitleBar.height = 40`(루트 창 `JRootPane.titleBarHeight`), 그 밖의 창: `TitlePane.buttonSize = 46,30` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
 | `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너). 연결·DB 선택 상자 여백 `Chromite.size.editorToolBar.comboBox.padding = @componentMargin`(촘촘한 모드에서 24로 낮춤) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height`. 활성 쿼리 창의 상태 칸도 이 높이다(2026-11-08 `size.statusLine.query` 삭제). 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
@@ -520,7 +520,7 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 | 실행 | `action.run`(초록, Execute), `action.stop`(빨강, 실행 취소), `action.parse`(중립 체크), `action.explainPlan` |
 | 결과 | `action.resultsToGrid`, `action.resultsToText`, `action.exportCsv`·`action.exportXlsx`(같은 내보내기 그림), `action.copyWithHeaders`, `action.sortAsc`, `action.sortDesc` |
 | 객체 | `action.scriptAs`(DDL), `action.selectTopRows`, `action.viewDdl`, `action.properties` |
-| 창·일반 | `action.more`(⋮), `action.hideToolWindow`(—), `action.close`(×), `action.settings`, `action.themeLight`·`action.themeDark` |
+| 창·일반 | `action.more`(⋮), `action.close`(×, 도구 창 닫기(숨기기)도 이것. 2026-11-11 `action.hideToolWindow`(—) 삭제, 앱 변경 #57), `action.settings`, `action.themeLight`·`action.themeDark` |
 
 (`action.exportCsv`·`action.exportXlsx`, `action.themeLight`·`action.themeDark`는 각각 1개로 셌다. `action.close`는 `icon.neutral`, 탭 닫기에도 쓴다.)
 
@@ -602,7 +602,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 |---|---|
 | 카드 | 도구 창 하나 또는 탭 묶음 하나가 카드(`Chromite.island.background`, arc 20). 도킹 루트가 카드 바탕을 칠하고 모서리를 캔버스로 덮는다(`IslandPanel.paintCorners`) |
 | 카드 사이 틈 | 라이브러리 분할 창의 분할선 = `SplitPane.dividerSize` 6, 선·손잡이 없음. 바깥 왼쪽·오른쪽 틈 `Chromite.island.gap` 6. 라이브러리 패널의 1px 테두리(`Component.borderColor`)와 마우스 올림 강조 테두리는 지움 |
-| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [— 숨기기 `hide`] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
+| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [× 닫기 `close`: 동작은 숨기기. 2026-11-11 전에는 — `hide`, 앱 변경 #57] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
 | 옵션 메뉴 | Float, Dock, Auto Hide(체크), ─, Hide. 테마 팝업 메뉴 그대로 |
 | 탭 묶음 | 아래쪽 탭(라이브러리 기본), `tabHeight 32`, 밑줄 3(Results 탭과 같음), 선택 탭의 머리말이 위에 보임 |
 | 놓을 자리 표시 | `ModernDocking.overlayBackground` = 강조색 `#3871E1` 30%(`#3871E14D`), 라이트·다크 같음 |
@@ -635,7 +635,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 5 | 트리 아이콘 | 1px 선 16px, 중립 + 의미 강조색 | 아이콘 팩 2종(아래 "아이콘 팩"), 폴더는 펼치면 열린 폴더 | 완료 |
 | 6 | 연결 상태 점 | 지름 6, 초록·노랑·빨강 | 지름 6 + 행 바탕색 1px 테두리. 연결됨 초록, 연결 실패 빨강(없는 폴더의 SQLite 파일, `x-broken2`) 확인 | 완료. 연결 중(노랑)은 잠깐이라 화면 확인은 못 함 |
 | 7 | 글꼴 | Inter 13, JetBrains Mono 13, 한글 대체 | Inter·JetBrains Mono(번들). 트리·메뉴·Properties·대화상자·편집기·그리드의 한글이 맑은 고딕으로 대체되어 보임(□ 없음) | 완료. 편집기 줄 간격 1.2는 못 함 |
-| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
+| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 닫기(×) 아이콘(2026-11-11 전에는 숨기기 —, 앱 변경 #57). Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
 | 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
 | 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로). 2026-11-07 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김(사용자 결정) | 완료 |
@@ -676,8 +676,8 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 98개씩(2026-11-11 두 트리 도구 막대의 펼치기 `expand-all` 추가, [swing-registered-servers.md](swing-registered-servers.md) "펼치기 단추". 2026-11-08 Object Explorer Link with Editor의 `link` 추가, [swing-explorer-productivity.md](swing-explorer-productivity.md). P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
-  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 97개씩(2026-11-11 두 트리 도구 막대의 펼치기 `expand-all` 추가, [swing-registered-servers.md](swing-registered-servers.md) "펼치기 단추". 2026-11-08 Object Explorer Link with Editor의 `link` 추가, [swing-explorer-productivity.md](swing-explorer-productivity.md). P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`(2026-11-11 삭제, 앱 변경 #57), `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
 - 배지 자리를 비우는 `<mask>`(view, mview, column-pk, column-fk, new-query, new-connection, export)는 JSVG 2.1이 그대로 그린다(JSVG로 따로 렌더링해 확인, 앱 화면의 기본 키 열 아이콘도 같음). 그래서 평평한 경로로 바꾸지 않았다.
@@ -1047,6 +1047,37 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   트리 영역은 0이었다.
 - 캡처: `D:\Tools\_scratch\chromite-hover-repaint\shots\`(`evidence-150-dark-explorer.png`: 수정 전 위로 움직인 뒤 / 전체 다시 그림 / 수정 후).
 
+### 포커스 표시 — 내용 영역 테두리 없음 (2026-11-11, 앱 변경 #37)
+
+사용자 요청(기업 환경 2026-11-09): "출력결과 grid를 선택하면 주변에 테두리가 포커싱된다. 이 효과를 제거하고, 다른 화면에서도 이와 같은 효과를 제거한다".
+사용자 결정: "내용 영역만 제거"(입력란·콤보·단추의 포커스 표시는 유지).
+
+- **원인(그린 테두리를 읽어 확인):** FlatLaf의 스크롤 창 테두리(`FlatScrollPaneBorder`, 테마 키 `ScrollPane.border`와 표를 스크롤 창에 넣을 때
+  Swing이 붙이는 `Table.scrollPaneBorder`)는 `FlatBorder.isFocused`가 스크롤 창이면 그 안 보기(표·트리·목록·글 영역)의 포커스를 보고,
+  포커스가 있으면 테두리 색을 `Component.focusedBorderColor`(`#3871E1`)로 바꾼다. 결과 그리드의 스크롤 창(`ResultSetGrid`)은 테두리를 따로 정하지 않아
+  이 테두리를 쓴다. 측정(테스트 에이전트, 스크롤 창 왼쪽 테두리 픽셀): 포커스 있음 `#3871E1`, 없음 다크 `#40434A` / 라이트 `#D1D3D9`.
+- **고친 곳(한 곳):** 두 테마 properties가 `ScrollPane.border`, `Table.scrollPaneBorder`를 `ContentScrollPaneBorder`로 바꾼다.
+  이 클래스는 `FlatScrollPaneBorder`와 같고 `isFocused`만 다르다: 보기가 **편집할 수 있는 글 영역**(여러 줄 입력란: Agent 질문 칸, 대화상자의 여러 줄 입력)이면
+  FlatLaf 그대로 포커스 색, 그 밖(표·트리·목록·읽기 전용 글)은 늘 보통 테두리색. 입력란·콤보·단추는 다른 테두리(`FlatTextBorder`, `FlatRoundBorder`)라 그대로다.
+- **이미 테두리가 없던 곳:** SQL 편집기, Messages, 개체 탐색기·등록된 서버·쿼리 라이브러리 트리, 값 보기, 실행 계획은 스크롤 창에 빈 테두리를 주어 원래 포커스 테두리가 없었다.
+  이번 변경이 실제로 바꾸는 곳은 기본 테두리를 쓰는 스크롤 창: 결과 그리드, Options 페이지 목록, 대화상자의 표·목록·트리 등.
+- **포커스 위치:** 선택 바탕색으로 구분된다(FlatLaf가 포커스에 따라 바꿈). 결과 그리드: 다크 활성 `#2A4371` / 비활성 `#33353B`, 라이트 `#D0DFFE` / `#E9EAEE`.
+- **확인:** Attach API 테스트 에이전트, 실제 결과 그리드(SQLite), 포커스는 대체 키보드 포커스 관리자로 흉내 내고 화면 밖에 그림(OS 입력 없음), 100%·150%, 밝은·어두운 테마.
+  전(devel의 `FlatScrollPaneBorder`) 포커스 있음 `#3871E1` → 후 포커스 있음 `#40434A`(다크) / `#D1D3D9`(라이트), Options 목록도 같음. Agent 질문 칸(편집 가능)은 후에도 `#3871E1`.
+  입력란·콤보·단추의 포커스 테두리는 그대로. 캡처: `D:\Tools\_scratch\chromite-theme-look\shots\`(`grid-*.png`, `options-list-*.png`, `input-*.png`, `sel-grid-*.png`, `controls-*.png`).
+
+### 대화상자 제목 줄 (2026-11-11, 앱 변경 #56)
+
+사용자 요청(기업 환경 2026-11-11): 팝업·메시지 상자의 제목 영역이 너무 두꺼워 어색하다, 조금 더 얇게.
+
+- **원인:** FlatLaf 창 장식의 제목 줄 높이는 창 단추 높이(`TitlePane.buttonSize`, 단추가 세로로 채움)로 정해지고, 이 값이 모든 창에 같다.
+  메인 창(메뉴 막대를 품음)에 맞춘 46×40이 대화상자·메시지 상자에도 쓰였다. 측정: 메시지 상자 제목 줄 40(150%에서 60px), 본문 한 줄보다 훨씬 높다.
+- **고친 곳:** 테마 `TitlePane.buttonSize`를 46×30(Windows 기본 대화상자 제목 줄에 가까움)으로 낮추고, 메인 창만 루트 창 속성
+  `JRootPane.titleBarHeight`(`FlatClientProperties.TITLE_BAR_HEIGHT`)에 테마 키 `Chromite.size.mainTitleBar.height`(40)를 준다(`MainFrame` 생성자).
+  대화상자·메시지 상자·파일 선택 등 다른 장식 창은 따로 손대지 않아도 30이다. 테두리 없는 창(시작 화면, 업데이트 창)과 macOS(OS 제목 줄)는 대상이 아니다.
+- **확인(테스트 에이전트, 밝은·어두운 테마):** "지난 세션의 쿼리 창 1개를 복원할까요?" 메시지 상자 제목 줄 40 → 30(150%: 60 → 45px), 닫기 단추 46×40 → 46×30,
+  제목 글자 칸이 제목 줄 높이 전체(세로 가운데). 메인 창 제목 줄은 41 그대로(단추 46×40). 캡처: `title-before-*.png`, `title-after-*.png`(100%·150%).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1171,3 +1202,5 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   `size.toolbar.editor` 행(선택 상자 여백 키), 설계 결정(촘촘한 모드 범위), 미룬 결정 갱신. "적용 현황 — 촘촘한 모드" 절(구조, B·C 측정) 추가.
 - 2026-11-08 9절: 쿼리 상태 칸을 주 상태 표시줄로 옮기고 표시줄 전체를 연결 색으로(앱 변경 #2). 치수 토큰 `size.statusLine.query` 삭제(`size.statusBar`를 씀).
 - 2026-11-08 마우스 올림 잔상(앱 1차 #10): "마우스 올림 다시 그리기" 절 추가(원인, 세 트리의 다시 그리는 영역을 위아래 1px 넓힘, 측정).
+- 2026-11-11 내용 영역의 포커스 테두리 제거(앱 변경 #37): "포커스 표시 — 내용 영역 테두리 없음" 절 추가.
+- 2026-11-11 대화상자 제목 줄 30, 메인 창 40(앱 변경 #56): "대화상자 제목 줄" 절 추가.

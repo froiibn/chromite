@@ -496,8 +496,8 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
   Look and Feel 색을 쓰는 직접 만든 테두리(상태 표시줄, 도구 창 머리말)는 `updateUI()`에서 다시 만든다.
 - 스크롤바 트랙은 스크롤하는 내용(뷰)의 바탕색으로 칠한다(`ChromiteScrollBarUI`). 편집기는 트리 갱신이 끝난 뒤 테마 색을 다시 적용하므로,
   스크롤바 UI가 뷰·뷰포트의 `background`·`opaque` 변경을 듣고 스크롤바를 다시 그린다(2026-11-07, 그 전에는 트랙이 옛 테마 색으로 남았다).
-- 시작 순서: 작업 공간을 잠그기 전에는 설정을 읽을 수 없으므로(인스턴스 위치가 정해지기 전) 시작 오류 대화상자용으로 라이트 테마를 먼저 설치하고,
-  메인 창을 열기 직전에 저장된 테마로 바꾼다. 저장된 밀도(View > Compact Mode)가 기본(B)과 다를 때도 이때 다시 설치한다.
+- 시작 순서: 작업 공간을 잠그기 전에는 설정을 읽을 수 없으므로(인스턴스 위치가 정해지기 전) 시작 오류 대화상자용으로 운영체제 설정의 테마를 먼저 설치하고
+  (2026-11-11까지는 라이트), 메인 창을 열기 직전에 저장된 선택의 테마로 바꾼다([swing-options.md](swing-options.md) "테마"). 저장된 밀도(View > Compact Mode)가 기본(B)과 다를 때도 이때 다시 설치한다.
 - View > Compact Mode(2026-11-08): 테마와 따로 저장하는 밀도 전환이다. 테마를 다시 설치하는 같은 길로 바로 바뀐다(다시 시작하지 않음).
   값과 구현은 [design-spec.md](design-spec.md) "적용 현황 — 촘촘한 모드".
 
@@ -508,7 +508,7 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 | 키 | 값 |
 |---|---|
-| `ui.theme` | `LIGHT` / `DARK` |
+| `ui.theme` | `SYSTEM` / `LIGHT` / `DARK`. 없으면 `SYSTEM`(운영체제 설정 따르기, 2026-11-11 앱 변경 #38, [swing-options.md](swing-options.md) "테마") |
 | `ui.iconStyle` | `DUOTONE`(기본) / `COLOR` (디자인 적용) |
 | `sqlEditor.font.family`, `sqlEditor.font.size` | 편집기 글꼴 이름(없으면·설치되지 않았으면 Cascadia Mono), 크기(기본 13) (2026-11-06) |
 | `sqlEditor.color.<light\|dark>.<항목>` | 바꾼 편집기 색만: `rrggbb[,bold][,italic]`. 항목은 `text`, `keyword`, `operator`, `function`, `string`, `number`, `comment`, `data_type`, `variable`, `background`, `current_line`, `selection`, `line_number`, `current_line_number` (2026-11-06) |
@@ -2762,7 +2762,7 @@ Result1, Result2 이런식으로 표시하면 된다". 결정: 한 줄에 나란
 - **탭 줄의 주인은 쿼리 창(`QueryResultsView`):** 전에는 메인 창의 탭 하나(`resultTabs`)에 활성 창의 Results·Messages·계획·터미널 컴포넌트를 탭 번호로 끼우고,
   창마다 마지막으로 본 탭을 따로 기억했다(`messagesTabSelected`, `planTabSelected`, `terminalTabSelected`). 결과 탭 수가 창마다·실행마다 달라지면 탭 번호가 고정일 수 없으므로,
   쿼리 창이 탭 줄 전체(`JTabbedPane`)를 갖고 메인 창은 그것을 통째로 끼운다(`MainFrame.attachResults`). 고른 탭은 탭 줄 자체가 기억하므로 따로 기억할 상태와 탭 번호 상수를 지웠다.
-- **숨기기 단추:** Results 카드의 — 단추는 하나이고 끼운 탭 줄의 뒤쪽 컴포넌트(FlatLaf `JTabbedPane.trailingComponent`)로 옮긴다. 빼는 탭 줄에서는 속성을 지운다
+- **숨기기 단추:** Results 카드의 숨기기 단추(2026-11-11부터 × 닫기 아이콘, 앱 변경 #57)는 하나이고 끼운 탭 줄의 뒤쪽 컴포넌트(FlatLaf `JTabbedPane.trailingComponent`)로 옮긴다. 빼는 탭 줄에서는 속성을 지운다
   (FlatLaf가 다른 부모에 들어간 단추의 위치를 바꾸지 않게).
 - **결과 탭 내용:** 결과 뷰어(`ResultSetViewerPanel`) 하나가 탭을 채운다. 높이를 나누던 `GridStack`, 최소 높이 `MIN_GRID_HEIGHT`, 바깥 스크롤, 결과가 없을 때의 자리 표시
   ("No results.", `editor_results_none`)와 고정 탭 줄의 첫 탭 이름(`editor_results_current`)을 지웠다. 결과가 없는 창은 Messages와 Execution plan 탭만 있다.
@@ -2997,4 +2997,5 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
   "확인 (2026-11-08, 앱 변경 #3·#6·#12)", "도구 창 도킹" 배치 절에 표시.
 - 2026-11-09 macOS 단축키(앱 변경 #24, `chromite/mac-ui`): Find/Replace, Edit 도구 막대, SQL Editor 도구 막대의 macOS 키를 적음. 표 전체는 [shortcuts.md](shortcuts.md), 화면 메뉴 막대는 [mac-ui.md](mac-ui.md).
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-11 `ui.theme`에 `SYSTEM`(기본값)을 더하고 시작 순서의 첫 테마를 운영체제 설정의 테마로(앱 변경 #38, [swing-options.md](swing-options.md) "테마").
 - 2026-11-11 도구 창 크기 바꾸기(앱 변경 #45): 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 도킹 분할 창의 resizeWeight를 문서 영역 쪽으로, 한 열을 하나씩 숨긴 뒤 보일 때 열 폭 유지. "도구 창 크기 바꾸기" 절 추가, 도구 창 도킹 확인 표의 1280px 줄에 표시.
