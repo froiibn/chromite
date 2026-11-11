@@ -40,6 +40,13 @@ import java.util.stream.Collectors;
 
 /**
  * PostgreExecutionContext
+ *
+ * 설계: {@link #refreshDefaults}는 세션의 실제 search_path·현재 스키마를 읽기만 한다. 쿼리 창이 실행 뒤마다 부르므로
+ * (docs/chromite/swing-sql-editor-session-ui.md "현재 DB 따라가기") 읽기가 실패해도 알던 값을 지우지 않고, 연결 설정의 역할(SET ROLE)은
+ * 세션을 시작할 때만 정한다.
+ *
+ * 변경 이력:
+ * - 2026-11-11 refreshDefaults: 읽은 뒤에 값을 바꿈(중단된 트랜잭션에서 읽기 실패 시 활성 스키마가 사라지던 것), SET ROLE은 시작할 때만(앱 변경 #33)
  */
 public class PostgreExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<PostgreDatabase, PostgreSchema> {
     private final List<String> searchPath = new ArrayList<>();
@@ -167,30 +174,32 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
 
     @Override
     public boolean refreshDefaults(@NotNull DBRProgressMonitor monitor, boolean useBootstrapSettings) throws DBException {
-        this.activeSchemaId = 0;
-        this.activeUser = null;
-        this.searchPath.clear();
-
-        // Check default active schema
+        // Read first, then replace: a read that fails (a transaction aborted by an error) keeps the values known before
+        // instead of leaving no active schema. The query window reads the defaults again after its runs.
+        String searchPathStr;
+        List<String> result;
         try (var session = openSession(monitor, DBCExecutionPurpose.META, "Read context defaults")) {
             monitor.subTask("Retrieve active search path");
 
-            var searchPathStr = CommonUtils.notEmpty(JDBCUtils.queryString(
+            searchPathStr = CommonUtils.notEmpty(JDBCUtils.queryString(
                 session,
                 getDataSource().getServerType().getSearchPathQuery()
             ));
-            for (String str : searchPathStr.split(",")) {
-                searchPath.add(DBUtils.getUnQuotedIdentifier(getDataSource(), str.trim()));
-            }
 
             monitor.subTask("Retrieve active schema and user");
 
-            var result = JDBCUtils.queryStrings(session, "SELECT current_schema(),session_user");
-            setActiveSchema(monitor, result.getFirst());
-            setActiveUser(result.getLast());
+            result = JDBCUtils.queryStrings(session, "SELECT current_schema(),session_user");
         } catch (SQLException e) {
             throw new DBCException(e, this);
         }
+        this.activeSchemaId = 0;
+        this.activeUser = null;
+        this.searchPath.clear();
+        for (String str : searchPathStr.split(",")) {
+            searchPath.add(DBUtils.getUnQuotedIdentifier(getDataSource(), str.trim()));
+        }
+        setActiveSchema(monitor, result.getFirst());
+        setActiveUser(result.getLast());
 
         if (useBootstrapSettings) {
             DBPConnectionBootstrap bootstrap = getBootstrapSettings();
@@ -198,9 +207,9 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
             if (!CommonUtils.isEmpty(bsSchemaName)) {
                 setSearchPath(monitor, bsSchemaName);
             }
+            // Only when the session starts: a later read of the defaults must not undo the user's own SET ROLE
+            setSessionRole(monitor);
         }
-
-        setSessionRole(monitor);
         return true;
     }
 

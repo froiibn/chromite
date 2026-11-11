@@ -109,9 +109,11 @@ public class EditorMessages extends NLS {
     public static String editor_sql_discard_confirm_one;
     public static String editor_sql_discard_confirm_many;
     public static String editor_sql_waiting_actual_plan;
-    public static String editor_sql_executing;
     public static String editor_sql_connecting;
     public static String editor_sql_canceling;
+    public static String editor_sql_executing_statement;
+    public static String editor_sql_executing_elapsed;
+    public static String editor_sql_state_elapsed;
     public static String editor_sql_canceled_by_user;
     public static String editor_sql_completion_time;
     public static String editor_sql_completed_with_errors;
