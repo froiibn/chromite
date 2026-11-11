@@ -30,7 +30,8 @@
 
 	<gutterBackground color="191a1c"/>
 	<gutterBorder color="191a1c"/>
-	<lineNumbers fg="4b5059" currentFG="a1a3ab"/>
+	<!-- Line numbers 4.5:1 or more on the editor background, the current one brighter (app change #55, design-spec "Applied - text contrast") -->
+	<lineNumbers fg="808389" currentFG="d1d3d9"/>
 	<foldIndicator fg="4b5059" iconBg="191a1c"/>
 	<iconRowHeader activeLineRange="4b5059"/>
 

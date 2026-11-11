@@ -295,6 +295,7 @@ import java.util.function.Supplier;
  * - 2026-11-12 문서 탭 오른쪽 클릭 메뉴({@link DocumentTabMenu}: 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도),
  *   경로 복사, 상위 폴더 열기, 탭 고정, 탭 위치, 여러 행), 닫기가 취소를 돌려줌({@link #closeDocument}) (앱 변경 #42,
  *   docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -2700,7 +2701,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
-     * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
+     * main-window-bg, topBorderWidth 0); the background is set again on theme changes. Its text is text.primary like
+     * the query window's cells: text.secondary was hard to read on the dark canvas (app change #55).
      * While a query window is active it shows that window's status cells ({@link QueryStatusLine}) instead of the
      * workspace text, and the whole bar is painted in the window connection's color (user decision 2026-11-08), with
      * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
@@ -2716,7 +2718,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             super(new BorderLayout());
             statusLabel = new JLabel(statusText);
             statusLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
-            statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             add(statusLabel, BorderLayout.WEST);
         }
 
