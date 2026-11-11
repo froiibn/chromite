@@ -135,6 +135,13 @@ import java.util.function.Supplier;
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-11 URL 방식으로 저장하면 주소(호스트·포트·서버·DB)를 URL에서 읽어 씀({@link #writeAddressFromUrl}). 전에는 꺼진 주소 칸의
+ *   자리 값(드라이버 기본 호스트 localhost, 마지막 서버)을 저장해 등록된 서버·탐색기에 localhost로 보였다(앱 변경 #41,
+ *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-11 유휴 연결 닫기 칸은 실제로 닫을 때만 켜져 보이고, 닫지 않는 연결 종류에서 켜면 이 연결의 기간을 저장하고 끄면 종류를 따름(앱 변경 #48,
+ *   유휴 연결 닫기 기본값 끔, docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-11 SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로({@link ConnectionDatabaseList}).
  *   목록은 대화상자가 Test Connection처럼 만든 임시 연결로 읽는다 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  */
@@ -462,7 +469,11 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
         boolean urlMode = isUrlMode();
         configuration.setConfigurationType(urlMode ? DBPDriverConfigurationType.URL : DBPDriverConfigurationType.MANUAL);
-        writeAddress(configuration);
+        if (urlMode) {
+            writeAddressFromUrl(configuration);
+        } else {
+            writeAddress(configuration);
+        }
 
         DBPAuthModelDescriptor authModel = getSelectedAuthModel();
         if (authModel != null) {
@@ -890,7 +901,7 @@ final class ConnectionSettingsPanel extends JPanel {
         idleTxnRollbackCheck.addActionListener(e -> updateIdleTransactionFields());
         idleTxnRemindCheck.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
         idleTxnPeriodSpinner.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
-        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
         for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner, idleTxnPeriodSpinner)) {
             // Seconds without digit grouping
             JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#"); //$NON-NLS-1$
@@ -1105,7 +1116,10 @@ final class ConnectionSettingsPanel extends JPanel {
         restrictions = new ArrayList<>(dataSource.getModifyPermission());
         updateRestrictionsButton();
         keepAliveSpinner.setValue(Math.max(0, configuration.getKeepAliveInterval()));
-        closeIdleCheck.setSelected(configuration.isCloseIdleConnection());
+        // On only when it acts: the connection's own period, or its type's when the type closes idle connections
+        // (DataSourceMonitorJob.getDisconnectTimeoutSeconds); the flag alone defaults to true for every connection
+        closeIdleCheck.setSelected(configuration.isCloseIdleConnection()
+            && (configuration.getCloseIdleInterval() > 0 || type.isAutoCloseConnections()));
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
             ? configuration.getCloseIdleInterval() : type.getCloseIdleConnectionPeriod()));
         closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
@@ -1326,11 +1340,15 @@ final class ConnectionSettingsPanel extends JPanel {
         // ConnectionPageGeneral.saveSettings: empty restrictions are "the connection type's"
         target.setModifyPermissions(restrictions);
         configuration.setKeepAliveInterval((Integer) keepAliveSpinner.getValue());
-        configuration.setCloseIdleConnection(closeIdleCheck.isSelected());
         int closeIdlePeriod = (Integer) closeIdleSpinner.getValue();
-        // Saved only when enabled and different from the connection type's default
-        configuration.setCloseIdleInterval(configuration.isCloseIdleConnection()
-            && closeIdlePeriod != configuration.getConnectionType().getCloseIdleConnectionPeriod() ? closeIdlePeriod : 0);
+        DBPConnectionType idleType = configuration.getConnectionType();
+        // Off under a type that doesn't close idle connections keeps "follow the type" (true without a period), so the
+        // connection follows if the type is turned on later; off under a type that closes them opts this one out
+        configuration.setCloseIdleConnection(closeIdleCheck.isSelected() || !idleType.isAutoCloseConnections());
+        // The period is saved only when enabled and the type would not close after the same period (a type that
+        // doesn't close idle connections needs the connection's own period)
+        configuration.setCloseIdleInterval(closeIdleCheck.isSelected()
+            && (!idleType.isAutoCloseConnections() || closeIdlePeriod != idleType.getCloseIdleConnectionPeriod()) ? closeIdlePeriod : 0);
         // Idle transactions: the reminder and its period are saved only when they differ from the connection type's
         // defaults (the connection keeps following its type); the automatic rollback is saved as chosen
         DBPConnectionType type = configuration.getConnectionType();
@@ -1435,6 +1453,41 @@ final class ConnectionSettingsPanel extends JPanel {
         }
         if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
             configuration.setDatabaseName(pathField.getText().trim());
+        }
+    }
+
+    /**
+     * URL mode: the host, port, server and database of the URL as the driver's template reads them. The address fields
+     * are disabled in this mode and may hold only placeholders (the driver's default host "localhost", the last server
+     * used with the driver), so they are not written: saving them replaced the real address that the trees, the status
+     * line and the export show with "localhost" (app change #41). A URL the template can't read clears the host and
+     * port, so no stale address is shown; the URL itself is still what connects.
+     */
+    private void writeAddressFromUrl(@NotNull DBPConnectionConfiguration configuration) {
+        if (urlPattern == null) {
+            // A driver without a usable template has no address fields
+            return;
+        }
+        Map<String, String> address = urlPattern.tryRecognize(urlField.getText().trim());
+        if (address == null || address.isEmpty()) {
+            configuration.setHostName(null);
+            configuration.setHostPort(null);
+            return;
+        }
+        if (urlProperties.contains(DBConstants.PROP_HOST)) {
+            configuration.setHostName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_HOST)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_PORT)) {
+            configuration.setHostPort(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_PORT)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_SERVER)) {
+            configuration.setServerName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_SERVER)));
+        }
+        if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(address.get(DBConstants.PROP_DATABASE)));
+        } else if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
+            String path = address.get(DBConstants.PROP_FOLDER);
+            configuration.setDatabaseName(CommonUtils.nullIfEmpty(path != null ? path : address.get(DBConstants.PROP_FILE)));
         }
     }
 

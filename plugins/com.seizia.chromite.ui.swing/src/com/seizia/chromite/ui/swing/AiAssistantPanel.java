@@ -113,6 +113,8 @@ import java.util.Set;
  *   대화 기록 팝업(거르기, 이동, 삭제)을 둠, 차례가 끝나면 토큰 사용량을 상태 줄에 보임 (docs/chromite/ai-agent.md "채팅 도구 창")
  * - 2026-11-08 대화를 보일 때 공급자 미설정 안내를 다시 정함: 창이 시작할 때부터 보이면(기본 배치, 앱 변경 #12) 대화를 읽기 전 빈 모델
  *   선택으로 정해 안내가 안 보이던 문제 (docs/chromite/ai-agent.md "채팅 도구 창")
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -371,7 +373,7 @@ final class AiAssistantPanel extends JPanel {
 
         // Wraps in a narrow tool window
         JLabel noticeLabel = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_setup_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
-        noticeLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+        noticeLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
         JButton noticeButton = new JButton(AiMessages.ai_settings);
         noticeButton.addActionListener(e -> host.openOptions(OptionsDialog.PAGE_AGENT));
         setupNotice.setOpaque(false);
@@ -701,7 +703,7 @@ final class AiAssistantPanel extends JPanel {
             } else if (value instanceof SetupItem) {
                 setText(AiMessages.ai_model_setup);
                 if (!isSelected) {
-                    setForeground(UIManager.getColor("Chromite.status.warning")); //$NON-NLS-1$
+                    setForeground(UIManager.getColor("Chromite.status.warningForeground")); //$NON-NLS-1$
                 }
             } else if (value == PickerAction.ENTER_MODEL) {
                 setText(AiMessages.ai_model_enter);

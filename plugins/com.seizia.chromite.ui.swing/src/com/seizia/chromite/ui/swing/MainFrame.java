@@ -290,6 +290,7 @@ import java.util.function.Supplier;
  *   창 메뉴에서 뺌(앱 변경 #27) (docs/chromite/mac-ui.md)
  * - 2026-11-11 View &gt; Theme에 시스템 설정 따르기를 더하고 저장된 선택을 표시 (앱 변경 #38, docs/chromite/swing-options.md "테마")
  * - 2026-11-11 제목 줄 높이를 루트 창 속성으로 40 유지: 대화상자 제목 줄은 테마 값 30으로 낮춤 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
+ * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 클래스 설명의 결과 탭 줄을 두 단계 탭으로 고침(코드는 그대로, 앱 변경 #54, docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
@@ -2645,7 +2646,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
-     * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
+     * main-window-bg, topBorderWidth 0); the background is set again on theme changes. Its text is text.primary like
+     * the query window's cells: text.secondary was hard to read on the dark canvas (app change #55).
      * While a query window is active it shows that window's status cells ({@link QueryStatusLine}) instead of the
      * workspace text, and the whole bar is painted in the window connection's color (user decision 2026-11-08), with
      * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
@@ -2661,7 +2663,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             super(new BorderLayout());
             statusLabel = new JLabel(statusText);
             statusLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
-            statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             add(statusLabel, BorderLayout.WEST);
         }
 

@@ -266,6 +266,10 @@ import java.util.regex.Pattern;
  * - 2026-11-08 마우스 올림 잔상: 강조가 바뀐 행을 위아래 1px 넓혀 다시 그림. 125%·150% 배율에서 둥근 사각형의 안티앨리어싱
  *   가장자리가 행 밖의 장치 픽셀 한 줄까지 칠해, 행만 다시 그리면 그 줄이 남았다 (docs/chromite/design-spec.md "마우스 올림 다시 그리기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 빠른 거르기 안내의 키 글자
+ * - 2026-11-11 도구 막대의 읽은 항목 펼치기: 고른 노드(없으면 전체) 아래에서 이미 읽은 노드만 펼침. 닫힌 연결을 열거나 읽지 않은 폴더를 읽지 않는다
+ *   (앱 변경 #51, docs/chromite/swing-registered-servers.md "펼치기 단추")
+ * - 2026-11-11 연결 메뉴에 Disconnect Others / Disconnect All(Registered Servers에서 옮김, 앱 변경 #48): 끊은 서버는 Disconnect처럼 이 창에서 뺀다
+ *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -393,11 +397,14 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action connectServerAction;
     private final Action refreshAction;
     private final Action collapseAllAction;
+    private final Action expandLoadedAction;
     private final Action filterAction;
     private final Action newQueryAction;
     private final Action newConnectionAction;
     private final Action connectAction;
     private final Action disconnectAction;
+    private final Action disconnectOthersAction;
+    private final Action disconnectAllAction;
     private final Action reconnectAction;
     private final Action invalidateAction;
     private final Action editConnectionAction;
@@ -548,6 +555,8 @@ final class ObjectExplorerPanel extends JPanel {
                 tree.collapseRow(row);
             }
         });
+        expandLoadedAction = createAction(CoreMessages.explorer_expand_loaded, this::expandLoaded);
+        expandLoadedAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_expand_loaded_tip);
         filterAction = createAction(CoreMessages.explorer_filter, this::filterSelectedFolder);
         filterAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_filter_tip);
         newQueryAction = new AbstractAction(CoreMessages.main_new_query) {
@@ -742,6 +751,12 @@ final class ObjectExplorerPanel extends JPanel {
         connectAction = createAction(CoreMessages.explorer_connect, () -> runOnSelectedDataSource(ConnectionCommands::connect));
         disconnectAction = createAction(CoreMessages.explorer_disconnect, () -> runOnSelectedDataSource(this::disconnectServer));
         disconnectAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_disconnect_tip);
+        disconnectOthersAction = createAction(LifecycleMessages.disconnect_others, () -> runOnSelectedDataSource(container -> {
+            List<DBPDataSourceContainer> others = getConnectedServers();
+            others.remove(container);
+            disconnectServers(others);
+        }));
+        disconnectAllAction = createAction(LifecycleMessages.disconnect_all, () -> disconnectServers(getConnectedServers()));
         reconnectAction = createAction(CoreMessages.explorer_reconnect, () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
         invalidateAction = createAction(LifecycleMessages.invalidate, () -> runOnSelectedDataSource(container -> ConnectionCommands.invalidate(this, container)));
         invalidateAction.putValue(Action.SHORT_DESCRIPTION, LifecycleMessages.invalidate_tip);
@@ -884,6 +899,8 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
+        popupMenu.add(disconnectOthersAction);
+        popupMenu.add(disconnectAllAction);
         popupMenu.add(reconnectAction);
         popupMenu.add(invalidateAction);
         popupMenu.addSeparator();
@@ -1012,6 +1029,64 @@ final class ObjectExplorerPanel extends JPanel {
             return;
         }
         if (servers != null && servers.remove(dataSource)) {
+            reloadConnectionList();
+        }
+    }
+
+    /**
+     * Expands, under the selected node (or the whole tree), only the nodes whose children were already read. Expanding
+     * everything would connect every closed connection and read all metadata; a node that was not read stays closed,
+     * so nothing is connected or read (expanding a read node does not load: {@code treeWillExpand} loads only unread ones).
+     */
+    private void expandLoaded() {
+        TreePath selected = tree.getSelectionPath();
+        expandLoaded(selected != null && selected.getLastPathComponent() instanceof ExplorerNode node ? node : rootNode);
+    }
+
+    private void expandLoaded(@NotNull ExplorerNode node) {
+        if (node.state != LoadState.LOADED || node.getChildCount() == 0) {
+            return;
+        }
+        tree.expandPath(new TreePath(node.getPath()));
+        for (int i = 0; i < node.getChildCount(); i++) {
+            if (node.getChildAt(i) instanceof ExplorerNode child) {
+                expandLoaded(child);
+            }
+        }
+    }
+
+    /**
+     * The connected connections of the project (SWT {@code DataSourceDisconnectProjectHandler}), listed here or not.
+     */
+    @NotNull
+    private List<DBPDataSourceContainer> getConnectedServers() {
+        List<DBPDataSourceContainer> connected = new ArrayList<>();
+        if (projectNode != null) {
+            for (DBPDataSourceContainer container : projectNode.getProject().getDataSourceRegistry().getDataSources()) {
+                if (container.isConnected()) {
+                    connected.add(container);
+                }
+            }
+        }
+        return connected;
+    }
+
+    /**
+     * Disconnect Others / Disconnect All: one question about all open transactions, then, as Disconnect does, the
+     * servers leave this window.
+     */
+    private void disconnectServers(@NotNull List<DBPDataSourceContainer> dataSources) {
+        if (dataSources.isEmpty() || !ConnectionCommands.disconnect(this, dataSources)) {
+            // Canceled because of an open transaction: nothing is disconnected
+            return;
+        }
+        boolean removed = false;
+        if (servers != null) {
+            for (DBPDataSourceContainer dataSource : dataSources) {
+                removed |= servers.remove(dataSource);
+            }
+        }
+        if (removed) {
             reloadConnectionList();
         }
     }
@@ -1192,6 +1267,9 @@ final class ObjectExplorerPanel extends JPanel {
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
+        List<DBPDataSourceContainer> connectedServers = getConnectedServers();
+        disconnectOthersAction.setEnabled(dataSource != null && connectedServers.stream().anyMatch(container -> container != dataSource));
+        disconnectAllAction.setEnabled(!connectedServers.isEmpty());
         reconnectAction.setEnabled(connected);
         invalidateAction.setEnabled(connected);
         activityMonitorAction.setEnabled(dataSource != null);
@@ -1249,6 +1327,7 @@ final class ObjectExplorerPanel extends JPanel {
         toolBar.add(UiIcons.createActionButton(filterAction, "filter")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(expandLoadedAction, "expand-all")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(collapseAllAction, "collapse-all")); //$NON-NLS-1$
         toolBar.add(createToggleButton(linkWithEditorAction, "link")); //$NON-NLS-1$
         return toolBar;
