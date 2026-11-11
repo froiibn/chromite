@@ -452,6 +452,39 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - Esc(글 있음) → 글 지움, 목록 25개. Esc(빈 칸) → 대화상자 닫힘. Ctrl+F(목록에서) → 포커스 찾기 칸.
 - Agent 창 도구 막대 설정 단추, 미설정 안내 단추(`doClick`), `open(owner, "agent")` → 모두 Chromite Agent 페이지, Providers 탭.
 
+## 테마 (2026-11-11, 앱 변경 #38)
+
+사용자 요청(기업 환경 2026-11-09): "테마는 컴퓨터 os 세팅값을 기본값으로 한다".
+
+### 구조
+
+- 선택지: View > Theme와 Options > General > Theme에 **시스템 설정 따르기**(Follow System) / 라이트 / 다크. 저장값은 설정 `ui.theme`
+  (`SYSTEM` / `LIGHT` / `DARK`, 이 번들의 작업 공간 설정). 저장값이 없으면 `SYSTEM`. 전에 라이트·다크를 고른 사용자의 `LIGHT`·`DARK`는 그대로 그 테마다.
+- `ChromiteTheme`은 설치하는 테마(LIGHT·DARK, 편집기 색도 테마별)이고, `ChromiteTheme.Choice`가 사용자의 선택이다. `Choice.resolve()`가 설치할 테마를 고르고,
+  `Choice.apply()`가 저장한 뒤 다르면 설치한다. 메뉴와 Options는 지금 테마가 아니라 저장된 선택을 보인다. Editor Colors의 테마 목록은 그대로 라이트·다크(색은 테마별).
+- 운영체제 설정 읽기(`SystemTheme`): Windows는 `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`의 `AppsUseLightTheme`(0 = 어둡게,
+  설정 앱의 "앱 모드"), macOS는 `defaults read -g AppleInterfaceStyle`(`Dark`). 그 밖·읽기 실패는 라이트. FlatLaf·JDK에는 이 API가 없다.
+  JNA 플랫폼 번들(`com.sun.jna.platform`, 이미 제품에 있음)을 Swing 번들의 Require-Bundle에 더했다.
+- 시작: 작업 공간을 잠그기 전(설정을 못 읽을 때)에 운영체제 설정의 테마를 설치한다(전에는 라이트). 기본값 사용자는 메인 창 앞에서 다시 설치하지 않고,
+  시작 오류·작업 공간 잠금 대화상자도 운영체제 모습이다. 메인 창을 열 때 저장된 선택의 테마가 다르면 그것으로 바꾼다.
+- **실행 중 따라가기:** Windows는 데몬 스레드가 `RegNotifyChangeKeyValue`로 Personalize 키가 바뀌기를 기다리고(폴링 없음), 바뀌면 다시 읽어
+  선택이 `SYSTEM`이고 테마가 다르면 바로 바꾼다. macOS는 다른 앱에서 이 앱으로 돌아올 때(창 활성화, 직전 활성 창이 이 앱 것이 아님) 다시 읽는다.
+  Linux는 따라가지 않는다(라이트).
+- 시작 화면: 런처가 JVM보다 먼저 띄우는 브랜드 그림(어두운 그림)이고 Swing 시작 화면은 같은 그림에 글자만 얹으므로 테마를 쓰지 않는다(바꾸지 않음).
+- 업데이트 진행 창: 끝낼 때 지금 설치된 테마(선택을 풀어낸 결과)를 기록(`record.dark`)하고, 도우미 창과 업데이트 뒤 첫 시작 창이 그 테마를 쓴다.
+  첫 시작 창은 이제 기록이 라이트일 때도 라이트로 바꾼다(시작 때 운영체제 테마가 먼저 설치되므로). 기록이 없으면 운영체제 테마 그대로.
+
+### 확인 (2026-11-11)
+
+Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS 입력 없음), 빈 작업 공간, 이 PC는 `AppsUseLightTheme = 0`(어둡게).
+기록: `D:\Tools\_scratch\chromite-theme-look\run\`.
+
+- 저장값 없음 → 선택 `SYSTEM`, 테마 DARK. View > Theme: "[시스템 설정 따르기 *] [라이트] [다크]". 감시 스레드 "Chromite system theme watcher"가
+  `RegNotifyChangeKeyValue`에서 기다림.
+- 라이트 고름 → `ui.theme=LIGHT` 저장, 라이트 설치, 메뉴 "라이트 *". 다시 시작(OS는 어둡게) → 라이트 그대로. 시스템 설정 따르기 → DARK.
+- 감시 방식: 같은 JNA 호출을 내 임시 키(`HKCU\Software\ChromiteThemeLookProbe`, 끝나고 지움)에 걸고 값을 쓰면 0 ms 안에 돌아옴(사용자의 Personalize 키는 건드리지 않음).
+- **확인하지 못함:** 실제로 Windows 앱 모드를 바꿨을 때 실행 중인 앱이 바뀌는 것(사용자 PC 설정을 바꾸지 않음), macOS 전체.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -611,6 +644,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   (app round 1 #8·#13, 위 "목록, 찾기, 페이지 열기").
 - 2026-11-09 Connection Types에 "조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기"(앱 변경 #31, 기본 꺼짐, 사용자 결정으로 연결 유형마다)
   ([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기"). 요약 수는 고치지 않음(메인 세션이 다시 셈).
+- 2026-11-11 테마 선택에 시스템 설정 따르기(기본값), 운영체제 설정이 바뀌면 따라감(앱 변경 #38, 위 "테마").
 
 ## 부록: 키별 상태
 

@@ -45,6 +45,7 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-explorer-productivity.md "필터 대화상자")
  * - 2026-11-08 Outline 도구 창, Query &gt; Pin Results, View &gt; Results Beside Editor·Maximize Results 문구
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-11 테마 선택지 "시스템 설정 따르기" 문구 (앱 변경 #38)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -328,6 +329,7 @@ public class CoreMessages extends NLS {
     public static String platform_not_supported;
     public static String platform_external_fs_not_supported;
 
+    public static String theme_system;
     public static String theme_light;
     public static String theme_dark;
     public static String icon_style_duotone;

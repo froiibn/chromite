@@ -64,6 +64,8 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-09 되돌리기 기록에 설치 범위: 모든 사용자 설치는 이전 버전도 관리자 권한으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-11 업데이트 뒤 첫 시작 창은 이전 창의 테마가 라이트여도 그 테마로(시작 때 운영체제 설정의 테마가 설치되므로), 기록이 없으면 그대로
+ *   (앱 변경 #38, docs/chromite/swing-options.md "테마")
  */
 final class UpdateProgress {
 
@@ -410,13 +412,14 @@ final class UpdateProgress {
         long appStartAt = ProcessHandle.current().info().startInstant().map(Instant::toEpochMilli).orElse(System.currentTimeMillis());
         First f = new First(start, new UpdateRun(UpdateService.defaultFolder()), version, appStartAt);
         UpdateRun.Record record = start.record();
-        boolean dark = record != null && Boolean.TRUE.equals(record.dark);
+        // The theme of the window before; null without one (the theme of the operating system, installed at start, stays)
+        ChromiteTheme before = record != null && record.dark != null ? (record.dark ? ChromiteTheme.DARK : ChromiteTheme.LIGHT) : null;
         Point at = record != null && record.x != null && record.y != null ? new Point(record.x, record.y) : null;
         try {
             SwingUtilities.invokeAndWait(() -> {
                 // The theme of the window before (the saved theme is read once the workspace is locked)
-                if (dark && ChromiteTheme.getCurrent() != ChromiteTheme.DARK) {
-                    ChromiteTheme.DARK.install(false);
+                if (before != null && before != ChromiteTheme.getCurrent()) {
+                    before.install(false);
                 }
                 first = f;
                 show(Mode.FIRST, f::input, at, null, UpdateProgress::onFirstAction);
