@@ -403,6 +403,9 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 
 ### 크기와 여백
 
+> 2026-11-12(#59) 바뀜: 목록 최소 폭 236, 창은 고정 크기 1080×760 + 페이지 스크롤, 페이지 여백 위 8·좌우 28·아래 20. 아래는 그 전의 기록이다
+> (아래 "옵션 화면 모양과 저장 (#59)").
+
 - 목록 폭: 최소 220(UIScale), 가장 긴 이름 + 스크롤 막대가 더 넓으면 그 폭. 목록 높이는 8줄로 잡아 대화상자 높이는 페이지가 정한다.
   이름은 목록 기본대로 왼쪽 정렬이고 잘리지 않는다(영어 가장 긴 이름 121, 한국어 97, 목록 안쪽 폭 218).
 - 창 크기: `pack()` 크기를 최소 크기로 두고, 여는 크기는 그 1.18배(화면 작업 영역의 90%를 넘지 않음, pack 크기보다 작지 않음).
@@ -494,6 +497,104 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 감시 방식: 같은 JNA 호출을 내 임시 키(`HKCU\Software\ChromiteThemeLookProbe`, 끝나고 지움)에 걸고 값을 쓰면 0 ms 안에 돌아옴(사용자의 Personalize 키는 건드리지 않음).
 - **확인하지 못함:** 실제로 Windows 앱 모드를 바꿨을 때 실행 중인 앱이 바뀌는 것(사용자 PC 설정을 바꾸지 않음), macOS 전체.
 
+## 옵션 화면 모양과 저장 (#59)
+
+사용자 요청(2026-11-11, 참고 화면 받음): "옵션화면의 스타일을 첨부한 것과 같이 세련된 스타일로 변경한다". 저장 방식(사용자 결정, Turbrix와 같은 방식):
+"토글은 바로 반영되게 하고, 나머지는 설정값을 변경할 경우 저장 버튼을 활성화해서 저장할 대상이 있는지 사용자가 알 수 있게 하는 방법을 쓴다".
+참고 화면은 다른 앱의 설정 화면이다. 배치 방식만 따르고 그 앱의 이름·아이콘·문구·색은 쓰지 않았다(Chromite 테마 토큰과 아이콘 팩).
+
+### 모양
+
+- **왼쪽 목록:** 맨 위 찾기 칸(고정), 작은 회색 묶음 제목 아래 아이콘 + 이름 항목, 넉넉한 줄(위아래 7), 선택은 FlatLaf의 둥근 선택(`List.selectionArc`).
+  묶음 제목은 고를 수 없다(키보드·마우스로 고르면 움직인 방향의 다음 페이지). 목록 오른쪽에 가는 구분선(`Chromite.dividerColor`). 최소 폭 236.
+- **묶음(정한 기본값):** 일반(General, Object Explorer, Notifications, Logs) / 편집기(Editor, Editor Colors, Code Completion, Query Execution, Templates) /
+  결과(Query Results, Binary and LOB, Data Formats, Data Transfer) / 연결(Connections, Connection Types, Errors and Timeouts, Metadata,
+  Client Identification, Drivers) / 데이터베이스(Oracle, Altibase, CUBRID, Mimer SQL) / Chromite(Chromite Agent, Updates). 업데이트 한 항목만의 묶음을
+  두지 않고 Agent와 함께 "Chromite" 묶음에 두었다. 페이지 식별자는 그대로라 `OptionsDialog.open(owner, pageId)`는 바뀌지 않는다.
+- **항목 아이콘:** 아이콘 팩의 것을 쓴다(General `settings`, Object Explorer `object-explorer`, Editor `file-sql`, Query Results `results`,
+  Connections `connection`, Drivers `connect`, 데이터베이스 페이지 `database`, Agent `ai-assistant`, Updates `refresh` 등). 생성기
+  (`tools/branding/gen_ui_icons.py`)에 `palette`(Editor Colors)와 테마 단추 셋(`theme-system`, `theme-light`, `theme-dark`)을 더했다(두 팩, 밝게·어둡게).
+- **오른쪽 페이지(`OptionsForm`):** 공통 행 도우미 `OptionsDialog.addSection`·`addRow`가 `OptionsForm`으로 그려 모든 페이지(약 40개, 연결 대화상자
+  Settings의 같은 페이지 포함)가 한 번에 바뀐다. 페이지 코드는 그대로다.
+  - 절: 굵은 제목(`font: +1 $semibold.font`) 아래 둥근 카드(테두리 `Component.borderColor`, 모서리 10). 저장 표준의 "칸마다 테두리와 제목"과
+    참고 화면의 굵은 절 제목·가는 줄을 함께 따랐다.
+  - 행: 왼쪽 이름과 그 아래 회색 설명(`Chromite.secondaryForeground`, 전에는 컨트롤 오른쪽에 있던 도움말), 오른쪽 끝에 컨트롤, 행 사이 가는 선
+    (`Chromite.dividerColor`), 위아래 9. 이름과 컨트롤이 한 줄에 들어가지 않으면 컨트롤을 이름 아래로 내린다(폭에 따라 높이가 바뀜).
+  - 체크 상자 행: 상자 글을 왼쪽 이름으로 옮기고 상자는 오른쪽 끝에 둔다(이름을 눌러도 바뀜, 사용 가능 여부·도움말을 이름이 따름).
+    켜고 끄는 토글은 스위치 모양(`OptionsForm.SwitchIcon`, 켜짐 = 주 단추 바탕색(강조색), 꺼짐 = 체크 상자 테두리 색)이다. 값의 일부인 체크 상자
+    (`OptionsForm.VALUE_CHECK_BOX`: 연결 유형의 칸, Maven 저장소 대화상자의 Snapshot)는 체크 상자 모양 그대로다.
+  - 이름 없는 행(안내 글, 여러 상자를 담은 패널)은 행 전체 폭에 왼쪽부터. 행이 없는 절(표·미리 보기를 페이지가 직접 넣는 절)은 제목만 보인다.
+  - 넓은 여백: 페이지 자리 위 8(페이지의 12와 합쳐 20), 좌우 28, 아래 20. 페이지는 세로로 스크롤되는 칸 안에 있고 칸의 폭을 따른다.
+  - 표가 큰 페이지(Templates, Data Formats, Connection Types, Agent 하위 탭, Editor Colors)는 폭을 쓰는 지금 구조를 그대로 두고 여백·절 제목만 바뀐다.
+- **테마:** General > 환경 > 테마는 아이콘 단추 셋(시스템·밝게·어둡게)의 둥근 묶음이다(`Chromite.island.canvas` 바탕, 도구 막대 토글 단추).
+  도움말과 접근성 이름은 `ChromiteTheme.Choice`의 이름이다. 값이라 [저장]에서 적용한다.
+- **창:** 여는 크기 1080×760(UIScale, 화면 작업 영역의 90% 이내), 최소 760×520. 전에는 pack 크기 × 1.18이었는데, 행이 넉넉해져 가장 긴 페이지에
+  맞추면 창이 화면보다 커지므로 고정 크기 + 페이지 스크롤로 바꿨다.
+- 글꼴과 글자색은 바꾸지 않았다(이웃 작업: 글자 선명도·대비). 새 토큰도 없다.
+
+### 저장 (Turbrix 저장 표준, `OptionsSaving`)
+
+Turbrix의 #722 "저장 표준"(STYLE_GUIDE 5.12, `apps/desktop/src/shell/settingsPage.ts`, `SettingsFooter.tsx`, `Options.tsx`)을 그대로 따랐다(읽기만 함).
+
+| 종류 | 예 | 반영 |
+|---|---|---|
+| 토글 | 설정 하나를 켜고 끄는 체크 상자(스위치) | 누르면 바로 저장. 바뀐 수에 들지 않음 |
+| 값 | 숫자·글 칸, 선택 상자, 테마 단추 묶음, 표 편집(연결 유형, 템플릿, Maven 저장소, 권한 정책, 데이터 형식), API 키·[키 지우기] | [저장]으로만. 바뀐 수에 듦 |
+| 동작 | Test, 지금 확인, 토큰 다시 만들기·복사, 찾아보기, 드라이버 관리자 열기 | 값을 저장하지 않음. 화면의 저장하지 않은 값을 씀(Test) |
+
+- **아래 줄(`OptionsSaving.Footer`):** 페이지 아래에 고정(스크롤해도 보임, 위에 가는 구분선). [저장](주 단추 모양, `Button.default.*` 색을 스타일로 줌 —
+  루트 창의 기본 단추가 아니라 글 칸의 Enter로 저장되지 않음) [되돌리기], 그 옆에 "저장하지 않은 변경 N개"/"N unsaved changes"(1개는 단수).
+  바뀐 값이 없으면 두 단추가 꺼지고 글이 없다. 값이 없는 페이지(Updates: 토글과 동작만)는 줄을 숨긴다.
+- **칸(`OptionsSaving.Part`):** 이름, 바뀐 수, 저장, 되돌리기. [저장]은 바뀐 칸을 차례로 저장하고, 실패한 칸은 값이 화면에 남고 이름을
+  "저장하지 못함: {이름}. 값은 그대로 있습니다. 그 칸에서 확인하세요."로 단추 줄 위에 한 줄로 보인다(이유는 도움말). 다른 칸은 저장된다. 성공 알림은 없다.
+  - General: 환경(테마·아이콘 스타일), Object Explorer, Query Editor(완성 지연), Query History, Query Library. Editor: 글꼴, 서식. Editor Colors: 한 칸
+    (테마·항목별 다른 색 설정의 수). Templates, Connection Types: 한 칸(바뀐·더한·지운 항목 수). Chromite Agent: 제공자마다, 권한 정책, MCP 포트.
+  - 모델 키 페이지(`SettingsPage` 20개): `OptionsSaving.SettingsPagePart`가 페이지의 `save(Writer)`를 저장소 위의 기록용 층(`StagingStore`)에 돌려
+    바뀔 키를 얻는다. 그 수 + 저장소 밖 값(`SettingsPage.getOtherChangeCount`: Drivers의 프록시 인증 정보·저장소 목록, Logs의 디버그 로그 한도)이 바뀐 수다.
+    되돌리기는 `load(getGlobalStore())` + `revertOther()`. 페이지 클래스는 거의 고치지 않는다.
+  - 토글 저장: 토글을 누르면 직전에 센 바뀐 키와 지금 바뀐 키를 비교해 그 사이에 바뀐 키만(같이 바뀐 상자 포함, 예: Code Completion의 이름 형식 둘)
+    바로 쓰고 저장한다. 값 칸의 저장하지 않은 변경은 그대로 남는다. 저장은 키의 타입대로(`setValue(boolean)` 등) 해서 듣는 쪽이 받는 값의 타입이 같다.
+  - 다시 세기: 페이지의 값 컨트롤(글 칸, 숫자, 선택 상자, 단추, 표 모델)에 듣는 것을 달고, 이 창의 마우스 놓기·키 놓기 뒤에도 EDT 다음 차례에 한 번
+    센다(표 모델이 알리지 않는 편집도 셈). 표 셀을 편집하는 동안은 세지 않는다(데이터 형식 페이지의 저장이 편집을 끝내므로).
+- **떠날 때·닫을 때:** 바뀐 값이 있는 페이지에서 다른 페이지를 고르거나 창을 닫으면(×, Esc) "저장하지 않은 변경"/"{페이지}에 저장하지 않은 변경이
+  있습니다. 저장할까요?"를 [저장](기본) [버리기] [취소]로 묻는다. Esc = 취소. 저장이 실패하면 그 페이지에 머문다. 묻는 동안 목록 선택은 지금 페이지로
+  돌아가 있다(목록 이벤트 안이 아니라 그 뒤에 묻는다). 바뀐 값이 있는 페이지는 찾기가 걸러도 목록에 남고 앞에 보인다.
+- **확인/취소 없앰(원칙 4):** OK·Cancel 단추와 전체 저장(`OptionsDialog.apply`, `applyStep`), 페이지마다의 `apply()`(Updates, Agent,
+  Templates·Connection Types는 `save`/`revert`로), 저장 실패 대화상자와 그 문구(`options_save_failed*`, `ai_options_save_failed`, `ai_policy_save_failed`,
+  `ai_options_title`, `editor_templates_cant_save`, `editor_templates_title`, `drivers_proxy_save_error`, `drivers_maven_save_error`)를 지웠다.
+  저장 실패는 아래 줄로 알린다. 보안 저장소 실패의 설명(`ai_options_save_failed_secure_storage`)은 예외 글로 남겨 아래 줄 도움말에 보인다.
+- 연결·트랜잭션 안전에 영향을 주는 설정(자동 롤백, 조회 트랜잭션 끝내기, 유휴 연결 끊기)은 Connection Types 표의 칸이라 값이다([저장]으로 저장하고
+  열린 세션의 커밋 방식은 전처럼 `AutoCommitApplier`가 묻는다). 즉시 적용 토글이 아니므로 켤 때 안내 줄은 따로 두지 않았다.
+
+### 이웃 작업
+
+- 글자 선명도·대비(#43/#55, 테마 색·글꼴)는 손대지 않았다. 그 작업이 General에 더한 "UI 글꼴" 행(아래 "UI 글꼴")은 이 행 모양에 들어가고
+  환경 칸의 값으로 센다([저장]으로 저장, 즉시 적용 토글 아님).
+
+### 고친 버그: Notifications의 끄기
+
+- 원인: 두 키(`agent.long.operation.notify`, `.timeout`)는 등록된 기본값이 없고 페이지는 "설정 없음 = 켬, 30초"로 읽는데
+  (`SwingSystemAgent.isLongOperationNotify`), 저장은 `getBoolean`/`getLong`(설정 없음 = false, 0)과 비교했다. 그래서 열기만 해도 기본값을 다시 썼고
+  (새 저장 표준에서는 "바뀐 값 2개"로 보였음), 끄기는 `setValue(false)`가 등록되지 않은 기본값(false)과 같아 저장소가 키를 지워 다시 켬으로 읽혔다
+  (`BundlePreferenceStore.putBoolean`). 새 작업 공간에서 끄기가 저장되지 않던 오래된 버그다.
+- 고침: 읽는 방식과 비교하고, 끔은 글자 "false"로 쓴다(`NotificationsOptionsPage.save`). 같은 방식(등록 기본값 없이 `contains`로 읽는 키)의 다른
+  페이지는 없다(모든 페이지를 열어 바뀐 수 0 확인).
+
+### 확인 (2026-11-12)
+
+Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS 입력 없음), 빈 작업 공간. 기록과 화면: `D:\Tools\_scratch\chromite-options-restyle\run\`,
+`shots\`.
+
+- 25개 페이지를 하나씩 열어 바뀐 수 0(Notifications 고친 뒤), Updates는 아래 줄 없음. 창 1080×760, 최소 760×520. 목록에 묶음 제목 6개.
+- 한국어 150% 어둡게: General(UI 글꼴 행 포함, 아래 설명 글), Query Execution, Connection Types, Chromite Agent, Data Formats, Editor, Editor Colors,
+  Query Results, 찾기("시간 제한") 화면. 영어 100% 밝게: General, Query Execution, Connections, Templates, Connection Types, Agent, 찾기("timeout").
+- 값: 완성 지연 300 → "저장하지 않은 변경 1개", [저장] 켜짐. 테마 단추 어둡게 → 2개. 다른 페이지 고름 → 질문(저장·버리기·취소), 취소 → 그대로,
+  [되돌리기] → 0개. 문 구분 기호 ";;" → 1개, 저장소는 ";" 그대로, 페이지를 떠나며 [저장] → ";;" 저장되고 Editor로 넘어감. UI 글꼴 → 1개(값).
+- 토글: 변수(`sql.variables.enabled`)를 누르면 바로 false/true로 저장되고 바뀐 수 0. 문 구분 기호를 바꾼 채 토글을 누르면 토글만 저장되고
+  구분 기호는 저장되지 않은 채 1개로 남음. DROP 확인 토글은 바로 바뀜. Notifications 끄기 → `false` 저장, 켜기 → `true`.
+- 닫기: 값 바꾼 채 닫기 → 질문, [버리기] → 닫힘, 다시 열면 0개. 값 없이 닫기 → 바로 닫힘. 찾기 중 바뀐 값이 있는 페이지(Query Execution)는
+  일치하지 않아도 목록에 남고 선택된 채 보임.
+- **확인하지 못함:** 저장 실패 줄(일부러 실패시킬 방법이 없음: 코드 경로만), macOS, 실제 마우스·키 입력(모두 Swing 객체로 다룸).
 ## UI 글꼴 (2026-11-12, 앱 변경 #43)
 
 사용자 보고(기업 환경 2026-11-09·11): 회사 PC(클라우드 VDI, 100% 배율, ClearType 켜짐)에서 Chromite 글자만 흐리다. 원인과 측정은
@@ -505,7 +606,7 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 시스템 글꼴: FlatLaf의 운영체제 UI 글꼴(Windows `win.messagebox.font`: 한국어 Windows는 맑은 고딕, 영어 Windows는 Segoe UI, macOS는 시스템 글꼴),
   크기는 테마의 `font.ui`와 같은 12, semibold는 그 글꼴의 BOLD. 고정폭(`font.code`)과 SQL 편집기 글꼴은 바뀌지 않는다.
 - 구조: `UiFont.Choice`가 선택이고 `UiFont.getExtraDefaults()`가 시스템 글꼴일 때 `defaultFont = 12`, `semibold.font = bold`를 FlatLaf extra defaults로
-  준다(`ChromiteTheme.install`, 밀도와 같은 방식). OK를 누르면 저장하고, 쓰는 글꼴이 바뀌면 지금 테마를 다시 설치해 열린 창이 모두 바뀐다(다시 시작 없음).
+  준다(`ChromiteTheme.install`, 밀도와 같은 방식). General 페이지의 [저장]으로 저장하고(값, #59 저장 표준), 쓰는 글꼴이 바뀌면 지금 테마를 다시 설치해 열린 창이 모두 바뀐다(다시 시작 없음).
   시작할 때는 작업 공간을 잠그기 전에 자동으로 설치하고, 메인 창을 열기 전에 저장값이 다른 글꼴이면 다시 설치한다(`ChromiteSwingApplication.openMainWindow`).
 - 이 행은 Options 대화상자의 General 페이지에 한 행(콤보와 안내 글)만 더했다. 대화상자의 모양은 바꾸지 않았다.
 
@@ -669,6 +770,9 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-09 Connection Types에 "조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기"(앱 변경 #31, 기본 꺼짐, 사용자 결정으로 연결 유형마다)
   ([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기"). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 - 2026-11-11 테마 선택에 시스템 설정 따르기(기본값), 운영체제 설정이 바뀌면 따라감(앱 변경 #38, 위 "테마").
+- 2026-11-12 옵션 화면 다시 디자인(묶음·아이콘 목록, 카드 행, 스위치, 테마 단추 셋, 넓은 여백)과 확인/취소 대신 Turbrix 저장 표준
+  (토글은 바로, 값은 [저장], 떠날 때 묻기). Notifications 페이지가 새 작업 공간에서 끄기를 저장하지 못하던 것을 고침(앱 변경 #59, 위
+  "옵션 화면 모양과 저장 (#59)").
 - 2026-11-12 General에 UI 글꼴(자동·Pretendard·시스템 글꼴, 기본값 자동)(앱 변경 #43, 위 "UI 글꼴").
 - 2026-11-12 설정을 글로만 가리키던 다섯 화면(여섯 곳)에 그 페이지를 여는 링크·메뉴 항목(`OptionsLinks`, B12, `chromite/small-fixes-r2`, 위 "특정 페이지로 여는 곳").
   `OptionsDialog`는 고치지 않음(재구성 브랜치와 병합 충돌을 피하려고).

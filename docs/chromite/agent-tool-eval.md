@@ -2,7 +2,8 @@
 
 ## 목적
 
-Chromite Agent는 도구 101개를 제공하고, 채팅은 요청마다 거의 모두를 보낸다([ai-agent.md](ai-agent.md) "요청 크기", "도구 선택 점검").
+Chromite Agent는 도구 101개(+ 채팅 전용 `findTools`)를 제공한다. 채팅은 제공자마다 정한 도구 묶음(최소·핵심·전체)만 보내고, 묶음 밖의 도구는
+`findTools`로 찾는다([ai-agent.md](ai-agent.md) "요청 크기", "도구 선택 점검", "도구 묶음").
 도구가 많으면 모델이 비슷한 도구를 잘못 고를 수 있다. 이 문서는 실제 모델로 그것을 재기 위한 질문 목록이다(앱 변경 #61).
 
 - 실제 모델 실행은 사용자 키와 비용이 드므로 **사용자만 시작한다**. 에이전트는 실제 제공자에 접속하지 않는다(공통 규칙).
@@ -11,7 +12,10 @@ Chromite Agent는 도구 101개를 제공하고, 채팅은 요청마다 거의 �
 ## 재는 방법
 
 - **환경**: 운영이 아닌 시험 연결. 기본은 SQL Server(표의 DB 칸이 MS), PG는 PostgreSQL(가능하면 hypopg 설치), 빈 칸은 DB 종류와 상관없음.
-  Options > Chromite Agent > Tool Policy의 "도구를 모두 보냄"은 끈다(기본). 질문마다 새 대화로 시작한다.
+  Options > Chromite Agent > 제공자의 "채팅 도구 묶음"을 재려는 묶음으로 정하고 결과 기록에 적는다(기본: vLLM·Ollama 최소, 나머지 핵심).
+  질문마다 새 대화로 시작한다.
+- **findTools**: 묶음에 허용 첫 도구가 없으면 모델은 `findTools`를 먼저 부르거나(최소 묶음은 `runReadOnlySql`로 시스템 뷰를 직접 읽을 수도 있음)
+  허용 도구를 이름으로 부를 수 있다. 첫 도구가 `findTools`이고 그 다음 도구가 허용 칸에 있으면 맞음으로 센다(아래 "도구 묶음별 필요").
 - **확인 대화상자**: 쓰기 도구의 확인이 뜨면 **취소**한다. 재는 것은 첫 도구 선택이지 실행 결과가 아니다.
 - **기록**: 감사 기록(`ai-agent.md` "감사 기록")이나 채팅 카드에서 도구 호출 순서와 인수를 옮겨 적는다.
 - **판정** (질문마다):
@@ -88,14 +92,31 @@ Chromite Agent는 도구 101개를 제공하고, 채팅은 요청마다 거의 �
 | 59 | 편집기 | 이 쿼리를 새 창에 열어 줘: `<SQL>` | MS | `openInEditor` | `editQueryWindow`, `runSelect` |
 | 60 | 편집기 | Format this SQL nicely: `<SQL>` | | `formatSql` (도구 없이 답해도 중립) | `validateSql`, `openInEditor` |
 
+## 도구 묶음별 필요 (2026-11-12, 앱 변경 #64)
+
+허용 첫 도구가 어느 묶음에 처음 들어 있는지다. 최소 = 13개(`findTools` 포함), 핵심 = 44개, 전체 = 101개([ai-agent.md](ai-agent.md) "도구 묶음").
+
+| 필요한 묶음 | 질문 | 수 |
+|---|---|---|
+| 최소 | 1, 2, 3, 5, 7, 11, 13, 14, 15, 21, 36, 42, 43, 44, 45, 46, 47, 56, 57, 58, 59 | 21 |
+| 핵심 (최소에서는 `findTools` 또는 `runReadOnlySql`) | 4, 6, 9, 10, 16, 17, 19, 20, 22, 26, 28, 29, 30, 31, 32, 33, 34, 35, 40, 48, 49 | 21 |
+| 전체 (핵심에서도 `findTools`) | 8, 12, 18, 23, 24, 25, 27, 37, 38, 39, 41, 50, 51, 52, 53, 54, 55, 60 | 18 |
+
+- 최소 묶음에서 맞는 질문 가운데 44(`importCsv`), 45(`generateDdl`·`alterTable`), 47(`exportData`)은 허용 칸의 `describeTable`로 시작할 수 있을
+  뿐 실제 작업 도구는 `findTools`로 찾아야 한다. 42·43은 `runSql`(조건 기반 변경)로 끝낼 수 있다.
+- 60(`formatSql`)은 도구 없이 답해도 중립이라 `findTools`가 없어도 된다.
+- 플레이북으로 시작한 대화는 플레이북 글이 이름으로 부르는 도구가 그 대화에 더해진다(ai-agent.md "도구 묶음"). 이 표는 자유 질문 기준이다.
+- 이 묶음 구성으로 재면 "전체" 칸의 18개는 `findTools` 한 번(왕복 하나)이 더 든다. 그 질문들의 정확도가 떨어지면 해당 도구를 핵심으로
+  올릴 근거다(`plugin.xml`의 `toolSet`).
+
 ## 결과 기록
 
 실행한 날, 모델, 도구 설명의 판(커밋), 보낸 도구 수와 요청 크기, 위 지표를 표로 남긴다. 틀린 질문은 도구 설명이나 묶음을 고칠 근거로
 ai-agent.md "도구 선택 점검"에 적는다.
 
-| 날짜 | 모델 | 판 | 보낸 도구 | 정확도 | 중립 | 평균 호출 | 틀린 인수 | 메모 |
-|---|---|---|---|---|---|---|---|---|
-| (아직 실행하지 않음) | | | | | | | | |
+| 날짜 | 모델 | 판 | 도구 묶음 | 보낸 도구 | 정확도 | 중립 | 평균 호출 | 틀린 인수 | 메모 |
+|---|---|---|---|---|---|---|---|---|---|
+| (아직 실행하지 않음) | | | | | | | | | |
 
 ## 부록: 도구 목록 (2026-11-12)
 
@@ -205,7 +226,10 @@ ai-agent.md "도구 선택 점검"에 적는다.
 | `listQueryWindows` | 편집기 | R | Lists the query windows open in the Chromite app: id, title, connection, database, saved file, unsaved changes, active window, running query, text length, caret and selection | — |
 | `getQueryWindowText` | 편집기 | R | Reads the text of an open query window (default: the active one): the whole text, the selection, or the SQL statement at the caret, with its offsets | `window`, `part`, `maxChars` |
 | `editQueryWindow` | 편집기 | W (none) | Changes the text of an open query window (default: the active one): insert at the caret, replace the selection, or replace the whole text | `window`, `mode`\*, `text` |
+| `findTools` | 에이전트 | R (채팅만) | Finds agent tools you were not given by English keywords and/or an area, and returns their ids, area, class and one-line description | `query`, `area`, `limit` |
 
 ## 변경 이력
 
 - 2026-11-12 처음 작성(앱 변경 #61, `chromite/agent-tool-review`): 질문 60개(한국어 34·영어 26), 재는 방법, 도구 목록 부록.
+- 2026-11-12 도구 묶음(앱 변경 #64, `chromite/agent-tool-sets`): 재는 방법의 설정을 "채팅 도구 묶음"으로, `findTools`를 거친 첫 도구 판정,
+  질문별 필요한 묶음 표, 결과 기록에 묶음 칸. 부록에 `findTools`.

@@ -26,6 +26,7 @@ import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -57,6 +58,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-08 기록할 것·쿼리 종류는 Query Manager 창의 보일 항목이기도 해서 로그 파일을 꺼도 켜 둠, 그 안내 (docs/chromite/swing-query-manager.md)
+ * - 2026-11-12 Options 저장 표준: 디버그 로그 한도(모델 번들 저장소)도 바뀐 수에 셈(앱 변경 #59, docs/chromite/swing-options.md
+ *   "옵션 화면 모양과 저장 (#59)")
  */
 final class LogsOptionsPage extends SettingsPage {
 
@@ -163,8 +166,18 @@ final class LogsOptionsPage extends SettingsPage {
         writer.setString(QMConstants.PROP_QUERY_TYPES, String.join(",", queryTypes)); //$NON-NLS-1$
     }
 
+    /**
+     * The debug log limits, in the model bundle's store (not the page's).
+     */
     @Override
-    void apply() {
+    int getOtherChangeCount() {
+        int count = ((Number) debugSizeSpinner.getValue()).longValue() == loadedDebugSizeMb ? 0 : 1;
+        int savedCount = Math.clamp(ModelPreferences.getPreferences().getInt(LogOutputStream.LOGS_MAX_FILES_COUNT), 1, 100);
+        return count + (((Number) debugCountSpinner.getValue()).intValue() == savedCount ? 0 : 1);
+    }
+
+    @Override
+    void apply() throws DBException {
         super.apply();
         // Written to the store LogOutputStream listens to, so the running log takes the new limits at once
         DBPPreferenceStore modelStore = ModelPreferences.getPreferences();
@@ -173,6 +186,7 @@ final class LogsOptionsPage extends SettingsPage {
         if (sizeMb != loadedDebugSizeMb) {
             // A size saved in bytes that is not a whole number of megabytes stays unless the field is changed
             writer.setLong(LogOutputStream.LOGS_MAX_FILE_SIZE, sizeMb * MEGABYTE);
+            loadedDebugSizeMb = sizeMb;
         }
         writer.setInt(LogOutputStream.LOGS_MAX_FILES_COUNT, ((Number) debugCountSpinner.getValue()).intValue());
         if (writer.isChanged()) {

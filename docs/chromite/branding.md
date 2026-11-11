@@ -143,7 +143,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 1. **런처 시작 화면(JVM 전):** `chromite-swing.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
    네이티브 런처가 `plugins/com.seizia.chromite.splash_<버전>/splash.png`를 JVM을 띄우기 전에 보여 준다. 그림만 보이고 글자는 없다.
-2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 같은 자리(주 화면 가운데)에 띄우고
+2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 런처 창과 같은 자리(아래 "자리")에 띄우고
    아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
    그 직후 애플리케이션이 런처 시작 화면을 내린다(`IApplicationContext.applicationRunning`). 메인 창이나 시작 대화상자가 열리면 닫힌다.
 
@@ -151,10 +151,31 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 |---|---|---|
 | 그림 번들 | `plugins/com.seizia.chromite.splash` (`Eclipse-BundleShape: dir`, 코드 없음) | `splash.png`(1x), `splash@2x.png`(2x). 기능 `com.seizia.chromite.swing.feature`에 들어 있다 |
 | 런처 인수 | `product/swing/chromite-swing.product` `<programArgs>-showsplash com.seizia.chromite.splash</programArgs>` | Windows·macOS ini 모두에 들어간다(빌드 결과로 확인) |
-| Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다 |
+| Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다. macOS에서는 `org.eclipse.equinox.launcher.splash.handle`(런처의 `NSWindow`)의 자리에 둔다 |
 | 시작 순서 | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open`(업데이트 뒤 첫 시작이면 그 대신 업데이트 진행 창, [auto-update.md](auto-update.md) "업데이트 진행 창") → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
 | 그림 생성 | `tools/branding/gen_app_icons.py` `splash_png` | 다크 가로 로고를 다크 테마 `bg.chrome`(`#2B2D30`) 바탕, `border.popup`(`#43454A`) 1px 테두리 위에. 아래 줄은 비워 둔다 |
 | 시간 기록 | `ChromiteSwingApplication.StartupTimes` | 프로세스 시작부터 단계별 ms를 디버그 로그 한 줄로: `Startup times (ms after the process started): application …, look and feel …, splash …, platform …, services …, workspace …, main window …` |
+
+#### 자리 (앱 변경 #52)
+
+macOS에서 시작 화면이 처음에 가운데보다 약간 위에 떴다가 가운데로 내려갔다(2026-11-11 사용자 보고). 두 창의 자리 규칙이 달랐다.
+
+| 창 | 자리를 정하는 곳 | 규칙 |
+|---|---|---|
+| 런처, Windows | Equinox 런처 `library/win32/eclipseWin.c` `showSplash` | 주 화면 전체(`GetSystemMetrics(SM_CXSCREEN/SM_CYSCREEN)`, 작업 표시줄 포함)의 정가운데. 그림은 화면 DPI만큼 키운다(150%면 840×480 px) |
+| 런처, macOS | `library/cocoa/eclipseCocoa.c` `+[KeyWindow show:]` | `[window center]`. AppKit은 가로 가운데, 세로는 "가운데보다 약간 위"에 둔다. 정확한 계산은 문서에 없다(메뉴 막대·Dock을 뺀 영역에서 위쪽 여백이 약 1/3이라는 관찰만 있음) |
+| Swing(고치기 전) | `StartupSplash.show` | 주 화면 `getBounds()`의 정가운데: Windows 런처와 같고 macOS 런처와 다르다 |
+
+- **macOS는 런처 창의 실제 자리를 읽는다.** Equinox `Main.handleSplash`가 런처 창의 주소를 시스템 속성 `org.eclipse.equinox.launcher.splash.handle`에 둔다
+  (macOS는 `NSWindow*`). `StartupSplash`가 JNA로 `-[NSWindow frame]`을 읽어(arm64는 `objc_msgSend`, x86_64는 32바이트 구조체라 `objc_msgSend_stret`)
+  Cocoa 좌표(주 화면 왼쪽 아래 원점)를 AWT 좌표(왼쪽 위 원점)로 바꾸고 창을 그 자리·크기에 둔다. AppKit의 규칙을 흉내 내지 않은 이유: 문서에 없는 계산이라
+  macOS 버전마다 달라질 수 있고, 메뉴 막대·Dock·여러 화면에서 맞는지 확인할 수 없다. 읽지 못하면(속성 없음, JNA 실패) 경고 한 줄을 남기고 예전처럼 가운데에 둔다.
+- **Windows는 그대로다.** 런처는 물리 픽셀로 `(화면 − 그림)/2`, Swing은 논리 좌표로 `(화면 − 560×320)/2`를 계산한다. 배율 s에서 Swing 창은 물리
+  `s·(W/s − 560)/2 = (W − 560·s)/2`라 같은 자리다(정수 나눗셈에서 1px 차이가 날 수 있다). 100%에서는 두 계산이 같은 식이다. 측정은 변경 이력의 2026-11-12 줄.
+- **업데이트 뒤 첫 시작(#11)은 다른 창이다.** 런처 시작 화면 다음에 시작 화면이 아니라 업데이트 진행 창이 지난 창 자리(끝내기 때 기록)에 뜬다. 같은 그림이
+  움직이는 것이 아니라 다른 창으로 바뀌는 것이라 이번 변경에 넣지 않았다.
+- 디버그 로그에 `Startup splash at java.awt.Rectangle[…]`(macOS에서 읽은 자리면 `(the launcher's splash)`)을 남긴다. `macos-smoke.sh launch`가 시작하는 동안
+  0.3초마다 창 자리를 기록해 시작 화면 크기 창의 자리가 하나뿐인지 본다([ci.md](ci.md) "macOS 설치·실행 시험").
 
 #### 설계 결정
 
@@ -321,3 +342,7 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 - 2026-11-08 "사이트의 출처 고지" 절 추가(사이트 2차 수정 요청 15번, `chromite/site-round2`): 바닥글과 지원 범위 페이지의 출처 고지 문구가 사이트에서 원래 프로젝트 이름을 쓰는 유일한 자리.
 - 2026-11-08 업데이트 뒤 첫 시작에는 Swing 시작 화면 대신 업데이트 진행 창이 뜬다(앱 항목 #11, `chromite/update-window`, "시작 순서" 행). 앱의 사본은 런처를 `-nosplash`로 띄운다.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 시작 화면 자리(앱 변경 #52, `chromite/mac-ui-2`, "자리" 절 추가): macOS에서 Swing 시작 화면을 런처 창의 실제 자리(`-[NSWindow frame]`)에 둠,
+  자리를 디버그 로그에 남김(`StartupSplash.getPlacement`, 로그가 열린 뒤 `ChromiteSwingApplication`이 씀). Windows 측정(로컬 빌드, 3840×2160 화면, 150%, 20 ms마다
+  창 사각형): 런처 창(`Static`) 1500,840 840×480 → Swing 창(`SunAwtFrame`) 1500,840 840×480, 75 ms 동안 둘이 겹친 뒤 런처 창이 내려감 — 같은 자리·크기.
+  100%는 화면 배율을 바꿀 수 없어 측정하지 못했다(두 계산이 같은 식, "자리" 절). macOS는 실행하지 못했다(macos-smoke로 확인).

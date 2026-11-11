@@ -17,13 +17,19 @@
 #                            connection whose fake password is in the pre-#111 credentials file
 #   launch <label>           open(1) with CHROMITE_DATA and -data, waits for the startup log line and a
 #                            window of the app (answers Gatekeeper's first-launch question once),
-#                            screenshot <label>-splash.png of the startup splash and
-#                            <label>-main-window.png; the splash must be gone once the main window is up;
+#                            screenshots <label>-splash.png (and -splash-2..4 when the windows change) of the
+#                            startup splash, <label>-main-window.png and <label>-title-bar.png; every
+#                            splash-sized window polled (<label>-splash-positions.txt) must be at one place
+#                            (the launcher's splash hands over to the Swing one in place, app change #52);
+#                            the splash must be gone once the main window is up;
 #                            without a window: process, native stacks (sample) and a JVM thread dump
 #                            (SIGQUIT into <label>-stdout.txt)
 #   secure-storage           the secure storage file, the Keychain item and the debug log
 #   menus                    the window menus in the screen menu bar, About and Preferences of the app
 #                            menu (System Events), screenshots
+#   titlebar                 the main window's unified title bar (app change #62): title-bar-light.png,
+#                            title-bar-dark.png (system appearance switched to dark and back),
+#                            main-window-fullscreen.png
 #   quit <appleevent|keystroke>
 #                            Quit by the Apple event quit or by Cmd+Q; the process must end through
 #                            the main window's closing path (debug log), no crash report
@@ -61,6 +67,10 @@ LEGACY_KEY=babb4a9f774ab853c96c2d653dfe544a
 STARTUP_LINE='Startup times'
 # Size of the startup splash in points, the native launcher's and the Swing one's (plugins/com.seizia.chromite.splash)
 SPLASH_SIZE='560, 320'
+# The same size as window_rects prints it
+SPLASH_RECT_SIZE='560 320'
+# Height in points of the main window's top strip in the title bar screenshots: the title bar row and the SQL Editor row
+TITLE_STRIP=90
 
 mkdir -p "$OUT"
 
@@ -105,6 +115,31 @@ window_count() {
 }
 window_list() {
   with_timeout 20 osascript -e "tell application \"System Events\" to get {name, position, size} of every window of $(ax_process "$@")" 2>&1 || true
+}
+# One line per window: x y width height (points, from the top left of the main screen)
+window_rects() {
+  with_timeout 20 osascript - << EOF 2> /dev/null || true
+tell application "System Events"
+  set out to ""
+  repeat with w in (every window of $(ax_process "$@"))
+    set {px, py} to position of w
+    set {sx, sy} to size of w
+    set out to out & px & " " & py & " " & sx & " " & sy & linefeed
+  end repeat
+  return out
+end tell
+EOF
+}
+now() { perl -MTime::HiRes=time -e 'printf "%.2f", time'; }
+# Screenshot of the top strip of the app's largest window (the main window)
+title_bar_shot() {
+  local pid=$1 name=$2 rect
+  rect=$(window_rects pid "$pid" | awk 'NF == 4 && $3 * $4 > best { best = $3 * $4; r = $1 "," $2 "," $3 } END { print r }')
+  if [ -z "$rect" ]; then
+    note "no main window rectangle for $name"
+    return 0
+  fi
+  screencapture -x -R "$rect,$TITLE_STRIP" "$OUT/$name.png" 2> /dev/null && echo "screenshot $name.png ($rect,$TITLE_STRIP)" || note "screencapture failed for $name"
 }
 
 gatekeeper_on() {
@@ -292,7 +327,7 @@ launch_diagnostics() {
 }
 
 cmd_launch() {
-  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 splash=0 n prompt times
+  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 splash=0 n prompt times rects last_rects= positions line
   need_app
   [ -z "$(app_pid)" ] || fail "an app copy already runs"
   # A start may rotate or rewrite the debug log: keep the previous one aside and wait for a new file
@@ -327,11 +362,26 @@ cmd_launch() {
     if [ -n "$pid" ] && [ -f "$DEBUG_LOG" ] && tail -n +$((before + 1)) "$DEBUG_LOG" | grep -q "$STARTUP_LINE"; then
       n=$(window_count pid "$pid" || echo 0)
       if [ "${n:-0}" -gt 0 ]; then up=1; break; fi
-    elif [ -n "$pid" ] && [ $splash = 0 ] && [ "$(window_count pid "$pid" || echo 0)" -gt 0 ]; then
-      # A window before the main window: the startup splash (once per launch)
-      window_list pid "$pid" > "$OUT/$label-splash-windows.txt"
-      shot "$label-splash"
-      splash=1
+    elif [ -n "$pid" ]; then
+      # Windows before the main window: the launcher's splash, then the Swing one in its place (app change #52).
+      # Every poll is logged, and a screenshot is taken when the windows change (at most 4), so a jump shows in the
+      # pictures too. Short polls: the hand-over takes a moment
+      rects=$(window_rects pid "$pid")
+      if [ -n "$rects" ]; then
+        echo "$rects" | sed "s/^/$(now) /" >> "$OUT/$label-splash-positions.txt"
+        if [ "$rects" != "$last_rects" ] && [ $splash -lt 4 ]; then
+          splash=$((splash + 1))
+          if [ $splash = 1 ]; then
+            window_list pid "$pid" > "$OUT/$label-splash-windows.txt"
+            shot "$label-splash"
+          else
+            shot "$label-splash-$splash"
+          fi
+          last_rects=$rects
+        fi
+      fi
+      sleep 0.3
+      continue
     fi
     sleep 2
   done
@@ -344,14 +394,33 @@ cmd_launch() {
   sleep 8
   window_list pid "$pid" | tee "$OUT/$label-windows.txt"
   shot "$label-main-window"
+  title_bar_shot "$pid" "$label-title-bar"
   if grep -q "$SPLASH_SIZE" "$OUT/$label-windows.txt"; then
     fail "$label: a window of the startup splash's size ($SPLASH_SIZE) is still open after the main window (see $label-windows.txt)"
   fi
-  if [ $splash = 1 ] && grep -q "$SPLASH_SIZE" "$OUT/$label-splash-windows.txt"; then
+  if [ $splash -gt 0 ] && grep -q "$SPLASH_SIZE" "$OUT/$label-splash-windows.txt"; then
     pass "$label: the startup splash was shown before the main window and is closed"
   else
     note "$label: no splash-sized window was seen before the main window (startup may have been faster than one poll)"
   fi
+  # The launcher's splash and the Swing one: one place for every splash-sized window of every poll (reported, not fatal)
+  positions=$(awk -v size="$SPLASH_RECT_SIZE" '$4 " " $5 == size { print $2 ", " $3 }' "$OUT/$label-splash-positions.txt" 2> /dev/null | sort -u)
+  n=$(printf '%s' "$positions" | grep -c . || true)
+  if [ "$n" = 1 ]; then
+    pass "$label: the startup splash stayed at $positions ($(grep -c . "$OUT/$label-splash-positions.txt") window polls)"
+  elif [ "$n" -gt 1 ]; then
+    result FAIL "$label: the startup splash moved: $(echo "$positions" | tr '\n' ';') ($label-splash-positions.txt)"
+  else
+    note "$label: no splash position was polled"
+  fi
+  line=$(grep 'Startup splash at' "$DEBUG_LOG" | tail -1 | sed 's/.*Startup splash at/Startup splash at/' || true)
+  [ -z "$line" ] || note "$label: $line"
+  line=$(grep 'macOS unified title bar' "$DEBUG_LOG" | tail -1 || true)
+  case "$line" in
+    '') note "$label: no 'macOS unified title bar' line in the debug log (menus not in the screen menu bar?)" ;;
+    *'without FlatLaf'*) result FAIL "$label: macOS unified title bar${line#*macOS unified title bar}: the tool bar row can't move the window" ;;
+    *) note "$label: macOS unified title bar${line#*macOS unified title bar}" ;;
+  esac
   times=$(grep "$STARTUP_LINE" "$DEBUG_LOG" | tail -1 | sed 's/.*Startup times/Startup times/' || true)
   note "$label: $times"
   ps -o pid=,etime=,command= -p "$pid" | cut -c1-400 > "$OUT/$label-process.txt"
@@ -476,6 +545,55 @@ cmd_menus() {
   [ $rc = 0 ] || fail "the menu check is incomplete (see the notes above and the screenshots)"
 }
 
+# System appearance (light or dark). The app reads it again when it becomes active after another app (SystemTheme).
+set_dark_mode() {
+  with_timeout 30 osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $1" > /dev/null 2>&1 || note "could not set dark mode to $1"
+}
+reactivate() {
+  local pid=$1
+  with_timeout 30 osascript -e 'tell application "Finder" to activate' > /dev/null 2>&1 || true
+  sleep 2
+  with_timeout 30 osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $pid) to true" > /dev/null 2>&1 || true
+  sleep 6
+}
+full_screen() {
+  with_timeout 30 osascript -e "tell application \"System Events\" to set value of attribute \"AXFullScreen\" of window 1 of (first process whose unix id is $1) to $2" >> "$OUT/fullscreen.txt" 2>&1
+}
+
+# The unified title bar (app change #62) in both appearances and in full screen, judged from the pictures: the title
+# bar area has the app's canvas colour, the traffic-light buttons sit left of the first tool bar button, no title
+# text; in full screen the tool bar starts at the left edge.
+cmd_titlebar() {
+  local pid rc=0
+  need_app
+  pid=$(app_pid)
+  [ -n "$pid" ] || fail "the app does not run"
+  echo "system appearance: $(defaults read -g AppleInterfaceStyle 2> /dev/null || echo Light)"
+  reactivate "$pid"
+  title_bar_shot "$pid" title-bar-light
+  set_dark_mode true
+  reactivate "$pid"
+  title_bar_shot "$pid" title-bar-dark
+  shot main-window-dark
+  set_dark_mode false
+  reactivate "$pid"
+  if full_screen "$pid" true; then
+    sleep 6
+    shot main-window-fullscreen
+    full_screen "$pid" false || rc=1
+    sleep 6
+  else
+    note "titlebar: could not switch to full screen: $(tail -1 "$OUT/fullscreen.txt")"
+    rc=1
+  fi
+  window_list pid "$pid" > "$OUT/titlebar-windows.txt"
+  if [ $rc = 0 ]; then
+    pass "titlebar: screenshots title-bar-light, title-bar-dark, main-window-dark, main-window-fullscreen (judged by eye)"
+  else
+    note "titlebar: the full screen check is incomplete (see the notes above)"
+  fi
+}
+
 cmd_quit() {
   local method=${1:?quit: appleevent or keystroke} pid bid before deadline tail_log crashes
   need_app
@@ -576,8 +694,9 @@ cmd_txn() {
   # (Home is not bound to the tree's first row on macOS)
   on_app "$pid" 'key code 125' > /dev/null
   sleep 1
-  # Ctrl+N: new query window for the selected connection (MainFrame.newQueryAction, Control, not Command)
-  on_app "$pid" 'keystroke "n" using control down' > /dev/null
+  # Cmd+N: new query window for the selected connection (MainFrame.newQueryAction, UiKeys.command: Command on macOS
+  # since 0.1.4; the Ctrl+N this step sent before did nothing there, so Cmd+Q ended the app without a question)
+  on_app "$pid" 'keystroke "n" using command down' > /dev/null
   sleep 4
   shot txn-1-new-query
   on_app "$pid" "keystroke \"insert into smoke(note) values ('during');\"" > /dev/null
@@ -669,6 +788,7 @@ case "${1:-}" in
   launch) cmd_launch "${2:-}" ;;
   secure-storage) cmd_secure_storage ;;
   menus) cmd_menus ;;
+  titlebar) cmd_titlebar ;;
   quit) cmd_quit "${2:-}" ;;
   txn) cmd_txn ;;
   stop) cmd_stop ;;

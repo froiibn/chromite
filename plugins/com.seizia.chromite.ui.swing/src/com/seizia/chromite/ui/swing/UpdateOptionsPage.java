@@ -32,12 +32,14 @@ import java.awt.*;
  * Tools &gt; Options &gt; Updates: the automatic check switch, the current version and [Check now].
  *
  * 설계: 설정은 업데이트 모델({@link UpdateService#setEnabled})이 업데이트 폴더의 {@code update.json}에 저장한다(작업 공간이 아니라
- * 설치 단위). 이 탭은 다른 탭처럼 OK를 누를 때 바뀐 값만 적용한다. [지금 확인]은 바로 돌고(자동 확인이 꺼져 있어도),
+ * 설치 단위). 자동 확인은 켜고 끄는 토글이라 누를 때 바로 저장한다(Options 저장 표준, 저장할 값이 없어 페이지 아래 줄도 없음).
+ * [지금 확인]은 바로 돌고(자동 확인이 꺼져 있어도),
  * 결과는 모델의 상태를 받아 아래 줄에 보인다. 확인이 보내는 것(고정된 요청 하나)을 탭에 적어 둔다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
  * - 2026-11-09 모든 사용자 설치의 "준비됨" 문구: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-12 자동 확인을 누를 때 바로 저장(OK 없앰, 앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class UpdateOptionsPage extends JPanel {
 
@@ -46,15 +48,15 @@ final class UpdateOptionsPage extends JPanel {
     private final JButton checkButton = new JButton(UpdateMessages.update_options_check_now);
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
     private final JLabel placeLabel = new JLabel();
-    private final boolean initiallyEnabled;
     private final UpdateService.Listener listener = state -> SwingUtilities.invokeLater(() -> show(state));
     private boolean checkRequested;
 
     UpdateOptionsPage() {
         super(new BorderLayout());
         UpdateService.State state = service.getState();
-        initiallyEnabled = state.enabled();
-        autoBox.setSelected(initiallyEnabled);
+        autoBox.setSelected(state.enabled());
+        // A toggle: saved when it is clicked (Options save standard)
+        autoBox.addActionListener(e -> service.setEnabled(autoBox.isSelected()));
         checkButton.addActionListener(e -> {
             checkRequested = true;
             statusLabel.setText(UpdateMessages.update_options_checking);
@@ -116,15 +118,6 @@ final class UpdateOptionsPage extends JPanel {
     public void removeNotify() {
         service.removeListener(listener);
         super.removeNotify();
-    }
-
-    /**
-     * OK: the switch, when it changed.
-     */
-    void apply() {
-        if (autoBox.isSelected() != initiallyEnabled) {
-            service.setEnabled(autoBox.isSelected());
-        }
     }
 
     private void show(@NotNull UpdateService.State state) {

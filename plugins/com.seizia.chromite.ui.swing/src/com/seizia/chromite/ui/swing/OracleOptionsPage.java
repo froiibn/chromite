@@ -44,7 +44,7 @@ import java.util.List;
  *     <li>기본값(ROWID, DBMS_OUTPUT, 모든 동의어, 이스케이프 끄기 모두 켬)은 Oracle 번들의 설정 초기화가 넣는다. 초기화는 번들이 시작될 때
  *     ({@code OracleActivator}가 자기 설정 노드를 읽음) 돈다. 아직 Oracle 연결을 쓰지 않아 번들이 시작되지 않았으면 기본값 대신 꺼짐이 읽히므로,
  *     값을 읽기 전에 번들의 클래스를 불러 시작시킨다(지연 활성화).</li>
- *     <li>Maximum rows처럼 플랫폼 설정 저장소에 쓴다. 연결별 값을 두지 않은 모든 Oracle 연결에 적용된다. OK에서 바뀐 값만 저장한다.</li>
+ *     <li>Maximum rows처럼 플랫폼 설정 저장소에 쓴다. 연결별 값을 두지 않은 모든 Oracle 연결에 적용된다. 켜고 끄는 설정은 바로, 실행 계획 테이블은 페이지의 [저장]에서 저장한다.</li>
  *     <li>연결별 값({@link SettingsPage}): Oracle 연결의 연결 대화상자 Options &gt; Settings에 같은 페이지가 있다(SWT {@code PrefPageOracle}도
  *     연결 속성 페이지였음). 실행 계획 테이블은 연결마다 한 번 찾아 기억하고 DBMS_OUTPUT 켜기·끄기는 세션을 열 때 하므로, 연결된 연결에서
  *     바꾸면 다시 연결을 묻는다({@link #isAppliedWithoutReconnect}).</li>
@@ -55,6 +55,7 @@ import java.util.List;
  * - 2026-11-08 {@link SettingsPage}로 바꿈: 연결별 값(연결 대화상자) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 DBMS_OUTPUT 도구 설명: 열린 쿼리 창에도 다음 문장부터 적용(다시 연결할 필요 없음)
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-12 Options 저장 표준(앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class OracleOptionsPage extends SettingsPage {
 

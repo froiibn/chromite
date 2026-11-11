@@ -55,7 +55,7 @@ import java.util.Objects;
  *     <li>프록시({@code ui.proxy.host}, {@code ui.proxy.port}): {@code WebUtils.openConnection}(드라이버 내려받기)과 {@code GlobalProxyAuthenticator}가
  *     읽는다. 사용자 이름과 비밀번호는 설정 파일에 두지 않고 모델의 저장 경로({@link GlobalProxyAuthenticator#saveCredentials}, 보안 저장소)로 쓴다.
  *     예전 설정 파일의 값은 그 경로가 지운다.</li>
- *     <li>Maven 저장소: 키가 아니라 {@code maven-repositories.xml}이다({@link MavenRegistry}). 사본을 고치고 OK에서 기본 제공 저장소의 사용 여부와 추가한
+ *     <li>Maven 저장소: 키가 아니라 {@code maven-repositories.xml}이다({@link MavenRegistry}). 사본을 고치고 페이지의 [저장]에서 기본 제공 저장소의 사용 여부와 추가한
  *     저장소({@link MavenRepository.RepositoryType#CUSTOM})를 옮긴 뒤 {@link MavenRegistry#saveConfiguration}으로 저장한다(인증 정보는 보안 저장소).</li>
  *     <li>전역 라이브러리({@code ui.drivers.global.libraries})와 드라이버의 Maven 아티팩트는 드라이버 관리자에서 고친다(드라이버 관리자 작업과 겹치지
  *     않게). 여기서는 드라이버 관리자를 여는 단추만 둔다.</li>
@@ -64,6 +64,8 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-12 Options 저장 표준: 프록시 인증 정보·저장소 목록의 바뀐 수와 되돌리기, 저장 실패는 대화상자 대신 페이지 아래 줄에,
+ *   저장소의 스냅숏 체크 상자는 값(앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class DriversOptionsPage extends SettingsPage {
 
@@ -121,11 +123,7 @@ final class DriversOptionsPage extends SettingsPage {
 
         load(DBWorkbench.getPlatform().getPreferenceStore());
         loadProxyCredentials();
-        for (MavenRepository repository : MavenRegistry.getInstance().getRepositories()) {
-            repositories.add(new MavenRepository(repository));
-        }
-        repositoryModel.fireTableDataChanged();
-        updateButtons();
+        loadRepositories();
     }
 
     /**
@@ -199,21 +197,69 @@ final class DriversOptionsPage extends SettingsPage {
         writer.setInt(ModelPreferences.UI_PROXY_PORT, ((Number) proxyPortSpinner.getValue()).intValue());
     }
 
+    /**
+     * The proxy user and password (secure storage) and the repository list (maven-repositories.xml).
+     */
     @Override
-    void apply() {
+    int getOtherChangeCount() {
+        int count = proxyUserField.getText().trim().equals(savedProxyUser) ? 0 : 1;
+        count += new String(proxyPasswordField.getPassword()).equals(savedProxyPassword) ? 0 : 1;
+        return count + (repositoriesChanged ? 1 : 0);
+    }
+
+    @Override
+    void revertOther() {
+        loadProxyCredentials();
+        loadRepositories();
+    }
+
+    /**
+     * Also saves the proxy credentials and the repositories; when one of them fails the other is still saved.
+     */
+    @Override
+    void apply() throws DBException {
         super.apply();
+        DBException failure = null;
         String user = proxyUserField.getText().trim();
         String password = new String(proxyPasswordField.getPassword());
         if (!user.equals(savedProxyUser) || !password.equals(savedProxyPassword)) {
             try {
                 GlobalProxyAuthenticator.saveCredentials(user, password);
+                savedProxyUser = user;
+                savedProxyPassword = password;
             } catch (DBException e) {
-                ErrorDialog.show(this, SettingsMessages.drivers_tab, SettingsMessages.drivers_proxy_save_error, e);
+                failure = e;
             }
         }
         if (repositoriesChanged) {
-            saveRepositories();
+            try {
+                saveRepositories();
+                // New copies: the saved ones now belong to the registry
+                loadRepositories();
+            } catch (DBException e) {
+                if (failure == null) {
+                    failure = e;
+                } else {
+                    failure.addSuppressed(e);
+                }
+            }
         }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /**
+     * Copies of the registry's repositories, edited until they are saved.
+     */
+    private void loadRepositories() {
+        repositories.clear();
+        for (MavenRepository repository : MavenRegistry.getInstance().getRepositories()) {
+            repositories.add(new MavenRepository(repository));
+        }
+        repositoriesChanged = false;
+        repositoryModel.fireTableDataChanged();
+        updateButtons();
     }
 
     private void loadProxyCredentials() {
@@ -278,6 +324,8 @@ final class DriversOptionsPage extends SettingsPage {
         JTextField nameField = new JTextField(repository == null ? "" : repository.getName(), 24);
         JTextField urlField = new JTextField(repository == null ? "" : repository.getUrl(), 32);
         JCheckBox snapshotBox = new JCheckBox(SettingsMessages.drivers_maven_snapshot, repository != null && repository.isSnapshot());
+        // A field of the repository, taken with the dialog's OK
+        snapshotBox.putClientProperty(OptionsForm.VALUE_CHECK_BOX, true);
         JTextField scopesField = new JTextField(repository == null ? "" : String.join(",", repository.getScopes()), 24); //$NON-NLS-1$
         JTextField userField = new JTextField(repository == null ? "" : CommonUtils.notEmpty(repository.getAuthInfo().getUserName()), 20);
         JPasswordField passwordField = new JPasswordField(repository == null ? "" : CommonUtils.notEmpty(repository.getAuthInfo().getUserPassword()), 20);
@@ -334,7 +382,7 @@ final class DriversOptionsPage extends SettingsPage {
     /**
      * Moves the edited copies into the registry and writes {@code maven-repositories.xml}.
      */
-    private void saveRepositories() {
+    private void saveRepositories() throws DBException {
         MavenRegistry registry = MavenRegistry.getInstance();
         List<MavenRepository> custom = new ArrayList<>();
         for (MavenRepository repository : repositories) {
@@ -350,8 +398,8 @@ final class DriversOptionsPage extends SettingsPage {
         registry.setCustomRepositories(custom);
         try {
             registry.saveConfiguration();
-        } catch (DBException | IOException e) {
-            ErrorDialog.show(this, SettingsMessages.drivers_tab, SettingsMessages.drivers_maven_save_error, e);
+        } catch (IOException e) {
+            throw new DBException("Can't save the Maven repositories", e);
         }
     }
 

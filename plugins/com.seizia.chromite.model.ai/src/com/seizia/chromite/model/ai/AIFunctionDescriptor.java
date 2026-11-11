@@ -28,6 +28,8 @@ import com.seizia.chromite.model.ai.agent.AIToolWrites;
  *
  * 변경 이력:
  * - 2026-11-07 {@link #getAccess()}, {@link #getWrites()} 추가: 에이전트 도구 권한 정책의 분류 (docs/chromite/ai-agent.md)
+ * - 2026-11-12 {@link #getToolSet()}, {@link #getShortAiDescription()} 추가: 채팅 요청의 도구 묶음과 최소 묶음의 짧은 설명
+ *   (docs/chromite/ai-agent.md "도구 묶음")
  */
 public interface AIFunctionDescriptor {
 
@@ -80,6 +82,23 @@ public interface AIFunctionDescriptor {
 
     @Nullable
     String getAiDescription();
+
+    /**
+     * Smallest tool set of the Chromite Agent chat that contains the tool: {@code minimal} (also in core), {@code core},
+     * or null when only the full set has it (docs/chromite/ai-agent.md "도구 묶음").
+     */
+    @Nullable
+    default String getToolSet() {
+        return null;
+    }
+
+    /**
+     * One or two sentences sent instead of {@link #getAiDescription()} in the minimal tool set, or null.
+     */
+    @Nullable
+    default String getShortAiDescription() {
+        return null;
+    }
 
     /**
      * Function which returns information about surrounding UI (e.g. open windows, active editor, etc)

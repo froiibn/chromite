@@ -34,13 +34,14 @@ import com.seizia.chromite.model.ai.agent.AIToolPermission;
 import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
 import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.engine.AIModel;
 import com.seizia.chromite.model.ai.engine.anthropic.AnthropicProperties;
 import com.seizia.chromite.model.ai.engine.chatcompletions.ChatCompletionsProperties;
 import com.seizia.chromite.model.ai.engine.chatcompletions.VllmProperties;
 import com.seizia.chromite.model.ai.engine.ollama.OllamaProperties;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentProviders;
-import com.seizia.chromite.model.ai.tools.chat.AIAgentToolSelection;
+import com.seizia.chromite.model.ai.tools.chat.AIAgentToolSets;
 import com.seizia.chromite.model.ai.tools.mcp.AIMcpServer;
 import com.seizia.chromite.model.ai.tools.mcp.AIMcpSettings;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -67,9 +68,12 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Tools &gt; Options &gt; Chromite Agent: providers, the tool policy, the local MCP server and the audit log.
@@ -80,12 +84,17 @@ import java.util.Map;
  *     (입력란은 비어 있고 "저장됨" 안내만 보인다). 보안 저장소가 키를 저장하지 못하면 그 이유를 따로 알리고 아무것도 저장하지 않는다.
  *     Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번). vLLM은 이어서 그 모델로 도구 호출이 되는지 확인하고
  *     ({@link AIAgentProviders#checkToolCalls}, 요청 1번 더), 안 되면 Test 줄에 짧게 알리고 그 아래 입력란 폭으로 줄 바꾼 글에 서버를 띄우는 방법을 보인다
- *     (긴 글이 한 줄 상태 글에 들어가면 모든 양식이 그 폭으로 늘어난다).</li>
- *     <li>Policy: {@link AIToolPolicy}의 규칙 사본을 고치고 OK에서 한 번에 저장한다. "실제 권한" 열은 저장 전 사본으로 실행기와 같은 판정
+ *     (긴 글이 한 줄 상태 글에 들어가면 모든 양식이 그 폭으로 늘어난다). Test의 도구 호출 확인 결과는 채팅의 "도구 없음" 방식을 정한다
+ *     ({@link AIAgentToolSets#setToolsOff}, 측정한 사실이라 [저장]을 기다리지 않음).
+ *     제공자마다 채팅의 도구 묶음(자동/최소/핵심/전체, {@link AIAgentToolSets})을 고르는 값이 있고, Ollama·vLLM은 컨텍스트 크기(토큰)도 적는다
+ *     (자동 묶음과 보내기 전 크기 확인에 씀, vLLM은 Test가 모델 목록의 크기로 빈 칸을 채움). 둘 다 값이라 [저장]에서 저장한다.</li>
+ *     <li>Policy: {@link AIToolPolicy}의 규칙 사본을 고치고 페이지의 [저장]에서 한 번에 저장한다. "실제 권한" 열은 저장 전 사본으로 실행기와 같은 판정
  *     ({@link AIToolPolicy#resolve(AIToolPolicy.Settings, DBPDataSourceContainer, AIFunctionDescriptor, AIToolAccess)})을 해서 보인다.
- *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다. 그 아래 "도구를 모두 보냄" 설정은 채팅 요청의 도구 고르기를 끈다(OK에서 저장).</li>
- *     <li>MCP server: 켜기·포트는 OK에서 {@link AIMcpSettings}로 저장한다(서버가 바로 시작·중지). 토큰 다시 만들기는 즉시 하고(되돌릴 수 없으므로
- *     묻는다), 토큰은 기본으로 가려 보인다.</li>
+ *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다.</li>
+ *     <li>MCP server: 켜기는 토글이라 누를 때 {@link AIMcpSettings}로 저장하고(서버가 바로 시작·중지), 포트는 [저장]에서 저장한다. 토큰 다시
+ *     만들기는 즉시 하고(되돌릴 수 없으므로 묻는다), 토큰은 기본으로 가려 보인다.</li>
+ *     <li>저장 표준(Options): 제공자마다, 권한 정책, MCP 포트가 칸({@link OptionsSaving.Part})이다. 키를 입력하거나 [키 지우기]를 누르면 값이
+ *     바뀐 것이고 [저장]에서 저장한다. Test는 저장하지 않은 화면 값을 쓴다.</li>
  *     <li>Audit log: {@link AIToolAuditLog#readRecent} 최근 기록을 작업 스레드에서 읽어 표로 보이고 클라이언트·결과·글자로 거른다.</li>
  * </ul>
  *
@@ -93,15 +102,19 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
  * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
- * - 2026-11-08 Tool Policy 탭에 "도구를 모두 보냄" 설정({@link AIAgentToolSelection}, docs/chromite/ai-agent.md "요청 크기")
+ * - 2026-11-08 Tool Policy 탭에 "도구를 모두 보냄" 설정(docs/chromite/ai-agent.md "요청 크기")
  * - 2026-11-08 감사 기록의 고정 문구·형식 열(시각·클라이언트·분류·정책·결과)을 가장 긴 문구에 맞춤: "Chromite Agent"가 "Chro…"로 잘렸다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 MCP 토큰 다시 만들기 확인은 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 Providers 양식은 자기 폭을 지킴: 넓어진 Options 창에서 입력란이 오른쪽 끝까지 늘어나던 것(app round 1 #8,
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
  * - 2026-11-11 Google Gemini·vLLM 양식(vLLM의 키는 선택), Test의 도구 호출 확인(app round 2 #34, #35, docs/chromite/ai-agent.md "Chat Completions 엔진")
+ * - 2026-11-12 OK 대신 Options 저장 표준: 칸마다 바뀐 수·저장·되돌리기, 토글은 바로 저장, 저장 실패는 페이지 아래 줄에(앱 변경 #59,
+ *   docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
  *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 Providers 양식에 도구 묶음·컨텍스트 크기, Test 결과로 도구 없음 방식을 정함. Tool Policy의 "도구를 모두 보냄"을 지움(묶음의
+ *   "전체"가 대신함) (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -124,14 +137,14 @@ final class AiOptionsPage extends JPanel {
     }
 
     /**
-     * OK of the Options dialog: saves what changed.
+     * The blocks the page's Save writes: each provider, the tool policy, the MCP port.
      */
-    void apply() {
-        for (ProviderForm form : providerForms) {
-            form.apply();
-        }
-        policyTab.apply();
-        mcpTab.apply();
+    @NotNull
+    List<OptionsSaving.Part> getParts() {
+        List<OptionsSaving.Part> parts = new ArrayList<>(providerForms);
+        parts.add(policyTab);
+        parts.add(mcpTab);
+        return parts;
     }
 
     //////////////////////////////////////////////////////////
@@ -178,8 +191,16 @@ final class AiOptionsPage extends JPanel {
     /**
      * The settings of one provider: key (not for Ollama; optional for vLLM), address, default model, Test.
      */
-    private static final class ProviderForm extends JPanel {
+    private static final class ProviderForm extends JPanel implements OptionsSaving.Part {
         private final String engineId;
+        // The saved address and model, to count and revert the changes
+        private String savedUrl = ""; //$NON-NLS-1$
+        private String savedModel = ""; //$NON-NLS-1$
+        private String savedContext = ""; //$NON-NLS-1$
+        private AIAgentToolSets.ToolSet savedToolSet;
+        private final JComboBox<AIAgentToolSets.ToolSet> toolSetCombo = new JComboBox<>(AIAgentToolSets.ToolSet.values());
+        // Ollama and vLLM only: the size the Automatic tool set and the size check use
+        private final JTextField contextField = new JTextField(8);
         private final JPasswordField keyField = new JPasswordField(28);
         private final JButton removeKeyButton = new JButton(AiMessages.ai_options_remove_key);
         private final JTextField urlField = new JTextField(28);
@@ -200,7 +221,6 @@ final class AiOptionsPage extends JPanel {
         private final List<JLabel> labels = new ArrayList<>();
         private boolean hasKey;
         private boolean removeKey;
-        private boolean dirty;
 
         ProviderForm(@NotNull String engineId) {
             super(new GridBagLayout());
@@ -220,6 +240,23 @@ final class AiOptionsPage extends JPanel {
             row = addRow(row, engineId.equals(AIAgentProviders.OLLAMA) ? AiMessages.ai_options_host
                 : engineId.equals(AIAgentProviders.OPENAI) ? AiMessages.ai_options_base_url_openai : AiMessages.ai_options_base_url, urlField);
             row = addRow(row, AiMessages.ai_options_model, modelCombo);
+            if (hasContextSize()) {
+                JPanel contextRow = new JPanel(new BorderLayout());
+                contextRow.add(contextField, BorderLayout.WEST);
+                row = addRow(row, AiMessages.ai_options_context_size, contextRow);
+            }
+            toolSetCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof AIAgentToolSets.ToolSet set) {
+                        setText(describeToolSet(set));
+                    }
+                    return this;
+                }
+            });
+            toolSetCombo.setToolTipText(AiMessages.ai_options_tool_set_tip);
+            row = addRow(row, AiMessages.ai_options_tool_set, toolSetCombo);
             JPanel testRow = new JPanel(new BorderLayout(8, 0));
             testRow.add(testButton, BorderLayout.WEST);
             statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
@@ -241,33 +278,56 @@ final class AiOptionsPage extends JPanel {
             warning.insets = new Insets(0, 6, 3, 8);
             add(warningArea, warning);
 
-            DocumentListener changed = new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    dirty = true;
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    dirty = true;
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                }
-            };
-            keyField.getDocument().addDocumentListener(changed);
-            urlField.getDocument().addDocumentListener(changed);
-            modelCombo.addActionListener(e -> dirty = true);
+            // Remove key changes the value (the saved key goes with Save), as a typed key does
             removeKeyButton.addActionListener(e -> {
                 removeKey = true;
                 hasKey = false;
-                dirty = true;
                 keyField.setText(""); //$NON-NLS-1$
                 updateKeyPlaceholder();
             });
             testButton.addActionListener(e -> test());
-            dirty = false;
+        }
+
+        @NotNull
+        @Override
+        public String getName() {
+            return AIAgentProviders.getLabel(engineId);
+        }
+
+        /**
+         * A typed key or a removed key, the address and the model.
+         */
+        @Override
+        public int getChangeCount() {
+            int count = keyField.getPassword().length > 0 || removeKey ? 1 : 0;
+            count += urlField.getText().trim().equals(savedUrl) ? 0 : 1;
+            count += contextField.getText().trim().equals(savedContext) ? 0 : 1;
+            count += toolSetCombo.getSelectedItem() == savedToolSet ? 0 : 1;
+            return count + (getModel().equals(savedModel) ? 0 : 1);
+        }
+
+        // Servers of one's own, whose context size Chromite can't know (hosted models have their own size or a large one)
+        private boolean hasContextSize() {
+            return engineId.equals(AIAgentProviders.OLLAMA) || engineId.equals(AIAgentProviders.VLLM);
+        }
+
+        @NotNull
+        private static String describeToolSet(@NotNull AIAgentToolSets.ToolSet set) {
+            return switch (set) {
+                case AUTOMATIC -> AiMessages.ai_options_tool_set_automatic;
+                case MINIMAL -> NLS.bind(AiMessages.ai_options_tool_set_minimal, countTools(set));
+                case CORE -> NLS.bind(AiMessages.ai_options_tool_set_core, countTools(set));
+                case ALL -> NLS.bind(AiMessages.ai_options_tool_set_all, countTools(set));
+            };
+        }
+
+        private static int countTools(@NotNull AIAgentToolSets.ToolSet set) {
+            return (int) AIToolCatalog.getTools(AIFunctionPurpose.TOOL).stream().filter(t -> AIAgentToolSets.isMember(t, set)).count();
+        }
+
+        @NotNull
+        private String getModel() {
+            return CommonUtils.toString(modelCombo.getEditor().getItem(), "").trim(); //$NON-NLS-1$
         }
 
         private int addRow(int row, @Nullable String label, @NotNull JComponent field) {
@@ -306,6 +366,8 @@ final class AiOptionsPage extends JPanel {
                     default -> {
                     }
                 }
+                Integer contextSize = hasContextSize() ? properties.getContextWindowSize() : null;
+                contextField.setText(contextSize == null ? "" : contextSize.toString()); //$NON-NLS-1$
                 List<String> models = new ArrayList<>(AIAgentProviders.getSuggestedModels(engineId));
                 modelCombo.setModel(new DefaultComboBoxModel<>(models.toArray(String[]::new)));
                 modelCombo.setSelectedItem(properties.getModel());
@@ -316,7 +378,16 @@ final class AiOptionsPage extends JPanel {
                 urlField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "http://localhost:11434"); //$NON-NLS-1$
             } else if (engineId.equals(AIAgentProviders.VLLM)) {
                 urlField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, VllmProperties.EXAMPLE_BASE_URL);
+                contextField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT,
+                    NLS.bind(AiMessages.ai_options_context_size_assumed, AIAgentProviders.getContextTokens(engineId)));
             }
+            toolSetCombo.setSelectedItem(AIAgentToolSets.getToolSet(engineId));
+            keyField.setText(""); //$NON-NLS-1$
+            removeKey = false;
+            savedUrl = urlField.getText().trim();
+            savedModel = getModel();
+            savedContext = contextField.getText().trim();
+            savedToolSet = (AIAgentToolSets.ToolSet) toolSetCombo.getSelectedItem();
             updateKeyPlaceholder();
         }
 
@@ -349,12 +420,22 @@ final class AiOptionsPage extends JPanel {
                     }
                     openAI.setBaseUrl(url.isEmpty() ? null : url);
                 }
-                case OllamaProperties ollama -> ollama.setHostname(url.isEmpty() ? null : url);
+                case OllamaProperties ollama -> {
+                    ollama.setHostname(url.isEmpty() ? null : url);
+                    // Ollama needs a size (it is sent as num_ctx): an empty field keeps the saved one
+                    Integer contextSize = parseContextSize();
+                    if (contextSize != null) {
+                        ollama.setContextWindowSize(contextSize);
+                    }
+                }
                 case ChatCompletionsProperties chat -> {
                     if (!key.isEmpty() || removeKey) {
                         chat.setApiKey(key.isEmpty() ? null : key);
                     }
                     chat.setBaseUrl(url.isEmpty() || url.equals(chat.getDefaultBaseUrl()) ? null : url);
+                    if (hasContextSize()) {
+                        chat.setContextWindowSize(parseContextSize());
+                    }
                 }
                 default -> {
                 }
@@ -363,6 +444,20 @@ final class AiOptionsPage extends JPanel {
                 properties.setModel(model);
             }
             return properties;
+        }
+
+        // The typed context size; null when empty. A value that is not a positive number can't be saved
+        @Nullable
+        private Integer parseContextSize() {
+            String text = contextField.getText().trim().replace(",", ""); //$NON-NLS-1$ //$NON-NLS-2$
+            if (text.isEmpty()) {
+                return null;
+            }
+            int size = CommonUtils.toInt(text, -1);
+            if (size <= 0) {
+                throw new IllegalArgumentException(NLS.bind(AiMessages.ai_options_context_size_invalid, text));
+            }
+            return size;
         }
 
         private void test() {
@@ -379,19 +474,28 @@ final class AiOptionsPage extends JPanel {
                 @NotNull
                 @Override
                 protected IStatus run(@NotNull DBRProgressMonitor monitor) {
-                    List<String> models = null;
+                    List<AIModel> models = null;
                     String error = null;
                     String noTools = null;
                     try {
                         models = AIAgentProviders.loadModels(monitor, engineId, properties);
                         noTools = AIAgentProviders.checkToolCalls(monitor, engineId, properties);
+                        // A measured fact, not a value of the form: the chat sends no tools to this model until a Test finds tool calls
+                        AIAgentToolSets.setToolsOff(engineId, properties.getModel(), noTools != null);
                     } catch (Exception e) {
                         error = CommonUtils.notEmpty(e.getMessage());
                     }
-                    List<String> result = models;
+                    List<String> result = models == null ? null : models.stream().map(AIModel::name).toList();
+                    Integer modelContext = models == null ? null : models.stream()
+                        .filter(m -> m.name().equals(properties.getModel()) && m.contextWindowSize() != null)
+                        .map(AIModel::contextWindowSize).findFirst().orElse(null);
                     String failure = error;
                     String toolsFailure = noTools;
                     SwingUtilities.invokeLater(() -> {
+                        if (modelContext != null && hasContextSize() && contextField.getText().isBlank()) {
+                            // vLLM tells the model's max-model-len: the field the user would otherwise have to look up
+                            contextField.setText(modelContext.toString());
+                        }
                         testButton.setEnabled(true);
                         warningArea.setText(CommonUtils.notEmpty(toolsFailure));
                         warningArea.setVisible(failure == null && toolsFailure != null);
@@ -425,18 +529,26 @@ final class AiOptionsPage extends JPanel {
             }.schedule();
         }
 
-        void apply() {
-            if (!dirty) {
-                return;
-            }
+        /**
+         * Saves the form; a secure storage failure keeps its own text (the details alone don't tell that nothing went to a file).
+         * The values are read again afterwards: a saved key shows as saved, the field empty.
+         */
+        @Override
+        public void save() throws Exception {
             try {
                 AIAgentProviders.saveProperties(engineId, createProperties());
-            } catch (Exception e) {
-                // A secure storage failure gets its own text: the details alone don't tell that nothing went to a file
-                String text = e instanceof DBSecurityException ? AiMessages.ai_options_save_failed_secure_storage
-                    : AiMessages.ai_options_save_failed;
-                ErrorDialog.show(this, AiMessages.ai_options_title, NLS.bind(text, AIAgentProviders.getLabel(engineId)), e);
+            } catch (DBSecurityException e) {
+                throw new DBSecurityException(NLS.bind(AiMessages.ai_options_save_failed_secure_storage, getName()), e);
             }
+            if (toolSetCombo.getSelectedItem() instanceof AIAgentToolSets.ToolSet set) {
+                AIAgentToolSets.setToolSet(engineId, set);
+            }
+            load();
+        }
+
+        @Override
+        public void revert() {
+            load();
         }
     }
 
@@ -481,18 +593,18 @@ final class AiOptionsPage extends JPanel {
         };
     }
 
-    private static final class PolicyTab extends JPanel {
-        private final AIToolPolicy.Settings settings = AIToolPolicy.getInstance().getSettings();
+    private static final class PolicyTab extends JPanel implements OptionsSaving.Part {
+        // The edited copy of the rules, and the saved rules to count and revert the changes
+        private AIToolPolicy.Settings settings = AIToolPolicy.getInstance().getSettings();
+        private AIToolPolicy.Settings saved = AIToolPolicy.getInstance().getSettings();
         private final List<AIFunctionDescriptor> tools = new ArrayList<>(AIToolCatalog.getTools(AIFunctionPurpose.ALL));
         private final JComboBox<Object> scopeCombo = new JComboBox<>();
         private final Map<AIToolAccess, JComboBox<Choice>> classCombos = new java.util.EnumMap<>(AIToolAccess.class);
         private final JTextField filterField = new JTextField(16);
         private final JLabel scopeNote = new JLabel(" "); //$NON-NLS-1$
-        private final JCheckBox sendAllTools = new JCheckBox(AiMessages.ai_policy_send_all_tools, AIAgentToolSelection.isSendAllTools());
         private final ToolTableModel tableModel = new ToolTableModel();
         private final JTable table = new JTable(tableModel);
         private final TableRowSorter<ToolTableModel> sorter = new TableRowSorter<>(tableModel);
-        private boolean changed;
         private boolean updating;
 
         PolicyTab() {
@@ -511,9 +623,6 @@ final class AiOptionsPage extends JPanel {
                 label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
                 top.add(label);
             }
-            sendAllTools.setToolTipText(AiMessages.ai_policy_send_all_tools_tip);
-            sendAllTools.setAlignmentX(LEFT_ALIGNMENT);
-            top.add(sendAllTools);
             top.add(Box.createVerticalStrut(4));
 
             scopeCombo.addItem(AiMessages.ai_policy_all_connections);
@@ -626,7 +735,6 @@ final class AiOptionsPage extends JPanel {
             } else {
                 rules.put(key, choice.permission.name());
             }
-            changed = true;
         }
 
         private void scopeChanged() {
@@ -663,21 +771,55 @@ final class AiOptionsPage extends JPanel {
             });
         }
 
-        void apply() {
+        @NotNull
+        @Override
+        public String getName() {
+            return AiMessages.ai_options_policy;
+        }
+
+        /**
+         * The rules (defaults and per connection) that differ from the saved ones.
+         */
+        @Override
+        public int getChangeCount() {
+            int count = countDifferences(settings.getDefaults(), saved.getDefaults());
+            Set<String> connections = new HashSet<>(settings.getConnections().keySet());
+            connections.addAll(saved.getConnections().keySet());
+            for (String id : connections) {
+                count += countDifferences(settings.getConnections().getOrDefault(id, Map.of()), saved.getConnections().getOrDefault(id, Map.of()));
+            }
+            return count;
+        }
+
+        private static int countDifferences(@NotNull Map<String, String> rules, @NotNull Map<String, String> savedRules) {
+            Set<String> keys = new HashSet<>(rules.keySet());
+            keys.addAll(savedRules.keySet());
+            int count = 0;
+            for (String key : keys) {
+                if (!Objects.equals(rules.get(key), savedRules.get(key))) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        @Override
+        public void save() throws Exception {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
             }
-            if (sendAllTools.isSelected() != AIAgentToolSelection.isSendAllTools()) {
-                AIAgentToolSelection.setSendAllTools(sendAllTools.isSelected());
+            AIToolPolicy.getInstance().setSettings(settings);
+            saved = AIToolPolicy.getInstance().getSettings();
+        }
+
+        @Override
+        public void revert() {
+            if (table.isEditing()) {
+                table.getCellEditor().cancelCellEditing();
             }
-            if (!changed) {
-                return;
-            }
-            try {
-                AIToolPolicy.getInstance().setSettings(settings);
-            } catch (Exception e) {
-                ErrorDialog.show(this, AiMessages.ai_options_title, AiMessages.ai_policy_save_failed, e);
-            }
+            settings = AIToolPolicy.getInstance().getSettings();
+            saved = AIToolPolicy.getInstance().getSettings();
+            scopeChanged();
         }
 
         private final class ToolTableModel extends AbstractTableModel {
@@ -778,7 +920,7 @@ final class AiOptionsPage extends JPanel {
     //////////////////////////////////////////////////////////
     // MCP server
 
-    private static final class McpTab extends JPanel {
+    private static final class McpTab extends JPanel implements OptionsSaving.Part {
         private final JCheckBox enabledBox = new JCheckBox(AiMessages.ai_mcp_enable);
         private final JSpinner portSpinner = new JSpinner(new SpinnerNumberModel(AIMcpSettings.getPort(), 1024, 65535, 1));
         private final JLabel statusLabel = new JLabel();
@@ -792,6 +934,11 @@ final class AiOptionsPage extends JPanel {
             super(new BorderLayout());
             setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
             enabledBox.setSelected(AIMcpSettings.isEnabled());
+            // A toggle: saved when it is clicked, the server starts or stops at once (Options save standard)
+            enabledBox.addActionListener(e -> {
+                AIMcpSettings.setEnabled(enabledBox.isSelected());
+                refresh();
+            });
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
             row = addRow(form, row, null, enabledBox);
@@ -895,14 +1042,26 @@ final class AiOptionsPage extends JPanel {
             }
         }
 
-        void apply() {
-            int port = ((Number) portSpinner.getValue()).intValue();
-            if (port != AIMcpSettings.getPort()) {
-                AIMcpSettings.setPort(port);
-            }
-            if (enabledBox.isSelected() != AIMcpSettings.isEnabled()) {
-                AIMcpSettings.setEnabled(enabledBox.isSelected());
-            }
+        @NotNull
+        @Override
+        public String getName() {
+            return AiMessages.ai_mcp_port;
+        }
+
+        @Override
+        public int getChangeCount() {
+            return ((Number) portSpinner.getValue()).intValue() == AIMcpSettings.getPort() ? 0 : 1;
+        }
+
+        @Override
+        public void save() {
+            AIMcpSettings.setPort(((Number) portSpinner.getValue()).intValue());
+            refresh();
+        }
+
+        @Override
+        public void revert() {
+            portSpinner.setValue(AIMcpSettings.getPort());
         }
     }
 
