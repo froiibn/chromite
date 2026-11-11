@@ -21,6 +21,7 @@ import com.seizia.chromite.model.ai.AISettings;
 import com.seizia.chromite.model.ai.engine.AIEngine;
 import com.seizia.chromite.model.ai.engine.AIEngineProperties;
 import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.chatcompletions.ChatCompletionsEngine;
 import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
 import com.seizia.chromite.model.ai.registry.AIEngineRegistry;
 import com.seizia.chromite.model.ai.registry.AISettingsManager;
@@ -34,14 +35,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The AI providers of the assistant (Anthropic Claude, OpenAI, Ollama): their settings profiles, engines and model lists.
+ * The AI providers of the assistant (Anthropic Claude, OpenAI, Google Gemini, Ollama, vLLM): their settings profiles, engines and
+ * model lists.
  *
  * 설계:
  * <ul>
  *     <li>제공자마다 설정 프로필({@link AIConfigurationProfile}) 하나를 쓰고, 프로필 ID는 엔진 ID와 같다. 기존 AI 설정 파일({@code ai-configuration.json})을
  *     그대로 쓰고, API 키는 {@code @SecureProperty}라 설정 파일에 쓰이지 않고 OS 보안 저장소({@code AIUtils.setSecretValue})에 저장된다
  *     (docs/chromite/ai-agent.md "엔진").</li>
- *     <li>{@code AISettingsManager.saveSettings}는 기본 프로필의 비밀만 보안 저장소에 쓴다. 채팅은 대화마다 제공자를 고르므로 세 프로필 모두 기본이 아닐 수 있어
+ *     <li>{@code AISettingsManager.saveSettings}는 기본 프로필의 비밀만 보안 저장소에 쓴다. 채팅은 대화마다 제공자를 고르므로 어느 프로필도 기본이 아닐 수 있어
  *     {@link #save}가 각 프로필의 비밀을 직접 쓴다. 비밀을 먼저 쓰므로 보안 저장소를 쓸 수 없으면 설정도 저장하지 않고 오류를 호출자(설정 화면)에 돌려준다.</li>
  *     <li>대화의 모델은 프로필 설정의 사본에 넣어 엔진을 만든다({@link #createEngine}). 대화에서 모델을 바꿔도 설정 화면의 기본 모델은 바뀌지 않는다.</li>
  * </ul>
@@ -52,17 +54,20 @@ import java.util.List;
  *   {@code AIUtils}를 고쳐 설명을 사실에 맞춤
  * - 2026-11-07 "설정하지 않음" 오류의 설정 경로를 바뀐 탭 이름(Options &gt; Chromite Agent &gt; Providers)으로 고침
  *   (docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-11 Google Gemini·vLLM 제공자(Chat Completions 엔진)와 Test의 도구 호출 확인({@link #checkToolCalls}) (app round 2 #34, #35)
  */
 public final class AIAgentProviders {
 
     public static final String ANTHROPIC = "anthropic"; //$NON-NLS-1$
     public static final String OPENAI = "openai"; //$NON-NLS-1$
     public static final String OLLAMA = "ollama"; //$NON-NLS-1$
+    public static final String GEMINI = "gemini"; //$NON-NLS-1$
+    public static final String VLLM = "vllm"; //$NON-NLS-1$
 
     /**
-     * Providers of the assistant, in picker order.
+     * Providers of the assistant, in picker order: hosted services, then servers of one's own.
      */
-    public static final List<String> PROVIDERS = List.of(ANTHROPIC, OPENAI, OLLAMA);
+    public static final List<String> PROVIDERS = List.of(ANTHROPIC, OPENAI, GEMINI, OLLAMA, VLLM);
 
     /**
      * Models offered before the provider's model list was loaded (Anthropic names its models; the others depend on the account
@@ -82,6 +87,8 @@ public final class AIAgentProviders {
             case ANTHROPIC -> "Anthropic Claude"; //$NON-NLS-1$
             case OPENAI -> "OpenAI"; //$NON-NLS-1$
             case OLLAMA -> "Ollama"; //$NON-NLS-1$
+            case GEMINI -> "Google Gemini"; //$NON-NLS-1$
+            case VLLM -> "vLLM"; //$NON-NLS-1$
             default -> engineId;
         };
     }
@@ -260,6 +267,22 @@ public final class AIAgentProviders {
                 names.add(model.name());
             }
             return names;
+        }
+    }
+
+    /**
+     * Why the provider's server does not take tool calls with the given (maybe unsaved) settings, or null when it does or the
+     * provider needs no check (only vLLM servers can be started without tool calls). A request to the provider, used by the
+     * settings page's Test button after the model list loaded.
+     */
+    @Nullable
+    public static String checkToolCalls(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull String engineId,
+        @NotNull AIEngineProperties properties
+    ) throws DBException {
+        try (AIEngine<?> engine = getEngine(engineId).createEngineInstance(properties)) {
+            return engine instanceof ChatCompletionsEngine chatEngine ? chatEngine.checkToolCalls(monitor) : null;
         }
     }
 }

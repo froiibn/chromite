@@ -35,6 +35,8 @@ import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
 import com.seizia.chromite.model.ai.engine.AIEngineProperties;
 import com.seizia.chromite.model.ai.engine.anthropic.AnthropicProperties;
+import com.seizia.chromite.model.ai.engine.chatcompletions.ChatCompletionsProperties;
+import com.seizia.chromite.model.ai.engine.chatcompletions.VllmProperties;
 import com.seizia.chromite.model.ai.engine.ollama.OllamaProperties;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentProviders;
@@ -60,6 +62,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
+import javax.swing.text.View;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +78,9 @@ import java.util.Map;
  * <ul>
  *     <li>Providers: 제공자별 API 키·주소·기본 모델. 키는 OS 보안 저장소에만 저장하고({@link AIAgentProviders#saveProperties}) 화면에 다시 보이지 않는다
  *     (입력란은 비어 있고 "저장됨" 안내만 보인다). 보안 저장소가 키를 저장하지 못하면 그 이유를 따로 알리고 아무것도 저장하지 않는다.
- *     Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번).</li>
+ *     Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번). vLLM은 이어서 그 모델로 도구 호출이 되는지 확인하고
+ *     ({@link AIAgentProviders#checkToolCalls}, 요청 1번 더), 안 되면 Test 줄에 짧게 알리고 그 아래 입력란 폭으로 줄 바꾼 글에 서버를 띄우는 방법을 보인다
+ *     (긴 글이 한 줄 상태 글에 들어가면 모든 양식이 그 폭으로 늘어난다).</li>
  *     <li>Policy: {@link AIToolPolicy}의 규칙 사본을 고치고 OK에서 한 번에 저장한다. "실제 권한" 열은 저장 전 사본으로 실행기와 같은 판정
  *     ({@link AIToolPolicy#resolve(AIToolPolicy.Settings, DBPDataSourceContainer, AIFunctionDescriptor, AIToolAccess)})을 해서 보인다.
  *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다. 그 아래 "도구를 모두 보냄" 설정은 채팅 요청의 도구 고르기를 끈다(OK에서 저장).</li>
@@ -94,6 +99,7 @@ import java.util.Map;
  * - 2026-11-08 MCP 토큰 다시 만들기 확인은 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 Providers 양식은 자기 폭을 지킴: 넓어진 Options 창에서 입력란이 오른쪽 끝까지 늘어나던 것(app round 1 #8,
  *   docs/chromite/swing-options.md "목록, 찾기, 페이지 열기")
+ * - 2026-11-11 Google Gemini·vLLM 양식(vLLM의 키는 선택), Test의 도구 호출 확인(app round 2 #34, #35, docs/chromite/ai-agent.md "Chat Completions 엔진")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -145,7 +151,7 @@ final class AiOptionsPage extends JPanel {
             form.setAlignmentX(LEFT_ALIGNMENT);
             panel.add(form);
         }
-        // One label column for the three forms, so their fields line up
+        // One label column for all forms, so their fields line up
         int labelWidth = 0;
         for (ProviderForm form : providerForms) {
             for (JLabel label : form.labels) {
@@ -168,7 +174,7 @@ final class AiOptionsPage extends JPanel {
     }
 
     /**
-     * The settings of one provider: key (not for Ollama), address, default model, Test.
+     * The settings of one provider: key (not for Ollama; optional for vLLM), address, default model, Test.
      */
     private static final class ProviderForm extends JPanel {
         private final String engineId;
@@ -178,6 +184,17 @@ final class AiOptionsPage extends JPanel {
         private final JComboBox<String> modelCombo = new JComboBox<>();
         private final JButton testButton = new JButton(AiMessages.ai_options_test);
         private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
+        // Why tool calls do not work, wrapped at the width of the fields; hidden otherwise
+        private final JTextArea warningArea = new JTextArea() {
+            @Override
+            public Dimension getPreferredSize() {
+                int width = urlField.getPreferredSize().width;
+                View view = getUI().getRootView(this);
+                view.setSize(width, Integer.MAX_VALUE);
+                Insets insets = getInsets();
+                return new Dimension(width, (int) Math.ceil(view.getPreferredSpan(View.Y_AXIS)) + insets.top + insets.bottom);
+            }
+        };
         private final List<JLabel> labels = new ArrayList<>();
         private boolean hasKey;
         private boolean removeKey;
@@ -195,7 +212,8 @@ final class AiOptionsPage extends JPanel {
                 JPanel keyRow = new JPanel(new BorderLayout(6, 0));
                 keyRow.add(keyField, BorderLayout.CENTER);
                 keyRow.add(removeKeyButton, BorderLayout.EAST);
-                row = addRow(row, AiMessages.ai_options_api_key, keyRow);
+                row = addRow(row, engineId.equals(AIAgentProviders.VLLM) ? AiMessages.ai_options_api_key_optional
+                    : AiMessages.ai_options_api_key, keyRow);
             }
             row = addRow(row, engineId.equals(AIAgentProviders.OLLAMA) ? AiMessages.ai_options_host
                 : engineId.equals(AIAgentProviders.OPENAI) ? AiMessages.ai_options_base_url_openai : AiMessages.ai_options_base_url, urlField);
@@ -204,7 +222,22 @@ final class AiOptionsPage extends JPanel {
             testRow.add(testButton, BorderLayout.WEST);
             statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             testRow.add(statusLabel, BorderLayout.CENTER);
-            addRow(row, null, testRow);
+            row = addRow(row, null, testRow);
+            warningArea.setEditable(false);
+            warningArea.setLineWrap(true);
+            warningArea.setWrapStyleWord(true);
+            warningArea.setOpaque(false);
+            warningArea.setBorder(BorderFactory.createEmptyBorder());
+            warningArea.setFont(statusLabel.getFont());
+            warningArea.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+            warningArea.setVisible(false);
+            // No label cell, so the hidden row takes no space
+            GridBagConstraints warning = new GridBagConstraints();
+            warning.gridx = 1;
+            warning.gridy = row;
+            warning.anchor = GridBagConstraints.WEST;
+            warning.insets = new Insets(0, 6, 3, 8);
+            add(warningArea, warning);
 
             DocumentListener changed = new DocumentListener() {
                 @Override
@@ -264,6 +297,10 @@ final class AiOptionsPage extends JPanel {
                         urlField.setText(openAI.getBaseUrl());
                     }
                     case OllamaProperties ollama -> urlField.setText(CommonUtils.notEmpty(ollama.getHostname()));
+                    case ChatCompletionsProperties chat -> {
+                        hasKey = !CommonUtils.isEmpty(chat.getApiKey());
+                        urlField.setText(CommonUtils.notEmpty(chat.getEffectiveBaseUrl()));
+                    }
                     default -> {
                     }
                 }
@@ -275,6 +312,8 @@ final class AiOptionsPage extends JPanel {
             }
             if (engineId.equals(AIAgentProviders.OLLAMA)) {
                 urlField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "http://localhost:11434"); //$NON-NLS-1$
+            } else if (engineId.equals(AIAgentProviders.VLLM)) {
+                urlField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, VllmProperties.EXAMPLE_BASE_URL);
             }
             updateKeyPlaceholder();
         }
@@ -309,6 +348,12 @@ final class AiOptionsPage extends JPanel {
                     openAI.setBaseUrl(url.isEmpty() ? null : url);
                 }
                 case OllamaProperties ollama -> ollama.setHostname(url.isEmpty() ? null : url);
+                case ChatCompletionsProperties chat -> {
+                    if (!key.isEmpty() || removeKey) {
+                        chat.setApiKey(key.isEmpty() ? null : key);
+                    }
+                    chat.setBaseUrl(url.isEmpty() || url.equals(chat.getDefaultBaseUrl()) ? null : url);
+                }
                 default -> {
                 }
             }
@@ -334,22 +379,34 @@ final class AiOptionsPage extends JPanel {
                 protected IStatus run(@NotNull DBRProgressMonitor monitor) {
                     List<String> models = null;
                     String error = null;
+                    String noTools = null;
                     try {
                         models = AIAgentProviders.loadModels(monitor, engineId, properties);
+                        noTools = AIAgentProviders.checkToolCalls(monitor, engineId, properties);
                     } catch (Exception e) {
                         error = CommonUtils.notEmpty(e.getMessage());
                     }
                     List<String> result = models;
                     String failure = error;
+                    String toolsFailure = noTools;
                     SwingUtilities.invokeLater(() -> {
                         testButton.setEnabled(true);
-                        if (result == null) {
+                        warningArea.setText(CommonUtils.notEmpty(toolsFailure));
+                        warningArea.setVisible(failure == null && toolsFailure != null);
+                        revalidate();
+                        if (failure != null) {
                             statusLabel.setText(NLS.bind(AiMessages.ai_options_test_failed, failure));
                             statusLabel.setToolTipText(failure);
-                            return;
+                            if (result == null) {
+                                return;
+                            }
+                        } else if (toolsFailure != null) {
+                            statusLabel.setText(NLS.bind(AiMessages.ai_options_test_no_tools, result.size()));
+                            statusLabel.setToolTipText(null);
+                        } else {
+                            statusLabel.setText(NLS.bind(AiMessages.ai_options_test_ok, result.size()));
+                            statusLabel.setToolTipText(null);
                         }
-                        statusLabel.setText(NLS.bind(AiMessages.ai_options_test_ok, result.size()));
-                        statusLabel.setToolTipText(null);
                         Object selected = modelCombo.getEditor().getItem();
                         List<String> all = new ArrayList<>(AIAgentProviders.getSuggestedModels(engineId));
                         for (String model : result) {
