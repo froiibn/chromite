@@ -177,4 +177,5 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
   .properties의 "Ctrl+" 70줄을 `{0}`으로 바꾸고 글자를 단축키에서 만듦, `WelcomePanel.getKeyText`를 `UiKeys.getText`로 옮김, `UiKeysTest`.
 - 2026-11-12 쿼리 편집기 열 선택 키 `UiKeys.columnSelect`·`isColumnSelectDown`과 표의 줄(앱 변경 #49, [swing-sql-column-selection.md](swing-sql-column-selection.md)).
 - 2026-11-12 Ctrl+Shift+T(⇧⌘T)를 Reopen Closed Tab으로, Maximize Results는 Ctrl+Shift+R(⇧⌘R, Results 보이기·숨기기 Ctrl+R의 짝)로 옮김. ⇧⌘R·⇧⌘T는
-  macOS 예약 키가 아니고 다른 명령과 겹치지 않는다(`UiKeysTest` 목록에 Ctrl+Shift+R을 더함). 앱 변경 #66, `chromite/small-fixes-r2`.
+  macOS 예약 키가 아니고 다른 명령과 겹치지 않는다(`UiKeysTest` 목록에 Ctrl+Shift+R을 더함, 테스트는 실행하지 않음). 앱 변경 #66, `chromite/small-fixes-r2`.
+  확인(테스트 에이전트, 150%): 닫은 쿼리 창이 Ctrl+Shift+T로 글과 함께 돌아오고, Ctrl+Shift+R이 결과 최대화를 켜고 끔. Window 메뉴에 "닫은 탭 다시 열기 Ctrl+Shift+T".

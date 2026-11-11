@@ -79,6 +79,10 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
   - 줄을 넘는 문자열 상수가 사각형에 걸리면 그 안에 사각형 밖 자리만큼 공백이 들어간다(그대로 이어 붙인 글과의 유일한 차이).
 - 실행 기록·Query Manager에 남는 문장 글에도 둘째 줄부터 사각형 왼쪽 열만큼의 공백이 앞에 붙는다.
 - 커서부터 실행은 "캐럿 문장부터 끝까지"라 사각형과 맞지 않아 예전처럼 캐럿에서 시작한다.
+- **확인(2026-11-12, 150%, 테스트 에이전트, SQLite):** 글 `-- SELECT 11 AS a; -- x` / `-- SELECT 22 AS b; -- y` / `-- SELECT * FROM nosuch_r2; z`에서
+  1-2줄 3-18열 사각형 + F5 → 쿼리 기록에 `SELECT 11 AS a`, `SELECT 22 AS b` 두 문장(주석 앞뒤는 빠짐). 2줄만의 사각형 + 현재 문장 실행 → `SELECT 22 AS b`.
+  3줄의 `SELECT * FROM nosuch_r2;` 사각형 + F5 → 실패 표시가 편집기 3번째 줄, Messages "메시지 1, 줄 3". 편집기 글은 바뀌지 않음.
+  캡처 `D:\Tools\_scratch\chromite-small-fixes-r2\shots\col-run-*.png`. 예상 계획(Ctrl+L)은 코드만 같은 방식으로 고쳤고 실행해 보지 않았다.
 
 ## 한계
 

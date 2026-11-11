@@ -445,6 +445,9 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
   | Query Manager 보일 항목(`QueryManagerPanel`) | 도움말 "Tools > Options > Logs"(도움말은 그대로) | 보일 항목 메뉴 끝에 Log Settings... / 로그 설정 | Logs(`LogsOptionsPage`) |
   | 연결 대화상자 Settings(`ConnectionSettingsOverrides`) | "Otherwise the settings of Tools > Options apply." | 안내 옆에 링크 | 그 탭과 같은 설정 페이지(클래스 이름). 연결별 설정을 끈 탭이 보이는 Options 값은 연결 대화상자를 다시 열 때 다시 읽는다 |
 
+  - 확인(2026-11-12, 테스트 에이전트, 150%, 쿼리 기록은 100%도): 쿼리 기록 링크 → General, Query Manager 메뉴 → `LogsOptionsPage`, 연결 설정 탭의 링크 9개 중
+    첫·끝 → `SqlExecutionOptionsPage`·`DataTransferOptionsPage`(창 밖 패널이라 주인은 메인 창), Agent 확인 대화상자 WRITE·DANGEROUS → `agent`.
+    Object Explorer "더 읽기" 줄의 메뉴 항목은 긴 폴더가 있는 DB가 없어 화면으로 보지 않았다. 캡처 `D:\Tools\_scratch\chromite-small-fixes-r2\shots\b12-*.png`.
   - 상태 줄 커밋 방식 칸의 "Click to open the Auto-commit setting of the connection"(`QueryStatusLine` 287행)은 Options가 아니라 연결 대화상자를 연다.
   - 업데이트 알림은 Options를 열지 않는다.
 

@@ -90,6 +90,9 @@
 | `update/UpdateWindow`(`UpdateView.Bar.BUSY`) | 업데이트 설치·시작 단계 | 막대 유지(업데이트 진행 창의 단계 막대, #60 행) |
 | `UpdateUi` | 받기 % | 막대(길이를 앎) |
 
+확인(2026-11-12, 테스트 에이전트, 150%·100%): `ProgressDialog.runTask`에 3초 작업 → 진행 창에 `SpinnerIcon` 라벨 하나, `JProgressBar` 없음, 작업 문구 앞에서 돎
+(`D:\Tools\_scratch\chromite-small-fixes-r2\shots\60-progress-dialog-*.png`). `MaintenanceDialog`와 연결 대화상자의 목록 스피너는 DB 없이 열 수 없어 화면으로 보지 않았다(빌드만).
+
 ## 자동완성 창 닫기 (#40)
 
 **근본 원인:** 목록은 초점을 받지 않는 창이라 편집기가 초점을 잃을 때와 메인 창이 움직일 때만 닫혔다. 편집기 안, 빈 영역, 도구 막대, 도구 창 머리글, 상태 표시줄처럼
