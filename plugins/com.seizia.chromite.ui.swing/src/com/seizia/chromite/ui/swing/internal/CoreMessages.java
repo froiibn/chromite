@@ -48,6 +48,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-11 Registered Servers 새 그룹의 위치 문구와 New Subgroup… / New Top-Level Group… (앱 변경 #47, docs/chromite/swing-registered-servers.md)
  * - 2026-11-11 Object Explorer 도구 막대의 읽은 항목 펼치기 (앱 변경 #51, docs/chromite/swing-registered-servers.md "펼치기 단추")
  * - 2026-11-11 테마 선택지 "시스템 설정 따르기" 문구 (앱 변경 #38)
+ * - 2026-11-12 UI 글꼴 선택(자동·시스템 글꼴, Options 행과 안내 글) 문구를 지움: UI 글꼴은 운영체제 글꼴 하나 (앱 변경 #67)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -205,8 +206,6 @@ public class CoreMessages extends NLS {
     public static String options_environment;
     public static String options_theme;
     public static String options_icon_style;
-    public static String options_ui_font;
-    public static String options_ui_font_hint;
     public static String options_query_editor;
     public static String options_auto_complete;
     public static String options_completion_delay;
@@ -352,8 +351,6 @@ public class CoreMessages extends NLS {
     public static String theme_dark;
     public static String icon_style_duotone;
     public static String icon_style_color;
-    public static String ui_font_auto;
-    public static String ui_font_system;
 
     public static String toolwindow_close;
     public static String toast_click_details;

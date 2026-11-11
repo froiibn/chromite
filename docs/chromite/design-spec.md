@@ -145,7 +145,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 탭 | 작은 탭, 아이콘(표, 메시지) + 글자 | 머리말 탭: 밑줄 3 [J `ToolWindow.HeaderTab.underlineHeight` 기본 3], 마우스 올림 L `#EBECF0` / D `#393B40` | FlatLaf 탭 32, 아이콘 없음 [S] | 높이 `size.tab.tool` 32, 아이콘 16(`results.grid`, `results.messages`) + 글자, 밑줄 3 `tab.underline` | P1 |
 | 그리드 바탕 | 흰색(다크: 어두움) | 편집기 바탕(L `#FFFFFF` / D `#1E1F22`) [S][E] | L `#FFFFFF` / D `#36383A` [S] | `bg.editor` | P0 |
 | 행 높이 | ≈20 | ≈27 [S](편집기 글꼴 13 + 위아래 여백) | 20(FlatLaf `Table.rowHeight`) [F] | `size.row.grid` 27 | P0 |
-| 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.grid` = `font.ui` Pretendard 12(2026-11-07 사용자 요청, "적용 현황 — 그리드 글꼴 Pretendard". 그전 목표는 `font.code`). 설정으로 바꿀 수 있게는 P2 | P0 |
+| 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.grid` = `font.ui` Pretendard 12(2026-11-07 사용자 요청, "적용 현황 — 그리드 글꼴 Pretendard". 그전 목표는 `font.code`; 2026-11-12부터 `font.ui`는 운영체제 글꼴 13). 설정으로 바꿀 수 있게는 P2 | P0 |
 | 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line`. 2026-11-07 사용자 요청 10과 사용자 캡처(DataGrip, 아이콘이 늘 보임)로 바꿈: 열 아이콘 16 + 이름 + 오른쪽 끝에 필터(깔때기)·정렬 아이콘(각 `size.gridHeader.action` 16, 늘 보이는 흐린 `text.secondary`, 필터·정렬이 있으면 `accent`), 결과 위 WHERE 필터 줄은 없앰("적용 현황 — 열 필터", [swing-grid-column-filters.md](swing-grid-column-filters.md)) | P0 |
 | 격자선 | 세로·가로 옅은 선 | 세로선이 가로선보다 조금 진함 [S] | FlatLaf 기본(표시 안 함) | 세로선 `grid.line`, 가로선 `grid.lineSubtle` 둘 다 표시 | P0 |
 | 줄무늬 | 없음 | 없음(기본) [S] | 없음 | 없음 | — |
@@ -200,7 +200,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Pretendard 12(2026-11-07 사용자 결정: 한글·라틴을 한 글꼴로 Pretendard 13, "적용 현황 — Pretendard와 밀도 B". 같은 날 "한단계 줄인다"로 12, "적용 현황 — UI 글꼴 12"). 처음 목표는 Inter 13 + 한글 대체 Malgun Gothic이었다. FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 Pretendard에 없는 글자(한자·가나)가 □로 나오지 않음 | P0 |
+| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Pretendard 12(2026-11-07 사용자 결정: 한글·라틴을 한 글꼴로 Pretendard 13, "적용 현황 — Pretendard와 밀도 B". 같은 날 "한단계 줄인다"로 12, "적용 현황 — UI 글꼴 12"). 처음 목표는 Inter 13 + 한글 대체 Malgun Gothic이었다. FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 Pretendard에 없는 글자(한자·가나)가 □로 나오지 않음. **2026-11-12 운영체제 UI 글꼴 13**(Windows Segoe UI + 한글 맑은 고딕, 사용자 결정 "vscode와 같이", "적용 현황 — 운영체제 UI 글꼴 13") | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
 | 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
@@ -392,17 +392,16 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 
 | 토큰 | 값 | 쓰는 곳 | FlatLaf |
 |---|---|---|---|
-| `font.ui` | Pretendard 12 보통 (2026-11-07 전: Inter 13, 2026-11-07 Pretendard 13 → 12). 2026-11-12부터 Options의 UI 글꼴 선택(기본 자동: 배율 150% 미만은 운영체제 UI 글꼴 12, 한국어 Windows는 맑은 고딕) | 모든 UI | `defaultFont = 12 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴). 시스템 글꼴일 때 extra defaults `defaultFont = 12`, `semibold.font = bold`(`UiFont`, "적용 현황 — 글자 선명도와 대비") |
-| `font.ui.semibold` | Pretendard 12 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
-| `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
-| `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
-| `font.grid` | Pretendard 12(= `font.ui`) | 결과 그리드 칸·행 번호, 레코드 보기, 테이블 디자이너 표 | `Table.font`(FlatLaf 기본 = `defaultFont`). 2026-11-07 사용자 요청으로 `font.code`에서 바꿈("적용 현황 — 그리드 글꼴 Pretendard") |
-| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 값 패널, 오류 상세, DDL·스크립트 미리 보기(필터 막대는 2026-11-07 없앰) | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
-| `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
+| `font.ui` | 운영체제 UI 글꼴 13 보통(2026-11-12 사용자 결정 "vscode와 같이", 앱 변경 #67): Windows **Segoe UI** 13(한글은 맑은 고딕으로 대체), macOS 시스템 글꼴(San Francisco, 한글은 Apple SD Gothic Neo), Linux 데스크톱 글꼴. 이력: 2026-11-07 전 Inter 13, 2026-11-07 Pretendard 13 → 12, 2026-11-12 오전 UI 글꼴 선택(#43) | 모든 UI | `defaultFont = 13`, `[win]defaultFont = 13 "Segoe UI"`(FlatLaf가 합성 글꼴로 만듦, "적용 현황 — 운영체제 UI 글꼴 13") |
+| `font.ui.semibold` | 영어 화면: Segoe UI Semibold 13(Windows). 한국어 화면: Segoe UI Bold 13 + 맑은 고딕 Bold(semibold 글꼴에 한글이 없어 BOLD로 바꿈) | 도구 창 제목, 섹션 제목, Properties 분류 | FlatLaf 기본 `semibold.font`(`[win]"Segoe UI Semibold"`, `[mac]"HelveticaNeue-Medium"`), 화면 언어의 글자가 없으면 `ChromiteTheme`이 `bold`로. 스타일 클래스 `semibold` |
+| `font.ui.small` | 11 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
+| `font.title` | 16 semibold(한국어 화면은 굵게) | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
+| `font.grid` | `font.ui`(Segoe UI 13) | 결과 그리드 칸·행 번호, 레코드 보기, 테이블 디자이너 표 | `Table.font`(FlatLaf 기본 = `defaultFont`). 2026-11-07 사용자 요청으로 `font.code`에서 바꿈("적용 현황 — 그리드 글꼴 Pretendard") |
+| `font.code` | JetBrains Mono 13, 줄 간격 1.2 | 메시지, 값 패널, 오류 상세, DDL·스크립트 미리 보기(필터 막대는 2026-11-07 없앰) | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-12 13), 스타일 클래스 `monospaced` |
+| `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색"). UI 글꼴과 따로라 2026-11-12에 바뀌지 않음 |
 
-Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
-넣으려면 의존성 추가와 `NOTICE` 갱신이 필요하므로 구현 단계에서 따로 결정한다("미룬 결정").
-넣지 않으면 대체 값은 Segoe UI 13(Windows), 시스템 글꼴 13(macOS)이고 고정폭은 Cascadia Mono/Consolas, Menlo다.
+UI 글꼴은 설치된 운영체제 글꼴이라 번들하지 않는다(2026-11-12 번들 Pretendard 삭제, 사이트의 Pretendard 웹 글꼴은 그대로). JetBrains Mono는 SIL Open Font License 1.1이고
+FlatLaf가 별도 jar(`flatlaf-fonts-jetbrains-mono`)로 낸다. 같은 방식의 Inter jar(`flatlaf-fonts-inter`)는 아직 번들에 들어 있지만 UI 글꼴로 쓰지 않는다.
 
 ## 아이콘 요구 사항
 
@@ -1139,6 +1138,8 @@ Windows 기본 앱과 같은 ClearType+힌팅), **파일에서 등록한** 글�
 
 #### #43 고친 것
 
+(같은 날 앱 변경 #67에서 UI 글꼴 선택과 번들 Pretendard를 지우고 운영체제 UI 글꼴 13 하나로 바꿨다: 아래 "적용 현황 — 운영체제 UI 글꼴 13".)
+
 - **UI 글꼴 선택**(`UiFont.Choice`, Options > General > UI 글꼴, [swing-options.md](swing-options.md) "UI 글꼴"): 자동 / Pretendard / 시스템 글꼴.
 - **기본값은 자동**: 기본 화면 배율이 150% 미만이면 시스템 글꼴(한국어 Windows는 맑은 고딕 12, 영어 Windows는 Segoe UI 12), 150% 이상이면 Pretendard 12.
   이유: 측정에서 100%·125%의 Pretendard만 흐리고, 시스템 글꼴은 Windows 기본 앱과 같은 GDI ClearType 글자다. 사용자가 Pretendard를 고른 화면은 150%였고,
@@ -1213,6 +1214,115 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 150%(`uiScale=1.5`), 자동: Pretendard 12 그대로(`after-dark-150.png`, `crop-statusbar-dark-150.png`).
 - 테마 값: `Chromite.secondaryForeground` `#9A9DA4`, `Label.disabledForeground`·자리 표시 글·비활성 창 제목 `#777A81`(다크)를 앱에서 읽음.
 - **확인하지 못함:** 회사 VDI 화면(원격 세션)에서의 모습, 실제 RDP 재현, macOS·영어 Windows(Segoe UI)의 시스템 글꼴 모습.
+
+### 적용 현황 — 운영체제 UI 글꼴 13 (2026-11-12, 앱 변경 #67)
+
+사용자 결정(2026-11-12, 회사 100%·집 150%에서 써 본 뒤): "아무래도 폰트를 변경해야 할것 같다. vscode와 같이 변경한다. windows는 Segoe UI를 쓰고 있고
+mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 한단계만 올린다". UI 글꼴을 운영체제 글꼴 하나로, 크기를 12에서 13으로 바꿨다.
+#43의 UI 글꼴 선택(자동·Pretendard·시스템 글꼴)과 번들 Pretendard는 지웠다(메인 세션 결정, 저장된 `ui.font`는 무시).
+
+#### 정한 것
+
+| 운영체제 | UI 글꼴 | 한글 | 어떻게 |
+|---|---|---|---|
+| Windows | **Segoe UI** 13 | 맑은 고딕(JDK 대체 글꼴) | `[win]defaultFont = 13 "Segoe UI"`. FlatLaf의 Windows 시스템 글꼴은 `win.messagebox.font`라 한국어 Windows에서는 맑은 고딕이 된다. 사용자가 Segoe UI를 골랐으므로 이름을 적었다. 설치되지 않았으면(오래되거나 줄인 Windows) FlatLaf가 그 이름을 건너뛰고 시스템 글꼴을 쓴다(`ActiveFont.derive`: 대체 글꼴 Dialog가 나오면 다음 후보, 없으면 시스템 글꼴의 크기만 바꿈) |
+| macOS | 시스템 글꼴 13 | Apple SD Gothic Neo(JDK 대체) | `defaultFont = 13`(크기만): FlatLaf 3.8은 macOS 10.15 이상 + JetBrains Runtime 11 이상에서 `.AppleSystemUIFont`(San Francisco)를 쓴다(`FlatLaf.initDefaultFont`, JBR-1915). Chromite는 JBR 25로 돈다 |
+| Linux | 데스크톱 글꼴 13 | 대체 글꼴 | `defaultFont = 13`, FlatLaf `LinuxFontPolicy` |
+
+- 크기를 테마 properties에 적은 이유: 밀도 B의 치수가 글자 줄 높이에 맞춰져 있어, 운영체제마다 다른 기본 크기(Windows 메시지 상자 글꼴 12, macOS 13)가 아니라
+  한 크기를 쓴다. VS Code UI도 13px다.
+- semibold: 테마의 `semibold.font`를 지우고 FlatLaf 기본값을 쓴다(Windows `"Segoe UI Semibold"`, macOS `"HelveticaNeue-Medium"`, Linux Lato/Ubuntu Medium 등).
+  **Segoe UI Semibold에는 한글이 없고**, 합성 글꼴의 대체 글꼴은 PLAIN 스타일(semibold 패밀리)을 따라 보통 굵기 맑은 고딕이 된다(측정 아래).
+  그래서 한국어 화면에서는 기존 판단(`UiSemibold`, 전 `ChromiteTheme.isInSemiboldFont`)이 semibold를 기본 글꼴의 BOLD로 바꾼다:
+  라틴 Segoe UI Bold + 한글 맑은 고딕 Bold. Segoe UI Semibold 옆 보통 굵기 한글은 머리말에서 굵기가 어긋나 보여 BOLD를 택했다(semibold와 bold 사이에
+  Hangul semibold가 없는 맑은 고딕에서는 이것이 가장 가까운 짝이다). 영어 화면은 Segoe UI Semibold 그대로다.
+- 업데이트 진행 창(OSGi 없이 도는 `UpdateWindowApp`)도 같은 테마 properties를 써서 같은 글꼴이다. semibold 판단도 하도록 그 판단을 `Log`를 쓰지 않는
+  `UiSemibold`로 옮겼다(그 창의 이름·머리말·현재 단계가 semibold다).
+- 시작 화면 글자는 고정 크기 12(`StartupSplash.TEXT_SIZE`)였다. UI 글꼴을 그대로 쓰게 바꿔 13이 됐다(고정값이 UI 글꼴 크기 변경을 따르지 않은 것이 원인).
+
+#### 크기가 바뀐 글꼴
+
+모두 `defaultFont`에서 FlatLaf가 파생하므로 함께 바뀐다(측정, Windows 한국어; 영어는 semibold만 다름):
+
+| 글꼴 | 전(100% 자동 / 150% 자동) | 후 |
+|---|---|---|
+| `defaultFont`와 `Label`·`Tree`·`Table`(= `font.grid`)·`TableHeader`·`MenuItem`·`TitlePane` 등 모든 `*.font` | 맑은 고딕 12 / Pretendard 12 | Segoe UI 13 |
+| `semibold.font` | 맑은 고딕 Bold 12 / Pretendard SemiBold 12 | 한국어: Segoe UI Bold 13, 영어: Segoe UI Semibold 13 |
+| `monospaced.font`(`font.code`: Messages·값 패널·오류 상세·DDL 미리 보기 등 `monospaced` 스타일 클래스) | JetBrains Mono 12 | JetBrains Mono 13 |
+| `small` / `medium` / `large` / `mini` | 10 / 11 / 14 / 9 | 11 / 12 / 15 / 10 |
+| `h1` / `h2` / `h3`(`font.title`) / `h4` | 24 / 18 / 15 / 12 | 25 / 19 / 16 / 13 |
+| 시작 화면 글자 | 12(고정) | 13(UI 글꼴) |
+| 코드가 UI 글꼴에서 만든 글꼴(ERD 그림 `ErdRenderer`, 실행 계획 그림·차트·공간 보기의 −1 글자, Options 목록 묶음 이름 −1, 굵게 만든 행 등) | 12 기준 | 13 기준(상대값이라 따라감) |
+
+바뀌지 않는 것: SQL 편집기 글꼴(`EditorFont`, Cascadia Mono 13, 사용자 설정). 코드에서 고정 크기로 만든 UI 글자는 시작 화면 하나였다
+(`deriveFont(`·`new Font(` 검색: 나머지는 모두 UI 글꼴에서 상대 크기이거나 고정폭 글꼴의 크기를 그 컴포넌트 글꼴에서 가져옴).
+
+#### 실제로 그리는 글꼴(측정)
+
+측정 방법: 앱 안의 테스트 에이전트(Attach API)가 `sun.font` 패키지를 열고, 각 `UIManager` 글꼴의 `Font2D`(합성 글꼴)에서 글자의 글리프 코드를 얻어
+`CompositeStrike.getStrikeForGlyph`로 그 글자를 그리는 물리 글꼴과 파일을 찾고, 화면 배율의 LCD 다듬기 strike가 Windows GDI 래스터라이저를 쓰는지
+(`FileFontStrike.useNatives`)를 읽었다. 100%(`-Dsun.java2d.uiScale=1`)와 150%에서 같다. 다듬기는 운영체제 설정 그대로 LCD HRGB, 대비 120.
+
+| 글꼴 | 'A' | '가' |
+|---|---|---|
+| 후 `defaultFont` Segoe UI 13 | Segoe UI (`segoeui.ttf`, GDI) | 맑은 고딕 (`malgun.ttf`, GDI) |
+| 후 semibold, 한국어 화면 | Segoe UI Bold (`segoeuib.ttf`, GDI) | 맑은 고딕 Bold (`malgunbd.ttf`, GDI) |
+| 후 semibold, 영어 화면 | Segoe UI Semibold (`seguisb.ttf`, GDI) | 맑은 고딕 (`malgun.ttf`, GDI): 보통 굵기 |
+| 전 150% `defaultFont` Pretendard 12 | Pretendard (등록한 임시 파일, **FreeType**) | Pretendard (**FreeType**) |
+| 전 100% `defaultFont` 맑은 고딕 12 | 맑은 고딕 (GDI) | 맑은 고딕 (GDI) |
+| `monospaced.font` JetBrains Mono(전후 같음) | JetBrains Mono (JBR에 든 파일, FreeType) | 맑은 고딕 (GDI) |
+
+선명도(같은 글줄을 다크 바탕에 LCD로 그려 글자 화소 중 덮임 20–80% 번짐과 80% 넘는 꽉 찬 획의 비율, "적용 현황 — 글자 선명도와 대비"와 같은 방법, `probe\SharpProbe`):
+
+| 글꼴 | 100% 라틴 번짐/꽉 참 | 100% 한글 | 150% 라틴 | 150% 한글 |
+|---|---|---|---|---|
+| 전 Pretendard 12(번들, FreeType) | 59.9 / 15.2 | 64.8 / 4.2 | 55.7 / 27.8 | 51.4 / 26.4 |
+| 전 맑은 고딕 12(100% 자동) | 54.5 / 18.4 | 56.8 / 22.3 | 50.3 / 27.3 | 45.8 / 32.1 |
+| 후 Segoe UI 13 + 맑은 고딕 | **40.9 / 31.0** | 50.0 / 21.8 | 46.5 / 36.8 | 44.7 / 34.3 |
+
+글줄 높이(`FontMetrics.getHeight`)는 합성 글꼴의 첫 글꼴(Segoe UI) 값이다: 13px 18(위 14, 아래 4). 한글과 라틴이 섞인 줄은 같은 기준선에 놓인다(캡처).
+
+#### 크기 13에서 맞춘 것
+
+글자 줄이 15(Pretendard 12)·17(맑은 고딕 12)에서 18이 되어, 글자 줄로 높이가 정해지는 치수가 밀도 B·C의 목표보다 커지지 않게 여백을 줄였다.
+고정 높이(트리 22, 그리드 24·머리글 26, 탭, 상태 표시줄 26, 제목 줄 30·40)는 18이 들어가므로 그대로다.
+
+| 파일 | 변경 |
+|---|---|
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | `defaultFont = 13`, `[win]defaultFont = 13 "Segoe UI"`, `semibold.font` 줄 삭제. `@componentMargin = 4,8,4,8`, `Button.margin = 4,14,4,14`(컨트롤 28 = 18 + 4 + 4 + 테두리 2), `@menuItemMargin = 2,8,2,8`(메뉴 항목 22) |
+| `ChromiteCompact.properties` | `@menuItemMargin = 1,8,1,8`(메뉴 항목 20), `Chromite.size.editorToolBar.comboBox.padding = 2,8,2,8`(편집기 선택 상자 24) |
+| `SqlEditorToolBar` | 글자 단추 "실제 계획"·커밋 방식에 `UiIcons.useToolButtonMargin`: 18 + 4 + 4 = 26이 되던 것을 아이콘 단추와 같은 24로(주 도구 막대의 Chromite Agent 단추와 같은 방식) |
+| `StartupSplash` | 고정 크기 12 대신 UI 글꼴 |
+| `UiIcons` | 주석(13px 글자 줄 18은 위 여백에서 2를 뺌) |
+
+측정(Windows 11, 창 1280×800, 빈 작업 공간, PostgreSQL 연결 하나에 한글·라틴 섞인 스키마·표, 100%와 150%, 한국어·영어, 라이트·다크; 전은 #67 직전 devel):
+
+| 항목 | 전 100%(맑은 고딕 12) | 전 150%(Pretendard 12) | 후(Segoe UI 13) | 토큰 |
+|---|---|---|---|---|
+| UI 글꼴 한 줄 | 17 | 15 | 18 | — |
+| `font.code` 한 줄 | 17 | 17 | 18 | — |
+| 입력·콤보·단추·스피너(주 창, 옵션, 연결 대화상자) | **30** | 28 | 28 | 28 |
+| 주 도구 막대 / 편집기 도구 막대 | 32 / **34** | 32 / **33** | 32 / 32 | 32 |
+| "실제 계획"·"자동 커밋" 글자 단추 | 25 | 23·24 | 24 | 24 |
+| 트리 행 / 그리드 행 / 머리글 | 22 / 24 / 26 | 22 / 24 / 26 | 22 / 24 / 26 | 같음 |
+| 도구 창 머리말 / 상태 표시줄 / 쿼리 상태 칸 | 35 / 26 / 26 | 35 / 26 / 26 | 35 / 26 / 26 | 같음 |
+| 메뉴 항목 | — | — | 22 | 22 |
+| 확인란 | — | — | 22 | — |
+| 결과 보기 아래 줄의 글자 토글(값 패널·레코드…)과 링크 단추(저장·취소) | 25 | 23 | 26 | (토큰 없음) |
+| 촘촘한 모드: 트리 / 그리드·머리글 / 편집기 선택 상자 / 도구 막대 / 상태 표시줄 / 메뉴 항목 | | | 20 / 22·24 / 24 / 26·28 / 24 / 20 | 같음 |
+
+- 전 100%(자동 = 맑은 고딕 12)는 여백이 Pretendard 12의 15에 맞춰져 있어 컨트롤 30, 편집기 도구 막대 34로 목표보다 컸다. 이번에 28·32로 돌아왔다.
+- 결과 보기 아래 줄의 글자 토글과 링크 단추는 아이콘이 없는 글자 단추라 글자 줄을 따라 26(전 23–25)이 되고 그 줄이 3 높아졌다. 잘림이 없고 같은 줄의 단추가
+  모두 같은 높이라 그대로 두었다.
+- 잘림 검사: 보이는 모든 `JLabel`·`AbstractButton`의 글자를 `SwingUtilities.layoutCompoundLabel`로 다시 배치해 줄임표로 잘리거나 글자 줄이 안쪽 높이보다 큰 것을
+  셌다. 주 창(개체 탐색기·등록된 서버 트리, 쿼리 창, 결과 그리드, Query Library, Chromite Agent 패널, 도구 막대, 상태 표시줄), 옵션(General), 연결 대화상자,
+  메시지 상자(제목 줄 30), 업데이트 진행 창, 촘촘한 모드에서 100%·150% × 한국어·영어 × 라이트·다크 모두 **0**.
+- 업데이트 진행 창: 앱 안 경로(`UpdateProgress`와 같은 `UpdateWindow`)를 캡처했고, 따로 도는 경로(`UpdateWindowApp.installLookAndFeel`)는 같은 jar로 Look and Feel만
+  설치해 `defaultFont` Segoe UI 13, 영어 `semibold.font` Segoe UI Semibold 13, 한국어 `semibold.font` Segoe UI Bold 13(`h2` Segoe UI Bold 19)을 읽었다.
+- 캡처: `D:\Tools\_scratch\system-ui-font\shots\`(`before-ko-{100,150}-main-dark`, `after-{ko,en}-{100,150}-{main,options}-{light,dark}`, `-connection-`, `-msgbox-`,
+  `-update-`, `-splash`, `-compact-dark`, 확대 비교 `crop-{tree,grid}-dark-{100,150}.png`).
+- **확인하지 못함:** macOS(실행할 수 없음. FlatLaf 3.8 소스로만 판단: `.AppleSystemUIFont` 13, semibold는 FlatLaf 기본 `HelveticaNeue-Medium`이고 한글이 없어 한국어 화면에서는
+  시스템 글꼴의 BOLD), Linux, Segoe UI가 없는 Windows(코드 경로만), 회사 VDI 화면.
 
 ### Swing/FlatLaf로 못 한 것과 이유
 
@@ -1342,3 +1452,5 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 2026-11-11 대화상자 제목 줄 30, 메인 창 40(앱 변경 #56): "대화상자 제목 줄" 절 추가.
 - 2026-11-12 글자 선명도와 대비(앱 변경 #43·#55): "적용 현황 — 글자 선명도와 대비" 절(다듬기 방식·글꼴별 그리는 길 측정, UI 글꼴 선택과 기본값 자동,
   두 테마의 글자 대비 측정표) 추가. Islands 표의 글자 색, `font.ui` 토큰, SQL 구문 색 표의 줄 번호, 9절 주 상태 표시줄 글자 갱신.
+- 2026-11-12 운영체제 UI 글꼴 13(앱 변경 #67, 사용자 결정 "vscode와 같이"): 글꼴 토큰(Windows Segoe UI + 한글 맑은 고딕, macOS 시스템 글꼴, 크기 13),
+  8·14절 표, "적용 현황 — 운영체제 UI 글꼴 13" 절(정한 것, 크기가 바뀐 글꼴, 물리 글꼴과 GDI 측정, 선명도, 여백과 높이 측정) 추가. 번들 Pretendard 삭제.

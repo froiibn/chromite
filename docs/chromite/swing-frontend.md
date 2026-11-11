@@ -1956,6 +1956,8 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   `ArrayIndexOutOfBoundsException`이 나고 문서 탭이 깨진다. `MainFrame`의 문서 탭 `ContainerListener`(`updateDocumentCard`의 `CardLayout.show` → validate)가
   테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
 - Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
+  → 2026-11-12 UI 글꼴 13(앱 변경 #67)부터 Actual Plan·커밋 방식 단추도 도구 단추 여백(`UiIcons.useToolButtonMargin`)을 써서 24다
+  (design-spec "적용 현황 — 운영체제 UI 글꼴 13").
 
 ### 콤보를 맨 앞으로, 연결 콤보 220 (2026-11-08, 앱 변경 #3)
 
@@ -3135,3 +3137,4 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 - 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
   상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 결과 영역 두 단계 탭(앱 변경 #54, `chromite/result-area-2`): 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, Grid 안 아래쪽 자식 탭 "Result 1"…(영어), Text 탭, 서버 출력은 Server Output 탭(새 출력 점). "결과 영역 두 단계 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages·"결과 탭" 절에 표시.
+- 2026-11-12 UI 글꼴 13(앱 변경 #67): Actual Plan 토글 높이 메모 갱신(도구 단추 여백으로 24). 회귀 테스트는 실행하지 않았다.

@@ -67,6 +67,8 @@ import java.util.List;
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  * - 2026-11-08 연결·DB 콤보를 맨 앞으로, 연결 콤보 폭 260 → 220(앱 변경 #3, 사용자 결정) (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-09 도구 설명의 키 글자를 단축키에서 만듦({@link UiKeys}, 두 키 조합은 {@code SqlTextArea.getChordText}, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 Actual Plan·커밋 방식 글자 단추에 도구 단추 여백({@link UiIcons#useToolButtonMargin}): UI 글꼴 13의 글자 줄(18)이 아이콘(16)보다
+ *   높아 단추가 26이 되던 것을 아이콘 단추와 같은 24로 (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
  */
 final class SqlEditorToolBar {
 
@@ -212,6 +214,8 @@ final class SqlEditorToolBar {
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);
+        // As high as the icon buttons beside it: the text line is higher than the icon
+        UiIcons.useToolButtonMargin(button);
         return button;
     }
 
@@ -226,6 +230,8 @@ final class SqlEditorToolBar {
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);
+        // As high as the icon buttons beside it: the text line is higher than the icon
+        UiIcons.useToolButtonMargin(button);
         return button;
     }
 

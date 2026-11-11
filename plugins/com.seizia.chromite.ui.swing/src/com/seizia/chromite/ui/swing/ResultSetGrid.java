@@ -143,6 +143,7 @@ import java.util.UUID;
  * - 2026-11-08 행 번호 칸에 선택·포커스 바탕을 칠하지 않음, 그 칠하기만을 위한 선택·포커스 리스너 삭제(사용자 요청)
  *   (docs/chromite/swing-result-viewer.md "표 편의 기능")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), macOS 다시 실행 ⇧⌘Z·아래 행 값 복사 ⇧⌘D
+ * - 2026-11-12 행 번호 폭 주석: UI 글꼴이 운영체제 글꼴이 되어 비례 숫자를 Pretendard로 단정하지 않음 (앱 변경 #67)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -1357,8 +1358,8 @@ final class ResultSetGrid extends JPanel {
     // Layout
 
     /**
-     * Width of the row numbers up to {@code rowCount} (at least two digits). The digits of the UI font are
-     * proportional (Pretendard: "1" is narrower than "0"), so a number's own width is not enough for the numbers
+     * Width of the row numbers up to {@code rowCount} (at least two digits). The digits of the UI font (the operating
+     * system's) may be proportional (Pretendard, the earlier UI font: "1" is narrower than "0"), so a number's own width is not enough for the numbers
      * below it ("111" is narrower than "108"): the width is the digit count times the widest digit.
      */
     private static int getRowNumberWidth(@NotNull JTable header, int rowCount) {

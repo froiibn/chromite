@@ -125,16 +125,14 @@ The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
   bundle as fonts/cascadia-mono/OFL.txt). Unmodified files from the release
   archive CascadiaCode-2407.24.zip (ttf/static), stored in this repository.
 
-  Pretendard 1.3.9 font (static OTF: Regular, SemiBold)
+  Pretendard 1.3.9 font (web subsets, used by the download site in
+  site/assets/fonts: Pretendard-Regular.subset.woff2,
+  Pretendard-SemiBold.subset.woff2)
   https://github.com/orioncactus/pretendard
   Copyright (c) 2021, Kil Hyung-jin, with Reserved Font Name Pretendard.
-  Licensed under the SIL Open Font License, Version 1.1 (included in the
-  bundle as fonts/pretendard/OFL.txt). Unmodified files from the release
-  archive Pretendard-1.3.9.zip (public/static), stored in this repository.
-  The download site (site/assets/fonts) uses the web subsets
-  Pretendard-Regular.subset.woff2 and Pretendard-SemiBold.subset.woff2,
-  unmodified files from the same archive (web/static/woff2-subset), with
-  the same license (site/assets/fonts/OFL.txt).
+  Licensed under the SIL Open Font License, Version 1.1
+  (site/assets/fonts/OFL.txt). Unmodified files from the release archive
+  Pretendard-1.3.9.zip (web/static/woff2-subset), stored in this repository.
 
   The download site (site/assets/icons) also uses the GitHub mark from
   Octicons 19.33.0 (mark-github-16.svg, mark-github-24.svg)
