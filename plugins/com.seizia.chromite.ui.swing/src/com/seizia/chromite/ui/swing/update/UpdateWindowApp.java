@@ -17,12 +17,13 @@
 package com.seizia.chromite.ui.swing.update;
 
 import com.formdev.flatlaf.FlatLaf;
-import com.formdev.flatlaf.util.FontUtils;
 import com.seizia.chromite.model.update.UpdateHandOver;
 import com.seizia.chromite.model.update.UpdateRun;
 import com.seizia.chromite.model.update.UpdateService;
 import com.seizia.chromite.ui.swing.ChromiteDarkLaf;
 import com.seizia.chromite.ui.swing.ChromiteLightLaf;
+import com.seizia.chromite.ui.swing.UiSemibold;
+import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -31,10 +32,10 @@ import java.awt.Desktop;
 import java.awt.Point;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -56,18 +57,19 @@ import java.util.concurrent.Executors;
  *     거부했으면 그 까닭을 말한다. [다시 시도]는 관리자 확인부터 다시 한다.</li>
  * </ol>
  * OSGi 없이 도는 평범한 Java 프로그램이다. 설정 저장소와 작업 공간을 읽지 않고 잠금을 쥐지 않는다. 언어·테마·자리는 기록에서 읽는다.
- * Pretendard 글꼴은 앱({@code UiFont})과 같은 파일을 같은 이름으로 등록한다({@code UiFont}는 {@code Log}를 써서 여기서 부를 수 없다).
+ * 글꼴은 앱과 같은 운영체제 UI 글꼴이다(테마 properties의 {@code defaultFont}, 등록할 번들 글꼴이 없다). 한국어 semibold의 굵은 대체 글꼴도 앱과 같이
+ * {@link UiSemibold}로 정한다({@code ChromiteTheme}은 {@code Log}를 써서 여기서 부를 수 없다).
  * 새 버전이 첫 시작을 마치면 이 폴더를 지운다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-09 관리자 확인 거부를 설치 실패 문구로 알림 (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-12 번들 Pretendard 등록을 지움: UI 글꼴이 운영체제 글꼴이 됨. 한국어 semibold는 앱처럼 굵은 기본 글꼴 (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
  */
 public final class UpdateWindowApp {
 
     private static final int POLL_MS = 250;
     private static final int TICKS_PER_SECOND = 1000 / POLL_MS;
-    private static final String FONT_PATH = "/fonts/pretendard/"; //$NON-NLS-1$
     // A constant: inlined, so UpdateService (which needs the model bundle) is not loaded here
     private static final String SITE_PREFIX = UpdateService.ORIGIN_TEXT + "/"; //$NON-NLS-1$
 
@@ -316,21 +318,17 @@ public final class UpdateWindowApp {
     }
 
     /**
-     * The app's theme, with its UI font (the same files and family names as the app's {@code UiFont}).
+     * The app's theme, with its UI font (the operating system's, named in the theme properties) and, as the app does
+     * ({@code ChromiteTheme.install}), the bold default font for semibold text when the semibold font lacks the letters of
+     * the UI language (Korean: Segoe UI Semibold has no Hangul).
      */
     private static void installLookAndFeel(boolean dark) {
-        registerFont("Pretendard", "Pretendard-Regular.otf"); //$NON-NLS-1$ //$NON-NLS-2$
-        registerFont("Pretendard SemiBold", "Pretendard-SemiBold.otf"); //$NON-NLS-1$ //$NON-NLS-2$
         FlatLaf.setup(dark ? new ChromiteDarkLaf() : new ChromiteLightLaf());
-    }
-
-    private static void registerFont(@NotNull String family, @NotNull String file) {
-        FontUtils.registerFontFamilyLoader(family, () -> {
-            URL url = UpdateWindowApp.class.getResource(FONT_PATH + file);
-            if (url != null) {
-                FontUtils.installFont(url);
-            }
-        });
+        if (!UiSemibold.isInSemiboldFont(UpdateMessages.update_window_name)) {
+            FlatLaf laf = dark ? new ChromiteDarkLaf() : new ChromiteLightLaf();
+            laf.setExtraDefaults(Map.of(UiSemibold.SEMIBOLD_FONT_KEY, UiSemibold.BOLD_FONT_VALUE));
+            FlatLaf.setup(laf);
+        }
     }
 
     private static void browse(@NotNull String page) {

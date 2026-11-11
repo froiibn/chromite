@@ -73,6 +73,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 시작 화면 (docs/chromite/branding.md "시작 화면", 감사 행 A-S15)
+ * - 2026-11-12 글자 크기를 고정 12 대신 UI 글꼴 그대로(13): 고정값이 UI 글꼴 크기 변경을 따르지 않았음 (앱 변경 #67)
  * - 2026-11-12 macOS: 런처 창이 있던 자리에 그대로 띄움. 화면 정가운데에 두어 가운데보다 약간 위의 런처 창에서 아래로 움직여
  *   보였다(앱 변경 #52, docs/chromite/branding.md "시작 화면")
  */
@@ -97,7 +98,6 @@ final class StartupSplash {
     // The bottom text row, in the image's 1x pixels
     private static final int TEXT_INSET = 20;
     private static final int TEXT_BASELINE_INSET = 20;
-    private static final float TEXT_SIZE = 12f;
     // Dark theme tokens, the theme of the image (docs/chromite/design-spec.md): status bar widget text and text.primary
     private static final Color VERSION_COLOR = new Color(0x9DA0A8);
     private static final Color STATUS_COLOR = new Color(0xDFE1E5);
@@ -276,7 +276,8 @@ final class StartupSplash {
     private static final class Content extends JComponent {
         private final Image image;
         private final String version = NLS.bind(CoreMessages.about_version, GeneralUtils.getPlainVersion());
-        private final Font font = UIManager.getFont("Label.font").deriveFont(TEXT_SIZE); //$NON-NLS-1$
+        // The UI font (font.ui) as the theme sets it, so the text follows its size
+        private final Font font = UIManager.getFont("Label.font"); //$NON-NLS-1$
 
         Content(@NotNull Image image) {
             this.image = image;

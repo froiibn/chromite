@@ -123,6 +123,9 @@ import java.util.StringJoiner;
  * - 2026-11-12 문서 영역 최소 크기를 내용(쿼리 창 753, 시작 화면 420) 대신 고정값으로, 문서 영역을 둘러싼 분할선을 끄는 동안 문서 영역
  *   쪽의 다른 열은 지금 크기를 유지. 오른쪽 열을 넓히면 왼쪽 열이 좁아지던 문제(#218 뒤에도 남음)
  *   (앱 변경 #68, docs/chromite/swing-frontend.md "도구 창 크기 바꾸기")
+ * - 2026-11-12 테마를 바꾸면 카드 밖에 사각형 1px 테두리가 남던 문제: 한 번의 테마 설치가 Look and Feel을 두 번 바꾸면(한국어 화면의 semibold,
+ *   앱 변경 #67) 장식이 두 변경 사이에 돌아 라이브러리가 두 번째로 다시 넣은 테두리를 지우지 못했다. 장식 예약을 이번 설치의 작업들 뒤로 미룸
+ *   (docs/chromite/swing-frontend.md "테마 전환 뒤 카드 테두리")
  */
 final class ToolWindowDocking {
 
@@ -246,9 +249,15 @@ final class ToolWindowDocking {
             scheduleUpdate();
         });
         lookAndFeelListener = e -> {
-            // The library re-adds its panel borders on look and feel changes (invokeLater); decorate after it
+            // The library re-adds its panel borders on every look and feel change, in a task it posts then
+            // (DockingInternal.updateLAF -> ActiveDockableHighlighter.setNotSelectedBorder). A theme install can change the
+            // look and feel twice in one EDT task (ChromiteTheme.install does so only in the first install of the process,
+            // before the main window, when the UI language needs the bold semibold font; this keeps the decoration last if an
+            // install with the main window open ever does): scheduling the update directly
+            // would coalesce with the first change and run between the library's two tasks, so the second one would put the
+            // borders back. Scheduling it from a task posted now queues the update behind every task of this install.
             if ("lookAndFeel".equals(e.getPropertyName())) { //$NON-NLS-1$
-                scheduleUpdate();
+                SwingUtilities.invokeLater(this::scheduleUpdate);
             }
         };
         UIManager.addPropertyChangeListener(lookAndFeelListener);

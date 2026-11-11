@@ -94,6 +94,12 @@ semibold 한글에 대체 글꼴이 필요 없고, 위 수정은 적용되지 �
 물리 글꼴을 만들어 `canDisplayUpTo`를 보고, 화면 언어의 글자를 그릴 수 없으면 `semibold.font = bold`를 넣어 테마를 한 번 더 설치한다.
 Pretendard에 없는 한자·가나를 쓰는 화면 언어(일본어, 중국어)가 생기면 그때 적용된다.
 
+2026-11-12 UI 글꼴을 운영체제 글꼴로 바꿨다(앱 변경 #67, design-spec.md "적용 현황 — 운영체제 UI 글꼴 13"). Windows의 semibold 글꼴은
+FlatLaf 기본값 Segoe UI Semibold이고 한글이 없다. 그래서 **한국어 화면에서는 위 수정이 다시 적용된다**: semibold가 기본 글꼴의 BOLD가 되어
+라틴은 Segoe UI Bold, 한글은 맑은 고딕 Bold로 그린다(측정은 design-spec). 판단은 `UiSemibold`로 옮겨 OSGi 없이 도는 업데이트 진행 창
+(`UpdateWindowApp`)도 같은 판단을 한다(그 창의 이름·머리말·현재 단계가 semibold다). 영어 화면은 Segoe UI Semibold 그대로이고, 그 안의 한글(데이터 이름 등)은
+보통 굵기 맑은 고딕으로 대체된다.
+
 ## DBeaver 플러그인 한국어 보충
 
 사용자 결정(2026-11-06, 안 "가"): 한국어 Windows에서도 개체 탐색기 폴더(Databases, Schemas, Tables…), 개체 속성 이름(Object ID, Owner,
@@ -478,4 +484,6 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. 한국
   AI 도구 표시 이름 86개와 열린 트랜잭션 확인 문구 한국어("남은 한국어 문구 정리").
 - 2026-11-09 한국어 문구 끝에 말줄임표를 쓰지 않는 규칙(앱 변경 #9, "한국어 문구 끝의 말줄임표"): `_ko` 값 233개 정리, 세션 명령 상태 문구를
   NLS(`sessions_action_running`)로, 용어집의 한국어 열에서 말줄임표를 뺌.
+- 2026-11-12 UI 글꼴이 운영체제 글꼴(Windows Segoe UI)이 되어 한국어 화면의 semibold가 다시 굵은 대체 글꼴(Segoe UI Bold + 맑은 고딕 Bold)로 그려짐
+  (앱 변경 #67, "한글 굵은 글꼴").
 - 2026-11-12 문서가 인용한 한국어 화면 이름의 끝 말줄임표 정리(B11, `chromite/small-fixes-r2`, "한국어 문구 끝의 말줄임표").

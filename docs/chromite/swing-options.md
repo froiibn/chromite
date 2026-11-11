@@ -595,20 +595,18 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 닫기: 값 바꾼 채 닫기 → 질문, [버리기] → 닫힘, 다시 열면 0개. 값 없이 닫기 → 바로 닫힘. 찾기 중 바뀐 값이 있는 페이지(Query Execution)는
   일치하지 않아도 목록에 남고 선택된 채 보임.
 - **확인하지 못함:** 저장 실패 줄(일부러 실패시킬 방법이 없음: 코드 경로만), macOS, 실제 마우스·키 입력(모두 Swing 객체로 다룸).
-## UI 글꼴 (2026-11-12, 앱 변경 #43)
+## UI 글꼴 (2026-11-12, 앱 변경 #43 → #67)
 
-사용자 보고(기업 환경 2026-11-09·11): 회사 PC(클라우드 VDI, 100% 배율, ClearType 켜짐)에서 Chromite 글자만 흐리다. 원인과 측정은
-[design-spec.md](design-spec.md) "적용 현황 — 글자 선명도와 대비".
+**지금(앱 변경 #67): Options에 UI 글꼴 행이 없다.** 사용자 결정(2026-11-12) "vscode와 같이 변경한다": UI 글꼴은 운영체제 글꼴 하나다
+(Windows Segoe UI + 한글 맑은 고딕, macOS 시스템 글꼴, 크기 13). 구조와 측정은 [design-spec.md](design-spec.md) "적용 현황 — 운영체제 UI 글꼴 13".
 
-- 선택지: Options > General > Environment의 **UI 글꼴**: 자동(기본값) / Pretendard / 시스템 글꼴. 저장값은 설정 `ui.font`(`AUTO` / `PRETENDARD` / `SYSTEM`,
-  테마와 같은 이 번들의 작업 공간 설정). 저장값이 없으면 `AUTO`. 옆 안내 글: "자동: 화면 배율 150% 미만에서는 더 선명한 시스템 글꼴".
-- 자동: 기본 화면의 배율이 150% 미만(100%, 125%)이면 시스템 글꼴, 150% 이상이면 Pretendard. 테마를 설치할 때마다 정한다.
-- 시스템 글꼴: FlatLaf의 운영체제 UI 글꼴(Windows `win.messagebox.font`: 한국어 Windows는 맑은 고딕, 영어 Windows는 Segoe UI, macOS는 시스템 글꼴),
-  크기는 테마의 `font.ui`와 같은 12, semibold는 그 글꼴의 BOLD. 고정폭(`font.code`)과 SQL 편집기 글꼴은 바뀌지 않는다.
-- 구조: `UiFont.Choice`가 선택이고 `UiFont.getExtraDefaults()`가 시스템 글꼴일 때 `defaultFont = 12`, `semibold.font = bold`를 FlatLaf extra defaults로
-  준다(`ChromiteTheme.install`, 밀도와 같은 방식). General 페이지의 [저장]으로 저장하고(값, #59 저장 표준), 쓰는 글꼴이 바뀌면 지금 테마를 다시 설치해 열린 창이 모두 바뀐다(다시 시작 없음).
-  시작할 때는 작업 공간을 잠그기 전에 자동으로 설치하고, 메인 창을 열기 전에 저장값이 다른 글꼴이면 다시 설치한다(`ChromiteSwingApplication.openMainWindow`).
-- 이 행은 Options 대화상자의 General 페이지에 한 행(콤보와 안내 글)만 더했다. 대화상자의 모양은 바꾸지 않았다.
+- 지운 것: General > Environment의 **UI 글꼴** 행(자동·Pretendard·시스템 글꼴과 안내 글), `UiFont`(선택과 저장, 번들 Pretendard 등록),
+  `ChromiteSwingApplication.openMainWindow`의 글꼴 비교, 문구 키 `options_ui_font`·`options_ui_font_hint`·`ui_font_auto`·`ui_font_system`(영어·한국어).
+- 저장된 설정 `ui.font`(`AUTO` / `PRETENDARD` / `SYSTEM`)는 읽는 곳이 없어 무시된다. 옮기지 않는다(메인 세션 결정).
+
+이전(#43, 2026-11-12 오전): 회사 PC(클라우드 VDI, 100% 배율)에서 Chromite 글자만 흐리다는 보고로 UI 글꼴 선택을 두었다. 자동(기본값)은 기본 화면 배율이
+150% 미만이면 시스템 글꼴(FlatLaf의 `win.messagebox.font`: 한국어 Windows는 맑은 고딕 12), 그 이상이면 번들 Pretendard 12였다. 원인 측정은
+design-spec "적용 현황 — 글자 선명도와 대비".
 
 ## 페이지별 정리
 
@@ -774,6 +772,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   (토글은 바로, 값은 [저장], 떠날 때 묻기). Notifications 페이지가 새 작업 공간에서 끄기를 저장하지 못하던 것을 고침(앱 변경 #59, 위
   "옵션 화면 모양과 저장 (#59)").
 - 2026-11-12 General에 UI 글꼴(자동·Pretendard·시스템 글꼴, 기본값 자동)(앱 변경 #43, 위 "UI 글꼴").
+- 2026-11-12 UI 글꼴 행과 그 설정을 지움: UI 글꼴은 운영체제 글꼴 하나, 크기 13(앱 변경 #67, 위 "UI 글꼴").
 - 2026-11-12 설정을 글로만 가리키던 다섯 화면(여섯 곳)에 그 페이지를 여는 링크·메뉴 항목(`OptionsLinks`, B12, `chromite/small-fixes-r2`, 위 "특정 페이지로 여는 곳").
   `OptionsDialog`는 고치지 않음(재구성 브랜치와 병합 충돌을 피하려고).
 
