@@ -695,6 +695,11 @@ Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜
 - 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 엔진을 닫으면 받는 중인 응답도 끝낸다(`MonitoredHttpClient.close`, 아래 "실제 API 확인").
   실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
   실행 중에는 대화·제공자·연결을 바꿀 수 없다.
+- **제공자 설정 안내**(2026-11-12, 앱 변경 #71 f): 공급자가 설정되지 않으면 입력란 위에 "시작하려면 AI 제공자(API 키 또는 로컬 모델)를 설정하세요." 글과
+  [Chromite Agent 설정] 단추가 보인다. 글이 패널 폭을 모두 쓰고 줄을 바꾸며(`WrappingNote`), 단추는 그 아래 왼쪽에 둔다. 단추가 글보다 넓은 아주 좁은 폭(최소 카드 폭)에서는
+  단추 글이 말줄임표로 준다. 전에는 HTML 라벨 옆(BorderLayout 동쪽)에 단추가 있어 단추가 폭을 가져가고 글이 좁은 칸으로 접혀 잘렸다(Mac 1024px 캡처 "provi", "to sta",
+  Windows 100%에서도 좁게 접힘). 도구 없음 안내(`toolsOffNotice`)도 같은 HTML 라벨이라 `WrappingNote`로 바꿨다. 확인: 패널 폭 97(최소)·296(1024px·1258px·1600px 창의 기본)·697,
+  한국어·영어 × 100%·150% × 밝은·어두운. 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\f-agent-setup-hint.png`.
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
   `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
   전체 글은 도구 설명에 있다.
@@ -1414,6 +1419,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 화면 재점검(앱 변경 #71 f, `chromite/visual-recheck-fixes`): 제공자 설정 안내는 글이 패널 폭을 쓰고 단추는 그 아래, 두 안내를 `WrappingNote`로.
+  위 "채팅 도구 창". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #64 도구 묶음(`chromite/agent-tool-sets`): 최소 13·핵심 44·전체 101 묶음(`plugin.xml` `toolSet`, 최소는 `shortDescription`),
   메타 도구 `findTools`와 대화별 찾은 도구, 제공자별 "채팅 도구 묶음"·Ollama/vLLM 컨텍스트 크기 설정, "도구를 모두 보냄" 지움(전체로 옮김), 보내기 전 크기
   확인, 도구 없음 방식과 채팅 창 안내, vLLM Test가 `max_model_len`으로 컨텍스트 크기를 채움. 위 "도구 묶음".

@@ -118,6 +118,9 @@ import java.util.Set;
  *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 도구 호출을 못 하는 제공자·모델이면 입력란 위에 늘 보이는 안내({@code toolsOffNotice}): 채팅은 도구 없이 SQL을 제안하고 사용자가
  *   [쿼리 창에서 열기]로 연다 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 제공자 설정 안내는 글이 패널 폭을 쓰고 단추는 그 아래: 단추 옆에서 좁은 칸으로 접혀 잘렸다(Mac 1024px, Windows 100%).
+ *   두 안내를 HTML 라벨 대신 {@link WrappingNote}로(HTML 라벨의 높이는 마지막으로 그린 폭을 따라가 한 번 늦음) (앱 변경 #71 f,
+ *   docs/chromite/ai-agent.md "채팅 도구 창")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -189,9 +192,9 @@ final class AiAssistantPanel extends JPanel {
     private final JButton sendButton = new JButton(AiMessages.ai_send);
     private final JButton stopButton = new JButton(AiMessages.ai_stop);
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
-    private final JPanel setupNotice = new JPanel(new BorderLayout(8, 0));
+    private final JPanel setupNotice = new JPanel(new BorderLayout(0, UIScale.scale(4)));
     // The provider's model can't call tools: the chat works without them (AIAgentToolSets.isToolsOff)
-    private final JLabel toolsOffNotice = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_tools_off_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
+    private final JTextArea toolsOffNotice = new WrappingNote(AiMessages.ai_tools_off_notice);
     private final Action newChatAction;
     private final Action deleteChatAction;
     private final Action historyAction;
@@ -376,14 +379,21 @@ final class AiAssistantPanel extends JPanel {
         statusRow.add(actionRow, BorderLayout.CENTER);
         statusRow.add(statusLabel, BorderLayout.SOUTH);
 
-        // Wraps in a narrow tool window
-        JLabel noticeLabel = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_setup_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
-        noticeLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
+        // The text takes the panel's width and wraps in a narrow tool window; the button goes under it. Beside the text, the
+        // button took the width and left the text a narrow column that was cut off
+        JTextArea noticeText = new WrappingNote(AiMessages.ai_setup_notice);
+        noticeText.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
         JButton noticeButton = new JButton(AiMessages.ai_settings);
         noticeButton.addActionListener(e -> host.openOptions(OptionsDialog.PAGE_AGENT));
+        // As wide as its text on the left; narrower than that (down to the minimum card width) it shortens its text with an
+        // ellipsis instead of being cut
+        noticeButton.setMinimumSize(new Dimension(0, noticeButton.getPreferredSize().height));
+        Box noticeButtons = Box.createHorizontalBox();
+        noticeButtons.add(noticeButton);
+        noticeButtons.add(Box.createHorizontalGlue());
         setupNotice.setOpaque(false);
-        setupNotice.add(noticeLabel, BorderLayout.CENTER);
-        setupNotice.add(noticeButton, BorderLayout.EAST);
+        setupNotice.add(noticeText, BorderLayout.CENTER);
+        setupNotice.add(noticeButtons, BorderLayout.SOUTH);
         setupNotice.setVisible(false);
 
         JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(4)));
