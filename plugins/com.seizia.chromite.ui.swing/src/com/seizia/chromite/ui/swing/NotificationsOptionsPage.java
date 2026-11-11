@@ -77,11 +77,12 @@ final class NotificationsOptionsPage extends SettingsPage {
     void save(@NotNull Writer writer) {
         // Compared with the values as they are read (no default is registered for the keys: an unset key reads as on and 30 s),
         // not with getBoolean/getLong of an unset key (false, 0): otherwise "off" on a new workspace was never written and the
-        // unchanged defaults were written on every save
+        // unchanged defaults were written on every save. "Off" is written as text: the store drops a boolean equal to the
+        // unregistered default (false), and an unset key reads as on.
         DBPPreferenceStore store = writer.getStore();
         boolean notify = notifyBox.isSelected();
         if (writer.isOverride() || notify != SwingSystemAgent.isLongOperationNotify(store)) {
-            store.setValue(SwingSystemAgent.PREF_LONG_OPERATION_NOTIFY, notify);
+            store.setValue(SwingSystemAgent.PREF_LONG_OPERATION_NOTIFY, String.valueOf(notify));
             writer.markChanged();
         }
         long timeout = ((Number) timeoutSpinner.getValue()).longValue();

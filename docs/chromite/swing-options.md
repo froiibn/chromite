@@ -561,6 +561,31 @@ Turbrix의 #722 "저장 표준"(STYLE_GUIDE 5.12, `apps/desktop/src/shell/settin
 
 - 글자 선명도·대비(#43/#55, 테마 색·글꼴)는 손대지 않았다. 그 작업이 General에 더한 "UI 글꼴" 행(아래 "UI 글꼴")은 이 행 모양에 들어가고
   환경 칸의 값으로 센다([저장]으로 저장, 즉시 적용 토글 아님).
+
+### 고친 버그: Notifications의 끄기
+
+- 원인: 두 키(`agent.long.operation.notify`, `.timeout`)는 등록된 기본값이 없고 페이지는 "설정 없음 = 켬, 30초"로 읽는데
+  (`SwingSystemAgent.isLongOperationNotify`), 저장은 `getBoolean`/`getLong`(설정 없음 = false, 0)과 비교했다. 그래서 열기만 해도 기본값을 다시 썼고
+  (새 저장 표준에서는 "바뀐 값 2개"로 보였음), 끄기는 `setValue(false)`가 등록되지 않은 기본값(false)과 같아 저장소가 키를 지워 다시 켬으로 읽혔다
+  (`BundlePreferenceStore.putBoolean`). 새 작업 공간에서 끄기가 저장되지 않던 오래된 버그다.
+- 고침: 읽는 방식과 비교하고, 끔은 글자 "false"로 쓴다(`NotificationsOptionsPage.save`). 같은 방식(등록 기본값 없이 `contains`로 읽는 키)의 다른
+  페이지는 없다(모든 페이지를 열어 바뀐 수 0 확인).
+
+### 확인 (2026-11-12)
+
+Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS 입력 없음), 빈 작업 공간. 기록과 화면: `D:\Tools\_scratch\chromite-options-restyle\run\`,
+`shots\`.
+
+- 25개 페이지를 하나씩 열어 바뀐 수 0(Notifications 고친 뒤), Updates는 아래 줄 없음. 창 1080×760, 최소 760×520. 목록에 묶음 제목 6개.
+- 한국어 150% 어둡게: General(UI 글꼴 행 포함, 아래 설명 글), Query Execution, Connection Types, Chromite Agent, Data Formats, Editor, Editor Colors,
+  Query Results, 찾기("시간 제한") 화면. 영어 100% 밝게: General, Query Execution, Connections, Templates, Connection Types, Agent, 찾기("timeout").
+- 값: 완성 지연 300 → "저장하지 않은 변경 1개", [저장] 켜짐. 테마 단추 어둡게 → 2개. 다른 페이지 고름 → 질문(저장·버리기·취소), 취소 → 그대로,
+  [되돌리기] → 0개. 문 구분 기호 ";;" → 1개, 저장소는 ";" 그대로, 페이지를 떠나며 [저장] → ";;" 저장되고 Editor로 넘어감. UI 글꼴 → 1개(값).
+- 토글: 변수(`sql.variables.enabled`)를 누르면 바로 false/true로 저장되고 바뀐 수 0. 문 구분 기호를 바꾼 채 토글을 누르면 토글만 저장되고
+  구분 기호는 저장되지 않은 채 1개로 남음. DROP 확인 토글은 바로 바뀜. Notifications 끄기 → `false` 저장, 켜기 → `true`.
+- 닫기: 값 바꾼 채 닫기 → 질문, [버리기] → 닫힘, 다시 열면 0개. 값 없이 닫기 → 바로 닫힘. 찾기 중 바뀐 값이 있는 페이지(Query Execution)는
+  일치하지 않아도 목록에 남고 선택된 채 보임.
+- **확인하지 못함:** 저장 실패 줄(일부러 실패시킬 방법이 없음: 코드 경로만), macOS, 실제 마우스·키 입력(모두 Swing 객체로 다룸).
 ## UI 글꼴 (2026-11-12, 앱 변경 #43)
 
 사용자 보고(기업 환경 2026-11-09·11): 회사 PC(클라우드 VDI, 100% 배율, ClearType 켜짐)에서 Chromite 글자만 흐리다. 원인과 측정은
