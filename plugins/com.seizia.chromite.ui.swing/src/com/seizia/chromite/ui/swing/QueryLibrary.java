@@ -67,6 +67,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   (docs/chromite/swing-query-library.md "공유")
  * - 2026-11-08 저장·복제할 때 고친 시각({@code @updated})을 쓰지 않음 (docs/chromite/swing-query-library.md "저장 형식")
  * - 2026-11-08 {@link #deleteRecursively}를 Scripts 도구 창도 쓰도록 패키지 안에 엶 (docs/chromite/swing-scripts-explorer.md)
+ * - 2026-11-12 {@link #renameQuery}가 바뀐 파일을 돌려줌: 문서 탭 메뉴에서 이름을 바꾼 쿼리 창이 새 파일을 따라감(앱 변경 #42)
+ *   (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  */
 final class QueryLibrary {
 
@@ -351,8 +353,11 @@ final class QueryLibrary {
 
     /**
      * Renames a query: its name in the file and the file name.
+     *
+     * @return the query's file after the rename
      */
-    void renameQuery(@NotNull QueryLibraryItem item, @NotNull String newName) throws IOException {
+    @NotNull
+    Path renameQuery(@NotNull QueryLibraryItem item, @NotNull String newName) throws IOException {
         Path file = resolveFile(item);
         if (file == null) {
             throw new IOException("The query has no file");
@@ -365,9 +370,11 @@ final class QueryLibrary {
         if (current.hasHeader() || !newName.equals(stem(file))) {
             QueryLibraryFile.write(current, file);
         }
-        current.setFile(renameToName(file, newName));
+        Path renamed = renameToName(file, newName);
+        current.setFile(renamed);
         indexFile(current);
         fireChanged();
+        return renamed;
     }
 
     @NotNull

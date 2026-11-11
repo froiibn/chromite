@@ -669,8 +669,8 @@ Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜
 - 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > Chromite Agent(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
   같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
   **2026-11-08 바뀜(앱 변경 #6·#12):** 기본 배치에서 보이고, 오른쪽 열의 아래(Query Library 아래, 높이 0.6)에 있다. 열 폭은 이전 Agent 열 폭(25%)이다.
-  주 도구 막대의 단추는 오른쪽 끝에 아이콘 + 글자 "Chromite Agent"로 있다([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent",
-  "Chromite Agent 단추를 오른쪽 끝으로"). 시작할 때부터 보이므로 공급자 미설정 안내는 대화를 읽어 모델 선택을 채운 뒤(`showChat`)에도 다시 정한다.
+  주 도구 막대의 단추는 단추 묶음의 마지막(Find 뒤, 2026-11-12 앱 변경 #53, 그 전에는 창 오른쪽 끝)에 아이콘 + 글자 "Chromite Agent"로 있다
+  ([swing-frontend.md](swing-frontend.md) "기본 배치: Query Library와 Chromite Agent", "Chromite Agent 단추를 단추 묶음의 마지막으로"). 시작할 때부터 보이므로 공급자 미설정 안내는 대화를 읽어 모델 선택을 채운 뒤(`showChat`)에도 다시 정한다.
 - 위에서 아래로(2026-11-08 바꿈): 도구 막대(새 대화·대화 삭제·대화 기록 │ 플레이북·Chromite Agent 설정, 다른 도구 창처럼 왼쪽 정렬) / 연결과 데이터베이스(편집 가능,
   연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈) / 모델 선택(왼쪽)과 보내기·중지(오른쪽) / 상태 줄.
 - **모델 선택**(2026-11-08, 앱 변경 #14): 제공자와 모델을 콤보 하나로 고른다. 목록은 제공자 이름(굵게, 고를 수 없음) 아래에 그 제공자의 모델(알려진 이름 + Test로 받은
@@ -1287,6 +1287,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-12 앱 변경 #53(`chromite/tabs-toolbar`): 주 도구 막대의 Chromite Agent 단추를 단추 묶음의 마지막(Find 뒤)으로. 위 창 배치 설명을 고침.
 - 2026-11-12 앱 변경 #61(`chromite/agent-tool-review`): 도구 선택 정적 점검. 헷갈리는 묶음 15개, 도구 설명 99개와 인수 설명 14개를 "하는 일·언제·대신 쓸 도구"
   모양으로 고침, `part`·`mode`에 `validValues`, 이름 바꾸기·합치기·빼기 제안(사용자 결정), 요청 크기 줄이기 제안(권함: 핵심 묶음 + 도구 찾기),
   평가 세트 [agent-tool-eval.md](agent-tool-eval.md). 도구 ID·인수 이름·분류·도구 수(101)는 그대로. 위 "도구 선택 점검".

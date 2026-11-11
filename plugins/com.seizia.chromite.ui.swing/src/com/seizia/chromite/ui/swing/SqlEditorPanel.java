@@ -327,6 +327,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-sql-editor-session-ui.md "현재 DB 따라가기")
  * - 2026-11-11 실행 중 표시: 상태 칸 "실행 중 2/3 · 00:00:12"(경과 시간 칸은 끝난 뒤), 탭 스피너, 실행 중·오류 문장의 줄 강조와 줄 번호 옆 아이콘
  *   (아이콘 열을 켬), 쓰지 않게 된 editor_sql_executing 삭제(앱 변경 #44) (docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
+ * - 2026-11-12 {@link #setFileName}: 저장 전 창의 이름 바꾸기(문서 탭 메뉴, 앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -732,6 +733,15 @@ final class SqlEditorPanel extends JPanel {
     void fileMoved(@NotNull Path file) {
         this.file = file;
         this.fileName = file.getFileName().toString();
+        host.titleChanged(this);
+    }
+
+    /**
+     * Rename of a window that was never saved (document tab menu): its name changes, in the tab title and as the file
+     * name Save proposes.
+     */
+    void setFileName(@NotNull String fileName) {
+        this.fileName = fileName;
         host.titleChanged(this);
     }
 
