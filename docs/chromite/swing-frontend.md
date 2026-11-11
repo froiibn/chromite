@@ -527,7 +527,7 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 | 메서드 | B단계 구현 |
 |---|---|
-| `runWithProgress`, `runWithMonitor` | EDT에서 부르면 작업을 `AbstractJob`으로 돌리고 모달 진행 대화상자(`ProgressDialog`, 작업 이름, 진행 막대, Cancel)에서 기다린다. 다른 스레드면 그 스레드에서 실행 |
+| `runWithProgress`, `runWithMonitor` | EDT에서 부르면 작업을 `AbstractJob`으로 돌리고 모달 진행 대화상자(`ProgressDialog`, 도넛 스피너와 작업 이름(2026-11-12까지는 길이를 모르는 막대, 앱 변경 #60), Cancel)에서 기다린다. 다른 스레드면 그 스레드에서 실행 |
 | `executeWithProgressBlocking` | SWT `DesktopUI`와 같은 Job. EDT에서는 진행 대화상자에서 기다리고(취소 시 `runnable.cancel()`), 다른 스레드는 `join` |
 | `showNotification`, `showWarningNotification` | 로그 + 메인 창 오른쪽 아래의 비모달 알림(`NotificationToast`, 레이어 창에 올림, 몇 초 뒤 사라짐, 누르면 `feedback` 실행) |
 

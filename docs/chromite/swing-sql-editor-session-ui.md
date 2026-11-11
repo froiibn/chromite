@@ -23,7 +23,7 @@
 |---|---|
 | `SqlEditorPanel` | `QueryListener`가 문장 뒤(조회·DML이 아닌 문장)와 실행 끝에 세션의 현재 DB/스키마를 서버에서 다시 읽음(`readSessionDefaults`). 실행 밖에서 트랜잭션이 끝나면 다시 읽음(`sessionReadPending`). 실행 중 상태 글자(`showRunState`), 탭 스피너(`getTabIcon`), 실행 중·실패 문장 표시(`showRunningStatement`, `markFailedStatement`, `clearStatementMarks`, 실행 중 편집 따라가기 `mapOffset`), 편집 영역의 아이콘 열 |
 | `PostgreExecutionContext` | `refreshDefaults`: 읽은 뒤에 값을 바꿈, `SET ROLE`은 세션을 시작할 때만 |
-| `SpinnerIcon` (새) | 회전 도넛 스피너 아이콘(Java2D, 테마 강조 색), 운영체제 움직임 줄이기 설정이면 돌지 않음 |
+| `SpinnerIcon` (새) | 회전 도넛 스피너 아이콘(Java2D, 테마 강조 색), 운영체제 움직임 줄이기 설정이면 돌지 않음. 대화상자·패널용 `createLabel`(#60) |
 | `QueryStatusLine` | 실행 중 상태 아이콘을 스피너로 |
 | `SqlCompletionPopup` | 목록이 보이거나 계산하는 동안 앱의 마우스 누름·휠을 듣고(`listenOutside`) 목록 밖이면 닫음 |
 | `UiIcons` | 아이콘 단추(`createActionButton`, `createToolButton`)의 도구 설명이 동작의 단축키를 함께 보임(`ShortcutTipButton`, `withShortcut`) |
@@ -72,6 +72,23 @@
 - **아이콘 열:** 편집 영역 줄 번호 옆에 아이콘 열을 늘 켠다(IDE의 중단점 열과 같은 자리). 실행 중에만 켜면 글자가 좌우로 움직이기 때문이다.
 - **움직임 줄이기:** Windows "애니메이션 효과" 끔(`SPI_GETCLIENTAREAANIMATION`), macOS "동작 줄이기"(`NSWorkspace.accessibilityDisplayShouldReduceMotion`)면 같은 모양으로 멈춰 있다.
 - Windows 작업 표시줄 진행 표시는 하지 않는다(사용자 "windows까지는 할 필요 없다").
+
+### 스피너 하나와 길이를 모르는 진행 (#60)
+
+앱의 도넛 스피너 구현은 `SpinnerIcon` 하나다. 연결 대화상자의 데이터베이스 목록(#39)이 따로 만든 `DonutSpinner`(JComponent)는 지우고,
+대화상자·패널은 `SpinnerIcon.createLabel()`(스피너 아이콘을 단 `JLabel`, 보일 때만 돌고 숨기거나 창을 닫으면 멈춤)을 쓴다. 움직임 줄이기 설정도 그대로 따른다.
+
+원칙(사용자 결정): 길이를 모르는 짧은 기다림은 도넛 스피너, 길이를 아는 진행은 막대. 2026-11-12에 Swing UI의 길이를 모르는(indeterminate) `JProgressBar`를 모두 찾아 나눴다.
+
+| 곳 | 기다리는 것 | 처리 |
+|---|---|---|
+| `ProgressDialog`(EDT에서 부른 짧은 작업의 모달 진행 창) | 연결 시험, 드라이버 속성 읽기, 메타데이터·스키마 읽기, Agent 작업 읽기, 연결 내보내기·가져오기 등 | 스피너로(작업 문구 앞) |
+| `MaintenanceDialog` 상태 줄 | 열 때 대상 상태·권한 읽기(짧음), 유지 관리 명령 실행(길이 모름, 취소 단추) | 스피너로 — 한 표시를 두 기다림이 같이 쓰고 둘 다 길이를 모른다 |
+| `ConnectionDatabaseList` | 데이터베이스 목록 읽기 | 이미 스피너(#39), 구현만 `SpinnerIcon`으로 |
+| `DatabaseTaskDialog.reportProgress`·`start` | 네이티브 클라이언트 작업(백업·복원·스크립트). 도구가 %를 알리면 % 막대 | 막대 유지(길이를 아는 진행으로 바뀜, 오래 걸림) |
+| `DataTransferWizard` 실행 | 데이터 전송. 첫 파이프가 끝나기 전만 길이를 모름, 그 뒤 끝난 파이프 수/전체 | 막대 유지 |
+| `update/UpdateWindow`(`UpdateView.Bar.BUSY`) | 업데이트 설치·시작 단계 | 막대 유지(업데이트 진행 창의 단계 막대, #60 행) |
+| `UpdateUi` | 받기 % | 막대(길이를 앎) |
 
 ## 자동완성 창 닫기 (#40)
 
@@ -131,3 +148,5 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 ## 변경 이력
 
 - 2026-11-11 최초 작성: #33(현재 DB 따라가기), #44(실행 중 표시), #40(자동완성 창 닫기), #50(단축키를 도구 설명에), #57(닫기 단추 모양)
+- 2026-11-12 스피너 하나(앱 변경 #60, `chromite/small-fixes-r2`): `DonutSpinner` 삭제, `SpinnerIcon.createLabel`, `ProgressDialog`·`MaintenanceDialog`의 길이를 모르는 막대를
+  스피너로. "스피너 하나와 길이를 모르는 진행" 절 추가. 회귀 테스트는 실행하지 않았다.
