@@ -99,6 +99,8 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 세 보기(그래픽·트리·원본)와 보기 전환 도구 막대, 마지막 보기 기억 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 빈 계획 안내와 확대·축소 도움말의 키 글자
+ * - 2026-11-12 보기 전환(그래픽 / 트리 / 원본)의 좌우 여백을 {@link UiSizes#TEXT_TOOL_BUTTON_STYLE}로: 아이콘 단추 여백(4)이라 눌린 바탕과 글자 사이가 거의 없었다
+ *   (앱 변경 #71 e, docs/chromite/design-spec.md "치수 토큰")
  */
 final class ExecutionPlanView {
 
@@ -309,7 +311,7 @@ final class ExecutionPlanView {
         JToggleButton button = new JToggleButton(text);
         button.setToolTipText(toolTip);
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.putClientProperty(FlatClientProperties.STYLE, UiSizes.TEXT_TOOL_BUTTON_STYLE);
         button.setFocusable(false);
         button.addActionListener(e -> {
             showView(target);

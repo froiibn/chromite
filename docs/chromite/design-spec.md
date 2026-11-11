@@ -360,6 +360,7 @@ UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 �
 | `size.badge` | 8 | 아이콘 지침 "6~9px" | 겹침 배지 |
 | `size.indent.tree` | 17 (19) | [S] | `Tree.leftChildIndent = 6`, `Tree.rightChildIndent = 11` |
 | `size.gap.treeIcon` | 4 (6) | 시안 B | 트리 아이콘–글자 간격 `Chromite.size.tree.iconTextGap`. 보조 글자 앞과 연결 색 알약 앞뒤는 `Chromite.size.tree.secondaryGap` 6(알약 사양 그대로) |
+| `size.textToolButton.margin` | 4,8,4,8 (3,6,3,6) | `Button.toolbar.margin`의 위아래, 좌우는 `space.8`(입력·콤보 글자 여백과 같음) | `Chromite.size.textToolButton.margin`. 아이콘 없는 글자 도구 막대 단추의 보기 전환(실행 계획 그래픽/트리/원본, 결과 보기 토글, 차트 종류)이 `UiSizes.TEXT_TOOL_BUTTON_STYLE`(`arc: 6; toolbar.margin: $…`)로 쓴다. 2026-11-12 앱 변경 #71 e: 아이콘 단추 여백(좌우 4)이라 13px 글자와 눌린 바탕 사이가 거의 없었다. 높이는 그대로(26, 촘촘한 모드 24) |
 | `size.padding.viewerStatus` | 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.viewerStatus.padding`. 필터 막대 여백 `size.padding.filterBar`(2,4,2,4)는 2026-11-07 필터 막대와 함께 지움 |
 | `size.gridHeader.action`, `size.gridHeader.gap` | 16 / 4 | 아이콘 16, 아이콘–글자 간격(`size.gap.treeIcon`과 같은 4) | 결과 그리드 머리글의 필터·정렬 아이콘 칸(각 16×16), 열 아이콘–이름·이름–필터 아이콘 간격. `Chromite.size.gridHeader.action`, `Chromite.size.gridHeader.gap` |
 | `size.scrollbar` | 11 (막대 7) | [S] | `ScrollBar.width = 11`, `ScrollBar.thumbInsets = 2,2,2,2`, `ScrollBar.thumbArc = 999` |
@@ -1458,3 +1459,8 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
   두 테마의 글자 대비 측정표) 추가. Islands 표의 글자 색, `font.ui` 토큰, SQL 구문 색 표의 줄 번호, 9절 주 상태 표시줄 글자 갱신.
 - 2026-11-12 운영체제 UI 글꼴 13(앱 변경 #67, 사용자 결정 "vscode와 같이"): 글꼴 토큰(Windows Segoe UI + 한글 맑은 고딕, macOS 시스템 글꼴, 크기 13),
   8·14절 표, "적용 현황 — 운영체제 UI 글꼴 13" 절(정한 것, 크기가 바뀐 글꼴, 물리 글꼴과 GDI 측정, 선명도, 여백과 높이 측정) 추가. 번들 Pretendard 삭제.
+- 2026-11-12 화면 재점검(앱 변경 #71 e, `chromite/visual-recheck-fixes`): 치수 토큰 `size.textToolButton.margin`(글자 보기 전환 단추의 좌우 8, 촘촘한 모드 6).
+  같은 원인(도구 막대 단추가 모두 아이콘 단추 여백을 받음)인 보기 전환 셋을 함께 고침: 실행 계획 보기 전환, 결과 보기 아래 줄 토글, 차트 종류(arc 6도 더함).
+  옵션의 테마 단추 셋은 아이콘 단추라 그대로. 아이콘 없는 다른 글자 도구 단추(값 패널의 서식·적용·되돌리기, 집계 함수, 확대 비율 등, 토글이 아님)는 손대지 않음.
+  확인: 단추 안쪽 좌우 9(8 + 간격 1, 촘촘한 모드 7), 높이 26(24) 그대로, 한국어·영어 × 100%·150% × 밝은·어두운. 확대 비교
+  `D:\Tools\_scratch\visual-recheck-fixes\sheets\e-view-switches.png`. 회귀 테스트는 실행하지 않았다.

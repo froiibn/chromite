@@ -48,6 +48,8 @@ import java.awt.*;
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 size.statusLine.query 삭제: 쿼리 창 상태 칸이 메인 창 상태 표시줄로 옮겨 size.statusBar를 씀 (docs/chromite/swing-frontend.md "상태 표시줄의 쿼리 창 칸")
  * - 2026-11-11 size.titleBar(메인 창 제목 줄 40) 키: 대화상자 제목 줄은 30으로 낮추고 메인 창만 40 (앱 변경 #56, docs/chromite/design-spec.md "대화상자 제목 줄")
+ * - 2026-11-12 size.textToolButton.margin 키와 {@link #TEXT_TOOL_BUTTON_STYLE}: 글자만 있는 보기 전환 단추의 좌우 여백(앱 변경 #71 e,
+ *   docs/chromite/design-spec.md "치수 토큰")
  */
 final class UiSizes {
 
@@ -85,6 +87,8 @@ final class UiSizes {
     static final String GRID_HEADER_GAP = "Chromite.size.gridHeader.gap"; //$NON-NLS-1$
     /** Result viewer status bar (row count, fetch links) padding. */
     static final String VIEWER_STATUS_PADDING = "Chromite.size.viewerStatus.padding"; //$NON-NLS-1$
+    /** Margin of a tool bar button with text and no icon (view switches), in {@link #TEXT_TOOL_BUTTON_STYLE}. */
+    static final String TEXT_TOOL_BUTTON_MARGIN = "Chromite.size.textToolButton.margin"; //$NON-NLS-1$
 
     /**
      * FlatLaf style of tool tabs (results, tool window tabs, detail tabs): size.tab.tool with a 3px underline.
@@ -94,6 +98,14 @@ final class UiSizes {
      * FlatLaf style of the document tabs: size.tab.editor, no underline (the selected tab is a pill).
      */
     static final String DOCUMENT_TABS_STYLE = "tabHeight: $" + DOCUMENT_TAB_HEIGHT + "; tabSelectionHeight: 0"; //$NON-NLS-1$ //$NON-NLS-2$
+    /**
+     * FlatLaf style of a tool bar button with text and no icon in a view switch (the plan's Graphical / Tree / Raw, the
+     * result view toggles, the chart types): radius.action 6 and {@link #TEXT_TOOL_BUTTON_MARGIN}. FlatLaf gives every
+     * tool bar button the icon buttons' margin (Button.toolbar.margin, 4 on the sides), which leaves a text's pressed
+     * background almost no room beside the text; the border's {@code toolbar.margin} is replaced (a {@code margin} of the
+     * button from a theme value would be a UIResource, which FlatLaf ignores in tool bars).
+     */
+    static final String TEXT_TOOL_BUTTON_STYLE = "arc: 6; toolbar.margin: $" + TEXT_TOOL_BUTTON_MARGIN; //$NON-NLS-1$
 
     private UiSizes() {
     }
