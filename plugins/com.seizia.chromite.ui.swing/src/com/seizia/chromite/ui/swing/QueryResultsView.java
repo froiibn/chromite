@@ -94,6 +94,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-12 두 단계 탭(사용자 결정, 앱 변경 #54): 위 탭 Grid | Text | Messages | Server Output | Execution plan | Terminal, Grid 안 아래쪽
  *   자식 탭 "Result 1"…(영어), 서버 출력은 Messages에서 Server Output 탭으로(새 출력 점), Text 탭, 고정은 Grid에서 고른 자식 탭이라
  *   마지막으로 고른 결과 탭을 따로 기억하던 {@code lastResultTab}을 지움 (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 실제 계획을 켠 실행이 끝나면 Execution plan 탭에 점({@link #markPlanUnread}: 계획이 왔으면 초록, 이유만 있으면 노랑).
+ *   결과가 앞에 남아 계획이 온 줄 몰랐다(앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 final class QueryResultsView {
 
@@ -172,6 +174,9 @@ final class QueryResultsView {
     private int errorCount;
     // Server output came while the Server Output tab was not in front
     private boolean outputUnread;
+    // A run's actual plan (success) or why it has none (warning) came while the Execution plan tab was not in front
+    @Nullable
+    private UiIcons.Status planUnread;
     @Nullable
     private JComponent terminalComponent;
     private final Listener listener;
@@ -253,6 +258,10 @@ final class QueryResultsView {
                 outputUnread = false;
                 updateOutputTab();
             }
+            if (selected == planComponent && planUnread != null) {
+                planUnread = null;
+                updatePlanTab();
+            }
             refreshTextIfShown();
             listener.resultsRowsChanged();
         });
@@ -282,6 +291,8 @@ final class QueryResultsView {
         outputArea.setText("");
         outputUnread = false;
         updateOutputTab();
+        planUnread = null;
+        updatePlanTab();
         refreshTextIfShown();
     }
 
@@ -492,6 +503,25 @@ final class QueryResultsView {
         Icon icon = UiIcons.get("comment"); //$NON-NLS-1$
         tabs.setIconAt(index, outputUnread ? UiIcons.withStatusDot(icon, UiIcons.Status.WARNING) : icon);
         tabs.setToolTipTextAt(index, outputUnread ? EditorMessages.editor_results_server_output_new_tip : null);
+    }
+
+    /**
+     * A run with Include Actual Execution Plan ended: the Execution plan tab gets a dot while it is not in front, as in
+     * SSMS the results stay in front. The dot says whether the plan came or the tab says why it did not.
+     */
+    void markPlanUnread(boolean planShown) {
+        if (tabs.getSelectedComponent() != planComponent) {
+            planUnread = planShown ? UiIcons.Status.CONNECTED : UiIcons.Status.WARNING;
+            updatePlanTab();
+        }
+    }
+
+    private void updatePlanTab() {
+        int index = tabs.indexOfComponent(planComponent);
+        Icon icon = UiIcons.get("plan"); //$NON-NLS-1$
+        tabs.setIconAt(index, planUnread != null ? UiIcons.withStatusDot(icon, planUnread) : icon);
+        tabs.setToolTipTextAt(index, planUnread == null ? null : planUnread == UiIcons.Status.CONNECTED
+            ? EditorMessages.editor_results_plan_new_tip : EditorMessages.editor_results_plan_none_tip);
     }
 
     /**

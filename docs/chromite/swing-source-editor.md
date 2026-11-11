@@ -26,7 +26,7 @@ SWT 버전에서는 개체 편집기의 소스 탭(`SQLSourceViewer` 계열)에�
   File > Save / Save As가 다른 쿼리 창과 같다(SSMS의 Modify 창도 보통 쿼리 창이다).
 - 실행(F5)이 끝날 때마다(오류·취소 포함) Modify 창은 그 개체 노드를, New 창은 그 폴더 노드를 DB에서 다시 읽는다.
   만든 개체가 트리에 나타나고, 고친 개체의 DDL 보기·Script as가 새 정의를 쓴다.
-- 화면 문구는 `SourceEditMessages`(영어 기본, `_ko` 한국어)다. 메뉴: 수정, ALTER 대상, 새 뷰…, 새 프로시저…, 새 함수…, 진행 제목 ALTER로 스크립팅.
+- 화면 문구는 `SourceEditMessages`(영어 기본, `_ko` 한국어)다. 메뉴: 수정, ALTER 대상, 새 뷰, 새 프로시저, 새 함수, 진행 제목 ALTER로 스크립팅.
 
 ## 구조
 

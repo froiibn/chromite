@@ -65,6 +65,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69): 연결 콤보 문구 {@code editor_sql_connection_tip}, {@code editor_sql_connection_selected_tip},
  *   {@code editor_sql_select_connection}과 콤보로 고르라는 안내 {@code editor_sql_choose_connection}을 지우고 서버 표시 문구
  *   {@code editor_sql_select_server*}, {@code editor_sql_server_fixed*} 추가 (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 Execution plan 탭 점의 도구 설명 {@code editor_results_plan_new_tip}, {@code editor_results_plan_none_tip} 추가
+ *   (앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -342,6 +344,8 @@ public class EditorMessages extends NLS {
     public static String editor_results_text_title;
     public static String editor_results_server_output;
     public static String editor_results_server_output_new_tip;
+    public static String editor_results_plan_new_tip;
+    public static String editor_results_plan_none_tip;
     public static String editor_results_tab;
     public static String editor_results_pinned;
     public static String editor_results_pinned_tip;

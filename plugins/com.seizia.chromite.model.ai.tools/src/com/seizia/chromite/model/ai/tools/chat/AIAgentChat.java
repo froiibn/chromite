@@ -59,6 +59,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-08 기록 크기 예산: 오래된 도구 결과 줄이기, 오래된 차례 빼기, 호출·결과 짝은 나누지 않음 (docs/chromite/ai-agent.md "요청 크기")
  * - 2026-11-08 실행 중인 도구의 진행 글({@link Entry#getProgress}, 저장하지 않음): 백업·복원 도구
+ * - 2026-11-12 대화가 찾은 도구({@link #getFoundTools}, 저장됨. 예전 대화는 없음으로 읽힘), 보낼 기록의 토큰 어림, 도구 없이 보내는 기록
+ *   (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  */
 public final class AIAgentChat {
 
@@ -237,6 +239,9 @@ public final class AIAgentChat {
     private String connectionId;
     @Nullable
     private String database;
+    // Tools outside the provider's tool set that findTools returned or the model called; null in conversations saved before
+    @Nullable
+    private List<String> foundTools;
     private List<Entry> entries = new CopyOnWriteArrayList<>();
 
     AIAgentChat() {
@@ -326,6 +331,29 @@ public final class AIAgentChat {
         this.database = database;
     }
 
+    /**
+     * IDs of the tools this conversation reached outside its tool set (findTools results, tools the model or the prompt named):
+     * later requests send them too (docs/chromite/ai-agent.md "도구 묶음").
+     */
+    @NotNull
+    public List<String> getFoundTools() {
+        return foundTools == null ? List.of() : List.copyOf(foundTools);
+    }
+
+    /**
+     * Adds a tool to {@link #getFoundTools}; false if it was there.
+     */
+    boolean addFoundTool(@NotNull String toolId) {
+        if (foundTools == null) {
+            foundTools = new ArrayList<>();
+        }
+        if (foundTools.contains(toolId)) {
+            return false;
+        }
+        foundTools.add(toolId);
+        return true;
+    }
+
     @NotNull
     public List<Entry> getEntries() {
         if (entries == null) {
@@ -383,14 +411,21 @@ public final class AIAgentChat {
      * @param sentChars        size of the messages sent
      * @param shortenedResults tool results replaced by a short preview
      * @param droppedTurns     oldest turns (a prompt and everything up to the next prompt) left out
+     * @param sentTokens       estimated tokens of the messages sent ({@link AIAgentToolSets#estimateTokens})
      */
     public record ModelHistory(
         @NotNull List<AIMessage> messages,
         int fullChars,
         int sentChars,
         int shortenedResults,
-        int droppedTurns
+        int droppedTurns,
+        int sentTokens
     ) {
+    }
+
+    @NotNull
+    ModelHistory toModelMessages(int budgetChars, int keepTurns) {
+        return toModelMessages(budgetChars, keepTurns, true);
     }
 
     /**
@@ -403,13 +438,17 @@ public final class AIAgentChat {
      * the kept turns are shortened too, except the newest {@link #KEEP_RESULTS}. A call and its result are one message,
      * and a turn is left out whole, so a call is never sent without its result (or a result without its call) and the
      * history still starts with the user's prompt.
+     *
+     * @param withTools false when the request carries no tools (the provider can't call them): tool calls and results are left
+     *                  out, because a server without tool calls may reject them
      */
     @NotNull
-    ModelHistory toModelMessages(int budgetChars, int keepTurns) {
+    ModelHistory toModelMessages(int budgetChars, int keepTurns, boolean withTools) {
         List<List<Entry>> turns = new ArrayList<>();
         for (Entry entry : getEntries()) {
             boolean sent = switch (entry.kind) {
-                case USER, TOOL -> true;
+                case USER -> true;
+                case TOOL -> withTools;
                 case ASSISTANT -> !entry.getText().isBlank();
                 case ERROR -> false;
             };
@@ -456,15 +495,17 @@ public final class AIAgentChat {
         }
         List<AIMessage> messages = new ArrayList<>();
         int sentResults = 0;
+        int sentTokens = 0;
         for (int t = first; t < turns.size(); t++) {
             for (Entry entry : turns.get(t)) {
                 messages.add(toModelMessage(entry, shortened.get(entry)));
+                sentTokens += tokens(entry, shortened.get(entry));
                 if (shortened.containsKey(entry)) {
                     sentResults++;
                 }
             }
         }
-        return new ModelHistory(messages, full, total, sentResults, first);
+        return new ModelHistory(messages, full, total, sentResults, first, sentTokens);
     }
 
     @NotNull
@@ -524,6 +565,18 @@ public final class AIAgentChat {
                 name + RESULT_HEADER.length() + (shortResult != null ? shortResult : resultText(entry)).length();
         }
         return size;
+    }
+
+    // Estimated tokens of the same parts as size()
+    private static int tokens(@NotNull Entry entry, @Nullable String shortResult) {
+        int tokens = AIAgentToolSets.estimateTokens(entry.getText());
+        if (entry.kind == Kind.TOOL) {
+            int name = AIAgentToolSets.estimateTokens(entry.function);
+            tokens += name + AIAgentToolSets.estimateTokens(AgentJson.GSON.toJson(entry.getArguments())) +
+                name + AIAgentToolSets.estimateTokens(RESULT_HEADER) +
+                AIAgentToolSets.estimateTokens(shortResult != null ? shortResult : resultText(entry));
+        }
+        return tokens;
     }
 
     @NotNull

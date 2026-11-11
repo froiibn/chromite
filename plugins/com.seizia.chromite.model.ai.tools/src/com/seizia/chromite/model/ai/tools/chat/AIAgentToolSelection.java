@@ -27,10 +27,6 @@ import com.seizia.chromite.model.ai.agent.AIToolPolicy;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
 import com.seizia.chromite.model.ai.tools.AgentTool;
 import com.seizia.chromite.model.ai.tools.DbFamily;
-import com.seizia.chromite.model.ai.tools.mcp.AIMcpSettings;
-import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
-import com.seizia.chromite.model.preferences.DBPPreferenceStore;
-import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -49,20 +45,18 @@ import java.util.List;
  *     <li>연결 인수가 없는 도구(listConnections, formatSql 등)는 늘 보낸다. 대화에 연결이 없으면 모두 보낸다.</li>
  *     <li>보내지 않은 도구 ID는 시스템 프롬프트에 짧게 알린다. 모델이 사용자에게 "그 도구는 이 연결에서 막혀 있다"고 말하거나, 다른 연결의 일이면
  *     대화의 연결을 바꾸라고 할 수 있게 하기 위해서다.</li>
- *     <li>"도구를 모두 보냄" 설정({@link #PREF_SEND_ALL_TOOLS}, 기본 꺼짐)은 고르지 않고 모두 보낸다. 다른 연결의 도구를 한 대화에서 함께 쓸 때를 위한
- *     것이다. MCP 서버의 {@code tools/list}는 연결이 정해지지 않으므로 늘 전체다.</li>
+ *     <li>이 거르기는 도구 묶음({@link AIAgentToolSets}) 안에서 한다. 최소·핵심 묶음은 거른 뒤 보내고, 전체 묶음은 거르지 않는다(다른 연결의 도구를
+ *     한 대화에서 함께 쓸 때를 위한 것으로, 예전 "도구를 모두 보냄"과 같다). {@code findTools}도 같은 거르기로 찾는다. MCP 서버의
+ *     {@code tools/list}는 연결이 정해지지 않으므로 늘 전체다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (후속 과제 #76 요청 크기)
+ * - 2026-11-12 "도구를 모두 보냄" 설정을 지움: 제공자별 도구 묶음 설정의 "전체"가 대신한다({@link AIAgentToolSets}, 앱 변경 #64)
  */
 public final class AIAgentToolSelection {
 
     private static final Log log = Log.getLog(AIAgentToolSelection.class);
-
-    public static final String PREF_SEND_ALL_TOOLS = "chromite.ai.chat.sendAllTools"; //$NON-NLS-1$
-
-    private static DBPPreferenceStore store;
 
     /**
      * Tools of one request and the IDs left out.
@@ -80,32 +74,14 @@ public final class AIAgentToolSelection {
     private AIAgentToolSelection() {
     }
 
-    @NotNull
-    private static synchronized DBPPreferenceStore getStore() {
-        if (store == null) {
-            store = new BundlePreferenceStore(AIMcpSettings.BUNDLE_ID);
-            store.setDefault(PREF_SEND_ALL_TOOLS, false);
-        }
-        return store;
-    }
-
-    public static boolean isSendAllTools() {
-        return getStore().getBoolean(PREF_SEND_ALL_TOOLS);
-    }
-
-    public static void setSendAllTools(boolean sendAll) {
-        getStore().setValue(PREF_SEND_ALL_TOOLS, sendAll);
-        PrefUtils.savePreferenceStore(getStore());
-    }
-
     /**
-     * The tools for a request of a conversation on a connection.
+     * The tools of a list that can work on a conversation's connection.
      *
      * @param connection the conversation's connection, or null
      */
     @NotNull
     public static Selection select(@Nullable DBPDataSourceContainer connection, @NotNull List<AIFunctionDescriptor> all) {
-        if (connection == null || isSendAllTools()) {
+        if (connection == null) {
             return new Selection(all, List.of(), List.of());
         }
         DbFamily family = DbFamily.of(connection);

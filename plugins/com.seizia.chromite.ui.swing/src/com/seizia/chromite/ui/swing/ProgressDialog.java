@@ -53,6 +53,8 @@ import java.awt.event.WindowEvent;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 감싼 오류의 영어 문구("Internal error")를 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 취소 중 문구("Canceling…")를 CoreMessages로 옮김 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
+ * - 2026-11-12 길이를 모르는 막대를 작업 문구 앞의 도넛 스피너({@link SpinnerIcon})로 (앱 변경 #60,
+ *   docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  */
 final class ProgressDialog {
 
@@ -69,16 +71,17 @@ final class ProgressDialog {
         dialog.setIconImages(ChromiteIcons.getWindowIcons());
         dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
-        JProgressBar progressBar = new JProgressBar();
-        progressBar.setIndeterminate(true);
+        // The length of the task is not known: a spinner before the task text, not an indeterminate bar (app change 60)
+        JPanel task = new JPanel(new BorderLayout(10, 0));
+        task.add(SpinnerIcon.createLabel(), BorderLayout.WEST);
+        task.add(taskLabel, BorderLayout.CENTER);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         buttons.add(cancelButton);
 
-        JPanel content = new JPanel(new BorderLayout(0, 10));
+        JPanel content = new JPanel(new BorderLayout(0, 14));
         content.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
-        content.add(taskLabel, BorderLayout.NORTH);
-        content.add(progressBar, BorderLayout.CENTER);
+        content.add(task, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         dialog.setContentPane(content);
         dialog.setMinimumSize(new Dimension(420, 0));

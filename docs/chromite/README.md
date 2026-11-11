@@ -48,7 +48,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-query-window-recovery.md](swing-query-window-recovery.md) | Swing 쿼리 창 자동 저장과 다시 시작할 때 복원: 10초마다·닫을 때 작업 공간 복원 파일에 저장(저장하지 않은 글 포함), 시작할 때 한 번 "쿼리 창 N개를 복원할까요?"(Restore 기본), 연결하지 않고 열고 첫 실행 때 예전 DB/스키마 적용, 아무것도 다시 실행하지 않음 |
 | [oracle-sqlplus-commands.md](oracle-sqlplus-commands.md) | Oracle 쿼리 창의 SQL*Plus 명령: `SET SERVEROUTPUT`(창 세션만, 설정 그대로), `SET DEFINE OFF`(매개변수 묻지 않음), 화면 `SET`·`SPOOL` 무시 안내, `PROMPT`, `EXEC`(익명 블록), `/` 줄, Altibase·Tibero 확인 |
 | [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Server Output 탭에 씀(2026-11-12까지 Messages 탭), 경고 중 PRINT·NOTICE를 출력으로 가름, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
-| [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
+| [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획, 실제 계획 토글 점검), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 트랜잭션 상태(DB에 묻는 DB별 질의, 실제로 쥐고 있을 때만 열림, 확인할 수 없음, DB별 경우표), 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(기본 꺼짐, 연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
 | [swing-query-manager.md](swing-query-manager.md) | Swing Query Manager 도구 창(View > Query Manager): 쿼리 관리자가 기록한 모든 실행(내부·메타데이터 쿼리, 커밋·롤백, 연결), 연결·종류·글자 필터(종류는 Options > Logs와 같은 `qm.*` 키), 문장 복사, 쿼리 창에서 열기(실행 안 함), 트랜잭션 보기, 지우기 |
@@ -88,7 +88,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [driver-offline-bundle.md](driver-offline-bundle.md) | 폐쇄망용 오프라인 드라이버 설치 묶음: 인터넷 PC에서 드라이버를 골라 파일 하나로 만들고 폐쇄망 PC에서 설치, 형식(`.chromite-drivers`, 매니페스트·SHA-256), 드라이버 폴더 설치와 로더 등록, 검사·zip-slip·상한, 라이선스 메모 |
 | [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink, `tools/jre/`): 모듈 목록과 근거, 크기, 시작 시간 측정, 갱신 절차, 지원 플랫폼 |
 | [shortcuts.md](shortcuts.md) | 단축키: 명령 키를 한 곳에서(`UiKeys`, Windows Ctrl, macOS Command), macOS에서 다른 키(⌥⌘F, ⇧⌘M, ⇧⌘Z, ⌥⌘/, ⌃`, ⇧⌘D, ⌃Space), 도움말 글자를 단축키에서 만들기, 텍스트 편집기 기본 키, Windows·macOS 단축키 표 |
-| [mac-ui.md](mac-ui.md) | macOS 화면 메뉴 막대: 원인(런처의 `NSApplication` → AWT 내장 상태), `vmArgsMac`과 `MacOSScreenMenuBar`, 앱 메뉴와 겹치는 Exit·Options·About 빼기, 업데이트 단추를 상태 표시줄로, FlatLaf 제목 표시줄 |
+| [mac-ui.md](mac-ui.md) | macOS 화면 메뉴 막대: 원인(런처의 `NSApplication` → AWT 내장 상태), `vmArgsMac`과 `MacOSScreenMenuBar`, 앱 메뉴와 겹치는 Exit·Options·About 빼기, 업데이트 단추를 상태 표시줄로, FlatLaf 제목 표시줄, 통합 제목 줄(`MacOSUnifiedTitleBar`, 도구 막대가 신호등 단추 줄로) |
 | [platform-startup.md](platform-startup.md) | 플랫폼 시작·종료: Windows 인증서 저장소(`WINDOWS-ROOT`)를 기본 신뢰 저장소로 쓰기, macOS 앱 메뉴의 끝내기(Cmd+Q)·정보·환경설정을 메인 창 경로로 연결 |
 | [versioning.md](versioning.md) | 제품 버전 체계(`major.minor.dev`, 0.1.0부터): 규칙, 버전이 있는 곳과 유일한 원본, 번들 버전을 따로 두는 이유, `tools/release/bump-version.ps1`, 릴리스 태그 검사 |
 | [build.md](build.md) | 빌드 의존 저장소(`deps/dbeaver-common`, `deps/datadam-api`) 구성, 빌드 명령, 빌드하는 제품, 갱신 방법 |

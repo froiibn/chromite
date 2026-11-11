@@ -35,7 +35,8 @@ import java.util.List;
  *     <li>결과 집합으로 받음(SQL Server {@code SET STATISTICS XML ON}): {@link Run#isPlanResultSet}, {@link Run#parsePlan}.</li>
  *     <li>문장이 열려 있는 동안 받음(Altibase {@code EXPLAIN PLAN = ON}: 드라이버가 그 문장의 계획을 줌): {@link Run#readOpenStatementPlan}.</li>
  *     <li>문장을 닫은 뒤 같은 세션에서 읽음(Oracle {@code statistics_level = ALL}: 커서를 닫아야 행 원천 통계가 끝남):
- *     {@link Run#readStatementPlan}.</li>
+ *     {@link Run#readStatementPlan}. 커서를 찾는 데 필요한 것(Oracle SQL_ID)은 열려 있을 때 {@link Run#readOpenStatementPlan}에서
+ *     기억해 둘 수 있다.</li>
  * </ul>
  * 켜기 전 세션 설정은 실행마다 다르므로 {@link #startRun}이 그 값을 담은 {@link Run}을 돌려주고, {@link Run#finish}가 실행이 끝날 때
  * (오류·취소 포함) 그 값으로 되돌린다. 세션 설정만 바꾸므로 트랜잭션은 건드리지 않는다(커밋·롤백 없음).
@@ -46,6 +47,7 @@ import java.util.List;
  * - 2026-11-08 켜는 문장·끄는 문장 목록을 {@link #startRun}/{@link Run}으로 바꿈: Altibase(드라이버 API로 켜고 문장이 열려 있을 때 읽음)와
  *   Oracle(세션 설정을 읽어 두었다 되돌리고, 문장을 닫은 뒤 읽음)은 SQL 문장 목록으로 나타낼 수 없다
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-12 {@link Run#readOpenStatementPlan}이 닫은 뒤 읽을 계획을 위해 기억만 할 수 있음을 적음(Oracle SQL_ID, 앱 변경 #58)
  */
 public interface SQLActualPlanProvider {
 
@@ -82,9 +84,10 @@ public interface SQLActualPlanProvider {
         }
 
         /**
-         * The plan of a statement that ran and whose results were read, while the statement is still open.
+         * The plan of a statement that ran and whose results were read, while the statement is still open. A provider
+         * that reads the plan after the statement is closed may remember here what identifies it, and return null.
          *
-         * @return null when the statement has no plan (for example DDL)
+         * @return null when the statement has no plan (for example DDL), or when it is read later
          */
         @Nullable
         default DBCPlan readOpenStatementPlan(

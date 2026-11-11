@@ -45,11 +45,16 @@ import java.util.List;
  *     SET 문은 일괄 처리에 혼자 있어야 하므로 따로 실행하고, 오류가 나도 끄는 문장은 반드시 실행한다(연결이 계획 모드로 남지 않게).</li>
  *     <li>실제 계획: {@code STATISTICS XML}이 켜진 동안 서버는 문장을 실행하고 문장마다 계획 XML 결과 집합 하나를 더 돌려준다.
  *     그 결과 집합의 열 이름이 {@value #SHOWPLAN_COLUMN}이다.</li>
+ *     <li>실제 계획을 켜기 전에 세션의 현재 DB에서 SHOWPLAN 권한을 확인한다. 권한이 없어도 {@code SET STATISTICS XML ON}은
+ *     성공하지만, 그 뒤의 문장이 모두 오류 262로 실패해 사용자가 실행한 문장이 돌지 않는다. 권한이 없으면 켜지 않고 이유를
+ *     알리며, 문장은 계획 없이 그대로 실행된다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-08 실제 계획을 {@link SQLActualPlanProvider#startRun}의 실행 단위로 켜고 끔(어댑터 모양이 바뀜, 동작은 같음)
+ * - 2026-11-12 SHOWPLAN 권한이 없는 로그인: 켜기 전에 확인하고 이유를 알림. 전에는 실제 계획을 켠 실행의 모든 문장이 오류 262로
+ *   실패했다(앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProvider {
 
@@ -64,6 +69,8 @@ public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProv
     private static final String SHOWPLAN_OFF = "SET SHOWPLAN_XML OFF"; //$NON-NLS-1$
     private static final String STATISTICS_ON = "SET STATISTICS XML ON"; //$NON-NLS-1$
     private static final String STATISTICS_OFF = "SET STATISTICS XML OFF"; //$NON-NLS-1$
+    private static final String SHOWPLAN_PERMISSION_QUERY =
+        "SELECT DB_NAME(), HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'SHOWPLAN')"; //$NON-NLS-1$
 
     private final SQLServerDataSource dataSource;
 
@@ -130,6 +137,7 @@ public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProv
     @NotNull
     @Override
     public Run startRun(@NotNull DBCSession session) throws DBException {
+        checkShowplanPermission(session);
         executeSetting(session, STATISTICS_ON);
         return new Run() {
             @Override
@@ -150,6 +158,31 @@ public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProv
                 executeSetting(session, STATISTICS_OFF);
             }
         };
+    }
+
+    /**
+     * Fails when the login lacks SHOWPLAN in the session's current database: with STATISTICS XML on, every statement would
+     * then fail with error 262 instead of running. A USE later in the script into a database without the permission still
+     * fails there, as in SSMS. The check reads no table, so it begins no implicit transaction in manual commit mode.
+     */
+    private static void checkShowplanPermission(@NotNull DBCSession session) throws DBException {
+        String database;
+        boolean permitted;
+        try (JDBCStatement statement = ((JDBCSession) session).createStatement();
+             JDBCResultSet resultSet = statement.executeQuery(SHOWPLAN_PERMISSION_QUERY)) {
+            if (!resultSet.next()) {
+                return;
+            }
+            database = resultSet.getString(1);
+            // NULL: the server could not tell; the run then shows what the server says
+            permitted = resultSet.getObject(2) == null || resultSet.getInt(2) != 0;
+        } catch (SQLException e) {
+            throw new DBCException(e, session.getExecutionContext());
+        }
+        if (!permitted) {
+            throw new DBException("Actual plans need the SHOWPLAN permission in database '" + database
+                + "' (GRANT SHOWPLAN TO <user>); the statements run without it");
+        }
     }
 
     /**
