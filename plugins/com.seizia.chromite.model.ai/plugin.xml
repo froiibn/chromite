@@ -43,6 +43,21 @@
             properties="com.seizia.chromite.model.ai.engine.anthropic.AnthropicProperties"
             promoted="true"
             supportsFunctions="true"/>
+        <!-- vLLM and Google Gemini: OpenAI-compatible Chat Completions with tool calls (docs/chromite/ai-agent.md "Chat Completions 엔진") -->
+        <completionEngine
+            id="vllm"
+            label="vLLM"
+            icon="icons/ai.svg"
+            class="com.seizia.chromite.model.ai.engine.chatcompletions.ChatCompletionsEngine"
+            properties="com.seizia.chromite.model.ai.engine.chatcompletions.VllmProperties"
+            supportsFunctions="true"/>
+        <completionEngine
+            id="gemini"
+            label="Google Gemini"
+            icon="icons/ai.svg"
+            class="com.seizia.chromite.model.ai.engine.chatcompletions.ChatCompletionsEngine"
+            properties="com.seizia.chromite.model.ai.engine.chatcompletions.GeminiProperties"
+            supportsFunctions="true"/>
     </extension>
 
     <extension point="com.seizia.chromite.ai.assistant">
