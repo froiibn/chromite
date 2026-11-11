@@ -7,6 +7,9 @@
     transaction safety, audit). access = READ | WRITE | DANGEROUS; writes = database (default) | file | none.
     Descriptions are written for the AI model and stay English. Arrays are passed as JSON text (OpenAI needs "items" for
     "array" parameters), objects as JSON objects.
+    The chat sends nearly every tool on every request, so each description says what the tool returns, when to use it and
+    which named tool to use instead for the neighbouring cases (docs/chromite/ai-agent.md "도구 선택 점검"). Keep that shape
+    when adding a tool, and add the new tool to the "instead" pointers of its neighbours.
     Display names (name) are shown to the user only (chat cards, confirmation, tool policy list, MCP "title"), so they are
     %keys in OSGI-INF/l10n/bundle*.properties and follow the UI language (docs/chromite/swing-l10n.md).
 -->
@@ -28,71 +31,71 @@
 
         <function id="listConnections" name="%tool.listConnections.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Lists the database connections configured in Chromite: id, name, folder, driver, connection type, production flag, read-only flag, color, connected state. Use the id or name as the 'connection' argument of other tools.">
+            description="Lists the connections configured in Chromite: id, name, folder, driver, family, connection type, production, readOnly, color, connected. Use it when no connection is set or the user names one; pass the id or name as the 'connection' argument of other tools. For one connection's host, user and versions use getConnectionInfo.">
             <parameter name="filter" type="string" description="Optional text to match in name, driver or folder"/>
         </function>
         <function id="getConnectionInfo" name="%tool.getConnectionInfo.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Details of one connection without secrets: host, port, database, user name, connection type, network handlers, auto-commit default, server product and version.">
+            description="Settings of one connection without secrets: host, port, database, user, auth model, network handlers (SSH, proxy), default auto-commit, and server product, server version and driver version when connected. Does not connect. For edition, uptime and server settings use getServerInfo; to open the connection use connect.">
             <parameter name="connection" type="string" description="Connection id or name (listConnections); default: the chat's current connection"/>
         </function>
         <function id="connect" name="%tool.connect.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Opens the connection if it is not open and returns its details. Other tools connect on demand too.">
+            description="Opens the connection if it is closed and returns the getConnectionInfo details plus connectMs. Rarely needed: every tool connects on demand. To check whether a connection works use testConnection.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="disconnect" name="%tool.disconnect.name" type="ACTION" access="WRITE" writes="none" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Closes the connection for the whole application (query windows too). Uncommitted transactions make the user choose commit, roll back or cancel first.">
+            description="Closes the connection for the whole Chromite app, query windows included. Only when the user asks to disconnect; uncommitted transactions make the user choose commit, roll back or cancel first. To stop the agent's running statement use cancelQuery; to end another server session use killSession.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="testConnection" name="%tool.testConnection.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Connects and measures a round trip; returns the server product and version.">
+            description="Checks that a connection works: connects, makes one round trip and returns ok, roundTripMs and the server product and version. Use when the user asks whether a connection works or is slow to reach. For connection settings use getConnectionInfo.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getCurrentDatabase" name="%tool.getCurrentDatabase.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="The current database and schema of the agent's session and of the connection's main session.">
+            description="Current database and schema of the agent's session (agentDatabase, agentSchema) and of the connection's main session (connectionDatabase, connectionSchema). To list databases use listDatabases; to change the agent's default use setCurrentDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="setCurrentDatabase" name="%tool.setCurrentDatabase.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Sets the database and/or schema the agent's later calls on this connection use (the user's windows do not change). Most tools also take a 'database' argument for one call.">
+            description="Changes the database and/or schema that the agent's later calls on this connection use (the user's query windows do not change) and returns the getCurrentDatabase result. For one call only, pass that tool's 'database' argument instead.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database (catalog) name; empty for the connection default"/>
             <parameter name="schema" type="string" description="Schema name"/>
         </function>
         <function id="getServerInfo" name="%tool.getServerInfo.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Server product, version, edition, uptime, host facts and key settings. Call it first: the version decides which system views exist. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Server product, version, edition, uptime, host facts and key settings. Call it first on a connection before diagnosing: the version decides which system views and tools work. For connection settings (host, user) use getConnectionInfo; for setting checks use getServerConfig. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="probePermissions" name="%tool.probePermissions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Which system views, permissions and extensions this login has (VIEW SERVER STATE, pg_monitor, PROCESS, V$ access, pg_stat_statements, ...) and which tools are limited without them. Call it before a health check or diagnosis.">
+            description="What this login may read for diagnosis: system views, server permissions and extensions (VIEW SERVER STATE, pg_monitor, PROCESS, V$ access, pg_stat_statements, ...) and which tools are limited without them. Call it before a health check or after a diagnostic tool fails on permissions. Not for database users and grants (listPrincipals, listPermissions) nor Chromite's tool permissions (getToolPolicy). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getTransactionStatus" name="%tool.getTransactionStatus.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Whether the agent has an open transaction on the connection (one that holds changes, locks or a snapshot, or was begun explicitly, also in auto-commit mode), and whether query windows have one or one the database could not be asked about.">
+            description="Whether the agent has an open transaction on the connection (uncommitted changes, locks or a snapshot, or one begun explicitly, also in auto-commit mode), and whether the user's query windows have one or one that could not be checked. Use before commit, rollback or disconnect. For old transactions of all server sessions use listOpenTransactions.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="commitTransaction" name="%tool.commitTransaction.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Commits the agent's open transaction on the connection. The user always confirms (commit, roll back or cancel). Call it only when the user asked to keep the changes.">
+            description="Commits the agent's open transaction on the connection (left open by runSql, runScript or a data tool). Call it only when the user asked to keep the changes; the user still chooses commit, roll back or cancel. Never touches the user's query windows.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <!-- READ class on purpose: undoing the agent's own work must not be blocked on production connections; the
              transaction guard still asks the user every time there is something to roll back -->
         <function id="rollbackTransaction" name="%tool.rollbackTransaction.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Rolls back the agent's open transaction on the connection. The user always confirms.">
+            description="Rolls back the agent's open transaction on the connection, discarding the agent's uncommitted changes. The user confirms. Never touches the user's query windows.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getToolPolicy" name="%tool.getToolPolicy.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="The user's permission for every tool on a connection: AUTO (runs), CONFIRM (asks the user), BLOCKED or READ_ONLY, with the reason. Plan around blocked tools instead of calling them.">
+            description="Chromite's permission for every agent tool on a connection: AUTO (runs), CONFIRM (asks the user), BLOCKED or READ_ONLY, with the reason, plus the production and read-only flags. Plan around blocked tools instead of calling them. Not the database's own permissions: use listPermissions or probePermissions.">
             <parameter name="connection" type="string" description="Connection id or name (empty: rules without a connection)"/>
         </function>
 
@@ -100,50 +103,50 @@
 
         <function id="listDatabases" name="%tool.listDatabases.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Databases (catalogs) of the server and the current one.">
+            description="Names of the databases (catalogs) on the server and the current one. For their sizes use getDatabaseSizes; for the schemas of a database use listSchemas.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="listSchemas" name="%tool.listSchemas.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Schemas of a database and the current schema. (MySQL/MariaDB have databases instead of schemas.)">
+            description="Schemas of a database and the current schema. MySQL/MariaDB have no schemas inside a database: use listDatabases there. For the tables of a schema use listTables.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="pattern" type="string" description="Text the schema name contains"/>
         </function>
         <function id="listTables" name="%tool.listTables.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Tables and views of a schema (MySQL: database) with their type and comment.">
+            description="Tables and views of one schema (MySQL/MariaDB: one database) with type and comment, count and hasMore. Use to browse a schema. To find an object by name in any schema use searchObjects; for columns use describeTable; for row counts and sizes use getTableStatistics.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="schema" type="string" description="Schema (MySQL: database); default: current"/>
+            <parameter name="schema" type="string" description="Schema (MySQL/MariaDB: database); default: current"/>
             <parameter name="pattern" type="string" description="Text the table name contains"/>
             <parameter name="types" type="string" description="Comma-separated: TABLE, VIEW (default both)"/>
             <parameter name="limit" type="integer" description="Max rows (default 1000)"/>
         </function>
         <function id="describeTable" name="%tool.describeTable.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Columns (type, size, nullable, default, identity, comment), primary key, indexes, foreign keys and the foreign keys of other tables that reference it.">
+            description="Full structure of one table or view: columns (type, size, nullable, default, auto-increment, comment), primary key, indexes, foreign keys and the foreign keys of other tables that reference it. Use it first for any question about a table's structure; listIndexes and listForeignKeys return parts of it. For the CREATE statement use getObjectDdl.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view: name, schema.name or database.schema.name"/>
         </function>
         <function id="listIndexes" name="%tool.listIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Indexes of a table: name, unique, ordered key columns, filter.">
+            description="Only the index definitions of one table: name, unique, ordered key columns, filter (describeTable includes them too). For how indexes are used use getIndexUsage; for unused or duplicate ones getUnusedIndexes; for suggested new ones getMissingIndexes.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
         </function>
         <function id="listForeignKeys" name="%tool.listForeignKeys.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Foreign keys of a table (outgoing) and of other tables pointing to it (incoming), with columns and rules.">
+            description="Only the foreign keys of one table: outgoing (it references others) and incoming (others reference it), with columns and ON DELETE/UPDATE rules (describeTable includes them too). For dependencies through views, routines and triggers use getObjectDependencies.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
         </function>
         <function id="listRoutines" name="%tool.listRoutines.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Procedures and functions of a schema (MySQL: database).">
+            description="Procedures and functions of a schema (MySQL/MariaDB: database): schema, name, type, comment. For a routine's code use getRoutineSource; for its run-time statistics getRoutineStats; for triggers listTriggers.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema; default: current"/>
@@ -151,14 +154,14 @@
         </function>
         <function id="getRoutineSource" name="%tool.getRoutineSource.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Source of a procedure, function, trigger or view with LINE NUMBERS (cite them), plus parameters and properties. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Source of one procedure, function, trigger or view with LINE NUMBERS (cite them), plus parameters and properties. Use to review or explain logic. For the generated CREATE DDL of a table or other object use getObjectDdl. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="name" type="string" required="true" description="Routine, trigger or view: name or schema.name"/>
         </function>
         <function id="listTriggers" name="%tool.listTriggers.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Triggers of a table or a schema: timing, events, enabled. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Triggers of one table or of a schema: timing, events, enabled. For a trigger's code use getRoutineSource. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" description="Table name (or give schema)"/>
@@ -166,35 +169,35 @@
         </function>
         <function id="listSequences" name="%tool.listSequences.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Sequences with current value, increment and limits. SQL Server, PostgreSQL, MariaDB, Oracle.">
+            description="Sequences with current value, increment and limits. SQL Server, PostgreSQL, MariaDB, Oracle (MySQL has none: its AUTO_INCREMENT columns show in describeTable).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema"/>
         </function>
         <function id="listPrincipals" name="%tool.listPrincipals.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Logins, users, roles and role memberships. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Database security principals: logins, users, roles and role memberships. Use for who has access and which roles someone has. For grants on an object or of a user use listPermissions; for what the agent's own login may read use probePermissions. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
         </function>
         <function id="listPermissions" name="%tool.listPermissions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Granted and denied permissions on an object or of a principal. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Granted and denied permissions on an object or schema, or of a user or role (give object, principal or both). For logins, users and role memberships use listPrincipals; for the agent's own login probePermissions; for Chromite's tool permissions getToolPolicy. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="object" type="string" description="Object (table, view, routine) or schema"/>
-            <parameter name="principal" type="string" description="User or role name"/>
+            <parameter name="object" type="string" description="Object (table, view, routine) or schema; give this, principal, or both"/>
+            <parameter name="principal" type="string" description="User or role name; give this, object, or both"/>
         </function>
         <function id="getObjectDdl" name="%tool.getObjectDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="CREATE DDL of a table, view, routine or other object as Chromite generates it for the database.">
+            description="CREATE DDL of an existing table, view, routine or other object as Chromite generates it for the database. Use to show an object's definition. To build the DDL of a change use generateDdl; for routine code with line numbers use getRoutineSource.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="object" type="string" required="true" description="Object name or schema.name"/>
         </function>
         <function id="getObjectDependencies" name="%tool.getObjectDependencies.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Dependency graph of an object: what it uses (tables, views, routines, foreign keys) and what uses it (views, routines, triggers), as nodes and edges. depth follows 'uses' edges. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Dependency graph of one object as nodes and edges: what it uses (tables, views, routines, foreign keys) and what uses it (views, routines, triggers); depth follows 'uses' edges. Use for impact analysis before changing or dropping an object. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="object" type="string" required="true" description="Object name or schema.name"/>
@@ -202,7 +205,7 @@
         </function>
         <function id="searchObjects" name="%tool.searchObjects.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Finds tables, views, routines (and columns when asked) whose name contains a text, in all schemas of the current database.">
+            description="Finds tables, views, routines (and columns when types includes column) whose name contains a text, in all schemas of one database. Use when the user names an object without its schema, or asks which table has a column. To list one schema use listTables.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="pattern" type="string" required="true" description="Text the name contains"/>
@@ -214,7 +217,7 @@
 
         <function id="runSelect" name="%tool.runSelect.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Runs one provably read-only SELECT in a read-only transaction and returns one page of rows (offset/limit). Statements that might change data are refused: use runSql for them.">
+            description="Runs one read-only SELECT you write and returns one page of rows (columns, rows, hasMore, nextOffset); page on with offset. Use to read data with joins, filters or aggregates. Statements not provably read-only are refused (use runSql). For system views, SHOW, DBCC or several result sets use runReadOnlySql; for a table's rows without SQL use sampleRows.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One SELECT statement"/>
@@ -225,7 +228,7 @@
         </function>
         <function id="runReadOnlySql" name="%tool.runReadOnlySql.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Runs diagnostic SQL you write (system views, SHOW, read-only DBCC and sp_who/sp_help* procedures) in a read-only, rolled-back transaction; returns every result set and server message. Anything not provably read-only is refused (use runSql).">
+            description="Runs one read-only diagnostic statement you write (system views, SHOW, read-only DBCC, sp_who/sp_help* procedures) in a rolled-back read-only transaction; returns every result set, update counts and server messages. Use when no specific diagnostic tool covers the question. Not for paging table data (runSelect). Statements not provably read-only are refused (use runSql).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One read-only statement"/>
@@ -233,15 +236,15 @@
         </function>
         <function id="runSql" name="%tool.runSql.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Runs any single statement (DML, DDL, EXEC). The user sees the SQL and confirms unless their policy allows it; DROP/TRUNCATE/unbounded DELETE or UPDATE are DANGEROUS. On manual-commit connections the transaction stays open (transactionOpen) until commitTransaction/rollbackTransaction.">
+            description="Runs one statement that may change data or schema (INSERT, UPDATE, DELETE, MERGE, DDL, EXEC). WRITE: the user sees the SQL and confirms unless their policy allows it; DROP, TRUNCATE and DELETE/UPDATE without WHERE are DANGEROUS. Returns results or update counts and transactionOpen; on manual-commit connections the transaction stays open until commitTransaction or rollbackTransaction. For several statements use runScript; for reads use runSelect.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="sql" type="string" required="true" description="The statement"/>
+            <parameter name="sql" type="string" required="true" description="One statement; several statements go to runScript"/>
             <parameter name="limit" type="integer" description="Rows returned if it produces results (default 100)"/>
         </function>
         <function id="runScript" name="%tool.runScript.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Runs a script of several statements split by the database's delimiter rules (GO for SQL Server). Same confirmation and transaction rules as runSql; use it to apply a routine rewrite.">
+            description="Runs a script of several statements split by the database's delimiter rules (GO for SQL Server); returns each statement's result or error. Same confirmation and transaction rules as runSql. Use for a routine rewrite or a multi-statement change; for one statement use runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="script" type="string" required="true" description="The script"/>
@@ -249,26 +252,26 @@
         </function>
         <function id="cancelQuery" name="%tool.cancelQuery.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Cancels the statements the agent is running on the connection.">
+            description="Cancels the statements the agent itself is running on the connection; returns canceled. Not for other sessions: use killSession.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="explainQuery" name="%tool.explainQuery.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="Estimated execution plan without running the statement, as structured JSON: operator tree (op, object, estRows, cost, predicates), hotspots, findings (scans, key lookups, implicit conversions, missing statistics, missing indexes, compiled parameter values). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle; others via the driver planner.">
+            description="Estimated execution plan without running the statement, as JSON: operator tree (op, object, estRows, cost, predicates), hotspots and findings (scans, key lookups, implicit conversions, missing statistics or indexes, compiled parameter values). Start here when tuning a query. For measured rows and time use getActualPlan; to compare a rewrite comparePlans; for the plan the server cached getCachedPlans. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle; others via the driver planner.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement"/>
         </function>
         <function id="getActualPlan" name="%tool.getActualPlan.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="Runs the statement and returns the actual plan with run-time values (actual rows, executions, time, reads/buffers, spills) and SET STATISTICS IO/TIME messages. Read-only statements run in a read-only transaction; others become WRITE, are confirmed by the user and rolled back. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle (GATHER_PLAN_STATISTICS hint + DBMS_XPLAN.DISPLAY_CURSOR ALLSTATS LAST; needs SELECT_CATALOG_ROLE).">
+            description="Runs the statement and returns the actual plan with run-time values (actual rows, executions, time, reads/buffers, spills; SQL Server also STATISTICS IO/TIME messages). Use after explainQuery when estimates look wrong or measured cost is needed. Read-only statements run read-only; others become WRITE, the user confirms and they are rolled back. Oracle needs SELECT_CATALOG_ROLE. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement"/>
         </function>
         <function id="comparePlans" name="%tool.comparePlans.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="Plans of two statements (for example a query and its rewrite) side by side with a diff: cost change, operators only in A or B, actual time when actual=true (read-only statements only).">
+            description="Plans of two statements (a query and its rewrite) side by side with a diff: cost change and operators only in A or B; actual=true also runs both (read-only statements only) for measured time. Use to show that a rewrite is better. For a hypothetical index on PostgreSQL use whatIfIndex; to compare result rows use compareQueryResults.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sqlA" type="string" required="true" description="First statement"/>
@@ -277,7 +280,7 @@
         </function>
         <function id="validateSql" name="%tool.validateSql.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Parses a statement and checks it on the server without running it (SQL Server SET NOEXEC, PostgreSQL/MySQL EXPLAIN): syntax and name errors, statement type, read-only or not, permission class.">
+            description="Checks one statement without running it: parse errors, statement type, readOnly and the access class the agent applies, plus a server check of syntax and names (SQL Server SET NOEXEC; PostgreSQL/MySQL EXPLAIN for SELECT, INSERT, UPDATE, DELETE). Use before proposing or running SQL you wrote. Not a plan: use explainQuery.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement"/>
@@ -285,14 +288,14 @@
         </function>
         <function id="formatSql" name="%tool.formatSql.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Formats SQL with Chromite's formatter and the connection's dialect.">
+            description="Formats SQL text with Chromite's formatter in the dialect of the given or current connection (generic without one); returns sql. Use when the user asks for formatted SQL.">
             <parameter name="connection" type="string" description="Connection id or name (optional)"/>
             <parameter name="sql" type="string" required="true" description="SQL text"/>
         </function>
         <function id="getQueryHistory" name="%tool.getQueryHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Statements the user ran in Chromite's query windows, newest first, with time, duration, rows and errors.">
-            <parameter name="connection" type="string" description="Only this connection (optional)"/>
+            description="Statements the user ran in Chromite's query windows (not server statistics), newest first, with time, duration, rows and errors. Use for what the user ran before or to find a statement they mention. For the server's most expensive statements use getTopQueries.">
+            <parameter name="connection" type="string" description="Only this connection (in the chat: the chat's connection)"/>
             <parameter name="contains" type="string" description="Text the statement contains"/>
             <parameter name="limit" type="integer" description="Max entries (default 50)"/>
         </function>
@@ -301,19 +304,19 @@
 
         <function id="sampleRows" name="%tool.sampleRows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Rows of a table with an optional WHERE and ORDER BY (read-only).">
+            description="Reads rows of one table or view without writing SQL: optional where and orderBy fragments, limit (default 20) and offset; read-only. Use for a quick look at data. For joins, aggregates or your own SELECT use runSelect; to count rows use countRows.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view"/>
             <parameter name="where" type="string" description="Condition without the WHERE keyword"/>
-            <parameter name="orderBy" type="string" description="Order without the ORDER BY keyword"/>
+            <parameter name="orderBy" type="string" description="ORDER BY fragment without the keyword, for example created_at DESC"/>
             <parameter name="limit" type="integer" description="Rows (default 20)"/>
             <parameter name="offset" type="integer" description="Rows to skip"/>
             <parameter name="format" type="string" validValues="objects,arrays" description="objects (default) or arrays"/>
         </function>
         <function id="countRows" name="%tool.countRows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Exact row count of a table, optionally with a WHERE condition (scans the table; getTableStatistics gives estimates cheaply).">
+            description="Exact row count of a table or view, optionally with a where condition. Scans the table, so it can be slow on large tables; getTableStatistics gives cheap estimates.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view"/>
@@ -321,7 +324,7 @@
         </function>
         <function id="profileColumns" name="%tool.profileColumns.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Per column: total and non-null rows, distinct values, min, max and the most frequent values. Scans the table once per column (max 30 columns).">
+            description="Data profile per column: total and non-null rows, distinct values, min, max and the most frequent values. Scans the table once per column (max 30 columns). Use for data quality or value distribution questions. For column types use describeTable.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view"/>
@@ -330,7 +333,7 @@
         </function>
         <function id="compareQueryResults" name="%tool.compareQueryResults.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Runs two read-only queries (on the same or another connection) and compares the rows: by key columns, or as whole rows. Returns counts and samples of rows only in A, only in B and different.">
+            description="Runs two read-only SELECTs (same or different connections and databases) and compares the rows by key columns or as whole rows: counts and samples of rows only in A, only in B and different. Use to check that a copy, migration or rewrite returns the same data. To compare plans use comparePlans.">
             <parameter name="connection" type="string" description="Connection of sqlA"/>
             <parameter name="database" type="string" description="Database of sqlA"/>
             <parameter name="sqlA" type="string" required="true" description="First SELECT"/>
@@ -342,7 +345,7 @@
         </function>
         <function id="insertRows" name="%tool.insertRows.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Inserts rows into a table; values are converted to the column types. One call is one transaction on auto-commit connections.">
+            description="Inserts rows given as JSON objects into a table; values are converted to the column types. WRITE: the user confirms. One call is one transaction on auto-commit connections. For a CSV file use importCsv; for rows of another table copyTable; for INSERT ... SELECT runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table"/>
@@ -350,7 +353,7 @@
         </function>
         <function id="updateRows" name="%tool.updateRows.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Updates rows identified by a key that covers the primary key or a unique index (other keys are refused).">
+            description="Updates rows identified by key values that cover the primary key or a unique index (other keys are refused), setting the given column values. WRITE: the user confirms. For a set-based UPDATE with a WHERE condition use runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table"/>
@@ -359,7 +362,7 @@
         </function>
         <function id="deleteRows" name="%tool.deleteRows.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Deletes rows identified by a key that covers the primary key or a unique index (other keys are refused).">
+            description="Deletes rows identified by key values that cover the primary key or a unique index (other keys are refused). WRITE: the user confirms. For a set-based DELETE with a WHERE condition use runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table"/>
@@ -370,7 +373,7 @@
 
         <function id="generateDdl" name="%tool.generateDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Builds the DDL of a change without running it, with the same arguments as the matching DDL tool (operation: createTable, alterTable, dropTable, createView, dropView, createIndex, dropIndex). Show it to the user before changing anything.">
+            description="Builds the DDL of a table, view or index change without running it; operation names the matching tool and the other arguments are that tool's. Use it to show the user the exact DDL before calling createTable, alterTable, dropTable, createView, dropView, createIndex or dropIndex. For the DDL of an existing object use getObjectDdl.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="operation" type="string" required="true" validValues="createTable,alterTable,dropTable,createView,dropView,createIndex,dropIndex" description="DDL operation"/>
@@ -392,7 +395,7 @@
         </function>
         <function id="createTable" name="%tool.createTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates a table from column definitions; the user sees the DDL and confirms.">
+            description="Creates a table from column definitions and an optional primary key. WRITE: the user sees the DDL and confirms. For DDL these arguments cannot express use runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
@@ -401,7 +404,7 @@
         </function>
         <function id="alterTable" name="%tool.alterTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Adds, drops or renames a column, or changes its type; the user sees the DDL and confirms.">
+            description="Changes one column of a table: addColumn, dropColumn, renameColumn or alterColumnType. WRITE: the user sees the DDL and confirms. For other ALTER TABLE changes (constraints, table options) use runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
@@ -414,14 +417,14 @@
         </function>
         <function id="dropTable" name="%tool.dropTable.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops a table and its data. DANGEROUS: the user confirms.">
+            description="Drops a table with all its data. DANGEROUS: the user confirms. Check getObjectDependencies first. To remove rows only use deleteRows or runSql.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
         </function>
         <function id="createView" name="%tool.createView.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates (or with replace=true replaces) a view from a read-only SELECT.">
+            description="Creates a view from a read-only SELECT, or replaces an existing one with replace=true. WRITE: the user sees the DDL and confirms.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="view" type="string" required="true" description="View name"/>
@@ -430,14 +433,14 @@
         </function>
         <function id="dropView" name="%tool.dropView.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops a view. DANGEROUS: the user confirms.">
+            description="Drops a view. DANGEROUS: the user confirms. Check getObjectDependencies first.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="view" type="string" required="true" description="View name"/>
         </function>
         <function id="createIndex" name="%tool.createIndex.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates an index (optionally unique, with INCLUDE columns on SQL Server/PostgreSQL); the user sees the DDL and confirms.">
+            description="Creates an index on a table: key columns with ASC/DESC, optionally unique and with INCLUDE columns (SQL Server, PostgreSQL). WRITE: the user sees the DDL and confirms. On PostgreSQL try it first with whatIfIndex.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table name"/>
@@ -448,7 +451,7 @@
         </function>
         <function id="dropIndex" name="%tool.dropIndex.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops an index; the user sees the DDL and confirms.">
+            description="Drops an index of a table. WRITE: the user sees the DDL and confirms. Check getIndexUsage or getUnusedIndexes first.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table of the index"/>
@@ -459,20 +462,20 @@
 
         <function id="exportData" name="%tool.exportData.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Exports the rows of a read-only query or a table to a CSV, JSON or XLSX file on this computer (max 1,000,000 rows; default 100,000).">
+            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runSelect; to back up a database use backupDatabase or dumpDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" description="SELECT to export (or give table)"/>
             <parameter name="table" type="string" description="Table to export (or give sql)"/>
             <parameter name="format" type="string" validValues="csv,json,xlsx" description="File format (default csv)"/>
-            <parameter name="file" type="string" required="true" description="Absolute path of the file to write"/>
+            <parameter name="file" type="string" required="true" description="Absolute path of the file to write on this computer"/>
             <parameter name="overwrite" type="boolean" description="Replace an existing file (default false)"/>
             <parameter name="delimiter" type="string" description="CSV delimiter (default ,)"/>
             <parameter name="maxRows" type="integer" description="Max rows (default 100000)"/>
         </function>
         <function id="importCsv" name="%tool.importCsv.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Inserts the rows of a CSV file (header = column names) into an existing table of 'connection'. One transaction on auto-commit connections.">
+            description="Inserts the rows of a CSV file on this computer (header = column names) into an existing table of 'connection'. WRITE: the user confirms. One transaction on auto-commit connections. For rows given in the chat use insertRows.">
             <parameter name="connection" type="string" description="Connection of the target table"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="file" type="string" required="true" description="Absolute path of the CSV file"/>
@@ -483,7 +486,7 @@
         </function>
         <function id="copyTable" name="%tool.copyTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Copies the rows of a table from sourceConnection (default: the same) into a table of 'connection', optionally creating the target table. For large or type-sensitive copies, suggest the Data Transfer wizard instead.">
+            description="Copies the rows of a table from sourceConnection (default: the same) into a table of 'connection', optionally creating the target table. WRITE: the user confirms. For large or type-sensitive copies suggest the Data Transfer wizard instead; to check the copy use compareQueryResults.">
             <parameter name="connection" type="string" description="Target connection (where rows are written)"/>
             <parameter name="database" type="string" description="Target database"/>
             <parameter name="sourceConnection" type="string" description="Source connection (default: the target connection)"/>
@@ -498,114 +501,114 @@
 
         <function id="listSessions" name="%tool.listSessions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="User sessions with login, host, program, status, current wait and statement. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Server sessions with login, host, program, status, current wait and statement; activeOnly keeps those running something or holding a transaction. Use for who is connected or what is running. For blocking use getBlockingChain; for long statements getLongRunningQueries; for old transactions listOpenTransactions. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="activeOnly" type="boolean" defaultValue="false" description="Only sessions running something or holding a transaction"/>
             <parameter name="limit" type="integer" description="Max rows (default 100)"/>
         </function>
         <function id="getBlockingChain" name="%tool.getBlockingChain.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Who blocks whom right now as a tree: head blockers (login, host, program, transaction age, isolation, open transactions, last SQL), waiters (wait type, time, resource, SQL), their locks mapped to objects and indexes, and rule-based findings and fix suggestions. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Who blocks whom right now as a tree: head blockers (login, host, program, transaction age, isolation, open transactions, last SQL), waiters (wait type, time, resource, SQL), their locks mapped to objects and indexes, and findings with fix suggestions. Start here for blocking, hanging queries or lock waits. For every lock held use listLocks; for past deadlocks getDeadlocks. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database whose objects the locks are mapped to; default: current"/>
         </function>
         <function id="listLocks" name="%tool.listLocks.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Held and waited locks grouped by session, object, index and mode, a summary, and lock escalation counters (SQL Server). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Held and waited locks grouped by session, object, index and mode, a summary, and lock escalation counters (SQL Server). Use for the full lock picture of a session or object. For who blocks whom start with getBlockingChain. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database whose objects the locks are mapped to"/>
-            <parameter name="session" type="integer" description="Only this session"/>
+            <parameter name="session" type="integer" description="Only this session id (from listSessions)"/>
             <parameter name="limit" type="integer" description="Max rows (default 500)"/>
         </function>
         <function id="getDeadlocks" name="%tool.getDeadlocks.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Recent deadlocks: SQL Server system_health deadlock graphs as JSON (victims, processes with SQL and stack, resources with owners and waiters); MySQL/MariaDB the latest InnoDB deadlock; PostgreSQL the counters; Oracle the ORA-00060 entries of the alert log with the deadlock graph of the trace file they name.">
+            description="Deadlocks that already happened: SQL Server system_health deadlock graphs as JSON (victims, processes with SQL and stack, resources with owners and waiters); MySQL/MariaDB the latest InnoDB deadlock; PostgreSQL the counters only; Oracle the ORA-00060 alert log entries with the trace file's deadlock graph. For blocking happening now use getBlockingChain.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="limit" type="integer" description="Max deadlocks (default 10)" defaultValue="10"/>
         </function>
         <function id="listOpenTransactions" name="%tool.listOpenTransactions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Transactions open longer than minSeconds, including idle-in-transaction sessions, with age, locks and last SQL. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Server transactions open longer than minSeconds, including idle-in-transaction sessions, with age, locks and last SQL. Use for forgotten transactions that hold locks or log space. For the agent's own transaction use getTransactionStatus. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="minSeconds" type="integer" defaultValue="0" description="Minimum age in seconds (default 0)"/>
         </function>
         <function id="getLongRunningQueries" name="%tool.getLongRunningQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Requests running longer than minSeconds with CPU, reads, waits and blocking. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Statements running now for longer than minSeconds with CPU, reads, waits and blocking. Use for what is slow right now. For statements that were expensive over time use getTopQueries (SQL Server Query Store: getQueryStoreTopQueries). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="minSeconds" type="integer" defaultValue="5" description="Minimum duration in seconds (default 5)"/>
         </function>
         <function id="killSession" name="%tool.killSession.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
-            description="Ends a server session; its open transaction is rolled back. DANGEROUS and a last resort: the user confirms (and is told when the session has an open transaction).">
+            description="Ends another server session; its open transaction is rolled back. DANGEROUS and a last resort: only when the user asks, after getBlockingChain or listSessions identified the session; the user confirms and is told when it has an open transaction. To stop the agent's own statement use cancelQuery. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="session" type="string" required="true" description="Session id from listSessions (Oracle: sid,serial#)"/>
         </function>
         <function id="getWaitStats" name="%tool.getWaitStats.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="What the server waits on: cumulative waits without benign ones (SQL Server, MySQL, Oracle) or current session waits (PostgreSQL).">
+            description="What the server waits on: cumulative wait types since restart without benign ones (SQL Server, MySQL, Oracle) or current session waits (PostgreSQL). Use for a server-wide bottleneck (CPU, I/O, locks, memory). For the waits of blocked sessions use getBlockingChain.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="top" type="integer" defaultValue="20" description="Number of wait types (default 20)"/>
         </function>
         <function id="getTopQueries" name="%tool.getTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Most expensive statements: SQL Server plan cache, PostgreSQL pg_stat_statements, MySQL performance_schema digests, Oracle V$SQL.">
+            description="Most expensive statements in the server's cumulative statistics, ordered by cpu, io, duration or executions: SQL Server plan cache, PostgreSQL pg_stat_statements, MySQL performance_schema digests, Oracle V$SQL. Use to find what to tune. For SQL Server history that survives restarts use getQueryStoreTopQueries; for statements running now getLongRunningQueries.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="orderBy" type="string" defaultValue="cpu" validValues="cpu,io,duration,executions" description="Sort key (default cpu)"/>
             <parameter name="top" type="integer" defaultValue="20" description="Number of statements (default 20)"/>
         </function>
         <function id="getDatabaseSizes" name="%tool.getDatabaseSizes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Size of every database (data and log). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Size of every database on the server (data and log). Use for how big the databases are. For files, free space and largest tables of one database use getSpaceUsage. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getSpaceUsage" name="%tool.getSpaceUsage.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Data and log files with used and free space, log usage and its reuse wait, disk volumes (SQL Server); tablespaces, largest tables, WAL (PostgreSQL); schemas and largest tables (MySQL); tablespace usage (Oracle).">
+            description="Space inside one database: data and log files with used and free space, log reuse wait and disk volumes (SQL Server); tablespaces, largest tables and WAL (PostgreSQL); schemas and largest tables (MySQL); tablespace usage (Oracle). Use for full disks or a growing log. For the sizes of all databases use getDatabaseSizes; per table getTableStatistics.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
         </function>
         <function id="getBackupHistory" name="%tool.getBackupHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Last full/differential/log backup per database with age and warnings, and recent backups (SQL Server msdb); WAL archiving (PostgreSQL); RMAN jobs (Oracle).">
+            description="Backups already taken: last full, differential and log backup per database with age and warnings, and recent backups (SQL Server msdb); WAL archiving (PostgreSQL); RMAN jobs (Oracle); not MySQL. Use for when the last backup ran. To take a backup use backupDatabase (SQL Server) or dumpDatabase (PostgreSQL, MySQL).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="limit" type="integer" description="Recent backups (default 100)"/>
         </function>
         <function id="getJobHistory" name="%tool.getJobHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Recent job runs, failures by default: SQL Server Agent (msdb), pg_cron, MySQL events, Oracle scheduler.">
+            description="Recent runs of the server's scheduler, failures only by default: SQL Server Agent (msdb), PostgreSQL pg_cron, MySQL events, Oracle scheduler. Use for whether any job failed. On SQL Server, for one job's steps and messages use getAgentJobHistory, for job definitions listAgentJobs.">
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="failedOnly" type="boolean" defaultValue="true" description="Only failed or canceled runs (default true)"/>
+            <parameter name="failedOnly" type="boolean" defaultValue="true" description="Only failed or canceled runs (default true; getAgentJobHistory defaults to false)"/>
             <parameter name="days" type="integer" defaultValue="7" description="Days back (default 7)"/>
             <parameter name="limit" type="integer" description="Max runs (default 100)"/>
         </function>
         <function id="getErrorLog" name="%tool.getErrorLog.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Recent server log entries, optionally only those containing a text: SQL Server error log, PostgreSQL current log file, MySQL 8 error_log table, Oracle alert log.">
+            description="Recent server log entries, optionally only those containing a text: SQL Server error log, PostgreSQL current log file, MySQL 8 error_log table, Oracle alert log. Use for errors, failed logins, crashes or restarts. For deadlock details use getDeadlocks.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="contains" type="string" description="Text the entry contains (for example deadlock, error, failed)"/>
             <parameter name="limit" type="integer" description="Max entries (default 100)"/>
         </function>
         <function id="getServerConfig" name="%tool.getServerConfig.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Key server and database settings with sanity findings (MAXDOP, cost threshold, memory, auto shrink, shared_buffers, work_mem, autovacuum, buffer pool, ...).">
+            description="Key server and database settings with sanity findings (MAXDOP, cost threshold, memory, auto shrink, shared_buffers, work_mem, autovacuum, buffer pool, ...). Use to review configuration. For version, edition and uptime use getServerInfo. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="backupDatabase" name="%tool.backupDatabase.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
-            description="SQL Server: BACKUP DATABASE/LOG to a file on the server (copy-only and checksum by default, so the backup chain is not changed). The user sees the T-SQL and confirms.">
+            description="SQL Server only: BACKUP DATABASE or LOG to a file path on the database server (COPY_ONLY and CHECKSUM by default, so the backup chain is not changed). WRITE: the user sees the T-SQL and confirms. For PostgreSQL or MySQL use dumpDatabase; for past backups getBackupHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" required="true" description="Database to back up"/>
-            <parameter name="file" type="string" required="true" description="Backup file path on the server"/>
+            <parameter name="file" type="string" required="true" description="Backup file path on the database server, not this computer"/>
             <parameter name="type" type="string" validValues="FULL,DIFFERENTIAL,LOG" description="Backup type (default FULL)"/>
             <parameter name="copyOnly" type="boolean" description="COPY_ONLY (default true)"/>
         </function>
         <function id="restoreDatabase" name="%tool.restoreDatabase.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
-            description="SQL Server: restores a database from a backup file on the server (the latest full backup set and the sets after it), moving files to the server's default folders. DANGEROUS: the user sees the T-SQL and confirms.">
+            description="SQL Server only: restores a database from a backup file on the database server (the latest full backup set and the sets after it), moving files to the server's default folders. DANGEROUS: the user sees the T-SQL and confirms. For PostgreSQL or MySQL backup files use restoreDump.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" required="true" description="Target database name"/>
-            <parameter name="file" type="string" required="true" description="Backup file path on the server"/>
+            <parameter name="file" type="string" required="true" description="Backup file path on the database server, not this computer"/>
             <parameter name="replace" type="boolean" description="Overwrite an existing database (default false)"/>
         </function>
 
@@ -614,7 +617,7 @@
              setting; passwords go to the tools through environment variables, never on the command line -->
         <function id="dumpDatabase" name="%tool.dumpDatabase.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
-            description="PostgreSQL (pg_dump) and MySQL/MariaDB (mysqldump): backs up a database, or some schemas (PostgreSQL) or tables (MySQL), to a new file on the computer where Chromite runs, with the local client tools of the connection's Local Client setting. Never overwrites a file. The user sees the command line and confirms. Long runs report progress.">
+            description="PostgreSQL (pg_dump) and MySQL/MariaDB (mysqldump) only: backs up a database, or some schemas (PostgreSQL) or tables (MySQL), to a new file on the computer where Chromite runs, with the client tools of the connection's Local Client setting. Never overwrites a file. WRITE: the user sees the command line and confirms. Long runs report progress. For SQL Server use backupDatabase; to export query rows use exportData.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" required="true" description="Database to back up"/>
             <parameter name="file" type="string" required="true" description="Absolute path of the new backup file (a folder for format=directory) on this computer; it must not exist, its folder must"/>
@@ -634,7 +637,7 @@
         </function>
         <function id="restoreDump" name="%tool.restoreDump.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
-            description="PostgreSQL (pg_restore, or psql for a plain SQL script) and MySQL/MariaDB (mysql): restores a backup file on the computer where Chromite runs into an existing database, with the local client tools of the connection's Local Client setting. The PostgreSQL format is detected from the file. DANGEROUS: the user sees the command line and confirms.">
+            description="PostgreSQL (pg_restore, or psql for a plain SQL script) and MySQL/MariaDB (mysql) only: restores a backup file on the computer where Chromite runs into an existing database, with the client tools of the connection's Local Client setting; the PostgreSQL format is detected from the file. DANGEROUS: the user sees the command line and confirms. For SQL Server use restoreDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" required="true" description="Existing target database"/>
             <parameter name="file" type="string" required="true" description="Absolute path of the backup file (or directory-format folder) on this computer"/>
@@ -649,19 +652,19 @@
              the msdb help procedures, so the agent roles (SQLAgentUserRole, SQLAgentReaderRole, SQLAgentOperatorRole) are enough -->
         <function id="listAgentJobs" name="%tool.listAgentJobs.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use getJobHistory for failures across all jobs.">
+            description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use for which jobs exist or are running. For one job's steps and schedules use getAgentJob; for run history getAgentJobHistory; for failures of all jobs getJobHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="filter" type="string" description="Optional text to match in the job name or category"/>
         </function>
         <function id="getAgentJob" name="%tool.getAgentJob.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: one job's definition: steps (subsystem, database, command, on success/failure actions, retries) and schedules (description, next run), plus its current state.">
+            description="SQL Server Agent: one job's definition: steps (subsystem, database, command, on success/failure actions, retries) and schedules (description, next run), plus its current state. Use to explain a job or before starting or stopping it.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" required="true" description="Job name or job_id (listAgentJobs)"/>
         </function>
         <function id="getAgentJobHistory" name="%tool.getAgentJobHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: run history, newest first: each run's outcome (step 0) and the steps of the run with status, duration, retries and the server message. One job or all jobs.">
+            description="SQL Server Agent: run history, newest first: each run's outcome (step 0) and its steps with status, duration, retries and the server message; one job or all jobs. Use for why a job failed. For a quick failure list of all jobs use getJobHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" description="Job name or job_id; empty for all jobs"/>
             <parameter name="failedOnly" type="boolean" defaultValue="false" description="Only runs and steps that failed or were canceled (default false)"/>
@@ -669,20 +672,20 @@
         </function>
         <function id="startAgentJob" name="%tool.startAgentJob.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: starts a job now (msdb.dbo.sp_start_job), optionally at a step. The job runs asynchronously; follow it with listAgentJobs and getAgentJobHistory. The user sees the T-SQL and confirms.">
+            description="SQL Server Agent: starts a job now (msdb.dbo.sp_start_job), optionally at a step. The job runs asynchronously; follow it with listAgentJobs and getAgentJobHistory. WRITE: the user sees the T-SQL and confirms.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" required="true" description="Job name or job_id"/>
             <parameter name="step" type="string" description="Step name to start at (default: the job's start step)"/>
         </function>
         <function id="stopAgentJob" name="%tool.stopAgentJob.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: stops a running job (msdb.dbo.sp_stop_job). The user sees the T-SQL and confirms.">
+            description="SQL Server Agent: stops a running job (msdb.dbo.sp_stop_job). WRITE: the user sees the T-SQL and confirms.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" required="true" description="Job name or job_id"/>
         </function>
         <function id="setAgentJobEnabled" name="%tool.setAgentJobEnabled.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: enables or disables a job (msdb.dbo.sp_update_job @enabled). A disabled job does not run on its schedules but can still be started by hand. The user sees the T-SQL and confirms.">
+            description="SQL Server Agent: enables or disables a job (msdb.dbo.sp_update_job @enabled). A disabled job does not run on its schedules but can still be started by hand. WRITE: the user sees the T-SQL and confirms.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" required="true" description="Job name or job_id"/>
             <parameter name="enabled" type="boolean" required="true" description="true to enable, false to disable"/>
@@ -692,7 +695,7 @@
 
         <function id="getTableStatistics" name="%tool.getTableStatistics.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Row counts, table and index sizes, statistics last update, rows sampled, modifications since the update, dead rows and vacuum/analyze times. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Per table (one table or a schema): row count, table and index sizes, statistics last update, rows sampled, modifications since the update, dead rows and vacuum/analyze times. Use for stale statistics, table growth or cheap row counts of many tables. For an exact count use countRows. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" description="Table (or give schema)"/>
@@ -701,7 +704,7 @@
         </function>
         <function id="getIndexUsage" name="%tool.getIndexUsage.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="How indexes are used since the server started: seeks, scans, lookups, updates, key and included columns, lock escalations. SQL Server, PostgreSQL, MySQL (performance_schema), Oracle (statistics only).">
+            description="How existing indexes were used since the server started: seeks, scans, lookups, updates, key and included columns, lock escalations; one table or a schema. Use to judge whether indexes pay off. For only unused or duplicate indexes use getUnusedIndexes; for index definitions listIndexes. SQL Server, PostgreSQL, MySQL (performance_schema), Oracle (statistics only).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" description="Table (or give schema)"/>
@@ -710,21 +713,21 @@
         </function>
         <function id="getMissingIndexes" name="%tool.getMissingIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Missing-index suggestions of the SQL Server optimizer with a suggested CREATE INDEX; PostgreSQL: large tables read mostly by sequential scans; Oracle: full scans of large tables in cached plans with the filter predicates an index could serve.">
+            description="Indexes that may be missing in a database: SQL Server optimizer suggestions with a CREATE INDEX; PostgreSQL large tables read mostly by sequential scans; Oracle full scans of large tables in cached plans with the filter predicates an index could serve; not MySQL. Use for database-wide index suggestions. For one query use explainQuery.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="limit" type="integer" description="Max rows (default 100)"/>
         </function>
         <function id="getUnusedIndexes" name="%tool.getUnusedIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Indexes that are written but never read since the last restart, and duplicate or left-prefix indexes. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle (index usage tracking DBA_INDEX_USAGE, 12.2+).">
+            description="Indexes that are written but never read since the last restart, and duplicate or left-prefix indexes, in a database or schema. Use before dropping indexes. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle (index usage tracking DBA_INDEX_USAGE, 12.2+).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema"/>
         </function>
         <function id="getIndexFragmentation" name="%tool.getIndexFragmentation.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Fragmentation with REBUILD/REORGANIZE suggestions (SQL Server), dead rows and leaf density (PostgreSQL, pgstattuple if installed), reclaimable space (MySQL).">
+            description="Fragmentation with REBUILD/REORGANIZE suggestions (SQL Server), dead rows and leaf density (PostgreSQL, pgstattuple if installed), reclaimable space (MySQL); one table or a schema; not Oracle. Use for index maintenance questions.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" description="Table (or give schema)"/>
@@ -733,15 +736,15 @@
         </function>
         <function id="getRoutineStats" name="%tool.getRoutineStats.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Run-time statistics of a procedure, function or trigger and of each statement inside it with its start line (SQL Server, Oracle V$SQL PROGRAM_LINE#); function statistics and nested statements (PostgreSQL); program statistics (MySQL).">
+            description="Run-time statistics of one procedure, function or trigger and of each statement inside it with its start line (SQL Server, Oracle V$SQL PROGRAM_LINE#); function statistics and nested statements (PostgreSQL); program statistics (MySQL). Use to find the slow statement inside a routine, then getRoutineSource for its code and getCachedPlans (SQL Server) for its plans.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="name" type="string" required="true" description="Routine name or schema.name"/>
+            <parameter name="name" type="string" required="true" description="Procedure, function or trigger: name or schema.name"/>
             <parameter name="limit" type="integer" description="Max statements (default 100)"/>
         </function>
         <function id="getCachedPlans" name="%tool.getCachedPlans.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="SQL Server: cached plans per statement of a routine (by start line) or of statements containing a text, parsed like explainQuery (operators, warnings, compiled parameter values).">
+            description="SQL Server only: plans in the plan cache for each statement of a routine (by start line) or of statements containing a text, parsed like explainQuery (operators, warnings, compiled parameter values). Use to see the plan the server actually uses, for example for parameter sniffing. For a fresh estimate use explainQuery.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="name" type="string" description="Routine name (or give contains)"/>
@@ -759,7 +762,7 @@
         </function>
         <function id="getQueryStoreRegressions" name="%tool.getQueryStoreRegressions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="SQL Server Query Store of a database: queries whose average duration in the recent window is worse than in the earlier window, with the plan ids of both windows (plan_changed = a different plan is the likely cause). Says clearly when Query Store is off.">
+            description="SQL Server Query Store of a database: queries whose average duration in the recent window is worse than in the earlier window, with the plan ids of both windows (plan_changed = a different plan is the likely cause). Use when a query got slower than before. Says clearly when Query Store is off.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="recentMinutes" type="integer" defaultValue="1440" description="Recent window in minutes (default 1440 = 24 hours)"/>
@@ -775,7 +778,7 @@
         </function>
         <function id="whatIfIndex" name="%tool.whatIfIndex.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="PostgreSQL with the hypopg extension: estimated plan of a statement before and after a hypothetical index (nothing is built; it exists only in the agent's session for this call) and the plan comparison. Without hypopg in the database it answers available=false with the reason.">
+            description="PostgreSQL with the hypopg extension: estimated plan of a statement before and after a hypothetical index (nothing is built; it exists only in the agent's session for this call) and the plan comparison. Use before proposing createIndex on PostgreSQL. Without hypopg in the database it answers available=false with the reason.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement to explain"/>
@@ -786,18 +789,18 @@
 
         <function id="listLibraryQueries" name="%tool.listLibraryQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.library" class="com.seizia.chromite.model.ai.tools.LibraryTools"
-            description="Saved queries of the Chromite Query Library: id, name, description, folder, target connection, parameters, thresholds.">
+            description="Saved queries of the user's Chromite Query Library: id, name, description, folder, target connection, parameters, thresholds. Use when the user mentions a saved, library or monitoring query. For statements the user ran recently use getQueryHistory.">
             <parameter name="folder" type="string" description="Only this folder (for example Monitoring)"/>
             <parameter name="contains" type="string" description="Text in name, description or SQL"/>
         </function>
         <function id="getLibraryQuery" name="%tool.getLibraryQuery.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.library" class="com.seizia.chromite.model.ai.tools.LibraryTools"
-            description="One library query with its SQL, parameters and thresholds.">
+            description="One Query Library entry with its SQL, parameters and thresholds. Use to explain a saved query or to learn its parameters before runLibraryQuery.">
             <parameter name="id" type="string" required="true" description="Query id, folder/name or name"/>
         </function>
         <function id="runLibraryQuery" name="%tool.runLibraryQuery.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.library" class="com.seizia.chromite.model.ai.tools.LibraryTools"
-            description="Runs a library query with parameters (bound, not concatenated) on its target or the given connection and judges the result against its thresholds. Queries that may change data become WRITE and need 'connection'.">
+            description="Runs one Query Library query with parameters (bound, not concatenated) on its target or the given connection and judges the result against its thresholds. Queries that may change data become WRITE and need 'connection'. For all checks of a folder use runMonitoringChecks.">
             <parameter name="id" type="string" required="true" description="Query id, folder/name or name"/>
             <parameter name="connection" type="string" description="Connection (default: the query's target)"/>
             <parameter name="parameters" type="object" description="Parameter values {name: value}"/>
@@ -805,7 +808,7 @@
         </function>
         <function id="runMonitoringChecks" name="%tool.runMonitoringChecks.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.library" class="com.seizia.chromite.model.ai.tools.LibraryTools"
-            description="Runs every read-only query of a library folder and judges each against its @threshold entries: OK, WARN, CRITICAL, NO_THRESHOLDS, SKIPPED, ERROR, plus a summary.">
+            description="Runs every read-only query of a Query Library folder and judges each against its @threshold entries: OK, WARN, CRITICAL, NO_THRESHOLDS, SKIPPED, ERROR, plus a summary. Use for system status from the user's own monitoring queries; without such a folder use the health tools (listSessions, getBlockingChain, getWaitStats, ...).">
             <parameter name="folder" type="string" required="true" description="Library folder"/>
             <parameter name="connection" type="string" description="Connection (default: each query's target)"/>
         </function>
@@ -814,27 +817,27 @@
 
         <function id="openInEditor" name="%tool.openInEditor.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Opens SQL in a new query window of the Chromite app for the user (does not run it).">
+            description="Opens SQL in a new query window of the Chromite app for the user; does not run it. Use when the user wants the SQL in an editor. To change the text of an open window use editQueryWindow.">
             <parameter name="connection" type="string" description="Connection of the window (optional)"/>
             <parameter name="sql" type="string" required="true" description="SQL text"/>
             <parameter name="title" type="string" description="Window title"/>
         </function>
         <function id="listQueryWindows" name="%tool.listQueryWindows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
-            description="Lists the query windows open in the Chromite app: id, title, connection, database, saved file, unsaved changes, active window, running query, text length, caret and selection.">
+            description="Lists the query windows open in the Chromite app: id, title, connection, database, saved file, unsaved changes, active window, running query, text length, caret and selection. Use to find the window the user means.">
         </function>
         <function id="getQueryWindowText" name="%tool.getQueryWindowText.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
-            description="Reads the text of an open query window (default: the active one): the whole text, the selection, or the SQL statement at the caret, with its offsets.">
+            description="Reads the text of an open query window (default: the active one): the whole text, the selection, or the SQL statement at the caret, with its offsets. Use when the user refers to this query, the editor or the selected SQL.">
             <parameter name="window" type="string" description="Window id from listQueryWindows (default: the active window)"/>
-            <parameter name="part" type="string" description="all (default), selection or statement (the statement at the caret)"/>
+            <parameter name="part" type="string" validValues="all,selection,statement" description="all (default), selection, or statement (the SQL statement at the caret)"/>
             <parameter name="maxChars" type="integer" description="Max characters to return (default 100000)"/>
         </function>
         <function id="editQueryWindow" name="%tool.editQueryWindow.name" type="ACTION" access="WRITE" writes="none" purpose="ALL" enabledByDefault="true"
             categoryId="agent.editor" class="com.seizia.chromite.model.ai.tools.EditorTools"
-            description="Changes the text of an open query window (default: the active one): insert at the caret, replace the selection, or replace the whole text. Never runs or saves the text; the user confirms a preview of the change and can undo it with one Ctrl+Z.">
+            description="Changes the text of an open query window (default: the active one): insert at the caret, replace the selection, or replace the whole text. Never runs or saves the text; the user confirms a preview of the change and can undo it with one Ctrl+Z. To open SQL in a new window use openInEditor.">
             <parameter name="window" type="string" description="Window id from listQueryWindows (default: the active window)"/>
-            <parameter name="mode" type="string" required="true" description="insert, replaceSelection or replaceAll"/>
+            <parameter name="mode" type="string" validValues="insert,replaceSelection,replaceAll" required="true" description="insert (at the caret), replaceSelection or replaceAll"/>
             <parameter name="text" type="string" description="New text (empty with replaceSelection deletes the selection)"/>
         </function>
     </extension>
