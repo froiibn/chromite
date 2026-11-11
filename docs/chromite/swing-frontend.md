@@ -3150,6 +3150,26 @@ File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 �
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 열기(새 쿼리, 파일, 복원, Query Library, Agent, 기록), 서버 없는 창의 실행·예상 계획,
   Ctrl+9, 탭 제목·상태 줄의 연결, 좁은 창의 SQL Editor 도구 막대, 테마 전환.
 
+## 테마 전환 뒤 카드 테두리 (2026-11-12)
+
+증상(앱 변경 #67 검토 중 사용자 보고): 실행 중 테마를 바꾸면 도구 창 카드(둥근 모서리) 밖에 회색 사각형 1px 테두리가 생긴다(왼쪽·위에 ㄱ자로 보임).
+새로 시작한 창에는 없다.
+
+- 테두리의 정체(측정: 테스트 에이전트로 문서 영역 루트 아래의 테두리가 있는 컴포넌트를 셈): 새로 시작하면 머리말(`Header`)의 아래 선 4개뿐이다.
+  테마를 바꾸면 `DockedSimplePanel` 5개(카드마다 하나)에 `CompoundBorder(EmptyBorder, LineBorder(1, Component.borderColor))`가 붙는다
+  (라이트 `#d1d3d9`, 다크 `#40434a`). 이것은 ModernDocking 1.4.9의 `ActiveDockableHighlighter.setNotSelectedBorder`가 만드는 테두리이고,
+  라이브러리는 Look and Feel이 바뀔 때마다 `DockingAPI`의 `UIManager` 리스너가 `invokeLater`로 `DockingInternal.updateLAF`를 부르고, 그것이 모든 패널에
+  이 테두리를 다시 넣는다(바이트코드 확인). `ToolWindowDocking.decorate()`가 이 테두리를 지운다.
+- 원인: `ToolWindowDocking`의 Look and Feel 리스너가 `scheduleUpdate()`를 바로 불렀고, `scheduleUpdate`는 이미 예약된 갱신이 있으면 새로 예약하지 않는다.
+  `ChromiteTheme.install`이 한 번의 설치에서 Look and Feel을 두 번 바꾸면(화면 언어의 글자가 semibold 글꼴에 없을 때 BOLD로 다시 설치) EDT 대기열이
+  라이브러리 갱신 1 → 장식 → 라이브러리 갱신 2 순서가 되어, 두 번째 갱신이 다시 넣은 테두리가 남았다.
+- 왜 #67에서 드러났나: #67 전에는 한국어 화면의 semibold 글꼴(Pretendard SemiBold)이 한글을 가져 설치가 한 번이었다. #67부터 Windows semibold 글꼴
+  Segoe UI Semibold에 한글이 없어 한국어 화면의 테마 설치가 두 번이 됐다. 영어 화면은 지금도 한 번이라 테두리가 생기지 않는다(같은 측정: 4개 그대로).
+  devel(#67 전)에서는 두 번 설치하는 화면 언어가 없어 나타나지 않는다(코드의 경쟁은 그대로 있었다).
+- 고친 것: 리스너가 `SwingUtilities.invokeLater(this::scheduleUpdate)`로 한 단계 늦게 예약한다. 테마 설치는 EDT 작업 하나 안에서 끝나므로, 그 안에서 생긴
+  라이브러리 작업이 모두 대기열에 들어간 뒤에 예약되어 장식이 마지막에 돈다. 사용자가 닿는 길(View > Theme, Options의 테마 단추, "시스템 설정 따르기"에서
+  운영체제 테마 바뀜) 모두 `ChromiteTheme.install(true)`을 지난다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -3296,3 +3316,4 @@ File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 �
 - 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69, `chromite/editor-fixed-server`): 연결 콤보를 고를 수 없는 서버 표시로, 서버 없는 창은 한 번 고름(단추, Ctrl+9, 실행·계획),
   "연결 바꾸기" 명령은 만들지 않음. "쿼리 창은 한 서버의 창" 절 추가, 앞의 연결 콤보 설명에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 Reopen Closed Tab에 Ctrl+Shift+T(⇧⌘T), View > Maximize Results는 Ctrl+Shift+R(⇧⌘R)로(앱 변경 #66, `chromite/small-fixes-r2`): "문서 탭 메뉴"의 단축키 줄을 고침.
+- 2026-11-12 테마 전환 뒤 카드 밖 사각형 테두리(앱 변경 #67 검토): ToolWindowDocking의 장식 예약을 테마 설치의 작업들 뒤로, "테마 전환 뒤 카드 테두리" 절 추가.

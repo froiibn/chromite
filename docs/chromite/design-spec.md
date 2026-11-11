@@ -1321,6 +1321,10 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
   설치해 `defaultFont` Segoe UI 13, 영어 `semibold.font` Segoe UI Semibold 13, 한국어 `semibold.font` Segoe UI Bold 13(`h2` Segoe UI Bold 19)을 읽었다.
 - 캡처: `D:\Tools\_scratch\system-ui-font\shots\`(`before-ko-{100,150}-main-dark`, `after-{ko,en}-{100,150}-{main,options}-{light,dark}`, `-connection-`, `-msgbox-`,
   `-update-`, `-splash`, `-compact-dark`, 확대 비교 `crop-{tree,grid}-dark-{100,150}.png`).
+- 테마 전환 뒤 카드 밖 사각형 테두리: 위 `after-*-main-*` 캡처는 실행 중 테마를 바꾼 뒤라 카드 밖에 1px 사각형 테두리가 보인다. #67로 한국어 화면의
+  테마 설치가 두 번이 되면서 `ToolWindowDocking`의 장식이 라이브러리의 두 번째 테두리 넣기보다 먼저 돈 것이 원인이었고 고쳤다
+  ([swing-frontend.md](swing-frontend.md) "테마 전환 뒤 카드 테두리"). 고친 뒤 100%·150%에서 새로 시작(다크·라이트)과 실행 중 전환(라이트, 다크, 시스템 설정)
+  모두 카드 테두리 0개(`v-{100,150}-*.png`, 모서리 확대 `corners-100.png`·`corners-150.png`, 첫 줄은 고치기 전).
 - **확인하지 못함:** macOS(실행할 수 없음. FlatLaf 3.8 소스로만 판단: `.AppleSystemUIFont` 13, semibold는 FlatLaf 기본 `HelveticaNeue-Medium`이고 한글이 없어 한국어 화면에서는
   시스템 글꼴의 BOLD), Linux, Segoe UI가 없는 Windows(코드 경로만), 회사 VDI 화면.
 
