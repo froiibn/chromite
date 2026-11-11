@@ -47,6 +47,8 @@ import java.lang.reflect.Field;
  *
  * 변경 이력:
  * - 2026-11-09 최초 작성: macOS 화면 메뉴 막대(앱 변경 #27) (docs/chromite/mac-ui.md)
+ * - 2026-11-12 {@link #isAttached}: 통합 제목 줄({@link MacOSUnifiedTitleBar}, 앱 변경 #62)은 메뉴 막대가 창 안에 남으면 켜지 않음
+ *   (창 안 메뉴 막대가 신호등 단추 줄에 겹침) (docs/chromite/mac-ui.md "통합 제목 줄")
  */
 final class MacOSScreenMenuBar {
 
@@ -68,6 +70,15 @@ final class MacOSScreenMenuBar {
      */
     static boolean isEnabled() {
         return RuntimeUtils.isMacOS() && Boolean.getBoolean(USE_SCREEN_MENU_BAR);
+    }
+
+    /**
+     * Whether the menu bar is in the screen menu bar after {@link #attach}: its UI is still the Aqua one ({@link #attach}
+     * goes back to FlatLaf's when it cannot use the screen menu bar, and then the menu bar takes a row of the window).
+     */
+    static boolean isAttached(@NotNull JMenuBar menuBar) {
+        MenuBarUI ui = menuBar.getUI();
+        return isEnabled() && ui != null && AQUA_MENU_BAR_UI.equals(ui.getClass().getName());
     }
 
     /**
