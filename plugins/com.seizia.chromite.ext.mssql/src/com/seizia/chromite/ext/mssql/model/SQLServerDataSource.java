@@ -80,6 +80,7 @@ import java.util.Properties;
  * - 2026-11-07 SQL Server 에이전트 노드 {@link #getAgent}, 새로 고침 때 다시 만듦 (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-08 {@link #discoverErrorType}: 로그인 오류가 아니면 {@code getNextException()} 사슬을 읽지 않음. 드라이버가 그 사슬을 배치의
  *   뒤 결과를 미리 읽어 만들어서, 쿼리 관리자가 오류 종류를 볼 때 뒤 문장의 행 수와 결과 집합이 사라졌다 (docs/chromite/sql-batch-errors.md)
+ * - 2026-11-12 계획 어댑터의 드라이버 조건을 {@link SQLServerQueryPlanner#isSupported}로: 연결 전 판단과 같은 조건(앱 변경 #70)
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -629,8 +630,8 @@ public class SQLServerDataSource
         } else if (adapter == DBAUserPasswordManager.class) {
             return adapter.cast(new SQLServerLoginPasswordManager(this));
         } else if ((adapter == DBCQueryPlanner.class || adapter == SQLActualPlanProvider.class)
-            && SQLServerUtils.isDriverSqlServer(getContainer().getDriver()) && !SQLServerUtils.isDriverBabelfish(getContainer().getDriver())) {
-            // Chromite: showplan XML is a SQL Server feature; Babelfish speaks T-SQL over PostgreSQL and has no showplan
+            && SQLServerQueryPlanner.isSupported(getContainer().getDriver())) {
+            // Chromite: the provider answers the same before connecting (SQLServerDataSourceProvider)
             return adapter.cast(new SQLServerQueryPlanner(this));
         }
         return super.getAdapter(adapter);

@@ -21,6 +21,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.mssql.model.SQLServerAuthentication;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
+import com.seizia.chromite.ext.mssql.model.plan.SQLServerQueryPlanner;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
@@ -29,10 +30,18 @@ import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
 import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceProvider;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
-public class SQLServerDataSourceProvider extends JDBCDataSourceProvider<SQLServerDataSource> {
+/**
+ * SQL Server data source provider.
+ *
+ * 변경 이력:
+ * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}, 데이터 소스 어댑터와 같은
+ *   {@link SQLServerQueryPlanner#isSupported}): 실제 계획이 없는 드라이버는 Actual Plan 토글이 처음부터 꺼짐(앱 변경 #70)
+ */
+public class SQLServerDataSourceProvider extends JDBCDataSourceProvider<SQLServerDataSource> implements SQLActualPlanSupport {
 
     public SQLServerDataSourceProvider() {
         super(SQLServerDataSource.class);
@@ -45,6 +54,11 @@ public class SQLServerDataSourceProvider extends JDBCDataSourceProvider<SQLServe
     @Override
     public long getFeatures() {
         return FEATURE_CATALOGS | FEATURE_SCHEMAS;
+    }
+
+    @Override
+    public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
+        return SQLServerQueryPlanner.isSupported(container.getDriver());
     }
 
     @NotNull
