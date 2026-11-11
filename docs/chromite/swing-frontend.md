@@ -103,8 +103,10 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 - **SQL Server:** SSMS처럼 `GO`를 기준으로 배치를 나눠 배치 단위로 서버에 보낸다.
   같은 배치 안에서 `DECLARE`한 변수를 이어서 쓸 수 있어야 한다.
   (기존 DBeaver 방식은 구분자로 문장을 나눠 하나씩 실행한다.)
-- **결과 표시:** 결과 집합마다 탭 하나(Result1, Result2…)이고, 메시지(영향받은 행 수, 오류, PRINT 출력)는 같은 탭 줄의 Messages 탭에 모은다.
-  처음에는 SSMS처럼 결과 창 하나에 결과 표를 위아래로 쌓았는데, 2026-11-08 사용자 결정으로 SSMS를 따르지 않고 결과별 탭으로 바꿨다("결과 탭").
+- **결과 표시:** 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, 결과 집합마다 Grid 안의 아래쪽 자식 탭 하나(Result 1, Result 2…)다. 메시지(영향받은 행 수,
+  오류, 경고)는 Messages 탭, 서버 출력(PRINT, NOTICE, DBMS_OUTPUT)은 Server Output 탭이다.
+  처음에는 SSMS처럼 결과 창 하나에 결과 표를 위아래로 쌓았는데, 2026-11-08 사용자 결정으로 결과별 탭으로 바꿨고("결과 탭"), 2026-11-11 사용자 결정으로
+  두 단계 탭이 되었다("결과 영역 두 단계 탭").
 - F5 사양은 Swing 버전에만 적용한다. SWT 버전의 단축키는 바꾸지 않는다.
 
 ## 쿼리 실행 계층
@@ -646,9 +648,9 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 
 - SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭에는 활성 편집기의 두 컴포넌트를 끼운다(편집기가 없으면 자리 표시. 2026-11-07부터는 Results 카드를 숨김, "Results 자동 숨김").
   탭에서 빠져 있던 컴포넌트는 테마 전환을 받지 못했을 수 있어 끼울 때 Look and Feel을 맞춘다(`updateComponentTreeUI`, 마지막으로 맞춘 Look and Feel을 기억).
-  2026-11-08부터 바깥 탭은 없고 쿼리 창마다의 탭 줄 `Result1 | … | Messages | Execution plan`을 통째로 끼운다("결과 탭").
+  2026-11-08부터 바깥 탭은 없고 쿼리 창마다의 탭 줄을 통째로 끼운다("결과 탭"). 2026-11-12부터 그 탭 줄은 `Grid | Text | Messages | Server Output | Execution plan`("결과 영역 두 단계 탭").
 - **Results:** 결과 집합마다 표 하나를 위아래로 쌓는다. 모두 최소 높이(140px) 이상으로 들어가면 높이를 똑같이 나눠 채우고, 아니면 바깥 세로 스크롤.
-  2026-11-08부터 결과 집합마다 탭이다("결과 탭").
+  2026-11-08부터 결과 집합마다 탭이다("결과 탭"), 2026-11-12부터 Grid 안의 자식 탭("결과 영역 두 단계 탭").
   - 값은 `ResultSetGridReceiver`가 Job 스레드에서 결과 집합이 열려 있는 동안 읽어(`DBUtils.getAttributeBindings`, `fetchValueObject`) 표시 문자열(`DBDDisplayFormat.UI`)로 바꾸고
     값을 놓아 준다(`DBUtils.releaseValue`). EDT는 문자열만 다룬다. 행은 모아 두었다가 `fetchEnd`에서 한 번에 넘긴다(실패로 `fetchEnd`가 없으면 `close`에서).
   - 열 이름은 바인딩 이름(열 별칭), NULL은 흐린 기울임꼴 "NULL", 숫자 열(`DBPDataKind.NUMERIC`)은 오른쪽 정렬, 열 너비는 머리글과 앞 200행 글자 너비(40–320px),
@@ -659,7 +661,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
   `Execution time: N ms`를 쓴다. 오류는 빨간색으로 `Msg <오류 코드>, State <SQLSTATE>, Line L, Column C`와 예외 메시지를 쓴다.
   위치는 방언의 `DBPErrorAssistant.getErrorPosition`이 찾으면 그 위치(편집기 기준 줄·열), 못 찾으면 쿼리 시작 줄이다. 끝에 `Completion time`.
 - **탭 전환:** 오류가 있거나 결과 표가 하나도 없으면 SSMS처럼 Messages 탭을, 아니면 Results 탭을 보여 주고, Results 도구 창이 숨어 있으면 다시 보인다.
-  편집기마다 마지막으로 본 탭을 기억해 편집기 탭을 바꾸면 그 탭을 다시 보여 준다. 2026-11-08부터의 규칙은 "결과 탭".
+  편집기마다 마지막으로 본 탭을 기억해 편집기 탭을 바꾸면 그 탭을 다시 보여 준다. 2026-11-08부터의 규칙은 "결과 탭"(2026-11-12 두 단계 탭에서도 같음).
 - **상태 줄(쿼리 창 아래):** "Executing query…" / "Query executed successfully." / "Query completed with errors." / "Query was canceled.", 경과 시간(`hh:mm:ss.SSS`), 읽은 행 수.
 
 ### 메뉴와 단축키
@@ -1628,6 +1630,35 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 닫기 단추(×)는 선택한 탭과 마우스를 올린 탭에만 그린다(`IslandTabbedPaneUI.paintTabCloseButton`). 단추 자리는 모든 탭에 남겨 두어 마우스를 움직여도 탭 폭이 바뀌지 않는다.
 - 가운데 단추로 누르면 닫는다(닫을 수 있는 탭만, 저장 확인은 닫기 단추와 같음).
 - 도구 설명: 전체 파일 경로(저장 안 한 쿼리는 `SQLQueryN.sql (not saved)`)와 연결 이름·위치(URL 또는 파일)·DB 제품 버전.
+- 오른쪽 클릭 메뉴, 탭 고정, 탭 위치, 여러 행(2026-11-12): 아래 "문서 탭 메뉴". 고정 탭은 닫기 단추와 가운데 단추 닫기가 없다.
+
+### 문서 탭 메뉴 (2026-11-12, 앱 변경 #42)
+
+사용자 요청(기업 환경 2026-11-09): 쿼리 편집창 위 탭의 오른쪽 클릭 메뉴가 없다. 다른 도구의 탭 메뉴 항목 가운데 적용할 수 있는 것을 넣는다.
+`DocumentTabMenu`(새 파일)가 메인 창 문서 탭(쿼리 창, DDL 탭, 도구 문서, 테이블 디자이너)에 붙는다. 문구는 `internal.DocumentTabMessages`(영어 + `_ko`).
+
+| 항목 (한국어) | 동작 | 켜지는 때 |
+|---|---|---|
+| Save (저장) | Ctrl+S와 같은 `MainFrame#saveEditor`(파일이 없으면 저장 대화상자, Query Library 창은 라이브러리에 저장). 메뉴에 Ctrl+S를 보임 | 쿼리 창 |
+| Rename... (이름 바꾸기) | 파일이 있으면 Scripts 창의 이름 바꾸기처럼 같은 폴더에서 파일 이름을 바꿈(확장자 유지, 같은 이름이 있으면 " (2)"), 창이 새 파일을 따라가고 스크립트 연결·최근 파일·Scripts 창도 따라감. 저장 전 창(`SQLQueryN.sql`, Modify 창)은 이름만(탭 제목, 저장할 때 제안하는 파일 이름). Query Library 창은 트리의 Rename과 같은 `QueryLibrary#renameQuery`, 고친 창은 이름을 머리말의 이름 칸에 넣고 저장할 때 적용(파일을 밑에서 바꾸면 Reload 제안이 고친 글을 버리게 하므로) | 쿼리 창 |
+| Close (닫기) | 탭마다 기존 닫기 경로(`closeDocumentTab`: 결과 표 변경, 저장하지 않은 변경, 열린 트랜잭션 질문 = 트랜잭션 안전 규칙, 테이블 디자이너·도구 문서의 확인) | 늘 (고정 탭도) |
+| Close All Tabs (모든 탭 닫기) / Close Other Tabs (다른 탭 닫기) | 고정 탭을 빼고 왼쪽부터 탭마다 위 닫기 경로, 하나라도 취소하면 거기서 멈춤 | 닫을 탭이 있을 때 |
+| Reopen Closed Tab (닫은 탭 다시 열기) | 최근 닫은 쿼리 창을 글·연결·파일·기본 DB/스키마·커서·고정과 함께 다시 엶. 자동 저장 기록([swing-query-window-recovery.md](swing-query-window-recovery.md) "탭 고정과 닫은 탭")과 같은 기록·복원, 최근 10개, 연결·실행하지 않음. 그 파일이 이미 열려 있으면 그 탭을 보임. 탭이 하나도 없으면 메뉴를 열 수 없어 Window 메뉴에도 둠 | 기록이 있을 때 |
+| Copy Full Path (전체 경로 복사) / Open Containing Folder (상위 폴더 열기) | 파일의 절대 경로를 클립보드에 / 파일이 있는 폴더를 OS 파일 탐색기로(Query Library의 Open Folder와 같은 `Desktop.open`) | 파일이 있는 쿼리 창 |
+| Pin Tab / Unpin Tab (탭 고정 / 탭 고정 해제) | 고정 탭은 왼쪽에 고정한 순서대로 모이고 아이콘 뒤에 핀(`pin`), 닫기 단추·가운데 단추 닫기 없음. 해제하면 고정 탭 바로 뒤로. 쿼리 창의 고정은 다시 시작 후 복원과 함께 저장 | 늘 |
+| Tab Position ▸ Top / Left / Right (탭 위치 ▸ 위쪽 / 왼쪽 / 오른쪽) | `JTabbedPane.setTabPlacement`, 설정 `documentTabs.placement`(`top`·`left`·`right`) | 늘 |
+| Show Tabs in Multiple Rows (여러 행에 탭 표시) | 켜면 줄바꿈 배치(`WRAP_TAB_LAYOUT`), 끄면 지금처럼 한 행 스크롤. 설정 `documentTabs.multipleRows` | 늘 |
+
+- 탭 줄의 빈 곳을 누르면 Reopen Closed Tab과 배치 항목(탭 위치, 여러 행)만 보인다. 한국어 메뉴 이름에는 끝 말줄임표가 없다(앱 변경 #9).
+- **여러 행**: 고른 탭의 행을 내용 쪽으로 옮기지 않는다(FlatLaf 스타일 `rotateTabRuns: false`). Swing 기본은 고른 탭의 행을 내용 바로 위로 돌려 놓아 누를 때마다
+  행 순서가 바뀐다.
+- **마우스 휠**: 한 행 배치에서는 FlatLaf의 휠 스크롤(`FlatWheelTabScroller`)이 탭 줄을 넘긴다(기존 동작). 여러 행 배치에서는 모든 탭이 보이므로 휠로 넘길 행이 없고,
+  휠로 행을 바꾸는 동작은 Swing 탭에 없어 넣지 않았다.
+- **부동(Float)은 넣지 않음**: 결과 카드, SQL Editor 도구 막대, 상태 표시줄의 쿼리 창 칸, Find, Outline이 모두 이 탭 창의 활성 탭을 따라가는 구조라, 탭 밖의 쿼리 창은
+  결과와 명령을 잃는다. 도킹 라이브러리(ModernDocking)는 도구 창만 맡고 문서 탭은 도킹 밖의 고정 가운데 영역이다.
+- **단축키**: Reopen Closed Tab에는 단축키를 붙이지 않았다. 요청 행의 Ctrl+Shift+T는 이미 View > Maximize Results(SWT 키)가 쓰고 있다(결정 필요).
+- 탭을 옮기는 API가 없어 고정·해제는 탭을 빼고 다시 넣는다(제목, 아이콘, 도구 설명, 선택을 옮김). 실행 중인 창의 스피너는 핀 아이콘 안에서도 돈다.
+- **확인(2026-11-12, 150%·100%, 테스트 에이전트, SQLite와 임시 PostgreSQL 17):** 메뉴 항목·켜짐 상태(저장 Ctrl+S 표시, 파일 없는 창은 경로 항목 꺼짐), 고정하면 맨 왼쪽으로 옮겨지고 핀 아이콘·닫기 단추 없음. 모든 탭 닫기에서 고친 창의 저장 질문에 취소 → 거기서 멈춤(고정 탭과 남은 탭 그대로), 다른 탭 닫기에서 저장 안 함 → 닫힘. 닫은 탭 다시 열기 → 저장하지 않은 글이 고침 상태로, 연결 창은 연결과 함께 돌아옴(Window 메뉴 항목도 켜짐/꺼짐이 따라감). 이름 바꾸기: 저장 전 창 → `Report Draft.sql`, 파일 창 → 디스크의 `renamed.sql`로 바뀌고 창이 따라감, Query Library 창 → 파일·`@name` 바뀜, 고친 Library 창 → 이름 칸에 넣고 안내. 전체 경로 복사 → 클립보드에 절대 경로. PostgreSQL 수동 커밋 창에 INSERT 뒤 메뉴의 닫기 → 저장 질문 다음 커밋하지 않은 트랜잭션 질문(커밋 / 롤백 / 취소, 취소가 기본): 취소하면 탭과 트랜잭션이 남고(`idle in transaction`), 롤백하면 닫힘(행 0). 그 창을 다시 열면 고정·글·연결 기본값과 함께 돌아오고 연결·실행하지 않음. 탭 위치 왼쪽과 고정이 다시 시작 뒤 복원됨. 한 행 배치에서 휠을 위로 굴리면 탭 줄이 왼쪽으로 넘어감. 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\42-*.png`.
 
 ### F5 (SSMS)
 
@@ -1746,7 +1777,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 
 | 도구 막대 | 순서 (│ = 구분선) |
 |---|---|
-| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** … (오른쪽 끝) Chromite Agent(아이콘 + 글자, 2026-11-08 아래 "Chromite Agent 단추를 오른쪽 끝으로") |
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** │ Chromite Agent(아이콘 + 글자, 2026-11-12 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로") |
 | 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** (2026-11-08부터 콤보가 맨 앞: "SQL Editor 도구 막대") |
 
 | 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
@@ -1816,6 +1847,9 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### Chromite Agent 단추를 오른쪽 끝으로 (2026-11-08, 앱 변경 #6)
 
+> 2026-11-12 바뀜(앱 변경 #53): 사용자 뜻은 창 오른쪽 끝이 아니라 단추 묶음의 마지막이었다. 아래 "Chromite Agent 단추를 단추 묶음의 마지막으로".
+> 이 절의 오른쪽 끝 정렬(`OverflowToolBar.setTrailing`)은 삭제했다.
+
 사용자 요청(2026-11-08): "맨 위 단축 아이콘 중 Chromite Agent 아이콘을 가장 우측에 배치하고 아이콘과 글자를 함께 나타내라".
 "가장 우측"은 도구 막대 오른쪽 끝 정렬로 해석했다(남는 공간을 사이에 둠, DataGrip의 AI 단추 자리).
 
@@ -1827,6 +1861,17 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   넘침 순서도 정할 수 없다. 그래서 컴포넌트에 "오른쪽 끝" 표시를 두고, 배치할 때 그 폭을 오른쪽 끝에 먼저 잡은 뒤 나머지를 왼쪽부터 놓는다.
   폭이 모자라면 나머지 단추가 뒤에서부터 » 메뉴로 넘치고, » 단추는 Agent 단추 바로 왼쪽에 놓인다. 도구 막대가 Agent 단추와 » 단추도 못 담을 만큼 좁으면
   (실제 창에서는 생기지 않는 폭) Agent 단추도 다른 단추처럼 차례대로 놓이고 넘친다.
+
+### Chromite Agent 단추를 단추 묶음의 마지막으로 (2026-11-12, 앱 변경 #53)
+
+사용자 요청(2026-11-11): "가장 우측에 배치하라고 했는데 현재 화면의 우측에 배치되어 있다. 위치를 수정한다". 뜻은 도구 막대 단추들 가운데 맨 마지막(가장 오른쪽 단추)이다.
+
+- **자리:** Find 뒤 구분선 다음, 단추 묶음의 마지막. 남는 공간은 그 뒤(오른쪽)에 남는다. 아이콘 + 글자, 토글 동작, 도구 설명 "Chromite Agent (Ctrl+Alt+I)", 단축키는 그대로다.
+- **좁은 창:** 다른 단추처럼 뒤에서부터 » 메뉴로 넘친다. 맨 마지막이라 가장 먼저 넘친다(넘침 메뉴 항목은 체크 표시가 있는 "Chromite Agent").
+- **삭제:** 오른쪽 끝 정렬만을 위해 넣은 `OverflowToolBar.setTrailing`, 그 표시 키(`chromite.toolBar.trailing`)와 배치 코드. 다른 곳에서 쓰지 않았다(검색으로 확인).
+  » 단추 자리는 #6 전처럼 도구 막대 오른쪽 끝이다.
+- **확인(2026-11-12, 150%·100%, 테스트 에이전트):** 1280px 창에서 Find(x 394) 뒤 구분선(x 420) 다음 Agent 단추(x 427, 폭 114), 그 뒤는 빈 공간.
+  창 폭 420에서 Properties·Find·Agent가 » 메뉴로 넘침(폭 0). 캡처 `D:\Tools\_scratch\chromite-tabs-toolbar\shots\53-toolbar-150.png`, `53-42-100.png`.
 
 ## SQL Editor 도구 막대 (2026-11-07)
 
@@ -2740,6 +2785,9 @@ DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보�
 사용자 요청(앱 변경 #7): "여러 쿼리를 실행한 결과가 한 화면의 스크롤로 나타난다. 이 부분은 ssms를 따라가지 말고 쿼리 결과별 탭으로 분리한다.
 Result1, Result2 이런식으로 표시하면 된다". 결정: 한 줄에 나란히 `Result1 | Result2 | … | Messages`(메인 창 아래 Results / Messages 바깥 탭을 이 한 줄로 바꿈).
 
+> 2026-11-12 "결과 영역 두 단계 탭"(앱 변경 #54)이 탭 배치를 바꿨다: 결과 탭은 Grid 안의 아래쪽 자식 탭 "Result 1"…(영어)이고, 서버 출력은 Server Output 탭이다.
+> 아래의 앞으로 오는 탭, 중간 오류, 오류 점·개수, 행 수, 고정, 쿼리 창마다의 규칙은 그대로이고 "결과 탭"을 "Grid의 자식 탭"으로 읽는다.
+
 ### 동작
 
 - **탭 줄:** `결과 탭… | Messages | Execution plan | Terminal`(Terminal은 그 쿼리 창이 SQL Terminal을 켰을 때만). 결과가 하나여도 "Result1"(한국어 "결과1")이다.
@@ -2805,6 +2853,89 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 표 편집·저장과 다시 실행 전 버리기 묻기, 창을 닫을 때 결과 저장 묻기, 결과 다시 읽기(필터·정렬·더 읽기),
   Generate SQL, 실행 계획 탭(Ctrl+L, 실제 계획), SQL Terminal, Results 숨기기·옆에 놓기·최대화, 테마 전환 뒤 활성이 아니던 창의 탭 줄 모양, Chromite Agent·MCP가 연 쿼리 창.
+
+## 결과 영역 두 단계 탭 (2026-11-12)
+
+사용자 요청(앱 변경 #54): "결과1,2를 그냥 Result 1처럼 영어로 나타낸다. 그리고 상단에는 Grid, Text, 실행계획, Server Output 항목이 있고, Grid탭의 child탭으로
+Result1, Result2를 나타내는 게 어떤가? 탭은 영역 아래쪽에 위치하게 하고". 결정(2026-11-11): 두 단계 구조, Messages와 Server Output은 따로 둔다.
+"결과 탭"(2026-11-08)의 한 줄 탭 줄을 바꾼다.
+
+다른 도구 비교(결정 때 정리, 화면 문구에는 제품 이름을 쓰지 않음): DBeaver와 DataGrip은 결과마다 탭 + 출력 탭이 한 줄이고 표/텍스트는 결과 안의 보기 전환,
+SSMS는 Results / Messages / Execution plan 위 탭에 여러 결과를 한 화면에 쌓음, Oracle 계열 도구(Orange, Toad, SQL Developer)는 종류별 탭(Grid, Text/Script Output, Plan, DBMS Output).
+
+### 동작
+
+- **위 탭(순서 고정):** `Grid | Text | 메시지 | Server Output | 실행 계획 | (터미널)`. 터미널은 그 쿼리 창이 SQL Terminal을 켰을 때만 맨 끝이다.
+  결과가 몇 개든 위 탭 자리가 바뀌지 않는다(전에는 결과가 많으면 Messages·계획 탭이 오른쪽으로 밀려 스크롤해야 보였다).
+- **Grid의 자식 탭:** 결과 집합마다 아래쪽(엑셀 시트처럼) `Result 1 | Result 2 | …`. 이름은 화면 언어와 관계없이 영어다. 결과가 하나여도 자식 탭 줄이 보인다.
+  자식 탭에는 아이콘이 없고(고정 탭만 핀), 도구 설명은 그 결과의 SQL 첫 줄이다. 넘치면 FlatLaf의 탭 줄 스크롤과 숨은 탭 목록이다.
+  결과마다의 보기 단추(값 패널·레코드·텍스트·차트·참조·집계)는 결과 뷰어 아래 오른쪽에 그대로 있다.
+- **Text:** Grid의 자식 탭 모두를 그 순서대로(고정 탭 포함) 고정폭 글자로 이어 쓴다. 결과마다 `Result 1: SELECT * FROM t1` 제목 줄, 결과의 텍스트 보기와 같은 표 글자,
+  빈 줄. 탭이 앞에 있을 때 만들고, 결과가 늘거나 다시 읽히거나(필터·정렬·더 읽기) 고정 탭을 닫으면 다시 만든다.
+- **Messages:** 오류, 행 수, 경고, 실행 시간, 완료 시간. 오류 점·개수와 오류 위치로 가기는 그대로다.
+- **Server Output:** 서버가 낸 출력만(Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`, SQL Server `PRINT`·낮은 심각도 `RAISERROR`, PostgreSQL `RAISE NOTICE`·`INFO`).
+  무엇이 출력인지는 [swing-server-output.md](swing-server-output.md) "경고 중 무엇이 출력인가". 출력이 없는 실행에서도 탭은 그 자리에 비어 있다.
+  탭이 앞에 없을 때 새 출력이 오면 아이콘 오른쪽 아래에 점(경고 색)과 도구 설명 "서버의 새 출력"이 붙고, 탭을 고르면 지운다. 실행마다 비운다.
+- **앞으로 오는 탭(#206 그대로):** 실행을 시작하면 메시지, 첫 결과가 나오면 Grid와 Result 1. 뒤의 결과는 자식 탭만 생긴다. 오류로 멈췄거나 결과가 없으면 메시지.
+  SQL Terminal을 켠 실행은 터미널. 그 실행의 첫 결과는 Grid가 앞에 없으면 Grid에서 골라 두므로, 터미널을 끄거나 나중에 Grid를 고르면 Result 1이 보인다.
+- **중간 오류(멈춤):** 앞의 Result 1·Result 2는 남고, 실행은 멈추며, 메시지가 앞(오류 점·개수), 오류 문장의 빈 결과 탭은 없다. 건너뛰고 계속이면 Grid가 그대로 앞이다.
+- **행 수(쿼리 상태 줄):** Grid가 앞이면 고른 자식 탭의 행 수, 다른 위 탭이 앞이면 그 실행에서 읽은 행 수.
+- **결과 고정(Query &gt; Pin Results):** Grid에서 고른 자식 탭(다른 위 탭이 앞이어도 Grid 안에서 고른 탭)을 고정하고 Grid를 앞으로 가져온다.
+  `Result 3 (00:56:32)`, 핀 아이콘, 닫기 단추. 다음 실행은 고정하지 않은 자식 탭만 지우고 새 결과를 고정 탭 앞에 놓는다.
+- **그대로인 것:** 쿼리 창마다 탭 줄(고른 위 탭과 자식 탭이 창에 남음), #18의 다시 그리기(`MainFrame.attachResults`는 위 탭 줄을 끼움, 코드 그대로), 결과 편집·저장 묻기,
+  다시 읽기, Generate SQL, 실행 계획 탭(#58이 실제 계획 토글을 따로 봄).
+
+### 설계
+
+- **위 탭 줄은 그대로 쿼리 창의 것:** `QueryResultsView.getComponent()`가 위 탭 줄(`JTabbedPane`)을 돌려주고 메인 창은 그것을 Results 카드에 끼운다. 그래서 `MainFrame`의
+  끼우기·숨기기 단추·다시 그리기 코드는 바꾸지 않았다(클래스 설명만 고침).
+- **자식 탭 줄은 Grid 탭의 내용:** `resultTabs`(`JTabbedPane.BOTTOM`, 위 탭과 같은 `TOOL_TABS_STYLE`)가 Grid 탭을 채운다. 고정 탭 닫기 콜백은 자식 탭 줄에 둔다.
+- **마지막으로 고른 결과 탭 기억을 지움(규칙 4):** 한 줄 탭에서는 Messages가 앞이면 고른 결과 탭이 없어 `lastResultTab`에 따로 기억했다. 이제 자식 탭 줄의 선택이 그 역할을
+  하므로 필드를 지웠다. `showResult`는 Grid를 앞으로 가져오기만 하고(결과가 없으면 메시지), 실행의 첫 결과를 고르는 일은 `addGrid`가 한다.
+- **Text는 보일 때만 만듦:** 결과 표의 글자는 EDT에서 만든다(`ResultSetTextView.format`, 결과마다 2만 행까지). 보이지 않는 동안 다시 만들지 않으려고 탭이 앞일 때만 만든다.
+  결과 뷰어가 글을 내주는 `ResultSetViewerPanel.formatText`를 더했다(텍스트 보기와 같은 글).
+- **아이콘:** 새 아이콘을 만들지 않고 있는 것을 썼다. Grid `results`, Text `format`(글줄), Server Output `comment`(앞에 표시가 있는 글줄), 메시지·계획·터미널은 그대로.
+- **이름:** 사용자가 쓴 이름 그대로 Grid, Text, Server Output은 두 언어 모두 영어이고(`editor_results_grid`, `editor_results_text`, `editor_results_server_output`의 한국어 값도 영어),
+  메시지·실행 계획·터미널은 지금처럼 언어를 따른다. 결과 이름 `editor_results_tab`은 두 언어 모두 `Result {0}`.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `QueryResultsView` | 위 탭 Grid / Text / Messages / Server Output / 계획 / 터미널, Grid 안 아래쪽 자식 탭 줄, Text 탭(`refreshTextIfShown`), Server Output 탭과 새 출력 점(`appendServerOutput`, `updateOutputTab`), 고정·행 수·`showResult`가 자식 탭 줄을 봄, `lastResultTab` 삭제 |
+| `SqlEditorPanel` | 경고를 출력과 경고로 가름(`isServerOutput`), 서버 출력을 Server Output 탭에, 터미널은 출력 다음 메시지, 클래스 설명 |
+| `ResultSetViewerPanel` | `formatText`(Text 탭용) |
+| `MainFrame` | 클래스 설명만(결과 탭 줄 모양) |
+| `internal/EditorMessages`(`_ko`) | `editor_results_grid`, `editor_results_text`, `editor_results_text_title`, `editor_results_server_output`, `editor_results_server_output_new_tip` 추가, `editor_results_tab` = `Result {0}`(두 언어) |
+
+### 확인 (2026-11-12)
+
+빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. Windows 11, 150%, 빌드 결과물 한 벌(`D:\Tools\_scratch\chromite-result-area-2\app`),
+`-data`·`-configuration`·`CHROMITE_DATA`를 scratch에 두고 실행했다. 조작은 같은 프로세스에 붙인 시험 에이전트가 EDT에서 Swing 객체를 직접 다뤘다(화면 좌표·키보드 입력 없음).
+SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. 캡처는 `D:\Tools\_scratch\chromite-result-area-2\shots\54-*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SELECT 세 개 | 위 `Grid Text 메시지 Server Output 실행 계획`, Grid가 앞, 자식 탭 아래쪽 `Result 1 Result 2 Result 3`(도구 설명 각 SQL), 상태 줄 `3개 행` |
+| Result 2 / 메시지 고름 | `5개 행` / `15개 행`(실행 전체) |
+| Text 고름 | `Result 1: SELECT * FROM t1`과 표 글자, 세 결과가 차례로 |
+| SQLite에서 Server Output | 비어 있음, 점 없음 |
+| 메시지가 앞일 때 고정(Grid에서 Result 3을 고른 뒤) | Grid가 앞, `Result 3 (00:56:32)` 핀, 다시 고정하면 "이미 고정한 결과입니다." |
+| 다시 실행(SELECT 두 개) | `Result 1 Result 2 Result 3 (00:56:32)`, Result 1이 앞, Text에 고정 결과 포함 |
+| 셋째 문장 오류(멈춤) | 메시지가 앞 `메시지 (1)`(빨간 점), Result 1·Result 2와 고정 탭만, 오류 위치로 가기 → 3줄 |
+| 셋째 문장 오류(건너뛰고 계속) | Grid가 앞, `Result 1 Result 2 Result 3 [고정]`, `메시지 (1)` |
+| 오류만 / UPDATE만 | 메시지가 앞, 자식 탭은 고정 탭만, `0개 행` |
+| 새 창 Y → X로 돌아옴 | Y는 빈 Grid(자식 탭 없음). X는 Grid / Result 2 그대로, `5개 행` |
+| SQL Terminal 켬·실행·끔 | 실행 계획 뒤에 터미널, 실행 중 터미널이 앞 / 끄면 Grid와 Result 1 |
+| SELECT 14개 | Result 1–14, 자식 탭 줄 스크롤과 숨은 탭 목록 단추 |
+| 고정 탭 닫기(변경 없음) / 결과 하나 | 묻지 않고 닫힘 / 자식 탭 줄 `Result 1` 표시 |
+| PostgreSQL NOTICE·INFO·WARNING + SELECT | Server Output `hello notice`, `info line`과 점, 메시지에 `careful`(WARNING)·행 수. Server Output을 고르면 점이 지워짐 |
+| PostgreSQL 출력 없는 실행 / NOTICE 뒤 예외 | Server Output 비고 점 없음 / Server Output `before error`, 메시지에 오류 |
+| 영어 화면(`-nl en`) | `Grid Text Messages Server Output Execution plan`, `Result 1 Result 2` |
+
+- Oracle `DBMS_OUTPUT`, SQL Server `PRINT`·`RAISERROR`의 Server Output은 실행하지 못했다(이 PC의 Docker가 꺼져 있음). 읽는 코드는 그대로이고 쓰는 곳만 바뀌었다.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 표 편집·저장과 다시 실행 전 버리기 묻기, 결과 다시 읽기, Generate SQL, 실행 계획 탭(Ctrl+L, 실제 계획),
+  SQL Terminal, Results 숨기기·옆에 놓기·최대화, 테마 전환 뒤 활성이 아니던 창의 탭 줄, Chromite Agent·MCP가 연 쿼리 창, 서버 출력이 있는 연결(Oracle, SQL Server, Altibase, CUBRID).
 
 ## 상태 표시줄의 쿼리 창 칸 (2026-11-08)
 
@@ -2999,3 +3130,8 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행). 캡처는 `D:\Tools\_scratch\chromi
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-11 `ui.theme`에 `SYSTEM`(기본값)을 더하고 시작 순서의 첫 테마를 운영체제 설정의 테마로(앱 변경 #38, [swing-options.md](swing-options.md) "테마").
 - 2026-11-11 도구 창 크기 바꾸기(앱 변경 #45): 끈 경계의 양옆만, 창 크기는 문서 영역만 바뀌게 도킹 분할 창의 resizeWeight를 문서 영역 쪽으로, 한 열을 하나씩 숨긴 뒤 보일 때 열 폭 유지. "도구 창 크기 바꾸기" 절 추가, 도구 창 도킹 확인 표의 1280px 줄에 표시.
+- 2026-11-12 Chromite Agent 단추를 창 오른쪽 끝에서 단추 묶음의 마지막(Find 뒤)으로, `OverflowToolBar.setTrailing` 삭제(앱 변경 #53, `chromite/tabs-toolbar`):
+  "Chromite Agent 단추를 단추 묶음의 마지막으로" 절 추가, 구성 표와 "Chromite Agent 단추를 오른쪽 끝으로" 절에 표시. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
+  상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 결과 영역 두 단계 탭(앱 변경 #54, `chromite/result-area-2`): 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, Grid 안 아래쪽 자식 탭 "Result 1"…(영어), Text 탭, 서버 출력은 Server Output 탭(새 출력 점). "결과 영역 두 단계 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages·"결과 탭" 절에 표시.

@@ -16,8 +16,10 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 | 위치 | 역할 |
 |---|---|
-| `ui.swing` `SqlEditorPanel.readServerOutput` | 문장마다(엔진의 `SQLQueryListener.onEndQuery`, 엔진 Job 스레드) 연결의 `DBCServerOutputReader`로 출력을 읽어 그 문장의 메시지 목록에 넣는다 |
-| `ui.swing` `SqlEditorPanel.reportQueryResult` | 메시지 목록을 Messages 탭에 쓴다. 순서: 경고(PRINT, NOTICE) → 서버 출력 → 행 수·`Commands completed` → 실행 시간, 또는 오류 |
+| `ui.swing` `SqlEditorPanel.readServerOutput` | 문장마다(엔진의 `SQLQueryListener.onEndQuery`, 엔진 Job 스레드) 연결의 `DBCServerOutputReader`로 출력을 읽어 그 문장의 출력 목록에 넣는다 |
+| `ui.swing` `SqlEditorPanel.reportQueryResult` | 출력 목록(출력으로 가른 경고 PRINT·NOTICE → 서버 출력)을 Server Output 탭에, 나머지(경고 → 행 수·`Commands completed` → 실행 시간, 또는 오류)를 Messages 탭에 쓴다(2026-11-12) |
+| `ui.swing` `SqlEditorPanel.isServerOutput` | 문장의 `SQLWarning`이 서버가 찍은 출력인지 경고인지 가른다(2026-11-12, 아래 설계 결정) |
+| `ui.swing` `QueryResultsView.appendServerOutput` | Server Output 탭에 쓰고, 탭이 앞에 없으면 탭에 점을 붙인다(2026-11-12) |
 | `ui.swing` `SqlEditorPanel.syncServerOutput` | 문장을 실행하기 전에(엔진의 `SQLQueryListener.onStartQuery`, 엔진 Job 스레드) 읽기 도구의 `syncServerOutput`을 부른다(2026-11-08) |
 | `model` `DBCServerOutputReader` | 연결별 읽기 도구(데이터 원본의 `getAdapter`). 2026-11-08에 기본 메서드 `syncServerOutput`(아무것도 하지 않음)을 더했다 |
 | `ext.oracle` `OracleDataSource.OracleOutputReader` | `DBMS_OUTPUT.GET_LINE`을 상태가 0이 아닐 때까지 부른다. 읽으면 서버 버퍼에서 빠진다. `syncServerOutput`은 실행 문맥이 기억한 켜짐(`OracleExecutionContext`)이 설정과 다르면 `ENABLE`/`DISABLE`을 보낸다(2026-11-08) |
@@ -27,9 +29,18 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 ## 설계 결정과 이유
 
-- **Messages 탭에 쓴다(SWT의 별도 Output 패널 대신).** SQL Server `PRINT`와 PostgreSQL `NOTICE`는 이미 `SQLWarning`으로 Messages 탭에 나온다.
-  SSMS처럼 한 문장의 출력과 행 수, 오류를 한 곳에 차례대로 보이게 하려고 같은 탭에 넣었다. 패널을 새로 만들면 탭이 하나 늘고,
-  문장과 출력의 순서가 탭 사이에서 끊긴다.
+- **Server Output 탭에 쓴다(2026-11-12 사용자 결정, 앱 변경 #54).** 결과 영역의 위 탭이 `Grid | Text | Messages | Server Output | 실행 계획`이 되면서
+  서버가 낸 출력(DBMS_OUTPUT, PRINT, RAISE NOTICE 등)만 Server Output 탭에 둔다. 오류·행 수·경고·실행 시간은 Messages다. 둘은 성격이 다르다(출력은 사용자 코드가
+  찍은 글, 메시지는 실행 결과). 출력이 없는 실행에서도 탭은 자리에 비어 있고(위치 고정), 탭이 앞에 없을 때 새 출력이 오면 탭에 점이 붙는다(고르면 지움).
+  실행마다 비운다(Messages와 같음). [swing-frontend.md](swing-frontend.md) "결과 영역 두 단계 탭".
+  - 전에는(2026-11-07) SSMS처럼 한 문장의 출력과 행 수, 오류를 한 곳에 차례대로 보이려고 Messages 탭에 썼다. 이제 출력과 메시지의 문장 사이 순서는 탭 사이에서
+    끊긴다. 순서가 필요하면 SQL Terminal(문장, 출력, 메시지를 한 줄로 이어 씀)을 쓴다.
+- **경고 중 무엇이 출력인가(2026-11-12).** JDBC는 PRINT·NOTICE와 진짜 경고를 모두 `SQLWarning`으로 준다. `SqlEditorPanel.isServerOutput`이 표준 SQLSTATE와 벤더 코드로 가른다.
+  - SQLSTATE 클래스 `01`(SQL 표준의 경고 클래스: PostgreSQL `RAISE WARNING` 01000, MySQL 경고)은 경고 → Messages.
+  - 그 밖에 벤더 코드 0(PostgreSQL `NOTICE`·`INFO`, SQLSTATE 00000; SQL Server `PRINT`) 또는 SQL Server 사용자 메시지(`RAISERROR`, 50000 이상)는 출력 → Server Output.
+  - 나머지 벤더 코드(SQL Server의 정보 메시지 "Changed database context" 등, MySQL note, Oracle 경고)와 SQLSTATE가 없는 경고는 Messages.
+  - PostgreSQL이 스스로 내는 NOTICE(`relation "t" already exists, skipping` 등)도 SQLSTATE 00000이라 Server Output이다. psql도 같은 NOTICE로 찍는다.
+  - SQL Server 경로(PRINT의 코드 0·SQLSTATE `S0001`, RAISERROR 50000)는 mssql-jdbc의 상태 코드 규칙으로 정했고 실행해 보지 못했다(이 PC의 Docker가 꺼져 있음).
 - **문장마다 엔진 Job 스레드에서 읽는다.** SWT는 200 ms마다 도는 별도 Job이 모아 둔 요청을 읽었다. Swing은 엔진이 문장 끝을 알릴 때 같은
   스레드에서 바로 읽는다. 그 문장의 메시지와 함께 한 번에 EDT로 넘기므로 순서가 섞이지 않고, EDT에서 서버를 부르지 않는다.
 - **오류와 취소 뒤에도 읽는다.** 오류 전에 찍은 줄도 보여야 하고, 읽어야 버퍼가 비워진다. 출력은 오류 문구보다 앞에 나온다.
@@ -68,7 +79,7 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 ## upstream 대비 변경점
 
-- upstream(SWT)의 Output 패널(`SQLEditorOutputViewer`, 심각도 필터, 자동 표시 설정 `OUTPUT_PANEL_AUTO_SHOW`)은 옮기지 않았다. 출력은 Messages 탭에 있다.
+- upstream(SWT)의 Output 패널(`SQLEditorOutputViewer`, 심각도 필터, 자동 표시 설정 `OUTPUT_PANEL_AUTO_SHOW`)은 옮기지 않았다. 출력은 결과 영역의 Server Output 탭에 있다(2026-11-12까지 Messages 탭).
 - SWT가 실행 중인 문장의 출력을 비동기로 읽던 부분(`isAsyncOutputReadSupported`, PostgreSQL의 긴 문장 중 `NOTICE`)은 옮기지 않았다. PostgreSQL `NOTICE`는
   문장이 끝난 뒤 경고로 나온다(전과 같음).
 - `AltibaseDataSource`: 설정이 꺼져 있으면 콜백을 등록하지 않고, 빈 버퍼는 쓰지 않는다.
@@ -115,6 +126,22 @@ CUBRID: 시험 서버가 없어 실행하지 않았다. 코드 경로(`CubridOut
 `D:\Tools\_scratch\chromite-followups-3\shots\alti-19-ko.png`, `alti-19-en.png`. 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능:
 Altibase·CUBRID 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 드라이버 호출 또는 SQL 한 번), CUBRID 연결 설정 저장(다시 연결 질문이 없어짐).
 
+## 확인 (2026-11-12, 앱 변경 #54, `chromite/result-area-2` 빌드)
+
+이 PC의 PostgreSQL 17.11(임시 클러스터, `D:\Tools\pgsql-17`), 앱 사본, 프로세스 안 시험 에이전트(OS 입력 없음).
+
+| 확인 | 결과 |
+|---|---|
+| `DO $$ … RAISE NOTICE 'hello notice'; RAISE INFO 'info line'; RAISE WARNING 'careful'; END $$; SELECT 1` | Server Output `hello notice`, `info line`, 탭에 점(Grid가 앞). Messages는 `careful`, 행 수, 실행 시간 |
+| Server Output 탭을 고름 | 점이 지워짐 |
+| 출력 없는 실행(`SELECT 2`) | Server Output 비어 있음, 점 없음, 탭은 그 자리 |
+| `CREATE TABLE IF NOT EXISTS` 두 번 | 서버 NOTICE `relation "t54" already exists, skipping`이 Server Output |
+| NOTICE 뒤 `RAISE EXCEPTION` | Server Output `before error`, Messages에 오류(오류 점·개수) |
+| SQL Terminal 켬 | 터미널에 문장, 출력 줄, 메시지 순서로 씀 |
+
+Oracle `DBMS_OUTPUT`, SQL Server `PRINT`·`RAISERROR`, Altibase `PRINT`, CUBRID는 이 PC에서 Docker가 꺼져 있어 실행하지 못했다. 읽는 코드(`readServerOutput`)는 바뀌지 않았고
+쓰는 곳만 Server Output 탭으로 바뀌었다. 회귀 테스트는 실행하지 않았다(요청 없음).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 쿼리 창이 문장마다 서버 출력을 읽어 Messages 탭에 씀, Altibase 읽기 도구 정리, Altibase 번들 활성화 코드로 기본값 초기화
@@ -123,3 +150,4 @@ Altibase·CUBRID 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐
   [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정"). "남은 일과 한계"의 설정 화면 항목 갱신.
 - 2026-11-08 Altibase·CUBRID도 설정을 바꾸면 열린 세션에 다음 문장부터 적용(evening #19, `chromite/followups-3`). Altibase 콜백 등록·해제,
   CUBRID `ENABLE`/`DISABLE`과 버퍼 크기. 확인은 아래 "확인 (2026-11-08)".
+- 2026-11-12 서버 출력을 Messages 대신 결과 영역의 Server Output 탭에 씀, 경고 중 PRINT·NOTICE를 출력으로 가름(`isServerOutput`), 새 출력 점(앱 변경 #54, `chromite/result-area-2`). 확인은 "확인 (2026-11-12)".

@@ -23,6 +23,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [telemetry.md](telemetry.md) | 사용 통계(텔레메트리) 제거, DBeaver 소유 서버로 나가는 요청 현황 |
 | [ai.md](ai.md) | AI 제공자별 모델 목록과 모델 정보의 출처, dbeaver.com 모델 카탈로그 제거, 구독·API 키 연결 계획 |
 | [ai-agent.md](ai-agent.md) | Chromite Agent(에이전트 기능의 공식 이름): DBA 도구 카탈로그, 연결·도구별 권한 정책과 감사 기록, 로컬 MCP 서버, Anthropic·OpenAI·Google Gemini·Ollama·vLLM 엔진, 시나리오 플레이북(1단계), Chromite Agent 채팅 창·확인 대화상자·설정·기준값 편집(2단계) |
+| [agent-tool-eval.md](agent-tool-eval.md) | Chromite Agent 도구 선택 평가 세트: 대표 질문 60개(한국어·영어)와 질문별 허용·틀린 첫 도구, 재는 방법, 도구 101개 목록 |
 | [swing-frontend.md](swing-frontend.md) | Swing 프런트엔드 구조, 재사용 분석, MVP 범위, 쿼리 실행(F5) 사양, 쿼리 실행 계층(SWT 없는 실행 API), A–G단계 구현 현황(D단계: 범용 연결 화면, 연결 명령, G단계: 결과 편집·저장) |
 | [swing-registered-servers.md](swing-registered-servers.md) | Swing Registered Servers 창(서버 그룹·서버 트리, 연결 폴더 재사용), 연 서버만 보이는 Object Explorer |
 | [swing-admin-tools.md](swing-admin-tools.md) | Swing 관리 도구: Activity Monitor(세션 목록·끝내기, 잠금 대기, 공간 사용량, 서버 로그, 유지 관리, 복제 상태), Find Objects(이름으로 객체 찾기), 서버 대시보드를 미룬 이유 |
@@ -45,7 +46,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-query-commands.md](swing-query-commands.md) | Swing 쿼리 창 문장 명령(현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·MySQL `SOURCE`(상대 경로, 중첩, 고리 거절, 위험한 문 확인), DDL 뒤 탐색기 갱신 |
 | [swing-scripts-explorer.md](swing-scripts-explorer.md) | Swing Scripts 도구 창(View > Scripts, Ctrl+Alt+L): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제(휴지통, 취소가 기본), 스크립트와 연결 묶기(SWT와 같은 자원 속성), 묶은 연결로 열기, Object Explorer의 연결별 Recent Scripts |
 | [swing-query-window-recovery.md](swing-query-window-recovery.md) | Swing 쿼리 창 자동 저장과 다시 시작할 때 복원: 10초마다·닫을 때 작업 공간 복원 파일에 저장(저장하지 않은 글 포함), 시작할 때 한 번 "쿼리 창 N개를 복원할까요?"(Restore 기본), 연결하지 않고 열고 첫 실행 때 예전 DB/스키마 적용, 아무것도 다시 실행하지 않음 |
-| [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Messages 탭에 씀, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
+| [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Server Output 탭에 씀(2026-11-12까지 Messages 탭), 경고 중 PRINT·NOTICE를 출력으로 가름, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 트랜잭션 상태(DB에 묻는 DB별 질의, 실제로 쥐고 있을 때만 열림, 확인할 수 없음, DB별 경우표), 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(기본 꺼짐, 연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
 | [transactions.md](transactions.md) | 트랜잭션 명령과 화면: Query 메뉴·SQL Editor 도구 막대·단축키(SWT와 같음)의 Commit / Roll Back(상태 줄과 같은 커밋 경로), 트랜잭션 로그(현재 트랜잭션의 문장), Tools > Open Transactions…(모든 연결의 열린 트랜잭션, 거기서 커밋·롤백), 쿼리 창마다 별도 연결(창마다 세션, 닫기·연결 바꾸기 전 트랜잭션 질문, 설정) |
@@ -76,6 +77,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-completion.md](swing-sql-completion.md) | SQL 자동완성의 프로시저 제안: CALL/EXEC 뒤 부를 수 있는 루틴(방언 규칙, SQL Server 스칼라 함수 포함)·패키지·스키마, 이름만 넣기, `EXEC dbo.`의 NullPointerException(끝나지 않은 이름) |
 | [swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md) | 쿼리 편집기 편의: 코드 접기, Outline, 같은 이름 강조, 마우스 올림 설명·Ctrl+클릭 이동, 자동완성 설명 창, 블록 주석 토글·글자 도구, 결과 고정, 결과 배치(옆에 놓기·최대화) |
 | [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) | 쿼리 창 세션 표시와 실행 중 표시: USE·SET search_path 뒤 DB 선택·상태 줄 따라가기(#33), 회전 스피너·문장 n/m·실행 중 문장 강조(#44), 자동완성 창 바깥 누름으로 닫기(#40), 도구 설명에 단축키(#50), 닫기 단추 ×(#57) |
+| [swing-sql-column-selection.md](swing-sql-column-selection.md) | 쿼리 편집기 열(사각형) 선택(#49): Alt+끌기(macOS Option+끌기), Shift+Alt+방향키, 모든 줄에 입력·Backspace·Delete, 세로 캐럿, 줄마다 복사·붙여넣기, 되돌리기 한 번, 탭·한글 폭, 접힌 줄 |
 | [model-fixes.md](model-fixes.md) | 모델 후속 수정(2026-11-07): SQL Server 매개변수 종류, MariaDB 패키지 캐시, PostgreSQL Block IO 단위, PostgreSQL 복사한 열의 COLLATE·STORAGE, MySQL/MariaDB 계획 비용. 작은 수정(2026-11-08): 변경을 하는 모델 확인의 기본 단추, Oracle DBMS_OUTPUT을 열린 세션에도 적용, 슬래시 Windows 경로, 연결 유형 이름의 언어, MySQL 5·StarRocks 라이선스 표기, LICENSE.md의 JFreeChart. 후속 수정 3(2026-11-08): Oracle 계획 노드 부모 번호, Oracle 형식 컴파일 종류·SQL Server 루틴 매개변수 길이, SQL 로그 파일 핸들·Options 저장 실패, Oracle View DDL ORA-38802 조사 |
 | [altibase.md](altibase.md) | Altibase: Object Explorer의 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁·속성), 목록 질의에서 함께 읽는 카탈로그 근거 |
 | [swing-auth-prompts.md](swing-auth-prompts.md) | 연결할 때의 질문: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의 자격 증명 질문, JSch SSH의 호스트 키·비밀번호·개인 키 암호·키보드 대화형(OTP) 질문(안전 쪽 실패) |

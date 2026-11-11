@@ -46,7 +46,7 @@ import java.util.concurrent.Executors;
  *
  * 설계:
  * <ul>
- *     <li>열린 쿼리 창의 목록(순서, 활성 창), 파일, 연결, 기본 DB/스키마, 커서 위치와, 저장하지 않은 글(고친 창, 파일이 없는 창)을
+ *     <li>열린 쿼리 창의 목록(순서, 활성 창), 파일, 연결, 기본 DB/스키마, 커서 위치, 탭 고정과, 저장하지 않은 글(고친 창, 파일이 없는 창)을
  *     작업 공간 {@code .metadata/chromite-recovery/query-windows.json} 한 파일에 쓴다. 파일 하나를 임시 파일에 쓰고 바꿔 넣으므로
  *     ({@code ATOMIC_MOVE}) 쓰는 중에 프로세스가 죽어도 이전 상태나 새 상태 중 하나가 남는다. 고치지 않은 파일 창은 경로만 적는다
  *     (내용은 파일에 있다).</li>
@@ -68,6 +68,8 @@ import java.util.concurrent.Executors;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-window-recovery.md)
  * - 2026-11-08 복원 질문이 열린 동안 메인 창이 닫히면(앱을 밖에서 끝냄) 질문이 닫힌 것을 Discard로 보고 지난 세션의 파일을 옮긴 뒤,
  *   이미 멈춘 쓰기 실행기에 저장을 넣어 {@code RejectedExecutionException}이 났다. 이제 그때는 복원도 버리기도 하지 않고 파일을 그대로 둔다
+ * - 2026-11-12 탭 고정({@link Window#pinned}, 없는 옛 파일은 고정 안 함)을 저장·복원하고, 창 하나의 기록({@link #capture})과 복원({@link #restore(Window)})을
+ *   문서 탭 메뉴의 닫은 탭 다시 열기({@link DocumentTabMenu})가 함께 씀(앱 변경 #42) (docs/chromite/swing-query-window-recovery.md "탭 고정과 닫은 탭")
  */
 final class QueryWindowRecovery {
 
@@ -90,6 +92,11 @@ final class QueryWindowRecovery {
 
         @NotNull
         SqlEditorPanel openQueryWindow(@Nullable DBPDataSourceContainer container, @NotNull String fileName);
+
+        /**
+         * Pins the document tab of a restored window ({@link DocumentTabMenu#setPinned}).
+         */
+        void pinQueryWindow(@NotNull SqlEditorPanel editor);
     }
 
     static final int SAVE_INTERVAL_MS = 10_000;
@@ -111,6 +118,7 @@ final class QueryWindowRecovery {
      * @param modified   the text differs from the file (or a never saved window was typed in)
      * @param text       the text when it is not in the file (modified, or never saved); null otherwise
      * @param caret      caret offset
+     * @param pinned     the document tab is pinned ({@link DocumentTabMenu#isPinned}); false in files written before
      */
     record Window(
         @NotNull String name,
@@ -121,7 +129,8 @@ final class QueryWindowRecovery {
         @Nullable String schema,
         boolean modified,
         @Nullable String text,
-        int caret
+        int caret,
+        boolean pinned
     ) {
     }
 
@@ -237,29 +246,42 @@ final class QueryWindowRecovery {
         SqlEditorPanel active = host.getActiveQueryWindow();
         int activeIndex = -1;
         for (SqlEditorPanel editor : host.getQueryWindows()) {
-            boolean modified = editor.isDirty();
-            if (editor.getExtension() != null || (editor.getSourceObject() != null && !modified)) {
-                // A Query Library query is saved to its library; an unchanged Modify window would bring back an old definition
+            Window window = capture(editor);
+            if (window == null) {
                 continue;
             }
-            Path file = editor.getFile();
-            DBPDataSourceContainer container = editor.getDataSourceContainer();
-            SqlEditorPanel.DefaultObjectNames defaults = editor.getDefaultObjectNames();
             if (editor == active) {
                 activeIndex = windows.size();
             }
-            windows.add(new Window(
-                editor.getFileName(),
-                file != null ? file.toString() : null,
-                container != null ? container.getProject().getName() : null,
-                container != null ? container.getId() : null,
-                defaults != null ? defaults.catalog() : null,
-                defaults != null ? defaults.schema() : null,
-                modified,
-                modified || file == null ? editor.getContent().text() : null,
-                editor.getTextArea().getCaretPosition()));
+            windows.add(window);
         }
         return new Session(VERSION, activeIndex, windows);
+    }
+
+    /**
+     * The state of one query window (EDT), or null for a window that is not brought back: a Query Library query is
+     * saved to its library; an unchanged Modify window would bring back an old definition.
+     */
+    @Nullable
+    static Window capture(@NotNull SqlEditorPanel editor) {
+        boolean modified = editor.isDirty();
+        if (editor.getExtension() != null || (editor.getSourceObject() != null && !modified)) {
+            return null;
+        }
+        Path file = editor.getFile();
+        DBPDataSourceContainer container = editor.getDataSourceContainer();
+        SqlEditorPanel.DefaultObjectNames defaults = editor.getDefaultObjectNames();
+        return new Window(
+            editor.getFileName(),
+            file != null ? file.toString() : null,
+            container != null ? container.getProject().getName() : null,
+            container != null ? container.getId() : null,
+            defaults != null ? defaults.catalog() : null,
+            defaults != null ? defaults.schema() : null,
+            modified,
+            modified || file == null ? editor.getContent().text() : null,
+            editor.getTextArea().getCaretPosition(),
+            DocumentTabMenu.isPinned(editor));
     }
 
     /**
@@ -283,8 +305,13 @@ final class QueryWindowRecovery {
         }
     }
 
+    /**
+     * Opens one window again, without connecting and without running anything.
+     *
+     * @return null if there is nothing to bring back (a saved, unchanged window whose file is gone)
+     */
     @Nullable
-    private SqlEditorPanel restore(@NotNull Window window) {
+    SqlEditorPanel restore(@NotNull Window window) {
         Path file = window.file() != null ? Path.of(window.file()) : null;
         // The format (charset, BOM, line separator) of the file it saves to
         SqlFileContent content = SqlFileContent.newFile(""); //$NON-NLS-1$
@@ -311,6 +338,9 @@ final class QueryWindowRecovery {
         editor.getTextArea().setCaretPosition(Math.clamp(window.caret(), 0, editor.getTextArea().getDocument().getLength()));
         if (window.catalog() != null || window.schema() != null) {
             editor.setRestoredDefaults(new SqlEditorPanel.DefaultObjectNames(window.catalog(), window.schema()));
+        }
+        if (window.pinned()) {
+            host.pinQueryWindow(editor);
         }
         return editor;
     }
