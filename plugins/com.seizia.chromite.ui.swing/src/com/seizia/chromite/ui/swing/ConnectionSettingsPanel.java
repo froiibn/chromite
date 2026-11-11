@@ -30,6 +30,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourcePermission;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.admin.ServerDatabaseNames;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionBootstrap;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Connect 대화상자의 설정 화면(MVP 2번 "범용 연결 화면 하나로 전체 드라이버 지원"). 드라이버 정의만 보고 입력 칸을 정한다.
@@ -133,6 +135,8 @@ import java.util.Set;
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-11 SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로({@link ConnectionDatabaseList}).
+ *   목록은 대화상자가 Test Connection처럼 만든 임시 연결로 읽는다 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -180,6 +184,10 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JLabel databaseLabel = new JLabel(ConnectionMessages.settings_database);
     @Nullable
     private JComponent databaseRow;
+    /**
+     * Makes the temporary connection of Test Connection from the form (owned by the dialog).
+     */
+    private final Supplier<DataSourceDescriptor> testConnectionFactory;
 
     private final JTextField descriptionField = new JTextField();
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
@@ -234,16 +242,20 @@ final class ConnectionSettingsPanel extends JPanel {
      * @param isNew              new connection: fields start with the driver defaults
      * @param databaseTypeCombo  the "Database type" row (owned by the dialog, it survives a driver change)
      * @param changeListener     called when a value changes (validation)
+     * @param testConnectionFactory makes the temporary connection of Test Connection from the form (the database list
+     *                              connects with it)
      */
     ConnectionSettingsPanel(
         @NotNull DataSourceDescriptor dataSource,
         boolean isNew,
         @NotNull JComponent databaseTypeCombo,
-        @NotNull Runnable changeListener
+        @NotNull Runnable changeListener,
+        @NotNull Supplier<DataSourceDescriptor> testConnectionFactory
     ) {
         super(new BorderLayout(0, 12));
         this.dataSource = dataSource;
         this.driver = dataSource.getDriver();
+        this.testConnectionFactory = testConnectionFactory;
         // Every change also updates the network tabs (used or not) and the address rows (Oracle TNS hides some)
         this.changeListener = () -> {
             updateNetworkTabs();
@@ -384,7 +396,15 @@ final class ConnectionSettingsPanel extends JPanel {
      */
     @Nullable
     String validateSettings() {
-        String problem = validateAddress();
+        return validateSettings(true);
+    }
+
+    /**
+     * @param databaseRequired a mandatory database must be typed (not for reading the database list)
+     */
+    @Nullable
+    private String validateSettings(boolean databaseRequired) {
+        String problem = validateAddress(databaseRequired);
         if (problem == null) {
             for (ConnectionNetworkPage page : networkPages) {
                 problem = page.getErrorMessage();
@@ -400,7 +420,7 @@ final class ConnectionSettingsPanel extends JPanel {
      * The address part of {@link #validateSettings}: the URL, the generic fields or the driver's own fields.
      */
     @Nullable
-    private String validateAddress() {
+    private String validateAddress(boolean databaseRequired) {
         if (isUrlMode()) {
             return urlField.getText().isBlank() ? ConnectionMessages.settings_enter_url : null;
         }
@@ -415,7 +435,7 @@ final class ConnectionSettingsPanel extends JPanel {
             String missing = switch (property) {
                 case DBConstants.PROP_HOST -> hostAndPort[0].isBlank() ? ConnectionMessages.settings_enter_server_name : null;
                 case DBConstants.PROP_PORT -> hostAndPort[1].isBlank() ? ConnectionMessages.settings_enter_port : null;
-                case DBConstants.PROP_DATABASE -> databaseField.getText().isBlank() ? ConnectionMessages.settings_enter_database : null;
+                case DBConstants.PROP_DATABASE -> databaseRequired && databaseField.getText().isBlank() ? ConnectionMessages.settings_enter_database : null;
                 case DBConstants.PROP_SERVER -> serverField.getText().isBlank() ? ConnectionMessages.settings_enter_server : null;
                 case DBConstants.PROP_FILE -> pathField.getText().isBlank() ? ConnectionMessages.settings_enter_file : null;
                 case DBConstants.PROP_FOLDER -> pathField.getText().isBlank() ? ConnectionMessages.settings_enter_folder : null;
@@ -696,8 +716,21 @@ final class ConnectionSettingsPanel extends JPanel {
             manualComponents.add(serverField);
         }
         if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
-            databaseRow = driverFields == null ? databaseField : driverFields.decorateDatabaseField(databaseField);
+            // An empty field means the login's default database only where the driver has no default database of its own
+            // (SQL Server, MySQL; PostgreSQL fills in postgres)
+            ConnectionDatabaseList databaseList = ServerDatabaseNames.isSupported(driver)
+                ? new ConnectionDatabaseList(databaseField, createDatabaseListSource(), CommonUtils.isEmpty(driver.getDefaultDatabase())
+                    ? ConnectionMessages.settings_database_list_tip_optional : ConnectionMessages.settings_database_list_tip)
+                : null;
+            if (databaseList != null) {
+                databaseRow = databaseList.getCombo();
+            } else {
+                databaseRow = driverFields == null ? databaseField : driverFields.decorateDatabaseField(databaseField);
+            }
             form.addRow(databaseLabel, databaseRow);
+            if (databaseList != null) {
+                form.addRow((JLabel) null, databaseList.getStatusLine());
+            }
             manualComponents.add(databaseField);
         }
         if (urlProperties.contains(DBConstants.PROP_FILE) || urlProperties.contains(DBConstants.PROP_FOLDER)) {
@@ -1403,6 +1436,40 @@ final class ConnectionSettingsPanel extends JPanel {
         if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {
             configuration.setDatabaseName(pathField.getText().trim());
         }
+    }
+
+    /**
+     * The connection the Database list reads with: Test Connection's temporary connection, to the driver's default
+     * database instead of the typed one (it may not exist or be misspelled; empty is the login's default database).
+     */
+    @NotNull
+    private ConnectionDatabaseList.Source createDatabaseListSource() {
+        return new ConnectionDatabaseList.Source() {
+            @Nullable
+            @Override
+            public String validate() {
+                return validateSettings(false);
+            }
+
+            @NotNull
+            @Override
+            public DataSourceDescriptor createConnection() {
+                DataSourceDescriptor connection = testConnectionFactory.get();
+                DBPConnectionConfiguration configuration = connection.getConnectionConfiguration();
+                configuration.setDatabaseName(CommonUtils.notEmpty(driver.getDefaultDatabase()));
+                try {
+                    configuration.setUrl(driver.getConnectionURL(configuration));
+                } catch (DBException e) {
+                    // Regenerated from the template when connecting, as saveSettings does
+                    configuration.setUrl(null);
+                }
+                if (savePasswordCheck.isVisible() && !savePasswordCheck.isSelected() && passwordField.getPassword().length == 0) {
+                    // A password that is neither saved nor typed: connecting asks for it (DataSourceDescriptor.askForPassword)
+                    connection.setSavePassword(false);
+                }
+                return connection;
+            }
+        };
     }
 
     /**

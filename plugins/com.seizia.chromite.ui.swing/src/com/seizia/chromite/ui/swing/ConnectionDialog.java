@@ -50,6 +50,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.StringTokenizer;
 
 /**
@@ -100,6 +101,8 @@ import java.util.StringTokenizer;
  * - 2026-11-08 연결 설명만 바꾸면 다시 연결을 묻지 않음: 세션과 관계없는 값 (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
  * - 2026-11-08 잠긴 연결(SWT {@code EditConnectionWizard.checkLockPassword}): 로그인 말고 다른 설정을 바꾸면 잠금 비밀번호를 물음.
  *   연결별 제한만 바꾸면 다시 연결을 묻지 않음(명령마다 읽음) (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-11 Test Connection의 임시 연결 만들기({@link #createTestDataSource})를 설정 화면의 데이터베이스 목록도 씀
+ *   (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -297,7 +300,7 @@ final class ConnectionDialog extends JDialog {
     private void createSettingsPanel(boolean isNew) {
         boolean optionsVisible = settingsPanel != null && settingsPanel.isOptionsVisible();
         settingsHolder.removeAll();
-        settingsPanel = new ConnectionSettingsPanel(working, isNew, driverRow, this::updateButtons);
+        settingsPanel = new ConnectionSettingsPanel(working, isNew, driverRow, this::updateButtons, this::createTestDataSource);
         settingsPanel.setOptionsVisible(optionsVisible);
         settingsHolder.add(settingsPanel, BorderLayout.CENTER);
         settingsHolder.revalidate();
@@ -370,16 +373,7 @@ final class ConnectionDialog extends JDialog {
         if (working == null || settingsPanel == null || settingsPanel.validateSettings() != null) {
             return;
         }
-        DataSourceDescriptor testDataSource = registry.createDataSource(working);
-        // New ID (createDataSource) to avoid session conflicts in the query manager; no separate metadata connection
-        testDataSource.setTemporary(true);
-        testDataSource.getPreferenceStore().setValue(
-            ModelPreferences.META_SEPARATE_CONNECTION, ModelPreferences.SeparateConnectionBehavior.NEVER.name());
-        settingsPanel.saveSettings(testDataSource, true);
-        // Named like the saved connection would be: the name appears in the progress dialog and the log
-        applyName(testDataSource);
-        testDataSource.getConnectionConfiguration().setRuntimeAttribute(
-            DBPConnectionConfiguration.ATTRIBUTE_TEST_CONNECTION_SOURCE, working);
+        DataSourceDescriptor testDataSource = createTestDataSource();
 
         ConnectionTestJob testJob = new ConnectionTestJob(testDataSource, session -> {
             // No page-specific testers (SWT pages implementing IDataSourceConnectionTester)
@@ -416,6 +410,26 @@ final class ConnectionDialog extends JDialog {
         } finally {
             testDataSource.dispose();
         }
+    }
+
+    /**
+     * A temporary connection with the form's values (Test Connection and the Database list connect with it).
+     * The caller disposes it.
+     */
+    @NotNull
+    private DataSourceDescriptor createTestDataSource() {
+        DataSourceDescriptor source = Objects.requireNonNull(working);
+        DataSourceDescriptor testDataSource = registry.createDataSource(source);
+        // New ID (createDataSource) to avoid session conflicts in the query manager; no separate metadata connection
+        testDataSource.setTemporary(true);
+        testDataSource.getPreferenceStore().setValue(
+            ModelPreferences.META_SEPARATE_CONNECTION, ModelPreferences.SeparateConnectionBehavior.NEVER.name());
+        Objects.requireNonNull(settingsPanel).saveSettings(testDataSource, true);
+        // Named like the saved connection would be: the name appears in the progress dialog and the log
+        applyName(testDataSource);
+        testDataSource.getConnectionConfiguration().setRuntimeAttribute(
+            DBPConnectionConfiguration.ATTRIBUTE_TEST_CONNECTION_SOURCE, source);
+        return testDataSource;
     }
 
     private void save() {
