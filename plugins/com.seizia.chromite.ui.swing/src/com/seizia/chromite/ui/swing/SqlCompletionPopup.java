@@ -98,6 +98,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 제안 설명 창(SWT 추가 정보 창). 행 도구 설명은 설명 창이 대신하므로 지움 (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-09 Ctrl+Space는 macOS에서도 Control({@link UiKeys#control}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-11 목록 밖을 누르거나 휠을 돌리면 닫음(앱 변경 #40: Esc로만 닫혔다) (docs/chromite/swing-sql-editor-session-ui.md "자동완성 창 닫기")
+ * - 2026-11-12 열 선택의 줄마다 넣기로는 자동으로 띄우지 않음(앱 변경 #49, docs/chromite/swing-sql-column-selection.md)
  */
 final class SqlCompletionPopup {
 
@@ -377,7 +378,8 @@ final class SqlCompletionPopup {
     // Activation and analysis
 
     private void documentChanged(@NotNull DocumentEvent e, boolean insert) {
-        if (inserting) {
+        // A column edit changes every line of the rectangle: not typing at the caret
+        if (inserting || SqlColumnSelection.isEditing(textArea)) {
             return;
         }
         if (pending) {

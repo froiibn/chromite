@@ -48,6 +48,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-09 최초 작성: macOS 단축키를 Command로(앱 변경 #24), {@code WelcomePanel.getKeyText}를 {@link #getText}로 옮김
  *   (docs/chromite/shortcuts.md)
+ * - 2026-11-12 쿼리 편집기 열 선택의 키와 마우스 수정자({@link #columnSelect}, {@link #isColumnSelectDown}, 앱 변경 #49,
+ *   docs/chromite/swing-sql-column-selection.md)
  */
 final class UiKeys {
 
@@ -141,6 +143,29 @@ final class UiKeys {
     @NotNull
     static KeyStroke control(int keyCode) {
         return KeyStroke.getKeyStroke(keyCode, CTRL);
+    }
+
+    /**
+     * Key of the query editor's column selection for an arrow key: Shift+Alt+arrow (SSMS, Visual Studio); on macOS
+     * Shift+Option+Command+arrow, since Shift+Option+arrow selects words there.
+     */
+    @NotNull
+    static KeyStroke columnSelect(int keyCode) {
+        return columnSelect(keyCode, isMac());
+    }
+
+    @NotNull
+    static KeyStroke columnSelect(int keyCode, boolean mac) {
+        return KeyStroke.getKeyStroke(keyCode, SHIFT | ALT | (mac ? COMMAND : 0));
+    }
+
+    /**
+     * Whether a mouse press starts a column selection: Alt+drag (Option+drag on macOS), Shift added to extend it; not with the
+     * Ctrl or Command key (Ctrl+Alt is AltGr on Windows).
+     */
+    static boolean isColumnSelectDown(@NotNull InputEvent event) {
+        int modifiers = event.getModifiersEx();
+        return (modifiers & ALT) != 0 && (modifiers & (CTRL | COMMAND)) == 0;
     }
 
     /**
