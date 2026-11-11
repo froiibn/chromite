@@ -92,7 +92,7 @@ import java.util.function.Supplier;
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
- * 설계: 가운데 문서 영역(문서 탭, 그 아래 결과 탭 Result1… / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
+ * 설계: 가운데 문서 영역(문서 탭, 그 아래 결과 영역 Grid(Result 1…) / Text / Messages / Server Output)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
  * Query Library, Scripts, Outline, Database Tasks, Chromite Agent, Query Manager)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치(첫 실행과
  * Window &gt; Reset Window Layout)는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래), 오른쪽 열에 Query Library(위 40%)와 Chromite Agent
  * (아래 60%)다(2026-11-08 사용자 결정: 첫 화면에서 대화를 바로 쓰게). 오른쪽 열 폭은 예전 Agent 열 폭이다. Properties, Scripts {@link ScriptsPanel},
@@ -118,8 +118,8 @@ import java.util.function.Supplier;
  *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
  *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
- *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다. 탭 줄 {@code Result1 | Result2 | … | Messages | Execution plan | Terminal}도 쿼리 창마다 하나이고
- *     ({@link QueryResultsView}, 2026-11-08 사용자 결정), Results 카드에는 활성 쿼리 창의 탭 줄을 통째로 끼운다({@link #attachResults}). 그래서 고른 탭은
+ *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다. 위 탭 줄 {@code Grid | Text | Messages | Server Output | Execution plan | Terminal}(결과는 Grid 안의
+ *     자식 탭)도 쿼리 창마다 하나이고({@link QueryResultsView}, 2026-11-11 사용자 결정), Results 카드에는 활성 쿼리 창의 탭 줄을 통째로 끼운다({@link #attachResults}). 그래서 고른 탭은
  *     창마다 그대로 남는다. 숨기기 단추는 끼운 탭 줄의 오른쪽 끝으로 옮긴다. 탭 줄에서 빠져 있던 동안의 테마 전환은 끼울 때 맞춘다.
  *     쿼리 상태 칸({@link QueryStatusLine})도 같은 방식으로, 활성 쿼리 창의 것을 메인 창 상태 표시줄에 끼운다(2026-11-08 사용자 요청). 그동안 상태 표시줄 전체가
  *     그 창 연결의 색이다. 빈 문서 영역과 쿼리 창이 아닌 문서(DDL 탭, 도구 문서)에서는 상태 표시줄이 작업 공간 연결 수다.
@@ -298,6 +298,7 @@ import java.util.function.Supplier;
  * - 2026-11-12 상태 표시줄 글자를 text.secondary에서 text.primary로 (앱 변경 #55, docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 macOS 통합 제목 줄: Standard 도구 막대 줄이 신호등 단추 줄로 올라감({@link MacOSUnifiedTitleBar}, 앱 변경 #62,
  *   docs/chromite/mac-ui.md "통합 제목 줄")
+ * - 2026-11-12 클래스 설명의 결과 탭 줄을 두 단계 탭으로 고침(코드는 그대로, 앱 변경 #54, docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {

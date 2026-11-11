@@ -255,8 +255,6 @@ public class SettingsMessages extends NLS {
     public static String drivers_maven_password;
     public static String drivers_maven_required;
     public static String drivers_maven_id_used;
-    public static String drivers_maven_save_error;
-    public static String drivers_proxy_save_error;
     public static String drivers_section_libraries;
     public static String drivers_libraries_hint;
     public static String drivers_open_manager;

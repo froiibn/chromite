@@ -20,6 +20,7 @@ import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -48,6 +49,8 @@ import java.util.Collection;
  * - 2026-11-08 최초 작성: 연결별 설정(SWT 연결 속성 페이지) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 전역 저장소를 페이지가 정함({@link #getGlobalStore}), {@link Writer#setLong}: 남은 설정 키 페이지
  *   (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-12 Options의 저장 표준: 저장소 밖에 저장하는 값의 바뀐 수와 되돌리기({@link #getOtherChangeCount}, {@link #revertOther}),
+ *   토글은 바로 저장하고 값은 [저장]으로 저장(앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 abstract class SettingsPage extends JPanel {
 
@@ -112,9 +115,23 @@ abstract class SettingsPage extends JPanel {
     }
 
     /**
-     * Saves the shown values to the global settings (Options dialog OK).
+     * How many values the page saves outside its store in {@link #apply} (they are not seen by the Options dialog's count of the
+     * store keys {@link #save} would change).
      */
-    void apply() {
+    int getOtherChangeCount() {
+        return 0;
+    }
+
+    /**
+     * Shows the saved values of what the page saves outside its store again (Options Revert; {@link #load} shows the store's).
+     */
+    void revertOther() {
+    }
+
+    /**
+     * Saves the shown values to the global settings (the Options page's Save); throws when a value could not be saved.
+     */
+    void apply() throws DBException {
         DBPPreferenceStore store = getGlobalStore();
         Writer writer = new Writer(store, false);
         save(writer);

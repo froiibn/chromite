@@ -11,6 +11,7 @@ Control 키를 썼다(2026-11-09 devel 기준 Swing UI 19개 파일, `CTRL_DOWN_
 | 구성 | 위치 | 하는 일 |
 |---|---|---|
 | `UiKeys` (새) | `plugins/com.seizia.chromite.ui.swing/.../UiKeys.java` | 명령 키(`Toolkit.getMenuShortcutKeyMaskEx()`: Windows·Linux Ctrl, macOS Command), Windows 키 → 플랫폼 키(`command`), 모든 플랫폼에서 Control인 키(`control`), 마우스 수정자(`isCommandDown`), 단축키 글자(`getText`, `getChordText`, `format`, `formatDescription`) |
+| `UiKeys.columnSelect`, `isColumnSelectDown` | 같은 파일 | 쿼리 편집기 열 선택의 키(Shift+Alt+방향키, macOS는 ⇧⌥+방향키가 단어 선택이라 ⇧⌥⌘+방향키)와 마우스 수정자(Alt/Option, Ctrl·Command 없이) |
 | `UiKeys.MAC_KEYS` | 같은 파일 | macOS에서 Ctrl→Command로만 바꾸면 안 되는 키 표(아래 "macOS에서 다른 키") |
 | `SqlEditorPanel.SqlTextArea.getChordText` | `SqlEditorPanel.java` | 두 키 조합(Ctrl+K, Ctrl+D)의 글자. 첫 키는 `CHORD_KEY`, 두 번째 키도 명령 키를 본다 |
 | `UiKeysTest` (새) | `test/com.seizia.chromite.ui.swing.test` | Mac 없이 macOS 키 매핑을 시험(아래 "확인") |
@@ -105,6 +106,7 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
 | Word Wrap | Ctrl+Alt+Shift+W | ⌥⇧⌘W |
 | 접기 / 펴기 / 모두 접기 / 모두 펴기(RSyntaxTextArea) | Ctrl+NumPad - / + / / / * | ⌘NumPad - / + / / / * |
 | Indent / Outdent | Tab / Shift+Tab | ⇥ / ⇧⇥ |
+| 열(사각형) 선택(swing-sql-column-selection.md) | Alt+끌기, Shift+Alt+방향키 | ⌥+끌기, **⇧⌥⌘+방향키** |
 
 ### 결과 표와 결과 보기
 
@@ -172,3 +174,4 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
 
 - 2026-11-09 최초 작성(앱 변경 #24, `chromite/mac-ui`): `UiKeys`로 명령 키를 한 곳에서 정함(Swing UI 24개 파일, 키 바인딩·도움말 글자 106곳, 수정자 검사 5곳), macOS 예외 표,
   .properties의 "Ctrl+" 70줄을 `{0}`으로 바꾸고 글자를 단축키에서 만듦, `WelcomePanel.getKeyText`를 `UiKeys.getText`로 옮김, `UiKeysTest`.
+- 2026-11-12 쿼리 편집기 열 선택 키 `UiKeys.columnSelect`·`isColumnSelectDown`과 표의 줄(앱 변경 #49, [swing-sql-column-selection.md](swing-sql-column-selection.md)).

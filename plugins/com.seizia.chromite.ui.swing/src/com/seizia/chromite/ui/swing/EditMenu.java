@@ -58,6 +58,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 주 도구 막대가 Undo·Redo·Find 동작을 같이 쓰도록 내줌, Undo·Redo는 실행 취소 기록에 맞춰 켜고 끔
  *   (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}, macOS Command, Replace는 ⌥⌘F, Redo는 ⇧⌘Z) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 Copy·Cut이 쿼리 편집기의 열 선택도 선택으로 봄(앱 변경 #49, docs/chromite/swing-sql-column-selection.md)
  */
 final class EditMenu {
 
@@ -252,7 +253,9 @@ final class EditMenu {
 
     private static boolean isApplicable(@NotNull Command command, @Nullable Component owner, boolean exact) {
         if (owner instanceof JTextComponent text) {
-            boolean hasSelection = !exact || text.getSelectionStart() != text.getSelectionEnd();
+            // The query editor's column selection leaves the text selection empty
+            boolean hasSelection = !exact || text.getSelectionStart() != text.getSelectionEnd()
+                || (text instanceof SqlEditorPanel.SqlTextArea textArea && textArea.hasColumnSelection());
             return switch (command) {
                 case UNDO -> owner instanceof RTextArea textArea && text.isEditable() && textArea.canUndo();
                 case REDO -> owner instanceof RTextArea textArea && text.isEditable() && textArea.canRedo();

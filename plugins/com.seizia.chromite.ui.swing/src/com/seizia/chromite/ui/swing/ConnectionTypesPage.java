@@ -57,7 +57,8 @@ import java.util.Set;
  * 설계:
  * <ul>
  *     <li>SWT 설정 페이지({@code PrefPageConnectionTypes})처럼 목록과 선택한 유형의 편집이다. 고친 내용은 이 페이지 안의 복사본에만 두고
- *     대화상자의 OK에서 {@link #apply}가 원본에 옮긴 뒤 {@link DataSourceProviderRegistry#saveConnectionTypes}로 저장한다(SWT {@code performOk}와 같은 순서).</li>
+ *     페이지의 [저장]에서 {@link #apply}가 원본에 옮긴 뒤 {@link DataSourceProviderRegistry#saveConnectionTypes}로 저장한다(SWT {@code performOk}와 같은 순서).
+ *     표 편집(유형의 칸, 만들기, 지우기)은 값이라(저장 표준) 체크 상자도 바로 저장하지 않는다. 바뀐 수는 만들거나 바꾸거나 지운 유형의 수다.</li>
  *     <li>보이는 항목은 Swing 제품이 읽는 것만이다: 색({@link ConnectionColors}, 라이트·다크 테마 각각), 자동 커밋 기본값
  *     ({@code DataSourceDescriptor.isDefaultAutoCommit}), 실행 확인({@code SQLQueryExecuteJob}), 데이터 변경 확인({@link ResultSetGrid}),
  *     유휴 트랜잭션 알림과 기간({@code IdleTransactionMonitor}), 유휴 연결 닫기와 기간({@code DataSourceMonitorJob}), 수정 제한
@@ -79,6 +80,7 @@ import java.util.Set;
  * - 2026-11-08 연결 유형 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 스마트 커밋·자동 커밋으로 돌아가기 칸: 쿼리 창이 스마트 커밋을 쓰게 되어 효과가 생김 (docs/chromite/connection-lifecycle.md "스마트 커밋")
  * - 2026-11-09 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기 칸 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-12 Options 저장 표준: 바뀐 수, [저장] 뒤 새 사본, [되돌리기](앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class ConnectionTypesPage extends JPanel {
 
@@ -115,11 +117,7 @@ final class ConnectionTypesPage extends JPanel {
     ConnectionTypesPage() {
         super(new BorderLayout(12, 0));
         setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
-        for (DBPConnectionType type : registry.getConnectionTypes()) {
-            DBPConnectionType copy = new DBPConnectionType(type);
-            types.add(copy);
-            originals.put(copy, type);
-        }
+        loadTypes();
 
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setFillsViewportHeight(true);
@@ -185,6 +183,8 @@ final class ConnectionTypesPage extends JPanel {
         for (JCheckBox box : List.of(autoCommitBox, smartCommitBox, smartCommitRecoverBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox,
             endReadOnlyBox, closeIdleBox)) {
             box.addActionListener(e -> storeSelected());
+            // Fields of the selected type: saved with the page's Save, as the rest of the table
+            box.putClientProperty(OptionsForm.VALUE_CHECK_BOX, true);
         }
         for (JSpinner spinner : List.of(idleTxnSpinner, closeIdleSpinner)) {
             // Without digit grouping, as in the connection dialog
@@ -216,6 +216,7 @@ final class ConnectionTypesPage extends JPanel {
             JCheckBox box = new JCheckBox(permission.getLabel());
             box.setToolTipText(permission.getDescription());
             box.addActionListener(e -> storeSelected());
+            box.putClientProperty(OptionsForm.VALUE_CHECK_BOX, true);
             restrictionBoxes.put(permission, box);
             row = OptionsDialog.addRow(form, row, null, box, null);
         }
@@ -398,10 +399,68 @@ final class ConnectionTypesPage extends JPanel {
     }
 
     /**
-     * Saves the changed types (Options dialog OK), moves the connections of deleted types to the default type, and applies
-     * changed commit modes to the open sessions.
+     * Copies of the registry's types, edited until they are saved.
      */
-    void apply(@Nullable Window owner) {
+    private void loadTypes() {
+        types.clear();
+        originals.clear();
+        for (DBPConnectionType type : registry.getConnectionTypes()) {
+            DBPConnectionType copy = new DBPConnectionType(type);
+            types.add(copy);
+            originals.put(copy, type);
+        }
+    }
+
+    /**
+     * The number of added, changed and deleted types.
+     */
+    int getChangeCount() {
+        int count = 0;
+        for (DBPConnectionType copy : types) {
+            DBPConnectionType original = originals.get(copy);
+            if (original == null || !original.equals(copy)) {
+                count++;
+            }
+        }
+        for (DBPConnectionType type : registry.getConnectionTypes()) {
+            if (!originals.containsValue(type)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * The page's Save: {@link #apply}, then new copies of the saved types (the same row stays selected).
+     */
+    void save(@Nullable Window owner) {
+        int row = table.getSelectedRow();
+        apply(owner);
+        reload(row);
+    }
+
+    /**
+     * The page's Revert: the saved types again.
+     */
+    void revert() {
+        reload(table.getSelectedRow());
+    }
+
+    private void reload(int row) {
+        loadTypes();
+        model.fireTableDataChanged();
+        if (!types.isEmpty()) {
+            int index = Math.clamp(row, 0, types.size() - 1);
+            table.getSelectionModel().setSelectionInterval(index, index);
+        }
+        showSelected();
+    }
+
+    /**
+     * Saves the changed types, moves the connections of deleted types to the default type, and applies changed commit modes to the
+     * open sessions.
+     */
+    private void apply(@Nullable Window owner) {
         Set<DBPConnectionType> removed = new HashSet<>();
         for (DBPConnectionType type : registry.getConnectionTypes()) {
             if (!originals.containsValue(type)) {
