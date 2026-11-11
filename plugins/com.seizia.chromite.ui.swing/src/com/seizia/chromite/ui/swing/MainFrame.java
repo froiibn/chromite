@@ -302,6 +302,8 @@ import java.util.function.Supplier;
  *   한 서버의 창이라 창의 서버를 바꾸지 않음(앱 변경 #69, docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 View &gt; Maximize Results 단축키를 Ctrl+Shift+T에서 Ctrl+Shift+R(macOS ⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기
  *   (앱 변경 #66, docs/chromite/shortcuts.md)
+ * - 2026-11-12 주석만: 실제 계획이 없는 서버의 창은 Actual Plan 동작(메뉴, 도구 막대 단추, Ctrl+M)이 연결 전부터 꺼짐
+ *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -1954,8 +1956,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         variablesAction.setEnabled(editor != null && !editor.isExecuting());
         completeAction.setEnabled(editor != null);
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
-        // A connection that gives no actual plans (they would need a second run of the statements) has the toggle off,
-        // with the reason as its tool tip; before connecting it is not known yet
+        // A server that gives no actual plans (they would need a second run of the statements) has the toggle off from the
+        // start, with the reason as its tool tip: its driver tells before connecting. A window without a server can turn it on
         boolean actualPlanUnsupported = editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport());
         actualPlanAction.setEnabled(editor != null && !actualPlanUnsupported);
         actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && !actualPlanUnsupported && editor.isIncludeActualPlan());

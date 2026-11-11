@@ -260,11 +260,11 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 
 #### 지원하지 않는 연결
 
-- 토글은 창의 연결이 연결된 뒤 어댑터가 없으면 꺼지고, 도구 설명(메뉴 항목과 SQL Editor 도구 막대 단추)이 이유를 말한다
+- 어댑터를 주지 않는 서버의 창은 토글이 꺼지고, 도구 설명(메뉴 항목과 SQL Editor 도구 막대 단추)이 이유를 말한다
   ("실제 실행 계획은 SQL Server, Oracle, Altibase 연결에서 쓸 수 있습니다. 이 연결에서는 계획을 보려면 문장을 한 번 더 실행해야 합니다.").
-  연결 전에는 어댑터를 알 수 없어(데이터 소스가 만든다) 켤 수 있고, 켜고 실행했는데 어댑터가 없으면 계획 탭에 같은 이유를 보인다.
-  어댑터가 없는 연결의 창은 토글이 켜져 있었어도 실행할 때 계획을 구하지 않는다.
-- SQL Server 연결이라도 Babelfish는 어댑터가 없다(`SQLServerDataSource.getAdapter`, 원래 그대로).
+  2026-11-12부터 연결 전에 드라이버로 판단해 처음부터 꺼진다(아래 "실제 계획이 없는 DB는 토글을 처음부터 끔"). 전에는 연결된 뒤에야 알아 연결 전에 켤 수 있었다.
+  어댑터가 없는 서버의 창은 토글이 켜져 있었어도 실행할 때 계획을 구하지 않는다.
+- SQL Server 연결이라도 Babelfish는 어댑터가 없다(`SQLServerQueryPlanner.isSupported`, 2026-11-12에 `SQLServerDataSource.getAdapter`에서 옮김).
 
 #### 확인 (2026-11-08)
 
@@ -328,7 +328,7 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 토글이 꺼지는 경우는 재현되지 않았다. 확인한 것: 도구 막대 단추, Query 메뉴 항목, Ctrl+M(쿼리 창 글 칸에 보낸 키 이벤트)이 같은 상태를 바꾸고, 실행 뒤·다른 쿼리
 창으로 갔다 온 뒤·DB 바꾼 뒤에도 켜진 모양(회색 바탕)이 남는다. 창마다 따로다(새 창은 꺼짐). 사용자가 "안 켜진다"고 볼 수 있는 경우는 설계대로인 하나다:
 연결하기 전에는 어댑터를 몰라 켤 수 있고, 실행해 연결된 뒤 지원하지 않는 연결(PostgreSQL, MySQL·MariaDB 등)이면 단추가 꺼지고 흐려지며 도구 설명과 계획 탭이
-이유를 말한다.
+이유를 말한다. 이 경우는 앱 변경 #70에서 연결 전부터 끄는 것으로 바뀌었다(아래 "실제 계획이 없는 DB는 토글을 처음부터 끔").
 
 #### 확인 (2026-11-12)
 
@@ -349,6 +349,52 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 | 토글 유지 | 실행 뒤, 다른 쿼리 창 갔다 옴, DB 선택 바꿈: 켜진 모양 유지. 창마다 따로. 끄면 다음 실행은 계획 없음 | 같음 |
 
 회귀 테스트는 실행하지 않았다(사용자 요청 없음).
+
+### 실제 계획이 없는 DB는 토글을 처음부터 끔 (2026-11-12, 앱 변경 #70)
+
+사용자 결정(2026-11-12): 실제 계획을 주지 않는 DB에서 토글을 처음부터 비활성으로 보일지 물음에 "처음부터 비활성". 전에는 어댑터
+(`SQLActualPlanProvider`)를 데이터 소스가 만들어 연결된 뒤에야 알았으므로, PostgreSQL·MariaDB·MySQL 창에서도 연결 전에는 토글을 켤 수 있었고 첫 실행 뒤
+꺼지고 흐려졌다(#58 보고의 "토글이 제대로 안 켜진다"로 보였을 수 있음). #69 뒤로 창마다 서버가 정해져 있으므로 서버가 정해지는 때에 판단한다.
+
+#### 연결 전 판단
+
+- 어댑터를 주는 데이터 소스는 셋뿐이다: `SQLServerDataSource`(Babelfish 제외, 드라이버로 가림), `OracleDataSource`(그 하위 클래스인 YashanDB 포함),
+  `AltibaseDataSource`. 어떤 데이터 소스 클래스가 생기는지는 연결하지 않고도 드라이버의 데이터 소스 제공자(일반 JDBC 제공자는 드라이버의 메타 모델)로 정해진다.
+  그래서 제공자가 답하는 인터페이스 `SQLActualPlanSupport`(`model.sql`)를 두었다. 구현: `SQLServerDataSourceProvider`(`SQLServerQueryPlanner.isSupported`:
+  데이터 소스 어댑터와 같은 드라이버 조건을 한 곳에 모음), `OracleDataSourceProvider`(늘 참, YashanDB 제공자가 물려받음), `GenericDataSourceProvider`
+  (`GenericMetaModelRegistry.getMetaModel`이 고르는 메타 모델에 물음: 드라이버 매개변수·드라이버 클래스만 읽음), `AltibaseMetaModel`(늘 참).
+  이것을 구현하지 않은 제공자의 연결은 실제 계획이 없다고 본다(PostgreSQL, MySQL·MariaDB 등 그 밖의 모든 DB).
+- plugin.xml에 능력 속성을 두지 않은 이유: 어댑터는 데이터 소스 클래스가 정하고, Altibase처럼 일반 JDBC 메타 모델로 생기는 경우까지 같은 곳에서 답하려면
+  데이터 소스를 만드는 코드(제공자·메타 모델)가 답하는 편이 어긋나지 않는다.
+- 편집기는 연결 여부와 상관없이 이 선언만 본다(`SqlEditorPanel.getActualPlanSupport`). 그래서 토글 모양이 연결 전후에 바뀌지 않는다. 실행할 때는 지금처럼
+  데이터 소스의 어댑터를 쓴다. 선언과 어댑터가 어긋나는 경우(선언은 참인데 어댑터가 없음)만 계획 탭에 지원 안 함 이유가 남는다(`finishActualPlan`).
+- 연결해야 알 수 있는 조건은 그대로 실행 때 알린다: Oracle V$ 권한, SQL Server SHOWPLAN 권한(#233, 위 "원인 2").
+
+#### 동작
+
+- 지원하지 않는 서버의 창: 도구 막대 단추, Query 메뉴 항목, Ctrl+M이 처음부터 꺼지고(`Action` 하나를 함께 씀) 눌린 모양이 아니며, 도구 설명(단추와 메뉴 항목)이
+  이유를 말한다. 연결한 뒤에도 같다.
+- 탭을 바꾸면 활성 창의 서버로 바로 다시 정한다(`MainFrame.updateQueryActions`, 원래 흐름).
+- 서버가 없는 창: 토글은 켜져 있다(어느 서버가 될지 모름). 서버를 고르면(`chooseServer`) 그 서버로 정한다. 켜 둔 채 지원하지 않는 서버를 고르면 토글이 꺼진 모양이
+  되고 그 창의 실행은 계획을 구하지 않는다(서버 없이 F5를 눌러 실행 중에 고른 경우도 같음).
+
+#### 확인 (2026-11-12)
+
+빌드 `BUILD SUCCESS`, `tools/rename/gate.py` ALL GATES PASSED. 시험 DB VM에 터널로 붙어, 빌드한 제품 한 벌을 개인 작업 공간·설정·`CHROMITE_DATA`로 띄우고
+프로세스 안 시험 에이전트(제품에 넣지 않음, OS 입력 없음)로 확인했다. 한국어. 시험 DB에는 아무것도 만들지 않았다(시스템 카탈로그 조회만).
+
+| 항목 | 결과 |
+|---|---|
+| PostgreSQL 17, MariaDB 11, MySQL 8.4(MariaDB Connector/J), 연결 전 | 단추·동작·메뉴 항목 꺼짐, 눌리지 않음, 도구 설명에 이유. PostgreSQL 창에서 단추 클릭·메뉴 항목 클릭·Ctrl+M: 상태 그대로(꺼짐) |
+| MySQL 드라이버(`mysql8`, 한 번도 연결하지 않음, 드라이버 파일 없음) | 꺼짐 |
+| 위 세 DB 실행 뒤(연결됨) | 그대로 꺼짐, 계획 탭은 빈 안내(계획을 구하지 않음) |
+| SQL Server 2022, Oracle 23.26, Altibase 7.3, 연결 전 | 켜짐(누를 수 있음) |
+| SQL Server(단추로 켬), Oracle(Ctrl+M), Altibase(메뉴 항목) 실행 | 결과와 실제 계획 1개씩, 실행 계획 탭에 초록 점, 토글은 켜진 채 |
+| 탭 전환 PostgreSQL ↔ SQL Server(켜짐) | 새로 고치지 않은 상태로 바로 꺼짐 ↔ 켜짐·눌림, 메뉴 항목도 같음 |
+| 서버 없는 창 | 켜짐. 켜 둔 채 PostgreSQL을 고르면 꺼짐·눌리지 않음, SQL Server를 고르면 켜짐. 켜 둔 채 F5 → 실행 중 PostgreSQL 고름: 결과 1행, 계획 없음 |
+
+화면: `D:\Tools\_scratch\actual-plan-unsupported\shots\`(밝은·어두운 테마 × 100%·150%, PostgreSQL 꺼짐·SQL Server 켜짐·Oracle 꺼 둠·서버 없음 도구 막대와
+단추 4배 확대). 꺼진 단추는 FlatLaf의 꺼진 아이콘·글자 색이고, 이 변경 전 연결 뒤 꺼질 때와 같은 모양이다. 회귀 테스트는 실행하지 않았다(사용자 요청 없음).
 
 ### 쿼리 기록
 
@@ -499,3 +545,5 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-09 실제 계획 포함의 macOS 키 ⇧⌘M(⌘M은 최소화, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
 - 2026-11-12 실제 계획 토글 점검(앱 변경 #58, "실제 계획 토글 점검"): Oracle은 커서를 드라이버의 SQL_ID로 찾음(최대 행 수에 닿은 쿼리의 계획이 나오지 않던 것),
   SQL Server는 켜기 전에 SHOWPLAN 권한을 확인(권한 없는 로그인에서 모든 문장이 오류 262로 실패하던 것), 실행 계획 탭의 새 계획 점.
+- 2026-11-12 실제 계획이 없는 DB는 토글을 처음부터 끔(앱 변경 #70, "실제 계획이 없는 DB는 토글을 처음부터 끔"): 제공자가 연결 전에 답하는
+  `SQLActualPlanSupport`, SQL Server 드라이버 조건을 `SQLServerQueryPlanner.isSupported`로 모음.

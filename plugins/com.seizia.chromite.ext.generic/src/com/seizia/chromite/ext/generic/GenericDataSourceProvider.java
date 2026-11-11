@@ -32,9 +32,18 @@ import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceProvider;
 import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import org.jkiss.utils.CommonUtils;
 
-public abstract class GenericDataSourceProvider<DATASOURCE extends GenericDataSource> extends JDBCDataSourceProvider<DATASOURCE> {
+/**
+ * Generic JDBC data source provider: the driver's meta model makes the data source.
+ *
+ * 변경 이력:
+ * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): 데이터 소스를 만드는 메타 모델이 답한다(Altibase).
+ *   일반 JDBC 연결에 Altibase 드라이버를 써도 Altibase 메타 모델이 데이터 소스를 만들기 때문이다(앱 변경 #70)
+ */
+public abstract class GenericDataSourceProvider<DATASOURCE extends GenericDataSource> extends JDBCDataSourceProvider<DATASOURCE>
+    implements SQLActualPlanSupport {
 
     protected GenericDataSourceProvider(@NotNull Class<? extends DATASOURCE> dsClass) {
         super(dsClass);
@@ -59,6 +68,20 @@ public abstract class GenericDataSourceProvider<DATASOURCE extends GenericDataSo
         throws DBException {
         GenericMetaModel metaModelInstance = GenericMetaModelRegistry.getInstance().getMetaModel(container);
         return getDataSourceClass().cast(metaModelInstance.createDataSourceImpl(monitor, container));
+    }
+
+    /**
+     * The meta model that {@link #openDataSource} would use answers; finding it reads only the driver.
+     */
+    @Override
+    public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
+        try {
+            return GenericMetaModelRegistry.getInstance().getMetaModel(container) instanceof SQLActualPlanSupport support
+                && support.isActualPlanSupported(container);
+        } catch (DBException e) {
+            log.debug("Can't find the meta model of " + container.getName(), e);
+            return false;
+        }
     }
 
     protected GenericMetaModelDescriptor getStandardMetaModel() {

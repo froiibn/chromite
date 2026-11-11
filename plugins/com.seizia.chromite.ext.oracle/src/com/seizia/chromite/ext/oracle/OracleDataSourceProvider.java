@@ -38,6 +38,7 @@ import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceProvider;
 import com.seizia.chromite.model.net.DBWUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -45,10 +46,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Oracle data source provider.
+ *
+ * 변경 이력:
+ * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): {@link OracleDataSource}는 늘 실제 계획 어댑터를 준다.
+ *   그 하위 클래스를 만드는 제공자(YashanDB)도 이것을 물려받아 데이터 소스의 어댑터와 같다(앱 변경 #70)
+ */
 public class OracleDataSourceProvider extends JDBCDataSourceProvider<OracleDataSource> implements
     DBAUserCredentialsProvider,
     DBPNativeClientLocationManager,
-    DBPInformationProvider {
+    DBPInformationProvider,
+    SQLActualPlanSupport {
 
     public OracleDataSourceProvider() {
         super(OracleDataSource.class);
@@ -62,6 +71,11 @@ public class OracleDataSourceProvider extends JDBCDataSourceProvider<OracleDataS
     public long getFeatures()
     {
         return FEATURE_SCHEMAS;
+    }
+
+    @Override
+    public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
+        return true;
     }
 
     @NotNull

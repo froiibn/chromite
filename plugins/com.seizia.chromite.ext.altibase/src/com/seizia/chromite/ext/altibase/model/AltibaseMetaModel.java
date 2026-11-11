@@ -39,6 +39,7 @@ import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectFilter;
@@ -56,12 +57,18 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 테이블 목록을 카탈로그 질의로 읽음({@link #prepareTableLoadStatement}): 테이블 저장 방식을 같은
  *   질의에서 받기 위해서다(docs/chromite/altibase.md)
+ * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): {@link AltibaseDataSource}는 늘 실제 계획 어댑터를 준다(앱 변경 #70)
  */
-public class AltibaseMetaModel extends GenericMetaModel {
+public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
     private static final Log log = Log.getLog(AltibaseMetaModel.class);
 
     public AltibaseMetaModel() {
+    }
+
+    @Override
+    public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
+        return true;
     }
 
     @NotNull

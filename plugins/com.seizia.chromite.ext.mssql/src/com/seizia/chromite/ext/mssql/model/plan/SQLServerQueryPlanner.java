@@ -20,7 +20,9 @@ import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
+import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
@@ -55,6 +57,8 @@ import java.util.List;
  * - 2026-11-08 실제 계획을 {@link SQLActualPlanProvider#startRun}의 실행 단위로 켜고 끔(어댑터 모양이 바뀜, 동작은 같음)
  * - 2026-11-12 SHOWPLAN 권한이 없는 로그인: 켜기 전에 확인하고 이유를 알림. 전에는 실제 계획을 켠 실행의 모든 문장이 오류 262로
  *   실패했다(앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
+ * - 2026-11-12 이 계획기를 주는 드라이버인지를 {@link #isSupported}에 모음: 데이터 소스의 어댑터와 연결 전 판단
+ *   ({@code SQLServerDataSourceProvider})이 같은 조건을 쓴다(앱 변경 #70)
  */
 public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProvider {
 
@@ -73,6 +77,14 @@ public class SQLServerQueryPlanner implements DBCQueryPlanner, SQLActualPlanProv
         "SELECT DB_NAME(), HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'SHOWPLAN')"; //$NON-NLS-1$
 
     private final SQLServerDataSource dataSource;
+
+    /**
+     * Whether a data source of this driver has this planner: showplan XML is a SQL Server feature, and Babelfish speaks
+     * T-SQL over PostgreSQL without it. Reads only the driver, so it also answers before connecting.
+     */
+    public static boolean isSupported(@NotNull DBPDriver driver) {
+        return SQLServerUtils.isDriverSqlServer(driver) && !SQLServerUtils.isDriverBabelfish(driver);
+    }
 
     public SQLServerQueryPlanner(@NotNull SQLServerDataSource dataSource) {
         this.dataSource = dataSource;
