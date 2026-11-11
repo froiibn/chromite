@@ -323,6 +323,12 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 
 연결이 없는 도구(예: `listConnections`, `formatSql`)는 5~7번만 쓴다.
 
+**늘 확인하는 도구(2026-11-12, 앱 변경 #71 g):** `commitTransaction`과 `rollbackTransaction`은 끝낼 에이전트 트랜잭션이 있으면 정책과 상관없이 트랜잭션 안전 규칙이
+Commit / Roll back / Cancel을 묻는다(`AIToolTransactionGuard`). 그래서 `plugin.xml`에 `alwaysConfirmed="true"`를 적고(`AIFunctionDescriptor.isAlwaysConfirmed`),
+Options의 권한 정책 표는 막히지 않는 한 실제 권한을 "늘 확인"(Always asks)으로 보인다. 전에는 `rollbackTransaction`이 "읽기 / 자동 실행", 쓰기를 자동으로 둔
+`commitTransaction`이 "자동 실행"으로 보였다. 분류와 동작은 그대로다(`rollbackTransaction`은 일부러 READ). `getToolPolicy` 결과에도 `alwaysConfirmed: true`가 붙는다.
+다른 가드 도구(`disconnect`, `setCurrentDatabase`, `killSession`, DDL·`runSql`의 암묵적 커밋)는 열린 트랜잭션이 있을 때만 물어서 표시하지 않는다.
+
 ### 운영 연결
 
 Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 운영을 표시한다. 기본 종류 Production(`DBPConnectionType.PROD`, ID `prod`)은
@@ -1419,6 +1425,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 화면 재점검(앱 변경 #71 g, `chromite/visual-recheck-fixes`): `alwaysConfirmed` 속성, 권한 정책 표의 "늘 확인", 위 "설정과 판정 순서"의 "늘 확인하는 도구".
+  확인: 표에서 commitTransaction "쓰기 / 상속 / 늘 확인", rollbackTransaction "읽기 / 상속 / 늘 확인"(한국어·영어). 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 화면 재점검(앱 변경 #71 f, `chromite/visual-recheck-fixes`): 제공자 설정 안내는 글이 패널 폭을 쓰고 단추는 그 아래, 두 안내를 `WrappingNote`로.
   위 "채팅 도구 창". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #64 도구 묶음(`chromite/agent-tool-sets`): 최소 13·핵심 44·전체 101 묶음(`plugin.xml` `toolSet`, 최소는 `shortDescription`),

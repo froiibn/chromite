@@ -30,6 +30,8 @@ import com.seizia.chromite.model.ai.agent.AIToolWrites;
  * - 2026-11-07 {@link #getAccess()}, {@link #getWrites()} 추가: 에이전트 도구 권한 정책의 분류 (docs/chromite/ai-agent.md)
  * - 2026-11-12 {@link #getToolSet()}, {@link #getShortAiDescription()} 추가: 채팅 요청의 도구 묶음과 최소 묶음의 짧은 설명
  *   (docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 {@link #isAlwaysConfirmed()} 추가: 정책과 상관없이 늘 사용자가 확인하는 도구를 권한 정책 표가 사실대로 보이게
+ *   (앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  */
 public interface AIFunctionDescriptor {
 
@@ -75,6 +77,16 @@ public interface AIFunctionDescriptor {
     @NotNull
     default AIToolWrites getWrites() {
         return AIToolWrites.DATABASE;
+    }
+
+    /**
+     * Whether the user confirms every call that has something to do, whatever the tool policy allows: the transaction
+     * guard asks Commit / Roll back / Cancel before commitTransaction and rollbackTransaction end the agent's transaction.
+     * The permission class stays what it is (rollbackTransaction is READ so that production connections do not block it);
+     * this only lets the Tool Policy table say that the tool always asks.
+     */
+    default boolean isAlwaysConfirmed() {
+        return false;
     }
 
     @Nullable

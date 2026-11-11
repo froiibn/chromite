@@ -117,6 +117,8 @@ import java.util.Set;
  *   "전체"가 대신함) (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  * - 2026-11-12 MCP 서버 설명을 줄 바꾸는 글({@link WrappingNote})로: 한 줄 라벨이 영어(모든 배율)·한국어 100%에서 잘렸다(앱 변경 #71 b,
  *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-12 Tool Policy 표의 실제 권한: 늘 확인하는 도구({@link AIFunctionDescriptor#isAlwaysConfirmed()})는 막히지 않으면 "늘 확인".
+ *   rollbackTransaction이 "읽기 / 자동 실행"으로 보였다(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -889,6 +891,10 @@ final class AiOptionsPage extends JPanel {
                 return AiMessages.ai_policy_effective_read_only;
             }
             AIToolDecision decision = AIToolPolicy.resolve(settings, scope, tool, access);
+            if (tool.isAlwaysConfirmed() && decision.permission() != AIToolPermission.BLOCKED) {
+                // The transaction guard asks whatever the rule allows (rollbackTransaction is READ, AUTO by default)
+                return AiMessages.ai_policy_always_confirm;
+            }
             return describePermission(decision.permission());
         }
     }

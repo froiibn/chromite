@@ -75,6 +75,7 @@ import java.util.Map;
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
  * - 2026-11-08 쿼리 창 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 봄, getTransactionStatus에 확인할 수 없는 트랜잭션
  *   ({@code otherUnverifiedTransactions}), 끝내기는 공용 경로 (docs/chromite/ai-agent.md "트랜잭션 안전")
+ * - 2026-11-12 getToolPolicy가 늘 확인하는 도구에 {@code alwaysConfirmed}를 붙임(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -307,6 +308,10 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
                 AIToolDecision decision = AIToolPolicy.getInstance().resolve(container, tool, tool.getAccess());
                 t.addProperty("permission", decision.permission().name());
                 t.addProperty("reason", decision.reason());
+            }
+            if (tool.isAlwaysConfirmed()) {
+                // The permission says AUTO for rollbackTransaction, but the user is asked whenever it has something to do
+                t.addProperty("alwaysConfirmed", true);
             }
             tools.add(t);
         }
