@@ -181,7 +181,7 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 | 모두·다른·그룹 연결 끊기 | `ConnectionCommands.disconnect(Component, Collection)` | 한 질문(`confirmDisconnect(Component, Collection)`) | 이번에 더함 |
 | 무효화·다시 연결, 연결 끊김 대화상자의 다시 연결·다시 시도 | `ConnectionCommands.invalidate` | `confirmReconnect`(같은 터널의 연결 포함) | 이번에 더함 |
 | 연결 끊김 대화상자의 연결 끊기 | `ConnectionCommands.disconnect` | `confirmDisconnect` | 이번에 더함 |
-| 쿼리 창 닫기, 연결 바꾸기, DB 인스턴스 바꾸기 | `SqlEditorPanel` | `ExitTransactionCheck.confirmEndSession` | 이미 있음 |
+| 쿼리 창 닫기, DB 인스턴스 바꾸기(연결 바꾸기는 2026-11-12에 없어짐, [swing-frontend.md](swing-frontend.md) "쿼리 창은 한 서버의 창") | `SqlEditorPanel` | `ExitTransactionCheck.confirmEndSession` | 이미 있음 |
 | Chromite 끝내기(창 닫기, File > Exit, 업데이트 다시 시작, macOS 끝내기) | `MainFrame.requestExit` | 실행 중인 작업 질문 뒤 `ExitTransactionCheck.confirm`. 그 뒤 플랫폼 종료(`DataSourceRegistry.closeConnections`)는 질문으로 끝난 뒤라 남은 트랜잭션이 없다 | 작업 질문을 이번에 더함 |
 | 유휴 연결 닫기 | `DataSourceMonitorJob.endIdleConnection` | 쓰는 중이면 닫지 않음, 끊기 직전 다시 확인 | 이미 있음(`isInUse`로 뺌) |
 | 유휴 트랜잭션 자동 롤백 | `EndIdleTransactionsJob` | 연결에서 사용자가 켰을 때만, 뒤에 알림(규칙의 예외) | 이미 있음 |

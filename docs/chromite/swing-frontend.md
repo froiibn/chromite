@@ -925,7 +925,8 @@ E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에�
 
 - **열기:** File > Open File(Ctrl+O, `*.sql` 필터) 또는 Recent Files. 새 편집기 탭으로 열고 탭 제목은 SSMS처럼 `파일 이름 - 연결 이름`, 도구 설명은 전체 경로다.
   연결은 Object Explorer에서 고른 연결(연결 아래 어느 노드든), 없으면 활성 편집기의 연결, 그것도 없으면 연결 없이 연다(`파일 이름 - not connected`).
-  연결 없는 편집기는 도구 막대의 연결 콤보로 고르고, 고르기 전에 F5를 누르면 안내 메시지를 띄운다. 이미 열린 파일을 다시 열면 그 탭을 보여 준다.
+  연결 없는 편집기는 서버를 한 번 고른다(2026-11-12부터: 도구 막대 서버 자리의 "서버 선택" 단추, Ctrl+9, 또는 F5·예상 계획을 누르면 뜨는 목록. 고른 뒤에는 고정,
+  "쿼리 창은 한 서버의 창"). 이미 열린 파일을 다시 열면 그 탭을 보여 준다.
   없는 파일(최근 파일에서 지워진 것)은 알리고 목록에서 뺀다.
 - **문자 집합(`SqlFileContent`):** BOM(UTF-8, UTF-16 LE/BE)이 있으면 그 문자 집합으로 읽고, 저장할 때 BOM을 다시 쓴다. BOM이 없으면 UTF-8로 엄격하게 읽고,
   잘못된 바이트가 있으면 운영체제 기본 문자 집합(`native.encoding`, 한국어 Windows는 MS949)으로 읽는다. 대체 문자로 읽은 뒤 저장해 원본을 망가뜨리지 않기 위해서다.
@@ -943,9 +944,8 @@ E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에�
 
 ### 편집기 연결과 기본 DB/스키마
 
-- **연결 콤보:** 메인 창 SQL Editor 도구 막대(실행·계획 단추 오른쪽, 2026-11-07부터. 활성 쿼리 창의 콤보를 끼움)에 활성 프로젝트의 연결 목록(숨김·임시 연결 제외, 이름순, 드라이버 아이콘)을 보여 준다.
-  고르면 그 편집기의 연결이 바뀌고 탭 제목이 바뀐다. 연결은 C단계처럼 실행할 때 필요하면 연다. 목록은 콤보를 열 때마다 다시 채워 연결 추가·삭제·이름 변경을 반영한다.
-  실행 중에는 콤보를 끈다(실행 중인 Job은 시작할 때의 연결을 쓴다).
+- **서버 표시(2026-11-12, 앱 변경 #69, 예전 연결 콤보):** 메인 창 SQL Editor 도구 막대 맨 앞(활성 쿼리 창의 것을 끼움)에 창의 서버를 고를 수 없는 표시로 보인다.
+  쿼리 창은 한 서버의 창이라 열린 창의 서버를 바꾸는 길은 없다. 서버가 없는 창만 서버를 한 번 고른다. 연결은 C단계처럼 실행할 때 필요하면 연다. 자세한 것은 "쿼리 창은 한 서버의 창".
 - **기본 DB/스키마 콤보 (SSMS "Available Databases"):** SWT의 활성 스키마 선택(`SelectActiveSchemaHandler`)과 같은 모델 API를 쓴다.
   - 목록과 현재 값: 모델의 `ContextDefaultObjectsReader`(`com.seizia.chromite.model.impl.struct`)를 작업 스레드에서 돌린다. 주 자식 형식이 카탈로그면 카탈로그 목록
     (카탈로그 아래 스키마가 있고 스키마를 바꿀 수 있으면 현재 카탈로그의 스키마 목록), 스키마면 스키마 목록이다. SWT처럼 `DBSObjectContainer`인 것만 보이고,
@@ -1881,17 +1881,17 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 ### 구성과 동작
 
-| 2줄 (│ = 구분선) | 연결 ▾ │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+| 2줄 (│ = 구분선) | 서버 표시(2026-11-12까지 연결 ▾) │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
 |---|---|
 
 (2026-11-08 순서: 콤보가 맨 앞이다. 아래 "콤보를 맨 앞으로, 연결 콤보 220" 참고. Commit·Roll Back·커밋 방식은 [transactions.md](transactions.md).)
 
-- **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
+- **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 서버 표시·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
   Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
   창의 연결이 실제 계획을 주지 않으면(SQL Server·Oracle·Altibase 밖, 연결된 뒤 판단) Actual Plan은 꺼지고 도구 설명이 이유를 말한다
   ([swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로").
 - **쿼리 창이 아닐 때:** 활성 문서가 테이블 디자이너·ER 다이어그램·도구 문서·DDL 탭이거나 문서가 없으면 2줄은 보인 채 모든 컨트롤이 꺼진다(SSMS).
-  콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다.
+  서버 표시 자리에는 같은 폭의 빈 칸, DB 콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다.
 - **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획, macOS ⇧⌘M)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
   편집 명령의 키(Ctrl+K Ctrl+C 등)는 편집 영역이 직접 받는다.
 - **좁은 창:** 두 줄 모두 `OverflowToolBar`다. 폭이 모자라면 2줄의 콤보가 먼저 줄고(최소 100·100), 그래도 넘치는 뒤쪽 단추는 오른쪽 끝 » 메뉴로 간다.
@@ -1905,7 +1905,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   (`SELECTED_KEY`)으로 바꿔 메뉴 체크 항목과 토글 단추가 같이 쓴다. 켜짐은 `updateQueryActions`가 활성 쿼리 창의 `canExecute`·`canCancel`·`canExplain`으로 정한다.
   쿼리 창 도구 막대에 있던 세밀한 규칙(결과 저장 중·계획 중에는 Execute 끔, Stop을 누른 뒤에는 Stop 끔)이 이제 메뉴에도 적용된다.
   쿼리 창은 상태가 바뀔 때 `Host#executionStateChanged`로 알린다(Stop을 누를 때도).
-- **콤보는 쿼리 창의 것:** 연결·DB 콤보의 모델·리스너·켜짐(실행 중 끔, 스키마를 바꿀 수 없으면 끔)은 창마다의 상태다. 한 쌍을 두고 모델을 바꿔 끼우면
+- **콤보는 쿼리 창의 것:** 서버 표시(2026-11-12까지 연결 콤보)와 DB 콤보의 상태·리스너·켜짐(실행 중 끔, 스키마를 바꿀 수 없으면 끔)은 창마다의 상태다. 한 쌍을 두고 모델을 바꿔 끼우면
   `SqlEditorPanel`의 콤보 코드를 크게 고쳐야 하므로, 쿼리 창이 콤보를 만들고 가지며 2줄이 활성 창의 콤보를 그 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식).
   2줄 밖에 있던 콤보(비활성 창의 것, 빈 콤보)는 테마 전환을 받지 못했으므로 끼울 때 Look and Feel을 맞춘다(`MainFrame.updateLookAndFeel`).
 - **편집 명령·Query History:** 2줄의 동작이다. 활성 쿼리 창이 없으면 꺼진다. 편집 명령은 Edit > Advanced와 같은 `SqlTextArea#runCommand`이고 편집 영역에 초점을 돌려준다.
@@ -1962,6 +1962,9 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 사용자 요청(2026-11-08): "연결선택 콤보가 1번 DB 스키마 선택이 2번으로 되게 한다", "연결 선택 콤보의 크기를 조금 더 줄인다".
 
+> 2026-11-12: 연결 콤보는 같은 자리·같은 폭(220)의 고를 수 없는 서버 표시로 바뀌었다("쿼리 창은 한 서버의 창"). 아래의 `CONNECTION_PICKER_WIDTH`,
+> `emptyConnectionCombo`, `editor_sql_connection_selected_tip`은 지웠다(폭은 `QueryWindowServerIndicator.WIDTH`, 이름 전체는 서버 표시의 도구 설명).
+
 - **순서:** 연결 ▾ │ DB/스키마 ▾ │ Execute, Stop │ 예상 계획, 실제 계획 │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │
   Format SQL │ Query History. 콤보 뒤의 순서와 구분선은 그대로다(`SqlEditorToolBar` 생성자).
 - **연결 콤보 폭:** `SqlEditorPanel.CONNECTION_PICKER_WIDTH` 260 → 220(약 15%, DB/스키마 200보다는 넓게). 빈 콤보(`emptyConnectionCombo`)도 같은 상수라 같이 바뀐다.
@@ -1997,7 +2000,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   "연결 설정은 지금 …입니다. 다시 연결하면 적용됩니다", 끝에 "클릭하면 연결의 자동 커밋 설정을 엽니다".
 - **보이는 값은 열린 세션의 실제 상태다.** 연결 설정의 기본값이 아니라 컨텍스트의 `DBCTransactionManager#isAutoCommit`을 읽는다. 컨텍스트가 값을 캐시하지만 연결 직후 첫 읽기는
   드라이버에 묻으므로 작업 스레드에서 읽는다(`SqlEditorPanel#refreshTransactionMode`, SWT `DataSourceAutoCommitHandler#updateElement`와 같은 API).
-- **갱신 시점:** 연결 고르기(2줄 연결 콤보), 연결·연결 끊기·연결 설정 변경(연결 갱신 이벤트 → `connectionChanged`), 실행이 끝날 때, 기본 DB 바꾸기(모두 `refreshSchemas`를 거침),
+- **갱신 시점:** 서버가 없던 창의 서버 고르기(2026-11-12까지 2줄 연결 콤보), 연결·연결 끊기·연결 설정 변경(연결 갱신 이벤트 → `connectionChanged`), 실행이 끝날 때, 기본 DB 바꾸기(모두 `refreshSchemas`를 거침),
   쿼리 창이 활성이 될 때(같은 연결의 다른 창이 세션을 함께 쓴다), 열린 세션에 적용한 뒤.
   SQL Server `SET IMPLICIT_TRANSACTIONS ON`처럼 드라이버의 자동 커밋 플래그를 바꾸지 않는 문은 알 수 없다(JDBC `getAutoCommit`은 그대로 true). 서버에 물어야 하므로 이번에는 하지 않았다.
 
@@ -2994,6 +2997,98 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 - 그대로 둔 것(보고): 대비 색은 지금처럼 본문 글자 색(`Label.foreground`)으로만 판단한다. 어두운 테마의 Production 색(97,61,63) 위의 보조 글자(`#73767c`)는 대비가 낮다
   (전에도 같은 색의 줄이었다).
 
+## 쿼리 창은 한 서버의 창 (2026-11-12, 앱 변경 #69)
+
+사용자 결정(2026-11-12): "현재는 편집창을 열어놓고 위에 도구모음줄에서 서버와 데이터베이스를 고를 수 있다. 그런데 서버를 고를 수 있게 하는게 맞나 하는 의문이 든다."
+→ "제거 해서 연결된 세션은 그 서버의 세션으로 두는게 맞다고 생각된다." 제품의 목적은 사고를 막는 것이다. 같은 글이 클릭 한 번이나 방향키 하나로 다른 서버에서
+돌기 시작하면 안 된다. 그래서 쿼리 창은 한 서버의 창이고, "연결 바꾸기" 명령도 만들지 않는다. 다른 서버에서 같은 글을 돌리려면 그 서버로 새 쿼리 창을 연다.
+
+### 동작
+
+- **서버 표시:** SQL Editor 도구 막대 맨 앞, 예전 연결 콤보 자리에 같은 폭(220, 좁은 창에서는 100까지 줄어듦)으로 창의 서버를 보인다. 드라이버 아이콘과 연결 이름이고,
+  연결에 색(연결에 정한 색, 없으면 Test·Production 같은 연결 종류의 색)이 있으면 이름을 Object Explorer·Registered Servers와 같은 알약(`ConnectionPill`)으로 감싼다
+  (Production은 테두리도 같음). 긴 이름은 말줄임표로 줄고 알약은 보이는 글자만 감싼다. 도구 설명은 문서 탭과 같은 "연결: 이름 - 주소 (제품)"에 "쿼리 창의 서버는
+  바뀌지 않습니다. 다른 서버에서 실행하려면 그 서버로 새 쿼리를 여십시오."를 붙인다. 라벨이라 포커스·키·마우스 입력이 없고, 콤보 테두리가 없어 꺼진 콤보처럼 보이지 않는다.
+  키보드 Tab은 DB/스키마 콤보부터다.
+- **DB/스키마 콤보:** 그대로다(`USE`를 따라가는 것 포함, #220).
+- **서버가 없는 창:** 같은 자리에 "서버 선택" 단추가 있다. 단추, Query > Select Connection…(Ctrl+9), 서버 없이 실행(F5 등)·예상 계획(Ctrl+L)이 모두 같은 걸러 고르는 목록
+  (`ObjectChooserDialog`, 제목 "서버 선택")을 연다. 고르면 그 창은 그 서버의 창이 되어 다른 창처럼 고정되고, 실행·계획은 고른 서버에서 이어서 돈다. 취소하면 아무것도 바뀌지 않는다.
+  예전에는 실행·계획 때 "먼저 도구 모음에서 연결을 선택하십시오" 안내만 띄웠다. 서버가 없던 창에는 세션이 없으므로 고를 때 끝낼 세션도, 물을 트랜잭션도 없다.
+- **서버가 있는 창의 Ctrl+9:** 아무것도 바꾸지 않고 상태 줄에 "이 쿼리 창은 X의 창입니다. 다른 서버에서 실행하려면 그 서버로 새 쿼리를 여십시오."라고 알린다.
+- **창 닫기:** 그대로 열린 트랜잭션을 묻는다(`confirmEndSession`, 트랜잭션 안전 규칙). 다른 DB 인스턴스로 바꾸는 DB 콤보의 질문도 그대로다.
+
+### 서버 없이 열리는 창 (2026-11-12 코드 기준)
+
+`SqlEditorPanel` 생성자에 `null` 연결이 들어가는 경로다. 모두 위의 "서버 선택"으로 한 번 고른다.
+
+| 경우 | 경로 |
+|---|---|
+| File > Open File·Recent Files, 스크립트 묶기 없음, Object Explorer 선택 없음, 활성 쿼리 창 없음(또는 그 창도 서버 없음) | `MainFrame.openFile` |
+| 다시 시작 뒤 복원·닫은 탭 다시 열기: 서버 없이 저장된 창, 또는 연결이 지워진 창 | `QueryWindowRecovery.restore`(`findConnection`이 null) |
+| Query Library 쿼리 편집: 대상이 "실행할 때 묻기"이거나 정한 연결을 찾지 못함 | `QueryLibraryEditor.edit`(`findDefaultTarget`이 null) |
+| Chromite Agent·MCP의 `open_sql_editor`: 대화에 연결이 없음 | `AiQueryWindowBridge.openSqlEditor` → `AiAssistantPanel.openInEditor` |
+| Query History·Query Manager에서 연 문장의 연결이 지워짐 | `MainFrame.openHistoryQuery`, `QueryManagerPanel` |
+
+File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 선택하십시오"라고 알린다(그대로).
+
+### 창을 다른 서버에 다시 묶던 경로
+
+검색으로 확인한 결과(`SqlEditorPanel.dataSourceContainer`에 값을 넣는 곳은 생성자, 예전 연결 콤보 리스너, 지금의 `chooseServer`뿐):
+
+| 경로 | 전 | 지금 |
+|---|---|---|
+| 도구 막대 연결 콤보 | 다른 연결을 고르면 창 세션을 끝내고(열린 트랜잭션은 물음) 그 서버로 바꿈 | 삭제. 고를 수 없는 서버 표시 |
+| Query > Select Connection…(Ctrl+9) | 고른 연결을 창의 연결 콤보에 넣어 바꿈 | 서버가 없는 창만 한 번 고름. 서버가 있는 창은 상태 줄 안내 |
+| 끌어 놓기, Object Explorer·Registered Servers 메뉴 | 열린 창을 다른 서버로 옮기는 경로 없음(모두 새 쿼리 창) | 그대로 |
+| Query Library 실행(다른 연결에서 실행) | 같은 연결의 쉬는 창을 쓰거나 새 창을 엶(`QueryLibraryEditor.run`), 다시 묶지 않음 | 그대로 |
+| Chromite Agent 도구(`open_sql_editor`, 쿼리 창 목록·읽기·고치기) | 새 창을 열거나 글만 다룸. 창의 연결을 바꾸는 도구 없음 | 그대로 |
+| 스크립트 연결 묶기(Scripts) | 열린 창은 바꾸지 않음 | 그대로 |
+
+범위 밖이라 그대로 둔 것(창 세션이 아님): Chromite Agent 패널의 연결 콤보(대화의 연결), Query Library 편집 창 머리말의 대상 선택(쿼리 항목의 기본 대상).
+
+### 설계
+
+- **표시는 창의 것:** `QueryWindowServerIndicator`(새 파일)는 쿼리 창마다 하나이고 DB/스키마 콤보처럼 `SqlEditorToolBar`가 활성 창의 것을 그 자리에 끼운다
+  (`SqlEditorPanel#getServerIndicator`). 쿼리 창이 없을 때는 고를 동작이 없는 같은 폭의 빈 표시를 끼운다(예전 `emptyConnectionCombo`).
+  서버가 생기면(서버 고르기) 표시가 단추에서 라벨로 바뀌므로, 막대에 끼운 것을 바꾸지 않도록 표시는 둘을 담는 판이다.
+- **폭 단위:** 표시의 폭은 콤보(`SqlEditorPanel.sizePicker`)와 같은 단위(논리 픽셀 220)이고, `OverflowToolBar`가 좁은 창에서 DB 콤보와 함께 줄인다.
+- **고르기는 한 곳:** `SqlEditorPanel#chooseServer`가 단추·Ctrl+9·실행·계획의 고르기를 모두 맡는다. 목록은 예전 Ctrl+9와 같다(활성 프로젝트의 숨김·임시가 아닌 연결, 이름순).
+- **테마:** 연결 종류 색은 테마마다 다르므로 표시의 `updateUI`가 알약과 글자 색을 다시 정한다. 보이지 않는 쪽(단추 또는 라벨)도 테마를 맞춘다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `QueryWindowServerIndicator`(새 파일) | 서버 표시와 "서버 선택" 단추 |
+| `SqlEditorPanel` | 연결 콤보·`ConnectionRenderer`·`reloadConnectionItems`·전환 리스너 삭제, `getConnectionCombo` → `getServerIndicator`, `chooseServer`, 실행·계획 전 서버 고르기, 클래스 Javadoc |
+| `SqlEditorToolBar` | 연결 콤보 자리에 서버 표시, `emptyConnectionCombo` → 빈 서버 표시, 클래스 Javadoc |
+| `MainFrame` | Ctrl+9가 `chooseServer`를 부름(목록 만들기 삭제), 주석 |
+| `internal/EditorMessages`(`.properties`, `_ko`) | `editor_sql_connection_tip`, `editor_sql_connection_selected_tip`, `editor_sql_select_connection`, `editor_sql_choose_connection` 삭제, `editor_sql_select_server(_tip)`, `editor_sql_server_fixed(_tip)` 추가 |
+| `internal/ObjectExplorerMessages`(`.properties`, `_ko`) | `oe_select_connection_tip`을 "서버가 없는 활성 쿼리 창의 서버를 선택합니다."로 |
+| `ExitTransactionCheck`, `QueryWindowContext`, `ScriptsPanel` | 주석만(창이 연결을 바꾸는 경우를 지움) |
+| 문서 | 이 절, 위의 "SQL 파일"·"편집기 연결과 기본 DB/스키마"·"SQL Editor 도구 막대"·"콤보를 맨 앞으로" 표시, transactions.md, connection-lifecycle.md, swing-explorer-productivity.md, swing-query-window-recovery.md, swing-scripts-explorer.md |
+
+### 확인 (2026-11-12)
+
+빌드 `-Pproduct-chromite-swing` 결과물 한 벌, scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\editor-fixed-server`), 한국어, 프로세스 안 EDT 시험 에이전트(OS 입력 없음).
+연결: FS Dev A(SQLite, Development, 색 없음), FS Test B(SQLite, Test), 78자 PostgreSQL Production 연결(연결하지 않음). 100%(`-Dsun.java2d.uiScale=1`) 라이트, 150% 다크.
+캡처: `D:\Tools\_scratch\editor-fixed-server\light-100.png`, `dark-150.png`, `shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| 쿼리 창 없음 | 서버 자리 빈 칸(폭 220), DB 콤보 꺼짐 |
+| FS Dev A / FS Test B / Production 창 | 아이콘+이름 / 초록 알약 / 빨간 테두리 알약 "PostgreSQL production reportin…"(말줄임표), Object Explorer와 같은 색. 폭 220, 포커스 안 됨, 키 바인딩 없음 |
+| 서버가 있는 창에서 Ctrl+9 | 서버 그대로, 상태 줄 "이 쿼리 창은 FS Test B의 창입니다. …" |
+| 서버 없는 새 창 | "서버 선택" 단추, 제목 "SQLQuery4.sql - 연결 안 됨" |
+| 그 창에서 F5 | "서버 선택" 목록(연결 3개) → FS Test B → 같은 실행이 이어져 1개 행, 제목·상태 줄·표시가 FS Test B. 다시 Ctrl+9는 안내만 |
+| Open File(선택 없음) | `no-server.sql - 연결 안 됨`, 단추 → 목록 → 취소하면 그대로, Ctrl+9 → FS Dev A → F5 1개 행 |
+| 좁은 창(논리 760) | 서버 표시·DB 콤보가 100까지 줄고 뒤 단추는 » 메뉴 |
+| 다크 ↔ 라이트 전환 | 알약·글자 색이 테마를 따름 |
+
+- 복원한 창의 연결이 지워진 경우, Query Library "실행할 때 묻기" 편집, Agent의 연결 없는 `open_sql_editor`는 같은 생성자 경로(`null`)라 실행해 보지 않았다.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 열기(새 쿼리, 파일, 복원, Query Library, Agent, 기록), 서버 없는 창의 실행·예상 계획,
+  Ctrl+9, 탭 제목·상태 줄의 연결, 좁은 창의 SQL Editor 도구 막대, 테마 전환.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -3136,4 +3231,6 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 - 2026-11-12 문서 탭 메뉴(앱 변경 #42, `chromite/tabs-toolbar`): 저장, 이름 바꾸기, 닫기·모든 탭·다른 탭 닫기, 닫은 탭 다시 열기(Window 메뉴에도), 전체 경로 복사,
   상위 폴더 열기, 탭 고정, 탭 위치, 여러 행. 부동은 넣지 않음. "문서 탭 메뉴" 절 추가, "문서 탭" 절에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 결과 영역 두 단계 탭(앱 변경 #54, `chromite/result-area-2`): 위 탭 `Grid | Text | Messages | Server Output | 실행 계획`, Grid 안 아래쪽 자식 탭 "Result 1"…(영어), Text 탭, 서버 출력은 Server Output 탭(새 출력 점). "결과 영역 두 단계 탭" 절 추가, 쿼리 실행 사양·C단계 Results / Messages·"결과 탭" 절에 표시.
+- 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69, `chromite/editor-fixed-server`): 연결 콤보를 고를 수 없는 서버 표시로, 서버 없는 창은 한 번 고름(단추, Ctrl+9, 실행·계획),
+  "연결 바꾸기" 명령은 만들지 않음. "쿼리 창은 한 서버의 창" 절 추가, 앞의 연결 콤보 설명에 표시. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 Reopen Closed Tab에 Ctrl+Shift+T(⇧⌘T), View > Maximize Results는 Ctrl+Shift+R(⇧⌘R)로(앱 변경 #66, `chromite/small-fixes-r2`): "문서 탭 메뉴"의 단축키 줄을 고침.

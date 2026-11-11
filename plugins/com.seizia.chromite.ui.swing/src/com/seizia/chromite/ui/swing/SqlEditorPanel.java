@@ -96,8 +96,6 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import java.awt.*;
@@ -157,13 +155,16 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>실행 문맥(세션): 설정이 켜져 있으면(기본, SWT와 같음) 쿼리 창마다 자기 격리 문맥을 연다({@link QueryWindowContext}). 그래서 창마다 트랜잭션이
  *     따로다. 실행, 계획, 기본 DB/스키마, 커밋 방식과 열린 트랜잭션 표시, Commit / Roll Back, 트랜잭션 로그, 자동완성이 모두 이 창의 문맥을 쓴다
  *     ({@link #getExecutionContext}). 결과 표의 편집·저장과 {@code @export}는 실행한 문맥을 넘겨받으므로 따라온다. 설정이 꺼져 있거나 "단일 연결"
- *     연결이면 예전처럼 연결의 주 문맥을 같은 연결의 창들과 함께 쓴다. 자기 세션을 끝내는 동작(창 닫기, 연결 바꾸기, 다른 DB 인스턴스로 바꾸기)은
+ *     연결이면 예전처럼 연결의 주 문맥을 같은 연결의 창들과 함께 쓴다. 자기 세션을 끝내는 동작(창 닫기, 다른 DB 인스턴스로 바꾸기)은
  *     커밋하지 않은 트랜잭션이 있으면 먼저 묻는다({@link #confirmEndSession}, 트랜잭션 안전 규칙).</li>
- *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
- *     실행 중에는 바꿀 수 없다. 목록은 콤보를 열 때 활성 프로젝트의 연결로 다시 채운다(추가·삭제·이름 변경 반영).</li>
+ *     <li>서버(앱 변경 #69, 사용자 결정 2026-11-12): 쿼리 창은 한 서버의 창이다. 창을 연 서버를 바꾸는 길은 없다. 클릭이나 방향키 하나로 같은 글이
+ *     다른 서버에서 돌지 않게 하기 위해서다(다른 서버에서 돌리려면 그 서버로 새 쿼리 창을 연다). 도구 막대에는 고를 수 없는 서버 표시
+ *     ({@link QueryWindowServerIndicator})만 둔다. 서버 없이 열린 창(서버를 고르지 않은 파일 열기, 연결이 지워진 복원 창 등)은 서버를 한 번
+ *     고르고({@link #chooseServer}: 표시 자리의 "서버 선택" 단추, Query &gt; Select Connection…, 서버 없이 실행·계획), 그 뒤에는 고정이다.
+ *     서버가 없던 창에는 세션이 없으므로 고를 때 끝낼 세션도 없다.</li>
  *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창마다의 도구 막대는 없다. 실행·중지·계획·편집 명령은 메인 창의 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. 연결·DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
- *     메인 창이 활성 창의 콤보를 그 도구 막대에 끼운다(결과 탭·상태 줄과 같은 방식). 단추의 켜짐은 {@link #canExecute()}, {@link #canCancel()},
+ *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. 서버 표시와 DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
+ *     메인 창이 활성 창의 것을 그 도구 막대에 끼운다(결과 탭·상태 줄과 같은 방식). 단추의 켜짐은 {@link #canExecute()}, {@link #canCancel()},
  *     {@link #canExplain()}으로 메인 창이 정하고, 바뀔 때 {@link Host#executionStateChanged}로 알린다.</li>
  *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
  *     목록과 현재 값은 {@link ContextDefaultObjectsReader}, 바꾸기는 {@link DBExecUtils#setExecutionContextDefaults}다(둘 다 작업 스레드).
@@ -213,7 +214,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     이전·다음 문장과 현재 문장 복사는 실행하지 않으므로 EDT에서 바로 한다.</li>
  *     <li>{@code @set} 변수: 창마다 변수 문맥({@code windowVariables})을 하나 두고 실행마다 만드는 스크립트 문맥의 부모로 넘긴다.
  *     모델의 문맥은 값을 부모까지 올려 쓰고 부모에서 찾으므로 한 실행이 정한 값이 다음 실행에 남는다(SWT 편집기의 전역 문맥과 같음).
- *     창을 닫으면 사라지고 연결을 바꿔도 남는다. Query &gt; Variables…로 보고 고치고 지운다({@link QueryVariablesDialog}).</li>
+ *     창을 닫으면 사라진다. Query &gt; Variables…로 보고 고치고 지운다({@link QueryVariablesDialog}).</li>
  *     <li>{@code @include}: 실행의 스크립트 문맥에 창의 파일을 넘겨 상대 경로가 그 폴더에서 시작한다. 포함한 파일의 문장은 엔진이 끼워 실행하고,
  *     끼우기 전에 위험한 문을 묻고(이 창의 문장과 같은 확인), 오류 위치는 그 파일의 줄로 보인다({@code describeError}).</li>
  *     <li>DDL 뒤 탐색기 갱신({@link SqlMetadataRefresh}): 성공한 문장마다 바뀐 개체의 그릇을 모으고, 실행이 끝나고 세션에 열린 트랜잭션이
@@ -338,6 +339,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  * - 2026-11-11 서버 출력을 읽을지 세션 기준으로 물음({@code isServerOutputEnabled(context)}): Oracle {@code SET SERVEROUTPUT ON}으로
  *   설정이 꺼진 연결에서도 그 창의 출력을 읽음 (docs/chromite/oracle-sqlplus-commands.md)
+ * - 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69, 사용자 결정): 연결 콤보와 전환 처리, 콤보 렌더러·목록 채우기를 지우고 고를 수 없는 서버 표시
+ *   ({@link QueryWindowServerIndicator})로 바꿈. 서버 없는 창은 {@link #chooseServer}로 한 번 고름(서버 없이 실행·계획할 때 안내 대신 고르기)
+ *   (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 열(사각형) 선택이 있으면 실행(F5)과 문장 명령이 보통 선택처럼 사각형의 글을 실행(Execute From Cursor는 캐럿부터 그대로)
  *   (docs/chromite/swing-sql-column-selection.md "실행")
  */
@@ -407,13 +411,15 @@ final class SqlEditorPanel extends JPanel {
      */
     static final String DIRTY_PROPERTY = "dirty"; //$NON-NLS-1$
     /**
-     * Widths of the connection and database/schema pickers, also of the empty pickers shown without a query window so
-     * that the tool bar does not move. The connection picker stays wider than the database/schema one (user decision
-     * 2026-11-08: 260 before); longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
+     * Width of the database/schema picker, also of the empty picker shown without a query window so that the tool bar
+     * does not move. It stays narrower than the server indicator before it ({@link QueryWindowServerIndicator#WIDTH});
+     * longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
      */
-    static final int CONNECTION_PICKER_WIDTH = 220;
     static final int SCHEMA_PICKER_WIDTH = 200;
-    private static final int PICKER_MIN_WIDTH = 100;
+    /**
+     * The width the server indicator and the database/schema picker give way to in a narrow main window.
+     */
+    static final int PICKER_MIN_WIDTH = 100;
 
     private final Host host;
     // EDT only
@@ -428,7 +434,8 @@ final class SqlEditorPanel extends JPanel {
     private SqlFileContent fileFormat;
     private boolean dirty;
     private long maxRows;
-    private final JComboBox<DBPDataSourceContainer> connectionCombo = new JComboBox<>();
+    // The window's server, which does not change once it is set (app change #69)
+    private final QueryWindowServerIndicator serverIndicator = new QueryWindowServerIndicator(this::chooseServer);
     private final JComboBox<Object> schemaCombo = new JComboBox<>();
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
@@ -550,7 +557,7 @@ final class SqlEditorPanel extends JPanel {
     private final Object restoredDefaultsLock = new Object();
 
     /**
-     * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
+     * @param dataSourceContainer server (connection) of the query window, or null to choose it once later ({@link #chooseServer})
      * @param fileName            name of the new query ({@code SQLQueryN.sql}) until it is saved to a file
      */
     SqlEditorPanel(@Nullable DBPDataSourceContainer dataSourceContainer, @NotNull String fileName, @NotNull Host host) {
@@ -563,7 +570,7 @@ final class SqlEditorPanel extends JPanel {
         this.windowVariables = new SQLScriptContext(null, this::getExecutionContext, null, Writer.nullWriter(), null);
 
         textArea = new SqlTextArea();
-        // The connection and session at the time of the request (the connection picker may change them)
+        // The connection and session at the time of the request (a window without a server gets one later, the session opens later)
         completion = new SqlCompletionPopup(textArea, this::getDataSourceContainer, this::getExecutionContext);
         // Hover documentation and Ctrl+click of names, with the connection and session at the time of the request
         SqlObjectNavigation.install(textArea, new SqlObjectNavigation.Host() {
@@ -660,7 +667,6 @@ final class SqlEditorPanel extends JPanel {
                 // Attribute changes do not modify the text
             }
         });
-        reloadConnectionItems();
         refreshSchemas();
     }
 
@@ -1010,9 +1016,8 @@ final class SqlEditorPanel extends JPanel {
      */
     void connectionChanged() {
         host.titleChanged(this);
-        connectionCombo.repaint();
-        // A new name
-        updatePickerToolTips();
+        // A new name or colour
+        serverIndicator.setServer(dataSourceContainer);
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
         // Connected or disconnected: whether the connection gives actual plans is known after connecting
@@ -1304,7 +1309,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Before the window's own session ends (the window closes, changes its connection or its database instance): asks
+     * Before the window's own session ends (the window closes or changes its database instance): asks
      * Commit / Roll back / Cancel when the session has a transaction that is not committed. Nothing to ask when the
      * window shares the connection's main context, which stays open. Call in the EDT.
      *
@@ -1335,49 +1340,11 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The connection and default database/schema pickers. They belong to this window (their models and listeners are its
-     * state); the main window shows the active window's pickers in its SQL Editor tool bar ({@link SqlEditorToolBar}).
+     * The server indicator and the default database/schema picker. They belong to this window (their state and listeners
+     * are its state); the main window shows the active window's ones in its SQL Editor tool bar ({@link SqlEditorToolBar}).
      */
     private void createPickers() {
-        connectionCombo.setRenderer(new ConnectionRenderer());
-        sizePicker(connectionCombo, CONNECTION_PICKER_WIDTH);
-        connectionCombo.addActionListener(e -> {
-            if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
-                // The window's own session on the old connection ends
-                if (!confirmEndSession()) {
-                    updatingCombos = true;
-                    try {
-                        connectionCombo.setSelectedItem(dataSourceContainer);
-                    } finally {
-                        updatingCombos = false;
-                    }
-                    return;
-                }
-                windowContext.release();
-                dataSourceContainer = selected;
-                statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_status_ready);
-                statusLine.setConnection(selected);
-                host.titleChanged(this);
-                refreshSchemas();
-                // The Actual Plan toggle depends on the connection
-                host.executionStateChanged(this);
-            }
-        });
-        connectionCombo.addPopupMenuListener(new PopupMenuListener() {
-            @Override
-            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                // Connections may have been added, removed or renamed since
-                reloadConnectionItems();
-            }
-
-            @Override
-            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-            }
-
-            @Override
-            public void popupMenuCanceled(PopupMenuEvent e) {
-            }
-        });
+        serverIndicator.setServer(dataSourceContainer);
 
         schemaCombo.setRenderer(new SchemaRenderer());
         sizePicker(schemaCombo, SCHEMA_PICKER_WIDTH);
@@ -1387,38 +1354,83 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         // The items are reloaded with new models (setModel fires no item event)
-        for (JComboBox<?> picker : List.of(connectionCombo, schemaCombo)) {
-            picker.addItemListener(e -> updatePickerToolTips());
-            picker.addPropertyChangeListener("model", e -> updatePickerToolTips()); //$NON-NLS-1$
-        }
+        schemaCombo.addItemListener(e -> updatePickerToolTips());
+        schemaCombo.addPropertyChangeListener("model", e -> updatePickerToolTips()); //$NON-NLS-1$
         updatePickerToolTips();
     }
 
     /**
-     * Tool tips of the pickers with the whole name of the selected connection and database/schema: the pickers have a
-     * fixed width and their renderers cut longer names with an ellipsis. The opened list is as wide as its items.
+     * Tool tip of the database/schema picker with the whole name of the selected database/schema: the picker has a fixed
+     * width and its renderer cuts longer names with an ellipsis. The opened list is as wide as its items.
      */
     private void updatePickerToolTips() {
-        connectionCombo.setToolTipText(connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer container
-            ? NLS.bind(EditorMessages.editor_sql_connection_selected_tip, container.getName()) : EditorMessages.editor_sql_connection_tip);
         schemaCombo.setToolTipText(schemaCombo.getSelectedItem() instanceof DBSObject object
             ? NLS.bind(EditorMessages.editor_sql_schema_selected_tip, object.getName()) : EditorMessages.editor_sql_schema_tip);
     }
 
     /**
-     * Connection picker of this window, shown in the main window's SQL Editor tool bar while this window is active.
+     * Server indicator of this window, shown in the main window's SQL Editor tool bar while this window is active.
      */
     @NotNull
-    JComboBox<DBPDataSourceContainer> getConnectionCombo() {
-        return connectionCombo;
+    QueryWindowServerIndicator getServerIndicator() {
+        return serverIndicator;
     }
 
     /**
-     * Default database/schema picker of this window, shown like {@link #getConnectionCombo()}.
+     * Default database/schema picker of this window, shown like {@link #getServerIndicator()}.
      */
     @NotNull
     JComboBox<Object> getSchemaCombo() {
         return schemaCombo;
+    }
+
+    /**
+     * Chooses the server of a window that has none, once (the indicator's Select Server button, Query &gt; Select
+     * Connection…, a run or plan without a server); from then on the window belongs to it like any other (app change #69).
+     * A window that has its server says so in its status line: another server takes a new query window. Nothing ends:
+     * a window without a server has no session. EDT.
+     *
+     * @return the window's server, null when it has none because the user canceled
+     */
+    @Nullable
+    DBPDataSourceContainer chooseServer() {
+        if (dataSourceContainer != null) {
+            statusLine.setState(QueryStatusLine.State.READY, NLS.bind(EditorMessages.editor_sql_server_fixed, dataSourceContainer.getName()));
+            return dataSourceContainer;
+        }
+        List<DBPDataSourceContainer> connections = new ArrayList<>();
+        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
+        if (project != null) {
+            for (DBPDataSourceContainer container : project.getDataSourceRegistry().getDataSources()) {
+                if (!container.isHidden() && !container.isTemporary()) {
+                    connections.add(container);
+                }
+            }
+        }
+        connections.sort(Comparator.comparing(DBPDataSourceContainer::getName, String.CASE_INSENSITIVE_ORDER));
+        DBPDataSourceContainer chosen = ObjectChooserDialog.choose(this, EditorMessages.editor_sql_select_server, connections, null,
+            DBPDataSourceContainer::getName, container -> NodeIcons.getIcon(container.getDriver().getIcon()));
+        if (chosen == null) {
+            return null;
+        }
+        dataSourceContainer = chosen;
+        serverIndicator.setServer(chosen);
+        statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_status_ready);
+        statusLine.setConnection(chosen);
+        host.titleChanged(this);
+        refreshSchemas();
+        // The Actual Plan toggle depends on the connection
+        host.executionStateChanged(this);
+        return chosen;
+    }
+
+    /**
+     * The window's server, chosen first when it has none (a run or plan of a window without a server); null when the user
+     * canceled.
+     */
+    @Nullable
+    private DBPDataSourceContainer chooseServerIfMissing() {
+        return dataSourceContainer != null ? dataSourceContainer : chooseServer();
     }
 
     /**
@@ -1497,10 +1509,9 @@ final class SqlEditorPanel extends JPanel {
             statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_execute);
             return;
         }
-        DBPDataSourceContainer container = dataSourceContainer;
+        // A window without a server chooses it once here
+        DBPDataSourceContainer container = chooseServerIfMissing();
         if (container == null) {
-            JOptionPane.showMessageDialog(this, EditorMessages.editor_sql_choose_connection,
-                EditorMessages.editor_common_execute, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         if (!SqlExecutionSafety.checkExecutePermission(this, container)) {
@@ -1620,8 +1631,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     private void updateActions() {
-        // The connection and its defaults stay as they are while a query runs on them
-        connectionCombo.setEnabled(execution == null);
+        // The defaults stay as they are while a query runs on them
         schemaCombo.setEnabled(execution == null && schemaChangeSupported);
         host.executionStateChanged(this);
     }
@@ -1752,10 +1762,8 @@ final class SqlEditorPanel extends JPanel {
             statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_explain);
             return;
         }
-        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSourceContainer container = chooseServerIfMissing();
         if (container == null) {
-            JOptionPane.showMessageDialog(this, EditorMessages.editor_sql_choose_connection,
-                EditorMessages.editor_sql_estimated_plan, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         explaining = true;
@@ -2739,34 +2747,6 @@ final class SqlEditorPanel extends JPanel {
     // Connection and default schema (EDT)
 
     /**
-     * Fills the connection combo with the connections of the active project (and the current one, if it is elsewhere).
-     */
-    private void reloadConnectionItems() {
-        List<DBPDataSourceContainer> containers = new ArrayList<>();
-        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
-        if (project != null) {
-            for (DBPDataSourceContainer container : project.getDataSourceRegistry().getDataSources()) {
-                if (!container.isHidden() && !container.isTemporary()) {
-                    containers.add(container);
-                }
-            }
-        }
-        if (dataSourceContainer != null && !containers.contains(dataSourceContainer)) {
-            containers.add(dataSourceContainer);
-        }
-        containers.sort(Comparator.comparing(DBPDataSourceContainer::getName, String.CASE_INSENSITIVE_ORDER));
-        updatingCombos = true;
-        try {
-            DefaultComboBoxModel<DBPDataSourceContainer> model = new DefaultComboBoxModel<>();
-            containers.forEach(model::addElement);
-            model.setSelectedItem(dataSourceContainer);
-            connectionCombo.setModel(model);
-        } finally {
-            updatingCombos = false;
-        }
-    }
-
-    /**
      * Reads the default catalog/schema of the window's session and the ones it can change to, in a job. The window's
      * own session opens here when the window gets a connected connection (QueryWindowContext).
      */
@@ -3110,24 +3090,6 @@ final class SqlEditorPanel extends JPanel {
         @NotNull DBCExecutionContext context,
         @NotNull ContextDefaultObjectsReader reader
     ) {
-    }
-
-    /**
-     * Connection items: driver icon and connection name.
-     */
-    private static final class ConnectionRenderer extends DefaultListCellRenderer {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            if (value instanceof DBPDataSourceContainer container) {
-                setText(container.getName());
-                setIcon(NodeIcons.getIcon(container.getDriver().getIcon()));
-            } else {
-                setText(EditorMessages.editor_sql_select_connection);
-                setIcon(null);
-            }
-            return this;
-        }
     }
 
     /**
