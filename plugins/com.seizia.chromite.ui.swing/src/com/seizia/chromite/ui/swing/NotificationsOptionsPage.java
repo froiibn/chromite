@@ -35,6 +35,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-12 저장은 읽는 방식(설정 없음 = 켬, 30초)과 비교: 새 작업 공간에서 끄기가 저장되지 않고 기본값이 늘 다시 쓰이던 것
+ *   (앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  */
 final class NotificationsOptionsPage extends SettingsPage {
 
@@ -73,8 +75,21 @@ final class NotificationsOptionsPage extends SettingsPage {
 
     @Override
     void save(@NotNull Writer writer) {
-        writer.setBoolean(SwingSystemAgent.PREF_LONG_OPERATION_NOTIFY, notifyBox.isSelected());
-        writer.setLong(SwingSystemAgent.PREF_LONG_OPERATION_TIMEOUT, ((Number) timeoutSpinner.getValue()).longValue());
+        // Compared with the values as they are read (no default is registered for the keys: an unset key reads as on and 30 s),
+        // not with getBoolean/getLong of an unset key (false, 0): otherwise "off" on a new workspace was never written and the
+        // unchanged defaults were written on every save. "Off" is written as text: the store drops a boolean equal to the
+        // unregistered default (false), and an unset key reads as on.
+        DBPPreferenceStore store = writer.getStore();
+        boolean notify = notifyBox.isSelected();
+        if (writer.isOverride() || notify != SwingSystemAgent.isLongOperationNotify(store)) {
+            store.setValue(SwingSystemAgent.PREF_LONG_OPERATION_NOTIFY, String.valueOf(notify));
+            writer.markChanged();
+        }
+        long timeout = ((Number) timeoutSpinner.getValue()).longValue();
+        if (writer.isOverride() || timeout != SwingSystemAgent.getLongOperationTimeout(store)) {
+            store.setValue(SwingSystemAgent.PREF_LONG_OPERATION_TIMEOUT, timeout);
+            writer.markChanged();
+        }
     }
 
     @Override

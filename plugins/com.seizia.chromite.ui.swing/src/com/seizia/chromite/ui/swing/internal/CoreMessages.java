@@ -256,10 +256,21 @@ public class CoreMessages extends NLS {
     public static String options_bold;
     public static String options_italic;
     public static String options_preview;
-    public static String options_save_failed_title;
-    public static String options_save_failed;
     public static String options_search_placeholder;
     public static String options_search_no_match;
+    public static String options_revert;
+    public static String options_changes_one;
+    public static String options_changes;
+    public static String options_not_saved;
+    public static String options_leave_title;
+    public static String options_leave_message;
+    public static String options_discard;
+    public static String options_group_general;
+    public static String options_group_editor;
+    public static String options_group_results;
+    public static String options_group_connections;
+    public static String options_group_databases;
+    public static String options_group_chromite;
 
     public static String editor_colors_text;
     public static String editor_colors_keyword;

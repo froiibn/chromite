@@ -21,7 +21,6 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -35,16 +34,20 @@ import java.util.List;
  * Tools &gt; Options &gt; Templates: the SQL templates ({@link SqlTemplates}) to view, change, add and remove.
  *
  * 설계: SWT 설정 페이지({@code PrefPageSQLTemplates})처럼 목록과 선택한 템플릿의 이름·설명·내용 편집이다. 고친 내용은 이 페이지 안의 복사본에만 두고
- * 대화상자의 OK에서 {@link #apply()}가 한 번에 저장한다. 기본 템플릿은 지우면 숨겨지고(저장 파일의 {@code deleted}), Restore Defaults가 되살린다.
+ * 페이지의 [저장]에서 {@link #save()}가 한 번에 저장한다(표 편집은 값: 사용 체크 상자도 바로 저장하지 않음). 기본 템플릿은 지우면 숨겨지고
+ * (저장 파일의 {@code deleted}), Restore Defaults가 되살린다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 Options 저장 표준: 바뀐 수, [저장], [되돌리기], 저장 실패는 페이지 아래 줄에(앱 변경 #59, docs/chromite/swing-options.md
+ *   "옵션 화면 모양과 저장 (#59)")
  */
 final class SqlTemplatesPage extends JPanel {
 
     private final List<SqlTemplates.Template> templates = new ArrayList<>(SqlTemplates.getTemplates());
-    private final List<SqlTemplates.Template> original = List.copyOf(templates);
+    // The saved templates, to count and revert the changes
+    private List<SqlTemplates.Template> original = List.copyOf(templates);
     private final TemplatesModel model = new TemplatesModel();
     private final JTable table = new JTable(model);
     private final JTextField nameField = new JTextField(16);
@@ -143,17 +146,42 @@ final class SqlTemplatesPage extends JPanel {
     }
 
     /**
-     * Saves the templates if they changed (Options dialog OK).
+     * The number of templates added, changed or removed (by position in the list).
      */
-    void apply() {
-        if (templates.equals(original)) {
-            return;
+    int getChangeCount() {
+        int count = Math.abs(templates.size() - original.size());
+        for (int i = 0; i < Math.min(templates.size(), original.size()); i++) {
+            if (!templates.get(i).equals(original.get(i))) {
+                count++;
+            }
         }
-        try {
-            SqlTemplates.save(templates);
-        } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(EditorMessages.editor_templates_title, EditorMessages.editor_templates_cant_save, e);
+        return count;
+    }
+
+    /**
+     * Saves the templates (the page's Save).
+     */
+    void save() throws DBException {
+        if (table.isEditing()) {
+            table.getCellEditor().stopCellEditing();
         }
+        SqlTemplates.save(templates);
+        original = List.copyOf(templates);
+    }
+
+    /**
+     * The saved templates again (the page's Revert).
+     */
+    void revert() {
+        int row = table.getSelectedRow();
+        templates.clear();
+        templates.addAll(original);
+        model.fireTableDataChanged();
+        if (!templates.isEmpty()) {
+            int index = Math.clamp(row, 0, templates.size() - 1);
+            table.getSelectionModel().setSelectionInterval(index, index);
+        }
+        showSelected();
     }
 
     @Nullable
