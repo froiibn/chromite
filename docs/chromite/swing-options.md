@@ -485,6 +485,21 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 - 감시 방식: 같은 JNA 호출을 내 임시 키(`HKCU\Software\ChromiteThemeLookProbe`, 끝나고 지움)에 걸고 값을 쓰면 0 ms 안에 돌아옴(사용자의 Personalize 키는 건드리지 않음).
 - **확인하지 못함:** 실제로 Windows 앱 모드를 바꿨을 때 실행 중인 앱이 바뀌는 것(사용자 PC 설정을 바꾸지 않음), macOS 전체.
 
+## UI 글꼴 (2026-11-12, 앱 변경 #43)
+
+사용자 보고(기업 환경 2026-11-09·11): 회사 PC(클라우드 VDI, 100% 배율, ClearType 켜짐)에서 Chromite 글자만 흐리다. 원인과 측정은
+[design-spec.md](design-spec.md) "적용 현황 — 글자 선명도와 대비".
+
+- 선택지: Options > General > Environment의 **UI 글꼴**: 자동(기본값) / Pretendard / 시스템 글꼴. 저장값은 설정 `ui.font`(`AUTO` / `PRETENDARD` / `SYSTEM`,
+  테마와 같은 이 번들의 작업 공간 설정). 저장값이 없으면 `AUTO`. 옆 안내 글: "자동: 화면 배율 150% 미만에서는 더 선명한 시스템 글꼴".
+- 자동: 기본 화면의 배율이 150% 미만(100%, 125%)이면 시스템 글꼴, 150% 이상이면 Pretendard. 테마를 설치할 때마다 정한다.
+- 시스템 글꼴: FlatLaf의 운영체제 UI 글꼴(Windows `win.messagebox.font`: 한국어 Windows는 맑은 고딕, 영어 Windows는 Segoe UI, macOS는 시스템 글꼴),
+  크기는 테마의 `font.ui`와 같은 12, semibold는 그 글꼴의 BOLD. 고정폭(`font.code`)과 SQL 편집기 글꼴은 바뀌지 않는다.
+- 구조: `UiFont.Choice`가 선택이고 `UiFont.getExtraDefaults()`가 시스템 글꼴일 때 `defaultFont = 12`, `semibold.font = bold`를 FlatLaf extra defaults로
+  준다(`ChromiteTheme.install`, 밀도와 같은 방식). OK를 누르면 저장하고, 쓰는 글꼴이 바뀌면 지금 테마를 다시 설치해 열린 창이 모두 바뀐다(다시 시작 없음).
+  시작할 때는 작업 공간을 잠그기 전에 자동으로 설치하고, 메인 창을 열기 전에 저장값이 다른 글꼴이면 다시 설치한다(`ChromiteSwingApplication.openMainWindow`).
+- 이 행은 Options 대화상자의 General 페이지에 한 행(콤보와 안내 글)만 더했다. 대화상자의 모양은 바꾸지 않았다.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -645,6 +660,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-09 Connection Types에 "조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기"(앱 변경 #31, 기본 꺼짐, 사용자 결정으로 연결 유형마다)
   ([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기"). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 - 2026-11-11 테마 선택에 시스템 설정 따르기(기본값), 운영체제 설정이 바뀌면 따라감(앱 변경 #38, 위 "테마").
+- 2026-11-12 General에 UI 글꼴(자동·Pretendard·시스템 글꼴, 기본값 자동)(앱 변경 #43, 위 "UI 글꼴").
 
 ## 부록: 키별 상태
 

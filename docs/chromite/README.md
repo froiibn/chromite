@@ -53,7 +53,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [connection-lifecycle.md](connection-lifecycle.md) | 연결 수명 주기: 여러 연결 끊기, 무효화·다시 연결, 연결 끊김·드라이버 오류 대화상자, 끝낼 때 실행 중인 작업, 스마트 커밋, 트랜잭션 로그의 지난 트랜잭션, H2 초기화 SQL·SQLite 확장 승인, 절전, 세션을 닫는 모든 경로의 트랜잭션 질문 점검 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정, 머리글 정렬이 쿼리의 ORDER BY를 바꿈·감싼 쿼리의 ORDER BY 옮기기 |
 | [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |
-| [design-spec.md](design-spec.md) | Swing 화면 디자인 사양: 배치·동작은 SSMS, 모양은 DataGrip New UI. 요소별 비교, 디자인 토큰과 FlatLaf 키, 아이콘 요구 사항, 적용 현황(Islands, 아이콘 팩, 글꼴, 촘촘한 모드, 측정값) |
+| [design-spec.md](design-spec.md) | Swing 화면 디자인 사양: 배치·동작은 SSMS, 모양은 DataGrip New UI. 요소별 비교, 디자인 토큰과 FlatLaf 키, 아이콘 요구 사항, 적용 현황(Islands, 아이콘 팩, 글꼴, 촘촘한 모드, 글자 선명도와 대비, 측정값) |
 | [swing-table-designer.md](swing-table-designer.md) | Swing 테이블 디자이너(Design, New Table…): 열·키·외래 키·인덱스 편집, 변경 스크립트 미리 보기와 저장, 드라이버별 부분(어댑터) |
 | [swing-explorer-object-actions.md](swing-explorer-object-actions.md) | Swing 개체 탐색기 개체 작업: DB 객체 삭제(여러 개, 연쇄 옵션)·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴 |
 | [swing-explorer-productivity.md](swing-explorer-productivity.md) | Swing 개체 탐색기 생산성: 필터 대화상자(포함·제외 마스크, 범위), 빠른 거르기, 편집기와 연결, 두 번 클릭 설정, 긴 폴더 "더 읽기", 선택하여 복사, 연결 복제, 개체 세부 정보(F7, 종속성·참조 탭), 기본 데이터베이스·스키마 지정, Ctrl+9 / Ctrl+0 |

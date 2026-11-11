@@ -50,7 +50,8 @@ import java.awt.event.WindowEvent;
  * 저장 안 한 편집기와 커밋하지 않은 트랜잭션을 묻게 한다). 사용자가 취소하면 창이 남고 다시 시작 요청도 지운다.
  * 설치는 앱이 끝난 뒤 도우미가 한다({@code ChromiteSwingApplication}이 {@link UpdateService#applyAtExit}를 부른다).
  *
- * 진행 글자는 보조 글자 색이고, 상태 표시줄이 활성 쿼리 창 연결 색으로 칠해져 그 색 위에서 읽히지 않으면 쿼리 창 칸과 같은 대비 색이다.
+ * 진행 글자는 상태 표시줄의 다른 글자와 같은 본문 글자 색(text.primary)이고, 상태 표시줄이 활성 쿼리 창 연결 색으로 칠해져 그 색 위에서
+ * 읽히지 않으면 쿼리 창 칸과 같은 대비 색이다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
@@ -59,6 +60,8 @@ import java.awt.event.WindowEvent;
  * - 2026-11-09 macOS 화면 메뉴 막대에는 메뉴만 보이므로 단추를 상태 표시줄 오른쪽 끝, 진행 옆에 둠({@link MacOSScreenMenuBar#isEnabled()},
  *   앱 변경 #27). Windows는 그대로 (docs/chromite/mac-ui.md)
  * - 2026-11-09 모든 사용자 설치의 "받아서 확인함" 툴팁: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-12 진행 글자를 보조 글자 색에서 본문 글자 색으로(앱 변경 #55: 다크 테마 상태 표시줄 글자가 잘 보이지 않음)
+ *   (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class UpdateUi {
 
@@ -92,15 +95,14 @@ final class UpdateUi {
 
         progressLabel = new JLabel() {
             /**
-             * text.secondary, or the contrast color while the status bar is painted in a query window connection's color
-             * the theme's text is unreadable on ({@link MainFrame#STATUS_BAR_FOREGROUND_KEY}). Read when painting: a FlatLaf
-             * style cannot set the color of this class (see {@link QueryStatusLine}).
+             * The theme's text color, or the contrast color while the status bar is painted in a query window connection's
+             * color the theme's text is unreadable on ({@link MainFrame#STATUS_BAR_FOREGROUND_KEY}). Read when painting: the
+             * band color changes without a theme change.
              */
             @Override
             public Color getForeground() {
                 Color band = statusBar == null ? null : (Color) statusBar.getClientProperty(MainFrame.STATUS_BAR_FOREGROUND_KEY);
-                Color color = band != null ? band : UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
-                return color != null ? color : super.getForeground();
+                return band != null ? band : super.getForeground();
             }
         };
         progressBar.setPreferredSize(new Dimension(UIScale.scale(120), UIScale.scale(4)));

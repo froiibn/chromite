@@ -201,6 +201,8 @@ public class CoreMessages extends NLS {
     public static String options_environment;
     public static String options_theme;
     public static String options_icon_style;
+    public static String options_ui_font;
+    public static String options_ui_font_hint;
     public static String options_query_editor;
     public static String options_auto_complete;
     public static String options_completion_delay;
@@ -335,6 +337,8 @@ public class CoreMessages extends NLS {
     public static String theme_dark;
     public static String icon_style_duotone;
     public static String icon_style_color;
+    public static String ui_font_auto;
+    public static String ui_font_system;
 
     public static String toolwindow_close;
     public static String toast_click_details;

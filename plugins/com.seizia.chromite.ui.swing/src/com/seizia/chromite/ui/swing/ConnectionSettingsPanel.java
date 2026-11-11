@@ -133,6 +133,8 @@ import java.util.Set;
  *   대화상자에서만 정할 수 있었다 (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  * - 2026-11-08 Connection Properties에 연결별 제한(SWT {@code ConnectionPageGeneral}의 Edit permissions, 비어 있으면 연결 유형의 제한)
  *   (docs/chromite/swing-conn-advanced.md "연결별 제한과 연결 잠금")
+ * - 2026-11-12 경고 글자는 아이콘 색 대신 글자용 경고 색 {@code Chromite.status.warningForeground}(앱 변경 #55: 밝은 테마의 경고 색 #FFAF0F는
+ *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -857,7 +859,7 @@ final class ConnectionSettingsPanel extends JPanel {
         idleTxnRollbackCheck.addActionListener(e -> updateIdleTransactionFields());
         idleTxnRemindCheck.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
         idleTxnPeriodSpinner.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);
-        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warning"); //$NON-NLS-1$
+        idleTxnRollbackWarning.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
         for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner, idleTxnPeriodSpinner)) {
             // Seconds without digit grouping
             JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#"); //$NON-NLS-1$
