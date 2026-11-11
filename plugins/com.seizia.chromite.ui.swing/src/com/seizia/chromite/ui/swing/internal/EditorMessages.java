@@ -62,6 +62,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 결과 영역 두 단계 탭: 위 탭 이름 {@code editor_results_grid}, {@code editor_results_text}, {@code editor_results_server_output},
  *   Text 탭의 결과 제목 {@code editor_results_text_title}, 새 서버 출력 도구 설명 {@code editor_results_server_output_new_tip} 추가,
  *   {@code editor_results_tab}은 언어와 관계없이 "Result N" (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 Execution plan 탭 점의 도구 설명 {@code editor_results_plan_new_tip}, {@code editor_results_plan_none_tip} 추가
+ *   (앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -339,6 +341,8 @@ public class EditorMessages extends NLS {
     public static String editor_results_text_title;
     public static String editor_results_server_output;
     public static String editor_results_server_output_new_tip;
+    public static String editor_results_plan_new_tip;
+    public static String editor_results_plan_none_tip;
     public static String editor_results_tab;
     public static String editor_results_pinned;
     public static String editor_results_pinned_tip;

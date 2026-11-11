@@ -333,6 +333,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-12 {@link #setFileName}: 저장 전 창의 이름 바꾸기(문서 탭 메뉴, 앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 서버 출력(DBMS_OUTPUT, 출력으로 가른 PRINT·NOTICE 경고)을 Messages 대신 결과 영역의 Server Output 탭에 씀({@link #isServerOutput},
  *   앱 변경 #54 두 단계 탭) (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭", docs/chromite/swing-server-output.md)
+ * - 2026-11-12 실제 계획을 켠 실행이 끝나면 Execution plan 탭에 점({@link #finishActualPlan}, 앱 변경 #58)
+ *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1689,20 +1691,24 @@ final class SqlEditorPanel extends JPanel {
         if (!run.includeActualPlan) {
             return;
         }
+        // The tab the run brought to the front stays there: the Execution plan tab gets a dot until it is looked at
         if (!run.planChecked) {
             // The run stopped before it reached the connection
             planView.clear(EditorMessages.editor_sql_plan_did_not_run);
+            resultsView.markPlanUnread(false);
             return;
         }
         if (run.actualPlan == null) {
             planView.clear(run.actualPlanError != null
                 ? NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, run.actualPlanError)
                 : EditorMessages.editor_sql_actual_plan_unsupported);
+            resultsView.markPlanUnread(false);
             return;
         }
         if (!planView.hasContent()) {
             planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled : EditorMessages.editor_sql_plan_none_returned);
         }
+        resultsView.markPlanUnread(planView.hasContent());
     }
 
     /**
@@ -2486,7 +2492,7 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void afterStatementExecuted(@NotNull DBCSession session, @NotNull DBCStatement statement, @NotNull SQLQuery query) {
-            // Altibase: the driver gives the statement's plan only while it is open
+            // Altibase: the driver gives the statement's plan only while it is open; Oracle: the driver names its cursor
             SQLActualPlanProvider.Run actualPlan = run.actualPlan;
             if (actualPlan != null && !run.cancelRequested) {
                 addActualPlan(run, query.getText(), () -> actualPlan.readOpenStatementPlan(session, statement, query.getText()));

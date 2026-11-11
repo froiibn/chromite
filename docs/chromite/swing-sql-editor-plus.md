@@ -236,8 +236,9 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
   쿼리 창에서는 쓰지 않았다: 사용자 문장 글자가 바뀌면 오류 위치(드라이버가 주는 글자 위치)가 어긋나고, 원본 보기에 힌트가 보이며, 사용자의 힌트와 합쳐야 한다.
   가져온 것은 같은 계획 행 뷰(`V$SQL_PLAN_STATISTICS_ALL`), `DISPLAY_CURSOR(sql_id, child, 'ALLSTATS LAST')` 글자, 권한 안내(`GRANT SELECT_CATALOG_ROLE`),
   DISPLAY_CURSOR가 권한 없음을 글자로 돌려주는 경우의 판별이다.
-- 커서 찾기: 문장을 닫은 직후 같은 세션의 `V$SESSION.PREV_SQL_ID/PREV_CHILD_NUMBER`. 커서를 닫아야 그 실행의 통계가 끝난다(200행만 가져온 SELECT도 A-Rows는
-  가져온 만큼). 그 사이 같은 세션에서 다른 문장이 돌았으면 엉뚱한 계획을 보이지 않도록, 커서 글자(`V$SQL.SQL_TEXT`, 앞 1,000자)가 실행한 글자와 같은지 본다
+- 커서 찾기: 문장이 열려 있을 때 드라이버가 준 SQL_ID(`OracleStatement.getSqlId()`, ojdbc 23부터, 2026-11-12 "실제 계획 토글 점검")와, 문장을 닫은 직후
+  같은 세션의 `V$SESSION.PREV_SQL_ID/PREV_CHILD_NUMBER`. PREV가 같은 SQL_ID면 그 자식 번호, 아니면 그 SQL_ID에서 가장 최근에 쓰인 자식이다. SQL_ID를 주지 않는
+  옛 드라이버는 PREV만 쓴다. 커서를 닫아야 그 실행의 통계가 끝난다(200행만 가져온 SELECT도 A-Rows는 가져온 만큼). 그 사이 같은 세션에서 다른 문장이 돌았으면 엉뚱한 계획을 보이지 않도록, 커서 글자(`V$SQL.SQL_TEXT`, 앞 1,000자)가 실행한 글자와 같은지 본다
   (공백 차이, 드라이버가 `?`를 바꾼 `:1`은 같게 본다). 다르면 그 문장 항목에 이유를 보인다.
 - 계획이 없는 문장(PL/SQL 블록, DDL, COMMIT 등)은 첫 낱말(앞 주석·괄호 다음, SELECT/WITH/INSERT/UPDATE/DELETE/MERGE)로 걸러 서버에 묻지 않는다.
 - 계획 모델: `OracleExecutionPlan.readCursorPlan`이 커서 계획 행을 PLAN_TABLE과 같은 코드(`readNodes`)로 잇는다. 열 이름이 같고, 적응 계획 거르기(`hideInactiveRows`)도
@@ -283,6 +284,71 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 | PostgreSQL | 연결 전 토글 켜고 실행: 계획 탭에 지원 안 함 이유. 연결 뒤 토글·도구 막대 단추 꺼짐, 도구 설명이 이유(영어·한국어) |
 
 화면: `D:\Tools\_scratch\actual-plan-more-dbs\shots\`(en/ko Oracle 그래픽·트리·원본, Altibase 그래픽·원본·트리, PostgreSQL 꺼진 토글). 회귀 테스트는 실행하지 않았다.
+
+### 실제 계획 토글 점검 (2026-11-12, 앱 변경 #58)
+
+사용자 보고(기업 환경): "실제 실행계획 토글이 제대로 안 켜지는 문제, 쿼리가 실행되고 실행계획이 제대로 안 나오는 문제". 재현 조건은 몰랐다.
+기대 동작(SSMS와 같음, 설계 그대로): 예상 계획 단추는 실행하지 않고 바로 예상 계획, 실제 계획은 끌 때까지 켜져 있는 토글이고 켜져 있으면 실행할 때마다
+결과와 함께 실행 계획 탭에 실제 계획(문장은 한 번만 실행).
+
+시험 DB VM(SQL Server 2022, Oracle 23.26 Free, PostgreSQL 17, MariaDB 11, MySQL 8.4)에서 devel 빌드로 재현했다. 찾은 원인은 셋이고, 토글 자체가
+꺼지는 경우는 찾지 못했다(아래 "토글").
+
+#### 원인 1: Oracle, 최대 행 수에 닿은 쿼리의 계획이 나오지 않음
+
+- 증상: 결과가 최대 행 수(기본 200) 이상인 쿼리는 계획 탭에 계획 대신 "The statement ran, but another statement ran on the session before its plan was read".
+  200행 미만이면 나온다. 실무 쿼리는 대개 200행을 넘으므로 "가끔 안 나온다"로 보였다.
+- 근거: 세션 SQL trace로 문장 사이에 다른 문장이 돌지 않은 것을 확인했다. 같은 연결에서 JDBC로 다시 해 보니 `setMaxRows(200)`을 건 문장을 끝까지 읽지 않고
+  닫으면 `V$SESSION.PREV_SQL_ID`가 그 문장이 아니라 그 앞 문장을 가리킨다(`setMaxRows(0)`이면 맞게 가리킨다). Chromite는 모든 쿼리에 결과 행 수 제한을
+  `setMaxRows`로 건다(`JDBCStatementImpl.setLimit`).
+- 고침: 커서의 SQL_ID를 문장이 열려 있는 동안 드라이버에게 받아 둔다(`OracleActualPlanProvider`의 `Run.readOpenStatementPlan`, 엔진 훅
+  `afterStatementExecuted`). 계획은 지금처럼 닫은 뒤 읽는다(통계가 끝난 뒤). 자식 커서는 PREV가 같은 SQL_ID면 그 번호, 아니면 그 SQL_ID에서 가장 최근에
+  쓰인 자식(`statistics_level = ALL` 세션은 따로 자식 커서를 쓰므로 다른 세션과 섞일 일이 거의 없다). 커서 글자 확인은 그대로다. 같은 원인의 다른 경우:
+  가져오다 취소한 쿼리, 결과를 끝까지 읽지 않은 모든 쿼리. 남는 경우: ojdbc 23 전 드라이버는 SQL_ID를 주지 않아 지금처럼 PREV만 쓴다.
+
+#### 원인 2: SQL Server, SHOWPLAN 권한이 없는 로그인은 문장이 실행되지 않음
+
+- 증상: 토글을 켜고 실행하면 모든 문장이 "SHOWPLAN permission denied in database …"(오류 262)로 실패하고 빈 결과 표가 생기며, 계획 탭은 "서버가 실제 실행
+  계획을 반환하지 않았습니다". 사용자에게는 쿼리도 계획도 안 나오는 것으로 보인다.
+- 원인: `SET STATISTICS XML ON`은 권한 없이도 성공하고, 권한은 문장을 실행할 때 확인된다(SSMS도 같은 오류를 낸다).
+- 고침: 켜기 전에 세션의 현재 DB에서 `HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'SHOWPLAN')`을 확인한다(`SQLServerQueryPlanner.startRun`). 없으면 켜지 않고,
+  Messages와 계획 탭에 "실제 실행 계획을 포함하지 못했습니다: Actual plans need the SHOWPLAN permission in database '…' (GRANT SHOWPLAN TO &lt;user&gt;)"를
+  보이며 문장은 계획 없이 실행된다(Oracle 권한 부족과 같은 흐름). 이 확인은 표를 읽지 않으므로 수동 커밋에서도 암묵 트랜잭션을 시작하지 않는다.
+  남는 경우: 실행 중 `USE`로 권한 없는 DB로 옮기면 그 뒤 문장은 서버 오류 262로 실패한다(SSMS와 같음).
+
+#### 원인 3: 계획이 와도 결과 탭이 앞에 남아 보이지 않음
+
+- #226(두 단계 탭) 뒤 계획은 위 탭 줄의 실행 계획 탭에 쓰이지만, 실행이 끝나면 Grid(오류면 Messages)가 앞에 오고 계획 탭에는 아무 표시가 없었다.
+- 고침: 실제 계획을 켠 실행이 끝나면 실행 계획 탭이 앞에 없을 때 점을 붙인다(`QueryResultsView.markPlanUnread`). 계획이 왔으면 초록 점("방금 실행의 실제 실행 계획"),
+  계획 대신 이유만 있으면(권한·지원 안 함·계획 없음) 노란 점("방금 실행의 실제 실행 계획 없음: 이유는 탭에 있습니다"). 탭을 보면 점이 없어지고, 다음 실행이 지운다.
+  탭을 앞으로 가져오지 않는 것은 SSMS와 같다(결과가 앞).
+
+#### 토글
+
+토글이 꺼지는 경우는 재현되지 않았다. 확인한 것: 도구 막대 단추, Query 메뉴 항목, Ctrl+M(쿼리 창 글 칸에 보낸 키 이벤트)이 같은 상태를 바꾸고, 실행 뒤·다른 쿼리
+창으로 갔다 온 뒤·DB 바꾼 뒤에도 켜진 모양(회색 바탕)이 남는다. 창마다 따로다(새 창은 꺼짐). 사용자가 "안 켜진다"고 볼 수 있는 경우는 설계대로인 하나다:
+연결하기 전에는 어댑터를 몰라 켤 수 있고, 실행해 연결된 뒤 지원하지 않는 연결(PostgreSQL, MySQL·MariaDB 등)이면 단추가 꺼지고 흐려지며 도구 설명과 계획 탭이
+이유를 말한다.
+
+#### 확인 (2026-11-12)
+
+빌드 `BUILD SUCCESS`, `tools/rename/gate.py` ALL GATES PASSED. 시험 DB VM에 터널로 붙어, 빌드한 제품 한 벌을 개인 작업 공간·설정·`CHROMITE_DATA`로 띄우고
+프로세스 안 시험 에이전트(제품에 넣지 않음, OS 입력 없음)가 도구 막대 단추(`doClick`)·Query 메뉴 항목·Ctrl+M 키 이벤트로 토글하고 실행했다. 한국어, Windows 11 150%.
+권한을 줄인 계정(SQL Server 로그인 SHOWPLAN 없음, Oracle 사용자 CREATE SESSION과 표 권한만)은 브랜치 이름의 시험 DB에 만들었다가 지웠다.
+
+| 항목 | 고치기 전(devel) | 고친 뒤 |
+|---|---|---|
+| SQL Server sa: 한 문장, 여러 문장(SELECT·UPDATE·0행), 선택, GO 일괄 처리, 200행 넘는 결과 | 계획 나옴(`SELECT 1`처럼 FROM 없는 문장은 서버가 계획을 주지 않음) | 같음, 실행 계획 탭에 초록 점, 탭을 보면 점 없어짐 |
+| SQL Server SHOWPLAN 없는 로그인 | 두 문장 모두 오류 262, 빈 결과 표, 계획 탭 "서버가 실제 실행 계획을 반환하지 않았습니다" | 결과 5행·1행, Messages와 계획 탭에 권한 안내, 노란 점 |
+| SQL Server 수동 커밋에서 토글 켜고 `SELECT 1` 뒤 `@@TRANCOUNT` | - | 0(권한 확인이 트랜잭션을 열지 않음) |
+| Oracle system: 200행 미만 SELECT·UPDATE·0행 | 계획 나옴 | 같음 |
+| Oracle system: 최대 행 수(200)에 닿은 SELECT(넘음·딱 200행), 그 문장만 선택 | "another statement ran on the session before its plan was read" | 계획 나옴(A-Rows 200), 다섯 문장 스크립트에서 계획 5개 |
+| Oracle 오류 문장 | 오류, 계획 탭 "반환하지 않았습니다" | 같음, 노란 점 |
+| Oracle V$ 권한 없는 사용자 | Messages와 계획 탭에 권한 안내, 문장 실행 | 같음, 노란 점 |
+| PostgreSQL 17, MariaDB 11, MySQL 8.4(MariaDB Connector/J) | 연결 전 켜고 실행: 계획 탭에 지원 안 함 이유, 단추 꺼지고 흐려짐, 도구 설명에 이유 | 같음, 노란 점 |
+| 토글 유지 | 실행 뒤, 다른 쿼리 창 갔다 옴, DB 선택 바꿈: 켜진 모양 유지. 창마다 따로. 끄면 다음 실행은 계획 없음 | 같음 |
+
+회귀 테스트는 실행하지 않았다(사용자 요청 없음).
 
 ### 쿼리 기록
 
@@ -431,3 +497,5 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
   `afterStatementExecuted`를 더함. Oracle은 `statistics_level = ALL` + 커서 계획(`OracleActualPlanProvider`, `OracleActualPlanNode`), Altibase는 드라이버
   `EXPLAIN PLAN = ON`(`AltibaseActualPlanProvider`). 어댑터가 없는 연결에서 SELECT를 `EXPLAIN ANALYZE`로 다시 실행하던 실제 계획을 지우고 토글을 끔(도구 설명에 이유).
 - 2026-11-09 실제 계획 포함의 macOS 키 ⇧⌘M(⌘M은 최소화, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
+- 2026-11-12 실제 계획 토글 점검(앱 변경 #58, "실제 계획 토글 점검"): Oracle은 커서를 드라이버의 SQL_ID로 찾음(최대 행 수에 닿은 쿼리의 계획이 나오지 않던 것),
+  SQL Server는 켜기 전에 SHOWPLAN 권한을 확인(권한 없는 로그인에서 모든 문장이 오류 262로 실패하던 것), 실행 계획 탭의 새 계획 점.
