@@ -26,6 +26,7 @@ import com.seizia.chromite.model.connection.DBPConnectionType;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.font.FontRenderContext;
 import java.awt.geom.RoundRectangle2D;
 
 /**
@@ -45,11 +46,15 @@ import java.awt.geom.RoundRectangle2D;
  *     테두리 색은 바탕색에서 끌어낸다: 같은 색상(hue)에서 채도를 올리고 밝기를 바탕과 먼 쪽(밝은 바탕이면 어둡게, 어두운 바탕이면 밝게)으로 옮겨
  *     바탕과 3:1(WCAG 비텍스트 대비)이 되는 첫 색이다. 다크 테마의 어두운 바탕에서는 더 어두운 색으로 3:1을 만들 수 없어서 밝은 쪽으로 간다.
  *     연결에 정한 색도 같은 규칙이다.</li>
+ *     <li>알약은 글자 줄(ascent + descent + leading)보다 위아래로 넘칠 수 있다(아래는 descent + 1이라 leading이 1보다 작으면 넘침).
+ *     넘치는 양은 {@link #getOverhang}이 그리기와 같은 계산으로 알려 준다. 글자 높이만큼만 큰 라벨(쿼리 창 서버 표시)은 그만큼 여백을 두어야
+ *     알약이 잘리지 않는다. 트리 행은 행 높이가 글자 줄보다 커서 여백이 필요 없다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 연결 색을 줄 바탕 대신 이름 알약으로 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 글자가 바탕과 4.5:1이 안 되면 대비 색, 대비 계산은 {@link ConnectionColors}로 옮김
+ * - 2026-11-12 {@link #getOverhang}: 글자 줄 밖으로 넘치는 높이를 그리기와 같은 계산으로 알림(쿼리 창 서버 표시의 아래 테두리 잘림, 앱 변경 #71 a)
  */
 final class ConnectionPill {
 
@@ -105,6 +110,32 @@ final class ConnectionPill {
     }
 
     /**
+     * How far a pill reaches above (top) and below (bottom) the text line of a label in this font, in whole pixels (0 when
+     * it stays inside). A label that is only as high as its text line adds it to its insets, or the pill is cut.
+     */
+    @NotNull
+    static Insets getOverhang(@NotNull JComponent label, @NotNull Font font) {
+        FontMetrics metrics = label.getFontMetrics(font);
+        double above = getExtentAbove(font, metrics.getFontRenderContext());
+        double below = getExtentBelow(metrics);
+        // The text line of a label: ascent above the baseline, descent and leading below it
+        int top = Math.max(0, (int) Math.ceil(above - metrics.getAscent()));
+        int bottom = Math.max(0, (int) Math.ceil(below - metrics.getDescent() - metrics.getLeading()));
+        return new Insets(top, 0, bottom, 0);
+    }
+
+    // Top of the pill above the baseline: the cap height and the top padding
+    private static double getExtentAbove(@NotNull Font font, @NotNull FontRenderContext context) {
+        double capHeight = font.createGlyphVector(context, "H").getVisualBounds().getHeight(); //$NON-NLS-1$
+        return capHeight + UIScale.scale(PADDING_TOP);
+    }
+
+    // Bottom of the pill below the baseline: the descent and the bottom padding
+    private static double getExtentBelow(@NotNull FontMetrics metrics) {
+        return metrics.getDescent() + UIScale.scale(PADDING_BOTTOM);
+    }
+
+    /**
      * Paints the pill around the label's text, before the label paints itself (the text stays on top).
      *
      * @param textX     x of the label's text
@@ -116,9 +147,8 @@ final class ConnectionPill {
         try {
             FlatUIUtils.setRenderingHints(g2);
             Font font = label.getFont();
-            double capHeight = font.createGlyphVector(g2.getFontRenderContext(), "H").getVisualBounds().getHeight(); //$NON-NLS-1$
-            double top = baseline - capHeight - UIScale.scale(PADDING_TOP);
-            double bottom = baseline + label.getFontMetrics(font).getDescent() + UIScale.scale(PADDING_BOTTOM);
+            double top = baseline - getExtentAbove(font, g2.getFontRenderContext());
+            double bottom = baseline + getExtentBelow(label.getFontMetrics(font));
             double x = textX - getPaddingX();
             double width = textWidth + 2 * getPaddingX();
             double height = bottom - top;
