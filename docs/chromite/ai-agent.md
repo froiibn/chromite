@@ -1572,9 +1572,9 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 
 - 분류기가 읽기라고 판정한 문장이 함수 안에서 쓰면 공유 세션에서 실제로 쓴다: PostgreSQL `runReadOnlySql` `SELECT f_write()`(INSERT하는 SQL 함수)가
   공유 세션에서 행을 넣었다(격리 문맥은 "cannot execute INSERT in a read-only transaction"). 브리프의 규칙("읽기는 그대로")에 따라 막지 않았다.
-- SQL Server는 `;` 없이 문장을 이어 쓸 수 있는데 JSQLParser는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 별칭 붙은 SELECT 하나로 읽는다(`DELETE`가 열 별칭,
-  `COMMIT`이 테이블 별칭). 그래서 격리 문맥에서도 `runReadOnlySql`이 이것을 읽기로 실행해 행을 지우고 커밋했다(2026-11-12 확인). 이 작업의 범위가 아니라
-  고치지 않았다(분류기가 예약어 별칭을 거절하거나 방언 토큰으로 쓰기 키워드를 찾는 등 따로 정해야 함).
+- ~~SQL Server는 `;` 없이 문장을 이어 쓸 수 있는데 JSQLParser는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 별칭 붙은 SELECT 하나로 읽는다(`DELETE`가 열 별칭,
+  `COMMIT`이 테이블 별칭). 그래서 격리 문맥에서도 `runReadOnlySql`이 이것을 읽기로 실행해 행을 지우고 커밋했다(2026-11-12 확인).~~
+  2026-11-12 고침(앱 변경 #93): 아래 "읽기 판정의 토큰 검사".
 - 공유 세션의 `ATOMIC`은 호출을 한 트랜잭션으로 묶지 못한다(자동 커밋이면 오류 전 행이 커밋됨). 결과의 `transactionNote`는 사실대로 "already committed"다.
 - 공유 세션에서 수동 커밋이면 읽기도 그 세션에 트랜잭션을 시작한다(드라이버가 자동 커밋이 아닌 세션의 첫 문장에서 시작). 쿼리 창에서 읽어도 같다.
 
@@ -1753,6 +1753,71 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 
 Sybase·jTDS 연결은 시험 서버가 없어 확인하지 못했다(같은 `SQLServerDialectBase`의 배치 구분자). 회귀 테스트는 요청되지 않아 실행하지 않았다.
 
+## 읽기 판정의 토큰 검사 (앱 변경 #93, 2026-11-12)
+
+### 문제
+
+SQL Server는 문장 사이에 `;`가 없어도 된다. JSQLParser(`SQLQuery`)는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 "SELECT 1 AS DELETE FROM dbo.t AS COMMIT"인
+SELECT 하나로 읽어, 보통(격리) 연결의 `runReadOnlySql`(READ, 확인 없음)이 행을 모두 지우고 커밋했다. 같은 계열로 `runSql`의 위험 판정은 첫 문장만 보아
+`INSERT …; DROP …`가 WRITE였다. #93 작업 중 시험에서 `getActualPlan` `SELECT 1 AS a DELETE FROM dbo.t COMMIT`(DANGEROUS로 확인 후)이 롤백되는 측정 안에서
+DELETE를 커밋하는 것도 확인했다(2행 → 0행).
+
+### 규칙
+
+- **읽기 판정**(`AgentSqlClassifier.classify`): 파서가 문장 하나라고 증명하고(문장 수, SELECT 해석) **독립된 토큰 검사가 동의할 때만** 읽기다. 검사는 쿼리 창의
+  토크나이저를 쓴다(`AgentSqlClassifier.words`: `SQLScriptBatches.createParserContext`의 방언 규칙 스캐너 `TPRuleBasedScanner`, 연결이 없으면
+  `BasicSQLDialect`). 문자열·따옴표·대괄호 식별자·주석은 건너뛰고, 첫 단어 뒤에 문장을 시작하는 맨 단어(`STATEMENT_WORDS`: INSERT, UPDATE, DELETE, MERGE,
+  UPSERT, TRUNCATE, DROP, CREATE, ALTER, RENAME, GRANT, REVOKE, DENY, EXEC, EXECUTE, CALL, COMMIT, ROLLBACK, SAVE, BEGIN, SET, USE, DBCC, KILL, BACKUP,
+  RESTORE, SHUTDOWN, INTO, DECLARE, WAITFOR, RECONFIGURE, CHECKPOINT, DISABLE, ENABLE, OPENROWSET, LOCK, COPY, VACUUM, ANALYZE, REINDEX, CLUSTER, LOAD,
+  HANDLER, PREPARE, DEALLOCATE, NOTIFY, REFRESH, RESET, REVERT, SETUSER, PRAGMA, ATTACH, DETACH)가 있으면 거절한다. 그런 이름의 열·별칭은 따옴표로
+  감싸야 통과한다(거절 글이 "quote the identifier; otherwise run it with runSql"라고 알림). 잘못된 거절은 받아들인다: REPLACE·COMMENT는 흔한 함수·열 이름이라 넣지 않았다.
+- **한 문장 판정**(`AgentSqlClassifier.foreignStatementWord`): 쓸 수도 있지만 한 문장이어야 하는 글(계획 도구가 롤백되는 측정이나 EXPLAIN·SHOWPLAN으로 보내는 문장,
+  `validateSql`의 NOEXEC·EXPLAIN 검사)은 한 문장에 속할 수 있는 자리의 DML 단어만 허용한다(MERGE … THEN UPDATE/DELETE/INSERT, INSERT/MERGE INTO,
+  UPDATE … SET, FOR UPDATE). 그 밖의 문장 단어와 GO, NOEXEC, PARSEONLY, SHOWPLAN_*, IMPLICIT_TRANSACTIONS는 거절한다. `PlanTools.requireOneStatement`가
+  호출별 분류(확인 전)와 `plan`에서, `QueryTools.validate`가 서버 검사 전에 쓴다.
+- **위험 판정**(`AgentSqlClassifier.access`): 파서가 나눈 모든 문장을 판정해 가장 위험한 것이 정한다. 한 부분 안에서도 DROP, TRUNCATE, SHUTDOWN, KILL, RESTORE가
+  어디에 있든, 또는 첫 단어 뒤의 DELETE/UPDATE(FOR·ON·THEN 바로 뒤 제외: WHERE를 알 수 없음)는 DANGEROUS다. `runSql`·`runScript`의 확인이 이것을 묻는다.
+
+### 적용되는 도구
+
+모두 `AgentSqlClassifier.classify`(읽기)를 거친다: `QueryTools.requireReadOnly`(QueryTools.java `runSelect`, `runReadOnlySql`), `DataTools`(sample·count
+`requireReadOnly`, `compareQueryResults`), `TransferTools.exportData`, `DdlTools.createView`(SELECT), `PlanTools.classify`·`plan`(읽기면 READ_ONLY, 아니면
+ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryTools`(읽기 쿼리면 READ_ONLY·`runMonitoringChecks` 건너뜀). 한 문장 판정: `getActualPlan`,
+`explainQuery`, `comparePlans`, `validateSql`. 위험 판정: `runSql`, `runScript`, `runLibraryQuery`(쓰기), `getActualPlan`(쓰기). `whatIfIndex`는 PostgreSQL만이라
+`;` 없는 문장 잇기가 없고 `splitScript`가 둘 이상을 거절한다.
+
+### 확인 (2026-11-12)
+
+빌드(JBR 25)한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, `chr_agent_tools_r2`, 두 번째 세션에서 읽음. 쓰기 시도는 모두 `INVALID`(거절)였고 행 수가 그대로다.
+
+| 엔진 | 글 | 결정 | 두 번째 세션 전 → 뒤 |
+|---|---|---|---|
+| SQL Server 자동 커밋(격리) | `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`, 탭·CR만·CRLF, 주석 끼움(`/* x */ DELETE /**/ … -- c\nCOMMIT`), 한 줄 `SELECT 1 DELETE …`, 대소문자 섞음, `(1)DELETE`, `'a'DELETE`, `';' AS s DELETE`, 줄 잇기 `\`, `WITH x AS (…) DELETE`, `SELECT * INTO`, `EXEC('…')`, `OPENROWSET(…)` | 모두 거절(`runReadOnlySql`), `runSelect`·`countRows`(where에 DELETE … COMMIT)도 거절 | 2 → 2 |
+| SQL Server | `getActualPlan` `SELECT 1 AS a DELETE FROM dbo.t COMMIT`, `UPDATE … SET IMPLICIT_TRANSACTIONS OFF DELETE …`, `explainQuery` `SELECT 1 SET SHOWPLAN_XML OFF DELETE … COMMIT` | 거절(확인 요청 전) | 2 → 2 |
+| SQL Server | `validateSql` `UPDATE … SET NOEXEC OFF DELETE … COMMIT` | 서버 검사 안 함(`serverNote`), `access: DANGEROUS` | 2 → 2 |
+| SQL Server | `getActualPlan` `UPDATE dbo.t SET v='measured' WHERE id=1`, `validateSql` 같은 UPDATE | 측정·롤백(WRITE), NOEXEC 검사 | 바뀌지 않음 |
+| SQL Server 수동 커밋 | `SELECT 1\nDELETE …\nCOMMIT` | 거절, 열린 트랜잭션 없음 | 2 → 2 |
+| SQL Server 위험 판정 | `INSERT …; DROP TABLE`, `INSERT …\nDROP TABLE`, `INSERT …\nDELETE FROM dbo.t`, `runScript` `INSERT` `GO` `TRUNCATE` | DANGEROUS(확인 요청의 분류) | 실행 안 함(거절로 답) |
+| SQL Server | `INSERT INTO dbo.t VALUES (9,'x')` | WRITE | — |
+| PostgreSQL | `SELECT 1; DELETE`, `WITH d AS (DELETE … RETURNING *) SELECT`, `SELECT * INTO`, `SELECT … FOR UPDATE` | 거절 | 2 → 2 |
+| MariaDB | `SELECT 1; DELETE`, `SELECT 1 DELETE FROM t`, `SELECT … FOR UPDATE` | 거절 | 2 → 2 |
+| Oracle | `SELECT 1 FROM dual\nDELETE …`, `…; DELETE …` | 거절 | 1 → 1 |
+
+통과(읽기 그대로): 하위 쿼리, CTE, UNION ALL, `SELECT [delete], [commit]`, `SELECT "commit"`, `'DELETE FROM t'` 문자열, `ROW_NUMBER()/RANK() OVER`, `FOR JSON PATH`,
+`SELECT 1 AS [delete]`, `SELECT 1 delete_count`(SQL Server), PostgreSQL `"delete"`·CTE+UNION, MariaDB `` `delete` ``, Oracle `"DELETE"`·`RANK() OVER`.
+
+- `SELECT … FOR UPDATE`(PostgreSQL·MariaDB): 거절한다. 행 잠금을 잡는 문장이라 읽기가 아니다(전에도 분류기가 거절, 이제 토큰 검사도 거절). 쓰려면 `runSql`.
+- 잘못된 거절(알고 받아들임): PostgreSQL `$$COMMIT$$`(달러 따옴표 문자열 안의 단어를 토크나이저가 문자열로 보지 않음), MySQL `CHARACTER SET`·`USE INDEX`,
+  `OUTPUT … INTO`, MERGE 안의 DELETE/UPDATE를 가진 프로시저 본문 등 쓰기 판정이 DANGEROUS로 올라가는 경우.
+
+### 아직 통과하는 것
+
+- 문자열 안의 SQL을 실행하는 함수: `OPENQUERY(srv, 'DELETE …')`·`OPENDATASOURCE`(SQL Server, 연결된 서버가 있어야 함), PostgreSQL `dblink_exec`, 쓰는 사용자 함수
+  (`SELECT f_write()`). 토큰 검사는 문자열 속을 보지 않고 함수 이름을 모른다. 격리 문맥에서는 읽기 전용 트랜잭션·롤백이 막지만(SQL Server는 롤백만, 연결된 서버의
+  일은 되돌리지 못함), 공유 세션에서는 실행된다.
+- 단어 목록에 없는 T-SQL 문(예: 다른 서버 명령)은 목록을 넓혀야 한다. 목록은 "문장을 시작해 쓰는 단어"만이다.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 위 표의 글을 `classify`·`access`·`foreignStatementWord` 단위 시험으로).
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1858,6 +1923,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #93(`chromite/agent-tools-r2`): 읽기 판정에 쿼리 창 토크나이저로 한 독립 검사를 더함(T-SQL `SELECT 1 DELETE … COMMIT`), 계획 도구와
+  `validateSql`은 한 문장에 속할 수 없는 단어를 거절, `runSql`·`runScript` 위험 판정은 모든 문장 중 가장 위험한 것. 위 "읽기 판정의 토큰 검사".
+  도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #88(`chromite/agent-tools-r2`): `runScript`가 쿼리 창과 같은 단위(SQL Server `GO` 배치는 한 번에, `GO n`은 n번)로 실행하고
   쿼리 창의 명령(`DELIMITER` 등)은 서버로 보내지 않음. 위 "runScript의 실행 단위". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #87(`chromite/agent-tools-r2`): `runSql`·`runLibraryQuery`가 끝의 `;`를 쿼리 창의 파서 판단대로 남김(Oracle PL/SQL 블록·본문,

@@ -87,6 +87,8 @@ import java.util.Map;
  *   (docs/chromite/ai-agent.md "문장 끝의 구분자")
  * - 2026-11-12 {@code runScript}: GO 배치를 한 번에 보내고 쿼리 창의 명령은 보내지 않음(앱 변경 #88). 배치를 문장으로 쪼개 보내서 배치 안의
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
+ * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
+ *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -324,10 +326,13 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         // read-only transaction stops them, in a shared session they would really run (SQL Server's NOEXEC is not relied on
         // for a text with several statements either)
         boolean unsafe = check != null && AgentSql.isSharedSession(container) && splitScript(dataSource, sql).size() > 1;
+        // SQL Server applies SET NOEXEC OFF while it parses the batch, so the statements after it would run, and a
+        // COMMIT would keep them even in the read-only call's transaction (app change #93)
+        unsafe = unsafe || check != null && AgentSqlClassifier.foreignStatementWord(dataSource, sql) != null;
         if (unsafe) {
-            json.addProperty("serverNote", "Not checked on the server: the text holds more than one statement, and this " +
-                "connection's single shared session (also the user's query windows' session) would run the ones after the first. " +
-                "Validate one statement at a time.");
+            json.addProperty("serverNote", "Not checked on the server: the text holds more than one statement, or a word " +
+                "(COMMIT, ROLLBACK, BEGIN, SAVE, EXEC, NOEXEC, PARSEONLY) with which the check itself could run or keep statements " +
+                "(on a single shared session, the user's query windows' session, nothing is undone). Validate one plain statement at a time.");
         }
         if (check != null && !unsafe && AgentArgs.getBoolean(args, "server", true)) {
             String serverError = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"),

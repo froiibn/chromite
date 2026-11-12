@@ -22,12 +22,23 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
 import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryType;
+import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.text.parser.TPRuleBasedScanner;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.TPTokenDefault;
+import com.seizia.chromite.runtime.DBWorkbench;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -45,8 +56,13 @@ import java.util.regex.Pattern;
  *     <li>글에 문장이 둘 이상이면(연결 방언의 스크립트 파서로 나눈 수) 읽기가 아니다. JSQLParser는 첫 문장만 읽고 구분자에서 멈추므로
  *     {@code SELECT 1; INSERT …}를 SELECT로 보았다. SQL Server는 읽기 전용 트랜잭션이 없어 격리 문맥에서도 {@code …; COMMIT}으로
  *     쓴 것이 남았다.</li>
+ *     <li>파서의 판정만으로는 증명이 아니다. 쿼리 창의 토크나이저(방언 규칙, 문자열·따옴표·대괄호 식별자·주석은 건너뜀)로 읽은 맨 단어 중
+ *     첫 단어 뒤에 문장을 시작하는 단어({@link #STATEMENT_WORDS})가 있으면 읽기가 아니다. T-SQL은 문장 사이에 {@code ;}가 없어도 되고
+ *     JSQLParser는 {@code DELETE}·{@code COMMIT}을 별칭으로 읽기 때문이다. 그런 이름의 열은 따옴표로 감싸야 통과한다(잘못된 거절은 받아들임).</li>
  *     <li>위험 분류: {@code DROP}, {@code TRUNCATE}, WHERE 없는 {@code DELETE}/{@code UPDATE}({@link SQLQuery#isDropDangerous()},
- *     {@link SQLQuery#isDeleteUpdateDangerous()}), 그리고 되돌릴 수 없는 서버 명령({@code SHUTDOWN}, {@code KILL}, {@code RESTORE} 등).</li>
+ *     {@link SQLQuery#isDeleteUpdateDangerous()}), 그리고 되돌릴 수 없는 서버 명령({@code SHUTDOWN}, {@code KILL}, {@code RESTORE} 등).
+ *     글의 모든 문장(파서가 나눈 것)을 판정해 가장 위험한 것이 정한다. 한 부분 안에서도 위험 단어가 어디에 있든, 또는 첫 단어 뒤의
+ *     DELETE/UPDATE(FOR·ON·THEN 뒤 제외, WHERE를 알 수 없음)는 DANGEROUS다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -56,6 +72,9 @@ import java.util.regex.Pattern;
  * - 2026-11-12 {@link #trimTrailingDelimiter}: 서버로 보내는 글의 끝 구분자를 쿼리 창의 파서 판단대로 남김(앱 변경 #87). 끝의 {@code ;}를 모두
  *   지워 Oracle PL/SQL 블록이 PLS-00103으로 실패하고 프로시저가 INVALID로 만들어졌으며, SQL Server MERGE가 10713으로 실패했다
  *   (docs/chromite/ai-agent.md "문장 끝의 구분자")
+ * - 2026-11-12 읽기 판정에 독립된 토큰 검사를 더하고, 위험 판정은 모든 문장 중 가장 위험한 것으로 함(앱 변경 #93). SQL Server는 문장 사이에
+ *   {@code ;}가 없어도 되어 {@code SELECT 1 DELETE FROM t COMMIT}을 JSQLParser가 별칭 붙은 SELECT로 읽었고 runReadOnlySql이 지우고 커밋했다.
+ *   {@code INSERT …; DROP …}은 첫 문장만 보아 WRITE였다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public final class AgentSqlClassifier {
 
@@ -72,7 +91,114 @@ public final class AgentSqlClassifier {
     private static final Pattern DANGEROUS_COMMAND = Pattern.compile(
         "(?is)\\s*(TRUNCATE|SHUTDOWN|KILL|RESTORE|DROP|ALTER\\s+SYSTEM|ALTER\\s+DATABASE\\b.*\\bSET\\s+(OFFLINE|SINGLE_USER|EMERGENCY))\\b.*");
 
+    /**
+     * Words that start a statement that writes, changes the schema, ends or starts a transaction, calls code or changes the
+     * session. T-SQL needs no delimiter between statements, and JSQLParser reads such a word as an alias
+     * ({@code SELECT 1 DELETE FROM t COMMIT} is "SELECT 1 AS DELETE FROM t AS COMMIT"), so a bare one anywhere after the
+     * first word means the text may hold another statement. Not REPLACE or COMMENT (common function and column names).
+     */
+    private static final Set<String> STATEMENT_WORDS = Set.of(
+        "INSERT", "UPDATE", "DELETE", "MERGE", "UPSERT", "TRUNCATE", "DROP", "CREATE", "ALTER", "RENAME", "GRANT", "REVOKE",
+        "DENY", "EXEC", "EXECUTE", "CALL", "COMMIT", "ROLLBACK", "SAVE", "BEGIN", "SET", "USE", "DBCC", "KILL", "BACKUP",
+        "RESTORE", "SHUTDOWN", "INTO", "DECLARE", "WAITFOR", "RECONFIGURE", "CHECKPOINT", "DISABLE", "ENABLE", "OPENROWSET",
+        "LOCK", "COPY", "VACUUM", "ANALYZE", "REINDEX", "CLUSTER", "LOAD", "HANDLER", "PREPARE", "DEALLOCATE", "NOTIFY",
+        "REFRESH", "RESET", "REVERT", "SETUSER", "PRAGMA", "ATTACH", "DETACH");
+
+    /**
+     * Words that make a part of runSql/runScript DANGEROUS wherever they stand (the regex only looked at the start).
+     */
+    private static final Set<String> DANGEROUS_WORDS = Set.of("DROP", "TRUNCATE", "SHUTDOWN", "KILL", "RESTORE");
+
     private AgentSqlClassifier() {
+    }
+
+    /**
+     * The bare words of a text as the query window's tokenizer reads them (the dialect's rules from the script parser's
+     * context): strings, quoted or bracketed identifiers and comments are skipped. Upper case, in order.
+     */
+    @NotNull
+    static List<String> words(@Nullable DBPDataSource dataSource, @NotNull String text) {
+        SQLParserContext context = dataSource != null
+            ? SQLScriptBatches.createParserContext(dataSource, text)
+            : SQLScriptParser.prepareSqlParserContext(null, BasicSQLDialect.INSTANCE,
+                DBWorkbench.getPlatform().getPreferenceStore(), text);
+        TPRuleBasedScanner scanner = context.getScanner();
+        scanner.setRange(context.getDocument(), 0, text.length());
+        List<String> words = new ArrayList<>();
+        for (TPToken token = scanner.nextToken(); !token.isEOF(); token = scanner.nextToken()) {
+            if (token.isWhitespace()) {
+                continue;
+            }
+            SQLTokenType type = token instanceof TPTokenDefault typed && typed.getData() instanceof SQLTokenType t ? t : SQLTokenType.T_OTHER;
+            if (type == SQLTokenType.T_STRING || type == SQLTokenType.T_QUOTED || type == SQLTokenType.T_COMMENT) {
+                continue;
+            }
+            int start = scanner.getTokenOffset();
+            int end = Math.min(text.length(), start + scanner.getTokenLength());
+            if (start < 0 || start >= end) {
+                continue;
+            }
+            String piece = text.substring(start, end);
+            // A token may hold more than one word (rules that read up to a delimiter): split on what is not a word character
+            for (String word : piece.split("[^\\p{L}\\p{N}_@#$]+")) {
+                if (!word.isEmpty()) {
+                    words.add(word.toUpperCase(Locale.ROOT));
+                }
+            }
+        }
+        return words;
+    }
+
+    /**
+     * For a statement that may write but must stay one statement (the plan tools measure it in a transaction they roll
+     * back, validateSql compiles it under NOEXEC/EXPLAIN): the first word after the first that can't belong to that one
+     * statement, or null. A COMMIT, a SET NOEXEC/SHOWPLAN/IMPLICIT_TRANSACTIONS OFF or a second DML statement glued on
+     * without ';' would otherwise run, or keep what the rollback should undo. DML words are allowed only where one
+     * statement has them (MERGE ... THEN UPDATE/DELETE/INSERT, INSERT/MERGE INTO, UPDATE ... SET, FOR UPDATE).
+     */
+    @Nullable
+    static String foreignStatementWord(@Nullable DBPDataSource dataSource, @NotNull String text) {
+        List<String> words = words(dataSource, text);
+        for (int i = 1; i < words.size(); i++) {
+            String word = words.get(i);
+            String previous = words.get(i - 1);
+            boolean allowed = switch (word) {
+                case "INSERT", "DELETE" -> previous.equals("THEN");
+                case "UPDATE" -> previous.equals("THEN") || previous.equals("FOR");
+                case "INTO" -> previous.equals("INSERT") || previous.equals("MERGE");
+                case "SET" -> {
+                    // UPDATE t SET / UPDATE s.t AS x SET: the nearest UPDATE just before, with no other SET between
+                    boolean found = false;
+                    for (int j = i - 1; j >= Math.max(0, i - 6) && !words.get(j).equals("SET"); j--) {
+                        if (words.get(j).equals("UPDATE")) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    yield found;
+                }
+                case "MERGE" -> false;
+                default -> !STATEMENT_WORDS.contains(word) && !word.equals("GO") && !word.equals("NOEXEC") &&
+                    !word.equals("PARSEONLY") && !word.startsWith("SHOWPLAN") && !word.equals("IMPLICIT_TRANSACTIONS");
+            };
+            if (!allowed) {
+                return word;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The first statement word ({@link #STATEMENT_WORDS}) after the first word of the text, or null.
+     */
+    @Nullable
+    private static String statementWordAfterFirst(@NotNull List<String> words) {
+        for (int i = 1; i < words.size(); i++) {
+            if (STATEMENT_WORDS.contains(words.get(i))) {
+                return words.get(i);
+            }
+        }
+        return null;
     }
 
     /**
@@ -91,6 +217,13 @@ public final class AgentSqlClassifier {
         // JSQLParser reads the first statement and stops at its delimiter: "SELECT 1; DELETE ..." parsed as a SELECT
         if (dataSource != null && QueryTools.splitScript(dataSource, text).size() > 1) {
             return new Verdict(false, SQLQueryType.UNKNOWN, "the text holds more than one statement");
+        }
+        // The parser's verdict alone is not proof: an independent token scan must agree (T-SQL statements need no ';')
+        String word = statementWordAfterFirst(words(dataSource, text));
+        if (word != null) {
+            return new Verdict(false, SQLQueryType.UNKNOWN, "the text has the bare word " + word + " after its first word, which " +
+                "may start another statement (SQL Server needs no ';' between statements). If it is a column or alias name, quote " +
+                "the identifier; otherwise run it with runSql");
         }
         if (READ_ONLY_COMMAND.matcher(text).matches()) {
             return new Verdict(true, SQLQueryType.SELECT, null);
@@ -123,13 +256,36 @@ public final class AgentSqlClassifier {
 
     /**
      * The permission class of a statement for {@code runSql}: DANGEROUS for drops, truncates and unbounded deletes/updates,
-     * READ for provably read-only statements, WRITE otherwise.
+     * READ for provably read-only statements, WRITE otherwise. Every statement of the text is rated and the most dangerous
+     * one decides: the parts the script parser finds, and inside a part (T-SQL needs no ';') a dangerous word anywhere, or
+     * a DELETE/UPDATE after the first word whose WHERE can't be told.
      */
     @NotNull
     public static AIToolAccess access(@Nullable DBPDataSource dataSource, @NotNull String sql) {
         String text = stripTrailingDelimiter(sql);
+        List<String> parts = dataSource == null ? List.of(text) : QueryTools.splitScript(dataSource, text);
+        if (parts.size() > 1) {
+            AIToolAccess access = AIToolAccess.WRITE;
+            for (String part : parts) {
+                access = access.max(access(dataSource, part));
+            }
+            return access;
+        }
         if (DANGEROUS_COMMAND.matcher(text).matches()) {
             return AIToolAccess.DANGEROUS;
+        }
+        List<String> words = words(dataSource, text);
+        for (int i = 0; i < words.size(); i++) {
+            String word = words.get(i);
+            String previous = i == 0 ? "" : words.get(i - 1);
+            if (DANGEROUS_WORDS.contains(word)) {
+                return AIToolAccess.DANGEROUS;
+            }
+            // Not FOR UPDATE, ON UPDATE/DELETE (foreign keys), MERGE ... THEN UPDATE/DELETE
+            if (i > 0 && (word.equals("DELETE") || word.equals("UPDATE")) && !previous.equals("FOR") && !previous.equals("ON")
+                && !previous.equals("THEN")) {
+                return AIToolAccess.DANGEROUS;
+            }
         }
         SQLQuery query = new SQLQuery(dataSource, text);
         if (query.isDropDangerous() || query.isDeleteUpdateDangerous()) {

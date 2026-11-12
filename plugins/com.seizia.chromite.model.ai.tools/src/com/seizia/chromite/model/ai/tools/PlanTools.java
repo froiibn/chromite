@@ -83,6 +83,9 @@ import java.util.regex.Pattern;
  *   {@code PlanToolsOracleHintTest}, docs/chromite/regression-tests.md)
  * - 2026-11-12 "단일 연결" 연결에서 읽기라고 증명되지 않은 문장의 실제 계획을 거절함(앱 변경 #91). 공유 세션에서는 롤백이 없어 측정한 UPDATE가
  *   사용자 세션에서 실행·커밋됐다 (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-12 한 문장에 속할 수 없는 단어가 있으면 계획 도구가 거절함(앱 변경 #93, {@link #requireOneStatement}). SQL Server는 {@code ;} 없이
+ *   문장을 이어 써서, getActualPlan {@code SELECT 1 AS a DELETE FROM dbo.t COMMIT}이 롤백되는 측정 안에서 DELETE를 커밋했다
+ *   (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public class PlanTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -252,6 +255,7 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
         if (dataSource != null && QueryTools.splitScript(dataSource, sql).size() > 1) {
             throw new com.seizia.chromite.model.ai.agent.AIToolArgumentException("Pass exactly one statement");
         }
+        requireOneStatement(dataSource, sql);
         boolean readOnly = AgentSqlClassifier.classify(dataSource, sql).readOnly();
         DbFamily family = DbFamily.of(container);
         AgentSql.Mode mode = family == DbFamily.ORACLE || actual && !readOnly ? AgentSql.Mode.ROLLBACK : AgentSql.Mode.READ_ONLY;
@@ -697,6 +701,10 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
         String sql = AgentArgs.getString(arguments, "sql");
         DBPDataSourceContainer container = context.getConnection();
         DBPDataSource dataSource = container == null ? null : container.getDataSource();
+        if (sql != null) {
+            // Refused before the user is asked to confirm a measured run
+            requireOneStatement(dataSource, AgentSqlClassifier.stripTrailingDelimiter(sql));
+        }
         AgentSqlClassifier.Verdict verdict = sql == null ? null
             : AgentSqlClassifier.classify(dataSource, AgentSqlClassifier.stripTrailingDelimiter(sql));
         if (verdict == null || verdict.readOnly()) {
@@ -709,6 +717,19 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
                     "(the user sees and confirms it).");
         }
         return AgentSqlClassifier.access(dataSource, sql).max(AIToolAccess.WRITE);
+    }
+
+    /**
+     * The plan tools run the statement after EXPLAIN / under SHOWPLAN, or measure it in a transaction they roll back: a second
+     * statement glued on without ';' (T-SQL) would run unmeasured, and a COMMIT would keep what the rollback should undo.
+     */
+    private static void requireOneStatement(@Nullable DBPDataSource dataSource, @NotNull String sql) throws AIToolArgumentException {
+        String word = AgentSqlClassifier.foreignStatementWord(dataSource, sql);
+        if (word != null) {
+            throw new AIToolArgumentException("Pass exactly one statement: the bare word " + word + " after its first word may " +
+                "start another statement (SQL Server needs no ';'), which would not be measured or rolled back. If it is a column " +
+                "or alias name, quote the identifier; otherwise run the statements with runSql");
+        }
     }
 
     @Nullable
