@@ -20,6 +20,7 @@ package com.seizia.chromite.runtime.jobs;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
@@ -37,6 +38,16 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 
+/**
+ * Connects a temporary connection, runs a check in its session and disconnects (Test Connection, the connection dialog's
+ * database list).
+ *
+ * 설계: 결과의 서버·드라이버 문자열은 "이름 버전"이다. 버전 문자열이 이미 이름으로 시작하는 드라이버가 있어(Oracle: 이름 "Oracle",
+ * 버전 "Oracle AI Database 26ai …") 그때는 버전만 쓴다. 이름을 두 번 보이지 않으려는 것이다.
+ *
+ * 변경 이력:
+ * - 2026-11-12 서버·드라이버 문자열에서 이름이 두 번 나오던 것(Oracle "Oracle Oracle AI Database …", 앱 변경 #81)
+ */
 public class ConnectionTestJob extends ConnectJob {
     private static final Log log = Log.getLog(ConnectionTestJob.class);
 
@@ -180,10 +191,10 @@ public class ConnectionTestJob extends ConnectJob {
             monitor.subTask(ModelMessages.dialog_connection_wizard_start_connection_monitor_success);
 
             if (!CommonUtils.isEmpty(this.productName)) {
-                serverVersion = this.productName + " " + this.productVersion;
+                serverVersion = nameWithVersion(this.productName, this.productVersion);
             }
             if (!CommonUtils.isEmpty(this.driverName)) {
-                clientVersion = this.driverName + " " + this.driverVersion;
+                clientVersion = nameWithVersion(this.driverName, this.driverVersion);
             }
 
         } catch (DBException ex) {
@@ -191,5 +202,17 @@ public class ConnectionTestJob extends ConnectJob {
         }
         monitor.done();
         return Status.OK_STATUS;
+    }
+
+    /**
+     * The name followed by the version, unless the version already begins with the name (Oracle's product version is
+     * "Oracle AI Database 26ai …" for the product "Oracle").
+     */
+    @NotNull
+    private static String nameWithVersion(@NotNull String name, @Nullable String version) {
+        if (version != null && version.regionMatches(true, 0, name, 0, name.length())) {
+            return version;
+        }
+        return name + " " + version;
     }
 }

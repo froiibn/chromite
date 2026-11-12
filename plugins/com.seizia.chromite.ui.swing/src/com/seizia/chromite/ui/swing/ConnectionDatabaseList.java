@@ -21,6 +21,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.ServerDatabaseNames;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import com.seizia.chromite.registry.DataSourceDescriptor;
 import com.seizia.chromite.runtime.jobs.ConnectionTestJob;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
@@ -55,7 +56,12 @@ import java.util.List;
  *     <li>저장하지 않은 비밀번호(칸이 비고 저장 안 함)는 연결할 때 모델이 묻는다({@code DataSourceDescriptor.askForPassword}).</li>
  *     <li>실패하면 오류를 칸 아래에 보이고 대화상자는 그대로 둔다. 다음에 펼치면 다시 시도한다.</li>
  *     <li>읽은 목록은 그때의 연결 설정과 함께 기억한다. 설정이 같으면 다시 펼쳐도 연결하지 않고, 서버·로그인·네트워크 설정 등이
- *     바뀌었으면 다시 읽는다.</li>
+ *     바뀌었으면 다시 읽는다. 비교에서 네트워크 핸들러 설정의 주인(임시 연결)은 뺀다({@link #listSettings}): 임시 연결은 펼칠 때마다
+ *     새로 만들고, 저장하지 않은 핸들러 설정은 그 임시 연결을 주인으로 가지며 {@code DBWHandlerConfiguration.equals}가 주인을 비교해,
+ *     빼지 않으면 SSH·프록시·SSL을 쓰는 목록은 늘 "바뀜"이었다. 모델의 {@code equals}는 저장·변경 감지에도 쓰여 그대로 두었다.</li>
+ *     <li>목록 읽기는 사용자가 목록을 펼칠 때만 시작한다. 다 읽고 목록을 펼치는 것({@link #loaded})은 팝업 리스너를 거치지만 읽기를
+ *     요청하지 않는다({@code showingReadList}). 그래서 비교가 어떤 이유로 틀려도 펼침 한 번에 읽기는 한 번이고, 읽기가 다음 읽기를
+ *     부르는 고리는 생기지 않는다(전에는 이 고리로 서버에 끝없이 로그인했다, 앱 변경 #77).</li>
  *     <li>칸 자체는 원래의 글 칸이다(콤보의 편집기로 씀). 저장·검사·이름 짓기는 지금처럼 그 칸의 글을 쓴다. 목록에서 고르면 그 글이 바뀐다.</li>
  * </ul>
  *
@@ -64,6 +70,8 @@ import java.util.List;
  * - 2026-11-11 진행 표시를 길이 모르는 막대에서 도넛 스피너로(사용자 결정, 앱 변경 #60)
  * - 2026-11-12 스피너를 상태 표시줄과 같은 {@link SpinnerIcon}으로(스피너 구현 하나, 앱 변경 #60)
  * - 2026-11-12 스피너를 칸 아래 줄에서 칸 안으로: 읽는 동안 대화상자가 커졌다 줄던 것(앱 변경 #71 c)
+ * - 2026-11-12 저장하지 않은 SSH·프록시·SSL 설정(새 연결 포함)에서 목록을 끝없이 다시 읽던 것: 비교에서 핸들러 설정의 주인을 빼고,
+ *   읽은 뒤 목록을 펼칠 때는 읽기를 요청하지 않음(앱 변경 #77)
  */
 final class ConnectionDatabaseList {
 
@@ -104,7 +112,11 @@ final class ConnectionDatabaseList {
 
     private boolean loading;
     /**
-     * The settings the shown list was read with; {@code null} before a list was read.
+     * {@code true} while {@link #loaded} opens the list it has just read: that opening is not a request for the list.
+     */
+    private boolean showingReadList;
+    /**
+     * The settings the shown list was read with ({@link #listSettings}); {@code null} before a list was read.
      */
     @Nullable
     private DBPConnectionConfiguration listConfiguration;
@@ -160,6 +172,10 @@ final class ConnectionDatabaseList {
     }
 
     private void listRequested() {
+        if (showingReadList) {
+            // The list just read is being shown: only a user's opening asks for the list
+            return;
+        }
         if (loading) {
             SwingUtilities.invokeLater(combo::hidePopup);
             return;
@@ -171,7 +187,7 @@ final class ConnectionDatabaseList {
             return;
         }
         DataSourceDescriptor connection = source.createConnection();
-        if (listConfiguration != null && listConfiguration.equals(connection.getConnectionConfiguration())) {
+        if (listConfiguration != null && listConfiguration.equals(listSettings(connection))) {
             connection.dispose();
             // The list is current: only point it at the typed name
             combo.getModel().setSelectedItem(databaseField.getText());
@@ -190,7 +206,7 @@ final class ConnectionDatabaseList {
             showStatus(ConnectionMessages.settings_database_list_loading, null, false);
         }
 
-        DBPConnectionConfiguration configuration = new DBPConnectionConfiguration(connection.getConnectionConfiguration());
+        DBPConnectionConfiguration configuration = listSettings(connection);
         ListReader reader = new ListReader();
         ConnectionTestJob job = new ConnectionTestJob(connection, reader::read);
         job.addJobChangeListener(new JobChangeAdapter() {
@@ -227,9 +243,30 @@ final class ConnectionDatabaseList {
         hideStatus();
         Window window = SwingUtilities.getWindowAncestor(combo);
         if (combo.isShowing() && window != null && window.isActive()) {
-            // The list was asked for by opening it: open it now that it has items
-            combo.showPopup();
+            // The list was asked for by opening it: open it now that it has items. Opening fires the popup listener on
+            // this thread; the flag keeps that from asking for the list again, so a read never starts the next one.
+            showingReadList = true;
+            try {
+                combo.showPopup();
+            } finally {
+                showingReadList = false;
+            }
         }
+    }
+
+    /**
+     * The settings the list depends on, to tell whether a shown list is still current. Each temporary connection owns
+     * its network handler configurations, and their {@code equals} compares that owner: without clearing it, two
+     * temporary connections with the same SSH, proxy or SSL settings never compare equal.
+     */
+    @NotNull
+    private static DBPConnectionConfiguration listSettings(@NotNull DataSourceDescriptor connection) {
+        DBPConnectionConfiguration settings = new DBPConnectionConfiguration(connection.getConnectionConfiguration());
+        // The copy has its own handler configurations: clearing their owner leaves the connection's untouched
+        for (DBWHandlerConfiguration handler : settings.getHandlers()) {
+            handler.setDataSource(null);
+        }
+        return settings;
     }
 
     /**
