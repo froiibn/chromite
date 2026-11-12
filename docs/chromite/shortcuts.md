@@ -151,6 +151,10 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
   (`MAC_KEYS` 한 줄).
 - **결과 텍스트 보기는 ⌃`:** ⌘`는 macOS의 창 순환이라 쓸 수 없다. Control+`는 macOS에 다른 뜻이 없다.
 - **도움말 글자는 키에서 만든다:** 문구에 키를 적어 두면 플랫폼마다 틀린 문구가 된다. 단축키를 바꾸면 도구 설명도 함께 바뀐다.
+- **Alt 키와 메뉴 막대(Windows, 2026-11-12, 앱 변경 #102):** Alt만 눌렀다 떼면 메뉴 막대의 첫 메뉴가 골라지고(FlatLaf), F10과 Alt+글자(니모닉)도
+  그대로다. 다만 Alt를 누른 채 마우스를 썼으면(누르기·클릭·끌기·휠, 어느 창·구성 요소든) 그 Alt 떼기는 메뉴를 고르지 않는다: 열 선택(Alt+끌기)과
+  긴 줄의 Alt+휠 뒤에 포커스가 메뉴로 가지 않게. 한 곳 `AltMouseMenuGuard`(키 디스패처 + AWT 마우스 리스너)가 맡는다.
+  자세한 근거와 확인은 [swing-sql-column-selection.md](swing-sql-column-selection.md) "모든 창으로 넓힘".
 
 ## upstream 대비 변경점
 
@@ -179,3 +183,4 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
 - 2026-11-12 Ctrl+Shift+T(⇧⌘T)를 Reopen Closed Tab으로, Maximize Results는 Ctrl+Shift+R(⇧⌘R, Results 보이기·숨기기 Ctrl+R의 짝)로 옮김. ⇧⌘R·⇧⌘T는
   macOS 예약 키가 아니고 다른 명령과 겹치지 않는다(`UiKeysTest` 목록에 Ctrl+Shift+R을 더함, 테스트는 실행하지 않음). 앱 변경 #66, `chromite/small-fixes-r2`.
   확인(테스트 에이전트, 150%): 닫은 쿼리 창이 Ctrl+Shift+T로 글과 함께 돌아오고, Ctrl+Shift+R이 결과 최대화를 켜고 끔. Window 메뉴에 "닫은 탭 다시 열기 Ctrl+Shift+T".
+- 2026-11-12 "Alt 키와 메뉴 막대"(위 설계 결정): 마우스에 쓴 Alt의 떼기는 메뉴 막대를 고르지 않음, `AltMouseMenuGuard`(앱 변경 #102, `chromite/alt-mouse-menu`).
