@@ -194,6 +194,11 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 | Databend `databend-ssl`, TiDB Lake `tidblake-ssl` (2026-11-08) | 칸 없음, 안내 한 줄 | 핸들러가 켜져 있으면 모델이 `sslmode=enable`을 넣는다(`DatabendDataSource`·`TiDBLakeDataSource`의 `initSSL`) |
 
 - 방법 속성(`ssl.method`)이 없는 예전 설정은 SWT처럼 예전 키(`rootCert` 등, `sslKeyStore`)에서 읽는다. 저장은 새 키로 한다.
+- MySQL·MariaDB: Verify server certificate가 켜져 있고 CA certificate가 없으면 연결 전에 "서버 인증서 확인이 켜져 있지만 CA 인증서가 없습니다.
+  SSL 탭에서 CA 인증서를 지정하거나 "서버 인증서 확인"을 끄십시오."로 멈춘다(`MySQLDataSource.initSSL`, `MySQLMessages.ssl_verify_without_ca`,
+  2026-11-12 앱 변경 #81). 전에는 모델이 빈 신뢰 저장소를 드라이버에 넘겨 MariaDB가 "the trustAnchors parameter must be non-empty"로 실패했다
+  (MariaDB 11에서 확인. MySQL 8.4는 시험 앱에 드라이버 파일이 없어 확인하지 못했지만 같은 빈 저장소를 `trustCertificateKeyStoreUrl`로 넘긴다).
+  확인을 끄면 MariaDB SSL 목록이 읽힌다.
 - ClickHouse: 모델은 공식 드라이버(`com_clickhouse`)일 때 경로와 모드를 드라이버의 `Properties`에 그대로 넣는다. `Properties`는 `null`을 받지 않으므로
   SWT처럼 모드는 늘 저장하고 경로는 빈 문자열도 저장한다.
 - TiDB Lake: SWT 화면(`TiDBLakeSSLConfigurator`)에는 클라이언트 인증서·키 칸이 있었지만 모델이 읽지 않는다(`TiDBLakeDataSource`는 `sslmode=enable`만 넣음). 효과 없는 칸이라 옮기지 않았다.
@@ -710,3 +715,4 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
   `chromite/conn-dblist-loop`): 비교에서 핸들러 설정의 주인을 빼고, 읽은 뒤 목록을 펼칠 때는 읽기를 요청하지 않음. 2026-11-11 "남긴 것"의
   프록시 느림(1044번)이 이 고리였다. 위 "끝없이 다시 읽던 것", "확인 (2026-11-12, 목록 다시 읽기 고리)". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 Test Connection 결과에서 Oracle 제품 이름이 두 번 나오던 것(앱 변경 #81, `ConnectionTestJob`). 위 "5. Test Connection".
+- 2026-11-12 MySQL·MariaDB SSL에서 서버 인증서 확인이 켜져 있고 CA 인증서가 없을 때 무엇을 바꿀지 알리는 오류(앱 변경 #81). 위 "SSL".

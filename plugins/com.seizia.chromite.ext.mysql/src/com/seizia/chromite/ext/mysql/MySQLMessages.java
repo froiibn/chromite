@@ -22,11 +22,13 @@ import org.eclipse.osgi.util.NLS;
 /**
  * 변경 이력:
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ * - 2026-11-12 SSL 서버 인증서 확인에 CA 인증서가 없을 때의 안내(앱 변경 #81)
  */
 public class MySQLMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mysql.MySQLMessages";
 
     public static String exception_direct_database_rename;
+    public static String ssl_verify_without_ca;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, MySQLMessages.class);

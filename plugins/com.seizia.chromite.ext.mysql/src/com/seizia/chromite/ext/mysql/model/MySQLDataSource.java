@@ -25,6 +25,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.ext.mysql.MySQLConstants;
 import com.seizia.chromite.ext.mysql.MySQLDataSourceProvider;
+import com.seizia.chromite.ext.mysql.MySQLMessages;
 import com.seizia.chromite.ext.mysql.model.plan.MySQLPlanAnalyser;
 import com.seizia.chromite.ext.mysql.model.session.MySQLSessionManager;
 import com.seizia.chromite.model.*;
@@ -75,6 +76,13 @@ import java.util.regex.Pattern;
 
 /**
  * GenericDataSource
+ *
+ * 설계(SSL): CA 인증서가 없으면 드라이버에 빈 신뢰 저장소가 넘어가, 서버 인증서 확인이 켜져 있으면 연결이 늘
+ * "the trustAnchors parameter must be non-empty"로 실패한다. 그 문구는 무엇을 바꿔야 하는지 말하지 않아 연결 전에
+ * "CA 인증서를 지정하거나 확인을 끄라"는 오류로 멈춘다.
+ *
+ * 변경 이력:
+ * - 2026-11-12 서버 인증서 확인 + CA 인증서 없음을 연결 전에 알림(앱 변경 #81)
  */
 public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector {
     private static final Log log = Log.getLog(MySQLDataSource.class);
@@ -209,6 +217,11 @@ public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisti
             byte[] caCertData = SSLHandlerTrustStoreImpl.readCertificate(sslConfig, SSLHandlerTrustStoreImpl.PROP_SSL_CA_CERT, MySQLConstants.PROP_SSL_CA_CERT);
             byte[] clientCertData = SSLHandlerTrustStoreImpl.readCertificate(sslConfig, SSLHandlerTrustStoreImpl.PROP_SSL_CLIENT_CERT, MySQLConstants.PROP_SSL_CLIENT_CERT);
             byte[] keyData = SSLHandlerTrustStoreImpl.readCertificate(sslConfig, SSLHandlerTrustStoreImpl.PROP_SSL_CLIENT_KEY, MySQLConstants.PROP_SSL_CLIENT_KEY);
+            if (caCertData == null && sslConfig.getBooleanProperty(MySQLConstants.PROP_VERIFY_SERVER_SERT)) {
+                // The trust store below would hold no CA: the TLS handshake then fails with "the trustAnchors parameter
+                // must be non-empty", which does not say what to change
+                throw new DBException(MySQLMessages.ssl_verify_without_ca);
+            }
             if (caCertData != null || clientCertData != null) {
                 securityManager.addCertificate(getContainer(), SSLConstants.SSL_CERT_TYPE, caCertData, clientCertData, keyData);
             } else {
