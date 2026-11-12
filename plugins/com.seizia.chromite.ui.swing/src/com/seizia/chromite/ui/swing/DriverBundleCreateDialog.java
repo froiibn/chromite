@@ -60,6 +60,8 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/driver-offline-bundle.md)
  * - 2026-11-08 묶음 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-12 안내 글({@link #createHint})이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
+ *   낱말 가운데서 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 final class DriverBundleCreateDialog extends JDialog {
 
@@ -195,7 +197,7 @@ final class DriverBundleCreateDialog extends JDialog {
      */
     @NotNull
     static JTextArea createHint(@NotNull String text) {
-        JTextArea hint = new JTextArea(text);
+        JTextArea hint = new WrappingNote.MessageArea(text);
         hint.setEditable(false);
         hint.setFocusable(false);
         hint.setOpaque(false);
