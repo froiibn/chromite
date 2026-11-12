@@ -654,6 +654,97 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   비교 `D:\Tools\_scratch\small-fixes-r3\sheets\82-message-wrapping-ko150.png`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 "바꾼 곳"의
   모든 대화상자 글의 줄 바꿈과 높이, `WrappingNote`를 쓰는 안내(규칙은 같고 구현만 나눔).
 
+## 휠 스크롤 (#97)
+
+사용자 보고(사내 환경 2026-11-12, 26.0.5): "옵션에서 에이전트 및 몇몇 설정 화면의 마우스 스크롤이 동작하지 않는다".
+
+### 원인
+
+- 페이지는 세로로 스크롤되는 칸(`OptionsDialog.addPage`의 `JScrollPane`, 보기 `PageView`) 안에 있다. 그 안에 다시 스크롤 창이 있으면
+  (Chromite Agent > Providers는 탭 전체가 `JScrollPane`, `AiOptionsPage.createProvidersTab`), 포인터가 그 위에 있을 때 휠이 죽는다.
+- AWT는 휠 이벤트를 포인터 아래에서 휠을 듣는 가장 안쪽 구성 요소에 한 번 보낸다(`Container.LightweightDispatcher`, 듣지 않는 구성 요소는
+  `Component.dispatchMouseWheelToAncestor`로 휠을 듣는 가장 가까운 조상에게). 스크롤 창은 모두 휠을 듣고, 움직일 수 없어도 넘기지 않는다:
+  `BasicScrollPaneUI.Handler.mouseWheelMoved`(JBR 25 1000–1024행)는 세로·가로 막대가 모두 없으면 보이지 않는 세로 막대를 고르고 이벤트를
+  소비한 뒤 아무것도 움직이지 않는다. FlatLaf의 고해상도 경로(`FlatScrollPaneUI.mouseWheelMovedSmooth`, 3.8 185–200행)는 막대가 없으면
+  소비하지 않고 돌아가지만, 그래도 바깥으로 넘기는 코드는 없다.
+- 그래서 Providers 탭은 페이지 여백 말고 어디서도(라벨, 입력 칸, 콤보, 단추, 빈 곳) 스크롤되지 않았다. 다 펼쳐진 안쪽 창은 움직일 거리가 없다.
+  같은 원인으로 Connection Types의 편집 칸 묶음과 표, Agent > Audit Log, Editor·Editor Colors·Templates의 SQL 미리 보기, Editor Colors의 항목 목록,
+  Templates·Drivers의 표 머리글 위에서도 죽었다. 움직일 수 있는 표(Data Formats, Agent > Tool Policy)는 자기가 스크롤했지만 끝에 닿으면 멈췄다.
+- 후보였지만 원인이 아닌 것:
+  - 닫힌 콤보와 스피너: 휠을 듣지 않는다(`BasicComboPopup`은 팝업이 열려 있을 때만 콤보에 듣는 것을 단다, FlatLaf 3.8의 휠 듣는 것은 스크롤 창·
+    탭 창·팝업 메뉴뿐). 그래서 바깥 스크롤 창에서는 그 위에서도 스크롤된다(측정: General·Query Results 등의 콤보·스피너 위에서 페이지가 움직임).
+  - 고해상도 휠(회전 0, 소수 정밀 회전): FlatLaf가 `ScrollPane.smoothScrolling`(기본 켬) 경로로 처리한다. 보통 휠이 되는 곳은 고해상도 휠도 되고
+    (5 × 0.2 → 보통 한 칸과 같은 거리, 5 × 0.05 → 15px), 안 되는 곳은 둘 다 안 됐다. 따로 고칠 것이 없다.
+  - 페이지가 스크롤 칸 밖에 있거나 휠이 꺼진 페이지: 없다(모든 페이지가 같은 `addPage`, `setWheelScrollingEnabled`를 쓰는 곳 없음).
+
+### 고침: 규칙 하나 (`ChromiteScrollPaneUI`)
+
+- Look and Feel의 `ScrollPaneUI`를 `FlatScrollPaneUI`를 상속한 `ChromiteScrollPaneUI`로 바꿨다(`ChromiteLightLaf`·`ChromiteDarkLaf.getDefaults`,
+  탭 창 UI와 같은 방식). 휠 듣는 것 한 곳에서:
+  1. 이 창이 휠 방향(세로, Shift면 가로)으로 움직일 수 있으면(그 막대가 보이고 끝이 아님) 지금까지처럼 스스로 스크롤한다. 움직일 수 있는 목록·표·글
+     상자는 먼저 자기가 스크롤한다.
+  2. 아니면 같은 창 안의 바깥 스크롤 창 중 그 방향으로 움직일 수 있는 가장 가까운 것에 이벤트를 넘긴다(좌표만 바꾼 같은 이벤트, 정밀 회전 값 포함).
+  3. 그런 바깥 창이 없으면 지금까지와 같다. 결과 표, 쿼리 편집기, 개체 탐색기처럼 바깥 스크롤 창이 없는 곳은 바뀌지 않는다.
+- 페이지마다 안쪽 스크롤 창을 없애거나 듣는 것을 달지 않은 이유: 원인이 페이지가 아니라 "안쪽 스크롤 창은 휠을 넘기지 않는다"는 Swing 규칙이고,
+  같은 구조가 옵션 밖(연결 대화상자)에도 있으며, 앞으로 만들 양식에도 다시 생긴다. 코드에 같은 목적의 도우미는 없었다(`MouseWheelListener`를 다는
+  곳은 ERD·실행 계획·공간 보기의 확대뿐). FlatLaf도 탭 창에서 같은 방식(탭 줄 밖의 휠을 부모에게 넘김, `FlatTabbedPaneUI.FlatWheelTabScroller`)을 쓴다.
+- 바깥 창은 같은 창(window) 안에서만 찾는다. `Window.getParent()`는 주인 창이라, 팝업의 목록이 끝에 닿았을 때 주인 창이 스크롤되지 않게 하기 위해서다.
+- 동작이 바뀌는 곳: 바깥 스크롤 창 안에 있는 스크롤 창이 끝에 닿았거나 움직일 거리가 없을 때 휠이 바깥을 움직인다. 세로 막대 없이 가로 막대만 있는
+  안쪽 창 위의 세로 휠도 바깥이 세로로 움직일 수 있으면 바깥으로 간다(전에는 안쪽을 가로로 움직임). Shift + 휠은 그대로 가로다.
+
+### 스크롤 속도
+
+- 페이지 휠 한 칸이 양식 약 세 줄을 움직이게 했다. 행 높이는 40–56(배율 1 기준, 측정: 모든 페이지의 `OptionsForm` 행), 스크롤 단위는 16이었다
+  (휠 한 칸 = 운영체제 기본 3단위 = 48, 약 한 줄). 단위를 44로 하고(`OptionsDialog.PAGE_SCROLL_UNIT`) `PageView.getScrollableUnitIncrement` 한 곳에서
+  준다(전에는 같은 16을 막대에도 따로 줌, 지움). 한 칸 = 132(배율 1). 모든 페이지가 같은 `PageView`를 쓰고, 안쪽 창 위의 휠도 이제 페이지 창이
+  처리하므로 어디서나 같다. Page Up/Down은 보이는 높이 그대로다.
+
+### 확인 (2026-11-12, 이 브랜치 빌드, 테스트 에이전트)
+
+방법: 제품 빌드를 복사해 자기 작업 공간·설정·데이터 폴더로 실행(AI 제공자 키 없음, 요청 없음: 키 확인은 Test 단추에서만 함). 옵션 창을 1080×420으로
+줄여 대부분의 페이지가 넘치게 하고, 페이지마다(하위 탭이 있으면 탭마다) 보이는 영역에서 종류별(빈 곳·여백, 라벨, 입력 칸, 닫힌 콤보, 스피너, 체크 상자,
+단추, 줄 바꾸는 안내, 여러 줄 글 상자, 목록, 표, 안쪽 스크롤 창) 첫 구성 요소의 점에 휠 이벤트를 창의 이벤트 큐에 넣었다(실제 입력처럼 경량 디스패처가
+대상을 고름). 아래로·위로 보통 한 칸, 고해상도 5 × 0.2(회전 0). 받은 구성 요소는 AWT 이벤트 듣는 것으로 기록했다. 실제 휠은 `java.awt.Robot`으로 Agent 페이지에서
+한 번 더 확인했다(포인터는 이 앱의 창 안). 기록: `D:\Tools\_scratch\options-wheel-scroll\logs\`, 화면: `shots\`.
+
+| 페이지 > 영역 | 전(영어 150%) | 뒤(영어 150%, 한국어 100%) |
+|---|---|---|
+| Chromite Agent > Providers: 라벨, 입력 칸, 비밀번호 칸, 콤보, 콤보 단추, 빈 곳 | 0(안쪽 `JScrollPane`이 받고 멈춤), 고해상도도 0 | 132 / −132, 고해상도 130 |
+| Chromite Agent > Providers: 페이지 여백 | 48 | 132 |
+| Chromite Agent > Audit Log: 표·상세 칸(행 없음) | 0 | 132 |
+| Chromite Agent > Tool Policy: 표(행이 많음) | 표가 72 스크롤, 끝에서 멈춤 | 표가 먼저 72 스크롤, 끝에서 페이지 132 |
+| Chromite Agent > MCP Server: 명령 글 상자 끝 | (측정 안 함) | 페이지 132 |
+| Connection Types: 편집 칸 묶음(라벨·입력·체크·스피너), 표 | 0 | 132 |
+| Editor, Editor Colors, Templates: SQL 미리 보기 | 0 | 페이지가 움직임(남은 거리만큼) |
+| Editor Colors: 항목 목록 | 0 | 110(남은 거리) |
+| Templates, Drivers: 표 머리글 | 0 | 6(남은 거리), 132 |
+| Data Formats: 속성 표(행이 많음) | 표가 72 스크롤 | 표가 72 스크롤(그대로) |
+| 나머지 페이지의 모든 영역(General, Logs, Editor, Query Execution, Query Results, Errors and Timeouts, Drivers, Oracle, Mimer SQL 등) | 48(남은 거리가 적으면 그만큼) | 132(남은 거리가 적으면 그만큼) |
+| 넘치지 않는 페이지(Object Explorer, Notifications, Code Completion, Binary and LOB, Data Transfer, Connections, Metadata, Client Identification, Altibase, CUBRID, Updates) | 스크롤할 것 없음 | 같음 |
+| Robot 실제 휠, Agent > Providers 라벨·비밀번호 칸·콤보 / 여백 | 0 / 48 | 132 / 132 |
+
+- 고해상도: 페이지 목록(바깥 창이 없는 스크롤 창) 5 × 0.2 → 65, 5 × 0.05 → 15. 바뀌지 않는 경로(규칙 3)로 FlatLaf가 처리한다.
+- 키보드: General의 체크 상자에서 Page Down → 보이는 높이만큼, Page Up → 0. Editor Colors 목록에서 ↓↓ → 2, ↑ → 1(둘 다 바뀌지 않음).
+- 두 테마: `ChromiteLightLaf`·`ChromiteDarkLaf`의 `ScrollPaneUI`가 모두 `ChromiteScrollPaneUI`, 실행 중(다크)인 옵션 창의 모든 스크롤 창이 이 UI.
+  동작은 색과 관계없어 라이트로 바꿔 다시 재지는 않았다.
+- 한국어 100%의 "전"은 다시 재지 않았다(원인이 구조라 언어·배율과 관계없음).
+
+### 옵션 밖의 같은 구조
+
+`ChromiteScrollPaneUI`가 모든 스크롤 창에 적용되므로 함께 고쳐진다. 실행 중 탭을 모두 돌며 스크롤 창 안의 스크롤 창을 찾고(테스트 에이전트), 안쪽 창을
+끝에 둔 채 휠을 넣었다.
+
+| 곳 | 전 | 뒤 |
+|---|---|---|
+| 연결 대화상자 > Options >> > Shell Commands: 명령 글 상자 | 0 | 바깥이 3 움직임(아래 "보고") |
+| 연결 대화상자 > Settings > Data Formats: 속성 표 끝 | 0 | 48 |
+| 메인 창(기본 배치: 개체 탐색기, 등록된 서버, 쿼리 라이브러리, Chromite Agent 패널) | 스크롤 창 안의 스크롤 창 없음 | 같음 |
+
+- 코드로 본 것: 표 디자이너(`TableDesignerPanel`)는 탭·분할 안의 스크롤 창이라 겹치지 않는다. Chromite Agent 패널의 대화 기록(`AiAssistantPanel`)에는
+  안쪽 스크롤 창이 없다.
+- 보고(고치지 않음, 범위 밖): 연결 대화상자 Shell Commands 페이지의 스크롤 창은 단위가 1이라 휠 한 칸이 3px만 움직인다(`ConnectionShellCommandsPage`).
+  연결 대화상자의 다른 양식 칸(`ConnectionSettingsOverrides`, `ConnectionNetworkPage`)은 16이다. 옵션 페이지와 같은 단위로 맞출지는 따로 정할 일이다.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -821,6 +912,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-12 UI 글꼴 행과 그 설정을 지움: UI 글꼴은 운영체제 글꼴 하나, 크기 13(앱 변경 #67, 위 "UI 글꼴").
 - 2026-11-12 설정을 글로만 가리키던 다섯 화면(여섯 곳)에 그 페이지를 여는 링크·메뉴 항목(`OptionsLinks`, B12, `chromite/small-fixes-r2`, 위 "특정 페이지로 여는 곳").
   `OptionsDialog`는 고치지 않음(재구성 브랜치와 병합 충돌을 피하려고).
+- 2026-11-12 안쪽 스크롤 창이 더 움직일 수 없으면 휠을 바깥 스크롤 창에 넘김(`ChromiteScrollPaneUI`, 모든 스크롤 창), 옵션 페이지 휠 한 칸을 약 세 줄로
+  (`PAGE_SCROLL_UNIT` 44)(앱 변경 #97, `chromite/options-wheel-scroll`, 위 "휠 스크롤 (#97)"). 회귀 테스트는 실행하지 않았다.
 
 ## 부록: 키별 상태
 
