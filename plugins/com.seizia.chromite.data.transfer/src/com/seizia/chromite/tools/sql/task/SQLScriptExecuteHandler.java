@@ -54,6 +54,7 @@ import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.model.task.*;
 import com.seizia.chromite.registry.ApplicationPolicyProvider;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
 import com.seizia.chromite.tools.sql.SQLScriptExecuteSettings;
 import com.seizia.chromite.tools.transfer.DTUtils;
 import com.seizia.chromite.tools.transfer.internal.DTMessages;
@@ -85,11 +86,16 @@ import java.util.Set;
  *     스크립트가 남의 트랜잭션에 섞이지 않게 하기 위해서다.</li>
  *     <li>끝나면(오류로 멈춰도) 실행한 세션에 열린 트랜잭션이 있으면 커밋 / 롤백 / 열어 두기를 묻는다(열어 두기가 기본).
  *     열어 둔 트랜잭션은 열린 트랜잭션 목록, 유휴 트랜잭션 알림, 연결을 끊을 때의 질문이 보인다.</li>
+ *     <li>열린 트랜잭션은 데이터 가져오기와 같은 규칙으로 찾는다({@link #hasOpenTransaction}): 수동 커밋의 쿼리 관리자 기록과, 상태 줄이 보이는
+ *     DB의 답({@link QMUtils#getTransactionState}). 그래야 자동 커밋 세션에서 스크립트가 {@code BEGIN TRAN}으로 열고 끝내지 않은 트랜잭션도 묻는다.
+ *     끝내기는 다른 질문과 같은 공용 경로({@link IdleTransactionMonitor#commitOrRollback})다: 자동 커밋에서 드라이버가 {@code commit()}을 거절한다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 트랜잭션 안전: 커밋 방식을 바꾸거나 묻지 않고 커밋·롤백하지 않음, 실행 전·후 열린 트랜잭션 질문
  *   (docs/chromite/swing-database-tasks.md "SQL 스크립트 작업")
+ * - 2026-11-12 자동 커밋 세션의 명시적 트랜잭션도 실행 전·후에 물음. 수동 커밋 모드의 기록({@code isTransactionActive})만 보아
+ *   {@code BEGIN TRAN}을 끝내지 않은 스크립트가 아무 질문 없이 트랜잭션을 열어 두었다(앱 변경 #106, 같은 문서)
  */
 public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTransformer {
 
@@ -261,7 +267,7 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         @NotNull DBCExecutionContext context,
         @NotNull PrintStream logStream
     ) throws DBException {
-        if (!QMUtils.isTransactionActive(context)) {
+        if (!hasOpenTransaction(context)) {
             return true;
         }
         String connection = context.getDataSource().getContainer().getName();
@@ -287,7 +293,7 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         @NotNull DBCExecutionContext context,
         @NotNull PrintStream logStream
     ) {
-        if (!QMUtils.isTransactionActive(context)) {
+        if (!hasOpenTransaction(context)) {
             return;
         }
         String connection = context.getDataSource().getContainer().getName();
@@ -308,6 +314,15 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         }
     }
 
+    /**
+     * The rule of the data import ({@code DatabaseTransferConsumer.endOpenTransaction}): the query manager's record of a
+     * manual commit transaction, or the transaction the database holds as the status line shows it, which includes one
+     * begun explicitly in auto-commit mode.
+     */
+    private static boolean hasOpenTransaction(@NotNull DBCExecutionContext context) {
+        return QMUtils.isTransactionActive(context) || QMUtils.getTransactionState(context).isOpen();
+    }
+
     private static void endTransaction(
         @NotNull DBRProgressMonitor monitor,
         @NotNull DBCExecutionContext context,
@@ -315,14 +330,7 @@ public class SQLScriptExecuteHandler implements DBTTaskHandler, DBTTaskImportTra
         @NotNull PrintStream logStream
     ) throws DBException {
         try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "End script task transaction")) { //$NON-NLS-1$
-            DBCTransactionManager txnManager = DBUtils.getTransactionManager(context);
-            if (txnManager != null) {
-                if (commit) {
-                    txnManager.commit(session);
-                } else {
-                    txnManager.rollback(session, null);
-                }
-            }
+            IdleTransactionMonitor.commitOrRollback(session, commit);
         }
         logStream.println((commit ? "Committed" : "Rolled back") + " the transaction in the session of " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             + context.getDataSource().getContainer().getName());
