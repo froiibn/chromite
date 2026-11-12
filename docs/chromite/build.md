@@ -86,7 +86,7 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
 
 ### 버전
 
-제품 버전은 `major.minor.dev`(0.1.0부터)이고, 원본은 `product/swing/chromite-swing.product`의 `version`이다.
+제품 버전은 `YY.seq.dev`(0.1.0부터 0.1.4까지는 `major.minor.dev`, 그다음 26.0.5)이고, 원본은 `product/swing/chromite-swing.product`의 `version`이다.
 규칙과 설계는 [versioning.md](versioning.md)에 있다.
 
 - 사용자에게 줄 빌드를 만들기 전에 버전을 올리는 커밋을 먼저 한다.
@@ -194,3 +194,4 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-07 "버전" 절 추가: 제품 버전 체계 `major.minor.dev`(0.1.0), `tools/release/bump-version.ps1`([versioning.md](versioning.md)).
 - 2026-11-08 `deps/` 두 `LICENSE.md`의 JSch 항목을 LGPL에서 BSD 계열로 고침(사용자 승인). "deps/ 폴더에 둔 이유"와 갱신 방법에 예외와 재적용을 적음.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 버전 체계 변경(앱 변경 #63, `chromite/release-26-0-5`): "버전"의 체계 이름을 `YY.seq.dev`로.

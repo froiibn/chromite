@@ -58,7 +58,7 @@ if (-not $Version) {
     $Version = (& pwsh -NoProfile -File tools/release/bump-version.ps1 | Select-Object -Last 1)
     if ($LASTEXITCODE) { throw 'bump-version.ps1 could not read the product version' }
 }
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "version '$Version' is not major.minor.dev" }
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "version '$Version' is not YY.seq.dev" }
 
 if (-not $Makensis) {
     if ($env:NSIS_HOME) { $Makensis = Join-Path $env:NSIS_HOME 'makensis.exe' }

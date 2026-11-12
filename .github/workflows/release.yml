@@ -51,7 +51,7 @@ env:
 jobs:
   version:
     # A tag push needs a v* tag; a manual run is allowed from devel only (the signing environment
-    # refuses other refs anyway). The version is the committed product version (major.minor.dev,
+    # refuses other refs anyway). The version is the committed product version (YY.seq.dev,
     # docs/chromite/versioning.md); a tag must be exactly v<version>, a manual run needs no tag.
     if: >-
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
@@ -73,7 +73,7 @@ jobs:
           # Prints the version and fails if the files that carry it disagree.
           version=$(pwsh -NoProfile -File tools/release/bump-version.ps1)
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::committed product version '$version' is not major.minor.dev"
+            echo "::error::committed product version '$version' is not YY.seq.dev"
             exit 1
           fi
           if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" != "refs/tags/v$version" ]; then

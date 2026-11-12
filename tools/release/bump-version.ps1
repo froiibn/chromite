@@ -15,7 +15,7 @@
 
 <#
 .SYNOPSIS
-    Shows, checks or sets the Chromite product version (major.minor.dev, docs/chromite/versioning.md).
+    Shows, checks or sets the Chromite product version (YY.seq.dev, docs/chromite/versioning.md).
 
 .DESCRIPTION
     The product version lives in product/swing/chromite-swing.product (the source of truth, read by
@@ -34,19 +34,25 @@
 
     Without -Version the script prints the current version and fails if the four places disagree
     (release.yml runs it this way). With -Version it refuses a version that is not X.Y.Z, not higher than
-    the current version and every local v* tag, that does not reset the third number to 0 when major or
-    minor goes up, or that raises major without -AllowMajor (1.0.0 is the user's decision). It writes all
-    four files and changes nothing else; commit them as one "version" commit.
+    the current version and every local v* tag, or that breaks the scheme YY.seq.dev:
+      - the first number is the two digits of this year (a new year starts at YY.1.0);
+      - before the first release for general users the versions are YY.0.dev and the third number goes on
+        from the current one (0.1.4 -> 26.0.5 -> 26.0.6, the one-time move from the 0.x numbers included);
+      - leaving YY.0.dev for YY.1.0 needs -FirstUserRelease (26.1.0 is the user's decision);
+      - after it the second number goes up with every release and the third number (urgent fixes) resets
+        to 0 when the second goes up.
+    It writes all four files and changes nothing else; commit them as one "version" commit.
 
 .EXAMPLE
     pwsh tools/release/bump-version.ps1
-    pwsh tools/release/bump-version.ps1 0.1.1
+    pwsh tools/release/bump-version.ps1 26.0.6
+    pwsh tools/release/bump-version.ps1 26.1.0 -FirstUserRelease
 #>
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [string] $Version,
-    [switch] $AllowMajor
+    [switch] $FirstUserRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -97,18 +103,35 @@ if (-not $Version) {
 }
 
 if ($Version -notmatch "^$versionPattern$") {
-    throw "version '$Version' is not major.minor.dev (for example 0.1.1)"
+    throw "version '$Version' is not YY.seq.dev (for example 26.0.6)"
 }
 $old = ConvertTo-VersionTuple $current
 $new = ConvertTo-VersionTuple $Version
 if ($new -le $old) {
     throw "version $Version is not higher than the current version $current"
 }
-if ($new.Major -ne $old.Major -and -not $AllowMajor) {
-    throw "version $Version changes major ($current); the major version is the user's decision, pass -AllowMajor when they made it"
+$year = (Get-Date).Year % 100
+if ($new.Major -ne $year) {
+    throw "version ${Version}: the first number is the year, $year now"
 }
-if (($new.Major -ne $old.Major -or $new.Minor -ne $old.Minor) -and $new.Build -ne 0) {
-    throw "version ${Version}: the third number resets to 0 when major or minor goes up ($($new.Major).$($new.Minor).0)"
+# Before the first release for general users: the 0.x numbers (0.1.4 and earlier) and YY.0.dev.
+if ($old.Major -eq 0 -or $old.Minor -eq 0) {
+    if ($FirstUserRelease) {
+        if ($new.Minor -ne 1 -or $new.Build -ne 0) {
+            throw "version ${Version}: the first release for general users is $year.1.0"
+        }
+    } elseif ($new.Minor -ne 0) {
+        throw "version ${Version} leaves $year.0.dev; the first release for general users ($year.1.0) is the user's decision, pass -FirstUserRelease when they made it"
+    } elseif ($new.Build -le $old.Build) {
+        # also the move from 0.1.4: the third number goes on (26.0.5), it does not start again
+        throw "version ${Version}: before the first release for general users the third number goes on from $current ($year.0.$($old.Build + 1))"
+    }
+} elseif ($FirstUserRelease) {
+    throw "version ${Version}: -FirstUserRelease is for leaving the 0.dev numbers, and $current is past them"
+} elseif ($new.Major -ne $old.Major -and ($new.Minor -ne 1 -or $new.Build -ne 0)) {
+    throw "version ${Version}: a new year starts at $year.1.0"
+} elseif ($new.Minor -ne $old.Minor -and $new.Build -ne 0) {
+    throw "version ${Version}: the third number resets to 0 when the second goes up ($($new.Major).$($new.Minor).0)"
 }
 # A number that ever got a tag is never reused, even if its commit never reached devel.
 $tags = @(git -C $root tag --list 'v*')

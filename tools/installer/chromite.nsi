@@ -54,7 +54,7 @@
 ;     page) through Explorer, so that Chromite runs as the signed-in user, not as administrator.
 ;
 ; Defines (all from build-installer.ps1):
-;   VERSION        product version, major.minor.dev (docs/chromite/versioning.md)
+;   VERSION        product version, YY.seq.dev (docs/chromite/versioning.md)
 ;   SOURCE_DIR     the built product folder (chromite-swing\, with jre\)
 ;   FILES_NSH      generated list of the product folder's top-level entries
 ;   OUT_FILE       the exe to write
