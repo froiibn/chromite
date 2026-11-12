@@ -86,6 +86,8 @@ import java.util.regex.Pattern;
  * - 2026-11-12 한 문장에 속할 수 없는 단어가 있으면 계획 도구가 거절함(앱 변경 #93, {@link #requireOneStatement}). SQL Server는 {@code ;} 없이
  *   문장을 이어 써서, getActualPlan {@code SELECT 1 AS a DELETE FROM dbo.t COMMIT}이 롤백되는 측정 안에서 DELETE를 커밋했다
  *   (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-12 계획 도구가 끝의 {@code ;}를 runSql과 같은 판단으로 남김({@code trimTrailingDelimiter}, #87과 같은 원인): SQL Server MERGE의 실제
+ *   계획이 "must be terminated by a semi-colon"으로 실패했다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public class PlanTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -249,8 +251,9 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
         @NotNull String rawSql,
         boolean actual
     ) throws DBException {
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(rawSql);
         DBPDataSource dataSource = container.getDataSource();
+        // The ';' a statement needs stays, as runSql sends it (SQL Server MERGE fails without it)
+        String sql = AgentSqlClassifier.trimTrailingDelimiter(dataSource, rawSql);
         // The statement is appended to EXPLAIN: a second statement after it must never run
         if (dataSource != null && QueryTools.splitScript(dataSource, sql).size() > 1) {
             throw new com.seizia.chromite.model.ai.agent.AIToolArgumentException("Pass exactly one statement");

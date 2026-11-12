@@ -1810,6 +1810,26 @@ ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryToo
 - 잘못된 거절(알고 받아들임): PostgreSQL `$$COMMIT$$`(달러 따옴표 문자열 안의 단어를 토크나이저가 문자열로 보지 않음), MySQL `CHARACTER SET`·`USE INDEX`,
   `OUTPUT … INTO`, MERGE 안의 DELETE/UPDATE를 가진 프로시저 본문 등 쓰기 판정이 DANGEROUS로 올라가는 경우.
 
+### 검토 뒤 고침 (2026-11-12)
+
+- **읽기 명령**: 토큰 검사가 READ_ONLY_COMMAND보다 먼저라 MySQL·MariaDB `SHOW CREATE TABLE|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE …`와 `SHOW CHARACTER SET`이
+  거절됐다(04a6015a39). 그 자리에서만 허용한다(맨 앞 SHOW 바로 뒤의 CREATE, `SHOW CHARACTER` 뒤의 SET). 뒤에 붙인 문장(`SHOW CREATE TABLE t DELETE FROM t`,
+  `SHOW CHARACTER SET UPDATE …`)은 그대로 거절. READ_ONLY_COMMAND의 다른 갈래(SHOW INDEX/TABLE STATUS/VARIABLES/GRANTS/PROCESSLIST/ENGINE, DESCRIBE/DESC,
+  EXPLAIN [FORMAT=JSON] SELECT, PostgreSQL SHOW, DBCC 6가지, sp_who/who2/lock/helpindex/helptext/help/helpdb/helpstats/spaceused, sp_readerrorlog 인수 포함)는
+  0319e86309·04a6015a39·지금 모두 읽기다.
+- **힌트의 USE**: SQL Server `OPTION (USE HINT (…))`·`USE PLAN`, MySQL `USE INDEX/KEY (…)`의 USE는 문장이 아니다(다음 단어로 판단). `SELECT …\nUSE master`는 거절.
+- **SQL Server 끝의 `OPTION (…)`**: JSQLParser가 해석하지 못해 `SELECT TOP 5 … OPTION (RECOMPILE)`이 0319e86309부터 거절이었다. 해석할 때만 끝의 힌트를 떼고(토큰
+  검사는 전체 글), 이제 읽기다.
+- **업서트**: PostgreSQL `ON CONFLICT … DO UPDATE SET`, MySQL/MariaDB `ON DUPLICATE KEY UPDATE`의 UPDATE를 한 문장 판정과 위험 판정 모두 허용(DO·KEY 바로 뒤).
+  04a6015a39에서는 한 문장 판정이 거절하고 위험 판정이 DANGEROUS였다. 이제 0319e86309처럼 WRITE.
+- **계획 도구의 끝 `;`**: `PlanTools.plan`이 `trimTrailingDelimiter`를 쓴다(#87과 같은 원인). SQL Server `MERGE …;`의 실제 계획이 성공하고 롤백된다(두 번째 세션 (1,a),(2,b) 그대로).
+- **번들 쿼리**: 제품에 들어 있는 Query Library 항목은 없다(라이브러리는 사용자 폴더만 읽음, `LibraryReader.roots`). 번들 진단 SQL(`diag/*.sql`, 분류기를
+  거치지 않지만 확인)의 모든 문장을 세 판(0319e86309, 04a6015a39, 지금)의 분류기로 판정했다: SQL Server 48문장(읽기 43), PostgreSQL 37(36), MariaDB 38(25),
+  MySQL 37(24), Oracle 40(40) 모두 판정이 바뀐 것 0개.
+- **흔한 읽기**(실행해 확인): SQL Server `sys.databases`, `sys.dm_exec_requests` + `CROSS APPLY sys.dm_exec_sql_text`, `WITH (NOLOCK)`, `TOP 5 … OPTION (RECOMPILE)`;
+  PostgreSQL `pg_stat_activity`, `pg_stat_user_tables`(last_vacuum, last_analyze), `EXPLAIN SELECT`; MariaDB `information_schema.tables`(ENGINE, CREATE_TIME,
+  UPDATE_TIME), `SHOW CREATE TABLE`, `SHOW INDEX FROM`; Oracle `v$session`, `user_tables`·`all_tables`(LAST_ANALYZED). 모두 SUCCESS.
+
 ### 아직 통과하는 것
 
 - 문자열 안의 SQL을 실행하는 함수: `OPENQUERY(srv, 'DELETE …')`·`OPENDATASOURCE`(SQL Server, 연결된 서버가 있어야 함), PostgreSQL `dblink_exec`, 쓰는 사용자 함수
@@ -1923,6 +1943,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #93 검토 뒤 고침: `SHOW CREATE …`·`SHOW CHARACTER SET`·힌트의 USE 허용, SQL Server 끝의 `OPTION (…)`을 떼고 해석, 업서트는 한 문장·WRITE,
+  계획 도구의 끝 `;`(MERGE). 위 "읽기 판정의 토큰 검사"의 "검토 뒤 고침". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #93(`chromite/agent-tools-r2`): 읽기 판정에 쿼리 창 토크나이저로 한 독립 검사를 더함(T-SQL `SELECT 1 DELETE … COMMIT`), 계획 도구와
   `validateSql`은 한 문장에 속할 수 없는 단어를 거절, `runSql`·`runScript` 위험 판정은 모든 문장 중 가장 위험한 것. 위 "읽기 판정의 토큰 검사".
   도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.

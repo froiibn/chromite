@@ -75,6 +75,10 @@ import java.util.regex.Pattern;
  * - 2026-11-12 읽기 판정에 독립된 토큰 검사를 더하고, 위험 판정은 모든 문장 중 가장 위험한 것으로 함(앱 변경 #93). SQL Server는 문장 사이에
  *   {@code ;}가 없어도 되어 {@code SELECT 1 DELETE FROM t COMMIT}을 JSQLParser가 별칭 붙은 SELECT로 읽었고 runReadOnlySql이 지우고 커밋했다.
  *   {@code INSERT …; DROP …}은 첫 문장만 보아 WRITE였다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-12 #93 검토 뒤 고침: {@code SHOW CREATE …}·{@code SHOW CHARACTER SET}을 그 자리에서만 허용(토큰 검사가 READ_ONLY_COMMAND의 SHOW를
+ *   거절했다), 업서트({@code ON CONFLICT … DO UPDATE SET}, {@code ON DUPLICATE KEY UPDATE})는 한 문장이고 WRITE, 힌트의 USE
+ *   ({@code USE HINT}, {@code USE PLAN}, MySQL {@code USE INDEX/KEY})는 문장이 아님, SQL Server 끝의 {@code OPTION (…)}은 떼고 해석
+ *   (JSQLParser가 해석하지 못해 {@code SELECT … OPTION (RECOMPILE)}이 거절됐다)
  */
 public final class AgentSqlClassifier {
 
@@ -87,6 +91,9 @@ public final class AgentSqlClassifier {
             "|EXEC(UTE)?\\s+(sys\\.|master\\.dbo\\.|dbo\\.)?(sp_who2?|sp_lock|sp_helpindex|sp_helptext|sp_help|sp_helpdb|sp_helpstats|sp_spaceused)\\b(\\s+N?'[^';]*')?" +
             "|(EXEC(UTE)?\\s+)?(sys\\.)?sp_readerrorlog\\b[^;]*" +
         ")\\s*;?\\s*");
+
+    // SQL Server query hints at the end of a SELECT: OPTION (RECOMPILE, MAXDOP 1, USE HINT ('...')); one level of parentheses
+    private static final Pattern TRAILING_QUERY_HINTS = Pattern.compile("(?is)\\s+OPTION\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*$");
 
     private static final Pattern DANGEROUS_COMMAND = Pattern.compile(
         "(?is)\\s*(TRUNCATE|SHUTDOWN|KILL|RESTORE|DROP|ALTER\\s+SYSTEM|ALTER\\s+DATABASE\\b.*\\bSET\\s+(OFFLINE|SINGLE_USER|EMERGENCY))\\b.*");
@@ -154,7 +161,8 @@ public final class AgentSqlClassifier {
      * back, validateSql compiles it under NOEXEC/EXPLAIN): the first word after the first that can't belong to that one
      * statement, or null. A COMMIT, a SET NOEXEC/SHOWPLAN/IMPLICIT_TRANSACTIONS OFF or a second DML statement glued on
      * without ';' would otherwise run, or keep what the rollback should undo. DML words are allowed only where one
-     * statement has them (MERGE ... THEN UPDATE/DELETE/INSERT, INSERT/MERGE INTO, UPDATE ... SET, FOR UPDATE).
+     * statement has them (MERGE ... THEN UPDATE/DELETE/INSERT, INSERT/MERGE INTO, UPDATE ... SET, FOR UPDATE, and the upserts
+     * ON CONFLICT ... DO UPDATE SET and ON DUPLICATE KEY UPDATE).
      */
     @Nullable
     static String foreignStatementWord(@Nullable DBPDataSource dataSource, @NotNull String text) {
@@ -164,7 +172,7 @@ public final class AgentSqlClassifier {
             String previous = words.get(i - 1);
             boolean allowed = switch (word) {
                 case "INSERT", "DELETE" -> previous.equals("THEN");
-                case "UPDATE" -> previous.equals("THEN") || previous.equals("FOR");
+                case "UPDATE" -> previous.equals("THEN") || previous.equals("FOR") || previous.equals("DO") || previous.equals("KEY");
                 case "INTO" -> previous.equals("INSERT") || previous.equals("MERGE");
                 case "SET" -> {
                     // UPDATE t SET / UPDATE s.t AS x SET: the nearest UPDATE just before, with no other SET between
@@ -178,6 +186,8 @@ public final class AgentSqlClassifier {
                     yield found;
                 }
                 case "MERGE" -> false;
+                // Hints, not the USE statement (as in statementWordAfterFirst)
+                case "USE" -> i + 1 < words.size() && Set.of("HINT", "PLAN", "INDEX", "KEY").contains(words.get(i + 1));
                 default -> !STATEMENT_WORDS.contains(word) && !word.equals("GO") && !word.equals("NOEXEC") &&
                     !word.equals("PARSEONLY") && !word.startsWith("SHOWPLAN") && !word.equals("IMPLICIT_TRANSACTIONS");
             };
@@ -193,7 +203,19 @@ public final class AgentSqlClassifier {
      */
     @Nullable
     private static String statementWordAfterFirst(@NotNull List<String> words) {
+        boolean show = !words.isEmpty() && words.getFirst().equals("SHOW");
         for (int i = 1; i < words.size(); i++) {
+            // The read-only commands that contain a statement word in a fixed place (SHOW CREATE TABLE, SHOW CHARACTER SET):
+            // only there, so a statement glued on after them is still refused
+            if (show && (i == 1 && words.get(i).equals("CREATE")
+                || i == 2 && words.get(1).equals("CHARACTER") && words.get(i).equals("SET"))) {
+                continue;
+            }
+            // Hints, not the USE statement: SQL Server OPTION (USE HINT ('...')), USE PLAN; MySQL USE INDEX/KEY (...)
+            String next = i + 1 < words.size() ? words.get(i + 1) : "";
+            if (words.get(i).equals("USE") && (next.equals("HINT") || next.equals("PLAN") || next.equals("INDEX") || next.equals("KEY"))) {
+                continue;
+            }
             if (STATEMENT_WORDS.contains(words.get(i))) {
                 return words.get(i);
             }
@@ -228,7 +250,9 @@ public final class AgentSqlClassifier {
         if (READ_ONLY_COMMAND.matcher(text).matches()) {
             return new Verdict(true, SQLQueryType.SELECT, null);
         }
-        SQLQuery query = new SQLQuery(dataSource, text);
+        // JSQLParser can't parse SQL Server's trailing query hints, OPTION (RECOMPILE): parse without them. The token scan above
+        // read the whole text, hints included
+        SQLQuery query = new SQLQuery(dataSource, TRAILING_QUERY_HINTS.matcher(text).replaceFirst(""));
         SQLQueryType type = query.getType();
         if (type != SQLQueryType.SELECT) {
             return new Verdict(false, type, type == SQLQueryType.UNKNOWN
@@ -281,9 +305,10 @@ public final class AgentSqlClassifier {
             if (DANGEROUS_WORDS.contains(word)) {
                 return AIToolAccess.DANGEROUS;
             }
-            // Not FOR UPDATE, ON UPDATE/DELETE (foreign keys), MERGE ... THEN UPDATE/DELETE
+            // Not FOR UPDATE, ON UPDATE/DELETE (foreign keys), MERGE ... THEN UPDATE/DELETE, the upserts DO UPDATE and
+            // ON DUPLICATE KEY UPDATE
             if (i > 0 && (word.equals("DELETE") || word.equals("UPDATE")) && !previous.equals("FOR") && !previous.equals("ON")
-                && !previous.equals("THEN")) {
+                && !previous.equals("THEN") && !previous.equals("DO") && !previous.equals("KEY")) {
                 return AIToolAccess.DANGEROUS;
             }
         }
