@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
@@ -182,7 +183,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     ({@link SqlPlanExplainer}). Ctrl+M(쿼리 창마다 켜고 끔)을 켜고 실행하면 실제 계획을 함께 받는다. 연결이 실제 계획 어댑터
  *     ({@link SQLActualPlanProvider}: SQL Server, Oracle, Altibase)를 주면 실행 전에 창의 세션에서 켜고, 문장마다 계획을 받고(결과 집합은
  *     {@link ActualPlanReceiver}, 열린 문장은 엔진 처리기, 닫은 문장은 문장 끝 이벤트), 끝나면(오류·취소 포함) 세션 설정을 되돌린다.
- *     문장은 한 번만 실행된다. 어댑터가 없는 연결은 토글을 끈다({@link #getActualPlanSupport}): 실제 계획을 보려면 문장을 한 번 더 실행해야 해서다.</li>
+ *     문장은 한 번만 실행된다. 어댑터가 없는 서버의 창은 연결 전부터 토글을 끈다({@link #getActualPlanSupport}, 드라이버로 판단하는
+ *     {@link SQLActualPlanSupport}): 실제 계획을 보려면 문장을 한 번 더 실행해야 해서다.</li>
  *     <li>쿼리 기록: 엔진의 문장 끝 이벤트마다 {@link QueryHistory}에 문장, 연결, 기본 DB/스키마, 시간, 행 수, 결과를 남긴다.</li>
  *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link QueryParameterBinder.ScriptProvider}로 묻고 값을 SQL 글자로 넣는다.
  *     Query Library 쿼리(확장)와 기록에서 다시 연 바인딩 실행({@link #setRecordedParameters})은 실행 전에 묻고 값을 바인딩한다
@@ -344,6 +346,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 열(사각형) 선택이 있으면 실행(F5)과 문장 명령이 보통 선택처럼 사각형의 글을 실행(Execute From Cursor는 캐럿부터 그대로)
  *   (docs/chromite/swing-sql-column-selection.md "실행")
+ * - 2026-11-12 실제 계획 여부를 연결 전에 창의 서버 드라이버로 판단({@link #getActualPlanSupport}, {@link SQLActualPlanSupport}, 앱 변경 #70):
+ *   PostgreSQL·MySQL 등은 토글이 처음부터 꺼짐. 전에는 연결된 뒤에야 알아 첫 실행 뒤 꺼졌다
+ *   (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1020,7 +1025,7 @@ final class SqlEditorPanel extends JPanel {
         serverIndicator.setServer(dataSourceContainer);
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
-        // Connected or disconnected: whether the connection gives actual plans is known after connecting
+        // Connected or disconnected: the Query actions that read the window's session (Commit, Roll Back) follow
         host.executionStateChanged(this);
     }
 
@@ -1060,14 +1065,14 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Whether the window's connection gives actual plans while the statements run once ({@link SQLActualPlanProvider}),
-     * or null while it is not connected: the data source makes the adapter, so it is known after connecting.
+     * Whether the window's server gives actual plans while the statements run once ({@link SQLActualPlanProvider}), or
+     * null while the window has no server. Its driver tells before connecting ({@link SQLActualPlanSupport}), so the toggle
+     * is the same before and after connecting.
      */
     @Nullable
     Boolean getActualPlanSupport() {
         DBPDataSourceContainer container = dataSourceContainer;
-        DBPDataSource dataSource = container == null || !container.isConnected() ? null : container.getDataSource();
-        return dataSource == null ? null : DBUtils.getAdapter(SQLActualPlanProvider.class, dataSource) != null;
+        return container == null ? null : SQLActualPlanSupport.isSupported(container);
     }
 
     boolean isExplaining() {
@@ -1419,7 +1424,7 @@ final class SqlEditorPanel extends JPanel {
         statusLine.setConnection(chosen);
         host.titleChanged(this);
         refreshSchemas();
-        // The Actual Plan toggle depends on the connection
+        // The Actual Plan toggle depends on the server (SQLActualPlanSupport)
         host.executionStateChanged(this);
         return chosen;
     }
