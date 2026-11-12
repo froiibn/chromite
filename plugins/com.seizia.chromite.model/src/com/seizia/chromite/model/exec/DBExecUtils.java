@@ -79,6 +79,9 @@ import java.util.*;
  *   "오류 복구와 열린 트랜잭션")
  * - 2026-11-08 {@link #tryExecuteRecover}: 끊긴 문맥이 격리 문맥(쿼리 창의 자기 세션)이면 데이터 소스 전체 대신 그 문맥만 다시 엶
  *   ({@code TransactionRecoveryGuard.reopenLostSession}, docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-12 {@link #allowRecoveryAgain}, {@link #preventRecovery}: 복구 실패 표시({@code recoveryFailed})를 호출자가 정함.
+ *   같은 읽기 안에서 복구가 한 번 실패하면 사용자가 고른 다시 시도도 다시 연결하지 않았고, 데이터 전송 원본 읽기의 복구는 넣기에 이미
+ *   넘긴 행을 처음부터 다시 읽어 두 번 넣었다 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
  */
 public class DBExecUtils {
 
@@ -332,6 +335,30 @@ public class DBExecUtils {
             if (recoveryState.recoveryDepth == 0) {
                 recoveryStack.set(null);
             }
+        }
+    }
+
+    /**
+     * The user chose to try again after a failed recovery: the next {@link #tryExecuteRecover} on this thread may
+     * recover (reconnect) again. A failed recovery switches recovery off until the outermost recovered operation ends,
+     * so that the operations around it do not reconnect and repeat themselves; a Retry the user asked for is a new
+     * attempt of the failed operation. Call it only where repeating the operation is safe.
+     */
+    public static void allowRecoveryAgain() {
+        RecoveryState recoveryState = recoveryStack.get();
+        if (recoveryState != null) {
+            recoveryState.recoveryFailed = false;
+        }
+    }
+
+    /**
+     * The operation running in {@link #tryExecuteRecover} cannot be repeated (it already handed results on that a repeat
+     * would hand on twice): the recoveries around it on this thread do not run it again after its error.
+     */
+    public static void preventRecovery() {
+        RecoveryState recoveryState = recoveryStack.get();
+        if (recoveryState != null) {
+            recoveryState.recoveryFailed = true;
         }
     }
 
