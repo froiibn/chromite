@@ -167,7 +167,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `runSelect` | SELECT 실행, 행 한도와 페이지 | R | `connection`, `sql`, `limit`, `offset`, `format` | 표 | G | 1 |
 | `runReadOnlySql` | 모델이 쓴 진단 SQL(시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지 | R | `connection`, `sql`, `database`, `limit` | `results[]`, `messages[]` | G | 1 |
 | `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과). 연결의 커밋 방식 그대로: 수동 커밋 연결이면 트랜잭션을 열어 둔 채 `transactionOpen: true`를 알린다 | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표, `transactionOpen`. 실패는 아래 "배치의 부분 실패" | G | 1 |
-| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen`. 실패한 문장이 있으면 오류(아래 "배치의 부분 실패") | G | 1 |
+| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙. 쿼리 창과 같은 단위: SQL Server `GO` 배치는 한 번에, 2026-11-12). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen`. 실패한 문장이 있으면 오류(아래 "배치의 부분 실패") | G | 1 |
 | `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: 쿼리 창과 같은 방언 질의 `JDBCTransactionProbe`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태")과 이 연결의 쿼리 창 트랜잭션(`otherOpenTransactions`, DB에 확인할 수 없는 것은 `otherUnverifiedTransactions`) | R | `connection` | 객체 | MS PG MY OR, G | 1 |
 | `commitTransaction` | 에이전트의 열린 트랜잭션 커밋. **자동 실행 설정과 상관없이 늘 확인** | W | `connection` | 결과 | G | 1 |
 | `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인. 운영 연결에서도 에이전트가 자기 일을 되돌릴 수 있어야 하므로 분류는 READ(막히지 않음)이고, 되돌릴 것이 있으면 트랜잭션 안전 규칙이 늘 묻는다 | R | `connection` | 결과 | G | 1 |
@@ -1387,7 +1387,7 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
   보호와 측정 호출의 매번 롤백, 자동 커밋 연결에서 `insertRows`·`importCsv`·`copyTable`이 자기 호출을 묶은 트랜잭션을 오류 때 롤백(`runAtomic`, 위
   "쓰기 도구의 커밋"). 앞의 둘은 쓰기가 없거나 되돌리는 것이 목적이고, 셋째는 이 호출이 시작한 자기 트랜잭션만 되돌린다(열린 에이전트 트랜잭션이 있으면
   `ATOMIC`도 그 안에서 실행하고 롤백하지 않음). 그 결과는 "Nothing this call did was kept"로 알린다.
-- **`runScript`**: 문장(드라이버 구분자로 나눈 것)마다 실행하는 것은 그대로다. 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다의 결과를 모두 돌려준다
+- **`runScript`**: 문장(드라이버 구분자로 나눈 것)마다 실행하는 것은 그대로다(2026-11-12 앱 변경 #88부터 SQL Server는 `GO` 배치마다, 아래 "runScript의 실행 단위"). 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다의 결과를 모두 돌려준다
   (요약 "1 of 3 statements failed; statement 2: … (1 statement(s) after it ran)" 또는 "(the script stopped there)"). 실패한 문장 안에서 오류 뒤가 실행됐으면
   그 문장 항목에 `steps`·`ranAfterError`가 붙는다. `stopOnError=false`로 실패 뒤 문장이 실행됐으면 `ranAfterError`.
 - **같은 실행 경로의 다른 도구**: `Runner.execute`/`query`를 쓰는 도구는 모두 같은 결과를 낸다(`AgentTool`에서 한 번 처리): `runReadOnlySql`, `runLibraryQuery`,
@@ -1697,6 +1697,62 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 `INSERT …; MERGE … ;` → 끝 `;` 남음. Altibase는 번들 드라이버가 없어 확인하지 못했다. `runLibraryQuery`는 라이브러리 파일을 만들지 않아 실행해 보지 않았다(같은 함수).
 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `trimTrailingDelimiter`의 방언별 단위 시험).
 
+## runScript의 실행 단위 (앱 변경 #88, 2026-11-12)
+
+### 문제
+
+`runScript`가 SQL Server 스크립트를 `GO` 배치가 아니라 문장 하나씩 보냈다. 고치기 전 빌드(SQL Server 2022, 자동 커밋):
+
+| 스크립트 | 고치기 전 |
+|---|---|
+| `INSERT 1; RAISERROR('mid',16,1); INSERT 2;` `GO` `SELECT count(*)`, `stopOnError=false` | 문장 4개, "1 of 4 statements failed; statement 2: mid (2 statement(s) after it ran)" |
+| `DECLARE @x int = 5; SELECT @x AS x;` `GO` `SELECT 2` | "statement 2: Must declare the scalar variable "@x". (the script stopped there)" |
+| `SET NOCOUNT ON; INSERT 3;` `GO 2` `SELECT count(*)` | 문장 3개, INSERT 한 번(`GO 2`의 반복이 없음) |
+| MariaDB `DELIMITER //` … `END//` `DELIMITER ;` `INSERT …` | `DELIMITER //`와 `DELIMITER ;`를 서버로 보내 구문 오류(기본 `stopOnError=true`면 첫 줄에서 멈춤) |
+
+배치 안의 변수·`SET` 옵션은 배치가 끝나면 사라지고 오류 처리(배치를 멈추는 오류, `XACT_ABORT`)도 배치 단위라 쿼리 창(SSMS와 같음)과 결과가 달랐다.
+
+### 원인
+
+쿼리 창은 `SQLScriptBatches.extractQueries`로 실행 단위를 만든다: 방언의 배치 구분자가 있으면(`SQLServerDialectBase.getBatchDelimiters`, SQL Server·Sybase)
+파서가 나눈 문장을 구분자 사이마다 원문 그대로 하나로 묶고(`GO n`은 n번), 없으면 문장 하나씩이다. `SQLControlCommand`(`DELIMITER`, `@set` 등)는 쿼리 창이
+스스로 처리한다. `QueryTools.runScript`(고치기 전 157행)는 `splitScript`(`SQLScriptParser.parseScript`, 문장 단위)를 써서 배치를 쪼갰고 명령도 SQL로 보냈다.
+
+### 고친 것
+
+- `QueryTools.scriptUnits`: `SQLScriptBatches.extractQueries(dataSource, script, 0, length)`, 쿼리 창과 같은 단위. `runScript`가 단위마다 한 번 실행한다.
+  SQL Server 배치는 한 번의 JDBC 실행이라 #83의 배치 읽기(`Runner.execute`)가 그대로 적용되고, 실패한 배치의 항목에 `steps`·`ranAfterError`가 붙는다.
+- `SQLControlCommand`는 보내지 않고 항목에 `"skipped": "A command of the query window, not SQL: not sent to the server"`, 결과에 `skipped` 수.
+  `executed`는 보낸 단위 수, `ranAfterError`는 첫 실패 뒤에 보낸 단위 수다.
+- 결과의 키(`statements`, `executed`, `failed`, `results[]`)와 요약 글은 그대로다. SQL Server에서 "statement n"은 n번째 배치다(항목의 `sql`에 배치 글).
+- `splitScript`(문장 단위)는 그대로 둔다: 계획 도구의 "문장 하나" 검사, 분류기의 "문장 여럿" 검사(#91), `runScript`의 분류·미리 보기·암묵적 커밋 검사는
+  두 번째 문장을 찾아야 하므로 배치로 묶으면 안 된다.
+- 도구 설명은 바꾸지 않았다(이미 "split by the database's delimiter rules (GO for SQL Server)"). 토큰 변화 0.
+
+### 배치 구분자가 없는 엔진
+
+같은 글을 두 방식으로 나눠 비교했다(고치기 전 빌드의 앱 안, `splitScript` 대 `SQLScriptBatches.extractQueries`): PostgreSQL(`DO $$…$$`, 주석 속 `;`,
+문자열 속 `;`, `CREATE FUNCTION … $$…$$`) 4개 = 4개, Oracle(`/` 줄, 익명 블록, `CREATE PROCEDURE … END p;`) 4개 = 4개, MariaDB(`DELIMITER //`) 5개 = 5개로
+글이 같았다. 다른 점은 MariaDB `DELIMITER` 두 줄이 `SQLControlCommand`라 이제 서버로 보내지 않는 것뿐이다.
+
+### 확인 (2026-11-12)
+
+빌드한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, SQL Server 2022 자동 커밋, 두 번째 세션에서 읽음.
+
+| 스크립트 | 고친 뒤 | 두 번째 세션 |
+|---|---|---|
+| `INSERT 1; RAISERROR('mid'); INSERT 2;` `GO` `SELECT count(*)`, `stopOnError=false` | `ERROR` "1 of 2 statements failed; statement 1: Statements after the error ran (1 update count came after it). First error: mid (line 2) (1 statement(s) after it ran)". 항목 1(배치)에 `steps` [행 수 1, 오류 mid code 50000 line 2, 행 수 1], `ranAfterError`. 항목 2 n=2. 감사 `error` 같은 글 | 1, 2 |
+| `DECLARE @x int = 5; SELECT @x;` `GO` `SELECT 2` | SUCCESS, x=5, y=2 | — |
+| `SET NOCOUNT ON; INSERT (3);` `GO 2` `SELECT` | 배치가 두 번 실행됨: 두 번째에서 키 위반 "(the script stopped there)"(쿼리 창의 `GO 2`와 같음) | 3 한 번 |
+| `CREATE TABLE #tmp …; INSERT …; SELECT count(*) FROM #tmp; DROP TABLE #tmp;` `GO` `SELECT` | SUCCESS, tmp_rows=2 | — |
+| `INSERT (4); SELECT * FROM dbo.no_such_table; INSERT (5);` `GO` `SELECT` | `ERROR` "statement 1: Invalid object name … (the script stopped there)" | 4 있음, 5 없음(서버가 배치를 멈춤) |
+| 연결 Refresh 뒤, 끊고 다시 연결한 뒤 `DECLARE @x …` `GO` … | SUCCESS, x=7 / x=8 | — |
+| PostgreSQL 4문장(`DO`, 주석, 문자열 속 `;`) | SUCCESS, 4개 | 100, 101 |
+| Oracle(`/` 줄, 익명 블록, `CREATE PROCEDURE … END p3;`) | SUCCESS, 4개 | 100, 101, P3 VALID |
+| MariaDB `DELIMITER //` … `DELIMITER ;` `INSERT` `SELECT` | SUCCESS, `executed: 3`, `skipped: 2`(고치기 전: DELIMITER에서 구문 오류) | p2 있음, 5 있음 |
+
+Sybase·jTDS 연결은 시험 서버가 없어 확인하지 못했다(같은 `SQLServerDialectBase`의 배치 구분자). 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1802,6 +1858,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #88(`chromite/agent-tools-r2`): `runScript`가 쿼리 창과 같은 단위(SQL Server `GO` 배치는 한 번에, `GO n`은 n번)로 실행하고
+  쿼리 창의 명령(`DELIMITER` 등)은 서버로 보내지 않음. 위 "runScript의 실행 단위". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #87(`chromite/agent-tools-r2`): `runSql`·`runLibraryQuery`가 끝의 `;`를 쿼리 창의 파서 판단대로 남김(Oracle PL/SQL 블록·본문,
   SQL Server MERGE). 위 "문장 끝의 구분자". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #92(`chromite/agent-tools-r2`): 공유 세션에 열린 트랜잭션이 있을 때 `commitTransaction`·`rollbackTransaction`이 SUCCESS 대신
