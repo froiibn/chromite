@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
  *
  * 변경 이력:
  * - 2026-11-11 refreshDefaults: 읽은 뒤에 값을 바꿈(중단된 트랜잭션에서 읽기 실패 시 활성 스키마가 사라지던 것), SET ROLE은 시작할 때만(앱 변경 #33)
+ * - 2026-11-12 setActiveSchema: 서버의 current_schema()가 캐시에 없으면(다른 세션이 만든 스키마) 스키마 목록을 다시 읽음. 그 스키마로
+ *   SET search_path 하면 쿼리 창이 예전 스키마(public)를 보였다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  */
 public class PostgreExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<PostgreDatabase, PostgreSchema> {
     private final List<String> searchPath = new ArrayList<>();
@@ -218,7 +220,8 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
         getDefaultCatalog().getSchemas(monitor);
 
         if (CommonUtils.isNotEmpty(activeSchemaName)) {
-            var activeSchema = getDefaultCatalog().getSchema(monitor, activeSchemaName);
+            // A schema created after the list was read (another session) is read too: the server says it is the current one
+            var activeSchema = getDefaultCatalog().schemaCache.getObjectReadingNew(monitor, getDefaultCatalog(), activeSchemaName);
             if (activeSchema != null) {
                 activeSchemaId = activeSchema.getObjectId();
             }

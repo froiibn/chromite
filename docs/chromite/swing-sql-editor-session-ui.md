@@ -58,6 +58,32 @@
 쥔 것(트랜잭션 ID, 잠금)이 없어 열린 트랜잭션으로 보이지 않는 것이 [idle-transactions.md](idle-transactions.md)의 기준과 맞지만, 서버의
 `idle_in_transaction_session_timeout`이 짧으면 그 세션을 끊을 수 있다.
 
+## 캐시에 없는 현재 DB (#79)
+
+**증상(2026-11-12 확인 작업):** SQL Server에서 다른 세션이 만든 DB로 `USE` 하면 DB 선택이 "< N/A >"가 되고 상태 줄에서 DB가 빠졌다.
+같은 창에서 만든 DB나 새 연결에서는 정상이었다.
+
+**근본 원인:** 위 "현재 DB 따라가기"로 세션의 현재 DB 이름은 서버에서 맞게 읽는다. 그런데 실행 문맥은 그 이름을 객체로 바꿀 때 연결할 때 읽어 둔 DB 목록
+캐시에서만 찾았다(`SQLServerExecutionContext.getDefaultCatalog` → `SQLServerDataSource.getDatabase(name)` → `getCachedObject`, 고치기 전 75–76행).
+캐시를 읽은 뒤에 만들어진 DB는 없으니 null이고, 쿼리 창(`SqlEditorPanel.showSchemas`)은 목록에서 기본 객체를 찾지 못해 N/A를 보였다.
+같은 원인이 다른 엔진에도 있었다(고치기 전 빌드에서 재현): MariaDB `USE`(`MySQLExecutionContext`, `getCatalog` = 캐시만) → N/A,
+PostgreSQL 다른 세션이 만든 스키마로 `SET search_path`(`PostgreExecutionContext.setActiveSchema`, 스키마 캐시를 다 읽은 뒤의 `getSchema`는 찾지 못함)
+→ 선택과 상태 줄이 예전 `public`(틀린 값). Oracle `ALTER SESSION SET CURRENT_SCHEMA`는 정상이었다(스키마 캐시가 이름 하나를 서버에서 읽음).
+
+**고침:** 서버가 알려 준 현재 DB/스키마가 캐시에 없으면 목록을 다시 읽는다. 공통 메서드 `JDBCObjectCache.getObjectReadingNew`:
+이름으로 찾고, 없고 캐시를 다 읽은 상태면 목록을 다시 읽는다(`setFullCache(false)` → `loadObjects`). `mergeCache`가 이미 읽은 객체를 그대로 두므로
+탐색기·열린 편집기가 가진 객체는 바뀌지 않는다. SQL Server·MySQL/MariaDB `refreshDefaults`, PostgreSQL `setActiveSchema`가 이 메서드를 쓴다.
+목록을 다시 읽는 것은 이름이 캐시에 없을 때뿐이다. 첫 실행 문맥은 데이터 원본 생성자 안에서 열려 캐시가 아직 없으므로(목록은 `initialize`가 읽음)
+그때는 건너뛴다. 다시 읽기가 실패하면 기록만 하고 알던 값을 둔다. 탐색기 트리에는 새 DB를 넣지 않는다(새로 고침하면 보임).
+
+**확인(이 브랜치 빌드, GCP 테스트 VM):** 연결한 뒤 다른 세션(격리 세션)에서 `chr_small_fixes_r3`를 만들고 쿼리 창에서 `USE`:
+SQL Server·MariaDB 선택과 상태 줄이 그 DB, PostgreSQL `SET search_path TO chr_s2`(다른 세션이 만든 스키마)가 `chr_s2`, Oracle은 그대로 정상.
+연결 새로 고침(Object Explorer Refresh) 뒤, 끊었다 다시 연결한 뒤에도 같았다. 증거 `D:\Tools\_scratch\small-fixes-r3\sheets\79-*`.
+
+**범위 밖에서 본 것(고치지 않음):** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`처럼 DDL이 든 배치를 실행하면 끝난 뒤 선택이 N/A가 될 때가 있다.
+실행 문맥의 값은 맞고(`schemaState` 읽기 결과만 기본 객체가 null) 다음 실행에서 바로 돌아온다. DDL 뒤 메타데이터 새로 고침(`SqlMetadataRefresh`)이
+스키마 캐시를 비우는 것과 실행 끝의 선택 다시 그리기가 겹치는 것으로 보인다(고치기 전 빌드에서는 확인하지 않음).
+
 ## 실행 중 표시 (#44)
 
 - **상태 칸:** 실행 중 아이콘은 회전 도넛 스피너(`SpinnerIcon`, 16, 1초에 한 바퀴, 테마 강조 색 호와 옅은 고리)다. 글자는 문장이 둘 이상이면 "실행 중 2/3 · 00:00:12",
@@ -126,6 +152,7 @@ Messages, Object Explorer, 결과 탭 줄에 키가 갈 때 모두 보이기·�
 
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
 - `PostgreExecutionContext.refreshDefaults`: 읽은 뒤 바꾸기, `SET ROLE`은 시작할 때만.
+- `JDBCObjectCache.getObjectReadingNew`와 그것을 쓰는 SQL Server·MySQL/MariaDB·PostgreSQL 실행 문맥(위 "캐시에 없는 현재 DB").
 - 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘)는 Swing 프런트엔드에만 있다.
 
 ## 확인 기록
@@ -153,3 +180,5 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 - 2026-11-11 최초 작성: #33(현재 DB 따라가기), #44(실행 중 표시), #40(자동완성 창 닫기), #50(단축키를 도구 설명에), #57(닫기 단추 모양)
 - 2026-11-12 스피너 하나(앱 변경 #60, `chromite/small-fixes-r2`): `DonutSpinner` 삭제, `SpinnerIcon.createLabel`, `ProgressDialog`·`MaintenanceDialog`의 길이를 모르는 막대를
   스피너로. "스피너 하나와 길이를 모르는 진행" 절 추가. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #79(`chromite/small-fixes-r3`): 서버가 알려 준 현재 DB/스키마가 캐시에 없으면 목록을 다시 읽음(SQL Server, MySQL/MariaDB, PostgreSQL).
+  "캐시에 없는 현재 DB" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DB 선택·상태 줄, 연결할 때의 기본 DB 읽기, DB/스키마 목록 캐시.

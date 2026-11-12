@@ -43,6 +43,10 @@ import java.util.List;
 /**
  * Various objects cache.
  * Simple cache which may read objects from database and keep them.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: {@link #getObjectReadingNew}(서버가 알려 준 현재 DB·스키마가 캐시에 없으면 목록을 다시 읽음): 다른 세션이 만든
+ *   DB로 USE 하면 쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되던 것(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  */
 public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DBSObject> extends AbstractObjectCache<OWNER, OBJECT>
 {
@@ -87,6 +91,28 @@ public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DB
             this.loadObjects(monitor, owner);
         }
         return getCachedObject(name);
+    }
+
+    /**
+     * The object of a name the server reports (the session's current database or schema). When the list was read before
+     * the object was created (by another session or client), it is read again; the objects read before stay the same
+     * instances ({@link #mergeCache}), so the navigator and open editors keep theirs.
+     *
+     * @return the object, or null if the server does not list it either
+     */
+    @Nullable
+    public OBJECT getObjectReadingNew(@NotNull DBRProgressMonitor monitor, @NotNull OWNER owner, @NotNull String name)
+        throws DBException
+    {
+        OBJECT object = getObject(monitor, owner, name);
+        if (object == null && isFullyCached() && !monitor.isForceCacheUsage()) {
+            synchronized (this) {
+                setFullCache(false);
+                loadObjects(monitor, owner);
+            }
+            object = getCachedObject(name);
+        }
+        return object;
     }
 
     protected synchronized void loadObjects(DBRProgressMonitor monitor, OWNER owner)
