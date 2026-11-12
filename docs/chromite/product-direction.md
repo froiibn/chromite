@@ -31,7 +31,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 | SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
 | SWT 삭제 | 기능이 다 옮겨지기를 기다리지 않고 내부 이름 변경 직후 SWT 프런트엔드를 삭제. Swing 제품 하나만 빌드. 아직 옮기지 않은 기능 목록은 [swt-removal.md](swt-removal.md) | 2026-11-07 |
 | 내부 이름 | DBeaver 내부 이름(패키지·번들·ID·실행 식별자)을 `com.seizia.chromite`로 한 번에 변경, 데이터는 새로 시작([internal-rename.md](internal-rename.md)) | 2026-11-07 |
-| 버전 체계 | Chromite 자체 버전 `major.minor.dev`, 0.1.0부터. 셋째 수는 사용자에게 주는 빌드마다 손으로 올림, 태그 `v<버전>`, 1.0.0은 사용자가 정함([versioning.md](versioning.md)) | 2026-11-07 |
+| 버전 체계 | Chromite 자체 버전 `YY.seq.dev`(첫째 수 연도, 둘째 수 판마다, 셋째 수 급한 수정판), 태그 `v<버전>`. 0.1.4 다음은 26.0.5, 첫 사용자 배포 판 26.1.0은 사용자가 정함([versioning.md](versioning.md)). 전: `major.minor.dev`, 0.1.0부터(2026-11-07) | 2026-11-12 |
 | 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품"). 같은 날 SWT 제품도 삭제("SWT 삭제") | 2026-11-07 |
 
 ## 개발 원칙
@@ -52,7 +52,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 
 순서와 세부 일정은 확정되지 않았다.
 
-1.0.0 이후에 넣을 기능은 [roadmap-post-1.0.md](roadmap-post-1.0.md)에 정해 두었다(2026-11-08 합의).
+첫 사용자 배포 판(26.1.0) 이후에 넣을 기능은 [roadmap-post-1.0.md](roadmap-post-1.0.md)에 정해 두었다(2026-11-08 합의).
 
 ## 미결정 사항
 
@@ -72,3 +72,4 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 2026-11-07 결정 사항 "배포판" 변경: 공개판·내부판 분리(2026-11-06)에서 배포판 하나로. 주요 DB와 SQLite만 내장, 나머지는 필요할 때 다운로드, 폐쇄망은 별도 오프라인 설치 경로(계획).
 - 2026-11-07 결정 사항 "배포판"의 내장 목록에서 MySQL을 뺌(사용자 결정, [drivers.md](drivers.md) "MySQL Connector/J 내장 취소").
 - 2026-11-08 1.0.0 이후 로드맵 문서 [roadmap-post-1.0.md](roadmap-post-1.0.md)를 가리키는 줄 추가.
+- 2026-11-12 버전 체계 변경(앱 변경 #63, `chromite/release-26-0-5`): "버전 체계" 줄과 로드맵 안내의 "1.0.0"을 첫 사용자 배포 판(26.1.0)으로.

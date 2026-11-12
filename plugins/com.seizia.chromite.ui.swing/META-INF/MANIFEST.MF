@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Swing UI
 Bundle-SymbolicName: com.seizia.chromite.ui.swing;singleton:=true
-Bundle-Version: 0.1.4.qualifier
+Bundle-Version: 26.0.5.qualifier
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-25
 Bundle-Activator: com.seizia.chromite.ui.swing.ChromiteSwingActivator

@@ -22,14 +22,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 제품 버전 {@code major.minor.dev}(docs/chromite/versioning.md)의 형식 검사와 비교.
+ * 제품 버전 {@code YY.seq.dev}(docs/chromite/versioning.md)의 형식 검사와 비교.
  *
  * 설계: 업데이트 목록의 버전과 실행 중인 버전은 정확히 정수 셋이어야 한다. 접미사(-rc1), 넷째 자리, 공백은
  * 받지 않는다. 형식이 틀린 값은 비교 결과가 없어서(null) 고르지 않는다. 숫자는 자리마다 6자리까지만 받아
- * {@code int} 넘침이 없다. OSGi {@code Version}은 한정자를 받아들여서 쓰지 않는다.
+ * {@code int} 넘침이 없다. OSGi {@code Version}은 한정자를 받아들여서 쓰지 않는다. 자리별 숫자 비교라
+ * 0.x에서 연도 체계로 옮긴 번호도 순서대로다(0.1.4 &lt; 26.0.5 &lt; 26.10.0 &lt; 27.1.0).
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/auto-update.md)
+ * - 2026-11-12 버전 체계 YY.seq.dev(앱 변경 #63)에 맞춰 설명만 고침. 비교는 그대로
  */
 public final class UpdateVersion {
 

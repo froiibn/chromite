@@ -16,7 +16,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | 문서 | 내용 |
 |---|---|
 | [product-direction.md](product-direction.md) | 제품 정의, 주요 결정 사항, 진행 단계, 미결정 사항 (먼저 읽을 문서) |
-| [roadmap-post-1.0.md](roadmap-post-1.0.md) | 1.0.0 이후 로드맵: 안전(영향 행 미리 보기, 되돌리기 스크립트, 운영 DB 보호, 작업 기록), 편의, Chromite Agent, 관리, 조직 배포 16개 기능과 권장 순서 |
+| [roadmap-post-1.0.md](roadmap-post-1.0.md) | 첫 사용자 배포 판(26.1.0) 이후 로드맵: 안전(영향 행 미리 보기, 되돌리기 스크립트, 운영 DB 보호, 작업 기록), 편의, Chromite Agent, 관리, 조직 배포 16개 기능과 권장 순서 |
 | [branding.md](branding.md) | 제품명, 아이콘, 스플래시, About 화면, 라이선스 고지 등 Chromite 브랜딩 |
 | [commercial-upsell.md](commercial-upsell.md) | DBeaver 상용판 홍보 기능과 문구 제거, 다른 판을 가리키는 문구의 일반화 |
 | [cdata-removal.md](cdata-removal.md) | CData 연동 제거 이유, 제거한 항목, 기존 CData 연결의 동작 |
@@ -90,7 +90,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [shortcuts.md](shortcuts.md) | 단축키: 명령 키를 한 곳에서(`UiKeys`, Windows Ctrl, macOS Command), macOS에서 다른 키(⌥⌘F, ⇧⌘M, ⇧⌘Z, ⌥⌘/, ⌃`, ⇧⌘D, ⌃Space), 도움말 글자를 단축키에서 만들기, 텍스트 편집기 기본 키, Windows·macOS 단축키 표 |
 | [mac-ui.md](mac-ui.md) | macOS 화면 메뉴 막대: 원인(런처의 `NSApplication` → AWT 내장 상태), `vmArgsMac`과 `MacOSScreenMenuBar`, 앱 메뉴와 겹치는 Exit·Options·About 빼기, 업데이트 단추를 상태 표시줄로, FlatLaf 제목 표시줄, 통합 제목 줄(`MacOSUnifiedTitleBar`, 도구 막대가 신호등 단추 줄로) |
 | [platform-startup.md](platform-startup.md) | 플랫폼 시작·종료: Windows 인증서 저장소(`WINDOWS-ROOT`)를 기본 신뢰 저장소로 쓰기, macOS 앱 메뉴의 끝내기(Cmd+Q)·정보·환경설정을 메인 창 경로로 연결 |
-| [versioning.md](versioning.md) | 제품 버전 체계(`major.minor.dev`, 0.1.0부터): 규칙, 버전이 있는 곳과 유일한 원본, 번들 버전을 따로 두는 이유, `tools/release/bump-version.ps1`, 릴리스 태그 검사 |
+| [versioning.md](versioning.md) | 제품 버전 체계(`YY.seq.dev`, 0.1.4 다음이 26.0.5, 첫 사용자 배포 판 26.1.0): 규칙, 버전이 있는 곳과 유일한 원본, 번들 버전을 따로 두는 이유, `tools/release/bump-version.ps1`, 릴리스 태그 검사 |
 | [build.md](build.md) | 빌드 의존 저장소(`deps/dbeaver-common`, `deps/datadam-api`) 구성, 빌드 명령, 빌드하는 제품, 갱신 방법 |
 | [swt-removal.md](swt-removal.md) | SWT(Eclipse RCP) 프런트엔드 삭제: 남길 번들 판별, 삭제·이동한 것, Swing으로 옮길 때까지 없는 기능 목록 |
 | [swt-parity-audit.md](swt-parity-audit.md) | SWT → Swing 미이관 기능 전수 조사: 누락 원인, 영역별 대조(플랫폼·편집기·탐색기·DB별, `swt-parity/`), "조용히 끊김" 분류, 우선순위 |
