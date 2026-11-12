@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 결과 그리드 편집 (docs/chromite/swing-grid-editing.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class GridEditMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.GridEditMessages"; //$NON-NLS-1$
@@ -65,7 +66,6 @@ public class GridEditMessages extends NLS {
 
     // Date picker (ResultSetGrid, ResultSetDateTimePicker)
     public static String gridedit_pick_date;
-    public static String gridedit_pick_date_tip;
     public static String gridedit_pick_title;
     public static String gridedit_pick_time;
     public static String gridedit_pick_now;

@@ -42,6 +42,7 @@ import java.util.Date;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 6 복제 상태 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ReplicationPanel extends JPanel {
 
@@ -71,7 +72,6 @@ final class ReplicationPanel extends JPanel {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, MaintenanceViewMessages.maintview_repl_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         toolBar.addSeparator();
         // Skip a tick while reading or after a failed connection (no password prompt at every interval)

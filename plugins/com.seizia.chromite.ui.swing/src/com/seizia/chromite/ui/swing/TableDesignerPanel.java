@@ -87,6 +87,7 @@ import java.util.Set;
  * - 2026-11-12 표의 처음 열 폭을 머리글 글자 수(글자당 8px)가 아니라 머리글과 값의 실제 폭으로, 목록에서 고르는 열은 콤보 화살표
  *   단추 자리까지 더해 정함({@link DesignerTable#getContentWidth}): 데이터 형식 칸을 편집하면 "char(80)"처럼 앞이 가려졌다(앱 변경 #78,
  *   docs/chromite/swing-table-designer.md "열 폭과 편집기")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -162,7 +163,7 @@ final class TableDesignerPanel extends JPanel {
         // The main window's File > Save key saves the active designer
         saveAction = createAction(ToolsMessages.designer_save, UiKeys.format(ToolsMessages.designer_save_tip, UiKeys.command(KeyEvent.VK_S)), this::save);
         scriptAction = createAction(ToolsMessages.designer_generate_script, ToolsMessages.designer_generate_script_tip, this::showScript);
-        revertAction = createAction(ToolsMessages.designer_revert, ToolsMessages.designer_revert_tip, this::revert);
+        revertAction = createAction(ToolsMessages.designer_revert, null, this::revert);
 
         for (TableDesignSession.Section section : TableDesignSession.Section.values()) {
             SectionView view = new SectionView(section, editHandler);
@@ -232,7 +233,7 @@ final class TableDesignerPanel extends JPanel {
     }
 
     @NotNull
-    private static Action createAction(@NotNull String name, @NotNull String description, @NotNull Runnable task) {
+    private static Action createAction(@NotNull String name, @Nullable String description, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {

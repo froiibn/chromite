@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DocumentTabMessages;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import com.seizia.chromite.ui.swing.internal.TerminalMessages;
@@ -98,6 +99,7 @@ import java.util.function.IntConsumer;
  *   결과가 앞에 남아 계획이 온 줄 몰랐다(앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  * - 2026-11-12 {@link #clearAll}: 쿼리 창이 연결을 바꾸면 고정 결과까지 지움(옛 서버의 문맥으로 다시 읽고 저장하므로, 앱 변경 #73)
  *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class QueryResultsView {
 
@@ -378,7 +380,7 @@ final class QueryResultsView {
         String time = LocalTime.now().format(PIN_TIME_FORMAT);
         int index = resultTabs.indexOfComponent(tab.viewer);
         tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, EditorMessages.editor_results_unpin_tip);
+        tab.viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, DocumentTabMessages.tab_close);
         resultTabs.setTitleAt(index, NLS.bind(EditorMessages.editor_results_pinned, tab.name, time));
         resultTabs.setIconAt(index, UiIcons.get("pin")); //$NON-NLS-1$
         resultTabs.setToolTipTextAt(index, NLS.bind(EditorMessages.editor_results_pinned_tip, tab.sql, time));

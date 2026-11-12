@@ -311,6 +311,8 @@ import java.util.function.Supplier;
  *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  * - 2026-11-12 메뉴 묶음 구분선: 보기의 결과 묶음 앞, 도구의 개체 찾기 앞과 옵션 앞(macOS는 옵션이 앱 메뉴에 있어 넣지 않음). 순서는 그대로
  *   (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
+ * - 2026-11-12 주 도구 막대 아이콘 단추의 도구 설명을 기능 이름과 단축키로(메뉴·창 제목과 같은 키). 작업 모니터는 켜져 있으면 설명 없이
+ *   이름, 꺼지면 이유(앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -692,9 +694,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         });
         saveAllAction = UiKeys.formatDescription(createAction(ToolbarMessages.toolbar_save_all, ToolbarMessages.toolbar_save_all_tip,
             UiKeys.command(KeyEvent.VK_S, InputEvent.SHIFT_DOWN_MASK), this::saveAll));
-        activityMonitorAction = UiKeys.formatDescription(createAction(CoreMessages.main_activity_monitor,
-            ToolbarMessages.toolbar_activity_monitor_tip, UiKeys.command(KeyEvent.VK_A, InputEvent.ALT_DOWN_MASK),
-            () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB)));
+        // A description only while disabled (the reason, updateActivityMonitorAction)
+        activityMonitorAction = createAction(CoreMessages.main_activity_monitor, null, UiKeys.command(KeyEvent.VK_A, InputEvent.ALT_DOWN_MASK),
+            () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
         executeQueryAction = createEditorAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), SqlEditorPanel::execute);
         cancelQueryAction = createAction(CoreMessages.main_cancel_query, null,
@@ -1044,22 +1046,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(UiIcons.createActionButton(saveAllAction, "save-all")); //$NON-NLS-1$
         toolBar.addSeparator();
         // Edit menu actions: they act on the focused component, which keeps the focus (tool bar buttons don't take it)
-        toolBar.add(createIconButton(editMenu.getUndoAction(), "undo", UiKeys.format(ToolbarMessages.toolbar_undo_tip, editMenu.getUndoAction()))); //$NON-NLS-1$
-        toolBar.add(createIconButton(editMenu.getRedoAction(), "redo", UiKeys.format(ToolbarMessages.toolbar_redo_tip, editMenu.getRedoAction()))); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(editMenu.getUndoAction(), "undo")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(editMenu.getRedoAction(), "redo")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(activityMonitorAction, "activity-monitor")); //$NON-NLS-1$
+        JButton activityMonitorButton = UiIcons.createActionButton(activityMonitorAction, "activity-monitor"); //$NON-NLS-1$
+        // While disabled the tool tip says why (the action's description)
+        activityMonitorButton.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
+        toolBar.add(activityMonitorButton);
         toolBar.addSeparator();
-        toolBar.add(createToolWindowButton(registeredServersWindow, "registered-servers", //$NON-NLS-1$
-            UiKeys.format(ToolbarMessages.toolbar_registered_servers_tip, registeredServersWindow.getToggleAction())));
-        toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
-        toolBar.add(createToolWindowButton(libraryWindow, "library", UiKeys.format(ToolbarMessages.toolbar_query_library_tip, libraryWindow.getToggleAction()))); //$NON-NLS-1$
-        toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(registeredServersWindow, "registered-servers")); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(explorerWindow, "object-explorer")); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(libraryWindow, "library")); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(propertiesWindow, "properties")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createIconButton(editMenu.getFindAction(), "search", UiKeys.format(ToolbarMessages.toolbar_find_tip, editMenu.getFindAction()))); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(editMenu.getFindAction(), "search")); //$NON-NLS-1$
         // Chromite Agent as the last button of the group, right after Find, with icon and name (user decision 2026-11-11:
         // "rightmost" is the last button, not the window's right edge); in a narrow window it overflows like the others
         toolBar.addSeparator();
-        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant", UiKeys.format(AiMessages.ai_toolbar_tip, aiWindow.getToggleAction())); //$NON-NLS-1$
+        JToggleButton agentButton = createToolWindowButton(aiWindow, "ai-assistant"); //$NON-NLS-1$
         agentButton.setHideActionText(false);
         UiIcons.useToolButtonMargin(agentButton);
         toolBar.add(agentButton);
@@ -1067,24 +1071,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Icon button for an action without a tool tip of its own (the Edit menu actions); the tool tip names the shortcut.
+     * Toggle button of a tool window: pressed while the window is shown, like its View menu item (same action). The tool tip
+     * is the window's title, the View menu item's name, with its shortcut ("Object Explorer (F8)").
      */
     @NotNull
-    private static JButton createIconButton(@NotNull Action action, @NotNull String iconId, @NotNull String toolTip) {
-        JButton button = UiIcons.createActionButton(action, iconId);
-        button.setToolTipText(toolTip);
-        return button;
-    }
-
-    /**
-     * Toggle button of a tool window: pressed while the window is shown, like its View menu item (same action).
-     */
-    @NotNull
-    private static JToggleButton createToolWindowButton(@NotNull ToolWindow toolWindow, @NotNull String iconId, @NotNull String toolTip) {
+    private static JToggleButton createToolWindowButton(@NotNull ToolWindow toolWindow, @NotNull String iconId) {
         JToggleButton button = new JToggleButton(toolWindow.getToggleAction());
         button.setHideActionText(true);
         button.setIcon(UiIcons.get(iconId));
-        button.setToolTipText(toolTip);
+        button.setToolTipText(UiIcons.withShortcut(toolWindow.getTitle(), (KeyStroke) toolWindow.getToggleAction().getValue(Action.ACCELERATOR_KEY)));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);
@@ -2025,8 +2020,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         boolean enabled = getCurrentConnection() != null;
         activityMonitorAction.setEnabled(enabled);
-        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(
-            enabled ? ToolbarMessages.toolbar_activity_monitor_tip : ToolbarMessages.toolbar_activity_monitor_disabled_tip, activityMonitorAction));
+        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION,
+            enabled ? null : UiKeys.format(ToolbarMessages.toolbar_activity_monitor_disabled_tip, activityMonitorAction));
     }
 
     /**

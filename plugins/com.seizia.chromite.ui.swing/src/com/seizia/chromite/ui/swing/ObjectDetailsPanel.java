@@ -96,6 +96,7 @@ import java.util.stream.Stream;
  *   docs/chromite/password-handling.md)
  * - 2026-11-08 객체의 첫 탭으로 속성 탭(고칠 수 있는 속성 편집, {@link PropertiesPanel}, SWT 객체 편집기의 Properties 탭, C-15).
  *   자식이 없는 객체(시퀀스)도 속성 탭으로 열린다 (docs/chromite/swing-object-properties.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ObjectDetailsPanel extends JPanel implements ToolDocument {
 
@@ -174,7 +175,6 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_details_refresh_tip);
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);

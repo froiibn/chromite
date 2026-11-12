@@ -17,15 +17,16 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
-import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +41,9 @@ import java.util.List;
  *     <li>사용자 결정(2026-11-07): SSMS처럼 메인 창 위에 도구 막대 두 줄(Standard, SQL Editor)을 두고 쿼리 창마다의 도구 막대를 없앤다.
  *     편집기 영역이 한 줄 높아지고, 단추가 늘 같은 자리에 있다.</li>
  *     <li>실행·중지·예상 계획·실제 계획 단추는 메인 창 Query 메뉴와 같은 {@link Action}을 쓴다. 그래서 켜짐과 단축키(F5, Alt+Break, Ctrl+L,
- *     Ctrl+M)가 메뉴와 같고, 켜짐은 메인 창이 활성 쿼리 창({@link SqlEditorPanel#canExecute()} 등)으로 정한다. 단추의 도구 설명은
- *     쿼리 창 도구 막대에 있던 것(단축키 포함)이다. 실제 계획은 메뉴의 확인 표시와 같은 동작의 선택 상태({@link Action#SELECTED_KEY})다.</li>
+ *     Ctrl+M)가 메뉴와 같고, 켜짐은 메인 창이 활성 쿼리 창({@link SqlEditorPanel#canExecute()} 등)으로 정한다. 아이콘 단추의 도구 설명은
+ *     메뉴 항목의 이름과 단축키다(앱 변경 #103). 글자 단추(Execute, Actual Plan)는 쿼리 창 도구 막대에 있던 설명이다.
+ *     실제 계획은 메뉴의 확인 표시와 같은 동작의 선택 상태({@link Action#SELECTED_KEY})다.</li>
  *     <li>Commit / Roll Back 단추도 Query 메뉴와 같은 동작이다(SWT 메인 도구 막대의 커밋·롤백 단추). 활성 쿼리 창에 열린 트랜잭션이 있을 때만 켜진다.</li>
  *     <li>커밋 방식 단추(B-S18, SWT 도구 막대의 자동 커밋 토글)는 Query &gt; Auto-Commit과 같은 동작이다. 지금 방식을 상태 줄과 같은 점(자동 커밋 초록,
  *     수동 커밋 빨강)과 글자로 보이고, 누르면 다른 방식으로 바꾼다({@link CommitModeSwitch}). Swing 아이콘 팩에 트랜잭션 방식 아이콘이 없어
@@ -80,6 +82,8 @@ import java.util.List;
  *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 서버 표시를 지우고 연결 변경 단추를 막대의 첫 컴포넌트로(앱 변경 #74, 사용자 결정): 빈 서버 표시와 단추를 활성 창의 표시로 옮기던
  *   처리 삭제 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 Query 메뉴·Edit &gt; Advanced의 이름과 단축키로(같은 메시지 키, 앱 변경 #103)
+ *   (docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class SqlEditorToolBar {
 
@@ -127,34 +131,33 @@ final class SqlEditorToolBar {
         toolBar.add(schemaCombo);
         toolBar.addSeparator();
         toolBar.add(createButton(UiIcons.createToolButton(executeAction, "run"), EditorMessages.editor_sql_execute_tip)); //$NON-NLS-1$
-        toolBar.add(createButton(UiIcons.createActionButton(cancelAction, "stop"), EditorMessages.editor_sql_cancel_tip)); //$NON-NLS-1$
+        // The icon buttons' tool tips are the Query menu names with the shortcut (UiIcons.createActionButton)
+        toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(createButton(UiIcons.createActionButton(estimatedPlanAction, "plan"), //$NON-NLS-1$
-            UiKeys.format(EditorMessages.editor_sql_estimated_plan_tip, estimatedPlanAction)));
+        toolBar.add(UiIcons.createActionButton(estimatedPlanAction, "plan")); //$NON-NLS-1$
         actualPlanButton = createActualPlanButton(actualPlanAction);
         toolBar.add(actualPlanButton);
         toolBar.addSeparator();
-        // The shortcut differs by platform (MainFrame), so the tool tip takes it from the action
-        toolBar.add(createButton(UiIcons.createActionButton(commitAction, "commit"), //$NON-NLS-1$
-            UiKeys.format(EditorMessages.editor_sql_commit_tip, commitAction)));
-        toolBar.add(createButton(UiIcons.createActionButton(rollbackAction, "rollback"), //$NON-NLS-1$
-            UiKeys.format(EditorMessages.editor_sql_rollback_tip, rollbackAction)));
+        toolBar.add(UiIcons.createActionButton(commitAction, "commit")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(rollbackAction, "rollback")); //$NON-NLS-1$
         commitModeButton = createCommitModeButton(commitModeAction);
         toolBar.add(commitModeButton);
         toolBar.addSeparator();
-        // The editor's two-key chords (SqlEditorPanel.SqlTextArea)
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, NLS.bind(ToolbarMessages.toolbar_comment_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_C)), "comment", //$NON-NLS-1$
+        // The Edit > Advanced names; the editor's two-key chords (SqlEditorPanel.SqlTextArea) and Tab keys are not accelerators
+        toolBar.add(createCommandButton(EditorMessages.editor_edit_comment, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_C), "comment", //$NON-NLS-1$
             SqlEditorPanel.SqlTextArea.Command.COMMENT));
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, NLS.bind(ToolbarMessages.toolbar_uncomment_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_U)), "uncomment", //$NON-NLS-1$
+        toolBar.add(createCommandButton(EditorMessages.editor_edit_uncomment, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_U), "uncomment", //$NON-NLS-1$
             SqlEditorPanel.SqlTextArea.Command.UNCOMMENT));
         toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_outdent, ToolbarMessages.toolbar_outdent_tip, "outdent", SqlEditorPanel.SqlTextArea.Command.OUTDENT)); //$NON-NLS-1$
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_indent, ToolbarMessages.toolbar_indent_tip, "indent", SqlEditorPanel.SqlTextArea.Command.INDENT)); //$NON-NLS-1$
+        toolBar.add(createCommandButton(EditorMessages.editor_edit_outdent, UiKeys.getText(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.SHIFT_DOWN_MASK)),
+            "outdent", SqlEditorPanel.SqlTextArea.Command.OUTDENT)); //$NON-NLS-1$
+        toolBar.add(createCommandButton(EditorMessages.editor_edit_indent, UiKeys.getText(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0)), "indent", //$NON-NLS-1$
+            SqlEditorPanel.SqlTextArea.Command.INDENT));
         toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_format, NLS.bind(ToolbarMessages.toolbar_format_tip, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D)), "format", //$NON-NLS-1$
+        toolBar.add(createCommandButton(EditorMessages.editor_edit_format_sql, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D), "format", //$NON-NLS-1$
             SqlEditorPanel.SqlTextArea.Command.FORMAT));
         toolBar.addSeparator();
-        Action historyAction = createEditorAction(ToolbarMessages.toolbar_query_history, ToolbarMessages.toolbar_query_history_tip, openQueryHistory);
+        Action historyAction = createEditorAction(CoreMessages.main_query_history, null, openQueryHistory);
         toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$
         setActiveEditor(null);
     }
@@ -212,12 +215,14 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Change Connection, an icon-only button: its tool tip is the action's description ("Select Server" on a window
-     * without a server), and so is its accessible name, which follows the description.
+     * Change Connection, an icon-only button: its tool tip is the action's description, the name of what the click does
+     * ("Change Connection…", "Select Server" on a window without a server), and so is its accessible name, which follows the
+     * description.
      */
     @NotNull
     private static JButton createChangeConnectionButton(@NotNull Action action) {
         JButton button = UiIcons.createActionButton(action, "connection"); //$NON-NLS-1$
+        button.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
         button.getAccessibleContext().setAccessibleName(String.valueOf(action.getValue(Action.SHORT_DESCRIPTION)));
         action.addPropertyChangeListener(e -> {
             if (Action.SHORT_DESCRIPTION.equals(e.getPropertyName())) {
@@ -273,24 +278,27 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Icon button of an editing command on the active query window's text (the text area gets the focus back).
+     * Icon button of an editing command on the active query window's text (the text area gets the focus back). Its tool tip
+     * is the name with the key of the text area ("Comment Selection (Ctrl+K, Ctrl+C)"): the key is not an accelerator.
      */
     @NotNull
-    private JButton createCommandButton(@NotNull String name, @NotNull String toolTip, @NotNull String iconId,
+    private JButton createCommandButton(@NotNull String name, @NotNull String keyText, @NotNull String iconId,
                                         @NotNull SqlEditorPanel.SqlTextArea.Command command) {
-        return UiIcons.createActionButton(createEditorAction(name, toolTip, () -> {
+        JButton button = UiIcons.createActionButton(createEditorAction(name, NLS.bind(CoreMessages.common_tip_shortcut, name, keyText), () -> {
             if (editor != null) {
                 editor.getTextArea().requestFocusInWindow();
                 editor.getTextArea().runCommand(command);
             }
         }), iconId);
+        button.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
+        return button;
     }
 
     /**
      * An action of this tool bar that needs an active query window.
      */
     @NotNull
-    private Action createEditorAction(@NotNull String name, @NotNull String toolTip, @NotNull Runnable task) {
+    private Action createEditorAction(@NotNull String name, @Nullable String toolTip, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {

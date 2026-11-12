@@ -144,6 +144,7 @@ import java.util.UUID;
  *   (docs/chromite/swing-result-viewer.md "표 편의 기능")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), macOS 다시 실행 ⇧⌘Z·아래 행 값 복사 ⇧⌘D
  * - 2026-11-12 행 번호 폭 주석: UI 글꼴이 운영체제 글꼴이 되어 비례 숫자를 Pretendard로 단정하지 않음 (앱 변경 #67)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -1607,7 +1608,6 @@ final class ResultSetGrid extends JPanel {
             Action pickAction = createAction(GridEditMessages.gridedit_pick_date, KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.ALT_DOWN_MASK),
                 this::pickDate);
             pickerButton = UiIcons.createActionButton(pickAction, "schedule"); //$NON-NLS-1$
-            pickerButton.setToolTipText(GridEditMessages.gridedit_pick_date_tip);
             pickerButton.setFocusable(false);
             pickerButton.setMargin(new Insets(0, 2, 0, 2));
             field.getInputMap().put((KeyStroke) pickAction.getValue(Action.ACCELERATOR_KEY), "chromite.pickDate"); //$NON-NLS-1$
@@ -1618,7 +1618,6 @@ final class ResultSetGrid extends JPanel {
             dialogButton = UiIcons.createActionButton(dialogAction, "more"); //$NON-NLS-1$
             referenceButton = UiIcons.createActionButton(dialogAction, "search"); //$NON-NLS-1$
             for (JButton button : new JButton[]{dialogButton, referenceButton}) {
-                button.setToolTipText(ValueEditMessages.valueedit_edit_value_tip);
                 button.setFocusable(false);
                 button.setMargin(new Insets(0, 2, 0, 2));
             }
