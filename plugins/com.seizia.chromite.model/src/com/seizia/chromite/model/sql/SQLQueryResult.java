@@ -35,6 +35,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 {@link #addError}, {@link #getErrors()}: 배치의 뒤 문장 오류를 경고가 아니라 쿼리 오류로 모은다
  *   (docs/chromite/sql-batch-errors.md)
+ * - 2026-11-12 {@link #startAgain}: 연결이 끊겨 읽기를 다시 실행할 때 실패한 시도의 오류와 결과를 지움. 남기면 다시 실행이 성공해도 쿼리가
+ *   실패로 끝났다(SQL Server는 끊긴 결과 읽기의 596을 쿼리 오류로 모은다) (앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 public class SQLQueryResult implements DBCExecutionResult
 {
@@ -174,6 +176,17 @@ public class SQLQueryResult implements DBCExecutionResult
     public void setQueryTime(long queryTime)
     {
         this.queryTime = queryTime;
+    }
+
+    /**
+     * The query runs again after a failed try (a read after a lost connection): the errors and results of that try are
+     * dropped; the warnings stay.
+     */
+    public void startAgain() {
+        error = null;
+        laterErrors.clear();
+        executeResults.clear();
+        hasResultSet = false;
     }
 
     public List<Throwable> getWarnings() {

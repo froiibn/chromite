@@ -17,11 +17,6 @@
  */
 package com.seizia.chromite.model.sql.exec;
 
-import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.delete.Delete;
-import net.sf.jsqlparser.statement.insert.Insert;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.update.Update;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
@@ -42,6 +37,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableParametrized;
 import com.seizia.chromite.model.sql.*;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.sql.messages.ModelSQLMessages;
 import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
 import com.seizia.chromite.model.sql.registry.SQLCommandsRegistry;
@@ -89,6 +85,9 @@ import java.util.Map;
  *   첫 문장이 실패해도 뒤 문장이 실행된 배치는 그 결과를 읽는다({@link SQLBatchErrors}, docs/chromite/sql-batch-errors.md).
  * - 2026-11-08 문장이 오류 없이 끝나고 결과를 다 읽은 뒤, 닫기 전에 {@link SQLQueryExecuteHandler#afterStatementExecuted}를 부른다
  *   (Altibase 실제 계획, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로").
+ * - 2026-11-12 연결이 끊긴 뒤의 자동 재실행을 허용 목록으로({@link SQLQueryRecovery}, 앱 변경 #86). 전의 {@code shouldRecoverQuery}는
+ *   하나로 파싱된 INSERT·UPDATE·DELETE·SELECT INTO만 뺐기 때문에 SQL Server 배치(INSERT + WAITFOR)가 다시 연결한 세션에서 통째로
+ *   다시 실행되어 INSERT가 두 번 커밋되었다. 읽기를 다시 실행했으면 Messages에 그렇게 적는다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -695,15 +694,12 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                 }
             };
 
-            if (shouldRecoverQuery(execStatement)) {
-                DBExecUtils.tryExecuteRecover(session, session.getDataSource(), executor);
-            } else {
-                try {
-                    executor.run(session);
-                } catch (InvocationTargetException e) {
-                    throw e.getTargetException();
-                }
-            }
+            // After a lost connection only a read is run again, and the Messages tab says so
+            SQLQueryResult queryResult = curResult;
+            SQLQueryRecovery.execute(session, execStatement, executor, () -> {
+                queryResult.startAgain();
+                queryResult.addWarnings(new Throwable[]{new DBCException(ModelSQLMessages.model_sql_exec_lost_ran_again)});
+            });
             DBCTransactionManager txnManager = DBUtils.getTransactionManager(session.getExecutionContext());
             if (txnManager != null && txnManager.isSupportsTransactions()
                 && !txnManager.isAutoCommit() && commitType != SQLScriptCommitType.AUTOCOMMIT
@@ -749,17 +745,6 @@ public class SQLQueryExecuteJob extends DataSourceJob {
             return false;
         }
         // Success
-        return true;
-    }
-
-    private boolean shouldRecoverQuery(SQLQuery query) {
-        Statement statement = query.getStatement();
-        if (statement instanceof Insert ||
-            statement instanceof Delete ||
-            statement instanceof Update ||
-            (statement instanceof PlainSelect select && !CommonUtils.isEmpty(select.getIntoTables()))) {
-            return false;
-        }
         return true;
     }
 

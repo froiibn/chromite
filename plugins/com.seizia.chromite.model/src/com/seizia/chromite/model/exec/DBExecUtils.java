@@ -19,6 +19,7 @@ package com.seizia.chromite.model.exec;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.DBDatabaseException;
@@ -82,6 +83,9 @@ import java.util.*;
  * - 2026-11-12 {@link #allowRecoveryAgain}, {@link #preventRecovery}: 복구 실패 표시({@code recoveryFailed})를 호출자가 정함.
  *   같은 읽기 안에서 복구가 한 번 실패하면 사용자가 고른 다시 시도도 다시 연결하지 않았고, 데이터 전송 원본 읽기의 복구는 넣기에 이미
  *   넘긴 행을 처음부터 다시 읽어 두 번 넣었다 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ * - 2026-11-12 {@link #tryExecuteReconnectOnly}: 쓰는 작업(결과 표 저장, 개체 변경 저장)은 연결이 끊기면 다시 연결만 하고 다시 보내지
+ *   않는다. 전에는 복구가 저장을 통째로 다시 실행해, 자동 커밋이면 끊기기 전에 반영된 문장이 두 번 실행되었다 (앱 변경 #86,
+ *   docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 public class DBExecUtils {
 
@@ -336,6 +340,41 @@ public class DBExecUtils {
                 recoveryStack.set(null);
             }
         }
+    }
+
+    /**
+     * Runs an operation that writes (saving edited rows, the statements of an object change). When it fails because the
+     * connection was lost, the recovery of {@link #tryExecuteRecover} reconnects, so that the next save can work, but the
+     * operation is not run again: what it sent before the loss may be saved and the statement in flight may or may not
+     * have been done. It fails with {@code ModelMessages.error_save_connection_lost}, which keeps the original error as
+     * suppressed (not as the cause, so that nothing reads it as a lost connection again).
+     */
+    public static <T> void tryExecuteReconnectOnly(
+        @NotNull T param,
+        @NotNull DBPDataSource dataSource,
+        @NotNull DBRRunnableParametrized<T> runnable
+    ) throws DBException {
+        Throwable[] firstError = {null};
+        int[] tries = {0};
+        tryExecuteRecover(param, dataSource, p -> {
+            if (tries[0]++ > 0) {
+                DBException stop = new DBException(NLS.bind(ModelMessages.error_save_connection_lost,
+                    firstError[0] == null ? "" : firstError[0].getMessage())); //$NON-NLS-1$
+                if (firstError[0] != null) {
+                    stop.addSuppressed(firstError[0]);
+                }
+                throw stop;
+            }
+            try {
+                runnable.run(p);
+            } catch (InvocationTargetException e) {
+                firstError[0] = e.getTargetException();
+                throw e;
+            } catch (DBException e) {
+                firstError[0] = e;
+                throw e;
+            }
+        });
     }
 
     /**

@@ -39,6 +39,7 @@ import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.sql.exec.SQLQueryRecovery;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.task.DBTTask;
@@ -72,6 +73,8 @@ import java.util.Map;
  * - 2026-11-12 Chromite: 소비자에게 행을 넘긴 뒤에는 읽기를 복구로 되풀이하지 않음({@code DBExecUtils.preventRecovery}). 원본 연결이
  *   읽는 중에 끊기면 복구가 다시 연결해 처음 행부터 다시 읽어, 이미 넣은 행이 키 없는 테이블에 두 번 들어갔다. 소비자(넣기)의 오류가
  *   원본 쪽 분류로 연결 끊김이 될 때도 같았다 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ * - 2026-11-12 Chromite: 원본이 쿼리이면 읽기만 하는 쿼리일 때만 복구로 다시 읽음({@code SQLQueryRecovery.canReadAgain}, 앱 변경 #86).
+ *   데이터를 바꾸는 쿼리(배치, 프로시저 호출)를 내보내다 연결이 끊기면 그 쿼리를 다시 실행했다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 @DBSerializable("databaseTransferProducer")
 public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseProducerSettings>, IDataTransferNodePrimary {
@@ -207,6 +210,7 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
 
         // Rows handed to the consumer over all tries of the read: once there are any, the read is not repeated
         DeliveryCounter delivered = new DeliveryCounter(consumer);
+        boolean mayRepeat = SQLQueryRecovery.canReadAgain(databaseObject);
         DBRRunnableParametrized<DBRProgressMonitor> read = monitor -> {
             checkCanceled(monitor);
 
@@ -361,6 +365,10 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
             try {
                 read.run(monitor);
             } catch (Exception e) {
+                if (!mayRepeat) {
+                    // A query that may write (a batch, a procedure call): not run again by the recovery
+                    DBExecUtils.preventRecovery();
+                }
                 if (delivered.rows > 0) {
                     // The recovery would read again from the first row and hand the rows over a second time (written
                     // twice into a table without a key). The rows already handed over stay where the consumer put them

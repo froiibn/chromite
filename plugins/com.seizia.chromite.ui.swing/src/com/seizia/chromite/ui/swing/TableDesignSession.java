@@ -123,6 +123,8 @@ import java.util.Set;
  * - 2026-11-08 저장된 열·키·테이블의 이름은 객체 관리자의 이름 바꾸기({@link DBEObjectRenamer})로 바꿈: 이름 칸이 잠겨 있었고, 속성 변경으로는
  *   SQL Server에서 sp_rename 없이 ALTER COLUMN만 나갔다(오류 4924). 저장이 일부 문장을 적용한 뒤 실패하면 적용한 것과 못 한 것을
  *   {@link PartialSaveException}으로 알리고 테이블을 DB에서 다시 읽음 (docs/chromite/swing-table-designer.md "후속 29 d–f")
+ * - 2026-11-12 저장 중 연결이 끊기면 다시 연결만 하고 저장을 다시 실행하지 않음({@code DBExecUtils.tryExecuteReconnectOnly}, 앱 변경 #86):
+ *   실행 중이던 문장(SQL Server 테이블 다시 만들기의 INSERT … SELECT 등)이 반영되었는지 알 수 없다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 final class TableDesignSession {
 
@@ -922,7 +924,8 @@ final class TableDesignSession {
             }
         }
         try {
-            DBExecUtils.tryExecuteRecover(monitor, executionContext.getDataSource(), param ->
+            // A lost connection reconnects but does not save again: the statement in flight may or may not have been done
+            DBExecUtils.tryExecuteReconnectOnly(monitor, executionContext.getDataSource(), param ->
                 commandContext.saveChanges(monitor, new HashMap<>()));
         } catch (DBException e) {
             List<DBEPersistAction> applied = ((AbstractCommandContext) commandContext).getAppliedActions();

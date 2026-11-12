@@ -133,7 +133,9 @@ SWT `DesktopUI.showDatabaseError`는 모델이 `showError`로 넘긴 오류의 �
   596은 드라이버가 첫 예외로 준다. Altibase는 원인과 다음 예외 사슬을 모두 본다(`JDBCUtils.matchesSQLException`).
 - SQLState 08004는 표준에서 "서버가 연결을 거부함"(연결할 때)이라 기본 분류에 넣지 않고 Altibase의 코드로만 정했다.
 - 고치기 전에는 596이 일반 오류라 자동 복구가 없었다. 고친 뒤에는 다른 DB처럼 복구 경로를 탄다. 데이터 전송은 그 복구가 결과를 모르는 문장을 다시 보내지
-  않게 함께 고쳤다(앞 링크).
+  않게 함께 고쳤다(앞 링크). 쿼리 창·스크립트·저장의 복구도 같은 규칙으로 고쳤다: 다시 실행하는 것은 읽기만 하는 SELECT 하나뿐이다
+  ([transactions.md](transactions.md) "연결이 끊긴 쿼리", 앱 변경 #86). 이것 없이 596만 분류하면 `KILL`된 SQL Server 배치가 다시 실행되어 앞 INSERT가
+  두 번 들어갔다(확인함).
 
 ## 끝낼 때 실행 중인 작업
 
