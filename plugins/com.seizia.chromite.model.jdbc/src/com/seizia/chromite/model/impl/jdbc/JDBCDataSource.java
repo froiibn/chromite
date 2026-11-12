@@ -66,6 +66,16 @@ import java.util.*;
 
 /**
  * JDBC data source
+ *
+ * 설계: 데이터 원본 정보({@link #getInfo()})는 연결할 때 {@link #initialize}에서 엔진의 정보 클래스로 만든다
+ * ({@link #createDataSourceInfo}). 실행 엔진은 이 정보로 한 문장의 여러 결과를 읽을지({@code supportsMultipleResults}), 배치의
+ * 문장 오류 뒤를 계속 읽을지({@code isMultipleResultsFetchBroken}), 트랜잭션을 쓰는지를 정한다. 그래서 새로 고침
+ * ({@link #refreshObject})은 정보를 버리지 않는다. 서버를 다시 읽는 엔진은 새로 고침에서 {@link #initialize}를 불러 새 정보를 만든다.
+ *
+ * 변경 이력:
+ * - 2026-11-12 {@link #refreshObject}가 정보를 빈 {@link JDBCDataSourceInfo}로 바꾸지 않음. 탐색기 새로 고침이나 쿼리 창의
+ *   DDL 뒤 새로 고침 다음에 SQL Server 배치의 둘째 결과부터와 뒤 문장 오류가 사라지고 실행이 성공으로 끝났다
+ *   (앱 변경 #76, docs/chromite/sql-batch-errors.md "새로 고침 뒤 결과와 오류가 사라짐")
  */
 public abstract class JDBCDataSource extends AbstractDataSource
     implements
@@ -737,9 +747,12 @@ public abstract class JDBCDataSource extends AbstractDataSource
         }
     }
 
+    /**
+     * Keeps the data source info: it is the engine's own ({@link #createDataSourceInfo}) and still describes the same
+     * server. Data sources that read the server again on refresh call {@link #initialize}, which makes a new one.
+     */
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
-        this.dataSourceInfo = new JDBCDataSourceInfo(container);
         return this;
     }
 
