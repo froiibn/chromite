@@ -73,6 +73,9 @@
 ; - 2026-11-12 The launcher is Chromite.exe (was chromite-swing.exe, app change #65). For one version the old name
 ;              is a starter that starts Chromite.exe, so the 0.1.4 updater's restart of chromite-swing.exe works;
 ;              the shortcuts and the Apps entry point at Chromite.exe (docs/chromite/launcher-name.md).
+; - 2026-11-12 "Still running" after a Retry: where to find a process whose window is gone (a message window behind
+;              others, Task Manager, another signed-in user). The setup still never ends processes (app change #96,
+;              docs/chromite/exit-process.md).
 
 Unicode true
 ManifestDPIAware true
@@ -169,6 +172,11 @@ LangString LangRun ${LANG_ENGLISH} "Start ${PRODUCT}"
 LangString LangRun ${LANG_KOREAN} "${PRODUCT} 시작"
 LangString LangRunning ${LANG_ENGLISH} "${PRODUCT} is running. Close it, then select Retry."
 LangString LangRunning ${LANG_KOREAN} "${PRODUCT}이(가) 실행 중입니다. 종료한 뒤 [다시 시도]를 누르세요."
+; After a Retry that still finds it running: the window can be gone while the process is not (a message window behind
+; other windows, a closing that has not finished, another signed-in user). The names: this version's launcher and the
+; launcher of 0.1.4 and earlier (LEGACY_EXE: when it goes, keep its name here while such installations may be upgraded).
+LangString LangRunningStill ${LANG_ENGLISH} "${PRODUCT} is still running, although its window may be closed.$\r$\n$\r$\nLook for a ${PRODUCT} message window behind other windows (Alt+Tab), and in Task Manager (Ctrl+Shift+Esc), Details tab, for ${EXE} or ${LEGACY_EXE}. Another user signed in to this computer may also be running it.$\r$\n$\r$\nClose it, or end that task (unsaved work is lost), then select Retry."
+LangString LangRunningStill ${LANG_KOREAN} "창을 닫았어도 ${PRODUCT}이(가) 아직 실행 중입니다.$\r$\n$\r$\n다른 창 뒤에 ${PRODUCT} 안내 창이 있는지(Alt+Tab), 작업 관리자(Ctrl+Shift+Esc)의 [세부 정보] 탭에 ${EXE} 또는 ${LEGACY_EXE}가 있는지 확인하세요. 이 컴퓨터에 로그인한 다른 사용자가 실행 중일 수도 있습니다.$\r$\n$\r$\n그 창을 닫거나 작업을 끝낸 뒤(저장하지 않은 내용은 사라집니다) [다시 시도]를 누르세요."
 LangString LangNotEmpty ${LANG_ENGLISH} "The folder $INSTDIR is not empty and holds no ${PRODUCT} installation. Choose an empty folder."
 LangString LangNotEmpty ${LANG_KOREAN} "$INSTDIR 폴더가 비어 있지 않고 ${PRODUCT} 설치 폴더도 아닙니다. 빈 폴더를 고르세요."
 LangString LangScopeTitle ${LANG_ENGLISH} "Installation Scope"
@@ -218,8 +226,9 @@ Function ${UN}SetScope
 FunctionEnd
 !macroend
 
-; Waits until no Chromite of this folder runs. Interactive: Retry / Cancel. Silent: 60 tries, one
-; second apart, then exit code 2 with nothing changed.
+; Waits until no Chromite of this folder runs. Interactive: Retry / Cancel; from the second question on,
+; the message says where a process without a window can be found. Silent: 60 tries, one second apart,
+; then exit code 2 with nothing changed.
 !macro WaitNotRunning UN
 Function ${UN}WaitNotRunning
   ${IfNot} ${FileExists} "$INSTDIR\${RUNNING_PROBE}"
@@ -241,10 +250,15 @@ Function ${UN}WaitNotRunning
       ${EndIf}
       Sleep 1000
     ${Else}
-      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(LangRunning)" IDRETRY retry
+      ${If} $R1 == 0
+        MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(LangRunning)" IDRETRY retry
+      ${Else}
+        MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(LangRunningStill)" IDRETRY retry
+      ${EndIf}
       SetErrorLevel 1
       Quit
       retry:
+      StrCpy $R1 1
     ${EndIf}
   ${Loop}
 FunctionEnd

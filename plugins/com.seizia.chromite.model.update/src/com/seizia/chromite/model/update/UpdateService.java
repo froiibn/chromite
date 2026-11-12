@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -78,6 +79,9 @@ import java.util.stream.Stream;
  *   업데이트 뒤 첫 시작의 판단({@link #detectFirstStart}) (docs/chromite/auto-update.md "업데이트 진행 창")
  * - 2026-11-09 Windows 모든 사용자 설치({@link #isAllUsers}): [지금 다시 시작]에서만 관리자 권한으로 설치하고 그냥 닫을 때는 적용하지 않음.
  *   macOS: 새 앱 묶음을 zip 안의 이름으로 놓음 (docs/chromite/auto-update.md "관리자 권한으로 설치", "적용")
+ * - 2026-11-12 끝날 때 도는 중인 확인·받기를 기다리지 않고 멈춤({@link #applyAtExit}, 최대 {@value #EXIT_BUSY_SECONDS}초).
+ *   네트워크가 없으면 창이 닫힌 뒤에도 확인의 시간 제한(10초, 이름 풀이는 그보다 길 수 있음)만큼 프로세스가 남아 설치 프로그램이
+ *   "실행 중"이라고 했다. 받아서 확인한 파일의 마지막 확인만 기다린다 (앱 변경 #96, docs/chromite/exit-process.md)
  */
 public final class UpdateService {
 
@@ -91,7 +95,10 @@ public final class UpdateService {
     public static final long FIRST_CHECK_MS = 10_000;
     public static final long EVERY_MS = 60 * 60 * 1000L;
     public static final long RETRY_FAILED_MS = 24 * 60 * 60 * 1000L;
+    // How long the end waits for the final check of a received file (a signature check)
     private static final long EXIT_CHECK_SECONDS = 120;
+    // How long the end waits for a stopped check or download to let the updater's thread go
+    private static final long EXIT_BUSY_SECONDS = 2;
     private static final String THREAD_NAME = "Chromite updater"; //$NON-NLS-1$
     private static final String PREVIOUS_FOLDER = "previous"; //$NON-NLS-1$
     private static final String ASIDE_PREFIX = "before-"; //$NON-NLS-1$
@@ -222,6 +229,11 @@ public final class UpdateService {
     private volatile State state;
     private volatile boolean cancelled;
     private volatile boolean stopped;
+    /**
+     * The updater's thread while a check (and its download) runs: the end interrupts it ({@link #applyAtExit}).
+     */
+    @Nullable
+    private volatile Thread checkingThread;
     @Nullable
     private volatile InstallFailure installFailure;
     /**
@@ -523,7 +535,10 @@ public final class UpdateService {
      * @param manual [Check now] / [Try again]: runs while automatic checks are off, and receives a failed version again
      */
     void check(boolean manual) {
+        // Set before the stop is read: the end sets stopped before it reads this, so one of the two sees the other
+        checkingThread = Thread.currentThread();
         if (stopped || place.mode() == UpdatePlace.Mode.OFF || place.target() == null || (!manual && !prefs.enabled)) {
+            checkingThread = null;
             return;
         }
         UpdateTarget here = place.target();
@@ -561,8 +576,10 @@ public final class UpdateService {
             }
             receive(entry, entries, here);
         } catch (InterruptedException e) {
+            // The end stopped this check (a stray interrupt is cleared by the executor before its next task)
             Thread.currentThread().interrupt();
         } finally {
+            checkingThread = null;
             setChecking(false);
         }
     }
@@ -690,7 +707,8 @@ public final class UpdateService {
      * Applies a checked update when Chromite ends: called after the normal exit path (unsaved editors, open
      * transactions) has finished, on the exiting thread. Checks the file once more, writes the record of the update,
      * then starts the copy of the app ([Restart now] on Windows) or the helper, and stops the updater. Without an update,
-     * [Restart now] still starts Chromite again.
+     * [Restart now] still starts Chromite again. A check or download that still runs is stopped, not waited for (at most
+     * {@value #EXIT_BUSY_SECONDS} s); its version is then not applied at this end.
      *
      * @param restart the user chose [Restart now]
      * @param window  the update window ([Restart now] shows it while the file is checked again)
@@ -708,9 +726,24 @@ public final class UpdateService {
             window.checking(from, shown.version(), endAt, detail.receivedMs());
         }
         Ready plan = null;
+        // A check or download in flight is cancelled, never waited for: without a network it waits for its time limit or
+        // longer (a name that does not resolve), and the process, which has no window any more, keeps the installation
+        // in use (app change #96). Only the final check of a received file is waited for.
+        Thread checking = checkingThread;
+        if (checking != null) {
+            checking.interrupt();
+        }
+        CountDownLatch started = new CountDownLatch(1);
         try {
-            Future<Ready> checked = executor.submit(() -> toApply(restart));
-            plan = checked.get(EXIT_CHECK_SECONDS, TimeUnit.SECONDS);
+            Future<Ready> checked = executor.submit(() -> {
+                started.countDown();
+                return toApply(restart);
+            });
+            if (started.await(EXIT_BUSY_SECONDS, TimeUnit.SECONDS)) {
+                plan = checked.get(EXIT_CHECK_SECONDS, TimeUnit.SECONDS);
+            } else {
+                log.warn("Update not applied: the updater did not stop within " + EXIT_BUSY_SECONDS + " s"); //$NON-NLS-1$ //$NON-NLS-2$
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException | TimeoutException | RuntimeException e) {

@@ -46,6 +46,8 @@ import org.jkiss.utils.StandardConstants;
 
 import javax.swing.*;
 import java.awt.Desktop;
+import java.awt.Dialog;
+import java.awt.Window;
 import java.awt.desktop.SystemSleepEvent;
 import java.awt.desktop.SystemSleepListener;
 import java.awt.event.WindowAdapter;
@@ -114,7 +116,10 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-12 시작 화면의 자리({@link StartupSplash#getPlacement})를 디버그 로그가 열린 뒤 남김: 시작 화면은 로그보다 먼저 열린다
  *   (앱 변경 #52, docs/chromite/branding.md "자리")
  * - 2026-11-12 UI 글꼴 선택이 없어져(운영체제 글꼴 하나) 주 창을 열기 전의 글꼴 비교를 지움 (앱 변경 #67,
- *   docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13") */
+ *   docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
+ * - 2026-11-12 주 창 없이 끝나는 시작의 안내(작업 공간 잠김, 플랫폼 초기화 실패, 업데이트 적용 중)를 소유자 없는 자기 창으로 띄움
+ *   ({@link #showStartupDialog}): 작업 표시줄 단추·Chromite 아이콘·제품 이름 제목, 앞으로 나옴. 숨은 공유 프레임 소유 대화상자는 작업 표시줄에
+ *   없어 두 번째 시작의 "작업 영역을 잠글 수 없음"이 다른 창 뒤에 숨고 프로세스가 남았다 (앱 변경 #96, docs/chromite/exit-process.md) */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -270,8 +275,9 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             // The saved theme can't be read yet (the workspace is not locked); see openMainWindow. The theme of the
             // operating system is the default choice, so most starts need no second install there
             ChromiteTheme.forSystem().install(false);
-            // Dialogs without a parent window (startup errors, SwingPlatformUI before the main window exists)
-            // are owned by this shared frame and take its icon instead of the Java runtime's one
+            // Dialogs without a parent window (SwingPlatformUI before the main window exists) are owned by this shared
+            // frame and take its icon instead of the Java runtime's one; startup errors have a window of their own
+            // (showStartupDialog)
             JOptionPane.getRootFrame().setIconImages(ChromiteIcons.getWindowIcons());
         });
     }
@@ -426,8 +432,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static void showStartupMessage(@NotNull String message) {
         try {
-            SwingUtilities.invokeAndWait(() ->
-                JOptionPane.showMessageDialog(null, message, GeneralUtils.getProductName(), JOptionPane.INFORMATION_MESSAGE));
+            SwingUtilities.invokeAndWait(() -> showStartupDialog(null, message, JOptionPane.INFORMATION_MESSAGE));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (InvocationTargetException e) {
@@ -441,13 +446,45 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             return;
         }
         try {
-            SwingUtilities.invokeAndWait(() ->
-                JOptionPane.showMessageDialog(null, message, title, JOptionPane.ERROR_MESSAGE));
+            SwingUtilities.invokeAndWait(() -> showStartupDialog(title, message, JOptionPane.ERROR_MESSAGE));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (InvocationTargetException e) {
             log.error("Error showing startup error", e.getTargetException());
         }
+    }
+
+    /**
+     * A message of a start that ends without the main window, in a window of its own: it has no owner, so Windows gives it
+     * a task bar button with the Chromite icon and the product name, and it comes to the front. Returns when it is closed
+     * (its button, Esc or the title bar X); then this start ends. Call in the EDT.
+     * <p>
+     * {@link JOptionPane#showMessageDialog} with no parent is owned by Swing's hidden shared frame and has no task bar button:
+     * a second start's "can't lock workspace" went behind other windows, and its process stayed after the first Chromite was
+     * closed, so the setup kept saying Chromite was running (app change #96).
+     *
+     * @param heading the first line (the error's title: the window's title is the product name), or null
+     */
+    private static void showStartupDialog(@Nullable String heading, @Nullable String message, int messageType) {
+        Object text = heading == null ? message : message == null ? heading : new Object[]{heading, message};
+        JOptionPane pane = new JOptionPane(text, messageType);
+        JDialog dialog = new JDialog((Window) null, GeneralUtils.getProductName(), Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setIconImages(ChromiteIcons.getWindowIcons());
+        dialog.setContentPane(pane);
+        dialog.setResizable(false);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        // OK and Esc set the pane's value (JOptionPane.createDialog closes its dialog the same way)
+        pane.addPropertyChangeListener(JOptionPane.VALUE_PROPERTY, e -> dialog.dispose());
+        dialog.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowOpened(WindowEvent e) {
+                dialog.toFront();
+                pane.selectInitialValue();
+            }
+        });
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
     }
 
     private void shutdown() {

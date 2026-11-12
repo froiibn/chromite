@@ -101,6 +101,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [signing.md](signing.md) | 릴리스 서명: Windows(Azure Artifact Signing)·macOS(Developer ID 서명·공증) 흐름, 서명 대상 파일, 제3자 정책, 사용자가 할 일 |
 | [launcher-name.md](launcher-name.md) | 실행 파일 이름 `Chromite.exe`(전 `chromite-swing.exe`, 앱 변경 #65): 이름이 있던 곳, 0.1.4 업데이터의 다시 시작을 위한 옛 이름 시작 파일(한 버전만), 작업 표시줄 고정, 실제 업데이트 확인, 다음 버전에서 지울 것 |
 | [auto-update.md](auto-update.md) | 앱 안의 자동 업데이트: 업데이트 목록 확인(고정 User-Agent, 1 MB, 10초), 뒤에서 받기, Windows·macOS 파일 확인(서명·게시자·버전), 끝날 때 적용(도우미), 실패 처리, 옵션, 끝낼 때 트랜잭션 질문, 개발 빌드 시험 모드 |
+| [exit-process.md](exit-process.md) | 창을 닫은 뒤 남는 프로세스(앱 변경 #96): 재현 결과(연결·업데이트 확인·말없는 서버·두 번째 시작), 끝날 때 업데이트 확인을 기다리지 않음, 두 번째 시작의 안내 창, 설치 프로그램의 "아직 실행 중" 안내 |
 | [connection-transfer.md](connection-transfer.md) | 연결 내보내기·가져오기: 비밀번호를 사용자 암호로 암호화한 파일(AES-256-GCM, PBKDF2 600,000번, 형식 버전 1), 내보내는 것, 충돌(건너뛰기·바꾸기·사본), 연결 중인 연결 보호, OS 보안 저장소 이전과의 관계, 다른 도구(Oracle SQL Developer, Toad, CSV)에서 가져오기와 드라이버 고르기 |
 | [regression-tests.md](regression-tests.md) | 회귀 테스트: 실행 방법(`mvn verify`, 시험 데이터 폴더), PR #95–#133의 모델 기능 JUnit 테스트 목록(트랜잭션 안전, SQL 실행 안전, 자격 증명·연결 파일, 드라이버 묶음, 데이터, 자동완성, Chromite Agent, Query Library), 화면 확인 목록, 실행 결과 |
 | [settings-transfer.md](settings-transfer.md) | 설정 내보내기·가져오기(File 메뉴): 옵션 설정 값·SQL 템플릿·연결 유형·데이터 형식, 드라이버 설정, 쿼리 라이브러리, 스크립트와 연결 묶기, 연결(#108 암호화 파일). 파일 형식, 비밀 걸러내기, 이 PC의 상태 키, 미리 보기와 충돌(건너뛰기·바꾸기·둘 다 두기), 가져오기 전 백업과 되돌리기 |
