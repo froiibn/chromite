@@ -366,6 +366,35 @@ SQL 스크립트 작업(`SQLScriptProcessor`)은 모든 문장을 다시 실행�
 - **쿼리를 원본으로 읽는 데이터 전송**(`DatabaseTransferProducer`, `DTUtils.getAttributes`): 원본이 쿼리이면 `SQLQueryRecovery.canReadAgain`일 때만 복구가 다시 읽는다.
 - 남는 위험: SELECT 안에서 부르는 함수의 부작용(시퀀스, 데이터를 바꾸는 사용자 함수)은 파서로 알 수 없어 그런 SELECT는 다시 실행된다(전과 같음).
 
+### 확인 (2026-11-12, `chromite/transfer-lost-connection`)
+
+시험 VM의 공용 서버에 만든 `chr_transfer_lost_connection`(SQL Server·PostgreSQL)의 `qlog`·`qt`(`qt`에 느린 트리거)를 썼고 끝나고 지웠다. 앱(한국어, 영어는 캡처만)에
+붙인 시험 코드가 쿼리 창을 열고 F5로 실행했다. 끊은 것은 그 창의 세션 하나뿐이다(프로그램 이름 `SQLEditor <창>` + 내 데이터베이스, 하나일 때만). 네트워크
+끊김은 내 연결만 지나는 내 TCP 중계(21433 → 1433)의 소켓을 모두 끊고(08S01 "Connection reset") 중계는 계속 듣게 해서 만들었다. 행 수는 다른 세션에서 셌다.
+"devel"은 `origin/devel` 886ea68e84 빌드. 증거 `D:\Tools\_scratch\transfer-lost-connection\run\`(`devel-ms*.out`, `branch-ms.out`, `branch-pg.out`,
+`branch-final-*.out`, 각 `*.txt.log`), 그림 `shots\q-*.png`.
+
+| 경우 | devel SQL Server | 브랜치 SQL Server | 브랜치 PostgreSQL(분류 바뀌지 않음) |
+|---|---|---|---|
+| 1. 자동 커밋, 긴 읽기 배치 `WAITFOR …` + `SELECT 1`(PG `SELECT pg_sleep(30), 1`), 끊음 | 596 오류, 다시 실행 없음 | 다시 실행 안 함(배치): "…다시 실행하지 않았습니다. 일부가 실행되었을 수 있습니다…" + 596, 세션 다시 열림 알림 | 한 SELECT라 다시 실행: Messages 맨 위 "…새 세션에서 다시 실행했습니다", 성공 38 s |
+| 1'. 자동 커밋, `WAITFOR` 없는 긴 SELECT 하나(SQL Server `COUNT(*)` 교차 조인), 끊음 | 596 오류(47 s), 다시 실행 없음 | 다시 실행: "…새 세션에서 다시 실행했습니다", "쿼리를 실행했습니다"(47 s, 영어 55 s). 고치기 전 빌드는 첫 시도의 596이 남아 실패로 보였음(`SQLQueryResult.startAgain`으로 고침) | (1과 같음) |
+| 2a. 자동 커밋, UPDATE 하나(트리거로 느림), 끊음 | 596 오류, 0행 바뀜 | "반영되었는지 알 수 없습니다" + 596, 0행 | 같음(57P01), 0행 |
+| 2b. 자동 커밋, `INSERT` + `WAITFOR` + `SELECT` 배치, 끊음 | 596 오류, `m2b` **1행** | "일부가 실행되었을 수 있습니다" + 596, **1행**, 기록 오류(쿼리 관리자 END error) | PG 스크립트 `INSERT …; SELECT pg_sleep(30);`(문장별 실행): INSERT 1행, 끊긴 SELECT만 다시 실행 → **1행** |
+| 2b'. 같은 배치, 네트워크 끊김(08S01) | **다시 실행, "쿼리를 실행했습니다", `m8` 2행**(devel의 결함) | 다시 실행 안 함, "일부가 실행되었을 수 있습니다" + 08S01, **1행** | — |
+| 2c. PG `WITH x AS (INSERT … RETURNING) SELECT pg_sleep(30) FROM x` | — | — | 다시 실행 안 함(데이터를 바꾸는 WITH), "반영되었는지 알 수 없습니다", 0행(한 문장이라 롤백) |
+| 2d. 프로시저 `EXEC dbo.p_ins_wait`(PG `CALL p_ins_wait`: INSERT 뒤 대기), 끊음 | 596 오류, 1행 | 다시 실행 안 함, "일부가 실행되었을 수 있습니다", 1행 | 다시 실행 안 함, 같은 문구, 0행(PG 프로시저는 한 트랜잭션) |
+| 3. 수동 커밋, 열린 `INSERT` 뒤 긴 읽기, 끊음 | 596 오류, 알림 없음, 상태 줄은 **여전히 "열린 트랜잭션 (변경 있음)"**, 0행 | 다시 실행 안 함, "세션에 커밋하지 않은 트랜잭션이 있었고, 서버가 세션과 함께 롤백했습니다" + 596, 세션 다시 열림(잃은 문장 1개 경고 알림, 로그), 열린 트랜잭션 표시 사라짐, 0행 | 같음(57P01), 0행 |
+| 4. 각 경우 뒤 다음 문장 `SELECT n` | 세션을 다시 열고 실행(08S01 경로), 성공 | 이미 다시 열린 세션에서 바로 성공 | 같음 |
+| 5. Agent `runSql`(도구 클래스 직접, AI 공급자 없음), 배치 INSERT + 대기, 끊음 | 오류 "kill state", 1행, 다시 실행 없음. 다음 호출 "연결이 닫혔습니다" | 같음(바뀌지 않음, `AgentSql`은 복구를 쓰지 않음) | 같음(57P01, 0행), 다음 호출 "이 연결은 닫혔습니다" |
+| 6. Object Explorer 펼치기 중 끊김 | 실행하지 않음 | 코드로: `DBNDatabaseNode`가 `tryExecuteRecover`로 메타데이터를 읽음(읽기). 596이 연결 끊김이 되어 오류 대신 주·메타데이터 문맥 다시 연결(`holdReconnect`가 열린 트랜잭션이면 멈춤) | 원래 같은 경로 |
+
+- 같은 경로를 쓰는 곳: Query Library의 실행과 SQL 터미널 출력은 쿼리 창의 `SQLQueryExecuteJob`이고, 예약 쿼리(`QueryScheduler`)도 `SQLQueryExecuteJob`,
+  SQL 스크립트 작업은 `SQLScriptProcessor`(같은 `SQLQueryRecovery`). 따로 실행해 보지 않았다.
+- Altibase(코드로): 4163도 연결 끊김이라 같은 경로다. 프로시저 호출(`EXEC p`)은 파서가 `Execute`로 읽어 허용 목록 밖이므로 다시 실행하지 않고 "일부가 실행되었을
+  수 있습니다"를 보인다. 서버에서 실행해 보지 않았다.
+- 결과 표 저장·표 디자이너·개체 변경의 "다시 연결만"은 실행해 보지 않았다(코드와 `tryExecuteReconnectOnly`만).
+- 영어 캡처 `shots\q-m2b-en-*.png`, `q-m7-en-*.png`, 한국어 `q-m2b-ko-*.png`, `q-m7-ko-*.png`(어둡게·밝게).
+
 ### `tryExecuteRecover` 호출 전수 확인
 
 | 호출 | 하는 일 | 다시 실행하면 | 판단·조치 |
