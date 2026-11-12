@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class AdminViewMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AdminViewMessages"; //$NON-NLS-1$
@@ -34,7 +35,6 @@ public class AdminViewMessages extends NLS {
     public static String admin_space_command;
     public static String admin_space_command_tip;
     public static String admin_space_tab;
-    public static String admin_space_refresh_tip;
     public static String admin_space_scope_database;
     public static String admin_space_scope_tip;
     public static String admin_space_scope_all;
@@ -53,7 +53,6 @@ public class AdminViewMessages extends NLS {
     public static String admin_logs_command;
     public static String admin_logs_command_tip;
     public static String admin_logs_tab;
-    public static String admin_logs_refresh_tip;
     public static String admin_logs_source;
     public static String admin_logs_source_tip;
     public static String admin_logs_archive;

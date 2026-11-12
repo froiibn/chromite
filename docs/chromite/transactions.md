@@ -25,7 +25,7 @@
 | 상태 줄 메뉴 | `com.seizia.chromite.ui.swing` | `QueryStatusLine.OpenTransactionActions`(`end`, `showLog`) |
 | 트랜잭션 로그 | `com.seizia.chromite.ui.swing` | `TransactionLogDialog` |
 | 열린 트랜잭션 목록 | `com.seizia.chromite.ui.swing` | `OpenTransactionsDialog`(Tools > Open Transactions…) |
-| 문구 | `com.seizia.chromite.ui.swing` | `CoreMessages`(`main_commit` 등), `EditorMessages`(`editor_txn_log_*`, `editor_txn_list_*`, `editor_sql_commit_tip` 등), 영어·한국어 |
+| 문구 | `com.seizia.chromite.ui.swing` | `CoreMessages`(`main_commit` 등), `EditorMessages`(`editor_txn_log_*`, `editor_txn_list_*` 등), 영어·한국어 |
 | 오류 복구의 트랜잭션 보호 | `com.seizia.chromite.model` | `runtime.jobs.TransactionRecoveryGuard`(판단, 사용자가 고른 다시 연결), `DBExecUtils.tryExecuteRecover`, `KeepAlivePingJob`, `UIServiceIdleTransactions` |
 | 오류 복구 알림 | `com.seizia.chromite.ui.swing` | `SwingIdleTransactionService`(`showTransactionAborted`, `showReconnectHeld`, `showSessionReopened`), `ConnectionMessages`(`recovery_*`) |
 | 끊긴 세션(확인, 그 세션만 다시 열기, 버리기) | `com.seizia.chromite.model`, `ui.swing` | `TransactionRecoveryGuard`(`isSessionLost`, `reopenLostSession`, `discardLostTransaction`), `ExitTransactionCheck`(`findLost`, `confirmDiscard`), `ConnectionMessages`(`lost_txn_*`) |

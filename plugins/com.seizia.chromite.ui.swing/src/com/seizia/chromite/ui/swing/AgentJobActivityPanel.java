@@ -56,6 +56,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class AgentJobActivityPanel extends JPanel implements ToolDocument {
 
@@ -101,7 +102,6 @@ final class AgentJobActivityPanel extends JPanel implements ToolDocument {
         });
 
         Action refreshAction = createAction(AgentMessages.agent_refresh, this::refresh);
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, AgentMessages.agent_activity_refresh_tip);
         startAction = createAction(AgentMessages.agent_start_job, () -> runOnSelected(job -> AgentCommands.startJob(this, job, getAgentNode())));
         stopAction = createAction(AgentMessages.agent_stop_job, () -> runOnSelected(job -> AgentCommands.stopJob(this, job, getAgentNode())));
         enableAction = createAction(AgentMessages.agent_enable, () -> runOnSelected(job -> AgentCommands.setJobEnabled(this, job, true, getAgentNode())));

@@ -115,6 +115,7 @@ import java.util.TreeMap;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-manager.md)
  * - 2026-11-09 복사 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 보일 항목 메뉴 끝에 Options의 Logs 페이지를 여는 Log Settings (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPreferenceListener {
 
@@ -209,10 +210,13 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
         JToolBar toolBar = new OverflowToolBar();
         toolBar.setOpaque(false);
         toolBar.add(UiIcons.createActionButton(openAction, "new-query")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(copyAction, "copy")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(copyAction, "copy", UiKeys.command(KeyEvent.VK_C))); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(showTransactionAction, "commit")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(showAction, "filter")); //$NON-NLS-1$
+        JButton showButton = UiIcons.createActionButton(showAction, "filter"); //$NON-NLS-1$
+        // Kept (app change #103): the menu's choices also change what the SQL log file records, which the name doesn't say
+        showButton.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
+        toolBar.add(showButton);
         toolBar.add(UiIcons.createActionButton(clearAction, "close")); //$NON-NLS-1$
 
         searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, QueryManagerMessages.qm_search);

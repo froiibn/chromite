@@ -1793,7 +1793,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 | Comment ~ Format SQL | `SqlTextArea#runCommand`(Edit > Advanced와 같은 `SqlEditCommands`) | Ctrl+K Ctrl+C, Ctrl+K Ctrl+U, Shift+Tab, Tab, Ctrl+K Ctrl+D |
 | Query History | Query > Query History…와 같은 `MainFrame#openQueryHistory`(`SqlEditorPanel.Host`에 추가) | 없음(메뉴에도 없음) |
 
-도구 설명은 `ToolbarMessages`(영어 + `_ko`)에 있고 끝에 메뉴와 같은 단축키를 적는다. 아이콘은 생성기로 13개를 새로 만들었고(`save-all`, `undo`, `redo`, `activity-monitor`,
+도구 설명은 `ToolbarMessages`(영어 + `_ko`)에 있고 끝에 메뉴와 같은 단축키를 적는다(2026-11-12부터 아이콘 단추는 메뉴의 이름과 단축키: "아이콘 단추의 도구 설명"). 아이콘은 생성기로 13개를 새로 만들었고(`save-all`, `undo`, `redo`, `activity-monitor`,
 `registered-servers`, `object-explorer`, `properties`, `comment`, `uncomment`, `indent`, `outdent`, `format`, `overflow`), Find·Query Library·Query History는 기존
 `search`·`library`·`history`를 쓴다([design-spec.md](design-spec.md) "아이콘 팩").
 
@@ -3487,6 +3487,82 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 `D:\Tools\_scratch\menu-spacing\sheets\`(메뉴마다 0.1.4 촘촘한 | 26.0.5 촘촘한 | 제안 촘촘한 | 제안 기본, 라이트·다크; `overview-phone.png`).
 회귀 테스트는 실행하지 않았다.
 
+## 아이콘 단추의 도구 설명 (2026-11-12, 앱 변경 #103)
+
+사용자 요청(사내 환경, 26.0.5): "화면 전반 전반적으로 아이콘 툴팁을 설명보다 기능명으로 작성한다. 예를들어 쿼리 라이브러리를 표시하거나 숨깁니다 가 아니고
+쿼리 라이브러리 라고만 표시하는 형식이다".
+
+### 규칙
+
+- 글자 없이 아이콘(또는 ←, ◀ 같은 기호)만 있는 단추의 도구 설명은 **기능 이름**이다. 같은 기능의 메뉴 항목·창 제목이 있으면 그 이름을 같은 메시지 키로 쓴다
+  (문구를 두 번 적지 않음). 영어 메뉴 이름 끝의 "…"(대화상자를 여는 메뉴 표시)는 도구 설명에서 뺀다.
+- 단축키가 있으면 이름 뒤 괄호에 적는다(`CoreMessages.common_tip_shortcut` "{0} ({1})", 한국어도 괄호 앞에 한 칸). 키 글자는 `UiKeys`가 플랫폼에 맞게 만든다.
+  없는 단축키는 붙이지 않는다.
+- 토글은 그 대상·모드의 이름이다("쿼리 라이브러리", "편집기와 연결"). 눌린 모양이 켜짐을 보인다.
+- 이름만으로 알 수 없는 정보를 담은 도구 설명은 줄이지 않는다: 꺼진 이유, 지금 상태, 눌렀을 때 드러나지 않는 영향. 이름이 아예 없던 것은 첫 줄에 이름, 다음 줄에 이유를 둔다.
+- 글자 단추, 입력 칸, 확인란, 콤보, 라벨, 표 칸, 상태 표시줄 글자, 메뉴 항목의 도구 설명은 바꾸지 않았다. 메뉴 항목은 같은 동작의 설명문을 계속 도구 설명으로 쓴다.
+
+### 구조
+
+| 구성 | 하는 일 |
+|---|---|
+| `UiIcons.createActionButton` (`ShortcutTipButton`) | 아이콘 단추의 도구 설명 = 동작 이름(끝 "…" 뺌) + 단축키. 동작의 설명(`SHORT_DESCRIPTION`)은 같은 동작을 쓰는 메뉴 항목용이라 단추에는 보이지 않는다 |
+| `UiIcons.DESCRIPTION_TIP` (단추 속성) | 예외: 동작 설명이 도구 설명(꺼진 이유·상태). 설명이 없으면 이름. 작업 모니터(꺼졌을 때만 이유), 연결 변경("연결 변경"/"서버 선택"), 데이터베이스 작업의 편집(편집기가 없는 작업이면 이름 + 이유 두 줄), Query Manager의 보일 항목, SQL Editor 편집 명령(이름 + 두 키 조합) |
+| `UiIcons.TIP_SHORTCUT` (`createActionButton(action, icon, key)`) | 동작의 가속기가 아니라 패널이 묶은 키(F5, Enter, Shift+F5, Ctrl+C, Ctrl+S)를 도구 설명에 적는다 |
+| `MainFrame.createToolWindowButton` | 도구 창 토글의 도구 설명 = 창 제목(View 메뉴 이름) + 단축키 |
+| 기호 단추(결과 ←/→, 레코드 보기 ◀/▶) | 동작 설명을 이름 + 단축키로(`UiIcons.withShortcut`) |
+
+### 곳별 아이콘 단추 수 (코드로 찾음: `createActionButton` 호출, 아이콘만 있는 `JToggleButton`·`JButton`, 기호 단추, FlatLaf 단추)
+
+| 곳 | 아이콘 단추 | 이름으로 바꿈 | 그대로(이미 이름) | 이유·상태라 둠 | 이름 + 이유로 | 보고 |
+|---|---|---|---|---|---|---|
+| 주 도구 막대 | 13 | 10 | 2(+ »), Undo·Redo는 한국어 괄호 앞 한 칸만 | 1(작업 모니터가 꺼졌을 때) | | |
+| SQL Editor 도구 막대 | 12 | 10 | 1(») | 1(연결 변경) | | 글자 단추 3 |
+| 도구 창 머리글(⋮, ×)·결과 카드 × | 3 | | 3 | | | |
+| Object Explorer | 9 | 7 | 2 | | | |
+| Registered Servers | 5 | 2 | 3 | | | |
+| Query Library(창 8, 편집기 머리글 1) | 9 | 7 | 2 | | | |
+| Chromite Agent | 8 | | 8(영어 설정 이름의 "…"만 빠짐) | | | |
+| Properties | 2 | | 2 | | | |
+| Scripts | 4 | 3 | 1 | | | |
+| 데이터베이스 작업 | 6 | 5 | 1 | | 1(편집) | |
+| Query Manager | 6 | 4 | 1 | 1(보일 항목) | | |
+| 결과 영역(상태 줄, 찾기, 고정 결과 탭, 레코드 보기, 값 패널, 칸 단추, 날짜 고르기) | 15 | 10 | 5 | | | |
+| 작업 모니터·관리 보기(세션, 잠금, 디스크, 로그, 유지 관리, 복제, 대시보드, Agent 표) | 13 | 9 | 4 | | | |
+| 그 밖(개체 목록, ERD, 실행 계획, 디버거, 테이블 디자이너) | 12 | 5 | 7 | | | |
+| 대화상자(옵션 테마 3, 숨겨진 탭 1)·알림 ×·검색 칸 지우기 × | 6 | | 4 | | | 2(도구 설명 없음) |
+| 상태 표시줄 | 0 | | | | | |
+| 합계 | 123 | 72 | 45 | 3 | 1 | 2 |
+
+» 넘침 단추는 넘침 도구 막대가 있는 곳마다 하나씩 센다. 전체 전/후 표(한국어·영어, 이름의 출처)는 검토용으로 브랜치 밖에 둔다
+(`D:\Tools\_scratch\icon-tooltips\icon-tooltips-table.md`).
+
+### 지운 메시지 키
+
+도구 설명에만 쓰던 설명문과 도구 막대만의 이름 사본(영어·한국어 모두): `ToolbarMessages`의 `toolbar_undo_tip`, `toolbar_redo_tip`, `toolbar_activity_monitor_tip`,
+`toolbar_registered_servers_tip`, `toolbar_object_explorer_tip`, `toolbar_query_library_tip`, `toolbar_properties_tip`, `toolbar_find_tip`, `toolbar_comment`(·`_tip`),
+`toolbar_uncomment`(·`_tip`), `toolbar_outdent`(·`_tip`), `toolbar_indent`(·`_tip`), `toolbar_format`(·`_tip`), `toolbar_query_history`(·`_tip`); `AiMessages.ai_toolbar_tip`;
+`EditorMessages`의 `editor_sql_cancel_tip`, `editor_sql_estimated_plan_tip`, `editor_sql_commit_tip`, `editor_sql_rollback_tip`, `editor_record_previous_tip`, `editor_record_next_tip`,
+`editor_results_unpin_tip`; `CoreMessages`의 `explorer_connect_server_tip`, `explorer_expand_loaded_tip`; `ObjectExplorerMessages`의 `oe_link_editor_tip`, `oe_details_refresh_tip`;
+`AgentMessages.agent_activity_refresh_tip`; `AdminViewMessages`의 `admin_space_refresh_tip`, `admin_logs_refresh_tip`; `ConnectionMessages`의 `locks_refresh_tip`,
+`sessions_refresh_tip`, `sessions_open_query_tip`; `MaintenanceViewMessages`의 `maintview_refresh_tip`, `maintview_run_suggested_tip`, `maintview_repl_refresh_tip`;
+`ErdMessages.erd_save_layout_tip`; `DebugMessages.debug_stop_tip`; `ToolsMessages`의 `designer_revert_tip`, `library_editor_save_tip`; `DatabaseTasksMessages.tasks_edit_tip`;
+`GridEditMessages.gridedit_pick_date_tip`; `GridNavMessages`의 `gridnav_back_tip`, `gridnav_forward_tip`(51개).
+
+### 함께 바뀌는 곳
+
+- 메뉴 항목: 작업 모니터(Tools 메뉴)와 데이터베이스 작업의 편집(오른쪽 클릭)은 켜져 있을 때 설명문 도구 설명이 없다(꺼졌을 때만 이유). 다른 메뉴 항목의 도구 설명은 그대로다.
+- 넘침(») 메뉴: 항목의 도구 설명이 단추를 따라 이름이 된다. SQL Editor 편집 명령의 넘침 항목 이름이 Edit &gt; Advanced 이름이 된다(예: Comment Out → Comment Selection).
+- 접근성: Swing은 글자 없는 단추의 접근성 이름을 도구 설명에서 만들지 않는다(설명만 도구 설명에서 옴). 이름이 정해진 단추(연결 변경, 쿼리 라이브러리 편집기 저장,
+  Agent 설정 안내, 옵션 테마)는 그대로 이름이다. 나머지 아이콘 단추에 접근성 이름을 붙이는 일은 이 변경에 넣지 않았다.
+
+### 확인
+
+빌드한 제품(fbed5b8f1c와 이 브랜치)을 scratch 작업 공간·설정·`CHROMITE_DATA`로 한국어·영어로 띄우고 앱 안 시험 에이전트(Swing 객체, OS 입력 없음)가
+메인 창의 아이콘 단추를 모두 훑어 도구 설명을 적고(주 도구 막대, SQL Editor 도구 막대, 열린 도구 창 4개의 머리글·도구 막대, 결과 카드 ×: 위 표와 같음),
+주 도구 막대(쿼리 라이브러리, 찾기), SQL Editor 도구 막대(주석, 예상 계획), Object Explorer(연결), 도구 창 머리글(×), 옵션 대화상자(테마)의 도구 설명을
+단추 아래에 그려 전·후를 찍었다(`D:\Tools\_scratch\icon-tooltips\shots\`). 문서 탭 밖의 창(작업 모니터, ERD, 디버거 등)은 코드로만 확인했다. 회귀 테스트는 실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -3646,3 +3722,5 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.
 - 2026-11-12 메뉴 간격과 구분선(앱 변경 #98, `chromite/menu-spacing`): 촘촘한 모드 메뉴 항목 20 → 21(`@menuItemMargin` 2,8,1,8), 메뉴 구분선 색(`PopupMenuSeparator.foreground`,
   `ChromitePopupMenuSeparatorUI`), 보기·도구·편집 > 고급에 구분선. 기본 밀도의 간격은 그대로. "메뉴 간격과 구분선" 절. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 아이콘 단추의 도구 설명(앱 변경 #103, `chromite/icon-tooltips`): 설명문 대신 메뉴·창 제목과 같은 이름과 단축키(`UiIcons`), 꺼진 이유·상태는 둠,
+  도구 설명에만 쓰던 키 51개 삭제. "아이콘 단추의 도구 설명" 절. 회귀 테스트는 실행하지 않았다.

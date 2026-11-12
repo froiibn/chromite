@@ -72,6 +72,7 @@ import org.eclipse.osgi.util.NLS;
  *   {@code editor_sql_change_connection*}, {@code editor_sql_connection_changed} 추가 (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 도구 막대의 서버 표시를 지움(앱 변경 #74): 표시만 쓰던 {@code editor_sql_select_server_tip}, {@code editor_sql_server_change_tip} 삭제,
  *   {@code editor_sql_server_change_hint}가 단추의 새 자리(쿼리 도구 막대의 첫 단추)를 말함 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -95,9 +96,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_actual_plan;
     public static String editor_sql_actual_plan_tip;
     public static String editor_sql_execute_tip;
-    public static String editor_sql_cancel_tip;
     public static String editor_sql_estimated_plan;
-    public static String editor_sql_estimated_plan_tip;
     public static String editor_sql_tip_not_saved;
     public static String editor_sql_tip_not_connected;
     public static String editor_sql_tip_connection;
@@ -316,8 +315,6 @@ public class EditorMessages extends NLS {
     public static String editor_status_txn_read_only_locks;
     public static String editor_status_txn_read_only_snapshot;
     public static String editor_status_txn_open_changes;
-    public static String editor_sql_commit_tip;
-    public static String editor_sql_rollback_tip;
     public static String editor_txn_log_title;
     public static String editor_txn_log_not_connected;
     public static String editor_txn_log_session;
@@ -358,7 +355,6 @@ public class EditorMessages extends NLS {
     public static String editor_results_tab;
     public static String editor_results_pinned;
     public static String editor_results_pinned_tip;
-    public static String editor_results_unpin_tip;
     public static String editor_results_unpin_discard;
     public static String editor_results_unpin_confirm_one;
     public static String editor_results_unpin_confirm_many;
@@ -501,8 +497,6 @@ public class EditorMessages extends NLS {
     // Record view (ResultSetRecordView)
     public static String editor_record_previous;
     public static String editor_record_next;
-    public static String editor_record_previous_tip;
-    public static String editor_record_next_tip;
     public static String editor_record_no_rows;
     public static String editor_record_position;
     public static String editor_record_type;

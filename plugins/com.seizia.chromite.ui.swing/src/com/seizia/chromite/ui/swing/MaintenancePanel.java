@@ -51,6 +51,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-09 한국어 단추 이름의 끝 말줄임표를 없앤 것에 맞춰 주석의 단추 이름을 고침 (docs/chromite/swing-l10n.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class MaintenancePanel extends JPanel {
 
@@ -87,7 +88,6 @@ final class MaintenancePanel extends JPanel {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, MaintenanceViewMessages.maintview_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         toolBar.addSeparator();
         scopeLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(4), 0, UIScale.scale(4)));
@@ -123,7 +123,6 @@ final class MaintenancePanel extends JPanel {
                 openAction(gridTabs.getSelectedTag());
             }
         };
-        runAction.putValue(Action.SHORT_DESCRIPTION, MaintenanceViewMessages.maintview_run_suggested_tip);
         runAction.setEnabled(false);
         toolBar.add(UiIcons.createActionButton(runAction, "run")); //$NON-NLS-1$
 

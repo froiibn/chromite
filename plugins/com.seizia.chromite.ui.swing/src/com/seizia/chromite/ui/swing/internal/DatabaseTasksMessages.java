@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 데이터 전송 마법사의 작업으로 저장, 데이터 전송·SQL 스크립트 작업 편집, SQL 스크립트 작업 대화상자 문구
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class DatabaseTasksMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages"; //$NON-NLS-1$
@@ -52,7 +53,6 @@ public class DatabaseTasksMessages extends NLS {
     public static String tasks_run_confirm;
     public static String tasks_no_client;
     public static String tasks_edit;
-    public static String tasks_edit_tip;
     public static String tasks_edit_unsupported;
     public static String tasks_show_log;
     public static String tasks_show_log_tip;

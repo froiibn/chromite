@@ -87,6 +87,7 @@ import java.util.function.Consumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 확대·축소 도움말의 수정자 이름
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ErdDiagramPanel extends JPanel implements ToolDocument {
 
@@ -188,7 +189,6 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
         layoutAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_layout_tip);
         refreshAction = createAction(ErdMessages.erd_refresh, () -> load(true));
         saveAction = createAction(ErdMessages.erd_save_layout, this::saveLayout);
-        saveAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_save_layout_tip);
         exportPngAction = createAction(ErdMessages.erd_export_png, this::exportPng);
         exportSvgAction = createAction(ErdMessages.erd_export_svg, this::exportSvg);
         exportErdAction = createAction(ErdMessages.erd_export_erd, this::exportErd);

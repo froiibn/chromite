@@ -79,6 +79,7 @@ import java.util.stream.Stream;
  * - 2026-11-08 최초 작성: SWT 프로젝트·스크립트 탐색기의 스크립트 부분 (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-12 주석만: 열린 창의 연결을 바꾸지 않는 이유를 고침(창의 연결 콤보가 없어짐, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 주석만: 창의 서버는 연결 변경 명령으로만 바뀜(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ScriptsPanel extends JPanel {
 
@@ -253,7 +254,8 @@ final class ScriptsPanel extends JPanel {
         toolBar.add(UiIcons.createActionButton(newFolderAction, "new-folder")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(linkAction, "connection")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
+        // The tree's F5 (bindKey) is not the action's accelerator: the tool tip names it
+        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh", KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0))); //$NON-NLS-1$
         return toolBar;
     }
 

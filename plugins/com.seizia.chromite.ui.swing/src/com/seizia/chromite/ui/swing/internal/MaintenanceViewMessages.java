@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4·6 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class MaintenanceViewMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.MaintenanceViewMessages"; //$NON-NLS-1$
@@ -39,18 +40,15 @@ public class MaintenanceViewMessages extends NLS {
     public static String maintview_repl_tab;
     public static String maintview_menu;
     public static String maintview_menu_tip;
-    public static String maintview_refresh_tip;
     public static String maintview_scope_all;
     public static String maintview_scope_tip;
     public static String maintview_limit_label;
     public static String maintview_limit_tip;
     public static String maintview_run_suggested;
-    public static String maintview_run_suggested_tip;
     public static String maintview_reading;
     public static String maintview_status_lists;
     public static String maintview_not_supported;
     public static String maintview_details;
-    public static String maintview_repl_refresh_tip;
     public static String maintview_repl_reading;
     public static String maintview_repl_not_supported;
     public static String maintview_repl_read_only;

@@ -71,6 +71,7 @@ import java.util.Set;
  * - 2026-11-08 차단 체인 나무의 처음 폭을 280으로: 빈 나무의 폭(머리글만)으로 시작해 대기 세션 줄이 잘렸다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Kill Session 확인은 Kill Session / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class LockManagerPanel extends JPanel {
 
@@ -129,7 +130,6 @@ final class LockManagerPanel extends JPanel {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.locks_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         autoRefresh = new AutoRefreshBox(PREF_REFRESH, this, () -> {
             // Not after a failed connect: that would ask for the password again at each interval

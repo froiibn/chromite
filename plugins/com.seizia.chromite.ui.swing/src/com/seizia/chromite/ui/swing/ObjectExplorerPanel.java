@@ -272,6 +272,7 @@ import java.util.regex.Pattern;
  *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
  * - 2026-11-12 "더 읽기" 줄의 오른쪽 클릭 메뉴에 Options의 General 페이지(긴 폴더에 표시할 개체 수)를 여는 항목 (B12,
  *   docs/chromite/swing-options.md "특정 페이지로 여는 곳")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -558,7 +559,6 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         expandLoadedAction = createAction(CoreMessages.explorer_expand_loaded, this::expandLoaded);
-        expandLoadedAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_expand_loaded_tip);
         filterAction = createAction(CoreMessages.explorer_filter, this::filterSelectedFolder);
         filterAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_filter_tip);
         newQueryAction = new AbstractAction(CoreMessages.main_new_query) {
@@ -749,7 +749,6 @@ final class ObjectExplorerPanel extends JPanel {
                 showServer(chosen, true);
             }
         });
-        connectServerAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_connect_server_tip);
         connectAction = createAction(CoreMessages.explorer_connect, () -> runOnSelectedDataSource(ConnectionCommands::connect));
         disconnectAction = createAction(CoreMessages.explorer_disconnect, () -> runOnSelectedDataSource(this::disconnectServer));
         disconnectAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_disconnect_tip);
@@ -833,7 +832,6 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         };
-        linkWithEditorAction.putValue(Action.SHORT_DESCRIPTION, ObjectExplorerMessages.oe_link_editor_tip);
         linkWithEditorAction.putValue(Action.SELECTED_KEY, ExplorerPreferences.isLinkWithEditor());
         updateActions();
         tree.addTreeSelectionListener(e -> updateActions());
@@ -1346,13 +1344,15 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
-     * An icon toggle button of the tool bar (pressed while the action's {@link Action#SELECTED_KEY} is true).
+     * An icon toggle button of the tool bar (pressed while the action's {@link Action#SELECTED_KEY} is true). The tool tip is
+     * the name of the mode, the action's name; the pressed look shows whether it is on.
      */
     @NotNull
     private static JToggleButton createToggleButton(@NotNull Action action, @NotNull String iconId) {
         JToggleButton button = new JToggleButton(action);
         button.setHideActionText(true);
         button.setIcon(UiIcons.get(iconId));
+        button.setToolTipText(String.valueOf(action.getValue(Action.NAME)));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
         button.setFocusable(false);

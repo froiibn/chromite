@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 Oracle 디버거 문구: 디버그 컴파일 질문, 권한 안내, attach·프로시저 나가기 미지원 도움말
  * - 2026-11-08 디버그 컴파일 확인의 컴파일 단추 문구 추가 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class DebugMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DebugMessages"; //$NON-NLS-1$
@@ -39,7 +40,6 @@ public class DebugMessages extends NLS {
     public static String debug_continue;
     public static String debug_continue_tip;
     public static String debug_stop;
-    public static String debug_stop_tip;
     public static String debug_step_over;
     public static String debug_step_over_tip;
     public static String debug_step_into;

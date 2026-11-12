@@ -88,6 +88,7 @@ import java.util.Map;
  * - 2026-11-08 세션 명령 확인은 명령 이름 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 세션 상세의 암호 속성 가리기({@link ObjectListTable#maskPassword}, docs/chromite/password-handling.md)
  * - 2026-11-09 명령 실행 중 상태 문구를 명령 이름 + "…" 대신 NLS 문구로 만듦(한국어 문구 끝에 말줄임표를 쓰지 않음, docs/chromite/swing-l10n.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -146,7 +147,6 @@ final class SessionManagerPanel extends JPanel {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.sessions_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         autoRefresh = new AutoRefreshBox(PREF_REFRESH, this, () -> {
             // Not after a failed connect: that would ask for the password again at each interval
@@ -339,7 +339,6 @@ final class SessionManagerPanel extends JPanel {
                     queryWindows.openScript(connection.getContainer(), sqlManager.generateSessionReadQuery(options), 0, true);
                 }
             };
-            scriptAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.sessions_open_query_tip);
             toolBar.add(UiIcons.createActionButton(scriptAction, "new-query")); //$NON-NLS-1$
         }
         toolBar.add(Box.createHorizontalGlue());

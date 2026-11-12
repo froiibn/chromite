@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md)
  * - 2026-11-12 "더 읽기" 줄의 메뉴 항목 Page Size Settings (B12)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class ObjectExplorerMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages"; //$NON-NLS-1$
@@ -53,7 +54,6 @@ public class ObjectExplorerMessages extends NLS {
     public static String oe_load_more_tip;
     public static String oe_page_size_settings;
     public static String oe_link_editor;
-    public static String oe_link_editor_tip;
 
     // Double click (Options)
     public static String oe_options_section;
@@ -95,7 +95,6 @@ public class ObjectExplorerMessages extends NLS {
     public static String oe_details_title;
     public static String oe_details_tooltip;
     public static String oe_details_search;
-    public static String oe_details_refresh_tip;
     public static String oe_details_name;
     public static String oe_details_no_items;
     public static String oe_details_count;

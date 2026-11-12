@@ -47,6 +47,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-grid-navigation.md "결과 안 찾기")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ResultSetFindBar extends JPanel {
 
@@ -82,7 +83,6 @@ final class ResultSetFindBar extends JPanel {
         resultLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         add(resultLabel);
         Action close = ResultSetViewerPanel.createAction(GridNavMessages.gridnav_find_close, null, this::close);
-        close.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_find_close);
         add(UiIcons.createActionButton(close, "close")); //$NON-NLS-1$
         for (JComponent component : new JComponent[]{previous, next, matchCase}) {
             component.setFocusable(false);

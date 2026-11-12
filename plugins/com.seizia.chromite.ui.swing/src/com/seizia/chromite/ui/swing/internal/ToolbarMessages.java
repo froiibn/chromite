@@ -23,39 +23,20 @@ import org.eclipse.osgi.util.NLS;
  *
  * 설계: 기능별 묶음 규칙(docs/chromite/swing-l10n.md)에 따라 도구 막대만의 {@link NLS} 묶음을 둔다. 영어가 기본
  * ({@code ToolbarMessages.properties}), 한국어는 {@code ToolbarMessages_ko.properties}이고 OS 언어를 따른다. 키 접두사는 {@code toolbar_}다.
- * 도구 설명 끝의 단축키는 메뉴의 단축키와 같게 적는다(메뉴가 바뀌면 함께 고친다).
+ * 도구 설명의 단축키 자리는 {@code {0}}이고 코드가 동작의 단축키에서 글자를 만든다(docs/chromite/shortcuts.md).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor)로 옮겨져 설명을 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-12 아이콘 단추의 도구 설명이 메뉴·창 제목의 이름이 되어 설명문과 SQL Editor 편집 명령 이름을 지움(이름은 메뉴의 키를 씀, 앱 변경 #103)
+ *   (docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class ToolbarMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ToolbarMessages"; //$NON-NLS-1$
 
     public static String toolbar_save_all;
     public static String toolbar_save_all_tip;
-    public static String toolbar_undo_tip;
-    public static String toolbar_redo_tip;
-    public static String toolbar_activity_monitor_tip;
     public static String toolbar_activity_monitor_disabled_tip;
-    public static String toolbar_registered_servers_tip;
-    public static String toolbar_object_explorer_tip;
-    public static String toolbar_query_library_tip;
-    public static String toolbar_properties_tip;
-    public static String toolbar_find_tip;
-
-    public static String toolbar_comment;
-    public static String toolbar_comment_tip;
-    public static String toolbar_uncomment;
-    public static String toolbar_uncomment_tip;
-    public static String toolbar_outdent;
-    public static String toolbar_outdent_tip;
-    public static String toolbar_indent;
-    public static String toolbar_indent_tip;
-    public static String toolbar_format;
-    public static String toolbar_format_tip;
-    public static String toolbar_query_history;
-    public static String toolbar_query_history_tip;
 
     public static String toolbar_overflow_tip;
 

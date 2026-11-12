@@ -94,6 +94,7 @@ import java.util.Objects;
  * - 2026-11-09 저장 단추 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 {@link #rename}: 문서 탭 메뉴의 이름 바꾸기 = 트리의 Rename과 같은 경로, 고친 창은 이름 칸에(앱 변경 #42)
  *   (docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -802,7 +803,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     }
 
     /**
-     * The header's Save button: the save icon like the tool bars' icon buttons; its tool tip is the action's description.
+     * The header's Save button: the save icon like the tool bars' icon buttons; its tool tip is the name and the shortcut.
      */
     @NotNull
     private JButton createSaveButton() {
@@ -812,8 +813,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 saveFromHeader(e);
             }
         };
-        action.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(ToolsMessages.library_editor_save_tip, UiKeys.command(KeyEvent.VK_S)));
-        return UiIcons.createActionButton(action, "save"); //$NON-NLS-1$
+        // The window's Ctrl+S is not the action's accelerator: the tool tip names it
+        return UiIcons.createActionButton(action, "save", UiKeys.command(KeyEvent.VK_S)); //$NON-NLS-1$
     }
 
     /**

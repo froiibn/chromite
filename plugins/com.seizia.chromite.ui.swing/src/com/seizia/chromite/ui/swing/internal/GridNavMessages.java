@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 결과 탐색 (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class GridNavMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.GridNavMessages"; //$NON-NLS-1$
@@ -47,9 +48,7 @@ public class GridNavMessages extends NLS {
     public static String gridnav_title_referencing;
     public static String gridnav_navigated_tip;
     public static String gridnav_back;
-    public static String gridnav_back_tip;
     public static String gridnav_forward;
-    public static String gridnav_forward_tip;
 
     // Row count (ResultSetViewerPanel)
     public static String gridnav_count;
