@@ -26,17 +26,20 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.*;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.impl.DataSourceContextProvider;
 import com.seizia.chromite.model.meta.DBSerializable;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRRunnableParametrized;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.sql.exec.SQLQueryRecovery;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.task.DBTTask;
@@ -51,6 +54,7 @@ import com.seizia.chromite.tools.transfer.internal.DTMessages;
 import com.seizia.chromite.tools.transfer.serialize.DTObjectSerializer;
 import com.seizia.chromite.tools.transfer.serialize.SerializerContext;
 import com.seizia.chromite.utils.GeneralUtils;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -66,6 +70,11 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-08 Chromite: 구간으로 나눠 읽을 때 마지막(덜 찬) 구간의 통계도 더함. 전에는 그 구간의 행이 파일에는 쓰였지만 읽은 행 수에서
  *   빠졌다(1000행을 300행씩 읽으면 900) (docs/chromite/swing-data-transfer.md "고급 옵션")
+ * - 2026-11-12 Chromite: 소비자에게 행을 넘긴 뒤에는 읽기를 복구로 되풀이하지 않음({@code DBExecUtils.preventRecovery}). 원본 연결이
+ *   읽는 중에 끊기면 복구가 다시 연결해 처음 행부터 다시 읽어, 이미 넣은 행이 키 없는 테이블에 두 번 들어갔다. 소비자(넣기)의 오류가
+ *   원본 쪽 분류로 연결 끊김이 될 때도 같았다 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ * - 2026-11-12 Chromite: 원본이 쿼리이면 읽기만 하는 쿼리일 때만 복구로 다시 읽음({@code SQLQueryRecovery.canReadAgain}, 앱 변경 #86).
+ *   데이터를 바꾸는 쿼리(배치, 프로시저 호출)를 내보내다 연결이 끊기면 그 쿼리를 다시 실행했다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 @DBSerializable("databaseTransferProducer")
 public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseProducerSettings>, IDataTransferNodePrimary {
@@ -199,7 +208,10 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
         DBPDataSource dataSource = databaseObject.getDataSource();
         assert (dataSource != null);
 
-        DBExecUtils.tryExecuteRecover(monitor1, dataSource, monitor -> {
+        // Rows handed to the consumer over all tries of the read: once there are any, the read is not repeated
+        DeliveryCounter delivered = new DeliveryCounter(consumer);
+        boolean mayRepeat = SQLQueryRecovery.canReadAgain(databaseObject);
+        DBRRunnableParametrized<DBRProgressMonitor> read = monitor -> {
             checkCanceled(monitor);
 
             long readFlags = DBSDataContainer.FLAG_NONE;
@@ -298,7 +310,7 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
                             producerStatistics.accumulate(dataContainer.readData(
                                 transferSource,
                                 session,
-                                consumer,
+                                delivered,
                                 dataFilter,
                                 -1,
                                 maxRows,
@@ -313,7 +325,7 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
                             for (; ; ) {
                                 checkCanceled(monitor);
                                 DBCStatistics statistics = dataContainer.readData(
-                                    transferSource, session, consumer, dataFilter, offset, segmentSize, readFlags, settings.getFetchSize());
+                                    transferSource, session, delivered, dataFilter, offset, segmentSize, readFlags, settings.getFetchSize());
                                 checkCanceled(monitor);
                                 // The last segment is not full: its rows count too
                                 producerStatistics.accumulate(statistics);
@@ -348,7 +360,84 @@ public class DatabaseTransferProducer implements IDataTransferProducer<DatabaseP
                     }
                 }
             }
+        };
+        DBExecUtils.tryExecuteRecover(monitor1, dataSource, monitor -> {
+            try {
+                read.run(monitor);
+            } catch (Exception e) {
+                if (!mayRepeat) {
+                    // A query that may write (a batch, a procedure call): not run again by the recovery
+                    DBExecUtils.preventRecovery();
+                }
+                if (delivered.rows > 0) {
+                    // The recovery would read again from the first row and hand the rows over a second time (written
+                    // twice into a table without a key). The rows already handed over stay where the consumer put them
+                    log.debug("Reading " + getObjectName() + " failed after " + delivered.rows + " rows were handed over: not read again");
+                    DBExecUtils.preventRecovery();
+                    if (!delivered.consumerFailed && !monitor.isCanceled()) {
+                        throw DatabaseTransferConsumer.stopException(NLS.bind(DTMessages.database_transfer_producer_read_failed,
+                            new Object[]{getObjectName(), delivered.rows, e.getMessage()}), e);
+                    }
+                }
+                throw e;
+            }
         });
+    }
+
+    /**
+     * Counts the rows a read hands to the consumer, for the recovery to know whether the read may be repeated.
+     */
+    private static final class DeliveryCounter implements DBDDataReceiver {
+        private final DBDDataReceiver consumer;
+        private long rows;
+        // The consumer failed (its own error is told as it is); otherwise a failed read is the source's
+        private boolean consumerFailed;
+
+        DeliveryCounter(@NotNull DBDDataReceiver consumer) {
+            this.consumer = consumer;
+        }
+
+        @Override
+        public void fetchStart(@NotNull DBCSession session, @NotNull DBCResultSet resultSet, long offset, long maxRows) throws DBException {
+            consumer.fetchStart(session, resultSet, offset, maxRows);
+        }
+
+        @Override
+        public void fetchRow(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBException {
+            rows++;
+            try {
+                consumer.fetchRow(session, resultSet);
+            } catch (Throwable e) {
+                consumerFailed = true;
+                throw e;
+            }
+        }
+
+        @Override
+        public void fetchEnd(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBException {
+            try {
+                consumer.fetchEnd(session, resultSet);
+            } catch (Throwable e) {
+                consumerFailed = true;
+                throw e;
+            }
+        }
+
+        @Override
+        public void close() throws DBException {
+            consumer.close();
+        }
+
+        @NotNull
+        @Override
+        public DBCStatistics getStatistics() {
+            return consumer.getStatistics();
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(consumer);
+        }
     }
 
     private static void checkCanceled(@NotNull DBRProgressMonitor monitor) throws DBInterruptedException {

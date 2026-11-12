@@ -22,6 +22,13 @@ import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
 import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
+/**
+ * SQL Server constants.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: {@link #EC_SESSION_KILLED}(596). 세션이 KILL되면 실행 중인 문장의 첫 오류가 596이라 연결 끊김으로
+ *   분류되지 않았다 (docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ */
 public class SQLServerConstants {
 
     public static final int DEFAULT_PORT = 1433;
@@ -154,6 +161,9 @@ public class SQLServerConstants {
     public static final int EC_SQL_SERVER_LOGON_FAILED = 18456;
     public static final int EC_PASSWORD_EXPIRED = 18487;
     public static final int EC_PASSWORD_MUST_CHANGE = 18488;
+    // "Cannot continue the execution because the session is in the kill state": the statement in flight when the
+    // session is killed (KILL) gets this before the connection closes
+    public static final int EC_SESSION_KILLED = 596;
 
     // Password policy violation errors (returned by ALTER LOGIN when changing password)
     public static final int EC_PASSWORD_TOO_SHORT = 18463;

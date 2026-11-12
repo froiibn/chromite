@@ -81,6 +81,9 @@ import java.util.Properties;
  * - 2026-11-08 {@link #discoverErrorType}: 로그인 오류가 아니면 {@code getNextException()} 사슬을 읽지 않음. 드라이버가 그 사슬을 배치의
  *   뒤 결과를 미리 읽어 만들어서, 쿼리 관리자가 오류 종류를 볼 때 뒤 문장의 행 수와 결과 집합이 사라졌다 (docs/chromite/sql-batch-errors.md)
  * - 2026-11-12 계획 어댑터의 드라이버 조건을 {@link SQLServerQueryPlanner#isSupported}로: 연결 전 판단과 같은 조건(앱 변경 #70)
+ * - 2026-11-12 {@link #discoverErrorType}: 오류 596("session is in the kill state")을 연결 끊김으로. 세션이 KILL되면 실행 중인
+ *   문장의 첫 오류가 596(SQLState S0001)이라 자동 복구도, 끊긴 세션 처리도 없었다(앱 변경 #75,
+ *   docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -173,8 +176,13 @@ public class SQLServerDataSource
             return ErrorType.PASSWORD_EXPIRED;
         }
         // The error itself, not its getNextException() chain: see isPasswordExpired
-        if (SQLState.getCodeFromException(error) == SQLServerConstants.EC_SQL_SERVER_LOGON_FAILED) {
+        int errorCode = SQLState.getCodeFromException(error);
+        if (errorCode == SQLServerConstants.EC_SQL_SERVER_LOGON_FAILED) {
             return ErrorType.AUTHENTICATION_FAILED;
+        }
+        if (errorCode == SQLServerConstants.EC_SESSION_KILLED) {
+            // The session is gone: the driver reports 08S01 (connection closed) only from the next statement on
+            return ErrorType.CONNECTION_LOST;
         }
         return super.discoverErrorType(error);
     }

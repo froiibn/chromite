@@ -36,6 +36,7 @@ import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.exec.SQLQueryRecovery;
 import com.seizia.chromite.model.struct.*;
 import com.seizia.chromite.model.task.DBTTask;
 import com.seizia.chromite.model.task.DBTTaskInfoCollector;
@@ -53,6 +54,10 @@ import java.util.*;
 
 /**
  * Data transfer utils
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 쿼리의 메타데이터를 읽으려고 쿼리를 실행할 때({@link #getAttributes}), 연결이 끊기면 읽기만 하는 쿼리만 다시
+ *   실행한다({@code SQLQueryRecovery.canReadAgain}, 앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 public class DTUtils {
 
@@ -255,6 +260,8 @@ public class DTUtils {
             if (context == null) {
                 throw new DBCException("No execution context");
             }
+            // Runs the query: after a lost connection only a query that only reads is run again
+            boolean mayRepeat = SQLQueryRecovery.canReadAgain(container);
             DBExecUtils.tryExecuteRecover(monitor, context.getDataSource(), monitor1 -> {
                 final MetadataReceiver receiver = new MetadataReceiver(container);
                 try (DBCSession session = context.openSession(monitor1, DBCExecutionPurpose.META, "Read query meta data")) {
@@ -264,6 +271,11 @@ public class DTUtils {
                         controller
                     );
                     container.readData(executionSource, session, receiver, null, 0, 1, DBSDataContainer.FLAG_NONE, 1);
+                } catch (DBException e) {
+                    if (!mayRepeat) {
+                        DBExecUtils.preventRecovery();
+                    }
+                    throw e;
                 }
                 if (receiver.attributes == null) {
                     throw new InvocationTargetException(new DBCException("Query does not contain any attributes"));

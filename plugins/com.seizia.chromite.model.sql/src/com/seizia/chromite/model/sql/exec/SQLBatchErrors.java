@@ -42,7 +42,7 @@ import java.util.function.Consumer;
  * (SQL Server와 같은 플러그인의 Sybase, jTDS). 예전 실행기는 이 플래그일 때 {@code getMoreResults} 예외를 경고로만 남기거나(편집기)
  * 로그에만 쓰고(작업) 다음 결과로 넘어가서, 뒤 문장의 오류가 사라지고 실행이 성공으로 끝났다. 여기서는 그 예외를 쿼리 오류로 모으고
  * 계속 읽어서 오류 뒤에 실행된 문장의 결과도 보이게 한다. 취소와 연결 끊김은 더 읽을 수 없으므로 예전처럼 던진다
- * (이 경우만 실행기의 복구가 다시 실행할 수 있다). 이 판단은 오류 자신과 원인만 본다: SQL Server 드라이버의
+ * (이 경우만 실행기의 복구가 동작하고, 그 복구는 읽기만 하는 SELECT 하나만 다시 실행한다: {@link SQLQueryRecovery}). 이 판단은 오류 자신과 원인만 본다: SQL Server 드라이버의
  * {@code getNextException()}은 뒤 결과를 미리 읽어 오류 사이의 행 수와 결과 집합을 버리므로, 결과를 다 읽기 전에는 오류 도우미
  * ({@code discoverErrorType})를 부르거나 오류를 로그에 쓰지 않는다(둘 다 그 사슬을 따라간다).
  * 두 실행기의 결과 읽기 루프가 달라 루프는 그대로 두고 판단과 다음 결과 이동만 모았다.
@@ -51,6 +51,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/sql-batch-errors.md)
+ * - 2026-11-12 주석만: 연결 끊김 뒤의 복구는 읽기만 다시 실행함(앱 변경 #86)
  * - 2026-11-12 공개 클래스로 바꾸고 데이터 원본과 모니터로 묻는 {@code canReadPast}를 더함: 에이전트 SQL 도구가 같은 규칙으로 오류 뒤 결과를
  *   읽는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
  */

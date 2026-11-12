@@ -38,6 +38,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Saves the edited rows of a result set: generates and runs their INSERT, UPDATE and DELETE statements.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 저장 중 연결이 끊기면 다시 연결만 하고 저장을 다시 실행하지 않음({@code DBExecUtils.tryExecuteReconnectOnly},
+ *   앱 변경 #86). 전에는 복구가 모든 문장을 다시 실행해, 자동 커밋이면 끊기기 전에 반영된 INSERT가 두 번 들어갔다
+ *   (docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ */
 public abstract class DBDResultSetDataUpdater<T extends DBDDataStatementInfo, R extends DBDValueRow, M extends DBDResultSetModel> {
     private static final Log log = Log.getLog(DBDResultSetDataUpdater.class);
 
@@ -349,7 +357,8 @@ public abstract class DBDResultSetDataUpdater<T extends DBDDataStatementInfo, R 
             }
 
             Throwable[] error = new Throwable[1];
-            DBExecUtils.tryExecuteRecover(
+            // A lost connection reconnects but does not save again: the statements before it may be saved already
+            DBExecUtils.tryExecuteReconnectOnly(
                 monitor, session.getDataSource(), param -> {
                     error[0] = executeStatements(session, options, generateScript);
                     if (error[0] != null) {

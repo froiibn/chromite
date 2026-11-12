@@ -82,6 +82,8 @@ import java.util.WeakHashMap;
  *   (docs/chromite/swing-server-output.md)
  * - 2026-11-08 설정을 바꾸면 열린 세션에도 다음 문장부터 적용({@code syncServerOutput}, docs/chromite/swing-server-output.md)
  * - 2026-11-08 실제 계획 어댑터({@link AltibaseActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-12 {@link #discoverErrorType}: 서버가 세션을 닫은 오류 4163(SQLState 08004)을 연결 끊김으로. 실행 중인 문장의 첫 오류라
+ *   자동 복구도, 끊긴 세션 처리도 없었다(앱 변경 #75, docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -220,6 +222,16 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         }
 
         return super.getAdapter(adapter);
+    }
+
+    @NotNull
+    @Override
+    public ErrorType discoverErrorType(@NotNull Throwable error) {
+        if (JDBCUtils.matchesSQLException(error, e -> e.getErrorCode() == AltibaseConstants.EC_SESSION_CLOSED)) {
+            // The session is gone: the driver reports 08S01 (communication link failure) only from the next statement on
+            return ErrorType.CONNECTION_LOST;
+        }
+        return super.discoverErrorType(error);
     }
 
     @Override

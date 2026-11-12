@@ -231,8 +231,8 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 | 끊긴 연결(`CONNECTION_LOST`) | 모든 DB: SQLState 08xxx, 소켓 오류(SQL Server "Connection reset", MariaDB·PostgreSQL에서 세션이 끊김 등) | 데이터 소스와 그 네트워크 처리기를 쓰는 데이터 소스의 **모든** 문맥을 닫고(수동 커밋이면 닫기 전에 롤백, `JDBCDataSource.closeConnection`) 다시 연결한 뒤 다시 실행. 알림은 "다시 연결함" 정보뿐 | 끊긴 문맥의 트랜잭션(서버가 이미 버림)과 **끊기지 않은 다른 문맥**(Chromite Agent 세션 등)의 살아 있는 트랜잭션 |
 | 연결 유지 핑(`KeepAlivePingJob`) | 연결 설정의 연결 유지 간격이 있을 때, 문맥 하나라도 죽었으면 | 위와 같은 다시 연결 | 위와 같음 |
 
-복구를 거치는 호출: 쿼리 창의 SELECT·DDL 등(INSERT·UPDATE·DELETE는 `SQLQueryExecuteJob.shouldRecoverQuery`가 복구하지 않음), 메타데이터 읽기,
-실행 계획, 자동 완성 분석, 데이터 전송, 결과 표 저장 등(`grep tryExecuteRecover`).
+복구를 거치는 호출: 쿼리 창의 읽기만 하는 SELECT 하나(2026-11-12부터 허용 목록, 아래 "연결이 끊긴 쿼리"), 메타데이터 읽기,
+실행 계획, 자동 완성 분석, 데이터 전송 등. 쓰는 저장(결과 표, 표 디자이너, 개체 변경)은 다시 연결만 하고 다시 실행하지 않는다(같은 절의 전수 확인 표).
 
 ### 바꾼 것: 멈추고 묻는다
 
@@ -331,6 +331,109 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 | C를 롤백한 뒤 다시 연결 끊기 | "다음 세션의 연결이 끊겼습니다: PG test (SQLQuery2.sql)" 버리기 / 취소 → 버리기로 끊김, 서버 세션 0, 행 1~5 `orig` (`pg-08-…`) | 같음, 서버 세션 0 (`ms-08-…`) |
 
 연결 유지 핑 경로와 네트워크가 끊긴 경우(확인이 3초 안에 답하지 않음)는 실행해 보지 않았다. 확인한 뒤 확인용 DB를 지웠다.
+
+## 연결이 끊긴 쿼리 (2026-11-12, 앱 변경 #86)
+
+사용자 규칙(앱 변경 #75에서 정함, 2026-11-12): **결과를 모르는 문장은 Chromite가 스스로 다시 보내지 않는다.**
+
+### 문제
+
+쿼리 창의 실행 복구는 금지 목록이었다(`SQLQueryExecuteJob.shouldRecoverQuery`): 하나로 파싱된 INSERT·UPDATE·DELETE·SELECT INTO만 빼고 모두 다시 실행했다.
+SQL Server의 F5는 `GO` 사이를 한 배치로 보내므로(파서가 한 문장으로 읽지 못함) `INSERT …` + `WAITFOR` + `SELECT`가 실행 중에 연결이 끊기면 세션을 다시 열고 배치를
+통째로 다시 실행했다. 앞 INSERT는 이미 커밋돼 있어 두 번 들어갔고 상태는 "쿼리를 실행했습니다"였다. devel에서도 네트워크 끊김(08S01)이면 같았고,
+#75가 세션 종료(596)를 연결 끊김으로 분류하면서 `KILL`에서도 일어나게 되었다. 같은 모양이 프로시저 호출, DDL, 블록, 파싱하지 못한 글에도 있었다.
+SQL 스크립트 작업(`SQLScriptProcessor`)은 모든 문장을 다시 실행했다. 결과 표 저장, 표 디자이너·개체 변경 저장도 저장 전체를 다시 실행했다.
+
+### 규칙과 지키는 곳
+
+- **허용 목록**(`SQLQueryRecovery.canRunAgain`, 쿼리 창·Query Library 실행·SQL 터미널·예약 쿼리(`SQLQueryExecuteJob`)와 SQL 스크립트 작업(`SQLScriptProcessor`)이
+  같이 씀): 연결이 끊긴 뒤 자동으로 다시 실행하는 것은 파서(JSQLParser)가 **한 문장으로 읽은 SELECT**이고, `INTO`가 없고, `FOR UPDATE`·`FOR SHARE`가 없으며,
+  `WITH` 안의 모든 항목이 SELECT(데이터를 바꾸는 `INSERT/UPDATE/DELETE … RETURNING`이 아님)이고, `UNION` 등의 모든 부분이 같은 조건일 때뿐이다.
+  INSERT·UPDATE·DELETE·MERGE, DDL, `EXEC`·`CALL`, 여러 문장 배치, 블록, `VALUES`, 파싱하지 못한 글은 다시 실행하지 않는다.
+  읽기라도 세션에 열린 트랜잭션이 있었으면(`TransactionRecoveryGuard.Attempt`, 상태 줄과 같은 기준) 다시 실행하지 않는다.
+  이 조건들은 **연결이 끊긴 뒤에만** 쓴다. 모든 실행은 전처럼 `DBExecUtils.tryExecuteRecover`를 지나고(판단은 한 곳, 실행 함수 안), 서버가 트랜잭션을
+  중단한 경우(PostgreSQL 25P02)는 서버가 문장을 거부해 결과를 모르는 것이 없으므로 devel과 같다: 사용자 문장을 쥔 세션이 없으면 롤백하고 다시 실행, 있으면
+  멈추고 알림(`TransactionRecoveryGuard.holdAbortedTransactionRollback`). SQL 편집기는 devel처럼 한 INSERT·UPDATE·DELETE·SELECT INTO를 이 복구에서 뺀다
+  (스크립트 작업은 devel처럼 모든 문장).
+- **다시 실행하지 않을 때:** 오류에 "이 쿼리를 실행하는 중에(또는 서버에 보내기 전에) 서버 연결이 끊겨 다시 실행하지 않았습니다"와 함께 —
+  한 문장이면 "반영되었는지 알 수 없습니다", 여러 문장·프로시저 호출·블록이면 "일부가 실행되었을 수 있습니다", 열린 트랜잭션이 있었으면 — 끊긴 문장이 스스로 커밋할 수 없는 한 문장(SELECT·INSERT·UPDATE·DELETE·MERGE)일 때만 "서버가 세션과 함께
+  롤백했습니다", 그 밖(DDL: Oracle·MySQL·MariaDB는 DDL 전에 트랜잭션을 커밋, 배치, 블록, 프로시저 호출)은 "트랜잭션은 세션과 함께 끝났고, 이 쿼리가 그 일부를
+  커밋했는지는 알 수 없습니다" — 를 붙인다(`ModelSQLMessages.model_sql_exec_lost_*`, 영어·한국어). Messages 탭에 원래 오류(예: "메시지 596")와 함께 나오고, 상태 줄은
+  "쿼리가 완료되었지만 오류가 있습니다", 기록은 오류다. 그리고 끊긴 격리 세션(쿼리 창의 자기 세션)을 **문장을 보내지 않고** 그 자리에서 다시 연다
+  (`TransactionRecoveryGuard.reopenLostSession`: 연결의 자동 복구 설정(`EXECUTE_RECOVER_ENABLED`)이 켜져 있을 때만 — 복구의 다시 연결과 같은 설정 —, 세션이 정말
+  끊겼을 때만, 잃은 트랜잭션이 있으면 경고 알림 "세션 끊김 … 커밋하지 않은 트랜잭션(…문장 N개)은 세션과 함께 끝났습니다 … 실행 중이던 문장이 커밋했을 수
+  있습니다"(2026-11-12 문구를 고침: 전에는 "서버가 롤백합니다"라고만 해 DDL 등에서 틀렸다)와 열린 트랜잭션 표시 지우기, 없으면 잠시 보이는 "세션 다시 열림"). 전에는 다시 실행하지 않는 문장(INSERT 등)이 끊기면 세션이 죽은 채 남아
+  다음 읽기 문장이 복구할 때까지 쓰기 문장이 보내지지도 않고 실패했고 열린 트랜잭션 표시도 남았다. 공유 세션(창마다 별도 연결을 끈 경우)은 다시 열지 않는다(전과 같음).
+- **읽기를 다시 실행했을 때:** Messages 탭 맨 위에 "이 쿼리를 실행하는 중에 서버 연결이 끊겼습니다. 데이터를 읽기만 하는 쿼리라 새 세션에서 다시 실행했습니다"를
+  쓴다(`SQLQueryResult`의 경고, 표시 코드는 그대로). SQL 스크립트 작업은 로그에만 쓴다.
+- **쓰는 저장**(결과 표 저장 `DBDResultSetDataUpdater`, 표 디자이너 `TableDesignSession`, 개체 변경 `ExplorerObjectCommands.runChange`):
+  `DBExecUtils.tryExecuteReconnectOnly` — 연결이 끊기면 복구가 다시 연결하지만(다음 저장이 되도록) 저장을 다시 실행하지 않고 "변경을 저장하는 중에 연결이
+  끊겼습니다. 다시 연결했지만 변경을 다시 보내지 않았습니다 …"(`ModelMessages.error_save_connection_lost`)로 실패한다. 원래 오류는 suppressed로 둔다.
+- **쿼리를 원본으로 읽는 데이터 전송**(`DatabaseTransferProducer`, `DTUtils.getAttributes`): 원본이 쿼리이면 `SQLQueryRecovery.canReadAgain`일 때만 복구가 다시 읽는다.
+- 남는 위험: SELECT 안에서 부르는 함수의 부작용(시퀀스, 데이터를 바꾸는 사용자 함수)은 파서로 알 수 없어 그런 SELECT는 다시 실행된다(전과 같음).
+
+### 확인 (2026-11-12, `chromite/transfer-lost-connection`)
+
+시험 VM의 공용 서버에 만든 `chr_transfer_lost_connection`(SQL Server·PostgreSQL)의 `qlog`·`qt`(`qt`에 느린 트리거)를 썼고 끝나고 지웠다. 앱(한국어, 영어는 캡처만)에
+붙인 시험 코드가 쿼리 창을 열고 F5로 실행했다. 끊은 것은 그 창의 세션 하나뿐이다(프로그램 이름 `SQLEditor <창>` + 내 데이터베이스, 하나일 때만). 네트워크
+끊김은 내 연결만 지나는 내 TCP 중계(21433 → 1433)의 소켓을 모두 끊고(08S01 "Connection reset") 중계는 계속 듣게 해서 만들었다. 행 수는 다른 세션에서 셌다.
+"devel"은 `origin/devel` 886ea68e84 빌드. 증거 `D:\Tools\_scratch\transfer-lost-connection\run\`(`devel-ms*.out`, `branch-ms.out`, `branch-pg.out`,
+`branch-final-*.out`, 각 `*.txt.log`), 그림 `shots\q-*.png`.
+
+| 경우 | devel SQL Server | 브랜치 SQL Server | 브랜치 PostgreSQL(분류 바뀌지 않음) |
+|---|---|---|---|
+| 1. 자동 커밋, 긴 읽기 배치 `WAITFOR …` + `SELECT 1`(PG `SELECT pg_sleep(30), 1`), 끊음 | 596 오류, 다시 실행 없음 | 다시 실행 안 함(배치): "…다시 실행하지 않았습니다. 일부가 실행되었을 수 있습니다…" + 596, 세션 다시 열림 알림 | 한 SELECT라 다시 실행: Messages 맨 위 "…새 세션에서 다시 실행했습니다", 성공 38 s |
+| 1'. 자동 커밋, `WAITFOR` 없는 긴 SELECT 하나(SQL Server `COUNT(*)` 교차 조인), 끊음 | 596 오류(47 s), 다시 실행 없음 | 다시 실행: "…새 세션에서 다시 실행했습니다", "쿼리를 실행했습니다"(47 s, 영어 55 s). 고치기 전 빌드는 첫 시도의 596이 남아 실패로 보였음(`SQLQueryResult.startAgain`으로 고침) | (1과 같음) |
+| 2a. 자동 커밋, UPDATE 하나(트리거로 느림), 끊음 | 596 오류, 0행 바뀜 | "반영되었는지 알 수 없습니다" + 596, 0행 | 같음(57P01), 0행 |
+| 2b. 자동 커밋, `INSERT` + `WAITFOR` + `SELECT` 배치, 끊음 | 596 오류, `m2b` **1행** | "일부가 실행되었을 수 있습니다" + 596, **1행**, 기록 오류(쿼리 관리자 END error) | PG 스크립트 `INSERT …; SELECT pg_sleep(30);`(문장별 실행): INSERT 1행, 끊긴 SELECT만 다시 실행 → **1행** |
+| 2b'. 같은 배치, 네트워크 끊김(08S01) | **다시 실행, "쿼리를 실행했습니다", `m8` 2행**(devel의 결함) | 다시 실행 안 함, "일부가 실행되었을 수 있습니다" + 08S01, **1행** | — |
+| 2c. PG `WITH x AS (INSERT … RETURNING) SELECT pg_sleep(30) FROM x` | — | — | 다시 실행 안 함(데이터를 바꾸는 WITH), "반영되었는지 알 수 없습니다", 0행(한 문장이라 롤백) |
+| 2d. 프로시저 `EXEC dbo.p_ins_wait`(PG `CALL p_ins_wait`: INSERT 뒤 대기), 끊음 | 596 오류, 1행 | 다시 실행 안 함, "일부가 실행되었을 수 있습니다", 1행 | 다시 실행 안 함, 같은 문구, 0행(PG 프로시저는 한 트랜잭션) |
+| 3. 수동 커밋, 열린 `INSERT` 뒤 긴 읽기, 끊음 | 596 오류, 알림 없음, 상태 줄은 **여전히 "열린 트랜잭션 (변경 있음)"**, 0행 | 다시 실행 안 함, "세션에 커밋하지 않은 트랜잭션이 있었고, 서버가 세션과 함께 롤백했습니다" + 596, 세션 다시 열림(잃은 문장 1개 경고 알림, 로그), 열린 트랜잭션 표시 사라짐, 0행 | 같음(57P01), 0행 |
+| 4. 각 경우 뒤 다음 문장 `SELECT n` | 세션을 다시 열고 실행(08S01 경로), 성공 | 이미 다시 열린 세션에서 바로 성공 | 같음 |
+| 5. Agent `runSql`(도구 클래스 직접, AI 공급자 없음), 배치 INSERT + 대기, 끊음 | 오류 "kill state", 1행, 다시 실행 없음. 다음 호출 "연결이 닫혔습니다" | 같음(바뀌지 않음, `AgentSql`은 복구를 쓰지 않음) | 같음(57P01, 0행), 다음 호출 "이 연결은 닫혔습니다" |
+| 6. Object Explorer 펼치기 중 끊김 | 실행하지 않음 | 코드로: `DBNDatabaseNode`가 `tryExecuteRecover`로 메타데이터를 읽음(읽기). 596이 연결 끊김이 되어 오류 대신 주·메타데이터 문맥 다시 연결(`holdReconnect`가 열린 트랜잭션이면 멈춤) | 원래 같은 경로 |
+
+- 같은 경로를 쓰는 곳: Query Library의 실행과 SQL 터미널 출력은 쿼리 창의 `SQLQueryExecuteJob`이고, 예약 쿼리(`QueryScheduler`)도 `SQLQueryExecuteJob`,
+  SQL 스크립트 작업은 `SQLScriptProcessor`(같은 `SQLQueryRecovery`). 따로 실행해 보지 않았다.
+- Altibase(코드로): 4163도 연결 끊김이라 같은 경로다. 프로시저 호출(`EXEC p`)은 파서가 `Execute`로 읽어 허용 목록 밖이므로 다시 실행하지 않고 "일부가 실행되었을
+  수 있습니다"를 보인다. 서버에서 실행해 보지 않았다.
+- 결과 표 저장·표 디자이너·개체 변경의 "다시 연결만"은 실행해 보지 않았다(코드와 `tryExecuteReconnectOnly`만).
+- 영어 캡처 `shots\q-m2b-en-*.png`, `q-m7-en-*.png`, 한국어 `q-m2b-ko-*.png`, `q-m7-ko-*.png`(어둡게·밝게).
+
+#### 고친 뒤 다시 확인 (2026-11-12, 같은 날 검토 뒤)
+
+| 경우 | devel(코드: `SQLQueryExecuteJob.shouldRecoverQuery`가 DDL·SELECT를 `tryExecuteRecover`로, 25P02는 `TransactionRecoveryGuard.holdAbortedTransactionRollback`) | 처음 판(684d164c71) | 고친 뒤 |
+|---|---|---|---|
+| PG 수동 커밋, `SELECT 1/0` 뒤 `CREATE TABLE t_a` | 복구 경로: 실패한 문장이 트랜잭션에 있어 멈추고 알림 | 복구를 거치지 않아 25P02만, 알림 없음 | 25P02 + 알림("Transaction aborted by the server, not rolled back automatically: … ta.sql", 로그), 세션은 `idle in transaction (aborted)` 그대로, `t_a` 없음 |
+| PG 수동 커밋, 사용자 INSERT, `SELECT 1/0`, `SELECT 2` | 멈추고 알림, 롤백하지 않음 | 25P02만, 알림 없음 | 25P02 + 알림(tb.sql), 세션 `idle in transaction (aborted)`(롤백 안 함) |
+| PG 수동 커밋, `SELECT 1/0` 뒤 `INSERT` | 복구하지 않음(한 INSERT), 25P02 | 같음 | 같음, `pc` 0행 |
+| MariaDB 수동 커밋, INSERT(`md`) 뒤 `ALTER TABLE big … ALGORITHM=COPY`를 끊음 | (596 분류와 무관, 08000) | "서버가 세션과 함께 롤백했습니다"(틀림) | "트랜잭션은 세션과 함께 끝났고, 이 쿼리가 그 일부를 커밋했는지는 알 수 없습니다", 다른 세션에서 `md` **1행**(DDL 전의 암묵적 커밋) |
+| SQL Server M2b(KILL), M8(08S01), M7, 경우 3 | — | 1행, 1행, 다시 실행, "롤백했습니다" | 1행, 1행, 다시 실행(Messages 줄), 경우 3은 배치(`WAITFOR`+`SELECT`)라 "커밋했는지 알 수 없습니다", `m3` 0행 |
+
+증거 `D:\Tools\_scratch\transfer-lost-connection\run\`의 `fix-pg-maria.out`, `fix-ms.out`, `t*.txt.log`. 알림 창은 시험 코드로 읽지 못해 앱 로그(`.log`의 `SwingIdleTransactionService` 줄)로 확인했다.
+
+### `tryExecuteRecover` 호출 전수 확인
+
+| 호출 | 하는 일 | 다시 실행하면 | 판단·조치 |
+|---|---|---|---|
+| `SQLQueryExecuteJob`(쿼리 창, Query Library, SQL 터미널, 예약 쿼리) | 사용자 문장 | 쓰기·배치가 두 번 | **고침**: 허용 목록 |
+| `SQLScriptProcessor:247`(SQL 스크립트 작업) | 사용자 문장 | 같음 | **고침**: 같은 허용 목록 |
+| `DBDResultSetDataUpdater:352`(결과 표 저장) | INSERT·UPDATE·DELETE | 자동 커밋이면 앞 문장이 두 번 | **고침**: 다시 연결만 |
+| `TableDesignSession:925`(표 디자이너 저장) | DDL(SQL Server 테이블 다시 만들기의 INSERT … SELECT 포함) | 실행 중이던 문장이 두 번(`AbstractCommandContext`는 실행한 문장을 건너뛰지만 실행 중이던 것은 다시 보냄) | **고침**: 다시 연결만 |
+| `ExplorerObjectCommands:590`(이름 바꾸기·삭제·속성 변경) | DDL | 같음 | **고침**: 다시 연결만 |
+| `DTUtils:258` | 원본 쿼리를 1행 실행해 열 정보 읽기 | 원본이 쓰는 쿼리면 두 번 | **고침**: 읽기만 다시 |
+| `DatabaseTransferProducer:360` | 원본 읽기 | 쓰는 쿼리면 두 번, 넘긴 행이 두 번(#75) | **고침**: 읽기이고 넘긴 행이 없을 때만 |
+| `DatabaseTransferConsumer:521` | 넣기 | #75 규칙 | 수동 커밋 트랜잭션에 이번 실행만 있을 때만(#75) |
+| `PostgreExecutionContext:283` | `SET search_path` | 같은 값 | 멱등 |
+| `DBUtils:2822` | `SELECT COUNT(*)`(행 수) | 읽기 | 읽기 |
+| `DBNDatabaseNode:369`, `:663` | 개체 새로 고침, 자식 읽기 | 메타데이터 읽기 | 읽기 |
+| `ObjectPropertyDescriptor:483` | 늦은 속성 읽기 | 메타데이터 읽기 | 읽기 |
+| `DiagramObjectCollector:243`, `ERDUtils:174` | ERD 구조 읽기 | 메타데이터 읽기 | 읽기 |
+| `JDBCExecutionContext:314`, `:364` | `getTransactionIsolation`·`getAutoCommit` | 드라이버 값 읽기 | 읽기 |
+| `JDBCRemoteInstance:161` | 격리 문맥 연결 | 연결 다시 시도 | 멱등(문장 없음) |
+| `SqlCompletionAnalysis:196` | 자동 완성 메타데이터 | 읽기 | 읽기 |
+| `SqlPlanExplainer:105` | 추정 실행 계획(ANALYZE 없음, Oracle은 PLAN_TABLE에 새 행) | 문장을 실행하지 않음 | 읽기 |
 
 ## 커밋 방식 전환
 
@@ -465,3 +568,8 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 - 2026-11-12 "트랜잭션 안전" 표에 쿼리 창의 연결 변경 줄(앱 변경 #73, `chromite/change-connection`, [swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경")
 - 2026-11-12 연결 변경 단추의 자리를 SQL Editor 도구 막대의 첫 단추로 고침(앱 변경 #74, `chromite/change-connection`)
 - 2026-11-12 "늦은 작업의 세션": 쿼리 창의 세션은 창의 지금 서버에서만 열림(`QueryWindowContext.setServer`, `chromite/change-connection`)
+- 2026-11-12 "연결이 끊긴 쿼리"(앱 변경 #86, `chromite/transfer-lost-connection`): 연결이 끊긴 뒤 자동 재실행을 읽기만 하는 SELECT 하나로(허용 목록),
+  다시 실행하지 않을 때의 문구와 세션 다시 열기, 쓰는 저장은 다시 연결만, `tryExecuteRecover` 호출 전수 확인. 위 "끊긴 세션의 쿼리 창" 확인 표의 "C에서
+  `SELECT 4`"(열린 트랜잭션이 있는 세션의 읽기)는 이제 다시 실행하지 않고 알림과 오류로 끝난다
+- 2026-11-12 "연결이 끊긴 쿼리" 고침(앱 변경 #86 검토): 허용 목록은 연결 끊김에만, 중단된 트랜잭션(25P02) 복구는 devel 그대로, 다시 열기는 자동 복구 설정을 따름,
+  열린 트랜잭션의 "롤백했다"는 확실할 때만, 세션 끊김 알림 문구. 취소한 실행은 복구가 다시 부르지 않게 함(`DBExecUtils.preventRecovery`, 코드 검토로 고침, 실행해 확인하지 않음)

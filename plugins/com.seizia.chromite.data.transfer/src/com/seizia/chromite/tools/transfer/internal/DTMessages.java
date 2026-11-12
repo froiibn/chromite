@@ -26,6 +26,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 SQL 스크립트 작업의 열린 트랜잭션 질문 문구(sql_script_task_txn_*) 추가(docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 데이터 넣기 트랜잭션의 질문·롤백 알림 문구(database_transfer_consumer_txn_before, _rolled_back*, _rollback_failed) 추가
  *   (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
+ * - 2026-11-12 결과를 모르는 행으로 넣기를 멈출 때의 문구(database_transfer_consumer_in_doubt*)와 넣기 트랜잭션이 끝나 멈출 때의 문구
+ *   (database_transfer_consumer_txn_ended, 전에는 영어로만 된 예외 문구), 원본 읽기가 행을 넘긴 뒤 실패했을 때의 문구
+ *   (database_transfer_producer_read_failed) 추가 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
  */
 public class DTMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.tools.transfer.internal.DTMessages"; //$NON-NLS-1$
@@ -124,6 +127,12 @@ public class DTMessages extends NLS {
     public static String database_transfer_consumer_rolled_back_truncate;
     public static String database_transfer_consumer_rolled_back_rows;
     public static String database_transfer_consumer_rollback_failed;
+    public static String database_transfer_consumer_in_doubt;
+    public static String database_transfer_consumer_in_doubt_lost;
+    public static String database_transfer_consumer_in_doubt_batch;
+    public static String database_transfer_consumer_in_doubt_truncate;
+    public static String database_transfer_consumer_txn_ended;
+    public static String database_transfer_producer_read_failed;
 
     static {
         // initialize resource bundle
