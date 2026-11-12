@@ -53,6 +53,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-09 조회만 한 트랜잭션을 끝내려 할 때 변경이 생겼으면 묻는 문구({@code idle_txn_read_only_changed}), 조회 트랜잭션의
  *   유휴 알림({@code idle_txn_reminder_message_read_only})
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-12 JSch 호스트 키·known_hosts 질문의 본문({@code ssh_prompt_host_key_unknown}, {@code ssh_prompt_host_key_changed},
+ *   {@code ssh_prompt_create_file}, {@code ssh_prompt_create_folder}) (docs/chromite/swing-auth-prompts.md, 앱 변경 #81)
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -330,6 +332,10 @@ public class ConnectionMessages extends NLS {
     public static String ssh_prompt_password;
     public static String ssh_prompt_passphrase;
     public static String ssh_prompt_host_key_title;
+    public static String ssh_prompt_host_key_unknown;
+    public static String ssh_prompt_host_key_changed;
+    public static String ssh_prompt_create_file;
+    public static String ssh_prompt_create_folder;
     public static String auth_prompt_title;
     public static String auth_prompt_description;
 

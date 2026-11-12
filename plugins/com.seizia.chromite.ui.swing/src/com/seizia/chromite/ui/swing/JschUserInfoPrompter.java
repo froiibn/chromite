@@ -32,6 +32,8 @@ import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * JSch의 사용자 질문(호스트 키 확인, 비밀번호, 개인 키 암호, 키보드 대화형 입력)을 Swing 대화상자로 묻는다.
@@ -47,11 +49,15 @@ import java.util.function.Supplier;
  *     SWT와 모델 기본값은 같은 값을 두 질문에 모두 답해, 키 방식에서 개인 키 암호가 서버에 비밀번호로 갈 수 있었다.</li>
  *     <li>안전 쪽으로 실패한다: 화면이 없거나(headless) 대화상자가 실패하거나 사용자가 취소하면 거절(false/null)한다.
  *     호스트 키 질문은 "아니요"가 기본 단추다.</li>
+ *     <li>JSch는 질문을 고정된 영어 글로만 넘긴다. 아는 질문(모르는 호스트 키, 바뀐 호스트 키, known_hosts 파일·폴더 만들기)은 그 글에서
+ *     값(호스트, 키 종류, 지문, 파일)을 꺼내 화면 언어 문구로 바꾼다({@link #translateQuestion}). SSHJ 쪽 질문은 모델이 이미 번역한다.
+ *     모르는 글은 그대로 보인다.</li>
  * </ul>
  * 연결 Job 스레드에서 불리므로 대화상자는 EDT에서 띄우고 기다린다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: JSch 호스트 키 확인·OTP 입력 (docs/chromite/swing-auth-prompts.md)
+ * - 2026-11-12 호스트 키·known_hosts 질문의 본문을 화면 언어로(한국어 화면에 영어로 나오던 것, 앱 변경 #81)
  */
 final class JschUserInfoPrompter implements UserInfo, UIKeyboardInteractive {
 
@@ -61,6 +67,20 @@ final class JschUserInfoPrompter implements UserInfo, UIKeyboardInteractive {
      * The keyboard-interactive prompt that only asks for the login password (Eclipse UserInfoPrompter uses the same check).
      */
     private static final String PASSWORD_PROMPT = "password:"; //$NON-NLS-1$
+
+    // JSch's questions (com.jcraft.jsch Session.checkHost and KnownHosts): host, key type, fingerprint
+    private static final Pattern HOST_KEY_UNKNOWN = Pattern.compile(
+        "The authenticity of host '(.*)' can't be established\\.\\n(.*) key fingerprint is (.*)\\.\\n" //$NON-NLS-1$
+            + "Are you sure you want to continue connecting\\?", Pattern.DOTALL); //$NON-NLS-1$
+    // key type, host, fingerprint, known hosts file
+    private static final Pattern HOST_KEY_CHANGED = Pattern.compile(
+        "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!\\n.*The fingerprint for the (.*) key sent by the remote host (.*) is\\n" //$NON-NLS-1$
+            + "(.*)\\.\\nPlease contact your system administrator\\.\\nAdd correct host key in (.*) to get rid of this message\\.\\n" //$NON-NLS-1$
+            + "Do you want to delete the old key and insert the new key\\?", Pattern.DOTALL); //$NON-NLS-1$
+    private static final Pattern CREATE_FOLDER = Pattern.compile(
+        "The parent directory (.*) does not exist\\.\\nAre you sure you want to create it\\?", Pattern.DOTALL); //$NON-NLS-1$
+    private static final Pattern CREATE_FILE = Pattern.compile(
+        "(.*) does not exist\\.\\nAre you sure you want to create it\\?", Pattern.DOTALL); //$NON-NLS-1$
 
     @NotNull
     private final SSHHostConfiguration configuration;
@@ -122,9 +142,10 @@ final class JschUserInfoPrompter implements UserInfo, UIKeyboardInteractive {
     public boolean promptYesNo(String message) {
         String yes = UIManager.getString("OptionPane.yesButtonText"); //$NON-NLS-1$
         String no = UIManager.getString("OptionPane.noButtonText"); //$NON-NLS-1$
+        String question = translateQuestion(message);
         Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
             SwingPlatformUI.getDialogParent(),
-            SwingPlatformUI.createMessageComponent(message),
+            SwingPlatformUI.createMessageComponent(question),
             ConnectionMessages.ssh_prompt_host_key_title,
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE,
@@ -135,6 +156,33 @@ final class JschUserInfoPrompter implements UserInfo, UIKeyboardInteractive {
         boolean accepted = result != null && result == 0;
         log.debug("SSH question for " + configuration + (accepted ? " accepted" : " refused"));
         return accepted;
+    }
+
+    /**
+     * JSch's yes/no questions in the UI language. JSch passes only fixed English text (Session.checkHost, KnownHosts),
+     * so its known questions are recognized by that text and their values (host, key type, fingerprint, file) are put
+     * into our messages. A question JSch words differently is shown as JSch wrote it.
+     */
+    @NotNull
+    private static String translateQuestion(@NotNull String message) {
+        Matcher matcher = HOST_KEY_UNKNOWN.matcher(message);
+        if (matcher.matches()) {
+            return NLS.bind(ConnectionMessages.ssh_prompt_host_key_unknown, new Object[]{matcher.group(1), matcher.group(2), matcher.group(3)});
+        }
+        matcher = HOST_KEY_CHANGED.matcher(message);
+        if (matcher.matches()) {
+            return NLS.bind(ConnectionMessages.ssh_prompt_host_key_changed,
+                new Object[]{matcher.group(2), matcher.group(1), matcher.group(3), matcher.group(4)});
+        }
+        matcher = CREATE_FOLDER.matcher(message);
+        if (matcher.matches()) {
+            return NLS.bind(ConnectionMessages.ssh_prompt_create_folder, matcher.group(1));
+        }
+        matcher = CREATE_FILE.matcher(message);
+        if (matcher.matches()) {
+            return NLS.bind(ConnectionMessages.ssh_prompt_create_file, matcher.group(1));
+        }
+        return message;
     }
 
     @Override
