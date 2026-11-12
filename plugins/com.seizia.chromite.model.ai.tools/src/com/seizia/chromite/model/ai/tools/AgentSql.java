@@ -37,6 +37,7 @@ import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.DBRBlockingObject;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.exec.SQLBatchErrors;
@@ -95,7 +96,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>취소: 실행 중 문장을 연결별로 기록해 {@code cancelQuery}가 {@link Statement#cancel()}을 부른다. 모니터에도 블록으로 등록해
  *     MCP 취소 알림·채팅 중지가 같은 문장을 취소한다.</li>
  *     <li>"단일 연결 사용" 연결은 격리 문맥을 열 수 없어 기본 문맥을 쓴다. 이때는 사용자 트랜잭션을 건드리지 않도록 자동 커밋을 바꾸지 않고,
- *     읽기 보호는 분류기만 한다.</li>
+ *     읽기 보호는 분류기만 한다. 호출 뒤에는 그 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 물어 기록하고(상태 줄·Query 메뉴·
+ *     getTransactionStatus가 보게), 결과에 열림을 알린다. 그 트랜잭션은 사용자 쿼리 창의 것이기도 하므로 에이전트의 커밋·롤백 도구는 끝내지
+ *     않고 사용자에게 맡긴다.</li>
  *     <li>유휴 연결 닫기: 에이전트 문장은 쿼리 관리자에 기록되지 않으므로 사용 중 여부와 마지막 사용 시각({@link #isInUse},
  *     {@link #getLastUseTime})을 {@link AgentSessionsService}로 알린다. 열린 트랜잭션이 있거나 실행 중인 연결은 닫히지 않는다.</li>
  * </ul>
@@ -114,6 +117,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *   커밋·롤백은 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN은 끝까지 커밋 (docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-12 배치 중간의 오류에서 결과 읽기를 멈추지 않음: 오류 앞의 결과와 오류 뒤에 실행된 문장(SQL Server)이 도구 결과에서 사라졌다.
  *   모든 결과·행 수·오류를 순서대로 담은 {@link PartialResultException}과 호출 뒤 트랜잭션 상태 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 "단일 연결" 연결(격리 문맥 없음): 호출 뒤 공유 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 묻고 기록함
+ *   ({@code QMUtils.refreshTransactionState}). 그 세션에 남은 일을 "열린 트랜잭션 없음"으로 알리던 것을 고침. 그 트랜잭션은 사용자의 것이기도
+ *   해서 pending으로 두지 않고, commitTransaction/rollbackTransaction도 끝내지 않는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
  */
 public final class AgentSql {
 
@@ -149,12 +155,24 @@ public final class AgentSql {
         final ReentrantLock lock = new ReentrantLock();
         // The agent left an uncommitted transaction open (manual-commit connection)
         volatile boolean pending;
+        // Not isolated ("single connection"): the shared session holds a transaction after the last call. Never pending:
+        // that transaction is the user's session's too, so commitTransaction/rollbackTransaction leave it to the user
+        volatile boolean sharedOpen;
 
         AgentContext(@NotNull DBCExecutionContext context, boolean isolated) {
             this.context = context;
             this.isolated = isolated;
         }
     }
+
+    /**
+     * What the model is told when the agent's work is in the open transaction of a "single connection" connection's shared
+     * session: the agent's commit and rollback tools end only the agent's own sessions ({@link #endTransaction}).
+     */
+    public static final String SHARED_SESSION_NOTE = "This connection uses one shared session (its \"single connection\" " + //$NON-NLS-1$
+        "setting) that the user's query windows also use: what ran is in that session's open transaction and not committed. " + //$NON-NLS-1$
+        "commitTransaction and rollbackTransaction do not end it (they end only the agent's own sessions); ask the user to " + //$NON-NLS-1$
+        "commit or roll it back in a query window (status bar or Query menu)."; //$NON-NLS-1$
 
     private static final int MAX_CONTEXTS = 4;
     // Errors in a row while moving to the next result, after which the reading stops (a driver that keeps throwing)
@@ -242,7 +260,13 @@ public final class AgentSql {
                 Runner runner = new Runner(monitor, container, agentContext.context, keepsChanges);
                 if (!agentContext.isolated) {
                     // The user's own context: never touch its transaction mode
-                    return work.run(connection, runner);
+                    try {
+                        return work.run(connection, runner);
+                    } finally {
+                        // Asked from the database with the query windows' rule and recorded for them, so that their status
+                        // line, Query menu and getTransactionStatus show what the agent left in the shared session
+                        agentContext.sharedOpen = QMUtils.refreshTransactionState(agentContext.context).isOpen();
+                    }
                 }
                 if (agentContext.pending && family == DbFamily.POSTGRESQL) {
                     clearStatisticsSnapshot(connection);
@@ -267,7 +291,8 @@ public final class AgentSql {
                 throw e;
             } catch (SQLException e) {
                 if (e instanceof PartialResultException partial) {
-                    describeTransaction(partial, family, mode, agentContext.isolated, autoCommit, agentContext.pending);
+                    describeTransaction(partial, family, mode, agentContext.isolated, autoCommit, agentContext.pending,
+                        agentContext.sharedOpen);
                 }
                 throw new DBException(e.getMessage(), e);
             } catch (Exception e) {
@@ -290,10 +315,16 @@ public final class AgentSql {
         @NotNull Mode mode,
         boolean isolated,
         boolean autoCommit,
-        boolean pending
+        boolean pending,
+        boolean sharedOpen
     ) {
         String note;
-        if (pending && family == DbFamily.POSTGRESQL) {
+        if (!isolated && sharedOpen) {
+            note = SHARED_SESSION_NOTE + (family == DbFamily.POSTGRESQL
+                ? " PostgreSQL aborted that transaction at the error: only a rollback ends it." : "");
+        } else if (!isolated && !autoCommit) {
+            note = "No transaction is open in the connection's shared session after the call: nothing that ran is waiting for a commit.";
+        } else if (pending && family == DbFamily.POSTGRESQL) {
             // The error aborted the transaction: the server refuses every statement until it ends, and a COMMIT rolls back
             note = "The agent's transaction is open but PostgreSQL aborted it at the error: nothing in it can be committed any more. " +
                 "Ask the user, then call rollbackTransaction (it asks the user to confirm).";
@@ -313,7 +344,7 @@ public final class AgentSql {
         } else {
             note = "No agent transaction is open after the call: nothing that ran is waiting for a commit.";
         }
-        failure.getResult().addProperty("transactionOpen", pending);
+        failure.getResult().addProperty("transactionOpen", pending || !isolated && sharedOpen);
         failure.getResult().addProperty("transactionNote", note);
     }
 
@@ -606,6 +637,24 @@ public final class AgentSql {
      */
     public static boolean hasPendingTransaction(@NotNull DBPDataSourceContainer container) {
         return !getPendingTransactions(container).isEmpty();
+    }
+
+    /**
+     * Whether the agent's last call on a "single connection" connection left the shared session (the one the query windows
+     * use) holding a transaction, as the database answered right after that call.
+     */
+    public static boolean isSharedSessionTransactionOpen(@NotNull DBPDataSourceContainer container) {
+        for (Map.Entry<ContextKey, List<AgentContext>> e : pools.entrySet()) {
+            if (!e.getKey().containerId().equals(container.getId())) {
+                continue;
+            }
+            for (AgentContext agentContext : snapshot(e.getValue())) {
+                if (!agentContext.isolated && agentContext.sharedOpen) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

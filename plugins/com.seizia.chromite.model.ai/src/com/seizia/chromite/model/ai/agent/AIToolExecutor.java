@@ -17,9 +17,11 @@
 package com.seizia.chromite.model.ai.agent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -34,6 +36,8 @@ import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +72,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 확인 요청에 미리 보기 종류를 넣음(쿼리 창 글 고치기, docs/chromite/ai-agent.md "편집기 도구")
  * - 2026-11-12 예외를 담은 도구 결과: 오류는 예외의 글, 결과 값(도구가 한 일)은 오류 JSON에 붙임. 전에는 결과 값 전체를 오류 글로 썼다
  *   (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 그 오류 JSON이 너무 길면 큰 멤버(행 데이터)만 줄임. 글 전체를 자르면 뒤에 있는 ranAfterError·트랜잭션 상태가 사라졌다
+ *   (docs/chromite/ai-agent.md "배치의 부분 실패" 자르기)
  */
 public final class AIToolExecutor {
 
@@ -78,6 +84,8 @@ public final class AIToolExecutor {
      * Upper bound of a result text; tools cap their own output earlier and report what they cut.
      */
     public static final int MAX_RESULT_CHARS = 1024 * 1024;
+    // Smallest room in which a part of a cut result (a table, its rows) is still worth keeping
+    private static final int MIN_SHORTENED_PART = 200;
 
     /**
      * Result member describing a Commit / Roll back answer carried out before the tool ran:
@@ -421,16 +429,11 @@ public final class AIToolExecutor {
      * error result, so that the model and the chat card see the error and everything that ran with it.
      */
     private static void addPartialResult(@NotNull JsonObject json, @NotNull String text) {
-        if (text.length() > MAX_RESULT_CHARS) {
-            json.addProperty("truncatedText", text.substring(0, MAX_RESULT_CHARS));
-            json.addProperty("note", "Result was cut at " + MAX_RESULT_CHARS + " characters; ask for fewer rows or columns");
-            return;
-        }
         JsonElement parsed;
         try {
             parsed = JsonParser.parseString(text);
         } catch (RuntimeException e) {
-            json.addProperty("result", text);
+            json.addProperty("result", text.length() > MAX_RESULT_CHARS ? text.substring(0, MAX_RESULT_CHARS) : text);
             return;
         }
         if (parsed.isJsonObject()) {
@@ -442,5 +445,80 @@ public final class AIToolExecutor {
         } else {
             json.add("result", parsed);
         }
+        fitResult(json);
+    }
+
+    /**
+     * Keeps an error result within {@link #MAX_RESULT_CHARS} by shortening its biggest members only (the row data), so that
+     * the small members the model needs most (the error, the order of steps, what ran after the error, the transaction state)
+     * stay whole. Cutting the text instead lost them: they come after the rows. A list of what was cut goes into the result.
+     */
+    private static void fitResult(@NotNull JsonObject json) {
+        if (length(json) <= MAX_RESULT_CHARS) {
+            return;
+        }
+        List<String> cut = new ArrayList<>();
+        // Room left for the note about the cut
+        shortenMembers(json, MAX_RESULT_CHARS - 2000, cut, "");
+        json.addProperty("cut", "The result was longer than " + MAX_RESULT_CHARS + " characters, so these were shortened: " +
+            String.join("; ", cut) + ". Everything else is whole. Ask for fewer rows or columns to see the rest.");
+    }
+
+    // Shortens the biggest members first until the object fits
+    private static void shortenMembers(@NotNull JsonObject object, int budget, @NotNull List<String> cut, @NotNull String path) {
+        List<Map.Entry<String, JsonElement>> members = new ArrayList<>(object.entrySet());
+        members.sort(Comparator.comparingInt((Map.Entry<String, JsonElement> e) -> length(e.getValue())).reversed());
+        for (Map.Entry<String, JsonElement> member : members) {
+            int size = length(object);
+            if (size <= budget) {
+                return;
+            }
+            JsonElement value = member.getValue();
+            int room = budget - (size - length(value));
+            object.add(member.getKey(), shorten(value, room, cut, path + member.getKey()));
+        }
+    }
+
+    /**
+     * An object keeps its members and shortens the biggest ones; an array keeps its leading items, and the first one that
+     * does not fit is shortened in turn (a table keeps its first rows); anything else becomes the start of its JSON text.
+     */
+    @NotNull
+    private static JsonElement shorten(@NotNull JsonElement value, int budget, @NotNull List<String> cut, @NotNull String path) {
+        if (length(value) <= budget) {
+            return value;
+        }
+        if (value.isJsonObject()) {
+            JsonObject copy = value.getAsJsonObject().deepCopy();
+            shortenMembers(copy, budget, cut, path + ".");
+            return copy;
+        }
+        if (value.isJsonArray()) {
+            JsonArray source = value.getAsJsonArray();
+            JsonArray kept = new JsonArray();
+            int used = 2;
+            for (JsonElement item : source) {
+                int itemLength = length(item) + 1;
+                if (used + itemLength <= budget) {
+                    kept.add(item);
+                    used += itemLength;
+                    continue;
+                }
+                int rest = budget - used - 1;
+                if (rest >= MIN_SHORTENED_PART && (item.isJsonObject() || item.isJsonArray())) {
+                    kept.add(shorten(item, rest, cut, path + "[" + kept.size() + "]"));
+                }
+                break;
+            }
+            cut.add(path + ": " + kept.size() + " of " + source.size() + " items kept");
+            return kept;
+        }
+        String text = GSON.toJson(value);
+        cut.add(path + ": text cut");
+        return new JsonPrimitive(text.substring(0, Math.max(0, Math.min(text.length(), budget))));
+    }
+
+    private static int length(@NotNull JsonElement value) {
+        return GSON.toJson(value).length();
     }
 }

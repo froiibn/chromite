@@ -75,6 +75,8 @@ import java.util.Map;
  * - 2026-11-08 {@code transactionNote}: 열린 트랜잭션은 수동 커밋만이 아님(자동 커밋 문맥의 BEGIN TRAN) (docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-12 {@code runScript}: 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다 한 일을 모두 돌려줌(전에는 실패가 있어도 성공으로 감사되고
  *   채팅 카드도 완료였다). 실패한 GO 배치 안의 결과·뒤 문장도 담음 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 {@code transactionOpen}: "단일 연결" 연결의 공유 세션에 남은 트랜잭션도 열림으로 알림(전에는 수동 커밋에서 INSERT가 커밋 안 된 채
+ *   {@code transactionOpen: false}) (docs/chromite/ai-agent.md "배치의 부분 실패" 공유 세션)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -216,10 +218,14 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
 
     static void addTransactionState(@NotNull DBPDataSourceContainer container, @NotNull JsonObject result) {
         boolean open = AgentSql.hasPendingTransaction(container);
-        result.addProperty("transactionOpen", open);
+        // A "single connection" connection: the work is in the shared session's transaction, not in one of the agent's own
+        boolean shared = !open && AgentSql.isSharedSessionTransactionOpen(container);
+        result.addProperty("transactionOpen", open || shared);
         if (open) {
             result.addProperty("transactionNote", "The agent's transaction is open: its changes or locks are not committed. " +
                 "Ask the user, then call commitTransaction or rollbackTransaction (both ask the user to confirm).");
+        } else if (shared) {
+            result.addProperty("transactionNote", AgentSql.SHARED_SESSION_NOTE);
         }
     }
 

@@ -1367,6 +1367,20 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
     the SQL committed by itself" (pgjdbc가 한 `execute`의 문장을 Sync 하나로 보내 서버가 암시적 트랜잭션 하나로 실행함, 아래 확인).
   - 그 밖의 자동 커밋: "statements that ran before or after the error are already committed; a failed procedure call may have committed part of its work".
   - 수동 커밋인데 열린 것이 없음: "No agent transaction is open after the call".
+  - **공유 세션**("단일 연결" 연결, `isForceUseSingleConnection`: 격리 문맥을 열 수 없어 에이전트가 쿼리 창과 같은 기본 문맥에서 실행): 호출 뒤 그 세션의
+    트랜잭션을 쿼리 창과 같은 규칙으로 DB에 묻고 기록한다(`QMUtils.refreshTransactionState`, 모드·커밋은 건드리지 않음). 열려 있으면 `transactionOpen: true`와
+    `AgentSql.SHARED_SESSION_NOTE`("… what ran is in that session's open transaction and not committed. commitTransaction and rollbackTransaction do not end it
+    (they end only the agent's own sessions); ask the user to commit or roll it back in a query window (status bar or Query menu)", PostgreSQL이면 "aborted …
+    only a rollback ends it"를 덧붙임). 수동 커밋인데 열린 것이 없으면 "No transaction is open in the connection's shared session after the call", 자동 커밋은 위와 같다.
+    성공 결과(`QueryTools.addTransactionState`)도 같은 값으로 `transactionOpen`을 알린다. 전에는 이 경우 `pending`이 늘 거짓이라 커밋 안 된 INSERT 뒤에도
+    `transactionOpen: false`, 실패 때는 "nothing … is waiting for a commit"이었고, 쿼리 창 상태 줄도 그 트랜잭션을 몰랐다(쿼리 관리자는 에이전트 문장을 보지 못함).
+    이 트랜잭션은 사용자의 것이기도 하므로 `pending`으로 두지 않는다. 그래서 `commitTransaction`·`rollbackTransaction`은 묻지 않고(정책의 Allow/Deny만) 아무것도
+    끝내지 않으며, 결과의 `otherOpenTransactions`에 그 세션("Main")이 보인다. `getTransactionStatus`도 `agentTransactionOpen: false`,
+    `otherOpenTransactions: ["Main"]`이다. 끝내는 것은 사용자가 쿼리 창(상태 줄, Query 메뉴)에서 한다.
+- **자르기**: 오류 결과가 실행기 한도(`AIToolExecutor.MAX_RESULT_CHARS`, 1 MB)를 넘으면 글 전체를 자르지 않고(전에는 `truncatedText` 하나만 남아 뒤쪽의
+  `ranAfterError`·`transactionOpen`·`transactionNote`·`steps`가 잘렸다) JSON을 먼저 읽어 가장 큰 멤버부터 줄인다(`fitResult`): 객체는 큰 멤버를, 배열은 앞
+  항목을 남기고 넘치는 첫 항목을 다시 줄인다(표는 앞 행을 남김). 작은 멤버는 그대로이고, 무엇을 줄였는지 `cut`에 적는다
+  (예: "results[0].rows: 3384 of 3404 items kept; results: 1 of 2 items kept").
 - **트랜잭션은 건드리지 않는다**: 오류 때문에 커밋·롤백하지 않는다(사용자 규칙). 바뀐 것은 결과 읽기와 보고뿐이다. 원래 있던 롤백만 그대로다: 읽기 전용
   보호와 측정 호출의 매번 롤백, 자동 커밋 연결에서 `insertRows`·`importCsv`·`copyTable`이 자기 호출을 묶은 트랜잭션을 오류 때 롤백(`runAtomic`, 위
   "쓰기 도구의 커밋"). 앞의 둘은 쓰기가 없거나 되돌리는 것이 목적이고, 셋째는 이 호출이 시작한 자기 트랜잭션만 되돌린다(열린 에이전트 트랜잭션이 있으면
@@ -1417,6 +1431,22 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
   error ran (1 update count, 1 result set came after it). First error: mid (line 2)", 감사 기록 `client: CHAT`의 `error`와 같음. 가짜 서버 기록에 요청이 남았고 실제 제공자는
   부르지 않았다.
 - 한 문장 오류(`INSERT` 중복 키)는 예전과 같은 글에 트랜잭션 상태만 붙는다. 성공 결과는 바뀌지 않았다.
+- 공유 세션(검토 뒤 고침): SQL Server·PostgreSQL 연결에서 `isForceUseSingleConnection`을 시험 에이전트가 켜고(이 값은 드라이버 속성에서 오고 연결 화면에
+  설정이 없어 저장되지 않음) 쿼리 창 하나를 열어 확인했다.
+
+  | 경우 | 고치기 전 | 고친 뒤 | 두 번째 세션 | 쿼리 창 상태 줄 |
+  |---|---|---|---|---|
+  | SQL Server 수동 커밋 `INSERT 1; RAISERROR; INSERT 2` | `transactionOpen: false`, "No agent transaction is open … nothing … waiting for a commit" | `transactionOpen: true`, 공유 세션 안내 | READPAST 0행, NOLOCK 1·2(커밋 안 됨) | 전: 표시 없음 / 뒤: "Open transaction 00:00:00 (changes)" |
+  | 같은 상태에서 `commitTransaction`(Allow) | — | SUCCESS, `otherOpenTransactions: ["Main"]`, 아무것도 커밋하지 않음 | 그대로 커밋 안 됨 | 열림 그대로 |
+  | 쿼리 창 Roll Back | 전: 상태를 몰라 아무것도 안 함(행이 남음) | 롤백됨 | 0행 | 표시 사라짐 |
+  | SQL Server 수동 커밋 `INSERT 3` 성공 | `transactionOpen: false` | `transactionOpen: true`, 공유 세션 안내 | 커밋 안 됨 | 열림 표시 |
+  | SQL Server 자동 커밋 같은 배치 | 자동 커밋 안내 | 같음 | 4·5 커밋됨 | 표시 없음 |
+  | PostgreSQL 수동 커밋 `INSERT 1` 성공, 뒤 `INSERT; SELECT 1/0; INSERT` | `false`, "No agent transaction is open …" | 둘 다 `true`, 오류에는 "aborted … only a rollback ends it" | 0행 | "Open transaction … (changes)" → 오류 뒤 "(0 statements)", Roll Back 뒤 사라짐 |
+  | PostgreSQL 자동 커밋 | PostgreSQL 자동 커밋 안내 | 같음 | 8만 | 표시 없음 |
+
+- 자르기(검토 뒤 고침): SQL Server `runSql`(limit 10000) `SELECT TOP 4000 REPLICATE('x',300) …; RAISERROR('cut mid'); SELECT TOP 4000 REPLICATE('y',300) …; INSERT 99`.
+  전: 1,062,480자, 키는 `error, outcome, tool, policy, policyReason, truncatedText, note`뿐(`ranAfterError`·`transactionNote`·`steps` 없음). 뒤: 1,046,743자, `steps`,
+  `ranAfterError`, `transactionOpen`, `transactionNote` 그대로, `results`는 첫 표의 앞 3,384행, `cut` "results[0].rows: 3384 of 3404 items kept; results: 1 of 2 items kept".
 - 회귀 테스트는 요청되지 않아 실행하지 않았다.
 
 ### 남은 것
@@ -1425,6 +1455,8 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
   `getMoreResults`가 멈추거나(시험에서 끝나지 않음) `NullPointerException`을 던져서 쓰지 않았다.
 - 결과 집합의 행을 읽다 난 오류(SQL Server `SELECT 1/0`)는 그 결과 집합의 이미 읽은 행을 보이지 않는다(오류 단계만). 쿼리 창은 빈 표를 보인다.
 - `runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.
+- 공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.
+  공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음). 둘 다 이 작업에서 고치지 않았다.
 
 ## 설계 결정과 이유
 
@@ -1531,6 +1563,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #83 검토 뒤 고침: "단일 연결" 연결의 공유 세션에 남은 트랜잭션을 DB에 물어 결과(`transactionOpen`, 안내)와 쿼리 창 상태 줄에 보임,
+  오류 결과가 1 MB를 넘으면 큰 멤버만 줄임. 위 "배치의 부분 실패". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #83(`chromite/agent-runsql-batch`): SQL 도구가 배치 중간 오류에서 결과 읽기를 멈추지 않고, 오류 결과에 모든 결과·행 수·오류와
   오류 뒤 실행 여부, 호출 뒤 트랜잭션 상태를 담음. `runScript`는 실패한 문장이 있으면 오류. 위 "배치의 부분 실패". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 제공자 설정 안내의 글자 단추를 톱니 아이콘 단추로, 글 오른쪽 첫 줄 가운데에(사용자 결정, 앱 변경 #72, `chromite/visual-recheck-fixes`).
