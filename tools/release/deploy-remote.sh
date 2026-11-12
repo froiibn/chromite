@@ -50,7 +50,7 @@ umask 022
 say() { printf '%s\n' "$*"; }
 stop() { printf 'STOP: %s\n' "$*" >&2; exit 1; }
 sum() { sha256sum "$1" | cut -c1-64; }
-# major.minor.dev -> a number that sorts like the version (each part below 100000)
+# YY.seq.dev -> a number that sorts like the version (each part below 100000)
 vkey() { printf '%s\n' "$1" | awk -F. '{ printf "%d%05d%05d\n", $1, $2, $3 }'; }
 # versions present in downloads/, one per line
 versions_there() {

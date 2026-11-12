@@ -46,6 +46,8 @@ import java.util.List;
  * - 2026-11-08 배치 오류: 여러 문장 배치의 뒤 문장 오류({@code getMoreResults} 예외)를 로그에만 쓰고 넘어가서 작업이 성공으로 끝나던 것을
  *   고쳤다. 오류는 그 쿼리의 실패가 되고(오류 처리 설정대로 멈춤), 오류 뒤 결과와 첫 문장 오류 뒤에 실행된 문장의 결과도 읽는다
  *   ({@link SQLBatchErrors}, docs/chromite/sql-batch-errors.md)
+ * - 2026-11-12 연결이 끊긴 뒤 모든 문장을 다시 실행하던 복구를 SQL 편집기와 같은 허용 목록으로({@link SQLQueryRecovery}, 앱 변경 #86):
+ *   읽기만 하는 SELECT 하나만 다시 실행한다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 public class SQLScriptProcessor {
     private static final String STAT_LOG_PREFIX = "-----------------> ";
@@ -244,10 +246,11 @@ public class SQLScriptProcessor {
                 statistics.reset();
                 statistics.setQueryText(sqlQuery.getText());
 
-                DBExecUtils.tryExecuteRecover(session, session.getDataSource(), param -> {
+                // After a lost connection only a read is run again (the same rule as the SQL editor)
+                SQLQueryRecovery.execute(session, sqlQuery, param -> {
                     long execStartTime = System.currentTimeMillis();
                     executeStatement(session, sqlQuery, execStartTime);
-                });
+                }, () -> log.debug(STAT_LOG_PREFIX + "Connection lost: reconnected and run again (it only reads)\n" + sqlQuery.getText()), true);
                 if (!statementErrors.isEmpty()) {
                     // The batch failed although the statement did not throw
                     lastError = statementErrors.getFirst();

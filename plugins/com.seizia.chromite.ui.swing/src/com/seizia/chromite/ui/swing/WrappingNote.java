@@ -16,10 +16,17 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.ui.FlatTextAreaUI;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import org.jkiss.code.NotNull;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.Segment;
+import javax.swing.text.Utilities;
+import javax.swing.text.View;
+import javax.swing.text.WrappedPlainView;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +46,9 @@ import java.util.function.ToDoubleFunction;
  *     <li>줄은 공백에서만 바꾼다(모든 언어, 한국어의 keep-all). Swing의 줄 바꿈({@code JTextArea}의 단어 줄 바꿈, HTML)은 유니코드 줄 나눔 규칙을
  *     따라 한글 음절 사이 어디서나 끊어 "받습니 / 다."처럼 낱말을 갈랐다. 그래서 줄 나누기({@link #wrap})와 그리기를 이 클래스가 직접 한다.
  *     줄 하나보다 넓은 낱말 하나만 글자 사이에서 끊는다(잘리거나 밖으로 그려지는 일이 없게). 숨은 문자를 넣지 않아 글꼴에 따라 달라지지 않는다.</li>
+ *     <li>줄 끝을 정하는 규칙은 {@link #breakOffset} 하나다. 메시지·확인·오류 대화상자의 글({@link MessageArea},
+ *     {@code SwingPlatformUI.createMessageComponent})도 같은 규칙을 쓴다. 그 글은 선택·복사가 되어야 해서 직접 그리지 않고, Swing의 줄 바꿈
+ *     보기({@code WrappedPlainView})에서 줄 끝 위치만 이 규칙으로 바꾼다.</li>
  *     <li>최소 폭은 가장 긴 낱말의 폭이다.</li>
  *     <li>읽기 전용 {@link JTextArea}로 둔다(부르는 쪽의 형식과 접근성 글 그대로). 그리기는 줄마다 FlatLaf와 같은 글자 그리기다.
  *     글꼴은 라벨 글꼴(테마·밀도 전환을 따름), 색은 부르는 쪽이 FlatLaf 스타일로 정한다(보조 글자색, 경고 글자색).
@@ -50,6 +60,10 @@ import java.util.function.ToDoubleFunction;
  * - 2026-11-12 Chromite Agent 패널의 두 안내(제공자 설정, 도구 없음)도 씀: HTML 라벨이 좁은 칸으로 접혀 잘렸다(앱 변경 #71 f)
  * - 2026-11-12 줄을 공백에서만 바꿈({@link #wrap}, 직접 그림): {@code JTextArea}의 줄 바꿈이 한국어 낱말 가운데서 끊었다
  *   ("받습니 / 다.", "설정 / 하세요.", 앱 변경 #71 검토)
+ * - 2026-11-12 줄 끝 규칙을 {@link #breakOffset}으로 떼어 메시지 대화상자의 글({@link MessageArea})과 함께 씀: 메시지 영역이 Swing 줄 바꿈으로
+ *   "…입니 / 다.", "넣 / 으십시오."처럼 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-12 {@link MessageArea}는 낱말 단위로 줄을 바꿀 때({@code lineWrap}, {@code wrapStyleWord})만 이 줄 바꿈 보기를 씀: 줄을 바꾸지 않는
+ *   글 상자도 늘 줄을 바꾸게 되던 것(#82 검토 후속)
  */
 final class WrappingNote extends JTextArea {
 
@@ -159,36 +173,130 @@ final class WrappingNote extends JTextArea {
     static List<String> wrap(@NotNull String text, double width, @NotNull ToDoubleFunction<String> measure) {
         List<String> lines = new ArrayList<>();
         for (String paragraph : text.split("\n", -1)) { //$NON-NLS-1$
-            String line = ""; //$NON-NLS-1$
-            for (String word : paragraph.strip().split("\\s+")) { //$NON-NLS-1$
-                if (word.isEmpty()) {
-                    continue;
-                }
-                String candidate = line.isEmpty() ? word : line + " " + word; //$NON-NLS-1$
-                if (measure.applyAsDouble(candidate) <= width) {
-                    line = candidate;
-                    continue;
-                }
-                if (!line.isEmpty()) {
-                    lines.add(line);
-                }
-                line = word;
-                // Only a word wider than the whole line breaks inside, between characters (whole code points)
-                while (measure.applyAsDouble(line) > width && line.codePointCount(0, line.length()) > 1) {
-                    int end = line.offsetByCodePoints(0, 1);
-                    while (end < line.length()) {
-                        int next = line.offsetByCodePoints(end, 1);
-                        if (measure.applyAsDouble(line.substring(0, next)) > width) {
-                            break;
-                        }
-                        end = next;
-                    }
-                    lines.add(line.substring(0, end));
-                    line = line.substring(end);
-                }
+            String rest = paragraph.strip().replaceAll("\\s+", " "); //$NON-NLS-1$ //$NON-NLS-2$
+            if (rest.isEmpty()) {
+                lines.add(rest);
+                continue;
             }
-            lines.add(line);
+            while (!rest.isEmpty()) {
+                int end = breakOffset(rest, width, measure);
+                lines.add(rest.substring(0, end).stripTrailing());
+                rest = rest.substring(end);
+            }
         }
         return lines;
+    }
+
+    /**
+     * Where the first line of a text ends at a width (the line breaking rule of this class, shared by
+     * {@link #wrap} and the message areas, {@link MessageArea}): after the last whole word that fits, with the whitespace
+     * after it, so that the next line starts with a word. Only a first word wider than the whole width breaks inside,
+     * between characters (whole code points, at least one), so that nothing is cut or drawn outside.
+     *
+     * @param measure width of a beginning of the text (only beginnings are measured), in the same unit as {@code width}
+     * @return the length of the first line, {@code text.length()} when the whole text fits
+     */
+    static int breakOffset(@NotNull String text, double width, @NotNull ToDoubleFunction<String> measure) {
+        if (measure.applyAsDouble(text.stripTrailing()) <= width) {
+            return text.length();
+        }
+        int fit = 0;
+        int index = 0;
+        while (index < text.length()) {
+            int wordStart = index;
+            while (wordStart < text.length() && Character.isWhitespace(text.charAt(wordStart))) {
+                wordStart++;
+            }
+            int wordEnd = wordStart;
+            while (wordEnd < text.length() && !Character.isWhitespace(text.charAt(wordEnd))) {
+                wordEnd++;
+            }
+            if (wordEnd == wordStart || measure.applyAsDouble(text.substring(0, wordEnd)) > width) {
+                break;
+            }
+            fit = wordEnd;
+            index = wordEnd;
+        }
+        if (fit > 0) {
+            // The spaces after the last word stay at the end of this line
+            while (fit < text.length() && Character.isWhitespace(text.charAt(fit))) {
+                fit++;
+            }
+            return fit;
+        }
+        // The first word alone is wider than the line: break it between characters
+        int start = 0;
+        while (start < text.length() && Character.isWhitespace(text.charAt(start))) {
+            start++;
+        }
+        int end = text.offsetByCodePoints(start, 1);
+        while (end < text.length() && !Character.isWhitespace(text.charAt(end))) {
+            int next = text.offsetByCodePoints(end, 1);
+            if (measure.applyAsDouble(text.substring(0, next)) > width) {
+                break;
+            }
+            end = next;
+        }
+        return end;
+    }
+
+    /**
+     * A selectable, read-only message text (message, confirmation and error dialogs) that wraps by the rule of
+     * {@link #breakOffset}: the text area's own word wrapping breaks between any two Hangul syllables. Only the line
+     * breaking changes; selecting and copying stay as in any text area. Only while the area wraps at words
+     * ({@code lineWrap} and {@code wrapStyleWord}): otherwise its views are Swing's, as for any text area. The base UI
+     * builds the views again when either property changes ({@code BasicTextAreaUI.propertyChange} → {@code modelChanged}),
+     * so the choice follows them.
+     */
+    static final class MessageArea extends JTextArea {
+
+        MessageArea(@NotNull String text) {
+            super(text);
+        }
+
+        @Override
+        public void updateUI() {
+            // Also after a theme change: the theme's text area UI, with this class's wrapped view
+            setUI(new FlatTextAreaUI() {
+                @Override
+                public View create(Element element) {
+                    // No wrapping or wrapping at any character: Swing's views (PlainView, WrappedPlainView by characters)
+                    if (!getLineWrap() || !getWrapStyleWord()
+                        // AbstractDocument's (package-private) I18NProperty, as BasicTextAreaUI.create reads it
+                        || Boolean.TRUE.equals(element.getDocument().getProperty("i18n"))) { //$NON-NLS-1$
+                        // Bidirectional or complex text: Swing's own views lay it out (glyph by glyph)
+                        return super.create(element);
+                    }
+                    return new SpaceWrappedView(element);
+                }
+            });
+        }
+    }
+
+    /**
+     * The wrapped view of {@link MessageArea}: Swing's wrapped plain text view with the line break of {@link #breakOffset}.
+     */
+    private static final class SpaceWrappedView extends WrappedPlainView {
+
+        SpaceWrappedView(@NotNull Element element) {
+            super(element, true);
+        }
+
+        @Override
+        protected int calculateBreakPosition(int p0, int p1) {
+            Segment segment = new Segment();
+            try {
+                getDocument().getText(p0, p1 - p0, segment);
+            } catch (BadLocationException e) {
+                return super.calculateBreakPosition(p0, p1);
+            }
+            Container container = getContainer();
+            FontMetrics metrics = container.getFontMetrics(container.getFont());
+            String text = segment.toString();
+            // Measured as the view draws a line (tabs expanded by this view)
+            int end = breakOffset(text, getWidth(), part -> Utilities.getTabbedTextWidth(
+                new Segment(segment.array, segment.offset, part.length()), metrics, 0f, this, p0));
+            return p0 + end;
+        }
     }
 }

@@ -53,8 +53,10 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 | 위치 | 역할 |
 |---|---|
 | `ext.oracle` `sql.OracleSqlPlus`(새로 만듦) | 줄이 SQL*Plus 명령인지와 무엇을 하는지(종류, 옵션 이름, 나머지 글). 규칙과 처리기가 같은 판단을 씀 |
-| `ext.oracle` `sql.OracleSqlPlusRule`(새로 만듦) | 줄 첫 칸의 명령 줄을 `SQLControlToken("oracle.sqlplus")`로, `/`만 있는 줄을 `SQLDelimiterToken`으로 돌려주는 토큰 규칙 |
-| `ext.oracle` `sql.OracleDialectRules` | CONTROL 위치에 `OracleSqlPlusRule`을 더함(upstream MySQL `SOURCE`와 같은 자리) |
+| `ext.oracle` `sql.OracleSqlPlusRule`(새로 만듦) | 줄 첫 칸의 명령 줄을 `SQLControlToken("oracle.sqlplus")`로 돌려주는 토큰 규칙 |
+| `model.sql` `parser.rules.SQLSlashLineRule`(2026-11-12 새로 만듦) | `/`만 있는 줄을 `SQLDelimiterToken`으로 돌려주는 토큰 규칙. Oracle과 Altibase가 함께 씀(처음에는 `OracleSqlPlusRule` 안에 있었음) |
+| `ext.oracle` `sql.OracleDialectRules` | CONTROL 위치에 `SQLSlashLineRule`과 `OracleSqlPlusRule`을 더함(upstream MySQL `SOURCE`와 같은 자리) |
+| `ext.altibase` `sql.AltibaseDialectRules`, `model.AltibaseSQLDialect` | CONTROL 위치에 `SQLSlashLineRule`. 문장 구분자는 기본 `;`만(아래 "다른 DB"의 Altibase) |
 | `ext.oracle` `sql.OracleSqlPlusCommandHandler`(새로 만듦), `plugin.xml`의 `com.seizia.chromite.sqlCommand` `oracle.sqlplus` | 명령 실행. 엔진(`SQLQueryExecuteJob`)이 다른 `@` 명령처럼 부름 |
 | `ext.oracle` `model.OracleDataSource.OracleOutputReader` | `setSessionServerOutput`(세션 값 기억 후 `ENABLE`/`DISABLE`), `isServerOutputEnabled(context)`(세션 값 → 설정), `enableServerOutput`이 세션 값의 버퍼 크기를 씀, `syncServerOutput`·`initializeContextState`가 세션 기준 |
 | `ext.oracle` `model.OracleExecutionContext` | 세션 값(`getServerOutputOverride`, `getServerOutputSize`) |
@@ -89,7 +91,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
   (트랜잭션 안전 규칙). 서버로 가서 지금처럼 오류가 나고 스크립트가 멈춘다. 커밋 방식은 도구 막대·상태 줄에서 바꾼다.
 - **`EXEC`는 익명 블록으로.** SQL*Plus가 하는 그대로다. 엔진의 `SQLControlResult.transform`(upstream `@include`가 쓰는 길)으로 평범한 문장이
   되므로 서버 출력·오류 위치·트랜잭션 표시가 다른 문장과 같다.
-- **`/`는 줄 단위 구분자.** Altibase처럼 방언의 문장 구분자에 `/`를 넣으면 `SELECT 4/2 FROM dual` 같은 나눗셈에서도 문장이 끊긴다.
+- **`/`는 줄 단위 구분자.** (2026-11-12 전의) Altibase처럼 방언의 문장 구분자에 `/`를 넣으면 `SELECT 4/2 FROM dual` 같은 나눗셈에서도 문장이 끊긴다.
   `/`만 있는 줄만 구분자로 한다. 파서가 블록 안이라고 보는 동안의 구분자는 무시되므로(upstream 동작), 블록을 잘못 센 경우까지 `/`가 강제로
   끝내지는 않는다.
 - **`@oracle.sqlplus`.** upstream 명령 등록 방식 때문에 `@oracle.sqlplus …` 줄도 명령 규칙에 걸린다(MySQL `@mysql.source`와 같음). 이 형태는
@@ -97,10 +99,15 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 
 ## 다른 DB
 
-- **Altibase:** 문장 구분자에 `;`와 `/`가 있다(`AltibaseSQLDialect.getScriptDelimiters`). 그래서 `/`만 있는 줄은 이미 문장을 끝낸다. 대신 줄
-  가운데의 `/`도 구분자라 `SELECT 4/2 FROM dual`이 두 문장으로 나뉜다(아래 확인 표, 범위 밖이라 고치지 않고 보고만 한다). SQL*Plus 줄 규칙은
-  Altibase에 붙이지 않았다: Altibase의 클라이언트 iSQL 명령은 SQL*Plus와 다르고(`SET SERVEROUTPUT`이 없음, 출력은 PRINT 콜백), Altibase
-  서버가 `EXEC`를 SQL로 받는지 등은 확인하지 못했다(테스트 VM에 Altibase가 없다).
+- **Altibase:** (2026-11-12, 앱 변경 #80) Oracle과 같은 `/` 줄 규칙(`SQLSlashLineRule`)을 쓴다. 전에는 방언의 문장 구분자에 `;`와 `/`가 있어
+  (`AltibaseSQLDialect.getScriptDelimiters`) 줄 가운데의 나눗셈에서도 문장이 끊겼다: `SELECT 4/2 AS q FROM dual`이 `SELECT 4`(결과 4)와
+  `2 AS q FROM dual`(구문 오류) 두 문장이 되었다. 같은 원인으로 `10 / 5` 같은 모든 나눗셈이 깨졌다(문자열·주석 안의 `/`는 토큰 규칙이 먼저 읽어 괜찮았다).
+  이제 구분자는 기본 `;`만이고, Altibase iSQL처럼 `/`만 있는 줄이 문장(PSM 블록 포함)을 끝낸다. Altibase iSQL 사용자 설명서(7.3)에서 확인한 것:
+  저장 프로시저는 `END;` 다음 줄의 `/`로 끝낸다.
+  SQL*Plus 줄 처리(`SET SERVEROUTPUT`, `PROMPT` 등)는 Altibase에 붙이지 않았다. iSQL에는 `SET SERVEROUTPUT`도 `PROMPT`도 없다(같은 설명서의
+  `SET` 목록: `LINESIZE`, `PAGESIZE`, `FEEDBACK`, `HEADING`, `TIMING`, `TERM`, `ECHO`, `DEFINE`, `VERIFY` 등, 프롬프트 글자는 `SET SQLPROMPT`).
+  출력은 PSM의 `PRINT`/`PRINTLN`이 드라이버 콜백으로 오고 Server Output 탭에 나온다. 그래서 그 두 줄은 지금처럼 서버로 가서 구문 오류다(보고만).
+  `EXEC 프로시저(인자)`는 Altibase 서버가 SQL로 받는다(확인: `half=4` 출력).
 - **Tibero:** Chromite에 Tibero 드라이버·방언이 없다(저장소에 `tibero` 없음). 확인할 대상이 없다.
 - **YashanDB:** 방언(`YashanDBSQLDialect`)과 실행 문맥이 Oracle 것을 물려받으므로 같은 규칙과 처리기가 적용된다(확인하지 않음).
 
@@ -160,8 +167,25 @@ Server Output(`readServerOutput` → `output`)에 들어갔다.
 
 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번).
 
+## 확인 (2026-11-12, Altibase 7.3과 Oracle 26ai, GCP 테스트 VM, `chromite/small-fixes-r3` 빌드)
+
+빈 작업 공간, 프로세스 안 시험 에이전트, Altibase 임시 사용자 `CHR_SMALL_FIXES_R3`(끝에 지움).
+
+| 스크립트(Altibase) | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| `SELECT 4/2 AS q FROM dual` | 결과 4, 이어서 `2 AS q FROM dual` 구문 오류 | 결과 2 하나 |
+| `SELECT 10 / 5 AS a, '/x/' AS s FROM dual; -- a / comment` + `SELECT 3 AS b /* x / y */ FROM dual` | 10, 이어서 구문 오류 | 결과 2개(2와 `/x/`, 3) |
+| `CREATE OR REPLACE PROCEDURE … v := n / 2; PRINTLN(…); END;` + `/` + `SELECT 8/4 … FROM dual` + `/` | (확인하지 않음) | 프로시저 만들어짐(`SYS_PROCEDURES_`에 있음), 다음 문장 결과 2 |
+| `EXEC chr_small_fixes_r3.p_r3(9)` | | Server Output `half=4` |
+| `SET SERVEROUTPUT ON` + `PROMPT …` | 구문 오류 | 같음(iSQL에 없는 명령, 위 "다른 DB") |
+
+Oracle(공유 규칙으로 옮긴 뒤): `SELECT 10 … FROM dual` / `/` / `SELECT 20/4 …` / `/` / `BEGIN NULL; END;` / `/` / `SELECT 4/2 …;` → 결과 10, 5, 명령 완료, 2.
+증거 `D:\Tools\_scratch\small-fixes-r3\sheets\80-*.log.txt`.
+
 ## 변경 이력
 
 - 2026-11-11 최초 작성: Oracle 쿼리 창의 SQL*Plus 명령(`SET SERVEROUTPUT`, `SET DEFINE`, 화면 `SET`, `PROMPT`, `EXEC`, `SPOOL`)과 `/` 줄
   (앱 변경 #46, `chromite/oracle-sqlplus`)
 - 2026-11-12 실제 Oracle(GCP 테스트 VM)에서 확인, #226 결과 영역에서 안내는 Messages·DBMS_OUTPUT은 Server Output 탭으로 가는 것 확인
+- 2026-11-12 앱 변경 #80(`chromite/small-fixes-r3`): `/` 줄 규칙을 `model.sql`의 `SQLSlashLineRule`로 옮겨 Altibase도 씀, Altibase 문장 구분자에서 `/`를 뺌.
+  "다른 DB"의 Altibase와 "확인 (2026-11-12, Altibase)" 절. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·Altibase 스크립트의 문장 나누기.

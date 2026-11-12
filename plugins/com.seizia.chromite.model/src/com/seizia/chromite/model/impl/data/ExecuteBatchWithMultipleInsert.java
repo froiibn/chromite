@@ -36,6 +36,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Inserts the rows with multi-row INSERT statements ({@code INSERT ... VALUES (...), (...)}).
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 실패해도 행을 버리지 않고 실패한 범위를 남김({@code ExecuteBatchImpl.finishExecution}). 전에는 실패한
+ *   실행의 행을 모두 남긴 채 처음부터 다시 실행해, 자동 커밋이면 이미 실행한 문장의 행이 다시 시도·복구 때 두 번 들어갔고, 건너뛰기가
+ *   아무 행도 빼지 못해 다시 시도와 같았다 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ */
 public class ExecuteBatchWithMultipleInsert extends ExecuteInsertBatchImpl {
 
     private final DBCExecutionSource source;
@@ -101,33 +109,50 @@ public class ExecuteBatchWithMultipleInsert extends ExecuteInsertBatchImpl {
         boolean skipBindValues = CommonUtils.toBoolean(options.get(DBSDataManipulator.OPTION_SKIP_BIND_VALUES));
 
         int rowsCount = values.size();
+        // The statements a failed execution already executed are not run again; each statement carries the rows from
+        // applied to the row before the next statement starts
+        int applied = getAppliedRowCount();
+        int failFrom = applied;
+        int failTo = applied;
+        boolean completed = false;
         List<Object> multiRowInsertBatchValuesList = new ArrayList<>();
-        for (int i = 0; i < rowsCount; i++) {
-            if (session.getProgressMonitor().isCanceled()) {
-                break;
-            }
-            Object[] objects = values.get(i);
-            // Execute batch if it has a suitable size, or this are the last values
-            if (i == rowsCount - 1 || (i != 0 && i % multiRowInsertBatchSize == 0)) {
-                // We can reuse statement, but not for the last values (their amount can be different from previous batches)
-                if (i == rowsCount - 1) {
-                    Collections.addAll(multiRowInsertBatchValuesList, objects);
-                    Object[] allMultiInsertValues = multiRowInsertBatchValuesList.toArray(new Object[0]);
-                    try (DBCStatement statement = prepareStatement(session, handlers, allMultiInsertValues, options)) {
-                        bindAndFlushStatement(handlers, statistics, statement, allMultiInsertValues, skipBindValues);
+        try {
+            for (int i = applied; i < rowsCount; i++) {
+                if (session.getProgressMonitor().isCanceled()) {
+                    break;
+                }
+                Object[] objects = values.get(i);
+                // Execute batch if it has a suitable size, or this are the last values
+                if (i == rowsCount - 1 || (i != applied && i % multiRowInsertBatchSize == 0)) {
+                    // We can reuse statement, but not for the last values (their amount can be different from previous batches)
+                    if (i == rowsCount - 1) {
+                        Collections.addAll(multiRowInsertBatchValuesList, objects);
+                        Object[] allMultiInsertValues = multiRowInsertBatchValuesList.toArray(new Object[0]);
+                        failFrom = applied;
+                        failTo = i + 1;
+                        try (DBCStatement statement = prepareStatement(session, handlers, allMultiInsertValues, options)) {
+                            bindAndFlushStatement(handlers, statistics, statement, allMultiInsertValues, skipBindValues);
+                            multiRowInsertBatchValuesList.clear();
+                            applied = i + 1;
+                            break;
+                        }
+                    }
+                    Object[] allMultiInsertValuesBatch = multiRowInsertBatchValuesList.toArray(new Object[0]);
+                    failFrom = applied;
+                    failTo = i;
+                    try (DBCStatement batchStatement = prepareStatement(session, handlers, allMultiInsertValuesBatch, options)) {
+                        bindAndFlushStatement(handlers, statistics, batchStatement, allMultiInsertValuesBatch, skipBindValues);
                         multiRowInsertBatchValuesList.clear();
-                        break;
+                        applied = i;
                     }
                 }
-                Object[] allMultiInsertValuesBatch = multiRowInsertBatchValuesList.toArray(new Object[0]);
-                try (DBCStatement batchStatement = prepareStatement(session, handlers, allMultiInsertValuesBatch, options)) {
-                    bindAndFlushStatement(handlers, statistics, batchStatement, allMultiInsertValuesBatch, skipBindValues);
-                    multiRowInsertBatchValuesList.clear();
-                }
+                Collections.addAll(multiRowInsertBatchValuesList, objects);
             }
-            Collections.addAll(multiRowInsertBatchValuesList, objects);
+            values.clear();
+            completed = true;
+        } finally {
+            finishExecution(completed, applied, failFrom, failTo);
         }
-        values.clear();
         return statistics;
     }
 

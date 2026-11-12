@@ -104,13 +104,15 @@ macOS의 업데이트는 실행 파일 이름을 쓰지 않는다: 확인(`MacUp
 
 ## 다음 버전에서 지울 것 (릴리스 체크리스트)
 
-이 변경이 처음 들어간 버전의 **다음 버전**에서:
+이 변경이 처음 들어간 버전(26.0.5)의 **다음 버전**(26.0.6)에서:
 
 - [ ] `tools/installer/legacy-launcher.nsi` 삭제.
 - [ ] `tools/installer/chromite.nsi`: `LEGACY_LAUNCHER` 요구와 정의 설명, `LEGACY_EXE`와 그 사용(`RemoveProgramFiles`의 세 `Delete`, `CheckInstDir`, `File "/oname=..."`), 변경 이력 줄은 남김.
 - [ ] `tools/installer/build-installer.ps1`: 시작 파일 만들기, `-LegacyLauncher`.
 - [ ] `.github/workflows/release.yml`: "Sign chromite-swing.exe (ours, the old-name starter)", 서명 확인의 시작 파일, 설치 확인의 시작 파일 두 줄, 2단계의 `-LegacyLauncher`.
-- [ ] `tools/release/deploy-chromite-site.ps1`: macOS zip 확인에서 `MacOS/chromite-swing` 허용을 지움(0.1.4 릴리스를 사이트만 다시 배포할 수 있게 남겨 둔 것, 새 실행 파일 이름의 릴리스가 배포된 뒤).
+- [x] `tools/release/deploy-chromite-site.ps1`: macOS zip 확인에서 `MacOS/chromite-swing` 허용을 지움(0.1.4 릴리스를 사이트만 다시 배포할 수 있게 남겨 둔 것).
+  26.0.5(이 변경이 처음 들어간 버전)에서 앞당겨 지웠다: 같은 버전에서 zip의 옛 묶음 이름 `ChromiteSwing.app` 허용을 지워 0.1.4 zip은 어차피 거부되므로
+  옛 실행 파일 이름 허용이 쓰일 곳이 없어졌다(2026-11-12 `chromite/release-26-0-5`, [distribution.md](distribution.md) "macOS 앱 이름").
 - [ ] 이 문서와 [distribution.md](distribution.md)의 설명.
 
 그 뒤 0.1.4에서 바로 그 버전으로 올리는 Windows 설치본은 업데이트 뒤 앱이 다시 뜨지 않는다(설치는 됨, 시작 메뉴로 열면 된다). 이 버전의 제거 프로그램이 업그레이드 때
@@ -164,3 +166,4 @@ DBeaver의 런처 이름은 `dbeaver`(DBeaver 제품 파일)이고 이 저장소
 ## 변경 이력
 
 - 2026-11-12 최초 작성(앱 변경 #65): 런처 이름 `Chromite`, 0.1.4 업데이터를 위한 옛 이름 시작 파일(한 버전), 실제 설치·업데이트 확인.
+- 2026-11-12 처음 들어간 버전이 26.0.5(버전 체계 변경, 앱 변경 #63)임을 적고, 배포 스크립트의 `MacOS/chromite-swing` 허용을 26.0.5에서 지운 것을 체크리스트에 표시.

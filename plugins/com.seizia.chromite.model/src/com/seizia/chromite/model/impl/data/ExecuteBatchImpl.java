@@ -48,6 +48,10 @@ import java.util.Map;
  *   다시 시도와 자동 복구가 빈 목록을 실행하고 실패한 행(과 그 뒤 행)이 조용히 빠졌다. 이제 이미 실행한 앞 행 수
  *   ({@link #appliedRows})와 실패한 행의 범위를 기억해, 다음 실행은 실패한 행부터 하고, 건너뛰기({@link #skipFailedRows})는 실패한 행만
  *   버리며, 롤백된 뒤({@link #restoreAppliedRows})에는 앞 행부터 다시 한다 (docs/chromite/swing-data-transfer.md "한 행씩 넣기의 다시 시도와 복구")
+ * - 2026-11-12 Chromite: 실패한 실행의 행 범위를 호출자에게 알림({@link #getRowCount}, {@link #getAppliedRowCount},
+ *   {@link #getFailedRowCount}). 자동 커밋 넣기는 연결이 끊긴 묶음의 어느 원본 행이 결과를 모르는지 알려야 한다. 여러 행 INSERT
+ *   ({@code ExecuteBatchWithMultipleInsert})도 같은 기록을 남기도록 {@link #finishExecution}으로 뺌
+ *   (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
 */
 public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatch {
 
@@ -112,6 +116,38 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
     @Override
     public void restoreAppliedRows() {
         appliedRows = 0;
+    }
+
+    @Override
+    public int getRowCount() {
+        return values.size();
+    }
+
+    @Override
+    public int getAppliedRowCount() {
+        return appliedRows;
+    }
+
+    @Override
+    public int getFailedRowCount() {
+        return failedTo - failedFrom;
+    }
+
+    /**
+     * Records how an execution ended, for the next one and for the caller: completed (the rows are done), or failed
+     * after executing the first {@code applied} rows, on the rows from {@code failFrom} to {@code failTo} (exclusive).
+     */
+    protected void finishExecution(boolean completed, int applied, int failFrom, int failTo) {
+        if (completed) {
+            appliedRows = 0;
+            failedFrom = 0;
+            failedTo = 0;
+        } else {
+            // Kept for Retry and the recovery: they go on from the failed row
+            appliedRows = applied;
+            failedFrom = failFrom;
+            failedTo = failTo;
+        }
     }
 
     /**
@@ -262,16 +298,7 @@ public abstract class ExecuteBatchImpl implements DBSDataManipulator.ExecuteBatc
             if (reuseStatement && statement != null) {
                 DBUtils.closeSafely(statement);
             }
-            if (completed) {
-                appliedRows = 0;
-                failedFrom = 0;
-                failedTo = 0;
-            } else {
-                // Kept for Retry and the recovery: they go on from the failed row
-                appliedRows = applied;
-                failedFrom = failFrom;
-                failedTo = failTo;
-            }
+            finishExecution(completed, applied, failFrom, failTo);
         }
 
         return statistics;

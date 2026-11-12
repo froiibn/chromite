@@ -19,6 +19,12 @@ package com.seizia.chromite.model.sql.messages;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * Messages of the SQL model.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 실행 중 연결이 끊긴 쿼리의 문구(model_sql_exec_lost_*) 추가 (앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ */
 public class ModelSQLMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.model.sql.messages.ModelSQLResources"; //$NON-NLS-1$
 
@@ -47,6 +53,14 @@ public class ModelSQLMessages extends NLS {
     public static String model_sql_exec_confirm_message;
     public static String model_sql_exec_many_results_title;
     public static String model_sql_exec_many_results_message;
+
+    // A lost connection during a query (com.seizia.chromite.model.sql.exec.SQLQueryRecovery)
+    public static String model_sql_exec_lost_not_run_again;
+    public static String model_sql_exec_lost_outcome_unknown;
+    public static String model_sql_exec_lost_part_may_have_run;
+    public static String model_sql_exec_lost_ran_again;
+    public static String model_sql_exec_lost_transaction;
+    public static String model_sql_exec_lost_transaction_unknown;
 
     static {
         // initialize resource bundle

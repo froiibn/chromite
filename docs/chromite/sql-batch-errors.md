@@ -67,7 +67,8 @@ SELECT * FROM dbo.no_such_table;
 
 - **계속 읽을지는 오류 자신과 원인만 보고 판단한다.** 원인 3 때문에 결과를 다 읽기 전에는 오류 도우미(`discoverErrorType`)를 부르거나 오류를 로그에 쓰지
   않는다(`Log`도 사슬을 쓴다). 대신 SQLSTATE로 연결 끊김(`08xxx`), 취소·시간 초과(`HY008`), jConnect 드라이버 오류(`JZ0xx`)를 가리고, 진행 모니터의 취소,
-  닫힌 문장, 연속 1000번 오류에서 멈춘다. 이때는 예전처럼 예외를 던지므로 그 경우만 실행기의 복구(다시 연결 후 다시 실행)가 동작한다.
+  닫힌 문장, 연속 1000번 오류에서 멈춘다. 이때는 예전처럼 예외를 던지므로 그 경우만 실행기의 복구가 동작한다. 2026-11-12부터 그 복구는 읽기만 하는
+  SELECT 하나만 다시 실행하고, 여러 문장 배치는 다시 실행하지 않는다([transactions.md](transactions.md) "연결이 끊긴 쿼리", 앱 변경 #86).
 - **모은 오류로는 복구나 스마트 커밋 되돌리기를 하지 않는다.** 배치의 앞 문장이 이미 실행됐으므로 다시 실행하면 두 번 실행되고, 자동 커밋으로 되돌리면
   열린 트랜잭션을 묻지 않고 커밋한다. 그래서 모은 오류는 실행 함수(`executor`) 밖에서 쿼리 실패로 만든다. 트랜잭션은 사용자가 상태 줄이나 Query 메뉴로
   커밋·롤백한다(트랜잭션 안전 규칙).
@@ -183,6 +184,35 @@ GCP 테스트 VM(SQL Server 2022, 드라이버 13.4.0; PostgreSQL 17; MariaDB 11
 | Oracle, `DBMS_SQL.RETURN_RESULT` 두 개 | 첫 결과만(전·후 같음). Oracle 정보가 여러 결과를 지원하지 않는다고 함: 이 고침의 범위 밖 |
 | MySQL 8.4, Altibase | 실행하지 않음(MySQL 드라이버는 내려받아야 함, Altibase 드라이버는 따로 둠). 둘 다 새로 고침에서 `initialize()`를 부름(코드 확인) |
 
+## Oracle 암시적 결과 (2026-11-12, 앱 변경 #84, `chromite/small-fixes-r3`)
+
+- **결함:** 블록이나 프로시저가 `DBMS_SQL.RETURN_RESULT`로 결과를 둘 돌려주면 첫 결과만 보였다.
+- **근본 원인:** 엔진은 데이터 원본 정보가 여러 결과를 지원한다고 할 때만 다음 결과를 읽는다(`SQLQueryExecuteJob` 922행, 스크립트 작업 `SQLScriptProcessor` 339행,
+  아니면 `break`). `OracleDataSourceInfo`는 이 값을 정하지 않아 기본값 `false`(`JDBCDataSourceInfo.supportsMultipleResults`)였다. Oracle JDBC는 12c부터
+  암시적 결과를 `getMoreResults`로 차례로 준다.
+- **고침:** `OracleDataSourceInfo.supportsMultipleResults()`가 `true`.
+- **이 값이 바꾸는 곳(모두 확인):** ① `SQLQueryExecuteJob`: 결과·행 수를 읽은 뒤 `SQLBatchErrors.nextResults`로 다음 결과를 읽는다(SQL Server·PostgreSQL·MySQL과 같은 길).
+  최대 행 수에 걸린 뒤 다음 결과를 건너뛰는 `isMultipleResultsFailsOnMaxRows`는 기본 `false` 그대로. ② `SQLScriptProcessor`(SQL 스크립트 작업): 같은 다음 결과 읽기.
+  ③ `JDBCCallableStatementImpl.isParameterCursor`: 매개변수 형식이 `Types.REF_CURSOR`인 OUT 매개변수를 따로 오는 결과로 보고 출력 매개변수 결과에서 뺀다.
+  Oracle 드라이버는 OUT 커서를 이 형식으로 알리지 않아(아래 확인: 커서 열이 그대로 남음) 바뀌지 않았다.
+- **확인(Oracle 26ai Free, 이 브랜치 빌드와 고치기 전 빌드, 한국어 150%, 임시 스키마 `CHR_SMALL_FIXES_R3`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 익명 블록, 암시적 결과 2개 | 결과 1개 | 결과 탭 2개(Result 1, Result 2), 행 수 두 번 |
+| `BEGIN p_impl; END;`(프로시저가 결과 2개) | 결과 1개 | 결과 2개 |
+| `CALL p_impl()` | ORA-29478(서버가 CALL로는 암시적 결과를 줄 수 없음) | 같음 |
+| `{call p_out(?, ?)}`(OUT SYS_REFCURSOR, OUT NUMBER) | 출력 매개변수 결과 1행 2열(ref cursor, 42) | 같음 |
+| OUT 커서 프로시저를 부르는 블록 + `DBMS_OUTPUT` | Server Output `n=42` | 같음 |
+| 첫 결과 뒤 `RAISE_APPLICATION_ERROR` | ORA-20001만(서버가 블록 전체를 실패로 돌려줌) | 같음 |
+| INSERT 2·UPDATE·SELECT·DELETE 스크립트 | 행 수 1·1·2·2·2, 결과 표 1개 | 같음 |
+| 300행 SELECT(최대 200) → 다음 읽기 | 200행 "최대 행 수에서 멈춤" → 300행 | 같음 |
+| `SET SERVEROUTPUT ON` + `DBMS_OUTPUT` 두 줄 | Server Output 두 줄 | 같음 |
+| 연결 새로 고침 뒤, 다시 연결한 뒤 블록 | | 결과 2개 |
+
+  증거 `D:\Tools\_scratch\small-fixes-r3\sheets\84-*`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle(그리고 `OracleDataSource`를 물려받는 YashanDB 등, 확인하지 않음)의
+  쿼리 창 실행·SQL 스크립트 작업의 결과 읽기, Oracle 호출 문의 출력 매개변수.
+
 ## 한계
 
 - 프로시저 안의 오류 줄 번호는 SQL Server가 프로시저 본문 기준으로 알려 준다. 머리글의 줄은 그 숫자를 `EXEC` 문장 위치에 더해 계산하므로 편집기 줄과 맞지 않을 수 있다(전과 같음).
@@ -205,3 +235,4 @@ GCP 테스트 VM(SQL Server 2022, 드라이버 13.4.0; PostgreSQL 17; MariaDB 11
   (앱 변경 #76, "새로 고침 뒤 결과와 오류가 사라짐")
 - 2026-11-12 `SQLBatchErrors`를 공개하고 데이터 원본·모니터로 묻는 `canReadPast`를 더함: 에이전트 SQL 도구가 같은 규칙으로 오류 뒤 결과를 읽는다
   ([ai-agent.md](ai-agent.md) "배치의 부분 실패", 앱 변경 #83)
+- 2026-11-12 Oracle이 여러 결과를 지원한다고 알림: 둘째 암시적 결과가 보이지 않던 것(앱 변경 #84, `chromite/small-fixes-r3`), 위 "Oracle 암시적 결과".

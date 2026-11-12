@@ -36,6 +36,10 @@ import java.sql.SQLException;
 
 /**
  * MySQLExecutionContext
+ *
+ * 변경 이력:
+ * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
+ *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되었다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  */
 public class MySQLExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<MySQLCatalog, DBSSchema> {
     private static final Log log = Log.getLog(MySQLExecutionContext.class);
@@ -146,6 +150,16 @@ public class MySQLExecutionContext extends JDBCExecutionContext implements DBCEx
             activeDatabaseName = MySQLUtils.determineCurrentDatabase(session);
         } catch (DBException e) {
             throw new DBCException(e, this);
+        }
+        // A database created after the list was read (another session): read it, getDefaultCatalog looks in the cache.
+        // The main context opens inside the data source's constructor, before its caches exist (the list is read by initialize)
+        MySQLDataSource.CatalogCache catalogCache = getDataSource().getCatalogCache();
+        if (!CommonUtils.isEmpty(activeDatabaseName) && catalogCache != null) {
+            try {
+                catalogCache.getObjectReadingNew(monitor, getDataSource(), activeDatabaseName);
+            } catch (DBException e) {
+                log.debug("Error reading the database list again", e);
+            }
         }
 
         return true;

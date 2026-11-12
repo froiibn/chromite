@@ -62,6 +62,11 @@ import java.util.stream.Stream;
 
 /**
  * DriverDescriptor
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 연결 시도의 처음({@link #validateFilesPresence(DBRProgressMonitor, DBPDataSourceContainer)})에 드라이버 파일을 내려받지
+ *   않았으면 그 시도를 끝냄: 다운로드 질문에서 취소해도 연결 단계마다 다시 물어 한 번의 연결에 질문이 세 번 떴다(앱 변경 #85,
+ *   docs/chromite/drivers.md "내려받기를 취소하면")
  */
 public class DriverDescriptor extends AbstractDescriptor implements DBPDriver {
     private static final Log log = Log.getLog(DriverDescriptor.class);
@@ -1242,12 +1247,21 @@ public class DriverDescriptor extends AbstractDescriptor implements DBPDriver {
         return loaders;
     }
 
+    /**
+     * The start of a connection attempt: the missing driver files are asked for once, and when they were not downloaded
+     * the attempt ends here ({@link DriverLoaderDescriptor#checkFilesPresence}).
+     */
     @Override
     public void validateFilesPresence(
         @NotNull DBRProgressMonitor monitor,
         @NotNull DBPDataSourceContainer dataSourceContainer
-    ) {
-        getDriverLoader(dataSourceContainer).validateFilesPresence(monitor);
+    ) throws DBException {
+        DBPDriverLoader loader = getDriverLoader(dataSourceContainer);
+        if (loader instanceof DriverLoaderDescriptor loaderDescriptor) {
+            loaderDescriptor.checkFilesPresence(monitor);
+        } else {
+            loader.validateFilesPresence(monitor);
+        }
     }
 
     @Override

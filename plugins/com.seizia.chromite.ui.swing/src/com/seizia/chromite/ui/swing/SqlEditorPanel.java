@@ -56,6 +56,7 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCCachedContextDefaults;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
@@ -357,6 +358,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   서버가 없는 창도 도구 막대의 연결 변경 단추로 서버를 고름 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  * - 2026-11-12 창의 서버를 세션 문맥에 알림({@code QueryWindowContext.setServer}): 연결 변경·창 닫기 전에 시작된 작업이 옛 서버에 세션을 열지 않게
  *   (docs/chromite/transactions.md "늦은 작업의 세션")
+ * - 2026-11-12 DB 선택: 서버가 알려 준 현재 DB·스키마가 목록에 없으면(Object Explorer 필터로 숨김, DB 하나만 보이는 연결) "&lt; N/A &gt;" 대신 그 이름을
+ *   글로 보임({@code getUnlistedDefaultName}). 상태 줄도 그 이름 (앱 변경 #79 검토 후속, docs/chromite/swing-sql-editor-session-ui.md "다시 읽어도 없는 이름")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -3115,7 +3118,11 @@ final class SqlEditorPanel extends JPanel {
         } else if (model.getSize() == 0) {
             model.addElement(NOT_AVAILABLE);
         } else if (selected == NOT_AVAILABLE) {
-            model.insertElementAt(NOT_AVAILABLE, 0);
+            // The session's current database or schema that the list does not hold (hidden by an Object Explorer filter,
+            // a connection that lists one database): its name as the server reported it. Choosing it changes nothing
+            String unlisted = contextDefaults == null ? null : getUnlistedDefaultName(contextDefaults, model);
+            selected = unlisted != null ? unlisted : NOT_AVAILABLE;
+            model.insertElementAt(selected, 0);
         }
         updatingCombos = true;
         try {
@@ -3127,6 +3134,17 @@ final class SqlEditorPanel extends JPanel {
         schemaChangeSupported = supported;
         schemaCombo.setEnabled(execution == null && supported);
         statusLine.setDatabase(selected instanceof DBSObject object ? object.getName() : selected != NOT_AVAILABLE ? selected.toString() : null);
+    }
+
+    /**
+     * The name of the session's current database (when the picker lists databases) or schema, as the context last read it
+     * from the server ({@link DBCExecutionContextDefaults#getCachedDefault}), for a default the picker's list does not hold.
+     */
+    @Nullable
+    private static String getUnlistedDefaultName(@NotNull DBCExecutionContextDefaults<?, ?> defaults, @NotNull DefaultComboBoxModel<Object> model) {
+        DBCCachedContextDefaults cached = defaults.getCachedDefault();
+        String name = model.getElementAt(0) instanceof DBSCatalog ? cached.catalogName() : cached.schemaName();
+        return CommonUtils.isEmpty(name) ? null : name;
     }
 
     /**

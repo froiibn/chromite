@@ -61,6 +61,7 @@ public class RegistryMessages extends NLS {
 
     public static String driver_offline_files_missing;
     public static String driver_offline_download_blocked;
+    public static String driver_files_not_downloaded;
 
     public static String driver_bundle_invalid;
     public static String driver_bundle_invalid_zip;

@@ -43,6 +43,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Altibase SQL dialect.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 문장 구분자의 {@code /}를 지움(기본 {@code ;}만). {@code /}만 있는 줄은 방언 규칙
+ *   ({@code AltibaseDialectRules}, {@code SQLSlashLineRule})이 문장 끝으로 본다. 구분자에 {@code /}가 있으면 나눗셈에서도 문장이 끊겼다
+ *   ({@code SELECT 4/2 AS q FROM dual}, 앱 변경 #80, docs/chromite/oracle-sqlplus-commands.md "Altibase")
+ */
 public class AltibaseSQLDialect extends JDBCSQLDialect 
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
 
@@ -409,12 +417,6 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         return ALTIBASE_NON_TRANSACTIONAL_KEYWORDS;
     }
     
-    @NotNull
-    @Override
-    public String[] getScriptDelimiters() {
-        return new String[]{";", "/"};
-    }
-
     @Override
     public boolean supportsInsertAllDefaultValuesStatement() {
         return false;

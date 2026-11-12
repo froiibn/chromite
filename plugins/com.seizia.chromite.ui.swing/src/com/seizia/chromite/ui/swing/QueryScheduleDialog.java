@@ -26,6 +26,8 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.time.LocalTime;
@@ -48,8 +50,13 @@ import java.util.Map;
  *   GridBagLayout이 모든 칸을 최소 크기로 놓는데 스크롤 창의 최소 높이가 한 줄이었다. 두 목록에 최소 높이와 세로 가중치를 줌
  *   (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 Parameters 목록의 두 열을 머리글과 값의 폭으로({@link #sizeParameterColumns}): 표가 폭을 반씩 나눠 영어 머리글이
+ *   "Value for scheduled r…"로 잘렸다(앱 변경 #81, docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryScheduleDialog extends JDialog {
+
+    // Room around a Parameters column's text (cell margins and the header's sort area)
+    private static final int COLUMN_PADDING = 12;
 
     /**
      * Condition choices: label and the subject/operator of the file's condition text.
@@ -174,7 +181,7 @@ final class QueryScheduleDialog extends JDialog {
         parametersTable.setRowHeight(Math.max(parametersTable.getRowHeight(), 24));
         parametersTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
         JScrollPane parametersScroll = new JScrollPane(parametersTable);
-        parametersScroll.setPreferredSize(new Dimension(260, 90));
+        parametersScroll.setPreferredSize(new Dimension(Math.max(260, sizeParameterColumns()), 90));
         parametersScroll.setMinimumSize(new Dimension(160, 70));
 
         QueryLibrarySchedule.Condition condition = schedule.getCondition();
@@ -268,6 +275,30 @@ final class QueryScheduleDialog extends JDialog {
             return new Result(null, false);
         }
         return dialog.result != null ? new Result(dialog.result, dialog.activeBox.isSelected()) : null;
+    }
+
+    /**
+     * Gives each Parameters column the width of its header and values (the table splits its width in equal halves, which
+     * cut the longer header: "Value for scheduled r…" in English).
+     *
+     * @return the width of the list that shows both columns whole, with a vertical scroll bar
+     */
+    private int sizeParameterColumns() {
+        int total = 0;
+        TableCellRenderer headerRenderer = parametersTable.getTableHeader().getDefaultRenderer();
+        for (int column = 0; column < parametersTable.getColumnCount(); column++) {
+            TableColumn tableColumn = parametersTable.getColumnModel().getColumn(column);
+            int width = headerRenderer.getTableCellRendererComponent(parametersTable, tableColumn.getHeaderValue(), false, false, -1, column)
+                .getPreferredSize().width;
+            for (int row = 0; row < parametersTable.getRowCount(); row++) {
+                width = Math.max(width, parametersTable.prepareRenderer(parametersTable.getCellRenderer(row, column), row, column)
+                    .getPreferredSize().width);
+            }
+            width += COLUMN_PADDING;
+            tableColumn.setPreferredWidth(width);
+            total += width;
+        }
+        return total + UIManager.getInt("ScrollBar.width") + COLUMN_PADDING; //$NON-NLS-1$
     }
 
     private void addTarget(@NotNull JPanel panel, @NotNull TargetChoice choice, boolean checked) {

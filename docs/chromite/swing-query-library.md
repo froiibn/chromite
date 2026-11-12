@@ -367,6 +367,11 @@ SELECT ...
 GridBagLayout은 모든 칸을 최소 크기로 놓는데, 스크롤 창의 최소 높이는 한 줄이라 Connections·Parameters 목록이 한 줄로 줄고 아래에 빈 띠가 남았다.
 두 목록에 최소 높이(몇 줄)와 세로 가중치를 주어 줄지 않게 하고, 창을 키우면 두 목록이 늘어난다.
 
+Parameters 열 폭(2026-11-12, 앱 변경 #81): 표가 목록 폭을 두 열에 반씩 나눠 영어 100%에서 머리글이 "Value for scheduled r…"로 잘렸다(목록 선호 폭 260 고정).
+이제 `QueryScheduleDialog.sizeParameterColumns`가 각 열의 선호 폭을 머리글과 값(매개변수 이름)의 렌더러 폭 + 12로 정하고, 목록의 선호 폭을
+그 합 + 세로 스크롤 막대 폭(최소 260)으로 한다. 문구는 바꾸지 않았다. 확인: 영어 100%·150%, 한국어 100%·150%에서 두 머리글이 모두 보임
+(`D:\Tools\_scratch\small-fixes-r3\sheets\81-schedule-parameters.png`). 회귀 테스트는 실행하지 않았다.
+
 파일 형식(`-- @schedule` 블록, 쿼리 머리말의 다른 항목과 같은 규칙):
 
 ```sql
@@ -665,3 +670,4 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
 - 2026-11-08 머리말 오른쪽 끝에 저장 아이콘 단추(Ctrl+S와 같은 동작, 고쳤을 때만 켜짐), Database·Schema 칸을 대상 연결의 목록이 있는 콤보로 바꿈(목록을 펼칠 때만 연결,
   연결이 쓰지 않는 칸은 끔). "머리말 저장 단추", "머리말 DB/스키마 목록".
 - 2026-11-08 기본 배치(앱 변경 #12): Query Library가 처음부터 보이고 오른쪽 열 위, 아래는 Chromite Agent, Properties는 숨김. "열기"에 표시(`chromite/ui-layout`).
+- 2026-11-12 예약 대화상자 Parameters 목록의 열 폭을 머리글·값의 폭으로(앱 변경 #81, `chromite/small-fixes-r3`). "예약 실행".

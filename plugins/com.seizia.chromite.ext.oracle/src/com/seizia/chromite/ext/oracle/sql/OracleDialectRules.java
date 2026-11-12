@@ -20,6 +20,7 @@ package com.seizia.chromite.ext.oracle.sql;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.sql.parser.rules.SQLSlashLineRule;
 import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
 import com.seizia.chromite.model.text.parser.*;
 
@@ -28,6 +29,7 @@ import com.seizia.chromite.model.text.parser.*;
 *
 * 변경 이력:
 * - 2026-11-11 Chromite: SQL*Plus 명령 줄과 {@code /}만 있는 줄({@link OracleSqlPlusRule}) (앱 변경 #46, docs/chromite/oracle-sqlplus-commands.md)
+* - 2026-11-12 Chromite: {@code /}만 있는 줄은 Altibase와 함께 쓰는 {@link SQLSlashLineRule}로 (앱 변경 #80)
 */
 public class OracleDialectRules implements TPRuleProvider {
 
@@ -38,7 +40,7 @@ public class OracleDialectRules implements TPRuleProvider {
             return new TPRule[]{ new QStringRule() };
         }
         if (position == RulePosition.CONTROL) {
-            return new TPRule[]{ new OracleSqlPlusRule() };
+            return new TPRule[]{ new SQLSlashLineRule(), new OracleSqlPlusRule() };
         }
         return new TPRule[0];
     }
