@@ -84,6 +84,36 @@
 연결 4개 + 연결 새로 고침 + 다시 연결 + 확인 중에 닫기 0.8초. 열린 트랜잭션과 저장하지 않은 쿼리 창은 둘 다 물었다(저장 안 함 → 롤백 → 끝).
 아무것도 없이 닫기 0.6초(느려지지 않음).
 
+## 원인 2: 두 번째 시작의 안내가 작업 표시줄에 없음
+
+### 근거
+
+- Chromite가 실행 중일 때 같은 설치본을 다시 시작하면(바로 가기를 두 번 누름, 시작이 느릴 때 다시 누름) 새 프로세스는 작업 공간을 잠그지 못하고
+  "작업 영역을 잠글 수 없음"을 보인다(`ChromiteSwingApplication.lockWorkspace` → `showStartupError`). 주 스레드는 이 창이 닫힐 때까지 기다린다
+  (덤프 `dumps\second-instance.txt`: `showStartupError` → `invokeAndWait`).
+- 이 창은 `JOptionPane.showMessageDialog(null, …)`라서 Swing의 숨은 공유 프레임(`SwingUtilities$SharedOwnerFrame`, 보이지 않음)이 소유한다.
+  소유된 창은 작업 표시줄 단추가 없다: 그 프로세스는 Windows가 보기에 주 창이 없다(`MainWindowHandle` 0, 0.1.4와 26.0.5 모두).
+  다른 창을 누르면 뒤로 숨고 다시 찾을 길이 없다. 첫 Chromite를 닫아도 이 프로세스는 `jvm.dll`을 쥔 채 남는다(0.1.4, 26.0.5에서 재현).
+- 같은 경로를 쓰는 안내: 플랫폼 초기화 실패(`app_error_init`), 업데이트를 적용하는 중의 시작(`update_applying_message`, `showStartupMessage`).
+
+### 고친 것
+
+- 주 창 없이 끝나는 시작의 안내를 **소유자 없는 자기 창**으로 띄운다(`ChromiteSwingApplication.showStartupDialog`): `new JDialog((Window) null, …)`.
+  소유자가 없는 대화상자는 Windows가 작업 표시줄 단추를 준다(같은 JBR로 확인: 공유 프레임 소유 0, 소유자 없음·`JFrame`은 주 창이 생김).
+  제목은 제품 이름 `Chromite`, 아이콘은 Chromite 창 아이콘, 열릴 때 앞으로 나온다(`toFront`). 오류의 제목(예: "작업 영역을 잠글 수 없음")은 첫 줄로 옮겼다.
+- 확인 단추·Esc·제목 표시줄 X로 닫으면 그 시작이 끝난다(지금처럼).
+- 업데이트 진행 창이 있는 첫 시작은 그 창이 실패를 보인다(`UpdateProgress.showStartFailure`, 바꾸지 않음).
+- 하지 않은 것(사용자 결정 대기): "이미 실행 중인 Chromite를 앞으로 가져오고 조용히 끝내기". 그러려면 실행 중인 인스턴스와 이야기할 통로가 있어야 한다
+  (작업 공간 `.metadata` 아래 로컬 소켓이나 이름 있는 파이프 서버와 그 포트 파일, 또는 Windows 창 메시지). 보안(같은 사용자만), 응답 없는 인스턴스(이번 결함처럼
+  창이 없는 프로세스)일 때의 처리, 다른 작업 공간(`-data`)을 쓰는 시작은 따로 열어야 하는지가 정할 거리다. SWT 판의 인스턴스 서버(두 번째 실행이 파일을 첫 창에 넘김)는
+  Swing에 없다([swt-parity/A-platform.md](swt-parity/A-platform.md) A-S4). 그 바탕인 `ApplicationInstanceServer`(`com.seizia.chromite.model.cli`)는 남아 있어 쓸 수 있다.
+
+### 확인 (고친 뒤)
+
+빌드한 제품으로 두 번 시작: 두 번째 프로세스에 주 창이 생긴다(`MainWindowHandle` ≠ 0, 제목 `Chromite`), 창 목록에서 그 대화상자는 소유자 없음·포커스·아이콘 9개.
+첫 Chromite를 닫아도 남지만 작업 표시줄에서 찾을 수 있고, 제목 표시줄 X(창 닫기 이벤트)로 닫으면 0.2초 만에 프로세스가 끝났다.
+화면(150%, 운영체제 테마가 어두움): `D:\Tools\_scratch\exit-leaves-process\run\second-instance-dev.png`.
+
 ## 업데이터에서 보이는 것 (자동 업데이트)
 
 - 도우미(PowerShell)와 앱의 사본은 끝나는 Chromite 프로세스(PID)를 300초까지 기다린 뒤 `setup.exe /S`를 실행한다(`UpdateApplier.WAIT_SECONDS`,
@@ -111,7 +141,11 @@ Alt+Tab에 "작업 영역을 잠글 수 없음" 창이 있는지(원인 2), (2) 
 - SQL Server: 받기만 하고 답하지 않는 서버에 연결하면 사전 로그인(`SQLServerConnection.prelogin`)이 190초 넘게 시간 제한 없이 기다렸다.
 - Altibase·Oracle: 말없이 사라진 서버의 연결을 닫을 때 드라이버가 읽기 시간 제한 없이 기다린다(Altibase `CmProtocol.disconnect`, keep-alive의 다시 연결 `handshake`).
   끝낼 때는 플랫폼의 끊기 시간 제한 5초와 "실행 중인 작업" 질문이 막는다.
+- 부모 창 없이 뜨는 그 밖의 대화상자(`SwingPlatformUI`가 주 창이 생기기 전이나 닫힌 뒤에 띄우는 것)도 공유 프레임 소유라 작업 표시줄에 없다.
+  재현한 경우는 없다.
 
 ## 변경 이력
 
 - 2026-11-12 최초 작성(앱 변경 #96, `chromite/exit-leaves-process`): 재현 결과, 원인 1(끝날 때 업데이트 확인을 기다림) 수정.
+- 2026-11-12 원인 2(두 번째 시작의 안내가 작업 표시줄에 없음) 수정: 시작 안내를 소유자 없는 자기 창으로.
+  주 창이 있을 때·닫힌 뒤 부모 없이 뜨는 `SwingPlatformUI`의 대화상자(공유 프레임 소유)는 이 수정 밖이다(아래 "범위 밖에서 본 것").
