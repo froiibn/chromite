@@ -50,6 +50,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * TaskRunJob
+ *
+ * 변경 이력(Chromite):
+ * - 2026-11-12 실행 기록의 "시작한 것"을 실행 알림이 정할 수 있게({@link DBTTaskExecutionListener#getStartedBy}, 예약 실행), 처리기 전에
+ *   알림의 사전 확인({@link DBTTaskExecutionListener#checkBeforeRun})을 부름(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
 
@@ -60,6 +64,8 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
     private final TaskImpl task;
     private final Locale locale;
     private final DBTTaskExecutionListener executionListener;
+    // Kept in the run record: the product for a run by the user, or what the listener names (the scheduler)
+    private final String startedBy;
     private Log taskLog = log;
     private volatile DBRProgressMonitor activeMonitor;
     private volatile boolean cancellationRequested;
@@ -80,6 +86,7 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
         this.task = task;
         this.locale = locale;
         this.executionListener = new LoggingExecutionListener(executionListener);
+        this.startedBy = CommonUtils.toString(executionListener.getStartedBy(), GeneralUtils.getProductTitle());
 
     }
 
@@ -109,7 +116,7 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
             runId,
             startTime,
             System.getProperty(StandardConstants.ENV_USER_NAME),
-            GeneralUtils.getProductTitle(),
+            startedBy,
             null, null);
         executionHistory = new QMTaskExecution(task, taskRun);
         try {
@@ -178,6 +185,7 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
         @NotNull PrintStream logWriter
     ) throws DBException, InterruptedException {
         activeMonitor = monitor;
+        executionListener.checkBeforeRun(task);
         DBTaskUtils.confirmTaskOrThrow(task, taskLog, logWriter);
         DBTTaskHandler taskHandler = task.getType().createHandler();
         DBTTaskRunStatus taskStatus = taskHandler.executeTask(this, task, locale, taskLog, logWriter, executionListener);
@@ -228,6 +236,11 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
         @Override
         public void subTaskFinished(@Nullable DBTTask task, @Nullable Throwable error, @Nullable Object settings) {
             parent.subTaskFinished(task, error, settings);
+        }
+
+        @Override
+        public void checkBeforeRun(@NotNull DBTTask task) throws DBException {
+            parent.checkBeforeRun(task);
         }
     }
 

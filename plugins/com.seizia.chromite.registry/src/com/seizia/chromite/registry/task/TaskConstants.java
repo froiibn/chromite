@@ -33,6 +33,8 @@ public class TaskConstants {
     static final String TAG_CREATE_TIME = "createTime";
     static final String TAG_UPDATE_TIME = "updateTime";
     static final String TAG_STATE = "state";
+    // Chromite: the in-app schedule of a task (docs/chromite/task-scheduling.md)
+    static final String TAG_SCHEDULE = "schedule";
 
     static final String TAG_PARENT = "parent";
     static final String TAG_MAX_EXEC_TIME = "maxExecutionTime";

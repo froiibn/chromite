@@ -33,6 +33,9 @@ import java.util.Map;
 
 /**
  * Task configuration
+ *
+ * 변경 이력(Chromite):
+ * - 2026-11-12 {@link #getSchedule}/{@link #setSchedule}: 앱 안 예약을 작업과 함께 저장(앱 변경 #104, docs/chromite/task-scheduling.md "저장")
  */
 public interface DBTTask extends DBPNamedObject, DBPObjectWithDescription {
     @NotNull
@@ -57,6 +60,16 @@ public interface DBTTask extends DBPNamedObject, DBPObjectWithDescription {
     Map<String, Object> getProperties();
 
     void setProperties(@NotNull Map<String, Object> properties);
+
+    /**
+     * Chromite: the in-app schedule of the task as keys and values ({@code every}/{@code daily}/{@code weekdays}, {@code enabled},
+     * {@code since}); empty when the task has none. Saved with the task, apart from the handler settings ({@link #getProperties}),
+     * which the task editors replace as a whole. The front-end scheduler reads it (docs/chromite/task-scheduling.md).
+     */
+    @NotNull
+    Map<String, String> getSchedule();
+
+    void setSchedule(@NotNull Map<String, String> schedule);
 
     boolean isTemporary();
 

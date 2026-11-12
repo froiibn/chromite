@@ -42,6 +42,9 @@ import java.util.stream.Stream;
 
 /**
  * TaskImpl
+ *
+ * 변경 이력(Chromite):
+ * - 2026-11-12 앱 안 예약({@link #getSchedule}, tasks.json의 {@code schedule}) (앱 변경 #104, docs/chromite/task-scheduling.md "저장")
  */
 public class TaskImpl implements DBTTask, DBPNamedObject2 {
     public static String META_FILE_NAME = "meta.json";
@@ -61,6 +64,8 @@ public class TaskImpl implements DBTTask, DBPNamedObject2 {
     private Date updateTime;
     private DBTTaskType type;
     private Map<String, Object> properties;
+    // Chromite: the in-app schedule, saved next to the properties (docs/chromite/task-scheduling.md)
+    private Map<String, String> schedule = new LinkedHashMap<>();
     private volatile List<DBTTaskRun> runs;
     private DBTTaskFolder taskFolder;
     private Duration maxExecutionTime = Duration.ZERO;
@@ -265,6 +270,17 @@ public class TaskImpl implements DBTTask, DBPNamedObject2 {
     @Override
     public void setProperties(@NotNull Map<String, Object> properties) {
         this.properties = new LinkedHashMap<>(properties);
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getSchedule() {
+        return schedule;
+    }
+
+    @Override
+    public void setSchedule(@NotNull Map<String, String> schedule) {
+        this.schedule = new LinkedHashMap<>(schedule);
     }
 
     @Override
