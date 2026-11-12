@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
  * [연결 변경] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
- * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
+ * [Decrease Indent] [Increase Indent] │ [Format SQL] [Compare] │ [Query History].
  *
  * 설계:
  * <ul>
@@ -61,7 +61,8 @@ import java.util.List;
  *     키보드 Tab은 DB/스키마 콤보부터다.</li>
  *     <li>편집 명령(주석, 들여쓰기, 서식)과 Query History는 이 막대의 동작이고, 활성 쿼리 창이 없으면 꺼진다. 편집 명령은
  *     Edit &gt; Advanced와 같은 명령({@link SqlEditorPanel.SqlTextArea#runCommand})이다.</li>
- *     <li>활성 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS).</li>
+ *     <li>활성 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS). 비교 단추만은 활성 창이 아니라 열린 창 수를
+ *     따른다(글이 있는 창이 둘 이상이면 켜짐, DDL 탭끼리도 비교한다).</li>
  *     <li>모양은 주 도구 막대와 같다(캔버스 위, 투명, {@link OverflowToolBar}로 좁은 창에서 콤보를 먼저 줄이고 넘치는 단추는 » 메뉴).
  *     여백은 28px 콤보가 들어가는 {@code size.toolbar.editor}라 주 도구 막대({@code size.toolbar.main})와 같은 높이(밀도 B 32)다.</li>
  * </ul>
@@ -84,6 +85,7 @@ import java.util.List;
  *   처리 삭제 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 Query 메뉴·Edit &gt; Advanced의 이름과 단축키로(같은 메시지 키, 앱 변경 #103)
  *   (docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-12 Format SQL 옆에 비교 단추(열린 두 창의 글 비교, {@link TextCompareCommand}, 앱 변경 #105) (docs/chromite/text-compare.md)
  */
 final class SqlEditorToolBar {
 
@@ -109,6 +111,7 @@ final class SqlEditorToolBar {
      * @param rollbackAction      Query &gt; Roll Back
      * @param commitModeAction    Query &gt; Auto-Commit (with {@link Action#SELECTED_KEY})
      * @param openQueryHistory    Query &gt; Query History
+     * @param compareAction       Query &gt; Compare… (two open windows, {@link TextCompareCommand})
      */
     SqlEditorToolBar(
         @NotNull Action changeConnectionAction,
@@ -119,7 +122,8 @@ final class SqlEditorToolBar {
         @NotNull Action commitAction,
         @NotNull Action rollbackAction,
         @NotNull Action commitModeAction,
-        @NotNull Runnable openQueryHistory
+        @NotNull Runnable openQueryHistory,
+        @NotNull Action compareAction
     ) {
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
         toolBar.setOpaque(false);
@@ -156,6 +160,11 @@ final class SqlEditorToolBar {
         toolBar.addSeparator();
         toolBar.add(createCommandButton(EditorMessages.editor_edit_format_sql, SqlEditorPanel.SqlTextArea.getChordText(KeyEvent.VK_D), "format", //$NON-NLS-1$
             SqlEditorPanel.SqlTextArea.Command.FORMAT));
+        // Next to Format SQL (app change #105): enabled with two open windows of text, not by the active query window. Its
+        // tool tip is the name, or the name and why it is off (the action's description)
+        JButton compareButton = UiIcons.createActionButton(compareAction, "compare"); //$NON-NLS-1$
+        compareButton.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
+        toolBar.add(compareButton);
         toolBar.addSeparator();
         Action historyAction = createEditorAction(CoreMessages.main_query_history, null, openQueryHistory);
         toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$

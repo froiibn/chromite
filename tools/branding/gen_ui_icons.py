@@ -308,6 +308,7 @@ CONCEPTS = [
     ("indent", "들여쓰기", "Increase indent", "indent-increase"),
     ("outdent", "내어쓰기", "Decrease indent", "indent-decrease"),
     ("format", "SQL 서식 지정", "Format SQL", "align-left (indented lines)"),
+    ("compare", "비교", "Compare (two windows side by side)", "columns-2 + a changed line on each side"),
     ("overflow", "더 보기", "More (tool bar overflow)", "chevrons-right"),
     # Execution plan: copy of the raw plan, and the operators of the graphical plan (drawn 2x in the diagram)
     ("copy", "복사", "Copy", "copy"),
@@ -482,6 +483,11 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     # Format SQL: keyword lines (blue) around indented lines, as formatted SQL looks
     I["format"] = svg(path("M2 3.5H9M2 12.5H8", None, blue, sw, cap="butt")
                       + path("M4.5 6.5H13M4.5 9.5H11", None, n, sw, cap="butt"))
+    # Compare: two sheets side by side (left neutral, right blue), the middle line changed (green left, red right as the
+    # compare view paints them)
+    I["compare"] = svg(rect(1.5, 2.5, 5.5, 11, 1, doc_fill, n, sw) + rect(9, 2.5, 5.5, 11, 1, blue_fill, blue, sw)
+                       + path("M3 5.5H5.5M3 10.5H5.5", None, n, sw, cap="butt") + path("M10.5 5.5H13M10.5 10.5H13", None, blue, sw, cap="butt")
+                       + path("M3 8H5.5", None, green, sw, cap="butt") + path("M10.5 8H13", None, red, sw, cap="butt"))
     # Tool bar overflow button: Tabler chevrons-right
     I["overflow"] = svg(path("M3.5 4.5L7 8L3.5 11.5M8.5 4.5L12 8L8.5 11.5", None, n, sw))
     # AI assistant: the speech bubble of "messages" with a four-point sparkle instead of the text lines

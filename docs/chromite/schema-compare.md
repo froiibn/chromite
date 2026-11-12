@@ -30,7 +30,7 @@ SSMS·Visual Studio의 Schema Compare, DataGrip의 "Compare Content / Migrate"�
 | | `SchemaScriptGenerator` | 고른 항목의 스크립트(실행 동작 목록)와 머리말 주석 |
 | | `SchemaCompareMessages` | 스크립트 주석 문구(영어, `_ko` 한국어) |
 | `ext.mssql` | `SQLServerTableColumnManager` | 기본값 제약 조건이 있는 열 바꾸기 순서(아래 "SQL Server 기본값 제약 조건") |
-| `ui.swing` | `SchemaComparePanel` | 문서 탭(`ToolDocument`): 원본·대상 고르기, 비교, 결과 트리(확인란), 두 DDL 나란히 보기, Generate Script |
+| `ui.swing` | `SchemaComparePanel` | 문서 탭(`ToolDocument`): 원본·대상 고르기, 비교, 결과 트리(확인란), 두 DDL 나란히 보기(`TextDiffView`, [text-compare.md](text-compare.md)), Generate Script |
 | | `SourceScripts.generateContainerScript` | 스크립트 글: Modify와 같은 구분자(SQL Server `GO`, MySQL `DELIMITER`)와 대상 DB 맞추기(`USE`, 기본 문맥) |
 | | `internal/CompareMessages` | 화면 문구(영어, `_ko` 한국어) |
 | | `MainFrame`, `ObjectExplorerPanel` | Tools 메뉴와 Object Explorer 메뉴의 Compare Schemas… (`QueryWindows.openToolDocument`로 탭 열기) |
@@ -49,7 +49,9 @@ SSMS·Visual Studio의 Schema Compare, DataGrip의 "Compare Content / Migrate"�
   - 확인란(누르기 또는 Space)으로 스크립트에 넣을 항목을 고른다. 테이블·묶음의 확인란은 아래 항목을 모두 켜거나 끈다.
   - 대상에만 있는 항목은 처음에 꺼져 있고, 도구 설명이 "체크하면 DROP 문이 들어가고 실행하면 데이터를 잃는다"고 알린다.
 - 아래: 고른 항목의 원본·대상 DDL을 나란히 보인다(열·키·트리거는 그 테이블). 다른 줄을 칠하고(원본 초록, 대상 빨강, 반투명) 첫 다른 줄로 옮긴다.
-  같은 종류 DB면 원본 DDL의 스키마 이름을 대상 이름으로 바꿔 보인다(머리글에 표시). 줄 비교는 최장 공통 부분열(LCS)이고, 줄 수의 곱이 4백만을 넘으면 같은 위치끼리 비교한다.
+  같은 종류 DB면 원본 DDL의 스키마 이름을 대상 이름으로 바꿔 보인다(머리글에 표시). 보기는 텍스트 비교와 함께 쓰는 `TextDiffView`다([text-compare.md](text-compare.md)):
+  줄 앞뒤 공백을 무시한 Myers 줄 비교(EDT 밖), 좌우를 맞춘 빈 행, 바뀐 낱말의 진한 표시, 스크롤 맞춤, 오른쪽 개요 띠. 2026-11-12 전에는 줄 단위 최장 공통 부분열(LCS)이었고
+  줄 수의 곱이 4백만을 넘으면 같은 위치끼리 비교했다.
 - 아래 상태 줄: `차이 n개, 같은 객체 m개`(다른 종류 DB면 비교하지 않은 정의 수도), 오른쪽 **Generate Script(스크립트 만들기)**.
 
 ## 비교 (`SchemaComparer`)
@@ -168,3 +170,5 @@ SQL Server 2022(`chr_schema_compare` DB의 `cmp_ms` 스키마). 화면 문구는
 ## 변경 이력
 
 - 2026-11-08 최초 작성 (`chromite/schema-compare`). SQL Server 열 관리자의 기본값 제약 조건 순서 고침(위 "SQL Server 기본값 제약 조건").
+- 2026-11-12 DDL 나란히 보기를 텍스트 비교와 함께 쓰는 `TextDiffView`로(앱 변경 #105, `chromite/text-compare`): LCS를 지우고 모델의 Myers `Diff`, 색·줄 앞뒤 공백 무시·첫 차이로 이동은 그대로,
+  좌우 맞춤 빈 행·낱말 표시·스크롤 맞춤·개요 띠가 더해짐([text-compare.md](text-compare.md) "스키마 비교와 함께 쓰기").
