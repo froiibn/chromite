@@ -110,6 +110,7 @@ macOS의 업데이트는 실행 파일 이름을 쓰지 않는다: 확인(`MacUp
 - [ ] `tools/installer/chromite.nsi`: `LEGACY_LAUNCHER` 요구와 정의 설명, `LEGACY_EXE`와 그 사용(`RemoveProgramFiles`의 세 `Delete`, `CheckInstDir`, `File "/oname=..."`), 변경 이력 줄은 남김.
 - [ ] `tools/installer/build-installer.ps1`: 시작 파일 만들기, `-LegacyLauncher`.
 - [ ] `.github/workflows/release.yml`: "Sign chromite-swing.exe (ours, the old-name starter)", 서명 확인의 시작 파일, 설치 확인의 시작 파일 두 줄, 2단계의 `-LegacyLauncher`.
+- [ ] `tools/release/deploy-chromite-site.ps1`: macOS zip 확인에서 `MacOS/chromite-swing` 허용을 지움(0.1.4 릴리스를 사이트만 다시 배포할 수 있게 남겨 둔 것, 새 실행 파일 이름의 릴리스가 배포된 뒤).
 - [ ] 이 문서와 [distribution.md](distribution.md)의 설명.
 
 그 뒤 0.1.4에서 바로 그 버전으로 올리는 Windows 설치본은 업데이트 뒤 앱이 다시 뜨지 않는다(설치는 됨, 시작 메뉴로 열면 된다). 이 버전의 제거 프로그램이 업그레이드 때
