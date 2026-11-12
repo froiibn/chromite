@@ -62,6 +62,8 @@ import java.util.function.ToDoubleFunction;
  *   ("받습니 / 다.", "설정 / 하세요.", 앱 변경 #71 검토)
  * - 2026-11-12 줄 끝 규칙을 {@link #breakOffset}으로 떼어 메시지 대화상자의 글({@link MessageArea})과 함께 씀: 메시지 영역이 Swing 줄 바꿈으로
  *   "…입니 / 다.", "넣 / 으십시오."처럼 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-12 {@link MessageArea}는 낱말 단위로 줄을 바꿀 때({@code lineWrap}, {@code wrapStyleWord})만 이 줄 바꿈 보기를 씀: 줄을 바꾸지 않는
+ *   글 상자도 늘 줄을 바꾸게 되던 것(#82 검토 후속)
  */
 final class WrappingNote extends JTextArea {
 
@@ -241,7 +243,10 @@ final class WrappingNote extends JTextArea {
     /**
      * A selectable, read-only message text (message, confirmation and error dialogs) that wraps by the rule of
      * {@link #breakOffset}: the text area's own word wrapping breaks between any two Hangul syllables. Only the line
-     * breaking changes; selecting and copying stay as in any text area.
+     * breaking changes; selecting and copying stay as in any text area. Only while the area wraps at words
+     * ({@code lineWrap} and {@code wrapStyleWord}): otherwise its views are Swing's, as for any text area. The base UI
+     * builds the views again when either property changes ({@code BasicTextAreaUI.propertyChange} → {@code modelChanged}),
+     * so the choice follows them.
      */
     static final class MessageArea extends JTextArea {
 
@@ -255,8 +260,10 @@ final class WrappingNote extends JTextArea {
             setUI(new FlatTextAreaUI() {
                 @Override
                 public View create(Element element) {
-                    // AbstractDocument's (package-private) I18NProperty, as BasicTextAreaUI.create reads it
-                    if (Boolean.TRUE.equals(element.getDocument().getProperty("i18n"))) { //$NON-NLS-1$
+                    // No wrapping or wrapping at any character: Swing's views (PlainView, WrappedPlainView by characters)
+                    if (!getLineWrap() || !getWrapStyleWord()
+                        // AbstractDocument's (package-private) I18NProperty, as BasicTextAreaUI.create reads it
+                        || Boolean.TRUE.equals(element.getDocument().getProperty("i18n"))) { //$NON-NLS-1$
                         // Bidirectional or complex text: Swing's own views lay it out (glyph by glyph)
                         return super.create(element);
                     }

@@ -635,6 +635,11 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   `MessageArea`는 평범한 읽기 전용 `JTextArea`(포커스·선택·복사 그대로)이고, 테마의 글 상자 UI(`FlatTextAreaUI`)에 줄 바꿈 보기만 바꿔 넣는다
   (`WrappedPlainView.calculateBreakPosition`이 `breakOffset`을 부름). 양방향·복합 글(문서의 `i18n` 속성)은 Swing 보기 그대로 둔다.
   줄 하나보다 넓은 낱말(파일 경로, SQL, URL)만 글자 사이에서 끊으므로 잘리지 않는다.
+  이 보기는 글 상자가 낱말 단위로 줄을 바꿀 때(`lineWrap`과 `wrapStyleWord`)만 쓴다(#82 검토 후속). 줄을 바꾸지 않으면 Swing의 `PlainView`,
+  글자 단위로 바꾸면 Swing의 `WrappedPlainView` 그대로다. 두 속성이 바뀌면 기본 UI가 보기를 다시 만들므로(`BasicTextAreaUI.propertyChange` →
+  `modelChanged`) 선택도 따라간다. 확인: 새 `MessageArea` → `PlainView`, `lineWrap`만 켬 → `WrappedPlainView`, 둘 다 켬 → `SpaceWrappedView`,
+  `lineWrap` 끔 → `PlainView`, `createMessageComponent`의 글 → `SpaceWrappedView`. 복사는 글 상자의 전송 처리기로 별도 클립보드 객체에 해서 확인했다
+  (`D:\Tools\_scratch\small-fixes-r3\sheets\82-followup-view-check.log.txt`).
 - **바꾼 곳:** `SwingPlatformUI.createMessageComponent`(메시지·확인·경고·오류 대화상자, JSch·SSHJ 질문, SQL 확인, 오류 대화상자 `ErrorDialog`,
   실행 제한·변경 제한 안내 등 이 메서드를 쓰는 모든 곳), `MaintenanceDialog`의 실행 확인 글, `SchedulerCommands`의 이벤트 상태 대화상자 글,
   `DriverBundleCreateDialog.createHint`(드라이버 묶음 만들기·설치 대화상자의 안내).
@@ -1132,3 +1137,4 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-12 MCP 서버 설명과 템플릿 안내를 줄 바꾸는 글(`WrappingNote`)로(앱 변경 #71 b, `chromite/visual-recheck-fixes`), 위 "잘리던 한 줄 안내". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 `WrappingNote`는 공백에서만 줄을 바꿈(한국어 낱말 가운데서 끊던 것, #71 검토 후속), 위 "잘리던 한 줄 안내"의 "줄 바꾸는 자리". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 메시지 대화상자의 글도 같은 줄 바꿈(`WrappingNote.breakOffset`, `MessageArea`, 앱 변경 #82, `chromite/small-fixes-r3`), 위 "메시지 대화상자도 같은 줄 바꿈". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 #82 검토 후속: `MessageArea`는 낱말 단위로 줄을 바꿀 때만 줄 바꿈 보기를 씀(`lineWrap`이 꺼져 있으면 Swing 보기 그대로), 위 "메시지 대화상자도 같은 줄 바꿈". 회귀 테스트는 실행하지 않았다.
