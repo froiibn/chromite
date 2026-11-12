@@ -30,7 +30,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
 The built product is placed under `product/swing/target/products/com.seizia.chromite.swing.product/`.
-Run the `chromite-swing` launcher.
+Run the `Chromite` launcher (`Chromite.exe` on Windows).
 
 ## Architecture
 

@@ -139,15 +139,15 @@ jobs:
       # upload-artifact does not keep Unix file permissions, so the .app is packed with tar first
       # to keep the launcher executable bits. p2's chmod touchpoint ignores chmod failures, so the
       # launcher bit is checked before packing instead of shipping an .app that cannot start.
-      # The launcher is "chromite-swing" (product/swing/chromite-swing.product) and the root folder is
+      # The launcher is "Chromite" (product/swing/chromite-swing.product) and the root folder is
       # Chromite.app (product/swing/pom.xml).
       - name: Pack macOS arm64 Swing product
         if: runner.os == 'Linux'
         shell: bash
         run: |
           app_dir="$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/Chromite.app"
-          if [ ! -x "$app_dir/Contents/MacOS/chromite-swing" ]; then
-            echo "::error::$app_dir/Contents/MacOS/chromite-swing is missing or not executable"
+          if [ ! -x "$app_dir/Contents/MacOS/Chromite" ]; then
+            echo "::error::$app_dir/Contents/MacOS/Chromite is missing or not executable"
             exit 1
           fi
           tar -czf "$RUNNER_TEMP/chromite-swing-macos-aarch64.tar.gz" -C "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app

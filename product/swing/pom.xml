@@ -73,7 +73,8 @@
                 </configuration>
             </plugin>
             <!-- macOS Info.plist (docs/chromite/platform-startup.md "macOS Info.plist"): p2 (BrandingIron) names the app after the
-                 launcher, "Chromite-swing", and keeps the values of Eclipse's template. Runs after materialize-products (same phase,
+                 launcher ("Chromite-swing" until the launcher was renamed Chromite, app change #65; the check below still refuses
+                 the old name) and keeps the values of Eclipse's template. Runs after materialize-products (same phase,
                  declared later) and before signing; fails when a value is not as expected, so a template change is not missed. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

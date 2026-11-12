@@ -334,7 +334,9 @@ Chromite Agent·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 �
   그래서 설치 파일의 VersionInfo `ProductName`이 정확히 `Chromite`여야 한다(NSIS `VIAddVersionKey ProductName "Chromite"`).
 - `ProductVersion` 문자열은 정확히 `<v>`(예: `0.1.1`)여야 한다. `0.1.1.0`은 통과하지 않는다(NSIS `VIProductVersion`은 네 자리지만
   `VIAddVersionKey ProductVersion`은 세 자리 문자열로).
-- 설치본 판정: 앱 및 기능 항목의 `InstallLocation` 또는 `UninstallString`이 실제 설치 폴더(`chromite-swing.exe`가 있는 폴더)를 가리켜야 한다.
+- 설치본 판정: 앱 및 기능 항목의 `InstallLocation` 또는 `UninstallString`이 실제 설치 폴더(실행 중인 런처 `Chromite.exe`, 0.1.4까지 `chromite-swing.exe`가 있는 폴더)를 가리켜야 한다.
+  다시 띄우는 런처는 이름이 아니라 실행 중인 프로세스의 `eclipse.launcher`다. 그래서 런처 이름을 바꿀 때 0.1.4 업데이터가 다시 띄우는 옛 이름은 설치 프로그램이 한 버전 동안 시작 파일로 둔다
+  ([launcher-name.md](launcher-name.md)).
 - 조용한 업데이트: `setup.exe /S`가 같은 폴더에 덮어쓰고, 끝나면 종료 코드 0. 2026-11-09부터 범위 스위치를 붙인다: 사용자별 `/CurrentUser /S`,
   모든 사용자 `/AllUsers /S`(승격, 위 "관리자 권한으로 설치"). 스위치가 없으면 설치 프로그램이 이미 있는 설치의 범위를 쓴다(0.1.3 업데이터의 `/S`).
 - 2026-11-07 Part A의 설치 프로그램(`tools/installer/chromite.nsi`, 그 작업 트리에서 읽음)과 그 로컬 빌드
@@ -495,3 +497,4 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
 - 2026-11-09 설치 범위(앱 변경 #23, `chromite/install-update-2`): 모든 사용자 설치(HKLM)는 "알리기만"이 아니라 받고 확인하고 [지금 다시 시작]의 진행 창에서
   관리자 권한으로 설치("관리자 권한으로 설치"), UAC 거부 문구와 [다시 시도], 그냥 닫을 때는 적용하지 않음, 사용자별 설치는 `/CurrentUser /S`, 시험 모드 `chromite.update.test.allusers`.
   macOS 앱 이름(앱 변경 #22): `Chromite.app` zip을 옛 이름 앱도 받고 적용 때 `Chromite.app`으로 놓음("macOS 확인", "적용").
+- 2026-11-12 런처 이름 `Chromite.exe`(앱 변경 #65): 업데이터 코드는 그대로, 설치본 판정 설명과 0.1.4 업데이터의 다시 시작 호환([launcher-name.md](launcher-name.md)).

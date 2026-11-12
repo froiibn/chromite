@@ -47,13 +47,13 @@ SWT 제품의 결과물(`chromite-windows-x64`, `chromite-macos-aarch64`)은 SWT
 
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
-| `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`chromite-swing.exe` 포함) |
-| `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`Chromite.app`, 런처 `Contents/MacOS/chromite-swing`) |
+| `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`Chromite.exe` 포함) |
+| `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`Chromite.app`, 런처 `Contents/MacOS/Chromite`) |
 
-Swing 제품의 루트 폴더(`chromite-swing`, `Chromite.app`)는 `product/swing/pom.xml`의 `rootFolders`, 런처 이름(`chromite-swing`)은
-`product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`이다. 로컬 빌드 결과
-(`product/swing/target/products/com.seizia.chromite.swing.product/`)에서 `win32/win32/x86_64/chromite-swing/chromite-swing.exe`와
-`macosx/cocoa/aarch64/ChromiteSwing.app/Contents/MacOS/chromite-swing`이 있는 것을 확인했다.
+Swing 제품의 루트 폴더(`chromite-swing`, `Chromite.app`)는 `product/swing/pom.xml`의 `rootFolders`, 런처 이름(`Chromite`, 0.1.4까지 `chromite-swing`)은
+`product/swing/chromite-swing.product`의 `<launcher name="Chromite">`이다([launcher-name.md](launcher-name.md)). 로컬 빌드 결과
+(`product/swing/target/products/com.seizia.chromite.swing.product/`)에서 `win32/win32/x86_64/chromite-swing/Chromite.exe`와
+`macosx/cocoa/aarch64/Chromite.app/Contents/MacOS/Chromite`가 있는 것을 확인했다(2026-11-12).
 
 ## 설계 결정과 이유
 
@@ -97,7 +97,7 @@ Swing 제품의 루트 폴더(`chromite-swing`, `Chromite.app`)는 `product/swin
   `chmod` 동작으로 준다.
   - p2 publisher가 macOS 런처 IU에 `chmod(targetDir:${installFolder}/../MacOS/, targetFile:<런처 이름>, permissions:755)`를
     넣는다(`org.eclipse.equinox.p2.publisher.eclipse` 1.6.900 소스, `EquinoxExecutableAction.computeMacInstallActions` 209~213행).
-    런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`다
+    런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="Chromite">`다(2026-11-12 전에는 `chromite-swing`)
     (이 절의 `Chromite.app`은 처음 확인한 SWT 제품이다. 같은 방식이 `ChromiteSwing.app`에 적용된다).
   - `ChmodAction`(`org.eclipse.equinox.p2.touchpoint.natives` 1.5.900 소스)은 빌드하는 OS가 Windows일 때만
     (`File.separatorChar == '\\'`, 30·100행) 아무것도 하지 않고, 그 밖의 OS에서는 `chmod 755 <파일>` 명령을 실행한다(191~208행).
@@ -340,3 +340,5 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 2026-11-12 `macos-smoke.sh launch`가 시작 화면 자리를 0.3초마다 기록·비교하고 바뀔 때 찍음(앱 변경 #52), 메인 창 제목 줄 캡처와 새 단계 `titlebar`
   (밝은·어두운 모양, 전체 화면, 앱 변경 #62), `macos-smoke.yml`에 그 단계(`chromite/mac-ui-2`). 아직 실행하지 않음.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md)): `build.yml`·`macos-smoke.yml`의 실행 권한 확인 경로 `Contents/MacOS/Chromite`,
+  `macos-smoke.sh launch`가 프로세스가 `<앱>/Contents/MacOS/Chromite`인지 확인, 진단의 통합 로그 프로세스 이름을 `CFBundleExecutable`에서 읽음. 결과물 이름은 그대로. 아직 실행하지 않음.

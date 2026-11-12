@@ -21,7 +21,8 @@
 #                            startup splash, <label>-main-window.png and <label>-title-bar.png; every
 #                            splash-sized window polled (<label>-splash-positions.txt) must be at one place
 #                            (the launcher's splash hands over to the Swing one in place, app change #52);
-#                            the splash must be gone once the main window is up;
+#                            the splash must be gone once the main window is up; the process must be
+#                            <app>/Contents/MacOS/Chromite (the launcher's name, app change #65);
 #                            without a window: process, native stacks (sample) and a JVM thread dump
 #                            (SIGQUIT into <label>-stdout.txt)
 #   secure-storage           the secure storage file, the Keychain item and the debug log
@@ -71,6 +72,9 @@ SPLASH_SIZE='560, 320'
 SPLASH_RECT_SIZE='560 320'
 # Height in points of the main window's top strip in the title bar screenshots: the title bar row and the SQL Editor row
 TITLE_STRIP=90
+# The launcher's name (product/swing/chromite-swing.product, app change #65; "chromite-swing" until 0.1.4):
+# Info.plist's CFBundleExecutable and the process Activity Monitor shows
+LAUNCHER=Chromite
 
 mkdir -p "$OUT"
 
@@ -316,7 +320,7 @@ launch_diagnostics() {
       [ -f "$log" ] && { echo "--- $log"; tail -n 80 "$log"; }
     done
     echo "== unified log of the process (last 5 minutes)"
-    log show --last 5m --style compact --predicate 'process == "chromite-swing"' 2> /dev/null | tail -n 200
+    log show --last 5m --style compact --predicate "process == \"$(plist CFBundleExecutable)\"" 2> /dev/null | tail -n 200
   } > "$f" 2>&1 || true
   [ -n "$pid" ] && sample "$pid" 3 -file "$OUT/$label-sample.txt" > /dev/null 2>&1 || true
   # SIGQUIT: the JVM prints its thread dump to the app's stdout ($label-stdout.txt, open --stdout)
@@ -327,7 +331,7 @@ launch_diagnostics() {
 }
 
 cmd_launch() {
-  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 splash=0 n prompt times rects last_rects= positions line
+  local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 splash=0 n prompt times rects last_rects= positions line exe
   need_app
   [ -z "$(app_pid)" ] || fail "an app copy already runs"
   # A start may rotate or rewrite the debug log: keep the previous one aside and wait for a new file
@@ -390,6 +394,12 @@ cmd_launch() {
     launch_diagnostics "$label" "${pid:-}"
     fail "$label: no main window within ${LAUNCH_TIMEOUT}s (pid ${pid:-none}; open: $(tr '\n' ' ' < "$OUT/$label-open.txt"))"
   fi
+  # The process runs the renamed launcher (app change #65); a quarantined copy may run from a translocated path
+  exe=$(ps -o comm= -p "$pid" 2> /dev/null || true)
+  case "$(plist CFBundleExecutable)|$exe" in
+    "$LAUNCHER|"*"/$(basename "$APP")/Contents/MacOS/$LAUNCHER") pass "$label: the process is $exe (CFBundleExecutable $LAUNCHER)" ;;
+    *) fail "$label: the app runs as '$exe' (CFBundleExecutable $(plist CFBundleExecutable)), not <app>/Contents/MacOS/$LAUNCHER" ;;
+  esac
   # The window is up; give it time to lay out and paint
   sleep 8
   window_list pid "$pid" | tee "$OUT/$label-windows.txt"

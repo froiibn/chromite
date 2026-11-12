@@ -246,7 +246,7 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | `com.seizia.chromite.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
 | 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 포함한다([drivers.md](drivers.md)). 설치 폴더의 `licenses/`(`docs/root`)도 이 피처가 넣는다 |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
-| 실행 파일 | `chromite-swing.exe` / `Chromite.app` (`chromite-swing`은 SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지. macOS 폴더는 2026-11-09 `ChromiteSwing.app`에서 `Chromite.app`으로, [distribution.md](distribution.md) "macOS 앱 이름") |
+| 실행 파일 | `Chromite.exe` / `Chromite.app/Contents/MacOS/Chromite` (0.1.4까지 SWT 제품의 `chromite`와 나누려고 붙인 `chromite-swing`, 2026-11-12 `Chromite`로, [launcher-name.md](launcher-name.md). macOS 폴더는 2026-11-09 `ChromiteSwing.app`에서 `Chromite.app`으로, [distribution.md](distribution.md) "macOS 앱 이름") |
 | Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
 | Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
 
@@ -354,14 +354,14 @@ JBR/JetBrains 브랜드가 화면에 보이지 않게 한다.
   부모 없이 띄우는 대화상자(시작 오류 등)는 Swing의 공유 소유 프레임(`JOptionPane.getRootFrame()`)이 소유하므로,
   시작할 때 그 프레임에도 아이콘을 지정한다.
 - **JVM 실행 방식 (Windows):** Equinox 런처는 `-vm`에 따라 JVM을 다르게 띄운다(2026-11-06 확인).
-  - `-vm ...\bin\javaw.exe`: 런처(`chromite-swing.exe`)가 별도 `javaw.exe` 프로세스를 띄우고 창은 그 프로세스에 속한다.
+  - `-vm ...\bin\javaw.exe`: 런처(`Chromite.exe`, 2026-11-12 전 `chromite-swing.exe`)가 별도 `javaw.exe` 프로세스를 띄우고 창은 그 프로세스에 속한다.
     `javaw.exe`의 실행 파일 아이콘은 JetBrains 아이콘이고, 작업 표시줄 그룹·고정도 `javaw.exe` 기준이 된다.
     창 아이콘을 지정하기 전에는 작업 표시줄에 "JB" 아이콘이 보였다.
   - `-vm ...\bin\server\jvm.dll` 또는 런처 옆 `jre/` 폴더(내장 런타임): 런처가 JVM을 자기 프로세스 안에 올린다.
-    프로세스는 Chromite 아이콘의 `chromite-swing.exe` 하나다. 내장 런타임 배포([runtime.md](runtime.md))에서는 이 방식이 된다.
+    프로세스는 Chromite 아이콘의 `Chromite.exe` 하나다. 내장 런타임 배포([runtime.md](runtime.md))에서는 이 방식이 된다.
 - **AppUserModelID:** 보류. 지정하려면 JNA로 `SetCurrentProcessExplicitAppUserModelID`를 부를 수 있지만, 명시적 ID를 쓰면
   같은 ID와 재실행 명령(`System.AppUserModel.RelaunchCommand`)을 가진 바로가기가 있어야 작업 표시줄 고정이 제대로 동작한다.
-  설치 프로그램을 만들 때(런타임 내장 단계) 바로가기와 함께 정한다. 그 전까지는 in-process 실행으로 `chromite-swing.exe` 기준 그룹이 된다.
+  설치 프로그램을 만들 때(런타임 내장 단계) 바로가기와 함께 정한다. 그 전까지는 in-process 실행으로 `Chromite.exe` 기준 그룹이 된다.
 
 ### Java 버전 결정
 
@@ -3516,3 +3516,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
   열린 트랜잭션은 창 닫기와 같은 질문, 옛 서버의 결과는 지움. "쿼리 창의 연결 변경" 절, 앞 절들의 옛 규칙 줄 고침. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 도구 막대는 연결 변경부터(앱 변경 #74, `chromite/change-connection`): 서버 표시를 지우고 연결 변경 단추가 SQL Editor 도구 막대의 첫 컴포넌트.
   "도구 막대는 연결 변경부터" 절, 앞 절들의 서버 표시 줄에 표시. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

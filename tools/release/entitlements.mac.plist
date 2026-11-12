@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Entitlements of the Chromite launchers (Contents/MacOS/chromite, Contents/MacOS/chromite-swing)
+  Entitlements of the Chromite launcher (Contents/MacOS/Chromite)
   under the hardened runtime, used by tools/release/release-macos.sh when it signs the .app.
   The launcher starts the Java VM inside its own process (dlopen of libjli/libjvm), so these
   entitlements are the JVM's:

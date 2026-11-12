@@ -35,7 +35,7 @@ Swing은 `apple.laf.useScreenMenuBar=true`일 때만 `JMenuBar`를 화면 메뉴
 
 ### 어느 자리에서 켜는가
 
-- **런처 인자(채택):** `vmArgsMac`은 macOS 런처 설정(`Chromite.app/Contents/Eclipse/chromite-swing.ini`)에만 들어가고 JVM 시작 때 정해진다.
+- **런처 인자(채택):** `vmArgsMac`은 macOS 런처 설정(`Chromite.app/Contents/Eclipse/Chromite.ini`, 0.1.4까지 `chromite-swing.ini`)에만 들어가고 JVM 시작 때 정해진다.
   FlatLaf가 값을 읽는 Look and Feel 설치(`ChromiteSwingApplication.installLookAndFeel`)와 AWT 시작보다 반드시 앞이다. `--add-opens`도 JVM
   인자라 같은 자리여야 한다(Windows JDK에는 `com.apple.laf` 패키지가 없어 Windows 인자에 넣으면 경고가 난다).
 - **시작 코드 맨 앞(`System.setProperty`)은 쓰지 않음:** 값은 Look and Feel 설치 전이면 읽히지만, 필드를 여는 `--add-opens`는 코드로 줄 수
@@ -161,3 +161,4 @@ DBeaver(SWT)는 SWT가 화면 메뉴 막대를 직접 다뤘다. Swing 프런트
   상태 표시줄로, `MacOSAppMenu.install`이 앱 메뉴 작업을 기다림, `macos-smoke.sh menus`에 화면 메뉴 막대 확인.
 - 2026-11-12 통합 제목 줄(앱 변경 #62, `chromite/mac-ui-2`): `MacOSUnifiedTitleBar`, `MacOSScreenMenuBar.isAttached`, "FlatLaf의 macOS 제목 표시줄"
   갱신, `macos-smoke.sh`의 제목 줄 캡처(`launch`, `titlebar`). macOS에서 실행하지 못했다(macos-smoke로 확인).
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

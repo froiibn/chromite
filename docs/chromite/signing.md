@@ -110,9 +110,10 @@ SWT 제품(`chromite/chromite.exe`, `chromitec.exe`, `Chromite.app`)은 2026-11-
 
 | 파일 | 서명 | 이유 |
 |---|---|---|
-| `chromite-swing/chromite-swing.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
+| `chromite-swing/Chromite.exe` (0.1.4까지 `chromite-swing.exe`) | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
 | `uninstall.exe`, `Chromite-<버전>-x64-setup.exe` (설치 프로그램) | **서명** | Chromite 빌드가 만든 파일(NSIS 스텁 + 우리 스크립트). 업데이트 기능과 배포 스크립트가 서명자 주체를 확인한다 |
-| `chromite-swingc.exe` (콘솔 런처) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
+| `chromite-swing.exe` (옛 이름 시작 파일, 런처 이름을 바꾼 버전만) | **서명** | 설치 프로그램 1단계가 만드는 NSIS 파일(`tools/installer/legacy-launcher.nsi`). 설치 폴더에 들어가 0.1.4 업데이터의 다시 시작과 작업 표시줄 고정이 실행한다([launcher-name.md](launcher-name.md)) |
+| `Chromitec.exe` (콘솔 런처, 0.1.4까지 `chromite-swingc.exe`) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
 | `plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_*/eclipse_11924.dll` | 안 함 | Eclipse 파일, Eclipse 서명 `Valid` |
 | `plugins/com.sun.jna_*/com/sun/jna/win32-*/jnidispatch.dll` (3개) | 안 함 | JNA 파일, 서명 없음(`NotSigned`) |
 | jar 안의 DLL(SWT 등), JDBC 드라이버 jar | 안 함 | Authenticode 대상이 아니다(jar 안의 항목) |
@@ -128,7 +129,7 @@ SWT 제품(`chromite/chromite.exe`, `chromitec.exe`, `Chromite.app`)은 2026-11-
 2026-11-07부터 내장 런타임(`Contents/Eclipse/jre`, [runtime.md](runtime.md))의 Mach-O 39개(모두 낱개 파일, JBR 배포본의 ad-hoc 서명)가
 두 앱에 더해진다(`Chromite.app` 51개, `ChromiteSwing.app` 50개). `macos_natives.py scan`으로 런타임 폴더를 확인했다.
 
-낱개 파일(두 앱 같음): `Contents/MacOS/chromite`(Swing: `chromite-swing`, 주 실행 파일), `com.sun.jna_*/.../darwin-aarch64/libjnidispatch.jnilib`,
+낱개 파일(두 앱 같음): `Contents/MacOS/chromite`(Swing: `chromite-swing`, 2026-11-12부터 `Chromite`, 주 실행 파일), `com.sun.jna_*/.../darwin-aarch64/libjnidispatch.jnilib`,
 `.../darwin-x86-64/libjnidispatch.jnilib`, `org.eclipse.equinox.launcher.cocoa.macosx.aarch64_*/eclipse_11924.so`(이름은 .so지만 Mach-O).
 지금 모두 Eclipse Foundation의 Developer ID(`JCDTMS22B4`)로 서명돼 있다.
 
@@ -161,8 +162,9 @@ CN=Seizia, O=Seizia, L=Cheongju-si, S=North Chungcheong, C=KR
 ## 제3자 바이너리 정책
 
 - **Windows: 우리가 만든 파일만 서명한다.** SmartScreen 평판은 게시자(SEIZIA) 단위라 한 파일의 문제가 SEIZIA 전 제품에 번진다.
-  - 우리 파일 = Chromite 빌드가 만들거나 바꾼 실행 파일. 브랜딩으로 바이트가 바뀌어 원래 서명이 깨진 런처(`chromite.exe`,
-    `chromite-swing.exe`)는 우리 빌드 산출물로 본다. 바뀌지 않은 콘솔 런처(`chromitec.exe` 등)는 Eclipse 서명을 그대로 둔다.
+  - 우리 파일 = Chromite 빌드가 만들거나 바꾼 실행 파일. 브랜딩으로 바이트가 바뀌어 원래 서명이 깨진 런처(`Chromite.exe`,
+    0.1.4까지 `chromite-swing.exe`)는 우리 빌드 산출물로 본다. 바뀌지 않은 콘솔 런처(`Chromitec.exe` 등)는 Eclipse 서명을 그대로 둔다.
+    설치 프로그램이 만드는 옛 이름 시작 파일(`chromite-swing.exe`, 한 버전만)도 우리 파일이다.
   - **미결정**: 브랜딩한 Eclipse 런처를 "우리 바이너리"로 볼지는 사용자 확인이 필요하다. 코드는 Eclipse 런처 그대로이고 아이콘·버전 리소스만 바뀌었다.
     서명하지 않으면 깨진 Eclipse 서명이 붙은 exe가 배포되어 Windows가 "서명이 손상됨"으로 표시한다.
 - **macOS: 앱 안의 모든 Mach-O를 우리 Developer ID로 서명한다.** Apple은 번들 안의 모든 실행 코드(압축 파일 안 포함)가
@@ -311,3 +313,5 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 - 2026-11-07 버전 체계 결정([versioning.md](versioning.md)): `version` 작업이 `bump-version.ps1` 검사 모드로 버전을 읽고(파일 4개 일치 확인),
   태그 push는 태그가 정확히 `v<버전>`이어야 함. 미결정 사항에서 "버전 체계와 태그 이름" 삭제. SWT 삭제 뒤 남아 있던 결과물 파일 이름(zip·dmg 2개)을 Swing 하나로 고침.
 - 2026-11-07 배포([distribution.md](distribution.md)): Windows 작업이 NSIS 설치 프로그램을 2단계로 만들어 `uninstall.exe`와 `setup.exe`를 서명하고, 확인 단계가 서명자 주체(새 절 "게시자")와 버전 리소스를 확인한 뒤 조용한 설치·제거를 한 번 해 본다. macOS 결과 파일 이름을 `Chromite-<버전>-arm64.{zip,dmg}`로 바꿨다.
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, [launcher-name.md](launcher-name.md)): 서명하는 런처 `Chromite.exe`, macOS 주 실행 파일 `Contents/MacOS/Chromite`,
+  한 버전 동안 옛 이름 시작 파일 `chromite-swing.exe`를 1단계 뒤 서명하고 확인 목록에 넣음.

@@ -39,6 +39,7 @@
   - 2026-11-07 Created.
   - 2026-11-08 The live check also asks for the support pages and support.js (the new feature/database table).
   - 2026-11-09 The macOS zip's bundle is Chromite.app; ChromiteSwing.app is accepted for 0.1.4 only (app change #22).
+  - 2026-11-12 The macOS zip's app holds Contents/MacOS/Chromite (the launcher was chromite-swing, app change #65).
 
 .EXAMPLE
   pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 -Target ubuntu@<host> -IdentityFile <key> -KnownHosts <file>
@@ -141,7 +142,8 @@ try {
     Expect "$($names[1]) holds one app bundle, Chromite.app or (0.1.4) ChromiteSwing.app" ($tops.Count -eq 1 -and $tops[0] -in 'Chromite.app', 'ChromiteSwing.app') "$($tops -join ', ')"
     $bundle = if ($tops.Count -eq 1) { $tops[0] } else { 'Chromite.app' }
     $app = "$bundle/Contents"
-    Expect "$($names[1]) holds $app/MacOS/chromite-swing" ($entries.ContainsKey("$app/MacOS/chromite-swing")) 'missing'
+    # the launcher is Chromite since app change #65 (chromite-swing in 0.1.4 and earlier)
+    Expect "$($names[1]) holds $app/MacOS/Chromite" ($entries.ContainsKey("$app/MacOS/Chromite")) 'missing'
     Lenient "$($names[1]) app is signed ($app/_CodeSignature/CodeResources)" ($entries.ContainsKey("$app/_CodeSignature/CodeResources")) 'missing'
     Lenient "$($names[1]) app carries its notarization ticket ($app/CodeResources)" ($entries.ContainsKey("$app/CodeResources")) 'missing'
     $plist = $entries["$app/Info.plist"]
