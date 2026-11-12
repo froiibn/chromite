@@ -72,6 +72,8 @@ import java.util.function.UnaryOperator;
  * - 2026-11-08 Edit &gt; Advanced에 블록 주석 토글, 공백 다듬기, 구분 목록, 소스 코드로 복사, 웹에서 찾기({@link SqlTextTools}), 자동 줄 바꿈,
  *   접기 명령. 글자를 바꾸지 않는 명령은 읽기 전용 편집기(DDL 탭)에서도 켬 (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), Edit > Advanced의 두 키 조합·접기 키 글자를 키에서 만듦, macOS 블록 주석 ⌥⌘/
+ * - 2026-11-12 Edit &gt; Advanced: 글자를 바꾸는 도구(공백 다듬기, 구분 목록)와 선택 영역을 밖으로 보내는 명령(소스 코드로 복사, 웹에서 찾기)
+ *   사이에 구분선 (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
  */
 final class SqlEditCommands {
 
@@ -364,6 +366,8 @@ final class SqlEditCommands {
         addItem(trimMenu, items, activeTextArea, EditorMessages.editor_edit_trim_trailing, null, null, SqlEditorPanel.SqlTextArea.Command.TRIM_TRAILING);
         menu.add(trimMenu);
         addItem(menu, items, activeTextArea, EditorMessages.editor_edit_morph_list, null, null, SqlEditorPanel.SqlTextArea.Command.MORPH_LIST);
+        // The text tools above change the text; the two below take the selection elsewhere
+        menu.addSeparator();
         JMenu sourceMenu = new JMenu(EditorMessages.editor_edit_copy_as_source);
         for (SqlTextTools.SourceFormat format : SqlTextTools.SourceFormat.values()) {
             JMenuItem item = new JMenuItem(format.getLabel());
