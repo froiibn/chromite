@@ -701,11 +701,15 @@ Test 전에 가짜 서버로 바꿨고, 첫 요청부터 모든 요청이 가짜
 - 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 엔진을 닫으면 받는 중인 응답도 끝낸다(`MonitoredHttpClient.close`, 아래 "실제 API 확인").
   실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
   실행 중에는 대화·제공자·연결을 바꿀 수 없다.
-- **제공자 설정 안내**(2026-11-12, 앱 변경 #71 f): 공급자가 설정되지 않으면 입력란 위에 "시작하려면 AI 제공자(API 키 또는 로컬 모델)를 설정하세요." 글과
-  [Chromite Agent 설정] 단추가 보인다. 글이 패널 폭을 모두 쓰고 공백에서만 줄을 바꾸며(`WrappingNote`, 줄보다 넓은 낱말만 글자 사이에서 끊음), 단추는 그 아래 왼쪽에 둔다. 단추가 글보다 넓은 아주 좁은 폭(최소 카드 폭)에서는
-  단추 글이 말줄임표로 준다. 전에는 HTML 라벨 옆(BorderLayout 동쪽)에 단추가 있어 단추가 폭을 가져가고 글이 좁은 칸으로 접혀 잘렸다(Mac 1024px 캡처 "provi", "to sta",
-  Windows 100%에서도 좁게 접힘). 도구 없음 안내(`toolsOffNotice`)도 같은 HTML 라벨이라 `WrappingNote`로 바꿨다. 확인: 패널 폭 97(최소)·296(1024px·1258px·1600px 창의 기본)·697,
-  한국어·영어 × 100%·150% × 밝은·어두운. 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\f-agent-setup-hint.png`.
+- **제공자 설정 안내**(2026-11-12, 앱 변경 #71 f, #72): 공급자가 설정되지 않으면 입력란 위에 "시작하려면 AI 제공자(API 키 또는 로컬 모델)를 설정하세요." 글과
+  톱니 아이콘 단추가 보인다. 단추는 도구 막대의 설정 단추와 같은 아이콘·동작·모양(아이콘 단추 크기, 마우스 올림 바탕)이고, 도구 설명과 접근성 이름은
+  "Chromite Agent 설정"이다(Options의 Chromite Agent 페이지를 엶). 전의 글자 단추처럼 Tab 키로 갈 수 있다(도구 막대 단추는 포커스를 받지 않음).
+  톱니는 글 오른쪽에서 글의 첫 줄 가운데에 놓이고(둘 중 낮은 쪽을 높이 차의 절반만큼 내림), 글은 나머지 폭을 모두 쓰며 공백에서만 줄을 바꾼다
+  (`WrappingNote`, 줄보다 넓은 낱말만 글자 사이에서 끊음). 사용자 결정(2026-11-12, 앱 변경 #72): "버튼을 기어 아이콘만 두는게 편리하겠다".
+  처음에는 HTML 라벨 옆(BorderLayout 동쪽)에 [Chromite Agent 설정] 글자 단추가 있어 단추가 폭을 가져가고 글이 좁은 칸으로 접혀 잘렸다(Mac 1024px 캡처 "provi", "to sta",
+  Windows 100%에서도 좁게 접힘, #71 f). 도구 없음 안내(`toolsOffNotice`)도 같은 HTML 라벨이라 `WrappingNote`로 바꿨다. 확인: 패널 폭 101(최소 카드 폭)·227·296·707,
+  한국어·영어 × 100%·150% × 밝은 새로 시작·어두운 전환 뒤, 촘촘한 모드, 마우스 올림과 도구 설명, 누르면 Options의 Chromite Agent 페이지.
+  확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\i-setup-gear.png`(#71 f의 처음 판은 `f-agent-setup-hint.png`).
 - 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
   `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
   전체 글은 도구 설명에 있다.
@@ -1425,9 +1429,11 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 제공자 설정 안내의 글자 단추를 톱니 아이콘 단추로, 글 오른쪽 첫 줄 가운데에(사용자 결정, 앱 변경 #72, `chromite/visual-recheck-fixes`).
+  위 "채팅 도구 창"의 "제공자 설정 안내". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 화면 재점검(앱 변경 #71 g, `chromite/visual-recheck-fixes`): `alwaysConfirmed` 속성, 권한 정책 표의 "늘 확인", 위 "설정과 판정 순서"의 "늘 확인하는 도구".
   확인: 표에서 commitTransaction "쓰기 / 상속 / 늘 확인", rollbackTransaction "읽기 / 상속 / 늘 확인"(한국어·영어). 회귀 테스트는 실행하지 않았다.
-- 2026-11-12 화면 재점검(앱 변경 #71 f, `chromite/visual-recheck-fixes`): 제공자 설정 안내는 글이 패널 폭을 쓰고 단추는 그 아래, 두 안내를 `WrappingNote`로.
+- 2026-11-12 화면 재점검(앱 변경 #71 f, `chromite/visual-recheck-fixes`): 제공자 설정 안내의 글이 패널 폭을 씀(단추 자리는 #72에서 톱니 아이콘으로), 두 안내를 `WrappingNote`로.
   위 "채팅 도구 창". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #64 도구 묶음(`chromite/agent-tool-sets`): 최소 13·핵심 44·전체 101 묶음(`plugin.xml` `toolSet`, 최소는 `shortDescription`),
   메타 도구 `findTools`와 대화별 찾은 도구, 제공자별 "채팅 도구 묶음"·Ollama/vLLM 컨텍스트 크기 설정, "도구를 모두 보냄" 지움(전체로 옮김), 보내기 전 크기
