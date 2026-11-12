@@ -33,6 +33,8 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,12 +59,15 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 편집기가 글의 앞부분을 보임({@link #showStart}), 표 열 폭을 머리글·값·콤보 화살표 단추의 실제 폭으로 잼
+ *   ({@link #getContentWidth}): 데이터 형식 칸 편집기가 "char(80)"처럼 앞을 가렸다(앱 변경 #78, docs/chromite/swing-table-designer.md "열 폭과 편집기")
  */
 final class DesignerTable extends JTable {
 
     private static final Log log = Log.getLog(DesignerTable.class);
 
     private static final int ROW_HEIGHT = 24;
+    private static final int COMBO_SLACK = 4;
 
     /**
      * Receives a cell edit (on the EDT); it makes the command in a background task.
@@ -180,7 +185,9 @@ final class DesignerTable extends JTable {
         DefaultCellEditor editor = new DefaultCellEditor(field) {
             @Override
             public Component getTableCellEditorComponent(JTable table, Object cellValue, boolean isSelected, int r, int c) {
-                return super.getTableCellEditorComponent(table, formatValue(cellValue), isSelected, r, c);
+                Component component = super.getTableCellEditorComponent(table, formatValue(cellValue), isSelected, r, c);
+                showStart(field);
+                return component;
             }
         };
         editor.setClickCountToStart(2);
@@ -216,6 +223,9 @@ final class DesignerTable extends JTable {
             public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
                 if (editable) {
                     combo.setSelectedItem(formatValue(value));
+                    if (combo.getEditor().getEditorComponent() instanceof JTextComponent field) {
+                        showStart(field);
+                    }
                 } else {
                     combo.setSelectedItem(value == null ? null : byName.getOrDefault(formatValue(value), value));
                 }
@@ -253,6 +263,54 @@ final class DesignerTable extends JTable {
             return collection.stream().map(DesignerTable::formatValue).collect(Collectors.joining(", ")); //$NON-NLS-1$
         }
         return CommonUtils.notEmpty(DBValueFormatting.getDefaultValueDisplayString(value, DBDDisplayFormat.UI));
+    }
+
+    /**
+     * Shows the start of an editor's text: setting the text puts the caret at its end, and the field scrolls to the caret
+     * before the table gives it its width, so even a value that fits was shown without its first letters.
+     */
+    private static void showStart(@NotNull JTextComponent field) {
+        field.setCaretPosition(0);
+        if (field instanceof JTextField textField) {
+            textField.setScrollOffset(0);
+        }
+    }
+
+    /**
+     * Width of a grid column that shows its header and every value whole, also while a value is edited: a column whose
+     * values are chosen from a list is edited in a combo, whose arrow button and text padding take part of the cell.
+     * Measured with the table's own renderers and, for those columns, a combo made the way {@link #createComboEditor}
+     * makes it (not estimated from the number of letters, which was too narrow for Korean headers and for the editor).
+     *
+     * @param minimum the narrowest width
+     * @param maximum the widest width: a longer value shows its start while edited
+     */
+    int getContentWidth(int column, int minimum, int maximum) {
+        TableColumn tableColumn = getColumnModel().getColumn(column);
+        TableCellRenderer headerRenderer = tableColumn.getHeaderRenderer() != null
+            ? tableColumn.getHeaderRenderer() : getTableHeader().getDefaultRenderer();
+        int width = headerRenderer.getTableCellRendererComponent(this, tableColumn.getHeaderValue(), false, false, -1, column)
+            .getPreferredSize().width;
+        ObjectPropertyDescriptor property = model.getProperty(0, convertColumnIndexToModel(column));
+        boolean listValues = property != null && !property.isBoolean()
+            && (property.hasListValueProvider() || property.getDataType() != null && property.getDataType().isEnum());
+        JComboBox<String> probe = null;
+        for (int row = 0; row < getRowCount(); row++) {
+            width = Math.max(width, prepareRenderer(getCellRenderer(row, column), row, column).getPreferredSize().width);
+            if (listValues && isCellEditable(row, column)) {
+                if (probe == null) {
+                    probe = new JComboBox<>();
+                    probe.setEditable(true);
+                    // As DefaultCellEditor marks its combo: the theme lays out a cell editor without the field's border
+                    probe.putClientProperty("JComboBox.isTableCellEditor", Boolean.TRUE); //$NON-NLS-1$
+                    probe.setFont(getFont());
+                }
+                probe.setModel(new DefaultComboBoxModel<>(new String[]{formatValue(getValueAt(row, column))}));
+                // A few pixels more: the text is drawn with fractional widths at display scales over 100%
+                width = Math.max(width, probe.getPreferredSize().width + UIScale.scale(COMBO_SLACK));
+            }
+        }
+        return Math.min(maximum, Math.max(minimum, width + getIntercellSpacing().width));
     }
 
     private void applyRowBackground(@NotNull Component component, boolean isSelected, int row) {

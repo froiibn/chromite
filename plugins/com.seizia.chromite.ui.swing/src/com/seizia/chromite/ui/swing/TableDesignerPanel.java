@@ -84,8 +84,17 @@ import java.util.Set;
  *   MySQL·Oracle DDL은 암묵 커밋하므로 연결의 열린 트랜잭션이 함께 커밋되던 것 (docs/chromite/swing-create-objects.md "트랜잭션")
  * - 2026-11-08 일부만 적용된 저장의 오류 창에 적용한 문장과 적용하지 못한 문장을 보임 (docs/chromite/swing-table-designer.md "저장이 중간에 실패할 때")
  * - 2026-11-09 저장 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 표의 처음 열 폭을 머리글 글자 수(글자당 8px)가 아니라 머리글과 값의 실제 폭으로, 목록에서 고르는 열은 콤보 화살표
+ *   단추 자리까지 더해 정함({@link DesignerTable#getContentWidth}): 데이터 형식 칸을 편집하면 "char(80)"처럼 앞이 가려졌다(앱 변경 #78,
+ *   docs/chromite/swing-table-designer.md "열 폭과 편집기")
  */
 final class TableDesignerPanel extends JPanel {
+
+    /**
+     * Widest initial grid column (unscaled): a long value (a default expression) does not make its column very wide;
+     * its editor shows the start of the value.
+     */
+    private static final int MAX_COLUMN_WIDTH = 300;
 
     /**
      * The main window side.
@@ -785,14 +794,16 @@ final class TableDesignerPanel extends JPanel {
         }
 
         /**
-         * Initial widths: the key flag narrow, the first property (the name) wide, the others by their header.
+         * Initial widths: the key flag narrow, the first property (the name) wide, the others as wide as their header and
+         * values need, also while a value is edited ({@link DesignerTable#getContentWidth}).
          */
         private void sizeColumns() {
             for (int i = 0; i < grid.getColumnCount(); i++) {
                 ObjectPropertyDescriptor property = gridModel.getProperty(0, i);
-                int width = property == null ? 40
-                    : property.isNameProperty() ? 180 : Math.max(90, gridModel.getColumnName(i).length() * 8 + 30);
-                grid.getColumnModel().getColumn(i).setPreferredWidth(UIScale.scale(width));
+                int width = property == null ? UIScale.scale(40)
+                    : property.isNameProperty() ? UIScale.scale(180)
+                    : grid.getContentWidth(i, UIScale.scale(90), UIScale.scale(MAX_COLUMN_WIDTH));
+                grid.getColumnModel().getColumn(i).setPreferredWidth(width);
             }
         }
 
