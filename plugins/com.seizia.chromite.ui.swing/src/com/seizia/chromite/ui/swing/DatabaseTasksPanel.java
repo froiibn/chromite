@@ -97,6 +97,7 @@ import java.util.Set;
  * - 2026-11-12 예약 실행(앱 변경 #104, docs/chromite/task-scheduling.md "화면"): 일정 명령({@link TaskScheduleDialog}), 일정·다음 실행 열
  *   (놓친 시각, 건너뛴 실행, 이 PC에서 돌지 않는 이유), 마지막 결과에 예약 실행 표시, 아래에 사용 중인 일정 수와 다음 실행. 예약 실행이 도는 동안도
  *   실행 중으로 보고 실행·삭제를 막는다. 실행 확인의 작업 내용({@link #describeRun})과 오류 문구({@link #describeError})는 예약 쪽도 씀
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
 
@@ -129,7 +130,8 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         newScriptAction = createAction(DatabaseTasksMessages.tasks_new_script, DatabaseTasksMessages.tasks_new_script_tip,
             () -> SqlScriptTaskDialog.openNew(this));
         runAction = createAction(DatabaseTasksMessages.tasks_run, DatabaseTasksMessages.tasks_run_tip, this::runSelected);
-        editAction = createAction(DatabaseTasksMessages.tasks_edit, DatabaseTasksMessages.tasks_edit_tip, this::editSelected);
+        // A description only when the selected task has no editor (the reason, updateActions)
+        editAction = createAction(DatabaseTasksMessages.tasks_edit, null, this::editSelected);
         showLogAction = createAction(DatabaseTasksMessages.tasks_show_log, DatabaseTasksMessages.tasks_show_log_tip, this::showLog);
         deleteAction = createAction(DatabaseTasksMessages.tasks_delete, DatabaseTasksMessages.tasks_delete_tip, this::deleteSelected);
         refreshAction = createAction(DatabaseTasksMessages.tasks_refresh, DatabaseTasksMessages.tasks_refresh_tip, this::reload);
@@ -140,12 +142,16 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(runAction, "run")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(editAction, "properties")); //$NON-NLS-1$
+        JButton editButton = UiIcons.createActionButton(editAction, "properties"); //$NON-NLS-1$
+        // The name, or why the selected task can't be edited (the action's description)
+        editButton.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
+        toolBar.add(editButton);
         toolBar.add(UiIcons.createActionButton(showLogAction, "history")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(scheduleAction, "schedule")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(newScriptAction, "new-query")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
+        // The table's F5 is not the action's accelerator: the tool tip names it
+        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh", KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0))); //$NON-NLS-1$
         add(toolBar, BorderLayout.NORTH);
 
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -205,7 +211,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
     }
 
     @NotNull
-    private static Action createAction(@NotNull String name, @NotNull String description, @NotNull Runnable task) {
+    private static Action createAction(@NotNull String name, @Nullable String description, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -330,8 +336,10 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         scheduleAction.setEnabled(selected);
         runAction.setEnabled(selected && !isRunning(task));
         editAction.setEnabled(selected && isEditable(task));
-        editAction.putValue(Action.SHORT_DESCRIPTION, !selected || editAction.isEnabled() ? DatabaseTasksMessages.tasks_edit_tip
-            : NLS.bind(DatabaseTasksMessages.tasks_edit_unsupported, task.getType().getName()));
+        // The reason on its own line below the name (app change #103: the tool tip had no name)
+        editAction.putValue(Action.SHORT_DESCRIPTION, !selected || editAction.isEnabled() ? null
+            : "<html>" + CommonUtils.escapeHtml(UiIcons.getTipName(editAction)) + "<br>" //$NON-NLS-1$ //$NON-NLS-2$
+                + CommonUtils.escapeHtml(NLS.bind(DatabaseTasksMessages.tasks_edit_unsupported, task.getType().getName())) + "</html>"); //$NON-NLS-1$
         showLogAction.setEnabled(selected && task.getLastRun() != null);
         deleteAction.setEnabled(selected && !isRunning(task));
     }

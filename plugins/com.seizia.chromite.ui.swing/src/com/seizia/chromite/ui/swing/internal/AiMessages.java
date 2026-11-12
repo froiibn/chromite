@@ -42,12 +42,12 @@ import org.eclipse.osgi.util.NLS;
  *   (app round 2 #34, docs/chromite/ai-agent.md "Chat Completions 엔진")
  * - 2026-11-12 {@code ai_options_tool_set*}, {@code ai_options_context_size*}: 제공자별 채팅 도구 묶음과 컨텍스트 크기,
  *   {@code ai_tools_off_notice}: 도구 호출을 못 하는 제공자의 채팅 안내 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
 
     public static String ai_title;
-    public static String ai_toolbar_tip;
     public static String ai_new_chat;
     public static String ai_delete_chat;
     public static String ai_delete_chat_question;

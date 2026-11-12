@@ -50,6 +50,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-11 테마 선택지 "시스템 설정 따르기" 문구 (앱 변경 #38)
  * - 2026-11-12 UI 글꼴 선택(자동·시스템 글꼴, Options 행과 안내 글) 문구를 지움: UI 글꼴은 운영체제 글꼴 하나 (앱 변경 #67)
  * - 2026-11-12 설정 페이지를 바로 여는 링크 문구(B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -155,7 +156,6 @@ public class CoreMessages extends NLS {
     public static String explorer_refresh_tip;
     public static String explorer_collapse_all;
     public static String explorer_expand_loaded;
-    public static String explorer_expand_loaded_tip;
     public static String explorer_filter;
     public static String explorer_filter_tip;
     public static String explorer_select_top;
@@ -180,7 +180,6 @@ public class CoreMessages extends NLS {
     public static String explorer_new_connection;
     public static String explorer_new_connection_tip;
     public static String explorer_connect_server;
-    public static String explorer_connect_server_tip;
     public static String explorer_connect;
     public static String explorer_disconnect;
     public static String explorer_disconnect_tip;

@@ -49,6 +49,9 @@ import java.util.List;
  *   DB로 USE 하면 쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되던 것(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  * - 2026-11-12 Chromite: 다시 읽어도 없는 이름은 캐시를 비우거나 다른 이름을 물을 때까지 다시 읽지 않음: 필터로 숨긴 DB 등에서 쿼리 창의 실행마다
  *   목록 전체를 읽었다(#79 검토 후속, 같은 문서 "다시 읽어도 없는 이름")
+ * - 2026-11-12 Chromite: {@link #getObjectReadingNew}는 아직 읽지 않은 목록을 처음 읽지 않음. 메타데이터 세션이 서버 버전을 읽기 전에
+ *   열리며 SQL Server DB 목록을 읽어 현재 DB의 스키마 ID가 0이 되었고, 새로 고침 전까지 그 스키마의 테이블을 찾지 못했다
+ *   (앱 변경 #107, 같은 문서 "서버 버전을 읽기 전의 목록")
  */
 public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DBSObject> extends AbstractObjectCache<OWNER, OBJECT>
 {
@@ -108,13 +111,21 @@ public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DB
      * list of one configured database, a temporary schema the list leaves out): the callers ask after every run of a
      * query window, and each would read the whole list again. Clearing the cache (Refresh, reconnect) or asking for
      * another name allows one more reading.
+     * <p>
+     * A list not read yet is not read here: there is nothing older to read again, and the first reading belongs to the
+     * owner. The callers ask while a session opens, and a data source opens its metadata session inside its own
+     * {@code initialize}, before it knows the server version: SQL Server read the database list there and built the
+     * current database's schemas with ID 0 (version-dependent column), so their tables were not found until a Refresh.
      *
-     * @return the object, or null if the server does not list it either
+     * @return the object, or null if the server does not list it either or the list was not read yet
      */
     @Nullable
     public OBJECT getObjectReadingNew(@NotNull DBRProgressMonitor monitor, @NotNull OWNER owner, @NotNull String name)
         throws DBException
     {
+        if (!isFullyCached()) {
+            return getCachedObject(name);
+        }
         OBJECT object = getObject(monitor, owner, name);
         if (object != null || !name.equals(missingAfterReading)) {
             missingAfterReading = null;

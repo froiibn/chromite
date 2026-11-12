@@ -66,6 +66,9 @@ import java.util.Map;
  *   "조회만 한 트랜잭션 끝내기")
  * - 2026-11-11 아이콘 단추의 도구 설명이 동작의 단축키를 함께 보임({@link ShortcutTipButton}, 앱 변경 #50: 단축키가 있는 줄 몰랐다)
  *   (docs/chromite/swing-sql-editor-session-ui.md "단축키를 도구 설명에")
+ * - 2026-11-12 아이콘 단추의 도구 설명은 설명문이 아니라 기능 이름(동작의 이름, 끝의 "…" 뺌)과 단축키다. 설명문은 같은 동작의 메뉴 항목이
+ *   쓴다. 꺼진 이유·상태를 말하는 단추는 {@link #DESCRIPTION_TIP}, 패널이 키를 묶은 단추는 {@link #TIP_SHORTCUT} (앱 변경 #103,
+ *   docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class UiIcons {
 
@@ -127,12 +130,27 @@ final class UiIcons {
     }
 
     /**
+     * Client property of an icon button ({@link #createActionButton}, value {@link Boolean#TRUE}): its tool tip is the action's
+     * description (or a text set on the button), not the action's name, because it says what the name can't: why the action is
+     * disabled, the state it acts in. Without a description the name is shown.
+     */
+    static final String DESCRIPTION_TIP = "chromite.descriptionTip"; //$NON-NLS-1$
+
+    /**
+     * Client property of an icon button ({@link #createActionButton}): the {@link KeyStroke} its tool tip names when the action
+     * has no accelerator of its own, because the panel binds the key (F5 of a tool window's tree).
+     */
+    static final String TIP_SHORTCUT = "chromite.tipShortcut"; //$NON-NLS-1$
+
+    /**
      * Icon-only tool bar button (size.actionButton: 16 + Button.toolbar.margin, radius.action 6, hover background).
-     * The tool tip is the action's description (which names the shortcut), or its name.
+     * The tool tip is the function's name, the action's name, with its shortcut: "Save (Ctrl+S)" (user request, app change
+     * #103: a name, not a description). The action's description is written for the menu items that share the action; see
+     * {@link #DESCRIPTION_TIP} and {@link #TIP_SHORTCUT} for the exceptions.
      */
     @NotNull
     static JButton createActionButton(@NotNull Action action, @NotNull String iconId) {
-        JButton button = createButton(action, iconId);
+        JButton button = createButton(action, iconId, true);
         button.setHideActionText(true);
         if (action.getValue(Action.SHORT_DESCRIPTION) == null) {
             button.setToolTipText(String.valueOf(action.getValue(Action.NAME)));
@@ -141,11 +159,22 @@ final class UiIcons {
     }
 
     /**
+     * An icon button ({@link #createActionButton(Action, String)}) whose tool tip names a key that the panel binds to the
+     * action, not the action's accelerator ({@link #TIP_SHORTCUT}).
+     */
+    @NotNull
+    static JButton createActionButton(@NotNull Action action, @NotNull String iconId, @NotNull KeyStroke shortcut) {
+        JButton button = createActionButton(action, iconId);
+        button.putClientProperty(TIP_SHORTCUT, shortcut);
+        return button;
+    }
+
+    /**
      * Tool bar button with icon and text (New Query, Execute), as high as the icon-only buttons.
      */
     @NotNull
     static JButton createToolButton(@NotNull Action action, @NotNull String iconId) {
-        JButton button = createButton(action, iconId);
+        JButton button = createButton(action, iconId, false);
         useToolButtonMargin(button);
         return button;
     }
@@ -173,8 +202,8 @@ final class UiIcons {
     }
 
     @NotNull
-    private static JButton createButton(@NotNull Action action, @NotNull String iconId) {
-        JButton button = new ShortcutTipButton(action);
+    private static JButton createButton(@NotNull Action action, @NotNull String iconId, boolean nameTip) {
+        JButton button = new ShortcutTipButton(action, nameTip);
         button.setIcon(get(iconId));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
@@ -183,24 +212,54 @@ final class UiIcons {
     }
 
     /**
-     * A button whose tool tip names the shortcut of its action ({@link Action#ACCELERATOR_KEY}), "Hide Results (Ctrl+R)",
-     * unless the tool tip already does ({@link UiKeys#formatDescription}). Read when the tool tip shows, so a description
-     * the action changes later (enabled or not, the active window) keeps the shortcut too.
+     * A button whose tool tip names the shortcut of its action ({@link Action#ACCELERATOR_KEY}, else {@link #TIP_SHORTCUT}),
+     * "Hide Results (Ctrl+R)", unless the tool tip already does ({@link UiKeys#formatDescription}). Read when the tool tip
+     * shows, so a description the action changes later (enabled or not, the active window) keeps the shortcut too. An icon
+     * button ({@code nameTip}) shows the action's name in place of its description, unless {@link #DESCRIPTION_TIP} is set.
      */
     private static final class ShortcutTipButton extends JButton {
-        ShortcutTipButton(@NotNull Action action) {
+        private final boolean nameTip;
+
+        ShortcutTipButton(@NotNull Action action, boolean nameTip) {
             super(action);
+            this.nameTip = nameTip;
+        }
+
+        @Override
+        public void setToolTipText(String text) {
+            // An action whose description becomes null (it says only why it is disabled) would unregister the button from
+            // the tool tip manager: keep the name. False while the superclass constructor sets the first tool tip
+            Action action = getAction();
+            super.setToolTipText(text == null && nameTip && action != null ? getTipName(action) : text);
         }
 
         @Override
         public String getToolTipText() {
             String tip = super.getToolTipText();
             Action action = getAction();
-            if (tip == null || action == null || !(action.getValue(Action.ACCELERATOR_KEY) instanceof KeyStroke key)) {
+            if (action == null) {
                 return tip;
             }
-            return withShortcut(tip, key);
+            if (nameTip && !Boolean.TRUE.equals(getClientProperty(DESCRIPTION_TIP))) {
+                tip = getTipName(action);
+            }
+            KeyStroke key = action.getValue(Action.ACCELERATOR_KEY) instanceof KeyStroke accelerator ? accelerator
+                : getClientProperty(TIP_SHORTCUT) instanceof KeyStroke shortcut ? shortcut : null;
+            return tip == null || key == null ? tip : withShortcut(tip, key);
         }
+    }
+
+    /**
+     * The name an icon button's tool tip shows: the action's name, which its menu item shows too, without the "…" that marks
+     * a menu item opening a dialog ("New Connection…" is "New Connection").
+     */
+    @NotNull
+    static String getTipName(@NotNull Action action) {
+        String name = String.valueOf(action.getValue(Action.NAME));
+        if (name.endsWith("…")) { //$NON-NLS-1$
+            return name.substring(0, name.length() - 1);
+        }
+        return name.endsWith("...") ? name.substring(0, name.length() - 3) : name; //$NON-NLS-1$
     }
 
     /**

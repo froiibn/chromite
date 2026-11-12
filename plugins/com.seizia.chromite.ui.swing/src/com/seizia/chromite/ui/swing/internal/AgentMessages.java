@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class AgentMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AgentMessages"; //$NON-NLS-1$
@@ -228,7 +229,6 @@ public class AgentMessages extends NLS {
     public static String agent_alert_delay_minutes;
     public static String agent_alert_delay_seconds;
     public static String agent_activity_title;
-    public static String agent_activity_refresh_tip;
     public static String agent_activity_status;
     public static String agent_history_title;
     public static String agent_history_title_all;

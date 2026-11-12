@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 도구 화면 문구를 이 묶음으로 옮김(OS 언어를 따름)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class ToolsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ToolsMessages"; //$NON-NLS-1$
@@ -199,7 +200,6 @@ public class ToolsMessages extends NLS {
     public static String designer_generate_script;
     public static String designer_generate_script_tip;
     public static String designer_revert;
-    public static String designer_revert_tip;
     public static String designer_progress_open;
     public static String designer_new_table;
     public static String designer_error_open;
@@ -378,7 +378,6 @@ public class ToolsMessages extends NLS {
     public static String library_editor_target;
     public static String library_editor_parameters_count;
     public static String library_editor_parameters;
-    public static String library_editor_save_tip;
     public static String library_editor_list_target;
     public static String library_editor_list_window;
     public static String library_editor_list_missing;

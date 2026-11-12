@@ -101,6 +101,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 Oracle 디버거: attach 지원 여부를 시작 대화상자에 넘김, 프로시저 나가기 도움말을 세션에 따라 바꿈, 시작하는 동안 호출이
  *   끝난 경우(TERMINATE가 시작 중에 옴)를 끝내기로 처리, 권한 오류 안내
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEventHandler {
 
@@ -214,7 +215,7 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
         sources.put(rootSourceId, source);
 
         continueAction = createAction(DebugMessages.debug_continue, DebugMessages.debug_continue_tip, this::startOrContinue);
-        stopAction = createAction(DebugMessages.debug_stop, DebugMessages.debug_stop_tip, this::stop);
+        stopAction = createAction(DebugMessages.debug_stop, null, this::stop);
         stepOverAction = createAction(DebugMessages.debug_step_over, DebugMessages.debug_step_over_tip, () -> step(DBGEvent.STEP_OVER));
         stepIntoAction = createAction(DebugMessages.debug_step_into, DebugMessages.debug_step_into_tip, () -> step(DBGEvent.STEP_INTO));
         stepOutAction = createAction(DebugMessages.debug_step_out, DebugMessages.debug_step_out_tip, () -> step(DBGEvent.STEP_RETURN));
@@ -223,7 +224,8 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createToolButton(continueAction, "run")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(stopAction, "stop")); //$NON-NLS-1$
+        // Shift+F5 is bound below, not the action's accelerator: the tool tip names it
+        toolBar.add(UiIcons.createActionButton(stopAction, "stop", KeyStroke.getKeyStroke(KeyEvent.VK_F5, InputEvent.SHIFT_DOWN_MASK))); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createTextButton(stepOverAction));
         toolBar.add(createTextButton(stepIntoAction));
@@ -953,7 +955,7 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
     // Helpers
 
     @NotNull
-    private static Action createAction(@NotNull String name, @NotNull String toolTip, @NotNull Runnable task) {
+    private static Action createAction(@NotNull String name, @Nullable String toolTip, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {

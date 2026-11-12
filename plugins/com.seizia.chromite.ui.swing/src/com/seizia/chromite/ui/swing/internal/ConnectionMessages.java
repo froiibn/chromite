@@ -55,6 +55,7 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  * - 2026-11-12 JSch 호스트 키·known_hosts 질문의 본문({@code ssh_prompt_host_key_unknown}, {@code ssh_prompt_host_key_changed},
  *   {@code ssh_prompt_create_file}, {@code ssh_prompt_create_folder}) (docs/chromite/swing-auth-prompts.md, 앱 변경 #81)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -401,7 +402,6 @@ public class ConnectionMessages extends NLS {
     public static String auto_refresh_minutes;
     public static String auto_refresh_tip;
 
-    public static String sessions_refresh_tip;
     public static String sessions_search_placeholder;
     public static String sessions_only_mine;
     public static String sessions_only_mine_no_user;
@@ -411,7 +411,6 @@ public class ConnectionMessages extends NLS {
     public static String sessions_reading;
     public static String sessions_not_supported;
     public static String sessions_open_query;
-    public static String sessions_open_query_tip;
     public static String sessions_action_confirm_one;
     public static String sessions_action_confirm_many;
     public static String sessions_action_running;
@@ -422,7 +421,6 @@ public class ConnectionMessages extends NLS {
     public static String sessions_count_many;
     public static String sessions_count_shown;
 
-    public static String locks_refresh_tip;
     public static String locks_kill;
     public static String locks_kill_tip;
     public static String locks_blocking_chains;

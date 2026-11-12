@@ -104,6 +104,7 @@ import java.util.Set;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 예약 실행기 시작·정지를 메인 창으로 옮김: 쿼리와 저장된 작업이 같은 스케줄러({@link RunScheduler})를 씀
  *   (앱 변경 #104, docs/chromite/task-scheduling.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -354,14 +355,15 @@ final class QueryLibraryPanel extends JPanel {
         JToolBar toolBar = new OverflowToolBar();
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
-        toolBar.add(UiIcons.createActionButton(runAction, "run")); //$NON-NLS-1$
+        // The tree's Enter and F5 (bindKey) are not the actions' accelerators: the tool tips name them
+        toolBar.add(UiIcons.createActionButton(runAction, "run", KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0))); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(newQueryAction, "new-query")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(newFolderAction, "new-folder")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(saveToLibraryAction, "save")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(scheduledAction, "schedule")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh", KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0))); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(rootsAction, "settings")); //$NON-NLS-1$
         return toolBar;
     }

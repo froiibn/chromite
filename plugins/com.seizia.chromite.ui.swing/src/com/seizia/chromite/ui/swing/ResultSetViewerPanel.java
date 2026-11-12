@@ -177,6 +177,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  * - 2026-11-12 아래 줄의 보기 토글(값 패널·레코드·텍스트·차트·공간·참조·집계)의 좌우 여백을 {@link UiSizes#TEXT_TOOL_BUTTON_STYLE}로: 아이콘 단추 여백(4)이라 눌린 바탕과 글자 사이가 거의 없었다
  *   (앱 변경 #71 e, docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -448,10 +449,11 @@ final class ResultSetViewerPanel extends JPanel {
         aggregatesToggle = createToggle(toggleAggregates);
         backAction = createAction("←", KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK), //$NON-NLS-1$
             () -> navigateHistory(historyPosition - 1));
-        backAction.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_back_tip);
+        // The arrows are the buttons' text: the tool tip is the Navigate menu's name with the shortcut
+        backAction.putValue(Action.SHORT_DESCRIPTION, UiIcons.withShortcut(GridNavMessages.gridnav_back, (KeyStroke) backAction.getValue(Action.ACCELERATOR_KEY)));
         forwardAction = createAction("→", KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK), //$NON-NLS-1$
             () -> navigateHistory(historyPosition + 1));
-        forwardAction.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_forward_tip);
+        forwardAction.putValue(Action.SHORT_DESCRIPTION, UiIcons.withShortcut(GridNavMessages.gridnav_forward, (KeyStroke) forwardAction.getValue(Action.ACCELERATOR_KEY)));
         backButton = createLinkButton(backAction);
         forwardButton = createLinkButton(forwardAction);
         Action count = createAction(GridNavMessages.gridnav_count, null, this::countRows);
@@ -577,7 +579,6 @@ final class ResultSetViewerPanel extends JPanel {
         filterSummary.add(new JLabel(ResultSetHeaderRenderer.createActiveFilterIcon()));
         filterSummary.add(filterSummaryLabel);
         Action clearFilters = createAction(GridFilterMessages.gridfilter_clear_all, null, this::clearAllFilters);
-        clearFilters.putValue(Action.SHORT_DESCRIPTION, GridFilterMessages.gridfilter_clear_all);
         JButton clearFiltersButton = UiIcons.createActionButton(clearFilters, "close"); //$NON-NLS-1$
         // As high as the status line's text (an icon button's 24 would make the line grow while there are filters)
         clearFiltersButton.setMargin(new Insets(1, 1, 1, 1));
@@ -588,7 +589,6 @@ final class ResultSetViewerPanel extends JPanel {
         sortSummary.setOpaque(false);
         sortSummary.add(sortSummaryLabel);
         Action restoreOrder = createAction(GridFilterMessages.gridfilter_sort_restore, null, this::clearSorting);
-        restoreOrder.putValue(Action.SHORT_DESCRIPTION, GridFilterMessages.gridfilter_sort_restore);
         JButton restoreOrderButton = UiIcons.createActionButton(restoreOrder, "close"); //$NON-NLS-1$
         restoreOrderButton.setMargin(new Insets(1, 1, 1, 1));
         sortSummary.add(restoreOrderButton);

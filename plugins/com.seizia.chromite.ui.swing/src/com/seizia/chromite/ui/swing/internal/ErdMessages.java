@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-erd.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 public class ErdMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ErdMessages"; //$NON-NLS-1$
@@ -57,7 +58,6 @@ public class ErdMessages extends NLS {
     public static String erd_show_types;
     public static String erd_refresh;
     public static String erd_save_layout;
-    public static String erd_save_layout_tip;
     public static String erd_save_layout_failed;
 
     public static String erd_export;
