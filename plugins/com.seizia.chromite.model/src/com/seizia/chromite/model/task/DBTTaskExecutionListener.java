@@ -25,8 +25,9 @@ import org.jkiss.dbeaver.DBException;
  * Task execution listener
  *
  * 변경 이력(Chromite):
- * - 2026-11-12 {@link #getStartedBy}, {@link #checkBeforeRun}: 예약 실행이 실행 기록에 "예약"으로 남고, 무인 실행에서 할 수 없는 것(저장되지 않은
- *   비밀번호, 수동 커밋 세션 등)을 처리기 전에 실패한 실행으로 기록하기 위해서(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
+ * - 2026-11-12 {@link #getStartedBy}, {@link #checkBeforeRun}, {@link #isTaskConfirmed}: 예약 실행이 실행 기록에 "예약"으로 남고, 무인 실행에서
+ *   할 수 없는 것(저장되지 않은 비밀번호, 수동 커밋 세션 등)을 처리기 전에 실패한 실행으로 기록하고, 사용자가 일정을 켤 때 한 번 답한 작업 확인(복원)을
+ *   다시 묻지 않기 위해서(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public interface DBTTaskExecutionListener {
 
@@ -49,6 +50,14 @@ public interface DBTTaskExecutionListener {
      * an exception fails the run with its message in the log.
      */
     default void checkBeforeRun(@NotNull DBTTask task) throws DBException {
+    }
+
+    /**
+     * Whether the user already answered the task's run confirmation (the restore confirmation) for this run: the user
+     * gave it once when turning the task's schedule on. False asks as before.
+     */
+    default boolean isTaskConfirmed(@NotNull DBTTask task) {
+        return false;
     }
 
 }

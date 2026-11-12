@@ -53,7 +53,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * 변경 이력(Chromite):
  * - 2026-11-12 실행 기록의 "시작한 것"을 실행 알림이 정할 수 있게({@link DBTTaskExecutionListener#getStartedBy}, 예약 실행), 처리기 전에
- *   알림의 사전 확인({@link DBTTaskExecutionListener#checkBeforeRun})을 부름(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
+ *   알림의 사전 확인({@link DBTTaskExecutionListener#checkBeforeRun})을 부름. 알림이 이미 확인을 받았다고 하면
+ *   ({@link DBTTaskExecutionListener#isTaskConfirmed}, 일정을 켤 때 받은 확인) 작업 확인을 다시 묻지 않음(앱 변경 #104,
+ *   docs/chromite/task-scheduling.md "무인 실행")
  */
 public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
 
@@ -186,7 +188,11 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
     ) throws DBException, InterruptedException {
         activeMonitor = monitor;
         executionListener.checkBeforeRun(task);
-        DBTaskUtils.confirmTaskOrThrow(task, taskLog, logWriter);
+        if (executionListener.isTaskConfirmed(task)) {
+            taskLog.info("The task's confirmation was given when its schedule was turned on");
+        } else {
+            DBTaskUtils.confirmTaskOrThrow(task, taskLog, logWriter);
+        }
         DBTTaskHandler taskHandler = task.getType().createHandler();
         DBTTaskRunStatus taskStatus = taskHandler.executeTask(this, task, locale, taskLog, logWriter, executionListener);
         if (monitor.isCanceled()) {
@@ -241,6 +247,11 @@ public class TaskRunJob extends AbstractJob implements DBRRunnableContext {
         @Override
         public void checkBeforeRun(@NotNull DBTTask task) throws DBException {
             parent.checkBeforeRun(task);
+        }
+
+        @Override
+        public boolean isTaskConfirmed(@NotNull DBTTask task) {
+            return parent.isTaskConfirmed(task);
         }
     }
 
