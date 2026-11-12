@@ -40,6 +40,9 @@ import java.util.Map;
  *   다시 시도·복구·건너뛰기할 때 실패한 행을 잃거나 이미 넣은 행을 다시 넣지 않도록 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-09 Chromite: 주석만: {@link ExecuteBatch#restoreAppliedRows}는 실행 전에 둔 저장점으로 되돌린 뒤에도 부름
  *   (docs/chromite/swing-data-transfer.md "오류가 트랜잭션을 끝내는 DB의 건너뛰기")
+ * - 2026-11-12 Chromite: {@link ExecuteBatch#getRowCount}, {@link ExecuteBatch#getAppliedRowCount}, {@link ExecuteBatch#getFailedRowCount}.
+ *   자동 커밋 넣기에서 실패한 실행의 어느 행이 결과를 모르는지(이미 썼을 수도 있는지) 호출자가 알아야 다시 보내지 않고 알릴 수 있다
+ *   (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
  */
 public interface DBSDataManipulator extends DBSDataContainer {
 
@@ -86,6 +89,30 @@ public interface DBSDataManipulator extends DBSDataContainer {
          * execution runs them again.
          */
         default void restoreAppliedRows() {
+        }
+
+        /**
+         * The rows held: added and not executed yet, including the rows a failed {@link #execute} kept (they start with
+         * its {@link #getAppliedRowCount} executed rows and its {@link #getFailedRowCount} failed rows).
+         */
+        default int getRowCount() {
+            return 0;
+        }
+
+        /**
+         * After {@link #execute} failed: how many of the held rows, from the first, it executed before the failure.
+         */
+        default int getAppliedRowCount() {
+            return 0;
+        }
+
+        /**
+         * After {@link #execute} failed: how many rows right after the applied ones it failed on. More than one when the
+         * failing statement carried several rows (a JDBC batch, a multi-row INSERT): without a transaction to undo
+         * them, some of these rows may be written and others not.
+         */
+        default int getFailedRowCount() {
+            return 0;
         }
 
         void close();

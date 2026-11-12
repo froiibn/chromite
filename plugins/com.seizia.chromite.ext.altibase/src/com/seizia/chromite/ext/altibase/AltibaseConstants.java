@@ -20,6 +20,13 @@ package com.seizia.chromite.ext.altibase;
 import org.jkiss.code.NotNull;
 import org.jkiss.utils.StandardConstants;
 
+/**
+ * Altibase constants.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: {@link #EC_SESSION_CLOSED}(4163). 서버가 세션을 닫으면 실행 중인 문장의 첫 오류가 4163(SQLState 08004)이라
+ *   연결 끊김으로 분류되지 않았다 (docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ */
 public class AltibaseConstants {
     
     public static final boolean DEBUG = false;
@@ -119,6 +126,9 @@ public class AltibaseConstants {
     
     public static final int EC_PASSWORD_WILL_EXPIRE = 0x51A79;
     public static final int EC_DBMS_METADATA_NOT_FOUND = 0xF1B3D;
+    // "The session has been closed by the server" (SQLState 08004): the statement in flight when the session is closed
+    // (ALTER DATABASE ... SESSION CLOSE); the next statement gets 08S01
+    public static final int EC_SESSION_CLOSED = 4163;
 
     /*
      * DBMS output

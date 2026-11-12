@@ -109,6 +109,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 {@link #runChange}를 속성 편집({@link ObjectPropertyEdits})도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림
  *   (docs/chromite/swing-object-properties.md)
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 {@link #runChange}: 저장 중 연결이 끊기면 다시 연결만 하고 변경을 다시 실행하지 않음({@code DBExecUtils.tryExecuteReconnectOnly},
+ *   앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
  */
 final class ExplorerObjectCommands {
 
@@ -586,8 +588,9 @@ final class ExplorerObjectCommands {
                         secrets.reveal(change.object());
                     }
                     try {
-                        // Reconnects and retries once when the connection was lost, as the table designer's save
-                        DBExecUtils.tryExecuteRecover(monitor, dataSource, param -> change.context().saveChanges(monitor, change.options()));
+                        // Reconnects when the connection was lost but does not run the change again, as the table
+                        // designer's save: the statement in flight may or may not have been done
+                        DBExecUtils.tryExecuteReconnectOnly(monitor, dataSource, param -> change.context().saveChanges(monitor, change.options()));
                     } finally {
                         if (secrets != null) {
                             secrets.clear(change.object());
