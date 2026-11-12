@@ -406,6 +406,8 @@ SWT 감사 B-C13. SWT `ConnectionPageGeneral`의 Security 묶음(읽기 전용, 
 
 - 임시 연결에 폼 전체(인증 추가 칸, 드라이버별 칸, 핸들러)를 쓰므로 SSH 터널·SSL·프록시를 거쳐 연결해 본다.
 - 성공: `Connected (N ms)`, Server, Driver에 더해 쓴 핸들러를 `Network: SSH, SSL`처럼 보인다.
+  Server·Driver는 "이름 버전"인데, 버전이 이미 이름으로 시작하면 버전만 쓴다(`ConnectionTestJob.nameWithVersion`, 2026-11-12 앱 변경 #81:
+  Oracle은 이름 "Oracle", 버전 "Oracle AI Database 26ai Free Release …"라 "Oracle Oracle AI Database …"로 보였다. Oracle Free 23.26에서 확인).
 - 실패: 모델 오류 대화상자(D단계와 같음). 핸들러 칸이 비어 있으면 단추가 꺼지고 대화상자 아래에 이유가 보인다.
 - SSH 탭의 Test Tunnel은 DB 없이 터널만 시험한다.
 
@@ -707,3 +709,4 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
 - 2026-11-12 저장하지 않은 SSH·프록시·SSL 설정(새 연결 포함)에서 데이터베이스 목록이 끝없이 다시 읽으며 서버에 로그인하던 것(앱 변경 #77,
   `chromite/conn-dblist-loop`): 비교에서 핸들러 설정의 주인을 빼고, 읽은 뒤 목록을 펼칠 때는 읽기를 요청하지 않음. 2026-11-11 "남긴 것"의
   프록시 느림(1044번)이 이 고리였다. 위 "끝없이 다시 읽던 것", "확인 (2026-11-12, 목록 다시 읽기 고리)". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 Test Connection 결과에서 Oracle 제품 이름이 두 번 나오던 것(앱 변경 #81, `ConnectionTestJob`). 위 "5. Test Connection".
