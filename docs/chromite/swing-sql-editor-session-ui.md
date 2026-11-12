@@ -80,6 +80,36 @@ PostgreSQL 다른 세션이 만든 스키마로 `SET search_path`(`PostgreExecut
 SQL Server·MariaDB 선택과 상태 줄이 그 DB, PostgreSQL `SET search_path TO chr_s2`(다른 세션이 만든 스키마)가 `chr_s2`, Oracle은 그대로 정상.
 연결 새로 고침(Object Explorer Refresh) 뒤, 끊었다 다시 연결한 뒤에도 같았다. 증거 `D:\Tools\_scratch\small-fixes-r3\sheets\79-*`.
 
+### 다시 읽어도 없는 이름 (#79 검토 후속)
+
+**문제:** 서버의 현재 DB/스키마가 목록 캐시에 영영 들어오지 않는 경우가 있다. 그러면 `getObjectReadingNew`가 쿼리 창의 실행마다 목록 전체를 다시 읽었다.
+기본값 읽기(`refreshDefaults`, PostgreSQL `setActiveSchema`)는 F5 한 번에 적어도 한 번 돈다: 조회·DML이 아닌 문장이 오류 없이 끝날 때마다, 그리고 실행 끝에
+마지막 문장 뒤에 읽지 않았으면 한 번(위 "현재 DB 따라가기"). `SELECT 1` 열 번이면 기본값 읽기 열 번이다(아래 표의 read-defaults).
+
+**고침:** 기억은 다시 읽는 곳인 캐시(`JDBCObjectCache`)에 둔다. 다시 읽어도 없는 이름을 기억하고, 같은 이름을 다시 물으면 읽지 않는다. 캐시를 비우면
+(연결 Refresh, 다시 연결은 새 캐시) 또는 다른 이름을 물으면 다시 한 번 읽을 수 있다.
+
+**화면:** 목록에 없는 현재 DB는 "&lt; N/A &gt;" 대신 서버가 알려 준 이름을 글로 보인다(`SqlEditorPanel.getUnlistedDefaultName`, 실행 문맥의
+`getCachedDefault`: 목록이 DB면 DB 이름, 스키마면 스키마 이름). 고를 수 없는 글 항목이고, 상태 줄도 그 이름이다. 이름이 없으면 전처럼 N/A다.
+PostgreSQL은 현재 스키마가 목록에 없으면 실행 문맥이 search_path에서 목록에 있는 첫 스키마를 기본으로 삼으므로(전과 같음) 그 스키마가 보인다.
+
+**확인(쿼리 창에서 `USE`/`SET search_path` 한 번, 이어서 `SELECT 1` 열 번. 앱의 쿼리 관리자 처리기로 센 목록 질의 수):**
+
+| 경우 | 고치기 전 `USE` + 10번 | 고친 뒤 `USE` + 10번 | 고친 뒤 선택·상태 줄 |
+|---|---|---|---|
+| SQL Server, Object Explorer 필터가 `chr_small_fixes_r3`를 숨김 | 1 + 10 | 1 + 0 | `chr_small_fixes_r3`(전: N/A, 상태 줄 비어 있음) |
+| SQL Server, DB 하나만 보는 연결(`show-all-databases-azure=false`, master) | 1 + 10 | 1 + 0 | 같음 |
+| MariaDB, 필터가 DB를 숨김 | 1 + 10 | 1 + 0 | 같음 |
+| PostgreSQL `SET search_path = pg_catalog`(목록에 있음) | 0 + 0 | 0 + 0 | `pg_catalog` |
+| PostgreSQL 임시 표 뒤 `SET search_path = pg_temp, public`(`pg_temp_N`은 유틸리티 스키마라 목록에 없음) | 2 + 10(DDL 새로 고침 포함) | 1 + 0 | `public`(전과 같음) |
+| PostgreSQL, 필터가 `chr_s2`를 숨김, `SET search_path TO chr_s2` | 1 + 10 | 1 + 0 | `public`(전과 같음, 실제 세션 값과 다름) |
+
+연결 Refresh 뒤 `SELECT 1` 열 번: 목록 질의 2(Refresh 자신의 1 + 한 번 더 1). `USE master` 뒤 다시 `USE` + 다섯 번: 1. 다시 연결 뒤 `USE` + 다섯 번: 1.
+다른 세션이 만든 DB/스키마(위 #79 경우)는 고친 뒤에도 그 DB/스키마가 보였다(SQL Server, MariaDB, PostgreSQL, 목록 질의 1번).
+SQL Server의 제한된 로그인은 확인하지 않았다: 목록 질의(`SELECT db.* FROM sys.databases db`)에 접근 권한 조건이 없고, `sys.databases`는 기본 권한으로 모든 DB를 보인다.
+지워진 DB: SQL Server·PostgreSQL은 쓰고 있는 DB를 지울 수 없고, MariaDB는 현재 DB를 지우면 `DATABASE()`가 NULL이라 이름을 찾지 않는다(확인하지 않음).
+증거 `D:\Tools\_scratch\small-fixes-r3\sheets\79-followup-*.log.txt`.
+
 **범위 밖에서 본 것(고치지 않음):** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`처럼 DDL이 든 배치를 실행하면 끝난 뒤 선택이 N/A가 될 때가 있다.
 실행 문맥의 값은 맞고(`schemaState` 읽기 결과만 기본 객체가 null) 다음 실행에서 바로 돌아온다. DDL 뒤 메타데이터 새로 고침(`SqlMetadataRefresh`)이
 스키마 캐시를 비우는 것과 실행 끝의 선택 다시 그리기가 겹치는 것으로 보인다(고치기 전 빌드에서는 확인하지 않음).
@@ -182,3 +212,4 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
   스피너로. "스피너 하나와 길이를 모르는 진행" 절 추가. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #79(`chromite/small-fixes-r3`): 서버가 알려 준 현재 DB/스키마가 캐시에 없으면 목록을 다시 읽음(SQL Server, MySQL/MariaDB, PostgreSQL).
   "캐시에 없는 현재 DB" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DB 선택·상태 줄, 연결할 때의 기본 DB 읽기, DB/스키마 목록 캐시.
+- 2026-11-12 #79 검토 후속: 다시 읽어도 없는 이름은 다시 읽지 않음(캐시가 기억), 목록에 없는 현재 DB는 이름을 글로 보임. "다시 읽어도 없는 이름" 절. 회귀 테스트는 실행하지 않았다.
