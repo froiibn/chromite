@@ -139,6 +139,7 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
 | ERD·실행 계획: 확대 / 축소 / 100% | Ctrl+= (또는 Ctrl+NumPad +) / Ctrl+- / Ctrl+0 | ⌘= / ⌘- / ⌘0 |
 | ERD·실행 계획: 휠 확대 | Ctrl+휠 | ⌘+휠 |
 | ERD: 선택에 더하기·빼기 | Ctrl+클릭 | ⌘+클릭 |
+| 비교 탭: 이전 차이 / 다음 차이(앱 변경 #105, [text-compare.md](text-compare.md)) | Alt+↑ / Alt+↓ | ⌥↑ / ⌥↓ |
 | 결과 열 머리글: 열 선택에 더하기 / 정렬에 더하기 | Ctrl+클릭 | ⌘+클릭 |
 
 ## 설계 결정과 이유
@@ -183,4 +184,7 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
 - 2026-11-12 Ctrl+Shift+T(⇧⌘T)를 Reopen Closed Tab으로, Maximize Results는 Ctrl+Shift+R(⇧⌘R, Results 보이기·숨기기 Ctrl+R의 짝)로 옮김. ⇧⌘R·⇧⌘T는
   macOS 예약 키가 아니고 다른 명령과 겹치지 않는다(`UiKeysTest` 목록에 Ctrl+Shift+R을 더함, 테스트는 실행하지 않음). 앱 변경 #66, `chromite/small-fixes-r2`.
   확인(테스트 에이전트, 150%): 닫은 쿼리 창이 Ctrl+Shift+T로 글과 함께 돌아오고, Ctrl+Shift+R이 결과 최대화를 켜고 끔. Window 메뉴에 "닫은 탭 다시 열기 Ctrl+Shift+T".
+- 2026-11-12 비교 탭의 이전/다음 차이 Alt+↑/Alt+↓(⌥↑/⌥↓): 초점이 그 탭 안에 있을 때만 걸림(탭 패널의 `WHEN_ANCESTOR_OF_FOCUSED_COMPONENT`, 그 탭의 두 편집기는 줄 옮기기 키를 덮음).
+  메인 창은 Alt+↑/↓를 묶지 않고(Query 메뉴는 Alt+PageUp/PageDown), Alt를 떼어도 그 사이에 다른 키를 눌렀으므로 메뉴 막대가 골라지지 않는다(앱 변경 #102와 무관). F7(Object Details)은 그대로.
+  비교 명령 자체에는 단축키를 두지 않았다(앱 변경 #105, `chromite/text-compare`).
 - 2026-11-12 "Alt 키와 메뉴 막대"(위 설계 결정): 마우스에 쓴 Alt의 떼기는 메뉴 막대를 고르지 않음, `AltMouseMenuGuard`(앱 변경 #102, `chromite/alt-mouse-menu`).

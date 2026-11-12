@@ -63,6 +63,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [task-scheduling.md](task-scheduling.md) | 저장된 작업의 예약 실행(앱 변경 #104): 쿼리 예약과 스케줄러 하나, 작업과 함께 저장, 일정 대화상자, 켤 때 한 번 받는 확인과 동의 지문, 무인 실행(묻지도 대신 답하지도 않음), 놓친 실행·겹침·서머타임, OS 스케줄러를 쓴다면 |
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행, 공유(공유 폴더 자동 새로 고침, Git, 내보내기·가져오기, 저장 충돌) |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
+| [text-compare.md](text-compare.md) | 텍스트 비교(앱 변경 #105): SQL Editor 도구 막대·Query 메뉴의 비교 단추, 열린 두 창(쿼리 창, Modify 창, DDL 탭) 고르기, 나란히 비교하는 문서 탭(줄·낱말 칠하기, 이전/다음 차이, 좌우 바꾸기, 새로 고침, 공백·대소문자·빈 줄 무시), 스키마 비교와 함께 쓰는 보기, Myers 줄 비교와 크기 제한 |
 | [schema-compare.md](schema-compare.md) | 스키마 비교(Tools > Compare Schemas…): 같은·다른 연결의 두 스키마 비교(테이블·열·키·인덱스·뷰·루틴·트리거·시퀀스), 결과 트리와 DDL 나란히 보기, 대상 드라이버의 객체 관리자로 만드는 마이그레이션 스크립트(실행하지 않음, DROP은 처음에 꺼짐) |
 | [procedure-debugger.md](procedure-debugger.md) | 프로시저 디버거: PostgreSQL pldbgapi(중단점, 단계 실행, 변수·호출 스택, attach 모드), Oracle DBMS_DEBUG(디버그 컴파일 질문, 프로시저 나가기, 권한 안내), 복원한 디버그 모델, 끝낼 때 트랜잭션 질문, SQL Server·MySQL·Altibase 가능성과 추정 |
 | [sqlserver-execution-trace.md](sqlserver-execution-trace.md) | SQL Server 실행 추적(Trace Execution…): 프로시저를 인수와 함께 실행하고 확장 이벤트로 문장마다 줄·시간·행·읽기를 기록, 원본 옆 타임라인·줄별 표와 실행된 줄 표시, 권한 안내(GRANT), XE 세션 정리, 끝날 때 트랜잭션 질문 |

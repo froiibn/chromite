@@ -316,6 +316,8 @@ import java.util.function.Supplier;
  * - 2026-11-12 Windows: 마우스에 쓴 Alt를 떼도 메뉴 막대가 골라지지 않게 {@link AltMouseMenuGuard}를 설치(앱 변경 #102)
  * - 2026-11-12 예약 실행기({@link RunScheduler}, 쿼리와 저장된 작업이 함께 씀)를 이 창이 열릴 때 시작하고 닫힐 때 멈춤. 전에는 Query Library
  *   창이 했다. 저장된 작업의 일정({@link TaskScheduler})도 함께 시작·정지(앱 변경 #104, docs/chromite/task-scheduling.md)
+ * - 2026-11-12 비교: 열린 두 창의 글을 나란히 비교하는 문서 탭({@link TextCompareCommand}, Query 메뉴와 SQL Editor 도구 막대, 앱 변경 #105)
+ *   (docs/chromite/text-compare.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -483,6 +485,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action maximizeResultsAction;
     private final SqlOutlinePanel outlinePanel;
     private final SqlEditorToolBar sqlEditorToolBar;
+    private final TextCompareCommand textCompareCommand;
     private final EditMenu editMenu;
     /**
      * Saves the query windows periodically and on close, and offers them again at the next start.
@@ -851,8 +854,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 BackupRestoreCommands.runEditorScript(this, editor);
             }
         });
+        textCompareCommand = new TextCompareCommand(this, this, documentTabs);
         sqlEditorToolBar = new SqlEditorToolBar(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
-            commitAction, rollbackAction, commitModeAction, this::openQueryHistory);
+            commitAction, rollbackAction, commitModeAction, this::openQueryHistory, textCompareCommand.getAction());
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         updateQueryActions();
@@ -2249,6 +2253,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);
         historyItem.addActionListener(e -> openQueryHistory());
         queryMenu.add(historyItem);
+        queryMenu.add(new JMenuItem(textCompareCommand.getAction()));
         queryMenu.add(new JMenuItem(queryLibraryPanel.getSaveToLibraryAction()));
         queryMenu.add(new JMenuItem(variablesAction));
         // Tools > Options changes the same setting
