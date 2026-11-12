@@ -443,7 +443,6 @@ final class SqlEditorPanel extends JPanel {
     private SqlFileContent fileFormat;
     private boolean dirty;
     private long maxRows;
-    // The window's server, which changes only through Change Connection… (app changes #69, #73)
     private final JComboBox<Object> schemaCombo = new JComboBox<>();
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
