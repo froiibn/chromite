@@ -1377,7 +1377,7 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
     성공 결과(`QueryTools.addTransactionState`)도 같은 값으로 `transactionOpen`을 알린다. 전에는 이 경우 `pending`이 늘 거짓이라 커밋 안 된 INSERT 뒤에도
     `transactionOpen: false`, 실패 때는 "nothing … is waiting for a commit"이었고, 쿼리 창 상태 줄도 그 트랜잭션을 몰랐다(쿼리 관리자는 에이전트 문장을 보지 못함).
     이 트랜잭션은 사용자의 것이기도 하므로 `pending`으로 두지 않는다. 그래서 `commitTransaction`·`rollbackTransaction`은 묻지 않고(정책의 Allow/Deny만) 아무것도
-    끝내지 않으며, 결과의 `otherOpenTransactions`에 그 세션("Main")이 보인다. `getTransactionStatus`도 `agentTransactionOpen: false`,
+    끝내지 않는다. 2026-11-12(앱 변경 #92)부터 이때 결과는 성공이 아니라 오류다(아래 "공유 세션의 commitTransaction·rollbackTransaction"). `getTransactionStatus`도 `agentTransactionOpen: false`,
     `otherOpenTransactions: ["Main"]`이다. 끝내는 것은 사용자가 쿼리 창(상태 줄, Query 메뉴)에서 한다.
 - **자르기**: 오류 결과가 실행기 한도(`AIToolExecutor.MAX_RESULT_CHARS`, 1 MB)를 넘으면 글 전체를 자르지 않고(전에는 `truncatedText` 하나만 남아 뒤쪽의
   `ranAfterError`·`transactionOpen`·`transactionNote`·`steps`가 잘렸다) JSON을 먼저 읽어 가장 큰 멤버부터 줄인다(`fitResult`): 객체는 큰 멤버를, 배열은 앞
@@ -1459,7 +1459,8 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
 - `runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.
 - ~~공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.~~
   2026-11-12 고침(앱 변경 #91): 아래 "공유 세션에서 롤백에 기대는 호출".
-  공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음). 이 작업에서 고치지 않았다.
+  ~~공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음).~~
+  2026-11-12 고침(앱 변경 #92): 아래 "공유 세션의 commitTransaction·rollbackTransaction".
 
 ## 공유 세션에서 롤백에 기대는 호출 (앱 변경 #91, 2026-11-12)
 
@@ -1576,6 +1577,62 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 - 공유 세션의 `ATOMIC`은 호출을 한 트랜잭션으로 묶지 못한다(자동 커밋이면 오류 전 행이 커밋됨). 결과의 `transactionNote`는 사실대로 "already committed"다.
 - 공유 세션에서 수동 커밋이면 읽기도 그 세션에 트랜잭션을 시작한다(드라이버가 자동 커밋이 아닌 세션의 첫 문장에서 시작). 쿼리 창에서 읽어도 같다.
 
+## 공유 세션의 commitTransaction·rollbackTransaction (앱 변경 #92, 2026-11-12)
+
+### 문제
+
+"단일 연결" 연결의 공유 세션에서 수동 커밋으로 에이전트가 쓴 뒤 `commitTransaction`을 부르면, 끝낼 에이전트 트랜잭션이 없어 아무것도 커밋하지 않는데
+결과가 상태 JSON(`agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]`)이라 감사 기록 `outcome: SUCCESS`, 채팅 카드 "완료"였다. 모델은 커밋된
+줄 안다. `rollbackTransaction`도 같다. 고치기 전 빌드: SQL Server 수동 커밋 공유 세션에서 `getActualPlan` UPDATE(#91) 뒤 `commitTransaction`(Allow) SUCCESS,
+`rollbackTransaction` SUCCESS, 두 번째 세션의 NOLOCK에는 커밋 안 된 값이 그대로, READPAST에는 그 행이 없음(잠김).
+
+### 원인
+
+`ConnectionTools.call`(고치기 전 98행)이 `commitTransaction`·`rollbackTransaction`을 `transactionStatus`로 보낸다. 끝내는 일은 실행기가 트랜잭션 질문의
+답으로 `AgentSql.endTransaction`(에이전트 문맥의 `pending`만)에서 하고, 도구 자신은 상태만 돌려준다. 공유 세션은 `pending`으로 두지 않으므로(#83, 사용자의
+트랜잭션이기도 함) 질문도 끝내기도 없고, 상태 결과가 늘 성공이었다.
+
+### 고친 것
+
+- `ConnectionTools.endTransaction`: 실행기가 에이전트 트랜잭션을 끝낸 뒤 상태를 읽고, 끝낼 에이전트 트랜잭션이 없었고(`agentTransactionOpen: false`) 연결이
+  공유 세션(`AgentSql.isSharedSession`)이며 그 세션(쿼리 창이 아닌 에이전트 문맥을 뺀 연결의 실행 문맥)에 상태 줄 규칙(`QMUtils.getTransactionState`, 에이전트
+  호출마다 DB에 물어 갱신됨)으로 열린 트랜잭션이 있으면 오류로 끝낸다: "Nothing was committed (rolled back): the agent has no transaction of its own on this
+  connection. It uses one shared session (its "single connection" setting) that the user's query windows also use, and the open transaction in that session
+  (Main) holds what ran there, the agent's statements included. commitTransaction does not end it: ask the user to commit or roll it back in a query window
+  (status bar or Query menu)." 실행기가 `ERROR`로 감사하고 감사 기록의 `error`, 결과의 `error`(채팅 카드가 보이는 글), 모델이 받는 글이 같다.
+- 도구는 그 트랜잭션을 끝내지 않는다(사용자 규칙). 공유 세션에 열린 트랜잭션이 없으면 예전처럼 상태를 돌려준다(끝낼 것이 없음).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0).
+
+### 같은 사각지대 점검
+
+| 도구 | 공유 세션에서 | 처리 |
+|---|---|---|
+| `getTransactionStatus` | `agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]`. 에이전트가 쓴 것이 Main에 있다는 말은 없다(쓰기 도구 결과의 `transactionNote`가 말함) | 거짓은 아니라 바꾸지 않음(보고) |
+| `disconnect` | 실행기의 트랜잭션 질문이 쿼리 창 문맥(Main 포함, 상태 줄 규칙)을 찾아 Commit / Roll back / Cancel을 묻는다 | 사각지대 없음 |
+| `setCurrentDatabase` | 트랜잭션 질문은 에이전트 `pending`만 보므로 묻지 않는다. 바꾸는 것은 에이전트 기본값뿐이라 트랜잭션을 끝내지 않는다 | 트랜잭션 사각지대 없음. 다른 문제는 아래 |
+
+- `setCurrentDatabase`(범위 밖, 보고만): 공유 세션에서는 `AgentSql.open`이 격리 문맥일 때만 DB를 바꾸므로 SQL Server·MySQL처럼 인스턴스가 하나인 연결에서
+  `database`가 조용히 무시되고(확인: `database: "master"`에 SUCCESS, `agentDatabase`는 그대로 `chr_agent_tools_r2`), `schema`는 `applySchema`가 공유
+  세션(쿼리 창의 세션)의 기본 스키마를 바꾼다(코드 읽기).
+
+### 확인 (2026-11-12)
+
+#91과 같은 방법(시험 에이전트가 켠 단일 연결, SQL Server 2022 수동 커밋, 쿼리 창 하나).
+
+| 경우 | 결과(고친 뒤) | 감사 기록 | 두 번째 세션 | 쿼리 창 상태 줄 |
+|---|---|---|---|---|
+| `runSql` `INSERT … (3)` | SUCCESS, `transactionOpen: true`, 공유 세션 안내 | SUCCESS | READPAST 1·2, NOLOCK 1·2·3 | "Open transaction (changes)" |
+| `getTransactionStatus` | `agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]` | SUCCESS | — | 그대로 |
+| `commitTransaction`(Allow) | `ERROR` "Nothing was committed: the agent has no transaction of its own on this connection. … (Main) … commitTransaction does not end it: ask the user …" | `outcome: ERROR`, 같은 `error` | READPAST 1·2(커밋 안 됨) | 그대로 열림 |
+| `rollbackTransaction` | `ERROR` "Nothing was rolled back: …" | `ERROR`, 같은 글 | NOLOCK 3 그대로(롤백 안 됨) | 그대로 열림 |
+| `disconnect`(답 Roll back) | 질문에 열린 트랜잭션 1개, `transactionsBeforeCall` ROLLED_BACK | SUCCESS | 3 없음 | — |
+| 다시 연결 뒤 열린 것 없이 `commitTransaction` | SUCCESS, 상태(끝낼 것 없음) | SUCCESS | — | 표시 없음 |
+| 채팅(127.0.0.1의 가짜 Chat Completions 서버만, 첫 요청 전 그 기록에 시작 줄과 `/v1/models` 시험 요청이 남는 것을 확인): `runSql` 뒤 `commitTransaction` | 카드 "Failed, 1 ms - Nothing was committed: the agent has no transaction of its own …" | `client: CHAT`, `ERROR`, 같은 글 | 50 커밋 안 됨 | — |
+
+- 가짜 서버 기록에 채팅 요청 4개(도구 13개, 도구 정의 5,316 B: #83 측정과 같음)가 남았고 실제 제공자는 부르지 않았다.
+- 고치기 전 빌드: 같은 상태의 `commitTransaction`·`rollbackTransaction`이 모두 `SUCCESS`(상태 JSON), 감사 `SUCCESS`.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1681,6 +1738,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #92(`chromite/agent-tools-r2`): 공유 세션에 열린 트랜잭션이 있을 때 `commitTransaction`·`rollbackTransaction`이 SUCCESS 대신
+  "아무것도 커밋(롤백)하지 않았다, 사용자가 쿼리 창에서 끝낸다"는 오류. 위 "공유 세션의 commitTransaction·rollbackTransaction". 도구 설명은 그대로.
+  회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #91(`chromite/agent-tools-r2`): "단일 연결" 연결의 공유 세션에서 롤백에 기대는 호출(읽기가 아닌 문장의 실제 계획, Oracle
   EXPLAIN PLAN)을 거절, 문장이 여럿인 글은 공유 세션에서 서버 검사(`validateSql`)를 하지 않음, 분류기가 문장이 여럿인 글을 읽기로 보지 않음.
   위 "공유 세션에서 롤백에 기대는 호출". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
