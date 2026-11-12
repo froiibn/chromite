@@ -316,6 +316,25 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - 리허설 키와 known_hosts(컨테이너의 호스트 키를 직접 읽어 씀)는 `.local/rehearsal/`에 만든다.
 - 배포 스크립트를 `-Rehearsal`로 실행한다: 서명 확인 실패를 "REHEARSAL, NOT CHECKED"로 넘긴다. `-Rehearsal`은 대상과 사이트가 127.0.0.1/localhost일 때만 허용된다.
 
+### 이 PC에 Docker가 없을 때: 다른 Linux 호스트에서 리허설 (2026-11-12, 26.0.5)
+
+`rehearse.ps1`은 이 PC의 Docker를 쓴다. 이 PC의 Docker를 쓸 수 없으면 같은 구성을 Docker가 있는 Linux 호스트(26.0.5 때는 시험용 DB VM)에 띄우고,
+이 PC에서는 포트만 연결해 배포 스크립트를 그대로 `-Rehearsal`로 실행한다. `-Rehearsal`은 대상이 127.0.0.1일 때만 허용되므로 SSH 포트 전달로 맞춘다.
+
+1. `tools/release/rehearsal/`을 호스트에 복사한다(`git archive <커밋> tools/release/rehearsal`).
+2. 리허설 전용 키를 이 PC에서 만든다(`ssh-keygen -t ed25519`, 암호 없음. PowerShell에서 빈 암호 인자는 Git Bash로 넘긴다: `-N ''`).
+3. 호스트에서 `REHEARSAL_AUTHORIZED_KEY=<공개 키> REHEARSAL_SSH_PORT=2222 REHEARSAL_HTTP_PORT=8088 docker compose -f compose.yaml up -d --build --wait`.
+   두 컨테이너 모두 호스트의 127.0.0.1에만 열린다. 방화벽 포트는 열지 않는다.
+4. 컨테이너의 호스트 키(`docker compose exec -T server cat /etc/ssh/ssh_host_ed25519_key.pub`)로 `known_hosts`를 만든다(`[127.0.0.1]:2222 <형식> <키>`).
+5. 이 PC에서 `ssh -N -L 127.0.0.1:2222:127.0.0.1:2222 -L 127.0.0.1:8088:127.0.0.1:8088 <호스트>`.
+6. `deploy-chromite-site.ps1 -Tag <태그> -DataGeneration <값> -Target ubuntu@127.0.0.1 -Port 2222 -IdentityFile <키> -KnownHosts <파일> -SiteUrl http://127.0.0.1:8088 -ArtifactsDir <파일 폴더> -Rehearsal -Yes`.
+7. 끝나면 `docker compose down --volumes`, 이미지와 복사한 폴더 삭제, 포트 전달 종료.
+
+운영과 같은 상태에서 시작하려면 먼저 지금 운영 중인 버전을 같은 방법으로 넣는다. 배포 스크립트가 옛 버전의 파일을 받지 않게 바뀐 뒤라면
+(26.0.5부터 0.1.4의 zip을 거부) 그 버전을 넣을 때만 바뀌기 전 커밋의 스크립트를 쓴다.
+태그를 붙이기 전에는 `release.yml`을 `devel`에서 수동 실행해(태그 없음, 초안 Release 없음, 번호를 쓰지 않음) 나온 서명 파일로 같은 리허설을 미리 할 수 있다.
+수동 실행의 산출물에는 `SHA256SUMS`가 없으므로 `sha256sum`으로 만들어 넣는다.
+
 ## 사이트 `site/`
 
 | 경로 | 내용 |
@@ -841,6 +860,19 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 | `.gitattributes`, `.gitignore` | `tools/release`의 `.sh`는 LF, `.local/` 무시 |
 | `NOTICE` | 사이트의 Pretendard 웹 글꼴, Octicons GitHub 마크(MIT) |
 
+- 26.0.5 릴리스(2026-11-12, 태그 `v26.0.5` = `412780207b`, #245~#248 포함):
+  - 태그 전 `release.yml` 수동 실행 두 번(`2ade8c6996`: 옛 이름 시작 파일 서명 단계가 처음 도는 것 확인, `73448a993a`: 버전 26.0.5와 macOS zip `Chromite.app`) 모두 성공.
+  - 태그 실행(43171860410): 모든 작업 성공, 초안 Release에 파일 4개와 `SHA256SUMS`, 내려받아 `sha256sum -c` 4개 OK.
+  - 리허설(위 "다른 Linux 호스트에서 리허설", 시험용 DB VM): 실제 0.1.4 릴리스를 넣은 서버 사본에 수동 실행 파일로 한 번, 처음 상태로 되돌려 태그의 파일로 한 번,
+    둘 다 `ALL CHECKS OK: 26.0.5 is live`(OK 35건, "REHEARSAL, NOT CHECKED" 없음, `setups listed: 26.0.5, 0.1.4`). 끝난 뒤 컨테이너·볼륨·이미지 삭제.
+  - 운영 배포(Turbrix 세션이 같은 태그의 스크립트와 같은 파일로 실행, `-DataGeneration 2`): `ALL CHECKS OK: 26.0.5 is live at https://chromite.seizia.com`,
+    옮겨 둔 이전 파일 `/srv/chromite/old/20261112T071941Z`(0.1.3 파일 3개 포함).
+  - 배포 뒤 확인: 운영 `releases.json`의 26.0.5 세 파일의 크기·SHA-256이 `SHA256SUMS`와 같음, 세 파일 200과 같은 크기, `/`, `/ko/`, `/en/`, 변경 내역 두 쪽 200, `#v26.0.5` 있음.
+  - 0.1.4에서 보이는지: v0.1.4 릴리스의 포터블 zip을 풀어 임시 `-data`, `-configuration`, `CHROMITE_DATA`로 실행하니 약 50초 안에 제목 줄에 "새 버전 26.0.5"가 떴다
+    (알림 모드: 설치 프로그램으로 설치한 것이 아님. 내려받기·설치는 실행하지 않음). 설치본의 자동 업데이트(내려받기, 설치 프로그램 실행, 옛 이름 시작 파일로 다시 시작)는
+    이 PC의 실제 설치를 건드리지 않으려고 실행하지 않았다: #241에서 격리 설치로 확인한 경로이고, 서명된 실물로는 사용자의 PC가 첫 확인이다.
+  - 확인하지 않은 것: 실제 Mac에서 0.1.4 → 26.0.5 업데이트(코드로만 확인). 회귀 테스트는 실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. NSIS 설치 프로그램(사용자별, 제자리 업그레이드·되돌리기, 2단계 서명), `release.yml` 연결, 피드 생성기(`releases.json`, `releases.js`),
@@ -897,3 +929,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   바로 가기·앱 목록 아이콘이 `Chromite.exe`, 배포 스크립트의 macOS 실행 파일 확인 `Contents/MacOS/Chromite`. 설계와 확인은 [launcher-name.md](launcher-name.md).
 - 2026-11-12 앱 변경 #63(`chromite/release-26-0-5`): 버전 체계 `YY.seq.dev`, 0.1.4 다음은 26.0.5. 릴리스 체크리스트의 "0.1.5" 항목(macOS zip 옛 이름 `ChromiteSwing.app` 없앰,
   배포 스크립트의 옛 이름 허용 삭제)과 런처 이름 항목(릴리스 노트)을 26.0.5에서 함. "macOS 앱 이름"에 0.1.4·0.1.3 업데이터가 26.0.5 zip을 받는지(코드 근거)를 적음.
+- 2026-11-12 26.0.5 릴리스 기록: "확인한 것"에 태그·리허설·운영 배포·배포 뒤 확인을 적고, "리허설"에 이 PC의 Docker 없이 다른 Linux 호스트에서 하는 방법을 더함.
