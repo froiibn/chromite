@@ -128,6 +128,8 @@ import java.util.regex.Pattern;
  *   (앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
  * - 2026-11-12 General의 Environment에 UI 글꼴 행(자동·Pretendard·시스템 글꼴) (앱 변경 #43, docs/chromite/swing-options.md "UI 글꼴")
  * - 2026-11-12 UI 글꼴 행을 지움: UI 글꼴은 운영체제 글꼴 하나 (앱 변경 #67, docs/chromite/swing-options.md "UI 글꼴")
+ * - 2026-11-12 페이지 휠 한 칸이 양식 약 세 줄을 움직이게 스크롤 단위를 {@link PageView} 한 곳에서 줌(16 → 44). 안쪽 스크롤 창 위의 휠은
+ *   {@link ChromiteScrollPaneUI}가 페이지로 넘김 (앱 변경 #97, docs/chromite/swing-options.md "휠 스크롤 (#97)")
  */
 final class OptionsDialog extends JDialog {
 
@@ -145,6 +147,8 @@ final class OptionsDialog extends JDialog {
     private static final int PAGE_MARGIN_TOP = 18;
     private static final int PAGE_MARGIN_SIDE = 28;
     private static final int PAGE_MARGIN_BOTTOM = 20;
+    // One scroll unit of a page (scaled): about one form row (40-56), so that a wheel notch (3 units by default) moves about three rows
+    private static final int PAGE_SCROLL_UNIT = 44;
     // The dialog's opening and smallest size (scaled), within this share of the screen
     private static final Dimension OPENING_SIZE = new Dimension(1080, 760);
     private static final Dimension MINIMUM_SIZE = new Dimension(760, 520);
@@ -391,7 +395,6 @@ final class OptionsDialog extends JDialog {
             UIScale.scale(PAGE_MARGIN_BOTTOM), UIScale.scale(PAGE_MARGIN_SIDE)));
         JScrollPane scrollPane = new JScrollPane(view, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(UIScale.scale(16));
         pageHolder.add(scrollPane, id);
         return state;
     }
@@ -1228,7 +1231,7 @@ final class OptionsDialog extends JDialog {
 
         @Override
         public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-            return UIScale.scale(16);
+            return UIScale.scale(PAGE_SCROLL_UNIT);
         }
 
         @Override
