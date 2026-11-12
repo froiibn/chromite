@@ -18,7 +18,7 @@ Chromite를 https://chromite.seizia.com 에서 내려받고, 앱이 스스로 �
 | 서버 | Turbrix의 EC2 + Caddy. 정적 파일만. `/srv/chromite/site`(사이트), `/srv/chromite/downloads`(`/downloads/`) |
 | 업로드 | CI 업로드 없음. 이 PC에서 확인한 뒤 배포 스크립트로 올린다 |
 | Windows 설치 프로그램 | NSIS `setup.exe` (Turbrix와 같음). 설치 범위는 기본 Program Files(모든 사용자) + "나만 사용" 선택(2026-11-08, 아래 "설치 범위") |
-| 버전 | `major.minor.dev`, 태그 `v<버전>` ([versioning.md](versioning.md)) |
+| 버전 | `YY.seq.dev`(2026-11-12부터, 0.1.4 다음이 26.0.5), 태그 `v<버전>` ([versioning.md](versioning.md)) |
 | 본보기 | Turbrix의 `releases.json`(format 1), `releases.sh`, 로컬 배포 방식 |
 
 ## 공유 계약 (Part A·B 공통)
@@ -197,18 +197,21 @@ GitHub 러너의 제품 폴더 경로가 약 120자). 그래서 빌드 스크립
   - 업데이트 zip: 같은 서명·공증·staple 묶음을 옛 이름 `ChromiteSwing.app`으로(`release-macos.sh package <app> <이름> dist ChromiteSwing.app`). 묶음 폴더 이름은
     코드 서명의 봉인과 공증 티켓(cdhash)에 들어가지 않는다. `release-macos.sh verify`가 서명한 앱(`Chromite.app`), dmg 안의 앱(`Chromite.app`), zip 안의 앱(`ChromiteSwing.app`)
     셋 모두에 `codesign --verify --deep --strict`, 팀 Developer ID·Mach-O 검사, `stapler validate`, `spctl -a -t exec`("Notarized Developer ID")를 한다(이름 둘 다 확인).
-  - 0.1.3 Mac → 0.1.4: 0.1.3의 도우미가 `ChromiteSwing.app`을 같은 이름으로 바꿔 넣는다(이름은 그대로). 0.1.4 → 0.1.5에서 0.1.4의 업데이터가 이름을 바꾼다.
+  - 0.1.3 Mac → 0.1.4: 0.1.3의 도우미가 `ChromiteSwing.app`을 같은 이름으로 바꿔 넣는다(이름은 그대로). 0.1.4 → 26.0.5에서 0.1.4의 업데이터가 이름을 바꾼다.
 - **0.1.4부터의 업데이터**: 실행 중인 묶음과 이름이 달라도 zip의 묶음이 `Chromite.app`이면 받는다(번들 ID·Team ID가 실행 중인 앱과 같아야 하는 것 등 다른 확인은 같다).
   적용할 때 새 앱을 같은 폴더에 `Chromite.app`으로 놓고 옛 `ChromiteSwing.app`은 업데이트 폴더의 `before-<새 버전>/`으로 옮긴 뒤 `Chromite.app`을 연다.
   같은 폴더에 `Chromite.app`이 이미 있으면(다른 복사본) 건드리지 않고 지금 앱의 자리에 옛 이름 그대로 놓는다([auto-update.md](auto-update.md) "적용").
-- **이름이 바뀔 때 사용자가 보는 것**(0.1.4 → 0.1.5의 Mac, 실제 Mac에서는 확인하지 못함):
+- **이름이 바뀔 때 사용자가 보는 것**(0.1.4 → 26.0.5의 Mac, 실제 Mac에서는 확인하지 못함):
   - 응용 프로그램 폴더·Launchpad·Spotlight에는 "Chromite"가 보인다. LaunchServices는 `open`으로 새 앱을 열 때 새 경로를 등록한다. 옛 묶음은 `~/Library/Application Support/Chromite/updates/before-<버전>/`에
     남으므로(되돌리기용) Spotlight가 그것을 함께 찾을 수 있다.
   - Dock에 고정한 옛 "ChromiteSwing" 항목은 옛 경로를 가리킨다. macOS가 그 항목을 옮겨진 옛 묶음으로 찾아가거나(파일 ID) 물음표로 보일 수 있다.
     실행 중인 새 앱은 Dock에 따로 "Chromite"로 보인다. 옛 항목은 Dock에서 빼고 새 아이콘을 "Dock에 유지"로 고정하면 된다(릴리스 노트에 적을 것).
   - 로그인 항목에 넣어 둔 옛 경로도 같은 이유로 다시 넣어야 할 수 있다.
-- **0.1.5에서 할 일(릴리스 체크리스트)**: `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`을 지우고(zip도 `Chromite.app`),
-  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용도 지운다. 0.1.3에서 0.1.5로 바로 올리는 Mac은 자동 업데이트가 안 된다(dmg로 한 번 설치).
+- **26.0.5에서 한 일(릴리스 체크리스트, 2026-11-12 `chromite/release-26-0-5`)**: `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`을 지웠고(zip도 `Chromite.app`),
+  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용과, 옛 이름 zip에만 있던 `Contents/MacOS/chromite-swing` 허용도 지웠다.
+  0.1.4의 업데이터(`MacUpdateVerifier.bundleInside`, `UpdateApplier.macTarget`, 태그 `v0.1.4`의 코드)는 실행 중인 묶음이 `ChromiteSwing.app`이든 `Chromite.app`이든
+  zip의 `Chromite.app`을 받고 같은 폴더에 `Chromite.app`으로 놓는다. 0.1.3의 업데이터는 zip의 이름이 실행 중인 이름(`ChromiteSwing.app`)으로 시작해야만 받으므로
+  (`v0.1.3`의 `MacUpdateVerifier.verify`), 0.1.3 이하에서 26.0.5로 바로 올리는 Mac은 자동 업데이트가 안 된다(확인 단계 `EXTRACT`에서 실패, dmg로 한 번 설치).
 
 ## macOS 디스크 이미지 창 (2026-11-08 요청, 앱 변경 #26)
 
@@ -640,17 +643,19 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 ## 릴리스 순서
 
-1. `devel`에서 버전을 올리고([versioning.md](versioning.md)), 같은 PR에 `site/ko|en/changelog.html`의 `<section id="v<버전>">`을 쓴다.
+1. `devel`에서 버전을 올리고([versioning.md](versioning.md): 첫 사용자 배포 판 전에는 `26.0.x`의 셋째 수, 첫 사용자 배포 판(26.1.0)은 사용자가 정한 뒤 `-FirstUserRelease`),
+   같은 PR에 `site/ko|en/changelog.html`의 `<section id="v<버전>">`을 쓴다.
 2. 그 커밋에 `v<버전>` 태그 → `release.yml`이 서명 파일과 `SHA256SUMS`로 **초안** Release를 만든다.
 3. 저장 데이터 형식이 바뀌었는지 정해 `-DataGeneration`을 고른다(바뀌었으면 이전 값 + 1).
 4. 사용자 승인 뒤 `deploy-chromite-site.ps1`로 배포(먼저 리허설). 확인이 모두 OK인지 본다.
 5. 사용자가 GitHub 초안 Release를 공개한다(배포는 초안에서도 된다).
 
 릴리스 체크리스트(버전별):
-- [ ] **0.1.5**: macOS 업데이트 zip의 옛 이름을 없앤다. `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`과
-  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용을 지운다(위 "macOS 앱 이름"). 0.1.5 릴리스 노트에 Mac 이름 변경(Dock 항목 다시 고정)을 적는다.
-- [ ] **런처 이름 `Chromite`가 처음 들어간 버전**: 릴리스 노트에 Windows 실행 파일 이름 변경과 작업 표시줄 고정(다음 버전부터 다시 고정)을 적는다.
-- [ ] **그다음 버전**: 옛 이름 시작 파일 `chromite-swing.exe`를 지운다([launcher-name.md](launcher-name.md) "다음 버전에서 지울 것").
+- [x] **26.0.5**(문서의 옛 "0.1.5"): macOS 업데이트 zip의 옛 이름을 없앤다. `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`과
+  `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용을 지운다(위 "macOS 앱 이름"). 26.0.5 릴리스 노트에 Mac 이름 변경(Dock 항목 다시 고정)을 적는다.
+  (2026-11-12 `chromite/release-26-0-5`. 지운 뒤 0.1.4 태그를 다시 배포하면 배포 스크립트가 zip을 거부한다.)
+- [x] **런처 이름 `Chromite`가 처음 들어간 버전(26.0.5)**: 릴리스 노트에 Windows 실행 파일 이름 변경과 작업 표시줄 고정(다음 버전부터 다시 고정)을 적는다(2026-11-12 `site/ko|en/changelog.html` `#v26.0.5`).
+- [ ] **그다음 버전(26.0.6)**: 옛 이름 시작 파일 `chromite-swing.exe`를 지운다([launcher-name.md](launcher-name.md) "다음 버전에서 지울 것").
 
 ## 확인한 것
 
@@ -890,3 +895,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   `release.yml`의 두 범위 설치 확인과 dmg 창 사진, 배포 스크립트의 zip 묶음 이름.
 - 2026-11-12 앱 변경 #65(`chromite/launcher-rename`): 런처 이름 `Chromite.exe`(전 `chromite-swing.exe`). 설치 프로그램이 한 버전 동안 옛 이름 시작 파일을 두고 옛 런처 파일을 지움,
   바로 가기·앱 목록 아이콘이 `Chromite.exe`, 배포 스크립트의 macOS 실행 파일 확인 `Contents/MacOS/Chromite`. 설계와 확인은 [launcher-name.md](launcher-name.md).
+- 2026-11-12 앱 변경 #63(`chromite/release-26-0-5`): 버전 체계 `YY.seq.dev`, 0.1.4 다음은 26.0.5. 릴리스 체크리스트의 "0.1.5" 항목(macOS zip 옛 이름 `ChromiteSwing.app` 없앰,
+  배포 스크립트의 옛 이름 허용 삭제)과 런처 이름 항목(릴리스 노트)을 26.0.5에서 함. "macOS 앱 이름"에 0.1.4·0.1.3 업데이터가 26.0.5 zip을 받는지(코드 근거)를 적음.

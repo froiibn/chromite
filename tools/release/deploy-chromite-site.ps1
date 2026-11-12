@@ -40,6 +40,8 @@
   - 2026-11-08 The live check also asks for the support pages and support.js (the new feature/database table).
   - 2026-11-09 The macOS zip's bundle is Chromite.app; ChromiteSwing.app is accepted for 0.1.4 only (app change #22).
   - 2026-11-12 The macOS zip's app holds Contents/MacOS/Chromite (app change #65); chromite-swing is accepted for 0.1.4 and earlier.
+  - 2026-11-12 The macOS zip's bundle must be Chromite.app with Contents/MacOS/Chromite (26.0.5): the 0.1.4-only
+    allowance of ChromiteSwing.app is gone, and with it chromite-swing, which only an old-name zip could hold.
 
 .EXAMPLE
   pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 -Target ubuntu@<host> -IdentityFile <key> -KnownHosts <file>
@@ -136,16 +138,13 @@ $archive = [IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $entries = @{}
     foreach ($e in $archive.Entries) { $entries[$e.FullName] = $e }
-    # The zip's one bundle: Chromite.app; ChromiteSwing.app in 0.1.4 only (the old name, for the 0.1.3 updater;
-    # release.yml "Zip and disk image"). Drop ChromiteSwing.app here with release.yml's argument from 0.1.5.
+    # The zip's one bundle: Chromite.app (release.yml "Zip and disk image"; 0.1.4 alone held ChromiteSwing.app).
     $tops = @($entries.Keys | ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique)
-    Expect "$($names[1]) holds one app bundle, Chromite.app or (0.1.4) ChromiteSwing.app" ($tops.Count -eq 1 -and $tops[0] -in 'Chromite.app', 'ChromiteSwing.app') "$($tops -join ', ')"
+    Expect "$($names[1]) holds one app bundle, Chromite.app" ($tops.Count -eq 1 -and $tops[0] -eq 'Chromite.app') "$($tops -join ', ')"
     $bundle = if ($tops.Count -eq 1) { $tops[0] } else { 'Chromite.app' }
     $app = "$bundle/Contents"
-    # The launcher is Chromite since app change #65; chromite-swing in 0.1.4 and earlier, still accepted so that a
-    # site-only deploy of the 0.1.4 release keeps working. Drop chromite-swing here once a release with the new
-    # launcher is the deployed one (docs/chromite/launcher-name.md).
-    Expect "$($names[1]) holds $app/MacOS/Chromite or (0.1.4 and earlier) $app/MacOS/chromite-swing" ($entries.ContainsKey("$app/MacOS/Chromite") -or $entries.ContainsKey("$app/MacOS/chromite-swing")) 'missing'
+    # The launcher is Chromite since app change #65 (docs/chromite/launcher-name.md).
+    Expect "$($names[1]) holds $app/MacOS/Chromite" ($entries.ContainsKey("$app/MacOS/Chromite")) 'missing'
     Lenient "$($names[1]) app is signed ($app/_CodeSignature/CodeResources)" ($entries.ContainsKey("$app/_CodeSignature/CodeResources")) 'missing'
     Lenient "$($names[1]) app carries its notarization ticket ($app/CodeResources)" ($entries.ContainsKey("$app/CodeResources")) 'missing'
     $plist = $entries["$app/Info.plist"]
