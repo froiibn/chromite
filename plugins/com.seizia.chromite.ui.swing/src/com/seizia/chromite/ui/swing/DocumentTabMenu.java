@@ -21,6 +21,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.DocumentTabMessages;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.utils.PrefUtils;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -50,7 +51,7 @@ import java.util.Locale;
  *
  * 설계:
  * <ul>
- *     <li>메뉴: 저장 │ 이름 바꾸기 │ 닫기, 모든 탭 닫기, 다른 탭 닫기 │ 닫은 탭 다시 열기 │ 전체 경로 복사, 상위 폴더 열기 │ 탭 고정 │
+ *     <li>메뉴: 저장, 이름 바꾸기 │ 연결 변경(쿼리 창, {@link SqlEditorPanel#changeConnection}) │ 닫기, 모든 탭 닫기, 다른 탭 닫기 │ 닫은 탭 다시 열기 │ 전체 경로 복사, 상위 폴더 열기 │ 탭 고정 │
  *     탭 위치 ▸, 여러 행에 탭 표시. 탭 줄의 빈 곳에서는 닫은 탭 다시 열기와 배치 항목만 보인다. 열 때마다 누른 탭으로 만든다.</li>
  *     <li>닫기는 모두 메인 창의 닫기 경로({@link Host#closeDocument}: 저장하지 않은 변경 질문, 결과 표 변경, 열린 트랜잭션 질문)를 탭마다
  *     지난다. 모든 탭·다른 탭 닫기는 고정 탭을 빼고 왼쪽부터 닫고, 하나라도 취소하면 거기서 멈춘다(끝내기·모두 저장과 같은 규칙).</li>
@@ -73,6 +74,7 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-12 최초 작성(앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 닫은 탭 다시 열기에 Ctrl+Shift+T(macOS ⇧⌘T) (앱 변경 #66, docs/chromite/shortcuts.md)
+ * - 2026-11-12 쿼리 창의 연결 변경 항목(Query &gt; Change Connection…과 같은 명령, 앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  */
 final class DocumentTabMenu {
 
@@ -240,6 +242,12 @@ final class DocumentTabMenu {
             JMenuItem saveItem = addItem(menu, DocumentTabMessages.tab_save, editor != null, () -> host.saveQueryWindow(editor));
             saveItem.setAccelerator((KeyStroke) host.getSaveAction().getValue(Action.ACCELERATOR_KEY));
             addItem(menu, DocumentTabMessages.tab_rename, editor != null, () -> rename(editor));
+            menu.addSeparator();
+            // The query window's one way to another server; it comes to the front first, so its tool bar shows what changes
+            addItem(menu, EditorMessages.editor_sql_change_connection, editor != null && editor.canChangeConnection(), () -> {
+                tabs.setSelectedComponent(editor);
+                editor.changeConnection();
+            });
             menu.addSeparator();
             addItem(menu, DocumentTabMessages.tab_close, true, () -> host.closeDocument(document));
             addItem(menu, DocumentTabMessages.tab_close_all, hasUnpinned(null), () -> closeUnpinned(null));

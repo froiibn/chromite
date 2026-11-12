@@ -302,6 +302,9 @@ import java.util.function.Supplier;
  *   한 서버의 창이라 창의 서버를 바꾸지 않음(앱 변경 #69, docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 View &gt; Maximize Results 단축키를 Ctrl+Shift+T에서 Ctrl+Shift+R(macOS ⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기
  *   (앱 변경 #66, docs/chromite/shortcuts.md)
+ * - 2026-11-12 Query &gt; Change Connection…({@code changeConnectionAction}, 단축키 없음): SQL Editor 도구 막대의 서버 이름 옆 단추와 문서 탭
+ *   메뉴가 같은 명령({@link SqlEditorPanel#changeConnection}), 켜짐은 {@link SqlEditorPanel#canChangeConnection}(앱 변경 #73,
+ *   docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 주석만: 실제 계획이 없는 서버의 창은 Actual Plan 동작(메뉴, 도구 막대 단추, Ctrl+M)이 연결 전부터 꺼짐
  *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
@@ -421,6 +424,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Query &gt; Variables…: the active window's {@code @set} variables, not while it runs.
      */
     private final Action variablesAction;
+    /**
+     * Query &gt; Change Connection…, the button beside the server name in the SQL Editor tool bar and the document tab's
+     * menu item: the one command that moves an open query window to another server ({@link SqlEditorPanel#changeConnection}).
+     */
+    private final Action changeConnectionAction;
     private final Action estimatedPlanAction;
     /**
      * Query &gt; Include Actual Execution Plan and the SQL Editor tool bar's Actual Plan button: selected
@@ -722,6 +730,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             createEditorAction(QueryCommandMessages.query_copy_statement, null, null, SqlEditorPanel::copyCurrentStatement));
         variablesAction = createEditorAction(QueryCommandMessages.query_variables, QueryCommandMessages.query_variables_tip, null,
             SqlEditorPanel::showVariables);
+        // No shortcut (Ctrl+9 stays Select Connection…): the tool tip names the command, as the button has no text
+        changeConnectionAction = createEditorAction(EditorMessages.editor_sql_change_connection, EditorMessages.editor_sql_change_connection,
+            null, SqlEditorPanel::changeConnection);
         estimatedPlanAction = createEditorAction(CoreMessages.main_estimated_plan,
             CoreMessages.main_estimated_plan_tip,
             UiKeys.command(KeyEvent.VK_L), SqlEditorPanel::explainEstimatedPlan);
@@ -826,7 +837,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 BackupRestoreCommands.runEditorScript(this, editor);
             }
         });
-        sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
+        sqlEditorToolBar = new SqlEditorToolBar(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
             commitAction, rollbackAction, commitModeAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
@@ -1249,7 +1260,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Query &gt; Select Connection… (Ctrl+9, SWT): chooses the server of an active query window that has none, from a
-     * filtered list. A query window belongs to one server (app change #69): on a window with a server it only says so.
+     * filtered list. On a window with a server it changes nothing and says that Change Connection… does (app changes #69,
+     * #73): a key combination alone does not move a window to another server.
      */
     private void selectActiveConnection() {
         SqlEditorPanel editor = getActiveEditor();
@@ -1954,6 +1966,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         statementRunActions.forEach(action -> action.setEnabled(editor != null && editor.canExecute()));
         statementEditActions.forEach(action -> action.setEnabled(editor != null));
         variablesAction.setEnabled(editor != null && !editor.isExecuting());
+        changeConnectionAction.setEnabled(editor != null && editor.canChangeConnection());
         completeAction.setEnabled(editor != null);
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
         // A server that gives no actual plans (they would need a second run of the statements) has the toggle off from the
@@ -2206,6 +2219,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         selectConnectionItem.setAccelerator(UiKeys.command(KeyEvent.VK_9));
         selectConnectionItem.addActionListener(e -> selectActiveConnection());
         queryMenu.add(selectConnectionItem);
+        queryMenu.add(new JMenuItem(changeConnectionAction));
         JMenuItem selectSchemaItem = new JMenuItem(ObjectExplorerMessages.oe_select_schema);
         selectSchemaItem.setToolTipText(ObjectExplorerMessages.oe_select_schema_tip);
         selectSchemaItem.setAccelerator(UiKeys.command(KeyEvent.VK_0));

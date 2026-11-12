@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
- * [서버 표시] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
+ * [서버 표시 (연결 변경)] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
  * [Decrease Indent] [Increase Indent] │ [Format SQL] │ [Query History].
  *
  * 설계:
@@ -50,8 +50,11 @@ import java.util.List;
  *     상태·리스너·켜짐이 창마다의 상태라 한 쌍을 두고 바꿔 끼우는 대신, 활성 창의 것을 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식).
  *     그래서 탭을 바꾸면 서버·DB가 따라온다. 쿼리 창이 없으면 같은 폭의 빈 표시와 빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다. 끼울 때는
  *     빼낸 것의 위치(index)에 넣으므로 막대 안 순서와 상관없다.</li>
- *     <li>서버는 고를 수 없는 표시다(앱 변경 #69, 사용자 결정 2026-11-12: 쿼리 창은 한 서버의 창, {@link QueryWindowServerIndicator}).
- *     예전 연결 콤보는 클릭이나 방향키 하나로 같은 글을 다른 서버에서 돌게 했다.</li>
+ *     <li>서버 이름은 고를 수 없는 표시다(앱 변경 #69, 사용자 결정 2026-11-12, {@link QueryWindowServerIndicator}).
+ *     예전 연결 콤보는 클릭이나 방향키 하나로 같은 글을 다른 서버에서 돌게 했다. 창의 서버는 표시 오른쪽 끝의 연결 변경 단추(앱 변경 #73)로만
+ *     바뀐다. 단추는 Query &gt; Change Connection…과 같은 동작 하나이고 이 막대가 하나를 만들어 활성 창의 표시에 옮겨 끼운다
+ *     ({@link QueryWindowServerIndicator#setChangeButton}): 쉬는 창의 표시가 단추를 가지고 있으면 그 창이 다시 그릴 때 활성 창의 단추를
+ *     빼앗기 때문에 빼낸 표시에서는 단추를 거둔다.</li>
  *     <li>서버 표시와 DB 콤보가 맨 앞이다(사용자 결정 2026-11-08): 무엇에 실행할지(서버, DB/스키마)를 본 뒤 실행한다. 좁은 창에서는 둘이 먼저 줄고
  *     넘치는 단추는 뒤쪽(Query History)부터 메뉴로 가므로 실행 단추는 둘이 최소 폭이 되어도 남는다. 서버 표시는 포커스를 받지 않으므로
  *     키보드 Tab은 DB/스키마 콤보부터다.</li>
@@ -74,6 +77,8 @@ import java.util.List;
  *   높아 단추가 26이 되던 것을 아이콘 단추와 같은 24로 (앱 변경 #67, docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
  * - 2026-11-12 연결 콤보 자리에 활성 창의 서버 표시, 빈 연결 콤보({@code emptyConnectionCombo})를 빈 서버 표시로(앱 변경 #69)
  *   (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 활성 창의 서버 표시에 연결 변경 단추(Query &gt; Change Connection…과 같은 동작, 앱 변경 #73)
+ *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  */
 final class SqlEditorToolBar {
 
@@ -84,14 +89,17 @@ final class SqlEditorToolBar {
     private final QueryWindowServerIndicator emptyServerIndicator = new QueryWindowServerIndicator(null);
     private final JComboBox<Object> emptySchemaCombo = createEmptyCombo(SqlEditorPanel.SCHEMA_PICKER_WIDTH);
     private final List<Action> editorActions = new ArrayList<>();
-    private JComponent serverIndicator = emptyServerIndicator;
+    private QueryWindowServerIndicator serverIndicator = emptyServerIndicator;
     private JComponent schemaCombo = emptySchemaCombo;
+    // Query > Change Connection…, in the active window's server indicator
+    private final JButton changeConnectionButton;
     private final JButton commitModeButton;
     private final JToggleButton actualPlanButton;
     @Nullable
     private SqlEditorPanel editor;
 
     /**
+     * @param changeConnectionAction Query &gt; Change Connection…
      * @param executeAction       Query &gt; Execute
      * @param cancelAction        Query &gt; Cancel Executing Query
      * @param estimatedPlanAction Query &gt; Display Estimated Execution Plan
@@ -102,6 +110,7 @@ final class SqlEditorToolBar {
      * @param openQueryHistory    Query &gt; Query History
      */
     SqlEditorToolBar(
+        @NotNull Action changeConnectionAction,
         @NotNull Action executeAction,
         @NotNull Action cancelAction,
         @NotNull Action estimatedPlanAction,
@@ -114,6 +123,9 @@ final class SqlEditorToolBar {
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
+        // No icon of its own in the packs: the server icon of the Select Server button, which chooses a window's server too
+        changeConnectionButton = UiIcons.createActionButton(changeConnectionAction, "connection"); //$NON-NLS-1$
+        changeConnectionButton.getAccessibleContext().setAccessibleName(String.valueOf(changeConnectionAction.getValue(Action.NAME)));
         // The pickers first (user decision 2026-11-08): what the run applies to, then the run
         toolBar.add(serverIndicator);
         toolBar.addSeparator();
@@ -172,7 +184,16 @@ final class SqlEditorToolBar {
 
     void setActiveEditor(@Nullable SqlEditorPanel editor) {
         this.editor = editor;
-        serverIndicator = replace(serverIndicator, editor != null ? editor.getServerIndicator() : emptyServerIndicator);
+        QueryWindowServerIndicator indicator = editor != null ? editor.getServerIndicator() : emptyServerIndicator;
+        if (indicator != serverIndicator) {
+            // One button: an inactive window's indicator would take it back when it shows its server again
+            serverIndicator.setChangeButton(null);
+            if (editor != null) {
+                MainFrame.updateLookAndFeel(changeConnectionButton);
+                indicator.setChangeButton(changeConnectionButton);
+            }
+        }
+        serverIndicator = replace(serverIndicator, indicator);
         schemaCombo = replace(schemaCombo, editor != null ? editor.getSchemaCombo() : emptySchemaCombo);
         for (Action action : editorActions) {
             action.setEnabled(editor != null);
@@ -186,7 +207,7 @@ final class SqlEditorToolBar {
      * windows, the empty ones) missed theme switches, so their look and feel is brought up to date first.
      */
     @NotNull
-    private JComponent replace(@NotNull JComponent current, @NotNull JComponent replacement) {
+    private <C extends JComponent> C replace(@NotNull JComponent current, @NotNull C replacement) {
         if (current != replacement) {
             MainFrame.updateLookAndFeel(replacement);
             int index = toolBar.getComponentIndex(current);

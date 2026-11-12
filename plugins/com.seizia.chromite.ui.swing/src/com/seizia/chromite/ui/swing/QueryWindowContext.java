@@ -48,12 +48,12 @@ import java.util.function.Supplier;
  *     연결의 설정 저장소에서 읽으므로 연결별 값(연결 대화상자)이 없으면 전역 값(Options &gt; Query Execution)을 따른다. 기본값 {@code DEFAULT}는
  *     SWT {@code SQLEditorUtils.isOpenSeparateConnection}과 같이 "단일 연결" 연결과 내장 DB 드라이버만 빼고 창마다 연다.</li>
  *     <li>정하는 때: 창이 한 데이터 소스(연결 한 번)에서 처음 문맥을 얻을 때({@link #open}) 정하고 그 데이터 소스 동안 유지한다. 설정을 바꿔도 이미 정한 창은
- *     바뀌지 않는다. 바꾸면 그 창의 열린 트랜잭션이 다른 세션으로 옮겨진 것처럼 보이기 때문이다. 새 창, 다시 연결부터 적용된다.</li>
+ *     바뀌지 않는다. 바꾸면 그 창의 열린 트랜잭션이 다른 세션으로 옮겨진 것처럼 보이기 때문이다. 새 창, 다시 연결, 연결 변경부터 적용된다.</li>
  *     <li>여는 때: 처음 실행할 때나 창이 연결될 때(창의 기본 DB 읽기, {@code SqlEditorPanel#refreshSchemas})다. 작업 스레드에서 연다.
  *     주 문맥에서 초기 상태(기본 카탈로그·스키마)를 복사한다(SWT와 같이 {@code initFrom}). 새 세션의 자동 커밋·격리 수준은 연결 설정을 따른다
  *     ({@code JDBCExecutionContext.connect}).</li>
  *     <li>읽기({@link #get}): EDT에서 1초마다 읽으므로 서버를 부르지 않고 잠그지 않는다(volatile). 아직 정하지 않았거나 연결이 끊겼으면 null이다.</li>
- *     <li>닫기({@link #release}): 창을 닫을 때 문맥을 넘겨받아 작업 스레드에서 닫는다({@link #closeLater}). 트랜잭션 질문은 부르는 쪽이
+ *     <li>닫기({@link #release}): 창을 닫거나 연결을 바꿀 때 문맥을 넘겨받아 작업 스레드에서 닫는다({@link #closeLater}). 트랜잭션 질문은 부르는 쪽이
  *     먼저 한다({@code ExitTransactionCheck.confirmEndSession}). 연결을 끊으면 인스턴스가 모든 문맥을 닫으므로({@code JDBCRemoteInstance.shutdown}),
  *     다음에 다시 연결된 데이터 소스에서 새 문맥을 연다(끊긴 데이터 소스의 문맥은 버린다).</li>
  *     <li>문맥 이름은 SWT와 같은 {@code SQLEditor <파일 이름>}이다. 드라이버가 서버에 넘기는 클라이언트 이름에 들어가 서버의 세션 목록에서 창을 구별할 수 있다.</li>
@@ -62,6 +62,7 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 쿼리 창마다 별도 연결 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-12 주석만: 쿼리 창이 연결을 바꾸는 경우를 지움(쿼리 창은 한 서버의 창, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 주석만: 연결 변경 명령이 다시 {@link #release}를 부름(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  */
 final class QueryWindowContext {
 
@@ -155,7 +156,7 @@ final class QueryWindowContext {
     }
 
     /**
-     * Forgets the window's context (the window closes) and closes its own session in a job.
+     * Forgets the window's context (the window closes or changes its connection) and closes its own session in a job.
      * The caller asked about its transaction before.
      */
     void release() {

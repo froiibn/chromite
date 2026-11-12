@@ -102,6 +102,7 @@ import java.util.function.Function;
  * - 2026-11-09 목록의 줄마다 종류를 적음(조회 트랜잭션: 읽기 잠금·스냅숏만, 변경 있음, 그 밖의 열린 트랜잭션). 둘 다 무언가를 쥐므로
  *   계속 묻는다 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  * - 2026-11-12 주석만: 쿼리 창이 연결을 바꾸는 경우를 지움(쿼리 창은 한 서버의 창, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 주석만: 쿼리 창의 연결 변경 명령이 다시 {@link #confirmEndSession}을 씀(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  */
 final class ExitTransactionCheck {
 
@@ -151,7 +152,7 @@ final class ExitTransactionCheck {
     }
 
     /**
-     * Before a query window's own session ends (the window closes or changes its database instance):
+     * Before a query window's own session ends (the window closes, changes its connection or its database instance):
      * asks Commit / Roll back / Cancel when the session has a transaction that is not committed. Call in the EDT.
      *
      * @param windowName the window's file name
