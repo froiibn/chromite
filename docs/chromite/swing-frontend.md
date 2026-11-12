@@ -351,8 +351,9 @@ JBR/JetBrains 브랜드가 화면에 보이지 않게 한다.
   `tools/branding/gen_app_icons.py`가 크기마다 그 크기의 픽셀 격자에 맞춰 그린다([branding.md](branding.md) "아이콘").
   지정하지 않으면 JBR의 기본 아이콘(JetBrains "JB")이 제목 표시줄과 작업 표시줄에 나온다.
 - **대화상자:** `SwingPlatformUI`는 활성 창(없으면 보이는 프레임)을 부모로 넘겨 대화상자가 그 아이콘을 물려받는다.
-  부모 없이 띄우는 대화상자(시작 오류 등)는 Swing의 공유 소유 프레임(`JOptionPane.getRootFrame()`)이 소유하므로,
-  시작할 때 그 프레임에도 아이콘을 지정한다.
+  부모 없이 띄우는 대화상자는 Swing의 공유 소유 프레임(`JOptionPane.getRootFrame()`)이 소유하므로,
+  시작할 때 그 프레임에도 아이콘을 지정한다. 시작 오류(작업 공간 잠김 등)는 2026-11-12부터 소유자 없는 자기 창이라 아이콘을 직접 지정하고
+  작업 표시줄 단추가 생긴다([exit-process.md](exit-process.md) "원인 2").
 - **JVM 실행 방식 (Windows):** Equinox 런처는 `-vm`에 따라 JVM을 다르게 띄운다(2026-11-06 확인).
   - `-vm ...\bin\javaw.exe`: 런처(`Chromite.exe`, 2026-11-12 전 `chromite-swing.exe`)가 별도 `javaw.exe` 프로세스를 띄우고 창은 그 프로세스에 속한다.
     `javaw.exe`의 실행 파일 아이콘은 JetBrains 아이콘이고, 작업 표시줄 그룹·고정도 `javaw.exe` 기준이 된다.

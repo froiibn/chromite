@@ -313,6 +313,7 @@ import java.util.function.Supplier;
  *   (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
  * - 2026-11-12 주 도구 막대 아이콘 단추의 도구 설명을 기능 이름과 단축키로(메뉴·창 제목과 같은 키). 작업 모니터는 켜져 있으면 설명 없이
  *   이름, 꺼지면 이유(앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-12 Windows: 마우스에 쓴 Alt를 떼도 메뉴 막대가 골라지지 않게 {@link AltMouseMenuGuard}를 설치(앱 변경 #102)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -529,6 +530,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsArea.setOpaque(false);
         // The document area (document card + results card) is the fixed center of the docking layout
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
+        // Windows: Alt released after a mouse gesture (Alt+drag, Alt+wheel) does not select the menu bar; removed when this closes
+        AltMouseMenuGuard.install(this);
 
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));

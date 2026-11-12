@@ -34,6 +34,7 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
 | `SqlEditorPanel.SqlTextArea` | `SqlEditorPanel.java` | 연결만: `processMouseEvent`·`processMouseMotionEvent`·`processInputMethodEvent`·`replaceSelection`·`copy`·`cut`·`configurePopupMenu`를 먼저 넘기고, `runCommand`·`tab()`에서 열 선택을 본다 |
 | `UiKeys.columnSelect`, `UiKeys.isColumnSelectDown` | `UiKeys.java` | 키(Shift+Alt+방향키, macOS ⇧⌥⌘+방향키)와 마우스 수정자(Alt/Option, Ctrl·Command 없이) |
 | `EditMenu.isApplicable` | `EditMenu.java` | Edit > Copy·Cut이 열 선택도 선택으로 본다 |
+| `AltMouseMenuGuard` (새, #102) | `AltMouseMenuGuard.java`, 설치는 `MainFrame` 생성자 | Windows: Alt를 누른 채 마우스(휠 포함)를 쓴 뒤의 Alt 떼기가 메뉴 막대를 고르지 않게(모든 창) |
 | `SqlCompletionPopup.documentChanged` | `SqlCompletionPopup.java` | 열 편집 중의 줄마다 한 글자 넣기로 자동완성을 띄우지 않는다(`SqlColumnSelection.isEditing`) |
 
 ## 설계 결정
@@ -60,8 +61,8 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
   먼저 받아 `copy`로 보낸다(`COPY_ACTIONS`, `CUT_ACTIONS`). RSyntaxTextArea는 Swing 선택이 비면 오른쪽 클릭 메뉴의
   Copy·Cut을 끄므로 `configurePopupMenu`에서 다시 켠다. 복사는 시스템 클립보드에 보통 글로 넣는다(사각형 표시 형식은 두지 않음).
 - **Alt 떼기.** Windows에서 Alt를 눌렀다 떼면 FlatLaf `MnemonicHandler`가 메뉴 막대를 고른다. 그 사이에 다른 키가 오면 취소하지만 마우스 이벤트는
-  취소하지 않으므로, Alt를 누른 채 편집기에서 마우스를 누르거나 끌었으면 그 Alt 떼기를 키 리스너가 소비한다(후처리기가 소비된 이벤트를 건너뜀).
-  아래 "Alt 떼기와 메뉴 막대(앱 변경 #100)"를 본다.
+  취소하지 않는다. Alt를 누른 채 마우스를 쓴 뒤의 Alt 떼기는 이 클래스가 아니라 모든 창에 한 규칙인 `AltMouseMenuGuard`가 소비한다.
+  아래 "Alt 떼기와 메뉴 막대(앱 변경 #100, #102)"를 본다.
 - **그리기.** 편집기 강조 표시기(`Highlighter`)에 범위와 상관없는 강조 하나를 넣어 글자 밑에 사각형을 칠하고(선택 색), 포커스가 있으면 줄마다
   캐럿(캐럿 색, 1픽셀)을 그린다. 깜빡이는 편집기 자신의 캐럿은 숨긴다(빈 칸에서는 줄 끝에 있어 어긋난다).
 - **줄 명령.** 사각형을 걸친 줄의 보통 선택으로 바꿔 실행한다: `runCommand`의 편집 명령(대문자·소문자는 사각형 안, 템플릿 넣기는 캐럿에서),
@@ -101,6 +102,7 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
 - **방식을 고른 이유:** FlatLaf가 이미 "소비된 Alt 떼기는 메뉴를 고르지 않는다"는 길을 열어 두었고, 편집기는 Alt 떼기를 받는 포커스 주인이다.
   전역 키 후처리기나 `MnemonicHandler`의 정적 상태를 고치는 방법은 LaF 내부에 기대고 다른 창·구성 요소의 Alt에도 끼어든다.
   Alt를 마우스 수정자로 쓰는 곳은 쿼리 편집기 하나다(`isAltDown`·`ALT_DOWN_MASK`를 마우스 이벤트에 쓰는 코드는 `SqlColumnSelection`뿐).
+  (#102에서 바뀜: 휠과 다른 창도 다루려고 이 표시를 지우고 모든 창의 키 디스패처 하나로 옮겼다. 아래 "모든 창으로 넓힘".)
 - **그대로인 것:** Alt만 눌렀다 떼기(키 반복 포함)는 메뉴 막대를 고르고, Alt+F는 파일 메뉴를 열고, Esc는 메뉴를 닫아 편집기로 돌아오고, F10,
   Alt+키 단축키(Alt+PageDown 등)는 예전과 같다. Alt+끌기를 한 다음 Alt만 다시 눌렀다 떼면 메뉴가 골라진다(표시가 남지 않음).
 - **같은 원인의 다른 곳:** 결과 표에서 Alt+클릭, 어디서든 Alt+휠 뒤에 Alt를 떼면 메뉴 막대가 골라진다. 이 동작들에는 Alt의 뜻이 없고
@@ -122,11 +124,54 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
   | Alt+F / Alt만 뒤 Esc / Alt+F 뒤 Esc 두 번 | 파일 메뉴 열림 / 편집기로 돌아옴 | 같음 |
   | Alt+PageDown(다음 문장 고르기) | 동작, 메뉴 안 골라짐 | 같음 |
   | Alt+끌기(키 반복) 뒤 Alt만 다시 눌렀다 뗌 | (첫 떼기에서 이미 메뉴) | 둘째 떼기에서 파일 골라짐 |
-  | 결과 표 Alt+클릭, Alt+휠 | 파일 골라짐 | 같음(고치지 않음, 위) |
+  | 결과 표 Alt+클릭, Alt+휠 | 파일 골라짐 | 같음(이때는 고치지 않음, 아래 #102에서 고침) |
 
   영어·한국어 모두 같은 결과이고, SQLite에 연결해 쿼리를 실행한 뒤의 쿼리 창에서도 같다. 사각형이 유지되면 다음 글자가 사각형의 모든 줄에
   들어간다(여러 줄 입력). 로그 `D:\Tools\_scratch\alt-column-select\logs\`(before-*, after-*).
 - **확인하지 못한 것:** 실제 원격 세션(VDI)의 키 반복(반복 누르기를 보내 흉내만 냄), AltGr 배열 키보드(이 PC의 오른쪽 Alt는 Alt로 옴), macOS.
+
+### 모든 창으로 넓힘 (앱 변경 #102, 2026-11-12)
+
+- **요청:** "알트키 관련 사항은 고쳐라. 줄이 길면 스크롤도 할 수 있다". 긴 줄에서 Alt를 누른 채 열 선택을 하며 휠로 스크롤하고, 결과 표 등
+  다른 곳에서도 Alt를 누른 채 마우스를 쓴다. 위 #100의 표시는 편집기의 마우스 누르기·끌기에만 붙어서, Alt+휠(편집기 포함 어디서나)과
+  다른 구성 요소의 Alt+클릭·끌기 뒤에 Alt를 떼면 메뉴 막대가 골라졌다(아래 표의 "전").
+- **규칙(Windows만):** Alt를 누른 채 Chromite의 어느 창에서든 마우스를 쓰면(누르기·클릭·끌기·휠, 편집기·여백·스크롤 막대·결과 표·개체 탐색기·
+  도구 창 머리글·도구 막대·대화상자 모두) 그 Alt를 떼도 메뉴 막대가 골라지지 않고 포커스는 그대로다. Alt만 눌렀다 떼기, F10, Alt+글자,
+  Alt+키 단축키는 그대로다.
+- **구조:** `AltMouseMenuGuard`(새, ui.swing) 한 곳. `AWTEventListener`(마우스·끌기·휠·창 포커스)가 Alt가 눌린 마우스 누르기·끌기·휠을 표시하고,
+  `KeyEventDispatcher`가 표시된 Alt 떼기를 소비한다. `MainFrame` 생성자에서 설치(Windows에서만)하고 주 창이 닫히면(`windowClosed`) 지운다.
+  `SqlColumnSelection`의 표시(`altUsed`), Alt 떼기 키 리스너, 포커스 잃기의 지우기는 지웠다(같은 일을 두 곳에서 하지 않음).
+- **방식을 고른 이유(JDK 25 `DefaultKeyboardFocusManager`):** 키 이벤트는 `preDispatchKeyEvent`에서 키 디스패처 → `dispatchKeyEvent`에서
+  포커스 주인(소비되지 않았을 때) → 키 후처리기(FlatLaf `MnemonicHandler`는 LaF 설치 때 등록) → 창 peer 순서로 간다. 후처리기 순서는 등록 순서라
+  테마를 바꿔 LaF를 다시 설치하면 바뀐다. 키 디스패처는 항상 그 앞이다. 디스패처는 표시된 Alt 떼기를 먼저 포커스 주인에게 그대로 보내고
+  (`redispatchEvent`: 키 리스너·떼기 키 바인딩·AWT 리스너는 예전처럼 받음) 소비한 뒤 `false`를 돌려준다. 그러면 관리자는 다시 보내지 않고,
+  후처리기는 소비된 떼기를 받아 메뉴를 고르지 않으며(밑줄 숨기기와 누르기 횟수 초기화는 그대로 함), peer도 소비된 이벤트는 창의 기본 처리로
+  넘기지 않는다. 포커스가 대화상자나 팝업에 있어도 같은 길이다. Alt 떼기를 듣는 코드는 앱에 없었다(`keyReleased`·떼기 키 바인딩은
+  `SqlColumnSelection`의 것뿐, `OptionsDialog`의 AWT 리스너는 아무 키 떼기에나 저장 상태를 다시 셈).
+- **표시 지우기:** Alt 떼기마다, 그리고 포커스가 이 프로그램을 떠날 때(`WINDOW_LOST_FOCUS`, 상대 창 없음: Alt+Tab이면 떼기는 다른 프로그램이
+  받는다). Alt 누르기에서는 지우지 않는다(키 반복). 오른쪽 Alt가 AltGr(`VK_ALT_GRAPH`)로 오면 그 떼기는 소비하지 않고 표시만 지운다.
+- **휠과 사각형:** 끌기 중이나 두 끌기 사이의 휠은 화면만 스크롤하고(세로 54px, Shift+휠은 가로) 사각형은 그대로다. 다음 마우스 이동에서 캐럿 쪽
+  모서리가 그 자리의 칸으로 넓어진다. 이것은 전과 같다.
+- **확인(빌드한 앱, 실제 OS 입력, 영어·한국어, SQLite 연결 뒤 쿼리를 실행한 쿼리 창, 80줄 × 270자 글):** 위 #100 표의 모든 줄이 그대로이고
+  (Alt+휠 한 줄만 "파일 골라짐"에서 "안 골라짐"으로), 아래가 바뀌었다.
+
+  | 순서 | 전: 포커스 / 메뉴 | 후 |
+  |---|---|---|
+  | 긴 줄 Alt+끌기 중 휠, 중 Shift+휠, 두 끌기 사이 휠(키 반복) | 편집기 / 안 골라짐(#100) | 같음, 사각형 넓힘도 같음 |
+  | Alt+휠: 편집기(키 반복 포함), 결과 표, 트리 | 루트 창 / 파일 | 휠을 쓴 곳의 포커스 그대로 / 안 골라짐 |
+  | Alt+클릭·Alt+끌기: 결과 표 | 루트 창 / 파일 | 결과 표 / 안 골라짐 |
+  | Alt+클릭·작은 Alt+끌기: 트리(전은 Query Library 트리, 후는 개체 탐색기 트리) | 루트 창 / 파일 | 그 트리 / 안 골라짐 |
+  | Alt+클릭: 도구 창 머리글, 도구 막대 빈 곳, 편집기 여백, 세로 스크롤 막대 | 루트 창 / 파일 | 편집기 / 안 골라짐 |
+  | Alt+클릭: 메뉴 막대의 파일 | 파일 메뉴 열림 | 같음 |
+  | Alt 누른 채 휠, 그다음 F | 파일 메뉴 열림 | 같음 |
+  | Alt+휠, Alt 뗌, Alt만 다시 | 첫 떼기에 파일, 둘째 누르기가 닫음 | 첫 떼기 안 골라짐, 둘째에 파일 골라짐 |
+  | 옵션 대화상자에서 Alt+휠 / 대화상자를 닫고 주 창에서 Alt 뗌 / 편집기 Alt+클릭 뒤 대화상자에서 Alt 뗌 | 안 골라짐(대화상자에는 메뉴가 없고, FlatLaf가 창이 비활성화될 때 메뉴 고르기를 취소함) | 같음 |
+  | Alt+휠 뒤 다른 프로세스의 창(시험용 도우미 창)을 눌러 그곳에서 Alt 뗌, 돌아와 Alt만 | 파일 골라짐 | 같음(표시가 남지 않음) |
+
+  로그 `D:\Tools\_scratch\alt-column-select\logs\`(before2-*, after2-*).
+- **확인하지 못한 것:** 실제 Alt+Tab(다른 사용자 프로그램으로 입력을 보내지 않으려고 도우미 창을 눌러 흉내 냄), 실제 원격 세션의 키 반복,
+  AltGr 배열 키보드, 도구 창 머리글을 길게 끌기(창이 떨어져 나가므로 클릭만), ERD·계획 그림(같은 리스너가 모든 구성 요소에 걸리므로 따로 하지 않음),
+  macOS(설치하지 않는 것을 코드로만 확인).
 
 ## 한계
 
@@ -168,3 +213,5 @@ SSMS 사용자를 위해 SSMS의 키(Alt+끌기, Shift+Alt+방향키)를 따랐�
 - 2026-11-12 최초 작성(앱 변경 #49)
 - 2026-11-12 사각형이 있으면 실행·문장 명령·예상 계획이 사각형의 글을 실행(`chromite/small-fixes-r2`, 위 "실행"), "한계"의 실행 줄을 지움
 - 2026-11-12 Alt+끌기 뒤 Alt를 떼면 메뉴 막대로 포커스가 가던 결함(앱 변경 #100, `chromite/alt-column-select`, 위 "Alt 떼기와 메뉴 막대")
+- 2026-11-12 마우스에 쓴 Alt의 떼기 규칙을 모든 창·휠로 넓혀 `AltMouseMenuGuard`로 옮기고 편집기의 표시를 지움(앱 변경 #102,
+  `chromite/alt-mouse-menu`, 위 "모든 창으로 넓힘")
