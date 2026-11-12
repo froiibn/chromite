@@ -76,7 +76,7 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
   연결을 물려받는다. 폴더는 그 아래 모든 경로의 속성을 옮긴다(`DBPProject.findResources`에 조건 없이 물어 모든 속성 경로를 얻음).
   속성을 지울 때는 항목째 지운다(`BaseProjectImpl.resetResourceProperties`, 키를 하나씩 지우면 메타데이터 파일에 빈 항목이 남는다).
 - **묶기를 바꿔도 열린 창의 연결은 그대로.** SWT는 열린 편집기의 연결도 바꿨다. Swing에서 창의 연결을 바꾸면 그 창의 세션이 끝나므로 커밋하지 않은
-  트랜잭션을 물어야 한다(트랜잭션 안전 규칙). 묶기는 다음에 열 때 적용한다. 2026-11-12부터는 쿼리 창이 한 서버의 창이라 열린 창의 연결을 바꾸는 길 자체가 없다([swing-frontend.md](swing-frontend.md) "쿼리 창은 한 서버의 창").
+  트랜잭션을 물어야 한다(트랜잭션 안전 규칙). 묶기는 다음에 열 때 적용한다. 2026-11-12부터 열린 창의 연결은 그 창의 연결 변경 명령으로만 바뀌고(묶기는 바꾸지 않는다), 묶기를 바꿔서 바뀌지는 않는다([swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경").
 - **저장할 때는 묶기가 없을 때만 묶는다.** SWT는 편집기의 연결이 바뀔 때마다 묶기를 덮어썼다. Swing은 사용자가 고른 묶기를, 다른 연결로 열어 둔
   창의 저장이 몰래 바꾸지 않게 했다. 새로 저장한 스크립트는 그 창의 연결에 묶여 다음에도 같은 연결로 열린다.
 - **도구 막대 단추는 두지 않았다(주 도구 막대).** 도구 창 켜고 끄기는 View 메뉴와 Ctrl+Alt+L이다. 주 도구 막대의 도구 창 단추 줄에 아이콘을 더하려면
@@ -119,3 +119,4 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
 - 2026-11-08 연결별 최근 스크립트: Object Explorer > Recent Scripts(SWT 감사 C-22·B-S38의 연결별 스크립트 목록, `chromite/script-autosave`). 확인은
   [swing-query-window-recovery.md](swing-query-window-recovery.md) "확인 기록"
 - 2026-11-08 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위 → 오른쪽 가장자리(`chromite/ui-layout`).
+- 2026-11-12 열린 창의 연결은 그 창의 연결 변경 명령으로만 바뀜(앱 변경 #73, `chromite/change-connection`)

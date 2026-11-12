@@ -96,6 +96,8 @@ import java.util.function.IntConsumer;
  *   마지막으로 고른 결과 탭을 따로 기억하던 {@code lastResultTab}을 지움 (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
  * - 2026-11-12 실제 계획을 켠 실행이 끝나면 Execution plan 탭에 점({@link #markPlanUnread}: 계획이 왔으면 초록, 이유만 있으면 노랑).
  *   결과가 앞에 남아 계획이 온 줄 몰랐다(앱 변경 #58, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
+ * - 2026-11-12 {@link #clearAll}: 쿼리 창이 연결을 바꾸면 고정 결과까지 지움(옛 서버의 문맥으로 다시 읽고 저장하므로, 앱 변경 #73)
+ *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  */
 final class QueryResultsView {
 
@@ -294,6 +296,19 @@ final class QueryResultsView {
         planUnread = null;
         updatePlanTab();
         refreshTextIfShown();
+    }
+
+    /**
+     * Removes all results, pinned ones too, and clears the messages and the server output: the query window changed its
+     * connection, and the grids read again and save through the session of the server they came from. Unsaved changes are
+     * discarded (the query window asked).
+     */
+    void clearAll() {
+        for (ResultTab tab : pinnedTabs) {
+            removeTab(tab);
+        }
+        pinnedTabs.clear();
+        clear();
     }
 
     private void removeTab(@NotNull ResultTab tab) {

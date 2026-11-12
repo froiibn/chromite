@@ -42,8 +42,14 @@ import java.util.function.Function;
  * ↑/↓로 고르고 Enter나 두 번 누르기로 정한다. 고른 결과를 무엇에 쓸지는 부르는 쪽이 정한다(쿼리 창의 콤보에 넣어 그 창의 기존 경로,
  * 즉 세션 질문과 기본 DB 바꾸기를 그대로 지나게 한다). 처음에는 지금 항목을 고른 채로 연다.
  *
+ * 연결 변경(쿼리 창의 Change Connection…)은 같은 목록에 정하는 단추 글자("변경")와 연결 색 알약({@link ConnectionPill}, Object Explorer와
+ * 같은 색과 모양)을 더해 쓴다. 고르는 순간 창의 서버가 바뀌므로 무엇을 하는지 단추가 말하고, 운영 서버를 목록에서도 알아보게 하기 위해서다.
+ *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md "Ctrl+9 / Ctrl+0")
+ * - 2026-11-12 정하는 단추 글자와 항목의 연결 색 알약을 받는 {@link #choose(Component, String, List, Object, Function, Function, String, Function)}
+ *   (쿼리 창 연결 변경, 앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 주석만: 알약 모양의 기준을 지운 쿼리 창 서버 표시 대신 Object Explorer로(앱 변경 #74)
  */
 final class ObjectChooserDialog<T> extends JDialog {
 
@@ -61,7 +67,9 @@ final class ObjectChooserDialog<T> extends JDialog {
         @NotNull List<T> items,
         @Nullable T current,
         @NotNull Function<T, String> text,
-        @NotNull Function<T, Icon> icon
+        @NotNull Function<T, Icon> icon,
+        @NotNull String okText,
+        @Nullable Function<T, ConnectionPill> pill
     ) {
         super(SwingUtilities.getWindowAncestor(owner), title, ModalityType.APPLICATION_MODAL);
         setIconImages(ChromiteIcons.getWindowIcons());
@@ -105,15 +113,7 @@ final class ObjectChooserDialog<T> extends JDialog {
         }
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setVisibleRowCount(14);
-        list.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(jList, text.apply((T) value), index, isSelected, cellHasFocus);
-                setIcon(icon.apply((T) value));
-                return this;
-            }
-        });
+        list.setCellRenderer(new ItemRenderer<>(text, icon, pill));
         list.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -123,7 +123,7 @@ final class ObjectChooserDialog<T> extends JDialog {
             }
         });
 
-        JButton okButton = new JButton(CoreMessages.common_ok);
+        JButton okButton = new JButton(okText);
         okButton.addActionListener(e -> choose());
         JButton cancelButton = new JButton(CoreMessages.common_cancel);
         cancelButton.addActionListener(e -> dispose());
@@ -160,7 +160,28 @@ final class ObjectChooserDialog<T> extends JDialog {
         @NotNull Function<T, String> text,
         @NotNull Function<T, Icon> icon
     ) {
-        ObjectChooserDialog<T> dialog = new ObjectChooserDialog<>(owner, title, items, current, text, icon);
+        return choose(owner, title, items, current, text, icon, CoreMessages.common_ok, null);
+    }
+
+    /**
+     * Shows the list and returns the chosen item, or null when canceled.
+     *
+     * @param current the item selected at first
+     * @param okText  the text of the button that chooses (what choosing does)
+     * @param pill    the connection colour pill around an item's name, or null for none
+     */
+    @Nullable
+    static <T> T choose(
+        @NotNull Component owner,
+        @NotNull String title,
+        @NotNull List<T> items,
+        @Nullable T current,
+        @NotNull Function<T, String> text,
+        @NotNull Function<T, Icon> icon,
+        @NotNull String okText,
+        @Nullable Function<T, ConnectionPill> pill
+    ) {
+        ObjectChooserDialog<T> dialog = new ObjectChooserDialog<>(owner, title, items, current, text, icon, okText, pill);
         dialog.setVisible(true);
         return dialog.chosen;
     }
@@ -190,6 +211,82 @@ final class ObjectChooserDialog<T> extends JDialog {
         chosen = list.getSelectedValue();
         if (chosen != null) {
             dispose();
+        }
+    }
+
+    /**
+     * Icon and name of an item, the name in its connection colour pill when it has one (as the Object Explorer rows draw
+     * it). The pill reaches past the text line, so a row with a pill gets that much space above and below
+     * ({@link ConnectionPill#getOverhang}) and the pill's padding after the name.
+     */
+    private static final class ItemRenderer<T> extends DefaultListCellRenderer {
+        private final Function<T, String> text;
+        private final Function<T, Icon> icon;
+        @Nullable
+        private final Function<T, ConnectionPill> pills;
+        // The renderer is reused for every row: the gap without a pill
+        private final int iconTextGap;
+        @Nullable
+        private ConnectionPill pill;
+
+        ItemRenderer(@NotNull Function<T, String> text, @NotNull Function<T, Icon> icon, @Nullable Function<T, ConnectionPill> pills) {
+            this.text = text;
+            this.icon = icon;
+            this.pills = pills;
+            this.iconTextGap = getIconTextGap();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Component getListCellRendererComponent(JList<?> jList, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(jList, text.apply((T) value), index, isSelected, cellHasFocus);
+            setIcon(icon.apply((T) value));
+            pill = pills != null ? pills.apply((T) value) : null;
+            setIconTextGap(iconTextGap);
+            if (pill != null) {
+                setForeground(pill.getTextColor(getForeground()));
+                // The pill's padding before the name in the icon-text gap, after it in the border
+                setIconTextGap(iconTextGap + ConnectionPill.getPaddingX());
+            }
+            if (pills != null) {
+                // Every row as high as a row with a pill, so that the rows stay even
+                Insets overhang = ConnectionPill.getOverhang(this, getFont());
+                int vertical = Math.max(overhang.top, overhang.bottom);
+                setBorder(BorderFactory.createCompoundBorder(getBorder(),
+                    BorderFactory.createEmptyBorder(vertical, 0, vertical, pill != null ? ConnectionPill.getPaddingX() : 0)));
+            }
+            return this;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            int baseline = getBaseline(getWidth(), getHeight());
+            if (pill != null && baseline >= 0) {
+                // Where the label puts the text
+                Insets insets = getInsets();
+                Rectangle view = new Rectangle(insets.left, insets.top, getWidth() - insets.left - insets.right,
+                    getHeight() - insets.top - insets.bottom);
+                Rectangle iconBounds = new Rectangle();
+                Rectangle textBounds = new Rectangle();
+                SwingUtilities.layoutCompoundLabel(this, getFontMetrics(getFont()), getText(), getIcon(), getVerticalAlignment(),
+                    getHorizontalAlignment(), getVerticalTextPosition(), getHorizontalTextPosition(), view, iconBounds, textBounds,
+                    getIconTextGap());
+                // Over the row's background (the list's rounded selection takes this fill), under the icon and text: the
+                // label's UI paints them without its background
+                if (isOpaque()) {
+                    g.setColor(getBackground());
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+                pill.paint(g, this, textBounds.x, textBounds.width, baseline);
+                Graphics labelGraphics = g.create();
+                try {
+                    getUI().paint(labelGraphics, this);
+                } finally {
+                    labelGraphics.dispose();
+                }
+                return;
+            }
+            super.paintComponent(g);
         }
     }
 }
