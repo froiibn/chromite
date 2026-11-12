@@ -54,6 +54,20 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.0.6">
+    <h2>26.0.6</h2>
+    <div class="body">
+      <p>A fix release right after 26.0.5. It fixes SQL Server tables of the default database not showing right after connecting, and tidies up annoyances found in use.</p>
+      <ul>
+        <li>Fix (important): right after connecting to SQL Server, the tables of the connection's default database did not show in Object Explorer until a refresh, and saved tasks that use those tables failed (introduced in 26.0.5)</li>
+        <li>Safety: when the script of a SQL script task opens a transaction and does not end it, Chromite asks before and after the run whether to commit, roll back or keep it open (before, nothing was asked and it stayed open)</li>
+        <li>Exit and setup: fixed cases where the process stayed after the window was closed. Exiting without internet access no longer waits for the update check, the error window of a second start shows in the task bar, and the setup says where to look when it still finds Chromite running</li>
+        <li>Query editor: the running query is marked in yellow-green (the caret line too), and releasing Alt after a column selection, scrolling or clicking with Alt held no longer jumps to the menu</li>
+        <li>Screens: the mouse wheel over inner lists and fields scrolls the page in Options and the connection dialog, menu item spacing in compact mode, menu separators in a visible colour (they were invisible in the dark theme) and group separators in the View and Tools menus, icon button tooltips show the function's name, the Object Explorer filter box says "Find"</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.0.5">
     <h2>26.0.5</h2>
     <div class="body">
