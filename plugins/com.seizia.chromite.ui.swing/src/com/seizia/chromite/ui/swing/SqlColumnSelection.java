@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
 import org.fife.ui.rsyntaxtextarea.folding.FoldManager;
@@ -58,7 +59,7 @@ import java.util.function.UnaryOperator;
  *     <li>RSyntaxTextArea에는 사각형 선택도 다중 캐럿도 없다. 그래서 Swing 선택은 비워 두고(캐럿은 사각형의 캐럿 쪽 모서리) 사각형은 이 클래스가
  *     줄·열 번호로 따로 기억하고 그린다. Swing 선택을 비워 두기 때문에 선택을 읽는 기존 코드(찾기, 자동완성)는 사각형을 보지 않고
  *     캐럿 하나로 동작한다. 실행만은 보통 선택처럼 사각형의 글을 실행한다({@link #getRunText}: 사각형 밖 글자를 공백으로 바꾼 같은 길이의 글이라
- *     문장 위치가 편집기 글의 위치와 같다). 그리고 열 선택이 꺼져 있으면 이 클래스는 Alt+누르기 말고는 아무 입력도 가로채지 않는다(보통 선택은 예전 그대로).</li>
+ *     문장 위치가 편집기 글의 위치와 같다). 그리고 열 선택이 꺼져 있으면 이 클래스는 Alt+누르기와 (Windows) 마우스에 쓴 Alt의 떼기 말고는 아무 입력도 가로채지 않는다(보통 선택은 예전 그대로).</li>
  *     <li>열은 글자 칸이다. 탭은 다음 탭 위치까지, 한글·한자 같은 전각 글자({@link #getCellWidth})는 2칸, 결합 문자는 0칸이다. 칸 경계가
  *     전각 글자나 탭 가운데에 떨어지면 사각형의 왼쪽 끝은 그 글자 앞, 오른쪽 끝은 그 글자 뒤로 넓힌다(걸친 글자는 선택된다). 폭이 0인 세로 캐럿은
  *     가까운 경계에 놓는다. 줄 끝보다 오른쪽은 빈 칸(가상 공간)이다: 그리기·마우스는 공백 폭으로 재고, 입력하면 그 줄을 공백으로 채운 뒤 넣는다.</li>
@@ -74,14 +75,18 @@ import java.util.function.UnaryOperator;
  *     <li>끝내기: 이 클래스가 하지 않은 캐럿 이동·문서 변경(클릭, 방향키, 되돌리기, 자동완성 넣기 등)이 있으면 열 선택을 끝낸다. 줄 단위 명령
  *     (주석, 들여쓰기, 서식, 줄 옮기기)은 사각형의 줄을 보통 선택으로 바꾼 뒤 실행하고({@link #runCommand}, {@link #LINE_ACTIONS}),
  *     대문자·소문자는 사각형 안의 글자만 바꾼다.</li>
- *     <li>Windows에서 Alt를 눌렀다 떼면 메뉴 막대가 선택된다(FlatLaf {@code MnemonicHandler}, 마우스 이벤트는 이를 취소하지 않음). 그래서 Alt+끌기 뒤의
- *     Alt 떼기는 소비한다.</li>
+ *     <li>Windows에서 Alt를 눌렀다 떼면 메뉴 막대가 선택된다(FlatLaf {@code MnemonicHandler}: 그 사이의 다른 키는 이를 취소하지만 마우스 이벤트는
+ *     취소하지 않고, 소비된 Alt 떼기는 건너뛴다). 그래서 Alt를 누른 채 편집기에서 마우스를 누르거나 끌었으면(열 선택이든 아니든) 그 Alt 떼기를
+ *     소비한다({@link #processMouseEvent} 첫 줄, 키 리스너). 이 표시는 Alt를 다시 누를 때가 아니라 Alt를 뗄 때와 포커스를 잃을 때 지운다:
+ *     Alt를 누르고 있으면 키 반복으로 Alt 누르기가 계속 오기 때문이다. macOS·Linux에서는 Alt(Option)가 메뉴를 고르지 않으므로 표시하지 않는다.</li>
  *     <li>수정자 키는 {@link UiKeys}가 정한다({@link UiKeys#isColumnSelectDown}, {@link UiKeys#columnSelect}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성(앱 변경 #49)
  * - 2026-11-12 사각형이 있으면 실행(F5)과 문장 명령이 사각형의 글을 실행({@link #getRunText}) (docs/chromite/swing-sql-column-selection.md "실행")
+ * - 2026-11-12 Alt+끌기 뒤 Alt를 떼면 메뉴 막대로 포커스가 가던 결함: Alt 키 반복의 누르기가 표시를 지웠다. 표시는 Alt 떼기·포커스 잃기에서만 지우고,
+ *   Alt를 누른 채 한 모든 마우스 누르기·끌기에 붙인다(앱 변경 #100, docs/chromite/swing-sql-column-selection.md "Alt 떼기")
  */
 final class SqlColumnSelection {
 
@@ -148,7 +153,8 @@ final class SqlColumnSelection {
     // Alt+drag in progress; the press was ours (its click is ours too)
     private boolean dragging;
     private boolean ownPress;
-    // A column drag happened while Alt was down: the Alt release must not select the menu bar
+    // Windows: a mouse press or drag happened while Alt was down, so the Alt release must not select the menu bar. Cleared by
+    // the Alt release and focus loss only: Alt key repeat sends more Alt presses while the key is held
     private boolean altUsed;
     // Caret and document changes made here, and inside an input method event (composed text): they keep the selection
     private int adjusting;
@@ -296,13 +302,16 @@ final class SqlColumnSelection {
      * @return true when the event was handled here and the text area must not handle it
      */
     boolean processMouseEvent(@NotNull MouseEvent e) {
+        if ((e.getID() == MouseEvent.MOUSE_PRESSED || e.getID() == MouseEvent.MOUSE_DRAGGED) && e.isAltDown() && RuntimeUtils.isWindows()) {
+            // Alt was the modifier of a mouse gesture, not a menu key: also a normal drag (Alt pressed after the button, word wrap on)
+            altUsed = true;
+        }
         switch (e.getID()) {
             case MouseEvent.MOUSE_PRESSED -> {
                 ownPress = false;
                 if (SwingUtilities.isLeftMouseButton(e) && UiKeys.isColumnSelectDown(e) && canSelect()) {
                     ownPress = true;
                     dragging = true;
-                    altUsed = true;
                     textArea.requestFocusInWindow();
                     int[] cell = getCellAt(e.getPoint());
                     // Shift+Alt+click extends the shown rectangle
@@ -477,9 +486,6 @@ final class SqlColumnSelection {
 
     private void handleKeyPressed(@NotNull KeyEvent e) {
         int code = e.getKeyCode();
-        if (code == KeyEvent.VK_ALT) {
-            altUsed = false;
-        }
         if (!active || e.isConsumed() || code == KeyEvent.VK_SHIFT || code == KeyEvent.VK_CONTROL || code == KeyEvent.VK_ALT
             || code == KeyEvent.VK_META || code == KeyEvent.VK_ALT_GRAPH) {
             return;
