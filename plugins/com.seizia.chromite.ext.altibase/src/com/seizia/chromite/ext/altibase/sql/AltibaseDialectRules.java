@@ -20,11 +20,17 @@ package com.seizia.chromite.ext.altibase.sql;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.sql.parser.rules.SQLSlashLineRule;
 import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
 import com.seizia.chromite.model.text.parser.*;
 
 /**
 * Altibase dialect rules
+*
+* 변경 이력:
+* - 2026-11-12 Chromite: {@code /}만 있는 줄이 문장을 끝냄({@link SQLSlashLineRule}, Oracle과 같은 규칙). 방언의 문장 구분자에서 {@code /}를
+*   뺐다: 줄 가운데의 나눗셈에서도 문장이 끊겨 {@code SELECT 4/2 AS q FROM dual}이 4를 돌려주고 구문 오류가 났다(앱 변경 #80,
+*   docs/chromite/oracle-sqlplus-commands.md "Altibase")
 */
 class AltibaseDialectRules implements TPRuleProvider {
 
@@ -32,6 +38,10 @@ class AltibaseDialectRules implements TPRuleProvider {
     public TPRule[] extendRules(@Nullable DBPDataSourceContainer dataSource, @NotNull RulePosition position) {
         if (position == RulePosition.INITIAL || position == RulePosition.PARTITION) {
             return new TPRule[]{ new QStringRule() };
+        }
+        if (position == RulePosition.CONTROL) {
+            // iSQL ends a PSM block (or any statement) with a line holding only "/"; a "/" inside a line is division
+            return new TPRule[]{ new SQLSlashLineRule() };
         }
         return new TPRule[0];
     }
