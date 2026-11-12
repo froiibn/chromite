@@ -40,7 +40,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md) | Swing 결과의 저장한 필터(열 필터와 정렬을 이름으로 저장·적용, 테이블별 최근 필터)와 가상(계산) 열(JEXL 식, 쿼리 결과에도 붙음, 고칠 수 없음, 표 안 정렬), 연결의 가상 모델에 저장 |
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
-| [sql-batch-errors.md](sql-batch-errors.md) | 배치의 문장 오류: SQL Server `GO` 배치·프로시저·SQL 스크립트 작업에서 뒤 문장 오류를 경고가 아니라 쿼리 오류로(줄 번호와 함께 모두, 실행은 실패), 오류 뒤에 실행된 문장의 결과 읽기, 드라이버 오류 사슬의 미리 읽기 피하기 |
+| [sql-batch-errors.md](sql-batch-errors.md) | 배치의 문장 오류: SQL Server `GO` 배치·프로시저·SQL 스크립트 작업에서 뒤 문장 오류를 경고가 아니라 쿼리 오류로(줄 번호와 함께 모두, 실행은 실패), 오류 뒤에 실행된 문장의 결과 읽기, 드라이버 오류 사슬의 미리 읽기 피하기, 연결 새로 고침 뒤에도 엔진의 데이터 원본 정보 유지 |
 | [sql-batch-reread.md](sql-batch-reread.md) | 배치 결과 다시 읽기: `GO` 배치·선택한 여러 문장의 결과를 필터·정렬·다음 행·행 수·값 목록·저장 뒤 새로 고침·Export Data로 다시 읽으면 그 결과를 만든 SELECT만 실행, 문장을 정할 수 없으면 다시 읽기를 끄고 이유를 보임 |
 | [swing-sql-terminal.md](swing-sql-terminal.md) | Swing SQL 터미널(Query > SQL Terminal, Ctrl+T): 쿼리 창마다 켜는 Terminal 탭에 문장·글자 표·메시지를 명령줄처럼 쌓음, 결과 표는 그대로 |
 | [swing-query-commands.md](swing-query-commands.md) | Swing 쿼리 창 문장 명령(현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·MySQL `SOURCE`(상대 경로, 중첩, 고리 거절, 위험한 문 확인), DDL 뒤 탐색기 갱신 |

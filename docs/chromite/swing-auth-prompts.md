@@ -67,7 +67,7 @@ SWT 대조 감사의 2순위 항목이다([swt-parity-audit.md](swt-parity-audit
 
 | 질문 | 동작 |
 |---|---|
-| `promptYesNo`(새 호스트 키, 바뀐 호스트 키, known_hosts 파일 만들기) | 경고 대화상자 "예 / 아니요". **"아니요"가 기본 단추**다. "예"일 때만 `true` |
+| `promptYesNo`(새 호스트 키, 바뀐 호스트 키, known_hosts 파일 만들기) | 경고 대화상자 "예 / 아니요". **"아니요"가 기본 단추**다. "예"일 때만 `true`. 본문은 화면 언어(아래) |
 | `promptPassword` | 비밀번호 방식이면 저장된 비밀번호를 처음 한 번 쓴다. 다시 물으면(틀렸거나 없으면) 비밀번호 대화상자 |
 | `promptPassphrase` | 키 방식이면 저장된 개인 키 암호를 처음 한 번 쓴다. 다시 물으면 암호 대화상자 |
 | `promptKeyboardInteractive` | 질문이 "Password:" 하나뿐이고 저장된 비밀번호를 아직 안 썼으면 그것을 답한다. 그 밖에는 서버가 보낸 질문마다 칸을 만든 대화상자. echo가 꺼진 질문은 가려진 칸(`JPasswordField`), 켜진 질문은 보이는 칸 |
@@ -82,6 +82,11 @@ SWT 대조 감사의 2순위 항목이다([swt-parity-audit.md](swt-parity-audit
 - **SSHJ.** 어댑터는 `JSCHSessionController`에만 걸린다. 기본 구현 SSHJ는 그대로 `KnownHostsVerifier` → `confirmAction`을 쓴다.
   (2026-11-08: SSHJ가 `127.0.0.1`과 점프 서버 뒤의 서버를 묻지 않고 받아들이던 것을 고쳤고, JSch 별칭이 점프 서버 뒤의 서버 이름을 쓴다.
   [swing-conn-advanced.md](swing-conn-advanced.md) "SSH 호스트 키 확인")
+- **예/아니요 질문의 언어(2026-11-12, 앱 변경 #81).** JSch는 질문을 고정된 영어 글로만 넘긴다(`Session.checkHost`, `KnownHosts`). 한국어 화면에
+  영어 본문이 나왔다(SSHJ 쪽은 모델 `SSHJUIMessages`가 이미 한국어). `JschUserInfoPrompter.translateQuestion`이 아는 네 질문을 그 글로 알아보고
+  값만 꺼내 `ConnectionMessages`(영어·한국어) 문구로 바꾼다: 처음 보는 호스트 키(`ssh_prompt_host_key_unknown`: 호스트, 키 종류, 지문),
+  바뀐 호스트 키(`ssh_prompt_host_key_changed`: 호스트, 키 종류, 지문, known_hosts 파일), known_hosts 파일·폴더 만들기(`ssh_prompt_create_file`,
+  `ssh_prompt_create_folder`). JSch가 다른 글로 물으면(판이 바뀌는 등) 받은 글을 그대로 보인다. 질문을 숨기거나 답을 바꾸는 일은 없다.
 - JSch는 비밀번호 방식을 취소하면 다음 방식(키보드 대화형)으로 넘어간다. 그래서 비밀번호 대화상자를 취소하면 키보드 대화형 "Password:" 대화상자가
   한 번 더 나올 수 있다. 두 번째도 취소하면 연결 오류로 끝난다. Eclipse `UserInfoPrompter`와 같은 동작이다.
 
@@ -112,9 +117,14 @@ SWT 대조 감사의 2순위 항목이다([swt-parity-audit.md](swt-parity-audit
   - 아는 호스트, 맞는 저장 비밀번호: 질문 없이 연결된다.
   - OTP(PAM `pam_google_authenticator` + 비밀번호, `AuthenticationMethods keyboard-interactive`): "Verification code:" 칸 하나가 가려진 칸으로 나오고
     (`j12-otp-prompt.png`), 코드를 넣으면 이어지는 "Password:" 질문에는 저장된 비밀번호가 쓰여 연결된다(sshd 로그 "Accepted keyboard-interactive/pam").
+- 2026-11-12 질문의 언어(`chromite/conn-dblist-loop`, JSch 2.28.7 번들, 일회용 OpenSSH 9.2): 한국어 화면에서 처음 보는 호스트 키
+  "호스트 127.0.0.1의 진위를 확인할 수 없습니다. / EDDSA 키 지문은 SHA256:…입니다. / 계속 연결할까요?", 이어서 "…\known_hosts 파일이 없습니다. /
+  만들까요?", known_hosts의 키를 다른 키로 바꾼 뒤 "경고: 원격 호스트 127.0.0.1의 식별 정보가 바뀌었습니다. …"("아니오" → 연결하지 않음, SSH 로그인 0).
+  영어 화면은 "The authenticity of host 127.0.0.1 cannot be established. …". 화면 `D:\Tools\_scratch\conn-dblist-loop\shots\a12-*`, `a13-*`, `capen-hostkey-en.png`.
 - headless 실행은 확인하지 않았다(코드 경로만: `GraphicsEnvironment.isHeadless()`면 거절). headless 앱 모드는 모델이 호스트 키 확인을 끄므로 질문 자체가 없다.
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 인증 방식 자격 증명 질문(`SwingPlatformUI.promptAuthModelCredentials`)과 JSch SSH 질문(`JschUserInfoPrompter`, `JschPromptAdapterFactory`)
 - 2026-11-08 후속 29 a: JSch 호스트 키 별칭을 점프 서버 뒤 서버의 이름으로, SSHJ의 localhost 예외 삭제([swing-conn-advanced.md](swing-conn-advanced.md) "SSH 호스트 키 확인")
+- 2026-11-12 JSch 예/아니요 질문(호스트 키, known_hosts 만들기)의 본문을 화면 언어로(앱 변경 #81, `chromite/conn-dblist-loop`). 위 "JSch 질문"

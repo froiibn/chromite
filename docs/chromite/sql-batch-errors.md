@@ -61,6 +61,7 @@ SELECT * FROM dbo.no_such_table;
 | `model` `DBPDataSourceInfo` | `isMultipleResultsFetchBroken()` 설명을 실제 뜻으로 고침 |
 | `ext.mssql` `model/SQLServerDataSource` | `discoverErrorType`: 로그인 오류(18456, 18487, 18488)일 때만 오류 사슬을 읽음 |
 | `ui.swing` `SqlEditorPanel.reportQueryResult` | 오류마다 머리글과 위치(오류로 가기)를 Messages와 SQL 터미널에 씀. 오류가 있어도 행 수를 씀 |
+| `model.jdbc` `JDBCDataSource.refreshObject` | 연결 새로 고침에서 엔진의 데이터 원본 정보(위 플래그)를 버리지 않음(2026-11-12, 아래 "새로 고침 뒤 결과와 오류가 사라짐") |
 
 ## 설계 결정과 이유
 
@@ -108,6 +109,80 @@ Docker SQL Server 2022(드라이버 13.4.0), PostgreSQL 17, MariaDB 11에서 각
 | SQL 스크립트 작업 `EXEC dbo.le_proc` | 작업 실패 "Script execute failed" ← `proc failure` (전에는 오류 없음) |
 | PostgreSQL·MariaDB 같은 스크립트 F5 | 문장마다 실행, 행 수 3·1, 셋째 문장 오류, 실패 (전과 같음) |
 
+## 새로 고침 뒤 결과와 오류가 사라짐 (2026-11-12, 앱 변경 #76)
+
+### 증상
+
+확인 작업(2026-11-12, devel 59571d2a36)에서 SQL Server 배치가 첫 결과만 보였다. `SELECT 0 AS a; SELECT 1 AS b`는 Result 1만,
+`SELECT 0 AS a; RAISERROR('e16', 16, 1); SELECT 1 AS b`는 오류가 보고되지 않고 "Query executed successfully", 기록은 SUCCESS,
+`SELECT 1/0; SELECT 1/0; SELECT 2`는 오류 하나만 보이고 SELECT 2 결과가 없었다. 같은 글을 JDBC로 직접 보내면 모두 나왔다.
+
+### 회귀가 아님
+
+위 "확인" 표의 커밋(42c7f0bec1, 2026-11-08)과 devel(8b8eca369b)을 빌드해 같은 세 경우를 돌렸다. 둘 다 새로 연결한 연결에서는 모든 결과와
+오류가 보였고, 연결을 새로 고친 뒤에는 둘 다 위 증상이 났다. 이분 탐색할 "깨뜨린 커밋"은 없다. 결함은 포크 전부터 있었고
+(upstream `db00b4ddec`, 2016), 확인 작업은 같은 연결에서 `CREATE DATABASE`·`DROP DATABASE`(#33 확인)를 먼저 실행해서 이 상태에 들어갔다.
+
+### 근본 원인
+
+`JDBCDataSource.refreshObject`가 데이터 원본 정보를 연결 전의 빈 정보(`new JDBCDataSourceInfo(container)`: 제품명 "?", 트랜잭션 없음,
+여러 결과 없음)로 바꿨다. 새로 고침에서 `initialize()`를 다시 부르는 엔진(PostgreSQL, MySQL·MariaDB, Oracle, Altibase, DB2, 일반 JDBC)은
+곧 새 정보를 만들지만, SQL Server의 `SQLServerDataSource.refreshObject`는 캐시만 비우고 `super.refreshObject`를 불러 빈 정보가 남았다.
+그 뒤로 이 연결은 `supportsMultipleResults()`와 `isMultipleResultsFetchBroken()`이 false라서 실행 엔진(`SQLQueryExecuteJob`,
+`SQLScriptProcessor`)이 첫 결과 뒤에 읽기를 멈추고(뒤 결과와 뒤 문장 오류가 읽히지 않음), 첫 문장 오류 뒤를 읽지 않았다(`SQLBatchErrors.canReadPast`).
+`supportsTransactions()`도 false가 되었다(`JDBCExecutionContext.isSupportsTransactions`).
+
+새로 고침은 두 곳에서 일어난다.
+
+- 개체 탐색기에서 연결을 새로 고침(`DBNDatabaseNode.refreshNode` → `DataSourceDescriptor.refreshObject`).
+- 쿼리 창의 DDL 뒤 탐색기 갱신(`SqlMetadataRefresh`, 2026-11-08 #160): `CREATE DATABASE`·`DROP DATABASE`처럼 연결 전체가 대상인 문장 뒤.
+
+같은 원인을 가진 엔진: `refreshObject`에서 `initialize()`를 부르지 않는 SQL Server(같은 클래스를 쓰는 Azure SQL), Cubrid, Dameng, Denodo,
+Exasol, IoTDB, Mimer. 여기서 서버로 확인한 것은 SQL Server뿐이다.
+
+### 고침
+
+`JDBCDataSource.refreshObject`는 정보를 그대로 둔다. 같은 서버에 연결된 채로 새로 고치므로 엔진이 만든 정보가 그대로 맞고,
+서버를 다시 읽는 엔진은 전처럼 `initialize()`로 새 정보를 만든다. 실행 엔진, Swing 쿼리 창, 예약 실행은 고치지 않았다(원인이 아님).
+그 덕에 `initialize()`를 다시 부르는 엔진도 새로 고치는 동안 잠깐 빈 정보가 보이던 틈이 없어졌다.
+
+### 확인 (2026-11-12)
+
+GCP 테스트 VM(SQL Server 2022, 드라이버 13.4.0; PostgreSQL 17; MariaDB 11.8; Oracle 23ai Free)에서 각자 만든 `chr_batch_results_lost`
+데이터베이스로, 앱 안 테스트 에이전트(Swing API, 화면 입력 없음)로 확인했다. "전"은 devel 8b8eca369b, "후"는 이 고침이다. 둘 다 연결을
+새로 고친 뒤 실행했다(전에는 정보가 `JDBCDataSourceInfo`로 바뀌고, 후에는 `SQLServerDataSourceInfo` 그대로).
+
+| SQL Server 경우 | 전 | 후 |
+|---|---|---|
+| `SELECT 0 AS a; SELECT 1 AS b` | Result 1만, 행 수 하나, 성공, 기록 rows=1 | Result 1·2, 행 수 둘, 성공, 기록 rows=2 |
+| `SELECT 0; RAISERROR(16); SELECT 1` | Result 1만, 오류 없음, "Query executed successfully", 기록 SUCCESS | Result 1·2, `Line 2` 오류, "completed with errors", 기록 ERROR |
+| `SELECT 1/0; SELECT 1/0; SELECT 2` | `Line 1` 오류 하나, 결과 없음 | `Line 1`, `Line 2` 오류, SELECT 2 결과 |
+| PRINT, SELECT, UPDATE, RAISERROR, SELECT, PRINT | SELECT 결과 하나, 성공(UPDATE·오류·SELECT 5 안 보임) | 결과 둘, 행 수 2·1·1, `Line 4` 오류, 실패 |
+| 오류가 먼저(`RAISERROR; SELECT`) | 오류만, 결과 없음 | 오류와 뒤 SELECT 결과 |
+| 오류가 끝(`SELECT; SELECT; RAISERROR`) | 결과 하나, 성공 | 결과 둘, `Line 3` 오류, 실패 |
+| `GO` 두 배치, 첫 배치에 오류 | 첫 배치 오류 숨김, 둘째 배치까지 실행, 성공 | 첫 배치 결과 둘과 `Line 2` 오류, 실패로 멈춤(오류 처리 설정 STOP) |
+| 실제 계획 켬, `SELECT; RAISERROR; SELECT` | 결과 하나, 성공 | 결과 둘은 표로, 계획은 실행 계획 탭으로, 오류, 실패 |
+| `EXEC dbo.br_multi`(SELECT, RAISERROR, UPDATE, SELECT) | 결과 하나, 성공 | 결과 둘, 행 수, `pm` 오류, 실패 |
+| `SET NOCOUNT ON`; SELECT, UPDATE, RAISERROR, SELECT | 결과 하나, 성공 | 결과 둘, 오류, 실패 |
+| 최대 행 수(200)를 넘는 결과 뒤 RAISERROR, SELECT | 200행 결과만, 성공 | 200행(멈춤 알림) + 뒤 결과, 오류, 실패 |
+| 다시 읽기(결과별 문장) | Result 1 = `SELECT 0 AS a` | Result 1 = `SELECT 0 AS a`, Result 2 = `SELECT 1 AS b`. 앞에 RAISERROR가 있는 결과는 문장을 정하지 못해 다시 읽기를 거절(sql-batch-reread.md 설계대로) |
+| 수동 커밋 `UPDATE; SELECT 1/0; UPDATE` | 행 수 하나, 성공으로 표시, 열린 트랜잭션 표시 | 행 수 1·1, `Line 2` 오류, 실패, 열린 트랜잭션 표시(`@@TRANCOUNT` 1, 두 UPDATE 모두 트랜잭션 안). 커밋·롤백은 사용자가 한 것만 |
+| 쿼리 창에서 `DROP DATABASE`(DDL 뒤 갱신) 다음 같은 배치 | 정보가 빈 정보로 바뀌고 오류 숨김(전 빌드에서 확인) | 정보 유지, 결과 둘과 오류, 실패 |
+
+| 다른 실행 경로 (SQL Server, 새로 고침 뒤) | 전 | 후 |
+|---|---|---|
+| SQL 터미널 | 첫 표만, 성공 | 표 둘, 행 수, 오류, 실패 |
+| Query Library 예약 실행(`QueryScheduler`) | OK "1 row" | ERROR `e16` |
+| Chromite Agent `runSql`·`runReadOnlySql`·`runScript` | 새로 고침과 무관(JDBC를 직접 읽음). `runSql`은 오류를 알림 | 같음 |
+| `@export` | 여러 문장은 전처럼 거절 | 같음 |
+
+| 다른 엔진 (새로 고침 전·뒤) | 결과 |
+|---|---|
+| PostgreSQL, 두 SELECT를 선택해 한 번에 | 새로 고침 뒤에도 정보 유지, 결과 둘(전·후 같음) |
+| MariaDB, 결과 둘인 프로시저 / 결과 뒤 SIGNAL | 결과 둘 / 드라이버가 `execute`에서 오류를 던져 앞 결과 없음, 오류 보임(전·후 같음, 위 "다른 드라이버") |
+| Oracle, `DBMS_SQL.RETURN_RESULT` 두 개 | 첫 결과만(전·후 같음). Oracle 정보가 여러 결과를 지원하지 않는다고 함: 이 고침의 범위 밖 |
+| MySQL 8.4, Altibase | 실행하지 않음(MySQL 드라이버는 내려받아야 함, Altibase 드라이버는 따로 둠). 둘 다 새로 고침에서 `initialize()`를 부름(코드 확인) |
+
 ## Oracle 암시적 결과 (2026-11-12, 앱 변경 #84, `chromite/small-fixes-r3`)
 
 - **결함:** 블록이나 프로시저가 `DBMS_SQL.RETURN_RESULT`로 결과를 둘 돌려주면 첫 결과만 보였다.
@@ -149,9 +224,13 @@ Docker SQL Server 2022(드라이버 13.4.0), PostgreSQL 17, MariaDB 11에서 각
 - `SQLScriptProcessor`의 #2792 처리: 로그만 쓰던 것을 작업 실패로.
 - `SQLServerDataSource.discoverErrorType`: 로그인 오류일 때만 오류 사슬을 읽음.
 - `SQLQueryResult`에 여러 오류.
+- `JDBCDataSource.refreshObject`: 데이터 원본 정보를 빈 정보로 바꾸지 않음(upstream은 바꿈).
 
 ## 변경 이력
 
 - 2026-11-08 최초 작성: 배치 뒤 문장 오류를 쿼리 오류로 보고, 오류 뒤 결과 읽기, SQL Server 오류 사슬 미리 읽기 회피 (후속 #37)
 - 2026-11-08 한계의 "다시 읽기가 배치 전체를 실행" 항목을 고침([sql-batch-reread.md](sql-batch-reread.md), 후속 #40)
+- 2026-11-12 연결 새로 고침 뒤 SQL Server 배치의 뒤 결과와 오류가 사라지던 결함: `JDBCDataSource.refreshObject`가 엔진의 정보를 버리지 않음
+  (앱 변경 #76, "새로 고침 뒤 결과와 오류가 사라짐")
+
 - 2026-11-12 Oracle이 여러 결과를 지원한다고 알림: 둘째 암시적 결과가 보이지 않던 것(앱 변경 #84, `chromite/small-fixes-r3`), 위 "Oracle 암시적 결과".

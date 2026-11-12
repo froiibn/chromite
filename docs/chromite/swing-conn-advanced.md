@@ -194,6 +194,11 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 | Databend `databend-ssl`, TiDB Lake `tidblake-ssl` (2026-11-08) | 칸 없음, 안내 한 줄 | 핸들러가 켜져 있으면 모델이 `sslmode=enable`을 넣는다(`DatabendDataSource`·`TiDBLakeDataSource`의 `initSSL`) |
 
 - 방법 속성(`ssl.method`)이 없는 예전 설정은 SWT처럼 예전 키(`rootCert` 등, `sslKeyStore`)에서 읽는다. 저장은 새 키로 한다.
+- MySQL·MariaDB: Verify server certificate가 켜져 있고 CA certificate가 없으면 연결 전에 "서버 인증서 확인이 켜져 있지만 CA 인증서가 없습니다.
+  SSL 탭에서 CA 인증서를 지정하거나 "서버 인증서 확인"을 끄십시오."로 멈춘다(`MySQLDataSource.initSSL`, `MySQLMessages.ssl_verify_without_ca`,
+  2026-11-12 앱 변경 #81). 전에는 모델이 빈 신뢰 저장소를 드라이버에 넘겨 MariaDB가 "the trustAnchors parameter must be non-empty"로 실패했다
+  (MariaDB 11에서 확인. MySQL 8.4는 시험 앱에 드라이버 파일이 없어 확인하지 못했지만 같은 빈 저장소를 `trustCertificateKeyStoreUrl`로 넘긴다).
+  확인을 끄면 MariaDB SSL 목록이 읽힌다.
 - ClickHouse: 모델은 공식 드라이버(`com_clickhouse`)일 때 경로와 모드를 드라이버의 `Properties`에 그대로 넣는다. `Properties`는 `null`을 받지 않으므로
   SWT처럼 모드는 늘 저장하고 경로는 빈 문자열도 저장한다.
 - TiDB Lake: SWT 화면(`TiDBLakeSSLConfigurator`)에는 클라이언트 인증서·키 칸이 있었지만 모델이 읽지 않는다(`TiDBLakeDataSource`는 `sslmode=enable`만 넣음). 효과 없는 칸이라 옮기지 않았다.
@@ -297,7 +302,20 @@ SSMS "연결 속성 &gt; 데이터베이스에 연결: &lt;서버 찾아보기&g
   - 실패(로그인 실패, 서버에 닿지 않음, SSH 실패 등)하면 오류를 칸 아래에 빨간 글로 보이고(도구 설명에 전체 문구) 대화상자는 그대로 둔다. 다시 펼치면 다시 시도한다.
     오류 줄의 너비는 대화상자를 넓히지 않는다(긴 문구는 줄임표로 자르고 도구 설명에 둔다).
   - 읽은 목록은 그때의 연결 설정(`DBPConnectionConfiguration.equals`, DB 이름은 고정값이라 빠짐)과 함께 기억한다. 설정이 같으면 다시 펼쳐도
-    연결하지 않고, 서버·로그인·암호·네트워크 설정 등이 바뀌었으면 다시 읽는다.
+    연결하지 않고, 서버·로그인·암호·네트워크 설정 등이 바뀌었으면 다시 읽는다. 비교하는 설정은 사본이고, 그 사본의 네트워크 핸들러 설정에서
+    주인(임시 연결)을 지운다(`ConnectionDatabaseList.listSettings`). 아래 "끝없이 다시 읽던 것".
+  - 목록 읽기는 사용자가 목록을 펼칠 때만 시작한다. 다 읽은 뒤 목록을 펼치는 것도 팝업 리스너를 거치지만 읽기를 요청하지 않는다
+    (`showingReadList`, `showPopup`은 같은 스레드에서 리스너를 부른다). 그래서 펼침 한 번에 읽기는 많아야 한 번이고(읽는 중에 펼치면 무시),
+    끝난 읽기가 다음 읽기를 부를 길이 없다. 비교가 앞으로 다른 이유로 틀려도 고리가 아니라 "펼칠 때마다 한 번 읽음"이 된다.
+  - **끝없이 다시 읽던 것(2026-11-12, 앱 변경 #77).** 저장하지 않은 SSH·프록시·SSL 설정(새 연결은 모든 핸들러가 저장 전이다)으로 목록을 펼치면
+    목록이 펼쳐지지 않고 서버에 계속 로그인했다(프록시로 20초에 53번, SSH로 15초에 33번, SSL로 15초에 40번, SQL Server 로그인 기록). 계정 잠금이나
+    침입 탐지에 걸릴 수 있는 결함이었다. 원인: 임시 연결은 펼칠 때마다 새로 만들고(`ConnectionDialog.createTestDataSource`), 저장 전 핸들러 설정은
+    그 임시 연결을 주인으로 새로 만든다(`ConnectionNetworkPage.saveSettings`의 `new DBWHandlerConfiguration(descriptor, target)`).
+    `DBWHandlerConfiguration.equals`는 주인을 비교하고 `DataSourceDescriptor`는 `equals`가 없어(같은 객체만 같음) 두 임시 연결의 설정은 늘 달랐다.
+    그래서 목록은 늘 "바뀜"이었고, 다 읽은 뒤 목록을 펼치는 `showPopup`이 리스너를 거쳐 다시 읽기를 시작했다. 저장한 핸들러는 주인이 저장된 연결
+    하나라 같았다(저장한 연결은 한 번 읽음). 고친 곳: 목록의 비교(위 두 항목). 모델의 `DBWHandlerConfiguration.equals`는 저장할 때의 변경 감지
+    (`DataSourceDescriptor.equalSettings`)와 upstream 코드가 쓰므로 바꾸지 않았다. 같은 원인의 다른 경로: Test Connection·Test Tunnel은 한 번
+    연결하고 비교가 없다. 비밀번호 질문은 읽기마다 한 번이라 고리일 때 질문이 되풀이됐을 것이다(고친 뒤 한 번).
 - **목록 내용**(`ServerDatabaseNames.read`): 로그인이 연결할 수 있는 DB만 둔다. 들어갈 수 없는 DB를 고르면 저장한 연결이 실패하기 때문이다.
 
 | DB | 읽는 방법 |
@@ -393,6 +411,8 @@ SWT 감사 B-C13. SWT `ConnectionPageGeneral`의 Security 묶음(읽기 전용, 
 
 - 임시 연결에 폼 전체(인증 추가 칸, 드라이버별 칸, 핸들러)를 쓰므로 SSH 터널·SSL·프록시를 거쳐 연결해 본다.
 - 성공: `Connected (N ms)`, Server, Driver에 더해 쓴 핸들러를 `Network: SSH, SSL`처럼 보인다.
+  Server·Driver는 "이름 버전"인데, 버전이 이미 이름으로 시작하면 버전만 쓴다(`ConnectionTestJob.nameWithVersion`, 2026-11-12 앱 변경 #81:
+  Oracle은 이름 "Oracle", 버전 "Oracle AI Database 26ai Free Release …"라 "Oracle Oracle AI Database …"로 보였다. Oracle Free 23.26에서 확인).
 - 실패: 모델 오류 대화상자(D단계와 같음). 핸들러 칸이 비어 있으면 단추가 꺼지고 대화상자 아래에 이유가 보인다.
 - SSH 탭의 Test Tunnel은 DB 없이 터널만 시험한다.
 
@@ -623,11 +643,37 @@ Docker가 멈춰 있어 공용 시험 DB 대신 이 브랜치의 일회용 서�
 | 닿지 않는 호스트(`10.255.255.1`) | 약 20초 동안 도넛, 그 뒤 "… 연결 시도가 시간 초과되었습니다." |
 | 암호 저장 끔 + 암호 비움 | 인증 대화상자가 그 자리에서 뜸(저장 확인란 없음) → 입력하면 목록, 취소하면 아무 문구 없음. 칸의 `nosuchdb`는 목록 읽기를 막지 않음 |
 | MariaDB root / 권한 하나뿐인 로그인 | 7개 전부 / `chr_conn_db_list_a, information_schema, test`. 도구 설명은 "비워 두면 로그인의 기본 데이터베이스" 문구 포함 |
-| 프록시 탭(일회용 SOCKS5) | 프록시 기록에 `CONNECT 127.0.0.1:55493`, 목록 읽힘. 다만 약 100초, 프록시 연결 1044번(모델 `GlobalProxySelector`가 연결 중인 모든 소켓에 프록시를 고름, Test Connection과 같은 경로, 아래 남긴 것) |
+| 프록시 탭(일회용 SOCKS5) | 프록시 기록에 `CONNECT 127.0.0.1:55493`, 목록 읽힘. 다만 약 100초, 프록시 연결 1044번. 2026-11-12에 원인을 찾음: 저장하지 않은 프록시 설정에서 목록을 끝없이 다시 읽은 것(앱 변경 #77, 위 "끝없이 다시 읽던 것", 아래 "확인 (2026-11-12, 목록 다시 읽기 고리)") |
 | SSH 탭(닿지 않는 `127.0.0.1:2`) | "… Connection refused", 도구 설명 "Error initializing tunnel / Error establishing SSHJ tunnel" = 목록이 SSH 설정을 따름 |
 | 목록을 읽은 뒤 서버 세션 | PostgreSQL `pg_stat_activity`, MariaDB processlist 모두 앱 세션 0 |
 
 SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(다시 확인 예정).
+
+### 확인 (2026-11-12, 목록 다시 읽기 고리, `chromite/conn-dblist-loop`)
+
+GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dblist_loop`(DB `chr_conn_dblist_loop`, 확인 뒤 삭제)을 만들고, 그 로그인의
+로그인 성공·실패를 서버의 확장 이벤트 세션(같은 이름, 그 로그인만 거름, 확인 뒤 삭제)으로 셌다. 프록시는 `ssh -D`(SOCKS5), SSH는 일회용
+`chromite-test-sshd`(VM 루프백만, 확인 뒤 삭제). 앱 안 시험 에이전트, 한국어 150%. "전"은 devel 8b8eca369b 빌드, "후"는 이 브랜치 빌드.
+수는 목록을 한 번 펼친 뒤 15~20초(고리일 때는 대화상자를 닫을 때까지) 동안 서버가 본 로그인이다.
+
+| 경우 | 전 | 후 |
+|---|---|---|
+| 저장한 연결(핸들러 없음), 펼침 → 다시 펼침 | 1 → 0 | 1 → 0 |
+| 프록시 켬(저장 안 함) | 20초에 53, 목록 안 펼쳐짐 | 1, 다시 펼침 0 |
+| SSH 켬(저장 안 함, SSHJ) | 15초에 33(SSH 로그인 1, 세션을 같이 씀), 목록 안 펼쳐짐 | 1(SSH 1), 다시 펼침 0 |
+| SSL 켬(저장 안 함, `mssql_ssl`) | 15초에 40 | 1, 다시 펼침 0 |
+| 새 연결: 핸들러 없음 → 프록시 켬 | 1 → 15초에 40 | 1 → 1, 다시 펼침 0 |
+| 잘못된 암호(이 로그인) | 실패 1, 빨간 줄, 다시 시도 없음 | 같음 |
+| 암호 저장 끔 + 비움 → 질문 취소 | 0, 아무 문구 없음 | 같음 |
+| 암호 질문 + 프록시 → 입력 / 다시 펼침 / 프록시 호스트 바꿈 → 입력 | (고리라 질문이 되풀이될 경로) | 1 / 0 / 1 |
+| 서버 이름 바꿈(`localhost`) → 펼침 → 다시 펼침 | 1 → 0 | 1 → 0 |
+| 저장한 프록시 연결 | (확인 안 함) | 1, 다시 펼침 0 |
+| Test Connection(프록시) / Test Tunnel(SSHJ) | (확인 안 함) | 로그인 1 / SSH 로그인 1 |
+| SSH JSch, 처음 보는 호스트 키 → 예 → known_hosts 만들기 예 | (확인 안 함) | 1, 다시 펼침 0 |
+
+- MariaDB SSL(서버 인증서 확인 끔)도 펼침 1번에 읽기 1번, 다시 펼침 0(앱 쪽 작업 수로만 셈, `root`라 서버 수는 다른 작업과 섞임).
+- 화면: `D:\Tools\_scratch\conn-dblist-loop\shots\` `capko-list-*`(한국어 150%), `capen-list-*`·`capen2-list-light-0`(영어 100%), 밝은·어두운.
+- 확인하지 못한 것: URL 방식(칸이 꺼지면 콤보도 꺼져 펼칠 수 없음, 코드로만), Kubernetes 등 다른 핸들러(Swing 탭이 없음), 실제 회사 프록시.
 
 ## 남긴 것
 
@@ -639,8 +685,6 @@ SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(�
 - Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기, Snowflake의 Test 뒤 목록 채우기, Spanner Project·Instance·Database 칸(지금은 JDBC URL),
   CUBRID shard 칸(드라이버 속성 표로는 고칠 수 있음).
 - 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
-- 2026-11-11 SOCKS 프록시를 켠 연결에서 목록·Test Connection이 느림(일회용 SOCKS5로 약 100초, 프록시 연결 1044번): 모델 `GlobalProxySelector`가
-  연결 중인 데이터 소스의 모든 소켓에 프록시를 고른다. 원인은 확인하지 않았다(이 기능 밖, 실제 프록시로 다시 볼 것).
 
 ## 변경 이력
 
@@ -667,3 +711,8 @@ SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(�
 - 2026-11-12 데이터베이스 목록의 스피너를 `DonutSpinner`에서 상태 표시줄과 같은 `SpinnerIcon.createLabel`로, `DonutSpinner` 삭제(앱 변경 #60, `chromite/small-fixes-r2`).
 - 2026-11-12 데이터베이스 목록의 스피너를 칸 아래 줄에서 칸 안으로: 읽는 동안 대화상자가 커졌다 줄던 것(앱 변경 #71 c, `chromite/visual-recheck-fixes`).
   위 "데이터베이스 목록에서 고르기". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 저장하지 않은 SSH·프록시·SSL 설정(새 연결 포함)에서 데이터베이스 목록이 끝없이 다시 읽으며 서버에 로그인하던 것(앱 변경 #77,
+  `chromite/conn-dblist-loop`): 비교에서 핸들러 설정의 주인을 빼고, 읽은 뒤 목록을 펼칠 때는 읽기를 요청하지 않음. 2026-11-11 "남긴 것"의
+  프록시 느림(1044번)이 이 고리였다. 위 "끝없이 다시 읽던 것", "확인 (2026-11-12, 목록 다시 읽기 고리)". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 Test Connection 결과에서 Oracle 제품 이름이 두 번 나오던 것(앱 변경 #81, `ConnectionTestJob`). 위 "5. Test Connection".
+- 2026-11-12 MySQL·MariaDB SSL에서 서버 인증서 확인이 켜져 있고 CA 인증서가 없을 때 무엇을 바꿀지 알리는 오류(앱 변경 #81). 위 "SSL".
