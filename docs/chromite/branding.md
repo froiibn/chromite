@@ -89,7 +89,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 | 파일 | 크기 | 쓰이는 곳 |
 |---|---|---|
-| `product/swing/icons/chromite.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 `chromite-swing.exe` (`chromite-swing.product`) |
+| `product/swing/icons/chromite.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 `Chromite.exe` (`chromite-swing.product`) |
 | `product/swing/icons/chromite.icns` | 16~1024 (PNG 10개) | macOS 앱 아이콘 |
 | `product/swing/icons/chromite_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 (저장소 안에서는 참조 없음) |
 | `product/swing/icons-sources/icon_*.png` | 16~1024 | macOS 아이콘 세트 (빌드에서는 쓰지 않음) |
@@ -141,7 +141,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 앱이 뜨기까지 몇 초 걸려서 사용자가 로딩 화면을 요청했다(2026-11-08). SWT 제품의 스플래시는 SWT와 함께 없어졌다(감사 행 A-S15).
 시작 화면은 두 단계로 보인다.
 
-1. **런처 시작 화면(JVM 전):** `chromite-swing.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
+1. **런처 시작 화면(JVM 전):** `Chromite.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
    네이티브 런처가 `plugins/com.seizia.chromite.splash_<버전>/splash.png`를 JVM을 띄우기 전에 보여 준다. 그림만 보이고 글자는 없다.
 2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 런처 창과 같은 자리(아래 "자리")에 띄우고
    아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
@@ -242,7 +242,7 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 
 | 파일 | 바꾼 내용 |
 |---|---|
-| `product/swing/chromite-swing.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="chromite-swing"`, 아이콘 `icons/chromite.ico`·`icons/chromite.icns` |
+| `product/swing/chromite-swing.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="Chromite"`(2026-11-12 전 `chromite-swing`, [launcher-name.md](launcher-name.md)), 아이콘 `icons/chromite.ico`·`icons/chromite.icns` |
 | `product/swing/pom.xml` | 배포 파일 이름 `chromite-swing-${dbeaver-version}`, 루트 폴더 `Chromite.app` / `chromite-swing` |
 | `plugins/com.seizia.chromite.ui.swing/plugin.xml` | 제품 확장: 이름 `Chromite`, `appName`, 부제 `Database Workbench`, 저작권 |
 | `NOTICE` | 출처, 원본 저작권, 상표 고지 (신규) |
@@ -346,3 +346,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   자리를 디버그 로그에 남김(`StartupSplash.getPlacement`, 로그가 열린 뒤 `ChromiteSwingApplication`이 씀). Windows 측정(로컬 빌드, 3840×2160 화면, 150%, 20 ms마다
   창 사각형): 런처 창(`Static`) 1500,840 840×480 → Swing 창(`SunAwtFrame`) 1500,840 840×480, 75 ms 동안 둘이 겹친 뒤 런처 창이 내려감 — 같은 자리·크기.
   100%는 화면 배율을 바꿀 수 없어 측정하지 못했다(두 계산이 같은 식, "자리" 절). macOS는 실행하지 못했다(macos-smoke로 확인).
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

@@ -150,8 +150,8 @@ jobs:
         run: |
           set -euo pipefail
           dir=$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64
-          if [ ! -x "$dir/Chromite.app/Contents/MacOS/chromite-swing" ]; then
-            echo "::error::$dir/Chromite.app/Contents/MacOS/chromite-swing is missing or not executable"
+          if [ ! -x "$dir/Chromite.app/Contents/MacOS/Chromite" ]; then
+            echo "::error::$dir/Chromite.app/Contents/MacOS/Chromite is missing or not executable"
             exit 1
           fi
           mkdir -p "$RUNNER_TEMP/apps"

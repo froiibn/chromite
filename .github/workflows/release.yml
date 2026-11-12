@@ -7,15 +7,16 @@
 #   * Signing happens in CI only, in the GitHub environment `signing` (allowed on devel and v* tags
 #     only; the user creates it), in jobs with id-token: write. Nothing here changes Azure or Apple.
 #   * Windows (job windows): build -> azure/login (OIDC, repository variables, no secrets) ->
-#     azure/artifact-signing-action for our launcher (chromite-swing.exe;
+#     azure/artifact-signing-action for our launcher (Chromite.exe;
 #     Tycho re-brands it, which breaks the Eclipse signature they came with) -> verify (Valid,
 #     timestamp, Azure issuer; no third-party binary carries our signature) -> zip, same layout as build.yml.
 #     The NSIS installer Chromite-<version>-x64-setup.exe (tools/installer, pinned NSIS) is built from the signed
-#     product in two passes so its uninstaller is signed too; setup and uninstaller are verified (exact
+#     product in two passes so its uninstaller and the old-name starter chromite-swing.exe (this version only,
+#     docs/chromite/launcher-name.md) are signed too; setup, uninstaller and starter are verified (exact
 #     publisher subject, ProductVersion) and installed, upgraded and uninstalled silently in both install scopes
 #     (current user, all users; docs/chromite/distribution.md).
 #     Third-party binaries (Equinox launcher library, JNA, the Eclipse-signed console launcher
-#     chromite-swingc.exe) are not signed.
+#     Chromitec.exe) are not signed.
 #   * macOS: the app is built on Linux like build.yml (macOS arm64 runner capacity, docs/chromite/ci.md)
 #     and handed over as an intermediate artifact that is never released; the job macos-sign signs
 #     every Mach-O inside out (also inside jars), the app with the hardened runtime and
@@ -195,14 +196,14 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       # The signing certificate lives three days; the RFC 3161 timestamp keeps the signature valid.
       # One file per step. The action replaces the broken Eclipse signature (append-signature: false).
-      - name: Sign chromite-swing.exe (ours)
+      - name: Sign Chromite.exe (ours)
         if: steps.azure.outputs.signed == 'true'
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
           signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
-          files: ${{ github.workspace }}\product\swing\target\products\com.seizia.chromite.swing.product\win32\win32\x86_64\chromite-swing\chromite-swing.exe
+          files: ${{ github.workspace }}\product\swing\target\products\com.seizia.chromite.swing.product\win32\win32\x86_64\chromite-swing\Chromite.exe
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
@@ -225,10 +226,23 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
+      # The old-name starter, written by pass 1 and embedded by pass 2. REMOVE IN THE NEXT VERSION with the starter
+      # (docs/chromite/launcher-name.md), also from "Verify signatures" and the install check below.
+      - name: Sign chromite-swing.exe (ours, the old-name starter)
+        if: steps.azure.outputs.signed == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\installer\installer-work\chromite-swing.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
       - name: Installer pass 2 (the setup)
         shell: pwsh
         run: |
-          pwsh -NoProfile -File tools/installer/build-installer.ps1 -Stage setup -Version $env:VERSION -OutDir installer -Uninstaller installer/installer-work/uninstall.exe
+          pwsh -NoProfile -File tools/installer/build-installer.ps1 -Stage setup -Version $env:VERSION -OutDir installer -Uninstaller installer/installer-work/uninstall.exe -LegacyLauncher installer/installer-work/chromite-swing.exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Sign the setup (ours)
         if: steps.azure.outputs.signed == 'true'
@@ -249,8 +263,9 @@ jobs:
         shell: pwsh
         run: |
           $publisher = 'CN=Seizia, O=Seizia, L=Cheongju-si, S=North Chungcheong, C=KR'
-          $ours = @((Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/chromite-swing.exe").Path,
+          $ours = @((Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/Chromite.exe").Path,
                     (Resolve-Path 'installer/installer-work/uninstall.exe').Path,
+                    (Resolve-Path 'installer/installer-work/chromite-swing.exe').Path,
                     (Resolve-Path "installer/Chromite-$env:VERSION-x64-setup.exe").Path)
           $thumbprints = @()
           foreach ($path in $ours) {
@@ -265,6 +280,8 @@ jobs:
           }
           $setup = (Get-Item "installer/Chromite-$env:VERSION-x64-setup.exe").VersionInfo
           if ($setup.ProductVersion -ne $env:VERSION -or $setup.FileVersion -ne $env:VERSION) { throw "setup ProductVersion/FileVersion $($setup.ProductVersion)/$($setup.FileVersion) is not $env:VERSION" }
+          $starter = (Get-Item 'installer/installer-work/chromite-swing.exe').VersionInfo
+          if ($starter.ProductName -ne 'Chromite' -or $starter.ProductVersion -ne $env:VERSION) { throw "old-name starter ProductName/ProductVersion $($starter.ProductName)/$($starter.ProductVersion)" }
           foreach ($dir in "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
             Get-ChildItem $dir -Recurse -File -Include *.exe, *.dll | Where-Object { $ours -notcontains $_.FullName } | ForEach-Object {
               $sig = Get-AuthenticodeSignature $_.FullName
@@ -294,6 +311,8 @@ jobs:
               if (-not (Test-Path $copy) -or (Get-FileHash $copy).Hash -ne (Get-FileHash $f.FullName).Hash) { throw "installed $copy differs from the product" }
             }
             if ((Get-FileHash "$dir/uninstall.exe").Hash -ne (Get-FileHash 'installer/installer-work/uninstall.exe').Hash) { throw 'installed uninstall.exe differs' }
+            # the old-name starter (REMOVE IN THE NEXT VERSION, docs/chromite/launcher-name.md)
+            if ((Get-FileHash "$dir/chromite-swing.exe").Hash -ne (Get-FileHash 'installer/installer-work/chromite-swing.exe').Hash) { throw 'installed chromite-swing.exe is not the old-name starter' }
             $key = Get-ItemProperty "$($scope.hive)\$entry"
             if ($key.DisplayVersion -ne $env:VERSION -or $key.Publisher -ne 'Seizia' -or $key.InstallLocation -ne $dir) { throw "Apps entry: $($key.DisplayVersion) / $($key.Publisher) / $($key.InstallLocation)" }
             if (Test-Path "$($scope.other)\$entry") { throw "$($scope.switch) wrote an Apps entry in $($scope.other)" }
@@ -308,7 +327,8 @@ jobs:
             "$($scope.switch): upgraded in place"
             $p = Start-Process "$dir/uninstall.exe" -ArgumentList '/S', "_?=$dir" -Wait -PassThru
             if ($p.ExitCode) { throw "$($scope.switch): silent uninstall exit code $($p.ExitCode)" }
-            if (Test-Path "$dir/chromite-swing.exe") { throw 'the uninstaller left the launcher' }
+            if (Test-Path "$dir/Chromite.exe") { throw 'the uninstaller left the launcher' }
+            if (Test-Path "$dir/chromite-swing.exe") { throw 'the uninstaller left the old-name starter' }
             if (Test-Path "$($scope.hive)\$entry") { throw 'the uninstaller left the Apps entry' }
             "$($scope.switch): uninstalled"
           }
@@ -321,7 +341,7 @@ jobs:
         run: |
           $suffix = if ($env:SIGNED -eq 'true') { '' } else { '-UNSIGNED' }
           $dist = New-Item -ItemType Directory -Force dist
-          foreach ($p in @(@{ dir = "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64"; root = 'chromite-swing'; exe = 'chromite-swing.exe' })) {
+          foreach ($p in @(@{ dir = "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64"; root = 'chromite-swing'; exe = 'Chromite.exe' })) {
             $zip = Join-Path $dist.FullName "$($p.root)-$env:VERSION-windows-x64$suffix.zip"
             Push-Location $p.dir
             7z a -tzip $zip $p.root | Out-Null
@@ -431,7 +451,7 @@ jobs:
             fi
             tar -czf "$RUNNER_TEMP/apps/$app.tar.gz" -C "$dir" "$app"
           }
-          pack "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app chromite-swing
+          pack "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app Chromite
 
       - name: Upload the unsigned apps (intermediate, not for release)
         uses: actions/upload-artifact@v7

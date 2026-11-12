@@ -20,9 +20,13 @@
 .DESCRIPTION
   The uninstaller must be signed before it is embedded, so the build has two passes
   (docs/chromite/distribution.md):
-    -Stage uninstaller   pass 1: writes <OutDir>\installer-work\uninstall.exe (sign it next)
-    -Stage setup         pass 2: embeds -Uninstaller and writes <OutDir>\Chromite-<version>-x64-setup.exe (sign it next)
+    -Stage uninstaller   pass 1: writes <OutDir>\installer-work\uninstall.exe and the old-name starter
+                         <OutDir>\installer-work\chromite-swing.exe (sign both next)
+    -Stage setup         pass 2: embeds -Uninstaller and -LegacyLauncher and writes <OutDir>\Chromite-<version>-x64-setup.exe
+                         (sign it next)
     -Stage all           both passes, nothing signed (local test builds)
+  The old-name starter (legacy-launcher.nsi) is installed as chromite-swing.exe for one version only, so that the
+  0.1.4 updater's restart starts Chromite.exe: REMOVE IN THE NEXT VERSION (docs/chromite/launcher-name.md).
   The product folder must already hold the bundled runtime (java tools/jre/BundleJre.java windows-x64)
   and, for a release, the signed launcher: the setup copies the folder as it is.
   Prints the path of the file it wrote last. Fails when the setup's ProductVersion/FileVersion is not the version.
@@ -33,6 +37,7 @@
 
   Change history:
   - 2026-11-07 Created.
+  - 2026-11-12 The launcher is Chromite.exe; pass 1 also writes the old-name starter, pass 2 embeds it (app change #65).
 #>
 param(
     [ValidateSet('all', 'uninstaller', 'setup')]
@@ -41,6 +46,7 @@ param(
     [string]$Version,
     [string]$OutDir = 'product/swing/target/installer',
     [string]$Uninstaller,
+    [string]$LegacyLauncher,
     [string]$Makensis
 )
 $ErrorActionPreference = 'Stop'
@@ -61,7 +67,7 @@ if (-not $Makensis) {
 if (-not $Makensis -or -not (Test-Path $Makensis)) { throw 'makensis.exe not found: pass -Makensis or set NSIS_HOME' }
 
 $product = (Resolve-Path $ProductDir).Path
-foreach ($need in 'chromite-swing.exe', 'jre\bin\server\jvm.dll') {
+foreach ($need in 'Chromite.exe', 'jre\bin\server\jvm.dll') {
     if (-not (Test-Path (Join-Path $product $need))) { throw "$product has no $need (build the product and bundle the runtime first)" }
 }
 $out = (New-Item -ItemType Directory -Force $OutDir).FullName
@@ -103,10 +109,20 @@ if ($Stage -in 'all', 'uninstaller') {
     Assert-Version $unOut
     $Uninstaller = $unOut
     "uninstaller: $unOut"
+    # the old-name starter (REMOVE IN THE NEXT VERSION, docs/chromite/launcher-name.md)
+    $legacyOut = Join-Path $work 'chromite-swing.exe'
+    Remove-Item -Force $legacyOut -ErrorAction SilentlyContinue
+    & $Makensis /V2 /INPUTCHARSET UTF8 "/DVERSION=$Version" "/DICON=$icon" "/DOUT_FILE=$legacyOut" (Join-Path $PSScriptRoot 'legacy-launcher.nsi')
+    if ($LASTEXITCODE) { throw "makensis failed for the old-name starter ($LASTEXITCODE)" }
+    Assert-Version $legacyOut
+    $LegacyLauncher = $legacyOut
+    "old-name starter: $legacyOut"
 }
 
 if ($Stage -in 'all', 'setup') {
     if (-not $Uninstaller -or -not (Test-Path $Uninstaller)) { throw 'pass 2 needs -Uninstaller (the uninstall.exe of pass 1)' }
+    if (-not $LegacyLauncher) { $LegacyLauncher = Join-Path $work 'chromite-swing.exe' }
+    if (-not (Test-Path $LegacyLauncher)) { throw 'pass 2 needs -LegacyLauncher (the chromite-swing.exe of pass 1)' }
     $setup = Join-Path $out "Chromite-$Version-x64-setup.exe"
     # makensis cannot open files whose full path is over 260 characters, and the product folder is deep
     # (its longest file is about 145 characters below it; on a GitHub runner the whole path is over 260).
@@ -115,7 +131,7 @@ if ($Stage -in 'all', 'setup') {
     if (Test-Path $link) { (Get-Item $link -Force).Delete() }   # a link from an earlier run: only the link goes
     New-Item -ItemType Junction -Path $link -Target $product | Out-Null
     try {
-        Invoke-Makensis $link @("/DUNINSTALLER=$((Resolve-Path $Uninstaller).Path)", "/DOUT_FILE=$setup")
+        Invoke-Makensis $link @("/DUNINSTALLER=$((Resolve-Path $Uninstaller).Path)", "/DLEGACY_LAUNCHER=$((Resolve-Path $LegacyLauncher).Path)", "/DOUT_FILE=$setup")
     } finally {
         (Get-Item $link -Force).Delete()
     }

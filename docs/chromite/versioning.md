@@ -116,7 +116,8 @@ GitHub의 Linux 러너에도 `pwsh`가 있어서 `release.yml`이 같은 스크�
 ### Windows 런처 버전 리소스
 
 Tycho(p2 `BrandingIron`)는 Windows 런처에 아이콘만 넣고 버전 리소스(FileVersion, ProductVersion)를 넣지 않는다.
-빌드한 `chromite-swing.exe`에는 버전 리소스가 아예 없다(FileVersion, ProductVersion, ProductName 모두 빈 값, 아래 "확인한 것").
+빌드한 런처(`Chromite.exe`, 0.1.4까지 `chromite-swing.exe`)에는 버전 리소스가 아예 없다(FileVersion, ProductVersion, ProductName 모두 빈 값, 아래 "확인한 것",
+2026-11-12 `Chromite.exe`에서도 같음: [launcher-name.md](launcher-name.md)).
 런처 브랜딩으로는 넣을 수 없으므로 제품 버전은 NSIS 설치 프로그램(`Chromite-<버전>-x64-setup.exe`)이 담는다([distribution.md](distribution.md)).
 Turbrix의 업데이트 확인처럼 업데이트 기능은 설치 파일의 ProductVersion을 검사한다.
 
@@ -174,3 +175,4 @@ DBeaver는 번들·제품 버전을 모두 DBeaver 릴리스 번호(예: 26.2.5)
   `tools/release/bump-version.ps1` 추가, `release.yml` `version` 작업 변경. 26.2.5 → 0.1.0은 번호가 내려가므로 스크립트가 아니라 손으로 바꿨다.
 - 2026-11-07 배포([distribution.md](distribution.md)): 릴리스 파일 이름이 계약 이름(`Chromite-<버전>-x64-setup.exe`, `Chromite-<버전>-arm64.{zip,dmg}`)이 됐고, Windows 버전 리소스는 설치 프로그램이 담는다.
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

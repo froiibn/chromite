@@ -17,7 +17,7 @@
              (docs/chromite/branding.md "시작 화면") -->
         <programArgs>-showsplash com.seizia.chromite.splash</programArgs>
         <!-- Bundled runtime Contents/Eclipse/jre (tools/jre/BundleJre.java, docs/chromite/runtime.md).
-             Windows needs no -vm: the launcher uses jre\ next to chromite-swing.exe before PATH. -->
+             Windows needs no -vm: the launcher uses jre\ next to Chromite.exe before PATH. -->
         <programArgsMac>-vm ../Eclipse/jre/lib/libjli.dylib</programArgsMac>
 
         <!-- Java 25 (the Swing bundle requires JavaSE-25). No -XstartOnFirstThread on macOS: it is for SWT and blocks AWT. -->
@@ -60,8 +60,9 @@
             --add-opens=java.desktop/com.apple.laf=ALL-UNNAMED</vmArgsMac>
     </launcherArgs>
 
-    <!-- The name dates from when the SWT product used "chromite"; signing, release files and the macOS app folder use it -->
-    <launcher name="chromite-swing">
+    <!-- Chromite.exe, Chromitec.exe, Chromite.ini on Windows; Contents/MacOS/Chromite on macOS (app change #65, was
+         "chromite-swing"; the installer keeps an old-name starter for one version: docs/chromite/launcher-name.md) -->
+    <launcher name="Chromite">
         <macosx icon="icons/chromite.icns"/>
         <win useIco="true">
             <ico path="icons/chromite.ico"/>

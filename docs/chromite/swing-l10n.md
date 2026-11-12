@@ -441,7 +441,7 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. 한국
 ## 확인 방법
 
 - 한국어: 한국어 Windows에서 그냥 실행하면 한국어 화면이다(OSGi 로캘 = OS 로캘).
-- 영어: `chromite-swing.exe -nl en`. 영어 화면은 옮기기 전과 글자까지 같아야 한다.
+- 영어: `Chromite.exe -nl en`(0.1.4까지 `chromite-swing.exe`). 영어 화면은 옮기기 전과 글자까지 같아야 한다.
 - 개인 작업 공간(`-data <폴더>`)으로 실행해 사용자 설정을 건드리지 않는다. 확인한 화면: 메인 창과 세 도구 창, 파일/편집/보기/쿼리/도구/창 메뉴,
   개체 탐색기 오른쪽 클릭 메뉴, 서버에 연결, SQL 편집기·결과·실행 계획·상태 줄, 옵션, 작업 모니터, 데이터 내보내기 마법사, 테이블 디자이너,
   쿼리 라이브러리(한국어 라이트·다크, 영어 라이트).
@@ -487,3 +487,4 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. 한국
 - 2026-11-12 UI 글꼴이 운영체제 글꼴(Windows Segoe UI)이 되어 한국어 화면의 semibold가 다시 굵은 대체 글꼴(Segoe UI Bold + 맑은 고딕 Bold)로 그려짐
   (앱 변경 #67, "한글 굵은 글꼴").
 - 2026-11-12 문서가 인용한 한국어 화면 이름의 끝 말줄임표 정리(B11, `chromite/small-fixes-r2`, "한국어 문구 끝의 말줄임표").
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

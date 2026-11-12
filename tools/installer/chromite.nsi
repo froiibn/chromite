@@ -63,11 +63,16 @@
 ;   UNINSTALLER    pass 2: the (signed) uninstaller to embed
 ;   INSTANCE       (optional, test builds only) the name of the Apps entry, the shortcuts and the default
 ;                  folder, so that a test installation never touches a real one; default Chromite
+;   LEGACY_LAUNCHER  pass 2: the (signed) old-name starter chromite-swing.exe (legacy-launcher.nsi), installed
+;                  beside Chromite.exe for one version: REMOVE IN THE NEXT VERSION (docs/chromite/launcher-name.md)
 ;
 ; Change history:
 ; - 2026-11-07 Created (Windows installer, silent upgrade for the in-app updater).
 ; - 2026-11-09 Install scope: all users (Program Files, default) or current user, /AllUsers and
 ;              /CurrentUser, elevation by "runas", scope-aware uninstall (docs/chromite/distribution.md).
+; - 2026-11-12 The launcher is Chromite.exe (was chromite-swing.exe, app change #65). For one version the old name
+;              is a starter that starts Chromite.exe, so the 0.1.4 updater's restart of chromite-swing.exe works;
+;              the shortcuts and the Apps entry point at Chromite.exe (docs/chromite/launcher-name.md).
 
 Unicode true
 ManifestDPIAware true
@@ -90,14 +95,18 @@ SetCompressorDictSize 64
   !insertmacro Require UNINSTALLER_OUT
 !else
   !insertmacro Require UNINSTALLER
+  !insertmacro Require LEGACY_LAUNCHER
   ; the uninstaller is embedded as a file (signed after pass 1), not written by this pass
   !pragma warning disable 6020
 !endif
 
 !define PRODUCT "Chromite"
 !define PUBLISHER "Seizia"
-!define EXE "chromite-swing.exe"
-; The JVM library is loaded by both launchers (chromite-swing.exe, chromite-swingc.exe): while either
+!define EXE "Chromite.exe"
+; The launcher's name until 0.1.4: this version installs the old-name starter under it (LEGACY_LAUNCHER) and removes
+; the old launcher files. REMOVE IN THE NEXT VERSION, with every use below (docs/chromite/launcher-name.md).
+!define LEGACY_EXE "chromite-swing.exe"
+; The JVM library is loaded by both launchers (Chromite.exe, Chromitec.exe): while either
 ; runs it cannot be opened for writing.
 !define RUNNING_PROBE "jre\bin\server\jvm.dll"
 !define /ifndef INSTANCE "${PRODUCT}"
@@ -191,6 +200,11 @@ Var AllUsers
 ; Removes the program files listed in files.nsh (top-level entries of the product folder).
 !macro RemoveProgramFiles
   !include "${FILES_NSH}"
+  ; not in the product folder: the old-name starter of this version, and the launcher files of 0.1.4 and earlier
+  ; (their own uninstaller removes them first; this covers a missing or failed one). REMOVE IN THE NEXT VERSION.
+  Delete "$INSTDIR\${LEGACY_EXE}"
+  Delete "$INSTDIR\chromite-swing.ini"
+  Delete "$INSTDIR\chromite-swingc.exe"
 !macroend
 
 ; The shell context of the scope: shortcut folders, and SHCTX for the Apps entry (HKLM or HKCU).
@@ -258,6 +272,7 @@ SectionEnd
 ; uninstaller is there): the upgrade removes entries by name and must not hit another program's files.
 Function CheckInstDir
   ${If} ${FileExists} "$INSTDIR\${EXE}"
+  ${OrIf} ${FileExists} "$INSTDIR\${LEGACY_EXE}"
   ${OrIf} ${FileExists} "$INSTDIR\uninstall.exe"
     Return
   ${EndIf}
@@ -293,8 +308,12 @@ Section "$(LangProgram)" SecProgram
   SetOutPath "$INSTDIR"
   File /r "${SOURCE_DIR}\*.*"
   File "/oname=uninstall.exe" "${UNINSTALLER}"
+  ; the 0.1.4 updater starts chromite-swing.exe again after this setup: the starter starts Chromite.exe.
+  ; REMOVE IN THE NEXT VERSION (docs/chromite/launcher-name.md)
+  File "/oname=${LEGACY_EXE}" "${LEGACY_LAUNCHER}"
 
-  ; "Start in" of the shortcut is $OUTPATH; the workspace does not depend on it
+  ; "Start in" of the shortcut is $OUTPATH; the workspace does not depend on it.
+  ; The same .lnk names as before: an upgrade overwrites them, so they point at ${EXE} (never a second entry)
   CreateShortCut "$SMPROGRAMS\${INSTANCE}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\${EXE}" 0
 
   ; SHCTX: HKLM for all users, HKCU for the current user (the updater reads the scope from where it is)

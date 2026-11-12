@@ -121,7 +121,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 
 ## 설계 결정과 이유
 
-- **실행 파일 이름 `chromite-swing`, macOS `ChromiteSwing.app`을 유지한다.** (macOS 폴더 이름은 2026-11-09 `Chromite.app`으로 바꿨다, [distribution.md](distribution.md) "macOS 앱 이름") SWT 제품의 `chromite`와 나누려고 붙인 이름이지만,
+- **실행 파일 이름 `chromite-swing`, macOS `ChromiteSwing.app`을 유지한다.** (macOS 폴더 이름은 2026-11-09 `Chromite.app`으로, 실행 파일 이름은 2026-11-12 `Chromite`로 바꿨다, [distribution.md](distribution.md) "macOS 앱 이름", [launcher-name.md](launcher-name.md)) SWT 제품의 `chromite`와 나누려고 붙인 이름이지만,
   바꾸면 서명 대상 경로, 릴리스 파일 이름, macOS 번들 폴더, CI 아티팩트 이름이 함께 바뀐다. 이번 작업은 삭제만 하고 이름 변경은 따로 정한다.
 - **`.eclipseproduct`, `readme.txt`(SWT `ce.feature`가 만들던 설치 폴더 파일)는 Swing에 옮기지 않았다.** Swing 제품에는 원래 없었고,
   `.eclipseproduct`는 패치 번호를 읽는 데만 쓰이며 없으면 0으로 본다(`GeneralUtils.readProductProperties`). `readme.txt`는 SWT 실행 옵션 설명이다.
@@ -165,3 +165,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 - 2026-11-08 차트·GIS 줄 갱신: 결과 표의 차트·공간 보기([swing-result-charts-spatial.md](swing-result-charts-spatial.md)).
 - 2026-11-08 작업 관리 줄 갱신: Database Tasks 도구 창과 작업으로 저장([swing-database-tasks.md](swing-database-tasks.md)).
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.

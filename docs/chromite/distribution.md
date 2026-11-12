@@ -144,10 +144,11 @@ Windows 언어가 한국어면 한국어, 아니면 영어(`MUI_LANGUAGE` 순서
 4. 새 파일을 복사하고 `uninstall.exe`, 시작 메뉴 바로 가기, 앱 목록 항목(이름, 버전, 게시자 Seizia, 크기, 아이콘, `https://chromite.seizia.com`)을 쓴다.
 
 - 지우는 것은 제품 폴더의 최상위 항목 이름 목록(`files.nsh`, 빌드 때 만든다: `configuration`, `drivers`, `features`, `jre`, `licenses`, `p2`, `plugins`,
-  `artifacts.xml`, `chromite-swing.exe`, `chromite-swing.ini`, `chromite-swingc.exe`)뿐이다. `$INSTDIR`을 통째로 지우지 않는다.
+  `artifacts.xml`, `Chromite.exe`, `Chromite.ini`, `Chromitec.exe`)과, 한 버전 동안 옛 런처 이름의 파일(`chromite-swing.exe` 시작 파일, 0.1.4까지의 `chromite-swing.ini`·`chromite-swingc.exe`,
+  [launcher-name.md](launcher-name.md))뿐이다. `$INSTDIR`을 통째로 지우지 않는다.
   그래서 설치 폴더 안의 다른 것(아래 `workspace\`)은 업그레이드·되돌리기·제거에서 남는다.
-- 이미 있는 폴더는 비어 있거나 Chromite 설치 폴더(`chromite-swing.exe`나 `uninstall.exe`가 있음)일 때만 받는다. 다른 프로그램 폴더를 골랐을 때 같은 이름의 하위 폴더를 지우지 않기 위해서다.
-- 설치 폴더 안의 `chromite-swing.ini`를 사용자가 고쳤다면(예: `-Xmx`) 업그레이드가 새 파일로 바꾼다(DBeaver와 같은 동작).
+- 이미 있는 폴더는 비어 있거나 Chromite 설치 폴더(`Chromite.exe`, 한 버전 동안 `chromite-swing.exe`, 또는 `uninstall.exe`가 있음)일 때만 받는다. 다른 프로그램 폴더를 골랐을 때 같은 이름의 하위 폴더를 지우지 않기 위해서다.
+- 설치 폴더 안의 `Chromite.ini`를 사용자가 고쳤다면(예: `-Xmx`) 업그레이드가 새 파일로 바꾼다(DBeaver와 같은 동작). 0.1.4까지의 `chromite-swing.ini`를 고쳤다면 그 값은 이름이 바뀌는 업그레이드에서 사라진다.
 
 ### 사용자 데이터의 위치
 
@@ -171,7 +172,8 @@ NSIS 제거 프로그램은 설치 프로그램 안에서 만들어지므로, �
 1. 1단계(`/DINNER`): 제거 프로그램을 쓰기만 하는 exe를 만들고 실행해 `uninstall.exe`를 얻는다 → CI가 서명한다.
 2. 2단계: 서명한 `uninstall.exe`를 파일로 넣어 `setup.exe`를 만든다 → CI가 서명한다.
 
-설치 프로그램은 제품 폴더를 그대로 담으므로, 런처(`chromite-swing.exe`)를 서명한 **뒤에** 만든다.
+설치 프로그램은 제품 폴더를 그대로 담으므로, 런처(`Chromite.exe`)를 서명한 **뒤에** 만든다. 한 버전 동안 1단계는 옛 이름 시작 파일 `chromite-swing.exe`도 만들고
+CI가 `uninstall.exe`처럼 서명한 뒤 2단계가 넣는다([launcher-name.md](launcher-name.md)).
 makensis는 260자가 넘는 경로를 열지 못한다(이 PC 작업 트리에서 `p2\...\cache\binary\...`를 못 열어 실패를 확인함. 제품 폴더 아래 가장 긴 파일이 145자,
 GitHub 러너의 제품 폴더 경로가 약 120자). 그래서 빌드 스크립트가 작업 폴더에 짧은 이름의 디렉터리 연결(junction)을 만들어 그 경로로 넘기고, 끝나면 연결만 지운다.
 
@@ -187,7 +189,8 @@ GitHub 러너의 제품 폴더 경로가 약 120자). 그래서 빌드 스크립
 (메뉴 막대 이름은 `Info.plist`의 `CFBundleName`이라 이미 Chromite였다, [platform-startup.md](platform-startup.md)).
 
 - 묶음 이름은 `Chromite.app`이다: Tycho `rootFolders`(`product/swing/pom.xml`), `BundleJre.java`, `build.yml`·`macos-smoke.yml`·`release.yml`,
-  `deploy-chromite-site.ps1`. 번들 ID(`CFBundleIdentifier`)와 실행 파일 이름(`chromite-swing`)은 그대로다(서명·키체인·업데이터가 쓴다).
+  `deploy-chromite-site.ps1`. 번들 ID(`CFBundleIdentifier`)는 그대로다(서명·키체인·업데이터가 쓴다). 실행 파일 이름은 그때 `chromite-swing`으로 두었다가
+  2026-11-12에 `Chromite`로 바꿨다(업데이터는 실행 파일 이름을 쓰지 않음, [launcher-name.md](launcher-name.md)).
 - **자동 업데이트 유지(결정)**: 0.1.3의 업데이터(`MacUpdateVerifier`)는 zip 안의 이름이 모두 실행 중인 묶음 이름(`ChromiteSwing.app/`)으로 시작해야 받는다.
   그래서 **0.1.4만** 두 이름을 쓴다.
   - dmg(새 설치): `Chromite.app`.
@@ -260,7 +263,7 @@ pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 `
 2. 이 PC에서 확인(하나라도 틀리면 서버에 아무것도 하지 않는다):
    - 세 파일이 `SHA256SUMS`와 같은지.
    - `setup.exe`: Authenticode `Valid`, 타임스탬프, 서명자 주체가 정확히 게시자 문자열, `ProductVersion`·`FileVersion` = 버전.
-   - macOS zip: 묶음 하나(`Chromite.app`, 0.1.4만 `ChromiteSwing.app`)의 `Contents/MacOS/chromite-swing`, 서명 폴더(`_CodeSignature/CodeResources`), 공증 티켓(`Contents/CodeResources`), `Info.plist`의 `CFBundleShortVersionString` = 버전.
+   - macOS zip: 묶음 하나(`Chromite.app`, 0.1.4만 `ChromiteSwing.app`)의 `Contents/MacOS/Chromite`(0.1.4까지 `chromite-swing`), 서명 폴더(`_CodeSignature/CodeResources`), 공증 티켓(`Contents/CodeResources`), `Info.plist`의 `CFBundleShortVersionString` = 버전.
      Mac에서 실행하면 `codesign --verify --deep --strict`와 `spctl`("Notarized Developer ID")도 확인한다. Windows에서는 `release.yml`의 확인을 믿는다.
    - `site/ko|en/changelog.html`에 `id="v<버전>"`가 있는지(`notes_url`이 가리키는 곳).
 3. 올릴 묶음: `files/`, `site/`, `releases.sh`, `deploy-remote.sh`(LF로 바꿔서), 모든 파일의 `SUMS`.
@@ -646,6 +649,8 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 릴리스 체크리스트(버전별):
 - [ ] **0.1.5**: macOS 업데이트 zip의 옛 이름을 없앤다. `release.yml` "Zip and disk image of each app"의 마지막 인자 `ChromiteSwing.app`과
   `deploy-chromite-site.ps1`의 `ChromiteSwing.app` 허용을 지운다(위 "macOS 앱 이름"). 0.1.5 릴리스 노트에 Mac 이름 변경(Dock 항목 다시 고정)을 적는다.
+- [ ] **런처 이름 `Chromite`가 처음 들어간 버전**: 릴리스 노트에 Windows 실행 파일 이름 변경과 작업 표시줄 고정(다음 버전부터 다시 고정)을 적는다.
+- [ ] **그다음 버전**: 옛 이름 시작 파일 `chromite-swing.exe`를 지운다([launcher-name.md](launcher-name.md) "다음 버전에서 지울 것").
 
 ## 확인한 것
 
@@ -883,3 +888,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-09 앱 변경 #22·#23·#26(`chromite/install-update-2`): macOS 앱 이름 `Chromite.app`과 0.1.4만의 옛 이름 zip("macOS 앱 이름", 릴리스 체크리스트의 0.1.5 항목),
   Windows 설치 범위 "기본 Program Files + 선택"("설치 범위", 이전의 "사용자별 설치" 절과 그 이유는 그 절 끝의 "이전 결정"으로), dmgbuild로 만든 dmg 창("macOS 디스크 이미지 창"),
   `release.yml`의 두 범위 설치 확인과 dmg 창 사진, 배포 스크립트의 zip 묶음 이름.
+- 2026-11-12 앱 변경 #65(`chromite/launcher-rename`): 런처 이름 `Chromite.exe`(전 `chromite-swing.exe`). 설치 프로그램이 한 버전 동안 옛 이름 시작 파일을 두고 옛 런처 파일을 지움,
+  바로 가기·앱 목록 아이콘이 `Chromite.exe`, 배포 스크립트의 macOS 실행 파일 확인 `Contents/MacOS/Chromite`. 설계와 확인은 [launcher-name.md](launcher-name.md).
