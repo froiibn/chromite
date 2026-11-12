@@ -74,7 +74,7 @@ PostgreSQL 다른 세션이 만든 스키마로 `SET search_path`(`PostgreExecut
 이름으로 찾고, 없고 캐시를 다 읽은 상태면 목록을 다시 읽는다(`setFullCache(false)` → `loadObjects`). `mergeCache`가 이미 읽은 객체를 그대로 두므로
 탐색기·열린 편집기가 가진 객체는 바뀌지 않는다. SQL Server·MySQL/MariaDB `refreshDefaults`, PostgreSQL `setActiveSchema`가 이 메서드를 쓴다.
 목록을 다시 읽는 것은 이름이 캐시에 없을 때뿐이다. 첫 실행 문맥은 데이터 원본 생성자 안에서 열려 캐시가 아직 없으므로(목록은 `initialize`가 읽음)
-그때는 건너뛴다. 다시 읽기가 실패하면 기록만 하고 알던 값을 둔다. 탐색기 트리에는 새 DB를 넣지 않는다(새로 고침하면 보임).
+그때는 건너뛴다. 아직 읽지 않은 목록도 처음 읽지 않는다(아래 "서버 버전을 읽기 전의 목록"). 다시 읽기가 실패하면 기록만 하고 알던 값을 둔다. 탐색기 트리에는 새 DB를 넣지 않는다(새로 고침하면 보임).
 
 **확인(이 브랜치 빌드, GCP 테스트 VM):** 연결한 뒤 다른 세션(격리 세션)에서 `chr_small_fixes_r3`를 만들고 쿼리 창에서 `USE`:
 SQL Server·MariaDB 선택과 상태 줄이 그 DB, PostgreSQL `SET search_path TO chr_s2`(다른 세션이 만든 스키마)가 `chr_s2`, Oracle은 그대로 정상.
@@ -113,6 +113,48 @@ SQL Server의 제한된 로그인은 확인하지 않았다: 목록 질의(`SELE
 **범위 밖에서 본 것(고치지 않음):** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`처럼 DDL이 든 배치를 실행하면 끝난 뒤 선택이 N/A가 될 때가 있다.
 실행 문맥의 값은 맞고(`schemaState` 읽기 결과만 기본 객체가 null) 다음 실행에서 바로 돌아온다. DDL 뒤 메타데이터 새로 고침(`SqlMetadataRefresh`)이
 스키마 캐시를 비우는 것과 실행 끝의 선택 다시 그리기가 겹치는 것으로 보인다(고치기 전 빌드에서는 확인하지 않음).
+
+### 서버 버전을 읽기 전의 목록 (#107)
+
+**증상(작업 예약 구현 보고, 2026-11-12):** 앱을 새로 시작한 뒤 SQL Server 테이블이 원본인 저장된 작업(내보내기, 테이블 복사)이
+"Child object 'src' not found in container chr_task_scheduling.dbo"로 실패했다. 손으로 실행해도 같고, 연결을 새로 고치면 됐다.
+재현해 보니 앱 시작과 상관없이 **연결할 때마다** 생겼다: 연결의 기본 DB에서는 Object Explorer의 dbo > Tables도 비어 있었다.
+
+**근본 원인:** `JDBCDataSource.initialize`는 메타데이터 실행 문맥을 먼저 열고(`JDBCRemoteInstance.initializeMetaContext`, `JDBCDataSource.java:653`)
+그다음에 서버 버전을 읽는다(`readDatabaseServerVersion`, 657행). 문맥을 열면 `SQLServerExecutionContext.refreshDefaults`가 돌고, #79가 넣은
+`getObjectReadingNew`(195행)가 아직 읽지 않은 DB 목록을 거기서 처음 읽었다. 목록을 읽으면 현재 DB의 생성자가 스키마를 읽고(`SQLServerDatabase.java:136`),
+스키마 생성자는 버전으로 열 이름을 고른다(`SQLServerSchema.java:91`: 2005 이상이면 `schema_id`, 아니면 `uid`). 버전을 모르면 `isServerVersionAtLeast`가
+false라 `sys.schemas`에 없는 `uid`를 읽어 **모든 스키마 ID가 0**이 되었다. 테이블 캐시는 `o.schema_id = 0`으로 읽으므로 테이블이 하나도 없고,
+`DBUtils.findObjectById`의 "없으면 스키마를 새로 고쳐 다시 찾기"도 ID가 그대로라 소용없었다. 연결 Refresh는 DB 목록을 비우고 버전을 아는 상태에서 다시
+읽어서 고쳐졌다. 같은 때 스키마 목록 질의도 버전 분기로 `sysobjects`와 묶여 `INFORMATION_SCHEMA`가 빠졌고, 교차 DB 질의 여부도 false로 판단했다.
+
+두 상태(앱 안 시험 도구로 모델을 그대로 읽음, 증거 `D:\Tools\_scratch\task-defects\logs\before-ops.log`, `before-app.log`):
+
+| | 연결 직후(고치기 전) | 연결 Refresh 뒤 |
+|---|---|---|
+| `JDBCDataSource.databaseVersion` | 16.0.0(목록을 읽을 때는 아직 null) | 16.0.0 |
+| `chr_task_defects`의 스키마 | dbo 0, s2 0, sys 0(`INFORMATION_SCHEMA` 없음) | dbo 1, INFORMATION_SCHEMA 3, s2 5, sys 4 |
+| dbo의 테이블 | 없음 | counter, src |
+| 다른 DB(`chr_task_defects_b`, 나중에 읽음) | dbo 1, 테이블 other | 같음 |
+
+앱 로그의 경고 "Checking server version before connection initialization" 여섯 개의 스택이 모두
+`JDBCDataSource.initialize` → `initializeMetaContext` → `refreshDefaults` → `getObjectReadingNew` → `SQLServerDatabase.<init>` → `SQLServerSchema.<init>`
+(3개), `SchemaCache.prepareObjectsStatement`(1개), `SQLServerUtils.supportsCrossDatabaseQueries`(2개)이었다.
+
+**고침:** `getObjectReadingNew`는 아직 읽지 않은 목록(`isFullyCached()`가 false)을 읽지 않고 캐시에 있는 것만 돌려준다. 다시 읽을 옛 목록이 없고,
+첫 읽기는 목록의 주인(`SQLServerDataSource.initialize`, `MySQLDataSource.initialize`, PostgreSQL `setActiveSchema`의 `getSchemas`)이 버전을 안 뒤에 한다.
+#79 이전의 읽는 순서로 돌아가고, #79의 경우(다른 세션이 만든 DB로 `USE`)는 목록을 이미 읽은 뒤이므로 그대로 다시 읽는다.
+작업 실행기에서 새로 고침을 강제하지 않았다. 모델이 틀린 ID를 만드는 것이 원인이고, 같은 모델을 Object Explorer·자동 완성·Chromite Agent 도구·스키마 비교가 함께 쓴다.
+
+**같은 원인을 쓰는 곳:** 저장된 경로로 객체를 찾는 기능(`DBUtils.findObjectById`: 데이터 전송 작업의 원본·대상, SQL 도구 작업, 네이티브 도구 작업,
+Chromite Agent `AITextUtils`)과 연결의 기본 DB 스키마를 읽는 모든 기능. Query Library의 기본값 고르기는 이름으로 찾으므로(`QueryLibraryDefaultsPicker.java:303`)
+실패하지 않았다. 다른 DB의 스키마는 나중에(버전을 안 뒤) 읽으므로 맞았다. MySQL/MariaDB도 메타데이터 문맥을 열 때 DB 목록을 처음 읽었지만 DB 객체 생성에
+버전 분기가 없어 결과가 같았다(고친 뒤에는 `initialize`에서 읽음). PostgreSQL은 #79 전부터 문맥을 열 때 스키마를 읽어 바뀐 것이 없다. Oracle은 이 메서드를 쓰지 않는다.
+
+**확인(이 브랜치 빌드, GCP 테스트 VM, `D:\Tools\_scratch\task-defects\logs\ops.log`):** 저장된 내보내기(dbo 테이블, 기본 스키마가 아닌 s2 테이블, 기본 DB가 아닌 DB의 테이블)를 앱을 새로
+시작해 손으로 실행: 고치기 전 dbo·s2 실패, 다른 DB 성공 → 고친 뒤 모두 성공, 스키마 ID 1·5, Tables에 counter·src. 시작 때 먼저 연결한 경우, 연결 Refresh 뒤,
+끊었다 다시 연결한 뒤에도 성공. PostgreSQL·MariaDB·Oracle 내보내기도 새로 시작한 뒤, Refresh 뒤, 다시 연결한 뒤 성공. 다른 세션이 만든 DB로 `USE`(#79) 뒤
+기본 DB가 그 DB. 고친 뒤 앱 로그에 서버 버전 경고 없음.
 
 ## 실행 중 표시 (#44)
 
@@ -305,3 +347,6 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 - 2026-11-12 앱 변경 #99(`chromite/running-statement-mark`): 실행 중 문장 표시를 파랑에서 테마 키 `Chromite.editor.runningStatementBackground`의 연두로,
   캐럿 줄이 그 문장 안이면 현재 줄 색이 표시를 가리지 않음. SQL Server 배치 안의 문장 찾기는 검토만 함. "실행 중 문장 색" 절. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: 쿼리 창 편집기의 현재 줄 강조, 실행 중·오류 문장 표시, 테마 전환.
+- 2026-11-12 앱 변경 #107(`chromite/task-defects`): `getObjectReadingNew`가 아직 읽지 않은 목록을 처음 읽지 않음. SQL Server 메타데이터 문맥이
+  서버 버전을 읽기 전에 DB 목록을 읽어 현재 DB의 스키마 ID가 0이 되었다. "서버 버전을 읽기 전의 목록" 절 추가. 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: 연결할 때 DB·스키마 목록을 읽는 순서(SQL Server, MySQL/MariaDB, PostgreSQL), 쿼리 창 DB 선택·상태 줄, 저장된 작업의 객체 찾기.
