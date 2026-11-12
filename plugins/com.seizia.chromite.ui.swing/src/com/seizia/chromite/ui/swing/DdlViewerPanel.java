@@ -41,6 +41,7 @@ import java.util.function.IntFunction;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 DDL 형식 콤보({@link Formats}): Oracle 테이블·뷰·구체화된 뷰의 전체 / 저장소 제외 / 간단히, SWT DDL 탭과 같음
  *   (SWT 감사 O14, docs/chromite/swing-routines.md)
+ * - 2026-11-12 객체의 연결 접근자: 텍스트 비교가 창 목록과 머리글에 연결을 보임 (docs/chromite/text-compare.md)
  */
 final class DdlViewerPanel extends JPanel {
 
@@ -54,6 +55,8 @@ final class DdlViewerPanel extends JPanel {
     }
 
     private final String title;
+    @Nullable
+    private final DBPDataSourceContainer dataSource;
     private final SqlEditorPanel.SqlTextArea textArea = new SqlEditorPanel.SqlTextArea();
 
     /**
@@ -65,6 +68,7 @@ final class DdlViewerPanel extends JPanel {
     DdlViewerPanel(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl, @Nullable Formats formats) {
         super(new BorderLayout());
         this.title = objectName + " [DDL]";
+        this.dataSource = dataSource;
         textArea.setDataSourceContainer(dataSource);
         textArea.setText(ddl);
         textArea.setCaretPosition(0);
@@ -117,7 +121,15 @@ final class DdlViewerPanel extends JPanel {
     }
 
     /**
-     * The read-only text, for Edit &gt; Find.
+     * Connection of the object (Compare shows it with the tab's title), or null.
+     */
+    @Nullable
+    DBPDataSourceContainer getDataSourceContainer() {
+        return dataSource;
+    }
+
+    /**
+     * The read-only text, for Edit &gt; Find and Compare.
      */
     @NotNull
     SqlEditorPanel.SqlTextArea getTextArea() {
