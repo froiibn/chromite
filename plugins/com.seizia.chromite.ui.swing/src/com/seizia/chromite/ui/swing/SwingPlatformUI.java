@@ -100,6 +100,8 @@ import java.util.function.Supplier;
  *   데이터 전송 작업의 "끝나면 테이블 열기"가 닿는 곳 (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  * - 2026-11-12 {@code createMessageComponent}의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
  *   낱말 가운데서 끊었다("…입니 / 다.", 앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-12 예약 실행(무인 실행, {@link UnattendedRuns})에서는 묻지 않음: 확인·선택·입력·라이선스는 실행을 실패시키고, 모달 메시지 상자와
+ *   개체 탐색기·파일 탐색기·연결 편집 열기는 로그에만 남김(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -121,6 +123,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
+        if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(status)))) {
+            return UserResponse.OK;
+        }
         Throwable error = ErrorText.findException(status);
         if (error != null && showDatabaseError(title, message, error)) {
             return UserResponse.OK;
@@ -132,6 +137,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Override
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
         log.debug(e);
+        if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(e)))) {
+            return UserResponse.OK;
+        }
         if (showDatabaseError(title, message, e)) {
             return UserResponse.OK;
         }
@@ -151,6 +159,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message) {
+        if (UnattendedRuns.skip(title, message)) {
+            return UserResponse.OK;
+        }
         showMessage(title, ErrorText.clean(message), JOptionPane.ERROR_MESSAGE);
         return UserResponse.OK;
     }
@@ -193,11 +204,17 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void showMessageBox(@NotNull String title, @Nullable String message, boolean error) {
+        if (UnattendedRuns.skip(title, message)) {
+            return;
+        }
         showMessage(title, error ? ErrorText.clean(message) : message, error ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
     }
 
     @Override
     public void showWarningMessageBox(@NotNull String title, @Nullable String message) {
+        if (UnattendedRuns.skip(title, message)) {
+            return;
+        }
         showMessage(title, message, JOptionPane.WARNING_MESSAGE);
     }
 
@@ -211,6 +228,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public boolean confirmAction(String title, String message, boolean isWarning) {
+        UnattendedRuns.refuseQuestion(title, message);
         String yes = UIManager.getString("OptionPane.yesButtonText"); //$NON-NLS-1$
         String no = UIManager.getString("OptionPane.noButtonText"); //$NON-NLS-1$
         Object[] options = {yes, no};
@@ -230,6 +248,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public boolean confirmAction(@NotNull String title, @NotNull String message, @NotNull String buttonLabel, boolean isWarning) {
+        UnattendedRuns.refuseQuestion(title, message);
         String cancelLabel = UIManager.getString("OptionPane.cancelButtonText");
         Object[] options = {buttonLabel, cancelLabel};
         Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
@@ -255,6 +274,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         @Nullable Integer previousChoice,
         int defaultChoice
     ) {
+        UnattendedRuns.refuseQuestion(title, message);
         // Empty labels are placeholders: they get no button, but the returned index refers to the original list
         List<String> options = new ArrayList<>();
         List<Integer> optionIndexes = new ArrayList<>();
@@ -309,6 +329,8 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Override
     public UserResponse showErrorStopRetryIgnore(String task, Throwable error, boolean queue) {
         log.debug(error);
+        UnattendedRuns.refuseQuestion(CoreMessages.platform_execution_error,
+            joinText(NLS.bind(CoreMessages.platform_error_during, task), ErrorText.describe(error)));
         // Same buttons and mapping as ExecutionQueueErrorDialog / ExecutionQueueErrorJob of the SWT UI
         String[] options = queue
             ? new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry, CoreMessages.platform_skip, CoreMessages.platform_skip_all}
@@ -363,6 +385,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         boolean passwordOnly,
         boolean showSavePassword
     ) {
+        UnattendedRuns.refuseQuestion(CommonUtils.isEmpty(prompt) ? CoreMessages.platform_authentication : prompt, description);
         return runOnEdt(() -> {
             FormPanel form = new FormPanel(description);
             JTextField userField = new JTextField(CommonUtils.notEmpty(userName), 24);
@@ -411,6 +434,8 @@ public class SwingPlatformUI implements DBPPlatformUI {
             log.debug("Auth model " + authModel.getId() + " has no credential fields to ask for");
             return true;
         }
+        UnattendedRuns.refuseQuestion(NLS.bind(ConnectionMessages.auth_prompt_title, dataSourceContainer.getName()),
+            NLS.bind(ConnectionMessages.auth_prompt_description, authModel.getName()));
         Boolean confirmed = runOnEdt(() -> {
             FormPanel form = new FormPanel(NLS.bind(ConnectionMessages.auth_prompt_description, authModel.getName()));
             JTextField userField = new JTextField(CommonUtils.notEmpty(configuration.getUserName()), 24);
@@ -460,6 +485,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         boolean userEditable,
         boolean oldPasswordVisible
     ) {
+        UnattendedRuns.refuseQuestion(CommonUtils.isEmpty(prompt) ? CoreMessages.platform_change_password : prompt, userName);
         return runOnEdt(() -> {
             FormPanel form = new FormPanel(null);
             JTextField userField = new JTextField(CommonUtils.notEmpty(userName), 24);
@@ -514,6 +540,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Nullable
     @Override
     public String promptProperty(@NotNull String title, @NotNull String prompt, @Nullable String defValue) {
+        UnattendedRuns.refuseQuestion(title, prompt);
         return runOnEdt(() -> (String) JOptionPane.showInputDialog(
             getDialogParent(),
             prompt,
@@ -527,6 +554,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Nullable
     @Override
     public String promptText(@Nullable String title, @Nullable String prompt, @Nullable String defValue) {
+        UnattendedRuns.refuseQuestion(title, prompt);
         return runOnEdt(() -> {
             JTextArea textArea = new JTextArea(CommonUtils.notEmpty(defValue), 12, 60);
             JPanel panel = new JPanel(new BorderLayout(0, 6));
@@ -547,6 +575,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public boolean acceptLicense(String message, String licenseText) {
+        UnattendedRuns.refuseQuestion(CoreMessages.platform_license_agreement, message);
         Integer result = runOnEdt(() -> {
             JTextArea licenseArea = new JTextArea(CommonUtils.notEmpty(licenseText), 20, 70);
             licenseArea.setEditable(false);
@@ -595,6 +624,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
      */
     @Override
     public void openEntityEditor(@NotNull DBSObject object) {
+        if (UnattendedRuns.skip(null, "Show in Object Explorer: " + object.getName())) { //$NON-NLS-1$
+            return;
+        }
         DBNDatabaseNode node = DBNUtils.getNodeByObject(object);
         if (node == null && !SwingUtilities.isEventDispatchThread()) {
             // Reads the parent nodes; never on the EDT
@@ -609,6 +641,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void openEntityEditor(@NotNull DBNNode selectedNode, @Nullable String defaultPageId) {
+        if (UnattendedRuns.skip(null, "Show in Object Explorer: " + selectedNode.getNodeDisplayName())) { //$NON-NLS-1$
+            return;
+        }
         if (selectedNode instanceof DBNDatabaseNode node) {
             revealInExplorer(node);
         } else {
@@ -629,6 +664,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void openConnectionEditor(@NotNull DBPDataSourceContainer dataSourceContainer) {
+        if (UnattendedRuns.skip(null, "Edit connection: " + dataSourceContainer.getName())) { //$NON-NLS-1$
+            return;
+        }
         // Generic connection dialog (swing-frontend.md, MVP item 2). Waits until it is closed, like DesktopUI (syncExec):
         // callers may use the changed settings right after this call.
         runOnEdt(() -> {
@@ -763,6 +801,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void executeShellProgram(@NotNull String shellCommand) {
+        if (UnattendedRuns.skip(null, "Open " + shellCommand)) { //$NON-NLS-1$
+            return;
+        }
         // Opens a URL or file with the associated program, like SWT Program.launch() in DesktopUI
         try {
             if (!Desktop.isDesktopSupported()) {
@@ -783,6 +824,9 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void showInSystemExplorer(@NotNull String path) {
+        if (UnattendedRuns.skip(null, "Show in the file manager: " + path)) { //$NON-NLS-1$
+            return;
+        }
         // Same commands as ShellUtils.showInSystemExplorer of the SWT UI, for the supported platforms
         File file = new File(path);
         try {

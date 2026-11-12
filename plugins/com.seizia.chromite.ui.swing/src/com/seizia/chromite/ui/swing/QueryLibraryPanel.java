@@ -102,6 +102,8 @@ import java.util.Set;
  * - 2026-11-08 {@link Host#getSaveAction}: 쿼리 창 머리말의 저장 단추가 메인 창의 Save(Ctrl+S)를 그대로 씀
  *   (docs/chromite/swing-query-library.md "머리말 저장 단추")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
+ * - 2026-11-12 예약 실행기 시작·정지를 메인 창으로 옮김: 쿼리와 저장된 작업이 같은 스케줄러({@link RunScheduler})를 씀
+ *   (앱 변경 #104, docs/chromite/task-scheduling.md)
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class QueryLibraryPanel extends JPanel {
@@ -296,16 +298,14 @@ final class QueryLibraryPanel extends JPanel {
         watcher = new QueryLibraryWatcher(() -> SwingUtilities.invokeLater(() -> reload(true)));
         // Alerts and schedule state show in the tree
         QueryScheduler.getInstance().addListener(tree::repaint);
-        QueryScheduler.getInstance().start();
         updateActions();
         reload();
     }
 
     /**
-     * The main window closes: scheduled runs stop.
+     * The main window closes: the folders are no longer watched (the main window stops the scheduled runs, {@link RunScheduler#stop}).
      */
     void dispose() {
-        QueryScheduler.getInstance().stop();
         watcher.stop();
     }
 

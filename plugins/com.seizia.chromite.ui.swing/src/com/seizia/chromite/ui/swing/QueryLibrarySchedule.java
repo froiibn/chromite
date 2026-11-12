@@ -23,10 +23,6 @@ import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,29 +32,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Query Library 쿼리의 예약 실행 정의: 언제(간격, 매일, 평일), 어느 서버에서, 어떤 매개변수 값으로, 어떤 조건이면 알릴지, 예약 사용 여부.
+ * Query Library 쿼리의 예약 실행 정의: 언제(간격, 매일, 평일)와 예약 사용 여부({@link ScheduleTiming}), 어느 서버에서, 어떤 매개변수 값으로,
+ * 어떤 조건이면 알릴지.
  *
  * 설계:
  * <ul>
  *     <li>정의는 쿼리 파일 머리말의 {@code -- @schedule} 블록이다({@link QueryLibraryFile}). 공유하면 정의도 함께 간다. 이 PC에서 실제로 돌릴지는
  *     파일이 아니라 로컬 설정이다({@link QueryLibraryState#isScheduleActive}): 공유 쿼리가 동료 PC마다 저절로 돌지 않게 하기 위해서다.</li>
- *     <li>시각 형태는 세 가지(N분/N시간 간격, 매일 HH:mm, 평일 HH:mm)만 둔다. cron 문법 없이 간단한 화면으로 정하기 위해서다.</li>
- *     <li>다음 실행 시각({@link #nextRun})은 지금 이후의 첫 시각이다. 꺼져 있던 동안 놓친 실행은 몰아서 하지 않는다.</li>
+ *     <li>시각(N분/N시간 간격, 매일 HH:mm, 평일 HH:mm)과 사용 여부, 다음 실행 시각은 저장된 작업의 예약과 같은 {@link ScheduleTiming}이다
+ *     (스케줄러 하나, {@link RunScheduler}). 꺼져 있던 동안 놓친 실행은 몰아서 하지 않는다.</li>
  *     <li>조건({@link Condition}): 결과 행 수나 첫 행 첫 열 값과 숫자(또는 글자)를 비교한다. 맞으면 알린다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 시각 부분(종류, 간격, 시각, 사용 여부, 다음 시각, 문구, 파일 키)을 {@link ScheduleTiming}으로 옮겨 작업 예약과 함께 씀
+ *   (앱 변경 #104, docs/chromite/task-scheduling.md "하나의 스케줄러")
  */
-final class QueryLibrarySchedule {
-
-    /**
-     * When the query runs.
-     */
-    enum Kind {
-        INTERVAL, DAILY, WEEKDAYS
-    }
+final class QueryLibrarySchedule extends ScheduleTiming {
 
     /**
      * A connection the scheduled query runs on: data source id and name (found by name on another computer).
@@ -67,7 +59,6 @@ final class QueryLibrarySchedule {
     }
 
     private static final Pattern CONDITION_PATTERN = Pattern.compile("^(rows|first)\\s*(>=|<=|!=|>|<|=)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern INTERVAL_PATTERN = Pattern.compile("^(\\d+)\\s*([mh])$", Pattern.CASE_INSENSITIVE);
 
     /**
      * A condition on the result: {@code rows > 0}, {@code rows >= 10}, {@code first > 90} (first column of the first row).
@@ -137,54 +128,19 @@ final class QueryLibrarySchedule {
         }
     }
 
-    private Kind kind = Kind.INTERVAL;
-    // INTERVAL
-    private int intervalMinutes = 60;
-    // DAILY, WEEKDAYS
-    private LocalTime time = LocalTime.of(8, 0);
     private final List<Target> targets = new ArrayList<>();
     private final Map<String, String> parameterValues = new LinkedHashMap<>();
     @Nullable
     private Condition condition;
-    private boolean enabled = true;
 
     @NotNull
     QueryLibrarySchedule copy() {
         QueryLibrarySchedule copy = new QueryLibrarySchedule();
-        copy.kind = kind;
-        copy.intervalMinutes = intervalMinutes;
-        copy.time = time;
+        copyTimingTo(copy);
         copy.targets.addAll(targets);
         copy.parameterValues.putAll(parameterValues);
         copy.condition = condition;
-        copy.enabled = enabled;
         return copy;
-    }
-
-    @NotNull
-    Kind getKind() {
-        return kind;
-    }
-
-    void setKind(@NotNull Kind kind) {
-        this.kind = kind;
-    }
-
-    int getIntervalMinutes() {
-        return intervalMinutes;
-    }
-
-    void setIntervalMinutes(int intervalMinutes) {
-        this.intervalMinutes = Math.max(1, intervalMinutes);
-    }
-
-    @NotNull
-    LocalTime getTime() {
-        return time;
-    }
-
-    void setTime(@NotNull LocalTime time) {
-        this.time = time.withSecond(0).withNano(0);
     }
 
     @NotNull
@@ -206,94 +162,18 @@ final class QueryLibrarySchedule {
         this.condition = condition;
     }
 
-    boolean isEnabled() {
-        return enabled;
-    }
-
-    void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
     /**
-     * The first run time after {@code after}. Interval runs follow the last run ({@code lastRun + n * interval}) so
-     * that a restart keeps the rhythm; without a last run the first run is one interval from now.
-     */
-    @NotNull
-    LocalDateTime nextRun(@NotNull LocalDateTime after, @Nullable LocalDateTime lastRun) {
-        switch (kind) {
-            case INTERVAL -> {
-                if (lastRun != null && !lastRun.isAfter(after)) {
-                    long minutes = java.time.Duration.between(lastRun, after).toMinutes();
-                    long steps = minutes / intervalMinutes + 1;
-                    return lastRun.plusMinutes(steps * intervalMinutes);
-                }
-                return after.plusMinutes(intervalMinutes).withSecond(0).withNano(0);
-            }
-            case DAILY -> {
-                LocalDateTime next = after.toLocalDate().atTime(time);
-                return next.isAfter(after) ? next : next.plusDays(1);
-            }
-            default -> {
-                LocalDateTime next = after.toLocalDate().atTime(time);
-                if (!next.isAfter(after)) {
-                    next = next.plusDays(1);
-                }
-                while (next.getDayOfWeek() == DayOfWeek.SATURDAY || next.getDayOfWeek() == DayOfWeek.SUNDAY) {
-                    next = next.plusDays(1);
-                }
-                return next;
-            }
-        }
-    }
-
-    /**
-     * Text for people: "every 5 minutes", "daily at 08:30", "weekdays at 08:30".
-     */
-    @NotNull
-    String describe() {
-        return switch (kind) {
-            case INTERVAL -> intervalMinutes % 60 == 0
-                ? (intervalMinutes == 60 ? ToolsMessages.schedule_every_hour : NLS.bind(ToolsMessages.schedule_every_hours, intervalMinutes / 60))
-                : (intervalMinutes == 1 ? ToolsMessages.schedule_every_minute : NLS.bind(ToolsMessages.schedule_every_minutes, intervalMinutes));
-            case DAILY -> NLS.bind(ToolsMessages.schedule_daily_at, time);
-            case WEEKDAYS -> NLS.bind(ToolsMessages.schedule_weekdays_at, time);
-        };
-    }
-
-    /**
-     * Value of the file's {@code every:}/{@code daily:}/{@code weekdays:} key.
-     */
-    @NotNull
-    String formatWhen() {
-        return switch (kind) {
-            case INTERVAL -> intervalMinutes % 60 == 0 ? intervalMinutes / 60 + "h" : intervalMinutes + "m"; //$NON-NLS-1$ //$NON-NLS-2$
-            default -> time.toString();
-        };
-    }
-
-    /**
-     * Reads one {@code key: value} line of the {@code @schedule} block.
+     * Reads one {@code key: value} line of the {@code @schedule} block: the timing ({@link ScheduleTiming#readKey}), the targets,
+     * the parameter values and the condition.
      *
      * @return false for a key this version does not know
      */
+    @Override
     boolean readKey(@NotNull String key, @NotNull String value) {
+        if (super.readKey(key, value)) {
+            return true;
+        }
         switch (key) {
-            case "every" -> { //$NON-NLS-1$
-                Matcher matcher = INTERVAL_PATTERN.matcher(value.trim());
-                if (matcher.matches()) {
-                    int amount = Integer.parseInt(matcher.group(1));
-                    kind = Kind.INTERVAL;
-                    setIntervalMinutes(matcher.group(2).equalsIgnoreCase("h") ? amount * 60 : amount); //$NON-NLS-1$
-                }
-            }
-            case "daily", "weekdays" -> { //$NON-NLS-1$ //$NON-NLS-2$
-                try {
-                    setTime(LocalTime.parse(value.trim()));
-                    kind = key.equals("daily") ? Kind.DAILY : Kind.WEEKDAYS; //$NON-NLS-1$
-                } catch (DateTimeParseException e) {
-                    // Keep the default
-                }
-            }
             case "target" -> { //$NON-NLS-1$
                 int separator = value.indexOf('|');
                 String id = separator >= 0 ? value.substring(0, separator).trim() : null;
@@ -301,7 +181,6 @@ final class QueryLibrarySchedule {
                 targets.add(new Target(CommonUtils.nullIfEmpty(id), name));
             }
             case "condition" -> condition = Condition.parse(value); //$NON-NLS-1$
-            case "enabled" -> enabled = CommonUtils.toBoolean(value); //$NON-NLS-1$
             default -> {
                 if (key.startsWith("param.")) { //$NON-NLS-1$
                     parameterValues.put(key.substring("param.".length()), value); //$NON-NLS-1$

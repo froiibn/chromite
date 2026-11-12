@@ -74,6 +74,11 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Stream transfer consumer
+ *
+ * 변경 이력(Chromite):
+ * - 2026-11-12 "파일이 이미 있음" 질문을 취소하거나(손 실행) 예약 실행이 물을 수 없을 때, 있던 파일을 이 내보내기의 출력 목록에서 뺌:
+ *   출력 목록에 먼저 넣고 질문해서, 실패한 내보내기 정리(FailedExportFileCleanerProcessor)가 쓰지도 않은 기존 파일을 지웠다
+ *   (앱 변경 #104, docs/chromite/task-scheduling.md "확인")
  */
 @DBSerializable(StreamTransferConsumer.NODE_ID)
 public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsumerSettings, IStreamDataExporter> {
@@ -487,7 +492,16 @@ public class StreamTransferConsumer implements IDataTransferConsumer<StreamConsu
         } else {
             boolean fileExists = Files.exists(outputFile);
             if (fileExists && !Files.isDirectory(outputFile)) {
-                DataFileConflictBehavior behavior = prepareDataFileConflictBehavior(outputFile.getFileName().toString());
+                DataFileConflictBehavior behavior;
+                try {
+                    behavior = prepareDataFileConflictBehavior(outputFile.getFileName().toString());
+                } catch (RuntimeException e) {
+                    // Chromite: the existing file was not written (the user canceled, or a scheduled run could not ask): it is no
+                    // output of this export, and the failed-export cleaner must not delete it
+                    outputFiles.remove(outputFile);
+                    outputFile = null;
+                    throw e;
+                }
                 switch (behavior) {
                     case APPEND -> truncate = false;
                     case PATCHNAME -> {

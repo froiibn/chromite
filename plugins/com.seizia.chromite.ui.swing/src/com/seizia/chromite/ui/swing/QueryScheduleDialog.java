@@ -30,8 +30,6 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +50,7 @@ import java.util.Map;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-12 Parameters 목록의 두 열을 머리글과 값의 폭으로({@link #sizeParameterColumns}): 표가 폭을 반씩 나눠 영어 머리글이
  *   "Value for scheduled r…"로 잘렸다(앱 변경 #81, docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-12 When 칸을 {@link ScheduleWhenPanel}로 떼어 저장된 작업의 예약 대화상자와 함께 씀(앱 변경 #104, docs/chromite/task-scheduling.md)
  */
 final class QueryScheduleDialog extends JDialog {
 
@@ -92,13 +91,7 @@ final class QueryScheduleDialog extends JDialog {
     }
 
     private final JCheckBox enabledBox = new JCheckBox(ToolsMessages.schedule_enabled);
-    private final JRadioButton intervalButton = new JRadioButton(ToolsMessages.schedule_every);
-    private final JRadioButton dailyButton = new JRadioButton(ToolsMessages.schedule_daily);
-    private final JRadioButton weekdaysButton = new JRadioButton(ToolsMessages.schedule_weekdays);
-    private final JSpinner intervalSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 10000, 1));
-    private final JComboBox<String> unitCombo = new JComboBox<>(new String[]{ToolsMessages.schedule_unit_minutes, ToolsMessages.schedule_unit_hours});
-    private final JTextField dailyField = new JTextField(5);
-    private final JTextField weekdaysField = new JTextField(5);
+    private final ScheduleWhenPanel when;
     private final List<JCheckBox> targetBoxes = new ArrayList<>();
     private final List<TargetChoice> targetChoices = new ArrayList<>();
     private final DefaultTableModel parametersModel = new DefaultTableModel(
@@ -122,23 +115,8 @@ final class QueryScheduleDialog extends JDialog {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         QueryLibrarySchedule schedule = item.getSchedule() != null ? item.getSchedule() : new QueryLibrarySchedule();
 
-        ButtonGroup group = new ButtonGroup();
-        group.add(intervalButton);
-        group.add(dailyButton);
-        group.add(weekdaysButton);
+        when = new ScheduleWhenPanel(schedule);
         enabledBox.setSelected(item.getSchedule() == null || schedule.isEnabled());
-        switch (schedule.getKind()) {
-            case INTERVAL -> intervalButton.setSelected(true);
-            case DAILY -> dailyButton.setSelected(true);
-            case WEEKDAYS -> weekdaysButton.setSelected(true);
-        }
-        boolean hours = schedule.getIntervalMinutes() % 60 == 0;
-        intervalSpinner.setValue(hours ? schedule.getIntervalMinutes() / 60 : schedule.getIntervalMinutes());
-        unitCombo.setSelectedIndex(hours ? 1 : 0);
-        dailyField.setText(schedule.getTime().toString());
-        weekdaysField.setText(schedule.getTime().toString());
-        dailyField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "hh:mm"); //$NON-NLS-1$
-        weekdaysField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "hh:mm"); //$NON-NLS-1$
         activeBox.setSelected(active || item.getSchedule() == null);
         activeBox.setToolTipText(ToolsMessages.schedule_active_tip);
 
@@ -198,14 +176,6 @@ final class QueryScheduleDialog extends JDialog {
         conditionCombo.addActionListener(e -> updateEnabled());
         conditionCombo.setToolTipText(ToolsMessages.schedule_condition_tip);
 
-        JPanel when = new JPanel(new GridBagLayout());
-        addCell(when, intervalButton, 0, 0);
-        addCell(when, intervalSpinner, 1, 0);
-        addCell(when, unitCombo, 2, 0);
-        addCell(when, dailyButton, 0, 1);
-        addCell(when, dailyField, 1, 1);
-        addCell(when, weekdaysButton, 0, 2);
-        addCell(when, weekdaysField, 1, 2);
         JPanel conditionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         conditionPanel.add(conditionCombo);
         conditionPanel.add(conditionValueField);
@@ -313,15 +283,6 @@ final class QueryScheduleDialog extends JDialog {
         conditionValueField.setEnabled(choice != null && choice.subject() != null);
     }
 
-    private static void addCell(@NotNull JPanel panel, @NotNull JComponent component, int x, int y) {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = x;
-        c.gridy = y;
-        c.anchor = GridBagConstraints.WEST;
-        c.insets = new Insets(0, 0, 4, 6);
-        panel.add(component, c);
-    }
-
     /**
      * @param weighty share of the extra height; a control that gets some fills its cell in both directions
      */
@@ -347,19 +308,7 @@ final class QueryScheduleDialog extends JDialog {
         }
         QueryLibrarySchedule schedule = new QueryLibrarySchedule();
         schedule.setEnabled(enabledBox.isSelected());
-        try {
-            if (intervalButton.isSelected()) {
-                schedule.setKind(QueryLibrarySchedule.Kind.INTERVAL);
-                int amount = ((Number) intervalSpinner.getValue()).intValue();
-                schedule.setIntervalMinutes(unitCombo.getSelectedIndex() == 1 ? amount * 60 : amount);
-            } else if (dailyButton.isSelected()) {
-                schedule.setKind(QueryLibrarySchedule.Kind.DAILY);
-                schedule.setTime(LocalTime.parse(dailyField.getText().trim()));
-            } else {
-                schedule.setKind(QueryLibrarySchedule.Kind.WEEKDAYS);
-                schedule.setTime(LocalTime.parse(weekdaysField.getText().trim()));
-            }
-        } catch (DateTimeParseException e) {
+        if (!when.apply(schedule)) {
             errorLabel.setText(ToolsMessages.schedule_error_time);
             return;
         }

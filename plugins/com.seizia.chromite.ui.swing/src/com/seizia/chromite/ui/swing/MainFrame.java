@@ -314,6 +314,8 @@ import java.util.function.Supplier;
  * - 2026-11-12 주 도구 막대 아이콘 단추의 도구 설명을 기능 이름과 단축키로(메뉴·창 제목과 같은 키). 작업 모니터는 켜져 있으면 설명 없이
  *   이름, 꺼지면 이유(앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-12 Windows: 마우스에 쓴 Alt를 떼도 메뉴 막대가 골라지지 않게 {@link AltMouseMenuGuard}를 설치(앱 변경 #102)
+ * - 2026-11-12 예약 실행기({@link RunScheduler}, 쿼리와 저장된 작업이 함께 씀)를 이 창이 열릴 때 시작하고 닫힐 때 멈춤. 전에는 Query Library
+ *   창이 했다. 저장된 작업의 일정({@link TaskScheduler})도 함께 시작·정지(앱 변경 #104, docs/chromite/task-scheduling.md)
  * - 2026-11-12 비교: 열린 두 창의 글을 나란히 비교하는 문서 탭({@link TextCompareCommand}, Query 메뉴와 SQL Editor 도구 막대, 앱 변경 #105)
  *   (docs/chromite/text-compare.md)
  */
@@ -666,6 +668,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Saved tasks (backups, restores, native script runs): a tab next to the Query Library, hidden until opened
         ToolWindow tasksWindow = new ToolWindow("databaseTasks", DatabaseTasksMessages.tasks_title, null); //$NON-NLS-1$
         toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false, upperRightPlaces);
+        // Scheduled library queries and saved tasks run while this window is open (docs/chromite/task-scheduling.md)
+        RunScheduler.getInstance().start();
+        TaskScheduler.getInstance().start();
         // Every statement the query manager recorded: a wide table along the bottom edge, like SWT's bottom views; hidden until
         // opened. Statements open in a new query window and never run
         queryManagerPanel = new QueryManagerPanel((connection, sql) -> {
@@ -933,6 +938,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         explorerPanel.dispose();
         registeredServersPanel.dispose();
+        TaskScheduler.getInstance().stop();
+        RunScheduler.getInstance().stop();
         queryLibraryPanel.dispose();
         queryManagerPanel.dispose();
         aiAssistantPanel.dispose();

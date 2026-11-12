@@ -68,6 +68,7 @@ import java.util.Locale;
  * - 2026-11-06 Query Library ③: {@code @schedule} 블록 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-08 {@code @updated}를 쓰지 않음(읽고 버림): 동시에 고친 쿼리가 Git에서 그 줄로 늘 충돌하던 문제
  *   (docs/chromite/swing-query-library.md "저장 형식")
+ * - 2026-11-12 예약 시각 키 이름을 {@link ScheduleTiming#getWhenKey}에서 얻음(작업 예약과 같은 키, docs/chromite/task-scheduling.md)
  */
 final class QueryLibraryFile {
 
@@ -267,11 +268,7 @@ final class QueryLibraryFile {
         QueryLibrarySchedule schedule = item.getSchedule();
         if (schedule != null) {
             text.append(KEY_PREFIX).append(SCHEDULE).append('\n');
-            appendSubKey(text, switch (schedule.getKind()) {
-                case INTERVAL -> "every"; //$NON-NLS-1$
-                case DAILY -> "daily"; //$NON-NLS-1$
-                case WEEKDAYS -> "weekdays"; //$NON-NLS-1$
-            }, schedule.formatWhen());
+            appendSubKey(text, schedule.getWhenKey(), schedule.formatWhen());
             for (QueryLibrarySchedule.Target target : schedule.getTargets()) {
                 appendSubKey(text, "target", CommonUtils.notEmpty(target.id()) + "|" + target.name()); //$NON-NLS-1$ //$NON-NLS-2$
             }
