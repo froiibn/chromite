@@ -35,6 +35,7 @@ import javax.swing.*;
  * - 2026-11-06 P1: 스크롤바 UI({@link ChromiteScrollBarUI}) 등록 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-08 탭 창 UI({@link ChromiteTabbedPaneUI}) 등록 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-12 스크롤 창 UI({@link ChromiteScrollPaneUI}) 등록: 안쪽 스크롤 창이 휠을 바깥으로 넘김 (앱 변경 #97, docs/chromite/swing-options.md "휠 스크롤 (#97)")
+ * - 2026-11-12 메뉴 구분선 UI({@link ChromitePopupMenuSeparatorUI}) 등록 (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
  */
 public class ChromiteDarkLaf extends FlatDarkLaf {
 
@@ -51,6 +52,7 @@ public class ChromiteDarkLaf extends FlatDarkLaf {
         ChromiteScrollBarUI.install(defaults);
         ChromiteTabbedPaneUI.install(defaults);
         ChromiteScrollPaneUI.install(defaults);
+        ChromitePopupMenuSeparatorUI.install(defaults);
         return defaults;
     }
 }
