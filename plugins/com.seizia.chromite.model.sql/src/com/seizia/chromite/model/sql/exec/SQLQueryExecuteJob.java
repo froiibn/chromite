@@ -699,7 +699,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
             SQLQueryRecovery.execute(session, execStatement, executor, () -> {
                 queryResult.startAgain();
                 queryResult.addWarnings(new Throwable[]{new DBCException(ModelSQLMessages.model_sql_exec_lost_ran_again)});
-            });
+            }, false);
             DBCTransactionManager txnManager = DBUtils.getTransactionManager(session.getExecutionContext());
             if (txnManager != null && txnManager.isSupportsTransactions()
                 && !txnManager.isAutoCommit() && commitType != SQLScriptCommitType.AUTOCOMMIT

@@ -250,7 +250,7 @@ public class SQLScriptProcessor {
                 SQLQueryRecovery.execute(session, sqlQuery, param -> {
                     long execStartTime = System.currentTimeMillis();
                     executeStatement(session, sqlQuery, execStartTime);
-                }, () -> log.debug(STAT_LOG_PREFIX + "Connection lost: reconnected and run again (it only reads)\n" + sqlQuery.getText()));
+                }, () -> log.debug(STAT_LOG_PREFIX + "Connection lost: reconnected and run again (it only reads)\n" + sqlQuery.getText()), true);
                 if (!statementErrors.isEmpty()) {
                     // The batch failed although the statement did not throw
                     lastError = statementErrors.getFirst();

@@ -60,6 +60,7 @@ public class ModelSQLMessages extends NLS {
     public static String model_sql_exec_lost_part_may_have_run;
     public static String model_sql_exec_lost_ran_again;
     public static String model_sql_exec_lost_transaction;
+    public static String model_sql_exec_lost_transaction_unknown;
 
     static {
         // initialize resource bundle
