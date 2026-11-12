@@ -54,7 +54,7 @@ SELECT * FROM dbo.no_such_table;
 
 | 위치 | 하는 일 |
 |---|---|
-| `model.sql` `exec/SQLBatchErrors` (새 파일) | 오류 뒤를 계속 읽을 수 있는지(`canReadPast`), 다음 결과로 넘어가며 문장 오류 모으기(`nextResults`), 첫 문장 `execute` 오류 뒤에 실행된 결과가 있으면 이어 읽기(`resumeAfterExecuteError`) |
+| `model.sql` `exec/SQLBatchErrors` (새 파일) | 오류 뒤를 계속 읽을 수 있는지(`canReadPast`), 다음 결과로 넘어가며 문장 오류 모으기(`nextResults`), 첫 문장 `execute` 오류 뒤에 실행된 결과가 있으면 이어 읽기(`resumeAfterExecuteError`). `canReadPast`는 Chromite Agent의 SQL 도구(`AgentSql.Runner.execute`, JDBC 직접)도 같은 규칙으로 쓴다(2026-11-12, [ai-agent.md](ai-agent.md) "배치의 부분 실패") |
 | `model.sql` `exec/SQLQueryExecuteJob` | 위 셋으로 결과 읽기. 읽기 오류는 행 수와 상관없이 쿼리 오류로 모음. 모은 오류가 있으면 문장이 예외를 던지지 않았어도 쿼리 실패(`lastError`). 경고 경로(`statistics.addWarning`/`getWarnings`) 삭제 |
 | `model.sql` `exec/SQLScriptProcessor` | SQL 스크립트 작업: 같은 처리. 모은 오류는 결과를 다 읽은 뒤 로그에 씀 |
 | `model` `sql/SQLQueryResult` | `addError`, `getErrors()`: 첫 오류는 `getError()` 그대로, 뒤 오류는 순서대로 |
@@ -203,3 +203,5 @@ GCP 테스트 VM(SQL Server 2022, 드라이버 13.4.0; PostgreSQL 17; MariaDB 11
 - 2026-11-08 한계의 "다시 읽기가 배치 전체를 실행" 항목을 고침([sql-batch-reread.md](sql-batch-reread.md), 후속 #40)
 - 2026-11-12 연결 새로 고침 뒤 SQL Server 배치의 뒤 결과와 오류가 사라지던 결함: `JDBCDataSource.refreshObject`가 엔진의 정보를 버리지 않음
   (앱 변경 #76, "새로 고침 뒤 결과와 오류가 사라짐")
+- 2026-11-12 `SQLBatchErrors`를 공개하고 데이터 원본·모니터로 묻는 `canReadPast`를 더함: 에이전트 SQL 도구가 같은 규칙으로 오류 뒤 결과를 읽는다
+  ([ai-agent.md](ai-agent.md) "배치의 부분 실패", 앱 변경 #83)

@@ -56,6 +56,8 @@ import java.util.function.Consumer;
  *     <li>실행, 결과 크기 한도, 감사 기록. 거부·막힘도 기록한다.</li>
  * </ol>
  * 실패는 예외가 아니라 {@link AIToolCallResult}의 오류 JSON으로 돌려준다. 모델이 오류를 읽고 다른 방법을 고를 수 있어야 하기 때문이다.
+ * 도구가 예외를 담은 결과를 돌려주면(무언가 한 뒤의 실패, 예: 배치 중간의 SQL 오류) 그 예외가 오류이고 결과 값은 도구가 한 일이다.
+ * 감사 기록의 {@code error}, 오류 JSON의 {@code error}(채팅 카드가 보이는 글)는 같은 요약이고, 오류 JSON에 도구가 한 일을 붙인다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
@@ -64,6 +66,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 도구의 진행 상황을 받을 수신자를 넘기는 {@code execute}(채팅 카드에 백업·복원 진행 표시)
  * - 2026-11-08 트랜잭션 질문의 Commit/Roll back 답을 감사 기록에도 남김(docs/chromite/ai-agent.md "실제 API 확인")
  * - 2026-11-08 확인 요청에 미리 보기 종류를 넣음(쿼리 창 글 고치기, docs/chromite/ai-agent.md "편집기 도구")
+ * - 2026-11-12 예외를 담은 도구 결과: 오류는 예외의 글, 결과 값(도구가 한 일)은 오류 JSON에 붙임. 전에는 결과 값 전체를 오류 글로 썼다
+ *   (docs/chromite/ai-agent.md "배치의 부분 실패")
  */
 public final class AIToolExecutor {
 
@@ -168,8 +172,9 @@ public final class AIToolExecutor {
             AIFunctionResult result = instance.callFunction(context, args);
             String text = String.valueOf(result.getValue());
             if (result.getException() != null) {
+                // A failure after the tool had done something: the exception is the error, the value what the tool did
                 return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
-                    start, text, null, resolution);
+                    start, describe(result.getException()), text, resolution);
             }
             return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
                 start, null, text, resolution);
@@ -405,6 +410,37 @@ public final class AIToolExecutor {
             json.addProperty("policy", decision.permission().name());
             json.addProperty("policyReason", decision.reason());
         }
+        if (text != null) {
+            addPartialResult(json, text);
+        }
         return withResolution(new AIToolCallResult(outcome, GSON.toJson(json)), resolution);
+    }
+
+    /**
+     * Adds what a failed tool did before or after its error (a JSON object: results, update counts, errors in order) to the
+     * error result, so that the model and the chat card see the error and everything that ran with it.
+     */
+    private static void addPartialResult(@NotNull JsonObject json, @NotNull String text) {
+        if (text.length() > MAX_RESULT_CHARS) {
+            json.addProperty("truncatedText", text.substring(0, MAX_RESULT_CHARS));
+            json.addProperty("note", "Result was cut at " + MAX_RESULT_CHARS + " characters; ask for fewer rows or columns");
+            return;
+        }
+        JsonElement parsed;
+        try {
+            parsed = JsonParser.parseString(text);
+        } catch (RuntimeException e) {
+            json.addProperty("result", text);
+            return;
+        }
+        if (parsed.isJsonObject()) {
+            for (Map.Entry<String, JsonElement> e : parsed.getAsJsonObject().entrySet()) {
+                if (!json.has(e.getKey())) {
+                    json.add(e.getKey(), e.getValue());
+                }
+            }
+        } else {
+            json.add("result", parsed);
+        }
     }
 }
