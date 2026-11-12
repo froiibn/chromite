@@ -50,14 +50,12 @@ import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
-import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -70,7 +68,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -90,7 +87,7 @@ import java.util.Objects;
  *     연결·데이터베이스·스키마, 없으면 연결의 기본값이다.</li>
  *     <li>결과 트리: 원본에만, 대상에만, 다름 세 묶음. 확인란을 누르거나 Space로 스크립트에 넣을 항목을 고른다. 대상에만 있는 항목(DROP)은
  *     처음에 꺼져 있다({@link SchemaCompareItem}). 항목을 고르면 그 객체(열·키는 그 테이블)의 원본·대상 DDL을 나란히 보이고 다른 줄을
- *     칠한다(줄 단위 최장 공통 부분열). 같은 종류 DB면 원본 DDL의 스키마 이름을 대상 이름으로 바꿔 보인다(비교와 같은 기준).</li>
+ *     칠한다(텍스트 비교와 함께 쓰는 {@link TextDiffView}, 줄 앞뒤 공백 무시). 같은 종류 DB면 원본 DDL의 스키마 이름을 대상 이름으로 바꿔 보인다(비교와 같은 기준).</li>
  *     <li>안전: 스크립트는 대상 연결의 새 쿼리 창에 열기만 하고 실행하지 않는다({@code openScript(…, execute=false)}).
  *     쿼리 창의 실행 확인·트랜잭션 규칙이 그대로 적용된다. 스크립트 글은 Modify와 같은 {@link SourceScripts#generateContainerScript}가
  *     구분자(SQL Server {@code GO}, MySQL {@code DELIMITER})와 대상 DB 맞추기를 정한다.</li>
@@ -98,21 +95,12 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/schema-compare.md)
+ * - 2026-11-12 DDL 나란히 보기를 텍스트 비교와 함께 쓰는 {@link TextDiffView}로 옮김: 줄 비교는 LCS 대신 모델의 Myers {@code Diff}(EDT 밖),
+ *   좌우 맞춤 빈 행·바뀐 낱말 표시·스크롤 맞춤이 더해짐, 색과 줄 앞뒤 공백 무시는 그대로 (docs/chromite/text-compare.md)
  */
 final class SchemaComparePanel extends JPanel implements ToolDocument {
 
     private static final Log log = Log.getLog(SchemaComparePanel.class);
-
-    /**
-     * Lines changed on the source side (as a diff's added lines) and on the target side (removed lines): translucent, so
-     * they read on light and dark editor backgrounds.
-     */
-    private static final Color SOURCE_LINE_COLOR = new Color(0x2E, 0xA0, 0x43, 0x48);
-    private static final Color TARGET_LINE_COLOR = new Color(0xE5, 0x53, 0x4B, 0x48);
-    /**
-     * Above this many line pairs the DDL views compare lines by position instead of the longest common subsequence.
-     */
-    private static final long MAX_DIFF_CELLS = 4_000_000L;
 
     private static int documentCounter;
 
@@ -135,10 +123,7 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
     private final DefaultTreeModel treeModel = new DefaultTreeModel(treeRoot);
     private final JTree tree = new JTree(treeModel);
     private final ItemRenderer itemRenderer = new ItemRenderer();
-    private final SqlEditorPanel.SqlTextArea sourceText = new SqlEditorPanel.SqlTextArea();
-    private final SqlEditorPanel.SqlTextArea targetText = new SqlEditorPanel.SqlTextArea();
-    private final JLabel sourceHeader = new JLabel(" ");
-    private final JLabel targetHeader = new JLabel(" ");
+    private final TextDiffView ddlView = new TextDiffView();
     @Nullable
     private SchemaCompareResult result;
     @Nullable
@@ -218,10 +203,7 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
         // The split gives the rest to the DDL views; without this the expanded tree's height would take it all
         treeScroll.setPreferredSize(new Dimension(UIScale.scale(600), UIScale.scale(260)));
 
-        JSplitPane ddlSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createDdlPane(sourceHeader, sourceText), createDdlPane(targetHeader, targetText));
-        ddlSplit.setResizeWeight(0.5);
-        ddlSplit.setBorder(BorderFactory.createEmptyBorder());
-        JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, treeScroll, ddlSplit);
+        JSplitPane mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, treeScroll, ddlView);
         mainSplit.setResizeWeight(0.45);
         mainSplit.setBorder(BorderFactory.createEmptyBorder());
 
@@ -241,21 +223,6 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
         if (initial != null) {
             SwingUtilities.invokeLater(() -> sourcePicker.select(initial));
         }
-    }
-
-    @NotNull
-    private static JComponent createDdlPane(@NotNull JLabel header, @NotNull SqlEditorPanel.SqlTextArea textArea) {
-        textArea.setEditable(false);
-        textArea.setHighlightCurrentLine(false);
-        RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
-        textArea.applyTheme();
-        header.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
-        JPanel pane = new JPanel(new BorderLayout());
-        pane.add(header, BorderLayout.NORTH);
-        pane.add(scrollPane, BorderLayout.CENTER);
-        return pane;
     }
 
     /**
@@ -648,8 +615,8 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
         if (ddlJob != null) {
             ddlJob.cancel();
         }
-        sourceHeader.setText(CompareMessages.compare_ddl_loading);
-        targetHeader.setText(CompareMessages.compare_ddl_loading);
+        ddlView.setHeader(true, CompareMessages.compare_ddl_loading);
+        ddlView.setHeader(false, CompareMessages.compare_ddl_loading);
         ddlJob = new AbstractJob("Read schema compare DDL") { //$NON-NLS-1$
             @NotNull
             @Override
@@ -691,21 +658,24 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
 
     private void showTexts(@Nullable SchemaCompareResult compared, @Nullable DBSObject source, @Nullable String sourceDdl, @Nullable String targetDdl) {
         if (compared == null) {
-            sourceHeader.setText(" "); //$NON-NLS-1$
-            targetHeader.setText(" "); //$NON-NLS-1$
-            setText(sourceText, null, null, null, SOURCE_LINE_COLOR);
-            setText(targetText, null, null, null, TARGET_LINE_COLOR);
+            ddlView.setHeader(true, " "); //$NON-NLS-1$
+            ddlView.setHeader(false, " "); //$NON-NLS-1$
+            ddlView.compare(null, null, null, null, CompareMessages.compare_ddl_absent, TextDiff.Options.SCHEMA, null);
             return;
         }
         String sourceName = describe(compared.getSource());
-        sourceHeader.setText(NLS.bind(compared.isSameDialect() && source != null ? CompareMessages.compare_ddl_source_mapped : CompareMessages.compare_ddl_source,
-            sourceName));
-        targetHeader.setText(NLS.bind(CompareMessages.compare_ddl_target, describe(compared.getTarget())));
-        String[] sourceLines = sourceDdl == null ? new String[0] : sourceDdl.split("\\R", -1); //$NON-NLS-1$
-        String[] targetLines = targetDdl == null ? new String[0] : targetDdl.split("\\R", -1); //$NON-NLS-1$
-        boolean[][] changed = diffLines(sourceLines, targetLines);
-        setText(sourceText, compared.getSource().getDataSource(), sourceDdl, changed[0], SOURCE_LINE_COLOR);
-        setText(targetText, compared.getTarget().getDataSource(), targetDdl, changed[1], TARGET_LINE_COLOR);
+        ddlView.setHeader(true, NLS.bind(compared.isSameDialect() && source != null ? CompareMessages.compare_ddl_source_mapped
+            : CompareMessages.compare_ddl_source, sourceName));
+        ddlView.setHeader(false, NLS.bind(CompareMessages.compare_ddl_target, describe(compared.getTarget())));
+        // Lines compared without their surrounding spaces, as before the view was shared (TextDiff.Options.SCHEMA)
+        ddlView.compare(sourceDdl, targetDdl, getContainer(compared.getSource()), getContainer(compared.getTarget()),
+            CompareMessages.compare_ddl_absent, TextDiff.Options.SCHEMA, null);
+    }
+
+    @Nullable
+    private static DBPDataSourceContainer getContainer(@NotNull DBSObjectContainer container) {
+        DBPDataSource dataSource = container.getDataSource();
+        return dataSource == null ? null : dataSource.getContainer();
     }
 
     @NotNull
@@ -713,84 +683,6 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
         DBPDataSource dataSource = container.getDataSource();
         return (dataSource == null ? "" : dataSource.getContainer().getName() + " / ") //$NON-NLS-1$ //$NON-NLS-2$
             + DBUtils.getObjectFullName(container, DBPEvaluationContext.UI);
-    }
-
-    private static void setText(
-        @NotNull SqlEditorPanel.SqlTextArea textArea,
-        @Nullable DBPDataSource dataSource,
-        @Nullable String text,
-        @Nullable boolean[] changedLines,
-        @NotNull Color lineColor
-    ) {
-        textArea.setDataSourceContainer(dataSource == null ? null : dataSource.getContainer());
-        textArea.removeAllLineHighlights();
-        textArea.setText(text == null ? CompareMessages.compare_ddl_absent : text);
-        int firstChanged = -1;
-        if (text != null && changedLines != null) {
-            for (int line = 0; line < changedLines.length; line++) {
-                if (changedLines[line]) {
-                    try {
-                        textArea.addLineHighlight(line, lineColor);
-                    } catch (BadLocationException e) {
-                        break;
-                    }
-                    if (firstChanged < 0) {
-                        firstChanged = line;
-                    }
-                }
-            }
-        }
-        try {
-            textArea.setCaretPosition(firstChanged > 0 ? textArea.getLineStartOffset(firstChanged) : 0);
-        } catch (BadLocationException e) {
-            textArea.setCaretPosition(0);
-        }
-    }
-
-
-    /**
-     * Lines of each side that are not in the longest common subsequence of the two (compared without surrounding spaces).
-     * Very long texts are compared line by line at the same positions.
-     */
-    @NotNull
-    static boolean[][] diffLines(@NotNull String[] left, @NotNull String[] right) {
-        int n = left.length;
-        int m = right.length;
-        boolean[] leftChanged = new boolean[n];
-        boolean[] rightChanged = new boolean[m];
-        if ((long) n * m > MAX_DIFF_CELLS) {
-            for (int i = 0; i < Math.max(n, m); i++) {
-                boolean same = i < n && i < m && left[i].strip().equals(right[i].strip());
-                if (i < n) {
-                    leftChanged[i] = !same;
-                }
-                if (i < m) {
-                    rightChanged[i] = !same;
-                }
-            }
-            return new boolean[][]{leftChanged, rightChanged};
-        }
-        int[][] lcs = new int[n + 1][m + 1];
-        for (int i = n - 1; i >= 0; i--) {
-            for (int j = m - 1; j >= 0; j--) {
-                lcs[i][j] = left[i].strip().equals(right[j].strip()) ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
-            }
-        }
-        Arrays.fill(leftChanged, true);
-        Arrays.fill(rightChanged, true);
-        int i = 0;
-        int j = 0;
-        while (i < n && j < m) {
-            if (left[i].strip().equals(right[j].strip())) {
-                leftChanged[i++] = false;
-                rightChanged[j++] = false;
-            } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-                i++;
-            } else {
-                j++;
-            }
-        }
-        return new boolean[][]{leftChanged, rightChanged};
     }
 
     //////////////////////////////////////////////////////////
@@ -855,6 +747,7 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
         if (ddlJob != null) {
             ddlJob.cancel();
         }
+        ddlView.dispose();
     }
 
     //////////////////////////////////////////////////////////
