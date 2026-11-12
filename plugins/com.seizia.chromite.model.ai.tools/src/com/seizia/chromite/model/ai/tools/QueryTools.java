@@ -77,6 +77,8 @@ import java.util.Map;
  *   채팅 카드도 완료였다). 실패한 GO 배치 안의 결과·뒤 문장도 담음 (docs/chromite/ai-agent.md "배치의 부분 실패")
  * - 2026-11-12 {@code transactionOpen}: "단일 연결" 연결의 공유 세션에 남은 트랜잭션도 열림으로 알림(전에는 수동 커밋에서 INSERT가 커밋 안 된 채
  *   {@code transactionOpen: false}) (docs/chromite/ai-agent.md "배치의 부분 실패" 공유 세션)
+ * - 2026-11-12 {@code validateSql}: "단일 연결" 연결에서는 문장이 여럿인 글을 서버에서 검사하지 않음(앱 변경 #91). EXPLAIN 뒤의 문장이
+ *   공유 세션에서 실제로 실행됐다(PostgreSQL {@code SELECT 1; INSERT …}) (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -275,7 +277,16 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                 type == SQLQueryType.UPDATE || type == SQLQueryType.DELETE ? "EXPLAIN" : null;
             default -> null;
         };
-        if (check != null && AgentArgs.getBoolean(args, "server", true)) {
+        // PostgreSQL and MySQL EXPLAIN covers the first statement only, and the ones after it run: on an isolated context the
+        // read-only transaction stops them, in a shared session they would really run (SQL Server's NOEXEC is not relied on
+        // for a text with several statements either)
+        boolean unsafe = check != null && AgentSql.isSharedSession(container) && splitScript(dataSource, sql).size() > 1;
+        if (unsafe) {
+            json.addProperty("serverNote", "Not checked on the server: the text holds more than one statement, and this " +
+                "connection's single shared session (also the user's query windows' session) would run the ones after the first. " +
+                "Validate one statement at a time.");
+        }
+        if (check != null && !unsafe && AgentArgs.getBoolean(args, "server", true)) {
             String serverError = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"),
                 AgentSql.Mode.READ_ONLY, (connection, runner) -> serverCheck(connection, runner, check, sql));
             json.addProperty("serverChecked", check);

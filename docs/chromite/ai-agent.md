@@ -104,6 +104,8 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 롤백으로도 되돌릴 수 없는 명령(SQL Server `BACKUP`, `RECONFIGURE`, `xp_cmdshell`, `KILL` 등)은 1번 분류기가 쓰기로 본다.
 
+"단일 연결" 연결(공유 세션)에서는 2·3번이 없어 1번 분류기만 보호하고, 롤백에 기대어 쓰는 호출은 거절한다(아래 "공유 세션에서 롤백에 기대는 호출", 2026-11-12).
+
 ## 도구 카탈로그
 
 ### 공통 규칙
@@ -1455,8 +1457,124 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
   `getMoreResults`가 멈추거나(시험에서 끝나지 않음) `NullPointerException`을 던져서 쓰지 않았다.
 - 결과 집합의 행을 읽다 난 오류(SQL Server `SELECT 1/0`)는 그 결과 집합의 이미 읽은 행을 보이지 않는다(오류 단계만). 쿼리 창은 빈 표를 보인다.
 - `runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.
-- 공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.
-  공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음). 둘 다 이 작업에서 고치지 않았다.
+- ~~공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.~~
+  2026-11-12 고침(앱 변경 #91): 아래 "공유 세션에서 롤백에 기대는 호출".
+  공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음). 이 작업에서 고치지 않았다.
+
+## 공유 세션에서 롤백에 기대는 호출 (앱 변경 #91, 2026-11-12)
+
+### 문제
+
+"단일 연결" 연결(`DBPDataSourceContainer.isForceUseSingleConnection()`)에서는 에이전트가 격리 문맥을 열 수 없어 쿼리 창과 같은 기본 문맥(공유 세션)에서
+실행한다. `AgentSql.run`의 공유 세션 분기는 사용자 트랜잭션을 건드리지 않으려고 호출 방식(`READ_ONLY`, `ROLLBACK`)을 적용하지 않고 작업을 그대로 실행했다.
+그래서 자기 트랜잭션을 열고 끝에 롤백하는 것으로 안전을 지키는 호출이 공유 세션에서는 문장을 그대로 실행했다(고치기 전 빌드, 두 번째 세션에서 읽음).
+
+| 경우 | 고치기 전 결과 | 두 번째 세션 |
+|---|---|---|
+| SQL Server 자동 커밋 `getActualPlan` `UPDATE dbo.t SET v='shared-ac' WHERE id=1` | SUCCESS, "The statement was executed in a transaction that was rolled back." | id 1 = `shared-ac`, 커밋됨 |
+| SQL Server 수동 커밋 같은 호출(id 2) | SUCCESS, 같은 글 | READPAST에서 id 2 안 보임(잠김), NOLOCK에서 `shared-mc`. 쿼리 창 "Open transaction (changes)" |
+| PostgreSQL 자동 커밋 같은 호출 | SUCCESS, 같은 글 | id 1 = `pg-shared`, 커밋됨 |
+| PostgreSQL `validateSql` `SELECT 1; INSERT INTO t VALUES (20, …)` | SUCCESS, `serverValid: true` | 20이 들어감(격리 문맥에서는 "cannot execute INSERT in a read-only transaction") |
+| Oracle 수동 커밋 `explainQuery`(SELECT) | SUCCESS | 쿼리 창에 "Open transaction (0 statements)": EXPLAIN PLAN이 사용자 세션에 PLAN_TABLE 행을 쓰고 트랜잭션을 열어 둠 |
+| Oracle 수동 커밋 `getActualPlan` UPDATE | SUCCESS, "rolled back" | 사용자 세션의 열린 트랜잭션에 UPDATE가 남음(쿼리 창 Roll Back으로 지움) |
+
+같은 조사에서, 읽기 도구를 지키는 분류기(`AgentSqlClassifier.classify`)가 글의 첫 문장만 보았다. JSQLParser의 `Statement()`가 첫 문장의 구분자에서 멈추므로
+`SELECT 1; INSERT …`가 SELECT(읽기)였다(`validateSql`의 `readOnly: true`, PostgreSQL·Oracle·SQL Server 모두). 공유 세션에서는 이 분류가 읽기 도구의 유일한 보호다.
+SQL Server는 읽기 전용 트랜잭션이 없어 격리 문맥에서도 `runReadOnlySql` `SELECT 1 AS a; INSERT INTO dbo.t VALUES (40, …); COMMIT`의 40이 커밋돼 남았다.
+
+### 원인
+
+- `AgentSql.run`(고치기 전 261~270행): `!agentContext.isolated`이면 `work.run`을 바로 부르고 `mode`를 보지 않는다. `ROLLBACK`(측정한 DML, Oracle EXPLAIN PLAN)과
+  `READ_ONLY`(읽기 전용 트랜잭션 + 롤백)의 두·세 번째 겹이 없다.
+- `PlanTools.plan`(고치기 전 252행)은 읽기가 아닌 문장의 실제 계획을 `ROLLBACK`으로 부르고, 결과에 "rolled back"을 적는다. 확인 요청의 미리 보기도
+  "then rolls it back"이다(`getPreview`).
+- `QueryTools.validate`의 서버 검사(PostgreSQL·MySQL `EXPLAIN <sql>`)는 글의 첫 문장만 계획하고 나머지는 실행한다. 격리 문맥에서는 읽기 전용 트랜잭션이 막았다.
+- `AgentSqlClassifier.classify`는 `SQLQuery`(JSQLParser `Statement()`) 결과 하나로 판정하므로 첫 문장 뒤를 보지 않는다.
+
+### 고친 것
+
+공유 세션의 커밋 방식을 바꾸거나, 그 세션에 트랜잭션을 열거나, 롤백하는 방법은 쓰지 않는다(그 세션은 사용자의 것이다). 롤백에 기대는 호출은 실행하지 않고 거절한다.
+
+- `AgentSql.isSharedSession(container)`: 에이전트 호출이 공유 세션에서 실행되는 연결(`isForceUseSingleConnection`).
+- `AgentSql.sharedSessionRefusal(why, instead)`: 거절 글. "Refused, nothing ran: <무엇을 하려 했나>. This connection uses one shared session (its "single
+  connection" setting) that the user's query windows also use, so Chromite cannot run this call in a transaction of its own and roll it back: it would really
+  run in the user's session. <대신 할 일>". `AIToolArgumentException`이라 실행기 결과는 `INVALID`(읽기 도구가 쓰기를 거절할 때와 같음)다.
+- `AgentSql.run`: 격리되지 않은 문맥에서 `Mode.ROLLBACK`이면 작업 전에 거절한다(대신: 쿼리 창에서 사용자가 하기, 또는 `runSql`). `ROLLBACK`은 쓰고 되돌리는 호출만
+  쓰는 방식이라 문장을 볼 필요가 없다. Oracle `explainQuery`·`comparePlans`(EXPLAIN PLAN이 PLAN_TABLE을 씀)와 읽기가 아닌 문장의 실제 계획이 여기에 걸린다.
+- `PlanTools.classify`(`getActualPlan`): 공유 세션에서 문장이 읽기라고 증명되지 않으면(분류기, 판정 못 하면 거절) 확인 요청 전에 거절한다
+  (대신: `explainQuery`로 예상 계획, 실제로 실행하려면 `runSql`). 확인 대화상자에 사실이 아닌 "실행 후 롤백"을 보이지 않기 위해서다.
+- `QueryTools.validate`: 공유 세션에서 문장이 둘 이상인 글은 서버에서 검사하지 않고 `serverNote`로 알린다(문장 하나는 그대로 EXPLAIN·NOEXEC).
+- `AgentSqlClassifier.classify`: 연결 방언의 스크립트 파서(`QueryTools.splitScript`)로 나눈 문장이 둘 이상이면 읽기가 아니다("the text holds more than one
+  statement"). `runSelect`·`runReadOnlySql`·`compareQueryResults`·`exportData`·`runLibraryQuery`·`getActualPlan`의 분류가 모두 이것을 쓴다.
+- 읽기는 그대로다: 분류기가 읽기라고 증명한 문장은 공유 세션에서도 실행한다(`getActualPlan`의 SELECT 측정 포함).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0). 거절 결과가 이유와 대신 할 일을 말한다.
+
+### "단일 연결" 연결 (2026-11-12 코드 기준)
+
+값은 드라이버 정의의 `singleConnection="true"`(`DriverDescriptor`, `RegistryConstants.ATTR_SINGLE_CONNECTION`)에서 연결을 만들 때 복사된다
+(`DataSourceDescriptor` 237·392행). 연결 화면에 설정이 없고 저장되지 않는다. 인증 방식이 연결할 때 켜기도 한다.
+
+| 번들(제품에 포함) | 드라이버 ID | 이름 | 위치 |
+|---|---|---|---|
+| `ext.mssql` | (인증 방식) | SQL Server, 인증 "MFA"(Entra ID 대화형) | `SQLServerAuthModelMFA.java:51` `setForceUseSingleConnection(true)` |
+| `ext.snowflake` | `snowflake_jdbc` | Snowflake | `plugin.xml:44` |
+| `ext.clickhouse` | `yandex_clickhouse`, `com_clickhouse` | ClickHouse (Legacy), ClickHouse | `plugin.xml:43`, `:66` |
+| `ext.bigquery` | `google_bigquery_jdbc_simba`, `google_bigquery_jdbc` | BigQuery (Legacy), BigQuery | `plugin.xml:43`, `:70` |
+| `ext.athena` | `aws_athena_jdbc_amazon`, `aws_athena_jdbc_legacy` | Athena, Athena (Legacy) | `plugin.xml:40`, `:67` |
+| `ext.databricks` | `databricks-oss` | Databricks | `plugin.xml:44` |
+| `ext.spanner` | `spanner_jdbc_official` | Google Cloud Spanner | `plugin.xml:41` |
+| `ext.sqlite` | `libsql_jdbc` | LibSQL | `plugin.xml:90` |
+| `ext.generic` | `jdbcx`, `phoenix_hbase`, `gemfire_xd`, `snappydata_store_client`, `spark_hive`, `kyuubi_hive`, `apache_drill` | JDBCX, Apache Phoenix, Gemfire XD, SnappyData, Apache Spark, Apache Kyuubi, Apache Drill | `plugin.xml:858`, `:924`, `:942`, `:957`, `:974`, `:995`, `:1013` |
+
+SQL Server·PostgreSQL·MySQL·MariaDB·Oracle의 기본 드라이버는 해당하지 않는다. 그래서 실제로 #91이 걸리는 곳은 MFA 인증 SQL Server(실제 계획이 있는
+DB 종류)와 위 DB들의 읽기 도구(분류기만 보호)다. 위 DB들은 `DbFamily`가 OTHER라 계획 도구가 드라이버 계획기를 쓰고 실제 계획은 지원하지 않는다.
+
+### 도구별 실행 방식 (`AgentSql.Mode`)
+
+| 방식 | 격리 문맥에서 | 공유 세션에서(고친 뒤) | 도구 |
+|---|---|---|---|
+| `READ_ONLY` | 열린 에이전트 트랜잭션이 없으면 자동 커밋 끔, 읽기 전용 트랜잭션, 끝에 롤백 | 그대로 실행(모드 없음). 사용자가 쓴 SQL은 분류기가 읽기라고 증명한 것만 | `runSelect`, `runReadOnlySql`, `explainQuery`(Oracle 제외), `getActualPlan`(읽기 문장, Oracle 포함), `comparePlans`(Oracle 제외), `whatIfIndex`, `validateSql`(서버 검사), `sampleRows`, `countRows`, `profileColumns`, `compareQueryResults`, `exportData`(읽기), `copyTable`(원본 읽기), `generateDdl`, 메타데이터 도구, `testConnection`, `getCurrentDatabase`, `setCurrentDatabase`, `killSession`의 트랜잭션 확인, 진단 SQL 도구(`DiagnosticSqlTool`), `runLibraryQuery`·`runMonitoringChecks`(읽기 쿼리) |
+| `ROLLBACK` | 자동 커밋 끔, 실행, 늘 롤백. 에이전트 트랜잭션이 열려 있으면 거절 | **거절**(`sharedSessionRefusal`) | `getActualPlan`(읽기가 아닌 문장, 분류에서 먼저 거절), Oracle `explainQuery`·`comparePlans`(EXPLAIN PLAN) |
+| `NATIVE` | 연결의 커밋 방식 그대로, 열린 트랜잭션 기록 | 그대로 실행, 세션의 트랜잭션을 DB에 물어 알림 | `runSql`, `runScript`, DDL 도구, `killSession`, `runLibraryQuery`(쓰기 쿼리) |
+| `ATOMIC` | 자동 커밋이면 호출을 한 트랜잭션으로 묶고 오류면 롤백, 수동 커밋이면 그대로 | 그대로 실행(묶지 않음) | `insertRows`, `updateRows`, `deleteRows`, `importCsv`, `copyTable`(대상 쓰기) |
+
+`NATIVE`·`ATOMIC`은 쓰기라 사용자가 확인하고, 쓴 것은 남는 것이 목적이므로 거절하지 않는다(공유 세션의 `ATOMIC`이 묶지 못하는 것은 아래 "남은 것").
+
+### 확인 (2026-11-12)
+
+빌드(JBR 25) BUILD SUCCESS. 빌드한 앱 사본을 빈 작업 공간·설정·데이터(`CHROMITE_DATA`)로 띄우고 앱 안 시험 에이전트가 도구를 실행기(클라이언트 MCP)로
+불렀다. 번들 드라이버 중 단일 연결을 강제하는 것(위 목록)은 시험 서버가 없어서, #83과 같이 시험 에이전트가 SQL Server·PostgreSQL·Oracle 연결의
+`setForceUseSingleConnection(true)`를 켜고(MFA 인증이 하는 것과 같은 값, 저장되지 않아 앱을 다시 띄우면 다시 켬) 다시 연결해 쿼리 창을 하나 열었다. 시험 DB는
+GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 번째 세션은 따로 연 연결이다.
+
+| 경우 | 두 번째 세션 전 | 결과(고친 뒤) | 두 번째 세션 뒤 |
+|---|---|---|---|
+| SQL Server 공유 세션 자동 커밋 `getActualPlan` `UPDATE … id=1` | (1,a),(2,b) | `INVALID` "Refused, nothing ran: getActualPlan would execute this statement to measure it, and the statement is UPDATE. …" (확인 요청 없음, 감사 `error` 같은 글) | (1,a),(2,b) |
+| 같은 연결 `runReadOnlySql` `INSERT …` / `SELECT 1 AS a; INSERT …; COMMIT` | 2행 | 둘 다 `INVALID`("the statement is INSERT" / "the text holds more than one statement") | 2행 |
+| 같은 연결 `getActualPlan` `SELECT count(*)`, `runReadOnlySql` `SELECT count(*)` | 2행 | SUCCESS(실제 계획, n=2) | 2행 |
+| 연결 Refresh 뒤, 끊고 다시 연결한 뒤 `getActualPlan` UPDATE / SELECT | (1,a),(2,b) | UPDATE `INVALID`, SELECT SUCCESS | (1,a),(2,b) |
+| SQL Server 공유 세션 수동 커밋 `getActualPlan` UPDATE | (1,a),(2,b) | `INVALID`, 쿼리 창에 트랜잭션 표시 없음 | 그대로 |
+| PostgreSQL 공유 세션 `getActualPlan` UPDATE | (1,a),(2,b) | `INVALID` | (1,a),(2,b) |
+| PostgreSQL 공유 세션 `validateSql` `SELECT 1; INSERT … (20)` | 2행 | SUCCESS, `readOnly: false`, `serverNote` "Not checked on the server …" | 20 없음 |
+| PostgreSQL 공유 세션 `validateSql` `UPDATE … WHERE id = 1`(문장 하나) | — | `serverChecked: EXPLAIN`, `serverValid: true`(실행 안 됨) | 값 그대로 |
+| Oracle 공유 세션 수동 커밋 `explainQuery` SELECT | 상태 줄에 트랜잭션 없음 | `INVALID` "Refused, nothing ran: this call writes (Oracle EXPLAIN PLAN fills PLAN_TABLE …)" | 상태 줄 그대로 트랜잭션 없음 |
+| Oracle 공유 세션 `getActualPlan` UPDATE / SELECT | (1,a) | `INVALID` / SUCCESS | (1,a), 트랜잭션 없음 |
+| 격리 SQL Server `runReadOnlySql` `SELECT 1 AS a; INSERT … (40); COMMIT` | 2행 | `INVALID`(고치기 전에는 40이 커밋됨) | 2행 |
+| 격리 SQL Server `getActualPlan` UPDATE(바뀌지 않아야 함) | (1,a) | SUCCESS, "rolled back" | (1,a) |
+| 격리 PostgreSQL `validateSql` `SELECT 1; INSERT …` | — | `readOnly: false`, 서버 검사는 그대로(읽기 전용 트랜잭션이 INSERT를 거절) | 들어가지 않음 |
+
+- 공유 세션의 커밋 방식·트랜잭션은 바꾸지 않았다: 위 수동 커밋 사례의 상태 줄은 거절 전후 같았다.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `AgentSqlClassifier.classify`의 여러 문장 판정, `PlanTools.classify`의 공유 세션 거절 단위 시험).
+
+### 남은 것
+
+- 분류기가 읽기라고 판정한 문장이 함수 안에서 쓰면 공유 세션에서 실제로 쓴다: PostgreSQL `runReadOnlySql` `SELECT f_write()`(INSERT하는 SQL 함수)가
+  공유 세션에서 행을 넣었다(격리 문맥은 "cannot execute INSERT in a read-only transaction"). 브리프의 규칙("읽기는 그대로")에 따라 막지 않았다.
+- SQL Server는 `;` 없이 문장을 이어 쓸 수 있는데 JSQLParser는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 별칭 붙은 SELECT 하나로 읽는다(`DELETE`가 열 별칭,
+  `COMMIT`이 테이블 별칭). 그래서 격리 문맥에서도 `runReadOnlySql`이 이것을 읽기로 실행해 행을 지우고 커밋했다(2026-11-12 확인). 이 작업의 범위가 아니라
+  고치지 않았다(분류기가 예약어 별칭을 거절하거나 방언 토큰으로 쓰기 키워드를 찾는 등 따로 정해야 함).
+- 공유 세션의 `ATOMIC`은 호출을 한 트랜잭션으로 묶지 못한다(자동 커밋이면 오류 전 행이 커밋됨). 결과의 `transactionNote`는 사실대로 "already committed"다.
+- 공유 세션에서 수동 커밋이면 읽기도 그 세션에 트랜잭션을 시작한다(드라이버가 자동 커밋이 아닌 세션의 첫 문장에서 시작). 쿼리 창에서 읽어도 같다.
 
 ## 설계 결정과 이유
 
@@ -1563,6 +1681,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #91(`chromite/agent-tools-r2`): "단일 연결" 연결의 공유 세션에서 롤백에 기대는 호출(읽기가 아닌 문장의 실제 계획, Oracle
+  EXPLAIN PLAN)을 거절, 문장이 여럿인 글은 공유 세션에서 서버 검사(`validateSql`)를 하지 않음, 분류기가 문장이 여럿인 글을 읽기로 보지 않음.
+  위 "공유 세션에서 롤백에 기대는 호출". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #83 검토 뒤 고침: "단일 연결" 연결의 공유 세션에 남은 트랜잭션을 DB에 물어 결과(`transactionOpen`, 안내)와 쿼리 창 상태 줄에 보임,
   오류 결과가 1 MB를 넘으면 큰 멤버만 줄임. 위 "배치의 부분 실패". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #83(`chromite/agent-runsql-batch`): SQL 도구가 배치 중간 오류에서 결과 읽기를 멈추지 않고, 오류 결과에 모든 결과·행 수·오류와

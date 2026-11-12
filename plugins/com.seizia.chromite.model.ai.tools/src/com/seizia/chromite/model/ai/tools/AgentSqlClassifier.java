@@ -38,13 +38,19 @@ import java.util.regex.Pattern;
  *     {@code FOR UPDATE}가 없을 때만 읽기다. {@link SQLQuery#isModifying()}은 해석 실패(UNKNOWN)를 "바꾸지 않음"으로 보므로 쓰지 않는다.</li>
  *     <li>해석기가 모르는 진단 명령 중 읽기 전용으로 알려진 것({@code SHOW}, {@code DESCRIBE}, ANALYZE 없는 {@code EXPLAIN}, 읽기 DBCC,
  *     인수 없는 읽기 시스템 프로시저)은 이름으로 허용한다. 정규식은 문장 전체에 맞아야 해서 뒤에 다른 문장을 붙이면 맞지 않는다.</li>
- *     <li>읽기 도구는 이 분류에 더해 읽기 전용 트랜잭션과 롤백으로 실행한다({@link AgentSql.Mode#READ_ONLY}). 분류기가 틀려도 두 번째 겹이 막는다.</li>
+ *     <li>읽기 도구는 이 분류에 더해 읽기 전용 트랜잭션과 롤백으로 실행한다({@link AgentSql.Mode#READ_ONLY}). 분류기가 틀려도 두 번째 겹이 막는다.
+ *     단 "단일 연결" 연결(공유 세션)에서는 두 번째·세 번째 겹이 없어 이 분류가 유일한 보호다.</li>
+ *     <li>글에 문장이 둘 이상이면(연결 방언의 스크립트 파서로 나눈 수) 읽기가 아니다. JSQLParser는 첫 문장만 읽고 구분자에서 멈추므로
+ *     {@code SELECT 1; INSERT …}를 SELECT로 보았다. SQL Server는 읽기 전용 트랜잭션이 없어 격리 문맥에서도 {@code …; COMMIT}으로
+ *     쓴 것이 남았다.</li>
  *     <li>위험 분류: {@code DROP}, {@code TRUNCATE}, WHERE 없는 {@code DELETE}/{@code UPDATE}({@link SQLQuery#isDropDangerous()},
  *     {@link SQLQuery#isDeleteUpdateDangerous()}), 그리고 되돌릴 수 없는 서버 명령({@code SHUTDOWN}, {@code KILL}, {@code RESTORE} 등).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-12 문장이 둘 이상인 글은 읽기가 아님(앱 변경 #91). 공유 세션에서는 이 분류만 읽기 도구를 지키는데 첫 문장만 보았다
+ *   (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
  */
 public final class AgentSqlClassifier {
 
@@ -77,6 +83,10 @@ public final class AgentSqlClassifier {
     @NotNull
     public static Verdict classify(@Nullable DBPDataSource dataSource, @NotNull String sql) {
         String text = stripTrailingDelimiter(sql);
+        // JSQLParser reads the first statement and stops at its delimiter: "SELECT 1; DELETE ..." parsed as a SELECT
+        if (dataSource != null && QueryTools.splitScript(dataSource, text).size() > 1) {
+            return new Verdict(false, SQLQueryType.UNKNOWN, "the text holds more than one statement");
+        }
         if (READ_ONLY_COMMAND.matcher(text).matches()) {
             return new Verdict(true, SQLQueryType.SELECT, null);
         }
