@@ -79,6 +79,8 @@ import java.util.Map;
  *   {@code transactionOpen: false}) (docs/chromite/ai-agent.md "배치의 부분 실패" 공유 세션)
  * - 2026-11-12 {@code validateSql}: "단일 연결" 연결에서는 문장이 여럿인 글을 서버에서 검사하지 않음(앱 변경 #91). EXPLAIN 뒤의 문장이
  *   공유 세션에서 실제로 실행됐다(PostgreSQL {@code SELECT 1; INSERT …}) (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-12 {@code runSql}: 끝의 {@code ;}를 쿼리 창의 파서 판단대로 남김({@link AgentSqlClassifier#trimTrailingDelimiter}, 앱 변경 #87)
+ *   (docs/chromite/ai-agent.md "문장 끝의 구분자")
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -144,7 +146,8 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     @NotNull
     private static JsonElement runSql(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
+        DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
+        String sql = AgentSqlClassifier.trimTrailingDelimiter(dataSource, AgentArgs.require(args, "sql"));
         AgentLimits limits = AgentLimits.of(args);
         JsonObject result = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.NATIVE,
             (connection, runner) -> runner.execute(connection, sql, null, limits, true));

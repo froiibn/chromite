@@ -22,9 +22,11 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryType;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -51,6 +53,9 @@ import java.util.regex.Pattern;
  * - 2026-11-07 최초 작성
  * - 2026-11-12 문장이 둘 이상인 글은 읽기가 아님(앱 변경 #91). 공유 세션에서는 이 분류만 읽기 도구를 지키는데 첫 문장만 보았다
  *   (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-12 {@link #trimTrailingDelimiter}: 서버로 보내는 글의 끝 구분자를 쿼리 창의 파서 판단대로 남김(앱 변경 #87). 끝의 {@code ;}를 모두
+ *   지워 Oracle PL/SQL 블록이 PLS-00103으로 실패하고 프로시저가 INVALID로 만들어졌으며, SQL Server MERGE가 10713으로 실패했다
+ *   (docs/chromite/ai-agent.md "문장 끝의 구분자")
  */
 public final class AgentSqlClassifier {
 
@@ -142,6 +147,25 @@ public final class AgentSqlClassifier {
         String message = error.getMessage();
         int newline = message.indexOf('\n');
         return " (" + (newline > 0 ? message.substring(0, newline) : message) + ")";
+    }
+
+    /**
+     * The statement text as it goes to the server: the trailing delimiter is dropped, except where the query window keeps
+     * it. The dialect's script parser (the one that splits the query window's and runScript's statements) leaves the
+     * delimiter on a statement that needs it, such as an Oracle PL/SQL block or body ({@code BEGIN ... END;},
+     * {@code DECLARE ...}, {@code CREATE PROCEDURE ... END name;}) or a SQL Server {@code MERGE}, and drops it otherwise. The
+     * trailing delimiter belongs to the text's last statement, so the parser's result for that one decides.
+     */
+    @NotNull
+    static String trimTrailingDelimiter(@Nullable DBPDataSource dataSource, @NotNull String sql) {
+        String text = stripTrailingDelimiter(sql);
+        if (dataSource == null || text.length() == sql.strip().length()) {
+            return text;
+        }
+        List<String> statements = QueryTools.splitScript(dataSource, sql);
+        return !statements.isEmpty() && statements.getLast().endsWith(SQLConstants.DEFAULT_STATEMENT_DELIMITER)
+            ? text + SQLConstants.DEFAULT_STATEMENT_DELIMITER
+            : text;
     }
 
     @NotNull

@@ -1456,7 +1456,8 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
 - MySQL·MariaDB의 CALL에서 오류 앞 결과 집합은 드라이버가 버려 보일 수 없다. `setFetchSize`로 흘려 읽으면 앞 결과는 읽히지만, 오류 뒤
   `getMoreResults`가 멈추거나(시험에서 끝나지 않음) `NullPointerException`을 던져서 쓰지 않았다.
 - 결과 집합의 행을 읽다 난 오류(SQL Server `SELECT 1/0`)는 그 결과 집합의 이미 읽은 행을 보이지 않는다(오류 단계만). 쿼리 창은 빈 표를 보인다.
-- `runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.
+- ~~`runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.~~
+  2026-11-12 고침(앱 변경 #87): 아래 "문장 끝의 구분자".
 - ~~공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.~~
   2026-11-12 고침(앱 변경 #91): 아래 "공유 세션에서 롤백에 기대는 호출".
   ~~공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음).~~
@@ -1633,6 +1634,69 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 - 고치기 전 빌드: 같은 상태의 `commitTransaction`·`rollbackTransaction`이 모두 `SUCCESS`(상태 JSON), 감사 `SUCCESS`.
 - 회귀 테스트는 요청되지 않아 실행하지 않았다.
 
+## 문장 끝의 구분자 (앱 변경 #87, 2026-11-12)
+
+### 문제
+
+`runSql`은 끝의 `;`를 모두 지웠다(`AgentSqlClassifier.stripTrailingDelimiter`). 고치기 전 빌드, Oracle 23ai 자동 커밋:
+
+| 호출 | 고치기 전 |
+|---|---|
+| `BEGIN INSERT INTO chr_agent_tools_r2.t VALUES (2, 'blk'); END;` | ERROR, ORA-06550 PLS-00103 "Encountered the symbol end-of-file" |
+| `DECLARE n NUMBER := 3; BEGIN INSERT …; END;` | 같은 오류 |
+| `CREATE OR REPLACE PROCEDURE chr_agent_tools_r2.p_ok AS BEGIN NULL; END;`(`END p_ok2;`도) | **SUCCESS**, 메시지 "ORA-17110: Execution completed with warning", `all_objects.status` = INVALID |
+| `SELECT 1 AS x FROM dual;` / `;` 없이 | 둘 다 성공 |
+
+같은 원인: SQL Server `MERGE … ;`가 "A MERGE statement must be terminated by a semi-colon (;)."(10713)로 실패했다. `runLibraryQuery`도 같은 함수로 지운 글을
+보낸다. PostgreSQL `DO $$ … $$;`, MariaDB `BEGIN NOT ATOMIC … END;`·`CREATE PROCEDURE … END;`, MySQL 8.4 `CREATE PROCEDURE … END;`는 끝의 `;` 없이도 되므로
+문제가 없었다.
+
+### 원인과 같은 판단
+
+- `AgentSqlClassifier.stripTrailingDelimiter`(고치기 전 138~144행)가 해석용으로 끝의 `;`를 모두 지우고, `QueryTools.runSql`(고치기 전 145행)과
+  `LibraryTools`(197행)가 지운 글을 서버로 보냈다.
+- 쿼리 창은 문장을 연결 방언의 스크립트 파서(`SQLScriptParser`)로 찾는다(Ctrl+Enter의 `extractQueryAtPos`, 스크립트의 `SQLScriptBatches.extractQueries`,
+  `runScript`의 `splitScript`도 같은 파서). 파서는 구분자를 떼되, 블록 끝(`needsDelimiterAfterBlock`: 방언이 `isDelimiterAfterBlock`이고 첫 키워드가 블록
+  시작·블록 머리·DDL 키워드이며 마지막 키워드가 `END`, Oracle·GaussDB·Kingbase)과 방언이 요구하는 문장(`needsDelimiterFor`: SQL Server MERGE), 블록이 있는
+  SQL Server 문장(`isDelimiterAfterQuery`)에는 남긴다(`SQLScriptParser.parseQueryImpl` 429~441행). 선택한 글을 실행할 때의 `SQLUtils.trimQueryStatement`는 끝이
+  `END`인지 글자로만 보아 `… ORDER BY trend;`도 블록으로 여겨 `;`를 남기므로(코드 읽기) 쓰지 않았다. 파서는 이 문장의 `;`를 지운다(확인).
+
+### 고친 것
+
+- `AgentSqlClassifier.trimTrailingDelimiter(dataSource, sql)`: 끝의 구분자를 지운 글에, 파서가 글의 마지막 문장에 `;`를 남겼으면 `;`를 다시 붙인다. 끝의
+  구분자는 마지막 문장의 것이므로 그 문장에 대한 파서의 판단을 따른다. 새 목록은 없다(방언과 파서의 규칙 그대로).
+- `runSql`, `runLibraryQuery`가 이것으로 보낸다. 분류기·계획 도구·읽기 도구의 해석용 지우기(`stripTrailingDelimiter`)는 그대로다(읽기 문장과 EXPLAIN 앞에 붙이는
+  문장에는 블록이 없음).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0).
+
+### DB별 점검
+
+| DB | 파서가 `;`를 남기는 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|---|
+| Oracle | `BEGIN … END;`, `DECLARE … END;`, `CREATE … PROCEDURE/FUNCTION/PACKAGE/TRIGGER/TYPE BODY … END [이름];` | 블록 실패, 프로시저 INVALID | 됨 |
+| SQL Server | MERGE, BEGIN…END 블록이 있는 문장 | MERGE 실패 | 됨 |
+| PostgreSQL | 없음(`DO $$ … $$`는 `$$`로 끝남) | 됨 | 같음 |
+| MariaDB·MySQL | 없음(`isDelimiterAfterBlock` false) | 됨(서버가 끝의 `;` 없이 받음) | 같음 |
+| Altibase | 없음(`AltibaseSQLDialect`는 `isDelimiterAfterBlock` false, 쿼리 창도 지움) | 확인 못 함 | 바뀌지 않음 |
+
+### 확인 (2026-11-12)
+
+빌드한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, 격리 문맥, 자동 커밋, `chr_agent_tools_r2`. 두 번째 세션에서 읽음.
+
+| 호출 | 고친 뒤 | 두 번째 세션 |
+|---|---|---|
+| Oracle `BEGIN INSERT … (2,'blk'); END;` | SUCCESS | 2 있음 |
+| Oracle `DECLARE n NUMBER := 3; BEGIN INSERT …; END;` | SUCCESS | 3 있음 |
+| Oracle `CREATE OR REPLACE PROCEDURE … p_ok AS BEGIN NULL; END;`, `… END p_ok2;` | SUCCESS, 경고 메시지 없음 | `all_objects.status` VALID, VALID |
+| Oracle `SELECT 1 AS x FROM dual;` / `;` 없이 / `… ORDER BY trend;` | 셋 다 SUCCESS | — |
+| 연결 Refresh 뒤 Oracle 블록 | SUCCESS | 5 있음 |
+| SQL Server `MERGE … ;` | SUCCESS, `updateCounts [1]` | 3 = merge |
+| PostgreSQL `DO $$ … $$;`, MariaDB `BEGIN NOT ATOMIC … END;`·`CREATE PROCEDURE … END;`, MySQL 8.4 `CREATE PROCEDURE … END;` | SUCCESS(고치기 전과 같음) | 행·루틴 있음 |
+
+`trimTrailingDelimiter` 결과(앱 안에서 직접 부름): Oracle `BEGIN NULL; END;` → 그대로, `SELECT … ORDER BY trend;` → `;` 없음, SQL Server `SELECT 1;` → `;` 없음,
+`INSERT …; MERGE … ;` → 끝 `;` 남음. Altibase는 번들 드라이버가 없어 확인하지 못했다. `runLibraryQuery`는 라이브러리 파일을 만들지 않아 실행해 보지 않았다(같은 함수).
+회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `trimTrailingDelimiter`의 방언별 단위 시험).
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1738,6 +1802,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #87(`chromite/agent-tools-r2`): `runSql`·`runLibraryQuery`가 끝의 `;`를 쿼리 창의 파서 판단대로 남김(Oracle PL/SQL 블록·본문,
+  SQL Server MERGE). 위 "문장 끝의 구분자". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #92(`chromite/agent-tools-r2`): 공유 세션에 열린 트랜잭션이 있을 때 `commitTransaction`·`rollbackTransaction`이 SUCCESS 대신
   "아무것도 커밋(롤백)하지 않았다, 사용자가 쿼리 창에서 끝낸다"는 오류. 위 "공유 세션의 commitTransaction·rollbackTransaction". 도구 설명은 그대로.
   회귀 테스트는 실행하지 않았다.
