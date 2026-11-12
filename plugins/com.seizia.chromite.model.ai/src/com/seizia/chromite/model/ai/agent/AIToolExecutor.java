@@ -17,9 +17,11 @@
 package com.seizia.chromite.model.ai.agent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -34,6 +36,8 @@ import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +60,8 @@ import java.util.function.Consumer;
  *     <li>실행, 결과 크기 한도, 감사 기록. 거부·막힘도 기록한다.</li>
  * </ol>
  * 실패는 예외가 아니라 {@link AIToolCallResult}의 오류 JSON으로 돌려준다. 모델이 오류를 읽고 다른 방법을 고를 수 있어야 하기 때문이다.
+ * 도구가 예외를 담은 결과를 돌려주면(무언가 한 뒤의 실패, 예: 배치 중간의 SQL 오류) 그 예외가 오류이고 결과 값은 도구가 한 일이다.
+ * 감사 기록의 {@code error}, 오류 JSON의 {@code error}(채팅 카드가 보이는 글)는 같은 요약이고, 오류 JSON에 도구가 한 일을 붙인다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
@@ -64,6 +70,10 @@ import java.util.function.Consumer;
  * - 2026-11-08 도구의 진행 상황을 받을 수신자를 넘기는 {@code execute}(채팅 카드에 백업·복원 진행 표시)
  * - 2026-11-08 트랜잭션 질문의 Commit/Roll back 답을 감사 기록에도 남김(docs/chromite/ai-agent.md "실제 API 확인")
  * - 2026-11-08 확인 요청에 미리 보기 종류를 넣음(쿼리 창 글 고치기, docs/chromite/ai-agent.md "편집기 도구")
+ * - 2026-11-12 예외를 담은 도구 결과: 오류는 예외의 글, 결과 값(도구가 한 일)은 오류 JSON에 붙임. 전에는 결과 값 전체를 오류 글로 썼다
+ *   (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 그 오류 JSON이 너무 길면 큰 멤버(행 데이터)만 줄임. 글 전체를 자르면 뒤에 있는 ranAfterError·트랜잭션 상태가 사라졌다
+ *   (docs/chromite/ai-agent.md "배치의 부분 실패" 자르기)
  */
 public final class AIToolExecutor {
 
@@ -74,6 +84,8 @@ public final class AIToolExecutor {
      * Upper bound of a result text; tools cap their own output earlier and report what they cut.
      */
     public static final int MAX_RESULT_CHARS = 1024 * 1024;
+    // Smallest room in which a part of a cut result (a table, its rows) is still worth keeping
+    private static final int MIN_SHORTENED_PART = 200;
 
     /**
      * Result member describing a Commit / Roll back answer carried out before the tool ran:
@@ -168,8 +180,9 @@ public final class AIToolExecutor {
             AIFunctionResult result = instance.callFunction(context, args);
             String text = String.valueOf(result.getValue());
             if (result.getException() != null) {
+                // A failure after the tool had done something: the exception is the error, the value what the tool did
                 return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
-                    start, text, null, resolution);
+                    start, describe(result.getException()), text, resolution);
             }
             return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
                 start, null, text, resolution);
@@ -405,6 +418,107 @@ public final class AIToolExecutor {
             json.addProperty("policy", decision.permission().name());
             json.addProperty("policyReason", decision.reason());
         }
+        if (text != null) {
+            addPartialResult(json, text);
+        }
         return withResolution(new AIToolCallResult(outcome, GSON.toJson(json)), resolution);
+    }
+
+    /**
+     * Adds what a failed tool did before or after its error (a JSON object: results, update counts, errors in order) to the
+     * error result, so that the model and the chat card see the error and everything that ran with it.
+     */
+    private static void addPartialResult(@NotNull JsonObject json, @NotNull String text) {
+        JsonElement parsed;
+        try {
+            parsed = JsonParser.parseString(text);
+        } catch (RuntimeException e) {
+            json.addProperty("result", text.length() > MAX_RESULT_CHARS ? text.substring(0, MAX_RESULT_CHARS) : text);
+            return;
+        }
+        if (parsed.isJsonObject()) {
+            for (Map.Entry<String, JsonElement> e : parsed.getAsJsonObject().entrySet()) {
+                if (!json.has(e.getKey())) {
+                    json.add(e.getKey(), e.getValue());
+                }
+            }
+        } else {
+            json.add("result", parsed);
+        }
+        fitResult(json);
+    }
+
+    /**
+     * Keeps an error result within {@link #MAX_RESULT_CHARS} by shortening its biggest members only (the row data), so that
+     * the small members the model needs most (the error, the order of steps, what ran after the error, the transaction state)
+     * stay whole. Cutting the text instead lost them: they come after the rows. A list of what was cut goes into the result.
+     */
+    private static void fitResult(@NotNull JsonObject json) {
+        if (length(json) <= MAX_RESULT_CHARS) {
+            return;
+        }
+        List<String> cut = new ArrayList<>();
+        // Room left for the note about the cut
+        shortenMembers(json, MAX_RESULT_CHARS - 2000, cut, "");
+        json.addProperty("cut", "The result was longer than " + MAX_RESULT_CHARS + " characters, so these were shortened: " +
+            String.join("; ", cut) + ". Everything else is whole. Ask for fewer rows or columns to see the rest.");
+    }
+
+    // Shortens the biggest members first until the object fits
+    private static void shortenMembers(@NotNull JsonObject object, int budget, @NotNull List<String> cut, @NotNull String path) {
+        List<Map.Entry<String, JsonElement>> members = new ArrayList<>(object.entrySet());
+        members.sort(Comparator.comparingInt((Map.Entry<String, JsonElement> e) -> length(e.getValue())).reversed());
+        for (Map.Entry<String, JsonElement> member : members) {
+            int size = length(object);
+            if (size <= budget) {
+                return;
+            }
+            JsonElement value = member.getValue();
+            int room = budget - (size - length(value));
+            object.add(member.getKey(), shorten(value, room, cut, path + member.getKey()));
+        }
+    }
+
+    /**
+     * An object keeps its members and shortens the biggest ones; an array keeps its leading items, and the first one that
+     * does not fit is shortened in turn (a table keeps its first rows); anything else becomes the start of its JSON text.
+     */
+    @NotNull
+    private static JsonElement shorten(@NotNull JsonElement value, int budget, @NotNull List<String> cut, @NotNull String path) {
+        if (length(value) <= budget) {
+            return value;
+        }
+        if (value.isJsonObject()) {
+            JsonObject copy = value.getAsJsonObject().deepCopy();
+            shortenMembers(copy, budget, cut, path + ".");
+            return copy;
+        }
+        if (value.isJsonArray()) {
+            JsonArray source = value.getAsJsonArray();
+            JsonArray kept = new JsonArray();
+            int used = 2;
+            for (JsonElement item : source) {
+                int itemLength = length(item) + 1;
+                if (used + itemLength <= budget) {
+                    kept.add(item);
+                    used += itemLength;
+                    continue;
+                }
+                int rest = budget - used - 1;
+                if (rest >= MIN_SHORTENED_PART && (item.isJsonObject() || item.isJsonArray())) {
+                    kept.add(shorten(item, rest, cut, path + "[" + kept.size() + "]"));
+                }
+                break;
+            }
+            cut.add(path + ": " + kept.size() + " of " + source.size() + " items kept");
+            return kept;
+        }
+        String text = GSON.toJson(value);
+        cut.add(path + ": text cut");
+        return new JsonPrimitive(text.substring(0, Math.max(0, Math.min(text.length(), budget))));
+    }
+
+    private static int length(@NotNull JsonElement value) {
+        return GSON.toJson(value).length();
     }
 }

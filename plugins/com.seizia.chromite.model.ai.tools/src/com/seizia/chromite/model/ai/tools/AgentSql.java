@@ -25,6 +25,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPErrorAssistant;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
@@ -36,8 +37,10 @@ import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.DBRBlockingObject;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLBatchErrors;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectContainer;
 import com.seizia.chromite.model.struct.DBSInstance;
@@ -72,6 +75,11 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>연결이 다시 이어지면 데이터 소스 객체가 바뀐다. 문맥의 데이터 소스가 지금 연결의 것과 다르거나 끊겼으면 새로 연다.</li>
  *     <li>실행은 JDBC를 직접 쓴다({@link JDBCSession#getOriginal()}). 여러 결과 집합, 서버 메시지(SQLWarning: SQL Server PRINT,
  *     SET STATISTICS IO/TIME), 실행 중 취소를 DBeaver 문장 래퍼보다 직접 다루기 쉽다.</li>
+ *     <li>배치의 부분 실패(docs/chromite/ai-agent.md "배치의 부분 실패"): {@link Runner#execute}는 오류가 나도 결과를 끝까지 읽는다. SQL Server는
+ *     문장 오류 뒤에도 배치의 나머지를 실행하므로, 첫 오류에서 멈추면 이미 실행된 뒤 문장(DML 포함)이 결과에서 사라져 모델과 사용자는 "실패"만 보고
+ *     다시 실행할 수 있다. 오류 뒤를 계속 읽을지는 쿼리 창과 같은 규칙({@link SQLBatchErrors#canReadPast})이다. 오류와 함께 다른 결과가 있으면
+ *     {@link PartialResultException}으로 모든 결과·행 수·오류를 순서대로 넘기고, {@link #run}이 그 호출 뒤의 트랜잭션 상태(열림, 자동 커밋으로
+ *     이미 커밋됨, 롤백됨)를 덧붙인다. 오류 때문에 트랜잭션을 커밋·롤백하지 않는다(읽기 전용·측정 호출의 원래 롤백과 ATOMIC의 자기 트랜잭션 롤백만 그대로).</li>
  *     <li>트랜잭션 안전(사용자 규칙 2026-11-07, docs/chromite/ai-agent.md "트랜잭션 안전"): 열린 트랜잭션을 조용히 커밋·롤백하지 않는다.
  *     에이전트 문맥은 연결의 기본 커밋 방식을 그대로 쓰고, 쓰기 뒤에 DB에 직접 물어({@link #isTransactionOpen}: 쿼리 창과 같은
  *     방언의 질의 {@link JDBCTransactionProbe}) 무언가를 쥔 트랜잭션을 {@code pending}으로 기록한다. 자동 커밋 문맥에서 runSql로
@@ -88,7 +96,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>취소: 실행 중 문장을 연결별로 기록해 {@code cancelQuery}가 {@link Statement#cancel()}을 부른다. 모니터에도 블록으로 등록해
  *     MCP 취소 알림·채팅 중지가 같은 문장을 취소한다.</li>
  *     <li>"단일 연결 사용" 연결은 격리 문맥을 열 수 없어 기본 문맥을 쓴다. 이때는 사용자 트랜잭션을 건드리지 않도록 자동 커밋을 바꾸지 않고,
- *     읽기 보호는 분류기만 한다.</li>
+ *     읽기 보호는 분류기만 한다. 호출 뒤에는 그 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 물어 기록하고(상태 줄·Query 메뉴·
+ *     getTransactionStatus가 보게), 결과에 열림을 알린다. 그 트랜잭션은 사용자 쿼리 창의 것이기도 하므로 에이전트의 커밋·롤백 도구는 끝내지
+ *     않고 사용자에게 맡긴다.</li>
  *     <li>유휴 연결 닫기: 에이전트 문장은 쿼리 관리자에 기록되지 않으므로 사용 중 여부와 마지막 사용 시각({@link #isInUse},
  *     {@link #getLastUseTime})을 {@link AgentSessionsService}로 알린다. 열린 트랜잭션이 있거나 실행 중인 연결은 닫히지 않는다.</li>
  * </ul>
@@ -105,6 +115,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 2026-11-08 DB에 묻는 질의를 모델 계층의 방언 질의({@link JDBCTransactionProbe})로 옮김. SELECT만 한 MySQL의 INNODB_TRX 행이나
  *   SQL Server 암시적 트랜잭션처럼 쥔 것 없는 트랜잭션은 열림이 아니고, 자동 커밋 문맥의 명시적 트랜잭션은 열림이다. 자동 커밋 문맥의
  *   커밋·롤백은 COMMIT/ROLLBACK 문장, 중첩 BEGIN TRAN은 끝까지 커밋 (docs/chromite/ai-agent.md "트랜잭션 안전")
+ * - 2026-11-12 배치 중간의 오류에서 결과 읽기를 멈추지 않음: 오류 앞의 결과와 오류 뒤에 실행된 문장(SQL Server)이 도구 결과에서 사라졌다.
+ *   모든 결과·행 수·오류를 순서대로 담은 {@link PartialResultException}과 호출 뒤 트랜잭션 상태 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 "단일 연결" 연결(격리 문맥 없음): 호출 뒤 공유 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 묻고 기록함
+ *   ({@code QMUtils.refreshTransactionState}). 그 세션에 남은 일을 "열린 트랜잭션 없음"으로 알리던 것을 고침. 그 트랜잭션은 사용자의 것이기도
+ *   해서 pending으로 두지 않고, commitTransaction/rollbackTransaction도 끝내지 않는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
  */
 public final class AgentSql {
 
@@ -140,6 +155,9 @@ public final class AgentSql {
         final ReentrantLock lock = new ReentrantLock();
         // The agent left an uncommitted transaction open (manual-commit connection)
         volatile boolean pending;
+        // Not isolated ("single connection"): the shared session holds a transaction after the last call. Never pending:
+        // that transaction is the user's session's too, so commitTransaction/rollbackTransaction leave it to the user
+        volatile boolean sharedOpen;
 
         AgentContext(@NotNull DBCExecutionContext context, boolean isolated) {
             this.context = context;
@@ -147,7 +165,18 @@ public final class AgentSql {
         }
     }
 
+    /**
+     * What the model is told when the agent's work is in the open transaction of a "single connection" connection's shared
+     * session: the agent's commit and rollback tools end only the agent's own sessions ({@link #endTransaction}).
+     */
+    public static final String SHARED_SESSION_NOTE = "This connection uses one shared session (its \"single connection\" " + //$NON-NLS-1$
+        "setting) that the user's query windows also use: what ran is in that session's open transaction and not committed. " + //$NON-NLS-1$
+        "commitTransaction and rollbackTransaction do not end it (they end only the agent's own sessions); ask the user to " + //$NON-NLS-1$
+        "commit or roll it back in a query window (status bar or Query menu)."; //$NON-NLS-1$
+
     private static final int MAX_CONTEXTS = 4;
+    // Errors in a row while moving to the next result, after which the reading stops (a driver that keeps throwing)
+    private static final int MAX_BATCH_ERRORS = 1000;
     // Commits of one commitTransaction at most (nested BEGIN TRANs of SQL Server)
     private static final int MAX_NESTED_COMMITS = 32;
     // Pools of agent contexts; a pool list is guarded by synchronizing on it
@@ -218,15 +247,26 @@ public final class AgentSql {
         }
         AgentContext agentContext = acquire(monitor, container, dataSource, database, schema, mode);
         DbFamily family = DbFamily.of(container);
+        // The connection's own commit mode, before a read-only or measuring call changes it
+        boolean autoCommit = true;
         try {
             try (JDBCSession session = (JDBCSession) agentContext.context.openSession(
                 monitor, DBCExecutionPurpose.UTIL, CONTEXT_NAME)
             ) {
                 Connection connection = session.getOriginal();
-                Runner runner = new Runner(monitor, container);
+                autoCommit = connection.getAutoCommit();
+                // Whether what the call runs may stay (no rollback of its own): then even a lone error says what became of it
+                boolean keepsChanges = !agentContext.isolated || mode == Mode.NATIVE || mode == Mode.ATOMIC || agentContext.pending;
+                Runner runner = new Runner(monitor, container, agentContext.context, keepsChanges);
                 if (!agentContext.isolated) {
                     // The user's own context: never touch its transaction mode
-                    return work.run(connection, runner);
+                    try {
+                        return work.run(connection, runner);
+                    } finally {
+                        // Asked from the database with the query windows' rule and recorded for them, so that their status
+                        // line, Query menu and getTransactionStatus show what the agent left in the shared session
+                        agentContext.sharedOpen = QMUtils.refreshTransactionState(agentContext.context).isOpen();
+                    }
                 }
                 if (agentContext.pending && family == DbFamily.POSTGRESQL) {
                     clearStatisticsSnapshot(connection);
@@ -250,6 +290,10 @@ public final class AgentSql {
             } catch (DBException e) {
                 throw e;
             } catch (SQLException e) {
+                if (e instanceof PartialResultException partial) {
+                    describeTransaction(partial, family, mode, agentContext.isolated, autoCommit, agentContext.pending,
+                        agentContext.sharedOpen);
+                }
                 throw new DBException(e.getMessage(), e);
             } catch (Exception e) {
                 throw new DBException(CommonUtils.notEmpty(e.getMessage()), e);
@@ -257,6 +301,90 @@ public final class AgentSql {
         } finally {
             lastUse.put(container.getId(), System.currentTimeMillis());
             agentContext.lock.unlock();
+        }
+    }
+
+    /**
+     * Says in a partial failure's result what became of the statements that ran (transaction safety: the tool never ends
+     * a transaction because of the error, docs/chromite/ai-agent.md "배치의 부분 실패"). Called after the call's
+     * transaction state was asked from the database ({@code pending}).
+     */
+    private static void describeTransaction(
+        @NotNull PartialResultException failure,
+        @NotNull DbFamily family,
+        @NotNull Mode mode,
+        boolean isolated,
+        boolean autoCommit,
+        boolean pending,
+        boolean sharedOpen
+    ) {
+        String note;
+        if (!isolated && sharedOpen) {
+            note = SHARED_SESSION_NOTE + (family == DbFamily.POSTGRESQL
+                ? " PostgreSQL aborted that transaction at the error: only a rollback ends it." : "");
+        } else if (!isolated && !autoCommit) {
+            note = "No transaction is open in the connection's shared session after the call: nothing that ran is waiting for a commit.";
+        } else if (pending && family == DbFamily.POSTGRESQL) {
+            // The error aborted the transaction: the server refuses every statement until it ends, and a COMMIT rolls back
+            note = "The agent's transaction is open but PostgreSQL aborted it at the error: nothing in it can be committed any more. " +
+                "Ask the user, then call rollbackTransaction (it asks the user to confirm).";
+        } else if (pending) {
+            note = "What ran, before and after the error, is in the agent's open transaction and not committed. " +
+                "Ask the user, then call commitTransaction or rollbackTransaction (both ask the user to confirm).";
+        } else if (isolated && (mode == Mode.READ_ONLY || mode == Mode.ROLLBACK || mode == Mode.ATOMIC && autoCommit)) {
+            // READ_ONLY and ROLLBACK roll back every call; ATOMIC rolls back its own transaction on an error (runAtomic)
+            note = "Nothing this call did was kept: this tool runs the call in its own transaction and rolled it back.";
+        } else if (autoCommit && family == DbFamily.POSTGRESQL && failure.oneExecution) {
+            // pgjdbc sends the statements of one execute with one Sync: the server runs them as one implicit transaction
+            note = "Auto-commit: PostgreSQL ran the statements of this call as one transaction, so the error rolled all of them " +
+                "back, unless the SQL committed by itself. Check the data before running anything again.";
+        } else if (autoCommit) {
+            note = "Auto-commit: statements that ran before or after the error are already committed; a failed procedure call " +
+                "may have committed part of its work. Check the data before running anything again.";
+        } else {
+            note = "No agent transaction is open after the call: nothing that ran is waiting for a commit.";
+        }
+        failure.getResult().addProperty("transactionOpen", pending || !isolated && sharedOpen);
+        failure.getResult().addProperty("transactionNote", note);
+    }
+
+    /**
+     * The result a failed call carries ({@link PartialResultException}) somewhere in an exception chain, or null.
+     */
+    @Nullable
+    public static JsonObject getPartialResult(@NotNull Throwable error) {
+        for (Throwable e = error; e != null; e = e.getCause() == e ? null : e.getCause()) {
+            if (e instanceof PartialResultException partial) {
+                return partial.getResult();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A failed call whose result must still go to the model: everything it returned around the error, in order, and what
+     * became of what it ran (the transaction state, added by {@link #run}). Its message summarizes the failure. The tool's
+     * result is an error that shows all of it (docs/chromite/ai-agent.md "배치의 부분 실패").
+     */
+    public static final class PartialResultException extends SQLException {
+        private final transient JsonObject result;
+        // The statements went to the server in one execution (runSql), not one by one (runScript)
+        private final boolean oneExecution;
+
+        PartialResultException(
+            @NotNull String message,
+            @NotNull SQLException firstError,
+            @NotNull JsonObject result,
+            boolean oneExecution
+        ) {
+            super(message, firstError.getSQLState(), firstError.getErrorCode(), firstError);
+            this.result = result;
+            this.oneExecution = oneExecution;
+        }
+
+        @NotNull
+        public JsonObject getResult() {
+            return result;
         }
     }
 
@@ -512,6 +640,24 @@ public final class AgentSql {
     }
 
     /**
+     * Whether the agent's last call on a "single connection" connection left the shared session (the one the query windows
+     * use) holding a transaction, as the database answered right after that call.
+     */
+    public static boolean isSharedSessionTransactionOpen(@NotNull DBPDataSourceContainer container) {
+        for (Map.Entry<ContextKey, List<AgentContext>> e : pools.entrySet()) {
+            if (!e.getKey().containerId().equals(container.getId())) {
+                continue;
+            }
+            for (AgentContext agentContext : snapshot(e.getValue())) {
+                if (!agentContext.isolated && agentContext.sharedOpen) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Whether the agent works on the connection now (one of its contexts is taken) or left a transaction open on it.
      */
     public static boolean isInUse(@NotNull DBPDataSourceContainer container) {
@@ -724,10 +870,20 @@ public final class AgentSql {
     public static final class Runner {
         private final DBRProgressMonitor monitor;
         private final DBPDataSourceContainer container;
+        private final DBCExecutionContext context;
+        // A lone error also goes out as a PartialResultException, so that the result says the transaction state
+        private final boolean keepsChanges;
 
-        Runner(@NotNull DBRProgressMonitor monitor, @NotNull DBPDataSourceContainer container) {
+        Runner(
+            @NotNull DBRProgressMonitor monitor,
+            @NotNull DBPDataSourceContainer container,
+            @NotNull DBCExecutionContext context,
+            boolean keepsChanges
+        ) {
             this.monitor = monitor;
             this.container = container;
+            this.context = context;
+            this.keepsChanges = keepsChanges;
         }
 
         @NotNull
@@ -736,7 +892,15 @@ public final class AgentSql {
         }
 
         /**
-         * Executes one statement and reads every result: {@code {results:[table...], updateCounts:[], messages:[]}}.
+         * Executes one statement (which may be a batch of several, or a procedure call) and reads every result to the
+         * end: {@code {results:[table...], updateCounts:[], messages:[]}}.
+         * <p>
+         * An error does not end the reading while the driver can read past it (SQL Server: the server runs the rest of
+         * the batch after a statement error; the same rule as the query window, {@link SQLBatchErrors#canReadPast}). An
+         * error with anything else returned before or after it is thrown as a {@link PartialResultException} whose result
+         * lists, in order, every result set, update count and error ({@code steps}) and says when statements ran after the
+         * error ({@code ranAfterError}). A lone error is thrown as it is in a call that rolls back its own work, and
+         * otherwise as a {@link PartialResultException} with the same message, so that the result says the transaction state.
          *
          * @param parameters values of {@code ?} placeholders (null binds SQL NULL)
          */
@@ -748,44 +912,144 @@ public final class AgentSql {
             @NotNull AgentLimits limits,
             boolean objects
         ) throws SQLException {
-            JsonObject result = new JsonObject();
-            JsonArray results = new JsonArray();
-            JsonArray updateCounts = new JsonArray();
+            BatchReport report = new BatchReport();
             List<String> messages = new ArrayList<>();
             try (Statement statement = parameters == null ? connection.createStatement() : prepare(connection, sql, parameters)) {
                 track(statement, true);
                 try {
-                    boolean isResultSet = parameters == null ? statement.execute(sql) : ((PreparedStatement) statement).execute();
-                    while (true) {
+                    // null: the reading stopped at an error that can't be read past
+                    Boolean isResultSet;
+                    try {
+                        isResultSet = parameters == null ? statement.execute(sql) : ((PreparedStatement) statement).execute();
+                    } catch (SQLException e) {
+                        // The first statement failed; the later ones of a batch may still have run
+                        report.error(e);
+                        isResultSet = canReadPast(e) ? nextResult(statement, report) : null;
+                    }
+                    while (isResultSet != null) {
                         collectWarnings(statement.getWarnings(), messages);
                         statement.clearWarnings();
                         if (isResultSet) {
                             try (ResultSet rs = statement.getResultSet()) {
-                                results.add(AgentJson.readResultSet(rs, limits, objects));
+                                report.table(AgentJson.readResultSet(rs, limits, objects));
+                            } catch (SQLException e) {
+                                // SQL Server reports a statement error while its rows are read (SELECT 1/0)
+                                report.error(e);
+                                if (!canReadPast(e)) {
+                                    break;
+                                }
                             }
                         } else {
                             int count = statement.getUpdateCount();
                             if (count == -1) {
                                 break;
                             }
-                            updateCounts.add(count);
+                            report.count(count);
                         }
-                        isResultSet = statement.getMoreResults();
+                        isResultSet = nextResult(statement, report);
                     }
                 } finally {
                     track(statement, false);
                 }
             }
-            result.add("results", results);
-            if (!updateCounts.isEmpty()) {
-                result.add("updateCounts", updateCounts);
+            if (!report.errors.isEmpty()) {
+                if (report.errors.size() == 1 && report.results.isEmpty() && report.updateCounts.isEmpty()) {
+                    SQLException error = report.errors.getFirst();
+                    if (!keepsChanges) {
+                        throw error;
+                    }
+                    // A procedure or batch may have done work before its error that the driver did not return (MySQL and
+                    // MariaDB read a CALL's response at execute and drop its earlier results): run() adds the transaction state
+                    throw new PartialResultException(CommonUtils.notEmpty(error.getMessage()), error, new JsonObject(), true);
+                }
+                throw failure(report, messages, sql);
+            }
+            JsonObject result = new JsonObject();
+            result.add("results", report.results);
+            if (!report.updateCounts.isEmpty()) {
+                result.add("updateCounts", report.updateCounts);
             }
             if (!messages.isEmpty()) {
-                JsonArray json = new JsonArray();
-                messages.forEach(json::add);
-                result.add("messages", json);
+                result.add("messages", toJson(messages));
             }
             return result;
+        }
+
+        /**
+         * Moves to the next result ({@link Statement#getMoreResults()}). An error reported there for a later statement goes
+         * to the report and the move is tried again while the driver can read past it.
+         *
+         * @return whether the next result is a result set, or null when the reading stops at an error
+         */
+        @Nullable
+        private Boolean nextResult(@NotNull Statement statement, @NotNull BatchReport report) throws SQLException {
+            for (int errors = 0; ; errors++) {
+                try {
+                    return statement.getMoreResults();
+                } catch (SQLException e) {
+                    report.error(e);
+                    if (errors >= MAX_BATCH_ERRORS || !canReadPast(e) || statement.isClosed()) {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        private boolean canReadPast(@NotNull SQLException error) {
+            return SQLBatchErrors.canReadPast(context.getDataSource(), monitor, error);
+        }
+
+        /**
+         * The failure of a call that returned an error and something more: the error positions are looked up only now,
+         * after every result was read (the SQL Server driver reads the following results ahead when the error chain is walked).
+         */
+        @NotNull
+        private PartialResultException failure(@NotNull BatchReport report, @NotNull List<String> messages, @NotNull String sql) {
+            DBPErrorAssistant assistant = DBUtils.getAdapter(DBPErrorAssistant.class, context.getDataSource());
+            for (int i = 0; i < report.errors.size(); i++) {
+                SQLException error = report.errors.get(i);
+                JsonObject step = report.errorSteps.get(i);
+                if (error.getErrorCode() != 0) {
+                    step.addProperty("code", error.getErrorCode());
+                }
+                DBPErrorAssistant.ErrorPosition[] positions = null;
+                if (assistant != null) {
+                    try {
+                        positions = assistant.getErrorPosition(monitor, context, sql, error);
+                    } catch (RuntimeException e) {
+                        log.debug("Can't find the error position", e);
+                    }
+                }
+                if (positions != null && positions.length > 0) {
+                    if (positions[0].line >= 0) {
+                        step.addProperty("line", positions[0].line + 1);
+                    } else if (positions[0].position >= 0) {
+                        step.addProperty("position", positions[0].position + 1);
+                    }
+                }
+            }
+            JsonObject result = new JsonObject();
+            result.add("steps", report.steps);
+            result.add("results", report.results);
+            if (!report.updateCounts.isEmpty()) {
+                result.add("updateCounts", report.updateCounts);
+            }
+            if (!messages.isEmpty()) {
+                result.add("messages", toJson(messages));
+            }
+            JsonObject firstStep = report.errorSteps.getFirst();
+            String first = report.errors.getFirst().getMessage() + (firstStep.has("line") ? " (line " + firstStep.get("line") + ")" : "");
+            String after = describeCounts(report.updateCountsAfterError, report.resultSetsAfterError, report.errors.size() - 1);
+            String message;
+            if (after != null) {
+                result.addProperty("ranAfterError", "Statements after the first error ran: " + after +
+                    " came after it. The error did not undo them; transactionNote says whether they are committed.");
+                message = "Statements after the error ran (" + after + " came after it). First error: " + first;
+            } else {
+                String before = describeCounts(report.updateCounts.size(), report.results.size(), 0);
+                message = before == null ? first : first + "; before it: " + before;
+            }
+            return new PartialResultException(message, report.errors.getFirst(), result, true);
         }
 
         /**
@@ -919,6 +1183,73 @@ public final class AgentSql {
      * NULL must not be sent as VARCHAR ({@code pid = $1} would fail with "integer = character varying").
      */
     public record NullValue(int sqlType) {
+    }
+
+    /**
+     * What one execution returned, in the order the driver reported it, while reading goes on past errors.
+     */
+    private static final class BatchReport {
+        final JsonArray results = new JsonArray();
+        final JsonArray updateCounts = new JsonArray();
+        // Every result set (by its index in results), update count and error, in order
+        final JsonArray steps = new JsonArray();
+        final List<SQLException> errors = new ArrayList<>();
+        final List<JsonObject> errorSteps = new ArrayList<>();
+        int updateCountsAfterError;
+        int resultSetsAfterError;
+
+        void table(@NotNull JsonObject table) {
+            results.add(table);
+            JsonObject step = new JsonObject();
+            step.addProperty("resultSet", results.size() - 1);
+            steps.add(step);
+            if (!errors.isEmpty()) {
+                resultSetsAfterError++;
+            }
+        }
+
+        void count(int count) {
+            updateCounts.add(count);
+            JsonObject step = new JsonObject();
+            step.addProperty("updateCount", count);
+            steps.add(step);
+            if (!errors.isEmpty()) {
+                updateCountsAfterError++;
+            }
+        }
+
+        void error(@NotNull SQLException error) {
+            errors.add(error);
+            JsonObject step = new JsonObject();
+            step.addProperty("error", CommonUtils.notEmpty(error.getMessage()));
+            steps.add(step);
+            errorSteps.add(step);
+        }
+    }
+
+    /**
+     * "2 update counts, 1 result set, 1 more error", or null when all are zero.
+     */
+    @Nullable
+    private static String describeCounts(int updateCounts, int resultSets, int moreErrors) {
+        List<String> parts = new ArrayList<>();
+        if (updateCounts > 0) {
+            parts.add(updateCounts + (updateCounts == 1 ? " update count" : " update counts"));
+        }
+        if (resultSets > 0) {
+            parts.add(resultSets + (resultSets == 1 ? " result set" : " result sets"));
+        }
+        if (moreErrors > 0) {
+            parts.add(moreErrors + (moreErrors == 1 ? " more error" : " more errors"));
+        }
+        return parts.isEmpty() ? null : String.join(", ", parts);
+    }
+
+    @NotNull
+    private static JsonArray toJson(@NotNull List<String> messages) {
+        JsonArray json = new JsonArray();
+        messages.forEach(json::add);
+        return json;
     }
 
     static void collectWarnings(@Nullable SQLWarning warning, @NotNull List<String> messages) {
