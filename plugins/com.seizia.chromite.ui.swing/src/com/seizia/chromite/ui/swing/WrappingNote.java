@@ -48,7 +48,7 @@ import java.util.function.ToDoubleFunction;
  * 변경 이력:
  * - 2026-11-12 최초 작성: 옵션의 한 줄 안내가 잘리던 것(앱 변경 #71 b, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  * - 2026-11-12 Chromite Agent 패널의 두 안내(제공자 설정, 도구 없음)도 씀: HTML 라벨이 좁은 칸으로 접혀 잘렸다(앱 변경 #71 f)
- * - 2026-11-13 줄을 공백에서만 바꿈({@link #wrap}, 직접 그림): {@code JTextArea}의 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ * - 2026-11-12 줄을 공백에서만 바꿈({@link #wrap}, 직접 그림): {@code JTextArea}의 줄 바꿈이 한국어 낱말 가운데서 끊었다
  *   ("받습니 / 다.", "설정 / 하세요.", 앱 변경 #71 검토)
  */
 final class WrappingNote extends JTextArea {

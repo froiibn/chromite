@@ -123,7 +123,7 @@ import java.util.Set;
  *   두 안내를 HTML 라벨 대신 {@link WrappingNote}로(HTML 라벨의 높이는 마지막으로 그린 폭을 따라가 한 번 늦음) (앱 변경 #71 f,
  *   docs/chromite/ai-agent.md "채팅 도구 창")
  * - 2026-11-12 제공자 설정 안내의 [Chromite Agent 설정] 글자 단추를 도구 막대와 같은 톱니 아이콘 단추로, 글 오른쪽 첫 줄 가운데에(사용자 결정
- *   "버튼을 기어 아이콘만 두는게 편리하겠다", 앱 변경 #72)
+ *   "그냥 톱니바퀴 아이콘으로 교체해. 그러면 편하잖아", 앱 변경 #72)
  */
 final class AiAssistantPanel extends JPanel {
 
