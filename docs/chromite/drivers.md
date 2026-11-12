@@ -245,6 +245,24 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - **확인(2026-11-08):** Altibase에 Maven 항목을 남긴 채 로컬 `Altibase.jar`를 더하고 연결 테스트 → 다운로드 질문 없이 Altibase 7.3에 연결됐다
   ([swing-driver-manager.md](swing-driver-manager.md) "확인 (2026-11-08 …)").
 
+### 내려받기를 취소하면 (2026-11-12, 앱 변경 #85)
+
+- **결함:** MySQL처럼 파일을 내려받아야 하는 드라이버로 연결할 때 다운로드 질문에서 취소를 눌러도, 한 번의 연결 시도에 질문이 세 번 떴다.
+- **근본 원인:** 질문의 대답이 시도에 남지 않았다. `DriverLoaderDescriptor.validateFilesPresence`는 다운로드가 되지 않으면(`downloadDriverLibraries`가 false)
+  빈 파일 목록을 돌려주고, 부른 쪽은 그대로 이어 갔다. 그래서 드라이버 클래스를 읽는 단계마다 다시 물었다(고치기 전 빌드의 스택):
+  `DataSourceDescriptor.connect`의 `validateFilesPresence`(1081행), `MySQLDataSource.getInternalConnectionProperties` → `getDriverInstance` → `loadDriver`,
+  `JDBCDataSource.createDriverInstance` → `getDriverInstance` → `loadDriver`. 마지막에 "드라이버 클래스를 찾지 못함"으로 끝났다.
+  연결, 연결 테스트, 데이터베이스 목록, 쿼리 창의 첫 실행이 모두 `DataSourceDescriptor.connect`를 지나므로 모두 세 번이었다.
+- **고침:** 연결 시도의 처음(`DriverDescriptor.validateFilesPresence(monitor, container)`, 인터페이스가 이미 `DBException`을 선언)이
+  `DriverLoaderDescriptor.checkFilesPresence`를 부른다. 질문·다운로드를 취소했거나 실패해 파일을 내려받지 않았으면 그 시도를 끝낸다:
+  "'MySQL' 드라이버 파일을 내려받지 않아 연결하지 않았습니다. 다시 연결하면 내려받을 수 있고, …"(`RegistryMessages.driver_files_not_downloaded`).
+  안쪽 `validateFilesPresence(monitor, …)`가 "내려받지 않음"을 null로 알리고, 공개 메서드는 전처럼 빈 목록을 돌려준다(다른 호출자 동작 그대로).
+  오프라인 모드는 묻지 않고 클래스를 읽을 때 자기 안내("오프라인 모드…")를 내므로 여기서 끝내지 않는다. 다음 연결 시도는 다시 묻는다.
+- **확인(이 브랜치 빌드, 한국어 150%, MySQL 8.4 테스트 서버, 내려받지 않음):** 연결, 쿼리 창의 첫 실행, 연결 테스트, 연결 대화상자의 데이터베이스 목록
+  각각 질문 한 번, 취소하면 위 안내로 끝남(데이터베이스 목록은 칸 아래 안내). 파일이 있는 경우는 내장 드라이버(PostgreSQL, SQL Server, Oracle, MariaDB)
+  연결로 확인(질문 없음). 증거 `D:\Tools\_scratch\small-fixes-r3\sheets\85-*`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 모든 연결 시작,
+  드라이버 다운로드 질문.
+
 ### 확인 결과 (2026-11-06, Windows x86_64 빌드)
 
 - 빌드 결과물의 `drivers/` 파일 34개(18,916,472 bytes)를 확인했고, macOS aarch64 결과물의
@@ -381,3 +399,4 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - 2026-11-08 "로컬 파일 우선" 절 추가(후속 #62): 사용자가 추가한 로컬 jar·폴더에 드라이버 클래스가 있으면 미리 정의된 다운로드 항목을
   받지도 클래스패스에 넣지도 않는다(`DriverLoaderDescriptor`).
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
+- 2026-11-12 "내려받기를 취소하면" 절 추가(앱 변경 #85, `chromite/small-fixes-r3`): 다운로드를 취소하면 그 연결 시도를 끝냄(`DriverLoaderDescriptor.checkFilesPresence`).

@@ -102,6 +102,8 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-job-schedulers.md)
  * - 2026-11-08 삭제 확인은 삭제 / 취소, 지금 실행은 지금 실행 / 취소 단추(취소가 기본), 스크립트 미리 보기도 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-12 이벤트 상태 대화상자의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
+ *   낱말 가운데서 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 final class SchedulerCommands {
 
@@ -796,7 +798,7 @@ final class SchedulerCommands {
             case UNKNOWN -> SchedulerMessages.scheduler_event_status_unknown;
         };
         JPanel panel = new JPanel(new BorderLayout(0, 8));
-        JTextArea text = new JTextArea(stateText + "\n\n" + SchedulerMessages.scheduler_event_no_history); //$NON-NLS-1$
+        JTextArea text = new WrappingNote.MessageArea(stateText + "\n\n" + SchedulerMessages.scheduler_event_no_history); //$NON-NLS-1$
         text.setEditable(false);
         text.setOpaque(false);
         text.setLineWrap(true);

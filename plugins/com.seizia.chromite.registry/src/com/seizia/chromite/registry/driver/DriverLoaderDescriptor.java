@@ -64,6 +64,8 @@ import java.util.zip.ZipFile;
  * - 2026-11-08 로컬 파일 우선({@link #hasCustomLocalDriverClass}): 사용자가 추가한 로컬 라이브러리에 드라이버 클래스가 있으면
  *   plugin.xml의 기본 다운로드 항목(Maven 등)을 내려받지도, 클래스패스에 넣지도 않는다. 기본 Maven 항목 때문에 연결할 때마다
  *   다운로드를 묻고, 취소하면 로컬 jar가 있어도 "Class not found"로 끝나던 문제(Altibase 등, docs/chromite/drivers.md "로컬 파일 우선").
+ * - 2026-11-12 {@link #checkFilesPresence}: 연결 시도의 처음에 파일을 내려받지 않았으면(질문·다운로드 취소, 실패) 그 시도를 끝냄. 취소해도
+ *   드라이버 클래스를 읽는 단계마다 다시 물어 한 번의 연결에 질문이 세 번 떴다(앱 변경 #85, docs/chromite/drivers.md "내려받기를 취소하면")
  */
 public class DriverLoaderDescriptor implements DBPDriverLoader {
 
@@ -277,7 +279,23 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
     @NotNull
     @Override
     public List<Path> validateFilesPresence(@NotNull DBRProgressMonitor monitor) {
-        return validateFilesPresence(monitor, false, false);
+        List<Path> files = validateFilesPresence(monitor, false, false);
+        return files != null ? files : Collections.emptyList();
+    }
+
+    /**
+     * {@link #validateFilesPresence(DBRProgressMonitor)} at the start of a connection attempt: when the missing files
+     * were not downloaded (the user canceled the question or the download, or it failed), the attempt ends here.
+     * Otherwise each later step that loads the driver class (connection properties, the driver instance) asked again,
+     * and one attempt showed the question several times. In offline mode nothing is asked, and the class loading gives
+     * its own explanation, so this does not fail there.
+     *
+     * @throws DBException the driver files were not downloaded
+     */
+    public void checkFilesPresence(@NotNull DBRProgressMonitor monitor) throws DBException {
+        if (validateFilesPresence(monitor, false, false) == null && !DriverUtils.isOfflineMode()) {
+            throw new DBException(NLS.bind(RegistryMessages.driver_files_not_downloaded, driver.getFullName()));
+        }
     }
 
     @Override
@@ -299,7 +317,10 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
         return false;
     }
 
-    @NotNull
+    /**
+     * @return the library files, or null when the missing files were not downloaded
+     */
+    @Nullable
     private List<Path> validateFilesPresence(@NotNull DBRProgressMonitor monitor, boolean resetVersions, boolean isShowExpanded) {
         if (DBWorkbench.isDistributed()) {
             // We are in distributed mode
@@ -309,7 +330,7 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
 
         // don't download driver libraries in web application
         if (!application.isMultiuser() && !downloadDriverLibraries(monitor, resetVersions, isShowExpanded)) {
-            return Collections.emptyList();
+            return null;
         }
 
         List<Path> result = new ArrayList<>();

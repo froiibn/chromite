@@ -625,6 +625,35 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   `OptionsForm` 행의 회색 설명은 한 줄 라벨 그대로다(지금 잘리는 것 없음. 행이 좁으면 컨트롤을 아래로 내림).
 - 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\b-options-hints.png`.
 
+### 메시지 대화상자도 같은 줄 바꿈 (2026-11-12, 앱 변경 #82, `chromite/small-fixes-r3`)
+
+- **결함(#242 검토):** SSH 호스트 키 질문에서 "…입니 / 다.", "넣 / 으십시오."처럼 한국어 낱말 가운데서 줄이 바뀌었다. 같은 질문을 재현하면
+  "연결할까 / 요?", "바뀌 / 었을", "않았 / 습니다"였다.
+- **근본 원인:** 메시지·확인·경고·오류 대화상자의 글은 `SwingPlatformUI.createMessageComponent`가 만드는 `JTextArea`(줄 바꿈 + 낱말 단위)다.
+  Swing의 줄 바꿈 보기(`WrappedPlainView`)는 줄 나눔 위치를 `BreakIterator`로 찾아 한글 음절 사이 어디서나 끊는다. `WrappingNote`가 고친 것과 같은 원인이다.
+- **고침(구현 하나):** `WrappingNote`의 줄 끝 규칙을 `WrappingNote.breakOffset`으로 떼어 `wrap`과 새 `WrappingNote.MessageArea`가 함께 쓴다.
+  `MessageArea`는 평범한 읽기 전용 `JTextArea`(포커스·선택·복사 그대로)이고, 테마의 글 상자 UI(`FlatTextAreaUI`)에 줄 바꿈 보기만 바꿔 넣는다
+  (`WrappedPlainView.calculateBreakPosition`이 `breakOffset`을 부름). 양방향·복합 글(문서의 `i18n` 속성)은 Swing 보기 그대로 둔다.
+  줄 하나보다 넓은 낱말(파일 경로, SQL, URL)만 글자 사이에서 끊으므로 잘리지 않는다.
+  이 보기는 글 상자가 낱말 단위로 줄을 바꿀 때(`lineWrap`과 `wrapStyleWord`)만 쓴다(#82 검토 후속). 줄을 바꾸지 않으면 Swing의 `PlainView`,
+  글자 단위로 바꾸면 Swing의 `WrappedPlainView` 그대로다. 두 속성이 바뀌면 기본 UI가 보기를 다시 만들므로(`BasicTextAreaUI.propertyChange` →
+  `modelChanged`) 선택도 따라간다. 확인: 새 `MessageArea` → `PlainView`, `lineWrap`만 켬 → `WrappedPlainView`, 둘 다 켬 → `SpaceWrappedView`,
+  `lineWrap` 끔 → `PlainView`, `createMessageComponent`의 글 → `SpaceWrappedView`. 복사는 글 상자의 전송 처리기로 별도 클립보드 객체에 해서 확인했다
+  (`D:\Tools\_scratch\small-fixes-r3\sheets\82-followup-view-check.log.txt`).
+- **바꾼 곳:** `SwingPlatformUI.createMessageComponent`(메시지·확인·경고·오류 대화상자, JSch·SSHJ 질문, SQL 확인, 오류 대화상자 `ErrorDialog`,
+  실행 제한·변경 제한 안내 등 이 메서드를 쓰는 모든 곳), `MaintenanceDialog`의 실행 확인 글, `SchedulerCommands`의 이벤트 상태 대화상자 글,
+  `DriverBundleCreateDialog.createHint`(드라이버 묶음 만들기·설치 대화상자의 안내).
+- **보고 그대로 둔 곳(이유):** `AiConfirmationDialog`는 줄을 바꾸지 않는 한 줄 라벨이다(이 결함 없음). HTML 라벨로 접는 안내(`ConnectionExportDialog`,
+  `ConnectionImportDialog`, `ConnectionTransferCommands`, `ConnectionShellCommandsPage`, `SwingShellCommandsService`, `ResultSetExport`, `SettingsExportDialog`,
+  `SettingsImportDialog`)는 같은 원인으로 한국어를 끊을 수 있지만 대화상자의 메시지 영역이 아니라 대화상자마다 배치를 바꿔야 해서 이번 범위 밖이다.
+  대화상자 밖의 글(`NotificationToast`, `AccessNoticeBar`, `DiskUsagePanel`, Chromite Agent 패널의 오류·안내, `AiOptionsPage` 경고), 로그·메시지 창
+  (`DatabaseTaskDialog`, `MaintenanceDialog`의 메시지, `ExecutionTracePanel`, `ProcedureDebuggerPanel`, `ServerLogPanel`, `AgentJobHistoryPanel`), 마법사 요약,
+  편집 칸(입력, 식, 설명 편집), 라이선스 원문, `DataTransferWizard`의 오류 칸도 그대로다. 도구 설명은 Swing 기본(HTML)이며 바꾸지 않았다.
+- **확인(이 브랜치 빌드, 한국어 150%·영어 100%):** 호스트 키 확인 질문 "… 계속 / 연결할까요?", 경고 "… 방금 / 바뀌었을 수 있습니다", "연결하지 /
+  않았습니다", 긴 경로는 줄보다 넓어서만 글자 사이에서 끊김, 오류 대화상자의 긴 jar 경로도 잘리지 않음. 글 선택·복사 그대로(선택한 글이 클립보드에 들어감).
+  비교 `D:\Tools\_scratch\small-fixes-r3\sheets\82-message-wrapping-ko150.png`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 "바꾼 곳"의
+  모든 대화상자 글의 줄 바꿈과 높이, `WrappingNote`를 쓰는 안내(규칙은 같고 구현만 나눔).
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -1107,3 +1136,5 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | macOS Mouse | `macos.tooltip.delay.enabled` | 효과 없음(읽는 곳 없음) |
 - 2026-11-12 MCP 서버 설명과 템플릿 안내를 줄 바꾸는 글(`WrappingNote`)로(앱 변경 #71 b, `chromite/visual-recheck-fixes`), 위 "잘리던 한 줄 안내". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 `WrappingNote`는 공백에서만 줄을 바꿈(한국어 낱말 가운데서 끊던 것, #71 검토 후속), 위 "잘리던 한 줄 안내"의 "줄 바꾸는 자리". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 메시지 대화상자의 글도 같은 줄 바꿈(`WrappingNote.breakOffset`, `MessageArea`, 앱 변경 #82, `chromite/small-fixes-r3`), 위 "메시지 대화상자도 같은 줄 바꿈". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 #82 검토 후속: `MessageArea`는 낱말 단위로 줄을 바꿀 때만 줄 바꿈 보기를 씀(`lineWrap`이 꺼져 있으면 Swing 보기 그대로), 위 "메시지 대화상자도 같은 줄 바꿈". 회귀 테스트는 실행하지 않았다.

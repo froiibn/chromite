@@ -17,16 +17,17 @@
 package com.seizia.chromite.ext.oracle.sql;
 
 import org.jkiss.code.NotNull;
+import com.seizia.chromite.model.sql.parser.rules.SQLSlashLineRule;
 import com.seizia.chromite.model.sql.parser.tokens.SQLControlToken;
-import com.seizia.chromite.model.sql.parser.tokens.SQLDelimiterToken;
 import com.seizia.chromite.model.text.parser.TPCharacterScanner;
 import com.seizia.chromite.model.text.parser.TPRule;
 import com.seizia.chromite.model.text.parser.TPToken;
 import com.seizia.chromite.model.text.parser.TPTokenAbstract;
 
 /**
- * Lines of an Oracle script that belong to SQL*Plus, not to the server: a SQL*Plus command line becomes a control token
- * (run on the client by {@link OracleSqlPlusCommandHandler}), a line with only {@code /} ends the statement before it.
+ * SQL*Plus command lines of an Oracle script, which belong to the client, not to the server: such a line becomes a
+ * control token (run on the client by {@link OracleSqlPlusCommandHandler}). A line with only {@code /} is
+ * {@link SQLSlashLineRule}'s, next to this rule in {@link OracleDialectRules}.
  *
  * 설계:
  * <ul>
@@ -36,14 +37,13 @@ import com.seizia.chromite.model.text.parser.TPTokenAbstract;
  *     줄을 읽은 뒤 명령이 아니면({@link OracleSqlPlus#parse}) 읽은 글자를 모두 되돌린다.</li>
  *     <li>앞 줄이 {@code ,}나 {@code (}로 끝나면 문장이 이어지는 줄이라 명령으로 보지 않는다({@code SELECT a,} 다음 줄의 열 이름
  *     {@code prompt}). 명령 모양인 줄에서만 앞을 거꾸로 읽으므로 비용이 작다.</li>
- *     <li>{@code /}만 있는 줄은 SQL*Plus에서 버퍼를 실행하는 줄이다. 이 줄을 문장 구분자 토큰으로 돌려주면 앞 문장이 세미콜론 없이도
- *     끝나고({@code SELECT … FROM dual} 다음 줄 {@code /}), PL/SQL 블록 뒤의 {@code /}는 빈 문장이 되어 버려진다. 전에는 {@code /}가
- *     다음 문장의 첫 글자가 되어 그 문장이 오류였다. Altibase처럼 방언의 문장 구분자에 {@code /}를 넣으면 나눗셈({@code 4/2})에서도
- *     문장이 끊기므로 줄 단위 규칙으로 한다.</li>
+ *     <li>{@code /}만 있는 줄(SQL*Plus에서 버퍼를 실행하는 줄)은 Altibase iSQL에도 있어서 두 방언이 함께 쓰는 {@link SQLSlashLineRule}이
+ *     맡는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-11 최초 작성: Oracle 쿼리 창의 SQL*Plus 명령 (앱 변경 #46, docs/chromite/oracle-sqlplus-commands.md)
+ * - 2026-11-12 {@code /}만 있는 줄의 처리를 {@link SQLSlashLineRule}로 옮김: Altibase도 같은 규칙을 쓴다(앱 변경 #80)
  */
 class OracleSqlPlusRule implements TPRule {
 
@@ -53,7 +53,6 @@ class OracleSqlPlusRule implements TPRule {
     static final String COMMAND_ID = "oracle.sqlplus"; //$NON-NLS-1$
 
     private final TPToken commandToken = new SQLControlToken(COMMAND_ID);
-    private final TPToken delimiterToken = new SQLDelimiterToken();
 
     @NotNull
     @Override
@@ -66,8 +65,8 @@ class OracleSqlPlusRule implements TPRule {
             scanner.unread();
             return TPTokenAbstract.UNDEFINED;
         }
-        // The first letters of SET, PROMPT, EXEC and SPOOL, and the lone slash
-        if ("SsPpEe/".indexOf(first) < 0) {
+        // The first letters of SET, PROMPT, EXEC and SPOOL
+        if ("SsPpEe".indexOf(first) < 0) {
             scanner.unread();
             return TPTokenAbstract.UNDEFINED;
         }
@@ -83,11 +82,7 @@ class OracleSqlPlusRule implements TPRule {
             }
             line.append((char) c);
         }
-        if (first == '/') {
-            if (line.toString().strip().equals("/")) {
-                return delimiterToken;
-            }
-        } else if (OracleSqlPlus.parse(line.toString()) != null && !continuesStatement(scanner, read)) {
+        if (OracleSqlPlus.parse(line.toString()) != null && !continuesStatement(scanner, read)) {
             return commandToken;
         }
         for (int i = 0; i < read; i++) {

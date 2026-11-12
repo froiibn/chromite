@@ -23,6 +23,10 @@ import com.seizia.chromite.model.struct.DBSObjectType;
 
 /**
  * OracleDataSourceInfo
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 여러 결과를 지원한다고 알림({@link #supportsMultipleResults}): 블록의 둘째 암시적 결과(DBMS_SQL.RETURN_RESULT)가
+ *   보이지 않았다(앱 변경 #84, docs/chromite/sql-batch-errors.md "Oracle 암시적 결과")
  */
 class OracleDataSourceInfo extends JDBCDataSourceInfo {
 
@@ -38,6 +42,15 @@ class OracleDataSourceInfo extends JDBCDataSourceInfo {
     @Override
     public boolean needsTableMetaForColumnResolution() {
         return false;
+    }
+
+    /**
+     * Implicit results ({@code DBMS_SQL.RETURN_RESULT}, Oracle 12c and later) come one after another through
+     * {@code getMoreResults}, as the results of a SQL Server batch do.
+     */
+    @Override
+    public boolean supportsMultipleResults() {
+        return true;
     }
 
 }
