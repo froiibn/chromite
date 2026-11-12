@@ -56,6 +56,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * TaskManagerImpl
+ *
+ * 변경 이력(Chromite):
+ * - 2026-11-12 작업의 앱 안 예약을 tasks.json의 {@code schedule}에 읽고 씀(없으면 쓰지 않음) (앱 변경 #104, docs/chromite/task-scheduling.md "저장")
  */
 public class TaskManagerImpl implements DBTTaskManager {
 
@@ -440,6 +443,7 @@ public class TaskManagerImpl implements DBTTaskManager {
                     );
 
                     taskConfig.setMaxExecutionTime(maxExecutionTime);
+                    taskConfig.setSchedule(JSONUtils.deserializeStringMap(taskJSON, TaskConstants.TAG_SCHEDULE));
 
                     if (taskFolder != null) {
                         taskFolder.addTaskToFolder(taskConfig);
@@ -580,6 +584,7 @@ public class TaskManagerImpl implements DBTTaskManager {
                 JSONUtils.field(jsonWriter, TaskConstants.TAG_MAX_EXEC_TIME, task.getMaxExecutionTime().toSeconds());
             }
             JSONUtils.serializeProperties(jsonWriter, TaskConstants.TAG_STATE, task.getProperties(), true);
+            JSONUtils.serializeProperties(jsonWriter, TaskConstants.TAG_SCHEDULE, task.getSchedule());
             jsonWriter.endObject();
         }
         jsonWriter.endObject();

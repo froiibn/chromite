@@ -395,11 +395,14 @@ Parameters 열 폭(2026-11-12, 앱 변경 #81): 표가 목록 폭을 두 열에 
 
 ### 스케줄러 (`QueryScheduler`)
 
+- 2026-11-12부터 저장된 작업 예약과 **스케줄러 하나**를 쓴다([task-scheduling.md](task-scheduling.md)): 시각 규칙(간격·매일·평일, 다음 시각, 사용 여부, 파일 키)은
+  `ScheduleTiming`(`QueryLibrarySchedule`이 상속), 타이머·겹침 건너뛰기·일시 정지·시작과 정지는 `RunScheduler`이고, `QueryScheduler`는 쿼리 항목이
+  무엇을 실행하고 어떻게 기록하는지만 정한다. 시작과 정지는 Query Library 창이 아니라 메인 창이 한다. 아래 동작은 그대로다.
 - 데몬 스레드 하나의 타이머(`ScheduledExecutorService`, 15초 간격)가 다음 실행 시각이 지난 예약을 고르고, 실행은 쿼리마다 `AbstractJob` 하나로 한다(EDT 아님).
 - 같은 쿼리의 앞 실행이 아직 돌면 이번 실행은 건너뛰고 로그와 기록(`SKIPPED`)에 남긴다(겹쳐 돌지 않음).
 - 예약 목록은 라이브러리를 읽을 때마다(시작, Refresh, 저장) 바뀐다. 다음 실행 시각은 지금 이후의 첫 시각이고, 간격 예약은 기록의 마지막 실행 시각에 맞춰 이어 간다.
   **꺼져 있던 동안 놓친 실행은 몰아서 하지 않는다.** 일시 정지한 예약은 다음 시각을 계속 미래로 옮겨, 다시 시작해도 바로 실행되지 않는다.
-- 메인 창을 닫으면(`MainFrame.dispose` → `QueryLibraryPanel.dispose`) 타이머를 멈추고 돌고 있는 실행을 취소한다. 다음 시작 때 라이브러리를 읽으면 다시 돈다.
+- 메인 창을 닫으면(`MainFrame.dispose` → `RunScheduler.stop`) 타이머를 멈추고 돌고 있는 실행을 취소한다. 다음 시작 때 라이브러리를 읽으면 다시 돈다.
 - 실행: 쿼리 창 없이 같은 엔진(`SQLQueryExecuteJob`, `SQLScriptBatches`로 GO 배치)과 같은 바인딩(`QueryParameterBinder`)을 쓴다. 대상마다 차례로 실행한다.
   - 실행마다 **격리된 실행 문맥**(`DBSInstance.openIsolatedContext`, 연결 하나)을 열고 끝나면 닫는다. 처음에는 쿼리 창과 같은 기본 문맥을 썼는데,
     80초 걸리는 예약 쿼리 뒤에 다른 예약 쿼리가 줄을 서서 다음 분에 건너뛰어졌다(2026-11-06 확인). 기본 문맥을 같이 쓰면 쿼리 창도 막히고,
@@ -671,3 +674,5 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
   연결이 쓰지 않는 칸은 끔). "머리말 저장 단추", "머리말 DB/스키마 목록".
 - 2026-11-08 기본 배치(앱 변경 #12): Query Library가 처음부터 보이고 오른쪽 열 위, 아래는 Chromite Agent, Properties는 숨김. "열기"에 표시(`chromite/ui-layout`).
 - 2026-11-12 예약 대화상자 Parameters 목록의 열 폭을 머리글·값의 폭으로(앱 변경 #81, `chromite/small-fixes-r3`). "예약 실행".
+- 2026-11-12 저장된 작업 예약과 스케줄러 하나(앱 변경 #104, `chromite/task-scheduling`): 시각 규칙을 `ScheduleTiming`, 타이머를 `RunScheduler`로 옮김,
+  시작·정지는 메인 창, Schedule…의 When 칸은 작업 예약 대화상자와 같은 부품(`ScheduleWhenPanel`). 쿼리 예약의 동작과 파일 형식은 그대로. "스케줄러".

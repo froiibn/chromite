@@ -89,6 +89,7 @@
 | `connectDialog.recentDrivers`, `connectDialog.serverHistory.*`, `sqlEditor.recentFiles` | `ConnectionHistory`, `RecentFiles` | 최근 기록 |
 | `resultset.lob.lastFolder`, `dataTransfer.export.folder`, `queryLibrary.roots`, `ui.drivers.home`, `qm.logDirectory`, `fallbackOutputDirectory` | 각 화면, 모델 | 이 PC의 폴더 경로 |
 | `queryLibrary.lastValues.*`, `queryLibrary.schedule.active.*`, `queryLibrary.alert.*` | `QueryLibraryState` | 설계상 PC마다 두는 값(마지막 매개변수 값, 이 PC에서 예약 실행할지, 경고 상태) |
+| `databaseTasks.schedule.active.*` | `TaskScheduler` | 저장된 작업의 일정을 이 PC에서 돌릴지(2026-11-12, [task-scheduling.md](task-scheduling.md)) |
 
 - 키를 가진 클래스는 상수를 `private`으로 둔다. 다른 클래스 10개의 접근 범위를 바꾸지 않으려고(최소 변경) 키 글자를 한 곳에 주인 이름과 함께 적었다.
 - 연결 하나에만 둔 설정(연결 대화상자의 연결별 설정, `data-sources.json`의 `custom-properties`)은 연결 설정의 일부라 "연결"을 고를 때만 간다(브리프: 연결별 설정은 고를 때만).
@@ -218,3 +219,4 @@
 ## 변경 이력
 
 - 2026-11-08 최초 작성: File > Export Settings / Import Settings / Undo Settings Import, 파일 형식 버전 1, 미리 보기와 충돌, 백업과 되돌리기(감사 A-C14)
+- 2026-11-12 `databaseTasks.schedule.active.*`(저장된 작업 일정을 이 PC에서 돌릴지)를 이 PC의 상태 키에 더함(앱 변경 #104, [task-scheduling.md](task-scheduling.md)).

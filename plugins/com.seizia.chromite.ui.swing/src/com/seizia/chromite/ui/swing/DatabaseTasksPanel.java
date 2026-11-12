@@ -57,6 +57,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -92,6 +94,9 @@ import java.util.Set;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 데이터 전송·SQL 스크립트 작업 편집, 새 SQL 스크립트 작업, 실행 확인의 작업 내용, 그 작업들의 연결 열
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
+ * - 2026-11-12 예약 실행(앱 변경 #104, docs/chromite/task-scheduling.md "화면"): 일정 명령({@link TaskScheduleDialog}), 일정·다음 실행 열
+ *   (놓친 시각, 건너뛴 실행, 이 PC에서 돌지 않는 이유), 마지막 결과에 예약 실행 표시, 아래에 사용 중인 일정 수와 다음 실행. 예약 실행이 도는 동안도
+ *   실행 중으로 보고 실행·삭제를 막는다. 실행 확인의 작업 내용({@link #describeRun})과 오류 문구({@link #describeError})는 예약 쪽도 씀
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  */
 final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
@@ -100,6 +105,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
 
     // The log viewer reads at most the end of a long log
     private static final int MAX_LOG_CHARS = 1_000_000;
+    private static final DateTimeFormatter SHORT_TIME = DateTimeFormatter.ofPattern("MM-dd HH:mm"); //$NON-NLS-1$
 
     private final TasksModel model = new TasksModel();
     private final JTable table = new JTable(model);
@@ -113,6 +119,9 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
     private final Action deleteAction;
     private final Action refreshAction;
     private final Action newScriptAction;
+    private final Action scheduleAction;
+    private final JLabel scheduleStatus = new JLabel();
+    private final Runnable schedulerListener = this::schedulesChanged;
     @Nullable
     private DBTTaskManager listenedManager;
 
@@ -126,6 +135,8 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         showLogAction = createAction(DatabaseTasksMessages.tasks_show_log, DatabaseTasksMessages.tasks_show_log_tip, this::showLog);
         deleteAction = createAction(DatabaseTasksMessages.tasks_delete, DatabaseTasksMessages.tasks_delete_tip, this::deleteSelected);
         refreshAction = createAction(DatabaseTasksMessages.tasks_refresh, DatabaseTasksMessages.tasks_refresh_tip, this::reload);
+        // The tool bar tooltip is the command's name (app change #103)
+        scheduleAction = createAction(DatabaseTasksMessages.tasks_schedule, DatabaseTasksMessages.tasks_schedule, this::scheduleSelected);
 
         JToolBar toolBar = new OverflowToolBar();
         toolBar.setOpaque(false);
@@ -136,6 +147,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         editButton.putClientProperty(UiIcons.DESCRIPTION_TIP, Boolean.TRUE);
         toolBar.add(editButton);
         toolBar.add(UiIcons.createActionButton(showLogAction, "history")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(scheduleAction, "schedule")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(newScriptAction, "new-query")); //$NON-NLS-1$
         // The table's F5 is not the action's accelerator: the tool tip names it
@@ -147,7 +159,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         table.setFillsViewportHeight(true);
         table.getSelectionModel().addListSelectionListener(e -> updateActions());
         // Name and last result first: the window opens in a narrow column; the rest scrolls sideways
-        int[] widths = {160, 200, 140, 120, 150, 80};
+        int[] widths = {160, 200, 140, 130, 150, 120, 150, 80};
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -192,6 +204,9 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         body.add(new JScrollPane(table), "table"); //$NON-NLS-1$
         body.add(emptyPanel, "empty"); //$NON-NLS-1$
         add(body, BorderLayout.CENTER);
+        scheduleStatus.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        scheduleStatus.setVisible(false);
+        add(scheduleStatus, BorderLayout.SOUTH);
         updateActions();
     }
 
@@ -216,11 +231,13 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
             manager.getRegistry().addTaskListener(this);
             listenedManager = manager;
         }
+        RunScheduler.getInstance().addListener(schedulerListener);
         reload();
     }
 
     @Override
     public void removeNotify() {
+        RunScheduler.getInstance().removeListener(schedulerListener);
         if (listenedManager != null) {
             listenedManager.getRegistry().removeTaskListener(this);
             listenedManager = null;
@@ -257,6 +274,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         }
         model.setTasks(tasks);
         cards.show(body, tasks.isEmpty() ? "empty" : "table"); //$NON-NLS-1$ //$NON-NLS-2$
+        updateScheduleStatus();
         if (selected != null) {
             int row = tasks.indexOf(selected);
             if (row >= 0) {
@@ -273,17 +291,57 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         return viewRow < 0 ? null : model.getTask(table.convertRowIndexToModel(viewRow));
     }
 
+    /**
+     * A scheduled run started or ended, or a schedule changed: the rows and the status line are drawn again (rows updated,
+     * not the table changed: that would clear the selection).
+     */
+    private void schedulesChanged() {
+        if (model.getRowCount() > 0) {
+            model.fireTableRowsUpdated(0, model.getRowCount() - 1);
+        }
+        updateScheduleStatus();
+        updateActions();
+    }
+
+    /**
+     * The line below the list: how many schedules are on here and which task runs next, or nothing.
+     */
+    private void updateScheduleStatus() {
+        int count = 0;
+        TaskScheduler.TaskEntry next = null;
+        for (TaskScheduler.TaskEntry entry : TaskScheduler.getInstance().getEntries()) {
+            if (entry.timing.isEnabled() && entry.isActive()) {
+                count++;
+                if (entry.nextRun != null && (next == null || entry.nextRun.isBefore(next.nextRun))) {
+                    next = entry;
+                }
+            }
+        }
+        scheduleStatus.setVisible(count > 0);
+        scheduleStatus.setText(next == null ? NLS.bind(DatabaseTasksMessages.tasks_schedule_status_none, count)
+            : NLS.bind(DatabaseTasksMessages.tasks_schedule_status, new Object[]{count, next.task.getName(), formatShort(next.nextRun)}));
+    }
+
+    private boolean isRunning(@NotNull DBTTask task) {
+        if (running.contains(task.getId())) {
+            return true;
+        }
+        TaskScheduler.TaskEntry entry = TaskScheduler.getInstance().getEntry(task);
+        return entry != null && entry.isRunning();
+    }
+
     private void updateActions() {
         DBTTask task = getSelectedTask();
         boolean selected = task != null;
-        runAction.setEnabled(selected && !running.contains(task.getId()));
+        scheduleAction.setEnabled(selected);
+        runAction.setEnabled(selected && !isRunning(task));
         editAction.setEnabled(selected && isEditable(task));
         // The reason on its own line below the name (app change #103: the tool tip had no name)
         editAction.putValue(Action.SHORT_DESCRIPTION, !selected || editAction.isEnabled() ? null
             : "<html>" + CommonUtils.escapeHtml(UiIcons.getTipName(editAction)) + "<br>" //$NON-NLS-1$ //$NON-NLS-2$
                 + CommonUtils.escapeHtml(NLS.bind(DatabaseTasksMessages.tasks_edit_unsupported, task.getType().getName())) + "</html>"); //$NON-NLS-1$
         showLogAction.setEnabled(selected && task.getLastRun() != null);
-        deleteAction.setEnabled(selected && !running.contains(task.getId()));
+        deleteAction.setEnabled(selected && !isRunning(task));
     }
 
     private void selectRowAt(@NotNull MouseEvent e) {
@@ -299,6 +357,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
             menu.add(runAction);
             menu.add(editAction);
             menu.add(showLogAction);
+            menu.add(scheduleAction);
             menu.addSeparator();
             menu.add(deleteAction);
             menu.addSeparator();
@@ -332,7 +391,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
      */
     private void runSelected() {
         DBTTask task = getSelectedTask();
-        if (task == null || running.contains(task.getId())) {
+        if (task == null || isRunning(task)) {
             return;
         }
         if (NativeBackupRestore.isNativeToolTask(task.getType())) {
@@ -406,7 +465,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
      * a missing file, a declined approval).
      */
     @NotNull
-    private static String describeError(@NotNull DBTTaskRun run) {
+    static String describeError(@NotNull DBTTaskRun run) {
         String message = CommonUtils.notEmpty(run.getErrorMessage());
         String stackTrace = run.getErrorStackTrace();
         if (stackTrace != null) {
@@ -430,7 +489,7 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
      * or null: a transfer that empties or recreates destination tables, the scripts of a script task and where they run.
      */
     @Nullable
-    private static String describeRun(@NotNull DBTTask task) {
+    static String describeRun(@NotNull DBTTask task) {
         if (DTSavedTasks.isTransferTask(task.getType())) {
             DTSavedTasks.TargetChanges changes = DTSavedTasks.getTargetChanges(task);
             List<String> lines = new ArrayList<>();
@@ -495,9 +554,21 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         }
     }
 
+    /**
+     * Schedule…: the schedule of the selected task (when, on or off, on this computer), turned on with the answers to what a
+     * hand run asks every time.
+     */
+    private void scheduleSelected() {
+        DBTTask task = getSelectedTask();
+        if (task != null) {
+            TaskScheduleDialog.open(this, task);
+            reload();
+        }
+    }
+
     private void deleteSelected() {
         DBTTask task = getSelectedTask();
-        if (task == null || running.contains(task.getId())) {
+        if (task == null || isRunning(task)) {
             return;
         }
         if (!SwingPlatformUI.confirmChange(this, NLS.bind(DatabaseTasksMessages.tasks_delete_confirm, task.getName()),
@@ -552,12 +623,67 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
         return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM).format(run.getStartTime());
     }
 
+    /**
+     * A schedule time in the list: "11-13 02:00".
+     */
+    @NotNull
+    static String formatShort(@NotNull LocalDateTime time) {
+        return SHORT_TIME.format(time);
+    }
+
+    /**
+     * The Schedule column: when it runs, and why it does not (off, not on this computer, a reason it can't run here).
+     */
+    @NotNull
+    private static String describeSchedule(@NotNull DBTTask task) {
+        ScheduleTiming timing = TaskScheduler.readTiming(task);
+        if (timing == null) {
+            return ""; //$NON-NLS-1$
+        }
+        String text = timing.describe();
+        if (!timing.isEnabled()) {
+            return NLS.bind(DatabaseTasksMessages.tasks_schedule_off, text);
+        }
+        if (!TaskScheduler.isActiveHere(task)) {
+            return NLS.bind(DatabaseTasksMessages.tasks_schedule_not_here, text);
+        }
+        String reason = TaskScheduler.getNotRunnableReason(task);
+        return reason == null ? text : NLS.bind(DatabaseTasksMessages.tasks_schedule_inactive, text, reason);
+    }
+
+    /**
+     * The Next Run column: the next time of an active schedule, then a missed or skipped time.
+     */
+    @NotNull
+    private static String describeNextRun(@NotNull DBTTask task) {
+        TaskScheduler.TaskEntry entry = TaskScheduler.getInstance().getEntry(task);
+        if (entry == null || !entry.timing.isEnabled()) {
+            return ""; //$NON-NLS-1$
+        }
+        List<String> parts = new ArrayList<>();
+        if (entry.isRunning()) {
+            parts.add(DatabaseTasksMessages.tasks_schedule_running);
+        } else if (entry.isActive() && entry.nextRun != null) {
+            parts.add(formatShort(entry.nextRun));
+        }
+        LocalDateTime missed = entry.getMissed(TaskScheduler.getInstance().getStartTime());
+        if (missed != null) {
+            parts.add(NLS.bind(DatabaseTasksMessages.tasks_schedule_missed, formatShort(missed)));
+        }
+        String note = entry.note;
+        if (note != null) {
+            parts.add(note);
+        }
+        return String.join(" · ", parts); //$NON-NLS-1$
+    }
+
     //////////////////////////////////////////////////////////
     // Table
 
     private final class TasksModel extends AbstractTableModel {
         private final String[] columns = {
             DatabaseTasksMessages.tasks_column_name, DatabaseTasksMessages.tasks_column_result, DatabaseTasksMessages.tasks_column_last_run,
+            DatabaseTasksMessages.tasks_column_schedule, DatabaseTasksMessages.tasks_column_next_run,
             DatabaseTasksMessages.tasks_column_connection, DatabaseTasksMessages.tasks_column_type, DatabaseTasksMessages.tasks_column_duration};
         private List<DBTTask> tasks = List.of();
 
@@ -594,23 +720,32 @@ final class DatabaseTasksPanel extends JPanel implements DBTTaskListener {
                 case 0 -> task.getName();
                 case 1 -> describeResult(task, run);
                 case 2 -> run == null ? "" : formatTime(run); //$NON-NLS-1$
-                case 3 -> {
+                case 3 -> describeSchedule(task);
+                case 4 -> describeNextRun(task);
+                case 5 -> {
                     DBPDataSourceContainer container = getTaskConnection(task);
                     yield container == null ? "" : container.getName(); //$NON-NLS-1$
                 }
-                case 4 -> task.getType().getName();
-                default -> run == null || running.contains(task.getId()) ? "" : RuntimeUtils.formatExecutionTime(run.getRunDuration()); //$NON-NLS-1$
+                case 6 -> task.getType().getName();
+                default -> run == null || isRunning(task) ? "" : RuntimeUtils.formatExecutionTime(run.getRunDuration()); //$NON-NLS-1$
             };
         }
 
         @NotNull
         private String describeResult(@NotNull DBTTask task, @Nullable DBTTaskRun run) {
-            if (running.contains(task.getId())) {
+            if (isRunning(task)) {
                 return DatabaseTasksMessages.tasks_result_running;
             }
             if (run == null) {
                 return DatabaseTasksMessages.tasks_result_never;
             }
+            String result = describeRunResult(run);
+            // A run by the scheduler is marked; a run by hand is not
+            return TaskScheduler.STARTED_BY.equals(run.getStartedBy()) ? NLS.bind(DatabaseTasksMessages.tasks_result_scheduled, result) : result;
+        }
+
+        @NotNull
+        private String describeRunResult(@NotNull DBTTaskRun run) {
             if (run.isRunSuccess()) {
                 return DatabaseTasksMessages.tasks_result_success;
             }

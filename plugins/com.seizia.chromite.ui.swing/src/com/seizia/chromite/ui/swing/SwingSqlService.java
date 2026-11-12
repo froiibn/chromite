@@ -42,6 +42,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: {@code @ai} 명령 실행 확인에 SQL을 보여 줌 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지 않고 실행이 실패한다(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingSqlService implements UIServiceSQL {
 
@@ -53,6 +54,7 @@ public class SwingSqlService implements UIServiceSQL {
         @NotNull DBPContextProvider contextProvider,
         boolean isWarning
     ) {
+        UnattendedRuns.refuseQuestion(title, message);
         return SqlConfirmDialog.confirm(null, title, message, queryText, isWarning);
     }
 

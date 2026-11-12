@@ -41,11 +41,13 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/connection-lifecycle.md "초기화 SQL과 SQLite 확장 승인")
+ * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지 않고 실행이 실패한다(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingSqliteExtensionConfirmation implements SQLiteExtensionConfirmation {
 
     @Override
     public boolean confirmExtensionLoading(@NotNull SQLiteExtensionSettings settings, boolean connecting) {
+        UnattendedRuns.refuseQuestion(settings.connectionName(), settings.url());
         Map<String, String> context = new LinkedHashMap<>();
         context.put(LifecycleMessages.approval_connection, settings.connectionName());
         context.put(LifecycleMessages.approval_url, settings.url());

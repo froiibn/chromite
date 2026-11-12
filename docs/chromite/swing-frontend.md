@@ -1884,7 +1884,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 
 ### 구성과 동작
 
-| 2줄 (│ = 구분선) | 연결 변경(2026-11-12 #74부터, 그 전에는 서버 표시, 처음에는 연결 ▾) │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+| 2줄 (│ = 구분선) | 연결 변경(2026-11-12 #74부터, 그 전에는 서버 표시, 처음에는 연결 ▾) │ DB/스키마 ▾ │ Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ Commit, Roll Back, 커밋 방식 │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL, 비교(2026-11-12 #105, [text-compare.md](text-compare.md)) │ Query History |
 |---|---|
 
 (2026-11-08 순서: 콤보가 맨 앞이다. 아래 "콤보를 맨 앞으로, 연결 콤보 220" 참고. Commit·Roll Back·커밋 방식은 [transactions.md](transactions.md).)
@@ -1894,6 +1894,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   창의 연결이 실제 계획을 주지 않으면(SQL Server·Oracle·Altibase 밖, 연결된 뒤 판단) Actual Plan은 꺼지고 도구 설명이 이유를 말한다
   ([swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실제 계획 토글을 Altibase·Oracle로").
 - **쿼리 창이 아닐 때:** 활성 문서가 테이블 디자이너·ER 다이어그램·도구 문서·DDL 탭이거나 문서가 없으면 2줄은 보인 채 모든 컨트롤이 꺼진다(SSMS).
+  비교 단추만은 활성 창이 아니라 글이 있는 열린 창 수(둘 이상이면 켜짐)를 따른다.
   DB 콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다(2026-11-12 #74까지는 서버 표시 자리의 빈 칸도).
 - **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획, macOS ⇧⌘M)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
   편집 명령의 키(Ctrl+K Ctrl+C 등)는 편집 영역이 직접 받는다.
@@ -3724,3 +3725,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
   `ChromitePopupMenuSeparatorUI`), 보기·도구·편집 > 고급에 구분선. 기본 밀도의 간격은 그대로. "메뉴 간격과 구분선" 절. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 아이콘 단추의 도구 설명(앱 변경 #103, `chromite/icon-tooltips`): 설명문 대신 메뉴·창 제목과 같은 이름과 단축키(`UiIcons`), 꺼진 이유·상태는 둠,
   도구 설명에만 쓰던 키 51개 삭제. "아이콘 단추의 도구 설명" 절. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 SQL Editor 도구 막대의 Format SQL 옆 비교 단추(앱 변경 #105, `chromite/text-compare`): 열린 두 창의 글을 나란히 비교하는 문서 탭, [text-compare.md](text-compare.md). 회귀 테스트는 실행하지 않았다.
