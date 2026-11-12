@@ -411,7 +411,7 @@ SQL 스크립트 작업(`SQLScriptProcessor`)은 모든 문장을 다시 실행�
 | MariaDB 수동 커밋, INSERT(`md`) 뒤 `ALTER TABLE big … ALGORITHM=COPY`를 끊음 | (596 분류와 무관, 08000) | "서버가 세션과 함께 롤백했습니다"(틀림) | "트랜잭션은 세션과 함께 끝났고, 이 쿼리가 그 일부를 커밋했는지는 알 수 없습니다", 다른 세션에서 `md` **1행**(DDL 전의 암묵적 커밋) |
 | SQL Server M2b(KILL), M8(08S01), M7, 경우 3 | — | 1행, 1행, 다시 실행, "롤백했습니다" | 1행, 1행, 다시 실행(Messages 줄), 경우 3은 배치(`WAITFOR`+`SELECT`)라 "커밋했는지 알 수 없습니다", `m3` 0행 |
 
-증거 `runix-pg-maria.out`, `runix-ms.out`, `run	*.txt.log`. 알림 창은 시험 코드로 읽지 못해 앱 로그(`.log`의 `SwingIdleTransactionService` 줄)로 확인했다.
+증거 `D:\Tools\_scratch\transfer-lost-connection\run\`의 `fix-pg-maria.out`, `fix-ms.out`, `t*.txt.log`. 알림 창은 시험 코드로 읽지 못해 앱 로그(`.log`의 `SwingIdleTransactionService` 줄)로 확인했다.
 
 ### `tryExecuteRecover` 호출 전수 확인
 
@@ -572,4 +572,4 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
   다시 실행하지 않을 때의 문구와 세션 다시 열기, 쓰는 저장은 다시 연결만, `tryExecuteRecover` 호출 전수 확인. 위 "끊긴 세션의 쿼리 창" 확인 표의 "C에서
   `SELECT 4`"(열린 트랜잭션이 있는 세션의 읽기)는 이제 다시 실행하지 않고 알림과 오류로 끝난다
 - 2026-11-12 "연결이 끊긴 쿼리" 고침(앱 변경 #86 검토): 허용 목록은 연결 끊김에만, 중단된 트랜잭션(25P02) 복구는 devel 그대로, 다시 열기는 자동 복구 설정을 따름,
-  열린 트랜잭션의 "롤백했다"는 확실할 때만, 세션 끊김 알림 문구
+  열린 트랜잭션의 "롤백했다"는 확실할 때만, 세션 끊김 알림 문구. 취소한 실행은 복구가 다시 부르지 않게 함(`DBExecUtils.preventRecovery`, 코드 검토로 고침, 실행해 확인하지 않음)

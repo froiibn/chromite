@@ -81,6 +81,8 @@ import java.util.Set;
  *   거치지 않아 서버가 중단한 트랜잭션(PostgreSQL 25P02)의 롤백·다시 실행(또는 멈춤과 알림)이 사라졌다. 다시 실행했다는 알림은 연결이
  *   끊긴 뒤의 다시 실행에만. 세션 다시 열기는 연결의 자동 복구 설정을 따른다. 열린 트랜잭션이 있었을 때 "롤백했다"는 그 문장이 스스로
  *   커밋할 수 없는 한 문장(SELECT·INSERT·UPDATE·DELETE·MERGE)일 때만, 나머지(DDL, 배치, 블록, 프로시저 호출)는 "커밋했는지 알 수 없다"
+ * - 2026-11-12 취소한 실행은 다시 실행하지 않음({@code DBExecUtils.preventRecovery}): 복구는 취소된 실행의 다시 연결만 건너뛰고 실행 함수는
+ *   다시 불렀다. 그 사이 세션이 다시 열리면(연결 확인 작업) 허용 목록 밖의 문장도 다시 보내질 수 있었다 (검토에서 고침)
  */
 public final class SQLQueryRecovery {
 
@@ -187,8 +189,10 @@ public final class SQLQueryRecovery {
                 execution.run(param);
             } catch (Throwable e) {
                 Throwable error = unwrap(e);
-                if (!session.getProgressMonitor().isCanceled()
-                    && DBExecUtils.discoverErrorType(session.getDataSource(), error) == DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
+                if (session.getProgressMonitor().isCanceled()) {
+                    // A canceled run is never repeated: the recovery skips its reconnect for it but would call this again
+                    DBExecUtils.preventRecovery();
+                } else if (DBExecUtils.discoverErrorType(session.getDataSource(), error) == DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
                     if (!mayRunAgain) {
                         throw notRunAgain(session, query, attempt, error);
                     }
