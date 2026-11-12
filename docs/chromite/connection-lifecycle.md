@@ -109,6 +109,32 @@ SWT `DesktopUI.showDatabaseError`는 모델이 `showError`로 넘긴 오류의 �
   이 대화상자가 뜨는 곳은 모델이 `showError`를 부르는 곳이다: Object Explorer 읽기 오류, 연결 Job 오류, 데이터 전송·작업 오류 등.
 - 드라이버 라이선스 오류를 만드는 코드(`new DBCDriverLicenseException`)는 지금 저장소에 없다(검색 0). 상용 드라이버 쪽에서 올 수 있어 SWT처럼 처리만 두었다.
 
+## 끊긴 세션의 오류 분류 (2026-11-12, 앱 변경 #75)
+
+연결 끊김(`DBPErrorAssistant.ErrorType.CONNECTION_LOST`)은 각 DB의 데이터 소스가 `discoverErrorType`에서 정한다. 기본(`JDBCDataSource`)은 SQLState
+08000·08003·08006·08007·08S01과 소켓 오류다. 이 분류를 보고 실행 복구(`DBExecUtils.tryExecuteRecover`)가 다시 연결하고, 끊긴 세션 처리
+(`TransactionRecoveryGuard`)와 연결 끊김 대화상자, 데이터 전송의 "결과를 모르는 문장" 판단([swing-data-transfer.md](swing-data-transfer.md) "연결이 끊긴 넣기")이 움직인다.
+
+번들 DB에서 다른 세션이 내 세션을 끊었을 때 드라이버가 실제로 내는 오류(2026-11-12, 공용 시험 VM, 시험용 JDBC 프로그램이 자기 세션 id만 끊음,
+증거 `D:\Tools\_scratch\transfer-lost-connection\probe\`):
+
+| DB(끊는 문장) | 실행 중인 문장의 오류 | 쉬던 세션의 다음 문장·그 뒤 | 분류(전 → 후) |
+|---|---|---|---|
+| SQL Server 2022(`KILL`), mssql-jdbc 13.4 | **596 "Cannot continue the execution because the session is in the kill state"(S0001)**, 일괄 실행도 같음 | 08S01 "연결이 닫혔습니다" | 596: 일반 → **연결 끊김**. 08S01은 전부터 연결 끊김 |
+| PostgreSQL 17(`pg_terminate_backend`), PgJDBC | 57P01 "terminating connection due to administrator command"(일괄 실행은 `BatchUpdateException` 57P01, 다음 예외 08006) | 57P01, 그 뒤 08003 | 전부터 연결 끊김(57P01은 `PostgreDataSource`) |
+| MariaDB 11(`KILL CONNECTION`), MariaDB Connector/J 3.5 | 08000 "Socket error" | 08000 "Connection is closed" | 전부터 연결 끊김 |
+| MySQL 8.4(`KILL CONNECTION`), Connector/J 9.7 | 08S01 "Communications link failure" | 08003 | 전부터 연결 끊김 |
+| Oracle 26ai Free(`ALTER SYSTEM KILL SESSION … IMMEDIATE`), ojdbc11 23.2 | ORA-00028 "세션이 종료되었습니다"(`SQLRecoverableException`, SQLState 08006) | 08000(ORA-17410), 그 뒤 08003(ORA-17008) | 전부터 연결 끊김 |
+| Altibase 7.3(`ALTER DATABASE mydb SESSION CLOSE`), Altibase JDBC | **4163 "The session has been closed by the server"(SQLState 08004)** | 08S01 "Communication link failure" | 4163: 일반 → **연결 끊김** |
+
+- 고친 곳: `SQLServerDataSource.discoverErrorType`(`SQLServerConstants.EC_SESSION_KILLED`), `AltibaseDataSource.discoverErrorType`(`AltibaseConstants.EC_SESSION_CLOSED`).
+  각 DB의 분류 자리에서 고쳤고 데이터 전송에 따로 둔 예외는 없다.
+- SQL Server는 바깥 오류의 코드만 본다(`SQLState.getCodeFromException`, 2026-11-08 "로그인 오류가 아니면 `getNextException()` 사슬을 읽지 않음"과 같은 이유).
+  596은 드라이버가 첫 예외로 준다. Altibase는 원인과 다음 예외 사슬을 모두 본다(`JDBCUtils.matchesSQLException`).
+- SQLState 08004는 표준에서 "서버가 연결을 거부함"(연결할 때)이라 기본 분류에 넣지 않고 Altibase의 코드로만 정했다.
+- 고치기 전에는 596이 일반 오류라 자동 복구가 없었다. 고친 뒤에는 다른 DB처럼 복구 경로를 탄다. 데이터 전송은 그 복구가 결과를 모르는 문장을 다시 보내지
+  않게 함께 고쳤다(앞 링크).
+
 ## 끝낼 때 실행 중인 작업
 
 SWT는 끝낼 때 작업 관리자의 실행 중인 작업을 취소할지 물었다(`ApplicationWorkbenchAdvisor.cancelRunningTasks`). Swing은 묻지 않고 닫았고, 실행 중인 쿼리·내보내기는
@@ -256,3 +282,5 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 - 2026-11-08 B-S18(실행 중 커밋 방식 전환)을 [transactions.md](transactions.md) "커밋 방식 전환"에서 더해 범위 밖 줄을 고치고 남은 일에서 뺌
 - 2026-11-11 다른 연결 끊기·모두 연결 끊기를 Registered Servers에서 Object Explorer 연결 메뉴로 옮기고 그룹 연결 끊기는 없앰(앱 변경 #48, `chromite/servers-tree`)
 - 2026-11-12 닫기 경로 표의 쿼리 창 줄에 연결 변경(앱 변경 #73, `chromite/change-connection`)
+- 2026-11-12 끊긴 세션의 오류 분류: 번들 DB 여섯 가지가 끊긴 세션에 내는 오류를 재고, SQL Server 596과 Altibase 4163을 연결 끊김으로
+  (앱 변경 #75, `chromite/transfer-lost-connection`)
