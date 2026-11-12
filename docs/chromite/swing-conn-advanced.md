@@ -282,8 +282,13 @@ SSMS "연결 속성 &gt; 데이터베이스에 연결: &lt;서버 찾아보기&g
   로그인의 기본 DB다(SQL Server·MySQL. PostgreSQL은 새 연결에 `postgres`를 채운다). 도구 설명이 이것을 알린다.
 - **목록 읽기**: 목록을 펼치면 대화상자의 값으로 Test Connection과 같은 임시 연결(`ConnectionDialog.createTestDataSource`: 새 ID, 임시, 메타데이터 연결 없음,
   폼 전체를 씀)을 만들어 `ConnectionTestJob`으로 연결하고, 그 세션에서 목록을 읽은 뒤 연결을 끊는다. 작업 스레드에서 돌아 대화상자를 막지 않고,
-  그동안 칸 아래 줄에 회전하는 도넛 스피너(`SpinnerIcon.createLabel`, 상태 표시줄과 같은 구현)와 "데이터베이스 목록을 불러오는 중"을 보인다.
-  길이를 모르는 짧은 기다림이라 막대가 아니라 도넛이다(사용자 결정, 앱 변경 #60. 상태 표시줄 스피너 #44와 같은 원칙, 2026-11-12 구현을 `SpinnerIcon` 하나로 합침). 다 읽으면 그 줄을 숨기고 목록을 펼친다.
+  그동안 칸 안 오른쪽 끝(펼침 화살표 앞, 4 띄움)에 회전하는 도넛 스피너(`SpinnerIcon.createLabel`, 상태 표시줄과 같은 구현, FlatLaf `JTextField.trailingComponent`)를
+  보이고 그 도움말이 "데이터베이스 목록을 불러오는 중"이다. 길이를 모르는 짧은 기다림이라 막대가 아니라 도넛이다(사용자 결정, 앱 변경 #60. 상태 표시줄 스피너
+  #44와 같은 원칙, 2026-11-12 구현을 `SpinnerIcon` 하나로 합침). 다 읽으면 스피너를 치우고 목록을 펼친다.
+  **2026-11-12 바뀜(앱 변경 #71 c):** 전에는 스피너와 문구가 칸 아래 줄에 있었고, 그 줄이 읽는 동안만 생겨 대화상자가 한 줄 커졌다가 줄어 단추가 두 번 움직였다.
+  칸 아래 줄은 이제 결과 글(오류, "데이터베이스 없음")만 쓴다. 그 줄이 이미 보일 때(앞의 오류) 다시 읽으면 줄은 그대로 "불러오는 중"으로 바뀌어 크기가 같다.
+  확인(SQL Server, 한국어·영어 × 100%·150%, 밝은·어두운): 읽기 전·읽는 중·읽은 뒤 대화상자 크기가 같음(100% 640×487, 150% 640×481).
+  확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\c-conn-db-list.png`.
   - 임시 연결의 DB는 입력한 값이 아니라 드라이버 기본값이다(PostgreSQL `postgres`, SQL Server·MySQL은 비움 = 로그인의 기본 DB). 아직 없거나 잘못 적은 이름이 목록 읽기를 막지 않게 하려는 것이다.
     PostgreSQL에서 DB가 필수여도 목록은 DB 없이 펼칠 수 있다(`ConnectionSettingsPanel.validateSettings(false)`).
   - 네트워크 설정(SSH 터널, 프록시, SSL)도 폼에서 그대로 쓴다(Test Connection과 같은 저장 경로).
@@ -660,3 +665,5 @@ SQL Server(`sys.databases` 질의)는 Docker가 멈춰 확인하지 못했다(�
 - 2026-11-11 앱 변경 39(`chromite/conn-db-list`): SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로
   (`ConnectionDatabaseList`, 모델 `ServerDatabaseNames`). 진행 표시는 도넛 스피너(`DonutSpinner`, 앱 변경 60). 위 "데이터베이스 목록에서 고르기", "확인 (2026-11-11, 데이터베이스 목록)".
 - 2026-11-12 데이터베이스 목록의 스피너를 `DonutSpinner`에서 상태 표시줄과 같은 `SpinnerIcon.createLabel`로, `DonutSpinner` 삭제(앱 변경 #60, `chromite/small-fixes-r2`).
+- 2026-11-12 데이터베이스 목록의 스피너를 칸 아래 줄에서 칸 안으로: 읽는 동안 대화상자가 커졌다 줄던 것(앱 변경 #71 c, `chromite/visual-recheck-fixes`).
+  위 "데이터베이스 목록에서 고르기". 회귀 테스트는 실행하지 않았다.

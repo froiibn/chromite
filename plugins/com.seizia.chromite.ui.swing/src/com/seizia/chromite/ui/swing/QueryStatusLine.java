@@ -41,6 +41,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 쿼리 창 상태 칸(SSMS 쿼리 창 맨 아래 줄의 내용): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │
@@ -113,6 +115,8 @@ import java.util.Objects;
  *   글자("실행 중 2/3 · 00:00:12")는 쿼리 창이 넣는다 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  * - 2026-11-12 칸 글자를 text.secondary에서 text.primary로(앱 변경 #55: 다크 테마에서 오른쪽 아래 칸이 잘 보이지 않음). {@code BandLabel}의
  *   보조 색 플래그 삭제 (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-12 서버 설명의 제품은 이름과 버전 한 줄({@link #describeProduct}): 제품 버전 글에 SQL Server·PostgreSQL은 서버 배너 전체가,
+ *   Oracle은 드라이버의 두 줄이 들어 있어 서버 표시·문서 탭·서버 칸의 도구 설명이 여러 줄이 되었다(앱 변경 #71 d)
  */
 final class QueryStatusLine extends JPanel {
 
@@ -152,6 +156,8 @@ final class QueryStatusLine extends JPanel {
      */
     static final String BAND_PROPERTY = "chromite.band"; //$NON-NLS-1$
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
+    // A version number in the product version text (describeProduct)
+    private static final Pattern VERSION_NUMBER = Pattern.compile("\\d+(\\.\\d+)+"); //$NON-NLS-1$
     /**
      * Narrowest elided server segment: its padding and a few characters with the ellipsis. Below it the segment is left
      * out.
@@ -499,7 +505,8 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * Full location (URL or file path) and, once connected, the database product and version (SSMS "server (version)").
+     * Full location (URL or file path) and, once connected, the database product and version on one line (SSMS "server
+     * (version)").
      */
     @NotNull
     static String describeServerDetails(@NotNull DBPDataSourceContainer container) {
@@ -512,7 +519,25 @@ final class QueryStatusLine extends JPanel {
         if (info == null) {
             return location + " (" + container.getDriver().getName() + ")"; //$NON-NLS-1$ //$NON-NLS-2$
         }
-        return location + " (" + info.getDatabaseProductName() + " " + info.getDatabaseProductVersion() + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        return location + " (" + describeProduct(info) + ")"; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Product name and version number ("Microsoft SQL Server 16.00.4315", "Oracle 23.26.3.0.0"): the first dotted number of
+     * the product version's first line, or that whole line when it has none. The product version is not one line: the
+     * SQL Server and PostgreSQL models append the server's banner on the next lines (a copyright line, tab characters),
+     * and Oracle's driver gives "Oracle AI Database 26ai Free Release 23.26.3.0.0 - Develop, Learn, and Run for Free" and a
+     * "Version" line.
+     */
+    @NotNull
+    static String describeProduct(@NotNull DBPDataSourceInfo info) {
+        String name = CommonUtils.notEmpty(info.getDatabaseProductName()).trim();
+        String version = CommonUtils.notEmpty(info.getDatabaseProductVersion()).strip();
+        int lineEnd = version.indexOf('\n');
+        String firstLine = (lineEnd < 0 ? version : version.substring(0, lineEnd)).strip();
+        Matcher number = VERSION_NUMBER.matcher(firstLine);
+        String shown = number.find() ? number.group() : firstLine;
+        return shown.isEmpty() ? name : name.isEmpty() ? shown : name + " " + shown; //$NON-NLS-1$
     }
 
     private void updateStateIcon() {

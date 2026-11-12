@@ -42,6 +42,8 @@ import java.util.List;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-12 Options 저장 표준: 바뀐 수, [저장], [되돌리기], 저장 실패는 페이지 아래 줄에(앱 변경 #59, docs/chromite/swing-options.md
  *   "옵션 화면 모양과 저장 (#59)")
+ * - 2026-11-12 아래 안내를 줄 바꾸는 글({@link WrappingNote})로: 한 줄 라벨이 모든 구성에서 잘렸다(앱 변경 #71 b,
+ *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 final class SqlTemplatesPage extends JPanel {
 
@@ -127,7 +129,7 @@ final class SqlTemplatesPage extends JPanel {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
         fields.add(descriptionField, c);
-        JLabel hint = new JLabel(EditorMessages.editor_templates_hint);
+        JTextArea hint = new WrappingNote(EditorMessages.editor_templates_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JScrollPane patternScroll = new JScrollPane(patternArea);
         patternScroll.setPreferredSize(new Dimension(380, 180));

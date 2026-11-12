@@ -40,6 +40,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 {@code access}, {@code writes} 속성 읽기(에이전트 도구 권한 정책, docs/chromite/ai-agent.md)
  * - 2026-11-12 {@code toolSet}, {@code shortDescription} 속성 읽기(채팅의 도구 묶음, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 {@code alwaysConfirmed} 속성 읽기(권한 정책 표의 "늘 확인", 앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  */
 public class AIFunctionInternalDescriptor extends AbstractDescriptor implements AIFunctionDescriptor {
 
@@ -60,6 +61,7 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     private final boolean ui;
     private final boolean enabledByDefault;
     private final boolean omitConfirmation;
+    private final boolean alwaysConfirmed;
     private final AIFunctionAllowMode defaultAllowMode;
     private final AIFunctionPurpose purpose;
     private final AIFunctionType type;
@@ -103,6 +105,7 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
             AIFunctionAllowMode.ALWAYS_ALLOW
         );
         this.omitConfirmation = CommonUtils.toBoolean(config.getAttribute("omitConfirmation"), false);
+        this.alwaysConfirmed = CommonUtils.toBoolean(config.getAttribute("alwaysConfirmed"), false);
         this.purpose = CommonUtils.valueOf(AIFunctionPurpose.class, config.getAttribute("purpose"), AIFunctionPurpose.TOOL);
         this.categoryId = config.getAttribute("categoryId");
         this.aiDescription = config.getAttribute(RegistryConstants.ATTR_DESCRIPTION);
@@ -232,6 +235,11 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     @Override
     public boolean isOmitConfirmation() {
         return omitConfirmation;
+    }
+
+    @Override
+    public boolean isAlwaysConfirmed() {
+        return alwaysConfirmed;
     }
 
     @NotNull

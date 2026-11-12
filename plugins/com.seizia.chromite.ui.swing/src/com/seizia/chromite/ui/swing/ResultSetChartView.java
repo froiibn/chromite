@@ -60,6 +60,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-12 차트 종류 단추(선·막대·원)의 좌우 여백을 {@link UiSizes#TEXT_TOOL_BUTTON_STYLE}로: 아이콘 단추 여백(4)이라 눌린 바탕과 글자 사이가 거의 없었다
+ *   (앱 변경 #71 e, docs/chromite/design-spec.md "치수 토큰")
  */
 final class ResultSetChartView extends JPanel {
 
@@ -184,6 +186,7 @@ final class ResultSetChartView extends JPanel {
     private JToggleButton createTypeButton(@NotNull String text, @NotNull ResultSetChart.Type buttonType) {
         JToggleButton button = new JToggleButton(text);
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(FlatClientProperties.STYLE, UiSizes.TEXT_TOOL_BUTTON_STYLE);
         button.setFocusable(false);
         button.addActionListener(e -> {
             if (!updating) {

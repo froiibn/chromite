@@ -99,15 +99,18 @@
             description="Whether the agent has an open transaction on the connection (uncommitted changes, locks or a snapshot, or one begun explicitly, also in auto-commit mode), and whether the user's query windows have one or one that could not be checked. Use before commit, rollback or disconnect. For old transactions of all server sessions use listOpenTransactions.">
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
         </function>
-        <function id="commitTransaction" name="%tool.commitTransaction.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true" toolSet="minimal"
+        <!-- alwaysConfirmed: the transaction guard asks Commit / Roll back / Cancel whenever there is something to end,
+             whatever the policy allows; the Tool Policy table says so -->
+        <function id="commitTransaction" name="%tool.commitTransaction.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true" toolSet="minimal" alwaysConfirmed="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
             shortDescription="Commits the agent&apos;s open transaction. Only when the user asked to keep the changes."
             description="Commits the agent's open transaction on the connection (left open by runSql, runScript or a data tool). Call it only when the user asked to keep the changes; the user still chooses commit, roll back or cancel. Never touches the user's query windows.">
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
         </function>
         <!-- READ class on purpose: undoing the agent's own work must not be blocked on production connections; the
-             transaction guard still asks the user every time there is something to roll back -->
-        <function id="rollbackTransaction" name="%tool.rollbackTransaction.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal"
+             transaction guard still asks the user every time there is something to roll back (alwaysConfirmed, so that the
+             Tool Policy table does not show an automatic run) -->
+        <function id="rollbackTransaction" name="%tool.rollbackTransaction.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal" alwaysConfirmed="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
             shortDescription="Rolls back the agent&apos;s open transaction."
             description="Rolls back the agent's open transaction on the connection, discarding the agent's uncommitted changes. The user confirms. Never touches the user's query windows.">

@@ -46,7 +46,10 @@ import java.util.List;
  * <ul>
  *     <li>임시 연결은 Test Connection과 같은 방법으로 만든다(대화상자가 넘긴 {@link Source}, 새 ID·임시·메타데이터 연결 없음).
  *     SSH 터널·프록시 같은 네트워크 설정도 따르고, {@link ConnectionTestJob}이 읽은 뒤 연결을 끊는다. 작업 스레드에서 돌고 대화상자를
- *     막지 않으며, 그동안 칸 아래에 회전하는 도넛({@link SpinnerIcon#createLabel()}, 길이를 모르는 짧은 기다림, 앱 변경 #60)과 문구를 보인다.</li>
+ *     막지 않으며, 그동안 칸 안 오른쪽 끝(펼침 화살표 앞)에 회전하는 도넛({@link SpinnerIcon#createLabel()}, 길이를 모르는 짧은 기다림,
+ *     앱 변경 #60)을 보이고 도움말에 "불러오는 중"을 둔다. 칸 아래 줄은 결과 글(오류, 데이터베이스 없음)만 쓴다: 읽는 동안만 줄이 생기면
+ *     대화상자가 한 줄 커졌다가 줄어 단추가 두 번 움직였다(앱 변경 #71 c). 그 줄이 이미 보이면(앞의 오류) 읽는 동안 "불러오는 중"으로
+ *     바뀌어 크기가 그대로다.</li>
  *     <li>목록은 입력한 DB와 상관없이 읽는다(아직 없는 DB이거나 잘못 적었을 수 있다): 임시 연결의 DB는 드라이버 기본값(PostgreSQL
  *     {@code postgres}, 없으면 로그인의 기본 DB)이다.</li>
  *     <li>저장하지 않은 비밀번호(칸이 비고 저장 안 함)는 연결할 때 모델이 묻는다({@code DataSourceDescriptor.askForPassword}).</li>
@@ -60,6 +63,7 @@ import java.util.List;
  * - 2026-11-11 최초 작성 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  * - 2026-11-11 진행 표시를 길이 모르는 막대에서 도넛 스피너로(사용자 결정, 앱 변경 #60)
  * - 2026-11-12 스피너를 상태 표시줄과 같은 {@link SpinnerIcon}으로(스피너 구현 하나, 앱 변경 #60)
+ * - 2026-11-12 스피너를 칸 아래 줄에서 칸 안으로: 읽는 동안 대화상자가 커졌다 줄던 것(앱 변경 #71 c)
  */
 final class ConnectionDatabaseList {
 
@@ -83,9 +87,10 @@ final class ConnectionDatabaseList {
     private final JTextField databaseField;
     private final Source source;
     private final JComboBox<String> combo = new JComboBox<>();
-    private final JPanel statusPanel = new JPanel(new BorderLayout(UIScale.scale(6), 0));
+    private final JPanel statusPanel = new JPanel(new BorderLayout());
     /**
-     * Unknown length, short wait: a donut, not a bar (user decision, app change 60).
+     * Unknown length, short wait: a donut, not a bar (user decision, app change 60). Inside the field while the list
+     * loads, so that no row comes and goes.
      */
     private final JLabel spinner = SpinnerIcon.createLabel();
     private final JLabel statusLabel = new JLabel() {
@@ -128,10 +133,10 @@ final class ConnectionDatabaseList {
         // The URL mode disables the field (ConnectionSettingsPanel's manual components): the list follows it
         databaseField.addPropertyChangeListener("enabled", e -> combo.setEnabled(databaseField.isEnabled())); //$NON-NLS-1$
 
-        JPanel progressHolder = new JPanel(new GridBagLayout());
-        progressHolder.add(spinner);
+        spinner.setToolTipText(ConnectionMessages.settings_database_list_loading);
+        // space.4 before the arrow button: the field has no padding of its own on that side in the combo
+        spinner.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, UIScale.scale(4)));
         statusLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
-        statusPanel.add(progressHolder, BorderLayout.WEST);
         statusPanel.add(statusLabel, BorderLayout.CENTER);
         statusPanel.setVisible(false);
     }
@@ -145,8 +150,9 @@ final class ConnectionDatabaseList {
     }
 
     /**
-     * The row under the Database row: progress, error or "no databases". Hidden otherwise (a hidden row takes no
-     * space in the form's grid). A row of its own keeps the Database label beside the combo.
+     * The row under the Database row: an error or "no databases" (and "loading" while the list loads again after one of
+     * them). Hidden otherwise (a hidden row takes no space in the form's grid). A row of its own keeps the Database label
+     * beside the combo.
      */
     @NotNull
     JComponent getStatusLine() {
@@ -176,10 +182,13 @@ final class ConnectionDatabaseList {
     }
 
     private void load(@NotNull DataSourceDescriptor connection) {
-        loading = true;
+        setLoading(true);
         listConfiguration = null;
         setItems(List.of());
-        showStatus(ConnectionMessages.settings_database_list_loading, null, true, false);
+        if (statusPanel.isVisible()) {
+            // The row of an earlier result stays until this one is known (a row that comes and goes moves the buttons)
+            showStatus(ConnectionMessages.settings_database_list_loading, null, false);
+        }
 
         DBPConnectionConfiguration configuration = new DBPConnectionConfiguration(connection.getConnectionConfiguration());
         ListReader reader = new ListReader();
@@ -197,7 +206,7 @@ final class ConnectionDatabaseList {
     }
 
     private void loaded(@NotNull ConnectionTestJob job, @NotNull ListReader reader, @NotNull DBPConnectionConfiguration configuration) {
-        loading = false;
+        setLoading(false);
         Throwable error = job.getConnectError() != null ? job.getConnectError() : reader.error;
         if (error != null) {
             showError(NLS.bind(ConnectionMessages.settings_database_list_error, ErrorText.summary(error)),
@@ -212,7 +221,7 @@ final class ConnectionDatabaseList {
         listConfiguration = configuration;
         setItems(reader.names);
         if (reader.names.isEmpty()) {
-            showStatus(ConnectionMessages.settings_database_list_empty, null, false, false);
+            showStatus(ConnectionMessages.settings_database_list_empty, null, false);
             return;
         }
         hideStatus();
@@ -232,17 +241,24 @@ final class ConnectionDatabaseList {
         combo.setModel(model);
     }
 
-    private void showError(@NotNull String text, @NotNull String toolTip) {
-        showStatus(text, toolTip, false, true);
+    /**
+     * The spinner at the end of the Database field while the list loads.
+     */
+    private void setLoading(boolean loading) {
+        this.loading = loading;
+        databaseField.putClientProperty(FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, loading ? spinner : null);
     }
 
-    private void showStatus(@NotNull String text, @Nullable String toolTip, boolean progress, boolean error) {
+    private void showError(@NotNull String text, @NotNull String toolTip) {
+        showStatus(text, toolTip, true);
+    }
+
+    private void showStatus(@NotNull String text, @Nullable String toolTip, boolean error) {
         statusLabel.setText(text);
         statusLabel.setToolTipText(toolTip == null ? text : toolTip);
         statusLabel.setForeground(error
             ? ConnectionDialog.getThemeColor("Chromite.status.error", "Component.error.focusedBorderColor", Color.RED) //$NON-NLS-1$ //$NON-NLS-2$
             : UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
-        spinner.getParent().setVisible(progress);
         setStatusVisible(true);
     }
 

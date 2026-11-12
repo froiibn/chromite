@@ -175,6 +175,8 @@ import java.util.function.Consumer;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 열 머리글 Ctrl+클릭도 명령 키, 텍스트 보기는 macOS에서도 Control+`
  * - 2026-11-12 결과 영역의 Text 탭이 결과마다의 글을 얻는 {@link #formatText}(텍스트 보기와 같은 글, 앱 변경 #54)
  *   (docs/chromite/swing-frontend.md "결과 영역 두 단계 탭")
+ * - 2026-11-12 아래 줄의 보기 토글(값 패널·레코드·텍스트·차트·공간·참조·집계)의 좌우 여백을 {@link UiSizes#TEXT_TOOL_BUTTON_STYLE}로: 아이콘 단추 여백(4)이라 눌린 바탕과 글자 사이가 거의 없었다
+ *   (앱 변경 #71 e, docs/chromite/design-spec.md "치수 토큰")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -622,7 +624,7 @@ final class ResultSetViewerPanel extends JPanel {
     private static JToggleButton createToggle(@NotNull Action action) {
         JToggleButton button = new JToggleButton(action);
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.putClientProperty(FlatClientProperties.STYLE, UiSizes.TEXT_TOOL_BUTTON_STYLE);
         button.setFocusable(false);
         return button;
     }

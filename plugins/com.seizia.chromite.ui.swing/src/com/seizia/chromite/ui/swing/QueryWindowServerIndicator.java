@@ -26,6 +26,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import java.awt.*;
 
 /**
@@ -48,6 +49,7 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성: 연결 콤보를 고를 수 없는 서버 표시로 바꿈(앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
+ * - 2026-11-12 라벨이 알약이 글자 줄 밖으로 넘치는 만큼 위아래 여백을 둠: 글자 높이뿐이라 운영 알약의 아래 테두리가 잘렸다(앱 변경 #71 a)
  */
 final class QueryWindowServerIndicator extends JPanel {
 
@@ -152,6 +154,7 @@ final class QueryWindowServerIndicator extends JPanel {
 
         ServerLabel() {
             setFocusable(false);
+            setBorder(new PillSpace());
         }
 
         void setServer(@NotNull DBPDataSourceContainer container) {
@@ -160,9 +163,9 @@ final class QueryWindowServerIndicator extends JPanel {
             pill = ConnectionPill.of(container);
             Color foreground = UIManager.getColor("Label.foreground"); //$NON-NLS-1$
             setForeground(pill != null && foreground != null ? pill.getTextColor(foreground) : foreground);
-            // The pill's padding: before the name in the icon-text gap, after it in the border, so the pill stays inside
+            // The pill's padding: before the name in the icon-text gap, after it in the border (PillSpace), so the pill
+            // stays inside
             setIconTextGap(UIScale.scale(ICON_TEXT_GAP) + (pill != null ? ConnectionPill.getPaddingX() : 0));
-            setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(PADDING_LEFT), 0, ConnectionPill.getPaddingX()));
             setToolTipText("<html>" + CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_sql_tip_connection, container.getName(), //$NON-NLS-1$
                 QueryStatusLine.describeServerDetails(container))) + "<br>" //$NON-NLS-1$
                 + CommonUtils.escapeHtml(EditorMessages.editor_sql_server_fixed_tip) + "</html>"); //$NON-NLS-1$
@@ -184,6 +187,23 @@ final class QueryWindowServerIndicator extends JPanel {
                 pill.paint(g, this, textBounds.x, textBounds.width, baseline);
             }
             super.paintComponent(g);
+        }
+
+        /**
+         * Space before the icon, the pill's padding after the name, and above and below the text line as much as the pill
+         * reaches past it ({@link ConnectionPill#getOverhang}): the label is otherwise only as high as its text and the
+         * pill's bottom line is cut. The same space on both sides keeps the name in the middle of the tool bar. Read from the
+         * current font whenever the label is measured, so a theme or density change keeps the pill whole.
+         */
+        private final class PillSpace extends AbstractBorder {
+            @Override
+            public Insets getBorderInsets(Component c, Insets insets) {
+                Font font = getFont();
+                Insets overhang = pill != null && font != null ? ConnectionPill.getOverhang(ServerLabel.this, font) : null;
+                int vertical = overhang != null ? Math.max(overhang.top, overhang.bottom) : 0;
+                insets.set(vertical, UIScale.scale(PADDING_LEFT), vertical, ConnectionPill.getPaddingX());
+                return insets;
+            }
         }
     }
 }

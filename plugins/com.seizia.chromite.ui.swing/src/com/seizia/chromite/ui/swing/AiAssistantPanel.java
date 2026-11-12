@@ -54,6 +54,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.PopupMenuEvent;
@@ -118,6 +119,11 @@ import java.util.Set;
  *   흰 바탕에서 1.8:1) (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 도구 호출을 못 하는 제공자·모델이면 입력란 위에 늘 보이는 안내({@code toolsOffNotice}): 채팅은 도구 없이 SQL을 제안하고 사용자가
  *   [쿼리 창에서 열기]로 연다 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-12 제공자 설정 안내의 글이 패널 폭을 씀: 글자 단추 옆에서 좁은 칸으로 접혀 잘렸다(Mac 1024px, Windows 100%).
+ *   두 안내를 HTML 라벨 대신 {@link WrappingNote}로(HTML 라벨의 높이는 마지막으로 그린 폭을 따라가 한 번 늦음) (앱 변경 #71 f,
+ *   docs/chromite/ai-agent.md "채팅 도구 창")
+ * - 2026-11-12 제공자 설정 안내의 [Chromite Agent 설정] 글자 단추를 도구 막대와 같은 톱니 아이콘 단추로, 글 오른쪽 첫 줄 가운데에(사용자 결정
+ *   "그냥 톱니바퀴 아이콘으로 교체해. 그러면 편하잖아", 앱 변경 #72)
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -189,9 +195,9 @@ final class AiAssistantPanel extends JPanel {
     private final JButton sendButton = new JButton(AiMessages.ai_send);
     private final JButton stopButton = new JButton(AiMessages.ai_stop);
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
-    private final JPanel setupNotice = new JPanel(new BorderLayout(8, 0));
+    private final JPanel setupNotice = new JPanel(new BorderLayout(UIScale.scale(4), 0));
     // The provider's model can't call tools: the chat works without them (AIAgentToolSets.isToolsOff)
-    private final JLabel toolsOffNotice = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_tools_off_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
+    private final JTextArea toolsOffNotice = new WrappingNote(AiMessages.ai_tools_off_notice);
     private final Action newChatAction;
     private final Action deleteChatAction;
     private final Action historyAction;
@@ -376,14 +382,17 @@ final class AiAssistantPanel extends JPanel {
         statusRow.add(actionRow, BorderLayout.CENTER);
         statusRow.add(statusLabel, BorderLayout.SOUTH);
 
-        // Wraps in a narrow tool window
-        JLabel noticeLabel = new JLabel("<html>" + CommonUtils.escapeHtml(AiMessages.ai_setup_notice) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
-        noticeLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
-        JButton noticeButton = new JButton(AiMessages.ai_settings);
-        noticeButton.addActionListener(e -> host.openOptions(OptionsDialog.PAGE_AGENT));
+        // The text takes the panel's width but the gear's and wraps in a narrow tool window; the gear (the tool bar's settings
+        // button, user decision app change 72) sits at its right, in the middle of the first line
+        JTextArea noticeText = new WrappingNote(AiMessages.ai_setup_notice);
+        noticeText.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.warningForeground"); //$NON-NLS-1$
+        JButton noticeButton = UiIcons.createActionButton(createAction(AiMessages.ai_settings, () -> host.openOptions(OptionsDialog.PAGE_AGENT)), "settings"); //$NON-NLS-1$
+        noticeButton.getAccessibleContext().setAccessibleName(AiMessages.ai_settings);
+        // Reachable with the Tab key like the text button it replaces (tool bar buttons are not)
+        noticeButton.setFocusable(true);
         setupNotice.setOpaque(false);
-        setupNotice.add(noticeLabel, BorderLayout.CENTER);
-        setupNotice.add(noticeButton, BorderLayout.EAST);
+        setupNotice.add(alignFirstLine(noticeText, noticeButton, true), BorderLayout.CENTER);
+        setupNotice.add(alignFirstLine(noticeButton, noticeText, false), BorderLayout.EAST);
         setupNotice.setVisible(false);
 
         JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(4)));
@@ -399,6 +408,31 @@ final class AiAssistantPanel extends JPanel {
         panel.add(inputScroll, BorderLayout.CENTER);
         panel.add(statusRow, BorderLayout.SOUTH);
         return panel;
+    }
+
+    /**
+     * The notice text or its gear in a holder whose top space puts the middle of the gear on the middle of the text's first
+     * line: the lower one of the two moves down by half the difference. Read when laid out, so it follows theme and
+     * density changes.
+     */
+    @NotNull
+    private static JComponent alignFirstLine(@NotNull JComponent component, @NotNull JComponent other, boolean text) {
+        JPanel holder = new JPanel(new BorderLayout());
+        holder.setOpaque(false);
+        holder.add(component, text ? BorderLayout.CENTER : BorderLayout.NORTH);
+        holder.setBorder(new AbstractBorder() {
+            @Override
+            public Insets getBorderInsets(Component c, Insets insets) {
+                JComponent textComponent = text ? component : other;
+                int line = textComponent.getFontMetrics(textComponent.getFont()).getHeight();
+                int gear = (text ? other : component).getPreferredSize().height;
+                // The text goes down when the gear is higher than a line, the gear when a line is higher
+                int difference = text ? gear - line : line - gear;
+                insets.set(Math.max(0, difference / 2), 0, 0, 0);
+                return insets;
+            }
+        });
+        return holder;
     }
 
     @NotNull

@@ -608,6 +608,23 @@ Attach API 테스트 에이전트(EDT에서 Swing 객체를 직접 다룸, OS �
 150% 미만이면 시스템 글꼴(FlatLaf의 `win.messagebox.font`: 한국어 Windows는 맑은 고딕 12), 그 이상이면 번들 Pretendard 12였다. 원인 측정은
 design-spec "적용 현황 — 글자 선명도와 대비".
 
+## 잘리던 한 줄 안내 (2026-11-12, 앱 변경 #71 b)
+
+- **결함:** Chromite Agent > MCP 서버의 설명(영어 모든 배율, 한국어 100%에서 2px 모자람)과 템플릿 페이지 아래 안내(모든 구성)가 말줄임표로 잘렸다.
+  #228로 대화상자가 작아지고 #236으로 글자가 13이 된 뒤다.
+- **원인:** 두 글이 한 줄 `JLabel`이었고 배치(GridBag의 열, BorderLayout 아래)가 준 폭이 글보다 좁았다.
+- **고침:** `WrappingNote`(읽기 전용 `JTextArea`, 라벨 글꼴): 자리가 있으면 한 줄, 없으면 줄을 바꾼다. 선호 폭은 한 줄 폭이고 높이는
+  배치가 준 지금 폭에서 접은 줄 수다. 폭이 바뀌면 한 번 다시 배치한다. 글은 줄이지 않았다.
+- **줄 바꾸는 자리(2026-11-12, 검토 후속):** 공백에서만 바꾼다(모든 언어, 한국어의 keep-all). 줄 하나보다 넓은 낱말 하나만 글자 사이에서 끊는다(잘리거나 밖으로
+  그려지지 않게). 처음 판은 `JTextArea`의 줄 바꿈을 썼는데, Swing은 유니코드 줄 나눔 규칙대로 한글 음절 사이 어디서나 끊어 "…127.0.0.1에서만 받습니 / 다."
+  (MCP 설명, 한국어 100%), "…를 설정 / 하세요."(Agent 설정 안내, 한국어 150%)가 되었다. 이제 `WrappingNote.wrap`이 줄을 나누고 직접 그린다(숨은 문자를 넣지 않아
+  글꼴과 상관없음). 영어는 전과 같다(공백에서만 바뀌던 그대로). 고친 뒤 "…127.0.0.1에서만 / 받습니다.", "…모델)를 / 설정하세요.". 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\h-korean-breaks.png`.
+- **검사:** 테스트 에이전트가 옵션의 모든 페이지와 Chromite Agent 탭(제공자, 권한 정책, MCP 서버, 감사 기록)에서 보이는 `JLabel`·단추의 글을
+  `SwingUtilities.layoutCompoundLabel`로 다시 배치해 말줄임표가 생기는지, `WrappingNote`의 선호 높이가 실제 높이보다 큰지 셌다.
+  고친 뒤 한국어·영어 × 100%·150% × 밝은 새로 시작·어두운 전환 뒤 모두 **0**. 고치기 전 잘린 것은 위 둘뿐이었다(점검 에이전트 기록).
+  `OptionsForm` 행의 회색 설명은 한 줄 라벨 그대로다(지금 잘리는 것 없음. 행이 좁으면 컨트롤을 아래로 내림).
+- 확대 비교 `D:\Tools\_scratch\visual-recheck-fixes\sheets\b-options-hints.png`.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -1088,3 +1105,5 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | SQL Processing | `statement.timeout` | 효과 없음(읽는 곳 없음) |
 | macOS Mouse | `macos.tooltip.delay` | 효과 없음(읽는 곳 없음) |
 | macOS Mouse | `macos.tooltip.delay.enabled` | 효과 없음(읽는 곳 없음) |
+- 2026-11-12 MCP 서버 설명과 템플릿 안내를 줄 바꾸는 글(`WrappingNote`)로(앱 변경 #71 b, `chromite/visual-recheck-fixes`), 위 "잘리던 한 줄 안내". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 `WrappingNote`는 공백에서만 줄을 바꿈(한국어 낱말 가운데서 끊던 것, #71 검토 후속), 위 "잘리던 한 줄 안내"의 "줄 바꾸는 자리". 회귀 테스트는 실행하지 않았다.

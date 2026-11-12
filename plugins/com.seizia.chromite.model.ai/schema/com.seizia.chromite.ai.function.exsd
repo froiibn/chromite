@@ -162,6 +162,11 @@
                <documentation>If true, this is a system function</documentation>
             </annotation>
          </attribute>
+         <attribute name="alwaysConfirmed" type="boolean">
+            <annotation>
+               <documentation>If true, the user confirms every call that has something to do, whatever the tool policy allows (the transaction guard asks Commit / Roll back / Cancel): commitTransaction, rollbackTransaction. The Tool Policy table shows it instead of an automatic run</documentation>
+            </annotation>
+         </attribute>
          <attribute name="omitConfirmation" type="boolean">
             <annotation>
                <documentation>If true, this function does not require confirmation</documentation>
