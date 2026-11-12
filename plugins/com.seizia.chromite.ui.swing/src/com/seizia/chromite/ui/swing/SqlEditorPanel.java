@@ -360,6 +360,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/transactions.md "늦은 작업의 세션")
  * - 2026-11-12 DB 선택: 서버가 알려 준 현재 DB·스키마가 목록에 없으면(Object Explorer 필터로 숨김, DB 하나만 보이는 연결) "&lt; N/A &gt;" 대신 그 이름을
  *   글로 보임({@code getUnlistedDefaultName}). 상태 줄도 그 이름 (앱 변경 #79 검토 후속, docs/chromite/swing-sql-editor-session-ui.md "다시 읽어도 없는 이름")
+ * - 2026-11-12 실행 중 문장의 줄 바탕을 강조 파랑(선택과 비슷해 눈에 띄지 않음)에서 테마 키 {@code Chromite.editor.runningStatementBackground}의
+ *   연두색으로(앱 변경 #99, 사용자 결정). 캐럿 줄이 그 문장 안이면 현재 줄 색이 표시를 가리지 않음({@code SqlTextArea.setRunningLines}).
+ *   오류 문장 표시는 그대로 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 문장 색")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -914,13 +917,18 @@ final class SqlEditorPanel extends JPanel {
      */
     private void showRunningStatement(@NotNull Execution run, int start, int end) {
         clearRunningStatement();
-        addStatementMarks(run, start, end, "Component.accentColor", UiIcons.get("run"), runningStatementMarks, //$NON-NLS-1$ //$NON-NLS-2$
+        // Yellow-green from the theme (app change #99): the accent blue looked like the text selection and did not stand out
+        Color color = UIManager.getColor("Chromite.editor.runningStatementBackground"); //$NON-NLS-1$
+        Color mark = color != null ? color : Color.YELLOW;
+        addStatementMarks(run, start, end, mark, UiIcons.get("run"), runningStatementMarks, //$NON-NLS-1$
             icon -> runningStatementIcon = icon);
+        textArea.setRunningLines(runningStatementIcon, runningStatementMarks.size(), mark);
     }
 
     private void clearRunningStatement() {
         runningStatementMarks.forEach(textArea::removeLineHighlight);
         runningStatementMarks.clear();
+        textArea.setRunningLines(null, 0, null);
         if (runningStatementIcon != null) {
             RSyntaxUtilities.getGutter(textArea).removeTrackingIcon(runningStatementIcon);
             runningStatementIcon = null;
@@ -932,8 +940,13 @@ final class SqlEditorPanel extends JPanel {
      * error goes to the same place (Go to Error).
      */
     private void markFailedStatement(@NotNull Execution run, int start, int end) {
-        addStatementMarks(run, start, end, "Chromite.status.error", UiIcons.get("error"), failedStatementMarks, //$NON-NLS-1$ //$NON-NLS-2$
-            failedStatementIcons::add);
+        Color base = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
+        if (base == null) {
+            base = Color.GRAY;
+        }
+        // Light enough to read the text and the error lines' color under it, as the compile error lines
+        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 40);
+        addStatementMarks(run, start, end, color, UiIcons.get("error"), failedStatementMarks, failedStatementIcons::add); //$NON-NLS-1$
     }
 
     /**
@@ -952,7 +965,7 @@ final class SqlEditorPanel extends JPanel {
         @NotNull Execution run,
         int start,
         int end,
-        @NotNull String colorKey,
+        @NotNull Color color,
         @NotNull Icon icon,
         @NotNull List<Object> marks,
         @NotNull Consumer<GutterIconInfo> iconConsumer
@@ -961,12 +974,6 @@ final class SqlEditorPanel extends JPanel {
         int length = textArea.getDocument().getLength();
         int from = Math.min(mapOffset(run, start), length);
         int to = Math.min(Math.max(from, mapOffset(run, end)), length);
-        Color base = UIManager.getColor(colorKey);
-        if (base == null) {
-            base = Color.GRAY;
-        }
-        // Light enough to read the text and the error lines' color under it, as the compile error lines
-        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 40);
         try {
             int firstLine = textArea.getLineOfOffset(from);
             // A statement ends before the line break: its last line is the line of its last character
@@ -3224,6 +3231,8 @@ final class SqlEditorPanel extends JPanel {
      * 변경 이력:
      * - 2026-11-12 열 선택 연결: Alt+끌기, Shift+Alt+방향키, 사각형에 입력·붙여넣기·복사(앱 변경 #49)
      * - 2026-11-12 실행이 읽는 사각형의 글({@link #getColumnRunText})
+     * - 2026-11-12 실행 중 문장 안의 캐럿 줄은 현재 줄 색 대신 실행 중 색({@link #setRunningLines}, 앱 변경 #99): 현재 줄이 줄 강조 위에 칠해져
+     *   실행 중 표시의 첫 줄이 가려졌다
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3247,6 +3256,12 @@ final class SqlEditorPanel extends JPanel {
         private SqlTemplates.Session templateSession;
         // Null only while the RSyntaxTextArea constructor runs
         private final SqlColumnSelection columnSelection;
+        // The running statement's mark (EDT only): its first line's icon, its line count and color, null when nothing runs
+        @Nullable
+        private GutterIconInfo runningIcon;
+        private int runningLineCount;
+        @Nullable
+        private Color runningColor;
 
         SqlTextArea() {
             // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
@@ -3316,6 +3331,41 @@ final class SqlEditorPanel extends JPanel {
         @Nullable
         SqlColumnSelection.RunText getColumnRunText() {
             return columnSelection.getRunText();
+        }
+
+        /**
+         * The running statement's mark (EDT), or none: the caret line inside it takes the mark's color.
+         *
+         * @param icon      the mark's icon on its first line
+         * @param lineCount the mark's lines
+         */
+        void setRunningLines(@Nullable GutterIconInfo icon, int lineCount, @Nullable Color color) {
+            runningIcon = icon;
+            runningLineCount = lineCount;
+            runningColor = color;
+        }
+
+        /**
+         * The current-line color, or the running statement's color on a line of the running statement: RSyntaxTextArea
+         * paints the current line over the line highlights, so the caret line (often the statement's first line, where F5
+         * or Ctrl+Enter was pressed) hid the running mark (app change #99).
+         */
+        @Override
+        public Color getCurrentLineHighlightColor() {
+            GutterIconInfo icon = runningIcon;
+            Color color = runningColor;
+            if (icon != null && color != null) {
+                try {
+                    int first = getLineOfOffset(icon.getMarkedOffset());
+                    int caretLine = getCaretLineNumber();
+                    if (caretLine >= first && caretLine < first + runningLineCount) {
+                        return color;
+                    }
+                } catch (BadLocationException e) {
+                    // The mark's line is gone: the plain current-line color
+                }
+            }
+            return super.getCurrentLineHighlightColor();
         }
 
         @Override

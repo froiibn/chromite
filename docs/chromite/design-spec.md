@@ -312,6 +312,7 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 | Line numbers / 현재 줄 번호 | `LINE_NUMBERS_COLOR`, `LINE_NUMBER_ON_CARET_ROW_COLOR` [E](2026-11-12 대비를 올림: "적용 현황 — 글자 선명도와 대비") | | `#6E727D` / `#3B3E45` (전 `#AEB3C2` / `#767A8A`) | `#808389` / `#D1D3D9` (전 `#4B5059` / `#A1A3AB`) | 4.8 / 10.7, 4.6 / 11.6 |
 | 짝 괄호 | `MATCHED_BRACE_ATTRIBUTES` [E] | | 바탕 `#93D9D9` | 바탕 `#43454A` | |
 | 같은 이름 | `IDENTIFIER_UNDER_CARET_ATTRIBUTES` [E] | | `#EDEBFC` | `#373B39` | |
+| 실행 중 문장 줄 바탕(Chromite, 테마 키 `Chromite.editor.runningStatementBackground`, 2026-11-12 #99) | | | `#E8F5A0` | `#3D4718` | 바탕과 1.17 / 1.75 ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "실행 중 문장 색") |
 | 오른쪽 여백 선 | `RIGHT_MARGIN_COLOR` [E] | | `#EBECF0` | `#393B40` | |
 
 - 대비는 WCAG 대비율(바탕 `#FFFFFF` / `#191A1C`)이다. 라이트의 자홍(3.1)·빨강(4.0)·회색(4.0)은 SSMS 기본 그대로라 4.5보다 낮다(사용자 결정: SSMS 값을 그대로 씀).
@@ -1465,3 +1466,4 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
   확인: 단추 안쪽 좌우 9(8 + 간격 1, 촘촘한 모드 7), 높이 26(24) 그대로, 한국어·영어 × 100%·150% × 밝은·어두운. 확대 비교
   `D:\Tools\_scratch\visual-recheck-fixes\sheets\e-view-switches.png`. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 콤보 줄에서 없어진 연결 콤보를 뺌(앱 변경 #74, `chromite/change-connection`)
+- 2026-11-12 SQL 구문 색 표에 실행 중 문장 줄 바탕(`Chromite.editor.runningStatementBackground`, 앱 변경 #99, `chromite/running-statement-mark`)
