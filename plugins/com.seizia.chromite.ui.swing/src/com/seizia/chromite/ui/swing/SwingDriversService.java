@@ -59,6 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지도 내려받지도 않고 실행이 실패한다(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingDriversService implements UIServiceDrivers {
 
@@ -74,6 +75,7 @@ public class SwingDriversService implements UIServiceDrivers {
         if (!(driver instanceof DriverDescriptor driverDescriptor)) {
             return false;
         }
+        UnattendedRuns.refuseQuestion(ConnectionMessages.drivers_download_title, driver.getName());
         AtomicBoolean result = new AtomicBoolean();
         Runnable task = () -> {
             if (!confirmDownload(driverDescriptor)) {

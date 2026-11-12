@@ -169,10 +169,6 @@ final class RunScheduler {
         }
     }
 
-    boolean isStarted() {
-        return timer != null;
-    }
-
     /**
      * Called in the EDT when the scheduled entries, their state or their runs changed.
      */

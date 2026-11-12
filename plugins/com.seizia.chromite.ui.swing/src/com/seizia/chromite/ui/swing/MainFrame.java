@@ -313,7 +313,7 @@ import java.util.function.Supplier;
  *   (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
  * - 2026-11-12 Windows: 마우스에 쓴 Alt를 떼도 메뉴 막대가 골라지지 않게 {@link AltMouseMenuGuard}를 설치(앱 변경 #102)
  * - 2026-11-12 예약 실행기({@link RunScheduler}, 쿼리와 저장된 작업이 함께 씀)를 이 창이 열릴 때 시작하고 닫힐 때 멈춤. 전에는 Query Library
- *   창이 했다(앱 변경 #104, docs/chromite/task-scheduling.md)
+ *   창이 했다. 저장된 작업의 일정({@link TaskScheduler})도 함께 시작·정지(앱 변경 #104, docs/chromite/task-scheduling.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -665,6 +665,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false, upperRightPlaces);
         // Scheduled library queries and saved tasks run while this window is open (docs/chromite/task-scheduling.md)
         RunScheduler.getInstance().start();
+        TaskScheduler.getInstance().start();
         // Every statement the query manager recorded: a wide table along the bottom edge, like SWT's bottom views; hidden until
         // opened. Statements open in a new query window and never run
         queryManagerPanel = new QueryManagerPanel((connection, sql) -> {
@@ -931,6 +932,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         explorerPanel.dispose();
         registeredServersPanel.dispose();
+        TaskScheduler.getInstance().stop();
         RunScheduler.getInstance().stop();
         queryLibraryPanel.dispose();
         queryManagerPanel.dispose();

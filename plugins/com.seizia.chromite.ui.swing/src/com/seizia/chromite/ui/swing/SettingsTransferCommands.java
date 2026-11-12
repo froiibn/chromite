@@ -87,6 +87,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/settings-transfer.md)
+ * - 2026-11-12 저장된 작업 일정의 "이 컴퓨터에서 사용"({@code databaseTasks.schedule.active.})을 이 PC의 상태 키에 더함(앱 변경 #104,
+ *   docs/chromite/task-scheduling.md)
  */
 final class SettingsTransferCommands {
 
@@ -114,13 +116,15 @@ final class SettingsTransferCommands {
     );
     /**
      * Key prefixes of the same kind: ConnectionHistory (server names typed per driver) and QueryLibraryState (last parameter
-     * values, "active on this computer" of scheduled queries, alert state), which are kept per computer by design.
+     * values, "active on this computer" of scheduled queries, alert state) and TaskScheduler ("active on this computer" of
+     * scheduled tasks), which are kept per computer by design.
      */
     private static final List<String> STATE_PREFIXES = List.of(
         "connectDialog.serverHistory.", //$NON-NLS-1$
         "queryLibrary.lastValues.", //$NON-NLS-1$
         "queryLibrary.schedule.active.", //$NON-NLS-1$
-        "queryLibrary.alert." //$NON-NLS-1$
+        "queryLibrary.alert.", //$NON-NLS-1$
+        "databaseTasks.schedule.active." //$NON-NLS-1$
     );
     /**
      * Size ({@code ToolWindow}) and place ({@code ToolWindowDocking}) of a tool window: "&lt;tool window id&gt;.size",

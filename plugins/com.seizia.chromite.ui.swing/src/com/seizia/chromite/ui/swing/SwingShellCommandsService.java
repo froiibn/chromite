@@ -54,6 +54,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - 2026-11-07 최초 작성 (docs/chromite/shell-command-approval.md)
  * - 2026-11-08 문단·값 칸 만들기를 패키지 안에 공개: 초기화 SQL·SQLite 확장 승인({@link ExecutionApprovalDialog})이 같은 모양을 씀
  *   (docs/chromite/connection-lifecycle.md)
+ * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지 않음: 그 작업 자신의 명령은 일정을 켠 것을 동의로 보고 실행하고, 그 밖의 명령은
+ *   "항상 허용"이 없으면 실행이 그 명령과 함께 실패한다(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingShellCommandsService implements UIServiceShellCommands {
 
@@ -84,6 +86,10 @@ public class SwingShellCommandsService implements UIServiceShellCommands {
         if (approvalScope != null && store.isApproved(approvalScope, command)) {
             return;
         }
+        if (UnattendedRuns.acceptTaskCommand(approvalScope, commandText)) {
+            return;
+        }
+        UnattendedRuns.refuseQuestion(ShellCommandMessages.shell_cmd_title, commandText);
         switch (ask(commandText, command.getWorkingDirectory(), approvalScope != null, approvalContext)) {
             case RUN_ONCE -> {
             }

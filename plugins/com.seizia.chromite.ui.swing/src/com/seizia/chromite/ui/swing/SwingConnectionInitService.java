@@ -50,6 +50,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/connection-lifecycle.md "초기화 SQL과 SQLite 확장 승인")
+ * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지 않음: 기억한 승인만 쓰고, 없으면 실행이 실패한다(앱 변경 #104,
+ *   docs/chromite/task-scheduling.md "무인 실행")
  */
 public class SwingConnectionInitService implements UIServiceConnectionInit {
 
@@ -82,6 +84,7 @@ public class SwingConnectionInitService implements UIServiceConnectionInit {
             log.error("Cannot read connection initialization approvals", e);
             return false;
         }
+        UnattendedRuns.refuseQuestion(container.getName(), String.join("; ", approvedScripts)); //$NON-NLS-1$
         Map<String, String> context = new LinkedHashMap<>();
         context.put(LifecycleMessages.approval_connection, container.getName());
         if (url != null) {

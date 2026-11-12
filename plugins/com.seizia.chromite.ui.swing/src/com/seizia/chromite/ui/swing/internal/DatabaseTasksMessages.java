@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 데이터 전송 마법사의 작업으로 저장, 데이터 전송·SQL 스크립트 작업 편집, SQL 스크립트 작업 대화상자 문구
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
+ * - 2026-11-12 예약 실행 문구(일정 명령·열·대화상자, 예약할 수 없는 이유, 상태 줄) (앱 변경 #104, docs/chromite/task-scheduling.md)
  */
 public class DatabaseTasksMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages"; //$NON-NLS-1$
@@ -104,6 +105,38 @@ public class DatabaseTasksMessages extends NLS {
     public static String script_error_connections;
     public static String script_error_scripts;
     public static String script_error_missing;
+    public static String tasks_schedule;
+    public static String tasks_column_schedule;
+    public static String tasks_column_next_run;
+    public static String tasks_result_scheduled;
+    public static String tasks_schedule_off;
+    public static String tasks_schedule_not_here;
+    public static String tasks_schedule_inactive;
+    public static String tasks_schedule_missed;
+    public static String tasks_schedule_skipped;
+    public static String tasks_schedule_running;
+    public static String tasks_schedule_status;
+    public static String tasks_schedule_status_none;
+    public static String tasks_schedule_job;
+    public static String tasks_schedule_failed;
+    public static String tasks_schedule_enabled;
+    public static String tasks_schedule_active_tip;
+    public static String tasks_schedule_note;
+    public static String tasks_schedule_no_connection;
+    public static String tasks_schedule_no_client;
+    public static String tasks_schedule_no_password;
+    public static String tasks_schedule_manual_commit;
+    public static String tasks_schedule_changed;
+    public static String tasks_schedule_finish_command;
+    public static String tasks_schedule_open_transaction;
+    public static String tasks_schedule_file_ask;
+    public static String tasks_schedule_command_note;
+    public static String tasks_schedule_warnings;
+    public static String tasks_schedule_confirm_title;
+    public static String tasks_schedule_confirm;
+    public static String tasks_schedule_confirm_button;
+    public static String tasks_schedule_reading;
+    public static String tasks_schedule_left_open;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, DatabaseTasksMessages.class);

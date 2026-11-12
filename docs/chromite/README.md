@@ -60,6 +60,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-explorer-object-actions.md](swing-explorer-object-actions.md) | Swing 개체 탐색기 개체 작업: DB 객체 삭제(여러 개, 연쇄 옵션)·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 열린 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴 |
 | [swing-explorer-productivity.md](swing-explorer-productivity.md) | Swing 개체 탐색기 생산성: 필터 대화상자(포함·제외 마스크, 범위), 빠른 거르기, 편집기와 연결, 두 번 클릭 설정, 긴 폴더 "더 읽기", 선택하여 복사, 연결 복제, 개체 세부 정보(F7, 종속성·참조 탭), 기본 데이터베이스·스키마 지정, Ctrl+9 / Ctrl+0 |
 | [swing-security.md](swing-security.md) | Swing 보안 편집기: 로그인·사용자·역할 속성(일반, 역할 멤버 자격, SQL Server 사용자 매핑, 사용 권한), 새로 만들기·삭제, 개체 사용 권한(허용·권한 부여·거부), 스크립트 미리 보기 후 실행 |
+| [task-scheduling.md](task-scheduling.md) | 저장된 작업의 예약 실행(앱 변경 #104): 쿼리 예약과 스케줄러 하나, 작업과 함께 저장, 일정 대화상자, 켤 때 한 번 받는 확인과 동의 지문, 무인 실행(묻지도 대신 답하지도 않음), 놓친 실행·겹침·서머타임, OS 스케줄러를 쓴다면 |
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행, 공유(공유 폴더 자동 새로 고침, Git, 내보내기·가져오기, 저장 충돌) |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
 | [schema-compare.md](schema-compare.md) | 스키마 비교(Tools > Compare Schemas…): 같은·다른 연결의 두 스키마 비교(테이블·열·키·인덱스·뷰·루틴·트리거·시퀀스), 결과 트리와 DDL 나란히 보기, 대상 드라이버의 객체 관리자로 만드는 마이그레이션 스크립트(실행하지 않음, DROP은 처음에 꺼짐) |
