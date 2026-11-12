@@ -167,6 +167,21 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 | Chromite Agent | 새 대화와 "이 쿼리에 대해 묻기"의 현재 DB는 창의 문맥. `openInEditor`는 새 창을 열고 새 창은 자기 세션을 연다 |
 | 연결 설정의 자동 커밋 적용(`AutoCommitApplier`) | 이미 연결의 모든 문맥에 적용한다. 질문의 이름이 창 이름이다 |
 
+### 늦은 작업의 세션 (2026-11-12)
+
+- **결함:** 창의 기본 DB 읽기(`SqlEditorPanel.refreshSchemas`)와 커밋 방식 읽기(`refreshTransactionMode`)는 작업 스레드에서 `openWindowContext` →
+  `QueryWindowContext.open`으로 창의 세션을 연다. 연결 변경(앱 변경 #73)이나 창 닫기 전에 옛 서버를 위해 시작된 작업이 `release` 뒤에 `open`에 오면 묶음이 비어 있어
+  옛 서버에 새 자기 세션을 열었다. 다음 서버의 `open`은 묶음을 바꾸며 그 세션을 닫지 않으므로 연결을 끊을 때까지 주인 없는 세션이 남았다(옛 서버가 운영일 수 있다).
+- **고침:** `QueryWindowContext`가 창의 지금 서버를 안다(`setServer`: 창을 만들 때, 서버를 고르거나 바꿀 때 `applyServer`). `open`은 그 서버의 데이터 소스가 아니면
+  세션 없이 `DBException`으로 거절한다. `release`(연결 변경, 창 닫기 `dispose`)는 서버를 비워 그 사이에 온 작업도 거절한다. 모든 여는 경로가 `open`을 지난다.
+  거절만 한다: 문맥을 닫거나 트랜잭션을 끝내지 않는다. 늦은 작업의 결과는 창이 이미 버리고(일련번호), 두 읽기는 거절을 디버그 기록으로만 남긴다.
+- **증명(임시 시험 고리로 `open`을 8초 늦춤, 커밋에는 없음):** PostgreSQL 창을 열자마자 SQL Server로 연결 변경, 15초 뒤 두 번째 세션으로 셈.
+  고치기 전: `pg_stat_activity`에 `SQLEditor <LATE2.sql>`(idle, 트랜잭션 없음)이 남고 창을 닫은 뒤에도 남음. 고친 뒤: PostgreSQL 0, SQL Server 1(창의 세션),
+  디버그 기록에 거절. 늦은 작업이 걸린 채 창을 닫은 경우도 0. 지연 없이 바꾸면 옛 세션 1 → 0, 새 세션 1, 실행 `@@SERVERNAME`.
+  기록: `D:\Tools\_scratch\change-connection\run\71.txt.log`, `72.txt.log`(전), `73-fix2-after.txt.log`, `73-guard-refusals.txt`(후).
+- **남은 경로(보고):** 작업이 `release` 전에 이미 옛 세션을 얻어 그 위에서 읽고 있는 중에 연결을 바꾸거나 창을 닫으면, `release`가 그 세션을 닫는다(창 닫기와 같은 예전 경로).
+  수동 커밋 세션에서 그 읽기가 트랜잭션을 시작했다면 닫을 때 끝난다. 이번 고침은 이 경로를 바꾸지 않았다.
+
 ### 세션 수
 
 쿼리 상태 줄의 커밋 방식 칸 도구 설명 맨 아래에 "세션: 이 창만 쓰는 세션(이 연결에 열린 세션 N개)" 또는 "…다른 쿼리 창과 함께 쓰는 세션(…)"을 보인다.
@@ -449,3 +464,4 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
   ([idle-transactions.md](idle-transactions.md) "트랜잭션 상태", `chromite/txn-real-state`)
 - 2026-11-12 "트랜잭션 안전" 표에 쿼리 창의 연결 변경 줄(앱 변경 #73, `chromite/change-connection`, [swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경")
 - 2026-11-12 연결 변경 단추의 자리를 SQL Editor 도구 막대의 첫 단추로 고침(앱 변경 #74, `chromite/change-connection`)
+- 2026-11-12 "늦은 작업의 세션": 쿼리 창의 세션은 창의 지금 서버에서만 열림(`QueryWindowContext.setServer`, `chromite/change-connection`)

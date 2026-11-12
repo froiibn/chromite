@@ -355,6 +355,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 도구 막대의 서버 표시를 지움(앱 변경 #74, 사용자 결정): 서버 표시 필드·{@code getServerIndicator}와 표시를 고치던 줄 삭제.
  *   서버가 없는 창도 도구 막대의 연결 변경 단추로 서버를 고름 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
+ * - 2026-11-12 창의 서버를 세션 문맥에 알림({@code QueryWindowContext.setServer}): 연결 변경·창 닫기 전에 시작된 작업이 옛 서버에 세션을 열지 않게
+ *   (docs/chromite/transactions.md "늦은 작업의 세션")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -569,6 +571,7 @@ final class SqlEditorPanel extends JPanel {
     SqlEditorPanel(@Nullable DBPDataSourceContainer dataSourceContainer, @NotNull String fileName, @NotNull Host host) {
         super(new BorderLayout());
         this.dataSourceContainer = dataSourceContainer;
+        windowContext.setServer(dataSourceContainer);
         this.fileName = fileName;
         this.fileFormat = SqlFileContent.newFile("");
         this.host = host;
@@ -1479,6 +1482,8 @@ final class SqlEditorPanel extends JPanel {
      */
     private void applyServer(@NotNull DBPDataSourceContainer container) {
         dataSourceContainer = container;
+        // Sessions open on this server only from now on (a job started for the old one gets none)
+        windowContext.setServer(container);
         statusLine.setConnection(container);
         host.titleChanged(this);
         refreshSchemas();
