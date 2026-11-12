@@ -43,6 +43,12 @@ import java.util.List;
 /**
  * Various objects cache.
  * Simple cache which may read objects from database and keep them.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: {@link #getObjectReadingNew}(서버가 알려 준 현재 DB·스키마가 캐시에 없으면 목록을 다시 읽음): 다른 세션이 만든
+ *   DB로 USE 하면 쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되던 것(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
+ * - 2026-11-12 Chromite: 다시 읽어도 없는 이름은 캐시를 비우거나 다른 이름을 물을 때까지 다시 읽지 않음: 필터로 숨긴 DB 등에서 쿼리 창의 실행마다
+ *   목록 전체를 읽었다(#79 검토 후속, 같은 문서 "다시 읽어도 없는 이름")
  */
 public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DBSObject> extends AbstractObjectCache<OWNER, OBJECT>
 {
@@ -52,6 +58,10 @@ public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DB
 
     // Maximum number of objects in cache
     private int maximumCacheSize = DEFAULT_MAX_CACHE_SIZE;
+    // The name getObjectReadingNew read the list for without finding it: not read again for it until the cache is cleared
+    // or another name is asked for (the query windows ask after every run)
+    @Nullable
+    private volatile String missingAfterReading;
 
     protected JDBCObjectCache() {
     }
@@ -87,6 +97,45 @@ public abstract class JDBCObjectCache<OWNER extends DBSObject, OBJECT extends DB
             this.loadObjects(monitor, owner);
         }
         return getCachedObject(name);
+    }
+
+    /**
+     * The object of a name the server reports (the session's current database or schema). When the list was read before
+     * the object was created (by another session or client), it is read again; the objects read before stay the same
+     * instances ({@link #mergeCache}), so the navigator and open editors keep theirs.
+     * <p>
+     * The list is read again at most once for a name it does not hold either (hidden by an Object Explorer filter, a
+     * list of one configured database, a temporary schema the list leaves out): the callers ask after every run of a
+     * query window, and each would read the whole list again. Clearing the cache (Refresh, reconnect) or asking for
+     * another name allows one more reading.
+     *
+     * @return the object, or null if the server does not list it either
+     */
+    @Nullable
+    public OBJECT getObjectReadingNew(@NotNull DBRProgressMonitor monitor, @NotNull OWNER owner, @NotNull String name)
+        throws DBException
+    {
+        OBJECT object = getObject(monitor, owner, name);
+        if (object != null || !name.equals(missingAfterReading)) {
+            missingAfterReading = null;
+        }
+        if (object == null && missingAfterReading == null && isFullyCached() && !monitor.isForceCacheUsage()) {
+            synchronized (this) {
+                setFullCache(false);
+                loadObjects(monitor, owner);
+            }
+            object = getCachedObject(name);
+            if (object == null) {
+                missingAfterReading = name;
+            }
+        }
+        return object;
+    }
+
+    @Override
+    public void clearCache() {
+        super.clearCache();
+        missingAfterReading = null;
     }
 
     protected synchronized void loadObjects(DBRProgressMonitor monitor, OWNER owner)

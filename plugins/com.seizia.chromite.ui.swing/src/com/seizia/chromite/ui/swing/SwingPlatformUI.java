@@ -98,6 +98,8 @@ import java.util.function.Supplier;
  *   {@link DatabaseErrorDialogs}로 함(SWT {@code DesktopUI.showDatabaseError}) (docs/chromite/connection-lifecycle.md)
  * - 2026-11-08 {@code openEntityEditor}가 디버그 로그만 남기던 것(swt-parity B-E12): Object Explorer에서 그 객체를 보여 줌. SWT에서 저장한
  *   데이터 전송 작업의 "끝나면 테이블 열기"가 닿는 곳 (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-12 {@code createMessageComponent}의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
+ *   낱말 가운데서 끊었다("…입니 / 다.", 앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -900,11 +902,12 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     /**
      * A read-only wrapping text area: JOptionPane shows a plain string on one line, which breaks on long
-     * error messages. Long texts get a scroll bar.
+     * error messages. Long texts get a scroll bar. Lines break only between words, also in Korean
+     * ({@link WrappingNote.MessageArea}); the text can be selected and copied.
      */
     @NotNull
     static JComponent createMessageComponent(@Nullable String message) {
-        JTextArea textArea = new JTextArea(CommonUtils.notEmpty(message));
+        JTextArea textArea = new WrappingNote.MessageArea(CommonUtils.notEmpty(message));
         textArea.setEditable(false);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);

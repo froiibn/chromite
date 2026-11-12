@@ -73,6 +73,10 @@ import java.util.Map;
  * - 2026-11-07 최초 작성
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 설명을 AgentSql.pendingAgentTransaction으로 만듦(화면 언어를 따름)
  * - 2026-11-08 {@code transactionNote}: 열린 트랜잭션은 수동 커밋만이 아님(자동 커밋 문맥의 BEGIN TRAN) (docs/chromite/ai-agent.md "트랜잭션 안전")
+ * - 2026-11-12 {@code runScript}: 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다 한 일을 모두 돌려줌(전에는 실패가 있어도 성공으로 감사되고
+ *   채팅 카드도 완료였다). 실패한 GO 배치 안의 결과·뒤 문장도 담음 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 {@code transactionOpen}: "단일 연결" 연결의 공유 세션에 남은 트랜잭션도 열림으로 알림(전에는 수동 커밋에서 INSERT가 커밋 안 된 채
+ *   {@code transactionOpen: false}) (docs/chromite/ai-agent.md "배치의 부분 실패" 공유 세션)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -157,6 +161,8 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
             (connection, runner) -> {
                 JsonArray list = new JsonArray();
                 int failed = 0;
+                SQLException firstError = null;
+                int firstFailed = 0;
                 for (int i = 0; i < statements.size(); i++) {
                     if (runner.getMonitor().isCanceled()) {
                         break;
@@ -169,7 +175,15 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                         r.entrySet().forEach(e -> item.add(e.getKey(), e.getValue()));
                     } catch (SQLException e) {
                         failed++;
+                        if (firstError == null) {
+                            firstError = e;
+                            firstFailed = i + 1;
+                        }
                         item.addProperty("error", e.getMessage());
+                        // A statement (a GO batch) that failed after it had returned something, or went on after its error
+                        if (e instanceof AgentSql.PartialResultException partial) {
+                            partial.getResult().entrySet().forEach(x -> item.add(x.getKey(), x.getValue()));
+                        }
                         list.add(item);
                         if (stopOnError) {
                             break;
@@ -183,6 +197,19 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                 json.addProperty("executed", list.size());
                 json.addProperty("failed", failed);
                 json.add("results", list);
+                if (firstError != null) {
+                    // A script with a failed statement is a failed call, whose result still lists what every statement did
+                    int ranAfter = list.size() - firstFailed;
+                    String message = failed + " of " + statements.size() + " statements failed; statement " + firstFailed + ": " + firstError.getMessage();
+                    if (ranAfter > 0) {
+                        json.addProperty("ranAfterError", ranAfter + " statement(s) after the first failed one ran. " +
+                            "The error did not undo them; transactionNote says whether they are committed.");
+                        message += " (" + ranAfter + " statement(s) after it ran)";
+                    } else if (list.size() < statements.size()) {
+                        message += " (the script stopped there)";
+                    }
+                    throw new AgentSql.PartialResultException(message, firstError, json, false);
+                }
                 return json;
             });
         addTransactionState(container, result);
@@ -191,10 +218,14 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
 
     static void addTransactionState(@NotNull DBPDataSourceContainer container, @NotNull JsonObject result) {
         boolean open = AgentSql.hasPendingTransaction(container);
-        result.addProperty("transactionOpen", open);
+        // A "single connection" connection: the work is in the shared session's transaction, not in one of the agent's own
+        boolean shared = !open && AgentSql.isSharedSessionTransactionOpen(container);
+        result.addProperty("transactionOpen", open || shared);
         if (open) {
             result.addProperty("transactionNote", "The agent's transaction is open: its changes or locks are not committed. " +
                 "Ask the user, then call commitTransaction or rollbackTransaction (both ask the user to confirm).");
+        } else if (shared) {
+            result.addProperty("transactionNote", AgentSql.SHARED_SESSION_NOTE);
         }
     }
 

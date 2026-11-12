@@ -17,6 +17,7 @@
 package com.seizia.chromite.model.ai.tools;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
@@ -39,10 +40,13 @@ import java.util.Map;
  * 도구는 실행기({@code AIToolExecutor})를 거쳐야만 정책·감사가 적용되므로, 실행기가 만든 {@link AIToolCallContext}가 아니면 거부한다.
  * 어느 DB 종류에서 쓸 수 있는지({@link #supports})는 도구 클래스가 안다(진단 SQL 도구는 SQL 자원의 DB 종류 블록). 채팅 요청에 보낼 도구를
  * 연결의 DB 종류로 고를 때 쓴다(docs/chromite/ai-agent.md "요청 크기"). plugin.xml 속성으로 따로 적으면 SQL 자원과 어긋날 수 있어 코드에 둔다.
+ * 무언가 한 뒤에 실패한 호출({@link AgentSql.PartialResultException})은 예외 대신 오류 결과로 돌려주고 그 값에 호출이 한 일 전부를 담는다.
+ * 실행기는 이 결과를 오류로 감사하고 오류 JSON에 그 내용을 붙인다. 어느 도구든 같은 실행 경로를 쓰므로 여기 한 곳에서 처리한다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md)
  * - 2026-11-08 {@link #supports}: 도구가 쓸 수 있는 DB 종류(요청 크기를 줄이는 도구 고르기)
+ * - 2026-11-12 부분 실패의 결과를 오류 결과로 넘김 (docs/chromite/ai-agent.md "배치의 부분 실패")
  */
 public abstract class AgentTool implements AIFunction {
 
@@ -55,9 +59,19 @@ public abstract class AgentTool implements AIFunction {
         if (!(context instanceof AIToolCallContext toolContext)) {
             throw new DBException("Agent tools run only through the agent tool executor");
         }
-        JsonElement result = call(toolContext, toolContext.getTool().getId(), parameters);
-        return new AIFunctionResult(toolContext.getTool().getType() == null ? AIFunctionType.INFORMATION :
-            toolContext.getTool().getType(), AgentJson.toText(result));
+        AIFunctionType type = toolContext.getTool().getType() == null ? AIFunctionType.INFORMATION : toolContext.getTool().getType();
+        JsonElement result;
+        try {
+            result = call(toolContext, toolContext.getTool().getId(), parameters);
+        } catch (DBException e) {
+            // A failure after the call had done something: an error result that still shows everything it did
+            JsonObject partial = AgentSql.getPartialResult(e);
+            if (partial == null) {
+                throw e;
+            }
+            return new AIFunctionResult(type, AgentJson.toText(partial), null, e);
+        }
+        return new AIFunctionResult(type, AgentJson.toText(result));
     }
 
     /**

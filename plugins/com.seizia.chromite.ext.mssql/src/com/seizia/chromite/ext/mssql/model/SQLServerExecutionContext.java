@@ -42,6 +42,10 @@ import java.sql.SQLException;
 
 /**
  * SQLServerExecutionContext
+ *
+ * 변경 이력:
+ * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
+ *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되고 상태 줄에서 DB가 빠졌다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  */
 public class SQLServerExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<SQLServerDatabase, SQLServerSchema> {
     private static final Log log = Log.getLog(SQLServerExecutionContext.class);
@@ -182,6 +186,16 @@ public class SQLServerExecutionContext extends JDBCExecutionContext implements D
             if (!CommonUtils.isEmpty(currentDatabase) && (activeDatabaseName == null || !CommonUtils.equalObjects(currentDatabase, activeDatabaseName))) {
                 activeDatabaseName = currentDatabase;
                 refreshed = true;
+            }
+            // A database created after the list was read (another session): read it, getDefaultCatalog looks in the cache.
+            // The main context opens inside the data source's constructor, before its caches exist (the list is read by initialize)
+            SQLServerDataSource.DatabaseCache databaseCache = getDataSource().getDatabaseCache();
+            if (!CommonUtils.isEmpty(currentDatabase) && databaseCache != null) {
+                try {
+                    databaseCache.getObjectReadingNew(monitor, getDataSource(), currentDatabase);
+                } catch (DBException e) {
+                    log.debug("Error reading the database list again", e);
+                }
             }
             if (CommonUtils.isEmpty(currentSchema)) {
                 currentSchema = SQLServerConstants.DEFAULT_SCHEMA_NAME;

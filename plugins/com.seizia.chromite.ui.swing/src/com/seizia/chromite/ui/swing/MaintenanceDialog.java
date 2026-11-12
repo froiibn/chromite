@@ -70,6 +70,8 @@ import java.util.Map;
  * - 2026-11-08 실행 확인은 실행 / 취소 단추(취소가 기본), 실행 중에 닫을 때의 취소 질문은 아니요가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-12 대상 읽기·실행 중 표시를 길이를 모르는 막대에서 도넛 스피너({@link SpinnerIcon})로 (앱 변경 #60,
  *   docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
+ * - 2026-11-12 실행 확인의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
+ *   낱말 가운데서 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  */
 final class MaintenanceDialog extends JDialog {
 
@@ -480,7 +482,7 @@ final class MaintenanceDialog extends JDialog {
             text.append('\n').append(warning).append('\n');
         }
         text.append('\n').append(MaintenanceViewMessages.maintview_confirm_connection);
-        JTextArea message = new JTextArea(text.toString());
+        JTextArea message = new WrappingNote.MessageArea(text.toString());
         message.setEditable(false);
         message.setLineWrap(true);
         message.setWrapStyleWord(true);

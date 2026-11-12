@@ -17,11 +17,13 @@
 package com.seizia.chromite.model.sql.exec;
 
 import org.jkiss.code.NotNull;
+import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceInfo;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.runtime.DBInterruptedException;
 
 import java.nio.channels.ClosedByInterruptException;
@@ -32,7 +34,7 @@ import java.util.function.Consumer;
 
 /**
  * Errors of the statements of a multi-statement batch that the driver reports while the results are read, for the
- * script executors ({@link SQLQueryExecuteJob}, {@link SQLScriptProcessor}).
+ * script executors ({@link SQLQueryExecuteJob}, {@link SQLScriptProcessor}) and, for the rule alone, the agent's SQL tools.
  *
  * 설계: SQL Server는 배치의 문장 하나가 실패해도(문장 단위 오류: 0으로 나누기, RAISERROR, 키 위반 등) 나머지 문장을 계속 실행하고,
  * 드라이버는 그 오류를 결과를 읽다가 그 자리에서 예외로 알린다({@code execute}, {@code ResultSet.next}, {@code getMoreResults}).
@@ -44,12 +46,16 @@ import java.util.function.Consumer;
  * {@code getNextException()}은 뒤 결과를 미리 읽어 오류 사이의 행 수와 결과 집합을 버리므로, 결과를 다 읽기 전에는 오류 도우미
  * ({@code discoverErrorType})를 부르거나 오류를 로그에 쓰지 않는다(둘 다 그 사슬을 따라간다).
  * 두 실행기의 결과 읽기 루프가 달라 루프는 그대로 두고 판단과 다음 결과 이동만 모았다.
+ * Chromite Agent의 SQL 도구는 JDBC를 직접 읽으므로(AgentSql) 같은 판단만 JDBC 수준으로 쓴다({@link #canReadPast(DBPDataSource, DBRProgressMonitor, Throwable)}).
+ * 오류 뒤를 계속 읽을지의 규칙이 쿼리 창과 에이전트에서 달라지지 않게 한 곳에 둔다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/sql-batch-errors.md)
  * - 2026-11-12 주석만: 연결 끊김 뒤의 복구는 읽기만 다시 실행함(앱 변경 #86)
+ * - 2026-11-12 공개 클래스로 바꾸고 데이터 원본과 모니터로 묻는 {@code canReadPast}를 더함: 에이전트 SQL 도구가 같은 규칙으로 오류 뒤 결과를
+ *   읽는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
  */
-final class SQLBatchErrors {
+public final class SQLBatchErrors {
 
     /**
      * Errors in a row while moving to the next result, after which the move fails: a driver that keeps throwing would
@@ -75,7 +81,14 @@ final class SQLBatchErrors {
      * (the log writes the chain too) must wait until the results are read.
      */
     static boolean canReadPast(@NotNull DBCSession session, @NotNull Throwable error) {
-        if (!session.getDataSource().getInfo().isMultipleResultsFetchBroken() || session.getProgressMonitor().isCanceled()) {
+        return canReadPast(session.getDataSource(), session.getProgressMonitor(), error);
+    }
+
+    /**
+     * {@link #canReadPast(DBCSession, Throwable)} for a caller that reads JDBC directly (the agent's SQL tools).
+     */
+    public static boolean canReadPast(@NotNull DBPDataSource dataSource, @NotNull DBRProgressMonitor monitor, @NotNull Throwable error) {
+        if (!dataSource.getInfo().isMultipleResultsFetchBroken() || monitor.isCanceled()) {
             return false;
         }
         for (Throwable cause = error; cause != null && cause.getCause() != cause; cause = cause.getCause()) {
