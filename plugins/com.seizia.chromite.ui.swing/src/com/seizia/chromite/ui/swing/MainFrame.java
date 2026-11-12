@@ -311,6 +311,7 @@ import java.util.function.Supplier;
  *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  * - 2026-11-12 메뉴 묶음 구분선: 보기의 결과 묶음 앞, 도구의 개체 찾기 앞과 옵션 앞(macOS는 옵션이 앱 메뉴에 있어 넣지 않음). 순서는 그대로
  *   (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
+ * - 2026-11-12 Windows: 마우스에 쓴 Alt를 떼도 메뉴 막대가 골라지지 않게 {@link AltMouseMenuGuard}를 설치(앱 변경 #102)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -527,6 +528,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsArea.setOpaque(false);
         // The document area (document card + results card) is the fixed center of the docking layout
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
+        // Windows: Alt released after a mouse gesture (Alt+drag, Alt+wheel) does not select the menu bar; removed when this closes
+        AltMouseMenuGuard.install(this);
 
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
