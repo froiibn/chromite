@@ -309,6 +309,8 @@ import java.util.function.Supplier;
  *   "서버 선택"(docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  * - 2026-11-12 주석만: 실제 계획이 없는 서버의 창은 Actual Plan 동작(메뉴, 도구 막대 단추, Ctrl+M)이 연결 전부터 꺼짐
  *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
+ * - 2026-11-12 메뉴 묶음 구분선: 보기의 결과 묶음 앞, 도구의 개체 찾기 앞과 옵션 앞(macOS는 옵션이 앱 메뉴에 있어 넣지 않음). 순서는 그대로
+ *   (앱 변경 #98, docs/chromite/swing-frontend.md "메뉴 간격과 구분선")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -2256,6 +2258,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenu viewMenu = new JMenu(CoreMessages.main_menu_view);
         viewMenu.setMnemonic(KeyEvent.VK_V);
         for (ToolWindow toolWindow : toolWindows) {
+            // The results panel opens the group of the result area (Results Beside the Editor, Maximize Results)
+            if (toolWindow == resultsWindow) {
+                viewMenu.addSeparator();
+            }
             viewMenu.add(new JCheckBoxMenuItem(toolWindow.getToggleAction()));
         }
         viewMenu.add(new JCheckBoxMenuItem(resultsBesideAction));
@@ -2305,12 +2311,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(dashboardItem);
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(openTransactionsItem);
+        toolsMenu.addSeparator();
         toolsMenu.add(findObjectsItem);
         toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(networkProfilesItem);
+        // macOS: Options is in the application menu, so no separator would be left last
         if (!appMenu) {
+            toolsMenu.addSeparator();
             toolsMenu.add(optionsItem);
         }
 
