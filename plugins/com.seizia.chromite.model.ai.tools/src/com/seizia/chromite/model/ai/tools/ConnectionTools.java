@@ -68,6 +68,9 @@ import java.util.Map;
  *     <li>트랜잭션 안전(사용자 규칙): {@code disconnect}는 이 연결의 모든 실행 문맥(쿼리 창은 상태 줄과 같은 규칙
  *     {@link QMUtils#getTransactionState}, 에이전트 문맥은 {@link AgentSql}이 기록한 것)을, {@code setCurrentDatabase}·{@code commitTransaction}·
  *     {@code rollbackTransaction}은 에이전트의 열린 트랜잭션을 실행기에 알려 Commit / Roll back / Cancel을 묻게 한다({@link AIToolTransactionGuard}).</li>
+ *     <li>"단일 연결" 연결에서는 에이전트가 자기 트랜잭션 없이 공유 세션(쿼리 창의 세션)에서 실행한다. 그 세션에 열린 트랜잭션이 있으면
+ *     {@code commitTransaction}·{@code rollbackTransaction}은 그것을 끝내지 않고(사용자의 것) 실패로 끝나며, 아무것도 커밋·롤백하지 않았다는 것과
+ *     사용자가 쿼리 창에서 끝내야 한다는 것을 알린다. 상태만 돌려주면 감사 기록·채팅 카드·모델이 모두 성공으로 보았다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -76,6 +79,8 @@ import java.util.Map;
  * - 2026-11-08 쿼리 창 트랜잭션을 상태 줄과 같은 규칙(DB의 답)으로 봄, getTransactionStatus에 확인할 수 없는 트랜잭션
  *   ({@code otherUnverifiedTransactions}), 끝내기는 공용 경로 (docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-12 getToolPolicy가 늘 확인하는 도구에 {@code alwaysConfirmed}를 붙임(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
+ * - 2026-11-12 공유 세션에 열린 트랜잭션이 있을 때 commitTransaction/rollbackTransaction이 아무것도 끝내지 않고 SUCCESS를 돌려주던 것을
+ *   실패와 그 이유로 바꿈(앱 변경 #92, docs/chromite/ai-agent.md "공유 세션의 commitTransaction·rollbackTransaction")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -95,7 +100,7 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
             case "getCurrentDatabase" -> currentDatabase(context);
             case "setCurrentDatabase" -> setCurrentDatabase(context, args);
             case "getTransactionStatus" -> transactionStatus(context);
-            case "commitTransaction", "rollbackTransaction" -> transactionStatus(context);
+            case "commitTransaction", "rollbackTransaction" -> endTransaction(context, toolId.equals("commitTransaction"));
             case "getToolPolicy" -> toolPolicy(context);
             case "openInEditor" -> openInEditor(context, args);
             default -> throw unknownTool(toolId);
@@ -248,7 +253,7 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
     }
 
     @NotNull
-    private static JsonElement transactionStatus(@NotNull AIToolCallContext context) throws DBException {
+    private static JsonObject transactionStatus(@NotNull AIToolCallContext context) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
         JsonObject json = new JsonObject();
         List<String> agent = AgentSql.getPendingTransactions(container);
@@ -272,6 +277,35 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         json.add("otherOpenTransactions", user);
         json.add("otherUnverifiedTransactions", unverified);
         return json;
+    }
+
+    /**
+     * commitTransaction / rollbackTransaction after the executor ended the agent's open transactions (the user's answer to
+     * the transaction question). On a "single connection" connection the agent has no transaction of its own: what it ran is
+     * in the shared session's transaction, which belongs to the user's query windows as well and is never ended here. Then
+     * the call is a failure that says nothing was committed or rolled back, instead of a status that reads like success.
+     */
+    @NotNull
+    private static JsonElement endTransaction(@NotNull AIToolCallContext context, boolean commit) throws DBException {
+        JsonObject status = transactionStatus(context);
+        DBPDataSourceContainer container = requireConnection(context);
+        if (!status.get("agentTransactionOpen").getAsBoolean() && AgentSql.isSharedSession(container)) {
+            // The status line's state of the shared session (the query manager's record, refreshed after every agent call)
+            List<String> shared = new ArrayList<>();
+            for (DBCExecutionContext ctx : userContexts(container)) {
+                if (QMUtils.getTransactionState(ctx).isOpen()) {
+                    shared.add(ctx.getContextName());
+                }
+            }
+            if (!shared.isEmpty()) {
+                throw new DBException("Nothing was " + (commit ? "committed" : "rolled back") + ": the agent has no transaction " +
+                    "of its own on this connection. It uses one shared session (its \"single connection\" setting) that the user's " +
+                    "query windows also use, and the open transaction in that session (" + String.join(", ", shared) + ") holds " +
+                    "what ran there, the agent's statements included. " + (commit ? "commitTransaction" : "rollbackTransaction") +
+                    " does not end it: ask the user to commit or roll it back in a query window (status bar or Query menu).");
+            }
+        }
+        return status;
     }
 
     // The application's own execution contexts of a connection (query windows, navigator), not the agent's

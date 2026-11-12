@@ -104,6 +104,8 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 롤백으로도 되돌릴 수 없는 명령(SQL Server `BACKUP`, `RECONFIGURE`, `xp_cmdshell`, `KILL` 등)은 1번 분류기가 쓰기로 본다.
 
+"단일 연결" 연결(공유 세션)에서는 2·3번이 없어 1번 분류기만 보호하고, 롤백에 기대어 쓰는 호출은 거절한다(아래 "공유 세션에서 롤백에 기대는 호출", 2026-11-12).
+
 ## 도구 카탈로그
 
 ### 공통 규칙
@@ -165,7 +167,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `runSelect` | SELECT 실행, 행 한도와 페이지 | R | `connection`, `sql`, `limit`, `offset`, `format` | 표 | G | 1 |
 | `runReadOnlySql` | 모델이 쓴 진단 SQL(시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지 | R | `connection`, `sql`, `database`, `limit` | `results[]`, `messages[]` | G | 1 |
 | `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과). 연결의 커밋 방식 그대로: 수동 커밋 연결이면 트랜잭션을 열어 둔 채 `transactionOpen: true`를 알린다 | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표, `transactionOpen`. 실패는 아래 "배치의 부분 실패" | G | 1 |
-| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen`. 실패한 문장이 있으면 오류(아래 "배치의 부분 실패") | G | 1 |
+| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙. 쿼리 창과 같은 단위: SQL Server `GO` 배치는 한 번에, 2026-11-12). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen`. 실패한 문장이 있으면 오류(아래 "배치의 부분 실패") | G | 1 |
 | `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: 쿼리 창과 같은 방언 질의 `JDBCTransactionProbe`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태")과 이 연결의 쿼리 창 트랜잭션(`otherOpenTransactions`, DB에 확인할 수 없는 것은 `otherUnverifiedTransactions`) | R | `connection` | 객체 | MS PG MY OR, G | 1 |
 | `commitTransaction` | 에이전트의 열린 트랜잭션 커밋. **자동 실행 설정과 상관없이 늘 확인** | W | `connection` | 결과 | G | 1 |
 | `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인. 운영 연결에서도 에이전트가 자기 일을 되돌릴 수 있어야 하므로 분류는 READ(막히지 않음)이고, 되돌릴 것이 있으면 트랜잭션 안전 규칙이 늘 묻는다 | R | `connection` | 결과 | G | 1 |
@@ -1375,7 +1377,7 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
     성공 결과(`QueryTools.addTransactionState`)도 같은 값으로 `transactionOpen`을 알린다. 전에는 이 경우 `pending`이 늘 거짓이라 커밋 안 된 INSERT 뒤에도
     `transactionOpen: false`, 실패 때는 "nothing … is waiting for a commit"이었고, 쿼리 창 상태 줄도 그 트랜잭션을 몰랐다(쿼리 관리자는 에이전트 문장을 보지 못함).
     이 트랜잭션은 사용자의 것이기도 하므로 `pending`으로 두지 않는다. 그래서 `commitTransaction`·`rollbackTransaction`은 묻지 않고(정책의 Allow/Deny만) 아무것도
-    끝내지 않으며, 결과의 `otherOpenTransactions`에 그 세션("Main")이 보인다. `getTransactionStatus`도 `agentTransactionOpen: false`,
+    끝내지 않는다. 2026-11-12(앱 변경 #92)부터 이때 결과는 성공이 아니라 오류다(아래 "공유 세션의 commitTransaction·rollbackTransaction"). `getTransactionStatus`도 `agentTransactionOpen: false`,
     `otherOpenTransactions: ["Main"]`이다. 끝내는 것은 사용자가 쿼리 창(상태 줄, Query 메뉴)에서 한다.
 - **자르기**: 오류 결과가 실행기 한도(`AIToolExecutor.MAX_RESULT_CHARS`, 1 MB)를 넘으면 글 전체를 자르지 않고(전에는 `truncatedText` 하나만 남아 뒤쪽의
   `ranAfterError`·`transactionOpen`·`transactionNote`·`steps`가 잘렸다) JSON을 먼저 읽어 가장 큰 멤버부터 줄인다(`fitResult`): 객체는 큰 멤버를, 배열은 앞
@@ -1385,7 +1387,7 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
   보호와 측정 호출의 매번 롤백, 자동 커밋 연결에서 `insertRows`·`importCsv`·`copyTable`이 자기 호출을 묶은 트랜잭션을 오류 때 롤백(`runAtomic`, 위
   "쓰기 도구의 커밋"). 앞의 둘은 쓰기가 없거나 되돌리는 것이 목적이고, 셋째는 이 호출이 시작한 자기 트랜잭션만 되돌린다(열린 에이전트 트랜잭션이 있으면
   `ATOMIC`도 그 안에서 실행하고 롤백하지 않음). 그 결과는 "Nothing this call did was kept"로 알린다.
-- **`runScript`**: 문장(드라이버 구분자로 나눈 것)마다 실행하는 것은 그대로다. 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다의 결과를 모두 돌려준다
+- **`runScript`**: 문장(드라이버 구분자로 나눈 것)마다 실행하는 것은 그대로다(2026-11-12 앱 변경 #88부터 SQL Server는 `GO` 배치마다, 아래 "runScript의 실행 단위"). 실패한 문장이 있으면 호출을 오류로 끝내되 문장마다의 결과를 모두 돌려준다
   (요약 "1 of 3 statements failed; statement 2: … (1 statement(s) after it ran)" 또는 "(the script stopped there)"). 실패한 문장 안에서 오류 뒤가 실행됐으면
   그 문장 항목에 `steps`·`ranAfterError`가 붙는다. `stopOnError=false`로 실패 뒤 문장이 실행됐으면 `ranAfterError`.
 - **같은 실행 경로의 다른 도구**: `Runner.execute`/`query`를 쓰는 도구는 모두 같은 결과를 낸다(`AgentTool`에서 한 번 처리): `runReadOnlySql`, `runLibraryQuery`,
@@ -1454,9 +1456,387 @@ SQL 도구(`runSql` 등)는 JDBC를 직접 읽는다(`AgentSql.Runner.execute`, 
 - MySQL·MariaDB의 CALL에서 오류 앞 결과 집합은 드라이버가 버려 보일 수 없다. `setFetchSize`로 흘려 읽으면 앞 결과는 읽히지만, 오류 뒤
   `getMoreResults`가 멈추거나(시험에서 끝나지 않음) `NullPointerException`을 던져서 쓰지 않았다.
 - 결과 집합의 행을 읽다 난 오류(SQL Server `SELECT 1/0`)는 그 결과 집합의 이미 읽은 행을 보이지 않는다(오류 단계만). 쿼리 창은 빈 표를 보인다.
-- `runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.
-- 공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.
-  공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음). 둘 다 이 작업에서 고치지 않았다.
+- ~~`runSql`은 끝의 `;`를 모두 지워(`AgentSqlClassifier.stripTrailingDelimiter`) Oracle PL/SQL 블록(`BEGIN … END;`)이 PLS-00103으로 실패한다. 이 작업의 범위가 아니라 고치지 않았다.~~
+  2026-11-12 고침(앱 변경 #87): 아래 "문장 끝의 구분자".
+- ~~공유 세션에서는 `AgentSql.run`이 모드를 적용하지 않고 바로 실행한다: 읽기 전용 보호의 롤백도, 측정(`ROLLBACK` 모드, `getActualPlan`의 DML)의 롤백도 없다.~~
+  2026-11-12 고침(앱 변경 #91): 아래 "공유 세션에서 롤백에 기대는 호출".
+  ~~공유 세션의 `commitTransaction`은 아무것도 커밋하지 않아도 SUCCESS다(결과의 `otherOpenTransactions`로만 알 수 있음).~~
+  2026-11-12 고침(앱 변경 #92): 아래 "공유 세션의 commitTransaction·rollbackTransaction".
+
+## 공유 세션에서 롤백에 기대는 호출 (앱 변경 #91, 2026-11-12)
+
+### 문제
+
+"단일 연결" 연결(`DBPDataSourceContainer.isForceUseSingleConnection()`)에서는 에이전트가 격리 문맥을 열 수 없어 쿼리 창과 같은 기본 문맥(공유 세션)에서
+실행한다. `AgentSql.run`의 공유 세션 분기는 사용자 트랜잭션을 건드리지 않으려고 호출 방식(`READ_ONLY`, `ROLLBACK`)을 적용하지 않고 작업을 그대로 실행했다.
+그래서 자기 트랜잭션을 열고 끝에 롤백하는 것으로 안전을 지키는 호출이 공유 세션에서는 문장을 그대로 실행했다(고치기 전 빌드, 두 번째 세션에서 읽음).
+
+| 경우 | 고치기 전 결과 | 두 번째 세션 |
+|---|---|---|
+| SQL Server 자동 커밋 `getActualPlan` `UPDATE dbo.t SET v='shared-ac' WHERE id=1` | SUCCESS, "The statement was executed in a transaction that was rolled back." | id 1 = `shared-ac`, 커밋됨 |
+| SQL Server 수동 커밋 같은 호출(id 2) | SUCCESS, 같은 글 | READPAST에서 id 2 안 보임(잠김), NOLOCK에서 `shared-mc`. 쿼리 창 "Open transaction (changes)" |
+| PostgreSQL 자동 커밋 같은 호출 | SUCCESS, 같은 글 | id 1 = `pg-shared`, 커밋됨 |
+| PostgreSQL `validateSql` `SELECT 1; INSERT INTO t VALUES (20, …)` | SUCCESS, `serverValid: true` | 20이 들어감(격리 문맥에서는 "cannot execute INSERT in a read-only transaction") |
+| Oracle 수동 커밋 `explainQuery`(SELECT) | SUCCESS | 쿼리 창에 "Open transaction (0 statements)": EXPLAIN PLAN이 사용자 세션에 PLAN_TABLE 행을 쓰고 트랜잭션을 열어 둠 |
+| Oracle 수동 커밋 `getActualPlan` UPDATE | SUCCESS, "rolled back" | 사용자 세션의 열린 트랜잭션에 UPDATE가 남음(쿼리 창 Roll Back으로 지움) |
+
+같은 조사에서, 읽기 도구를 지키는 분류기(`AgentSqlClassifier.classify`)가 글의 첫 문장만 보았다. JSQLParser의 `Statement()`가 첫 문장의 구분자에서 멈추므로
+`SELECT 1; INSERT …`가 SELECT(읽기)였다(`validateSql`의 `readOnly: true`, PostgreSQL·Oracle·SQL Server 모두). 공유 세션에서는 이 분류가 읽기 도구의 유일한 보호다.
+SQL Server는 읽기 전용 트랜잭션이 없어 격리 문맥에서도 `runReadOnlySql` `SELECT 1 AS a; INSERT INTO dbo.t VALUES (40, …); COMMIT`의 40이 커밋돼 남았다.
+
+### 원인
+
+- `AgentSql.run`(고치기 전 261~270행): `!agentContext.isolated`이면 `work.run`을 바로 부르고 `mode`를 보지 않는다. `ROLLBACK`(측정한 DML, Oracle EXPLAIN PLAN)과
+  `READ_ONLY`(읽기 전용 트랜잭션 + 롤백)의 두·세 번째 겹이 없다.
+- `PlanTools.plan`(고치기 전 252행)은 읽기가 아닌 문장의 실제 계획을 `ROLLBACK`으로 부르고, 결과에 "rolled back"을 적는다. 확인 요청의 미리 보기도
+  "then rolls it back"이다(`getPreview`).
+- `QueryTools.validate`의 서버 검사(PostgreSQL·MySQL `EXPLAIN <sql>`)는 글의 첫 문장만 계획하고 나머지는 실행한다. 격리 문맥에서는 읽기 전용 트랜잭션이 막았다.
+- `AgentSqlClassifier.classify`는 `SQLQuery`(JSQLParser `Statement()`) 결과 하나로 판정하므로 첫 문장 뒤를 보지 않는다.
+
+### 고친 것
+
+공유 세션의 커밋 방식을 바꾸거나, 그 세션에 트랜잭션을 열거나, 롤백하는 방법은 쓰지 않는다(그 세션은 사용자의 것이다). 롤백에 기대는 호출은 실행하지 않고 거절한다.
+
+- `AgentSql.isSharedSession(container)`: 에이전트 호출이 공유 세션에서 실행되는 연결(`isForceUseSingleConnection`).
+- `AgentSql.sharedSessionRefusal(why, instead)`: 거절 글. "Refused, nothing ran: <무엇을 하려 했나>. This connection uses one shared session (its "single
+  connection" setting) that the user's query windows also use, so Chromite cannot run this call in a transaction of its own and roll it back: it would really
+  run in the user's session. <대신 할 일>". `AIToolArgumentException`이라 실행기 결과는 `INVALID`(읽기 도구가 쓰기를 거절할 때와 같음)다.
+- `AgentSql.run`: 격리되지 않은 문맥에서 `Mode.ROLLBACK`이면 작업 전에 거절한다(대신: 쿼리 창에서 사용자가 하기, 또는 `runSql`). `ROLLBACK`은 쓰고 되돌리는 호출만
+  쓰는 방식이라 문장을 볼 필요가 없다. Oracle `explainQuery`·`comparePlans`(EXPLAIN PLAN이 PLAN_TABLE을 씀)와 읽기가 아닌 문장의 실제 계획이 여기에 걸린다.
+- `PlanTools.classify`(`getActualPlan`): 공유 세션에서 문장이 읽기라고 증명되지 않으면(분류기, 판정 못 하면 거절) 확인 요청 전에 거절한다
+  (대신: `explainQuery`로 예상 계획, 실제로 실행하려면 `runSql`). 확인 대화상자에 사실이 아닌 "실행 후 롤백"을 보이지 않기 위해서다.
+- `QueryTools.validate`: 공유 세션에서 문장이 둘 이상인 글은 서버에서 검사하지 않고 `serverNote`로 알린다(문장 하나는 그대로 EXPLAIN·NOEXEC).
+- `AgentSqlClassifier.classify`: 연결 방언의 스크립트 파서(`QueryTools.splitScript`)로 나눈 문장이 둘 이상이면 읽기가 아니다("the text holds more than one
+  statement"). `runSelect`·`runReadOnlySql`·`compareQueryResults`·`exportData`·`runLibraryQuery`·`getActualPlan`의 분류가 모두 이것을 쓴다.
+- 읽기는 그대로다: 분류기가 읽기라고 증명한 문장은 공유 세션에서도 실행한다(`getActualPlan`의 SELECT 측정 포함).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0). 거절 결과가 이유와 대신 할 일을 말한다.
+
+### "단일 연결" 연결 (2026-11-12 코드 기준)
+
+값은 드라이버 정의의 `singleConnection="true"`(`DriverDescriptor`, `RegistryConstants.ATTR_SINGLE_CONNECTION`)에서 연결을 만들 때 복사된다
+(`DataSourceDescriptor` 237·392행). 연결 화면에 설정이 없고 저장되지 않는다. 인증 방식이 연결할 때 켜기도 한다.
+
+| 번들(제품에 포함) | 드라이버 ID | 이름 | 위치 |
+|---|---|---|---|
+| `ext.mssql` | (인증 방식) | SQL Server, 인증 "MFA"(Entra ID 대화형) | `SQLServerAuthModelMFA.java:51` `setForceUseSingleConnection(true)` |
+| `ext.snowflake` | `snowflake_jdbc` | Snowflake | `plugin.xml:44` |
+| `ext.clickhouse` | `yandex_clickhouse`, `com_clickhouse` | ClickHouse (Legacy), ClickHouse | `plugin.xml:43`, `:66` |
+| `ext.bigquery` | `google_bigquery_jdbc_simba`, `google_bigquery_jdbc` | BigQuery (Legacy), BigQuery | `plugin.xml:43`, `:70` |
+| `ext.athena` | `aws_athena_jdbc_amazon`, `aws_athena_jdbc_legacy` | Athena, Athena (Legacy) | `plugin.xml:40`, `:67` |
+| `ext.databricks` | `databricks-oss` | Databricks | `plugin.xml:44` |
+| `ext.spanner` | `spanner_jdbc_official` | Google Cloud Spanner | `plugin.xml:41` |
+| `ext.sqlite` | `libsql_jdbc` | LibSQL | `plugin.xml:90` |
+| `ext.generic` | `jdbcx`, `phoenix_hbase`, `gemfire_xd`, `snappydata_store_client`, `spark_hive`, `kyuubi_hive`, `apache_drill` | JDBCX, Apache Phoenix, Gemfire XD, SnappyData, Apache Spark, Apache Kyuubi, Apache Drill | `plugin.xml:858`, `:924`, `:942`, `:957`, `:974`, `:995`, `:1013` |
+
+SQL Server·PostgreSQL·MySQL·MariaDB·Oracle의 기본 드라이버는 해당하지 않는다. 그래서 실제로 #91이 걸리는 곳은 MFA 인증 SQL Server(실제 계획이 있는
+DB 종류)와 위 DB들의 읽기 도구(분류기만 보호)다. 위 DB들은 `DbFamily`가 OTHER라 계획 도구가 드라이버 계획기를 쓰고 실제 계획은 지원하지 않는다.
+
+### 도구별 실행 방식 (`AgentSql.Mode`)
+
+| 방식 | 격리 문맥에서 | 공유 세션에서(고친 뒤) | 도구 |
+|---|---|---|---|
+| `READ_ONLY` | 열린 에이전트 트랜잭션이 없으면 자동 커밋 끔, 읽기 전용 트랜잭션, 끝에 롤백 | 그대로 실행(모드 없음). 사용자가 쓴 SQL은 분류기가 읽기라고 증명한 것만 | `runSelect`, `runReadOnlySql`, `explainQuery`(Oracle 제외), `getActualPlan`(읽기 문장, Oracle 포함), `comparePlans`(Oracle 제외), `whatIfIndex`, `validateSql`(서버 검사), `sampleRows`, `countRows`, `profileColumns`, `compareQueryResults`, `exportData`(읽기), `copyTable`(원본 읽기), `generateDdl`, 메타데이터 도구, `testConnection`, `getCurrentDatabase`, `setCurrentDatabase`, `killSession`의 트랜잭션 확인, 진단 SQL 도구(`DiagnosticSqlTool`), `runLibraryQuery`·`runMonitoringChecks`(읽기 쿼리) |
+| `ROLLBACK` | 자동 커밋 끔, 실행, 늘 롤백. 에이전트 트랜잭션이 열려 있으면 거절 | **거절**(`sharedSessionRefusal`) | `getActualPlan`(읽기가 아닌 문장, 분류에서 먼저 거절), Oracle `explainQuery`·`comparePlans`(EXPLAIN PLAN) |
+| `NATIVE` | 연결의 커밋 방식 그대로, 열린 트랜잭션 기록 | 그대로 실행, 세션의 트랜잭션을 DB에 물어 알림 | `runSql`, `runScript`, DDL 도구, `killSession`, `runLibraryQuery`(쓰기 쿼리) |
+| `ATOMIC` | 자동 커밋이면 호출을 한 트랜잭션으로 묶고 오류면 롤백, 수동 커밋이면 그대로 | 그대로 실행(묶지 않음) | `insertRows`, `updateRows`, `deleteRows`, `importCsv`, `copyTable`(대상 쓰기) |
+
+`NATIVE`·`ATOMIC`은 쓰기라 사용자가 확인하고, 쓴 것은 남는 것이 목적이므로 거절하지 않는다(공유 세션의 `ATOMIC`이 묶지 못하는 것은 아래 "남은 것").
+
+### 확인 (2026-11-12)
+
+빌드(JBR 25) BUILD SUCCESS. 빌드한 앱 사본을 빈 작업 공간·설정·데이터(`CHROMITE_DATA`)로 띄우고 앱 안 시험 에이전트가 도구를 실행기(클라이언트 MCP)로
+불렀다. 번들 드라이버 중 단일 연결을 강제하는 것(위 목록)은 시험 서버가 없어서, #83과 같이 시험 에이전트가 SQL Server·PostgreSQL·Oracle 연결의
+`setForceUseSingleConnection(true)`를 켜고(MFA 인증이 하는 것과 같은 값, 저장되지 않아 앱을 다시 띄우면 다시 켬) 다시 연결해 쿼리 창을 하나 열었다. 시험 DB는
+GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 번째 세션은 따로 연 연결이다.
+
+| 경우 | 두 번째 세션 전 | 결과(고친 뒤) | 두 번째 세션 뒤 |
+|---|---|---|---|
+| SQL Server 공유 세션 자동 커밋 `getActualPlan` `UPDATE … id=1` | (1,a),(2,b) | `INVALID` "Refused, nothing ran: getActualPlan would execute this statement to measure it, and the statement is UPDATE. …" (확인 요청 없음, 감사 `error` 같은 글) | (1,a),(2,b) |
+| 같은 연결 `runReadOnlySql` `INSERT …` / `SELECT 1 AS a; INSERT …; COMMIT` | 2행 | 둘 다 `INVALID`("the statement is INSERT" / "the text holds more than one statement") | 2행 |
+| 같은 연결 `getActualPlan` `SELECT count(*)`, `runReadOnlySql` `SELECT count(*)` | 2행 | SUCCESS(실제 계획, n=2) | 2행 |
+| 연결 Refresh 뒤, 끊고 다시 연결한 뒤 `getActualPlan` UPDATE / SELECT | (1,a),(2,b) | UPDATE `INVALID`, SELECT SUCCESS | (1,a),(2,b) |
+| SQL Server 공유 세션 수동 커밋 `getActualPlan` UPDATE | (1,a),(2,b) | `INVALID`, 쿼리 창에 트랜잭션 표시 없음 | 그대로 |
+| PostgreSQL 공유 세션 `getActualPlan` UPDATE | (1,a),(2,b) | `INVALID` | (1,a),(2,b) |
+| PostgreSQL 공유 세션 `validateSql` `SELECT 1; INSERT … (20)` | 2행 | SUCCESS, `readOnly: false`, `serverNote` "Not checked on the server …" | 20 없음 |
+| PostgreSQL 공유 세션 `validateSql` `UPDATE … WHERE id = 1`(문장 하나) | — | `serverChecked: EXPLAIN`, `serverValid: true`(실행 안 됨) | 값 그대로 |
+| Oracle 공유 세션 수동 커밋 `explainQuery` SELECT | 상태 줄에 트랜잭션 없음 | `INVALID` "Refused, nothing ran: this call writes (Oracle EXPLAIN PLAN fills PLAN_TABLE …)" | 상태 줄 그대로 트랜잭션 없음 |
+| Oracle 공유 세션 `getActualPlan` UPDATE / SELECT | (1,a) | `INVALID` / SUCCESS | (1,a), 트랜잭션 없음 |
+| 격리 SQL Server `runReadOnlySql` `SELECT 1 AS a; INSERT … (40); COMMIT` | 2행 | `INVALID`(고치기 전에는 40이 커밋됨) | 2행 |
+| 격리 SQL Server `getActualPlan` UPDATE(바뀌지 않아야 함) | (1,a) | SUCCESS, "rolled back" | (1,a) |
+| 격리 PostgreSQL `validateSql` `SELECT 1; INSERT …` | — | `readOnly: false`, 서버 검사는 그대로(읽기 전용 트랜잭션이 INSERT를 거절) | 들어가지 않음 |
+
+- 공유 세션의 커밋 방식·트랜잭션은 바꾸지 않았다: 위 수동 커밋 사례의 상태 줄은 거절 전후 같았다.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `AgentSqlClassifier.classify`의 여러 문장 판정, `PlanTools.classify`의 공유 세션 거절 단위 시험).
+
+### 남은 것
+
+- 분류기가 읽기라고 판정한 문장이 함수 안에서 쓰면 공유 세션에서 실제로 쓴다: PostgreSQL `runReadOnlySql` `SELECT f_write()`(INSERT하는 SQL 함수)가
+  공유 세션에서 행을 넣었다(격리 문맥은 "cannot execute INSERT in a read-only transaction"). 브리프의 규칙("읽기는 그대로")에 따라 막지 않았다.
+- ~~SQL Server는 `;` 없이 문장을 이어 쓸 수 있는데 JSQLParser는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 별칭 붙은 SELECT 하나로 읽는다(`DELETE`가 열 별칭,
+  `COMMIT`이 테이블 별칭). 그래서 격리 문맥에서도 `runReadOnlySql`이 이것을 읽기로 실행해 행을 지우고 커밋했다(2026-11-12 확인).~~
+  2026-11-12 고침(앱 변경 #93): 아래 "읽기 판정의 토큰 검사".
+- 공유 세션의 `ATOMIC`은 호출을 한 트랜잭션으로 묶지 못한다(자동 커밋이면 오류 전 행이 커밋됨). 결과의 `transactionNote`는 사실대로 "already committed"다.
+- 공유 세션에서 수동 커밋이면 읽기도 그 세션에 트랜잭션을 시작한다(드라이버가 자동 커밋이 아닌 세션의 첫 문장에서 시작). 쿼리 창에서 읽어도 같다.
+
+## 공유 세션의 commitTransaction·rollbackTransaction (앱 변경 #92, 2026-11-12)
+
+### 문제
+
+"단일 연결" 연결의 공유 세션에서 수동 커밋으로 에이전트가 쓴 뒤 `commitTransaction`을 부르면, 끝낼 에이전트 트랜잭션이 없어 아무것도 커밋하지 않는데
+결과가 상태 JSON(`agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]`)이라 감사 기록 `outcome: SUCCESS`, 채팅 카드 "완료"였다. 모델은 커밋된
+줄 안다. `rollbackTransaction`도 같다. 고치기 전 빌드: SQL Server 수동 커밋 공유 세션에서 `getActualPlan` UPDATE(#91) 뒤 `commitTransaction`(Allow) SUCCESS,
+`rollbackTransaction` SUCCESS, 두 번째 세션의 NOLOCK에는 커밋 안 된 값이 그대로, READPAST에는 그 행이 없음(잠김).
+
+### 원인
+
+`ConnectionTools.call`(고치기 전 98행)이 `commitTransaction`·`rollbackTransaction`을 `transactionStatus`로 보낸다. 끝내는 일은 실행기가 트랜잭션 질문의
+답으로 `AgentSql.endTransaction`(에이전트 문맥의 `pending`만)에서 하고, 도구 자신은 상태만 돌려준다. 공유 세션은 `pending`으로 두지 않으므로(#83, 사용자의
+트랜잭션이기도 함) 질문도 끝내기도 없고, 상태 결과가 늘 성공이었다.
+
+### 고친 것
+
+- `ConnectionTools.endTransaction`: 실행기가 에이전트 트랜잭션을 끝낸 뒤 상태를 읽고, 끝낼 에이전트 트랜잭션이 없었고(`agentTransactionOpen: false`) 연결이
+  공유 세션(`AgentSql.isSharedSession`)이며 그 세션(쿼리 창이 아닌 에이전트 문맥을 뺀 연결의 실행 문맥)에 상태 줄 규칙(`QMUtils.getTransactionState`, 에이전트
+  호출마다 DB에 물어 갱신됨)으로 열린 트랜잭션이 있으면 오류로 끝낸다: "Nothing was committed (rolled back): the agent has no transaction of its own on this
+  connection. It uses one shared session (its "single connection" setting) that the user's query windows also use, and the open transaction in that session
+  (Main) holds what ran there, the agent's statements included. commitTransaction does not end it: ask the user to commit or roll it back in a query window
+  (status bar or Query menu)." 실행기가 `ERROR`로 감사하고 감사 기록의 `error`, 결과의 `error`(채팅 카드가 보이는 글), 모델이 받는 글이 같다.
+- 도구는 그 트랜잭션을 끝내지 않는다(사용자 규칙). 공유 세션에 열린 트랜잭션이 없으면 예전처럼 상태를 돌려준다(끝낼 것이 없음).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0).
+
+### 같은 사각지대 점검
+
+| 도구 | 공유 세션에서 | 처리 |
+|---|---|---|
+| `getTransactionStatus` | `agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]`. 에이전트가 쓴 것이 Main에 있다는 말은 없다(쓰기 도구 결과의 `transactionNote`가 말함) | 거짓은 아니라 바꾸지 않음(보고) |
+| `disconnect` | 실행기의 트랜잭션 질문이 쿼리 창 문맥(Main 포함, 상태 줄 규칙)을 찾아 Commit / Roll back / Cancel을 묻는다 | 사각지대 없음 |
+| `setCurrentDatabase` | 트랜잭션 질문은 에이전트 `pending`만 보므로 묻지 않는다. 바꾸는 것은 에이전트 기본값뿐이라 트랜잭션을 끝내지 않는다 | 트랜잭션 사각지대 없음. 다른 문제는 아래 |
+
+- `setCurrentDatabase`(범위 밖, 보고만): 공유 세션에서는 `AgentSql.open`이 격리 문맥일 때만 DB를 바꾸므로 SQL Server·MySQL처럼 인스턴스가 하나인 연결에서
+  `database`가 조용히 무시되고(확인: `database: "master"`에 SUCCESS, `agentDatabase`는 그대로 `chr_agent_tools_r2`), `schema`는 `applySchema`가 공유
+  세션(쿼리 창의 세션)의 기본 스키마를 바꾼다(코드 읽기).
+
+### 확인 (2026-11-12)
+
+#91과 같은 방법(시험 에이전트가 켠 단일 연결, SQL Server 2022 수동 커밋, 쿼리 창 하나).
+
+| 경우 | 결과(고친 뒤) | 감사 기록 | 두 번째 세션 | 쿼리 창 상태 줄 |
+|---|---|---|---|---|
+| `runSql` `INSERT … (3)` | SUCCESS, `transactionOpen: true`, 공유 세션 안내 | SUCCESS | READPAST 1·2, NOLOCK 1·2·3 | "Open transaction (changes)" |
+| `getTransactionStatus` | `agentTransactionOpen: false`, `otherOpenTransactions: ["Main"]` | SUCCESS | — | 그대로 |
+| `commitTransaction`(Allow) | `ERROR` "Nothing was committed: the agent has no transaction of its own on this connection. … (Main) … commitTransaction does not end it: ask the user …" | `outcome: ERROR`, 같은 `error` | READPAST 1·2(커밋 안 됨) | 그대로 열림 |
+| `rollbackTransaction` | `ERROR` "Nothing was rolled back: …" | `ERROR`, 같은 글 | NOLOCK 3 그대로(롤백 안 됨) | 그대로 열림 |
+| `disconnect`(답 Roll back) | 질문에 열린 트랜잭션 1개, `transactionsBeforeCall` ROLLED_BACK | SUCCESS | 3 없음 | — |
+| 다시 연결 뒤 열린 것 없이 `commitTransaction` | SUCCESS, 상태(끝낼 것 없음) | SUCCESS | — | 표시 없음 |
+| 채팅(127.0.0.1의 가짜 Chat Completions 서버만, 첫 요청 전 그 기록에 시작 줄과 `/v1/models` 시험 요청이 남는 것을 확인): `runSql` 뒤 `commitTransaction` | 카드 "Failed, 1 ms - Nothing was committed: the agent has no transaction of its own …" | `client: CHAT`, `ERROR`, 같은 글 | 50 커밋 안 됨 | — |
+
+- 가짜 서버 기록에 채팅 요청 4개(도구 13개, 도구 정의 5,316 B: #83 측정과 같음)가 남았고 실제 제공자는 부르지 않았다.
+- 고치기 전 빌드: 같은 상태의 `commitTransaction`·`rollbackTransaction`이 모두 `SUCCESS`(상태 JSON), 감사 `SUCCESS`.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+## 문장 끝의 구분자 (앱 변경 #87, 2026-11-12)
+
+### 문제
+
+`runSql`은 끝의 `;`를 모두 지웠다(`AgentSqlClassifier.stripTrailingDelimiter`). 고치기 전 빌드, Oracle 23ai 자동 커밋:
+
+| 호출 | 고치기 전 |
+|---|---|
+| `BEGIN INSERT INTO chr_agent_tools_r2.t VALUES (2, 'blk'); END;` | ERROR, ORA-06550 PLS-00103 "Encountered the symbol end-of-file" |
+| `DECLARE n NUMBER := 3; BEGIN INSERT …; END;` | 같은 오류 |
+| `CREATE OR REPLACE PROCEDURE chr_agent_tools_r2.p_ok AS BEGIN NULL; END;`(`END p_ok2;`도) | **SUCCESS**, 메시지 "ORA-17110: Execution completed with warning", `all_objects.status` = INVALID |
+| `SELECT 1 AS x FROM dual;` / `;` 없이 | 둘 다 성공 |
+
+같은 원인: SQL Server `MERGE … ;`가 "A MERGE statement must be terminated by a semi-colon (;)."(10713)로 실패했다. `runLibraryQuery`도 같은 함수로 지운 글을
+보낸다. PostgreSQL `DO $$ … $$;`, MariaDB `BEGIN NOT ATOMIC … END;`·`CREATE PROCEDURE … END;`, MySQL 8.4 `CREATE PROCEDURE … END;`는 끝의 `;` 없이도 되므로
+문제가 없었다.
+
+### 원인과 같은 판단
+
+- `AgentSqlClassifier.stripTrailingDelimiter`(고치기 전 138~144행)가 해석용으로 끝의 `;`를 모두 지우고, `QueryTools.runSql`(고치기 전 145행)과
+  `LibraryTools`(197행)가 지운 글을 서버로 보냈다.
+- 쿼리 창은 문장을 연결 방언의 스크립트 파서(`SQLScriptParser`)로 찾는다(Ctrl+Enter의 `extractQueryAtPos`, 스크립트의 `SQLScriptBatches.extractQueries`,
+  `runScript`의 `splitScript`도 같은 파서). 파서는 구분자를 떼되, 블록 끝(`needsDelimiterAfterBlock`: 방언이 `isDelimiterAfterBlock`이고 첫 키워드가 블록
+  시작·블록 머리·DDL 키워드이며 마지막 키워드가 `END`, Oracle·GaussDB·Kingbase)과 방언이 요구하는 문장(`needsDelimiterFor`: SQL Server MERGE), 블록이 있는
+  SQL Server 문장(`isDelimiterAfterQuery`)에는 남긴다(`SQLScriptParser.parseQueryImpl` 429~441행). 선택한 글을 실행할 때의 `SQLUtils.trimQueryStatement`는 끝이
+  `END`인지 글자로만 보아 `… ORDER BY trend;`도 블록으로 여겨 `;`를 남기므로(코드 읽기) 쓰지 않았다. 파서는 이 문장의 `;`를 지운다(확인).
+
+### 고친 것
+
+- `AgentSqlClassifier.trimTrailingDelimiter(dataSource, sql)`: 끝의 구분자를 지운 글에, 파서가 글의 마지막 문장에 `;`를 남겼으면 `;`를 다시 붙인다. 끝의
+  구분자는 마지막 문장의 것이므로 그 문장에 대한 파서의 판단을 따른다. 새 목록은 없다(방언과 파서의 규칙 그대로).
+- `runSql`, `runLibraryQuery`가 이것으로 보낸다. 분류기·계획 도구·읽기 도구의 해석용 지우기(`stripTrailingDelimiter`)는 그대로다(읽기 문장과 EXPLAIN 앞에 붙이는
+  문장에는 블록이 없음).
+- 도구 설명은 바꾸지 않았다(토큰 변화 0).
+
+### DB별 점검
+
+| DB | 파서가 `;`를 남기는 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|---|
+| Oracle | `BEGIN … END;`, `DECLARE … END;`, `CREATE … PROCEDURE/FUNCTION/PACKAGE/TRIGGER/TYPE BODY … END [이름];` | 블록 실패, 프로시저 INVALID | 됨 |
+| SQL Server | MERGE, BEGIN…END 블록이 있는 문장 | MERGE 실패 | 됨 |
+| PostgreSQL | 없음(`DO $$ … $$`는 `$$`로 끝남) | 됨 | 같음 |
+| MariaDB·MySQL | 없음(`isDelimiterAfterBlock` false) | 됨(서버가 끝의 `;` 없이 받음) | 같음 |
+| Altibase | 없음(`AltibaseSQLDialect`는 `isDelimiterAfterBlock` false, 쿼리 창도 지움) | 확인 못 함 | 바뀌지 않음 |
+
+### 확인 (2026-11-12)
+
+빌드한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, 격리 문맥, 자동 커밋, `chr_agent_tools_r2`. 두 번째 세션에서 읽음.
+
+| 호출 | 고친 뒤 | 두 번째 세션 |
+|---|---|---|
+| Oracle `BEGIN INSERT … (2,'blk'); END;` | SUCCESS | 2 있음 |
+| Oracle `DECLARE n NUMBER := 3; BEGIN INSERT …; END;` | SUCCESS | 3 있음 |
+| Oracle `CREATE OR REPLACE PROCEDURE … p_ok AS BEGIN NULL; END;`, `… END p_ok2;` | SUCCESS, 경고 메시지 없음 | `all_objects.status` VALID, VALID |
+| Oracle `SELECT 1 AS x FROM dual;` / `;` 없이 / `… ORDER BY trend;` | 셋 다 SUCCESS | — |
+| 연결 Refresh 뒤 Oracle 블록 | SUCCESS | 5 있음 |
+| SQL Server `MERGE … ;` | SUCCESS, `updateCounts [1]` | 3 = merge |
+| PostgreSQL `DO $$ … $$;`, MariaDB `BEGIN NOT ATOMIC … END;`·`CREATE PROCEDURE … END;`, MySQL 8.4 `CREATE PROCEDURE … END;` | SUCCESS(고치기 전과 같음) | 행·루틴 있음 |
+
+`trimTrailingDelimiter` 결과(앱 안에서 직접 부름): Oracle `BEGIN NULL; END;` → 그대로, `SELECT … ORDER BY trend;` → `;` 없음, SQL Server `SELECT 1;` → `;` 없음,
+`INSERT …; MERGE … ;` → 끝 `;` 남음. Altibase는 번들 드라이버가 없어 확인하지 못했다. `runLibraryQuery`는 라이브러리 파일을 만들지 않아 실행해 보지 않았다(같은 함수).
+회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `trimTrailingDelimiter`의 방언별 단위 시험).
+
+## runScript의 실행 단위 (앱 변경 #88, 2026-11-12)
+
+### 문제
+
+`runScript`가 SQL Server 스크립트를 `GO` 배치가 아니라 문장 하나씩 보냈다. 고치기 전 빌드(SQL Server 2022, 자동 커밋):
+
+| 스크립트 | 고치기 전 |
+|---|---|
+| `INSERT 1; RAISERROR('mid',16,1); INSERT 2;` `GO` `SELECT count(*)`, `stopOnError=false` | 문장 4개, "1 of 4 statements failed; statement 2: mid (2 statement(s) after it ran)" |
+| `DECLARE @x int = 5; SELECT @x AS x;` `GO` `SELECT 2` | "statement 2: Must declare the scalar variable "@x". (the script stopped there)" |
+| `SET NOCOUNT ON; INSERT 3;` `GO 2` `SELECT count(*)` | 문장 3개, INSERT 한 번(`GO 2`의 반복이 없음) |
+| MariaDB `DELIMITER //` … `END//` `DELIMITER ;` `INSERT …` | `DELIMITER //`와 `DELIMITER ;`를 서버로 보내 구문 오류(기본 `stopOnError=true`면 첫 줄에서 멈춤) |
+
+배치 안의 변수·`SET` 옵션은 배치가 끝나면 사라지고 오류 처리(배치를 멈추는 오류, `XACT_ABORT`)도 배치 단위라 쿼리 창(SSMS와 같음)과 결과가 달랐다.
+
+### 원인
+
+쿼리 창은 `SQLScriptBatches.extractQueries`로 실행 단위를 만든다: 방언의 배치 구분자가 있으면(`SQLServerDialectBase.getBatchDelimiters`, SQL Server·Sybase)
+파서가 나눈 문장을 구분자 사이마다 원문 그대로 하나로 묶고(`GO n`은 n번), 없으면 문장 하나씩이다. `SQLControlCommand`(`DELIMITER`, `@set` 등)는 쿼리 창이
+스스로 처리한다. `QueryTools.runScript`(고치기 전 157행)는 `splitScript`(`SQLScriptParser.parseScript`, 문장 단위)를 써서 배치를 쪼갰고 명령도 SQL로 보냈다.
+
+### 고친 것
+
+- `QueryTools.scriptUnits`: `SQLScriptBatches.extractQueries(dataSource, script, 0, length)`, 쿼리 창과 같은 단위. `runScript`가 단위마다 한 번 실행한다.
+  SQL Server 배치는 한 번의 JDBC 실행이라 #83의 배치 읽기(`Runner.execute`)가 그대로 적용되고, 실패한 배치의 항목에 `steps`·`ranAfterError`가 붙는다.
+- `SQLControlCommand`는 보내지 않고 항목에 `"skipped": "A command of the query window, not SQL: not sent to the server"`, 결과에 `skipped` 수.
+  `executed`는 보낸 단위 수, `ranAfterError`는 첫 실패 뒤에 보낸 단위 수다.
+- 결과의 키(`statements`, `executed`, `failed`, `results[]`)와 요약 글은 그대로다. SQL Server에서 "statement n"은 n번째 배치다(항목의 `sql`에 배치 글).
+- `splitScript`(문장 단위)는 그대로 둔다: 계획 도구의 "문장 하나" 검사, 분류기의 "문장 여럿" 검사(#91), `runScript`의 분류·미리 보기·암묵적 커밋 검사는
+  두 번째 문장을 찾아야 하므로 배치로 묶으면 안 된다.
+- 도구 설명은 바꾸지 않았다(이미 "split by the database's delimiter rules (GO for SQL Server)"). 토큰 변화 0.
+
+### 배치 구분자가 없는 엔진
+
+같은 글을 두 방식으로 나눠 비교했다(고치기 전 빌드의 앱 안, `splitScript` 대 `SQLScriptBatches.extractQueries`): PostgreSQL(`DO $$…$$`, 주석 속 `;`,
+문자열 속 `;`, `CREATE FUNCTION … $$…$$`) 4개 = 4개, Oracle(`/` 줄, 익명 블록, `CREATE PROCEDURE … END p;`) 4개 = 4개, MariaDB(`DELIMITER //`) 5개 = 5개로
+글이 같았다. 다른 점은 MariaDB `DELIMITER` 두 줄이 `SQLControlCommand`라 이제 서버로 보내지 않는 것뿐이다.
+
+### 확인 (2026-11-12)
+
+빌드한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, SQL Server 2022 자동 커밋, 두 번째 세션에서 읽음.
+
+| 스크립트 | 고친 뒤 | 두 번째 세션 |
+|---|---|---|
+| `INSERT 1; RAISERROR('mid'); INSERT 2;` `GO` `SELECT count(*)`, `stopOnError=false` | `ERROR` "1 of 2 statements failed; statement 1: Statements after the error ran (1 update count came after it). First error: mid (line 2) (1 statement(s) after it ran)". 항목 1(배치)에 `steps` [행 수 1, 오류 mid code 50000 line 2, 행 수 1], `ranAfterError`. 항목 2 n=2. 감사 `error` 같은 글 | 1, 2 |
+| `DECLARE @x int = 5; SELECT @x;` `GO` `SELECT 2` | SUCCESS, x=5, y=2 | — |
+| `SET NOCOUNT ON; INSERT (3);` `GO 2` `SELECT` | 배치가 두 번 실행됨: 두 번째에서 키 위반 "(the script stopped there)"(쿼리 창의 `GO 2`와 같음) | 3 한 번 |
+| `CREATE TABLE #tmp …; INSERT …; SELECT count(*) FROM #tmp; DROP TABLE #tmp;` `GO` `SELECT` | SUCCESS, tmp_rows=2 | — |
+| `INSERT (4); SELECT * FROM dbo.no_such_table; INSERT (5);` `GO` `SELECT` | `ERROR` "statement 1: Invalid object name … (the script stopped there)" | 4 있음, 5 없음(서버가 배치를 멈춤) |
+| 연결 Refresh 뒤, 끊고 다시 연결한 뒤 `DECLARE @x …` `GO` … | SUCCESS, x=7 / x=8 | — |
+| PostgreSQL 4문장(`DO`, 주석, 문자열 속 `;`) | SUCCESS, 4개 | 100, 101 |
+| Oracle(`/` 줄, 익명 블록, `CREATE PROCEDURE … END p3;`) | SUCCESS, 4개 | 100, 101, P3 VALID |
+| MariaDB `DELIMITER //` … `DELIMITER ;` `INSERT` `SELECT` | SUCCESS, `executed: 3`, `skipped: 2`(고치기 전: DELIMITER에서 구문 오류) | p2 있음, 5 있음 |
+
+Sybase·jTDS 연결은 시험 서버가 없어 확인하지 못했다(같은 `SQLServerDialectBase`의 배치 구분자). 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+## 읽기 판정의 토큰 검사 (앱 변경 #93, 2026-11-12)
+
+### 문제
+
+SQL Server는 문장 사이에 `;`가 없어도 된다. JSQLParser(`SQLQuery`)는 `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`을 "SELECT 1 AS DELETE FROM dbo.t AS COMMIT"인
+SELECT 하나로 읽어, 보통(격리) 연결의 `runReadOnlySql`(READ, 확인 없음)이 행을 모두 지우고 커밋했다. 같은 계열로 `runSql`의 위험 판정은 첫 문장만 보아
+`INSERT …; DROP …`가 WRITE였다. #93 작업 중 시험에서 `getActualPlan` `SELECT 1 AS a DELETE FROM dbo.t COMMIT`(DANGEROUS로 확인 후)이 롤백되는 측정 안에서
+DELETE를 커밋하는 것도 확인했다(2행 → 0행).
+
+### 규칙
+
+- **읽기 판정**(`AgentSqlClassifier.classify`): 파서가 문장 하나라고 증명하고(문장 수, SELECT 해석) **독립된 토큰 검사가 동의할 때만** 읽기다. 검사는 쿼리 창의
+  토크나이저를 쓴다(`AgentSqlClassifier.words`: `SQLScriptBatches.createParserContext`의 방언 규칙 스캐너 `TPRuleBasedScanner`, 연결이 없으면
+  `BasicSQLDialect`). 문자열·따옴표·대괄호 식별자·주석은 건너뛰고, 첫 단어 뒤에 문장을 시작하는 맨 단어(`STATEMENT_WORDS`: INSERT, UPDATE, DELETE, MERGE,
+  UPSERT, TRUNCATE, DROP, CREATE, ALTER, RENAME, GRANT, REVOKE, DENY, EXEC, EXECUTE, CALL, COMMIT, ROLLBACK, SAVE, BEGIN, SET, USE, DBCC, KILL, BACKUP,
+  RESTORE, SHUTDOWN, INTO, DECLARE, WAITFOR, RECONFIGURE, CHECKPOINT, DISABLE, ENABLE, OPENROWSET, LOCK, COPY, VACUUM, ANALYZE, REINDEX, CLUSTER, LOAD,
+  HANDLER, PREPARE, DEALLOCATE, NOTIFY, REFRESH, RESET, REVERT, SETUSER, PRAGMA, ATTACH, DETACH)가 있으면 거절한다. 그런 이름의 열·별칭은 따옴표로
+  감싸야 통과한다(거절 글이 "quote the identifier; otherwise run it with runSql"라고 알림). 잘못된 거절은 받아들인다: REPLACE·COMMENT는 흔한 함수·열 이름이라 넣지 않았다.
+- **한 문장 판정**(`AgentSqlClassifier.foreignStatementWord`): 쓸 수도 있지만 한 문장이어야 하는 글(계획 도구가 롤백되는 측정이나 EXPLAIN·SHOWPLAN으로 보내는 문장,
+  `validateSql`의 NOEXEC·EXPLAIN 검사)은 한 문장에 속할 수 있는 자리의 DML 단어만 허용한다(MERGE … THEN UPDATE/DELETE/INSERT, INSERT/MERGE INTO,
+  UPDATE … SET, FOR UPDATE). 그 밖의 문장 단어와 GO, NOEXEC, PARSEONLY, SHOWPLAN_*, IMPLICIT_TRANSACTIONS는 거절한다. `PlanTools.requireOneStatement`가
+  호출별 분류(확인 전)와 `plan`에서, `QueryTools.validate`가 서버 검사 전에 쓴다.
+- **위험 판정**(`AgentSqlClassifier.access`): 파서가 나눈 모든 문장을 판정해 가장 위험한 것이 정한다. 한 부분 안에서도 DROP, TRUNCATE, SHUTDOWN, KILL, RESTORE가
+  어디에 있든, 또는 첫 단어 뒤의 DELETE/UPDATE(FOR·ON·THEN 바로 뒤 제외: WHERE를 알 수 없음)는 DANGEROUS다. `runSql`·`runScript`의 확인이 이것을 묻는다.
+
+### 적용되는 도구
+
+모두 `AgentSqlClassifier.classify`(읽기)를 거친다: `QueryTools.requireReadOnly`(QueryTools.java `runSelect`, `runReadOnlySql`), `DataTools`(sample·count
+`requireReadOnly`, `compareQueryResults`), `TransferTools.exportData`, `DdlTools.createView`(SELECT), `PlanTools.classify`·`plan`(읽기면 READ_ONLY, 아니면
+ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryTools`(읽기 쿼리면 READ_ONLY·`runMonitoringChecks` 건너뜀). 한 문장 판정: `getActualPlan`,
+`explainQuery`, `comparePlans`, `validateSql`. 위험 판정: `runSql`, `runScript`, `runLibraryQuery`(쓰기), `getActualPlan`(쓰기). `whatIfIndex`는 PostgreSQL만이라
+`;` 없는 문장 잇기가 없고 `splitScript`가 둘 이상을 거절한다.
+
+### 확인 (2026-11-12)
+
+빌드(JBR 25)한 앱 사본, 시험 에이전트가 실행기(MCP)로 부름, `chr_agent_tools_r2`, 두 번째 세션에서 읽음. 쓰기 시도는 모두 `INVALID`(거절)였고 행 수가 그대로다.
+
+| 엔진 | 글 | 결정 | 두 번째 세션 전 → 뒤 |
+|---|---|---|---|
+| SQL Server 자동 커밋(격리) | `SELECT 1\nDELETE FROM dbo.t\nCOMMIT`, 탭·CR만·CRLF, 주석 끼움(`/* x */ DELETE /**/ … -- c\nCOMMIT`), 한 줄 `SELECT 1 DELETE …`, 대소문자 섞음, `(1)DELETE`, `'a'DELETE`, `';' AS s DELETE`, 줄 잇기 `\`, `WITH x AS (…) DELETE`, `SELECT * INTO`, `EXEC('…')`, `OPENROWSET(…)` | 모두 거절(`runReadOnlySql`), `runSelect`·`countRows`(where에 DELETE … COMMIT)도 거절 | 2 → 2 |
+| SQL Server | `getActualPlan` `SELECT 1 AS a DELETE FROM dbo.t COMMIT`, `UPDATE … SET IMPLICIT_TRANSACTIONS OFF DELETE …`, `explainQuery` `SELECT 1 SET SHOWPLAN_XML OFF DELETE … COMMIT` | 거절(확인 요청 전) | 2 → 2 |
+| SQL Server | `validateSql` `UPDATE … SET NOEXEC OFF DELETE … COMMIT` | 서버 검사 안 함(`serverNote`), `access: DANGEROUS` | 2 → 2 |
+| SQL Server | `getActualPlan` `UPDATE dbo.t SET v='measured' WHERE id=1`, `validateSql` 같은 UPDATE | 측정·롤백(WRITE), NOEXEC 검사 | 바뀌지 않음 |
+| SQL Server 수동 커밋 | `SELECT 1\nDELETE …\nCOMMIT` | 거절, 열린 트랜잭션 없음 | 2 → 2 |
+| SQL Server 위험 판정 | `INSERT …; DROP TABLE`, `INSERT …\nDROP TABLE`, `INSERT …\nDELETE FROM dbo.t`, `runScript` `INSERT` `GO` `TRUNCATE` | DANGEROUS(확인 요청의 분류) | 실행 안 함(거절로 답) |
+| SQL Server | `INSERT INTO dbo.t VALUES (9,'x')` | WRITE | — |
+| PostgreSQL | `SELECT 1; DELETE`, `WITH d AS (DELETE … RETURNING *) SELECT`, `SELECT * INTO`, `SELECT … FOR UPDATE` | 거절 | 2 → 2 |
+| MariaDB | `SELECT 1; DELETE`, `SELECT 1 DELETE FROM t`, `SELECT … FOR UPDATE` | 거절 | 2 → 2 |
+| Oracle | `SELECT 1 FROM dual\nDELETE …`, `…; DELETE …` | 거절 | 1 → 1 |
+
+통과(읽기 그대로): 하위 쿼리, CTE, UNION ALL, `SELECT [delete], [commit]`, `SELECT "commit"`, `'DELETE FROM t'` 문자열, `ROW_NUMBER()/RANK() OVER`, `FOR JSON PATH`,
+`SELECT 1 AS [delete]`, `SELECT 1 delete_count`(SQL Server), PostgreSQL `"delete"`·CTE+UNION, MariaDB `` `delete` ``, Oracle `"DELETE"`·`RANK() OVER`.
+
+- `SELECT … FOR UPDATE`(PostgreSQL·MariaDB): 거절한다. 행 잠금을 잡는 문장이라 읽기가 아니다(전에도 분류기가 거절, 이제 토큰 검사도 거절). 쓰려면 `runSql`.
+- 잘못된 거절(알고 받아들임): PostgreSQL `$$COMMIT$$`(달러 따옴표 문자열 안의 단어를 토크나이저가 문자열로 보지 않음), MySQL `CHARACTER SET`·`USE INDEX`,
+  `OUTPUT … INTO`, MERGE 안의 DELETE/UPDATE를 가진 프로시저 본문 등 쓰기 판정이 DANGEROUS로 올라가는 경우.
+
+### 검토 뒤 고침 (2026-11-12)
+
+- **읽기 명령**: 토큰 검사가 READ_ONLY_COMMAND보다 먼저라 MySQL·MariaDB `SHOW CREATE TABLE|VIEW|PROCEDURE|FUNCTION|TRIGGER|DATABASE …`와 `SHOW CHARACTER SET`이
+  거절됐다(04a6015a39). 그 자리에서만 허용한다(맨 앞 SHOW 바로 뒤의 CREATE, `SHOW CHARACTER` 뒤의 SET). 뒤에 붙인 문장(`SHOW CREATE TABLE t DELETE FROM t`,
+  `SHOW CHARACTER SET UPDATE …`)은 그대로 거절. READ_ONLY_COMMAND의 다른 갈래(SHOW INDEX/TABLE STATUS/VARIABLES/GRANTS/PROCESSLIST/ENGINE, DESCRIBE/DESC,
+  EXPLAIN [FORMAT=JSON] SELECT, PostgreSQL SHOW, DBCC 6가지, sp_who/who2/lock/helpindex/helptext/help/helpdb/helpstats/spaceused, sp_readerrorlog 인수 포함)는
+  0319e86309·04a6015a39·지금 모두 읽기다.
+- **힌트의 USE**: SQL Server `OPTION (USE HINT (…))`·`USE PLAN`, MySQL `USE INDEX/KEY (…)`의 USE는 문장이 아니다(다음 단어로 판단). `SELECT …\nUSE master`는 거절.
+- **SQL Server 끝의 `OPTION (…)`**: JSQLParser가 해석하지 못해 `SELECT TOP 5 … OPTION (RECOMPILE)`이 0319e86309부터 거절이었다. 해석할 때만 끝의 힌트를 떼고(토큰
+  검사는 전체 글), 이제 읽기다.
+- **업서트**: PostgreSQL `ON CONFLICT … DO UPDATE SET`, MySQL/MariaDB `ON DUPLICATE KEY UPDATE`의 UPDATE를 한 문장 판정과 위험 판정 모두 허용(DO·KEY 바로 뒤).
+  04a6015a39에서는 한 문장 판정이 거절하고 위험 판정이 DANGEROUS였다. 이제 0319e86309처럼 WRITE.
+- **계획 도구의 끝 `;`**: `PlanTools.plan`이 `trimTrailingDelimiter`를 쓴다(#87과 같은 원인). SQL Server `MERGE …;`의 실제 계획이 성공하고 롤백된다(두 번째 세션 (1,a),(2,b) 그대로).
+- **번들 쿼리**: 제품에 들어 있는 Query Library 항목은 없다(라이브러리는 사용자 폴더만 읽음, `LibraryReader.roots`). 번들 진단 SQL(`diag/*.sql`, 분류기를
+  거치지 않지만 확인)의 모든 문장을 세 판(0319e86309, 04a6015a39, 지금)의 분류기로 판정했다: SQL Server 48문장(읽기 43), PostgreSQL 37(36), MariaDB 38(25),
+  MySQL 37(24), Oracle 40(40) 모두 판정이 바뀐 것 0개.
+- **흔한 읽기**(실행해 확인): SQL Server `sys.databases`, `sys.dm_exec_requests` + `CROSS APPLY sys.dm_exec_sql_text`, `WITH (NOLOCK)`, `TOP 5 … OPTION (RECOMPILE)`;
+  PostgreSQL `pg_stat_activity`, `pg_stat_user_tables`(last_vacuum, last_analyze), `EXPLAIN SELECT`; MariaDB `information_schema.tables`(ENGINE, CREATE_TIME,
+  UPDATE_TIME), `SHOW CREATE TABLE`, `SHOW INDEX FROM`; Oracle `v$session`, `user_tables`·`all_tables`(LAST_ANALYZED). 모두 SUCCESS.
+
+### 아직 통과하는 것
+
+- 문자열 안의 SQL을 실행하는 함수: `OPENQUERY(srv, 'DELETE …')`·`OPENDATASOURCE`(SQL Server, 연결된 서버가 있어야 함), PostgreSQL `dblink_exec`, 쓰는 사용자 함수
+  (`SELECT f_write()`). 토큰 검사는 문자열 속을 보지 않고 함수 이름을 모른다. 격리 문맥에서는 읽기 전용 트랜잭션·롤백이 막지만(SQL Server는 롤백만, 연결된 서버의
+  일은 되돌리지 못함), 공유 세션에서는 실행된다.
+- 단어 목록에 없는 T-SQL 문(예: 다른 서버 명령)은 목록을 넓혀야 한다. 목록은 "문장을 시작해 쓰는 단어"만이다.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 위 표의 글을 `classify`·`access`·`foreignStatementWord` 단위 시험으로).
 
 ## 설계 결정과 이유
 
@@ -1563,6 +1943,21 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-12 앱 변경 #93 검토 뒤 고침: `SHOW CREATE …`·`SHOW CHARACTER SET`·힌트의 USE 허용, SQL Server 끝의 `OPTION (…)`을 떼고 해석, 업서트는 한 문장·WRITE,
+  계획 도구의 끝 `;`(MERGE). 위 "읽기 판정의 토큰 검사"의 "검토 뒤 고침". 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #93(`chromite/agent-tools-r2`): 읽기 판정에 쿼리 창 토크나이저로 한 독립 검사를 더함(T-SQL `SELECT 1 DELETE … COMMIT`), 계획 도구와
+  `validateSql`은 한 문장에 속할 수 없는 단어를 거절, `runSql`·`runScript` 위험 판정은 모든 문장 중 가장 위험한 것. 위 "읽기 판정의 토큰 검사".
+  도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #88(`chromite/agent-tools-r2`): `runScript`가 쿼리 창과 같은 단위(SQL Server `GO` 배치는 한 번에, `GO n`은 n번)로 실행하고
+  쿼리 창의 명령(`DELIMITER` 등)은 서버로 보내지 않음. 위 "runScript의 실행 단위". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #87(`chromite/agent-tools-r2`): `runSql`·`runLibraryQuery`가 끝의 `;`를 쿼리 창의 파서 판단대로 남김(Oracle PL/SQL 블록·본문,
+  SQL Server MERGE). 위 "문장 끝의 구분자". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #92(`chromite/agent-tools-r2`): 공유 세션에 열린 트랜잭션이 있을 때 `commitTransaction`·`rollbackTransaction`이 SUCCESS 대신
+  "아무것도 커밋(롤백)하지 않았다, 사용자가 쿼리 창에서 끝낸다"는 오류. 위 "공유 세션의 commitTransaction·rollbackTransaction". 도구 설명은 그대로.
+  회귀 테스트는 실행하지 않았다.
+- 2026-11-12 앱 변경 #91(`chromite/agent-tools-r2`): "단일 연결" 연결의 공유 세션에서 롤백에 기대는 호출(읽기가 아닌 문장의 실제 계획, Oracle
+  EXPLAIN PLAN)을 거절, 문장이 여럿인 글은 공유 세션에서 서버 검사(`validateSql`)를 하지 않음, 분류기가 문장이 여럿인 글을 읽기로 보지 않음.
+  위 "공유 세션에서 롤백에 기대는 호출". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #83 검토 뒤 고침: "단일 연결" 연결의 공유 세션에 남은 트랜잭션을 DB에 물어 결과(`transactionOpen`, 안내)와 쿼리 창 상태 줄에 보임,
   오류 결과가 1 MB를 넘으면 큰 멤버만 줄임. 위 "배치의 부분 실패". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #83(`chromite/agent-runsql-batch`): SQL 도구가 배치 중간 오류에서 결과 읽기를 멈추지 않고, 오류 결과에 모든 결과·행 수·오류와

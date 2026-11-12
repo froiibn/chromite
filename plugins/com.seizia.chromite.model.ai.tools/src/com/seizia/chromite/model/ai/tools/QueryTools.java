@@ -34,12 +34,14 @@ import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLControlCommand;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryType;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.SQLSyntaxManager;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
 import com.seizia.chromite.model.sql.format.SQLFormatUtils;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
 import com.seizia.chromite.utils.GeneralUtils;
@@ -66,6 +68,8 @@ import java.util.Map;
  *     <li>{@code runSql}·{@code runScript}는 WRITE다. 문장에 따라 DANGEROUS로 올린다({@link AIToolAccessClassifier}). 확인 요청에 문장 전체를 보인다
  *     ({@link AIToolPreviewProvider}). 연결의 커밋 방식 그대로 실행하고({@link AgentSql.Mode#NATIVE}), 수동 커밋 연결이면 트랜잭션이 열려 있다고 알린다.
  *     MySQL/MariaDB·Oracle의 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로, 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
+ *     <li>{@code runScript}는 쿼리 창이 실행하는 단위({@link SQLScriptBatches#extractQueries})로 보낸다: SQL Server처럼 배치 구분자({@code GO})가 있는
+ *     방언은 배치 하나를 한 번에, 아니면 문장 하나씩. 쿼리 창의 명령({@code DELIMITER}, {@code @set} 등)은 서버로 보내지 않고 건너뛴 것으로 알린다.</li>
  *     <li>{@code getQueryHistory}는 Swing 쿼리 창 기록 파일({@code .metadata/chromite-query-history.jsonl}, Swing {@code QueryHistory})을 읽기만 한다.</li>
  * </ul>
  *
@@ -77,6 +81,14 @@ import java.util.Map;
  *   채팅 카드도 완료였다). 실패한 GO 배치 안의 결과·뒤 문장도 담음 (docs/chromite/ai-agent.md "배치의 부분 실패")
  * - 2026-11-12 {@code transactionOpen}: "단일 연결" 연결의 공유 세션에 남은 트랜잭션도 열림으로 알림(전에는 수동 커밋에서 INSERT가 커밋 안 된 채
  *   {@code transactionOpen: false}) (docs/chromite/ai-agent.md "배치의 부분 실패" 공유 세션)
+ * - 2026-11-12 {@code validateSql}: "단일 연결" 연결에서는 문장이 여럿인 글을 서버에서 검사하지 않음(앱 변경 #91). EXPLAIN 뒤의 문장이
+ *   공유 세션에서 실제로 실행됐다(PostgreSQL {@code SELECT 1; INSERT …}) (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-12 {@code runSql}: 끝의 {@code ;}를 쿼리 창의 파서 판단대로 남김({@link AgentSqlClassifier#trimTrailingDelimiter}, 앱 변경 #87)
+ *   (docs/chromite/ai-agent.md "문장 끝의 구분자")
+ * - 2026-11-12 {@code runScript}: GO 배치를 한 번에 보내고 쿼리 창의 명령은 보내지 않음(앱 변경 #88). 배치를 문장으로 쪼개 보내서 배치 안의
+ *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
+ * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
+ *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -142,7 +154,8 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     @NotNull
     private static JsonElement runSql(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
+        DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
+        String sql = AgentSqlClassifier.trimTrailingDelimiter(dataSource, AgentArgs.require(args, "sql"));
         AgentLimits limits = AgentLimits.of(args);
         JsonObject result = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.NATIVE,
             (connection, runner) -> runner.execute(connection, sql, null, limits, true));
@@ -154,13 +167,17 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     private static JsonElement runScript(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
         DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
-        List<String> statements = splitScript(dataSource, AgentArgs.require(args, "script"));
+        List<SQLScriptElement> units = scriptUnits(dataSource, AgentArgs.require(args, "script"));
+        List<String> statements = units.stream().map(element -> element.getText().strip()).toList();
         boolean stopOnError = AgentArgs.getBoolean(args, "stopOnError", true);
         AgentLimits limits = AgentLimits.of(args, SCRIPT_RESULT_ROWS);
         JsonObject result = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.NATIVE,
             (connection, runner) -> {
                 JsonArray list = new JsonArray();
                 int failed = 0;
+                int skipped = 0;
+                // Units sent to the server after the first failed one
+                int ranAfter = 0;
                 SQLException firstError = null;
                 int firstFailed = 0;
                 for (int i = 0; i < statements.size(); i++) {
@@ -170,6 +187,16 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                     JsonObject item = new JsonObject();
                     item.addProperty("index", i + 1);
                     item.addProperty("sql", statements.get(i).length() > 300 ? statements.get(i).substring(0, 300) + "..." : statements.get(i));
+                    if (units.get(i) instanceof SQLControlCommand) {
+                        // DELIMITER, @set, @include...: the query window handles them itself and never sends them
+                        item.addProperty("skipped", "A command of the query window, not SQL: not sent to the server");
+                        skipped++;
+                        list.add(item);
+                        continue;
+                    }
+                    if (firstError != null) {
+                        ranAfter++;
+                    }
                     try {
                         JsonObject r = runner.execute(connection, statements.get(i), null, limits, true);
                         r.entrySet().forEach(e -> item.add(e.getKey(), e.getValue()));
@@ -194,12 +221,14 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                 }
                 JsonObject json = new JsonObject();
                 json.addProperty("statements", statements.size());
-                json.addProperty("executed", list.size());
+                json.addProperty("executed", list.size() - skipped);
+                if (skipped > 0) {
+                    json.addProperty("skipped", skipped);
+                }
                 json.addProperty("failed", failed);
                 json.add("results", list);
                 if (firstError != null) {
                     // A script with a failed statement is a failed call, whose result still lists what every statement did
-                    int ranAfter = list.size() - firstFailed;
                     String message = failed + " of " + statements.size() + " statements failed; statement " + firstFailed + ": " + firstError.getMessage();
                     if (ranAfter > 0) {
                         json.addProperty("ranAfterError", ranAfter + " statement(s) after the first failed one ran. " +
@@ -241,6 +270,24 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         return statements;
     }
 
+    /**
+     * What runScript sends, unit by unit: the elements the query window executes ({@link SQLScriptBatches#extractQueries}).
+     * For a dialect with a batch delimiter (SQL Server, Sybase: {@code GO}) a unit is the whole batch between delimiters, so
+     * its variables, temporary objects, SET options and error handling stay together as on the server; otherwise one statement.
+     * Not {@link #splitScript}, which splits a batch into its statements: the tools that must find a second statement (the plan
+     * tools, the classifier) keep using that one.
+     */
+    @NotNull
+    private static List<SQLScriptElement> scriptUnits(@NotNull DBPDataSource dataSource, @NotNull String script) {
+        List<SQLScriptElement> units = new ArrayList<>();
+        for (SQLScriptElement element : SQLScriptBatches.extractQueries(dataSource, script, 0, script.length())) {
+            if (!element.getText().isBlank()) {
+                units.add(element);
+            }
+        }
+        return units;
+    }
+
     @NotNull
     private static JsonElement cancel(@NotNull AIToolCallContext context) throws DBException {
         JsonObject json = new JsonObject();
@@ -275,7 +322,19 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                 type == SQLQueryType.UPDATE || type == SQLQueryType.DELETE ? "EXPLAIN" : null;
             default -> null;
         };
-        if (check != null && AgentArgs.getBoolean(args, "server", true)) {
+        // PostgreSQL and MySQL EXPLAIN covers the first statement only, and the ones after it run: on an isolated context the
+        // read-only transaction stops them, in a shared session they would really run (SQL Server's NOEXEC is not relied on
+        // for a text with several statements either)
+        boolean unsafe = check != null && AgentSql.isSharedSession(container) && splitScript(dataSource, sql).size() > 1;
+        // SQL Server applies SET NOEXEC OFF while it parses the batch, so the statements after it would run, and a
+        // COMMIT would keep them even in the read-only call's transaction (app change #93)
+        unsafe = unsafe || check != null && AgentSqlClassifier.foreignStatementWord(dataSource, sql) != null;
+        if (unsafe) {
+            json.addProperty("serverNote", "Not checked on the server: the text holds more than one statement, or a word " +
+                "(COMMIT, ROLLBACK, BEGIN, SAVE, EXEC, NOEXEC, PARSEONLY) with which the check itself could run or keep statements " +
+                "(on a single shared session, the user's query windows' session, nothing is undone). Validate one plain statement at a time.");
+        }
+        if (check != null && !unsafe && AgentArgs.getBoolean(args, "server", true)) {
             String serverError = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"),
                 AgentSql.Mode.READ_ONLY, (connection, runner) -> serverCheck(connection, runner, check, sql));
             json.addProperty("serverChecked", check);

@@ -66,7 +66,10 @@ import java.util.regex.Pattern;
  *     {@code V$SQL_PLAN_STATISTICS_ALL} 행과 {@code DBMS_XPLAN.DISPLAY_CURSOR('ALLSTATS LAST')}(Diagnostics/Tuning Pack 필요 없음).
  *     그 밖의 DB는 드라이버 계획기({@link DBCQueryPlanner}) 노드.</li>
  *     <li>실제 계획은 문장을 실행한다. 읽기라고 증명된 문장은 읽기 전용 보호 안에서 실행해 READ다. 아니면 WRITE로 올리고(확인 요청에 "실행 후 롤백"을 보임)
- *     항상 롤백되는 트랜잭션에서 잰다({@link AgentSql.Mode#ROLLBACK}: 에이전트 트랜잭션이 열려 있으면 거부, 그 일을 버리지 않기 위해).</li>
+ *     항상 롤백되는 트랜잭션에서 잰다({@link AgentSql.Mode#ROLLBACK}: 에이전트 트랜잭션이 열려 있으면 거부, 그 일을 버리지 않기 위해).
+ *     "단일 연결" 연결(공유 세션)에서는 자기 트랜잭션을 열고 되돌릴 수 없으므로 읽기라고 증명되지 않은 문장의 실제 계획을 거절한다. 확인 요청
+ *     ("실행 후 롤백")을 띄우기 전에 거절하도록 호출별 분류({@link #classify})에서 한다. Oracle {@code EXPLAIN PLAN}처럼 ROLLBACK 모드인
+ *     나머지 호출은 {@link AgentSql#run}이 거절한다.</li>
  *     <li>SQL Server SHOWPLAN·STATISTICS 설정은 세션 설정이라 끝나면 늘 끈다. Oracle은 세션 설정(statistics_level)을 바꾸지 않고 힌트를 쓴다.</li>
  *     <li>가상 인덱스({@code whatIfIndex}): PostgreSQL hypopg가 그 DB에 있을 때만 쓴다. 확장을 만들지 않고, 없으면 이유를 돌려준다.</li>
  * </ul>
@@ -78,6 +81,13 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Oracle 실제 계획의 첫 키워드 찾기: 앞 공백·주석은 반복문({@link #skipLeadingComments})으로 건너뛰고 정규식은 그 자리의 키워드만
  *   본다. 주석 패턴의 그룹이 글자마다 반복되어 약 2,000자 넘는 머리 주석에서 StackOverflowError가 났다(회귀 테스트
  *   {@code PlanToolsOracleHintTest}, docs/chromite/regression-tests.md)
+ * - 2026-11-12 "단일 연결" 연결에서 읽기라고 증명되지 않은 문장의 실제 계획을 거절함(앱 변경 #91). 공유 세션에서는 롤백이 없어 측정한 UPDATE가
+ *   사용자 세션에서 실행·커밋됐다 (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-12 한 문장에 속할 수 없는 단어가 있으면 계획 도구가 거절함(앱 변경 #93, {@link #requireOneStatement}). SQL Server는 {@code ;} 없이
+ *   문장을 이어 써서, getActualPlan {@code SELECT 1 AS a DELETE FROM dbo.t COMMIT}이 롤백되는 측정 안에서 DELETE를 커밋했다
+ *   (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-12 계획 도구가 끝의 {@code ;}를 runSql과 같은 판단으로 남김({@code trimTrailingDelimiter}, #87과 같은 원인): SQL Server MERGE의 실제
+ *   계획이 "must be terminated by a semi-colon"으로 실패했다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  */
 public class PlanTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -241,12 +251,14 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
         @NotNull String rawSql,
         boolean actual
     ) throws DBException {
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(rawSql);
         DBPDataSource dataSource = container.getDataSource();
+        // The ';' a statement needs stays, as runSql sends it (SQL Server MERGE fails without it)
+        String sql = AgentSqlClassifier.trimTrailingDelimiter(dataSource, rawSql);
         // The statement is appended to EXPLAIN: a second statement after it must never run
         if (dataSource != null && QueryTools.splitScript(dataSource, sql).size() > 1) {
             throw new com.seizia.chromite.model.ai.agent.AIToolArgumentException("Pass exactly one statement");
         }
+        requireOneStatement(dataSource, sql);
         boolean readOnly = AgentSqlClassifier.classify(dataSource, sql).readOnly();
         DbFamily family = DbFamily.of(container);
         AgentSql.Mode mode = family == DbFamily.ORACLE || actual && !readOnly ? AgentSql.Mode.ROLLBACK : AgentSql.Mode.READ_ONLY;
@@ -684,16 +696,43 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
 
     @NotNull
     @Override
-    public AIToolAccess classify(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) {
+    public AIToolAccess classify(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments)
+        throws AIToolArgumentException {
         if (!context.getTool().getId().equals("getActualPlan")) {
             return AIToolAccess.READ;
         }
         String sql = AgentArgs.getString(arguments, "sql");
         DBPDataSourceContainer container = context.getConnection();
         DBPDataSource dataSource = container == null ? null : container.getDataSource();
-        return sql == null || AgentSqlClassifier.classify(dataSource, AgentSqlClassifier.stripTrailingDelimiter(sql)).readOnly()
-            ? AIToolAccess.READ
-            : AgentSqlClassifier.access(dataSource, sql).max(AIToolAccess.WRITE);
+        if (sql != null) {
+            // Refused before the user is asked to confirm a measured run
+            requireOneStatement(dataSource, AgentSqlClassifier.stripTrailingDelimiter(sql));
+        }
+        AgentSqlClassifier.Verdict verdict = sql == null ? null
+            : AgentSqlClassifier.classify(dataSource, AgentSqlClassifier.stripTrailingDelimiter(sql));
+        if (verdict == null || verdict.readOnly()) {
+            return AIToolAccess.READ;
+        }
+        if (container != null && AgentSql.isSharedSession(container)) {
+            // Refused before the user is asked to confirm a run "then rolled back" that can't be rolled back there
+            throw AgentSql.sharedSessionRefusal("getActualPlan would execute this statement to measure it, and " + verdict.reason(),
+                "For the plan without running the statement use explainQuery; to run the statement for real use runSql " +
+                    "(the user sees and confirms it).");
+        }
+        return AgentSqlClassifier.access(dataSource, sql).max(AIToolAccess.WRITE);
+    }
+
+    /**
+     * The plan tools run the statement after EXPLAIN / under SHOWPLAN, or measure it in a transaction they roll back: a second
+     * statement glued on without ';' (T-SQL) would run unmeasured, and a COMMIT would keep what the rollback should undo.
+     */
+    private static void requireOneStatement(@Nullable DBPDataSource dataSource, @NotNull String sql) throws AIToolArgumentException {
+        String word = AgentSqlClassifier.foreignStatementWord(dataSource, sql);
+        if (word != null) {
+            throw new AIToolArgumentException("Pass exactly one statement: the bare word " + word + " after its first word may " +
+                "start another statement (SQL Server needs no ';'), which would not be measured or rolled back. If it is a column " +
+                "or alias name, quote the identifier; otherwise run the statements with runSql");
+        }
     }
 
     @Nullable

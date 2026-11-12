@@ -98,7 +98,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *     <li>"단일 연결 사용" 연결은 격리 문맥을 열 수 없어 기본 문맥을 쓴다. 이때는 사용자 트랜잭션을 건드리지 않도록 자동 커밋을 바꾸지 않고,
  *     읽기 보호는 분류기만 한다. 호출 뒤에는 그 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 물어 기록하고(상태 줄·Query 메뉴·
  *     getTransactionStatus가 보게), 결과에 열림을 알린다. 그 트랜잭션은 사용자 쿼리 창의 것이기도 하므로 에이전트의 커밋·롤백 도구는 끝내지
- *     않고 사용자에게 맡긴다.</li>
+ *     않고 사용자에게 맡긴다. 롤백에 기대어 쓰는 호출({@link Mode#ROLLBACK})은 그 세션에서 자기 트랜잭션을 열고 되돌릴 수 없으므로
+ *     실행하지 않고 거절한다({@link #sharedSessionRefusal}). 모드를 무시하고 실행하면 측정한 DML이 사용자 세션에서 그대로 실행됐다.
+ *     세션의 커밋 방식을 바꾸거나 트랜잭션을 열어 롤백하는 방법은 쓰지 않는다: 그 세션은 사용자의 것이다.</li>
  *     <li>유휴 연결 닫기: 에이전트 문장은 쿼리 관리자에 기록되지 않으므로 사용 중 여부와 마지막 사용 시각({@link #isInUse},
  *     {@link #getLastUseTime})을 {@link AgentSessionsService}로 알린다. 열린 트랜잭션이 있거나 실행 중인 연결은 닫히지 않는다.</li>
  * </ul>
@@ -120,6 +122,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 2026-11-12 "단일 연결" 연결(격리 문맥 없음): 호출 뒤 공유 세션의 트랜잭션을 쿼리 창과 같은 규칙으로 DB에 묻고 기록함
  *   ({@code QMUtils.refreshTransactionState}). 그 세션에 남은 일을 "열린 트랜잭션 없음"으로 알리던 것을 고침. 그 트랜잭션은 사용자의 것이기도
  *   해서 pending으로 두지 않고, commitTransaction/rollbackTransaction도 끝내지 않는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-12 "단일 연결" 연결에서 {@link Mode#ROLLBACK} 호출을 거절함(앱 변경 #91). 공유 세션 분기가 모드를 적용하지 않아 실제 계획을 구한
+ *   UPDATE가 사용자 세션에서 실행·커밋됐다 (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
  */
 public final class AgentSql {
 
@@ -133,7 +137,7 @@ public final class AgentSql {
         /**
          * Run in a transaction that is always rolled back (Oracle EXPLAIN PLAN writes PLAN_TABLE; the actual plan of a DML
          * statement measures it without keeping its changes). Refused while the agent has an open transaction, which the
-         * rollback would discard.
+         * rollback would discard, and on a "single connection" connection, whose shared session it can't roll back.
          */
         ROLLBACK
     }
@@ -173,6 +177,29 @@ public final class AgentSql {
         "setting) that the user's query windows also use: what ran is in that session's open transaction and not committed. " + //$NON-NLS-1$
         "commitTransaction and rollbackTransaction do not end it (they end only the agent's own sessions); ask the user to " + //$NON-NLS-1$
         "commit or roll it back in a query window (status bar or Query menu)."; //$NON-NLS-1$
+
+    /**
+     * Whether the agent's calls on a connection run in its shared session: the driver (or the authentication) forces a
+     * single connection, so no isolated context can be opened and the agent uses the session of the user's query windows.
+     */
+    public static boolean isSharedSession(@NotNull DBPDataSourceContainer container) {
+        return container.isForceUseSingleConnection();
+    }
+
+    /**
+     * The refusal of a call that would write and relies on rolling its own transaction back, on a connection whose agent
+     * calls run in the shared session ({@link #isSharedSession}): Chromite can't give the call a transaction of its own
+     * there, and never changes that session's commit mode or ends its transaction (it is the user's).
+     *
+     * @param why     what the call would do there (a sentence fragment that follows "Refused, nothing ran: ")
+     * @param instead what the model can do instead
+     */
+    @NotNull
+    public static AIToolArgumentException sharedSessionRefusal(@NotNull String why, @NotNull String instead) {
+        return new AIToolArgumentException("Refused, nothing ran: " + why + ". This connection uses one shared session " + //$NON-NLS-1$
+            "(its \"single connection\" setting) that the user's query windows also use, so Chromite cannot run this call " + //$NON-NLS-1$
+            "in a transaction of its own and roll it back: it would really run in the user's session. " + instead); //$NON-NLS-1$
+    }
 
     private static final int MAX_CONTEXTS = 4;
     // Errors in a row while moving to the next result, after which the reading stops (a driver that keeps throwing)
@@ -250,6 +277,13 @@ public final class AgentSql {
         // The connection's own commit mode, before a read-only or measuring call changes it
         boolean autoCommit = true;
         try {
+            if (!agentContext.isolated && mode == Mode.ROLLBACK) {
+                // The call writes and relies on its rollback (EXPLAIN PLAN into PLAN_TABLE, a measured DML statement)
+                throw sharedSessionRefusal("this call writes (Oracle EXPLAIN PLAN fills PLAN_TABLE, a measured statement " +
+                    "changes data) and relies on rolling its own transaction back",
+                    "Ask the user to do it in a query window, where it runs in their own transaction, or run the statement " +
+                        "as a write with runSql (the user sees and confirms it).");
+            }
             try (JDBCSession session = (JDBCSession) agentContext.context.openSession(
                 monitor, DBCExecutionPurpose.UTIL, CONTEXT_NAME)
             ) {

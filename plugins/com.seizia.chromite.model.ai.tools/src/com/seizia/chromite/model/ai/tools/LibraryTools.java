@@ -54,6 +54,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-12 서버로 보내는 쿼리의 끝 {@code ;}를 쿼리 창의 파서 판단대로 남김(앱 변경 #87): Oracle PL/SQL 블록인 라이브러리 쿼리가
+ *   {@code runSql}처럼 PLS-00103으로 실패했다 (docs/chromite/ai-agent.md "문장 끝의 구분자")
  */
 public class LibraryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -194,7 +196,7 @@ public class LibraryTools extends AgentTool implements AIToolAccessClassifier, A
             throw new AIToolArgumentException("This library query changes data; pass 'connection' explicitly");
         }
         AgentLimits limits = AgentLimits.of(args, 200);
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(bound.sql());
+        String sql = AgentSqlClassifier.trimTrailingDelimiter(dataSource, bound.sql());
         JsonObject result = AgentSql.run(context.getMonitor(), container, item.database(), readOnly ? AgentSql.Mode.READ_ONLY : AgentSql.Mode.NATIVE,
             (connection, runner) -> runner.query(connection, sql, bound.values(), limits, true));
         json.add("result", result);
