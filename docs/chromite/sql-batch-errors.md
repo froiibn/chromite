@@ -108,6 +108,35 @@ Docker SQL Server 2022(드라이버 13.4.0), PostgreSQL 17, MariaDB 11에서 각
 | SQL 스크립트 작업 `EXEC dbo.le_proc` | 작업 실패 "Script execute failed" ← `proc failure` (전에는 오류 없음) |
 | PostgreSQL·MariaDB 같은 스크립트 F5 | 문장마다 실행, 행 수 3·1, 셋째 문장 오류, 실패 (전과 같음) |
 
+## Oracle 암시적 결과 (2026-11-12, 앱 변경 #84, `chromite/small-fixes-r3`)
+
+- **결함:** 블록이나 프로시저가 `DBMS_SQL.RETURN_RESULT`로 결과를 둘 돌려주면 첫 결과만 보였다.
+- **근본 원인:** 엔진은 데이터 원본 정보가 여러 결과를 지원한다고 할 때만 다음 결과를 읽는다(`SQLQueryExecuteJob` 922행, 스크립트 작업 `SQLScriptProcessor` 339행,
+  아니면 `break`). `OracleDataSourceInfo`는 이 값을 정하지 않아 기본값 `false`(`JDBCDataSourceInfo.supportsMultipleResults`)였다. Oracle JDBC는 12c부터
+  암시적 결과를 `getMoreResults`로 차례로 준다.
+- **고침:** `OracleDataSourceInfo.supportsMultipleResults()`가 `true`.
+- **이 값이 바꾸는 곳(모두 확인):** ① `SQLQueryExecuteJob`: 결과·행 수를 읽은 뒤 `SQLBatchErrors.nextResults`로 다음 결과를 읽는다(SQL Server·PostgreSQL·MySQL과 같은 길).
+  최대 행 수에 걸린 뒤 다음 결과를 건너뛰는 `isMultipleResultsFailsOnMaxRows`는 기본 `false` 그대로. ② `SQLScriptProcessor`(SQL 스크립트 작업): 같은 다음 결과 읽기.
+  ③ `JDBCCallableStatementImpl.isParameterCursor`: 매개변수 형식이 `Types.REF_CURSOR`인 OUT 매개변수를 따로 오는 결과로 보고 출력 매개변수 결과에서 뺀다.
+  Oracle 드라이버는 OUT 커서를 이 형식으로 알리지 않아(아래 확인: 커서 열이 그대로 남음) 바뀌지 않았다.
+- **확인(Oracle 26ai Free, 이 브랜치 빌드와 고치기 전 빌드, 한국어 150%, 임시 스키마 `CHR_SMALL_FIXES_R3`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 익명 블록, 암시적 결과 2개 | 결과 1개 | 결과 탭 2개(Result 1, Result 2), 행 수 두 번 |
+| `BEGIN p_impl; END;`(프로시저가 결과 2개) | 결과 1개 | 결과 2개 |
+| `CALL p_impl()` | ORA-29478(서버가 CALL로는 암시적 결과를 줄 수 없음) | 같음 |
+| `{call p_out(?, ?)}`(OUT SYS_REFCURSOR, OUT NUMBER) | 출력 매개변수 결과 1행 2열(ref cursor, 42) | 같음 |
+| OUT 커서 프로시저를 부르는 블록 + `DBMS_OUTPUT` | Server Output `n=42` | 같음 |
+| 첫 결과 뒤 `RAISE_APPLICATION_ERROR` | ORA-20001만(서버가 블록 전체를 실패로 돌려줌) | 같음 |
+| INSERT 2·UPDATE·SELECT·DELETE 스크립트 | 행 수 1·1·2·2·2, 결과 표 1개 | 같음 |
+| 300행 SELECT(최대 200) → 다음 읽기 | 200행 "최대 행 수에서 멈춤" → 300행 | 같음 |
+| `SET SERVEROUTPUT ON` + `DBMS_OUTPUT` 두 줄 | Server Output 두 줄 | 같음 |
+| 연결 새로 고침 뒤, 다시 연결한 뒤 블록 | | 결과 2개 |
+
+  증거 `D:\Tools\_scratch\small-fixes-r3\sheets\84-*`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle(그리고 `OracleDataSource`를 물려받는 YashanDB 등, 확인하지 않음)의
+  쿼리 창 실행·SQL 스크립트 작업의 결과 읽기, Oracle 호출 문의 출력 매개변수.
+
 ## 한계
 
 - 프로시저 안의 오류 줄 번호는 SQL Server가 프로시저 본문 기준으로 알려 준다. 머리글의 줄은 그 숫자를 `EXEC` 문장 위치에 더해 계산하므로 편집기 줄과 맞지 않을 수 있다(전과 같음).
@@ -125,3 +154,4 @@ Docker SQL Server 2022(드라이버 13.4.0), PostgreSQL 17, MariaDB 11에서 각
 
 - 2026-11-08 최초 작성: 배치 뒤 문장 오류를 쿼리 오류로 보고, 오류 뒤 결과 읽기, SQL Server 오류 사슬 미리 읽기 회피 (후속 #37)
 - 2026-11-08 한계의 "다시 읽기가 배치 전체를 실행" 항목을 고침([sql-batch-reread.md](sql-batch-reread.md), 후속 #40)
+- 2026-11-12 Oracle이 여러 결과를 지원한다고 알림: 둘째 암시적 결과가 보이지 않던 것(앱 변경 #84, `chromite/small-fixes-r3`), 위 "Oracle 암시적 결과".
