@@ -139,7 +139,7 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 |---|---|---|
 | 쿼리 창 닫기 | 저장 질문 뒤에 "쿼리 창 X의 세션에 커밋하지 않은 트랜잭션이 있습니다" | 창이 열린 채 남음 |
 | ~~연결 콤보로 연결 바꾸기~~ | 2026-11-12 삭제: 쿼리 창은 한 서버의 창이라 연결 콤보가 없다([swing-frontend.md](swing-frontend.md) "쿼리 창은 한 서버의 창") | |
-| 연결 변경(2026-11-12, 앱 변경 #73: 서버 이름 옆 단추, 문서 탭 메뉴, Query > Change Connection…) | 목록에서 다른 서버를 고르고 "변경"을 누른 뒤 같은 질문(창 닫기와 같은 `confirmEndSession`). 저장하지 않은 결과 변경이 있으면 그 전에 버릴지 묻는다([swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경") | 창의 서버·세션·트랜잭션·결과가 그대로 |
+| 연결 변경(2026-11-12, 앱 변경 #73: SQL Editor 도구 막대의 첫 단추, 문서 탭 메뉴, Query > Change Connection…) | 목록에서 다른 서버를 고르고 "변경"을 누른 뒤 같은 질문(창 닫기와 같은 `confirmEndSession`). 저장하지 않은 결과 변경이 있으면 그 전에 버릴지 묻는다([swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경") | 창의 서버·세션·트랜잭션·결과가 그대로 |
 | 기본 DB 콤보로 다른 인스턴스의 DB 고르기(PostgreSQL) | 같음. 격리 문맥은 다른 DB로 다시 연결한다(`PostgreExecutionContext.setDefaultCatalog`) | 콤보가 이전 DB로 돌아감 |
 | 연결 끊기, 다시 연결, 삭제, Chromite 끝내기 | 기존 질문(#97)이 창마다의 세션을 창 이름으로 보임 | 기존과 같음 |
 
@@ -448,3 +448,4 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 - 2026-11-09 열린 트랜잭션의 기준을 DB의 답으로 바꾼 것을 반영(창의 세션 끝내기 질문, 오류 복구 판단, 커밋 방식 전환 질문, 목록, 로그, 서버가 스스로 롤백한 뒤의 상태 줄)
   ([idle-transactions.md](idle-transactions.md) "트랜잭션 상태", `chromite/txn-real-state`)
 - 2026-11-12 "트랜잭션 안전" 표에 쿼리 창의 연결 변경 줄(앱 변경 #73, `chromite/change-connection`, [swing-frontend.md](swing-frontend.md) "쿼리 창의 연결 변경")
+- 2026-11-12 연결 변경 단추의 자리를 SQL Editor 도구 막대의 첫 단추로 고침(앱 변경 #74, `chromite/change-connection`)

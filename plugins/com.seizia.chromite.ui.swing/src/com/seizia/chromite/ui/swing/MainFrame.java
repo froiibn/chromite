@@ -152,9 +152,9 @@ import java.util.function.Supplier;
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}: 서버 표시·DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
+ *     ({@link SqlEditorToolBar}: 연결 변경, DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
  *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
- *     그 창의 서버 표시·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
+ *     그 창의 DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -305,6 +305,8 @@ import java.util.function.Supplier;
  * - 2026-11-12 Query &gt; Change Connection…({@code changeConnectionAction}, 단축키 없음): SQL Editor 도구 막대의 서버 이름 옆 단추와 문서 탭
  *   메뉴가 같은 명령({@link SqlEditorPanel#changeConnection}), 켜짐은 {@link SqlEditorPanel#canChangeConnection}(앱 변경 #73,
  *   docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 SQL Editor 도구 막대가 서버를 보이지 않고 연결 변경 단추로 시작(앱 변경 #74): 서버가 없는 창에서는 그 동작의 도구 설명이
+ *   "서버 선택"(docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  * - 2026-11-12 주석만: 실제 계획이 없는 서버의 창은 Actual Plan 동작(메뉴, 도구 막대 단추, Ctrl+M)이 연결 전부터 꺼짐
  *   ({@link SqlEditorPanel#getActualPlanSupport}, 앱 변경 #70, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글 점검")
  */
@@ -425,7 +427,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private final Action variablesAction;
     /**
-     * Query &gt; Change Connection…, the button beside the server name in the SQL Editor tool bar and the document tab's
+     * Query &gt; Change Connection…, the first button of the SQL Editor tool bar and the document tab's
      * menu item: the one command that moves an open query window to another server ({@link SqlEditorPanel#changeConnection}).
      */
     private final Action changeConnectionAction;
@@ -1933,7 +1935,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Brings a component that was out of the window (and missed theme switches) up to the current look and feel; also
-     * used by {@link SqlEditorToolBar} for the server indicators and pickers it puts in.
+     * used by {@link SqlEditorToolBar} for the pickers it puts in.
      */
     static void updateLookAndFeel(@NotNull JComponent component) {
         LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
@@ -1967,6 +1969,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         statementEditActions.forEach(action -> action.setEnabled(editor != null));
         variablesAction.setEnabled(editor != null && !editor.isExecuting());
         changeConnectionAction.setEnabled(editor != null && editor.canChangeConnection());
+        // The tool bar's first button says what it does: a window without a server chooses one
+        changeConnectionAction.putValue(Action.SHORT_DESCRIPTION, editor != null && editor.getDataSourceContainer() == null
+            ? EditorMessages.editor_sql_select_server : EditorMessages.editor_sql_change_connection);
         completeAction.setEnabled(editor != null);
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
         // A server that gives no actual plans (they would need a second run of the statements) has the toggle off from the

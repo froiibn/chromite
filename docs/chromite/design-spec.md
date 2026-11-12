@@ -134,7 +134,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 순서 | [DB 목록 ▾] [▶ Execute] [■] [✓ Parse] … [M] | [▶] [기록] [설정] … [Tx: Auto ▾] [■] … [스키마 ▾](오른쪽) [S] | [Execute] [Cancel] │ [연결 ▾] │ [스키마 ▾] [C] `SqlEditorPanel.java:380-426` | [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [연결 ▾] │ [DB/스키마 ▾] │ [주석 처리] [주석 처리 제거] │ [내어쓰기] [들여쓰기] │ [SQL 서식 지정] │ [쿼리 기록]. SSMS처럼 Execute는 글자를 보이고, 중지는 아이콘만. 좁으면 콤보가 먼저 줄고(최소 100·100) 넘치는 단추는 » 메뉴로 | P0 |
 | Execute 단추 | 초록 삼각형 + "Execute"(F5) | 실행 아이콘: L 선 `#208A3C` 채움 `#F2FCF3` / D 선 `#57965C` 채움 `#253627` [I `expui/run/run`] | 글자만 `Execute` [C] | 아이콘 `action.run`(초록) + 글자 `Execute`, 도구 설명 "Execute (F5)" | P0 |
 | 중지 단추 | 빨간 사각형(실행 중에만 켜짐) | L 선 `#DB3B4B` 채움 `#FFF7F7` / D 선 `#DB5C5C` 채움 `#5E3838` [I `expui/run/stop`] | 글자 `Cancel` [C] | 아이콘 `action.stop`만, 실행 중에만 켜짐(비활성은 `text.disabled`색) | P0 |
-| 콤보 | Available Databases ▾ | 높이 28, arc 8, 테두리 L `#C9CCD6` / D `#4E5157`, 안쪽 여백 1,9,1,6, 화살표 영역 28 [T `ComboBox.*`, `Component.arrowAreaWidth`] | FlatLaf 기본(arc 5) [F] | `size.control` 28, arc 8, 연결 콤보에 공급자 아이콘 16, DB/스키마 콤보에 스키마 아이콘 16 | P0 |
+| 콤보 | Available Databases ▾ | 높이 28, arc 8, 테두리 L `#C9CCD6` / D `#4E5157`, 안쪽 여백 1,9,1,6, 화살표 영역 28 [T `ComboBox.*`, `Component.arrowAreaWidth`] | FlatLaf 기본(arc 5) [F] | `size.control` 28, arc 8, DB/스키마 콤보에 스키마 아이콘 16(연결 콤보는 2026-11-12에 없어짐, swing-frontend.md "도구 막대는 연결 변경부터") | P0 |
 | 높이 | — | ≈36 [S] | 32(밀도 B) [S] | `size.toolbar.editor` 32(콤보 28 + 위아래 2). 메인 창 캔버스 위에 주 도구 막대와 같은 모양(투명, 구분선 없음) | P1 |
 
 ### 8. 결과(Results) / 메시지(Messages)
@@ -1464,3 +1464,4 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
   옵션의 테마 단추 셋은 아이콘 단추라 그대로. 아이콘 없는 다른 글자 도구 단추(값 패널의 서식·적용·되돌리기, 집계 함수, 확대 비율 등, 토글이 아님)는 손대지 않음.
   확인: 단추 안쪽 좌우 9(8 + 간격 1, 촘촘한 모드 7), 높이 26(24) 그대로, 한국어·영어 × 100%·150% × 밝은·어두운. 확대 비교
   `D:\Tools\_scratch\visual-recheck-fixes\sheets\e-view-switches.png`. 회귀 테스트는 실행하지 않았다.
+- 2026-11-12 콤보 줄에서 없어진 연결 콤보를 뺌(앱 변경 #74, `chromite/change-connection`)

@@ -70,6 +70,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 쿼리 창의 연결 변경(앱 변경 #73): {@code editor_sql_server_fixed*}를 바꾸는 방법을 말하는 {@code editor_sql_server_change_hint},
  *   {@code editor_sql_server_change_tip}으로 바꾸고 {@code editor_sql_select_server_tip}을 고침, 명령·단추·버리기 질문·알림
  *   {@code editor_sql_change_connection*}, {@code editor_sql_connection_changed} 추가 (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 도구 막대의 서버 표시를 지움(앱 변경 #74): 표시만 쓰던 {@code editor_sql_select_server_tip}, {@code editor_sql_server_change_tip} 삭제,
+ *   {@code editor_sql_server_change_hint}가 단추의 새 자리(쿼리 도구 막대의 첫 단추)를 말함 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -153,9 +155,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_change_schema_title;
     public static String editor_sql_change_schema_error;
     public static String editor_sql_select_server;
-    public static String editor_sql_select_server_tip;
     public static String editor_sql_server_change_hint;
-    public static String editor_sql_server_change_tip;
     public static String editor_sql_change_connection;
     public static String editor_sql_change_connection_ok;
     public static String editor_sql_change_connection_discard;

@@ -49,6 +49,7 @@ import java.util.function.Function;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md "Ctrl+9 / Ctrl+0")
  * - 2026-11-12 정하는 단추 글자와 항목의 연결 색 알약을 받는 {@link #choose(Component, String, List, Object, Function, Function, String, Function)}
  *   (쿼리 창 연결 변경, 앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 주석만: 알약 모양의 기준을 지운 쿼리 창 서버 표시 대신 Object Explorer로(앱 변경 #74)
  */
 final class ObjectChooserDialog<T> extends JDialog {
 
@@ -214,8 +215,8 @@ final class ObjectChooserDialog<T> extends JDialog {
     }
 
     /**
-     * Icon and name of an item, the name in its connection colour pill when it has one (as the query window's server
-     * indicator draws it). The pill reaches past the text line, so a row with a pill gets that much space above and below
+     * Icon and name of an item, the name in its connection colour pill when it has one (as the Object Explorer rows draw
+     * it). The pill reaches past the text line, so a row with a pill gets that much space above and below
      * ({@link ConnectionPill#getOverhang}) and the pill's padding after the name.
      */
     private static final class ItemRenderer<T> extends DefaultListCellRenderer {

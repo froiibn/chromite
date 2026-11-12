@@ -158,13 +158,13 @@ import java.util.concurrent.atomic.AtomicLong;
  *     ({@link #getExecutionContext}). 결과 표의 편집·저장과 {@code @export}는 실행한 문맥을 넘겨받으므로 따라온다. 설정이 꺼져 있거나 "단일 연결"
  *     연결이면 예전처럼 연결의 주 문맥을 같은 연결의 창들과 함께 쓴다. 자기 세션을 끝내는 동작(창 닫기, 연결 변경, 다른 DB 인스턴스로 바꾸기)은
  *     커밋하지 않은 트랜잭션이 있으면 먼저 묻는다({@link #confirmEndSession}, 트랜잭션 안전 규칙).</li>
- *     <li>서버(앱 변경 #69·#73, 사용자 결정 2026-11-12): 창의 서버는 명시적인 명령 하나, 연결 변경({@link #changeConnection}: 서버 이름 옆 단추,
+ *     <li>서버(앱 변경 #69·#73, 사용자 결정 2026-11-12): 창의 서버는 명시적인 명령 하나, 연결 변경({@link #changeConnection}: SQL Editor 도구 막대의 첫 단추,
  *     문서 탭 메뉴, Query 메뉴)으로만 바뀐다. 목록에서 고르고 "변경"을 눌러야 하고, 열린 트랜잭션은 먼저 묻는다. 클릭이나 방향키 하나로 같은 글이
- *     다른 서버에서 돌지 않게 하기 위해서다(그래서 연결 콤보는 없고 도구 막대의 서버 이름은 고를 수 없는 표시다, {@link QueryWindowServerIndicator}).
- *     서버 없이 열린 창(서버를 고르지 않은 파일 열기, 연결이 지워진 복원 창 등)은 서버를 한 번 고른다({@link #chooseServer}: 표시 자리의
- *     "서버 선택" 단추, Query &gt; Select Connection…, 서버 없이 실행·계획). 서버가 없던 창에는 세션이 없으므로 고를 때 끝낼 세션도 없다.</li>
+ *     다른 서버에서 돌지 않게 하기 위해서다(그래서 연결 콤보가 없다). 도구 막대는 서버를 보이지 않는다(앱 변경 #74: 문서 탭과 상태 줄이 보인다).
+ *     서버 없이 열린 창(서버를 고르지 않은 파일 열기, 연결이 지워진 복원 창 등)은 서버를 한 번 고른다({@link #chooseServer}: 같은 연결 변경
+ *     단추, Query &gt; Select Connection…, 서버 없이 실행·계획). 서버가 없던 창에는 세션이 없으므로 고를 때 끝낼 세션도 없다.</li>
  *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창마다의 도구 막대는 없다. 실행·중지·계획·편집 명령은 메인 창의 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. 서버 표시와 DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
+ *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
  *     메인 창이 활성 창의 것을 그 도구 막대에 끼운다(결과 탭·상태 줄과 같은 방식). 단추의 켜짐은 {@link #canExecute()}, {@link #canCancel()},
  *     {@link #canExplain()}으로 메인 창이 정하고, 바뀔 때 {@link Host#executionStateChanged}로 알린다.</li>
  *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
@@ -342,7 +342,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-11 서버 출력을 읽을지 세션 기준으로 물음({@code isServerOutputEnabled(context)}): Oracle {@code SET SERVEROUTPUT ON}으로
  *   설정이 꺼진 연결에서도 그 창의 출력을 읽음 (docs/chromite/oracle-sqlplus-commands.md)
  * - 2026-11-12 쿼리 창은 한 서버의 창(앱 변경 #69, 사용자 결정): 연결 콤보와 전환 처리, 콤보 렌더러·목록 채우기를 지우고 고를 수 없는 서버 표시
- *   ({@link QueryWindowServerIndicator})로 바꿈. 서버 없는 창은 {@link #chooseServer}로 한 번 고름(서버 없이 실행·계획할 때 안내 대신 고르기)
+ *   ({@code QueryWindowServerIndicator}, 2026-11-12 #74에서 삭제)로 바꿈. 서버 없는 창은 {@link #chooseServer}로 한 번 고름(서버 없이 실행·계획할 때 안내 대신 고르기)
  *   (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 열(사각형) 선택이 있으면 실행(F5)과 문장 명령이 보통 선택처럼 사각형의 글을 실행(Execute From Cursor는 캐럿부터 그대로)
  *   (docs/chromite/swing-sql-column-selection.md "실행")
@@ -353,6 +353,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   트랜잭션을 먼저 묻고, 옛 세션을 닫고, 옛 서버의 결과(고정 포함)·메시지·계획과 Modify 원본 객체를 지움. 서버 고르기와 같은 적용
  *   ({@code applyServer})과 연결 목록({@code listConnections})을 함께 씀. 서버가 있는 창의 Ctrl+9 안내가 연결 변경을 알려 줌
  *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-12 도구 막대의 서버 표시를 지움(앱 변경 #74, 사용자 결정): 서버 표시 필드·{@code getServerIndicator}와 표시를 고치던 줄 삭제.
+ *   서버가 없는 창도 도구 막대의 연결 변경 단추로 서버를 고름 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -421,14 +423,10 @@ final class SqlEditorPanel extends JPanel {
     static final String DIRTY_PROPERTY = "dirty"; //$NON-NLS-1$
     /**
      * Width of the database/schema picker, also of the empty picker shown without a query window so that the tool bar
-     * does not move. It stays narrower than the server indicator before it ({@link QueryWindowServerIndicator#WIDTH});
-     * longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
+     * does not move; longer names end in an ellipsis and are whole in the tool tip ({@link #updatePickerToolTips}).
      */
     static final int SCHEMA_PICKER_WIDTH = 200;
-    /**
-     * The width the server indicator and the database/schema picker give way to in a narrow main window.
-     */
-    static final int PICKER_MIN_WIDTH = 100;
+    private static final int PICKER_MIN_WIDTH = 100;
 
     private final Host host;
     // EDT only
@@ -444,7 +442,6 @@ final class SqlEditorPanel extends JPanel {
     private boolean dirty;
     private long maxRows;
     // The window's server, which changes only through Change Connection… (app changes #69, #73)
-    private final QueryWindowServerIndicator serverIndicator = new QueryWindowServerIndicator(this::chooseServer);
     private final JComboBox<Object> schemaCombo = new JComboBox<>();
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
@@ -1025,8 +1022,6 @@ final class SqlEditorPanel extends JPanel {
      */
     void connectionChanged() {
         host.titleChanged(this);
-        // A new name or colour
-        serverIndicator.setServer(dataSourceContainer);
         statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
         // Connected or disconnected: the Query actions that read the window's session (Commit, Roll Back) follow
@@ -1349,12 +1344,10 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The server indicator and the default database/schema picker. They belong to this window (their state and listeners
-     * are its state); the main window shows the active window's ones in its SQL Editor tool bar ({@link SqlEditorToolBar}).
+     * The default database/schema picker. It belongs to this window (its model and listeners are its state); the main
+     * window shows the active window's picker in its SQL Editor tool bar ({@link SqlEditorToolBar}).
      */
     private void createPickers() {
-        serverIndicator.setServer(dataSourceContainer);
-
         schemaCombo.setRenderer(new SchemaRenderer());
         sizePicker(schemaCombo, SCHEMA_PICKER_WIDTH);
         schemaCombo.addActionListener(e -> {
@@ -1378,15 +1371,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Server indicator of this window, shown in the main window's SQL Editor tool bar while this window is active.
-     */
-    @NotNull
-    QueryWindowServerIndicator getServerIndicator() {
-        return serverIndicator;
-    }
-
-    /**
-     * Default database/schema picker of this window, shown like {@link #getServerIndicator()}.
+     * Default database/schema picker of this window, shown in the main window's SQL Editor tool bar while this window is
+     * active.
      */
     @NotNull
     JComboBox<Object> getSchemaCombo() {
@@ -1394,8 +1380,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Chooses the server of a window that has none, once (the indicator's Select Server button, Query &gt; Select
-     * Connection…, a run or plan without a server). Nothing ends: a window without a server has no session. A window that
+     * Chooses the server of a window that has none, once (the SQL Editor tool bar's Change Connection button, Query &gt;
+     * Select Connection…, a run or plan without a server). Nothing ends: a window without a server has no session. A window that
      * has its server says in its status line how to change it ({@link #changeConnection}). EDT.
      *
      * @return the window's server, null when it has none because the user canceled
@@ -1426,7 +1412,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Change Connection… (the button beside the server name, the document tab's menu, the Query menu; app change #73):
+     * Change Connection… (the first button of the SQL Editor tool bar, the document tab's menu, the Query menu; app change #73):
      * the one way an open window gets another server. The user picks it from the list (the current one selected) and
      * confirms with Change; the current server or Cancel changes nothing. Then, before anything changes: unsaved result
      * changes are discarded only when the user says so, and an open transaction of the window's own session is
@@ -1487,13 +1473,12 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Makes the window a window of the server: the indicator, the tab, the status line, the database/schema picker and
+     * Makes the window a window of the server: the tab, the status line, the database/schema picker and
      * the session that opens for it, the highlighting dialect and the commands that depend on the server (the Actual Plan
      * toggle, {@link SQLActualPlanSupport}). EDT.
      */
     private void applyServer(@NotNull DBPDataSourceContainer container) {
         dataSourceContainer = container;
-        serverIndicator.setServer(container);
         statusLine.setConnection(container);
         host.titleChanged(this);
         refreshSchemas();

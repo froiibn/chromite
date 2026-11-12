@@ -47,7 +47,7 @@ import java.awt.geom.RoundRectangle2D;
  *     바탕과 3:1(WCAG 비텍스트 대비)이 되는 첫 색이다. 다크 테마의 어두운 바탕에서는 더 어두운 색으로 3:1을 만들 수 없어서 밝은 쪽으로 간다.
  *     연결에 정한 색도 같은 규칙이다.</li>
  *     <li>알약은 글자 줄(ascent + descent + leading)보다 위아래로 넘칠 수 있다(아래는 descent + 1이라 leading이 1보다 작으면 넘침).
- *     넘치는 양은 {@link #getOverhang}이 그리기와 같은 계산으로 알려 준다. 글자 높이만큼만 큰 라벨(쿼리 창 서버 표시)은 그만큼 여백을 두어야
+ *     넘치는 양은 {@link #getOverhang}이 그리기와 같은 계산으로 알려 준다. 글자 높이만큼만 큰 라벨(연결 변경 목록의 행)은 그만큼 여백을 두어야
  *     알약이 잘리지 않는다. 트리 행은 행 높이가 글자 줄보다 커서 여백이 필요 없다.</li>
  * </ul>
  *
@@ -55,6 +55,7 @@ import java.awt.geom.RoundRectangle2D;
  * - 2026-11-06 최초 작성: 연결 색을 줄 바탕 대신 이름 알약으로 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 글자가 바탕과 4.5:1이 안 되면 대비 색, 대비 계산은 {@link ConnectionColors}로 옮김
  * - 2026-11-12 {@link #getOverhang}: 글자 줄 밖으로 넘치는 높이를 그리기와 같은 계산으로 알림(쿼리 창 서버 표시의 아래 테두리 잘림, 앱 변경 #71 a)
+ * - 2026-11-12 주석만: 쿼리 창 서버 표시가 없어져(앱 변경 #74) {@link #getOverhang}은 연결 변경 목록의 행이 씀
  */
 final class ConnectionPill {
 
