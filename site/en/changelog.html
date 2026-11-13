@@ -54,6 +54,21 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.0.7">
+    <h2>26.0.7</h2>
+    <div class="body">
+      <p>Fixes PostgreSQL losing the uncommitted changes of other query windows when the connection was refreshed. If you use PostgreSQL, please update. The Chromite Agent input box is new, and names can be dragged from Object Explorer into a query.</p>
+      <ul>
+        <li>Safety (important) · PostgreSQL: refreshing a connection (Refresh in Object Explorer, or the automatic refresh after statements such as CREATE DATABASE or DROP DATABASE) closed and reopened every session of that connection, so the uncommitted changes of other query windows were rolled back without a question and their search_path, temporary tables and manual-commit mode were lost. The reopened sessions stayed on the server after disconnecting. A refresh now reads the server again without closing a session</li>
+        <li>New · Drag a name: dragging a table, view, procedure or column from Object Explorer into a query window inserts its name where you drop it. Several objects, or a table's Columns folder (once it has been expanded), are inserted separated by commas. On SQL Server the name is schema.name when the window is in that database, and includes the database otherwise</li>
+        <li>Chromite Agent · input box and model selection: the input is one rounded box. The model is chosen with the button inside the box (only the current provider's models), the provider in the list below it. Setting up a provider for the first time moves an empty conversation to it, so the "set up a provider" notice no longer stays after the setup</li>
+        <li>Chromite Agent · connections that share one session ("single connection"): a call that would have to switch the database or schema is not run and says why (before, it was silently ignored or changed the query windows' schema)</li>
+        <li>SQL Server: a DDL statement written as schema.name, such as CREATE TABLE dbo.t, re-read the whole connection; it now re-reads that schema only (the new table shows in Object Explorer at once). The query window's database picker no longer loses the current database after the connection was re-read</li>
+        <li>Screens: notes no longer break in the middle of a Korean word; lines break at spaces only (connection and settings export and import, shell command approval, the backup and restore task dialogs, the data transfer wizards and others)</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.0.6">
     <h2>26.0.6</h2>
     <div class="body">
