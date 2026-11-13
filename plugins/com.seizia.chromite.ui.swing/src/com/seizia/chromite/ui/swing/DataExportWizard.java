@@ -146,6 +146,8 @@ import java.util.Set;
  * - 2026-11-08 작업으로 저장, 저장된 내보내기·복사 작업 편집({@link #openForTask}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  * - 2026-11-08 {@link #canExportQuery}: 배치 결과는 그 결과를 만든 SELECT만 내보내고, 문장을 정하지 못한 배치 결과는 내보내지 않음
  *   (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-13 안내({@link DataTransferObjects#createNote})가 {@link WrappingNote}가 되어 칸 형식을 {@code JTextArea}로(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -1008,7 +1010,7 @@ final class DataExportWizard extends DataTransferWizard {
                 text.setEditable(false);
                 text.setLineWrap(true);
                 text.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
-                JLabel note = DataTransferObjects.createNote(
+                JTextArea note = DataTransferObjects.createNote(
                     ToolsMessages.export_source_query_note);
                 panel.add(note, BorderLayout.NORTH);
                 panel.add(new JScrollPane(text), BorderLayout.CENTER);

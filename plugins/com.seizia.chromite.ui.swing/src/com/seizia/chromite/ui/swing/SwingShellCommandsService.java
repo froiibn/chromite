@@ -56,6 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   (docs/chromite/connection-lifecycle.md)
  * - 2026-11-12 예약 실행({@link UnattendedRuns})에서는 묻지 않음: 그 작업 자신의 명령은 일정을 켠 것을 동의로 보고 실행하고, 그 밖의 명령은
  *   "항상 허용"이 없으면 실행이 그 명령과 함께 실패한다(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
+ * - 2026-11-13 문단({@link #createNote})을 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (셸 명령 승인과 {@link ExecutionApprovalDialog}, 앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 public class SwingShellCommandsService implements UIServiceShellCommands {
 
@@ -63,7 +65,8 @@ public class SwingShellCommandsService implements UIServiceShellCommands {
 
     private static final int MAX_COMMAND_COLUMNS = 80;
     private static final int MAX_COMMAND_ROWS = 8;
-    private static final int NOTE_WIDTH = 520;
+    // The width of the HTML label the notes were before (520 CSS px, which Swing's HTML draws 1.3 times as wide)
+    private static final int NOTE_WIDTH = 676;
 
     private enum Answer {
         RUN_ONCE,
@@ -219,14 +222,13 @@ public class SwingShellCommandsService implements UIServiceShellCommands {
     }
 
     /**
-     * A paragraph wrapped at a fixed width. An HTML label reports its wrapped height before layout; a wrapping JTextArea
-     * does not, which made the dialog too short and squeezed the command box.
+     * A paragraph wrapped at a fixed width, at spaces only ({@link WrappingNote}; an HTML label broke Korean words). It
+     * reports its wrapped height before layout; a plain wrapping JTextArea does not, which made the dialog too short and
+     * squeezed the command box.
      */
     @NotNull
-    static JLabel createNote(@NotNull String text) {
-        // The NLS texts contain no markup; escape anyway so that they are shown as written
-        String escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-        return new JLabel("<html><body style='width: " + NOTE_WIDTH + "px'>" + escaped + "</body></html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    static JComponent createNote(@NotNull String text) {
+        return new WrappingNote(text, NOTE_WIDTH);
     }
 
     /**

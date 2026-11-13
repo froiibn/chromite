@@ -643,9 +643,8 @@ design-spec "적용 현황 — 글자 선명도와 대비".
 - **바꾼 곳:** `SwingPlatformUI.createMessageComponent`(메시지·확인·경고·오류 대화상자, JSch·SSHJ 질문, SQL 확인, 오류 대화상자 `ErrorDialog`,
   실행 제한·변경 제한 안내 등 이 메서드를 쓰는 모든 곳), `MaintenanceDialog`의 실행 확인 글, `SchedulerCommands`의 이벤트 상태 대화상자 글,
   `DriverBundleCreateDialog.createHint`(드라이버 묶음 만들기·설치 대화상자의 안내).
-- **보고 그대로 둔 곳(이유):** `AiConfirmationDialog`는 줄을 바꾸지 않는 한 줄 라벨이다(이 결함 없음). HTML 라벨로 접는 안내(`ConnectionExportDialog`,
-  `ConnectionImportDialog`, `ConnectionTransferCommands`, `ConnectionShellCommandsPage`, `SwingShellCommandsService`, `ResultSetExport`, `SettingsExportDialog`,
-  `SettingsImportDialog`)는 같은 원인으로 한국어를 끊을 수 있지만 대화상자의 메시지 영역이 아니라 대화상자마다 배치를 바꿔야 해서 이번 범위 밖이다.
+- **보고 그대로 둔 곳(이유):** `AiConfirmationDialog`는 줄을 바꾸지 않는 한 줄 라벨이다(이 결함 없음). HTML 라벨로 접는 안내 8곳은 대화상자마다 배치를
+  봐야 해서 이때 남겼고, #90에서 고쳤다(아래 "HTML 라벨 안내": 1차 7곳, 2차에서 굵은 글씨가 있는 `ResultSetExport`).
   대화상자 밖의 글(`NotificationToast`, `AccessNoticeBar`, `DiskUsagePanel`, Chromite Agent 패널의 오류·안내, `AiOptionsPage` 경고), 로그·메시지 창
   (`DatabaseTaskDialog`, `MaintenanceDialog`의 메시지, `ExecutionTracePanel`, `ProcedureDebuggerPanel`, `ServerLogPanel`, `AgentJobHistoryPanel`), 마법사 요약,
   편집 칸(입력, 식, 설명 편집), 라이선스 원문, `DataTransferWizard`의 오류 칸도 그대로다. 도구 설명은 Swing 기본(HTML)이며 바꾸지 않았다.
@@ -653,6 +652,118 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   않았습니다", 긴 경로는 줄보다 넓어서만 글자 사이에서 끊김, 오류 대화상자의 긴 jar 경로도 잘리지 않음. 글 선택·복사 그대로(선택한 글이 클립보드에 들어감).
   비교 `D:\Tools\_scratch\small-fixes-r3\sheets\82-message-wrapping-ko150.png`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 "바꾼 곳"의
   모든 대화상자 글의 줄 바꿈과 높이, `WrappingNote`를 쓰는 안내(규칙은 같고 구현만 나눔).
+
+### HTML 라벨 안내 (2026-11-13, 앱 변경 #90, `chromite/html-label-wrapping`)
+
+- **결함:** 줄을 바꾸려고 `<html>` 글을 넣은 `JLabel` 안내가 Swing HTML 보기의 줄 바꿈으로 한국어 낱말 가운데서 끊었다. 측정(이 브랜치의 테스트 에이전트,
+  고치기 전 devel a0ef7da598): 연결 내보내기 "저장된 비밀번호 / 는", 연결 가져오기 "넣으세 / 요.", 셸 명령 승인 "다시 묻습 / 니다.", 설정 내보내기
+  "함께만 갑 / 니다.", 다른 도구에서 가져오기(한국어 100%) "SSH 비밀번 / 호", 연결 대화상자 Additional Parameters 탭의 URL 안내 "매개 변 / 수",
+  "(추가 / …)". URL 안내는 `<html>`만 있고 폭이 없어 높이가 한 번 늦게 따라가 가장 작은 크기(520×480)에서 셋째 줄이 잘렸다(영어도).
+- **근본 원인:** #71·#82와 같다. HTML 라벨은 `javax.swing.text.html`의 줄 나눔(유니코드 규칙, 한글 음절 사이 어디서나)을 쓴다.
+- **고침(구현 하나):** 그 안내를 `WrappingNote`로 옮겼다. 줄 끝 규칙은 `WrappingNote.breakOffset` 그대로다.
+  - `WrappingNote(text, wrapWidth)`: `pack()`하는 대화상자에서 한 줄 폭이 대화상자 폭이 되지 않게 가장 넓은 폭을 준다. 선호 폭은 한 줄 폭과 그 폭 중
+    작은 것, 배치 전 높이는 그 폭에서 접은 줄 수다. 폭은 대신한 HTML 라벨이 실제로 쓰던 폭이다: Swing HTML은 CSS `px`를 1.3배로 그려 `width:420px`가
+    546px이었다(측정: 라벨 글 폭 546, 676, 390, 598, 988). 그래서 420→546, 520→676, 300→390, 460→598, 760→988로 옮겼다.
+  - 배치가 더 넓은 폭을 주면(`fill`이 `HORIZONTAL`인 칸, 넓힌 대화상자) 그 폭에서 접는다. HTML 라벨은 `body` 폭에 묶여 있었다.
+  - 글꼴: `WrappingNote`의 UI가 라벨 글꼴을 기본 글꼴로 넣고, 그 뒤에 부르는 쪽의 FlatLaf 스타일이 적용된다. 셸 명령 페이지의 작은 글씨(스타일 클래스
+    `small`, 11)가 테마를 바꾼 뒤에도 남는다(확인: 열린 채로 어둡게→밝게 바꾼 뒤 글꼴 11). 색은 전처럼 `setForeground` 값이라 테마를 바꾸면 기본 글자색이
+    된다(고치기 전 HTML 라벨과 같음, 범위 밖).
+- **바꾼 곳:** `ConnectionExportDialog`(암호 안내, 546), `ConnectionImportDialog`(경고 아이콘 + 안내, 988), `ConnectionTransferCommands.chooseForeignSource`
+  (546), `ConnectionShellCommandsPage`(작은 글씨 안내, 390), `SwingShellCommandsService.createNote`(셸 명령 승인과 `ExecutionApprovalDialog`의 문단, 676),
+  `SettingsExportDialog`(598), `SettingsImportDialog`(경고 아이콘 + 안내, 988), `ConnectionSettingsPanel`의 URL 안내(370: 대화상자 가장 작은 폭 520에서
+  필드 칸 폭이라 대화상자 폭을 정하지 않음). 경고 아이콘은 라벨 아이콘 대신 왼쪽 `JLabel`(같은 간격 `iconTextGap`, 세로 가운데). 문구는 바꾸지 않았다.
+  `settings_url_note`의 `<html>…</html>`만 영어·한국어 파일에서 지웠다.
+- **배치:** 대화상자 폭은 그대로다(측정한 기본 크기: 연결 내보내기 598, 다른 도구 584, 셸 승인 762, 초기화 SQL 승인 762, 설정 내보내기 636, 연결
+  대화상자 640, 한국어 150%). 다른 점 둘: 연결 내보내기는 한국어 150%에서 18px 높아졌다(598×579→598×597). `pack()` 때 546px에서 공백으로만 접으면 세 줄이고,
+  배치가 준 552px에서는 두 줄이라 남는 한 줄 높이가 표로 간다. 설정 가져오기 미리 보기는 안내가 짧으면 표 폭만큼 좁아졌다(1061→1028, HTML `body` 폭이
+  안내가 짧아도 988px을 차지했다). 연결 가져오기는 1px 넓다(1061→1062).
+- **검사(테스트 에이전트, 화면 캡처 없이 각 대화상자의 루트 창을 그림):** 대화상자를 실제 정적 메서드로 열고 기본 크기, 고치기 전 대화상자의 최소 크기
+  (두 빌드 같은 크기), 200px 넓힌 크기에서 안내가 그리는 줄을 셌다. HTML 라벨은 `BasicHTML` 보기의 줄(행)을, `WrappingNote`는 `getLines`를 읽고,
+  줄 끝이 공백인지(아니면 줄보다 넓은 낱말 하나인지), 필요한 높이가 실제 높이보다 큰지(1px 허용, 150% 창 크기 반올림), 한 줄 라벨의 말줄임표를 셌다.
+  | 구성 | 고치기 전: 줄 / 낱말 가운데 / 잘림 | 고친 뒤: 줄 / 낱말 가운데 / 잘림 |
+  |---|---|---|
+  | 한국어 150% 밝은 테마 | 73 / 15 / 1 | 69 / 0 / 1 |
+  | 한국어 100% 밝은 테마 | 76 / 18 / 1 | 71 / 0 / 1 |
+  | 영어 100% 밝은 테마 | 85 / 0 / 1 | 79 / 0 / 1 |
+  | 한국어 150% 어두운 테마(2개) | 11 / 3 / 0 | 12 / 0 / 0 |
+  | 한국어 150% 열린 채 테마 전환(2개) | 9 / 3 / 0 | 9 / 0 / 0 |
+  남은 잘림 1은 두 빌드 모두 연결 대화상자 520×480에서 Options 탭 칸이 URL 안내 탭을 다 담지 못해 안내 아래가 가려지는 것이다(배치 문제, 범위 밖.
+  고치기 전에는 안내 자신의 높이도 한 줄(18px) 모자랐다). 줄보다 넓은
+  낱말은 없었다. 영어 줄은 초기화 SQL 승인 하나만 다르다(안내가 대화상자 폭을 받아 한 낱말씩 앞 줄로). 기본 단추와 포커스 순서는 모든 대화상자에서 같았다
+  (안내는 포커스를 받지 않음). 내보내기에서 비밀번호 포함을 끄고 켜면 안내 글이 바뀌고 높이가 따라간다.
+- **배치 최소 크기:** 안내의 최소 폭이 가장 긴 낱말이 되어 대화상자 배치의 최소 폭이 작아졌다(예: 설정 내보내기 영어 644→560). 창은 배치 최소 크기를
+  강제하지 않으므로(전에도 그보다 좁게 끌 수 있었음) 사용자가 그만큼 좁히면 안내가 더 많은 줄을 원하고 높이가 그대로인 창에서 아래가 모자란다(영어에서
+  설정 내보내기 1줄, 연결 가져오기 1곳). 전에는 같은 폭에서 HTML 라벨이 높이를 늘리지 못해 잘렸다.
+- **1차에서 남긴 곳:** 같은 원인의 나머지 안내는 2차에서 고쳤다(아래 "HTML 라벨 안내 2차"). `<br>`만 쓰고 폭이 없는 `pack()` 대화상자의 글
+  (`gridnav_vkey_intro`, `gridvirt_*_intro`, `library_roots_hint`, `QueryLibraryThresholdsDialog` 도움말, `ScriptPreviewDialog` 머리글)은 문단마다 한 줄로
+  놓여 줄이 바뀌지 않으므로 그대로다.
+- **도구 설명:** 도구 설명은 한 곳에서 접지 않는다. FlatLaf `FlatToolTipUI`는 `\n`에서만 줄을 나누고, HTML 도구 설명은 폭이 없어 `<br>`에서만 나눈다
+  (`setToolTipText` 399곳 132개 파일, 폭을 정한 HTML 도구 설명 0). 그래서 낱말 가운데서 끊기는 도구 설명은 없고, 긴 글은 한 줄로 넓게 보인다. 바꾸지 않았다.
+- 비교 그림 `D:\Tools\_scratch\html-label-wrapping\sheets\01-export.png` ~ `09-settingsimport.png`(대화상자마다 한 장, 왼쪽 고치기 전·오른쪽 고친 뒤).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 대화상자들의 배치와 높이, `WrappingNote`를 쓰는 다른 안내(옵션 MCP 설명·템플릿 안내, Agent
+  패널 안내: 폭을 주지 않으면 전과 같음, 글꼴을 넣는 순서만 바뀜).
+
+### HTML 라벨 안내 2차 (2026-11-13, 앱 변경 #90 검토 후속, `chromite/html-label-wrapping`)
+
+#### 경고 아이콘과 안내의 세로 맞춤
+- **결함(1차 검토):** 연결 가져오기·설정 가져오기 미리 보기에서 한 줄 안내가 아이콘 가운데보다 위에 있었다. 1차의 `BorderLayout`은 안내 칸을 아이콘 높이만큼
+  늘렸고 `WrappingNote`는 위에서부터 그린다. 고치기 전 라벨은 아이콘과 글 묶음을 서로 가운데에 맞췄다.
+- **고침:** `WrappingNote.withIcon(icon, text, wrapWidth)` 하나를 두 대화상자가 쓴다. `GridBagLayout` 한 줄에 아이콘과 안내를 두고 둘 다 선호 높이로 세로 가운데
+  (안내는 가로로 채움). 안내의 폭·높이 규칙(`wrapWidth`, 접은 줄 수의 높이)은 그대로다.
+- **측정(글 묶음 가운데 − 아이콘 가운데, 논리 px):** 한 줄 안내가 1차(`BorderLayout`)에서 연결 가져오기 −9, 설정 가져오기 −7(위로)이었고 2차에서 0이다(한국어 150%·100%, 영어 100%,
+  기본·최소 크기 모두). 두 줄 이상인 안내는 1차에서도 0이었다. 고치기 전(devel) 라벨은 `layoutCompoundLabel`이 아이콘과 글 묶음을 서로 가운데에 둔다.
+
+#### HTML 라벨로 접던 나머지 안내
+- **바꾼 곳(모두 `WrappingNote`, 줄 끝 규칙 `breakOffset`):** `ObjectFilterDialog`의 마스크 안내, `QueryVariablesDialog`의 안내, `UpdateUi` 실패 메뉴의 설명
+  (팝업 메뉴는 어떤 `JComponent`든 담으므로 `WrappingNote`를 그대로 넣었다. 가장 넓은 폭 364 = 280 CSS px × 1.3. 쓰이지 않게 된 `escapeHtml`을 지움),
+  `DataTransferObjects.createNote`(반환형을 `JTextArea`로: 부르는 곳 `DataExportWizard`·`DataImportWizard`·`DataImportTargetPage`의 칸 형식을 바꿈.
+  `DataImportTargetPage`는 `setText`에 HTML 없이 글을 넣음. `DataTransferExtractPage`·`DataTransferOptionDialogs`·`DatabaseCopyPages`의 매핑·불러오기 안내는
+  코드 변경 없이 따라옴), `DatabaseCopyPages`의 매핑 문제 줄(`<br>`로 잇던 HTML → 문단마다 `\n`), `AiOptionsPage` 권한 정책 규칙(`withIcon`, 옵션 창 최소
+  크기 760×520에서 한국어가 낱말 가운데서 끊겼다: 측정 고치기 전 760×520에서 세 규칙 모두 두 줄, 낱말 가운데 3곳(한국어 150%)·2곳(100%)).
+- 폭을 주지 않은 HTML 라벨은 선호 폭이 한 줄 폭이었다. `WrappingNote`도 폭을 주지 않으면 선호 폭이 한 줄 폭이라 배치가 바라는 폭은 같다.
+- **그대로 둔 것:** `DatabaseCopyPages`의 대상 안내(`destination_note`)는 대상 이름이 문장 가운데서 굵게(`<b>`) 보여 HTML 라벨로 남겼다(`createNote`를
+  쓰지 않고 이 클래스에서 만든 라벨). 측정: 대상을 고른 뒤 한 줄(한국어 150% 373px, 100% 388px, 영어 406px. 쓸 수 있는 폭은 기본 571·563px, 최소 크기 431·423px)이라 시험한
+  구성에서는 줄이 바뀌지 않는다. 이름이 길어 줄을 넘기면 한국어 낱말 가운데서 끊길 수 있다(굵은 글씨를 어떻게 할지는 사용자 결정).
+
+#### Swing 단어 줄 바꿈을 쓰던 글 상자
+- **원인:** `JTextArea`의 `lineWrap` + `wrapStyleWord`는 Swing의 `WrappedPlainView`가 줄 끝을 `BreakIterator`로 찾아 한글 음절 사이에서 끊는다(#82와 같음).
+- **고침:** 글 상자 그대로 `WrappingNote.MessageArea`를 쓴다(크기·선택·입력·글꼴은 Swing 그대로, 줄 끝만 `breakOffset`). `MessageArea`의 `final`을 풀고
+  행·열 생성자를 두었다. 곳마다 고른 것과 이유:
+  - `DatabaseTaskDialog.FormPanel.note`(36곳): 안내지만 선호 폭 1(폭은 양식 칸이 정함)과 폭이 바뀌면 다시 배치하는 익명 하위 클래스가 있다.
+    `WrappingNote`는 선호 폭이 한 줄 폭이라 양식이 페이지보다 넓어져 `GridBagLayout`이 최소 크기 배치로 바뀐다. 그래서 같은 하위 클래스를 `MessageArea`에서 만든다.
+  - `TaskScheduleDialog.note`: 안내지만 `fitWidth`가 글 상자의 높이 계산으로 선호·최소 크기를 고정한다(`pack()` 전) → `MessageArea`.
+  - `MaintenanceDialog`의 상태 칸, `PropertiesPanel`의 설명 칸, `SchedulerTablePanel`의 세부 칸: 서버 글이나 오류가 들어가고 크기를 글 상자가 정한다 → `MessageArea`.
+  - `AdminGridTabs.createText`(빈 표·읽을 수 없음 안내): 페이지 전체를 차지하고 서버가 준 이유가 들어갈 수 있다 → `MessageArea`.
+  - `QueryLibraryPanel`의 Git 커밋 메시지(입력 칸): 사용자가 쓰는 한국어가 낱말 가운데서 끊겼다 → `MessageArea`(입력·선택 그대로).
+- **그대로 둔 것:** `DriverLibraryDetailsDialog`의 설명 칸: 드라이버 라이브러리 246개 중 설명이 있는 것이 0개라 줄이 생기지 않는다(측정).
+  `MaintenanceDialog` 상태 칸과 `AdminGridTabs` 안내는 시험한 글(사실 줄, 빈 표·읽을 수 없음 이유)이 한 줄이었지만 서버 오류 글이 들어가므로
+  같은 규칙으로 두었다(글 상자 한 곳의 생성자만 바꿈).
+
+#### 표시(굵은 글씨, 가운데 맞춤)가 있는 안내
+- `ResultSetExport`의 가져온 행 안내: 굵은 부분이 문장 앞부분 전체라 굵은 `WrappingNote`(스타일 `font: bold`) 한 문단과 나머지 문단으로 나눴다
+  (문구 키를 둘로: `editor_export_note_truncated`, `editor_export_note_truncated_rest`, 낱말은 그대로, 문장 부호만 굵은 문단 끝으로. 영어는 두 문단이 각각 문장이 되도록 세미콜론을 마침표로, 둘째 문단의 첫 글자를 대문자로 바꿨다: 검토 후속). 세 안내는
+  `BoxLayout` 세로, 가장 넓은 폭 260 = 200 CSS px × 1.3.
+- `ResultSetValuePanel`의 빈 칸 메시지: `WrappingNote.setCentered(true)`(줄마다 가운데 맞춤)를 더하고, 칸 가운데에 세로로 놓으려고 `GridBagLayout` 패널에 넣었다.
+  쓰이지 않게 된 `escapeHtml`을 지움.
+- **그대로 둔 것(굵은 글씨·코드 글꼴이 문장 가운데, 측정):** `library_import_clash`(굵은 줄이 한 문단 전체)·`library_conflict_message`(문장 가운데 굵게)는 `pack()`하는 메시지 창이라
+  문단마다 한 줄로 놓인다(측정: 3줄·2줄, 낱말 가운데 0, 세 구성 모두). `gridvirt_column_expression_help`(문장 가운데 `<code>`)도 `pack()`하는
+  메시지 창의 한 줄짜리 문단 둘이다(문단 폭 한국어 393·591px, 영어 529·734px). 줄이 바뀌지 않으므로 그대로 둔다.
+- **검사:** 2차의 21개 대화상자·패널을 같은 방법(기본 크기, 고치기 전 빌드의 최소 크기, 마법사·작업 대화상자는 페이지마다)으로 셌다. `JTextArea`는
+  보기의 줄(`Utilities.getRowEnd`)을 읽었다.
+  | 구성 | 고치기 전: 줄 / 낱말 가운데 / 넓은 낱말 / 잘림 | 고친 뒤 |
+  |---|---|---|
+  | 한국어 150% 밝은 테마 | 185 / 48 / 1 / 6 | 187 / 0 / 1 / 7 |
+  | 한국어 100% 밝은 테마 | 185 / 41 / 1 / 6 | 186 / 0 / 1 / 7 |
+  | 영어 100% 밝은 테마 | 186 / 4 / 1 / 6 | 188 / 0 / 1 / 7 |
+  | 한국어 150% 어두운 테마(백업 대화상자) | 34 / 11 / 0 / 2 | 35 / 0 / 0 / 2 |
+  영어의 낱말 가운데 4는 한국어 서버 글(일정 세부, 값 패널 메시지)이다. 넓은 낱말 1은 일정 표 패널을 배치 최소 폭(170)으로 줄였을 때다.
+  잘림은 두 빌드에서 같은 곳이다: 매핑 규칙 대화상자(560×330 고정)가 세 줄 안내에 7px 모자람, 백업 대화상자와 CSV 내보내기를 최소 높이로 줄였을 때
+  페이지·부속 칸 아래가 가려짐(내보내기는 안내가 셋으로 나뉘어 1→2), 값 패널 최소 크기(120×60). 기본 단추와 포커스 순서는 기본 크기 상태에서 모두 같았다.
+- **packed 크기가 바뀐 대화상자:** 업데이트 실패 메뉴 439×127→386×127(한국어 150%; 100% 440→386, 영어 439×145→386×145): HTML 라벨은 메뉴를 만들 때 437px을 바라고 글은 364px에서
+  접었다. 안내는 글 364px + 테두리 20px만 바란다(`wrapWidth`는 글 폭, 테두리는 더함). CSV 내보내기(영어 100%) 828×433→828×451: 굵은 문단이
+  따로 있어 "Fetching stopped at the maximum row count;"가 260px에서 두 줄이다. 그 밖의 대화상자는 기본 크기가 같았다.
+- 비교 그림 `D:\Tools\_scratch\html-label-wrapping\sheets\10-import.png` ~ `30-optconflict.png`. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능:
+  위 대화상자·패널의 줄 바꿈과 높이, 작업 대화상자(백업·복원·작업 일정·에이전트 작업 등 36곳의 안내), 데이터 전송 마법사의 안내.
 
 ## 휠 스크롤 (#97)
 
@@ -914,6 +1025,11 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   `OptionsDialog`는 고치지 않음(재구성 브랜치와 병합 충돌을 피하려고).
 - 2026-11-12 안쪽 스크롤 창이 더 움직일 수 없으면 휠을 바깥 스크롤 창에 넘김(`ChromiteScrollPaneUI`, 모든 스크롤 창), 옵션 페이지 휠 한 칸을 약 세 줄로
   (`PAGE_SCROLL_UNIT` 44)(앱 변경 #97, `chromite/options-wheel-scroll`, 위 "휠 스크롤 (#97)"). 회귀 테스트는 실행하지 않았다.
+- 2026-11-13 HTML 라벨로 접던 안내 8곳(연결·설정 내보내기와 가져오기, 다른 도구에서 가져오기, 셸 명령 페이지와 승인, 초기화 SQL 승인, URL 안내)을
+  `WrappingNote`로: 한국어 낱말 가운데서 끊지 않음. `WrappingNote`에 가장 넓은 폭과 라벨 글꼴을 기본값으로 넣는 UI(앱 변경 #90,
+  `chromite/html-label-wrapping`, 위 "HTML 라벨 안내"). 회귀 테스트는 실행하지 않았다.
+- 2026-11-13 #90 2차: 경고 아이콘과 안내의 세로 맞춤(`WrappingNote.withIcon`), 같은 원인의 나머지 HTML 안내와 Swing 단어 줄 바꿈 글 상자
+  (`WrappingNote.MessageArea`), 굵은 글씨·가운데 맞춤 안내(위 "HTML 라벨 안내 2차"). 회귀 테스트는 실행하지 않았다.
 
 ## 부록: 키별 상태
 

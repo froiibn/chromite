@@ -58,6 +58,8 @@ import java.util.Map;
  * - 2026-11-06 최초 작성: 데이터베이스 노드에서 Import Data… (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-08 저장된 가져오기 작업의 스키마와 새 테이블 이름을 미리 고름({@link #presetNewTable}, {@link #readTargets}의 schema)
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-13 대상 안내({@link DataTransferObjects#createNote})를 HTML 없이 글로 넣음: 안내가 {@link WrappingNote}가 되어 한국어 낱말
+ *   가운데서 끊지 않음(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class DataImportTargetPage implements DataTransferWizard.Page {
 
@@ -91,7 +93,7 @@ final class DataImportTargetPage implements DataTransferWizard.Page {
     private final JRadioButton newRadio = new JRadioButton(DbCopyMessages.dbnode_import_target_new);
     private final JComboBox<DBSDataManipulator> tableCombo = new JComboBox<>();
     private final JTextField nameField = new JTextField(30);
-    private final JLabel note = DataTransferObjects.createNote(" ");
+    private final JTextArea note = DataTransferObjects.createNote(" ");
     private boolean updating;
 
     DataImportTargetPage(@NotNull DataTransferWizard wizard, @NotNull Targets targets, @NotNull TargetListener listener) {
@@ -290,7 +292,7 @@ final class DataImportTargetPage implements DataTransferWizard.Page {
         } else {
             text = DbCopyMessages.dbnode_import_target_error_table;
         }
-        note.setText("<html>" + text.replace("&", "&amp;").replace("<", "&lt;") + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+        note.setText(text);
     }
 
     @NotNull

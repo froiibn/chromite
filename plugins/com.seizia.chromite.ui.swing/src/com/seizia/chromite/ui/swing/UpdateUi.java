@@ -62,6 +62,8 @@ import java.awt.event.WindowEvent;
  * - 2026-11-09 모든 사용자 설치의 "받아서 확인함" 툴팁: [지금 다시 시작]과 관리자 확인으로 설치 (docs/chromite/auto-update.md "관리자 권한으로 설치")
  * - 2026-11-12 진행 글자를 보조 글자 색에서 본문 글자 색으로(앱 변경 #55: 다크 테마 상태 표시줄 글자가 잘 보이지 않음)
  *   (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
+ * - 2026-11-13 실패 메뉴의 설명을 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class UpdateUi {
 
@@ -246,9 +248,9 @@ final class UpdateUi {
                 addNotes(menu, state);
             }
             case FAILED -> {
-                // The explanation is the first line of the menu (not clickable)
-                JLabel message = new JLabel("<html><div style='width:" + UIScale.scale(280) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
-                    + escapeHtml(failureMessage(state)) + "</div></html>"); //$NON-NLS-1$
+                // The explanation is the first line of the menu (not clickable). It wraps at spaces only (an HTML label broke
+                // Korean words), at most as wide as the HTML label was (280 CSS px, which Swing's HTML draws 1.3 times as wide)
+                JTextArea message = new WrappingNote(failureMessage(state), UIScale.scale(364));
                 message.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
                 menu.add(message);
                 menu.addSeparator();
@@ -290,10 +292,5 @@ final class UpdateUi {
 
     private static void openUrl(@NotNull String url) {
         DBWorkbench.getPlatformUI().executeShellProgram(url);
-    }
-
-    @NotNull
-    private static String escapeHtml(@NotNull String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
     }
 }

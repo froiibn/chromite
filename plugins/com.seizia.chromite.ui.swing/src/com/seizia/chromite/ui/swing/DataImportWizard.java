@@ -107,6 +107,8 @@ import java.util.Set;
  * - 2026-11-08 TRUNCATE 확인은 잘라내기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 작업으로 저장(실행하지 않으므로 TRUNCATE를 묻지 않음), 저장된 가져오기 작업 편집({@link #openForTask})
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-13 안내({@link DataTransferObjects#createNote})가 {@link WrappingNote}가 되어 칸 형식을 {@code JTextArea}로(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -731,8 +733,8 @@ final class DataImportWizard extends DataTransferWizard {
         private final MappingTableModel model = new MappingTableModel();
         private final JTable mappingTable = new JTable(model);
         private final JScrollPane tableScroll = new JScrollPane(mappingTable);
-        private final JLabel existingNote = DataTransferObjects.createNote(ToolsMessages.import_mapping_note);
-        private final JLabel newNote = DataTransferObjects.createNote(DbCopyMessages.dbnode_import_mapping_note_new);
+        private final JTextArea existingNote = DataTransferObjects.createNote(ToolsMessages.import_mapping_note);
+        private final JTextArea newNote = DataTransferObjects.createNote(DbCopyMessages.dbnode_import_mapping_note_new);
         /**
          * A new table: its columns and the DDL that creates it (as the Copy Tables mapping page).
          */

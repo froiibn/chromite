@@ -106,6 +106,8 @@ import java.util.Locale;
  * - 2026-11-08 NULL 배열·구조체(값이 없는 값 객체)를 NULL로 보임: 편집 모델이 배열·구조체 값을 남기게 되어 "NULL" 글자로 보이던 것
  *   (docs/chromite/swing-value-editors.md)
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 도구 설명의 키 글자
+ * - 2026-11-13 빈 칸 메시지를 가운데 맞춘 HTML 라벨 대신 가운데 맞춘 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서
+ *   끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -197,7 +199,8 @@ final class ResultSetValuePanel extends JPanel {
     private final JPanel cards = new JPanel(new CardLayout());
     private final ValueTextArea textArea = new ValueTextArea();
     private final ImageView imageView = new ImageView();
-    private final JLabel messageLabel = new JLabel("", SwingConstants.CENTER);
+    // A message in the middle of the empty area: lines centred, broken at spaces only (an HTML label broke Korean words)
+    private final WrappingNote messageNote = new WrappingNote(""); //$NON-NLS-1$
     private final JLabel infoLabel = new JLabel(" ");
     private final JButton applyButton;
     private final JButton revertButton;
@@ -258,10 +261,17 @@ final class ResultSetValuePanel extends JPanel {
         textScroll.setBorder(BorderFactory.createEmptyBorder());
         JScrollPane imageScroll = new JScrollPane(imageView);
         imageScroll.setBorder(BorderFactory.createEmptyBorder());
-        messageLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        messageNote.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        messageNote.setCentered(true);
+        // The note takes the width and keeps the height of its lines, centred in the card as the label's text was
+        JPanel messagePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints messageConstraints = new GridBagConstraints();
+        messageConstraints.weightx = 1;
+        messageConstraints.fill = GridBagConstraints.HORIZONTAL;
+        messagePanel.add(messageNote, messageConstraints);
         cards.add(textScroll, CARD_TEXT);
         cards.add(imageScroll, CARD_IMAGE);
-        cards.add(messageLabel, CARD_MESSAGE);
+        cards.add(messagePanel, CARD_MESSAGE);
 
         Action applyAction = ResultSetViewerPanel.createAction(EditorMessages.editor_value_apply,
             UiKeys.command(KeyEvent.VK_ENTER), this::applyText);
@@ -419,7 +429,7 @@ final class ResultSetValuePanel extends JPanel {
     }
 
     private void showMessage(@NotNull String text) {
-        messageLabel.setText("<html><div style='text-align:center'>" + escapeHtml(text) + "</div></html>"); //$NON-NLS-1$ //$NON-NLS-2$
+        messageNote.setText(text);
         ((CardLayout) cards.getLayout()).show(cards, CARD_MESSAGE);
     }
 
@@ -697,11 +707,6 @@ final class ResultSetValuePanel extends JPanel {
         String text = CommonUtils.notEmpty(message).strip();
         int end = text.indexOf('\n');
         return end < 0 ? text : text.substring(0, end).strip();
-    }
-
-    @NotNull
-    private static String escapeHtml(@NotNull String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
     }
 
     //////////////////////////////////////////////////////////

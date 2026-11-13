@@ -571,6 +571,7 @@ public class EditorMessages extends NLS {
     public static String editor_export_note_one;
     public static String editor_export_note_many;
     public static String editor_export_note_truncated;
+    public static String editor_export_note_truncated_rest;
     public static String editor_export_replace_confirm;
     public static String editor_export_excel_options;
     public static String editor_export_xlsx_title;

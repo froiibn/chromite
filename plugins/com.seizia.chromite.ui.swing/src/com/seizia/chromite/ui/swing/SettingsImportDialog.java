@@ -49,6 +49,9 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/settings-transfer.md)
+ * - 2026-11-13 스크립트를 가져오지 않는다는 안내를 HTML 라벨 대신 경고 아이콘과 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말
+ *   가운데서 끊을 수 있었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-13 아이콘과 안내를 {@link WrappingNote#withIcon}으로 세로 가운데에 맞춤: 한 줄 안내가 아이콘 가운데보다 위에 있었다(#90 검토)
  */
 final class SettingsImportDialog extends JDialog {
 
@@ -192,12 +195,13 @@ final class SettingsImportDialog extends JDialog {
         return new Result(dialog.connectionsBox != null && dialog.connectionsBox.isSelected());
     }
 
+    /**
+     * The warning icon beside a note that wraps at spaces only (an HTML label could break Korean words), at most as wide
+     * as the HTML label was (760 CSS px, which Swing's HTML draws 1.3 times as wide).
+     */
     @NotNull
-    private static JLabel createNote(@NotNull String text) {
-        JLabel note = new JLabel("<html><body style='width:" + UIScale.scale(760) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
-            + text + "</body></html>"); //$NON-NLS-1$
-        note.setIcon(UIManager.getIcon("OptionPane.warningIcon")); //$NON-NLS-1$
-        return note;
+    private static JComponent createNote(@NotNull String text) {
+        return WrappingNote.withIcon(UIManager.getIcon("OptionPane.warningIcon"), text, UIScale.scale(988)); //$NON-NLS-1$
     }
 
     private void applyToConflicts(@Nullable Action action) {
