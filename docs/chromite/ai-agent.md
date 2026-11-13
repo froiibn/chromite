@@ -1877,7 +1877,10 @@ ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryToo
 
 규칙은 모든 도구가 지나는 `AgentSql.run` 한 곳에 있다. 공유 세션이면 작업 전에 `refuseSharedSessionSwitch`가 그 호출이 쓸 DB(호출의 `database`, 없으면
 저장된 에이전트 기본값)와 스키마(에이전트 기본값)를 세션의 지금 값과 비교한다. 지금 값은 드라이버에 묻는다(`Connection.getCatalog()`·`getSchema()`, 못 하면 문맥이 마지막에
-읽은 값). 대소문자만 다르면 같다. 다르면 아무것도 실행하지 않고 `AgentSql.sharedSessionRefusal`(이유를 받는 3인수 판)로 거절한다(`AIToolArgumentException`, 실행기 결과 `INVALID`):
+읽은 값). DB 이름은 똑같으면 통과하고, 대소문자만 다르면 격리 경로와 같은 찾기(`AgentSql.open`의 `root.getChild(monitor, database)`)로 찾은 DB의 이름이
+세션의 지금 DB와 똑같을 때만 통과한다(`isSessionDatabase`, 검토 후속). 이름이 대소문자를 가리는 서버(MySQL `lower_case_table_names=0`, 대소문자를 가리는 SQL Server
+데이터 정렬, 따옴표 친 PostgreSQL 이름)에서 `Sales`와 `sales`는 다른 DB라, 전처럼 대소문자를 무시하면 다른 DB에서 실행하고 그 DB인 것처럼 답했다. 스키마는 대소문자를
+무시하고 비교한다: 새 메타데이터 읽기 없이 쓸 수 있는 찾기가 없고, 격리 경로의 `applySchema`도 대소문자를 무시한다. 다르면 아무것도 실행하지 않고 `AgentSql.sharedSessionRefusal`(이유를 받는 3인수 판)로 거절한다(`AIToolArgumentException`, 실행기 결과 `INVALID`):
 
 > Refused, nothing ran: this call would run in database 'master' (the call's database argument), but the session is in database 'chr_picker_agent'. This connection
 > uses one shared session (its "single connection" setting) that the user's query windows also use, so Chromite does not switch that session's database or schema
@@ -1912,6 +1915,8 @@ ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryToo
 | MariaDB `setCurrentDatabase {database: mysql}`, `runReadOnlySql {database: mysql}` | 둘 다 `INVALID` | `chr_picker_agent` → 그대로 |
 | 격리 SQL Server `setCurrentDatabase`·`runReadOnlySql {database: master}` | 고치기 전과 같음(에이전트 문맥만 바뀜) | — |
 | 격리 PostgreSQL `setCurrentDatabase {schema: s_b}` | 고치기 전과 같음(에이전트 문맥 `s_b`) | — |
+| 검토 후속: MySQL 8.4.13(Linux, `lower_case_table_names` = 0), `chr_picker_agent_Case`·`chr_picker_agent_case` 둘 다 만듦, 세션은 `_Case`: `runReadOnlySql {database: chr_picker_agent_case}`, `setCurrentDatabase {database: chr_picker_agent_case}`, `{database: CHR_PICKER_AGENT_CASE}` | 모두 `INVALID`(같은 거절 글). `{database: chr_picker_agent_Case}`는 SUCCESS | `chr_picker_agent_Case` → 그대로 |
+| 검토 후속: SQL Server(`SQL_Latin1_General_CP1_CI_AS`) 세션 `chr_picker_agent`, `runReadOnlySql {database: CHR_PICKER_AGENT}`, `setCurrentDatabase {database: Chr_Picker_Agent}` | 둘 다 SUCCESS(찾기가 `chr_picker_agent`로 풀림). `{database: master}`는 `INVALID` | 그대로 |
 
 - 채팅 경로: 127.0.0.1의 가짜 Chat Completions 서버(`fake_llm.py`, 첫 요청 전 기록에 시작 줄만 있음을 확인)로 가짜 모델이 `setCurrentDatabase {database: master}`를 부르게 함:
   카드 "Invalid call, 1 ms - Refused, nothing ran: …", 감사 기록 `client: CHAT`, `INVALID`, 같은 글. 가짜 서버 기록에 채팅 요청 4개, 실제 제공자는 부르지 않았다.
@@ -2029,6 +2034,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-13 #94 검토 후속: 공유 세션에서 대소문자만 다른 DB 이름은 격리 경로와 같은 찾기로 세션의 DB가 될 때만 통과(MySQL `lower_case_table_names=0`에서 확인).
+  위 "공유 세션의 DB·스키마". 회귀 테스트는 실행하지 않았다.
 - 2026-11-13 앱 변경 #94(`chromite/picker-and-agent-shared`): "단일 연결" 연결의 공유 세션에서 DB·스키마를 바꿔야 하는 호출을 한 규칙(`AgentSql.run`)으로 거절,
   `setCurrentDatabase`는 저장하지 않음, `getCurrentDatabase`에 `sharedSession`·`note`. 위 "공유 세션의 DB·스키마". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #93 검토 뒤 고침: `SHOW CREATE …`·`SHOW CHARACTER SET`·힌트의 USE 허용, SQL Server 끝의 `OPTION (…)`을 떼고 해석, 업서트는 한 문장·WRITE,

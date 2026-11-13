@@ -129,6 +129,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *   UPDATE가 사용자 세션에서 실행·커밋됐다 (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
  * - 2026-11-13 "단일 연결" 연결에서 DB·스키마를 바꿔야 하는 호출을 거절함(앱 변경 #94, {@link #sharedSessionRefusal}). {@code database}가
  *   조용히 무시되고 setCurrentDatabase의 {@code schema}가 쿼리 창의 기본 스키마를 바꿨다(PostgreSQL) (docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
+ * - 2026-11-13 공유 세션의 DB 이름이 대소문자만 다르면 격리 경로와 같은 찾기({@link #open}의 {@code getChild})로 세션의 DB가 될 때만 통과
+ *   ({@link #isSessionDatabase}). 이름이 대소문자를 가리는 서버에서 다른 DB를 그 DB인 것처럼 실행할 수 있었다(#94 검토 후속)
  */
 public final class AgentSql {
 
@@ -346,7 +348,7 @@ public final class AgentSql {
                 Runner runner = new Runner(monitor, container, agentContext.context, keepsChanges);
                 if (!agentContext.isolated) {
                     // The user's own context: never touch its transaction mode, its database or its schema
-                    refuseSharedSessionSwitch(connection, agentContext.context, database, schema, source);
+                    refuseSharedSessionSwitch(monitor, connection, agentContext.context, database, schema, source);
                     try {
                         return work.run(connection, runner);
                     } finally {
@@ -911,9 +913,12 @@ public final class AgentSql {
      * The shared session's rule (app change #94): the agent never switches the database or schema of the session the user's
      * query windows use. A database or schema the call needs that is not the session's current one (as the driver reports
      * it now; the context's last read when the driver can't say) is refused; the same one needs no switch and passes.
-     * A database whose own instance the call runs in (PostgreSQL) is that instance's current database.
+     * A database whose own instance the call runs in (PostgreSQL) is that instance's current database. A schema name that
+     * differs only in case passes, as {@link #applySchema} compares on the isolated path (no lookup reused without new
+     * metadata reads).
      */
     private static void refuseSharedSessionSwitch(
+        @NotNull DBRProgressMonitor monitor,
         @NotNull Connection connection,
         @NotNull DBCExecutionContext context,
         @Nullable String database,
@@ -931,7 +936,7 @@ public final class AgentSql {
             if (CommonUtils.isEmpty(current) && contextDefaults != null) {
                 current = contextDefaults.getCachedDefault().catalogName();
             }
-            if (!database.equalsIgnoreCase(CommonUtils.notEmpty(current))) {
+            if (!isSessionDatabase(monitor, context, database, current)) {
                 throw sharedSessionRefusal("this call would run in database '" + database + "' (" + source + "), but the session " + //$NON-NLS-1$
                     (CommonUtils.isEmpty(current) ? "can't tell its current database" : "is in database '" + current + "'"), //$NON-NLS-1$ //$NON-NLS-2$
                     SHARED_SWITCH_CANNOT, SHARED_SWITCH_INSTEAD);
@@ -953,6 +958,37 @@ public final class AgentSql {
                     (CommonUtils.isEmpty(current) ? "has no current schema" : "is in schema '" + current + "'"), //$NON-NLS-1$ //$NON-NLS-2$
                     SHARED_SWITCH_CANNOT, SHARED_SWITCH_INSTEAD);
             }
+        }
+    }
+
+    /**
+     * Whether a database name the call gave is the shared session's current database. The same name passes. A name that
+     * differs only in case passes only when the lookup the isolated path uses ({@link #open}: the data source's child by
+     * name) resolves it to the session's database: on a server with case-sensitive names ({@code Sales} and {@code sales}
+     * are two databases) the call would otherwise run in the other one and answer as if it were the one asked for.
+     */
+    private static boolean isSessionDatabase(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        @NotNull String database,
+        @Nullable String current
+    ) {
+        if (CommonUtils.isEmpty(current)) {
+            return false;
+        }
+        if (database.equals(current)) {
+            return true;
+        }
+        if (!database.equalsIgnoreCase(current)) {
+            return false;
+        }
+        try {
+            DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, context.getDataSource());
+            DBSObject child = root == null ? null : root.getChild(monitor, database);
+            return child instanceof DBSCatalog catalog && current.equals(catalog.getName());
+        } catch (DBException e) {
+            log.debug("Can't resolve database '" + database + "' of the shared session", e);
+            return false;
         }
     }
 
