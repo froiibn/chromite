@@ -187,6 +187,18 @@ SQL Server 실행 문맥의 `getDefaultCatalog`는 진행 모니터가 없어 �
 
 **고침:** `ContextDefaultObjectsReader.run`이 카탈로그를 고르는 경우 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽는다(`objectContainer.getChildren(monitor)`;
 다 읽은 목록이면 서버를 부르지 않음). 기본 객체와 목록이 같은 캐시에서 나오므로 같은 객체다. 다시 그리기를 더하거나 문장 모양을 따로 다루지 않았다.
+이 먼저 읽기가 실패하면(`DBException`) 기록만 하고 예전 순서대로 계속한다(검토 후속): 기본 카탈로그가 스키마를 갖고 스키마를 바꿀 수 있는 엔진은 전에 이 메서드에서
+카탈로그 목록을 읽지 않고 기본 카탈로그의 스키마만 읽었으므로, 새 읽기의 실패로 선택 읽기가 실패하면 안 된다. 뒤의 목록 읽기는 예전과 같다(실패하던 곳에서 실패).
+
+**새 읽기가 닿는 엔진(코드 읽기, 카탈로그가 맨 위 + 기본 카탈로그 아래 스키마 + `supportsSchemaChange()`가 참):**
+
+| 엔진 | 그 분기를 타는 근거 | 데이터 원본 `getChildren` |
+|---|---|---|
+| PostgreSQL, Greenplum·Cloudberry(`GreenplumDataSource extends PostgreDataSource`) | 맨 위 `PostgreDatabase`(`PostgreDataSource.java:561`), `PostgreExecutionContext.java:95` 참 | `getDatabases()` = `databaseCache.getCachedObjects()`(`PostgreDataSource.java:550–552`, `466–469`): 질의 없음, 예외 없음 |
+| Generic JDBC(카탈로그가 있을 때), Snowflake(`SnowflakeExecutionContext.java:91` 참), Databricks·Vertica(`GenericExecutionContext.java:250`, 드라이버 정보에 따름), Doris(`DorisExecutionContext.java:119`), StarRocks(`StarRocksExecutionContext.java:109`), IoTDB 표 모델(`IoTDBExecutionContext.java:82`), Dameng·Mimer(카탈로그가 있을 때) | 맨 위 `GenericCatalog`(`GenericDataSource.java:729–737`, 카탈로그 목록이 비어 있지 않을 때) | 연결할 때 읽어 둔 `catalogs` 필드(`GenericDataSource.java:700–712`, `312–314`): 질의 없음. 이 확장들은 `getChildren`·`getCatalogs`를 다시 정의하지 않는다(검색) |
+| 그 밖: SQL Server·MySQL/MariaDB(`supportsSchemaChange` 거짓), Oracle·DB2·Exasol·Altibase(맨 위가 스키마) | 분기 아님 | SQL Server·MySQL은 전에도 같은 메서드 133행에서 같은 목록을 읽었다 |
+
+그래서 선택 읽기마다 무거운 질의를 새로 부르는 엔진은 없다. 목록을 캐시에서만 찾는 엔진으로 읽기를 좁히지 않았다.
 
 **같은 원인을 쓰는 곳:**
 - 상태 줄의 DB 칸: 선택에서 정하므로 같이 고쳐진다(고치기 전에도 이름 글이라 맞게 보였다).
@@ -424,3 +436,4 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 - 2026-11-13 앱 변경 #89(`chromite/picker-and-agent-shared`): `ContextDefaultObjectsReader`가 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음. 연결을 다시 읽은 뒤
   (Refresh, `CREATE TABLE dbo.t`·`CREATE/DROP DATABASE`처럼 연결 전체를 다시 읽는 DDL) 쿼리 창의 DB 선택이 목록의 객체 대신 이름 글(#245 전에는 N/A)로 남았다.
   "연결을 다시 읽은 뒤의 DB 선택" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DB/스키마 선택·상태 줄(모든 DB 종류), 연결 직후 첫 선택 읽기.
+- 2026-11-13 #89 검토 후속: 먼저 읽기의 실패는 기록만 하고 계속함, 새 읽기가 닿는 엔진 표. 고치기 전에 실패하던 행(펼치지 않음, 연결·다시 연결)을 다시 확인. 회귀 테스트는 실행하지 않았다.

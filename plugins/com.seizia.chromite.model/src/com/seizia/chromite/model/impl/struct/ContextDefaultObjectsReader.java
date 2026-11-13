@@ -18,6 +18,7 @@
 package com.seizia.chromite.model.impl.struct;
 
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -49,8 +50,12 @@ import java.util.List;
  * - 2026-11-13 Chromite: 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음. SQL Server에서 연결 새로 고침(Refresh, 연결 전체를 다시 읽는
  *   DDL: CREATE/DROP DATABASE, {@code CREATE TABLE dbo.t})이 목록을 비운 뒤 이 읽기가 기본값을 먼저 물어, 쿼리 창의 DB 선택이 목록의
  *   객체 대신 이름 글(#245 전에는 "&lt; N/A &gt;")로 남았다(앱 변경 #89, docs/chromite/swing-sql-editor-session-ui.md "연결을 다시 읽은 뒤의 DB 선택")
+ * - 2026-11-13 Chromite: 그 먼저 읽기의 실패는 기록만 하고 예전 순서대로 계속함. 기본 카탈로그의 스키마를 보이는 엔진(PostgreSQL 등)은 전에 이
+ *   메서드에서 카탈로그 목록을 읽지 않았으므로, 그 읽기가 실패해도 선택 읽기가 실패하지 않게 했다(#89 검토 후속)
  */
 public class ContextDefaultObjectsReader implements DBRRunnableWithProgress {
+    private static final Log log = Log.getLog(ContextDefaultObjectsReader.class);
+
     private final DBPDataSource dataSource;
     private final DBCExecutionContext executionContext;
     private final List<DBNDatabaseNode> nodeList = new ArrayList<>();
@@ -122,8 +127,13 @@ public class ContextDefaultObjectsReader implements DBRRunnableWithProgress {
                 if (DBSCatalog.class.isAssignableFrom(childType)) {
                     // The context finds its default catalog in the catalog list's cache only (it has no monitor): read the
                     // list first. A refresh of the connection (Refresh, DDL that refreshes it) empties the list, and a default
-                    // read before the list was read again was null, or an object of the list before the refresh
-                    objectContainer.getChildren(monitor);
+                    // read before the list was read again was null, or an object of the list before the refresh.
+                    // Not fatal: engines that list the default catalog's schemas below never needed the catalog list here
+                    try {
+                        objectContainer.getChildren(monitor);
+                    } catch (DBException e) {
+                        log.debug("Can't read the catalog list before the default catalog", e);
+                    }
                     defObject = contextDefaults.getDefaultCatalog();
                     if (defObject != null) {
                         Class<? extends DBSObject> catalogChildrenType = defObject.getPrimaryChildType(monitor);
