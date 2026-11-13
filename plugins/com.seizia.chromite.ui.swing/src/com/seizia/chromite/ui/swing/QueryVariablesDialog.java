@@ -43,6 +43,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-commands.md "@set 변수 유지")
+ * - 2026-11-13 위 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class QueryVariablesDialog extends JDialog {
 
@@ -57,7 +59,8 @@ final class QueryVariablesDialog extends JDialog {
         this.variables = variables;
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        JLabel hint = new JLabel("<html>" + CommonUtils.escapeHtml(QueryCommandMessages.query_variables_hint) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
+        // Wraps at spaces only (an HTML label broke Korean words) and reports the height of its lines at the dialog's width
+        JTextArea hint = new WrappingNote(QueryCommandMessages.query_variables_hint);
 
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setFillsViewportHeight(true);

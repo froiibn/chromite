@@ -72,6 +72,8 @@ import java.util.Map;
  * - 2026-11-06 데이터베이스 노드에서 가져오기·내보내기·테이블 복사: 스키마를 담는 컨테이너, 연결의 유일한 데이터베이스, 스키마별 원본 읽기
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-08 저장된 작업의 형식 속성 바꾸기({@link #convertProcessorProperties}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-13 안내 문구({@link #createNote})를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class DataTransferObjects {
 
@@ -308,10 +310,11 @@ final class DataTransferObjects {
      * Explanatory text in the secondary color, wrapped.
      */
     @NotNull
-    static JLabel createNote(@NotNull String text) {
-        JLabel label = new JLabel("<html>" + text.replace("&", "&amp;").replace("<", "&lt;") + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-        label.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
-        return label;
+    static JTextArea createNote(@NotNull String text) {
+        // Wraps at spaces only (an HTML label broke Korean words); like the label, it asks for its one-line width
+        JTextArea note = new WrappingNote(text);
+        note.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        return note;
     }
 
     /**

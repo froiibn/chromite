@@ -112,6 +112,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 고급 옵션: 중복 키 처리, 고유 키 위반 행 건너뛰기, 값 직접 쓰기, 쿼리 관리자 기록, 매핑 규칙, 열 값. 비우기를 대상 DDL 탭에 보이고,
  *   Finish 확인에 비울 테이블과 다시 만들 테이블을 함께 묻는다. 원본 설정은 원본 읽기 설정 페이지로 옮김
  *   (docs/chromite/swing-data-transfer.md "고급 옵션")
+ * - 2026-11-13 매핑·불러오기 안내({@link DataTransferObjects#createNote})와 매핑 문제 줄이 {@link WrappingNote}가 됨. 대상 안내는 이름이 문장 가운데서 굵게
+ *   보여 HTML 라벨로 이 클래스에 남김(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class DatabaseCopyPages {
 
@@ -154,7 +156,9 @@ final class DatabaseCopyPages {
     private final JComboBox<DBPDataSourceContainer> connectionCombo = new JComboBox<>();
     private final JComboBox<DBSObjectContainer> databaseCombo = new JComboBox<>();
     private final JComboBox<DBSObjectContainer> schemaCombo = new JComboBox<>();
-    private final JLabel destinationNote = DataTransferObjects.createNote(" ");
+    // An HTML label, unlike the other notes (DataTransferObjects.createNote): the destination's name is bold in the middle
+    // of the sentence, which a WrappingNote cannot show
+    private final JLabel destinationNote = new JLabel(" "); //$NON-NLS-1$
     /**
      * The connection's object container when it holds the tables itself (no database or schema level), else null.
      */
@@ -175,7 +179,7 @@ final class DatabaseCopyPages {
     private final JTextArea ddlArea = new JTextArea();
     private final JTabbedPane details = new JTabbedPane();
     private final JComboBox<String> columnNameCombo = new JComboBox<>();
-    private final JLabel mappingStatus = new JLabel(" ");
+    private final JTextArea mappingStatus = new WrappingNote(" "); //$NON-NLS-1$
     private final JCheckBox truncateCheck = new JCheckBox(DbCopyMessages.mapping_truncate);
     private final JButton columnValueButton = new JButton(TransferOptionsMessages.transform_button);
     private final List<String> targetTableNames = new ArrayList<>();
@@ -693,6 +697,7 @@ final class DatabaseCopyPages {
             DataTransferObjects.addRow(form, row, DbCopyMessages.destination_schema, schemaCombo, null);
             JPanel content = new JPanel(new BorderLayout(0, 12));
             content.add(form, BorderLayout.NORTH);
+            destinationNote.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             content.add(destinationNote, BorderLayout.CENTER);
             panel.add(content, BorderLayout.NORTH);
         }
@@ -1260,12 +1265,8 @@ final class DatabaseCopyPages {
         if (duplicate != null) {
             problems.add(NLS.bind(DbCopyMessages.dbnode_mapping_error_same_target, duplicate));
         }
-        List<String> lines = new ArrayList<>();
-        for (String problem : problems) {
-            lines.add(escape(problem));
-        }
-        // One problem per line, wrapped (several tables can have one)
-        mappingStatus.setText(problems.isEmpty() ? " " : "<html>" + String.join("<br>", lines) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        // One problem per paragraph, wrapped at spaces (several tables can have one)
+        mappingStatus.setText(problems.isEmpty() ? " " : String.join("\n", problems)); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     private final class TableMappingModel extends AbstractTableModel {

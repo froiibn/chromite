@@ -119,6 +119,8 @@ import java.util.Set;
  *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
  * - 2026-11-12 Tool Policy 표의 실제 권한: 늘 확인하는 도구({@link AIFunctionDescriptor#isAlwaysConfirmed()})는 막히지 않으면 "늘 확인".
  *   rollbackTransaction이 "읽기 / 자동 실행"으로 보였다(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
+ * - 2026-11-13 권한 정책의 규칙 안내를 HTML 라벨 대신 아이콘과 {@link WrappingNote}로({@link WrappingNote#withIcon}): 옵션 창 최소 폭에서
+ *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -621,11 +623,11 @@ final class AiOptionsPage extends JPanel {
             top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
             for (String rule : List.of(AiMessages.ai_policy_rule_production, AiMessages.ai_policy_rule_read_only,
                 AiMessages.ai_policy_rule_dangerous)) {
-                JLabel label = new JLabel("<html>" + CommonUtils.escapeHtml(rule) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
-                label.setIcon(UiIcons.get("info")); //$NON-NLS-1$
-                label.setAlignmentX(LEFT_ALIGNMENT);
-                label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
-                top.add(label);
+                // Wraps at spaces only (an HTML label broke Korean words when the Options window is narrow)
+                JComponent note = WrappingNote.withIcon(UiIcons.get("info"), rule, 0); //$NON-NLS-1$
+                note.setAlignmentX(LEFT_ALIGNMENT);
+                note.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+                top.add(note);
             }
             top.add(Box.createVerticalStrut(4));
 

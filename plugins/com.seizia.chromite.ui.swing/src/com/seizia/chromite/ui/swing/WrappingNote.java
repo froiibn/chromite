@@ -76,10 +76,12 @@ import java.util.function.ToDoubleFunction;
  *   폭과 작은 글꼴(스타일 클래스)을 그대로 두려고(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-13 {@link #withIcon}: 경고 아이콘과 안내를 라벨처럼 세로 가운데로 맞춤(BorderLayout에서는 한 줄 안내가 아이콘 가운데보다 위에
  *   있었다, #90 검토)
+ * - 2026-11-13 {@code wrapWidth}는 글의 폭이고 테두리는 그 위에 더함: 테두리가 있는 업데이트 실패 메뉴 설명이 HTML 라벨의 {@code div} 폭보다
+ *   좁게 접혔다(#90 2차)
  */
 final class WrappingNote extends JTextArea {
 
-    // The widest the note asks for (0: its one-line width)
+    // The widest text the note asks for, its insets come on top (0: its one-line width)
     private final int wrapWidth;
 
     WrappingNote(@NotNull String text) {
@@ -87,8 +89,9 @@ final class WrappingNote extends JTextArea {
     }
 
     /**
-     * @param wrapWidth the widest the note asks for: a longer text wraps at this width before the layout gives the note
-     *                  a width, so a packed dialog keeps its width and gets the height of the wrapped lines
+     * @param wrapWidth the widest text the note asks for (its insets, a border, come on top, as around an HTML label's body):
+     *                  a longer text wraps at this width before the layout gives the note a width, so a packed dialog keeps
+     *                  its width and gets the height of the wrapped lines
      */
     WrappingNote(@NotNull String text, int wrapWidth) {
         super(text);
@@ -144,7 +147,7 @@ final class WrappingNote extends JTextArea {
             oneLine = Math.max(oneLine, measure(paragraph));
         }
         oneLine += insets.left + insets.right;
-        int width = wrapWidth > 0 ? Math.min(oneLine, wrapWidth) : oneLine;
+        int width = wrapWidth > 0 ? Math.min(oneLine, wrapWidth + insets.left + insets.right) : oneLine;
         // The height at the width the layout gave (the lines it wraps into there); before it has a width, the height at
         // the width it asks for
         return new Dimension(width, getHeightAt(getWidth() > 0 ? getWidth() : width));

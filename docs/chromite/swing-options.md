@@ -694,14 +694,9 @@ design-spec "적용 현황 — 글자 선명도와 대비".
 - **배치 최소 크기:** 안내의 최소 폭이 가장 긴 낱말이 되어 대화상자 배치의 최소 폭이 작아졌다(예: 설정 내보내기 영어 644→560). 창은 배치 최소 크기를
   강제하지 않으므로(전에도 그보다 좁게 끌 수 있었음) 사용자가 그만큼 좁히면 안내가 더 많은 줄을 원하고 높이가 그대로인 창에서 아래가 모자란다(영어에서
   설정 내보내기 1줄, 연결 가져오기 1곳). 전에는 같은 폭에서 HTML 라벨이 높이를 늘리지 못해 잘렸다.
-- **보고 그대로 둔 곳(#90 목록 밖, 이유):** `ResultSetExport`의 행 안내(200 CSS px = 260px, 한국어 421px라 2~3줄)는 최대 행 수에서 멈췄다는 문장이 굵은
-  글씨(`<b>`)라 그대로 두었다. 제안: `WrappingNote`에 굵은 첫 문단을 두거나 굵은 글씨를 빼는 것(사용자 결정). 같은 원인이지만 연결이 필요하거나 이번 측정
-  방법으로 열 수 없어 남긴 HTML 안내: `ObjectFilterDialog` 안내(대화상자 560 고정, 한국어 1306px라 3줄 이상), `QueryVariablesDialog` 안내(600 고정,
-  654px), `DataTransferObjects.createNote`·`DataImportTargetPage`·`DatabaseCopyPages`의 대상 안내(마법사 860 고정, `destination_note`는 `<b>`),
-  `UpdateUi` 실패 메뉴 글(`width:280px` = 364px, 한국어 885px라 3줄), `ResultSetValuePanel`의 가운데 맞춤 안내, `AiOptionsPage` 정책 규칙(아이콘 + HTML).
-  `<br>`만 쓰고 폭이 없는 `pack()` 대화상자의 글(`gridnav_vkey_intro`, `gridvirt_*_intro`, `library_roots_hint`, `QueryLibraryThresholdsDialog` 도움말,
-  `ScriptPreviewDialog` 머리글)은 문단마다 한 줄로 놓여 기본 크기에서 줄이 바뀌지 않는다. `gridvirt_column_expression_help`(`<code>`),
-  `library_import_clash`·`library_conflict_message`(`<b>`)는 표시가 있어 그대로 둔다.
+- **1차에서 남긴 곳:** 같은 원인의 나머지 안내는 2차에서 고쳤다(아래 "HTML 라벨 안내 2차"). `<br>`만 쓰고 폭이 없는 `pack()` 대화상자의 글
+  (`gridnav_vkey_intro`, `gridvirt_*_intro`, `library_roots_hint`, `QueryLibraryThresholdsDialog` 도움말, `ScriptPreviewDialog` 머리글)은 문단마다 한 줄로
+  놓여 줄이 바뀌지 않으므로 그대로다.
 - **도구 설명:** 도구 설명은 한 곳에서 접지 않는다. FlatLaf `FlatToolTipUI`는 `\n`에서만 줄을 나누고, HTML 도구 설명은 폭이 없어 `<br>`에서만 나눈다
   (`setToolTipText` 399곳 132개 파일, 폭을 정한 HTML 도구 설명 0). 그래서 낱말 가운데서 끊기는 도구 설명은 없고, 긴 글은 한 줄로 넓게 보인다. 바꾸지 않았다.
 - 비교 그림 `D:\Tools\_scratch\html-label-wrapping\sheets\01-export.png` ~ `09-settingsimport.png`(대화상자마다 한 장, 왼쪽 고치기 전·오른쪽 고친 뒤).
@@ -717,6 +712,18 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   (안내는 가로로 채움). 안내의 폭·높이 규칙(`wrapWidth`, 접은 줄 수의 높이)은 그대로다.
 - **측정(글 묶음 가운데 − 아이콘 가운데, 논리 px):** 한 줄 안내가 1차(`BorderLayout`)에서 연결 가져오기 −9, 설정 가져오기 −7(위로)이었고 2차에서 0이다(한국어 150%·100%, 영어 100%,
   기본·최소 크기 모두). 두 줄 이상인 안내는 1차에서도 0이었다. 고치기 전(devel) 라벨은 `layoutCompoundLabel`이 아이콘과 글 묶음을 서로 가운데에 둔다.
+
+#### HTML 라벨로 접던 나머지 안내
+- **바꾼 곳(모두 `WrappingNote`, 줄 끝 규칙 `breakOffset`):** `ObjectFilterDialog`의 마스크 안내, `QueryVariablesDialog`의 안내, `UpdateUi` 실패 메뉴의 설명
+  (팝업 메뉴는 어떤 `JComponent`든 담으므로 `WrappingNote`를 그대로 넣었다. 가장 넓은 폭 364 = 280 CSS px × 1.3. 쓰이지 않게 된 `escapeHtml`을 지움),
+  `DataTransferObjects.createNote`(반환형을 `JTextArea`로: 부르는 곳 `DataExportWizard`·`DataImportWizard`·`DataImportTargetPage`의 칸 형식을 바꿈.
+  `DataImportTargetPage`는 `setText`에 HTML 없이 글을 넣음. `DataTransferExtractPage`·`DataTransferOptionDialogs`·`DatabaseCopyPages`의 매핑·불러오기 안내는
+  코드 변경 없이 따라옴), `DatabaseCopyPages`의 매핑 문제 줄(`<br>`로 잇던 HTML → 문단마다 `\n`), `AiOptionsPage` 권한 정책 규칙(`withIcon`, 옵션 창 최소
+  크기 760×520에서 한국어가 낱말 가운데서 끊겼다: 측정 고치기 전 760×520에서 세 규칙 모두 두 줄, 낱말 가운데 3곳(한국어 150%)·2곳(100%)).
+- 폭을 주지 않은 HTML 라벨은 선호 폭이 한 줄 폭이었다. `WrappingNote`도 폭을 주지 않으면 선호 폭이 한 줄 폭이라 배치가 바라는 폭은 같다.
+- **그대로 둔 것:** `DatabaseCopyPages`의 대상 안내(`destination_note`)는 대상 이름이 문장 가운데서 굵게(`<b>`) 보여 HTML 라벨로 남겼다(`createNote`를
+  쓰지 않고 이 클래스에서 만든 라벨). 측정: 대상을 고른 뒤 한 줄(한국어 150% 373px, 100% 388px, 영어 406px. 쓸 수 있는 폭은 기본 571·563px, 최소 크기 431·423px)이라 시험한
+  구성에서는 줄이 바뀌지 않는다. 이름이 길어 줄을 넘기면 한국어 낱말 가운데서 끊길 수 있다(굵은 글씨를 어떻게 할지는 사용자 결정).
 
 ## 휠 스크롤 (#97)
 

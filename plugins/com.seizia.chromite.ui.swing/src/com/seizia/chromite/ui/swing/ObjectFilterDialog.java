@@ -54,6 +54,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 한 줄 포함 마스크 입력 창을 대신함 (docs/chromite/swing-explorer-productivity.md "필터 대화상자")
+ * - 2026-11-13 마스크 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ObjectFilterDialog extends JDialog {
 
@@ -135,7 +137,8 @@ final class ObjectFilterDialog extends JDialog {
         c.weighty = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(0, 0, 10, 0);
-        JLabel hint = new JLabel("<html>" + CommonUtils.escapeHtml(ObjectExplorerMessages.oe_filter_hint) + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$
+        // Wraps at spaces only (an HTML label broke Korean words) and reports the height of its lines at the dialog's width
+        JTextArea hint = new WrappingNote(ObjectExplorerMessages.oe_filter_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         form.add(hint, c);
         c.gridy++;
