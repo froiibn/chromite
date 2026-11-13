@@ -43,6 +43,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 {@code ai_options_tool_set*}, {@code ai_options_context_size*}: 제공자별 채팅 도구 묶음과 컨텍스트 크기,
  *   {@code ai_tools_off_notice}: 도구 호출을 못 하는 제공자의 채팅 안내 (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
  * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-13 입력 상자 안의 모델 단추({@code ai_model_none}, {@code ai_model_choose}, {@code ai_model_filter})와 상자 아래 제공자 콤보
+ *   ({@code ai_provider}, {@code ai_provider_setup})를 둠. 합친 모델 선택의 "설정 필요" 항목({@code ai_model_setup})과 직접 입력 대화상자의
+ *   제공자 질문({@code ai_model_provider})을 지움 (앱 변경 #110, docs/chromite/ai-agent.md "채팅 도구 창")
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -60,11 +63,14 @@ public class AiMessages extends NLS {
     public static String ai_playbooks;
     public static String ai_settings;
     public static String ai_model_tip;
-    public static String ai_model_setup;
+    public static String ai_model_none;
+    public static String ai_model_choose;
+    public static String ai_model_filter;
     public static String ai_model_enter;
     public static String ai_model_enter_title;
-    public static String ai_model_provider;
     public static String ai_model_name;
+    public static String ai_provider;
+    public static String ai_provider_setup;
     public static String ai_connection_tip;
     public static String ai_database_tip;
     public static String ai_no_connection;

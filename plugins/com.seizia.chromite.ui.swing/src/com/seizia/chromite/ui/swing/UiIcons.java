@@ -30,7 +30,9 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,6 +71,8 @@ import java.util.Map;
  * - 2026-11-12 아이콘 단추의 도구 설명은 설명문이 아니라 기능 이름(동작의 이름, 끝의 "…" 뺌)과 단축키다. 설명문은 같은 동작의 메뉴 항목이
  *   쓴다. 꺼진 이유·상태를 말하는 단추는 {@link #DESCRIPTION_TIP}, 패널이 키를 묶은 단추는 {@link #TIP_SHORTCUT} (앱 변경 #103,
  *   docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-13 {@link #inColor}: 아이콘을 테마 색 하나의 모양으로(Chromite Agent 입력 상자의 강조색 보내기·중지 단추, 앱 변경 #110).
+ *   팩의 색은 파일에 들어 있어 강조색 바탕에서 보이지 않으므로 그릴 때 모양만 테마 색으로 칠한다 (docs/chromite/ai-agent.md "채팅 도구 창")
  */
 final class UiIcons {
 
@@ -127,6 +131,17 @@ final class UiIcons {
     @NotNull
     static Icon statusDot(@NotNull Status status) {
         return new DotIcon(status);
+    }
+
+    /**
+     * The icon as one flat shape in a theme color read when painting: {@code colorKey}'s, or {@code disabledKey}'s on a
+     * disabled component. For an icon on a filled button whose background is a theme color, such as the accent-colored send
+     * button of the Chromite Agent panel ({@code Button.default.foreground} on {@code Button.default.background}), where
+     * the pack's own colors would not stand out.
+     */
+    @NotNull
+    static Icon inColor(@NotNull Icon icon, @NotNull String colorKey, @NotNull String disabledKey) {
+        return new ColorIcon(icon, colorKey, disabledKey);
     }
 
     /**
@@ -398,6 +413,60 @@ final class UiIcons {
         @Override
         public int getIconHeight() {
             return DOT_SIZE;
+        }
+    }
+
+    /**
+     * The icon's shape in one theme color ({@link #inColor}). The icon is painted into an image at the device scale and the
+     * color is filled over its opaque pixels, so a pack's two-color icon becomes one flat shape.
+     */
+    private record ColorIcon(@NotNull Icon icon, @NotNull String colorKey, @NotNull String disabledKey)
+        implements Icon, FlatLaf.DisabledIconProvider {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Color color = UIManager.getColor(c == null || c.isEnabled() ? colorKey : disabledKey);
+            if (color == null) {
+                color = c != null ? c.getForeground() : UIManager.getColor("Label.foreground"); //$NON-NLS-1$
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                AffineTransform transform = g2.getTransform();
+                double scaleX = transform.getScaleX();
+                double scaleY = transform.getScaleY();
+                BufferedImage image = new BufferedImage(Math.max(1, (int) Math.ceil(getIconWidth() * scaleX)),
+                    Math.max(1, (int) Math.ceil(getIconHeight() * scaleY)), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D imageGraphics = image.createGraphics();
+                try {
+                    imageGraphics.scale(scaleX, scaleY);
+                    icon.paintIcon(c, imageGraphics, 0, 0);
+                    imageGraphics.setComposite(AlphaComposite.SrcIn);
+                    imageGraphics.setColor(color);
+                    imageGraphics.fillRect(0, 0, getIconWidth(), getIconHeight());
+                } finally {
+                    imageGraphics.dispose();
+                }
+                g2.translate(x, y);
+                g2.scale(1 / scaleX, 1 / scaleY);
+                g2.drawImage(image, 0, 0, null);
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        @Override
+        public int getIconWidth() {
+            return icon.getIconWidth();
+        }
+
+        @Override
+        public int getIconHeight() {
+            return icon.getIconHeight();
+        }
+
+        // The disabled color is chosen when painting
+        @Override
+        public Icon getDisabledIcon() {
+            return this;
         }
     }
 
