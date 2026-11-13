@@ -110,9 +110,8 @@ SQL Server의 제한된 로그인은 확인하지 않았다: 목록 질의(`SELE
 지워진 DB: SQL Server·PostgreSQL은 쓰고 있는 DB를 지울 수 없고, MariaDB는 현재 DB를 지우면 `DATABASE()`가 NULL이라 이름을 찾지 않는다(확인하지 않음).
 증거 `D:\Tools\_scratch\small-fixes-r3\sheets\79-followup-*.log.txt`.
 
-**범위 밖에서 본 것(고치지 않음):** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`처럼 DDL이 든 배치를 실행하면 끝난 뒤 선택이 N/A가 될 때가 있다.
-실행 문맥의 값은 맞고(`schemaState` 읽기 결과만 기본 객체가 null) 다음 실행에서 바로 돌아온다. DDL 뒤 메타데이터 새로 고침(`SqlMetadataRefresh`)이
-스키마 캐시를 비우는 것과 실행 끝의 선택 다시 그리기가 겹치는 것으로 보인다(고치기 전 빌드에서는 확인하지 않음).
+**범위 밖에서 본 것:** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`처럼 DDL이 든 배치를 실행하면 끝난 뒤 선택이 N/A가 될 때가 있다.
+2026-11-13 고침(앱 변경 #89): 아래 "연결을 다시 읽은 뒤의 DB 선택".
 
 ### 서버 버전을 읽기 전의 목록 (#107)
 
@@ -155,6 +154,89 @@ Chromite Agent `AITextUtils`)과 연결의 기본 DB 스키마를 읽는 모든 
 시작해 손으로 실행: 고치기 전 dbo·s2 실패, 다른 DB 성공 → 고친 뒤 모두 성공, 스키마 ID 1·5, Tables에 counter·src. 시작 때 먼저 연결한 경우, 연결 Refresh 뒤,
 끊었다 다시 연결한 뒤에도 성공. PostgreSQL·MariaDB·Oracle 내보내기도 새로 시작한 뒤, Refresh 뒤, 다시 연결한 뒤 성공. 다른 세션이 만든 DB로 `USE`(#79) 뒤
 기본 DB가 그 DB. 고친 뒤 앱 로그에 서버 버전 경고 없음.
+
+### 연결을 다시 읽은 뒤의 DB 선택 (#89)
+
+**증상(#245 작업 중 보고, 2026-11-12):** SQL Server에서 `USE db; CREATE TABLE dbo.t …; SELECT …`를 실행하면 다음 실행까지 DB 선택이 "&lt; N/A &gt;"로 남을 때가 있다.
+실행 문맥의 현재 DB는 맞다. #245 뒤의 빌드(devel `a0ef7da598`)에서는 "&lt; N/A &gt;" 대신 이름 글(목록의 DB 객체가 아닌, 고를 수 없는 글 항목,
+`getUnlistedDefaultName`)로 남는다. 상태 줄의 DB 칸은 그 이름이라 맞게 보이지만, 선택 목록에는 같은 DB가 객체와 글로 두 번 있다.
+
+**재현(고치기 전 빌드 = devel `a0ef7da598`, GCP 시험 VM의 SQL Server 2022, 앱 안 시험 에이전트가 쿼리 창을 F5로 실행하고 창이 가라앉은 뒤 선택을 읽음):**
+연결 Refresh 하나로도 생긴다(실행 없이, 10번 중 10번 글). `USE db; CREATE DATABASE x; SELECT 1`도 10번 중 10번 글. 1부 이름 `CREATE TABLE t`는 20번 중 0번.
+
+**두 상태(작업과 캐시를 1 ms 간격으로 기록, `D:\Tools\_scratch\picker-and-agent-shared\run\explore2.txt.log`):**
+
+| 시각(ms) | 일 | DB 목록 캐시 |
+|---|---|---|
+| 140 | 실행 끝: "Refresh metadata after DDL"와 선택 읽기("Read default schema") 작업이 함께 시작 | 다 읽음, 6개, `chr_picker_agent`=@51459584 |
+| 148 | DDL 새로 고침 작업이 연결 전체를 다시 읽음(`SQLServerDataSource.refreshObject`가 `databaseCache.clearCache()`, 617행) | 비어 있음, 0개 |
+| 173 | 연결의 OBJECT_UPDATE 알림으로 선택 읽기 두 번 더(`SqlEditorPanel.refreshSchemas`). 읽기는 `getDefaultCatalog()`를 먼저 물음 → null | 비어 있음 |
+| 173–193 | 같은 읽기가 이어서 `getChildren`으로 목록을 다시 읽음(`ContextDefaultObjectsReader.run:133`) | 다시 다 읽음, 새 객체 @460294963 |
+| 결과 | `readerDefault=null`, 선택은 글 항목 "chr_picker_agent", 다음 실행까지 그대로 | |
+
+**근본 원인:** `ContextDefaultObjectsReader.run`(고치기 전 111행)이 기본 카탈로그(`contextDefaults.getDefaultCatalog()`)를 목록을 읽기(133행) **전에** 묻는다.
+SQL Server 실행 문맥의 `getDefaultCatalog`는 진행 모니터가 없어 목록 캐시에서만 찾는다(`SQLServerExecutionContext.java:80` → `SQLServerDataSource.getDatabase(name)`
+→ `getCachedObject`, 586행). 연결을 다시 읽으면(Refresh, 연결 전체를 다시 읽는 DDL) 목록이 비고, 그 사이의 읽기는 null을 받거나(위 표) 다시 읽기 전 목록의
+객체를 받아 다시 읽은 목록과 같은 객체가 아니게 된다. `showSchemas`는 목록에서 기본 객체를 같은 객체로 찾으므로 못 찾고 이름 글을 넣는다.
+경쟁이 아니라 순서 문제다: 목록이 빈 동안 읽으면 늘 생긴다. Object Explorer가 연결의 하위 노드를 읽어 둔 상태(펼침, Refresh 뒤)에서는 새로 고침 작업 자신이 목록을
+다시 읽어 선택 읽기 전에 채워지므로 생기지 않았다(아래 표의 "예" 열).
+
+**이 순서를 이 문장에서 드러낸 것:** `USE db; CREATE TABLE dbo.t`의 DDL 뒤 새로 고침이 연결 전체가 된다. `SQLMetadataRefreshTargetResolver`(upstream, 113–118행)는 두 부분
+이름에서 실행 문맥이 스키마를 바꿀 수 없고 카탈로그를 바꿀 수 있으면(`supportsSchemaChange` false, SQL Server) 첫 부분을 **DB**로 본다. 그래서 `dbo`를 DB로 찾고,
+없으니 `SqlMetadataRefresh.resolveTarget`(237행)이 연결 전체를 대상으로 삼는다. 이것은 고치지 않았다(아래 "남은 것").
+
+**고침:** `ContextDefaultObjectsReader.run`이 카탈로그를 고르는 경우 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽는다(`objectContainer.getChildren(monitor)`;
+다 읽은 목록이면 서버를 부르지 않음). 기본 객체와 목록이 같은 캐시에서 나오므로 같은 객체다. 다시 그리기를 더하거나 문장 모양을 따로 다루지 않았다.
+이 먼저 읽기가 실패하면(`DBException`) 기록만 하고 예전 순서대로 계속한다(검토 후속): 기본 카탈로그가 스키마를 갖고 스키마를 바꿀 수 있는 엔진은 전에 이 메서드에서
+카탈로그 목록을 읽지 않고 기본 카탈로그의 스키마만 읽었으므로, 새 읽기의 실패로 선택 읽기가 실패하면 안 된다. 뒤의 목록 읽기는 예전과 같다(실패하던 곳에서 실패).
+
+**새 읽기가 닿는 엔진(코드 읽기, 카탈로그가 맨 위 + 기본 카탈로그 아래 스키마 + `supportsSchemaChange()`가 참):**
+
+| 엔진 | 그 분기를 타는 근거 | 데이터 원본 `getChildren` |
+|---|---|---|
+| PostgreSQL, Greenplum·Cloudberry(`GreenplumDataSource extends PostgreDataSource`) | 맨 위 `PostgreDatabase`(`PostgreDataSource.java:561`), `PostgreExecutionContext.java:95` 참 | `getDatabases()` = `databaseCache.getCachedObjects()`(`PostgreDataSource.java:550–552`, `466–469`): 질의 없음, 예외 없음 |
+| Generic JDBC(카탈로그가 있을 때), Snowflake(`SnowflakeExecutionContext.java:91` 참), Databricks·Vertica(`GenericExecutionContext.java:250`, 드라이버 정보에 따름), Doris(`DorisExecutionContext.java:119`), StarRocks(`StarRocksExecutionContext.java:109`), IoTDB 표 모델(`IoTDBExecutionContext.java:82`), Dameng·Mimer(카탈로그가 있을 때) | 맨 위 `GenericCatalog`(`GenericDataSource.java:729–737`, 카탈로그 목록이 비어 있지 않을 때) | 연결할 때 읽어 둔 `catalogs` 필드(`GenericDataSource.java:700–712`, `312–314`): 질의 없음. 이 확장들은 `getChildren`·`getCatalogs`를 다시 정의하지 않는다(검색) |
+| 그 밖: SQL Server·MySQL/MariaDB(`supportsSchemaChange` 거짓), Oracle·DB2·Exasol·Altibase(맨 위가 스키마) | 분기 아님 | SQL Server·MySQL은 전에도 같은 메서드 133행에서 같은 목록을 읽었다 |
+
+그래서 선택 읽기마다 무거운 질의를 새로 부르는 엔진은 없다. 목록을 캐시에서만 찾는 엔진으로 읽기를 좁히지 않았다.
+
+**같은 원인을 쓰는 곳:**
+- 상태 줄의 DB 칸: 선택에서 정하므로 같이 고쳐진다(고치기 전에도 이름 글이라 맞게 보였다).
+- MySQL/MariaDB: `MySQLExecutionContext.getDefaultCatalog`도 캐시에서만 찾는다(72행). 다만 MariaDB 연결 새로 고침은 목록을 그 자리에서 다시 읽어
+  고치기 전에도 생기지 않았다(`CREATE TABLE db.t`, `CREATE TABLE t`, `CREATE DATABASE`, `DROP DATABASE`, Refresh 모두 객체).
+- PostgreSQL: 기본 카탈로그는 문맥의 인스턴스 자신(`PostgreExecutionContext.java:79`)이라 캐시와 상관없다. 선택은 스키마 목록이다.
+- Chromite Agent `getCurrentDatabase`의 `connectionDatabase`: 같은 `getDefaultCatalog`를 쓴다(코드 읽기). Refresh 바로 뒤에 불러도 `master`가 나왔다(1번,
+  Object Explorer가 목록을 다시 읽은 뒤). 목록이 빈 순간에 부르면 null일 수 있으나 재현하지 못해 고치지 않았다.
+- 연결 대화상자의 DB 목록: 임시 연결로 서버에 따로 묻는 목록(`ConnectionDatabaseList`, `ServerDatabaseNames`)이라 이 캐시를 쓰지 않는다.
+
+**확인(고치기 전 = devel `a0ef7da598` 빌드, 고친 뒤 = 이 브랜치 빌드, 같은 시나리오 각 20번).** 매번 쿼리 창에서 `USE master`를 먼저 실행하고,
+"새 DB"는 그 직전에 다른 세션이 만든 DB(매번 새 이름, 끝나고 지움), 한 번에는 `USE db;\nCREATE TABLE dbo.tN (i int);\nSELECT DB_NAME() AS d;`를 F5로,
+문장마다는 세 번 따로 실행했다(값은 CREATE 뒤 / SELECT 뒤). 상태: "연결"은 매번 끊고 다시 연결, "Refresh"는 매번 연결 Refresh, "다시 연결"은 `reconnect`.
+Object Explorer "예"는 매번 Databases > `chr_picker_agent` > Schemas > dbo > Tables까지 펼침. 객체 = 선택이 목록의 DB 객체, 글 = 이름 글 항목.
+
+| 상태 | Object Explorer | 실행 | 기존 DB 고치기 전 | 새 DB 고치기 전 | 기존 DB 고친 뒤 | 새 DB 고친 뒤 |
+|---|---|---|---|---|---|---|
+| 연결 | 아니오 | 한 번에 | 글 20 | 글 20 | 객체 20 | 객체 20 |
+| 연결 | 아니오 | 문장마다 | CREATE 뒤 글 19·객체 1, SELECT 뒤 객체 20 | 같음 | 객체 20 / 객체 20 | 객체 20 / 객체 20 |
+| 연결 | 예 | 둘 다 | 객체 20 | 객체 20 | 객체 20 | 객체 20 |
+| Refresh | 아니오·예 | 둘 다 | 객체 20 | 객체 20 | 객체 20 | 객체 20 |
+| 다시 연결 | 아니오 | 한 번에 | 글 20 | 글 20 | 객체 20 | 객체 20 |
+| 다시 연결 | 아니오 | 문장마다 | CREATE 뒤 글 20, SELECT 뒤 객체 20 | CREATE 뒤 글 18·객체 2 | 객체 20 / 객체 20 | 객체 20 / 객체 20 |
+| 다시 연결 | 예 | 둘 다 | 객체 20 | 객체 20 | 객체 20 | 객체 20 |
+| 연결, 1부 이름 `CREATE TABLE tN` | 아니오 | 한 번에 | 객체 20 | 객체 20 | 객체 20 | 객체 20 |
+
+Refresh 상태에서 고치기 전에도 객체였던 것은 Refresh가 연결 노드의 하위 노드를 읽어 두어, DDL 뒤 새로 고침 작업이 목록을 스스로 다시 읽었기 때문이다(펼침과 같음).
+실행 없이 연결 Refresh만 한 뒤: 고치기 전 글 10/10 → 고친 뒤 객체 10/10. `USE db; CREATE DATABASE x; SELECT 1`: 글 10/10 → 객체 10/10.
+#79(다른 세션이 만든 DB로 USE)는 위 "새 DB" 열이다. #107: 고친 빌드에서 `chr_picker_agent`가 기본 DB인 새 연결을 연결하자마자 dbo > Tables가 비지 않았고(527개)
+Agent `listTables`도 dbo 표를 돌려주었다(저장된 작업 자체는 실행하지 않았다). MariaDB(`CREATE TABLE db.t`, `CREATE TABLE t`, `CREATE DATABASE`, Refresh)와
+PostgreSQL(`SET search_path` 뒤 `CREATE TABLE`, `CREATE SCHEMA` 뒤 `SET search_path`, Refresh)은 고친 뒤에도 선택이 객체, 값이 맞았다.
+증거 `D:\Tools\_scratch\picker-and-agent-shared\run\`(`matrix-before.txt.log`, `matrix-after.txt.log`, `triggers-*.log`, `explore*.log`, `others-after.txt.log`).
+
+**남은 것:**
+- `SQLMetadataRefreshTargetResolver`가 SQL Server의 `schema.table`을 `db.table`로 읽어, `CREATE TABLE dbo.t` 같은 흔한 DDL 하나에 연결 전체(모든 DB 목록, Object Explorer의
+  읽어 둔 노드)를 다시 읽는다. 선택은 이제 맞지만 새로 고침 범위가 넓은 것은 그대로다. upstream 코드이고 MySQL의 `db.table`과 나눌 기준(카탈로그 아래 스키마가 있는지)이
+  필요해 이 항목에서 고치지 않았다(따로 처리할 항목으로 보고).
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 목록이 빈 캐시에서 `ContextDefaultObjectsReader`가 목록의 객체를 기본값으로 돌려주는 단위 시험).
 
 ## 실행 중 표시 (#44)
 
@@ -314,6 +396,7 @@ Messages, Object Explorer, 결과 탭 줄에 키가 갈 때 모두 보이기·�
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
 - `PostgreExecutionContext.refreshDefaults`: 읽은 뒤 바꾸기, `SET ROLE`은 시작할 때만.
 - `JDBCObjectCache.getObjectReadingNew`와 그것을 쓰는 SQL Server·MySQL/MariaDB·PostgreSQL 실행 문맥(위 "캐시에 없는 현재 DB").
+- `ContextDefaultObjectsReader.run`: 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음(위 "연결을 다시 읽은 뒤의 DB 선택"). upstream은 기본값을 먼저 묻는다.
 - 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘)는 Swing 프런트엔드에만 있다.
 
 ## 확인 기록
@@ -350,3 +433,7 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 - 2026-11-12 앱 변경 #107(`chromite/task-defects`): `getObjectReadingNew`가 아직 읽지 않은 목록을 처음 읽지 않음. SQL Server 메타데이터 문맥이
   서버 버전을 읽기 전에 DB 목록을 읽어 현재 DB의 스키마 ID가 0이 되었다. "서버 버전을 읽기 전의 목록" 절 추가. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: 연결할 때 DB·스키마 목록을 읽는 순서(SQL Server, MySQL/MariaDB, PostgreSQL), 쿼리 창 DB 선택·상태 줄, 저장된 작업의 객체 찾기.
+- 2026-11-13 앱 변경 #89(`chromite/picker-and-agent-shared`): `ContextDefaultObjectsReader`가 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음. 연결을 다시 읽은 뒤
+  (Refresh, `CREATE TABLE dbo.t`·`CREATE/DROP DATABASE`처럼 연결 전체를 다시 읽는 DDL) 쿼리 창의 DB 선택이 목록의 객체 대신 이름 글(#245 전에는 N/A)로 남았다.
+  "연결을 다시 읽은 뒤의 DB 선택" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DB/스키마 선택·상태 줄(모든 DB 종류), 연결 직후 첫 선택 읽기.
+- 2026-11-13 #89 검토 후속: 먼저 읽기의 실패는 기록만 하고 계속함, 새 읽기가 닿는 엔진 표. 고치기 전에 실패하던 행(펼치지 않음, 연결·다시 연결)을 다시 확인. 회귀 테스트는 실행하지 않았다.
