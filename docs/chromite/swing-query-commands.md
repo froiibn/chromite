@@ -63,6 +63,8 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 - 탐색기에서 아직 펼치지 않은 가지는 서버를 부르지 않고 모델 캐시만 비운다. 펼칠 때 새로 읽는다.
 - 두 부분 이름(`a.t`)의 `a`는 엔진의 이름 구조로 읽는다. SQL Server·PostgreSQL·Oracle에서는 스키마, MySQL/MariaDB에서는 DB다
   (아래 "두 부분 이름 (#108)"). 그래서 SQL Server의 `CREATE TABLE dbo.t`는 `dbo` 스키마만 다시 읽는다.
+- 연결 전체를 다시 읽어도(`CREATE DATABASE`, `DROP DATABASE`, 갈래를 모르는 개체의 DDL) 다른 쿼리 창의 세션과 트랜잭션은 그대로다. 2026-11-13 전에는
+  PostgreSQL에서 연결의 세션이 모두 닫혀 다른 창의 트랜잭션이 묻지 않고 롤백되었다([connection-lifecycle.md](connection-lifecycle.md) "연결 새로 고침과 세션").
 
 ## 구조
 
@@ -239,3 +241,4 @@ MariaDB `CREATE TABLE db.t`(다른 DB, 현재 DB, Refresh 뒤, 다시 연결 뒤
 - 2026-11-08 결과 탭(앱 변경 #7): 초점 검사의 결과 쪽이 메인 창의 결과 탭(`resultTabs`)에서 활성 창의 탭 줄을 끼우는 `resultsArea`로 바뀜
 - 2026-11-13 두 부분 이름(`dbo.t`)을 엔진의 이름 구조로 읽음(앱 변경 #108): SQL Server의 `CREATE TABLE dbo.t`가 연결 전체 대신 `dbo` 스키마만 다시 읽는다.
   "두 부분 이름 (#108)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤 Object Explorer 갱신(모든 DB 종류, 특히 Generic·DuckDB·D1의 두 부분 이름).
+- 2026-11-13 "DDL 뒤 탐색기 갱신"에 연결 전체 새로 고침이 세션을 닫지 않는다는 줄(앱 변경 #109, `chromite/pg-refresh-sessions`, 고친 곳은 `PostgreDataSource`)
