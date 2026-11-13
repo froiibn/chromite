@@ -82,11 +82,14 @@ import java.util.function.ToDoubleFunction;
  *   좁게 접혔다(#90 2차)
  * - 2026-11-13 {@link MessageArea}를 final에서 풀고 행·열 생성자를 둠: Swing 단어 줄 바꿈을 쓰던 글 상자(작업 대화상자의 안내, 설명·세부 칸,
  *   커밋 메시지)가 같은 규칙을 쓰도록(#90 2차)
+ * - 2026-11-13 {@link #setCentered}: 줄마다 가운데 맞춘 안내(값 패널의 메시지가 가운데 맞춘 HTML 라벨이었다, #90 2차)
  */
 final class WrappingNote extends JTextArea {
 
     // The widest text the note asks for, its insets come on top (0: its one-line width)
     private final int wrapWidth;
+    // Each line centred in the width (a centred message) instead of at the left
+    private boolean centered;
 
     WrappingNote(@NotNull String text) {
         this(text, 0);
@@ -124,6 +127,14 @@ final class WrappingNote extends JTextArea {
         c.insets = new Insets(0, iconLabel.getIconTextGap(), 0, 0);
         panel.add(new WrappingNote(text, wrapWidth), c);
         return panel;
+    }
+
+    /**
+     * Centres each line in the width (a message in the middle of an empty area) instead of starting it at the left.
+     */
+    void setCentered(boolean centered) {
+        this.centered = centered;
+        repaint();
     }
 
     @Override
@@ -190,8 +201,10 @@ final class WrappingNote extends JTextArea {
             g2.setFont(getFont());
             g2.setColor(getForeground());
             int y = insets.top + metrics.getAscent();
+            int available = getWidth() - insets.left - insets.right;
             for (String line : getLines(getWidth())) {
-                FlatUIUtils.drawString(this, g2, line, insets.left, y);
+                int x = centered ? insets.left + Math.max(0, (available - measure(line)) / 2) : insets.left;
+                FlatUIUtils.drawString(this, g2, line, x, y);
                 y += metrics.getHeight();
             }
         } finally {

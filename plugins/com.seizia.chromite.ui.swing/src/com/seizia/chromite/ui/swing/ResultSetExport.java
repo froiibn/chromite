@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
@@ -73,11 +74,15 @@ import java.util.Map;
  * - 2026-11-06 F단계: XLSX 내보내기 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-13 가져온 행 안내를 HTML 라벨 대신 {@link WrappingNote}로, 멈춘 가져오기는 굵은 안내 한 문단과 나머지 문단으로 나눔:
+ *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ResultSetExport {
 
     private static final String CSV_LINE_END = "\r\n"; //$NON-NLS-1$
     private static final int PROGRESS_STEP = 1000;
+    // Width of the fetched rows note beside the file chooser
+    private static final int NOTE_WIDTH = 260;
 
     /**
      * Property ids of the XLSX processor ({@code com.seizia.chromite.data.office} plugin.xml, {@code DataExporterXLSX.PROP_*}).
@@ -190,12 +195,24 @@ final class ResultSetExport {
      * Note under the export options: the grid's fetched rows are exported, the query is not run again.
      */
     @NotNull
-    private static JLabel createFetchedRowsNote(@NotNull ResultSetGrid.Data data) {
+    private static JComponent createFetchedRowsNote(@NotNull ResultSetGrid.Data data) {
         int rowCount = data.rows().size();
         String note = NLS.bind(rowCount == 1 ? EditorMessages.editor_export_note_one : EditorMessages.editor_export_note_many, rowCount);
-        return new JLabel("<html><body style='width: 200px'>" + note //$NON-NLS-1$
-            + (data.truncated() ? "<br>" + EditorMessages.editor_export_note_truncated : "") //$NON-NLS-1$ //$NON-NLS-2$
-            + "</html>"); //$NON-NLS-1$
+        // Notes that wrap at spaces only (an HTML label broke Korean words), at most as wide as the HTML label was (200 CSS
+        // px, which Swing's HTML draws 1.3 times as wide). The stopped fetch is said first in bold, as before.
+        JPanel notes = new JPanel();
+        notes.setLayout(new BoxLayout(notes, BoxLayout.Y_AXIS));
+        notes.add(new WrappingNote(note, NOTE_WIDTH));
+        if (data.truncated()) {
+            JTextArea stopped = new WrappingNote(EditorMessages.editor_export_note_truncated, NOTE_WIDTH);
+            stopped.putClientProperty(FlatClientProperties.STYLE, "font: bold"); //$NON-NLS-1$
+            notes.add(stopped);
+            notes.add(new WrappingNote(EditorMessages.editor_export_note_truncated_rest, NOTE_WIDTH));
+        }
+        // The options panel is laid out at its minimum size when the chooser gives it less than it asks for (as the HTML label,
+        // whose minimum was its size): the notes keep their width and the height of their lines there
+        notes.setMinimumSize(notes.getPreferredSize());
+        return notes;
     }
 
     /**
