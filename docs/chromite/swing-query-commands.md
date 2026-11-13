@@ -61,6 +61,8 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   F5로 새로 고칠 필요가 없다.
 - 수동 커밋 세션이면 커밋하거나 롤백해 트랜잭션이 끝난 뒤 다시 읽는다(커밋 전 DDL은 탐색기의 메타데이터 세션에서 보이지 않는다).
 - 탐색기에서 아직 펼치지 않은 가지는 서버를 부르지 않고 모델 캐시만 비운다. 펼칠 때 새로 읽는다.
+- 두 부분 이름(`a.t`)의 `a`는 엔진의 이름 구조로 읽는다. SQL Server·PostgreSQL·Oracle에서는 스키마, MySQL/MariaDB에서는 DB다
+  (아래 "두 부분 이름 (#108)"). 그래서 SQL Server의 `CREATE TABLE dbo.t`는 `dbo` 스키마만 다시 읽는다.
 
 ## 구조
 
@@ -76,6 +78,7 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 | `ui.swing` `SqlQueryCommands` (새로 만듦) | 실행 방식(`ExecuteMode`)별 문장 찾기(준비 Job), 커서 위치 문장, 이전·다음 선택 |
 | `ui.swing` `SqlEditorPanel` | `execute(ExecuteMode)`, 창의 변수 문맥(`windowVariables`), 실행 문맥에 창의 파일, 포함 파일 검사와 오류 줄, 복사·이동·변수 명령, DDL 수집과 갱신 시점, 편집기의 Ctrl+Enter 풀기 |
 | `ui.swing` `SqlMetadataRefresh` (새로 만듦) | 성공한 문장의 바뀐 개체 그릇 모으기, 트랜잭션이 끝난 뒤 탐색기 노드 다시 읽기 |
+| `model.sql` `SQLMetadataRefreshTargetResolver` (upstream, 2026-11-13 고침) | 바뀐 개체를 담는 가장 좁은 그릇(스키마, DB, 연결 전체) 정하기. 두 부분 이름은 이름 구조로 읽음(#108) |
 | `ui.swing` `QueryVariablesDialog` (새로 만듦) | Query > Variables… |
 | `ui.swing` `SqlExecutionSafety` | 위험한 문 목록에 포함 파일 이름 |
 | `ui.swing` `MainFrame` | Query 메뉴 항목과 단축키, 켜짐 |
@@ -116,6 +119,63 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 - **화면 문구는 새 묶음(`QueryCommandMessages`).** 같은 때 쿼리 창을 고치는 다른 작업과 `EditorMessages`를 함께 고치지 않으려는 것이다(SQL 터미널의
   `TerminalMessages`와 같은 방식). 모델의 오류 문구는 영어다(예외 문구 규칙).
 
+### 두 부분 이름 (#108)
+
+**결함(#89 작업 중 발견, 2026-11-13):** SQL Server에서 `CREATE TABLE dbo.t`처럼 두 부분 이름의 DDL을 실행하면 연결 전체를 다시 읽었다(DB 목록을 비우고 다시 읽기,
+읽어 둔 모든 DB의 스키마·개체 목록 다시 읽기). SQL Server에서 가장 흔히 쓰는 이름 모양이라 거의 모든 DDL이 그랬다.
+
+**근본 원인:** upstream `SQLMetadataRefreshTargetResolver.doCreateTarget`(고치기 전 113–118행)이 두 부분 이름의 첫 부분을 "세션이 스키마는 못 바꾸고
+카탈로그는 바꿀 수 있으면"(`!supportsSchemaChange() && supportsCatalogChange()`) 카탈로그로 읽었다. 세션이 무엇을 바꿀 수 있는지는 이름이 어떻게 생겼는지와 다른
+질문이다. SQL Server 세션은 스키마를 바꿀 수 없지만(`SQLServerExecutionContext.java:115`) 이름은 DB > 스키마 > 개체다. 그래서 `dbo`를 DB로 찾고, 없으니
+`SqlMetadataRefresh.resolveTarget`(237행)이 연결 전체를 대상으로 삼았다. 같은 원인으로 `CREATE TABLE other_schema.t`도 연결 전체였다.
+
+**고침:** 두 부분 이름은 데이터 원본의 맨 위가 카탈로그이고(`getPrimaryChildType`이 `DBSCatalog`) 카탈로그 아래에 스키마가 없을 때(기본 카탈로그의
+`getPrimaryChildType`이 `DBSSchema`가 아님)만 `catalog.object`로, 그 밖에는 `schema.object`로 읽는다(`hasCatalogsWithoutSchemas`). Object Explorer가 보여 주는
+구조이고, `ContextDefaultObjectsReader.run`(120–140행)이 DB 선택을 정할 때 쓰는 것과 같은 모델 사실이다. 기본 카탈로그가 없으면(MySQL에서 DB를 고르지 않음)
+카탈로그 목록의 첫 카탈로그로 본다. 이름에 맞는 그릇이 정말 없을 때 연결 전체를 읽는 `resolveTarget`의 보수적 동작은 그대로 두었다.
+다른 기준은 맞지 않았다: 방언의 `getSchemaUsage`는 MySQL도 `USAGE_ALL`(`MySQLDialect.java:454`)이고, 기본 스키마가 있는지는 연결 상태(캐시)에 따라 null일 수 있다.
+
+**엔진별 `a.b`의 `a`(코드 읽기, "실행"은 GCP 시험 VM에서 확인한 것):**
+
+| 엔진 | 이름 구조(근거) | 고치기 전 | 고친 뒤 |
+|---|---|---|---|
+| SQL Server | `SQLServerDatabase`(`SQLServerDataSource.java:606`) > `SQLServerSchema`(`SQLServerDatabase.java:587`) | DB(틀림, 연결 전체) | 스키마(실행) |
+| MySQL·MariaDB, TiDB, OceanBase MySQL | `MySQLCatalog`(`MySQLDataSource.java:513`, `TiDBMySQLDataSource.java:128`, `OceanbaseMySQLDataSource.java:87`) > `MySQLTable`(`MySQLCatalog.java:424`) | DB | DB(같음, MariaDB 실행; MySQL 8.4는 드라이버 파일이 없어 실행 못 함) |
+| PostgreSQL(Greenplum 등) | `PostgreDatabase`(`PostgreDataSource.java:561`) > `PostgreSchema`(`PostgreDatabase.java:898`), 스키마를 바꿈 | 스키마 | 스키마(같음, 실행) |
+| Oracle, DB2, Exasol, Altibase, YashanDB | 맨 위가 스키마(`OracleDataSource.java:683`, `DB2DataSource.java:475`, `ExasolDataSource.java:504`, `AltibaseDataSource.java:288`, `YashanDBDataSource.java:130`) | 스키마 | 스키마(같음, Oracle 실행) |
+| Snowflake | Generic 카탈로그 > 스키마(`GenericDataSource.java:729`, `GenericCatalog.java:157`), 스키마를 바꿈(`SnowflakeExecutionContext.java:91`) | 스키마 | 스키마(같음) |
+| Generic(카탈로그와 스키마 둘 다: Databricks 등, 드라이버에 따름), DuckDB | 같은 Generic 구조. `GenericExecutionContext.supportsSchemaChange`는 카탈로그가 있으면 거짓(250행~), `supportsCatalogChange`는 카탈로그 선택을 지원하면 참, DuckDB는 늘 참(`DuckDBExecutionContext.java:48`) | 카탈로그를 바꿀 수 있으면 DB(틀림), 아니면 스키마 | 스키마 |
+| Doris, StarRocks | `DorisCatalog` > `DorisDatabase`(`GenericSchema`, `DorisCatalog.java:103`), StarRocks 같음(`StarRocksCatalog.java:103`), 스키마를 바꿈 | 스키마(그 엔진의 DB) | 같음 |
+| Generic(카탈로그만), ClickHouse(드라이버 버전에 따라 카탈로그 또는 스키마), Cloudflare D1 | `GenericCatalog` 아래 표(`GenericCatalog.java:160–164`), D1 `CloudflareD1Catalog` > 표(`CloudflareD1Catalog.java:176`) | 카탈로그를 바꿀 수 있으면 DB, 아니면 스키마 | DB(구조대로) |
+| SQLite, Firebird, Timeplus | 맨 위가 표(`SQLiteDataSource.java:194`, `FireBirdDataSource.java:178`, `TimeplusDataSource.java:77`) | 스키마 | 스키마(같음; 이름에 맞는 그릇이 없어 연결 전체인 것도 같음) |
+
+D1·ClickHouse·Generic·DuckDB·Snowflake·Doris는 실행해 보지 않았다. D1의 SQL에서 `main.t`(SQLite 스키마)는 고친 뒤 없는 DB `main`으로 읽혀 연결 전체를 다시 읽는다
+(고치기 전에는 DB를 고른 연결에서 그 DB로 좁혀졌다). 모델의 구조(D1 DB 아래 바로 표)를 따른 결과이고, 엔진 이름으로 나누지 않았다.
+
+**측정(SQL Server 2022, DB 네 개가 보이는 연결, Object Explorer에서 DB 세 개의 `Schemas > dbo > Tables`를 펼침, 쿼리 창의 DB `chr_ddl_refresh`):**
+"Refresh metadata after DDL" 작업 시간, 다시 읽은 탐색기 노드(`DBNEvent`), 그동안 연결에 보낸 질의(QM), DB 목록 캐시가 비었는지를 기록했다.
+
+| 문장 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| `CREATE TABLE dbo.t` | 대상 `Schema(dbo, dbo)` → 연결 전체, DB 목록 비움, 163 ms, 질의 10개(`sys.databases`, 읽어 둔 DB 3개의 `sys.schemas`·`sys.all_objects`, 서버 속성, 에이전트 상태). 새 표가 `dbo > Tables`에 나타나지 않음 | `Schema(chr_ddl_refresh, dbo)` → `dbo` 노드, 18 ms, 질의 2개(`db_name()`, 그 DB의 `sys.all_objects`). 새 표가 나타남 |
+| `ALTER TABLE dbo.t ADD …` / `CREATE VIEW dbo.v` / `CREATE PROCEDURE dbo.p` | 연결 전체, 168 / 165 / 164 ms | `dbo`, 16 / 16 / 17 ms |
+| `DROP TABLE dbo.t` | 연결 전체, 165 ms | `dbo`, 16 ms, 표가 사라짐 |
+| `CREATE TABLE t` | `dbo`, 17 ms | 같음 |
+| `CREATE TABLE chr_ddl_refresh.dbo.t`(현재 DB) / `chr_ddl_refresh_b.dbo.t`(다른 DB) | 그 DB의 `dbo`, 16 ms | 같음 |
+| `CREATE TABLE other_schema.t` | `Schema(other_schema, dbo)` → 연결 전체, 165 ms | `other_schema` 노드, 17 ms, 새 표가 나타남 |
+| `CREATE SCHEMA s` | DB `chr_ddl_refresh`, 88 ms | 같음(57 ms). 빈 스키마는 연결 설정 "모든 스키마 보기"가 꺼져 있어 보이지 않음(전과 같음) |
+
+펼친 노드는 고치기 전에도 접히지 않았다(Swing Object Explorer는 연결 노드의 REFRESH에서 펼침을 지킨다, 14개 → 14개). 연결 전체를 다시 읽을 때 눈에 보이던
+결과는 새 표가 나타나지 않는 것이었다(연결 노드의 REFRESH는 연결 목록만 다시 그린다, `ObjectExplorerPanel.connectionUpdated`).
+고친 뒤 연결 Refresh 뒤와 다시 연결 뒤에도 `CREATE TABLE dbo.t`는 `dbo`만(18 ms, 16 ms), `CREATE DATABASE`·`DROP DATABASE`는 전처럼 연결 전체, 그 뒤의
+`CREATE TABLE dbo.t`는 다시 `dbo`만이었다. 쿼리 창 DB 선택(#89의 두 경우: 펼치지 않음, 한 번에·문장마다, 연결·Refresh·다시 연결 뒤 각 10번)은 모두 목록의 객체였다.
+MariaDB `CREATE TABLE db.t`(다른 DB, 현재 DB, Refresh 뒤, 다시 연결 뒤)는 그 DB만(DB를 고르지 않은 창에서 계산한 대상도 그 DB), PostgreSQL `CREATE TABLE s.t`·`CREATE TABLE t`(`search_path` 바꾼 뒤 포함)는 그 스키마만,
+`CREATE SCHEMA`는 DB만, Oracle `CREATE TABLE SCHEMA.T`·`CREATE VIEW`·`DROP TABLE`은 그 스키마만 다시 읽었다(고친 빌드, 고치기 전과 같은 대상).
+증거 `D:\Tools\_scratch\ddl-refresh-target\run\`(`before-ms.log`, `after-ms*.txt.log`, `after-my.txt.log`, `after-pg-ora.txt.log`).
+
+**같은 규칙을 쓰는 곳:** 이 해석기를 부르는 곳은 `SqlMetadataRefresh.collect` 하나다(검색). Chromite Agent의 개체 찾기(`MetadataTools.objectDdl`)는 자기 이름
+해석(`AgentNames.resolve`, 엔진 종류별)을 쓰고 DDL 뒤 새로 고치지 않는다. 작업의 스크립트 실행기(`SQLScriptProcessor`)는 DDL 뒤 메타데이터를 다시 읽지 않는다.
+
 ## upstream 대비 변경점
 
 - SWT `SQLCommandInclude`(ui.editors.sql)는 SWT 프런트엔드와 함께 삭제되었다. 모델 번들에 같은 이름으로 다시 만들었다(편집기 대신 엔진, 현재 폴더 찾기 없음,
@@ -124,6 +184,7 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 - SWT 변수 패널(`SQLVariablesPanel`)과 드라이버별 변수 저장은 옮기지 않았다(대화상자, 창 단위 메모리).
 - SWT `SQLMetadataRefreshCoordinator`·`SQLMetadataRefreshTransactionCoordinator`의 동작을 Swing 클래스 하나(`SqlMetadataRefresh`)로 새로 썼다.
   SWT의 갱신 알림·끄기 설정(`SHOW_METADATA_REFRESH_NOTIFICATION`)은 없다.
+- upstream `SQLMetadataRefreshTargetResolver`의 두 부분 이름 해석을 세션이 바꿀 수 있는 것 대신 이름 구조로 바꿨다(위 "두 부분 이름 (#108)").
 - 단축키: 이전·다음 문장이 Alt+Up/Down에서 Alt+PageUp/PageDown으로 바뀌었다(위 결정). "새 탭에 결과"(Ctrl+\) 명령은 옮기지 않았다(B-S3).
 
 ## 확인
@@ -176,3 +237,5 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 - 2026-11-08 실행 단축키(F5, Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L, Alt+PageUp/PageDown)는 키보드 초점이 쿼리 창의 편집기나 결과에 있을 때만 동작.
   다른 글자 칸(Chromite Agent 입력 등)에서 누르면 활성 쿼리 창을 실행하던 것을 고침
 - 2026-11-08 결과 탭(앱 변경 #7): 초점 검사의 결과 쪽이 메인 창의 결과 탭(`resultTabs`)에서 활성 창의 탭 줄을 끼우는 `resultsArea`로 바뀜
+- 2026-11-13 두 부분 이름(`dbo.t`)을 엔진의 이름 구조로 읽음(앱 변경 #108): SQL Server의 `CREATE TABLE dbo.t`가 연결 전체 대신 `dbo` 스키마만 다시 읽는다.
+  "두 부분 이름 (#108)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤 Object Explorer 갱신(모든 DB 종류, 특히 Generic·DuckDB·D1의 두 부분 이름).

@@ -184,6 +184,8 @@ SQL Server 실행 문맥의 `getDefaultCatalog`는 진행 모니터가 없어 �
 **이 순서를 이 문장에서 드러낸 것:** `USE db; CREATE TABLE dbo.t`의 DDL 뒤 새로 고침이 연결 전체가 된다. `SQLMetadataRefreshTargetResolver`(upstream, 113–118행)는 두 부분
 이름에서 실행 문맥이 스키마를 바꿀 수 없고 카탈로그를 바꿀 수 있으면(`supportsSchemaChange` false, SQL Server) 첫 부분을 **DB**로 본다. 그래서 `dbo`를 DB로 찾고,
 없으니 `SqlMetadataRefresh.resolveTarget`(237행)이 연결 전체를 대상으로 삼는다. 이것은 고치지 않았다(아래 "남은 것").
+2026-11-13 고침(앱 변경 #108): 두 부분 이름을 엔진의 이름 구조로 읽어 `dbo.t`는 스키마 `dbo`만 다시 읽는다(swing-query-commands.md "두 부분 이름 (#108)").
+이 절의 선택 고침은 그대로 필요하다(연결 Refresh, `CREATE/DROP DATABASE`는 여전히 연결 전체를 다시 읽는다).
 
 **고침:** `ContextDefaultObjectsReader.run`이 카탈로그를 고르는 경우 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽는다(`objectContainer.getChildren(monitor)`;
 다 읽은 목록이면 서버를 부르지 않음). 기본 객체와 목록이 같은 캐시에서 나오므로 같은 객체다. 다시 그리기를 더하거나 문장 모양을 따로 다루지 않았다.
@@ -235,7 +237,9 @@ PostgreSQL(`SET search_path` 뒤 `CREATE TABLE`, `CREATE SCHEMA` 뒤 `SET search
 **남은 것:**
 - `SQLMetadataRefreshTargetResolver`가 SQL Server의 `schema.table`을 `db.table`로 읽어, `CREATE TABLE dbo.t` 같은 흔한 DDL 하나에 연결 전체(모든 DB 목록, Object Explorer의
   읽어 둔 노드)를 다시 읽는다. 선택은 이제 맞지만 새로 고침 범위가 넓은 것은 그대로다. upstream 코드이고 MySQL의 `db.table`과 나눌 기준(카탈로그 아래 스키마가 있는지)이
-  필요해 이 항목에서 고치지 않았다(따로 처리할 항목으로 보고).
+  필요해 이 항목에서 고치지 않았다(따로 처리할 항목으로 보고). 2026-11-13 앱 변경 #108에서 고침: 기준은 데이터 원본의 맨 위가 카탈로그이고 카탈로그 아래에
+  스키마가 없는지다(swing-query-commands.md "두 부분 이름 (#108)"). 고친 빌드에서 #89의 두 경우(기존 DB, 펼치지 않음, 한 번에·문장마다)를 연결·Refresh·다시
+  연결 뒤 각 10번 실행해 모두 객체였다("새 DB" 열은 다시 돌리지 않았다).
 - 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 목록이 빈 캐시에서 `ContextDefaultObjectsReader`가 목록의 객체를 기본값으로 돌려주는 단위 시험).
 
 ## 실행 중 표시 (#44)
@@ -437,3 +441,5 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
   (Refresh, `CREATE TABLE dbo.t`·`CREATE/DROP DATABASE`처럼 연결 전체를 다시 읽는 DDL) 쿼리 창의 DB 선택이 목록의 객체 대신 이름 글(#245 전에는 N/A)로 남았다.
   "연결을 다시 읽은 뒤의 DB 선택" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DB/스키마 선택·상태 줄(모든 DB 종류), 연결 직후 첫 선택 읽기.
 - 2026-11-13 #89 검토 후속: 먼저 읽기의 실패는 기록만 하고 계속함, 새 읽기가 닿는 엔진 표. 고치기 전에 실패하던 행(펼치지 않음, 연결·다시 연결)을 다시 확인. 회귀 테스트는 실행하지 않았다.
+- 2026-11-13 앱 변경 #108(`chromite/ddl-refresh-target`): `CREATE TABLE dbo.t`가 연결 전체를 다시 읽던 것을 고쳐 "연결을 다시 읽은 뒤의 DB 선택"의
+  "이 순서를 이 문장에서 드러낸 것"과 "남은 것"에 고친 내용을 적음. #89의 선택 고침은 바꾸지 않았다.

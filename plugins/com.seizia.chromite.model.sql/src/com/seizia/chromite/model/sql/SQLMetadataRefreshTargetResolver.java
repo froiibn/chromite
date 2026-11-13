@@ -25,12 +25,26 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
 
+import java.util.Collection;
 import java.util.List;
 
-/** Resolves the narrowest metadata container affected by a SQL object operation. */
+/**
+ * Resolves the narrowest metadata container affected by a SQL object operation.
+ *
+ * 설계: 두 부분 이름({@code a.b})의 첫 부분이 카탈로그인지 스키마인지는 엔진의 이름 구조(데이터 원본의 맨 위가 카탈로그이고 카탈로그 아래에
+ * 스키마가 없는지, {@link DBSObjectContainer#getPrimaryChildType})로 정한다. 세션이 카탈로그·스키마를 바꿀 수 있는지는 이름 구조와 다른
+ * 질문이라 쓰지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-13 두 부분 이름을 이름 구조로 읽음(앱 변경 #108). upstream은 "스키마는 못 바꾸고 카탈로그는 바꿀 수 있는 세션"이면 첫 부분을
+ *   카탈로그로 읽어, SQL Server의 {@code CREATE TABLE dbo.t}가 없는 DB {@code dbo}를 가리키고 연결 전체를 다시 읽었다
+ *   (docs/chromite/swing-query-commands.md "DDL 뒤 탐색기 갱신")
+ */
 public final class SQLMetadataRefreshTargetResolver {
     private static final Log log = Log.getLog(SQLMetadataRefreshTargetResolver.class);
 
@@ -111,7 +125,7 @@ public final class SQLMetadataRefreshTargetResolver {
             catalogName = nameParts.get(nameParts.size() - 3);
             schemaName = nameParts.get(nameParts.size() - 2);
         } else if (nameParts.size() == 2) {
-            if (defaults != null && !defaults.supportsSchemaChange() && defaults.supportsCatalogChange()) {
+            if (hasCatalogsWithoutSchemas(monitor, executionContext, defaultCatalog)) {
                 catalogName = nameParts.getFirst();
             } else {
                 schemaName = nameParts.getFirst();
@@ -133,6 +147,37 @@ public final class SQLMetadataRefreshTargetResolver {
             return new RefreshTarget.Catalog(catalogName);
         }
         return new RefreshTarget.DataSource();
+    }
+
+    /**
+     * Whether a two-part name is {@code catalog.object}: the data source's top level is catalogs and a catalog holds its
+     * objects directly (MySQL databases). Where a catalog holds schemas (SQL Server, PostgreSQL) or the top level is
+     * schemas (Oracle) the first part is a schema. This is the structure Object Explorer shows, read as
+     * {@code ContextDefaultObjectsReader} reads it; whether the session can change its catalog or schema says nothing
+     * about it (a SQL Server session cannot change its schema, yet {@code dbo.t} is schema.table).
+     * The catalog looked at is the session's default one, else the first of the list (no database selected).
+     */
+    private static boolean hasCatalogsWithoutSchemas(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @Nullable DBSCatalog defaultCatalog
+    ) throws DBException {
+        DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, executionContext.getDataSource());
+        if (root == null || !DBSCatalog.class.isAssignableFrom(root.getPrimaryChildType(monitor))) {
+            return false;
+        }
+        DBSCatalog catalog = defaultCatalog;
+        if (catalog == null) {
+            Collection<? extends DBSObject> catalogs = root.getChildren(monitor);
+            if (catalogs != null) {
+                catalog = catalogs.stream()
+                    .filter(DBSCatalog.class::isInstance)
+                    .map(DBSCatalog.class::cast)
+                    .findFirst()
+                    .orElse(null);
+            }
+        }
+        return catalog != null && !DBSSchema.class.isAssignableFrom(catalog.getPrimaryChildType(monitor));
     }
 
     /**
