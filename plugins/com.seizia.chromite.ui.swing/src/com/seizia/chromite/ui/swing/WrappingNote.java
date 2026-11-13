@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.ui.FlatTextAreaUI;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -52,6 +53,8 @@ import java.util.function.ToDoubleFunction;
  *     <li>줄 끝을 정하는 규칙은 {@link #breakOffset} 하나다. 메시지·확인·오류 대화상자의 글({@link MessageArea},
  *     {@code SwingPlatformUI.createMessageComponent})도 같은 규칙을 쓴다. 그 글은 선택·복사가 되어야 해서 직접 그리지 않고, Swing의 줄 바꿈
  *     보기({@code WrappedPlainView})에서 줄 끝 위치만 이 규칙으로 바꾼다.</li>
+ *     <li>아이콘이 붙은 안내({@link #withIcon})는 라벨이 아이콘과 글을 놓던 대로 아이콘을 글 묶음의 세로 가운데에 둔다. 글 칸이 아이콘 높이만큼
+ *     늘어나 위에서부터 그리면 한 줄 안내가 아이콘보다 위에 붙는다.</li>
  *     <li>최소 폭은 가장 긴 낱말의 폭이다.</li>
  *     <li>읽기 전용 {@link JTextArea}로 둔다(부르는 쪽의 형식과 접근성 글 그대로). 그리기는 줄마다 FlatLaf와 같은 글자 그리기다.
  *     글꼴은 라벨 글꼴(테마·밀도 전환을 따름)을 기본값으로 두고 그 위에 부르는 쪽의 FlatLaf 스타일이 적용된다(스타일 클래스 {@code small}),
@@ -71,6 +74,8 @@ import java.util.function.ToDoubleFunction;
  * - 2026-11-13 가장 넓은 폭({@code wrapWidth})과 라벨 글꼴을 기본값으로 두는 UI: 폭을 정한 HTML 라벨로 접던 안내(연결·설정 내보내기와
  *   가져오기, 셸 명령 승인 등)가 Swing 줄 바꿈으로 한국어 낱말 가운데서 끊었다. 그 안내를 이 클래스로 옮기면서 {@code pack()}하는 대화상자의
  *   폭과 작은 글꼴(스타일 클래스)을 그대로 두려고(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-13 {@link #withIcon}: 경고 아이콘과 안내를 라벨처럼 세로 가운데로 맞춤(BorderLayout에서는 한 줄 안내가 아이콘 가운데보다 위에
+ *   있었다, #90 검토)
  */
 final class WrappingNote extends JTextArea {
 
@@ -93,6 +98,25 @@ final class WrappingNote extends JTextArea {
         setOpaque(false);
         setBorder(BorderFactory.createEmptyBorder());
         setCursor(Cursor.getDefaultCursor());
+    }
+
+    /**
+     * An icon beside a note, as a label with an icon and a text showed them: the icon is centred on the text block (a
+     * one-line note is centred on the icon) and the note takes the rest of the width.
+     */
+    @NotNull
+    static JComponent withIcon(@Nullable Icon icon, @NotNull String text, int wrapWidth) {
+        JLabel iconLabel = new JLabel(icon);
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        // Each cell keeps its preferred height and is centred in the row (the taller of the icon and the text)
+        panel.add(iconLabel, c);
+        c.gridx = 1;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(0, iconLabel.getIconTextGap(), 0, 0);
+        panel.add(new WrappingNote(text, wrapWidth), c);
+        return panel;
     }
 
     @Override

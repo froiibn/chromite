@@ -55,6 +55,7 @@ import java.util.Map;
  * - 2026-11-08 다른 도구에서 가져올 때 알아보지 못한 DB 종류 표시 (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  * - 2026-11-13 표 아래 안내를 HTML 라벨 대신 경고 아이콘과 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
  *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-13 아이콘과 안내를 {@link WrappingNote#withIcon}으로 세로 가운데에 맞춤: 한 줄 안내가 아이콘 가운데보다 위에 있었다(#90 검토)
  */
 final class ConnectionImportDialog extends JDialog {
 
@@ -191,11 +192,7 @@ final class ConnectionImportDialog extends JDialog {
      */
     @NotNull
     private static JComponent createNote(@NotNull String text) {
-        JLabel icon = new JLabel(UIManager.getIcon("OptionPane.warningIcon")); //$NON-NLS-1$
-        JPanel note = new JPanel(new BorderLayout(icon.getIconTextGap(), 0));
-        note.add(icon, BorderLayout.WEST);
-        note.add(new WrappingNote(text, UIScale.scale(988)), BorderLayout.CENTER);
-        return note;
+        return WrappingNote.withIcon(UIManager.getIcon("OptionPane.warningIcon"), text, UIScale.scale(988)); //$NON-NLS-1$
     }
 
     private void applyToAll(@Nullable ConflictAction action) {
