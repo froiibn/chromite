@@ -47,6 +47,8 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4·6 유지 관리·복제 상태 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-13 빈 표·읽을 수 없음 안내를 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class AdminGridTabs extends JTabbedPane {
 
@@ -224,7 +226,7 @@ final class AdminGridTabs extends JTabbedPane {
 
     @NotNull
     private static JComponent createText(@NotNull String text, int padding) {
-        JTextArea area = new JTextArea(text);
+        JTextArea area = new WrappingNote.MessageArea(text);
         area.setEditable(false);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);

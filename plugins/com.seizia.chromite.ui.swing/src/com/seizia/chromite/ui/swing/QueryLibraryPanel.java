@@ -105,6 +105,8 @@ import java.util.Set;
  * - 2026-11-12 예약 실행기 시작·정지를 메인 창으로 옮김: 쿼리와 저장된 작업이 같은 스케줄러({@link RunScheduler})를 씀
  *   (앱 변경 #104, docs/chromite/task-scheduling.md)
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-13 커밋 메시지 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다(입력은 그대로)
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -1164,7 +1166,7 @@ final class QueryLibraryPanel extends JPanel {
 
     @Nullable
     private String askCommitMessage(@NotNull QueryLibrary.Folder root, @NotNull QueryLibraryGit.Status status) {
-        JTextArea messageArea = new JTextArea(ToolsMessages.library_git_default_message, 3, 50);
+        JTextArea messageArea = new WrappingNote.MessageArea(ToolsMessages.library_git_default_message, 3, 50);
         messageArea.setLineWrap(true);
         messageArea.setWrapStyleWord(true);
         messageArea.selectAll();

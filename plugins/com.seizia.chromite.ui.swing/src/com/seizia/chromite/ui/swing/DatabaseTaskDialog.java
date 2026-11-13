@@ -60,6 +60,8 @@ import java.util.List;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 실패하면 스택 추적을 여는 "자세히…" 단추를 보여 줌 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 실행 전 확인 단계 {@link #confirmRun}(SQL Server 에이전트 창이 실행할 스크립트를 먼저 보여 줌) (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-08 기본 단추를 없앰: Enter로 백업·복원·작업 변경이 시작되지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-13 양식 안내({@code FormPanel.note})를 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서
+ *   끊었다. 폭은 양식 칸이 정하고 높이가 그 폭을 따르는 것은 그대로(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -557,11 +559,12 @@ abstract class DatabaseTaskDialog extends JDialog {
         }
 
         /**
-         * A secondary-colored note that wraps at the page width (a label would cut long Korean sentences off).
+         * A secondary-colored note that wraps at the page width (a label would cut long Korean sentences off), at spaces
+         * only ({@link WrappingNote.MessageArea}: Swing's word wrap broke Korean words).
          */
         @NotNull
         static JTextArea note(@NotNull String text) {
-            JTextArea area = new JTextArea(text) {
+            JTextArea area = new WrappingNote.MessageArea(text) {
                 private int laidOutHeight = -1;
 
                 @Override

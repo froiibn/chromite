@@ -96,6 +96,8 @@ import java.util.stream.Stream;
  * - 2026-11-08 암호 속성 가리기 (docs/chromite/password-handling.md)
  * - 2026-11-08 속성 편집(SWT 감사 B-E1, B-E2, C-15): 고칠 수 있는 속성의 값 칸 편집기와 저장({@link ObjectPropertyEdits}),
  *   머리말 없이 Object Details 속성 탭에 넣을 수 있게 함 (docs/chromite/swing-object-properties.md)
+ * - 2026-11-13 아래 설명 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -110,7 +112,7 @@ final class PropertiesPanel extends JPanel {
     private final PropertyGridModel gridModel = new PropertyGridModel();
     private final JTable grid;
     private final JLabel propertyNameLabel = new JLabel(" ");
-    private final JTextArea propertyDescriptionText = new JTextArea();
+    private final JTextArea propertyDescriptionText = new WrappingNote.MessageArea(""); //$NON-NLS-1$
     private final Set<String> collapsedCategories = new HashSet<>();
     /**
      * Properties of the shown node by category (an empty name for uncategorized ones), or a message (loading, error).

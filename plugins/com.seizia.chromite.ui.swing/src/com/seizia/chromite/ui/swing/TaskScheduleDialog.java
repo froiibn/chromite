@@ -54,6 +54,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성(앱 변경 #104, docs/chromite/task-scheduling.md "화면")
+ * - 2026-11-13 안내를 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다. 폭과 높이를 정하는 것은 그대로
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class TaskScheduleDialog extends JDialog {
 
@@ -187,11 +189,11 @@ final class TaskScheduleDialog extends JDialog {
     }
 
     /**
-     * A wrapped note of the form's width.
+     * A wrapped note of the form's width, wrapped at spaces only ({@link WrappingNote.MessageArea}).
      */
     @NotNull
     private static JTextArea note(@NotNull String text) {
-        JTextArea area = new JTextArea(text);
+        JTextArea area = new WrappingNote.MessageArea(text);
         area.setEditable(false);
         area.setFocusable(false);
         area.setLineWrap(true);

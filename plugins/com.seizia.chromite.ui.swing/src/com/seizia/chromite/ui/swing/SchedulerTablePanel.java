@@ -56,6 +56,8 @@ import java.util.function.Predicate;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-13 세부 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다(선택·복사 그대로)
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class SchedulerTablePanel<T> extends JPanel implements ToolDocument {
 
@@ -99,7 +101,7 @@ final class SchedulerTablePanel<T> extends JPanel implements ToolDocument {
 
     private final Spec<T> spec;
     private final ObjectListTable<T> table;
-    private final JTextArea detailArea = new JTextArea();
+    private final JTextArea detailArea = new WrappingNote.MessageArea(""); //$NON-NLS-1$
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
     private final JTextField searchField = new JTextField(16);
     private final List<Action> rowActions = new ArrayList<>();

@@ -72,6 +72,8 @@ import java.util.Map;
  *   docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  * - 2026-11-12 실행 확인의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
  *   낱말 가운데서 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-13 대상 상태 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다(선택·복사 그대로)
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class MaintenanceDialog extends JDialog {
 
@@ -98,7 +100,7 @@ final class MaintenanceDialog extends JDialog {
     private final JComboBox<MaintenanceOperation> operationCombo = new JComboBox<>();
     private final JLabel descriptionLabel = new JLabel(" "); //$NON-NLS-1$
     private final JPanel optionsPanel = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
-    private final JTextArea factsArea = new JTextArea(2, 40);
+    private final JTextArea factsArea = new WrappingNote.MessageArea("", 2, 40); //$NON-NLS-1$
     private final AccessNoticeBar deniedBar = new AccessNoticeBar();
     private final AccessNoticeBar warningBar = new AccessNoticeBar();
     private final SqlEditorPanel.SqlTextArea previewArea = new SqlEditorPanel.SqlTextArea();

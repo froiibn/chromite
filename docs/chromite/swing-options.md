@@ -725,6 +725,20 @@ design-spec "적용 현황 — 글자 선명도와 대비".
   쓰지 않고 이 클래스에서 만든 라벨). 측정: 대상을 고른 뒤 한 줄(한국어 150% 373px, 100% 388px, 영어 406px. 쓸 수 있는 폭은 기본 571·563px, 최소 크기 431·423px)이라 시험한
   구성에서는 줄이 바뀌지 않는다. 이름이 길어 줄을 넘기면 한국어 낱말 가운데서 끊길 수 있다(굵은 글씨를 어떻게 할지는 사용자 결정).
 
+#### Swing 단어 줄 바꿈을 쓰던 글 상자
+- **원인:** `JTextArea`의 `lineWrap` + `wrapStyleWord`는 Swing의 `WrappedPlainView`가 줄 끝을 `BreakIterator`로 찾아 한글 음절 사이에서 끊는다(#82와 같음).
+- **고침:** 글 상자 그대로 `WrappingNote.MessageArea`를 쓴다(크기·선택·입력·글꼴은 Swing 그대로, 줄 끝만 `breakOffset`). `MessageArea`의 `final`을 풀고
+  행·열 생성자를 두었다. 곳마다 고른 것과 이유:
+  - `DatabaseTaskDialog.FormPanel.note`(36곳): 안내지만 선호 폭 1(폭은 양식 칸이 정함)과 폭이 바뀌면 다시 배치하는 익명 하위 클래스가 있다.
+    `WrappingNote`는 선호 폭이 한 줄 폭이라 양식이 페이지보다 넓어져 `GridBagLayout`이 최소 크기 배치로 바뀐다. 그래서 같은 하위 클래스를 `MessageArea`에서 만든다.
+  - `TaskScheduleDialog.note`: 안내지만 `fitWidth`가 글 상자의 높이 계산으로 선호·최소 크기를 고정한다(`pack()` 전) → `MessageArea`.
+  - `MaintenanceDialog`의 상태 칸, `PropertiesPanel`의 설명 칸, `SchedulerTablePanel`의 세부 칸: 서버 글이나 오류가 들어가고 크기를 글 상자가 정한다 → `MessageArea`.
+  - `AdminGridTabs.createText`(빈 표·읽을 수 없음 안내): 페이지 전체를 차지하고 서버가 준 이유가 들어갈 수 있다 → `MessageArea`.
+  - `QueryLibraryPanel`의 Git 커밋 메시지(입력 칸): 사용자가 쓰는 한국어가 낱말 가운데서 끊겼다 → `MessageArea`(입력·선택 그대로).
+- **그대로 둔 것:** `DriverLibraryDetailsDialog`의 설명 칸: 드라이버 라이브러리 246개 중 설명이 있는 것이 0개라 줄이 생기지 않는다(측정).
+  `MaintenanceDialog` 상태 칸과 `AdminGridTabs` 안내는 시험한 글(사실 줄, 빈 표·읽을 수 없음 이유)이 한 줄이었지만 서버 오류 글이 들어가므로
+  같은 규칙으로 두었다(글 상자 한 곳의 생성자만 바꿈).
+
 ## 휠 스크롤 (#97)
 
 사용자 보고(사내 환경 2026-11-12, 26.0.5): "옵션에서 에이전트 및 몇몇 설정 화면의 마우스 스크롤이 동작하지 않는다".

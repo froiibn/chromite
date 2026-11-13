@@ -55,6 +55,8 @@ import java.util.function.ToDoubleFunction;
  *     보기({@code WrappedPlainView})에서 줄 끝 위치만 이 규칙으로 바꾼다.</li>
  *     <li>아이콘이 붙은 안내({@link #withIcon})는 라벨이 아이콘과 글을 놓던 대로 아이콘을 글 묶음의 세로 가운데에 둔다. 글 칸이 아이콘 높이만큼
  *     늘어나 위에서부터 그리면 한 줄 안내가 아이콘보다 위에 붙는다.</li>
+ *     <li>줄을 바꾸는 다른 글 상자(설명·세부 칸, 입력 칸, 크기를 스스로 정하는 안내)는 글 상자 그대로 {@link MessageArea}를 쓴다: 크기·선택·
+ *     입력은 Swing 그대로이고 줄 끝만 이 규칙이다.</li>
  *     <li>최소 폭은 가장 긴 낱말의 폭이다.</li>
  *     <li>읽기 전용 {@link JTextArea}로 둔다(부르는 쪽의 형식과 접근성 글 그대로). 그리기는 줄마다 FlatLaf와 같은 글자 그리기다.
  *     글꼴은 라벨 글꼴(테마·밀도 전환을 따름)을 기본값으로 두고 그 위에 부르는 쪽의 FlatLaf 스타일이 적용된다(스타일 클래스 {@code small}),
@@ -78,6 +80,8 @@ import java.util.function.ToDoubleFunction;
  *   있었다, #90 검토)
  * - 2026-11-13 {@code wrapWidth}는 글의 폭이고 테두리는 그 위에 더함: 테두리가 있는 업데이트 실패 메뉴 설명이 HTML 라벨의 {@code div} 폭보다
  *   좁게 접혔다(#90 2차)
+ * - 2026-11-13 {@link MessageArea}를 final에서 풀고 행·열 생성자를 둠: Swing 단어 줄 바꿈을 쓰던 글 상자(작업 대화상자의 안내, 설명·세부 칸,
+ *   커밋 메시지)가 같은 규칙을 쓰도록(#90 2차)
  */
 final class WrappingNote extends JTextArea {
 
@@ -302,11 +306,19 @@ final class WrappingNote extends JTextArea {
      * ({@code lineWrap} and {@code wrapStyleWord}): otherwise its views are Swing's, as for any text area. The base UI
      * builds the views again when either property changes ({@code BasicTextAreaUI.propertyChange} → {@code modelChanged}),
      * so the choice follows them.
+     * <p>
+     * Any wrapping text area of the application uses this class (details, descriptions, a commit message), and so do
+     * notes whose layout relies on the text area's own size: not final, so that such a note can keep its size rules
+     * ({@code DatabaseTaskDialog.FormPanel.note}).
      */
-    static final class MessageArea extends JTextArea {
+    static class MessageArea extends JTextArea {
 
         MessageArea(@NotNull String text) {
             super(text);
+        }
+
+        MessageArea(@NotNull String text, int rows, int columns) {
+            super(text, rows, columns);
         }
 
         @Override
