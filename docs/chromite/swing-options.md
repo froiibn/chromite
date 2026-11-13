@@ -741,7 +741,7 @@ design-spec "적용 현황 — 글자 선명도와 대비".
 
 #### 표시(굵은 글씨, 가운데 맞춤)가 있는 안내
 - `ResultSetExport`의 가져온 행 안내: 굵은 부분이 문장 앞부분 전체라 굵은 `WrappingNote`(스타일 `font: bold`) 한 문단과 나머지 문단으로 나눴다
-  (문구 키를 둘로: `editor_export_note_truncated`, `editor_export_note_truncated_rest`, 낱말은 그대로, 문장 부호만 굵은 문단 끝으로). 세 안내는
+  (문구 키를 둘로: `editor_export_note_truncated`, `editor_export_note_truncated_rest`, 낱말은 그대로, 문장 부호만 굵은 문단 끝으로. 영어는 두 문단이 각각 문장이 되도록 세미콜론을 마침표로, 둘째 문단의 첫 글자를 대문자로 바꿨다: 검토 후속). 세 안내는
   `BoxLayout` 세로, 가장 넓은 폭 260 = 200 CSS px × 1.3.
 - `ResultSetValuePanel`의 빈 칸 메시지: `WrappingNote.setCentered(true)`(줄마다 가운데 맞춤)를 더하고, 칸 가운데에 세로로 놓으려고 `GridBagLayout` 패널에 넣었다.
   쓰이지 않게 된 `escapeHtml`을 지움.
