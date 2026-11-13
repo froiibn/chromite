@@ -187,7 +187,7 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 
 | 끈 노드 | 들어가는 글 |
 |---|---|
-| 테이블·뷰·프로시저·스키마·데이터베이스 등 DB 개체 | 정규화된 이름 복사와 같은 이름(`DBUtils.getObjectFullName(…, DML)`, 방언의 따옴표) |
+| 테이블·뷰·프로시저·스키마·데이터베이스 등 DB 개체 | 정규화된 이름 복사와 같은 이름(`DBUtils.getObjectFullName(…, DML)`, 방언의 따옴표). 단 DB.스키마.개체 이름은 놓는 쿼리 창이 같은 연결이고 현재 DB가 개체의 DB이면 스키마.개체(아래 "놓는 창에 맞춘 이름") |
 | 열 | 따옴표가 필요할 때만 붙은 열 이름(열은 정규화된 개체가 아니어서 같은 함수가 열 이름만 준다) |
 | 여러 개 | 트리 순서로 ", "로 이은 한 줄(SQL의 목록에 바로 들어가도록. 복사 명령은 그대로 줄마다 하나) |
 | 테이블·뷰의 Columns 폴더 | 그 열 이름들을 ", "로 이은 한 줄. 열을 이미 읽은 폴더(펼친 적이 있는 폴더)만 |
@@ -202,6 +202,17 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
   합쳐지지 않게, 붙여넣기와 같음) 편집기에 초점을 준다. 나머지 전송(편집기 안 글 끌기, 다른 프로그램의 글, 파일, 복사·붙여넣기)은 상속한 처리 그대로다.
   RSyntaxTextArea의 UI가 생성자와 `updateUI`에서 자기 처리기를 다시 넣으므로 두 곳에서 처리기를 다시 놓는다. 처리기는 RSyntaxTextArea처럼
   모든 SQL 편집 영역이 한 인스턴스를 같이 쓴다(편집기 안 끌기가 원본을 처리기에 기억하므로).
+- **놓는 창에 맞춘 이름(2026-11-13 검토 후 결정).** SSMS처럼, 창이 이미 그 DB에 있으면 DB 이름은 지울 군더더기다. 규칙(엔진 중립):
+  DB(카탈로그) 부분은 (1) 놓는 쿼리 창이 개체와 같은 연결이고 창의 현재 DB가 개체의 DB이며 (2) DB를 빼도 스키마 부분이 남을 때(DB > 스키마 > 개체:
+  SQL Server, 카탈로그와 스키마가 있는 Generic 엔진)만 뺀다. 그 밖은 그대로: 다른 DB·다른 연결·연결 없는 창은 전체 이름, MySQL/MariaDB는 `db.table`
+  (DB가 유일한 이름 공간), PostgreSQL·Oracle은 원래 `schema.table`, 열·Columns 폴더·여러 개는 같은 방식. 이름 복사와 트리 Ctrl+C는 놓을 창이 없으므로 바뀌지 않는다.
+  - 구현: 놓을 창은 끌기를 시작할 때 모르므로, 끌기 데이터(`DragNames`)에 개체마다 전체 이름, DB를 뺀 이름, 그 DB 이름과 연결(`DragName`)을 싣는다.
+    DB를 뺀 이름은 전체 이름이 `DBUtils.getFullQualifiedName(데이터 소스, DB, 스키마, 개체)`와 같을 때만 `getFullQualifiedName(데이터 소스, 스키마, 개체)`로
+    만든다(같은 따옴표 함수, 글을 자르지 않음). 그래서 다른 꼴의 이름(MySQL `db.table`, SQL Server 프로시저 `dbo.p`, 스키마 자신, 열)은 전체 이름 그대로다.
+    개체를 싣는 대신 이름을 실은 것은, 놓을 때 개체를 다시 읽거나 이름 함수를 편집기 쪽에 두지 않기 위해서다(변경이 더 작음).
+  - 놓는 쪽: 쿼리 창 자신의 편집 영역이면 창의 연결(`getDataSourceContainer`)과 현재 DB(`getDefaultObjectNames`: DB 선택·상태 줄이 보이는 기본 개체,
+    메모리에서 읽고 DB에 묻지 않음)로 이름을 고른다. `USE`로 세션 DB가 바뀌면 창이 따라 읽은 값(#220)을 그대로 쓴다. 대화상자 등 쿼리 창이 아닌
+    SQL 편집 영역은 전체 이름을 받는다.
 - **놓는 자리.** 끄는 동안 캐럿이 포인터를 따라가고(Swing 글 놓기의 기본 `DropMode.USE_SELECTION`), 놓으면 그 자리에 들어가며 캐럿은 넣은 글 뒤에 선다.
   선택된 글이 있으면 끌기가 들어오는 순간 선택이 풀리고 놓은 자리에 끼워 넣는다(선택을 바꾸지 않는다; Swing 글 구성 요소의 기본 동작).
   창의 변경 표시·상태 줄은 입력과 같은 문서 이벤트로 바뀐다.
@@ -229,7 +240,22 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 | 스키마 / 데이터베이스 | `chr_drag_name.chr_s` / `chr_drag_name` | `chr_drag_name` / `postgres` | `chr_drag_name` | `CHR_DRAG_NAME` |
 | 다른 DB·스키마의 테이블 | `chr_drag_name_b.dbo.chr_tb` | `chr_drag_name_b.chr_tb` | `chr_drag_name_b.chr_tb` | `CHR_DRAG_NAME_B.CHR_TB` |
 
-- SQL Server의 정규화된 이름은 창이 그 DB에 있어도 DB 이름을 붙인다(정규화된 이름 복사와 같은 함수, 이번 변경에서 새 규칙을 만들지 않음).
+- 위 표는 첫 확인(창 DB가 개체의 DB가 아닌 경우)이다. 놓는 창에 맞춘 이름(검토 후 결정)은 다시 빌드해 같은 방법으로 확인했다:
+
+| SQL Server에서 끈 것 | 창이 `chr_drag_name`(같은 연결) | 창이 `master` | `master` 창에서 `USE chr_drag_name` 뒤 | 다른 연결의 창(DB `chr_drag_name`) | 연결 없는 창 |
+|---|---|---|---|---|---|
+| 테이블 | `dbo.chr_t1` | `chr_drag_name.dbo.chr_t1` | `dbo.chr_t1` | `chr_drag_name.dbo.chr_t1` | `chr_drag_name.dbo.chr_t1` |
+| 따옴표가 필요한 테이블 | `dbo.[chr t2]` | | | | |
+| 뷰 | `dbo.chr_v` | | | | |
+| 테이블 3개 | `dbo.[chr t2], dbo.chr_t1, dbo.[order]` | | | | |
+| 다른 스키마의 테이블 | `chr_s.chr_t4` | | | | |
+| 프로시저 | `dbo.chr_p`(원래 DB 없음) | | | | |
+| Columns 폴더 | `id, [my col], [select], MixedCase` | | | | |
+| 스키마 / 데이터베이스 | `chr_drag_name.chr_s` / `chr_drag_name`(스키마 부분이 남지 않으므로 그대로) | | | | |
+| 다른 DB의 테이블 | `chr_drag_name_b.dbo.chr_tb` | | | | |
+
+  다른 엔진은 그대로: PostgreSQL 창(postgres/public) `chr_drag_name.chr_t1`, MariaDB 창(`USE chr_drag_name` 뒤) `chr_drag_name.chr_t1`,
+  Oracle 창(SYSTEM) `CHR_DRAG_NAME.CHR_T1`. 실행 취소는 여전히 한 단계(`dbo.chr_t1` → 빈 창 → 다시 실행). 이름 복사·트리 Ctrl+C는 전과 같다.
 - 연결 노드, Tables 폴더, 읽지 않은 Columns 폴더, 테이블과 Views 폴더를 함께 고른 선택: 끌기가 시작되지 않고 글이 들어가지 않음.
 - 놓는 자리(SQL Server): 빈 창, 줄 가운데(`SELECT * FROM | WHERE 1 = 1`), 글 끝, 200줄 글을 끝까지 내린 창의 보이는 줄, 실행 중인 창(`WAITFOR` 중에 놓으면
   들어가고 실행은 그대로 끝남), 선택(`xxx`) 가운데(선택이 풀리고 그 자리에 끼워 넣음). 끄는 동안 캐럿이 포인터 위치로 움직이고, 놓으면 편집기가 초점을 받고
@@ -248,3 +274,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-08 Altibase 테이블 잘라내기·구체화된 뷰 새로 고침(A5), 컴파일 명령(Oracle·Altibase, O11·A6). 확인은 [swing-routines.md](swing-routines.md).
 - 2026-11-08 `runChange`를 속성 편집도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림([swing-object-properties.md](swing-object-properties.md)).
 - 2026-11-13 끌어서 이름 넣기(앱 변경 #112): 트리 끌기(복사만), 쿼리 편집기가 놓은 자리에 한 실행 취소 단계로 넣음. SQL Server·PostgreSQL·MariaDB·Oracle에서 실제 마우스 끌기로 확인.
+- 2026-11-13 놓는 창에 맞춘 이름(#112 검토): 같은 연결의 쿼리 창이 개체의 DB에 있으면 DB.스키마.개체에서 DB를 뺌(SQL Server `dbo.t`). 다른 꼴의 이름·다른 창은 그대로.

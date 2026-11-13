@@ -44,6 +44,8 @@ import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -107,7 +109,9 @@ import java.util.function.Supplier;
  *     <li>끌기: 같은 전송 처리기가 끌기에는 쿼리에 넣을 이름({@link #getDragNames})을 준다. 이름은 정규화된 이름 복사와 같은 함수이고,
  *     SQL 한 줄에 들어가도록 ", "로 잇는다(복사는 줄마다 하나 그대로). Columns 폴더는 메모리에 있는 열 이름을 준다. 열을 아직 읽지 않았으면
  *     끌리지 않는다: 끌기는 이벤트 스레드에서 시작하고, 읽으면 DB에 물을 수 있어서다. 복사만 하므로 트리는 바뀌지 않는다.
- *     JVM 안에서만 쓰는 표시 형식({@link #DRAG_FLAVOR})을 붙여 쿼리 편집기가 탐색기에서 온 놓기를 알아본다.</li>
+ *     JVM 안에서만 쓰는 표시 형식({@link #DRAG_FLAVOR})을 붙여 쿼리 편집기가 탐색기에서 온 놓기를 알아본다.
+ *     놓을 창은 끌기를 시작할 때 모르므로, 개체마다 전체 이름과 DB를 뺀 이름(DB.스키마.개체로 만든 이름만, {@link DragName})을 실어 보내고
+ *     놓는 쿼리 창이 자기 연결과 현재 DB로 고른다({@link DragNames#getText}). 두 이름 모두 같은 {@link DBUtils} 함수로 만들고 글을 자르지 않는다.</li>
  *     <li>Generate SQL: 생성기 확장점에서 선택에 맞는 생성기를 고르고({@link ObjectScripts#getGenerators}) 결과를 새 쿼리 창에 연다(실행하지 않음).
  *     SWT는 미리 보기 대화상자였지만 Swing의 Script as(New Query Editor Window)와 같은 흐름으로 했다. 복사는 쿼리 창에서 한다.</li>
  * </ul>
@@ -125,6 +129,7 @@ import java.util.function.Supplier;
  *   앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
  * - 2026-11-13 트리에서 끌어 쿼리 창에 이름 넣기({@link #getDragNames}, {@link DragNames}, 앱 변경 #112,
  *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
+ * - 2026-11-13 끌어 놓은 이름이 놓는 창에 맞게: 같은 연결의 창이 개체의 DB에 있으면 DB.스키마.개체 이름에서 DB를 뺌({@link DragName}, 앱 변경 #112 검토)
  */
 final class ExplorerObjectCommands {
 
@@ -298,22 +303,60 @@ final class ExplorerObjectCommands {
             @Override
             protected Transferable createTransferable(JComponent c) {
                 if (dragging) {
-                    String names = getDragNames(selection.get());
-                    return names == null || DRAG_FLAVOR == null ? null : new DragNames(names);
+                    return DRAG_FLAVOR == null ? null : getDragNames(selection.get());
                 }
-                String names = getNames(selection.get(), false, System.lineSeparator());
+                String names = getNames(selection.get(), false);
                 return names == null ? null : new StringSelection(names);
             }
         };
     }
 
     /**
-     * Names dragged from the tree: plain text for any drop target, and {@link #DRAG_FLAVOR} so that the query editor
-     * knows the drop comes from Object Explorer.
+     * One dragged name.
+     *
+     * @param fullName           the qualified name, as Copy Qualified Name gives it
+     * @param nameWithoutCatalog the name without its database when the full name is database.schema.object, else null
+     * @param catalog            the object's database (with {@code nameWithoutCatalog})
+     * @param container          the object's connection (with {@code nameWithoutCatalog})
+     */
+    record DragName(
+        @NotNull String fullName,
+        @Nullable String nameWithoutCatalog,
+        @Nullable String catalog,
+        @Nullable DBPDataSourceContainer container
+    ) {
+    }
+
+    /**
+     * Names dragged from the tree: the full names as plain text for any drop target, and {@link #DRAG_FLAVOR} (this object)
+     * so that the query editor knows the drop comes from Object Explorer and picks the names for its own window.
      */
     static final class DragNames extends StringSelection {
-        DragNames(@NotNull String names) {
-            super(names);
+        private final List<DragName> names;
+
+        DragNames(@NotNull List<DragName> names) {
+            super(getText(names, null, null));
+            this.names = names;
+        }
+
+        /**
+         * The names for a query window, joined by ", ": a name loses its database when the window is on the object's
+         * connection and its current database is the object's database. Null window values give the full names.
+         */
+        @NotNull
+        String getText(@Nullable DBPDataSourceContainer windowContainer, @Nullable String windowCatalog) {
+            return getText(names, windowContainer, windowCatalog);
+        }
+
+        @NotNull
+        private static String getText(@NotNull List<DragName> names, @Nullable DBPDataSourceContainer windowContainer, @Nullable String windowCatalog) {
+            List<String> text = new ArrayList<>(names.size());
+            for (DragName name : names) {
+                boolean sameDatabase = name.nameWithoutCatalog() != null && windowContainer != null && name.container() == windowContainer
+                    && name.catalog() != null && name.catalog().equals(windowCatalog);
+                text.add(sameDatabase ? name.nameWithoutCatalog() : name.fullName());
+            }
+            return String.join(", ", text); //$NON-NLS-1$
         }
 
         @Override
@@ -348,7 +391,7 @@ final class ExplorerObjectCommands {
      * Enables the commands for the selection and rebuilds the Generate SQL menu. EDT, model data in memory only.
      */
     void update(@NotNull List<DBNNode> nodes) {
-        copyNameAction.setEnabled(getNames(nodes, false, System.lineSeparator()) != null);
+        copyNameAction.setEnabled(getNames(nodes, false) != null);
         copyQualifiedNameAction.setEnabled(getObjects(nodes) != null);
         generateSqlMenu.removeAll();
         List<DBSObject> objects = getObjects(nodes);
@@ -375,7 +418,7 @@ final class ExplorerObjectCommands {
     // Copy names
 
     private void copyNames(boolean qualified) {
-        String names = getNames(selection.get(), qualified, System.lineSeparator());
+        String names = getNames(selection.get(), qualified);
         if (names != null) {
             DBWorkbench.getPlatformUI().copyTextToClipboard(names, false);
         }
@@ -383,12 +426,11 @@ final class ExplorerObjectCommands {
 
     /**
      * Names a drag of the nodes inserts into a query: the qualified names (as Copy Qualified Name; a column's is its
-     * quoted name) on one line separated by ", ", the columns of a Columns folder in their place. Null if a node is not a
-     * database object or a folder's columns are not read yet: reading them may query the database, and the drag starts
-     * on the event thread.
+     * quoted name), the columns of a Columns folder in their place. Null if a node is not a database object or a folder's
+     * columns are not read yet: reading them may query the database, and the drag starts on the event thread.
      */
     @Nullable
-    private static String getDragNames(@NotNull List<DBNNode> nodes) {
+    private static DragNames getDragNames(@NotNull List<DBNNode> nodes) {
         List<DBNNode> named = new ArrayList<>();
         for (DBNNode node : nodes) {
             if (node instanceof DBNDatabaseFolder folder && folder.getChildrenClass() != null
@@ -409,15 +451,42 @@ final class ExplorerObjectCommands {
                 named.add(node);
             }
         }
-        return getNames(named, true, ", "); //$NON-NLS-1$
+        List<DragName> names = new ArrayList<>();
+        for (DBNNode node : named) {
+            DBSObject object = getObject(node);
+            if (object == null) {
+                return null;
+            }
+            names.add(createDragName(object));
+        }
+        return names.isEmpty() ? null : new DragNames(names);
     }
 
     /**
-     * Names of the nodes joined by the separator; null if there is none. Qualified names exist for database objects only
-     * (null if another node is selected); other nodes (connections, folders) give their text in the tree.
+     * The object's full name and, when that name is database.schema.object (SQL Server, Generic engines with catalogs and
+     * schemas), the schema.object name. Both come from the same quoting function; the full name is compared with the
+     * database.schema.object form instead of cutting text, so other name forms (MySQL database.table, a SQL Server
+     * procedure's schema.name, a schema itself, a column) keep their full name.
+     */
+    @NotNull
+    private static DragName createDragName(@NotNull DBSObject object) {
+        String fullName = DBUtils.getObjectFullName(object, DBPEvaluationContext.DML);
+        DBPDataSource dataSource = object.getDataSource();
+        DBSCatalog catalog = DBUtils.getParentOfType(DBSCatalog.class, object);
+        DBSSchema schema = DBUtils.getParentOfType(DBSSchema.class, object);
+        if (dataSource != null && catalog != null && schema != null && DBUtils.getParentOfType(DBSCatalog.class, schema) == catalog
+            && fullName.equals(DBUtils.getFullQualifiedName(dataSource, catalog, schema, object))) {
+            return new DragName(fullName, DBUtils.getFullQualifiedName(dataSource, schema, object), catalog.getName(), dataSource.getContainer());
+        }
+        return new DragName(fullName, null, null, null);
+    }
+
+    /**
+     * Names of the nodes, one per line; null if there is none. Qualified names exist for database objects only (null if
+     * another node is selected); other nodes (connections, folders) give their text in the tree.
      */
     @Nullable
-    private static String getNames(@NotNull List<DBNNode> nodes, boolean qualified, @NotNull String separator) {
+    private static String getNames(@NotNull List<DBNNode> nodes, boolean qualified) {
         List<String> names = new ArrayList<>();
         for (DBNNode node : nodes) {
             DBSObject object = getObject(node);
@@ -432,7 +501,7 @@ final class ExplorerObjectCommands {
                 names.add(CommonUtils.isEmpty(name) ? ObjectExplorerPanel.getNodeText(node) : name);
             }
         }
-        return names.isEmpty() ? null : String.join(separator, names);
+        return names.isEmpty() ? null : String.join(System.lineSeparator(), names);
     }
 
     //////////////////////////////////////////////////////////
