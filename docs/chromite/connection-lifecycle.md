@@ -18,6 +18,7 @@ SWT 대조([swt-parity-audit.md](swt-parity-audit.md))의 4순위 B2 묶음이�
 | A-C4 | 트랜잭션 로그의 지난 트랜잭션 | "트랜잭션 로그의 지난 트랜잭션" |
 | A-S8 (A-platform §1 S8) | 시스템 절전 때 연결 닫기 | "절전" |
 | (규칙) | 모든 닫기 경로가 트랜잭션 질문을 거치는지 | "닫기 경로 전수 점검" |
+| (규칙, #109) | 연결 새로 고침이 세션을 닫지 않음(PostgreSQL) | "연결 새로 고침과 세션" |
 
 범위 밖: 실행 중 자동/수동 커밋 전환(B-S18)은 사용자 결정이 필요해 손대지 않았다. 2026-11-08 결정 뒤 [transactions.md](transactions.md) "커밋 방식 전환"에서 더했다.
 
@@ -222,9 +223,102 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 | Activity Monitor 창 닫기 | `AdminConnection.close` | 자기 격리 세션은 늘 자동 커밋이라 잃을 것이 없음(`keepAutoCommit`) | 해당 없음 |
 | 연결 시험, 연결 실패 뒤 정리 | `ConnectionTestJob`, `ConnectJob` | 사용자 세션이 아님(임시 연결, 막 연 연결) | 해당 없음 |
 | 탐색기 새로 고침의 다시 연결 | `DataSourceDescriptor.refreshObject` | JDBC 데이터 소스는 `DBPRefreshableObject`라 다시 연결하지 않음(JDBC 아닌 소스만) | 해당 없음 |
+| 연결 새로 고침(연결·Databases 폴더의 Refresh, DDL 뒤 연결 전체 새로 고침) | 각 엔진의 `refreshObject` | PostgreSQL(과 이를 잇는 엔진)은 모든 세션을 닫고 다시 열었다(2026-11-08 점검에서 빠짐, 위 줄이 JDBC 데이터 소스 안쪽을 보지 않았다). 이제 세션을 닫지 않는다(아래 "연결 새로 고침과 세션") | **고침**(2026-11-13, #109) |
 | 실행 전 다시 검증 | `SQLQueryExecuteJob`(`isInvalidateBeforeExecute`) | Swing은 켜지 않음(기본 `false`) | 해당 없음 |
 | 결과 저장의 다시 열기 | `AbstractCommandContext.saveChanges` | 연결이 없을 때만 다시 엶(잃을 것 없음) | 해당 없음 |
 | 프로젝트 닫기·삭제 | `BaseProjectImpl` → `DataSourceRegistry.dispose` | Swing에 프로젝트를 닫는 명령이 없음 | 해당 없음 |
+
+## 연결 새로 고침과 세션 (2026-11-13, 앱 변경 #109)
+
+### 문제
+
+PostgreSQL 연결을 새로 고치면 그 연결의 세션이 모두 닫혔다. 새로 고침에 이르는 길은 Object Explorer의 연결 노드와 Databases 폴더의 Refresh(F5),
+쿼리 창 DDL 뒤 연결 전체 새로 고침(`SqlMetadataRefresh`: `CREATE DATABASE`, `DROP DATABASE`, 갈래를 모르는 개체의 DDL, 예: `DROP TYPE`·`DROP DOMAIN`·
+`DROP EXTENSION`·`CREATE ROLE`·`DROP ROLE`)이다. 데이터베이스·스키마·Tables 폴더의 Refresh는 세션을 닫지 않았다.
+
+확인(2026-11-13, 고치기 전 빌드 `8b161d5e46`, PostgreSQL 17, 창 A·B, 서버는 Chromite가 갖지 않은 따로 연 JDBC 세션에서 `pg_stat_activity`와 행으로 봄,
+증거 `D:\Tools\_scratch\pg-refresh-sessions\run\`의 `c1a-manual`, `c1a-begin`, `c1b`, `c1cd`, `c2c3`, `c3d`):
+
+| 경우 | 닫힌 것 | 잃은 것 | 앱이 한 말 |
+|---|---|---|---|
+| B 수동 커밋 + `INSERT`, A에서 연결 Refresh | 주·메타데이터·A·B 세션(서버 pid 모두 바뀜) | B의 행(조용한 롤백), search_path, `SET work_mem`, 임시 테이블, B의 수동 커밋 방식(다시 열린 세션은 자동 커밋) | 아무것도 묻지 않음. B의 상태 줄에서 커밋 방식·열린 트랜잭션 칸이 비고 "쿼리를 실행했습니다"는 그대로. 끊기 질문 목록 비어 있음 |
+| B 자동 커밋 + `BEGIN` + `INSERT`, 같은 Refresh | 같음 | B의 행 | 같음. 뒤에 B에서 `COMMIT`하면 새 세션에서 "쿼리를 실행했습니다"(없는 트랜잭션을 커밋한 것처럼 보임), 행 없음 |
+| A의 `CREATE DATABASE`, 그 뒤 `DROP DATABASE` | 첫 번째: 모든 세션. B가 다시 열린 뒤 두 번째: B는 목록 밖 인스턴스라 닫히지 않음 | B의 행. B가 다시 열린 세션에서 친 `INSERT`는 자동 커밋으로 바로 커밋됨(사용자는 수동 커밋으로 알고 있음) | 묻지 않음 |
+| A의 `DROP TYPE`(갈래 OTHER) | 모든 세션 | B의 행 | 묻지 않음 |
+| Databases 폴더 Refresh | 모든 세션 | B의 행 | 묻지 않음 |
+| 데이터베이스·스키마·Tables 폴더 Refresh | 없음 | 없음 | 트랜잭션 그대로 |
+| B에서 `pg_sleep(8)` 실행 중 A에서 Refresh | B의 세션을 닫고 새 세션을 바로 다시 엶. 서버의 옛 백엔드는 문장 끝까지 돎 | — | 묻지 않음 |
+
+원인: `PostgreDataSource.refreshObject`(upstream, 2018년 `#3893`부터)가 `shutdown`으로 모든 데이터베이스 인스턴스의 문맥을 닫고(`JDBCRemoteInstance.shutdown`,
+닫기 전에 `JDBCDataSource.closeConnection`이 `rollback`) `initializeRemoteInstance`로 데이터베이스 객체(인스턴스)를 새로 만들었다. 쿼리 창의 문맥은
+옛 인스턴스에 남는다. 그 문맥은 다음에 쓰일 때 `JDBCExecutionContext.getConnection`이 스스로 다시 연결해(`connect`, `initFrom` 없이) 옛 인스턴스의 목록에
+들어간다. 창의 기본 DB 읽기 작업(`SqlEditorPanel` → `ContextDefaultObjectsReader` → 옛 `PostgreDatabase.getSchemas` → `checkInstanceConnection`)은 옛 인스턴스에
+주·메타데이터 세션 한 쌍을 새로 연다. 데이터 소스의 인스턴스 목록에 없는 이 세션들은:
+
+- 연결 끊기가 닫지 않는다(`JDBCDataSource.shutdown`은 목록의 인스턴스만 닫음). 앱을 끝낼 때 닫힌다.
+- 끊기·끝내기 질문, 열린 트랜잭션 목록, 상태 줄 세션 수가 보지 못한다(모두 `getAvailableInstances`를 셈).
+- 쿼리 관리자도 다시 열린 연결을 모른다. Refresh 뒤 B에서 수동 커밋으로 `INSERT`하면 서버는 `idle in transaction`(행 잠금 3개)인데 B의 상태 줄과
+  끊기 질문은 열린 트랜잭션이 없다고 보고, 끊은 뒤에도 그 트랜잭션이 잠금을 쥔 채 서버에 남았다(B 창은 문맥이 없어 롤백도 할 수 없음).
+- 쌓임: 첫 Refresh가 옛 인스턴스 하나와 그 위의 세션 한 쌍을 남긴다. 창들은 그 옛 인스턴스에 묶여 다음 Refresh에서는 닫히지 않으므로, Refresh 다섯 번
+  뒤 끊기 후 남은 세션은 4개(옛 주·메타데이터 한 쌍, A·B 창)였다. Refresh 뒤 창을 닫아도 옛 주·메타데이터 한 쌍은 남았다.
+
+다른 번들 엔진의 연결 새로 고침(`refreshObject`)은 세션을 닫지 않는다(코드와 실행으로 확인, 위와 같은 경우 1a: B의 세션 id와 커밋하지 않은 행이 Refresh 뒤에도 그대로,
+롤백 뒤 0행):
+
+| 엔진 | `refreshObject` | 하는 일 | 실행 확인 |
+|---|---|---|---|
+| SQL Server | `SQLServerDataSource.java:616` | 캐시 비우기 | SPID 60, `open_transaction_count` 1 그대로 |
+| MySQL | `MySQLDataSource.java:471` | 캐시 비우기, `initialize` | 연결 id 4643, `innodb_trx` RUNNING 그대로 |
+| MariaDB | 같은 클래스 | 같음 | 연결 id 9685, `innodb_trx` RUNNING 그대로 |
+| Oracle | `OracleDataSource.java:651` | 캐시 비우기, `initialize` | SID 176 그대로 |
+| Altibase(Generic 기반) | `AltibaseDataSource.java:181`, `GenericDataSource.java:625` | 캐시 비우기, `initialize` | SESSION_ID 5 그대로 |
+| DB2, Cubrid, Dameng, Denodo, Exasol, IoTDB, Mimer | 각 `*DataSource.refreshObject` | `shutdown`·`close`·`reconnect` 없음(코드만 읽음) | 번들 시험 서버 없음 |
+| PostgreSQL을 잇는 엔진(Greenplum, Kingbase, GaussDB 등) | `PostgreDataSource.refreshObject`를 물려받음 | 이 고침이 함께 적용됨 | 시험 서버 없음 |
+| JDBC가 아닌 데이터 소스 | `DataSourceDescriptor.refreshObject` → `reconnect` | `DBPRefreshableObject`가 아니면 다시 연결 | 이번 범위 밖(보고만) |
+
+### 바꾼 것: 새로 고침은 세션을 닫지 않는다
+
+`PostgreDataSource.refreshObject`는 이제 서버를 다시 읽기만 한다(`reloadDatabases`).
+
+- 데이터베이스 목록을 연결할 때와 같은 질의로 다시 읽는다(`loadAvailableDatabases`, 목록을 읽지 않는 설정이면 연결 설정의 데이터베이스 하나).
+- 세션이 있는 데이터베이스(`isInstanceConnected` 또는 문맥이 하나라도 있음)는 **같은 객체**를 둔다. 그 세션들(주, 메타데이터, 쿼리 창, 도구)은 열린 채이고
+  트랜잭션, search_path, 임시 테이블, 커밋 방식이 남는다. 그 데이터베이스의 정보와 캐시는 `PostgreDatabase.refreshObject`로 다시 읽는다
+  (데이터베이스 노드의 Refresh와 같은 일: 정보, 스키마·역할·확장 등 캐시 비우기, 데이터 형식 다시 읽기).
+- 세션이 없는 데이터베이스는 방금 읽은 객체로 바꾼다(전과 같음). 새로 생긴 데이터베이스는 목록에 들어오고, 세션 없이 사라진 데이터베이스는 빠진다.
+- 목록에서 사라졌지만 세션이 있는 데이터베이스(필터로 뺐거나 접속이 막힌 데이터베이스)는 다음 연결까지 목록에 남는다. 닫으면 그 세션의 트랜잭션이 끝나고,
+  쿼리 창이 그 문맥을 목록 밖에서 다시 열기 때문이다. 연결을 끊을 때 다른 세션과 같이 질문을 거쳐 닫힌다.
+- 작업 중인 데이터베이스(`activeDatabaseName`)는 아직 목록에 있으면 그대로 둔다. 전에는 연결 설정의 데이터베이스로 돌아갔다(세션을 새로 열었으므로).
+- 설정 캐시를 비우고 다시 읽고, 서버 정보(`initialize`: 버전, 데이터 소스 정보, 기본 데이터베이스의 데이터 형식)를 다시 읽는 것은 전과 같다.
+- 목록을 읽다가 실패하면(서버가 응답하지 않음) 아무것도 바꾸지 않는다. 전에는 세션을 다 닫은 뒤에 실패해 빈 연결이 남았다.
+- 죽은 세션은 새로 고침이 고치지 않는다. 메타데이터 세션이 끊겼으면 새로 고침이 오류를 내고, 실행 복구(`DBExecUtils.tryExecuteRecover`,
+  `TransactionRecoveryGuard`)가 다시 연결 전에 묻는다. 세션을 새로 여는 것은 **무효화/다시 연결**이 한다.
+
+고른 이유: 세션을 닫지 않으면 물을 것이 없고(묻지 않는 롤백이 생기지 않음), 옛 인스턴스가 생기지 않아 남는 세션도 생길 수 없다. 묻는 쪽(새로 고침 전에
+커밋/롤백/취소를 묻고 DDL 뒤 새로 고침은 미루기)은 새로 고침 때마다 세션 상태(search_path, 임시 테이블, 커밋 방식)를 잃는 것을 그대로 두고, 남는 세션은
+따로 고쳐야 한다. upstream이 닫았던 이유는 데이터베이스 객체를 새로 만들기 때문이었다(2018년 "database list refresh fix"). 목록만 다시 읽으면 되므로 객체를
+두어도 된다. 고친 곳은 `PostgreDataSource` 하나이고 새로 고침 호출자(`ObjectExplorerPanel`, `SqlMetadataRefresh`)는 바꾸지 않았다.
+
+- 세션이 있는 데이터베이스를 다시 읽는 것(`PostgreDatabase.refreshObject`)과 설정 미리 읽기는 새로 고침 상태(`isConnectionRefreshing`)가 끝난 뒤에 한다.
+  그 상태에서는 `DBUtils.getDefaultContext`가 메타데이터 세션을 주지 않아 데이터 형식 읽기가 "Default context not found"로 실패했다(첫 빌드에서 실행해 보고 찾음).
+  upstream의 설정 미리 읽기도 같은 이유로 새로 고침 때는 늘 조용히 실패했다.
+
+### 확인 (2026-11-13, 고친 빌드)
+
+같은 스크립트, 같은 서버 관찰(증거 `run\v1`~`v4`). 서버의 pid는 처음 연결한 것 그대로였다(주 56877, 메타데이터 56878, A 56880, B 56881).
+
+| 경우 | 결과 |
+|---|---|
+| B 수동 커밋 + `INSERT`, 연결 Refresh | B는 같은 pid, `idle in transaction`(잠금 3), 상태 줄·끊기 질문 목록 그대로. B 안에서 search_path `chr_pg_refresh_s, public`, `work_mem` 7MB, 임시 테이블, 자기 행 1이 보임. 커밋 → 서버에 행 1 |
+| `BEGIN` + `INSERT`, Refresh, `COMMIT` | 행 3이 커밋됨 |
+| `CREATE DATABASE` / `DROP DATABASE` / `DROP TYPE` / 노드 4가지 Refresh | 세션 4개 그대로, B의 트랜잭션 그대로(25초), 롤백하니 행 10 없음. DB 콤보 `public`(객체) |
+| 다른 세션이 만든 DB·형식·테이블 | Refresh 뒤 Databases 폴더에 `chr_pg_refresh_z`가 보이고 지운 뒤 빠짐, 모델 목록에 `chr_pg_refresh_y`, 형식 `chr_pg_refresh_ty2`가 형식 캐시에 들어옴(전에는 없음), 새 테이블이 Tables에 보이고 지운 뒤 빠짐 |
+| B에서 `pg_sleep(8)` 중 Refresh | B의 백엔드 그대로 끝까지 실행, 새 세션 없음 |
+| Refresh 다섯 번 뒤 B의 `INSERT`, 끊기 | 질문에 "PG (B.sql)". 취소 → 그대로, 롤백 → 끊김, 서버에 내 세션 0, 행 없음 |
+| Refresh 뒤 창 둘을 닫고 끊기 | 창을 닫으면 그 세션이 닫히고(주·메타데이터만 남음), 끊은 뒤 0 |
+| 다시 연결 뒤, `CREATE DATABASE`·`DROP DATABASE` 뒤 #89·#108 | PostgreSQL: `CREATE TABLE chr_pg_refresh_s.t2`의 대상은 그 스키마, search_path를 바꾸고 만든 뒤 콤보 `chr_pg_refresh_s`(객체), 다시 연결 뒤 `public`. SQL Server: `USE chr_pg_refresh; CREATE TABLE dbo.…; SELECT DB_NAME()` 뒤 콤보 `chr_pg_refresh`(객체), `dbo.t`의 대상은 `dbo` 스키마, `CREATE DATABASE`·`DROP DATABASE` 뒤에도 콤보 그대로 |
+
+확인하지 못한 것: Chromite Agent 세션, 실행 중인 데이터 전송·예약 작업, 디버거(모두 데이터베이스 인스턴스의 문맥이라 같은 경로로 남는다고 코드로만 봄),
+결과를 가져오는 중인 커서, 목록을 읽지 않는 설정(데이터베이스 하나)과 목록에서 사라졌지만 세션이 있는 데이터베이스(코드로만 봄), PostgreSQL을 잇는 엔진.
 
 ## 설계 결정과 이유
 
@@ -234,11 +328,15 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 - **H2 승인 파일과 키는 SWT 그대로**: SWT에서 허용한 작업 공간을 옮겨 와도 다시 묻지 않게.
 - **절전은 묻지 않고 건너뜀**: 잠들기 직전에는 대화상자를 띄울 시간이 없고, 열린 트랜잭션을 버리는 것은 규칙 위반이다. 건너뛴 연결은 이후 복구 경로가 묻는다.
 - **스마트 커밋은 바꾼 세션만 되돌림**: 업스트림처럼 모든 커밋 뒤 되돌리면 처음부터 수동 커밋인 연결의 커밋 방식이 사용자 모르게 바뀐다.
+- **연결 새로 고침은 세션을 두고 다시 읽음(묻지 않음)**: 묻는 방식은 세션 상태를 매번 잃고 남는 세션을 따로 고쳐야 한다. 세션을 두면 물을 것도, 남을 것도 없다
+  ("연결 새로 고침과 세션").
 
 ## upstream 대비 변경점
 
 - 모델: `InvalidateJob.collectDependentDataSources` 공개, `InvalidateJob`의 결과를 모든 단계로 셈(마지막 단계만 세어 실패를 성공으로 알리던 버그), `QMUtils.getRecentTransactionStatements` 추가, `DataSourceMonitorJob`의 절전 닫기·깨어남 다시 초기화가
   쓰는 중인 연결을 건너뜀(`isInUse`, 유휴 연결 닫기의 조건을 이 함수로 뺌).
+- PostgreSQL: `PostgreDataSource.refreshObject`가 `shutdown`하지 않고 세션이 있는 데이터베이스 객체를 둔 채 목록과 캐시를 다시 읽음(`reloadDatabases`),
+  작업 중인 데이터베이스를 연결 설정의 것으로 되돌리지 않음.
 - SWT UI 클래스(`UIServiceConnectionInitImpl`, `SQLiteExtensionConfirmationImpl`, `ConnectionLostDialog`, `DataSourceInvalidateHandler`, `DataSourceDisconnect*Handler`,
   `FolderDisconnectHandler`, `TransactionLogDialog`의 지난 트랜잭션, `ApplicationWorkbenchAdvisor.cancelRunningTasks`·`systemSleepListener`)는 #68에서 지워졌다.
   Swing 클래스는 동작만 맞춰 새로 썼다.
@@ -286,3 +384,6 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 - 2026-11-12 닫기 경로 표의 쿼리 창 줄에 연결 변경(앱 변경 #73, `chromite/change-connection`)
 - 2026-11-12 끊긴 세션의 오류 분류: 번들 DB 여섯 가지가 끊긴 세션에 내는 오류를 재고, SQL Server 596과 Altibase 4163을 연결 끊김으로
   (앱 변경 #75, `chromite/transfer-lost-connection`)
+- 2026-11-13 "연결 새로 고침과 세션": PostgreSQL 연결 새로 고침이 모든 세션을 닫아 다른 창의 트랜잭션을 묻지 않고 롤백하고, 목록 밖 인스턴스에 다시 열린
+  세션이 끊은 뒤에도 남던 것을 고침. 다른 번들 엔진은 닫지 않음을 확인. 닫기 경로 표에 새로 고침 줄(앱 변경 #109, `chromite/pg-refresh-sessions`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: PostgreSQL 계열의 Object Explorer 새로 고침, DDL 뒤 탐색기 갱신, DB 콤보, 데이터 형식 목록

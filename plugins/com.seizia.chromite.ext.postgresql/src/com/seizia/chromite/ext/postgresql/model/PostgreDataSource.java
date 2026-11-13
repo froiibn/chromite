@@ -72,6 +72,18 @@ import java.util.regex.Pattern;
 
 /**
  * PostgreDataSource
+ *
+ * 설계: PostgreSQL 연결의 세션은 데이터베이스마다의 인스턴스({@link PostgreDatabase})가 가진다. 연결 새로 고침({@link #refreshObject}:
+ * Object Explorer의 연결·Databases 폴더 새로 고침, 쿼리 창 DDL 뒤 연결 전체 새로 고침)은 서버를 다시 읽기만 하고 세션을 닫지 않는다.
+ * 데이터베이스 목록을 다시 읽되 세션이 있는 데이터베이스는 같은 객체를 두고 그 정보와 캐시만 다시 읽는다({@link #reloadDatabases}).
+ * 세션을 닫으면 그 세션의 커밋하지 않은 트랜잭션이 묻지 않고 롤백되고(사용자 규칙 "트랜잭션 안전"), 쿼리 창은 닫힌 문맥을 목록 밖의
+ * 옛 인스턴스에서 다시 열어 연결을 끊어도 닫히지 않는 세션이 남는다.
+ *
+ * 변경 이력:
+ * - 2026-11-13 {@link #refreshObject}가 세션을 닫고 다시 열지 않음. upstream은 모든 인스턴스를 닫고({@code shutdown}) 데이터베이스 객체를
+ *   새로 만들어, 다른 쿼리 창의 트랜잭션이 묻지 않고 롤백되고 search_path·임시 테이블·커밋 방식이 사라졌으며, 옛 인스턴스에 다시 열린
+ *   세션(주·메타데이터 한 쌍과 쿼리 창 세션)이 연결을 끊은 뒤에도 서버에 남았다(앱 변경 #109,
+ *   docs/chromite/connection-lifecycle.md "연결 새로 고침과 세션")
  */
 public class PostgreDataSource extends JDBCDataSource implements DBSInstanceContainer, DBPAdaptable,
     DBPObjectStatisticsCollector {
@@ -141,15 +153,7 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
     @Override
     protected void initializeRemoteInstance(@NotNull DBRProgressMonitor monitor) throws DBException {
         DBPConnectionConfiguration configuration = getContainer().getActualConnectionConfiguration();
-        String resolvedName = PostgreUtils.getDatabaseNameFromConfiguration(configuration);
-        if (CommonUtils.isEmpty(resolvedName)) {
-            if (!CommonUtils.isEmpty(configuration.getUserName())) {
-                resolvedName = configuration.getUserName();
-            } else {
-                resolvedName = PostgreConstants.DEFAULT_DATABASE;
-            }
-        }
-        this.activeDatabaseName = resolvedName;
+        this.activeDatabaseName = getConfiguredDatabaseName(configuration);
 
         databaseCache = new DatabaseCache();
         settingCache = new SettingCache();
@@ -173,6 +177,22 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         } catch (DBException e) {
             // ignore
         }
+    }
+
+    /**
+     * The database the connection settings name: the database field, else the user name, else {@code postgres}.
+     */
+    @NotNull
+    private static String getConfiguredDatabaseName(@NotNull DBPConnectionConfiguration configuration) {
+        String resolvedName = PostgreUtils.getDatabaseNameFromConfiguration(configuration);
+        if (CommonUtils.isEmpty(resolvedName)) {
+            if (!CommonUtils.isEmpty(configuration.getUserName())) {
+                resolvedName = configuration.getUserName();
+            } else {
+                resolvedName = PostgreConstants.DEFAULT_DATABASE;
+            }
+        }
+        return resolvedName;
     }
 
     private void loadAvailableDatabases(@NotNull DBRProgressMonitor monitor, DBPConnectionConfiguration configuration, List<PostgreDatabase> dbList) throws DBException {
@@ -520,17 +540,21 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         getDefaultInstance().cacheDataTypes(monitor, true);
     }
 
+    /**
+     * Reads the server again without closing a session: the database list, each connected database's information and
+     * caches, the settings, the data types and the server information. The sessions of the connection (main, metadata,
+     * query windows, tools) stay open with their transactions and session state.
+     */
     @Override
     public synchronized DBSObject refreshObject(@NotNull DBRProgressMonitor monitor)
         throws DBException {
         super.refreshObject(monitor);
-        shutdown(monitor);
 
+        Collection<PostgreDatabase> kept;
         try {
             this.isConnectionRefreshing = true;
-            this.databaseCache.clearCache();
             this.hasStatistics = false;
-            this.initializeRemoteInstance(monitor);
+            kept = this.reloadDatabases(monitor);
 
             if (databaseCache.getCachedObjects().isEmpty()) {
                 log.warn("Database cache is empty after refresh, skipping initialize");
@@ -539,11 +563,68 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         } finally {
             this.isConnectionRefreshing = false;
         }
+        // After the refreshing state: metadata sessions are refused while it is set (DBUtils.getDefaultContext)
+        for (PostgreDatabase database : kept) {
+            database.refreshObject(monitor);
+        }
+        try {
+            // Preload some settings, if available
+            settingCache.getObject(monitor, this, PostgreConstants.OPTION_STANDARD_CONFORMING_STRINGS);
+        } catch (DBException e) {
+            // ignore
+        }
         getDefaultInstance().checkInstanceConnection(monitor, false);
 
         this.initialize(monitor);
 
         return this;
+    }
+
+    /**
+     * Reads the database list again (as {@link #initializeRemoteInstance} does) and keeps every database Chromite has a
+     * session in: the same object, its sessions open. A database without a session is replaced by the one just read.
+     * A database no longer listed keeps its place while it has a session (closing it would end that session's transaction,
+     * and a query window would reopen it outside the list); it goes at the next connect.
+     *
+     * @return the databases kept, whose information and caches the caller reads again ({@link PostgreDatabase#refreshObject})
+     */
+    @NotNull
+    private Collection<PostgreDatabase> reloadDatabases(@NotNull DBRProgressMonitor monitor) throws DBException {
+        DBPConnectionConfiguration configuration = getContainer().getActualConnectionConfiguration();
+        List<PostgreDatabase> previous = new ArrayList<>(databaseCache.getCachedObjects());
+        Map<String, PostgreDatabase> connected = new LinkedHashMap<>();
+        for (PostgreDatabase database : previous) {
+            if (database.isInstanceConnected() || database.getAllContexts().length > 0) {
+                connected.put(database.getName(), database);
+            }
+        }
+
+        List<PostgreDatabase> dbList = new ArrayList<>();
+        if (!isReadDatabaseList(configuration)) {
+            String name = getConfiguredDatabaseName(configuration);
+            PostgreDatabase database = connected.get(name);
+            dbList.add(database != null ? database : createDatabaseImpl(monitor, name));
+        } else {
+            List<PostgreDatabase> listed = new ArrayList<>();
+            loadAvailableDatabases(monitor, configuration, listed);
+            for (PostgreDatabase database : listed) {
+                PostgreDatabase kept = connected.get(database.getName());
+                dbList.add(kept != null ? kept : database);
+            }
+        }
+        for (PostgreDatabase database : connected.values()) {
+            if (!dbList.contains(database)) {
+                dbList.add(database);
+            }
+        }
+
+        settingCache.clearCache();
+        databaseCache.setCache(dbList);
+        if (databaseCache.getCachedObject(activeDatabaseName) == null) {
+            // The database the connection worked in is gone: the default instance falls back as at connect
+            activeDatabaseName = getConfiguredDatabaseName(configuration);
+        }
+        return connected.values();
     }
 
     @Override
