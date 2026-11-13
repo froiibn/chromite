@@ -144,6 +144,8 @@ import java.util.function.Supplier;
  *   유휴 연결 닫기 기본값 끔, docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-11 SQL Server·PostgreSQL·MySQL·MariaDB의 Database 칸을 서버 목록에서 고르는 편집 가능한 콤보로({@link ConnectionDatabaseList}).
  *   목록은 대화상자가 Test Connection처럼 만든 임시 연결로 읽는다 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
+ * - 2026-11-13 Additional Parameters 탭의 URL 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었고
+ *   높이가 한 번 늦게 따라가 가장 작은 크기에서 마지막 줄이 잘렸다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -1006,7 +1008,9 @@ final class ConnectionSettingsPanel extends JPanel {
         form.addRow(ConnectionMessages.settings_connect_with, hostModeRadio);
         form.addRow((JLabel) null, urlModeRadio);
         form.addRow(ConnectionMessages.settings_jdbc_url, urlField);
-        JLabel note = new JLabel(ConnectionMessages.settings_url_note);
+        // Wraps at spaces only (an HTML label broke Korean words and cut its last line). It asks for no more than the field
+        // column at the dialog's minimum width (520), so it never sets the dialog's width.
+        JTextArea note = new WrappingNote(ConnectionMessages.settings_url_note, 370);
         note.setForeground(ConnectionDialog.getThemeColor("Chromite.secondaryForeground", "Label.disabledForeground", Color.GRAY)); //$NON-NLS-1$ //$NON-NLS-2$
         form.addRow((JLabel) null, note);
         form.addFiller();

@@ -43,6 +43,9 @@ import java.util.function.ToDoubleFunction;
  *     <li>HTML 라벨은 접히지만 높이가 마지막으로 그린 폭을 따라가 배치가 한 번 늦거나(좁게 접힌 채 남음) 처음 배치에서 한 줄 높이만 받는다.
  *     그래서 선호 크기를 직접 정한다: 폭은 한 줄로 놓을 때의 폭(자리가 있으면 한 줄), 높이는 배치가 준 지금 폭에서 접은 줄 수의 높이다.
  *     폭이 바뀌면 다시 배치를 한 번 요청해 높이가 줄 수를 따라간다({@code OptionsForm}의 카드와 같은 방법).</li>
+ *     <li>{@code pack()}하는 대화상자에서는 한 줄 폭이 그대로 대화상자 폭이 되므로, 부르는 쪽이 가장 넓은 폭({@code wrapWidth})을 줄 수 있다.
+ *     그러면 선호 폭은 한 줄 폭과 그 폭 중 작은 것이고, 배치 전 높이는 그 폭에서 접은 줄 수다(대신하는 HTML 라벨의 {@code body} 폭과 같은 뜻).
+ *     배치가 더 넓은 폭을 주면 거기서 접고 높이가 줄어든다.</li>
  *     <li>줄은 공백에서만 바꾼다(모든 언어, 한국어의 keep-all). Swing의 줄 바꿈({@code JTextArea}의 단어 줄 바꿈, HTML)은 유니코드 줄 나눔 규칙을
  *     따라 한글 음절 사이 어디서나 끊어 "받습니 / 다."처럼 낱말을 갈랐다. 그래서 줄 나누기({@link #wrap})와 그리기를 이 클래스가 직접 한다.
  *     줄 하나보다 넓은 낱말 하나만 글자 사이에서 끊는다(잘리거나 밖으로 그려지는 일이 없게). 숨은 문자를 넣지 않아 글꼴에 따라 달라지지 않는다.</li>
@@ -51,7 +54,8 @@ import java.util.function.ToDoubleFunction;
  *     보기({@code WrappedPlainView})에서 줄 끝 위치만 이 규칙으로 바꾼다.</li>
  *     <li>최소 폭은 가장 긴 낱말의 폭이다.</li>
  *     <li>읽기 전용 {@link JTextArea}로 둔다(부르는 쪽의 형식과 접근성 글 그대로). 그리기는 줄마다 FlatLaf와 같은 글자 그리기다.
- *     글꼴은 라벨 글꼴(테마·밀도 전환을 따름), 색은 부르는 쪽이 FlatLaf 스타일로 정한다(보조 글자색, 경고 글자색).
+ *     글꼴은 라벨 글꼴(테마·밀도 전환을 따름)을 기본값으로 두고 그 위에 부르는 쪽의 FlatLaf 스타일이 적용된다(스타일 클래스 {@code small}),
+ *     색은 부르는 쪽이 FlatLaf 스타일로 정한다(보조 글자색, 경고 글자색).
  *     포커스를 받지 않고 고칠 수 없으며 바탕을 칠하지 않는다.</li>
  * </ul>
  *
@@ -64,11 +68,26 @@ import java.util.function.ToDoubleFunction;
  *   "…입니 / 다.", "넣 / 으십시오."처럼 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  * - 2026-11-12 {@link MessageArea}는 낱말 단위로 줄을 바꿀 때({@code lineWrap}, {@code wrapStyleWord})만 이 줄 바꿈 보기를 씀: 줄을 바꾸지 않는
  *   글 상자도 늘 줄을 바꾸게 되던 것(#82 검토 후속)
+ * - 2026-11-13 가장 넓은 폭({@code wrapWidth})과 라벨 글꼴을 기본값으로 두는 UI: 폭을 정한 HTML 라벨로 접던 안내(연결·설정 내보내기와
+ *   가져오기, 셸 명령 승인 등)가 Swing 줄 바꿈으로 한국어 낱말 가운데서 끊었다. 그 안내를 이 클래스로 옮기면서 {@code pack()}하는 대화상자의
+ *   폭과 작은 글꼴(스타일 클래스)을 그대로 두려고(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class WrappingNote extends JTextArea {
 
+    // The widest the note asks for (0: its one-line width)
+    private final int wrapWidth;
+
     WrappingNote(@NotNull String text) {
+        this(text, 0);
+    }
+
+    /**
+     * @param wrapWidth the widest the note asks for: a longer text wraps at this width before the layout gives the note
+     *                  a width, so a packed dialog keeps its width and gets the height of the wrapped lines
+     */
+    WrappingNote(@NotNull String text, int wrapWidth) {
         super(text);
+        this.wrapWidth = wrapWidth;
         setEditable(false);
         setFocusable(false);
         setOpaque(false);
@@ -78,9 +97,16 @@ final class WrappingNote extends JTextArea {
 
     @Override
     public void updateUI() {
-        super.updateUI();
-        // A label's font, also after a theme or density change (the text area's own font is the editor font)
-        setFont(UIManager.getFont("Label.font")); //$NON-NLS-1$
+        // The theme's text area UI with a label's font as the default font, also after a theme or density change (the
+        // text area's own font is the editor font). The caller's FlatLaf style (style class "small") is applied after
+        // the defaults, so it still sets the font.
+        setUI(new FlatTextAreaUI() {
+            @Override
+            protected void installDefaults() {
+                super.installDefaults();
+                getComponent().setFont(UIManager.getFont("Label.font")); //$NON-NLS-1$
+            }
+        });
     }
 
     @Override
@@ -94,8 +120,10 @@ final class WrappingNote extends JTextArea {
             oneLine = Math.max(oneLine, measure(paragraph));
         }
         oneLine += insets.left + insets.right;
-        // The height at the width the layout gave (the lines it wraps into there); one line before it has a width
-        return new Dimension(oneLine, getHeightAt(getWidth() > 0 ? getWidth() : oneLine));
+        int width = wrapWidth > 0 ? Math.min(oneLine, wrapWidth) : oneLine;
+        // The height at the width the layout gave (the lines it wraps into there); before it has a width, the height at
+        // the width it asks for
+        return new Dimension(width, getHeightAt(getWidth() > 0 ? getWidth() : width));
     }
 
     @Override

@@ -76,6 +76,8 @@ import java.util.Map;
  *   결과에 알 수 없는 DB 종류의 연결 (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  * - 2026-11-08 설정 가져오기가 같은 암호 묻기·결과 알림을 쓰도록 {@link #readData}(다른 파일 안의 연결 파일)와
  *   {@link #showImportResult}를 나눔 (docs/chromite/settings-transfer.md)
+ * - 2026-11-13 다른 도구 고르기의 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ConnectionTransferCommands {
 
@@ -252,8 +254,9 @@ final class ConnectionTransferCommands {
         buttons.get(ForeignSource.SQL_DEVELOPER).setSelected(true);
         JPanel content = new JPanel(new BorderLayout(0, 10));
         content.add(panel, BorderLayout.NORTH);
-        content.add(new JLabel("<html><body style='width:" + UIScale.scale(420) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
-            + ConnectionTransferMessages.transfer_other_note + "</body></html>"), BorderLayout.CENTER); //$NON-NLS-1$
+        // Wraps at spaces only (an HTML label broke Korean words), at most as wide as the HTML label was (420 CSS px, which
+        // Swing's HTML draws 1.3 times as wide)
+        content.add(new WrappingNote(ConnectionTransferMessages.transfer_other_note, UIScale.scale(546)), BorderLayout.CENTER);
         int answer = JOptionPane.showConfirmDialog(getWindow(parent), content, ConnectionTransferMessages.transfer_other_title,
             JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (answer != JOptionPane.OK_OPTION) {

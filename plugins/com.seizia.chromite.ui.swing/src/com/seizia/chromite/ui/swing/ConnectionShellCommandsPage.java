@@ -49,10 +49,13 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-conn-advanced.md "셸 명령")
+ * - 2026-11-13 승인 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ConnectionShellCommandsPage extends JPanel {
 
-    private static final int NOTE_WIDTH = 300;
+    // The width of the HTML label the note was before (300 CSS px, which Swing's HTML draws 1.3 times as wide)
+    private static final int NOTE_WIDTH = 390;
 
     /**
      * The events' commands being edited (a copy of each saved one, or a new one once its check box is turned on).
@@ -158,8 +161,8 @@ final class ConnectionShellCommandsPage extends JPanel {
         form.addRow((JLabel) null, terminateCheck);
         form.addRow(ConnectionMessages.shell_pause, ConnectionSettingsPanel.leftAligned(pauseSpinner));
         form.addRow((JLabel) null, ConnectionSettingsPanel.leftAligned(clearButton));
-        // Wrapped: an HTML label reports its wrapped height
-        JLabel note = new JLabel("<html><body style='width: " + NOTE_WIDTH + "px'>" + ConnectionMessages.shell_approval_note + "</body></html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        // Wraps at spaces only (an HTML label broke Korean words) and reports its wrapped height
+        JTextArea note = new WrappingNote(ConnectionMessages.shell_approval_note, NOTE_WIDTH);
         note.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
         note.setForeground(UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
         form.addGroupGap();

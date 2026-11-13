@@ -39,6 +39,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/settings-transfer.md)
+ * - 2026-11-13 내보내지 않는 것의 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
+ *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class SettingsExportDialog extends JDialog {
 
@@ -54,8 +56,9 @@ final class SettingsExportDialog extends JDialog {
             boxes.put(section, box);
             sections.add(box);
         }
-        JLabel note = new JLabel("<html><body style='width:" + UIScale.scale(460) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
-            + SettingsTransferMessages.settings_export_note + "</body></html>"); //$NON-NLS-1$
+        // Wraps at spaces only (an HTML label broke Korean words), at most as wide as the HTML label was (460 CSS px, which
+        // Swing's HTML draws 1.3 times as wide)
+        JTextArea note = new WrappingNote(SettingsTransferMessages.settings_export_note, UIScale.scale(598));
 
         JButton exportButton = new JButton(SettingsTransferMessages.settings_export_button);
         JButton cancelButton = new JButton(CoreMessages.common_cancel);

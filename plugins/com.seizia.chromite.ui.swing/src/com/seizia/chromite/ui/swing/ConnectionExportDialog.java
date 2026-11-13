@@ -52,6 +52,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
+ * - 2026-11-13 암호 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
+ *   docs/chromite/swing-options.md "HTML 라벨 안내")
  */
 final class ConnectionExportDialog extends JDialog {
 
@@ -81,7 +83,9 @@ final class ConnectionExportDialog extends JDialog {
     private final JPasswordField confirmField = new JPasswordField(24);
     private final JLabel passphraseLabel = new JLabel(ConnectionTransferMessages.transfer_export_passphrase);
     private final JLabel confirmLabel = new JLabel(ConnectionTransferMessages.transfer_export_passphrase_confirm);
-    private final JLabel hintLabel = new JLabel();
+    // Wraps at spaces only (an HTML label broke Korean words), at most as wide as the HTML label was (420 CSS px, which
+    // Swing's HTML draws 1.3 times as wide)
+    private final JTextArea hintNote = new WrappingNote("", UIScale.scale(546)); //$NON-NLS-1$
     private boolean accepted;
 
     private ConnectionExportDialog(@Nullable Window owner, @NotNull DBPDataSourceRegistry registry, @Nullable Object preselect) {
@@ -140,7 +144,7 @@ final class ConnectionExportDialog extends JDialog {
         gc.gridx = 0;
         gc.gridy = 3;
         gc.gridwidth = 2;
-        passwordPanel.add(hintLabel, gc);
+        passwordPanel.add(hintNote, gc);
         includePasswordsCheck.addActionListener(e -> updatePasswordFields());
         updatePasswordFields();
 
@@ -280,11 +284,9 @@ final class ConnectionExportDialog extends JDialog {
         passphraseField.setEnabled(include);
         confirmLabel.setEnabled(include);
         confirmField.setEnabled(include);
-        String hint = include
+        hintNote.setText(include
             ? NLS.bind(ConnectionTransferMessages.transfer_export_passphrase_hint, ConnectionTransferFile.MIN_PASSPHRASE_LENGTH)
-            : ConnectionTransferMessages.transfer_export_plain_hint;
-        // HTML wraps the long hint to the dialog width
-        hintLabel.setText("<html><body style='width:" + UIScale.scale(420) + "px'>" + hint + "</body></html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            : ConnectionTransferMessages.transfer_export_plain_hint);
     }
 
     private boolean validateInput() {
