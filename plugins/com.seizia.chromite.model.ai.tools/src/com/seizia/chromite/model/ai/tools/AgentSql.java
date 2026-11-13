@@ -100,7 +100,10 @@ import java.util.concurrent.locks.ReentrantLock;
  *     getTransactionStatus가 보게), 결과에 열림을 알린다. 그 트랜잭션은 사용자 쿼리 창의 것이기도 하므로 에이전트의 커밋·롤백 도구는 끝내지
  *     않고 사용자에게 맡긴다. 롤백에 기대어 쓰는 호출({@link Mode#ROLLBACK})은 그 세션에서 자기 트랜잭션을 열고 되돌릴 수 없으므로
  *     실행하지 않고 거절한다({@link #sharedSessionRefusal}). 모드를 무시하고 실행하면 측정한 DML이 사용자 세션에서 그대로 실행됐다.
- *     세션의 커밋 방식을 바꾸거나 트랜잭션을 열어 롤백하는 방법은 쓰지 않는다: 그 세션은 사용자의 것이다.</li>
+ *     세션의 커밋 방식을 바꾸거나 트랜잭션을 열어 롤백하는 방법은 쓰지 않는다: 그 세션은 사용자의 것이다.
+ *     같은 이유로 그 세션의 DB·스키마도 바꾸지 않는다. 호출의 {@code database} 인수나 setCurrentDatabase의 값이 세션의 지금 DB·스키마와
+ *     다르면(바꿔야 하면) 실행하지 않고 거절한다. 같으면 바꿀 것이 없어 그대로 실행한다. 규칙은 모든 도구가 지나는 {@link #run} 한 곳에
+ *     있다. 전에는 DB가 조용히 무시되고(지금 DB에서 실행) 스키마는 쿼리 창들의 기본 스키마를 바꿨다(PostgreSQL, SQL Server·MySQL은 무시).</li>
  *     <li>유휴 연결 닫기: 에이전트 문장은 쿼리 관리자에 기록되지 않으므로 사용 중 여부와 마지막 사용 시각({@link #isInUse},
  *     {@link #getLastUseTime})을 {@link AgentSessionsService}로 알린다. 열린 트랜잭션이 있거나 실행 중인 연결은 닫히지 않는다.</li>
  * </ul>
@@ -124,6 +127,10 @@ import java.util.concurrent.locks.ReentrantLock;
  *   해서 pending으로 두지 않고, commitTransaction/rollbackTransaction도 끝내지 않는다 (docs/chromite/ai-agent.md "배치의 부분 실패")
  * - 2026-11-12 "단일 연결" 연결에서 {@link Mode#ROLLBACK} 호출을 거절함(앱 변경 #91). 공유 세션 분기가 모드를 적용하지 않아 실제 계획을 구한
  *   UPDATE가 사용자 세션에서 실행·커밋됐다 (docs/chromite/ai-agent.md "공유 세션에서 롤백에 기대는 호출")
+ * - 2026-11-13 "단일 연결" 연결에서 DB·스키마를 바꿔야 하는 호출을 거절함(앱 변경 #94, {@link #sharedSessionRefusal}). {@code database}가
+ *   조용히 무시되고 setCurrentDatabase의 {@code schema}가 쿼리 창의 기본 스키마를 바꿨다(PostgreSQL) (docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
+ * - 2026-11-13 공유 세션의 DB 이름이 대소문자만 다르면 격리 경로와 같은 찾기({@link #open}의 {@code getChild})로 세션의 DB가 될 때만 통과
+ *   ({@link #isSessionDatabase}). 이름이 대소문자를 가리는 서버에서 다른 DB를 그 DB인 것처럼 실행할 수 있었다(#94 검토 후속)
  */
 public final class AgentSql {
 
@@ -196,10 +203,38 @@ public final class AgentSql {
      */
     @NotNull
     public static AIToolArgumentException sharedSessionRefusal(@NotNull String why, @NotNull String instead) {
-        return new AIToolArgumentException("Refused, nothing ran: " + why + ". This connection uses one shared session " + //$NON-NLS-1$
-            "(its \"single connection\" setting) that the user's query windows also use, so Chromite cannot run this call " + //$NON-NLS-1$
-            "in a transaction of its own and roll it back: it would really run in the user's session. " + instead); //$NON-NLS-1$
+        return sharedSessionRefusal(why, "cannot run this call in a transaction of its own and roll it back: it would really " + //$NON-NLS-1$
+            "run in the user's session", instead); //$NON-NLS-1$
     }
+
+    /**
+     * The refusal of a call that the shared session ({@link #isSharedSession}) can't run as asked, in the same words as
+     * {@link #sharedSessionRefusal(String, String)} with another reason.
+     *
+     * @param why     what the call would do there (a sentence fragment that follows "Refused, nothing ran: ")
+     * @param cannot  what Chromite does not do in that session and why (a sentence fragment that follows "so Chromite ")
+     * @param instead what the model can do instead
+     */
+    @NotNull
+    public static AIToolArgumentException sharedSessionRefusal(@NotNull String why, @NotNull String cannot, @NotNull String instead) {
+        return new AIToolArgumentException("Refused, nothing ran: " + why + ". This connection uses one shared session " + //$NON-NLS-1$
+            "(its \"single connection\" setting) that the user's query windows also use, so Chromite " + cannot + ". " + instead); //$NON-NLS-1$
+    }
+
+    /**
+     * What getCurrentDatabase and setCurrentDatabase say on a connection whose agent calls run in the shared session.
+     */
+    public static final String SHARED_SESSION_DEFAULTS_NOTE = "The agent has no session of its own on this connection: its " + //$NON-NLS-1$
+        "calls run in the connection's one shared session (its \"single connection\" setting), which the user's query windows " + //$NON-NLS-1$
+        "also use. agentDatabase and agentSchema are that session's, and they change when the user switches the database in a " + //$NON-NLS-1$
+        "query window. setCurrentDatabase and the tools' database argument do not switch it: a database or schema other than " + //$NON-NLS-1$
+        "the session's is refused. Qualify the names in the SQL instead, or ask the user to switch the database in a query window."; //$NON-NLS-1$
+
+    // What a refused switch of the shared session's database or schema says Chromite does not do, and what to do instead
+    private static final String SHARED_SWITCH_CANNOT = "does not switch that session's database or schema for the agent: " + //$NON-NLS-1$
+        "the user's query windows would switch with it"; //$NON-NLS-1$
+    private static final String SHARED_SWITCH_INSTEAD = "Qualify the names in the SQL with their database and schema instead, " + //$NON-NLS-1$
+        "or ask the user to switch the database in a query window; getCurrentDatabase shows the session's database and schema."; //$NON-NLS-1$
 
     private static final int MAX_CONTEXTS = 4;
     // Errors in a row while moving to the next result, after which the reading stops (a driver that keeps throwing)
@@ -256,7 +291,9 @@ public final class AgentSql {
     /**
      * Runs work on the agent context of the connection (and database).
      *
-     * @param database database (catalog) to run in, or null for the agent default (setCurrentDatabase) or the connection default
+     * @param database database (catalog) to run in, or null for the agent default (setCurrentDatabase) or the connection default.
+     *                 On a connection whose calls run in the shared session ({@link #isSharedSession}), a database or agent
+     *                 schema other than the session's is refused ({@link #sharedSessionRefusal}): it is never switched there
      */
     public static <T> T run(
         @NotNull DBRProgressMonitor monitor,
@@ -265,13 +302,30 @@ public final class AgentSql {
         @NotNull Mode mode,
         @NotNull Work<T> work
     ) throws DBException {
-        DBPDataSource dataSource = connect(monitor, container);
         String[] agentDefaults = getAgentDefaults(container);
-        String schema = null;
         if (database == null && agentDefaults != null) {
-            database = agentDefaults[0];
-            schema = agentDefaults[1];
+            return run(monitor, container, agentDefaults[0], agentDefaults[1],
+                "the agent default from setCurrentDatabase; setCurrentDatabase without arguments clears it", mode, work); //$NON-NLS-1$
         }
+        return run(monitor, container, database, null, "the call's database argument", mode, work); //$NON-NLS-1$
+    }
+
+    /**
+     * Runs work on the agent context of the connection in a database and schema given by the caller (setCurrentDatabase
+     * checks its values with it on the shared session).
+     *
+     * @param source where the database and schema come from, for a refusal on the shared session
+     */
+    static <T> T run(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSourceContainer container,
+        @Nullable String database,
+        @Nullable String schema,
+        @NotNull String source,
+        @NotNull Mode mode,
+        @NotNull Work<T> work
+    ) throws DBException {
+        DBPDataSource dataSource = connect(monitor, container);
         AgentContext agentContext = acquire(monitor, container, dataSource, database, schema, mode);
         DbFamily family = DbFamily.of(container);
         // The connection's own commit mode, before a read-only or measuring call changes it
@@ -293,7 +347,8 @@ public final class AgentSql {
                 boolean keepsChanges = !agentContext.isolated || mode == Mode.NATIVE || mode == Mode.ATOMIC || agentContext.pending;
                 Runner runner = new Runner(monitor, container, agentContext.context, keepsChanges);
                 if (!agentContext.isolated) {
-                    // The user's own context: never touch its transaction mode
+                    // The user's own context: never touch its transaction mode, its database or its schema
+                    refuseSharedSessionSwitch(monitor, connection, agentContext.context, database, schema, source);
                     try {
                         return work.run(connection, runner);
                     } finally {
@@ -775,7 +830,10 @@ public final class AgentSql {
                 throw new DBException("The agent has an uncommitted transaction on this connection; " +
                     "commit or roll it back first (commitTransaction / rollbackTransaction)");
             }
-            applySchema(monitor, dataSource, chosen.context, schema);
+            if (chosen.isolated) {
+                // The shared session's schema is the user's: run refuses a different one (refuseSharedSessionSwitch)
+                applySchema(monitor, dataSource, chosen.context, schema);
+            }
         } catch (DBException e) {
             chosen.lock.unlock();
             throw e;
@@ -849,6 +907,89 @@ public final class AgentSql {
         }
         String catalog = contextDefaults.getDefaultCatalog() == null ? null : contextDefaults.getDefaultCatalog().getName();
         DBExecUtils.setExecutionContextDefaults(monitor, dataSource, context, catalog, catalog, schema);
+    }
+
+    /**
+     * The shared session's rule (app change #94): the agent never switches the database or schema of the session the user's
+     * query windows use. A database or schema the call needs that is not the session's current one (as the driver reports
+     * it now; the context's last read when the driver can't say) is refused; the same one needs no switch and passes.
+     * A database whose own instance the call runs in (PostgreSQL) is that instance's current database. A schema name that
+     * differs only in case passes, as {@link #applySchema} compares on the isolated path (no lookup reused without new
+     * metadata reads).
+     */
+    private static void refuseSharedSessionSwitch(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull Connection connection,
+        @NotNull DBCExecutionContext context,
+        @Nullable String database,
+        @Nullable String schema,
+        @NotNull String source
+    ) throws AIToolArgumentException {
+        DBCExecutionContextDefaults<?, ?> contextDefaults = context.getContextDefaults();
+        if (database != null) {
+            String current = null;
+            try {
+                current = connection.getCatalog();
+            } catch (SQLException e) {
+                log.debug("Can't read the current database of the shared session", e);
+            }
+            if (CommonUtils.isEmpty(current) && contextDefaults != null) {
+                current = contextDefaults.getCachedDefault().catalogName();
+            }
+            if (!isSessionDatabase(monitor, context, database, current)) {
+                throw sharedSessionRefusal("this call would run in database '" + database + "' (" + source + "), but the session " + //$NON-NLS-1$
+                    (CommonUtils.isEmpty(current) ? "can't tell its current database" : "is in database '" + current + "'"), //$NON-NLS-1$ //$NON-NLS-2$
+                    SHARED_SWITCH_CANNOT, SHARED_SWITCH_INSTEAD);
+            }
+        }
+        if (schema != null) {
+            String current = null;
+            try {
+                current = connection.getSchema();
+            } catch (Throwable e) {
+                // Drivers without schemas (MySQL) or without getSchema
+                log.debug("Can't read the current schema of the shared session", e);
+            }
+            if (CommonUtils.isEmpty(current) && contextDefaults != null) {
+                current = contextDefaults.getCachedDefault().schemaName();
+            }
+            if (!schema.equalsIgnoreCase(CommonUtils.notEmpty(current))) {
+                throw sharedSessionRefusal("this call would run in schema '" + schema + "' (" + source + "), but the session " + //$NON-NLS-1$
+                    (CommonUtils.isEmpty(current) ? "has no current schema" : "is in schema '" + current + "'"), //$NON-NLS-1$ //$NON-NLS-2$
+                    SHARED_SWITCH_CANNOT, SHARED_SWITCH_INSTEAD);
+            }
+        }
+    }
+
+    /**
+     * Whether a database name the call gave is the shared session's current database. The same name passes. A name that
+     * differs only in case passes only when the lookup the isolated path uses ({@link #open}: the data source's child by
+     * name) resolves it to the session's database: on a server with case-sensitive names ({@code Sales} and {@code sales}
+     * are two databases) the call would otherwise run in the other one and answer as if it were the one asked for.
+     */
+    private static boolean isSessionDatabase(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        @NotNull String database,
+        @Nullable String current
+    ) {
+        if (CommonUtils.isEmpty(current)) {
+            return false;
+        }
+        if (database.equals(current)) {
+            return true;
+        }
+        if (!database.equalsIgnoreCase(current)) {
+            return false;
+        }
+        try {
+            DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, context.getDataSource());
+            DBSObject child = root == null ? null : root.getChild(monitor, database);
+            return child instanceof DBSCatalog catalog && current.equals(catalog.getName());
+        } catch (DBException e) {
+            log.debug("Can't resolve database '" + database + "' of the shared session", e);
+            return false;
+        }
     }
 
     /**

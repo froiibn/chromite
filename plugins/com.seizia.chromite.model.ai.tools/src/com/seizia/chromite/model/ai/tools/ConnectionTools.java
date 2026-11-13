@@ -71,6 +71,8 @@ import java.util.Map;
  *     <li>"단일 연결" 연결에서는 에이전트가 자기 트랜잭션 없이 공유 세션(쿼리 창의 세션)에서 실행한다. 그 세션에 열린 트랜잭션이 있으면
  *     {@code commitTransaction}·{@code rollbackTransaction}은 그것을 끝내지 않고(사용자의 것) 실패로 끝나며, 아무것도 커밋·롤백하지 않았다는 것과
  *     사용자가 쿼리 창에서 끝내야 한다는 것을 알린다. 상태만 돌려주면 감사 기록·채팅 카드·모델이 모두 성공으로 보았다.</li>
+ *     <li>같은 연결에서 {@code setCurrentDatabase}는 에이전트 기본값을 저장하지 않는다. 세션의 지금 값과 같으면 통과, 다르면 모든 호출과 같은
+ *     규칙({@link AgentSql#run})으로 거절한다. {@code getCurrentDatabase}는 그 세션이 사용자의 것 하나라는 것을 알린다({@code sharedSession}, {@code note}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -81,6 +83,8 @@ import java.util.Map;
  * - 2026-11-12 getToolPolicy가 늘 확인하는 도구에 {@code alwaysConfirmed}를 붙임(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  * - 2026-11-12 공유 세션에 열린 트랜잭션이 있을 때 commitTransaction/rollbackTransaction이 아무것도 끝내지 않고 SUCCESS를 돌려주던 것을
  *   실패와 그 이유로 바꿈(앱 변경 #92, docs/chromite/ai-agent.md "공유 세션의 commitTransaction·rollbackTransaction")
+ * - 2026-11-13 공유 세션에서 setCurrentDatabase가 database를 저장만 하고 무시되던 것을, 바꿔야 하면 거절하고 아무것도 저장하지 않게 바꿈.
+ *   getCurrentDatabase에 공유 세션 안내(앱 변경 #94, docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -226,6 +230,11 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
             json.addProperty("connectionDatabase", defaults.getDefaultCatalog() == null ? null : defaults.getDefaultCatalog().getName());
             json.addProperty("connectionSchema", defaults.getDefaultSchema() == null ? null : defaults.getDefaultSchema().getName());
         }
+        if (AgentSql.isSharedSession(container)) {
+            // One session, the user's: the agent's values are that session's, and they are never switched for the agent
+            json.addProperty("sharedSession", true);
+            json.addProperty("note", AgentSql.SHARED_SESSION_DEFAULTS_NOTE);
+        }
         return json;
     }
 
@@ -243,6 +252,14 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         DBPDataSourceContainer container = requireConnection(context);
         String database = AgentArgs.getString(args, "database");
         String schema = AgentArgs.getString(args, "schema");
+        if (AgentSql.isSharedSession(container)) {
+            // Nothing is stored: the agent's calls run in the user's session as it is. Values the session already has pass,
+            // others are refused by the rule every call goes through (AgentSql.run), not stored to be refused later
+            AgentSql.setAgentDefaults(container, null, null);
+            AgentSql.run(context.getMonitor(), container, database, schema, "setCurrentDatabase's arguments", //$NON-NLS-1$
+                AgentSql.Mode.READ_ONLY, (connection, runner) -> null);
+            return currentDatabase(context);
+        }
         AgentSql.setAgentDefaults(container, database, schema);
         try {
             return currentDatabase(context);

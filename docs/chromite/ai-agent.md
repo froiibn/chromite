@@ -1614,7 +1614,7 @@ GCP VM 공용 서버의 `chr_agent_tools_r2` 데이터베이스·스키마, 두 
 
 - `setCurrentDatabase`(범위 밖, 보고만): 공유 세션에서는 `AgentSql.open`이 격리 문맥일 때만 DB를 바꾸므로 SQL Server·MySQL처럼 인스턴스가 하나인 연결에서
   `database`가 조용히 무시되고(확인: `database: "master"`에 SUCCESS, `agentDatabase`는 그대로 `chr_agent_tools_r2`), `schema`는 `applySchema`가 공유
-  세션(쿼리 창의 세션)의 기본 스키마를 바꾼다(코드 읽기).
+  세션(쿼리 창의 세션)의 기본 스키마를 바꾼다(코드 읽기). 2026-11-13 고침(앱 변경 #94): 아래 "공유 세션의 DB·스키마".
 
 ### 확인 (2026-11-12)
 
@@ -1838,6 +1838,97 @@ ROLLBACK·공유 세션 거절), `PlanTools` `comparePlans`(actual), `LibraryToo
 - 단어 목록에 없는 T-SQL 문(예: 다른 서버 명령)은 목록을 넓혀야 한다. 목록은 "문장을 시작해 쓰는 단어"만이다.
 - 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 위 표의 글을 `classify`·`access`·`foreignStatementWord` 단위 시험으로).
 
+## 공유 세션의 DB·스키마 (앱 변경 #94, 2026-11-13)
+
+### 문제
+
+"단일 연결" 연결(`AgentSql.isSharedSession`)에서 에이전트는 쿼리 창과 같은 세션(공유 세션)에서 실행한다. 이 세션의 DB·스키마를 다루는 두 길이 사용자의
+규칙(에이전트는 사용자 세션을 바꾸지 않는다, 하지 않은 일을 했다고 알리지 않는다)을 어겼다. 고치기 전 빌드(devel `a0ef7da598`)에서 #91과 같은 방법(시험
+에이전트가 `setForceUseSingleConnection(true)`, 쿼리 창 하나)으로 확인했다. 두 번째 세션의 사실은 그 쿼리 창의 선택과 창에서 실행한 `SELECT DB_NAME()`·`current_schema()`다.
+
+| 경우 | 고치기 전 결과 | 쿼리 창 |
+|---|---|---|
+| SQL Server `setCurrentDatabase {database: master}`(세션은 `chr_picker_agent`) | SUCCESS, `agentDatabase: chr_picker_agent` | 그대로 `chr_picker_agent/dbo` |
+| 이어서 `runReadOnlySql SELECT DB_NAME()` | SUCCESS, `chr_picker_agent`(저장한 master는 조용히 무시) | 그대로 |
+| SQL Server `runReadOnlySql {database: master}` / `listTables {database: master}` | SUCCESS, `chr_picker_agent`에서 실행 / `"database":"chr_picker_agent"`, 표 없음 | 그대로 |
+| SQL Server `setCurrentDatabase {schema: s2}` | SUCCESS, `agentSchema: dbo`(저장하고 무시) | 그대로 |
+| MariaDB `setCurrentDatabase {database: mysql}`, `runReadOnlySql {database: mysql}` | 둘 다 SUCCESS, `DATABASE()`는 `chr_picker_agent` | 그대로 |
+| PostgreSQL `setCurrentDatabase {schema: s_b}` | SUCCESS, `agentSchema: s_b` | **`chr_picker_agent/s_b`, 선택 `s_b`**(사용자 세션이 바뀜). `setCurrentDatabase {}`로 지운 뒤에도 `s_b`로 남음 |
+
+### 원인
+
+- DB: `AgentSql.open`(고치기 전 809–823행)은 공유 세션이면 그 인스턴스의 기본 문맥을 쓰고, DB를 바꾸는 것은 격리 문맥일 때만이다. SQL Server·MySQL처럼
+  인스턴스가 하나인 연결에서 `database`는 문맥을 고르는 데 쓰이지 않아 지금 DB에서 실행됐다. 메타데이터 도구도 `connection.getCatalog()`(지금 DB)를 읽는다.
+- 스키마: `AgentSql.acquire`(고치기 전 778행)가 문맥과 상관없이 `applySchema`를 불러, 스키마를 바꿀 수 있는 DB(PostgreSQL)에서는 공유 세션의 기본 스키마를
+  `DBExecUtils.setExecutionContextDefaults`로 바꿨다. 스키마를 바꿀 수 없는 DB(SQL Server, MySQL)에서는 조용히 건너뛰었다.
+- `setCurrentDatabase`는 값을 저장하고 `getCurrentDatabase`를 돌려줄 뿐 그 값이 쓰이는지 보지 않았다.
+
+### 도구와 인수
+
+| 도구 | 인수 | 격리 문맥 | 공유 세션(고치기 전) | 공유 세션(고친 뒤) |
+|---|---|---|---|---|
+| `setCurrentDatabase` | `database` | 저장, 뒤 호출이 그 DB로 바꾼 에이전트 문맥에서 실행 | 저장, SUCCESS, 뒤 호출이 조용히 무시 | 세션의 DB와 같으면 통과, 다르면 거절. 저장하지 않음 |
+| `setCurrentDatabase` | `schema` | 저장, 스키마를 바꿀 수 있는 DB면 적용(SQL Server·MySQL은 무시, 그대로) | PostgreSQL: 사용자 세션의 스키마를 바꿈. SQL Server·MySQL: 저장하고 무시 | 같으면 통과, 다르면 거절. 저장하지 않음 |
+| `database`를 받는 도구 59개(메타데이터, `runSelect`·`runReadOnlySql`·`runSql`·`runScript`, 계획, 데이터, DDL, 전송, 상태·성능, `runLibraryQuery`의 항목 DB, `compareQueryResults`의 `databaseB`, `copyTable`의 `sourceDatabase`) | `database` | 그 DB의 에이전트 문맥 | SQL Server·MySQL: 조용히 지금 DB에서 실행. PostgreSQL: 그 DB 인스턴스의 기본 문맥(목록에 있을 때, 바꾸는 것 없음) | SQL Server·MySQL: 같으면 통과, 다르면 거절. PostgreSQL: 그 DB의 세션 자체라 같음, 통과 |
+| `getCurrentDatabase` | — | 에이전트 세션과 연결 기본 세션 | 두 값이 같은 세션이라는 말이 없음 | `sharedSession: true`와 `note`(세션이 사용자의 것 하나, 사용자가 바꾸면 따라 바뀜, 바꿀 수 없음) |
+| `listTables`·`listRoutines`·진단 도구의 `schema` | `schema` | 질의의 거르기 값(세션을 바꾸지 않음) | 같음 | 같음(규칙 대상 아님) |
+
+### 고친 것
+
+규칙은 모든 도구가 지나는 `AgentSql.run` 한 곳에 있다. 공유 세션이면 작업 전에 `refuseSharedSessionSwitch`가 그 호출이 쓸 DB(호출의 `database`, 없으면
+저장된 에이전트 기본값)와 스키마(에이전트 기본값)를 세션의 지금 값과 비교한다. 지금 값은 드라이버에 묻는다(`Connection.getCatalog()`·`getSchema()`, 못 하면 문맥이 마지막에
+읽은 값). DB 이름은 똑같으면 통과하고, 대소문자만 다르면 격리 경로와 같은 찾기(`AgentSql.open`의 `root.getChild(monitor, database)`)로 찾은 DB의 이름이
+세션의 지금 DB와 똑같을 때만 통과한다(`isSessionDatabase`, 검토 후속). 이름이 대소문자를 가리는 서버(MySQL `lower_case_table_names=0`, 대소문자를 가리는 SQL Server
+데이터 정렬, 따옴표 친 PostgreSQL 이름)에서 `Sales`와 `sales`는 다른 DB라, 전처럼 대소문자를 무시하면 다른 DB에서 실행하고 그 DB인 것처럼 답했다. 스키마는 대소문자를
+무시하고 비교한다: 새 메타데이터 읽기 없이 쓸 수 있는 찾기가 없고, 격리 경로의 `applySchema`도 대소문자를 무시한다. 다르면 아무것도 실행하지 않고 `AgentSql.sharedSessionRefusal`(이유를 받는 3인수 판)로 거절한다(`AIToolArgumentException`, 실행기 결과 `INVALID`):
+
+> Refused, nothing ran: this call would run in database 'master' (the call's database argument), but the session is in database 'chr_picker_agent'. This connection
+> uses one shared session (its "single connection" setting) that the user's query windows also use, so Chromite does not switch that session's database or schema
+> for the agent: the user's query windows would switch with it. Qualify the names in the SQL with their database and schema instead, or ask the user to switch the
+> database in a query window; getCurrentDatabase shows the session's database and schema.
+
+- `acquire`는 격리 문맥에만 `applySchema`를 부른다. 공유 세션의 스키마를 바꾸는 길은 없다.
+- `setCurrentDatabase`는 공유 세션에서 아무것도 저장하지 않는다(남은 값도 지움). 같은 규칙으로 값을 검사하고(`"setCurrentDatabase's arguments"`), 통과하면 `getCurrentDatabase`를
+  돌려준다. 저장해 두고 뒤 호출에서 거절하는 방식은 쓰지 않았다: 사용자가 쿼리 창에서 DB를 바꾸면 이후 모든 호출이 거절되고, 설정한 것으로 보인 값이 실제로는 쓰이지 않는 것과 같다.
+- `getCurrentDatabase`는 공유 세션이면 `sharedSession: true`와 `note`를 붙인다.
+- 2인수 `sharedSessionRefusal`(#91의 롤백 거절)은 같은 글 그대로다.
+- 격리 문맥의 동작은 바꾸지 않았다. #95(공유 세션의 SELECT가 부르는 쓰는 함수)는 사용자 결정 전이라 그대로다.
+- 도구 설명은 바꾸지 않았다(토큰 변화 0). `setCurrentDatabase`의 "Changes the database and/or schema that the agent's later calls … use (the user's query windows do not change)"는
+  격리 문맥에서 사실이고, 공유 세션에서는 거절 결과가 이유를 말한다.
+
+### 확인 (2026-11-13)
+
+빌드(JBR 25) BUILD SUCCESS, 고치기 전 빌드(devel `a0ef7da598`)와 같은 시나리오. 빈 작업 공간·설정·데이터의 앱 사본, 앱 안 시험 에이전트가 도구를 실행기
+(`AIToolExecutor`, 클라이언트 MCP)로 부름. 시험 DB는 GCP VM 공용 서버의 `chr_picker_agent` DB(SQL Server 2022, PostgreSQL 17, MariaDB 11).
+
+| 경우(공유 세션) | 고친 뒤 결과 | 쿼리 창 전 → 뒤(선택, 창의 `SELECT`) |
+|---|---|---|
+| SQL Server `setCurrentDatabase {database: master}` | `INVALID` "Refused, nothing ran: … database 'master' (setCurrentDatabase's arguments), but the session is in database 'chr_picker_agent' …" | `chr_picker_agent/dbo` → 그대로 |
+| SQL Server `runReadOnlySql {database: master}`, `listTables {database: master}` | 둘 다 `INVALID`(… "the call's database argument" …) | 그대로 |
+| SQL Server `setCurrentDatabase {schema: s2}` | `INVALID` "… schema 's2' …, but the session is in schema 'dbo'" | 그대로 |
+| SQL Server `setCurrentDatabase {database: chr_picker_agent, schema: dbo}`(같은 값) | SUCCESS, `sharedSession: true`, `note` | 그대로 |
+| SQL Server `runReadOnlySql {database: CHR_PICKER_AGENT}`(대소문자만 다름) | SUCCESS | 그대로 |
+| 사용자가 창에서 `USE master` 뒤 `getCurrentDatabase`, `runReadOnlySql {database: master}` | `agentDatabase: master`, SUCCESS | `master` |
+| SQL Server `getActualPlan UPDATE …`(#91) | `INVALID`, #91의 글 그대로("cannot run this call in a transaction of its own and roll it back") | 그대로 |
+| PostgreSQL `setCurrentDatabase {schema: s_b}` | `INVALID` "… schema 's_b' …, but the session is in schema 'public'" | `chr_picker_agent/public` → 그대로(고치기 전 `s_b`로 바뀜) |
+| PostgreSQL `setCurrentDatabase {schema: public}`(같은 값) | SUCCESS | 그대로 |
+| MariaDB `setCurrentDatabase {database: mysql}`, `runReadOnlySql {database: mysql}` | 둘 다 `INVALID` | `chr_picker_agent` → 그대로 |
+| 격리 SQL Server `setCurrentDatabase`·`runReadOnlySql {database: master}` | 고치기 전과 같음(에이전트 문맥만 바뀜) | — |
+| 격리 PostgreSQL `setCurrentDatabase {schema: s_b}` | 고치기 전과 같음(에이전트 문맥 `s_b`) | — |
+| 검토 후속: MySQL 8.4.13(Linux, `lower_case_table_names` = 0), `chr_picker_agent_Case`·`chr_picker_agent_case` 둘 다 만듦, 세션은 `_Case`: `runReadOnlySql {database: chr_picker_agent_case}`, `setCurrentDatabase {database: chr_picker_agent_case}`, `{database: CHR_PICKER_AGENT_CASE}` | 모두 `INVALID`(같은 거절 글). `{database: chr_picker_agent_Case}`는 SUCCESS | `chr_picker_agent_Case` → 그대로 |
+| 검토 후속: SQL Server(`SQL_Latin1_General_CP1_CI_AS`) 세션 `chr_picker_agent`, `runReadOnlySql {database: CHR_PICKER_AGENT}`, `setCurrentDatabase {database: Chr_Picker_Agent}` | 둘 다 SUCCESS(찾기가 `chr_picker_agent`로 풀림). `{database: master}`는 `INVALID` | 그대로 |
+
+- 채팅 경로: 127.0.0.1의 가짜 Chat Completions 서버(`fake_llm.py`, 첫 요청 전 기록에 시작 줄만 있음을 확인)로 가짜 모델이 `setCurrentDatabase {database: master}`를 부르게 함:
+  카드 "Invalid call, 1 ms - Refused, nothing ran: …", 감사 기록 `client: CHAT`, `INVALID`, 같은 글. 가짜 서버 기록에 채팅 요청 4개, 실제 제공자는 부르지 않았다.
+- 증거 `D:\Tools\_scratch\picker-and-agent-shared\run\t94-before.txt.log`, `t94-after.txt.log`, `t94-chat.txt.log`.
+- 회귀 테스트는 요청되지 않아 실행하지 않았다(추가한다면 `refuseSharedSessionSwitch`의 같음·다름·대소문자·지금 값을 모를 때 단위 시험).
+
+### 남은 것
+
+- 격리 문맥에서 스키마를 바꿀 수 없는 DB(SQL Server, MySQL)의 `setCurrentDatabase {schema}`는 저장되고 조용히 무시된다(바꾸지 않음, 브리프 범위 밖).
+- 격리 PostgreSQL에서 `setCurrentDatabase {}`로 지운 뒤에도 그 에이전트 문맥의 search_path는 앞서 바꾼 스키마로 남는다(`agentSchema: s_b`, 바꾸지 않음).
+- PostgreSQL에서 "모든 데이터베이스 보기"를 켠 공유 세션 연결의 다른 DB는 그 DB 인스턴스의 기본 세션에서 실행된다(바꾸는 것이 없어 통과). 시험은 하지 않았다(코드 읽기).
+
 ## 설계 결정과 이유
 
 - **확장점 하나, 레지스트리 하나**: 새 도구도 기존 `com.seizia.chromite.ai.function`에 등록해 채팅과 MCP가 같은 목록을 본다. 분류를 위해 `access`, `writes` 속성만 더했다.
@@ -1943,6 +2034,10 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-13 #94 검토 후속: 공유 세션에서 대소문자만 다른 DB 이름은 격리 경로와 같은 찾기로 세션의 DB가 될 때만 통과(MySQL `lower_case_table_names=0`에서 확인).
+  위 "공유 세션의 DB·스키마". 회귀 테스트는 실행하지 않았다.
+- 2026-11-13 앱 변경 #94(`chromite/picker-and-agent-shared`): "단일 연결" 연결의 공유 세션에서 DB·스키마를 바꿔야 하는 호출을 한 규칙(`AgentSql.run`)으로 거절,
+  `setCurrentDatabase`는 저장하지 않음, `getCurrentDatabase`에 `sharedSession`·`note`. 위 "공유 세션의 DB·스키마". 도구 설명은 그대로. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #93 검토 뒤 고침: `SHOW CREATE …`·`SHOW CHARACTER SET`·힌트의 USE 허용, SQL Server 끝의 `OPTION (…)`을 떼고 해석, 업서트는 한 문장·WRITE,
   계획 도구의 끝 `;`(MERGE). 위 "읽기 판정의 토큰 검사"의 "검토 뒤 고침". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 앱 변경 #93(`chromite/agent-tools-r2`): 읽기 판정에 쿼리 창 토크나이저로 한 독립 검사를 더함(T-SQL `SELECT 1 DELETE … COMMIT`), 계획 도구와
