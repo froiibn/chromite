@@ -1,4 +1,4 @@
-# Swing 개체 탐색기 개체 작업 (삭제, 이름 바꾸기, 이름 복사, 여러 개 선택, SQL 생성, 유지 관리 명령)
+# Swing 개체 탐색기 개체 작업 (삭제, 이름 바꾸기, 이름 복사, 여러 개 선택, SQL 생성, 유지 관리 명령, 끌어서 이름 넣기)
 
 ## 목적
 
@@ -181,6 +181,65 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 
 영어(`-nl en`)·한국어, 라이트·다크(Oracle 메뉴·미리 보기·잘라내기 확인)에서 화면을 보았다. 시험 객체는 끝난 뒤 모두 지웠다.
 
+## 끌어서 이름 넣기 (2026-11-13, 앱 변경 #112)
+
+개체 탐색기에서 DB 개체를 끌어 편집할 수 있는 쿼리 창에 놓으면 놓은 자리에 이름이 들어간다(SSMS와 같은 기능). 새 명령·메뉴·설정·문구는 없다.
+
+| 끈 노드 | 들어가는 글 |
+|---|---|
+| 테이블·뷰·프로시저·스키마·데이터베이스 등 DB 개체 | 정규화된 이름 복사와 같은 이름(`DBUtils.getObjectFullName(…, DML)`, 방언의 따옴표) |
+| 열 | 따옴표가 필요할 때만 붙은 열 이름(열은 정규화된 개체가 아니어서 같은 함수가 열 이름만 준다) |
+| 여러 개 | 트리 순서로 ", "로 이은 한 줄(SQL의 목록에 바로 들어가도록. 복사 명령은 그대로 줄마다 하나) |
+| 테이블·뷰의 Columns 폴더 | 그 열 이름들을 ", "로 이은 한 줄. 열을 이미 읽은 폴더(펼친 적이 있는 폴더)만 |
+| 연결, Columns 말고 다른 폴더, 아직 읽지 않은 Columns 폴더, 그런 노드가 섞인 선택 | 끌리지 않는다(아무것도 들어가지 않음) |
+
+- **구조.** 트리는 원래 있던 전송 처리기(`ExplorerObjectCommands.createTransferHandler`)를 그대로 쓰고 `setDragEnabled(true)`만 켰다.
+  처리기는 `exportAsDrag` 안에서 만들어지는 전송 객체만 끌기용 이름(`getDragNames`)으로 만든다. Ctrl+C·Edit ▸ 복사(`exportToClipboard`)는
+  지금처럼 이름 복사 글을 준다. 끌기 전송 객체(`DragNames`)는 보통 글(`StringSelection`)에 JVM 안에서만 쓰는 표시 형식(`DRAG_FLAVOR`)을 더한 것이다.
+  처리기는 복사(`COPY`)만 내보내고 받지 않으므로 트리 자신에 놓아도 아무것도 바뀌지 않는다.
+- **편집기.** SQL 편집 영역(`SqlEditorPanel.SqlTextArea`)은 RSyntaxTextArea의 글 전송 처리기(`RTATextTransferHandler`)를 상속한
+  `ExplorerDropHandler`를 쓴다. 표시 형식이 있는 놓기만 `beginAtomicEdit`/`endAtomicEdit`로 감싸 실행 취소 한 단계로 만들고(앞뒤 입력과
+  합쳐지지 않게, 붙여넣기와 같음) 편집기에 초점을 준다. 나머지 전송(편집기 안 글 끌기, 다른 프로그램의 글, 파일, 복사·붙여넣기)은 상속한 처리 그대로다.
+  RSyntaxTextArea의 UI가 생성자와 `updateUI`에서 자기 처리기를 다시 넣으므로 두 곳에서 처리기를 다시 놓는다. 처리기는 RSyntaxTextArea처럼
+  모든 SQL 편집 영역이 한 인스턴스를 같이 쓴다(편집기 안 끌기가 원본을 처리기에 기억하므로).
+- **놓는 자리.** 끄는 동안 캐럿이 포인터를 따라가고(Swing 글 놓기의 기본 `DropMode.USE_SELECTION`), 놓으면 그 자리에 들어가며 캐럿은 넣은 글 뒤에 선다.
+  선택된 글이 있으면 끌기가 들어오는 순간 선택이 풀리고 놓은 자리에 끼워 넣는다(선택을 바꾸지 않는다; Swing 글 구성 요소의 기본 동작).
+  창의 변경 표시·상태 줄은 입력과 같은 문서 이벤트로 바뀐다.
+- **받지 않는 곳.** 읽기 전용 편집 영역(DDL 보기, 비교 탭 등)은 상속한 처리의 `isEditable` 검사로 받지 않는다. 결과 표, Query Library 트리,
+  개체 탐색기 트리는 글을 받지 않는다. 그 밖의 편집 가능한 Swing 글 칸(찾기 칸 등)은 원래처럼 글 놓기를 받는다.
+- **Columns 폴더를 읽지 않은 경우.** 끌기는 이벤트 스레드에서 시작하고 전송 객체를 그때 만들어야 한다. 열을 읽으면 DB에 물을 수 있으므로
+  메모리에 있는 자식만 쓴다(`needsInitialization`, `LocalCacheProgressMonitor`, `DataTransferObjects`와 같은 방법). 배경에서 읽고 나중에 넣는
+  방법은 편집기 쪽에 지연 삽입(위치 추적, 창 닫힘, 실행 취소)이 필요해 이번 변경에 넣지 않았다.
+
+### 확인 (2026-11-13)
+
+빌드한 Swing 제품을 한 벌 복사해 빈 작업 공간·설정·데이터 폴더(`D:\Tools\_scratch\explorer-drag-name\`)로 띄우고, 프로세스에 붙인 시험 에이전트가
+`java.awt.Robot`으로 실제 마우스 끌기(누르기, 조금씩 움직이기, 놓기)를 앱 창이 앞에 있을 때 그 창 안에서만 했다. 연결은 저장하지 않는 임시 연결,
+시험 개체는 `chr_drag_name`(끝난 뒤 모두 지움). 스크린숏은 앱 창만 그린 것이다(`shots\`).
+
+| 끈 것 | SQL Server 2022 (창 DB master) | PostgreSQL 17 | MariaDB 11 | Oracle 23ai |
+|---|---|---|---|---|
+| 테이블 | `chr_drag_name.dbo.chr_t1` | `chr_drag_name.chr_t1` | `chr_drag_name.chr_t1` | `CHR_DRAG_NAME.CHR_T1` |
+| 따옴표가 필요한 테이블 | `chr_drag_name.dbo.[chr t2]`, `….[order]` | `chr_drag_name."chr t2"`, `."order"`, `."ChrMixed"` | `` chr_drag_name.`chr t2` ``, `` .`order` `` | `CHR_DRAG_NAME."chr t2"`, `."ORDER"`, `."ChrMixed"` |
+| 뷰 | `chr_drag_name.dbo.chr_v` | `chr_drag_name.chr_v` | `chr_drag_name.chr_v` | `CHR_DRAG_NAME.CHR_V` |
+| 프로시저 | `dbo.chr_p`(DB 없음, 모델의 정규화된 이름 그대로) | `chr_drag_name.chr_p` | `chr_drag_name.chr_p` | `CHR_DRAG_NAME.CHR_P` |
+| 열 | `[my col]`, `[select]`, `MixedCase` | `"my col"`, `"select"`, `"MixedCol"` | `` `my col` ``, `` `select` ``, `MixedCol` | `"my col"`, `"SELECT"`, `"MixedCol"` |
+| Columns 폴더(읽음) | `id, [my col], [select], MixedCase` | `id, "my col", "select", "MixedCol"` | ``id, `my col`, `select`, MixedCol`` | `ID, "my col", "SELECT", "MixedCol"` |
+| 테이블 3개 | `chr_drag_name.dbo.[chr t2], chr_drag_name.dbo.chr_t1, chr_drag_name.dbo.[order]` | 같은 꼴 | 같은 꼴 | 같은 꼴 |
+| 스키마 / 데이터베이스 | `chr_drag_name.chr_s` / `chr_drag_name` | `chr_drag_name` / `postgres` | `chr_drag_name` | `CHR_DRAG_NAME` |
+| 다른 DB·스키마의 테이블 | `chr_drag_name_b.dbo.chr_tb` | `chr_drag_name_b.chr_tb` | `chr_drag_name_b.chr_tb` | `CHR_DRAG_NAME_B.CHR_TB` |
+
+- SQL Server의 정규화된 이름은 창이 그 DB에 있어도 DB 이름을 붙인다(정규화된 이름 복사와 같은 함수, 이번 변경에서 새 규칙을 만들지 않음).
+- 연결 노드, Tables 폴더, 읽지 않은 Columns 폴더, 테이블과 Views 폴더를 함께 고른 선택: 끌기가 시작되지 않고 글이 들어가지 않음.
+- 놓는 자리(SQL Server): 빈 창, 줄 가운데(`SELECT * FROM | WHERE 1 = 1`), 글 끝, 200줄 글을 끝까지 내린 창의 보이는 줄, 실행 중인 창(`WAITFOR` 중에 놓으면
+  들어가고 실행은 그대로 끝남), 선택(`xxx`) 가운데(선택이 풀리고 그 자리에 끼워 넣음). 끄는 동안 캐럿이 포인터 위치로 움직이고, 놓으면 편집기가 초점을 받고
+  캐럿은 넣은 글 뒤, 창 탭에 변경 표시(`*`), 상태 줄 줄·칸이 바뀜. 실행 취소 한 번에 넣은 글만 빠지고 다시 실행으로 돌아옴. 놓은 뒤 친 글자는 따로 취소됨.
+  완성 목록이 열린 채 끌면 목록은 닫히고 다시 열리지 않음.
+- 받지 않음: DDL 보기 탭, 비교 탭, 결과 표, Query Library 트리, 개체 탐색기 트리(선택·펼침·노드 그대로), 다른 문서 탭의 머리글(탭이 바뀌지 않고 아무것도 안 들어감).
+- 그대로인지(같은 프로세스에서 이 변경 전 설정 = 트리 끌기 끔·RSyntaxTextArea 처리기로 바꿔 비교): 트리 Ctrl+C(별도 Clipboard 객체로)는 전·후 모두
+  `chr t2⏎chr_t1`, Columns 폴더는 `Columns`; 편집기 안에서 고른 글 끌기(옮기기, 선택 안에 놓기는 아무 일 없음)와 실행 취소가 전·후 같음.
+- 연결을 새로 고친 뒤에도 같은 결과. 회귀 테스트는 실행하지 않았다(요청 없음).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 개체 삭제·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴.
@@ -188,3 +247,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-08 유지 관리 명령: 테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침(모델 도구의 SQL, 확인·미리 보기·트랜잭션 질문). PostgreSQL·SQL Server·Oracle·MariaDB에서 확인.
 - 2026-11-08 Altibase 테이블 잘라내기·구체화된 뷰 새로 고침(A5), 컴파일 명령(Oracle·Altibase, O11·A6). 확인은 [swing-routines.md](swing-routines.md).
 - 2026-11-08 `runChange`를 속성 편집도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림([swing-object-properties.md](swing-object-properties.md)).
+- 2026-11-13 끌어서 이름 넣기(앱 변경 #112): 트리 끌기(복사만), 쿼리 편집기가 놓은 자리에 한 실행 취소 단계로 넣음. SQL Server·PostgreSQL·MariaDB·Oracle에서 실제 마우스 끌기로 확인.

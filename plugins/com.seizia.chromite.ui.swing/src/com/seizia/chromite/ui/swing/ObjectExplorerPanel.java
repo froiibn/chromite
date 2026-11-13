@@ -273,6 +273,8 @@ import java.util.regex.Pattern;
  * - 2026-11-12 "더 읽기" 줄의 오른쪽 클릭 메뉴에 Options의 General 페이지(긴 폴더에 표시할 개체 수)를 여는 항목 (B12,
  *   docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-13 트리에서 끌기를 켬: 끌면 개체 이름을 쿼리 창에 넣는다(복사만, {@link ExplorerObjectCommands#createTransferHandler}, 앱 변경 #112,
+ *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -682,6 +684,8 @@ final class ObjectExplorerPanel extends JPanel {
         traceAction = ExecutionTraceCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
+        // Drags the names into a query window; the handler only exports, so the tree takes no drop
+        tree.setDragEnabled(true);
         newObjectCommands = new NewObjectCommands(this, this::getSelectedNavigatorNode, queryWindows, objectCommands);
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);

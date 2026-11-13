@@ -34,11 +34,15 @@ import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.edit.AbstractCommandContext;
 import com.seizia.chromite.model.navigator.DBNContainer;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseItem;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -49,16 +53,20 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -96,6 +104,10 @@ import java.util.function.Supplier;
  *     <li>이름 복사: 이름은 객체 이름({@link DBSObject#getName}, SWT Copy와 같음), 정규화된 이름은 SQL에 넣을 수 있게 방언의 따옴표를 붙인
  *     {@link DBUtils#getObjectFullName}({@link DBPEvaluationContext#DML})이다. 여러 개면 줄마다 하나다. Ctrl+C와 Edit &gt; Copy는 트리의
  *     전송 처리기({@link #createTransferHandler})를 지나므로 Swing 기본(노드 글자)이 아닌 이름이 복사된다.</li>
+ *     <li>끌기: 같은 전송 처리기가 끌기에는 쿼리에 넣을 이름({@link #getDragNames})을 준다. 이름은 정규화된 이름 복사와 같은 함수이고,
+ *     SQL 한 줄에 들어가도록 ", "로 잇는다(복사는 줄마다 하나 그대로). Columns 폴더는 메모리에 있는 열 이름을 준다. 열을 아직 읽지 않았으면
+ *     끌리지 않는다: 끌기는 이벤트 스레드에서 시작하고, 읽으면 DB에 물을 수 있어서다. 복사만 하므로 트리는 바뀌지 않는다.
+ *     JVM 안에서만 쓰는 표시 형식({@link #DRAG_FLAVOR})을 붙여 쿼리 편집기가 탐색기에서 온 놓기를 알아본다.</li>
  *     <li>Generate SQL: 생성기 확장점에서 선택에 맞는 생성기를 고르고({@link ObjectScripts#getGenerators}) 결과를 새 쿼리 창에 연다(실행하지 않음).
  *     SWT는 미리 보기 대화상자였지만 Swing의 Script as(New Query Editor Window)와 같은 흐름으로 했다. 복사는 쿼리 창에서 한다.</li>
  * </ul>
@@ -111,6 +123,8 @@ import java.util.function.Supplier;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 {@link #runChange}: 저장 중 연결이 끊기면 다시 연결만 하고 변경을 다시 실행하지 않음({@code DBExecUtils.tryExecuteReconnectOnly},
  *   앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ * - 2026-11-13 트리에서 끌어 쿼리 창에 이름 넣기({@link #getDragNames}, {@link DragNames}, 앱 변경 #112,
+ *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
  */
 final class ExplorerObjectCommands {
 
@@ -120,6 +134,13 @@ final class ExplorerObjectCommands {
      * Rows of the object list in the delete confirmation before it scrolls.
      */
     private static final int DELETE_LIST_ROWS = 10;
+
+    /**
+     * Marks names dragged from Object Explorer ({@link DragNames}); JVM-local, so it never reaches another application.
+     * Null if the flavor cannot be created (then nothing is dragged).
+     */
+    @Nullable
+    static final DataFlavor DRAG_FLAVOR = createDragFlavor();
 
     /**
      * Options of the delete confirmation, offered when the object manager supports them (SWT
@@ -249,30 +270,85 @@ final class ExplorerObjectCommands {
 
     /**
      * The tree's transfer handler: Ctrl+C (the tree's own copy key) and Edit &gt; Copy copy the plain names of the
-     * selected objects, as Copy Name does.
+     * selected objects, as Copy Name does. A drag gives the names a query needs ({@link #getDragNames}), marked with
+     * {@link #DRAG_FLAVOR}; nothing is ever moved.
      */
     @NotNull
     TransferHandler createTransferHandler() {
         return new TransferHandler() {
+            // True while a drag starts: the drag gesture creates the transferable inside exportAsDrag (TransferHandler.DragHandler)
+            private boolean dragging;
+
             @Override
             public int getSourceActions(JComponent c) {
                 return COPY;
             }
 
+            @Override
+            public void exportAsDrag(JComponent comp, InputEvent e, int action) {
+                dragging = true;
+                try {
+                    super.exportAsDrag(comp, e, action);
+                } finally {
+                    dragging = false;
+                }
+            }
+
             @Nullable
             @Override
             protected Transferable createTransferable(JComponent c) {
-                String names = getNames(selection.get(), false);
+                if (dragging) {
+                    String names = getDragNames(selection.get());
+                    return names == null || DRAG_FLAVOR == null ? null : new DragNames(names);
+                }
+                String names = getNames(selection.get(), false, System.lineSeparator());
                 return names == null ? null : new StringSelection(names);
             }
         };
     }
 
     /**
+     * Names dragged from the tree: plain text for any drop target, and {@link #DRAG_FLAVOR} so that the query editor
+     * knows the drop comes from Object Explorer.
+     */
+    static final class DragNames extends StringSelection {
+        DragNames(@NotNull String names) {
+            super(names);
+        }
+
+        @Override
+        public DataFlavor[] getTransferDataFlavors() {
+            return ArrayUtils.add(DataFlavor.class, super.getTransferDataFlavors(), DRAG_FLAVOR);
+        }
+
+        @Override
+        public boolean isDataFlavorSupported(DataFlavor flavor) {
+            return DRAG_FLAVOR.equals(flavor) || super.isDataFlavorSupported(flavor);
+        }
+
+        @NotNull
+        @Override
+        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
+            return DRAG_FLAVOR.equals(flavor) ? this : super.getTransferData(flavor);
+        }
+    }
+
+    @Nullable
+    private static DataFlavor createDragFlavor() {
+        try {
+            return new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType + ";class=" + DragNames.class.getName(), "Object Explorer names", //$NON-NLS-1$ //$NON-NLS-2$
+                DragNames.class.getClassLoader());
+        } catch (ClassNotFoundException e) {
+            log.error("No Object Explorer drag flavor", e); //$NON-NLS-1$
+            return null;
+        }
+    }
+
+    /**
      * Enables the commands for the selection and rebuilds the Generate SQL menu. EDT, model data in memory only.
      */
     void update(@NotNull List<DBNNode> nodes) {
-        copyNameAction.setEnabled(getNames(nodes, false) != null);
+        copyNameAction.setEnabled(getNames(nodes, false, System.lineSeparator()) != null);
         copyQualifiedNameAction.setEnabled(getObjects(nodes) != null);
         generateSqlMenu.removeAll();
         List<DBSObject> objects = getObjects(nodes);
@@ -299,18 +375,49 @@ final class ExplorerObjectCommands {
     // Copy names
 
     private void copyNames(boolean qualified) {
-        String names = getNames(selection.get(), qualified);
+        String names = getNames(selection.get(), qualified, System.lineSeparator());
         if (names != null) {
             DBWorkbench.getPlatformUI().copyTextToClipboard(names, false);
         }
     }
 
     /**
-     * Names of the nodes, one per line; null if there is none. Qualified names exist for database objects only (null if
-     * another node is selected); other nodes (connections, folders) give their text in the tree.
+     * Names a drag of the nodes inserts into a query: the qualified names (as Copy Qualified Name; a column's is its
+     * quoted name) on one line separated by ", ", the columns of a Columns folder in their place. Null if a node is not a
+     * database object or a folder's columns are not read yet: reading them may query the database, and the drag starts
+     * on the event thread.
      */
     @Nullable
-    private static String getNames(@NotNull List<DBNNode> nodes, boolean qualified) {
+    private static String getDragNames(@NotNull List<DBNNode> nodes) {
+        List<DBNNode> named = new ArrayList<>();
+        for (DBNNode node : nodes) {
+            if (node instanceof DBNDatabaseFolder folder && folder.getChildrenClass() != null
+                && DBSEntityAttribute.class.isAssignableFrom(folder.getChildrenClass())) {
+                // Only the children in memory, as DataTransferObjects reads a folder
+                DBNNode[] columns;
+                try {
+                    columns = folder.needsInitialization() ? null : folder.getChildren(new LocalCacheProgressMonitor(new VoidProgressMonitor()));
+                } catch (DBException e) {
+                    log.debug("Cannot read the columns of " + folder.getNodeDisplayName(), e); //$NON-NLS-1$
+                    return null;
+                }
+                if (columns == null) {
+                    return null;
+                }
+                named.addAll(List.of(columns));
+            } else {
+                named.add(node);
+            }
+        }
+        return getNames(named, true, ", "); //$NON-NLS-1$
+    }
+
+    /**
+     * Names of the nodes joined by the separator; null if there is none. Qualified names exist for database objects only
+     * (null if another node is selected); other nodes (connections, folders) give their text in the tree.
+     */
+    @Nullable
+    private static String getNames(@NotNull List<DBNNode> nodes, boolean qualified, @NotNull String separator) {
         List<String> names = new ArrayList<>();
         for (DBNNode node : nodes) {
             DBSObject object = getObject(node);
@@ -325,7 +432,7 @@ final class ExplorerObjectCommands {
                 names.add(CommonUtils.isEmpty(name) ? ObjectExplorerPanel.getNodeText(node) : name);
             }
         }
-        return names.isEmpty() ? null : String.join(System.lineSeparator(), names);
+        return names.isEmpty() ? null : String.join(separator, names);
     }
 
     //////////////////////////////////////////////////////////

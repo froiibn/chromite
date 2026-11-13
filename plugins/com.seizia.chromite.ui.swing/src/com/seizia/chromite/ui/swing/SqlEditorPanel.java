@@ -42,6 +42,8 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.Gutter;
 import org.fife.ui.rtextarea.GutterIconInfo;
+import org.fife.ui.rtextarea.RTATextTransferHandler;
+import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -101,6 +103,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
@@ -363,6 +366,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-12 실행 중 문장의 줄 바탕을 강조 파랑(선택과 비슷해 눈에 띄지 않음)에서 테마 키 {@code Chromite.editor.runningStatementBackground}의
  *   연두색으로(앱 변경 #99, 사용자 결정). 캐럿 줄이 그 문장 안이면 현재 줄 색이 표시를 가리지 않음({@code SqlTextArea.setRunningLines}).
  *   오류 문장 표시는 그대로 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 문장 색")
+ * - 2026-11-13 개체 탐색기에서 끌어 온 이름을 놓은 자리에 넣음({@code SqlTextArea.ExplorerDropHandler}, 앱 변경 #112,
+ *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -3233,6 +3238,8 @@ final class SqlEditorPanel extends JPanel {
      * - 2026-11-12 실행이 읽는 사각형의 글({@link #getColumnRunText})
      * - 2026-11-12 실행 중 문장 안의 캐럿 줄은 현재 줄 색 대신 실행 중 색({@link #setRunningLines}, 앱 변경 #99): 현재 줄이 줄 강조 위에 칠해져
      *   실행 중 표시의 첫 줄이 가려졌다
+     * - 2026-11-13 개체 탐색기에서 끌어 온 이름을 놓은 자리에 붙여넣기처럼 한 실행 취소 단계로 넣고 초점을 받음({@link ExplorerDropHandler},
+     *   앱 변경 #112). 다른 끌어 놓기는 RSyntaxTextArea의 처리 그대로다
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3244,6 +3251,12 @@ final class SqlEditorPanel extends JPanel {
          * First key of the two-key chords (SSMS Ctrl+K, Ctrl+D; Cmd+K, Cmd+D on macOS).
          */
         private static final int CHORD_KEY = KeyEvent.VK_K;
+
+        /**
+         * One handler for all SQL text areas, as RSyntaxTextArea shares its own: a drag within the text tracks its source
+         * in the handler.
+         */
+        private static final TransferHandler TRANSFER_HANDLER = new ExplorerDropHandler();
 
         // EDT only; read by the token maker while painting
         private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
@@ -3316,6 +3329,8 @@ final class SqlEditorPanel extends JPanel {
             });
             // Alt+drag, Shift+Alt+arrows (macOS: Option+drag, Shift+Option+Command+arrows)
             columnSelection = new SqlColumnSelection(this);
+            // After the RSyntaxTextArea constructor: its UI installs RSyntaxTextArea's own handler (again on updateUI)
+            setTransferHandler(TRANSFER_HANDLER);
         }
 
         /**
@@ -3606,9 +3621,39 @@ final class SqlEditorPanel extends JPanel {
         @Override
         public void updateUI() {
             super.updateUI();
+            // The text area's UI has installed RSyntaxTextArea's own handler again
+            setTransferHandler(TRANSFER_HANDLER);
             if (getParent() != null) {
                 // Look and feel switch: the tree update resets UI defaults first, then the theme colors are applied again
                 SwingUtilities.invokeLater(this::applyTheme);
+            }
+        }
+
+        /**
+         * RSyntaxTextArea's text transfer, unchanged for every other transfer. Names dragged from Object Explorer
+         * ({@link ExplorerObjectCommands#DRAG_FLAVOR}) go in at the drop position like a paste: one undo step of their own,
+         * and the text area takes the focus. A read-only text area takes no drop (the handler's own check).
+         */
+        private static final class ExplorerDropHandler extends RTATextTransferHandler {
+            @Override
+            public boolean importData(TransferSupport support) {
+                DataFlavor flavor = ExplorerObjectCommands.DRAG_FLAVOR;
+                if (!support.isDrop() || flavor == null || !support.isDataFlavorSupported(flavor)
+                    || !(support.getComponent() instanceof RTextArea textArea)) {
+                    return super.importData(support);
+                }
+                // The drop location has moved the caret to the drop position; the text goes in there
+                boolean imported;
+                textArea.beginAtomicEdit();
+                try {
+                    imported = super.importData(support);
+                } finally {
+                    textArea.endAtomicEdit();
+                }
+                if (imported) {
+                    textArea.requestFocusInWindow();
+                }
+                return imported;
             }
         }
 
