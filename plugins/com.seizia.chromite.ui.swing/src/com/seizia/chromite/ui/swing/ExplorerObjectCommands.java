@@ -34,12 +34,18 @@ import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.edit.AbstractCommandContext;
 import com.seizia.chromite.model.navigator.DBNContainer;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseItem;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -49,16 +55,20 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -96,6 +106,12 @@ import java.util.function.Supplier;
  *     <li>이름 복사: 이름은 객체 이름({@link DBSObject#getName}, SWT Copy와 같음), 정규화된 이름은 SQL에 넣을 수 있게 방언의 따옴표를 붙인
  *     {@link DBUtils#getObjectFullName}({@link DBPEvaluationContext#DML})이다. 여러 개면 줄마다 하나다. Ctrl+C와 Edit &gt; Copy는 트리의
  *     전송 처리기({@link #createTransferHandler})를 지나므로 Swing 기본(노드 글자)이 아닌 이름이 복사된다.</li>
+ *     <li>끌기: 같은 전송 처리기가 끌기에는 쿼리에 넣을 이름({@link #getDragNames})을 준다. 이름은 정규화된 이름 복사와 같은 함수이고,
+ *     SQL 한 줄에 들어가도록 ", "로 잇는다(복사는 줄마다 하나 그대로). Columns 폴더는 메모리에 있는 열 이름을 준다. 열을 아직 읽지 않았으면
+ *     끌리지 않는다: 끌기는 이벤트 스레드에서 시작하고, 읽으면 DB에 물을 수 있어서다. 복사만 하므로 트리는 바뀌지 않는다.
+ *     JVM 안에서만 쓰는 표시 형식({@link #DRAG_FLAVOR})을 붙여 쿼리 편집기가 탐색기에서 온 놓기를 알아본다.
+ *     놓을 창은 끌기를 시작할 때 모르므로, 개체마다 전체 이름과 DB를 뺀 이름(DB.스키마.개체로 만든 이름만, {@link DragName})을 실어 보내고
+ *     놓는 쿼리 창이 자기 연결과 현재 DB로 고른다({@link DragNames#getText}). 두 이름 모두 같은 {@link DBUtils} 함수로 만들고 글을 자르지 않는다.</li>
  *     <li>Generate SQL: 생성기 확장점에서 선택에 맞는 생성기를 고르고({@link ObjectScripts#getGenerators}) 결과를 새 쿼리 창에 연다(실행하지 않음).
  *     SWT는 미리 보기 대화상자였지만 Swing의 Script as(New Query Editor Window)와 같은 흐름으로 했다. 복사는 쿼리 창에서 한다.</li>
  * </ul>
@@ -111,6 +127,9 @@ import java.util.function.Supplier;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 {@link #runChange}: 저장 중 연결이 끊기면 다시 연결만 하고 변경을 다시 실행하지 않음({@code DBExecUtils.tryExecuteReconnectOnly},
  *   앱 변경 #86, docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ * - 2026-11-13 트리에서 끌어 쿼리 창에 이름 넣기({@link #getDragNames}, {@link DragNames}, 앱 변경 #112,
+ *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
+ * - 2026-11-13 끌어 놓은 이름이 놓는 창에 맞게: 같은 연결의 창이 개체의 DB에 있으면 DB.스키마.개체 이름에서 DB를 뺌({@link DragName}, 앱 변경 #112 검토)
  */
 final class ExplorerObjectCommands {
 
@@ -120,6 +139,13 @@ final class ExplorerObjectCommands {
      * Rows of the object list in the delete confirmation before it scrolls.
      */
     private static final int DELETE_LIST_ROWS = 10;
+
+    /**
+     * Marks names dragged from Object Explorer ({@link DragNames}); JVM-local, so it never reaches another application.
+     * Null if the flavor cannot be created (then nothing is dragged).
+     */
+    @Nullable
+    static final DataFlavor DRAG_FLAVOR = createDragFlavor();
 
     /**
      * Options of the delete confirmation, offered when the object manager supports them (SWT
@@ -249,23 +275,116 @@ final class ExplorerObjectCommands {
 
     /**
      * The tree's transfer handler: Ctrl+C (the tree's own copy key) and Edit &gt; Copy copy the plain names of the
-     * selected objects, as Copy Name does.
+     * selected objects, as Copy Name does. A drag gives the names a query needs ({@link #getDragNames}), marked with
+     * {@link #DRAG_FLAVOR}; nothing is ever moved.
      */
     @NotNull
     TransferHandler createTransferHandler() {
         return new TransferHandler() {
+            // True while a drag starts: the drag gesture creates the transferable inside exportAsDrag (TransferHandler.DragHandler)
+            private boolean dragging;
+
             @Override
             public int getSourceActions(JComponent c) {
                 return COPY;
             }
 
+            @Override
+            public void exportAsDrag(JComponent comp, InputEvent e, int action) {
+                dragging = true;
+                try {
+                    super.exportAsDrag(comp, e, action);
+                } finally {
+                    dragging = false;
+                }
+            }
+
             @Nullable
             @Override
             protected Transferable createTransferable(JComponent c) {
+                if (dragging) {
+                    return DRAG_FLAVOR == null ? null : getDragNames(selection.get());
+                }
                 String names = getNames(selection.get(), false);
                 return names == null ? null : new StringSelection(names);
             }
         };
+    }
+
+    /**
+     * One dragged name.
+     *
+     * @param fullName           the qualified name, as Copy Qualified Name gives it
+     * @param nameWithoutCatalog the name without its database when the full name is database.schema.object, else null
+     * @param catalog            the object's database (with {@code nameWithoutCatalog})
+     * @param container          the object's connection (with {@code nameWithoutCatalog})
+     */
+    record DragName(
+        @NotNull String fullName,
+        @Nullable String nameWithoutCatalog,
+        @Nullable String catalog,
+        @Nullable DBPDataSourceContainer container
+    ) {
+    }
+
+    /**
+     * Names dragged from the tree: the full names as plain text for any drop target, and {@link #DRAG_FLAVOR} (this object)
+     * so that the query editor knows the drop comes from Object Explorer and picks the names for its own window.
+     */
+    static final class DragNames extends StringSelection {
+        private final List<DragName> names;
+
+        DragNames(@NotNull List<DragName> names) {
+            super(getText(names, null, null));
+            this.names = names;
+        }
+
+        /**
+         * The names for a query window, joined by ", ": a name loses its database when the window is on the object's
+         * connection and its current database is the object's database. Null window values give the full names.
+         */
+        @NotNull
+        String getText(@Nullable DBPDataSourceContainer windowContainer, @Nullable String windowCatalog) {
+            return getText(names, windowContainer, windowCatalog);
+        }
+
+        @NotNull
+        private static String getText(@NotNull List<DragName> names, @Nullable DBPDataSourceContainer windowContainer, @Nullable String windowCatalog) {
+            List<String> text = new ArrayList<>(names.size());
+            for (DragName name : names) {
+                boolean sameDatabase = name.nameWithoutCatalog() != null && windowContainer != null && name.container() == windowContainer
+                    && name.catalog() != null && name.catalog().equals(windowCatalog);
+                text.add(sameDatabase ? name.nameWithoutCatalog() : name.fullName());
+            }
+            return String.join(", ", text); //$NON-NLS-1$
+        }
+
+        @Override
+        public DataFlavor[] getTransferDataFlavors() {
+            return ArrayUtils.add(DataFlavor.class, super.getTransferDataFlavors(), DRAG_FLAVOR);
+        }
+
+        @Override
+        public boolean isDataFlavorSupported(DataFlavor flavor) {
+            return DRAG_FLAVOR.equals(flavor) || super.isDataFlavorSupported(flavor);
+        }
+
+        @NotNull
+        @Override
+        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
+            return DRAG_FLAVOR.equals(flavor) ? this : super.getTransferData(flavor);
+        }
+    }
+
+    @Nullable
+    private static DataFlavor createDragFlavor() {
+        try {
+            return new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType + ";class=" + DragNames.class.getName(), "Object Explorer names", //$NON-NLS-1$ //$NON-NLS-2$
+                DragNames.class.getClassLoader());
+        } catch (ClassNotFoundException e) {
+            log.error("No Object Explorer drag flavor", e); //$NON-NLS-1$
+            return null;
+        }
     }
 
     /**
@@ -303,6 +422,63 @@ final class ExplorerObjectCommands {
         if (names != null) {
             DBWorkbench.getPlatformUI().copyTextToClipboard(names, false);
         }
+    }
+
+    /**
+     * Names a drag of the nodes inserts into a query: the qualified names (as Copy Qualified Name; a column's is its
+     * quoted name), the columns of a Columns folder in their place. Null if a node is not a database object or a folder's
+     * columns are not read yet: reading them may query the database, and the drag starts on the event thread.
+     */
+    @Nullable
+    private static DragNames getDragNames(@NotNull List<DBNNode> nodes) {
+        List<DBNNode> named = new ArrayList<>();
+        for (DBNNode node : nodes) {
+            if (node instanceof DBNDatabaseFolder folder && folder.getChildrenClass() != null
+                && DBSEntityAttribute.class.isAssignableFrom(folder.getChildrenClass())) {
+                // Only the children in memory, as DataTransferObjects reads a folder
+                DBNNode[] columns;
+                try {
+                    columns = folder.needsInitialization() ? null : folder.getChildren(new LocalCacheProgressMonitor(new VoidProgressMonitor()));
+                } catch (DBException e) {
+                    log.debug("Cannot read the columns of " + folder.getNodeDisplayName(), e); //$NON-NLS-1$
+                    return null;
+                }
+                if (columns == null) {
+                    return null;
+                }
+                named.addAll(List.of(columns));
+            } else {
+                named.add(node);
+            }
+        }
+        List<DragName> names = new ArrayList<>();
+        for (DBNNode node : named) {
+            DBSObject object = getObject(node);
+            if (object == null) {
+                return null;
+            }
+            names.add(createDragName(object));
+        }
+        return names.isEmpty() ? null : new DragNames(names);
+    }
+
+    /**
+     * The object's full name and, when that name is database.schema.object (SQL Server, Generic engines with catalogs and
+     * schemas), the schema.object name. Both come from the same quoting function; the full name is compared with the
+     * database.schema.object form instead of cutting text, so other name forms (MySQL database.table, a SQL Server
+     * procedure's schema.name, a schema itself, a column) keep their full name.
+     */
+    @NotNull
+    private static DragName createDragName(@NotNull DBSObject object) {
+        String fullName = DBUtils.getObjectFullName(object, DBPEvaluationContext.DML);
+        DBPDataSource dataSource = object.getDataSource();
+        DBSCatalog catalog = DBUtils.getParentOfType(DBSCatalog.class, object);
+        DBSSchema schema = DBUtils.getParentOfType(DBSSchema.class, object);
+        if (dataSource != null && catalog != null && schema != null && DBUtils.getParentOfType(DBSCatalog.class, schema) == catalog
+            && fullName.equals(DBUtils.getFullQualifiedName(dataSource, catalog, schema, object))) {
+            return new DragName(fullName, DBUtils.getFullQualifiedName(dataSource, schema, object), catalog.getName(), dataSource.getContainer());
+        }
+        return new DragName(fullName, null, null, null);
     }
 
     /**
