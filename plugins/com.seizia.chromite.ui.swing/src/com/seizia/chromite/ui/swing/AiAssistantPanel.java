@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
@@ -57,20 +58,22 @@ import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -89,10 +92,11 @@ import java.util.Set;
  *     빨리 끝나면 다음 응답의 글이 타이머 전에 오는데, 항목 하나만 기억하면 앞 글의 남은 조각이 그려지지 않아 첫 조각에서 멈춘다.</li>
  *     <li>제공자·모델·연결·데이터베이스는 대화마다 저장한다. 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(쿼리 창이 쓰는 기본 실행 문맥의
  *     기본 카탈로그·스키마)로 시작한다. 모델은 이 연결을 도구의 기본 {@code connection} 인수로 쓴다.</li>
- *     <li>제공자와 모델은 입력란 아래 줄 왼쪽의 콤보 하나({@code modelPicker})로 고른다. 목록은 제공자 이름(고를 수 없는 제목) 아래에 그 제공자의
- *     모델을 묶고, 설정되지 않은 제공자는 "설정 필요" 항목(고르면 설정)을, 끝에는 "모델 이름 직접 입력"을 둔다. 제목과 동작 항목은 대화의 모델이
- *     아니므로 고르는 순간이 아니라 목록이 닫힐 때 처리하고 선택을 대화의 모델로 되돌린다. 키보드로 목록을 지나가는 것만으로 동작이 실행되지 않게
- *     하기 위해서다.</li>
+ *     <li>입력은 둥근 상자 하나({@link ComposerPanel})다. 위에 글, 상자 안 아래 줄 왼쪽에 모델 단추({@code modelButton}, 알약 모양), 오른쪽에
+ *     보내기·중지 단추(강조색 원)가 있다. 제공자는 상자 아래의 콤보({@code providerCombo})로 고르고, 모델 단추는 고른 제공자의 모델만 보인다.
+ *     제공자와 모델을 한 목록에 묶으면 다른 제공자를 설정한 뒤에도 대화가 설정되지 않은 제공자에 남아, 사용자가 긴 목록에서 맞는 줄을 찾아야
+ *     안내가 사라졌다(앱 변경 #110). 같은 이유로, 빈 대화가 설정되지 않은 제공자에 있을 때 제공자가 하나만 설정되어 있거나 하나가 새로
+ *     설정되면 그 제공자로 넘어간다({@link #settingsChanged}). 메시지가 있는 대화는 스스로 넘어가지 않는다.</li>
  *     <li>대화 기록은 도구 막대의 단추가 여는 팝업 목록(거르기 입력란, 최근 순)이다. 대화를 늘 보이는 콤보로 두지 않고 필요할 때 여는 목록으로 두어
  *     맨 위 줄을 도구 막대만 남겼다. 빈 대화는 목록에 넣지 않는다(빈 대화는 새 대화로 다시 쓴다).</li>
  *     <li>플레이북 단추는 MCP 프롬프트와 같은 글({@link AIAgentPlaybooks#getText})을 채워 보낸다. 대화에는 짧은 이름만 보인다.</li>
@@ -124,6 +128,10 @@ import java.util.Set;
  *   docs/chromite/ai-agent.md "채팅 도구 창")
  * - 2026-11-12 제공자 설정 안내의 [Chromite Agent 설정] 글자 단추를 도구 막대와 같은 톱니 아이콘 단추로, 글 오른쪽 첫 줄 가운데에(사용자 결정
  *   "그냥 톱니바퀴 아이콘으로 교체해. 그러면 편하잖아", 앱 변경 #72)
+ * - 2026-11-13 입력을 둥근 상자({@link ComposerPanel})로: 글 아래 상자 안에 모델 단추(고른 제공자의 모델 목록)와 강조색 원 보내기·중지 단추,
+ *   상자 아래에 제공자 콤보. 합친 모델 선택(제공자 제목, "설정 필요" 항목)과 직접 입력의 제공자 질문을 지움. 설정이 바뀌면 빈 대화를 하나뿐인
+ *   또는 새로 설정된 제공자로 옮기고, 새 대화는 설정된 제공자로 시작함 (사용자 요청 "모델 선택 ux흐름을 개선", 앱 변경 #110,
+ *   docs/chromite/ai-agent.md "채팅 도구 창")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -134,6 +142,16 @@ final class AiAssistantPanel extends JPanel {
     private static final String PREF_MODELS_PREFIX = "ai.chat.models."; //$NON-NLS-1$
     private static final int RENDER_DELAY_MS = 80;
     private static final int TITLE_CHARS = 48;
+    // The model list gets a filter field above this many models (a vLLM or Ollama server can serve many)
+    private static final int MODEL_FILTER_THRESHOLD = 10;
+    // The send and stop buttons: filled with the accent color like a dialog's primary button, the focus as a ring in the
+    // on-accent color (an accent ring would not show on the accent fill). The ring's width is set here because the light
+    // theme shows a button's focus by its background alone (Button.innerFocusWidth 0), which is the accent for both states
+    private static final String ACCENT_BUTTON_STYLE = "background: $Button.default.background; innerFocusWidth: 1; " //$NON-NLS-1$
+        + "foreground: $Button.default.foreground; hoverBackground: $Button.default.hoverBackground; " //$NON-NLS-1$
+        + "pressedBackground: $Button.default.pressedBackground; focusedBackground: $Button.default.focusedBackground; " //$NON-NLS-1$
+        + "borderColor: $Button.default.borderColor; hoverBorderColor: $Button.default.hoverBorderColor; " //$NON-NLS-1$
+        + "focusedBorderColor: $Button.default.focusedBorderColor; focusColor: $Button.default.foreground"; //$NON-NLS-1$
 
     /**
      * What the tool window needs from the main window.
@@ -156,19 +174,7 @@ final class AiAssistantPanel extends JPanel {
     private record Playbook(@NotNull String name, @NotNull String label, boolean needsSql) {
     }
 
-    /** A provider's model in the model picker. */
-    private record ModelChoice(@NotNull String engineId, @Nullable String model) {
-    }
-
-    /** A provider heading in the model picker; not a selection. */
-    private record ProviderHeading(@NotNull String engineId) {
-    }
-
-    /** "Setup required" under a provider that is not configured: opens the settings. */
-    private record SetupItem(@NotNull String engineId) {
-    }
-
-    /** "Enter Model Name" at the end of the model picker. */
+    /** "Enter Model Name" at the end of the model list. */
     private enum PickerAction {
         ENTER_MODEL
     }
@@ -180,20 +186,44 @@ final class AiAssistantPanel extends JPanel {
     @Nullable
     private AbstractJob runningJob;
 
-    private final JComboBox<Object> modelPicker = new JComboBox<>() {
-        // As wide as the longest "provider · model" in the Send row, not wider (BoxLayout grows a component up to its maximum)
+    // The conversation's model, in the input box: as wide as the name, narrower (with "...") in a narrow tool window
+    // (BoxLayout grows a component up to its maximum and shrinks it down to its minimum)
+    private final JButton modelButton = new JButton() {
+        @Override
+        public Dimension getMinimumSize() {
+            Dimension size = getPreferredSize();
+            return new Dimension(Math.min(size.width, size.height), size.height);
+        }
+
         @Override
         public Dimension getMaximumSize() {
             return getPreferredSize();
         }
     };
+    // Below the input box, as wide as the longest provider name, narrower (with "...") in a narrow tool window
+    private final JComboBox<String> providerCombo = new JComboBox<>(AIAgentProviders.PROVIDERS.toArray(String[]::new)) {
+        @Override
+        public Dimension getMinimumSize() {
+            Dimension size = getPreferredSize();
+            // The arrow and a little of the name, so the combo fits the narrowest tool window (the minimum card width)
+            return new Dimension(Math.min(size.width, size.height * 2), size.height);
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return getPreferredSize();
+        }
+    };
+    // Providers that were set up when the settings were last read: settingsChanged compares them to tell a new one
+    private final Set<String> readyProviders = new HashSet<>();
     private final JComboBox<Object> connectionCombo = new JComboBox<>();
     private final JComboBox<String> databaseCombo = new JComboBox<>();
     private final JPanel transcript = new TranscriptPanel();
     private final JScrollPane transcriptScroll;
     private final JTextArea input = new JTextArea(3, 20);
-    private final JButton sendButton = new JButton(AiMessages.ai_send);
-    private final JButton stopButton = new JButton(AiMessages.ai_stop);
+    private final ComposerPanel composer = new ComposerPanel();
+    private final JButton sendButton = new RoundButton();
+    private final JButton stopButton = new RoundButton();
     private final JLabel statusLabel = new JLabel(" "); //$NON-NLS-1$
     private final JPanel setupNotice = new JPanel(new BorderLayout(UIScale.scale(4), 0));
     // The provider's model can't call tools: the chat works without them (AIAgentToolSets.isToolsOff)
@@ -208,8 +238,6 @@ final class AiAssistantPanel extends JPanel {
     // Text entries with appended text not drawn yet (see the class comment)
     private final Set<AIAgentChat.Entry> pendingRender = new LinkedHashSet<>();
     private boolean updating;
-    // The model picker's list was closed with Escape or a click outside: the selection goes back to the conversation's model
-    private boolean pickCanceled;
     // Tokens of the last turn, shown in the status line when the turn ends
     @Nullable
     private AIUsage turnUsage;
@@ -224,32 +252,13 @@ final class AiAssistantPanel extends JPanel {
         historyAction = createAction(AiMessages.ai_history, null);
         playbooksAction = createAction(AiMessages.ai_playbooks, null);
 
-        modelPicker.setRenderer(new ModelPickerRenderer());
-        modelPicker.addActionListener(e -> {
-            // A pick in the open list is handled when the list closes (see the class comment)
-            if (!updating && !modelPicker.isPopupVisible()) {
-                modelPicked();
-            }
-        });
-        modelPicker.addPopupMenuListener(new PopupMenuListener() {
-            @Override
-            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                pickCanceled = false;
-            }
-
-            @Override
-            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-                // After the list has set the picked item
-                SwingUtilities.invokeLater(() -> {
-                    if (!updating) {
-                        modelPicked();
-                    }
-                });
-            }
-
-            @Override
-            public void popupMenuCanceled(PopupMenuEvent e) {
-                pickCanceled = true;
+        readReadyProviders();
+        providerCombo.setRenderer(new ProviderRenderer());
+        providerCombo.setToolTipText(AiMessages.ai_provider);
+        providerCombo.getAccessibleContext().setAccessibleName(AiMessages.ai_provider);
+        providerCombo.addActionListener(e -> {
+            if (!updating && providerCombo.getSelectedItem() instanceof String engineId) {
+                providerChosen(engineId);
             }
         });
         connectionCombo.setRenderer(new DefaultListCellRenderer() {
@@ -357,29 +366,84 @@ final class AiAssistantPanel extends JPanel {
         input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "chromite.ai.send"); //$NON-NLS-1$
         input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK), "insert-break"); //$NON-NLS-1$
         input.getActionMap().put("chromite.ai.send", createAction(AiMessages.ai_send, this::sendInput)); //$NON-NLS-1$
+        // The box paints the text's background and its focus (see ComposerPanel)
+        input.setOpaque(false);
+        input.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                composer.repaint();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                composer.repaint();
+            }
+        });
+        input.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateSendButton();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateSendButton();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateSendButton();
+            }
+        });
         sendButton.addActionListener(e -> sendInput());
-        sendButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        sendButton.setIcon(UiIcons.get("run")); //$NON-NLS-1$
         stopButton.addActionListener(e -> stop());
-        stopButton.setIcon(UiIcons.get("stop")); //$NON-NLS-1$
+        // Icon buttons: the tool tip and the accessible name are the function's name (app change #103)
+        for (JButton button : List.of(sendButton, stopButton)) {
+            String name = button == sendButton ? AiMessages.ai_send : AiMessages.ai_stop;
+            button.setIcon(UiIcons.inColor(UiIcons.get(button == sendButton ? "run" : "stop"), //$NON-NLS-1$ //$NON-NLS-2$
+                "Button.default.foreground", "Button.disabledText")); //$NON-NLS-1$ //$NON-NLS-2$
+            button.setToolTipText(name);
+            button.getAccessibleContext().setAccessibleName(name);
+            button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_ROUND_RECT);
+            button.putClientProperty(FlatClientProperties.STYLE, ACCENT_BUTTON_STYLE);
+        }
         stopButton.setVisible(false);
+        // The model button: a pill (a plain button with round ends, so it has the theme's hover, pressed, focus and
+        // disabled looks); Enter and Down open the list like a combo's, Space presses it like any button
+        modelButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_ROUND_RECT);
+        modelButton.addActionListener(e -> showModels());
+        for (int key : new int[]{KeyEvent.VK_ENTER, KeyEvent.VK_DOWN}) {
+            modelButton.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(key, 0), "chromite.ai.models"); //$NON-NLS-1$
+        }
+        modelButton.getActionMap().put("chromite.ai.models", createAction(AiMessages.ai_model_choose, this::showModels)); //$NON-NLS-1$
 
         JScrollPane inputScroll = new JScrollPane(input);
-        // The model picker at the left of the Send row: as wide as its text, narrower (with "...") when the window is narrow
-        modelPicker.setMinimumSize(new Dimension(UIScale.scale(60), modelPicker.getPreferredSize().height));
-        JPanel actionRow = new JPanel();
-        actionRow.setOpaque(false);
-        actionRow.setLayout(new BoxLayout(actionRow, BoxLayout.X_AXIS));
-        actionRow.add(modelPicker);
-        actionRow.add(Box.createHorizontalGlue());
-        actionRow.add(Box.createHorizontalStrut(UIScale.scale(4)));
-        actionRow.add(sendButton);
-        actionRow.add(stopButton);
+        inputScroll.setBorder(BorderFactory.createEmptyBorder());
+        inputScroll.setOpaque(false);
+        inputScroll.getViewport().setOpaque(false);
+        // The bottom row inside the box: the model at the left, send / stop at the right
+        JPanel modelRow = new JPanel();
+        modelRow.setOpaque(false);
+        modelRow.setLayout(new BoxLayout(modelRow, BoxLayout.X_AXIS));
+        modelRow.add(modelButton);
+        modelRow.add(Box.createHorizontalGlue());
+        modelRow.add(Box.createHorizontalStrut(UIScale.scale(4)));
+        modelRow.add(sendButton);
+        modelRow.add(stopButton);
+        composer.add(inputScroll, BorderLayout.CENTER);
+        composer.add(modelRow, BorderLayout.SOUTH);
+
+        // Below the box: the provider at the left, the status line under it
+        JPanel providerRow = new JPanel();
+        providerRow.setOpaque(false);
+        providerRow.setLayout(new BoxLayout(providerRow, BoxLayout.X_AXIS));
+        providerRow.add(providerCombo);
+        providerRow.add(Box.createHorizontalGlue());
         statusLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel statusRow = new JPanel(new BorderLayout(0, UIScale.scale(2)));
         statusRow.setOpaque(false);
-        statusRow.add(actionRow, BorderLayout.CENTER);
+        statusRow.add(providerRow, BorderLayout.CENTER);
         statusRow.add(statusLabel, BorderLayout.SOUTH);
 
         // The text takes the panel's width but the gear's and wraps in a narrow tool window; the gear (the tool bar's settings
@@ -405,9 +469,81 @@ final class AiAssistantPanel extends JPanel {
         notices.add(setupNotice, BorderLayout.NORTH);
         notices.add(toolsOffNotice, BorderLayout.SOUTH);
         panel.add(notices, BorderLayout.NORTH);
-        panel.add(inputScroll, BorderLayout.CENTER);
+        panel.add(composer, BorderLayout.CENTER);
         panel.add(statusRow, BorderLayout.SOUTH);
         return panel;
+    }
+
+    /**
+     * The input box (app change #110, the shape of the user's reference picture in the theme's colors): a rounded box in
+     * the text field colors around the text and the row of the model and send buttons. The box shows the text's focus as a
+     * text field does (Component.focusedBorderColor, border + inner focus width); the text area has no border of its own.
+     * The padding is Button.toolbar.margin (smaller in compact mode) and the corner is concentric with the round send
+     * button (padding + half the button), so the button sits in the corner like in the picture. Read when laid out and
+     * painted, so the box follows theme, scale and density changes.
+     */
+    private final class ComposerPanel extends JPanel {
+        ComposerPanel() {
+            super(new BorderLayout());
+            setOpaque(false);
+            setBorder(new AbstractBorder() {
+                @Override
+                public Insets getBorderInsets(Component c, Insets insets) {
+                    int inset = getLineWidth(true) + getPadding();
+                    insets.set(inset, inset, inset, inset);
+                    return insets;
+                }
+            });
+        }
+
+        // The border, wider by the inner focus width while the text has the focus; the focused width is kept free always
+        private static int getLineWidth(boolean focused) {
+            return UIScale.scale(UIManager.getInt("Component.borderWidth") //$NON-NLS-1$
+                + (focused ? UIManager.getInt("Component.innerFocusWidth") : 0)); //$NON-NLS-1$
+        }
+
+        private static int getPadding() {
+            Insets margin = UIManager.getInsets("Button.toolbar.margin"); //$NON-NLS-1$
+            return UIScale.scale(margin == null ? 0 : margin.bottom);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                FlatUIUtils.setRenderingHints(g2);
+                float arc = Math.min(2 * (getLineWidth(true) + getPadding()) + sendButton.getPreferredSize().height,
+                    Math.min(getWidth(), getHeight()));
+                g2.setColor(UIManager.getColor("TextArea.background")); //$NON-NLS-1$
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), arc, arc));
+                boolean focused = FlatUIUtils.isPermanentFocusOwner(input);
+                g2.setColor(UIManager.getColor(focused ? "Component.focusedBorderColor" : "Component.borderColor")); //$NON-NLS-1$ //$NON-NLS-2$
+                FlatUIUtils.paintOutline(g2, 0, 0, getWidth(), getHeight(), getLineWidth(focused), arc);
+            } finally {
+                g2.dispose();
+            }
+        }
+    }
+
+    /**
+     * The send and stop buttons: circles as high as the model button next to them.
+     */
+    private final class RoundButton extends JButton {
+        @Override
+        public Dimension getPreferredSize() {
+            int height = modelButton.getPreferredSize().height;
+            return new Dimension(height, height);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return getPreferredSize();
+        }
     }
 
     /**
@@ -487,6 +623,10 @@ final class AiAssistantPanel extends JPanel {
         if (!AIAgentProviders.PROVIDERS.contains(engineId)) {
             engineId = AIAgentProviders.ANTHROPIC;
         }
+        // The last used provider while it is set up, else the first one that is (app change #110), else the last used one
+        if (!readyProviders.contains(engineId)) {
+            engineId = AIAgentProviders.PROVIDERS.stream().filter(readyProviders::contains).findFirst().orElse(engineId);
+        }
         created.setEngineId(engineId);
         created.setModel(CommonUtils.nullIfEmpty(preferences.getString(PREF_MODEL_PREFIX + engineId)));
         showChat(created);
@@ -538,9 +678,8 @@ final class AiAssistantPanel extends JPanel {
         // The last turn's tokens belong to the conversation that was shown
         turnUsage = null;
         statusLabel.setText(" "); //$NON-NLS-1$
-        fillModelPicker();
-        // The conversations are read after the panel may already be showing (shown in the default layout), when the
-        // empty picker could not tell the provider
+        // The conversations are read after the panel may already be showing (shown in the default layout), when no
+        // conversation could tell the provider
         updateSetupNotice();
         refreshConnections();
         transcript.removeAll();
@@ -558,50 +697,35 @@ final class AiAssistantPanel extends JPanel {
     }
 
     //////////////////////////////////////////////////////////
-    // Model picker (EDT)
+    // Provider and model (EDT)
 
     /**
-     * The conversation's provider and model as the picker shows it: the provider's default model when the conversation
-     * has none yet.
+     * The conversation's provider; Anthropic for a conversation saved without one.
      */
     @NotNull
-    private static ModelChoice getChoice(@NotNull AIAgentChat current) {
-        String engineId = current.getEngineId() != null ? current.getEngineId() : AIAgentProviders.ANTHROPIC;
-        String model = current.getModel() != null ? current.getModel() : AIAgentProviders.getDefaultModel(engineId);
-        return new ModelChoice(engineId, model);
+    private static String getEngineId(@NotNull AIAgentChat current) {
+        return current.getEngineId() != null ? current.getEngineId() : AIAgentProviders.ANTHROPIC;
     }
 
     /**
-     * Rebuilds the picker's list: each provider's heading and models (the known names, the list loaded with Test, the last
-     * used model), "Setup required" for a provider that is not configured, and "Enter Model Name" at the end. The
-     * conversation's model is in the list even when its provider is not configured, so the closed picker can show it.
+     * The conversation's model: the provider's default model when the conversation has none yet.
      */
-    private void fillModelPicker() {
-        ModelChoice selected = chat == null ? null : getChoice(chat);
-        DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<>();
+    @Nullable
+    private static String getModel(@NotNull AIAgentChat current) {
+        return current.getModel() != null ? current.getModel() : AIAgentProviders.getDefaultModel(getEngineId(current));
+    }
+
+    /**
+     * Reads which providers are set up. Reading a profile resolves its secrets from the secure storage: cheap, but not for
+     * every repaint of the provider list, so the set is kept until the settings change.
+     */
+    private void readReadyProviders() {
+        readyProviders.clear();
         for (String engineId : AIAgentProviders.PROVIDERS) {
-            model.addElement(new ProviderHeading(engineId));
-            boolean configured = AIAgentProviders.isConfigured(engineId);
-            List<String> names = configured ? getModels(engineId) : new ArrayList<>();
-            if (selected != null && selected.engineId().equals(engineId) && !names.contains(selected.model())) {
-                names.addFirst(selected.model());
-            }
-            for (String name : names) {
-                model.addElement(new ModelChoice(engineId, name));
-            }
-            if (!configured) {
-                model.addElement(new SetupItem(engineId));
+            if (AIAgentProviders.isConfigured(engineId)) {
+                readyProviders.add(engineId);
             }
         }
-        model.addElement(PickerAction.ENTER_MODEL);
-        updating = true;
-        try {
-            modelPicker.setModel(model);
-            modelPicker.setSelectedItem(selected);
-        } finally {
-            updating = false;
-        }
-        updatePickerToolTip();
     }
 
     @NotNull
@@ -621,75 +745,200 @@ final class AiAssistantPanel extends JPanel {
     }
 
     /**
-     * The picker's item when its list closed (or its selection changed while closed). A model becomes the conversation's;
-     * a heading or an action is not a selection: the picker goes back to the conversation's model and the action runs,
-     * unless the list was canceled.
+     * Shows the conversation's provider and model in the provider combo and the model button, and which of the composer's
+     * controls can be used: none of them while a turn runs; the model button only when the provider is set up.
      */
-    private void modelPicked() {
-        Object item = modelPicker.getSelectedItem();
-        boolean canceled = pickCanceled;
-        pickCanceled = false;
-        if (!canceled && item instanceof ModelChoice) {
-            contextChanged();
-            updateSetupNotice();
-            updatePickerToolTip();
-            return;
+    private void updateComposer() {
+        AIAgentChat current = chat;
+        boolean running = runningJob != null;
+        String engineId = current == null ? null : getEngineId(current);
+        updating = true;
+        try {
+            providerCombo.setSelectedItem(engineId);
+        } finally {
+            updating = false;
         }
-        if (chat != null) {
-            updating = true;
-            try {
-                modelPicker.setSelectedItem(getChoice(chat));
-            } finally {
-                updating = false;
-            }
-        }
-        if (canceled) {
-            return;
-        }
-        if (item instanceof SetupItem) {
-            host.openOptions(OptionsDialog.PAGE_AGENT);
-        } else if (item == PickerAction.ENTER_MODEL) {
-            enterModel();
-        }
+        providerCombo.setEnabled(!running);
+        boolean ready = engineId != null && readyProviders.contains(engineId);
+        String model = current == null ? null : getModel(current);
+        // A provider that is not set up has no model to choose; the setup notice above the box says what to do
+        String text = !ready ? AiMessages.ai_model_none : model != null ? model : AiMessages.ai_model_choose;
+        modelButton.setText(text);
+        // The button may cut the name: the tool tip has all of it
+        modelButton.setToolTipText(NLS.bind(AiMessages.ai_model_tip, text));
+        modelButton.getAccessibleContext().setAccessibleName(NLS.bind(AiMessages.ai_model_tip, text));
+        modelButton.setEnabled(ready && !running);
+        updateSendButton();
+    }
+
+    // Send needs a text and a provider that is set up (Enter in the text still tells why nothing was sent)
+    private void updateSendButton() {
+        String engineId = chat == null ? null : getEngineId(chat);
+        sendButton.setEnabled(runningJob == null && engineId != null && readyProviders.contains(engineId) && !input.getText().isBlank());
     }
 
     /**
-     * "Enter Model Name": a provider and a model name the lists do not know (as the editable model combo allowed before).
+     * The provider combo's choice: the conversation goes to that provider with its last used model, else its default model.
+     */
+    private void providerChosen(@NotNull String engineId) {
+        AIAgentChat current = chat;
+        if (current == null || runningJob != null || engineId.equals(getEngineId(current))) {
+            return;
+        }
+        current.setEngineId(engineId);
+        String last = CommonUtils.nullIfEmpty(getPreferences().getString(PREF_MODEL_PREFIX + engineId));
+        current.setModel(last != null ? last : AIAgentProviders.getDefaultModel(engineId));
+        contextChanged();
+        updateComposer();
+        updateSetupNotice();
+    }
+
+    /**
+     * The model list of the model button: the chosen provider's models (the known names, the ones Test loaded, the last
+     * used one), the current one marked, "Enter Model Name" at the end, and a filter field above a long list. It opens
+     * above the button (the button is at the bottom of the tool window). Enter or a click picks, Escape closes.
+     */
+    private void showModels() {
+        AIAgentChat current = chat;
+        if (current == null || runningJob != null || !modelButton.isEnabled()) {
+            return;
+        }
+        String engineId = getEngineId(current);
+        String currentModel = getModel(current);
+        List<String> models = getModels(engineId);
+        if (currentModel != null && !models.contains(currentModel)) {
+            models.addFirst(currentModel);
+        }
+        boolean filtered = models.size() > MODEL_FILTER_THRESHOLD;
+        JPopupMenu popup = new JPopupMenu();
+        JTextField filter = new JTextField();
+        filter.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, AiMessages.ai_model_filter);
+        filter.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
+        DefaultListModel<Object> model = new DefaultListModel<>();
+        JList<Object> list = new JList<>(model);
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> l, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
+                boolean marked = value instanceof String name && name.equals(currentModel);
+                // The current model as in the conversation history: bold with a check mark
+                setText(value == PickerAction.ENTER_MODEL ? AiMessages.ai_model_enter : String.valueOf(value));
+                setIcon(marked ? UiIcons.get("check") : null); //$NON-NLS-1$
+                setFont(l.getFont().deriveFont(marked ? Font.BOLD : Font.PLAIN));
+                return this;
+            }
+        });
+        // The filter keeps the focus when there is one, else the list
+        list.setFocusable(!filtered);
+        JComponent keys = filtered ? filter : list;
+        JScrollPane scroll = new JScrollPane(list);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        JPanel panel = new JPanel(new BorderLayout(0, UIScale.scale(4)));
+        panel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(4), UIScale.scale(4), UIScale.scale(4)));
+        if (filtered) {
+            panel.add(filter, BorderLayout.NORTH);
+        }
+        panel.add(scroll, BorderLayout.CENTER);
+        popup.add(panel);
+
+        Runnable refill = () -> {
+            String text = filter.getText().strip().toLowerCase(Locale.ROOT);
+            model.clear();
+            for (String name : models) {
+                if (text.isEmpty() || name.toLowerCase(Locale.ROOT).contains(text)) {
+                    model.addElement(name);
+                }
+            }
+            model.addElement(PickerAction.ENTER_MODEL);
+            list.setSelectedIndex(Math.max(0, model.indexOf(currentModel)));
+            list.ensureIndexIsVisible(list.getSelectedIndex());
+            list.setVisibleRowCount(Math.min(MODEL_FILTER_THRESHOLD, model.size()));
+            scroll.setPreferredSize(null);
+            Dimension size = scroll.getPreferredSize();
+            scroll.setPreferredSize(new Dimension(Math.max(size.width, Math.max(modelButton.getWidth(), UIScale.scale(200))), size.height));
+            if (popup.isVisible()) {
+                popup.pack();
+            }
+            panel.revalidate();
+            panel.repaint();
+        };
+        Runnable pick = () -> {
+            Object selected = list.getSelectedValue();
+            popup.setVisible(false);
+            modelButton.requestFocusInWindow();
+            if (selected == PickerAction.ENTER_MODEL) {
+                enterModel();
+            } else if (selected instanceof String name) {
+                modelChosen(name);
+            }
+        };
+        refill.run();
+        filter.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                refill.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                refill.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                refill.run();
+            }
+        });
+        if (filtered) {
+            // The filter keeps the focus: the keys move in the list (bound on the field, before the popup's own menu keys)
+            bindKey(filter, KeyEvent.VK_DOWN, 0, () -> moveSelection(list, 1));
+            bindKey(filter, KeyEvent.VK_UP, 0, () -> moveSelection(list, -1));
+        }
+        bindKey(keys, KeyEvent.VK_ENTER, 0, pick);
+        bindKey(keys, KeyEvent.VK_ESCAPE, 0, () -> {
+            popup.setVisible(false);
+            modelButton.requestFocusInWindow();
+        });
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                int index = list.locationToIndex(e.getPoint());
+                Rectangle bounds = index < 0 ? null : list.getCellBounds(index, index);
+                if (bounds != null && bounds.contains(e.getPoint()) && SwingUtilities.isLeftMouseButton(e)) {
+                    list.setSelectedIndex(index);
+                    pick.run();
+                }
+            }
+        });
+        popup.show(modelButton, 0, -popup.getPreferredSize().height - UIScale.scale(2));
+        SwingUtilities.invokeLater(keys::requestFocusInWindow);
+    }
+
+    private void modelChosen(@NotNull String name) {
+        AIAgentChat current = chat;
+        if (current == null || runningJob != null) {
+            return;
+        }
+        current.setModel(name);
+        contextChanged();
+        updateComposer();
+        updateSetupNotice();
+    }
+
+    /**
+     * "Enter Model Name": a model name of the conversation's provider that the list does not know (as the editable model
+     * combo allowed before).
      */
     private void enterModel() {
         AIAgentChat current = chat;
         if (current == null || runningJob != null) {
             return;
         }
-        ModelChoice choice = getChoice(current);
-        JComboBox<String> providers = new JComboBox<>(AIAgentProviders.PROVIDERS.toArray(String[]::new));
-        providers.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof String engineId) {
-                    setText(AIAgentProviders.getLabel(engineId));
-                }
-                return this;
-            }
-        });
-        providers.setSelectedItem(choice.engineId());
-        JTextField name = new JTextField(CommonUtils.notEmpty(choice.model()), 24);
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST;
-        c.insets = new Insets(2, 0, 2, UIScale.scale(8));
-        panel.add(new JLabel(AiMessages.ai_model_provider), c);
-        c.gridy = 1;
-        panel.add(new JLabel(AiMessages.ai_model_name), c);
-        c.gridx = 1;
-        c.gridy = 0;
-        c.weightx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(2, 0, 2, 0);
-        panel.add(providers, c);
-        c.gridy = 1;
-        panel.add(name, c);
+        JTextField name = new JTextField(CommonUtils.notEmpty(getModel(current)), 24);
+        JPanel panel = new JPanel(new BorderLayout(UIScale.scale(8), 0));
+        panel.add(new JLabel(AiMessages.ai_model_name), BorderLayout.WEST);
+        panel.add(name, BorderLayout.CENTER);
         name.addHierarchyListener(e -> {
             if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && name.isShowing()) {
                 name.selectAll();
@@ -697,63 +946,51 @@ final class AiAssistantPanel extends JPanel {
             }
         });
         if (JOptionPane.showConfirmDialog(this, panel, AiMessages.ai_model_enter_title, JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION || CommonUtils.isEmptyTrimmed(name.getText())
-            || !(providers.getSelectedItem() instanceof String engineId)) {
+            JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION || CommonUtils.isEmptyTrimmed(name.getText())) {
             return;
         }
-        current.setEngineId(engineId);
-        current.setModel(name.getText().trim());
-        fillModelPicker();
-        contextChanged();
-        updateSetupNotice();
-    }
-
-    // The closed picker may cut the name: the tool tip has all of it
-    private void updatePickerToolTip() {
-        modelPicker.setToolTipText(modelPicker.getSelectedItem() instanceof ModelChoice choice
-            ? NLS.bind(AiMessages.ai_model_tip, describe(choice)) : null);
+        modelChosen(name.getText().trim());
     }
 
     /**
-     * "Provider · model", as the closed picker shows it.
+     * A provider was set up or removed, or Test loaded its models. An empty conversation on a provider that is not set up
+     * goes to the provider that has just been set up, or to the only one that is: setting up a provider is then enough to
+     * start (before, the conversation stayed on the first provider and the setup notice stayed). A conversation with
+     * messages keeps its provider.
      */
-    @NotNull
-    private static String describe(@NotNull ModelChoice choice) {
-        String provider = AIAgentProviders.getLabel(choice.engineId());
-        return choice.model() == null ? provider : provider + " · " + choice.model(); //$NON-NLS-1$
-    }
-
     private void settingsChanged() {
-        // A provider was set up or removed, or Test loaded its models
-        fillModelPicker();
+        Set<String> before = new HashSet<>(readyProviders);
+        readReadyProviders();
+        AIAgentChat current = chat;
+        if (current != null && current.isEmpty() && runningJob == null && !readyProviders.contains(getEngineId(current))) {
+            List<String> ready = AIAgentProviders.PROVIDERS.stream().filter(readyProviders::contains).toList();
+            List<String> added = ready.stream().filter(engineId -> !before.contains(engineId)).toList();
+            String target = added.size() == 1 ? added.getFirst() : ready.size() == 1 ? ready.getFirst() : null;
+            if (target != null) {
+                current.setEngineId(target);
+                current.setModel(AIAgentProviders.getDefaultModel(target));
+                contextChanged();
+            }
+        }
+        updateComposer();
         updateSetupNotice();
     }
 
     /**
-     * Picker items: the closed picker shows "Provider · model"; the list shows provider headings in bold (never highlighted)
-     * with their models and actions indented under them.
+     * Provider combo items: the provider's name, with "(setup required)" in the warning color for one that is not set up
+     * (it can be chosen: the setup notice then shows).
      */
-    private static final class ModelPickerRenderer extends DefaultListCellRenderer {
+    private final class ProviderRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-            boolean heading = value instanceof ProviderHeading;
-            super.getListCellRendererComponent(list, value, index, isSelected && !heading, cellHasFocus && !heading);
-            int indent = index < 0 || heading ? 0 : UIScale.scale(12);
-            setBorder(BorderFactory.createCompoundBorder(getBorder(), BorderFactory.createEmptyBorder(0, indent, 0, 0)));
-            setFont(list.getFont().deriveFont(heading ? Font.BOLD : Font.PLAIN));
-            if (value instanceof ModelChoice choice) {
-                setText(index < 0 ? describe(choice) : CommonUtils.notEmpty(choice.model()));
-            } else if (value instanceof ProviderHeading providerHeading) {
-                setText(AIAgentProviders.getLabel(providerHeading.engineId()));
-            } else if (value instanceof SetupItem) {
-                setText(AiMessages.ai_model_setup);
-                if (!isSelected) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof String engineId) {
+                String label = AIAgentProviders.getLabel(engineId);
+                boolean ready = readyProviders.contains(engineId);
+                setText(ready ? label : NLS.bind(AiMessages.ai_provider_setup, label));
+                if (!ready && !isSelected && index >= 0) {
                     setForeground(UIManager.getColor("Chromite.status.warningForeground")); //$NON-NLS-1$
                 }
-            } else if (value == PickerAction.ENTER_MODEL) {
-                setText(AiMessages.ai_model_enter);
-            } else {
-                setText(" "); //$NON-NLS-1$
             }
             return this;
         }
@@ -907,16 +1144,17 @@ final class AiAssistantPanel extends JPanel {
     }
 
     /**
-     * Copies the pickers into the conversation and remembers the provider and model for new conversations.
+     * Copies the connection pickers into the conversation, fixes its provider and model (the default model when it has
+     * none yet) and remembers them for new conversations. The provider combo and the model list set the conversation's
+     * provider and model before.
      */
     private void contextChanged() {
         AIAgentChat current = chat;
         if (current == null || runningJob != null) {
             return;
         }
-        ModelChoice choice = modelPicker.getSelectedItem() instanceof ModelChoice c ? c : getChoice(current);
-        String engineId = choice.engineId();
-        String model = CommonUtils.nullIfEmpty(choice.model());
+        String engineId = getEngineId(current);
+        String model = CommonUtils.nullIfEmpty(getModel(current));
         current.setEngineId(engineId);
         current.setModel(model == null ? null : model.trim());
         current.setConnectionId(connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer c ? c.getId() : null);
@@ -930,10 +1168,10 @@ final class AiAssistantPanel extends JPanel {
     }
 
     private void updateSetupNotice() {
-        String engineId = modelPicker.getSelectedItem() instanceof ModelChoice choice ? choice.engineId() : null;
-        // Reading the profile resolves secrets from the secure storage: cheap, but not on every repaint
-        setupNotice.setVisible(engineId != null && !AIAgentProviders.isConfigured(engineId));
-        String model = modelPicker.getSelectedItem() instanceof ModelChoice choice ? choice.model() : null;
+        AIAgentChat current = chat;
+        String engineId = current == null ? null : getEngineId(current);
+        setupNotice.setVisible(engineId != null && !readyProviders.contains(engineId));
+        String model = current == null ? null : getModel(current);
         toolsOffNotice.setVisible(engineId != null && AIAgentToolSets.isToolsOff(engineId,
             CommonUtils.isEmptyTrimmed(model) ? AIAgentProviders.getDefaultModel(engineId) : model));
     }
@@ -1097,7 +1335,7 @@ final class AiAssistantPanel extends JPanel {
         boolean running = runningJob != null;
         sendButton.setVisible(!running);
         stopButton.setVisible(running);
-        modelPicker.setEnabled(!running);
+        updateComposer();
         connectionCombo.setEnabled(!running);
         databaseCombo.setEnabled(!running);
         newChatAction.setEnabled(!running);
@@ -1607,7 +1845,7 @@ final class AiAssistantPanel extends JPanel {
     }
 
     /**
-     * Remembers the model names loaded from a provider (Options &gt; Chromite Agent &gt; Test), for the model picker.
+     * Remembers the model names loaded from a provider (Options &gt; Chromite Agent &gt; Test), for the model list.
      */
     static void rememberModels(@NotNull String engineId, @NotNull List<String> models) {
         DBPPreferenceStore preferences = getPreferences();
