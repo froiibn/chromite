@@ -45,6 +45,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPEvent;
 import com.seizia.chromite.model.DBPHiddenObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPProject;
@@ -275,6 +276,9 @@ import java.util.regex.Pattern;
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-13 트리에서 끌기를 켬: 끌면 개체 이름을 쿼리 창에 넣는다(복사만, {@link ExplorerObjectCommands#createTransferHandler}, 앱 변경 #112,
  *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
+ * - 2026-11-15 연결 노드의 REFRESH가 내비게이터의 노드 새로 고침이면(쿼리 창의 CREATE DATABASE 등 뒤 연결 전체 새로 고침) 읽어 둔 아래 노드를
+ *   모델에서 다시 보임. 전에는 연결 목록만 다시 그려, 모델에는 새 DB가 있는데 Databases 폴더에는 F5 전까지 보이지 않았다(앱 변경 #111,
+ *   docs/chromite/swing-query-commands.md "연결 전체를 다시 읽은 뒤의 탐색기")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -2060,7 +2064,7 @@ final class ObjectExplorerPanel extends JPanel {
                     reloadConnectionList();
                 }
                 case REMOVE -> reloadConnectionList();
-                case UPDATE -> connectionUpdated(node, event.getNodeChange());
+                case UPDATE -> connectionUpdated(node, event);
             }
             return;
         }
@@ -2125,9 +2129,9 @@ final class ObjectExplorerPanel extends JPanel {
             && dataSourceNode.getDataSourceContainer().getRegistry() == databases.getDataSourceRegistry();
     }
 
-    private void connectionUpdated(@NotNull DBNNode node, @NotNull DBNEvent.NodeChange change) {
+    private void connectionUpdated(@NotNull DBNNode node, @NotNull DBNEvent event) {
         ExplorerNode explorerNode = findExplorerNode(node);
-        switch (change) {
+        switch (event.getNodeChange()) {
             case UNLOAD -> {
                 // Disconnected: the children were disposed; they are read again (connecting) when the node is expanded
                 if (explorerNode != null) {
@@ -2137,6 +2141,12 @@ final class ObjectExplorerPanel extends JPanel {
             case REFRESH -> {
                 // Saved settings (rename, edit): the name and the position in the sorted list may have changed
                 reloadConnectionList();
+                if (explorerNode != null && !(event.getSource() instanceof DBPEvent)) {
+                    // The navigator read the connection's children again (DBNDatabaseNode#refreshNode, e.g. the refresh of the
+                    // whole connection after CREATE DATABASE in a query window): show what the model has now below it, as
+                    // for any other refreshed node. A registry event (settings saved, connect) changes no children
+                    reloadLoadedSubtree(explorerNode);
+                }
             }
             default -> {
                 // BEFORE_LOAD, AFTER_LOAD, LOAD, STRUCT_REFRESH: connection state icon

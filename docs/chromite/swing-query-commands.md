@@ -65,6 +65,8 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   (아래 "두 부분 이름 (#108)"). 그래서 SQL Server의 `CREATE TABLE dbo.t`는 `dbo` 스키마만 다시 읽는다.
 - 연결 전체를 다시 읽어도(`CREATE DATABASE`, `DROP DATABASE`, 갈래를 모르는 개체의 DDL) 다른 쿼리 창의 세션과 트랜잭션은 그대로다. 2026-11-13 전에는
   PostgreSQL에서 연결의 세션이 모두 닫혀 다른 창의 트랜잭션이 묻지 않고 롤백되었다([connection-lifecycle.md](connection-lifecycle.md) "연결 새로 고침과 세션").
+- 연결 전체를 다시 읽으면 Object Explorer의 펼쳐 둔 폴더(Databases, Schemas)도 바로 바뀐다. `CREATE USER`도 연결 전체를 다시 읽는다(아래
+  "연결 전체를 다시 읽은 뒤의 탐색기 (#111)").
 
 ## 구조
 
@@ -178,6 +180,47 @@ MariaDB `CREATE TABLE db.t`(다른 DB, 현재 DB, Refresh 뒤, 다시 연결 뒤
 **같은 규칙을 쓰는 곳:** 이 해석기를 부르는 곳은 `SqlMetadataRefresh.collect` 하나다(검색). Chromite Agent의 개체 찾기(`MetadataTools.objectDdl`)는 자기 이름
 해석(`AgentNames.resolve`, 엔진 종류별)을 쓰고 DDL 뒤 새로 고치지 않는다. 작업의 스크립트 실행기(`SQLScriptProcessor`)는 DDL 뒤 메타데이터를 다시 읽지 않는다.
 
+### 연결 전체를 다시 읽은 뒤의 탐색기 (#111)
+
+**결함(#109 작업 중 보고, 2026-11-15 확인):** 쿼리 창의 `CREATE DATABASE` 뒤 자동 새로 고침이 끝나도 Object Explorer의 Databases 폴더에 새 DB가
+보이지 않았다(F5 뒤에 보임). `DROP DATABASE`도 같다(지운 DB는 모델에서 빠지지만 화면은 새로 고침 전 목록).
+
+**근본 원인 1 (모든 엔진):** 대상이 연결 전체(`RefreshTarget.DataSource`)이면 `SqlMetadataRefresh.refresh`가 연결 노드(`DBNDataSource`)를
+`refreshNode`로 다시 읽는다. 모델은 맞게 바뀐다(Databases 폴더 아래 새 `DBNDatabaseItem`, `DBNDatabaseNode.loadTreeItems`). 그런데 내비게이터는 새 항목에 ADD를
+보내지 않고 연결 노드에 REFRESH 하나만 보내고(`DBNDatabaseNode.refreshNodeContent`, 404행), Swing 탐색기는 연결 노드의 REFRESH를 "설정 저장(이름 바꿈)"으로만
+읽어 연결 목록만 다시 그렸다(`ObjectExplorerPanel.connectionUpdated`). 다른 노드(DB, 스키마)의 REFRESH는 읽어 둔 아래 노드를 모델에서 다시 보였으므로
+(`reloadLoadedSubtree`) 스키마·DB가 대상인 DDL은 보였다. 이 원인으로 보이지 않던 것: PostgreSQL·SQL Server·MySQL·MariaDB `CREATE/DROP DATABASE`,
+DB를 고르지 않은 MySQL·MariaDB 창의 `CREATE/DROP SCHEMA`, Oracle·Altibase `DROP USER`, `CREATE ROLE` 등 갈래를 모르는 DDL, 이름에 맞는 그릇이 없는 DDL
+(Oracle에서 새 사용자의 표 `CREATE TABLE u.t`).
+
+**근본 원인 2 (사용자 = 스키마인 엔진):** LSM 문법의 `createObjectKind`에 `USER`가 없어 `CREATE USER`를 읽지 못하고(오류), 아무것도 다시 읽지 않았다.
+`DROP USER`는 `dropObjectKind`의 `identifier`로 읽혀 연결 전체였다. Oracle·Altibase의 새 사용자(스키마)가 보이지 않았다. SQL Server `CREATE USER`도 같았다.
+
+**고침:**
+- `ObjectExplorerPanel.connectionUpdated`: 연결 노드의 REFRESH가 레지스트리 사건(`DBPEvent`: 설정 저장, 연결)이 아니라 내비게이터의 노드 새로 고침이면
+  연결 목록에 더해 읽어 둔 아래 노드를 모델에서 다시 보인다(다른 노드와 같은 `reloadLoadedSubtree`, 펼침 유지). 서버를 더 부르지 않는다(모델의 목록만 읽음).
+  탐색기 자신의 F5는 전처럼 `loadChildren`이 보인다(자기 사건은 건너뜀).
+- `SQLStandardParser.g4` `createObjectKind`에 `USER`: `CREATE USER`는 갈래 OTHER(연결 전체, `CREATE ROLE`과 같음)가 된다. 새로 고침 범위는 넓히지 않았다
+  (#108의 좁은 대상은 그대로, 사용자 DDL은 전에 아무것도 읽지 않았거나 이미 연결 전체였다).
+
+**확인 (2026-11-15, GCP 시험 VM, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\refresh-followups\run\`, 화면 `shots\`):**
+
+| 엔진 · 문장 (자동 커밋 창) | 고치기 전 (dd2f79e9b1) | 고친 뒤 |
+|---|---|---|
+| PostgreSQL 17 `CREATE DATABASE chr_rf_new` | 모델에 있음(`dblist`), 탐색기 3개 그대로(1초·4초) | 1초 안에 4개(`chr_rf_new`) |
+| PostgreSQL `DROP DATABASE chr_rf_new` | (보인 적이 없음) | 1초 안에 빠짐 |
+| PostgreSQL `CREATE/DROP SCHEMA` | 보임(대상 DB) | 같음 |
+| PostgreSQL `CREATE ROLE`(갈래 OTHER, 연결 전체) | — | 펼친 폴더 그대로 유지, 오류 없음 |
+| SQL Server 2022 `CREATE/DROP DATABASE` | 탐색기 그대로 | 나타남 / 빠짐 |
+| MariaDB 11 `CREATE/DROP DATABASE`, `CREATE/DROP SCHEMA`(DB 고르지 않음) | 그대로 | 나타남 / 빠짐 |
+| MySQL 8.4 같은 문장 | 그대로 | 나타남 / 빠짐 |
+| Oracle 23ai `CREATE USER … NO AUTHENTICATION`, `DROP USER … CASCADE` | 대상 없음(문법 오류) / 연결 전체지만 그대로 | 대상 연결 전체, Schemas에 `CHR_RF_U`가 나타남 / 빠짐 |
+| Altibase 7.3 `CREATE USER`, `DROP USER … CASCADE` | 대상 없음 / 연결 전체지만 그대로 | 나타남 / 빠짐 |
+
+#108(SQL Server `CREATE TABLE dbo.t`는 `dbo`만): 고친 뒤에도 대상 `Schema(chr_rf_db, dbo)`, 새로 고침이 메타데이터 세션에 보낸 질의는
+`chr_rf_db.sys.all_objects` 하나(DB 목록 `sys.databases` 없음), 새 표가 `dbo > Tables`에 나타나고 `DROP TABLE` 뒤 빠짐. #109(PostgreSQL 새로 고침이 세션을 닫지 않음): B의 pid 108118, 커밋하지 않은 행, `search_path`
+`chr_rf_ps, public`, 임시 테이블이 `CREATE/DROP DATABASE`와 연결 Refresh 뒤에도 그대로였고 롤백 뒤 행 없음, 연결을 끊은 뒤 내 세션 0개.
+
 ## upstream 대비 변경점
 
 - SWT `SQLCommandInclude`(ui.editors.sql)는 SWT 프런트엔드와 함께 삭제되었다. 모델 번들에 같은 이름으로 다시 만들었다(편집기 대신 엔진, 현재 폴더 찾기 없음,
@@ -187,6 +230,7 @@ MariaDB `CREATE TABLE db.t`(다른 DB, 현재 DB, Refresh 뒤, 다시 연결 뒤
 - SWT `SQLMetadataRefreshCoordinator`·`SQLMetadataRefreshTransactionCoordinator`의 동작을 Swing 클래스 하나(`SqlMetadataRefresh`)로 새로 썼다.
   SWT의 갱신 알림·끄기 설정(`SHOW_METADATA_REFRESH_NOTIFICATION`)은 없다.
 - upstream `SQLMetadataRefreshTargetResolver`의 두 부분 이름 해석을 세션이 바꿀 수 있는 것 대신 이름 구조로 바꿨다(위 "두 부분 이름 (#108)").
+- LSM 문법(`SQLStandardParser.g4`)의 `createObjectKind`에 `USER`를 더했다(위 "연결 전체를 다시 읽은 뒤의 탐색기 (#111)").
 - 단축키: 이전·다음 문장이 Alt+Up/Down에서 Alt+PageUp/PageDown으로 바뀌었다(위 결정). "새 탭에 결과"(Ctrl+\) 명령은 옮기지 않았다(B-S3).
 
 ## 확인
@@ -242,3 +286,6 @@ MariaDB `CREATE TABLE db.t`(다른 DB, 현재 DB, Refresh 뒤, 다시 연결 뒤
 - 2026-11-13 두 부분 이름(`dbo.t`)을 엔진의 이름 구조로 읽음(앱 변경 #108): SQL Server의 `CREATE TABLE dbo.t`가 연결 전체 대신 `dbo` 스키마만 다시 읽는다.
   "두 부분 이름 (#108)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤 Object Explorer 갱신(모든 DB 종류, 특히 Generic·DuckDB·D1의 두 부분 이름).
 - 2026-11-13 "DDL 뒤 탐색기 갱신"에 연결 전체 새로 고침이 세션을 닫지 않는다는 줄(앱 변경 #109, `chromite/pg-refresh-sessions`, 고친 곳은 `PostgreDataSource`)
+- 2026-11-15 연결 전체를 다시 읽은 뒤 탐색기의 펼친 폴더가 바뀌지 않던 것과 `CREATE USER`를 읽지 못하던 것을 고침(앱 변경 #111 (a), `chromite/refresh-followups`).
+  "연결 전체를 다시 읽은 뒤의 탐색기 (#111)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Object Explorer의 연결 노드 새로 고침 표시,
+  쿼리 창 DDL 뒤 갱신, LSM 문법을 쓰는 SQL 편집기 분석(`CREATE USER` 문장)
