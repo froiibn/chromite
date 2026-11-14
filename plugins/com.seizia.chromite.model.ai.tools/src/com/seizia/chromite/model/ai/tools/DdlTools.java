@@ -56,7 +56,7 @@ import java.util.Map;
  *     <li>뷰의 SELECT는 읽기라고 증명되어야 한다(뷰를 만들며 다른 문장을 끼워 넣지 못하게).</li>
  *     <li>MySQL/MariaDB·Oracle에서 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
  *     <li>26.1.0에서 작업마다 하나였던 도구 7개를 {@code changeSchema(operation)} 하나로 합쳤다(옛 ID는 별칭으로 그 작업을 고른다). 분류는 호출마다
- *     작업으로 정한다({@link #classify}): 지우기는 DANGEROUS, 나머지는 WRITE. 정적 분류(WRITE)보다 낮아지지 않고, 모르는 작업은 DANGEROUS로 본다.
+ *     작업으로 정한다({@link #classify}): 지우기(dropTable, dropView, dropIndex)는 DANGEROUS, 나머지는 WRITE. 정적 분류(WRITE)보다 낮아지지 않고, 모르는 작업은 DANGEROUS로 본다.
  *     미리 보기는 따로 둔 READ 도구 {@code previewDdl}이다. 합친 도구 안의 미리 보기 모드로 두면 운영·읽기 전용 연결에서 WRITE로 막히거나, 분류를
  *     호출마다 낮춰야 해서(분류기는 올리기만 한다) 나눴다.</li>
  * </ul>
@@ -64,7 +64,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): generateDdl → previewDdl, 작업별 도구 7개를 changeSchema 하나로 합치고 호출마다
- *   분류함({@link #classify}), 열 형식 인수 type → columnType
+ *   분류함({@link #classify}), 열 형식 인수 type → columnType. dropIndex는 WRITE에서 DANGEROUS로(runSql이 모든 DROP을 DANGEROUS로 보는 것과 같게)
  */
 public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -334,8 +334,9 @@ public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToo
     // ------------------------------------------------------------------ policy hooks
 
     /**
-     * changeSchema: a drop is DANGEROUS (data or an object is gone), the other operations WRITE; an operation this class does
-     * not know is DANGEROUS until the generator refuses it. previewDdl only builds text: READ.
+     * changeSchema: a drop is DANGEROUS (data or an object is gone; dropIndex too since 26.1.0, as runSql classifies every
+     * DROP), the other operations WRITE; an operation this class does not know is DANGEROUS until the generator refuses it.
+     * previewDdl only builds text: READ.
      */
     @NotNull
     @Override
@@ -345,7 +346,7 @@ public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToo
         }
         String operation = AgentArgs.getString(arguments, PARAM_OPERATION);
         return switch (operation == null ? "" : operation.trim()) {
-            case "createTable", "alterTable", "createView", "createIndex", "dropIndex" -> AIToolAccess.WRITE;
+            case "createTable", "alterTable", "createView", "createIndex" -> AIToolAccess.WRITE;
             default -> AIToolAccess.DANGEROUS;
         };
     }

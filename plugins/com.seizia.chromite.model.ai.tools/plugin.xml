@@ -27,7 +27,7 @@
     <extension point="com.seizia.chromite.ai.function">
         <category id="agent.connections" name="Connections" description="Connections, server facts, permissions, transactions, policy"/>
         <category id="agent.metadata" name="Metadata" description="Databases, schemas, tables, keys, indexes, routines, DDL, dependencies"/>
-        <category id="agent.query" name="Query" description="Run, explain, validate and format SQL"/>
+        <category id="agent.query" name="Query" description="Run, explain and validate SQL"/>
         <category id="agent.data" name="Data" description="Sample, count, profile, compare and edit rows"/>
         <category id="agent.ddl" name="DDL" description="Generate and run DDL for tables, views and indexes"/>
         <category id="agent.transfer" name="Transfer" description="Export, import and copy data"/>
@@ -301,12 +301,6 @@
             <parameter name="sql" type="string" required="true" description="One statement"/>
             <parameter name="server" type="boolean" description="Also check on the server (default true)"/>
         </function>
-        <function id="formatSql" name="%tool.formatSql.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Formats SQL text with Chromite's formatter in the dialect of the given or current connection (generic without one); returns sql. Use when the user asks for formatted SQL.">
-            <parameter name="connection" type="string" description="Connection id or name (optional)"/>
-            <parameter name="sql" type="string" required="true" description="SQL text"/>
-        </function>
         <function id="getEditorHistory" name="%tool.getEditorHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
             description="Statements the user ran in Chromite's query windows (not server statistics), newest first, with time, duration, rows and errors. Use for what the user ran before or to find a statement they mention. For the server's most expensive statements use getTopQueries.">
@@ -411,10 +405,10 @@
             <parameter name="include" type="string" description="createIndex: comma-separated INCLUDE columns (SQL Server, PostgreSQL)"/>
         </function>
         <!-- One tool for the DDL changes (26.1.0, docs/chromite/ai-agent.md "별칭"): classified per call by operation
-             (DdlTools.classify): dropTable and dropView are DANGEROUS, the rest WRITE -->
+             (DdlTools.classify): dropTable, dropView and dropIndex are DANGEROUS, the rest WRITE -->
         <function id="changeSchema" name="%tool.changeSchema.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true" addedIn="26.1.0" operationParameter="operation"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates, alters or drops a table, view or index, chosen by operation: createTable (columns, primaryKey), alterTable (action addColumn, dropColumn, renameColumn or alterColumnType of one column), dropTable, createView (a read-only select, replace), dropView, createIndex (key columns, unique, include), dropIndex. The user sees the DDL and confirms; dropTable and dropView are DANGEROUS, the rest WRITE. To show the DDL without running it use previewDdl; check getObjectDependencies before a drop and getIndexUsage or getUnusedIndexes before dropIndex; on PostgreSQL try an index with whatIfIndex first. For DDL these arguments cannot express (constraints, routines) use runSql or runScript.">
+            description="Creates, alters or drops a table, view or index, chosen by operation: createTable (columns, primaryKey), alterTable (action addColumn, dropColumn, renameColumn or alterColumnType of one column), dropTable, createView (a read-only select, replace), dropView, createIndex (key columns, unique, include), dropIndex. The user sees the DDL and confirms; dropTable, dropView and dropIndex are DANGEROUS, the rest WRITE. To show the DDL without running it use previewDdl; check getObjectDependencies before a drop and getIndexUsage or getUnusedIndexes before dropIndex; on PostgreSQL try an index with whatIfIndex first. For DDL these arguments cannot express (constraints, routines) use runSql or runScript.">
             <alias id="createTable" access="WRITE" arguments="operation=createTable" removeIn="26.2.0"/>
             <alias id="alterTable" access="WRITE" arguments="operation=alterTable" removeIn="26.2.0"/>
             <alias id="dropTable" access="DANGEROUS" arguments="operation=dropTable" removeIn="26.2.0"/>

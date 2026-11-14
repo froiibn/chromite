@@ -33,16 +33,11 @@ import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
-import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.sql.SQLControlCommand;
-import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryType;
 import com.seizia.chromite.model.sql.SQLScriptElement;
-import com.seizia.chromite.model.sql.SQLSyntaxManager;
-import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
-import com.seizia.chromite.model.sql.format.SQLFormatUtils;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
 import com.seizia.chromite.utils.GeneralUtils;
 
@@ -59,7 +54,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Query tools: SELECT with paging, read-only diagnostic SQL, any SQL and scripts (WRITE), cancel, validate, format, history.
+ * Query tools: read-only SQL (with paging), any SQL and scripts (WRITE), cancel, validate, the query windows' history.
  *
  * 설계:
  * <ul>
@@ -89,7 +84,7 @@ import java.util.Map;
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
  * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
  *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
- * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침, formatSql을 지움(모델이 직접 정리한다)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -109,7 +104,6 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
             case "runScript" -> runScript(context, args);
             case "cancelQuery" -> cancel(context);
             case "validateSql" -> validate(context, args);
-            case "formatSql" -> format(context, args);
             case "getEditorHistory" -> history(context, args);
             default -> throw unknownTool(toolId);
         };
@@ -368,20 +362,6 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
                 runner.track(statement, false);
             }
         }
-    }
-
-    @NotNull
-    private static JsonElement format(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
-        DBPDataSourceContainer container = context.getConnection();
-        DBPDataSource dataSource = container == null ? null : AgentSql.connect(context.getMonitor(), container);
-        SQLDialect dialect = SQLUtils.getDialectFromDataSource(dataSource);
-        DBPPreferenceStore preferences = container != null ? container.getPreferenceStore()
-            : com.seizia.chromite.runtime.DBWorkbench.getPlatform().getPreferenceStore();
-        SQLSyntaxManager syntaxManager = new SQLSyntaxManager();
-        syntaxManager.init(dialect, preferences);
-        JsonObject json = new JsonObject();
-        json.addProperty("sql", SQLFormatUtils.formatSQL(dataSource, syntaxManager, AgentArgs.require(args, "sql"), "    "));
-        return json;
     }
 
     @NotNull
