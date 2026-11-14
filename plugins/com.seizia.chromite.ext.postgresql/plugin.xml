@@ -739,6 +739,18 @@
         </datasource>
     </extension>
 
+    <!-- Chromite: over half of each of these marks is under 1.5:1 contrast on the dark theme's backgrounds, so the Swing UI draws them,
+         unchanged, on a light plate in dark themes (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판"). XML only: no dependency
+         on the Swing bundle. -->
+    <extension point="com.seizia.chromite.ui.swing.iconPlate">
+        <lightPlate icon="icons/cockroach_icon.png"/>
+        <lightPlate icon="icons/cockroach_icon_big.png"/>
+        <lightPlate icon="icons/timescale_icon.png"/>
+        <lightPlate icon="icons/timescale_icon_big.png"/>
+        <lightPlate icon="icons/yugabyte_icon.png"/>
+        <lightPlate icon="icons/yugabyte_icon_big.png"/>
+    </extension>
+
     <!-- Unsecure (http) repository. We can't use it by default, sorry -->
     <extension point="com.seizia.chromite.mavenRepository">
         <repository id="aws-redshift-maven-repo" name="AWS Redshift Repository" url="https://s3.amazonaws.com/redshift-maven-repository/release" order="20">
