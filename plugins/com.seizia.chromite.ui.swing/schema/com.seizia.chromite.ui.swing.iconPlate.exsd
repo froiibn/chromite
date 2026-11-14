@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Chromite: icons that need a light plate in dark themes (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판") -->
+<schema targetNamespace="com.seizia.chromite.ui.swing" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="com.seizia.chromite.ui.swing" id="iconPlate" name="Icon plates"/>
+      </appInfo>
+      <documentation>Icons of the contributing plugin that the Swing UI draws on a light plate in dark themes, such as a vendor
+mark too dark to read on a dark background. The image file is not changed: the plate (theme key Chromite.iconPlate.background)
+is painted behind the mark at paint time, inside the icon's own size. A plugin contributes to this point without depending on
+the Swing bundle; the contribution is ignored where the Swing UI is not installed.</documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation><appInfo><meta.element/></appInfo></annotation>
+      <complexType>
+         <sequence>
+            <element ref="lightPlate" minOccurs="1" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required"/>
+         <attribute name="id" type="string"/>
+         <attribute name="name" type="string">
+            <annotation>
+               <appInfo>
+                  <meta.attribute translatable="true"/>
+               </appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+   <element name="lightPlate">
+      <annotation>
+         <documentation>One icon drawn on a light plate in dark themes. Declare every icon file that is shown (small and big);
+the @2x variant goes with its base file.</documentation>
+      </annotation>
+      <complexType>
+         <attribute name="icon" type="string" use="required">
+            <annotation>
+               <documentation>Path of the icon in the contributing plugin, written as in the icon attribute that uses it
+(for example icons/vendor_icon.png), or a full platform:/plugin/... URL.</documentation>
+               <appInfo><meta.attribute kind="resource"/></appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
+</schema>

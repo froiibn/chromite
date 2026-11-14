@@ -541,10 +541,36 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 - **지금 결정**: 데이터 소스 노드, 드라이버 고르기, 연결 콤보, 콘솔 탭에는 지금처럼 DBeaver 드라이버 플러그인이 가진 공급자 아이콘을 그대로 쓴다
   (파일의 저작권 라이선스는 Apache 2.0. 로고 자체의 상표권은 각 회사에 있고, 어느 DB에 연결하는지 알리는 지명적 사용이다).
 - 로고는 다시 칠하거나 모양을 바꾸지 않는다(상표 지침이 대개 변형을 금지). 그래서 공급자 로고는 "색 바꾸기" 규칙의 예외다.
+  어두운 바탕에서 보이지 않는 로고는 그림을 바꾸지 않고 뒤에 밝은 판을 깐다(아래 "벤더 아이콘의 밝은 판").
   연결 상태 점은 로고 위가 아니라 로고 오른쪽 아래 바깥 테두리에 겹친다.
 - 제품명·제품 아이콘 자리(제목 표시줄, About, 시작 탭)에는 공급자 로고를 쓰지 않는다.
 - 공급자 아이콘이 없는 드라이버와, 상표 검토 결과 쓰지 않기로 한 공급자는 `ds.generic`(중립) + 공급자 이름 첫 글자 배지로 대신한다.
 - 공개 배포 전에 주요 공급자(Oracle/MySQL, Microsoft SQL Server, IBM Db2 등)의 상표 사용 지침을 확인한다("미룬 결정").
+
+### 벤더 아이콘의 밝은 판 (2026-11-15, 앱 변경 #114)
+
+사용자 지시(2026-11-15) "어두운 테마 아이콘에 밝은 판을 깔아라". ShardSphere 로고(남색 사각형 + 초록 도형)의 남색이 어두운 바탕에서 거의 보이지 않았다.
+위 정책대로 로고는 다시 칠하지 않으므로, 그림은 그대로 두고 **뒤에 밝은 판을 깐다.**
+
+- **선언(아이콘을 가진 플러그인):** Swing 번들의 확장 지점 `com.seizia.chromite.ui.swing.iconPlate`
+  ([스키마](../../plugins/com.seizia.chromite.ui.swing/schema/com.seizia.chromite.ui.swing.iconPlate.exsd))에 아이콘 하나마다 `<lightPlate icon="icons/..."/>`를 둔다.
+  경로는 기여하는 플러그인 기준이고 `icon` 속성에 쓴 것과 같게 쓴다(`@2x`는 기본 파일을 따라감). 작은 아이콘과 큰 아이콘을 따로 적는다.
+  XML만이라 모델 플러그인이 Swing 번들에 의존하지 않는다(Require-Bundle 없음, Swing UI가 없는 곳에서는 무시됨). 다른 아이콘을 표시할 때 Java 코드는 고치지 않는다.
+  지금 표시한 아이콘: ShardSphere 두 개(`ext.altibase/plugin.xml`).
+- **그리는 곳(한 곳):** [NodeIcons](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/NodeIcons.java)가 위치로 아이콘 파일을 읽을 때
+  선언된 위치면 [IconPlates](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/IconPlates.java)로 감싸 캐시한다. 드라이버 아이콘을 보이는 곳은
+  모두 `NodeIcons.getIcon`/`getNodeIcon`/`getDataSourceIcon`을 거치므로(겹침 아이콘의 기본 아이콘, 상태 점을 붙인 연결 아이콘 포함) 같은 판을 쓴다.
+- **판:** 테마 키 `Chromite.iconPlate.background`. 어두운 테마는 `@foreground`(text.primary `#d1d3d9`), 밝은 테마는 `#00000000`(투명 = 판 없음, 아이콘을 전과 똑같이 그림).
+  아이콘 칸 전체(16×16)를 둥근 사각형(arc 4 = `radius.small`, 큰 아이콘은 크기에 비례)으로 칠하고, 그림은 안쪽 1px(배율만큼, 장치 픽셀로 반올림) 여백 안에
+  같은 비율로 줄여 가운데 그린다. 아이콘 크기는 바뀌지 않아 행·콤보·탭의 높이와 글자 기준선이 그대로다.
+- **선명도:** 판과 그림은 장치 픽셀에서 그린다(FlatLaf `HiDPIUtils.paintAtScale1x`). PNG는 가장 큰 변형(`@2x`)을 알파를 곱한 면적 평균으로 장치 크기
+  (100% 14px, 150% 20px, 200% 28px)에 줄여 캐시한다. SVG는 줄인 좌표계에 벡터로 그린다.
+- **테마 전환:** 판 색을 그릴 때마다 읽으므로 실행 중 바꿔도 다시 그리기만으로 맞다(캐시 비우기 없음, 테마 아이콘 `UiIcons`와 같은 방식).
+- **비활성:** 판과 원래 그림을 함께 투명도 0.4(아이콘 팩의 비활성 아이콘과 같은 값)로 그린다(`FlatLaf.DisabledIconProvider`). 판을 그대로 두면 비활성 줄에서
+  판만 밝게 남고, 판만 흐리게 하고 FlatLaf의 회색 그림을 올리면 그림이 판과 구별되지 않았다(첫 빌드의 캡처). 판이 없는 밝은 테마는 전처럼 FlatLaf의 회색 그림이다.
+- **버린 방법:** (1) 드라이버·유형 선언(`dataSourceProvider`)의 속성: 아이콘은 대부분 `DBPImage`만 넘어오므로(드라이버를 모름) 모델의 이미지 형식과
+  레지스트리, 스키마를 함께 바꿔야 한다. (2) Swing 번들 안의 위치 목록: 선언이 아이콘을 가진 플러그인과 떨어지고 새 아이콘마다 Java를 고쳐야 한다.
+  (3) 어두운 변형 파일(`iconDark`): 상표 그림을 Chromite가 새로 만들어야 한다. (4) 판을 아이콘 칸 밖으로 1px 넓힘: 트리 행의 왼쪽 끝 등에서 잘린다.
 
 ## 적용 현황 (2026-11-06)
 
@@ -1468,3 +1494,4 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
 - 2026-11-12 콤보 줄에서 없어진 연결 콤보를 뺌(앱 변경 #74, `chromite/change-connection`)
 - 2026-11-12 SQL 구문 색 표에 실행 중 문장 줄 바탕(`Chromite.editor.runningStatementBackground`, 앱 변경 #99, `chromite/running-statement-mark`)
 - 2026-11-12 촘촘한 모드 메뉴 항목 20 → 21(`@menuItemMargin` 2,8,1,8, 앱 변경 #98, [swing-frontend.md](swing-frontend.md) "메뉴 간격과 구분선")
+- 2026-11-15 "벤더 아이콘의 밝은 판" 추가(앱 변경 #114, `chromite/vendor-icon-light-plate`): 확장 지점 `com.seizia.chromite.ui.swing.iconPlate`, 테마 키 `Chromite.iconPlate.background`, ShardSphere 아이콘 표시.
