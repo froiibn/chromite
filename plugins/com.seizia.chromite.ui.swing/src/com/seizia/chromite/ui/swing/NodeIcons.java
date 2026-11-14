@@ -72,6 +72,8 @@ import java.util.Map;
  *     열의 키 겹침(기본 키·참조)은 겹침 대신 열 아이콘 팩의 키 열 아이콘으로 바꾼다.</li>
  *     <li>읽을 수 없는 아이콘은 {@link DBIcon#TYPE_UNKNOWN}, 그것도 없으면 Look and Feel의 트리 잎 아이콘으로 대신한다.
  *     실패한 위치도 캐시해서 로그가 반복되지 않게 한다.</li>
+ *     <li>아이콘을 가진 플러그인이 어두운 테마에서 밝은 판이 필요하다고 선언한 위치(어두운 벤더 로고)는 읽을 때 {@link IconPlates}로 감싼다.
+ *     모든 위치 아이콘이 여기를 지나므로 드라이버 아이콘을 보이는 모든 곳(겹침 아이콘의 기본 아이콘, 상태 점을 붙인 연결 아이콘 포함)이 같은 판을 쓴다.</li>
  * </ul>
  * 모델 아이콘 파일은 DBeaver 번들의 것(Apache 2.0)이고, Chromite 아이콘 팩은 Tabler Icons(MIT) 모양을 바탕으로 새로 그린 것이다.
  * JetBrains/Microsoft 아이콘은 쓰지 않는다.
@@ -85,6 +87,7 @@ import java.util.Map;
  *   {@link #getDataSourceIcon}을 쓴다 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-07 SQL Server 에이전트 노드는 {@link AgentCommands#getNodeIcon}(서비스 상태 점) (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-07 작업 스케줄러 노드는 {@link SchedulerCommands#getNodeIcon}(스케줄러 폴더·이벤트 폴더·pg_cron 노드의 상태 점) (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-15 밝은 판을 선언한 아이콘은 {@link IconPlates}로 감쌈(앱 변경 #114, docs/chromite/design-spec.md "벤더 아이콘의 밝은 판")
  */
 final class NodeIcons {
 
@@ -318,6 +321,10 @@ final class NodeIcons {
             }
         } catch (Exception e) {
             log.debug("Error loading icon " + location, e);
+        }
+        if (icon != null) {
+            // Dark vendor marks declared by their plugin get a light plate in dark themes (decided at paint time)
+            icon = IconPlates.apply(location, icon);
         }
         iconCache.put(location, icon);
         return icon;

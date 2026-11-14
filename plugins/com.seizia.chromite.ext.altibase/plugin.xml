@@ -375,6 +375,14 @@
         </datasource>
     </extension>
 
+    <!-- Chromite: the ShardSphere mark's navy square is nearly invisible on a dark background. The Swing UI draws these
+         icons, unchanged, on a light plate in dark themes (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판").
+         Only XML: this bundle does not depend on the Swing bundle, which reads the declaration. -->
+    <extension point="com.seizia.chromite.ui.swing.iconPlate">
+        <lightPlate icon="icons/shardsphere_icon.png"/>
+        <lightPlate icon="icons/shardsphere_icon_big.png"/>
+    </extension>
+
     <extension point="com.seizia.chromite.objectManager">
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTableManager"               objectType="com.seizia.chromite.ext.altibase.model.AltibaseTable"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseQueueManager"               objectType="com.seizia.chromite.ext.altibase.model.AltibaseQueue"/>

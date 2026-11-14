@@ -149,7 +149,9 @@
 - CISPHERE Inc.(ShardSphere 제조사) 로고의 심볼이며 그 회사의 상표다. Apache-2.0으로 라이선스되지 않고, ShardSphere 데이터베이스를 표시하는 데만 쓴다.
 - 서면 라이선스는 없다. 프로젝트 소유자가 밝힌 대로 벤더의 동의를 받아 쓴다(다른 프로젝트의 기록: 2026-11-06 사용자 진술, 데이터 원본 표시로 사용).
 - 원본 44×44 PNG(SHA-256 `6833e95a5177662e020f26987c89450a3d2abf57ce6bd605fe7ce602d206b87f`)에서 내용을 고치지 않고 크기만 바꿨다([drivers.md](drivers.md) "ShardSphere").
-- 지울 때: 네 파일, `ext.altibase/plugin.xml`의 `icon`·`iconBig` 세 곳(유형 두 곳, 드라이버 한 곳), 이 절과 `NOTICE`의 단락.
+- 어두운 테마에서는 바꾸지 않은 이미지를 Chromite가 뒤에 그리는 밝은 판 위에 보인다(2026-11-15, 앱 변경 #114). 이미지 파일은 고치지 않는다.
+  판은 그릴 때 테마 색으로 그리고, 그림은 아이콘 칸 안 여백만큼 같은 비율로 줄여 그린다([design-spec.md](design-spec.md) "벤더 아이콘의 밝은 판").
+- 지울 때: 네 파일, `ext.altibase/plugin.xml`의 `icon`·`iconBig` 세 곳(유형 두 곳, 드라이버 한 곳)과 `com.seizia.chromite.ui.swing.iconPlate`의 `lightPlate` 두 줄, 이 절과 `NOTICE`의 단락.
 
 ## 전체 목록
 
@@ -347,3 +349,4 @@ Oracle은 위 주요 DB 표에 있다.
   소스 묶음을 첨부한 기록(크기·SHA-256, 초안 Release 게시 때 공개, 0.1.1부터는 해당 없음).
 - 2026-11-08 MySQL (Old)(`mysql3`)에 라이선스 항목 추가(evening #20).
 - 2026-11-14 "ShardSphere" 절 추가(앱 변경 #113): 라이선스 원문 없는 jar를 프로젝트 소유자의 권한 확인을 근거로 내장, 분류 밖으로 기록. ShardSphere 아이콘(CISPHERE Inc. 상표) 기록.
+- 2026-11-15 "ShardSphere 아이콘": 어두운 테마의 밝은 판(Chromite가 그림, 이미지 파일은 고치지 않음)과 지울 때의 `lightPlate` 두 줄(앱 변경 #114).

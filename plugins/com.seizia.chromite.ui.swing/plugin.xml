@@ -2,6 +2,10 @@
 <?eclipse version="3.2"?>
 <plugin>
 
+    <!-- Icons that need a light plate in dark themes (dark vendor marks); the plugin that owns the icon declares it.
+         Read by IconPlates (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판"). -->
+    <extension-point id="iconPlate" name="Icon plates" schema="schema/com.seizia.chromite.ui.swing.iconPlate.exsd"/>
+
     <extension point="org.eclipse.core.runtime.applications" id="application" name="Chromite Swing">
         <application visible="true">
             <run class="com.seizia.chromite.ui.swing.ChromiteSwingApplication"/>
