@@ -70,6 +70,8 @@ import java.util.stream.Collectors;
  *
  * 변경 이력:
  * - 2026-11-07 {@link #isTruncate()}: 쿼리 창의 위험한 문 확인이 TRUNCATE도 묻도록 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-15 WITH 절의 쿼리 이름을 FROM에서 읽는 SELECT는 단일 원본 테이블이 없음. 결과 그리드가 그 이름을 기본 스키마의
+ *   같은 이름 테이블에 묶어 편집이 그 테이블에 쓰던 결함(앱 변경 #121, docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
  */
 public class SQLQuery implements SQLScriptElement {
 
@@ -184,7 +186,8 @@ public class SQLQuery implements SQLScriptElement {
                 if (statement instanceof PlainSelect plainSelect) {
                     // Detect single source table (no joins, no group by, no sub-selects)
                     FromItem fromItem = plainSelect.getFromItem();
-                    if (fromItem instanceof Table fromTable && isPotentiallySingleSourceSelect(plainSelect)) {
+                    if (fromItem instanceof Table fromTable && isPotentiallySingleSourceSelect(plainSelect)
+                        && !isWithQueryName(plainSelect, fromTable)) {
                         boolean hasSubSelects = false;
                         boolean hasDirectSelects = false;
                         for (SelectItem<?> si : plainSelect.getSelectItems()) {
@@ -354,6 +357,24 @@ public class SQLQuery implements SQLScriptElement {
         return CommonUtils.isEmpty(plainSelect.getJoins()) &&
             (plainSelect.getGroupBy() == null || CommonUtils.isEmpty(plainSelect.getGroupBy().getGroupByExpressionList())) &&
             CommonUtils.isEmpty(plainSelect.getIntoTables());
+    }
+
+    /**
+     * Whether the FROM name is a query of the statement's WITH clause, not a table. The result grid looks the single
+     * source up by name in the default schema, where a table with the same name would be edited instead (#121).
+     * Names are compared ignoring case and quotes: a false match only leaves the result without a single source.
+     */
+    private static boolean isWithQueryName(@NotNull PlainSelect plainSelect, @NotNull Table fromTable) {
+        if (fromTable.getSchemaName() != null || (fromTable.getDatabase() != null && fromTable.getDatabase().getDatabaseName() != null)) {
+            return false;
+        }
+        String tableName = fromTable.getUnquotedName();
+        for (WithItem<?> withItem : CommonUtils.safeList(plainSelect.getWithItemsList())) {
+            if (tableName != null && tableName.equalsIgnoreCase(withItem.getUnquotedAliasName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void fillSingleSource(@Nullable Table fromItem) {

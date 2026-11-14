@@ -85,6 +85,9 @@ import java.util.function.UnaryOperator;
  * - 2026-11-12 Alt+끌기 뒤 Alt를 떼면 메뉴 막대로 포커스가 가던 결함: Alt 키 반복의 누르기가 표시를 지웠다. 표시는 Alt 떼기·포커스 잃기에서만 지우고,
  *   Alt를 누른 채 한 모든 마우스 누르기·끌기에 붙인다(앱 변경 #100, docs/chromite/swing-sql-column-selection.md "Alt 떼기")
  * - 2026-11-12 Alt 떼기 표시와 그 키 처리를 지우고 모든 창의 규칙 {@link AltMouseMenuGuard}로 옮김(앱 변경 #102)
+ * - 2026-11-15 열 선택 중 편집기 키가 아닌 키(F5, Alt+P, Ctrl+S 등)에서 {@code Set.of(...).contains(null)}이 예외를 던져 그 키의 창 단축키가
+ *   동작하지 않던 결함: 편집기 바인딩이 없는 키는 그대로 넘기고 열 선택은 남긴다. Ctrl+Enter(현재 문장 실행)도 Enter처럼 열 선택을 끝내
+ *   캐럿의 문장을 실행했다: 명령 키와 누른 Enter는 넘기고 열 선택은 남긴다 (docs/chromite/swing-sql-column-selection.md "창 단축키")
  */
 final class SqlColumnSelection {
 
@@ -487,6 +490,10 @@ final class SqlColumnSelection {
                 }
             }
             case KeyEvent.VK_ENTER -> {
+                if ((e.getModifiersEx() & (InputEvent.CTRL_DOWN_MASK | InputEvent.META_DOWN_MASK)) != 0) {
+                    // Ctrl+Enter (Cmd+Enter): Execute Current Statement, a window shortcut; it runs the rectangle, which stays
+                    return;
+                }
                 if (plain && textArea.isEditable() && getLeftColumn() != getRightColumn()) {
                     // The rectangle's text goes; the line break goes in at the caret corner (the key binding)
                     replaceRectangle(i -> ""); //$NON-NLS-1$
@@ -501,6 +508,12 @@ final class SqlColumnSelection {
             }
             default -> {
                 Object action = textArea.getInputMap(JComponent.WHEN_FOCUSED).get(keyStroke);
+                if (action == null) {
+                    // Not an editor key: a window shortcut (F5, Alt+P, Ctrl+S, Ctrl+W, ...) reaches its action with the column
+                    // selection kept; Execute and the plan run the rectangle (SqlEditorPanel.execute). The immutable sets
+                    // below throw on null
+                    return;
+                }
                 if (COPY_ACTIONS.contains(action) || CUT_ACTIONS.contains(action)) {
                     // The text area's own Copy and Cut copy its (empty) selection
                     e.consume();

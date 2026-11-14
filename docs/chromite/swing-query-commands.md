@@ -31,7 +31,7 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 
 ### 단축키는 쿼리 창 안에서만
 
-- F5(Execute), Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L(예상 계획), Alt+PageUp/PageDown은 키보드 초점이 활성 쿼리 창의 편집기나
+- F5와 Alt+X(Execute), Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L(예상 계획), Alt+PageUp/PageDown은 키보드 초점이 활성 쿼리 창의 편집기나
   결과(결과 탭: Results, Messages, Execution plan, Terminal)에 있을 때만 동작한다. 다른 곳(Chromite Agent 입력, Query Library,
   Object Explorer와 그 빠른 필터, 대화상자 등)에 초점이 있으면 아무것도 하지 않는다.
 - 메뉴 항목을 누르거나(마우스, 메뉴를 열고 Enter) SQL Editor 도구 막대 단추를 누르면 초점과 관계없이 동작한다.
@@ -289,3 +289,4 @@ DB를 고르지 않은 MySQL·MariaDB 창의 `CREATE/DROP SCHEMA`, Oracle·Altib
 - 2026-11-15 연결 전체를 다시 읽은 뒤 탐색기의 펼친 폴더가 바뀌지 않던 것과 `CREATE USER`를 읽지 못하던 것을 고침(앱 변경 #111 (a), `chromite/refresh-followups`).
   "연결 전체를 다시 읽은 뒤의 탐색기 (#111)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Object Explorer의 연결 노드 새로 고침 표시,
   쿼리 창 DDL 뒤 갱신, LSM 문법을 쓰는 SQL 편집기 분석(`CREATE USER` 문장)
+- 2026-11-15 Execute의 둘째 키 Alt+X도 같은 초점 규칙을 따름(앱 변경 #122, `chromite/execute-alt-x`, [shortcuts.md](shortcuts.md) "Execute의 둘째 키")
