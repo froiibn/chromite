@@ -29,6 +29,8 @@ import org.jkiss.utils.StandardConstants;
  * - 2026-11-14 Chromite: 서버 출력 콜백의 클래스 이름 접미사(`.jdbc.driver.AltibaseConnection`, `AltibaseMessageCallback`)를 지움.
  *   콜백 인터페이스를 연결의 {@code registerMessageCallback} 메서드에서 얻어, 이름이 다른 Altibase 계열 드라이버(ShardSphere)도
  *   연결된다 (docs/chromite/drivers.md "ShardSphere")
+ * - 2026-11-14 Chromite: {@link #EC_TABLE_NOT_FOUND}. 복제 카탈로그가 없는 서버(ShardSphere)의 복제 목록을 빈 목록으로 읽는다
+ *   (AltibaseDataSource.getReplications)
  */
 public class AltibaseConstants {
     
@@ -132,6 +134,8 @@ public class AltibaseConstants {
     // "The session has been closed by the server" (SQLState 08004): the statement in flight when the session is closed
     // (ALTER DATABASE ... SESSION CLOSE); the next statement gets 08S01
     public static final int EC_SESSION_CLOSED = 4163;
+    // "Table or view was not found" (SQLState 42S02), e.g. SYSTEM_.SYS_REPLICATIONS_ on a server without the replication catalog
+    public static final int EC_TABLE_NOT_FOUND = 0x31031;
 
     /*
      * DBMS output

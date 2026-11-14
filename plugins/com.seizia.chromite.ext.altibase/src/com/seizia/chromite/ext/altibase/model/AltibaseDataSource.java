@@ -50,6 +50,7 @@ import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectLookupCache;
 import com.seizia.chromite.model.impl.jdbc.cache.JDBCStructLookupCache;
 import com.seizia.chromite.model.meta.Association;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLState;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -88,6 +89,8 @@ import java.util.WeakHashMap;
  *   {@code registerMessageCallback} 매개변수에서 얻음. 이름이 다른 Altibase 계열 드라이버(ShardSphere,
  *   {@code shardsphere.jdbc.driver.shardsphereMessageCallback})는 클래스를 찾지 못해 {@link #initializeContextState}가 예외를 던지고
  *   연결이 실패한다(서버 출력 기본값이 켜짐, 코드로 확인, 앱 변경 #113, docs/chromite/drivers.md "ShardSphere")
+ * - 2026-11-14 {@link #getReplications}: 복제 카탈로그 표가 없는 서버(ShardSphere)는 복제가 없는 것이므로 "표 없음"(42S02, 0x31031) 하나만
+ *   빈 목록으로 읽는다. Object Explorer의 Replications 폴더가 오류로 끝났다(앱 변경 #113)
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -577,11 +580,21 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     }
 
     /**
-     * Return all cached replications.
+     * Return all cached replications. A server without the replication catalog (SYSTEM_.SYS_REPLICATIONS_ is not there,
+     * as on ShardSphere) has no replications: that one error is an empty list, every other error is reported.
      */
     @Association
     public Collection<AltibaseReplication> getReplications(DBRProgressMonitor monitor) throws DBException {
-        return replCache.getAllObjects(monitor, this);
+        try {
+            return replCache.getAllObjects(monitor, this);
+        } catch (DBException e) {
+            if (JDBCUtils.matchesSQLException(e, ex -> ex.getErrorCode() == AltibaseConstants.EC_TABLE_NOT_FOUND
+                || SQLState.SQL_42S02.getCode().equals(ex.getSQLState()))) {
+                log.debug("No replication catalog on this server: " + e.getMessage());
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
     /**

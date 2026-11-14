@@ -159,7 +159,9 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
   자기 데이터 원본 유형 `shardsphere`와 아이콘을 쓴다. 정의·내장·확인은 [drivers.md](drivers.md) "ShardSphere".
 - 서버 출력 콜백: 콜백 인터페이스를 클래스 이름(`<패키지>.jdbc.driver.AltibaseMessageCallback`)으로 찾지 않고 연결 클래스의 `registerMessageCallback` 매개변수에서 얻는다.
   드라이버마다 패키지·클래스 이름이 달라도(Altibase.jar, Altibase7_x.jar, ShardSphere) 같은 코드가 동작한다.
-- ShardSphere 서버에서 이 모델이 실패하는 곳(고치지 않음): Replications(`SYSTEM_.SYS_REPLICATIONS_` 없음), 독립 함수 매개변수(드라이버에 `getFunctionColumns` 없음).
+- 복제 목록: 복제 카탈로그 표가 없는 서버(ShardSphere 시험 서버에는 `SYSTEM_.SYS_REPLICATIONS_`가 없음)는 복제가 없는 것으로 본다. `getReplications`가 그 질의의
+  "표 없음"(42S02, `AltibaseConstants.EC_TABLE_NOT_FOUND` 0x31031)만 빈 목록으로 읽는다.
+- 독립 함수 매개변수: ShardSphere 드라이버(JDBC 3.0)에 `getFunctionColumns`가 없어 `GenericProcedure`가 `getProcedureColumns`로 읽는다([drivers.md](drivers.md) "ShardSphere").
 
 ## 변경 이력
 
@@ -167,3 +169,4 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
 - 2026-11-07 한국어 표시: "Partitioned"(분할됨), "Materialized View(s)"(구체화된 뷰) 번역 추가(후속 과제 #61), 위 "한국어 표시".
 - 2026-11-08 복제 상태(Activity Monitor 복제 탭)와 복제 시작·중지·동기화 명령(SWT 감사 D-A7), 위 "복제 시작·중지·동기화".
 - 2026-11-14 Altibase 계열 드라이버 ShardSphere 추가와 서버 출력 콜백을 메서드 매개변수로 찾게 바꿈(앱 변경 #113), 위 "Altibase 계열 드라이버: ShardSphere".
+- 2026-11-14 복제 카탈로그가 없는 서버의 복제 목록을 빈 목록으로, JDBC 3.0 드라이버의 함수 매개변수(앱 변경 #113 검토 뒤).

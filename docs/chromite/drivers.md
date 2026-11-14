@@ -371,11 +371,24 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
     드라이버 자체의 오류이므로 내장 jar의 클래스가 내장 런타임에서 로드됐다.
   - 실제 ShardSphere 서버(사용자 제공, 읽기만 함): 연결됨. 제품 "ShardSphere 5.1.9", 드라이버 "ShardSphere JDBC driver 5.1.9", Altibase 메타 모델, 서버 출력 콜백 등록 성공.
     Object Explorer의 스키마·테이블·열·제약·인덱스·뷰·패키지·테이블스페이스·사용자·속성이 읽혔고, 쿼리 창의 SELECT와 상태 표시줄(서버 주소:55321, `sys`, `memdb`, Auto-commit)이 맞다.
-    실패한 것 두 가지(고치지 않음, 미완료 항목): Global metadata > Replications(`SYSTEM_.SYS_REPLICATIONS_`, `SYS_REPL_HOSTS_`가 없음, 오류 200753 42S02),
-    독립 함수의 매개변수(`SYS.SYS_CONTEXT`: 드라이버가 JDBC 3.0이라 `getFunctionColumns`가 없음, `AbstractMethodError`).
+    처음 확인에서 실패한 두 가지는 아래 "고친 것(2026-11-14 검토 뒤)"에서 고쳤다: Global metadata > Replications(`SYSTEM_.SYS_REPLICATIONS_`, `SYS_REPL_HOSTS_`가 없음,
+    오류 200753 42S02), 독립 함수의 매개변수(`SYS.SYS_CONTEXT`: 드라이버가 JDBC 3.0이라 `getFunctionColumns`가 없음, `AbstractMethodError`).
   - Altibase 7.3 시험 서버에 ShardSphere 드라이버: "Invalid communication protocol"(연결되지 않음). 실제 ShardSphere 서버의 프로토콜 버전은 7.1.6, Altibase 7.3은 7.1.8이다.
   - Altibase 드라이버(로컬 `Altibase.jar` 7.3.0.0.6)로 같은 서버: 연결, 트리, SELECT, `EXEC PRINTLN`의 서버 출력이 그대로 됨(바꾼 콜백 코드).
   - 증거: `D:\Tools\_scratch\shardsphere-driver\shots\`. 회귀 테스트는 작성·실행하지 않았다.
+- **고친 것(2026-11-14 검토 뒤):**
+  - 기본 포트: Connect 대화상자가 URL 템플릿의 `{port}`가 필수이면 기본 포트가 있어도 포트를 물어 호스트만으로는 Connect가 꺼져 있었다(Altibase도 같음).
+    기본 포트가 없는 드라이버만 묻는다([swing-frontend.md](swing-frontend.md) "서버 이름과 기록", `ConnectionSettingsPanel.validateAddress`).
+  - 복제 목록: 복제 카탈로그가 없는 서버는 복제가 없는 것이다. `AltibaseDataSource.getReplications`가 그 질의의 "표 없음"(SQLState 42S02 또는 0x31031)만 빈 목록으로 읽고
+    다른 오류는 그대로 알린다. 제품 이름으로 가르지 않는다.
+  - 함수 매개변수: `GenericProcedure.loadProcedureColumns`가 `getFunctionColumns`에서 `AbstractMethodError`나 `SQLFeatureNotSupportedException`을 받으면
+    `getProcedureColumns`로 읽고 그 상수(procedureColumn*)로 종류를 해석한다. 메서드가 있는 드라이버는 이 catch에 들어가지 않으므로 전과 같다.
+  - 확인(같은 날, 이 브랜치 빌드, 내장 런타임): 실제 ShardSphere 서버에 서버 이름 칸에 호스트만 적고 연결 → 55321로 연결, 저장된 연결의 포트 55321,
+    URL `jdbc:shardsphere://<호스트>:55321/memdb`. Altibase 7.3에 `127.0.0.1`만 → 20300으로 연결, 저장된 포트 20300. 기본 포트가 없는 Apache Arrow Flight SQL은
+    여전히 "Enter the port (server name:port)."이고 `localhost:31337`이면 문제 없음. 적은 포트(`127.0.0.1:1`)는 그대로 1로 저장된다.
+    ShardSphere의 Replications는 빈 폴더(오류 없음), `SYS_CONTEXT`의 매개변수 RETURN_VALUE·NAMESPACE·PARAMETER가 보인다(디버그 로그에 대체 경로 한 번).
+    Altibase 7.3의 Replications(시험 서버에 복제 없음, 전과 같이 0개)와 `SYS_CONTEXT` 매개변수 3개는 전과 같고 대체 경로를 타지 않았다.
+    PostgreSQL 17은 자체 모델(`PostgreProcedure`, `GenericProcedure`를 쓰지 않음)이라 영향이 없다: 임시 스키마의 함수 하나의 매개변수 a·b가 보였다(스키마는 지움).
 
 ### 폐쇄망 오프라인 설치 경로
 
@@ -412,8 +425,7 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   0.1.1부터는 Connector/J를 내장하지 않으므로(#123) 이후 릴리스에는 소스를 첨부할 필요가 없다.
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
-- ShardSphere(위 "ShardSphere"): Replications 폴더(카탈로그 표 없음)와 독립 함수 매개변수(JDBC 3.0 드라이버에 `getFunctionColumns` 없음)가 실패한다.
-  어두운 테마에서 아이콘의 남색 부분이 보이지 않는다. 기본 사용자, 샤딩이 켜진 서버(시험 서버는 `SHARD_META_ENABLE=0`)에서의 동작, macOS는 확인하지 않았다.
+- ShardSphere(위 "ShardSphere"): 어두운 테마에서 아이콘의 남색 부분이 보이지 않는다. 기본 사용자, 샤딩이 켜진 서버(시험 서버는 `SHARD_META_ENABLE=0`)에서의 동작, macOS는 확인하지 않았다.
 
 ## 변경 이력
 
@@ -453,3 +465,5 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - 2026-11-14 ShardSphere 드라이버 내장(앱 변경 #113, `chromite/shardsphere-driver`, 사용자 결정): Altibase 공급자의 두 번째 드라이버와 메타 모델,
   `drivers.shardsphere` 선언, Maven Central에 없는 jar를 저장소에 커밋(첫 예외), 자기 유형·아이콘, Altibase 서버 출력 콜백을 클래스 이름이 아니라 메서드 매개변수로 찾게 고침.
   내장 목록은 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere.
+- 2026-11-14 검토 뒤 고침(같은 브랜치): Connect 대화상자의 기본 포트, 복제 카탈로그가 없는 서버의 복제 목록, `getFunctionColumns`가 없는 드라이버의 함수 매개변수
+  ("ShardSphere"의 "고친 것").
