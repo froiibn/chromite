@@ -263,6 +263,7 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 | File > Recent Files, Window 메뉴 | 열 때마다 항목이 채워짐(동적 메뉴), Query 메뉴의 체크 항목(Include Actual Plan)이 상태를 보임 |
 | ⌘N, ⌘S, ⌘F, ⌥⌘F, ⇧⌘M, ⌘Enter, ⇧⌘Z | 새 쿼리, 저장, 찾기, 바꾸기, 실제 계획 토글, 현재 문장 실행, 다시 실행. 한 번씩만 동작(메뉴와 편집기가 두 번 하지 않음) |
 | Control+Enter, Control+H | 아무 명령도 실행하지 않음(예전 키) |
+| 연결한 쿼리 창 편집기에서 ⌥X, ⌥P, 그다음 ⌥O, ⌥E 뒤 e | ⌥X는 실행, ⌥P는 커서부터 실행하고 SQL에 "≈"·"π"가 들어가지 않음. ⌥O는 "ø", ⌥E 뒤 e는 "é"가 입력됨([shortcuts.md](shortcuts.md) "Option 단축키의 글자") |
 | 편집기에서 ⌃Space | 자동 완성 목록(입력 소스 단축키를 바꾼 경우). 입력 소스가 바뀌면 [shortcuts.md](shortcuts.md)의 안내대로 |
 | 결과 표에서 ⌘+클릭, 열 머리글 ⌘+클릭 | 행·열 선택에 더함. Control+클릭은 팝업 메뉴 |
 | 도구 막대 단추에 마우스를 올림 | 도구 설명이 ⌘ 기호로 키를 보임(예: "Save all … (⇧⌘S)") |
@@ -336,3 +337,4 @@ Docker 시험 DB가 필요한 테스트는 없다.
 - 2026-11-08 찾은 실패를 고침: `PlanTools`의 앞 주석 건너뛰기(반복문), Oracle `MAX_STRING_SIZE` 조회의 모든 실패를 4000으로, `ConnectJobTest`를 #131 동작으로,
   `AISettingsManagerTest`에 메모리 보안 저장소, 심볼릭 링크 시험 건너뛰기. 둘째 실행 결과(실패 0)
 - 2026-11-09 `UiKeysTest`와 "macOS 단축키와 화면 메뉴 막대" 확인 목록(앱 변경 #24, #27, `chromite/mac-ui`)
+- 2026-11-15 "macOS 단축키와 화면 메뉴 막대"에 Option 단축키의 글자 줄(앱 변경 #122, `chromite/execute-alt-x`)
