@@ -19,8 +19,9 @@
 #                            window of the app (answers Gatekeeper's first-launch question once),
 #                            screenshots <label>-splash.png (and -splash-2..4 when the windows change) of the
 #                            startup splash, <label>-main-window.png and <label>-title-bar.png; every
-#                            splash-sized window polled (<label>-splash-positions.txt) must be at one place
-#                            (the launcher's splash hands over to the Swing one in place, app change #52);
+#                            splash-sized window polled (<label>-splash-positions.txt) must be at one place,
+#                            never two at once, and the debug log must have no Swing splash line (macOS
+#                            shows one splash, the launcher's, until the main window, app change #52);
 #                            the splash must be gone once the main window is up; the process must be
 #                            <app>/Contents/MacOS/Chromite (the launcher's name, app change #65);
 #                            without a window: process, native stacks (sample) and a JVM thread dump
@@ -66,7 +67,7 @@ LEGACY_KEY=babb4a9f774ab853c96c2d653dfe544a
 # after the process started. Before it, the only window of the process may be the startup splash
 # (docs/chromite/branding.md "시작 화면"), so launch also waits for this line and not for a window alone.
 STARTUP_LINE='Startup times'
-# Size of the startup splash in points, the native launcher's and the Swing one's (plugins/com.seizia.chromite.splash)
+# Size of the startup splash in points, the native launcher's (plugins/com.seizia.chromite.splash)
 SPLASH_SIZE='560, 320'
 # The same size as window_rects prints it
 SPLASH_RECT_SIZE='560 320'
@@ -367,9 +368,9 @@ cmd_launch() {
       n=$(window_count pid "$pid" || echo 0)
       if [ "${n:-0}" -gt 0 ]; then up=1; break; fi
     elif [ -n "$pid" ]; then
-      # Windows before the main window: the launcher's splash, then the Swing one in its place (app change #52).
-      # Every poll is logged, and a screenshot is taken when the windows change (at most 4), so a jump shows in the
-      # pictures too. Short polls: the hand-over takes a moment
+      # Windows before the main window: the launcher's splash only, up until the main window opens (app change #52).
+      # Every poll is logged, and a screenshot is taken when the windows change (at most 4), so a jump or a second
+      # splash shows in the pictures too. Short polls: the main window replaces the splash within a moment
       rects=$(window_rects pid "$pid")
       if [ -n "$rects" ]; then
         echo "$rects" | sed "s/^/$(now) /" >> "$OUT/$label-splash-positions.txt"
@@ -413,7 +414,7 @@ cmd_launch() {
   else
     note "$label: no splash-sized window was seen before the main window (startup may have been faster than one poll)"
   fi
-  # The launcher's splash and the Swing one: one place for every splash-sized window of every poll (reported, not fatal).
+  # One splash window, the launcher's: one place for every splash-sized window of every poll (reported, not fatal).
   # When the app is up before a poll sees a splash window, no poll wrote the file; awk on a missing file fails, and with
   # pipefail that ended the script here with exit code 2 although the app had started (devel run of 2026-11-12)
   [ -f "$OUT/$label-splash-positions.txt" ] || : > "$OUT/$label-splash-positions.txt"
@@ -426,8 +427,20 @@ cmd_launch() {
   else
     note "$label: no splash position was polled"
   fi
+  # Never two splash-sized windows in one poll (the lines of one poll share its time stamp)
+  n=$(awk -v size="$SPLASH_RECT_SIZE" '$4 " " $5 == size { c[$1]++ } END { m = 0; for (t in c) if (c[t] > m) m = c[t]; print m }' "$OUT/$label-splash-positions.txt" 2> /dev/null || echo 0)
+  if [ "${n:-0}" -gt 1 ]; then
+    result FAIL "$label: $n splash-sized windows at once: a second splash opened ($label-splash-positions.txt)"
+  elif [ "${n:-0}" = 1 ]; then
+    pass "$label: one splash window at a time"
+  fi
+  # The Swing splash logs where it opened; on macOS it must not open (one window, app change #52)
   line=$(grep 'Startup splash at' "$DEBUG_LOG" | tail -1 | sed 's/.*Startup splash at/Startup splash at/' || true)
-  [ -z "$line" ] || note "$label: $line"
+  if [ -n "$line" ]; then
+    result FAIL "$label: the Swing startup splash opened on macOS: $line"
+  else
+    pass "$label: no Swing startup splash in the debug log (the launcher's splash is the only one)"
+  fi
   line=$(grep 'macOS unified title bar' "$DEBUG_LOG" | tail -1 || true)
   case "$line" in
     '') note "$label: no 'macOS unified title bar' line in the debug log (menus not in the screen menu bar?)" ;;

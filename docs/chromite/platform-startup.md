@@ -28,7 +28,7 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 | `ChromiteSwingApplication.useWindowsTrustStore` | Windows이고 설정 `connections.useWinTrustStoreType`(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`, Windows 기본 켬)이 켜져 있으며, 명령줄에 `javax.net.ssl.trustStore`·`trustStoreType`이 없으면 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 적용 결과를 디버그 로그에 남긴다(`SSL trust store type: ...`) |
 | `ChromiteSwingApplication.installDesktopHandlers` | `java.awt.Desktop`이 지원하는 경우에만 끝내기·정보·환경설정 처리기를 등록한다. macOS에서 런처가 첫 스레드에서 시작했으면 `MacOSAppMenu`로 앱 메뉴와 끝내기 요청도 둔다 |
 | `ChromiteSwingApplication.start` | macOS 첫(AppKit) 스레드에서 불리면 본문(`run`)을 `MacOSMainThread.runApplication`에 맡긴다. 그 밖에는 바로 `run`. 두 경로 모두 `runWithSplash`를 거쳐 시작이 어떻게 끝나도 시작 화면을 닫는다 |
-| `StartupSplash` (2026-11-08) | Look and Feel 직후 런처 시작 화면을 이어받는 Swing 시작 화면. 띄운 뒤 `run`이 `applicationRunning`으로 런처 시작 화면을 내린다(Windows는 창을 만든 첫 스레드, macOS는 런처가 AppKit 스레드로 넘김). [branding.md](branding.md) "시작 화면" |
+| `StartupSplash` (2026-11-08) | Windows·Linux: Look and Feel 직후 런처 시작 화면을 이어받는 Swing 시작 화면. 띄운 뒤 `run`이 `applicationRunning`으로 런처 시작 화면을 내린다(Windows는 창을 만든 첫 스레드에서만 내릴 수 있다). macOS(2026-11-15): Swing 창 없이 `keepLauncherSplash`가 첫 창의 `WINDOW_OPENED`에서 `applicationRunning`을 한 번 부른다(EDT, 런처는 닫기를 AppKit 스레드에 맡기고 기다리지 않음). 창 없이 끝나면 `runWithSplash`가 부른다. [branding.md](branding.md) "시작 화면" |
 | `MacOSMainThread` (새) | 앱 본문을 스레드 `Chromite main`에서 돌리고 첫 스레드는 CoreFoundation 실행 루프를 돈다. 본문이 끝나면 OSGi 프레임워크를 멈추고 결과 코드로 끝낸다(아래 "macOS 메인 스레드") |
 | `MacOSAppMenu` (새) | 앱 메뉴(정보, 옵션, 가리기, 기타 가리기, 모두 보기, 끝내기)와 앱 위임자(`applicationShouldTerminate:`)를 JNA·Objective-C 런타임으로 만든다(아래 "macOS 앱 메뉴"). 메인 창을 보이기 전에 그 작업이 끝나기를 기다린다(최대 5초, 화면 메뉴 막대의 창 메뉴가 새 메인 메뉴로 지워지지 않게, [mac-ui.md](mac-ui.md)) |
 | `product/swing/pom.xml` `macos-info-plist` | 제품을 만든 뒤 macOS `Info.plist`를 고친다(아래 "macOS Info.plist") |
@@ -227,3 +227,5 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
 - 2026-11-09 `MacOSAppMenu.install`이 앱 메뉴 작업이 끝나기를 기다림(최대 5초): macOS 화면 메뉴 막대(앱 변경 #27, `chromite/mac-ui`, [mac-ui.md](mac-ui.md)).
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.
+- 2026-11-15 macOS 시작 화면을 창 하나로(앱 변경 #52, `chromite/mac-splash-single-window`, [branding.md](branding.md) "자리"): macOS에서는 Swing 시작 화면을 띄우지 않고
+  `applicationRunning`을 첫 창이 열릴 때(EDT) 부른다. `StartupSplash` 행 갱신. `MacOSMainThread`가 JNA를 계속 쓰므로 `Require-Bundle`의 `com.sun.jna`는 그대로다.

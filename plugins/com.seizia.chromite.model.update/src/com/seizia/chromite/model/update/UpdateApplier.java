@@ -51,7 +51,9 @@ import java.util.Map;
  *     인자로 넘긴다. 앱이 끝나면 지금 앱 묶음을 {@code <updates>/before-<새 버전>/}로 옮기고(되돌리기용), 확인한 새 앱 묶음을 같은
  *     폴더에 zip 안의 이름으로 옮긴다({@link #macTarget}: 0.1.3까지의 {@code ChromiteSwing.app}은 {@code Chromite.app}이 된다. 그 이름이
  *     이미 있으면 다른 복사본을 건드리지 않고 지금 앱의 자리로). 새 앱을 옮기지 못하면 옛 앱을 제자리로 돌린다. 다른 것은 지우지 않는다.
- *     다시 시작이면 새 앱의 경로를 연다.</li>
+ *     다시 시작이면 새 앱의 경로를 연다. 새 앱으로 바꿔 넣었으면 런처에 {@code -nosplash}를 준다: 새 버전의 첫 시작은 업데이트 창이
+ *     시작 화면을 대신하므로, 런처 시작 화면(가운데보다 위)이 먼저 보였다가 지난 창 자리의 업데이트 창으로 바뀌지 않게 한다
+ *     (Windows의 사본도 {@code -nosplash}로 띄운다, {@code UpdateHandOver}).</li>
  *     <li>잠금 파일({@value #LOCK_FILE}): 도우미의 PID를 적어 두고, 도우미가 다시 띄우기 직전에 지운다. 그사이 사용자가 Chromite를
  *     다시 열면 {@link #isRunning}이 참이라 시작하지 않는다(설치 중인 파일을 쓰지 않게). 오래된 잠금({@value #LOCK_MINUTES}분)이나
  *     끝난 PID의 잠금은 버린다(PID 재사용으로 영영 열리지 않는 일이 없게).</li>
@@ -71,6 +73,7 @@ import java.util.Map;
  *   (docs/chromite/auto-update.md "적용")
  * - 2026-11-09 Windows 설치 범위: 모든 사용자 설치는 설치 프로그램을 관리자 권한으로 실행({@link #RUN_INSTALLER}), 사용자별 설치는
  *   {@code /CurrentUser}를 명시 (docs/chromite/auto-update.md "관리자 권한으로 설치")
+ * - 2026-11-15 macOS: 바꿔 넣은 새 앱을 {@code -nosplash}로 다시 시작(앱 변경 #52, docs/chromite/auto-update.md "업데이트 진행 창")
  */
 public final class UpdateApplier {
 
@@ -213,7 +216,7 @@ public final class UpdateApplier {
           sleep 0.2
         done
         say "the app ended"
-        started=$app
+        started=$app replaced=0
         if [ -n "$next" ]; then
           if [ "$target" != "$app" ] && { [ -e "$target" ] || [ -L "$target" ]; }; then
             say "$target exists: the new app takes the place of $app"; target=$app
@@ -228,12 +231,15 @@ public final class UpdateApplier {
             mv "$aside" "$app"
             say "the new app could not be moved in: the app is back"; outcome -4
           else
-            started=$target
+            started=$target replaced=1
             say "replaced: $target"; outcome 0
           fi
         fi
         rm -f "$lock"
-        if [ "$restart" = 1 ]; then
+        if [ "$restart" = 1 ] && [ "$replaced" = 1 ]; then
+          # The new version's first start shows the update window: no launcher splash before it
+          /usr/bin/open "$started" --args -nosplash && say "started again"
+        elif [ "$restart" = 1 ]; then
           /usr/bin/open "$started" && say "started again"
         fi
         exit 0
