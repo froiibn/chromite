@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.model.update.UpdateService;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IProduct;
 import org.eclipse.core.runtime.Platform;
@@ -37,16 +38,20 @@ import java.awt.event.MouseEvent;
  *
  * 설계: 제품명·부제·저작권은 제품 확장({@code plugin.xml}의 {@code org.eclipse.core.runtime.products} 속성
  * {@code appName}, {@code subTitle}, {@code copyright})에서 읽어 한 곳에서만 관리한다. 버전은 SWT 버전의 About과 같이
- * {@link GeneralUtils#getPlainVersion()}(제품 번들 버전)이다. 웹사이트 링크는 기본 브라우저로 연다.
+ * {@link GeneralUtils#getPlainVersion()}(제품 번들 버전)이다. 링크는 제품 사이트(내려받기, 변경 내역)가 먼저, 소스 저장소가 그 아래이고
+ * 둘 다 같은 도우미({@link #createLinkLabel})로 만들어 모양과 동작(링크 색, 손 모양 커서, 도움말, 누르면 기본 브라우저)이 같다.
+ * 제품 사이트 주소는 {@link UpdateService#ORIGIN_TEXT}를 쓴다: 사이트와 업데이트는 한 주소로 정해져 있고(docs/chromite/distribution.md
+ * "결정 사항"), 업데이트 진행 창의 [받는 곳 열기]도 이미 이 값을 내려받기 페이지로 쓴다. 둘째 사본을 두면 주소가 바뀔 때 한쪽만 바뀐다.
  * DBeaver 이름은 출처 표기(저작권 줄)에만 나온다(CLAUDE.md 브랜딩 규칙).
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-15 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함. 두 링크를 한 도우미로 만듦 (앱 변경 #120)
  */
 final class AboutDialog extends JDialog {
 
-    private static final String WEBSITE = "https://github.com/froiibn/chromite"; //$NON-NLS-1$
+    private static final String REPOSITORY = "https://github.com/froiibn/chromite"; //$NON-NLS-1$
 
     private AboutDialog(@NotNull Frame owner) {
         super(owner, NLS.bind(CoreMessages.main_about, GeneralUtils.getProductName()), true);
@@ -64,17 +69,6 @@ final class AboutDialog extends JDialog {
         JLabel copyrightLabel = new JLabel(CommonUtils.notEmpty(copyright));
         copyrightLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
 
-        JLabel websiteLabel = new JLabel(WEBSITE);
-        websiteLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.linkColor"); //$NON-NLS-1$
-        websiteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        websiteLabel.setToolTipText(CoreMessages.about_open_in_browser);
-        websiteLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                DBWorkbench.getPlatformUI().executeShellProgram(WEBSITE);
-            }
-        });
-
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.add(nameLabel);
@@ -84,7 +78,8 @@ final class AboutDialog extends JDialog {
         textPanel.add(Box.createVerticalStrut(12));
         textPanel.add(copyrightLabel);
         textPanel.add(Box.createVerticalStrut(4));
-        textPanel.add(websiteLabel);
+        textPanel.add(createLinkLabel(UpdateService.ORIGIN_TEXT));
+        textPanel.add(createLinkLabel(REPOSITORY));
 
         JLabel logoLabel = new JLabel(ChromiteIcons.getLogoIcon(64));
         logoLabel.setVerticalAlignment(SwingConstants.TOP);
@@ -107,6 +102,21 @@ final class AboutDialog extends JDialog {
         pack();
         setResizable(false);
         setLocationRelativeTo(owner);
+    }
+
+    @NotNull
+    private static JLabel createLinkLabel(@NotNull String url) {
+        JLabel label = new JLabel(url);
+        label.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.linkColor"); //$NON-NLS-1$
+        label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        label.setToolTipText(CoreMessages.about_open_in_browser);
+        label.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                DBWorkbench.getPlatformUI().executeShellProgram(url);
+            }
+        });
+        return label;
     }
 
     static void open(@NotNull Frame owner) {

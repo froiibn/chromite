@@ -16,7 +16,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 | 실행 파일 | `chromite` (`chromite.exe`) |
 | macOS 앱 폴더 | `Chromite.app` |
 | 배포 파일 이름 | `chromite-<버전>-<플랫폼>` |
-| 웹사이트 | https://github.com/froiibn/chromite |
+| 웹사이트 | 제품 사이트 https://chromite.seizia.com, 소스 저장소 https://github.com/froiibn/chromite. About 대화상자는 둘 다 이 순서로 보인다(2026-11-15, 앱 변경 #120) |
 | 저작권 표기 | `© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp` |
 | 에이전트 기능 이름 | `Chromite Agent`. 영어·한국어 모두 옮기지 않는다. "AI 도우미"·"AI Assistant"라고 쓰지 않는다(사용자 결정 2026-11-07, [ai-agent.md](ai-agent.md) "명칭") |
 
@@ -347,3 +347,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   창 사각형): 런처 창(`Static`) 1500,840 840×480 → Swing 창(`SunAwtFrame`) 1500,840 840×480, 75 ms 동안 둘이 겹친 뒤 런처 창이 내려감 — 같은 자리·크기.
   100%는 화면 배율을 바꿀 수 없어 측정하지 못했다(두 계산이 같은 식, "자리" 절). macOS는 실행하지 못했다(macos-smoke로 확인).
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.
+- 2026-11-15 About 대화상자에 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함(앱 변경 #120, `chromite/about-site-link`). "결정 사항"의 웹사이트 줄 갱신.
