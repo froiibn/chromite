@@ -1810,6 +1810,34 @@
 
     </extension>
 
+    <!-- Chromite: over half of each of these marks is under 1.5:1 contrast on the dark theme's backgrounds, so the Swing UI draws them,
+         unchanged, on a light plate in dark themes (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판"). XML only: no dependency
+         on the Swing bundle. -->
+    <extension point="com.seizia.chromite.ui.swing.iconPlate">
+        <lightPlate icon="icons/derby_icon.png"/>
+        <lightPlate icon="icons/derby_icon_big.png"/>
+        <lightPlate icon="icons/dolphindb_icon.png"/>
+        <lightPlate icon="icons/dolphindb_icon_big.png"/>
+        <lightPlate icon="icons/duckdb_icon.png"/>
+        <lightPlate icon="icons/duckdb_icon_big.png"/>
+        <lightPlate icon="icons/h2_icon.png"/>
+        <lightPlate icon="icons/h2_icon_big.png"/>
+        <lightPlate icon="icons/intersystems_icon.png"/>
+        <lightPlate icon="icons/intersystems_icon_big.png"/>
+        <lightPlate icon="icons/monetdb_icon.png"/>
+        <lightPlate icon="icons/monetdb_icon_big.png"/>
+        <lightPlate icon="icons/omnisci_icon.png"/>
+        <lightPlate icon="icons/omnisci_icon_big.png"/>
+        <lightPlate icon="icons/opendistro_icon.png"/>
+        <lightPlate icon="icons/opendistro_icon_big.png"/>
+        <lightPlate icon="icons/openedge_icon.png"/>
+        <lightPlate icon="icons/openedge_icon_big.png"/>
+        <lightPlate icon="icons/opensearch_icon.png"/>
+        <lightPlate icon="icons/opensearch_icon_big.png"/>
+        <lightPlate icon="icons/tdengine_icon.png"/>
+        <lightPlate icon="icons/tdengine_icon_big.png"/>
+    </extension>
+
     <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
                 class="com.seizia.chromite.ext.generic.data.GenericValueHandlerProvider"
