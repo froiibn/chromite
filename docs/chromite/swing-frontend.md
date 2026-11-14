@@ -1225,6 +1225,75 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
   편집할 수 있으면 원래 값을 편집 모델에 넘기고, 읽기 전용이면 F단계처럼 XLSX용 값(숫자·불리언·날짜)만 남긴다. `bindAttributes`는 SWT가 모든 결과에 부르는 것과 같아서
   테이블 메타데이터(열, 인덱스, 제약 조건)를 처음 한 번 읽는다(연결 설정 `isExtraMetadataReadEnabled`가 꺼져 있으면 캐시만 씀).
 
+### 결과 그리드의 테이블 묶기 (2026-11-15, 앱 변경 #121)
+
+- **결함:** 결과 그리드가 쿼리가 읽은 테이블이 아니라 기본 스키마(카탈로그)의 같은 이름 테이블에 묶여 편집할 수 있었다. 저장하면 그 테이블에 썼다.
+  `bindAttributes`는 열마다 드라이버 메타데이터(카탈로그·스키마·테이블 이름)로 `DBUtils.getEntityFromMetaData`를 부르고, 찾지 못하면 쿼리 글에서 읽은 단일 원본 테이블을 쓴다.
+  두 경로가 각각 추측했다.
+  1. `DBUtils.getObjectByPath`의 마지막 대체: 이름이 엔터티가 아니면 "카탈로그·스키마 이름이 생략됐을 수 있다"며 선택된 개체(기본 스키마·카탈로그)에서 같은 이름을 찾았다.
+     이름이 주어져 그 컨테이너를 찾은 뒤에도 그렇게 했다. 드라이버가 기반 테이블의 스키마 + 쿼리에 쓴 이름(별칭, 파생 테이블·WITH 이름)을 주면 그 이름이 기본 스키마의 테이블로 풀렸다.
+  2. `SQLQuery`의 단일 원본: `WITH u AS (…) SELECT * FROM u`의 `u`를 테이블로 보고, 한정하지 않은 이름이라 기본 스키마의 `u`로 풀었다.
+- **규칙(지금):**
+  - `getObjectByPath`([DBUtils.java](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/DBUtils.java)): 카탈로그나 스키마 이름이 주어져 남아 있으면(카탈로그 단계가 없는 데이터 원본은 카탈로그를 버림) 결과는 그 컨테이너의 자식이거나 null이다.
+    선택된 개체에서 찾는 대체는 두 이름이 모두 없을 때만 한다. 그 컨테이너에서 찾은 엔터티가 아닌 개체(시노님 등)는 그대로 돌려준다(`getEntityFromMetaData`가 `DBSAlias`를 대상으로 바꿈).
+  - `getEntityFromMetaData`: 메타데이터에 스키마가 없고 모델에 단계가 없는 카탈로그만 있으면(Altibase는 파생 테이블·WITH 열에 데이터베이스 이름 `mydb`만 줌) 테이블을 찾지 않는다.
+    `getObjectByPath`는 그 카탈로그를 버리고 기본 스키마에서 찾기 때문이다. AI 도구는 한정하지 않은 이름에 연결의 카탈로그를 붙여 `getObjectByPath`를 직접 부르므로(`MetadataTools.objectDdl`) 그 경로는 그대로 둔다.
+  - `SQLQuery`([SQLQuery.java](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/sql/SQLQuery.java) `isWithQueryName`): FROM의 한정하지 않은 이름이 WITH 절 쿼리 이름이면(대소문자·따옴표 무시) 단일 원본이 없다.
+  - 결과: 드라이버 이름을 풀지 못하면 쿼리 글의 테이블(별칭이 아니라 실제 이름)을 쓰고, 그것도 없으면 읽기 전용이다. 추측한 테이블에 묶지 않는다.
+- **드라이버 메타데이터(측정, `ResultSetMetaData` 그대로):**
+
+| 엔진(드라이버) | 열의 카탈로그·스키마·테이블 | 별칭 `other.t2 u` | 파생 테이블·WITH | 뷰 |
+|---|---|---|---|---|
+| PostgreSQL 17 (pgjdbc 42.7.14, Chromite가 `getBaseSchemaName`·`getBaseTableName`을 읽음) | 기반 테이블의 스키마·이름 | `chr_rb_other.chr_rb_t2` | 기반 테이블 | 뷰 이름 |
+| MySQL 8.4 (Connector/J 9.7.0) | 카탈로그 = 기반 데이터베이스, 테이블 = 기반 이름 | 기반 이름 | 기반 테이블 | 뷰 이름 |
+| MariaDB 11.8 (MariaDB Connector/J 3.5.10) | 카탈로그 = 기반 데이터베이스, 테이블 = 기반 이름 | 기반 이름 | 카탈로그 = 기반 데이터베이스, 테이블 = 파생 테이블·WITH 이름 | 뷰 이름, 카탈로그는 뷰가 읽는 테이블의 데이터베이스 |
+| SQL Server 2022 (mssql-jdbc 13.4) | 모두 빈 값 | 빈 값 | 빈 값 | 빈 값 |
+| Oracle 23ai (ojdbc11 23.2) | 모두 빈 값 | 빈 값 | 빈 값 | 빈 값 |
+| Altibase 7.3 (Altibase JDBC 7.3.0.0.6) | 카탈로그 `mydb`, 스키마 = 기반 스키마, 테이블 = 쿼리에 쓴 이름 | `CHR_RB_OTHER.CHR_RB_U`(별칭) | 카탈로그 `mydb`, 스키마 없음, 테이블 = 파생 테이블·WITH 이름 | 뷰 이름 |
+| SQLite 3.54 (xerial 3.54.1.0, `ATTACH`한 다른 데이터베이스) | 카탈로그·스키마 빈 값, 테이블 = 기반 이름 | 기반 이름(데이터베이스 이름 없음) | 기반 이름 | 시험하지 않음 |
+
+  Altibase 시노님은 스키마 = 대상의 스키마, 테이블 = 시노님 이름이다(`CHR_RB_OTHER.CHR_RB_S`). 조인의 별칭도 테이블 이름으로 온다(`CHR_RB_USER.A`).
+
+- **전후(실제 그리드, 2026-11-15, 시험 서버, `chr_rb_*` 테이블. 기본 스키마에 같은 열의 `chr_rb_u`를 둠).** 표의 값은 그리드가 묶인 테이블(편집 가능) 또는 읽기 전용 이유. 굵은 칸이 읽은 테이블과 다른 테이블이었다.
+
+| 엔진 | 모양 | 전(devel) | 후 |
+|---|---|---|---|
+| PostgreSQL | 모든 모양(별칭, 조인, 파생, WITH, 대소문자, `search_path`의 둘째 스키마) | 읽은 테이블 | 같음 |
+| MySQL | 모든 모양 | 읽은 테이블 | 같음 |
+| MariaDB | `SELECT * FROM (SELECT * FROM chr_rb_other.chr_rb_t2) chr_rb_u` | **`chr_rb_main.chr_rb_u`** | 읽기 전용(no table columns) |
+| MariaDB | `WITH chr_rb_u AS (…chr_rb_other.chr_rb_t2) SELECT * FROM chr_rb_u` | **`chr_rb_main.chr_rb_u`** | 읽기 전용 |
+| SQL Server | `WITH chr_rb_u AS (…) SELECT * FROM chr_rb_u` | **`chr_rb_main.dbo.chr_rb_u`** | 읽기 전용 |
+| Oracle | `WITH CHR_RB_U AS (…) SELECT * FROM CHR_RB_U` | **`CHR_RB_USER.CHR_RB_U`** | 읽기 전용 |
+| Altibase(기본 스키마 없음, devel) | 모든 모양 | 읽은 테이블이거나 읽기 전용 | 같음 |
+| Altibase + 기본 스키마(#116) | `CHR_RB_OTHER.CHR_RB_T2 CHR_RB_U`, `… "chr_rb_u"` | **`CHR_RB_USER.CHR_RB_U`**, **`CHR_RB_USER."chr_rb_u"`** | `CHR_RB_OTHER.CHR_RB_T2`(쿼리 글의 테이블) |
+| Altibase + 기본 스키마(#116) | 조인 `SELECT * …`, `SELECT CHR_RB_U.* …` | **`CHR_RB_USER.CHR_RB_U`** | 읽기 전용 |
+| Altibase + 기본 스키마(#116) | 파생 테이블, WITH | **`CHR_RB_USER.CHR_RB_U`** | 읽기 전용 |
+
+  잘못 묶인 칸은 모두 그리드의 저장으로 실제로 고쳐 보았고, 다른 연결의 SELECT로 기본 스키마의 테이블이 바뀌고 읽은 테이블은 그대로인 것을 확인했다(전). 후에는 같은 편집이 읽기 전용이라 되지 않거나 읽은 테이블에 썼다.
+  나머지 모양(한정하지 않은 자기 테이블, 다른 스키마·데이터베이스의 한정 이름, SQL Server 세 부분 이름, MySQL·MariaDB의 `db.table`, PostgreSQL `search_path`, 뷰, 대소문자만 다른 이름)은 전후가 같고 편집이 읽은 테이블에 쓴다.
+
+- **시노님:** 바뀌지 않았다. Altibase + 기본 스키마의 private 시노님(`SELECT * FROM CHR_RB_S`)은 전에는 기본 스키마에서 시노님을 찾아 대상 `CHR_RB_OTHER.CHR_RB_T2`에 묶였고, 후에는 드라이버 이름(`CHR_RB_OTHER.CHR_RB_S`)을 찾지 못해 쿼리 글의 `CHR_RB_S` → 같은 시노님 → 대상에 묶인다.
+  PUBLIC 시노님, Oracle 시노님, SQL Server 시노님은 전후 모두 읽기 전용이다. 시노님을 확실히 푸는 곳은 `getEntityFromMetaData`(이미 `DBSAlias`를 대상으로 바꿈)와 각 엔진 모델의 시노님 조회(PUBLIC 시노님은 `PUBLIC` 스키마나 별도 캐시)다. 이 변경에서는 넣지 않았다.
+- **호출처(`getObjectByPath` 모든 오버로드, `getEntityFromMetaData`)와 변화:**
+
+| 호출처 | 넘기는 이름 | 변화 |
+|---|---|---|
+| `DBExecUtils.bindAttributes`(`DBExecUtils.java:896`, `:940`) → `getEntityFromMetaData` | 쿼리 글의 단일 원본, 열마다 드라이버 메타데이터 | 위 전후 표 |
+| `SQLSemanticProcessor.isValidTableColumn`(`:369`, 결과 필터·정렬을 쿼리에 넣을 때) | 열의 드라이버 메타데이터 | 별칭 열(MariaDB 파생 테이블, Altibase 별칭)은 테이블 열이 아니라고 보고 필터를 바깥 쿼리로 감쌈. 전에는 엉뚱한 테이블의 열로 판단 |
+| `DTUtils`(`:411`, 문서형 열), `PostgreUtils.findDataType`(`:408`), `JDBCCollection.makeCollectionFromArray`(`:225`) | 열의 드라이버 메타데이터 | 별칭·파생 이름이 기본 스키마의 같은 이름 테이블 열의 자료형을 빌려 쓰지 않음. PostgreSQL 드라이버는 기반 테이블을 주므로 PostgreSQL은 변화 없음 |
+| `MetadataTools.objectDdl`(`:494`, `:498`, `:503`, AI 도구) | (연결 카탈로그, 스키마, 이름), 새로 고칠 부모는 (카탈로그, null, 스키마) | 한정한 이름이 그 스키마에 없으면 null("not found"). 부모 찾기 (카탈로그, null, 스키마)는 이제 스키마를 돌려줌(전: 기본 스키마에서 스키마 이름을 찾아 null) |
+| `AIUtils.findObjectByFQN`(`:838`, `:841`, AI 테이블 상세) | 이름 부분 1~3개 | 한정한 이름이 그 스키마에 없으면 null. 한정하지 않은 이름은 그대로 기본 스키마 |
+| `ERDDiagram`(`:493`, 저장된 ERD 불러오기) | 저장된 FQN | 그 스키마에 없는 테이블은 "Can't find entity"로 빠짐(전: 기본 스키마의 같은 이름 테이블). Swing 제품에는 ERD 화면이 없다 |
+| `ListTableNamesFunction`(`:95`), `ListSchemaNamesFunction`(`:68`) | 개체 이름 null(컨테이너만) | 변화 없음(마지막 대체 앞에서 끝남) |
+| `SQLQuery.getEntityMetadata` 호출처: `DTUtils.getTableNameFromQuery`(내보내기 파일 이름), `SQLServerUtils.getTableFromQuery`(columnstore 확인), `SQLQueryExecuteJob`(결과 탭 이름) | WITH 쿼리의 단일 원본 | WITH 쿼리 이름을 테이블 이름으로 쓰지 않음(코드로 확인): 내보내기 파일 이름은 기본 패턴, SQL Server는 기본 스키마의 같은 이름 테이블로 columnstore 여부를 보지 않음, 드라이버가 테이블 이름을 주지 않는 엔진(Oracle, SQL Server)의 결과 탭 이름은 WITH 이름 대신 결과 집합 이름이나 기본 이름 |
+
+- **남은 결함(고치지 않음, 원인이 다름):** SQLite에서 `ATTACH`한 데이터베이스의 테이블(`SELECT * FROM chr_rb_other.chr_rb_t2`)은 주 데이터베이스에 같은 이름 테이블이 있으면 그 테이블에 묶인다(전후 같음, 편집으로 확인).
+  드라이버가 데이터베이스 이름을 주지 않아 한정하지 않은 이름으로 모델의 루트(주 데이터베이스)에서 찾고, 쿼리 글의 `chr_rb_other.chr_rb_t2`는 모델에 그 단계가 없어 풀리지 않는다.
+  고치려면 바인더가 "쿼리 글은 컨테이너를 한정했는데 풀리지 않았고 드라이버 이름에는 컨테이너가 없음"이면 드라이버 이름을 쓰지 않게 하거나, SQLite 모델이 붙인 데이터베이스를 알아야 한다.
+- **바꾸지 않은 것(보고):** `getObjectByPath`의 앞쪽 대체("Not found - try to find in selected object")는 주어진 컨테이너 이름을 선택된 개체 안에서 같은 이름으로 찾는다. 다른 이름을 추측하지 않아 그대로 두었다.
+  다만 MySQL·MariaDB에서 쿼리 글의 `db.table`(파서가 `db`를 스키마로 줌)은 기본 데이터베이스 안에서 `db`를 찾다가 null이 된다(전후 같음, 드라이버 메타데이터가 대신 묶음).
+- 회귀 테스트는 실행하지 않았다. 넣는다면 `DBUtilsTest`에 이름 모양별 `getObjectByPath`(주어진 스키마에 없는 이름 → null, 이름 없음 → 기본 스키마, 시노님 → 시노님)와 `SQLQuery`의 WITH 단일 원본 테스트다.
+
 ### 편집 동작
 
 | 동작 | 방법 |
@@ -3733,3 +3802,6 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-12 SQL Editor 도구 막대의 Format SQL 옆 비교 단추(앱 변경 #105, `chromite/text-compare`): 열린 두 창의 글을 나란히 비교하는 문서 탭, [text-compare.md](text-compare.md). 회귀 테스트는 실행하지 않았다.
 - 2026-11-14 Connect 대화상자: URL 템플릿의 {port}가 필수여도 드라이버에 기본 포트가 있으면 포트를 묻지 않음(앱 변경 #113, `chromite/shardsphere-driver`, "서버 이름과 기록").
 - 2026-11-15 About 대화상자: 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함(앱 변경 #120, `chromite/about-site-link`, "구현 현황 — B단계"의 About). 회귀 테스트는 실행하지 않았다.
+- 2026-11-15 결과 그리드가 읽은 테이블이 아닌 기본 스키마의 같은 이름 테이블에 묶이지 않게(앱 변경 #121, `chromite/result-binding-fallback`): `DBUtils.getObjectByPath`는 이름이 주어지면 기본 스키마에서
+  찾지 않고, `getEntityFromMetaData`는 모델에 없는 카탈로그만 있는 메타데이터를 찾지 않으며, `SQLQuery`는 WITH 쿼리 이름을 단일 원본으로 보지 않음. 6개 엔진 전후 표와 편집 증명은
+  "결과 그리드의 테이블 묶기" 절. 회귀 테스트는 실행하지 않았다.
