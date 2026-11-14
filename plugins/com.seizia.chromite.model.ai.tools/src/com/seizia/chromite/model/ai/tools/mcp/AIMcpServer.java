@@ -33,6 +33,7 @@ import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionParameter;
 import com.seizia.chromite.model.ai.AIFunctionPurpose;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
 import com.seizia.chromite.model.ai.agent.AIToolCallResult;
 import com.seizia.chromite.model.ai.agent.AIToolCatalog;
 import com.seizia.chromite.model.ai.agent.AIToolClient;
@@ -75,6 +76,8 @@ import java.util.concurrent.Executors;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 {@code tools/list}의 readOnlyHint·destructiveHint는 호출마다 분류하는 도구에 가장 높은 분류로 정함(합친 changeSchema 등).
+ *   전에는 정적 분류만 보아 runSql·getActualPlan이 위험하지 않다고 알렸다 (도구 정리, docs/chromite/ai-agent.md "로컬 MCP 서버")
  */
 public final class AIMcpServer {
 
@@ -423,8 +426,10 @@ public final class AIMcpServer {
         }
         JsonObject annotations = new JsonObject();
         annotations.addProperty("title", tool.getName());
-        annotations.addProperty("readOnlyHint", tool.getAccess() == AIToolAccess.READ);
-        annotations.addProperty("destructiveHint", tool.getAccess() == AIToolAccess.DANGEROUS);
+        // A tool classified per call (runSql, changeSchema, getActualPlan, ...) gets the conservative hints of its highest class
+        AIToolAccess highest = highestAccess(tool);
+        annotations.addProperty("readOnlyHint", highest == AIToolAccess.READ);
+        annotations.addProperty("destructiveHint", highest == AIToolAccess.DANGEROUS);
         annotations.addProperty("openWorldHint", false);
         JsonObject json = new JsonObject();
         json.addProperty("name", tool.getId());
@@ -433,6 +438,17 @@ public final class AIMcpServer {
         json.add("inputSchema", schema);
         json.add("annotations", annotations);
         return json;
+    }
+
+    @NotNull
+    private static AIToolAccess highestAccess(@NotNull AIFunctionDescriptor tool) {
+        try {
+            return tool.getInstance() instanceof AIToolAccessClassifier classifier
+                ? tool.getAccess().max(classifier.getHighestAccess(tool))
+                : tool.getAccess();
+        } catch (RuntimeException e) {
+            return AIToolAccess.DANGEROUS;
+        }
     }
 
     @NotNull

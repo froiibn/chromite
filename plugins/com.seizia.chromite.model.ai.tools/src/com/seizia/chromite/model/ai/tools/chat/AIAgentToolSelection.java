@@ -42,7 +42,7 @@ import java.util.List;
  *     그 연결의 DB 종류를 지원하지 않는 도구({@link AgentTool#supports}, 진단 SQL 도구는 SQL 자원의 DB 종류 블록)와, 정책이 그 연결에서 막는 도구
  *     (실행기와 같은 판정: 읽기 전용 연결의 DB 쓰기 도구, {@link AIToolPolicy#resolve}가 BLOCKED). 막힘 판정은 도구의 정적 분류로 한다. 호출별로
  *     분류가 올라가는 도구(runSql 등)는 정적 분류가 낮아 보내지고, 실행기가 호출마다 다시 판정한다.</li>
- *     <li>연결 인수가 없는 도구(listConnections, formatSql 등)는 늘 보낸다. 대화에 연결이 없으면 모두 보낸다.</li>
+ *     <li>연결 인수가 없는 도구(listConnections, findTools 등)는 늘 보낸다. 대화에 연결이 없으면 모두 보낸다.</li>
  *     <li>보내지 않은 도구 ID는 시스템 프롬프트에 짧게 알린다. 모델이 사용자에게 "그 도구는 이 연결에서 막혀 있다"고 말하거나, 다른 연결의 일이면
  *     대화의 연결을 바꾸라고 할 수 있게 하기 위해서다.</li>
  *     <li>이 거르기는 도구 묶음({@link AIAgentToolSets}) 안에서 한다. 최소·핵심 묶음은 거른 뒤 보내고, 전체 묶음은 거르지 않는다(다른 연결의 도구를
@@ -53,6 +53,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (후속 과제 #76 요청 크기)
  * - 2026-11-12 "도구를 모두 보냄" 설정을 지움: 제공자별 도구 묶음 설정의 "전체"가 대신한다({@link AIAgentToolSets}, 앱 변경 #64)
+ * - 2026-11-15 읽기 전용 연결에서 DB 종류마다 쓰는 대상을 봄(합친 backupDatabase의 PostgreSQL·MySQL 덤프는 이 컴퓨터의 파일만 씀)
+ *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public final class AIAgentToolSelection {
 
@@ -99,7 +101,7 @@ public final class AIAgentToolSelection {
                 continue;
             }
             AIToolAccess access = tool.getAccess();
-            boolean readOnlyWrite = access.isWrite() && tool.getWrites() == AIToolWrites.DATABASE && connection.isConnectionReadOnly();
+            boolean readOnlyWrite = access.isWrite() && writes(tool, family) == AIToolWrites.DATABASE && connection.isConnectionReadOnly();
             if (readOnlyWrite || policy.resolve(connection, tool, access).permission() == AIToolPermission.BLOCKED) {
                 blocked.add(tool.getId());
                 continue;
@@ -107,6 +109,16 @@ public final class AIAgentToolSelection {
             tools.add(tool);
         }
         return new Selection(tools, otherDatabases, blocked);
+    }
+
+    // The executor decides per call; a merged tool may write only a local file on some database families (backupDatabase)
+    @NotNull
+    private static AIToolWrites writes(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        try {
+            return tool.getInstance() instanceof AgentTool agentTool ? agentTool.writes(tool, family) : tool.getWrites();
+        } catch (Exception e) {
+            return tool.getWrites();
+        }
     }
 
     private static boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {

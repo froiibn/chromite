@@ -41,6 +41,7 @@
    <element name="function">
       <complexType>
          <sequence>
+            <element ref="alias" minOccurs="0" maxOccurs="unbounded"/>
             <element ref="parameter" minOccurs="0" maxOccurs="unbounded"/>
          </sequence>
          <attribute name="id" type="string" use="required">
@@ -162,6 +163,16 @@
                <documentation>If true, this is a system function</documentation>
             </annotation>
          </attribute>
+         <attribute name="addedIn" type="string">
+            <annotation>
+               <documentation>Edition that added the tool (for example 26.1.0 for a tool that merged or renamed former tools): the tool policy migration knows it had no rules of its own before</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="operationParameter" type="string">
+            <annotation>
+               <documentation>Name of the parameter whose value is the operation of a call of a tool that merges several former tools (for example changeSchema: operation). The audit log records it next to the tool id</documentation>
+            </annotation>
+         </attribute>
          <attribute name="alwaysConfirmed" type="boolean">
             <annotation>
                <documentation>If true, the user confirms every call that has something to do, whatever the tool policy allows (the transaction guard asks Commit / Roll back / Cancel): commitTransaction, rollbackTransaction. The Tool Policy table shows it instead of an automatic run</documentation>
@@ -198,11 +209,56 @@
       </complexType>
    </element>
 
+   <element name="alias">
+      <annotation>
+         <documentation>A former id of the tool (renamed, or merged into it), accepted for one edition: calls with it (MCP, saved conversations, found tools, playbooks) run this tool, and the tool policy moves its rules here once (docs/chromite/ai-agent.md "별칭"). tools/list does not show it</documentation>
+      </annotation>
+      <complexType>
+         <attribute name="id" type="string" use="required">
+            <annotation>
+               <documentation>The former tool id</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="access">
+            <annotation>
+               <documentation>Permission class the former tool had (the policy migration computes the rules it resolved to). Defaults to the class of this tool</documentation>
+            </annotation>
+            <simpleType>
+               <restriction base="string">
+                  <enumeration value="READ"/>
+                  <enumeration value="WRITE"/>
+                  <enumeration value="DANGEROUS"/>
+               </restriction>
+            </simpleType>
+         </attribute>
+         <attribute name="arguments" type="string">
+            <annotation>
+               <documentation>Comma-separated name=value pairs set on every call through this alias, replacing what the caller passed (for example operation=dropTable)</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="defaults" type="string">
+            <annotation>
+               <documentation>Comma-separated name=value pairs set on a call through this alias when the caller did not pass them (for example offset=0)</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="removeIn" type="string">
+            <annotation>
+               <documentation>Edition in which the alias is removed</documentation>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+
    <element name="parameter">
       <complexType>
          <attribute name="name" type="string" use="required">
             <annotation>
                <documentation>Parameter name</documentation>
+            </annotation>
+         </attribute>
+         <attribute name="aliases" type="string">
+            <annotation>
+               <documentation>Comma-separated former names of the parameter, accepted for one edition (docs/chromite/ai-agent.md "별칭")</documentation>
             </annotation>
          </attribute>
          <attribute name="type" type="string" use="required">

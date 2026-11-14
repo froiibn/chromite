@@ -22,6 +22,8 @@ import com.seizia.chromite.model.ai.AIFunctionCall;
 import com.seizia.chromite.model.ai.AIFunctionResult;
 import com.seizia.chromite.model.ai.AIFunctionType;
 import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
+import com.seizia.chromite.model.ai.agent.AIToolCatalog;
 import com.seizia.chromite.model.ai.tools.AgentJson;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -61,6 +63,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - 2026-11-08 실행 중인 도구의 진행 글({@link Entry#getProgress}, 저장하지 않음): 백업·복원 도구
  * - 2026-11-12 대화가 찾은 도구({@link #getFoundTools}, 저장됨. 예전 대화는 없음으로 읽힘), 보낼 기록의 토큰 어림, 도구 없이 보내는 기록
  *   (앱 변경 #64, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-15 옛 도구 ID로 저장된 호출은 지금 도구 이름·인수로 보내고, 찾은 도구의 옛 ID는 지금 ID로 읽음. 저장된 대화와 화면은 그대로다
+ *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public final class AIAgentChat {
 
@@ -337,7 +341,28 @@ public final class AIAgentChat {
      */
     @NotNull
     public List<String> getFoundTools() {
-        return foundTools == null ? List.of() : List.copyOf(foundTools);
+        if (foundTools == null) {
+            return List.of();
+        }
+        // Conversations saved before a tool was renamed or merged keep its former id
+        List<String> ids = new ArrayList<>();
+        for (String id : foundTools) {
+            String current = canonicalId(id);
+            if (!ids.contains(current)) {
+                ids.add(current);
+            }
+        }
+        return ids;
+    }
+
+    @NotNull
+    private static String canonicalId(@NotNull String id) {
+        try {
+            return AIToolCatalog.canonicalId(id);
+        } catch (RuntimeException e) {
+            // No tool registry (outside the application): the id as saved
+            return id;
+        }
     }
 
     /**
@@ -347,7 +372,7 @@ public final class AIAgentChat {
         if (foundTools == null) {
             foundTools = new ArrayList<>();
         }
-        if (foundTools.contains(toolId)) {
+        if (getFoundTools().contains(canonicalId(toolId))) {
             return false;
         }
         foundTools.add(toolId);
@@ -514,9 +539,10 @@ public final class AIAgentChat {
             case USER -> AIMessage.userMessage(entry.getText());
             case ASSISTANT -> AIMessage.assistantMessage(entry.getText(), null);
             default -> {
+                SentCall sent = sentCall(entry);
                 AIFunctionCall call = new AIFunctionCall(
-                    entry.function == null ? "" : entry.function,
-                    new LinkedHashMap<>(entry.getArguments()),
+                    sent.name(),
+                    new LinkedHashMap<>(sent.arguments()),
                     entry.metadata == null ? null : new LinkedHashMap<>(entry.metadata));
                 String result = shortResult != null ? shortResult : resultText(entry);
                 boolean error = entry.outcome == null || !entry.outcome.equals("SUCCESS"); //$NON-NLS-1$
@@ -525,6 +551,33 @@ public final class AIAgentChat {
                     : new AIFunctionResult(AIFunctionType.INFORMATION, result));
             }
         };
+    }
+
+    /**
+     * A tool call as a request carries it.
+     */
+    private record SentCall(@NotNull String name, @NotNull Map<String, Object> arguments) {
+    }
+
+    /**
+     * The call of a tool entry under the current tool name and argument names: a call saved with a former tool id
+     * ({@code db_listIndexes}) is sent as the tool it became ({@code db_describeTable}, with the operation a merged tool needs),
+     * so that the history names only tools the request offers. The pairing metadata (tool_use id, call id) stays.
+     */
+    @NotNull
+    private static SentCall sentCall(@NotNull Entry entry) {
+        String name = entry.function == null ? "" : entry.function;
+        try {
+            AIToolCatalog.Call call = name.isEmpty() ? null : AIToolCatalog.resolveCall(name, entry.getArguments());
+            if (call != null) {
+                String current = name.equals(call.tool().getId()) || name.endsWith("_" + call.tool().getId()) ? name
+                    : name.startsWith(call.tool().getToolbox().getToolboxId() + "_") ? call.tool().getFullId() : call.tool().getId();
+                return new SentCall(current, call.arguments());
+            }
+        } catch (AIToolArgumentException | RuntimeException e) {
+            // Conflicting former and current argument names, or no tool registry: send the call as saved
+        }
+        return new SentCall(name, entry.getArguments());
     }
 
     @NotNull
@@ -560,8 +613,9 @@ public final class AIAgentChat {
     private static int size(@NotNull Entry entry, @Nullable String shortResult) {
         int size = entry.getText().length();
         if (entry.kind == Kind.TOOL) {
-            int name = entry.function == null ? 0 : entry.function.length();
-            size += name + AgentJson.GSON.toJson(entry.getArguments()).length() +
+            SentCall sent = sentCall(entry);
+            int name = sent.name().length();
+            size += name + AgentJson.GSON.toJson(sent.arguments()).length() +
                 name + RESULT_HEADER.length() + (shortResult != null ? shortResult : resultText(entry)).length();
         }
         return size;
@@ -571,8 +625,9 @@ public final class AIAgentChat {
     private static int tokens(@NotNull Entry entry, @Nullable String shortResult) {
         int tokens = AIAgentToolSets.estimateTokens(entry.getText());
         if (entry.kind == Kind.TOOL) {
-            int name = AIAgentToolSets.estimateTokens(entry.function);
-            tokens += name + AIAgentToolSets.estimateTokens(AgentJson.GSON.toJson(entry.getArguments())) +
+            SentCall sent = sentCall(entry);
+            int name = AIAgentToolSets.estimateTokens(sent.name());
+            tokens += name + AIAgentToolSets.estimateTokens(AgentJson.GSON.toJson(sent.arguments())) +
                 name + AIAgentToolSets.estimateTokens(RESULT_HEADER) +
                 AIAgentToolSets.estimateTokens(shortResult != null ? shortResult : resultText(entry));
         }

@@ -89,6 +89,7 @@ import java.util.regex.Pattern;
  * - 2026-11-12 도구 묶음·findTools·대화가 찾은 도구, 컨텍스트 크기로 보내기 전 확인, 도구 없음 방식 (앱 변경 #64)
  * - 2026-11-08 도구의 진행 글을 항목에 두고 {@link Listener#toolProgress}로 알림(백업·복원 도구)
  * - 2026-11-08 차례의 토큰 사용량을 모아 {@link Listener#usage}로 알림: 엔진이 받던 사용량을 버리고 있었다 (후속 39)
+ * - 2026-11-15 사용자 글이 옛 도구 ID를 부르면 지금 도구를 더하고, 카드의 분류는 옛 ID·인수를 지금 도구로 바꾼 뒤 셈 (docs/chromite/ai-agent.md "별칭")
  */
 public final class AIAgentChatRunner {
 
@@ -303,9 +304,18 @@ public final class AIAgentChatRunner {
             return;
         }
         for (AIFunctionDescriptor tool : catalog) {
-            if (!tool.getId().equals(AIAgentToolSets.FIND_TOOLS)
-                && Pattern.compile("\\b" + Pattern.quote(tool.getId()) + "\\b").matcher(prompt.getText()).find()) { //$NON-NLS-1$ //$NON-NLS-2$
-                chat.addFoundTool(tool.getId());
+            if (tool.getId().equals(AIAgentToolSets.FIND_TOOLS)) {
+                continue;
+            }
+            // A former id (a playbook or a prompt written before the tool was renamed or merged) names the tool too
+            List<String> names = new ArrayList<>();
+            names.add(tool.getId());
+            tool.getAliases().forEach(alias -> names.add(alias.id()));
+            for (String name : names) {
+                if (Pattern.compile("\\b" + Pattern.quote(name) + "\\b").matcher(prompt.getText()).find()) { //$NON-NLS-1$ //$NON-NLS-2$
+                    chat.addFoundTool(tool.getId());
+                    break;
+                }
             }
         }
     }
@@ -352,7 +362,7 @@ public final class AIAgentChatRunner {
                 entry.setProgress(progress);
                 listener.toolProgress(entry);
             });
-        String access = tool == null ? null : classify(monitor, tool, arguments);
+        String access = tool == null ? null : classify(monitor, call.getFunctionName(), arguments);
         entry.finishTool(result.outcome().name(), access, result.text(), System.currentTimeMillis() - start);
         if (tool != null && tool.getId().equals(AIAgentToolSets.FIND_TOOLS) && result.outcome() == AIToolOutcome.SUCCESS) {
             for (String found : FindTools.foundIds(result.text())) {
@@ -369,11 +379,19 @@ public final class AIAgentChatRunner {
     @NotNull
     private static String classify(
         @NotNull DBRProgressMonitor monitor,
-        @NotNull AIFunctionDescriptor tool,
-        @NotNull Map<String, Object> arguments
+        @NotNull String functionName,
+        @NotNull Map<String, Object> calledArguments
     ) {
-        AIToolAccess access = tool.getAccess();
+        AIToolAccess access = AIToolAccess.READ;
         try {
+            // A former tool id or argument name: the tool and arguments the executor ran
+            AIToolCatalog.Call resolved = AIToolCatalog.resolveCall(functionName, calledArguments);
+            if (resolved == null) {
+                return access.name();
+            }
+            AIFunctionDescriptor tool = resolved.tool();
+            Map<String, Object> arguments = resolved.arguments();
+            access = tool.getAccess();
             if (tool.getInstance() instanceof AIToolAccessClassifier classifier) {
                 DBPDataSourceContainer connection = findConnection(
                     CommonUtils.toString(arguments.get(AIToolConnections.PARAM_CONNECTION), null));

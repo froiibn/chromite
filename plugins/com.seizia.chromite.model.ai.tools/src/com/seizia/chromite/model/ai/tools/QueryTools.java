@@ -25,6 +25,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
@@ -33,16 +34,11 @@ import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
-import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.sql.SQLControlCommand;
-import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryType;
 import com.seizia.chromite.model.sql.SQLScriptElement;
-import com.seizia.chromite.model.sql.SQLSyntaxManager;
-import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
-import com.seizia.chromite.model.sql.format.SQLFormatUtils;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
 import com.seizia.chromite.utils.GeneralUtils;
 
@@ -59,18 +55,18 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Query tools: SELECT with paging, read-only diagnostic SQL, any SQL and scripts (WRITE), cancel, validate, format, history.
+ * Query tools: read-only SQL (with paging), any SQL and scripts (WRITE), cancel, validate, the query windows' history.
  *
  * 설계:
  * <ul>
- *     <li>{@code runSelect}·{@code runReadOnlySql}은 READ다. {@link AgentSqlClassifier}가 읽기라고 증명하지 못한 문장은 거부하고 {@code runSql}을 쓰라고
+ *     <li>{@code runReadOnlySql}은 READ다(26.1.0에서 {@code runSelect}를 합침: {@code offset}을 주면 한 페이지). {@link AgentSqlClassifier}가 읽기라고 증명하지 못한 문장은 거부하고 {@code runSql}을 쓰라고
  *     알린다. 실행은 읽기 전용 보호 안에서 한다({@link AgentSql.Mode#READ_ONLY}).</li>
  *     <li>{@code runSql}·{@code runScript}는 WRITE다. 문장에 따라 DANGEROUS로 올린다({@link AIToolAccessClassifier}). 확인 요청에 문장 전체를 보인다
  *     ({@link AIToolPreviewProvider}). 연결의 커밋 방식 그대로 실행하고({@link AgentSql.Mode#NATIVE}), 수동 커밋 연결이면 트랜잭션이 열려 있다고 알린다.
  *     MySQL/MariaDB·Oracle의 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로, 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
  *     <li>{@code runScript}는 쿼리 창이 실행하는 단위({@link SQLScriptBatches#extractQueries})로 보낸다: SQL Server처럼 배치 구분자({@code GO})가 있는
  *     방언은 배치 하나를 한 번에, 아니면 문장 하나씩. 쿼리 창의 명령({@code DELIMITER}, {@code @set} 등)은 서버로 보내지 않고 건너뛴 것으로 알린다.</li>
- *     <li>{@code getQueryHistory}는 Swing 쿼리 창 기록 파일({@code .metadata/chromite-query-history.jsonl}, Swing {@code QueryHistory})을 읽기만 한다.</li>
+ *     <li>{@code getEditorHistory}는 Swing 쿼리 창 기록 파일({@code .metadata/chromite-query-history.jsonl}, Swing {@code QueryHistory})을 읽기만 한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -89,6 +85,8 @@ import java.util.Map;
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
  * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
  *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침, formatSql을 지움(모델이 직접 정리한다),
+ *   MCP 힌트용 가장 높은 분류(runSql·runScript는 DANGEROUS까지)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -103,33 +101,22 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         @NotNull Map<String, Object> args
     ) throws DBException {
         return switch (toolId) {
-            case "runSelect" -> runSelect(context, args);
             case "runReadOnlySql" -> runReadOnlySql(context, args);
             case "runSql" -> runSql(context, args);
             case "runScript" -> runScript(context, args);
             case "cancelQuery" -> cancel(context);
             case "validateSql" -> validate(context, args);
-            case "formatSql" -> format(context, args);
-            case "getQueryHistory" -> history(context, args);
+            case "getEditorHistory" -> history(context, args);
             default -> throw unknownTool(toolId);
         };
     }
 
     // ------------------------------------------------------------------ read
 
-    @NotNull
-    private static JsonElement runSelect(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
-        DBPDataSourceContainer container = requireConnection(context);
-        DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
-        requireReadOnly(dataSource, sql, "runSelect");
-        AgentLimits limits = AgentLimits.of(args);
-        int offset = Math.max(0, AgentArgs.getInt(args, "offset", 0));
-        boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "format"));
-        return AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.READ_ONLY,
-            (connection, runner) -> runner.queryPage(connection, sql, offset, limits, objects));
-    }
-
+    /**
+     * One read-only statement: every result set and message, or with {@code offset} one page of rows (what runSelect returned
+     * before 26.1.0; its calls come here with offset 0).
+     */
     @NotNull
     private static JsonElement runReadOnlySql(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
@@ -137,7 +124,14 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
         requireReadOnly(dataSource, sql, "runReadOnlySql");
         AgentLimits limits = AgentLimits.of(args);
-        return AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.READ_ONLY,
+        String database = AgentArgs.getString(args, "database");
+        if (AgentArgs.getString(args, "offset") != null) {
+            int offset = Math.max(0, AgentArgs.getInt(args, "offset", 0));
+            boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "rowFormat"));
+            return AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
+                (connection, runner) -> runner.queryPage(connection, sql, offset, limits, objects));
+        }
+        return AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
             (connection, runner) -> runner.execute(connection, sql, null, limits, true));
     }
 
@@ -373,20 +367,6 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     }
 
     @NotNull
-    private static JsonElement format(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
-        DBPDataSourceContainer container = context.getConnection();
-        DBPDataSource dataSource = container == null ? null : AgentSql.connect(context.getMonitor(), container);
-        SQLDialect dialect = SQLUtils.getDialectFromDataSource(dataSource);
-        DBPPreferenceStore preferences = container != null ? container.getPreferenceStore()
-            : com.seizia.chromite.runtime.DBWorkbench.getPlatform().getPreferenceStore();
-        SQLSyntaxManager syntaxManager = new SQLSyntaxManager();
-        syntaxManager.init(dialect, preferences);
-        JsonObject json = new JsonObject();
-        json.addProperty("sql", SQLFormatUtils.formatSQL(dataSource, syntaxManager, AgentArgs.require(args, "sql"), "    "));
-        return json;
-    }
-
-    @NotNull
     private static JsonElement history(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         Path file = GeneralUtils.getMetadataFolder().resolve(HISTORY_FILE);
         DBPDataSourceContainer container = context.getConnection();
@@ -436,6 +416,13 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     }
 
     // ------------------------------------------------------------------ policy hooks
+
+    // runSql and runScript can be DANGEROUS (DROP, TRUNCATE, DELETE without WHERE); the other tools keep their class
+    @NotNull
+    @Override
+    public AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return tool.getId().equals("runSql") || tool.getId().equals("runScript") ? AIToolAccess.DANGEROUS : tool.getAccess();
+    }
 
     @NotNull
     @Override

@@ -26,6 +26,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionPurpose;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
 import com.seizia.chromite.model.ai.agent.AIToolAuditLog;
 import com.seizia.chromite.model.ai.agent.AIToolCatalog;
 import com.seizia.chromite.model.ai.agent.AIToolDecision;
@@ -121,6 +122,10 @@ import java.util.Set;
  *   rollbackTransaction이 "읽기 / 자동 실행"으로 보였다(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  * - 2026-11-13 권한 정책의 규칙 안내를 HTML 라벨 대신 아이콘과 {@link WrappingNote}로({@link WrappingNote#withIcon}): 옵션 창 최소 폭에서
  *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-15 Tool Policy 표: 호출마다 분류하는 도구(changeSchema, runSql 등)가 자동 실행이어도 위험한 호출은 물으면 그렇게 보임
+ *   ({@code ai_policy_auto_dangerous_asks}) (도구 정리, docs/chromite/ai-agent.md "정책 옮기기")
+ * - 2026-11-15 감사 기록: 도구 열에 합친 도구의 작업을 붙이고, 글자 거르기가 옛 ID의 기록을 지금 ID로도 찾음(옛 기록은 옛 ID 그대로)
+ *   (도구 정리, docs/chromite/ai-agent.md "감사 기록")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -897,7 +902,21 @@ final class AiOptionsPage extends JPanel {
                 // The transaction guard asks whatever the rule allows (rollbackTransaction is READ, AUTO by default)
                 return AiMessages.ai_policy_always_confirm;
             }
+            if (decision.permission() == AIToolPermission.AUTO && access != AIToolAccess.DANGEROUS && canBeDangerous(tool)
+                && AIToolPolicy.resolve(settings, scope, tool, AIToolAccess.DANGEROUS).permission() != AIToolPermission.AUTO) {
+                // A tool classified per call (changeSchema dropTable, runSql DROP): its dangerous calls ask all the same
+                return AiMessages.ai_policy_auto_dangerous_asks;
+            }
             return describePermission(decision.permission());
+        }
+    }
+
+    private static boolean canBeDangerous(@NotNull AIFunctionDescriptor tool) {
+        try {
+            return tool.getInstance() instanceof AIToolAccessClassifier classifier
+                && classifier.getHighestAccess(tool) == AIToolAccess.DANGEROUS;
+        } catch (RuntimeException e) {
+            return true;
         }
     }
 
@@ -1218,7 +1237,7 @@ final class AiOptionsPage extends JPanel {
                 if (!ALL.equals(outcome) && !outcome.equals(get(record, "outcome"))) { //$NON-NLS-1$
                     continue;
                 }
-                if (!text.isEmpty() && !record.toString().toLowerCase(Locale.ROOT).contains(text)) {
+                if (!text.isEmpty() && !searchText(record).contains(text)) {
                     continue;
                 }
                 rows.add(record);
@@ -1236,6 +1255,23 @@ final class AiOptionsPage extends JPanel {
             JsonObject record = model.rows.get(table.convertRowIndexToModel(viewRow));
             detailArea.setText(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(record));
             detailArea.setCaretPosition(0);
+        }
+
+        /**
+         * What the text filter searches: the record and, for a record written under a former tool id, the tool it became, so
+         * that the current id finds the old records too (the old id finds them by the record itself).
+         */
+        @NotNull
+        private static String searchText(@NotNull JsonObject record) {
+            String text = record.toString();
+            String tool = get(record, "tool"); //$NON-NLS-1$
+            if (!tool.isEmpty()) {
+                String current = AIToolCatalog.canonicalId(tool);
+                if (!current.equals(tool)) {
+                    text += ' ' + current;
+                }
+            }
+            return text.toLowerCase(Locale.ROOT);
         }
 
         @NotNull
@@ -1294,6 +1330,8 @@ final class AiOptionsPage extends JPanel {
                     // ISO time without the offset and fraction: 2026-11-07 10:02:03
                     case 0 -> value.length() >= 19 ? value.substring(0, 19).replace('T', ' ') : value;
                     case 1 -> value.equals("CHAT") ? AiMessages.ai_audit_client_chat : value; //$NON-NLS-1$
+                    // A merged tool's operation (changeSchema (dropTable)); records from before keep their tool id
+                    case 2 -> get(rows.get(row), "operation").isEmpty() ? value : value + " (" + get(rows.get(row), "operation") + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                     case 3 -> describeEnum(AIToolAccess.class, value, AiOptionsPage::describeAccess);
                     case 5 -> describeEnum(AIToolPermission.class, value, AiOptionsPage::describePermission);
                     case 6 -> value.isEmpty() ? value : AiToolCard.describeOutcome(value);

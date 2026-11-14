@@ -36,6 +36,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): 지시문과 플레이북이 새 도구 ID를 부름
  */
 public final class AIAgentPlaybooks {
 
@@ -44,10 +45,10 @@ public final class AIAgentPlaybooks {
      */
     public static final String INSTRUCTIONS =
         "Chromite gives you the database connections the user configured in the Chromite desktop app. " +
-        "Start with listConnections. On a connection, call getServerInfo (version picks the system views) and probePermissions " +
+        "Start with listConnections. On a connection, call getServerInfo (version picks the system views) and checkDiagnosticAccess " +
         "(which checks this login can run) before diagnosing. Prefer specific tools (getBlockingChain, explainQuery, getTopQueries, ...) " +
         "and use runReadOnlySql for anything else that only reads. Tools marked WRITE or DANGEROUS ask the user in the Chromite app " +
-        "and may be blocked by the user's policy (getToolPolicy shows it); show the SQL/DDL to the user before calling them. " +
+        "and may be blocked by the user's policy (getAgentToolPolicy shows it); show the SQL/DDL to the user before calling them. " +
         "Never commit or roll back a transaction unless the user asked for it. Prompts describe step-by-step playbooks for common DBA tasks.";
 
     private record Playbook(@NotNull String name, @NotNull String title, @NotNull String description, @NotNull List<String> arguments) {

@@ -69,6 +69,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (1b단계: SQL Server 에이전트 작업 도구)
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): 이름 거르기 인수 filter → contains
  */
 public class AgentJobTools extends AgentTool implements AIToolPreviewProvider {
 
@@ -86,7 +87,7 @@ public class AgentJobTools extends AgentTool implements AIToolPreviewProvider {
     ) throws DBException {
         SQLServerAgent agent = openAgent(context);
         return switch (toolId) {
-            case "listAgentJobs" -> listJobs(context, agent, AgentArgs.getString(args, "filter"));
+            case "listAgentJobs" -> listJobs(context, agent, AgentArgs.getString(args, "contains"));
             case "getAgentJob" -> jobDetail(context, agent, findJob(context, agent, AgentArgs.require(args, PARAM_JOB)));
             case "getAgentJobHistory" -> history(context, agent, args);
             case "startAgentJob", "stopAgentJob", "setAgentJobEnabled" -> change(context, agent, toolId, args);

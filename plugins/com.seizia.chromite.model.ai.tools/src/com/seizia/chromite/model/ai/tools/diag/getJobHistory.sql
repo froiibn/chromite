@@ -1,4 +1,6 @@
--- getJobHistory: job runs (failures by default) of the last days
+-- getJobHistory: job runs (failures by default) of the last days. The chat offers it for PostgreSQL, MySQL and Oracle only
+-- (DiagnosticSqlTool.supports); the SQL Server block serves direct calls (MCP, saved conversations) until 26.2.0, then goes:
+-- getAgentJobHistory reads SQL Server Agent jobs
 -- @family: sqlserver
 -- @requires: SELECT on msdb job tables (SQLAgentReaderRole)
 -- @statement: runs

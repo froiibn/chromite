@@ -38,11 +38,9 @@ import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
-import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
 import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolExecutor;
-import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -70,8 +68,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * PostgreSQL and MySQL/MariaDB backup ({@code dumpDatabase}, WRITE, writes a file) and restore ({@code restoreDump}, DANGEROUS)
- * with the local client tools: pg_dump, pg_restore, psql, mysqldump, mysql.
+ * PostgreSQL and MySQL/MariaDB backup ({@code backupDatabase}, WRITE, writes a file on this computer) and restore
+ * ({@code restoreDatabase}, DANGEROUS) with the local client tools: pg_dump, pg_restore, psql, mysqldump, mysql. The tools are
+ * {@link AdminTools}', which call this for these databases.
  *
  * 설계 (docs/chromite/ai-agent.md "PostgreSQL·MySQL 백업·복원 도구"):
  * <ul>
@@ -94,15 +93,21 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-08 최초 작성: 1b단계에서 미룬 PostgreSQL·MySQL/MariaDB 백업·복원 도구
  * - 2026-11-08 로컬 클라이언트 안내에 연결 편집기의 로컬 클라이언트 칸을 더함 (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-15 dumpDatabase·restoreDump를 backupDatabase·restoreDatabase에 합침(도구는 {@link AdminTools}가 DB 종류로 나눠 이 클래스를 부름,
+ *   옛 ID는 별칭). 덤프 형식 인수 format → dumpFormat, 결과에 파일 위치 {@code fileLocation: thisComputer}
+ *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
-public class NativeBackupTools extends AgentTool implements AIToolPreviewProvider {
+final class NativeBackupTools {
 
-    private static final String DUMP = "dumpDatabase"; //$NON-NLS-1$
-    private static final String RESTORE = "restoreDump"; //$NON-NLS-1$
+    private static final String BACKUP = "backupDatabase"; //$NON-NLS-1$
+    private static final String RESTORE = "restoreDatabase"; //$NON-NLS-1$
+    /** {@code fileLocation} of the result: the file is on the computer where Chromite runs. */
+    static final String FILE_ON_THIS_COMPUTER = "thisComputer"; //$NON-NLS-1$
     private static final long PROGRESS_INTERVAL_MS = 1000;
     private static final int LOG_LINES = 60;
     private static final int ERROR_LOG_LINES = 20;
     private static final int MAX_LINE_CHARS = 400;
+    private static final String PARAM_DUMP_FORMAT = "dumpFormat"; //$NON-NLS-1$
 
     /**
      * A prepared backup or restore: the filled settings and what the result reports.
@@ -120,32 +125,41 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
     ) {
     }
 
-    @NotNull
-    @Override
-    protected JsonElement call(
-        @NotNull AIToolCallContext context,
-        @NotNull String toolId,
-        @NotNull Map<String, Object> args
-    ) throws DBException {
-        DBPDataSourceContainer container = requireConnection(context);
-        AgentSql.connect(context.getMonitor(), container);
-        return switch (toolId) {
-            case DUMP, RESTORE -> run(context, prepare(context.getMonitor(), container, toolId.equals(RESTORE), args));
-            default -> throw unknownTool(toolId);
-        };
+    private NativeBackupTools() {
     }
 
-    @Override
-    public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+    /**
+     * Whether a family is backed up and restored with the local client tools here.
+     */
+    static boolean supports(@NotNull DbFamily family) {
         return family == DbFamily.POSTGRESQL || family == DbFamily.MYSQL || family == DbFamily.MARIADB;
     }
 
-    @Nullable
-    @Override
-    public String getPreview(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) throws DBException {
-        DBPDataSourceContainer container = requireConnection(context);
-        AgentSql.connect(context.getMonitor(), container);
-        Job job = prepare(context.getMonitor(), container, context.getTool().getId().equals(RESTORE), arguments);
+    /**
+     * Runs pg_dump/mysqldump ({@code restore} false) or pg_restore/psql/mysql on a connected PostgreSQL or MySQL/MariaDB
+     * connection.
+     */
+    @NotNull
+    static JsonElement run(
+        @NotNull AIToolCallContext context,
+        @NotNull DBPDataSourceContainer container,
+        boolean restore,
+        @NotNull Map<String, Object> args
+    ) throws DBException {
+        return run(context, prepare(context.getMonitor(), container, restore, args));
+    }
+
+    /**
+     * What the confirmation shows: the command line, the database and the file on this computer.
+     */
+    @NotNull
+    static String getPreview(
+        @NotNull AIToolCallContext context,
+        @NotNull DBPDataSourceContainer container,
+        boolean restore,
+        @NotNull Map<String, Object> arguments
+    ) throws DBException {
+        Job job = prepare(context.getMonitor(), container, restore, arguments);
         StringBuilder text = new StringBuilder(job.commandLine());
         text.append("\n\n").append(job.restore() ? "Restore into database: " : "Database: ").append(job.database()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         text.append("\nFile on this computer: ").append(job.file()); //$NON-NLS-1$
@@ -168,8 +182,8 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
         DBPDataSource dataSource = container.getDataSource();
         boolean postgres = dataSource instanceof PostgreDataSource;
         if (!postgres && !(dataSource instanceof MySQLDataSource)) {
-            throw new DBException((restore ? RESTORE : DUMP) + " supports PostgreSQL and MySQL/MariaDB connections " +
-                "(SQL Server: " + (restore ? "restoreDatabase" : "backupDatabase") + ")");
+            throw new DBException((restore ? RESTORE : BACKUP) + " with the local client tools supports PostgreSQL and " +
+                "MySQL/MariaDB connections");
         }
         String databaseName = AgentArgs.require(args, "database").trim();
         // Argument mistakes first, so that they are reported as such (INVALID) before any setting of the connection
@@ -204,7 +218,7 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
                 throw new AIToolArgumentException("Folder " + folder + " does not exist on this computer");
             }
             if (postgres) {
-                ExportFormat exportFormat = pgFormat(AgentArgs.getString(args, "format"), ExportFormat.CUSTOM);
+                ExportFormat exportFormat = pgFormat(AgentArgs.getString(args, PARAM_DUMP_FORMAT), ExportFormat.CUSTOM);
                 PostgreDatabaseBackupSettings pg = new PostgreDatabaseBackupSettings(container.getProject());
                 pg.loadSettingsFromInput(pgBackupObjects(monitor, (PostgreDatabase) database, AgentArgs.getList(args, "schemas")), Map.of());
                 pg.setFormat(exportFormat);
@@ -242,7 +256,7 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
             }
             if (postgres) {
                 ExportFormat detected = detectPgFormat(file);
-                ExportFormat exportFormat = pgFormat(AgentArgs.getString(args, "format"), detected);
+                ExportFormat exportFormat = pgFormat(AgentArgs.getString(args, PARAM_DUMP_FORMAT), detected);
                 boolean stopOnError = AgentArgs.getBoolean(args, "stopOnError", false);
                 PostgreDatabaseRestoreSettings pg = new PostgreDatabaseRestoreSettings(container.getProject());
                 pg.loadSettingsFromInput(List.of(database), Map.of());
@@ -354,7 +368,7 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
         try {
             return ExportFormat.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new AIToolArgumentException("Argument 'format' must be plain, custom, directory or tar");
+            throw new AIToolArgumentException("Argument 'dumpFormat' must be plain, custom, directory or tar");
         }
     }
 
@@ -492,6 +506,7 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
         json.addProperty("tool", job.toolName());
         json.addProperty("database", job.database());
         json.addProperty("file", job.file().toString());
+        json.addProperty("fileLocation", FILE_ON_THIS_COMPUTER);
         if (job.format() != null) {
             json.addProperty("format", job.format());
         }

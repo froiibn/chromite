@@ -21,6 +21,7 @@ import com.google.gson.JsonArray;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPImage;
 import com.seizia.chromite.model.ai.AIFunction;
+import com.seizia.chromite.model.ai.AIFunctionAlias;
 import com.seizia.chromite.model.ai.AIFunctionAllowMode;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionParameter;
@@ -67,6 +68,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성 (앱 변경 #64: 세 단계 도구 묶음, findTools, 제공자별 설정, 도구 없음 방식)
+ * - 2026-11-15 짧은 설명 판이 별칭·작업 인수·추가된 판을 그대로 넘김 (docs/chromite/ai-agent.md "별칭")
  */
 public final class AIAgentToolSets {
 
@@ -398,6 +400,24 @@ public final class AIAgentToolSets {
 
         @NotNull
         @Override
+        public List<AIFunctionAlias> getAliases() {
+            return tool.getAliases();
+        }
+
+        @Nullable
+        @Override
+        public String getOperationParameter() {
+            return tool.getOperationParameter();
+        }
+
+        @Nullable
+        @Override
+        public String getAddedIn() {
+            return tool.getAddedIn();
+        }
+
+        @NotNull
+        @Override
         public String getName() {
             return tool.getName();
         }
@@ -536,6 +556,12 @@ public final class AIAgentToolSets {
         @Override
         public String getShortDescription() {
             return parameter.getShortDescription();
+        }
+
+        @NotNull
+        @Override
+        public List<String> getAliases() {
+            return parameter.getAliases();
         }
 
         @Override

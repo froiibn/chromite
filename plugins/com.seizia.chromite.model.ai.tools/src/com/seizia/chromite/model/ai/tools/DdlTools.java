@@ -24,7 +24,10 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
+import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
 import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
@@ -40,7 +43,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * DDL tools: generate (READ) and run (WRITE/DANGEROUS) create/alter/drop of tables, views and indexes, per database family.
+ * DDL tools: preview (READ) and run ({@code changeSchema}, WRITE/DANGEROUS per call) create/alter/drop of tables, views and
+ * indexes, per database family.
  *
  * 설계:
  * <ul>
@@ -49,15 +53,25 @@ import java.util.Map;
  *     형식 바꾸기({@code ALTER COLUMN}/{@code TYPE}/{@code MODIFY}), 인덱스 지우기({@code DROP INDEX ... ON t} 또는 스키마 이름), 뷰 바꾸기
  *     ({@code CREATE OR ALTER}/{@code CREATE OR REPLACE}). 식별자는 방언 따옴표, 형식·기본값은 {@link AgentNames#checkType},
  *     {@link AgentNames#checkExpression}으로 검사한다.</li>
- *     <li>실행 전에 확인 요청에 만든 DDL 전체를 보인다({@link AIToolPreviewProvider}). {@code generateDdl}은 같은 DDL을 실행하지 않고 돌려준다.</li>
+ *     <li>실행 전에 확인 요청에 만든 DDL 전체를 보인다({@link AIToolPreviewProvider}). {@code previewDdl}(26.1.0 전 {@code generateDdl})은 같은 DDL을 실행하지 않고 돌려준다.</li>
  *     <li>뷰의 SELECT는 읽기라고 증명되어야 한다(뷰를 만들며 다른 문장을 끼워 넣지 못하게).</li>
  *     <li>MySQL/MariaDB·Oracle에서 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
+ *     <li>26.1.0에서 작업마다 하나였던 도구 7개를 {@code changeSchema(operation)} 하나로 합쳤다(옛 ID는 별칭으로 그 작업을 고른다). 분류는 호출마다
+ *     작업으로 정한다({@link #classify}): 지우기(dropTable, dropView, dropIndex)는 DANGEROUS, 나머지는 WRITE. 정적 분류(WRITE)보다 낮아지지 않고, 모르는 작업은 DANGEROUS로 본다.
+ *     미리 보기는 따로 둔 READ 도구 {@code previewDdl}이다. 합친 도구 안의 미리 보기 모드로 두면 운영·읽기 전용 연결에서 WRITE로 막히거나, 분류를
+ *     호출마다 낮춰야 해서(분류기는 올리기만 한다) 나눴다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): generateDdl → previewDdl, 작업별 도구 7개를 changeSchema 하나로 합치고 호출마다
+ *   분류함({@link #classify}), 열 형식 인수 type → columnType. dropIndex는 WRITE에서 DANGEROUS로(runSql이 모든 DROP을 DANGEROUS로 보는 것과 같게),
+ *   MCP 힌트용 가장 높은 분류
  */
-public class DdlTools extends AgentTool implements AIToolPreviewProvider, AIToolTransactionGuard {
+public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
+
+    private static final String PREVIEW = "previewDdl"; //$NON-NLS-1$
+    private static final String PARAM_OPERATION = "operation"; //$NON-NLS-1$
 
     @NotNull
     @Override
@@ -67,12 +81,12 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
         @NotNull Map<String, Object> args
     ) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
-        String operation = toolId.equals("generateDdl") ? AgentArgs.require(args, "operation") : toolId;
+        String operation = AgentArgs.require(args, PARAM_OPERATION);
         List<String> statements = generate(context, container, operation, args);
         JsonObject json = new JsonObject();
         json.addProperty("operation", operation);
         json.addProperty("sql", String.join(";\n", statements));
-        if (toolId.equals("generateDdl")) {
+        if (toolId.equals(PREVIEW)) {
             json.addProperty("executed", false);
             return json;
         }
@@ -200,7 +214,7 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
             case "addColumn" -> {
                 JsonObject definition = new JsonObject();
                 definition.addProperty("name", column);
-                definition.addProperty("type", AgentArgs.require(args, "type"));
+                definition.addProperty("type", AgentArgs.require(args, "columnType"));
                 if (args.get("nullable") != null) {
                     definition.addProperty("nullable", AgentArgs.getBoolean(args, "nullable", true));
                 }
@@ -222,7 +236,7 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
                 return "ALTER TABLE " + quotedTable + " RENAME COLUMN " + quotedColumn + " TO " + DBUtils.getQuotedIdentifier(dataSource, newName);
             }
             case "alterColumnType" -> {
-                String type = AgentNames.checkType(AgentArgs.require(args, "type"));
+                String type = AgentNames.checkType(AgentArgs.require(args, "columnType"));
                 Boolean nullable = args.get("nullable") == null ? null : AgentArgs.getBoolean(args, "nullable", true);
                 String nullText = nullable == null ? "" : nullable ? " NULL" : " NOT NULL";
                 return switch (family) {
@@ -321,11 +335,35 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
 
     // ------------------------------------------------------------------ policy hooks
 
+    /**
+     * changeSchema: a drop is DANGEROUS (data or an object is gone; dropIndex too since 26.1.0, as runSql classifies every
+     * DROP), the other operations WRITE; an operation this class does not know is DANGEROUS until the generator refuses it.
+     * previewDdl only builds text: READ.
+     */
+    @NotNull
+    @Override
+    public AIToolAccess classify(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) {
+        if (context.getTool().getId().equals(PREVIEW)) {
+            return AIToolAccess.READ;
+        }
+        String operation = AgentArgs.getString(arguments, PARAM_OPERATION);
+        return switch (operation == null ? "" : operation.trim()) {
+            case "createTable", "alterTable", "createView", "createIndex" -> AIToolAccess.WRITE;
+            default -> AIToolAccess.DANGEROUS;
+        };
+    }
+
+    @NotNull
+    @Override
+    public AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return tool.getId().equals(PREVIEW) ? AIToolAccess.READ : AIToolAccess.DANGEROUS;
+    }
+
     @Nullable
     @Override
     public String getPreview(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
-        return String.join(";\n", generate(context, container, context.getTool().getId(), arguments));
+        return String.join(";\n", generate(context, container, AgentArgs.require(arguments, PARAM_OPERATION), arguments));
     }
 
     @NotNull
@@ -334,7 +372,7 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
         @NotNull AIToolCallContext context,
         @NotNull Map<String, Object> arguments
     ) {
-        if (context.getTool().getId().equals("generateDdl")) {
+        if (context.getTool().getId().equals(PREVIEW)) {
             return List.of();
         }
         // Every operation here is DDL; the statement head is what implicitCommitRisk looks at

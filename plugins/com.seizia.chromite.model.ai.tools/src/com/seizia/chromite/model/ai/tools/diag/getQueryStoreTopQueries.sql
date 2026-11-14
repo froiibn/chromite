@@ -1,4 +1,4 @@
--- getQueryStoreTopQueries: top queries of the Query Store of the current database (DiagnosticPostProcessor reports an OFF Query Store)
+-- getTopQueries with source=queryStore (getQueryStoreTopQueries before 26.1.0): top queries of the Query Store of the current database (DiagnosticPostProcessor reports an OFF Query Store)
 -- @family: sqlserver
 -- @requires: VIEW DATABASE STATE (VIEW DATABASE PERFORMANCE STATE on SQL Server 2022)
 -- @note: Runtime statistics are kept per interval (interval_length_minutes); the window covers every interval that ended in the last hours. Durations and CPU are in milliseconds.
@@ -7,7 +7,8 @@ SELECT DB_NAME() AS database_name, actual_state_desc, desired_state_desc, readon
        current_storage_size_mb, max_storage_size_mb, interval_length_minutes, stale_query_threshold_days
 FROM sys.database_query_store_options
 -- @statement: queries
-SELECT TOP (${top})
+-- @limit: 20
+SELECT TOP (${limit})
     q.query_id,
     OBJECT_SCHEMA_NAME(q.object_id) + '.' + OBJECT_NAME(q.object_id) AS sql_object,
     COUNT(DISTINCT p.plan_id) AS plan_count,
@@ -27,7 +28,7 @@ JOIN sys.query_store_runtime_stats rs ON rs.plan_id = p.plan_id
 JOIN sys.query_store_runtime_stats_interval i ON i.runtime_stats_interval_id = rs.runtime_stats_interval_id
 WHERE i.end_time >= DATEADD(HOUR, 0 - CAST(${hours} AS int), SYSUTCDATETIME())
 GROUP BY q.query_id, q.object_id, qt.query_sql_text
-ORDER BY CASE ${orderBy}
+ORDER BY CASE ${sortBy}
     WHEN 'duration' THEN SUM(rs.avg_duration * rs.count_executions)
     WHEN 'io' THEN SUM(rs.avg_logical_io_reads * rs.count_executions)
     WHEN 'executions' THEN SUM(rs.count_executions)
