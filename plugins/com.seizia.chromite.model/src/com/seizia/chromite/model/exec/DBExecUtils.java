@@ -86,6 +86,10 @@ import java.util.*;
  * - 2026-11-12 {@link #tryExecuteReconnectOnly}: 쓰는 작업(결과 표 저장, 개체 변경 저장)은 연결이 끊기면 다시 연결만 하고 다시 보내지
  *   않는다. 전에는 복구가 저장을 통째로 다시 실행해, 자동 커밋이면 끊기기 전에 반영된 문장이 두 번 실행되었다 (앱 변경 #86,
  *   docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ * - 2026-11-15 {@link #bindAttributes}: 쿼리 글이 단일 원본 테이블을 스키마·카탈로그로 한정했는데 모델에서 풀리지 않으면, 컨테이너
+ *   없는 열의 테이블 이름(SQLite 드라이버)을 기본 컨테이너의 이름으로 다시 읽지 않는다. SQLite에서 ATTACH한 데이터베이스·{@code temp}의
+ *   테이블이 주 데이터베이스의 같은 이름 테이블에 묶여 편집이 그 테이블에 쓰던 결함(앱 변경 #125,
+ *   docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
  */
 public class DBExecUtils {
 
@@ -852,6 +856,10 @@ public class DBExecUtils {
         }
     }
 
+    private static boolean hasContainerName(@NotNull DBCEntityMetaData entityMeta) {
+        return !CommonUtils.isEmpty(entityMeta.getCatalogName()) || !CommonUtils.isEmpty(entityMeta.getSchemaName());
+    }
+
     public static void bindAttributes(
         @NotNull DBCSession session,
         @Nullable DBSEntity sourceEntity,
@@ -872,6 +880,10 @@ public class DBExecUtils {
             SQLQuery sqlQuery = null;
             DBSEntity entity = null;
             int queryEntityMetaScore = -1;
+            // The query text qualified its single source table with a schema or catalog that the model did not resolve
+            // (SQLite: temp.t, an attached database's t). A column table name without container is then not re-read as a
+            // name of the default container: it would be another table that only shares the name (#125).
+            boolean queryQualifiedUnresolved = false;
             if (sourceEntity != null) {
                 entity = sourceEntity;
             } else if (resultSet != null) {
@@ -897,6 +909,8 @@ public class DBExecUtils {
                             if (entity != null) {
                                 queryEntityMetaScore = entityMeta.getCompleteScore();
                                 entityBindingMap.put(entityMeta, entity);
+                            } else {
+                                queryQualifiedUnresolved = hasContainerName(entityMeta);
                             }
                         }
                     }
@@ -936,6 +950,9 @@ public class DBExecUtils {
                                 // If this is a view then don't try to detect entity for each attribute
                                 // MySQL returns source table name instead of view name. That's crazy.
                                 attrEntity = entity;
+                            } else if (queryQualifiedUnresolved && !hasContainerName(attrEntityMeta)) {
+                                // See queryQualifiedUnresolved: leave the column unbound
+                                attrEntity = null;
                             } else {
                                 attrEntity = DBUtils.getEntityFromMetaData(mdMonitor, session.getExecutionContext(), attrEntityMeta);
 
