@@ -76,6 +76,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/ai-agent.md "배치의 부분 실패" 자르기)
  * - 2026-11-15 옛 도구 ID·인수 이름을 맨 먼저 지금 도구·인수로 바꿈({@link AIToolCatalog#resolveCall}). 분류·정책·확인·감사는 지금 도구로 하고,
  *   감사 기록에 부른 옛 ID({@code calledAs})와 합친 도구의 작업({@code operation})을 남김 (docs/chromite/ai-agent.md "별칭")
+ * - 2026-11-15 읽기 전용 연결 검사가 호출마다 쓰는 대상({@link AIToolWritesClassifier})을 봄: 합친 백업 도구의 덤프는 이 컴퓨터의 파일만 쓴다
  */
 public final class AIToolExecutor {
 
@@ -161,7 +162,10 @@ public final class AIToolExecutor {
             if (instance instanceof AIToolAccessClassifier classifier) {
                 access = access.max(classifier.classify(context, args));
             }
-            if (access.isWrite() && tool.getWrites() == AIToolWrites.DATABASE &&
+            AIToolWrites writes = instance instanceof AIToolWritesClassifier writesClassifier
+                ? writesClassifier.classifyWrites(context, args)
+                : tool.getWrites();
+            if (access.isWrite() && writes == AIToolWrites.DATABASE &&
                 connection != null && connection.isConnectionReadOnly()
             ) {
                 return finish(audit, access, connection, args, null, AIToolOutcome.READ_ONLY, start,

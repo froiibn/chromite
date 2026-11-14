@@ -446,7 +446,7 @@
 
         <function id="exportData" name="%tool.exportData.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runReadOnlySql; to back up a database use backupDatabase or dumpDatabase.">
+            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runReadOnlySql; to back up a database use backupDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" description="SELECT to export (or give table)"/>
@@ -554,7 +554,7 @@
         </function>
         <function id="getBackupHistory" name="%tool.getBackupHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Backups already taken: last full, differential and log backup per database with age and warnings, and recent backups (SQL Server msdb); WAL archiving (PostgreSQL); RMAN jobs (Oracle); not MySQL. Use for when the last backup ran. To take a backup use backupDatabase (SQL Server) or dumpDatabase (PostgreSQL, MySQL).">
+            description="Backups already taken: last full, differential and log backup per database with age and warnings, and recent backups (SQL Server msdb); WAL archiving (PostgreSQL); RMAN jobs (Oracle); not MySQL. Use for when the last backup ran. To take a backup use backupDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="limit" type="integer" description="Recent backups (default 100)"/>
         </function>
@@ -578,34 +578,22 @@
             description="Key server and database settings with sanity findings (MAXDOP, cost threshold, memory, auto shrink, shared_buffers, work_mem, autovacuum, buffer pool, ...). Use to review configuration. For version, edition and uptime use getServerInfo. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
+
+        <!-- Backup and restore for SQL Server (T-SQL; the file is on the database server) and PostgreSQL, MySQL/MariaDB (the local
+             client tools of tasks.native, the same path as the Swing Back Up / Restore dialog: model.admin NativeBackupRestore;
+             the file is on this computer). AdminTools picks by the connection's database. The client folder is the connection's
+             Local Client setting; passwords go to the tools through environment variables, never on the command line.
+             writes="database" is the stricter value; a PostgreSQL or MySQL backup writes only a local file (AdminTools.classifyWrites) -->
         <function id="backupDatabase" name="%tool.backupDatabase.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
-            description="SQL Server only: BACKUP DATABASE or LOG to a file path on the database server (COPY_ONLY and CHECKSUM by default, so the backup chain is not changed). WRITE: the user sees the T-SQL and confirms. For PostgreSQL or MySQL use dumpDatabase; for past backups getBackupHistory.">
+            description="Backs up a database. SQL Server: BACKUP DATABASE or LOG to a file path ON THE DATABASE SERVER (the server writes it; COPY_ONLY and CHECKSUM by default, so the backup chain is not changed). PostgreSQL (pg_dump) and MySQL/MariaDB (mysqldump): the whole database, some schemas (PostgreSQL) or tables (MySQL) to a NEW file ON THIS COMPUTER, where Chromite runs, with the client tools of the connection's Local Client setting; never overwrites a file. The result says where the file is (fileLocation: databaseServer or thisComputer). WRITE: the user sees the T-SQL or command line and confirms. Long runs report progress. For past backups use getBackupHistory; to export query rows exportData.">
+            <alias id="dumpDatabase" access="WRITE" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" required="true" description="Database to back up"/>
-            <parameter name="file" type="string" required="true" description="Backup file path on the database server, not this computer"/>
-            <parameter name="type" type="string" validValues="FULL,DIFFERENTIAL,LOG" description="Backup type (default FULL)"/>
-            <parameter name="copyOnly" type="boolean" description="COPY_ONLY (default true)"/>
-        </function>
-        <function id="restoreDatabase" name="%tool.restoreDatabase.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
-            description="SQL Server only: restores a database from a backup file on the database server (the latest full backup set and the sets after it), moving files to the server's default folders. DANGEROUS: the user sees the T-SQL and confirms. For PostgreSQL or MySQL backup files use restoreDump.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" required="true" description="Target database name"/>
-            <parameter name="file" type="string" required="true" description="Backup file path on the database server, not this computer"/>
-            <parameter name="replace" type="boolean" description="Overwrite an existing database (default false)"/>
-        </function>
-
-        <!-- PostgreSQL and MySQL/MariaDB backup and restore with the local client tools (tasks.native, the same path as the
-             Swing Back Up / Restore dialog: model.admin NativeBackupRestore). The client folder is the connection's Local Client
-             setting; passwords go to the tools through environment variables, never on the command line -->
-        <function id="dumpDatabase" name="%tool.dumpDatabase.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
-            description="PostgreSQL (pg_dump) and MySQL/MariaDB (mysqldump) only: backs up a database, or some schemas (PostgreSQL) or tables (MySQL), to a new file on the computer where Chromite runs, with the client tools of the connection's Local Client setting. Never overwrites a file. WRITE: the user sees the command line and confirms. Long runs report progress. For SQL Server use backupDatabase; to export query rows use exportData.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" required="true" description="Database to back up"/>
-            <parameter name="file" type="string" required="true" description="Absolute path of the new backup file (a folder for format=directory) on this computer; it must not exist, its folder must"/>
-            <parameter name="format" type="string" validValues="custom,plain,directory,tar" description="PostgreSQL output format (default custom; plain is a SQL script). MySQL always writes a SQL script"/>
+            <parameter name="file" type="string" required="true" description="SQL Server: backup file path on the database server, not this computer. PostgreSQL, MySQL: absolute path of the new backup file (a folder for dumpFormat=directory) on this computer; it must not exist, its folder must"/>
+            <parameter name="backupType" type="string" aliases="type" validValues="FULL,DIFFERENTIAL,LOG" description="SQL Server: backup type (default FULL)"/>
+            <parameter name="copyOnly" type="boolean" description="SQL Server: COPY_ONLY (default true)"/>
+            <parameter name="dumpFormat" type="string" aliases="format" validValues="custom,plain,directory,tar" description="PostgreSQL output format (default custom; plain is a SQL script). MySQL always writes a SQL script"/>
             <parameter name="schemas" type="string" description="PostgreSQL: comma-separated schemas to back up (default: the whole database)"/>
             <parameter name="tables" type="string" description="MySQL: comma-separated tables to back up (default: the whole database)"/>
             <parameter name="noOwner" type="boolean" description="PostgreSQL: --no-owner (default false)"/>
@@ -619,13 +607,15 @@
             <parameter name="events" type="boolean" description="MySQL: include events (default false)"/>
             <parameter name="removeDefiner" type="boolean" description="MySQL: remove DEFINER clauses (default false)"/>
         </function>
-        <function id="restoreDump" name="%tool.restoreDump.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.NativeBackupTools"
-            description="PostgreSQL (pg_restore, or psql for a plain SQL script) and MySQL/MariaDB (mysql) only: restores a backup file on the computer where Chromite runs into an existing database, with the client tools of the connection's Local Client setting; the PostgreSQL format is detected from the file. DANGEROUS: the user sees the command line and confirms. For SQL Server use restoreDatabase.">
+        <function id="restoreDatabase" name="%tool.restoreDatabase.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AdminTools"
+            description="Restores a database from a backup. SQL Server: from a backup file ON THE DATABASE SERVER (the latest full backup set and the sets after it), moving files to the server's default folders; a new database or, with replace, an existing one. PostgreSQL (pg_restore, or psql for a plain SQL script; the format is detected from the file) and MySQL/MariaDB (mysql): from a backup file ON THIS COMPUTER, where Chromite runs, into an EXISTING database, with the client tools of the connection's Local Client setting. The result says where the file was (fileLocation). DANGEROUS: the user sees the T-SQL or command line and confirms.">
+            <alias id="restoreDump" access="DANGEROUS" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" required="true" description="Existing target database"/>
-            <parameter name="file" type="string" required="true" description="Absolute path of the backup file (or directory-format folder) on this computer"/>
-            <parameter name="format" type="string" validValues="custom,plain,directory,tar" description="PostgreSQL: the backup's format (default: detected from the file)"/>
+            <parameter name="database" type="string" required="true" description="Target database (PostgreSQL, MySQL: an existing one)"/>
+            <parameter name="file" type="string" required="true" description="SQL Server: backup file path on the database server, not this computer. PostgreSQL, MySQL: absolute path of the backup file (or directory-format folder) on this computer"/>
+            <parameter name="replace" type="boolean" description="SQL Server: overwrite an existing database (default false)"/>
+            <parameter name="dumpFormat" type="string" aliases="format" validValues="custom,plain,directory,tar" description="PostgreSQL: the backup's format (default: detected from the file)"/>
             <parameter name="clean" type="boolean" description="PostgreSQL pg_restore: drop objects before recreating them (default false)"/>
             <parameter name="noOwner" type="boolean" description="PostgreSQL pg_restore: do not restore ownership (default false)"/>
             <parameter name="stopOnError" type="boolean" description="PostgreSQL: stop at the first error (psql ON_ERROR_STOP, pg_restore --exit-on-error; default false)"/>

@@ -29,6 +29,7 @@ import com.seizia.chromite.model.ai.AIFunctionResult;
 import com.seizia.chromite.model.ai.AIFunctionType;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
 import com.seizia.chromite.model.ai.agent.AIToolCallContext;
+import com.seizia.chromite.model.ai.agent.AIToolWrites;
 
 import java.util.Map;
 
@@ -47,6 +48,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md)
  * - 2026-11-08 {@link #supports}: 도구가 쓸 수 있는 DB 종류(요청 크기를 줄이는 도구 고르기)
  * - 2026-11-12 부분 실패의 결과를 오류 결과로 넘김 (docs/chromite/ai-agent.md "배치의 부분 실패")
+ * - 2026-11-15 {@link #writes}: DB 종류에 따라 쓰는 대상이 다른 합친 도구(backupDatabase) (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public abstract class AgentTool implements AIFunction {
 
@@ -90,6 +92,15 @@ public abstract class AgentTool implements AIFunction {
      */
     public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
         return true;
+    }
+
+    /**
+     * What the tool changes on connections of this database family, for choosing the chat's tools on a read-only connection
+     * (the executor asks {@code AIToolWritesClassifier} per call); the static value unless a merged tool differs by family.
+     */
+    @NotNull
+    public AIToolWrites writes(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        return tool.getWrites();
     }
 
     @NotNull
