@@ -185,6 +185,7 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
 | 우선순위 | 표준 SQL 키워드(`BasicSQLDialect` 생성자)와 드라이버 키워드·함수 목록은 그대로 먼저 들어간다. 서버 낱말은 정적 목록과 같은 방법(`addSQLKeywords`)으로 더한다: 함수 목록에도 있는 낱말(`ROWNUM`, `REPLACE`)은 키워드 종류가 되고 함수 목록에 남는다(엔진은 키워드 종류로 식별자 따옴표를 정한다, `AbstractSQLDialect.addKeywords` 주석). 서버 낱말은 아무것도 지우지 않는다. 그 뒤 `SYSDATE`(OTHER)와 `TRUNCATE`는 전과 같다 |
 | 수명 | 방언 객체는 데이터 원본마다 새로 만든다(`AltibaseDataSource` 생성자 `new AltibaseSQLDialect()`). 다시 연결하면 새 데이터 원본·새 방언이다. 새로 고침은 같은 방언에 같은 낱말을 다시 넣는다(맵이라 늘지 않음) |
 | `RESERVED_TYPE` | 쓰지 않는다(아래) |
+| 문법 낱말 | 예약어가 아닌 문법 낱말(`ALTIBASE_SYNTAX_KEYWORDS`: `CACHE`, `NOCACHE`)은 서버 목록과 관계없이 키워드로 더한다. 연결한 서버가 예약어로 보고하지 않으면 이름의 따옴표 이유가 되지 않는다(`AltibaseSQLDialect.mustBeQuoted`, 아래 "예약어가 아닌 문법 낱말") |
 
 ### `RESERVED_TYPE`의 뜻 (측정)
 
@@ -194,18 +195,58 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
 - ShardSphere(읽기만): 별칭 `SELECT 1 AS <낱말> FROM DUAL`만 시험. 1(75개)은 모두 됨, 0(183개) 중 91개도 됨(그중 81개는 Altibase 7.3에서 1인 낱말,
   `CONTINUOUS`·`CONTROLFILE`·`SHARD`·`STREAM`과 `CONSTANT`·`EXCEPTION`·`NEW`·`OLD`·`SESSION`·`TOP`). ShardSphere의 값은 Altibase의 규칙과 다르고, 쓰기가 금지된 서버라
   열·테이블 이름으로는 확인하지 못했다.
-- 방언은 키워드를 모두 똑같이 따옴표로 감싸고(`AbstractSQLDialect.mustBeQuoted`) "예약되지 않은 키워드" 종류가 없다. 새로 만들지 않았다(브리프). 테이블 이름은 어차피 둘 다 따옴표가 필요하다.
+- 방언은 서버가 보고한 낱말을 모두 똑같이 따옴표로 감싼다(`AbstractSQLDialect.mustBeQuoted`). `RESERVED_TYPE`으로 "예약되지 않은 키워드"를 나누지 않았다(브리프). 테이블 이름은 어차피 둘 다 따옴표가 필요하다. 따옴표 없이 두는 키워드는 서버가 보고하지 않는 문법 낱말뿐이다(아래).
 
 ### 전후 낱말 (같은 빌드에서 "전"은 같은 연결에 뷰 읽기를 실패시킨 새 방언 = 정적 목록)
 
-| 서버 | 전 | 후 | 빠진 키워드 | 새 키워드 |
+| 서버 | 전 | 후(#115) | 빠진 키워드 | 새 키워드 |
 |---|---|---|---|---|
 | ShardSphere 5.1.9 | 717개(KEYWORD 502) | 715개(KEYWORD 500) | `CACHE`, `NOCACHE`, `DUMP_CALLSTACKS`, `LOGANCHOR`, `REPLICATION` | `CONTINUOUS`, `CONTROLFILE`, `STREAM` |
 | Altibase 7.3.0.0.7 | 707개(KEYWORD 489) | 704개(KEYWORD 486) | `CACHE`, `NOCACHE`, `SHARD` | 없음 |
 
 - 서버 낱말 중 정적 목록에 없던 나머지(`TYPE`, `LIMIT`, `LEVEL` 등)는 이미 표준·드라이버 키워드라 바뀌지 않았다. 함수 목록(213개, 212개)은 그대로다.
-- `CACHE`·`NOCACHE`는 정적 목록에만 있고 두 서버 모두 예약어로 보고하지 않는다. 이제 키워드 색이 아니다(`CREATE SEQUENCE … CACHE 20`).
+- `CACHE`·`NOCACHE`는 정적 목록에만 있고 두 서버 모두 예약어로 보고하지 않는다. #115 뒤에는 키워드 색이 아니었다(`CREATE SEQUENCE … CACHE 20`). 앱 변경 #118에서 되돌렸다(아래).
 - `TIMESTAMPADD`: Altibase에서는 전후 모두 키워드(함수 목록에 없음), ShardSphere에서는 전후 모두 방언이 모르는 낱말이다.
+
+### 예약어가 아닌 문법 낱말 (2026-11-15, 앱 변경 #118)
+
+#115에서 받아들인 회귀(`CACHE`·`NOCACHE`가 키워드 색을 잃음)를 고쳤다. 근본 원인: 예약어 목록은 문법 낱말 목록이 아니다. `V$RESERVED_WORDS`는 예약어만 보고하므로,
+예약되지 않은 문법 낱말은 어느 서버에서도 들어오지 않는다.
+
+규칙: 정적 목록의 낱말 가운데 **Altibase 문법의 낱말이고 계열의 어느 서버도 예약하지 않는 것**은 예약어가 아닌 문법 낱말이다. 이 낱말은 서버와 관계없이 키워드(색)로 두되,
+연결한 서버가 예약어로 보고하지 않는 한 이름의 따옴표 이유가 되지 않는다. 한 서버라도 예약하는 낱말은 연결한 서버의 목록을 따른다.
+
+정적 목록과 두 서버 목록의 차이 6개를 낱말마다 이렇게 가렸다(시험 Altibase는 내 임시 스키마 `CHR_AB_DEFSCHEMA`에서 만들고 지움, ShardSphere는 SELECT만):
+
+| 낱말 | Altibase 7.3 `V$RESERVED_WORDS` | ShardSphere | 7.3에서 따옴표 없는 테이블·열 이름 | 문법 | 판단 |
+|---|---|---|---|---|---|
+| `CACHE` | 없음 | 없음(별칭 됨) | 됨 / 됨 | `CREATE SEQUENCE … CACHE 20`, `ALTER SEQUENCE … CACHE 10` 됨(캐시 크기 10 확인) | 예약어가 아닌 문법 낱말 |
+| `NOCACHE` | 없음 | 없음(별칭 됨) | 됨 / 됨 | `CREATE SEQUENCE … NOCACHE`, `ALTER SEQUENCE … NOCACHE` 됨(캐시 크기 0 확인) | 예약어가 아닌 문법 낱말 |
+| `SHARD` | 없음 | 예약어 | 됨 / 됨 | 7.3에서 쓰는 문법을 확인하지 못함 | ShardSphere의 예약어, 서버를 따름 |
+| `REPLICATION` | 예약어 | 없음 | 구문 오류 / 구문 오류 | | Altibase의 예약어, 서버를 따름 |
+| `LOGANCHOR` | 예약어 | 없음 | 구문 오류 / 됨 | | Altibase의 예약어, 서버를 따름 |
+| `DUMP_CALLSTACKS` | 예약어 | 없음 | 구문 오류 / 됨 | | Altibase의 예약어, 서버를 따름 |
+
+- 정적 목록의 출처도 같은 구분을 보여 준다. 생성 기초 자료 `ALTIBASE_KEYWORDS`는 이름순으로 정렬된 258개(7.x 예약어 목록, 7.3 서버의 258개와 `SHARD`/`TIMESTAMPADD`만 다름)
+  뒤에 `CACHE`, `NOCACHE`를 덧붙인 260개였다. 두 낱말을 기초 자료와 대체 목록(`ALTIBASE_ONLY_KEYWORDS`, 124개 → 122개)에서 떼어 `ALTIBASE_SYNTAX_KEYWORDS`로 옮겼다.
+- 식별자 따옴표: 방언은 KEYWORD·TYPE·OTHER 종류의 낱말을 이름으로 쓸 때 따옴표로 감싼다(`AbstractSQLDialect.mustBeQuoted`). #115 전에는 `CACHE`도 그래서 열 이름 `CACHE`가
+  `"CACHE"`가 되었고, #115 뒤에는 키워드가 아니라 따옴표가 없었다. 지금은 키워드이지만 `AltibaseSQLDialect.mustBeQuoted`가 예약되지 않은 문법 낱말은 다른 평범한 이름과 같은
+  이유(항상 따옴표 설정, 대소문자 보존)로만 감싼다. 서버가 그 낱말을 예약어로 보고하면 예약어로 다룬다.
+
+결과(같은 빌드, 앱 안에서 측정):
+
+| 서버 | 정적 목록(#115 전) | #115 뒤 | 지금 | 정적 목록 대비 빠진 키워드 | 새 키워드 |
+|---|---|---|---|---|---|
+| ShardSphere 5.1.9 | 717개(KEYWORD 502) | 715개(KEYWORD 500) | 717개(KEYWORD 502) | `DUMP_CALLSTACKS`, `LOGANCHOR`, `REPLICATION`(Altibase의 예약어) | `CONTINUOUS`, `CONTROLFILE`, `STREAM` |
+| Altibase 7.3.0.0.7 | 707개(KEYWORD 489) | 704개(KEYWORD 486) | 706개(KEYWORD 488) | `SHARD`(ShardSphere의 예약어) | 없음 |
+
+- 고정 예문(13줄)의 토큰 분류: #115 빌드 대비 차이는 `CREATE SEQUENCE … CACHE 20 NOCACHE` 줄 하나(두 낱말이 이름 → 키워드), 두 서버 같음. 정적 목록 대비 차이는 위 표의 낱말뿐이다.
+- 쿼리 창(두 서버)의 `CREATE SEQUENCE … CACHE 20`, `ALTER SEQUENCE … NOCACHE`, `SELECT CACHE, NOCACHE …`에서 `CACHE`·`NOCACHE`가 키워드 색. 연결 새로 고침 뒤에도 같다.
+- 따옴표(`getQuotedIdentifier`): 두 서버 모두 `CACHE`·`NOCACHE` → 따옴표 없음, 대소문자 보존(`cache`, `Cache`) → 다른 이름처럼 따옴표. `REPLICATION`은 Altibase에서만,
+  `SHARD`는 ShardSphere에서만 따옴표, `SELECT`는 둘 다.
+- 대체 경로(문장을 실패시키는 세션으로 새 방언 초기화): 707개(KEYWORD 489)·717개(KEYWORD 502), `CACHE`·`NOCACHE`는 키워드이고 따옴표 없음.
+- 키워드 자동 완성은 바뀌지 않는다(위 "자동 완성", 문법 기반 엔진).
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: Altibase 계열 연결의 구문 강조, 이름 따옴표(스크립트 생성, 데이터 편집 SQL).
 
 ### 자동 완성
 
