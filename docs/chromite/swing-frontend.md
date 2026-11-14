@@ -427,10 +427,13 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 - **Results / Messages:** 지금은 자리 표시용 내용만 있다. 탭 줄 오른쪽에 숨기기 단추가 있다(FlatLaf `JTabbedPane.trailingComponent`).
 - **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다. (2026-11-06 Welcome 탭을 없애고 빈 문서 영역으로 바꿈: "빈 문서 영역")
 - **메뉴:** File(Exit), View(도구 창 3개, Theme > Light/Dark), Help(About Chromite). F5는 쿼리 실행용으로 비워 둔다.
-- **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 웹사이트
-  (https://github.com/froiibn/chromite, 누르면 브라우저로 연다). 제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다.
+- **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 링크 두 줄
+  (제품 사이트 https://chromite.seizia.com, 그 아래 저장소 https://github.com/froiibn/chromite, 누르면 기본 브라우저로 연다).
+  제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다. 제품 사이트 주소는 업데이트 사이트 상수 `UpdateService.ORIGIN_TEXT`를
+  다시 쓴다(사이트와 업데이트가 한 주소, [distribution.md](distribution.md) "결정 사항").
   버전은 SWT 버전과 같이 제품 번들 버전(`GeneralUtils.getPlainVersion()`)이라, Swing 번들 버전을 제품 버전과 같은 `26.2.5`로 바꿨다
   (SWT의 제품 번들 `com.seizia.chromite.ui.app.standalone`과 같은 방식. 이전 `1.0.0`은 About에 그대로 나왔다).
+  (2026-11-15 제품 사이트 링크 추가, 앱 변경 #120)
 
 ### 도킹 라이브러리 검토 (ModernDocking 대 `JSplitPane`)
 
@@ -3729,3 +3732,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
   도구 설명에만 쓰던 키 51개 삭제. "아이콘 단추의 도구 설명" 절. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 SQL Editor 도구 막대의 Format SQL 옆 비교 단추(앱 변경 #105, `chromite/text-compare`): 열린 두 창의 글을 나란히 비교하는 문서 탭, [text-compare.md](text-compare.md). 회귀 테스트는 실행하지 않았다.
 - 2026-11-14 Connect 대화상자: URL 템플릿의 {port}가 필수여도 드라이버에 기본 포트가 있으면 포트를 묻지 않음(앱 변경 #113, `chromite/shardsphere-driver`, "서버 이름과 기록").
+- 2026-11-15 About 대화상자: 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함(앱 변경 #120, `chromite/about-site-link`, "구현 현황 — B단계"의 About). 회귀 테스트는 실행하지 않았다.
