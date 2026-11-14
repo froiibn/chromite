@@ -530,7 +530,7 @@ levelsClause: (CASCADED|LOCAL);
 createIndexStatement: CREATE (OR REPLACE)? UNIQUE? INDEX (IF NOT EXISTS)? qualifiedName ON tableName ddlStatementTail?;
 createNamedObjectStatement: (CREATE (OR (REPLACE|ALTER))?|RECREATE) routineCreateModifier* createObjectKind (IF NOT EXISTS)? qualifiedName
     (routineDefinition|ddlStatementTail)?;
-createObjectKind: FUNCTION|PROCEDURE|PROC|TABLE FUNCTION|SEQUENCE|SYNONYM|ROLE;
+createObjectKind: FUNCTION|PROCEDURE|PROC|TABLE FUNCTION|SEQUENCE|SYNONYM|ROLE|USER;
 alterNamedObjectStatement: ALTER alterObjectKind ifExistsSpec? qualifiedName routineSignature? setTableSchemaAction?
     (routineDefinition|ddlStatementTail)?;
 alterObjectKind: VIEW|MATERIALIZED VIEW|INDEX|FUNCTION|PROCEDURE|PROC|SEQUENCE|SYNONYM;
