@@ -163,6 +163,70 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
   "표 없음"(42S02, `AltibaseConstants.EC_TABLE_NOT_FOUND` 0x31031)만 빈 목록으로 읽는다.
 - 독립 함수 매개변수: ShardSphere 드라이버(JDBC 3.0)에 `getFunctionColumns`가 없어 `GenericProcedure`가 `getProcedureColumns`로 읽는다([drivers.md](drivers.md) "ShardSphere").
 
+## 서버 예약어 (2026-11-15, 앱 변경 #115)
+
+### 목적
+
+사용자 요청 "shardsphere의 전용 예약어들이 있는데 확인가능한가?" → "맞춰라". 키워드 강조(와 식별자 따옴표)를 연결한 서버가 알려 주는 예약어에 맞춘다.
+ShardSphere 문서는 없으므로 서버가 보고하는 것만 쓴다. 새 문법, 새 강조 분류, ShardSphere 낱말 목록은 넣지 않았다.
+
+### 근본 원인
+
+`AltibaseSQLDialect.initDriverSettings`가 Altibase 7.x용 정적 목록 `ALTIBASE_ONLY_KEYWORDS`(124개)를 모든 연결에 넣었다. 이 방언은 Altibase와
+ShardSphere(앱 변경 #113)가 함께 쓰는데, 두 서버의 `V$RESERVED_WORDS`(각 258개)가 다르다. ShardSphere에만 `CONTINUOUS`·`CONTROLFILE`·`GEMINI`·`SHARD`·`STREAM`,
+Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIMESTAMPADD`가 있다. 정적 목록 하나로는 이 계열의 모든 서버에 맞출 수 없다.
+
+### 규칙
+
+| 항목 | 내용 |
+|---|---|
+| 낱말의 출처 | 방언을 초기화할 때(연결, 연결 새로 고침) 메타 세션에서 `SELECT KEYWORD FROM V$RESERVED_WORDS` 한 번(`AltibaseSQLDialect.readServerKeywords`). 제품 이름 검사 없음 |
+| 대체 | 질의가 실패하거나(오래된 서버, 권한 없음, 오류) 행이 없으면 정적 목록. 디버그 로그 한 줄, 연결은 실패하지 않음 |
+| 우선순위 | 표준 SQL 키워드(`BasicSQLDialect` 생성자)와 드라이버 키워드·함수 목록은 그대로 먼저 들어간다. 서버 낱말은 정적 목록과 같은 방법(`addSQLKeywords`)으로 더한다: 함수 목록에도 있는 낱말(`ROWNUM`, `REPLACE`)은 키워드 종류가 되고 함수 목록에 남는다(엔진은 키워드 종류로 식별자 따옴표를 정한다, `AbstractSQLDialect.addKeywords` 주석). 서버 낱말은 아무것도 지우지 않는다. 그 뒤 `SYSDATE`(OTHER)와 `TRUNCATE`는 전과 같다 |
+| 수명 | 방언 객체는 데이터 원본마다 새로 만든다(`AltibaseDataSource` 생성자 `new AltibaseSQLDialect()`). 다시 연결하면 새 데이터 원본·새 방언이다. 새로 고침은 같은 방언에 같은 낱말을 다시 넣는다(맵이라 늘지 않음) |
+| `RESERVED_TYPE` | 쓰지 않는다(아래) |
+
+### `RESERVED_TYPE`의 뜻 (측정)
+
+- Altibase 7.3 시험 서버, 임시 스키마 `CHR_SS_KEYWORDS`(확인 뒤 지움)에서 258개 낱말마다 따옴표 없이 테이블 이름, 열 이름, 열 별칭으로 써 봄:
+  - 1(160개): 열 이름·별칭으로 모두 됨. 0(98개): 모두 안 됨(구문 오류 200705). 테이블 이름은 두 값 모두 258개 전부 안 됨(통제: `PLAIN_NAME`, `"TYPE"`, `STREAM`은 됨).
+  - 즉 Altibase 7.3에서 1은 "열 이름·별칭으로는 쓸 수 있는 예약어", 0은 "어디에도 따옴표 없이 쓸 수 없는 예약어"다. 객체 이름으로는 둘 다 따옴표가 필요하다.
+- ShardSphere(읽기만): 별칭 `SELECT 1 AS <낱말> FROM DUAL`만 시험. 1(75개)은 모두 됨, 0(183개) 중 91개도 됨(그중 81개는 Altibase 7.3에서 1인 낱말,
+  `CONTINUOUS`·`CONTROLFILE`·`SHARD`·`STREAM`과 `CONSTANT`·`EXCEPTION`·`NEW`·`OLD`·`SESSION`·`TOP`). ShardSphere의 값은 Altibase의 규칙과 다르고, 쓰기가 금지된 서버라
+  열·테이블 이름으로는 확인하지 못했다.
+- 방언은 키워드를 모두 똑같이 따옴표로 감싸고(`AbstractSQLDialect.mustBeQuoted`) "예약되지 않은 키워드" 종류가 없다. 새로 만들지 않았다(브리프). 테이블 이름은 어차피 둘 다 따옴표가 필요하다.
+
+### 전후 낱말 (같은 빌드에서 "전"은 같은 연결에 뷰 읽기를 실패시킨 새 방언 = 정적 목록)
+
+| 서버 | 전 | 후 | 빠진 키워드 | 새 키워드 |
+|---|---|---|---|---|
+| ShardSphere 5.1.9 | 717개(KEYWORD 502) | 715개(KEYWORD 500) | `CACHE`, `NOCACHE`, `DUMP_CALLSTACKS`, `LOGANCHOR`, `REPLICATION` | `CONTINUOUS`, `CONTROLFILE`, `STREAM` |
+| Altibase 7.3.0.0.7 | 707개(KEYWORD 489) | 704개(KEYWORD 486) | `CACHE`, `NOCACHE`, `SHARD` | 없음 |
+
+- 서버 낱말 중 정적 목록에 없던 나머지(`TYPE`, `LIMIT`, `LEVEL` 등)는 이미 표준·드라이버 키워드라 바뀌지 않았다. 함수 목록(213개, 212개)은 그대로다.
+- `CACHE`·`NOCACHE`는 정적 목록에만 있고 두 서버 모두 예약어로 보고하지 않는다. 이제 키워드 색이 아니다(`CREATE SEQUENCE … CACHE 20`).
+- `TIMESTAMPADD`: Altibase에서는 전후 모두 키워드(함수 목록에 없음), ShardSphere에서는 전후 모두 방언이 모르는 낱말이다.
+
+### 자동 완성
+
+- 키워드 자동 완성은 방언의 키워드 목록을 쓰지 않는다. Swing 자동 완성(`SQLQueryCompletionContext.prepareKeywordCompletions`)은 문법이 예측한 낱말만 낸다.
+  그래서 `CONT`·`STRE`·`REPLI`에 `CONTINUOUS`·`STREAM`·`REPLICATION`은 전에도 후에도 나오지 않는다. 바꾸지 않았다(문법 기반 완성 엔진의 변경은 범위 밖).
+- `DBMS_SHARD`: `EXEC SYS.DBMS_SHARD.` → 서브프로그램 55개(56개 이름 중 `VERSION`은 함수라 `EXEC` 뒤에 내지 않음, `SUB_TYPE` 1). 한정하지 않은 `EXEC DBMS_SHARD.`와
+  `SELECT DBMS_SHARD.`는 0개다. Altibase 7.3의 `EXEC DBMS_OUTPUT.`도 0개, `EXEC SYS.DBMS_OUTPUT.`은 5개라 ShardSphere만의 문제가 아니다.
+  원인: Altibase 연결의 실행 문맥에 기본 스키마가 없다(`getContextDefaults()`의 스키마·카탈로그 null, `supportsSchemaChange` false). 완성은 한정하지 않은 이름을 기본 스키마에서 찾으므로
+  패키지(와 PUBLIC 시노님 `DBMS_SHARD`)를 찾지 못한다. 고치려면 Altibase 모델의 기본 스키마 지원이 필요해 작은 수정이 아니므로 고치지 않았다.
+
+### 확인 (2026-11-15, 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트)
+
+- 두 연결(실제 ShardSphere 서버는 읽기만, Altibase 7.3 시험 서버)을 동시에 열고 각 쿼리 창의 토큰 분류를 읽음: ShardSphere 창은 `CONTINUOUS`·`CONTROLFILE`·`STREAM`·`SHARD`·`GEMINI`가
+  키워드, `REPLICATION`·`LOGANCHOR`·`DUMP_CALLSTACKS`는 이름. Altibase 창은 그 반대(`SHARD`·`GEMINI`는 이름). `CHECK`·`SELECT`는 둘 다 키워드. 창을 바꿔 다시 읽어도,
+  연결 새로 고침 뒤에도 같다. 방언 객체는 연결마다 다르다.
+- 고정 예문(13줄)의 토큰 분류 전후 차이는 위 표의 낱말뿐이다(ShardSphere 3줄, Altibase 2줄).
+- 새로 고침 뒤와 끊고 다시 연결한 뒤 낱말 목록이 연결 직후와 같다(늘지도 비지도 않음).
+- 대체 경로: 시험 서버에서는 권한 없는 사용자로도 뷰를 읽을 수 있어(임시 사용자로 확인) 서버로는 재현할 수 없었다. 문장을 실패시키는 세션으로 방언을 초기화해
+  정적 목록이 들어가고 예외 없이 끝나며 디버그 로그에 한 줄이 남는 것을 확인했다.
+- 더한 질의 시간: ShardSphere 약 15 ms(`SELECT 1 FROM DUAL`과 같음), Altibase 시험 서버 약 380–770 ms(SSH 터널 너머, `SELECT 1 FROM DUAL`도 380–780 ms라 왕복 한 번).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -170,3 +234,4 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
 - 2026-11-08 복제 상태(Activity Monitor 복제 탭)와 복제 시작·중지·동기화 명령(SWT 감사 D-A7), 위 "복제 시작·중지·동기화".
 - 2026-11-14 Altibase 계열 드라이버 ShardSphere 추가와 서버 출력 콜백을 메서드 매개변수로 찾게 바꿈(앱 변경 #113), 위 "Altibase 계열 드라이버: ShardSphere".
 - 2026-11-14 복제 카탈로그가 없는 서버의 복제 목록을 빈 목록으로, JDBC 3.0 드라이버의 함수 매개변수(앱 변경 #113 검토 뒤).
+- 2026-11-15 엔진 키워드를 연결한 서버의 `V$RESERVED_WORDS`에서 읽음(읽지 못하면 정적 목록), `RESERVED_TYPE`의 뜻과 `DBMS_SHARD` 자동 완성 조사(앱 변경 #115), 위 "서버 예약어".

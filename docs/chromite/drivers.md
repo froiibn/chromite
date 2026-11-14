@@ -389,6 +389,9 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
     ShardSphere의 Replications는 빈 폴더(오류 없음), `SYS_CONTEXT`의 매개변수 RETURN_VALUE·NAMESPACE·PARAMETER가 보인다(디버그 로그에 대체 경로 한 번).
     Altibase 7.3의 Replications(시험 서버에 복제 없음, 전과 같이 0개)와 `SYS_CONTEXT` 매개변수 3개는 전과 같고 대체 경로를 타지 않았다.
     PostgreSQL 17은 자체 모델(`PostgreProcedure`, `GenericProcedure`를 쓰지 않음)이라 영향이 없다: 임시 스키마의 함수 하나의 매개변수 a·b가 보였다(스키마는 지움).
+- **예약어(2026-11-15, 앱 변경 #115):** 키워드 강조는 연결한 서버의 `V$RESERVED_WORDS`를 따른다(Altibase와 같은 코드, 제품 이름 검사 없음). ShardSphere 연결에서는
+  `CONTINUOUS`·`CONTROLFILE`·`STREAM`이 키워드가 되고 Altibase 7.3에만 있는 `REPLICATION`·`LOGANCHOR`·`DUMP_CALLSTACKS`는 키워드가 아니다.
+  규칙, `RESERVED_TYPE`의 뜻, `DBMS_SHARD` 자동 완성(`SYS.DBMS_SHARD.`만 됨)은 [altibase.md](altibase.md) "서버 예약어".
 
 ### 폐쇄망 오프라인 설치 경로
 
@@ -468,3 +471,4 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - 2026-11-14 검토 뒤 고침(같은 브랜치): Connect 대화상자의 기본 포트, 복제 카탈로그가 없는 서버의 복제 목록, `getFunctionColumns`가 없는 드라이버의 함수 매개변수
   ("ShardSphere"의 "고친 것").
 - 2026-11-15 ShardSphere 드라이버의 기본 사용자를 `sys`로(프로젝트 소유자의 결정, `chromite/shardsphere-default-user`).
+- 2026-11-15 ShardSphere 연결의 키워드를 서버의 `V$RESERVED_WORDS`에 맞춤(앱 변경 #115, `chromite/shardsphere-keywords`), "ShardSphere"의 "예약어".
