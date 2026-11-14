@@ -6,7 +6,9 @@ Chromite so that connections work without Internet access. They are
 NOT part of Chromite and are NOT covered by the Apache License 2.0 of
 Chromite. Each driver is distributed unmodified, as published on Maven
 Central (https://repo1.maven.org/maven2/), under its own license.
-The license texts are in the same folder as the jar files.
+The license texts are in the same folder as the jar files. The
+ShardSphere driver is the exception: it is not published on Maven
+Central and has no license text (see shardsphere/README.txt).
 
 Chromite loads a driver's files only when a connection that uses the
 driver is opened.
@@ -61,6 +63,14 @@ sqlite/ - SQLite
   The jar contains the native SQLite library for each supported
   platform. SQLite itself is in the public domain
   (https://sqlite.org/copyright.html).
+
+shardsphere/ - ShardSphere
+  shardsphere.jar                      No license text in the jar; not
+                                       covered by the Apache License 2.0.
+                                       Redistributed on the Chromite project
+                                       owner's statement (2026-11-14) that
+                                       they hold the right to distribute it
+                                       (README.txt).
 
 The Apache License 2.0 text is in licenses/external/asl-2.0.txt in the
 installation folder. Jar files that contain their own LICENSE or NOTICE

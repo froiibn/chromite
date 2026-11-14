@@ -84,6 +84,10 @@ import java.util.WeakHashMap;
  * - 2026-11-08 실제 계획 어댑터({@link AltibaseActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
  * - 2026-11-12 {@link #discoverErrorType}: 서버가 세션을 닫은 오류 4163(SQLState 08004)을 연결 끊김으로. 실행 중인 문장의 첫 오류라
  *   자동 복구도, 끊긴 세션 처리도 없었다(앱 변경 #75, docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ * - 2026-11-14 서버 출력 콜백 인터페이스를 클래스 이름(`<패키지>.jdbc.driver.AltibaseMessageCallback`)으로 찾지 않고 연결의
+ *   {@code registerMessageCallback} 매개변수에서 얻음. 이름이 다른 Altibase 계열 드라이버(ShardSphere,
+ *   {@code shardsphere.jdbc.driver.shardsphereMessageCallback})는 클래스를 찾지 못해 {@link #initializeContextState}가 예외를 던지고
+ *   연결이 실패한다(서버 출력 기본값이 켜짐, 코드로 확인, 앱 변경 #113, docs/chromite/drivers.md "ShardSphere")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -793,14 +797,9 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
 
             Connection conn = null;
             ClassLoader classLoader = null;
-            @SuppressWarnings("rawtypes")
-            Class class4MsgCallback = null;
+            Class<?> class4MsgCallback = null;
             Object instance4Callback = null;
             Method method2RegisterCallback = null;
-
-            String connClassNamePrefix = "Altibase";
-            String className4Connection = "N/A";
-            String className4MessageCallback = "N/A";
 
             try (JDBCSession session = (JDBCSession) context.openSession(monitor, 
                     DBCExecutionPurpose.UTIL, (enable ? "Enable" : "Disable") + " DBMS output")) {
@@ -811,15 +810,11 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                     throw new SecurityException("Failed to load ClassLoader");
                 }
 
-                // To support Altibasex_x.jar driver
-                connClassNamePrefix = conn.getClass().getName().split("\\.")[0];
-                className4Connection = connClassNamePrefix + AltibaseConstants.CLASS_NAME_4_CONNECTION_POSTFIX;
-                className4MessageCallback = connClassNamePrefix + AltibaseConstants.CLASS_NAME_4_MESSAGE_CALLBACK_POSTFIX;
-
-                class4MsgCallback = classLoader.loadClass(className4MessageCallback);
-                if (class4MsgCallback == null) {
-                    throw new ClassNotFoundException("Failed to load class: " + className4MessageCallback);
-                }
+                // The callback interface is the parameter of the connection's own registration method, not a class
+                // name built from "Altibase": the package and class names differ between Altibase.jar, Altibasex_x.jar
+                // and Altibase-derived drivers (shardsphere.jdbc.driver.shardsphereMessageCallback)
+                method2RegisterCallback = findRegisterMessageCallback(conn.getClass());
+                class4MsgCallback = method2RegisterCallback.getParameterTypes()[0];
 
                 if (enable) {
                     instance4Callback = Proxy.newProxyInstance(classLoader,
@@ -835,19 +830,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                             });
 
                     if (instance4Callback == null) {
-                        throw new InstantiationException("Failed to instantiate class: " + className4MessageCallback);
+                        throw new InstantiationException("Failed to instantiate class: " + class4MsgCallback.getName());
                     }
-                }
-
-                method2RegisterCallback = classLoader
-                        .loadClass(className4Connection)
-                        .getMethod(AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK, class4MsgCallback);
-
-                if (method2RegisterCallback == null) {
-                    throw new NoSuchMethodException(String.format(
-                            "Failed to get method: %s of class %s ", 
-                            AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK,
-                            className4MessageCallback));
                 }
 
                 method2RegisterCallback.invoke(conn, new Object[] { instance4Callback });
@@ -857,6 +841,24 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                 log.error("Failed to register DBMS output message callback method: " + e.getMessage());
                 throw new DBCException(e, context);
             }
+        }
+
+        /**
+         * The driver connection's {@code registerMessageCallback(<callback interface>)} method.
+         */
+        @NotNull
+        private static Method findRegisterMessageCallback(@NotNull Class<?> connectionClass) throws NoSuchMethodException {
+            for (Method method : connectionClass.getMethods()) {
+                if (AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK.equals(method.getName())
+                    && method.getParameterCount() == 1
+                    && method.getParameterTypes()[0].isInterface()) {
+                    return method;
+                }
+            }
+            throw new NoSuchMethodException(String.format(
+                "Failed to get method: %s of class %s",
+                AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK,
+                connectionClass.getName()));
         }
 
         @Override
