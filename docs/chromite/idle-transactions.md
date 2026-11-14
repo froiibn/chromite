@@ -439,6 +439,63 @@ FOR UPDATE·BEGIN은 "… - 열린 트랜잭션: 잠금 유지 또는 명시적�
 - SQL Server(일반 SELECT 숨김, HOLDLOCK·REPEATABLE READ·DML 열린 트랜잭션), Oracle(일반 SELECT 숨김, FOR UPDATE·SET TRANSACTION READ ONLY·DML 열린 트랜잭션):
   설정을 켜도 끄도 같다. 메뉴는 커밋/롤백.
 
+### 앱이 사용자 세션에 연 트랜잭션 (2026-11-15, 앱 변경 #111)
+
+**보고(#109 작업, 2026-11-13):** PostgreSQL 수동 커밋 쿼리 창에서 커밋한 뒤 서버 세션이 `idle in transaction`(잠금 있음)인데 상태 줄에는 열린 트랜잭션이 없다.
+
+**두 경우를 나눠 확인했다** (PostgreSQL 17, 앱 안 시험 에이전트, 쿼리 관리자 처리기로 창 세션에 간 문장과 보낸 곳을 기록, 따로 연 관찰 연결의
+`pg_stat_activity`·`pg_locks`, 증거 `D:\Tools\_scratch\refresh-followups\run\c-pg*.txt.log`):
+
+1. **사용자의 SELECT가 연 트랜잭션:** 위 "트랜잭션 상태"의 결정대로다. 표를 읽은 SELECT는 그 표의 AccessShareLock을 쥐어 "조회 트랜잭션 · 잠금 유지"로
+   보이고(숨기지 않음), `SELECT 1`(쥔 것 없음)은 숨긴다. 끊기 질문 목록에 나오고, 자동 커밋으로 바꾸면 "커밋 방식" 질문(커밋하고 전환 / 롤백하고 전환 /
+   취소)이 뜬다. 버릴 변경이 없는 트랜잭션이라 조용한 커밋 문제는 없다. 보고의 "읽기만 한 트랜잭션은 열린 것으로 세지 않음"은 맞지 않다(쥔 것이 있으면 센다).
+2. **앱이 스스로 보낸 읽기가 연 트랜잭션 (결함):** 창 세션의 기본 스키마 읽기(`PostgreExecutionContext.refreshDefaults`:
+   `SELECT reset_val FROM pg_settings …`, `SELECT current_schema(),session_user`)를 다음이 부른다.
+   - 상태 줄·Query 메뉴·유휴 알림으로 커밋/롤백한 뒤 `SqlEditorPanel.refreshOpenTransaction` → `refreshSchemas`("Read default schema" 작업);
+   - DDL 뒤 새로 고침이 트랜잭션이 끝난 뒤 하는 기본값 다시 맞추기(`SqlMetadataRefresh.refresh`, 204행);
+   - 실행 중·실행 끝(`SqlEditorPanel.readSessionDefaults`, 대상 계산 `SQLMetadataRefreshTargetResolver`)은 사용자 트랜잭션 안이거나 자동 커밋이라 남는 것이 없다.
+   pgjdbc는 수동 커밋에서 트랜잭션 밖의 아무 문장 앞에 BEGIN을 보내므로, 커밋 직후의 이 읽기가 새 트랜잭션을 열고 그대로 두었다. 상태 줄은 사용자 문장이
+   아니라 DB에 다시 묻지 않아 아무것도 보이지 않았다.
+
+고치기 전 (dd2f79e9b1) 수동 커밋 창 B의 서버 상태:
+
+| 사용자 동작 | 앱이 B에 보낸 것 | `pg_stat_activity` / `pg_locks` | 상태 줄 |
+|---|---|---|---|
+| INSERT → Query > Commit | Read default schema 두 문장 | `idle in transaction`, `xact_start` = 그 읽기 시각, `backend_xmin` 7712, pg_settings AccessShareLock | 없음 |
+| CREATE TABLE → Commit | 위 + Refresh metadata after DDL 두 문장 | `idle in transaction`, xmin 7714 | 없음 |
+| SET search_path + INSERT → Roll Back | Read default schema | `idle in transaction`, xmin 7715 | 없음 |
+| 그 상태로 1분 넘게 둠 | — | 다른 세션이 지운 1000행이 `VACUUM` 뒤에도 `n_dead_tup` 1000(지우지 못함) | 없음 |
+| `INSERT …; COMMIT` 한 스크립트 | 실행 중 읽기 | `idle` | 없음 |
+
+그 밖에 남는 것: 다음 사용자 트랜잭션의 `xact_start`가 사용자가 시작한 때가 아니라 앱의 읽기 시각이 되고, 서버에 `idle_in_transaction_session_timeout`이
+있으면 사용자가 아무것도 하지 않았는데 세션(임시 테이블, search_path)이 끊긴다(시험 서버는 0).
+
+**고침:** 기본 스키마 읽기를 메타데이터 세션으로 옮길 수는 없다(읽는 것이 그 세션 자신의 search_path·현재 스키마·세션 사용자). 그래서 트랜잭션을 열지 않고
+읽는다: `PostgreExecutionContext.refreshDefaults`는 세션이 수동 커밋이고 pgjdbc의 프로토콜 상태가 IDLE(트랜잭션 없음, 왕복 없이 앎, 트랜잭션 확인과 같은
+방법)이면 pgjdbc `BaseConnection.execSQLQuery`(드라이버가 자기 내부 질의에 쓰는 길, BEGIN을 보내지 않음)로 같은 두 문장을 읽는다. 트랜잭션이 열려 있거나
+자동 커밋이면 전처럼 읽는다(사용자 트랜잭션 안에서 읽거나, BEGIN이 없음). COMMIT·ROLLBACK을 하나도 더하지 않았다. 이 두 문장은 그때 쿼리 관리자에 기록되지
+않는다(트랜잭션 확인 질의와 같음). 드라이버가 pgjdbc가 아니면 전처럼 읽는다.
+
+고른 이유: 다른 방법은 모두 사용자 세션에 손을 댄다. 읽은 뒤 롤백·커밋으로 끝내기는 "트랜잭션 안전" 규칙이 막는다(비어 있다고 믿는 트랜잭션도).
+읽는 동안 자동 커밋으로 바꾸기는 그 사이 사용자 실행이 끼면 그 문장이 바로 커밋될 수 있다. 커밋 뒤 읽기를 건너뛰면 롤백한 `SET search_path`를
+DB 선택 상자가 따라가지 못한다.
+
+고친 뒤 (같은 경우, 증거 `after-pg.txt.log`): 모든 경우에 B는 `idle`(xid·xmin·잠금 없음), 같은 시점의 `VACUUM`이 1000행을 모두 지움(`n_dead_tup` 0),
+`SET search_path TO chr_rf_ps` 뒤 선택 상자 `chr_rf_ps` → 롤백 뒤 `public`(롤백을 따라감). 사용자 SELECT는 전처럼 "조회 트랜잭션 · 잠금 유지", 끝내면 `idle`.
+
+**엔진별: 앱 자신의 읽기가 수동 커밋 창 세션에 남기는 것** (고치기 전, 같은 경우: INSERT 뒤 Commit, DDL 뒤 새로 고침, `INSERT; COMMIT`)
+
+| 엔진 | 앱이 창 세션에 보내는 읽기 | 서버 뷰 | 남는 것 |
+|---|---|---|---|
+| PostgreSQL 17 | `pg_settings` reset_val, `current_schema(),session_user` | `pg_stat_activity`, `pg_locks` | 트랜잭션, xmin, pg_settings 잠금 (**고침**) |
+| SQL Server 2022 | `SELECT db_name(), schema_name(), original_login()` | `sys.dm_exec_sessions.open_transaction_count`, `sys.dm_tran_locks` | 없음(0, 잠금 0; 표 없는 SELECT는 암시적 트랜잭션을 시작하지 않음) |
+| MySQL 8.4 | `SELECT DATABASE()` | `performance_schema.events_transactions_current`, `INNODB_TRX` | 없음(COMMITTED, 행 없음; 표를 읽지 않아 읽기 뷰·MDL 없음) |
+| MariaDB 11 | `SELECT DATABASE()` | `INNODB_TRX` | 없음 |
+| Oracle 23ai | `SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM DUAL` | `V$TRANSACTION` | 없음(READ COMMITTED 읽기는 트랜잭션을 시작하지 않음) |
+| Altibase 7.3 | `SELECT db_name FROM V$DATABASE` | `V$SESSION.TRANS_ID`, `V$TRANSACTION` | 수동 커밋 세션은 읽기 전후 모두 트랜잭션 슬롯이 있다(커밋하면 새 TRANS_ID). 읽기로 달라지는 것 없음(UPDATE_STATUS 0). 확인 질의가 없어 사용자 SELECT는 "확인할 수 없음" |
+
+확인하지 못한 것: SQL Server SNAPSHOT 격리 세션, Oracle 직렬화 세션에서의 같은 읽기(표 없는 읽기라 시작하지 않는다고 보지만 실행하지 않음), PostgreSQL을 잇는 엔진.
+
 ## 설정
 
 연결 편집 > 연결 속성 탭, 유휴 연결 닫기 아래.
@@ -498,6 +555,8 @@ FOR UPDATE·BEGIN은 "… - 열린 트랜잭션: 잠금 유지 또는 명시적�
   `JDBCExecutionContext`(`DBCTransactionProbe` 구현), 방언 4개(질의). `QMUtils.isTransactionActive` 자체는 그대로 두었다(업스트림 작업 `SQLScriptExecuteHandler`가 씀).
 - 조회만 한 트랜잭션 끝내기(2026-11-09): 업스트림 `DBPConnectionType`에 속성 `autoEndReadOnlyTransactions`를 더하고(생성자는 그대로) `connection-types.xml`·
   `data-sources.json`의 유형 사본에 저장한다(`DataSourceProviderRegistry`, `DataSourceSerializerModern`, `RegistryConstants`). 업스트림에는 이런 동작이 없다.
+- 앱이 사용자 세션에 연 트랜잭션(2026-11-15): 업스트림 `PostgreExecutionContext.refreshDefaults`는 늘 쿼리 관리자 세션으로 읽어, 트랜잭션 없는 수동 커밋
+  세션에 BEGIN이 갔다. Chromite는 그때 pgjdbc의 BEGIN 없는 길로 읽는다(위 "앱이 사용자 세션에 연 트랜잭션").
 
 ## 연결 끊기 전 질문
 
@@ -634,3 +693,6 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
   상태 줄 칸이 조회 트랜잭션(보조 색 점, "· 잠금 유지"/"· 스냅숏 유지")과 변경 있는 트랜잭션("(변경 있음)")을 구별하고, 끝낼 때·끊을 때 질문과
   유휴 알림이 종류를 적음(사용자 "활성 트랜잭션과 lock은 구분하는게 좋지 않나?")
 - 2026-11-11 유휴 연결 닫기 기본값을 모든 기본 연결 유형에서 끔(앱 변경 #48, `chromite/servers-tree`). 저장된 연결 유형 설정은 그대로, 연결 편집기의 칸은 실제로 닫을 때만 켜져 보임
+- 2026-11-15 "앱이 사용자 세션에 연 트랜잭션"(앱 변경 #111 (c), `chromite/refresh-followups`): PostgreSQL 수동 커밋 창에서 커밋·롤백 뒤와 DDL 뒤 새로 고침 뒤의
+  기본 스키마 읽기가 BEGIN을 보내 세션을 `idle in transaction`(xmin, pg_settings 잠금)으로 두던 것을 고침(BEGIN 없이 읽음). 사용자 SELECT의 조회 트랜잭션 표시는
+  결정대로임을 확인, 엔진별 표. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: PostgreSQL 쿼리 창의 DB/스키마 선택 상자, DDL 뒤 기본값 다시 맞추기, Agent의 기본 스키마
