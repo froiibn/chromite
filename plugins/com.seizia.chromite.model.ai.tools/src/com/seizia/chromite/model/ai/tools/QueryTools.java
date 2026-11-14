@@ -63,7 +63,7 @@ import java.util.Map;
  *
  * 설계:
  * <ul>
- *     <li>{@code runSelect}·{@code runReadOnlySql}은 READ다. {@link AgentSqlClassifier}가 읽기라고 증명하지 못한 문장은 거부하고 {@code runSql}을 쓰라고
+ *     <li>{@code runReadOnlySql}은 READ다(26.1.0에서 {@code runSelect}를 합침: {@code offset}을 주면 한 페이지). {@link AgentSqlClassifier}가 읽기라고 증명하지 못한 문장은 거부하고 {@code runSql}을 쓰라고
  *     알린다. 실행은 읽기 전용 보호 안에서 한다({@link AgentSql.Mode#READ_ONLY}).</li>
  *     <li>{@code runSql}·{@code runScript}는 WRITE다. 문장에 따라 DANGEROUS로 올린다({@link AIToolAccessClassifier}). 확인 요청에 문장 전체를 보인다
  *     ({@link AIToolPreviewProvider}). 연결의 커밋 방식 그대로 실행하고({@link AgentSql.Mode#NATIVE}), 수동 커밋 연결이면 트랜잭션이 열려 있다고 알린다.
@@ -89,7 +89,7 @@ import java.util.Map;
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
  * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
  *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
- * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -104,7 +104,6 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         @NotNull Map<String, Object> args
     ) throws DBException {
         return switch (toolId) {
-            case "runSelect" -> runSelect(context, args);
             case "runReadOnlySql" -> runReadOnlySql(context, args);
             case "runSql" -> runSql(context, args);
             case "runScript" -> runScript(context, args);
@@ -118,19 +117,10 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
 
     // ------------------------------------------------------------------ read
 
-    @NotNull
-    private static JsonElement runSelect(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
-        DBPDataSourceContainer container = requireConnection(context);
-        DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
-        String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
-        requireReadOnly(dataSource, sql, "runSelect");
-        AgentLimits limits = AgentLimits.of(args);
-        int offset = Math.max(0, AgentArgs.getInt(args, "offset", 0));
-        boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "format"));
-        return AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.READ_ONLY,
-            (connection, runner) -> runner.queryPage(connection, sql, offset, limits, objects));
-    }
-
+    /**
+     * One read-only statement: every result set and message, or with {@code offset} one page of rows (what runSelect returned
+     * before 26.1.0; its calls come here with offset 0).
+     */
     @NotNull
     private static JsonElement runReadOnlySql(@NotNull AIToolCallContext context, @NotNull Map<String, Object> args) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
@@ -138,7 +128,14 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
         String sql = AgentSqlClassifier.stripTrailingDelimiter(AgentArgs.require(args, "sql"));
         requireReadOnly(dataSource, sql, "runReadOnlySql");
         AgentLimits limits = AgentLimits.of(args);
-        return AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.READ_ONLY,
+        String database = AgentArgs.getString(args, "database");
+        if (AgentArgs.getString(args, "offset") != null) {
+            int offset = Math.max(0, AgentArgs.getInt(args, "offset", 0));
+            boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "rowFormat"));
+            return AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
+                (connection, runner) -> runner.queryPage(connection, sql, offset, limits, objects));
+        }
+        return AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
             (connection, runner) -> runner.execute(connection, sql, null, limits, true));
     }
 

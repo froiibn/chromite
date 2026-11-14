@@ -250,30 +250,23 @@
 
         <!-- ============================================================ Query -->
 
-        <function id="runSelect" name="%tool.runSelect.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
-            categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            description="Runs one read-only SELECT you write and returns one page of rows (columns, rows, hasMore, nextOffset); page on with offset. Use to read data with joins, filters or aggregates. Statements not provably read-only are refused (use runSql). For system views, SHOW, DBCC or several result sets use runReadOnlySql; for a table's rows without SQL use sampleRows.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="sql" type="string" required="true" description="One SELECT statement"/>
-            <parameter name="limit" type="integer" description="Rows per page (default 100, max 10000)"/>
-            <parameter name="offset" type="integer" description="Rows to skip (default 0); use nextOffset of the previous page"/>
-            <parameter name="format" type="string" validValues="objects,arrays" description="objects (default) or arrays (columns + row arrays, smaller)"/>
-            <parameter name="maxCellChars" type="integer" description="Characters per value (default 4000)"/>
-        </function>
         <function id="runReadOnlySql" name="%tool.runReadOnlySql.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
-            shortDescription="Runs one read-only statement you write (SELECT, system views, SHOW) and returns its result sets. Refuses statements that may write."
-            description="Runs one read-only diagnostic statement you write (system views, SHOW, read-only DBCC, sp_who/sp_help* procedures) in a rolled-back read-only transaction; returns every result set, update counts and server messages. Use when no specific diagnostic tool covers the question. Not for paging table data (runSelect). Statements not provably read-only are refused (use runSql).">
+            shortDescription="Runs one read-only statement you write (SELECT, system views, SHOW) and returns its result sets; with offset, one page of rows. Refuses statements that may write."
+            description="Runs one read-only statement you write (SELECT, system views, SHOW, read-only DBCC, sp_who/sp_help* procedures) in a rolled-back read-only transaction. Without offset it returns every result set, update counts and server messages; with offset (0 for the first page) it returns one page of rows (columns, rows, hasMore, nextOffset) to page through data. Use it for data with joins, filters or aggregates and for diagnosis no specific tool covers. For a table's rows without SQL use sampleRows. Statements not provably read-only are refused (use runSql).">
+            <alias id="runSelect" access="READ" defaults="offset=0" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current" shortDescription="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One read-only statement" shortDescription="One read-only statement"/>
-            <parameter name="limit" type="integer" description="Rows per result set (default 100)" shortDescription="Rows per result (default 100)"/>
+            <parameter name="limit" type="integer" description="Rows per result set or page (default 100, max 10000)" shortDescription="Rows per result (default 100)"/>
+            <parameter name="offset" type="integer" description="Rows to skip; give it (0 for the first page) to get one page of rows with hasMore and nextOffset" shortDescription="Rows to skip; gives one page of rows"/>
+            <parameter name="rowFormat" type="string" aliases="format" validValues="objects,arrays" description="objects (default) or arrays (columns + row arrays, smaller)" shortDescription="objects (default) or arrays"/>
+            <parameter name="maxCellChars" type="integer" description="Characters per value (default 4000)" shortDescription="Characters per value (default 4000)"/>
         </function>
         <function id="runSql" name="%tool.runSql.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true" toolSet="minimal"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
             shortDescription="Runs one statement that changes data or schema. The user confirms it. On manual-commit connections the transaction stays open."
-            description="Runs one statement that may change data or schema (INSERT, UPDATE, DELETE, MERGE, DDL, EXEC). WRITE: the user sees the SQL and confirms unless their policy allows it; DROP, TRUNCATE and DELETE/UPDATE without WHERE are DANGEROUS. Returns results or update counts and transactionOpen; on manual-commit connections the transaction stays open until commitTransaction or rollbackTransaction. For several statements use runScript; for reads use runSelect.">
+            description="Runs one statement that may change data or schema (INSERT, UPDATE, DELETE, MERGE, DDL, EXEC). WRITE: the user sees the SQL and confirms unless their policy allows it; DROP, TRUNCATE and DELETE/UPDATE without WHERE are DANGEROUS. Returns results or update counts and transactionOpen; on manual-commit connections the transaction stays open until commitTransaction or rollbackTransaction. For several statements use runScript; for reads use runReadOnlySql.">
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current" shortDescription="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement; several statements go to runScript" shortDescription="One statement"/>
@@ -343,7 +336,7 @@
 
         <function id="sampleRows" name="%tool.sampleRows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
-            description="Reads rows of one table or view without writing SQL: optional where and orderBy fragments, limit (default 20) and offset; read-only. Use for a quick look at data. For joins, aggregates or your own SELECT use runSelect; to count rows use countRows.">
+            description="Reads rows of one table or view without writing SQL: optional where and orderBy fragments, limit (default 20) and offset; read-only. Use for a quick look at data. For joins, aggregates or your own SELECT use runReadOnlySql; to count rows use countRows.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view"/>
@@ -502,7 +495,7 @@
 
         <function id="exportData" name="%tool.exportData.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runSelect; to back up a database use backupDatabase or dumpDatabase.">
+            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runReadOnlySql; to back up a database use backupDatabase or dumpDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" description="SELECT to export (or give table)"/>
