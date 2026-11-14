@@ -102,7 +102,7 @@ public class TransferTools extends AgentTool implements AIToolPreviewProvider {
         DbFamily family = DbFamily.of(container);
         String format = AgentArgs.getString(args, "fileFormat") == null ? "csv" : AgentArgs.getString(args, "fileFormat").toLowerCase(Locale.ROOT);
         if (!format.equals("csv") && !format.equals("json") && !format.equals("xlsx")) {
-            throw new AIToolArgumentException("Argument 'format' must be csv, json or xlsx");
+            throw new AIToolArgumentException("Argument 'fileFormat' must be csv, json or xlsx");
         }
         Path file = outputFile(args);
         int maxRows = maxRows(args);
