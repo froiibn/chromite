@@ -61,6 +61,9 @@ import java.util.stream.Stream;
  * Altibase 7.x용 정적 목록({@link #ALTIBASE_ONLY_KEYWORDS})을 쓴다. 표준 SQL 키워드와 함수 목록은 그대로 두고, 서버의 낱말은 정적 목록과
  * 같은 방법({@code addSQLKeywords})으로 더한다: 함수이기도 한 낱말은 키워드 종류가 되고(엔진은 키워드로 따옴표를 정한다) 함수 목록에는 남는다.
  * 방언 객체는 데이터 원본마다 하나라({@link AltibaseDataSource} 생성자) 한 연결의 낱말이 다른 연결로 가지 않는다.
+ * 예약어 목록은 문법 낱말 목록이 아니다: 계열의 어느 서버도 예약하지 않는 문법 낱말({@link #ALTIBASE_SYNTAX_KEYWORDS}, 시퀀스의
+ * {@code CACHE}·{@code NOCACHE})은 서버와 관계없이 키워드로 넣되, 예약어가 아니라 이름에 따옴표를 붙이는 이유가 되지 않는다
+ * ({@link #mustBeQuoted}). 한 서버라도 예약하는 낱말({@code SHARD}, {@code REPLICATION})은 연결한 서버를 따른다.
  *
  * 변경 이력:
  * - 2026-11-12 Chromite: 문장 구분자의 {@code /}를 지움(기본 {@code ;}만). {@code /}만 있는 줄은 방언 규칙
@@ -69,6 +72,9 @@ import java.util.stream.Stream;
  * - 2026-11-15 Chromite: 엔진 키워드를 정적 목록 대신 연결한 서버의 {@code V$RESERVED_WORDS}에서 읽음(읽지 못하면 정적 목록).
  *   ShardSphere의 {@code CONTINUOUS}·{@code CONTROLFILE}·{@code STREAM}이 키워드가 아니었고, Altibase 7.3에만 있는 {@code REPLICATION} 등이
  *   ShardSphere에서도 키워드였다(앱 변경 #115, docs/chromite/altibase.md "서버 예약어")
+ * - 2026-11-15 Chromite: 예약어가 아닌 문법 낱말({@link #ALTIBASE_SYNTAX_KEYWORDS})을 정적 목록에서 떼어 서버와 관계없이 키워드로.
+ *   #115부터 서버가 보고하지 않는 {@code CACHE}·{@code NOCACHE}가 키워드 색을 잃었다. 이름으로는 따옴표 없이 둔다(앱 변경 #118,
+ *   docs/chromite/altibase.md "서버 예약어")
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect 
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -79,7 +85,7 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
      * Reserved words the server reports (Altibase and ShardSphere have the view). The RESERVED_TYPE column is not read:
      * on Altibase 7.3 type 1 words work unquoted as column names and aliases and type 0 words do not, but no word of
      * either type works unquoted as a table name, ShardSphere's values do not follow that rule, and this dialect quotes
-     * every keyword alike (it has no non-reserved keyword kind the type could feed).
+     * every reported word alike (its only non-reserved keywords are the syntax words the view does not list).
      */
     private static final String QUERY_RESERVED_WORDS = "SELECT KEYWORD FROM V$RESERVED_WORDS";
 
@@ -111,7 +117,8 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
     
     /**
      * Altibase 7.x reserved words that are not SQL standard keywords: the engine keywords when the server's
-     * {@code V$RESERVED_WORDS} cannot be read ({@link #readServerKeywords}).
+     * {@code V$RESERVED_WORDS} cannot be read ({@link #readServerKeywords}). Non-reserved syntax words are not here
+     * ({@link #ALTIBASE_SYNTAX_KEYWORDS}).
      */
     public static final String[] ALTIBASE_ONLY_KEYWORDS = new String[] {
         "ACCESS",             "AGER",               //  2
@@ -119,65 +126,75 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "ARCHIVELOG",         "AUDIT",              //  6
         "AUTHID",             "AUTOEXTEND",         //  8
         "BACKUP",             "BODY",               // 10
-        "BULK",               "CACHE",              // 12
-        "CHECKPOINT",         "COMMENT",            // 14
-        "COMPILE",            "COMPRESS",           // 16
-        "COMPRESSED",         "CONJOIN",            // 18
-        "CONNECT_BY_ROOT",    "CONSTANT",           // 20
-        "CURRENT_USER",       "DATABASE",           // 22
-        "DECRYPT",            "DELAUDIT",           // 24
-        "DEQUEUE",            "DIRECTORY",          // 26
-        "DISABLE",            "DISASTER",           // 28
-        "DISJOIN",            "DUMP_CALLSTACKS",    // 30
-        "ELSEIF",             "ELSIF",              // 32
-        "ENABLE",             "ENQUEUE",            // 34
-        "EXIT",               "EXTENT",             // 36
-        "EXTENTSIZE",         "FIFO",               // 38
-        "FIXED",              "FLASHBACK",          // 40
-        "FLUSH",              "FLUSHER",            // 42
-        "IDENTIFIED",         "INITRANS",           // 44
-        "INSTEAD",            "KEEP",               // 46
-        "LESS",               "LIBRARY",            // 48
-        "LIFO",               "LINK",               // 50
-        "LINKER",             "LOB",                // 52
-        "LOCALUNIQUE",        "LOCK",               // 54
-        "LOGANCHOR",          "LOGGING",            // 56
-        "LOOP",               "MATERIALIZED",       // 58
-        "MAXROWS",            "MAXTRANS",           // 60
-        "MINUS",              "MODE",               // 62
-        "MODIFY",             "MOVE",               // 64
-        "MOVEMENT",           "NOARCHIVELOG",       // 66
-        "NOAUDIT",            "NOCACHE",            // 68
-        "NOCOPY",             "NOCYCLE",            // 70
-        "NOLOGGING",          "NOPARALLEL",         // 72
-        "OFF",                "OFFLINE",            // 74
-        "ONLINE",             "PACKAGE",            // 76
-        "PARALLEL",           "PARAMETERS",         // 78
-        "PARTITIONS",         "PIVOT",              // 80
-        "PURGE",              "QUEUE",              // 82
-        "RAISE",              "REBUILD",            // 84
-        "RECOVER",            "REMOTE_TABLE",       // 86
-        "REMOTE_TABLE_STORE", "REMOVE",             // 88
-        "REORGANIZE",         "REPLACE",            // 90
-        "REPLICATION",        "RETURNING",          // 92
-        "ROWCOUNT",           "ROWNUM",             // 94
-        "ROWTYPE",            "SEGMENT",            // 96
-        "SHARD",              "SHRINK_MEMPOOL",     // 98
-        "SPECIFICATION",      "SPLIT",              //100
-        "SQLCODE",            "SQLERRM",            //102
-        "STEP",               "STORAGE",            //104
-        "STORE",              "SUPPLEMENTAL",       //106
-        "SYNONYM",            "TABLESPACE",         //108
-        "THAN",               "TOP",                //110
-        "TRUNCATE",           "TYPESET",            //112
-        "UNCOMPRESSED",       "UNLOCK",             //114
-        "UNPIVOT",            "UNTIL",              //116
-        "VARIABLE",           "VARIABLE_LARGE",     //118
-        "VC2COLL",            "VOLATILE",           //120
-        "WAIT",               "WHILE",              //122
-        "WRAPPED",            "_PROWID",            //124
+        "BULK",               "CHECKPOINT",         // 12
+        "COMMENT",            "COMPILE",            // 14
+        "COMPRESS",           "COMPRESSED",         // 16
+        "CONJOIN",            "CONNECT_BY_ROOT",    // 18
+        "CONSTANT",           "CURRENT_USER",       // 20
+        "DATABASE",           "DECRYPT",            // 22
+        "DELAUDIT",           "DEQUEUE",            // 24
+        "DIRECTORY",          "DISABLE",            // 26
+        "DISASTER",           "DISJOIN",            // 28
+        "DUMP_CALLSTACKS",    "ELSEIF",             // 30
+        "ELSIF",              "ENABLE",             // 32
+        "ENQUEUE",            "EXIT",               // 34
+        "EXTENT",             "EXTENTSIZE",         // 36
+        "FIFO",               "FIXED",              // 38
+        "FLASHBACK",          "FLUSH",              // 40
+        "FLUSHER",            "IDENTIFIED",         // 42
+        "INITRANS",           "INSTEAD",            // 44
+        "KEEP",               "LESS",               // 46
+        "LIBRARY",            "LIFO",               // 48
+        "LINK",               "LINKER",             // 50
+        "LOB",                "LOCALUNIQUE",        // 52
+        "LOCK",               "LOGANCHOR",          // 54
+        "LOGGING",            "LOOP",               // 56
+        "MATERIALIZED",       "MAXROWS",            // 58
+        "MAXTRANS",           "MINUS",              // 60
+        "MODE",               "MODIFY",             // 62
+        "MOVE",               "MOVEMENT",           // 64
+        "NOARCHIVELOG",       "NOAUDIT",            // 66
+        "NOCOPY",             "NOCYCLE",            // 68
+        "NOLOGGING",          "NOPARALLEL",         // 70
+        "OFF",                "OFFLINE",            // 72
+        "ONLINE",             "PACKAGE",            // 74
+        "PARALLEL",           "PARAMETERS",         // 76
+        "PARTITIONS",         "PIVOT",              // 78
+        "PURGE",              "QUEUE",              // 80
+        "RAISE",              "REBUILD",            // 82
+        "RECOVER",            "REMOTE_TABLE",       // 84
+        "REMOTE_TABLE_STORE", "REMOVE",             // 86
+        "REORGANIZE",         "REPLACE",            // 88
+        "REPLICATION",        "RETURNING",          // 90
+        "ROWCOUNT",           "ROWNUM",             // 92
+        "ROWTYPE",            "SEGMENT",            // 94
+        "SHARD",              "SHRINK_MEMPOOL",     // 96
+        "SPECIFICATION",      "SPLIT",              // 98
+        "SQLCODE",            "SQLERRM",            //100
+        "STEP",               "STORAGE",            //102
+        "STORE",              "SUPPLEMENTAL",       //104
+        "SYNONYM",            "TABLESPACE",         //106
+        "THAN",               "TOP",                //108
+        "TRUNCATE",           "TYPESET",            //110
+        "UNCOMPRESSED",       "UNLOCK",             //112
+        "UNPIVOT",            "UNTIL",              //114
+        "VARIABLE",           "VARIABLE_LARGE",     //116
+        "VC2COLL",            "VOLATILE",           //118
+        "WAIT",               "WHILE",              //120
+        "WRAPPED",            "_PROWID",            //122
     };
     
+    /**
+     * Non-reserved syntax words: words of the Altibase grammar ({@code CREATE / ALTER SEQUENCE ... CACHE n | NOCACHE}) that
+     * no server of the family reserves, so {@code V$RESERVED_WORDS} does not list them and they work unquoted as names.
+     * They are keywords on every connection, whatever the server reports, but not a reason to quote a name
+     * ({@link #mustBeQuoted}). A word one server of the family reserves ({@code SHARD}, {@code REPLICATION}) is not one of
+     * these: it follows the connected server's list.
+     */
+    private static final String[] ALTIBASE_SYNTAX_KEYWORDS = new String[] {
+        "CACHE", "NOCACHE"
+    };
+
     public static final String[] ALTIBASE_ONLY_FUNCTIONS = new String[] {
         "ACOS",                    "ADD_MONTHS",                //  2
         "AESDECRYPT",              "AESENCRYPT",                //  4
@@ -332,6 +349,7 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
     };
     /******************************************************************************
      * Base data to generate Altibase only keyword and function list
+     * (keywords: the Altibase 7.x reserved word list; the syntax words are ALTIBASE_SYNTAX_KEYWORDS)
      ******************************************************************************/
     private static final String[] ALTIBASE_KEYWORDS = {
         "ACCESS",             "ADD",                "AFTER",              "AGER",               "ALL",                  //5
@@ -385,9 +403,12 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "USING",              "VALUES",             "VARIABLE",           "VARIABLE_LARGE",     "VC2COLL",              //245
         "VIEW",               "VOLATILE",           "WAIT",               "WHEN",               "WHENEVER",             //250
         "WHERE",              "WHILE",              "WITH",               "WITHIN",             "WORK",                 //255
-        "WRAPPED",            "WRITE",              "_PROWID",            "CACHE",              "NOCACHE"
+        "WRAPPED",            "WRITE",              "_PROWID"
     };
     
+    // ALTIBASE_SYNTAX_KEYWORDS the connected server does not reserve (set when the dialect is initialized for a connection)
+    private volatile Set<String> nonReservedKeywords = Set.of();
+
     public AltibaseSQLDialect() {
         super("Altibase", "altibase");
         setUnquotedIdentCase(DBPIdentifierCase.UPPER);
@@ -423,7 +444,13 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         super.initDriverSettings(session, dataSource, metaData);
         
         addFunctions(Arrays.asList(ALTIBASE_ONLY_FUNCTIONS));
-        addSQLKeywords(readServerKeywords(session));
+        Collection<String> reservedWords = readServerKeywords(session);
+        addSQLKeywords(reservedWords);
+        // A syntax word stays a keyword; it is a reserved one only if this server says so
+        addSQLKeywords(Arrays.asList(ALTIBASE_SYNTAX_KEYWORDS));
+        nonReservedKeywords = Arrays.stream(ALTIBASE_SYNTAX_KEYWORDS)
+            .filter(word -> !reservedWords.contains(word))
+            .collect(Collectors.toUnmodifiableSet());
         addKeywords(Arrays.asList(OTHER_TYPES_FUNCTIONS), DBPKeywordType.OTHER);
         turnFunctionIntoKeyword("TRUNCATE");
         
@@ -455,6 +482,19 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         return Arrays.asList(ALTIBASE_ONLY_KEYWORDS);
     }
     
+    /**
+     * A non-reserved syntax word is quoted only for the reasons any other plain name would be (it has letters only):
+     * quote-always, or a case the server would fold. Every other word is decided as before.
+     */
+    @Override
+    public boolean mustBeQuoted(@NotNull String str, boolean forceCaseSensitive) {
+        if (nonReservedKeywords.contains(str.toUpperCase(Locale.ENGLISH))) {
+            return isQuoteIdentifiersAlways()
+                || forceCaseSensitive && !useCaseInsensitiveNameLookup() && !str.equals(storesUnquotedCase().transform(str));
+        }
+        return super.mustBeQuoted(str, forceCaseSensitive);
+    }
+
     @Override
     protected void loadDataTypesFromDatabase(JDBCDataSource dataSource) {
         super.loadDataTypesFromDatabase(dataSource);
