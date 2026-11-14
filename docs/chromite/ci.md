@@ -181,8 +181,9 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
    창은 System Events(손쉬운 사용 API)로 센다. 그 줄보다 먼저 보이는 창은 시작 화면이라 스크린숏(`*-splash.png`)과 창 목록을 남긴다.
    메인 창이 뜬 뒤 시작 화면 크기(560×320 pt)의 창이 남아 있으면 실패, 시작 화면을 봤고 닫혔으면 PASS, 시간 줄은 NOTE로 남긴다([branding.md](branding.md) "시작 화면").
    메인 창 전에는 0.3초마다 창의 자리·크기를 `*-splash-positions.txt`(시각 x y 너비 높이)에 남기고, 창이 바뀔 때마다 스크린숏을 찍는다(`*-splash.png`, `*-splash-2..4.png`). 메인 창이 첫 폴링보다 먼저 뜨면 시작 화면 창을 보지 못해 이 파일이 비어 있고, 결과에는 "no splash position was polled" 참고 줄만 남는다(2026-11-12: 이 경우 파일이 없어 스크립트가 종료 코드 2로 끝나던 것을 고침).
-   시작 화면 크기 창의 자리가 하나뿐이면 PASS, 둘 이상이면 FAIL 줄(단계는 계속, 앱 변경 #52, branding.md "자리"). 디버그 로그의 `Startup splash at …` 줄과
-   `macOS unified title bar …` 줄은 NOTE로 남기고(네이티브 라이브러리 없음은 FAIL 줄), 메인 창 위쪽 90pt를 `*-title-bar.png`로 찍는다([mac-ui.md](mac-ui.md) "통합 제목 줄").
+   macOS 시작 화면은 런처 창 하나다(2026-11-15, 앱 변경 #52, branding.md "자리"). 시작 화면 크기 창의 자리가 하나뿐이면 PASS, 둘 이상이면 FAIL 줄,
+   한 폴링에 시작 화면 크기 창이 둘 이상이면 FAIL 줄(둘째 시작 화면), 하나면 PASS(단계는 계속). 디버그 로그에 `Startup splash at …`(Swing 시작 화면의 자리)
+   줄이 있으면 FAIL 줄, 없으면 PASS. `macOS unified title bar …` 줄은 NOTE로 남기고(네이티브 라이브러리 없음은 FAIL 줄), 메인 창 위쪽 90pt를 `*-title-bar.png`로 찍는다([mac-ui.md](mac-ui.md) "통합 제목 줄").
    (2026-11-08 전에는 플랫폼을 만들기 전의 `SSL trust store type` 줄을 기다렸다. 시작 화면이 생긴 뒤로는 그 시점의 창이 메인 창이 아닐 수 있다.)
    Gatekeeper의 첫 실행 질문이 보이면 스크린숏을 찍고 System Events로 "Open"을 한 번 누른다.
    창이 뜨지 않으면 프로세스·작업 공간·데이터 폴더·Equinox 로그·통합 로그(`*-diagnostics.txt`), 네이티브 스택(`sample`, `*-sample.txt`), JVM 스레드 덤프(SIGQUIT, `*-stdout.txt`)를 남긴다.
@@ -342,3 +343,5 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md)): `build.yml`·`macos-smoke.yml`의 실행 권한 확인 경로 `Contents/MacOS/Chromite`,
   `macos-smoke.sh launch`가 프로세스가 `<앱>/Contents/MacOS/Chromite`인지 확인, 진단의 통합 로그 프로세스 이름을 `CFBundleExecutable`에서 읽음. 결과물 이름은 그대로. 아직 실행하지 않음.
+- 2026-11-15 `macos-smoke.sh launch`의 시작 화면 확인을 macOS 창 하나에 맞춤(앱 변경 #52 다시 열림, `chromite/mac-splash-single-window`): 한 폴링에 시작 화면 크기 창이
+  둘 이상이면 FAIL 줄, 디버그 로그의 `Startup splash at` 줄은 NOTE 대신 "있으면 FAIL 줄". 아직 실행하지 않음.

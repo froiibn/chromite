@@ -249,6 +249,8 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 |---|---|
 | macOS Cmd+Q, 열린 트랜잭션 있음 | 메인 창 닫기와 같은 질문, Cancel이면 앱이 남음(확인하지 못함: macOS 장비 필요) |
 | macOS 앱 메뉴 About / Preferences | 기존 대화상자 |
+| macOS에서 앱을 열고 메인 창이 뜰 때까지 봄(앱 변경 #52, 매번) | 글자 없는 시작 화면 하나가 처음 뜬 자리(가운데보다 약간 위)에 그대로 있다가 메인 창이 뜨면 사라짐. 움직이거나 둘째 그림(버전·Loading…)으로 바뀌지 않음. 작업 공간이 잠긴 두 번째 실행은 대화상자가 뜨며 시작 화면이 사라짐(macOS 장비 필요, `macos-smoke.sh launch`가 일부를 봄) |
+| Windows에서 앱을 열고 메인 창이 뜰 때까지 봄 | 런처 시작 화면 → 같은 자리의 `Version …`·`Loading…` 시작 화면 → 메인 창(앱 변경 #52 전과 같음) |
 | Windows에서 사내 CA 인증서를 쓰는 서버에 SSL 연결 | 별도 신뢰 저장소 없이 연결(`WINDOWS-ROOT`) |
 
 ### macOS 단축키와 화면 메뉴 막대 (앱 변경 #24, #27)
@@ -336,3 +338,4 @@ Docker 시험 DB가 필요한 테스트는 없다.
 - 2026-11-08 찾은 실패를 고침: `PlanTools`의 앞 주석 건너뛰기(반복문), Oracle `MAX_STRING_SIZE` 조회의 모든 실패를 4000으로, `ConnectJobTest`를 #131 동작으로,
   `AISettingsManagerTest`에 메모리 보안 저장소, 심볼릭 링크 시험 건너뛰기. 둘째 실행 결과(실패 0)
 - 2026-11-09 `UiKeysTest`와 "macOS 단축키와 화면 메뉴 막대" 확인 목록(앱 변경 #24, #27, `chromite/mac-ui`)
+- 2026-11-15 "macOS와 Windows 시작"에 시작 화면 두 줄(macOS는 런처 시작 화면 하나, Windows는 그대로; 앱 변경 #52, `chromite/mac-splash-single-window`)
