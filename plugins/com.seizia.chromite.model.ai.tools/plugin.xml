@@ -94,9 +94,10 @@
             description="Server product, version, edition, uptime, host facts and key settings. Call it first on a connection before diagnosing: the version decides which system views and tools work. For connection settings (host, user) use getConnectionInfo; for setting checks use getServerConfig. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
-        <function id="probePermissions" name="%tool.probePermissions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
+        <function id="checkDiagnosticAccess" name="%tool.checkDiagnosticAccess.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0" toolSet="core"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="What this login may read for diagnosis: system views, server permissions and extensions (VIEW SERVER STATE, pg_monitor, PROCESS, V$ access, pg_stat_statements, ...) and which tools are limited without them. Call it before a health check or after a diagnostic tool fails on permissions. Not for database users and grants (listPrincipals, listPermissions) nor Chromite's tool permissions (getToolPolicy). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="What this login may read for diagnosis: system views, server permissions and extensions (VIEW SERVER STATE, pg_monitor, PROCESS, V$ access, pg_stat_statements, ...) and which tools are limited without them. Call it before a health check or after a diagnostic tool fails on permissions. Not for database users and grants (listPrincipals, listGrants) nor Chromite's tool permissions (getAgentToolPolicy). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            <alias id="probePermissions" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getTransactionStatus" name="%tool.getTransactionStatus.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal"
@@ -122,9 +123,10 @@
             description="Rolls back the agent's open transaction on the connection, discarding the agent's uncommitted changes. The user confirms. Never touches the user's query windows.">
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
         </function>
-        <function id="getToolPolicy" name="%tool.getToolPolicy.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+        <function id="getAgentToolPolicy" name="%tool.getAgentToolPolicy.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Chromite's permission for every agent tool on a connection: AUTO (runs), CONFIRM (asks the user), BLOCKED or READ_ONLY, with the reason, plus the production and read-only flags. Plan around blocked tools instead of calling them. Not the database's own permissions: use listPermissions or probePermissions.">
+            description="Chromite's permission for every agent tool on a connection: AUTO (runs), CONFIRM (asks the user), BLOCKED or READ_ONLY, with the reason, plus the production and read-only flags. Plan around blocked tools instead of calling them. Not the database's own permissions: use listGrants or checkDiagnosticAccess.">
+            <alias id="getToolPolicy" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name (empty: rules without a connection)"/>
         </function>
 
@@ -207,13 +209,14 @@
         </function>
         <function id="listPrincipals" name="%tool.listPrincipals.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Database security principals: logins, users, roles and role memberships. Use for who has access and which roles someone has. For grants on an object or of a user use listPermissions; for what the agent's own login may read use probePermissions. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Database security principals: logins, users, roles and role memberships. Use for who has access and which roles someone has. For grants on an object or of a user use listGrants; for what the agent's own login may read use checkDiagnosticAccess. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
         </function>
-        <function id="listPermissions" name="%tool.listPermissions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+        <function id="listGrants" name="%tool.listGrants.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Granted and denied permissions on an object or schema, or of a user or role (give object, principal or both). For logins, users and role memberships use listPrincipals; for the agent's own login probePermissions; for Chromite's tool permissions getToolPolicy. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Granted and denied permissions on an object or schema, or of a user or role (give object, principal or both). For logins, users and role memberships use listPrincipals; for the agent's own login checkDiagnosticAccess; for Chromite's tool permissions getAgentToolPolicy. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            <alias id="listPermissions" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="object" type="string" description="Object (table, view, routine) or schema; give this, principal, or both"/>
@@ -221,7 +224,7 @@
         </function>
         <function id="getObjectDdl" name="%tool.getObjectDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="CREATE DDL of an existing table, view, routine or other object as Chromite generates it for the database. Use to show an object's definition. To build the DDL of a change use generateDdl; for routine code with line numbers use getRoutineSource.">
+            description="CREATE DDL of an existing table, view, routine or other object as Chromite generates it for the database. Use to show an object's definition. To build the DDL of a change use previewDdl; for routine code with line numbers use getRoutineSource.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="object" type="string" required="true" description="Object name or schema.name"/>
@@ -327,9 +330,10 @@
             <parameter name="connection" type="string" description="Connection id or name (optional)"/>
             <parameter name="sql" type="string" required="true" description="SQL text"/>
         </function>
-        <function id="getQueryHistory" name="%tool.getQueryHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+        <function id="getEditorHistory" name="%tool.getEditorHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.QueryTools"
             description="Statements the user ran in Chromite's query windows (not server statistics), newest first, with time, duration, rows and errors. Use for what the user ran before or to find a statement they mention. For the server's most expensive statements use getTopQueries.">
+            <alias id="getQueryHistory" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Only this connection (in the chat: the chat's connection)"/>
             <parameter name="contains" type="string" description="Text the statement contains"/>
             <parameter name="limit" type="integer" description="Max entries (default 50)"/>
@@ -406,9 +410,10 @@
 
         <!-- ============================================================ DDL -->
 
-        <function id="generateDdl" name="%tool.generateDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+        <function id="previewDdl" name="%tool.previewDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
             description="Builds the DDL of a table, view or index change without running it; operation names the matching tool and the other arguments are that tool's. Use it to show the user the exact DDL before calling createTable, alterTable, dropTable, createView, dropView, createIndex or dropIndex. For the DDL of an existing object use getObjectDdl.">
+            <alias id="generateDdl" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="operation" type="string" required="true" validValues="createTable,alterTable,dropTable,createView,dropView,createIndex,dropIndex" description="DDL operation"/>
@@ -824,7 +829,7 @@
 
         <function id="listLibraryQueries" name="%tool.listLibraryQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.library" class="com.seizia.chromite.model.ai.tools.LibraryTools"
-            description="Saved queries of the user's Chromite Query Library: id, name, description, folder, target connection, parameters, thresholds. Use when the user mentions a saved, library or monitoring query. For statements the user ran recently use getQueryHistory.">
+            description="Saved queries of the user's Chromite Query Library: id, name, description, folder, target connection, parameters, thresholds. Use when the user mentions a saved, library or monitoring query. For statements the user ran recently use getEditorHistory.">
             <parameter name="folder" type="string" description="Only this folder (for example Monitoring)"/>
             <parameter name="contains" type="string" description="Text in name, description or SQL"/>
         </function>

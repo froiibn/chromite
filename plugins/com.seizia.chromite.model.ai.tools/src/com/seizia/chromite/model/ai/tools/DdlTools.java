@@ -49,15 +49,18 @@ import java.util.Map;
  *     형식 바꾸기({@code ALTER COLUMN}/{@code TYPE}/{@code MODIFY}), 인덱스 지우기({@code DROP INDEX ... ON t} 또는 스키마 이름), 뷰 바꾸기
  *     ({@code CREATE OR ALTER}/{@code CREATE OR REPLACE}). 식별자는 방언 따옴표, 형식·기본값은 {@link AgentNames#checkType},
  *     {@link AgentNames#checkExpression}으로 검사한다.</li>
- *     <li>실행 전에 확인 요청에 만든 DDL 전체를 보인다({@link AIToolPreviewProvider}). {@code generateDdl}은 같은 DDL을 실행하지 않고 돌려준다.</li>
+ *     <li>실행 전에 확인 요청에 만든 DDL 전체를 보인다({@link AIToolPreviewProvider}). {@code previewDdl}(26.1.0 전 {@code generateDdl})은 같은 DDL을 실행하지 않고 돌려준다.</li>
  *     <li>뷰의 SELECT는 읽기라고 증명되어야 한다(뷰를 만들며 다른 문장을 끼워 넣지 못하게).</li>
  *     <li>MySQL/MariaDB·Oracle에서 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): generateDdl → previewDdl
  */
 public class DdlTools extends AgentTool implements AIToolPreviewProvider, AIToolTransactionGuard {
+
+    private static final String PREVIEW = "previewDdl"; //$NON-NLS-1$
 
     @NotNull
     @Override
@@ -67,12 +70,12 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
         @NotNull Map<String, Object> args
     ) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
-        String operation = toolId.equals("generateDdl") ? AgentArgs.require(args, "operation") : toolId;
+        String operation = toolId.equals(PREVIEW) ? AgentArgs.require(args, "operation") : toolId;
         List<String> statements = generate(context, container, operation, args);
         JsonObject json = new JsonObject();
         json.addProperty("operation", operation);
         json.addProperty("sql", String.join(";\n", statements));
-        if (toolId.equals("generateDdl")) {
+        if (toolId.equals(PREVIEW)) {
             json.addProperty("executed", false);
             return json;
         }
@@ -334,7 +337,7 @@ public class DdlTools extends AgentTool implements AIToolPreviewProvider, AITool
         @NotNull AIToolCallContext context,
         @NotNull Map<String, Object> arguments
     ) {
-        if (context.getTool().getId().equals("generateDdl")) {
+        if (context.getTool().getId().equals(PREVIEW)) {
             return List.of();
         }
         // Every operation here is DDL; the statement head is what implicitCommitRisk looks at

@@ -53,6 +53,7 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-08 Oracle 교착 상태: 경고 로그 항목이 가리키는 추적 파일에서 교착 상태 그래프를 읽음, Query Store 상태 문장
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): probePermissions → checkDiagnosticAccess
  *   (docs/chromite/ai-agent.md "1b단계 도구")
  */
 final class DiagnosticPostProcessor {
@@ -100,7 +101,7 @@ final class DiagnosticPostProcessor {
             case "listLocks" -> lockSummary(result);
             case "getDeadlocks" -> deadlocks(result, family);
             case "getCachedPlans" -> cachedPlans(result);
-            case "probePermissions" -> PermissionProbe.summarize(result, family);
+            case "checkDiagnosticAccess" -> PermissionProbe.summarize(result, family);
             case "getErrorLog" -> errorLogTail(result, args);
             case "getQueryStoreTopQueries", "getQueryStoreRegressions", "getQueryStoreForcedPlans" -> queryStoreState(result);
             default -> {

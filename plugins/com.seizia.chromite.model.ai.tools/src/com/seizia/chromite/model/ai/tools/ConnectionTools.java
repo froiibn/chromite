@@ -85,6 +85,7 @@ import java.util.Map;
  *   실패와 그 이유로 바꿈(앱 변경 #92, docs/chromite/ai-agent.md "공유 세션의 commitTransaction·rollbackTransaction")
  * - 2026-11-13 공유 세션에서 setCurrentDatabase가 database를 저장만 하고 무시되던 것을, 바꿔야 하면 거절하고 아무것도 저장하지 않게 바꿈.
  *   getCurrentDatabase에 공유 세션 안내(앱 변경 #94, docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
+ * - 2026-11-15 getToolPolicy → getAgentToolPolicy (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -105,7 +106,7 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
             case "setCurrentDatabase" -> setCurrentDatabase(context, args);
             case "getTransactionStatus" -> transactionStatus(context);
             case "commitTransaction", "rollbackTransaction" -> endTransaction(context, toolId.equals("commitTransaction"));
-            case "getToolPolicy" -> toolPolicy(context);
+            case "getAgentToolPolicy" -> toolPolicy(context);
             case "openInEditor" -> openInEditor(context, args);
             default -> throw unknownTool(toolId);
         };

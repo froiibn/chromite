@@ -70,7 +70,7 @@ import java.util.Map;
  *     MySQL/MariaDB·Oracle의 DDL은 열린 트랜잭션을 암묵적으로 커밋하므로, 에이전트 트랜잭션이 열려 있으면 실행기가 Commit / Roll back / Cancel을 묻는다.</li>
  *     <li>{@code runScript}는 쿼리 창이 실행하는 단위({@link SQLScriptBatches#extractQueries})로 보낸다: SQL Server처럼 배치 구분자({@code GO})가 있는
  *     방언은 배치 하나를 한 번에, 아니면 문장 하나씩. 쿼리 창의 명령({@code DELIMITER}, {@code @set} 등)은 서버로 보내지 않고 건너뛴 것으로 알린다.</li>
- *     <li>{@code getQueryHistory}는 Swing 쿼리 창 기록 파일({@code .metadata/chromite-query-history.jsonl}, Swing {@code QueryHistory})을 읽기만 한다.</li>
+ *     <li>{@code getEditorHistory}는 Swing 쿼리 창 기록 파일({@code .metadata/chromite-query-history.jsonl}, Swing {@code QueryHistory})을 읽기만 한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -89,6 +89,7 @@ import java.util.Map;
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
  * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
  *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -110,7 +111,7 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
             case "cancelQuery" -> cancel(context);
             case "validateSql" -> validate(context, args);
             case "formatSql" -> format(context, args);
-            case "getQueryHistory" -> history(context, args);
+            case "getEditorHistory" -> history(context, args);
             default -> throw unknownTool(toolId);
         };
     }
