@@ -88,6 +88,7 @@ import java.util.regex.Pattern;
  *   (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
  * - 2026-11-12 계획 도구가 끝의 {@code ;}를 runSql과 같은 판단으로 남김({@code trimTrailingDelimiter}, #87과 같은 원인): SQL Server MERGE의 실제
  *   계획이 "must be terminated by a semi-colon"으로 실패했다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
+ * - 2026-11-15 hypopg가 없을 때의 안내가 changeSchema createIndex를 부름 (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class PlanTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -167,7 +168,7 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
         if (family != DbFamily.POSTGRESQL) {
             result.addProperty("available", false);
             result.addProperty("reason", "Hypothetical indexes need PostgreSQL with the hypopg extension; " + family.getDisplayName() +
-                " has none in Chromite. Compare explainQuery before and after a real index (createIndex, confirmed by the user) instead.");
+                " has none in Chromite. Compare explainQuery before and after a real index (changeSchema createIndex, confirmed by the user) instead.");
             return result;
         }
         DBPDataSource dataSource = container.getDataSource();

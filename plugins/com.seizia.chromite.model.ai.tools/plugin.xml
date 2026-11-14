@@ -389,90 +389,57 @@
 
         <function id="previewDdl" name="%tool.previewDdl.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" addedIn="26.1.0"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Builds the DDL of a table, view or index change without running it; operation names the matching tool and the other arguments are that tool's. Use it to show the user the exact DDL before calling createTable, alterTable, dropTable, createView, dropView, createIndex or dropIndex. For the DDL of an existing object use getObjectDdl.">
+            description="Builds the DDL of a changeSchema call without running it: the same operation and arguments, returns sql. Use it to show the user the exact DDL before changeSchema. For the DDL of an existing object use getObjectDdl.">
             <alias id="generateDdl" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="operation" type="string" required="true" validValues="createTable,alterTable,dropTable,createView,dropView,createIndex,dropIndex" description="DDL operation"/>
             <parameter name="table" type="string" description="Table (table and index operations)"/>
             <parameter name="view" type="string" description="View (view operations)"/>
-            <parameter name="columns" type="string" description="createTable: JSON array of {name, type, nullable, default, identity}; createIndex: comma-separated columns with optional ASC/DESC"/>
+            <parameter name="columns" type="string" description="createTable: JSON array of {name, type, nullable, default, identity}; createIndex: comma-separated key columns, each optionally ASC or DESC"/>
             <parameter name="primaryKey" type="string" description="createTable: comma-separated primary key columns"/>
-            <parameter name="action" type="string" validValues="addColumn,dropColumn,renameColumn,alterColumnType" description="alterTable action"/>
+            <parameter name="action" type="string" validValues="addColumn,dropColumn,renameColumn,alterColumnType" description="alterTable: the change"/>
             <parameter name="column" type="string" description="alterTable: column"/>
-            <parameter name="type" type="string" description="alterTable: column type"/>
+            <parameter name="columnType" type="string" aliases="type" description="alterTable addColumn, alterColumnType: column type"/>
             <parameter name="nullable" type="boolean" description="alterTable: nullable"/>
             <parameter name="default" type="string" description="alterTable addColumn: default value or expression"/>
             <parameter name="newName" type="string" description="alterTable renameColumn: new name"/>
             <parameter name="select" type="string" description="createView: the SELECT"/>
-            <parameter name="replace" type="boolean" description="createView: replace an existing view"/>
-            <parameter name="index" type="string" description="createIndex/dropIndex: index name"/>
-            <parameter name="unique" type="boolean" description="createIndex: unique"/>
+            <parameter name="replace" type="boolean" description="createView: replace an existing view (default false)"/>
+            <parameter name="index" type="string" description="createIndex, dropIndex: index name"/>
+            <parameter name="unique" type="boolean" description="createIndex: unique index"/>
             <parameter name="include" type="string" description="createIndex: comma-separated INCLUDE columns (SQL Server, PostgreSQL)"/>
         </function>
-        <function id="createTable" name="%tool.createTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
+        <!-- One tool for the DDL changes (26.1.0, docs/chromite/ai-agent.md "별칭"): classified per call by operation
+             (DdlTools.classify): dropTable and dropView are DANGEROUS, the rest WRITE -->
+        <function id="changeSchema" name="%tool.changeSchema.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true" addedIn="26.1.0" operationParameter="operation"
             categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates a table from column definitions and an optional primary key. WRITE: the user sees the DDL and confirms. For DDL these arguments cannot express use runSql.">
+            description="Creates, alters or drops a table, view or index, chosen by operation: createTable (columns, primaryKey), alterTable (action addColumn, dropColumn, renameColumn or alterColumnType of one column), dropTable, createView (a read-only select, replace), dropView, createIndex (key columns, unique, include), dropIndex. The user sees the DDL and confirms; dropTable and dropView are DANGEROUS, the rest WRITE. To show the DDL without running it use previewDdl; check getObjectDependencies before a drop and getIndexUsage or getUnusedIndexes before dropIndex; on PostgreSQL try an index with whatIfIndex first. For DDL these arguments cannot express (constraints, routines) use runSql or runScript.">
+            <alias id="createTable" access="WRITE" arguments="operation=createTable" removeIn="26.2.0"/>
+            <alias id="alterTable" access="WRITE" arguments="operation=alterTable" removeIn="26.2.0"/>
+            <alias id="dropTable" access="DANGEROUS" arguments="operation=dropTable" removeIn="26.2.0"/>
+            <alias id="createView" access="WRITE" arguments="operation=createView" removeIn="26.2.0"/>
+            <alias id="dropView" access="DANGEROUS" arguments="operation=dropView" removeIn="26.2.0"/>
+            <alias id="createIndex" access="WRITE" arguments="operation=createIndex" removeIn="26.2.0"/>
+            <alias id="dropIndex" access="WRITE" arguments="operation=dropIndex" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
-            <parameter name="columns" type="string" required="true" description="JSON array of {name, type, nullable, default, identity}"/>
-            <parameter name="primaryKey" type="string" description="Comma-separated primary key columns"/>
-        </function>
-        <function id="alterTable" name="%tool.alterTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Changes one column of a table: addColumn, dropColumn, renameColumn or alterColumnType. WRITE: the user sees the DDL and confirms. For other ALTER TABLE changes (constraints, table options) use runSql.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
-            <parameter name="action" type="string" required="true" validValues="addColumn,dropColumn,renameColumn,alterColumnType" description="Change"/>
-            <parameter name="column" type="string" required="true" description="Column"/>
-            <parameter name="type" type="string" description="New or added column type"/>
-            <parameter name="nullable" type="boolean" description="Nullable"/>
-            <parameter name="default" type="string" description="Default for addColumn"/>
-            <parameter name="newName" type="string" description="New name for renameColumn"/>
-        </function>
-        <function id="dropTable" name="%tool.dropTable.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops a table with all its data. DANGEROUS: the user confirms. Check getObjectDependencies first. To remove rows only use deleteRows or runSql.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
-        </function>
-        <function id="createView" name="%tool.createView.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates a view from a read-only SELECT, or replaces an existing one with replace=true. WRITE: the user sees the DDL and confirms.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="view" type="string" required="true" description="View name"/>
-            <parameter name="select" type="string" required="true" description="The SELECT"/>
-            <parameter name="replace" type="boolean" description="Replace an existing view (default false)"/>
-        </function>
-        <function id="dropView" name="%tool.dropView.name" type="ACTION" access="DANGEROUS" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops a view. DANGEROUS: the user confirms. Check getObjectDependencies first.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="view" type="string" required="true" description="View name"/>
-        </function>
-        <function id="createIndex" name="%tool.createIndex.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Creates an index on a table: key columns with ASC/DESC, optionally unique and with INCLUDE columns (SQL Server, PostgreSQL). WRITE: the user sees the DDL and confirms. On PostgreSQL try it first with whatIfIndex.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
-            <parameter name="index" type="string" required="true" description="Index name"/>
-            <parameter name="columns" type="string" required="true" description="Comma-separated key columns, each optionally ASC or DESC"/>
-            <parameter name="unique" type="boolean" description="Unique index"/>
-            <parameter name="include" type="string" description="Comma-separated INCLUDE columns"/>
-        </function>
-        <function id="dropIndex" name="%tool.dropIndex.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.ddl" class="com.seizia.chromite.model.ai.tools.DdlTools"
-            description="Drops an index of a table. WRITE: the user sees the DDL and confirms. Check getIndexUsage or getUnusedIndexes first.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table of the index"/>
-            <parameter name="index" type="string" required="true" description="Index name"/>
+            <parameter name="operation" type="string" required="true" validValues="createTable,alterTable,dropTable,createView,dropView,createIndex,dropIndex" description="DDL operation"/>
+            <parameter name="table" type="string" description="Table (table and index operations)"/>
+            <parameter name="view" type="string" description="View (view operations)"/>
+            <parameter name="columns" type="string" description="createTable: JSON array of {name, type, nullable, default, identity}; createIndex: comma-separated key columns, each optionally ASC or DESC"/>
+            <parameter name="primaryKey" type="string" description="createTable: comma-separated primary key columns"/>
+            <parameter name="action" type="string" validValues="addColumn,dropColumn,renameColumn,alterColumnType" description="alterTable: the change"/>
+            <parameter name="column" type="string" description="alterTable: column"/>
+            <parameter name="columnType" type="string" aliases="type" description="alterTable addColumn, alterColumnType: column type"/>
+            <parameter name="nullable" type="boolean" description="alterTable: nullable"/>
+            <parameter name="default" type="string" description="alterTable addColumn: default value or expression"/>
+            <parameter name="newName" type="string" description="alterTable renameColumn: new name"/>
+            <parameter name="select" type="string" description="createView: the SELECT"/>
+            <parameter name="replace" type="boolean" description="createView: replace an existing view (default false)"/>
+            <parameter name="index" type="string" description="createIndex, dropIndex: index name"/>
+            <parameter name="unique" type="boolean" description="createIndex: unique index"/>
+            <parameter name="include" type="string" description="createIndex: comma-separated INCLUDE columns (SQL Server, PostgreSQL)"/>
         </function>
 
         <!-- ============================================================ Transfer -->
@@ -795,7 +762,7 @@
         </function>
         <function id="whatIfIndex" name="%tool.whatIfIndex.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="PostgreSQL with the hypopg extension: estimated plan of a statement before and after a hypothetical index (nothing is built; it exists only in the agent's session for this call) and the plan comparison. Use before proposing createIndex on PostgreSQL. Without hypopg in the database it answers available=false with the reason.">
+            description="PostgreSQL with the hypopg extension: estimated plan of a statement before and after a hypothetical index (nothing is built; it exists only in the agent's session for this call) and the plan comparison. Use before proposing changeSchema createIndex on PostgreSQL. Without hypopg in the database it answers available=false with the reason.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement to explain"/>
