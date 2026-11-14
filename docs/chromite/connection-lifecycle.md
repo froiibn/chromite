@@ -222,7 +222,7 @@ SWT 트랜잭션 로그의 "Show previous transactions"를 옮겼다(A-C4의 남
 | Chromite Agent `disconnect` 도구 | `ConnectionTools.disconnect` | 실행기의 `AIToolTransactionGuard`(커밋 / 롤백 / 취소, [ai-agent.md](ai-agent.md) "트랜잭션 안전") | 이미 있음 |
 | Activity Monitor 창 닫기 | `AdminConnection.close` | 자기 격리 세션은 늘 자동 커밋이라 잃을 것이 없음(`keepAutoCommit`) | 해당 없음 |
 | 연결 시험, 연결 실패 뒤 정리 | `ConnectionTestJob`, `ConnectJob` | 사용자 세션이 아님(임시 연결, 막 연 연결) | 해당 없음 |
-| 탐색기 새로 고침의 다시 연결 | `DataSourceDescriptor.refreshObject` | JDBC 데이터 소스는 `DBPRefreshableObject`라 다시 연결하지 않음(JDBC 아닌 소스만) | 해당 없음 |
+| 탐색기 새로 고침의 다시 연결 | `DataSourceDescriptor.refreshObject` | JDBC 데이터 소스는 `DBPRefreshableObject`라 다시 연결하지 않음. JDBC가 아닌 소스는 연결에 쓰이지 않음(아래 "새로 고침의 다시 연결 갈래") | 해당 없음 |
 | 연결 새로 고침(연결·Databases 폴더의 Refresh, DDL 뒤 연결 전체 새로 고침) | 각 엔진의 `refreshObject` | PostgreSQL(과 이를 잇는 엔진)은 모든 세션을 닫고 다시 열었다(2026-11-08 점검에서 빠짐, 위 줄이 JDBC 데이터 소스 안쪽을 보지 않았다). 이제 세션을 닫지 않는다(아래 "연결 새로 고침과 세션") | **고침**(2026-11-13, #109) |
 | 실행 전 다시 검증 | `SQLQueryExecuteJob`(`isInvalidateBeforeExecute`) | Swing은 켜지 않음(기본 `false`) | 해당 없음 |
 | 결과 저장의 다시 열기 | `AbstractCommandContext.saveChanges` | 연결이 없을 때만 다시 엶(잃을 것 없음) | 해당 없음 |
@@ -274,7 +274,24 @@ PostgreSQL 연결을 새로 고치면 그 연결의 세션이 모두 닫혔다. 
 | Altibase(Generic 기반) | `AltibaseDataSource.java:181`, `GenericDataSource.java:625` | 캐시 비우기, `initialize` | SESSION_ID 5 그대로 |
 | DB2, Cubrid, Dameng, Denodo, Exasol, IoTDB, Mimer | 각 `*DataSource.refreshObject` | `shutdown`·`close`·`reconnect` 없음(코드만 읽음) | 번들 시험 서버 없음 |
 | PostgreSQL을 잇는 엔진(Greenplum, Kingbase, GaussDB 등) | `PostgreDataSource.refreshObject`를 물려받음 | 이 고침이 함께 적용됨 | 시험 서버 없음 |
-| JDBC가 아닌 데이터 소스 | `DataSourceDescriptor.refreshObject` → `reconnect` | `DBPRefreshableObject`가 아니면 다시 연결 | 이번 범위 밖(보고만) |
+| JDBC가 아닌 데이터 소스 | `DataSourceDescriptor.refreshObject` → `reconnect` | `DBPRefreshableObject`가 아니면 다시 연결 | 닿는 데이터 소스 없음(아래 "새로 고침의 다시 연결 갈래", 2026-11-15 #111) |
+
+### 새로 고침의 다시 연결 갈래 (2026-11-15, 앱 변경 #111)
+
+`DataSourceDescriptor.refreshObject`(registry, 818행)는 데이터 소스가 `DBPRefreshableObject`가 아니면 `reconnect`로 다시 연결한다. 이 갈래에 닿는
+데이터 소스가 있는지 코드로 찾았다(실행할 수 있는 경우가 없어 실행 확인은 없음).
+
+- `DBPDataSource`를 구현하는 클래스는 `AbstractDataSource`(model) 아래 둘뿐이다: `JDBCDataSource`(model.jdbc, `DBPRefreshableObject` 구현, 84행)와
+  `AbstractSimpleDataSource`. 그 밖의 구현은 SQL 의미 분석의 가짜 객체(`SQLQueryConnectionDummyContext.DummyDbObject`)라 연결에 쓰이지 않는다.
+- `plugin.xml`에 등록된 데이터 소스 제공자는 `StreamDataSourceProvider`(data.transfer) 하나를 빼고 모두 `JDBCDataSourceProvider<DATASOURCE extends JDBCDataSource>`를
+  잇는다(Cloudflare D1은 `SQLiteDataSourceProvider`). 그래서 연결이 만드는 데이터 소스는 컴파일할 때부터 `JDBCDataSource`다. SQLite·H2·DuckDB도 Generic이라 같다.
+- `AbstractSimpleDataSource`를 잇는 유일한 클래스 `StreamDataSource`(파일 가져오기)는 `StreamDataSourceContainer`에 붙고 `DataSourceDescriptor`에 붙지 않는다.
+  `MissingDataSourceProvider`(드라이버가 없는 연결)는 `openDataSource`가 예외라 연결되지 않는다.
+- 연결이 끊긴 컨테이너(데이터 소스 null)는 `instanceof`가 거짓이라 `reconnect` 갈래로 가지만, 이 함수를 부르는 유일한 탐색기 경로
+  `DBNDatabaseNode.refreshNode`(367행)가 데이터 소스가 null이면 `refreshObject`를 부르지 않는다. 끊긴 연결에는 세션도 트랜잭션도 없다.
+
+결론: 사용자 세션(수동 커밋 쿼리 창, 임시 개체)을 가진 데이터 소스는 이 갈래에 닿지 않는다. 코드는 바꾸지 않았다. 앞으로 JDBC가 아닌 데이터 소스
+제공자를 더하면 그 새로 고침이 세션을 닫지 않는지 이 절을 다시 본다.
 
 ### 바꾼 것: 새로 고침은 세션을 닫지 않는다
 
@@ -387,3 +404,5 @@ PostgreSQL 연결을 새로 고치면 그 연결의 세션이 모두 닫혔다. 
 - 2026-11-13 "연결 새로 고침과 세션": PostgreSQL 연결 새로 고침이 모든 세션을 닫아 다른 창의 트랜잭션을 묻지 않고 롤백하고, 목록 밖 인스턴스에 다시 열린
   세션이 끊은 뒤에도 남던 것을 고침. 다른 번들 엔진은 닫지 않음을 확인. 닫기 경로 표에 새로 고침 줄(앱 변경 #109, `chromite/pg-refresh-sessions`).
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: PostgreSQL 계열의 Object Explorer 새로 고침, DDL 뒤 탐색기 갱신, DB 콤보, 데이터 형식 목록
+- 2026-11-15 "새로 고침의 다시 연결 갈래": `DataSourceDescriptor.refreshObject`의 `reconnect` 갈래에 사용자 세션을 가진 데이터 소스가 닿지 않음을
+  코드로 확인(앱 변경 #111 (b), `chromite/refresh-followups`). 코드는 바꾸지 않았다
