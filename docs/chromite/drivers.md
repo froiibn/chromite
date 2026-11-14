@@ -359,10 +359,10 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - **아이콘:** 사용자 지시(2026-11-14) "데이터베이스 아이콘은 turbrix에게 제공받아라". 원본은 다른 프로젝트의 44×44 PNG(SHA-256 `6833e95a…6b87f`, CISPHERE Inc. 로고의 심볼)다.
   내용은 고치지 않고 크기만 바꿨다: `shardsphere_icon.png` 16×16·`@2x` 32×32(Lanczos 축소), `shardsphere_icon_big.png` 64×64(원본 44px을 투명 64px 가운데),
   `@2x` 128×128(원본을 픽셀 두 배 88px로 가운데, 새 색을 만들지 않으려고 최근접 보간). 넓은 로고는 없어 `logoImage`를 두지 않았다. 고지는 `NOTICE`와
-  [driver-licenses.md](driver-licenses.md) "ShardSphere 아이콘". 지울 때는 네 파일, `plugin.xml`의 `icon`·`iconBig` 세 곳, 그 두 고지만 고친다.
-- **어두운 테마(남은 일):** 남색 사각형이 어두운 배경에서 거의 보이지 않고 녹색 부분만 보인다(아래 확인의 캡처). 벤더 아이콘에 밝은 판이나 어두운 변형을 주는 방법은
-  Chromite에 없다(밝음·어두움 변형은 자체 UI 아이콘 팩 `icons/ui/<팩>/<light|dark>/`뿐, [UiIcons](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/UiIcons.java)).
-  이 브랜치에서는 만들지 않았다. 제안: 드라이버·유형 아이콘에 선택 속성(예: `iconDark`)을 두고 `NodeIcons`가 FlatLaf 어두운 테마에서 그것을 쓰게 하거나, 벤더가 어두운 배경용 표지를 주면 그것을 쓴다.
+  [driver-licenses.md](driver-licenses.md) "ShardSphere 아이콘". 지울 때는 네 파일, `plugin.xml`의 `icon`·`iconBig` 세 곳과 `lightPlate` 두 줄(아래 "어두운 테마"), 그 두 고지만 고친다.
+- **어두운 테마:** 남색 사각형이 어두운 배경에서 거의 보이지 않고 녹색 부분만 보였다(아래 확인의 캡처). 2026-11-15(앱 변경 #114) 아이콘을 가진 이 플러그인이
+  `com.seizia.chromite.ui.swing.iconPlate` 확장에 `lightPlate` 두 줄(작은 아이콘, 큰 아이콘)을 선언하고, Swing UI가 어두운 테마에서 바꾸지 않은 그림을 밝은 판 위에 그린다.
+  드라이버 정의(`<driver>`, `<dataSourceType>`)는 바꾸지 않았다. 장치와 다른 벤더 후보는 [design-spec.md](design-spec.md) "벤더 아이콘의 밝은 판".
 - **확인(2026-11-14~15, 이 브랜치 빌드, Windows x86_64, 내장 런타임 JBR 25.0.4.1(`tools/jre/BundleJre.java`로 만든 `jre/`), 사설 작업 공간·데이터 폴더, EDT 테스트 에이전트):**
   - 결과물 `drivers/`는 39개 파일, 31,494,810 bytes. `drivers/shardsphere/`에 `shardsphere.jar`(SHA-256 `6752544c…9987`, 받은 파일과 같음)와 `README.txt`.
   - 드라이버 목록 검색("shard")·Driver Manager·Connect 대화상자에 ShardSphere와 그 아이콘이 보인다. Driver Manager의 라이브러리는 `drivers/shardsphere`(있음),
@@ -467,3 +467,4 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   내장 목록은 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere.
 - 2026-11-14 검토 뒤 고침(같은 브랜치): Connect 대화상자의 기본 포트, 복제 카탈로그가 없는 서버의 복제 목록, `getFunctionColumns`가 없는 드라이버의 함수 매개변수
   ("ShardSphere"의 "고친 것").
+- 2026-11-15 ShardSphere "어두운 테마": 밝은 판 선언(`lightPlate` 두 줄, 앱 변경 #114). 드라이버 정의는 그대로.

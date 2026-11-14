@@ -76,6 +76,8 @@ database. There is no written license; they are used with the vendor's
 agreement as stated by the owner of the Chromite project. They were made
 from a 44 x 44 PNG (SHA-256 6833e95a5177662e020f26987c89450a3d2abf57ce6bd
 605fe7ce602d206b87f) by scaling only, without changing its content.
+In the dark theme Chromite shows the unchanged image on a light plate that
+it draws behind the image (the image files are not modified).
 
 Binary distributions of Chromite include a Java runtime in the jre/ folder
 of the installation (macOS: Contents/Eclipse/jre inside the app), linked
