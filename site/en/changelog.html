@@ -54,6 +54,19 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.0.8">
+    <h2>26.0.8</h2>
+    <div class="body">
+      <p>The ShardSphere driver is now built in: after installing, ShardSphere can be connected without internet access.</p>
+      <ul>
+        <li>New · ShardSphere: the database type list has ShardSphere. Its driver ships in the installer, so nothing is downloaded. The default port 55321, the default database memdb and the default user sys are filled in. Object Explorer (schemas, tables with columns, constraints and indexes, views, packages, tablespaces, users) and the query window work as they do for Altibase</li>
+        <li>Connect dialog: for a database with a default port, the server name alone is enough (some types, such as Altibase, were stopped by "Enter the port" before)</li>
+        <li>Altibase · ShardSphere: keyword highlighting follows the reserved words of the connected server (the words differ by server version and product). On a server without replication information the Replications folder opens empty instead of failing, and the parameters of functions are shown</li>
+        <li>Screens: in the dark theme the ShardSphere icon is drawn on a light plate so that it can be seen</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.0.7">
     <h2>26.0.7</h2>
     <div class="body">
