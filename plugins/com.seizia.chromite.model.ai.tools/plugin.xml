@@ -59,13 +59,8 @@
         </function>
         <function id="getConnectionInfo" name="%tool.getConnectionInfo.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Settings of one connection without secrets: host, port, database, user, auth model, network handlers (SSH, proxy), default auto-commit, and server product, server version and driver version when connected. Does not connect. For edition, uptime and server settings use getServerInfo; to open the connection use connect.">
+            description="Settings of one connection without secrets: host, port, database, user, auth model, network handlers (SSH, proxy), default auto-commit, and server product, server version and driver version when connected. Does not connect. For edition, uptime and server settings use getServerInfo; to check that the connection works use testConnection.">
             <parameter name="connection" type="string" description="Connection id or name (listConnections); default: the chat's current connection"/>
-        </function>
-        <function id="connect" name="%tool.connect.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Opens the connection if it is closed and returns the getConnectionInfo details plus connectMs. Rarely needed: every tool connects on demand. To check whether a connection works use testConnection.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="disconnect" name="%tool.disconnect.name" type="ACTION" access="WRITE" writes="none" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
@@ -74,7 +69,8 @@
         </function>
         <function id="testConnection" name="%tool.testConnection.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
-            description="Checks that a connection works: connects, makes one round trip and returns ok, roundTripMs and the server product and version. Use when the user asks whether a connection works or is slow to reach. For connection settings use getConnectionInfo.">
+            description="Checks that a connection works: connects if it is closed, makes one round trip and returns ok, roundTripMs and the server product and version. Other tools connect on demand, so call it only when the user asks whether a connection works or is slow to reach. For connection settings use getConnectionInfo.">
+            <alias id="connect" access="READ" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
         <function id="getCurrentDatabase" name="%tool.getCurrentDatabase.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"

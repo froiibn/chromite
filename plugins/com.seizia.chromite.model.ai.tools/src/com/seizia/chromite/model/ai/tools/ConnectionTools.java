@@ -59,7 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Connection tools: list, details without secrets, connect/disconnect, test, current database, transactions, policy, editor.
+ * Connection tools: list, details without secrets, test (connects), disconnect, current database, transactions, policy, editor.
  *
  * 설계:
  * <ul>
@@ -85,7 +85,7 @@ import java.util.Map;
  *   실패와 그 이유로 바꿈(앱 변경 #92, docs/chromite/ai-agent.md "공유 세션의 commitTransaction·rollbackTransaction")
  * - 2026-11-13 공유 세션에서 setCurrentDatabase가 database를 저장만 하고 무시되던 것을, 바꿔야 하면 거절하고 아무것도 저장하지 않게 바꿈.
  *   getCurrentDatabase에 공유 세션 안내(앱 변경 #94, docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
- * - 2026-11-15 getToolPolicy → getAgentToolPolicy (도구 정리, docs/chromite/ai-agent.md "별칭")
+ * - 2026-11-15 getToolPolicy → getAgentToolPolicy, connect를 testConnection에 합침(옛 ID는 별칭) (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -99,7 +99,6 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         return switch (toolId) {
             case "listConnections" -> listConnections(args);
             case "getConnectionInfo" -> describe(requireConnection(context), true);
-            case "connect" -> connect(context);
             case "disconnect" -> disconnect(context);
             case "testConnection" -> testConnection(context);
             case "getCurrentDatabase" -> currentDatabase(context);
@@ -178,16 +177,6 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
             json.addProperty("serverVersion", dataSource.getInfo().getDatabaseProductVersion());
             json.addProperty("driverVersion", dataSource.getInfo().getDriverVersion());
         }
-        return json;
-    }
-
-    @NotNull
-    private static JsonElement connect(@NotNull AIToolCallContext context) throws DBException {
-        DBPDataSourceContainer container = requireConnection(context);
-        long start = System.currentTimeMillis();
-        AgentSql.connect(context.getMonitor(), container);
-        JsonObject json = describe(container, true);
-        json.addProperty("connectMs", System.currentTimeMillis() - start);
         return json;
     }
 
