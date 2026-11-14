@@ -211,6 +211,7 @@ public class AiMessages extends NLS {
     public static String ai_policy_blocked;
     public static String ai_policy_effective_read_only;
     public static String ai_policy_always_confirm;
+    public static String ai_policy_auto_dangerous_asks;
     public static String ai_policy_column_tool;
     public static String ai_policy_column_group;
     public static String ai_policy_column_class;

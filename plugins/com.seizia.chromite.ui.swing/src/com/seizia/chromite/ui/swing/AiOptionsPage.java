@@ -26,6 +26,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionPurpose;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
 import com.seizia.chromite.model.ai.agent.AIToolAuditLog;
 import com.seizia.chromite.model.ai.agent.AIToolCatalog;
 import com.seizia.chromite.model.ai.agent.AIToolDecision;
@@ -121,6 +122,8 @@ import java.util.Set;
  *   rollbackTransaction이 "읽기 / 자동 실행"으로 보였다(앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
  * - 2026-11-13 권한 정책의 규칙 안내를 HTML 라벨 대신 아이콘과 {@link WrappingNote}로({@link WrappingNote#withIcon}): 옵션 창 최소 폭에서
  *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-15 Tool Policy 표: 호출마다 분류하는 도구(changeSchema, runSql 등)가 자동 실행이어도 위험한 호출은 물으면 그렇게 보임
+ *   ({@code ai_policy_auto_dangerous_asks}) (도구 정리, docs/chromite/ai-agent.md "정책 옮기기")
  * - 2026-11-15 감사 기록: 도구 열에 합친 도구의 작업을 붙이고, 글자 거르기가 옛 ID의 기록을 지금 ID로도 찾음(옛 기록은 옛 ID 그대로)
  *   (도구 정리, docs/chromite/ai-agent.md "감사 기록")
  */
@@ -899,7 +902,21 @@ final class AiOptionsPage extends JPanel {
                 // The transaction guard asks whatever the rule allows (rollbackTransaction is READ, AUTO by default)
                 return AiMessages.ai_policy_always_confirm;
             }
+            if (decision.permission() == AIToolPermission.AUTO && access != AIToolAccess.DANGEROUS && canBeDangerous(tool)
+                && AIToolPolicy.resolve(settings, scope, tool, AIToolAccess.DANGEROUS).permission() != AIToolPermission.AUTO) {
+                // A tool classified per call (changeSchema dropTable, runSql DROP): its dangerous calls ask all the same
+                return AiMessages.ai_policy_auto_dangerous_asks;
+            }
             return describePermission(decision.permission());
+        }
+    }
+
+    private static boolean canBeDangerous(@NotNull AIFunctionDescriptor tool) {
+        try {
+            return tool.getInstance() instanceof AIToolAccessClassifier classifier
+                && classifier.getHighestAccess(tool) == AIToolAccess.DANGEROUS;
+        } catch (RuntimeException e) {
+            return true;
         }
     }
 
