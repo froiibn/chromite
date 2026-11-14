@@ -518,7 +518,7 @@
         </function>
         <function id="getLongRunningQueries" name="%tool.getLongRunningQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Statements running now for longer than minSeconds with CPU, reads, waits and blocking. Use for what is slow right now. For statements that were expensive over time use getTopQueries (SQL Server Query Store: getQueryStoreTopQueries). SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
+            description="Statements running now for longer than minSeconds with CPU, reads, waits and blocking. Use for what is slow right now. For statements that were expensive over time use getTopQueries. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="minSeconds" type="integer" defaultValue="5" description="Minimum duration in seconds (default 5)"/>
         </function>
@@ -534,12 +534,16 @@
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="top" type="integer" defaultValue="20" description="Number of wait types (default 20)"/>
         </function>
-        <function id="getTopQueries" name="%tool.getTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
+        <function id="getTopQueries" name="%tool.getTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core" operationParameter="source"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Most expensive statements in the server's cumulative statistics, ordered by cpu, io, duration or executions: SQL Server plan cache, PostgreSQL pg_stat_statements, MySQL performance_schema digests, Oracle V$SQL. Use to find what to tune. For SQL Server history that survives restarts use getQueryStoreTopQueries; for statements running now getLongRunningQueries.">
+            description="Most expensive statements, ordered by cpu, io, duration or executions. source=cache (default): the server's cumulative statistics since the restart: SQL Server plan cache, PostgreSQL pg_stat_statements, MySQL performance_schema digests, Oracle V$SQL. source=queryStore: the SQL Server Query Store of a database for the last hours, which survives restarts and plan cache eviction, with plan counts; it says clearly when Query Store is off. Use to find what to tune. For statements running now use getLongRunningQueries; for queries that got slower getQueryStoreRegressions.">
+            <alias id="getQueryStoreTopQueries" access="READ" arguments="source=queryStore" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="orderBy" type="string" defaultValue="cpu" validValues="cpu,io,duration,executions" description="Sort key (default cpu)"/>
-            <parameter name="top" type="integer" defaultValue="20" description="Number of statements (default 20)"/>
+            <parameter name="database" type="string" description="Database; default: current (source=queryStore: the database whose Query Store is read)"/>
+            <parameter name="source" type="string" defaultValue="cache" validValues="cache,queryStore" description="cache (default: cumulative statistics, every database) or queryStore (SQL Server Query Store)"/>
+            <parameter name="sortBy" type="string" aliases="orderBy" defaultValue="cpu" validValues="cpu,io,duration,executions" description="Sort key (default cpu)"/>
+            <parameter name="limit" type="integer" aliases="top" description="Number of statements (default 20)"/>
+            <parameter name="hours" type="integer" defaultValue="24" description="source=queryStore: hours back (default 24)"/>
         </function>
         <function id="getDatabaseSizes" name="%tool.getDatabaseSizes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
@@ -560,9 +564,9 @@
         </function>
         <function id="getJobHistory" name="%tool.getJobHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Recent runs of the server's scheduler, failures only by default: SQL Server Agent (msdb), PostgreSQL pg_cron, MySQL events, Oracle scheduler. Use for whether any job failed. On SQL Server, for one job's steps and messages use getAgentJobHistory, for job definitions listAgentJobs.">
+            description="Recent runs of the server's scheduler, failures only by default: PostgreSQL pg_cron, MySQL events, Oracle scheduler. Use for whether any job failed. On SQL Server use getAgentJobHistory (SQL Server Agent).">
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="failedOnly" type="boolean" defaultValue="true" description="Only failed or canceled runs (default true; getAgentJobHistory defaults to false)"/>
+            <parameter name="failedOnly" type="boolean" defaultValue="true" description="Only failed or canceled runs (default true)"/>
             <parameter name="days" type="integer" defaultValue="7" description="Days back (default 7)"/>
             <parameter name="limit" type="integer" description="Max runs (default 100)"/>
         </function>
@@ -626,7 +630,7 @@
              the msdb help procedures, so the agent roles (SQLAgentUserRole, SQLAgentReaderRole, SQLAgentOperatorRole) are enough -->
         <function id="listAgentJobs" name="%tool.listAgentJobs.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use for which jobs exist or are running. For one job's steps and schedules use getAgentJob; for run history getAgentJobHistory; for failures of all jobs getJobHistory.">
+            description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use for which jobs exist or are running. For one job's steps and schedules use getAgentJob; for run history and failures of all jobs getAgentJobHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="filter" type="string" description="Optional text to match in the job name or category"/>
         </function>
@@ -638,7 +642,7 @@
         </function>
         <function id="getAgentJobHistory" name="%tool.getAgentJobHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
-            description="SQL Server Agent: run history, newest first: each run's outcome (step 0) and its steps with status, duration, retries and the server message; one job or all jobs. Use for why a job failed. For a quick failure list of all jobs use getJobHistory.">
+            description="SQL Server Agent: run history, newest first: each run's outcome (step 0) and its steps with status, duration, retries and the server message; one job or all jobs. Use for whether a job failed (failedOnly=true lists only failures) and why. For PostgreSQL, MySQL and Oracle schedulers use getJobHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="job" type="string" description="Job name or job_id; empty for all jobs"/>
             <parameter name="failedOnly" type="boolean" defaultValue="false" description="Only runs and steps that failed or were canceled (default false)"/>
@@ -724,15 +728,6 @@
             <parameter name="name" type="string" description="Routine name (or give contains)"/>
             <parameter name="contains" type="string" description="Text the statement contains"/>
             <parameter name="top" type="integer" defaultValue="10" description="Max statements (default 10)"/>
-        </function>
-        <function id="getQueryStoreTopQueries" name="%tool.getQueryStoreTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="SQL Server Query Store of a database: the most expensive queries of the last hours (CPU, duration, logical reads, executions) with their plan count. Unlike getTopQueries it survives restarts and plan cache eviction. Says clearly when Query Store is off.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="orderBy" type="string" defaultValue="cpu" validValues="cpu,io,duration,executions" description="Sort key (default cpu)"/>
-            <parameter name="hours" type="integer" defaultValue="24" description="Hours back (default 24)"/>
-            <parameter name="top" type="integer" defaultValue="20" description="Number of queries (default 20)"/>
         </function>
         <function id="getQueryStoreRegressions" name="%tool.getQueryStoreRegressions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"

@@ -38,7 +38,7 @@ import java.util.TreeMap;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-08 1b단계 도구: SQL Server 에이전트 작업 프로시저, Query Store(VIEW DATABASE STATE), Oracle V$ 도구와 경고 로그 권한
- * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): SQL 자원 이름 checkDiagnosticAccess
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): SQL 자원 이름 checkDiagnosticAccess, Query Store 상위 쿼리는 getTopQueries
  */
 final class PermissionProbe {
 
@@ -122,7 +122,7 @@ final class PermissionProbe {
                         "getWaitStats", "getTopQueries", "getCachedPlans", "getRoutineStats", "getMissingIndexes", "getDeadlocks", "killSession")));
                 checks.add(new Check("view_database_state", "VIEW DATABASE STATE: index usage, physical stats, statistics properties, Query Store",
                     List.of("getIndexUsage", "getUnusedIndexes", "getIndexFragmentation", "getTableStatistics", "getSpaceUsage",
-                        "getQueryStoreTopQueries", "getQueryStoreRegressions", "getQueryStoreForcedPlans")));
+                        "getTopQueries", "getQueryStoreRegressions", "getQueryStoreForcedPlans")));
                 checks.add(new Check("showplan", "SHOWPLAN: estimated and actual plans",
                     List.of("explainQuery", "getActualPlan", "comparePlans")));
                 checks.add(new Check("view_definition", "VIEW DEFINITION: routine source and dependencies of objects you do not own",

@@ -25,6 +25,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionParameter;
+import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
 import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 
 import java.sql.Connection;
@@ -46,15 +47,25 @@ import java.util.stream.Collectors;
  *     PostgreSQL은 트랜잭션 안의 오류가 트랜잭션 전체를 멈추므로 문장마다 저장점을 두고 실패하면 저장점으로 되돌린다.</li>
  *     <li>모든 문장이 실패하면 오류로 끝낸다(감사 기록에 ERROR로 남게).</li>
  *     <li>해석이 필요한 결과(블로킹 트리, 교착 상태 XML, 계획 XML, 줄 번호)는 {@link DiagnosticPostProcessor}가 다듬는다.</li>
+ *     <li>SQL 자원은 도구 ID의 파일이다. 합친 도구는 인수로 자원을 고른다: {@code getTopQueries}의 {@code source=queryStore}는
+ *     {@code getQueryStoreTopQueries.sql}(26.1.0 전에는 따로 있던 도구). {@code getJobHistory}는 26.1.0부터 SQL Server에서 채팅에 보내지 않는다
+ *     ({@code getAgentJobHistory}가 맡음). 그 SQL Server 블록은 직접 부르는 호출(MCP, 저장된 대화)을 위해 26.2.0까지 둔다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-08 쓸 수 있는 DB 종류 = SQL 자원에 블록이 있는 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
+ * - 2026-11-15 getQueryStoreTopQueries를 getTopQueries(source=queryStore)에 합침, getJobHistory의 SQL Server 부분은 getAgentJobHistory로
+ *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class DiagnosticSqlTool extends AgentTool {
 
     public static final String PARAM_DATABASE = "database"; //$NON-NLS-1$
+    private static final String TOP_QUERIES = "getTopQueries"; //$NON-NLS-1$
+    private static final String QUERY_STORE_TOP_QUERIES = "getQueryStoreTopQueries"; //$NON-NLS-1$
+    private static final String SOURCE_CACHE = "cache"; //$NON-NLS-1$
+    private static final String SOURCE_QUERY_STORE = "queryStore"; //$NON-NLS-1$
+    private static final String JOB_HISTORY = "getJobHistory"; //$NON-NLS-1$
 
     @NotNull
     @Override
@@ -66,13 +77,15 @@ public class DiagnosticSqlTool extends AgentTool {
         DBPDataSourceContainer container = requireConnection(context);
         AgentSql.connect(context.getMonitor(), container);
         DbFamily family = DbFamily.of(container);
-        DiagnosticScript script = DiagnosticScript.load(toolId);
+        String scriptName = scriptName(toolId, args);
+        DiagnosticScript script = DiagnosticScript.load(scriptName);
         if (script == null) {
             throw unknownTool(toolId);
         }
         DiagnosticScript.Block block = script.getBlock(family);
         if (block == null) {
-            throw new DBException(toolId + " is not available for " + family.getDisplayName() + " (supported: " +
+            String name = scriptName.equals(toolId) ? toolId : toolId + " with source=" + SOURCE_QUERY_STORE;
+            throw new DBException(name + " is not available for " + family.getDisplayName() + " (supported: " +
                 script.getFamilies().stream().map(DbFamily::getDisplayName).collect(Collectors.joining(", ")) +
                 "). Query the server's system views with runReadOnlySql instead.");
         }
@@ -81,7 +94,7 @@ public class DiagnosticSqlTool extends AgentTool {
         JsonObject result = AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
             (connection, runner) -> {
                 JsonObject json = runBlock(connection, runner, context.getTool(), block, args, limits);
-                DiagnosticPostProcessor.processInSession(toolId, connection, runner, this, context, block, args, limits, json);
+                DiagnosticPostProcessor.processInSession(scriptName, connection, runner, this, context, block, args, limits, json);
                 return json;
             });
         JsonObject output = new JsonObject();
@@ -95,12 +108,34 @@ public class DiagnosticSqlTool extends AgentTool {
             block.notes().forEach(notes::add);
             output.add("notes", notes);
         }
-        return DiagnosticPostProcessor.process(toolId, context, family, args, output);
+        return DiagnosticPostProcessor.process(scriptName, context, family, args, output);
     }
 
-    // The families with a block in the tool's SQL resource: the same rule call() applies
+    /**
+     * The SQL resource of a call: the tool's own, or the one its arguments pick (getTopQueries source=queryStore).
+     */
+    @NotNull
+    private static String scriptName(@NotNull String toolId, @NotNull Map<String, Object> args) throws AIToolArgumentException {
+        if (!toolId.equals(TOP_QUERIES)) {
+            return toolId;
+        }
+        String source = AgentArgs.getString(args, "source");
+        if (source == null || source.trim().equalsIgnoreCase(SOURCE_CACHE)) {
+            return toolId;
+        }
+        if (source.trim().equalsIgnoreCase(SOURCE_QUERY_STORE)) {
+            return QUERY_STORE_TOP_QUERIES;
+        }
+        throw new AIToolArgumentException("Argument 'source' must be " + SOURCE_CACHE + " or " + SOURCE_QUERY_STORE);
+    }
+
+    // The families with a block in the tool's SQL resource: the same rule call() applies. getJobHistory keeps a SQL Server
+    // block for direct calls until 26.2.0, but the chat sends getAgentJobHistory there
     @Override
     public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        if (tool.getId().equals(JOB_HISTORY) && family == DbFamily.SQLSERVER) {
+            return false;
+        }
         try {
             DiagnosticScript script = DiagnosticScript.load(tool.getId());
             return script != null && script.getBlock(family) != null;

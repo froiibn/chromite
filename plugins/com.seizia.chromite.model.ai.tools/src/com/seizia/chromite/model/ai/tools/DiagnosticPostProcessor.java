@@ -53,7 +53,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-08 Oracle 교착 상태: 경고 로그 항목이 가리키는 추적 파일에서 교착 상태 그래프를 읽음, Query Store 상태 문장
- * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): probePermissions → checkDiagnosticAccess
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): probePermissions → checkDiagnosticAccess. 후처리는 도구 ID가 아니라 호출이 쓴 SQL
+ *   자원 이름으로 고른다(getTopQueries source=queryStore는 getQueryStoreTopQueries)
  *   (docs/chromite/ai-agent.md "1b단계 도구")
  */
 final class DiagnosticPostProcessor {
