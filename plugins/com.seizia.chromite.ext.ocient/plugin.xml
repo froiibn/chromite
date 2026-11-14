@@ -41,6 +41,14 @@
              </drivers>
         </datasource>
     </extension>
+
+    <!-- Chromite: over half of each of these marks is under 1.5:1 contrast on the dark theme's backgrounds, so the Swing UI draws them,
+         unchanged, on a light plate in dark themes (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판"). XML only: no dependency
+         on the Swing bundle. -->
+    <extension point="com.seizia.chromite.ui.swing.iconPlate">
+        <lightPlate icon="icons/ocient_icon.png"/>
+        <lightPlate icon="icons/ocient_icon_big.png"/>
+    </extension>
     
     <extension point="com.seizia.chromite.generic.meta">
         <meta id="ocient" class="com.seizia.chromite.ext.ocient.model.OcientMetaModel" driverClass="com.ocient.jdbc.Driver"/>

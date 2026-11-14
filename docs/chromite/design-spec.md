@@ -556,7 +556,7 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
   ([스키마](../../plugins/com.seizia.chromite.ui.swing/schema/com.seizia.chromite.ui.swing.iconPlate.exsd))에 아이콘 하나마다 `<lightPlate icon="icons/..."/>`를 둔다.
   경로는 기여하는 플러그인 기준이고 `icon` 속성에 쓴 것과 같게 쓴다(`@2x`는 기본 파일을 따라감). 작은 아이콘과 큰 아이콘을 따로 적는다.
   XML만이라 모델 플러그인이 Swing 번들에 의존하지 않는다(Require-Bundle 없음, Swing UI가 없는 곳에서는 무시됨). 다른 아이콘을 표시할 때 Java 코드는 고치지 않는다.
-  지금 표시한 아이콘: ShardSphere 두 개(`ext.altibase/plugin.xml`).
+  표시한 아이콘과 고른 기준은 아래 "판을 깔 아이콘 고르기".
 - **그리는 곳(한 곳):** [NodeIcons](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/NodeIcons.java)가 위치로 아이콘 파일을 읽을 때
   선언된 위치면 [IconPlates](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/IconPlates.java)로 감싸 캐시한다. 드라이버 아이콘을 보이는 곳은
   모두 `NodeIcons.getIcon`/`getNodeIcon`/`getDataSourceIcon`을 거치므로(겹침 아이콘의 기본 아이콘, 상태 점을 붙인 연결 아이콘 포함) 같은 판을 쓴다.
@@ -571,6 +571,39 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 - **버린 방법:** (1) 드라이버·유형 선언(`dataSourceProvider`)의 속성: 아이콘은 대부분 `DBPImage`만 넘어오므로(드라이버를 모름) 모델의 이미지 형식과
   레지스트리, 스키마를 함께 바꿔야 한다. (2) Swing 번들 안의 위치 목록: 선언이 아이콘을 가진 플러그인과 떨어지고 새 아이콘마다 Java를 고쳐야 한다.
   (3) 어두운 변형 파일(`iconDark`): 상표 그림을 Chromite가 새로 만들어야 한다. (4) 판을 아이콘 칸 밖으로 1px 넓힘: 트리 행의 왼쪽 끝 등에서 잘린다.
+
+#### 판을 깔 아이콘 고르기 (2026-11-15, 앱 변경 #117)
+
+#114에서는 ShardSphere만 표시했다. #117에서 제품이 보일 수 있는 드라이버 아이콘을 모두 같은 기준으로 재서 판이 필요한 것을 골랐다.
+장치, 판 색·여백·모서리, 이미지 파일은 바꾸지 않았다.
+
+- **대상:** 제품(`com.seizia.chromite.swing.feature`가 담는 플러그인)의 `dataSourceProvider` 확장에서 이름 있는 `<driver>` 145개가 실제로 쓰는 작은 아이콘
+  106개(레지스트리처럼 풀어 봄: 드라이버 `icon` → 유형 `icon` → 공급자 `icon`, 상대 경로는 선언한 플러그인 기준, `#토큰`은 `DBIcon`). Swing UI가 보이는 것은
+  작은 아이콘뿐이다(`NodeIcons.getIcon(driver.getIcon())` 등, 큰 아이콘을 쓰는 곳은 없음). 기본 아이콘 `connection/database_icon.svg`는 아이콘 팩의
+  `connection`(테마 아이콘)으로 바뀌므로 뺐다.
+- **잰 방법:** `NodeIcons`처럼 그린다(PNG는 `@2x`와 묶은 다중 해상도, SVG는 16×16 벡터). 100%와 150% 장치 픽셀에서, 알파 16 이상인 픽셀을 바탕에 합성해
+  바탕과의 대비(WCAG 상대 휘도 비)를 구하고, **대비가 1.5:1 미만인 픽셀의 몫**(알파 가중)을 그 아이콘의 "묻힌 몫"으로 한다.
+  바탕은 아이콘이 머무는 세 곳: 트리·목록 `#191a1c`(`@background`), 콤보·탭 줄 `#26282c`(`ComboBox.background`, 비활성 탭), 활성 탭 알약 `#233558`.
+  선택 줄(`#2a4371`, `#33353b`)은 잠깐 지나가는 바탕이라 표에만 적고 판단에는 쓰지 않았다.
+- **기준(모든 아이콘에 같게):** 두 배율·세 바탕 중 가장 큰 묻힌 몫이 **50% 이상**이고, 판(`#d1d3d9`) 위에서 잰 묻힌 몫이 그보다 작으면(판이 실제로 도움이 되면)
+  표시한다. 35~49%는 경계로 보고 표시하지 않는다.
+- **처음 쓴 기준을 버린 이유:** WCAG 2.1 SC 1.4.11의 3:1로 재 보니 빨강·파랑처럼 채도가 높은 중간 밝기 색이 어두운 바탕과 밝은 판 양쪽에서 모두 3:1 미만이었다
+  (Oracle의 빨강은 어두운 바탕 0%, 판 위 100%; 붉은 K 하나뿐인 Kingbase가 "표시"로 나옴). 3:1은 "충분히 잘 보임"의 선이라 "어두워서 묻힘"을 가르지 못한다.
+  1.5:1은 바탕과 거의 같은 밝기, 곧 사라지는 부분만 센다.
+- **표시한 아이콘(작은 것·큰 것 한 쌍씩, 아이콘을 가진 플러그인의 `plugin.xml`):**
+  - `ext.generic`: derby, dolphindb, duckdb, h2, intersystems, monetdb, omnisci, opendistro, openedge, opensearch, tdengine
+    (Derby·DuckDB·H2 드라이버는 각자의 플러그인에서 이 파일을 `platform:/plugin/com.seizia.chromite.ext.generic/...`로 가리키므로 위치 문자열이 같아 한 번만 적었다)
+  - `ext.postgresql`: cockroach, timescale, yugabyte / `ext.mssql`: sybase / `ext.greenplum`: greengage(SVG) / `ext.dameng`: dm / `ext.iotdb`: iotdb / `ext.ocient`: ocient
+  - `ext.altibase`: shardsphere(#114)
+- **기준이 골랐지만 표시하지 않은 것:** Altibase(`ext.altibase/icons/altibase_icon.png`, 61%: `@2x`의 남색 `#014282`가 150%의 콤보·탭 바탕에서 1.5:1 미만).
+  #117 브랜치에서는 다른 작업 때문에 `ext.altibase/plugin.xml`을 고치지 않았다. 표시하려면 그 파일의 `iconPlate` 확장에 `altibase_icon.png`, `altibase_icon_big.png` 두 줄을 더한다.
+- **경계(35~49%, 표시하지 않음):** Exasol 46, Cloudera Impala 45, SAP MaxDB·HANA·ASE 45, Materialize 43, Informix 41, Presto 40, SQL Server 40, GreptimeDB 38, Elasticsearch 35.
+- **MySQL과 SQL Server:** #114 보고에서 잘 안 보인다고 한 두 아이콘은 어두워서가 아니라 가늘고 반투명한 선(MySQL `#5e88a2` 돌고래 윤곽)과 회색 부분(SQL Server) 때문에
+  흐리다. 묻힌 몫은 MySQL 27%, SQL Server 40%이고 판 위에서는 오히려 79%, 56%로 커진다. 밝은 판은 이 둘을 낫게 하지 않으므로 표시하지 않았다.
+- **측정 결과와 시트:** 아이콘마다의 수치(두 배율 × 다섯 바탕 + 판)는 작업 기록(`D:\Tools\_scratch\vendor-icon-plates-2\survey\metrics-1.5.tsv`, 버린 3:1 기준은 `metrics-3.0.tsv`).
+- **확인(2026-11-15, 이 브랜치 빌드, 100%·150%, 테스트 에이전트):** 실행 중 선언 40개(20쌍)를 모두 읽음. 어두운 테마에서 Connect 대화상자 콤보·목록, Driver Manager,
+  드라이버 목록, Object Explorer·Registered Servers, 쿼리 탭(TimescaleDB 드라이버로 테스트 PostgreSQL에 연결), Agent 연결 콤보에 판이 보인다.
+  표시한 줄과 아닌 줄의 높이·아이콘 위치·기준선이 같다(트리 22/아이콘 2,3/기준선 16, 콤보 목록 26/8,5/18). 밝은 테마는 아이콘 픽셀이 전과 같다.
 
 ## 적용 현황 (2026-11-06)
 
@@ -1495,3 +1528,4 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
 - 2026-11-12 SQL 구문 색 표에 실행 중 문장 줄 바탕(`Chromite.editor.runningStatementBackground`, 앱 변경 #99, `chromite/running-statement-mark`)
 - 2026-11-12 촘촘한 모드 메뉴 항목 20 → 21(`@menuItemMargin` 2,8,1,8, 앱 변경 #98, [swing-frontend.md](swing-frontend.md) "메뉴 간격과 구분선")
 - 2026-11-15 "벤더 아이콘의 밝은 판" 추가(앱 변경 #114, `chromite/vendor-icon-light-plate`): 확장 지점 `com.seizia.chromite.ui.swing.iconPlate`, 테마 키 `Chromite.iconPlate.background`, ShardSphere 아이콘 표시.
+- 2026-11-15 "판을 깔 아이콘 고르기" 추가(앱 변경 #117, `chromite/vendor-icon-plates-2`): 드라이버 아이콘 106개를 1.5:1 묻힌 몫 50% 기준으로 재서 19개 표시, Altibase는 기준이 골랐으나 보류.
