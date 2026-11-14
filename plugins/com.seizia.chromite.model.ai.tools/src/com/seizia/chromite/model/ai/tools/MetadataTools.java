@@ -55,6 +55,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 listIndexes·listForeignKeys를 describeTable에 합침(옛 ID는 별칭. describeTable이 둘을 이미 담는다)
+ *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class MetadataTools extends AgentTool {
 
@@ -78,8 +80,6 @@ public class MetadataTools extends AgentTool {
             case "listSchemas" -> listSchemas(connection, args);
             case "listTables" -> listTables(connection, family, args);
             case "describeTable" -> describeTable(connection, family, AgentArgs.require(args, "table"));
-            case "listIndexes" -> indexes(connection, AgentNames.resolve(connection, family, AgentArgs.require(args, "table")));
-            case "listForeignKeys" -> foreignKeys(connection, AgentNames.resolve(connection, family, AgentArgs.require(args, "table")));
             case "listRoutines" -> listRoutines(connection, family, args);
             case "searchObjects" -> searchObjects(connection, args);
             default -> throw unknownTool(toolId);

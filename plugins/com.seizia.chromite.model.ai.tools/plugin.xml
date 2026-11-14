@@ -154,24 +154,12 @@
         <function id="describeTable" name="%tool.describeTable.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
             shortDescription="Columns, primary key, indexes and foreign keys of one table or view."
-            description="Full structure of one table or view: columns (type, size, nullable, default, auto-increment, comment), primary key, indexes, foreign keys and the foreign keys of other tables that reference it. Use it first for any question about a table's structure; listIndexes and listForeignKeys return parts of it. For the CREATE statement use getObjectDdl.">
+            description="Full structure of one table or view: columns (type, size, nullable, default, auto-increment, comment), primary key, indexes, foreign keys and the foreign keys of other tables that reference it. Use it first for any question about a table's structure, its indexes or its foreign keys. For the CREATE statement use getObjectDdl.">
+            <alias id="listIndexes" access="READ" removeIn="26.2.0"/>
+            <alias id="listForeignKeys" access="READ" removeIn="26.2.0"/>
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current" shortDescription="Database; default: current"/>
             <parameter name="table" type="string" required="true" description="Table or view: name, schema.name or database.schema.name" shortDescription="Table: name or schema.name"/>
-        </function>
-        <function id="listIndexes" name="%tool.listIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Only the index definitions of one table: name, unique, ordered key columns, filter (describeTable includes them too). For how indexes are used use getIndexUsage; for unused or duplicate ones getUnusedIndexes; for suggested new ones getMissingIndexes.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
-        </function>
-        <function id="listForeignKeys" name="%tool.listForeignKeys.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
-            categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
-            description="Only the foreign keys of one table: outgoing (it references others) and incoming (others reference it), with columns and ON DELETE/UPDATE rules (describeTable includes them too). For dependencies through views, routines and triggers use getObjectDependencies.">
-            <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="table" type="string" required="true" description="Table name"/>
         </function>
         <function id="listRoutines" name="%tool.listRoutines.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
@@ -733,7 +721,7 @@
         </function>
         <function id="getIndexUsage" name="%tool.getIndexUsage.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="How existing indexes were used since the server started: seeks, scans, lookups, updates, key and included columns, lock escalations; one table or a schema. Use to judge whether indexes pay off. For only unused or duplicate indexes use getUnusedIndexes; for index definitions listIndexes. SQL Server, PostgreSQL, MySQL (performance_schema), Oracle (statistics only).">
+            description="How existing indexes were used since the server started: seeks, scans, lookups, updates, key and included columns, lock escalations; one table or a schema. Use to judge whether indexes pay off. For only unused or duplicate indexes use getUnusedIndexes; for index definitions describeTable. SQL Server, PostgreSQL, MySQL (performance_schema), Oracle (statistics only).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="table" type="string" description="Table (or give schema)"/>
