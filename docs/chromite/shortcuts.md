@@ -163,7 +163,20 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
   - 겹침 확인: 주 메뉴 니모닉은 File F, Edit E, View V, Query Q, Tools T, Window W, Help H라 X가 없다(File > Exit의 X는 File 메뉴가 열려 있을 때만).
     RSyntaxTextArea 기본 키맵의 X는 잘라내기(명령 키 + X)뿐이고, Chromite의 X 키는 잘라내기(Ctrl+X)와 두 키 조합 Ctrl+K, Ctrl+X(Insert Template)뿐이다.
   - Windows에서는 Alt+X의 글자 이벤트가 입력되지 않는다(`SunToolkit.isPrintableCharacterModifiersMask`: Alt만 누른 글자는 인쇄 글자가 아님, 실행해 확인). Alt+P와 같다.
-  - macOS ⌥X는 ⌥P와 같은 방식(Swing 키 바인딩이 키 누름을 받음)이라 같은 결과다. 아래 "남긴 것"의 ⌥ 글자 입력을 본다.
+  - macOS ⌥X는 ⌥P와 같은 방식(Swing 키 바인딩이 키 누름을 받음)이다. 그 글자("≈", "π")는 아래 "Option 단축키의 글자"가 막는다.
+- **Option 단축키의 글자(macOS, 2026-11-15, 앱 변경 #122):** 단축키가 처리한 Option 키 누름의 글자 이벤트는 텍스트 구성 요소에 가지 않는다.
+  - 원인(JDK 25 소스를 읽음, jdk25u, 줄 번호는 가져온 사본에서 센 것): macOS AWT는 키 하나에 `CPlatformResponder.handleKeyEvent`(136행)에서
+    누름을 보내고(223행) 이어서 Command가 없으면(235–236행) **같은 수정자**로 글자 이벤트를 보낸다(242행). 둘 다 `LWWindowPeer.notifyKeyEvent`(1000행)가
+    이벤트 큐에 넣으므로(1022행 `postEvent`) EDT에서 누름이 끝까지 처리된 뒤에 글자 이벤트가 온다. Option 글자는 macOS에서 인쇄 글자이고
+    (`LWCToolkit.isPrintableCharacterModifiersMask` 861–862행: Command·Control만 봄), Swing의 기본 글자 동작이 그것을 넣는다
+    (`DefaultEditorKit.DefaultKeyTypedAction` 904행, RSyntaxTextArea의 같은 동작은 이것에 맡김). 키 바인딩이 누름을 처리해도 Swing은 뒤의 글자 이벤트를
+    버리지 않는다(`DefaultKeyboardFocusManager.consumeNextKeyTyped` 1159–1176행: 초점 이동 키와 열린 메뉴의 니모닉에만 쓰임).
+    그래서 ⌥P는 실행하고 "π"도 SQL에 넣었고(다음 실행이 그 글자에서 실패), ⌥X도 "≈"를 넣었을 것이다.
+  - 고침: macOS에서만 설치하는 키 디스패처 `MacOptionKeyGuard`. Option(Command 없이) 누름을 기억하고, 바로 다음 글자 이벤트가 올 때 그 누름이
+    소비되었으면(단축키·키 바인딩이 처리하면 `JComponent.processKeyEvent`가 소비함) 글자 이벤트를 버린다. 단축키 목록을 두지 않으므로 앞으로 더할
+    Option 단축키에도 맞는다. 처리되지 않은 누름(⌥O "ø")의 글자는 그대로 가고, 데드 키(⌥E, ⌥N)는 누름에 글자 이벤트가 없고 다음 키의 누름이
+    기억을 지우므로 조합도 그대로다. 디스패처는 누름에서 `false`를 돌려주어 처리 순서를 바꾸지 않는다.
+  - Windows·Linux에는 설치하지 않는다: Alt만 누른 글자는 인쇄 글자가 아니라(`SunToolkit.isPrintableCharacterModifiersMask`) 이 문제가 없다.
 
 ## upstream 대비 변경점
 
@@ -182,12 +195,9 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
 
 - Mac 키보드에 없는 키: Insert(Duplicate Rows), Pause(Cancel Query). 메뉴와 표의 팝업 메뉴로는 된다. macOS용 다른 키는 정하지 않았다.
 - F 키(F5 실행, F3, F4, F8): macOS 기본 설정에서는 fn과 함께 눌러야 한다. 바꾸지 않았다.
-- Option(⌥) 조합(⌥P 등)은 글자 입력에서 특수 문자를 만든다. 키 바인딩이 먼저 받지만 실제 Mac에서 확인하지 않았다.
-  2026-11-15 JDK 소스로 읽은 것(앱 변경 #122, 실행해 보지 않음): macOS AWT는 ⌥P의 키 누름 뒤에 글자 이벤트 'π'를 ⌥ 수정자와 함께 보내고
-  (`CPlatformResponder.handleKeyEvent`는 Command일 때만 글자 이벤트를 빼고), macOS에서는 ⌥ 글자도 인쇄 글자이며
-  (`LWCToolkit.isPrintableCharacterModifiersMask`는 Command·Control만 봄), Swing은 키 바인딩이 키 누름을 받아도 다음 글자 이벤트를 버리지 않는다
-  (`DefaultKeyboardFocusManager.consumeNextKeyTyped`는 초점 이동 키와 열린 메뉴의 니모닉에만 쓰임). 그래서 편집기에 초점이 있으면 ⌥P가 실행하면서
-  'π'도 입력할 가능성이 높다. ⌥X(Execute)는 같은 경로라 같고('≈'), 고치지 않았다. Mac에서 확인이 필요하다.
+- Option(⌥) 단축키(⌥P, ⌥X)의 글자: 위 "Option 단축키의 글자"로 막았지만 실제 Mac에서는 확인하지 않았다. 확인한 것은 JDK 소스 읽기와,
+  Windows에서 macOS의 이벤트 순서를 Swing 수준에서 흉내 낸 시험뿐이다. 실제 Mac에서 남은 것: 화면 메뉴 막대(Aqua)에서도 메뉴 단축키가 Swing
+  키 바인딩으로 처리되어 누름이 소비되는지, 한글 등 입력기 사용 중의 ⌥ 키, 데드 키의 실제 조합 경로([regression-tests.md](regression-tests.md) Mac 확인 목록).
 
 ## 변경 이력
 
@@ -208,4 +218,9 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
   둘 다 Select Server 대화상자, Alt+X로 실행한 DROP DATABASE도 위험한 문 확인을 보임. 편집기에 글자가 들어가지 않고 메뉴가 열리지 않음, Alt만 누르면 예전처럼 File 메뉴,
   Alt+P 그대로, 한글 입력 모드(한/영 키로 'r'이 'ㄱ'이 됨)에서도 Alt+X 실행. 연결 새로 고침, CREATE/DROP DATABASE, 끊고 다시 연결한 뒤에도 같음.
   메뉴 항목·도구 막대 도구 설명은 F5 그대로. 열 선택이 켜져 있으면 F5·Alt+X·Alt+P 모두 실행되지 않는데, 이는 이 변경 전부터 있던
-  `SqlColumnSelection.handleKeyPressed`의 예외(바인딩 없는 키에서 `Set.of(...).contains(null)`) 때문이다(이번에 고치지 않음).
+  `SqlColumnSelection.handleKeyPressed`의 예외(바인딩 없는 키에서 `Set.of(...).contains(null)`) 때문이다(고침은 따로 `chromite/column-selection-keys`).
+- 2026-11-15 macOS: 단축키가 처리한 Option 키 누름의 글자를 버리는 `MacOptionKeyGuard`(앱 변경 #122, `chromite/execute-alt-x`, 위 "Option 단축키의 글자"),
+  "남긴 것"의 ⌥ 줄을 고침. 확인(Windows, 빌드한 앱, 시험 에이전트가 macOS 경로만 켜고 이벤트 큐에 누름·글자·떼기를 넣음): ⌥P·⌥X는 실행하고 글자가
+  편집기에 가지 않음, 묶이지 않은 ⌥O는 글자가 편집기에 감('ø'), 데드 키 흉내(⌥N 누름 뒤 조합 글자 'ñ')도 들어감(⌥E는 Windows에서 Edit 메뉴
+  니모닉이라 흉내에 쓰지 않음). 가드 없이는 같은 순서에서 'π'가 편집기에 들어감.
+  Windows에는 설치되지 않음(키 디스패처 목록). 실제 Mac은 확인하지 않음. 회귀 테스트는 실행하지 않았다.

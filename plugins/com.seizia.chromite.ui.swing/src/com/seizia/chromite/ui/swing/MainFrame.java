@@ -320,6 +320,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/text-compare.md)
  * - 2026-11-15 Execute가 F5 외에 Alt+X(macOS ⌥X, DBeaver의 스크립트 실행 키)도 받음: 같은 동작의 추가 키라 메뉴·도구 설명은 F5,
  *   F5처럼 초점이 쿼리 창(편집기와 결과)에 있을 때만 걸림({@link #createEditorAction}의 추가 키) (앱 변경 #122, docs/chromite/shortcuts.md)
+ * - 2026-11-15 macOS: 단축키가 처리한 Option 키의 글자(⌥P "π", ⌥X "≈")가 편집기에 들어가지 않게 {@link MacOptionKeyGuard}를 설치(앱 변경 #122)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -539,6 +540,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
         // Windows: Alt released after a mouse gesture (Alt+drag, Alt+wheel) does not select the menu bar; removed when this closes
         AltMouseMenuGuard.install(this);
+        // macOS: the character of an Option key press a shortcut handled (⌥P, ⌥X) is not typed into the SQL
+        MacOptionKeyGuard.install(this);
 
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
