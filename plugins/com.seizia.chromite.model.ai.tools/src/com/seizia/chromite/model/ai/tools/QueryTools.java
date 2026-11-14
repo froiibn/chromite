@@ -25,6 +25,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
@@ -84,7 +85,8 @@ import java.util.Map;
  *   변수가 다음 문장에서 사라졌고, MariaDB {@code DELIMITER}가 서버 구문 오류였다 (docs/chromite/ai-agent.md "runScript의 실행 단위")
  * - 2026-11-12 {@code validateSql}: 한 문장에 속할 수 없는 단어(COMMIT, SET NOEXEC OFF, 덧붙인 두 번째 DML 등)가 있으면 서버 검사를 하지 않음(앱 변경 #93).
  *   SQL Server는 {@code SET NOEXEC OFF}를 배치를 해석할 때 적용해 뒤 문장이 실행된다 (docs/chromite/ai-agent.md "읽기 판정의 토큰 검사")
- * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침, formatSql을 지움(모델이 직접 정리한다)
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): getQueryHistory → getEditorHistory, runSelect를 runReadOnlySql로 합침, formatSql을 지움(모델이 직접 정리한다),
+ *   MCP 힌트용 가장 높은 분류(runSql·runScript는 DANGEROUS까지)
  */
 public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -414,6 +416,13 @@ public class QueryTools extends AgentTool implements AIToolAccessClassifier, AIT
     }
 
     // ------------------------------------------------------------------ policy hooks
+
+    // runSql and runScript can be DANGEROUS (DROP, TRUNCATE, DELETE without WHERE); the other tools keep their class
+    @NotNull
+    @Override
+    public AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return tool.getId().equals("runSql") || tool.getId().equals("runScript") ? AIToolAccess.DANGEROUS : tool.getAccess();
+    }
 
     @NotNull
     @Override

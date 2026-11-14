@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.model.ai.agent;
 
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 
@@ -30,9 +31,20 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "분류")
+ * - 2026-11-15 {@link #getHighestAccess}: 호출 전에 알아야 하는 곳(MCP {@code tools/list}의 readOnlyHint·destructiveHint)이 호출별 분류 도구에
+ *   보수적인 값을 쓰게 (도구 정리, docs/chromite/ai-agent.md "로컬 MCP 서버")
  */
 public interface AIToolAccessClassifier {
 
     @NotNull
     AIToolAccess classify(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) throws DBException;
+
+    /**
+     * The highest class a call of the tool can get, for places that describe the tool before any call. The default is the
+     * conservative DANGEROUS; an implementation lowers it for tools that never raise their class this far.
+     */
+    @NotNull
+    default AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return AIToolAccess.DANGEROUS;
+    }
 }

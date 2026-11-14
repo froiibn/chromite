@@ -24,6 +24,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
@@ -56,6 +57,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성
  * - 2026-11-12 서버로 보내는 쿼리의 끝 {@code ;}를 쿼리 창의 파서 판단대로 남김(앱 변경 #87): Oracle PL/SQL 블록인 라이브러리 쿼리가
  *   {@code runSql}처럼 PLS-00103으로 실패했다 (docs/chromite/ai-agent.md "문장 끝의 구분자")
+ * - 2026-11-15 MCP 힌트용 가장 높은 분류(runLibraryQuery는 DANGEROUS까지) (도구 정리, docs/chromite/ai-agent.md "로컬 MCP 서버")
  */
 public class LibraryTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider {
 
@@ -376,6 +378,13 @@ public class LibraryTools extends AgentTool implements AIToolAccessClassifier, A
     }
 
     // ------------------------------------------------------------------ policy hooks
+
+    // A library query is any SQL the user saved: runLibraryQuery can be as dangerous as it
+    @NotNull
+    @Override
+    public AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return tool.getId().equals("runLibraryQuery") ? AIToolAccess.DANGEROUS : tool.getAccess();
+    }
 
     @NotNull
     @Override

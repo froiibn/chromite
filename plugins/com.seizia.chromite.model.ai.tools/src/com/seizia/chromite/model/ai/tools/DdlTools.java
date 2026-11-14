@@ -24,6 +24,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolAccessClassifier;
@@ -64,7 +65,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): generateDdl → previewDdl, 작업별 도구 7개를 changeSchema 하나로 합치고 호출마다
- *   분류함({@link #classify}), 열 형식 인수 type → columnType. dropIndex는 WRITE에서 DANGEROUS로(runSql이 모든 DROP을 DANGEROUS로 보는 것과 같게)
+ *   분류함({@link #classify}), 열 형식 인수 type → columnType. dropIndex는 WRITE에서 DANGEROUS로(runSql이 모든 DROP을 DANGEROUS로 보는 것과 같게),
+ *   MCP 힌트용 가장 높은 분류
  */
 public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToolPreviewProvider, AIToolTransactionGuard {
 
@@ -349,6 +351,12 @@ public class DdlTools extends AgentTool implements AIToolAccessClassifier, AIToo
             case "createTable", "alterTable", "createView", "createIndex" -> AIToolAccess.WRITE;
             default -> AIToolAccess.DANGEROUS;
         };
+    }
+
+    @NotNull
+    @Override
+    public AIToolAccess getHighestAccess(@NotNull AIFunctionDescriptor tool) {
+        return tool.getId().equals(PREVIEW) ? AIToolAccess.READ : AIToolAccess.DANGEROUS;
     }
 
     @Nullable
