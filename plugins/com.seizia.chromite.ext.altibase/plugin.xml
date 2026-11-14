@@ -65,13 +65,15 @@
                      Maven artifact, so the install folder is the only file source; a product without the bundle has no
                      file and the user adds the jar in Driver Manager. Default port: the product's default port as stated by
                      the project owner (2026-11-14); the driver's own fallback without a port is 25001. Default database:
-                     the driver's own fallback (shardsphereConnection.loadDefaultValues). -->
+                     the driver's own fallback (shardsphereConnection.loadDefaultValues). Default user: the product's
+                     default account as stated by the project owner (2026-11-15); the jar has none. -->
                 <driver
                      categories="sql"
                      class="shardsphere.jdbc.driver.shardsphereDriver"
                      dataSourceType="shardsphere"
                      defaultDatabase="memdb"
                      defaultPort="55321"
+                     defaultUser="sys"
                      description="ShardSphere JDBC Driver"
                      icon="icons/shardsphere_icon.png"
                      id="shardsphere"
