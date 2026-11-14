@@ -26,6 +26,11 @@ import org.jkiss.utils.StandardConstants;
  * 변경 이력:
  * - 2026-11-12 Chromite: {@link #EC_SESSION_CLOSED}(4163). 서버가 세션을 닫으면 실행 중인 문장의 첫 오류가 4163(SQLState 08004)이라
  *   연결 끊김으로 분류되지 않았다 (docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ * - 2026-11-14 Chromite: 서버 출력 콜백의 클래스 이름 접미사(`.jdbc.driver.AltibaseConnection`, `AltibaseMessageCallback`)를 지움.
+ *   콜백 인터페이스를 연결의 {@code registerMessageCallback} 메서드에서 얻어, 이름이 다른 Altibase 계열 드라이버(ShardSphere)도
+ *   연결된다 (docs/chromite/drivers.md "ShardSphere")
+ * - 2026-11-14 Chromite: {@link #EC_TABLE_NOT_FOUND}. 복제 카탈로그가 없는 서버(ShardSphere)의 복제 목록을 빈 목록으로 읽는다
+ *   (AltibaseDataSource.getReplications)
  */
 public class AltibaseConstants {
     
@@ -129,13 +134,14 @@ public class AltibaseConstants {
     // "The session has been closed by the server" (SQLState 08004): the statement in flight when the session is closed
     // (ALTER DATABASE ... SESSION CLOSE); the next statement gets 08S01
     public static final int EC_SESSION_CLOSED = 4163;
+    // "Table or view was not found" (SQLState 42S02), e.g. SYSTEM_.SYS_REPLICATIONS_ on a server without the replication catalog
+    public static final int EC_TABLE_NOT_FOUND = 0x31031;
 
     /*
      * DBMS output
      */
-    // e.g. Altibase.jdbc.driver.AltibaseMessageCallback, Altibase7_1.jdbc.driver.AltibaseMessageCallback
-    public static final String CLASS_NAME_4_CONNECTION_POSTFIX = ".jdbc.driver.AltibaseConnection";
-    public static final String CLASS_NAME_4_MESSAGE_CALLBACK_POSTFIX = ".jdbc.driver.AltibaseMessageCallback";
+    // The connection method whose only parameter is the driver's callback interface (AltibaseMessageCallback,
+    // shardsphereMessageCallback, ...): the interface is taken from it, not from a class name
     public static final String METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK = "registerMessageCallback";
     
     public static final String RESULT_YES_VALUE = "YES";

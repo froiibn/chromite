@@ -47,7 +47,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 
 | 구분 | 내용 |
 |---|---|
-| 내장 드라이버 | 주요 DB만: SQL Server, Oracle, PostgreSQL, MariaDB, SQLite |
+| 내장 드라이버 | 주요 DB만: SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere(2026-11-14 추가, 아래 "ShardSphere") |
 | MySQL | 내장하지 않음(2026-11-07 결정, 아래 "MySQL Connector/J 내장 취소"). 처음 쓸 때 Maven에서 받는다. 내장된 MariaDB 드라이버로도 MySQL 서버에 연결할 수 있다 |
 | 그 밖의 드라이버 | 필요할 때 내려받는다. 인터넷이 되면 처음 연결할 때 Maven에서 온라인 다운로드 |
 | 폐쇄망 | 인터넷 PC에서 만든 오프라인 설치 묶음(`.chromite-drivers`)을 설치한다([driver-offline-bundle.md](driver-offline-bundle.md)). 벤더에서만 받을 수 있는 jar는 직접 지정한다 |
@@ -122,10 +122,10 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 
 | 위치 | 역할 |
 |---|---|
-| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `com.seizia.chromite.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.sqlite.xerial` 선언. 코드 없음(`drivers.mysql`은 2026-11-07에 뺌) |
+| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `com.seizia.chromite.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.sqlite.xerial`, `drivers.shardsphere` 선언. 코드 없음(`drivers.mysql`은 2026-11-07에 뺌) |
 | [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 내장 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
-| [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
-| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
+| [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다(예외: Maven Central에 없는 ShardSphere jar, 아래 행) |
+| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다. `shardsphere/shardsphere.jar`는 저장소에 커밋한 유일한 드라이버 jar다(`.gitattributes`의 `*.jar binary`, 아래 "ShardSphere") |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
 | [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | Swing 제품이 위 feature를 `<includes>`로 포함한다(SWT 제품은 2026-11-07 삭제, [swt-removal.md](swt-removal.md)) |
 
@@ -151,6 +151,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 | `drivers/postgis/` | `postgis-jdbc-2.5.0.jar`, `postgis-geometry-2.5.0.jar`, `postgis-jdbc-jtsparser-2.5.0.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | PostgreSQL 계열의 선택 파일 |
 | `drivers/mariadb/` | `mariadb-java-client-3.5.10.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | MariaDB. MySQL 서버에도 쓸 수 있다 |
 | `drivers/sqlite/` | `xerial/sqlite-jdbc-3.54.1.0.jar`, `LICENSE.txt`(jar 안 `META-INF/maven/org.xerial/sqlite-jdbc/LICENSE`, Apache-2.0), `LICENSE-zentus.txt`(jar 안 `LICENSE.zentus`, 원본 Zentus 드라이버의 BSD 형식 라이선스) | SQLite(`sqlite_jdbc`, `drivers.sqlite.xerial`을 쓰는 유일한 드라이버) |
+| `drivers/shardsphere/` | `shardsphere.jar`(저장소에 커밋, 빌드 때 받지 않음), `README.txt`(무엇인지, SHA-256, 라이선스 상황) | ShardSphere(`altibase:shardsphere`, `drivers.shardsphere`를 쓰는 유일한 드라이버) |
 
 - 버전은 각 `plugin.xml`의 Maven 대체 경로(`RELEASE[x]`)와 같다. 묶음 사용 여부와 상관없이 같은 드라이버를 쓴다.
   (2026-11-06~07에 내장했던 MySQL은 예외였다. `drivers/mysql/mysql8` 하나를 쓰는 드라이버들의 Maven 대체 경로가 서로 달라
@@ -329,6 +330,66 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
    필요한 전이 의존성은 `dependency:tree`로 확인해 하나씩 적는다(`copy`는 전이 의존성을 받지 않는다).
 5. 같은 feature의 `drivers-root/drivers/<이름>/`에 라이선스 원문(LGPL·GPL이면 `SOURCE.txt`도)을 넣고 `drivers/README.txt`와 `NOTICE`를 갱신한다.
 
+Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/drivers/<이름>/`에 커밋한다(루트 파일로 함께 설치된다). Maven 대체 항목이 없으므로
+1번의 `bundle="!drivers.X"` 항목도 없다. 커밋한 blob의 SHA-256이 받은 파일과 같은지 확인한다.
+
+### ShardSphere (2026-11-14, 앱 변경 #113)
+
+- **무엇인가:** 데이터베이스 제품 ShardSphere(CISPHERE Inc.)의 JDBC 드라이버. Apache ShardingSphere와는 관계없다. 사용자가 jar를 줬다
+  (`shardsphere.jar`, 430,801 bytes, SHA-256 `6752544cf4fe66b1728dfdbc5d4cc6a0a7d6930b8fac16560d8f95390ecf9987`, 버전 문자열 "ShardSphere 5.1.9 for JDBC 3.0",
+  JDK 1.5로 빌드, 의존 jar 없음: `jdeps`로 JDK 밖 참조 없음). 클래스와 통신 연산 이름이 Altibase JDBC 드라이버와 같고 이름만 다르다(Altibase 계열 제품).
+- **결정:** 사용자 결정(2026-11-14) "기본 내장 드라이버를 하나 더 추가해야 한다", 재배포 권한을 묻자 "권한 있다, 내장하라". 라이선스 기록은
+  [driver-licenses.md](driver-licenses.md) "ShardSphere".
+- **드라이버 정의:** [ext.altibase/plugin.xml](../../plugins/com.seizia.chromite.ext.altibase/plugin.xml)의 Altibase 공급자에 두 번째 `<driver>`(`id="shardsphere"`)를 두고,
+  `generic.meta`의 `driverClass` 목록에 `shardsphere.jdbc.driver.shardsphereDriver`를 더했다. 그래서 Altibase 데이터 원본·메타 모델(시스템 카탈로그 질의, 트리, DDL, 값 처리기)을 쓴다.
+  드라이버 클래스로 메타 모델을 고르므로([GenericMetaModelRegistry.getMetaModel](../../plugins/com.seizia.chromite.ext.generic/src/com/seizia/chromite/ext/generic/GenericMetaModelRegistry.java))
+  드라이버를 복사한 사용자 드라이버도 같은 모델을 쓴다(`meta-model` 매개변수를 쓰지 않은 이유).
+  - 이름·아이콘: 자기 데이터 원본 유형 `shardsphere`("ShardSphere")와 자기 아이콘(`icons/shardsphere_icon*.png`, 아래 "아이콘")을 쓴다. 유형을 두지 않으면 드라이버가
+    공급자의 `altibase` 유형을 물려받아 큰 아이콘·로고·유형 이름(MCP 데이터 원본 목록의 `database_type`)이 Altibase가 된다(`DriverDescriptor` 생성자).
+  - 기본값: 포트 `55321`은 사용자 확인(2026-11-14, 시험 서버의 `V$PROPERTY` `PORT_NO`도 55321). 드라이버 자체는 포트를 주지 않으면 25001을 쓴다
+    (`shardsphereConnection.loadDefaultValues`, `javap -c`로 읽음). 데이터베이스 `memdb`는 같은 메서드의 기본값이다. 기본 사용자는 jar에 없어 비워 두었다.
+  - URL 예시 `jdbc:shardsphere://{host}:{port}/{database}`, MANUAL·URL. 드라이버 매개변수는 Altibase 드라이버의 것을 그대로 썼다(모두 엔진에 관한 것, `V$DATABASE` 질의 포함).
+- **고친 코드(근본 원인):** Altibase 데이터 원본은 서버 출력(PRINT) 콜백 인터페이스를 `<패키지>.jdbc.driver.AltibaseMessageCallback` 이름으로 찾았다. ShardSphere 드라이버의
+  인터페이스는 `shardsphere.jdbc.driver.shardsphereMessageCallback`이라 클래스를 찾지 못하고, 서버 출력 기본값이 켜져 있어 연결 초기화(`initializeContextState`)가
+  예외로 끝난다(코드로 확인). 콜백 인터페이스를 연결 클래스의 `registerMessageCallback` 매개변수에서 얻도록 바꿨다([AltibaseDataSource](../../plugins/com.seizia.chromite.ext.altibase/src/com/seizia/chromite/ext/altibase/model/AltibaseDataSource.java)).
+  이름 접미사 상수 두 개는 지웠다. 실행 계획은 메서드 이름(`setExplainPlan`, `getExplainPlan`)으로 찾으므로 ShardSphere 드라이버에도 있다(`javap`).
+- **묶음:** `drivers.shardsphere` 선언, 드라이버 파일은 `<file type="jar" path="drivers/shardsphere" bundle="drivers.shardsphere"/>` 하나다. Maven 대체 항목이 없으므로
+  이 묶음을 선언하지 않은 제품에서는 드라이버에 파일이 없다: 연결하면 드라이버 클래스를 찾지 못하고, 사용자가 Driver Manager에서 jar를 추가한다(코드로 확인, 실행하지 않음).
+  Chromite 제품은 묶음과 폴더를 한 feature로 배포하므로 해당 없다.
+- **아이콘:** 사용자 지시(2026-11-14) "데이터베이스 아이콘은 turbrix에게 제공받아라". 원본은 다른 프로젝트의 44×44 PNG(SHA-256 `6833e95a…6b87f`, CISPHERE Inc. 로고의 심볼)다.
+  내용은 고치지 않고 크기만 바꿨다: `shardsphere_icon.png` 16×16·`@2x` 32×32(Lanczos 축소), `shardsphere_icon_big.png` 64×64(원본 44px을 투명 64px 가운데),
+  `@2x` 128×128(원본을 픽셀 두 배 88px로 가운데, 새 색을 만들지 않으려고 최근접 보간). 넓은 로고는 없어 `logoImage`를 두지 않았다. 고지는 `NOTICE`와
+  [driver-licenses.md](driver-licenses.md) "ShardSphere 아이콘". 지울 때는 네 파일, `plugin.xml`의 `icon`·`iconBig` 세 곳, 그 두 고지만 고친다.
+- **어두운 테마(남은 일):** 남색 사각형이 어두운 배경에서 거의 보이지 않고 녹색 부분만 보인다(아래 확인의 캡처). 벤더 아이콘에 밝은 판이나 어두운 변형을 주는 방법은
+  Chromite에 없다(밝음·어두움 변형은 자체 UI 아이콘 팩 `icons/ui/<팩>/<light|dark>/`뿐, [UiIcons](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/UiIcons.java)).
+  이 브랜치에서는 만들지 않았다. 제안: 드라이버·유형 아이콘에 선택 속성(예: `iconDark`)을 두고 `NodeIcons`가 FlatLaf 어두운 테마에서 그것을 쓰게 하거나, 벤더가 어두운 배경용 표지를 주면 그것을 쓴다.
+- **확인(2026-11-14~15, 이 브랜치 빌드, Windows x86_64, 내장 런타임 JBR 25.0.4.1(`tools/jre/BundleJre.java`로 만든 `jre/`), 사설 작업 공간·데이터 폴더, EDT 테스트 에이전트):**
+  - 결과물 `drivers/`는 39개 파일, 31,494,810 bytes. `drivers/shardsphere/`에 `shardsphere.jar`(SHA-256 `6752544c…9987`, 받은 파일과 같음)와 `README.txt`.
+  - 드라이버 목록 검색("shard")·Driver Manager·Connect 대화상자에 ShardSphere와 그 아이콘이 보인다. Driver Manager의 라이브러리는 `drivers/shardsphere`(있음),
+    `needsExternalDependencies=false`(내려받을 것 없음).
+  - Connect 대화상자에서 `127.0.0.1:1`로 Test Connection: "Can't connect to the database / Communication link failure: Connection refused: connect, Msg 334337, State 08S01".
+    드라이버 자체의 오류이므로 내장 jar의 클래스가 내장 런타임에서 로드됐다.
+  - 실제 ShardSphere 서버(사용자 제공, 읽기만 함): 연결됨. 제품 "ShardSphere 5.1.9", 드라이버 "ShardSphere JDBC driver 5.1.9", Altibase 메타 모델, 서버 출력 콜백 등록 성공.
+    Object Explorer의 스키마·테이블·열·제약·인덱스·뷰·패키지·테이블스페이스·사용자·속성이 읽혔고, 쿼리 창의 SELECT와 상태 표시줄(서버 주소:55321, `sys`, `memdb`, Auto-commit)이 맞다.
+    처음 확인에서 실패한 두 가지는 아래 "고친 것(2026-11-14 검토 뒤)"에서 고쳤다: Global metadata > Replications(`SYSTEM_.SYS_REPLICATIONS_`, `SYS_REPL_HOSTS_`가 없음,
+    오류 200753 42S02), 독립 함수의 매개변수(`SYS.SYS_CONTEXT`: 드라이버가 JDBC 3.0이라 `getFunctionColumns`가 없음, `AbstractMethodError`).
+  - Altibase 7.3 시험 서버에 ShardSphere 드라이버: "Invalid communication protocol"(연결되지 않음). 실제 ShardSphere 서버의 프로토콜 버전은 7.1.6, Altibase 7.3은 7.1.8이다.
+  - Altibase 드라이버(로컬 `Altibase.jar` 7.3.0.0.6)로 같은 서버: 연결, 트리, SELECT, `EXEC PRINTLN`의 서버 출력이 그대로 됨(바꾼 콜백 코드).
+  - 증거: `D:\Tools\_scratch\shardsphere-driver\shots\`. 회귀 테스트는 작성·실행하지 않았다.
+- **고친 것(2026-11-14 검토 뒤):**
+  - 기본 포트: Connect 대화상자가 URL 템플릿의 `{port}`가 필수이면 기본 포트가 있어도 포트를 물어 호스트만으로는 Connect가 꺼져 있었다(Altibase도 같음).
+    기본 포트가 없는 드라이버만 묻는다([swing-frontend.md](swing-frontend.md) "서버 이름과 기록", `ConnectionSettingsPanel.validateAddress`).
+  - 복제 목록: 복제 카탈로그가 없는 서버는 복제가 없는 것이다. `AltibaseDataSource.getReplications`가 그 질의의 "표 없음"(SQLState 42S02 또는 0x31031)만 빈 목록으로 읽고
+    다른 오류는 그대로 알린다. 제품 이름으로 가르지 않는다.
+  - 함수 매개변수: `GenericProcedure.loadProcedureColumns`가 `getFunctionColumns`에서 `AbstractMethodError`나 `SQLFeatureNotSupportedException`을 받으면
+    `getProcedureColumns`로 읽고 그 상수(procedureColumn*)로 종류를 해석한다. 메서드가 있는 드라이버는 이 catch에 들어가지 않으므로 전과 같다.
+  - 확인(같은 날, 이 브랜치 빌드, 내장 런타임): 실제 ShardSphere 서버에 서버 이름 칸에 호스트만 적고 연결 → 55321로 연결, 저장된 연결의 포트 55321,
+    URL `jdbc:shardsphere://<호스트>:55321/memdb`. Altibase 7.3에 `127.0.0.1`만 → 20300으로 연결, 저장된 포트 20300. 기본 포트가 없는 Apache Arrow Flight SQL은
+    여전히 "Enter the port (server name:port)."이고 `localhost:31337`이면 문제 없음. 적은 포트(`127.0.0.1:1`)는 그대로 1로 저장된다.
+    ShardSphere의 Replications는 빈 폴더(오류 없음), `SYS_CONTEXT`의 매개변수 RETURN_VALUE·NAMESPACE·PARAMETER가 보인다(디버그 로그에 대체 경로 한 번).
+    Altibase 7.3의 Replications(시험 서버에 복제 없음, 전과 같이 0개)와 `SYS_CONTEXT` 매개변수 3개는 전과 같고 대체 경로를 타지 않았다.
+    PostgreSQL 17은 자체 모델(`PostgreProcedure`, `GenericProcedure`를 쓰지 않음)이라 영향이 없다: 임시 스키마의 함수 하나의 매개변수 a·b가 보였다(스키마는 지움).
+
 ### 폐쇄망 오프라인 설치 경로
 
 - 2026-11-07 결정으로 전체 드라이버를 내장하는 내부판은 만들지 않는다(위 "배포판 구성").
@@ -364,6 +425,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   0.1.1부터는 Connector/J를 내장하지 않으므로(#123) 이후 릴리스에는 소스를 첨부할 필요가 없다.
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
+- ShardSphere(위 "ShardSphere"): 어두운 테마에서 아이콘의 남색 부분이 보이지 않는다. 기본 사용자, 샤딩이 켜진 서버(시험 서버는 `SHARD_META_ENABLE=0`)에서의 동작, macOS는 확인하지 않았다.
 
 ## 변경 이력
 
@@ -400,3 +462,8 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   받지도 클래스패스에 넣지도 않는다(`DriverLoaderDescriptor`).
 - 2026-11-09 macOS 앱 묶음 이름을 `ChromiteSwing.app`에서 `Chromite.app`으로 바꾼 것을 반영(앱 변경 #22, `chromite/install-update-2`, [distribution.md](distribution.md) "macOS 앱 이름"). 지난 확인 기록의 옛 이름은 그때의 결과라 그대로 둠.
 - 2026-11-12 "내려받기를 취소하면" 절 추가(앱 변경 #85, `chromite/small-fixes-r3`): 다운로드를 취소하면 그 연결 시도를 끝냄(`DriverLoaderDescriptor.checkFilesPresence`).
+- 2026-11-14 ShardSphere 드라이버 내장(앱 변경 #113, `chromite/shardsphere-driver`, 사용자 결정): Altibase 공급자의 두 번째 드라이버와 메타 모델,
+  `drivers.shardsphere` 선언, Maven Central에 없는 jar를 저장소에 커밋(첫 예외), 자기 유형·아이콘, Altibase 서버 출력 콜백을 클래스 이름이 아니라 메서드 매개변수로 찾게 고침.
+  내장 목록은 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere.
+- 2026-11-14 검토 뒤 고침(같은 브랜치): Connect 대화상자의 기본 포트, 복제 카탈로그가 없는 서버의 복제 목록, `getFunctionColumns`가 없는 드라이버의 함수 매개변수
+  ("ShardSphere"의 "고친 것").

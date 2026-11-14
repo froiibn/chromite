@@ -59,6 +59,7 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
     YashanDB는 `OracleDataSource`를 상속해 같다.
   - Altibase·CUBRID도 같은 방식이다(2026-11-08, evening #19). Altibase는 세션마다 드라이버 콜백을 등록하거나 지운다. 드라이버의
     `AltibaseConnection.registerMessageCallback`은 콜백이 바뀌면 서버에 메시지 전송 여부를 알리고(`null`이면 끔, `javap`로 확인), 콜백이 없으면 메시지를 버린다.
+    콜백 인터페이스는 이 메서드의 매개변수 형식에서 얻는다(2026-11-14, Altibase 계열 ShardSphere 드라이버는 이름이 `shardsphereMessageCallback`이다, [drivers.md](drivers.md) "ShardSphere").
     끌 때는 데이터 원본의 버퍼도 비운다(꺼진 동안 아무도 읽지 않음). CUBRID는 세션마다 켠 버퍼 크기를 기억하고, 켜짐이나 크기가 다르면 `dbms_output.enable(크기)`,
     끄면 `dbms_output.disable()`(읽지 않은 줄도 버림, CUBRID 11.4 설명서 "System Package")을 보낸다. 그래서 Options > CUBRID가 더 이상 다시 연결을 묻지 않는다.
 - **PRINT·NOTICE를 두 번 쓰지 않는다.** PostgreSQL 읽기 도구(`PostgreServerOutputReader`)와 기본 읽기 도구(`DefaultServerOutputReader`)는
@@ -153,3 +154,4 @@ Oracle `DBMS_OUTPUT`, SQL Server `PRINT`·`RAISERROR`, Altibase `PRINT`, CUBRID�
 - 2026-11-11 Oracle 쿼리 창의 `SET SERVEROUTPUT`이 그 창 세션만 켜고 끔(설정보다 앞섬, 설정은 그대로). 읽을지는 세션 기준
   `DBCServerOutputReader.isServerOutputEnabled(context)` ([oracle-sqlplus-commands.md](oracle-sqlplus-commands.md), `chromite/oracle-sqlplus`)
 - 2026-11-12 서버 출력을 Messages 대신 결과 영역의 Server Output 탭에 씀, 경고 중 PRINT·NOTICE를 출력으로 가름(`isServerOutput`), 새 출력 점(앱 변경 #54, `chromite/result-area-2`). 확인은 "확인 (2026-11-12)".
+- 2026-11-14 Altibase 콜백 인터페이스를 `registerMessageCallback` 매개변수에서 얻음(앱 변경 #113, `chromite/shardsphere-driver`). Altibase 7.3에서 `EXEC PRINTLN` 출력이 Server Output 탭에 나옴을 다시 확인.

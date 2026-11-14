@@ -15,6 +15,8 @@
     - 2026-11-07 Added SQLite. Chromite ships one edition (no internal edition), so the "public edition" labels
       became "bundled drivers"; the feature and plugin IDs keep "public" because renaming them buys nothing.
     - 2026-11-07 Removed MySQL Connector/J (user decision); MySQL drivers download it when first used.
+    - 2026-11-14 Added ShardSphere (project owner's decision). Its jar is not on Maven Central, so it is committed in
+      drivers-root/drivers/shardsphere/ and reaches drivers/ as a root file like the license texts.
 -->
 <feature
         id="com.seizia.chromite.drivers.public.feature"
@@ -22,7 +24,7 @@
         version="26.2.5.qualifier"
         provider-name="Chromite contributors">
 
-    <description>JDBC drivers bundled with Chromite: SQL Server, Oracle, PostgreSQL, MariaDB, SQLite</description>
+    <description>JDBC drivers bundled with Chromite: SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere</description>
 
     <copyright>Chromite contributors. Driver licenses: drivers/README.txt</copyright>
 

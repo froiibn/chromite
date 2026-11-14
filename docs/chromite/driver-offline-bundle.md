@@ -10,7 +10,7 @@
 - 인터넷이 되는 PC의 드라이버 관리자에서 필요한 드라이버를 하나 또는 여러 개 골라 **설치 묶음 파일 하나**를 만든다.
 - 폐쇄망 PC의 드라이버 관리자에서 그 파일을 설치하면, 그 드라이버들이 인터넷 없이 연결된다.
 - "모든 드라이버"도 고를 수 있지만 기본이 아니다(약 1.7 GB, [drivers.md](drivers.md)).
-- 내장 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite)는 이 과정이 필요 없다. MySQL은 2026-11-07부터 내장하지 않으므로 폐쇄망에서는 이 묶음으로 옮긴다([drivers.md](drivers.md)). 내장 드라이버는 내려받을 파일이 없어 목록에 나오지 않는다.
+- 내장 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere)는 이 과정이 필요 없다. MySQL은 2026-11-07부터 내장하지 않으므로 폐쇄망에서는 이 묶음으로 옮긴다([drivers.md](drivers.md)). 내장 드라이버는 내려받을 파일이 없어 목록에 나오지 않는다.
 - 기존의 jar·폴더 직접 추가(Add File/Add Folder)는 그대로 둔다. 공개 저장소에 없는 벤더 전용 드라이버는 계속 그 방법을 쓴다.
 
 ## 사용 흐름
@@ -181,3 +181,4 @@ upstream(DBeaver)에는 같은 기능이 없다. SWT의 "드라이버 라이브�
 
 - 2026-11-07 최초 작성. 드라이버 관리자의 오프라인 묶음 만들기·설치, 형식 버전 1, 드라이버 폴더 설치와 로더 등록, 검사·zip-slip·상한.
 - 2026-11-07 MySQL 내장 취소에 맞춰 내장 드라이버 목록에서 MySQL을 뺌([drivers.md](drivers.md)).
+- 2026-11-14 내장 드라이버 목록에 ShardSphere 추가([drivers.md](drivers.md) "ShardSphere"). 내려받을 파일이 없어 묶음 만들기 목록에 나오지 않는다.

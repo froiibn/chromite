@@ -21,6 +21,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.generic.GenericConstants;
 import com.seizia.chromite.ext.generic.model.meta.GenericMetaObject;
 import com.seizia.chromite.model.DBPEvaluationContext;
@@ -41,16 +42,27 @@ import org.jkiss.utils.CommonUtils;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * GenericProcedure
+ *
+ * 설계: 함수 매개변수는 JDBC 4의 {@code getFunctionColumns}로 읽는다. 그 메서드가 없는 드라이버(JDBC 3.0)만 같은 catch에서
+ * {@code getProcedureColumns}로 읽고, 행의 종류 값은 그 메서드의 상수(procedureColumn*)로 해석한다. 메서드가 있는 드라이버는 catch에
+ * 들어가지 않으므로 전과 같다.
+ *
+ * 변경 이력:
+ * - 2026-11-14 Chromite: {@code getFunctionColumns}가 없는 드라이버(ShardSphere 5.1.9, JDBC 3.0)에서 함수 매개변수를 읽을 때
+ *   {@code AbstractMethodError}가 사용자에게 보였다. {@code AbstractMethodError}·{@code SQLFeatureNotSupportedException}이면
+ *   {@code getProcedureColumns}로 읽는다(앱 변경 #113, docs/chromite/drivers.md "ShardSphere")
  */
 public class GenericProcedure extends AbstractProcedure<GenericDataSource, GenericStructContainer>
     implements GenericScriptObject, DBPUniqueObject, DBPRefreshableObject
 {
+    private static final Log log = Log.getLog(GenericProcedure.class);
     private static final Pattern PATTERN_COL_NAME_NUMERIC = Pattern.compile("\\$?([0-9]+)");
 
     private String specificName;
@@ -142,26 +154,34 @@ public class GenericProcedure extends AbstractProcedure<GenericDataSource, Gener
 
         final GenericMetaObject pcObject = getDataSource().getMetaObject(GenericConstants.OBJECT_PROCEDURE_COLUMN);
         try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Load procedure columns")) {
-            final JDBCResultSet dbResult;
-            if (DBSProcedureType.PROCEDURE == procedureType) {
-                dbResult = session.getMetaData().getProcedureColumns(
-                    getCatalog() == null ?
-                        this.getPackage() == null || !this.getPackage().isNameFromCatalog() ?
-                            null :
-                            this.getPackage().getName() :
-                        getCatalog().getName(),
-                    getSchema() == null ? null : JDBCUtils.escapeWildCards(session, getSchema().getName()),
-                    JDBCUtils.escapeWildCards(session, getName()),
-                    getDataSource().getAllObjectsPattern()
-                );
-            } else {
-                dbResult = session.getMetaData().getFunctionColumns(
-                    getCatalog() == null ? null : getCatalog().getName(),
-                    getSchema() == null ? null : JDBCUtils.escapeWildCards(session, getSchema().getName()),
-                    JDBCUtils.escapeWildCards(session, getName()),
-                    getDataSource().getAllObjectsPattern()
-                );
+            // getProcedureColumns rows use the procedureColumn* kinds, getFunctionColumns rows the functionColumn* kinds
+            boolean procedureColumns = DBSProcedureType.PROCEDURE == procedureType;
+            JDBCResultSet functionColumns = null;
+            if (!procedureColumns) {
+                try {
+                    functionColumns = session.getMetaData().getFunctionColumns(
+                        getCatalog() == null ? null : getCatalog().getName(),
+                        getSchema() == null ? null : JDBCUtils.escapeWildCards(session, getSchema().getName()),
+                        JDBCUtils.escapeWildCards(session, getName()),
+                        getDataSource().getAllObjectsPattern()
+                    );
+                } catch (AbstractMethodError | SQLFeatureNotSupportedException e) {
+                    // A driver without the JDBC 4 method (a JDBC 3.0 driver such as ShardSphere 5.1.9): JDBC 3.0 lists
+                    // function parameters with getProcedureColumns
+                    log.debug("Driver has no getFunctionColumns, reading the parameters of '" + getName() + "' as procedure columns", e);
+                    procedureColumns = true;
+                }
             }
+            final JDBCResultSet dbResult = !procedureColumns ? functionColumns : session.getMetaData().getProcedureColumns(
+                getCatalog() == null ?
+                    this.getPackage() == null || !this.getPackage().isNameFromCatalog() ?
+                        null :
+                        this.getPackage().getName() :
+                    getCatalog().getName(),
+                getSchema() == null ? null : JDBCUtils.escapeWildCards(session, getSchema().getName()),
+                JDBCUtils.escapeWildCards(session, getName()),
+                getDataSource().getAllObjectsPattern()
+            );
             try {
                 int previousPosition = -1;
                 while (dbResult.next()) {
@@ -176,7 +196,7 @@ public class GenericProcedure extends AbstractProcedure<GenericDataSource, Gener
                     //int radix = GenericUtils.safeGetInt(dbResult, JDBCConstants.RADIX);
                     String remarks = GenericUtils.safeGetString(pcObject, dbResult, JDBCConstants.REMARKS);
                     int position = GenericUtils.safeGetInt(pcObject, dbResult, JDBCConstants.ORDINAL_POSITION);
-                    DBSProcedureParameterKind parameterType = getParameterKind(columnTypeNum);
+                    DBSProcedureParameterKind parameterType = getParameterKind(columnTypeNum, procedureColumns);
                     if (CommonUtils.isEmpty(columnName) && parameterType == DBSProcedureParameterKind.RETURN) {
                         columnName = "RETURN";
                     }
@@ -217,9 +237,9 @@ public class GenericProcedure extends AbstractProcedure<GenericDataSource, Gener
     }
 
     @NotNull
-    private DBSProcedureParameterKind getParameterKind(int columnTypeNum) {
+    private DBSProcedureParameterKind getParameterKind(int columnTypeNum, boolean procedureColumns) {
         DBSProcedureParameterKind parameterType;
-        if (DBSProcedureType.PROCEDURE == procedureType) {
+        if (procedureColumns) {
             parameterType = switch (columnTypeNum) {
                 case DatabaseMetaData.procedureColumnIn -> DBSProcedureParameterKind.IN;
                 case DatabaseMetaData.procedureColumnInOut -> DBSProcedureParameterKind.INOUT;

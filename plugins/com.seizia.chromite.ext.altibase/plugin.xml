@@ -3,7 +3,7 @@
 <plugin>
 
     <extension point="com.seizia.chromite.generic.meta">
-        <meta id="alti" class="com.seizia.chromite.ext.altibase.model.AltibaseMetaModel" driverClass="Altibase.jdbc.driver.AltibaseDriver,Altibase7_1.jdbc.driver.AltibaseDriver,Altibase7_3.jdbc.driver.AltibaseDriver"/>
+        <meta id="alti" class="com.seizia.chromite.ext.altibase.model.AltibaseMetaModel" driverClass="Altibase.jdbc.driver.AltibaseDriver,Altibase7_1.jdbc.driver.AltibaseDriver,Altibase7_3.jdbc.driver.AltibaseDriver,shardsphere.jdbc.driver.shardsphereDriver"/>
     </extension>
 
     <extension point="com.seizia.chromite.dataSourceProvider">
@@ -15,6 +15,16 @@
             icon="icons/altibase_icon.png"
             iconBig="icons/altibase_icon_big.png"
             logoImage="icons/altibase_logo_wide.png"/>
+        <!-- Chromite: ShardSphere is an Altibase-derived product (same JDBC classes and wire operations under its own
+             names), so its driver below uses this provider and the Altibase meta model. Its own type keeps the
+             ShardSphere name and icon wherever the type is shown (docs/chromite/drivers.md "ShardSphere").
+             The shardsphere_* icons are the vendor's mark, not Apache-2.0 (NOTICE, docs/chromite/driver-licenses.md). -->
+        <dataSourceType
+            id="shardsphere"
+            label="ShardSphere"
+            description="ShardSphere database"
+            icon="icons/shardsphere_icon.png"
+            iconBig="icons/shardsphere_icon_big.png"/>
         <datasource
                 class="com.seizia.chromite.ext.altibase.AltibaseDataSourceProvider"
                 description="Altibase JDBC connector"
@@ -46,6 +56,35 @@
                     <parameter name="supports-truncate" value="true"/>
                     <parameter name="supports-scroll" value="true"/>
                     <!-- In order to circumvent previous version of JDBC bug: ROLE -->
+                    <parameter name="schema-filters-enabled" value="true"/>
+                    <parameter name="split-procedures-and-functions" value="true"/>
+                    <parameter name="query-get-active-db"  value="SELECT db_name FROM V$DATABASE"/>
+                    <parameter name="active-entity-type" value="schema"/>
+                </driver>
+                <!-- Chromite: bundled driver (drivers.shardsphere, docs/chromite/drivers.md "ShardSphere"). There is no
+                     Maven artifact, so the install folder is the only file source; a product without the bundle has no
+                     file and the user adds the jar in Driver Manager. Default port: the product's default port as stated by
+                     the project owner (2026-11-14); the driver's own fallback without a port is 25001. Default database:
+                     the driver's own fallback (shardsphereConnection.loadDefaultValues). -->
+                <driver
+                     categories="sql"
+                     class="shardsphere.jdbc.driver.shardsphereDriver"
+                     dataSourceType="shardsphere"
+                     defaultDatabase="memdb"
+                     defaultPort="55321"
+                     description="ShardSphere JDBC Driver"
+                     icon="icons/shardsphere_icon.png"
+                     id="shardsphere"
+                     label="ShardSphere"
+                     sampleURL="jdbc:shardsphere://{host}:{port}/{database}"
+                     supportedConfigurationTypes="MANUAL,URL">
+
+                    <file type="jar" path="drivers/shardsphere" bundle="drivers.shardsphere"/>
+
+                    <parameter name="omit-catalog" value="true"/>
+                    <parameter name="omit-schema" value="false"/>
+                    <parameter name="supports-truncate" value="true"/>
+                    <parameter name="supports-scroll" value="true"/>
                     <parameter name="schema-filters-enabled" value="true"/>
                     <parameter name="split-procedures-and-functions" value="true"/>
                     <parameter name="query-get-active-db"  value="SELECT db_name FROM V$DATABASE"/>

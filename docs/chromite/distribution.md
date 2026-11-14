@@ -484,7 +484,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   이름이 있는 드라이버를 제품 단위로 묶으면(같은 제품의 옛·클라우드·임베디드 판, CSV·DBF·JDBCX·Avatica·Arrow Flight 같은 파일·연합 드라이버 제외) 약 92개라
   "100가지가 넘는 데이터베이스"는 확실히 참이라고 할 수 없다. 그래서 사이트는 "100가지가 넘는 드라이버"라고 쓴다(144개, 옛·사용 중단 표시 약 18개를 빼도 120개 이상).
   드라이버 관리자에서 사용자가 JDBC 드라이버를 새로 더할 수 있다(`DriverManagerDialog.createDriver`).
-- 미리 설치된 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, [drivers.md](drivers.md))는 편의로 적고 한계처럼 적지 않는다. 나머지는 처음 연결할 때 받거나 오프라인 묶음으로 설치한다.
+- 미리 설치된 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere, [drivers.md](drivers.md))는 편의로 적고 한계처럼 적지 않는다. 나머지는 처음 연결할 때 받거나 오프라인 묶음으로 설치한다.
 - 첫 화면 문장, 홈의 `description`·`og:description`·`twitter:description`, 공유 이미지와 모든 페이지의 그림 설명: 드라이버 수와 "여러 데이터베이스".
 - 서버 관리 장면 제목은 DB 수가 아니라 도구("DBA 도구가 처음부터 들어 있습니다" / "DBA tools built in")이고, 설명에서 깊은 관리 도구가 지금 다루는 DB(SQL Server, Oracle,
   PostgreSQL, MariaDB, Altibase는 세션과 잠금)와 다른 DB도 연결해 쿼리·개체 탐색을 한다는 것을 한 번 적는다. 관리 코드에는 MySQL 경로도 있지만
@@ -964,3 +964,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-13 26.0.6 릴리스 기록: 26.0.5 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
 - 2026-11-13 26.0.7 준비(`chromite/release-26-0-7`): 버전 26.0.7과 변경 내역(#263~#268). PostgreSQL 연결 새로 고침의 세션 손실(#266)이 26.0.6에도 있어 당일 수정판으로 냄.
 - 2026-11-13 26.0.7 릴리스 기록: 26.0.6 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
+- 2026-11-14 "데이터베이스 지원 문구"의 미리 설치된 드라이버 목록에 ShardSphere를 더함(앱 변경 #113). 사이트의 지원 범위 표(`support.html`)에는 ShardSphere 행을 넣지 않음:
+  표의 기능별 판정을 확인하지 않았다(사용자 확인 대기).

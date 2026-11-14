@@ -146,6 +146,9 @@ import java.util.function.Supplier;
  *   목록은 대화상자가 Test Connection처럼 만든 임시 연결로 읽는다 (docs/chromite/swing-conn-advanced.md "데이터베이스 목록에서 고르기")
  * - 2026-11-13 Additional Parameters 탭의 URL 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었고
  *   높이가 한 번 늦게 따라가 가장 작은 크기에서 마지막 줄이 잘렸다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-14 URL 형식에 포트가 꼭 있는 드라이버(Altibase, ShardSphere)도 서버 이름에 포트가 없으면 드라이버 기본 포트로 연결({@link #validateAddress}).
+ *   저장할 때는 빈 포트를 기본 포트로 바꾸면서(writeAddress) 검사는 포트를 요구해 Connect가 꺼져 있었다. 기본 포트가 없는 드라이버만 묻는다
+ *   (앱 변경 #113, docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -443,7 +446,9 @@ final class ConnectionSettingsPanel extends JPanel {
         for (String property : urlPattern.getMandatoryPropertyNames()) {
             String missing = switch (property) {
                 case DBConstants.PROP_HOST -> hostAndPort[0].isBlank() ? ConnectionMessages.settings_enter_server_name : null;
-                case DBConstants.PROP_PORT -> hostAndPort[1].isBlank() ? ConnectionMessages.settings_enter_port : null;
+                // An empty port is the driver's default port (writeAddress): missing only when the driver has none
+                case DBConstants.PROP_PORT -> hostAndPort[1].isBlank() && CommonUtils.isEmpty(driver.getDefaultPort())
+                    ? ConnectionMessages.settings_enter_port : null;
                 case DBConstants.PROP_DATABASE -> databaseRequired && databaseField.getText().isBlank() ? ConnectionMessages.settings_enter_database : null;
                 case DBConstants.PROP_SERVER -> serverField.getText().isBlank() ? ConnectionMessages.settings_enter_server : null;
                 case DBConstants.PROP_FILE -> pathField.getText().isBlank() ? ConnectionMessages.settings_enter_file : null;

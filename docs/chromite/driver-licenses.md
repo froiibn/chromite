@@ -9,7 +9,7 @@
 이 문서는 `plugin.xml`이 참조하는 모든 JDBC 드라이버 파일의 버전, 라이선스, 출처, 크기를 정리하고
 내장 가능 여부를 분류한다.
 
-- **배포판(2026-11-07 결정):** Chromite는 배포판이 하나다. 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite)만 내장하고
+- **배포판(2026-11-07 결정):** Chromite는 배포판이 하나다. 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, 2026-11-14부터 ShardSphere)만 내장하고
   나머지는 필요할 때 내려받는다. MySQL Connector/J는 2026-11-06에 내장했다가 2026-11-07 결정으로 다시 뺐다(아래 "MySQL Connector/J"). 폐쇄망에는 별도 오프라인 설치 경로를 둔다(계획). 이전 결정(2026-11-06)은 공개판·내부판 두 판이었고,
   아래 분류 표의 마지막 열은 그때의 내부판 기준이다. 내부판은 만들지 않으므로 B·C 분류는 어느 경우에도 내장하지 않는다.
 
@@ -129,6 +129,27 @@
   - 라이선스 표기: 사용자가 받을 때 보이는 원문이 맞도록 MySQL 계열 6개 드라이버의 `type="license"`를
     `licenses/external/gpl-2.0-universal-foss-exception.txt`(Connector/J `LICENSE`의 GPLv2·Universal FOSS Exception 원문)로 바꿨다(아래 표).
   - `drivers.mysql5` 분리는 `drivers.mysql` 선언 때문이었으므로 upstream대로 `drivers.mysql`로 되돌렸다(동작은 같다).
+
+## ShardSphere
+
+| 드라이버 | 버전 | 라이선스 | 출처 | 크기(MB) | 분류 | 비고 |
+|---|---|---|---|---|---|---|
+| ShardSphere (`altibase:shardsphere`) | `shardsphere.jar` "ShardSphere 5.1.9 for JDBC 3.0" | 라이선스 원문 없음 | 사용자가 준 파일(공개 배포처 없음, Maven Central에 없음) | 0.4 | 분류 밖(A·A* 아님) | **2026-11-14 내장**(프로젝트 소유자 결정) |
+
+- **사실:** jar 안에 라이선스·고지·제조사 파일이 없다(항목 217개: `shardsphere.jdbc.driver` 패키지의 클래스, `META-INF/MANIFEST.MF`, `META-INF/services/java.sql.Driver`).
+  SHA-256 `6752544cf4fe66b1728dfdbc5d4cc6a0a7d6930b8fac16560d8f95390ecf9987`, 430,801 bytes. 제조사는 CISPHERE Inc.다(사용자 확인).
+- **분류:** 위 분류 기준의 어디에도 들지 않는다. 오픈소스 라이선스도, 재배포를 허용한다고 읽은 벤더 약관도 없다. 그래서 이 문서의 기준으로는 내장할 근거가 없다.
+- **내장한 근거:** 프로젝트 소유자가 2026-11-14에 이 파일을 공개 설치 파일과 공개 저장소로 배포할 권한이 있다고 밝혔다("권한 있다, 내장하라").
+  이것은 소유자의 확인이지 라이선스 문서가 아니다. Chromite는 이 파일에 아무 라이선스도 주지 않는다.
+- **고지:** `drivers/shardsphere/README.txt`, `drivers/README.txt`, `NOTICE`에 같은 내용을 적었다. 내장을 그만두면 jar·`README.txt`, 묶음 선언, 이 절과 고지를 지운다.
+
+### ShardSphere 아이콘
+
+- 파일: `plugins/com.seizia.chromite.ext.altibase/icons/shardsphere_icon.png`, `shardsphere_icon@2x.png`, `shardsphere_icon_big.png`, `shardsphere_icon_big@2x.png`.
+- CISPHERE Inc.(ShardSphere 제조사) 로고의 심볼이며 그 회사의 상표다. Apache-2.0으로 라이선스되지 않고, ShardSphere 데이터베이스를 표시하는 데만 쓴다.
+- 서면 라이선스는 없다. 프로젝트 소유자가 밝힌 대로 벤더의 동의를 받아 쓴다(다른 프로젝트의 기록: 2026-11-06 사용자 진술, 데이터 원본 표시로 사용).
+- 원본 44×44 PNG(SHA-256 `6833e95a5177662e020f26987c89450a3d2abf57ce6bd605fe7ce602d206b87f`)에서 내용을 고치지 않고 크기만 바꿨다([drivers.md](drivers.md) "ShardSphere").
+- 지울 때: 네 파일, `ext.altibase/plugin.xml`의 `icon`·`iconBig` 세 곳(유형 두 곳, 드라이버 한 곳), 이 절과 `NOTICE`의 단락.
 
 ## 전체 목록
 
@@ -325,3 +346,4 @@ Oracle은 위 주요 DB 표에 있다.
 - 2026-11-08 MySQL 5 (Legacy)·StarRocks 라이선스 표기 수정(evening #12, 새 파일 `gpl-2.0-mysql-foss-exception.txt`). v0.1.0 Release에 Connector/J 9.7.0
   소스 묶음을 첨부한 기록(크기·SHA-256, 초안 Release 게시 때 공개, 0.1.1부터는 해당 없음).
 - 2026-11-08 MySQL (Old)(`mysql3`)에 라이선스 항목 추가(evening #20).
+- 2026-11-14 "ShardSphere" 절 추가(앱 변경 #113): 라이선스 원문 없는 jar를 프로젝트 소유자의 권한 확인을 근거로 내장, 분류 밖으로 기록. ShardSphere 아이콘(CISPHERE Inc. 상표) 기록.

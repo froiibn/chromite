@@ -58,6 +58,24 @@ complete file list.
     parts derived from the Zentus SQLite JDBC driver, Copyright (c) 2006
     David Crawshaw - BSD-style license. The jar contains the native SQLite
     library, which is in the public domain.
+  ShardSphere JDBC driver 5.1.9 (shardsphere.jar) - no license text is
+    included in the jar or known to this project. It is redistributed
+    unmodified because the owner of the Chromite project stated on
+    2026-11-14 that they hold the right to distribute it publicly; it is
+    not covered by the Apache License 2.0 and Chromite grants no license
+    for it. Unlike the drivers above, it is stored in this repository
+    (features/com.seizia.chromite.drivers.public.feature/drivers-root/
+    drivers/shardsphere/, see README.txt there).
+
+The ShardSphere icons (plugins/com.seizia.chromite.ext.altibase/icons/
+shardsphere_icon.png, shardsphere_icon@2x.png, shardsphere_icon_big.png,
+shardsphere_icon_big@2x.png) show the symbol of the logo of CISPHERE Inc.,
+the maker of ShardSphere, which is its trademark. They are not licensed
+under the Apache License 2.0 and are used only to denote the ShardSphere
+database. There is no written license; they are used with the vendor's
+agreement as stated by the owner of the Chromite project. They were made
+from a 44 x 44 PNG (SHA-256 6833e95a5177662e020f26987c89450a3d2abf57ce6bd
+605fe7ce602d206b87f) by scaling only, without changing its content.
 
 Binary distributions of Chromite include a Java runtime in the jre/ folder
 of the installation (macOS: Contents/Eclipse/jre inside the app), linked

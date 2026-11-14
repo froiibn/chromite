@@ -1473,6 +1473,8 @@ Connection Properties | Driver Properties | Provider Properties | Additional Con
 
 - 드라이버의 URL 템플릿에 `{host}`가 있으면 Host·Port 두 칸 대신 "Server name" 한 칸이다. `호스트`, `호스트:포트`, SSMS식 `호스트,포트`, `[IPv6]:포트`를 받는다.
   포트를 적지 않으면 드라이버의 기본 포트로 저장하고, 기본 포트와 같은 포트는 칸에 보이지 않는다. 포트 자리가 숫자가 아니면 Connect·Test를 끈다.
+  템플릿의 `{port}`가 필수(`[...]` 밖)여도 포트를 묻는 것("포트를 입력하세요")은 드라이버에 기본 포트가 없을 때뿐이다(2026-11-14, 앱 변경 #113).
+  전에는 저장은 기본 포트를 쓰면서 검사는 포트를 요구해 Altibase(20300)·ShardSphere(55321)에서 호스트만 적으면 Connect가 꺼져 있었다(`ConnectionSettingsPanel.validateAddress`).
   템플릿에 `{port}`가 없으면 칸 전체가 호스트다. `{server}`는 `{host}`와 함께 있으면 "Server instance", 혼자면 "Server name"이다.
 - 기록(`ConnectionHistory`): Connect(새 연결)나 Save(편집)가 끝나면 그때의 서버 이름을 드라이버 전체 ID별 목록 맨 앞에 넣는다(최대 10개). 저장 위치는
   이 번들의 설정 저장소(작업 공간 `.metadata`, 키 `connectDialog.serverHistory.<공급자:드라이버>`, 줄바꿈으로 구분)로, 최근 파일 목록(`RecentFiles`)과 같다.
@@ -3726,3 +3728,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-12 아이콘 단추의 도구 설명(앱 변경 #103, `chromite/icon-tooltips`): 설명문 대신 메뉴·창 제목과 같은 이름과 단축키(`UiIcons`), 꺼진 이유·상태는 둠,
   도구 설명에만 쓰던 키 51개 삭제. "아이콘 단추의 도구 설명" 절. 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 SQL Editor 도구 막대의 Format SQL 옆 비교 단추(앱 변경 #105, `chromite/text-compare`): 열린 두 창의 글을 나란히 비교하는 문서 탭, [text-compare.md](text-compare.md). 회귀 테스트는 실행하지 않았다.
+- 2026-11-14 Connect 대화상자: URL 템플릿의 {port}가 필수여도 드라이버에 기본 포트가 있으면 포트를 묻지 않음(앱 변경 #113, `chromite/shardsphere-driver`, "서버 이름과 기록").
