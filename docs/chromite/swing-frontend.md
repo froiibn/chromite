@@ -95,7 +95,7 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 
 | 단축키 | 동작 |
 |---|---|
-| F5 | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
+| F5 (또는 Alt+X, 2026-11-15 [shortcuts.md](shortcuts.md)) | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
 | Ctrl+Enter, Alt+P 등 | 커서 위치 문장, 커서부터, 행 수, 식(2026-11-08, [swing-query-commands.md](swing-query-commands.md)) |
 
 - SWT 버전의 "스크립트 실행" 명령([SQLEditor.java:2965](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/SQLEditor.java:2965))도
@@ -3824,5 +3824,6 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-15 결과 그리드가 읽은 테이블이 아닌 기본 스키마의 같은 이름 테이블에 묶이지 않게(앱 변경 #121, `chromite/result-binding-fallback`): `DBUtils.getObjectByPath`는 이름이 주어지면 기본 스키마에서
   찾지 않고, `getEntityFromMetaData`는 모델에 없는 카탈로그만 있는 메타데이터를 찾지 않으며, `SQLQuery`는 WITH 쿼리 이름을 단일 원본으로 보지 않음. 6개 엔진 전후 표와 편집 증명은
   "결과 그리드의 테이블 묶기" 절. 회귀 테스트는 실행하지 않았다.
+- 2026-11-15 "쿼리 실행 사양"의 F5 줄에 둘째 키 Alt+X(앱 변경 #122, `chromite/execute-alt-x`, [shortcuts.md](shortcuts.md)).
 - 2026-11-15 SQLite에서 ATTACH한 데이터베이스·`temp.` 테이블이 주 데이터베이스의 같은 이름 테이블에 묶이지 않게(앱 변경 #125, `chromite/sqlite-qualified-binding`):
   `bindAttributes`는 쿼리가 한정했으나 풀리지 않은 테이블을 컨테이너 없는 열 이름으로 다시 찾지 않고, SQLite 모델은 `main`을 데이터 원본 자신으로 푼다. "결과 그리드의 테이블 묶기" 절. 회귀 테스트는 실행하지 않았다.

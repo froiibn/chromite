@@ -318,6 +318,9 @@ import java.util.function.Supplier;
  *   창이 했다. 저장된 작업의 일정({@link TaskScheduler})도 함께 시작·정지(앱 변경 #104, docs/chromite/task-scheduling.md)
  * - 2026-11-12 비교: 열린 두 창의 글을 나란히 비교하는 문서 탭({@link TextCompareCommand}, Query 메뉴와 SQL Editor 도구 막대, 앱 변경 #105)
  *   (docs/chromite/text-compare.md)
+ * - 2026-11-15 Execute가 F5 외에 Alt+X(macOS ⌥X, DBeaver의 스크립트 실행 키)도 받음: 같은 동작의 추가 키라 메뉴·도구 설명은 F5,
+ *   F5처럼 초점이 쿼리 창(편집기와 결과)에 있을 때만 걸림({@link #createEditorAction}의 추가 키) (앱 변경 #122, docs/chromite/shortcuts.md)
+ * - 2026-11-15 macOS: 단축키가 처리한 Option 키의 글자(⌥P "π", ⌥X "≈")가 편집기에 들어가지 않게 {@link MacOptionKeyGuard}를 설치(앱 변경 #122)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host {
@@ -537,6 +540,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking = new ToolWindowDocking(this, documentSplit);
         // Windows: Alt released after a mouse gesture (Alt+drag, Alt+wheel) does not select the menu bar; removed when this closes
         AltMouseMenuGuard.install(this);
+        // macOS: the character of an Option key press a shortcut handled (⌥P, ⌥X) is not typed into the SQL
+        MacOptionKeyGuard.install(this);
 
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
@@ -708,8 +713,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // A description only while disabled (the reason, updateActivityMonitorAction)
         activityMonitorAction = createAction(CoreMessages.main_activity_monitor, null, UiKeys.command(KeyEvent.VK_A, InputEvent.ALT_DOWN_MASK),
             () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
+        // Alt+X is DBeaver's Execute Script key, for users coming from it; F5 (SSMS) stays the key the menu and tool tips show
         executeQueryAction = createEditorAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), SqlEditorPanel::execute);
+            KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), List.of(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)),
+            SqlEditorPanel::execute);
         cancelQueryAction = createAction(CoreMessages.main_cancel_query, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_PAUSE, InputEvent.ALT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -996,25 +1003,51 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Nullable KeyStroke accelerator,
         @NotNull Consumer<SqlEditorPanel> task
     ) {
-        return createAction(name, description, accelerator, () -> {
-            SqlEditorPanel editor = getActiveEditor();
-            if (editor != null && !isShortcutFromOutside(editor, accelerator)) {
-                task.accept(editor);
-            }
-        });
+        return createEditorAction(name, description, accelerator, List.of(), task);
     }
 
     /**
-     * Whether the action runs because its shortcut was pressed while the keyboard focus is outside the query window.
+     * An action on the active query window with more keys besides its accelerator. The accelerator is the key the menu
+     * item and the tool tips show; a menu item has only one, so the other keys are bound in the root pane's
+     * {@link JComponent#WHEN_IN_FOCUSED_WINDOW} map, the same window-wide level as the menu accelerator, to the same
+     * action object: the same enabled state, and the same focus rule ({@link #isShortcutFromOutside}).
+     */
+    @NotNull
+    private Action createEditorAction(
+        @NotNull String name,
+        @Nullable String description,
+        @Nullable KeyStroke accelerator,
+        @NotNull List<KeyStroke> otherKeys,
+        @NotNull Consumer<SqlEditorPanel> task
+    ) {
+        List<KeyStroke> keys = new ArrayList<>(otherKeys);
+        if (accelerator != null) {
+            keys.add(accelerator);
+        }
+        Action action = createAction(name, description, accelerator, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null && !isShortcutFromOutside(editor, keys)) {
+                task.accept(editor);
+            }
+        });
+        for (KeyStroke key : otherKeys) {
+            getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(key, action);
+            getRootPane().getActionMap().put(action, action);
+        }
+        return action;
+    }
+
+    /**
+     * Whether the action runs because one of its shortcuts was pressed while the keyboard focus is outside the query window.
      * Menu shortcuts work in the whole main window, so without this F5 or Ctrl+Enter typed in another text field (the
      * Chromite Agent input, which many chat inputs send with, Object Explorer's filter, the Query Library) would run the
      * active window's statements. The query window is its editor and its results (the result tabs show the active
      * window's results, plan and terminal). A shortcut is told from a menu or button click by the event being handled:
-     * the key event of that key stroke. Choosing the item in the open menu with the keyboard is another key (Enter).
+     * the key event of one of the action's key strokes. Choosing the item in the open menu with the keyboard is another
+     * key (Enter).
      */
-    private boolean isShortcutFromOutside(@NotNull SqlEditorPanel editor, @Nullable KeyStroke accelerator) {
-        if (accelerator == null || !(EventQueue.getCurrentEvent() instanceof KeyEvent keyEvent)
-            || !accelerator.equals(KeyStroke.getKeyStrokeForEvent(keyEvent))) {
+    private boolean isShortcutFromOutside(@NotNull SqlEditorPanel editor, @NotNull List<KeyStroke> keys) {
+        if (!(EventQueue.getCurrentEvent() instanceof KeyEvent keyEvent) || !keys.contains(KeyStroke.getKeyStrokeForEvent(keyEvent))) {
             return false;
         }
         // The component the key went to: the focus owner when the key was pressed

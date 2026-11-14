@@ -255,7 +255,7 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
 - `DBMS_SHARD`: `EXEC SYS.DBMS_SHARD.` → 서브프로그램 55개(56개 이름 중 `VERSION`은 함수라 `EXEC` 뒤에 내지 않음, `SUB_TYPE` 1). 한정하지 않은 `EXEC DBMS_SHARD.`와
   `SELECT DBMS_SHARD.`는 0개다. Altibase 7.3의 `EXEC DBMS_OUTPUT.`도 0개, `EXEC SYS.DBMS_OUTPUT.`은 5개라 ShardSphere만의 문제가 아니다.
   원인: Altibase 연결의 실행 문맥에 기본 스키마가 없다(`getContextDefaults()`의 스키마·카탈로그 null, `supportsSchemaChange` false). 완성은 한정하지 않은 이름을 기본 스키마에서 찾으므로
-  패키지(와 PUBLIC 시노님 `DBMS_SHARD`)를 찾지 못한다. 고치려면 Altibase 모델의 기본 스키마 지원이 필요해 작은 수정이 아니므로 고치지 않았다.
+  패키지(와 PUBLIC 시노님 `DBMS_SHARD`)를 찾지 못한다. 기본 스키마는 아래 "세션의 기본 스키마"(앱 변경 #116)에서 고쳤다.
 
 ### 확인 (2026-11-15, 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트)
 
@@ -268,6 +268,110 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
   정적 목록이 들어가고 예외 없이 끝나며 디버그 로그에 한 줄이 남는 것을 확인했다.
 - 더한 질의 시간: ShardSphere 약 15 ms(`SELECT 1 FROM DUAL`과 같음), Altibase 시험 서버 약 380–770 ms(SSH 터널 너머, `SELECT 1 FROM DUAL`도 380–780 ms라 왕복 한 번).
 
+## 세션의 기본 스키마 (2026-11-15, 앱 변경 #116)
+
+### 목적
+
+앱 변경 #115 보고: 한정하지 않은 `EXEC DBMS_SHARD.`(ShardSphere)와 `EXEC DBMS_OUTPUT.`(Altibase)가 아무것도 제안하지 않고, 스키마를 붙이면(`EXEC SYS.DBMS_SHARD.`) 제안한다.
+Altibase 계열 연결(Altibase, ShardSphere)의 실행 문맥이 세션의 기본 스키마를 알게 해 한정하지 않은 이름을 그 스키마에서 찾게 한다.
+
+### 근본 원인
+
+- 일반(generic) 실행 문맥은 드라이버 매개변수 `query-get-active-db`의 결과를 기본 개체 이름으로, `active-entity-type`(여기서는 `schema`)을 그 종류로 쓴다
+  (`GenericExecutionContext.determineSelectedEntity`, `getDefaultObject`).
+- 두 드라이버의 그 질의가 `SELECT db_name FROM V$DATABASE`였다. 결과는 데이터베이스 이름(`mydb`, `memdb`)이고 그런 스키마는 없으므로 `getSchema("mydb")`가 null,
+  기본 스키마도 null이었다. 캐시된 값(`getCachedDefault`)에는 `mydb`가 남아 쿼리 창의 스키마 칸과 상태 줄이 데이터베이스 이름을 보였다(`SqlEditorPanel.getUnlistedDefaultName`).
+- 같은 매개변수를 `AltibaseDataSource.getDbName`(세션·잠금 목록의 데이터베이스 이름)도 읽었다. 질의 하나가 두 뜻으로 쓰였다.
+
+### 서버가 지원하는 것 (측정)
+
+| 항목 | Altibase 7.3.0.0.7 (시험 서버) | ShardSphere 5.1.9 (실제 서버, 읽기만) |
+|---|---|---|
+| `SELECT USER_NAME() FROM DUAL` | 로그인 사용자, 대문자(`SYS`, 임시 사용자로 `CHR_AB_DEFSCHEMA`) | `SYS` |
+| `V$SESSION.DB_USERNAME`(`ID = SESSION_ID()`) | 같음 | 같음 |
+| JDBC `DatabaseMetaData.getUserName()` | 입력한 글자 그대로 | `sys`(입력한 소문자 그대로라 스키마 이름과 다름) |
+| JDBC `Connection.getSchema()` | null | `AbstractMethodError`(JDBC 3.0 드라이버) |
+| `ALTER SESSION SET CURRENT_SCHEMA = SYSTEM_` | ERR-266371 "A specified property does not exist or cannot be updated", 한정하지 않은 `SYS_TABLES_`는 여전히 "없음" | 시험하지 않음(쓰기 금지 서버) |
+| JDBC `Connection.setSchema("SYSTEM_")` | 예외 없이 아무것도 하지 않음(`getSchema()` null, 이름 풀이 그대로) | 시험하지 않음 |
+| 질의 한 번 | `USER_NAME()` 113–207 ms, `V$DATABASE` 115–562 ms, `SELECT 1 FROM DUAL` 103–340 ms(SSH 터널 왕복) | 각 10–17 ms |
+
+결론: 세션의 스키마는 로그인 사용자이고, 세션 안에서 바꾸는 방법은 찾지 못했다(위 두 방법 모두 바뀌지 않음). 그래서 기본값은 읽기 전용이다.
+
+### 규칙
+
+| 항목 | 내용 |
+|---|---|
+| 읽는 질의 | 두 드라이버(`plugin.xml`)의 `query-get-active-db`를 `SELECT USER_NAME() FROM DUAL`로. 제품 이름 검사 없음 |
+| 바꾸기 | 없음. `query-set-active-db`가 없고 API 경로도 아니라 `supportsSchemaChange`·`supportsCatalogChange`는 false(`GenericExecutionContext.java:228-268`). 쿼리 창 스키마 칸은 꺼져 있고 Object Explorer "기본으로 설정"도 꺼짐(`DefaultObjectCommands.java:76`) |
+| JDBC 경로를 쓰지 않은 이유 | 매개변수를 비우면 `session.getSchema()`를 쓰는데, 그 경로는 `selectedEntityFromAPI`를 켜서 스키마 바꾸기가 켜지고(`GenericExecutionContext.java:106-108`, `:259-265`) 바꿀 때 `session.setSchema`를 부른다. Altibase는 그 호출을 무시하고 ShardSphere 드라이버에는 메서드가 없다. 값도 Altibase는 null이다 |
+| 읽는 때 | 문맥을 만들 때 한 번(`initializeContextState` → `refreshDefaults`)과, 전과 같이 쿼리 창이 기본값을 다시 읽을 때. 같은 자리에서 전에는 `V$DATABASE`를 읽었으므로 문장 수는 같다. 실패하면 디버그 로그 한 줄 뒤 기본값 없음(전과 같은 동작, 연결은 실패하지 않음) |
+| 데이터베이스 이름 | `AltibaseConstants.QUERY_GET_DB_NAME`(`SELECT db_name FROM V$DATABASE`)을 `getDbName`이 직접 쓴다 |
+| 연결 확인 질의 | `query-ping`이 없으면 이 질의를 쓰므로(`GenericSQLDialect.java:115-118`) 연결 확인도 `USER_NAME()`이 된다. 두 서버에서 시간이 같다 |
+| 사용자 드라이버 설정 | 드라이버 매개변수는 기본값과 다를 때만 저장된다(`DriverDescriptorSerializerLegacy.java:257`). 이 매개변수를 직접 고쳐 둔 사용자는 그 값이 남는다 |
+
+### 기본값을 읽는 곳 (전 → 후, Altibase·ShardSphere 연결)
+
+| 곳 | 전 | 후 | 실행하는 SQL |
+|---|---|---|---|
+| 자동 완성(`SQLSearchUtils.findObjectsByPath`, `SQLQueryCompletionContext.obtainDefaultContext`) | 한정하지 않은 이름을 데이터 원본 전체에서 찾음(대부분 못 찾음) | 기본 스키마에서 찾음 | 넣는 글자만 바뀜(아래 확인 표) |
+| 쿼리 창 스키마 칸·상태 줄(`SqlEditorPanel.showSchemas`) | `mydb`(목록에 없는 캐시 값) | 기본 스키마 선택, 칸은 꺼짐 | 없음 |
+| Object Explorer | 굵은 노드 없음 | 기본 스키마 노드가 굵게(`ObjectExplorerPanel.java:2497`) | 없음 |
+| Copy Qualified Name, 끌어 놓기 이름(#112), Script Table As(CREATE·SELECT) | `SCHEMA.T` | 같음(측정). 끌어 놓기는 `database.schema.object` 이름만 줄이므로 해당 없음(`ExplorerObjectCommands.createDragName`) | 없음 |
+| 결과 집합의 테이블 찾기(`DBUtils.getEntityFromMetaData`, 편집 가능 여부) | 한정하지 않은 `FROM T`는 테이블을 찾지 못함 | 기본 스키마의 `T`에 묶임. 만드는 UPDATE·DELETE는 `USER.T`로 쓴다 | 바뀜. 서버가 한정하지 않은 `T`를 찾는 스키마와 같다. 실행 확인(2026-11-15, 앱 변경 #121과 합친 빌드): 자기 테이블의 편집이 `USER.T`에 써짐. 다른 스키마의 테이블을 자기 테이블과 같은 이름의 별칭으로 읽으면(`OTHER.T2 U`) 이 변경만으로는 그리드가 `USER.U`에 묶였는데, #121(공통 조회가 이름이 주어지면 기본 스키마에서 찾지 않음)이 들어간 뒤에는 `OTHER.T2`에 묶이고 편집도 거기에 써짐. 조인·파생 테이블·WITH는 읽기 전용([swing-frontend.md](swing-frontend.md) "결과 그리드의 테이블 묶기") |
+| `CALL p(?)` 매개변수 메타데이터(`JDBCCallableStatementImpl.java:186-188`) | 없음 | 기본 스키마의 `p` | 문장 글자는 같음 |
+| 객체 찾기·하이퍼링크(`GenericStructureAssistant.java:97-100`, `DBStructUtils.isSchemasSupported`) | 한정하지 않은 이름을 데이터 원본 전체에서 | 기본 스키마에서, 스키마 이름도 찾음 | 없음. 다른 스키마의 같은 이름은 이제 한정해야 이동한다 |
+| DDL 뒤 메타데이터 새로 고침 대상(`SQLMetadataRefreshTargetResolver`) | 데이터 원본 전체 | 기본 스키마 | 없음 |
+| 데이터 가져오기·복사의 기본 대상 스키마(`DataImportTargetPage`, `DatabaseCopyPages`) | 목록의 첫 스키마 | 기본 스키마(저장된 값이 우선) | 없음 |
+| 결과에서 CREATE TABLE 만들기(`ResultSetGenerateSql`) | "스키마 없음"으로 실패 | 기본 스키마에 만드는 DDL을 편집기에 보여 줌(실행하지 않음) | 없음 |
+| Chromite Agent(`ConnectionTools`, `AIDatabaseContext`, `AgentSql.refuseSharedSessionSwitch`) | 연결 스키마 없음, 공유 세션의 스키마는 `mydb`로 비교해 그 사용자 스키마를 지정한 호출을 거절 | 연결 스키마·프롬프트의 "Default schema"가 사용자 스키마, 그 스키마를 지정한 호출은 통과(다른 스키마는 여전히 거절). `SHARED_SESSION_DEFAULTS_NOTE` 문구는 그대로 | 거절되던 호출이 그 세션의 실제 스키마에서 실행됨 |
+| 쿼리 기록·QM 로그의 스키마 | `mydb` 또는 없음 | 사용자 스키마 | 없음 |
+
+- 실행되는 문장이 전과 다른 스키마에서 실행되게 하는 곳은 찾지 못했다. 이름을 줄이는 곳(완성의 짧은 이름, AI 프롬프트)은 기본 스키마 객체만 줄이고, 서버도 한정하지 않은 이름을
+  그 스키마(세션 사용자)에서 찾는다. 기본 스키마를 바꾸려는 곳은 모두 `supportsSchemaChange`를 먼저 보므로 아무것도 하지 않는다(`DBExecUtils.setExecutionContextDefaults`).
+
+### PUBLIC 시노님 (고치지 않음, 공통 완성 엔진)
+
+- SYS로 연결하면 `DBMS_OUTPUT`·`DBMS_SHARD` 패키지가 기본 스키마 SYS에 있어 풀린다. 다른 사용자에게는 PUBLIC 시노님으로만 보여 `EXEC DBMS_OUTPUT.`는 전후 모두 0개다
+  (`EXEC SYS.DBMS_OUTPUT.`은 5개).
+- 원인은 두 곳이다. (1) 모델: Altibase 모델은 공개 범위(`DBSVisibilityScopeProvider`, Oracle은 `OracleSchema.getPublicScopes`)를 내놓지 않고, PUBLIC 시노님을 담는
+  `AltibaseDataSource.publicSchema`는 `GenericSchema`라 `getChild`가 테이블만 찾는다. (2) 공통 엔진: 시노님을 찾아도 점 뒤 완성의 원천은 찾은 객체 그대로다
+  (`SQLQuerySemanticUtils.performPartialResolution`, 별칭을 풀지 않고 `DbObjectFromDbObject`를 만듦). `SQLQueryCompletionContext`의 OBJECT·CALL 분기는 그 객체가
+  `DBSObjectContainer`일 때만 제안하는데 시노님(`DBSAlias`)은 컨테이너가 아니다. 모든 엔진에 같은 제한이다(Oracle의 PUBLIC 시노님도 같은 경로, 실행으로는 확인하지 않음).
+- (2)는 공통 완성 엔진을 바꾸는 일이라 지시대로 멈췄다. (1)만으로는 `EXEC` 경우가 그대로라 하지 않았다.
+
+### 트랜잭션
+
+- 더한 코드는 SELECT 하나를 바꾼 것뿐이고 커밋·롤백이 없다.
+- 시험 서버, 수동 커밋 세션을 다른 세션에서 `V$TRANSACTION`으로 관찰: `USER_NAME()` 전후 `UPDATE_STATUS` 0, 로그 0(대조: 내 임시 테이블에 INSERT 뒤 `UPDATE_STATUS` 1, 롤백).
+- 앱: 수동 커밋 연결(`CHR_AB_DEFSCHEMA`)의 모든 문맥이 연결·기본값 다시 읽기·새로 고침·다시 연결 뒤 `QMUtils.isTransactionActive` false, 서버 세션 `UPDATE_STATUS` 0.
+
+### 확인 (2026-11-15, 두 브랜치를 합친 빌드, 사설 작업 공간, 앱 안 테스트 에이전트)
+
+"전"은 같은 앱에서 문맥의 기본 개체 이름을 옛 질의 결과(`mydb`, `memdb`)로 되돌려 만든 상태다.
+
+| 연결 · 입력 | 전 | 후 |
+|---|---|---|
+| ShardSphere(sys) `EXEC DBMS_SHARD.` | 0 | 55(`EXEC SYS.DBMS_SHARD.`와 같음) |
+| Altibase SYS `EXEC DBMS_OUTPUT.` | 0 | 5(`NEW_LINE`, `PRINT_DISABLE`, `PRINT_ENABLE`, `PUT`, `PUT_LINE`) |
+| Altibase 일반 사용자 `EXEC DBMS_OUTPUT.`(PUBLIC 시노님) | 0 | 0(위 "PUBLIC 시노님") |
+| 일반 사용자 `SELECT * FROM CHR_OWN` (자기 테이블) | 0 | `CHR_OWN_T` |
+| 일반 사용자 `SELECT CHR_OWN_T.` / `WHERE` 뒤 열 | 0 / 0 | `OWN_ID`, `OWN_NAME` / 같음 |
+| 일반 사용자 `SELECT * FROM CHR_AB_SYS`(SYS의 테이블) | 0 | 0(다른 스키마는 여전히 접두가 필요), `SYS.CHR_AB_SYS`는 전후 1 |
+| SYS `SELECT * FROM CHR_AB_SYS` / `SELECT * FROM CHR_OWN`(다른 스키마) | 0 / 0 | 1 / 0 |
+
+- 기본 스키마: SYS 연결 `SYS`, 임시 사용자 연결 `CHR_AB_DEFSCHEMA`(SYS가 아님), ShardSphere `SYS`. 주·메타데이터 문맥, 쿼리 창마다의 문맥, 격리 문맥(새 쿼리 창과 같은
+  `openIsolatedContext`) 모두 같다. 연결 새로 고침, 다시 연결, 끊고 다시 연결한 뒤 새 문맥도 같다. `supportsSchemaChange` false.
+- 쿼리 창: 스키마 칸이 기본 스키마를 선택하고 꺼짐, 상태 줄에 사용자 스키마. Object Explorer는 기본 스키마 노드만 기본으로 표시(`DBNUtils.isDefaultElement`).
+- 이름: `SYS.CHR_AB_SYS_T`(다른 스키마), `CHR_AB_DEFSCHEMA.CHR_OWN_T`(자기 스키마)의 DML·UI·DDL 이름, 끌어 놓기 이름, CREATE·SELECT 스크립트가 전후 같다.
+- 연결 시간: 바꾼 질의는 같은 자리의 질의 하나를 대신한다. `USER_NAME()`과 `V$DATABASE`가 같은 시간(Altibase 180–208 ms 대 180–242 ms, ShardSphere 16–17 ms 대 16 ms)이라
+  더한 시간은 측정 오차 안이다.
+- 확인하지 못한 것: `CALL` 매개변수·AI 문맥은 코드로만 봤다(결과 집합 편집 바인딩은 #121에서 실행으로 확인, 위 표). Oracle의 PUBLIC 시노님 완성은 실행하지 않았다. 7.1 이하 서버는 없다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번).
+
+### upstream 대비 변경점
+
+- `plugin.xml` 두 드라이버의 `query-get-active-db`, `AltibaseConstants.QUERY_GET_DB_NAME`, `AltibaseDataSource.getDbName`이 그 상수를 씀(필드 `queryGetActiveDB` 지움).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -277,3 +381,4 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
 - 2026-11-14 복제 카탈로그가 없는 서버의 복제 목록을 빈 목록으로, JDBC 3.0 드라이버의 함수 매개변수(앱 변경 #113 검토 뒤).
 - 2026-11-15 엔진 키워드를 연결한 서버의 `V$RESERVED_WORDS`에서 읽음(읽지 못하면 정적 목록), `RESERVED_TYPE`의 뜻과 `DBMS_SHARD` 자동 완성 조사(앱 변경 #115), 위 "서버 예약어".
 - 2026-11-15 예약어가 아닌 문법 낱말(`CACHE`, `NOCACHE`)을 서버와 관계없이 키워드로 두고 이름의 따옴표 이유에서는 뺌(앱 변경 #118), 위 "예약어가 아닌 문법 낱말".
+- 2026-11-15 실행 문맥의 기본 스키마를 세션 사용자로 읽음(`query-get-active-db` = `USER_NAME()`, 읽기 전용), 데이터베이스 이름은 따로 읽음(앱 변경 #116), 위 "세션의 기본 스키마".
