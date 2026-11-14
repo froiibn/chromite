@@ -76,7 +76,7 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
 | Cut / Copy / Paste / Select All | Ctrl+X / C / V / A | ⌘X / ⌘C / ⌘V / ⌘A |
 | Find… / Replace… | Ctrl+F / Ctrl+H | ⌘F / **⌥⌘F** |
 | Find Next / Previous | F3 / Shift+F3 | F3 / ⇧F3 |
-| Execute / Cancel | F5 / Alt+Pause | F5 / ⌥Pause |
+| Execute / Cancel | F5 또는 Alt+X / Alt+Pause | F5 또는 ⌥X / ⌥Pause |
 | Execute Current Statement | Ctrl+Enter | ⌘Enter(↩) |
 | Execute From Cursor | Alt+P | ⌥P |
 | Evaluate Expression | Ctrl+Alt+' | ⌥⌘' |
@@ -156,6 +156,14 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
   그대로다. 다만 Alt를 누른 채 마우스를 썼으면(누르기·클릭·끌기·휠, 어느 창·구성 요소든) 그 Alt 떼기는 메뉴를 고르지 않는다: 열 선택(Alt+끌기)과
   긴 줄의 Alt+휠 뒤에 포커스가 메뉴로 가지 않게. 한 곳 `AltMouseMenuGuard`(키 디스패처 + AWT 마우스 리스너)가 맡는다.
   자세한 근거와 확인은 [swing-sql-column-selection.md](swing-sql-column-selection.md) "모든 창으로 넓힘".
+- **Execute의 둘째 키 Alt+X(2026-11-15, 앱 변경 #122):** 포크 시점 DBeaver의 스크립트 실행 키다(SQL 편집기 플러그인의 `plugin.xml` 키 바인딩).
+  F5와 **같은 동작 객체**에 더한 키라 선택이 있으면 선택, 없으면 전체 스크립트, 확인 대화상자, 꺼짐 상태, 실행 중 동작이 모두 F5와 같다.
+  메뉴 항목은 단축키를 하나만 가지므로 메뉴·도구 설명은 F5를 보이고, Alt+X는 루트 창의 `WHEN_IN_FOCUSED_WINDOW` 키 맵(메뉴 단축키와 같은 창 전체 수준)에
+  걸었다(`MainFrame.createEditorAction`의 추가 키). F5처럼 초점이 쿼리 창(편집기와 결과)에 있을 때만 실행한다(`isShortcutFromOutside`가 동작의 모든 키를 봄).
+  - 겹침 확인: 주 메뉴 니모닉은 File F, Edit E, View V, Query Q, Tools T, Window W, Help H라 X가 없다(File > Exit의 X는 File 메뉴가 열려 있을 때만).
+    RSyntaxTextArea 기본 키맵의 X는 잘라내기(명령 키 + X)뿐이고, Chromite의 X 키는 잘라내기(Ctrl+X)와 두 키 조합 Ctrl+K, Ctrl+X(Insert Template)뿐이다.
+  - Windows에서는 Alt+X의 글자 이벤트가 입력되지 않는다(`SunToolkit.isPrintableCharacterModifiersMask`: Alt만 누른 글자는 인쇄 글자가 아님, 실행해 확인). Alt+P와 같다.
+  - macOS ⌥X는 ⌥P와 같은 방식(Swing 키 바인딩이 키 누름을 받음)이라 같은 결과다. 아래 "남긴 것"의 ⌥ 글자 입력을 본다.
 
 ## upstream 대비 변경점
 
@@ -175,6 +183,11 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
 - Mac 키보드에 없는 키: Insert(Duplicate Rows), Pause(Cancel Query). 메뉴와 표의 팝업 메뉴로는 된다. macOS용 다른 키는 정하지 않았다.
 - F 키(F5 실행, F3, F4, F8): macOS 기본 설정에서는 fn과 함께 눌러야 한다. 바꾸지 않았다.
 - Option(⌥) 조합(⌥P 등)은 글자 입력에서 특수 문자를 만든다. 키 바인딩이 먼저 받지만 실제 Mac에서 확인하지 않았다.
+  2026-11-15 JDK 소스로 읽은 것(앱 변경 #122, 실행해 보지 않음): macOS AWT는 ⌥P의 키 누름 뒤에 글자 이벤트 'π'를 ⌥ 수정자와 함께 보내고
+  (`CPlatformResponder.handleKeyEvent`는 Command일 때만 글자 이벤트를 빼고), macOS에서는 ⌥ 글자도 인쇄 글자이며
+  (`LWCToolkit.isPrintableCharacterModifiersMask`는 Command·Control만 봄), Swing은 키 바인딩이 키 누름을 받아도 다음 글자 이벤트를 버리지 않는다
+  (`DefaultKeyboardFocusManager.consumeNextKeyTyped`는 초점 이동 키와 열린 메뉴의 니모닉에만 쓰임). 그래서 편집기에 초점이 있으면 ⌥P가 실행하면서
+  'π'도 입력할 가능성이 높다. ⌥X(Execute)는 같은 경로라 같고('≈'), 고치지 않았다. Mac에서 확인이 필요하다.
 
 ## 변경 이력
 
@@ -188,3 +201,11 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
   메인 창은 Alt+↑/↓를 묶지 않고(Query 메뉴는 Alt+PageUp/PageDown), Alt를 떼어도 그 사이에 다른 키를 눌렀으므로 메뉴 막대가 골라지지 않는다(앱 변경 #102와 무관). F7(Object Details)은 그대로.
   비교 명령 자체에는 단축키를 두지 않았다(앱 변경 #105, `chromite/text-compare`).
 - 2026-11-12 "Alt 키와 메뉴 막대"(위 설계 결정): 마우스에 쓴 Alt의 떼기는 메뉴 막대를 고르지 않음, `AltMouseMenuGuard`(앱 변경 #102, `chromite/alt-mouse-menu`).
+- 2026-11-15 Execute가 F5 외에 Alt+X(⌥X)도 받음(앱 변경 #122, `chromite/execute-alt-x`, 위 "Execute의 둘째 키"): 표의 Execute 줄, `UiKeysTest`에 Alt+X가
+  macOS 예약 키가 아니고 명령 키 단축키와 겹치지 않는지 보는 줄(테스트는 실행하지 않음), "남긴 것"에 ⌥ 글자 입력을 JDK 소스로 읽은 결과.
+  확인(Windows, 빌드한 앱, 시험 PostgreSQL, 앱 창 안 Robot 키 입력, 영어·한국어 화면): 편집기(선택 없음·한 줄 선택)·결과 표·Messages에서 Alt+X가
+  F5와 같은 문장을 실행(쿼리 관리자 기록), Object Explorer 트리·ERD 탭에서는 둘 다 실행하지 않음, 실행 중에는 둘 다 아무것도 하지 않음, 서버 없는 창에서는
+  둘 다 Select Server 대화상자, Alt+X로 실행한 DROP DATABASE도 위험한 문 확인을 보임. 편집기에 글자가 들어가지 않고 메뉴가 열리지 않음, Alt만 누르면 예전처럼 File 메뉴,
+  Alt+P 그대로, 한글 입력 모드(한/영 키로 'r'이 'ㄱ'이 됨)에서도 Alt+X 실행. 연결 새로 고침, CREATE/DROP DATABASE, 끊고 다시 연결한 뒤에도 같음.
+  메뉴 항목·도구 막대 도구 설명은 F5 그대로. 열 선택이 켜져 있으면 F5·Alt+X·Alt+P 모두 실행되지 않는데, 이는 이 변경 전부터 있던
+  `SqlColumnSelection.handleKeyPressed`의 예외(바인딩 없는 키에서 `Set.of(...).contains(null)`) 때문이다(이번에 고치지 않음).

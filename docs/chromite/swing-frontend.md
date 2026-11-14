@@ -95,7 +95,7 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 
 | 단축키 | 동작 |
 |---|---|
-| F5 | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
+| F5 (또는 Alt+X, 2026-11-15 [shortcuts.md](shortcuts.md)) | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
 | Ctrl+Enter, Alt+P 등 | 커서 위치 문장, 커서부터, 행 수, 식(2026-11-08, [swing-query-commands.md](swing-query-commands.md)) |
 
 - SWT 버전의 "스크립트 실행" 명령([SQLEditor.java:2965](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/SQLEditor.java:2965))도
@@ -3733,3 +3733,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-12 SQL Editor 도구 막대의 Format SQL 옆 비교 단추(앱 변경 #105, `chromite/text-compare`): 열린 두 창의 글을 나란히 비교하는 문서 탭, [text-compare.md](text-compare.md). 회귀 테스트는 실행하지 않았다.
 - 2026-11-14 Connect 대화상자: URL 템플릿의 {port}가 필수여도 드라이버에 기본 포트가 있으면 포트를 묻지 않음(앱 변경 #113, `chromite/shardsphere-driver`, "서버 이름과 기록").
 - 2026-11-15 About 대화상자: 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함(앱 변경 #120, `chromite/about-site-link`, "구현 현황 — B단계"의 About). 회귀 테스트는 실행하지 않았다.
+- 2026-11-15 "쿼리 실행 사양"의 F5 줄에 둘째 키 Alt+X(앱 변경 #122, `chromite/execute-alt-x`, [shortcuts.md](shortcuts.md)).
