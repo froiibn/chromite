@@ -7,6 +7,7 @@ SELECT DB_NAME() AS database_name, actual_state_desc, desired_state_desc, readon
        current_storage_size_mb, max_storage_size_mb, interval_length_minutes, stale_query_threshold_days
 FROM sys.database_query_store_options
 -- @statement: regressions
+-- @limit: 20
 WITH bounds AS (
     SELECT DATEADD(MINUTE, 0 - CAST(${recentMinutes} AS int), SYSUTCDATETIME()) AS recent_start,
            DATEADD(MINUTE, 0 - CAST(${recentMinutes} AS int) - CAST(${historyMinutes} AS int), SYSUTCDATETIME()) AS history_start
@@ -34,7 +35,7 @@ WITH bounds AS (
     FROM (SELECT DISTINCT query_id, period, plan_id FROM stats) d
     GROUP BY query_id, period
 )
-SELECT TOP (${top})
+SELECT TOP (${limit})
     r.query_id,
     OBJECT_SCHEMA_NAME(q.object_id) + '.' + OBJECT_NAME(q.object_id) AS sql_object,
     h.executions AS history_executions,

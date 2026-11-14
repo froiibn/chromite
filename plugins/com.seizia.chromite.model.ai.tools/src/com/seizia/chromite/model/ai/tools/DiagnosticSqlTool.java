@@ -55,7 +55,8 @@ import java.util.stream.Collectors;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-08 쓸 수 있는 DB 종류 = SQL 자원에 블록이 있는 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
- * - 2026-11-15 getQueryStoreTopQueries를 getTopQueries(source=queryStore)에 합침, getJobHistory의 SQL Server 부분은 getAgentJobHistory로
+ * - 2026-11-15 getQueryStoreTopQueries를 getTopQueries(source=queryStore)에 합침, getJobHistory의 SQL Server 부분은 getAgentJobHistory로,
+ *   listLocks의 session은 killSession과 같은 글 형식(Oracle sid,serial#도 받음, {@link #normalizeSession})
  *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class DiagnosticSqlTool extends AgentTool {
@@ -66,6 +67,7 @@ public class DiagnosticSqlTool extends AgentTool {
     private static final String SOURCE_CACHE = "cache"; //$NON-NLS-1$
     private static final String SOURCE_QUERY_STORE = "queryStore"; //$NON-NLS-1$
     private static final String JOB_HISTORY = "getJobHistory"; //$NON-NLS-1$
+    private static final String PARAM_SESSION = "session"; //$NON-NLS-1$
 
     @NotNull
     @Override
@@ -89,6 +91,7 @@ public class DiagnosticSqlTool extends AgentTool {
                 script.getFamilies().stream().map(DbFamily::getDisplayName).collect(Collectors.joining(", ")) +
                 "). Query the server's system views with runReadOnlySql instead.");
         }
+        normalizeSession(family, args);
         AgentLimits limits = AgentLimits.of(args);
         String database = AgentArgs.getString(args, PARAM_DATABASE);
         JsonObject result = AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY,
@@ -109,6 +112,26 @@ public class DiagnosticSqlTool extends AgentTool {
             output.add("notes", notes);
         }
         return DiagnosticPostProcessor.process(scriptName, context, family, args, output);
+    }
+
+    /**
+     * The session filter of listLocks: one format with killSession (a string, Oracle {@code sid,serial#}); the lock views key
+     * Oracle sessions by sid alone.
+     */
+    private static void normalizeSession(@NotNull DbFamily family, @NotNull Map<String, Object> args) throws AIToolArgumentException {
+        String session = AgentArgs.getString(args, PARAM_SESSION);
+        if (session == null) {
+            return;
+        }
+        String id = session.trim();
+        if (family == DbFamily.ORACLE && id.contains(",")) {
+            id = id.substring(0, id.indexOf(',')).trim();
+        }
+        if (!id.matches("\\d{1,10}")) { //$NON-NLS-1$
+            throw new AIToolArgumentException("Argument 'session' must be a session id from listSessions" +
+                (family == DbFamily.ORACLE ? " (Oracle: sid or sid,serial#)" : ""));
+        }
+        args.put(PARAM_SESSION, id);
     }
 
     /**

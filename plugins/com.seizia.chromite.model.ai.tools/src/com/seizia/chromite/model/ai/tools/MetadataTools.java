@@ -55,10 +55,14 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
- * - 2026-11-15 listIndexes·listForeignKeys를 describeTable에 합침(옛 ID는 별칭. describeTable이 둘을 이미 담는다)
+ * - 2026-11-15 listIndexes·listForeignKeys를 describeTable에 합침(옛 ID는 별칭. describeTable이 둘을 이미 담는다), 이름 거르기 인수
+ *   pattern → contains
  *   (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class MetadataTools extends AgentTool {
+
+    // The text a name contains (listSchemas, listTables, listRoutines, searchObjects; "pattern" before 26.1.0)
+    private static final String PARAM_CONTAINS = "contains"; //$NON-NLS-1$
 
     @NotNull
     @Override
@@ -103,7 +107,7 @@ public class MetadataTools extends AgentTool {
     @NotNull
     private static JsonObject listSchemas(@NotNull Connection connection, @NotNull Map<String, Object> args) throws SQLException {
         JsonArray list = new JsonArray();
-        String pattern = AgentArgs.getString(args, "pattern");
+        String pattern = AgentArgs.getString(args, PARAM_CONTAINS);
         try (ResultSet rs = connection.getMetaData().getSchemas(connection.getCatalog(), pattern == null ? null : "%" + pattern + "%")) {
             while (rs.next()) {
                 list.add(rs.getString("TABLE_SCHEM"));
@@ -128,7 +132,7 @@ public class MetadataTools extends AgentTool {
         String catalog = catalogNames ? (schema != null ? schema : connection.getCatalog()) : connection.getCatalog();
         String schemaPattern = catalogNames ? null : schema == null ? AgentNames.currentSchema(connection) :
             AgentNames.normalize(meta, schema);
-        String pattern = AgentArgs.getString(args, "pattern");
+        String pattern = AgentArgs.getString(args, PARAM_CONTAINS);
         List<String> types = AgentArgs.getList(args, "types");
         String[] typeArray = types.isEmpty() ? new String[] {"TABLE", "VIEW"} :
             types.stream().map(t -> t.toUpperCase(Locale.ROOT)).toArray(String[]::new);
@@ -354,7 +358,7 @@ public class MetadataTools extends AgentTool {
         String schema = AgentArgs.getString(args, "schema");
         String catalog = catalogNames ? (schema != null ? schema : connection.getCatalog()) : connection.getCatalog();
         String schemaPattern = catalogNames ? null : schema == null ? AgentNames.currentSchema(connection) : AgentNames.normalize(meta, schema);
-        String pattern = AgentArgs.getString(args, "pattern");
+        String pattern = AgentArgs.getString(args, PARAM_CONTAINS);
         String namePattern = pattern == null ? "%" : "%" + AgentNames.pattern(meta, pattern) + "%";
         Map<String, JsonObject> routines = new LinkedHashMap<>();
         try (ResultSet rs = meta.getProcedures(catalog, schemaPattern, namePattern)) {
@@ -406,7 +410,7 @@ public class MetadataTools extends AgentTool {
     private static JsonObject searchObjects(@NotNull Connection connection, @NotNull Map<String, Object> args)
         throws SQLException, AIToolArgumentException {
         DatabaseMetaData meta = connection.getMetaData();
-        String text = AgentArgs.require(args, "pattern");
+        String text = AgentArgs.require(args, PARAM_CONTAINS);
         String pattern = "%" + AgentNames.pattern(meta, text) + "%";
         List<String> types = AgentArgs.getList(args, "types");
         boolean wantTables = types.isEmpty() || types.stream().anyMatch(t -> t.equalsIgnoreCase("table") || t.equalsIgnoreCase("view"));

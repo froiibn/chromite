@@ -1,7 +1,8 @@
 -- getWaitStats: cumulative waits since start (benign waits excluded); PostgreSQL has only the current snapshot
 -- @family: sqlserver
+-- @limit: 20
 -- @requires: VIEW SERVER STATE
-SELECT TOP (${top})
+SELECT TOP (${limit})
     wait_type,
     waiting_tasks_count,
     wait_time_ms,
@@ -32,28 +33,31 @@ WHERE waiting_tasks_count > 0
 ORDER BY wait_time_ms DESC
 
 -- @family: postgresql
+-- @limit: 20
 -- @note: PostgreSQL keeps no cumulative wait statistics; this is what client sessions wait on right now. Call again to sample.
 SELECT wait_event_type, wait_event, state, count(*) AS sessions
 FROM pg_stat_activity
 WHERE backend_type = 'client backend' AND pid <> pg_backend_pid() AND wait_event IS NOT NULL
 GROUP BY 1, 2, 3
 ORDER BY sessions DESC
-LIMIT ${top}
+LIMIT ${limit}
 
 -- @family: mysql
+-- @limit: 20
 -- @requires: performance_schema enabled
 SELECT EVENT_NAME AS wait_type, COUNT_STAR AS waiting_tasks_count, ROUND(SUM_TIMER_WAIT / 1000000000, 1) AS wait_time_ms,
        ROUND(AVG_TIMER_WAIT / 1000000000, 3) AS avg_wait_ms
 FROM performance_schema.events_waits_summary_global_by_event_name
 WHERE COUNT_STAR > 0 AND EVENT_NAME <> 'idle'
 ORDER BY SUM_TIMER_WAIT DESC
-LIMIT ${top}
+LIMIT ${limit}
 
 -- @family: oracle
+-- @limit: 20
 -- @requires: SELECT on V$SYSTEM_EVENT
 SELECT event AS wait_type, wait_class, total_waits AS waiting_tasks_count, ROUND(time_waited_micro / 1000) AS wait_time_ms,
        ROUND(average_wait * 10, 2) AS avg_wait_ms
 FROM v$system_event
 WHERE wait_class <> 'Idle'
 ORDER BY time_waited_micro DESC
-FETCH FIRST ${top} ROWS ONLY
+FETCH FIRST ${limit} ROWS ONLY

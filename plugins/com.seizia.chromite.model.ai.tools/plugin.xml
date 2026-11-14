@@ -55,7 +55,7 @@
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
             shortDescription="Lists the connections: id, name, driver, production, readOnly. Use when no connection is set or the user names one."
             description="Lists the connections configured in Chromite: id, name, folder, driver, family, connection type, production, readOnly, color, connected. Use it when no connection is set or the user names one; pass the id or name as the 'connection' argument of other tools. For one connection's host, user and versions use getConnectionInfo.">
-            <parameter name="filter" type="string" description="Optional text to match in name, driver or folder" shortDescription="Text in name, driver or folder"/>
+            <parameter name="contains" type="string" aliases="filter" description="Optional text the name, driver or folder contains" shortDescription="Text in name, driver or folder"/>
         </function>
         <function id="getConnectionInfo" name="%tool.getConnectionInfo.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
@@ -138,7 +138,7 @@
             description="Schemas of a database and the current schema. MySQL/MariaDB have no schemas inside a database: use listDatabases there. For the tables of a schema use listTables.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="pattern" type="string" description="Text the schema name contains"/>
+            <parameter name="contains" type="string" aliases="pattern" description="Text the schema name contains"/>
         </function>
         <function id="listTables" name="%tool.listTables.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="minimal"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.MetadataTools"
@@ -147,7 +147,7 @@
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current" shortDescription="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema (MySQL/MariaDB: database); default: current" shortDescription="Schema; default: current"/>
-            <parameter name="pattern" type="string" description="Text the table name contains" shortDescription="Text in the table name"/>
+            <parameter name="contains" type="string" aliases="pattern" description="Text the table name contains" shortDescription="Text in the table name"/>
             <parameter name="types" type="string" description="Comma-separated: TABLE, VIEW (default both)" shortDescription="TABLE, VIEW or both (default)"/>
             <parameter name="limit" type="integer" description="Max rows (default 1000)" shortDescription="Max rows (default 1000)"/>
         </function>
@@ -167,14 +167,14 @@
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema; default: current"/>
-            <parameter name="pattern" type="string" description="Text the routine name contains"/>
+            <parameter name="contains" type="string" aliases="pattern" description="Text the routine name contains"/>
         </function>
         <function id="getRoutineSource" name="%tool.getRoutineSource.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
             description="Source of one procedure, function, trigger or view with LINE NUMBERS (cite them), plus parameters and properties. Use to review or explain logic. For the generated CREATE DDL of a table or other object use getObjectDdl. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="name" type="string" required="true" description="Routine, trigger or view: name or schema.name"/>
+            <parameter name="object" type="string" aliases="name" required="true" description="Routine, trigger or view: name or schema.name"/>
         </function>
         <function id="listTriggers" name="%tool.listTriggers.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.metadata" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
@@ -227,7 +227,7 @@
             description="Finds tables, views, routines (and columns when types includes column) whose name contains a text, in all schemas of one database. Use when the user names an object without its schema, or asks which table has a column. To list one schema use listTables.">
             <parameter name="connection" type="string" description="Connection id or name" shortDescription="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current" shortDescription="Database; default: current"/>
-            <parameter name="pattern" type="string" required="true" description="Text the name contains" shortDescription="Text in the name"/>
+            <parameter name="contains" type="string" aliases="pattern" required="true" description="Text the name contains" shortDescription="Text in the name"/>
             <parameter name="types" type="string" description="Comma-separated: table, view, routine, column (default: tables, views, routines)" shortDescription="Comma-separated: table, view, routine, column"/>
             <parameter name="limit" type="integer" description="Max results (default 200)" shortDescription="Max results (default 200)"/>
         </function>
@@ -328,7 +328,7 @@
             <parameter name="orderBy" type="string" description="ORDER BY fragment without the keyword, for example created_at DESC"/>
             <parameter name="limit" type="integer" description="Rows (default 20)"/>
             <parameter name="offset" type="integer" description="Rows to skip"/>
-            <parameter name="format" type="string" validValues="objects,arrays" description="objects (default) or arrays"/>
+            <parameter name="rowFormat" type="string" aliases="format" validValues="objects,arrays" description="objects (default) or arrays"/>
         </function>
         <function id="countRows" name="%tool.countRows.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
@@ -357,7 +357,7 @@
             <parameter name="connectionB" type="string" description="Connection of sqlB (default: the same)"/>
             <parameter name="databaseB" type="string" description="Database of sqlB"/>
             <parameter name="keyColumns" type="string" description="Comma-separated key columns (default: compare whole rows)"/>
-            <parameter name="maxRows" type="integer" description="Rows read per query (default 10000)"/>
+            <parameter name="limit" type="integer" aliases="maxRows" description="Rows read per query (default 10000)"/>
         </function>
         <function id="insertRows" name="%tool.insertRows.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.data" class="com.seizia.chromite.model.ai.tools.DataTools"
@@ -446,16 +446,16 @@
 
         <function id="exportData" name="%tool.exportData.name" type="ACTION" access="WRITE" writes="file" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
-            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runReadOnlySql; to back up a database use backupDatabase.">
+            description="Writes the rows of a read-only SELECT or of a table to a new CSV, JSON or XLSX file on this computer (limit, default 100,000 rows, max 1,000,000). Use when the user wants a file. To show rows in the chat use runReadOnlySql; to back up a database use backupDatabase.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" description="SELECT to export (or give table)"/>
             <parameter name="table" type="string" description="Table to export (or give sql)"/>
-            <parameter name="format" type="string" validValues="csv,json,xlsx" description="File format (default csv)"/>
+            <parameter name="fileFormat" type="string" aliases="format" validValues="csv,json,xlsx" description="File format (default csv)"/>
             <parameter name="file" type="string" required="true" description="Absolute path of the file to write on this computer"/>
             <parameter name="overwrite" type="boolean" description="Replace an existing file (default false)"/>
             <parameter name="delimiter" type="string" description="CSV delimiter (default ,)"/>
-            <parameter name="maxRows" type="integer" description="Max rows (default 100000)"/>
+            <parameter name="limit" type="integer" aliases="maxRows" description="Max rows (default 100000, max 1000000)"/>
         </function>
         <function id="importCsv" name="%tool.importCsv.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
@@ -466,7 +466,7 @@
             <parameter name="table" type="string" required="true" description="Target table"/>
             <parameter name="delimiter" type="string" description="Delimiter (default ,)"/>
             <parameter name="encoding" type="string" description="File encoding (default UTF-8)"/>
-            <parameter name="maxRows" type="integer" description="Max rows (default 100000)"/>
+            <parameter name="limit" type="integer" aliases="maxRows" description="Max rows (default 100000)"/>
         </function>
         <function id="copyTable" name="%tool.copyTable.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
             categoryId="agent.transfer" class="com.seizia.chromite.model.ai.tools.TransferTools"
@@ -478,7 +478,7 @@
             <parameter name="table" type="string" required="true" description="Source table"/>
             <parameter name="targetTable" type="string" description="Target table (default: same name)"/>
             <parameter name="createTarget" type="boolean" description="Create the target table from the source columns (default false)"/>
-            <parameter name="maxRows" type="integer" description="Max rows (default 100000)"/>
+            <parameter name="limit" type="integer" aliases="maxRows" description="Max rows (default 100000)"/>
         </function>
 
         <!-- ============================================================ Health and administration -->
@@ -501,7 +501,7 @@
             description="Held and waited locks grouped by session, object, index and mode, a summary, and lock escalation counters (SQL Server). Use for the full lock picture of a session or object. For who blocks whom start with getBlockingChain. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database whose objects the locks are mapped to"/>
-            <parameter name="session" type="integer" description="Only this session id (from listSessions)"/>
+            <parameter name="session" type="string" description="Only this session (from listSessions; Oracle: sid or sid,serial#)"/>
             <parameter name="limit" type="integer" description="Max rows (default 500)"/>
         </function>
         <function id="getDeadlocks" name="%tool.getDeadlocks.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core"
@@ -532,7 +532,7 @@
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
             description="What the server waits on: cumulative wait types since restart without benign ones (SQL Server, MySQL, Oracle) or current session waits (PostgreSQL). Use for a server-wide bottleneck (CPU, I/O, locks, memory). For the waits of blocked sessions use getBlockingChain.">
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="top" type="integer" defaultValue="20" description="Number of wait types (default 20)"/>
+            <parameter name="limit" type="integer" aliases="top" description="Number of wait types (default 20)"/>
         </function>
         <function id="getTopQueries" name="%tool.getTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true" toolSet="core" operationParameter="source"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
@@ -632,7 +632,7 @@
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
             description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use for which jobs exist or are running. For one job's steps and schedules use getAgentJob; for run history and failures of all jobs getAgentJobHistory.">
             <parameter name="connection" type="string" description="Connection id or name"/>
-            <parameter name="filter" type="string" description="Optional text to match in the job name or category"/>
+            <parameter name="contains" type="string" aliases="filter" description="Optional text the job name or category contains"/>
         </function>
         <function id="getAgentJob" name="%tool.getAgentJob.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
@@ -717,7 +717,7 @@
             description="Run-time statistics of one procedure, function or trigger and of each statement inside it with its start line (SQL Server, Oracle V$SQL PROGRAM_LINE#); function statistics and nested statements (PostgreSQL); program statistics (MySQL). Use to find the slow statement inside a routine, then getRoutineSource for its code and getCachedPlans (SQL Server) for its plans.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="name" type="string" required="true" description="Procedure, function or trigger: name or schema.name"/>
+            <parameter name="object" type="string" aliases="name" required="true" description="Procedure, function or trigger: name or schema.name"/>
             <parameter name="limit" type="integer" description="Max statements (default 100)"/>
         </function>
         <function id="getCachedPlans" name="%tool.getCachedPlans.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
@@ -725,9 +725,9 @@
             description="SQL Server only: plans in the plan cache for each statement of a routine (by start line) or of statements containing a text, parsed like explainQuery (operators, warnings, compiled parameter values). Use to see the plan the server actually uses, for example for parameter sniffing. For a fresh estimate use explainQuery.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
-            <parameter name="name" type="string" description="Routine name (or give contains)"/>
+            <parameter name="object" type="string" aliases="name" description="Routine: name or schema.name (or give contains)"/>
             <parameter name="contains" type="string" description="Text the statement contains"/>
-            <parameter name="top" type="integer" defaultValue="10" description="Max statements (default 10)"/>
+            <parameter name="limit" type="integer" aliases="top" description="Max statements (default 10)"/>
         </function>
         <function id="getQueryStoreRegressions" name="%tool.getQueryStoreRegressions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
@@ -737,7 +737,7 @@
             <parameter name="recentMinutes" type="integer" defaultValue="1440" description="Recent window in minutes (default 1440 = 24 hours)"/>
             <parameter name="historyMinutes" type="integer" defaultValue="10080" description="Earlier window in minutes before the recent one (default 10080 = 7 days)"/>
             <parameter name="minExecutions" type="integer" defaultValue="2" description="Executions needed in each window (default 2)"/>
-            <parameter name="top" type="integer" defaultValue="20" description="Number of queries (default 20)"/>
+            <parameter name="limit" type="integer" aliases="top" description="Number of queries (default 20)"/>
         </function>
         <function id="getQueryStoreForcedPlans" name="%tool.getQueryStoreForcedPlans.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"

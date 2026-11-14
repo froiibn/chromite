@@ -71,6 +71,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): exportData의 format → fileFormat, 행 수 인수 maxRows → limit
  */
 public class TransferTools extends AgentTool implements AIToolPreviewProvider {
 
@@ -99,7 +100,7 @@ public class TransferTools extends AgentTool implements AIToolPreviewProvider {
         DBPDataSourceContainer container = requireConnection(context);
         DBPDataSource dataSource = AgentSql.connect(context.getMonitor(), container);
         DbFamily family = DbFamily.of(container);
-        String format = AgentArgs.getString(args, "format") == null ? "csv" : AgentArgs.getString(args, "format").toLowerCase(Locale.ROOT);
+        String format = AgentArgs.getString(args, "fileFormat") == null ? "csv" : AgentArgs.getString(args, "fileFormat").toLowerCase(Locale.ROOT);
         if (!format.equals("csv") && !format.equals("json") && !format.equals("xlsx")) {
             throw new AIToolArgumentException("Argument 'format' must be csv, json or xlsx");
         }
@@ -494,7 +495,7 @@ public class TransferTools extends AgentTool implements AIToolPreviewProvider {
     }
 
     private static int maxRows(@NotNull Map<String, Object> args) {
-        return Math.max(1, Math.min(MAX_ROWS, AgentArgs.getInt(args, "maxRows", DEFAULT_MAX_ROWS)));
+        return Math.max(1, Math.min(MAX_ROWS, AgentArgs.getInt(args, AgentLimits.PARAM_LIMIT, DEFAULT_MAX_ROWS)));
     }
 
     @Nullable
