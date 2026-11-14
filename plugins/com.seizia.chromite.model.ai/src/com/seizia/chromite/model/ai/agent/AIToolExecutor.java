@@ -74,6 +74,8 @@ import java.util.function.Consumer;
  *   (docs/chromite/ai-agent.md "배치의 부분 실패")
  * - 2026-11-12 그 오류 JSON이 너무 길면 큰 멤버(행 데이터)만 줄임. 글 전체를 자르면 뒤에 있는 ranAfterError·트랜잭션 상태가 사라졌다
  *   (docs/chromite/ai-agent.md "배치의 부분 실패" 자르기)
+ * - 2026-11-15 옛 도구 ID·인수 이름을 맨 먼저 지금 도구·인수로 바꿈({@link AIToolCatalog#resolveCall}). 분류·정책·확인·감사는 지금 도구로 하고,
+ *   감사 기록에 부른 옛 ID({@code calledAs})와 합친 도구의 작업({@code operation})을 남김 (docs/chromite/ai-agent.md "별칭")
  */
 public final class AIToolExecutor {
 
@@ -130,11 +132,22 @@ public final class AIToolExecutor {
     ) {
         long start = System.currentTimeMillis();
         Map<String, Object> args = new LinkedHashMap<>(arguments);
-        AIFunctionDescriptor tool = AIToolCatalog.getTool(toolId);
-        if (tool == null) {
-            return finish(client, toolId, AIToolAccess.READ, null, args, null, AIToolOutcome.INVALID, start,
-                "Unknown tool '" + toolId + "'", null);
+        AIToolCatalog.Call call;
+        try {
+            // A former tool id or argument name (one edition): the current tool, arguments and policy
+            call = AIToolCatalog.resolveCall(toolId, args);
+        } catch (AIToolArgumentException e) {
+            AIFunctionDescriptor known = AIToolCatalog.getTool(toolId);
+            return finish(Audit.of(client, known == null ? toolId : known.getId(), null, null), AIToolAccess.READ, null, args,
+                null, AIToolOutcome.INVALID, start, e.getMessage(), null, null);
         }
+        if (call == null) {
+            return finish(Audit.of(client, toolId, null, null), AIToolAccess.READ, null, args, null, AIToolOutcome.INVALID, start,
+                "Unknown tool '" + toolId + "'", null, null);
+        }
+        AIFunctionDescriptor tool = call.tool();
+        args = call.arguments();
+        Audit audit = Audit.of(client, tool.getId(), call.calledAs(), operationOf(tool, args));
         DBPDataSourceContainer connection = null;
         AIToolAccess access = tool.getAccess();
         AIToolDecision decision = null;
@@ -151,12 +164,12 @@ public final class AIToolExecutor {
             if (access.isWrite() && tool.getWrites() == AIToolWrites.DATABASE &&
                 connection != null && connection.isConnectionReadOnly()
             ) {
-                return finish(client, tool.getId(), access, connection, args, null, AIToolOutcome.READ_ONLY, start,
+                return finish(audit, access, connection, args, null, AIToolOutcome.READ_ONLY, start,
                     "Connection '" + connection.getName() + "' is read-only; this tool changes the database", null);
             }
             decision = AIToolPolicy.getInstance().resolve(connection, tool, access);
             if (decision.permission() == AIToolPermission.BLOCKED) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.BLOCKED, start,
+                return finish(audit, access, connection, args, decision, AIToolOutcome.BLOCKED, start,
                     "Blocked by the tool policy: " + decision.reason(), null);
             }
             // Transaction safety (user rule): a call that would end an uncommitted transaction always asks
@@ -166,7 +179,7 @@ public final class AIToolExecutor {
             if (!pending.isEmpty() || decision.permission() == AIToolPermission.CONFIRM) {
                 Confirmation confirmation = confirm(monitor, context, tool, access, connection, args, decision, instance, pending);
                 if (confirmation.denial() != null) {
-                    return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.DENIED, start,
+                    return finish(audit, access, connection, args, decision, AIToolOutcome.DENIED, start,
                         confirmation.denial(), null);
                 }
                 if (confirmation.resolved() != null) {
@@ -174,28 +187,28 @@ public final class AIToolExecutor {
                 }
             }
             if (monitor.isCanceled()) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                return finish(audit, access, connection, args, decision, AIToolOutcome.CANCELED,
                     start, "Canceled", null, resolution);
             }
             AIFunctionResult result = instance.callFunction(context, args);
             String text = String.valueOf(result.getValue());
             if (result.getException() != null) {
                 // A failure after the tool had done something: the exception is the error, the value what the tool did
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+                return finish(audit, access, connection, args, decision, AIToolOutcome.ERROR,
                     start, describe(result.getException()), text, resolution);
             }
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
+            return finish(audit, access, connection, args, decision, AIToolOutcome.SUCCESS,
                 start, null, text, resolution);
         } catch (AIToolArgumentException e) {
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.INVALID,
+            return finish(audit, access, connection, args, decision, AIToolOutcome.INVALID,
                 start, e.getMessage(), null, resolution);
         } catch (Throwable e) {
             if (monitor.isCanceled()) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                return finish(audit, access, connection, args, decision, AIToolOutcome.CANCELED,
                     start, "Canceled", null, resolution);
             }
             log.debug("AI tool " + tool.getId() + " failed", e);
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+            return finish(audit, access, connection, args, decision, AIToolOutcome.ERROR,
                 start, describe(e), null, resolution);
         }
     }
@@ -363,10 +376,30 @@ public final class AIToolExecutor {
         return new Confirmation("Canceled by the user (uncommitted transaction left as it is)", null);
     }
 
+    /**
+     * Who called which tool, as the audit log records it.
+     *
+     * @param tool      the current tool id
+     * @param calledAs  the former tool id the call used (an alias), or null
+     * @param operation the operation of a merged tool's call ({@link AIFunctionDescriptor#getOperationParameter()}), or null
+     */
+    private record Audit(@NotNull AIToolClient client, @NotNull String tool, @Nullable String calledAs, @Nullable String operation) {
+        @NotNull
+        static Audit of(@NotNull AIToolClient client, @NotNull String tool, @Nullable String calledAs, @Nullable String operation) {
+            return new Audit(client, tool, calledAs, operation);
+        }
+    }
+
+    @Nullable
+    private static String operationOf(@NotNull AIFunctionDescriptor tool, @NotNull Map<String, Object> args) {
+        String parameter = tool.getOperationParameter();
+        Object value = parameter == null ? null : args.get(parameter);
+        return value == null || String.valueOf(value).isBlank() ? null : String.valueOf(value).trim();
+    }
+
     @NotNull
     private static AIToolCallResult finish(
-        @NotNull AIToolClient client,
-        @NotNull String toolId,
+        @NotNull Audit audit,
         @NotNull AIToolAccess access,
         @Nullable DBPDataSourceContainer connection,
         @NotNull Map<String, Object> args,
@@ -376,7 +409,7 @@ public final class AIToolExecutor {
         @Nullable String error,
         @Nullable String text
     ) {
-        return finish(client, toolId, access, connection, args, decision, outcome, start, error, text, null);
+        return finish(audit, access, connection, args, decision, outcome, start, error, text, null);
     }
 
     /**
@@ -385,8 +418,7 @@ public final class AIToolExecutor {
      */
     @NotNull
     private static AIToolCallResult finish(
-        @NotNull AIToolClient client,
-        @NotNull String toolId,
+        @NotNull Audit audit,
         @NotNull AIToolAccess access,
         @Nullable DBPDataSourceContainer connection,
         @NotNull Map<String, Object> args,
@@ -398,8 +430,9 @@ public final class AIToolExecutor {
         @Nullable Resolution resolution
     ) {
         long duration = System.currentTimeMillis() - start;
+        String toolId = audit.tool();
         AIToolAuditLog.getInstance().append(AIToolAuditLog.newEntry(
-            client, toolId, access, connection, args, decision, outcome, duration, error,
+            audit.client(), toolId, audit.calledAs(), audit.operation(), access, connection, args, decision, outcome, duration, error,
             resolution == null ? null : resolution.action(), resolution == null ? 0 : resolution.count()));
         if (outcome == AIToolOutcome.SUCCESS && text != null) {
             if (text.length() > MAX_RESULT_CHARS) {

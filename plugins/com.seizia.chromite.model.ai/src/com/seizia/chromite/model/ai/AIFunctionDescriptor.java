@@ -23,6 +23,8 @@ import com.seizia.chromite.model.DBPImage;
 import com.seizia.chromite.model.ai.agent.AIToolAccess;
 import com.seizia.chromite.model.ai.agent.AIToolWrites;
 
+import java.util.List;
+
 /**
  * AI function metadata.
  *
@@ -32,6 +34,8 @@ import com.seizia.chromite.model.ai.agent.AIToolWrites;
  *   (docs/chromite/ai-agent.md "도구 묶음")
  * - 2026-11-12 {@link #isAlwaysConfirmed()} 추가: 정책과 상관없이 늘 사용자가 확인하는 도구를 권한 정책 표가 사실대로 보이게
  *   (앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
+ * - 2026-11-15 {@link #getAliases()}, {@link #getOperationParameter()}, {@link #getAddedIn()}: 합치거나 이름을 바꾼 도구의 옛 ID를 한 판 동안 받고, 합친 도구의
+ *   작업을 감사 기록에 남김 (docs/chromite/ai-agent.md "별칭")
  */
 public interface AIFunctionDescriptor {
 
@@ -43,6 +47,32 @@ public interface AIFunctionDescriptor {
 
     @Nullable
     default String getLegacyId() {
+        return null;
+    }
+
+    /**
+     * Former ids of an agent tool that was renamed or merged into this one, accepted for one edition
+     * (docs/chromite/ai-agent.md "별칭").
+     */
+    @NotNull
+    default List<AIFunctionAlias> getAliases() {
+        return List.of();
+    }
+
+    /**
+     * Edition that added the tool (a tool that merged or renamed former ones), or null for an older tool: the tool policy
+     * migration knows that it had no rules of its own before.
+     */
+    @Nullable
+    default String getAddedIn() {
+        return null;
+    }
+
+    /**
+     * Name of the parameter whose value is the operation of a call (a tool that merges former tools), or null.
+     */
+    @Nullable
+    default String getOperationParameter() {
         return null;
     }
 

@@ -15,6 +15,12 @@
     description. A new tool without toolSet is reached through findTools; give it core only when common questions need it.
     Display names (name) are shown to the user only (chat cards, confirmation, tool policy list, MCP "title"), so they are
     %keys in OSGI-INF/l10n/bundle*.properties and follow the UI language (docs/chromite/swing-l10n.md).
+    Former ids and argument names (26.1.0 tool cleanup, docs/chromite/ai-agent.md "별칭"): a renamed or merged tool lists its
+    former ids as <alias id=".." access="class the former tool had" arguments="what the former id selects"/> and a renamed
+    parameter its former names in aliases="..". AIToolCatalog.resolveCall maps calls with them (MCP, saved conversations, found
+    tools, playbooks) to the current tool; tools/list shows only current ids; the tool policy moves their rules once
+    (AIToolPolicy.migrate). A tool added by the cleanup has addedIn="26.1.0". Remove every alias and aliases="..." in 26.2.0
+    (removeIn), together with the getJobHistory SQL Server block kept for direct calls.
 -->
 <plugin>
 

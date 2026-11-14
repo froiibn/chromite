@@ -30,6 +30,10 @@ import java.util.*;
 
 /**
  * AI function registry
+ *
+ * 변경 이력:
+ * - 2026-11-15 합치거나 이름을 바꾼 에이전트 도구의 옛 ID({@code <alias>})로도 함수를 찾음. 옛 ID가 다른 함수의 ID·별칭과 겹치면 legacyId와
+ *   같이 둘 다 등록하지 않음 (docs/chromite/ai-agent.md "별칭")
  */
 public class AIFunctionInternalRegistry {
     private static final Log log = Log.getLog(AIFunctionInternalRegistry.class);
@@ -70,28 +74,38 @@ public class AIFunctionInternalRegistry {
     private void registerValidDescriptors(@NotNull List<AIFunctionInternalDescriptor> descriptors) {
         Map<String, Integer> identityCounts = new HashMap<>();
         for (AIFunctionInternalDescriptor descriptor : descriptors) {
-            identityCounts.merge(descriptor.getId(), 1, Integer::sum);
-            String legacyId = descriptor.getLegacyId();
-            if (legacyId != null && !legacyId.equals(descriptor.getId())) {
-                identityCounts.merge(legacyId, 1, Integer::sum);
+            for (String identity : identities(descriptor)) {
+                identityCounts.merge(identity, 1, Integer::sum);
             }
         }
         for (AIFunctionInternalDescriptor descriptor : descriptors) {
-            Set<String> identities = new LinkedHashSet<>();
-            identities.add(descriptor.getId());
-            String legacyId = descriptor.getLegacyId();
-            if (legacyId != null && !legacyId.equals(descriptor.getId())) {
-                identities.add(legacyId);
-            }
+            Set<String> identities = identities(descriptor);
             if (identities.stream().anyMatch(id -> identityCounts.get(id) > 1)) {
                 log.error("Conflicting AI function identifiers: " + identities);
                 continue;
             }
             functionsById.put(descriptor.getId(), descriptor);
-            if (legacyId != null && !legacyId.equals(descriptor.getId())) {
-                functionsByLegacyId.put(legacyId, descriptor);
+            for (String identity : identities) {
+                if (!identity.equals(descriptor.getId())) {
+                    functionsByLegacyId.put(identity, descriptor);
+                }
             }
         }
+    }
+
+    // The id, the legacy id and the former ids of renamed or merged agent tools (<alias>): one function each
+    @NotNull
+    private static Set<String> identities(@NotNull AIFunctionInternalDescriptor descriptor) {
+        Set<String> identities = new LinkedHashSet<>();
+        identities.add(descriptor.getId());
+        String legacyId = descriptor.getLegacyId();
+        if (legacyId != null) {
+            identities.add(legacyId);
+        }
+        for (AIFunctionAlias alias : descriptor.getAliases()) {
+            identities.add(alias.id());
+        }
+        return identities;
     }
 
     @NotNull

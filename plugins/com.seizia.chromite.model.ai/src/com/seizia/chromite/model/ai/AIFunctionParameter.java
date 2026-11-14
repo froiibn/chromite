@@ -20,11 +20,14 @@ package com.seizia.chromite.model.ai;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
+import java.util.List;
+
 /**
  * Represents a parameter definition for an AI function/tool call
  *
  * 변경 이력:
  * - 2026-11-12 {@link #getShortDescription()}: 최소 도구 묶음의 짧은 인수 설명 (docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-15 {@link #getAliases()}: 이름을 바꾼 인수의 옛 이름 (docs/chromite/ai-agent.md "별칭")
  */
 public interface AIFunctionParameter {
 
@@ -43,6 +46,14 @@ public interface AIFunctionParameter {
     @Nullable
     default String getShortDescription() {
         return null;
+    }
+
+    /**
+     * Former names of the parameter, accepted for one edition (docs/chromite/ai-agent.md "별칭").
+     */
+    @NotNull
+    default List<String> getAliases() {
+        return List.of();
     }
 
     boolean isRequired();
