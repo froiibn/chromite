@@ -5,7 +5,7 @@
 <!-- version is the Chromite product version (YY.seq.dev, docs/chromite/versioning.md). Change it only with
      tools/release/bump-version.ps1, which keeps the other copies Tycho needs in step. -->
 <product name="Chromite" uid="com.seizia.chromite.swing.product" id="com.seizia.chromite.ui.swing.product"
-    application="com.seizia.chromite.ui.swing.application" version="26.0.7.qualifier" useFeatures="true"
+    application="com.seizia.chromite.ui.swing.application" version="26.0.8.qualifier" useFeatures="true"
     includeLaunchers="true">
 
     <configIni use="default">
