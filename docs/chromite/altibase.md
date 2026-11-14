@@ -276,3 +276,4 @@ Altibase 7.3에만 `CHECK`·`DUMP_CALLSTACKS`·`LOGANCHOR`·`REPLICATION`·`TIME
 - 2026-11-14 Altibase 계열 드라이버 ShardSphere 추가와 서버 출력 콜백을 메서드 매개변수로 찾게 바꿈(앱 변경 #113), 위 "Altibase 계열 드라이버: ShardSphere".
 - 2026-11-14 복제 카탈로그가 없는 서버의 복제 목록을 빈 목록으로, JDBC 3.0 드라이버의 함수 매개변수(앱 변경 #113 검토 뒤).
 - 2026-11-15 엔진 키워드를 연결한 서버의 `V$RESERVED_WORDS`에서 읽음(읽지 못하면 정적 목록), `RESERVED_TYPE`의 뜻과 `DBMS_SHARD` 자동 완성 조사(앱 변경 #115), 위 "서버 예약어".
+- 2026-11-15 예약어가 아닌 문법 낱말(`CACHE`, `NOCACHE`)을 서버와 관계없이 키워드로 두고 이름의 따옴표 이유에서는 뺌(앱 변경 #118), 위 "예약어가 아닌 문법 낱말".
