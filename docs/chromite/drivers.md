@@ -347,7 +347,7 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   - 이름·아이콘: 자기 데이터 원본 유형 `shardsphere`("ShardSphere")와 자기 아이콘(`icons/shardsphere_icon*.png`, 아래 "아이콘")을 쓴다. 유형을 두지 않으면 드라이버가
     공급자의 `altibase` 유형을 물려받아 큰 아이콘·로고·유형 이름(MCP 데이터 원본 목록의 `database_type`)이 Altibase가 된다(`DriverDescriptor` 생성자).
   - 기본값: 포트 `55321`은 사용자 확인(2026-11-14, 시험 서버의 `V$PROPERTY` `PORT_NO`도 55321). 드라이버 자체는 포트를 주지 않으면 25001을 쓴다
-    (`shardsphereConnection.loadDefaultValues`, `javap -c`로 읽음). 데이터베이스 `memdb`는 같은 메서드의 기본값이다. 기본 사용자는 jar에 없어 비워 두었다.
+    (`shardsphereConnection.loadDefaultValues`, `javap -c`로 읽음). 데이터베이스 `memdb`는 같은 메서드의 기본값이다. 기본 사용자는 jar에 없다. 2026-11-15에 프로젝트 소유자의 결정("기본 사용자는 sys로 채워라")으로 `sys`를 넣었다(Connect 대화상자의 Login 칸에 미리 채워진다).
   - URL 예시 `jdbc:shardsphere://{host}:{port}/{database}`, MANUAL·URL. 드라이버 매개변수는 Altibase 드라이버의 것을 그대로 썼다(모두 엔진에 관한 것, `V$DATABASE` 질의 포함).
 - **고친 코드(근본 원인):** Altibase 데이터 원본은 서버 출력(PRINT) 콜백 인터페이스를 `<패키지>.jdbc.driver.AltibaseMessageCallback` 이름으로 찾았다. ShardSphere 드라이버의
   인터페이스는 `shardsphere.jdbc.driver.shardsphereMessageCallback`이라 클래스를 찾지 못하고, 서버 출력 기본값이 켜져 있어 연결 초기화(`initializeContextState`)가
@@ -389,6 +389,9 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
     ShardSphere의 Replications는 빈 폴더(오류 없음), `SYS_CONTEXT`의 매개변수 RETURN_VALUE·NAMESPACE·PARAMETER가 보인다(디버그 로그에 대체 경로 한 번).
     Altibase 7.3의 Replications(시험 서버에 복제 없음, 전과 같이 0개)와 `SYS_CONTEXT` 매개변수 3개는 전과 같고 대체 경로를 타지 않았다.
     PostgreSQL 17은 자체 모델(`PostgreProcedure`, `GenericProcedure`를 쓰지 않음)이라 영향이 없다: 임시 스키마의 함수 하나의 매개변수 a·b가 보였다(스키마는 지움).
+- **예약어(2026-11-15, 앱 변경 #115):** 키워드 강조는 연결한 서버의 `V$RESERVED_WORDS`를 따른다(Altibase와 같은 코드, 제품 이름 검사 없음). ShardSphere 연결에서는
+  `CONTINUOUS`·`CONTROLFILE`·`STREAM`이 키워드가 되고 Altibase 7.3에만 있는 `REPLICATION`·`LOGANCHOR`·`DUMP_CALLSTACKS`는 키워드가 아니다.
+  규칙, `RESERVED_TYPE`의 뜻, `DBMS_SHARD` 자동 완성(`SYS.DBMS_SHARD.`만 됨)은 [altibase.md](altibase.md) "서버 예약어".
 
 ### 폐쇄망 오프라인 설치 경로
 
@@ -425,7 +428,7 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   0.1.1부터는 Connector/J를 내장하지 않으므로(#123) 이후 릴리스에는 소스를 첨부할 필요가 없다.
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
-- ShardSphere(위 "ShardSphere"): 어두운 테마에서 아이콘의 남색 부분이 보이지 않는다. 기본 사용자, 샤딩이 켜진 서버(시험 서버는 `SHARD_META_ENABLE=0`)에서의 동작, macOS는 확인하지 않았다.
+- ShardSphere(위 "ShardSphere"): 어두운 테마에서 아이콘의 남색 부분이 보이지 않는다(앱 변경 #114에서 처리). 샤딩이 켜진 서버(시험 서버는 `SHARD_META_ENABLE=0`)에서의 동작, macOS는 확인하지 않았다.
 
 ## 변경 이력
 
@@ -468,3 +471,5 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - 2026-11-14 검토 뒤 고침(같은 브랜치): Connect 대화상자의 기본 포트, 복제 카탈로그가 없는 서버의 복제 목록, `getFunctionColumns`가 없는 드라이버의 함수 매개변수
   ("ShardSphere"의 "고친 것").
 - 2026-11-15 ShardSphere "어두운 테마": 밝은 판 선언(`lightPlate` 두 줄, 앱 변경 #114). 드라이버 정의는 그대로.
+- 2026-11-15 ShardSphere 드라이버의 기본 사용자를 `sys`로(프로젝트 소유자의 결정, `chromite/shardsphere-default-user`).
+- 2026-11-15 ShardSphere 연결의 키워드를 서버의 `V$RESERVED_WORDS`에 맞춤(앱 변경 #115, `chromite/shardsphere-keywords`), "ShardSphere"의 "예약어".

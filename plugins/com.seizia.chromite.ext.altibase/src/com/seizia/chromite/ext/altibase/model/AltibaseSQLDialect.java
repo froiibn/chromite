@@ -19,13 +19,17 @@ package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
 import com.seizia.chromite.model.DBPIdentifierCase;
 import com.seizia.chromite.model.DBPKeywordType;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
 import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLDialectDDLExtension;
@@ -36,9 +40,14 @@ import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateFact
 import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateSet;
 import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
 import org.jkiss.utils.ArrayUtils;
+import org.jkiss.utils.CommonUtils;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,13 +55,33 @@ import java.util.stream.Stream;
 /**
  * Altibase SQL dialect.
  *
+ * 설계: 엔진 키워드(키워드 강조, 식별자 따옴표)는 연결한 서버가 {@code V$RESERVED_WORDS}로 알려 주는 예약어다
+ * ({@link #readServerKeywords}). 이 방언은 Altibase와 이름만 바뀐 Altibase 계열 서버(ShardSphere)가 함께 쓰고, 서버마다 예약어가 달라
+ * 정적 목록 하나로는 모든 서버에 맞출 수 없다. 제품 이름으로 나누지 않고 같은 코드가 각 서버의 목록을 읽는다. 뷰를 읽지 못하면
+ * Altibase 7.x용 정적 목록({@link #ALTIBASE_ONLY_KEYWORDS})을 쓴다. 표준 SQL 키워드와 함수 목록은 그대로 두고, 서버의 낱말은 정적 목록과
+ * 같은 방법({@code addSQLKeywords})으로 더한다: 함수이기도 한 낱말은 키워드 종류가 되고(엔진은 키워드로 따옴표를 정한다) 함수 목록에는 남는다.
+ * 방언 객체는 데이터 원본마다 하나라({@link AltibaseDataSource} 생성자) 한 연결의 낱말이 다른 연결로 가지 않는다.
+ *
  * 변경 이력:
  * - 2026-11-12 Chromite: 문장 구분자의 {@code /}를 지움(기본 {@code ;}만). {@code /}만 있는 줄은 방언 규칙
  *   ({@code AltibaseDialectRules}, {@code SQLSlashLineRule})이 문장 끝으로 본다. 구분자에 {@code /}가 있으면 나눗셈에서도 문장이 끊겼다
  *   ({@code SELECT 4/2 AS q FROM dual}, 앱 변경 #80, docs/chromite/oracle-sqlplus-commands.md "Altibase")
+ * - 2026-11-15 Chromite: 엔진 키워드를 정적 목록 대신 연결한 서버의 {@code V$RESERVED_WORDS}에서 읽음(읽지 못하면 정적 목록).
+ *   ShardSphere의 {@code CONTINUOUS}·{@code CONTROLFILE}·{@code STREAM}이 키워드가 아니었고, Altibase 7.3에만 있는 {@code REPLICATION} 등이
+ *   ShardSphere에서도 키워드였다(앱 변경 #115, docs/chromite/altibase.md "서버 예약어")
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect 
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
+
+    private static final Log log = Log.getLog(AltibaseSQLDialect.class);
+
+    /**
+     * Reserved words the server reports (Altibase and ShardSphere have the view). The RESERVED_TYPE column is not read:
+     * on Altibase 7.3 type 1 words work unquoted as column names and aliases and type 0 words do not, but no word of
+     * either type works unquoted as a table name, ShardSphere's values do not follow that rule, and this dialect quotes
+     * every keyword alike (it has no non-reserved keyword kind the type could feed).
+     */
+    private static final String QUERY_RESERVED_WORDS = "SELECT KEYWORD FROM V$RESERVED_WORDS";
 
     private static final String[] ALTIBASE_NON_TRANSACTIONAL_KEYWORDS = ArrayUtils.concatArrays(
             BasicSQLDialect.NON_TRANSACTIONAL_KEYWORDS,
@@ -80,6 +109,10 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "SYSDATE"
     };
     
+    /**
+     * Altibase 7.x reserved words that are not SQL standard keywords: the engine keywords when the server's
+     * {@code V$RESERVED_WORDS} cannot be read ({@link #readServerKeywords}).
+     */
     public static final String[] ALTIBASE_ONLY_KEYWORDS = new String[] {
         "ACCESS",             "AGER",               //  2
         "APPLY",              "ARCHIVE",            //  4
@@ -384,17 +417,42 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
     }
 
     /**
-     * Register Altibase functions, SQL keywords, and so on.
+     * Register Altibase functions, the server's reserved words as SQL keywords, and so on.
      */
     public void initDriverSettings(JDBCSession session, JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
         super.initDriverSettings(session, dataSource, metaData);
         
         addFunctions(Arrays.asList(ALTIBASE_ONLY_FUNCTIONS));
-        addSQLKeywords(Arrays.asList(ALTIBASE_ONLY_KEYWORDS));
+        addSQLKeywords(readServerKeywords(session));
         addKeywords(Arrays.asList(OTHER_TYPES_FUNCTIONS), DBPKeywordType.OTHER);
         turnFunctionIntoKeyword("TRUNCATE");
         
         cachedDialectSkipTokenPredicates = makeDialectSkipTokenPredicates(dataSource);
+    }
+
+    /**
+     * The reserved words of the connected server, or {@link #ALTIBASE_ONLY_KEYWORDS} when the view cannot be read
+     * (an older server, no privilege, an error): a missing list must not fail the connect.
+     */
+    @NotNull
+    private static Collection<String> readServerKeywords(@NotNull JDBCSession session) {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_RESERVED_WORDS);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            List<String> words = new ArrayList<>();
+            while (dbResult.next()) {
+                String word = JDBCUtils.safeGetStringTrimmed(dbResult, 1);
+                if (CommonUtils.isNotEmpty(word)) {
+                    words.add(word.toUpperCase(Locale.ENGLISH));
+                }
+            }
+            if (!words.isEmpty()) {
+                return words;
+            }
+            log.debug("No reserved words in V$RESERVED_WORDS, using the static Altibase keyword list");
+        } catch (SQLException e) {
+            log.debug("Error reading V$RESERVED_WORDS, using the static Altibase keyword list: " + e.getMessage());
+        }
+        return Arrays.asList(ALTIBASE_ONLY_KEYWORDS);
     }
     
     @Override
