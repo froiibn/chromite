@@ -999,3 +999,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-15 26.1.0 준비(`chromite/release-26-1-0`): 버전 26.1.0(첫 사용자 배포 판, `bump-version.ps1 26.1.0 -FirstUserRelease`)과 변경 내역(#277~#288: 결과 그리드 묶기, PostgreSQL 수동 커밋 세션, Chromite Agent 도구 정리, 개체 탐색기 반영, Alt+X와 열 선택 중 단축키, Altibase 계열 기본 스키마, macOS 시작 화면 하나, 어두운 테마의 밝은 판 19개, 정보 창의 사이트 주소).
 - 2026-11-15 26.1.0 릴리스 기록: 26.0.8 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
 - 2026-11-15 지원 쪽 Altibase 줄: "저장 방식별 테이블 색"을 "메모리·휘발성 테이블의 아이콘 색"으로(영어 "memory and volatile tables marked by icon colour", 앱 변경 #130, [altibase.md](altibase.md)).
+- 2026-11-15 26.1.1 준비(`chromite/release-26-1-1`): 버전 26.1.1과 변경 내역(#291~#295: Altibase 계열·Oracle·SQL Server 저장소 관리, PostgreSQL 테이블스페이스 이름·소유자·옵션, 메모리·휘발성 테이블의 아이콘 색). 26.1.0과 같은 날이지만 Agent 도구 별칭을 지우기로 한 26.2.0은 쓰지 않고 26.1.x로 냄.
