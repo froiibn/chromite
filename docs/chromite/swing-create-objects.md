@@ -57,7 +57,8 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | `NewObjectDialogs` (새) | 데이터베이스·스키마·테이블스페이스·확장·이름 대화상자, 목록 읽기, 새 모델 객체에 값 넣기(`Configurer`), SQL Server 추가 문장 명령 |
 | `SourceScripts` (고침) | `getTemplateKind`와 틀 문장(`getObjectTemplate`). `NewObjectKind`에 SEQUENCE·TRIGGER·DATABASE_TRIGGER·EVENT_TRIGGER·POLICY·PACKAGE·TYPE·QUEUE |
 | `ExplorerObjectCommands` (고침) | 미리 보기·트랜잭션 질문·실행 경로(`runChange`)와 `Change`·`ChangeBuilder`·`createCommandContext`를 패키지 안에 엶 |
-| `DesignerDialogs` (고침) | 폼 도우미(`addRow`, `showDialog`, `error`)를 패키지 안에 엶 |
+| `DesignerDialogs` (고침) | 폼 도우미(`addRow`, `showDialog`, `error`)를 패키지 안에 엶. `showDialog`는 폼 최소 너비 480, 주인 창 가운데(2026-11-16, 아래 "대화상자 크기와 위치") |
+| `NumberInputFilter` (새, 2026-11-16) | 저장소 대화상자 숫자 칸의 문서 필터(아래 "숫자 칸") |
 | `design.OracleTableDesignerDriver` (새) | Oracle 인덱스·외래 키·CHECK의 드라이버 부분. `plugin.xml`에 `OracleTableBase` 어댑터 |
 | `TableDesignerPanel` (고침) | 저장 전 열린 트랜잭션 질문 |
 | `TableDesignSession` (고침) | 키·인덱스·외래 키 채우기가 실패하면 만든 객체를 거둠(`discardNew`) |
@@ -238,6 +239,57 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   - 연결 없는 데이터 소스라 미리 보기 전에 드라이버 파일 다운로드 질문이 떴고 Cancel을 눌렀다. DDL 커밋 여부를 읽으려고 세션을 여는 단계다.
     서버가 있는 실제 연결에서는 나오지 않는다.
 
+## 대화상자 크기와 위치 (2026-11-16, 앱 변경 #132)
+
+사용자 요청(26.1.1 테이블스페이스 관리를 써 보고, 오류가 아니라 개선): "팝업은 크기를 좀더 키워서 화면 중앙에 나타나게 한다".
+
+- **원인(코드):** `DesignerDialogs.showDialog`가 대화상자를 내용 크기로 `pack`하고 넘겨받은 컴포넌트 가운데에 놓았다(`setLocationRelativeTo(owner)`).
+  Object Explorer 명령은 탐색기 패널을 넘기므로 창 왼쪽, 탐색기 위에 떴다. Altibase·Oracle 저장소 대화상자는 28칸 글 칸에 맞춰 폭이 463(150%에서 약 695 px)이었다.
+- **고친 곳:** `showDialog` 한 곳. 폼 최소 너비 480(배율 1, [design-spec.md](design-spec.md) "폼 대화상자의 최소 너비와 위치")과 주인 창 가운데
+  (`setLocationRelativeTo(dialog.getOwner())`). 크기 조절 가능 여부는 그대로(JDialog 기본, 조절 가능), 칸은 전처럼 가로로 늘어난다.
+- **같은 흐름의 다른 창(코드와 측정, 150%, 메인 창 1280×800 가운데 640,296):**
+
+| 창 | 전 | 지금 |
+|---|---|---|
+| 새 개체·이름(New Filegroup… 등)·설정 대화상자(`showDialog`) | 탐색기 패널 가운데 | 창 가운데(고침) |
+| 스크립트 미리 보기(`ScriptPreviewDialog.confirmChange`, `ExplorerObjectCommands.runChange`·`ObjectMaintenanceCommands`) | 탐색기 패널 가운데(760×480이 창 왼쪽 밖으로 나감) | 창 가운데(고침: 창을 넘김) |
+| 열린 트랜잭션 질문(`ExitTransactionCheck.confirmObjectChange`, `JOptionPane`) | 탐색기 패널 가운데 | 창 가운데(고침: 창을 넘김) |
+| 이름 바꾸기 입력(F2), 삭제 확인, "실행할 문장 없음" 알림, 읽기 전용 알림, TRUNCATE·복제 확인 | 창 가운데(`getWindowAncestor`) | 그대로 |
+| 오류 창(`SwingPlatformUI.showError`), 진행 대화상자 | 활성 창 가운데 | 그대로 |
+
+  `ScriptPreviewDialog`는 주인으로 창을 받으면 그 창이 주인이다(전에는 창의 주인 창). 그래서 대화상자에서 여는 미리 보기(`AgentObjectDialog`,
+  `SchedulerScriptDialog`)는 이제 그 대화상자가 주인이다(자리는 전과 같이 그 대화상자 가운데). 다른 미리 보기 호출(테이블 디자이너 저장, 결과 그리드 저장,
+  SQL 만들기, 보안 편집기, 에이전트·스케줄러 명령)은 바꾸지 않았다.
+- **크기와 자리가 바뀌는 `showDialog` 대화상자(모든 호출):** 저장소 대화상자 10개(Altibase 새 테이블스페이스·새 데이터 파일·데이터 파일 설정·자동 확장 설정,
+  Oracle 새 테이블스페이스·새 데이터 파일·데이터 파일 설정, SQL Server 새 파일·새 로그 파일·파일 설정), 이름 대화상자(New Filegroup… 등 이름만 받는 New,
+  필수 암호가 있으면 암호 칸 포함), PostgreSQL 새 데이터베이스·스키마·테이블스페이스·확장, SQL Server·MySQL/MariaDB 새 데이터베이스, 테이블 디자이너의 키·인덱스·외래 키
+  추가, 결과 그리드의 가상 외래 키. 폭이 480보다 좁던 것만 넓어지고, 모두 창 가운데로 옮겼다. 측정(150 %, 폼 너비 전 → 지금, 영어 / 한국어):
+  Altibase 새 테이블스페이스·새 데이터 파일·데이터 파일 설정 425 / 419 → 480, 자동 확장 설정 249 / 243 → 480, Oracle 새 테이블스페이스·새 데이터 파일·데이터
+  파일 설정 425 / 419 → 480, New Filegroup(이름) 372 → 480, SQL Server 새 파일·파일 설정 513 / 507(그대로), PostgreSQL 새 데이터베이스 487 / 477 → 487 / 480,
+  키 추가 480(그대로). 그래서 한 DB의 저장소 대화상자는 너비가 같다(Altibase 넷·Oracle 셋 518, SQL Server 둘 551 논리 px). 테이블 디자이너·결과 그리드의
+  대화상자는 전에 디자이너·결과 패널 가운데였다.
+- **여러 화면·화면 밖 창:** `Window.setLocationRelativeTo`가 대화상자를 주인 창이 있는 화면의 경계 안으로 옮긴다(위·아래·왼쪽·오른쪽 가장자리). 그래서 따로
+  코드를 두지 않았다. 창이 화면 오른쪽 밖으로 나가 있으면 대화상자는 화면 오른쪽 가장자리에 붙는다(측정: 창 중심과 309 차이, 화면 안).
+
+## 숫자 칸 (2026-11-16, 앱 변경 #133)
+
+사용자 보고(버그): "숫자만 입력할 수 있는 부분에 문자가 입력되는 문제가 있다".
+
+- **원인(코드):** 저장소 대화상자의 크기·증가·최대 칸이 보통 `JTextField`라 무엇이든 들어가고, 확인을 누를 때만 검사했다("크기를 MB로 입력하십시오").
+- **고친 곳:** 공용 문서 필터 `NumberInputFilter` 하나를 세 클래스의 숫자 칸 모두에 단다. Altibase·Oracle 크기·증가 크기·최대 크기(MB, 소수 받음:
+  숫자와 마침표 하나), SQL Server 크기·증가·최대 크기(정수 MB·%: 숫자만). 부호, 공백, 문자, 지수, 쉼표, 전각 숫자는 들어가지 않는다.
+  걸린 입력은 아무것도 하지 않고 Look and Feel 오류 신호(소리)를 낸다(결과 그리드 비트 문자열 칸과 같음). 붙여넣기·끌어 놓기도 같은 문서 길이라 같다
+  ("12abc"·"1,024"는 통째로 거절). 지우기·선택 바꾸기는 그대로다. 이 칸들에는 전에도 실행 취소(Ctrl+Z)가 없었다(바꾸지 않음).
+- **확인할 때의 검사**(빈 칸, 0, KB로 나누어떨어지지 않는 크기)는 그대로다.
+- **채운 값:** SQL Server 파일 설정의 지금 크기·증가는 MB에 소수가 있을 수 있다(예: 4.5). 필터를 거치지 않고 그대로 보이고(`NumberInputFilter.setText`),
+  그대로 두면 문장이 되지 않는다. 지울 수는 있고, 소수점을 다시 넣을 수는 없다. Altibase·Oracle 설정의 값(예: 2.5)은 필터가 받는 모양이다.
+- **입력기(한글):** 숫자 칸은 입력기를 끈다(`enableInputMethods(false)`, 암호 칸과 같음). 한글 모드에서도 조합 없이 글자가 와서 필터가 거절한다.
+  조합 중인 글이 그래도 오면 필터는 통과시킨다: `JTextComponent.replaceInputMethodText`는 조합 글을 넣은 뒤 그 길이만큼 앞을 조합 위치로 기억하므로,
+  거절하면 다음 입력기 사건에서 이미 있던 숫자를 지운다. 조합이 확정되면 그 글은 보통 입력으로 다시 들어와 거절되고 조합 글은 지워져, 칸에 남지 않는다.
+- **같은 원인의 다른 칸(고치지 않음, 사용자에게 여쭐 목록):** AI 옵션의 컨텍스트 크기, SAP HANA 인스턴스 번호, 사용자·역할 속성의 자원 제한 넷,
+  행으로 가기(Ctrl+G), Properties 창의 숫자 속성, 쿼리 라이브러리 NUMBER 매개 변수, 결과 그리드 셀·열 필터 값·배열 항목 편집기. 모두 보통 글 칸이고
+  확인할 때 검사한다(행으로 가기는 말없이 무시). `showDialog`와 같은 칸 코드를 쓰는 다른 숫자 칸은 없다.
+
 ## 남긴 것
 
 - **사전(B-E9 "사전", SWT `EditDictionaryPage`):** 가상 모델의 "설명 열"을 고르는 페이지다. Swing 결과 표에는 이를 쓰는 곳(외래 키 값
@@ -268,3 +320,5 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   `NewObjectDialogs.load`를 패키지 안에 엶. 검토 뒤 두 대화상자의 "(기본값)" 안내 줄을 뺌(설명 문구 없음 규칙).
 - 2026-11-15 Oracle New Tablespace…·New Data File… 대화상자(`OracleStorageDialogs`, 앱 변경 #127, [oracle-storage.md](oracle-storage.md)).
 - 2026-11-15 SQL Server New Filegroup…(이름 대화상자)·New File…·New Log File… 대화상자(`SQLServerStorageDialogs`, 앱 변경 #128, [mssql-storage.md](mssql-storage.md)).
+- 2026-11-16 "대화상자 크기와 위치"(앱 변경 #132)와 "숫자 칸"(앱 변경 #133) 추가(`chromite/storage-dialog-fixes`): `showDialog`의 폼 최소 너비 480과
+  창 가운데 위치, Object Explorer 개체 변경의 미리 보기·트랜잭션 질문도 창 가운데, 저장소 대화상자 숫자 칸의 `NumberInputFilter`.

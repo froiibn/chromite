@@ -50,6 +50,8 @@ import java.awt.event.KeyEvent;
  *   기본 단추 플래그는 늘 참이 되어 지우고, Cancel에 처음 포커스를 둠 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 결과 행에서 SQL 만들기({@link #showGenerated}): 머리글을 호출자가 정하고 실행 단추 없이 복사·쿼리 창으로 열기·닫기만
  *   (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-16 주인으로 창을 넘기면 그 창이 대화상자의 주인이다(전에는 그 창의 주인 창). Object Explorer의 개체 변경이 탐색기 패널 대신
+ *   메인 창을 넘겨 미리 보기가 창 가운데에 뜸(앱 변경 #132, docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -71,6 +73,8 @@ final class ScriptPreviewDialog extends JDialog {
      * Cancel (Close without an execute button) is always the default button and has the initial focus, so that Enter
      * pressed by habit does not run the script.
      *
+     * @param owner        the component the dialog is centred on; a window owns the dialog itself (else the
+     *                     component's window does)
      * @param header       text above the script; a header with line breaks keeps them
      * @param executeLabel label of the button that runs the script, or null to only show the script
      * @param allowOpen    show "Open in Query Window" (not for a save confirmation: the changes stay in the grid)
@@ -83,7 +87,7 @@ final class ScriptPreviewDialog extends JDialog {
         @Nullable String executeLabel,
         boolean allowOpen
     ) {
-        super(SwingUtilities.getWindowAncestor(owner), title, ModalityType.APPLICATION_MODAL);
+        super(owner instanceof Window window ? window : SwingUtilities.getWindowAncestor(owner), title, ModalityType.APPLICATION_MODAL);
         setIconImages(ChromiteIcons.getWindowIcons());
 
         SqlEditorPanel.SqlTextArea textArea = new SqlEditorPanel.SqlTextArea();

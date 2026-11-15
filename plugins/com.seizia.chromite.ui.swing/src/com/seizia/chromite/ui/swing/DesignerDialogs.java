@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.design.TableDesignerDriver;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
@@ -65,6 +66,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-create-objects.md)
  * - 2026-11-08 결과 그리드의 가상 외래 키도 이 외래 키 대화상자로 정함(이름·규칙 없음, 참조 테이블의 가상 고유 키도 고름)
  *   (docs/chromite/swing-grid-navigation.md "가상 키")
+ * - 2026-11-16 {@link #showDialog}: 대화상자가 주인 창 가운데에 뜨고(전에는 넘겨받은 컴포넌트 가운데: Object Explorer에서는 탐색기 패널 위),
+ *   폼 너비가 {@link #MIN_FORM_WIDTH} 이상이다(앱 변경 #132, docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  */
 final class DesignerDialogs {
 
@@ -75,6 +78,12 @@ final class DesignerDialogs {
         DBSForeignKeyModifyRule.SET_NULL,
         DBSForeignKeyModifyRule.SET_DEFAULT
     };
+
+    /**
+     * Minimum width of a {@link #showDialog} form at scale 1 (scaled with {@link UIScale}, as the size tokens). It is the
+     * width the table designer's key and index forms already had, so they keep their size.
+     */
+    private static final int MIN_FORM_WIDTH = 480;
 
     /**
      * Index the user chose.
@@ -412,7 +421,8 @@ final class DesignerDialogs {
     }
 
     /**
-     * Modal OK/Cancel dialog; OK runs the validator, which returns the result or a {@link ValidationError}.
+     * Modal OK/Cancel dialog; OK runs the validator, which returns the result or a {@link ValidationError}. The dialog is
+     * at least {@link #MIN_FORM_WIDTH} wide inside its padding and appears in the middle of the owner's window.
      */
     @Nullable
     @SuppressWarnings("unchecked")
@@ -444,7 +454,16 @@ final class DesignerDialogs {
         south.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
         south.add(errorLabel, BorderLayout.CENTER);
         south.add(buttons, BorderLayout.EAST);
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new JPanel(new BorderLayout()) {
+            @Override
+            public Dimension getPreferredSize() {
+                // One width rule for every dialog of the helper, so that small forms are not packed to their fields
+                Dimension size = super.getPreferredSize();
+                Insets insets = getInsets();
+                size.width = Math.max(size.width, UIScale.scale(MIN_FORM_WIDTH) + insets.left + insets.right);
+                return size;
+            }
+        };
         content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         content.add(form, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
@@ -453,7 +472,8 @@ final class DesignerDialogs {
         dialog.getRootPane().registerKeyboardAction(e -> dialog.dispose(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         dialog.pack();
-        dialog.setLocationRelativeTo(owner);
+        // Centred on the window, not on the owner component: Object Explorer passes its panel (the left of the window)
+        dialog.setLocationRelativeTo(dialog.getOwner());
         dialog.setVisible(true);
         return (T) result[0];
     }

@@ -99,6 +99,8 @@ import java.util.stream.Collectors;
  * - 2026-11-15 Oracle 테이블스페이스 온라인·오프라인, 읽기 전용·읽기 쓰기({@link OracleStorageDialogs}의 데이터 파일 설정 포함, 앱 변경 #127,
  *   docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
+ * - 2026-11-16 스크립트 미리 보기와 열린 트랜잭션 질문이 탐색기 패널 대신 창 가운데에 뜸(다른 확인·알림과 같음, 앱 변경 #132,
+ *   docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  */
 final class ObjectMaintenanceCommands {
 
@@ -291,12 +293,12 @@ final class ObjectMaintenanceCommands {
         String header = NLS.bind(ddlCommits[0]
             ? NavigatorMessages.navigator_change_preview_header_ddl_commit
             : NavigatorMessages.navigator_change_preview_header, container.getName());
-        ScriptPreviewDialog.Result result = ScriptPreviewDialog.confirmChange(explorer, title, header, script.toString());
+        ScriptPreviewDialog.Result result = ScriptPreviewDialog.confirmChange(window, title, header, script.toString());
         if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
             queryWindows.openScript(container, script.toString(), 0, false);
             return;
         }
-        if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(explorer, container)) {
+        if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(window, container)) {
             return;
         }
         // The nodes are looked up before executing (the folder of a changed trigger is read again afterwards)

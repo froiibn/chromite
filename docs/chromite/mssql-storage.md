@@ -43,6 +43,9 @@ chr_ts_app
   파일 칸은 서버의 기본 폴더(`SERVERPROPERTY('InstanceDefaultDataPath' | 'InstanceDefaultLogPath')`)로 채워지고, 사용자가 파일 칸을 고치기 전까지 이름을 따라간다
   (`<폴더><이름>.ndf`, 로그는 `.ldf`; SSMS 새 파일과 같은 이름). 자동 증가 확인란을 끄면 증가·최대 크기 칸이 꺼지고 `FILEGROWTH = 0`이 된다.
   파일 설정에서 최대 크기를 비우면 `MAXSIZE = UNLIMITED`다. 아무것도 바꾸지 않으면 속성 편집과 같은 "실행할 문장이 없다" 알림이다.
+  대화상자는 메인 창 가운데에 뜬다(2026-11-16 앱 변경 #132; 새 파일·파일 설정은 이미 폼 너비 480보다 넓어 크기는 그대로). 크기·증가·최대 크기 칸에는
+  숫자만 들어간다(앱 변경 #133). 파일 설정의 지금 크기·증가에 소수가 있으면(예: 4.5) 그대로 보이고, 그대로 두면 문장이 되지 않는다
+  ([swing-create-objects.md](swing-create-objects.md) "대화상자 크기와 위치", "숫자 칸").
 - 속성: 파일 그룹은 이름·종류·기본값·읽기 전용·파일 수, 파일은 논리 이름·파일 이름(실제 경로)·종류·크기(MB)·자동 증가("64 MB", "10%", "없음")·최대 크기("100 MB",
   "제한 없음")·상태·읽기 전용.
 - 시스템 데이터베이스(master, tempdb, model, msdb)와 오프라인 데이터베이스에서는 노드는 보이지만 명령은 없다(아래 설계 결정).
@@ -202,3 +205,7 @@ chr_ts_app
 ## 변경 이력
 
 - 2026-11-15 최초 작성: 파일·파일 그룹 노드와 명령(앱 변경 #128, 브랜치 `chromite/mssql-storage`).
+- 2026-11-16 대화상자·미리 보기·트랜잭션 질문이 창 가운데에 뜨고(앱 변경 #132), 숫자 칸이 숫자만 받음(앱 변경 #133, `chromite/storage-dialog-fixes`).
+  확인(임시 데이터베이스 `chr_sd_app`, 끝에 지움): New Filegroup… `ALTER DATABASE chr_sd_app ADD FILEGROUP chr_sd_fg`, New File…
+  `… ADD FILE (NAME = N'chr_sd_d1', FILENAME = N'/var/opt/mssql/data/chr_sd_d1.ndf', SIZE = 4MB, FILEGROWTH = 1MB, MAXSIZE = 16MB) TO FILEGROUP chr_sd_fg`,
+  파일 설정(4.5 MB 파일) `… MODIFY FILE (NAME = N'chr_sd_frac', SIZE = 5MB)` — 전과 같은 모양.
