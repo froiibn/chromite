@@ -32,12 +32,16 @@ import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI function declared in the {@value #EXTENSION_ID} extension point.
  *
  * 변경 이력:
+ * - 2026-11-15 {@code <alias>} 자식과 {@code operationParameter}, {@code addedIn} 속성 읽기(옛 도구 ID를 한 판 동안 받음, docs/chromite/ai-agent.md "별칭")
  * - 2026-11-07 {@code access}, {@code writes} 속성 읽기(에이전트 도구 권한 정책, docs/chromite/ai-agent.md)
  * - 2026-11-12 {@code toolSet}, {@code shortDescription} 속성 읽기(채팅의 도구 묶음, docs/chromite/ai-agent.md "도구 묶음")
  * - 2026-11-12 {@code alwaysConfirmed} 속성 읽기(권한 정책 표의 "늘 확인", 앱 변경 #71 g, docs/chromite/ai-agent.md "권한 정책")
@@ -74,6 +78,11 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     private final String userDescription;
     private final String categoryId;
     private final AIFunctionInternalParameter[] parameters;
+    private final List<AIFunctionAlias> aliases;
+    @Nullable
+    private final String operationParameter;
+    @Nullable
+    private final String addedIn;
     private final AIFunctionImplementationDescriptor implementation;
     private transient AIFunction instance;
 
@@ -125,6 +134,19 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
         );
         this.writes = AIToolWrites.fromId(config.getAttribute("writes"));
 
+        this.operationParameter = config.getAttribute("operationParameter");
+        this.addedIn = config.getAttribute("addedIn");
+        List<AIFunctionAlias> aliasList = new ArrayList<>();
+        for (IConfigurationElement ae : config.getChildren("alias")) {
+            aliasList.add(new AIFunctionAlias(
+                ae.getAttribute(RegistryConstants.ATTR_ID),
+                CommonUtils.valueOf(AIToolAccess.class, ae.getAttribute("access"), null),
+                parsePairs(ae.getAttribute("arguments")),
+                parsePairs(ae.getAttribute("defaults")),
+                ae.getAttribute("removeIn")));
+        }
+        this.aliases = List.copyOf(aliasList);
+
         List<AIFunctionInternalParameter> params = new ArrayList<>();
         for (IConfigurationElement pe : config.getChildren("parameter")) {
             params.add(new AIFunctionInternalParameter(pe, implementation));
@@ -141,10 +163,41 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
         }
     }
 
+    // "a=1,b=x" of an <alias>; values never contain commas
+    @NotNull
+    private static Map<String, String> parsePairs(@Nullable String text) {
+        Map<String, String> pairs = new LinkedHashMap<>();
+        for (String pair : CommonUtils.splitString(text, ',')) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                pairs.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());
+            }
+        }
+        return Collections.unmodifiableMap(pairs);
+    }
+
     @NotNull
     @Override
     public AIToolbox getToolbox() {
         return toolbox;
+    }
+
+    @NotNull
+    @Override
+    public List<AIFunctionAlias> getAliases() {
+        return aliases;
+    }
+
+    @Nullable
+    @Override
+    public String getOperationParameter() {
+        return operationParameter;
+    }
+
+    @Nullable
+    @Override
+    public String getAddedIn() {
+        return addedIn;
     }
 
     @NotNull

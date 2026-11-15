@@ -38,6 +38,8 @@ import com.seizia.chromite.model.ai.agent.AIToolCallContext;
 import com.seizia.chromite.model.ai.agent.AIToolConfirmationAnswer;
 import com.seizia.chromite.model.ai.agent.AIToolPreviewProvider;
 import com.seizia.chromite.model.ai.agent.AIToolTransactionGuard;
+import com.seizia.chromite.model.ai.agent.AIToolWrites;
+import com.seizia.chromite.model.ai.agent.AIToolWritesClassifier;
 import com.seizia.chromite.model.ai.tools.internal.AIToolsMessages;
 
 import java.sql.PreparedStatement;
@@ -49,7 +51,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Administration tools: end a session (DANGEROUS), SQL Server backup (WRITE) and restore (DANGEROUS).
+ * Administration tools: end a session (DANGEROUS), backup (WRITE) and restore (DANGEROUS) of SQL Server, PostgreSQL and
+ * MySQL/MariaDB.
  *
  * 설계:
  * <ul>
@@ -58,6 +61,11 @@ import java.util.regex.Pattern;
  *     <li>백업·복원은 Swing 백업·복원 대화상자와 같은 모델({@code model.admin}의 {@link SQLServerBackupSettings},
  *     {@link SQLServerRestoreSettings}, {@link SQLServerBackupRestore#execute})을 써서 같은 T-SQL을 만든다(docs/chromite/swing-backup-restore.md).
  *     확인 요청에 만든 스크립트 전체를 보인다. PostgreSQL·MySQL은 로컬 클라이언트 도구로 하는 {@link NativeBackupTools}다.</li>
+ *     <li>26.1.0부터 백업·복원은 DB 종류와 상관없이 도구 하나씩이다({@code backupDatabase}, {@code restoreDatabase}). 연결의 DB 종류로 나눈다:
+ *     SQL Server는 T-SQL이고 파일은 <b>DB 서버의</b> 경로, PostgreSQL·MySQL/MariaDB는 로컬 클라이언트 도구이고 파일은 <b>이 컴퓨터의</b> 경로다.
+ *     결과의 {@code fileLocation}(databaseServer / thisComputer)과 설명이 이것을 밝힌다. 바꾸는 대상도 다르다: 서버 백업은 DB 서버에 쓰고
+ *     ({@code writes=database}, 읽기 전용 연결에서 막힘), 덤프는 이 컴퓨터의 파일만 쓴다(전처럼 읽기 전용 연결에서도 됨). 그래서 정적 값은
+ *     엄격한 {@code database}로 두고 호출마다 정한다({@link #classifyWrites}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -67,8 +75,15 @@ import java.util.regex.Pattern;
  * - 2026-11-08 SQL Server가 아닌 연결의 오류가 PostgreSQL·MySQL 도구(dumpDatabase, restoreDump)를 알려 줌
  * - 2026-11-08 backupDatabase도 SQL Server가 아닌 연결을 확인 요청 전에(미리 보기에서) 거절함. 전에는 사용자가 허용한 뒤에야 거절했다
  *   (evening #27, docs/chromite/ai-agent.md)
+ * - 2026-11-15 dumpDatabase·restoreDump를 합쳐 backupDatabase·restoreDatabase가 DB 종류로 나눔, 백업 종류 인수 type → backupType, 결과의
+ *   {@code fileLocation}, 호출마다 쓰는 대상({@link #classifyWrites}) (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
-public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider {
+public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider, AIToolWritesClassifier {
+
+    private static final String BACKUP = "backupDatabase"; //$NON-NLS-1$
+    private static final String RESTORE = "restoreDatabase"; //$NON-NLS-1$
+    /** {@code fileLocation} of a SQL Server backup or restore: the path is on the database server. */
+    private static final String FILE_ON_DATABASE_SERVER = "databaseServer"; //$NON-NLS-1$
 
     private static final Pattern NUMBER = Pattern.compile("\\d{1,10}");
     private static final Pattern ORACLE_SESSION = Pattern.compile("\\d{1,10},\\d{1,10}");
@@ -82,18 +97,41 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     ) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
         AgentSql.connect(context.getMonitor(), container);
+        boolean nativeTools = NativeBackupTools.supports(DbFamily.of(container));
         return switch (toolId) {
             case "killSession" -> kill(context, container, args);
-            case "backupDatabase" -> backup(context, container, args, true);
-            case "restoreDatabase" -> restore(context, container, args, true);
+            case BACKUP -> nativeTools ? NativeBackupTools.run(context, container, false, args) : backup(context, container, args, true);
+            case RESTORE -> nativeTools ? NativeBackupTools.run(context, container, true, args) : restore(context, container, args, true);
             default -> throw unknownTool(toolId);
         };
     }
 
-    // The same families killStatement and sqlServer accept
+    // The same families killStatement, sqlServer and NativeBackupTools accept
     @Override
     public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
-        return tool.getId().equals("killSession") ? family != DbFamily.OTHER : family == DbFamily.SQLSERVER;
+        return tool.getId().equals("killSession") ? family != DbFamily.OTHER
+            : family == DbFamily.SQLSERVER || NativeBackupTools.supports(family);
+    }
+
+    @NotNull
+    @Override
+    public AIToolWrites writes(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        return tool.getId().equals(BACKUP) && NativeBackupTools.supports(family) ? AIToolWrites.FILE : tool.getWrites();
+    }
+
+    /**
+     * A PostgreSQL or MySQL/MariaDB backup writes only a new file on this computer (pg_dump, mysqldump), as dumpDatabase did,
+     * so a read-only connection allows it; everything else here changes the database or the server's files.
+     */
+    @NotNull
+    @Override
+    public AIToolWrites classifyWrites(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) {
+        DBPDataSourceContainer connection = context.getConnection();
+        // The family comes from the driver before the connection is opened, as the selection of the chat's tools does
+        if (context.getTool().getId().equals(BACKUP) && connection != null && NativeBackupTools.supports(DbFamily.of(connection))) {
+            return AIToolWrites.FILE;
+        }
+        return context.getTool().getWrites();
     }
 
     // ------------------------------------------------------------------ kill
@@ -145,7 +183,7 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     private static SQLServerDataSource sqlServer(@NotNull DBPDataSourceContainer container) throws DBException {
         DBPDataSource dataSource = container.getDataSource();
         if (!(dataSource instanceof SQLServerDataSource sqlServer)) {
-            throw new DBException("backupDatabase and restoreDatabase are for SQL Server; use dumpDatabase and restoreDump for PostgreSQL and MySQL/MariaDB");
+            throw new DBException("backupDatabase and restoreDatabase support SQL Server, PostgreSQL and MySQL/MariaDB connections");
         }
         return sqlServer;
     }
@@ -154,12 +192,12 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     private static List<String> backupBatches(@NotNull Map<String, Object> args) throws AIToolArgumentException {
         SQLServerBackupSettings settings = new SQLServerBackupSettings(AgentArgs.require(args, "database"));
         settings.setDestination(AgentArgs.require(args, "file"));
-        String type = AgentArgs.getString(args, "type");
+        String type = AgentArgs.getString(args, "backupType");
         if (type != null) {
             try {
                 settings.setBackupType(SQLServerBackupSettings.BackupType.valueOf(type.trim().toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException e) {
-                throw new AIToolArgumentException("Argument 'type' must be FULL, DIFFERENTIAL or LOG");
+                throw new AIToolArgumentException("Argument 'backupType' must be FULL, DIFFERENTIAL or LOG");
             }
         }
         settings.setCopyOnly(AgentArgs.getBoolean(args, "copyOnly", true));
@@ -241,6 +279,7 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     ) throws DBException {
         JsonObject json = new JsonObject();
         json.addProperty("script", SQLServerBackupRestore.toScript(batches));
+        json.addProperty("fileLocation", FILE_ON_DATABASE_SERVER);
         if (!execute) {
             return json;
         }
@@ -262,15 +301,29 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     public String getPreview(@NotNull AIToolCallContext context, @NotNull Map<String, Object> arguments) throws DBException {
         DBPDataSourceContainer container = requireConnection(context);
         AgentSql.connect(context.getMonitor(), container);
+        boolean nativeTools = NativeBackupTools.supports(DbFamily.of(container));
         return switch (context.getTool().getId()) {
             case "killSession" -> killStatement(DbFamily.of(container), AgentArgs.require(arguments, "session"));
-            case "backupDatabase" -> {
+            case BACKUP, RESTORE -> nativeTools
+                ? NativeBackupTools.getPreview(context, container, context.getTool().getId().equals(RESTORE), arguments)
+                : sqlServerPreview(context, container, arguments);
+            default -> null;
+        };
+    }
+
+    @NotNull
+    private static String sqlServerPreview(
+        @NotNull AIToolCallContext context,
+        @NotNull DBPDataSourceContainer container,
+        @NotNull Map<String, Object> arguments
+    ) throws DBException {
+        return switch (context.getTool().getId()) {
+            case BACKUP -> {
                 // Refused before the user is asked, as restoreDatabase is: the script would not run on this connection
                 sqlServer(container);
                 yield SQLServerBackupRestore.toScript(backupBatches(arguments));
             }
-            case "restoreDatabase" -> SQLServerBackupRestore.toScript(restoreBatches(context, sqlServer(container), arguments));
-            default -> null;
+            default -> SQLServerBackupRestore.toScript(restoreBatches(context, sqlServer(container), arguments));
         };
     }
 

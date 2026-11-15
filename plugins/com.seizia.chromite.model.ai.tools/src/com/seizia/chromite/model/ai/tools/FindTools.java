@@ -49,12 +49,14 @@ import java.util.Set;
  *     <li>찾는 범위는 지금 요청에 없는 채팅 도구다. 지금 요청의 도구는 같은 스레드의 {@link AIAgentToolSets#getOffered}에서 읽는다. 연결이 있으면
  *     요청 고르기와 같은 거르기({@link AIAgentToolSelection#select})로 그 연결의 DB 종류에 맞지 않거나 정책이 막는 도구를 뺀다.</li>
  *     <li>고르기는 낱말 점수다: 도구 ID의 낱말(camelCase로 나눔)과 같으면 3, ID에 들어 있으면 2, 설명·분야에 들어 있으면 1. 끝의 s/es는 떼고 비교한다.
+ *     합치거나 이름을 바꾼 도구의 옛 ID({@code <alias>})도 ID로 센다(2026-11-15): 옛 이름으로 찾는 모델이 합친 도구를 찾게.
  *     설명이 영어이므로 모델에게 영어 낱말을 달라고 인수 설명에 적었다. 맞는 것이 없으면 분야별 도구 ID 목록을 돌려 다시 찾게 한다.</li>
  *     <li>MCP 목록에는 없다({@code purpose="TOOL"}): MCP 클라이언트는 이미 모든 도구를 받는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성 (앱 변경 #64)
+ * - 2026-11-15 옛 ID로도 점수를 매김 (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class FindTools extends AgentTool {
 
@@ -158,8 +160,11 @@ public class FindTools extends AgentTool {
     }
 
     private static int score(@NotNull AIFunctionDescriptor tool, @NotNull List<String> words) {
-        String id = tool.getId().toLowerCase(Locale.ROOT);
-        List<String> idWords = words(tool.getId().replaceAll("([a-z])([A-Z])", "$1 $2")); //$NON-NLS-1$ //$NON-NLS-2$
+        // The former ids of a merged or renamed tool count as its id ("dump" finds backupDatabase, which merged dumpDatabase)
+        StringBuilder ids = new StringBuilder(tool.getId());
+        tool.getAliases().forEach(alias -> ids.append(' ').append(alias.id()));
+        String id = ids.toString().toLowerCase(Locale.ROOT);
+        List<String> idWords = words(ids.toString().replaceAll("([a-z])([A-Z])", "$1 $2")); //$NON-NLS-1$ //$NON-NLS-2$
         String text = (CommonUtils.notEmpty(tool.getAiDescription()) + ' ' + areaOf(tool)).toLowerCase(Locale.ROOT);
         int score = 0;
         for (String word : words) {

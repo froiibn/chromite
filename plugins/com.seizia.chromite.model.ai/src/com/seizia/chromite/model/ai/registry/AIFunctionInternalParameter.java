@@ -28,11 +28,14 @@ import com.seizia.chromite.model.ai.AIFunctionParameterValueProvider;
 import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.List;
+
 /**
  * Parameter of an AI function declared in the {@code com.seizia.chromite.ai.function} extension point.
  *
  * 변경 이력:
  * - 2026-11-12 {@code shortDescription} 속성 읽기(최소 도구 묶음의 짧은 설명, docs/chromite/ai-agent.md "도구 묶음")
+ * - 2026-11-15 {@code aliases} 속성 읽기(인수의 옛 이름, docs/chromite/ai-agent.md "별칭")
  */
 public class AIFunctionInternalParameter extends AbstractDescriptor implements AIFunctionParameter {
     private static final Log log = Log.getLog(AIFunctionInternalParameter.class);
@@ -135,6 +138,12 @@ public class AIFunctionInternalParameter extends AbstractDescriptor implements A
     @Nullable
     public String getShortDescription() {
         return config.getAttribute("shortDescription");
+    }
+
+    @NotNull
+    @Override
+    public List<String> getAliases() {
+        return CommonUtils.splitString(config.getAttribute("aliases"), ',').stream().map(String::trim).toList();
     }
 
     @Override

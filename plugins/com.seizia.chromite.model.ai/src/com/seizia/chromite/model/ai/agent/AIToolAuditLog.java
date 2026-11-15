@@ -55,6 +55,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "감사 기록")
  * - 2026-11-08 트랜잭션 질문의 답(transactionsBeforeCall)을 기록함 (docs/chromite/ai-agent.md "실제 API 확인")
+ * - 2026-11-15 {@code tool}은 지금 도구 ID이고, 옛 ID로 부른 호출은 {@code calledAs}, 합친 도구의 호출은 {@code operation}을 함께 남김.
+ *   예전 기록(옛 ID)은 그대로 읽힌다: 형식은 필드를 더했을 뿐이다 (docs/chromite/ai-agent.md "감사 기록")
  */
 public final class AIToolAuditLog {
 
@@ -77,6 +79,8 @@ public final class AIToolAuditLog {
         @NotNull String time,
         @NotNull AIToolClient client,
         @NotNull String tool,
+        @Nullable String calledAs,
+        @Nullable String operation,
         @NotNull AIToolAccess access,
         @Nullable String connectionId,
         @Nullable String connectionName,
@@ -95,6 +99,12 @@ public final class AIToolAuditLog {
             json.addProperty("time", time);
             json.addProperty("client", client.name());
             json.addProperty("tool", tool);
+            if (operation != null) {
+                json.addProperty("operation", operation);
+            }
+            if (calledAs != null) {
+                json.addProperty("calledAs", calledAs);
+            }
             json.addProperty("access", access.name());
             if (connectionId != null) {
                 json.addProperty("connectionId", connectionId);
@@ -138,6 +148,9 @@ public final class AIToolAuditLog {
     /**
      * Builds an entry with the current time and masked arguments.
      *
+     * @param tool              the current tool id
+     * @param calledAs          the former tool id the call used (an alias), or null
+     * @param operation         the operation of a merged tool's call, or null
      * @param transactionAction the user's answer to a transaction question, carried out before the call
      *                          ({@code COMMITTED} or {@code ROLLED_BACK}), or null when there was no such question
      * @param transactionCount  number of uncommitted transactions that answer ended
@@ -146,6 +159,8 @@ public final class AIToolAuditLog {
     public static Entry newEntry(
         @NotNull AIToolClient client,
         @NotNull String tool,
+        @Nullable String calledAs,
+        @Nullable String operation,
         @NotNull AIToolAccess access,
         @Nullable DBPDataSourceContainer connection,
         @NotNull Map<String, Object> arguments,
@@ -160,6 +175,8 @@ public final class AIToolAuditLog {
             OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
             client,
             tool,
+            calledAs,
+            operation,
             access,
             connection == null ? null : connection.getId(),
             connection == null ? null : connection.getName(),

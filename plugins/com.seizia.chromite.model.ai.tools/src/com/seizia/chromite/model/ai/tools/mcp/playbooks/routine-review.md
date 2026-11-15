@@ -2,7 +2,7 @@ Review the logic and performance of the routine "{object}" (procedure, function 
 
 Steps:
 1. getRoutineSource: the source with line numbers and the parameters. For a trigger, listTriggers for its table and events.
-2. getObjectDependencies (depth 2): the routines it calls and the tables it uses. Read what you need (getRoutineSource, describeTable, listIndexes).
+2. getObjectDependencies (depth 2): the routines it calls and the tables it uses. Read what you need (getRoutineSource, describeTable).
 3. getRoutineStats: executions, CPU, reads and duration per statement, with line numbers. getCachedPlans for the plans of the expensive statements (compiled parameter values).
 4. Review for:
    - cursors or row-by-row processing that a set-based statement could replace;

@@ -18,12 +18,12 @@ SELECT
 FROM sys.objects o
 JOIN sys.sql_modules m ON m.object_id = o.object_id
 LEFT JOIN sys.triggers t ON t.object_id = o.object_id
-WHERE o.object_id = OBJECT_ID(${name})
+WHERE o.object_id = OBJECT_ID(${object})
 -- @statement: parameters
 SELECT p.parameter_id, p.name, TYPE_NAME(p.user_type_id) AS type_name, p.max_length, p.precision, p.scale,
        p.is_output, p.has_default_value, p.is_readonly
 FROM sys.parameters p
-WHERE p.object_id = OBJECT_ID(${name})
+WHERE p.object_id = OBJECT_ID(${object})
 ORDER BY p.parameter_id
 
 -- @family: postgresql
@@ -42,8 +42,8 @@ SELECT
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 JOIN pg_language l ON l.oid = p.prolang
-WHERE n.nspname || '.' || p.proname = ${name}
-   OR (p.proname = ${name} AND n.nspname = ANY (current_schemas(false)))
+WHERE n.nspname || '.' || p.proname = ${object}
+   OR (p.proname = ${object} AND n.nspname = ANY (current_schemas(false)))
 -- @statement: trigger
 -- @maxCellChars: 1000000
 SELECT
@@ -61,7 +61,7 @@ JOIN pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_proc p ON p.oid = t.tgfoid
 JOIN pg_namespace fn ON fn.oid = p.pronamespace
 WHERE NOT t.tgisinternal
-  AND (t.tgname = ${name} OR n.nspname || '.' || t.tgname = ${name})
+  AND (t.tgname = ${object} OR n.nspname || '.' || t.tgname = ${object})
 -- @statement: view
 -- @maxCellChars: 1000000
 SELECT
@@ -72,7 +72,7 @@ SELECT
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind IN ('v', 'm')
-  AND (n.nspname || '.' || c.relname = ${name} OR (c.relname = ${name} AND n.nspname = ANY (current_schemas(false))))
+  AND (n.nspname || '.' || c.relname = ${object} OR (c.relname = ${object} AND n.nspname = ANY (current_schemas(false))))
 
 -- @family: mysql
 -- @statement: routine
@@ -80,13 +80,13 @@ WHERE c.relkind IN ('v', 'm')
 SELECT ROUTINE_SCHEMA AS schema_name, ROUTINE_NAME AS name, ROUTINE_TYPE AS type_desc, DTD_IDENTIFIER AS result_type,
        SQL_DATA_ACCESS, SECURITY_TYPE, IS_DETERMINISTIC, CREATED, LAST_ALTERED, DEFINER, ROUTINE_DEFINITION AS definition
 FROM information_schema.ROUTINES
-WHERE ROUTINE_NAME = SUBSTRING_INDEX(${name}, '.', -1)
-  AND ROUTINE_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
+WHERE ROUTINE_NAME = SUBSTRING_INDEX(${object}, '.', -1)
+  AND ROUTINE_SCHEMA = IF(LOCATE('.', ${object}) > 0, SUBSTRING_INDEX(${object}, '.', 1), DATABASE())
 -- @statement: parameters
 SELECT SPECIFIC_NAME AS routine, ORDINAL_POSITION, PARAMETER_MODE, PARAMETER_NAME, DTD_IDENTIFIER AS type_name
 FROM information_schema.PARAMETERS
-WHERE SPECIFIC_NAME = SUBSTRING_INDEX(${name}, '.', -1)
-  AND SPECIFIC_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
+WHERE SPECIFIC_NAME = SUBSTRING_INDEX(${object}, '.', -1)
+  AND SPECIFIC_SCHEMA = IF(LOCATE('.', ${object}) > 0, SUBSTRING_INDEX(${object}, '.', 1), DATABASE())
 ORDER BY ORDINAL_POSITION
 -- @statement: trigger
 -- @maxCellChars: 1000000
@@ -94,28 +94,28 @@ SELECT TRIGGER_SCHEMA AS schema_name, TRIGGER_NAME AS name, 'TRIGGER' AS type_de
        CONCAT(EVENT_OBJECT_SCHEMA, '.', EVENT_OBJECT_TABLE) AS trigger_table, ACTION_TIMING, EVENT_MANIPULATION,
        ACTION_ORIENTATION, DEFINER, ACTION_STATEMENT AS definition
 FROM information_schema.TRIGGERS
-WHERE TRIGGER_NAME = SUBSTRING_INDEX(${name}, '.', -1)
-  AND TRIGGER_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
+WHERE TRIGGER_NAME = SUBSTRING_INDEX(${object}, '.', -1)
+  AND TRIGGER_SCHEMA = IF(LOCATE('.', ${object}) > 0, SUBSTRING_INDEX(${object}, '.', 1), DATABASE())
 -- @statement: view
 -- @maxCellChars: 1000000
 SELECT TABLE_SCHEMA AS schema_name, TABLE_NAME AS name, 'VIEW' AS type_desc, VIEW_DEFINITION AS definition
 FROM information_schema.VIEWS
-WHERE TABLE_NAME = SUBSTRING_INDEX(${name}, '.', -1)
-  AND TABLE_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
+WHERE TABLE_NAME = SUBSTRING_INDEX(${object}, '.', -1)
+  AND TABLE_SCHEMA = IF(LOCATE('.', ${object}) > 0, SUBSTRING_INDEX(${object}, '.', 1), DATABASE())
 
 -- @family: oracle
 -- @statement: routine
 -- @limit: 20000
 SELECT owner AS schema_name, name, type AS type_desc, line, text
 FROM all_source
-WHERE name = UPPER(SUBSTR(${name}, INSTR(${name}, '.') + 1))
-  AND owner = CASE WHEN INSTR(${name}, '.') > 0 THEN UPPER(SUBSTR(${name}, 1, INSTR(${name}, '.') - 1))
+WHERE name = UPPER(SUBSTR(${object}, INSTR(${object}, '.') + 1))
+  AND owner = CASE WHEN INSTR(${object}, '.') > 0 THEN UPPER(SUBSTR(${object}, 1, INSTR(${object}, '.') - 1))
                    ELSE SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') END
 ORDER BY type, line
 -- @statement: parameters
 SELECT object_name AS routine, package_name, position, argument_name, in_out, data_type
 FROM all_arguments
-WHERE object_name = UPPER(SUBSTR(${name}, INSTR(${name}, '.') + 1))
-  AND owner = CASE WHEN INSTR(${name}, '.') > 0 THEN UPPER(SUBSTR(${name}, 1, INSTR(${name}, '.') - 1))
+WHERE object_name = UPPER(SUBSTR(${object}, INSTR(${object}, '.') + 1))
+  AND owner = CASE WHEN INSTR(${object}, '.') > 0 THEN UPPER(SUBSTR(${object}, 1, INSTR(${object}, '.') - 1))
                    ELSE SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') END
 ORDER BY object_name, overload, position
