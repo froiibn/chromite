@@ -96,7 +96,7 @@ import java.util.function.Supplier;
  *     "데이터 변경 확인"을 따로 볼 필요가 없다. 스크립트는 저장과 같은 명령의 실행 동작({@link DBECommand#getPersistActions})으로 만든다.
  *     새 개체의 암호({@link Secrets})는 미리 보기·복사·쿼리 창으로 열기에 가린 값으로 나가고, 저장하는 동안에만 객체에 들어간다
  *     (보안 편집기의 {@code SecurityStatement#displaySql}과 같은 방식). 실행 동작은 저장할 때 객체에서 다시 만들어지기 때문이다.</li>
- *     <li>삭제 확인은 객체 목록(이름·형식)과, 관리자가 지원할 때만 {@link DeleteOption} 확인란(연쇄 삭제, 기존 연결 닫기)을 보인다
+ *     <li>삭제 확인은 객체 목록(이름·형식)과, 관리자가 지원할 때만 {@link DeleteOption} 확인란(테이블스페이스의 내용·데이터 파일, 연쇄 삭제, 기존 연결 닫기)을 보인다
  *     ({@link DBEObjectMaker#getMakerOptions}의 기능 비트, SWT와 같다). 서로 다른 연결의 객체는 SWT처럼 함께 지우지 않는다.</li>
  *     <li>제한: 읽기 전용 연결({@link DBPDataSourceContainer#isConnectionReadOnly})과 메타데이터 변경 제한·읽기 전용 메타데이터
  *     ({@link DBUtils#isReadOnly})이면 실행하지 않고 알린다(테이블 디자이너의 저장과 같은 권한).</li>
@@ -130,6 +130,8 @@ import java.util.function.Supplier;
  * - 2026-11-13 트리에서 끌어 쿼리 창에 이름 넣기({@link #getDragNames}, {@link DragNames}, 앱 변경 #112,
  *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기")
  * - 2026-11-13 끌어 놓은 이름이 놓는 창에 맞게: 같은 연결의 창이 개체의 DB에 있으면 DB.스키마.개체 이름에서 DB를 뺌({@link DragName}, 앱 변경 #112 검토)
+ * - 2026-11-15 삭제 옵션 내용·데이터 파일({@link DeleteOption#CONTENTS}, {@link DeleteOption#DATA_FILES}): 데이터 파일과 연쇄는 내용을 고를 때만
+ *   켜짐(Altibase 테이블스페이스, 앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리")
  */
 final class ExplorerObjectCommands {
 
@@ -149,9 +151,14 @@ final class ExplorerObjectCommands {
 
     /**
      * Options of the delete confirmation, offered when the object manager supports them (SWT
-     * {@code NavigatorObjectsDeleter.Option}).
+     * {@code NavigatorObjectsDeleter.Option}). In the dialog's order: a tablespace's contents come first, because its data
+     * files and cascade are possible only with them ({@link #CONTENTS}).
      */
     private enum DeleteOption {
+        CONTENTS(DBEObjectMaker.FEATURE_DELETE_CONTENTS, DBEObjectManager.OPTION_DELETE_CONTENTS,
+            NavigatorMessages.navigator_delete_contents, NavigatorMessages.navigator_delete_contents_tip),
+        DATA_FILES(DBEObjectMaker.FEATURE_DELETE_DATA_FILES, DBEObjectManager.OPTION_DELETE_DATA_FILES,
+            NavigatorMessages.navigator_delete_data_files, NavigatorMessages.navigator_delete_data_files_tip),
         CASCADE(DBEObjectMaker.FEATURE_DELETE_CASCADE, DBEObjectManager.OPTION_DELETE_CASCADE,
             NavigatorMessages.navigator_delete_cascade, NavigatorMessages.navigator_delete_cascade_tip),
         CLOSE_EXISTING_CONNECTIONS(DBEObjectMaker.FEATURE_CLOSE_EXISTING_CONNECTIONS, DBEObjectManager.OPTION_CLOSE_EXISTING_CONNECTIONS,
@@ -660,6 +667,24 @@ final class ExplorerObjectCommands {
                     break;
                 }
             }
+        }
+        JCheckBox contentsBox = optionBoxes.get(DeleteOption.CONTENTS);
+        if (contentsBox != null) {
+            // DROP TABLESPACE accepts AND DATAFILES and CASCADE CONSTRAINTS only after INCLUDING CONTENTS
+            List<JCheckBox> dependent = new ArrayList<>();
+            for (DeleteOption option : List.of(DeleteOption.DATA_FILES, DeleteOption.CASCADE)) {
+                if (optionBoxes.get(option) != null) {
+                    dependent.add(optionBoxes.get(option));
+                }
+            }
+            Runnable sync = () -> dependent.forEach(box -> {
+                box.setEnabled(contentsBox.isSelected());
+                if (!contentsBox.isSelected()) {
+                    box.setSelected(false);
+                }
+            });
+            contentsBox.addItemListener(e -> sync.run());
+            sync.run();
         }
         if (!optionBoxes.isEmpty()) {
             JPanel optionsPanel = new JPanel(new GridLayout(0, 1));

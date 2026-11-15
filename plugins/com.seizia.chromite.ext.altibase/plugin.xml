@@ -399,6 +399,8 @@
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTypesetManager"             objectType="com.seizia.chromite.ext.altibase.model.AltibaseTypeset"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseSynonymManager"             objectType="com.seizia.chromite.ext.altibase.model.AltibaseSynonym"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTriggerManager"             objectType="com.seizia.chromite.ext.altibase.model.AltibaseTrigger"/>
+        <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTablespaceManager"          objectType="com.seizia.chromite.ext.altibase.model.AltibaseTablespace"/>
+        <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseDataFileManager"            objectType="com.seizia.chromite.ext.altibase.model.AltibaseDataFile"/>
     </extension>
 
     <extension point="com.seizia.chromite.dataTypeProvider">

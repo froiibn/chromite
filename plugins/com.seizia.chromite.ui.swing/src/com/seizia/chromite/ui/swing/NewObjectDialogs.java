@@ -17,6 +17,9 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataFile;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
 import com.seizia.chromite.ext.mssql.model.SQLServerLogin;
@@ -100,6 +103,8 @@ import java.util.function.Function;
  * - 2026-11-08 이름 대화상자가 필수 암호를 가려서 받음 (swing-create-objects.md "새 사용자의 암호")
  * - 2026-11-08 {@link #hasUnaskedRequiredValue}: 이름 대화상자가 묻지 않는 필수 값이 있는 종류(Exasol CONNECTION의 연결 문자열)를
  *   이름만 길에서 빼도록 알림 (docs/chromite/password-handling.md)
+ * - 2026-11-15 Altibase 계열 테이블스페이스·데이터 파일은 {@link AltibaseTablespaceDialogs}가 묻는다({@link #load}, {@link #addHint}를
+ *   패키지 안에 엶) (docs/chromite/altibase.md "테이블스페이스 관리")
  */
 final class NewObjectDialogs {
 
@@ -147,7 +152,8 @@ final class NewObjectDialogs {
     static boolean hasDialog(@NotNull Class<?> childClass) {
         return PostgreDatabase.class.isAssignableFrom(childClass) || SQLServerDatabase.class.isAssignableFrom(childClass)
             || MySQLCatalog.class.isAssignableFrom(childClass) || PostgreSchema.class.isAssignableFrom(childClass)
-            || PostgreTablespace.class.isAssignableFrom(childClass) || PostgreExtension.class.isAssignableFrom(childClass);
+            || PostgreTablespace.class.isAssignableFrom(childClass) || PostgreExtension.class.isAssignableFrom(childClass)
+            || AltibaseTablespace.class.isAssignableFrom(childClass) || AltibaseDataFile.class.isAssignableFrom(childClass);
     }
 
     /**
@@ -169,6 +175,10 @@ final class NewObjectDialogs {
             return askPostgreTablespace(owner, title, database);
         } else if (PostgreExtension.class.isAssignableFrom(childClass) && container instanceof PostgreDatabase database) {
             return askPostgreExtension(owner, title, database);
+        } else if (AltibaseTablespace.class.isAssignableFrom(childClass) && container instanceof AltibaseDataSource) {
+            return AltibaseTablespaceDialogs.askTablespace(owner, title);
+        } else if (AltibaseDataFile.class.isAssignableFrom(childClass) && container instanceof AltibaseTablespace) {
+            return AltibaseTablespaceDialogs.askDataFile(owner, title);
         }
         return askName(owner, title, childClass);
     }
@@ -733,7 +743,7 @@ final class NewObjectDialogs {
      * Reads the dialog's lists in a progress dialog; shows the error and returns null if that fails or is canceled.
      */
     @Nullable
-    private static <T> T load(@NotNull String title, @NotNull DBRRunnableWithReturn<T> reader) {
+    static <T> T load(@NotNull String title, @NotNull DBRRunnableWithReturn<T> reader) {
         try {
             return ProgressDialog.runTask(NLS.bind(CreateObjectMessages.create_progress_read, title), reader);
         } catch (DBInterruptedException e) {
@@ -789,7 +799,7 @@ final class NewObjectDialogs {
         return field;
     }
 
-    private static void addHint(@NotNull JPanel form, int row, @NotNull String hint) {
+    static void addHint(@NotNull JPanel form, int row, @NotNull String hint) {
         JLabel label = new JLabel(hint);
         label.setForeground(UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
         GridBagConstraints constraints = new GridBagConstraints();

@@ -19,11 +19,14 @@ package com.seizia.chromite.model.admin.objects;
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView;
 import com.seizia.chromite.ext.altibase.model.AltibasePackage;
 import com.seizia.chromite.ext.altibase.model.AltibaseProcedureStandAlone;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplication;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
+import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
+import com.seizia.chromite.ext.altibase.model.AltibaseTablespaceDDL;
 import com.seizia.chromite.ext.altibase.model.AltibaseView;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolMViewRefresh;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolPackageCompile;
@@ -117,6 +120,9 @@ import java.util.function.Consumer;
  *     (Altibase 문서: 복제 대상 테이블의 모든 행을 원격 서버로 보낸 뒤 복제를 시작한다). 시작 여부는 모델이 읽은
  *     {@link AltibaseReplication#getIsStarted()}다. 모델의 {@code AltibaseReplication.refreshObjectState}는 복제가 아니라 프로시저
  *     카탈로그를 읽으므로(범위 밖 모델 버그) 상태 다시 읽기는 노드 새로 고침({@code refreshObject})에 맡긴다.</li>
+ *     <li>Altibase 계열 테이블스페이스 — 온라인·오프라인(메모리·디스크 데이터), 자동 확장(메모리·휘발성), 데이터·임시 파일의 크기와
+ *     자동 확장. 문장은 {@link AltibaseTablespaceDDL}(시험 서버에서 확인한 문법)이고, 자동 확장과 파일 설정은 화면이 먼저 받은 값
+ *     ({@link #needsSettings})으로 만든다. 온라인 여부는 모델이 읽은 {@code V$TABLESPACES.STATE}다({@link #isTablespaceOnline}).</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -130,6 +136,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 Altibase TRUNCATE·구체화된 뷰 새로 고침(A5), Oracle·Altibase 컴파일(O11, A6), 컴파일 오류 읽기, 상태 다시 읽기
  *   (docs/chromite/swing-routines.md)
  * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
+ * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장, 데이터 파일 설정(앱 변경 #126,
+ *   docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public final class ObjectMaintenanceActions {
 
@@ -146,7 +154,25 @@ public final class ObjectMaintenanceActions {
         COMPILE,
         START_REPLICATION,
         STOP_REPLICATION,
-        SYNC_REPLICATION
+        SYNC_REPLICATION,
+        TABLESPACE_ONLINE,
+        TABLESPACE_OFFLINE,
+        /**
+         * Autoextend of a memory or volatile tablespace; settings: {@link AltibaseTablespaceDDL.Autoextend}.
+         */
+        TABLESPACE_AUTOEXTEND,
+        /**
+         * Size and autoextend of a disk data or temp file; settings: {@link AltibaseTablespaceDDL.Space} (the change).
+         */
+        DATA_FILE_SETTINGS
+    }
+
+    /**
+     * True for the commands whose statement needs settings the user chooses first ({@link #generateScript(DBRProgressMonitor,
+     * Action, List, Object)}).
+     */
+    public static boolean needsSettings(@NotNull Action action) {
+        return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS;
     }
 
     /**
@@ -187,7 +213,19 @@ public final class ObjectMaintenanceActions {
                 || object instanceof AltibaseProcedureStandAlone
                 || object instanceof AltibasePackage;
             case START_REPLICATION, STOP_REPLICATION, SYNC_REPLICATION -> object instanceof AltibaseReplication;
+            case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> object instanceof AltibaseTablespace tablespace && tablespace.supportsOnlineChange();
+            case TABLESPACE_AUTOEXTEND -> object instanceof AltibaseTablespace tablespace && tablespace.supportsAutoextendChange();
+            case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();
         };
+    }
+
+    /**
+     * Whether an Altibase tablespace was online when the model read it (false: offline), or null if the object is not a
+     * tablespace or is in another state.
+     */
+    @Nullable
+    public static Boolean isTablespaceOnline(@NotNull DBSObject object) {
+        return object instanceof AltibaseTablespace tablespace ? tablespace.isOnline() : null;
     }
 
     /**
@@ -272,6 +310,23 @@ public final class ObjectMaintenanceActions {
         @NotNull Action action,
         @NotNull List<? extends DBSObject> objects
     ) throws DBException {
+        return generateScript(monitor, action, objects, null);
+    }
+
+    /**
+     * The statements of the command for the objects, with the settings the user chose for a command that
+     * {@link #needsSettings needs them}. Empty when the settings change nothing.
+     */
+    @NotNull
+    public static List<Statement> generateScript(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull Action action,
+        @NotNull List<? extends DBSObject> objects,
+        @Nullable Object settings
+    ) throws DBException {
+        if (needsSettings(action) && settings == null) {
+            throw new DBException("No settings for " + action); //$NON-NLS-1$
+        }
         List<Statement> statements = new ArrayList<>();
         for (DBSObject object : objects) {
             if (!supports(action, object)) {
@@ -281,7 +336,7 @@ public final class ObjectMaintenanceActions {
             // The tools' signature takes a session; only the PostgreSQL TRUNCATE tool uses it, and only while a task runs.
             // Oracle compile actions use its monitor (a package reads whether it has a body)
             try (DBCSession session = DBUtils.openMetaSession(monitor, object, "Generate maintenance script")) { //$NON-NLS-1$
-                addActions(session, action, object, actions);
+                addActions(session, action, object, settings, actions);
             }
             for (DBEPersistAction persistAction : actions) {
                 if (!(persistAction instanceof SQLDatabasePersistActionComment) && !CommonUtils.isEmpty(persistAction.getScript())) {
@@ -399,6 +454,7 @@ public final class ObjectMaintenanceActions {
         @NotNull DBCSession session,
         @NotNull Action action,
         @NotNull DBSObject object,
+        @Nullable Object commandSettings,
         @NotNull List<DBEPersistAction> actions
     ) throws DBException {
         switch (action) {
@@ -469,6 +525,23 @@ public final class ObjectMaintenanceActions {
                 if (object instanceof AltibaseReplication replication) {
                     // Written like the START and STOP tools (the name as the catalog holds it)
                     actions.add(new SQLDatabasePersistAction(AltibaseConstants.ALTER_REPL_PREFIX + " " + replication.getName() + " SYNC")); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+            }
+            case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> {
+                if (object instanceof AltibaseTablespace tablespace) {
+                    actions.add(new SQLDatabasePersistAction(AltibaseTablespaceDDL.setOnline(tablespace, action == Action.TABLESPACE_ONLINE)));
+                }
+            }
+            case TABLESPACE_AUTOEXTEND -> {
+                if (object instanceof AltibaseTablespace tablespace && commandSettings instanceof AltibaseTablespaceDDL.Autoextend autoextend) {
+                    actions.add(new SQLDatabasePersistAction(AltibaseTablespaceDDL.alterAutoextend(tablespace, autoextend)));
+                }
+            }
+            case DATA_FILE_SETTINGS -> {
+                if (object instanceof AltibaseDataFile4Disk file && commandSettings instanceof AltibaseTablespaceDDL.Space change) {
+                    for (String sql : AltibaseTablespaceDDL.alterFile(file, change)) {
+                        actions.add(new SQLDatabasePersistAction(sql));
+                    }
                 }
             }
         }

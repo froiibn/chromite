@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
  * - 2026-11-08 이름 대화상자의 암호 오류 {@code create_error_password}, {@code create_error_password_mismatch}
  *   (swing-create-objects.md "새 사용자의 암호")
+ * - 2026-11-15 Altibase 계열 테이블스페이스·데이터 파일 대화상자의 칸과 오류(docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public class CreateObjectMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CreateObjectMessages"; //$NON-NLS-1$
@@ -70,6 +71,20 @@ public class CreateObjectMessages extends NLS {
     public static String create_error_collation;
     public static String create_error_read;
     public static String create_error_create;
+
+    // Altibase-family tablespaces and data files
+    public static String create_label_type;
+    public static String create_type_memory;
+    public static String create_type_disk;
+    public static String create_type_temporary;
+    public static String create_type_volatile;
+    public static String create_label_data_file;
+    public static String create_label_size;
+    public static String create_label_autoextend;
+    public static String create_label_next;
+    public static String create_label_max_size;
+    public static String create_error_data_file;
+    public static String create_error_size;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, CreateObjectMessages.class);

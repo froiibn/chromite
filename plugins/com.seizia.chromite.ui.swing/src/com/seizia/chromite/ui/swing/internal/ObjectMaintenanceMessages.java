@@ -29,6 +29,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 Compile 명령 문구 (docs/chromite/swing-routines.md)
  * - 2026-11-08 Altibase 복제 시작·중지·동기화 문구 (docs/chromite/altibase.md)
+ * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정 문구
+ *   (docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public class ObjectMaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
@@ -73,6 +75,18 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_repl_sync_title;
     public static String objmaint_repl_sync_question;
     public static String objmaint_repl_sync_button;
+    public static String objmaint_tbs_online;
+    public static String objmaint_tbs_online_tip;
+    public static String objmaint_tbs_online_title;
+    public static String objmaint_tbs_offline;
+    public static String objmaint_tbs_offline_tip;
+    public static String objmaint_tbs_offline_title;
+    public static String objmaint_tbs_autoextend;
+    public static String objmaint_tbs_autoextend_tip;
+    public static String objmaint_tbs_autoextend_title;
+    public static String objmaint_file_settings;
+    public static String objmaint_file_settings_tip;
+    public static String objmaint_file_settings_title;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ObjectMaintenanceMessages.class);
