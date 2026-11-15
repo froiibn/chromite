@@ -22,6 +22,7 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPNamedObject2;
 import com.seizia.chromite.model.DBPObjectStatistics;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.DBPScriptObject;
@@ -45,12 +46,27 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Oracle tablespace
+ *
+ * 설계(2026-11-15 테이블스페이스 관리): 어떤 저장소 명령을 보일지는 이름 목록이 아니라 모델이 읽은 카탈로그 값으로 정한다
+ * ({@link #isFixedStorage}, {@link #supportsOnlineChange}, {@link #supportsReadOnlyChange}, {@link #supportsFileAdd}). 이름으로 정하는 것은
+ * 데이터베이스가 정한 SYSTEM·SYSAUX뿐이다. 기본 테이블스페이스와 활성 언두는 {@link OracleStorageRoles}(목록을 읽을 때 함께 읽음)로 정한다.
+ * 카탈로그 행의 값은 {@link #loadRow}가 넣는다: 새로 만든 테이블스페이스는 CREATE 직후 자기 행을 읽고({@link #readCreated}), 새로 고침은
+ * 캐시만 비우지 않고 자기 행을 다시 읽어 상태(온라인·오프라인·읽기 전용)가 맞게 한다({@link #refreshObject}).
+ *
+ * 변경 이력:
+ * - 2026-11-15 새 테이블스페이스 객체, 이름 바꾸기({@link DBPNamedObject2}), 지원 판단, 행 다시 읽기, 파일 캐시 공개(앱 변경 #127,
+ *   docs/chromite/oracle-storage.md)
  */
-public class OracleTablespace extends OracleGlobalObject implements DBPRefreshableObject, DBPObjectStatistics, DBPScriptObject
+public class OracleTablespace extends OracleGlobalObject implements DBPRefreshableObject, DBPObjectStatistics, DBPScriptObject, DBPNamedObject2
 {
+    /**
+     * Tablespaces whose names the database itself fixes; they get no storage commands.
+     */
+    private static final Set<String> DATABASE_TABLESPACES = Set.of("SYSTEM", "SYSAUX");
 
     private static final Log log = Log.getLog(OracleTablespace.class);
 
@@ -119,9 +135,32 @@ public class OracleTablespace extends OracleGlobalObject implements DBPRefreshab
     private final SegmentCache segmentCache = new SegmentCache();
     private String ddlStringHolder = null;
 
+    // The settings of a new tablespace (CREATE only)
+    @Nullable
+    private OracleTablespaceDDL.NewTablespace newSettings;
+
     protected OracleTablespace(OracleDataSource dataSource, ResultSet dbResult)
     {
         super(dataSource, true);
+        loadRow(dbResult);
+    }
+
+    /**
+     * A new (not yet created) tablespace.
+     */
+    public OracleTablespace(@NotNull OracleDataSource dataSource)
+    {
+        super(dataSource, false);
+        this.name = "";
+        this.status = Status.ONLINE;
+        this.contents = Contents.PERMANENT;
+    }
+
+    /**
+     * Takes the values of a DBA_TABLESPACES (or USER_TABLESPACES) row.
+     */
+    private void loadRow(@NotNull ResultSet dbResult)
+    {
         this.name = JDBCUtils.safeGetString(dbResult, "TABLESPACE_NAME");
         this.blockSize = JDBCUtils.safeGetLong(dbResult, "BLOCK_SIZE");
         this.initialExtent = JDBCUtils.safeGetLong(dbResult, "INITIAL_EXTENT");
@@ -153,6 +192,15 @@ public class OracleTablespace extends OracleGlobalObject implements DBPRefreshab
     public String getName()
     {
         return name;
+    }
+
+    /**
+     * Sets the name of a new tablespace, or the new name after a rename.
+     */
+    @Override
+    public void setName(String name)
+    {
+        this.name = name;
     }
 
     @Property(viewable = true, order = 4, formatter = ByteNumberFormat.class)
@@ -305,6 +353,129 @@ public class OracleTablespace extends OracleGlobalObject implements DBPRefreshab
         return segmentCache.getAllObjects(monitor, this);
     }
 
+    @Nullable
+    public OracleTablespaceDDL.NewTablespace getNewSettings()
+    {
+        return newSettings;
+    }
+
+    /**
+     * Sets the kind, file, size and autoextend of a new tablespace.
+     */
+    public void setNewSettings(@NotNull OracleTablespaceDDL.NewTablespace newSettings)
+    {
+        this.newSettings = newSettings;
+        this.contents = newSettings.contents();
+    }
+
+    /**
+     * A tablespace the database depends on, so no storage command is offered: SYSTEM and SYSAUX (names the database
+     * fixes), the database default permanent and temporary tablespaces and the active undo tablespace
+     * ({@link OracleStorageRoles}). When the login cannot read which one that is, every tablespace of that kind counts.
+     */
+    public boolean isFixedStorage()
+    {
+        if (!isPersisted()) {
+            return false;
+        }
+        if (DATABASE_TABLESPACES.contains(name) || contents == null) {
+            return true;
+        }
+        OracleStorageRoles roles = getDataSource().getTablespaceCache().getStorageRoles();
+        String role = switch (contents) {
+            case PERMANENT -> roles.defaultPermanent();
+            case TEMPORARY -> roles.defaultTemporary();
+            case UNDO -> roles.activeUndo();
+        };
+        return role == null || role.equalsIgnoreCase(name);
+    }
+
+    /**
+     * ONLINE and OFFLINE: permanent and undo tablespaces (temporary ones refused with ORA-03217).
+     */
+    public boolean supportsOnlineChange()
+    {
+        return !isFixedStorage() && contents != Contents.TEMPORARY;
+    }
+
+    /**
+     * READ ONLY and READ WRITE: permanent tablespaces only (undo ORA-30021, temporary ORA-03217).
+     */
+    public boolean supportsReadOnlyChange()
+    {
+        return !isFixedStorage() && contents == Contents.PERMANENT;
+    }
+
+    /**
+     * Data and temp files may be added, changed and dropped.
+     */
+    public boolean supportsFileChanges()
+    {
+        return !isFixedStorage();
+    }
+
+    /**
+     * A file may be added: not to a bigfile tablespace (ORA-32771).
+     */
+    public boolean supportsFileAdd()
+    {
+        return supportsFileChanges() && !bigFile;
+    }
+
+    /**
+     * True if online, false if offline, null if read only (the status column does not tell whether a read-only
+     * tablespace is offline too).
+     */
+    @Nullable
+    public Boolean isOnline()
+    {
+        return status == Status.ONLINE ? Boolean.TRUE : status == Status.OFFLINE ? Boolean.FALSE : null;
+    }
+
+    /**
+     * After CREATE (same session): takes the new tablespace's catalog row.
+     */
+    public void readCreated(@NotNull JDBCSession session) throws SQLException
+    {
+        readRow(session);
+    }
+
+    /**
+     * Reads the tablespace's catalog row again (status, contents) and forgets the sizes.
+     *
+     * @return false if the tablespace no longer exists
+     */
+    public boolean reloadRow(@NotNull JDBCSession session) throws SQLException
+    {
+        availableSize = null;
+        usedSize = null;
+        return readRow(session);
+    }
+
+    private boolean readRow(@NotNull JDBCSession session) throws SQLException
+    {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * FROM "
+            + OracleUtils.getSysUserViewName(session.getProgressMonitor(), getDataSource(), "TABLESPACES") + " WHERE TABLESPACE_NAME=?")) {
+            dbStat.setString(1, name);
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                if (!dbResult.next()) {
+                    return false;
+                }
+                loadRow(dbResult);
+                return true;
+            }
+        }
+    }
+
+    /**
+     * Forgets the sizes after a data file change (they are read again when shown).
+     */
+    public void resetSizes()
+    {
+        availableSize = null;
+        usedSize = null;
+    }
+
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException
     {
@@ -314,6 +485,16 @@ public class OracleTablespace extends OracleGlobalObject implements DBPRefreshab
         fileCache.clearCache();
         segmentCache.clearCache();
         getDataSource().resetStatistics();
+        if (isPersisted()) {
+            // The status (online, offline, read only) comes from the catalog row, not from the caches above
+            try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Read tablespace '" + getName() + "'")) {
+                if (!reloadRow(session)) {
+                    return null;
+                }
+            } catch (SQLException e) {
+                throw new DBDatabaseException("Can't read tablespace", e, getDataSource());
+            }
+        }
         return this;
     }
 
@@ -354,7 +535,8 @@ public class OracleTablespace extends OracleGlobalObject implements DBPRefreshab
     }
 
 
-    static class FileCache extends JDBCObjectCache<OracleTablespace, OracleDataFile> {
+    // Public: the data file manager (edit package) caches new files in it
+    public static class FileCache extends JDBCObjectCache<OracleTablespace, OracleDataFile> {
         @NotNull
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull OracleTablespace owner) throws SQLException

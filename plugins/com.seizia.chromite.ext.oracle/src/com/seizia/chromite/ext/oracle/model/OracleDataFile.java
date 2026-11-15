@@ -18,17 +18,29 @@
 package com.seizia.chromite.ext.oracle.model;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.CommonUtils;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Oracle tablespace file
+ *
+ * 변경 이력:
+ * - 2026-11-15 새 파일의 설정과 ADD 직후 행 읽기({@link #readCreated}): 서버가 붙인 전체 경로를 이름으로 받는다(상대 이름은
+ *   {@code $ORACLE_HOME/dbs} 아래가 됨). 이름은 파일 경로라 따옴표로 감싸지 않는다({@link #getFullyQualifiedName})
+ *   (앱 변경 #127, docs/chromite/oracle-storage.md)
  */
-public class OracleDataFile extends OracleObject<OracleTablespace> {
+public class OracleDataFile extends OracleObject<OracleTablespace> implements DBPQualifiedObject {
 
     public enum OnlineStatus {
         SYSOFF,
@@ -55,6 +67,10 @@ public class OracleDataFile extends OracleObject<OracleTablespace> {
 
     private boolean temporary;
 
+    // The file name, size and autoextend of a new file (ADD only)
+    @Nullable
+    private OracleTablespaceDDL.Space newSpace;
+
     protected OracleDataFile(OracleTablespace tablespace, ResultSet dbResult, boolean temporary)
     {
         super(
@@ -63,6 +79,14 @@ public class OracleDataFile extends OracleObject<OracleTablespace> {
             true);
         this.tablespace = tablespace;
         this.temporary = temporary;
+        loadRow(dbResult);
+    }
+
+    /**
+     * Takes the values of a DBA_DATA_FILES or DBA_TEMP_FILES row (the name is set by the caller).
+     */
+    private void loadRow(@NotNull ResultSet dbResult)
+    {
         this.id = JDBCUtils.safeGetLong(dbResult, "FILE_ID");
         this.relativeNo = JDBCUtils.safeGetLong(dbResult, "RELATIVE_FNO");
         this.bytes = JDBCUtils.safeGetBigDecimal(dbResult, "BYTES");
@@ -90,6 +114,63 @@ public class OracleDataFile extends OracleObject<OracleTablespace> {
     public OracleTablespace getTablespace()
     {
         return tablespace;
+    }
+
+    /**
+     * The file path as the server reports it: a path, not an SQL identifier, so it is never quoted (the delete
+     * confirmation and error messages would show it as "/path").
+     */
+    @NotNull
+    @Override
+    public String getFullyQualifiedName(@NotNull DBPEvaluationContext context)
+    {
+        return getName();
+    }
+
+    @Nullable
+    public OracleTablespaceDDL.Space getNewSpace()
+    {
+        return newSpace;
+    }
+
+    /**
+     * Sets the file name, size and autoextend of a new file.
+     */
+    public void setNewSpace(@NotNull OracleTablespaceDDL.Space newSpace)
+    {
+        this.newSpace = newSpace;
+        setName(newSpace.file());
+    }
+
+    /**
+     * After ADD (same session): takes the new file's catalog row, found by the entered name (the server's full path is
+     * the entered name, or ends with a path separator and the entered name when a relative name was entered).
+     */
+    public void readCreated(@NotNull JDBCSession session) throws SQLException
+    {
+        String entered = newSpace == null ? getName() : newSpace.file();
+        if (entered == null) {
+            return;
+        }
+        try (JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * FROM "
+            + OracleUtils.getSysSchemaPrefix(getDataSource()) + (temporary ? "DBA_TEMP_FILES" : "DBA_DATA_FILES")
+            + " WHERE TABLESPACE_NAME=? ORDER BY FILE_ID")) {
+            dbStat.setString(1, tablespace.getName());
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                while (dbResult.next()) {
+                    String fileName = JDBCUtils.safeGetString(dbResult, "FILE_NAME");
+                    if (fileName != null && (fileName.equals(entered)
+                        || fileName.endsWith("/" + entered) || fileName.endsWith("\\" + entered))) {
+                        // A file of the same name in another directory may be older: the last match wins, an exact one ends
+                        setName(fileName);
+                        loadRow(dbResult);
+                        if (fileName.equals(entered)) {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @NotNull
