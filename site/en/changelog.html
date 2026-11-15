@@ -54,6 +54,23 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.0">
+    <h2>26.1.0</h2>
+    <div class="body">
+      <p>Edits in a result grid can no longer be saved to a different table, and the Chromite Agent tools were tidied up.</p>
+      <ul>
+        <li>Data safety · Result grid: when an alias or a WITH name in a query was the same as a real table's name, the result grid could bind to that other table and save edits there. It now binds only to the table the query actually read and opens other results read-only (confirmed on MariaDB, SQL Server and Oracle). On SQLite, results from an attached database or a temporary table no longer bind to the table of the same name in main</li>
+        <li>Data safety · PostgreSQL: in a manual-commit query window, the app's own read of the session settings after Commit or Roll Back left the session idle in transaction. That is fixed. A transaction opened by a statement you ran is shown as before</li>
+        <li>Chromite Agent: overlapping tools were merged and names and arguments made consistent (MCP tools 101 → 87). Schema changes are one tool, changeSchema; backup and restore are backupDatabase and restoreDatabase. Dangerous calls, such as dropping a table, view or index or a DROP through runSql, always ask for confirmation even when the connection has a "run automatically" rule. A saved tool policy moves to the stricter of its old rules. Old tool names and argument names are accepted until 26.2.0; the formatSql tool was removed</li>
+        <li>Object Explorer: after statements such as CREATE DATABASE, DROP DATABASE or CREATE USER the list is updated at once, without Refresh</li>
+        <li>Running queries: Alt+X also runs the query (the same as F5). Shortcuts such as F5, Alt+P and Ctrl+Enter work while a column selection (Alt+drag) is active. On macOS an Option shortcut no longer types a character into the editor</li>
+        <li>Altibase · ShardSphere: the session's default schema (the login user) is read, so completion works without the schema name (for example EXEC DBMS_SHARD.) and the result of your own table queried without a schema can be edited. CACHE and NOCACHE are coloured as keywords</li>
+        <li>macOS: the startup screen is a single window. It no longer appears near the top and then moves to the middle (the startup screen shows no version or Loading… text)</li>
+        <li>Screens: in the dark theme, 19 database icons that were hard to see are drawn on a light plate. The About Chromite window shows the site address (chromite.seizia.com)</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.0.8">
     <h2>26.0.8</h2>
     <div class="body">
