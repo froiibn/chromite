@@ -45,6 +45,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/regression-tests.md "Chromite Agent")
  * - 2026-11-12 "도구를 모두 보냄" 설정이 없어져 그 가정을 지움 (앱 변경 #64)
+ * - 2026-11-15 연결 인수 없는 도구의 예를 지운 formatSql 대신 findTools로, 도구 인스턴스가 DB 종류마다 쓰는 대상을 답함(AgentTool.writes,
+ *   합친 backupDatabase) (도구 정리, docs/chromite/ai-agent.md "별칭")
  */
 public class AIAgentToolSelectionTest extends ChromiteUnitTest {
 
@@ -59,7 +61,7 @@ public class AIAgentToolSelectionTest extends ChromiteUnitTest {
 
     @Test
     public void toolsOfOtherDatabasesAndBlockedWritesAreLeftOut() {
-        AIFunctionDescriptor noConnection = tool("formatSql", false, AIToolAccess.READ, false);
+        AIFunctionDescriptor noConnection = tool("findTools", false, AIToolAccess.READ, false);
         AIFunctionDescriptor postgresRead = tool("getLocks", true, AIToolAccess.READ, true);
         AIFunctionDescriptor sqlServerOnly = tool("getAgentJobs", true, AIToolAccess.READ, false);
         AIFunctionDescriptor databaseWrite = tool("killSession", true, AIToolAccess.WRITE, true);
@@ -95,6 +97,7 @@ public class AIAgentToolSelectionTest extends ChromiteUnitTest {
         AgentTool instance = Mockito.mock(AgentTool.class);
         Mockito.when(instance.supports(Mockito.eq(tool), Mockito.any(DbFamily.class)))
             .thenAnswer(invocation -> supportsPostgres || invocation.getArgument(1) != DbFamily.POSTGRESQL);
+        Mockito.when(instance.writes(Mockito.eq(tool), Mockito.any(DbFamily.class))).thenAnswer(invocation -> tool.getWrites());
         Mockito.when(tool.getInstance()).thenReturn(instance);
         return tool;
     }

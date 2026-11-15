@@ -114,15 +114,19 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
   엔진에는 `db_<ID>`(도구 상자 ID `db` + `_` + ID, `AIFunctionDescriptor.getFullId()`), MCP에는 `<ID>` 그대로 보인다.
 - 연결이 필요한 도구는 `connection` 인수(데이터 소스 ID 또는 이름, 대소문자 무시)를 받는다. 채팅에서는 생략하면 채팅의 현재 연결을 쓴다.
 - 매개변수 형식은 `string`, `integer`, `number`, `boolean`, `object`만 쓴다. 목록은 쉼표로 구분한 문자열이다(OpenAI가 `items` 없는 `array`를 거부한다).
-- 결과는 항상 JSON 텍스트다. 표 형태 결과는 기본으로 행마다 객체(`{"열": 값}`)이고 `format="arrays"`면 `columns` + 배열 행이다.
+- 결과는 항상 JSON 텍스트다. 표 형태 결과는 기본으로 행마다 객체(`{"열": 값}`)이고 `rowFormat="arrays"`면 `columns` + 배열 행이다.
 - 결과 크기 한도(`AgentLimits`): 행 수 기본 100·최대 10,000(`limit`), 칸 하나 4,000자(`maxCellChars`), 결과 전체 1 MB. 넘으면 잘라 내고
   `truncated: {rows, cells, bytes}`와 `hasMore`, `nextOffset`을 돌려준다.
 - 이진 값은 16진수 앞부분만, LOB는 4,000자까지 읽는다. 비밀번호·토큰·키는 결과에 넣지 않는다(연결 정보는 `getConnectionInfo` 참고).
 - 모든 도구는 `DBRProgressMonitor`로 실행되고 취소된다. MCP의 `notifications/cancelled`, 채팅의 중지 단추가 모니터를 취소한다.
 - 쓰기 도구는 연결의 "읽기 전용" 설정(`DBPDataSourceContainer.isConnectionReadOnly()`)이면 실행하지 않는다(`writes="database"`인 도구만. 파일로 내보내기는 허용).
 - DB 종류 표기: MS = SQL Server, PG = PostgreSQL(같은 드라이버 계열 포함), MY = MySQL/MariaDB, OR = Oracle, G = 모델 계층으로 모든 연결.
-  표에 없는 DB에서 부르면 `unsupported` 오류와 함께 대신 쓸 도구(대개 `runReadOnlySql`)를 알려 준다.
+  표에 없는 DB에서 부르면 `unsupported` 오류와 함께 대신 쓸 도구(대개 `runReadOnlySql`)를 알려 준다. 2026-11-15 도구 정리로 합치거나 이름을 바꾼 도구는
+  아래 표에 지금 ID로 적었다. 옛 ID와 그 행은 아래 "도구 정리"의 별칭 표.
 - 분류: R = READ, W = WRITE, D = DANGEROUS. "R→W"는 호출별로 바뀐다(문장이 읽기라고 증명되지 않으면 WRITE, `DROP`·`TRUNCATE`·WHERE 없는 `DELETE/UPDATE`면 DANGEROUS).
+- 인수 이름(2026-11-15 통일): 행 수 상한은 `limit`, 이름 거르기는 `contains`, 아무 개체나 받는 대상은 `object`(표만이면 `table`), 결과 모양은 `rowFormat`,
+  파일 형식은 `fileFormat`, 덤프 형식은 `dumpFormat`, 열 형식은 `columnType`, 백업 종류는 `backupType`, 열거값 정렬은 `sortBy`(`sampleRows`의 `orderBy`는
+  SQL 조각이라 그대로). 옛 이름은 26.2.0까지 받는다(아래 "별칭").
 - 단계: 1 = 1단계 작업, 1b = 1b단계 작업(2026-11-08, 아래 "1b단계 도구"). "1 (OR 1b)"는 1단계에서 만들고 1b단계에서 그 DB를 더한 것이다.
   아직 하지 않은 것은 "미룸"으로 적고 아래 "1b단계 (미룬 것)"에 둔다.
 
@@ -130,15 +134,14 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `listConnections` | 연결 목록: 폴더, 드라이버, 연결 종류, 색, 운영 여부, 읽기 전용, 연결 상태 | R | `filter` | `connections[]` | G | 1 |
+| `listConnections` | 연결 목록: 폴더, 드라이버, 연결 종류, 색, 운영 여부, 읽기 전용, 연결 상태 | R | `contains` | `connections[]` | G | 1 |
 | `getConnectionInfo` | 연결 상세(호스트, 포트, DB, 사용자 이름, 종류, 드라이버, 네트워크 처리기 종류, 자동 커밋). 비밀번호·토큰·SSH 키는 없음 | R | `connection` | 객체 | G | 1 |
-| `connect` | 연결한다 | R | `connection` | 상태 | G | 1 |
 | `disconnect` | 연결을 끊는다(사용자 창의 열린 트랜잭션도 끊기므로 확인) | W (`writes="none"`) | `connection` | 상태 | G | 1 |
-| `testConnection` | 연결해서 왕복 시간과 서버 버전을 잰다 | R | `connection` | `ok`, `ms`, `version` | G | 1 |
+| `testConnection` | 연결해서(닫혀 있으면 엶) 왕복 시간과 서버 버전을 잰다. 26.1.0에서 `connect`를 합침(별칭) | R | `connection` | `ok`, `roundTripMs`, `server` | G | 1 |
 | `getCurrentDatabase` | 에이전트 문맥과 기본 문맥의 기본 DB/스키마 | R | `connection` | 객체 | G | 1 |
 | `setCurrentDatabase` | 에이전트 문맥의 기본 DB/스키마를 바꾼다(사용자 화면은 그대로) | R | `connection`, `database`, `schema` | 객체 | G | 1 |
 | `getServerInfo` | 제품, 버전, 에디션, 가동 시간, 호스트, 주요 사실(DB가 고를 시스템 뷰를 정할 근거) | R | `connection` | 객체 | MS PG MY OR, G(버전만) | 1 |
-| `probePermissions` | 이 로그인으로 읽을 수 있는 시스템 뷰·권한·확장 기능. 어느 도구가 되는지/안 되는지와 이유 | R | `connection` | `checks[]`, `tools{}` | MS PG MY OR | 1 |
+| `checkDiagnosticAccess` | 이 로그인으로 읽을 수 있는 시스템 뷰·권한·확장 기능. 어느 도구가 되는지/안 되는지와 이유(26.1.0 전 `probePermissions`) | R | `connection` | `checks[]`, `tools{}` | MS PG MY OR | 1 |
 
 ### 메타데이터 (`agent.metadata`)
 
@@ -146,26 +149,23 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 |---|---|---|---|---|---|---|
 | `listDatabases` | 카탈로그(DB) 목록 | R | `connection` | `databases[]` | G | 1 |
 | `listSchemas` | 스키마 목록 | R | `connection`, `database` | `schemas[]` | G | 1 |
-| `listTables` | 테이블·뷰(종류, 이름 패턴) | R | `connection`, `database`, `schema`, `pattern`, `types` | `tables[]` | G | 1 |
-| `describeTable` | 열(형식, NULL, 기본값, 설명), 기본 키, 고유 키, 외래 키(나가는·들어오는), 인덱스, 트리거 이름 | R | `connection`, `table` | 객체 | G | 1 |
-| `listIndexes` | 테이블의 인덱스와 열, 고유 여부 | R | `connection`, `table` | `indexes[]` | G | 1 |
-| `listForeignKeys` | 나가는·들어오는 외래 키 | R | `connection`, `table` | `outgoing[]`, `incoming[]` | G | 1 |
-| `listRoutines` | 프로시저·함수와 매개변수 | R | `connection`, `database`, `schema`, `pattern` | `routines[]` | G | 1 |
-| `getRoutineSource` | 프로시저·함수·트리거·뷰 원문(**줄 번호 붙음**)과 매개변수 | R | `connection`, `name`, `type` | `source`(줄 번호), `lineCount`, `parameters[]` | MS PG MY OR | 1 |
+| `listTables` | 테이블·뷰(종류, 이름 거르기) | R | `connection`, `database`, `schema`, `contains`, `types` | `tables[]` | G | 1 |
+| `describeTable` | 열(형식, NULL, 기본값, 설명), 기본 키, 고유 키, 외래 키(나가는 `foreignKeys`·들어오는 `referencedBy`), 인덱스. 26.1.0에서 `listIndexes`·`listForeignKeys`를 합침(별칭) | R | `connection`, `table` | 객체 | G | 1 |
+| `listRoutines` | 프로시저·함수와 매개변수 | R | `connection`, `database`, `schema`, `contains` | `routines[]` | G | 1 |
+| `getRoutineSource` | 프로시저·함수·트리거·뷰 원문(**줄 번호 붙음**)과 매개변수 | R | `connection`, `object` | `source`(줄 번호), `lineCount`, `parameters[]` | MS PG MY OR | 1 |
 | `listTriggers` | 테이블 또는 스키마의 트리거(시점, 이벤트, 사용 여부) | R | `connection`, `table` 또는 `schema` | `triggers[]` | MS PG MY OR | 1 |
 | `listSequences` | 시퀀스(현재 값, 증가, 최대) | R | `connection`, `schema` | `sequences[]` | MS PG MY(MariaDB) OR | 1 |
 | `listPrincipals` | 로그인·사용자·역할과 역할 소속 | R | `connection` | `principals[]` | MS PG MY OR | 1 |
-| `listPermissions` | 개체 또는 주체의 권한(GRANT/DENY) | R | `connection`, `object` 또는 `principal` | `permissions[]` | MS PG MY OR | 1 |
+| `listGrants` | 개체 또는 주체의 권한(GRANT/DENY)(26.1.0 전 `listPermissions`) | R | `connection`, `object` 또는 `principal` | `permissions[]` | MS PG MY OR | 1 |
 | `getObjectDdl` | 개체 DDL(드라이버의 DDL 생성기) | R | `connection`, `object` | `ddl` | G | 1 |
 | `getObjectDependencies` | 의존 관계 그래프(이 개체가 쓰는 것, 이 개체를 쓰는 것), 깊이 1~3 | R | `connection`, `object`, `depth` | `nodes[]`, `edges[]`, `notes[]` | MS PG MY(뷰) OR | 1 |
-| `searchObjects` | 이름으로 개체 찾기(테이블, 뷰, 프로시저, 열 등) | R | `connection`, `pattern`, `types` | `objects[]` | G | 1 |
+| `searchObjects` | 이름으로 개체 찾기(테이블, 뷰, 프로시저, 열 등) | R | `connection`, `contains`, `types` | `objects[]` | G | 1 |
 
 ### 쿼리 (`agent.query`)
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `runSelect` | SELECT 실행, 행 한도와 페이지 | R | `connection`, `sql`, `limit`, `offset`, `format` | 표 | G | 1 |
-| `runReadOnlySql` | 모델이 쓴 진단 SQL(시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지 | R | `connection`, `sql`, `database`, `limit` | `results[]`, `messages[]` | G | 1 |
+| `runReadOnlySql` | 모델이 쓴 읽기 전용 문장 하나(SELECT, 시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지, `offset`을 주면 한 페이지(`hasMore`, `nextOffset`). 26.1.0에서 `runSelect`를 합침(별칭, `offset` 0) | R | `connection`, `sql`, `database`, `limit`, `offset`, `rowFormat`, `maxCellChars` | `results[]`, `messages[]` 또는 한 페이지 | G | 1 |
 | `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과). 연결의 커밋 방식 그대로: 수동 커밋 연결이면 트랜잭션을 열어 둔 채 `transactionOpen: true`를 알린다 | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표, `transactionOpen`. 실패는 아래 "배치의 부분 실패" | G | 1 |
 | `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙. 쿼리 창과 같은 단위: SQL Server `GO` 배치는 한 번에, 2026-11-12). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen`. 실패한 문장이 있으면 오류(아래 "배치의 부분 실패") | G | 1 |
 | `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: 쿼리 창과 같은 방언 질의 `JDBCTransactionProbe`, [idle-transactions.md](idle-transactions.md) "트랜잭션 상태")과 이 연결의 쿼리 창 트랜잭션(`otherOpenTransactions`, DB에 확인할 수 없는 것은 `otherUnverifiedTransactions`) | R | `connection` | 객체 | MS PG MY OR, G | 1 |
@@ -176,17 +176,16 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `getActualPlan` | 실제 실행 계획과 실행 통계(실제 행, 반복, 시간, 논리 읽기·버퍼, SET STATISTICS IO/TIME, EXPLAIN ANALYZE BUFFERS, OR: `GATHER_PLAN_STATISTICS` + `DISPLAY_CURSOR('ALLSTATS LAST')`) | R→W | `connection`, `sql`, `database` | `plan`, `runtime` | MS PG MY OR | 1 (OR 1b) |
 | `comparePlans` | 두 쿼리(또는 같은 쿼리의 인덱스 전후)의 계획 비교: 비용, 연산자 바뀜(스캔→탐색), 행 추정 | R | `connection`, `sqlA`, `sqlB`, `actual` | `a`, `b`, `diff` | MS PG MY OR | 1 |
 | `validateSql` | 구문 검사(해석 오류 위치), 문장 분류 | R | `connection`, `sql` | `valid`, `type`, `readOnly`, `error` | G | 1 |
-| `formatSql` | SQL 서식 | R | `connection`, `sql` | `sql` | G | 1 |
-| `getQueryHistory` | 쿼리 창 실행 기록(Swing 기록 파일) | R | `connection`, `contains`, `limit` | `entries[]` | G | 1 |
+| `getEditorHistory` | 쿼리 창 실행 기록(Swing 기록 파일)(26.1.0 전 `getQueryHistory`) | R | `connection`, `contains`, `limit` | `entries[]` | G | 1 |
 
 ### 데이터 (`agent.data`)
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `sampleRows` | 테이블 앞부분 행 | R | `connection`, `table`, `limit`, `where`, `orderBy` | 표 | G | 1 |
+| `sampleRows` | 테이블 앞부분 행 | R | `connection`, `table`, `limit`, `where`, `orderBy`, `rowFormat` | 표 | G | 1 |
 | `countRows` | 정확한 행 수(조건 선택) | R | `connection`, `table`, `where` | `count` | G | 1 |
 | `profileColumns` | 열 프로필: NULL 비율, 고유 값 수, 최소·최대, 상위 값 | R | `connection`, `table`, `columns`, `topN` | 열별 객체 | G | 1 |
-| `compareQueryResults` | 두 쿼리 결과 비교(키 기준 또는 다중 집합) | R | `connection`, `sqlA`, `sqlB`, `connectionB`, `keyColumns` | `onlyInA`, `onlyInB`, `different`, 표본 | G | 1 |
+| `compareQueryResults` | 두 쿼리 결과 비교(키 기준 또는 다중 집합) | R | `connection`, `sqlA`, `sqlB`, `connectionB`, `keyColumns`, `limit` | `onlyInA`, `onlyInB`, `different`, 표본 | G | 1 |
 | `insertRows` | 행 넣기(값은 드라이버의 값 처리기로 형식 변환) | W | `connection`, `table`, `rows`(JSON 배열 문자열) | `inserted` | G | 1 |
 | `updateRows` | 키로 행 고치기 | W | `connection`, `table`, `key`, `values` | `updated` | G | 1 |
 | `deleteRows` | 키로 행 지우기 | W | `connection`, `table`, `key` | `deleted` | G | 1 |
@@ -197,25 +196,21 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `generateDdl` | 아래 변경의 DDL만 만든다(실행하지 않음) | R | `operation` + 해당 인수 | `sql` | MS PG MY OR | 1 |
-| `createTable` | 테이블 만들기(열 정의 JSON, 기본 키) | W | `connection`, `table`, `columns`, `primaryKey` | `sql`, 결과 | MS PG MY OR | 1 |
-| `alterTable` | 열 추가·삭제·이름 바꾸기·형식 바꾸기 | W | `connection`, `table`, `action`, `column`, `type`, `newName` | `sql`, 결과 | MS PG MY OR | 1 |
-| `dropTable` | 테이블 지우기 | D | `connection`, `table` | `sql`, 결과 | MS PG MY OR | 1 |
-| `createView` | 뷰 만들기·바꾸기 | W | `connection`, `view`, `select`, `replace` | `sql`, 결과 | MS PG MY OR | 1 |
-| `dropView` | 뷰 지우기 | D | `connection`, `view` | `sql`, 결과 | MS PG MY OR | 1 |
-| `createIndex` | 인덱스 만들기(고유, 포함 열 MS·PG) | W | `connection`, `table`, `index`, `columns`, `unique`, `include` | `sql`, 결과 | MS PG MY OR | 1 |
-| `dropIndex` | 인덱스 지우기 | W | `connection`, `table`, `index` | `sql`, 결과 | MS PG MY OR | 1 |
+| `previewDdl` | `changeSchema` 호출의 DDL만 만든다(실행하지 않음)(26.1.0 전 `generateDdl`) | R | `operation` + 해당 인수 | `sql` | MS PG MY OR | 1 |
+| `changeSchema` | 테이블·뷰·인덱스 만들기·바꾸기·지우기를 `operation`으로 고름: `createTable`(`columns`, `primaryKey`), `alterTable`(`action`, `column`, `columnType`, `nullable`, `default`, `newName`), `dropTable`, `createView`(`view`, `select`, `replace`), `dropView`, `createIndex`(`table`, `index`, `columns`, `unique`, `include`), `dropIndex`. 26.1.0에서 작업별 도구 7개를 합침(별칭) | W (호출마다: 지우기 3개는 D) | `connection`, `operation` + 해당 인수 | `operation`, `sql`, 결과 | MS PG MY OR | 1 |
 
-DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(`AIToolPreviewProvider`). 프로시저 다시 쓰기 같은 임의 DDL은 `runSql`·`runScript`로 적용하고
+`changeSchema`는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(`AIToolPreviewProvider`). 분류는 호출마다 작업으로 정한다(`DdlTools.classify`):
+`dropTable`·`dropView`·`dropIndex`는 DANGEROUS, 나머지는 WRITE(모르는 작업은 DANGEROUS). `dropIndex`는 26.1.0 전에 WRITE였다(`runSql`은 모든 DROP을 DANGEROUS로
+본다). 미리 보기는 READ 도구 `previewDdl`로 따로 둔다(아래 "도구 정리"). 프로시저 다시 쓰기 같은 임의 DDL은 `runSql`·`runScript`로 적용하고
 확인 요청에 문장 전체가 보인다.
 
 ### 전송 (`agent.transfer`)
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `exportData` | 쿼리 또는 테이블을 CSV·XLSX·JSON 파일로 | W (`writes="file"`) | `connection`, `sql` 또는 `table`, `format`, `file`, `maxRows` | 파일 경로, 행 수, 크기 | G | 1 |
+| `exportData` | 쿼리 또는 테이블을 CSV·XLSX·JSON 파일로 | W (`writes="file"`) | `connection`, `sql` 또는 `table`, `fileFormat`, `file`, `limit` | 파일 경로, 행 수, 크기 | G | 1 |
 | `importCsv` | CSV를 기존 테이블에 넣기(머리글 = 열 이름, 한 트랜잭션) | W | `connection`, `file`, `table`, `delimiter`, `encoding` | 넣은 행 수 | G | 1 |
-| `copyTable` | 테이블을 다른 연결(또는 같은 연결)의 테이블로 복사. 대상이 없으면 만들 수 있음(같은 DB 종류일 때 형식 그대로) | W | `connection`, `table`, `targetConnection`, `targetTable`, `createTarget`, `maxRows` | 복사한 행 수 | G | 1 |
+| `copyTable` | 테이블을 다른 연결(또는 같은 연결)의 테이블로 복사. 대상이 없으면 만들 수 있음(같은 DB 종류일 때 형식 그대로) | W | `connection`, `table`, `targetConnection`, `targetTable`, `createTarget`, `limit` | 복사한 행 수 | G | 1 |
 
 - 파일 경로는 절대 경로여야 하고, 기존 파일을 덮어쓰지 않는다(`overwrite=true`일 때만).
 - 열 형식 매핑, 대량 적재, 진행 화면이 필요한 큰 전송은 Swing 데이터 전송 마법사(`swing-data-transfer.md`)를 쓴다. 도구는 작은~중간 크기(기본 최대 100,000행)용이다.
@@ -226,26 +221,24 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 |---|---|---|---|---|---|---|
 | `listSessions` | 세션: 로그인, 호스트, 프로그램, 상태, 대기, 현재 문장 | R | `connection`, `activeOnly` | `sessions[]` | MS PG MY OR | 1 |
 | `getBlockingChain` | **블로킹 사슬 트리**: 머리 블로커(세션, 로그인, 호스트, 프로그램, 트랜잭션 나이, 격리 수준, 열린 트랜잭션 수, 마지막 SQL), 대기자(대기 종류·시간·자원·SQL), 관련 잠금(개체·인덱스로 바꿈), 규칙 기반 **소견**(왜 막히는지 후보와 해결 제안) | R | `connection`, `database` | `heads[]`(트리), `locks[]`, `findings[]` | MS PG MY OR | 1 |
-| `listLocks` | 잡은·기다리는 잠금, 자원을 개체·인덱스로, 세션·개체별 잠금 수(에스컬레이션 단서) | R | `connection`, `database`, `session` | `locks[]`, `summary[]` | MS PG MY OR | 1 |
+| `listLocks` | 잡은·기다리는 잠금, 자원을 개체·인덱스로, 세션·개체별 잠금 수(에스컬레이션 단서) | R | `connection`, `database`, `session`(글: `killSession`과 같은 형식, Oracle `sid` 또는 `sid,serial#`) | `locks[]`, `summary[]` | MS PG MY OR | 1 |
 | `getDeadlocks` | 최근 교착 상태를 구조화 JSON으로(MS: system_health 교착 그래프 XML 해석, MY: InnoDB 최신 교착 상태, PG: 횟수와 로그 안내, OR: 경고 로그의 ORA-00060 항목 + 그 추적 파일의 교착 상태 그래프) | R | `connection`, `limit` | `deadlocks[]` | MS MY PG OR | 1 (OR 1b) |
 | `listOpenTransactions` | 오래 열린 트랜잭션과 idle-in-transaction 세션 | R | `connection`, `minSeconds` | `transactions[]` | MS PG MY OR | 1 |
 | `getLongRunningQueries` | 지금 오래 실행 중인 요청 | R | `connection`, `minSeconds` | `queries[]` | MS PG MY OR | 1 |
 | `killSession` | 세션 끝내기 | D | `connection`, `session` | 결과 | MS PG MY OR | 1 |
-| `getWaitStats` | 대기 통계(누적, 무해한 대기 제외) | R | `connection`, `top` | `waits[]` | MS PG MY OR | 1 |
-| `getTopQueries` | CPU·I/O·시간 상위 쿼리(MS: `dm_exec_query_stats`, PG: `pg_stat_statements`, MY: performance_schema 다이제스트, OR: `v$sql`) | R | `connection`, `orderBy`, `top` | `queries[]` | MS PG MY OR | 1 |
+| `getWaitStats` | 대기 통계(누적, 무해한 대기 제외) | R | `connection`, `limit` | `waits[]` | MS PG MY OR | 1 |
+| `getTopQueries` | CPU·I/O·시간 상위 쿼리. `source=cache`(기본: MS `dm_exec_query_stats`, PG `pg_stat_statements`, MY performance_schema 다이제스트, OR `v$sql`) 또는 `queryStore`(MS Query Store, 최근 N시간, 26.1.0 전 `getQueryStoreTopQueries`) | R | `connection`, `source`, `sortBy`, `limit`, `database`, `hours` | `queries[]`(Query Store는 `queryStore`도) | MS PG MY OR | 1 |
 | `getDatabaseSizes` | DB 크기(데이터·로그) | R | `connection` | `databases[]` | MS PG MY OR | 1 |
 | `getSpaceUsage` | 파일·로그·테이블스페이스 사용량과 여유 | R | `connection`, `database` | `files[]` | MS PG MY OR | 1 |
 | `getBackupHistory` | 백업 기록과 DB별 마지막 백업 나이 | R | `connection` | `databases[]`, `backups[]` | MS (PG: 아카이버 상태) | 1 |
-| `getJobHistory` | 작업 실패·최근 실행(MS: msdb, PG: pg_cron 있으면, MY: 이벤트, OR: 스케줄러) | R | `connection`, `failedOnly` | `jobs[]` | MS PG MY OR | 1 |
+| `getJobHistory` | 작업 실패·최근 실행(PG: pg_cron 있으면, MY: 이벤트, OR: 스케줄러). SQL Server는 26.1.0부터 `getAgentJobHistory`(채팅에 보내지 않음, 직접 부르는 호출을 위해 SQL Server 블록은 26.2.0까지 둠) | R | `connection`, `failedOnly` | `jobs[]` | PG MY OR (MS 직접 호출만) | 1 |
 | `getErrorLog` | 서버 오류 로그 최근 항목(MS: `sp_readerrorlog`, PG: `pg_current_logfile`+`pg_read_file`, MY: `performance_schema.error_log`, OR: `v$diag_alert_ext`) | R | `connection`, `contains`, `limit` | `entries[]` | MS PG MY OR | 1 |
 | `getServerConfig` | 기본값과 다른 설정과 상식 검사(예: MAXDOP, 비용 임계값, shared_buffers, work_mem) | R | `connection` | `settings[]`, `findings[]` | MS PG MY OR | 1 |
-| `backupDatabase` | 백업(MS: T-SQL `BACKUP DATABASE`, `model.admin`의 `SQLServerBackupSettings`). 파일은 서버의 경로 | W | `connection`, `database`, `file`, `type`, `copyOnly` | 메시지 | MS | 1 (PG MY: `dumpDatabase`) |
-| `restoreDatabase` | 복원(MS, `SQLServerRestoreSettings`) | D | `connection`, `database`, `file`, `replace` | 메시지 | MS | 1 (PG MY: `restoreDump`) |
-| `dumpDatabase` | 로컬 클라이언트 도구(pg_dump, mysqldump)로 DB 전체 또는 일부(PG 스키마, MY 테이블)를 **이 컴퓨터의 새 파일**로 백업. 클라이언트는 연결의 로컬 클라이언트 설정. 있는 파일을 덮어쓰지 않음 | W (`writes="file"`) | `connection`, `database`, `file`, `format`(PG), `schemas`(PG), `tables`(MY), PG `noOwner`·`noPrivileges`·`inserts`·`clean`·`create`, MY `method`·`noData`·`routines`·`events`·`removeDefiner` | `file`, `bytes`, `durationMs`, `command`, `log[]` | PG MY | 1b |
-| `restoreDump` | 이 컴퓨터의 백업 파일을 **있는 DB**로 복원(pg_restore, 일반 SQL 스크립트는 psql, mysql). PG 형식은 파일에서 알아냄 | D | `connection`, `database`, `file`, `format`(PG), PG `clean`·`noOwner`·`stopOnError`, MY `disableForeignKeyChecks` | `durationMs`, `command`, `log[]`, `note` | PG MY | 1b |
-| `listAgentJobs` | SQL Server Agent 서비스 상태와 작업 목록(사용 여부, 실행 중·현재 단계, 마지막 결과·시각, 다음 실행, 범주, 소유자) | R | `connection`, `filter` | `agent`, `jobs[]` | MS | 1b |
+| `backupDatabase` | 백업. SQL Server: T-SQL `BACKUP DATABASE`(`model.admin`의 `SQLServerBackupSettings`), 파일은 **DB 서버의** 경로. PostgreSQL·MySQL/MariaDB: 로컬 클라이언트 도구(pg_dump, mysqldump)로 **이 컴퓨터의 새 파일**(있는 파일을 덮어쓰지 않음, 26.1.0 전 `dumpDatabase`). 결과의 `fileLocation`이 `databaseServer` / `thisComputer` | W (`writes`는 호출마다: SQL Server `database`, PG·MY `file`) | `connection`, `database`, `file`, MS `backupType`·`copyOnly`, PG `dumpFormat`·`schemas`·`noOwner`·`noPrivileges`·`inserts`·`clean`·`create`, MY `tables`·`method`·`noData`·`routines`·`events`·`removeDefiner` | MS 메시지, PG·MY `file`, `bytes`, `durationMs`, `command`, `log[]` | MS PG MY | 1 (PG MY 1b) |
+| `restoreDatabase` | 복원. SQL Server: **DB 서버의** 백업 파일에서(`SQLServerRestoreSettings`). PostgreSQL·MySQL/MariaDB: **이 컴퓨터의** 백업 파일을 **있는 DB**로(pg_restore, 일반 SQL 스크립트는 psql, mysql; PG 형식은 파일에서 알아냄, 26.1.0 전 `restoreDump`). 결과의 `fileLocation` | D | `connection`, `database`, `file`, MS `replace`, PG `dumpFormat`·`clean`·`noOwner`·`stopOnError`, MY `disableForeignKeyChecks` | 메시지 또는 `durationMs`, `command`, `log[]`, `note` | MS PG MY | 1 (PG MY 1b) |
+| `listAgentJobs` | SQL Server Agent 서비스 상태와 작업 목록(사용 여부, 실행 중·현재 단계, 마지막 결과·시각, 다음 실행, 범주, 소유자) | R | `connection`, `contains` | `agent`, `jobs[]` | MS | 1b |
 | `getAgentJob` | 작업 하나의 정의: 단계(하위 시스템, DB, 명령, 성공·실패 동작, 재시도)와 일정(설명, 시작 시각, 다음 실행) | R | `connection`, `job` | 객체, `steps[]`, `schedules[]` | MS | 1b |
-| `getAgentJobHistory` | 실행 기록(최신 순): 실행 결과(단계 0)와 그 실행의 단계별 상태·시간·재시도·서버 메시지. 작업 하나 또는 전체 | R | `connection`, `job`, `failedOnly`, `limit` | `history[]` | MS | 1b |
+| `getAgentJobHistory` | 실행 기록(최신 순): 실행 결과(단계 0)와 그 실행의 단계별 상태·시간·재시도·서버 메시지. 작업 하나 또는 전체. SQL Server의 작업 실패 목록도 이것(`failedOnly=true`) | R | `connection`, `job`, `failedOnly`, `limit` | `history[]` | MS | 1b |
 | `startAgentJob` | 작업 시작(`sp_start_job`, 단계 지정 가능). 비동기 | W | `connection`, `job`, `step` | `statement`, `messages[]` | MS | 1b |
 | `stopAgentJob` | 실행 중인 작업 중지(`sp_stop_job`) | W | `connection`, `job` | `statement`, `messages[]` | MS | 1b |
 | `setAgentJobEnabled` | 작업 사용·사용 안 함(`sp_update_job @enabled`) | W | `connection`, `job`, `enabled` | `previouslyEnabled`, `enabled` | MS | 1b |
@@ -259,10 +252,9 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 | `getMissingIndexes` | 누락 인덱스 제안(MS DMV, PG: 순차 스캔이 많은 큰 테이블, OR: 캐시된 계획에서 1만 행 넘는 테이블의 전체 스캔과 그 필터 조건) | R | `connection`, `database` | `rows[]` | MS PG OR | 1 (OR 1b, MY 미룸) |
 | `getUnusedIndexes` | 쓰이지 않는·중복 인덱스(OR: 인덱스 사용 추적 `DBA_INDEX_USAGE`, 캐시된 계획에 있는지) | R | `connection`, `schema` | `unused[]`, `duplicates[]` | MS PG MY OR | 1 (OR 1b) |
 | `getIndexFragmentation` | 조각화·부풀음(MS `dm_db_index_physical_stats` LIMITED, PG pgstattuple 있으면 그것, 없으면 추정, MY `data_free`) | R | `connection`, `table` 또는 `schema` | `indexes[]` | MS PG MY | 1 |
-| `getRoutineStats` | 루틴의 실행 통계와 **문장별 통계**(MS: 문장 오프셋 → 줄 번호, PG: `pg_stat_user_functions` + `pg_stat_statements`, MY: performance_schema 프로그램 요약, OR: `V$SQL`의 `PROGRAM_ID`·`PROGRAM_LINE#`) | R | `connection`, `name` | `routine`, `statements[]` | MS PG MY OR | 1 (OR 1b) |
-| `getCachedPlans` | 루틴·쿼리 텍스트의 캐시된 계획을 문장별 구조화 JSON으로(MS) | R | `connection`, `name` 또는 `contains`, `top` | `plans[]` | MS | 1 (PG는 계획 캐시가 없어 `explainQuery`로 대신) |
-| `getQueryStoreTopQueries` | Query Store의 최근 N시간 상위 쿼리(CPU·시간·논리 읽기·실행 수, 계획 수). 재시작·계획 캐시 제거에도 남는다 | R | `connection`, `database`, `orderBy`, `hours`, `top` | `queryStore`, `queries[]` | MS | 1b |
-| `getQueryStoreRegressions` | 최근 창의 평균 시간이 앞 창보다 나빠진 쿼리, 두 창의 계획 ID와 `plan_changed` | R | `connection`, `database`, `recentMinutes`, `historyMinutes`, `minExecutions`, `top` | `queryStore`, `regressions[]` | MS | 1b |
+| `getRoutineStats` | 루틴의 실행 통계와 **문장별 통계**(MS: 문장 오프셋 → 줄 번호, PG: `pg_stat_user_functions` + `pg_stat_statements`, MY: performance_schema 프로그램 요약, OR: `V$SQL`의 `PROGRAM_ID`·`PROGRAM_LINE#`) | R | `connection`, `object` | `routine`, `statements[]` | MS PG MY OR | 1 (OR 1b) |
+| `getCachedPlans` | 루틴·쿼리 텍스트의 캐시된 계획을 문장별 구조화 JSON으로(MS) | R | `connection`, `object` 또는 `contains`, `limit` | `plans[]` | MS | 1 (PG는 계획 캐시가 없어 `explainQuery`로 대신) |
+| `getQueryStoreRegressions` | 최근 창의 평균 시간이 앞 창보다 나빠진 쿼리, 두 창의 계획 ID와 `plan_changed` | R | `connection`, `database`, `recentMinutes`, `historyMinutes`, `minExecutions`, `limit` | `queryStore`, `regressions[]` | MS | 1b |
 | `getQueryStoreForcedPlans` | 강제된 계획(수동·자동 조정), 강제 실패 수와 마지막 실패 이유. 읽기만 | R | `connection`, `database` | `queryStore`, `forcedPlans[]` | MS | 1b |
 | `whatIfIndex` | 가상 인덱스(PG hypopg)를 만든 전후의 예상 계획과 비교. hypopg가 그 DB에 없으면 `available: false`와 이유 | R | `connection`, `database`, `sql`, `index` | `before`, `after`, `diff`, `indexUsed` | PG | 1b |
 
@@ -288,7 +280,7 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
-| `getToolPolicy` | 이 연결에서 각 도구의 실제 권한(AUTO/CONFIRM/BLOCKED)과 이유. 모델이 막힌 도구를 미리 알고 계획을 세우게 한다 | R | `connection` | `tools[]` | — | 1 |
+| `getAgentToolPolicy` | 이 연결에서 각 도구의 실제 권한(AUTO/CONFIRM/BLOCKED)과 이유. 모델이 막힌 도구를 미리 알고 계획을 세우게 한다(26.1.0 전 `getToolPolicy`) | R | `connection` | `tools[]` | — | 1 |
 
 기존 3개 함수(`listSchemaNames`, `listTableNames`, `getTableDetails`)는 그대로 두고 READ로 분류된다. 이들은 채팅의 데이터베이스 문맥을 읽으므로 채팅에서만 쓰고 MCP 목록에서는 뺀다(`AIToolCatalog.getTools`).
 
@@ -316,20 +308,22 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 `AIToolPolicy.resolve(연결, 도구, 실제 분류)`는 처음 맞는 규칙을 쓴다.
 
 1. 연결이 읽기 전용이고 `writes="database"`인 WRITE/DANGEROUS 도구 → 실행 안 함(`READ_ONLY`). 설정으로 바꿀 수 없다.
-2. 연결별 도구 설정 `connections[c][도구]`.
+2. 연결별 도구 설정 `connections[c][도구]`. 단, 그 자체는 DANGEROUS가 아닌 도구(`runSql`, `changeSchema` 등)의 규칙은 그 도구의 DANGEROUS 호출을 AUTO로
+   만들지 않는다(CONFIRM으로 본다, 2026-11-15). 확인 대화상자의 "이 연결에서 항상 허용"은 WRITE 호출에서만 보이므로, 이것이 없으면 합친 `changeSchema`에서
+   인덱스 만들기를 허용한 것이 테이블 지우기까지 자동으로 만들었다.
 3. 연결별 분류 설정 `connections[c]["@분류"]`. 단, DANGEROUS 도구를 AUTO로 만드는 것은 2번(도구별 설정)만 할 수 있다.
 4. 연결이 **운영**이면 WRITE/DANGEROUS → `BLOCKED`(이유 "production connection"). 운영 연결에서 쓰기를 허용하려면 2·3번처럼 그 연결에 직접 정해야 한다.
 5. 전역 도구 설정 `defaults[도구]`(DANGEROUS를 AUTO로 둘 수 없다. AUTO면 CONFIRM으로 본다).
 6. 전역 분류 설정 `defaults["@분류"]`(같은 제한).
 7. 기본값: READ → AUTO, WRITE → CONFIRM, DANGEROUS → CONFIRM.
 
-연결이 없는 도구(예: `listConnections`, `formatSql`)는 5~7번만 쓴다.
+연결이 없는 도구(예: `listConnections`, `findTools`)는 5~7번만 쓴다.
 
 **늘 확인하는 도구(2026-11-12, 앱 변경 #71 g):** `commitTransaction`과 `rollbackTransaction`은 끝낼 에이전트 트랜잭션이 있으면 정책과 상관없이 트랜잭션 안전 규칙이
 Commit / Roll back / Cancel을 묻는다(`AIToolTransactionGuard`). 그래서 `plugin.xml`에 `alwaysConfirmed="true"`를 적고(`AIFunctionDescriptor.isAlwaysConfirmed`),
 Options의 권한 정책 표는 막히지 않는 한 실제 권한을 "늘 확인"(Always asks)으로 보인다. 전에는 `rollbackTransaction`이 "읽기 / 자동 실행", 쓰기를 자동으로 둔
-`commitTransaction`이 "자동 실행"으로 보였다. 분류와 동작은 그대로다(`rollbackTransaction`은 일부러 READ). `getToolPolicy` 결과에도 `alwaysConfirmed: true`가 붙는다.
-다른 가드 도구(`disconnect`, `setCurrentDatabase`, `killSession`, DDL·`runSql`의 암묵적 커밋)는 열린 트랜잭션이 있을 때만 물어서 표시하지 않는다.
+`commitTransaction`이 "자동 실행"으로 보였다. 분류와 동작은 그대로다(`rollbackTransaction`은 일부러 READ). `getAgentToolPolicy` 결과에도 `alwaysConfirmed: true`가 붙는다.
+다른 가드 도구(`disconnect`, `setCurrentDatabase`, `killSession`, `changeSchema`·`runSql`의 암묵적 커밋)는 열린 트랜잭션이 있을 때만 물어서 표시하지 않는다.
 
 ### 운영 연결
 
@@ -369,7 +363,7 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
   | `disconnect` | 이 연결의 모든 실행 문맥(쿼리 창은 상태 줄과 같은 규칙 `QMTransactionState.isOpen()`, 에이전트 문맥은 아래 표시) | 예 |
   | `setCurrentDatabase` | 이 연결의 에이전트 문맥 | 예 |
   | `commitTransaction`, `rollbackTransaction` | 에이전트 문맥(답이 곧 커밋·롤백 결정) | 예 |
-  | `runSql`, `runScript`, DDL 도구 (MySQL/MariaDB·Oracle) | DDL이 열린 에이전트 트랜잭션을 암묵적으로 커밋하므로 | 예 |
+  | `runSql`, `runScript`, `changeSchema` (MySQL/MariaDB·Oracle) | DDL이 열린 에이전트 트랜잭션을 암묵적으로 커밋하므로 | 예 |
   | `killSession` | 대상 서버 세션의 열린 트랜잭션(끝내면 서버가 롤백) | 아니요(Roll back / Cancel) |
 
 - **쓰기 도구의 커밋**: 에이전트 문맥은 연결의 기본 커밋 방식(`DBPDataSourceContainer.isDefaultAutoCommit()`, 연결 종류)을 그대로 쓴다.
@@ -395,7 +389,9 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 |---|---|
 | `time` | ISO-8601 |
 | `client` | `CHAT` / `MCP` |
-| `tool`, `access` | 도구 ID, 실제 분류 |
+| `tool`, `access` | 도구 ID(26.1.0부터 늘 지금 ID), 실제 분류 |
+| `operation` | 합친 도구의 작업(`plugin.xml`의 `operationParameter`: `changeSchema`의 `operation`, `getTopQueries`의 `source`). 2026-11-15부터 |
+| `calledAs` | 옛 ID(별칭)로 부른 호출의 그 ID. 2026-11-15부터 |
 | `connectionId`, `connectionName` | 연결(없으면 생략) |
 | `arguments` | 인수. 이름에 password·secret·token·key·credential이 들어가면 `***`, 긴 문자열은 2,000자에서 자름 |
 | `permission`, `reason` | 정책 판정과 이유 |
@@ -404,6 +400,10 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 | `transactionsBeforeCall` | 트랜잭션 질문에 Commit / Roll back으로 답했을 때만: `{"action": "COMMITTED"\|"ROLLED_BACK", "count": n}`. 그런 호출의 정책 판정은 대개 AUTO라 이것이 사용자의 결정을 남긴다. Cancel은 `outcome` DENIED와 `error`로 남는다 |
 
 파일이 10 MB를 넘으면 `audit.1.jsonl`로 바꾸고 새로 시작한다(하나만 보관).
+
+옛 기록(옛 ID, `operation`·`calledAs` 없음)은 그대로 읽힌다. Options의 Audit Log는 도구 열에 작업을 붙여 보이고(`changeSchema (dropTable)`), 글자
+거르기는 기록 전체에 더해 옛 ID 기록이 된 지금 ID로도 찾는다: `describeTable`로 거르면 옛 `listIndexes` 기록도, `listIndexes`로 거르면 옛 기록과
+그 별칭으로 부른 새 기록(`calledAs`)이 나온다.
 
 ## 로컬 MCP 서버
 
@@ -420,7 +420,9 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 | 인증 | `Authorization: Bearer <토큰>`. 토큰은 32바이트 무작위(base64url), 작업 공간 `.metadata/chromite-ai/mcp-token`. 설정 화면에 보이고 다시 만들 수 있다(2단계). 비교는 상수 시간 |
 | DNS rebinding 방어 | `Origin` 머리글이 있으면 `http://127.0.0.1:<포트>`·`http://localhost:<포트>`만 허용, `Host`도 이 둘만 허용 |
 | 요청 크기 | 본문 최대 4 MB |
-| 도구 | `tools/list`는 카탈로그 전체(`inputSchema`, `annotations.readOnlyHint` = READ, `destructiveHint` = DANGEROUS, `title`). `tools/call`은 실행기(`AIToolClient.MCP`)를 거쳐 정책·확인·감사가 채팅과 같다. 결과는 `content[0].text`(JSON 텍스트)와 `structuredContent`(같은 JSON 객체), 실패는 `isError: true` |
+| 도구 | `tools/list`는 카탈로그 전체(`inputSchema`, `annotations.readOnlyHint` = READ, `destructiveHint` = DANGEROUS, `title`). 호출마다 분류하는 도구는
+가장 높은 분류(`AIToolAccessClassifier.getHighestAccess`)로 정한다(2026-11-15): `changeSchema`, `runSql`, `runScript`, `getActualPlan`, `runLibraryQuery`는
+`destructiveHint: true`, `readOnlyHint: false`. 옛 ID(별칭)는 목록에 없고 `tools/call`에서는 받는다. `tools/call`은 실행기(`AIToolClient.MCP`)를 거쳐 정책·확인·감사가 채팅과 같다. 결과는 `content[0].text`(JSON 텍스트)와 `structuredContent`(같은 JSON 객체), 실패는 `isError: true` |
 | 프롬프트 | 아래 플레이북 6개를 MCP 프롬프트로 낸다(`prompts/get`의 인수: `connection`, 시나리오별 `sql`·`object`·`folder`) |
 
 ### Claude Code 연결
@@ -1187,7 +1189,7 @@ D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.
   첫 요청 본문 68,378 B. MCP `tools/list`는 101개이고 `getQueryWindowText.part`의 `enum`과 새 설명을 돌려준다.
 - 실제 모델로는 재지 않았다(평가 세트는 사용자가 실행).
 
-### 사용자가 정할 것: 이름 바꾸기·합치기·빼기 (하지 않음)
+### 사용자가 정할 것: 이름 바꾸기·합치기·빼기 (2026-11-15 모두 함, 아래 "도구 정리")
 
 ID나 인수를 바꾸면 저장된 정책(`AIToolPolicy`의 도구별 규칙), 감사 기록 검색, MCP 클라이언트 설정이 깨진다. 바꾸려면 옛 ID를 별칭으로 한 판 동안 받아야 한다.
 
@@ -1257,6 +1259,9 @@ ID나 인수를 바꾸면 저장된 정책(`AIToolPolicy`의 도구별 규칙), 
 | 최소 | 13개: `listConnections`, `listTables`, `searchObjects`, `describeTable`, `runReadOnlySql`, `explainQuery`, `runSql`, `getTransactionStatus`, `commitTransaction`, `rollbackTransaction`, `getQueryWindowText`, `openInEditor`, `findTools` | 짧은 판(`shortDescription`, 도구·인수마다 한두 문장) | 함 |
 | 핵심 | 44개: 최소 + `getConnectionInfo`, `getServerInfo`, `probePermissions`, `listDatabases`, `listSchemas`, `listRoutines`, `getRoutineSource`, `getObjectDdl`, `runSelect`, `runScript`, `getActualPlan`, `comparePlans`, `validateSql`, `sampleRows`, `countRows`, `listSessions`, `getBlockingChain`, `listLocks`, `getDeadlocks`, `listOpenTransactions`, `getLongRunningQueries`, `getWaitStats`, `getTopQueries`, `getDatabaseSizes`, `getSpaceUsage`, `getBackupHistory`, `getServerConfig`, `getTableStatistics`, `getIndexUsage`, `getMissingIndexes`, `getUnusedIndexes` | 긴 판 | 함 |
 | 전체 | 101개(`findTools` 없음: 밖에 찾을 도구가 없다) | 긴 판 | 안 함(예전 "도구를 모두 보냄"과 같음) |
+
+2026-11-15 도구 정리 뒤: 최소 13개(같음), 핵심 43개(`runSelect`가 `runReadOnlySql`에 합쳐짐, `probePermissions`는 `checkDiagnosticAccess`), 전체 87개(아래
+"도구 정리"). 아래 크기 표는 그때 잰 값이다.
 
 - 구성원은 `plugin.xml`의 `toolSet="minimal|core"` 속성이다(`AIFunctionDescriptor.getToolSet`, 확장점 스키마에 더함). 최소 ⊂ 핵심 ⊂ 전체. 코드 목록으로
   두지 않은 것은 도구를 더할 때 한 곳만 고치게 하기 위해서다. 새 도구는 속성 없이 두면 `findTools`로 찾힌다(`plugin.xml` 머리 주석).
@@ -1362,6 +1367,157 @@ Providers의 Test가 가짜 서버에 닿은 것(`GET /anthropic/v1/models`, `GE
 | 예전 대화 | 0.1.4 형식 대화 파일(`foundTools` 없음, 도구 항목 포함)을 넣고 `AIAgentChatStore.loadAll` → 읽힘(항목 4개, 찾은 도구 없음) |
 | Providers 화면 | 150%와 100%, 한국어: 다섯 양식에 "채팅 도구 묶음:"(자동(컨텍스트 크기로) / 최소(도구 13개, 짧은 설명) / 핵심(도구 44개) / 전체(도구 101개)), Ollama·vLLM에 "컨텍스트 크기(토큰):"(vLLM 자리 표시 "비우면 8192"). 묶음·크기를 바꾸면 "저장하지 않은 변경 N개"와 [저장]·[되돌리기]가 켜지고, [저장]은 설정 파일에, [되돌리기]는 저장된 값으로. vLLM Test가 빈 칸을 `max_model_len` 8192로 채움. Tool Policy 탭은 눈으로 보지 않았다(확인란 코드만 지움) |
 | 채팅 창 안내 | 모델을 vLLM `fake-notools`로 고르면 입력란 위에 경고 색 안내 "이 모델은 도구를 호출할 수 없어 도구 없이 답합니다. …"가 보이고 `fake-qwen`으로 바꾸면 사라짐 |
+
+## 도구 정리: 합치기·이름 바꾸기·인수 통일·분류·빼기 (앱 변경 #64 나머지, 2026-11-15)
+
+사용자 결정(2026-11-15): 위 "사용자가 정할 것"의 표를 26.1.0(첫 사용자 배포 판)에 **모두 포함**. 단, 아래 다섯 보장이 표보다 앞선다.
+(1) 어느 호출도 덜 보호되지 않는다(합친 도구는 호출마다 분류). (2) 사용자가 저장한 정책은 더 느슨해지지 않는다. (3) 옛 ID·인수 이름은 한 판(26.2.0까지)
+받는다. (4) 감사 기록은 읽히고 찾힌다. (5) 실제 AI 제공자에는 닿지 않는다(확인은 가짜 서버만).
+
+### 표의 행별 결과
+
+| 행 | 결과 |
+|---|---|
+| `listIndexes`, `listForeignKeys` → `describeTable` | 설계대로. 옛 ID는 별칭. 결과 키는 `describeTable`의 것(`indexes`, 나가는 외래 키 `foreignKeys`, 들어오는 `referencedBy`) |
+| `connect` + `testConnection` → 하나 | `testConnection` 하나. `connect`는 별칭(연결은 그대로 열림, 결과는 `testConnection`의 `ok`·`roundTripMs`·`server`). 아래 "빼기"와 함께 |
+| `runSelect` + `runReadOnlySql` → 읽기 하나 | `runReadOnlySql`에 `offset`(주면 한 페이지, `hasMore`·`nextOffset`), `rowFormat`, `maxCellChars`. `runSelect`는 별칭이고 `offset` 0을 받아 전과 같은 한 페이지를 돌려준다 |
+| DDL 7개 + `generateDdl` → `changeSchema(operation, preview)` | 다르게: `changeSchema(operation)`(WRITE, 호출마다 지우기는 DANGEROUS) + 따로 둔 READ 도구 `previewDdl`(아래 이유) |
+| `backupDatabase`+`dumpDatabase`, `restoreDatabase`+`restoreDump` | 설계대로(DB 종류로 나눔). 설명이 파일 위치를 대문자로 밝히고 결과에 `fileLocation`(`databaseServer` / `thisComputer`) |
+| SQL Server의 `getJobHistory` → `getAgentJobHistory` | 보수적으로: SQL Server에서는 채팅이 `getJobHistory`를 보내지 않고 찾지도 않는다(`DiagnosticSqlTool.supports`). 직접 부르는 호출(MCP, 저장된 대화)을 위해 SQL Server 블록은 26.2.0까지 둔다 |
+| `getQueryStoreTopQueries` → `getTopQueries(source=queryStore)` | 설계대로. `getTopQueries`에 `source`, `database`, `hours`. 별칭은 `source=queryStore`를 고른다 |
+| 이름 바꾸기 5개 | 설계대로: `listGrants`, `checkDiagnosticAccess`, `getAgentToolPolicy`, `previewDdl`, `getEditorHistory`(SQL 자원 `listGrants.sql`, `checkDiagnosticAccess.sql`도) |
+| 인수 `limit`·`top`·`maxRows` | `limit`. 진단 SQL은 문장의 `@limit`으로 기본값(20, 10)을 지킨다 |
+| 인수 `pattern`·`contains`·`filter` | `contains`(이미 그 이름을 쓰던 도구 4개에 맞춤) |
+| 인수 `table`·`object`·`name` | 아무 개체나 받으면 `object`(`getRoutineSource`, `getRoutineStats`, `getCachedPlans`), 표만이면 `table` |
+| 한 이름 두 뜻 `format`·`type`·`orderBy` | `rowFormat`, `fileFormat`, `dumpFormat`; `columnType`, `backupType`; 열거값 정렬은 `sortBy`(`sampleRows`의 `orderBy`는 SQL 조각이라 그대로) |
+| `session` 형식 | `listLocks.session`을 글로(`killSession`과 같은 형식). Oracle은 `sid` 또는 `sid,serial#`(잠금 뷰는 sid만 씀) |
+| `dropIndex` DANGEROUS | 설계대로(`changeSchema`의 `dropIndex` 호출) |
+| 빼기 `connect`, `formatSql` | `formatSql`은 지움(부르면 "Unknown tool", 규칙은 옮기지 않음). `connect`는 한 판 동안 `testConnection`의 별칭(보장 3) |
+
+**미리 보기를 따로 둔 이유**: 분류기는 정적 분류를 올리기만 한다(`AIToolAccessClassifier`). `changeSchema`의 미리 보기 모드를 READ로 하려면 정적 분류를 READ로
+두어야 하는데, 그러면 정책 표·도구 고르기·MCP 힌트가 쓰기 도구를 읽기로 보인다. WRITE로 두면 운영·읽기 전용 연결에서 미리 보기까지 막힌다. 그래서 READ
+`previewDdl`(같은 인수)과 WRITE `changeSchema`로 나눴다.
+
+### 별칭 (`plugin.xml` 한 곳)
+
+옛 도구 ID는 지금 도구의 `<alias id=".." access="옛 분류" arguments="고르는 작업" defaults="없을 때 값" removeIn="26.2.0"/>`, 옛 인수 이름은 인수의
+`aliases=".."`로 적는다(확장점 스키마 `com.seizia.chromite.ai.function.exsd`). 26.1.0에서 새로 생긴 도구는 `addedIn="26.1.0"`, 합친 도구의 작업 인수는
+`operationParameter`. `AIToolCatalog.resolveCall`이 옛 ID·인수를 지금 도구·인수로 바꾼다. 이것을 쓰는 곳: 실행기(맨 먼저, 그래서 분류·정책·확인·감사가 지금
+도구), 저장된 대화를 보낼 때(`AIAgentChat.sentCall`: 옛 호출을 지금 이름·인수로 보내고 `tool_use_id`/`tool_call_id` 짝은 그대로), 대화가 찾은 도구(`getFoundTools`),
+사용자 글·플레이북이 부른 도구(`addNamedTools`), `findTools` 점수(옛 ID도 ID로 셈), 감사 기록 보기. 레지스트리는 옛 ID가 다른 함수와 겹치면 둘 다 등록하지
+않는다(`legacyId`와 같은 규칙). `tools/list`에는 지금 도구만 있다. **26.2.0에서 `<alias>`, `aliases`, `getJobHistory`의 SQL Server 블록을 지운다.**
+
+| 옛 ID | 지금 | 고르는 인수 |
+|---|---|---|
+| `listIndexes`, `listForeignKeys` | `describeTable` | — |
+| `connect` | `testConnection` | — |
+| `runSelect` | `runReadOnlySql` | `offset` 없으면 0 |
+| `createTable`, `alterTable`, `dropTable`, `createView`, `dropView`, `createIndex`, `dropIndex` | `changeSchema` | `operation` = 옛 ID |
+| `generateDdl` | `previewDdl` | — |
+| `dumpDatabase` | `backupDatabase` | — (DB 종류로 나뉨) |
+| `restoreDump` | `restoreDatabase` | — |
+| `getQueryStoreTopQueries` | `getTopQueries` | `source=queryStore` |
+| `listPermissions`, `probePermissions`, `getToolPolicy`, `getQueryHistory` | `listGrants`, `checkDiagnosticAccess`, `getAgentToolPolicy`, `getEditorHistory` | — |
+
+| 옛 인수 | 지금 | 도구 |
+|---|---|---|
+| `top` | `limit` | `getWaitStats`, `getTopQueries`, `getCachedPlans`, `getQueryStoreRegressions` |
+| `maxRows` | `limit` | `exportData`, `importCsv`, `copyTable`, `compareQueryResults` |
+| `pattern` | `contains` | `listSchemas`, `listTables`, `listRoutines`, `searchObjects` |
+| `filter` | `contains` | `listConnections`, `listAgentJobs` |
+| `name` | `object` | `getRoutineSource`, `getRoutineStats`, `getCachedPlans` |
+| `format` | `rowFormat` / `fileFormat` / `dumpFormat` | `runReadOnlySql`, `sampleRows` / `exportData` / `backupDatabase`, `restoreDatabase` |
+| `type` | `columnType` / `backupType` | `changeSchema`, `previewDdl` / `backupDatabase` |
+| `orderBy` | `sortBy` | `getTopQueries` |
+
+옛 이름과 지금 이름을 다른 값으로 함께 주면 INVALID다(어느 쪽인지 추측하지 않는다). `listLocks.session`은 이름은 그대로이고 형식만 글로 바뀌었다(옛 정수도 받음).
+
+### 정책 옮기기 (`AIToolPolicy.migrate`)
+
+처음 읽을 때 한 번(표시 `migrations: ["tool-aliases-26.1.0"]`) 옛 ID의 규칙을 지금 ID로 옮긴다. 범위(전역, 연결마다)마다:
+
+1. 지금 도구의 구성원 = 별칭들(옛 분류는 `<alias access>`) + 도구 자신(26.1.0에 새로 생긴 것이 아니면).
+2. 구성원마다 옛 규칙이 그 범위에서 실제로 판정되던 권한(분류 규칙, 운영 연결 막기, 전역 규칙, 기본값까지)을 계산한다.
+3. 지금 도구에 그 범위의 규칙을 쓴다 — 구성원에게 그 범위의 규칙이 있었거나, 지금 도구에 이미 규칙이 있거나(다시 돌 때), 규칙 없이 두면 어느 구성원의 호출이
+   전보다 느슨하게 판정될 때(합치며 분류가 올라간 경우, 예: WRITE를 막은 범위의 `dropIndex`가 DANGEROUS 기본 확인으로). 값은 구성원의 옛 권한과 지금 규칙
+   가운데 **가장 엄격한 것**(BLOCKED > CONFIRM > AUTO).
+4. 옛 키는 지우지 않는다(26.0.8이 그대로 읽는다). 지운 도구(`formatSql`)의 규칙은 옮기지 않는다. 찾을 수 없는 연결(지웠거나 열리지 않은 프로젝트)은 운영으로 본다.
+
+정책 파일이 없던 작업 공간은 표시만 두고 시작한다. 다시 돌아도(표시가 사라진 뒤) 엄격한 쪽을 쓰므로 같은 결과다(멱등).
+
+정책이 작업별이 아니므로 합친 도구의 규칙은 도구 하나에 하나다. 그래서 위 판정 2번의 규칙도 함께 바꿨다: 그 자체는 DANGEROUS가 아닌 도구의 연결별 규칙은
+DANGEROUS 호출을 AUTO로 만들지 않는다. 옛 `dropTable`·`dropView`에 연결별 AUTO를 둔 사용자는 이제 그 호출마다 확인을 받는다(더 엄격). Options의 Tool Policy
+표는 이런 도구가 자동 실행이어도 "자동 실행, 위험한 호출은 확인"으로 보인다.
+
+확인(옛 ID 규칙 픽스처 `policy-old.json`을 빌드한 앱에 넣고 읽음):
+
+| 범위 | 옛 규칙 | 옮긴 규칙 | 실제 판정(지금) |
+|---|---|---|---|
+| 전역 | `createIndex` AUTO, `@WRITE` CONFIRM, `listPermissions` BLOCKED, `getQueryHistory` CONFIRM, `formatSql` BLOCKED | `changeSchema` CONFIRM, `listGrants` BLOCKED, `getEditorHistory` CONFIRM (`formatSql` 옮기지 않음) | 다른 DDL이 확인이었으므로 인덱스 만들기도 확인 |
+| T-PG | `dropIndex` AUTO, `createTable` AUTO, `runSelect` BLOCKED, `dumpDatabase` AUTO | `changeSchema` CONFIRM, `runReadOnlySql` BLOCKED, `backupDatabase` CONFIRM | "dropIndex 항상 허용"이 확인으로 돌아옴 |
+| T-MS | DDL 7개 모두 AUTO, `connect` BLOCKED, `getQueryStoreTopQueries` CONFIRM | `changeSchema` AUTO, `testConnection` BLOCKED, `getTopQueries` CONFIRM | 만들기·바꾸기 자동, 지우기 3개는 확인(규칙 2번) |
+| T-MSPROD (운영) | `createIndex` AUTO | `changeSchema` BLOCKED | 다른 작업이 운영 막기로 BLOCKED였음 |
+| T-MY | `@WRITE` BLOCKED | `changeSchema` BLOCKED | `dropIndex`가 DANGEROUS가 되며 확인으로 풀리던 것을 막음 |
+| T-OR | `probePermissions` CONFIRM, `getToolPolicy` AUTO, `generateDdl` BLOCKED, `listIndexes` CONFIRM | `checkDiagnosticAccess` CONFIRM, `getAgentToolPolicy` AUTO, `previewDdl` BLOCKED, `describeTable` CONFIRM | |
+| 없는 연결 | `dropIndex` AUTO | `changeSchema` BLOCKED | 운영으로 봄 |
+
+두 번째로 읽으면 바뀌지 않았고, 표시를 지운 파일을 다시 읽으면 처음과 같은 파일이 됐다.
+
+**26.0.8로 돌아가면**: 26.0.8(이 파일 형식은 0.1.4 뒤로 그대로)은 `defaults`·`connections`만 읽고 `migrations`는 모르는 필드라 버린다. 옛 키는 그대로라 옛
+도구는 전처럼 판정된다(26.0.8 휴대용 사본으로 확인: T-PG `dropIndex`·`createTable` AUTO, T-MS `dropTable` AUTO 등). 새 키 가운데 26.0.8에도 있는 ID(`runReadOnlySql`,
+`testConnection`, `describeTable`, `backupDatabase`, `getTopQueries`)의 규칙은 26.0.8에서도 적용된다(옮길 때 더 엄격하게 쓴 것이므로 더 엄격). 26.0.8에서 규칙을
+저장하면 새 키는 남고 표시만 빠지며, 26.1.0으로 다시 올라오면 옮기기가 다시 돌아 엄격한 쪽을 쓴다. 26.1.0에서 새 ID에 바꾼 규칙은 26.0.8이 모른다.
+
+### 카탈로그와 크기
+
+| | 전(26.0.8, devel) | 후 |
+|---|---|---|
+| MCP 도구 | 101 (READ 75, WRITE 21, DANGEROUS 5) | 87 (READ 69, WRITE 16, DANGEROUS 2; `changeSchema`는 WRITE, 호출마다 DANGEROUS) |
+| 채팅 도구 | 102 (`findTools` 포함) | 88 |
+| 최소 묶음 | 13개, 5,362 B | 13개, 5,667 B (`runReadOnlySql`의 페이지 인수 3개) |
+| 핵심 묶음 | 44개, 27,951 B | 43개, 28,017 B |
+| 전체 묶음 | 101개, 66,928 B | 87개, 62,030 B (-7%) |
+| 별칭 | — | 도구 ID 19개, 인수 26개 |
+
+크기는 위 "도구 묶음"의 표와 같은 셈법(`AIAgentToolSets.toDefinitionJson`, 연결 없음)이다. 가짜 서버가 받은 요청의 도구 정의(빈칸 없는 JSON)는 최소 5,621 B,
+핵심 27,892 B, 전체 61,650 B. 분야별: 연결 12, 메타데이터 13, 쿼리 9, 데이터 7, DDL 2, 전송 3, 상태·관리 23, 성능 10, 라이브러리 4, 편집기 4.
+
+### 확인 (2026-11-15)
+
+빌드한 앱(빈 작업 공간·설정·`CHROMITE_DATA`)과 26.0.8 휴대용 사본을 같은 이름의 연결로 띄우고, 앱 안 시험 에이전트(실행기·채팅 실행기를 직접 부름)와 MCP
+클라이언트로 확인했다. 시험 DB는 터널의 PostgreSQL 17, SQL Server 2022, MariaDB 11, MySQL 8.4, Oracle 23ai의 `chr_tc_agent_tool_cleanup`(Oracle 스키마
+`CHR_TC_AGENT_TOOL_CLEANUP`). 쓰기 확인은 모두 거부로 답했다.
+
+- **가짜 제공자**: 이 셸이 물려받은 `ANTHROPIC_BASE_URL`이 앱에 들어가지 않도록 앱 프로세스의 제공자 환경 변수를 127.0.0.1의 가짜 서버로 덮어썼다. 첫 요청은
+  Providers Test와 같은 모델 목록(`GET /anthropic/v1/models`, `GET /v1/models`)이 가짜 서버 기록에 남은 뒤에 채팅을 했다.
+- **별칭(MCP `tools/call`)**: 옛 ID 19개와 옛 인수 26개를 모두 담은 39쌍(옛 형식 → 새 형식)이 같은 결과(읽기) 또는 같은 거부(쓰기: "Denied by the user", 로컬
+  클라이언트 없음)였다. 확인 대화상자에 간 분류: `createTable`·`alterTable`·`createView`·`createIndex` WRITE, `dropTable`·`dropView`·`dropIndex` DANGEROUS.
+  `tools/list`는 87개이고 옛 ID는 없다.
+- **합친 읽기 도구(26.0.8의 옛 도구와 비교, 같은 입력)**: PG·MS·MariaDB·MySQL·Oracle 모두 `describeTable.indexes` = `listIndexes.indexes`, `foreignKeys`/`referencedBy` =
+  `listForeignKeys`의 `outgoing`/`incoming`, `runReadOnlySql`(offset 0) = `runSelect`. `connect`는 연결하고 `testConnection`의 결과를 돌려준다. MS `getTopQueries`
+  (queryStore) = `getQueryStoreTopQueries`의 키, `getJobHistory` 직접 호출은 같은 결과.
+- **안전(같은 호출 143개를 26.0.8과 이 빌드에서)**: 운영 연결(T-PGPROD, T-MSPROD)의 쓰기는 모두 BLOCKED, 읽기 전용 연결(T-PGRO, T-MSRO)의 DB 쓰기는 READ_ONLY,
+  파일만 쓰는 `exportData`와 PG 덤프는 전처럼 읽기 전용 연결에서도 묻는 단계까지 감, 단일 연결(T-PGS)의 롤백에 기대는 `getActualPlan`은 전처럼 거절.
+  다른 것은 3개뿐이고 모두 `dropIndex`가 WRITE → DANGEROUS로 묻는 것이다.
+- **수동 커밋**: MySQL에 에이전트 트랜잭션을 연 채 `createTable`(별칭)·`changeSchema dropIndex`는 Commit / Roll back / Cancel을 묻고, Cancel이면 트랜잭션은 그대로
+  (다른 세션에서 안 보임)였다. PostgreSQL `changeSchema createTable`은 트랜잭션 안에서 실행되고 `transactionOpen: true`, 롤백 뒤 표가 없다. 암묵적 커밋·롤백 없음.
+- **채팅(가짜 Anthropic·vLLM)**: 핵심 43개(Anthropic), 최소 13개(vLLM), 전체 87개가 실렸다. `findTools("dump database")`의 첫 결과는 `backupDatabase`,
+  "grants of a user"는 `listGrants`. 상태 점검 플레이북 순서(옛 `getQueryStoreTopQueries`, `listIndexes`, 옛 인수 `top`·`orderBy` 포함) 13호출이 끝까지 돌고,
+  다음 요청의 기록은 지금 이름(`db_getTopQueries`, `db_describeTable`)으로 갔으며 `tool_use`/`tool_result` 짝 오류 0건. 0.1.4 형식 대화(옛 `listIndexes`, `runSelect`,
+  지운 `formatSql`)와 26.0.8 형식 대화(`foundTools`에 옛 ID 3개, 옛 `getQueryStoreTopQueries`·`createIndex`)가 읽히고 이어졌다: 찾은 도구는 지금 ID로, 기록의 옛 호출은
+  지금 이름으로, 짝 오류 0건. 지운 `formatSql`과 그 대화의 묶음 밖 도구(`changeSchema`)는 이름 그대로 기록에 남는다(26.0.8에서도 묶음 밖 도구의 옛 호출은 그랬다).
+- **감사 기록**: 새 기록은 `"tool":"changeSchema","operation":"dropIndex"`, 별칭 호출은 `calledAs`. Audit Log 거르기: `listIndexes` → 옛 기록 + 별칭으로 부른 새 기록,
+  `describeTable` → 옛 `listIndexes` 기록도, `changeSchema` → 옛 `dropIndex` 기록도, 도구 열은 `changeSchema (dropIndex)`.
+- **평가 세트**: 질문이 부르는 도구 이름 230개가 모두 카탈로그에 있다(`formatSql`은 빠졌다는 안내 글뿐).
+- 실제 모델 평가는 하지 않았다(사용자만). 회귀 테스트는 요청되지 않아 실행하지 않았다(`AIAgentToolSelectionTest`의 기대값만 고침).
+
+### 남은 것
+
+- 정책을 작업별로 두지 않았다. 합친 `changeSchema`는 규칙이 하나라 "인덱스 만들기만 자동"을 따로 둘 수 없고, 지우기는 자동이 될 수 없다. 작업별 규칙이 필요하면
+  정책 모델을 바꿔야 한다(사용자 결정).
+- `formatSql`은 별칭 없이 지웠다(부르면 Unknown tool). MCP 클라이언트가 쓰고 있었다면 한 판 동안 남길지는 사용자 결정.
+- 26.2.0에서 지울 것: `<alias>`, 인수 `aliases`, `getJobHistory`의 SQL Server 블록, `PermissionProbe`의 `msdb_jobs` 검사(그 블록을 위한 것), 옛 정책 키는 그대로 둬도 된다.
+- 실제 Anthropic이 요청의 `tools`에 없는 이름의 옛 `tool_use`(지운 `formatSql`)를 받는지는 실제 API로 확인하지 않았다.
 
 ## 배치의 부분 실패 (앱 변경 #83, 2026-11-12)
 
@@ -2071,6 +2227,11 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-15 도구 정리(앱 변경 #64 나머지, `chromite/agent-tool-cleanup`): 합치기(`describeTable`, `testConnection`, `runReadOnlySql`, `changeSchema`,
+  `backupDatabase`·`restoreDatabase`, `getTopQueries`, SQL Server 작업 기록은 `getAgentJobHistory`), 이름 바꾸기 5개, 인수 통일, `dropIndex` DANGEROUS, `formatSql` 지움.
+  옛 ID·인수는 `plugin.xml`의 별칭으로 26.2.0까지, 정책 옮기기와 DANGEROUS가 아닌 도구의 규칙이 위험한 호출을 자동으로 만들지 않는 규칙, 감사 기록의
+  `operation`·`calledAs`, 호출별 쓰는 대상(`AIToolWritesClassifier`), MCP 힌트는 가장 높은 분류. 도구 87개(채팅 88), 묶음 최소 13·핵심 43·전체 87. 위 "도구 정리".
+  회귀 테스트는 실행하지 않았다.
 - 2026-11-13 #94 검토 후속: 공유 세션에서 대소문자만 다른 DB 이름은 격리 경로와 같은 찾기로 세션의 DB가 될 때만 통과(MySQL `lower_case_table_names=0`에서 확인).
   위 "공유 세션의 DB·스키마". 회귀 테스트는 실행하지 않았다.
 - 2026-11-13 앱 변경 #94(`chromite/picker-and-agent-shared`): "단일 연결" 연결의 공유 세션에서 DB·스키마를 바꿔야 하는 호출을 한 규칙(`AgentSql.run`)으로 거절,

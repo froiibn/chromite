@@ -57,6 +57,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-15 도구 정리(docs/chromite/ai-agent.md "별칭"): sampleRows의 format → rowFormat, compareQueryResults의 maxRows → limit
  */
 public class DataTools extends AgentTool implements AIToolPreviewProvider {
 
@@ -98,7 +99,7 @@ public class DataTools extends AgentTool implements AIToolPreviewProvider {
     ) throws DBException {
         String table = AgentArgs.require(args, "table");
         AgentLimits limits = AgentLimits.of(args, 20);
-        boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "format"));
+        boolean objects = !"arrays".equalsIgnoreCase(AgentArgs.getString(args, "rowFormat"));
         return AgentSql.run(context.getMonitor(), container, database, AgentSql.Mode.READ_ONLY, (connection, runner) -> {
             AgentNames.QName name = AgentNames.resolve(connection, family, table);
             String sql = "SELECT * FROM " + name.quoted(dataSource) + where(args) + orderBy(args);
@@ -220,7 +221,7 @@ public class DataTools extends AgentTool implements AIToolPreviewProvider {
         DBPDataSource otherSource = AgentSql.connect(context.getMonitor(), other);
         QueryTools.requireReadOnly(dataSource, sqlA, "compareQueryResults");
         QueryTools.requireReadOnly(otherSource, sqlB, "compareQueryResults");
-        int maxRows = Math.max(1, Math.min(100_000, AgentArgs.getInt(args, "maxRows", 10_000)));
+        int maxRows = Math.max(1, Math.min(100_000, AgentArgs.getInt(args, AgentLimits.PARAM_LIMIT, 10_000)));
         AgentLimits limits = new AgentLimits(maxRows, 2000, Integer.MAX_VALUE);
         JsonObject a = AgentSql.run(context.getMonitor(), container, AgentArgs.getString(args, "database"), AgentSql.Mode.READ_ONLY,
             (connection, runner) -> runner.queryPage(connection, sqlA, 0, limits, true));

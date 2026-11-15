@@ -1,4 +1,4 @@
--- probePermissions: what this login may read (PermissionProbe maps the facts to tools)
+-- checkDiagnosticAccess (probePermissions before 26.1.0): what this login may read (PermissionProbe maps the facts to tools)
 -- @family: sqlserver
 SELECT
     IS_SRVROLEMEMBER('sysadmin') AS is_sysadmin,

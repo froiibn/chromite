@@ -1,4 +1,4 @@
--- listPermissions: grants on an object or of a principal (current database)
+-- listGrants (listPermissions before 26.1.0): grants on an object or of a principal (current database)
 -- @family: sqlserver
 SELECT
     pr.name AS principal_name,
