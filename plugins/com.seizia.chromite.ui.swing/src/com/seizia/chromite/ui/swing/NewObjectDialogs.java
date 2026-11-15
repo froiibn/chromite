@@ -22,6 +22,7 @@ import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
 import com.seizia.chromite.ext.mssql.model.SQLServerLogin;
 import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
 import com.seizia.chromite.ext.mysql.model.MySQLCharset;
@@ -109,6 +110,7 @@ import java.util.function.Function;
  * - 2026-11-15 Altibase 계열 테이블스페이스·데이터 파일은 {@link AltibaseTablespaceDialogs}가 묻는다({@link #load}를
  *   패키지 안에 엶: 자동 확장 설정이 지금 값을 읽음) (docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-15 Oracle 테이블스페이스·데이터 파일은 {@link OracleStorageDialogs}가 묻는다(앱 변경 #127, docs/chromite/oracle-storage.md)
+ * - 2026-11-15 SQL Server 데이터·로그 파일은 {@link SQLServerStorageDialogs}가 묻는다 (앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 final class NewObjectDialogs {
 
@@ -159,7 +161,9 @@ final class NewObjectDialogs {
             || PostgreTablespace.class.isAssignableFrom(childClass) || PostgreExtension.class.isAssignableFrom(childClass)
             || AltibaseTablespace.class.isAssignableFrom(childClass) || AltibaseDataFile.class.isAssignableFrom(childClass)
             // Oracle (app change #127)
-            || OracleTablespace.class.isAssignableFrom(childClass) || OracleDataFile.class.isAssignableFrom(childClass);
+            || OracleTablespace.class.isAssignableFrom(childClass) || OracleDataFile.class.isAssignableFrom(childClass)
+            // SQL Server database files
+            || SQLServerDatabaseFile.class.isAssignableFrom(childClass);
     }
 
     /**
@@ -190,6 +194,9 @@ final class NewObjectDialogs {
             return OracleStorageDialogs.askTablespace(owner, title, dataSource);
         } else if (OracleDataFile.class.isAssignableFrom(childClass) && container instanceof OracleTablespace) {
             return OracleStorageDialogs.askDataFile(owner, title);
+        } else if (SQLServerDatabaseFile.class.isAssignableFrom(childClass)) {
+            // SQL Server data files (container: a filegroup) and log files (container: the database)
+            return SQLServerStorageDialogs.askFile(owner, title, container);
         }
         return askName(owner, title, childClass);
     }

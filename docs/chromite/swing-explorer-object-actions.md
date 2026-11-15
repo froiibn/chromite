@@ -155,6 +155,8 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 | 온라인으로 전환 / 오프라인으로 전환 | Altibase 계열 메모리·디스크 데이터 사용자 테이블스페이스 | `ALTER TABLESPACE t ONLINE / OFFLINE`(지금 상태의 항목은 꺼짐, [altibase.md](altibase.md) "테이블스페이스 관리") |
 | 자동 확장 설정… / 데이터 파일 설정… | Altibase 계열 메모리·휘발성 테이블스페이스 / 디스크 데이터·임시 파일(한 개 선택) | 설정 대화상자(지금 값) 뒤 `ALTER TABLESPACE … ALTER AUTOEXTEND …` / `… ALTER DATAFILE 'f' SIZE …`·`AUTOEXTEND …`. 바뀐 것이 없으면 "문장 없음" 알림 |
 | 온라인으로 전환 / 오프라인으로 전환, 읽기 전용으로 전환 / 읽기 쓰기로 전환, 데이터 파일 설정… | Oracle 영구·언두 테이블스페이스(읽기 전용은 영구만), 데이터·임시 파일(한 개 선택). SYSTEM·SYSAUX·기본·활성 언두 제외 | `ALTER TABLESPACE t ONLINE / OFFLINE / READ ONLY / READ WRITE`(지금 상태의 항목은 꺼짐), `ALTER DATABASE DATAFILE / TEMPFILE 'f' RESIZE …`·`AUTOEXTEND …`([oracle-storage.md](oracle-storage.md)) |
+| 기본 파일 그룹으로 설정 / 읽기 전용으로 전환 / 읽기 쓰기로 전환 | SQL Server 행 데이터 파일 그룹(읽기 전용은 PRIMARY 제외) | `ALTER DATABASE d MODIFY FILEGROUP fg DEFAULT / READ_ONLY / READ_WRITE`(지금 상태의 항목과 파일이 없는 파일 그룹의 항목은 꺼짐, [mssql-storage.md](mssql-storage.md)) |
+| 파일 설정… | SQL Server 데이터·로그 파일(읽기 전용 제외, 한 개 선택) | 설정 대화상자(지금 값) 뒤 `ALTER DATABASE d MODIFY FILE (NAME = N'f', SIZE …, FILEGROWTH …, MAXSIZE …)`(바뀐 것만). 바뀐 것이 없으면 "문장 없음" 알림 |
 | 컴파일 | Oracle 저장 코드·뷰·구체화된 뷰·트리거·사용자 형식, Altibase 뷰·프로시저·함수·패키지 | Oracle `getCompileActions`(`ALTER … COMPILE`, 패키지는 `COMPILE BODY`도), Altibase 도구의 `ALTER … COMPILE`. 결과와 오류 목록은 [swing-routines.md](swing-routines.md) "컴파일" |
 
 - **흐름**: (TRUNCATE만) 경고 확인 → 스크립트 미리 보기(삭제와 같은 머리글, 취소가 기본 단추, 쿼리 창으로 열기) → 열린 트랜잭션 질문 → 실행.
@@ -285,3 +287,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-15 Altibase 계열 테이블스페이스: 삭제 확인의 내용·데이터 파일 확인란, 유지 관리 명령 온라인·오프라인·자동 확장 설정·데이터 파일 설정(앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").
 - 2026-11-15 Oracle 테이블스페이스: 삭제 확인의 세 확인란, 이름 바꾸기, 유지 관리 명령 온라인·오프라인·읽기 전용·읽기 쓰기·데이터 파일 설정(앱 변경 #127, [oracle-storage.md](oracle-storage.md)). 데이터 파일 설정 툴팁의 문장을 두 DB에 맞게 `ALTER ... DATAFILE ...`로 바꿈.
 - 2026-11-15 PostgreSQL 테이블스페이스 이름 바꾸기(앱 변경 #129, [swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
+- 2026-11-15 SQL Server 파일 그룹·파일: 유지 관리 명령 기본 파일 그룹으로 설정·읽기 전용·읽기 쓰기·파일 설정, 파일 그룹·파일의 삭제·이름 바꾸기(앱 변경 #128, [mssql-storage.md](mssql-storage.md)).

@@ -90,6 +90,13 @@ public class CreateObjectMessages extends NLS {
     public static String create_type_undo;
     public static String create_label_bigfile;
 
+    // SQL Server database files
+    public static String create_label_file;
+    public static String create_label_autogrowth;
+    public static String create_label_growth;
+    public static String create_error_file;
+    public static String create_error_growth;
+
     static {
         NLS.initializeMessages(BUNDLE_NAME, CreateObjectMessages.class);
     }

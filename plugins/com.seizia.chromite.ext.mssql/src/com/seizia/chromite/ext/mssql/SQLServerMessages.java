@@ -46,6 +46,10 @@ public class SQLServerMessages extends NLS {
     public static String index_type_XML;
     public static String index_type_Spatial;
 
+    // Chromite: database file properties (docs/chromite/mssql-storage.md)
+    public static String storage_growth_none;
+    public static String storage_size_unlimited;
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, SQLServerMessages.class);

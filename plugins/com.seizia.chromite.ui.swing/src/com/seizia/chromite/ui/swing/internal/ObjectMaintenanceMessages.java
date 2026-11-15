@@ -95,6 +95,20 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_tbs_read_write_tip;
     public static String objmaint_tbs_read_write_title;
 
+    // SQL Server filegroups and database files
+    public static String objmaint_mssql_fg_default;
+    public static String objmaint_mssql_fg_default_tip;
+    public static String objmaint_mssql_fg_default_title;
+    public static String objmaint_mssql_fg_read_only;
+    public static String objmaint_mssql_fg_read_only_tip;
+    public static String objmaint_mssql_fg_read_only_title;
+    public static String objmaint_mssql_fg_read_write;
+    public static String objmaint_mssql_fg_read_write_tip;
+    public static String objmaint_mssql_fg_read_write_title;
+    public static String objmaint_mssql_file_settings;
+    public static String objmaint_mssql_file_settings_tip;
+    public static String objmaint_mssql_file_settings_title;
+
     static {
         NLS.initializeMessages(BUNDLE_NAME, ObjectMaintenanceMessages.class);
     }

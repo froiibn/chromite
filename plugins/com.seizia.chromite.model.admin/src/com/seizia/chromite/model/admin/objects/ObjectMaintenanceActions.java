@@ -35,6 +35,9 @@ import com.seizia.chromite.ext.altibase.tasks.AltibaseToolReplicationStart;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolReplicationStop;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolTableTruncate;
 import com.seizia.chromite.ext.altibase.tasks.AltibaseToolViewCompile;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
+import com.seizia.chromite.ext.mssql.model.SQLServerFilegroup;
+import com.seizia.chromite.ext.mssql.model.SQLServerStorageDDL;
 import com.seizia.chromite.ext.mssql.model.SQLServerTable;
 import com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger;
 import com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerDisable;
@@ -129,6 +132,10 @@ import java.util.function.Consumer;
  *     <li>Oracle 테이블스페이스 — 온라인·오프라인(영구·언두), 읽기 전용·읽기 쓰기(영구), 데이터·임시 파일의 크기와 자동 확장. 문장은
  *     {@link OracleTablespaceDDL}(시험 서버에서 확인한 문법)이고, 데이터베이스가 기대는 테이블스페이스에는 명령이 없다
  *     ({@code OracleTablespace.isFixedStorage}). 상태는 모델이 읽은 {@code DBA_TABLESPACES.STATUS}다.</li>
+ *     <li>SQL Server 파일 그룹 — 기본 파일 그룹으로, 읽기 전용·읽기 쓰기, 데이터·로그 파일의 크기·자동 증가·최대 크기. 문장은
+ *     {@link SQLServerStorageDDL}(시험 서버에서 확인한 문법)이다. 상태는 모델이 읽은 {@code sys.filegroups} 행이고, 파일이 없는 파일 그룹은
+ *     서버가 바꾸지 않는다({@link #changesFilegroupState}). 격리된 실행 문맥이 수동 커밋이어도 열린 트랜잭션이 없으면 서버가 {@code ALTER DATABASE}를
+ *     받는다(시험 서버에서 확인).</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -146,6 +153,7 @@ import java.util.function.Consumer;
  *   docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-15 Oracle 테이블스페이스 온라인·오프라인, 읽기 전용·읽기 쓰기, 데이터 파일 설정(앱 변경 #127,
  *   docs/chromite/oracle-storage.md)
+ * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 public final class ObjectMaintenanceActions {
 
@@ -176,7 +184,15 @@ public final class ObjectMaintenanceActions {
         DATA_FILE_SETTINGS,
         // Oracle (app change #127)
         TABLESPACE_READ_ONLY,
-        TABLESPACE_READ_WRITE
+        TABLESPACE_READ_WRITE,
+        // SQL Server filegroups and database files
+        FILEGROUP_DEFAULT,
+        FILEGROUP_READ_ONLY,
+        FILEGROUP_READ_WRITE,
+        /**
+         * Size, autogrowth and maximum size of a SQL Server data or log file; settings: {@link SQLServerStorageDDL.FileSpec} (the change).
+         */
+        DATABASE_FILE_SETTINGS
     }
 
     /**
@@ -184,7 +200,7 @@ public final class ObjectMaintenanceActions {
      * Action, List, Object)}).
      */
     public static boolean needsSettings(@NotNull Action action) {
-        return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS;
+        return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS || action == Action.DATABASE_FILE_SETTINGS;
     }
 
     /**
@@ -234,6 +250,10 @@ public final class ObjectMaintenanceActions {
             case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();
             // Oracle only (above)
             case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> false;
+            // SQL Server filegroups and database files
+            case FILEGROUP_DEFAULT -> object instanceof SQLServerFilegroup filegroup && filegroup.supportsChanges();
+            case FILEGROUP_READ_ONLY, FILEGROUP_READ_WRITE -> object instanceof SQLServerFilegroup filegroup && filegroup.supportsSecondaryChanges();
+            case DATABASE_FILE_SETTINGS -> object instanceof SQLServerDatabaseFile file && file.supportsChanges();
         };
     }
 
@@ -248,6 +268,22 @@ public final class ObjectMaintenanceActions {
             return tablespace.isOnline();
         }
         return object instanceof AltibaseTablespace tablespace ? tablespace.isOnline() : null;
+    }
+
+    /**
+     * Whether a SQL Server filegroup command changes the filegroup as the model read it: not already the default (Set as
+     * Default), read-only or read-write; never for a filegroup without files (the server refuses, 5050).
+     */
+    public static boolean changesFilegroupState(@NotNull Action action, @NotNull DBSObject object) {
+        if (!(object instanceof SQLServerFilegroup filegroup) || filegroup.getFileCount() == 0) {
+            return false;
+        }
+        return switch (action) {
+            case FILEGROUP_DEFAULT -> !filegroup.isDefault();
+            case FILEGROUP_READ_ONLY -> !filegroup.isReadOnly();
+            case FILEGROUP_READ_WRITE -> filegroup.isReadOnly();
+            default -> false;
+        };
     }
 
     /**
@@ -567,6 +603,24 @@ public final class ObjectMaintenanceActions {
             case DATA_FILE_SETTINGS -> {
                 if (object instanceof AltibaseDataFile4Disk file && commandSettings instanceof AltibaseTablespaceDDL.Space change) {
                     for (String sql : AltibaseTablespaceDDL.alterFile(file, change)) {
+                        actions.add(new SQLDatabasePersistAction(sql));
+                    }
+                }
+            }
+            // SQL Server filegroups and database files
+            case FILEGROUP_DEFAULT -> {
+                if (object instanceof SQLServerFilegroup filegroup) {
+                    actions.add(new SQLDatabasePersistAction(SQLServerStorageDDL.setDefault(filegroup)));
+                }
+            }
+            case FILEGROUP_READ_ONLY, FILEGROUP_READ_WRITE -> {
+                if (object instanceof SQLServerFilegroup filegroup) {
+                    actions.add(new SQLDatabasePersistAction(SQLServerStorageDDL.setReadOnly(filegroup, action == Action.FILEGROUP_READ_ONLY)));
+                }
+            }
+            case DATABASE_FILE_SETTINGS -> {
+                if (object instanceof SQLServerDatabaseFile file && commandSettings instanceof SQLServerStorageDDL.FileSpec change) {
+                    for (String sql : SQLServerStorageDDL.modifyFile(file, change)) {
                         actions.add(new SQLDatabasePersistAction(sql));
                     }
                 }

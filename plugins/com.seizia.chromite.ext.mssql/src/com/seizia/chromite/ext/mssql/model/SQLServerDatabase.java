@@ -20,6 +20,7 @@ package com.seizia.chromite.ext.mssql.model;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mssql.SQLServerConstants;
 import com.seizia.chromite.ext.mssql.SQLServerUtils;
@@ -66,6 +67,8 @@ import java.util.TreeSet;
 * - 2026-11-08 {@link #getCollationNames}: 새 데이터베이스 대화상자가 정렬 규칙 목록을 고르게 공개 (docs/chromite/swing-create-objects.md)
 * - 2026-11-09 Babelfish 스키마 목록 질의: 데이터베이스 이름을 식별자 따옴표가 아니라 이스케이프한 문자열로 비교. 따옴표가 필요한 이름은
 *   {@code [이름]}이 되어 맞지 않았고 {@code '}가 있으면 질의가 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
+* - 2026-11-15 파일 그룹·로그 파일 목록({@link #getFilegroups}, {@link #getLogFiles})과 저장소 명령을 받는지({@link #supportsStorageChanges}):
+*   탐색기의 Storage 폴더. 목록은 폴더를 열 때 그 데이터베이스의 카탈로그 뷰에서 읽는다 (앱 변경 #128, docs/chromite/mssql-storage.md)
 */
 public class SQLServerDatabase
     implements
@@ -109,6 +112,8 @@ public class SQLServerDatabase
     private DataTypeCache typesCache = new DataTypeCache();
     private SchemaCache schemaCache = new SchemaCache();
     private TriggerCache triggerCache = new TriggerCache();
+    private final FilegroupCache filegroupCache = new FilegroupCache();
+    private final LogFileCache logFileCache = new LogFileCache();
 
     private Long databaseTotalSize;
 
@@ -294,6 +299,8 @@ public class SQLServerDatabase
         typesCache.clearCache();
         schemaCache.clearCache();
         triggerCache.clearCache();
+        filegroupCache.clearCache();
+        logFileCache.clearCache();
         databaseTotalSize = null;
         description = null;
         supportedCollations = null;
@@ -691,6 +698,131 @@ public class SQLServerDatabase
             return new SQLServerDatabaseTrigger(database, resultSet);
         }
 
+    }
+
+    //////////////////////////////////////////////////
+    // Storage: filegroups and log files (Chromite, docs/chromite/mssql-storage.md)
+
+    // database_id of master, tempdb, model and msdb (fixed by the server)
+    private static final long MAX_SYSTEM_DATABASE_ID = 4;
+
+    @Association
+    @NotNull
+    public Collection<SQLServerFilegroup> getFilegroups(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return filegroupCache.getAllObjects(monitor, this);
+    }
+
+    @NotNull
+    public FilegroupCache getFilegroupCache() {
+        return filegroupCache;
+    }
+
+    @Association
+    @NotNull
+    public Collection<SQLServerDatabaseFile> getLogFiles(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return logFileCache.getAllObjects(monitor, this);
+    }
+
+    @NotNull
+    public LogFileCache getLogFileCache() {
+        return logFileCache;
+    }
+
+    /**
+     * Whether Object Explorer offers storage commands (filegroups, files) for this database: a user database (not master,
+     * tempdb, model, msdb: tempdb file changes take effect only at the next start and the others belong to the server),
+     * online, on a server whose files users manage ({@link SQLServerDataSource#supportsDatabaseFiles}).
+     */
+    public boolean supportsStorageChanges() {
+        return persisted && databaseId > MAX_SYSTEM_DATABASE_ID && dataSource.supportsDatabaseFiles()
+            && (stateDesc == null || SQLServerConstants.DATABASE_STATE_ONLINE.equalsIgnoreCase(stateDesc));
+    }
+
+    /**
+     * The server's default folder for new data or log files ({@code SERVERPROPERTY('InstanceDefaultDataPath' |
+     * 'InstanceDefaultLogPath')}, with its trailing separator); empty if the server does not tell (before SQL Server 2012).
+     */
+    @NotNull
+    public String readDefaultFileFolder(@NotNull DBRProgressMonitor monitor, boolean log) throws DBException {
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Read default file folder")) { //$NON-NLS-1$
+            String folder = JDBCUtils.queryString(session, log
+                ? "SELECT CAST(SERVERPROPERTY('InstanceDefaultLogPath') AS nvarchar(260))" //$NON-NLS-1$
+                : "SELECT CAST(SERVERPROPERTY('InstanceDefaultDataPath') AS nvarchar(260))"); //$NON-NLS-1$
+            return CommonUtils.notEmpty(folder);
+        } catch (SQLException e) {
+            throw new DBDatabaseException("Can't read the default file folder", e, dataSource);
+        }
+    }
+
+    /**
+     * The filegroup rows of the database with their file counts (a filegroup without files cannot become the default or
+     * read-only).
+     */
+    @NotNull
+    static String getFilegroupQuery(@NotNull SQLServerDatabase database) {
+        return "SELECT fg.name, fg.data_space_id, fg.type, fg.type_desc, fg.is_default, fg.is_read_only, " //$NON-NLS-1$
+            + "(SELECT COUNT(*) FROM " + SQLServerUtils.getSystemTableName(database, "database_files") //$NON-NLS-1$ //$NON-NLS-2$
+            + " f WHERE f.data_space_id = fg.data_space_id) AS file_count FROM " //$NON-NLS-1$
+            + SQLServerUtils.getSystemTableName(database, "filegroups") + " fg"; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Reads the rows of the cached filegroups again in place (a new default filegroup also changes the old one) and tells
+     * the navigator about the other filegroups that changed.
+     *
+     * @return false if the target filegroup no longer exists
+     */
+    boolean reloadFilegroups(@NotNull JDBCSession session, @NotNull SQLServerFilegroup target) throws SQLException {
+        boolean found = false;
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(getFilegroupQuery(this));
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            while (dbResult.next()) {
+                int dataSpaceId = JDBCUtils.safeGetInt(dbResult, "data_space_id");
+                for (SQLServerFilegroup filegroup : filegroupCache.getCachedObjects()) {
+                    if (filegroup.getDataSpaceId() != dataSpaceId) {
+                        continue;
+                    }
+                    boolean wasDefault = filegroup.isDefault();
+                    boolean wasReadOnly = filegroup.isReadOnly();
+                    filegroup.loadRow(dbResult);
+                    if (filegroup == target) {
+                        found = true;
+                    } else if (wasDefault != filegroup.isDefault() || wasReadOnly != filegroup.isReadOnly()) {
+                        DBUtils.fireObjectUpdate(filegroup);
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    public class FilegroupCache extends JDBCObjectCache<SQLServerDatabase, SQLServerFilegroup> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull SQLServerDatabase database) throws SQLException {
+            return session.prepareStatement(getFilegroupQuery(database) + " ORDER BY fg.data_space_id"); //$NON-NLS-1$
+        }
+
+        @Override
+        protected SQLServerFilegroup fetchObject(@NotNull JDBCSession session, @NotNull SQLServerDatabase database, @NotNull JDBCResultSet resultSet) {
+            return new SQLServerFilegroup(database, resultSet);
+        }
+    }
+
+    public class LogFileCache extends JDBCObjectCache<SQLServerDatabase, SQLServerDatabaseFile> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull SQLServerDatabase database) throws SQLException {
+            JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * FROM " //$NON-NLS-1$
+                + SQLServerUtils.getSystemTableName(database, "database_files") + " WHERE type = ? ORDER BY file_id"); //$NON-NLS-1$ //$NON-NLS-2$
+            dbStat.setInt(1, SQLServerDatabaseFile.TYPE_LOG);
+            return dbStat;
+        }
+
+        @Override
+        protected SQLServerDatabaseFile fetchObject(@NotNull JDBCSession session, @NotNull SQLServerDatabase database, @NotNull JDBCResultSet resultSet) {
+            return new SQLServerDatabaseFile(database, database, resultSet);
+        }
     }
 
 }
