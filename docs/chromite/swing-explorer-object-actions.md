@@ -20,6 +20,8 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
   - 한 개: "{연결}에서 {형식} "{정규화된 이름}"을(를) 삭제하시겠습니까?"
   - 여러 개: "{연결}에서 다음 개체 N개를 삭제하시겠습니까?"와 이름·형식 표(10줄까지 보이고 넘으면 스크롤).
   - 객체 관리자가 지원할 때만 "종속 개체도 삭제(CASCADE)", "기존 연결 닫기"(데이터베이스 삭제) 확인란.
+  - Altibase 계열 테이블스페이스는 "내용도 삭제(INCLUDING CONTENTS)", "데이터 파일도 삭제(AND DATAFILES)"가 앞에 더 있다(모두 꺼짐). 파일과 CASCADE는 서버 문법상
+    내용과 함께일 때만 되므로 내용을 고를 때만 켜진다(`DeleteOption.CONTENTS`·`DATA_FILES`, 기능 비트 `FEATURE_DELETE_CONTENTS`·`FEATURE_DELETE_DATA_FILES`).
 - 이름 바꾸기: "{형식} 이름 바꾸기" 입력 창(지금 이름이 들어 있음). 연결 노드의 이름 바꾸기와 같은 모양이다.
 - 스크립트 미리 보기(`ScriptPreviewDialog`, 기본 단추 "취소"): 머리글 "다음 스크립트를 {연결}에서 실행합니다. 지금 실행하시겠습니까?",
   DDL을 바로 커밋하는 DB면 "이 데이터베이스는 DDL 문을 바로 커밋하므로 변경을 롤백할 수 없습니다." 한 줄이 더 붙는다.
@@ -148,6 +150,8 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 | 테이블 잘라내기 | PostgreSQL 테이블(외부 테이블 제외), MySQL/MariaDB·Oracle·Altibase·SQL Server 테이블 | PG `TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT`(`PostgreToolTableTruncate`), MySQL `TRUNCATE TABLE t`(`MySQLToolTableTruncate`), Oracle `TRUNCATE TABLE t`(`OracleToolTableTruncate`), Altibase `TRUNCATE TABLE t`(`AltibaseToolTableTruncate`), SQL Server `TRUNCATE TABLE db.schema.t`(모델 도구 없음, 직접) |
 | 트리거 사용 / 트리거 사용 안 함 | PostgreSQL 테이블·이벤트 트리거, SQL Server 테이블 트리거, Oracle 테이블 트리거 | `ALTER TABLE t ENABLE/DISABLE TRIGGER tr`(PG, SQL Server), `ALTER TRIGGER s.tr ENABLE/DISABLE`(Oracle) |
 | 구체화된 뷰 새로 고침 | PostgreSQL·Oracle·Altibase 구체화된 뷰 | `REFRESH MATERIALIZED VIEW v WITH DATA`(PG), `CALL DBMS_MVIEW.REFRESH('s.v','')`(Oracle, 뷰의 새로 고침 방식), `EXEC SYSTEM_.REFRESH_MATERIALIZED_VIEW('S', 'V')`(Altibase) |
+| 온라인으로 전환 / 오프라인으로 전환 | Altibase 계열 메모리·디스크 데이터 사용자 테이블스페이스 | `ALTER TABLESPACE t ONLINE / OFFLINE`(지금 상태의 항목은 꺼짐, [altibase.md](altibase.md) "테이블스페이스 관리") |
+| 자동 확장 설정… / 데이터 파일 설정… | Altibase 계열 메모리·휘발성 테이블스페이스 / 디스크 데이터·임시 파일(한 개 선택) | 설정 대화상자(지금 값) 뒤 `ALTER TABLESPACE … ALTER AUTOEXTEND …` / `… ALTER DATAFILE 'f' SIZE …`·`AUTOEXTEND …`. 바뀐 것이 없으면 "문장 없음" 알림 |
 | 컴파일 | Oracle 저장 코드·뷰·구체화된 뷰·트리거·사용자 형식, Altibase 뷰·프로시저·함수·패키지 | Oracle `getCompileActions`(`ALTER … COMPILE`, 패키지는 `COMPILE BODY`도), Altibase 도구의 `ALTER … COMPILE`. 결과와 오류 목록은 [swing-routines.md](swing-routines.md) "컴파일" |
 
 - **흐름**: (TRUNCATE만) 경고 확인 → 스크립트 미리 보기(삭제와 같은 머리글, 취소가 기본 단추, 쿼리 창으로 열기) → 열린 트랜잭션 질문 → 실행.
@@ -275,3 +279,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-08 `runChange`를 속성 편집도 씀. 문장이 없는 변경은 빈 미리 보기 대신 알리고 되돌림([swing-object-properties.md](swing-object-properties.md)).
 - 2026-11-13 끌어서 이름 넣기(앱 변경 #112): 트리 끌기(복사만), 쿼리 편집기가 놓은 자리에 한 실행 취소 단계로 넣음. SQL Server·PostgreSQL·MariaDB·Oracle에서 실제 마우스 끌기로 확인.
 - 2026-11-13 놓는 창에 맞춘 이름(#112 검토): 같은 연결의 쿼리 창이 개체의 DB에 있으면 DB.스키마.개체에서 DB를 뺌(SQL Server `dbo.t`). 다른 꼴의 이름·다른 창은 그대로.
+- 2026-11-15 Altibase 계열 테이블스페이스: 삭제 확인의 내용·데이터 파일 확인란, 유지 관리 명령 온라인·오프라인·자동 확장 설정·데이터 파일 설정(앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").

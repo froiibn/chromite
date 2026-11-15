@@ -372,6 +372,149 @@ Altibase 계열 연결(Altibase, ShardSphere)의 실행 문맥이 세션의 기�
 
 - `plugin.xml` 두 드라이버의 `query-get-active-db`, `AltibaseConstants.QUERY_GET_DB_NAME`, `AltibaseDataSource.getDbName`이 그 상수를 씀(필드 `queryGetActiveDB` 지움).
 
+## 테이블스페이스 관리 (2026-11-15, 앱 변경 #126)
+
+### 목적
+
+사용자 요청 "테이블스페이스 관리 기능도 포함되어있나?" → "추가 개발 항목에 포함한다" → "현재 어플리케이션의 UI UX흐름의 관점을 해치지 않게 하고
+불필요한 주저리주저리 나열하는 멘트는 넣지 않는다". 전에는 Storage > Tablespaces가 조회만 됐다. Altibase 계열 연결(Altibase, ShardSphere: 같은 모델,
+제품 이름 검사 없음)에서 테이블스페이스를 만들고 지우고, 온라인·오프라인으로 바꾸고, 데이터 파일과 자동 확장을 바꾼다. 모든 명령은 기존 흐름 안에 있다:
+Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(취소가 기본) → 열린 트랜잭션 질문 → 실행 → 트리 갱신. 새 창 종류·마법사·설명 문단은 없다.
+
+### 화면
+
+| 위치 | 메뉴 항목 | 흐름 | 문장 |
+|---|---|---|---|
+| Storage > Tablespaces 폴더 | New Tablespace… / 새 테이블스페이스 | 이름·종류(메모리·디스크·임시·휘발성)·데이터 파일·크기(MB)·자동 확장·증가 크기·최대 크기 대화상자 → 미리 보기 | `CREATE [MEMORY | VOLATILE | TEMPORARY] TABLESPACE …` |
+| 사용자 테이블스페이스 노드 | Delete(기존 명령) | 삭제 확인(확인란: 내용도 삭제, 데이터 파일도 삭제, 종속 개체도 삭제(CASCADE). 모두 꺼짐, 뒤의 둘은 내용을 고를 때만 켜짐) → 미리 보기 | `DROP TABLESPACE t [INCLUDING CONTENTS [AND DATAFILES] [CASCADE CONSTRAINTS]]` |
+| 메모리·디스크 데이터 사용자 테이블스페이스 | Bring Online / Take Offline (온라인으로 전환 / 오프라인으로 전환) | 트리거 사용/사용 안 함과 같음: 지금 상태의 항목은 꺼짐, 미리 보기가 확인 | `ALTER TABLESPACE t ONLINE / OFFLINE` |
+| 메모리·휘발성 사용자 테이블스페이스 | Autoextend Settings… / 자동 확장 설정 | 지금 값으로 채운 대화상자 → 미리 보기 | `ALTER TABLESPACE t ALTER AUTOEXTEND ON [NEXT n] [MAXSIZE n] / OFF` |
+| 디스크 데이터·임시 테이블스페이스의 Data Files 폴더 | New Data File… / 새 데이터 파일 | 파일·크기·자동 확장 대화상자 → 미리 보기 | `ALTER TABLESPACE t ADD DATAFILE / TEMPFILE 'f' [SIZE n] [AUTOEXTEND …]` |
+| 그 폴더의 파일 노드 | Data File Settings… / 데이터 파일 설정 | 지금 값으로 채운 대화상자(바뀐 것만) → 미리 보기 | `ALTER TABLESPACE t ALTER DATAFILE / TEMPFILE 'f' SIZE n`, `… AUTOEXTEND …`(두 문장) |
+| 그 파일 노드 | Delete(기존 명령) | 삭제 확인 → 미리 보기 | `ALTER TABLESPACE t DROP DATAFILE / TEMPFILE 'f'` |
+
+- 시스템 테이블스페이스(종류 코드 0, 1, 3, 5, 7: 사전, 시스템 데이터, 디스크 시스템 데이터, 시스템 임시, 언두)에는 새 명령이 보이지 않고 Delete는 꺼져 있다
+  (Delete는 지울 수 없는 모든 개체에서 꺼진 항목으로 보이는 기존 메뉴다). 이름 목록이 아니라 `V$TABLESPACES.TYPE`으로 판단한다.
+- 대화상자의 빈 칸은 문장에서 빠진다(서버 기본값). 메모리·휘발성의 크기는 서버가 요구해서 비울 수 없다. 설정 대화상자에서 아무것도 바꾸지 않으면 속성
+  편집과 같은 "실행할 문장이 없다" 알림이다.
+- DDL이 세션의 트랜잭션을 커밋하므로 미리 보기 머리글에 "DDL 문을 바로 커밋" 줄이 붙는다(JDBC `dataDefinitionCausesTransactionCommit` = true, 아래 확인).
+- 이름 바꾸기는 없다(서버에 문장이 없음).
+
+### 구조
+
+| 위치 | 내용 |
+|---|---|
+| `ext.altibase` `model/AltibaseTablespaceDDL`(새) | 확인한 문법으로 문장을 만드는 한 곳: 만들기, 삭제, 온라인·오프라인, 자동 확장, 파일 추가·변경·삭제. 크기는 KB(1024 배수면 `M`, 아니면 `K`) |
+| `ext.altibase` `edit/AltibaseTablespaceManager`(새) | 객체 관리자: 만들기(데이터 원본 컨테이너만), 삭제(사용자 종류만, 옵션 셋), CREATE 직후 새 행 읽기 |
+| `ext.altibase` `edit/AltibaseDataFileManager`(새) | 객체 관리자: 파일 추가·삭제(사용자 디스크 데이터·임시만), 직후 파일·테이블스페이스 행 다시 읽기 |
+| `ext.altibase` `AltibaseTablespace`, `AltibaseDataFile`, `AltibaseDataFile4Disk` | 새 객체 생성자, 종류별 지원 판단, 행 다시 읽기(`refreshObject`가 상태·파일 수도 다시 읽음), 자동 확장 읽기(`V$MEM_TABLESPACES`, `V$VOL_TABLESPACES`) |
+| `ext.altibase` `plugin.xml`, `bundle_ko.properties` | 관리자 두 개 등록, 한국어 `tree.file.node.name`을 "데이터 파일"로(메뉴가 "새 파일"로 보이지 않게) |
+| `model` `DBEObjectMaker`, `DBEObjectManager` | 기능 비트 `FEATURE_DELETE_CONTENTS`, `FEATURE_DELETE_DATA_FILES`와 옵션 키 |
+| `model.admin` `ObjectMaintenanceActions` | 동작 `TABLESPACE_ONLINE`, `TABLESPACE_OFFLINE`, `TABLESPACE_AUTOEXTEND`, `DATA_FILE_SETTINGS`(복제 명령과 같은 모양, 격리 문맥에서 실행) |
+| `ui.swing` `AltibaseTablespaceDialogs`(새) | 네 대화상자(새 테이블스페이스, 새 데이터 파일, 자동 확장 설정, 데이터 파일 설정). `DesignerDialogs.showDialog` 틀 |
+| `ui.swing` `NewObjectDialogs`, `ObjectMaintenanceCommands`, `ExplorerObjectCommands` | 대화상자 연결, 메뉴 네 항목과 실행 뒤 테이블스페이스 노드 다시 읽기, 삭제 확인의 두 확인란과 의존 |
+| `ui.swing` `CreateObjectMessages`, `ObjectMaintenanceMessages`, `NavigatorMessages`(+`_ko`) | 화면 문구(아래 "문구") |
+
+### 확인한 문법 (Altibase 7.3.0.0.7 시험 서버, SYS와 임시 사용자 `CHR_TS_USER`, `CHR_TS_*` 테이블스페이스만, 끝에 모두 지움)
+
+| 문장 | 서버의 답 |
+|---|---|
+| `CREATE TABLESPACE x` / `CREATE DISK DATA TABLESPACE x`(파일 없음) | 구문 오류 200705: 디스크는 `DATAFILE`이 꼭 필요 |
+| `CREATE DISK DATA TABLESPACE x DATAFILE 'f.dbf' SIZE 32K` | 69924 "Not even one extent can be created (… Minimum File Size : 67 pages)": 최소 약 536 KB |
+| `CREATE TABLESPACE x DATAFILE 'f.dbf' SIZE 4M` | 됨. 상대 경로는 `DEFAULT_DISK_DB_DIR`(`/opt/altibase/dbs/f.dbf`), 종류 4, 페이지 8 KB |
+| `CREATE TABLESPACE x DATAFILE 'f.dbf'`(크기 없음) | 됨, 12800 페이지 = 100 MB(`USER_DATA_FILE_INIT_SIZE`) |
+| 같은 이름으로 다시 | 201175 "Duplicate tablespace names" |
+| `CREATE DATA TABLESPACE …` | 구문 오류 |
+| `… AUTOEXTEND ON NEXT 1M MAXSIZE 8M`, `… AUTOEXTEND ON`(NEXT 128, MAX 262143 페이지), `… NEXT 512K`, `DATAFILE 'a' SIZE 2M AUTOEXTEND OFF, 'b' SIZE 1M` | 모두 됨 |
+| `… MAXSIZE UNLIMITED` | 201748 "The total size of all disk tablespaces exceeds the maximum limit"(`DISK_MAX_DB_SIZE` 50 GB) |
+| `CREATE MEMORY TABLESPACE x`(크기 없음) | 구문 오류 |
+| `CREATE MEMORY TABLESPACE x SIZE 1M` | 69870 "must be a multiple of the expand chunk size (… = 4096K)" |
+| `CREATE MEMORY [DATA] TABLESPACE x SIZE 4M [AUTOEXTEND ON NEXT 4M MAXSIZE 16M / OFF]` | 됨, 종류 2, 체크포인트 경로 `MEM_DB_DIR` |
+| `CREATE VOLATILE [DATA] TABLESPACE x SIZE 4M AUTOEXTEND ON NEXT 4M MAXSIZE 16M` | 됨, 종류 8(크기 규칙은 메모리와 같음) |
+| `CREATE [DISK] TEMPORARY TABLESPACE x TEMPFILE 'f.dbf' SIZE 2M [AUTOEXTEND …]` | 됨, 종류 6 |
+| `ALTER TABLESPACE d ADD DATAFILE 'f' [SIZE 2M] [AUTOEXTEND ON NEXT 1M MAXSIZE 16M]` | 됨. 같은 파일 이름: 201194 "already in use by another tablespace" |
+| `ALTER TABLESPACE d ALTER DATAFILE 'f' SIZE 6M` (상대 이름, 전체 경로 둘 다), `SIZE 1M`(줄이기), `SIZE 4608K` | 됨 |
+| `… ALTER DATAFILE 'f' RESIZE 7M` / `… SIZE 8M AUTOEXTEND OFF` | 구문 오류: 크기와 자동 확장은 따로 |
+| `… ALTER DATAFILE 'f' AUTOEXTEND OFF / ON / ON NEXT 2M MAXSIZE 32M / ON MAXSIZE 4M` | 됨. NEXT를 빼면 NEXT가 기본(1 MB)으로 돌아감 |
+| `ALTER TABLESPACE d DROP DATAFILE 'f'` | 됨. **파일은 서버 디스크에 남음**. 첫 파일: 69686 "The data file is in use." |
+| 남은 파일을 다시 `ADD DATAFILE` | 69669 "The data file already exists"; `… SIZE 1M REUSE`는 됨 |
+| `ALTER TABLESPACE d OFFLINE / ONLINE` | 됨(STATE 1 / 2, 파일 STATE도). 다시: 69877 / 69876 "already in … mode". 오프라인 중 파일 추가: 69883 "Unable to use an offline tablespace" |
+| `ALTER TABLESPACE m OFFLINE / ONLINE`(메모리) | 됨 |
+| `ALTER TABLESPACE v/t OFFLINE`(휘발성, 임시) | 201191 "Unable to bring the specified tablespace online or offline." |
+| `ALTER TABLESPACE m ALTER AUTOEXTEND ON [NEXT 4M] [MAXSIZE 32M] / OFF`(메모리·휘발성) | 됨. 메모리 `ON`만: NEXT 4 MB, MAX 140737488322560 바이트. `NEXT 3M`: 69857 "multiple of the expand chunk size" |
+| `ALTER TABLESPACE m ADD DATAFILE …`(메모리) | 201297 "The tablespace to alter is not a disk tablespace." |
+| `ALTER TABLESPACE t ADD / ALTER / DROP TEMPFILE …`(임시) | 됨. `DATAFILE`로 쓰면 201178 "Mismatched tablespace type" |
+| `ALTER TABLESPACE x RENAME TO y`, `… RENAME y`, `RENAME TABLESPACE x TO y` | 모두 구문 오류: 이름 바꾸기 없음 |
+| `DROP TABLESPACE d`(개체 있음) | 201181 "The tablespace has objects." |
+| `DROP TABLESPACE d INCLUDING CONTENTS`(다른 테이블스페이스의 외래 키가 참조) | 201180 "A dependent foreign key constraint was found in another tablespace." |
+| `DROP TABLESPACE d INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS` | 됨(외래 키 제약도 지워짐). 순서를 바꾼 `… CASCADE CONSTRAINTS AND DATAFILES`, `AND DATAFILES`만, `CASCADE CONSTRAINTS`만: 구문 오류 |
+| `DROP TABLESPACE x`(파일 옵션 없이, 디스크·임시·메모리) | 됨. **파일(메모리는 `x-0-0`, `x-1-0` 체크포인트 이미지)이 서버 디스크에 남음**. 메모리는 같은 이름으로 다시 만들 수 없음(69669, `REUSE`는 메모리 문법에 없음) |
+| 이름 따옴표 `"CHR_TS_Q1"`, `"chr_ts_q2"` | 됨(소문자 이름 보존) |
+| 권한 없는 사용자 | 201137 "The user must have CREATE_TABLESPACE / ALTER_TABLESPACE / DROP_TABLESPACE privilege(s) to execute this statement." 세 권한을 주면 만들기·파일 추가·오프라인·삭제가 됨. `V$TABLESPACES`, `V$DATAFILES`는 권한 없이 읽힘 |
+| 트랜잭션 | 수동 커밋 세션의 INSERT 뒤 `CREATE TABLESPACE`·`ALTER … OFFLINE`·`DROP TABLESPACE`, 그리고 **실패한** `CREATE`(중복 이름)도 INSERT를 커밋함(롤백해도 행이 남음, 다른 세션에서 보임). JDBC `dataDefinitionCausesTransactionCommit` = true |
+
+- `MEM_MAX_DB_SIZE` 2 GB, `VOLATILE_MAX_DB_SIZE` 4 GB(서버 속성, 읽기만 함). 4 MB 메모리 테이블스페이스 몇 개로는 한도에 닿지 않아 그 오류는 보지 못했다.
+
+### 설계 결정
+
+- **기존 흐름만.** 만들기는 폴더의 New &lt;종류&gt;…(대화상자 길), 삭제는 기존 Delete, 상태·설정 명령은 유지 관리 명령(트리거·복제와 같은 메뉴 자리, 같은 미리 보기·트랜잭션 질문·격리 실행)이다.
+- **삭제 옵션 셋, 모두 꺼짐.** 서버 문법이 그대로 확인란이 된다. 파일과 CASCADE는 내용과 함께일 때만 문법이 되므로 내용을 고를 때만 켜진다. 파일을 남기면
+  같은 이름을 다시 쓸 수 없다는 것(위 표)은 문구로 늘어놓지 않고 이 문서와 보고에 적었다.
+- **문장은 모델 한 곳.** UI는 값만 넘긴다(`AltibaseTablespaceDDL`). 새 객체는 CREATE/ADD 직후 같은 세션에서 자기 행을 읽어 ID·종류·전체 경로를 받는다
+  (읽지 않으면 새 노드의 ID가 0이라 Files가 사전 테이블스페이스의 것을 읽는다).
+- **새로 고침.** 테이블스페이스 노드의 새로 고침이 캐시만 비우던 것을 자기 카탈로그 행도 다시 읽게 했다(상태·파일 수). Tablespaces 폴더의 F5는 연결 전체를
+  다시 읽으므로 명령 뒤에는 그 테이블스페이스 노드만 다시 읽는다.
+- **크기 단위 MB.** 칸 이름에 "(MB)". 소수도 받고(1 KB 단위), 서버가 거절하는 값(4 MB 배수 아님 등)은 서버 오류로 보인다.
+- **시스템 테이블스페이스의 파일·자동 확장은 넣지 않음.** 공유 시험 서버에서 시스템 테이블스페이스를 바꿀 수 없어 확인하지 못했다.
+
+### 확인 (2026-11-15, 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트, 연결은 암호를 저장하지 않음)
+
+| 명령 | 미리 보기의 문장 | 서버 결과(`V$TABLESPACES`·`V$DATAFILES`·`V$MEM/VOL_TABLESPACES`) | 트리 |
+|---|---|---|---|
+| New Tablespace… 디스크 | `CREATE TABLESPACE CHR_TS_APP_D1 DATAFILE 'chr_ts_app_d1_01.dbf' SIZE 4M AUTOEXTEND ON NEXT 1M MAXSIZE 16M` | 종류 4, 512/128/2048 페이지, 자동 확장 1 | 노드가 생기고 Data Files에 서버의 전체 경로 |
+| 메모리 / 휘발성 / 임시 | `CREATE MEMORY TABLESPACE … SIZE 4M`, `CREATE VOLATILE TABLESPACE … SIZE 4M AUTOEXTEND ON NEXT 4M MAXSIZE 8M`, `CREATE TEMPORARY TABLESPACE … TEMPFILE '…' SIZE 2M` | 종류 2, 8, 6 | 노드 생김 |
+| 대화상자에서 취소 / 미리 보기에서 취소 | — / 문장만 보임 | 바뀌지 않음 | 바뀌지 않음 |
+| 빈 이름, 디스크 파일 없음, 메모리 크기 없음 | 대화상자 오류 줄 "Enter a name." / "Enter the data file name (without quotes)." / "Enter the sizes in MB." | — | — |
+| Take Offline / Bring Online(디스크, 메모리) | `ALTER TABLESPACE … OFFLINE / ONLINE` | STATE 1 / 2 | 지금 상태의 항목이 꺼짐 |
+| Autoextend Settings…(메모리 켜기, 휘발성 끄기, 바꾸지 않고 OK) | `… ALTER AUTOEXTEND ON NEXT 4M MAXSIZE 12M`, `… ALTER AUTOEXTEND OFF`, 없음 | 4194304/12582912, 0 | 바꾸지 않으면 "문장 없음" 알림 |
+| New Data File…(오프라인 테이블스페이스) | `ALTER TABLESPACE … ADD DATAFILE 'chr_ts_app_d1_02.dbf' SIZE 2M` | 69883 "Unable to use an offline tablespace" 오류 창 | 바뀌지 않음 |
+| New Data File…(온라인, 임시) | `… ADD DATAFILE '…' SIZE 2M AUTOEXTEND ON NEXT 1M MAXSIZE 8M`, `… ADD TEMPFILE '…' SIZE 1M` | 파일 추가 | 파일 노드(전체 경로) |
+| Data File Settings…(크기+자동 확장, 자동 확장 끄기, 임시 파일 크기) | 두 문장 `… ALTER DATAFILE '…' SIZE 3M` + `… AUTOEXTEND ON NEXT 1M MAXSIZE 10M`, `… AUTOEXTEND OFF`, `… ALTER TEMPFILE '…' SIZE 2M` | 바뀜 | 다시 열면 새 값 |
+| Delete 파일 | `ALTER TABLESPACE … DROP DATAFILE / TEMPFILE '…'` | 행 없어짐(파일은 디스크에 남음) | 노드 빠짐. 확인 문구의 파일 이름에 따옴표가 두 번 붙던 것을 고침(`AltibaseDataFile.getFullyQualifiedName`) |
+| Delete 테이블스페이스(옵션 없음, 테이블 있음) | `DROP TABLESPACE CHR_TS_APP_D1` | 201181 "The tablespace has objects." 오류 창 | 바뀌지 않음 |
+| Delete(내용+파일, 다른 테이블스페이스의 외래 키) | `… INCLUDING CONTENTS AND DATAFILES` | 201180 오류 | 바뀌지 않음 |
+| Delete(내용+파일+CASCADE), 휘발성(내용+파일) | `… INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS`, `… INCLUDING CONTENTS AND DATAFILES` | 지워짐, 테이블과 외래 키도 | 노드 빠짐 |
+| 같은 이름으로 New Tablespace | — | 모델의 확인 "Object 'CHR_TS_APP_M1' already exists"(서버에 가기 전, 기존 공통 동작) | 바뀌지 않음 |
+| 권한 없는 사용자(`CHR_TS_USER`) | `CREATE TABLESPACE …` | 201137 "The user must have CREATE_TABLESPACE privilege(s)…" 오류 창 | 바뀌지 않음 |
+| 읽기 전용 연결 | — | New Tablespace, Take Offline, Delete 모두 "ALTI does not allow changing database objects…" | — |
+
+- 열린 트랜잭션(수동 커밋 연결, 쿼리 창의 `INSERT`): Take Offline → "Uncommitted Transactions" 질문(취소가 기본). 취소 → 아무것도 하지 않음, 롤백 → INSERT 없어지고 오프라인,
+  커밋 → INSERT가 남고 온라인(`CHR_TS_TX`의 행으로 확인).
+- 미리 보기 머리글에 "This database commits each DDL statement at once; the change cannot be rolled back." 줄이 붙는다.
+- 메뉴: 시스템 테이블스페이스 노드에는 새 항목이 없고 Delete가 꺼짐. 휘발성은 Autoextend Settings…만, 임시는 Delete만, 메모리는 온라인·오프라인·자동 확장.
+- 화면: 영어·한국어, 라이트·다크, 100 %·150 %에서 폴더·노드 메뉴, 네 대화상자, 미리 보기, 삭제 확인, 트리를 캡처했다.
+- ShardSphere 5.1.9(읽기만): `V$TABLESPACES` 다섯 행(MEM_DIC 0, MEM_DATA 1, DISK_DATA 3, DISK_UNDO 7, DISK_TEMP 5)의 종류 코드가 Altibase와 같다. 테이블 108개 중 86개 종류 0, 22개
+  종류 1, SYS의 22개는 모두 MEM_DATA(1)이고 트리에서 모두 메모리 빨강(라이트 `#B3261E`, 다크 `#FF9999`, 툴팁 "Memory table"). 사용자 테이블스페이스가 없어 그 서버의 노드에는 새 항목이
+  없고(Delete 꺼짐) Tablespaces 폴더에만 New Tablespace…가 보인다. 대화상자와 실행은 열지 않았다.
+- 같은 빌드에서 PostgreSQL New Tablespace…(미리 보기 `CREATE TABLESPACE … OWNER postgres LOCATION '…'`, 취소), 트리거 사용 안 함/사용, 테이블 이름 바꾸기·삭제(확인란은 CASCADE 하나)가 전과 같다.
+- 시험 서버 정리: 테이블스페이스 `CHR_TS_APP_D1`·`CHR_TS_APP_T1`·`CHR_TS_APP_M2`는 `INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS`로, 테이블
+  `SYS.CHR_TS_TREF`와 임시 사용자 `CHR_TS_USER`(CASCADE)는 SQL로 지웠다. SQL로 지울 수 없는 남은 파일 여섯 개는 컨테이너 안에서 이름을 하나씩 적어
+  `docker exec … rm`으로 지웠다(와일드카드 없음): `/opt/altibase/dbs/CHR_TS_M2-0-0`, `/opt/altibase/dbs/CHR_TS_M2-1-0`, `/opt/altibase/dbs/CHR_TS_M4-0-0`,
+  `/opt/altibase/dbs/CHR_TS_M4-1-0`(파일 옵션 없이 지운 메모리 테이블스페이스의 체크포인트 이미지, 문법 확인 중 생김), `/opt/altibase/dbs/chr_ts_app_d1_02.dbf`,
+  `/opt/altibase/dbs/chr_ts_app_t1_02.dbf`(앱의 Delete로 `DROP DATAFILE`/`DROP TEMPFILE`한 파일). 그 뒤 `V$TABLESPACES`는 시스템 다섯 개,
+  `V$DATAFILES`는 `system001.dbf`·`undo001.dbf`·`temp001.dbf`뿐이다. 앞으로는 남은 파일을 지우지 않고 보고한다(검토 뒤 지시).
+- 새 파일의 행 찾기(검토 뒤, 임시 테이블스페이스 `CHR_TS_ID1`, 끝에 파일과 함께 지움): 파일 ID 0, 1, 2에서 2를 지우고 더하면 3, 1을 지우고 더하면 4, 3과 4를 지우고
+  더하면 5였다. 이 서버에서는 ID가 다시 쓰이지 않고 늘기만 했지만 서버를 다시 시작한 뒤에도 그런지는 확인할 수 없다. 그래서 `AltibaseDataFile4Disk.readCreated`는
+  가장 큰 ID가 아니라 입력한 이름으로 행을 찾는다(서버가 붙인 전체 경로가 입력한 이름과 같거나 경로 구분자 + 입력한 이름으로 끝나는 행).
+- 검토 뒤 화면: 새 테이블스페이스·새 데이터 파일 대화상자의 "(기본값)" 안내 줄을 뺐다(설명 문구 없음). 데이터 파일 설정의 파일 경로 칸은 초점을 받지 않고 처음 초점이 크기 칸이다.
+- 찾은 범위 밖 문제(고치지 않음): 수동 커밋 연결에서 객체 변경(`AbstractCommandContext.saveChanges`)이 실패하면 저장 경로가 롤백을 쿼리 관리자 기록 없이 하므로
+  (`session.enableLogging(false)`) 다음 변경 때 "ALTI (Main) - open transaction with data changes" 질문이 한 번 나온다. 서버 세션의 `V$TRANSACTION.UPDATE_STATUS`는 0이었다.
+- 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 DB의 삭제 확인(옵션 순서), 유지 관리 메뉴, Altibase 테이블스페이스 노드 새로 고침.
+
+### upstream 대비 변경점
+
+- upstream은 Altibase 테이블스페이스를 조회만 한다. 객체 관리자 두 개, 문장 클래스, 모델의 새 객체·다시 읽기, 삭제 기능 비트 두 개를 더했다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -382,3 +525,4 @@ Altibase 계열 연결(Altibase, ShardSphere)의 실행 문맥이 세션의 기�
 - 2026-11-15 엔진 키워드를 연결한 서버의 `V$RESERVED_WORDS`에서 읽음(읽지 못하면 정적 목록), `RESERVED_TYPE`의 뜻과 `DBMS_SHARD` 자동 완성 조사(앱 변경 #115), 위 "서버 예약어".
 - 2026-11-15 예약어가 아닌 문법 낱말(`CACHE`, `NOCACHE`)을 서버와 관계없이 키워드로 두고 이름의 따옴표 이유에서는 뺌(앱 변경 #118), 위 "예약어가 아닌 문법 낱말".
 - 2026-11-15 실행 문맥의 기본 스키마를 세션 사용자로 읽음(`query-get-active-db` = `USER_NAME()`, 읽기 전용), 데이터베이스 이름은 따로 읽음(앱 변경 #116), 위 "세션의 기본 스키마".
+- 2026-11-15 테이블스페이스 관리(앱 변경 #126): 만들기·삭제(내용·데이터 파일·CASCADE)·온라인/오프라인·자동 확장·데이터 파일 추가·설정·삭제, 확인한 문법, 위 "테이블스페이스 관리".

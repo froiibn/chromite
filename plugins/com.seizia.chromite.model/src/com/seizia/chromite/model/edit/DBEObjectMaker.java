@@ -30,6 +30,10 @@ import java.util.Map;
 
 /**
  * DBEObjectManager
+ *
+ * 변경 이력:
+ * - 2026-11-15 {@link #FEATURE_DELETE_CONTENTS}, {@link #FEATURE_DELETE_DATA_FILES}: 삭제 확인의 확인란을 관리자가 지원할 때만 보이도록
+ *   (Altibase 테이블스페이스 삭제의 INCLUDING CONTENTS·AND DATAFILES, docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public interface DBEObjectMaker<OBJECT_TYPE extends DBSObject, CONTAINER_TYPE> extends DBEObjectManager<OBJECT_TYPE> {
     long FEATURE_SAVE_IMMEDIATELY           = 1;
@@ -38,6 +42,16 @@ public interface DBEObjectMaker<OBJECT_TYPE extends DBSObject, CONTAINER_TYPE> e
     long FEATURE_DELETE_CASCADE             = 1 << 3;
     long FEATURE_SUPPORTS_COPY              = 1 << 4;
     long FEATURE_CLOSE_EXISTING_CONNECTIONS = 1 << 5;
+    /**
+     * The delete may also drop the objects stored in the deleted object (a tablespace's tables and indexes):
+     * {@link DBEObjectManager#OPTION_DELETE_CONTENTS}.
+     */
+    long FEATURE_DELETE_CONTENTS            = 1 << 6;
+    /**
+     * The delete may also remove the deleted object's files from the server's disk (a tablespace's data files):
+     * {@link DBEObjectManager#OPTION_DELETE_DATA_FILES}. The server accepts it only together with the contents.
+     */
+    long FEATURE_DELETE_DATA_FILES          = 1 << 7;
 
     long getMakerOptions(@NotNull DBPDataSource dataSource);
 

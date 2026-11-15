@@ -18,13 +18,27 @@
 package com.seizia.chromite.ext.altibase.model;
 
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace.State;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.meta.Property;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.utils.ByteNumberFormat;
 
 import java.math.BigInteger;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
+/**
+ * A data or temp file of a disk tablespace (V$DATAFILES; sizes in pages, shown in bytes).
+ *
+ * 변경 이력:
+ * - 2026-11-15 새 파일 객체(Add Data File의 파일 이름·크기·자동 확장, {@link #getInitialSpace})와 ADD 직후 자기 행 읽기
+ *   ({@link #readCreated}) (앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리"). 검토 뒤 새 파일의 행을 가장 큰 ID가 아니라
+ *   입력한 파일 이름으로 찾음
+ */
 public class AltibaseDataFile4Disk extends AltibaseDataFile {
 
     private BigInteger currSize;
@@ -34,8 +48,68 @@ public class AltibaseDataFile4Disk extends AltibaseDataFile {
     private boolean isAutoExtend;
     private State state;
     
+    // The size and autoextend of a new file (ADD only)
+    @Nullable
+    private AltibaseTablespaceDDL.Space initialSpace;
+
     protected AltibaseDataFile4Disk(AltibaseTablespace tablespace, ResultSet dbResult) {
         super(tablespace, dbResult);
+        loadSizes(dbResult);
+    }
+
+    /**
+     * A new file of a disk data or temporary tablespace, not yet added.
+     */
+    public AltibaseDataFile4Disk(@NotNull AltibaseTablespace tablespace) {
+        super(tablespace);
+        this.currSize = BigInteger.ZERO;
+        this.nextSize = BigInteger.ZERO;
+        this.initSize = BigInteger.ZERO;
+        this.maxSize = BigInteger.ZERO;
+        this.state = State.UNKNOWN;
+    }
+
+    @Nullable
+    public AltibaseTablespaceDDL.Space getInitialSpace() {
+        return initialSpace;
+    }
+
+    /**
+     * Sets the file name, size and autoextend of a new file.
+     */
+    public void setInitialSpace(@NotNull AltibaseTablespaceDDL.Space initialSpace) {
+        this.initialSpace = initialSpace;
+        setName(initialSpace.file());
+    }
+
+    /**
+     * After ADD DATAFILE / TEMPFILE (same session): takes the row of the added file, so the file has the server's full
+     * path, ID and sizes. The row is found by the entered name, not by the highest file ID: on the test server IDs only
+     * grew, but nothing shows that this holds after a server restart. The server stores the full path, so the row's name
+     * is the entered name itself (an absolute path) or ends with a path separator and the entered name (a relative one).
+     */
+    public void readCreated(@NotNull JDBCSession session) throws SQLException {
+        String entered = initialSpace == null ? getName() : initialSpace.file();
+        if (entered == null) {
+            return;
+        }
+        try (JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * FROM V$DATAFILES WHERE SPACEID = ? ORDER BY ID")) {
+            dbStat.setInt(1, getParentObject().getId());
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                while (dbResult.next()) {
+                    String fileName = JDBCUtils.safeGetString(dbResult, "NAME");
+                    if (fileName != null && (fileName.equals(entered) || fileName.endsWith("/" + entered)
+                        || fileName.endsWith("\\" + entered))) {
+                        loadRow(dbResult);
+                        loadSizes(dbResult);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private void loadSizes(@NotNull ResultSet dbResult) {
         this.currSize = new BigInteger(JDBCUtils.safeGetString(dbResult, "CURRSIZE"));
         this.nextSize = new BigInteger(JDBCUtils.safeGetString(dbResult, "NEXTSIZE"));
         this.initSize = new BigInteger(JDBCUtils.safeGetString(dbResult, "INITSIZE"));

@@ -47,9 +47,17 @@ import java.util.Collection;
 /**
  * Altibase tablespace (V$TABLESPACES).
  *
+ * 설계(2026-11-15 테이블스페이스 관리): 무엇을 할 수 있는지는 이름이 아니라 {@code V$TABLESPACES.TYPE}(시스템·사용자 종류)으로 정한다
+ * ({@link #isUserTablespace}, {@link #supportsOnlineChange}, {@link #supportsAutoextendChange}, {@link #hasDiskFiles}). 시험 서버에서
+ * 휘발성·임시 테이블스페이스는 ONLINE/OFFLINE을 거절했고(201191), 메모리·휘발성은 데이터 파일을 받지 않는다(201297).
+ * 카탈로그 행에서 오는 값은 {@link #loadRow}가 넣는다: 새로 만든 테이블스페이스는 CREATE 직후 자기 행을 읽고({@link #readCreated}),
+ * 새로 고침은 캐시만 비우지 않고 자기 행을 다시 읽어 상태(온라인·오프라인)와 파일 수가 맞게 한다({@link #refreshObject}).
+ *
  * 변경 이력:
  * - 2026-11-07 {@link TbsType#getStorageKind()} 추가: 테이블 목록이 읽은 V$TABLESPACES.TYPE을 테이블 저장 방식으로
  *   바꾼다(docs/chromite/altibase.md)
+ * - 2026-11-15 새 테이블스페이스 객체, 종류별 지원 판단, 행 다시 읽기, 자동 확장 설정 읽기(앱 변경 #126,
+ *   docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefreshableObject, DBPObjectStatistics {
 
@@ -139,20 +147,24 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         }
     }
     
-    private final int id;
-    private final String name;
-    private final String extentManagement;
-    private final String segmentManagement;
-    private final int dataFileCount;
-    private final boolean isLogCompression;
-    private final int pageSizeInBytes;
+    private int id;
+    private String name;
+    private String extentManagement;
+    private String segmentManagement;
+    private int dataFileCount;
+    private boolean isLogCompression;
+    private int pageSizeInBytes;
     
-    private final TbsType tbsType;
-    private final State state;
+    private TbsType tbsType;
+    private State state;
     
     private volatile Long availableSize;
     private volatile Long usedSize;
     private String qry4Size;
+
+    // The space of a new tablespace (CREATE only)
+    @Nullable
+    private AltibaseTablespaceDDL.Space initialSpace;
     
     final FileCache fileCache = new FileCache();
     final TablePartnCache tablePartnCache = new TablePartnCache();
@@ -160,7 +172,24 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
     
     protected AltibaseTablespace(AltibaseDataSource dataSource, ResultSet dbResult) {
         super(dataSource, true);
+        loadRow(dbResult);
+    }
         
+    /**
+     * A new (not yet created) user tablespace of the type.
+     */
+    public AltibaseTablespace(@NotNull AltibaseDataSource dataSource, @NotNull TbsType tbsType) {
+        super(dataSource, false);
+        this.name = "";
+        this.tbsType = tbsType;
+        this.state = State.UNKNOWN;
+        setQry4Size();
+    }
+
+    /**
+     * Takes the values of a V$TABLESPACES row.
+     */
+    private void loadRow(@NotNull ResultSet dbResult) {
         this.id                 = JDBCUtils.safeGetInt(dbResult, "ID");
         this.name               = JDBCUtils.safeGetString(dbResult, "NAME");
         this.tbsType            = TbsType.getTbsTypeByIdx(JDBCUtils.safeGetInt(dbResult, "TYPE"));
@@ -361,6 +390,136 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         }
     }
     
+    /**
+     * Sets the name of a new tablespace.
+     */
+    public void setName(@NotNull String name) {
+        this.name = name;
+    }
+
+    /**
+     * Sets the type of a new tablespace (a user type: memory, disk data, temporary, volatile).
+     */
+    public void setTbsType(@NotNull TbsType tbsType) {
+        this.tbsType = tbsType;
+        setQry4Size();
+    }
+
+    @Nullable
+    public AltibaseTablespaceDDL.Space getInitialSpace() {
+        return initialSpace;
+    }
+
+    /**
+     * Sets the data file, size and autoextend of a new tablespace.
+     */
+    public void setInitialSpace(@Nullable AltibaseTablespaceDDL.Space initialSpace) {
+        this.initialSpace = initialSpace;
+    }
+
+    /**
+     * A tablespace users create and drop (types 2, 4, 6, 8). The system ones (dictionary, system data, undo, system temp)
+     * are refused by the server.
+     */
+    public boolean isUserTablespace() {
+        return switch (tbsType) {
+            case MEMORY_USER_DATA, DISK_USER_DATA, DISK_USER_TEMP, VOLATILE_USER_DATA -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * A temporary tablespace: its files are TEMPFILEs.
+     */
+    public boolean isTemporary() {
+        return tbsType == TbsType.DISK_USER_TEMP || tbsType == TbsType.DISK_SYSTEM_TEMP;
+    }
+
+    /**
+     * A user tablespace whose data or temp files are added, changed and dropped by users (disk data and temporary).
+     */
+    public boolean hasDiskFiles() {
+        return tbsType == TbsType.DISK_USER_DATA || tbsType == TbsType.DISK_USER_TEMP;
+    }
+
+    /**
+     * A user tablespace the server takes ONLINE and OFFLINE (memory and disk data; volatile and temporary refused).
+     */
+    public boolean supportsOnlineChange() {
+        return tbsType == TbsType.MEMORY_USER_DATA || tbsType == TbsType.DISK_USER_DATA;
+    }
+
+    /**
+     * A user tablespace with its own autoextend settings (memory and volatile; disk ones have them per file).
+     */
+    public boolean supportsAutoextendChange() {
+        return tbsType == TbsType.MEMORY_USER_DATA || tbsType == TbsType.VOLATILE_USER_DATA;
+    }
+
+    /**
+     * True if online, false if offline, null for another state (backup, dropped, discarded, not read).
+     */
+    @Nullable
+    public Boolean isOnline() {
+        return state == State.ONLINE ? Boolean.TRUE : state == State.OFFLINE ? Boolean.FALSE : null;
+    }
+
+    /**
+     * Reads the autoextend settings of a memory or volatile tablespace (V$MEM_TABLESPACES, V$VOL_TABLESPACES).
+     */
+    @NotNull
+    public AltibaseTablespaceDDL.Autoextend readAutoextend(@NotNull DBRProgressMonitor monitor) throws DBException {
+        String qry = tbsType == TbsType.VOLATILE_USER_DATA
+            ? "SELECT AUTOEXTEND_MODE, NEXT_SIZE, MAX_SIZE FROM V$VOL_TABLESPACES WHERE SPACE_ID = ?"
+            : "SELECT AUTOEXTEND_MODE, AUTOEXTEND_NEXTSIZE, MAXSIZE FROM V$MEM_TABLESPACES WHERE SPACE_ID = ?";
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Read autoextend of tablespace '" + getName() + "'");
+             JDBCPreparedStatement dbStat = session.prepareStatement(qry)) {
+            dbStat.setInt(1, getId());
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                if (!dbResult.next()) {
+                    throw new DBException("Tablespace " + getName() + " not found");
+                }
+                // Bytes; null (0) next and max mean the server's default
+                long next = dbResult.getLong(2) / 1024;
+                long max = dbResult.getLong(3) / 1024;
+                return new AltibaseTablespaceDDL.Autoextend(dbResult.getInt(1) == 1, next == 0 ? null : next, max == 0 ? null : max);
+            }
+        } catch (SQLException e) {
+            throw new DBDatabaseException("Can't read tablespace autoextend", e, getDataSource());
+        }
+    }
+
+    /**
+     * After CREATE (same session): takes the new tablespace's catalog row (ID, type, state, page size).
+     */
+    public void readCreated(@NotNull JDBCSession session) throws SQLException {
+        readRow(session, "SELECT * FROM V$TABLESPACES WHERE NAME = ?", name);
+    }
+
+    /**
+     * Reads the tablespace's catalog row again (state, data file count) and forgets the sizes.
+     *
+     * @return false if the tablespace no longer exists
+     */
+    public boolean reloadRow(@NotNull JDBCSession session) throws SQLException {
+        usedSize = null;
+        availableSize = null;
+        return readRow(session, "SELECT * FROM V$TABLESPACES WHERE ID = ?", id);
+    }
+
+    private boolean readRow(@NotNull JDBCSession session, @NotNull String qry, @NotNull Object key) throws SQLException {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(qry)) {
+            dbStat.setObject(1, key);
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                if (!dbResult.next()) {
+                    return false;
+                }
+                loadRow(dbResult);
+                return true;
+            }
+        }
+    }
+
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         usedSize = null;
@@ -371,6 +530,16 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         indexPartnCache.clearCache();
         
         getDataSource().resetStatistics();
+        if (isPersisted()) {
+            // The state (online/offline) and data file count come from the catalog row, not from the caches above
+            try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Read tablespace '" + getName() + "'")) {
+                if (!reloadRow(session)) {
+                    return null;
+                }
+            } catch (SQLException e) {
+                throw new DBDatabaseException("Can't read tablespace", e, getDataSource());
+            }
+        }
         return this;
     }
 

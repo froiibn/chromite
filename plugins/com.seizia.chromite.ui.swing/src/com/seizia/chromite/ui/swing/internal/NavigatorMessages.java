@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 최초 작성: 이름 없는 반환 값 매개 변수의 이름 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-07 개체 작업(삭제, 이름 바꾸기, 이름 복사, SQL 생성)의 문구 (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 문장이 없는 변경의 알림 (docs/chromite/swing-object-properties.md)
+ * - 2026-11-15 삭제 확인의 내용·데이터 파일 확인란(Altibase 테이블스페이스, docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public class NavigatorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.NavigatorMessages"; //$NON-NLS-1$
@@ -55,6 +56,10 @@ public class NavigatorMessages extends NLS {
     public static String navigator_delete_cascade_tip;
     public static String navigator_delete_close_connections;
     public static String navigator_delete_close_connections_tip;
+    public static String navigator_delete_contents;
+    public static String navigator_delete_contents_tip;
+    public static String navigator_delete_data_files;
+    public static String navigator_delete_data_files_tip;
     public static String navigator_delete_button;
     public static String navigator_delete_error;
     public static String navigator_delete_different_connections;

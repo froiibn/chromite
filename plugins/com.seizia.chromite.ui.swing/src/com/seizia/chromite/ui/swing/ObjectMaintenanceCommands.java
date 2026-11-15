@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
+import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
@@ -51,7 +53,8 @@ import java.util.stream.Collectors;
 
 /**
  * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View, Compile and the Altibase
- * replication commands Start, Stop and Synchronize on the selected objects.
+ * replication commands Start, Stop and Synchronize, and the Altibase tablespace commands Bring Online, Take Offline,
+ * Autoextend Settings… and Data File Settings… on the selected objects.
  *
  * 설계: {@link ExplorerObjectCommands}(삭제·이름 바꾸기)와 같은 나눔이다. 탐색기에는 메뉴 항목과 갱신 호출만 두고, 문 만들기·실행은 모델 번들의
  * {@link ObjectMaintenanceActions}(모델 도구 처리기의 SQL)가 맡는다. 흐름도 같다: 확인 → 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange},
@@ -71,6 +74,10 @@ import java.util.stream.Collectors;
  *     <li>Altibase 복제(Replications 아래 복제 노드): 시작·중지·동기화. 원격 서버에 영향을 주므로 TRUNCATE처럼 미리 보기 전에 무엇을 하는지
  *     묻는다(명령 단추 / 취소, 취소가 기본). 모델이 읽은 시작 여부로 이미 시작한 복제의 시작·동기화, 멈춘 복제의 중지를 끈다.
  *     실행 뒤(실패해도) 복제 노드를 다시 읽어 시작 여부와 송신·수신 목록을 맞춘다(SWT 도구의 {@code needsRefreshOnFinish}).</li>
+ *     <li>Altibase 계열 테이블스페이스: 온라인·오프라인은 트리거 사용/사용 안 함과 같다(지금 상태와 같은 항목은 꺼짐, 미리 보기가 확인).
+ *     자동 확장 설정·데이터 파일 설정은 미리 보기 전에 지금 값으로 채운 설정 대화상자({@link AltibaseTablespaceDialogs})를 보이고, 바뀐 것이
+ *     없으면 속성 편집처럼 실행할 문장이 없다고 알린다. 한 개를 고를 때만 보인다. 실행 뒤(실패해도) 테이블스페이스 노드를 다시 읽어
+ *     상태·크기·파일 목록을 맞춘다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -78,6 +85,8 @@ import java.util.stream.Collectors;
  * - 2026-11-08 Compile 명령과 컴파일 결과(SWT 감사 O11, A6), Altibase TRUNCATE·구체화된 뷰 새로 고침은 모델 쪽 지원으로 켜짐(A5)
  *   (docs/chromite/swing-routines.md)
  * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
+ * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정(앱 변경 #126,
+ *   docs/chromite/altibase.md "테이블스페이스 관리")
  */
 final class ObjectMaintenanceCommands {
 
@@ -116,6 +125,14 @@ final class ObjectMaintenanceCommands {
             ObjectMaintenanceMessages.objmaint_repl_stop_tip);
         addItem(ObjectMaintenanceActions.Action.SYNC_REPLICATION, ObjectMaintenanceMessages.objmaint_repl_sync,
             ObjectMaintenanceMessages.objmaint_repl_sync_tip);
+        addItem(ObjectMaintenanceActions.Action.TABLESPACE_ONLINE, ObjectMaintenanceMessages.objmaint_tbs_online,
+            ObjectMaintenanceMessages.objmaint_tbs_online_tip);
+        addItem(ObjectMaintenanceActions.Action.TABLESPACE_OFFLINE, ObjectMaintenanceMessages.objmaint_tbs_offline,
+            ObjectMaintenanceMessages.objmaint_tbs_offline_tip);
+        addItem(ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND, ObjectMaintenanceMessages.objmaint_tbs_autoextend,
+            ObjectMaintenanceMessages.objmaint_tbs_autoextend_tip);
+        addItem(ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS, ObjectMaintenanceMessages.objmaint_file_settings,
+            ObjectMaintenanceMessages.objmaint_file_settings_tip);
     }
 
     private void addItem(@NotNull ObjectMaintenanceActions.Action action, @NotNull String label, @NotNull String tip) {
@@ -139,9 +156,10 @@ final class ObjectMaintenanceCommands {
         List<DBSObject> objects = getObjects(nodes);
         for (Map.Entry<ObjectMaintenanceActions.Action, JMenuItem> entry : items.entrySet()) {
             ObjectMaintenanceActions.Action action = entry.getKey();
-            boolean visible = objects != null;
+            // A settings dialog shows the values of one object
+            boolean visible = objects != null && (!ObjectMaintenanceActions.needsSettings(action) || objects.size() == 1);
             boolean enabled = false;
-            if (objects != null) {
+            if (visible) {
                 for (DBSObject object : objects) {
                     if (!ObjectMaintenanceActions.supports(action, object)) {
                         visible = false;
@@ -156,17 +174,21 @@ final class ObjectMaintenanceCommands {
     }
 
     /**
-     * False only for a trigger whose state (as read) already is the one the command sets, and for an Altibase replication
-     * that is already started (Start, Synchronize) or stopped (Stop).
+     * False only for a trigger whose state (as read) already is the one the command sets, for an Altibase replication
+     * that is already started (Start, Synchronize) or stopped (Stop), and for an Altibase tablespace that is already
+     * online (Bring Online) or offline (Take Offline).
      */
     private static boolean changesState(@NotNull ObjectMaintenanceActions.Action action, @NotNull DBSObject object) {
         Boolean enabled = ObjectMaintenanceActions.isTriggerEnabled(object);
         Boolean started = ObjectMaintenanceActions.isReplicationStarted(object);
+        Boolean online = ObjectMaintenanceActions.isTablespaceOnline(object);
         return switch (action) {
             case ENABLE_TRIGGER -> !Boolean.TRUE.equals(enabled);
             case DISABLE_TRIGGER -> !Boolean.FALSE.equals(enabled);
             case START_REPLICATION, SYNC_REPLICATION -> !Boolean.TRUE.equals(started);
             case STOP_REPLICATION -> !Boolean.FALSE.equals(started);
+            case TABLESPACE_ONLINE -> !Boolean.TRUE.equals(online);
+            case TABLESPACE_OFFLINE -> !Boolean.FALSE.equals(online);
             default -> true;
         };
     }
@@ -193,17 +215,33 @@ final class ObjectMaintenanceCommands {
                 NLS.bind(NavigatorMessages.navigator_change_restricted, container.getName())), title, JOptionPane.WARNING_MESSAGE);
             return;
         }
+        Object settings = null;
+        if (ObjectMaintenanceActions.needsSettings(action)) {
+            settings = askSettings(action, objects.getFirst(), title);
+            if (settings == null) {
+                return;
+            }
+            if (settings == AltibaseTablespaceDialogs.UNCHANGED) {
+                showNothingToRun(window, title);
+                return;
+            }
+        }
+        Object chosenSettings = settings;
         List<ObjectMaintenanceActions.Statement> statements;
         boolean[] ddlCommits = new boolean[1];
         try {
             statements = ProgressDialog.runTask(NavigatorMessages.navigator_change_progress, monitor -> {
                 ddlCommits[0] = ObjectMaintenanceActions.isDdlCommitting(monitor, objects.getFirst());
-                return ObjectMaintenanceActions.generateScript(monitor, action, objects);
+                return ObjectMaintenanceActions.generateScript(monitor, action, objects, chosenSettings);
             });
         } catch (DBInterruptedException e) {
             return;
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(title, null, e);
+            return;
+        }
+        if (statements.isEmpty()) {
+            showNothingToRun(window, title);
             return;
         }
         if (action == ObjectMaintenanceActions.Action.TRUNCATE && !confirmTruncate(window, objects, container, ddlCommits[0])) {
@@ -235,11 +273,19 @@ final class ObjectMaintenanceCommands {
                     refreshNodes.add(parent);
                 }
             }
-        } else if (isReplicationAction(action)) {
-            // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers
+        } else if (isReplicationAction(action) || isTablespaceAction(action)) {
+            // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers.
+            // A tablespace reads its catalog row (state, file count) and its files again (AltibaseTablespace.refreshObject).
             for (DBNNode node : nodes) {
                 if (node instanceof DBNDatabaseNode databaseNode) {
                     refreshNodes.add(databaseNode);
+                }
+            }
+        } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS) {
+            // The file's tablespace (its Data Files folder's parent) reads its row and files again
+            for (DBNNode node : nodes) {
+                if (node.getParentNode() != null && node.getParentNode().getParentNode() instanceof DBNDatabaseNode tablespaceNode) {
+                    refreshNodes.add(tablespaceNode);
                 }
             }
         }
@@ -349,6 +395,33 @@ final class ObjectMaintenanceCommands {
             || action == ObjectMaintenanceActions.Action.SYNC_REPLICATION;
     }
 
+    private static boolean isTablespaceAction(@NotNull ObjectMaintenanceActions.Action action) {
+        return action == ObjectMaintenanceActions.Action.TABLESPACE_ONLINE || action == ObjectMaintenanceActions.Action.TABLESPACE_OFFLINE
+            || action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND;
+    }
+
+    /**
+     * The settings dialog of a command that needs one, filled with the object's current values.
+     *
+     * @return the settings, {@link AltibaseTablespaceDialogs#UNCHANGED}, or null if canceled
+     */
+    @Nullable
+    private Object askSettings(@NotNull ObjectMaintenanceActions.Action action, @NotNull DBSObject object, @NotNull String title) {
+        if (action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND && object instanceof AltibaseTablespace tablespace) {
+            return AltibaseTablespaceDialogs.askAutoextend(explorer, title, tablespace);
+        } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof AltibaseDataFile4Disk file) {
+            return AltibaseTablespaceDialogs.askDataFileSettings(explorer, title, file);
+        }
+        return null;
+    }
+
+    /**
+     * The settings change nothing: told as for a property change without a statement.
+     */
+    private static void showNothingToRun(@NotNull Window window, @NotNull String title) {
+        JOptionPane.showMessageDialog(window, NavigatorMessages.navigator_change_no_script, title, JOptionPane.INFORMATION_MESSAGE);
+    }
+
     /**
      * What the replication command does to the remote server, before the script is shown. Cancel is the default button.
      */
@@ -387,6 +460,10 @@ final class ObjectMaintenanceCommands {
             case START_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_start_title;
             case STOP_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_stop_title;
             case SYNC_REPLICATION -> ObjectMaintenanceMessages.objmaint_repl_sync_title;
+            case TABLESPACE_ONLINE -> ObjectMaintenanceMessages.objmaint_tbs_online_title;
+            case TABLESPACE_OFFLINE -> ObjectMaintenanceMessages.objmaint_tbs_offline_title;
+            case TABLESPACE_AUTOEXTEND -> ObjectMaintenanceMessages.objmaint_tbs_autoextend_title;
+            case DATA_FILE_SETTINGS -> ObjectMaintenanceMessages.objmaint_file_settings_title;
         };
     }
 

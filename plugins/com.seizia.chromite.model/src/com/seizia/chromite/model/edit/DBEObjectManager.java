@@ -25,6 +25,10 @@ import com.seizia.chromite.model.exec.DBCSession;
 
 /**
  * DBEObjectManager
+ *
+ * 변경 이력:
+ * - 2026-11-15 {@link #OPTION_DELETE_CONTENTS}, {@link #OPTION_DELETE_DATA_FILES}: 삭제 명령의 옵션(Altibase 테이블스페이스,
+ *   docs/chromite/altibase.md "테이블스페이스 관리")
  */
 public interface DBEObjectManager<OBJECT_TYPE extends DBPObject> {
 
@@ -39,6 +43,8 @@ public interface DBEObjectManager<OBJECT_TYPE extends DBPObject> {
     String OPTION_OBJECT_TYPE = "objectType";
     String OPTION_DELETE_CASCADE = "deleteCascade";
     String OPTION_CLOSE_EXISTING_CONNECTIONS = "closeExistingConnections";
+    String OPTION_DELETE_CONTENTS = "deleteContents";
+    String OPTION_DELETE_DATA_FILES = "deleteDataFiles";
     String OPTION_UI_SOURCE = "uiSource";
     String OPTION_ACTIVE_EDITOR = "activeEditor";
 
