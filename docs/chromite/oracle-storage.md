@@ -14,7 +14,7 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 
 | 위치 | 메뉴 항목 | 흐름 | 문장 |
 |---|---|---|---|
-| Storage > Tablespaces 폴더 | New Tablespace… / 새 테이블스페이스 | 이름·종류(영구·임시·실행 취소)·빅파일·데이터 파일·크기(MB)·자동 확장·증가 크기·최대 크기 대화상자 → 미리 보기 | `CREATE BIGFILE / SMALLFILE [TEMPORARY / UNDO] TABLESPACE t DATAFILE / TEMPFILE 'f' SIZE n [AUTOEXTEND ON [NEXT n] [MAXSIZE n]]` |
+| Storage > Tablespaces 폴더 | New Tablespace… / 새 테이블스페이스 | 이름·종류(영구·임시·언두)·빅파일·데이터 파일·크기(MB)·자동 확장·증가 크기·최대 크기 대화상자 → 미리 보기 | `CREATE BIGFILE / SMALLFILE [TEMPORARY / UNDO] TABLESPACE t DATAFILE / TEMPFILE 'f' SIZE n [AUTOEXTEND ON [NEXT n] [MAXSIZE n]]` |
 | 테이블스페이스 노드 | Delete(기존 명령) | 삭제 확인(확인란: 내용도 삭제, 데이터 파일도 삭제, 종속 개체도 삭제(CASCADE). 모두 꺼짐, 뒤의 둘은 내용을 고를 때만 켜짐) → 미리 보기 | `DROP TABLESPACE t [INCLUDING CONTENTS [AND DATAFILES] [CASCADE CONSTRAINTS]]` |
 | 테이블스페이스 노드 | Rename(F2, 기존 명령) | 새 이름 입력 → 미리 보기 | `ALTER TABLESPACE t RENAME TO n` |
 | 영구·언두 테이블스페이스 | Bring Online / Take Offline (온라인으로 전환 / 오프라인으로 전환) | 트리거 사용/사용 안 함과 같음: 지금 상태의 항목은 꺼짐, 미리 보기가 확인 | `ALTER TABLESPACE t ONLINE / OFFLINE` |
