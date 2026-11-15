@@ -35,6 +35,8 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
   늘 적힌다. 10g보다 오래된 서버(빅파일 없음)에는 확인란과 키워드가 없다.
 - DDL이 세션의 트랜잭션을 커밋하므로 미리 보기 머리글에 "DDL 문을 바로 커밋" 줄이 붙는다(JDBC `dataDefinitionCausesTransactionCommit` = true, 아래 확인).
 - Files 노드의 이름은 한국어 "파일" → "데이터 파일", 영어 "File" → "Data File"로 바꿨다(메뉴가 "New File… / 새 파일"로 보이지 않게, Altibase와 같은 처리).
+- 대화상자는 메인 창 가운데에 뜨고 폼 너비가 480 이상이다(2026-11-16 앱 변경 #132, 세 대화상자 모두 같은 너비). 크기·증가 크기·최대 크기 칸에는 숫자와
+  마침표 하나만 들어간다(앱 변경 #133). 둘 다 [swing-create-objects.md](swing-create-objects.md) "대화상자 크기와 위치", "숫자 칸".
 
 ## 구조
 
@@ -179,3 +181,6 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 ## 변경 이력
 
 - 2026-11-15 최초 작성(앱 변경 #127): 만들기·삭제·이름 바꾸기·온라인/오프라인·읽기 전용/읽기 쓰기·데이터 파일 추가·설정·삭제, 확인한 문법.
+- 2026-11-16 대화상자가 창 가운데에 더 넓게 뜨고(앱 변경 #132), 숫자 칸이 숫자와 마침표 하나만 받음(앱 변경 #133, `chromite/storage-dialog-fixes`).
+  확인: 스몰파일 `CHR_SD_TBS` 2.5 MB 만들기 문장 `CREATE SMALLFILE TABLESPACE CHR_SD_TBS DATAFILE 'chr_sd_tbs01.dbf' SIZE 2560K AUTOEXTEND ON NEXT 1M MAXSIZE 8M`
+  (전과 같은 모양), 끝에 지움.

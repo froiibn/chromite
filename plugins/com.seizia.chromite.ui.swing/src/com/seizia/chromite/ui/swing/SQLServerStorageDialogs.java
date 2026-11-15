@@ -54,6 +54,8 @@ import java.math.BigDecimal;
  *
  * 변경 이력:
  * - 2026-11-15 최초 작성(앱 변경 #128, docs/chromite/mssql-storage.md)
+ * - 2026-11-16 크기·증가·최대 크기 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #133). 파일 설정의 지금 크기·증가는 소수가 있어도
+ *   그대로 보임({@link NumberInputFilter#setText})
  */
 final class SQLServerStorageDialogs {
 
@@ -73,6 +75,9 @@ final class SQLServerStorageDialogs {
         final JTextField maxField = new JTextField(12);
 
         SpaceFields() {
+            NumberInputFilter.install(sizeField, false);
+            NumberInputFilter.install(growthField, false);
+            NumberInputFilter.install(maxField, false);
             autogrowthBox.setSelected(true);
             autogrowthBox.addItemListener(e -> syncEnabled());
             syncEnabled();
@@ -224,11 +229,12 @@ final class SQLServerStorageDialogs {
         fileField.setFocusable(false);
         SpaceFields space = new SpaceFields();
         String size = format(file.getSize());
-        space.sizeField.setText(size);
+        // The current size and growth can have a fraction of a MB: shown as they are (unchanged, they are not written)
+        NumberInputFilter.setText(space.sizeField, size);
         boolean autogrowth = file.isAutogrowth();
         space.autogrowthBox.setSelected(autogrowth);
         String growth = autogrowth ? format(file.getGrowthValue()) : ""; //$NON-NLS-1$
-        space.growthField.setText(growth);
+        NumberInputFilter.setText(space.growthField, growth);
         boolean percent = autogrowth && file.isPercentGrowth();
         space.unitCombo.setSelectedItem(percent ? UNIT_PERCENT : UNIT_MB);
         Long currentMax = file.getMaxSizeMb();

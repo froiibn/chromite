@@ -51,6 +51,7 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-15 최초 작성(앱 변경 #127, docs/chromite/oracle-storage.md)
+ * - 2026-11-16 크기·증가 크기·최대 크기 칸이 숫자와 소수점 하나만 받음({@link NumberInputFilter}, 앱 변경 #133)
  */
 final class OracleStorageDialogs {
 
@@ -77,6 +78,9 @@ final class OracleStorageDialogs {
         final JTextField maxField = new JTextField(12);
 
         SpaceFields() {
+            NumberInputFilter.install(sizeField, true);
+            NumberInputFilter.install(nextField, true);
+            NumberInputFilter.install(maxField, true);
             autoextendBox.addItemListener(e -> syncEnabled());
             syncEnabled();
         }

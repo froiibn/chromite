@@ -52,6 +52,7 @@ import java.util.Objects;
  * 변경 이력:
  * - 2026-11-15 최초 작성(앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-15 검토 뒤: 새 테이블스페이스·새 데이터 파일의 "(기본값)" 안내 줄을 뺌, 파일 경로 칸이 초점을 받지 않음
+ * - 2026-11-16 크기·증가 크기·최대 크기 칸이 숫자와 소수점 하나만 받음({@link NumberInputFilter}, 앱 변경 #133)
  */
 final class AltibaseTablespaceDialogs {
 
@@ -82,6 +83,9 @@ final class AltibaseTablespaceDialogs {
         final JTextField maxField = new JTextField(12);
 
         SpaceFields() {
+            NumberInputFilter.install(sizeField, true);
+            NumberInputFilter.install(nextField, true);
+            NumberInputFilter.install(maxField, true);
             autoextendBox.addItemListener(e -> syncEnabled());
             syncEnabled();
         }

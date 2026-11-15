@@ -132,6 +132,8 @@ import java.util.function.Supplier;
  * - 2026-11-13 끌어 놓은 이름이 놓는 창에 맞게: 같은 연결의 창이 개체의 DB에 있으면 DB.스키마.개체 이름에서 DB를 뺌({@link DragName}, 앱 변경 #112 검토)
  * - 2026-11-15 삭제 옵션 내용·데이터 파일({@link DeleteOption#CONTENTS}, {@link DeleteOption#DATA_FILES}): 데이터 파일과 연쇄는 내용을 고를 때만
  *   켜짐(Altibase 테이블스페이스, 앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-16 {@link #runChange}의 스크립트 미리 보기와 열린 트랜잭션 질문이 주인 패널 대신 그 창 가운데에 뜸(다른 확인·알림과 같음,
+ *   앱 변경 #132, docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  */
 final class ExplorerObjectCommands {
 
@@ -770,8 +772,9 @@ final class ExplorerObjectCommands {
         String header = NLS.bind(prepared.ddlCommits()
             ? NavigatorMessages.navigator_change_preview_header_ddl_commit
             : NavigatorMessages.navigator_change_preview_header, container.getName());
-        ScriptPreviewDialog.Result result = ScriptPreviewDialog.confirmChange(owner, title, header, prepared.script());
-        if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(owner, container)) {
+        Window window = SwingUtilities.getWindowAncestor(owner);
+        ScriptPreviewDialog.Result result = ScriptPreviewDialog.confirmChange(window, title, header, prepared.script());
+        if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(window, container)) {
             discard(prepared.changes());
             if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
                 queryWindows.openScript(container, prepared.script(), 0, false);
