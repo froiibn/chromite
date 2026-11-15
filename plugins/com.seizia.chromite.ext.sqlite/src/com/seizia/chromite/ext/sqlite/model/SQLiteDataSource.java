@@ -40,6 +40,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -50,7 +51,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * SQLite data source.
+ * <p>
+ * 설계: 모델에는 데이터베이스(스키마) 단계가 없고 루트의 자식이 바로 테이블이다. SQLite가 쿼리에서 읽는 데이터베이스 이름 중
+ * {@code main}만 이 데이터 원본 자신이다({@code temp}와 ATTACH한 데이터베이스의 테이블은 모델에 없음).
+ * <p>
+ * 변경 이력:
+ * - 2026-11-15 {@link #getChild}: 같은 이름의 테이블이 없으면 {@code main}(대소문자 무시)은 데이터 원본 자신. 쿼리 글의
+ *   {@code main.t}가 {@code t}로 풀려 결과 그리드가 묶이고, 풀리지 않는 {@code temp.t}·{@code other.t}는 읽기 전용이 된다
+ *   (앱 변경 #125, docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
+ */
 public class SQLiteDataSource extends GenericDataSource {
+
+    /** The schema name SQLite gives the database opened by the connection */
+    private static final String MAIN_DATABASE_NAME = "main";
 
     private SQLiteExtensionLoading extensionLoading;
 
@@ -193,6 +208,23 @@ public class SQLiteDataSource extends GenericDataSource {
     @Override
     public Class<? extends DBSObject> getPrimaryChildType(@Nullable DBRProgressMonitor monitor) throws DBException {
         return SQLiteTable.class;
+    }
+
+    /**
+     * A table of that name, else the main database itself for {@code main} (SQLite compares database names ignoring
+     * case), so that a name qualified with {@code main} resolves to this data source's table. A table named
+     * {@code main} keeps its name. Only when the children are tables: a subclass whose children are databases
+     * (Cloudflare D1) has no single main database.
+     */
+    @Nullable
+    @Override
+    public DBSObject getChild(@NotNull DBRProgressMonitor monitor, @NotNull String childName) throws DBException {
+        DBSObject child = super.getChild(monitor, childName);
+        if (child == null && MAIN_DATABASE_NAME.equalsIgnoreCase(childName)
+            && DBSEntity.class.isAssignableFrom(getPrimaryChildType(monitor))) {
+            return this;
+        }
+        return child;
     }
 
     @NotNull
