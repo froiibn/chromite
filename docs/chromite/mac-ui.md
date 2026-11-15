@@ -129,6 +129,13 @@ macOS에서는 상태 표시줄 오른쪽 끝, 업데이트 진행 옆으로 옮
 - 사용자 Mac에서 볼 것: 도구 막대 빈 곳을 끌어 창 이동, 두 번 눌러 확대(시스템 설정 "제목 막대를 두 번 클릭하면"), 단추가 그대로 눌리는지, 신호등 단추와 도구 막대 단추의 세로 가운데가
   맞는지(제목 줄 28pt, 도구 막대 줄 32pt라 2pt 차이가 날 수 있음), 대화상자는 예전 제목 줄인지.
 
+## 시작 화면 (앱 변경 #52)
+
+macOS 시작 화면은 런처 창 하나다(2026-11-15). 런처가 JVM 전에 띄운 그림이 애플리케이션의 첫 창(메인 창, 업데이트 뒤 첫 시작의 업데이트 창,
+작업 공간 잠금·시작 오류 대화상자)이 열릴 때까지 남고, 그 창이 열리면 내려간다(`StartupSplash.keepLauncherSplash` → `applicationRunning`).
+Windows처럼 Swing 시작 화면(버전·`Loading…`)을 런처 창 자리에 겹쳐 띄우던 방법은 사용자 Mac에서 창이 위에서 가운데로 움직여 보여 지웠다.
+macOS 시작 화면에는 글자가 없다. 이유·스레드·확인은 [branding.md](branding.md) "자리".
+
 ## 설계 결정과 이유
 
 - **JDK 내부 필드를 켜는 방법:** 다른 방법은 (1) 화면 메뉴 막대를 JNA로 직접 만들기(메뉴·체크·동적 메뉴를 모두 옮겨야 함), (2) 런처가 만든
@@ -162,3 +169,4 @@ DBeaver(SWT)는 SWT가 화면 메뉴 막대를 직접 다뤘다. Swing 프런트
 - 2026-11-12 통합 제목 줄(앱 변경 #62, `chromite/mac-ui-2`): `MacOSUnifiedTitleBar`, `MacOSScreenMenuBar.isAttached`, "FlatLaf의 macOS 제목 표시줄"
   갱신, `macos-smoke.sh`의 제목 줄 캡처(`launch`, `titlebar`). macOS에서 실행하지 못했다(macos-smoke로 확인).
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.
+- 2026-11-15 "시작 화면" 절 추가: macOS는 런처 시작 화면 하나(앱 변경 #52 다시 열림, `chromite/mac-splash-single-window`).

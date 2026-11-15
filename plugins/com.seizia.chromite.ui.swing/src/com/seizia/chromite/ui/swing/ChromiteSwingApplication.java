@@ -119,7 +119,10 @@ import java.util.concurrent.CountDownLatch;
  *   docs/chromite/design-spec.md "적용 현황 — 운영체제 UI 글꼴 13")
  * - 2026-11-12 주 창 없이 끝나는 시작의 안내(작업 공간 잠김, 플랫폼 초기화 실패, 업데이트 적용 중)를 소유자 없는 자기 창으로 띄움
  *   ({@link #showStartupDialog}): 작업 표시줄 단추·Chromite 아이콘·제품 이름 제목, 앞으로 나옴. 숨은 공유 프레임 소유 대화상자는 작업 표시줄에
- *   없어 두 번째 시작의 "작업 영역을 잠글 수 없음"이 다른 창 뒤에 숨고 프로세스가 남았다 (앱 변경 #96, docs/chromite/exit-process.md) */
+ *   없어 두 번째 시작의 "작업 영역을 잠글 수 없음"이 다른 창 뒤에 숨고 프로세스가 남았다 (앱 변경 #96, docs/chromite/exit-process.md)
+ * - 2026-11-15 macOS: Swing 시작 화면을 띄우지 않고 런처 시작 화면을 첫 창(메인 창, 업데이트 창, 시작 대화상자)이 열릴 때 내림
+ *   ({@link StartupSplash#keepLauncherSplash}, {@code applicationRunning}은 그때 한 번). 런처 창 자리 줄({@code (the launcher's splash)})은
+ *   없어짐. Windows·Linux는 그대로 (앱 변경 #52 다시 열림, docs/chromite/branding.md "시작 화면") */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static final Log log = Log.getLog(ChromiteSwingApplication.class);
@@ -155,7 +158,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     /**
      * {@link #run} with the startup splash closed on every way out: a splash left on screen after a failed start would
-     * keep the AWT event thread, and with it the process, alive.
+     * keep the AWT event thread, and with it the process, alive. On macOS the launcher's splash is taken down here
+     * ({@code applicationRunning}, once) when the start ended before any window opened.
      */
     @NotNull
     private Object runWithSplash(@NotNull IApplicationContext context) throws Exception {
@@ -181,13 +185,20 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             return EXIT_OK;
         }
         // The first start after an update shows the update window instead of the splash (its "Start Chromite" step).
-        // The Swing splash is on screen before the launcher's one goes (applicationRunning), so there is no gap. On Windows
-        // the launcher made its splash window on this thread, and only this thread can destroy it.
-        if (!UpdateProgress.openFirstStart()) {
-            StartupSplash.open();
+        if (RuntimeUtils.isMacOS()) {
+            // One window on macOS: the launcher's splash stays until the first window opens (app change #52)
+            StartupSplash.keepLauncherSplash(context::applicationRunning);
+            UpdateProgress.openFirstStart();
+            times.mark("splash"); //$NON-NLS-1$
+        } else {
+            // The Swing splash is on screen before the launcher's one goes (applicationRunning), so there is no gap. On Windows
+            // the launcher made its splash window on this thread, and only this thread can destroy it.
+            if (!UpdateProgress.openFirstStart()) {
+                StartupSplash.open();
+            }
+            times.mark("splash"); //$NON-NLS-1$
+            context.applicationRunning();
         }
-        times.mark("splash"); //$NON-NLS-1$
-        context.applicationRunning();
 
         Location instanceLoc = Platform.getInstanceLocation();
         // Set at launch only by -data: nothing has read the instance preferences yet (see ChromiteSwingActivator)
@@ -240,7 +251,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             times.mark("workspace"); //$NON-NLS-1$
             UpdateProgress.started();
 
-            // The splash closes when the main window opens (StartupSplash)
+            // The splash closes when the main window opens (StartupSplash; macOS: the launcher's splash goes)
             SwingUtilities.invokeAndWait(() -> openMainWindow(statusText));
             times.mark("main window"); //$NON-NLS-1$
             log.debug("Startup times (ms after the process started): " + times);

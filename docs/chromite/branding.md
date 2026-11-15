@@ -139,20 +139,23 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 ### 시작 화면
 
 앱이 뜨기까지 몇 초 걸려서 사용자가 로딩 화면을 요청했다(2026-11-08). SWT 제품의 스플래시는 SWT와 함께 없어졌다(감사 행 A-S15).
-시작 화면은 두 단계로 보인다.
+Windows·Linux에서는 시작 화면이 두 단계로 보이고, macOS에서는 1단계 창 하나만 보인다(2026-11-15, 아래 "자리").
 
 1. **런처 시작 화면(JVM 전):** `Chromite.ini`의 `-showsplash com.seizia.chromite.splash`(제품 파일의 `programArgs`)로
    네이티브 런처가 `plugins/com.seizia.chromite.splash_<버전>/splash.png`를 JVM을 띄우기 전에 보여 준다. 그림만 보이고 글자는 없다.
-2. **Swing 시작 화면(Java가 돈 뒤):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 런처 창과 같은 자리(아래 "자리")에 띄우고
+2. **Swing 시작 화면(Java가 돈 뒤, Windows·Linux):** Look and Feel을 설치한 직후 `StartupSplash`가 같은 그림을 런처 창과 같은 자리(아래 "자리")에 띄우고
    아래 줄에 버전(`버전 0.1.3` / `Version 0.1.3`, About과 같은 문구)과 `로드하는 중` / `Loading…`(공용 문구 `common_loading`)을 얹는다.
    그 직후 애플리케이션이 런처 시작 화면을 내린다(`IApplicationContext.applicationRunning`). 메인 창이나 시작 대화상자가 열리면 닫힌다.
+   **macOS**에서는 이 창을 띄우지 않는다. 런처 시작 화면이 애플리케이션의 첫 창(메인 창, 업데이트 창, 시작 대화상자)이 열릴 때까지 남고,
+   그 창이 열리면 `applicationRunning`이 런처 시작 화면을 내린다(`StartupSplash.keepLauncherSplash`). macOS 시작 화면에는 버전과 `Loading…`이 없다.
 
 | 구성 | 위치 | 하는 일 |
 |---|---|---|
 | 그림 번들 | `plugins/com.seizia.chromite.splash` (`Eclipse-BundleShape: dir`, 코드 없음) | `splash.png`(1x), `splash@2x.png`(2x). 기능 `com.seizia.chromite.swing.feature`에 들어 있다 |
 | 런처 인수 | `product/swing/chromite-swing.product` `<programArgs>-showsplash com.seizia.chromite.splash</programArgs>` | Windows·macOS ini 모두에 들어간다(빌드 결과로 확인) |
-| Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다. macOS에서는 `org.eclipse.equinox.launcher.splash.handle`(런처의 `NSWindow`)의 자리에 둔다 |
-| 시작 순서 | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open`(업데이트 뒤 첫 시작이면 그 대신 업데이트 진행 창, [auto-update.md](auto-update.md) "업데이트 진행 창") → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
+| Swing 시작 화면 | `plugins/com.seizia.chromite.ui.swing` `StartupSplash` | Windows·Linux: 런처가 둔 시스템 속성 `org.eclipse.equinox.launcher.splash.location`의 그림과 옆의 `@2x` 그림으로 창을 만든다(`open`). macOS: 창을 만들지 않고 첫 창이 열릴 때 런처 시작 화면을 내린다(`keepLauncherSplash`) |
+| 시작 순서, Windows·Linux | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.open`(업데이트 뒤 첫 시작이면 그 대신 업데이트 진행 창, [auto-update.md](auto-update.md) "업데이트 진행 창") → `applicationRunning` → 작업 공간 잠금 … 메인 창. `runWithSplash`가 어떻게 끝나도 닫는다 |
+| 시작 순서, macOS | `ChromiteSwingApplication.run` | Look and Feel → (업데이트 적용 중이면 런처 시작 화면을 내리고 안내) → `StartupSplash.keepLauncherSplash`(모든 창의 `WINDOW_OPENED`를 보는 AWT 리스너) → (업데이트 뒤 첫 시작이면 업데이트 진행 창) → 작업 공간 잠금 … 메인 창. 첫 창이 열리는 순간 리스너가 `applicationRunning`을 한 번 부른다(EDT). 창 없이 끝나면 `runWithSplash`의 `StartupSplash.close`가 그 스레드에서 부른다 |
 | 그림 생성 | `tools/branding/gen_app_icons.py` `splash_png` | 다크 가로 로고를 다크 테마 `bg.chrome`(`#2B2D30`) 바탕, `border.popup`(`#43454A`) 1px 테두리 위에. 아래 줄은 비워 둔다 |
 | 시간 기록 | `ChromiteSwingApplication.StartupTimes` | 프로세스 시작부터 단계별 ms를 디버그 로그 한 줄로: `Startup times (ms after the process started): application …, look and feel …, splash …, platform …, services …, workspace …, main window …` |
 
@@ -164,18 +167,32 @@ macOS에서 시작 화면이 처음에 가운데보다 약간 위에 떴다가 �
 |---|---|---|
 | 런처, Windows | Equinox 런처 `library/win32/eclipseWin.c` `showSplash` | 주 화면 전체(`GetSystemMetrics(SM_CXSCREEN/SM_CYSCREEN)`, 작업 표시줄 포함)의 정가운데. 그림은 화면 DPI만큼 키운다(150%면 840×480 px) |
 | 런처, macOS | `library/cocoa/eclipseCocoa.c` `+[KeyWindow show:]` | `[window center]`. AppKit은 가로 가운데, 세로는 "가운데보다 약간 위"에 둔다. 정확한 계산은 문서에 없다(메뉴 막대·Dock을 뺀 영역에서 위쪽 여백이 약 1/3이라는 관찰만 있음) |
-| Swing(고치기 전) | `StartupSplash.show` | 주 화면 `getBounds()`의 정가운데: Windows 런처와 같고 macOS 런처와 다르다 |
+| Swing | `StartupSplash.show` | 주 화면 `getBounds()`의 정가운데: Windows 런처와 같고 macOS 런처와 다르다 |
 
-- **macOS는 런처 창의 실제 자리를 읽는다.** Equinox `Main.handleSplash`가 런처 창의 주소를 시스템 속성 `org.eclipse.equinox.launcher.splash.handle`에 둔다
-  (macOS는 `NSWindow*`). `StartupSplash`가 JNA로 `-[NSWindow frame]`을 읽어(arm64는 `objc_msgSend`, x86_64는 32바이트 구조체라 `objc_msgSend_stret`)
-  Cocoa 좌표(주 화면 왼쪽 아래 원점)를 AWT 좌표(왼쪽 위 원점)로 바꾸고 창을 그 자리·크기에 둔다. AppKit의 규칙을 흉내 내지 않은 이유: 문서에 없는 계산이라
-  macOS 버전마다 달라질 수 있고, 메뉴 막대·Dock·여러 화면에서 맞는지 확인할 수 없다. 읽지 못하면(속성 없음, JNA 실패) 경고 한 줄을 남기고 예전처럼 가운데에 둔다.
+- **macOS는 창 하나다(2026-11-15, #52 다시 열림).** 2026-11-12에는 Swing 시작 화면을 런처 창의 실제 자리(JNA로 읽은 `-[NSWindow frame]`)에 띄웠다.
+  CI Mac(1024×768)에서는 두 창이 같은 자리(`232, 116`)였지만, 사용자 Mac mini(2560×1440)에서는 디버그 로그가 런처 자리
+  (`Startup splash at java.awt.Rectangle[x=1000,y=280,width=560,height=320] (the launcher's splash)`)를 보였는데도 매번 위에서 가운데로 움직였다.
+  띄운 뒤 그 Mac에서 창이 어떻게 되는지(창 관리자가 옮김, AWT·AppKit 좌표 차이 등)는 잴 방법이 없다. 어떤 설명이든 두 번째 창이 있어야 생기므로
+  두 번째 창을 없앴다: macOS에서는 Swing 시작 화면을 띄우지 않고 런처 창이 첫 창이 열릴 때까지 남는다. 버전·`Loading…` 글자를 잃는다(런처는 그림만 보인다).
+  런처 창 자리 읽기(JNA `NSRect`, `org.eclipse.equinox.launcher.splash.handle`)와 `Window.hidesOnDeactivate` 설정은 지웠다.
+  - 내리는 때: 모든 창의 `WINDOW_OPENED`를 보는 AWT 리스너(Windows의 Swing 시작 화면을 닫는 것과 같은 규칙). 메인 창, 업데이트 뒤 첫 시작의
+    업데이트 창, 작업 공간 잠금·시작 오류 대화상자, 모델 코드가 띄우는 대화상자가 같은 경로다. 창이 열린 뒤 내리므로 빈 화면이 없다.
+    창 없이 끝나는 시작(예외)은 `runWithSplash`의 `StartupSplash.close`가 내린다. 업데이트 적용 중 안내는 예전처럼 안내 직전에 내린다.
+  - 스레드: `applicationRunning`은 리스너에서(EDT) 불린다. macOS 런처의 `takeDownSplash`는 AppKit 스레드가 아니면 닫기를
+    `performSelectorOnMainThread … waitUntilDone: 0`으로 맡기고 기다리지 않는다(equinox `eclipseCocoa.c`). 애플리케이션 스레드도 그 순간
+    Equinox 핸들의 잠금을 쥐고 있지 않다(`EclipseAppHandle.run`은 `IApplication.start` 전에 `synchronized`를 나온다). 그래서 모달 대화상자 중에도 교착하지 않는다.
+  - `applicationRunning`이 하는 다른 일: 핸들 상태를 RUNNING으로 바꾸고(서비스 속성 `application.state`), 시작 감시자(`DefaultStartupMonitor`)가
+    런처 시작 화면을 내린다(`Main.takeDownSplash`: 닫기, 속성 `…splash.handle` 지우기, 종료 훅 해제). Chromite 코드는 그 상태를 읽지 않는다. 늦게 불러도 바뀌는 것은 런처 창이 남는 시간뿐이다.
+  - 실패한 시작: 런처는 시작 화면을 내리는 처리기를 JVM 종료 훅으로도 둔다(`Main.takeDownSplash`가 지우는 훅). macOS에서 프로세스가 끝나면 창도 없어진다.
 - **Windows는 그대로다.** 런처는 물리 픽셀로 `(화면 − 그림)/2`, Swing은 논리 좌표로 `(화면 − 560×320)/2`를 계산한다. 배율 s에서 Swing 창은 물리
   `s·(W/s − 560)/2 = (W − 560·s)/2`라 같은 자리다(정수 나눗셈에서 1px 차이가 날 수 있다). 100%에서는 두 계산이 같은 식이다. 측정은 변경 이력의 2026-11-12 줄.
-- **업데이트 뒤 첫 시작(#11)은 다른 창이다.** 런처 시작 화면 다음에 시작 화면이 아니라 업데이트 진행 창이 지난 창 자리(끝내기 때 기록)에 뜬다. 같은 그림이
-  움직이는 것이 아니라 다른 창으로 바뀌는 것이라 이번 변경에 넣지 않았다.
-- 디버그 로그에 `Startup splash at java.awt.Rectangle[…]`(macOS에서 읽은 자리면 `(the launcher's splash)`)을 남긴다. `macos-smoke.sh launch`가 시작하는 동안
-  0.3초마다 창 자리를 기록해 시작 화면 크기 창의 자리가 하나뿐인지 본다([ci.md](ci.md) "macOS 설치·실행 시험").
+- **업데이트 뒤 첫 시작(#11)은 다른 창이다.** 런처 시작 화면 다음에 시작 화면이 아니라 업데이트 진행 창이 지난 창 자리(끝내기 때 기록)에 뜬다.
+  [지금 다시 시작]으로 새 버전을 띄우는 도우미는 런처에 `-nosplash`를 준다: Windows는 앱의 사본(`UpdateHandOver`), macOS는 2026-11-15부터
+  `apply-update.sh`가 새 앱으로 바꿔 넣었을 때 `open <앱> --args -nosplash`. 그래서 업데이트 창만 보인다. 사용자가 업데이트 뒤 손으로 앱을 열면
+  (그냥 닫을 때 적용한 업데이트) 런처 시작 화면 뒤에 업데이트 창이 뜨는 것은 피할 수 없다(런처는 그것이 첫 시작인지 모른다).
+- 디버그 로그에 `Startup splash at java.awt.Rectangle[…]`(Swing 시작 화면의 자리)을 남긴다. macOS에서는 Swing 시작 화면이 없으므로 이 줄이 없다.
+  `macos-smoke.sh launch`가 시작하는 동안 0.3초마다 창 자리를 기록해 시작 화면 크기 창의 자리가 하나뿐인지, 한 번에 둘이 아닌지, 이 줄이 없는지 본다
+  ([ci.md](ci.md) "macOS 설치·실행 시험").
 
 #### 설계 결정
 
@@ -184,25 +201,26 @@ macOS에서 시작 화면이 처음에 가운데보다 약간 위에 떴다가 �
   (equinox `eclipse.c` `findSplash`). 현재 폴더와 상관없이 찾는 방법은 이것뿐이다. 상대 경로는 먼저 현재 폴더 기준으로 찾고,
   없으면 `<경로>_<버전>` 형식으로만 찾는다. 번들이 jar면 런처가 그 안을 읽지 못하므로 그림만 담은 작은 폴더형 번들을 따로 두었다
   (Eclipse 제품의 스플래시 번들과 같은 방식). Swing 번들을 폴더형으로 바꾸는 방법은 설치 구조와 업데이트·서명 경로를 건드려서 쓰지 않았다.
-- **Swing 시작 화면이 이어받는다.** 런처 시작 화면만 쓰면 세 가지가 안 된다.
+- **Swing 시작 화면이 이어받는다(Windows·Linux).** 런처 시작 화면만 쓰면 세 가지가 안 된다. macOS는 창이 움직여 보이는 것을 없애려고
+  런처 시작 화면만 쓴다(위 "자리"). macOS 런처 창은 AppKit 스레드가 처리하므로 "응답 없음" 문제는 없다.
   - 글자(버전, 상태 줄)를 그릴 수 없다. SWT 앱은 SWT로 그 창 위에 그렸다. 버전을 그림에 넣으면 버전을 올릴 때마다 그림을 다시 만들어야 하고, 잊으면 틀린 버전이 보인다.
   - Windows 런처는 창을 첫 스레드에서 만들고, 그 스레드는 곧바로 Java(Equinox, 앱 `run`)를 돌려 창의 메시지를 처리하지 않는다.
     플랫폼 초기화가 길어지면 Windows가 창을 "응답 없음"으로 바꿀 수 있다. Swing 창은 EDT가 처리한다.
   - Windows 런처는 그림을 언제나 96 DPI로 보고 화면 배율만큼 늘린다(WIC 3차 보간, `eclipseWin.c` `loadImage`). 2x 그림을 주면 두 배 크기로 나온다.
-    그래서 런처용은 1x, Swing용은 2x 그림이다. macOS 런처는 그림을 포인트 크기로 보여 주므로(`NSImage`) 1x 그림은 Retina에서 흐리다가 Swing 창에서 선명해진다.
-- **같은 자리, 빈틈 없이.** Swing 창은 주 화면 전체의 가운데에 놓는다(작업 표시줄을 뺀 영역이 아님). Windows 런처도 그렇게 놓는다.
+    그래서 런처용은 1x, Swing용은 2x 그림이다. macOS 런처는 그림을 포인트 크기로 보여 주므로(`NSImage`) Retina에서 1x 그림이 흐리다(macOS에는 Swing 창이 없다).
+- **같은 자리, 빈틈 없이(Windows·Linux).** Swing 창은 주 화면 전체의 가운데에 놓는다(작업 표시줄을 뺀 영역이 아님). Windows 런처도 그렇게 놓는다.
   Swing 창을 띄우고 한 번 그린 뒤(`paintImmediately`) 런처 창을 내린다. Windows 150%에서 두 창의 위치·크기가 픽셀까지 같았다(아래 확인 기록).
-  macOS 런처는 창을 가운데보다 조금 위에 놓아(`[NSWindow center]`) 넘어갈 때 조금 움직일 수 있다.
-- **런처 창은 앱 스레드에서 내린다.** Windows의 `DestroyWindow`는 창을 만든 스레드에서만 된다. 런처 창은 첫 스레드가 만들었고 Windows에서는 `run`도 첫 스레드에서 돈다.
-  그래서 `applicationRunning`을 `run`에서 부른다(메인 창 직전에 부르던 것을 Swing 시작 화면 직후로 옮김). macOS에서는 `run`이 작업 스레드(`MacOSMainThread`)에서 돌고,
-  런처가 닫기를 AppKit 스레드로 넘긴다(`performSelectorOnMainThread`, 기다리지 않음). AppKit 스레드는 막지 않는다.
+- **런처 창은 앱 스레드에서 내린다(Windows).** Windows의 `DestroyWindow`는 창을 만든 스레드에서만 된다. 런처 창은 첫 스레드가 만들었고 Windows에서는 `run`도 첫 스레드에서 돈다.
+  그래서 `applicationRunning`을 `run`에서 부른다(메인 창 직전에 부르던 것을 Swing 시작 화면 직후로 옮김). macOS에서는 런처가 닫기를 AppKit 스레드로 넘기고
+  기다리지 않으므로(`performSelectorOnMainThread`, `waitUntilDone: 0`) 첫 창이 열릴 때 EDT에서 부른다(위 "자리").
 - **창은 활성화될 수 있는 `JFrame`이다.** Windows 런처 창은 뜰 때 활성화된다(`SW_SHOW`). 프로세스에 활성 창이 없는 채로 그 창을 내리면 활성 창이 다른 앱으로 넘어가고,
   뒤에 뜨는 메인 창이 앞으로 나오지 못할 수 있다. 보이지 않는 소유자를 가진 `JWindow`는 활성화되지 않아서 꾸밈 없는 `JFrame`을 쓴다.
-  `Window.Type.UTILITY`라 작업 표시줄 단추가 없다. macOS에서는 다른 앱이 앞에 있어도 숨지 않게 `Window.hidesOnDeactivate`를 끈다. 확인 기록에서 메인 창이 전경 창이었다.
-- **닫는 시점은 "다른 창이 열릴 때" 하나다.** 모든 창의 `WINDOW_OPENED`를 보는 AWT 이벤트 리스너가 시작 화면이 아닌 창이 열리면 닫는다.
+  `Window.Type.UTILITY`라 작업 표시줄 단추가 없다. 확인 기록에서 메인 창이 전경 창이었다.
+- **닫는 시점은 "다른 창이 열릴 때" 하나다.** 모든 창의 `WINDOW_OPENED`를 보는 AWT 이벤트 리스너가 시작 화면이 아닌 창이 열리면 닫는다(macOS: 런처 시작 화면을 내린다).
   메인 창, 작업 공간 잠금 오류, 플랫폼 초기화 오류, 모델 코드가 띄우는 대화상자가 모두 같은 경로다. 쿼리 창 복원 질문(#167)은 메인 창이 열린 뒤라 시작 화면이 이미 닫혀 있다.
   업데이트 적용 중 안내는 Swing 시작 화면보다 앞이라 런처 시작 화면만 먼저 내린다. 시작이 어떻게 끝나도 `runWithSplash`가 닫는다(보이는 창이 남으면 AWT 이벤트 스레드가 프로세스를 붙잡는다).
 - **`-nosplash`를 따른다.** 런처가 그림을 띄우지 않았으면 시스템 속성이 없어서 Swing 시작 화면도 띄우지 않는다. 개발 실행(런처 없음)도 같다.
+  macOS에서는 내릴 런처 창이 없고 `applicationRunning`은 첫 창에서 상태만 바꾼다.
 - **그림 하나가 두 테마에 맞는다.** 바탕과 테두리는 다크 테마 토큰이다. 어두운 카드라 밝은 바탕화면과 어두운 바탕화면 모두에서 경계가 보인다.
   Windows 런처는 그림을 24비트 RGB로 바꾸므로(알파 없음) 투명 모서리 없이 불투명하게 만든다. 글자 색은 다크 테마의 상태 표시줄 글자(`#9DA0A8`)와 `text.primary`(`#DFE1E5`)다.
 
@@ -237,6 +255,7 @@ macOS에서 시작 화면이 처음에 가운데보다 약간 위에 떴다가 �
 
 플랫폼 초기화 오류 대화상자는 일부러 일으키지 못했다. 작업 공간 잠김과 같은 `showStartupError` → `WINDOW_OPENED` 경로다.
 macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "메인 창 뒤에 시작 화면 크기의 창이 없음"을 확인한다([ci.md](ci.md) "macOS 설치·실행 시험").
+2026-11-15(창 하나로 바꿈)부터는 "시작 화면 크기 창이 한 자리, 한 번에 하나", "디버그 로그에 `Startup splash at` 줄 없음"도 본다.
 
 ### 제품 정보 파일
 
@@ -348,3 +367,10 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   100%는 화면 배율을 바꿀 수 없어 측정하지 못했다(두 계산이 같은 식, "자리" 절). macOS는 실행하지 못했다(macos-smoke로 확인).
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, `chromite/launcher-rename`, [launcher-name.md](launcher-name.md))를 반영. 지난 확인 기록의 옛 이름(`chromite-swing`)은 그때의 결과라 그대로 둠.
 - 2026-11-15 About 대화상자에 제품 사이트 링크(https://chromite.seizia.com)를 저장소 링크 위에 더함(앱 변경 #120, `chromite/about-site-link`). "결정 사항"의 웹사이트 줄 갱신.
+- 2026-11-15 macOS 시작 화면을 창 하나로(앱 변경 #52 다시 열림, `chromite/mac-splash-single-window`): Swing 시작 화면을 띄우지 않고 런처 시작 화면을 첫 창이
+  열릴 때 내림(`StartupSplash.keepLauncherSplash`). 런처 창 자리 읽기(JNA)와 `Window.hidesOnDeactivate`를 지움. macOS 도우미가 바꿔 넣은 새 앱을
+  `-nosplash`로 다시 시작. "시작 화면", "자리", "설계 결정" 갱신. Windows·Linux는 그대로.
+  Windows 확인(로컬 빌드, 3840×2160 150%, 20 ms마다 이 프로세스의 창): 정상 시작 런처 창 1500,840 840×480 → 2.2초에 Swing 창 같은 자리·크기(`Version 26.0.8`, `Loading...`)
+  → 61 ms 뒤 런처 창 내려감 → 메인 창 → 0.26초 뒤 Swing 창 닫힘. `-Dsun.java2d.uiScale=1`이면 Swing 창 1640,920 560×320(가운데, 런처 창은 150% 그대로).
+  작업 공간 잠김(두 번째 실행)은 대화상자가 열리며 Swing 창 닫힘, 닫으면 종료 코드 0. 업데이트 적용 중은 런처 창이 안내 전에 내려가고 종료 코드 0.
+  명령줄 `-nosplash`(ini의 `-showsplash`보다 우선)는 메인 창만. macOS는 실행하지 못했다(macos-smoke로 확인).
