@@ -132,7 +132,45 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 
 ## 확인 (2026-11-15, 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트, 연결은 암호를 저장하지 않음)
 
-(아래 표는 확인을 마친 뒤 채운다.)
+기록: `D:\Tools\_scratch\oracle-storage\run\s01`–`s15`(앱 안 단계와 결과), `evidence\a01`–`a04`(카탈로그), 캡처 `sheets\captures\`.
+
+| 명령 | 미리 보기의 문장 | 서버 결과(`DBA_TABLESPACES`·`DBA_DATA_FILES`·`DBA_TEMP_FILES`) | 트리 |
+|---|---|---|---|
+| New Tablespace… 영구 스몰파일 | `CREATE SMALLFILE TABLESPACE CHR_TS_APP_P1 DATAFILE '/…/chr_ts_app_p1_01.dbf' SIZE 2M AUTOEXTEND ON NEXT 1M MAXSIZE 16M` | PERMANENT, BIGFILE NO, 2097152 / 16777216 / 128 블록 | 노드 생김 |
+| 영구 빅파일(상대 이름) / 임시 / 언두 | `CREATE BIGFILE TABLESPACE CHR_TS_APP_B1 DATAFILE 'chr_ts_app_b1_01.dbf' SIZE 8M`, `CREATE SMALLFILE TEMPORARY … TEMPFILE '…' SIZE 2M`, `CREATE SMALLFILE UNDO … SIZE 2M` | 빅파일 YES, 파일 `$ORACLE_HOME/dbs/chr_ts_app_b1_01.dbf` / TEMPORARY / UNDO | 노드 생김, Files에 서버의 전체 경로 |
+| 대화상자에서 취소 / 미리 보기에서 취소 | — / 문장만 보임 | 바뀌지 않음(P1은 한 번만 만들어짐) | 바뀌지 않음 |
+| 빈 이름, 파일 없음, 크기 없음·0.01 MB | 대화상자 오류 줄 "Enter a name." / "Enter the data file name (without quotes)." / "Enter the sizes in MB." | — | — |
+| 같은 이름 | 미리 보기 뒤 실행 | 모델의 확인 "Object 'CHR_TS_APP_T1' already exists"(서버에 가기 전, 기존 공통 동작) | 바뀌지 않음 |
+| New Data File…(상대 이름, 자동 확장) | `ALTER TABLESPACE CHR_TS_APP_P1 ADD DATAFILE 'chr_ts_app_p1_02.dbf' SIZE 1M AUTOEXTEND ON NEXT 512K MAXSIZE 8M` | 파일 `…/dbs/chr_ts_app_p1_02.dbf`, 1048576 / 8388608 / 64 | 파일 노드(서버의 전체 경로) |
+| New Data File…(임시) | `ALTER TABLESPACE CHR_TS_APP_T1 ADD TEMPFILE '…/chr_ts_app_t1_02.dbf' SIZE 2M` | 임시 파일 추가 | 노드 생김 |
+| Data File Settings…(바꾸지 않고 OK) | 없음 | — | "This change produces no SQL statement…" 알림 |
+| Data File Settings…(크기+자동 확장, 자동 확장 끄기, 임시 파일) | `ALTER DATABASE DATAFILE '…' RESIZE 3M` + `… AUTOEXTEND ON NEXT 1M MAXSIZE 10M`, `… AUTOEXTEND OFF`, `ALTER DATABASE TEMPFILE '…' RESIZE 3M` + `… AUTOEXTEND ON NEXT 1M MAXSIZE 8M` | 3145728 / 10485760 / 128, 그 뒤 NO | 다시 열면 새 값(처음 초점은 크기 칸) |
+| Data File Settings…(64K, 실패) | `… RESIZE 64K` | "The command failed on …" + ORA-03214 오류 창 | 바뀌지 않음 |
+| Delete 파일(둘 중 하나) | `ALTER TABLESPACE CHR_TS_APP_P1 DROP DATAFILE '…'` | 행 없어짐 | 노드 빠짐, 남은 하나의 Delete는 꺼짐 |
+| Take Offline / Bring Online | `ALTER TABLESPACE CHR_TS_APP_P1 OFFLINE / ONLINE` | OFFLINE / ONLINE | 오프라인이면 온라인만 켜짐(읽기 전용·읽기 쓰기 꺼짐) |
+| Make Read-Only / Make Read-Write | `… READ ONLY / READ WRITE` | READ ONLY / ONLINE | 읽기 전용이면 읽기 쓰기와 온라인·오프라인이 켜짐 |
+| Rename(F2, 언두) | `ALTER TABLESPACE CHR_TS_APP_U1 RENAME TO CHR_TS_APP_U1R` | 이름 바뀜 | 노드 이름 바뀜 |
+| Delete 테이블스페이스(옵션 없음, 테이블 있음) | `DROP TABLESPACE CHR_TS_APP_P1` | ORA-01549 오류 창 | 바뀌지 않음 |
+| Delete(내용만, 다른 테이블스페이스의 외래 키) | `… INCLUDING CONTENTS` | ORA-02449 오류 창 | 바뀌지 않음 |
+| Delete(내용+파일+CASCADE) | `… INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS` | 지워짐, 테이블과 외래 키도 | 노드 빠짐 |
+| 권한 없는 사용자(`CHR_TS_USER`, CREATE SESSION) | `CREATE BIGFILE TABLESPACE CHR_TS_APP_X1 …` | ORA-01031 오류 창 | Tablespaces는 빈 폴더(`USER_TABLESPACES`), New Tablespace…만 보임 |
+| 읽기 전용 연결 | — | New Tablespace…, Take Offline, Delete 모두 "ORA does not allow changing database objects…" | — |
+| CDB 루트 연결(`FREE`) | `CREATE SMALLFILE TABLESPACE CHR_TS_APP_R1 DATAFILE '/opt/oracle/oradata/FREE/chr_ts_app_r1_01.dbf' SIZE 2M`, `… READ ONLY`, `DROP … INCLUDING CONTENTS AND DATAFILES` | 루트에서 만들어지고 지워짐 | 루트의 SYSTEM·SYSAUX·TEMP·UNDOTBS1·USERS는 새 항목 없음, Rename·Delete 꺼짐 |
+
+- 메뉴: SYSTEM·SYSAUX·TEMP·UNDOTBS1·USERS(기본·활성 언두) 노드에는 새 항목이 없고 Rename·Delete가 꺼짐. 임시는 Rename·Delete만, 언두는 온라인·오프라인까지,
+  빅파일은 Files 폴더에 New Data File…이 없고 파일 노드는 데이터 파일 설정만(Delete 꺼짐).
+- 열린 트랜잭션(수동 커밋 연결 `ORA TX`, 쿼리 창의 `INSERT`): Take Offline → "Uncommitted Transactions" 질문(Commit / Roll Back / Cancel, 취소가 기본).
+  취소 → 아무것도 하지 않음(ONLINE, 다른 세션에서 행 없음), 롤백 → INSERT 없어지고 오프라인, 커밋 → INSERT가 남고 오프라인(`a03`, `a04`).
+- 미리 보기 머리글에 "This database commits each DDL statement at once; the change cannot be rolled back." 줄이 붙는다.
+- 연결 Refresh 뒤, 연결 끊고 다시 연결한 뒤에도 메뉴가 같다(CHR_TS_APP_B1: 온라인 꺼짐·오프라인·읽기 전용 켜짐, USERS·UNDOTBS1: 새 항목 없음).
+- 같은 빌드에서 Oracle 테이블 이름 바꾸기(`ALTER TABLE CHR_TS_USER.CHR_TS_SMOKE RENAME TO CHR_TS_SMOKE2`)와 삭제(확인란은 CASCADE 하나)가 전과 같고,
+  Altibase 시험 서버(#291)에서 Tablespaces 폴더의 New Tablespace…(종류 Memory/Disk/Temporary/Volatile, 미리 보기 `CREATE TABLESPACE … DATAFILE … SIZE 4M`에서 취소),
+  시스템 테이블스페이스 노드의 메뉴(새 항목 없음, Delete 꺼짐)가 전과 같다. Altibase에서는 아무것도 실행하지 않았다.
+- 화면: 영어·한국어, 라이트·다크, 100 %·150 %에서 폴더·노드·파일 메뉴, 세 대화상자와 이름 바꾸기, 미리 보기, 삭제 확인, 트리를 캡처했고, origin/devel 빌드와 메뉴를 비교한 시트를 만들었다.
+- 시험 서버 정리: 테이블스페이스는 모두 `INCLUDING CONTENTS AND DATAFILES`로, 임시 사용자 `CHR_TS_USER`는 CASCADE로 지웠다. 끝에 `DBA_TABLESPACES`·`DBA_DATA_FILES`·`DBA_TEMP_FILES`·
+  `DBA_USERS`(PDB)와 `CDB_DATA_FILES`·`CDB_TEMP_FILES`·`CDB_USERS`(루트)에 `CHR` 행이 없다(`evidence\p20-cleanup.txt`). `KEEP DATAFILES`로 남긴 파일 하나는 `REUSE`로 다시 만들어 지웠다.
+- 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: Oracle 테이블스페이스 노드 새로 고침(이제 행을 다시 읽음), Oracle 테이블스페이스 목록 읽기(질의 두 개가 더해짐),
+  유지 관리 메뉴, Altibase 데이터 파일 설정 툴팁.
 
 ## upstream 대비 변경점
 
