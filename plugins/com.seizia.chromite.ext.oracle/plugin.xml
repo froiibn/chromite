@@ -438,6 +438,8 @@
         <manager class="com.seizia.chromite.ext.oracle.edit.OraclePackageManager" objectType="com.seizia.chromite.ext.oracle.model.OraclePackage"/>
         <manager class="com.seizia.chromite.ext.oracle.edit.OracleTableTriggerManager" objectType="com.seizia.chromite.ext.oracle.model.OracleTableTrigger"/>
         <manager class="com.seizia.chromite.ext.oracle.edit.OracleSequenceManager" objectType="com.seizia.chromite.ext.oracle.model.OracleSequence"/>
+        <manager class="com.seizia.chromite.ext.oracle.edit.OracleTablespaceManager" objectType="com.seizia.chromite.ext.oracle.model.OracleTablespace"/>
+        <manager class="com.seizia.chromite.ext.oracle.edit.OracleDataFileManager" objectType="com.seizia.chromite.ext.oracle.model.OracleDataFile"/>
     </extension>
     
     <extension point="com.seizia.chromite.dataTypeProvider">

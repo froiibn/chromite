@@ -22,7 +22,9 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
   - 객체 관리자가 지원할 때만 "종속 개체도 삭제(CASCADE)", "기존 연결 닫기"(데이터베이스 삭제) 확인란.
   - Altibase 계열 테이블스페이스는 "내용도 삭제(INCLUDING CONTENTS)", "데이터 파일도 삭제(AND DATAFILES)"가 앞에 더 있다(모두 꺼짐). 파일과 CASCADE는 서버 문법상
     내용과 함께일 때만 되므로 내용을 고를 때만 켜진다(`DeleteOption.CONTENTS`·`DATA_FILES`, 기능 비트 `FEATURE_DELETE_CONTENTS`·`FEATURE_DELETE_DATA_FILES`).
+  - Oracle 테이블스페이스도 같은 세 확인란이다(`DROP TABLESPACE t [INCLUDING CONTENTS [AND DATAFILES] [CASCADE CONSTRAINTS]]`, [oracle-storage.md](oracle-storage.md)).
 - 이름 바꾸기: "{형식} 이름 바꾸기" 입력 창(지금 이름이 들어 있음). 연결 노드의 이름 바꾸기와 같은 모양이다.
+  - PostgreSQL 사용자 테이블스페이스도 바뀐다(`ALTER TABLESPACE a RENAME TO b`). pg_default·pg_global은 꺼짐([swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
 - 스크립트 미리 보기(`ScriptPreviewDialog`, 기본 단추 "취소"): 머리글 "다음 스크립트를 {연결}에서 실행합니다. 지금 실행하시겠습니까?",
   DDL을 바로 커밋하는 DB면 "이 데이터베이스는 DDL 문을 바로 커밋하므로 변경을 롤백할 수 없습니다." 한 줄이 더 붙는다.
   단추: 복사, 쿼리 창에서 열기(실행하지 않고 새 쿼리 창으로), 실행, 취소.
@@ -152,6 +154,7 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 | 구체화된 뷰 새로 고침 | PostgreSQL·Oracle·Altibase 구체화된 뷰 | `REFRESH MATERIALIZED VIEW v WITH DATA`(PG), `CALL DBMS_MVIEW.REFRESH('s.v','')`(Oracle, 뷰의 새로 고침 방식), `EXEC SYSTEM_.REFRESH_MATERIALIZED_VIEW('S', 'V')`(Altibase) |
 | 온라인으로 전환 / 오프라인으로 전환 | Altibase 계열 메모리·디스크 데이터 사용자 테이블스페이스 | `ALTER TABLESPACE t ONLINE / OFFLINE`(지금 상태의 항목은 꺼짐, [altibase.md](altibase.md) "테이블스페이스 관리") |
 | 자동 확장 설정… / 데이터 파일 설정… | Altibase 계열 메모리·휘발성 테이블스페이스 / 디스크 데이터·임시 파일(한 개 선택) | 설정 대화상자(지금 값) 뒤 `ALTER TABLESPACE … ALTER AUTOEXTEND …` / `… ALTER DATAFILE 'f' SIZE …`·`AUTOEXTEND …`. 바뀐 것이 없으면 "문장 없음" 알림 |
+| 온라인으로 전환 / 오프라인으로 전환, 읽기 전용으로 전환 / 읽기 쓰기로 전환, 데이터 파일 설정… | Oracle 영구·언두 테이블스페이스(읽기 전용은 영구만), 데이터·임시 파일(한 개 선택). SYSTEM·SYSAUX·기본·활성 언두 제외 | `ALTER TABLESPACE t ONLINE / OFFLINE / READ ONLY / READ WRITE`(지금 상태의 항목은 꺼짐), `ALTER DATABASE DATAFILE / TEMPFILE 'f' RESIZE …`·`AUTOEXTEND …`([oracle-storage.md](oracle-storage.md)) |
 | 기본 파일 그룹으로 설정 / 읽기 전용으로 전환 / 읽기 쓰기로 전환 | SQL Server 행 데이터 파일 그룹(읽기 전용은 PRIMARY 제외) | `ALTER DATABASE d MODIFY FILEGROUP fg DEFAULT / READ_ONLY / READ_WRITE`(지금 상태의 항목과 파일이 없는 파일 그룹의 항목은 꺼짐, [mssql-storage.md](mssql-storage.md)) |
 | 파일 설정… | SQL Server 데이터·로그 파일(읽기 전용 제외, 한 개 선택) | 설정 대화상자(지금 값) 뒤 `ALTER DATABASE d MODIFY FILE (NAME = N'f', SIZE …, FILEGROWTH …, MAXSIZE …)`(바뀐 것만). 바뀐 것이 없으면 "문장 없음" 알림 |
 | 컴파일 | Oracle 저장 코드·뷰·구체화된 뷰·트리거·사용자 형식, Altibase 뷰·프로시저·함수·패키지 | Oracle `getCompileActions`(`ALTER … COMPILE`, 패키지는 `COMPILE BODY`도), Altibase 도구의 `ALTER … COMPILE`. 결과와 오류 목록은 [swing-routines.md](swing-routines.md) "컴파일" |
@@ -282,4 +285,6 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-13 끌어서 이름 넣기(앱 변경 #112): 트리 끌기(복사만), 쿼리 편집기가 놓은 자리에 한 실행 취소 단계로 넣음. SQL Server·PostgreSQL·MariaDB·Oracle에서 실제 마우스 끌기로 확인.
 - 2026-11-13 놓는 창에 맞춘 이름(#112 검토): 같은 연결의 쿼리 창이 개체의 DB에 있으면 DB.스키마.개체에서 DB를 뺌(SQL Server `dbo.t`). 다른 꼴의 이름·다른 창은 그대로.
 - 2026-11-15 Altibase 계열 테이블스페이스: 삭제 확인의 내용·데이터 파일 확인란, 유지 관리 명령 온라인·오프라인·자동 확장 설정·데이터 파일 설정(앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").
+- 2026-11-15 Oracle 테이블스페이스: 삭제 확인의 세 확인란, 이름 바꾸기, 유지 관리 명령 온라인·오프라인·읽기 전용·읽기 쓰기·데이터 파일 설정(앱 변경 #127, [oracle-storage.md](oracle-storage.md)). 데이터 파일 설정 툴팁의 문장을 두 DB에 맞게 `ALTER ... DATAFILE ...`로 바꿈.
+- 2026-11-15 PostgreSQL 테이블스페이스 이름 바꾸기(앱 변경 #129, [swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
 - 2026-11-15 SQL Server 파일 그룹·파일: 유지 관리 명령 기본 파일 그룹으로 설정·읽기 전용·읽기 쓰기·파일 설정, 파일 그룹·파일의 삭제·이름 바꾸기(앱 변경 #128, [mssql-storage.md](mssql-storage.md)).

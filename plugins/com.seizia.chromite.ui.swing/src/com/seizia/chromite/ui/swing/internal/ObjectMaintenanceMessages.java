@@ -87,6 +87,13 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_file_settings;
     public static String objmaint_file_settings_tip;
     public static String objmaint_file_settings_title;
+    // Oracle tablespaces (app change #127)
+    public static String objmaint_tbs_read_only;
+    public static String objmaint_tbs_read_only_tip;
+    public static String objmaint_tbs_read_only_title;
+    public static String objmaint_tbs_read_write;
+    public static String objmaint_tbs_read_write_tip;
+    public static String objmaint_tbs_read_write_title;
 
     // SQL Server filegroups and database files
     public static String objmaint_mssql_fg_default;

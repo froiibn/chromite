@@ -28,6 +28,9 @@ import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
 import com.seizia.chromite.ext.mysql.model.MySQLCharset;
 import com.seizia.chromite.ext.mysql.model.MySQLCollation;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleDataFile;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleTablespace;
 import com.seizia.chromite.ext.postgresql.model.PostgreAvailableExtension;
 import com.seizia.chromite.ext.postgresql.model.PostgreCharset;
 import com.seizia.chromite.ext.postgresql.model.PostgreCollation;
@@ -106,6 +109,7 @@ import java.util.function.Function;
  *   이름만 길에서 빼도록 알림 (docs/chromite/password-handling.md)
  * - 2026-11-15 Altibase 계열 테이블스페이스·데이터 파일은 {@link AltibaseTablespaceDialogs}가 묻는다({@link #load}를
  *   패키지 안에 엶: 자동 확장 설정이 지금 값을 읽음) (docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-15 Oracle 테이블스페이스·데이터 파일은 {@link OracleStorageDialogs}가 묻는다(앱 변경 #127, docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 데이터·로그 파일은 {@link SQLServerStorageDialogs}가 묻는다 (앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 final class NewObjectDialogs {
@@ -156,6 +160,8 @@ final class NewObjectDialogs {
             || MySQLCatalog.class.isAssignableFrom(childClass) || PostgreSchema.class.isAssignableFrom(childClass)
             || PostgreTablespace.class.isAssignableFrom(childClass) || PostgreExtension.class.isAssignableFrom(childClass)
             || AltibaseTablespace.class.isAssignableFrom(childClass) || AltibaseDataFile.class.isAssignableFrom(childClass)
+            // Oracle (app change #127)
+            || OracleTablespace.class.isAssignableFrom(childClass) || OracleDataFile.class.isAssignableFrom(childClass)
             // SQL Server database files
             || SQLServerDatabaseFile.class.isAssignableFrom(childClass);
     }
@@ -183,6 +189,11 @@ final class NewObjectDialogs {
             return AltibaseTablespaceDialogs.askTablespace(owner, title);
         } else if (AltibaseDataFile.class.isAssignableFrom(childClass) && container instanceof AltibaseTablespace) {
             return AltibaseTablespaceDialogs.askDataFile(owner, title);
+        } else if (OracleTablespace.class.isAssignableFrom(childClass) && container instanceof OracleDataSource dataSource) {
+            // Oracle (app change #127)
+            return OracleStorageDialogs.askTablespace(owner, title, dataSource);
+        } else if (OracleDataFile.class.isAssignableFrom(childClass) && container instanceof OracleTablespace) {
+            return OracleStorageDialogs.askDataFile(owner, title);
         } else if (SQLServerDatabaseFile.class.isAssignableFrom(childClass)) {
             // SQL Server data files (container: a filegroup) and log files (container: the database)
             return SQLServerStorageDialogs.askFile(owner, title, container);

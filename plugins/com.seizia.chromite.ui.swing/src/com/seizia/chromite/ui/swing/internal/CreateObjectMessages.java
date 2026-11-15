@@ -85,6 +85,10 @@ public class CreateObjectMessages extends NLS {
     public static String create_label_max_size;
     public static String create_error_data_file;
     public static String create_error_size;
+    // Oracle tablespaces (app change #127)
+    public static String create_type_permanent;
+    public static String create_type_undo;
+    public static String create_label_bigfile;
 
     // SQL Server database files
     public static String create_label_file;

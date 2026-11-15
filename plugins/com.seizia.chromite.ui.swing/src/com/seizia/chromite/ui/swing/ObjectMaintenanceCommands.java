@@ -20,6 +20,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
+import com.seizia.chromite.ext.oracle.model.OracleDataFile;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
@@ -80,6 +81,8 @@ import java.util.stream.Collectors;
  *     자동 확장 설정·데이터 파일 설정은 미리 보기 전에 지금 값으로 채운 설정 대화상자({@link AltibaseTablespaceDialogs})를 보이고, 바뀐 것이
  *     없으면 속성 편집처럼 실행할 문장이 없다고 알린다. 한 개를 고를 때만 보인다. 실행 뒤(실패해도) 테이블스페이스 노드를 다시 읽어
  *     상태·크기·파일 목록을 맞춘다.</li>
+ *     <li>Oracle 테이블스페이스: 온라인·오프라인, 읽기 전용·읽기 쓰기는 같은 모양이다(읽기 전용·읽기 쓰기는 온라인 읽기 쓰기·읽기 전용일 때만 켜짐).
+ *     데이터 파일 설정은 {@link OracleStorageDialogs}가 묻는다.</li>
  *     <li>SQL Server 파일 그룹·파일: 기본 파일 그룹으로·읽기 전용·읽기 쓰기는 트리거 사용/사용 안 함과 같다(지금 상태와 같은 항목과 파일이 없는
  *     파일 그룹의 항목은 꺼짐). 파일 설정은 지금 값으로 채운 설정 대화상자({@link SQLServerStorageDialogs})를 보인다(데이터 파일 설정과 같음).
  *     실행 뒤(실패해도) 그 노드를 다시 읽는다: 파일 그룹은 데이터베이스의 파일 그룹 행을 모두 다시 읽어 이전 기본 파일 그룹도 맞추고, 파일은
@@ -93,6 +96,8 @@ import java.util.stream.Collectors;
  * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정(앱 변경 #126,
  *   docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-15 Oracle 테이블스페이스 온라인·오프라인, 읽기 전용·읽기 쓰기({@link OracleStorageDialogs}의 데이터 파일 설정 포함, 앱 변경 #127,
+ *   docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 final class ObjectMaintenanceCommands {
@@ -140,6 +145,11 @@ final class ObjectMaintenanceCommands {
             ObjectMaintenanceMessages.objmaint_tbs_autoextend_tip);
         addItem(ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS, ObjectMaintenanceMessages.objmaint_file_settings,
             ObjectMaintenanceMessages.objmaint_file_settings_tip);
+        // Oracle (app change #127)
+        addItem(ObjectMaintenanceActions.Action.TABLESPACE_READ_ONLY, ObjectMaintenanceMessages.objmaint_tbs_read_only,
+            ObjectMaintenanceMessages.objmaint_tbs_read_only_tip);
+        addItem(ObjectMaintenanceActions.Action.TABLESPACE_READ_WRITE, ObjectMaintenanceMessages.objmaint_tbs_read_write,
+            ObjectMaintenanceMessages.objmaint_tbs_read_write_tip);
         // SQL Server filegroups and database files
         addItem(ObjectMaintenanceActions.Action.FILEGROUP_DEFAULT, ObjectMaintenanceMessages.objmaint_mssql_fg_default,
             ObjectMaintenanceMessages.objmaint_mssql_fg_default_tip);
@@ -192,6 +202,8 @@ final class ObjectMaintenanceCommands {
     /**
      * False only for a trigger whose state (as read) already is the one the command sets, for an Altibase replication
      * that is already started (Start, Synchronize) or stopped (Stop), and for an Altibase tablespace that is already
+     * online (Bring Online) or offline (Take Offline), and for an Oracle tablespace that is not online read-write (Make
+     * Read-Only) or read-only (Make Read-Write).
      * online (Bring Online) or offline (Take Offline), and for a SQL Server filegroup that already is the default,
      * read-only or read-write, or has no files.
      */
@@ -206,6 +218,8 @@ final class ObjectMaintenanceCommands {
             case STOP_REPLICATION -> !Boolean.FALSE.equals(started);
             case TABLESPACE_ONLINE -> !Boolean.TRUE.equals(online);
             case TABLESPACE_OFFLINE -> !Boolean.FALSE.equals(online);
+            // Oracle (app change #127)
+            case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> ObjectMaintenanceActions.changesTablespaceReadOnly(action, object);
             // SQL Server filegroups
             case FILEGROUP_DEFAULT, FILEGROUP_READ_ONLY, FILEGROUP_READ_WRITE -> ObjectMaintenanceActions.changesFilegroupState(action, object);
             default -> true;
@@ -424,7 +438,9 @@ final class ObjectMaintenanceCommands {
 
     private static boolean isTablespaceAction(@NotNull ObjectMaintenanceActions.Action action) {
         return action == ObjectMaintenanceActions.Action.TABLESPACE_ONLINE || action == ObjectMaintenanceActions.Action.TABLESPACE_OFFLINE
-            || action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND;
+            || action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND
+            // Oracle (app change #127)
+            || action == ObjectMaintenanceActions.Action.TABLESPACE_READ_ONLY || action == ObjectMaintenanceActions.Action.TABLESPACE_READ_WRITE;
     }
 
     private static boolean isSqlServerStorageAction(@NotNull ObjectMaintenanceActions.Action action) {
@@ -443,6 +459,9 @@ final class ObjectMaintenanceCommands {
             return AltibaseTablespaceDialogs.askAutoextend(explorer, title, tablespace);
         } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof AltibaseDataFile4Disk file) {
             return AltibaseTablespaceDialogs.askDataFileSettings(explorer, title, file);
+        } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof OracleDataFile file) {
+            // Oracle (app change #127)
+            return OracleStorageDialogs.askDataFileSettings(explorer, title, file);
         } else if (action == ObjectMaintenanceActions.Action.DATABASE_FILE_SETTINGS && object instanceof SQLServerDatabaseFile file) {
             // SQL Server data and log files
             return SQLServerStorageDialogs.askFileSettings(explorer, title, file);
@@ -499,6 +518,9 @@ final class ObjectMaintenanceCommands {
             case TABLESPACE_OFFLINE -> ObjectMaintenanceMessages.objmaint_tbs_offline_title;
             case TABLESPACE_AUTOEXTEND -> ObjectMaintenanceMessages.objmaint_tbs_autoextend_title;
             case DATA_FILE_SETTINGS -> ObjectMaintenanceMessages.objmaint_file_settings_title;
+            // Oracle (app change #127)
+            case TABLESPACE_READ_ONLY -> ObjectMaintenanceMessages.objmaint_tbs_read_only_title;
+            case TABLESPACE_READ_WRITE -> ObjectMaintenanceMessages.objmaint_tbs_read_write_title;
             // SQL Server filegroups and database files
             case FILEGROUP_DEFAULT -> ObjectMaintenanceMessages.objmaint_mssql_fg_default_title;
             case FILEGROUP_READ_ONLY -> ObjectMaintenanceMessages.objmaint_mssql_fg_read_only_title;

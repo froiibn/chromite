@@ -44,6 +44,7 @@ import com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerDisable;
 import com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerEnable;
 import com.seizia.chromite.ext.mysql.model.MySQLTable;
 import com.seizia.chromite.ext.mysql.tasks.MySQLToolTableTruncate;
+import com.seizia.chromite.ext.oracle.model.OracleDataFile;
 import com.seizia.chromite.ext.oracle.model.OracleDataType;
 import com.seizia.chromite.ext.oracle.model.OracleMaterializedView;
 import com.seizia.chromite.ext.oracle.model.OracleObjectStatus;
@@ -52,6 +53,8 @@ import com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone;
 import com.seizia.chromite.ext.oracle.model.OracleSchema;
 import com.seizia.chromite.ext.oracle.model.OracleTable;
 import com.seizia.chromite.ext.oracle.model.OracleTableTrigger;
+import com.seizia.chromite.ext.oracle.model.OracleTablespace;
+import com.seizia.chromite.ext.oracle.model.OracleTablespaceDDL;
 import com.seizia.chromite.ext.oracle.model.OracleTrigger;
 import com.seizia.chromite.ext.oracle.model.OracleView;
 import com.seizia.chromite.ext.oracle.model.source.OracleSourceObject;
@@ -126,6 +129,9 @@ import java.util.function.Consumer;
  *     <li>Altibase 계열 테이블스페이스 — 온라인·오프라인(메모리·디스크 데이터), 자동 확장(메모리·휘발성), 데이터·임시 파일의 크기와
  *     자동 확장. 문장은 {@link AltibaseTablespaceDDL}(시험 서버에서 확인한 문법)이고, 자동 확장과 파일 설정은 화면이 먼저 받은 값
  *     ({@link #needsSettings})으로 만든다. 온라인 여부는 모델이 읽은 {@code V$TABLESPACES.STATE}다({@link #isTablespaceOnline}).</li>
+ *     <li>Oracle 테이블스페이스 — 온라인·오프라인(영구·언두), 읽기 전용·읽기 쓰기(영구), 데이터·임시 파일의 크기와 자동 확장. 문장은
+ *     {@link OracleTablespaceDDL}(시험 서버에서 확인한 문법)이고, 데이터베이스가 기대는 테이블스페이스에는 명령이 없다
+ *     ({@code OracleTablespace.isFixedStorage}). 상태는 모델이 읽은 {@code DBA_TABLESPACES.STATUS}다.</li>
  *     <li>SQL Server 파일 그룹 — 기본 파일 그룹으로, 읽기 전용·읽기 쓰기, 데이터·로그 파일의 크기·자동 증가·최대 크기. 문장은
  *     {@link SQLServerStorageDDL}(시험 서버에서 확인한 문법)이다. 상태는 모델이 읽은 {@code sys.filegroups} 행이고, 파일이 없는 파일 그룹은
  *     서버가 바꾸지 않는다({@link #changesFilegroupState}). 격리된 실행 문맥이 수동 커밋이어도 열린 트랜잭션이 없으면 서버가 {@code ALTER DATABASE}를
@@ -145,6 +151,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장, 데이터 파일 설정(앱 변경 #126,
  *   docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-15 Oracle 테이블스페이스 온라인·오프라인, 읽기 전용·읽기 쓰기, 데이터 파일 설정(앱 변경 #127,
+ *   docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 public final class ObjectMaintenanceActions {
@@ -170,9 +178,13 @@ public final class ObjectMaintenanceActions {
          */
         TABLESPACE_AUTOEXTEND,
         /**
-         * Size and autoextend of a disk data or temp file; settings: {@link AltibaseTablespaceDDL.Space} (the change).
+         * Size and autoextend of a disk data or temp file; settings: {@link AltibaseTablespaceDDL.Space} or (Oracle)
+         * {@link OracleTablespaceDDL.Space} (the change).
          */
         DATA_FILE_SETTINGS,
+        // Oracle (app change #127)
+        TABLESPACE_READ_ONLY,
+        TABLESPACE_READ_WRITE,
         // SQL Server filegroups and database files
         FILEGROUP_DEFAULT,
         FILEGROUP_READ_ONLY,
@@ -207,6 +219,10 @@ public final class ObjectMaintenanceActions {
         if (object == null || !object.isPersisted()) {
             return false;
         }
+        // Oracle tablespaces and data files (app change #127)
+        if (object instanceof OracleTablespace || object instanceof OracleDataFile) {
+            return supportsOracleStorage(action, object);
+        }
         return switch (action) {
             case TRUNCATE -> object instanceof PostgreTable && !(object instanceof PostgreTableForeign)
                 || object instanceof MySQLTable
@@ -232,6 +248,8 @@ public final class ObjectMaintenanceActions {
             case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> object instanceof AltibaseTablespace tablespace && tablespace.supportsOnlineChange();
             case TABLESPACE_AUTOEXTEND -> object instanceof AltibaseTablespace tablespace && tablespace.supportsAutoextendChange();
             case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();
+            // Oracle only (above)
+            case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> false;
             // SQL Server filegroups and database files
             case FILEGROUP_DEFAULT -> object instanceof SQLServerFilegroup filegroup && filegroup.supportsChanges();
             case FILEGROUP_READ_ONLY, FILEGROUP_READ_WRITE -> object instanceof SQLServerFilegroup filegroup && filegroup.supportsSecondaryChanges();
@@ -245,6 +263,10 @@ public final class ObjectMaintenanceActions {
      */
     @Nullable
     public static Boolean isTablespaceOnline(@NotNull DBSObject object) {
+        // Oracle (app change #127): null for a read-only tablespace (online or offline)
+        if (object instanceof OracleTablespace tablespace) {
+            return tablespace.isOnline();
+        }
         return object instanceof AltibaseTablespace tablespace ? tablespace.isOnline() : null;
     }
 
@@ -493,6 +515,11 @@ public final class ObjectMaintenanceActions {
         @Nullable Object commandSettings,
         @NotNull List<DBEPersistAction> actions
     ) throws DBException {
+        // Oracle tablespaces and data files (app change #127)
+        if (object instanceof OracleTablespace || object instanceof OracleDataFile) {
+            addOracleStorageActions(action, object, commandSettings, actions);
+            return;
+        }
         switch (action) {
             case TRUNCATE -> {
                 if (object instanceof PostgreTable table) {
@@ -597,6 +624,51 @@ public final class ObjectMaintenanceActions {
                         actions.add(new SQLDatabasePersistAction(sql));
                     }
                 }
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Oracle tablespaces and data files (app change #127)
+
+    private static boolean supportsOracleStorage(@NotNull Action action, @NotNull DBSObject object) {
+        return switch (action) {
+            case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> object instanceof OracleTablespace tablespace && tablespace.supportsOnlineChange();
+            case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> object instanceof OracleTablespace tablespace && tablespace.supportsReadOnlyChange();
+            case DATA_FILE_SETTINGS -> object instanceof OracleDataFile file && file.getTablespace().supportsFileChanges();
+            default -> false;
+        };
+    }
+
+    /**
+     * Whether Make Read-Only (Make Read-Write) changes an Oracle tablespace as the model read it: only an online read-write
+     * (a read-only) one. An offline tablespace takes neither (ORA-01539, ORA-01646).
+     */
+    public static boolean changesTablespaceReadOnly(@NotNull Action action, @NotNull DBSObject object) {
+        return object instanceof OracleTablespace tablespace && tablespace.getStatus()
+            == (action == Action.TABLESPACE_READ_ONLY ? OracleTablespace.Status.ONLINE : OracleTablespace.Status.READ_ONLY);
+    }
+
+    private static void addOracleStorageActions(
+        @NotNull Action action,
+        @NotNull DBSObject object,
+        @Nullable Object commandSettings,
+        @NotNull List<DBEPersistAction> actions
+    ) {
+        if (object instanceof OracleTablespace tablespace) {
+            switch (action) {
+                case TABLESPACE_ONLINE, TABLESPACE_OFFLINE ->
+                    actions.add(new SQLDatabasePersistAction(OracleTablespaceDDL.setOnline(tablespace, action == Action.TABLESPACE_ONLINE)));
+                case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE ->
+                    actions.add(new SQLDatabasePersistAction(OracleTablespaceDDL.setReadOnly(tablespace, action == Action.TABLESPACE_READ_ONLY)));
+                default -> {
+                    // Not supported (supportsOracleStorage)
+                }
+            }
+        } else if (object instanceof OracleDataFile file && action == Action.DATA_FILE_SETTINGS
+            && commandSettings instanceof OracleTablespaceDDL.Space change) {
+            for (String sql : OracleTablespaceDDL.alterFile(file, change)) {
+                actions.add(new SQLDatabasePersistAction(sql));
             }
         }
     }
