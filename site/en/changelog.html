@@ -54,6 +54,21 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.1">
+    <h2>26.1.1</h2>
+    <div class="body">
+      <p>Tablespaces and data files can now be created and changed from Object Explorer.</p>
+      <ul>
+        <li>New · Oracle storage management: create a tablespace (permanent, temporary, undo), delete, rename, bring online or take offline, make read-only or read-write; add a data file, change its size and autoextend, delete it. SYSTEM, SYSAUX, the default tablespaces and the undo tablespace in use get no commands</li>
+        <li>New · SQL Server storage management: each database has a Storage folder (filegroups with their files, and log files). Add, rename and delete a filegroup, make it the default or read-only; add a file, change its size, autogrowth and maximum size, rename and delete it. Targets the server does not accept, such as system databases and primary files, get no commands</li>
+        <li>New · Altibase · ShardSphere storage management: create a tablespace (memory, disk, temporary, volatile), delete, bring online or take offline, autoextend settings; add, change and delete data files</li>
+        <li>PostgreSQL: a tablespace can be renamed (F2), and its owner and options can be edited in the Properties window</li>
+        <li>All of these commands are in the right-click menu of Object Explorer and show the script before it runs. If a query window has an uncommitted transaction, the app asks first</li>
+        <li>Altibase · ShardSphere: memory and volatile tables are marked by the colour of the table icon (red tones) instead of the colour of the name. Disk tables look like any other table</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.0">
     <h2>26.1.0</h2>
     <div class="body">
