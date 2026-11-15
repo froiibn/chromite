@@ -90,6 +90,8 @@ import java.util.regex.Pattern;
  * - 2026-11-11 Chromite: SQL*Plus {@code SET SERVEROUTPUT} of a query window turns DBMS_OUTPUT on or off on that window's
  *   session only ({@link OracleOutputReader#setSessionServerOutput}); the session's value goes before the connection's
  *   setting in reading, syncing and reconnecting, and the setting is not changed (docs/chromite/oracle-sqlplus-commands.md).
+ * - 2026-11-15 Chromite: the tablespace list also reads the default and active undo tablespaces ({@link OracleStorageRoles})
+ *   for the storage commands of Object Explorer (app change #127, docs/chromite/oracle-storage.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -1172,9 +1174,18 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
     }
 
     public static class TablespaceCache extends JDBCObjectCache<OracleDataSource, OracleTablespace> {
+        // Read with the list, so the Object Explorer menu decides without database access (OracleTablespace.isFixedStorage)
+        private volatile OracleStorageRoles storageRoles = OracleStorageRoles.UNKNOWN;
+
+        @NotNull
+        public OracleStorageRoles getStorageRoles() {
+            return storageRoles;
+        }
+
         @NotNull
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull OracleDataSource owner) throws SQLException {
+            storageRoles = OracleStorageRoles.read(session);
             return session.prepareStatement(
                 "SELECT * FROM " + OracleUtils.getSysUserViewName(session.getProgressMonitor(), owner, "TABLESPACES") + " ORDER BY TABLESPACE_NAME");
         }
