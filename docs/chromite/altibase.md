@@ -497,6 +497,16 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
   종류 1, SYS의 22개는 모두 MEM_DATA(1)이고 트리에서 모두 메모리 빨강(라이트 `#B3261E`, 다크 `#FF9999`, 툴팁 "Memory table"). 사용자 테이블스페이스가 없어 그 서버의 노드에는 새 항목이
   없고(Delete 꺼짐) Tablespaces 폴더에만 New Tablespace…가 보인다. 대화상자와 실행은 열지 않았다.
 - 같은 빌드에서 PostgreSQL New Tablespace…(미리 보기 `CREATE TABLESPACE … OWNER postgres LOCATION '…'`, 취소), 트리거 사용 안 함/사용, 테이블 이름 바꾸기·삭제(확인란은 CASCADE 하나)가 전과 같다.
+- 시험 서버 정리: 테이블스페이스 `CHR_TS_APP_D1`·`CHR_TS_APP_T1`·`CHR_TS_APP_M2`는 `INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS`로, 테이블
+  `SYS.CHR_TS_TREF`와 임시 사용자 `CHR_TS_USER`(CASCADE)는 SQL로 지웠다. SQL로 지울 수 없는 남은 파일 여섯 개는 컨테이너 안에서 이름을 하나씩 적어
+  `docker exec … rm`으로 지웠다(와일드카드 없음): `/opt/altibase/dbs/CHR_TS_M2-0-0`, `/opt/altibase/dbs/CHR_TS_M2-1-0`, `/opt/altibase/dbs/CHR_TS_M4-0-0`,
+  `/opt/altibase/dbs/CHR_TS_M4-1-0`(파일 옵션 없이 지운 메모리 테이블스페이스의 체크포인트 이미지, 문법 확인 중 생김), `/opt/altibase/dbs/chr_ts_app_d1_02.dbf`,
+  `/opt/altibase/dbs/chr_ts_app_t1_02.dbf`(앱의 Delete로 `DROP DATAFILE`/`DROP TEMPFILE`한 파일). 그 뒤 `V$TABLESPACES`는 시스템 다섯 개,
+  `V$DATAFILES`는 `system001.dbf`·`undo001.dbf`·`temp001.dbf`뿐이다. 앞으로는 남은 파일을 지우지 않고 보고한다(검토 뒤 지시).
+- 새 파일의 행 찾기(검토 뒤, 임시 테이블스페이스 `CHR_TS_ID1`, 끝에 파일과 함께 지움): 파일 ID 0, 1, 2에서 2를 지우고 더하면 3, 1을 지우고 더하면 4, 3과 4를 지우고
+  더하면 5였다. 이 서버에서는 ID가 다시 쓰이지 않고 늘기만 했지만 서버를 다시 시작한 뒤에도 그런지는 확인할 수 없다. 그래서 `AltibaseDataFile4Disk.readCreated`는
+  가장 큰 ID가 아니라 입력한 이름으로 행을 찾는다(서버가 붙인 전체 경로가 입력한 이름과 같거나 경로 구분자 + 입력한 이름으로 끝나는 행).
+- 검토 뒤 화면: 새 테이블스페이스·새 데이터 파일 대화상자의 "(기본값)" 안내 줄을 뺐다(설명 문구 없음). 데이터 파일 설정의 파일 경로 칸은 초점을 받지 않고 처음 초점이 크기 칸이다.
 - 찾은 범위 밖 문제(고치지 않음): 수동 커밋 연결에서 객체 변경(`AbstractCommandContext.saveChanges`)이 실패하면 저장 경로가 롤백을 쿼리 관리자 기록 없이 하므로
   (`session.enableLogging(false)`) 다음 변경 때 "ALTI (Main) - open transaction with data changes" 질문이 한 번 나온다. 서버 세션의 `V$TRANSACTION.UPDATE_STATUS`는 0이었다.
 - 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 DB의 삭제 확인(옵션 순서), 유지 관리 메뉴, Altibase 테이블스페이스 노드 새로 고침.

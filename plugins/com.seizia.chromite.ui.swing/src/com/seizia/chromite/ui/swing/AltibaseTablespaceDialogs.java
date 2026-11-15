@@ -38,7 +38,9 @@ import java.util.Objects;
  * 오류는 단추 줄의 한 줄). 대화상자는 값만 받고 문장은 모델({@code AltibaseTablespaceDDL})이 만든다.
  * <ul>
  *     <li>크기 칸은 MB이고 소수도 받는다(KB로 나누어떨어져야 함). 빈 칸은 문장에서 빠져 서버 기본값을 따른다(디스크 파일 100 MB,
- *     NEXT·MAXSIZE의 서버 기본). 메모리·휘발성의 크기는 서버가 꼭 요구해서(없으면 구문 오류) 비울 수 없다.</li>
+ *     NEXT·MAXSIZE의 서버 기본). 메모리·휘발성의 크기는 서버가 꼭 요구해서(없으면 구문 오류) 비울 수 없다. 이 규칙을 대화상자에 글로
+ *     적지 않는다(설명 문구를 두지 않는다는 사용자 규칙, 다른 New 대화상자의 "(기본값)" 줄도 여기에는 맞지 않음).</li>
+ *     <li>읽기 전용 값(데이터 파일 설정의 파일 경로)은 다른 대화상자처럼 편집할 수 없는 글 칸이지만 초점을 받지 않아, 처음 초점은 크기 칸이다.</li>
  *     <li>자동 확장 확인란을 끄면 새 개체에는 절을 쓰지 않는다(서버 기본: 꺼짐). 설정 대화상자에서는 OFF를 쓴다.</li>
  *     <li>설정 대화상자는 지금 값으로 채워지고, 바뀐 것만 문장이 된다. 자동 확장은 NEXT를 빼면 서버가 기본값으로 되돌리므로, 하나라도
  *     바뀌면 켜기·NEXT·MAXSIZE를 함께 다시 쓴다.</li>
@@ -49,6 +51,7 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-15 최초 작성(앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-15 검토 뒤: 새 테이블스페이스·새 데이터 파일의 "(기본값)" 안내 줄을 뺌, 파일 경로 칸이 초점을 받지 않음
  */
 final class AltibaseTablespaceDialogs {
 
@@ -162,8 +165,7 @@ final class AltibaseTablespaceDialogs {
         DesignerDialogs.addRow(form, row++, CreateObjectMessages.create_label_name, nameField);
         DesignerDialogs.addRow(form, row++, CreateObjectMessages.create_label_type, typeCombo);
         DesignerDialogs.addRow(form, row++, CreateObjectMessages.create_label_data_file, fileField);
-        row = space.addTo(form, row, true);
-        NewObjectDialogs.addHint(form, row, CreateObjectMessages.create_hint_defaults);
+        space.addTo(form, row, true);
 
         record Values(String name, AltibaseTablespace.TbsType type, AltibaseTablespaceDDL.Space space) {
         }
@@ -214,8 +216,7 @@ final class AltibaseTablespaceDialogs {
         SpaceFields space = new SpaceFields();
         JPanel form = new JPanel(new GridBagLayout());
         DesignerDialogs.addRow(form, 0, CreateObjectMessages.create_label_data_file, fileField);
-        int row = space.addTo(form, 1, true);
-        NewObjectDialogs.addHint(form, row, CreateObjectMessages.create_hint_defaults);
+        space.addTo(form, 1, true);
 
         AltibaseTablespaceDDL.Space values = DesignerDialogs.showDialog(owner, title, form, () -> {
             String file = fileField.getText().trim();
@@ -277,6 +278,8 @@ final class AltibaseTablespaceDialogs {
             : new AltibaseTablespaceDDL.Autoextend(false, null, null);
         JTextField fileField = new JTextField(file.getName(), 28);
         fileField.setEditable(false);
+        // Shown as the other dialogs show a read-only value, but never focused: the first focus goes to the size field
+        fileField.setFocusable(false);
         SpaceFields space = new SpaceFields();
         space.fill(currentSizeKb, current);
         JPanel form = new JPanel(new GridBagLayout());

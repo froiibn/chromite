@@ -36,7 +36,7 @@ public abstract class AltibaseDataFile extends AltibaseObject<AltibaseTablespace
 
     protected int id;
     protected int spaceid;
-
+    
     protected AltibaseDataFile(AltibaseTablespace parent, ResultSet dbResult) {
         super(parent, JDBCUtils.safeGetString(dbResult, "NAME"), true);
         this.id = JDBCUtils.safeGetInt(dbResult, "ID");

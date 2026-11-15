@@ -154,10 +154,10 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
     private int dataFileCount;
     private boolean isLogCompression;
     private int pageSizeInBytes;
-
+    
     private TbsType tbsType;
     private State state;
-
+    
     private volatile Long availableSize;
     private volatile Long usedSize;
     private String qry4Size;
@@ -165,16 +165,16 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
     // The space of a new tablespace (CREATE only)
     @Nullable
     private AltibaseTablespaceDDL.Space initialSpace;
-
+    
     final FileCache fileCache = new FileCache();
     final TablePartnCache tablePartnCache = new TablePartnCache();
     final IndexPartnCache indexPartnCache = new IndexPartnCache();
-
+    
     protected AltibaseTablespace(AltibaseDataSource dataSource, ResultSet dbResult) {
         super(dataSource, true);
         loadRow(dbResult);
     }
-
+        
     /**
      * A new (not yet created) user tablespace of the type.
      */
@@ -195,11 +195,11 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         this.tbsType            = TbsType.getTbsTypeByIdx(JDBCUtils.safeGetInt(dbResult, "TYPE"));
         this.state              = State.getStateByIdx(JDBCUtils.safeGetInt(dbResult, "STATE"));
         this.extentManagement   = JDBCUtils.safeGetString(dbResult, "EXTENT_MANAGEMENT");
-        this.segmentManagement  = JDBCUtils.safeGetString(dbResult, "SEGMENT_MANAGEMENT");
+        this.segmentManagement  = JDBCUtils.safeGetString(dbResult, "SEGMENT_MANAGEMENT");    
         this.dataFileCount      = JDBCUtils.safeGetInt(dbResult, "DATAFILE_COUNT");
         this.pageSizeInBytes    = JDBCUtils.safeGetInt(dbResult, "PAGE_SIZE");
         this.isLogCompression   = (JDBCUtils.safeGetInt(dbResult, "ATTR_LOG_COMPRESS") == 1);
-
+        
         setQry4Size();
     }
 
@@ -524,11 +524,11 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         usedSize = null;
         availableSize = null;
-
+        
         fileCache.clearCache();
         tablePartnCache.clearCache();
         indexPartnCache.clearCache();
-
+        
         getDataSource().resetStatistics();
         if (isPersisted()) {
             // The state (online/offline) and data file count come from the catalog row, not from the caches above

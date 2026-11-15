@@ -263,4 +263,4 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - 2026-11-08 묻지 않는 필수 값이 있는 종류를 이름만 길에서 뺌(Exasol New Connection…), "남긴 것"의 암호 항목을 고쳤다고 적음
   (`chromite/password-handling-fixes`, [password-handling.md](password-handling.md)).
 - 2026-11-15 Altibase 계열 New Tablespace…·New Data File… 대화상자(`AltibaseTablespaceDialogs`, 앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").
-  `NewObjectDialogs.load`·`addHint`를 패키지 안에 엶.
+  `NewObjectDialogs.load`를 패키지 안에 엶. 검토 뒤 두 대화상자의 "(기본값)" 안내 줄을 뺌(설명 문구 없음 규칙).
