@@ -23,6 +23,7 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
   - Altibase 계열 테이블스페이스는 "내용도 삭제(INCLUDING CONTENTS)", "데이터 파일도 삭제(AND DATAFILES)"가 앞에 더 있다(모두 꺼짐). 파일과 CASCADE는 서버 문법상
     내용과 함께일 때만 되므로 내용을 고를 때만 켜진다(`DeleteOption.CONTENTS`·`DATA_FILES`, 기능 비트 `FEATURE_DELETE_CONTENTS`·`FEATURE_DELETE_DATA_FILES`).
 - 이름 바꾸기: "{형식} 이름 바꾸기" 입력 창(지금 이름이 들어 있음). 연결 노드의 이름 바꾸기와 같은 모양이다.
+  - PostgreSQL 사용자 테이블스페이스도 바뀐다(`ALTER TABLESPACE a RENAME TO b`). pg_default·pg_global은 꺼짐([swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
 - 스크립트 미리 보기(`ScriptPreviewDialog`, 기본 단추 "취소"): 머리글 "다음 스크립트를 {연결}에서 실행합니다. 지금 실행하시겠습니까?",
   DDL을 바로 커밋하는 DB면 "이 데이터베이스는 DDL 문을 바로 커밋하므로 변경을 롤백할 수 없습니다." 한 줄이 더 붙는다.
   단추: 복사, 쿼리 창에서 열기(실행하지 않고 새 쿼리 창으로), 실행, 취소.
@@ -280,3 +281,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-13 끌어서 이름 넣기(앱 변경 #112): 트리 끌기(복사만), 쿼리 편집기가 놓은 자리에 한 실행 취소 단계로 넣음. SQL Server·PostgreSQL·MariaDB·Oracle에서 실제 마우스 끌기로 확인.
 - 2026-11-13 놓는 창에 맞춘 이름(#112 검토): 같은 연결의 쿼리 창이 개체의 DB에 있으면 DB.스키마.개체에서 DB를 뺌(SQL Server `dbo.t`). 다른 꼴의 이름·다른 창은 그대로.
 - 2026-11-15 Altibase 계열 테이블스페이스: 삭제 확인의 내용·데이터 파일 확인란, 유지 관리 명령 온라인·오프라인·자동 확장 설정·데이터 파일 설정(앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").
+- 2026-11-15 PostgreSQL 테이블스페이스 이름 바꾸기(앱 변경 #129, [swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").

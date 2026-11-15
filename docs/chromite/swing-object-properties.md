@@ -74,11 +74,103 @@ Enter를 습관처럼 눌러도 아무것도 실행되지 않는다. 시퀀스 �
 실행 오류, 문장이 없는 변경이면 `runChange`가 `resetChanges(true)`로 명령을 되돌려 객체가 원래 값으로 돌아간다(더러운 상태로 남지 않음).
 실패한 저장은 모델의 `saveChanges`가 그 명령의 트랜잭션을 롤백한다.
 
+## PostgreSQL 테이블스페이스 (앱 변경 #129)
+
+### 목적
+
+PostgreSQL 테이블스페이스는 New Tablespace…(소유자·위치·옵션)와 삭제만 되었다. 이름, 소유자, 옵션을 바꿀 수 없었다.
+사용자 결정(2026-11-15): "추가 가능한 데이터베이스에 대해 저장소를 관리할 수 있는 기능을 추가한다". 조건은 Altibase 테이블스페이스(#291)와 같다:
+지금 앱의 흐름 안에서만, 설명 문구 없이.
+
+### 무엇을 어디서
+
+| 명령 | 길 | 문장 |
+|---|---|---|
+| 이름 바꾸기 | 탐색기 F2 / 메뉴 "이름 바꾸기"(다른 개체와 같은 입력 창 → 미리 보기) | `ALTER TABLESPACE a RENAME TO b` |
+| 소유자 | Properties 창·Object Details 속성 탭의 Owner(역할 목록 콤보) | `ALTER TABLESPACE t OWNER TO r` |
+| 옵션 | 같은 곳의 Options(글: `이름=값`을 쉼표로) | 바뀌거나 새로 넣은 옵션 `ALTER TABLESPACE t SET (a=1, b=2)`, 뺀 옵션 `ALTER TABLESPACE t RESET (c)` |
+
+새 메뉴 항목, 대화상자, 문구는 없다. 속성 이름(Owner/소유자, Options/옵션)은 드라이버 번들에 원래 있던 것이다.
+
+### 속성 편집을 고른 이유
+
+데이터베이스 소유자가 이미 이 길로 바뀐다(`PostgreDatabase.getDBA`: `editable`·`updatable`·역할 목록, `PostgreDatabaseManager`가 `OWNER TO`를 만듦).
+테이블스페이스의 소유자와 옵션도 같은 속성이라 같은 선언으로 고칠 수 있다. 그래서 "Tablespace Settings…" 대화상자를 따로 만들지 않았다.
+값마다 미리 보기가 나오고, 취소·오류면 속성 편집이 모델을 되돌린다(위 "되돌리기").
+
+### 구조
+
+- `PostgreTablespace`(ext.postgresql): `DBPNamedObject2`(이름 바꾸기 반영기가 이름과 캐시를 바꿈), Owner·Options를 `editable = true, updatable = true`,
+  Owner의 목록 `RoleListProvider`(데이터베이스의 역할), `setOwner`. 서버에 있는 옵션 `getSavedOptions`(카탈로그에서 읽고, 실행된 SET/RESET·CREATE 뒤 갱신),
+  `parseOptions`(이름은 소문자: 서버가 따옴표 없는 이름을 접음), `isSystemTablespace`.
+- `PostgreTablespaceManager`: `DBEObjectRenamer`, `addObjectRenameActions`, `addObjectModifyActions`(소유자, 옵션의 SET/RESET), `canEditObject`·`canRenameObject`.
+- UI 코드는 바꾸지 않았다: 이름 바꾸기는 `ExplorerObjectCommands.rename`, 속성은 `ObjectPropertyEdits`가 관리자를 보고 켠다.
+
+### 확인한 문법 (PostgreSQL 17.11, 시험 서버, 임시 개체 `chr_ts_*`)
+
+| 문장 | 서버 답 |
+|---|---|
+| `ALTER TABLESPACE chr_ts_a RENAME TO chr_ts_b` | 성공, `pg_tablespace.spcname` 바뀜(OID 그대로) |
+| `… RENAME TO pg_chr_ts` / `… RENAME TO pg_default` | 42939 `unacceptable tablespace name`, "The prefix "pg_" is reserved for system tablespaces." |
+| `… RENAME TO "chr_ts_Mixed"` | 성공(따옴표 이름 그대로) |
+| `ALTER TABLESPACE chr_ts_b OWNER TO chr_ts_owner` | 성공, `spcowner` 바뀜. 없는 역할은 42704 |
+| `… SET (random_page_cost=3, effective_io_concurrency=10)` | 성공, `spcoptions`에 더해짐(있던 옵션은 그대로) |
+| `… SET (seq_page_cost = 2)`, `SET (SEQ_PAGE_COST=1.25)`, `SET (seq_page_cost='1.75')` | 성공(공백·대문자·따옴표 값 모두 받음, 이름은 소문자로 저장) |
+| `… RESET (effective_io_concurrency)` / 없는 옵션 RESET | 성공 / 성공(바뀌는 것 없음) |
+| `… SET (seq_page_cost=1) RESET (random_page_cost)` | 42601 구문 오류: 한 문장에 SET과 RESET을 함께 받지 않음 → 두 문장 |
+| `… SET (fillfactor=50)` / `SET (seq_page_cost=abc)` | 22023 `unrecognized parameter` / `invalid value for floating point option` |
+| 트랜잭션 안 `ALTER TABLESPACE … RENAME` 뒤 롤백 | 이름이 돌아옴. 같은 트랜잭션의 앞 INSERT도 남음(ALTER가 커밋하지 않음) |
+| 트랜잭션 안 `DROP TABLESPACE` | 25001 `cannot run inside a transaction block`(기존 삭제·만들기는 그래서 자동 커밋 동작) |
+| 권한 없는 로그인 역할의 RENAME / OWNER TO / SET | 42501 `permission denied for tablespace` / `must be owner of tablespace` |
+
+JDBC `dataDefinitionCausesTransactionCommit` = false: 미리 보기에 "DDL을 바로 커밋" 줄이 붙지 않는다(다른 PostgreSQL DDL과 같음).
+ALTER는 트랜잭션 안에서 되므로 원자적 동작(자동 커밋으로 바꿈)이 아닌 보통 동작이다. 연결의 기본 실행 문맥에서 실행하고 명령마다 커밋한다(위 "실행 문맥").
+
+### 시스템 테이블스페이스
+
+pg_default와 pg_global에는 새 명령이 없다(이름 바꾸기 꺼짐, 속성 읽기 전용). 이름 목록이 아니라 카탈로그로 가린다: initdb가 만든 개체의
+OID는 FirstNormalObjectId(16384)보다 작다(시험 서버 1663, 1664. `PostgreDialect`의 잠금 질의도 같은 경계를 쓴다). 사용자가 만드는 테이블스페이스는
+서버가 "pg_" 이름을 막으므로(위 표) 그 둘과 겹치지 않는다. 시스템 테이블스페이스 자체를 바꾸는 문장은 시험 서버에서 실행하지 않았다(남이 만든 저장소는 바꾸지 않음).
+기존 삭제는 그대로다(관리자가 이름 pg_default·pg_global을 보고 오류를 보임, 범위 밖).
+
+### 확인 기록 (2026-11-15, Windows, 이 브랜치 빌드, 새 작업 공간, 시험 서버 PostgreSQL 17)
+
+DB 상태는 매번 JDBC로 `pg_tablespace`·`pg_roles`를 읽어 확인했다. 증거: `D:\Tools\_scratch\pg-mysql-storage\evidence`, `run\*.log`.
+
+| 확인 | 미리 보기 문장 | 카탈로그 전 → 뒤 | 트리·속성 뒤 |
+|---|---|---|---|
+| chr_ts_b에서 F2 → 입력 창 취소 | (없음) | 그대로 | 그대로 |
+| F2 → chr_ts_r → 미리 보기 취소 | `ALTER TABLESPACE chr_ts_b RENAME TO chr_ts_r;` | 그대로 | chr_ts_b |
+| 같은 것 → 실행 | 같음 | spcname chr_ts_b → chr_ts_r(OID 18287) | chr_ts_r |
+| Owner chr_ts_owner → postgres, 미리 보기 취소 / 실행 | `ALTER TABLESPACE chr_ts_r OWNER TO postgres;` | 취소: 그대로 / 실행: spcowner postgres | 취소: chr_ts_owner / 실행: postgres |
+| Options `random_page_cost=3,seq_page_cost=1.75` → `random_page_cost=2, effective_io_concurrency=5` | `SET (random_page_cost=2, effective_io_concurrency=5);` `RESET (seq_page_cost);` | `{random_page_cost=2,effective_io_concurrency=5}` | 새 값 |
+| 같은 옵션을 공백만 바꿔 입력 | (문장 없음) | 그대로 | "이 변경에 대한 SQL 문이 만들어지지 않아…" 알림, 되돌림 |
+| `random_page_cost`(값 없음) | (만들지 않음) | 그대로 | 오류 "Tablespace option is not name=value: random_page_cost", 되돌림 |
+| `…, fillfactor=50` 더함 → 실행 | `SET (fillfactor=50);` | 그대로 | 서버 오류 22023, 원래 값 |
+| New Tablespace… chr_ts_n(소유자 chr_ts_owner, /tmp/chr_ts_pg2, `seq_page_cost=1.5`) 뒤 Options `random_page_cost=4` | `SET (random_page_cost=4);` `RESET (seq_page_cost);` | 만든 옵션과 비교됨 | 새 값 |
+| 폴더 새로 고침 뒤 Options 비움 | `RESET (random_page_cost);` | spcoptions null | 빈 값 |
+| chr_ts_n → chr_ts_r(있는 이름) / pg_chr_ts | 각 RENAME | 그대로 | 서버 오류 42710 / 42939, 트리 chr_ts_n |
+| pg_default·pg_global | — | — | 메뉴 "Rename" 꺼짐, 속성 모두 읽기 전용 |
+| 읽기 전용 연결에서 F2 | — | 그대로 | "PG does not allow changing database objects…" 알림, 속성 읽기 전용 |
+| 권한 없는 로그인(chr_ts_low)으로 F2 / Options | 각 문장 | 그대로 | 42501 오류, 트리·값 그대로 |
+| 수동 커밋 연결(PGM), 쿼리 창에 데이터 변경 트랜잭션 뒤 F2 → 실행 | 각 RENAME | | "커밋하지 않은 트랜잭션" 질문(취소 기본) |
+| 그 질문에서 취소 / 롤백 / 커밋 | | 취소: 그대로 / 롤백: 쿼리 창 트랜잭션 롤백 뒤 이름 바뀜 / 커밋: 커밋 뒤 이름 바뀜 | `pg_stat_activity`로 쿼리 창 세션이 idle(트랜잭션 없음)인 것 확인 |
+| 기존 명령: New Schema chr_ts_s → F2 chr_ts_s2 → 삭제 | `CREATE SCHEMA`, `ALTER SCHEMA … RENAME`, `DROP SCHEMA … CASCADE` | 만들어지고 바뀌고 지워짐 | 같음 |
+| #291 Altibase: Tablespaces 메뉴, New Tablespace… 열고 취소 | — | — | 대화상자 그대로(이름·종류·데이터 파일·크기) |
+
+확인하지 못한 것: 여러 데이터베이스를 보이는 연결에서 다른 데이터베이스 노드의 테이블스페이스 목록(데이터베이스마다 캐시가 따로라 새로 고침 전까지 옛 이름이 보일 수 있다, 아래 "알려진 문제").
+
+### 알려진 문제 (범위 밖, 보고만)
+
+- 테이블스페이스는 클러스터 개체인데 모델은 데이터베이스마다 캐시를 둔다. 한 데이터베이스 노드에서 이름을 바꾸면 다른 데이터베이스·다른 연결 노드는 새로 고침 전까지 옛 이름이다.
+- Properties 창은 이름 바꾸기 뒤 다른 값을 고치거나 노드를 다시 고를 때까지 옛 이름을 보인다(스키마도 같음).
+
 ## upstream 대비 변경점
 
 - SWT `EntityEditor`의 Properties 탭(편집·Save·Revert·View Script)을 Properties 창과 Object Details 속성 탭의 바로 저장으로 바꿨다.
   미리 보기는 SWT에서 설정에 따라 선택이었지만 여기서는 늘 보인다(삭제·이름 바꾸기와 같음).
 - SWT 속성 창은 엔터티 편집기 안에서만 편집되었다. Swing은 탐색기 선택의 Properties 창에서도 고친다.
+- upstream의 PostgreSQL 테이블스페이스는 이름 바꾸기·편집이 없었다(`canEditObject` false, 이름 바꾸기 관리자 없음). Chromite는 사용자 테이블스페이스에 둘 다 연다.
 
 ## 확인
 
@@ -139,3 +231,4 @@ DB 상태는 매번 `docker exec`로 카탈로그를 읽어 확인했다.
 
 - 2026-11-08 최초 작성: Properties 창과 Object Details 속성 탭의 속성 편집(SWT 감사 B-E1, B-E2, C-15, `chromite/object-properties-edit`)
 - 2026-11-08 알려진 문제 두 가지(Oracle ALTER SEQUENCE, PostgreSQL Partition by)를 고쳤다고 적음(`chromite/model-ddl-fixes`)
+- 2026-11-15 PostgreSQL 테이블스페이스: 이름 바꾸기(F2), 소유자·옵션 속성 편집(앱 변경 #129, `chromite/pg-mysql-storage`). 위 "PostgreSQL 테이블스페이스"
