@@ -20,6 +20,9 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.util.UIScale;
 import com.github.weisj.jsvg.SVGDocument;
+import com.github.weisj.jsvg.parser.DomElement;
+import com.github.weisj.jsvg.parser.DomProcessor;
+import com.github.weisj.jsvg.parser.LoaderContext;
 import com.github.weisj.jsvg.parser.SVGLoader;
 import com.github.weisj.jsvg.view.ViewBox;
 import org.eclipse.osgi.util.NLS;
@@ -43,7 +46,8 @@ import java.util.Map;
  * 설계:
  * <ul>
  *     <li>아이콘 파일은 번들의 {@code icons/ui/<팩>/<light|dark>/<id>.svg}다. 생성기({@code tools/branding/gen_ui_icons.py})가 두 팩
- *     ({@link UiIconStyle})과 두 테마의 파일을 같은 모양, 다른 색으로 만든다. 색이 파일에 들어 있으므로 다시 칠하지 않는다.</li>
+ *     ({@link UiIconStyle})과 두 테마의 파일을 같은 모양, 다른 색으로 만든다. 색이 파일에 들어 있으므로 다시 칠하지 않는다
+ *     (테마 색이 필요한 곳만 {@link #inColor}, {@link #inLineColor}로 칠한다).</li>
  *     <li>{@link #get}이 주는 아이콘은 그릴 때마다 현재 팩과 테마(어두운 Look and Feel인지)의 문서를 고른다. 그래서 테마나 팩을 바꾼 뒤
  *     다시 그리기만 하면 모든 단추·트리·탭의 아이콘이 바뀐다(컴포넌트마다 아이콘을 다시 넣지 않는다).</li>
  *     <li>SVG는 JSVG로 읽어 그릴 때마다 벡터로 그린다(화면 배율과 관계없이 선명, {@link NodeIcons}와 같은 방식). 읽은 문서는 캐시한다.
@@ -73,6 +77,9 @@ import java.util.Map;
  *   docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-13 {@link #inColor}: 아이콘을 테마 색 하나의 모양으로(Chromite Agent 입력 상자의 강조색 보내기·중지 단추, 앱 변경 #110).
  *   팩의 색은 파일에 들어 있어 강조색 바탕에서 보이지 않으므로 그릴 때 모양만 테마 색으로 칠한다 (docs/chromite/ai-agent.md "채팅 도구 창")
+ * - 2026-11-15 {@link #inLineColor}: 팩 아이콘의 선과 강조 채움만 테마 색으로(메모리·휘발성 테이블 아이콘, 앱 변경 #130). {@link #inColor}의
+ *   평평한 모양은 표 아이콘의 밝은 칸까지 칠해 꽉 찬 사각형이 되므로, 읽을 때 SVG의 선 색을 바꾼 문서를 팩·테마·색마다 캐시한다
+ *   (docs/chromite/altibase.md "테이블 저장 방식 표시")
  */
 final class UiIcons {
 
@@ -142,6 +149,18 @@ final class UiIcons {
     @NotNull
     static Icon inColor(@NotNull Icon icon, @NotNull String colorKey, @NotNull String disabledKey) {
         return new ColorIcon(icon, colorKey, disabledKey);
+    }
+
+    /**
+     * The pack's icon {@code id} with its lines and accent fills in a theme color read when painting: {@code colorKey}'s,
+     * or {@code disabledKey}'s at the pack's disabled alpha on a disabled component. The light body fill of the drawing (its {@code <rect>}) keeps the
+     * pack's color, so the icon keeps its look and only changes hue, unlike the flat shape of {@link #inColor}. Used for
+     * the table icon of tables whose storage kind is shown ({@link TableStorageStyle}).
+     * The returned icon is meant to be created once and kept by the caller.
+     */
+    @NotNull
+    static Icon inLineColor(@NotNull String id, @NotNull String colorKey, @NotNull String disabledKey) {
+        return new LineColorIcon(id, colorKey, disabledKey);
     }
 
     /**
@@ -301,23 +320,70 @@ final class UiIcons {
         if (documents.containsKey(key)) {
             return documents.get(key);
         }
-        SVGDocument document = null;
+        SVGDocument document = loadDocument(key, null);
+        documents.put(key, document);
+        return document;
+    }
+
+    /**
+     * The document of {@link #getDocument} with its lines and accent fills in {@code color} ({@link #inLineColor}), cached by
+     * pack, theme and color, so a theme or pack change loads it once more and painting never parses.
+     */
+    @Nullable
+    private static SVGDocument getDocument(@NotNull String id, @NotNull Color color) {
+        String key = UiIconStyle.getCurrent().getFolder() + "/" + (FlatLaf.isLafDark() ? "dark" : "light") + "/" + id; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        String colorKey = key + "#" + Integer.toHexString(color.getRGB()); //$NON-NLS-1$
+        if (documents.containsKey(colorKey)) {
+            return documents.get(colorKey);
+        }
+        String svgColor = String.format("#%06X", color.getRGB() & 0xFFFFFF); //$NON-NLS-1$
+        SVGDocument document = loadDocument(key, root -> recolorLines(root, svgColor));
+        documents.put(colorKey, document);
+        return document;
+    }
+
+    @Nullable
+    private static SVGDocument loadDocument(@NotNull String key, @Nullable DomProcessor recolor) {
         String path = "/icons/ui/" + key + ".svg"; //$NON-NLS-1$ //$NON-NLS-2$
         URL url = UiIcons.class.getResource(path);
         if (url == null) {
             log.warn("UI icon not found: " + path);
-        } else {
-            try {
-                document = new SVGLoader().load(url);
-                if (document == null) {
-                    log.warn("Can't parse UI icon " + path);
-                }
-            } catch (Exception e) {
-                log.warn("Error loading UI icon " + path, e);
-            }
+            return null;
         }
-        documents.put(key, document);
-        return document;
+        try {
+            SVGDocument document = recolor == null ? new SVGLoader().load(url)
+                : new SVGLoader().load(url, LoaderContext.builder().preProcessor(recolor).build());
+            if (document == null) {
+                log.warn("Can't parse UI icon " + path);
+            }
+            return document;
+        } catch (Exception e) {
+            log.warn("Error loading UI icon " + path, e);
+            return null;
+        }
+    }
+
+    /**
+     * Sets every stroke, and the fill of every shape but the body {@code <rect>}, to {@code color}. The generator draws an
+     * icon's body as a rect with the pack's light fill and its lines and accent areas (the table header band of the color
+     * pack) as other shapes, so this gives the icon the color the way the pack colors its own red icons (red lines on the
+     * light fill), not a flat shape. Masks keep their black and white, or the cut-outs would change.
+     */
+    private static void recolorLines(@NotNull DomElement element, @NotNull String color) {
+        if ("mask".equals(element.tagName())) { //$NON-NLS-1$
+            return;
+        }
+        String stroke = element.attribute("stroke"); //$NON-NLS-1$
+        if (stroke != null && !"none".equals(stroke)) { //$NON-NLS-1$
+            element.setAttribute("stroke", color); //$NON-NLS-1$
+        }
+        String fill = element.attribute("fill"); //$NON-NLS-1$
+        if (fill != null && !"none".equals(fill) && !"rect".equals(element.tagName())) { //$NON-NLS-1$ //$NON-NLS-2$
+            element.setAttribute("fill", color); //$NON-NLS-1$
+        }
+        for (DomElement child : element.children()) {
+            recolorLines(child, color);
+        }
     }
 
     private static void paintDocument(@Nullable SVGDocument document, @Nullable Component c, @NotNull Graphics g, int x, int y, float alpha) {
@@ -464,6 +530,66 @@ final class UiIcons {
         }
 
         // The disabled color is chosen when painting
+        @Override
+        public Icon getDisabledIcon() {
+            return this;
+        }
+    }
+
+    /**
+     * The pack's icon with its lines in one theme color ({@link #inLineColor}). Keeps the document of the last pack, theme
+     * and color it painted, so painting the same rows again neither parses nor builds a cache key.
+     */
+    private static final class LineColorIcon implements Icon, FlatLaf.DisabledIconProvider {
+        private final String id;
+        private final String colorKey;
+        private final String disabledKey;
+        @Nullable
+        private UiIconStyle lastStyle;
+        private boolean lastDark;
+        private int lastRgb;
+        @Nullable
+        private SVGDocument lastDocument;
+
+        LineColorIcon(@NotNull String id, @NotNull String colorKey, @NotNull String disabledKey) {
+            this.id = id;
+            this.colorKey = colorKey;
+            this.disabledKey = disabledKey;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            boolean enabled = c == null || c.isEnabled();
+            // Disabled: the disabled color with the pack's disabled alpha, so the icon is as faint as its disabled neighbors
+            float alpha = enabled ? 1f : DISABLED_ALPHA;
+            Color color = UIManager.getColor(enabled ? colorKey : disabledKey);
+            if (color == null) {
+                // A theme without the key: the pack's own colors
+                paintDocument(getDocument(id), c, g, x, y, alpha);
+                return;
+            }
+            UiIconStyle style = UiIconStyle.getCurrent();
+            boolean dark = FlatLaf.isLafDark();
+            if (lastDocument == null || style != lastStyle || dark != lastDark || color.getRGB() != lastRgb) {
+                lastDocument = getDocument(id, color);
+                lastStyle = style;
+                lastDark = dark;
+                lastRgb = color.getRGB();
+            }
+            paintDocument(lastDocument, c, g, x, y, alpha);
+        }
+
+        @Override
+        public int getIconWidth() {
+            return SIZE;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return SIZE;
+        }
+
+        // The disabled color and alpha are chosen when painting
         @Override
         public Icon getDisabledIcon() {
             return this;

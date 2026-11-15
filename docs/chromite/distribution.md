@@ -616,7 +616,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   EDB(세션, 작업 스케줄러, 보안, 백업, Agent 전용), GaussDB·Kingbase·RisingWave(디버거, 세션, 보안, Agent 전용), Google Cloud SQL for PostgreSQL(디버거), Materialize(디버거, 예상 계획, 세션, 백업, Agent 전용),
   NDB Cluster·TiDB·OceanBase MySQL 모드(세션, 공간·로그, 유지 관리, 복제, 보안, 백업, Agent 전용, NDB는 작업 스케줄러도), OceanBase Oracle 모드(Agent 전용), YashanDB(디버거, 실제 계획, 세션, 공간·로그, 유지 관리, 복제, 보안, Agent 전용).
   실제 서버로 시험하면 지원·미지원으로 바꾼다.
-- 데이터베이스별 기능 절: SQL Server 에이전트(Express에는 없음), Altibase(저장 방식별 테이블 색, 서버 출력, 세션과 잠금, 실제 계획, 복제 상태와 명령; 홈에서 지운 Altibase 줄의 내용).
+- 데이터베이스별 기능 절: SQL Server 에이전트(Express에는 없음), Altibase(메모리·휘발성 테이블의 아이콘 색(2026-11-15 전에는 저장 방식별 글자색), 서버 출력, 세션과 잠금, 실제 계획, 복제 상태와 명령; 홈에서 지운 Altibase 줄의 내용).
 - 쓰기 편의: 표는 상자(`.matrix`) 안에서 가로·세로로 스크롤한다. sticky 칸은 가장 가까운 스크롤 상자에 붙으므로, 상자가 세로로도 스크롤해야 머리 행이 붙는다(상자 높이 `100vh - 96px`, 600px 아래 `75vh`).
   머리 행(`thead th`)과 첫 열(`tbody th`)이 sticky이고 왼쪽 위 칸이 가장 위(`z-index` 3). 묶음 행은 칸이 표 전체 폭이라 글자만 sticky(`span`). 쪽 자체는 가로로 스크롤하지 않는다.
   칸은 상태를 글로 쓰고(지원/일부/미지원/확인 필요), 점의 색과 모양은 같은 뜻을 되풀이할 뿐이다(색만으로 구별하지 않음).
@@ -998,3 +998,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-15 26.0.8 릴리스 기록: 26.0.7 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
 - 2026-11-15 26.1.0 준비(`chromite/release-26-1-0`): 버전 26.1.0(첫 사용자 배포 판, `bump-version.ps1 26.1.0 -FirstUserRelease`)과 변경 내역(#277~#288: 결과 그리드 묶기, PostgreSQL 수동 커밋 세션, Chromite Agent 도구 정리, 개체 탐색기 반영, Alt+X와 열 선택 중 단축키, Altibase 계열 기본 스키마, macOS 시작 화면 하나, 어두운 테마의 밝은 판 19개, 정보 창의 사이트 주소).
 - 2026-11-15 26.1.0 릴리스 기록: 26.0.8 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
+- 2026-11-15 지원 쪽 Altibase 줄: "저장 방식별 테이블 색"을 "메모리·휘발성 테이블의 아이콘 색"으로(영어 "memory and volatile tables marked by icon colour", 앱 변경 #130, [altibase.md](altibase.md)).
