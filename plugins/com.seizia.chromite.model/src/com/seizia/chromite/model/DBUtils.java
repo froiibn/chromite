@@ -66,6 +66,15 @@ import java.util.*;
 
 /**
  * DBUtils
+ * <p>
+ * 설계: 모델 계층이 함께 쓰는 정적 도우미. 이름으로 개체를 찾는 {@link #getObjectByPath}는 결과 그리드의 테이블 묶기
+ * ({@link #getEntityFromMetaData}), 객체 찾기, AI 도구가 함께 쓰므로, 이름이 다른 개체를 추측해 돌려주지 않는다.
+ * <p>
+ * 변경 이력:
+ * - 2026-11-15 getObjectByPath: 카탈로그나 스키마 이름이 주어졌으면 기본 스키마·카탈로그에서 같은 이름을 찾지 않음.
+ *   getEntityFromMetaData: 모델에 없는 카탈로그만 있고 스키마가 없는 결과 집합 메타데이터는 테이블로 찾지 않음.
+ *   별칭·파생 테이블 이름이 기본 스키마의 같은 이름 테이블에 묶여 편집이 엉뚱한 테이블에 쓰던 결함(앱 변경 #121,
+ *   docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
  */
 public final class DBUtils {
 
@@ -321,7 +330,12 @@ public final class DBUtils {
     }
 
     /**
-     * Finds catalog, schema or table within specified object container
+     * Finds catalog, schema or table within specified object container.
+     * <p>
+     * An object name without catalog and schema names is looked up in the execution context's default schema or
+     * catalog (the selected object) when the root container has no such entity. Once a catalog or schema name was
+     * given (and kept: a catalog name is ignored on data sources without catalogs), the result is the child of that
+     * container or null, never an object of the default container that only shares the name.
      *
      * @param monitor          progress monitor
      * @param rootSC           container
@@ -367,12 +381,9 @@ public final class DBUtils {
         boolean forceConnection,
         boolean caseSensitive
     ) throws DBException {
-        if (!CommonUtils.isEmpty(catalogName)) {
-            Class<? extends DBSObject> childType = rootSC.getPrimaryChildType(monitor);
-            if (DBSSchema.class.isAssignableFrom(childType) || DBSEntity.class.isAssignableFrom(childType)) {
-                // Datasource supports only schemas. Do not use catalog
-                catalogName = null;
-            }
+        if (!CommonUtils.isEmpty(catalogName) && !hasCatalogs(monitor, rootSC)) {
+            // Datasource supports only schemas. Do not use catalog
+            catalogName = null;
         }
         if (!CommonUtils.isEmpty(catalogName) && !CommonUtils.isEmpty(schemaName)) {
             // We have both both - just search both
@@ -446,19 +457,30 @@ public final class DBUtils {
             return rootSC;
         }
         final DBSObject object = getContainerChild(monitor, rootSC, objectName, caseSensitive);
-        if (object instanceof DBSEntity) {
-            return object;
-        } else {
-            // Child is not an entity. May be catalog/schema names was omitted.
-            // Try to use selected object
-            DBSObject selectedObject = DBUtils.getSelectedObject(executionContext);
-            if (selectedObject instanceof DBSObjectContainer oc) {
-                return getContainerChild(monitor, oc, objectName, caseSensitive);
-            }
-
-            // Table container not found
+        if (object instanceof DBSEntity || !CommonUtils.isEmpty(catalogName) || !CommonUtils.isEmpty(schemaName)) {
+            // A catalog or schema was named and resolved: the object is that container's child or nothing (a synonym
+            // stays a synonym for the caller to resolve). Looking the name up in the selected container would return a
+            // different object that only shares the name (a result set alias of another schema's table, #121).
             return object;
         }
+        // Catalog and schema names were omitted (or the catalog was ignored above): the name is relative to the
+        // session's default schema or catalog, as the server reads it
+        DBSObject selectedObject = DBUtils.getSelectedObject(executionContext);
+        if (selectedObject instanceof DBSObjectContainer oc) {
+            return getContainerChild(monitor, oc, objectName, caseSensitive);
+        }
+
+        // Table container not found
+        return object;
+    }
+
+    /**
+     * Whether the root container's children can be catalogs. When they are schemas or entities, a catalog name has no
+     * level in the model: {@link #getObjectByPath} ignores it.
+     */
+    private static boolean hasCatalogs(@NotNull DBRProgressMonitor monitor, @NotNull DBSObjectContainer rootSC) throws DBException {
+        Class<? extends DBSObject> childType = rootSC.getPrimaryChildType(monitor);
+        return !DBSSchema.class.isAssignableFrom(childType) && !DBSEntity.class.isAssignableFrom(childType);
     }
 
     @Nullable
@@ -2545,6 +2567,12 @@ public final class DBUtils {
             entityName = DBObjectNameCaseTransformer.transformName(dataSource, entityName);
         }
         if (CommonUtils.isEmpty(entityName)) {
+            return null;
+        }
+        if (CommonUtils.isEmpty(schemaName) && !CommonUtils.isEmpty(catalogName) && !hasCatalogs(monitor, objectContainer)) {
+            // The metadata names a catalog the model has no level for and no schema (Altibase reports its database name
+            // for a derived table or a WITH query): that is no table of a known container. getObjectByPath would ignore
+            // the catalog and find a same-named table of the default schema instead (#121).
             return null;
         }
         DBSObject entityObject = getObjectByPath(monitor, executionContext, objectContainer, catalogName, schemaName, entityName);

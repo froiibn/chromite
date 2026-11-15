@@ -26,7 +26,6 @@ import com.seizia.chromite.ext.altibase.AltibaseConstants;
 import com.seizia.chromite.ext.altibase.model.plan.AltibaseActualPlanProvider;
 import com.seizia.chromite.ext.altibase.model.plan.AltibaseQueryPlanner;
 import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSessionManager;
-import com.seizia.chromite.ext.generic.GenericConstants;
 import com.seizia.chromite.ext.generic.model.GenericDataSource;
 import com.seizia.chromite.ext.generic.model.GenericSchema;
 import com.seizia.chromite.ext.generic.model.GenericStructContainer;
@@ -91,6 +90,9 @@ import java.util.WeakHashMap;
  *   연결이 실패한다(서버 출력 기본값이 켜짐, 코드로 확인, 앱 변경 #113, docs/chromite/drivers.md "ShardSphere")
  * - 2026-11-14 {@link #getReplications}: 복제 카탈로그 표가 없는 서버(ShardSphere)는 복제가 없는 것이므로 "표 없음"(42S02, 0x31031) 하나만
  *   빈 목록으로 읽는다. Object Explorer의 Replications 폴더가 오류로 끝났다(앱 변경 #113)
+ * - 2026-11-15 {@link #getDbName}: 드라이버 매개변수 query-get-active-db 대신 {@link AltibaseConstants#QUERY_GET_DB_NAME}. 그 매개변수는
+ *   일반(generic) 실행 문맥이 기본 스키마 이름을 읽는 질의라 이제 로그인 사용자를 읽는다(앱 변경 #116, docs/chromite/altibase.md
+ *   "세션의 기본 스키마")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -111,7 +113,6 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     private AltibaseOutputReader outputReader;
 
     private String dbName;
-    String queryGetActiveDB;
 
     private int lobCacheThreshold;
 
@@ -119,7 +120,6 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             throws DBException {
         super(monitor, container, metaModel, new AltibaseSQLDialect());
 
-        queryGetActiveDB = CommonUtils.toString(container.getDriver().getDriverParameter(GenericConstants.PARAM_QUERY_GET_ACTIVE_DB));
         replCache = new ReplicationCache(this);
         jobCache = new JobCache();
         dbLinkCache = new DbLinkCache();
@@ -171,7 +171,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
      */
     public String getDbName(JDBCSession session) throws DBException {
         if (dbName == null) {
-            try (JDBCPreparedStatement dbStat = session.prepareStatement(queryGetActiveDB)) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(AltibaseConstants.QUERY_GET_DB_NAME)) {
                 try (JDBCResultSet resultSet = dbStat.executeQuery()) {
                     resultSet.next();
                     dbName = JDBCUtils.safeGetStringTrimmed(resultSet, 1);

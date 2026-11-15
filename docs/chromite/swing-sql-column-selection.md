@@ -86,6 +86,35 @@ origin/devel의 ui.swing에 관련 코드 0건). 그래서 직접 만들었다.
   3줄의 `SELECT * FROM nosuch_r2;` 사각형 + F5 → 실패 표시가 편집기 3번째 줄, Messages "메시지 1, 줄 3". 편집기 글은 바뀌지 않음.
   캡처 `D:\Tools\_scratch\chromite-small-fixes-r2\shots\col-run-*.png`. 예상 계획(Ctrl+L)은 코드만 같은 방식으로 고쳤고 실행해 보지 않았다.
 
+## 창 단축키 (2026-11-15)
+
+- **결함:** 열 선택이 켜져 있으면 F5, Alt+P, Alt+Pause, Ctrl+L, Ctrl+S 등 편집기 키 바인딩이 없는 키가 아무 일도 하지 않았다.
+  `SqlColumnSelection.handleKeyPressed`가 키 바인딩 이름을 `COPY_ACTIONS.contains(action)`로 보는데, 바인딩이 없으면 `action`이 null이고
+  `Set.of(...)`의 `contains(null)`은 `NullPointerException`을 던진다. 예외가 키 처리를 끊어 메뉴 단축키까지 가지 못했다. 위 "실행"의 확인(2026-11-12)은
+  시험 에이전트가 실행 메서드를 바로 불러 키 경로를 지나지 않아 이를 보지 못했다. Ctrl+Enter(현재 문장 실행)는 예외는 없었지만 Enter 처리가
+  열 선택을 끝낸 뒤에 실행되어 사각형이 아니라 캐럿의 문장을 실행했다.
+- **고침:** 편집기 바인딩이 없는 키는 아무것도 하지 않고 넘긴다(창 단축키가 그대로 받음). 명령 키(Ctrl, macOS ⌘)와 누른 Enter도 넘긴다.
+  같은 클래스에서 null이 불변 컬렉션에 들어가는 곳은 이 한 곳뿐이다(`LINE_ACTIONS`는 문자열일 때만 봄).
+- **열 선택 중 창 단축키의 결과(위 "실행"의 규칙 그대로):** 사각형은 남는다(단축키가 캐럿을 옮기거나 글을 바꿀 때만 끝남).
+
+  | 키 | 결과 |
+  |---|---|
+  | F5(와 Execute의 다른 키) | 사각형의 글을 실행 |
+  | Ctrl+Enter | 사각형을 보통 선택처럼: 선택한 글을 한 문장으로 실행 |
+  | Alt+P | 예전처럼 캐럿(캐럿 쪽 모서리)의 문장부터 끝까지 |
+  | Ctrl+L | 사각형의 글로 예상 계획 |
+  | Ctrl+S | 저장(새 파일이면 저장 대화상자), 사각형은 남음 |
+  | Ctrl+W | Chromite가 묶지 않은 키라 아무 일도 없음 |
+  | Esc, 방향키, Enter(수정자 없음), Ctrl+Z | 예전처럼 열 선택을 끝냄 |
+
+- **확인(빌드한 앱, Windows, 시험 PostgreSQL, 앱 창 안 Robot 키 입력, 쿼리 관리자 기록):** 3줄 글에서 0–1줄 0–24열 사각형.
+  F5 → `SELECT 'chr_ax_c1' AS a`, `SELECT 'chr_ax_c2' AS b`; Ctrl+Enter → 두 줄을 한 문장으로; 1줄만의 사각형 + Ctrl+Enter → `SELECT 'chr_ax_c2' AS b`;
+  Alt+P → 캐럿 줄부터 c2, c3; Ctrl+L → c1, c2의 EXPLAIN; Ctrl+S → 저장 대화상자, Esc 뒤 사각형 그대로; Ctrl+W → 변화 없음. 모든 단계 뒤 사각형이 남음.
+  편집: 폭 0 세로 캐럿(3줄)에서 Ctrl+C·Ctrl+X는 열 선택이 받음(폭 0이라 클립보드를 건드리지 않음), `z` 입력이 세 줄에, Backspace가 세 줄에서 지움,
+  붙여넣기 경로(`replaceSelection("q")`)가 세 줄에, Ctrl+Z가 되돌리고 열 선택을 끝냄. 디버그 로그에 예외 0건(고치기 전 빌드는 키마다
+  `NullPointerException ... SqlColumnSelection.handleKeyPressed`). 폭이 있는 사각형의 복사·잘라내기는 시스템 클립보드를 쓰므로 실행하지 않았고,
+  그 코드는 바뀌지 않았다.
+
 ## Alt 떼기와 메뉴 막대 (앱 변경 #100, 2026-11-12)
 
 - **증상(사내 환경, 26.0.5):** "편집기에서 alt를 누르면 처음에 세로로 선택되다가 메뉴로 커서가 이동되어버린다". Alt+끌기로 사각형을 고른 뒤
@@ -215,3 +244,5 @@ SSMS 사용자를 위해 SSMS의 키(Alt+끌기, Shift+Alt+방향키)를 따랐�
 - 2026-11-12 Alt+끌기 뒤 Alt를 떼면 메뉴 막대로 포커스가 가던 결함(앱 변경 #100, `chromite/alt-column-select`, 위 "Alt 떼기와 메뉴 막대")
 - 2026-11-12 마우스에 쓴 Alt의 떼기 규칙을 모든 창·휠로 넓혀 `AltMouseMenuGuard`로 옮기고 편집기의 표시를 지움(앱 변경 #102,
   `chromite/alt-mouse-menu`, 위 "모든 창으로 넓힘")
+- 2026-11-15 열 선택 중 편집기 키가 아닌 창 단축키(F5, Alt+P, Ctrl+L, Ctrl+S 등)가 예외로 동작하지 않던 결함과 Ctrl+Enter가 열 선택을 끝내던 결함
+  (`chromite/column-selection-keys`, 위 "창 단축키"). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 열 선택 중의 모든 키(입력, 지우기, 복사·잘라내기, 줄 명령)

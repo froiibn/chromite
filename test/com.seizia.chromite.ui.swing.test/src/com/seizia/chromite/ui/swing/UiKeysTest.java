@@ -39,6 +39,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-09 최초 작성(앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 Ctrl+Shift+R(결과 최대화)을 목록에 더함, Ctrl+Shift+T는 닫은 탭 다시 열기로 남음(앱 변경 #66)
+ * - 2026-11-15 Execute의 둘째 키 Alt+X({@link #ALT_KEYS}): {@code UiKeys.command}를 지나지 않고 두 플랫폼에서 같은 키(Alt+P처럼)라
+ *   {@link #WINDOWS_KEYS}와 따로 두고, macOS 예약 키가 아니며 명령 키 단축키와 겹치지 않는지 봄(앱 변경 #122)
  */
 public class UiKeysTest {
 
@@ -70,6 +72,13 @@ public class UiKeysTest {
         key(KeyEvent.VK_G, SHIFT), key(KeyEvent.VK_B), key(KeyEvent.VK_1, SHIFT),
         // ERD and plan zoom
         key(KeyEvent.VK_EQUALS), key(KeyEvent.VK_MINUS));
+
+    /**
+     * Shortcuts the application binds as they are on every platform, not through {@code UiKeys.command}.
+     */
+    private static final List<KeyStroke> ALT_KEYS = List.of(
+        // Execute's second key besides F5 (MainFrame)
+        KeyStroke.getKeyStroke(KeyEvent.VK_X, ALT));
 
     /**
      * macOS system and convention keys an application shortcut must not take.
@@ -123,6 +132,11 @@ public class UiKeysTest {
         }
         // Completion keeps Control+Space: Command+Space is Spotlight
         Assertions.assertFalse(MAC_RESERVED.contains(UiKeys.control(KeyEvent.VK_SPACE)));
+        // The keys that stay the same on every platform are neither system keys nor a command key shortcut
+        for (KeyStroke key : ALT_KEYS) {
+            Assertions.assertFalse(MAC_RESERVED.contains(key), key + " is a macOS system key");
+            Assertions.assertFalse(windowsByMac.containsKey(key) || windowsByMac.containsValue(key), key + " is also a command key shortcut");
+        }
     }
 
     @Test

@@ -58,7 +58,11 @@
                     <!-- In order to circumvent previous version of JDBC bug: ROLE -->
                     <parameter name="schema-filters-enabled" value="true"/>
                     <parameter name="split-procedures-and-functions" value="true"/>
-                    <parameter name="query-get-active-db"  value="SELECT db_name FROM V$DATABASE"/>
+                    <!-- Chromite: the execution context's default schema (active-entity-type schema). A session's schema is
+                         its login user and cannot be changed (ALTER SESSION SET CURRENT_SCHEMA fails, setSchema does
+                         nothing), so there is no query-set-active-db and the default stays read-only. It was the database
+                         name, which is no schema, so the context had no default (docs/chromite/altibase.md "세션의 기본 스키마"). -->
+                    <parameter name="query-get-active-db"  value="SELECT USER_NAME() FROM DUAL"/>
                     <parameter name="active-entity-type" value="schema"/>
                 </driver>
                 <!-- Chromite: bundled driver (drivers.shardsphere, docs/chromite/drivers.md "ShardSphere"). There is no
@@ -89,7 +93,8 @@
                     <parameter name="supports-scroll" value="true"/>
                     <parameter name="schema-filters-enabled" value="true"/>
                     <parameter name="split-procedures-and-functions" value="true"/>
-                    <parameter name="query-get-active-db"  value="SELECT db_name FROM V$DATABASE"/>
+                    <!-- Chromite: the session's default schema, as for the Altibase driver above -->
+                    <parameter name="query-get-active-db"  value="SELECT USER_NAME() FROM DUAL"/>
                     <parameter name="active-entity-type" value="schema"/>
                 </driver>
              </drivers>

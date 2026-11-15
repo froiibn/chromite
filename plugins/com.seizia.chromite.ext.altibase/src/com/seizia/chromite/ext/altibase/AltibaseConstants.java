@@ -31,6 +31,8 @@ import org.jkiss.utils.StandardConstants;
  *   연결된다 (docs/chromite/drivers.md "ShardSphere")
  * - 2026-11-14 Chromite: {@link #EC_TABLE_NOT_FOUND}. 복제 카탈로그가 없는 서버(ShardSphere)의 복제 목록을 빈 목록으로 읽는다
  *   (AltibaseDataSource.getReplications)
+ * - 2026-11-15 Chromite: {@link #QUERY_GET_DB_NAME}. 데이터베이스 이름을 드라이버 매개변수 query-get-active-db에서 읽었는데, 그 질의는
+ *   이제 세션의 기본 스키마(로그인 사용자)를 읽는다 (docs/chromite/altibase.md "세션의 기본 스키마", 앱 변경 #116)
  */
 public class AltibaseConstants {
     
@@ -42,7 +44,11 @@ public class AltibaseConstants {
     public static final String USER_PUBLIC = "PUBLIC";
     public static final String USER_SYSTEM_ = "SYSTEM_";
     public static final String USER_SYS = "SYS";
-    
+
+    // The database name (V$DATABASE), shown with sessions and locks. Not the driver's query-get-active-db: that query names
+    // the session's default schema (the login user) for the execution context
+    public static final String QUERY_GET_DB_NAME = "SELECT db_name FROM V$DATABASE";
+
     public static boolean isSysUser(@NotNull String userName) {
         return (USER_SYS.equals(userName) || USER_SYSTEM_.equals(userName));
     }
