@@ -279,6 +279,7 @@ import java.util.regex.Pattern;
  * - 2026-11-15 연결 노드의 REFRESH가 내비게이터의 노드 새로 고침이면(쿼리 창의 CREATE DATABASE 등 뒤 연결 전체 새로 고침) 읽어 둔 아래 노드를
  *   모델에서 다시 보임. 전에는 연결 목록만 다시 그려, 모델에는 새 DB가 있는데 Databases 폴더에는 F5 전까지 보이지 않았다(앱 변경 #111,
  *   docs/chromite/swing-query-commands.md "연결 전체를 다시 읽은 뒤의 탐색기")
+ * - 2026-11-15 테이블 저장 방식을 글자색 대신 테이블 아이콘 색으로({@link TableStorageStyle}, 앱 변경 #130, docs/chromite/altibase.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -2477,7 +2478,7 @@ final class ObjectExplorerPanel extends JPanel {
      * type of a column, the number of objects of a read folder, the host of a connection. A connection with a color
      * (custom or connection type, like SWT's navigator) gets it as a pill around its name ({@link ConnectionPill}, the
      * same as in Registered Servers), also when it is selected or under the mouse. A table whose model knows its storage
-     * kind gets the color and tooltip of {@link TableStorageStyle}.
+     * kind gets the icon color and tooltip of {@link TableStorageStyle}.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
         @Nullable

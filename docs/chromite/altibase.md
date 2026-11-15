@@ -11,18 +11,23 @@ Altibase 테이블은 메모리 테이블스페이스(행을 메모리에 두고
 따라 성능과 운영 방법이 달라서, Altibase 전용 도구(참고: "Orange for Altibase")는 트리에서 메모리 테이블을 빨강,
 디스크 테이블을 파랑으로 구분한다. 사용자 요청(2026-11-07)에 따라 Swing Object Explorer에서도 같은 구분을 한다.
 
+2026-11-15 사용자 요청(앱 변경 #130, ShardSphere 연결을 보고): "글자색이 아닌 테이블 아이콘이 붉은 계열로 나타나야 한다. 일반 disk테이블은
+일반 테이블처럼 나타나게 한다". 그래서 이름 글자색은 없애고, 메모리·휘발성 테이블의 **테이블 아이콘**을 붉은 계열로 그린다.
+디스크 테이블은 보통 테이블과 똑같이 보인다.
+
 ### 화면
 
-| 저장 방식 | 글자색 (Light / Dark) | 툴팁 (영어 / 한국어) | 속성 "Storage Type" |
-|---|---|---|---|
-| 메모리 | 빨강 `#B3261E` / `#FF9999` | Memory table / 메모리 테이블 | Memory / 메모리 |
-| 디스크 | 파랑 `#1A4FB0` / `#94B8FF` | Disk table / 디스크 테이블 | Disk / 디스크 |
-| 휘발성 | 호박색 `#8F4F00` / `#F0A858` | Volatile table / 휘발성 테이블 | Volatile / 휘발성 |
-| 하이브리드(파티션마다 다름) | 바꾸지 않음 | Hybrid table / 하이브리드 테이블 | Hybrid / 하이브리드 |
+| 저장 방식 | 테이블 아이콘 선 색 (Light / Dark) | 이름 글자 | 툴팁 (영어 / 한국어) | 속성 "Storage Type" |
+|---|---|---|---|---|
+| 메모리 | 빨강 `#D11A1A` / `#FF5C5C` | 보통 | Memory table / 메모리 테이블 | Memory / 메모리 |
+| 휘발성 | 주황빨강 `#C04A00` / `#FF8C42` | 보통 | Volatile table / 휘발성 테이블 | Volatile / 휘발성 |
+| 디스크 | 보통 테이블 아이콘 | 보통 | 저장 방식 없음(주석만, 다른 테이블과 같음) | Disk / 디스크 |
+| 하이브리드(파티션마다 다름) | 보통 테이블 아이콘 | 보통 | Hybrid table / 하이브리드 테이블 | Hybrid / 하이브리드 |
 
-- 테이블 주석이 있으면 툴팁은 `Disk table: <주석>`처럼 저장 방식 뒤에 주석을 붙인다(전에는 주석만 보였다).
+- 메모리·휘발성·하이브리드 테이블에 주석이 있으면 툴팁은 `Memory table: <주석>`처럼 저장 방식 뒤에 주석을 붙인다. 디스크 테이블의 툴팁은 다른 테이블처럼 주석만이다.
+- 아이콘은 팩(Duo-tone, Full color)의 테이블 그림 그대로이고 선과 강조 채움(Full color의 머리 띠)만 위 색이다. 칸의 밝은 채움은 팩의 색이다.
 - 색만으로는 구분할 수 없는 사용자를 위해 툴팁과 Properties 창(속성 "Storage Type", 한국어 "스토리지 유형")이 같은 값을 말로 보여 준다.
-- 화면 문구에 다른 제품 이름은 쓰지 않는다.
+- 새 화면 문구는 없다. 화면 문구에 다른 제품 이름은 쓰지 않는다.
 
 ### 구조
 
@@ -33,8 +38,9 @@ Altibase 테이블은 메모리 테이블스페이스(행을 메모리에 두고
 | `AltibaseMetaModel.prepareTableLoadStatement` | 테이블 목록을 카탈로그 질의로 읽고 테이블스페이스 종류를 같은 질의에서 받는다 |
 | `AltibaseTable` | 생성자에서 테이블스페이스 이름, 파티션 여부, 저장 방식을 받아 둔다. `@Property getStorageKind()`(order 17) |
 | `AltibaseTablespace.TbsType.getStorageKind()` | `V$TABLESPACES.TYPE` 코드 → 저장 방식 |
-| `com.seizia.chromite.ui.swing` `TableStorageStyle` | 렌더러가 부르는 글자색·툴팁 처리. `ObjectExplorerPanel.ExplorerCellRenderer`에는 호출 한 줄만 있다 |
-| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 색 토큰 `Chromite.Tree.storageMemoryForeground`, `storageDiskForeground`, `storageVolatileForeground` |
+| `com.seizia.chromite.ui.swing` `TableStorageStyle` | 렌더러가 부르는 아이콘·툴팁 처리. `ObjectExplorerPanel.ExplorerCellRenderer`에는 호출 한 줄만 있다(`NodeIcons.getNodeIcon`이 정한 아이콘을 메모리·휘발성일 때 바꿈). 색 아이콘 둘은 처음 쓸 때 한 번 만들어 둔다 |
+| `com.seizia.chromite.ui.swing` `UiIcons.inLineColor` | 팩 아이콘의 선(`stroke`)과 `<rect>`가 아닌 도형의 채움을 테마 색으로 바꾼 SVG 문서. JSVG 읽기 전처리(`DomProcessor`)로 바꾸고 팩·테마·색마다 캐시한다. 아이콘은 마지막으로 그린 팩·테마·색의 문서를 들고 있어 같은 줄을 다시 그릴 때 읽기나 키 만들기가 없다 |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 색 토큰 `Chromite.Tree.storageMemoryIconColor`, `storageVolatileIconColor`. 비활성 트리는 `Label.disabledForeground`(text.disabled) |
 | `internal/TableStorageMessages(.properties, _ko)` | 툴팁 문구 `{0} table`, `{0} table: {1}` |
 | `OSGI-INF/l10n/bundle(_ko).properties` (Altibase) | 속성 이름·설명 |
 
@@ -63,18 +69,61 @@ Altibase 테이블은 메모리 테이블스페이스(행을 메모리에 두고
   테이블스페이스 이름과 파티션 여부도 이 결과에서 받아 두므로 목록에서 온 테이블은 `getTablespace` 질의도 하지 않는다.
 - **파티션드 테이블.** 파티션 테이블스페이스 종류의 최솟값과 최댓값을 상관 하위 질의로 읽는다. 종류 코드가 저장 방식별로
   붙어 있어(메모리 0–2 < 디스크 3–7 < 휘발성 8) 두 값의 저장 방식이 같으면 모든 파티션이 그 방식이고, 다르면 하이브리드다.
-  하이브리드는 한 색으로 말할 수 없으므로 글자색을 바꾸지 않고 툴팁·속성으로만 알린다.
-- **휘발성 색은 호박색.** 휘발성 테이블은 메모리에 있지만 재시작하면 데이터가 없어진다. 메모리 빨강과 같은 색이면 이
-  차이를 놓치고, 파랑(디스크)은 저장 위치가 틀린다. 따뜻한 계열(메모리 쪽)이면서 빨강과 구분되고 "주의"를 뜻하는
-  호박색을 골랐다. 보라 같은 다른 색은 의미를 떠올리기 어렵다고 보았다.
-- **선택한 줄.** 색을 선택 바탕에서도 유지한다. 그래서 토큰 값을 트리 바탕, 활성 선택 바탕, 비활성 선택 바탕 모두에서
-  명암비 4.5:1 이상으로 골랐다(Light: 빨강 6.54/4.88/5.44, 파랑 7.53/5.62/6.26, 호박 6.39/4.77/5.32;
-  Dark: 빨강 8.52/4.80/5.99, 파랑 8.76/4.93/6.16, 호박 8.66/4.88/6.10 — 바탕 `#FFFFFF`/`#D0DFFE`/`#E9EAEE`,
-  `#191A1C`/`#2A4371`/`#33353B`).
+  하이브리드는 한 색으로 말할 수 없으므로 아이콘을 바꾸지 않고 툴팁·속성으로만 알린다.
+- **글자색 대신 아이콘(2026-11-15, 앱 변경 #130).** 사용자 요청이다. 이름은 다른 노드와 같은 글자(선택·기본 굵게 규칙 그대로)이고,
+  저장 방식은 아이콘 색이 말한다. 디스크 테이블은 보통 테이블로 둔다(아이콘·글자·툴팁 모두). 대부분의 테이블이 디스크이므로
+  예외인 메모리·휘발성만 눈에 띈다.
+- **두 톤.** 메모리 빨강(색상 0°), 휘발성 주황빨강(색상 23°). 휘발성 테이블은 메모리에 있지만 재시작하면 데이터가 없어진다.
+  같은 빨강이면 이 차이를 놓치므로 붉은 계열 안에서 16px로도 구분되게 색상을 23° 띄웠다(밝기는 비슷하고 색상으로 구분된다:
+  두 색끼리 명암비 Light 1.09, Dark 1.31). 보통 테이블 아이콘은 회색 선(Duo-tone `#6C707E`/`#CED0D6`, 색상 227°)이라 두 톤 모두 색상으로 뚜렷이 다르다.
+- **아이콘을 칠하는 방법.** 팩에는 테마 색으로 아이콘을 칠하는 `UiIcons.inColor`가 있지만 아이콘의 불투명한 픽셀을 모두 칠하는
+  평평한 모양이라, 테이블 아이콘은 밝은 칸까지 칠해져 꽉 찬 빨간 사각형이 된다(칸과 격자가 없어짐). 그래서 팩이 빨간 아이콘을 그리는
+  방식(생성기 `PAL`의 `rs` 선 + 밝은 채움)처럼 선만 칠한다: 읽을 때 SVG의 `stroke`와 `<rect>`가 아닌 도형의 `fill`을 토큰 색으로 바꾼다.
+  생성기의 `table_shape`는 몸통을 `<rect>`(밝은 칸 채움)로, 머리 띠·선을 `<path>`로 그리므로 Duo-tone은 빨간 윤곽·격자 + 회색 칸,
+  Full color는 빨간 머리 띠·윤곽·격자 + 밝은 칸이 된다. 새 이미지 파일은 더하지 않았다.
+- **선택한 줄.** 팩 규칙대로 선택한 줄에서도 아이콘 색을 바꾸지 않는다. 그래서 토큰 값을 트리 바탕, 활성 선택 바탕, 비활성 선택 바탕
+  모두에서 그래픽 대비 3:1 이상(WCAG 2.1 SC 1.4.11)으로 골랐다.
+
+  | 토큰 | 테마 | 값 | 트리 바탕 | 활성 선택 | 비활성 선택 |
+  |---|---|---|---|---|---|
+  | `storageMemoryIconColor` | Light | `#D11A1A` | 5.42 | 4.04 | 4.51 |
+  | `storageVolatileIconColor` | Light | `#C04A00` | 4.98 | 3.71 | 4.14 |
+  | `storageMemoryIconColor` | Dark | `#FF5C5C` | 5.75 | 3.24 | 4.05 |
+  | `storageVolatileIconColor` | Dark | `#FF8C42` | 7.53 | 4.24 | 5.30 |
+
+  바탕: Light `#FFFFFF`/`#D0DFFE`/`#E9EAEE`, Dark `#191A1C`/`#2A4371`/`#33353B`. 처음 후보였던 Dark `#FF6B6B`(활성 선택 3.54)는 분홍에 가까워
+  주황빨강과의 차이가 작아 `#FF5C5C`로 바꿨다. 이전 글자색 토큰 세 개(`Chromite.Tree.storage*Foreground`)는 지웠다(다른 곳에서 읽지 않음).
+- **비활성 트리.** `inColor`와 같이 비활성 컴포넌트에서는 비활성 색 키 `Label.disabledForeground`(text.disabled, 회색)로 칠한다. 밝은 빨강이 비활성 트리에 남지 않는다.
+  여기에 팩의 비활성 아이콘과 같은 투명도 0.4를 더했다: 첫 빌드의 캡처에서 회색을 불투명하게 칠한 아이콘이 옆의 흐린(0.4) 비활성 테이블 아이콘보다 진해 보였다.
+- **캐시.** 색 아이콘 객체는 `TableStorageStyle`이 처음 쓸 때 한 번 만든다. 색을 바꾼 SVG 문서는 `UiIcons`가 팩·테마·색마다 한 번 읽어 캐시하고,
+  아이콘은 마지막 문서를 들고 있어 같은 테마에서는 그릴 때 아무것도 만들지 않는다(그리는 일은 보통 팩 아이콘과 같은 JSVG 벡터 렌더링).
+  색은 그릴 때 토큰에서 읽으므로 테마·아이콘 팩을 실행 중에 바꿔도 다시 그리기만으로 맞다.
 - **화면은 DBMS를 모른다.** 렌더러에 Altibase 분기를 넣지 않고 모델의 `DBSTableWithStorageKind`만 본다. SQL Server
   메모리 최적화 테이블, MySQL MEMORY 엔진 같은 경우도 그 인터페이스를 구현하면 같은 표시를 얻는다(이번 작업 범위 밖).
 - **큐는 대상이 아니다.** `AltibaseQueue`는 `AltibaseTable`이 아니라 `GenericTable`을 상속하고, 큐는 항상 메모리 테이블이라
   색을 붙이지 않았다.
+- **Object Explorer만 보인다(2026-11-15 조사, 바꾸지 않음).** `TableStorageStyle`을 부르는 곳은 Object Explorer 렌더러 하나다.
+  테이블 아이콘을 그리는 다른 곳은 모두 팩의 보통 `table` 아이콘(`NodeIcons`가 `TREE_TABLE` 등을 `table`로 대응)을 보인다:
+  Find Objects 결과(`ObjectSearchPanel`), Object Details 제목·편집기 탭·자식 목록(`ObjectDetailsPanel`), 데이터 전송 객체 목록
+  (`DataTransferObjects`), 내보내기 마법사 객체 표(`DataExportWizard`), 가져오기 대상 목록(`DataImportTargetPage`), 데이터베이스 복사
+  (`DatabaseCopyPages`), SQL 자동 완성 목록(`SqlCompletionPopup`), 스키마 비교 트리(`SchemaComparePanel`, 비교 종류로 고름), ER 다이어그램
+  엔터티 머리(`ErdRenderer`), 데이터 찾기 결과(`DataSearchPanel`, 늘 `table`). Registered Servers와 객체 고르기(Select Schema)는 테이블을
+  보이지 않는다. 테이블스페이스 아래 Tables 폴더의 항목은 `AltibaseTablespaceObj4Table`(테이블이 아닌 테이블스페이스 내용 행)이라 탐색기에서도
+  보통 `table` 아이콘이다. 다른 곳도 따를지는 사용자 결정을 기다린다.
+
+### 확인 (2026-11-15, 앱 변경 #130)
+
+- 테스트 Altibase 7.3: 이 작업용 테이블스페이스 `CHR_IC_MEM`(메모리 4M, 서버 최소), `CHR_IC_DISK`(디스크 4M), `CHR_IC_VOL`(휘발성 4M), 사용자 `CHR_IC_USER`와
+  테이블 `CHR_IC_T_MEM`(주석 있음)·`CHR_IC_T_DISK`·`CHR_IC_T_VOL`·`CHR_IC_T_HYB`(파티션 P1 메모리, P2 디스크)·뷰 `CHR_IC_V`를 SQL로 만들었다
+  (새 사용자는 `ALTER USER … ACCESS <테이블스페이스> ON` 없이는 그 테이블스페이스에 테이블을 만들 수 없었다). 끝에 사용자(CASCADE)와 테이블스페이스
+  (`INCLUDING CONTENTS AND DATAFILES`)를 지우고 `V$TABLESPACES`, `V$DATAFILES`, `SYS_TABLES_`, `SYS_USERS_`에 남은 것이 없음을 확인했다.
+- 앱(테스트 에이전트, 영어·한국어 × 100 %·150 % × 밝은·어두운, Duo-tone과 Full color): 메모리는 빨간 아이콘, 휘발성은 주황빨강 아이콘, 디스크·하이브리드는
+  보통 아이콘, 이름 글자는 모두 보통 색이다. 선택(초점 있음·없음)에서도 아이콘 색이 같다. 툴팁: 디스크는 없음, 하이브리드 "Hybrid table",
+  메모리 "Memory table: Order cache", 휘발성 "Volatile table"(한국어 "하이브리드 테이블", "메모리 테이블: Order cache", "휘발성 테이블").
+  실행 중 테마·아이콘 팩 전환, 연결 F5, 연결 끊기·다시 연결 뒤에도 같다. 비활성 트리에서는 회색(투명도 0.4)으로 이웃 아이콘과 같은 흐림이다.
+- ShardSphere 서버(읽기만, 연결 하나): SYS > Tables의 22개 테이블이 모두 메모리라 빨간 아이콘과 보통 글자로 보인다(밝은·어두운).
+- PostgreSQL 테이블 노드는 보통 아이콘 그대로다.
+- 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: Object Explorer의 테이블 아이콘·툴팁, 아이콘 팩 문서 읽기(`UiIcons.getDocument`).
 
 ### upstream 대비 변경점
 
@@ -526,3 +575,5 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 - 2026-11-15 예약어가 아닌 문법 낱말(`CACHE`, `NOCACHE`)을 서버와 관계없이 키워드로 두고 이름의 따옴표 이유에서는 뺌(앱 변경 #118), 위 "예약어가 아닌 문법 낱말".
 - 2026-11-15 실행 문맥의 기본 스키마를 세션 사용자로 읽음(`query-get-active-db` = `USER_NAME()`, 읽기 전용), 데이터베이스 이름은 따로 읽음(앱 변경 #116), 위 "세션의 기본 스키마".
 - 2026-11-15 테이블스페이스 관리(앱 변경 #126): 만들기·삭제(내용·데이터 파일·CASCADE)·온라인/오프라인·자동 확장·데이터 파일 추가·설정·삭제, 확인한 문법, 위 "테이블스페이스 관리".
+- 2026-11-15 테이블 저장 방식을 글자색 대신 테이블 아이콘 색으로(앱 변경 #130, 사용자 요청): 메모리 빨강, 휘발성 주황빨강, 디스크는 보통 테이블(툴팁 없음),
+  하이브리드는 보통 아이콘 + 툴팁. 글자색 토큰 3개를 아이콘 토큰 2개로 바꿈. 위 "테이블 저장 방식 표시"의 화면·구조·설계 결정.

@@ -27,34 +27,49 @@ import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
-import java.awt.*;
 
 /**
- * Object Explorer 테이블 이름의 저장 방식 표시: 메모리 테이블은 빨강, 디스크 테이블은 파랑, 휘발성 테이블은 호박색
- * 글자이고, 툴팁이 저장 방식을 말로 알려 준다(색만으로는 알 수 없는 사용자를 위해).
+ * Object Explorer 테이블의 저장 방식 표시: 메모리 테이블은 빨간 테이블 아이콘, 휘발성 테이블은 주황빨강 테이블 아이콘이고,
+ * 툴팁이 저장 방식을 말로 알려 준다(색만으로는 알 수 없는 사용자를 위해). 이름 글자색은 바꾸지 않는다.
  *
  * 설계:
  * <ul>
  *     <li>모델의 {@link DBSTableWithStorageKind}만 본다. DBMS 이름으로 분기하지 않으므로 다른 DBMS도 그 인터페이스를
  *     구현하면 같은 표시를 얻는다. 값은 테이블 목록과 함께 읽혀 있어 그릴 때 질의가 없다.</li>
- *     <li>색은 테마 토큰({@code Chromite.Tree.storage*Foreground}, ChromiteLight/DarkLaf.properties)이다. 토큰 값은
- *     트리 바탕과 활성/비활성 선택 바탕 모두에서 4.5:1 이상이라 선택한 줄도 같은 색으로 읽힌다.</li>
- *     <li>하이브리드(파티션마다 저장 방식이 다름)는 한 색으로 말할 수 없어 글자색을 바꾸지 않고 툴팁만 둔다.</li>
+ *     <li>디스크 테이블은 보통 테이블이다(사용자 요청 2026-11-15): 팩의 테이블 아이콘, 보통 글자, 저장 방식 툴팁 없음.
+ *     저장 방식은 Properties의 "Storage Type"이 보여 준다.</li>
+ *     <li>아이콘 색은 테마 토큰({@code Chromite.Tree.storage*IconColor}, ChromiteLight/DarkLaf.properties)이다. 선택한 줄의
+ *     아이콘을 바꾸지 않는 팩의 규칙에 맞춰, 토큰 값은 트리 바탕과 활성/비활성 선택 바탕 모두에서 그래픽 대비 3:1 이상이다.
+ *     팩 아이콘의 선과 강조 채움만 칠하므로({@link UiIcons#inLineColor}) 테이블 모양은 보통 테이블 아이콘과 같다.
+ *     아이콘은 처음 쓸 때 한 번 만들어 둔다(그릴 때마다 만들지 않음).</li>
+ *     <li>하이브리드(파티션마다 저장 방식이 다름)는 한 색으로 말할 수 없어 아이콘을 바꾸지 않고 툴팁만 둔다.</li>
  *     <li>ObjectExplorerPanel의 렌더러는 이 클래스를 한 줄로 부른다. 그 파일은 여러 작업이 함께 고치므로 바뀌는 줄을
  *     줄이려고 따로 두었다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: Altibase 메모리/디스크 테이블 색 구분 (docs/chromite/altibase.md)
+ * - 2026-11-15 글자색 대신 테이블 아이콘 색: 메모리 빨강, 휘발성 주황빨강, 디스크는 보통 테이블(툴팁 없음)
+ *   (앱 변경 #130, 사용자 요청, docs/chromite/altibase.md)
  */
 final class TableStorageStyle {
+
+    private static final String TABLE_ICON = "table"; //$NON-NLS-1$
+    // A disabled tree shows the icon in text.disabled, not in a bright red
+    private static final String DISABLED_COLOR_KEY = "Label.disabledForeground"; //$NON-NLS-1$
+
+    @Nullable
+    private static Icon memoryIcon;
+    @Nullable
+    private static Icon volatileIcon;
 
     private TableStorageStyle() {
     }
 
     /**
-     * Colors the label of a table node by its storage kind and puts the kind in words in front of its tooltip.
-     * Does nothing for other nodes and for tables of unknown kind.
+     * Gives a memory or volatile table node the table icon in its storage color and puts the kind in words in front of
+     * its tooltip; a hybrid table gets the tooltip only. Does nothing for disk tables, other nodes and tables of unknown
+     * kind. Called on the EDT (the icons are kept without synchronization).
      */
     static void apply(@NotNull JLabel label, @NotNull DBNNode node) {
         if (!(node instanceof DBNDatabaseNode databaseNode)
@@ -62,12 +77,12 @@ final class TableStorageStyle {
             return;
         }
         DBSTableStorageKind kind = table.getStorageKind();
-        if (kind == null) {
+        if (kind == null || kind == DBSTableStorageKind.DISK) {
             return;
         }
-        Color color = getForeground(kind);
-        if (color != null) {
-            label.setForeground(color);
+        Icon icon = getIcon(kind);
+        if (icon != null) {
+            label.setIcon(icon);
         }
         String description = label.getToolTipText();
         label.setToolTipText(CommonUtils.isEmpty(description)
@@ -76,12 +91,21 @@ final class TableStorageStyle {
     }
 
     @Nullable
-    private static Color getForeground(@NotNull DBSTableStorageKind kind) {
+    private static Icon getIcon(@NotNull DBSTableStorageKind kind) {
         return switch (kind) {
-            case MEMORY -> UIManager.getColor("Chromite.Tree.storageMemoryForeground"); //$NON-NLS-1$
-            case DISK -> UIManager.getColor("Chromite.Tree.storageDiskForeground"); //$NON-NLS-1$
-            case VOLATILE -> UIManager.getColor("Chromite.Tree.storageVolatileForeground"); //$NON-NLS-1$
-            case HYBRID -> null;
+            case MEMORY -> {
+                if (memoryIcon == null) {
+                    memoryIcon = UiIcons.inLineColor(TABLE_ICON, "Chromite.Tree.storageMemoryIconColor", DISABLED_COLOR_KEY); //$NON-NLS-1$
+                }
+                yield memoryIcon;
+            }
+            case VOLATILE -> {
+                if (volatileIcon == null) {
+                    volatileIcon = UiIcons.inLineColor(TABLE_ICON, "Chromite.Tree.storageVolatileIconColor", DISABLED_COLOR_KEY); //$NON-NLS-1$
+                }
+                yield volatileIcon;
+            }
+            case DISK, HYBRID -> null;
         };
     }
 }

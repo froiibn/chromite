@@ -636,7 +636,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | `Chromite.status.warningForeground`(경고 글자) | `#8A5A00` | = `Chromite.status.warning` `#F2C55C` | 2026-11-12: 밝은 테마의 아이콘 호박색 `#FFAF0F`는 흰 바탕에서 1.8:1이라 글자용을 따로 둠(위 색 토큰 표 `status.warning`의 "글자/아이콘" 구분) |
 | `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
 | `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
-| `Chromite.Tree.storageMemoryForeground` / `storageDiskForeground` / `storageVolatileForeground` | `#B3261E` / `#1A4FB0` / `#8F4F00` | `#FF9999` / `#94B8FF` / `#F0A858` | Chromite 결정: Object Explorer 테이블 저장 방식 글자색, 바탕·선택 바탕에서 4.5:1 이상([altibase.md](altibase.md)) |
+| `Chromite.Tree.storageMemoryIconColor` / `storageVolatileIconColor` | `#D11A1A` / `#C04A00` | `#FF5C5C` / `#FF8C42` | Chromite 결정: Object Explorer 메모리·휘발성 테이블 아이콘의 선 색(`UiIcons.inLineColor`), 바탕·선택 바탕에서 3:1 이상(2026-11-15 글자색 토큰 `storage*Foreground` 대신, [altibase.md](altibase.md)) |
 | `@accentColor`, 포커스, 기본 단추 | `#3871E1` | `#3871E1` | `control-brand-border`, `accent-brand-bg` |
 | `Component.borderColor` | `#D1D3D9` | `#40434A` | `control-border` |
 | `Separator.foreground`, `Chromite.dividerColor`, 탭 줄 아래 선, 그리드 세로선 | `#E9EAEE` | `#26282C` | `dialog-border`, `editor-border`, `Table.gridColor` |
@@ -750,6 +750,8 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 배지 자리를 비우는 `<mask>`(view, mview, column-pk, column-fk, new-query, new-connection, export)는 JSVG 2.1이 그대로 그린다(JSVG로 따로 렌더링해 확인, 앱 화면의 기본 키 열 아이콘도 같음). 그래서 평평한 경로로 바꾸지 않았다.
 - 사양과 다른 점: "색 바꾸기" 규칙(`currentColor` 한 파일, 테마별 파일 없음) 대신 팩×테마마다 색을 넣은 파일을 쓴다. 고른 두 팩이 듀오톤(선 + 채움 두 색)과 여러 색이라 한 색 `currentColor`로 표현할 수 없고,
   파일은 생성기 출력이라 색은 `PAL` 한곳에서 바뀐다. 비활성 아이콘은 `text.disabled`로 다시 칠하는 대신 투명도 0.4로 그린다(`FlatLaf.DisabledIconProvider`).
+  예외 두 가지는 그릴 때 테마 색으로 칠한다: `UiIcons.inColor`(아이콘 전체를 한 색의 평평한 모양으로, 강조색 단추 위)와 `UiIcons.inLineColor`
+  (2026-11-15, 선과 `<rect>`가 아닌 도형의 채움만 바꾼 SVG를 읽어 팩·테마·색마다 캐시, 메모리·휘발성 테이블 아이콘, [altibase.md](altibase.md)). 둘 다 비활성이면 비활성 색 키로 칠한다.
 - 모델 아이콘 대응(`NodeIcons.UI_ICON_IDS`, 아이콘 위치로 대응): `DATABASE_DEFAULT`·`TREE_SERVER(S)` → `connection`, `TREE_DATABASE*` → `database`, `TREE_SCHEMA*` → `schema`, `TREE_FOLDER*` → `folder`,
   `TREE_TABLE*`·`TREE_PARTITION` → `table`, `TREE_VIEW*` → `view`, `TREE_COLUMN(S)`·`TREE_ATTRIBUTE`·`TREE_DERIVED_COLUMN`·`TYPE_*` → `column`(키 겹침 `OVER_KEY` → `column-pk`, `OVER_REFERENCE` → `column-fk`),
   `TREE_FOREIGN_KEY_COLUMN` → `column-fk`, `TREE_UNIQUE_KEY`·`TREE_KEY` → `unique`, `TREE_FOREIGN_KEY`·`TREE_REFERENCE`·`TREE_ASSOCIATION` → `foreign-key`, `TREE_CONSTRAINT` → `check`, `TREE_INDEX` → `index`,
@@ -1529,3 +1531,5 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
 - 2026-11-12 촘촘한 모드 메뉴 항목 20 → 21(`@menuItemMargin` 2,8,1,8, 앱 변경 #98, [swing-frontend.md](swing-frontend.md) "메뉴 간격과 구분선")
 - 2026-11-15 "벤더 아이콘의 밝은 판" 추가(앱 변경 #114, `chromite/vendor-icon-light-plate`): 확장 지점 `com.seizia.chromite.ui.swing.iconPlate`, 테마 키 `Chromite.iconPlate.background`, ShardSphere 아이콘 표시.
 - 2026-11-15 "판을 깔 아이콘 고르기" 추가(앱 변경 #117, `chromite/vendor-icon-plates-2`): 드라이버 아이콘 106개를 1.5:1 묻힌 몫 50% 기준으로 재서 19개 표시, Altibase는 기준이 골랐으나 보류.
+- 2026-11-15 Islands 색 표: 테이블 저장 방식 글자색 토큰 3개(`Chromite.Tree.storage*Foreground`)를 메모리·휘발성 테이블 아이콘 선 색 토큰 2개(`storageMemoryIconColor`, `storageVolatileIconColor`)로 바꿈
+  (앱 변경 #130, `chromite/table-storage-icon`, [altibase.md](altibase.md)). 아이콘 팩 절: 팩 아이콘의 선만 테마 색으로 칠하는 `UiIcons.inLineColor`.
