@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
@@ -54,7 +55,8 @@ import java.util.stream.Collectors;
 /**
  * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View, Compile and the Altibase
  * replication commands Start, Stop and Synchronize, and the Altibase tablespace commands Bring Online, Take Offline,
- * Autoextend Settings… and Data File Settings… on the selected objects.
+ * Autoextend Settings… and Data File Settings…, and the SQL Server commands Set as Default Filegroup, Make Read-Only, Make
+ * Read-Write and File Settings… on the selected objects.
  *
  * 설계: {@link ExplorerObjectCommands}(삭제·이름 바꾸기)와 같은 나눔이다. 탐색기에는 메뉴 항목과 갱신 호출만 두고, 문 만들기·실행은 모델 번들의
  * {@link ObjectMaintenanceActions}(모델 도구 처리기의 SQL)가 맡는다. 흐름도 같다: 확인 → 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange},
@@ -78,6 +80,10 @@ import java.util.stream.Collectors;
  *     자동 확장 설정·데이터 파일 설정은 미리 보기 전에 지금 값으로 채운 설정 대화상자({@link AltibaseTablespaceDialogs})를 보이고, 바뀐 것이
  *     없으면 속성 편집처럼 실행할 문장이 없다고 알린다. 한 개를 고를 때만 보인다. 실행 뒤(실패해도) 테이블스페이스 노드를 다시 읽어
  *     상태·크기·파일 목록을 맞춘다.</li>
+ *     <li>SQL Server 파일 그룹·파일: 기본 파일 그룹으로·읽기 전용·읽기 쓰기는 트리거 사용/사용 안 함과 같다(지금 상태와 같은 항목과 파일이 없는
+ *     파일 그룹의 항목은 꺼짐). 파일 설정은 지금 값으로 채운 설정 대화상자({@link SQLServerStorageDialogs})를 보인다(데이터 파일 설정과 같음).
+ *     실행 뒤(실패해도) 그 노드를 다시 읽는다: 파일 그룹은 데이터베이스의 파일 그룹 행을 모두 다시 읽어 이전 기본 파일 그룹도 맞추고, 파일은
+ *     자기 행을 다시 읽는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -87,6 +93,7 @@ import java.util.stream.Collectors;
  * - 2026-11-08 Altibase 복제 시작·중지·동기화(SWT 감사 D-A7) (docs/chromite/altibase.md "복제 시작·중지·동기화")
  * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정(앱 변경 #126,
  *   docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 final class ObjectMaintenanceCommands {
 
@@ -133,6 +140,15 @@ final class ObjectMaintenanceCommands {
             ObjectMaintenanceMessages.objmaint_tbs_autoextend_tip);
         addItem(ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS, ObjectMaintenanceMessages.objmaint_file_settings,
             ObjectMaintenanceMessages.objmaint_file_settings_tip);
+        // SQL Server filegroups and database files
+        addItem(ObjectMaintenanceActions.Action.FILEGROUP_DEFAULT, ObjectMaintenanceMessages.objmaint_mssql_fg_default,
+            ObjectMaintenanceMessages.objmaint_mssql_fg_default_tip);
+        addItem(ObjectMaintenanceActions.Action.FILEGROUP_READ_ONLY, ObjectMaintenanceMessages.objmaint_mssql_fg_read_only,
+            ObjectMaintenanceMessages.objmaint_mssql_fg_read_only_tip);
+        addItem(ObjectMaintenanceActions.Action.FILEGROUP_READ_WRITE, ObjectMaintenanceMessages.objmaint_mssql_fg_read_write,
+            ObjectMaintenanceMessages.objmaint_mssql_fg_read_write_tip);
+        addItem(ObjectMaintenanceActions.Action.DATABASE_FILE_SETTINGS, ObjectMaintenanceMessages.objmaint_mssql_file_settings,
+            ObjectMaintenanceMessages.objmaint_mssql_file_settings_tip);
     }
 
     private void addItem(@NotNull ObjectMaintenanceActions.Action action, @NotNull String label, @NotNull String tip) {
@@ -176,7 +192,8 @@ final class ObjectMaintenanceCommands {
     /**
      * False only for a trigger whose state (as read) already is the one the command sets, for an Altibase replication
      * that is already started (Start, Synchronize) or stopped (Stop), and for an Altibase tablespace that is already
-     * online (Bring Online) or offline (Take Offline).
+     * online (Bring Online) or offline (Take Offline), and for a SQL Server filegroup that already is the default,
+     * read-only or read-write, or has no files.
      */
     private static boolean changesState(@NotNull ObjectMaintenanceActions.Action action, @NotNull DBSObject object) {
         Boolean enabled = ObjectMaintenanceActions.isTriggerEnabled(object);
@@ -189,6 +206,8 @@ final class ObjectMaintenanceCommands {
             case STOP_REPLICATION -> !Boolean.FALSE.equals(started);
             case TABLESPACE_ONLINE -> !Boolean.TRUE.equals(online);
             case TABLESPACE_OFFLINE -> !Boolean.FALSE.equals(online);
+            // SQL Server filegroups
+            case FILEGROUP_DEFAULT, FILEGROUP_READ_ONLY, FILEGROUP_READ_WRITE -> ObjectMaintenanceActions.changesFilegroupState(action, object);
             default -> true;
         };
     }
@@ -221,6 +240,7 @@ final class ObjectMaintenanceCommands {
             if (settings == null) {
                 return;
             }
+            // SQL Server File Settings answers with the same object
             if (settings == AltibaseTablespaceDialogs.UNCHANGED) {
                 showNothingToRun(window, title);
                 return;
@@ -276,6 +296,13 @@ final class ObjectMaintenanceCommands {
         } else if (isReplicationAction(action) || isTablespaceAction(action)) {
             // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers.
             // A tablespace reads its catalog row (state, file count) and its files again (AltibaseTablespace.refreshObject).
+            for (DBNNode node : nodes) {
+                if (node instanceof DBNDatabaseNode databaseNode) {
+                    refreshNodes.add(databaseNode);
+                }
+            }
+        } else if (isSqlServerStorageAction(action)) {
+            // A filegroup reads the rows of all filegroups of its database again (the old default changes too); a file reads its row
             for (DBNNode node : nodes) {
                 if (node instanceof DBNDatabaseNode databaseNode) {
                     refreshNodes.add(databaseNode);
@@ -400,6 +427,11 @@ final class ObjectMaintenanceCommands {
             || action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND;
     }
 
+    private static boolean isSqlServerStorageAction(@NotNull ObjectMaintenanceActions.Action action) {
+        return action == ObjectMaintenanceActions.Action.FILEGROUP_DEFAULT || action == ObjectMaintenanceActions.Action.FILEGROUP_READ_ONLY
+            || action == ObjectMaintenanceActions.Action.FILEGROUP_READ_WRITE || action == ObjectMaintenanceActions.Action.DATABASE_FILE_SETTINGS;
+    }
+
     /**
      * The settings dialog of a command that needs one, filled with the object's current values.
      *
@@ -411,6 +443,9 @@ final class ObjectMaintenanceCommands {
             return AltibaseTablespaceDialogs.askAutoextend(explorer, title, tablespace);
         } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof AltibaseDataFile4Disk file) {
             return AltibaseTablespaceDialogs.askDataFileSettings(explorer, title, file);
+        } else if (action == ObjectMaintenanceActions.Action.DATABASE_FILE_SETTINGS && object instanceof SQLServerDatabaseFile file) {
+            // SQL Server data and log files
+            return SQLServerStorageDialogs.askFileSettings(explorer, title, file);
         }
         return null;
     }
@@ -464,6 +499,11 @@ final class ObjectMaintenanceCommands {
             case TABLESPACE_OFFLINE -> ObjectMaintenanceMessages.objmaint_tbs_offline_title;
             case TABLESPACE_AUTOEXTEND -> ObjectMaintenanceMessages.objmaint_tbs_autoextend_title;
             case DATA_FILE_SETTINGS -> ObjectMaintenanceMessages.objmaint_file_settings_title;
+            // SQL Server filegroups and database files
+            case FILEGROUP_DEFAULT -> ObjectMaintenanceMessages.objmaint_mssql_fg_default_title;
+            case FILEGROUP_READ_ONLY -> ObjectMaintenanceMessages.objmaint_mssql_fg_read_only_title;
+            case FILEGROUP_READ_WRITE -> ObjectMaintenanceMessages.objmaint_mssql_fg_read_write_title;
+            case DATABASE_FILE_SETTINGS -> ObjectMaintenanceMessages.objmaint_mssql_file_settings_title;
         };
     }
 

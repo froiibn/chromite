@@ -26,6 +26,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | 연결의 Databases (PostgreSQL, SQL Server, MySQL/MariaDB) | **New Database…** | 대화상자 → 스크립트 미리 보기 → 실행 |
 | PostgreSQL 데이터베이스의 Schemas, Tablespaces, Extensions | **New Schema… / New Tablespace… / New Extension…** | 대화상자 → 미리 보기 → 실행 |
 | Altibase 계열(Altibase, ShardSphere) Storage > Tablespaces, 디스크 데이터·임시 테이블스페이스의 Data Files | **New Tablespace… / New Data File…** | 대화상자(종류, 데이터 파일, 크기·자동 확장 MB) → 미리 보기 → 실행([altibase.md](altibase.md) "테이블스페이스 관리") |
+| SQL Server 데이터베이스의 Storage > Filegroups, 파일 그룹의 Files, Storage > Log Files | **New Filegroup… / New File… / New Log File…** | 이름 대화상자 / 대화상자(이름, 파일, 크기·자동 증가·증가 MB/%·최대 크기 MB) → 미리 보기 → 실행([mssql-storage.md](mssql-storage.md)) |
 | 시퀀스 폴더 (네 방언, MariaDB) | **New Sequence…** | CREATE 틀을 새 쿼리 창에 |
 | 테이블의 Triggers, 스키마의 모든 트리거 폴더 | **New Trigger…** | 틀(테이블 폴더는 그 테이블, 스키마 폴더는 고칠 자리 표시 이름) |
 | SQL Server 데이터베이스 트리거, Oracle 스키마 트리거 | **New Database Trigger… / New Schema Trigger…**(드라이버의 종류 이름) | DDL 트리거 틀 |
@@ -264,3 +265,4 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   (`chromite/password-handling-fixes`, [password-handling.md](password-handling.md)).
 - 2026-11-15 Altibase 계열 New Tablespace…·New Data File… 대화상자(`AltibaseTablespaceDialogs`, 앱 변경 #126, [altibase.md](altibase.md) "테이블스페이스 관리").
   `NewObjectDialogs.load`를 패키지 안에 엶. 검토 뒤 두 대화상자의 "(기본값)" 안내 줄을 뺌(설명 문구 없음 규칙).
+- 2026-11-15 SQL Server New Filegroup…(이름 대화상자)·New File…·New Log File… 대화상자(`SQLServerStorageDialogs`, 앱 변경 #128, [mssql-storage.md](mssql-storage.md)).

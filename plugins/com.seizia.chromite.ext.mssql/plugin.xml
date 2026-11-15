@@ -163,6 +163,19 @@
                         <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDatabaseTrigger" label="%tree.databaseTriggers.node.name" icon="#triggers" description="All database triggers" visibleIf="object.dataSource.supportsTriggers()">
                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                         </folder>
+                        <!-- Chromite: filegroups and database files (docs/chromite/mssql-storage.md) -->
+                        <folder label="%tree.storage.node.name" icon="#folder" id="storageManagement" description="%tree.storage.node.tip" visibleIf="object.dataSource.supportsDatabaseFiles()">
+                            <folder type="com.seizia.chromite.ext.mssql.model.SQLServerFilegroup" label="%tree.filegroups.node.name" icon="#folder" description="%tree.filegroups.node.tip">
+                                <items label="%tree.filegroup.node.name" path="filegroup" property="filegroups" icon="#tablespace">
+                                    <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile" label="%tree.dbFiles.node.name" icon="#folder" description="%tree.dbFiles.node.tip">
+                                        <items label="%tree.dbFile.node.name" path="file" property="files" icon="#file"/>
+                                    </folder>
+                                </items>
+                            </folder>
+                            <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile" label="%tree.logFiles.node.name" icon="#folder" description="%tree.logFiles.node.tip">
+                                <items label="%tree.logFile.node.name" path="logFile" property="logFiles" icon="#file"/>
+                            </folder>
+                        </folder>
                     </items>
                 </folder>
                 <folder label="%tree.security.node.name" icon="#security" id="securityManagement" description="Security management">
@@ -584,6 +597,8 @@
         <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerDataTypeManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerDataType"/>
         <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerExtendedPropertyManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerExtendedProperty"/>
         <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerLoginManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerLogin"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerFilegroupManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerFilegroup"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerDatabaseFileManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile"/>
 
         <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericProcedureManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericProcedure"/>
         <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericTriggerManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericTrigger"/>

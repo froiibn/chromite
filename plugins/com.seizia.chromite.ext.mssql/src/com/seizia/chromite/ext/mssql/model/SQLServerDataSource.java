@@ -84,6 +84,8 @@ import java.util.Properties;
  * - 2026-11-12 {@link #discoverErrorType}: 오류 596("session is in the kill state")을 연결 끊김으로. 세션이 KILL되면 실행 중인
  *   문장의 첫 오류가 596(SQLState S0001)이라 자동 복구도, 끊긴 세션 처리도 없었다(앱 변경 #75,
  *   docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ * - 2026-11-15 연결할 때 읽는 엔진 에디션을 기억하고 {@link #supportsDatabaseFiles}로 알림: 탐색기의 파일·파일 그룹 노드와 명령은
+ *   SQL Server 자체(에디션 1-4)에만 (앱 변경 #128, docs/chromite/mssql-storage.md)
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -106,6 +108,10 @@ public class SQLServerDataSource
     private volatile transient boolean hasStatistics;
     private final boolean isBabelfish;
     private boolean isSynapseDatabase;
+    // SERVERPROPERTY('EngineEdition'), -1 if not read; editions 1-4 are SQL Server itself (supportsDatabaseFiles)
+    private int engineEdition = -1;
+    private static final int MIN_FILE_EDITION = 1;
+    private static final int MAX_FILE_EDITION = 4;
 
     public SQLServerDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container)
         throws DBException
@@ -209,6 +215,17 @@ public class SQLServerDataSource
 
     public boolean isSynapseDatabase() {
         return isSynapseDatabase;
+    }
+
+    /**
+     * Whether users manage the database files and filegroups of this server ({@code ALTER DATABASE … ADD FILE}): SQL Server
+     * itself ({@code SERVERPROPERTY('EngineEdition')} 1-4: Personal/Desktop, Standard, Enterprise/Developer, Express). Azure
+     * SQL Database (5), Synapse (6, 11), Azure SQL Managed Instance (8) and Azure SQL Edge (9) manage the files
+     * themselves or take other forms of the statement; Babelfish has no such files. Also false when the edition could not
+     * be read. Shows the Object Explorer Storage folder of a database (docs/chromite/mssql-storage.md).
+     */
+    public boolean supportsDatabaseFiles() {
+        return !isBabelfish && engineEdition >= MIN_FILE_EDITION && engineEdition <= MAX_FILE_EDITION;
     }
 
     public boolean isAtLeastV16() {
@@ -483,6 +500,7 @@ public class SQLServerDataSource
             // Read Database Engine edition of the instance of SQL Server installed on the server.
             try {
                 String result = JDBCUtils.queryString(session, "SELECT SERVERPROPERTY('EngineEdition')");
+                engineEdition = CommonUtils.toInt(result, -1);
                 if ("6".equals(result) || "11".equals(result)) {
                     // SERVERPROPERTY returns int 6 or 11 if it is Azure Synapse
                     isSynapseDatabase = true;
