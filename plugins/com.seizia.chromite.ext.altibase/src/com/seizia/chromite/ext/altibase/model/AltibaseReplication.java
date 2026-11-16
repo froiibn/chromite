@@ -43,6 +43,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * An Altibase replication (SYSTEM_.SYS_REPLICATIONS_ row).
+ *
+ * 설계: 상태(시작 여부)는 목록과 같은 카탈로그 행에서 같은 문장({@code AltibaseDataSource.ReplicationCache})으로 읽는다. 복제 카탈로그 이름을
+ * 한곳에만 두어, 다른 카탈로그를 쓰는 서버(ShardSphere GEMINI)의 전략이 그곳 하나만 바꾸면 되게 한다.
+ *
+ * 변경 이력:
+ * - 2026-11-17 {@link #refreshObjectState}: 프로시저 클래스에서 복사된 SYS_PROCEDURES_ 질의(자리표시자 둘 중 하나만 채움, 프로시저 상태를
+ *   시작 여부로 읽음)를 복제 목록의 조회 문장으로 바꿈(앱 변경 #139, docs/chromite/altibase.md "상태 다시 읽기")
+ */
 public class AltibaseReplication extends AltibaseGlobalObject 
     implements DBSObjectLazy<AltibaseDataSource>, DBPRefreshableObject, DBPScriptObject, DBPStatefulObject, DBPObjectStatistics {
 
@@ -74,7 +84,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
 
         name = JDBCUtils.safeGetString(resultSet, "REPLICATION_NAME");
 
-        isStarted = JDBCUtils.safeGetBoolean(resultSet, "IS_STARTED", "1");
+        isStarted = readStarted(resultSet);
         conflictResolution = JDBCUtils.safeGetString(resultSet, "CONFLICT_RESOLUTION");
         mode = JDBCUtils.safeGetString(resultSet, "REPL_MODE");
         role = JDBCUtils.safeGetString(resultSet, "ROLE");
@@ -90,6 +100,11 @@ public class AltibaseReplication extends AltibaseGlobalObject
 
         remoteAddr = JDBCUtils.safeGetString(resultSet, "REMOTE_ADDR");
         remoteConnType = JDBCUtils.safeGetString(resultSet, "REMOTE_CONN_TYPE");
+    }
+
+    // SYS_REPLICATIONS_.IS_STARTED: 1 started, 0 stopped
+    private static boolean readStarted(@NotNull JDBCResultSet resultSet) {
+        return JDBCUtils.safeGetBoolean(resultSet, "IS_STARTED", "1");
     }
 
     @NotNull
@@ -212,20 +227,22 @@ public class AltibaseReplication extends AltibaseGlobalObject
         return isStarted ? DBSObjectState.ACTIVE : DBSObjectState.NORMAL;
     }
 
+    /**
+     * Reads the started flag again from this replication's own catalog row, with the statement the replication list uses
+     * ({@link AltibaseDataSource.ReplicationCache#prepareLookupStatement}), so the catalog is named in one place. Without
+     * the row (dropped meanwhile) the state stays as read; a node refresh removes the node.
+     */
     @Override
     public void refreshObjectState(@NotNull DBRProgressMonitor monitor) throws DBCException {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, this, 
                 "Refresh state of replication '" + this.getName() + "'")) {
-            try (JDBCPreparedStatement dbStat = session.prepareStatement(
-                    "SELECT status FROM system_.sys_users_ u, system_.sys_procedures_ p"
-                            + " WHERE u.user_id = p.user_id AND u.user_name = ? AND proc_name = ?")) {
-                dbStat.setString(1, getName());
-
+            try (JDBCStatement dbStat = getDataSource().getReplicationCache().prepareLookupStatement(
+                    session, getDataSource(), this, null)) {
                 dbStat.executeStatement();
 
                 try (JDBCResultSet dbResult = dbStat.getResultSet()) {
                     if (dbResult != null && dbResult.next()) {
-                        isStarted = JDBCUtils.safeGetBoolean(dbResult, 1, "1");
+                        isStarted = readStarted(dbResult);
                     }
                 }
             } catch (SQLException e) {
