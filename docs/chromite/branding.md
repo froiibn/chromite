@@ -131,7 +131,8 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 문구(고치지 않고 그대로 쓴다):
   - ko: "Chromite는 DBeaver Community(Apache License 2.0)를 바탕으로 만들었습니다. DBeaver는 DBeaver Corp의 상표이며, Chromite는 DBeaver Corp과 관계가 없습니다."
   - en: "Chromite is based on DBeaver Community (Apache License 2.0). DBeaver is a trademark of DBeaver Corp; Chromite is not affiliated with DBeaver Corp."
-  - 뒤에 저장소 `NOTICE` 링크(`https://github.com/froiibn/chromite/blob/devel/NOTICE`).
+  - 뒤에 저장소 `NOTICE` 링크(`https://github.com/froiibn/chromite/blob/HEAD/NOTICE`). `HEAD`는 GitHub이 기본 브랜치로 풀어 주므로
+    기본 브랜치 이름이 바뀌어도 링크가 끊기지 않는다.
 - 쓰지 않는 곳: 홈 본문, 첫 화면, 메타 태그(`description`, `og:*`, `twitter:*`), 공유 이미지, 그림 설명. 홈의 오픈 소스 장면은 지금처럼 "다른 오픈 소스 프로젝트에서 출발했다"와 `NOTICE` 링크만 둔다.
 - 이름 변경 게이트(`tools/rename/gate.py`)는 이 문구를 막지 않는다: G3은 `DBeaver` 바로 뒤에 대문자가 붙은 형식 이름(`DBeaver<Name>`)만 찾고, "DBeaver Community"·"DBeaver Corp"·"DBeaver는"은
   공백이나 한글이 뒤따른다. 게이트의 예외 목록은 고치지 않았다(2026-11-08 `ALL GATES PASSED`).
@@ -374,3 +375,4 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   → 61 ms 뒤 런처 창 내려감 → 메인 창 → 0.26초 뒤 Swing 창 닫힘. `-Dsun.java2d.uiScale=1`이면 Swing 창 1640,920 560×320(가운데, 런처 창은 150% 그대로).
   작업 공간 잠김(두 번째 실행)은 대화상자가 열리며 Swing 창 닫힘, 닫으면 종료 코드 0. 업데이트 적용 중은 런처 창이 안내 전에 내려가고 종료 코드 0.
   명령줄 `-nosplash`(ini의 `-showsplash`보다 우선)는 메인 창만. macOS는 실행하지 못했다(macos-smoke로 확인).
+- 2026-11-16 사이트의 `LICENSE.md`·`NOTICE` 링크 22개를 `blob/devel/`에서 `blob/HEAD/`로 바꿈(`chromite/site-license-links`): 기본 브랜치를 `command`로 바꾸고 `devel`을 지우면(사용자 결정 2026-11-16) 배포된 페이지의 링크가 끊기므로, 브랜치 이름에 묶이지 않는 주소를 쓴다. 문구는 그대로.
