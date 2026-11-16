@@ -117,6 +117,8 @@ import java.util.Set;
  * - 2026-11-11 도구 막대에 Expand All(모든 그룹 펼치기, 앱 변경 #51)
  * - 2026-11-16 서버의 보조 글자를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
  *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-16 서버 메뉴의 Change Password…: 연결된 서버의 DB가 비밀번호 바꾸기를 지원하지 않으면 보이지 않음(전에는 꺼짐), 연결되지 않은
+ *   서버는 전처럼 꺼짐(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -379,8 +381,13 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.servers_properties, null, () -> ConnectionCommands.edit(this, container)));
-            popupMenu.add(menuItem(ConnectionMessages.commands_change_password_menu, null, () -> ConnectionCommands.changePassword(container)))
-                .setEnabled(ConnectionCommands.getPasswordManager(container) != null);
+            // Only databases that can change the connected user's password; the data source tells it, so a server that is
+            // not connected shows the item disabled (as Object Explorer, ContextMenus)
+            boolean canChangePassword = ConnectionCommands.getPasswordManager(container) != null;
+            if (canChangePassword || !container.isConnected()) {
+                popupMenu.add(menuItem(ConnectionMessages.commands_change_password_menu, null, () -> ConnectionCommands.changePassword(container)))
+                    .setEnabled(canChangePassword);
+            }
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
             popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
             popupMenu.addSeparator();

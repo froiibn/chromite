@@ -288,3 +288,4 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-15 Oracle 테이블스페이스: 삭제 확인의 세 확인란, 이름 바꾸기, 유지 관리 명령 온라인·오프라인·읽기 전용·읽기 쓰기·데이터 파일 설정(앱 변경 #127, [oracle-storage.md](oracle-storage.md)). 데이터 파일 설정 툴팁의 문장을 두 DB에 맞게 `ALTER ... DATAFILE ...`로 바꿈.
 - 2026-11-15 PostgreSQL 테이블스페이스 이름 바꾸기(앱 변경 #129, [swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
 - 2026-11-15 SQL Server 파일 그룹·파일: 유지 관리 명령 기본 파일 그룹으로 설정·읽기 전용·읽기 쓰기·파일 설정, 파일 그룹·파일의 삭제·이름 바꾸기(앱 변경 #128, [mssql-storage.md](mssql-storage.md)).
+- 2026-11-16 메뉴 항목은 노드의 종류에 해당할 때만 보이고 지금 할 수 없으면 꺼짐: 이름 바꾸기·삭제의 조건을 종류(`appliesRename`·`appliesDelete`)와 지금 상태(`canRename`·`canDelete`)로 나눔, 이름 복사·SQL 생성은 해당할 때만 보임(앱 변경 #137, [context-menus.md](context-menus.md)).

@@ -88,6 +88,7 @@ import java.util.function.Consumer;
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 확대·축소 도움말의 수정자 이름
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-16 개체 메뉴의 Design·Select Top은 해당하는 개체에서만 보임(전에는 꺼짐, 앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class ErdDiagramPanel extends JPanel implements ToolDocument {
 
@@ -491,13 +492,15 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
         if (entity != null) {
             menu.add(createAction(ErdMessages.erd_show_in_explorer, () -> showInExplorer(entity)));
             menu.addSeparator();
+            // Both depend on the kind of entity (a view has no designer): shown only where they apply
             Action design = createAction(CoreMessages.explorer_design, () -> queryWindows.designTable(entity.object));
-            design.setEnabled(TableDesignSession.canDesign(entity.object));
+            ContextMenus.set(design, TableDesignSession.canDesign(entity.object), true);
             menu.add(design);
             Action select = createAction(NLS.bind(CoreMessages.explorer_select_top, ObjectExplorerPanel.SELECT_TOP_ROWS),
                 () -> selectTop(entity.object));
-            select.setEnabled(ObjectScripts.canSelect(entity.object));
+            ContextMenus.set(select, ObjectScripts.canSelect(entity.object), true);
             menu.add(select);
+            ContextMenus.tidy(menu);
         } else {
             menu.add(layoutAction);
             menu.add(fitAction);

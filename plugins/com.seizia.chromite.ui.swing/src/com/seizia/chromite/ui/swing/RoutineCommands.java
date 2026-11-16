@@ -63,6 +63,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: Execute Procedure…(B-S42), Go to Source Code(O13), 오류로 가기(O11) (docs/chromite/swing-routines.md)
+ * - 2026-11-16 항목의 보임·켜짐을 {@link ContextMenus}로: 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class RoutineCommands {
 
@@ -90,7 +91,7 @@ final class RoutineCommands {
     }
 
     /**
-     * The Go to Source Code item: shown only on a routine of an Oracle package (as the database-specific maintenance items).
+     * The Go to Source Code item: shown only on a routine of an Oracle package whose source can be edited ({@link #update}).
      */
     @NotNull
     JMenuItem getGoToSourceItem() {
@@ -98,14 +99,14 @@ final class RoutineCommands {
     }
 
     /**
-     * Enables the commands that apply to the node (EDT, no database access).
+     * Shows the commands that apply to the node and enables those possible now (EDT, no database access).
      */
     void update(@Nullable DBNNode node) {
         DBSObject object = node instanceof DBNDatabaseNode databaseNode ? databaseNode.getObject() : null;
-        executeAction.setEnabled(ProcedureCallScript.canExecute(object));
-        boolean packaged = object instanceof OracleProcedurePackaged;
-        goToSourceAction.setEnabled(packaged && SourceScripts.canModify(((OracleProcedurePackaged) object).getParentObject()));
-        goToSourceItem.setVisible(packaged);
+        boolean executes = ProcedureCallScript.canExecute(object);
+        ContextMenus.set(executeAction, executes, true);
+        DBSObject sourcePackage = object instanceof OracleProcedurePackaged packaged ? packaged.getParentObject() : null;
+        ContextMenus.set(goToSourceAction, SourceScripts.appliesModify(sourcePackage), SourceScripts.canModify(sourcePackage));
     }
 
     //////////////////////////////////////////////////////////

@@ -44,11 +44,12 @@ import java.util.function.Supplier;
  * 진행 대화상자({@link ProgressDialog})의 작업 스레드에서 만들고, 창은 메인 창({@link ObjectExplorerPanel.QueryWindows#openSourceScript})이 연다.
  * 창은 보통 쿼리 창이므로 실행(F5)·저장·닫을 때 저장 확인이 다른 쿼리 창과 같고, 실행이 끝날 때마다 객체(Modify) 또는 폴더(New)를
  * 다시 읽는다. 메뉴 구성 요소를 이 클래스에 모아 여러 기능이 함께 고치는 {@link ObjectExplorerPanel}의 변경을 작은 연결 지점으로 줄였다.
- * 항목은 다른 탐색기 메뉴처럼 늘 보이고, 고른 노드에 맞지 않으면 꺼진다({@link #update}).
+ * 항목은 고른 노드의 종류에 해당할 때만 보이고, 해당하지만 지금 할 수 없으면 꺼진다({@link #update}, {@link ContextMenus}).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
  * - 2026-11-08 창을 열 때 보일 위치 없음(null)을 넘김: openSourceScript가 위치를 받게 됨 (docs/chromite/swing-routines.md)
+ * - 2026-11-16 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class SourceEditCommands {
 
@@ -109,16 +110,19 @@ final class SourceEditCommands {
     }
 
     /**
-     * Enables the commands that apply to the node (EDT, no database access).
+     * Shows the commands that apply to the node and enables those possible now (EDT, no database access).
      */
     void update(@Nullable DBNNode node) {
-        boolean canModify = SourceScripts.canModify(getObject(node));
-        modifyAction.setEnabled(canModify);
-        alterToMenu.setEnabled(canModify);
+        DBSObject object = getObject(node);
+        boolean appliesModify = SourceScripts.appliesModify(object);
+        boolean canModify = SourceScripts.canModify(object);
+        ContextMenus.set(modifyAction, appliesModify, canModify);
+        ContextMenus.set(alterToMenu, appliesModify, canModify);
+        // The template kinds depend on the folder and the driver only
         Set<SourceScripts.NewObjectKind> kinds = SourceScripts.getNewKinds(node);
-        newViewAction.setEnabled(kinds.contains(SourceScripts.NewObjectKind.VIEW));
-        newProcedureAction.setEnabled(kinds.contains(SourceScripts.NewObjectKind.PROCEDURE));
-        newFunctionAction.setEnabled(kinds.contains(SourceScripts.NewObjectKind.FUNCTION));
+        ContextMenus.set(newViewAction, kinds.contains(SourceScripts.NewObjectKind.VIEW), true);
+        ContextMenus.set(newProcedureAction, kinds.contains(SourceScripts.NewObjectKind.PROCEDURE), true);
+        ContextMenus.set(newFunctionAction, kinds.contains(SourceScripts.NewObjectKind.FUNCTION), true);
     }
 
     @Nullable

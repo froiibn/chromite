@@ -64,7 +64,8 @@ import java.util.function.Supplier;
  *     ({@link SQLServerAgentManager#execute})이 격리된 연결에서 한 트랜잭션으로 실행한다.</li>
  *     <li>작업 시작·중지·사용·사용 안 함은 SSMS처럼 바로 실행하고 알림으로 결과를 알린다. 속성 창(작업·경고·운영자)과 삭제는 보안 편집기처럼
  *     실행할 스크립트를 먼저 보여 준다.</li>
- *     <li>에이전트가 멈춰 있으면 시작·중지를, 에디션에 에이전트가 없으면(Express) 바꾸는 명령을 모두 끄고 도구 설명으로 이유를 알린다.</li>
+ *     <li>에이전트가 멈춰 있으면 시작·중지를 끄고 도구 설명으로 이유를 알린다(지금 상태). 에디션에 에이전트가 없으면(Express) 바꾸는 명령을
+ *     보이지 않는다: 그 서버의 종류이지 상태가 아니다({@link ContextMenus}의 규칙). 기록·작업 활동·로그 보기는 남는다.</li>
  *     <li>실행 뒤에는 SQL Server 에이전트 노드를 모델에서 다시 읽는다({@link #refreshAgent}). 다른 곳에서 새로 읽은 노드 이벤트이므로
  *     Object Explorer는 펼친 폴더를 그대로 두고 자식만 다시 그린다(F5 경로는 폴더를 접는다).</li>
  * </ul>
@@ -72,6 +73,7 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-08 삭제 확인은 삭제 / 취소 단추(취소가 기본), 스크립트 미리 보기도 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-16 에이전트가 없는 에디션에서 바꾸는 명령을 끄는 대신 숨김(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class AgentCommands {
 
@@ -182,8 +184,9 @@ final class AgentCommands {
             disableItem.setEnabled(alert.isEnabled());
         }
         if (!agent.isSupported()) {
+            // An edition without an agent never has these commands (a kind of server, not a state): not shown
             for (JMenuItem item : List.of(newJobItem, newAlertItem, newOperatorItem, startItem, stopItem, enableItem, disableItem)) {
-                disable(item, AgentMessages.agent_tip_not_supported);
+                item.setVisible(false);
             }
         } else if (!agent.canRunJobs()) {
             disable(startItem, AgentMessages.agent_tip_not_running);
