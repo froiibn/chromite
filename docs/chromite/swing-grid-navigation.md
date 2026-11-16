@@ -61,6 +61,7 @@ SWT: `ResultSetViewer.navigateAssociation`·`navigateReference`(기준 커밋 `2
   읽다 난 오류는 SWT처럼 보이지 않고 "없음"으로 둔다(DB가 외래 키 메타데이터를 주지 않는 경우).
 - **칸에서 바로(Ctrl+B):** 칸의 열이 묶인 외래 키는 결과를 받을 때 모델이 이미 읽어 둔다(`DBDAttributeBinding.getReferrers`, `lateBinding`).
   그래서 Ctrl+B와 Navigate 메뉴의 "참조되는 행: 테이블 (키)"는 DB를 읽지 않고 바로 나온다. 열에 외래 키가 여럿이면 고르는 메뉴를 띄운다.
+  외래 키가 없는 열에서는 메뉴에 이 항목이 없다(2026-11-16 전에는 꺼진 "이 열에는 외래 키가 없습니다" 항목, Ctrl+B는 지금도 상태 줄에 그 문구).
   SWT의 Alt+Space는 Windows에서 창 메뉴를 열어 쓰지 않았고, DataGrip의 "Go to referenced data"(Ctrl+B)를 따랐다.
   Ctrl+Shift+1(SWT `referencesMenu`)은 고른 칸 자리에 참조되는·참조하는 테이블 메뉴를 띄운다.
 - **대상 행:** 고른 행들의 키 값으로 모델의 `DBDReferenceUtils`가 필터를 만든다(한 행 `=`, 여러 행 `IN`, 여러 열 키의 여러 행은 `(a = 1 AND b = 2) OR …`).
@@ -68,7 +69,7 @@ SWT: `ResultSetViewer.navigateAssociation`·`navigateReference`(기준 커밋 `2
 - **이 뷰어에서 읽기:** SWT처럼 대상 테이블을 데이터 컨테이너로 같은 뷰어에서 읽는다. 새 결과는 테이블의 결과라 정렬·필터·다음 페이지·편집(키가 있으면)이
   그대로 된다. 따라간 조건은 그 결과의 열 필터가 되어 상태 줄 필터 요약에 보이고 ✕로 지울 수 있다. 여러 열 키의 OR 형식이 다시 읽기에서 풀리지 않게
   필터를 새 열에 옮길 때 `useDisjunctiveNormalForm`도 옮긴다(`rebindFilter`, 이 작업에서 고침: 전에는 옮기지 않았지만 그때는 그런 필터가 없었다).
-  테이블의 결과에는 쿼리가 없으므로 "Export Data…"는 꺼진다(마법사가 쿼리만 다시 실행).
+  테이블의 결과에는 쿼리가 없으므로 "Export Data…"는 보이지 않는다(마법사가 쿼리만 다시 실행; 2026-11-16 전에는 꺼짐, [context-menus.md](context-menus.md) "결과 그리드").
 - **뒤로·앞으로(Alt+←/→, 상태 줄 ←/→, Navigate 메뉴):** 떠난 결과를 그대로(행, 편집 모델, 필터, 정렬, 행 수) 기록에 두고 돌아갈 때 다시 읽지 않고 보인다.
   SWT는 다시 읽지만, Swing의 첫 결과는 다시 읽을 수 없는 결과(GO 배치, 여러 문장)일 수 있고 다시 실행하면 안 되는 문장일 수도 있어서 남겨 둔 것을 보인다.
   떠날 때 저장하지 않은 변경은 "버릴까요?"에 답한 대로 버린다(`ResultSetGrid.cancelChanges`): 돌아오면 읽은(저장한) 값이다.
@@ -94,7 +95,7 @@ SWT: `ValidateUniqueKeyUsageDialog`, `VirtualUniqueKeyEditAction`, `VirtualForei
 - **가상 고유 키:** 기본 키·고유 키·고유 인덱스·ROWID가 없는 테이블의 결과는 "읽기 전용: 고유 키 없음"이었다. 그 줄에 "가상 키 정하기" 링크가 생기고
   (오른쪽 클릭 Virtual Keys에도), 결과에 보이는 그 테이블의 열을 고르거나 "모든 열 쓰기"(SWT "Use all columns")를 고른다. 저장하면 결과를 다시 읽고,
   모델이 행 식별자로 그 키를 써서(`DBExecUtils`의 식별자 찾기: 실제 키가 없을 때만 가상 키) 편집할 수 있게 된다. 다시 읽을 수 없는 결과는 "쿼리를 다시
-  실행하면 쓰입니다"를 알린다. 실제 키가 있는 테이블에서는 메뉴가 꺼진다. 대화상자의 기본 단추는 Cancel이다(설정을 바꾸는 대화상자). "키 지우기"도 있다.
+  실행하면 쓰입니다"를 알린다. 실제 키가 있는 테이블에서는 이 항목이 보이지 않는다(2026-11-16 전에는 꺼지고 도구 설명). 대화상자의 기본 단추는 Cancel이다(설정을 바꾸는 대화상자). "키 지우기"도 있다.
 - **가상 외래 키:** 테이블 디자이너의 외래 키 대화상자를 가상 모드로 다시 쓴다(`DesignerDialogs.editForeignKey(..., virtual=true)`: 이름·ON DELETE/UPDATE 없음,
   참조할 키에 참조 테이블의 가상 고유 키도 들어감). 참조할 테이블은 같은 스키마의 테이블과 뷰다. 저장은 진행 대화상자에서 한다(가상 외래 키는 참조 테이블의
   탐색기 노드 경로를 남기므로 노드를 찾음). 저장하면 결과를 다시 읽어 칸의 외래 키(Ctrl+B)와 참조 메뉴에 나온다. 지우기는 확인(기본 Cancel) 뒤에 한다.
@@ -144,7 +145,8 @@ SWT: `resultset.count`, `ResultSetViewer.readRowCount`.
 
 - 더 읽을 행이 있으면 상태 줄에 "행 수 세기"가 나온다(Navigate 메뉴에도). 모델의 `DBUtils.readRowCount`(컨테이너의 `countData`, 쿼리는 `SELECT COUNT(*)`로 감쌈)로
   지금 필터 조건 그대로 센다. 그 뒤 상태 줄은 "전체 12,345행 중 200행 읽음"이다. 필터를 바꾸거나 다른 테이블로 가면 다시 세야 한다.
-  다시 읽을 수 없는 결과(여러 문장, 프로시저)는 세지 않는다(같은 이유로 다시 실행하지 않음).
+  다시 읽을 수 없는 결과(여러 문장, 프로시저)는 세지 않는다(같은 이유로 다시 실행하지 않음). 그런 결과에서는 Navigate 메뉴의 항목도 보이지 않고,
+  셀 수 있는 결과에서 모든 행을 읽었거나 이미 셌으면 꺼진다(2026-11-16, [context-menus.md](context-menus.md) "결과 그리드").
 - **모델 고침:** 쿼리 결과의 컨테이너(`SQLQueryDataContainer`)는 `FEATURE_DATA_COUNT`를 내세우면서 `countData`가 늘 -1이었다(상태 줄에 "전체 -1행").
   이제 필터 조건(정렬은 뺌)을 방언의 `addFiltersToQuery`로 넣고, 모델의 `SQLQueryTransformerCount`(SWT가 쿼리 결과를 셀 때 쓴 것)로 COUNT 쿼리를 만들어
   같은 컨테이너의 `readData`로 읽는다. 그래서 매개변수는 행을 읽을 때처럼 채우거나 바인딩한다(`FLAG_REFRESH`: 다시 묻지 않음). SELECT 하나가 아니면 세지 않는다
@@ -217,3 +219,5 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
   레코드 보기의 줄을 모델 열로 씀.
 - 2026-11-08 가상(계산) 열을 [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)에서 함: "가상 키"·"남긴 것"·upstream 대비 변경점을 고침.
 - 2026-11-09 텍스트 보기 키는 macOS에서도 Control+`(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
+- 2026-11-16 오른쪽 클릭 메뉴: 테이블 하나에서 오지 않은 결과의 Virtual Keys, 실제 키가 있는 테이블의 가상 고유 키, 외래 키 없는 열의 "외래 키 없음" 항목,
+  셀 수 없는 결과의 행 수 세기, 쿼리 없는 결과의 Export Data…를 숨김(앱 변경 #137, `chromite/result-grid-menu`, [context-menus.md](context-menus.md) "결과 그리드").

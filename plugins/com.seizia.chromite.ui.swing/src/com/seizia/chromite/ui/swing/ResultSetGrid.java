@@ -34,9 +34,13 @@ import com.seizia.chromite.model.data.DBDAttributeBinding;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.data.resultset.DataUpdaterJob;
 import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
+import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -76,8 +80,11 @@ import java.util.UUID;
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
  * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
  * Export Data…는 쿼리를 다시 실행해 모든 행을 모델의 모든 형식으로 내보내는 마법사({@link DataExportWizard})다. 다시 실행할 수 있는 결과
- * (그 결과를 만든 문장이 바꾸지 않는 SELECT 하나인 결과: 배치의 결과는 그 문장만 다시 실행한다, {@link Fetched#exportQuery()}, {@link DataExportWizard#canExportQuery})에서만 켜진다. CSV·XLSX 항목은 그대로 표에 보이는 행(편집 중인 값 포함)을 쓴다.
+ * (그 결과를 만든 문장이 바꾸지 않는 SELECT 하나인 결과: 배치의 결과는 그 문장만 다시 실행한다, {@link Fetched#exportQuery()}, {@link DataExportWizard#appliesExportQuery})에서만 보인다. CSV·XLSX 항목은 그대로 표에 보이는 행(편집 중인 값 포함)을 쓴다.
  * 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택한 뒤 메뉴를 연다.
+ * 메뉴는 앱의 오른쪽 클릭 메뉴 규칙({@link ContextMenus}, docs/chromite/context-menus.md "결과 그리드")을 따른다: 결과와 칸의 종류에 해당하지 않는
+ * 명령은 숨고, 해당하지만 지금 할 수 없는 명령은 꺼진다. 숨김은 메뉴에만 있고 동작의 켜짐은 그대로라 단축키와 Save / Cancel 단추는 전과 같다.
+ * 연결이 편집을 막을 때 읽은 결과({@link Fetched#editingApplies()}이고 편집 모델 없음)는 편집 명령을 꺼진 채 보이고 그 키는 묶지 않는다.
  * <p>
  * 편집(G단계): 수신기가 편집할 수 있다고 정한 결과({@link Fetched#editModel()}, 판단은 {@link ResultSetEditModel#getReadOnlyReason})는
  * 표 위 줄에 Save / Cancel 단추와 상태(바뀐 수, "Saving…")를 두고, 읽기 전용 결과는 같은 줄에 이유("read-only: no unique key")를 쓴다.
@@ -145,6 +152,8 @@ import java.util.UUID;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), macOS 다시 실행 ⇧⌘Z·아래 행 값 복사 ⇧⌘D
  * - 2026-11-12 행 번호 폭 주석: UI 글꼴이 운영체제 글꼴이 되어 비례 숫자를 Pretendard로 단정하지 않음 (앱 변경 #67)
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-16 오른쪽 클릭 메뉴가 해당하는 명령만 보임({@link ContextMenus}): 테이블이 받지 않는 행 추가·삭제, SELECT 하나가 아닌 결과의
+ *   Export Data…는 숨김(그 도구 설명 문구 삭제), 읽기 전용 연결에서 읽은 결과는 편집 명령을 꺼진 채 보임 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -192,6 +201,8 @@ final class ResultSetGrid extends JPanel {
      * What a receiver delivers: the data, either the edit model of an editable result or why it is read-only, and
      * where the result was read from (with the cell values of the value panel).
      *
+     * @param editingApplies the result is editable by what it is ({@link ResultSetEditModel#appliesEditing}): true with an
+     *                       edit model, and without one when only the connection did not allow edits when it was read
      * @param exportQuery the query container that reads this result again on its own (the statement of the query
      *                    window's run that produced it; "Export Data…" runs it again for all rows), or null
      */
@@ -199,16 +210,17 @@ final class ResultSetGrid extends JPanel {
         @NotNull Data data,
         @Nullable ResultSetEditModel editModel,
         @Nullable String readOnlyReason,
+        boolean editingApplies,
         @NotNull ResultSetSource source,
         @Nullable DBSDataContainer exportQuery
     ) {
         Fetched(@NotNull Data data, @Nullable ResultSetEditModel editModel, @Nullable String readOnlyReason, @NotNull ResultSetSource source) {
-            this(data, editModel, readOnlyReason, source, null);
+            this(data, editModel, readOnlyReason, editModel != null, source, null);
         }
 
         @NotNull
         Fetched withExportQuery(@NotNull DBSDataContainer query) {
-            return new Fetched(data, editModel, readOnlyReason, source, query);
+            return new Fetched(data, editModel, readOnlyReason, editingApplies, source, query);
         }
     }
 
@@ -288,6 +300,19 @@ final class ResultSetGrid extends JPanel {
     private final DBSDataContainer exportQuery;
     @Nullable
     private final ResultSetEditModel editModel;
+    /**
+     * The result is editable by what it is ({@link Fetched#editingApplies()}): the edit commands are in its menu, enabled
+     * only with an edit model.
+     */
+    private final boolean editingApplies;
+    /**
+     * Whether rows can be added to and deleted from the result's table (the table's features): Insert Row, Duplicate Row
+     * and Delete Row apply.
+     */
+    private final boolean insertApplies;
+    private final boolean deleteApplies;
+    @Nullable
+    private final DBCExecutionContext context;
     private final Host host;
     private final JTable table;
     private final GridModel gridModel;
@@ -328,6 +353,16 @@ final class ResultSetGrid extends JPanel {
         this.data = fetched.data();
         this.exportQuery = fetched.exportQuery();
         this.editModel = fetched.editModel();
+        this.editingApplies = fetched.editingApplies();
+        if (editModel != null) {
+            insertApplies = editModel.isInsertSupported();
+            deleteApplies = editModel.isDeleteSupported();
+        } else {
+            DBSEntity source = editingApplies ? DBExecUtils.detectSingleSourceTable(data.bindings()) : null;
+            insertApplies = ResultSetEditModel.isFeatureSupported(source, DBSDataManipulator.FEATURE_DATA_INSERT);
+            deleteApplies = ResultSetEditModel.isFeatureSupported(source, DBSDataManipulator.FEATURE_DATA_DELETE);
+        }
+        this.context = fetched.source().context();
         this.host = host;
         gridModel = new GridModel();
         table = new JTable(gridModel) {
@@ -376,7 +411,7 @@ final class ResultSetGrid extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
         fitColumnWidths(table, data);
         followCellPadding();
-        installContextMenu(fetched.source().requeryBlocker());
+        installContextMenu();
         updateState();
     }
 
@@ -473,13 +508,15 @@ final class ResultSetGrid extends JPanel {
         JPanel strip = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         strip.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
-        if (editModel != null) {
+        if (editingApplies) {
             saveAction = createAction(EditorMessages.editor_common_save, UiKeys.command(KeyEvent.VK_S), () -> save(false));
             saveAction.putValue(Action.SHORT_DESCRIPTION, UiKeys.format(EditorMessages.editor_grid_save_tip, saveAction));
             saveCommitAction = createAction(GridEditMessages.gridedit_save_commit, null, () -> save(false, true, false));
             saveCommitAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_save_commit_tip);
             cancelChangesAction = createAction(EditorMessages.editor_common_cancel, null, this::cancelChanges);
             cancelChangesAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_cancel_tip);
+        }
+        if (editModel != null) {
             strip.add(createStripButton(saveAction));
             // Only in manual commit mode, where Save leaves the changes in the open transaction
             saveCommitButton = createStripButton(saveCommitAction);
@@ -516,6 +553,18 @@ final class ResultSetGrid extends JPanel {
         copyAction.setEnabled(hasRows);
         copyWithHeadersAction.setEnabled(hasRows);
         if (editModel == null) {
+            if (editingApplies) {
+                // Read while the connection did not allow edits: the commands apply to the result, none is possible
+                // (their keys are not bound)
+                for (Action action : new Action[]{saveAction, saveCommitAction, cancelChangesAction, previewChangesAction, editCellAction,
+                    editValueAction, setNullAction, setDefaultAction, generateUuidAction, resetCellAction, copyFromAboveAction,
+                    copyFromBelowAction, undoAction, redoAction, pasteAction, pasteSpecialAction}) {
+                    action.setEnabled(false);
+                }
+                ContextMenus.set(insertRowAction, insertApplies, false);
+                ContextMenus.set(duplicateRowAction, insertApplies, false);
+                ContextMenus.set(deleteRowsAction, deleteApplies, false);
+            }
             return;
         }
         boolean saving = editModel.isSaving();
@@ -532,11 +581,12 @@ final class ResultSetGrid extends JPanel {
         setDefaultAction.setEnabled(!saving && hasRows);
         generateUuidAction.setEnabled(!saving && hasRows);
         resetCellAction.setEnabled(!saving && dirty);
-        insertRowAction.setEnabled(!saving && editModel.isInsertSupported());
-        duplicateRowAction.setEnabled(!saving && hasRows && editModel.isInsertSupported());
+        // Insert and delete apply when the table can take them (kind); saving and rows are now
+        ContextMenus.set(insertRowAction, insertApplies, !saving);
+        ContextMenus.set(duplicateRowAction, insertApplies, !saving && hasRows);
         copyFromAboveAction.setEnabled(!saving && hasRows);
         copyFromBelowAction.setEnabled(!saving && hasRows);
-        deleteRowsAction.setEnabled(!saving && hasRows && editModel.isDeleteSupported());
+        ContextMenus.set(deleteRowsAction, deleteApplies, !saving && hasRows);
         undoAction.setEnabled(!saving && editModel.canUndo());
         redoAction.setEnabled(!saving && editModel.canRedo());
         pasteAction.setEnabled(!saving && hasRows);
@@ -1070,7 +1120,9 @@ final class ResultSetGrid extends JPanel {
      * The result's session is in manual commit mode (the query manager's record, no driver call).
      */
     private boolean isManualCommit() {
-        return editModel != null && QMUtils.getTransactionState(editModel.getExecutionContext()).isTransactionMode();
+        // Without an edit model (a result read while the connection did not allow edits) the context it was read in
+        DBCExecutionContext session = editModel != null ? editModel.getExecutionContext() : context;
+        return session != null && QMUtils.getTransactionState(session).isTransactionMode();
     }
 
     /**
@@ -1189,10 +1241,11 @@ final class ResultSetGrid extends JPanel {
     // Actions and menus
 
     /**
-     * @param requeryBlocker why the result's query can't be read again, as the receiver knows it (e.g. the connection
-     *                       was closed, or the query is not a single SELECT), or null
+     * The cell menu. Each command answers whether it applies to this result and cell (shown) and whether it is possible
+     * now (enabled); {@link ContextMenus#tidy} shows the ones that apply when the menu opens (docs/chromite/context-menus.md
+     * "결과 그리드").
      */
-    private void installContextMenu(@Nullable String requeryBlocker) {
+    private void installContextMenu() {
         copyAction = createAction(EditorMessages.editor_grid_copy, UiKeys.command(KeyEvent.VK_C),
             () -> TransferHandler.getCopyAction().actionPerformed(new ActionEvent(table, ActionEvent.ACTION_PERFORMED, "copy"))); //$NON-NLS-1$
         copyWithHeadersAction = createAction(EditorMessages.editor_grid_copy_with_headers,
@@ -1205,19 +1258,18 @@ final class ResultSetGrid extends JPanel {
                 host.exportData(table, exportQuery);
             }
         });
+        // Applies to the result of one SELECT (kind); its statements are counted with the query's data source (now)
         boolean queryExportable = DataExportWizard.canExportQuery(exportQuery);
-        exportDataAction.setEnabled(queryExportable);
-        // Disabled: the known reason first (e.g. the connection was closed: the general rule would mislead)
+        ContextMenus.set(exportDataAction, DataExportWizard.appliesExportQuery(exportQuery), queryExportable);
         exportDataAction.putValue(Action.SHORT_DESCRIPTION, queryExportable
             ? EditorMessages.editor_grid_export_data_tip
-            : requeryBlocker != null
-            ? NLS.bind(EditorMessages.editor_grid_export_data_blocked, requeryBlocker)
-            : EditorMessages.editor_grid_export_data_single);
+            : NLS.bind(EditorMessages.editor_grid_export_data_blocked, EditorMessages.editor_common_not_connected));
         // Ctrl+C stays with the table's transfer handler; the menu only shows it
         bindKey(table, JComponent.WHEN_FOCUSED, copyWithHeadersAction, "chromite.copyWithHeaders"); //$NON-NLS-1$
 
         JPopupMenu popupMenu = new JPopupMenu();
-        if (editModel != null) {
+        JMenuItem saveCommitItem = null;
+        if (editingApplies) {
             editCellAction = createAction(EditorMessages.editor_grid_edit_cell, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::editSelectedCell);
             setNullAction = createAction(EditorMessages.editor_grid_set_null, UiKeys.command(KeyEvent.VK_0), this::setSelectedToNull);
             // Shortcuts of SWT's result set commands (ui.editors.data plugin.xml at 263b8ddb45); Reset Cell's Esc is
@@ -1249,29 +1301,33 @@ final class ResultSetGrid extends JPanel {
             previewChangesAction.putValue(Action.SHORT_DESCRIPTION, GridEditMessages.gridedit_preview_changes_tip);
             Action saveMenuAction = createAction(EditorMessages.editor_grid_save_changes, (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));
             Action cancelMenuAction = createAction(EditorMessages.editor_grid_cancel_changes, null, this::cancelChanges);
-            // F2 opens the grid's editor, or the value panel for a LOB cell
-            for (Action action : new Action[]{editCellAction, editValueAction, setNullAction, setDefaultAction, generateUuidAction,
-                insertRowAction, duplicateRowAction, copyFromAboveAction, copyFromBelowAction, deleteRowsAction, undoAction, redoAction,
-                pasteAction, pasteSpecialAction}) {
-                bindKey(table, JComponent.WHEN_FOCUSED, action, "chromite." + action.getValue(Action.NAME)); //$NON-NLS-1$
-            }
-            // Ctrl+S in the grid or its cell editor saves the grid, even without changes, instead of reaching File > Save
-            Action saveKeyAction = createAction(EditorMessages.editor_common_save, null, () -> save(false));
-            getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
-                (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "chromite.saveGrid"); //$NON-NLS-1$
-            getActionMap().put("chromite.saveGrid", saveKeyAction); //$NON-NLS-1$
-            // A double click on a LOB cell opens the value panel (the grid doesn't edit it)
-            table.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    int row = table.rowAtPoint(e.getPoint());
-                    int column = table.columnAtPoint(e.getPoint());
-                    if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e) && row >= 0 && column >= 0
-                        && isPanelEditedCell(row, column)) {
-                        host.editInValuePanel();
-                    }
+            // Keys only with an edit model: a result read while the connection did not allow edits shows the commands
+            // disabled, and its keys keep reaching the table and the window as before
+            if (editModel != null) {
+                // F2 opens the grid's editor, or the value panel for a LOB cell
+                for (Action action : new Action[]{editCellAction, editValueAction, setNullAction, setDefaultAction, generateUuidAction,
+                    insertRowAction, duplicateRowAction, copyFromAboveAction, copyFromBelowAction, deleteRowsAction, undoAction, redoAction,
+                    pasteAction, pasteSpecialAction}) {
+                    bindKey(table, JComponent.WHEN_FOCUSED, action, "chromite." + action.getValue(Action.NAME)); //$NON-NLS-1$
                 }
-            });
+                // Ctrl+S in the grid or its cell editor saves the grid, even without changes, instead of reaching File > Save
+                Action saveKeyAction = createAction(EditorMessages.editor_common_save, null, () -> save(false));
+                getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+                    (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "chromite.saveGrid"); //$NON-NLS-1$
+                getActionMap().put("chromite.saveGrid", saveKeyAction); //$NON-NLS-1$
+                // A double click on a LOB cell opens the value panel (the grid doesn't edit it)
+                table.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        int row = table.rowAtPoint(e.getPoint());
+                        int column = table.columnAtPoint(e.getPoint());
+                        if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e) && row >= 0 && column >= 0
+                            && isPanelEditedCell(row, column)) {
+                            host.editInValuePanel();
+                        }
+                    }
+                });
+            }
             popupMenu.add(editCellAction);
             popupMenu.add(editValueAction);
             popupMenu.add(setNullAction);
@@ -1290,7 +1346,7 @@ final class ResultSetGrid extends JPanel {
             popupMenu.add(pasteAction);
             popupMenu.add(pasteSpecialAction);
             popupMenu.addSeparator();
-            JMenuItem saveCommitItem = new JMenuItem(saveCommitAction);
+            saveCommitItem = new JMenuItem(saveCommitAction);
             popupMenu.add(saveMenuAction);
             popupMenu.add(saveCommitItem);
             popupMenu.add(previewChangesAction);
@@ -1300,22 +1356,28 @@ final class ResultSetGrid extends JPanel {
             cancelMenuAction.setEnabled(false);
             saveAction.addPropertyChangeListener(e -> saveMenuAction.setEnabled(saveAction.isEnabled()));
             cancelChangesAction.addPropertyChangeListener(e -> cancelMenuAction.setEnabled(cancelChangesAction.isEnabled()));
-            // Save and Commit only means something in manual commit mode
-            popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
-                @Override
-                public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
-                    saveCommitItem.setVisible(isManualCommit());
-                }
-
-                @Override
-                public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
-                }
-
-                @Override
-                public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
-                }
-            });
         }
+        JMenuItem commitItem = saveCommitItem;
+        popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                if (commitItem != null) {
+                    // Save and Commit only means something in manual commit mode: hidden in auto-commit mode although
+                    // the mode can change (the exception of docs/chromite/context-menus.md "결과 그리드")
+                    commitItem.putClientProperty(ContextMenus.APPLIES, isManualCommit());
+                }
+                // The result viewer adds its items with its own listener; either listener may run last
+                ContextMenus.tidy(popupMenu);
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+            }
+        });
         popupMenu.add(copyAction);
         popupMenu.add(copyWithHeadersAction);
         popupMenu.addSeparator();

@@ -401,7 +401,6 @@ public class EditorMessages extends NLS {
     public static String editor_grid_export_data;
     public static String editor_grid_export_data_tip;
     public static String editor_grid_export_data_blocked;
-    public static String editor_grid_export_data_single;
     public static String editor_grid_edit_cell;
     public static String editor_grid_set_null;
     public static String editor_grid_delete_row;

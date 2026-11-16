@@ -135,7 +135,10 @@ import java.util.function.Consumer;
  *     <li><b>저장한 필터·최근 필터</b>({@link ResultSetSavedFilters}): 테이블 하나에서 온 결과의 열 필터와 정렬을 이름으로 저장해 고르고,
  *     조건으로 다시 읽을 때마다 그 조건을 테이블의 최근 필터에 남긴다. 둘 다 연결의 가상 모델에 저장한다.</li>
  *     <li><b>가상(계산) 열</b>({@link ResultSetVirtualColumns}): 테이블 하나에서 온 결과에 식으로 계산하는 열을 더한다. DB에 없는 열이라
- *     머리글 필터와 "Filter by Value"를 끄고, 정렬은 표 안에서만 하며 서버에서 다시 읽는 필터에서는 뺀다.</li>
+ *     머리글 필터를 끄고 "Filter by Value"는 메뉴에서 숨기며, 정렬은 표 안에서만 하며 서버에서 다시 읽는 필터에서는 뺀다.</li>
+ *     <li><b>오른쪽 클릭 메뉴</b>: 표의 메뉴에 이 클래스의 항목을 붙이고, 열릴 때 앱의 규칙({@link ContextMenus})대로 결과와 칸의 종류에
+ *     해당하는 항목만 보인다(파일·16진수는 LOB·이진 열, 필터·행 수 세기는 다시 읽을 수 있는 쿼리, 저장한 필터·가상 키·가상 열은
+ *     테이블 하나에서 온 결과). 지금 할 수 없는 항목은 전처럼 꺼진다(docs/chromite/context-menus.md "결과 그리드").</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -178,6 +181,9 @@ import java.util.function.Consumer;
  * - 2026-11-12 아래 줄의 보기 토글(값 패널·레코드·텍스트·차트·공간·참조·집계)의 좌우 여백을 {@link UiSizes#TEXT_TOOL_BUTTON_STYLE}로: 아이콘 단추 여백(4)이라 눌린 바탕과 글자 사이가 거의 없었다
  *   (앱 변경 #71 e, docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-16 오른쪽 클릭 메뉴가 해당하는 항목만 보임({@link ContextMenus#tidy}): LOB·이진 열이 아니면 파일·16진수 항목, 가상 열과 다시 읽을 수 없는
+ *   쿼리의 Filter by Value·Clear Filter, 셀 수 없는 결과의 Count Rows, 테이블 하나에서 오지 않은 결과의 저장한 필터·가상 키·가상 열(그 안내 항목과
+ *   문구 삭제), 키가 있는 테이블의 가상 고유 키, 외래 키 없는 열의 "외래 키 없음" 항목을 숨김 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -1151,7 +1157,8 @@ final class ResultSetViewerPanel extends JPanel {
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
                 fillFilterMenu(filterMenu, table);
                 ResultSetGenerateSql.fillMenu(generateSqlMenu, generateSqlSource);
-                clearFilter.setEnabled(fetched.source().canRequery() && dataFilter.hasConditions() && !reading);
+                ContextMenus.set(clearFilter, fetched.source().appliesRequery(),
+                    fetched.source().canRequery() && dataFilter.hasConditions() && !reading);
                 valuePanelItem.setSelected(valuePanelShown);
                 recordItem.setSelected(isRecordMode());
                 updateFileActions();
@@ -1168,6 +1175,8 @@ final class ResultSetViewerPanel extends JPanel {
                 fillVirtualMenu(virtualMenu);
                 fillSavedFiltersMenu(savedFiltersMenu);
                 fillVirtualColumnsMenu(virtualColumnsMenu, table);
+                // Shows what applies to this result and cell (the grid's listener does the same; either may run last)
+                ContextMenus.tidy(menu);
             }
 
             @Override
@@ -1187,20 +1196,17 @@ final class ResultSetViewerPanel extends JPanel {
         filterMenu.removeAll();
         int row = table.getSelectedRow();
         int column = table.getSelectedColumn();
-        boolean enabled = fetched.source().canRequery() && !reading && row >= 0 && column >= 0;
-        filterMenu.setEnabled(enabled);
-        if (!enabled) {
+        int modelColumn = column >= 0 ? table.convertColumnIndexToModel(column) : -1;
+        DBDAttributeBinding binding = modelColumn >= 0 ? fetched.data().bindings()[modelColumn] : null;
+        // Applies to a query that can be read again and a column of the database (a virtual column is calculated here);
+        // possible when the query can be read again now, nothing is being read and a cell is selected
+        ContextMenus.set(filterMenu, fetched.source().appliesRequery() && (binding == null || !binding.isCustom()),
+            fetched.source().canRequery() && !reading && row >= 0 && column >= 0);
+        if (!filterMenu.isEnabled()) {
             filterMenu.setToolTipText(fetched.source().canRequery() ? null : NLS.bind(EditorMessages.editor_viewer_filters_need, fetched.source().requeryBlocker()));
             return;
         }
         filterMenu.setToolTipText(null);
-        int modelColumn = table.convertColumnIndexToModel(column);
-        DBDAttributeBinding binding = fetched.data().bindings()[modelColumn];
-        if (binding.isCustom()) {
-            filterMenu.setEnabled(false);
-            filterMenu.setToolTipText(GridVirtualMessages.gridvirt_column_no_filter);
-            return;
-        }
         Object value = getCellValue(row, modelColumn);
         String name = binding.getName();
         // Geometries are kept for the spatial view only, arrays and structures for their editors; they are not offered as
@@ -1330,23 +1336,66 @@ final class ResultSetViewerPanel extends JPanel {
 
     /**
      * Load from File and Save to File apply to the selected LOB cell (load: an editable one).
+     * <p>
+     * Each command applies to a kind of column (shown in the cell menu): Load from File to an editable LOB or binary
+     * column, Save to File to a LOB or binary column, Edit as Hex to a binary one; the value, the editing state and a
+     * read in progress decide whether it is enabled. With no cell selected they apply when the result has such a column.
      */
     private void updateFileActions() {
         int[] cell = getSelectedCell();
+        int selectedColumn = cell == null ? -1 : cell[1];
         ResultSetEditModel editModel = fetched.editModel();
         boolean load = cell != null && editModel != null && editModel.isContentColumn(cell[1]) && isCellEditable(cell[0], cell[1]);
         Object value = cell == null ? null : getCellValue(cell[0], cell[1]);
         boolean save = value instanceof ResultSetCellContent || value instanceof byte[]
             || value instanceof DBDContent content && !DBUtils.isNullValue(content);
-        loadFileAction.setEnabled(load && !reading);
-        saveFileAction.setEnabled(save);
+        ContextMenus.set(loadFileAction, appliesLoadFromFile(selectedColumn), load && !reading);
+        ContextMenus.set(saveFileAction, isLobColumn(selectedColumn, false), save);
         // Hex: a binary value, or an editable binary LOB cell (also NULL: new bytes are typed)
         boolean binary = value instanceof byte[] || (value instanceof ResultSetCellContent content && !content.isText())
             || (value instanceof DBDContent content && !DBUtils.isNullValue(content) && !ResultSetLobFiles.isText(content));
-        hexAction.setEnabled(cell != null && (binary || load && !editModel.isTextContentColumn(cell[1])) && !reading);
-        // External editor: a value to open, or an editable cell to fill
+        ContextMenus.set(hexAction, isLobColumn(selectedColumn, true),
+            cell != null && (binary || load && !editModel.isTextContentColumn(cell[1])) && !reading);
+        // External editor: a value to open, or an editable cell to fill. It applies to every cell (any text opens), so
+        // it stays in the menu and only its state follows the cell
         externalAction.setEnabled(cell != null && (save || isTextEditable(cell[0], cell[1]) || load
             || getDisplayValue(cell[0], cell[1]) instanceof String) && !reading);
+    }
+
+    /**
+     * Whether a column holds LOB or binary values, by what was fetched (LOB value objects, also strings a driver
+     * delivers as LOBs) and by its type ({@link ResultSetEditModel#isWholeValueColumn}). A negative column: any column of
+     * the result.
+     *
+     * @param binary only columns of bytes, not text LOBs (JSON, XML, CLOB…)
+     */
+    private boolean isLobColumn(int column, boolean binary) {
+        DBDAttributeBinding[] bindings = fetched.data().bindings();
+        boolean[] lob = fetched.source().lobColumns();
+        for (int c = Math.max(column, 0); c < (column < 0 ? bindings.length : column + 1); c++) {
+            if ((c < lob.length && lob[c] || ResultSetEditModel.isWholeValueColumn(bindings[c], false))
+                && (!binary || !ResultSetEditModel.isTextContentColumn(bindings[c]))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Load from File applies to an editable LOB or binary column, also of a result read while the connection did not
+     * allow edits (it has no edit model then). A negative column: any column of the result.
+     */
+    private boolean appliesLoadFromFile(int column) {
+        ResultSetEditModel editModel = fetched.editModel();
+        if (editModel == null) {
+            return fetched.editingApplies() && isLobColumn(column, false);
+        }
+        for (int c = Math.max(column, 0); c < (column < 0 ? fetched.data().bindings().length : column + 1); c++) {
+            if (editModel.isContentColumn(c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2276,8 +2325,8 @@ final class ResultSetViewerPanel extends JPanel {
             : new ResultSetEditModel(oldModel.getExecutionContext(), oldModel.getDataContainer(), old.bindings(), unreadable,
                 oldModel.getLobColumns(), values, display, oldModel.getEnumValues());
         ResultSetSource newSource = new ResultSetSource(source.dataContainer(), source.context(), source.segmentSize(),
-            source.requeryBlocker(), unreadable, List.copyOf(cells));
-        fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), newSource, fetched.exportQuery());
+            source.requeryBlocker(), unreadable, source.lobColumns(), List.copyOf(cells));
+        fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), fetched.editingApplies(), newSource, fetched.exportQuery());
         ordinals = newOrdinals;
         installGrid(new ResultSetGrid(fetched, gridHost), keepView);
         host.editStateChanged();
@@ -2479,13 +2528,9 @@ final class ResultSetViewerPanel extends JPanel {
         menu.removeAll();
         boolean canRead = !reading && fetched.source().context() != null && grid != null && grid.getTable().getSelectedRowCount() > 0;
         int[] cell = getSelectedCell();
+        // The referenced rows apply to a column with foreign keys only (none: no items; the separator after them goes)
         List<DBSEntityAssociation> associations = cell == null ? List.of()
             : ResultSetReferences.getCellAssociations(fetched.data().bindings()[cell[1]]);
-        if (associations.isEmpty()) {
-            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_no_cell_link);
-            none.setEnabled(false);
-            menu.add(none);
-        }
         for (int i = 0; i < associations.size(); i++) {
             DBSEntityAssociation association = associations.get(i);
             String label = describeAssociation(association);
@@ -2498,6 +2543,10 @@ final class ResultSetViewerPanel extends JPanel {
         menu.addSeparator();
         JMenu referenced = new JMenu(GridNavMessages.gridnav_referenced_tables);
         JMenu referencing = new JMenu(GridNavMessages.gridnav_referencing_tables);
+        // Filled when the relations are read, after the menu opened: they keep their own state instead of following
+        // the "Reading…" entry
+        ContextMenus.set(referenced, true, true);
+        ContextMenus.set(referencing, true, true);
         menu.add(referenced);
         menu.add(referencing);
         fillLinkMenus(referenced, referencing, canRead);
@@ -2509,7 +2558,10 @@ final class ResultSetViewerPanel extends JPanel {
         menu.add(createAction(GridNavMessages.gridnav_goto_column,
             UiKeys.command(KeyEvent.VK_G, InputEvent.SHIFT_DOWN_MASK), this::goToColumn));
         Action count = createAction(GridNavMessages.gridnav_count, null, this::countRows);
-        count.setEnabled(countButton.isVisible() && !counting);
+        // Applies to a query that can be read again whose container counts rows; possible while rows are left to read
+        // and no count is known or running (the status line's link)
+        ContextMenus.set(count, fetched.source().appliesRequery()
+            && fetched.source().dataContainer().isFeatureSupported(DBSDataContainer.FEATURE_DATA_COUNT), countButton.isVisible() && !counting);
         menu.add(count);
     }
 
@@ -2975,19 +3027,15 @@ final class ResultSetViewerPanel extends JPanel {
     private void fillVirtualMenu(@NotNull JMenu menu) {
         menu.removeAll();
         DBSEntity entity = getSingleSource();
+        // Virtual keys belong to a table: the menu applies to a result from one table
+        ContextMenus.set(menu, entity != null, true);
         if (entity == null) {
-            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
-            none.setEnabled(false);
-            menu.add(none);
             return;
         }
         Action key = createAction(GridNavMessages.gridnav_vkey_define, null, () -> editVirtualKey(entity));
-        key.setEnabled(!reading && ResultSetVirtualKeys.usesVirtualKey(entity, fetched.data().bindings()));
-        JMenuItem keyItem = new JMenuItem(key);
-        if (!key.isEnabled()) {
-            keyItem.setToolTipText(GridNavMessages.gridnav_vkey_has_key);
-        }
-        menu.add(keyItem);
+        // A virtual unique key applies to a table without a real key
+        ContextMenus.set(key, ResultSetVirtualKeys.usesVirtualKey(entity, fetched.data().bindings()), !reading);
+        menu.add(key);
         Action foreignKey = createAction(GridNavMessages.gridnav_vfk_add, null, () -> addVirtualForeignKey(entity));
         foreignKey.setEnabled(!reading);
         menu.add(foreignKey);
@@ -3046,10 +3094,9 @@ final class ResultSetViewerPanel extends JPanel {
     private void fillSavedFiltersMenu(@NotNull JMenu menu) {
         menu.removeAll();
         DBSEntity entity = getSingleSource();
+        // Saved and recent filters belong to a table: the menu applies to a result from one table
+        ContextMenus.set(menu, entity != null, true);
         if (entity == null) {
-            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
-            none.setEnabled(false);
-            menu.add(none);
             return;
         }
         boolean canApply = fetched.source().canRequery() && !reading;
@@ -3173,10 +3220,9 @@ final class ResultSetViewerPanel extends JPanel {
     private void fillVirtualColumnsMenu(@NotNull JMenu menu, @NotNull JTable table) {
         menu.removeAll();
         DBSEntity entity = getSingleSource();
+        // Virtual columns belong to a table: the menu applies to a result from one table
+        ContextMenus.set(menu, entity != null, true);
         if (entity == null) {
-            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
-            none.setEnabled(false);
-            menu.add(none);
             return;
         }
         Action add = createAction(GridVirtualMessages.gridvirt_column_add, null, () -> editVirtualColumn(entity, null, table));

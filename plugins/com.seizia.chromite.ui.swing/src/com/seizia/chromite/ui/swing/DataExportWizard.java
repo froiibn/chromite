@@ -148,6 +148,8 @@ import java.util.Set;
  *   (docs/chromite/sql-batch-reread.md)
  * - 2026-11-13 안내({@link DataTransferObjects#createNote})가 {@link WrappingNote}가 되어 칸 형식을 {@code JTextArea}로(앱 변경 #90,
  *   docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-16 {@link #appliesExportQuery}: 쿼리가 무엇인지만 보는 부분을 나눔, 결과 그리드 메뉴가 SELECT 하나가 아닌 결과에서 Export Data…를 숨김
+ *   (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -508,6 +510,14 @@ final class DataExportWizard extends DataTransferWizard {
      * statement that produced it; a batch result whose statement is not known can't be exported.
      */
     static boolean canExportQuery(@Nullable DBSDataContainer container) {
+        return appliesExportQuery(container) && container.getDataSource() != null;
+    }
+
+    /**
+     * {@link #canExportQuery} by what the query is, for the result grid's menu: also true when the query's data source
+     * is not there now, as the statements can't be counted without it.
+     */
+    static boolean appliesExportQuery(@Nullable DBSDataContainer container) {
         if (!(container instanceof SQLQueryContainer queryContainer)
             || container instanceof SQLQueryDataContainer resultContainer && resultContainer.isWholeBatchOnly()) {
             return false;
@@ -521,7 +531,7 @@ final class DataExportWizard extends DataTransferWizard {
         // statement only: count the statements so that "SELECT …; DELETE …" is not run again (@export takes the next
         // query as it is; a result's container has the statement of its result set only)
         DBPDataSource dataSource = container.getDataSource();
-        return dataSource != null && SQLScriptParser.parseScript(dataSource, sqlQuery.getText()).size() == 1;
+        return dataSource == null || SQLScriptParser.parseScript(dataSource, sqlQuery.getText()).size() == 1;
     }
 
     /**

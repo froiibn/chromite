@@ -45,12 +45,16 @@ import java.util.List;
  * - 2026-11-06 최초 작성: 값 패널, 정렬·필터, 다음 페이지 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 결과를 만든 문장을 정하지 못한 배치 결과는 다시 읽지 않고 그 이유를 보임 (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-16 LOB 열({@link #lobColumns})과 다시 읽기가 결과의 종류로 해당하는지({@link #appliesRequery}): 오른쪽 클릭 메뉴가 해당하지 않는
+ *   명령을 숨김 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
  * @param segmentSize       rows read at once (the engine's maximum row count), 0 if all rows were read
  * @param requeryBlocker    why the query can't be read again (sorting on the server, filters, next pages), or null
  * @param unreadableColumns columns whose values were not kept: value objects other than LOBs, or read errors
+ * @param lobColumns        columns whose fetched values were LOB value objects (also string columns a driver delivers as
+ *                          LOBs, such as MariaDB {@code LONGTEXT}), as the edit model has them
  * @param cellValues        per row: the original values, {@link ResultSetCellContent} for LOBs, null where not kept
  */
 record ResultSetSource(
@@ -59,6 +63,7 @@ record ResultSetSource(
     long segmentSize,
     @Nullable String requeryBlocker,
     @NotNull boolean[] unreadableColumns,
+    @NotNull boolean[] lobColumns,
     @NotNull List<Object[]> cellValues
 ) {
 
@@ -87,5 +92,14 @@ record ResultSetSource(
 
     boolean canRequery() {
         return requeryBlocker == null && context != null;
+    }
+
+    /**
+     * Whether the query is one that can be read again (filters, sort on the server, counting): {@link #canRequery}
+     * without the connection, which may be closed now. The other blockers are what the query is (not one SELECT, a
+     * container without filters, a batch statement that is not known) or a fetch that did not complete.
+     */
+    boolean appliesRequery() {
+        return context != null && (requeryBlocker == null || EditorMessages.editor_common_not_connected.equals(requeryBlocker));
     }
 }

@@ -89,8 +89,9 @@ import java.util.Locale;
  *     ({@link ResultSetCellContent#toStatementValue}). 그래서 쿼리를 다시 실행하지 않는다.</li>
  *     <li>MERGE는 방언이 MERGE가 있다고 할 때만({@code SQLDialect.supportsMergeStatement}), 중복 키 처리 INSERT는 방언이 데이터 전송용으로
  *     등록한 방식({@code insertMethods}: PostgreSQL ON CONFLICT, MySQL·MariaDB ON DUPLICATE KEY UPDATE·REPLACE·INSERT IGNORE 등)마다 보인다.</li>
- *     <li>행 문장은 SWT처럼 결과가 테이블 하나에서 왔을 때만 켜진다. 키가 꼭 있어야 하는 문장({@link SQLGeneratorResultSet#isUniqueKeyRequired}:
- *     UPDATE, SELECT … IN, MERGE)은 결과에 그 테이블의 완전한 고유 키(가상 키 포함)가 없으면 꺼지고 도구 설명에 이유를 쓴다.
+ *     <li>행 문장은 SWT처럼 결과가 테이블 하나에서 왔을 때만 메뉴에 보인다. 키가 꼭 있어야 하는 문장({@link SQLGeneratorResultSet#isUniqueKeyRequired}:
+ *     UPDATE, SELECT … IN, MERGE)은 결과에 그 테이블의 완전한 고유 키(가상 키 포함)가 있을 때만 보인다(결과의 종류, 앱의 오른쪽 클릭 메뉴 규칙
+ *     {@link ContextMenus}). 고른 행이 없으면 꺼지고 도구 설명에 이유를 쓴다. 연결이 닫혔으면 메뉴가 꺼진다.
  *     키가 없을 때 SWT UPDATE는 WHERE 없이 테이블 전체를 바꾸는 문장을 만들었다.</li>
  *     <li>CREATE TABLE은 데이터 전송의 대상 테이블 DDL({@link DatabaseTransferUtils#generateTargetTableDDL}, 테이블 복사 미리 보기와 같은
  *     {@link DatabaseCopyMappings#generateTableDdl})로 만든다. 원본은 결과의 열 정보를 그대로 돌려주는 데이터 컨테이너({@link ResultColumns})다.
@@ -104,6 +105,8 @@ import java.util.Locale;
  * - 2026-11-08 최초 작성: 결과 행에서 SQL 만들기(SWT 대조 B-S41) (docs/chromite/swing-result-generate-sql.md)
  * - 2026-11-08 행에서 만드는 문장(INSERT·UPDATE·DELETE·SELECT·MERGE)에서 가상(계산) 열을 뺌: 테이블에 없는 열이다
  *   (docs/chromite/swing-saved-filters-virtual-columns.md)
+ * - 2026-11-16 테이블 하나에서 오지 않았거나 키가 없는 결과의 행 문장을 끄는 대신 숨김, 그 도구 설명 문구 삭제 (앱 변경 #137,
+ *   docs/chromite/context-menus.md "결과 그리드")
  */
 final class ResultSetGenerateSql {
 
@@ -174,20 +177,21 @@ final class ResultSetGenerateSql {
     static void fillMenu(@NotNull JMenu menu, @NotNull Source source) {
         menu.removeAll();
         menu.setToolTipText(null);
+        DBDAttributeBinding[] bindings = source.getBindings();
         DBCExecutionContext context = source.getContext();
         if (context == null || !context.isConnected()) {
-            menu.setEnabled(false);
+            // CREATE TABLE applies to every result with columns; the entries are made with the connection's dialect
+            ContextMenus.set(menu, bindings.length > 0, false);
             menu.setToolTipText(GridSqlMessages.gridsql_no_connection);
             return;
         }
-        menu.setEnabled(true);
+        ContextMenus.set(menu, bindings.length > 0, true);
         DBPDataSource dataSource = context.getDataSource();
-        DBDAttributeBinding[] bindings = source.getBindings();
         DBSEntity table = DBExecUtils.detectSingleSourceTable(bindings);
         boolean hasKey = findUniqueKey(bindings) != null;
-        String rowsBlocker = source.getSelectedRows().length == 0
-            ? GridSqlMessages.gridsql_no_rows
-            : table == null ? GridSqlMessages.gridsql_no_table : null;
+        // Row statements apply to a result from one table (and those that need a key to one with a unique key): what
+        // the result is. Selected rows are "now"
+        String rowsBlocker = source.getSelectedRows().length == 0 ? GridSqlMessages.gridsql_no_rows : null;
 
         // The result generators of the extension point, in their order (SWT menu)
         for (SQLGeneratorDescriptor descriptor : getRowGenerators()) {
@@ -198,11 +202,11 @@ final class ResultSetGenerateSql {
                 log.debug("Can't create SQL generator " + descriptor.getId(), e);
                 continue;
             }
-            addRowItem(menu, source, descriptor.getLabel(), getBlocker(rowsBlocker, generator, hasKey), generator);
+            addRowItem(menu, source, descriptor.getLabel(), appliesRows(table, generator, hasKey), rowsBlocker, generator);
         }
         if (dataSource.getSQLDialect().supportsMergeStatement()) {
             SQLGeneratorMergeFromData merge = new SQLGeneratorMergeFromData();
-            addRowItem(menu, source, MERGE_LABEL, getBlocker(rowsBlocker, merge, hasKey), merge);
+            addRowItem(menu, source, MERGE_LABEL, appliesRows(table, merge, hasKey), rowsBlocker, merge);
         }
         List<SQLDialectInsertReplaceMethod> methods = dataSource.getContainer().getScriptDialect().getSupportedInsertReplaceMethodsDescriptors();
         if (!methods.isEmpty()) {
@@ -215,7 +219,7 @@ final class ResultSetGenerateSql {
                     log.debug("Can't create insert method " + method.getId(), e);
                     continue;
                 }
-                addRowItem(methodsMenu, source, method.getLabel(), getBlocker(rowsBlocker, generator, hasKey), generator);
+                addRowItem(methodsMenu, source, method.getLabel(), appliesRows(table, generator, hasKey), rowsBlocker, generator);
             }
             if (methodsMenu.getItemCount() > 0) {
                 menu.add(methodsMenu);
@@ -224,10 +228,8 @@ final class ResultSetGenerateSql {
 
         menu.addSeparator();
         JMenuItem ddlItem = new JMenuItem(GridSqlMessages.gridsql_ddl);
-        if (bindings.length == 0) {
-            ddlItem.setEnabled(false);
-            ddlItem.setToolTipText(GridSqlMessages.gridsql_no_columns);
-        } else {
+        ContextMenus.set(ddlItem, bindings.length > 0, true);
+        if (bindings.length > 0) {
             ddlItem.setToolTipText(GridSqlMessages.gridsql_ddl_tip);
             ddlItem.addActionListener(e -> generateTableDdl(source));
         }
@@ -250,24 +252,28 @@ final class ResultSetGenerateSql {
         return result;
     }
 
-    @Nullable
-    private static String getBlocker(@Nullable String rowsBlocker, @NotNull SQLGeneratorResultSet generator, boolean hasKey) {
-        if (rowsBlocker != null) {
-            return rowsBlocker;
-        }
-        return generator.isUniqueKeyRequired() && !hasKey ? GridSqlMessages.gridsql_no_key : null;
+    /**
+     * A statement from rows applies to a result from one table, and one that needs a key to a result with that table's
+     * unique key (what the result is; a virtual key comes with reading the result again).
+     */
+    private static boolean appliesRows(@Nullable DBSEntity table, @NotNull SQLGeneratorResultSet generator, boolean hasKey) {
+        return table != null && (!generator.isUniqueKeyRequired() || hasKey);
     }
 
+    /**
+     * @param blocker why the statement can't be made now (no rows selected), or null
+     */
     private static void addRowItem(
         @NotNull JMenu menu,
         @NotNull Source source,
         @NotNull String label,
+        boolean applies,
         @Nullable String blocker,
         @NotNull SQLGeneratorResultSet generator
     ) {
         JMenuItem item = new JMenuItem(label);
+        ContextMenus.set(item, applies, blocker == null);
         if (blocker != null) {
-            item.setEnabled(false);
             item.setToolTipText(blocker);
         } else {
             item.addActionListener(e -> generateFromRows(source, label, generator));

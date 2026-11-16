@@ -39,9 +39,6 @@ public class GridSqlMessages extends NLS {
     public static String gridsql_ddl_tip;
     public static String gridsql_no_connection;
     public static String gridsql_no_rows;
-    public static String gridsql_no_table;
-    public static String gridsql_no_key;
-    public static String gridsql_no_columns;
 
     // Generation and result (ResultSetGenerateSql)
     public static String gridsql_title;

@@ -74,7 +74,9 @@ import java.util.Objects;
  *     <li>편집할 수 있는지는 모델이 정한다({@link #getReadOnlyReason}): 연결 상태({@link DBExecUtils#getResultSetReadOnlyStatus}),
  *     단일 원본 테이블({@link DBExecUtils#detectSingleSourceTable}, 조인·식만 있는 결과는 없음), 완전한 기본 행 식별자(기본 키·고유 키),
  *     테이블의 데이터 변경 기능({@link DBSDataManipulator}). SWT의 {@code ResultSetViewer.isReadOnly}/{@code ResultSetModel.getReadOnlyStatus}와 같은 판단이며,
- *     SWT가 키가 없을 때 띄우는 가상 키 정의 대화상자({@code ValidateUniqueKeyUsageDialog}) 대신 읽기 전용으로 둔다.</li>
+ *     SWT가 키가 없을 때 띄우는 가상 키 정의 대화상자({@code ValidateUniqueKeyUsageDialog}) 대신 읽기 전용으로 둔다.
+ *     판단은 결과가 무엇인지(테이블, 키, 열, 데이터를 바꿀 수 있는 DB)와 연결이 지금 허락하는지(연결됨, 읽기 전용 아님, 데이터 편집 권한)
+ *     두 부분이다. 오른쪽 클릭 메뉴는 앞의 것만으로 편집 명령을 보이므로({@link #appliesEditing}) 읽기 전용 연결에서 읽은 결과는 편집 명령이 꺼진 채 보인다.</li>
  *     <li>칸 안 편집은 글자(또는 불리언·ENUM 콤보, 날짜 선택)로 하므로 문자열·숫자·불리언·날짜 열과, SWT {@code StringValueManager}처럼
  *     글자로 고치는 {@code OBJECT} 열(PostgreSQL uuid·inet 등: 값 처리기가 글자로 값을 만듦)을 칸에서 편집한다({@link #isInlineEditable}).
  *     배열·구조체({@code ARRAY}·{@code STRUCT})는 수신기가 남긴 값 객체로 편집한다(글자는 값 처리기의 형식, 대화상자는
@@ -98,6 +100,9 @@ import java.util.Objects;
  * - 2026-11-08 LOB 열 편집(읽지 않은 값), ENUM 값, 실행 취소·다시 실행, 행 복제, 위·아래 행 값 복사, 칸 되돌리기, 기본값으로
  *   (docs/chromite/swing-grid-editing.md)
  * - 2026-11-08 {@code OBJECT}·배열·구조체 열 편집, SET 열(여러 값) (docs/chromite/swing-value-editors.md)
+ * - 2026-11-16 편집할 수 있는지를 결과의 종류({@link #appliesEditing})와 연결의 지금 상태로 나눔, 결과 뷰어가 쓰는 열 판단
+ *   ({@link #isWholeValueColumn}, {@link #isTextContentColumn(DBDAttributeBinding)}, {@link #isFeatureSupported})을 패키지에 엶
+ *   (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  */
 final class ResultSetEditModel implements DBDResultSetModel {
 
@@ -307,6 +312,35 @@ final class ResultSetEditModel implements DBDResultSetModel {
         if (DBExecUtils.isResultSetReadOnly(executionContext)) {
             return EditorMessages.editor_grid_reason_no_connection;
         }
+        return getResultReadOnlyReason(bindings, unreadableColumns, lobColumns, bindError);
+    }
+
+    /**
+     * Whether a result is editable by what it is (its table, key and columns, and a database whose data can be changed),
+     * also when the connection did not allow edits when it was read (closed, read-only, data editing not permitted): its
+     * grid shows the edit commands disabled then (docs/chromite/context-menus.md "결과 그리드").
+     */
+    static boolean appliesEditing(
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull DBDAttributeBinding[] bindings,
+        @NotNull boolean[] unreadableColumns,
+        @NotNull boolean[] lobColumns,
+        @Nullable Throwable bindError
+    ) {
+        return !executionContext.getDataSource().getInfo().isReadOnlyData()
+            && getResultReadOnlyReason(bindings, unreadableColumns, lobColumns, bindError) == null;
+    }
+
+    /**
+     * Why the columns of a result can't be edited whatever the connection allows, or null.
+     */
+    @Nullable
+    private static String getResultReadOnlyReason(
+        @NotNull DBDAttributeBinding[] bindings,
+        @NotNull boolean[] unreadableColumns,
+        @NotNull boolean[] lobColumns,
+        @Nullable Throwable bindError
+    ) {
         if (bindError != null) {
             return NLS.bind(EditorMessages.editor_grid_reason_metadata, ErrorText.describeLine(bindError));
         }
@@ -367,7 +401,7 @@ final class ResultSetEditModel implements DBDResultSetModel {
         };
     }
 
-    private static boolean isFeatureSupported(@Nullable DBSEntity source, @NotNull String feature) {
+    static boolean isFeatureSupported(@Nullable DBSEntity source, @NotNull String feature) {
         return source instanceof DBSDataManipulator manipulator && manipulator.isFeatureSupported(feature);
     }
 
@@ -506,7 +540,7 @@ final class ResultSetEditModel implements DBDResultSetModel {
      *
      * @param lob the fetched values of the column were LOB value objects
      */
-    private static boolean isWholeValueColumn(@NotNull DBDAttributeBinding binding, boolean lob) {
+    static boolean isWholeValueColumn(@NotNull DBDAttributeBinding binding, boolean lob) {
         Class<?> valueType;
         try {
             valueType = binding.getValueHandler().getValueObjectType(binding);
@@ -537,7 +571,14 @@ final class ResultSetEditModel implements DBDResultSetModel {
      * then, and files are read and written as UTF-8.
      */
     boolean isTextContentColumn(int column) {
-        DBDAttributeBinding binding = bindings[column];
+        return isTextContentColumn(bindings[column]);
+    }
+
+    /**
+     * {@link #isTextContentColumn(int)} of a column of any result (the result viewer's hex command, also without an edit
+     * model).
+     */
+    static boolean isTextContentColumn(@NotNull DBDAttributeBinding binding) {
         switch (binding.getTypeID()) {
             case Types.CHAR, Types.NCHAR, Types.VARCHAR, Types.NVARCHAR, Types.LONGVARCHAR, Types.LONGNVARCHAR,
                  Types.CLOB, Types.NCLOB, Types.SQLXML -> {
