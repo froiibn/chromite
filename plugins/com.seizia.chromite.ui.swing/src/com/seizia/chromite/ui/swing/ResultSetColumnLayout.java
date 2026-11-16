@@ -53,6 +53,8 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-grid-navigation.md "열 배치와 이동")
+ * - 2026-11-16 행으로 가기 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142): 입력 대화상자를 {@link JOptionPane}으로 직접 만들어
+ *   그 입력 칸에 필터를 단다(모양은 같음). 쉼표를 지우던 읽기도 없앰(쉼표가 들어오지 않음)
  */
 final class ResultSetColumnLayout {
 
@@ -246,22 +248,55 @@ final class ResultSetColumnLayout {
             return;
         }
         int current = Math.max(table.getSelectedRow(), 0) + 1;
-        Object input = JOptionPane.showInputDialog(SwingUtilities.getWindowAncestor(parent),
-            NLS.bind(GridNavMessages.gridnav_goto_row_prompt, String.format("%,d", rows)), //$NON-NLS-1$
-            GridNavMessages.gridnav_goto_row_title, JOptionPane.QUESTION_MESSAGE, null, null, String.valueOf(current));
-        if (input == null) {
+        // JOptionPane.showInputDialog step by step, to reach the input field it makes: it takes digits only
+        JOptionPane pane = new JOptionPane(NLS.bind(GridNavMessages.gridnav_goto_row_prompt, String.format("%,d", rows)), //$NON-NLS-1$
+            JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+        pane.setWantsInput(true);
+        pane.setInitialSelectionValue(String.valueOf(current));
+        Window owner = SwingUtilities.getWindowAncestor(parent);
+        pane.setComponentOrientation((owner != null ? owner : JOptionPane.getRootFrame()).getComponentOrientation());
+        JDialog dialog = pane.createDialog(owner, GridNavMessages.gridnav_goto_row_title);
+        JTextField field = findTextField(pane);
+        if (field != null) {
+            NumberInputFilter.install(field, false);
+        }
+        pane.selectInitialValue();
+        dialog.setVisible(true);
+        dialog.dispose();
+        Object input = pane.getInputValue();
+        if (input == JOptionPane.UNINITIALIZED_VALUE || input == null) {
             return;
         }
         int row;
         try {
-            row = Integer.parseInt(input.toString().trim().replace(",", "")); //$NON-NLS-1$ //$NON-NLS-2$
+            row = Integer.parseInt(input.toString().trim());
         } catch (NumberFormatException e) {
+            // Empty, or more rows than an int holds
             return;
         }
         row = Math.clamp(row, 1, rows) - 1;
         int column = Math.max(table.getSelectedColumn(), 0);
         table.changeSelection(row, column, false, false);
         table.requestFocusInWindow();
+    }
+
+    /**
+     * The input field the option pane's look and feel made ({@link JOptionPane#setWantsInput}), or null.
+     */
+    @Nullable
+    private static JTextField findTextField(@NotNull Container container) {
+        for (Component component : container.getComponents()) {
+            if (component instanceof JTextField field) {
+                return field;
+            }
+            if (component instanceof Container child) {
+                JTextField field = findTextField(child);
+                if (field != null) {
+                    return field;
+                }
+            }
+        }
+        return null;
     }
 
     /**

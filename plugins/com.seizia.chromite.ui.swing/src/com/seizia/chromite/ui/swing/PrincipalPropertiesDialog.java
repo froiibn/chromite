@@ -59,6 +59,7 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
  * - 2026-11-08 기본 권한 탭(PostgreSQL ALTER DEFAULT PRIVILEGES), 일반 탭의 자원 제한(MySQL/MariaDB) (docs/chromite/swing-security.md)
+ * - 2026-11-16 자원 제한 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142). 읽은 값(-1)은 그대로 보이고 그대로 두면 저장된다
  */
 final class PrincipalPropertiesDialog extends JDialog {
 
@@ -244,7 +245,9 @@ final class PrincipalPropertiesDialog extends JDialog {
             form.add(header, constraints);
             int index = 0;
             for (Map.Entry<String, Long> limit : edited.getLimits().entrySet()) {
+                // The value as read stays as it is (MariaDB's -1); typing takes digits only
                 JTextField field = new JTextField(String.valueOf(limit.getValue()), 12);
+                NumberInputFilter.install(field, false);
                 limitFields.put(limit.getKey(), field);
                 boolean last = ++index == edited.getLimits().size();
                 row = addRow(form, row, SecurityLabels.getLimitLabel(limit.getKey()), field, last ? SecurityMessages.security_limits_hint : null);
