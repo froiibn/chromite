@@ -54,6 +54,19 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.4">
+    <h2>26.1.4</h2>
+    <div class="body">
+      <p>Context menus list only the commands that apply, and the update progress window no longer disappears.</p>
+      <ul>
+        <li>Object Explorer context menu: only the commands that apply to what you clicked are listed. A command that applies but cannot be used right now is shown disabled. Connection and server commands are listed on the connection node only (for example, the table menu went from 51 items to 20)</li>
+        <li>Result grid context menu: the same rule. A result that cannot be edited has no insert or delete row, a cell that is not a LOB has no load from or save to file, and a result that is not one SELECT statement has no Export Data</li>
+        <li>The context menus of Registered Servers, document tabs, diagrams and result messages follow the same rule. The menu bar and keyboard shortcuts are unchanged</li>
+        <li>Fix · Automatic update: when installed in a path that contains a space (for example Program Files), the progress window closed at the install step and nothing was shown for a while. The fix takes effect from the update after 26.1.4</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.3">
     <h2>26.1.3</h2>
     <div class="body">
