@@ -191,17 +191,17 @@ p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-
 | 문서 탭 | `DocumentTabMenu.java:235` | 저장·이름 바꾸기·연결 변경·경로 복사·상위 폴더 열기가 쿼리 창이 아닌 탭(ER 다이어그램, Activity Monitor, 디자이너)에서 꺼짐(:242–260) | 바꿈: 쿼리 창 탭에서만 보임, 저장 전 창의 경로 항목·실행 중 창의 연결 변경은 꺼짐, `ContextMenus.tidy` |
 | Messages 탭 | `QueryResultsView.java:654` | "오류 위치로 가기"가 위치 없는 글자에서 꺼짐(:688) | 바꿈: 위치를 아는 오류 글자에서만 보임 |
 | ER 다이어그램 개체 | `ErdDiagramPanel.java:489` | Design(뷰에서 꺼짐 :495), Select Top(:499) | 바꿈: 해당하는 개체에서만 보임, `tidy` |
-| SQL 편집기 글 영역 | `SqlEditorPanel.java:3434`(RSyntaxTextArea 기본 메뉴) | 읽기 전용 글 영역의 실행 취소·잘라내기·붙여넣기·삭제, 접기 미지원의 Folding이 꺼짐(라이브러리가 만든 항목) | 남김: 라이브러리가 만든 항목을 위치·동작으로 골라 숨겨야 함(구조 변경) |
+| SQL 편집기 글 영역 | `SqlEditorPanel.java:3434`(RSyntaxTextArea 기본 메뉴) | 읽기 전용 글 영역의 실행 취소·잘라내기·붙여넣기·삭제, 접기 미지원의 Folding이 꺼짐(라이브러리가 만든 항목) | 바꿈(2026-11-17, 아래 "작은 메뉴 5곳"): 한 도우미(`ContextMenus.tidyTextArea`)가 동작으로 항목을 골라, 편집할 수 없는 보기의 편집 항목과 접기가 없는 곳의 Folding을 숨김 |
 | 결과 그리드 셀 | `ResultSetGrid.java:1219`, `ResultSetViewerPanel.java:1084` | 행 삽입·복제·삭제(지원 안 함), Export Data(SELECT 아님), Generate SQL 항목(원본 테이블·키 없음), 파일 불러오기·저장·16진수·외부 편집기(값 종류), 가상 열의 Filter by Value, Saved Filters·Virtual Keys·Virtual Columns(원본 테이블 없음), Count Rows가 종류 이유로 꺼짐. Save and Commit은 커밋 방식(지금)으로 숨음(:1307) | 바꿈(2026-11-16, 아래 "결과 그리드"): 두 이유를 원천에서 나누고 `ContextMenus.tidy` |
 | 결과 열 머리글, Ctrl+B·Ctrl+Shift+1 팝업 | `ResultSetViewerPanel.java:924`, `:2584`, `:2604` | 누른 곳에 따라 추가, 꺼짐은 지금 상태 | 맞음 |
 | 열린 트랜잭션 칸 | `QueryStatusLine.java:448` | 읽기 전용 트랜잭션은 다른 항목 | 맞음 |
 | 집계 함수, 차트 값 | `ResultSetAggregatePanel.java:188`, `ResultSetChartView.java:443` | 숫자 열만 추가, 8개 제한은 꺼짐 | 맞음 |
 | 관리 그리드(유지 관리, 복제, 서버 로그, 공간 사용량) | `AdminGridTable.java:94` | 복사 항목만, 늘 켜짐 | 맞음 |
 | SQL 터미널 | `SqlTerminalView.java:74` | 복사는 선택(지금) | 맞음 |
-| Scripts 트리 | `ScriptsPanel.java:434` | 루트·빈 곳의 이름 바꾸기·삭제가 꺼짐(:428) | 남김(작음) |
-| Query Library 트리 | `QueryLibraryPanel.java:655` | 읽기 전용 루트의 새 쿼리·새 폴더·가져오기·복제·이름 바꾸기·삭제·일정·Commit & Push가 꺼짐, Desktop 미지원의 폴더 열기 | 남김 |
-| Query Manager(기록) | `QueryManagerPanel.java:731` | 세션·트랜잭션 행만 고르면 열기·복사가 꺼짐, 트랜잭션 없는 행의 Show Transaction | 남김 |
-| Database Tasks | `DatabaseTasksPanel.java:354` | 편집할 수 없는 작업 종류의 Edit가 꺼짐(도구 설명) | 남김(작음) |
+| Scripts 트리 | `ScriptsPanel.java:434` | 루트·빈 곳의 이름 바꾸기·삭제가 꺼짐(:428) | 바꿈(2026-11-17): 루트·빈 곳에서 숨김 |
+| Query Library 트리 | `QueryLibraryPanel.java:655` | 읽기 전용 루트의 새 쿼리·새 폴더·가져오기·복제·이름 바꾸기·삭제·일정·Commit & Push가 꺼짐, Desktop 미지원의 폴더 열기 | 바꿈(2026-11-17): 루트·빈 곳의 이름 바꾸기·삭제, 빈 곳의 내보내기·폴더 열기, Desktop 미지원의 폴더 열기를 숨김. 읽기 전용 루트는 Library Roots에서 바꿀 수 있어 "지금"(꺼짐 그대로) |
+| Query Manager(기록) | `QueryManagerPanel.java:731` | 세션·트랜잭션 행만 고르면 열기·복사가 꺼짐, 트랜잭션 없는 행의 Show Transaction | 바꿈(2026-11-17): 행 종류로 숨김, 이미 그 트랜잭션을 보는 중이면 꺼짐 |
+| Database Tasks | `DatabaseTasksPanel.java:354` | 편집할 수 없는 작업 종류의 Edit가 꺼짐(도구 설명) | 바꿈(2026-11-17): 숨김, 도구 설명과 그 메시지 키를 지움 |
 | 작업 대화상자 Script, Data Search 결과, ERD 배경·내보내기, 대시보드, 도구 창 ⋮, 도구 막대 넘침, 업데이트 단추, Agent 플레이북·모델·기록, SQL 템플릿 고르기 | 각 파일 | 늘 해당하거나 지금 상태로만 꺼짐 | 맞음 |
 | Text·Server Output·실행 계획 탭, 테이블 디자이너, Properties, Object Details, Find Objects, Activity Monitor, 결과 행 머리글, 레코드 보기 | – | 오른쪽 클릭 메뉴 없음 | – |
 
@@ -296,7 +296,8 @@ p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-
   "외래 키 없음" 문구는 Ctrl+B 상태 줄에 그대로 쓴다.
 - **값이 NULL인 LOB 칸**의 Save to File은 꺼진 채 보인다(값은 바뀔 수 있음). 고른 칸이 없으면 결과에 그런 열이 있는지로 보인다.
 - **참조되는·참조하는 테이블 하위 메뉴**는 관계를 메뉴가 열린 뒤 읽으므로 늘 보인다(없으면 안의 "없음" 항목). Ctrl+Shift+1 팝업과 같다.
-- **값 패널의 메뉴**는 RSyntaxTextArea가 만든 기본 메뉴(Undo, Cut, Paste, Folding …)다. SQL 편집기 글 영역과 같은 까닭으로 남겼다(위 표).
+- **값 패널의 메뉴**는 RSyntaxTextArea가 만든 기본 메뉴(Undo, Cut, Paste, Folding …)다. 이때는 SQL 편집기 글 영역과 같은 까닭으로 남겼고,
+  2026-11-17 같은 도우미로 옮겼다(아래 "작은 메뉴 5곳": 칸마다 바뀌므로 항목은 꺼진 채 남음).
 - **열 머리글 메뉴, Ctrl+B·Ctrl+Shift+1 팝업**은 다시 보아도 규칙대로라 그대로다.
 
 ### 실행 덤프로 만든 전·후 (2026-11-16, 영어·150 %, 같은 사설 작업 공간)
@@ -321,6 +322,118 @@ SELECT 아닌 결과(SHOW, EXEC 프로시저, `sp_who`), 두 문장의 두 결�
 덤프·캡처: `D:\Tools\_scratch\result-grid-menu\dumps\`(before-*.tsv, after-*.tsv, *-keys.tsv, checks.txt, matrix.md),
 `D:\Tools\_scratch\result-grid-menu\sheets\`.
 
+## 작은 메뉴 5곳 (2026-11-17, 앱 변경 #141)
+
+사용자 결정(2026-11-16): 점검표에서 "남김"이던 다섯 메뉴(SQL 편집기 글 영역, Scripts 트리, Query Library 트리, Query Manager, Database Tasks)에도 같은 규칙을
+적용할지, 숫자 칸 9곳을 고칠지 묻자 "둘 다 고친다". 이 절은 메뉴다(숫자 칸은 다른 작업).
+
+### 구조
+
+- **글 영역 메뉴는 한 곳**: `ContextMenus.tidyTextArea(RSyntaxTextArea, JPopupMenu)`. RSyntaxTextArea가 만든 기본 메뉴(Undo, Redo | Cut, Copy, Paste, Delete |
+  Select All | Folding ▸)는 항목 필드가 라이브러리 안에 숨어 있어, 모든 글 영역이 함께 쓰는 동작 객체(`RTextArea.getAction`)와 Folding 하위 메뉴의 첫 동작
+  (`ToggleCurrentFoldAction`)으로 고른다. 라이브러리가 `configurePopupMenu`에서 켜짐을 정한 뒤 부르므로 켜짐은 라이브러리 그대로다.
+  이 메뉴를 쓰는 글 영역 클래스는 셋이고 모두 이 도우미를 부른다:
+  - `SqlEditorPanel.SqlTextArea`: 쿼리 창 편집기, DDL 보기(`DdlViewerPanel`), 원본·디버거·실행 추적(`ProcedureDebuggerPanel`, `ExecutionTracePanel`),
+    Query Manager·Query History·Transaction Log의 미리 보기, 스크립트·SQL 확인 대화상자(`ScriptPreviewDialog`, `SqlConfirmDialog`, `AiConfirmationDialog`,
+    `MaintenanceDialog`, `QueryParameterDialog`, 세션 SQL), Chromite Agent의 코드 블록(`AiMarkdownView`), 텍스트 비교(`TextDiffView`), 작업 대화상자의 명령 칸
+    (`AgentJobStepDialog`, `PgCronJobDialog`, `OracleJobDialog`, `MySQLEventDialog`), Options의 미리 보기와 템플릿 내용(`SqlTemplatesPage`).
+  - `ResultSetValuePanel.ValueTextArea`: 결과의 값 패널.
+  - `PlanRawView.PlanTextArea`: 실행 계획의 원본 보기.
+- **"읽기 전용"이 종류인가**: 글 영역이 한 번 읽기 전용이 되면 다시 편집할 수 없게 되지 않는 보기(DDL, 원본, 미리 보기, 로그, 계획, Agent 코드 블록, 작업 대화상자에서
+  권한·작업 종류로 정해진 칸)는 종류다. 편집 항목(Undo, Redo, Cut, Paste, Delete)을 숨긴다. 열려 있는 동안 내용이 바뀌는 글 영역은 클라이언트 속성
+  `ContextMenus.VARYING_TEXT`로 표시해 "지금"으로 둔다: 값 패널(칸마다 읽기 전용·언어가 바뀜), 템플릿 페이지의 내용(템플릿을 고르지 않았을 때만 읽기 전용).
+  코드에서 `setEditable`을 찾아 확인했다: 쿼리 창 편집기는 실행 중에도, 읽기 전용 연결에서도 편집할 수 있다(편집기 자체를 읽기 전용으로 바꾸는 코드가 없음).
+  `OracleJobDialog`·`PgCronJobDialog`의 칸은 대화상자를 만들 때 한 번 정하고 바꾸지 않는다.
+- **Folding**: 접기를 끈 글 영역(계획 원본, 텍스트 비교)이나 언어에 접기 파서가 없는 글 영역(SQL이 아닌 Agent 코드 블록)에서는 숨긴다. 값 패널은 칸마다 언어가
+  바뀌므로 전처럼 꺼진 채 남는다(접기를 켠 글 영역).
+- 실행 취소할 것 없음, 고른 글 없음, 붙여넣을 것 없음은 "지금"이다(라이브러리의 켜짐 그대로).
+- **트리·목록 메뉴**는 메뉴를 열 때마다 새로 만들고 `ContextMenus.tidy`를 부른다. 두 답은 `updateActions`에서 `ContextMenus.set`으로 둔다.
+  켜짐은 전과 같은 식이라(해당 && 가능 = 전의 식) 도구 막대와 키는 그대로다.
+
+### 항목별 분류
+
+"전 조건"은 devel 20e976013f의 줄 번호다.
+
+| 메뉴 | 항목 | 전 조건 | 해당(보임) | 지금(켜짐) |
+|---|---|---|---|---|
+| 글 영역 | Undo, Redo | RTextArea `configurePopupMenu`(동작 켜짐 && 편집 가능) | 편집할 수 있거나 `VARYING_TEXT` | 되돌릴 것 있음, 편집 가능 |
+| 글 영역 | Cut, Paste, Delete | 같음 | 같음 | 고른 글·붙여넣을 것, 편집 가능 |
+| 글 영역 | Copy, Select All | 동작 켜짐 | 늘 | 고른 글(Copy) |
+| 글 영역 | Folding ▸ | RSyntaxTextArea `isCodeFoldingSupportedAndEnabled` | 접기를 지원함, `VARYING_TEXT`면 접기를 켬 | 지금 언어가 접기를 지원 |
+| 글 영역 | Ask Chromite Agent About This Query(쿼리 창) | `AiAssistantPanel.java:1806` | 늘(쿼리 창에만 붙음) | – |
+| Scripts | Open, Link to Connection…, Remove Connection Link | `ScriptsPanel.java:426·430·431`(스크립트에만 붙음) | 그대로 | 묶기 있음(Remove) |
+| Scripts | New Folder | :427 프로젝트 있음 | 늘 | 프로젝트 있음 |
+| Scripts | Rename, Delete | :428·429 루트 아님 | 루트가 아닌 폴더·스크립트 | – |
+| Scripts | Refresh | 늘 | 늘 | – |
+| Query Library | Run, Run on…, Edit, History…, Save As .sql… | `QueryLibraryPanel.java:618–629`(쿼리에만 붙음) | 그대로 | – |
+| Query Library | Schedule…, Duplicate | :621·625 | 쿼리(붙는 곳 그대로) | 쓸 수 있는 루트(Schedule은 일정이 있으면 켜짐) |
+| Query Library | New Query…, New Folder…, Import… | :623·624·631 | 늘 | 대상 폴더가 쓸 수 있는 루트 |
+| Query Library | Rename…, Delete | :626·627 | 루트가 아닌 폴더·쿼리 | 쓸 수 있는 루트 |
+| Query Library | Export… | :630 | 폴더(루트 포함, 쿼리에는 전처럼 붙지 않음) | 폴더가 있음(빠진 공유 폴더 아님) |
+| Query Library | Pull, Commit & Push… | :635·636 | Git 작업 사본인 루트(그대로) | git 있음, 실행 중 아님, Commit은 쓸 수 있는 루트(도구 설명 그대로) |
+| Query Library | Open Folder | :628 | 경로가 있음(빈 곳 아님) + Desktop이 폴더를 열 수 있음 | – |
+| Query Library | Scheduled Queries…, Refresh, Library Roots… | 늘 | 늘 | – |
+| Query Manager | Open in Query Window, Copy Statement | `QueryManagerPanel.java:670·671` 문장 있음 | 고른 행에 문장이 하나라도 있음(섞인 선택은 문장만 씀) | – |
+| Query Manager | Show Transaction | :673 한 행 + 트랜잭션 + 지금 보는 것 아님 | 한 행이고 트랜잭션이 있음 | 지금 그 트랜잭션만 보고 있지 않음 |
+| Query Manager | Clear | :675 행 있음 | 늘 | 행 있음 |
+| Database Tasks | Run, Show Last Log, Schedule…, Delete… | `DatabaseTasksPanel.java:336–344`(작업에만 붙음) | 그대로 | 실행 중 아님, 실행 기록 있음 |
+| Database Tasks | Edit… | :338 편집기가 있는 종류, 꺼지면 도구 설명 :340 | 편집기가 있는 작업 종류 | – |
+| Database Tasks | New SQL Script Task…, Refresh | 늘 | 늘 | – |
+
+### 경계에서 고른 것
+
+- **Query Library의 읽기 전용 루트는 "지금"**: 지시서는 종류(숨김)로 보았지만, 코드상 같은 루트(같은 이름·경로)를 Library Roots… 대화상자의 Read-only 체크로
+  바꿀 수 있다(`QueryLibraryRootsDialog.java:209`, `QueryLibrary.setRoots` 뒤 트리를 다시 읽음). 개체 탐색기·결과 그리드에서 읽기 전용 연결(연결 편집에서 바꿈)을
+  "지금"으로 본 것과 같게, 쓰기 명령은 전처럼 꺼진 채 보인다. 루트 자체의 Rename·Delete는 Library Roots…에서만 하므로 루트에서 숨긴다.
+- **여러 행 고르기**: Query Manager만 여러 행을 고를 수 있다(Scripts·Query Library 트리, Database Tasks 표는 하나만). 개체 탐색기 1부처럼 "명령이 지금 그 선택을
+  다루는 대로" 정했다: 열기·복사는 고른 행 가운데 문장만 쓰므로 문장이 하나라도 있으면 보이고, Show Transaction은 한 행에만 작동하므로 여러 행이면 숨는다
+  (개체 탐색기의 연결 여러 개에서 한 연결 명령을 숨긴 것과 같음).
+- **자동 커밋으로 실행한 문장의 Show Transaction은 숨김**: 실행할 때 정해지는 문장의 성질이고(`Row.getTransaction`, 저장점 없음) 나중에 바뀌지 않는다.
+- **값 패널**은 `VARYING_TEXT`라 메뉴가 전과 같다(편집 항목·Folding 꺼짐). 읽기 전용 결과의 칸이라도 같은 글 영역이 다음 칸에서 편집 가능해지기 때문이다.
+- **Database Tasks의 도구 막대 Edit 단추**는 숨지 않고(도구 막대 규칙) 전처럼 꺼지지만, 꺼진 이유 도구 설명은 메뉴 항목과 함께 지웠다(지시서, 종류 이유).
+  도구 설명은 이제 이름("Edit")이다. 표는 폴더를 보이지 않는다(작업 폴더가 있어도 모든 작업이 평평한 목록).
+- **빈 곳을 누를 때**: Query Manager·Database Tasks 표는 빈 곳을 눌러도 선택을 지우지 않는다(전과 같음). 선택이 없을 때의 메뉴가 "빈 곳"이다.
+
+### 실행 덤프로 만든 전·후 (2026-11-17, 영어·150 %, 같은 절차의 새 사설 작업 공간)
+
+앱 안 테스트 에이전트(Swing 객체, OS 입력 없음)가 각 경우에 팝업 트리거를 보내고 열린 메뉴의 항목마다 보임·켜짐·도구 설명을 적었다. 전은 devel 20e976013f 빌드,
+후는 이 변경의 빌드다. 터널 127.0.0.1의 PostgreSQL에 연결 셋(자동 커밋, 읽기 전용, 수동 커밋), 이 작업이 만든 `chr_sm_*` 개체만 썼다
+(수동 커밋 연결의 `create table chr_sm_t`는 Query > Commit으로 명시적으로 커밋해 트랜잭션 행을 만들고, 끝에 자동 커밋 연결에서 지움: `pg_tables` 0행).
+
+보이는 맨 위 항목 수(꺼진 수), 전 → 후:
+
+| 경우 | 전 | 후 |
+|---|---|---|
+| 쿼리 창 편집기(고른 글 없음·있음, 읽기 전용 연결, 실행 중) | 9(4) | 9(4) |
+| 값 패널 | 8(7) | 8(7) |
+| 실행 계획 원본(늘 읽기 전용, 접기 없음) | 8(7) | 2(1) |
+| Query Manager 미리 보기(늘 읽기 전용, SQL) | 8(6) | 3(1) |
+| Scripts 루트 / 빈 곳 | 4(2) | 2(0) |
+| Scripts 폴더 / 스크립트 | 4(0) / 7(1) | 4(0) / 7(1) |
+| Query Library 쓸 수 있는 루트 | 10(2) | 8(0) |
+| Query Library 읽기 전용 루트 | 10(5) | 8(3) |
+| Query Library 폴더 / 쿼리 | 10(0) / 16(0) | 10(0) / 16(0) |
+| Query Library 읽기 전용 폴더 / 쿼리 | 10(5) / 16(7) | 10(5) / 16(7) |
+| Query Library 빈 곳 | 10(4) | 6(0) |
+| Query Manager 자동 커밋 문장 | 4(1) | 3(0) |
+| Query Manager 트랜잭션 안 문장 | 4(0) | 4(0) |
+| Query Manager 연결 행 | 4(3) | 1(0) |
+| Query Manager 트랜잭션(커밋) 행 | 4(2) | 2(0) |
+| Query Manager 문장 + 연결 행 | 4(1) | 3(0) |
+| Query Manager 연결 + 트랜잭션 행 | 4(3) | 1(0) |
+| Database Tasks 편집할 수 있는 작업 / 없는 작업 | 7(1) / 7(2) | 7(1) / 6(1) |
+| Database Tasks 빈 곳 | 2(0) | 2(0) |
+
+- 전에 켜져 있던 (경우, 항목)이 후에 숨거나 꺼진 것: 0건. 구분선(맨 앞·맨 뒤·연달아 둘): 0건. 빈 메뉴: 0건(가장 작은 메뉴는 Query Manager 연결 행의 Clear 하나).
+- 메뉴 막대 Edit(쿼리 창에 초점): 11항목 모두 전·후 같음. 도구 막대: Query Manager·Database Tasks 단추의 켜짐이 모든 경우에 같고, 달라진 것은 편집할 수 없는 작업에서
+  Edit 단추의 도구 설명(이유 → 이름)뿐이다.
+- 키(전·후 같음): 쿼리 창 Ctrl+Z/Ctrl+Y, 계획 원본과 Query Manager 미리 보기의 Delete·Ctrl+Z(글 그대로), Scripts 루트·빈 곳의 F2·Delete(아무 일 없음), 스크립트의
+  F2(이름 바꾸기 대화상자)·Delete(삭제 확인, 취소), Query Library 쓸 수 있는 루트의 F2(아무 일 없음), 쿼리의 F2(이름 바꾸기, 취소), 읽기 전용 쿼리의 Delete(아무 일 없음),
+  Database Tasks의 Delete(삭제 확인, 취소). Ctrl+C·Ctrl+X·Ctrl+V는 시스템 클립보드를 건드리므로 누르지 않았고, 이 변경은 키 바인딩·동작을 바꾸지 않는다(코드로 확인).
+
+덤프·캡처: `D:\Tools\_scratch\small-menus-applicable\dumps\`(before.tsv, after.tsv, *-edit.tsv, *-bar.tsv, checks.txt, matrix.md),
+`D:\Tools\_scratch\small-menus-applicable\sheets\`.
+
 ## upstream 대비 변경점
 
 DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen`으로 정했다. Swing 프런트엔드는 그것이 없으므로 이 도우미가 같은 두 답을 한곳에 둔다.
@@ -334,3 +447,5 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-16 연결·서버 명령은 연결 노드에서만, 프로젝트 명령은 빈 곳과 연결 노드에서만, Find Objects·Compare Schemas는 그곳과 데이터베이스·스키마에서만 보임
   (사용자 결정 "연결 노드에서만", `ContextMenus.setApplies`, 켜짐은 그대로)
 - 2026-11-16 결과 그리드 셀 메뉴: 결과·칸의 종류에 해당하는 항목만 보임, 저장하고 커밋의 예외, 읽기 전용 연결 결과의 편집 명령(앱 변경 #137 3부, `chromite/result-grid-menu`)
+- 2026-11-17 남은 작은 메뉴 5곳(SQL 편집기 글 영역과 같은 메뉴를 쓰는 모든 글 영역, Scripts, Query Library, Query Manager, Database Tasks)에 같은 규칙
+  (사용자 "둘 다 고친다", 앱 변경 #141, `chromite/small-menus-applicable`, `ContextMenus.tidyTextArea`·`VARYING_TEXT`)

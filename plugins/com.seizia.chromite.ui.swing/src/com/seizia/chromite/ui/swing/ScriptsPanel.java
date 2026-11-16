@@ -80,6 +80,7 @@ import java.util.stream.Stream;
  * - 2026-11-12 주석만: 열린 창의 연결을 바꾸지 않는 이유를 고침(창의 연결 콤보가 없어짐, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 주석만: 창의 서버는 연결 변경 명령으로만 바뀜(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-17 오른쪽 클릭 메뉴: Rename·Delete는 루트가 아닌 폴더·스크립트에서만 보임({@link ContextMenus}, 앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class ScriptsPanel extends JPanel {
 
@@ -425,8 +426,9 @@ final class ScriptsPanel extends JPanel {
         boolean script = entry != null && !entry.folder;
         openAction.setEnabled(script);
         newFolderAction.setEnabled(rootEntry != null);
-        renameAction.setEnabled(entry != null && !entry.root);
-        deleteAction.setEnabled(entry != null && !entry.root);
+        // The script folder itself and the empty space have no name to change or delete
+        ContextMenus.set(renameAction, entry != null && !entry.root, true);
+        ContextMenus.set(deleteAction, entry != null && !entry.root, true);
         linkAction.setEnabled(script);
         unlinkAction.setEnabled(script && entry.link.dataSourceId() != null);
     }
@@ -458,6 +460,7 @@ final class ScriptsPanel extends JPanel {
         menu.add(deleteAction);
         menu.addSeparator();
         menu.add(refreshAction);
+        ContextMenus.tidy(menu);
         menu.show(tree, e.getX(), e.getY());
     }
 

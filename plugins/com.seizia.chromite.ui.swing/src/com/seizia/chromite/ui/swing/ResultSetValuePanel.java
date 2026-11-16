@@ -108,6 +108,8 @@ import java.util.Locale;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 도구 설명의 키 글자
  * - 2026-11-13 빈 칸 메시지를 가운데 맞춘 HTML 라벨 대신 가운데 맞춘 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서
  *   끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-17 글 칸의 오른쪽 클릭 메뉴는 {@link ContextMenus#tidyTextArea}: 칸마다 읽기 전용·언어가 바뀌므로 {@link ContextMenus#VARYING_TEXT}로
+ *   두어 편집 항목과 Folding은 전처럼 꺼진 채 남음(앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -840,6 +842,14 @@ final class ResultSetValuePanel extends JPanel {
     private static final class ValueTextArea extends RSyntaxTextArea {
         ValueTextArea() {
             applyTheme();
+            // Each selected cell: read-only or not and the language change with the cell
+            putClientProperty(ContextMenus.VARYING_TEXT, Boolean.TRUE);
+        }
+
+        @Override
+        protected void configurePopupMenu(JPopupMenu popupMenu) {
+            super.configurePopupMenu(popupMenu);
+            ContextMenus.tidyTextArea(this, popupMenu);
         }
 
         @Override

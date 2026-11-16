@@ -44,6 +44,8 @@ import java.util.List;
  *   "옵션 화면 모양과 저장 (#59)")
  * - 2026-11-12 아래 안내를 줄 바꾸는 글({@link WrappingNote})로: 한 줄 라벨이 모든 구성에서 잘렸다(앱 변경 #71 b,
  *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-17 내용 칸은 {@link ContextMenus#VARYING_TEXT}: 템플릿을 고르지 않아 읽기 전용일 때도 오른쪽 클릭 메뉴의 편집 항목이 꺼진 채 남음
+ *   (앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class SqlTemplatesPage extends JPanel {
 
@@ -109,6 +111,8 @@ final class SqlTemplatesPage extends JPanel {
         nameField.getDocument().addDocumentListener(editListener);
         descriptionField.getDocument().addDocumentListener(editListener);
         patternArea.getDocument().addDocumentListener(editListener);
+        // Read-only only while no template is selected: its menu keeps the editing items (disabled)
+        patternArea.putClientProperty(ContextMenus.VARYING_TEXT, Boolean.TRUE);
         enabledBox.addActionListener(e -> storeSelected());
 
         JPanel fields = new JPanel(new GridBagLayout());
