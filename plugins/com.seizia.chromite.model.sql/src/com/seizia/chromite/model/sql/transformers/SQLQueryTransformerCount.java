@@ -40,6 +40,11 @@ import java.util.List;
 /**
  * SQLQueryTransformerCount.
  * Transforms SQL query into SELECT COUNT(*) query
+ *
+ * 변경 이력:
+ * - 2026-11-17 Chromite: 문장 접두어가 있는 쿼리는 방언의 하위 질의 형태를 셈({@link #wrapPrefixedQuery}). 전에는 괄호 안에 접두어가
+ *   들어간 {@code SELECT COUNT(*) FROM (NODE[data] SELECT …) dbvrcnt}가 되어 서버가 거절했다(앱 변경 #139 작업 6b,
+ *   docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
 */
 public class SQLQueryTransformerCount implements SQLQueryTransformer {
 
@@ -47,6 +52,9 @@ public class SQLQueryTransformerCount implements SQLQueryTransformer {
 
     private static final String COUNT_WRAP_PREFIX = "SELECT COUNT(*) FROM (";
     private static final String COUNT_WRAP_POSTFIX = "\n) dbvrcnt";
+    // Around a prefixed statement's subquery form (wrapPrefixedQuery)
+    private static final String COUNT_FROM = "SELECT COUNT(*) FROM ";
+    private static final String COUNT_ALIAS = " dbvrcnt";
 
     @NotNull
     @Override
@@ -55,6 +63,9 @@ public class SQLQueryTransformerCount implements SQLQueryTransformer {
         @NotNull SQLSyntaxManager syntaxManager,
         @NotNull SQLQuery query
     ) throws DBException {
+        if (dataSource.getSQLDialect().getStatementPrefixLength(query.getText()) > 0) {
+            return wrapPrefixedQuery(dataSource, query);
+        }
         try {
             SQLDialect sqlDialect = dataSource.getSQLDialect();
             if (!sqlDialect.supportsSubqueries() || (sqlDialect instanceof SQLDialectRelational sdr && sdr.isAmbiguousCountBroken())) {
@@ -99,6 +110,19 @@ public class SQLQueryTransformerCount implements SQLQueryTransformer {
         String srcQuery = SQLUtils.trimQueryStatement(syntaxManager, queryText, true);
         String countQuery = COUNT_WRAP_PREFIX + srcQuery + COUNT_WRAP_POSTFIX;
         return new SQLQuery(dataSource, countQuery, query, false);
+    }
+
+    /**
+     * A statement with a statement prefix is counted around the dialect's subquery form of the whole statement
+     * ({@link SQLDialect#getPrefixedStatementSubquery}); its own ORDER BY and LIMIT stay inside (they pick the rows).
+     */
+    @NotNull
+    private SQLQuery wrapPrefixedQuery(@NotNull DBPDataSource dataSource, @NotNull SQLQuery query) throws DBException {
+        String subquery = dataSource.getSQLDialect().getPrefixedStatementSubquery(query.getText());
+        if (subquery == null) {
+            throw new DBException("The statement prefix can't be kept in a row count");
+        }
+        return new SQLQuery(dataSource, COUNT_FROM + subquery + COUNT_ALIAS, query, false);
     }
 
     @NotNull

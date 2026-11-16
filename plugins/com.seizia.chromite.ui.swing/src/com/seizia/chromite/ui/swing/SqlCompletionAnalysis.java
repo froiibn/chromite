@@ -26,6 +26,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBIcon;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPImage;
@@ -104,6 +105,10 @@ import java.util.function.Supplier;
  * - 2026-11-07 설정이 값 자리에만 적용됨을 적음. CALL/EXEC 뒤 제안은 모델 엔진이 함 (docs/chromite/swing-sql-completion.md)
  * - 2026-11-08 문장 의미 모델 만들기를 {@link #recognizeStatement}로 떼어 편집기의 마우스 올림·Ctrl+클릭({@link SqlObjectNavigation})도 씀,
  *   (문장의 기호를 문맥에 등록해 위치로 찾을 수 있게 함), 제안 설명 창이 쓰는 {@link Proposal#getObject()} (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-17 문장 접두어(방언의 {@code getStatementPrefixLength}): 접두어 뒤에서는 접두어를 공백으로 지운 글로 분석({@link #blankStatementPrefix},
+ *   위치는 그대로)하고, 의미 모델은 접두어와 뒤 공백을 뺀 본문을 그 자리에 등록해 만듦(마우스 올림·Ctrl+클릭도). 접두어가 있으면 파서가
+ *   실패해 제안이 없었다. 입력 중인 접두어는 방언의 제안({@link #getStatementPrefixProposals})
+ *   (앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 final class SqlCompletionAnalysis {
 
@@ -173,24 +178,41 @@ final class SqlCompletionAnalysis {
             return null;
         }
 
-        SQLParserContext parserContext = SQLScriptBatches.createParserContext(dataSource, request.text());
-        IDocument document = parserContext.getDocument();
+        SQLParserContext textContext = SQLScriptBatches.createParserContext(dataSource, request.text());
         int offset = request.offset();
-        String contentType = getCompletionContentType(document, offset);
+        String contentType = getCompletionContentType(textContext.getDocument(), offset);
         if (contentType == null) {
             return null;
         }
 
         SwingCompletionContext completionContext = new SwingCompletionContext(
-            dataSource, executionContext, parserContext.getSyntaxManager(), parserContext.getRuleManager());
-        SQLScriptElement activeQuery = SQLScriptParser.extractQueryAtPos(parserContext, offset, false);
+            dataSource, executionContext, textContext.getSyntaxManager(), textContext.getRuleManager());
+        SQLScriptElement textQuery = SQLScriptParser.extractQueryAtPos(textContext, offset, false);
+        SQLParserContext parserContext = textContext;
+        if (textQuery instanceof SQLQuery query) {
+            // A statement prefix being typed: the dialect's words
+            List<Proposal> prefixProposals = getStatementPrefixProposals(textContext,
+                new SQLCompletionRequest(completionContext, textContext.getDocument(), offset, query, !request.explicit()), query, offset);
+            if (prefixProposals != null) {
+                return new Result(request, offset, prefixProposals);
+            }
+            // After a statement prefix the engine sees the text with the prefix blanked out (same offsets): the statement
+            // proper completes as the same statement without the prefix, and right after the prefix a statement starts
+            String blanked = blankStatementPrefix(parserContext.getDialect(), request.text(), query, offset);
+            if (blanked != null) {
+                parserContext = SQLScriptBatches.createParserContext(dataSource, blanked);
+            }
+        }
+        IDocument document = parserContext.getDocument();
+        SQLScriptElement activeQuery = parserContext == textContext ? textQuery : SQLScriptParser.extractQueryAtPos(parserContext, offset, false);
+        SQLParserContext analyzedContext = parserContext;
         // The SWT editor uses the simple mode for auto-activated sessions
         SQLCompletionRequest completionRequest = new SQLCompletionRequest(
             completionContext, document, offset, activeQuery, !request.explicit());
         completionRequest.setContentType(contentType);
 
         Analyzer analyzer = new Analyzer(
-            m -> obtainCompletionContext(m, parserContext, executionContext, activeQuery, offset),
+            m -> obtainCompletionContext(m, analyzedContext, executionContext, activeQuery, offset),
             completionRequest,
             () -> offset);
         DBExecUtils.tryExecuteRecover(monitor, dataSource, analyzer);
@@ -205,6 +227,42 @@ final class SqlCompletionAnalysis {
         }
         Integer contextOffset = analyzer.getActualContextOffset();
         return new Result(request, contextOffset != null ? contextOffset : offset, proposals);
+    }
+
+    /**
+     * The proposals of the connection's dialect for a statement prefix being typed at the caret
+     * ({@link SQLDialect#getStatementPrefixProposals}), or null when the caret is not inside one.
+     */
+    @Nullable
+    private static List<Proposal> getStatementPrefixProposals(
+        @NotNull SQLParserContext parserContext,
+        @NotNull SQLCompletionRequest completionRequest,
+        @NotNull SQLQuery query,
+        int offset
+    ) {
+        int start = query.getOffset();
+        if (offset < start) {
+            return null;
+        }
+        SQLDialect.StatementPrefixProposals proposals;
+        try {
+            proposals = parserContext.getDialect().getStatementPrefixProposals(parserContext.getDocument().get(start, offset - start));
+        } catch (BadLocationException e) {
+            log.debug(e);
+            return null;
+        }
+        if (proposals == null) {
+            return null;
+        }
+        ProposalContext proposalContext = new ProposalContext(completionRequest, offset);
+        int replaceFrom = start + proposals.start();
+        List<Proposal> result = new ArrayList<>(proposals.words().size());
+        for (String word : proposals.words()) {
+            // The icon of the engine's keyword proposals (SQLQueryCompletionAnalyzer)
+            result.add(new Proposal(proposalContext, SQLQueryCompletionItemKind.RESERVED, null, DBIcon.SQL_TEXT, word, null, word, word,
+                replaceFrom, offset - replaceFrom, new SQLQueryWordEntry(replaceFrom, word), 0));
+        }
+        return result;
     }
 
     /**
@@ -285,19 +343,60 @@ final class SqlCompletionAnalysis {
         SQLDialect dialect = parserContext.getDialect();
         SQLQueryRecognitionContext recognitionContext = new SQLQueryRecognitionContext(
             monitor, executionContext, useRealMetadata, validateFunctions, parserContext.getSyntaxManager(), dialect);
-        SQLQueryModel model = SQLQueryModelRecognizer.recognizeQuery(recognitionContext, query.getOriginalText());
+        // The statement after a statement prefix (SQLDialect.getStatementPrefixLength), registered at its own offset: the
+        // parser does not know the prefix, and the statement proper completes as without it
+        String text = query.getOriginalText();
+        int prefixLength = getStatementProperStart(dialect, text);
+        String statement = text.substring(prefixLength);
+        SQLQueryModel model = SQLQueryModelRecognizer.recognizeQuery(recognitionContext, statement);
         if (model == null || monitor.isCanceled()) {
             return null;
         }
         SQLDocumentSyntaxContext syntaxContext = new SQLDocumentSyntaxContext();
-        SQLDocumentScriptItemSyntaxContext itemContext = syntaxContext.registerScriptItemContext(
-            query.getOriginalText(), model, query.getOffset(), query.getLength(), Boolean.TRUE.equals(query.isEndsWithDelimiter()));
+        SQLDocumentScriptItemSyntaxContext itemContext = syntaxContext.registerScriptItemContext(statement, model,
+            query.getOffset() + prefixLength, query.getLength() - prefixLength, Boolean.TRUE.equals(query.isEndsWithDelimiter()));
         // The names of the statement, so a position finds its symbol and definition (as SQLBackgroundParsingJob registers them);
         // the completion context does not read them
         for (SQLQuerySymbolEntry entry : model.getAllSymbols()) {
             itemContext.registerToken(entry.getInterval().a, entry);
         }
         return syntaxContext;
+    }
+
+    /**
+     * Where the statement proper starts after a statement prefix ({@link SQLDialect#getStatementPrefixLength}) and the
+     * whitespace after it, or 0 without a prefix: the semantic model is built from there, so the statement completes as
+     * the same statement without the prefix (a body starting with whitespace gave no proposals).
+     */
+    private static int getStatementProperStart(@NotNull SQLDialect dialect, @NotNull String text) {
+        int start = Math.max(0, Math.min(text.length(), dialect.getStatementPrefixLength(text)));
+        if (start > 0) {
+            while (start < text.length() && Character.isWhitespace(text.charAt(start))) {
+                start++;
+            }
+        }
+        return start;
+    }
+
+    /**
+     * The text with the statement prefix of the statement at the caret replaced by spaces (line breaks kept, so every
+     * offset stays), or null when the statement has no prefix or the caret is inside it. The engine reads a line's first
+     * word as the statement's first keyword and the parser does not know the prefix.
+     */
+    @Nullable
+    private static String blankStatementPrefix(@NotNull SQLDialect dialect, @NotNull String text, @NotNull SQLQuery query, int offset) {
+        int start = query.getOffset();
+        int prefixLength = Math.max(0, Math.min(text.length() - start, dialect.getStatementPrefixLength(query.getOriginalText())));
+        if (prefixLength == 0 || offset < start + prefixLength) {
+            return null;
+        }
+        char[] chars = text.toCharArray();
+        for (int i = start; i < start + prefixLength; i++) {
+            if (chars[i] != '\n' && chars[i] != '\r') {
+                chars[i] = ' ';
+            }
+        }
+        return new String(chars);
     }
 
     /**

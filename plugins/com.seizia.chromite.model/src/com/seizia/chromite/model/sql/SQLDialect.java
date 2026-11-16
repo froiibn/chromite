@@ -52,6 +52,9 @@ import java.util.List;
  * - 2026-11-17 Chromite: {@link #getStatementPrefixLength}를 추가. 문장 앞에 문장이 아닌 접두어(실행 위치 지시)를 받는 서버가 있어, 문장의
  *   종류를 정하는 곳이 접두어를 뺀 본문을 보도록 방언이 길이만 알린다. 기본은 접두어 없음(다른 데이터베이스는 그대로)
  *   (앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-17 Chromite: {@link #getPrefixedStatementSubquery}, {@link #getStatementPrefixProposals}를 추가. 접두어가 있는 SELECT를 하위
+ *   질의로 감싸는 형태(서버마다 다름, 괄호 안 접두어는 거절됨)와 입력 중인 접두어의 자동 완성을 방언이 알린다. 기본은 "없음"이라 다른
+ *   데이터베이스는 그대로다(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public interface SQLDialect {
 
@@ -539,6 +542,40 @@ public interface SQLDialect {
      */
     default int getStatementPrefixLength(@NotNull String text) {
         return 0;
+    }
+
+    /**
+     * The derived table (a FROM item without its alias) that reads the rows of a statement with a statement prefix
+     * ({@link #getStatementPrefixLength}), for the rewrites that put a query in a subquery (row count, filters, order,
+     * value lists): there a prefixed statement in parentheses is not the same query (or is rejected), so the dialect
+     * says how the server keeps the prefix around a subquery.
+     *
+     * @param text a statement whose prefix length is above 0
+     * @return the derived table, or null when the statement can't be read as a subquery (it is then not rewritten)
+     */
+    @Nullable
+    default String getPrefixedStatementSubquery(@NotNull String text) {
+        return null;
+    }
+
+    /**
+     * What may complete a statement prefix being typed ({@link #getStatementPrefixLength}).
+     *
+     * @param text a statement from its start to the caret
+     * @return the proposals, or null when the caret is not inside a prefix (every dialect without prefixes)
+     */
+    @Nullable
+    default StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
+        return null;
+    }
+
+    /**
+     * Proposals for a statement prefix being typed.
+     *
+     * @param start the offset in the text where the replaced word starts (the text from there to the caret filters them)
+     * @param words the texts to insert
+     */
+    record StatementPrefixProposals(int start, @NotNull List<String> words) {
     }
 
     @Nullable

@@ -184,6 +184,9 @@ import java.util.function.Consumer;
  * - 2026-11-16 오른쪽 클릭 메뉴가 해당하는 항목만 보임({@link ContextMenus#tidy}): LOB·이진 열이 아니면 파일·16진수 항목, 가상 열과 다시 읽을 수 없는
  *   쿼리의 Filter by Value·Clear Filter, 셀 수 없는 결과의 Count Rows, 테이블 하나에서 오지 않은 결과의 저장한 필터·가상 키·가상 열(그 안내 항목과
  *   문구 삭제), 키가 있는 테이블의 가상 고유 키, 외래 키 없는 열의 "외래 키 없음" 항목을 숨김 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-17 다시 읽을 수 없는 결과에서 필터 머리글·필터 적용·행 수 세기가 아무것도 하지 않던 것을, 상태 줄에 이유를 보이게 함
+ *   ({@link #showRequeryBlocked}, 기존 문구 "필터를 쓸 수 없음: {0}"·"행 수 세기 실패: {0}"). 프로시저 호출 결과와 접두어 SELECT가 같은 경로
+ *   (앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -1066,7 +1069,7 @@ final class ResultSetViewerPanel extends JPanel {
     private void openFilterPopup(@NotNull JTableHeader header, int column) {
         DBDAttributeBinding[] bindings = fetched.data().bindings();
         DBDAttributeBinding binding = bindings[header.getTable().convertColumnIndexToModel(column)];
-        if (reading || !fetched.source().canRequery() || binding.isCustom()) {
+        if (reading || binding.isCustom() || showRequeryBlocked(EditorMessages.editor_viewer_filters_need)) {
             return;
         }
         // The popup reads the values with the other columns' conditions: without a sort of virtual columns (not in the database)
@@ -2043,13 +2046,31 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private void applyFilter(@NotNull DBDDataFilter filter) {
-        if (reading || !fetched.source().canRequery()) {
+        if (reading || showRequeryBlocked(EditorMessages.editor_viewer_filters_need)) {
             return;
         }
         if (!checkNoChanges(EditorMessages.editor_viewer_action_filter)) {
             return;
         }
         requery(filter);
+    }
+
+    /**
+     * Whether the result can't be read again (filters, counting); then the status line says why, with the reason the
+     * filter header's tool tip gives, instead of the command doing nothing.
+     *
+     * @param pattern the message with {0} for the reason
+     */
+    private boolean showRequeryBlocked(@NotNull String pattern) {
+        ResultSetSource source = fetched.source();
+        if (source.canRequery()) {
+            return false;
+        }
+        if (source.requeryBlocker() != null) {
+            statusMessage = NLS.bind(pattern, source.requeryBlocker());
+            updateStatus();
+        }
+        return true;
     }
 
     //////////////////////////////////////////////////////////
@@ -2980,7 +3001,7 @@ final class ResultSetViewerPanel extends JPanel {
     private void countRows() {
         ResultSetSource source = fetched.source();
         DBCExecutionContext context = source.context();
-        if (counting || context == null || !source.canRequery()) {
+        if (counting || showRequeryBlocked(GridNavMessages.gridnav_count_failed_detail) || context == null) {
             return;
         }
         counting = true;

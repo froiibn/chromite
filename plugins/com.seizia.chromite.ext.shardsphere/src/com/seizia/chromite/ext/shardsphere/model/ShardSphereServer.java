@@ -20,6 +20,7 @@ import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
 import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -41,6 +42,8 @@ import java.util.List;
  * - 2026-11-17 최초 작성(앱 변경 #139 작업 2·3, docs/chromite/shardsphere.md)
  * - 2026-11-17 방언 기여: 샤딩 패키지가 있으면 문장 접두어({@link ShardSphereStatementPrefix}), 문법 낱말, 함수(앱 변경 #139 작업 6a,
  *   docs/chromite/shardsphere.md "문장 접두어")
+ * - 2026-11-17 접두어 SELECT의 하위 질의 형태(메타 노드에서만, 그 서버에서 확인한 형태라서)와 입력 중인 접두어의 제안(메타 노드에서는
+ *   노드 이름도, 연결할 때 한 번 읽은 이름만)(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBSObject {
 
@@ -60,17 +63,22 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     private final boolean geminiCatalog;
     private final boolean shardingPackage;
     private final boolean shardingMetaNode;
+    // The node names of the meta node's sharding dictionary (names only), empty on another server
+    @NotNull
+    private final List<String> nodeNames;
 
     public ShardSphereServer(
         @NotNull AltibaseDataSource dataSource,
         boolean geminiCatalog,
         boolean shardingPackage,
-        boolean shardingMetaNode
+        boolean shardingMetaNode,
+        @NotNull List<String> nodeNames
     ) {
         this.dataSource = dataSource;
         this.geminiCatalog = geminiCatalog;
         this.shardingPackage = shardingPackage;
         this.shardingMetaNode = shardingMetaNode;
+        this.nodeNames = List.copyOf(nodeNames);
     }
 
     @NotNull
@@ -148,6 +156,22 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     @Override
     public int getStatementPrefixLength(@NotNull String text) {
         return shardingPackage ? ShardSphereStatementPrefix.getLength(text) : 0;
+    }
+
+    /**
+     * Only on the sharding meta node: the subquery forms were proven there (2026-11-17); on another server a prefixed
+     * statement stays without one (not read again).
+     */
+    @Nullable
+    @Override
+    public String getPrefixedStatementSubquery(@NotNull String text) {
+        return shardingMetaNode ? ShardSphereStatementPrefix.getSubqueryForm(text) : null;
+    }
+
+    @Nullable
+    @Override
+    public SQLDialect.StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
+        return shardingPackage ? ShardSphereStatementPrefix.getProposals(text, nodeNames) : null;
     }
 
 }

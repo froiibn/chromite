@@ -353,3 +353,5 @@ DB마다 `chr_results_plan`(시험 사용자 `chr_results_plan`)에 `chr_rpf_ite
   ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").
 - 2026-11-08 머리글 이름 자리를 누르면 정렬 대신 열 전체 선택(Ctrl+클릭 더하기, Shift+클릭 범위), 정렬은 정렬 아이콘에서만, 이름 자리 도구 설명 갱신
   (사용자 요청 #5, 위 "머리글 누르기", `chromite/grid-header`).
+- 2026-11-17 다시 읽을 수 없는 결과에서 흐린 깔때기를 누르면(또는 필터를 적용하면) 팝업 대신 상태 줄에 도구 설명과 같은 이유("필터를 쓸 수 없음: …")가 보인다.
+  전에는 아무 일도 없었다(앱 변경 #139 작업 6b, [shardsphere.md](shardsphere.md) "접두어 문장 다시 읽기").

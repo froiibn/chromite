@@ -76,6 +76,8 @@ import java.util.stream.Collectors;
  *   정한다. 전에는 접두어 때문에 파싱이 실패해 UNKNOWN이 되어 WHERE 없는 DELETE·DROP·TRUNCATE도 실행 전 확인 없이 나갔다.
  *   본문의 파싱 결과는 판단에만 쓰고 {@link #getStatement()}·단일 원본 테이블·선택 항목은 비워 둔다: 다시 쓰는 코드(행 수, 필터, 페이지,
  *   결과 편집)가 접두어를 잃은 문장을 만들지 않게(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-17 {@link #hasSubqueryForm()}: 접두어가 있는 SELECT를 방언의 하위 질의 형태로 감쌀 수 있는지. 다시 읽기(행 수, 필터, 정렬,
+ *   다시 실행해 내보내기)가 이것으로 허용·차단을 정한다(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public class SQLQuery implements SQLScriptElement {
 
@@ -352,7 +354,8 @@ public class SQLQuery implements SQLScriptElement {
      * rewrites or re-reads the statement may use the body: the rewritten text would lose the prefix and run elsewhere
      * (count, filter and paging wrappers, the result grid's table binding that generates UPDATE/DELETE, limits). So the
      * parsed statement, the single source table and the select items stay unset, as for a statement the parser could not
-     * read, and only the kind, the object operation and the danger flags come from the body. A prefixed COMMIT or
+     * read, and only the kind, the object operation and the danger flags come from the body. The count, filter and order
+     * rewrites wrap the whole text in the dialect's subquery form instead ({@link #hasSubqueryForm()}). A prefixed COMMIT or
      * ROLLBACK stays UNKNOWN: the query window ends the whole session's transaction after a COMMIT/ROLLBACK statement,
      * which must not follow one that the prefix limits to some nodes.
      */
@@ -852,6 +855,18 @@ public class SQLQuery implements SQLScriptElement {
     public int getStatementPrefixLength() {
         parseQuery();
         return statementPrefixLength;
+    }
+
+    /**
+     * Whether the rewrites that put the statement in a subquery (row count, filters, order, value lists) can read it: a
+     * statement without a prefix as before, a prefixed one only when the dialect gives its subquery form
+     * ({@link SQLDialect#getPrefixedStatementSubquery}).
+     */
+    public boolean hasSubqueryForm() {
+        if (getStatementPrefixLength() == 0) {
+            return true;
+        }
+        return dataSource != null && dataSource.getSQLDialect().getPrefixedStatementSubquery(text) != null;
     }
 
     public boolean isDeleteUpdateDangerous() {

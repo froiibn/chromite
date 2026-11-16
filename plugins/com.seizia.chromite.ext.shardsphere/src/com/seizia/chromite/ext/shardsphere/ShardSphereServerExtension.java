@@ -28,6 +28,8 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Recognises a ShardSphere server by its catalog.
@@ -40,6 +42,8 @@ import java.sql.SQLException;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 감지만(앱 변경 #139 작업 2·3, docs/chromite/shardsphere.md)
+ * - 2026-11-17 메타 노드면 노드 이름을 한 번 더 읽음({@code SYS_SHARD.NODES_}의 이름만, 호스트·포트는 읽지 않음): {@code NODE[data(} 뒤
+ *   자동 완성(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public class ShardSphereServerExtension implements AltibaseServerExtension {
 
@@ -57,6 +61,11 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
         + " (SELECT COUNT(*) FROM V$PROPERTY WHERE NAME = 'SHARD_META_ENABLE' AND VALUE1 = '1')"
         + " FROM DUAL";
 
+    /**
+     * The node names of a sharding meta node (names only: the hosts and ports of the nodes are not read).
+     */
+    private static final String QUERY_NODE_NAMES = "SELECT NODE_NAME FROM SYS_SHARD.NODES_ ORDER BY NODE_ID";
+
     @Nullable
     @Override
     public AltibaseServerExtensionState detect(@NotNull JDBCSession session, @NotNull AltibaseDataSource dataSource) {
@@ -71,11 +80,34 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
             if (!geminiCatalog && !shardingPackage && !shardingMetaNode) {
                 return null;
             }
-            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode);
+            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode,
+                shardingMetaNode ? readNodeNames(session) : List.of());
         } catch (SQLException e) {
             log.debug("Can't read the ShardSphere catalog: " + e.getErrorCode() + " " + e.getSQLState());
             return null;
         }
+    }
+
+    /**
+     * The node names of the meta node's sharding dictionary, for the completion of {@code NODE[data(}; empty if they
+     * can't be read (the completion then proposes no names).
+     */
+    @NotNull
+    private static List<String> readNodeNames(@NotNull JDBCSession session) {
+        List<String> names = new ArrayList<>();
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_NODE_NAMES);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            while (dbResult.next()) {
+                String name = dbResult.getString(1);
+                if (name != null && !name.isBlank()) {
+                    names.add(name.trim());
+                }
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the sharding node names: " + e.getErrorCode() + " " + e.getSQLState());
+            return List.of();
+        }
+        return names;
     }
 
 }

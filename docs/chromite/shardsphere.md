@@ -147,7 +147,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 운영 연결의 실행 확인(접두어 SELECT를 묻던 것) | `SQLSemanticProcessor.java:192`(`SQLQueryExecuteJob.java:569`) | 접두어 SELECT 물음 → 묻지 않음, 접두어 DML 물음(같음) |
 | 문장 나누기의 블록 규칙(`NODE[meta] CREATE PROCEDURE … AS v INTEGER; BEGIN … END;`) | `SQLScriptParser.java:189-199,322` | 선언의 `;`에서 3개로 나뉨 → 1개(접두어 없는 것과 같음), TYPESET도 |
 | Agent 분류기 | `AgentSqlClassifier.java:249,280,308,337` | [ai-agent.md](ai-agent.md) "문장 접두어" |
-| 다시 읽기(행 수, 필터, 페이지), 다시 실행해 내보내기 | `ResultSetSource.java:101`, `SQLQueryDataContainer.java:262`, `DataExportWizard.java:532` | 전처럼 막음(종류는 이제 SELECT지만 다시 쓰기가 접두어를 잃음; 6b) |
+| 다시 읽기(행 수, 필터, 페이지), 다시 실행해 내보내기 | `ResultSetSource.java:101`, `SQLQueryDataContainer.java:262`, `DataExportWizard.java:532` | 전처럼 막음(종류는 이제 SELECT지만 다시 쓰기가 접두어를 잃음). 6b에서 방언의 하위 질의 형태로 다시 읽음(아래 "접두어 문장 다시 읽기") |
 | 결과 편집(단일 원본 테이블), 자동 행 제한(LIMIT), 끊긴 뒤 자동 재실행 | `SQLQuery.getStatement()`가 없음(`:359`) → `DBExecUtils`, `DBUtils.java:1631`, `SQLQueryRecovery.java:99` | 전과 같음(편집 안 됨, LIMIT 안 붙임, 재실행 안 함) |
 | 커밋·롤백 문장 뒤 세션 커밋·롤백 | `SQLQueryExecuteJob.java:443-446` | 접두어 COMMIT/ROLLBACK은 UNKNOWN 그대로(세션 전체를 끝내지 않음) |
 | 강조 | `SqlTokenClassifier.java:219,263` | 이름 + 대괄호 이름 → 키워드·연산자·문자열 |
@@ -161,8 +161,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 
 ### 아직 남은 것
 
-- 행 수·필터·페이지(접두어를 괄호 안 하위 질의로 감싸 유지, 6b), 접두어 뒤의 자동 완성(6b), 실행 계획(접두어 문장의 계획 요청은 확인하지 않음: 메타 노드에서
-  `NODE` 문장을 실행하지 않는다는 결정. 이 변경은 계획 경로를 바꾸지 않았다).
+- 행 수·필터·페이지, 접두어 뒤의 자동 완성, 실행 계획: 6b에서 함(아래 "접두어 문장 다시 읽기").
 - 확인 대화상자의 SQL 보기는 연결 없는 표준 낱말로 칠해 `NODE[all]`이 보통 글자로 보인다(전부터 그 보기의 동작).
 - `TRUNCATE`는 접두어와 관계없이 종류가 UNKNOWN이고 `isModifying()`이 거짓이다(확인은 `isTruncate`로 뜸, 전부터; 범위 밖).
 - 한 낱말 문장 앞에 공백이 있으면 `SQLUtils.getFirstKeyword`가 키워드를 못 읽는다(전부터, 모든 방언). 접두어 뒤에서는 공백을 지워 피했다.
@@ -187,12 +186,98 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 
 - 미확인: `NODE[...]`/`SHARD` 뒤에 COMMIT·ROLLBACK·EXEC·블록(PSM)을 받는지, 받으면 뜻.
 - 미확인: 읽기 전용 연결(`setReadOnly(true)`)에서 접두어 DML을 서버가 막는지.
-- 미확인: 접두어 문장의 실행 계획(`EXPLAIN PLAN`·`ALTER SESSION SET EXPLAIN PLAN`)이 어느 노드의 계획을 주는지.
+- 접두어 문장의 실행 계획: 6b에서 확인(메타 노드의 계획만, 아래 "접두어 문장 다시 읽기" "실행 계획").
 - 미확인: `NODE` 다음과 `[` 사이 줄바꿈, 이름에 공백이 든 따옴표 이름을 받는지(인식은 받음).
+
+## 접두어 문장 다시 읽기 (2026-11-17, 앱 변경 #139 작업 6b)
+
+### 문제
+
+6a 뒤 접두어 SELECT는 종류가 SELECT로 정해지지만 다시 읽기를 일부러 막아 두었다: Count Rows, 열 필터, 서버 정렬, 다음 페이지, 다시 실행해 내보내기가 모두
+"단일 SELECT 쿼리가 아님"이었다. Chromite의 감싸기는 `SELECT COUNT(*) FROM (NODE[data] SELECT …) dbvrcnt`, `SELECT * FROM (NODE[data] SELECT …) z_q WHERE …`라
+서버가 거절(200705)한다. 막힌 경우 깔때기를 눌러도 아무 일이 없었고(도구 설명에만 이유), 접두어 뒤에서는 자동 완성이 없었다.
+
+### 서버가 받는 형태 (메타 노드, JDBC, 2026-11-17)
+
+`SELECT … FROM NODE[x](본문) 별칭 [WHERE … ORDER BY …]`, `SELECT … FROM SHARD (본문) 별칭`. 접두어 형태 7가지(`meta`, `data`, `data('n')`, `data('n', "n2")`,
+`data()`, `NODE [ data ]`, 소문자) × 본문 9가지(그냥, WHERE, ORDER BY, ORDER BY+LIMIT, 앞 블록 주석, 끝 줄 주석, 괄호로 싼 SELECT, 하위 질의, GROUP BY)에서 행 수·필터·
+정렬·필터+정렬·값 목록·필터 위의 값 목록(두 겹 파생 테이블)을 준비하고 실행했다: 모두 받음(내 시험 문장이 본문에 없는 열을 가리킨 4개만 "Column not found").
+감싼 COUNT는 접두어 문장의 행 수와 같다(meta 161, data 576, WHERE 352, LIMIT 3이면 노드마다 3 → 12, `data('n')` 144, 두 노드 288). 샤드 테이블:
+`NODE[data]`·`SHARD`·`data('n')`의 노드별 `COUNT(*)`도 같은 형태로 됨. 옛 감싸기 둘은 여전히 200705. `setMaxRows`는 감싼 문장에도 전체에 적용된다.
+일반 ShardSphere 서버(메타 노드가 아님)에서는 `NODE[...]` 문장도 `FROM NODE[meta](…)`도 200705이고, `SHARD SELECT 1 FROM DUAL`은 실행된다.
+
+### 자리와 각 다시 쓰기의 결정
+
+- **자리(모델, 중립):** `SQLDialect.getPrefixedStatementSubquery(text)`(기본 null): 접두어 문장 전체를 대신할 파생 테이블 글(별칭 없음), 또는 null(감쌀 수 없음).
+  `SQLQuery.hasSubqueryForm()`: 접두어가 없으면 true(전과 같음), 있으면 방언의 형태가 있을 때만 true.
+- **ShardSphere의 형태(`ShardSphereStatementPrefix.getSubqueryForm`):** `NODE[x]` + `(\n본문\n)` 또는 `SHARD (\n본문\n)`. 접두어는 사용자가 쓴 글 그대로(앞 주석은 뺌),
+  본문 끝의 `;`과 공백은 뺌, 본문의 ORDER BY·LIMIT은 안에 그대로(노드마다 적용, 사용자가 쓴 대로), 닫는 괄호 앞 줄바꿈은 끝 줄 주석을 끝냄.
+  형태가 없는 것: 접두어 둘(서버 거절), `NODE[all]`(SELECT 앞에서 서버 거절), 본문이 SELECT가 아님. **샤딩 메타 노드에서만** 낸다(`ShardSphereServer`): 형태를
+  확인한 서버가 메타 노드뿐이고, 일반 서버는 `NODE` 형태를 거절한다. 그 밖의 서버에서는 접두어 SELECT가 전처럼 막힌다.
+
+| 다시 쓰기 | 위치 | 결정 |
+|---|---|---|
+| 행 수(Count Rows, 내보내기의 전체 행 수) | `SQLQueryTransformerCount.transformQuery`·`wrapPrefixedQuery`, `SQLQueryDataContainer.countData` | 형태 사용: `SELECT COUNT(*) FROM NODE[x](…) dbvrcnt`. 형태가 없으면 전처럼 거절 |
+| 필터·서버 정렬(그리드, 필터 적용 뒤 다음 페이지, 내보내기, 실행 작업의 필터) | `StandardSQLDialectQueryGenerator.getQueryWithAppliedFilters`·`getPrefixedFilterQuery`(`SQLDialect.addFiltersToQuery`가 부름) | 형태 사용: `SELECT * FROM NODE[x](…) z_q WHERE … ORDER BY …`. 본문에 조건을 넣지 않고(접두어를 잃음), 본문의 ORDER BY를 밖으로 옮기지 않음 |
+| 필터 팝업의 값 목록 | `SQLGroupingQueryGenerator.generateGroupingQuery` | 형태 사용: `SELECT 열, COUNT(*) … FROM NODE[x](…) src GROUP BY …`. 다른 열 필터가 있으면 필터 쿼리(접두어 없음)를 전처럼 괄호로 감쌈(서버가 받음) |
+| 다음 페이지(필터 없음) | `SQLQueryDataContainer.readData` → `DBUtils.makeStatement` | 다시 쓰지 않음: 접두어 문장을 그대로 다시 실행하고 `setMaxRows`·건너뛰기(전부터의 방식, 문장이 파싱되지 않으므로 LIMIT을 붙이지 않음) |
+| 다시 실행해 내보내기 | `DataExportWizard.appliesExportQuery` | 형태가 있으면 허용(필터가 있으면 위 필터 쿼리, 없으면 문장 그대로) |
+| 다시 읽기 허용 | `ResultSetSource.getRequeryBlocker` | `hasSubqueryForm()`이 거짓이면 전과 같은 "단일 SELECT 쿼리가 아님" |
+| 결과 편집 | `SQLQuery.getStatement()`·단일 원본 테이블 없음(6a) | **꺼진 채로 둠.** UPDATE·DELETE를 만들려면 접두어와 어느 노드인지의 결정이 필요하다(이 변경 밖) |
+| 자동 행 제한(LIMIT), 끊긴 뒤 자동 재실행 | `DBUtils.java`, `SQLQueryRecovery` | 바꾸지 않음(6a와 같음) |
+
+**정렬:** 서버 정렬(머리글 정렬, 행이 더 있을 때)은 바깥 `ORDER BY`라 모든 노드를 합쳐 정렬한다. 사용자가 쓴 ORDER BY(본문)는 노드마다 정렬이라 결과가 노드 순서
+(노드1의 정렬된 행, 노드2의 …)로 나온다. 그래서 머리글로 정렬하면 노드가 섞인 전체 순서가 보이고, 정렬을 없애면 노드별 순서로 돌아간다. 모든 행을 이미 읽었으면
+전처럼 그리드 안에서 정렬한다(설정 "스마트").
+
+### 막힌 경우의 이유
+
+- 깔때기를 누르거나 필터를 적용하거나(오른쪽 클릭 Filter by Value 등) Count Rows를 부르면, 다시 읽을 수 없는 결과에서는 전에는 아무 일도 없었다. 이제 상태 줄(결과
+  아래 줄)에 기존 문구로 이유가 보인다: "필터를 쓸 수 없음: 단일 SELECT 쿼리가 아님", "행 수 세기 실패: 단일 SELECT 쿼리가 아님"
+  (`ResultSetViewerPanel.showRequeryBlocked`). 새 문구·대화상자는 없다. 원인은 같은 검사(`canRequery`)이므로 프로시저 호출 결과(SQL Server `EXEC sp_who`)와 일반 서버의
+  `SHARD SELECT`가 똑같이 보인다. Count Rows는 메뉴와 상태 줄에서 이미 숨겨지므로 보통은 깔때기 클릭이 사용자가 만나는 경우다.
+
+### 자동 완성
+
+- **접두어 안:** `NODE[` 뒤 `meta`, `data`, `all`(입력한 `NODE`가 대문자면 대문자). `all`도 넣었다: SELECT 앞에서는 서버가 거절하지만 DML 앞에서는 맞는 접두어이고,
+  입력하는 때에는 뒤에 무엇이 올지 모른다(사용자가 고름). `data(` 안(쉼표 뒤 포함)은 메타 노드의 노드 이름을 작은따옴표로(`'NODE1'`). 이름은 연결할 때 한 번
+  `SELECT NODE_NAME FROM SYS_SHARD.NODES_ ORDER BY NODE_ID`로 읽는다(이름만, 호스트·포트는 읽지 않음, 새로 고침에서 다시). 메타 노드가 아닌 서버는 이름이 없다.
+  자리: `SQLDialect.getStatementPrefixProposals(text)`(기본 null) → `AltibaseSQLDialect` → `ShardSphereStatementPrefix.getProposals`, 화면은 `SqlCompletionAnalysis`.
+  `[`·`(`를 입력할 때 자동으로 뜨지는 않는다(Ctrl+Space, 또는 글자를 입력할 때 자동 완성).
+- **접두어 뒤 문장:** 커서가 접두어 뒤에 있으면 접두어를 공백으로 지운 글(위치는 그대로)로 분석한다(`SqlCompletionAnalysis.blankStatementPrefix`). 엔진은 줄의 첫
+  낱말을 문장의 첫 키워드로 읽고 파서는 접두어를 모르기 때문이다. 그래서 테이블·열·키워드 제안이 접두어 없는 같은 문장과 같고, 접두어 바로 뒤에서는 문장 첫 키워드
+  (`SEL`까지 쳤으면 SELECT)가 나온다. 의미 모델은 접두어와 뒤 공백을 뺀 본문으로 만들어 그 자리에 등록한다(`recognizeStatement`, 마우스 올림·Ctrl+클릭도 같음).
+
+### 실행 계획
+
+계획(Ctrl+L)은 SQL을 바꾸지 않는다: 드라이버의 계획 모드를 `ONLY`로 두고 같은 문장을 준비해 `getExplainPlan()`을 읽는다(`AltibaseExecutionPlan`). 접두어 SELECT에도
+SELECT만 준비하므로 막지 않았다. 결과(메타 노드, JDBC와 앱 같음): `NODE[meta]`는 메타 노드 자체의 계획(PROJECT, SCAN), `NODE[data]`·`data('n')`·`SHARD`·감싼 형태는
+메타 노드의 조정 계획만(`PROJECT … SHARD-COORDINATOR`), 데이터 노드의 계획은 오지 않는다. 계획 뒤 같은 창의 실행은 정상이다.
+
+### 확인 (2026-11-17, 전: 기준 `4efec38dcb` 빌드, 후: 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- **다시 쓰기 하네스(서버 없음):** 방언 6개 × 문장(일반 SELECT 30개, Altibase·ShardSphere는 접두어 10형태 × 본문 11). **다른 방언(PostgreSQL, SQL Server, Oracle,
+  MySQL, 접두어 없는 Altibase): 260행 전후 같음(차이 0).** ShardSphere: 접두어 SELECT 80개가 "다시 읽음", `NODE[all]`·접두어 둘 20개는 막힘, DML 10개는 막힘(전과 같음).
+- **메타 노드(읽기 전용 연결, SELECT만):** `NODE[data]`(576행, 한 번에 200행): 행 수 576(수동 `SELECT COUNT(*) FROM NODE[data](…)`와 같음), 다음 200행, 필터 `TABLE_TYPE = 'T'`
+  → 행 수 352, 정렬 ↓ → `… z_q ORDER BY z_q.TABLE_ID DESC`, 필터 팝업 값 3개, 내보내기 576행(머리글 + 576줄). `data('n')` 144·필터 41, `meta` 161·필터 102,
+  ORDER BY+LIMIT 3 → 12, 샤드 테이블 노드별 개수(`NODE[data]`, `SHARD`) 행 수 4, 앞 주석과 끝 `;` → `NODE[data](…)`. 새로 고침 뒤에도 같음. 벤더 서버로 간 실행은
+  모두 SELECT(쿼리 관리자 감사 SHARD 73 + 42, SS 12, SELECT 아닌 것 0).
+- **막힌 경우:** 일반 서버의 `SHARD SELECT 1 AS X FROM DUAL`, SQL Server `EXEC sp_who`: 깔때기·필터 → "필터를 쓸 수 없음: 단일 SELECT 쿼리가 아님", Count Rows →
+  "행 수 세기 실패: 단일 SELECT 쿼리가 아님".
+- **Altibase 7.3:** 일반 SELECT의 행 수·필터·정렬 문장은 전과 같은 괄호 감싸기, 접두어 인식 0, `NODE[`에 제안 없음.
+- 캡처: `D:\Tools\_scratch\shardsphere-prefix-requery\sheets\`(저장소 밖).
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 결과 필터·정렬·행 수·값 목록(접두어가 없으면 코드 경로가 같음), 다시 읽을 수 없는 결과의 상태 줄,
+  SQL 자동 완성(접두어가 없으면 같음).
+
+### 미확인 (벤더 문의)
+
+- 미확인: 일반 ShardSphere 서버(메타 노드가 아님)에서 `SHARD SELECT`의 뜻과 `FROM SHARD (…)` 형태를 받는지(받는지 시험하지 않고 막아 둠).
+- 미확인: 데이터 노드에 직접 연결했을 때 접두어 문장과 감싼 형태.
+- 미확인: 데이터 노드의 계획을 볼 방법(`SHARD-COORDINATOR` 아래가 비어 있음).
 
 ## 아직 없는 것
 
-GEMINI 트리와 복제 탭(작업 4·5), 접두어 문장의 행 수·필터·페이지와 자동 완성(작업 6b), 계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
+GEMINI 트리와 복제 탭(작업 4·5), 계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
 샤딩 탐색기(작업 9), 쓰기 기능(작업 11), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
 
 ## 미확인 (벤더 문의)
@@ -225,3 +310,5 @@ GEMINI 트리와 복제 탭(작업 4·5), 접두어 문장의 행 수·필터·�
 - 2026-11-17 문장 접두어 `NODE[...]`/`SHARD`: 모델의 중립 자리 `SQLDialect.getStatementPrefixLength`, 샤딩 패키지가 있는 연결의 방언 기여(접두어, 낱말, 함수),
   종류에 기대는 판단을 본문으로(실행 전 확인, 트랜잭션, 운영 연결 확인, 문장 나누기, Agent), 강조. 접두어 DML이 확인 없이 나가던 구멍을 막음
   (앱 변경 #139 작업 6a, `chromite/shardsphere-prefix-safety`), 위 "문장 접두어".
+- 2026-11-17 접두어 SELECT의 행 수·필터·정렬·값 목록·내보내기를 방언의 하위 질의 형태(`NODE[x](…)`, `SHARD (…)`, 메타 노드에서만)로, 막힌 다시 읽기는 상태 줄에 이유,
+  접두어 안과 뒤의 자동 완성, 실행 계획 확인(앱 변경 #139 작업 6b, `chromite/shardsphere-prefix-requery`), 위 "접두어 문장 다시 읽기".
