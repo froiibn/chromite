@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+    <!-- ShardSphere features on the existing altibase provider (docs/chromite/shardsphere.md). The driver, its jar,
+         data source type and icons stay in ext.altibase: this bundle is recognised by the server's catalog, so an edition
+         without it keeps every saved connection and behaves as Altibase. -->
+    <extension point="com.seizia.chromite.altibase.serverExtension">
+        <serverExtension id="shardsphere" class="com.seizia.chromite.ext.shardsphere.ShardSphereServerExtension"/>
+    </extension>
+
+</plugin>

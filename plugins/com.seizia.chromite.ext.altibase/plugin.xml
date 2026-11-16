@@ -2,6 +2,10 @@
 <?eclipse version="3.2"?>
 <plugin>
 
+    <!-- Chromite: features that only some servers of the family have, contributed by other bundles and recognised by the
+         connected server's catalog, never by the driver (docs/chromite/altibase.md "서버 확장") -->
+    <extension-point id="com.seizia.chromite.altibase.serverExtension" name="Altibase Server Extension" schema="schema/com.seizia.chromite.altibase.serverExtension.exsd"/>
+
     <extension point="com.seizia.chromite.generic.meta">
         <meta id="alti" class="com.seizia.chromite.ext.altibase.model.AltibaseMetaModel" driverClass="Altibase.jdbc.driver.AltibaseDriver,Altibase7_1.jdbc.driver.AltibaseDriver,Altibase7_3.jdbc.driver.AltibaseDriver,shardsphere.jdbc.driver.shardsphereDriver"/>
     </extension>
@@ -375,6 +379,9 @@
                     icon="platform:/plugin/com.seizia.chromite.model/icons/tree/folder_database.svg">
                         <items label="%tree.memorymodules.node.name" path="memoryModule" property="memoryModules" navigable="false"/>
                     </folder>
+                    <!-- Chromite: objects of the server extensions detected on this connection (AltibaseDataSource.getExtensionObjects);
+                         no node on a server without one (docs/chromite/altibase.md "서버 확장") -->
+                    <items label="%tree.server_extension.node.name" path="serverExtension" property="extensionObjects" icon="#info" virtual="true"/>
                 </folder>
              </tree>
         </datasource>

@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="com.seizia.chromite.ext.altibase" xmlns="http://www.w3.org/2001/XMLSchema">
+   <annotation>
+      <appInfo><meta.schema plugin="com.seizia.chromite.ext.altibase" id="com.seizia.chromite.altibase.serverExtension" name="Altibase Server Extension"/></appInfo>
+      <documentation>
+         Features that only some servers of the Altibase family have. Each connection asks every contributed extension
+         whether it applies to the connected server (by the server's catalog, never by the driver or the product name)
+         and keeps the answer on its data source until the connection is refreshed or closed
+         (docs/chromite/altibase.md "서버 확장").
+      </documentation>
+   </annotation>
+   <element name="extension">
+      <annotation><appInfo><meta.element/></appInfo></annotation>
+      <complexType>
+         <sequence><element ref="serverExtension" minOccurs="0" maxOccurs="unbounded"/></sequence>
+         <attribute name="point" type="string" use="required"/>
+         <attribute name="id" type="string"/>
+         <attribute name="name" type="string"/>
+      </complexType>
+   </element>
+   <element name="serverExtension">
+      <complexType>
+         <attribute name="id" type="string" use="required"><annotation><appInfo><meta.attribute kind="identifier"/></appInfo></annotation></attribute>
+         <attribute name="class" type="string" use="required">
+            <annotation>
+               <documentation>Stateless implementation with a public no-argument constructor, shared by all connections.</documentation>
+               <appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.ext.altibase.extension.AltibaseServerExtension"/></appInfo>
+            </annotation>
+         </attribute>
+      </complexType>
+   </element>
+</schema>

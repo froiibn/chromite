@@ -397,6 +397,9 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   작은따옴표 별칭(구문 오류) → 따옴표 없음, DBMS_METADATA의 GET_DEPENDENT_DDL·SET_TRANSFORM_PARAM(없음)은 연결마다 `SYS_PACKAGE_PARAS_`를 보고 있을 때만 부르고
   없으면 주석을 `SYSTEM_.SYS_COMMENTS_`에서 만든다. 이름으로 복제를 찾을 때도 목록처럼 "표 없음"을 복제 없음으로 본다. 제품 이름 검사는 없다.
   자세한 근거와 전후 확인은 [altibase.md](altibase.md) "ShardSphere에서 다른 문장".
+- **ShardSphere 기능 플러그인(2026-11-17, 앱 변경 #139):** ShardSphere에만 있는 기능은 별도 번들 `com.seizia.chromite.ext.shardsphere`(자기 feature)가
+  Altibase 공급자에 얹는다. 이 드라이버·jar·데이터 원본 유형·아이콘은 위 그대로 여기에 있고(저장된 연결 변화 없음), 플러그인은 드라이버가 아니라 서버 카탈로그로
+  ShardSphere를 알아본다. 구조·감지·빼는 방법은 [shardsphere.md](shardsphere.md).
 
 ### 폐쇄망 오프라인 설치 경로
 
@@ -478,3 +481,4 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - 2026-11-15 ShardSphere "어두운 테마": 밝은 판 선언(`lightPlate` 두 줄, 앱 변경 #114). 드라이버 정의는 그대로.
 - 2026-11-15 ShardSphere 드라이버의 기본 사용자를 `sys`로(프로젝트 소유자의 결정, `chromite/shardsphere-default-user`).
 - 2026-11-15 ShardSphere 연결의 키워드를 서버의 `V$RESERVED_WORDS`에 맞춤(앱 변경 #115, `chromite/shardsphere-keywords`), "ShardSphere"의 "예약어".
+- 2026-11-17 ShardSphere 기능을 별도 번들·feature로(앱 변경 #139, `chromite/shardsphere-plugin-skeleton`): 드라이버 정의는 그대로, "ShardSphere"에 [shardsphere.md](shardsphere.md)를 가리키는 항목.

@@ -23,6 +23,9 @@ import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtension;
+import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionRegistry;
+import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.plan.AltibaseActualPlanProvider;
 import com.seizia.chromite.ext.altibase.model.plan.AltibaseQueryPlanner;
 import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSessionManager;
@@ -99,6 +102,10 @@ import java.util.WeakHashMap;
  *   없음"으로 답한다. Object Explorer 밖에서 이름을 찾는 {@link #getChild}가 표 없음 오류를 냈다. {@link #hasDbmsMetadataSubprogram}:
  *   연결한 서버의 DBMS_METADATA에 있는 서브프로그램을 연결마다 한 번 읽는다(메타 모델은 연결 사이에 공유되므로 여기에 둔다,
  *   앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
+ * - 2026-11-17 서버 확장({@link AltibaseServerExtension}): 연결이 쓸 수 있게 된 뒤 {@link #initialize}에서 한 번 감지해 이 인스턴스에 두고
+ *   (메타 모델은 연결 사이에 공유되므로), 새로 고침에서 다시 감지한다. {@link #getAdapter}는 감지된 확장에 먼저 묻고,
+ *   {@link #getExtensionObjects}는 System Info 아래 트리 자리에 확장의 객체를 낸다. 확장이 없으면 질의를 하나도 더 하지 않는다
+ *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장", docs/chromite/shardsphere.md)
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -126,6 +133,11 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     @Nullable
     private volatile Set<String> dbmsMetadataSubprograms;
 
+    // The server extensions that apply to this connection's server, detected in initialize. Null until then: the
+    // superclass constructor opens the connection and asks getAdapter before field initializers of this class run.
+    @Nullable
+    private volatile List<AltibaseServerExtensionState> serverExtensions;
+
     public AltibaseDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container, AltibaseMetaModel metaModel)
             throws DBException {
         super(monitor, container, metaModel, new AltibaseSQLDialect());
@@ -144,6 +156,52 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         // PublicSchema is for global objects such as public synonym.
         publicSchema = new GenericSchema(this, null, AltibaseConstants.USER_PUBLIC);
         publicSchema.setVirtual(true);
+
+        serverExtensions = detectServerExtensions(monitor);
+    }
+
+    /**
+     * Asks every installed server extension whether it applies to this server. Without an installed extension no session
+     * is opened; a failing extension is "not present" and never fails the connect.
+     */
+    @NotNull
+    private List<AltibaseServerExtensionState> detectServerExtensions(@NotNull DBRProgressMonitor monitor) {
+        List<AltibaseServerExtension> extensions = AltibaseServerExtensionRegistry.getInstance().getExtensions();
+        if (extensions.isEmpty()) {
+            return List.of();
+        }
+        List<AltibaseServerExtensionState> detected = new ArrayList<>();
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Detect server extensions")) {
+            for (AltibaseServerExtension extension : extensions) {
+                try {
+                    AltibaseServerExtensionState state = extension.detect(session, this);
+                    if (state != null) {
+                        detected.add(state);
+                    }
+                } catch (RuntimeException | LinkageError e) {
+                    log.debug("Server extension " + extension.getClass().getName() + " failed to detect its server", e);
+                }
+            }
+        } catch (DBException | RuntimeException e) {
+            log.debug("Can't open a session to detect server extensions", e);
+        }
+        return List.copyOf(detected);
+    }
+
+    /**
+     * Objects of the detected server extensions, shown under System Info (tree host {@code serverExtension} in
+     * {@code plugin.xml}). Read from this connection's detection, no query.
+     */
+    @NotNull
+    public Collection<DBSObject> getExtensionObjects() {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        List<DBSObject> objects = new ArrayList<>();
+        if (extensions != null) {
+            for (AltibaseServerExtensionState extension : extensions) {
+                objects.addAll(extension.getTreeObjects());
+            }
+        }
+        return objects;
     }
 
     @Override
@@ -228,6 +286,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         this.jobCache.clearCache();
         this.dbLinkCache.clearCache();
         this.dbmsMetadataSubprograms = null;
+        // Detected again by initialize below
+        this.serverExtensions = null;
 
         hasStatistics = false;
 
@@ -252,6 +312,15 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     @Nullable
     @Override
     public <T> T getAdapter(@NotNull Class<T> adapter) {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        if (extensions != null) {
+            for (AltibaseServerExtensionState extension : extensions) {
+                T extensionAdapter = extension.getAdapter(adapter);
+                if (extensionAdapter != null) {
+                    return extensionAdapter;
+                }
+            }
+        }
         if (adapter == DBCServerOutputReader.class) {
             return adapter.cast(outputReader);
         } else if (adapter == DBCQueryPlanner.class) {
