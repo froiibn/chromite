@@ -54,6 +54,17 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.3">
+    <h2>26.1.3</h2>
+    <div class="body">
+      <p>Fixes how the server of an Oracle TNS connection is shown.</p>
+      <ul>
+        <li>Fix · Oracle TNS connections: Registered Servers, Object Explorer, the Properties window and the status line showed the server as localhost (or as the last server used with the driver). They now show the network alias. Connections you already have are shown correctly without saving them again, and what they connect to does not change</li>
+        <li>Chromite Agent: the connection information tool (getConnectionInfo) returns one address field, the same text as the screens, instead of host and port</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.2">
     <h2>26.1.2</h2>
     <div class="body">
