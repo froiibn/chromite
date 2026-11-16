@@ -398,9 +398,11 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         ResultSetEditModel editModel = editContext == null ? null
             : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, lobColumns, rawValues, rows, enumValues);
         rawValues.clear();
-        String blocker = context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
-        ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker,
-            unreadableColumns.clone(), lobColumns.clone(), List.copyOf(cellValues));
+        // A fetch that did not complete can't be read again whatever the connection does
+        ResultSetSource.Blocker blocker = context == null ? new ResultSetSource.Blocker(EditorMessages.editor_grid_fetch_incomplete, false)
+            : ResultSetSource.getRequeryBlocker(dataContainer, context);
+        ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker == null ? null : blocker.reason(),
+            blocker != null && blocker.connection(), unreadableColumns.clone(), lobColumns.clone(), List.copyOf(cellValues));
         cellValues.clear();
         consumer.accept(new ResultSetGrid.Fetched(data, editModel, readOnlyReason, editingApplies, source, null));
     }

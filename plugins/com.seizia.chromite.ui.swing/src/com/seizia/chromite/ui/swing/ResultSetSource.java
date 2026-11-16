@@ -47,11 +47,14 @@ import java.util.List;
  * - 2026-11-08 결과를 만든 문장을 정하지 못한 배치 결과는 다시 읽지 않고 그 이유를 보임 (docs/chromite/sql-batch-reread.md)
  * - 2026-11-16 LOB 열({@link #lobColumns})과 다시 읽기가 결과의 종류로 해당하는지({@link #appliesRequery}): 오른쪽 클릭 메뉴가 해당하지 않는
  *   명령을 숨김 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-16 막는 이유가 연결인지를 문구 비교 대신 {@link Blocker}로 넘김({@link #requeryBlockedByConnection})
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
  * @param segmentSize       rows read at once (the engine's maximum row count), 0 if all rows were read
  * @param requeryBlocker    why the query can't be read again (sorting on the server, filters, next pages), or null
+ * @param requeryBlockedByConnection the blocker is that the connection was closed when the result was read (it can be
+ *                          read again once connected); false for what the query is and for a fetch that did not complete
  * @param unreadableColumns columns whose values were not kept: value objects other than LOBs, or read errors
  * @param lobColumns        columns whose fetched values were LOB value objects (also string columns a driver delivers as
  *                          LOBs, such as MariaDB {@code LONGTEXT}), as the edit model has them
@@ -62,29 +65,39 @@ record ResultSetSource(
     @Nullable DBCExecutionContext context,
     long segmentSize,
     @Nullable String requeryBlocker,
+    boolean requeryBlockedByConnection,
     @NotNull boolean[] unreadableColumns,
     @NotNull boolean[] lobColumns,
     @NotNull List<Object[]> cellValues
 ) {
 
     /**
+     * Why a query can't be read again, and whether that is the connection (closed now) rather than what the query is.
+     *
+     * @param reason     the reason shown to the user
+     * @param connection the connection is not open; the query itself could be read again
+     */
+    record Blocker(@NotNull String reason, boolean connection) {
+    }
+
+    /**
      * Why a query can't be read again with filters and row offsets, or null if it can (job thread: parses the query).
      */
     @Nullable
-    static String getRequeryBlocker(@NotNull DBSDataContainer dataContainer, @Nullable DBCExecutionContext context) {
+    static Blocker getRequeryBlocker(@NotNull DBSDataContainer dataContainer, @Nullable DBCExecutionContext context) {
         if (context == null || !context.isConnected()) {
-            return EditorMessages.editor_common_not_connected;
+            return new Blocker(EditorMessages.editor_common_not_connected, true);
         }
         if (!dataContainer.isFeatureSupported(DBSDataContainer.FEATURE_DATA_FILTER)) {
-            return EditorMessages.editor_source_no_filters;
+            return new Blocker(EditorMessages.editor_source_no_filters, false);
         }
         if (dataContainer instanceof SQLQueryDataContainer resultContainer && resultContainer.isWholeBatchOnly()) {
-            return EditorMessages.editor_source_whole_batch;
+            return new Blocker(EditorMessages.editor_source_whole_batch, false);
         }
         if (dataContainer instanceof SQLQueryContainer queryContainer) {
             SQLScriptElement element = queryContainer.getQuery();
             if (!(element instanceof SQLQuery query) || query.getType() != SQLQueryType.SELECT || query.isModifying()) {
-                return EditorMessages.editor_source_not_single_select;
+                return new Blocker(EditorMessages.editor_source_not_single_select, false);
             }
         }
         return null;
@@ -100,6 +113,6 @@ record ResultSetSource(
      * container without filters, a batch statement that is not known) or a fetch that did not complete.
      */
     boolean appliesRequery() {
-        return context != null && (requeryBlocker == null || EditorMessages.editor_common_not_connected.equals(requeryBlocker));
+        return context != null && (requeryBlocker == null || requeryBlockedByConnection);
     }
 }

@@ -2325,7 +2325,7 @@ final class ResultSetViewerPanel extends JPanel {
             : new ResultSetEditModel(oldModel.getExecutionContext(), oldModel.getDataContainer(), old.bindings(), unreadable,
                 oldModel.getLobColumns(), values, display, oldModel.getEnumValues());
         ResultSetSource newSource = new ResultSetSource(source.dataContainer(), source.context(), source.segmentSize(),
-            source.requeryBlocker(), unreadable, source.lobColumns(), List.copyOf(cells));
+            source.requeryBlocker(), source.requeryBlockedByConnection(), unreadable, source.lobColumns(), List.copyOf(cells));
         fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), fetched.editingApplies(), newSource, fetched.exportQuery());
         ordinals = newOrdinals;
         installGrid(new ResultSetGrid(fetched, gridHost), keepView);
