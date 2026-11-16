@@ -157,7 +157,8 @@ import java.util.regex.Pattern;
  *     <li>Set as Default: 데이터베이스·스키마를 연결 주 세션의 기본값으로({@link DefaultObjectCommands}). 주 세션의 기본 데이터베이스·스키마는 굵게 그린다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
- *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳에서도, 최상위에 만들고 이 창에 넣는다), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
+ *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳에서도, 최상위에 만들고 이 창에 넣는다), Connect / Disconnect / Reconnect(오른쪽 클릭
+ *     메뉴에는 연결 노드에서만 보이고, 도구 막대 단추는 연결 아래 어느 노드에서나 그 연결에),
  *     Edit Connection(Enter), Rename(F2), Delete(Delete 키, 확인 후)는 연결 노드에서.</li>
  *     <li>객체 스크립트(SSMS): "Select Top 1000 Rows"(테이블·뷰, 새 편집기에서 바로 실행), "Script as > CREATE To / SELECT To >
  *     New Query Editor Window / Clipboard", "View DDL"(읽기 전용 탭). SQL은 {@link ObjectScripts}(모델의 SQL 생성기)가 만들고,
@@ -179,7 +180,7 @@ import java.util.regex.Pattern;
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
  *     <li>Filter(SSMS): 고른 객체 폴더의 포함·제외 마스크 대화상자({@link ObjectFilterDialog}). DBeaver 탐색기 필터({@code DBSObjectFilter})를
  *     그대로 써서 연결 설정에 저장된다. 필터가 걸린 폴더는 보조 글자에 "필터됨"을 붙인다. Collapse All은 펼친 노드를 모두 접는다.</li>
- *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
+ *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(연결 노드), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다. Search Data…(스키마·카탈로그·"Tables" 폴더 하나, 또는 같은 부모의
  *     테이블 여러 개)는 값을 행에서 찾는 문서 탭({@link DataSearchPanel})을 연다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
@@ -287,6 +288,9 @@ import java.util.regex.Pattern;
  *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  * - 2026-11-16 오른쪽 클릭 메뉴에 노드에 해당하는 명령만 보임, 해당하지만 지금 할 수 없는 명령은 꺼짐, 구분선 정리({@link ContextMenus},
  *   앱 변경 #137, docs/chromite/context-menus.md). "더 읽기" 항목의 구분선을 따로 숨기던 코드는 정리 도우미로 대신함
+ * - 2026-11-16 연결 상태 명령과 서버 보기(Activity Monitor, Locks, 대시보드, 관리 보기)는 연결 노드에서만, New Connection·Disconnect All은 빈 곳과
+ *   연결 노드에서만, Find Objects·Compare Schemas는 그곳과 데이터베이스·스키마에서만 메뉴에 보임(사용자 결정 "연결 노드에서만"). 켜짐은 그대로라
+ *   도구 막대와 키는 전과 같다({@link ContextMenus#setApplies}, docs/chromite/context-menus.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1266,7 +1270,6 @@ final class ObjectExplorerPanel extends JPanel {
         boolean connectionNode = getSelectedNavigatorNode() instanceof DBNDataSource;
         boolean connected = dataSource != null && dataSource.isConnected();
         boolean project = projectNode != null;
-        ContextMenus.set(newConnectionAction, project, true);
         connectServerAction.setEnabled(project);
         ContextMenus.set(newQueryAction, underConnection, true);
         ContextMenus.set(recentScriptsMenu, underConnection, true);
@@ -1299,22 +1302,45 @@ final class ObjectExplorerPanel extends JPanel {
         routineCommands.update(getSelectedNavigatorNode());
         ContextMenus.set(debugAction, DebugCommands.canDebug(object), true);
         ContextMenus.set(traceAction, ExecutionTraceCommands.canTrace(object), true);
-        // The connection commands apply to every node under a connection; the connection state decides which are possible
-        ContextMenus.set(connectAction, underConnection, !connected);
+        // Connection and server commands are shown on the connection node only (user decision), project commands on the
+        // empty area and connection nodes. The tool bar (Connect, Disconnect) and the keys use the same actions, so their
+        // enabled state stays as before: under a connection, by its state
+        ContextMenus.setApplies(connectAction, connectionNode);
+        connectAction.setEnabled(underConnection && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
-        ContextMenus.set(disconnectAction, underConnection, true);
+        ContextMenus.setApplies(disconnectAction, connectionNode);
+        disconnectAction.setEnabled(underConnection);
         List<DBPDataSourceContainer> connectedServers = getConnectedServers();
-        ContextMenus.set(disconnectOthersAction, underConnection, connectedServers.stream().anyMatch(container -> container != dataSource));
-        ContextMenus.set(disconnectAllAction, project, !connectedServers.isEmpty());
-        ContextMenus.set(reconnectAction, underConnection, connected);
-        ContextMenus.set(invalidateAction, underConnection, connected);
-        ContextMenus.set(activityMonitorAction, underConnection, true);
-        ContextMenus.set(locksAction, underConnection, true);
-        ContextMenus.set(dashboardAction, underConnection, true);
-        adminViewActions.forEach(action -> ContextMenus.set(action, underConnection, true));
-        ContextMenus.set(findObjectsAction, project, true);
+        ContextMenus.setApplies(disconnectOthersAction, connectionNode);
+        disconnectOthersAction.setEnabled(underConnection && connectedServers.stream().anyMatch(container -> container != dataSource));
+        ContextMenus.setApplies(reconnectAction, connectionNode);
+        reconnectAction.setEnabled(connected);
+        ContextMenus.setApplies(invalidateAction, connectionNode);
+        invalidateAction.setEnabled(connected);
+        for (Action serverView : List.of(activityMonitorAction, locksAction, dashboardAction)) {
+            ContextMenus.setApplies(serverView, connectionNode);
+            serverView.setEnabled(underConnection);
+        }
+        adminViewActions.forEach(action -> {
+            ContextMenus.setApplies(action, connectionNode);
+            action.setEnabled(underConnection);
+        });
+        // Nothing selected (the empty area) or only connection nodes: there are no folders of connections in this tree
+        List<DBNNode> selectedNodes = getSelectedNavigatorNodes();
+        boolean projectPlace = project && (tree.getSelectionCount() == 0
+            || !selectedNodes.isEmpty() && selectedNodes.stream().allMatch(node -> node instanceof DBNDataSource));
+        ContextMenus.setApplies(newConnectionAction, projectPlace);
+        newConnectionAction.setEnabled(project);
+        ContextMenus.setApplies(disconnectAllAction, projectPlace);
+        disconnectAllAction.setEnabled(project && !connectedServers.isEmpty());
+        // Find Objects and Compare Schemas start from the selected database or schema (ObjectSearchPanel.findScope,
+        // SchemaComparePanel.findContainer), so they are shown there too
+        boolean scopeNode = object instanceof DBSCatalog || object instanceof DBSSchema;
+        ContextMenus.setApplies(findObjectsAction, projectPlace || scopeNode);
+        findObjectsAction.setEnabled(project);
         ContextMenus.set(searchDataAction, DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null, true);
-        ContextMenus.set(compareSchemasAction, project, true);
+        ContextMenus.setApplies(compareSchemasAction, projectPlace || scopeNode);
+        compareSchemasAction.setEnabled(project);
         ContextMenus.set(editConnectionAction, connectionNode, true);
         // Only databases that can change the connected user's password (ChangeUserPasswordPropertyTester); the data source
         // tells it, so a closed connection shows the item disabled

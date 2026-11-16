@@ -8,6 +8,9 @@
   (대부분 늘 보이고 못 하면 흐리게 보인다고 답하자) "진행한다. 노드에서 수행 가능한 목록만 나타나게 하고 작업은 가능하지만 현재 조건에 따라
   불가능한건 비활성화로 처리한다"
 - "개체 탐색기를 언급했는데 다른 부분도 전반적으로 점검해본다" (다른 오른쪽 클릭 메뉴도 같은 규칙으로 점검)
+- 테이블 메뉴에 Connect(꺼짐), Disconnect, Disconnect Others, Disconnect All, Reconnect, Invalidate/Reconnect, Activity Monitor, Locks, Server Dashboard,
+  Disk Usage, Server Logs, Maintenance, Replication, New Connection, Find Objects, Compare Schemas가 남아 있고, 규칙대로라면 테이블이 아니라 연결·서버의
+  명령이니 연결 노드에서만 보일지 묻자: "연결 노드에서만"
 
 전에는 개체 탐색기의 오른쪽 클릭 메뉴가 약 50개 항목의 고정 목록이었다. 대부분 늘 보이고, 그 노드에서 할 수 없으면 꺼질 뿐이었다
 (예: SQL Server "파일 그룹" 폴더에서 쓸 수 있는 명령은 "새 파일 그룹…" 하나인데 New View, New Procedure, New Login, Design, Modify 등이 흐리게 함께 보임).
@@ -24,11 +27,19 @@
 따라서:
 
 - 같은 DB의 같은 종류 노드 둘은 같은 항목을 보이고, 꺼진 것만 다르다.
+- **연결·서버 명령은 연결 노드에서만 보인다**(사용자 결정 "연결 노드에서만"): 연결 상태 명령(Connect, Disconnect, Disconnect Others, Reconnect,
+  Invalidate/Reconnect)과 서버 보기(Activity Monitor, Locks, Server Dashboard, Disk Usage, Server Logs, Maintenance, Replication). 프로젝트 명령
+  (New Connection, Disconnect All)은 빈 곳과 연결 노드(여러 개를 골라도 모두 연결이면)에서, Find Objects와 Compare Schemas는 그곳과 데이터베이스·스키마
+  노드에서 보인다(고른 데이터베이스·스키마에서 시작하므로). 이 트리에는 연결 위의 노드(연결 폴더)가 없다: 최상위는 이 창에 연 서버의 평평한 목록이다.
+  이 항목들은 메뉴에만 숨고 켜짐은 그대로라, 도구 막대의 Connect·Disconnect 단추와 키는 연결 아래 어느 노드에서나 전처럼 그 연결에 작동한다
+  (`ContextMenus.setApplies`). 그래서 이 항목들에는 "전에 쓸 수 있던 것은 사라지지 않는다"는 처음 조건이 이 결정으로 풀린다: 테이블·폴더·데이터베이스
+  등 연결 아래 노드에서 위 항목이 메뉴에서 빠진다(Find Objects·Compare Schemas는 데이터베이스·스키마에는 남는다).
 - 상태 짝은 짝으로 남는다: 연결 노드의 Connect / Disconnect(하나는 꺼짐), 사용 / 사용 안 함, 읽기 전용 / 읽기 쓰기, 온라인 / 오프라인.
 - 하위 메뉴(Tasks, Script as, Generate SQL, Recent Scripts, New …)는 안의 항목이 하나도 해당하지 않으면 숨고, 해당하지만 지금 할 수 있는 것이 없으면 꺼진다.
 - 구분선은 맨 앞·맨 뒤·연달아 둘이 되지 않는다. 묶음이 모두 숨으면 그 구분선도 사라진다.
 - 남은 항목의 순서는 그대로다.
-- 도구 막대 단추와 두 번 클릭은 전처럼 켜짐만 본다. 숨은 항목은 늘 꺼져 있다(해당하지 않으면 켜지지 않음). 트리의 키(F2, Delete, F7, F5,
+- 도구 막대 단추와 두 번 클릭은 전처럼 켜짐만 본다. 숨은 항목은 늘 꺼져 있다(해당하지 않으면 켜지지 않음). 예외는 아래 연결·서버·프로젝트 명령으로,
+  메뉴에서만 숨고 켜짐은 전과 같다. 트리의 키(F2, Delete, F7, F5,
   Ctrl+Shift+C …)는 전처럼 명령을 부르고 명령이 스스로 조건을 확인하므로, 해당하지 않는 노드에서는 전처럼 아무 일도 하지 않는다(코드가 바뀌지 않음).
 - **메뉴 막대(File, Edit, Query, …)는 항목을 숨기지 않는다.** 메뉴 막대는 늘 같은 자리에 같은 항목이 있어야 찾을 수 있으므로 지금처럼 끄기만 한다.
   이 규칙은 오른쪽 클릭 메뉴와 선택에 따라 열리는 팝업에만 쓴다.
@@ -60,7 +71,7 @@
 | 항목 | 전 조건 | 해당(보임) | 지금(켜짐) |
 |---|---|---|---|
 | Options의 표시 개수 | 1:950 `MoreItem` 행 | "더 읽기" 행 | – |
-| New Connection… | 1256 `projectNode != null` | 프로젝트(어디서나) | – |
+| New Connection… | 1256 `projectNode != null` | 빈 곳, 연결 노드(여러 개면 모두 연결) | – (켜짐은 전처럼 프로젝트가 있으면) |
 | New Query, Recent Scripts | 1258–1259 `dataSource != null` | 연결 아래 노드 | – |
 | Set as Default | 1328 `canSetDefault` | `appliesSetDefault` | 연결됨, 기본값 아님 |
 | New Table… | 1281 `canCreateTable(folder)` | 같음(폴더의 자식 종류, 드라이버) | – |
@@ -87,13 +98,13 @@
 | Tasks | 1277 | 하위 항목에서 | 하위 항목에서 |
 | Maintenance… | 1279 `canMaintain` | 같음 | – |
 | 유지 관리 명령(TRUNCATE, 트리거·테이블스페이스·파일 그룹 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`) |
-| Connect | 1287 | 연결 아래 노드 | 연결 안 됨 |
-| Disconnect | 1289 | 연결 아래 노드 | – |
-| Disconnect Others | 1291 | 연결 아래 노드 | 다른 연결된 서버가 있음 |
-| Disconnect All | 1292 | 프로젝트(어디서나) | 연결된 서버가 있음 |
-| Reconnect, Invalidate/Reconnect | 1293–1294 | 연결 아래 노드 | 연결됨 |
-| Activity Monitor, Locks, Server Dashboard, Disk Usage, Server Logs, Maintenance, Replication | 1295–1298 | 연결 아래 노드 | – |
-| Find Objects…, Compare Schemas… | 1299, 1301 | 프로젝트(어디서나) | – |
+| Connect | 1287 | 연결 노드 | 연결 안 됨(켜짐은 전처럼 연결 아래 노드 기준, 도구 막대) |
+| Disconnect | 1289 | 연결 노드 | –(켜짐은 전처럼 연결 아래 노드, 도구 막대) |
+| Disconnect Others | 1291 | 연결 노드 | 다른 연결된 서버가 있음 |
+| Disconnect All | 1292 | 빈 곳, 연결 노드(여러 개면 모두 연결) | 연결된 서버가 있음 |
+| Reconnect, Invalidate/Reconnect | 1293–1294 | 연결 노드 | 연결됨 |
+| Activity Monitor, Locks, Server Dashboard, Disk Usage, Server Logs, Maintenance, Replication | 1295–1298 | 연결 노드 | – |
+| Find Objects…, Compare Schemas… | 1299, 1301 | 빈 곳, 연결 노드, 데이터베이스·스키마(`ObjectSearchPanel.findScope`, `SchemaComparePanel.findContainer`가 고른 노드에서 시작) | – |
 | Search Data… | 1300 `findScope` | 같음(스키마·카탈로그·테이블 폴더, 같은 부모의 테이블) | – |
 | Edit Connection…, Duplicate Connection | 1302, 1330 | 연결 노드 | – |
 | Change Password… | 1304 | 연결 노드이고 연결된 DB가 지원함(닫힌 연결은 알 수 없어 보임) | 연결됨 |
@@ -108,9 +119,11 @@
 
 ### 경계에서 고른 것
 
-- **연결 명령은 연결 아래 모든 노드에 해당한다**(Connect/Disconnect/Reconnect, Activity Monitor 등). 클래스 Javadoc의 설계("연결 아래 어느 노드에서나")와
-  전의 켜짐을 그대로 지킨다. 테이블에서도 Connect가 꺼진 채 보인다(연결 여부는 "지금").
-- **New Connection, Disconnect All, Find Objects, Compare Schemas는 프로젝트 명령이라 어디서나 해당한다**(여러 개 선택 포함). 전에 켜져 있던 곳에서 사라지지 않게 했다.
+- **연결·서버 명령과 프로젝트 명령**: 처음(1차)에는 연결 아래 모든 노드·어디서나 보였다. 사용자 결정("연결 노드에서만")으로 위 "규칙"처럼 바꿨다.
+  Find Objects·Compare Schemas는 고른 노드에서 범위를 정하므로(`ObjectSearchPanel.java:187–188, 306`, `SchemaComparePanel.java:138–139, 232`) 데이터베이스·
+  스키마 노드에도 보인다. 그 아래 노드(테이블 등)에서도 위 스키마를 찾아 쓰지만, 그 노드 자체가 범위가 아니므로 보이지 않게 했다.
+- **연결 노드 여러 개를 고르면** New Connection·Disconnect All·Find Objects·Compare Schemas가 보인다. Disconnect 등 한 연결 명령은 전처럼 하나만 고를 때
+  작동하므로(`runOnSelectedDataSource`) 보이지 않는다.
 - **닫힌 연결 노드에서 데이터 원본이 있어야 아는 것**(Change Password, Run Script with Native Client, Import/Export/Copy Tables)은 꺼진 채 보인다.
   연결하면 지원하지 않는 DB(SQLite 등)에서는 숨는다. 그래서 같은 연결이 닫혔을 때와 열렸을 때 항목 수가 다를 수 있다.
 - **연결 노드의 Import/Export/Copy Tables**는 맨 위가 스키마나 데이터베이스인 연결에 해당하고, DB가 여러 개이거나 아직 읽지 않았으면 꺼진다
@@ -148,8 +161,24 @@ Oracle, PostgreSQL, MariaDB, MySQL, Altibase, SQLite 파일), 이 작업이 만�
   ER 다이어그램 탭: 닫기·다시 열기·고정·배치만, 쿼리 창: 전과 같음, 저장 전 창은 경로 항목 꺼짐), Messages(오류 글자: 오류 위치로 가기, 다른 글자: 복사만),
   ER 다이어그램(뷰: Design 없음).
 
-덤프·캡처: `D:\Tools\_scratch\explorer-menu-applicable\dumps\`(before.tsv, after.tsv, matrix.md, checks.txt, p2-*.tsv),
-`D:\Tools\_scratch\explorer-menu-applicable\sheets\`.
+위는 1차(연결 명령이 연결 아래 모든 노드에 보이던 때)의 요약이다. 1차 덤프와 행렬은 `*-round1.*`로 남겼다.
+
+### 연결 노드에서만 (2차, 2026-11-16, 영어·150 %)
+
+- 전(devel)에 켜져 있다가 지금 빠진 (노드, 항목)은 결정한 항목뿐이다(연결 노드·빈 곳이 아닌 노드에서): New Connection·Disconnect All 85,
+  Disconnect·Disconnect Others·Reconnect·Invalidate/Reconnect·Activity Monitor·Locks·Server Dashboard·Disk Usage·Server Logs·Maintenance·Replication 각 81,
+  Find Objects·Compare Schemas 각 77. 그 밖에는 1차와 같은 다섯 건(위 설명, 같은 상태에서 devel 식도 false)뿐이다.
+- 구분선 문제 0, 빈 메뉴 0(가장 작은 메뉴: 연결과 테이블을 섞어 고름 = Copy Name·Refresh, "더 읽기" 행 = 표시 개수·Refresh).
+- 보이는 항목 수(devel / 1차 / 지금): 빈 곳 50/5/5, 연결(열림) 50/27/27, 연결(닫힘) 50/27/27, 데이터베이스 50/28/14, 스키마 50/29/15,
+  Tables 폴더 50/25/9, 테이블 51/36/20, 열 50/25/9, 뷰 50/34/18, 프로시저 50/32/16, SQL Server 파일 그룹 폴더 51/23/7, Oracle 테이블스페이스 50/28/12,
+  로그인 50/26/10, 테이블 여러 개 51/12/8, 테이블+뷰 50/11/7, 연결 여러 개 –/6/6(New Connection, Disconnect All, Find Objects, Compare Schemas, Copy Name, Refresh).
+- 켜짐은 그대로: 테이블과 연결 노드를 골랐을 때 탐색기 도구 막대(Connect, Disconnect 등)와 메뉴 막대(File, Tools의 Activity Monitor·Locks·Find Objects 등)의
+  켜짐이 1차와 같다. 달라진 것은 쿼리 창이 열려 있느냐에 따르는 편집기 항목뿐이다(1차 실행에는 쿼리 창이 있었음).
+- 키와 두 번 클릭: 트리의 키(Enter, F2, Delete, F5, F7, Ctrl+Shift+C, Ctrl+F) 가운데 이 명령들을 부르는 것은 없다. Enter는 연결 노드에서 Edit Connection,
+  다른 노드에서 펼치기/접기, 두 번 클릭은 설정대로(기본 펼치기)이며 1차와 같게 동작했다.
+
+덤프·캡처: `D:\Tools\_scratch\explorer-menu-applicable\dumps\`(before.tsv, after.tsv, matrix.md, checks.txt, `*-round1.*`, bar-round1.tsv, bar-now.tsv,
+p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-after-*.png는 devel과 지금).
 
 ## 다른 오른쪽 클릭 메뉴
 
@@ -189,3 +218,5 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-16 Registered Servers: 서버 메뉴의 Change Password…를 지원하지 않는 연결된 서버에서 숨김(앱 변경 #137 2부)
 - 2026-11-16 문서 탭·Messages: 쿼리 창 항목은 쿼리 창 탭에서만, 오류 위치로 가기는 오류 글자에서만 보임(앱 변경 #137 2부)
 - 2026-11-16 ER 다이어그램: 개체 메뉴의 Design·Select Top은 해당하는 개체에서만 보임(앱 변경 #137 2부)
+- 2026-11-16 연결·서버 명령은 연결 노드에서만, 프로젝트 명령은 빈 곳과 연결 노드에서만, Find Objects·Compare Schemas는 그곳과 데이터베이스·스키마에서만 보임
+  (사용자 결정 "연결 노드에서만", `ContextMenus.setApplies`, 켜짐은 그대로)
