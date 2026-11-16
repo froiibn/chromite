@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Chromite ShardSphere features (docs/chromite/shardsphere.md).
+
+    Design: the ShardSphere bundle only contributes to the existing altibase provider (the driver altibase:shardsphere,
+    its jar, data source type and icons stay in com.seizia.chromite.ext.altibase and the bundled drivers feature), and
+    nothing depends on it. So this feature is the unit an edition leaves out: a product whose Swing feature does not
+    include it keeps every saved ShardSphere connection and serves it exactly as the Altibase plugin does.
+
+    History:
+    - 2026-11-17 Created with the bundle's first feature: detection of GEMINI, the sharding package and the meta node
+      (app change #139).
+-->
+<feature
+        id="com.seizia.chromite.shardsphere.feature"
+        label="Chromite ShardSphere"
+        version="1.0.0.qualifier"
+        provider-name="Chromite contributors">
+
+    <description>ShardSphere features of Chromite: server detection by catalog</description>
+
+    <copyright>Chromite contributors</copyright>
+
+    <plugin id="com.seizia.chromite.ext.shardsphere" version="0.0.0"/>
+
+</feature>

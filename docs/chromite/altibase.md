@@ -685,6 +685,42 @@ ShardSphere의 GEMINI 복제를 이 플러그인의 복제 클래스로 보이�
 - ShardSphere 서버에는 연결하지 않았다: 복제 목록 코드는 바뀌지 않았고, 복제 객체가 없는 서버에서는 `refreshObjectState`가 불릴 수 없다.
 - 회귀 테스트는 작성·실행하지 않았다.
 
+## 서버 확장 (2026-11-17, 앱 변경 #139)
+
+### 목적
+
+Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤딩)을 다른 번들이 이 플러그인을 고치지 않고 얹게 하는 자리다.
+이 플러그인은 그 서버가 무엇인지 모른다(제품 이름 검사 없음). 첫 사용자는 ShardSphere 플러그인이다([shardsphere.md](shardsphere.md)).
+
+### 구조
+
+| 위치 | 하는 일 |
+|---|---|
+| `plugin.xml` 확장 지점 `com.seizia.chromite.altibase.serverExtension`, 스키마 `schema/com.seizia.chromite.altibase.serverExtension.exsd` | `<serverExtension id="…" class="…"/>`. 클래스는 상태 없는 구현 하나로 모든 연결이 함께 쓴다 |
+| `extension/AltibaseServerExtension` | `detect(JDBCSession, AltibaseDataSource)`: 연결한 서버의 카탈로그를 읽고(SELECT만) 맞으면 그 연결의 상태를, 아니면 null을 돌려준다. 실패는 "없음" |
+| `extension/AltibaseServerExtensionState` | 연결마다의 결과. `getAdapter(Class)`(데이터 원본의 어댑터를 먼저 답함), `getTreeObjects()`(아래 트리 자리의 객체). 기본 구현은 "기여 없음" |
+| `extension/AltibaseServerExtensionRegistry` | 확장 지점을 처음 물을 때 한 번 읽고 확장 객체를 하나씩 만든다. 만들 수 없는 확장은 기록하고 뺀다 |
+| `AltibaseDataSource.initialize` → `detectServerExtensions` | 연결이 쓸 수 있게 된 뒤(상위 `initialize`, LOB 임계값 다음) 확장마다 `detect`를 메타 세션 하나에서 부르고 결과를 인스턴스 필드 `serverExtensions`에 둔다. 확장이 없으면 세션도 열지 않는다 |
+| `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
+| `AltibaseDataSource.getAdapter` | 감지된 확장에 먼저 묻고, 답이 없으면 전과 같다 |
+| `AltibaseDataSource.getExtensionObjects` + `plugin.xml` 트리 System Info 안 `<items path="serverExtension" property="extensionObjects">` | 트리 자리. 감지된 확장의 객체가 System Info 아래 노드가 되고 그 `@Property`가 속성 보기에 보인다. 확장이 없는 서버에서는 노드가 없다(빈 목록, 질의 없음) |
+
+### 설계 결정
+
+- **연결마다의 상태는 데이터 원본 인스턴스에만 둔다.** 메타 모델(`AltibaseMetaModel`)은 같은 드라이버의 모든 연결이 함께 쓰고, 어댑터 팩토리·공급자의 트리 정의·
+  방언의 정적 낱말 목록도 공유된다(ShardSphere 계획의 위험 목록). 확장 객체도 공유되므로 상태를 갖지 않고 `detect`가 연결마다 새 상태 객체를 돌려준다.
+- **감지는 연결할 때 한 번.** 쓸 때마다 묻지 않는 이유: 트리·어댑터가 자주 묻고, 서버가 바뀌는 일은 연결 안에서 없다. 새로 고침은 카탈로그를 다시 읽는 사용자의 요청이므로 다시 감지한다.
+- **실패는 연결을 막지 않는다.** 확장의 오류(`RuntimeException`, `LinkageError`)와 세션 오류는 디버그 기록만 남기고 그 확장은 "없음"이다.
+- **어댑터는 확장이 먼저.** 계열 공통 구현(세션 관리자, 실행 계획 등)을 어느 서버에서 바꿔야 할 때 이 클래스를 고치지 않으려고. 확장이 없으면 빈 목록을 한 번 도는 비용뿐이다.
+- **트리 자리는 System Info 안 한 곳.** 이번 변경이 쓰는 곳만 두었다. 다음 작업의 GEMINI 트리는 Replications 폴더 아래이고(계획의 결정), 그때 필요한 자리를 정한다.
+- **이번에 두지 않은 것(쓰는 곳이 없어서):** 방언 기여(추가 문법 낱말·함수)는 작업 6에서 문장 접두어(`NODE[...]`)와 실행 전 확인 보강과 함께 넣는다. 그보다 먼저
+  `NODE`·`SHARD` 낱말을 강조·완성에 내면 확인을 건너뛰는 문장(`NODE[all] DELETE …`)을 권하는 셈이고, 서버 예약어는 이미 `V$RESERVED_WORDS`에서 온다.
+  복제 카탈로그 전략(S2, GEMINI 트리와 함께), 관리 보고서(S4), 객체 명령(S6/S7)도 그 작업에서 정한다.
+
+### upstream 대비 변경점
+
+- upstream에는 Altibase 서버 확장이 없다. 확장 지점, 세 타입, 데이터 원본의 감지·어댑터·트리 자리, System Info의 트리 항목 하나를 더했다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -706,3 +742,5 @@ ShardSphere의 GEMINI 복제를 이 플러그인의 복제 클래스로 보이�
   위 "ShardSphere에서 다른 문장".
 - 2026-11-17 복제의 상태 다시 읽기를 목록의 조회 문장으로(프로시저 질의 복사 결함), 패키지 서브프로그램이 같은 이름의 독립 프로시저 상태를 읽던 것을 고침
   (앱 변경 #139 작업 1), 위 "상태 다시 읽기".
+- 2026-11-17 Altibase 서버 확장 지점(`com.seizia.chromite.altibase.serverExtension`): 연결마다 감지해 데이터 원본에 두고, 어댑터를 먼저 묻고, System Info 아래 트리 자리
+  (앱 변경 #139 작업 2·3, 첫 사용자는 ShardSphere 플러그인), 위 "서버 확장".

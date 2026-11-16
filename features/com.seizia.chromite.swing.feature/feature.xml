@@ -16,6 +16,8 @@
     <includes id="com.seizia.chromite.db.feature" version="0.0.0"/>
     <!-- Public edition bundled JDBC drivers (docs/chromite/drivers.md) -->
     <includes id="com.seizia.chromite.drivers.public.feature" version="0.0.0"/>
+    <!-- ShardSphere features on the altibase provider; an edition without them drops this line (docs/chromite/shardsphere.md) -->
+    <includes id="com.seizia.chromite.shardsphere.feature" version="0.0.0"/>
 
     <!-- Swing UI -->
     <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>
