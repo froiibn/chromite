@@ -72,6 +72,8 @@ import java.util.concurrent.*;
  *   (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  * - 2026-11-08 결과 열이 아닌 것으로 정렬하는 쿼리를 감쌀 때 그 정렬 값을 숨은 열로 더하고 바깥 열 목록을 따로 씀. 안쪽에 남은 ORDER BY가
  *   SQL Server에서 오류 1033이었다(evening #23, docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
+ * - 2026-11-17 {@link #isSelectQuery}가 문장 접두어를 뺀 본문을 봄(운영 연결의 실행 확인이 접두어가 있는 SELECT를 변경 문처럼 물었다,
+ *   앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public class SQLSemanticProcessor {
 
@@ -186,7 +188,8 @@ public class SQLSemanticProcessor {
 
     public static boolean isSelectQuery(@Nullable SQLDialect dialect, @NotNull String query) {
         try {
-            Statement statement = parseQuery(dialect, query);
+            // A statement prefix (SQLDialect.getStatementPrefixLength) does not make a SELECT another statement
+            Statement statement = parseQuery(dialect, dialect == null ? query : query.substring(dialect.getStatementPrefixLength(query)));
             return statement instanceof PlainSelect plainSelect && CommonUtils.isEmpty(plainSelect.getIntoTables());
         } catch (Throwable e) {
             //log.debug(e);

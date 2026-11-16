@@ -72,6 +72,10 @@ import java.util.stream.Collectors;
  * - 2026-11-07 {@link #isTruncate()}: 쿼리 창의 위험한 문 확인이 TRUNCATE도 묻도록 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-15 WITH 절의 쿼리 이름을 FROM에서 읽는 SELECT는 단일 원본 테이블이 없음. 결과 그리드가 그 이름을 기본 스키마의
  *   같은 이름 테이블에 묶어 편집이 그 테이블에 쓰던 결함(앱 변경 #121, docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
+ * - 2026-11-17 문장 접두어({@link SQLDialect#getStatementPrefixLength}): 접두어가 있는 문장은 접두어를 뺀 본문으로 종류·변경 여부·위험 판단을
+ *   정한다. 전에는 접두어 때문에 파싱이 실패해 UNKNOWN이 되어 WHERE 없는 DELETE·DROP·TRUNCATE도 실행 전 확인 없이 나갔다.
+ *   본문의 파싱 결과는 판단에만 쓰고 {@link #getStatement()}·단일 원본 테이블·선택 항목은 비워 둔다: 다시 쓰는 코드(행 수, 필터, 페이지,
+ *   결과 편집)가 접두어를 잃은 문장을 만들지 않게(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public class SQLQuery implements SQLScriptElement {
 
@@ -103,6 +107,9 @@ public class SQLQuery implements SQLScriptElement {
     @NotNull
     private SQLQueryType type;
     private Statement statement;
+    // The parsed statement the kind and the danger flags are read from: the statement, or the body of a prefixed one
+    private Statement classifiedStatement;
+    private int statementPrefixLength;
     private SQLObjectOperation objectOperation;
     private SingleTableMeta singleTableMeta, rawSingleTableMetadata;
     private List<SQLSelectItem> selectItems;
@@ -180,7 +187,9 @@ public class SQLQuery implements SQLScriptElement {
                 this.parseError = new DBException("Empty query");
                 return;
             }
-            statement = SQLSemanticProcessor.parseQuery(dataSource == null ? null : dataSource.getSQLDialect(), text);
+            SQLDialect dialect = dataSource == null ? null : dataSource.getSQLDialect();
+            statementPrefixLength = dialect == null ? 0 : Math.max(0, Math.min(text.length(), dialect.getStatementPrefixLength(text)));
+            statement = SQLSemanticProcessor.parseQuery(dialect, text.substring(statementPrefixLength));
             if (statement instanceof Select) {
                 type = SQLQueryType.SELECT;
                 if (statement instanceof PlainSelect plainSelect) {
@@ -331,6 +340,30 @@ public class SQLQuery implements SQLScriptElement {
             }
             this.parseError = e;
             //log.debug("Error parsing SQL query [" + query + "]:" + CommonUtils.getRootCause(e).getMessage());
+        }
+        classifiedStatement = statement;
+        if (statementPrefixLength > 0) {
+            keepPrefixedStatementForClassificationOnly();
+        }
+    }
+
+    /**
+     * A statement with a prefix ({@link SQLDialect#getStatementPrefixLength}) is classified by its body, but nothing that
+     * rewrites or re-reads the statement may use the body: the rewritten text would lose the prefix and run elsewhere
+     * (count, filter and paging wrappers, the result grid's table binding that generates UPDATE/DELETE, limits). So the
+     * parsed statement, the single source table and the select items stay unset, as for a statement the parser could not
+     * read, and only the kind, the object operation and the danger flags come from the body. A prefixed COMMIT or
+     * ROLLBACK stays UNKNOWN: the query window ends the whole session's transaction after a COMMIT/ROLLBACK statement,
+     * which must not follow one that the prefix limits to some nodes.
+     */
+    private void keepPrefixedStatementForClassificationOnly() {
+        statement = null;
+        singleTableMeta = null;
+        rawSingleTableMetadata = null;
+        selectItems = null;
+        allSelectEntitiesNames.clear();
+        if (type == SQLQueryType.COMMIT || type == SQLQueryType.ROLLBACK) {
+            type = SQLQueryType.UNKNOWN;
         }
     }
 
@@ -811,14 +844,24 @@ public class SQLQuery implements SQLScriptElement {
         return resultsMaxRows;
     }
 
+    /**
+     * The length of the statement prefix the dialect found at the start of the text ({@link SQLDialect#getStatementPrefixLength}),
+     * 0 if none. The kind and the danger flags describe the statement after the prefix; {@link #getStatement()} is null
+     * for a prefixed statement, so that nothing rewrites it without its prefix.
+     */
+    public int getStatementPrefixLength() {
+        parseQuery();
+        return statementPrefixLength;
+    }
+
     public boolean isDeleteUpdateDangerous() {
         parseQuery();
-        if (statement == null) {
+        if (classifiedStatement == null) {
             return false;
         }
-        if (statement instanceof Delete delete) {
+        if (classifiedStatement instanceof Delete delete) {
             return delete.getWhere() == null;
-        } else if (statement instanceof Update update) {
+        } else if (classifiedStatement instanceof Update update) {
             return update.getWhere() == null;
         }
         return false;
@@ -830,13 +873,13 @@ public class SQLQuery implements SQLScriptElement {
      */
     public boolean isTruncate() {
         parseQuery();
-        return statement instanceof Truncate;
+        return classifiedStatement instanceof Truncate;
     }
 
     public boolean isDropDangerous() {
         parseQuery();
-        return objectOperation != null && objectOperation.operation() == SQLObjectOperation.Operation.DROP || statement != null &&
-            statement instanceof Drop dropStatement &&
+        return objectOperation != null && objectOperation.operation() == SQLObjectOperation.Operation.DROP || classifiedStatement != null &&
+            classifiedStatement instanceof Drop dropStatement &&
             dropStatement.getName() != null
             && dropStatement.getType() != null;
     }
@@ -845,31 +888,31 @@ public class SQLQuery implements SQLScriptElement {
         if (getType() == SQLQueryType.UNKNOWN) {
             return false;
         }
-        if (statement instanceof Select) {
+        if (classifiedStatement instanceof Select) {
             return isMutatingStatement() ||
-                statement instanceof PlainSelect plainSelect && plainSelect.getForMode() != null;
+                classifiedStatement instanceof PlainSelect plainSelect && plainSelect.getForMode() != null;
         }
         return true;
     }
 
     public boolean isMutatingStatement() {
         parseQuery();
-        if (statement instanceof Select) {
+        if (classifiedStatement instanceof Select) {
             SelectMutationVisitor visitor = new SelectMutationVisitor();
             try {
-                visitor.getTables(statement);
+                visitor.getTables(classifiedStatement);
             } catch (Throwable e) {
                 log.trace("Error while evaluating whether given query is mutating.", e);
             }
             return visitor.isMutating();
         }
-        return objectOperation != null || statement != null &&
-            (statement instanceof Drop || statement instanceof Delete || statement instanceof Update ||
-            statement instanceof Insert || statement instanceof CreateTable || statement instanceof CreateIndex ||
-            statement instanceof CreateView || statement instanceof CreateFunction || statement instanceof CreateProcedure ||
-            statement instanceof CreateSchema || statement instanceof CreateSequence || statement instanceof CreateSynonym ||
-            statement instanceof Alter || statement instanceof AlterView || statement instanceof AlterSequence ||
-            statement instanceof Merge);
+        return objectOperation != null || classifiedStatement != null &&
+            (classifiedStatement instanceof Drop || classifiedStatement instanceof Delete || classifiedStatement instanceof Update ||
+            classifiedStatement instanceof Insert || classifiedStatement instanceof CreateTable || classifiedStatement instanceof CreateIndex ||
+            classifiedStatement instanceof CreateView || classifiedStatement instanceof CreateFunction || classifiedStatement instanceof CreateProcedure ||
+            classifiedStatement instanceof CreateSchema || classifiedStatement instanceof CreateSequence || classifiedStatement instanceof CreateSynonym ||
+            classifiedStatement instanceof Alter || classifiedStatement instanceof AlterView || classifiedStatement instanceof AlterSequence ||
+            classifiedStatement instanceof Merge);
     }
 
     private void resetParsedState() {
@@ -877,6 +920,8 @@ public class SQLQuery implements SQLScriptElement {
         parseError = null;
         type = SQLQueryType.UNKNOWN;
         statement = null;
+        classifiedStatement = null;
+        statementPrefixLength = 0;
         objectOperation = null;
         singleTableMeta = null;
         rawSingleTableMetadata = null;

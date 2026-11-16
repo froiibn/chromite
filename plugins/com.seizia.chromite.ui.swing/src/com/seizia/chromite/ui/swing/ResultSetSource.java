@@ -48,6 +48,8 @@ import java.util.List;
  * - 2026-11-16 LOB 열({@link #lobColumns})과 다시 읽기가 결과의 종류로 해당하는지({@link #appliesRequery}): 오른쪽 클릭 메뉴가 해당하지 않는
  *   명령을 숨김 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  * - 2026-11-16 막는 이유가 연결인지를 문구 비교 대신 {@link Blocker}로 넘김({@link #requeryBlockedByConnection})
+ * - 2026-11-17 문장 접두어가 있는 SELECT({@link SQLQuery#getStatementPrefixLength()})는 다시 읽지 않음(전처럼). 이제 종류가 SELECT로
+ *   정해지지만 필터·행 수·페이지의 다시 쓰기가 접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
@@ -96,7 +98,9 @@ record ResultSetSource(
         }
         if (dataContainer instanceof SQLQueryContainer queryContainer) {
             SQLScriptElement element = queryContainer.getQuery();
-            if (!(element instanceof SQLQuery query) || query.getType() != SQLQueryType.SELECT || query.isModifying()) {
+            // A prefixed SELECT (SQLDialect.getStatementPrefixLength): the filter, count and paging rewrites would lose the prefix
+            if (!(element instanceof SQLQuery query) || query.getType() != SQLQueryType.SELECT || query.isModifying()
+                || query.getStatementPrefixLength() > 0) {
                 return new Blocker(EditorMessages.editor_source_not_single_select, false);
             }
         }

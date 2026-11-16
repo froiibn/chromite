@@ -57,6 +57,9 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 방언 기반 함수·키워드·자료형 분류와 SSMS 연산자·날짜 부분·변수 규칙 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-17 방언의 문장 접두어({@code SQLDialect.getStatementPrefixLength})의 대괄호를 대괄호 이름 하나로 칠하지 않고 부분으로 나눔
+ *   ({@link ClassifyingTokenMaker#addToken}): {@code NODE[data('n1')]}이 이름 + 대괄호 이름(PREPROCESSOR)으로 보였다. 무엇이 접두어인지는
+ *   방언만 안다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 final class SqlTokenClassifier {
 
@@ -93,8 +96,12 @@ final class SqlTokenClassifier {
 
         private final Map<String, DBPKeywordType> words = new HashMap<>();
         private final Set<String> functions = new HashSet<>();
+        // The dialect's statement prefix recognizer (SQLDialect.getStatementPrefixLength)
+        @NotNull
+        private final SQLDialect dialect;
 
-        private Words() {
+        private Words(@NotNull SQLDialect dialect) {
+            this.dialect = dialect;
         }
 
         /**
@@ -119,7 +126,7 @@ final class SqlTokenClassifier {
 
         @NotNull
         private static Words of(@NotNull SQLDialect dialect, @Nullable DBPDataSource dataSource) {
-            Words result = new Words();
+            Words result = new Words(dialect);
             for (String word : dialect.getReservedWords()) {
                 DBPKeywordType type = dialect.getKeywordType(word);
                 String key = word.toLowerCase(Locale.ROOT);
@@ -170,6 +177,11 @@ final class SqlTokenClassifier {
     static final class ClassifyingTokenMaker extends SQLTokenMaker {
         private final Supplier<Words> words;
         private final List<Token> lineTokens = new ArrayList<>();
+        // Per line: the document offsets of the parts of a statement prefix's brackets and their types (see addToken)
+        private final Map<Integer, Integer> prefixParts = new HashMap<>();
+        private int lineStart;
+        @Nullable
+        private Words lineWords;
 
         ClassifyingTokenMaker(@NotNull Supplier<Words> words) {
             this.words = words;
@@ -177,13 +189,104 @@ final class SqlTokenClassifier {
 
         @Override
         public Token getTokenList(Segment text, int initialTokenType, int startOffset) {
+            lineWords = words.get();
+            lineStart = text.offset;
+            prefixParts.clear();
             Token first = super.getTokenList(text, initialTokenType, startOffset);
             lineTokens.clear();
             for (Token t = first; t != null && t.isPaintable(); t = t.getNextToken()) {
                 lineTokens.add(t);
             }
-            classify(lineTokens, words.get());
+            classify(lineTokens, lineWords);
+            // The prefix's own words (meta, data, all) keep the keyword color: the SSMS rules above would make ALL an operator
+            for (Token t : lineTokens) {
+                Integer type = prefixParts.get(t.getOffset());
+                if (type != null) {
+                    t.setType(type);
+                }
+            }
             return first;
+        }
+
+        /**
+         * The lexer reads {@code [ ... ]} as one bracketed name (SQL Server), so a statement prefix of the connection's
+         * dialect such as {@code NODE[data('n1')]} became a name and a bracketed name. When the word before the brackets and
+         * the brackets are a whole prefix for the dialect ({@code SQLDialect.getStatementPrefixLength}), the brackets are
+         * added as their parts: punctuation, the word after the opening bracket and the dialect's keywords as keywords, quoted
+         * names as strings, bare names as names.
+         */
+        @Override
+        public void addToken(char[] array, int start, int end, int tokenType, int startOffset) {
+            Words current = lineWords;
+            if (tokenType != TokenTypes.PREPROCESSOR || current == null || array[start] != '[' || !isPrefixBrackets(current, array, start, end)) {
+                super.addToken(array, start, end, tokenType, startOffset);
+                return;
+            }
+            int i = start;
+            while (i <= end) {
+                char c = array[i];
+                int partEnd;
+                int type;
+                if (Character.isWhitespace(c)) {
+                    partEnd = i;
+                    while (partEnd + 1 <= end && Character.isWhitespace(array[partEnd + 1])) {
+                        partEnd++;
+                    }
+                    type = TokenTypes.WHITESPACE;
+                } else if (c == '\'' || c == '"') {
+                    partEnd = i + 1;
+                    while (partEnd < end && array[partEnd] != c) {
+                        partEnd++;
+                    }
+                    type = c == '\'' ? TokenTypes.LITERAL_CHAR : TokenTypes.LITERAL_STRING_DOUBLE_QUOTE;
+                } else if (isNameChar(c)) {
+                    partEnd = i;
+                    while (partEnd + 1 <= end && isNameChar(array[partEnd + 1])) {
+                        partEnd++;
+                    }
+                    String word = new String(array, i, partEnd - i + 1).toLowerCase(Locale.ROOT);
+                    type = current.words.containsKey(word) || previousIs(array, start, i, '[')
+                        ? TokenTypes.RESERVED_WORD : TokenTypes.IDENTIFIER;
+                } else {
+                    partEnd = i;
+                    type = TokenTypes.OPERATOR;
+                }
+                int offset = startOffset + (i - start);
+                if (type == TokenTypes.RESERVED_WORD || type == TokenTypes.OPERATOR) {
+                    prefixParts.put(offset, type);
+                }
+                super.addToken(array, i, partEnd, type, offset);
+                i = partEnd + 1;
+            }
+        }
+
+        private boolean isPrefixBrackets(@NotNull Words current, char[] array, int start, int end) {
+            // The word just before the brackets, on this line
+            int wordEnd = start - 1;
+            while (wordEnd >= lineStart && Character.isWhitespace(array[wordEnd])) {
+                wordEnd--;
+            }
+            int wordStart = wordEnd;
+            while (wordStart - 1 >= lineStart && isNameChar(array[wordStart - 1])) {
+                wordStart--;
+            }
+            if (wordEnd < lineStart || wordStart > wordEnd) {
+                return false;
+            }
+            String candidate = new String(array, wordStart, end - wordStart + 1);
+            return current.dialect.getStatementPrefixLength(candidate) == candidate.length();
+        }
+
+        /**
+         * Whether the first significant character before {@code index} inside the brackets is {@code c}.
+         */
+        private static boolean previousIs(char[] array, int start, int index, char c) {
+            for (int k = index - 1; k >= start; k--) {
+                if (!Character.isWhitespace(array[k])) {
+                    return array[k] == c;
+                }
+            }
+            return false;
         }
     }
 

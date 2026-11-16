@@ -18,6 +18,7 @@ package com.seizia.chromite.ext.shardsphere.model;
 
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.code.NotNull;
@@ -33,13 +34,26 @@ import java.util.List;
  * ({@link #getTreeObjects}). 세 값은 따로 둔다: 다음 작업이 각각에 기대는 기능(GEMINI 트리, 샤딩 탐색기)이 다르고, 일반 서버와 메타 노드가
  * 다르게 답한다. 값은 연결할 때 한 번 읽은 것이고, 연결을 새로 고치면 데이터 원본이 새 객체로 바꾼다. 읽기 전용이다(객체 관리자 없음).
  *
+ * 방언 기여(샤딩 문법 낱말, 함수 {@code SHARD_NODE_NAME}·{@code SHARD_KEY}, 문장 접두어 {@code NODE[...]}·{@code SHARD})는 샤딩 패키지가
+ * 있는 연결에서만 낸다: 접두어와 낱말은 샤딩 문법이고, 연결의 방언 객체에만 들어간다.
+ *
  * 변경 이력:
  * - 2026-11-17 최초 작성(앱 변경 #139 작업 2·3, docs/chromite/shardsphere.md)
+ * - 2026-11-17 방언 기여: 샤딩 패키지가 있으면 문장 접두어({@link ShardSphereStatementPrefix}), 문법 낱말, 함수(앱 변경 #139 작업 6a,
+ *   docs/chromite/shardsphere.md "문장 접두어")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBSObject {
 
     // The product name, not a translatable label
     private static final String NAME = "ShardSphere"; //$NON-NLS-1$
+
+    /**
+     * Words of the sharding statements (statement prefix, CREATE/ALTER/DROP SHARD, ALTER TABLE ... SHARD BY / UNSHARD,
+     * EXECUTE META) that V$RESERVED_WORDS does not report on the sharding meta node (2026-11-17). SHARD is reserved there.
+     */
+    private static final List<String> SHARDING_SYNTAX_WORDS = List.of(
+        "NODE", "META", "UNSHARD", "CLONE", "SOLO", "AUTOHASH", "SUBSHARD", "HASH"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$
+    private static final List<String> SHARDING_FUNCTIONS = List.of("SHARD_NODE_NAME", "SHARD_KEY"); //$NON-NLS-1$ //$NON-NLS-2$
 
     @NotNull
     private final AltibaseDataSource dataSource;
@@ -117,6 +131,23 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     @Override
     public Collection<? extends DBSObject> getTreeObjects() {
         return List.of(this);
+    }
+
+    @NotNull
+    @Override
+    public Collection<String> getSyntaxKeywords() {
+        return shardingPackage ? SHARDING_SYNTAX_WORDS : List.of();
+    }
+
+    @NotNull
+    @Override
+    public Collection<String> getFunctions() {
+        return shardingPackage ? SHARDING_FUNCTIONS : List.of();
+    }
+
+    @Override
+    public int getStatementPrefixLength(@NotNull String text) {
+        return shardingPackage ? ShardSphereStatementPrefix.getLength(text) : 0;
     }
 
 }

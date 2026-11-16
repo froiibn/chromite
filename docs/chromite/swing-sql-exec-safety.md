@@ -101,6 +101,17 @@ MariaDB에서 `DROP DATABASE`가 묻지 않고 실행되었다(설정 작업 에
 
   SQL Server의 `DROP DATABASE [x]`는 방언의 대괄호 인용을 써야 해서 앱 안에서 확인했다(아래 검증).
 
+## 문장 접두어 (2026-11-17, 앱 변경 #139 작업 6a)
+
+어떤 서버는 문장 앞에 문장의 일부가 아닌 접두어를 받는다(ShardSphere 샤딩의 `NODE[meta|data|data('n')|all]`, `SHARD`: 실행할 노드를 고름). 전에는 JSQLParser가
+접두어에서 실패해 종류가 UNKNOWN이 되고 위험 판단이 모두 거짓이라, `NODE[all] DELETE FROM t`·`… DROP TABLE t`·`… TRUNCATE TABLE t`가 이 확인 없이 서버로 갔다
+(접두어 없는 같은 문장은 멈춤). 모델의 중립 자리 `SQLDialect.getStatementPrefixLength(text)`(기본 0)로 방언이 접두어 길이를 알리고, 종류를 정하는 곳은
+본문(`text.substring(length)`)을 본다: `SQLQuery`(종류·`isModifying`·`isDeleteUpdateDangerous`·`isTruncate`·`isDropDangerous`), LSM의 DROP 판단
+(`SQLObjectOperationRecognizer`, 이 확인의 `isDrop`), 트랜잭션을 바꾸는 문장인지(`AbstractSQLDialect.isTransactionModifyingQuery`), 운영 연결의 실행 확인
+(`SQLSemanticProcessor.isSelectQuery`), 문장 나누기의 블록 규칙(`SQLScriptParser`), Agent 분류기. 확인 대화상자는 접두어까지 문장 그대로 보인다. 서버로 보내는 글은
+바뀌지 않는다. 접두어가 있는 문장은 다시 쓰는 코드(행 수, 필터, 페이지, 결과 편집, 다시 실행해 내보내기)가 쓰지 못하게 `SQLQuery.getStatement()`가 없고
+다시 읽기는 전처럼 막힌다. 접두어가 있는 COMMIT·ROLLBACK은 UNKNOWN으로 둔다(쿼리 창이 세션 전체를 커밋·롤백하지 않게). 규칙과 확인: [shardsphere.md](shardsphere.md) "문장 접두어".
+
 ## upstream(SWT) 대비 변경점
 
 | 항목 | SWT | Swing |
@@ -162,3 +173,4 @@ AI는 실제 키를 쓰지 않았다. 작업 공간 복사본의 `.metadata/.con
   TRUNCATE도 위험한 SQL 확인으로 물음(`SQLQuery.isTruncate`). MariaDB·PostgreSQL·SQL Server에서 확인
 - 2026-11-08 `@include`로 읽은 파일의 문장도 끼우기 전에 위험한 문을 묻고 목록에 파일 이름을 붙임(`SQLQueryExecuteHandler.confirmIncludedScript`),
   실행 제한 설명을 문장 명령에 맞춤 ([swing-query-commands.md](swing-query-commands.md))
+- 2026-11-17 문장 접두어(`SQLDialect.getStatementPrefixLength`): 접두어가 있는 WHERE 없는 UPDATE·DELETE, TRUNCATE, DROP도 묻는다(앱 변경 #139 작업 6a), 위 "문장 접두어"
