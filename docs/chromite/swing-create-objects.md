@@ -58,7 +58,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | `SourceScripts` (고침) | `getTemplateKind`와 틀 문장(`getObjectTemplate`). `NewObjectKind`에 SEQUENCE·TRIGGER·DATABASE_TRIGGER·EVENT_TRIGGER·POLICY·PACKAGE·TYPE·QUEUE |
 | `ExplorerObjectCommands` (고침) | 미리 보기·트랜잭션 질문·실행 경로(`runChange`)와 `Change`·`ChangeBuilder`·`createCommandContext`를 패키지 안에 엶 |
 | `DesignerDialogs` (고침) | 폼 도우미(`addRow`, `showDialog`, `error`)를 패키지 안에 엶. `showDialog`는 폼 최소 너비 480, 주인 창 가운데(2026-11-16, 아래 "대화상자 크기와 위치") |
-| `NumberInputFilter` (새, 2026-11-16) | 저장소 대화상자 숫자 칸의 문서 필터(아래 "숫자 칸") |
+| `NumberInputFilter` (새, 2026-11-16) | 저장소 대화상자와 앱의 다른 숫자 칸의 문서 필터(아래 "숫자 칸") |
 | `design.OracleTableDesignerDriver` (새) | Oracle 인덱스·외래 키·CHECK의 드라이버 부분. `plugin.xml`에 `OracleTableBase` 어댑터 |
 | `TableDesignerPanel` (고침) | 저장 전 열린 트랜잭션 질문 |
 | `TableDesignSession` (고침) | 키·인덱스·외래 키 채우기가 실패하면 만든 객체를 거둠(`discardNew`) |
@@ -286,9 +286,32 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - **입력기(한글):** 숫자 칸은 입력기를 끈다(`enableInputMethods(false)`, 암호 칸과 같음). 한글 모드에서도 조합 없이 글자가 와서 필터가 거절한다.
   조합 중인 글이 그래도 오면 필터는 통과시킨다: `JTextComponent.replaceInputMethodText`는 조합 글을 넣은 뒤 그 길이만큼 앞을 조합 위치로 기억하므로,
   거절하면 다음 입력기 사건에서 이미 있던 숫자를 지운다. 조합이 확정되면 그 글은 보통 입력으로 다시 들어와 거절되고 조합 글은 지워져, 칸에 남지 않는다.
-- **같은 원인의 다른 칸(고치지 않음, 사용자에게 여쭐 목록):** AI 옵션의 컨텍스트 크기, SAP HANA 인스턴스 번호, 사용자·역할 속성의 자원 제한 넷,
-  행으로 가기(Ctrl+G), Properties 창의 숫자 속성, 쿼리 라이브러리 NUMBER 매개 변수, 결과 그리드 셀·열 필터 값·배열 항목 편집기. 모두 보통 글 칸이고
-  확인할 때 검사한다(행으로 가기는 말없이 무시). `showDialog`와 같은 칸 코드를 쓰는 다른 숫자 칸은 없다.
+- **앱의 다른 숫자 칸(2026-11-16, 앱 변경 #142, 사용자 "둘 다 고친다"):** 칸마다 값을 읽는 코드가 받는 값을 보고, 받는 값이 모두 숫자인 칸에만
+  같은 필터를 단다. 걸린 입력·붙여넣기·끌어 놓기·입력기는 저장소 대화상자와 같다. 설정이나 서버에서 읽은 값은 필터가 받지 않는 모양이어도
+  그대로 보이고(`NumberInputFilter.setText`, 또는 값을 넣은 뒤 필터를 닮), 확인할 때의 검사는 그대로다. 필터에 더한 것은 음수가 맞는 칸의
+  맨 앞 빼기 부호 하나다(`install(field, fraction, negative)`). 지수(1e3)·더하기 부호·천 단위 쉼표는 어느 칸도 받지 않는다: 같은 값을 숫자로 쓸 수 있다.
+
+  | 칸 | 읽는 코드가 받는 값 | 필터 |
+  |---|---|---|
+  | Chromite Agent 옵션 Ollama·vLLM 컨텍스트 크기 | 0보다 큰 int, 비우면 없음(`AiOptionsPage.parseContextSize`) | 숫자만. 쉼표를 지우던 읽기는 없앰 |
+  | SAP HANA 연결 인스턴스 번호 | 0-99, 비워도 됨(`ConnectionDriverFields.HanaFields.validate`, `getPort`) | 숫자만 |
+  | 로그인·사용자 속성 자원 제한(MySQL/MariaDB) | 0 이상 정수, 또는 읽은 값 그대로(MariaDB -1)(`PrincipalPropertiesDialog.parseLimit`) | 숫자만(읽은 -1은 그대로) |
+  | 결과 그리드 행으로 가기(Ctrl+G) | 정수, 1-행 수로 맞춤(`ResultSetColumnLayout.goToRow`) | 숫자만. 입력 대화상자를 `JOptionPane`으로 직접 만들어 그 칸에 닮(모양 같음). 쉼표를 지우던 읽기는 없앰 |
+  | Properties 창 숫자 속성 | 속성 형식의 `valueOf`/`BigDecimal`, 음수 맞음(시퀀스 증가값·최솟값)(`ObjectPropertyEdits.parse`) | 정수 형식: 숫자와 앞의 빼기, 소수 형식: 점 하나 더. 지금 값은 지수 모양이어도 그대로 보임 |
+  | 쿼리 라이브러리 NUMBER 매개 변수 | `BigDecimal`(부호·소수)(`QueryLibraryParameter.toJdbcValue`) | 숫자, 앞의 빼기, 점 하나 |
+  | 프로시저 디버거 시작의 프로세스 ID(9곳 밖에서 찾음) | 정수 PID(`DebugStartDialog.accept`, 모델 `PostgreDebugSession`의 `toInt`) | 숫자만 |
+
+- **막지 않고 둔 칸(숫자가 아닌 입력이 맞음):**
+  - 결과 그리드 셀 편집(숫자 열)과 배열 항목 편집기: 값은 열의 값 처리기가 만든다(`JDBCNumberValueHandler` →
+    `DBValueFormatting.convertStringToNumber`). Java 숫자로 읽지 못하면 사용자의 데이터 형식(로캘의 천 단위·소수 구분자, 예: `1.234,5`)으로
+    읽고, 지수(`1E10`), `NaN`·`Infinity`(PostgreSQL float의 실제 값)도 맞는 값이다. 빈 칸은 NULL이다. 편집 칸 하나를 모든 형식의 열이 함께 쓴다.
+  - 결과 그리드 열 필터의 값 칸: 연산자는 콤보로 고르지만 값은 셀과 같은 값 처리기로 읽어(`ResultSetColumnFilterPopup.parseValue`) 위와 같은
+    모양이 맞다. 값 목록의 찾기 칸은 보이는 글(천 단위 쉼표 포함)을 찾는다.
+  - 쿼리 라이브러리 매개 변수 정의의 기본값 열: 모든 형식이 함께 쓰는 열이고 같은 줄에서 형식을 바꿀 수 있다. 실행할 때 형식대로 검사한다.
+  - 예약 실행 조건 값(`QueryScheduleDialog`): `first` 조건은 숫자가 아니면 글로 비교한다(`QueryLibrarySchedule.Condition.matches`).
+  - 쿼리 라이브러리 임계값의 warn·critical: `> 90` 같은 조건식이다.
+  - MySQL 이벤트의 간격 값: `'1:30'`(HOUR_MINUTE)처럼 숫자가 아닌 간격도 맞다.
+  - 드라이버 편집기의 기본 포트: 글로 저장하고 앱이 숫자로 읽지 않는다. 스피너인 칸(MCP 포트, 내보내기 파일 크기 등)은 처음부터 숫자만 받는다.
 
 ## 남긴 것
 
@@ -322,3 +345,5 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - 2026-11-15 SQL Server New Filegroup…(이름 대화상자)·New File…·New Log File… 대화상자(`SQLServerStorageDialogs`, 앱 변경 #128, [mssql-storage.md](mssql-storage.md)).
 - 2026-11-16 "대화상자 크기와 위치"(앱 변경 #132)와 "숫자 칸"(앱 변경 #133) 추가(`chromite/storage-dialog-fixes`): `showDialog`의 폼 최소 너비 480과
   창 가운데 위치, Object Explorer 개체 변경의 미리 보기·트랜잭션 질문도 창 가운데, 저장소 대화상자 숫자 칸의 `NumberInputFilter`.
+- 2026-11-16 "숫자 칸"에 앱의 다른 숫자 칸(앱 변경 #142, `chromite/numeric-fields`): 컨텍스트 크기, HANA 인스턴스 번호, 자원 제한, 행으로 가기,
+  숫자 속성, NUMBER 매개 변수, 디버거 프로세스 ID에 필터. 필터에 음수 칸의 앞 빼기 부호. 그리드 셀·열 필터·배열 등 둔 칸과 이유.

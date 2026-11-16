@@ -59,7 +59,7 @@ import java.util.function.Function;
  *     만든다; 속성 명령으로는 ALTER … RENAME이 나오지 않는다), 암호 속성(값이 미리 보기와 쿼리 관리자에 남고, 표에서는 가린 값만 보인다: {@code ObjectListTable#maskPassword}와 같은 판단), 그리고 이 표에서 편집기를
  *     줄 수 없는 형식(날짜, 목록 제공자가 없는 객체 참조)이다. 읽기 전용 연결과 메타데이터 변경 제한({@link DBUtils#isReadOnly})이면 모두 읽기 전용이다.</li>
  *     <li>편집기: 가능한 값이 있으면(열거형, 목록 제공자: 소유자, 테이블스페이스, 엔진, 문자 집합) 콤보 상자, 참·거짓은 True/False 콤보 상자,
- *     숫자와 한 줄 글은 글 상자, 여러 줄 글({@link PropertyLength#MULTILINE}, 주석)은 대화상자다. 가능한 값은 DB를 읽을 수 있어 속성을 읽는
+ *     숫자와 한 줄 글은 글 상자(숫자는 숫자만 받는 칸, {@link NumberInputFilter}), 여러 줄 글({@link PropertyLength#MULTILINE}, 주석)은 대화상자다. 가능한 값은 DB를 읽을 수 있어 속성을 읽는
  *     작업 스레드에서 미리 읽는다({@link #describe}).</li>
  *     <li>저장: 값을 하나 바꿀 때마다 바로 저장 흐름을 탄다({@link ExplorerObjectCommands#runChange}: 스크립트 미리 보기(취소가 기본 단추) →
  *     열린 트랜잭션 질문 → 연결의 기본 실행 문맥에서 DDL). 쿼리 창은 저마다 격리 문맥을 쓰므로({@code QueryWindowContext}) 사용자의 쿼리 트랜잭션에
@@ -74,6 +74,8 @@ import java.util.function.Function;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 속성 창과 Object Details 속성 탭의 속성 편집(SWT 감사 B-E1, B-E2, C-15) (docs/chromite/swing-object-properties.md)
+ * - 2026-11-16 숫자 속성의 글 상자가 숫자, 앞의 빼기 부호, (소수 형식이면) 점 하나만 받음({@link NumberInputFilter}, 앱 변경 #142).
+ *   지수(1e3)는 받지 않는다: 같은 값을 소수로 쓸 수 있다. 지금 값은 지수 모양이어도 그대로 보인다
  */
 final class ObjectPropertyEdits {
 
@@ -190,8 +192,22 @@ final class ObjectPropertyEdits {
         return switch (edit.kind()) {
             case BOOLEAN -> new ValueCellEditor(createComboBox(new Object[]{Boolean.TRUE, Boolean.FALSE}, false, format), edit.value());
             case LIST -> new ValueCellEditor(createComboBox(Objects.requireNonNull(edit.items()), edit.customValue(), format), edit.value());
+            case NUMBER -> new ValueCellEditor(createNumberField(edit.type()), toText(edit.value()));
             default -> new ValueCellEditor(new JTextField(), toText(edit.value()));
         };
+    }
+
+    /**
+     * A field that takes what {@link #parse} reads as the type, written plainly: digits, a minus sign (sequence
+     * increments and bounds are negative), and one dot for the fractional types.
+     */
+    @NotNull
+    private static JTextField createNumberField(@NotNull Class<?> type) {
+        boolean integer = type == Integer.class || type == Integer.TYPE || type == Long.class || type == Long.TYPE
+            || type == Short.class || type == Short.TYPE || type == Byte.class || type == Byte.TYPE || type == BigInteger.class;
+        JTextField field = new JTextField();
+        NumberInputFilter.install(field, !integer, true);
+        return field;
     }
 
     @NotNull
@@ -252,6 +268,18 @@ final class ObjectPropertyEdits {
             super(textField);
             this.initialValue = initialValue;
             setClickCountToStart(2);
+            // The value shows as it is even when a number field would not take it (a Double as 1.0E10)
+            delegate = new EditorDelegate() {
+                @Override
+                public void setValue(Object value) {
+                    NumberInputFilter.setText(textField, value == null ? "" : value.toString()); //$NON-NLS-1$
+                }
+
+                @Override
+                public Object getCellEditorValue() {
+                    return textField.getText();
+                }
+            };
         }
 
         ValueCellEditor(@NotNull JComboBox<Object> comboBox, @Nullable Object initialValue) {

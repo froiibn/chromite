@@ -27,18 +27,21 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.StyleConstants;
 
 /**
- * Lets only what can be part of a positive number into a text field: the digits 0-9 and, where the field takes
- * fractions, one dot. Used by the number fields of the storage dialogs ({@link AltibaseTablespaceDialogs},
- * {@link OracleStorageDialogs}, {@link SQLServerStorageDialogs}).
+ * Lets only what can be part of a number into a text field: the digits 0-9, where the field takes fractions one dot,
+ * and where it takes negative values one minus sign in front. Used by the number fields of the storage dialogs
+ * ({@link AltibaseTablespaceDialogs}, {@link OracleStorageDialogs}, {@link SQLServerStorageDialogs}) and the other
+ * number fields of the app (docs/chromite/swing-create-objects.md "숫자 칸", list of fields there).
  *
  * 설계:
  * <ul>
  *     <li>문서 필터라서 타자, 붙여넣기, 끌어 놓기가 모두 같은 길로 걸린다(셋 다 문서의 insert/replace로 들어옴). 걸리는 글은 통째로 넣지 않고
  *     오류 신호(Look and Feel의 소리)만 낸다: 결과 그리드의 비트 문자열 필터({@code ResultSetGrid.BitStringFilter})와 같은 동작이다.
  *     "12abc"를 붙여넣으면 숫자만 골라 넣지 않는다(사용자가 무엇이 들어갔는지 알 수 없음).</li>
- *     <li>소수점은 마침표 하나다. 대화상자가 값을 {@code BigDecimal}로 읽고(로캘과 무관) 채울 때도 마침표로 쓰기 때문이다. 부호·공백·지수(1e3)·
- *     천 단위 쉼표는 받지 않는다. 숫자는 ASCII 0-9만이다: {@code Long.parseLong}과 {@code BigDecimal}은 전각·다른 문자 체계의 숫자도 읽지만
- *     문장에 그 글자가 그대로 들어간다.</li>
+ *     <li>소수점은 마침표 하나다. 대화상자가 값을 {@code BigDecimal}로 읽고(로캘과 무관) 채울 때도 마침표로 쓰기 때문이다. 공백·지수(1e3)·
+ *     더하기 부호·천 단위 쉼표는 받지 않는다(같은 값을 숫자와 마침표로 쓸 수 있다). 숫자는 ASCII 0-9만이다: {@code Long.parseLong}과
+ *     {@code BigDecimal}은 전각·다른 문자 체계의 숫자도 읽지만 문장에 그 글자가 그대로 들어간다.</li>
+ *     <li>빼기 부호는 음수가 맞는 칸에만 받는다(속성 창의 숫자 속성, 예: 시퀀스 증가값; 쿼리 라이브러리 숫자 매개 변수). 맨 앞에 하나만이고,
+ *     부호 앞에는 아무것도 넣을 수 없다.</li>
  *     <li>글을 지우는 것(백스페이스, Delete, 선택을 지우고 넣기의 지우기)은 막지 않는다. 그래서 채운 값이 받지 않는 모양이어도
  *     ({@link #setText}) 고쳐 쓸 수 있다.</li>
  *     <li>입력기: 숫자 칸은 입력기를 끈다({@link JComponent#enableInputMethods}, 암호 칸과 같음). 한글 모드에서도 칸에는 조합 없이 영문 글자가
@@ -50,30 +53,44 @@ import javax.swing.text.StyleConstants;
  *
  * 변경 이력:
  * - 2026-11-16 최초 작성: 저장소 대화상자의 숫자 칸에 문자가 들어가던 문제(앱 변경 #133, docs/chromite/swing-create-objects.md "숫자 칸")
+ * - 2026-11-16 앱의 다른 숫자 칸에도 씀, 음수가 맞는 칸을 위한 맨 앞 빼기 부호(앱 변경 #142)
  */
 final class NumberInputFilter extends DocumentFilter {
 
     private static final char DECIMAL_SEPARATOR = '.';
+    private static final char MINUS_SIGN = '-';
 
     private final boolean fraction;
+    private final boolean negative;
 
-    private NumberInputFilter(boolean fraction) {
+    private NumberInputFilter(boolean fraction, boolean negative) {
         this.fraction = fraction;
+        this.negative = negative;
+    }
+
+    /**
+     * Makes the field a number field of positive values.
+     *
+     * @param fraction accept one dot (the value is read as a decimal)
+     */
+    static void install(@NotNull JTextField field, boolean fraction) {
+        install(field, fraction, false);
     }
 
     /**
      * Makes the field a number field.
      *
      * @param fraction accept one dot (the value is read as a decimal)
+     * @param negative accept one minus sign in front
      */
-    static void install(@NotNull JTextField field, boolean fraction) {
-        ((AbstractDocument) field.getDocument()).setDocumentFilter(new NumberInputFilter(fraction));
+    static void install(@NotNull JTextField field, boolean fraction, boolean negative) {
+        ((AbstractDocument) field.getDocument()).setDocumentFilter(new NumberInputFilter(fraction, negative));
         field.enableInputMethods(false);
     }
 
     /**
-     * Shows a value read from the server as it is, even when it is not one the user could type (SQL Server's current
-     * size or growth in MB with a fraction, in a whole-number field).
+     * Shows a value as it is, even when it is not one the user could type: a value read from the server (SQL Server's
+     * current size or growth in MB with a fraction, in a whole-number field) or from the settings.
      */
     static void setText(@NotNull JTextField field, @NotNull String text) {
         AbstractDocument document = (AbstractDocument) field.getDocument();
@@ -115,14 +132,19 @@ final class NumberInputFilter extends DocumentFilter {
             char c = text.charAt(i);
             if (c == DECIMAL_SEPARATOR && fraction) {
                 separators++;
+            } else if (c == MINUS_SIGN && negative && i == 0 && offset == 0) {
+                // The sign only in front; the check below keeps a second one out
             } else if (c < '0' || c > '9') {
                 return reject();
             }
         }
-        if (separators > 0) {
+        // Inserted in front: nothing may go before a sign that is already there
+        boolean front = negative && offset == 0;
+        if (separators > 0 || front) {
             String document = fb.getDocument().getText(0, fb.getDocument().getLength());
             String kept = document.substring(0, offset) + document.substring(offset + length);
-            if (separators + kept.chars().filter(c -> c == DECIMAL_SEPARATOR).count() > 1) {
+            if (separators + kept.chars().filter(c -> c == DECIMAL_SEPARATOR).count() > 1
+                || front && kept.indexOf(MINUS_SIGN) == 0) {
                 return reject();
             }
         }

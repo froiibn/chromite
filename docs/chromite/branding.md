@@ -270,7 +270,7 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
 1단계 리브랜딩에서 바꾼 SWT 제품 파일(`product/community/product-branding.properties`, `Chromite.product`, `Chromite.p2.inf`,
 `category.xml`, `ui.app.standalone`의 `plugin.xml`·`about.properties`·`OSGI-INF/l10n/bundle*.properties`)은 2026-11-07 SWT 제품과 함께 삭제했다
 ([swt-removal.md](swt-removal.md)). 아래 "업데이트 확인을 끈다", "p2 업데이트 사이트를 뺀다", "버전 표시 위치" 결정은 그 파일들에 대한 기록이다.
-| `README.md` | Chromite 소개, 빌드 방법, 라이선스 안내로 새로 작성 |
+| `README.md` | Chromite 소개, 빌드 방법, 라이선스 안내로 새로 작성. 2026-11-16 다시 정비(아래 변경 이력) |
 
 ## 설계 결정과 이유
 
@@ -376,3 +376,9 @@ macOS는 `macos-smoke.yml`의 `launch` 단계가 시작 화면 스크린숏과 "
   작업 공간 잠김(두 번째 실행)은 대화상자가 열리며 Swing 창 닫힘, 닫으면 종료 코드 0. 업데이트 적용 중은 런처 창이 안내 전에 내려가고 종료 코드 0.
   명령줄 `-nosplash`(ini의 `-showsplash`보다 우선)는 메인 창만. macOS는 실행하지 못했다(macos-smoke로 확인).
 - 2026-11-16 사이트의 `LICENSE.md`·`NOTICE` 링크 22개를 `blob/devel/`에서 `blob/HEAD/`로 바꿈(`chromite/site-license-links`): 기본 브랜치를 `command`로 바꾸고 `devel`을 지우면(사용자 결정 2026-11-16) 배포된 페이지의 링크가 끊기므로, 브랜치 이름에 묶이지 않는 주소를 쓴다. 문구는 그대로.
+- 2026-11-16 `README.md` 정비(사용자 요청 "깃허브 메인 readme.md를 정비한다", `chromite/readme`): 틀린 내용 고침(빌드 요구 사항 JDK 21 → JDK 25, "Java 21+" 배지 삭제,
+  upstream 소개를 옮긴 기능 목록 → 사이트 홈과 같은 Chromite 기능 설명, "AI chat" → Chromite Agent와 제공자 다섯). 추가: 밝은·어두운 테마별 로고와 화면
+  (`site/assets/brand/logo-*.svg`, `site/assets/shots/en-*.webp`, `<picture>`), 다운로드 안내(사이트, Releases, 플랫폼, 서명, 체크섬), 데이터베이스 지원 표 링크,
+  저장소 구성, 기여·보안 안내. 출처 고지는 사이트 바닥글과 같은 문구로 맨 아래 "License and attribution"에 둠("사이트의 출처 고지"와 같은 원칙).
+  Build 배지에서 브랜치 이름을 뺌(기본 브랜치의 상태를 보여 주므로 기본 브랜치 이름이 바뀌어도 그대로 쓴다). 원래 로고 `chromite_full_dark.png`는 바탕이
+  불투명해 GitHub의 두 테마에서 상자로 보여 쓰지 않음.

@@ -126,6 +126,7 @@ import java.util.Set;
  *   ({@code ai_policy_auto_dangerous_asks}) (도구 정리, docs/chromite/ai-agent.md "정책 옮기기")
  * - 2026-11-15 감사 기록: 도구 열에 합친 도구의 작업을 붙이고, 글자 거르기가 옛 ID의 기록을 지금 ID로도 찾음(옛 기록은 옛 ID 그대로)
  *   (도구 정리, docs/chromite/ai-agent.md "감사 기록")
+ * - 2026-11-16 컨텍스트 크기 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142). 쉼표를 지우던 읽기도 없앰(쉼표가 들어오지 않음)
  */
 final class AiOptionsPage extends JPanel {
 
@@ -238,6 +239,7 @@ final class AiOptionsPage extends JPanel {
             this.engineId = engineId;
             setBorder(BorderFactory.createTitledBorder(AIAgentProviders.getLabel(engineId)));
             modelCombo.setEditable(true);
+            NumberInputFilter.install(contextField, false);
             load();
 
             int row = 0;
@@ -378,7 +380,8 @@ final class AiOptionsPage extends JPanel {
                     }
                 }
                 Integer contextSize = hasContextSize() ? properties.getContextWindowSize() : null;
-                contextField.setText(contextSize == null ? "" : contextSize.toString()); //$NON-NLS-1$
+                // As saved, even a size the field would not take (edited settings): it can be corrected, and Save says it is invalid
+                NumberInputFilter.setText(contextField, contextSize == null ? "" : contextSize.toString()); //$NON-NLS-1$
                 List<String> models = new ArrayList<>(AIAgentProviders.getSuggestedModels(engineId));
                 modelCombo.setModel(new DefaultComboBoxModel<>(models.toArray(String[]::new)));
                 modelCombo.setSelectedItem(properties.getModel());
@@ -457,10 +460,11 @@ final class AiOptionsPage extends JPanel {
             return properties;
         }
 
-        // The typed context size; null when empty. A value that is not a positive number can't be saved
+        // The typed context size (digits only, NumberInputFilter); null when empty. 0, a size too large for an int or an
+        // invalid saved value can't be saved
         @Nullable
         private Integer parseContextSize() {
-            String text = contextField.getText().trim().replace(",", ""); //$NON-NLS-1$ //$NON-NLS-2$
+            String text = contextField.getText().trim();
             if (text.isEmpty()) {
                 return null;
             }

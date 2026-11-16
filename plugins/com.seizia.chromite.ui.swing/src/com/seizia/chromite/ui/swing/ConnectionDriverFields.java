@@ -103,6 +103,7 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "3. DB별 주 양식 칸")
  * - 2026-11-16 TNS는 저장할 때 숨은 주소 줄의 자리 값을 쓰지 않음(호스트·포트를 비움, 앱 변경 #135,
  *   docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
+ * - 2026-11-16 HANA 인스턴스 번호 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142, docs/chromite/swing-create-objects.md "숫자 칸")
  */
 abstract class ConnectionDriverFields {
 
@@ -739,6 +740,7 @@ abstract class ConnectionDriverFields {
             super(changeListener);
             this.defaultPort = CommonUtils.notEmpty(defaultPort);
             instanceField.setToolTipText(ConnectionMessages.driver_hana_instance_tip);
+            NumberInputFilter.install(instanceField, false);
             portHint.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
             portHint.setForeground(UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
             editionCombo.addActionListener(e -> {
@@ -793,7 +795,8 @@ abstract class ConnectionDriverFields {
                 }
                 typedInstance = CommonUtils.notEmpty(configuration.getProviderProperty(PROP_INSTANCE_NUMBER));
                 instanceField.setEditable(true);
-                instanceField.setText(typedInstance);
+                // As saved, even a number the field would not take: validate names it
+                NumberInputFilter.setText(instanceField, typedInstance);
                 databaseField.setText(CommonUtils.notEmpty(getDatabaseName(configuration)));
                 editionCombo.setSelectedIndex(edition.ordinal());
             } finally {
@@ -897,7 +900,7 @@ abstract class ConnectionDriverFields {
                 typedInstance = instanceField.getText();
                 instanceField.setText(EXPRESS_INSTANCE);
             } else if (edition.isPlatform() && !instanceField.isEditable()) {
-                instanceField.setText(typedInstance);
+                NumberInputFilter.setText(instanceField, typedInstance);
             }
             instanceField.setEditable(edition.isPlatform());
             boolean database = edition == Edition.PLATFORM_TENANT_DB;
