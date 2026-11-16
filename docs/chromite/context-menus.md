@@ -144,6 +144,9 @@ Oracle, PostgreSQL, MariaDB, MySQL, Altibase, SQLite 파일), 이 작업이 만�
 - 읽기 전용 연결의 테이블: devel에도 개체 탐색기 항목 가운데 읽기 전용이라 꺼지는 것이 없었다(Delete·Rename·Truncate는 실행할 때 알리고 멈춤). 그대로다.
 - 키: Tables 폴더에서 F2·Delete는 전처럼 아무 일도 하지 않고(항목 숨김), 테이블에서 F2는 이름 바꾸기, Delete는 삭제 확인을 연다(취소함). SQLite Tables 폴더의 F7은
   Object Details를 연다.
+- 다른 메뉴(덤프 전·후): Registered Servers 서버 메뉴(SQLite 연결됨: Change Password 없음, PostgreSQL 연결됨: 켜짐, 연결 안 됨: 꺼짐), 문서 탭(Activity Monitor·
+  ER 다이어그램 탭: 닫기·다시 열기·고정·배치만, 쿼리 창: 전과 같음, 저장 전 창은 경로 항목 꺼짐), Messages(오류 글자: 오류 위치로 가기, 다른 글자: 복사만),
+  ER 다이어그램(뷰: Design 없음).
 
 덤프·캡처: `D:\Tools\_scratch\explorer-menu-applicable\dumps\`(before.tsv, after.tsv, matrix.md, checks.txt, p2-*.tsv),
 `D:\Tools\_scratch\explorer-menu-applicable\sheets\`.
@@ -158,7 +161,7 @@ Oracle, PostgreSQL, MariaDB, MySQL, Altibase, SQLite 파일), 이 작업이 만�
 | Registered Servers 트리 | `RegisteredServersPanel.java:369` | 서버·그룹·빈 곳마다 따로 만든다(종류는 이미 숨김). 서버의 Change Password…만 연결된 서버의 DB가 지원하지 않아도 꺼진 채 보였다(:382) | 바꿈: 연결된 서버가 지원하지 않으면 숨김, 연결 안 됨이면 꺼짐(개체 탐색기와 같음) |
 | 문서 탭 | `DocumentTabMenu.java:235` | 저장·이름 바꾸기·연결 변경·경로 복사·상위 폴더 열기가 쿼리 창이 아닌 탭(ER 다이어그램, Activity Monitor, 디자이너)에서 꺼짐(:242–260) | 바꿈: 쿼리 창 탭에서만 보임, 저장 전 창의 경로 항목·실행 중 창의 연결 변경은 꺼짐, `ContextMenus.tidy` |
 | Messages 탭 | `QueryResultsView.java:654` | "오류 위치로 가기"가 위치 없는 글자에서 꺼짐(:688) | 바꿈: 위치를 아는 오류 글자에서만 보임 |
-| ER 다이어그램 개체 | `ErdDiagramPanel.java:489` | Design(뷰에서 꺼짐 :495), Select Top(:499) | 남김 |
+| ER 다이어그램 개체 | `ErdDiagramPanel.java:489` | Design(뷰에서 꺼짐 :495), Select Top(:499) | 바꿈: 해당하는 개체에서만 보임, `tidy` |
 | SQL 편집기 글 영역 | `SqlEditorPanel.java:3434`(RSyntaxTextArea 기본 메뉴) | 읽기 전용 글 영역의 실행 취소·잘라내기·붙여넣기·삭제, 접기 미지원의 Folding이 꺼짐(라이브러리가 만든 항목) | 남김: 라이브러리가 만든 항목을 위치·동작으로 골라 숨겨야 함(구조 변경) |
 | 결과 그리드 셀 | `ResultSetGrid.java:1219`, `ResultSetViewerPanel.java:1084` | 행 삽입·복제·삭제(지원 안 함), Export Data(SELECT 아님), Generate SQL 항목(원본 테이블·키 없음), 파일 불러오기·저장·16진수·외부 편집기(값 종류), 가상 열의 Filter by Value, Saved Filters·Virtual Keys·Virtual Columns(원본 테이블 없음), Count Rows가 종류 이유로 꺼짐. Save and Commit은 커밋 방식(지금)으로 숨음(:1307) | 남김: 한 판단에 두 이유가 섞인 곳이 많아 나눠야 함(가장 큼, 약 하루) |
 | 결과 열 머리글, Ctrl+B·Ctrl+Shift+1 팝업 | `ResultSetViewerPanel.java:924`, `:2584`, `:2604` | 누른 곳에 따라 추가, 꺼짐은 지금 상태 | 맞음 |
@@ -185,3 +188,4 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-16 최초 작성: 규칙, `ContextMenus` 도우미, 개체 탐색기 적용(앱 변경 #137)
 - 2026-11-16 Registered Servers: 서버 메뉴의 Change Password…를 지원하지 않는 연결된 서버에서 숨김(앱 변경 #137 2부)
 - 2026-11-16 문서 탭·Messages: 쿼리 창 항목은 쿼리 창 탭에서만, 오류 위치로 가기는 오류 글자에서만 보임(앱 변경 #137 2부)
+- 2026-11-16 ER 다이어그램: 개체 메뉴의 Design·Select Top은 해당하는 개체에서만 보임(앱 변경 #137 2부)
