@@ -779,6 +779,96 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 
 - upstream의 복제 문장은 각 클래스에 있었다. 그 문자열을 바꾸지 않고 기본 카탈로그로 옮기고, 카탈로그 인터페이스·데이터 원본의 선택·능력 검사를 더했다.
 
+## 공간 사용량 (2026-11-17, 앱 변경 #139 작업 7)
+
+### 목적
+
+활동 모니터의 공간 사용량 탭이 Altibase 계열 연결(Altibase, ShardSphere)에서 비어 있었다("Altibase에서는 공간 사용량을 볼 수 없습니다"):
+`ServerSpaceDialect.forDataSource`에 이 계열의 분기가 없었다. 다른 DB와 같은 표 모양으로 테이블스페이스, 데이터 파일, 큰 테이블을 보인다.
+한 구현이 두 서버에 같은 문장을 보낸다(제품 이름 검사 없음). ShardSphere 기능 번들이 없는 제품에서도 같다(같은 데이터 원본 클래스).
+화면과 다른 DB의 내용은 [swing-admin-tools.md](swing-admin-tools.md) "공간 사용량".
+
+### 구조
+
+| 위치 | 하는 일 |
+|---|---|
+| `model.admin` `altibase/AltibaseSpaceDialect`(새) | 표 셋. 문장마다 실패하면 그 표만 "읽을 수 없음: {서버 메시지}" |
+| `model.admin` `space/ServerSpaceDialect.forDataSource` | `AltibaseDataSource`면 위 방언 |
+| `ext.altibase` `AltibaseTablespace.getSizeQuery`(정적)·`readSizes(session, type, id)`·`Sizes` | 종류별 크기 문장을 객체 필드(`qry4Size`)에서 정적 메서드로 옮기고 세션을 받게 함. 트리의 `loadSizes`와 탭이 같이 쓴다 |
+| `model.admin` `SpaceMessages`(+`_ko`) | 새 문구 9개(아래) |
+
+### 표와 읽는 곳
+
+| 표 | 열 | 읽는 곳 |
+|---|---|---|
+| 테이블스페이스 | 테이블스페이스, 유형(`TbsType` 이름, 트리 속성과 같음), 상태(`State` 이름), 크기, 사용, 사용 가능, 사용 %, 최대 크기, 최대 대비 사용 %, 자동 확장 | 목록: `V$TABLESPACES`(크기 = TOTAL_PAGE_COUNT × 그 테이블스페이스의 PAGE_SIZE), 자동 확장: 디스크는 `V$DATAFILES.AUTOEXTEND`의 최댓값, 메모리 `V$MEM_TABLESPACES`, 휘발성 `V$VOL_TABLESPACES`의 AUTOEXTEND_MODE. 사용·최대 크기: 테이블스페이스마다 `AltibaseTablespace.readSizes` |
+| 데이터 파일 | 파일 ID, 테이블스페이스, 종류(데이터 파일·임시 파일·체크포인트 경로), 경로, 크기, 자동 확장, 증가 단위, 최대 크기, 상태 | `V$DATAFILES` × `V$TABLESPACES`(페이지 수 × PAGE_SIZE, 최대 = MAXSIZE, 0이면 현재 크기: 트리의 디스크 문장과 같은 규칙), `V$MEM_TABLESPACE_CHECKPOINT_PATHS`(경로만) |
+| 큰 테이블 | 소유자, 테이블, 테이블스페이스, 메모리, 디스크, 합계 | `SYSTEM_.SYS_TABLE_SIZE_`(범위: 소유자 하나 또는 전체, `ORDER BY … LIMIT ?`) |
+
+- 언두와 임시 사용량은 그 테이블스페이스의 행이다: 언두 = (TX_EXT_CNT + USED_EXT_CNT + UNSTEALABLE_EXT_CNT) × `SYS_UNDO_TBS_EXTENT_SIZE`(`V$DISK_UNDO_USAGE`),
+  임시 = `X$TEMPTABLE_STATS.NORMAL_AREA_SIZE`의 합(지금 쓰는 임시 테이블). 따로 표를 두지 않았다(다른 DB에 없는 표 종류라서).
+- `SYS_TABLE_SIZE_`는 서버의 뷰다(두 서버의 정의가 같음, `SYS_VIEW_PARSE_`로 읽음): 사용자 ID가 1보다 큰 사용자의 테이블(TABLE_TYPE 'T'), 파티션은 테이블로 합침,
+  메모리 = (MEM_PAGE_CNT + MEM_VAR_PAGE_CNT) × 32 KB(`X$TABLE_INFO`), 디스크 = 그 테이블 OID의 세그먼트 사용 크기(`X$SEGMENT.TOTAL_USED_SIZE`).
+  행 수 통계는 이 계열에 없어 열이 없다.
+- 데이터 파일마다의 사용량은 서버가 주지 않는다(세그먼트는 테이블스페이스 단위). 체크포인트 이미지 파일(`<이름>-0-0`, `-1-0`)의 크기도 SQL로 읽을 수 없어
+  경로만 보인다(시험 컨테이너에서 파일 크기는 할당 페이지와 비슷했다: 메모리 데이터 385페이지 12.6 MB, 파일 10.9 MB).
+
+### 트리와 같은 크기
+
+트리(Storage > Tablespaces)의 Used Size = 탭의 사용, Available Size = 탭의 최대 크기 − 사용이다. 탭이 트리의 문장을 그대로 부르므로 둘이 어긋날 수 없다.
+트리의 lazy 객체(`getTablespaces` → 객체마다 `loadSizes`)를 쓰지 않고 정적 문장을 탭의 세션에서 부르는 이유: 트리 캐시는 새로 고침 전까지 옛 목록·상태를
+갖고, 객체마다 메타 세션을 따로 연다. 탭은 매번 `V$TABLESPACES`를 새로 읽고 테이블스페이스마다 크기 문장 하나를 보낸다(새로 고침 한 번에 목록·파일·경로·범위·큰 테이블 5문장과 크기 문장이 시험 서버 5개, 메타 노드 9개).
+잰 시간: 터널 너머 Altibase 7.3에서 문장 하나 67–122 ms, 원격 ShardSphere 10–30 ms. 새로 고침 한 번이 1초 안팎이라 한 문장으로 합치지 않았다.
+
+### 한도를 고친 것 (트리도 바뀜)
+
+전에는 메모리 테이블스페이스의 한도가 모두 `MEM_MAX_DB_SIZE`(전체 메모리 DB 한도)였고, 휘발성은 MAX_SIZE가 0이면 `VOLATILE_MAX_DB_SIZE`였다. 자동 확장을 끈
+테이블스페이스는 지금 크기 이상 커지지 않는데 트리의 Available Size가 GB 단위로 나왔다. 메타 노드의 사용자 테이블스페이스로 확인했다(자동 확장 꺼짐은 MAXSIZE 0):
+
+| 테이블스페이스(메타 노드) | 전: 한도 | 후: 한도 |
+|---|---|---|
+| 메모리 사용자 둘(AUTOEXTEND_MODE 0, CURRENT_SIZE 64 MB) | 2 GB(`MEM_MAX_DB_SIZE`) | 64 MB |
+| 휘발성 사용자 둘(AUTOEXTEND_MODE 0, CURRENT_SIZE 256 MB) | 4 GB(`VOLATILE_MAX_DB_SIZE`) | 256 MB |
+| 메모리 시스템 둘(자동 확장, MAXSIZE 140737488322560) | 2 GB | 2 GB(LEAST) |
+
+새 규칙: 자동 확장이 켜져 있으면 메모리는 `LEAST(MAXSIZE, MEM_MAX_DB_SIZE)`(`V$DATABASE`의 값은 문자열이라 `TO_NUMBER`), 휘발성은 전과 같은 DECODE, 꺼져 있으면 CURRENT_SIZE.
+디스크·임시·언두 문장은 고치지 않았다.
+
+### 두 서버의 같은 점과 다른 점
+
+- 쓰는 뷰·열은 Altibase 7.3.0.0.7, ShardSphere 5.1.9, 메타 노드 5.1.9-beta9에서 모두 준비되고 실행됐다(탭의 문장 6개, 종류별 크기 문장 5개). SYS가 아닌 사용자(Altibase `TURBRIX`)도
+  모두 준비했다. 그래서 서버마다 고르는 분기가 없다.
+- 다른 점(이 탭은 쓰지 않음): `X$SEGMENT`에 ShardSphere는 `TOTAL_USED_PAGE_CNT` 열이 없다(42S22). 시스템 테이블스페이스 이름이 Altibase는 `SYS_TBS_*`,
+  ShardSphere는 접두어 없이 `MEM_DIC`, `DISK_DATA` 같은 이름이다. `DISK_MAX_DB_SIZE`가 ShardSphere는 18446744073709551615(제한 없음)다.
+- 메타 노드의 숫자는 메타 노드 자신의 저장소다(샤딩 사전 `SYS_SHARD`의 테이블, 메타 노드의 사용자 테이블스페이스). 데이터 노드의 공간은 각 데이터 노드에 연결해서 본다.
+  메타 노드의 임시 테이블스페이스는 192 MB(91 %)를 쓰고 있었다(임시 테이블 3개).
+
+### 확인 (2026-11-17, 전: 기준 `bac006fa38` 빌드, 후: 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- 전: Altibase·ShardSphere 둘 다 탭에 "…에서는 공간 사용량을 볼 수 없습니다"만.
+- Altibase 7.3: 탭의 다섯 행을 독립 질의(`V$TABLESPACES`, `V$MEMTBL_INFO`, `X$SEGMENT`, `V$DISK_UNDO_USAGE`, `X$TEMPTABLE_STATS`, `V$MEM_TABLESPACES`, `V$DATAFILES`)와
+  트리 객체(`refreshObject` 뒤 `getUsedSize`/`getAvailableSize`)와 비교해 같음. 예: 디스크 데이터 크기 100 MB·사용 1 MB·최대 2,147,475,456, 언두 사용 134,217,728,
+  메모리 데이터 사용 10,256,744. 범위 콤보(소유자) TURBRIX → 그 소유자의 4개.
+- 시험 표 `CHR_SP_T`(SYS, 1,500행 × 1,000바이트, 자동 커밋 연결에서 만들고 지움): 메모리 테이블스페이스에 두면 큰 테이블에 메모리 2,129,920(65페이지 × 32 KB),
+  메모리 데이터 사용 10,256,744 → 12,356,744, 크기 12 MB → 16 MB(자동 확장 한 번, 4 MB). 지우고 디스크 데이터 테이블스페이스에 다시 두면 디스크 2,097,152,
+  디스크 데이터 사용 1 MB → 3 MB, 메모리 사용은 원래대로. 끝에 지움: `SYS_TABLES_`에 `CHR_SP_T` 0행, 디스크 사용 1 MB. 메모리 테이블스페이스의 늘어난 4 MB는
+  줄지 않는다(서버 동작).
+- ShardSphere 일반 서버와 메타 노드(조회 전용, 연결 읽기 전용 표시, 자동 커밋, 암호 저장 끔): 같은 세 표. 새로 고침 한 번에 보낸 문장(쿼리 관리자) 일반 서버 10개,
+  메타 노드 14개, 모두 SELECT, 모두 성공. 데이터 파일 경로·사용자 이름·사용자 테이블스페이스 이름은 캡처에서 가렸다.
+- ShardSphere 기능 번들(`com.seizia.chromite.ext.shardsphere`)을 뺀 제품: 두 연결의 탭이 같은 값(감지 문장만 없음).
+- PostgreSQL·SQL Server: 탭의 표·열·값이 전과 같다(로그 사용량처럼 움직이는 값만 다름).
+- 캡처: `D:\Tools\_scratch\altibase-space-tab\sheets\`(저장소 밖). 회귀 테스트는 작성·실행하지 않았다.
+
+### 미확인
+
+- 미확인: 자동 확장을 끈 디스크 데이터 파일의 MAXSIZE가 늘 0인지(시험 서버의 파일은 모두 자동 확장). 탭과 트리는 MAXSIZE가 0이 아니면 그 값을 한도로 본다.
+- 미확인: 휘발성 테이블스페이스의 자동 확장이 켜졌을 때 MAX_SIZE 0의 뜻(전 코드처럼 `VOLATILE_MAX_DB_SIZE`로 읽음). 켜진 휘발성 테이블스페이스를 본 적이 없다.
+- 미확인: 체크포인트 경로가 여럿인 메모리 테이블스페이스에서 이미지 파일이 경로마다 어떻게 나뉘는지(두 서버 모두 경로 하나).
+- 미확인: ShardSphere에서 `SYS_TABLE_SIZE_`·`X$` 뷰를 일반 사용자가 읽을 수 있는지(벤더 서버는 관리 계정으로만 연결).
+
+### upstream 대비 변경점
+
+- upstream에는 공간 사용량 화면이 없다. 크기 문장을 정적 메서드로 옮기고(문자열은 메모리·휘발성 한도 말고 같음) 세션을 받는 읽기를 더했다.
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -807,3 +897,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-17 서버 확장의 방언 기여에 접두어 문장의 하위 질의 형태와 입력 중인 접두어의 제안을 더함(앱 변경 #139 작업 6b), 위 "서버 확장".
 - 2026-11-17 복제 카탈로그 전략(S2): 이 플러그인과 활동 모니터 복제 탭의 복제 문장을 연결의 카탈로그에서 받음(Altibase 문장은 같음), 서버 확장이 다른 카탈로그를 줌,
   제어 문장 능력으로 시작·중지·동기화를 숨김, 단위 없는 지연(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "복제 카탈로그".
+- 2026-11-17 활동 모니터 공간 사용량 탭에 Altibase 계열(앱 변경 #139 작업 7): 트리와 같은 크기 문장을 정적으로 옮겨 함께 씀, 자동 확장을 끈 메모리·휘발성
+  테이블스페이스의 한도를 현재 크기로(메모리는 MAXSIZE와 MEM_MAX_DB_SIZE 중 작은 쪽), 위 "공간 사용량".

@@ -60,6 +60,9 @@ import java.util.Collection;
  *   docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-17 디스크 데이터 테이블스페이스 크기 질의의 열 별칭에서 작은따옴표를 뺌({@code USED_SIZE}). ShardSphere는 따옴표 별칭을
  *   구문 오류(200705)로 거절해 사용·남은 크기를 읽지 못했다(앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
+ * - 2026-11-17 종류별 크기 문장을 객체 필드에서 정적 {@link #getSizeQuery}로, 세션을 받는 {@link #readSizes}를 둠: 활동 모니터의 공간 탭이
+ *   트리와 같은 문장으로 읽어 두 화면의 값이 어긋날 수 없게. 메모리·휘발성의 한도가 자동 확장이 꺼져 있으면 현재 크기, 메모리는 자기 MAXSIZE와
+ *   MEM_MAX_DB_SIZE 중 작은 쪽(전에는 모든 메모리 테이블스페이스가 MEM_MAX_DB_SIZE) (앱 변경 #139 작업 7, docs/chromite/altibase.md "공간 사용량")
  */
 public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefreshableObject, DBPObjectStatistics {
 
@@ -162,7 +165,6 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
     
     private volatile Long availableSize;
     private volatile Long usedSize;
-    private String qry4Size;
 
     // The space of a new tablespace (CREATE only)
     @Nullable
@@ -185,7 +187,6 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         this.name = "";
         this.tbsType = tbsType;
         this.state = State.UNKNOWN;
-        setQry4Size();
     }
 
     /**
@@ -201,44 +202,52 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         this.dataFileCount      = JDBCUtils.safeGetInt(dbResult, "DATAFILE_COUNT");
         this.pageSizeInBytes    = JDBCUtils.safeGetInt(dbResult, "PAGE_SIZE");
         this.isLogCompression   = (JDBCUtils.safeGetInt(dbResult, "ATTR_LOG_COMPRESS") == 1);
-        
-        setQry4Size();
     }
 
-    private void setQry4Size() {
-        switch (this.tbsType) {
+    /**
+     * The statement that reads the size limit (TOTAL_SIZE) and the used size (USED_SIZE) in bytes of one tablespace of the
+     * type; its one parameter is the tablespace ID. The tree's Available/Used Size and the Activity Monitor's Space tab
+     * both read through {@link #readSizes}, so they cannot disagree.
+     *
+     * @return null for an unknown type
+     */
+    @Nullable
+    private static String getSizeQuery(@NotNull TbsType tbsType) {
+        switch (tbsType) {
             case MEMORY_SYSTEM_DICTIONARY:
             case MEMORY_SYSTEM_DATA:
             case MEMORY_USER_DATA:
-                qry4Size = "SELECT "
-                            + " d.mem_max_db_size TOTAL_SIZE "
+                // The limit is the tablespace's own: its size when autoextend is off, else its MAXSIZE, but never more
+                // than MEM_MAX_DB_SIZE, the limit of all memory tablespaces together
+                return "SELECT "
+                            + " CASE WHEN m.autoextend_mode = 1 THEN LEAST(m.maxsize, TO_NUMBER(d.mem_max_db_size))"
+                                + " ELSE m.current_size END TOTAL_SIZE "
                             + " , NVL(mt.used , 0) USED_SIZE"
-                        + " FROM v$database d, v$tablespaces t left outer join"
+                        + " FROM v$database d, v$mem_tablespaces m left outer join"
                             + " (SELECT tablespace_id, round(sum(fixed_used_mem + var_used_mem),2) used"
                             + " FROM v$memtbl_info"
-                            + " GROUP by tablespace_id) mt on t.id = mt.tablespace_id"
-                        + " WHERE t.id = ?";
-                break;
+                            + " GROUP by tablespace_id) mt on m.space_id = mt.tablespace_id"
+                        + " WHERE m.space_id = ?";
             case VOLATILE_USER_DATA:
-                qry4Size = "SELECT"
+                return "SELECT"
                         + " m.max_size TOTAL_SIZE"
                         + " , NVL(mt.used, 0) used_size"
                     + " FROM"
                         + " (SELECT"
                             + " space_id"
-                            + " , DECODE(max_sizE, 0, (SELECT VALUE1"
+                            + " , CASE WHEN autoextend_mode = 1 THEN DECODE(max_sizE, 0, (SELECT VALUE1"
                                                   + " FROM V$PROPERTY"
-                                                  + " WHERE NAME = 'VOLATILE_MAX_DB_SIZE'), MAX_SIZE) AS MAX_SIZE"
+                                                  + " WHERE NAME = 'VOLATILE_MAX_DB_SIZE'), MAX_SIZE)"
+                                + " ELSE current_size END AS MAX_SIZE"
                       + " FROM V$VOL_TABLESPACES) M LEFT OUTER JOIN "
                             + " (SELECT tablespace_id, SUM((fixed_used_mem + var_used_mem)) USED"
                             + " FROM V$MEMTBL_INFO"
                             + " GROUP BY tablespace_id ) "
                             + " MT ON m.space_id = mt.tablespace_id"
                     + " WHERE m.space_id = ?";
-                break;
             case DISK_SYSTEM_DATA:
             case DISK_USER_DATA:
-                qry4Size = "SELECT "
+                return "SELECT "
                             + " (d.max * t.page_size) TOTAL_SIZE,"
                             + " nvl(ds.used, 0) USED_SIZE"
                        + " FROM v$tablespaces t LEFT OUTER JOIN "
@@ -250,10 +259,9 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                             + " FROM V$DATAFILES"
                            + " GROUP BY SPACEID) D"
                        + " WHERE t.id = D.spaceid AND t.id = ?";
-                break;
             case DISK_SYSTEM_TEMP:
             case DISK_USER_TEMP:
-                qry4Size = "SELECT "
+                return "SELECT "
                             + "(d.max * t.page_size) TOTAL_SIZE,"
                             + " nvl(xts.used_SIZE, 0) USED_SIZE"
                        + " FROM v$tablespaces t LEFT OUTER JOIN "
@@ -265,9 +273,8 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                             + " FROM V$DATAFILES"
                            + " GROUP BY SPACEID) D"
                        + " WHERE t.id = D.spaceid AND t.id = ?";
-                break;
             case DISK_SYSTEM_UNDO:
-                qry4Size = "SELECT "
+                return "SELECT "
                             + " (d.max * t.page_size) TOTAL_SIZE,"
                             + " ((u.tx_ext_cnt+u.used_ext_cnt+u.unstealable_ext_cnt) * prop.extent_size) USED_SIZE"
                        + " FROM v$tablespaces t, v$disk_undo_usage u,"
@@ -277,15 +284,9 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                             + " FROM V$DATAFILES"
                            + " GROUP BY SPACEID) D"
                        + " WHERE t.id = D.spaceid AND t.id = ?";
-                break;
             default:
-                qry4Size = "";
-                    
+                return null;
         }
-    }
-    
-    public String getQry4Size() {
-        return qry4Size;
     }
     
     @NotNull
@@ -404,7 +405,6 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
      */
     public void setTbsType(@NotNull TbsType tbsType) {
         this.tbsType = tbsType;
-        setQry4Size();
     }
 
     @Nullable
@@ -562,9 +562,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
      * Load tablespace size
      */
     public void loadSizes(DBRProgressMonitor monitor) throws DBException {
-        String qry = getQry4Size();
-        
-        if (qry.length() < 1) {
+        if (getSizeQuery(tbsType) == null) {
             availableSize = 0L;
             usedSize = 0L;
             return;
@@ -572,23 +570,45 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
         
         try (final JDBCSession session = DBUtils.openMetaSession(
                 monitor, this, "Load tablespace '" + getName() + "' statistics")) {
-            try (JDBCPreparedStatement dbStat = session.prepareStatement(qry)) {
-                dbStat.setInt(1, getId());
-                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
-                    if (dbResult.next()) {
-                        fetchSizes(dbResult);
-                    }
-                }
+            Sizes sizes = readSizes(session, tbsType, getId());
+            if (sizes != null) {
+                usedSize = sizes.used();
+                availableSize = sizes.total() - sizes.used();
             }
         } catch (SQLException e) {
             throw new DBDatabaseException("Can't read tablespace statistics", e, getDataSource());
         }
     }
 
-    void fetchSizes(JDBCResultSet dbResult) throws SQLException {
-        long totalSize = dbResult.getLong("TOTAL_SIZE");
-        usedSize = dbResult.getLong("USED_SIZE");
-        availableSize = totalSize - usedSize;
+    /**
+     * The size limit and the used size of a tablespace, in bytes.
+     *
+     * @param total what the tablespace may grow to (TOTAL_SIZE; the tree shows {@code total - used} as Available Size)
+     * @param used  USED_SIZE
+     */
+    public record Sizes(long total, long used) {
+    }
+
+    /**
+     * Reads the sizes of one tablespace in the given session (the tree's meta session, or the Activity Monitor's).
+     *
+     * @return null for an unknown type or when the server returns no row
+     */
+    @Nullable
+    public static Sizes readSizes(@NotNull JDBCSession session, @NotNull TbsType tbsType, int tablespaceId) throws SQLException {
+        String qry = getSizeQuery(tbsType);
+        if (qry == null) {
+            return null;
+        }
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(qry)) {
+            dbStat.setInt(1, tablespaceId);
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                if (!dbResult.next()) {
+                    return null;
+                }
+                return new Sizes(dbResult.getLong("TOTAL_SIZE"), dbResult.getLong("USED_SIZE"));
+            }
+        }
     }
     
     /**

@@ -16,12 +16,14 @@
  */
 package com.seizia.chromite.model.admin.space;
 
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
 import com.seizia.chromite.ext.oracle.model.OracleDataSource;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
 import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
 import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.admin.altibase.AltibaseSpaceDialect;
 import com.seizia.chromite.model.admin.mssql.SQLServerSpaceDialect;
 import com.seizia.chromite.model.admin.mysql.MySQLSpaceDialect;
 import com.seizia.chromite.model.admin.oracle.OracleSpaceDialect;
@@ -41,12 +43,13 @@ import org.jkiss.dbeaver.DBException;
  *     <li>읽기 전용이다. 서버 설정이나 세션 설정을 바꾸지 않는다.</li>
  *     <li>권한을 먼저 본다: 읽을 수 없는 뷰는 질의하지 않고 표를 "읽을 수 없음"으로 두며, 무엇을 받아야 하는지 안내한다
  *     ({@link SpaceReport#notices()}).</li>
- *     <li>큰 테이블 표는 범위(SQL Server 데이터베이스, PostgreSQL·MySQL 스키마, Oracle 소유자) 하나 또는 전체에서 크기 순으로 위의 몇 개만 읽는다.</li>
+ *     <li>큰 테이블 표는 범위(SQL Server 데이터베이스, PostgreSQL·MySQL 스키마, Oracle·Altibase 소유자) 하나 또는 전체에서 크기 순으로 위의 몇 개만 읽는다.</li>
  *     <li>Oracle은 Diagnostics/Tuning Pack이 필요한 AWR 뷰({@code DBA_HIST_*})를 쓰지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 공간 사용량 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-17 Altibase 계열(Altibase, ShardSphere) 방언 (앱 변경 #139 작업 7)
  */
 public abstract class ServerSpaceDialect {
 
@@ -70,6 +73,10 @@ public abstract class ServerSpaceDialect {
         }
         if (dataSource instanceof OracleDataSource oracle) {
             return new OracleSpaceDialect(oracle);
+        }
+        // Altibase and the servers of its family (ShardSphere): the same data source class and the same statements
+        if (dataSource instanceof AltibaseDataSource) {
+            return new AltibaseSpaceDialect();
         }
         return null;
     }

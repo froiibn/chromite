@@ -495,7 +495,7 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 
 ## 아직 없는 것
 
-계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
+관리 보고서(작업 8),
 쓰기 기능(작업 11, 샤딩의 노드 관리·분산·UNSHARD·재배치 포함), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
 
 ## 미확인 (벤더 문의)
@@ -534,3 +534,4 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
   노드별 행 수는 기존 "비용이 큰 개체 속성 읽기" 설정으로만, 모두 SELECT(앱 변경 #139 작업 9, `chromite/shardsphere-sharding-explorer`), 위 "샤딩 탐색기".
 - 2026-11-17 GEMINI 읽기: GEMINI 카탈로그를 감지한 연결에 GEMINI 복제 카탈로그를 줌 — Replications 폴더와 활동 모니터 복제 탭이 GEMINI를 읽음, 속성 보기에 종류 GEMINI,
   요약에 GEMINI 포트, 지연은 단위 없이, 시작·중지·동기화와 DDL 호출은 내지 않음(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "GEMINI".
+- 2026-11-17 계열 공통 공간 탭(작업 7)을 Altibase 공용 코드에 둠(이 번들 없이도 동작): [altibase.md](altibase.md) "공간 사용량", "아직 없는 것"에서 뺌.
