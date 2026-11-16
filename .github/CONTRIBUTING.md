@@ -9,5 +9,5 @@
 #### **Do you intend to add a new feature or fix a bug?**
 
 * Read [CLAUDE.md](../CLAUDE.md) (working principles) and the design documents in [docs/chromite](../docs/chromite/README.md).
-* Create a branch named `chromite/<short-description>` and open a pull request against `devel`.
+* Create a branch named `chromite/<short-description>` and open a pull request against `command`.
 * Chromite is developed independently of DBeaver. Do not open pull requests or issues for Chromite changes in the DBeaver repositories.

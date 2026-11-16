@@ -85,7 +85,7 @@ CLAUDE.md의 클래스 Javadoc "변경 이력" 규칙은 이름만 바뀐 파일
 
 ### 바뀐 이름과 이전 전 위험
 
-규칙(`rules.py`)과 코드 검색, 이름 변경 전 빌드(태그 `pre-internal-rename`)로 만든 실제 작업 공간을 근거로 정리했다.
+규칙(`rules.py`)과 코드 검색, 이름 변경 전 빌드(커밋 `007d0e6433`)로 만든 실제 작업 공간을 근거로 정리했다.
 "이전 전"은 이 수정이 없을 때 이름 변경 전 작업 공간을 새 빌드로 열었을 때의 결과다.
 
 | 항목 | 이전 | 이후 | 이전 전 | 이전 처리 |
@@ -148,7 +148,7 @@ CLAUDE.md의 클래스 Javadoc "변경 이력" 규칙은 이름만 바뀐 파일
 
 ### 이전 검증 (2026-11-07)
 
-이름 변경 전 빌드(태그 `pre-internal-rename` = `007d0e6433`, 별도 worktree에서 Swing 제품 빌드)로 작업 공간을 만들었다.
+이름 변경 전 빌드(커밋 `007d0e6433`, 별도 worktree에서 Swing 제품 빌드)로 작업 공간을 만들었다.
 연결 4개(SQL Server, PostgreSQL, MariaDB, Oracle Free; 비밀번호 저장), 연결 폴더, 연결 색, SQL Server 테이블 필터(`cust%`),
 SQL Server `provider-properties`(`@dbeaver-show-all-schemas@`), 다크 테마, 편집기 글꼴 17, 확인 설정 키, `org.jkiss.dbeaver.model.sql`
 노드의 설정 2개(값 하나는 클래스 이름), 프로젝트 설정 1개, Query Library 항목 1개. 이 작업 공간을 복사해 새 빌드로 열었다.
@@ -216,6 +216,9 @@ DBeaver 6.1.3 이전 형식(`<프로젝트>/.dbeaver-data-sources*.xml`)을 읽�
 
 ## 진행 중이던 브랜치 옮기기
 
+> 2026-11-17 이후에는 쓰지 않는다. 이력을 커밋 하나로 합치면서([history-cleanup.md](history-cleanup.md)) 옛 이름으로 된 브랜치가 모두 없어졌고,
+> 아래의 C4 커밋도 기본 브랜치에 없다(릴리스 태그의 옛 이력에는 남아 있다). 아래 내용과 `rename.py convert`는 그때의 기록이다.
+
 이름 변경 전 devel(`fe9f9b150f`)에서 시작한 브랜치는 옛 이름을 쓴다. 그대로 devel을 병합하면 git이 이름 변경을 내용 비교로
 추측해야 하고, 거의 모든 줄이 바뀐 작은 파일(MANIFEST.MF, plugin.xml, pom.xml)은 짝을 못 찾아 파일 전체가 충돌한다(실험으로 확인).
 그래서 브랜치에도 같은 도구를 돌린 뒤, 그 결과를 "변환된 변경 전 트리" 커밋과의 병합으로 기록한다.
@@ -264,3 +267,4 @@ git apply -3 chromite.patch
   `LegacyNameMigration`, 실행되지 않던 옛 XML 연결 설정 읽기 삭제, 검증 결과.
 - 2026-11-07 작업 공간 위치 수정과의 관계: 기본 작업 공간 행, 설계 "위치 이전과의 순서" 추가, 남은 옛 이름에서 현재 폴더 `workspace` 항목 삭제
   ([workspace-location.md](workspace-location.md)).
+- 2026-11-17 "진행 중이던 브랜치 옮기기"에 더 쓰지 않는다는 안내 추가(이력 정리, [history-cleanup.md](history-cleanup.md)). 태그 `pre-internal-rename`을 지워 두 곳의 언급을 커밋 해시로 바꿈.

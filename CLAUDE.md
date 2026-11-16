@@ -160,12 +160,15 @@
 
 AGENTS.md의 "Branches and Git Workflow" 중 DBeaver 조직 전용 규칙(`dbeaver/repo#번호` 형식, 이슈 연결 방식, 기여 정책)은 적용하지 않는다.
 
-- 저장소: `froiibn/chromite`. 기본 브랜치는 `devel`이고 PR은 `devel`을 대상으로 한다.
+- 저장소: `froiibn/chromite`. 기본 브랜치는 `command`이고 PR은 `command`를 대상으로 한다.
 - 이 저장소는 GitHub 포크라서 `gh` 명령에는 항상 `--repo froiibn/chromite`를 붙인다.
   붙이지 않으면 upstream(`dbeaver/dbeaver`)에 PR이나 이슈가 만들어질 수 있다.
 - 브랜치 이름: `chromite/<짧은-설명>` (예: `chromite/branding-phase2`)
 - 커밋 메시지: 영어, 첫 줄은 명령형 요약. 이슈가 있으면 `froiibn/chromite#번호`를 쓴다.
-- `devel`에 직접 커밋하지 않는다. upstream 저장소에 push하거나 PR을 만들지 않는다.
+- `command`에 직접 커밋하지 않는다. upstream 저장소에 push하거나 PR을 만들지 않는다.
+- 2026-11-17에 그때까지의 이력을 커밋 하나로 합치고 기본 브랜치를 `devel`에서 `command`로 바꿨다
+  ([docs/chromite/history-cleanup.md](docs/chromite/history-cleanup.md)). 그 전 커밋은 릴리스 태그로만 닿는다.
+  `devel` 브랜치를 다시 만들지 않는다.
 
 ## upstream 정책 (독립 개발)
 

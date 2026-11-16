@@ -6,9 +6,9 @@ name: Build
 
 on:
   push:
-    branches: [devel]
+    branches: [command]
   pull_request:
-    branches: [devel]
+    branches: [command]
   workflow_dispatch:
 
 concurrency:

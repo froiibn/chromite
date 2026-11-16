@@ -7,7 +7,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 - Windows: 서명하지 않은 exe는 SmartScreen이 "알 수 없는 게시자"로 경고하고, 회사 PC 정책으로 실행이 막힐 수 있다.
 - macOS: Developer ID 서명과 공증(notarization)이 없으면 Gatekeeper가 앱을 열지 않는다. 공증 결과를 앱과 dmg에
   붙여 두면(staple) 인터넷이 없는 환경에서도 열린다([runtime.md](runtime.md) "플랫폼별 사항").
-- `build.yml`(devel push·PR 빌드)은 지금처럼 서명하지 않는다. 서명 빌드는 새 워크플로 `release.yml`이 한다.
+- `build.yml`(command push·PR 빌드)은 지금처럼 서명하지 않는다. 서명 빌드는 새 워크플로 `release.yml`이 한다.
 
 출처: Turbrix 서명 안내서(Turbrix root 세션, 2026-11-06)와 그 참고 구현(Turbrix `docs/SIGNING.md`,
 `.github/workflows/release.yml`, `tools/release-macos.sh`, `apps/desktop/scripts/entitlements.mac.plist`)을 Chromite에 맞게 옮겼다.
@@ -28,10 +28,10 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 
 ### 실행 조건
 
-- `v*` 태그 push 때 돈다. 수동 실행(`workflow_dispatch`)은 `devel`에서만 된다(`version` 작업의 `if`).
+- `v*` 태그 push 때 돈다. 수동 실행(`workflow_dispatch`)은 `command`에서만 된다(`version` 작업의 `if`).
   다른 브랜치에서 수동 실행하면 모든 작업이 건너뛰어진다.
 - 서명하는 작업(`windows`, `macos-sign`)은 GitHub 환경 `signing`을 쓰고 `permissions: { contents: read, id-token: write }`를 둔다.
-  `signing` 환경은 `devel` 브랜치와 `v*` 태그에서만 쓸 수 있게 제한한다(사용자가 만든다, 아래 체크리스트).
+  `signing` 환경은 `command` 브랜치와 `v*` 태그에서만 쓸 수 있게 제한한다(사용자가 만든다, 아래 체크리스트).
 - 버전: `version` 작업이 `tools/release/bump-version.ps1`(인자 없이 실행하는 검사 모드)로 커밋된 제품 버전을 읽는다
   (`product/swing/chromite-swing.product`, 지금 0.1.0). 버전이 적힌 파일 4개가 서로 다르면 실패한다.
   태그 push는 태그가 정확히 `v<버전>`(예: `v0.1.0`)이 아니면 실패한다. 수동 실행은 태그 없이 같은 버전을 쓴다.
@@ -42,7 +42,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 
 1. Azure 변수 6개 확인: 모두 있으면 서명, 모두 없으면 서명 없는 빌드(`UNSIGNED`), 일부만 있으면 실패.
 2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... -Pproduct-chromite-swing`).
-   Maven 캐시는 `build.yml`이 `devel`에서 저장한 것을 읽기만 한다(`actions/cache/restore`; 태그 실행은 캐시를 새로 저장하지 않는다).
+   Maven 캐시는 `build.yml`이 `command`에서 저장한 것을 읽기만 한다(`actions/cache/restore`; 태그 실행은 캐시를 새로 저장하지 않는다).
    이어서 `build.yml`과 같은 내장 Java 런타임 단계(`tools/jre/BundleJre.java windows-x64`, JBR SDK 다운로드 캐시도 읽기만 함, [runtime.md](runtime.md)).
 3. 서명 전 상태를 로그에 남긴다(모든 exe·dll의 Authenticode 상태).
 4. `azure/login@v3`(OIDC, 비밀값 없음) → `azure/artifact-signing-action@v2`로 파일마다 한 단계씩 서명
@@ -226,7 +226,7 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 
 ## 설계 결정과 이유
 
-- **`build.yml`을 그대로 두고 `release.yml`을 따로 만들었다.** PR·devel 빌드는 서명 자격이 필요 없고 `signing` 환경도 쓰지 않는다.
+- **`build.yml`을 그대로 두고 `release.yml`을 따로 만들었다.** PR·command 빌드는 서명 자격이 필요 없고 `signing` 환경도 쓰지 않는다.
   빌드 명령은 두 파일에 같게 적어 두었다(둘 다 고쳐야 한다).
 - **macOS는 Linux에서 빌드하고 macOS 러너에서는 서명만 한다.** macOS 러너에서 빌드(수십 분)를 다시 하지 않고, ci.md에서 계획한 방식이다.
   두 앱을 macOS 작업 하나에서 처리한다(러너 배정을 한 번만 기다리고 키체인도 한 번 만든다).
@@ -283,6 +283,7 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 - [x] GitHub 저장소 Variables 6개(2026-11-07): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
       `ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`, `ARTIFACT_SIGNING_PROFILE`.
 - [x] GitHub 환경 `signing`(2026-11-07): Deployment branches and tags "Selected", 브랜치 `devel`, 태그 `v*`만 허용.
+- [x] GitHub 환경 `signing`(2026-11-17): 기본 브랜치를 `command`로 바꾸면서 허용 브랜치를 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)). 태그 `v*`는 그대로.
 - [ ] `signing` 환경의 Environment secrets 6개(아직 없음, Apple 계정 필요): `APPLE_DEVID_P12_BASE64`, `APPLE_DEVID_P12_PASSWORD`,
       `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`.
 - [ ] Turbrix의 Developer ID·API 키를 같이 쓸지 결정.
@@ -315,3 +316,4 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 - 2026-11-07 배포([distribution.md](distribution.md)): Windows 작업이 NSIS 설치 프로그램을 2단계로 만들어 `uninstall.exe`와 `setup.exe`를 서명하고, 확인 단계가 서명자 주체(새 절 "게시자")와 버전 리소스를 확인한 뒤 조용한 설치·제거를 한 번 해 본다. macOS 결과 파일 이름을 `Chromite-<버전>-arm64.{zip,dmg}`로 바꿨다.
 - 2026-11-12 런처 이름 `Chromite`(앱 변경 #65, [launcher-name.md](launcher-name.md)): 서명하는 런처 `Chromite.exe`, macOS 주 실행 파일 `Contents/MacOS/Chromite`,
   한 버전 동안 옛 이름 시작 파일 `chromite-swing.exe`를 1단계 뒤 서명하고 확인 목록에 넣음.
+- 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): `release.yml`의 수동 실행 조건과 `signing` 환경의 허용 브랜치. 날짜가 붙은 확인 기록의 `devel`은 그대로 둠.

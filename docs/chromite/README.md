@@ -112,3 +112,4 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [settings-transfer.md](settings-transfer.md) | 설정 내보내기·가져오기(File 메뉴): 옵션 설정 값·SQL 템플릿·연결 유형·데이터 형식, 드라이버 설정, 쿼리 라이브러리, 스크립트와 연결 묶기, 연결(#108 암호화 파일). 파일 형식, 비밀 걸러내기, 이 PC의 상태 키, 미리 보기와 충돌(건너뛰기·바꾸기·둘 다 두기), 가져오기 전 백업과 되돌리기 |
 | [credential-storage.md](credential-storage.md) | 저장된 비밀번호의 OS 보안 저장소(Windows DPAPI, macOS 키체인) 이전: 연결 자격 증명과 작업 공간 비밀(전역 네트워크 프로필, 프록시, Maven), Chromite 전용 저장 파일과 범위, 시작할 때 이전(중간에 죽어도 안전), 저장 실패 표시, 옮기지 않은 것 |
 | [password-handling.md](password-handling.md) | 암호를 넣는 SQL과 화면: 드라이버별 암호 따옴표(Oracle·YashanDB·Exasol·HANA 암호 바꾸기, Oracle 새 스키마), 암호가 든 문장의 쿼리 관리자 기록 끄기(Mimer·Exasol CONNECTION·CUBRID), Exasol LDAP·Kerberos 작은따옴표와 New Connection…, Swing 속성 표의 암호 가리기 |
+| [history-cleanup.md](history-cleanup.md) | 이력 정리(2026-11-17): 그때까지의 이력을 커밋 하나로 합치고 기본 브랜치를 `command`로 바꾼 이유와 절차, 남긴 것(릴리스 태그, 저작권 표시), 옛 이력을 찾는 방법 |

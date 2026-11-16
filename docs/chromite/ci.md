@@ -4,7 +4,7 @@
 
 Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 저장소 안의 설정만으로 돌린다.
 
-- `devel`에 push하거나 `devel` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)의 전체 제품을 빌드한다.
+- `command`에 push하거나 `command` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)의 전체 제품을 빌드한다.
   제품은 Swing 제품(`product/swing`, [swing-frontend.md](swing-frontend.md)) 하나다. SWT 제품은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
   Windows 제품은 Windows 러너에서, macOS 제품은 Linux 러너에서 만든다(아래 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드한 제품을 워크플로 결과물(artifact)로 올려 PR마다 바로 내려받아 실행해 볼 수 있게 한다.
@@ -14,9 +14,9 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 
 | 파일 | 실행 시점 | 하는 일 |
 |---|---|---|
-| `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드. 작업 `rename-gate`(`ubuntu-latest`)가 `tools/rename/gate.py`로 옛 DBeaver 내부 이름 재유입과 깨진 참조를 검사([internal-rename.md](internal-rename.md)) |
-| `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
-| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 제품을 빌드·서명·확인하고 Windows 설치 프로그램(NSIS)을 만들어 서명·확인한 뒤 태그면 초안 Release에 올림([signing.md](signing.md), [distribution.md](distribution.md)) |
+| `.github/workflows/build.yml` | `command` push, `command` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드. 작업 `rename-gate`(`ubuntu-latest`)가 `tools/rename/gate.py`로 옛 DBeaver 내부 이름 재유입과 깨진 참조를 검사([internal-rename.md](internal-rename.md)) |
+| `.github/workflows/codeql.yml` | `command` push, `command` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
+| `.github/workflows/release.yml` | `v*` 태그 push, `command`에서 수동 실행 | 제품을 빌드·서명·확인하고 Windows 설치 프로그램(NSIS)을 만들어 서명·확인한 뒤 태그면 초안 Release에 올림([signing.md](signing.md), [distribution.md](distribution.md)) |
 | `.github/workflows/macos-smoke.yml` | `release.yml`이 `v*` 태그에서 성공한 뒤(`workflow_run`), 수동 실행(`workflow_dispatch`: `source`, `tag`, `launcher_args`) | `macos-15` 러너에 서명한 dmg(또는 브랜치의 서명 없는 빌드)를 설치하고 서명·Gatekeeper 확인, 실행, 키체인, 앱 메뉴, 끝내기를 확인(아래 "macOS 설치·실행 시험") |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
@@ -126,7 +126,7 @@ Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 �
 - Tycho는 p2 저장소에서 받은 번들도 `~/.m2/repository`(`p2/`, `.cache/tycho/`)에 저장하므로 이 폴더 하나로 대부분을 캐시한다.
 - `actions/cache`는 작업이 성공했을 때만, 그리고 키가 정확히 맞지 않았을 때만 저장한다. pom이 바뀌면 새 키로 저장하고,
   그 전까지는 복원 키로 가장 최근 캐시를 쓴다.
-- PR에서 만든 캐시는 그 PR에서만 쓰이고, `devel` push에서 만든 캐시는 모든 PR이 쓴다(GitHub 캐시 범위 규칙).
+- PR에서 만든 캐시는 그 PR에서만 쓰이고, `command` push에서 만든 캐시는 모든 PR이 쓴다(GitHub 캐시 범위 규칙).
 
 ### 린트(checkstyle)를 뺀 이유
 
@@ -205,7 +205,7 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 
 - **초안 릴리스 다운로드만 쓰기 권한**: 초안 릴리스는 push 권한이 있는 토큰에만 보인다. 그래서 다운로드 작업만 `contents: write`를 갖고 제품 코드를 실행하지 않는다.
   앱을 실행하는 `smoke` 작업은 읽기 권한이다. 비밀값은 쓰지 않는다(가짜 비밀번호 상수, API 키 없음).
-- **`workflow_run`**: GitHub은 기본 브랜치(`devel`)에 있는 이 파일만 `workflow_run`으로 실행한다. 병합 전에는 수동 실행으로만 돈다.
+- **`workflow_run`**: GitHub은 기본 브랜치(`command`)에 있는 이 파일만 `workflow_run`으로 실행한다. 병합 전에는 수동 실행으로만 돈다.
   `head_branch`(태그 이름)는 셸에 환경 변수로 넘긴다(식 주입 방지).
 - **`/Applications`에 `ditto`로 복사**: 사용자처럼 `/Applications`에 두되 Finder가 아니라서 격리 속성이 남는다. 그래서 첫 실행 때 Gatekeeper 질문과
   App Translocation(임의의 읽기 전용 경로에서 실행)이 생긴다. dmg에서 바로 실행하거나 다운로드 폴더에서 실행하는 사용자와 같은 경로다.
@@ -298,7 +298,7 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 결과물은 서명하지 않았다. 내장 런타임(`jre/`)이 들어 있어 Java를 따로 설치하지 않아도 실행된다([runtime.md](runtime.md)).
   배포용이 아니라 확인용이며 7일 뒤 지워진다. 서명한 배포 파일은 `release.yml`이 만든다([signing.md](signing.md)).
 - macOS 런타임은 Linux에서 jlink로 만든다(교차 링크). `build.yml`은 구조와 실행 권한만 확인한다. `macos-smoke.yml`에서 내장 런타임의 JVM이 macOS에서 뜨는 것은 확인했다(스레드 덤프의 `java.base@25.0.4.1`).
-- `macos-smoke.yml`은 `workflow_run` 때문에 `devel`에 병합된 뒤에만 릴리스를 따라 돈다. 병합 전에는 수동 실행으로만 돈다. GUI 조작(System Events)은 러너 이미지의 손쉬운 사용 권한에 기댄다.
+- `macos-smoke.yml`은 `workflow_run` 때문에 `command`에 병합된 뒤에만 릴리스를 따라 돈다. 병합 전에는 수동 실행으로만 돈다. GUI 조작(System Events)은 러너 이미지의 손쉬운 사용 권한에 기댄다.
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
   JBR SDK 다운로드 캐시는 플랫폼마다 하나(Windows 약 280MB, macOS 약 230MB)다.
 
@@ -312,7 +312,7 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 | `.github/codeql/codeql-config.yml` | 추가 |
 | `.github/ISSUE_TEMPLATE.md` | 삭제 |
 | `.github/ISSUE_TEMPLATE/config.yml`, `bug_report.yaml`, `SUPPORT.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `copilot-instructions.md`, `skills/code-review/SKILL.md` | DBeaver 조직 링크·연락처·제품명을 Chromite 기준으로 변경 |
-| `SECURITY.md`(저장소 최상위) | 보고처를 `security@dbeaver.com`에서 GitHub Security Advisories(froiibn/chromite)로 변경, 지원 버전(최신 `devel`)과 upstream 보고 안내 추가 |
+| `SECURITY.md`(저장소 최상위) | 보고처를 `security@dbeaver.com`에서 GitHub Security Advisories(froiibn/chromite)로 변경, 지원 버전(최신 `command`)과 upstream 보고 안내 추가 |
 
 ## 변경 이력
 
@@ -345,3 +345,4 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
   `macos-smoke.sh launch`가 프로세스가 `<앱>/Contents/MacOS/Chromite`인지 확인, 진단의 통합 로그 프로세스 이름을 `CFBundleExecutable`에서 읽음. 결과물 이름은 그대로. 아직 실행하지 않음.
 - 2026-11-15 `macos-smoke.sh launch`의 시작 화면 확인을 macOS 창 하나에 맞춤(앱 변경 #52 다시 열림, `chromite/mac-splash-single-window`): 한 폴링에 시작 화면 크기 창이
   둘 이상이면 FAIL 줄, 디버그 로그의 `Startup splash at` 줄은 NOTE 대신 "있으면 FAIL 줄". 아직 실행하지 않음.
+- 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): `build.yml`·`codeql.yml`의 브랜치 조건, `release.yml`의 수동 실행 조건, 이 문서의 규칙 문장. 날짜가 붙은 확인 기록의 `devel`은 그때의 이름이라 그대로 둠.

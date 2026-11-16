@@ -2,7 +2,7 @@
 
 ### Supported Versions
 
-Only the latest `devel` branch of Chromite receives security fixes.
+Only the latest `command` branch of Chromite receives security fixes.
 
 ### Reporting a Vulnerability
 

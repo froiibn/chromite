@@ -120,7 +120,7 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 ## Branches and Git Workflow
 
-- `devel` — the main development branch; all PRs must target this branch.
+- `command` — the main development branch; all PRs must target this branch.
 - Release branches — `release_VERSION`, exist for each release; never commit to them directly.
 - Pull requests that only fix typos, formatting, or trivial refactoring are generally not accepted per the contributor guide.
 - Naming convention: issues, commit messages, and PR titles should follow the format `dbeaver/repo#issueNumber title` (e.g., `dbeaver/dbeaver#12345 Fix NPE in PostgreSQL dialect`).

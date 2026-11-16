@@ -233,7 +233,7 @@ GitHub 러너의 제품 폴더 경로가 약 120자). 그래서 빌드 스크립
     그것이 만든 `.DS_Store`·배경 그림(우리 것)뿐이라 `NOTICE`에 넣지 않았다.
 - 서명·공증·staple·`verify`는 그대로다: dmgbuild가 만든 dmg를 `sign-dmg` → `notarize` → `verify`가 확인한다(dmg 안의 앱도 `codesign`·`spctl`).
 - 증거: `release.yml`의 "Disk image window" 단계가 `release-macos.sh dmg-window`로 dmg를 사용자처럼 붙이고 Finder로 열어 `screencapture`한 그림(`dmg-window.png`)과
-  `.DS_Store` 내용(`dmg-ds-store.txt`)을 산출물 `macos-dmg-window-<버전>`으로 올린다(실패해도 릴리스는 계속). `release.yml`은 태그나 `devel`의 수동 실행에서만 돈다.
+  `.DS_Store` 내용(`dmg-ds-store.txt`)을 산출물 `macos-dmg-window-<버전>`으로 올린다(실패해도 릴리스는 계속). `release.yml`은 태그나 `command`의 수동 실행에서만 돈다.
 
 ## 피드 생성기 `tools/release/releases.sh`
 
@@ -334,7 +334,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 운영과 같은 상태에서 시작하려면 먼저 지금 운영 중인 버전을 같은 방법으로 넣는다. 배포 스크립트가 옛 버전의 파일을 받지 않게 바뀐 뒤라면
 (26.0.5부터 0.1.4의 zip을 거부) 그 버전을 넣을 때만 바뀌기 전 커밋의 스크립트를 쓴다.
-태그를 붙이기 전에는 `release.yml`을 `devel`에서 수동 실행해(태그 없음, 초안 Release 없음, 번호를 쓰지 않음) 나온 서명 파일로 같은 리허설을 미리 할 수 있다.
+태그를 붙이기 전에는 `release.yml`을 `command`에서 수동 실행해(태그 없음, 초안 Release 없음, 번호를 쓰지 않음) 나온 서명 파일로 같은 리허설을 미리 할 수 있다.
 수동 실행의 산출물에는 `SHA256SUMS`가 없으므로 `sha256sum`으로 만들어 넣는다.
 
 ## 사이트 `site/`
@@ -664,7 +664,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 ## 릴리스 순서
 
-1. `devel`에서 버전을 올리고([versioning.md](versioning.md): 첫 사용자 배포 판 전에는 `26.0.x`의 셋째 수, 첫 사용자 배포 판(26.1.0)은 사용자가 정한 뒤 `-FirstUserRelease`),
+1. `command`에서 버전을 올리고([versioning.md](versioning.md): 첫 사용자 배포 판 전에는 `26.0.x`의 셋째 수, 첫 사용자 배포 판(26.1.0)은 사용자가 정한 뒤 `-FirstUserRelease`),
    같은 PR에 `site/ko|en/changelog.html`의 `<section id="v<버전>">`을 쓴다.
 2. 그 커밋에 `v<버전>` 태그 → `release.yml`이 서명 파일과 `SHA256SUMS`로 **초안** Release를 만든다.
 3. 저장 데이터 형식이 바뀌었는지 정해 `-DataGeneration`을 고른다(바뀌었으면 이전 값 + 1).
@@ -1064,3 +1064,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-16 26.1.3 릴리스 기록: 26.1.2 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
 - 2026-11-16 26.1.4 준비(`chromite/release-26-1-4`): 버전 26.1.4와 변경 내역(#304: 공백 경로 설치에서 업데이트 진행 창이 사라지던 것, #305·#306: 우클릭 메뉴에 해당하는 명령만 표시).
 - 2026-11-17 26.1.4 릴리스 기록: 26.1.3 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인, macOS 러너가 배정되지 않아 다시 실행한 일을 적음.
+- 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): 배포 절차의 브랜치 이름. 지난 배포 기록의 `devel`은 그대로 둠.

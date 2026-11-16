@@ -133,7 +133,7 @@ if ($old.Major -eq 0 -or $old.Minor -eq 0) {
 } elseif ($new.Minor -ne $old.Minor -and $new.Build -ne 0) {
     throw "version ${Version}: the third number resets to 0 when the second goes up ($($new.Major).$($new.Minor).0)"
 }
-# A number that ever got a tag is never reused, even if its commit never reached devel.
+# A number that ever got a tag is never reused, even if its commit never reached the default branch.
 $tags = @(git -C $root tag --list 'v*')
 if ($LASTEXITCODE) { throw 'git tag --list failed' }
 foreach ($tag in $tags) {

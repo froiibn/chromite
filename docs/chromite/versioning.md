@@ -107,8 +107,8 @@ GitHub의 Linux 러너에도 `pwsh`가 있어서 `release.yml`이 같은 스크�
 
 ### 릴리스 순서
 
-1. `devel`에서 `pwsh tools/release/bump-version.ps1 <새 버전>`, 바뀐 4개 파일을 "version" 커밋 하나로 만든다
-   (예: `Set version 26.0.6`). PR로 `devel`에 넣는다.
+1. `command`에서 `pwsh tools/release/bump-version.ps1 <새 버전>`, 바뀐 4개 파일을 "version" 커밋 하나로 만든다
+   (예: `Set version 26.0.6`). PR로 `command`에 넣는다.
 2. 그 커밋으로 빌드해 사용자에게 준다. 로컬 빌드든 `release.yml` 수동 실행이든 화면과 파일 이름의 번호가 같다.
 3. 서명 릴리스가 필요하면 그 커밋에 `git tag v<버전>`을 붙여 push한다. `version` 작업이 태그와 커밋된 버전을 비교한다.
 4. 다음 빌드는 1번부터 다시 한다. 태그를 지우거나 다른 커밋으로 옮기지 않는다. 잘못된 태그가 있으면 그 번호를 건너뛴다.
@@ -118,7 +118,7 @@ GitHub의 Linux 러너에도 `pwsh`가 있어서 `release.yml`이 같은 스크�
 - `tools/release/bump-version.ps1`을 인자 없이 실행해 커밋된 버전을 읽는다(4곳 일치 확인 포함). 필요한 폴더만 sparse checkout 한다.
 - 버전이 `X.Y.Z`가 아니면 실패한다.
 - 태그 push(`push` 이벤트)면 `GITHUB_REF`가 정확히 `refs/tags/v<버전>`이어야 한다. `v0.1.0-rc1`, `v0.1`도 실패한다.
-- `workflow_dispatch`(`devel`에서만)는 태그 없이 커밋된 버전을 쓴다. 결과물 이름도 같은 버전이고, Release는 만들지 않는다.
+- `workflow_dispatch`(`command`에서만)는 태그 없이 커밋된 버전을 쓴다. 결과물 이름도 같은 버전이고, Release는 만들지 않는다.
 
 ## 설계 결정과 이유
 
@@ -241,3 +241,4 @@ DBeaver는 번들·제품 버전을 모두 DBeaver 릴리스 번호(예: 26.2.5)
   `bump-version.ps1`: 첫째 수는 올해, 개발 단계 `YY.0.x`는 셋째 수를 이어 올림, `-AllowMajor`를 `-FirstUserRelease`로 바꿈. 비교 코드 전수 확인.
   위 표와 예시의 0.1.0·0.1.1은 그때의 기록이라 그대로 둠.
 - 2026-11-15 사용자가 첫 사용자 배포 판을 내기로 정함("여기까지 모두 완료해서 26.1.0으로 배포한다"): 26.0.8 → 26.1.0(`-FirstUserRelease`, `chromite/release-26-1-0`). 이 뒤로 급한 수정판은 26.1.x, 다음 판은 26.2.0.
+- 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): 버전을 올리는 순서와 수동 실행 조건의 브랜치 이름.
