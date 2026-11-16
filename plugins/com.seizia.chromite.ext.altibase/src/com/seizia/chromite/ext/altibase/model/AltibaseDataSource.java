@@ -64,8 +64,10 @@ import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
@@ -93,6 +95,10 @@ import java.util.WeakHashMap;
  * - 2026-11-15 {@link #getDbName}: 드라이버 매개변수 query-get-active-db 대신 {@link AltibaseConstants#QUERY_GET_DB_NAME}. 그 매개변수는
  *   일반(generic) 실행 문맥이 기본 스키마 이름을 읽는 질의라 이제 로그인 사용자를 읽는다(앱 변경 #116, docs/chromite/altibase.md
  *   "세션의 기본 스키마")
+ * - 2026-11-17 {@link #getReplication}: 이름으로 찾을 때도 {@link #getReplications}처럼 복제 카탈로그가 없는 서버(ShardSphere)는 "복제
+ *   없음"으로 답한다. Object Explorer 밖에서 이름을 찾는 {@link #getChild}가 표 없음 오류를 냈다. {@link #hasDbmsMetadataSubprogram}:
+ *   연결한 서버의 DBMS_METADATA에 있는 서브프로그램을 연결마다 한 번 읽는다(메타 모델은 연결 사이에 공유되므로 여기에 둔다,
+ *   앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -115,6 +121,10 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     private String dbName;
 
     private int lobCacheThreshold;
+
+    // The subprograms of this server's DBMS_METADATA, read on first use (null: not read yet)
+    @Nullable
+    private volatile Set<String> dbmsMetadataSubprograms;
 
     public AltibaseDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container, AltibaseMetaModel metaModel)
             throws DBException {
@@ -184,6 +194,29 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         return dbName;
     }
 
+    /**
+     * Whether the server's DBMS_METADATA package has the subprogram. The package differs between the servers of this
+     * family (ShardSphere 5.1 has no GET_DEPENDENT_DDL and no SET_TRANSFORM_PARAM), so callers ask before they call.
+     * Read once per connection; if it cannot be read, the answer is false and it is read again next time.
+     */
+    public boolean hasDbmsMetadataSubprogram(@NotNull JDBCSession session, @NotNull String subprogram) {
+        Set<String> names = dbmsMetadataSubprograms;
+        if (names == null) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(AltibaseConstants.QUERY_DBMS_METADATA_SUBPROGRAMS);
+                 JDBCResultSet dbResult = dbStat.executeQuery()) {
+                names = new HashSet<>();
+                while (dbResult.next()) {
+                    names.add(dbResult.getString(1));
+                }
+                dbmsMetadataSubprograms = names;
+            } catch (SQLException e) {
+                log.warn("Can't read the subprograms of DBMS_METADATA", e);
+                return false;
+            }
+        }
+        return names.contains(subprogram);
+    }
+
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         super.refreshObject(monitor);
@@ -194,6 +227,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         this.replCache.clearCache();
         this.jobCache.clearCache();
         this.dbLinkCache.clearCache();
+        this.dbmsMetadataSubprograms = null;
 
         hasStatistics = false;
 
@@ -588,9 +622,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         try {
             return replCache.getAllObjects(monitor, this);
         } catch (DBException e) {
-            if (JDBCUtils.matchesSQLException(e, ex -> ex.getErrorCode() == AltibaseConstants.EC_TABLE_NOT_FOUND
-                || SQLState.SQL_42S02.getCode().equals(ex.getSQLState()))) {
-                log.debug("No replication catalog on this server: " + e.getMessage());
+            if (isReplicationCatalogMissing(e)) {
                 return Collections.emptyList();
             }
             throw e;
@@ -598,11 +630,32 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     }
 
     /**
-     * Return a specific cached replication.
+     * Return a specific cached replication, or null. Without the replication catalog (as in {@link #getReplications})
+     * there is no replication of that name.
      */
+    @Nullable
     @Association
     public AltibaseReplication getReplication(DBRProgressMonitor monitor, String name) throws DBException {
-        return replCache.getObject(monitor, this, name);
+        try {
+            return replCache.getObject(monitor, this, name);
+        } catch (DBException e) {
+            if (isReplicationCatalogMissing(e)) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * The replication catalog query failed with "table not found" (42S02, 0x31031): the server has no replication catalog.
+     */
+    private static boolean isReplicationCatalogMissing(@NotNull DBException e) {
+        if (JDBCUtils.matchesSQLException(e, ex -> ex.getErrorCode() == AltibaseConstants.EC_TABLE_NOT_FOUND
+            || SQLState.SQL_42S02.getCode().equals(ex.getSQLState()))) {
+            log.debug("No replication catalog on this server: " + e.getMessage());
+            return true;
+        }
+        return false;
     }
 
     ///////////////////////////////////////////////

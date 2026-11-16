@@ -43,13 +43,17 @@ import java.util.List;
  *     <li>대기 대상·모드는 기다리는 트랜잭션의 승인되지 않은 {@code V$LOCK} 행({@code IS_GRANT = 0})의 테이블과 {@code LOCK_DESC}다.
  *     행 대기처럼 그런 행이 없으면 기다리는 트랜잭션 번호를 보인다.</li>
  *     <li>문장은 세션의 현재 문장({@code V$SESSION.CURRENT_STMT_ID} → {@code V$STATEMENT})이다. 막는 쪽이 유휴면 마지막 문장이 보인다.</li>
- *     <li>대기 시간은 기다리는 문장의 시작 시각({@code QUERY_START_TIME}, Unix 초)과 서버의 UTC 현재 시각({@code UNIX_DATE})의 차이다.</li>
+ *     <li>대기 시간은 기다리는 문장의 시작 시각({@code QUERY_START_TIME}, Unix 초)과 서버의 UTC 현재 시각의 차이다. UTC 현재 시각은
+ *     {@code UNIX_DATE}가 아니라 {@code CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00')}이다: ShardSphere 5.1에는 {@code UNIX_DATE}가
+ *     없고, {@code SYSDATE}는 데이터베이스 시간대의 시각이라(세션 시간대와 무관) 두 서버에서 같은 값이 된다.</li>
  *     <li>세션 끝내기는 DBeaver 세션·잠금 관리자와 같은 {@code ALTER DATABASE <db> SESSION CLOSE <id>}다(SYS 권한).</li>
  * </ul>
  * 2026-11-08 Docker Altibase 7.3.0.0.7에서 두 세션의 {@code LOCK TABLE}로 열과 값을 확인했다(docs/chromite/swing-admin-tools.md).
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: Altibase 잠금 탭 (docs/chromite/swing-admin-tools.md "Altibase 잠금")
+ * - 2026-11-17 대기 질의의 UTC 현재 시각을 {@code UNIX_DATE}에서 {@code CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00')}로. ShardSphere에서
+ *   잠금 탭이 새로 고칠 때마다 "열 없음"(200792) 오류였다(앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
  */
 public class AltibaseBlockingLockManager extends AbstractBlockingLockManager {
 
@@ -61,7 +65,7 @@ public class AltibaseBlockingLockManager extends AbstractBlockingLockManager {
         "  WHERE l.TRANS_ID = lw.TRANS_ID AND l.IS_GRANT = 0 AND t.TABLE_OID = l.TABLE_OID AND u.USER_ID = t.USER_ID) AS object_name,\n" +
         "(SELECT MAX(s.QUERY) FROM V$STATEMENT s WHERE s.SESSION_ID = w.ID AND s.ID = w.CURRENT_STMT_ID) AS wait_statement,\n" +
         "(SELECT MAX(s.QUERY) FROM V$STATEMENT s WHERE s.SESSION_ID = h.ID AND s.ID = h.CURRENT_STMT_ID) AS hold_statement,\n" +
-        "DATEDIFF(TO_DATE('1970-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS'), UNIX_DATE, 'SECOND') -\n" +
+        "DATEDIFF(TO_DATE('1970-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS'), CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00'), 'SECOND') -\n" +
         "  (SELECT MAX(s.QUERY_START_TIME) FROM V$STATEMENT s WHERE s.SESSION_ID = w.ID AND s.ID = w.CURRENT_STMT_ID) AS wait_seconds\n" +
         "FROM V$LOCK_WAIT lw\n" +
         "JOIN V$SESSION w ON w.TRANS_ID = lw.TRANS_ID\n" +
