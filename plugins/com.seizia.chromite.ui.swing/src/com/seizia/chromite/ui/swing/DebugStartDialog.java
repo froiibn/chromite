@@ -47,6 +47,7 @@ import java.util.Map;
  * - 2026-11-07 attach 지원 여부 인수(Oracle 디버거)
  * - 2026-11-08 인수 표를 {@link RoutineArgumentTable}로 옮겨 Execute Procedure 대화상자와 함께 씀 (docs/chromite/swing-routines.md)
  * - 2026-11-08 설계 설명의 쿼리 창 매개 변수 대화상자를 합친 대화상자({@link QueryParameterDialog})로 고침
+ * - 2026-11-16 프로세스 ID 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142)
  */
 final class DebugStartDialog extends JDialog {
 
@@ -77,6 +78,8 @@ final class DebugStartDialog extends JDialog {
             attachButton.setSelected(true);
             processField.setText(CommonUtils.toString(previous.get(DBGConstants.ATTR_ATTACH_PROCESS)));
         }
+        // A process ID: digits only (installed after the previous value, which stays as it was)
+        NumberInputFilter.install(processField, false);
         if (!attachSupported) {
             attachButton.setEnabled(false);
             attachButton.setToolTipText(DebugMessages.debug_start_attach_unsupported);

@@ -70,6 +70,7 @@ import java.util.Map;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-08 쿼리 창의 매개변수 대화상자({@code SqlParameterDialog})를 합침: 스크립트 모드(문장 미리 보기, Ignore), 줄마다 SQL 글자 여부와
  *   표식, 열 때 첫 입력 칸에 초점 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-16 숫자 형식 매개 변수 칸이 숫자, 앞의 빼기 부호, 점 하나만 받음({@link NumberInputFilter}, 앱 변경 #142)
  */
 final class QueryParameterDialog extends JDialog {
 
@@ -326,7 +327,10 @@ final class QueryParameterDialog extends JDialog {
             }
             default -> {
                 JTextField field = new JTextField(initial, 24);
-                if (parameter.getType() == QueryLibraryParameter.Type.DATE) {
+                if (parameter.getType() == QueryLibraryParameter.Type.NUMBER) {
+                    // A decimal with its sign, written plainly (toJdbcValue reads it); the initial value stays as it is
+                    NumberInputFilter.install(field, true, true);
+                } else if (parameter.getType() == QueryLibraryParameter.Type.DATE) {
                     field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "yyyy-mm-dd"); //$NON-NLS-1$
                 } else if (parameter.getType() == QueryLibraryParameter.Type.DATETIME) {
                     field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "yyyy-mm-dd hh:mm:ss"); //$NON-NLS-1$
