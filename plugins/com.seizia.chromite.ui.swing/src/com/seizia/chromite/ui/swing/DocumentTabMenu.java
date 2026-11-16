@@ -52,7 +52,9 @@ import java.util.Locale;
  * 설계:
  * <ul>
  *     <li>메뉴: 저장, 이름 바꾸기 │ 연결 변경(쿼리 창, {@link SqlEditorPanel#changeConnection}) │ 닫기, 모든 탭 닫기, 다른 탭 닫기 │ 닫은 탭 다시 열기 │ 전체 경로 복사, 상위 폴더 열기 │ 탭 고정 │
- *     탭 위치 ▸, 여러 행에 탭 표시. 탭 줄의 빈 곳에서는 닫은 탭 다시 열기와 배치 항목만 보인다. 열 때마다 누른 탭으로 만든다.</li>
+ *     탭 위치 ▸, 여러 행에 탭 표시. 탭 줄의 빈 곳에서는 닫은 탭 다시 열기와 배치 항목만 보인다. 열 때마다 누른 탭으로 만든다.
+ *     쿼리 창의 항목(저장, 이름 바꾸기, 연결 변경, 경로 복사, 상위 폴더 열기)은 쿼리 창 탭에서만 보이고, 저장 전 창의 경로 항목과 실행 중인
+ *     창의 연결 변경은 꺼진다({@link ContextMenus}의 규칙).</li>
  *     <li>닫기는 모두 메인 창의 닫기 경로({@link Host#closeDocument}: 저장하지 않은 변경 질문, 결과 표 변경, 열린 트랜잭션 질문)를 탭마다
  *     지난다. 모든 탭·다른 탭 닫기는 고정 탭을 빼고 왼쪽부터 닫고, 하나라도 취소하면 거기서 멈춘다(끝내기·모두 저장과 같은 규칙).</li>
  *     <li>저장은 쿼리 창만, Ctrl+S와 같은 경로({@link Host#saveQueryWindow}). 이름 바꾸기는 파일이 있으면 Scripts 창의 이름 바꾸기처럼
@@ -75,6 +77,7 @@ import java.util.Locale;
  * - 2026-11-12 최초 작성(앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 닫은 탭 다시 열기에 Ctrl+Shift+T(macOS ⇧⌘T) (앱 변경 #66, docs/chromite/shortcuts.md)
  * - 2026-11-12 쿼리 창의 연결 변경 항목(Query &gt; Change Connection…과 같은 명령, 앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-16 쿼리 창이 아닌 탭에서 쿼리 창 항목을 끄는 대신 숨김, 구분선 정리(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class DocumentTabMenu {
 
@@ -239,28 +242,31 @@ final class DocumentTabMenu {
         if (document != null) {
             SqlEditorPanel editor = document instanceof SqlEditorPanel queryWindow ? queryWindow : null;
             Path file = editor != null ? editor.getFile() : null;
-            JMenuItem saveItem = addItem(menu, DocumentTabMessages.tab_save, editor != null, () -> host.saveQueryWindow(editor));
+            // Query window commands apply to query windows only; a window not saved yet has no file to copy or show (now)
+            boolean queryWindow = editor != null;
+            JMenuItem saveItem = addItem(menu, DocumentTabMessages.tab_save, queryWindow, true, () -> host.saveQueryWindow(editor));
             saveItem.setAccelerator((KeyStroke) host.getSaveAction().getValue(Action.ACCELERATOR_KEY));
-            addItem(menu, DocumentTabMessages.tab_rename, editor != null, () -> rename(editor));
+            addItem(menu, DocumentTabMessages.tab_rename, queryWindow, true, () -> rename(editor));
             menu.addSeparator();
             // The query window's one way to another server; it comes to the front first, so its tool bar shows what changes
-            addItem(menu, EditorMessages.editor_sql_change_connection, editor != null && editor.canChangeConnection(), () -> {
+            addItem(menu, EditorMessages.editor_sql_change_connection, queryWindow, queryWindow && editor.canChangeConnection(), () -> {
                 tabs.setSelectedComponent(editor);
                 editor.changeConnection();
             });
             menu.addSeparator();
-            addItem(menu, DocumentTabMessages.tab_close, true, () -> host.closeDocument(document));
-            addItem(menu, DocumentTabMessages.tab_close_all, hasUnpinned(null), () -> closeUnpinned(null));
-            addItem(menu, DocumentTabMessages.tab_close_others, hasUnpinned(document), () -> closeUnpinned(document));
+            addItem(menu, DocumentTabMessages.tab_close, true, true, () -> host.closeDocument(document));
+            addItem(menu, DocumentTabMessages.tab_close_all, true, hasUnpinned(null), () -> closeUnpinned(null));
+            addItem(menu, DocumentTabMessages.tab_close_others, true, hasUnpinned(document), () -> closeUnpinned(document));
             menu.addSeparator();
             menu.add(new JMenuItem(reopenAction));
             menu.addSeparator();
-            addItem(menu, DocumentTabMessages.tab_copy_path, file != null, () -> copyPath(file));
-            addItem(menu, DocumentTabMessages.tab_open_folder, file != null && Desktop.isDesktopSupported()
-                && Desktop.getDesktop().isSupported(Desktop.Action.OPEN), () -> openFolder(file));
+            addItem(menu, DocumentTabMessages.tab_copy_path, queryWindow, file != null, () -> copyPath(file));
+            // The desktop's file manager is a kind of platform, not a state
+            addItem(menu, DocumentTabMessages.tab_open_folder, queryWindow && Desktop.isDesktopSupported()
+                && Desktop.getDesktop().isSupported(Desktop.Action.OPEN), file != null, () -> openFolder(file));
             menu.addSeparator();
             boolean pinned = isPinned(document);
-            addItem(menu, pinned ? DocumentTabMessages.tab_unpin : DocumentTabMessages.tab_pin, true, () -> setPinned(document, !pinned));
+            addItem(menu, pinned ? DocumentTabMessages.tab_unpin : DocumentTabMessages.tab_pin, true, true, () -> setPinned(document, !pinned));
         } else {
             menu.add(new JMenuItem(reopenAction));
         }
@@ -274,13 +280,19 @@ final class DocumentTabMenu {
             tabs.getTabLayoutPolicy() == JTabbedPane.WRAP_TAB_LAYOUT);
         rowsItem.addActionListener(event -> setMultipleRows(rowsItem.isSelected()));
         menu.add(rowsItem);
+        // Only the items that apply to the tab, and no separator at either end or twice in a row
+        ContextMenus.tidy(menu);
         menu.show(tabs, e.getX(), e.getY());
     }
 
+    /**
+     * @param applies the item applies to the kind of tab (shown, {@link ContextMenus})
+     * @param possible it is possible now (enabled)
+     */
     @NotNull
-    private static JMenuItem addItem(@NotNull JPopupMenu menu, @NotNull String text, boolean enabled, @NotNull Runnable task) {
+    private static JMenuItem addItem(@NotNull JPopupMenu menu, @NotNull String text, boolean applies, boolean possible, @NotNull Runnable task) {
         JMenuItem item = new JMenuItem(text);
-        item.setEnabled(enabled);
+        ContextMenus.set(item, applies, possible);
         item.addActionListener(e -> task.run());
         menu.add(item);
         return item;
