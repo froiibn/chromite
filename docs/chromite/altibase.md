@@ -188,8 +188,8 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
 ### 설계 결정
 
 - **원격 서버에 영향을 주므로 한 번 더 묻는다.** 다른 유지 관리 명령은 미리 보기가 확인이지만, 복제 명령은 TRUNCATE처럼 미리 보기 전에 무엇이 일어나는지 적은 확인을 둔다(브리프 요구).
-- **상태 다시 읽기는 노드 새로 고침.** 모델 `AltibaseReplication.refreshObjectState`는 복제가 아니라 `SYS_PROCEDURES_`를 읽어(범위 밖 모델 버그, 고치지 않음) 쓰지 않고,
-  노드 새로 고침(`refreshObject` → 복제 캐시 다시 읽기)으로 시작 여부와 송신·수신 목록을 맞춘다.
+- **상태 다시 읽기는 노드 새로 고침.** 노드 새로 고침(`refreshObject` → 복제 캐시 다시 읽기)으로 시작 여부와 송신·수신 목록을 맞춘다.
+  모델 `AltibaseReplication.refreshObjectState`는 2026-11-17부터 같은 카탈로그 행을 읽지만(아래 "상태 다시 읽기") 송신·수신 목록은 읽지 않는다.
 - **이름은 모델 도구처럼 따옴표 없이.** 시작·중지 도구가 `ALTER REPLICATION %s START`로 쓰므로 동기화도 같게 했다(카탈로그에 저장된 이름 그대로).
 - **실행 계정.** Altibase 복제 매뉴얼에 따르면 복제 명령은 SYS 사용자만 실행한다(이 서버에서는 복제가 꺼져 있어 확인하지 못함). 다른 계정이면 서버 오류가 실패한 문과 함께 보인다. 상태 표는 SYS가 아닌 사용자도 읽는다(7.3, `CHR_ALTI`로 확인).
 
@@ -629,6 +629,62 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
   `CHR_SS1_CMT` 스크립트: 전 COMMENT 없음 → 후 COMMENT 세 줄.
 - 회귀 테스트는 작성·실행하지 않았다.
 
+## 상태 다시 읽기 (2026-11-17, 앱 변경 #139 작업 1)
+
+### 목적
+
+ShardSphere의 GEMINI 복제를 이 플러그인의 복제 클래스로 보이려면(ShardSphere 계획 S2) 복제 카탈로그를 읽는 곳이 한곳이어야 한다.
+그 전에 `AltibaseReplication.refreshObjectState`의 복사 결함을 고쳤다.
+
+### 근본 원인
+
+- `AltibaseReplication.refreshObjectState`(전 `AltibaseReplication.java:219-228`)는 프로시저 클래스(`AltibaseProcedureBase.refreshState`)의 질의를
+  복사한 것이었다: `SYS_PROCEDURES_`에서 사용자 이름 = ?, 프로시저 이름 = ?인 행의 STATUS를 시작 여부로 읽고, 자리표시자는 첫째만 복제 이름으로 채웠다.
+  Altibase 7.3에서 실행하면 `Parameter not set at index: 2`(334383, 22P01)로 끝난다. 채웠더라도 복제와 관계없는 프로시저의 유효 상태(1 = 무효)를 시작 여부로 읽는다.
+- **부르는 곳:** Swing 제품에는 복제에 이 메서드를 부르는 곳이 없다(검색). `ObjectMaintenanceActions.refreshObjectStates`는 컴파일 뒤에만 부르고 복제는
+  컴파일 대상이 아니다. `AbstractCommandContext`의 호출은 주석 처리돼 있다. 복제 시작·중지·동기화 뒤에는 노드 새로 고침(`refreshObject` → 복제 캐시)이 상태를 맞춘다.
+  그래서 사용자에게 보이던 증상은 없었다. 모델의 공개 동작이 틀려 있었고, GEMINI 작업이 이 클래스를 다시 쓰므로 먼저 고쳤다.
+
+### 고친 것
+
+- 복제: 상태를 목록과 같은 문장(`AltibaseDataSource.ReplicationCache.prepareLookupStatement`, 이름 조건)으로 자기 행에서 읽고 `IS_STARTED`를 목록과 같은 식
+  (`readStarted`)으로 해석한다. 복제 카탈로그 이름은 캐시의 문장 한곳에만 있다. 행이 없으면(그사이 지워짐) 상태를 그대로 둔다. 노드 새로 고침이 노드를 지운다.
+- 패키지의 서브프로그램(`AltibaseProcedurePackaged`, 같은 원인): 상위 클래스의 상태 다시 읽기가 독립 프로시저의 `SYS_PROCEDURES_`를 서브프로그램 이름으로 읽었다.
+  서브프로그램은 그 표에 없으므로 같은 스키마에 같은 이름의 독립 프로시저가 있으면 그 상태를 가져온다. 시험 서버에서 무효한 독립 프로시저 `CHR_RS_P`와
+  유효한 패키지 `CHR_RS_PKG`의 서브프로그램 `CHR_RS_P`로 재현: 전 코드는 패키지 서브프로그램 노드를 새로 고치면(F5) 상태가 NORMAL → INVALID.
+  카탈로그에 서브프로그램의 상태가 없고 목록이 늘 유효로 만드므로 다시 읽기도 카탈로그를 읽지 않는다.
+
+### 다른 상태 구현 (같은 결함인지)
+
+| 객체 | 읽는 곳 | 판정 |
+|---|---|---|
+| 복제 | `AltibaseReplication.refreshObjectState` | 결함(다른 종류의 카탈로그, 채우지 않은 자리표시자, 다른 열) → 고침 |
+| 패키지 서브프로그램 | 상속한 `AltibaseProcedureBase.refreshState` | 결함(다른 종류의 카탈로그) → 고침 |
+| 독립 프로시저·함수·타입세트 | `AltibaseProcedureBase.refreshState`: `SYS_PROCEDURES_` STATUS, 자리표시자 둘 다 채움 | 정상. 목록(`loadPSMs`)과 같은 열·해석. `CHR_RS_P` = 1(무효) 확인 |
+| 뷰 | `AltibaseUtils.getViewStatus`: `SYS_VIEWS_` + `SYS_TABLES_` | 정상. 바탕 테이블을 지운 `CHR_RS_V` = 1 확인 |
+| 구체화된 뷰 | 같은 메서드: `SYS_VIEWS_` + `SYS_MATERIALIZED_VIEWS_` | 정상. `CHR_RS_MV` = 0 확인 |
+| 패키지 | `AltibasePackage.refreshState`: `SYS_PACKAGES_` 본문 행(PACKAGE_TYPE 7) | 같은 결함 아님(자기 카탈로그, 둘 다 채움). 다른 빈틈은 아래 "고치지 않은 것" |
+| 작업, 트리거, 라이브러리, 테이블스페이스, 데이터 파일, 복제 송신 | 목록에서만 읽음(`SYS_JOBS_`, `SYS_TRIGGERS_`, `SYS_LIBRARIES_`, `V$TABLESPACES`, `V$DATAFILES`, `V$REPSENDER`) | 상태 다시 읽기 구현 없음, 자기 카탈로그 |
+| 큐, 시노님 | 상태 없음 | 해당 없음 |
+
+### 고치지 않은 것
+
+- 패키지: 주석 "package spec. cannot be invalid"는 틀렸다(바탕 테이블을 지운 명세만 있는 `CHR_RS_PKG2`의 명세 STATUS = 1). 본문이 있으면 명세와 함께 무효가 되므로
+  (`CHR_RS_PKG3` 명세·본문 모두 1) 본문만 읽어도 맞지만, 본문 없는 패키지는 다시 읽어도 상태가 바뀌지 않는다. 다른 결함이라 이 변경에서 고치지 않았다.
+- Swing 탐색기는 무효(INVALID) 상태를 아이콘에 보이지 않는다(무효인 독립 프로시저도 보통 아이콘, 캡처로 확인). 그래서 서브프로그램 결함도 화면에는 드러나지 않았다.
+- `AltibaseLockManager`(DBeaver 잠금 관리자): 만드는 곳이 없다. 검색(소스, `plugin.xml`, 어댑터 `getAdapter`, 문자열 참조) 결과 문서와 `model.admin`의 주석,
+  `MANIFEST.MF`의 패키지 내보내기, 속성 이름 `bundle*.properties`뿐이다. 이 변경 범위 밖이라 지우지 않았다.
+
+### 확인 (2026-11-17, 전: origin/command `6184a0fae8` 빌드, 후: 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- 시험 서버는 `REPLICATION_PORT_NO = 0`이라 복제를 만들 수 없다(`CREATE REPLICATION CHR_RS_REP …` → 61023 "Replication is disabled"). 서버 속성은 바꾸지 않았다.
+  그래서 복제는 이름이 `CHR_RS_REP`인 카탈로그 같은 행으로 모델 객체를 만들어(서버에 그 행은 없음) `refreshObjectState`를 불렀다.
+  전: `Parameter not set at index: 2` 예외. 후: 예외 없음, 행이 없어 상태는 그대로(ACTIVE / NORMAL). 새 문장은 목록과 같아 서버에서 준비된다.
+- 전역 메타데이터 ▸ 이중화 객체 폴더: 전후 모두 비어 있고 오류 없음(후: 폴더 새로 고침, 끊고 다시 연결한 뒤에도 같음). 복제 노드가 없어 노드 명령(시작·중지·동기화)은 실행하지 못했다.
+- 패키지 서브프로그램 `CHR_RS_PKG.CHR_RS_P`: 전 F5 뒤 INVALID, 후 F5 뒤 NORMAL. 독립 프로시저 `CHR_RS_P`는 전후 INVALID.
+- ShardSphere 서버에는 연결하지 않았다: 복제 목록 코드는 바뀌지 않았고, 복제 객체가 없는 서버에서는 `refreshObjectState`가 불릴 수 없다.
+- 회귀 테스트는 작성·실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -648,3 +704,5 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 - 2026-11-17 ShardSphere에서 실패하던 문장을 두 서버 공통으로(앱 변경 #139 1단계): 잠금 대기의 UTC 현재 시각, 디스크 테이블스페이스 크기의 별칭 따옴표,
   DBMS_METADATA 서브프로그램을 연결마다 확인하고 없으면 카탈로그에서 주석, GET_DEPENDENT_DDL을 exec로(Altibase에서도 주석이 빠졌음), 이름으로 복제 찾기 보호.
   위 "ShardSphere에서 다른 문장".
+- 2026-11-17 복제의 상태 다시 읽기를 목록의 조회 문장으로(프로시저 질의 복사 결함), 패키지 서브프로그램이 같은 이름의 독립 프로시저 상태를 읽던 것을 고침
+  (앱 변경 #139 작업 1), 위 "상태 다시 읽기".

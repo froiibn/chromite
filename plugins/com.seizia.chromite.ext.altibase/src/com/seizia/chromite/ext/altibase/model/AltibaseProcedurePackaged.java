@@ -35,6 +35,16 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import java.sql.SQLException;
 import java.util.Map;
 
+/**
+ * A procedure or function of a package.
+ *
+ * 설계: 패키지 안의 서브프로그램은 자기 상태 행이 없다(SYS_PROCEDURES_에 없고, SYS_PACKAGES_는 패키지 단위). 목록이 늘 유효로 만들므로
+ * 상태 다시 읽기도 카탈로그를 읽지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-17 {@link #refreshState}: 상위 클래스가 독립 프로시저의 SYS_PROCEDURES_를 서브프로그램 이름으로 읽어, 같은 스키마에 같은 이름의
+ *   무효한 독립 프로시저가 있으면 새로 고침 뒤 서브프로그램이 무효로 보였다(앱 변경 #139, docs/chromite/altibase.md "상태 다시 읽기")
+ */
 public class AltibaseProcedurePackaged extends AltibaseProcedureBase {
 
     private String pkgSchema;
@@ -51,6 +61,14 @@ public class AltibaseProcedurePackaged extends AltibaseProcedureBase {
         super(container, procedureName, true, procedureType, functionResultType);
         this.pkgSchema = pkgSchema;
         this.pkgName = pkgName;
+    }
+
+    /**
+     * Keeps the state the list gave (valid): the catalog has no status of a package's subprogram, and SYS_PROCEDURES_ holds
+     * only standalone procedures, functions and typesets.
+     */
+    @Override
+    protected void refreshState(JDBCSession session) {
     }
 
     @NotNull
