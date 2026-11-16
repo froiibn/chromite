@@ -19,11 +19,15 @@ package com.seizia.chromite.ext.shardsphere.model;
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 
 import java.util.Collection;
 import java.util.List;
@@ -44,8 +48,12 @@ import java.util.List;
  *   docs/chromite/shardsphere.md "문장 접두어")
  * - 2026-11-17 접두어 SELECT의 하위 질의 형태(메타 노드에서만, 그 서버에서 확인한 형태라서)와 입력 중인 접두어의 제안(메타 노드에서는
  *   노드 이름도, 연결할 때 한 번 읽은 이름만)(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
+ * - 2026-11-17 샤딩 탐색기: 메타 노드면 이 노드 아래 폴더(데이터 노드, 샤드 객체, 샤딩 속성, 노드 연결)와 사전 버전 속성. 폴더는 이 번들의
+ *   {@code plugin.xml}이 Altibase 트리의 {@code serverExtension} 자리 아래에 넣고 {@code visibleIf}로 메타 노드에서만 보인다. 사전은
+ *   {@link ShardingDictionary}가 메타 노드인 연결에서만 갖는다(다른 서버에는 질의 없음). 새로 고침은 읽은 것을 비운다
+ *   (앱 변경 #139 작업 9, docs/chromite/shardsphere.md "샤딩 탐색기")
  */
-public class ShardSphereServer implements AltibaseServerExtensionState, DBSObject {
+public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
     // The product name, not a translatable label
     private static final String NAME = "ShardSphere"; //$NON-NLS-1$
@@ -66,6 +74,9 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     // The node names of the meta node's sharding dictionary (names only), empty on another server
     @NotNull
     private final List<String> nodeNames;
+    // The sharding explorer's reads; only on a sharding meta node
+    @Nullable
+    private final ShardingDictionary sharding;
 
     public ShardSphereServer(
         @NotNull AltibaseDataSource dataSource,
@@ -79,6 +90,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
         this.shardingPackage = shardingPackage;
         this.shardingMetaNode = shardingMetaNode;
         this.nodeNames = List.copyOf(nodeNames);
+        this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
     }
 
     @NotNull
@@ -110,6 +122,47 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     @Property(viewable = true, order = 4)
     public boolean isShardingMetaNode() {
         return shardingMetaNode;
+    }
+
+    /**
+     * The version of the sharding dictionary (SYS_SHARD.VERSION_), only on a sharding meta node.
+     */
+    @Nullable
+    @Property(viewable = true, order = 5, visibleIf = MetaNodeOnly.class)
+    public String getShardingVersion(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return sharding == null ? null : sharding.getVersion(monitor, this);
+    }
+
+    @NotNull
+    public List<ShardNode> getShardNodes(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return sharding == null ? List.of() : sharding.getNodes(monitor, this);
+    }
+
+    @NotNull
+    public List<ShardObject> getShardObjects(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return sharding == null ? List.of() : sharding.getObjects(monitor, this);
+    }
+
+    @NotNull
+    public List<ShardingProperty> getShardingProperties(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return sharding == null ? List.of() : sharding.getProperties(monitor, this);
+    }
+
+    @NotNull
+    public List<ShardLink> getShardLinks(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return sharding == null ? List.of() : sharding.getLinks(monitor, this);
+    }
+
+    /**
+     * Forgets what the sharding explorer read; the detection itself is renewed by a refresh of the connection.
+     */
+    @NotNull
+    @Override
+    public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) {
+        if (sharding != null) {
+            sharding.clear();
+        }
+        return this;
     }
 
     @Nullable
@@ -172,6 +225,16 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBSObjec
     @Override
     public SQLDialect.StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
         return shardingPackage ? ShardSphereStatementPrefix.getProposals(text, nodeNames) : null;
+    }
+
+    /**
+     * Shows a property only on a sharding meta node: the property view of another server's node keeps its three rows.
+     */
+    public static class MetaNodeOnly implements IPropertyValueValidator<ShardSphereServer, Object> {
+        @Override
+        public boolean isValidValue(@NotNull ShardSphereServer object, @Nullable Object value) {
+            return object.isShardingMetaNode();
+        }
     }
 
 }

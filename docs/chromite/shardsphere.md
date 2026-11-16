@@ -19,7 +19,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`. 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성 세 개, 방언 기여. `ShardSphereStatementPrefix`: 문장 접두어 인식. `OSGI-INF/l10n/bundle*.properties`: 속성 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여. `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -275,10 +275,140 @@ SELECT만 준비하므로 막지 않았다. 결과(메타 노드, JDBC와 앱 �
 - 미확인: 데이터 노드에 직접 연결했을 때 접두어 문장과 감싼 형태.
 - 미확인: 데이터 노드의 계획을 볼 방법(`SHARD-COORDINATOR` 아래가 비어 있음).
 
+## 샤딩 탐색기 (2026-11-17, 앱 변경 #139 작업 9)
+
+### 목적
+
+샤딩 메타 노드에 연결하면 Object Explorer에서 샤딩 구성을 읽기만으로 본다: 데이터 노드, 샤드 객체(종류, 분산 방식, 키), 객체마다 분산(값·범위 → 노드, 복제,
+독립, 기본 노드), 사전 버전, 샤딩 속성, 이 세션의 노드 연결. 다른 서버(일반 ShardSphere, Altibase)에는 아무것도 보이지 않고 질의도 가지 않는다(감지 문장뿐).
+사용자 결정: 찾은 것은 모두 다룸, 기능은 ShardSphere 번들에, 화면은 짧게 기존 흐름 안에서(트리 노드와 속성 보기, 새 창·설명 문구 없음).
+
+### 자리와 이유
+
+```
+시스템 정보
+└ ShardSphere            (속성: 이름, GEMINI 카탈로그, 샤딩 패키지, 샤딩 메타 노드, 샤딩 사전 버전 ← 메타 노드에서만)
+  ├ 데이터 노드          NODE1 … (속성: 이름, ID, 호스트, 포트, 대체 서버, 추가 옵션, 샤드 객체 수)
+  ├ 샤드 객체            <샤드 테이블> … (속성: 이름, 소유자, 종류, 분산 방식, 샤드 키, 서브 분산 방식, 서브 샤드 키, 기본 노드, 샤드 ID, [노드별 행 수])
+  │ └ 250, 500, …        분산 행 (속성: 이름, 종류, 값, 서브 값, 노드)
+  ├ 샤딩 속성            SHARD_* (System Info의 Properties와 같은 열: Name, Dynamic, 값)
+  └ 노드 연결            NODE1 … (속성: 노드, 노드 ID, 세션 ID, 노드 세션 ID, 연결 시각, 사용·준비·실행 횟수, 샤드 SCN, 연결 실패)
+```
+
+- **ShardSphere 노드 아래(골랐음).** Altibase 트리의 중립 자리(System Info 안 `<items path="serverExtension" property="extensionObjects">`, 뼈대 작업)가
+  이미 있고, 감지 결과(메타 노드인지)가 그 노드의 속성이라 "이 서버의 샤딩"이 그 아래에 있는 것이 자연스럽다. 폴더 이름이 모두 "샤드/샤딩/노드"라 따로
+  "샤딩" 폴더를 한 단계 더 두지 않았다(클릭 한 번 덜).
+- **대안(고르지 않음): 연결 바로 아래 "샤딩" 폴더.** 스키마·저장소·보안 옆에 보여 찾기 쉽지만, 공급자 트리의 최상위 폴더가 읽을 목록은 데이터 원본
+  (`AltibaseDataSource`)의 getter여야 한다(트리는 부모 객체의 실제 클래스를 리플렉션으로 읽음, `DBNDatabaseNode.java:1052`). 그러려면 `ext.altibase`에
+  중립 자리를 하나 더 두어야 해서(확장마다 폴더를 고르는 자리) 이번에는 두지 않았다. 사용자가 원하면 그 자리를 더하고 폴더를 옮기면 된다.
+- **주입:** 이 번들의 `plugin.xml`이 `<datasourcePatch id="altibase"><treeInjection path="altibase/serverExtension">`로 폴더 넷을 넣는다. 공급자 트리 정의에
+  ShardSphere 이름이 `ext.altibase`에 들어가지 않고, 번들을 빼면 폴더도 없다. `ext.altibase`의 자리(seam)는 바꾸지 않았다.
+- **메타 노드에서만:** 폴더마다 `visibleIf="object.isShardingMetaNode()"`. 일반 ShardSphere 서버의 ShardSphere 노드에는 자식이 없다(펼침 표시도 없음).
+  같은 자리에 다른 확장의 객체가 오면 식이 실패해 숨는다. 읽기 상태(`ShardingDictionary`)도 메타 노드인 연결의 `ShardSphereServer`만 갖고, getter는 그
+  밖에서 질의 없이 빈 목록이다(이중 안전). 사전 버전 속성은 `@Property(visibleIf = MetaNodeOnly.class)`로 메타 노드에서만 보인다.
+- **폴더에 `type`이 없다:** 주입된 폴더의 `type` 클래스는 공급자 번들(`ext.altibase`)의 클래스 로더로 읽혀(`DBNNode.getFolderChildrenClass`) 이 번들의
+  클래스를 찾지 못한다. 자식의 클래스는 getter의 반환 형식에서 읽힌다(`DBNDatabaseNode.getChildrenClass`).
+
+### 모델과 질의 (모두 SELECT, 메타 노드의 메타데이터 세션)
+
+| 객체 (`model/`) | 언제 읽나 | 질의 |
+|---|---|---|
+| `ShardSphereServer.getShardingVersion` | ShardSphere 노드의 속성 보기(메타 노드) | `SELECT MAJOR_VER, MINOR_VER, PATCH_VER FROM SYS_SHARD.VERSION_` |
+| `ShardNode` | 데이터 노드 폴더를 열 때 | `NODES_` + 노드마다 놓인 샤드 객체 수(부분 질의: `DEFAULT_NODE_ID`이거나 `RANGES_`·`CLONES_`·`SOLOS_`에 그 노드가 있는 객체) |
+| `ShardObject` | 샤드 객체 폴더를 열 때 | `OBJECTS_ LEFT OUTER JOIN NODES_`(기본 노드 이름), 소유자·이름 순 |
+| `ShardPlacement` | 샤드 객체를 펼칠 때(객체마다 한 번) | `RANGES_`('V') ∪ `CLONES_`('C') ∪ `SOLOS_`('S'), 각각 `LEFT OUTER JOIN NODES_`, 샤드 ID 바인드. 기본 노드 행은 질의 없이 객체 행에서 더함 |
+| `ShardingProperty` | 샤딩 속성 폴더를 열 때 | `SELECT * FROM V$PROPERTY WHERE NAME LIKE 'SHARD\_%' ESCAPE '\' ORDER BY NAME` |
+| `ShardLink` | 노드 연결 폴더를 열 때 | `V$SHARD_CONNECTION_INFO`(주소 두 열은 읽지 않음), 노드 ID 순 |
+| `ShardObject.getRowsPerNode` | 아래 "노드별 행 수" | `NODE[data] SELECT SHARD_NODE_NAME(), COUNT(*) FROM "소유자"."이름"` |
+
+- 질의 문장은 이 번들 밖 JDBC로 먼저 실행해(같은 서버, 읽기 전용 연결 하나) 받는 것을 확인한 뒤 넣었다(`NULL` 리터럴이 든 `UNION ALL`, `LIKE … ESCAPE`, 부분 질의).
+- **분산의 순서:** 해시는 상한이 글자(`VARCHAR`)로 저장되어 사전 순서가 1000, 250, 500, 750이다. 해시(`H`)면 Java에서 수로 정렬하고(서버의 `TO_NUMBER`는
+  `$$N/A` 같은 값에서 오류가 날 수 있어 쓰지 않음), 수가 아닌 값이 있으면 그 쌍은 사전 순서를 둔다. 다른 방식(범위, 리스트)은 사전에 있는 순서 그대로다
+  (범위 경계의 뜻을 모르므로 순서를 만들지 않음). 행 순서는 값 → 복제 → 독립 → 기본 노드.
+- **이름:** 분산 값 행은 값(트리에서 순서가 보이게), 복제·독립·기본 노드 행은 노드 이름. 서브 값 `$$N/A`는 빈 값. 노드 행이 사전에 없으면 노드 번호.
+- **샤딩 속성:** System Info ▸ Properties의 `AltibaseProperty`를 그대로 쓴다(같은 행, 같은 열 이름·번역). 부모만 ShardSphere 노드로 바꾼 하위 클래스
+  (`ShardingProperty`)다: 부모가 데이터 원본이면 트리가 가상 노드 규칙(`DBNDatabaseNode.getPlainNodeName`)으로 이름 앞에 연결 이름을 붙였다(`SHARD.SHARD_…`).
+- 각 부분은 처음 열 때 읽고(`JDBCObjectCache`) 새로 고침이 비운다. 객체 관리자가 없어 모든 노드가 읽기 전용이다.
+
+### 코드 값
+
+| 열 | 코드 | 보이는 이름 | 근거 |
+|---|---|---|---|
+| `OBJECT_TYPE` | `T` | 테이블 / Table | 서버에서 봄(2개) |
+| | `P` | 프로시저 / Procedure | 미확인(매뉴얼의 식별자만) |
+| `SPLIT_METHOD`, `SUB_SPLIT_METHOD` | `H` | 해시 / Hash | 서버에서 봄(`SPLIT_METHOD`만, 서브는 NULL) |
+| | `R`, `L` | 범위 / Range, 리스트 / List | 미확인(매뉴얼의 식별자만) |
+| `SPLIT_METHOD` | `C`, `S` | 복제 / Clone, 독립 / Solo | 미확인(매뉴얼의 식별자만) |
+| 그 밖 | | 코드 그대로 | 뜻을 만들지 않음 |
+
+이름은 `internal/ShardSphereMessages*.properties`(영어, 한국어). 복합 분산은 따로 코드가 없고 서브 분산 방식·서브 키가 채워진 객체다(미확인: 이 서버에 없음).
+
+### 노드별 행 수
+
+- 모든 데이터 노드에서 `COUNT(*)`를 하므로 트리를 열 때는 읽지 않는다. **앱에 이미 있는 설정 "비용이 큰 개체 속성 읽기(행 수, 크기)"**(연결의 메타데이터 설정,
+  기본 꺼짐, `DataSourcePropertyFilter`)를 켠 연결에서만 샤드 테이블의 속성 보기에 "노드별 행 수"가 보이고 그때 읽힌다(`@Property(expensive = true)`,
+  목록 열이 아님 → 샤드 객체 폴더의 목록·세부 정보에서는 읽지 않음). 값은 `<노드>: <행 수>, …`로 노드 순서. 한 번 읽으면 새로 고침까지 다시 세지 않는다.
+- 프로시저(`P`)와 모르는 종류에는 문장을 보내지 않는다(빈 값). 메타 노드 자신의 복사본은 비어 있어(조사) 세지 않는다.
+- 탐색기에서 데이터 노드로 가는 문장은 이것 하나다. `NODE[...]`는 SELECT 앞에서만 쓴다.
+
+### 노드 연결
+
+`V$SHARD_CONNECTION_INFO`는 질의한 세션의 연결만 보이고, 그 세션이 데이터 노드에 무엇을 보낸 뒤에야 행이 생긴다. 탐색기는 행을 채우려고 노드에 문장을
+보내지 않는다. 그래서 보통은 비어 있고, 같은 연결의 메타데이터 세션이 노드별 행 수를 읽은 뒤에는 노드마다 한 행이 보인다(확인: 4행). 쿼리 창이 따로 연결을
+쓰면 그 세션의 연결은 여기에 보이지 않는다. `CONNECT_TIME`은 정수 그대로 보인다(유닉스 시각으로 보이지만 미확인이라 바꾸지 않음).
+
+### 실제 테이블로 가기, 일반 트리의 샤드 테이블
+
+- 사전은 카탈로그와 이름(소유자, 객체 이름)으로만 이어진다. Swing 속성 보기에는 객체 참조 값을 눌러 그 노드로 가는 기능이 없다(`PropertiesPanel.formatValue`는
+  이름만 그림). 그래서 소유자와 이름을 속성으로 보인다. 가는 기능을 넣으려면 UI 쪽(속성 보기의 링크 칸 → `DBNUtils.getNodeByObject` → `revealNode`)과
+  모델의 참조 속성(`linkPossible`)이 함께 필요하다(이 변경 밖).
+- 일반 트리의 테이블에 "샤드 객체: 방식, 키"를 보이는 것은 하지 않았다: 다른 번들의 객체(`AltibaseTable`)에 속성 묶음을 더하는 자리가 모델에 없다(속성은 객체
+  클래스의 `@Property`만). 필요한 것: 계획의 S8(기존 객체에 추가 속성) — 예를 들어 `AltibaseServerExtensionState.getObjectProperties(DBSObject)` 같은 중립 자리와
+  속성 수집기(`PropertyCollector`)가 그것을 묻는 길, 그리고 테이블을 이름으로 사전에 찾는 캐시.
+
+### 새로 고침
+
+- 샤드 객체 노드: 그 객체의 분산만 다시 읽는다(`ShardObject.refreshObject`). ShardSphere 노드와 그 아래 폴더: 앱의 다른 폴더처럼 부모 객체로 넘어가
+  ShardSphere 노드가 사전 전부(버전·노드·객체·펼친 객체의 분산·속성·연결)를 비우고 다시 읽는다. 잎 노드(데이터 노드, 분산 행, 속성 하나, 연결 하나)는 앱의
+  다른 잎처럼 다시 그리기만 한다. 연결의 새로 고침은 감지부터 다시 한다(새 `ShardSphereServer`).
+
+### 오른쪽 클릭 메뉴
+
+[context-menus.md](context-menus.md) 규칙대로 해당하는 명령만 보인다(덤프, 2026-11-17, 한국어): 데이터 노드·샤드 객체·분산 행·샤딩 속성·ShardSphere 노드는
+새 쿼리, 최근 스크립트, 개체 세부 정보 | 이름 복사, 정규화된 이름 복사, 선택하여 복사 | 새로 고침(7개, 모두 켜짐). 네 폴더는 새 쿼리, 최근 스크립트, 개체 세부 정보 |
+이름 복사 | 새로 고침(5개). 이름 바꾸기·삭제·새 …·디자인·유지 관리 명령은 숨는다(객체 관리자가 없음, `appliesRename`/`appliesDelete`). 쓰는 명령(노드 관리, 분산,
+UNSHARD, 재배치)은 넣지 않았다(쓰기 서버가 필요한 작업 11).
+
+### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 밝은 테마·150 %)
+
+- **메타 노드(벤더 서버, 읽기 전용 연결):** 연결 SHARD·SS·ALTI를 함께 열고 System Info와 ShardSphere 노드를 펼쳐 네 폴더가 보일 때까지 샤딩 질의 0개(연결 때
+  감지와 노드 이름 읽기뿐), ShardSphere 노드를 고르면 `VERSION_` 하나. 모든 단계를 펼쳤을 때 데이터 노드 4, 샤드 객체 2, 분산 행 8(객체마다 4, 250·500·750·1000
+  순서), 샤딩 속성 9 — 사전과 같다(같은 날 JDBC로 읽은 `NODES_` 4행, `OBJECTS_` 2행, `RANGES_` 8행, `SHARD_` 속성 9개). 노드마다 샤드 객체 2. 버전 3.1.0.
+  노드별 행 수: 설정 꺼짐이면 속성 없음·질의 없음, 켜면 객체마다 `NODE[data] SELECT SHARD_NODE_NAME(), COUNT(*) …` 하나(4행), 그 뒤 노드 연결 4행. 다시 연결하면
+  노드 연결 0행(새 세션).
+- **보낸 문장(쿼리 관리자 감사):** 벤더 서버로 간 실행은 모두 SELECT(메타 노드 연결 단계별 10 + 26 + 13 + 43 + 1 + 8, 일반 서버 8 + 18; SELECT 아닌 것 0).
+  `NODE[...]`가 붙은 것은 노드별 행 수의 SELECT뿐. 쓰기·DDL·EXEC·ALTER는 없다.
+- **새로 고침:** 위 "새로 고침"대로(쿼리 관리자로 확인): 폴더 → 사전 전부, 샤드 객체 → 그 분산 질의 하나, 잎 → 질의 없음. 연결 새로 고침과 끊고 다시 연결 뒤에도
+  같은 수.
+- **일반 ShardSphere 서버(SS)·Altibase 7.3(ALTI):** SS의 ShardSphere 노드는 자식 0, 속성 넷(사전 버전 없음), 샤딩 질의 0. ALTI는 System Info 자식 둘(전과 같음).
+  세 연결을 함께 연 채로, 새로 고침 뒤, 끊고 다시 연결한 뒤 모두 같음.
+- **기능을 뺀 제품**(포함 줄을 로컬에서만 주석 처리하고 빌드, 커밋하지 않음): 제품에 ShardSphere 번들 없음, 세 연결 모두 System Info 자식 둘, 감지 문장 없음,
+  새로 고침 뒤에도 같음, 실행은 모두 SELECT.
+- 캡처: `D:\Tools\_scratch\shardsphere-sharding-explorer\sheets\`(저장소 밖, 한국어·영어, 호스트·포트·소유자·키 열 칸은 가림).
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase·ShardSphere 연결의 System Info 트리, ShardSphere 노드의 속성 보기.
+
+### 미확인 (벤더 문의)
+
+- 미확인: 객체 종류 `P`와 분산 방식 `R`·`L`·`C`·`S`의 실제 코드, 복합(서브) 분산의 `SUB_SPLIT_METHOD`·`SUB_VALUE` 값(이 서버에 없음, 매뉴얼의 식별자만).
+- 미확인: 범위·리스트 방식에서 `RANGES_.VALUE`의 뜻(상한인지, 값 하나인지)과 사전 행의 순서가 정의되어 있는지.
+- 미확인: `V$SHARD_CONNECTION_INFO.CONNECT_TIME`의 단위(유닉스 초로 보임), `TOUCH_COUNT`의 뜻.
+- 미확인: `DEFAULT_NODE_ID`가 `NODES_`에 없는 번호일 수 있는지(그때 번호로 보임).
+- 미확인: 사용자(소유자)가 다른 같은 이름의 샤드 객체가 있을 수 있는지(트리는 이름만 보이고 소유자는 속성).
+
 ## 아직 없는 것
 
 GEMINI 트리와 복제 탭(작업 4·5), 계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
-샤딩 탐색기(작업 9), 쓰기 기능(작업 11), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
+쓰기 기능(작업 11, 샤딩의 노드 관리·분산·UNSHARD·재배치 포함), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
 
 ## 미확인 (벤더 문의)
 
@@ -312,3 +442,5 @@ GEMINI 트리와 복제 탭(작업 4·5), 계열 공통 공간 탭(작업 7), �
   (앱 변경 #139 작업 6a, `chromite/shardsphere-prefix-safety`), 위 "문장 접두어".
 - 2026-11-17 접두어 SELECT의 행 수·필터·정렬·값 목록·내보내기를 방언의 하위 질의 형태(`NODE[x](…)`, `SHARD (…)`, 메타 노드에서만)로, 막힌 다시 읽기는 상태 줄에 이유,
   접두어 안과 뒤의 자동 완성, 실행 계획 확인(앱 변경 #139 작업 6b, `chromite/shardsphere-prefix-requery`), 위 "접두어 문장 다시 읽기".
+- 2026-11-17 샤딩 메타 노드의 읽기 전용 샤딩 탐색기: ShardSphere 노드 아래 데이터 노드·샤드 객체(분산)·샤딩 속성·노드 연결 폴더, 사전 버전 속성,
+  노드별 행 수는 기존 "비용이 큰 개체 속성 읽기" 설정으로만, 모두 SELECT(앱 변경 #139 작업 9, `chromite/shardsphere-sharding-explorer`), 위 "샤딩 탐색기".

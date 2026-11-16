@@ -88,7 +88,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [mssql-storage.md](mssql-storage.md) | SQL Server 파일·파일 그룹 관리: 데이터베이스 아래 Storage(Filegroups·Files·Log Files) 노드, 파일 그룹 추가·이름·삭제·기본값·읽기 전용, 파일 추가·설정(크기·자동 증가·최대)·이름·삭제, 확인한 문법 |
 | [swing-auth-prompts.md](swing-auth-prompts.md) | 연결할 때의 질문: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의 자격 증명 질문, JSch SSH의 호스트 키·비밀번호·개인 키 암호·키보드 대화형(OTP) 질문(안전 쪽 실패) |
 | [shell-command-approval.md](shell-command-approval.md) | 저장된 설정의 셸 명령(연결 이벤트, 셸 명령 암호, 전송 뒤 명령) 실행 전 승인: Swing 대화상자(이번만 실행·항상 허용·취소), 연결별·정확한 명령별 기억, 승인 서비스가 없으면 실행 거부 |
-| [shardsphere.md](shardsphere.md) | ShardSphere 기능 플러그인: 별도 번들·feature가 Altibase 공급자에 얹음(드라이버·저장된 연결 그대로), Altibase 서버 확장 지점, 서버 카탈로그로 감지(GEMINI·샤딩 패키지·메타 노드), 기능을 뺀 제품 |
+| [shardsphere.md](shardsphere.md) | ShardSphere 기능 플러그인: 별도 번들·feature가 Altibase 공급자에 얹음(드라이버·저장된 연결 그대로), Altibase 서버 확장 지점, 서버 카탈로그로 감지(GEMINI·샤딩 패키지·메타 노드), 기능을 뺀 제품, 메타 노드의 읽기 전용 샤딩 탐색기 |
 | [drivers.md](drivers.md) | JDBC 드라이버 내장(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere만 내장하는 단일 배포판, MySQL 내장 취소), 오프라인 우선 조회와 오프라인 모드 |
 | [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 내장 가능 여부 분류, MySQL Connector/J 결정 기록 |
 | [driver-offline-bundle.md](driver-offline-bundle.md) | 폐쇄망용 오프라인 드라이버 설치 묶음: 인터넷 PC에서 드라이버를 골라 파일 하나로 만들고 폐쇄망 PC에서 설치, 형식(`.chromite-drivers`, 매니페스트·SHA-256), 드라이버 폴더 설치와 로더 등록, 검사·zip-slip·상한, 라이선스 메모 |
