@@ -22,6 +22,7 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
@@ -53,6 +54,8 @@ import java.nio.file.Path;
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-08 PostgreSQL·MySQL 조건을 {@link NativeBackupRestore#isSupported}로 옮김(Chromite Agent 도구와 함께 씀)
  * - 2026-11-08 Run Script with Native Client…(Object Explorer, 쿼리 창) (docs/chromite/swing-database-tasks.md)
+ * - 2026-11-16 연결 노드에서 그 종류에 해당하는지({@link #appliesRunScript}): 메뉴에 보임, DB를 아직 읽지 않았으면 꺼짐
+ *   (앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class BackupRestoreCommands {
 
@@ -64,6 +67,18 @@ final class BackupRestoreCommands {
      */
     static boolean canRunScript(@Nullable DBSObject object) {
         return NativeBackupRestore.isScriptSupported(object);
+    }
+
+    /**
+     * Run Script with Native Client… applies to a connection of this kind (Object Explorer shows the item on its node):
+     * a PostgreSQL or MySQL/MariaDB server with native clients, or Oracle. While it is not connected the kind is not known
+     * (true). Whether the script can run now (one database known) is {@link #canRunScript} on the connection's target.
+     */
+    static boolean appliesRunScript(@NotNull DBPDataSourceContainer container) {
+        DBPDataSource dataSource = container.getDataSource();
+        return dataSource == null || dataSource instanceof OracleDataSource
+            || dataSource instanceof PostgreDataSource postgres && postgres.getServerType().supportsNativeClient()
+            || dataSource instanceof MySQLDataSource mysql && mysql.supportsNativeClients();
     }
 
     static void runScript(@NotNull Component owner, @NotNull DBSObject object) {

@@ -74,6 +74,8 @@ import java.util.Map;
  * - 2026-11-08 저장된 작업의 형식 속성 바꾸기({@link #convertProcessorProperties}) (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  * - 2026-11-13 안내 문구({@link #createNote})를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다
  *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-16 연결 노드의 작업이 그 종류에 해당하는지({@link #appliesToConnection}, 메뉴에 보임; 데이터베이스가 여럿이거나 아직 읽지 않았으면 꺼짐)
+ *   (앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class DataTransferObjects {
 
@@ -144,6 +146,28 @@ final class DataTransferObjects {
         List<DBSObject> databases = new ArrayList<>();
         collectLoadedDatabases(node, 2, databases);
         return databases.size() == 1 ? databases.getFirst() : null;
+    }
+
+    /**
+     * True if the tasks of a connection node (Import, Export, Copy Tables) apply to its kind: a connection whose top level
+     * is schemas (no database level) or databases. While it is not connected that is not known (true). Types only (EDT).
+     */
+    static boolean appliesToConnection(@NotNull DBNDataSource node) {
+        DBPDataSourceContainer container = node.getDataSourceContainer();
+        if (!container.isConnected()) {
+            return true;
+        }
+        DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, container.getDataSource());
+        if (root == null || isSchemaContainer(root)) {
+            return root != null;
+        }
+        try {
+            Class<? extends DBSObject> childType = root.getPrimaryChildType(null);
+            return childType != null && DBSCatalog.class.isAssignableFrom(childType);
+        } catch (DBException e) {
+            log.debug("Can't get the child type of " + container.getName(), e);
+            return false;
+        }
     }
 
     private static void collectLoadedDatabases(@NotNull DBNDatabaseNode node, int depth, @NotNull List<DBSObject> result) {

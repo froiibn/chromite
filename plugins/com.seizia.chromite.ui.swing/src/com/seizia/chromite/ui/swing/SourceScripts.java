@@ -129,6 +129,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-08 {@link #generateContainerScript}: 스키마 비교 스크립트도 같은 구분자·DB 맞추기로 만든다 (docs/chromite/schema-compare.md)
  * - 2026-11-08 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀({@link #getTemplateKind}): Object Explorer의 "New …"
  *   (docs/chromite/swing-create-objects.md)
+ * - 2026-11-16 {@link #canModify}를 종류({@link #appliesModify}, 메뉴에 보임)와 지금 상태(저장됨, 편집기가 허락함)로 나눔
+ *   (앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class SourceScripts {
 
@@ -184,16 +186,24 @@ final class SourceScripts {
     // Modify / Script as ALTER
 
     /**
-     * True if the object's source can be edited as an ALTER script: a saved procedure, function, view, trigger or package
-     * whose driver edits its definition ({@code objectDefinitionText}, as the SWT source editors) with an object editor.
+     * True if Modify applies to the kind of object: a procedure, function, view, trigger or package whose driver edits its
+     * definition ({@code objectDefinitionText}, as the SWT source editors) with an object editor.
      */
-    static boolean canModify(@Nullable DBSObject object) {
-        if (!(object instanceof DBPScriptObject) || !object.isPersisted()
+    static boolean appliesModify(@Nullable DBSObject object) {
+        if (!(object instanceof DBPScriptObject)
             || !(object instanceof DBSProcedure || object instanceof DBSView || object instanceof DBSTrigger || object instanceof DBSPackage)) {
             return false;
         }
-        DBEObjectEditor<DBSObject> editor = getObjectEditor(object);
-        return editor != null && editor.canEditObject(object) && getSourceProperty(object.getClass()) != null;
+        return getObjectEditor(object) != null && getSourceProperty(object.getClass()) != null;
+    }
+
+    /**
+     * True if the object's source can be edited as an ALTER script now: {@link #appliesModify}, the object is saved and its
+     * object editor allows editing it.
+     */
+    static boolean canModify(@Nullable DBSObject object) {
+        DBEObjectEditor<DBSObject> editor = appliesModify(object) ? getObjectEditor(object) : null;
+        return editor != null && object.isPersisted() && editor.canEditObject(object);
     }
 
     /**

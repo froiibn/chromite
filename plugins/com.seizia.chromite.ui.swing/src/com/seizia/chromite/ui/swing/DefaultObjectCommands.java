@@ -51,12 +51,14 @@ import java.awt.*;
  *     열린 트랜잭션을 끝내지 않는다. 다른 데이터베이스 인스턴스로 옮길 때(PostgreSQL 데이터베이스)는 주 세션이 다른 서버 세션이 되어
  *     열린 트랜잭션이 보이지 않게 남으므로, 그때만 {@link ExitTransactionCheck#confirmDefaultChange}로 커밋/롤백/취소를 묻는다
  *     (쿼리 창 DB 콤보의 같은 판단과 같음).</li>
- *     <li>지금 기본값인 객체에서는 꺼진다({@link DBNUtils#isDefaultElement}, 트리는 그 노드를 굵게 그린다). 바꾼 뒤 메인 창이 그 연결의
+ *     <li>메뉴 항목은 주 세션이 그 종류(데이터베이스·스키마)를 바꿀 수 있는 연결의 데이터베이스·스키마에서 보이고({@link #appliesSetDefault}),
+ *     지금 기본값인 객체에서는 꺼진다({@link DBNUtils#isDefaultElement}, 트리는 그 노드를 굵게 그린다). 바꾼 뒤 메인 창이 그 연결의
  *     쿼리 창 DB 콤보를 다시 읽는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md "기본 스키마")
+ * - 2026-11-16 종류({@link #appliesSetDefault})와 지금 상태({@link #canSetDefault})로 나눔(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class DefaultObjectCommands {
 
@@ -64,19 +66,24 @@ final class DefaultObjectCommands {
     }
 
     /**
-     * True for a database or schema of a connected connection that its main session can change to and is not the default.
-     * In-memory model data only (EDT).
+     * True for a database or schema whose connection's main session can change to it (the menu shows the item). While the
+     * connection is not connected that is not known, and the item is shown (disabled). In-memory model data only (EDT).
      */
-    static boolean canSetDefault(@Nullable DBNNode node) {
+    static boolean appliesSetDefault(@Nullable DBNNode node) {
         DBSObject object = node instanceof DBNDatabaseNode databaseNode ? databaseNode.getObject() : null;
         if (!(object instanceof DBSCatalog || object instanceof DBSSchema)) {
             return false;
         }
         DBCExecutionContextDefaults<?, ?> defaults = getDefaults(object);
-        if (defaults == null || DBNUtils.isDefaultElement(node)) {
-            return false;
-        }
-        return object instanceof DBSCatalog ? defaults.supportsCatalogChange() : defaults.supportsSchemaChange();
+        return defaults == null || (object instanceof DBSCatalog ? defaults.supportsCatalogChange() : defaults.supportsSchemaChange());
+    }
+
+    /**
+     * True when {@link #appliesSetDefault} and possible now: the connection is connected and the object is not the default.
+     */
+    static boolean canSetDefault(@Nullable DBNNode node) {
+        DBSObject object = node instanceof DBNDatabaseNode databaseNode ? databaseNode.getObject() : null;
+        return appliesSetDefault(node) && getDefaults(object) != null && !DBNUtils.isDefaultElement(node);
     }
 
     /**

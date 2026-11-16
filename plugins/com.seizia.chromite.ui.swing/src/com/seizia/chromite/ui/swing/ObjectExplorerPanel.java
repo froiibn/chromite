@@ -197,8 +197,12 @@ import java.util.regex.Pattern;
  *     <li>DB 객체 작업({@link ExplorerObjectCommands}): 객체 관리자로 하는 Delete(Delete 키)·Rename(F2)과 스크립트 미리 보기, Copy Name(Ctrl+C,
  *     트리의 전송 처리기)·Copy Qualified Name(Ctrl+Shift+C), Generate SQL 메뉴. 위의 연결·보안·에이전트·스케줄러 갈래가 먼저다.
  *     Copy Special…(이름·정규화된 이름·DDL, 구분자, {@link CopySpecialDialog})과 연결의 Duplicate Connection({@link ConnectionCommands#duplicate}).</li>
- *     <li>여러 개 선택: 트리는 여러 노드를 고를 수 있다. Delete, 이름 복사, Generate SQL은 선택 전체에 적용하고, 나머지 명령은
- *     {@link #getSelectedNavigatorNode}가 null이 되어 꺼진다. 오른쪽 클릭이 고른 행 위면 선택을 그대로 둔다.</li>
+ *     <li>여러 개 선택: 트리는 여러 노드를 고를 수 있다. Delete, 이름 복사, Generate SQL은 선택 전체에 적용하고, 나머지 노드 명령은
+ *     {@link #getSelectedNavigatorNode}가 null이 되어 해당하지 않는다(메뉴에 보이지 않음). 오른쪽 클릭이 고른 행 위면 선택을 그대로 둔다.</li>
+ *     <li>오른쪽 클릭 메뉴의 규칙({@link ContextMenus}, docs/chromite/context-menus.md): 노드의 종류에 해당하는 명령만 보이고, 해당하지만
+ *     지금 할 수 없는 명령(연결 안 됨, 이미 그 상태, 시스템 개체 등)은 꺼진 채 보인다. {@link #updateActions}가 명령마다 두 답을 정하고,
+ *     팝업이 열릴 때 {@link ContextMenus#tidy}가 보임과 구분선을 맞춘다. 도구 막대·두 번 클릭은 전처럼 켜짐만 보고, 트리의 키는 전처럼
+ *     명령을 부르며 명령이 스스로 조건을 확인한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -281,6 +285,8 @@ import java.util.regex.Pattern;
  * - 2026-11-15 테이블 저장 방식을 글자색 대신 테이블 아이콘 색으로({@link TableStorageStyle}, 앱 변경 #130, docs/chromite/altibase.md)
  * - 2026-11-16 연결의 보조 글자를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
  *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-16 오른쪽 클릭 메뉴에 노드에 해당하는 명령만 보임, 해당하지만 지금 할 수 없는 명령은 꺼짐, 구분선 정리({@link ContextMenus},
+ *   앱 변경 #137, docs/chromite/context-menus.md). "더 읽기" 항목의 구분선을 따로 숨기던 코드는 정리 도우미로 대신함
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -880,9 +886,8 @@ final class ObjectExplorerPanel extends JPanel {
         // Only on "Load more…": how many objects a long folder shows is a setting (General > Object Explorer)
         JMenuItem pageSizeItem = new JMenuItem(ObjectExplorerMessages.oe_page_size_settings);
         pageSizeItem.addActionListener(e -> OptionsLinks.open(tree, OptionsLinks.PAGE_GENERAL));
-        JPopupMenu.Separator pageSizeSeparator = new JPopupMenu.Separator();
         popupMenu.add(pageSizeItem);
-        popupMenu.add(pageSizeSeparator);
+        popupMenu.addSeparator();
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
@@ -947,8 +952,9 @@ final class ObjectExplorerPanel extends JPanel {
                 updateActions();
                 TreePath path = tree.getSelectionPath();
                 boolean more = path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof MoreItem;
-                pageSizeItem.setVisible(more);
-                pageSizeSeparator.setVisible(more);
+                ContextMenus.set(pageSizeItem, more, true);
+                // Only the commands that apply to the node, then no separator at either end or twice in a row
+                ContextMenus.tidy(popupMenu);
             }
 
             @Override
@@ -1249,85 +1255,101 @@ final class ObjectExplorerPanel extends JPanel {
         }
     }
 
+    /**
+     * Gives every command its two answers for the selection ({@link ContextMenus#set}): whether it applies to the kind of
+     * node (shown in the context menu) and whether it is possible now (enabled, for the menu, the tool bar and double click;
+     * the tree's keys run the command, which checks its own conditions as before).
+     */
     private void updateActions() {
         DBPDataSourceContainer dataSource = getSelectedDataSource();
+        boolean underConnection = dataSource != null;
         boolean connectionNode = getSelectedNavigatorNode() instanceof DBNDataSource;
         boolean connected = dataSource != null && dataSource.isConnected();
-        newConnectionAction.setEnabled(projectNode != null);
-        connectServerAction.setEnabled(projectNode != null);
-        newQueryAction.setEnabled(dataSource != null);
-        recentScriptsMenu.setEnabled(dataSource != null);
+        boolean project = projectNode != null;
+        ContextMenus.set(newConnectionAction, project, true);
+        connectServerAction.setEnabled(project);
+        ContextMenus.set(newQueryAction, underConnection, true);
+        ContextMenus.set(recentScriptsMenu, underConnection, true);
         DBSObject object = getSelectedObject();
         boolean canScript = ObjectScripts.canScriptCreate(object);
         boolean canSelect = ObjectScripts.canSelect(object);
-        selectTopAction.setEnabled(canSelect);
-        createToMenu.setEnabled(canScript);
-        selectToMenu.setEnabled(canSelect);
-        scriptAsMenu.setEnabled(canScript || canSelect);
-        viewDdlAction.setEnabled(canScript);
-        viewDiagramAction.setEnabled(ErdDiagramModel.canShow(object));
+        ContextMenus.set(selectTopAction, canSelect, true);
+        ContextMenus.set(createToMenu, canScript, true);
+        ContextMenus.set(selectToMenu, canSelect, true);
+        ContextMenus.set(viewDdlAction, canScript, true);
+        ContextMenus.set(viewDiagramAction, ErdDiagramModel.canShow(object), true);
+        // On a connection node the tasks act on its only database, known once it is connected and read (DataTransferObjects)
         DBSObject transferObject = getTransferObject();
-        importDataAction.setEnabled(DataImportWizard.canImport(transferObject));
-        exportDataAction.setEnabled(DataExportWizard.canExport(transferObject));
-        backUpAction.setEnabled(BackupRestoreCommands.canBackUp(object));
-        restoreAction.setEnabled(backUpAction.isEnabled());
-        runScriptAction.setEnabled(BackupRestoreCommands.canRunScript(getScriptTarget()));
-        copyTablesAction.setEnabled(exportDataAction.isEnabled());
+        boolean connectionTasks = getSelectedNavigatorNode() instanceof DBNDataSource connection && DataTransferObjects.appliesToConnection(connection);
+        ContextMenus.set(importDataAction, connectionTasks || DataImportWizard.canImport(transferObject), DataImportWizard.canImport(transferObject));
+        ContextMenus.set(exportDataAction, connectionTasks || DataExportWizard.canExport(transferObject), DataExportWizard.canExport(transferObject));
+        ContextMenus.set(copyTablesAction, connectionTasks || DataExportWizard.canExport(transferObject), DataExportWizard.canExport(transferObject));
+        boolean canBackUp = BackupRestoreCommands.canBackUp(object);
+        ContextMenus.set(backUpAction, canBackUp, true);
+        ContextMenus.set(restoreAction, canBackUp, true);
+        // On a connection node: its kind of server (unknown while closed, then shown disabled); its database must be read
+        boolean canRunScript = BackupRestoreCommands.canRunScript(getScriptTarget());
+        ContextMenus.set(runScriptAction, canRunScript || connectionNode && BackupRestoreCommands.appliesRunScript(dataSource), canRunScript);
         DataTransferObjects.updateTaskTooltips(transferObject, importDataAction, exportDataAction, copyTablesAction);
-        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled()
-            || runScriptAction.isEnabled());
-        maintenanceAction.setEnabled(MaintenanceCommands.canMaintain(object));
-        designAction.setEnabled(TableDesignSession.canDesign(object));
-        newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
+        ContextMenus.set(maintenanceAction, MaintenanceCommands.canMaintain(object), true);
+        ContextMenus.set(designAction, TableDesignSession.canDesign(object), true);
+        ContextMenus.set(newTableAction, getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder), true);
         sourceEditCommands.update(getSelectedNavigatorNode());
         newObjectCommands.update(getSelectedNavigatorNode());
         routineCommands.update(getSelectedNavigatorNode());
-        debugAction.setEnabled(DebugCommands.canDebug(object));
-        traceAction.setEnabled(ExecutionTraceCommands.canTrace(object));
-        connectAction.setEnabled(dataSource != null && !connected);
+        ContextMenus.set(debugAction, DebugCommands.canDebug(object), true);
+        ContextMenus.set(traceAction, ExecutionTraceCommands.canTrace(object), true);
+        // The connection commands apply to every node under a connection; the connection state decides which are possible
+        ContextMenus.set(connectAction, underConnection, !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
-        disconnectAction.setEnabled(dataSource != null);
+        ContextMenus.set(disconnectAction, underConnection, true);
         List<DBPDataSourceContainer> connectedServers = getConnectedServers();
-        disconnectOthersAction.setEnabled(dataSource != null && connectedServers.stream().anyMatch(container -> container != dataSource));
-        disconnectAllAction.setEnabled(!connectedServers.isEmpty());
-        reconnectAction.setEnabled(connected);
-        invalidateAction.setEnabled(connected);
-        activityMonitorAction.setEnabled(dataSource != null);
-        locksAction.setEnabled(dataSource != null);
-        dashboardAction.setEnabled(dataSource != null);
-        adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
-        findObjectsAction.setEnabled(projectNode != null);
-        searchDataAction.setEnabled(DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null);
-        compareSchemasAction.setEnabled(projectNode != null);
-        editConnectionAction.setEnabled(connectionNode);
-        // Only databases that can change the connected user's password (ChangeUserPasswordPropertyTester)
-        changePasswordAction.setEnabled(connectionNode && dataSource != null && ConnectionCommands.getPasswordManager(dataSource) != null);
-        renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
+        ContextMenus.set(disconnectOthersAction, underConnection, connectedServers.stream().anyMatch(container -> container != dataSource));
+        ContextMenus.set(disconnectAllAction, project, !connectedServers.isEmpty());
+        ContextMenus.set(reconnectAction, underConnection, connected);
+        ContextMenus.set(invalidateAction, underConnection, connected);
+        ContextMenus.set(activityMonitorAction, underConnection, true);
+        ContextMenus.set(locksAction, underConnection, true);
+        ContextMenus.set(dashboardAction, underConnection, true);
+        adminViewActions.forEach(action -> ContextMenus.set(action, underConnection, true));
+        ContextMenus.set(findObjectsAction, project, true);
+        ContextMenus.set(searchDataAction, DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null, true);
+        ContextMenus.set(compareSchemasAction, project, true);
+        ContextMenus.set(editConnectionAction, connectionNode, true);
+        // Only databases that can change the connected user's password (ChangeUserPasswordPropertyTester); the data source
+        // tells it, so a closed connection shows the item disabled
+        boolean canChangePassword = connectionNode && ConnectionCommands.getPasswordManager(dataSource) != null;
+        ContextMenus.set(changePasswordAction, canChangePassword || connectionNode && !connected, canChangePassword);
+        ContextMenus.set(renameAction, connectionNode || ExplorerObjectCommands.appliesRename(getSelectedNavigatorNode()),
+            connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);
         boolean agentObject = AgentCommands.canDelete(getSelectedNavigatorNode());
         boolean schedulerObject = SchedulerCommands.canDelete(getSelectedNavigatorNode());
-        deleteAction.setEnabled(connectionNode || principal || agentObject || schedulerObject
-            || ExplorerObjectCommands.canDelete(getSelectedNavigatorNodes()));
+        boolean ownDelete = connectionNode || principal || agentObject || schedulerObject;
+        ContextMenus.set(deleteAction, ownDelete || ExplorerObjectCommands.appliesDelete(getSelectedNavigatorNodes()),
+            ownDelete || ExplorerObjectCommands.canDelete(getSelectedNavigatorNodes()));
         objectCommands.update(getSelectedNavigatorNodes());
         maintenanceCommands.update(getSelectedNavigatorNodes());
-        principalPropertiesAction.setEnabled(principal || agentObject || schedulerObject);
+        ContextMenus.set(principalPropertiesAction, principal || agentObject || schedulerObject, true);
         principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip
             : schedulerObject ? SchedulerMessages.scheduler_properties_tip : SecurityMessages.security_properties_tip);
         agentCommands.update(getSelectedNavigatorNode());
         schedulerCommands.update(getSelectedNavigatorNode());
         SecurityPrincipal.Kind newPrincipalKind = SecurityCommands.getNewPrincipalKind(getSelectedNavigatorNode());
         newPrincipalAction.putValue(Action.NAME, SecurityCommands.getNewPrincipalLabel(newPrincipalKind));
-        newPrincipalAction.setEnabled(newPrincipalKind != null);
-        objectPermissionsAction.setEnabled(SecurityCommands.canEditPermissions(object));
-        filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder
-            && folder.getItemsMeta() != null && folder.getChildrenClass() != null);
+        ContextMenus.set(newPrincipalAction, newPrincipalKind != null, true);
+        ContextMenus.set(objectPermissionsAction, SecurityCommands.canEditPermissions(object), true);
+        ContextMenus.set(filterAction, getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder
+            && folder.getItemsMeta() != null && folder.getChildrenClass() != null, true);
         // A connection's details read its databases, which connects it: only for a connected one. An object without
         // children (a sequence) still has the Properties tab; a folder needs children
-        detailsAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode
-            && (connected || !connectionNode) && (hasTreeChildren(databaseNode) || !(databaseNode instanceof DBNDatabaseFolder)));
-        setDefaultAction.setEnabled(DefaultObjectCommands.canSetDefault(getSelectedNavigatorNode()));
-        copySpecialAction.setEnabled(CopySpecialDialog.canCopy(getSelectedNavigatorNodes()));
-        duplicateConnectionAction.setEnabled(connectionNode);
+        boolean detailsApply = getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode
+            && (hasTreeChildren(databaseNode) || !(databaseNode instanceof DBNDatabaseFolder));
+        ContextMenus.set(detailsAction, detailsApply, connected || !connectionNode);
+        ContextMenus.set(setDefaultAction, DefaultObjectCommands.appliesSetDefault(getSelectedNavigatorNode()),
+            DefaultObjectCommands.canSetDefault(getSelectedNavigatorNode()));
+        ContextMenus.set(copySpecialAction, CopySpecialDialog.canCopy(getSelectedNavigatorNodes()), true);
+        ContextMenus.set(duplicateConnectionAction, connectionNode, true);
     }
 
     /**

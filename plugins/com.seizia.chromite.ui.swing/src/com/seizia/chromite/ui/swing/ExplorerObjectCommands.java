@@ -134,6 +134,8 @@ import java.util.function.Supplier;
  *   켜짐(Altibase 테이블스페이스, 앱 변경 #126, docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-16 {@link #runChange}의 스크립트 미리 보기와 열린 트랜잭션 질문이 주인 패널 대신 그 창 가운데에 뜸(다른 확인·알림과 같음,
  *   앱 변경 #132, docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
+ * - 2026-11-16 이름 바꾸기·삭제를 종류({@link #appliesRename}, {@link #appliesDelete}, 메뉴에 보임)와 지금 상태({@link #canRename},
+ *   {@link #canDelete})로 나눔, 복사·Generate SQL은 해당할 때만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  */
 final class ExplorerObjectCommands {
 
@@ -397,11 +399,12 @@ final class ExplorerObjectCommands {
     }
 
     /**
-     * Enables the commands for the selection and rebuilds the Generate SQL menu. EDT, model data in memory only.
+     * Shows and enables the commands for the selection and rebuilds the Generate SQL menu (shown when a generator applies
+     * to the selected objects, {@link ContextMenus}). EDT, model data in memory only.
      */
     void update(@NotNull List<DBNNode> nodes) {
-        copyNameAction.setEnabled(getNames(nodes, false) != null);
-        copyQualifiedNameAction.setEnabled(getObjects(nodes) != null);
+        ContextMenus.set(copyNameAction, getNames(nodes, false) != null, true);
+        ContextMenus.set(copyQualifiedNameAction, getObjects(nodes) != null, true);
         generateSqlMenu.removeAll();
         List<DBSObject> objects = getObjects(nodes);
         DBPDataSourceContainer container = objects == null ? null : getContainer(objects);
@@ -420,7 +423,7 @@ final class ExplorerObjectCommands {
                 generateSqlMenu.add(item);
             }
         }
-        generateSqlMenu.setEnabled(generateSqlMenu.getItemCount() > 0);
+        ContextMenus.set(generateSqlMenu, generateSqlMenu.getItemCount() > 0, true);
     }
 
     //////////////////////////////////////////////////////////
@@ -538,7 +541,17 @@ final class ExplorerObjectCommands {
     // Rename
 
     /**
-     * True if the node is a saved database object that its object manager can rename ({@link DBEObjectRenamer}).
+     * True if Rename applies to the kind of node: a database object in a folder or container whose kind has an object
+     * renamer ({@link DBEObjectRenamer}). Whether this object can be renamed now is {@link #canRename}.
+     */
+    static boolean appliesRename(@Nullable DBNNode node) {
+        DBSObject object = getObject(node);
+        return object != null && node.getParentNode() instanceof DBNContainer && getRenamer(object) != null;
+    }
+
+    /**
+     * True if the node is a saved database object that its object manager can rename ({@link DBEObjectRenamer}) now (a
+     * manager refuses system objects, for example).
      */
     static boolean canRename(@Nullable DBNNode node) {
         DBSObject object = getEditableObject(node);
@@ -575,6 +588,21 @@ final class ExplorerObjectCommands {
 
     //////////////////////////////////////////////////////////
     // Delete
+
+    /**
+     * True if Delete applies to the kind of every node: a database object in a folder or container whose kind has an
+     * object maker ({@link DBEObjectMaker}). Whether they can be deleted now (saved, allowed by the manager, one
+     * connection) is {@link #canDelete}.
+     */
+    static boolean appliesDelete(@NotNull List<DBNNode> nodes) {
+        for (DBNNode node : nodes) {
+            DBSObject object = getObject(node);
+            if (object == null || !(node.getParentNode() instanceof DBNContainer) || getMaker(object) == null) {
+                return false;
+            }
+        }
+        return !nodes.isEmpty();
+    }
 
     /**
      * True if every node is a saved database object of one connection that its object manager can delete.
