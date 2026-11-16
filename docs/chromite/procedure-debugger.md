@@ -96,7 +96,9 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
   본문 보기에 둔다. Modify 창에서는 Query > Debug…로 같은 디버거 탭을 연다.
 - 인수 입력: 쿼리 창의 매개 변수 대화상자(`QueryParameterDialog`, 2026-11-08 전에는 `SqlParameterDialog`)는 쿼리 글의 `:name` 매개 변수에 묶여 있어 쓰지 않았다.
   값 규칙(SQL 식)은 그 대화상자의 스크립트 모드와 같다.
-  마지막 인수는 같은 탭에서 다시 시작할 때 다시 보인다(저장하지 않음).
+  마지막 인수와 시작 방식(attach면 프로세스 ID도)은 같은 탭에서 다시 시작할 때 다시 보인다(저장하지 않음).
+  두 방식 단추는 `ButtonGroup`에 먼저 넣고 이전 방식을 고른다. 선택된 단추가 이미 선택된 단추가 있는 그룹에 들어가면 선택이 풀리기 때문이다
+  (2026-11-17 전에는 이 순서가 거꾸로라 attach가 풀려 로컬 방식으로 열렸다, 앱 변경 #144).
 - 단축키는 Visual Studio·SSMS와 같다. 탭 안에 초점이 있을 때만 받으므로(F5) 쿼리 창의 실행(F5)과 겹치지 않는다.
 
 ### 트랜잭션 안전
@@ -321,3 +323,5 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
   ([swing-routines.md](swing-routines.md)). PostgreSQL에서 시작 대화상자가 그대로 열리는 것을 확인.
 - 2026-11-08 SQL Server 대안 "실행 추적"을 만들었다고 적음(표, "SQL Server 대안", [sqlserver-execution-trace.md](sqlserver-execution-trace.md)).
 - 2026-11-08 인수 입력 설명의 쿼리 창 매개 변수 대화상자 이름을 고침(`SqlParameterDialog` → `QueryParameterDialog`, Query Library와 합침).
+- 2026-11-17 시작 대화상자가 이전 attach 방식을 복원하지 못하던 결함을 고침: 두 방식 단추를 그룹에 넣은 뒤 이전 방식을 고름(앱 변경 #144).
+  `ui.swing`의 다른 `ButtonGroup` 20곳은 그룹에 넣은 뒤 고르거나 미리 선택된 단추가 하나뿐이라 같은 결함이 없음을 확인.

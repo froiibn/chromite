@@ -48,6 +48,7 @@ import java.util.Map;
  * - 2026-11-08 인수 표를 {@link RoutineArgumentTable}로 옮겨 Execute Procedure 대화상자와 함께 씀 (docs/chromite/swing-routines.md)
  * - 2026-11-08 설계 설명의 쿼리 창 매개 변수 대화상자를 합친 대화상자({@link QueryParameterDialog})로 고침
  * - 2026-11-16 프로세스 ID 칸이 숫자만 받음({@link NumberInputFilter}, 앱 변경 #142)
+ * - 2026-11-17 단추를 그룹에 먼저 넣고 이전 방식을 복원함: 복원한 attach 선택이 그룹에 들어갈 때 풀려 로컬로 열렸음(앱 변경 #144)
  */
 final class DebugStartDialog extends JDialog {
 
@@ -74,6 +75,10 @@ final class DebugStartDialog extends JDialog {
         for (int i = 0; i < parameters.size(); i++) {
             values.add(previousValues instanceof List<?> list && list.size() == parameters.size() ? CommonUtils.toString(list.get(i)) : ""); //$NON-NLS-1$
         }
+        // Grouped before the previous mode is restored: a selected button that joins a group with a selected member is deselected
+        ButtonGroup group = new ButtonGroup();
+        group.add(localButton);
+        group.add(attachButton);
         if (attachSupported && previous != null && DBGConstants.ATTACH_KIND_GLOBAL.equals(previous.get(DBGConstants.ATTR_ATTACH_KIND))) {
             attachButton.setSelected(true);
             processField.setText(CommonUtils.toString(previous.get(DBGConstants.ATTR_ATTACH_PROCESS)));
@@ -84,9 +89,6 @@ final class DebugStartDialog extends JDialog {
             attachButton.setEnabled(false);
             attachButton.setToolTipText(DebugMessages.debug_start_attach_unsupported);
         }
-        ButtonGroup group = new ButtonGroup();
-        group.add(localButton);
-        group.add(attachButton);
 
         table = new RoutineArgumentTable(parameters, values, parameter -> localButton.isSelected());
 
