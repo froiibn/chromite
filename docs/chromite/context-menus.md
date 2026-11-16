@@ -155,7 +155,7 @@ Oracle, PostgreSQL, MariaDB, MySQL, Altibase, SQLite 파일), 이 작업이 만�
 
 | 곳 | 파일:줄 | 항목과 판단 | 결과 |
 |---|---|---|---|
-| Registered Servers 트리 | `RegisteredServersPanel.java:369` | 서버·그룹·빈 곳마다 따로 만든다(종류는 이미 숨김). 서버의 Change Password…만 연결된 서버의 DB가 지원하지 않아도 꺼진 채 보였다(:382) | 남김 |
+| Registered Servers 트리 | `RegisteredServersPanel.java:369` | 서버·그룹·빈 곳마다 따로 만든다(종류는 이미 숨김). 서버의 Change Password…만 연결된 서버의 DB가 지원하지 않아도 꺼진 채 보였다(:382) | 바꿈: 연결된 서버가 지원하지 않으면 숨김, 연결 안 됨이면 꺼짐(개체 탐색기와 같음) |
 | 문서 탭 | `DocumentTabMenu.java:235` | 저장·이름 바꾸기·연결 변경·경로 복사·상위 폴더 열기가 쿼리 창이 아닌 탭(ER 다이어그램, Activity Monitor, 디자이너)에서 꺼짐(:242–260) | 남김 |
 | Messages 탭 | `QueryResultsView.java:654` | "오류 위치로 가기"가 위치 없는 글자에서 꺼짐(:688) | 남김 |
 | ER 다이어그램 개체 | `ErdDiagramPanel.java:489` | Design(뷰에서 꺼짐 :495), Select Top(:499) | 남김 |
@@ -183,3 +183,4 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 ## 변경 이력
 
 - 2026-11-16 최초 작성: 규칙, `ContextMenus` 도우미, 개체 탐색기 적용(앱 변경 #137)
+- 2026-11-16 Registered Servers: 서버 메뉴의 Change Password…를 지원하지 않는 연결된 서버에서 숨김(앱 변경 #137 2부)
