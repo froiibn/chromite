@@ -136,8 +136,6 @@ public class GridNavMessages extends NLS {
     public static String gridnav_menu_virtual;
     public static String gridnav_vkey_define;
     public static String gridnav_vkey_define_tip;
-    public static String gridnav_vkey_has_key;
-    public static String gridnav_vkey_no_table;
     public static String gridnav_vkey_title;
     public static String gridnav_vkey_intro;
     public static String gridnav_vkey_all_columns;

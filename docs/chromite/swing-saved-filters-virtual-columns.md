@@ -22,7 +22,7 @@ Swing 클래스는 모두 `com.seizia.chromite.ui.swing` 번들이다. 새 번�
 |---|---|---|
 | `ResultSetSavedFilters` | 새 | 저장한 필터·최근 필터를 가상 모델에 읽고 쓰기, 필터 ↔ JSON 값 변환, 저장·지우기·최근 필터 지우기 대화상자 |
 | `ResultSetVirtualColumns` | 새 | 가상 열: 쿼리 결과에 단일 원본 테이블의 가상 열 붙이기, 행마다 값 계산, 서버 필터에서 가상 열 빼기, 추가·고치기·지우기 대화상자 |
-| `ResultSetViewerPanel` | 변경 | 오른쪽 클릭 "저장한 필터"·"가상 열" 메뉴, 다시 읽을 때 최근 필터 남기기, 가상 열의 머리글 필터·Filter by Value 끄기, 가상 열 정렬은 표 안에서, 다시 읽는 필터에서 가상 열 빼기 |
+| `ResultSetViewerPanel` | 변경 | 오른쪽 클릭 "저장한 필터"·"가상 열" 메뉴, 다시 읽을 때 최근 필터 남기기, 가상 열의 머리글 필터 끄기·Filter by Value 숨기기, 가상 열 정렬은 표 안에서, 다시 읽는 필터에서 가상 열 빼기 |
 | `ResultSetGridReceiver` | 변경 | 가상 열은 결과 집합에서 읽지 않고 행을 읽은 뒤 계산, 쿼리 결과에 가상 열 붙이기, 다음 페이지의 열 수 비교 |
 | `ResultSetEditPersister` | 변경 | 저장 뒤 행 다시 읽기: 결과 집합의 열만 맞춰 읽고 가상 열은 다시 계산 |
 | `ResultSetGenerateSql` | 변경 | 행에서 만드는 문장(INSERT·UPDATE·DELETE·SELECT·MERGE)에서 가상 열을 뺌 |
@@ -47,7 +47,8 @@ SWT: `ResultSetViewer.saveDataFilter`, `DataFilterRegistry`(작업 공간의 `sa
                저장한 필터 지우기 ▸  (이름들)
 ```
 
-- 테이블 하나에서 온 결과(테이블 데이터, 그 테이블만 읽는 쿼리)에서만 쓴다. 아니면 메뉴에 "테이블 하나에서 온 결과가 아닙니다"만 보인다.
+- 테이블 하나에서 온 결과(테이블 데이터, 그 테이블만 읽는 쿼리)에서만 쓴다. 아니면 메뉴가 보이지 않는다(2026-11-16, 그 전에는 "테이블 하나에서 온 결과가
+  아닙니다"만 꺼진 채 보임, [context-menus.md](context-menus.md) "결과 그리드"). 가상 열 메뉴도 같다.
   필터를 테이블에 묶어야 다른 쿼리·다음 실행에서도 같은 필터를 고를 수 있기 때문이다.
 - **지금 필터 저장:** 이름(기본 "필터 N")을 묻고, 이 결과의 열 필터(머리글 팝업·Filter by Value의 조건)와 정렬을 저장한다. 대화상자에 저장할 조건이
   SQL로 보인다. 이름이 같은 필터가 있으면 바꿀지 묻는다(Cancel 기본). 저장할 조건이나 정렬이 없으면 메뉴가 꺼지고 그 이유가 도구 설명에 있다.
@@ -122,7 +123,8 @@ SWT: `VirtualAttributeAddAction`, `VirtualAttributeEditAction`, `VirtualAttribut
   - 다음 페이지 행도, 저장 뒤 다시 읽은 행도 다시 계산한다. 칸을 고치는 동안에는 저장해야 다시 계산된다.
 - **고칠 수 없음:** 바인딩에 행 식별자가 없어 편집 모델이 읽기 전용 열로 두고(값 패널에서도), 새 행 INSERT와 UPDATE에서 빠진다
   (`ResultSetEditPersister.shouldInsertAttribute`, 모델 `DBDResultSetDataUpdater.isVirtualColumn`). 결과의 다른 열 편집은 그대로다.
-- **필터·정렬:** DB에 없는 열이라 머리글 깔때기와 "Filter by Value"를 끄고 이유를 보인다. 정렬은 읽은 행 안에서(표 안 정렬) 하고, 서버에서 다시 읽는 필터
+- **필터·정렬:** DB에 없는 열이라 머리글 깔때기를 끄고 이유를 보이며, 오른쪽 클릭 "Filter by Value"는 그 칸에서 보이지 않는다(2026-11-16, 그 전에는
+  꺼진 채 이유를 보임). 정렬은 읽은 행 안에서(표 안 정렬) 하고, 서버에서 다시 읽는 필터
   (다른 열 필터, 다음 페이지, 값 목록)에서는 가상 열의 정렬을 뺀다(`withoutVirtualColumns`). 그래서 다시 읽으면 가상 열 정렬은 풀린다.
   행에서 만드는 SQL(INSERT·UPDATE 등)에서도 뺀다. 결과를 담을 CREATE TABLE에는 남긴다(결과의 열이므로).
 - **고친 기존 문제(코드로 확인):** 테이블 데이터 컨테이너는 모델이 가상 열을 바인딩에 붙이는데, 수신기가 그 열을 결과 집합의 없는 열 번호로 읽어
@@ -182,3 +184,5 @@ SWT: `VirtualAttributeAddAction`, `VirtualAttributeEditAction`, `VirtualAttribut
 
 - 2026-11-08 최초 작성(`chromite/saved-filters-virtual-columns`): 저장한 필터와 최근 필터(B-R10), 가상(계산) 열(B-R22).
   가상 열이 붙은 테이블의 수신기·다음 페이지·저장 뒤 다시 읽기 문제를 고침.
+- 2026-11-16 테이블 하나에서 오지 않은 결과에서 저장한 필터·가상 열 메뉴를, 가상 열 칸에서 Filter by Value를 숨김(앱 변경 #137, `chromite/result-grid-menu`,
+  [context-menus.md](context-menus.md) "결과 그리드").

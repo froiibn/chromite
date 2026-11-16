@@ -100,7 +100,8 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
   ([sql-batch-reread.md](sql-batch-reread.md)): 배치의 결과는 그 SELECT만 내보내고(둘째 SELECT 결과 포함), 문장을 정하지 못한 결과는 꺼진다. 전에는 쿼리의
   첫 결과 집합만 내보낼 수 있었다. 셋째 조건은 다음 쿼리를 그대로 받는 `@export`를 위해 남았다.
   꺼진 메뉴의 도구 설명은 수신기가 아는 이유(`ResultSetSource.requeryBlocker`, 예: 연결이 끊김)가 있으면 그것을 보인다. 처음에는 늘 "SELECT 하나인 쿼리만" 문구라,
-  SELECT 하나인 결과에서 이유를 잘못 알렸다. Query Library가 값을 바인딩한 실행도 2026-11-08부터 같은 값을 바인딩해 내보낸다
+  SELECT 하나인 결과에서 이유를 잘못 알렸다. 2026-11-16부터 SELECT 하나가 아닌 결과에서는 메뉴가 보이지 않고(`DataExportWizard.appliesExportQuery`,
+  [context-menus.md](context-menus.md) "결과 그리드"), 쿼리의 데이터 원본이 없어 문장을 셀 수 없을 때만 꺼진 채 "연결 안 됨" 이유를 보인다. "SELECT 하나인 쿼리만" 문구는 지웠다. Query Library가 값을 바인딩한 실행도 2026-11-08부터 같은 값을 바인딩해 내보낸다
   ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로", 그 전에는 "parameter values bound for this run only"로 꺼짐).
 - **기존 "Export to CSV… / Export to Excel (XLSX)…"는 남겼다.** 이 둘은 표에 보이는 행(편집 중인 값 포함, 다시 실행할 수 없는 결과 포함)을 바로 쓰는 기능이고,
   마법사는 쿼리를 다시 실행한다. 표는 값을 표시 문자열로만 들고 있어(C단계 설계) 모델의 스트림 내보내기(값 처리기로 결과 집합에서 다시 읽음)에 "가져온 행"을 넣을 수 없으므로
@@ -1023,3 +1024,5 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
 - 2026-11-12 앱 변경 #75(`chromite/transfer-lost-connection`): 결과를 모르는 문장은 다시 보내지 않고 멈추며 확실히 쓴 행과 결과를 모르는 행을 알림(사용자 결정).
   자동 커밋 넣기의 복구·다시 시도가 끊긴 묶음을 다시 넣어 키 없는 테이블에 행이 두 번 들어가던 것, 수동 커밋 한 행씩 넣기의 복구가 앞 행을 조용히 잃던 것,
   원본 연결이 끊기면 처음부터 다시 읽어 넣은 행이 두 번 들어가던 것, 복구가 실패한 읽기에서 다시 시도가 다시 연결하지 않던 것. 위 "연결이 끊긴 넣기".
+- 2026-11-16 앱 변경 #137(`chromite/result-grid-menu`): 결과 그리드의 Export Data…는 SELECT 하나인 결과에서만 보임(`appliesExportQuery`), "SELECT 하나인 쿼리만"
+  도구 설명 문구(`editor_grid_export_data_single`) 삭제. [context-menus.md](context-menus.md) "결과 그리드".

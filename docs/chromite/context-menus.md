@@ -192,7 +192,7 @@ p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-
 | Messages 탭 | `QueryResultsView.java:654` | "오류 위치로 가기"가 위치 없는 글자에서 꺼짐(:688) | 바꿈: 위치를 아는 오류 글자에서만 보임 |
 | ER 다이어그램 개체 | `ErdDiagramPanel.java:489` | Design(뷰에서 꺼짐 :495), Select Top(:499) | 바꿈: 해당하는 개체에서만 보임, `tidy` |
 | SQL 편집기 글 영역 | `SqlEditorPanel.java:3434`(RSyntaxTextArea 기본 메뉴) | 읽기 전용 글 영역의 실행 취소·잘라내기·붙여넣기·삭제, 접기 미지원의 Folding이 꺼짐(라이브러리가 만든 항목) | 남김: 라이브러리가 만든 항목을 위치·동작으로 골라 숨겨야 함(구조 변경) |
-| 결과 그리드 셀 | `ResultSetGrid.java:1219`, `ResultSetViewerPanel.java:1084` | 행 삽입·복제·삭제(지원 안 함), Export Data(SELECT 아님), Generate SQL 항목(원본 테이블·키 없음), 파일 불러오기·저장·16진수·외부 편집기(값 종류), 가상 열의 Filter by Value, Saved Filters·Virtual Keys·Virtual Columns(원본 테이블 없음), Count Rows가 종류 이유로 꺼짐. Save and Commit은 커밋 방식(지금)으로 숨음(:1307) | 남김: 한 판단에 두 이유가 섞인 곳이 많아 나눠야 함(가장 큼, 약 하루) |
+| 결과 그리드 셀 | `ResultSetGrid.java:1219`, `ResultSetViewerPanel.java:1084` | 행 삽입·복제·삭제(지원 안 함), Export Data(SELECT 아님), Generate SQL 항목(원본 테이블·키 없음), 파일 불러오기·저장·16진수·외부 편집기(값 종류), 가상 열의 Filter by Value, Saved Filters·Virtual Keys·Virtual Columns(원본 테이블 없음), Count Rows가 종류 이유로 꺼짐. Save and Commit은 커밋 방식(지금)으로 숨음(:1307) | 바꿈(2026-11-16, 아래 "결과 그리드"): 두 이유를 원천에서 나누고 `ContextMenus.tidy` |
 | 결과 열 머리글, Ctrl+B·Ctrl+Shift+1 팝업 | `ResultSetViewerPanel.java:924`, `:2584`, `:2604` | 누른 곳에 따라 추가, 꺼짐은 지금 상태 | 맞음 |
 | 열린 트랜잭션 칸 | `QueryStatusLine.java:448` | 읽기 전용 트랜잭션은 다른 항목 | 맞음 |
 | 집계 함수, 차트 값 | `ResultSetAggregatePanel.java:188`, `ResultSetChartView.java:443` | 숫자 열만 추가, 8개 제한은 꺼짐 | 맞음 |
@@ -208,6 +208,119 @@ p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-
 메뉴 막대(`MainFrame`)의 Query 메뉴(Debug, Trace, Native Script는 활성 편집기의 개체로 켬), Window 메뉴(열린 탭), File ▸ Recent는 선택에 따라 바뀌지만
 메뉴 막대이므로 숨기지 않는다(규칙 참고).
 
+## 결과 그리드
+
+사용자 결정(2026-11-16, 앱 변경 #137 3부): 결과 그리드 셀 메뉴를 같은 규칙으로 바꾸자는 설명에 "결과 그리드도 고친다."
+
+결과의 종류(편집할 수 있는가, 테이블 하나에서 왔는가, SELECT 하나인가, 다시 읽을 수 있는 쿼리인가)와 칸의 종류(LOB·이진 열인가, 가상 열인가,
+외래 키 열인가), DB의 기능(테이블이 INSERT·DELETE를 받는가, 컨테이너가 행을 세는가)은 보임을 정한다. 결과가 다른 결과가 되지 않고도 바뀌는 것
+(바뀐 것이 있음, 선택, 연결 상태, 읽기 전용 연결, 읽는 중, 저장 중, 셀 값이 NULL)은 켜짐을 정한다.
+
+### 구조
+
+- 셀 메뉴는 `ResultSetGrid.installContextMenu`(편집·복사·내보내기)가 만들고 `ResultSetViewerPanel.installMenus`가 항목을 덧붙인다. 둘 다 팝업이 열릴 때
+  `ContextMenus.tidy`를 부른다(두 리스너 중 어느 것이 나중에 돌아도 같은 결과). 도우미는 바꾸지 않았다.
+- 같은 그리드를 쓰는 곳: 쿼리 창의 결과(`QueryResultsView` → `ResultSetViewerPanel`; 개체 탐색기의 Select Top 1000 Rows도 쿼리 창을 연다)와
+  참조 패널(`ResultSetReferencesPanel`, 읽기 전용 뷰어). 따로 표를 만드는 곳은 없다. 모두 같은 코드로 바뀐다.
+- 조건을 둘로 나눈 원천:
+
+  | 원천 | 해당(보임) | 지금(켜짐) |
+  |---|---|---|
+  | `ResultSetEditModel.appliesEditing` / `getReadOnlyReason` | 테이블 하나, 완전한 고유 키, 편집할 수 있는 열, 데이터를 바꿀 수 있는 DB | 연결됨, 읽기 전용 연결 아님, 데이터 편집 권한 |
+  | `ResultSetGrid.Fetched.editingApplies` (수신기가 채움) | 위의 "해당" | 편집 모델은 둘 다일 때만 |
+  | `DataExportWizard.appliesExportQuery` / `canExportQuery` | 결과의 쿼리가 바꾸지 않는 SELECT 하나 | 쿼리의 데이터 원본이 있음(문장 세기) |
+  | `ResultSetSource.appliesRequery` / `canRequery` | 다시 읽을 수 있는 쿼리(필터 기능, SELECT 하나, 배치 문장을 앎, 다 읽음) | 읽을 때 연결되어 있었음 |
+  | `ResultSetSource.lobColumns` + `ResultSetEditModel.isWholeValueColumn` | LOB·이진 열(읽은 값이 LOB 값 객체, 또는 형식) | – |
+  | `ResultSetGenerateSql.appliesRows` | 테이블 하나 + 키가 필요한 문장은 고유 키 | 행을 고름 |
+
+### 항목별 분류
+
+"전 조건"은 `origin/chromite/explorer-menu-applicable` 65a95570c4의 줄 번호다(G = `ResultSetGrid.java`, V = `ResultSetViewerPanel.java`, S = `ResultSetGenerateSql.java`).
+
+| 항목 | 전 조건 | 해당(보임) | 지금(켜짐) |
+|---|---|---|---|
+| Edit Cell | G:1220 편집 모델, G:529 `!saving` | 편집할 수 있는 결과(`editingApplies`) | 편집 모델 있음, 저장 중 아님 |
+| Edit Value…, Set to Default, Generate UUID | G:530·532·533 `!saving && hasRows` | 같음 | 편집 모델, 저장 중 아님, 행 있음 |
+| Set NULL, Paste Special… | G:531·543 `!saving` | 같음 | 편집 모델, 저장 중 아님 |
+| Reset Cell | G:534 `!saving && dirty` | 같음 | 바뀐 것 있음 |
+| Insert Row | G:535 `!saving && isInsertSupported` | 편집할 수 있는 결과 + 테이블이 INSERT를 받음 | 저장 중 아님 |
+| Duplicate Row | G:536 | 같음(INSERT) | 저장 중 아님, 행 있음 |
+| Copy from Row Above / Below, Paste | G:537·538·542 `!saving && hasRows` | 편집할 수 있는 결과 | 행 있음 |
+| Delete Row | G:539 `isDeleteSupported` | 편집할 수 있는 결과 + 테이블이 DELETE를 받음 | 저장 중 아님, 행 있음 |
+| Undo / Redo | G:540·541 `canUndo`/`canRedo` | 편집할 수 있는 결과 | 되돌릴 것 있음 |
+| Save Changes, Preview Changes…, Cancel Changes | G:524·527·528 `dirty && !saving` | 편집할 수 있는 결과 | 바뀐 것 있음 |
+| Save and Commit | G:525 켜짐 `dirty && !saving && manual`, G:1307 보임 `manual` | 편집할 수 있는 결과 + **수동 커밋 모드(예외)** | 바뀐 것 있음 |
+| Copy, Copy with Headers | G:516·517 `hasRows` | 늘 | 행 있음 |
+| Copy As ▸ | V:1090 | 늘 | – |
+| Generate SQL ▸ | S:178 연결 | 열이 있음(CREATE TABLE) | 연결됨(도구 설명 그대로) |
+| Generate SQL ▸ 행 문장(SELECT…, INSERT, UPDATE, DELETE, MERGE, 중복 키 INSERT ▸) | S:188 `rowsBlocker`, S:258 `getBlocker` | 테이블 하나 + 키가 필요한 문장은 고유 키 | 행을 고름(도구 설명 그대로) |
+| Generate SQL ▸ CREATE TABLE | S:227 `bindings.length` | 열이 있음 | – |
+| Export Data… | G:1208 `canExportQuery` | SELECT 하나(`appliesExportQuery`) | 쿼리의 데이터 원본 있음(도구 설명: 연결 안 됨) |
+| Export to CSV… / Excel (XLSX)… | 늘 켜짐 | 늘 | – |
+| Load from File… | V:1337·1341 | 편집할 수 있는 결과의 LOB·이진 열 | 칸을 고칠 수 있음(저장 중·지운 행 아님), 읽는 중 아님 |
+| Save to File… | V:1339·1342 | LOB·이진 열 | 값이 NULL 아님 |
+| Edit as Hex… | V:1344·1346 | 이진 열(글자 LOB 아님) | 이진 값이나 편집할 수 있는 이진 LOB 칸, 읽는 중 아님 |
+| Open in External Editor | V:1348 | **모든 칸**(글자 값도 연다) | 값이나 편집할 칸, 읽는 중 아님 |
+| Filter by Value ▸ | V:1190·1199 | 다시 읽을 수 있는 쿼리, 가상 열 아님 | 지금 다시 읽을 수 있음, 읽는 중 아님, 칸을 고름(도구 설명 그대로) |
+| Clear Filter | V:1154 | 다시 읽을 수 있는 쿼리 | 조건 있음, 읽는 중 아님 |
+| Saved Filters ▸ | V:3049 안내 항목만 꺼짐 | 테이블 하나 | 안 항목은 그대로(저장할 조건 없음, 다시 읽을 수 없음) |
+| Navigate ▸ 참조되는 행 | V:2484 안내 항목 "외래 키 없음" | 외래 키 열 | 읽기 가능 |
+| Navigate ▸ Referenced / Referencing Tables | V:2499 | 늘(관계는 메뉴가 열린 뒤 읽음) | – |
+| Navigate ▸ Back / Forward, Go to Row / Column | V:2505–2510 | 늘 | 기록 위치 |
+| Navigate ▸ Count Rows | V:2512 상태 줄 링크가 보임 | 다시 읽을 수 있는 쿼리 + 컨테이너가 행을 셈 | 남은 행이 있음, 센 수 없음, 세는 중 아님 |
+| Fit All Column Widths, Find… | 늘 | 늘 | – |
+| Columns ▸ | V:2837 | 늘(안 항목은 그대로) | 숨긴 열, 확대 |
+| Virtual Keys ▸ | V:2978 안내 항목만 꺼짐 | 테이블 하나 | – |
+| Virtual Keys ▸ Define Virtual Unique Key… | V:2985 `usesVirtualKey`, 도구 설명 "이미 키" | 실제 키 없는 테이블 | 읽는 중 아님 |
+| Virtual Keys ▸ Add / Remove Virtual Foreign Key | V:2992·3004 | 늘 | 읽는 중 아님 |
+| Virtual Columns ▸ | V:3176 안내 항목만 꺼짐 | 테이블 하나 | 안 항목은 그대로 |
+| Value Panel, Record, Text, Chart, References, Aggregates | 늘 | 늘 | – |
+| Spatial | V:1159 기하 열이 있을 때만 보임 | 그대로 | – |
+
+### 경계에서 고른 것
+
+- **저장하고 커밋은 자동 커밋 모드에서 숨긴다(예외).** 커밋 방식은 결과가 그대로인 채 바뀔 수 있는 "지금"이지만, 자동 커밋 모드에서는 Save가 커밋하므로
+  이 항목은 쓸모가 없다. 표 위의 단추도 같은 조건으로 숨는다(바뀌지 않음). 사용자가 설명과 함께 받아들였다.
+- **읽기 전용 연결에서 읽은 결과의 편집 명령은 꺼진 채 보인다.** 전에는 편집 모델이 없어 메뉴에 편집 명령이 아예 없었다. 읽기 전용 연결은 규칙의 "지금"이므로
+  결과가 종류로 편집할 수 있으면(`appliesEditing`) 명령을 꺼진 채 보인다. 키는 전처럼 묶지 않는다(표의 기본 키와 창의 단축키로 감, 예: Ctrl+0은 데이터베이스/스키마 선택).
+  편집할 수 있는지는 읽을 때 정하므로 연결을 읽기 쓰기로 바꾼 뒤 다시 실행해야 켜진다. 연결이 닫힌 결과도 같다(읽을 때 닫혀 있었을 때만; 읽은 뒤 닫히면 전처럼 켜짐).
+  "데이터를 바꿀 수 없는 DB"(드라이버의 `isReadOnlyData`)는 종류로 보아 숨긴다.
+- **키 없는 테이블의 결과**는 편집할 수 없는 결과로 본다(종류). 가상 키를 정하면 결과를 다시 읽어 다른 결과가 된다. 그래서 편집 명령, 키가 필요한 Generate SQL
+  문장은 숨고, 표 위 줄의 "가상 키 정하기" 링크는 그대로다.
+- **외부 편집기는 모든 칸에 해당한다.** 설명에서는 LOB가 아닌 칸에서 숨기기로 했지만, 코드상 글자 값이면 어느 칸이나 연다(전에 켜져 있었음). 숨기면 쓰던 항목이 사라진다.
+- **Export Data…가 연결이 닫혀 꺼지는 경우는 코드에 없었다.** 켜짐은 쿼리만 보았고(`canExportQuery`), 연결이 닫힌 뒤에도 켜져 있었다(마법사가 연결한다). 그대로 둔다.
+  쿼리의 데이터 원본이 없어 문장을 셀 수 없는 경우만 "지금"으로 나눠 꺼진 채 "연결 안 됨"을 보인다. "SELECT 하나인 쿼리만" 도구 설명은 지웠다.
+- **다시 읽을 수 없는 쿼리**(프로시저 호출, SHOW, 여러 문장 배치, 다 읽지 못한 결과)는 종류로 보아 Filter by Value, Clear Filter, Count Rows를 숨긴다(설명에는 Count Rows만).
+  읽을 때 연결이 끊겨 있던 결과만 "지금"으로 남긴다(`appliesRequery`).
+- **"외래 키 없음"·"테이블 하나에서 온 결과가 아닙니다"·"이미 키가 있음" 안내 항목**은 종류 이유로 꺼진 항목이라 지웠다(그 메뉴·항목이 숨음).
+  "외래 키 없음" 문구는 Ctrl+B 상태 줄에 그대로 쓴다.
+- **값이 NULL인 LOB 칸**의 Save to File은 꺼진 채 보인다(값은 바뀔 수 있음). 고른 칸이 없으면 결과에 그런 열이 있는지로 보인다.
+- **참조되는·참조하는 테이블 하위 메뉴**는 관계를 메뉴가 열린 뒤 읽으므로 늘 보인다(없으면 안의 "없음" 항목). Ctrl+Shift+1 팝업과 같다.
+- **값 패널의 메뉴**는 RSyntaxTextArea가 만든 기본 메뉴(Undo, Cut, Paste, Folding …)다. SQL 편집기 글 영역과 같은 까닭으로 남겼다(위 표).
+- **열 머리글 메뉴, Ctrl+B·Ctrl+Shift+1 팝업**은 다시 보아도 규칙대로라 그대로다.
+
+### 실행 덤프로 만든 전·후 (2026-11-16, 영어·150 %, 같은 사설 작업 공간)
+
+앱 안 테스트 에이전트가 셀을 고르고 표의 팝업을 열어(두 리스너가 돈 뒤) 항목마다 보임·켜짐·도구 설명을 적었다. 전은 65a95570c4 빌드, 후는 이 변경의 빌드다.
+터널 127.0.0.1의 PostgreSQL·SQL Server(모든 경우), Oracle·MariaDB(다른 것만), 이 작업이 만든 `chr_rg_*`·`CHR_RG_*` 개체만 썼다(끝나고 지움).
+경우: 편집할 수 있는 결과의 보통·NULL·LOB·이진·이진 NULL·키·외래 키 칸, 한 행·칸 묶음·여러 행 선택, 바뀐 것 있음, 가상 열, 식 열, 키 없는 테이블, 조인, 집계,
+SELECT 아닌 결과(SHOW, EXEC 프로시저, `sp_who`), 두 문장의 두 결과, 읽은 뒤 연결 닫음, 읽기 전용 연결, 수동 커밋, 실행 중인 다음 문장, Select Top 문장, 값 패널.
+
+- 보이는 맨 위 항목 수(꺼진 수): 편집할 수 있는 보통 칸 44(10) → 41(7), 이진 칸 44(7) → 44(7), 바뀐 것 있음 44(5) → 41(2), 키 없는 테이블 26(4) → 23(1),
+  조인 26(4) → 20(1), SELECT 아닌 결과 26(6) → 17(0), 읽기 전용 연결 26(4) → 41(19, 편집 명령이 꺼진 채 보임), 수동 커밋 45(11) → 42(8). 빈 메뉴 없음.
+- 구분선: 모든 경우에 맨 앞·맨 뒤·연달아 둘인 구분선 없음.
+- 전에 켜져 있던 항목이 후에 숨거나 꺼진 것: 0건. 전에 켜져 있던 하위 메뉴 가운데 안에 켜진 항목이 없던 것(Saved Filters ▸ Recent Filters의 "없음",
+  테이블 하나가 아닌 결과의 Saved Filters·Virtual Keys·Virtual Columns, 행 문장이 숨은 INSERT on Duplicate Key)은 꺼지거나 숨는다.
+- 키·단추·메뉴 막대: 표·그리드·결과 뷰어의 모든 키 바인딩과 그 동작의 켜짐, 표 위 Save·Save and Commit·Cancel 단추, 상태 줄 단추가 모든 경우에 같다.
+  메뉴 막대는 Edit ▸ Copy·Paste가 두 경우에 다르다: `EditMenu`는 포커스를 가진 컴포넌트를 따르므로(쿼리 창이 막 열린 뒤의 포커스 시점), 같은 결과의 다음 경우에서는 같다.
+  Window 목록과 Query ▸ Compare…는 열린 쿼리 창 수가 달라 비교에서 뺐다.
+- 키 동작(PostgreSQL·SQL Server, 전·후 같음): 편집 결과에서 F2 편집 시작, Ctrl+0 NULL, Ctrl+Z/Y, Alt+Insert 행 추가, Ctrl+D, Delete, Ctrl+Backspace;
+  읽기 전용 연결 결과에서 F2·Alt+Insert·Delete는 아무 일 없음, Ctrl+0은 창의 데이터베이스/스키마 선택 대화상자, Shift+Enter는 위 행으로.
+- 편집 왕복(PostgreSQL, 후): 메뉴로 Insert Row → 값 입력 → Save Changes → DB에 `99:chr_rg_rt`, 칸 고침 → Save → `99:chr_rg_rt2`, Delete Row → Save → 행 없음.
+
+덤프·캡처: `D:\Tools\_scratch\result-grid-menu\dumps\`(before-*.tsv, after-*.tsv, *-keys.tsv, checks.txt, matrix.md),
+`D:\Tools\_scratch\result-grid-menu\sheets\`.
+
 ## upstream 대비 변경점
 
 DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen`으로 정했다. Swing 프런트엔드는 그것이 없으므로 이 도우미가 같은 두 답을 한곳에 둔다.
@@ -220,3 +333,4 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-16 ER 다이어그램: 개체 메뉴의 Design·Select Top은 해당하는 개체에서만 보임(앱 변경 #137 2부)
 - 2026-11-16 연결·서버 명령은 연결 노드에서만, 프로젝트 명령은 빈 곳과 연결 노드에서만, Find Objects·Compare Schemas는 그곳과 데이터베이스·스키마에서만 보임
   (사용자 결정 "연결 노드에서만", `ContextMenus.setApplies`, 켜짐은 그대로)
+- 2026-11-16 결과 그리드 셀 메뉴: 결과·칸의 종류에 해당하는 항목만 보임, 저장하고 커밋의 예외, 읽기 전용 연결 결과의 편집 명령(앱 변경 #137 3부, `chromite/result-grid-menu`)

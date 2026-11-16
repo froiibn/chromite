@@ -102,6 +102,8 @@ import java.util.function.Consumer;
  *   전에는 테이블 데이터 컨테이너가 붙인 가상 열(SWT에서 만든 것)을 결과 집합의 없는 열 번호로 읽어 칸마다 오류였다. 쿼리 결과는 열을
  *   테이블에 묶은 뒤 단일 원본 테이블의 가상 열을 붙이고, 다음 페이지는 결과 집합 열 수를 가상 열을 뺀 수와 비교한다
  *   (docs/chromite/swing-saved-filters-virtual-columns.md)
+ * - 2026-11-16 결과가 종류로 편집할 수 있는지({@link ResultSetEditModel#appliesEditing})와 LOB 열을 함께 넘김: 오른쪽 클릭 메뉴가
+ *   해당하지 않는 명령을 숨기고, 연결이 편집을 막은 결과는 편집 명령을 꺼진 채 보임 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -276,7 +278,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         if (segmentBindings != null) {
             // The next rows of a result: its columns are bound already, and its viewer keeps the edit model
             computeVirtualColumns();
-            deliver(session.getExecutionContext(), null, null, null);
+            deliver(session.getExecutionContext(), null, null, false, null);
             return;
         }
         Throwable bindError = null;
@@ -294,15 +296,17 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         computeVirtualColumns();
         DBCExecutionContext context = session.getExecutionContext();
         String readOnlyReason = ResultSetEditModel.getReadOnlyReason(context, bindings, unreadableColumns, lobColumns, bindError);
+        boolean editingApplies = readOnlyReason == null
+            || ResultSetEditModel.appliesEditing(context, bindings, unreadableColumns, lobColumns, bindError);
         // ENUM columns edit through a combo box; reading their values may query the type catalog, so here in the job
         String[][] enumValues = readOnlyReason == null ? ResultSetEnumValues.read(session.getProgressMonitor(), bindings) : null;
-        deliver(context, readOnlyReason == null ? context : null, readOnlyReason, enumValues);
+        deliver(context, readOnlyReason == null ? context : null, readOnlyReason, editingApplies, enumValues);
     }
 
     @Override
     public void close() {
         // fetchEnd is not called when the statement fails after fetchStart; show what was fetched
-        deliver(null, null, EditorMessages.editor_grid_fetch_incomplete, null);
+        deliver(null, null, EditorMessages.editor_grid_fetch_incomplete, false, null);
     }
 
     /**
@@ -362,12 +366,14 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
      * @param context        context of the fetch, or null if it did not complete
      * @param editContext    context of an editable result, or null
      * @param readOnlyReason why the result is read-only, or null if it is editable
+     * @param editingApplies the result is editable by what it is ({@link ResultSetEditModel#appliesEditing})
      * @param enumValues     allowed values of the ENUM columns of an editable result, or null
      */
     private void deliver(
         @Nullable DBCExecutionContext context,
         @Nullable DBCExecutionContext editContext,
         @Nullable String readOnlyReason,
+        boolean editingApplies,
         @Nullable String[][] enumValues
     ) {
         if (delivered || bindings == null) {
@@ -392,11 +398,13 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         ResultSetEditModel editModel = editContext == null ? null
             : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, lobColumns, rawValues, rows, enumValues);
         rawValues.clear();
-        String blocker = context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
-        ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker,
-            unreadableColumns.clone(), List.copyOf(cellValues));
+        // A fetch that did not complete can't be read again whatever the connection does
+        ResultSetSource.Blocker blocker = context == null ? new ResultSetSource.Blocker(EditorMessages.editor_grid_fetch_incomplete, false)
+            : ResultSetSource.getRequeryBlocker(dataContainer, context);
+        ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker == null ? null : blocker.reason(),
+            blocker != null && blocker.connection(), unreadableColumns.clone(), lobColumns.clone(), List.copyOf(cellValues));
         cellValues.clear();
-        consumer.accept(new ResultSetGrid.Fetched(data, editModel, readOnlyReason, source));
+        consumer.accept(new ResultSetGrid.Fetched(data, editModel, readOnlyReason, editingApplies, source, null));
     }
 
     /**

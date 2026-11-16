@@ -133,6 +133,18 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
   - 저장은 값 전체다: 값 패널이 잘라 읽은 LOB도 DB 값에서 끝까지 읽는다. 있는 파일은 덮어쓰기 전에 묻고 기본 단추는 Cancel이다.
   - 저장은 읽기 전용 결과에서도 된다. 불러오기는 편집할 수 있는 LOB 셀에서만.
 
+### 오른쪽 클릭 메뉴에 보이는 편집 명령 (2026-11-16, 앱 변경 #137)
+
+앱의 오른쪽 클릭 메뉴 규칙([context-menus.md](context-menus.md) "결과 그리드")을 따른다. 사용자 결정: "결과 그리드도 고친다."
+
+- 편집 명령(셀 편집 … 변경 취소)은 결과가 종류로 편집할 수 있을 때(`ResultSetEditModel.appliesEditing`: 테이블 하나, 완전한 고유 키, 편집할 수 있는 열,
+  데이터를 바꿀 수 있는 DB) 보인다. 그 결과를 읽을 때 연결이 편집을 막았으면(닫힘, 읽기 전용 연결, 데이터 편집 권한 없음) 편집 모델이 없으므로 명령이
+  꺼진 채 보이고 키는 묶지 않는다(전처럼 표의 기본 키와 창의 단축키로 간다). 연결을 읽기 쓰기로 바꾼 뒤에는 다시 실행해야 켜진다(편집할 수 있는지는 읽을 때 정함).
+- 행 추가·복제는 테이블이 INSERT를, 행 삭제는 DELETE를 받을 때(`DBSDataManipulator` 기능)만 보인다. 전에는 꺼진 채 보였다.
+- 파일에서 불러오기는 편집할 수 있는 LOB·이진 열, 파일로 저장은 LOB·이진 열, 16진수로 편집은 이진 열에서만 보인다. NULL 값·지운 행·저장 중이면 꺼진다.
+- 저장하고 커밋은 자동 커밋 모드에서 숨는다(예외: 커밋 방식은 바뀔 수 있는 "지금"이지만 그 모드에서는 Save가 커밋하므로 쓸모가 없음).
+- 단축키와 Save·Cancel 단추의 켜짐은 바뀌지 않았다(숨은 명령은 전에도 꺼져 있었음).
+
 ## upstream 대비 변경점
 
 - upstream(SWT) 코드와 모델은 바꾸지 않았다. Swing 번들만 바뀌었다.
@@ -202,3 +214,5 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
   불리언·ENUM·날짜 편집기, LOB 편집·파일, JSON·XML 편집기.
 - 2026-11-08 "남긴 것"의 값 편집기는 [swing-value-editors.md](swing-value-editors.md)에서 넣었다고 표시, SET 설명 고침(`chromite/value-editors-rest`).
 - 2026-11-09 macOS 키: 아래 행 값 복사 ⇧⌘D(⌥⌘D는 Dock), 다시 실행 ⇧⌘Z(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
+- 2026-11-16 오른쪽 클릭 메뉴에 해당하는 편집 명령만 보임, 읽기 전용 연결에서 읽은 결과는 편집 명령이 꺼진 채 보임(앱 변경 #137, `chromite/result-grid-menu`,
+  위 "오른쪽 클릭 메뉴에 보이는 편집 명령").
