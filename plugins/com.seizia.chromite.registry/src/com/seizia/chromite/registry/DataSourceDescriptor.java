@@ -84,6 +84,8 @@ import java.util.*;
  * 변경 이력:
  * - 2026-11-07 연결 이벤트 셸 명령: 승인 서비스가 없으면 승인 없이 실행하던 것을 {@link UIServiceShellCommands#validate}로
  *   바꿔 실행하지 않게 함(fail closed), 승인을 연결 범위로 기억 (docs/chromite/shell-command-approval.md)
+ * - 2026-11-16 Properties의 Address를 공급자의 {@code getConnectionAddress}로: Oracle TNS 연결은 저장된 호스트(예전 대화상자의 자리 값
+ *   localhost) 대신 네트워크 별칭 (앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 public class DataSourceDescriptor
     implements
@@ -1891,14 +1893,8 @@ public class DataSourceDescriptor
 
     @Property(order = 30, category = CATEGORY_SERVER)
     public String getPropertyAddress() {
-        StringBuilder addr = new StringBuilder();
-        if (!CommonUtils.isEmpty(connectionInfo.getHostName())) {
-            addr.append(connectionInfo.getHostName());
-        }
-        if (!CommonUtils.isEmpty(connectionInfo.getHostPort())) {
-            addr.append(':').append(connectionInfo.getHostPort());
-        }
-        return addr.toString();
+        // The provider's address, as every other place shows it (an Oracle TNS connection: its network alias)
+        return CommonUtils.notEmpty(driver.getDataSourceProvider().getConnectionAddress(connectionInfo));
     }
 
     @Property(order = 31, category = CATEGORY_SERVER)

@@ -26,9 +26,16 @@ import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
 
 /**
  * Data source provider
+ *
+ * 설계: 연결이 가리키는 서버 글({@link #getConnectionAddress})은 URL을 만드는 공급자가 정한다. 기본은 저장된 호스트[:포트]이고, 주소를 다른 값으로
+ * 만드는 공급자(Oracle TNS: 네트워크 별칭)만 바꾼다. 레지스트리·화면·에이전트가 모두 이것을 읽어 같은 글을 보인다.
+ *
+ * 변경 이력:
+ * - 2026-11-16 {@link #getConnectionAddress}(앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 public interface DBPDataSourceProvider<DATASOURCE extends DBPDataSource> extends DBPDataSourceURLProvider, DBPObject {
     long FEATURE_NONE        = 0;
@@ -99,6 +106,21 @@ public interface DBPDataSourceProvider<DATASOURCE extends DBPDataSource> extends
 
     default boolean providesDriverClasses(@NotNull DBPDriver driver) {
         return true;
+    }
+
+    /**
+     * The server a saved connection points at, as every place that shows a server shows it: {@code host[:port]} of the
+     * configuration, or {@code null} when it has no host (a file database, a URL the driver's template can't read).
+     * A provider whose URL is not made from the host and port returns what it is made from instead.
+     */
+    @Nullable
+    default String getConnectionAddress(@NotNull DBPConnectionConfiguration connectionInfo) {
+        String host = connectionInfo.getHostName();
+        if (CommonUtils.isEmpty(host)) {
+            return null;
+        }
+        String port = connectionInfo.getHostPort();
+        return CommonUtils.isEmpty(port) ? host : host + ":" + port; //$NON-NLS-1$
     }
 
 }

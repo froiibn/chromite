@@ -489,10 +489,10 @@ Oracle 서버 기록(Server name 콤보 목록)에도 들어갔다(`localhost`, 
     모델의 대상 주소(`OracleDataSourceProvider.getObjectInformation`, TNS는 별칭)가 모두 TNS에서는 호스트를 읽지 않는다. 원래 프로그램의 SWT
     `OracleConnectionPage.saveSettings`도 TNS에서는 호스트·포트를 쓰지 않아 새 TNS 연결은 호스트가 비어 있었다. SSH 터널은 원격 호스트가 비면 연결의
     호스트를 쓰지만(`SSHTunnelImpl`) TNS URL은 터널의 로컬 포트를 쓰지 않으므로 전에도 TNS 연결을 터널로 보내지 않았다.
-  - 표시: 서버를 보이는 곳이 한 함수(`QueryStatusLine.describeAddress`)를 쓴다. `host[:port]`, Oracle TNS 연결이면 네트워크 별칭
-    (`ConnectionDriverFields.isGenericAddressUsed(DBPDataSourceContainer)`). 등록된 서버·탐색기 보조 글자, 상태 줄 서버 칸, 문서 탭 도구 설명(URL이 없을 때),
-    연결 내보내기 목록의 서버 열, 백업·복원 작업 대화상자의 서버 줄. 에이전트의 `getConnectionInfo`는 TNS 연결의 `host`·`port`를 내지 않는다
-    (`model.ai.tools`가 `ext.oracle`을 요구함).
+  - 표시: 연결이 가리키는 서버 글의 출처는 모델 하나다. `DBPDataSourceProvider.getConnectionAddress(configuration)`(기본 메서드: 저장된 `host[:port]`,
+    호스트가 없으면 `null`)를 `OracleDataSourceProvider`가 TNS 연결에서 네트워크 별칭으로 바꾼다. 이것을 레지스트리(Properties 창의 Address,
+    `DataSourceDescriptor.getPropertyAddress`), Swing(`QueryStatusLine.describeAddress`: 등록된 서버·탐색기 보조 글자, 상태 줄 서버 칸, 문서 탭 도구 설명
+    (URL이 없을 때), 연결 내보내기 목록의 서버 열, 백업·복원 작업 대화상자의 서버 줄), 에이전트(`getConnectionInfo`의 `address`)가 모두 읽는다.
 - 이미 잘못 저장된 연결: 표시가 TNS 연결의 저장된 호스트를 쓰지 않는 방법을 골랐다. 연결을 다시 저장하지 않아도 바로 별칭이 보이고, 설정 파일을 몰래
   바꾸지 않으며(#41과 같은 원칙), 26.1.2로 되돌려도 파일이 그대로다. 읽을 때 값을 지우는 방법은 레지스트리(Oracle을 모름)에 공급자 고리를 새로 만들어야 했다.
   사용자가 그 연결을 열어 저장하면 그때 파일에서 `host`·`port` 두 키가 빠진다(다른 키·URL은 같음, 아래 확인). 26.1.2는 호스트 없는 연결을 읽고 상태 줄에 별칭을 보인다.
@@ -500,9 +500,9 @@ Oracle 서버 기록(Server name 콤보 목록)에도 들어갔다(`localhost`, 
   HANA(에디션이 포트를 정하지만 서버 이름 줄은 보임), SQL Server(`호스트\인스턴스`를 보이는 칸에 적음), BigQuery·Snowflake·Mimer(프로토콜 local도 서버 이름 줄은 보임)·
   Firebird Embedded, 파일 DB(경로 줄은 보임), URL 틀에 `{host}`가 없는 드라이버(호스트를 쓰지 않음), Oracle 인증 방식(인증 칸만 바꾸고 주소 줄은 그대로)은 영향이 없다.
   모두 숨은 칸을 저장하지 않는다. 생성된 URL 미리 보기(`updateGeneratedUrl`)도 같은 `writeAddress`를 쓴다.
-- 고치지 않은 것: 탐색기 연결의 Properties 표 "Address"는 모델의 저장값(`DataSourceDescriptor.getPropertyAddress`)을 그대로 보여, 다시 저장하기 전의
-  TNS 연결은 `localhost:1521`로 보인다(바로 아래 Database 줄은 별칭). 대화상자의 Connection type만 바꾸면 Additional Parameters 탭의 URL 미리 보기가
-  다른 칸을 고칠 때까지 바뀌지 않는다(저장되는 URL은 맞음). 둘 다 이번 원인과 다른 곳이라 남겼다.
+- 고치지 않은 것: 대화상자의 Connection type만 바꾸면 Additional Parameters 탭의 URL 미리 보기가 다른 칸을 고칠 때까지 바뀌지 않는다(저장되는 URL은 맞음).
+  YashanDB는 Oracle 공급자를 물려받아 대화상자에 TNS가 보이지만 URL은 틀(호스트)로 만든다(`YashanDBDataSourceProvider.getConnectionURL`). YashanDB에서 TNS를
+  고르면 전에도 별칭으로 접속하지 않았다(DB 이름에 별칭이 들어간 틀 URL). 이 연결 종류를 YashanDB에서 숨기는 것은 따로 할 일이다.
 
 확인(이 브랜치 빌드, 같은 작업 공간·서버, 증거 `logs\f*.log`, 캡처 `D:\Tools\_scratch\oracle-tns-localhost\sheets\{before,after}-{en,ko}.png`):
 
@@ -516,8 +516,70 @@ Oracle 서버 기록(Server name 콤보 목록)에도 들어갔다(`localhost`, 
 | Basic `127.0.0.1:1522`를 열어 그대로 저장 | 바뀌지 않음 | `127.0.0.1:1522` | 그대로 |
 | devel에서 내보낸 파일을 빈 작업 공간에 가져오기 | `localhost` / `1521` (파일 그대로) | `CHR_TNS` | 같음, 연결 성공 |
 
-TNS 연결을 저장해도 서버 기록이 바뀌지 않는다. 에이전트 `getConnectionInfo`는 TNS 연결에 `"host":null,"port":null,"database":"CHR_TNS"`.
-회귀 테스트는 실행하지 않았다.
+TNS 연결을 저장해도 서버 기록이 바뀌지 않는다. 회귀 테스트는 실행하지 않았다.
+
+#### Properties 창과 출처 하나로 (2026-11-16 2차)
+
+사용자(Properties 창의 Address가 다시 저장하기 전의 TNS 연결을 `localhost:1521`로 보인다는 설명을 듣고): "개체탐색기도 당연히 수정해야 한다"
+
+1차는 "TNS 연결의 호스트는 쓰지 않는다"는 판단을 Swing(`ConnectionDriverFields.isGenericAddressUsed(DBPDataSourceContainer)`)과 에이전트(`ConnectionTools`,
+`model.ai.tools`가 `ext.oracle`을 요구)에 두 벌 두었고, Properties 창의 Address(레지스트리)는 저장값을 그대로 보였다. 레지스트리는 Oracle을 몰라야 하므로
+판단을 모델 공급자로 옮겼다(위 "표시").
+
+- 고른 방법: `DBPDataSourceProvider`의 기본 메서드. 공급자는 이미 URL을 만드는 곳이라(`DBPDataSourceURLProvider.getConnectionURL`) "연결이 가리키는 서버"도
+  같은 곳이 정한다. 기본 메서드라 구현 54개(직접·간접, `GenericDataSourceProvider`·`JDBCDataSourceProvider`·`MissingDataSourceProvider` 포함)는 바뀌지 않고,
+  같은 이름의 메서드를 가진 구현은 없다. Oracle만 바꾼다. 하위 클래스 `YashanDBDataSourceProvider`도 물려받는다(위 "고치지 않은 것").
+- 버린 방법: `DBPInformationProvider.INFO_TARGET_ADDRESS`(`DataSourceUtils.getDataSourceAddressText`)는 Oracle·Athena·Databend·TiDB Lake만 구현하고
+  뜻이 다르다(SSH 터널이면 터널 호스트, Oracle URL 방식이면 URL 전체). Basic·URL 방식 연결의 표시가 바뀌므로 쓰지 않았다. 읽을 때 저장값을 지우는 방법은
+  설정 파일을 바꾸므로(1차 결정) 쓰지 않았다.
+- Address 줄: TNS 연결은 네트워크 별칭. 다른 모든 곳(등록된 서버, 탐색기 보조 글자, 상태 줄, 문서 탭, 내보내기 목록, 작업 대화상자, 에이전트)과 같다.
+  바로 아래 Database 줄도 별칭(저장된 DB 이름). Basic 연결은 그대로 `host:port`와 서비스 이름/SID, URL 방식은 URL에서 읽은 `host:port`(없으면 빈칸).
+  호스트 없이 포트만 저장된 연결은 전에 `:포트`를 보였고 이제 빈칸이다.
+- 에이전트 `getConnectionInfo`: `host`·`port` 두 칸 대신 `address` 한 칸(공급자의 글). 따로 빼는 판단이 없어지고 에이전트 번들의 `ext.oracle` 의존을 지웠다.
+- 개체 탐색기와 연결 노드에서 닿는 곳(1차 이 브랜치 빌드의 "전", 2차 빌드의 "후", devel이 저장한 TNS 연결 `localhost:1521`):
+
+| 곳 | 코드 | 읽는 값 | 전 | 후 |
+|---|---|---|---|---|
+| 노드 이름 | `DBNDataSource.getNodeDisplayName` | 연결 이름 | `TNS New` | 같음 |
+| 노드 보조 글자 | `ObjectExplorerPanel.getSecondaryText` → `describeAddress` | 공급자 주소 | `CHR_TNS`(1차) | `CHR_TNS` |
+| 노드 도구 설명 | `DBNDataSource.getNodeDescription` | 연결 설명 | 설명 | 같음 |
+| Properties 창 Server 묶음 Address | `DataSourceDescriptor.getPropertyAddress` | 1차: 저장 host:port / 2차: 공급자 주소 | `localhost:1521` | `CHR_TNS` |
+| 〃 Database · URL · Server · Details | `getPropertyDatabase`·`getPropertyURL`·`getPropertyServerName`·`getPropertyServerDetails` | DB 이름, 저장 URL, 연결 뒤 제품 정보 | 별칭, TNS 설명 URL, 제품 | 같음 |
+| Properties 창 다른 묶음(ID·이름·설명·원본·연결 시간·연결 유형, 드라이버) | `DataSourceDescriptor` `@Property` | 호스트를 읽지 않음 | — | — |
+| 연결 편집 대화상자 제목 | `ConnectionDialog` | 연결 이름 | `Edit connection 'TNS New'` | 같음 |
+| 연결 편집 대화상자 숨은 서버 이름 칸 | `ConnectionSettingsPanel.loadSettings` | 저장 호스트(숨은 칸) | 저장하면 지워짐(1차) | 같음 |
+| 등록된 서버 보조 글자 | `RegisteredServersPanel` → `describeAddress` | 공급자 주소 | `CHR_TNS`(1차) | `CHR_TNS` |
+| 상태 줄 서버 칸 · 문서 탭 도구 설명 | `QueryStatusLine.describeServer`/`describeServerDetails`, `SqlEditorPanel.getToolTip` | 공급자 주소 / URL | `CHR_TNS` / TNS 설명 URL | 같음 |
+| 문서 탭 제목 · 연결 고르기 목록 | `SqlEditorPanel`, `ObjectChooserDialog`(`getName`) | 연결 이름 | 이름 | 같음 |
+| 연결 내보내기 목록 서버 열 | `ConnectionExportDialog.getHost` → `describeAddress` | 공급자 주소 | `CHR_TNS`(1차) | `CHR_TNS` |
+| 백업·복원 작업 대화상자 서버 줄 | `DatabaseTaskDialog` → `describeAddress` | 공급자 주소 | `CHR_TNS`(1차) | `CHR_TNS` |
+| 연결 오류 대화상자 | `DataSourceDescriptor.connect` | "Can't connect to '이름'" | 이름 | 같음 |
+| 에이전트 연결 설명 | `ConnectionTools.describe` | 1차: host·port(TNS면 null) / 2차: 공급자 주소 | `"host":null,"port":null` | `"address":"CHR_TNS"` |
+
+  복사·붙여넣기(연결 복제), 연결 이름 자동 만들기(`ConnectionDialog.generateName`, DB 이름이 먼저라 별칭), 세션 관리자·잠금 관리자(서버가 돌려준 세션의
+  클라이언트 호스트를 보임, 연결 설정이 아님)는 저장된 호스트를 보이지 않는다.
+- 2차 뒤 `plugins/`의 `getHostName()`·`getHostPort()` 줄 109개(39개 파일): 연결 만들기 78(공급자 URL, `DatabaseURL`, `JDBCDataSource`, `OracleScriptExecuteHandler`,
+  네이티브 도구, Spanner·Exasol·PostgreSQL 데이터 소스, 외부 연결 가져오기, 대화상자 불러오기, HANA 포트), 터널·SSL 5(`DBWUtils`, `SSHTunnelImpl`,
+  `SSLHandlerTrustStoreImpl`), 저장 2(`DataSourceSerializerModern`), 표시 7(출처인 기본 `getConnectionAddress` 2, Oracle `getObjectInformation`의 Basic 대상 주소,
+  호출하는 곳이 없는 `DataSourceUtils.getDataSourceAddressText`, MySQL·PostgreSQL 복원 확인 문구 `DBTaskUtils.buildConnectionDescription` 2(Oracle 작업 아님),
+  PostgreSQL 디버그 로그), 그 밖 17(같은 연결 찾기 `DataSourceUtils`·`DBExecUtils`·`DBWUtils` 연결 변수 비교, 변수 `${host}`·`${port}`(`DataSourceVariableResolver`,
+  내보내기 파일 이름 `AbstractImportExportSettings`: 셸 명령·스크립트·파일 이름에 들어가는 값이라 바꾸지 않음), 연결 이름 자동 만들기(DB 이름이 먼저),
+  ClickHouse Cloud SSO 키, 이름만 같은 다른 클래스(`SQLServerSession`, `OllamaProperties`, `AiOptionsPage`), 정의 2). 1차 때 표시였던 Swing 5곳·레지스트리·
+  에이전트는 이제 저장 호스트를 직접 읽지 않는다. TNS 연결의 저장 호스트를 보이는 표시는 남지 않았다.
+- 같은 판단이 필요한 다른 공급자: 대화상자가 주소 줄을 숨기는 것은 `OracleFields`(Oracle 공급자와 그 하위 클래스 YashanDB)뿐이다. HANA·SQL Server·BigQuery·
+  Snowflake·Mimer·Firebird Embedded·파일 DB는 주소 줄이 보이고 URL이 그 값으로 만들어지므로 기본 메서드가 맞다.
+- 확인(devel이 저장한 `data-sources.json`을 빈 작업 공간에 넣고 1차 빌드 → 2차 빌드, 증거 `logs\r*.log`·`logs\a*.log`, 캡처
+  `sheets\props-{before,after}-{en,ko}.png`, `sheets\combined-after-{en,ko}.png`):
+
+| 연결 | Properties Address 전 → 후 | Database | 등록된 서버·탐색기·상태 줄·내보내기·에이전트 `address` (후) | 접속 URL |
+|---|---|---|---|---|
+| devel이 저장한 TNS(`localhost:1521`) | `localhost:1521` → `CHR_TNS` | `CHR_TNS` | `CHR_TNS` | TNS 설명(1521), 그대로 |
+| devel이 저장한 TNS(`127.0.0.1:1522`) | `127.0.0.1:1522` → `CHR_TNS` | `CHR_TNS` | `CHR_TNS` | TNS 설명(1521), 그대로 |
+| 새 TNS 연결 | — → `CHR_TNS` | `CHR_TNS` | `CHR_TNS` | TNS 설명 |
+| Basic `127.0.0.1:1522`, 새 Basic `127.0.0.1:1521` | 그대로 `127.0.0.1:1522` / `127.0.0.1:1521` | `FREEPDB1` | `host:port` | 그대로 |
+| URL 방식 `@//…`(틀로 못 읽음), 새 URL 방식 `@127.0.0.1:1521/FREEPDB1` | 빈칸 / `127.0.0.1:1521` | 빈칸 / `FREEPDB1` | 없음(상태 줄은 URL) / `127.0.0.1:1521` | 그대로 |
+
+  작업 공간을 열고, 연결을 고르고, 연결하고, Properties 창과 쿼리 창을 연 뒤에도 `data-sources.json`의 SHA-256은 같았다(`A3F7F1F1…D17AE926`).
 
 ## 설계 결정과 이유
 
@@ -776,3 +838,6 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
 - 2026-11-16 Oracle TNS 연결이 localhost(또는 이 드라이버로 마지막에 쓴 서버)로 저장·표시되던 것(앱 변경 #135, `chromite/oracle-tns-localhost`): 숨은 주소 줄의
   자리 값을 저장하지 않고 서버 기록에도 넣지 않음, 서버를 보이는 곳이 `QueryStatusLine.describeAddress`로 TNS 연결의 네트워크 별칭을 보임(이미 저장된 연결도),
   에이전트 `getConnectionInfo`는 TNS 연결의 호스트·포트를 내지 않음. 위 "Oracle TNS 연결". 회귀 테스트는 실행하지 않았다.
+- 2026-11-16 2차(같은 브랜치, 사용자 "개체탐색기도 당연히 수정해야 한다"): 연결이 가리키는 서버의 출처를 모델 공급자의 `getConnectionAddress` 하나로,
+  Properties 창 Address도 TNS 연결은 별칭. Swing의 `ConnectionDriverFields.isGenericAddressUsed(DBPDataSourceContainer)`와 에이전트 번들의 `ext.oracle`
+  의존을 지움, 에이전트는 `address` 한 칸. 위 "Properties 창과 출처 하나로". 회귀 테스트는 실행하지 않았다.

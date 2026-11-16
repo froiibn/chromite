@@ -135,7 +135,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | ID | 목적 | 분류 | 주요 매개변수 | 결과 | DB | 단계 |
 |---|---|---|---|---|---|---|
 | `listConnections` | 연결 목록: 폴더, 드라이버, 연결 종류, 색, 운영 여부, 읽기 전용, 연결 상태 | R | `contains` | `connections[]` | G | 1 |
-| `getConnectionInfo` | 연결 상세(호스트, 포트, DB, 사용자 이름, 종류, 드라이버, 네트워크 처리기 종류, 자동 커밋). Oracle TNS 연결은 호스트·포트 없이 DB에 네트워크 별칭(앱 변경 #135). 비밀번호·토큰·SSH 키는 없음 | R | `connection` | 객체 | G | 1 |
+| `getConnectionInfo` | 연결 상세(주소 `address`: 화면과 같은 `호스트:포트`, Oracle TNS 연결은 네트워크 별칭(앱 변경 #135), DB, 사용자 이름, 종류, 드라이버, 네트워크 처리기 종류, 자동 커밋). 비밀번호·토큰·SSH 키는 없음 | R | `connection` | 객체 | G | 1 |
 | `disconnect` | 연결을 끊는다(사용자 창의 열린 트랜잭션도 끊기므로 확인) | W (`writes="none"`) | `connection` | 상태 | G | 1 |
 | `testConnection` | 연결해서(닫혀 있으면 엶) 왕복 시간과 서버 버전을 잰다. 26.1.0에서 `connect`를 합침(별칭) | R | `connection` | `ok`, `roundTripMs`, `server` | G | 1 |
 | `getCurrentDatabase` | 에이전트 문맥과 기본 문맥의 기본 DB/스키마 | R | `connection` | 객체 | G | 1 |
@@ -2227,8 +2227,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
-- 2026-11-16 `getConnectionInfo`가 Oracle TNS 연결의 호스트·포트를 내지 않음(앱 변경 #135, `chromite/oracle-tns-localhost`): 저장된 호스트는
-  예전 연결 대화상자가 넣은 자리 값 `localhost`일 수 있다. [swing-conn-advanced.md](swing-conn-advanced.md) "URL 방식 연결의 주소".
+- 2026-11-16 `getConnectionInfo`의 `host`·`port`를 `address` 한 칸으로(앱 변경 #135, `chromite/oracle-tns-localhost`): 모델 공급자의
+  `getConnectionAddress`, 화면·Properties 창과 같은 글. Oracle TNS 연결은 네트워크 별칭이고 저장된 호스트는 예전 연결 대화상자가 넣은 자리 값
+  `localhost`일 수 있다. 도구 번들의 `ext.oracle` 의존은 없다. [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle TNS 연결".
 - 2026-11-15 도구 정리(앱 변경 #64 나머지, `chromite/agent-tool-cleanup`): 합치기(`describeTable`, `testConnection`, `runReadOnlySql`, `changeSchema`,
   `backupDatabase`·`restoreDatabase`, `getTopQueries`, SQL Server 작업 기록은 `getAgentJobHistory`), 이름 바꾸기 5개, 인수 통일, `dropIndex` DANGEROUS, `formatSql` 지움.
   옛 ID·인수는 `plugin.xml`의 별칭으로 26.2.0까지, 정책 옮기기와 DANGEROUS가 아닌 도구의 규칙이 위험한 호출을 자동으로 만들지 않는 규칙, 감사 기록의

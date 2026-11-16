@@ -35,7 +35,6 @@ import com.seizia.chromite.ext.oracle.oci.OCIUtils;
 import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
 import com.seizia.chromite.ext.snowflake.SnowflakeDataSourceProvider;
 import com.seizia.chromite.ext.snowflake.SnowflakeUtils;
-import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceProvider;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
@@ -102,9 +101,8 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-08 BigQuery Project, Snowflake Warehouse·Schema, HANA 에디션, Firebird Embedded 라이브러리 폴더, Mimer 프로토콜·PROGRAM
  *   (docs/chromite/swing-conn-advanced.md "3. DB별 주 양식 칸")
- * - 2026-11-16 저장된 연결이 범용 주소를 쓰는지({@link #isGenericAddressUsed(DBPDataSourceContainer)}): 서버를 보이는 곳이 Oracle TNS 연결의
- *   저장된 호스트(예전에 저장된 자리 값 localhost) 대신 네트워크 별칭을 보이도록 (앱 변경 #135,
- *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-16 TNS는 저장할 때 숨은 주소 줄의 자리 값을 쓰지 않음(호스트·포트를 비움, 앱 변경 #135,
+ *   docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 abstract class ConnectionDriverFields {
 
@@ -183,17 +181,6 @@ abstract class ConnectionDriverFields {
      */
     boolean isGenericAddressUsed() {
         return true;
-    }
-
-    /**
-     * {@link #isGenericAddressUsed()} of a saved connection: {@code false} for an Oracle TNS connection, whose URL the
-     * provider builds from the network alias (the database name) and tnsnames.ora only (OracleDataSourceProvider.getConnectionURL).
-     * Its stored host and port name no server: connections saved before app change #135 hold the hidden server name
-     * field's placeholder there ("localhost", or the last server used with the driver).
-     */
-    static boolean isGenericAddressUsed(@NotNull DBPDataSourceContainer container) {
-        return !(container.getDriver().getDataSourceProvider() instanceof OracleDataSourceProvider)
-            || !OracleConstants.ConnectionType.isType(container.getConnectionConfiguration(), OracleConstants.ConnectionType.TNS);
     }
 
     abstract void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew);

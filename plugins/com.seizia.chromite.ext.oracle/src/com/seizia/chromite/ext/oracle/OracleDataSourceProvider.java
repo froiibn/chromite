@@ -52,6 +52,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): {@link OracleDataSource}는 늘 실제 계획 어댑터를 준다.
  *   그 하위 클래스를 만드는 제공자(YashanDB)도 이것을 물려받아 데이터 소스의 어댑터와 같다(앱 변경 #70)
+ * - 2026-11-16 TNS 연결이 가리키는 서버는 네트워크 별칭({@link #getConnectionAddress}): 저장된 호스트는 예전 연결 대화상자의 자리 값
+ *   localhost일 수 있다(앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 public class OracleDataSourceProvider extends JDBCDataSourceProvider<OracleDataSource> implements
     DBAUserCredentialsProvider,
@@ -141,6 +143,20 @@ public class OracleDataSourceProvider extends JDBCDataSourceProvider<OracleDataS
             }
         }
         return url.toString();
+    }
+
+    /**
+     * A TNS connection points at its network alias (the database name): the URL is made from it and tnsnames.ora only
+     * ({@link #getConnectionURL}), so the stored host and port name no server. Connections saved before app change #135
+     * hold the connection dialog's hidden placeholder there ("localhost", or the last server used with the driver).
+     */
+    @Nullable
+    @Override
+    public String getConnectionAddress(@NotNull DBPConnectionConfiguration connectionInfo) {
+        if (OracleConstants.ConnectionType.TNS.equals(getConnectionType(connectionInfo))) {
+            return CommonUtils.nullIfEmpty(connectionInfo.getDatabaseName());
+        }
+        return super.getConnectionAddress(connectionInfo);
     }
 
     @NotNull

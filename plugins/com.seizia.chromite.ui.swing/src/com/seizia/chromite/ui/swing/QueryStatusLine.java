@@ -117,8 +117,9 @@ import java.util.regex.Pattern;
  *   보조 색 플래그 삭제 (docs/chromite/design-spec.md "적용 현황 — 글자 선명도와 대비")
  * - 2026-11-12 서버 설명의 제품은 이름과 버전 한 줄({@link #describeProduct}): 제품 버전 글에 SQL Server·PostgreSQL은 서버 배너 전체가,
  *   Oracle은 드라이버의 두 줄이 들어 있어 서버 표시·문서 탭·서버 칸의 도구 설명이 여러 줄이 되었다(앱 변경 #71 d)
- * - 2026-11-16 연결이 가리키는 서버 글({@link #describeAddress})을 한 곳에 두고 탐색기·등록된 서버·내보내기 목록·작업 대화상자도 씀:
- *   Oracle TNS 연결은 저장된 호스트 대신 네트워크 별칭(앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-16 연결이 가리키는 서버 글({@link #describeAddress})을 한 곳에 두고 탐색기·등록된 서버·내보내기 목록·작업 대화상자도 씀.
+ *   글은 모델 공급자의 {@code getConnectionAddress}(Properties·에이전트와 같은 출처): Oracle TNS 연결은 저장된 호스트 대신 네트워크 별칭
+ *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -489,22 +490,15 @@ final class QueryStatusLine extends JPanel {
     }
 
     /**
-     * The server a connection's address names, as every place that shows a server shows it (the status line, Object
-     * Explorer, Registered Servers, the export list): host[:port], or the network alias of an Oracle TNS connection,
-     * whose stored host is not used ({@link ConnectionDriverFields#isGenericAddressUsed(DBPDataSourceContainer)}).
-     * {@code null} when there is none (a file database, a URL the driver's template can't read).
+     * The server a connection points at, for every place in the Swing UI that shows a server (the status line, Object
+     * Explorer, Registered Servers, the export list, the task dialog): the provider's {@code getConnectionAddress}, the
+     * same text as the Properties window's Address and the Agent's connection description (host[:port], or the network
+     * alias of an Oracle TNS connection). {@code null} when there is none (a file database, a URL the driver's template
+     * can't read).
      */
     @Nullable
     static String describeAddress(@NotNull DBPDataSourceContainer container) {
-        DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
-        if (!ConnectionDriverFields.isGenericAddressUsed(container)) {
-            return CommonUtils.nullIfEmpty(configuration.getDatabaseName());
-        }
-        String host = configuration.getHostName();
-        if (CommonUtils.isEmpty(host)) {
-            return null;
-        }
-        return CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
+        return container.getDriver().getDataSourceProvider().getConnectionAddress(container.getConnectionConfiguration());
     }
 
     /**
