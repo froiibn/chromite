@@ -35,6 +35,7 @@ import com.seizia.chromite.ext.oracle.oci.OCIUtils;
 import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
 import com.seizia.chromite.ext.snowflake.SnowflakeDataSourceProvider;
 import com.seizia.chromite.ext.snowflake.SnowflakeUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceProvider;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
@@ -70,7 +71,7 @@ import java.util.Set;
  *     {@code serverName=호스트\인스턴스}가 되어 드라이버가 인스턴스 이름으로 찾아간다.</li>
  *     <li>Oracle({@link OracleDataSourceProvider}): Connection type(Basic / TNS, 공급자 속성 {@code connection-type}). Basic은 범용 Server name·Database에
  *     SID / Service name 콤보(공급자 속성 {@code sid-service}, 새 연결은 Service name, Provider Properties 표에서는 뺌)를 더한다.
- *     TNS는 Server name·Database 줄을 숨기고 Network alias(DB 이름에 저장)와 TNS names folder(공급자 속성 {@code tns-path}, tnsnames.ora가 있는 폴더,
+ *     TNS는 Server name·Database 줄을 숨기고(저장할 때 호스트·포트를 비움) Network alias(DB 이름에 저장)와 TNS names folder(공급자 속성 {@code tns-path}, tnsnames.ora가 있는 폴더,
  *     비우면 {@code TNS_ADMIN} 환경 변수와 기본 Oracle 홈)를 보인다. 별칭 목록은 모델의 {@link OCIUtils#readTnsNames}로 읽는다.
  *     SWT의 Custom(JDBC URL 템플릿)은 Additional Connection Parameters의 JDBC URL 연결 방식이 맡는다(저장할 때 connection-type = CUSTOM).
  *     Oracle 클라이언트(OCI) 홈 선택은 옮기지 않았다(상용 기능에서만 보이는 SWT 칸).</li>
@@ -101,6 +102,9 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-08 BigQuery Project, Snowflake Warehouse·Schema, HANA 에디션, Firebird Embedded 라이브러리 폴더, Mimer 프로토콜·PROGRAM
  *   (docs/chromite/swing-conn-advanced.md "3. DB별 주 양식 칸")
+ * - 2026-11-16 저장된 연결이 범용 주소를 쓰는지({@link #isGenericAddressUsed(DBPDataSourceContainer)}): 서버를 보이는 곳이 Oracle TNS 연결의
+ *   저장된 호스트(예전에 저장된 자리 값 localhost) 대신 네트워크 별칭을 보이도록 (앱 변경 #135,
+ *   docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 abstract class ConnectionDriverFields {
 
@@ -179,6 +183,17 @@ abstract class ConnectionDriverFields {
      */
     boolean isGenericAddressUsed() {
         return true;
+    }
+
+    /**
+     * {@link #isGenericAddressUsed()} of a saved connection: {@code false} for an Oracle TNS connection, whose URL the
+     * provider builds from the network alias (the database name) and tnsnames.ora only (OracleDataSourceProvider.getConnectionURL).
+     * Its stored host and port name no server: connections saved before app change #135 hold the hidden server name
+     * field's placeholder there ("localhost", or the last server used with the driver).
+     */
+    static boolean isGenericAddressUsed(@NotNull DBPDataSourceContainer container) {
+        return !(container.getDriver().getDataSourceProvider() instanceof OracleDataSourceProvider)
+            || !OracleConstants.ConnectionType.isType(container.getConnectionConfiguration(), OracleConstants.ConnectionType.TNS);
     }
 
     abstract void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew);

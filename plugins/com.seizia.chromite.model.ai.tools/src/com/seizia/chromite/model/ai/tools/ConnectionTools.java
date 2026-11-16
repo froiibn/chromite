@@ -23,6 +23,8 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
@@ -86,6 +88,8 @@ import java.util.Map;
  * - 2026-11-13 공유 세션에서 setCurrentDatabase가 database를 저장만 하고 무시되던 것을, 바꿔야 하면 거절하고 아무것도 저장하지 않게 바꿈.
  *   getCurrentDatabase에 공유 세션 안내(앱 변경 #94, docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
  * - 2026-11-15 getToolPolicy → getAgentToolPolicy, connect를 testConnection에 합침(옛 ID는 별칭), listConnections의 filter → contains (도구 정리, docs/chromite/ai-agent.md "별칭")
+ * - 2026-11-16 getConnectionInfo가 Oracle TNS 연결의 host·port를 내지 않음: 서버는 네트워크 별칭(database)이고, 저장된 호스트는 예전 연결
+ *   대화상자가 넣은 자리 값 localhost일 수 있다(앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -154,8 +158,12 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         if (!details) {
             return json;
         }
-        json.addProperty("host", cfg.getHostName());
-        json.addProperty("port", cfg.getHostPort());
+        // An Oracle TNS connection is reached by its network alias (the database): its stored host and port name no server,
+        // and connections saved before app change #135 hold the connection dialog's placeholder ("localhost") there
+        boolean tns = container.getDriver().getDataSourceProvider() instanceof OracleDataSourceProvider
+            && OracleConstants.ConnectionType.isType(cfg, OracleConstants.ConnectionType.TNS);
+        json.addProperty("host", tns ? null : cfg.getHostName());
+        json.addProperty("port", tns ? null : cfg.getHostPort());
         json.addProperty("database", cfg.getDatabaseName());
         json.addProperty("server", cfg.getServerName());
         json.addProperty("user", cfg.getUserName());

@@ -462,6 +462,63 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
 - 같은 원인으로 영향을 받던 다른 경우: 새 연결을 URL 방식으로 만들 때(마지막 서버나 `localhost`가 저장됨), 호스트 방식에서 URL 방식으로 바꿔 URL을 고친 뒤
   저장할 때(옛 호스트가 남음). 모두 같은 수정으로 URL의 주소가 저장된다.
 
+### Oracle TNS 연결 (2026-11-16, 앱 변경 #135)
+
+사용자: "이전에 수정했던 연결된 서버가 localhost로 나오는 문제는 오라클 tns사용 시 발생하는 것 같다"
+
+재현(26.1.2 = devel `3da975a6cd` 빌드, 빈 작업 공간, 시험 서버 `127.0.0.1:1521`의 `FREEPDB1`, 임시 `tnsnames.ora`의 별칭 `CHR_TNS`, 증거
+`D:\Tools\_scratch\oracle-tns-localhost\logs\d*.log`):
+
+| 연결 | 저장된 host / port / database | 등록된 서버·탐색기·상태 줄·내보내기 목록 | 실제 접속(URL) |
+|---|---|---|---|
+| 새 TNS 연결(이 드라이버를 처음 씀) | `localhost` / `1521` / `CHR_TNS` | `localhost:1521` | tnsnames의 `(DESCRIPTION …(HOST = 127.0.0.1)(PORT = 1521)…)` |
+| Basic으로 `127.0.0.1:1522`(다른 서버)에 연결한 뒤 새 TNS 연결 | `127.0.0.1` / `1522` / `CHR_TNS` | `127.0.0.1:1522`(엉뚱한 실제 서버) | 같음(1521) |
+| Basic → TNS로 바꿔 저장 | Basic의 호스트·포트가 남음 | Basic의 서버 | 같음 |
+
+문서 탭 도구 설명은 URL(TNS 설명)을 보여 맞았다. 에이전트의 `getConnectionInfo`는 `"host":"localhost","port":"1521"`을 냈다. 저장한 TNS 연결의 숨은 칸 값이
+Oracle 서버 기록(Server name 콤보 목록)에도 들어갔다(`localhost`, `127.0.0.1`).
+
+- 원인: #41과 같다. URL 방식이 아닌 저장은 `ConnectionSettingsPanel.writeAddress`가 서버 이름 칸의 값을 늘 호스트·포트로, Database 칸을 DB로 썼다.
+  Oracle TNS에서는 `OracleFields.isGenericAddressUsed()`가 `false`라 이 두 줄이 숨겨지고(`updateAddressRows`) 검사도 하지 않지만(`validateAddress`),
+  `loadSettings`가 채운 자리 값(드라이버 기본 호스트 `localhost`, 새 연결이면 이 드라이버로 마지막에 쓴 서버, 고칠 때는 예전 Basic 주소)은 그대로 남아
+  저장되었다. URL은 공급자가 별칭과 tnsnames.ora로만 만들므로(`OracleDataSourceProvider.getConnectionURL`) 접속은 됐다. 서버 기록은
+  `getServerHistoryEntry`가 같은 칸을 읽었다.
+- 고친 것:
+  - 저장: 드라이버 칸이 주소 줄을 대신하면(`isGenericAddressUsed()==false`) 호스트·포트를 비우고 DB는 드라이버 칸(별칭)에 맡긴다. 서버 기록에도 넣지 않는다.
+  - TNS 연결에 호스트·포트를 비운 근거: 이 값을 읽는 곳이 없다. URL 만들기(위), SQL*Plus 스크립트(`OracleScriptExecuteHandler`, TNS는 별칭과 tnsnames.ora),
+    모델의 대상 주소(`OracleDataSourceProvider.getObjectInformation`, TNS는 별칭)가 모두 TNS에서는 호스트를 읽지 않는다. 원래 프로그램의 SWT
+    `OracleConnectionPage.saveSettings`도 TNS에서는 호스트·포트를 쓰지 않아 새 TNS 연결은 호스트가 비어 있었다. SSH 터널은 원격 호스트가 비면 연결의
+    호스트를 쓰지만(`SSHTunnelImpl`) TNS URL은 터널의 로컬 포트를 쓰지 않으므로 전에도 TNS 연결을 터널로 보내지 않았다.
+  - 표시: 서버를 보이는 곳이 한 함수(`QueryStatusLine.describeAddress`)를 쓴다. `host[:port]`, Oracle TNS 연결이면 네트워크 별칭
+    (`ConnectionDriverFields.isGenericAddressUsed(DBPDataSourceContainer)`). 등록된 서버·탐색기 보조 글자, 상태 줄 서버 칸, 문서 탭 도구 설명(URL이 없을 때),
+    연결 내보내기 목록의 서버 열, 백업·복원 작업 대화상자의 서버 줄. 에이전트의 `getConnectionInfo`는 TNS 연결의 `host`·`port`를 내지 않는다
+    (`model.ai.tools`가 `ext.oracle`을 요구함).
+- 이미 잘못 저장된 연결: 표시가 TNS 연결의 저장된 호스트를 쓰지 않는 방법을 골랐다. 연결을 다시 저장하지 않아도 바로 별칭이 보이고, 설정 파일을 몰래
+  바꾸지 않으며(#41과 같은 원칙), 26.1.2로 되돌려도 파일이 그대로다. 읽을 때 값을 지우는 방법은 레지스트리(Oracle을 모름)에 공급자 고리를 새로 만들어야 했다.
+  사용자가 그 연결을 열어 저장하면 그때 파일에서 `host`·`port` 두 키가 빠진다(다른 키·URL은 같음, 아래 확인). 26.1.2는 호스트 없는 연결을 읽고 상태 줄에 별칭을 보인다.
+- 같은 원인을 찾아본 다른 경우: 주소 줄을 숨기거나 끄는 곳은 `updateAddressRows`(드라이버 칸, 지금은 Oracle TNS뿐)와 `modeChanged`(URL 방식, #41)뿐이다.
+  HANA(에디션이 포트를 정하지만 서버 이름 줄은 보임), SQL Server(`호스트\인스턴스`를 보이는 칸에 적음), BigQuery·Snowflake·Mimer(프로토콜 local도 서버 이름 줄은 보임)·
+  Firebird Embedded, 파일 DB(경로 줄은 보임), URL 틀에 `{host}`가 없는 드라이버(호스트를 쓰지 않음), Oracle 인증 방식(인증 칸만 바꾸고 주소 줄은 그대로)은 영향이 없다.
+  모두 숨은 칸을 저장하지 않는다. 생성된 URL 미리 보기(`updateGeneratedUrl`)도 같은 `writeAddress`를 쓴다.
+- 고치지 않은 것: 탐색기 연결의 Properties 표 "Address"는 모델의 저장값(`DataSourceDescriptor.getPropertyAddress`)을 그대로 보여, 다시 저장하기 전의
+  TNS 연결은 `localhost:1521`로 보인다(바로 아래 Database 줄은 별칭). 대화상자의 Connection type만 바꾸면 Additional Parameters 탭의 URL 미리 보기가
+  다른 칸을 고칠 때까지 바뀌지 않는다(저장되는 URL은 맞음). 둘 다 이번 원인과 다른 곳이라 남겼다.
+
+확인(이 브랜치 빌드, 같은 작업 공간·서버, 증거 `logs\f*.log`, 캡처 `D:\Tools\_scratch\oracle-tns-localhost\sheets\{before,after}-{en,ko}.png`):
+
+| 경우 | 저장된 host / port / database | 등록된 서버 · 탐색기 · 상태 줄 · 내보내기 | 접속 URL |
+|---|---|---|---|
+| devel이 저장한 TNS 연결, 고치지 않고 열기만 | `localhost` / `1521` / `CHR_TNS` (그대로) | `CHR_TNS` | 같음 |
+| devel이 저장한 TNS 연결(마지막 서버 1522)을 열어 저장 | 없음 / 없음 / `CHR_TNS` | `CHR_TNS` | 같음, Test Connection 성공 |
+| 새 TNS 연결(서버 기록 맨 위 `127.0.0.1:1521`) | 없음 / 없음 / `CHR_TNS` | `CHR_TNS` | tnsnames의 설명 |
+| Basic → TNS → Basic, 매번 저장 | `127.0.0.1:1521` → 없음 → `127.0.0.1` / `1521` | `127.0.0.1:1521` → `CHR_TNS` → `127.0.0.1:1521` | 매번 Test Connection 성공 |
+| URL 방식 `@127.0.0.1:1521/FREEPDB1`, `@//127.0.0.1:1521/FREEPDB1`(#41) | `127.0.0.1` / `1521`, 없음(틀로 못 읽음) | `127.0.0.1:1521`, 없음(상태 줄은 URL) | 그대로 |
+| Basic `127.0.0.1:1522`를 열어 그대로 저장 | 바뀌지 않음 | `127.0.0.1:1522` | 그대로 |
+| devel에서 내보낸 파일을 빈 작업 공간에 가져오기 | `localhost` / `1521` (파일 그대로) | `CHR_TNS` | 같음, 연결 성공 |
+
+TNS 연결을 저장해도 서버 기록이 바뀌지 않는다. 에이전트 `getConnectionInfo`는 TNS 연결에 `"host":null,"port":null,"database":"CHR_TNS"`.
+회귀 테스트는 실행하지 않았다.
+
 ## 설계 결정과 이유
 
 - **SWT 화면을 그대로 옮기지 않고 범용 양식에 고리를 둠**: SWT는 DB마다 연결 화면 전체를 따로 만든다. Swing은 SSMS식 한 화면을 유지하고, DB별 칸은
@@ -716,3 +773,6 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
   프록시 느림(1044번)이 이 고리였다. 위 "끝없이 다시 읽던 것", "확인 (2026-11-12, 목록 다시 읽기 고리)". 회귀 테스트는 실행하지 않았다.
 - 2026-11-12 Test Connection 결과에서 Oracle 제품 이름이 두 번 나오던 것(앱 변경 #81, `ConnectionTestJob`). 위 "5. Test Connection".
 - 2026-11-12 MySQL·MariaDB SSL에서 서버 인증서 확인이 켜져 있고 CA 인증서가 없을 때 무엇을 바꿀지 알리는 오류(앱 변경 #81). 위 "SSL".
+- 2026-11-16 Oracle TNS 연결이 localhost(또는 이 드라이버로 마지막에 쓴 서버)로 저장·표시되던 것(앱 변경 #135, `chromite/oracle-tns-localhost`): 숨은 주소 줄의
+  자리 값을 저장하지 않고 서버 기록에도 넣지 않음, 서버를 보이는 곳이 `QueryStatusLine.describeAddress`로 TNS 연결의 네트워크 별칭을 보임(이미 저장된 연결도),
+  에이전트 `getConnectionInfo`는 TNS 연결의 호스트·포트를 내지 않음. 위 "Oracle TNS 연결". 회귀 테스트는 실행하지 않았다.

@@ -149,6 +149,9 @@ import java.util.function.Supplier;
  * - 2026-11-14 URL 형식에 포트가 꼭 있는 드라이버(Altibase, ShardSphere)도 서버 이름에 포트가 없으면 드라이버 기본 포트로 연결({@link #validateAddress}).
  *   저장할 때는 빈 포트를 기본 포트로 바꾸면서(writeAddress) 검사는 포트를 요구해 Connect가 꺼져 있었다. 기본 포트가 없는 드라이버만 묻는다
  *   (앱 변경 #113, docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
+ * - 2026-11-16 드라이버 칸이 서버 이름·Database 줄을 대신하면(Oracle TNS) 숨은 줄의 자리 값을 저장하지 않음: 호스트·포트는 비우고 DB는
+ *   드라이버 칸(네트워크 별칭)이 씀, 서버 기록에도 넣지 않음({@link #writeAddress}, {@link #getServerHistoryEntry}). 전에는 TNS 연결이
+ *   localhost나 이 드라이버로 마지막에 쓴 서버로 저장되어 그렇게 보였다(앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -360,12 +363,13 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
-     * The typed server name for the server history; {@code null} when this driver has no server name field
-     * or the connection is made with a JDBC URL.
+     * The typed server name for the server history; {@code null} when this driver has no server name field,
+     * the connection is made with a JDBC URL or the driver's own fields replace the hidden server name (Oracle TNS:
+     * the field holds only a placeholder, app change #135).
      */
     @Nullable
     String getServerHistoryEntry() {
-        if (isUrlMode() || !urlProperties.contains(DBConstants.PROP_HOST)) {
+        if (isUrlMode() || !urlProperties.contains(DBConstants.PROP_HOST) || (driverFields != null && !driverFields.isGenericAddressUsed())) {
             return null;
         }
         String server = serverNameField.getText().trim();
@@ -1444,20 +1448,27 @@ final class ConnectionSettingsPanel extends JPanel {
 
     /**
      * Host, port, server, database and path, for the parameters the URL template has (GenericConnectionPage.saveSettings).
-     * A server name without a port uses the driver's default port.
+     * A server name without a port uses the driver's default port. When the driver's own fields replace the server name
+     * and database rows (Oracle TNS: the network alias, {@link #updateAddressRows}), those hidden rows hold only
+     * placeholders (the driver's default host "localhost", the last server used with the driver), so the host and port
+     * are cleared and the database is left to the driver's fields: saving the placeholder made the trees, the status line
+     * and the export show "localhost" or another server for a connection that the URL makes from the alias (app change
+     * #135, the same cause as #41 in URL mode).
      */
     private void writeAddress(@NotNull DBPConnectionConfiguration configuration) {
+        boolean generic = driverFields == null || driverFields.isGenericAddressUsed();
         String[] hostAndPort = getHostAndPort();
         if (urlProperties.contains(DBConstants.PROP_HOST)) {
-            configuration.setHostName(hostAndPort[0]);
+            configuration.setHostName(generic ? hostAndPort[0] : null);
         }
         if (urlProperties.contains(DBConstants.PROP_PORT)) {
-            configuration.setHostPort(hostAndPort[1].isEmpty() ? CommonUtils.notEmpty(driver.getDefaultPort()) : hostAndPort[1]);
+            configuration.setHostPort(!generic ? null
+                : hostAndPort[1].isEmpty() ? CommonUtils.notEmpty(driver.getDefaultPort()) : hostAndPort[1]);
         }
         if (urlProperties.contains(DBConstants.PROP_SERVER)) {
             configuration.setServerName(serverField.getText().trim());
         }
-        if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
+        if (generic && urlProperties.contains(DBConstants.PROP_DATABASE)) {
             configuration.setDatabaseName(databaseField.getText().trim());
         }
         if (urlProperties.contains(DBConstants.PROP_FOLDER) || urlProperties.contains(DBConstants.PROP_FILE)) {

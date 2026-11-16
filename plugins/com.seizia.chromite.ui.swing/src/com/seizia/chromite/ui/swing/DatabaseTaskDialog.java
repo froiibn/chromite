@@ -62,6 +62,8 @@ import java.util.List;
  * - 2026-11-08 기본 단추를 없앰: Enter로 백업·복원·작업 변경이 시작되지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-13 양식 안내({@code FormPanel.note})를 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서
  *   끊었다. 폭은 양식 칸이 정하고 높이가 그 폭을 따르는 것은 그대로(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-16 연결의 서버를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
+ *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -140,9 +142,8 @@ abstract class DatabaseTaskDialog extends JDialog {
         left.add(Box.createVerticalGlue());
         addSection(left, BackupRestoreMessages.task_connection);
         DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
-        addInfo(left, BackupRestoreMessages.task_connection_server, CommonUtils.isEmpty(configuration.getHostName())
-            ? CommonUtils.notEmpty(configuration.getUrl()) : configuration.getHostName()
-            + (CommonUtils.isEmpty(configuration.getHostPort()) ? "" : ":" + configuration.getHostPort())); //$NON-NLS-1$ //$NON-NLS-2$
+        String address = QueryStatusLine.describeAddress(container);
+        addInfo(left, BackupRestoreMessages.task_connection_server, address != null ? address : CommonUtils.notEmpty(configuration.getUrl()));
         addInfo(left, BackupRestoreMessages.task_connection_name, container.getName());
         addInfo(left, BackupRestoreMessages.task_connection_user, CommonUtils.notEmpty(configuration.getUserName()));
         left.add(Box.createVerticalStrut(12));

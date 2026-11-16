@@ -20,7 +20,6 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
-import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.registry.ConnectionTransferFile;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -54,6 +53,8 @@ import java.util.List;
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
  * - 2026-11-13 암호 안내를 HTML 라벨 대신 {@link WrappingNote}로: Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90,
  *   docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-16 서버 열을 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
+ *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 final class ConnectionExportDialog extends JDialog {
 
@@ -371,12 +372,8 @@ final class ConnectionExportDialog extends JDialog {
 
     @NotNull
     private static String getHost(@NotNull DBPDataSourceContainer container) {
-        DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
-        String host = configuration.getHostName();
-        if (CommonUtils.isEmpty(host)) {
-            return CommonUtils.notEmpty(configuration.getUrl());
-        }
-        return CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
+        String address = QueryStatusLine.describeAddress(container);
+        return address != null ? address : CommonUtils.notEmpty(container.getConnectionConfiguration().getUrl());
     }
 
     /**
