@@ -566,6 +566,69 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 
 - upstream은 Altibase 테이블스페이스를 조회만 한다. 객체 관리자 두 개, 문장 클래스, 모델의 새 객체·다시 읽기, 삭제 기능 비트 두 개를 더했다.
 
+## ShardSphere에서 다른 문장 (2026-11-17, 앱 변경 #139 1단계)
+
+### 목적
+
+조회 전용 조사(실제 ShardSphere 5.1.9 서버에서 Chromite 문장 74개를 준비만 함)에서 64개는 그대로 되고 10개가 실패했다. 8개는 복제(ShardSphere 이름 GEMINI,
+다음 단계)이고, 나머지 두 문장과 DBMS_METADATA 서브프로그램 두 개, 보호되지 않은 경로 하나를 여기서 고쳤다. 원칙: 두 서버가 모두 받는 한 문장을 쓰고, 제품 이름으로 가르지 않는다.
+서버마다 다른 것은 서버 카탈로그에서 연결마다 읽어 정한다.
+
+### 고친 것
+
+| 기능 | 전 | ShardSphere 결과 | 후 | 두 서버 확인 |
+|---|---|---|---|---|
+| 활동 모니터 ▸ 잠금(대기) | 대기 시간의 UTC 현재 시각을 `UNIX_DATE`로 | `UNIX_DATE` 없음(200792, 42S22): 새로 고칠 때마다 오류 | `CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00')` (`AltibaseBlockingLockManager`) | 아래 "UTC 현재 시각" |
+| 디스크 데이터 테이블스페이스 크기 | 열 별칭 `'USED_SIZE'`(작은따옴표) | 구문 오류(200705, 42000): 사용·남은 크기 빈칸 | 따옴표 없는 `USED_SIZE` (`AltibaseTablespace`) | Altibase 7.3도 받고 값 같음(DISK_DATA 2G / 1M), ShardSphere 2G / 0 |
+| 테이블 DDL의 COMMENT | `SELECT dbms_metadata.get_dependent_ddl(?, ?, ?) FROM DUAL`, 앞뒤로 `set_transform_param` | 두 서브프로그램이 패키지에 없음 | 있을 때만 부름(`AltibaseDataSource.hasDbmsMetadataSubprogram`), 없으면 같은 모양의 COMMENT 문을 `SYSTEM_.SYS_COMMENTS_`에서 만듦(`AltibaseMetaModel.getCommentDDLFromCatalog`) | 아래 "테이블 주석" |
+| 이름으로 복제 찾기(`getChild` → `getReplication`) | 보호 없음 | 표 없음 오류(200753, 42S02)가 사용자에게 | 목록(`getReplications`)과 같은 판단(`isReplicationCatalogMissing`)으로 `null` | ShardSphere `null`, Altibase 7.3 `null`(복제 없음, 전과 같음) |
+
+- **같은 원인의 다른 문장:** 플러그인 전체와 `model.admin`의 Altibase 문장에서 작은따옴표 열 별칭은 이 하나뿐이었다(소스 검색과 조사의 문장 목록).
+  `UNIX_DATE`는 잠금 대기 질의에만 있었다(방언 함수 목록은 강조용이라 그대로).
+- **통계 수집(`AltibaseDataSource.collectObjectStatistics`):** 테이블스페이스 하나가 실패하면 반복이 멈추는 구조지만, 이 메서드를 부르는 곳이 Swing·모델 어디에도 없다
+  (검색 결과 구현만 있음). 목록의 크기는 테이블스페이스마다 따로 읽으므로(`getAvailableSize`/`getUsedSize`) 한 종류의 실패가 다른 행을 막지 않는다. 고치지 않았다.
+
+### UTC 현재 시각
+
+`V$STATEMENT.QUERY_START_TIME`은 두 서버 모두 Unix 초다(자기 문장의 값이 클라이언트 시계와 1초 안). Altibase 7.3에서 `SYSDATE`는 데이터베이스 시간대의 시각이고
+세션 시간대와 관계없다(`ALTER SESSION SET TIME_ZONE = '-05:00'` 뒤에도 `SYSDATE` = `UNIX_DATE`, `CURRENT_DATE`만 5시간 뒤). 그래서
+`CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00')`이 UTC다.
+
+| 서버 | `DB_TIMEZONE()` | 옛 식(`UNIX_DATE`) | 새 식 | 클라이언트 시계 |
+|---|---|---|---|---|
+| Altibase 7.3 (시험 컨테이너, `TIME_ZONE` = `OS_TZ`) | +00:00 | 1794846272 | 1794846272 | 1794846272 |
+| 같은 세션, 세션 시간대 -05:00 | +00:00 | 1794846273 | 1794846273 | 1794846273 |
+| ShardSphere 5.1.9 | +09:00 | 없음 | 1794846405 | 1794846405 |
+
+시험 컨테이너의 데이터베이스 시간대가 UTC라 Altibase에서 시간대 변환 자체는 ShardSphere(+09:00)에서만 확인됐다. 데이터베이스 시간대를 바꾸는 것은
+서버 설정 변경이라 하지 않았다.
+
+### 테이블 주석
+
+- **DBMS_METADATA 서브프로그램(`SYS_PACKAGE_PARAS_`):** Altibase 7.3은 GET_DDL, GET_DEPENDENT_DDL, GET_GRANTED_DDL, GET_STATS_DDL, GET_USER_DDL,
+  SET_TRANSFORM_PARAM, SHOW_TRANSFORM_PARAMS. ShardSphere 5.1.9는 GET_DDL, GET_DDL_TABLE, VERSION과 질의 문장을 돌려주는 GET_*_QUERY 여덟 개
+  (GET_COMMENT_QUERY 포함)로, GET_DEPENDENT_DDL·SET_TRANSFORM_PARAM이 없다.
+- **연결마다 판단:** 메타 모델은 같은 드라이버의 모든 연결이 함께 쓰므로 목록을 데이터 원본(연결 하나)에 둔다. 처음 쓸 때 한 번 읽고, 연결 새로 고침에서 지운다.
+  두 연결을 같은 앱에서 함께 열고 확인: ShardSphere GET_DEPENDENT_DDL·SET_TRANSFORM_PARAM = false, Altibase = true. 끊고 다시 연결한 뒤에도 같다.
+- **Altibase에서도 주석이 빠졌다(같은 원인 계열, 이번에 찾음):** 전 코드의 `SELECT dbms_metadata.get_dependent_ddl(?, ?, ?) FROM DUAL`은 Altibase 7.3이
+  거절한다(201275 "Invalid use of host variables", SELECT 목록의 함수 인자에 호스트 변수). 오류는 경고로만 남고 DDL에 COMMENT가 없었다(전 캡처).
+  같은 파일의 get_ddl처럼 `exec ? := dbms_metadata.get_dependent_ddl(?, ?, ?)`로 부르게 바꿨다. 주석 없는 테이블은 전처럼 990013(0xF1B3D)이고 경고를 남기지 않는다.
+- **카탈로그 대체:** `SYSTEM_.SYS_COMMENTS_`(USER_NAME, TABLE_NAME, COLUMN_NAME, COMMENTS)를 SELECT로 읽어 GET_DEPENDENT_DDL과 같은 모양으로 만든다:
+  열 주석을 열 이름 순서로, 그다음 테이블 주석, 이름은 큰따옴표, 값의 작은따옴표는 두 번. Altibase 7.3에서 두 테이블(열 순서와 이름 순서가 다른 것 포함)로
+  패키지 결과와 글자 하나까지 같음을 확인했다. ShardSphere의 GET_COMMENT_QUERY는 함수 호출이라 그 서버에서 부르지 않았다.
+- **ShardSphere에서 보이지 못한 것:** 그 서버에는 주석이 있는 테이블이 없다(주석 36개가 모두 뷰의 테이블 주석). 만들 수 없으므로(조회 전용) 카탈로그 질의가
+  그 서버에서 실행됨(0행)만 앱 안에서 확인했다. 또 그 서버에서 테이블 DDL 화면을 열면 `exec ? := dbms_metadata.get_ddl(...)`(EXEC)이 실행되므로 열지 않았다.
+  ShardSphere의 GET_DDL이 받는 객체 종류와 그 결과에 주석이 들어 있는지는 확인하지 못했다.
+
+### 확인 (2026-11-17, 전: origin/command `a0caa4a81f` 빌드, 후: 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- ShardSphere(조회 전용, 연결 읽기 전용 표시, 자동 커밋): 잠금 탭 전 "Column not found … UNIX_DATE" 오류 → 후 "잠금을 기다리는 세션이 없습니다"(0행, 다시 연결 뒤 같음).
+  테이블스페이스 DISK_DATA 사용·남은 크기 전 빈칸 → 후 2G / 0, 다른 네 행은 전후 같음. `getChild("CHR_SS1_NO_SUCH_REPLICATION")` 전 예외 → 후 `null`.
+- Altibase 7.3 시험 서버(`CHR_SS1_*` 테이블만, 끝에 지움): 내 두 세션의 실제 잠금 대기(배타 테이블 잠금 대 UPDATE) 한 행이 전후 같은 모양
+  (대기 리소스 `SYS.CHR_SS1_LOCK`, 모드 IX_LOCK, 문, 대기 초가 시작부터 지난 시간과 같음). 테이블스페이스 다섯 행의 값 전후 같음.
+  `CHR_SS1_CMT` 스크립트: 전 COMMENT 없음 → 후 COMMENT 세 줄.
+- 회귀 테스트는 작성·실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -582,3 +645,6 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 - 2026-11-16 테이블스페이스 대화상자가 창 가운데에 더 넓게 뜨고(앱 변경 #132), 숫자 칸이 숫자와 마침표 하나만 받음(앱 변경 #133,
   `chromite/storage-dialog-fixes`). 확인: 디스크 테이블스페이스 `CHR_SD_TBS` 만들기와 데이터 파일 크기 4.5 MB 변경의 문장이 전과 같은 모양
   (`… SIZE 4M AUTOEXTEND ON NEXT 1M MAXSIZE 8M`, `… ALTER DATAFILE '…' SIZE 4608K`), 끝에 지움.
+- 2026-11-17 ShardSphere에서 실패하던 문장을 두 서버 공통으로(앱 변경 #139 1단계): 잠금 대기의 UTC 현재 시각, 디스크 테이블스페이스 크기의 별칭 따옴표,
+  DBMS_METADATA 서브프로그램을 연결마다 확인하고 없으면 카탈로그에서 주석, GET_DEPENDENT_DDL을 exec로(Altibase에서도 주석이 빠졌음), 이름으로 복제 찾기 보호.
+  위 "ShardSphere에서 다른 문장".

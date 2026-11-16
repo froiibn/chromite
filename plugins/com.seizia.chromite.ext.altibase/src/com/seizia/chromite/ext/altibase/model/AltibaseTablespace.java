@@ -58,6 +58,8 @@ import java.util.Collection;
  *   바꾼다(docs/chromite/altibase.md)
  * - 2026-11-15 새 테이블스페이스 객체, 종류별 지원 판단, 행 다시 읽기, 자동 확장 설정 읽기(앱 변경 #126,
  *   docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-17 디스크 데이터 테이블스페이스 크기 질의의 열 별칭에서 작은따옴표를 뺌({@code USED_SIZE}). ShardSphere는 따옴표 별칭을
+ *   구문 오류(200705)로 거절해 사용·남은 크기를 읽지 못했다(앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
  */
 public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefreshableObject, DBPObjectStatistics {
 
@@ -238,7 +240,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
             case DISK_USER_DATA:
                 qry4Size = "SELECT "
                             + " (d.max * t.page_size) TOTAL_SIZE,"
-                            + " nvl(ds.used, 0) 'USED_SIZE'"
+                            + " nvl(ds.used, 0) USED_SIZE"
                        + " FROM v$tablespaces t LEFT OUTER JOIN "
                            + " (SELECT space_id, sum(total_used_size) USED"
                            + " FROM x$segment"

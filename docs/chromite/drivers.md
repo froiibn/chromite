@@ -392,6 +392,11 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - **예약어(2026-11-15, 앱 변경 #115):** 키워드 강조는 연결한 서버의 `V$RESERVED_WORDS`를 따른다(Altibase와 같은 코드, 제품 이름 검사 없음). ShardSphere 연결에서는
   `CONTINUOUS`·`CONTROLFILE`·`STREAM`이 키워드가 되고 Altibase 7.3에만 있는 `REPLICATION`·`LOGANCHOR`·`DUMP_CALLSTACKS`는 키워드가 아니다.
   규칙, `RESERVED_TYPE`의 뜻, `DBMS_SHARD` 자동 완성(`SYS.DBMS_SHARD.`만 됨)은 [altibase.md](altibase.md) "서버 예약어".
+- **서버에서 다른 문장(2026-11-17, 앱 변경 #139 1단계):** 조회 전용 조사에서 Chromite 문장 74개 중 10개가 실패했다(8개는 복제 = GEMINI, 다음 단계).
+  나머지는 두 서버가 모두 받는 문장으로 고쳤다: 잠금 대기의 `UNIX_DATE`(없음) → `CONV_TIMEZONE(SYSDATE, DB_TIMEZONE(), '+00:00')`, 디스크 테이블스페이스 크기의
+  작은따옴표 별칭(구문 오류) → 따옴표 없음, DBMS_METADATA의 GET_DEPENDENT_DDL·SET_TRANSFORM_PARAM(없음)은 연결마다 `SYS_PACKAGE_PARAS_`를 보고 있을 때만 부르고
+  없으면 주석을 `SYSTEM_.SYS_COMMENTS_`에서 만든다. 이름으로 복제를 찾을 때도 목록처럼 "표 없음"을 복제 없음으로 본다. 제품 이름 검사는 없다.
+  자세한 근거와 전후 확인은 [altibase.md](altibase.md) "ShardSphere에서 다른 문장".
 
 ### 폐쇄망 오프라인 설치 경로
 

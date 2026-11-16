@@ -33,6 +33,9 @@ import org.jkiss.utils.StandardConstants;
  *   (AltibaseDataSource.getReplications)
  * - 2026-11-15 Chromite: {@link #QUERY_GET_DB_NAME}. 데이터베이스 이름을 드라이버 매개변수 query-get-active-db에서 읽었는데, 그 질의는
  *   이제 세션의 기본 스키마(로그인 사용자)를 읽는다 (docs/chromite/altibase.md "세션의 기본 스키마", 앱 변경 #116)
+ * - 2026-11-17 Chromite: {@link #QUERY_DBMS_METADATA_SUBPROGRAMS}, {@link #DBMS_METADATA_GET_DEPENDENT_DDL},
+ *   {@link #DBMS_METADATA_SET_TRANSFORM_PARAM}. ShardSphere의 DBMS_METADATA에는 이 두 서브프로그램이 없어, 서버에 있는지 보고 부른다
+ *   (docs/chromite/altibase.md "ShardSphere에서 다른 문장", 앱 변경 #139)
  */
 public class AltibaseConstants {
     
@@ -48,6 +51,13 @@ public class AltibaseConstants {
     // The database name (V$DATABASE), shown with sessions and locks. Not the driver's query-get-active-db: that query names
     // the session's default schema (the login user) for the execution context
     public static final String QUERY_GET_DB_NAME = "SELECT db_name FROM V$DATABASE";
+
+    // The subprograms of the server's DBMS_METADATA package: Altibase 7.3 and ShardSphere 5.1 have different ones
+    public static final String QUERY_DBMS_METADATA_SUBPROGRAMS = "SELECT DISTINCT pp.OBJECT_NAME"
+        + " FROM SYSTEM_.SYS_PACKAGE_PARAS_ pp, SYSTEM_.SYS_USERS_ u"
+        + " WHERE u.USER_ID = pp.USER_ID AND u.USER_NAME = 'SYS' AND pp.PACKAGE_NAME = 'DBMS_METADATA'";
+    public static final String DBMS_METADATA_GET_DEPENDENT_DDL = "GET_DEPENDENT_DDL";
+    public static final String DBMS_METADATA_SET_TRANSFORM_PARAM = "SET_TRANSFORM_PARAM";
 
     public static boolean isSysUser(@NotNull String userName) {
         return (USER_SYS.equals(userName) || USER_SYSTEM_.equals(userName));

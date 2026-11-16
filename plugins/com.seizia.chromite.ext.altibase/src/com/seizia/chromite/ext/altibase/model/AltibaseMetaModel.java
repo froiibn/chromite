@@ -58,10 +58,19 @@ import java.util.Map;
  * - 2026-11-07 테이블 목록을 카탈로그 질의로 읽음({@link #prepareTableLoadStatement}): 테이블 저장 방식을 같은
  *   질의에서 받기 위해서다(docs/chromite/altibase.md)
  * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): {@link AltibaseDataSource}는 늘 실제 계획 어댑터를 준다(앱 변경 #70)
+ * - 2026-11-17 테이블 DDL의 주석: 서버의 DBMS_METADATA에 GET_DEPENDENT_DDL·SET_TRANSFORM_PARAM이 있을 때만 부른다
+ *   ({@link AltibaseDataSource#hasDbmsMetadataSubprogram}, 연결마다 판단). ShardSphere 5.1에는 둘 다 없어 주석이 빠지고 경고가 남았다.
+ *   GET_DEPENDENT_DDL이 없으면 같은 모양의 COMMENT 문을 카탈로그(SYSTEM_.SYS_COMMENTS_)에서 만든다({@link #getCommentDDLFromCatalog},
+ *   앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
+ * - 2026-11-17 GET_DEPENDENT_DDL을 {@code SELECT ...(?, ?, ?) FROM DUAL}이 아니라 get_ddl처럼 {@code exec ? := ...}로 부름. Altibase 7.3은
+ *   SELECT 목록의 함수 인자로 호스트 변수를 받지 않아(201275 "Invalid use of host variables") Altibase에서도 주석이 늘 빠졌다(같은 문서)
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
     private static final Log log = Log.getLog(AltibaseMetaModel.class);
+
+    // The dependent object type of DBMS_METADATA.GET_DEPENDENT_DDL for the comments of a table
+    private static final String DEP_OBJECT_COMMENT = "COMMENT";
 
     public AltibaseMetaModel() {
     }
@@ -268,7 +277,7 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
             ddl.append(ddlFromMetadata).append(";").append(AltibaseConstants.NEW_LINE);
 
             // Comment
-            addTableDependentDdl(ddl, "COMMENT", monitor, sourceObject, schemaName);
+            addTableDependentDdl(ddl, DEP_OBJECT_COMMENT, monitor, sourceObject, schemaName);
 
             // Dependent index
             for (GenericTableIndex index : sourceObject.getIndexes(monitor)) {
@@ -1193,35 +1202,46 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
     }
 
     /**
-     * Get DDL from DBMS_METADATA package in case of dependent DDL.
+     * Get DDL from DBMS_METADATA package in case of dependent DDL. A server whose package has no GET_DEPENDENT_DDL
+     * (ShardSphere) gets the comments from the catalog instead.
      */
     private String getDepDDLFromDbmsMetadata(DBRProgressMonitor monitor, DBSObject sourceObject, 
             String schemaName, String depObjectType) {
         String ddl = "";
         String sqlTerm = "SQLTERMINATOR";
-        String getDepDdlQry = "SELECT dbms_metadata.get_dependent_ddl(?, ?, ?) FROM DUAL";
+        // A call, as get_ddl: Altibase 7.3 refuses host variables as the arguments of a function in a SELECT list
+        // ("Invalid use of host variables", 201275), so the comments never came
+        String getDepDdlQry = "exec ? := dbms_metadata.get_dependent_ddl(?, ?, ?)";
         
         Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
+        CallableStatement cstmt = null;
+        boolean hasTransformParam = false;
         
         try (JDBCSession session = DBUtils.openMetaSession(monitor, sourceObject, "Get Dependent DDL from DBMS_METADATA")) {
-            if (hasDbmsMetadataPacakge(session)) {
+            AltibaseDataSource dataSource = (AltibaseDataSource) sourceObject.getDataSource();
+            if (!dataSource.hasDbmsMetadataSubprogram(session, AltibaseConstants.DBMS_METADATA_GET_DEPENDENT_DDL)) {
+                // ShardSphere 5.1: the package has no GET_DEPENDENT_DDL, the comments are in the catalog
+                if (DEP_OBJECT_COMMENT.equals(depObjectType)) {
+                    ddl = getCommentDDLFromCatalog(session, sourceObject.getName(), schemaName);
+                }
+            } else if (hasDbmsMetadataPacakge(session)) {
                 conn = session.getOriginal();
+                hasTransformParam = dataSource.hasDbmsMetadataSubprogram(session, AltibaseConstants.DBMS_METADATA_SET_TRANSFORM_PARAM);
                 
                 // SQLTERMINATOR: T
-                setTransformParam(conn, sqlTerm, "T");
+                if (hasTransformParam) {
+                    setTransformParam(conn, sqlTerm, "T");
+                }
 
                 // get dependent ddl 
-                pstmt = conn.prepareStatement(getDepDdlQry);
-                pstmt.setString(1, depObjectType);
-                pstmt.setString(2, sourceObject.getName());
-                pstmt.setString(3, schemaName);
-                rs = pstmt.executeQuery();
+                cstmt = conn.prepareCall(getDepDdlQry);
+                cstmt.registerOutParameter(1, Types.VARCHAR);
+                cstmt.setString(2, depObjectType);
+                cstmt.setString(3, sourceObject.getName());
+                cstmt.setString(4, schemaName);
+                cstmt.execute();
                 
-                if (rs.next()) {
-                    ddl = rs.getString(1);
-                }
+                ddl = cstmt.getString(1);
             }
         } catch (SQLException e) {
             if (e.getErrorCode() != AltibaseConstants.EC_DBMS_METADATA_NOT_FOUND) {
@@ -1233,16 +1253,12 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
                     + " [BASE OBJECT] " + schemaName + "." + sourceObject.getName(), e);
         } finally {
             try {
-                if (rs != null) {
-                    rs.close();
-                }
-                
-                if (pstmt != null) {
-                    pstmt.close();
+                if (cstmt != null) {
+                    cstmt.close();
                 }
                 
                 // SQLTERMINATOR: F
-                if (conn != null) {
+                if (conn != null && hasTransformParam) {
                     setTransformParam(conn, sqlTerm, "F");
                 }
             } catch (SQLException e) {
@@ -1251,6 +1267,40 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
         }
 
         return ddl;
+    }
+
+    /**
+     * COMMENT statements of a table read from the catalog (SYSTEM_.SYS_COMMENTS_), in the form and order that
+     * DBMS_METADATA.GET_DEPENDENT_DDL('COMMENT', ...) gives with SQLTERMINATOR on (Altibase 7.3): the column comments by
+     * column name, then the table comment, separated by an empty line. Empty if the table has no comment.
+     */
+    private String getCommentDDLFromCatalog(JDBCSession session, String tableName, String schemaName) throws SQLException {
+        StringBuilder ddl = new StringBuilder();
+        String table = quoteCommentTarget(schemaName) + "." + quoteCommentTarget(tableName);
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                "SELECT COLUMN_NAME, COMMENTS FROM SYSTEM_.SYS_COMMENTS_ WHERE USER_NAME = ? AND TABLE_NAME = ?"
+                + " ORDER BY CASE WHEN COLUMN_NAME IS NULL THEN 1 ELSE 0 END, COLUMN_NAME")) {
+            dbStat.setString(1, schemaName);
+            dbStat.setString(2, tableName);
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                while (dbResult.next()) {
+                    String column = dbResult.getString(1);
+                    String comment = CommonUtils.notEmpty(dbResult.getString(2));
+                    if (ddl.length() > 0) {
+                        ddl.append("\n\n");
+                    }
+                    ddl.append(column == null
+                            ? "COMMENT ON TABLE " + table
+                            : "COMMENT ON COLUMN " + table + "." + quoteCommentTarget(column))
+                        .append(" IS '").append(comment.replace("'", "''")).append("';");
+                }
+            }
+        }
+        return ddl.toString();
+    }
+
+    private static String quoteCommentTarget(String name) {
+        return "\"" + name.replace("\"", "\"\"") + "\"";
     }
     
     /**
