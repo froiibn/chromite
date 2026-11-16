@@ -86,6 +86,8 @@ import java.util.Map;
  * - 2026-11-13 공유 세션에서 setCurrentDatabase가 database를 저장만 하고 무시되던 것을, 바꿔야 하면 거절하고 아무것도 저장하지 않게 바꿈.
  *   getCurrentDatabase에 공유 세션 안내(앱 변경 #94, docs/chromite/ai-agent.md "공유 세션의 DB·스키마")
  * - 2026-11-15 getToolPolicy → getAgentToolPolicy, connect를 testConnection에 합침(옛 ID는 별칭), listConnections의 filter → contains (도구 정리, docs/chromite/ai-agent.md "별칭")
+ * - 2026-11-16 getConnectionInfo의 host·port를 address 하나로: 공급자의 getConnectionAddress(화면과 같은 글). Oracle TNS 연결은 네트워크
+ *   별칭이고, 저장된 호스트는 예전 연결 대화상자가 넣은 자리 값 localhost일 수 있다(앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
  */
 public class ConnectionTools extends AgentTool implements AIToolTransactionGuard {
 
@@ -154,8 +156,9 @@ public class ConnectionTools extends AgentTool implements AIToolTransactionGuard
         if (!details) {
             return json;
         }
-        json.addProperty("host", cfg.getHostName());
-        json.addProperty("port", cfg.getHostPort());
+        // The server as the UI shows it (host:port, or the network alias of an Oracle TNS connection, whose stored host may be
+        // the old connection dialog's placeholder "localhost"): the raw host and port would name another server there
+        json.addProperty("address", container.getDriver().getDataSourceProvider().getConnectionAddress(cfg));
         json.addProperty("database", cfg.getDatabaseName());
         json.addProperty("server", cfg.getServerName());
         json.addProperty("user", cfg.getUserName());

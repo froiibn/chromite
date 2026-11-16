@@ -115,6 +115,8 @@ import java.util.Set;
  * - 2026-11-11 이 창은 연결하지 않음(앱 변경 #48): Connect, Disconnect, Disconnect Others / All, 그룹 Disconnect를 뺌(Object Explorer에 있음)
  *   (docs/chromite/swing-registered-servers.md "서버 정보만")
  * - 2026-11-11 도구 막대에 Expand All(모든 그룹 펼치기, 앱 변경 #51)
+ * - 2026-11-16 서버의 보조 글자를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
+ *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -907,10 +909,7 @@ final class RegisteredServersPanel extends JPanel {
                 setForeground(pill.getTextColor(getForeground()));
                 }
                 DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
-                String host = configuration.getHostName();
-                if (!CommonUtils.isEmpty(host)) {
-                    secondaryText = CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
-                }
+                secondaryText = QueryStatusLine.describeAddress(container);
                 setToolTipText(container.getDriver().getName() + " · " + configuration.getConnectionType().getName() //$NON-NLS-1$
                     + (container.isConnected() ? " · connected" : "")); //$NON-NLS-1$
             } else {

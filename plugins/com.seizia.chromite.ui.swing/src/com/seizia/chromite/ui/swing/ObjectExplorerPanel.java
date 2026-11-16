@@ -49,7 +49,6 @@ import com.seizia.chromite.model.DBPEvent;
 import com.seizia.chromite.model.DBPHiddenObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPProject;
-import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.navigator.DBNDataSource;
 import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
@@ -280,6 +279,8 @@ import java.util.regex.Pattern;
  *   모델에서 다시 보임. 전에는 연결 목록만 다시 그려, 모델에는 새 DB가 있는데 Databases 폴더에는 F5 전까지 보이지 않았다(앱 변경 #111,
  *   docs/chromite/swing-query-commands.md "연결 전체를 다시 읽은 뒤의 탐색기")
  * - 2026-11-15 테이블 저장 방식을 글자색 대신 테이블 아이콘 색으로({@link TableStorageStyle}, 앱 변경 #130, docs/chromite/altibase.md)
+ * - 2026-11-16 연결의 보조 글자를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
+ *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -2552,12 +2553,7 @@ final class ObjectExplorerPanel extends JPanel {
                 return schedulerText;
             }
             if (navigatorNode instanceof DBNDataSource dataSourceNode) {
-                DBPConnectionConfiguration configuration = dataSourceNode.getDataSourceContainer().getConnectionConfiguration();
-                String host = configuration.getHostName();
-                if (CommonUtils.isEmpty(host)) {
-                    return null;
-                }
-                return CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
+                return QueryStatusLine.describeAddress(dataSourceNode.getDataSourceContainer());
             }
             if (navigatorNode instanceof DBNDatabaseFolder folder) {
                 // Count of the objects read so far ("shown/all" while the quick filter hides some), and whether the
