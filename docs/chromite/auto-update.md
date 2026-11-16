@@ -238,8 +238,30 @@ Turbrix #747(main `fb55abc6`, 0.4.21부터)을 그대로 옮겼다. 원본: Turb
 **알려진 한계**
 - 0.1.3(이 기능이 없음)에서 올라오는 첫 업데이트는 설치하는 동안 창이 없다(0.1.3의 PowerShell 도우미가 화면 없이 설치). 새 버전(0.1.4)의 첫 시작 창만
   "Chromite 시작" 단계부터 보인다(도우미 결과가 10분 안일 때, 곧 [지금 다시 시작]일 때). 단계 1–3은 시간 없이 완료로 보인다.
-- 사본을 쓰는 첫 업데이트는 0.1.4 → 26.0.5다.
+- 사본을 쓰는 첫 업데이트는 0.1.4 → 26.0.5다. 다만 설치 폴더 경로에 공백이 있으면 26.1.3까지는 사본을 만들지 못했다(아래 "설치 폴더 경로의 공백").
 - 설치 중 비율은 설치 프로그램이 알리지 않아 길이를 모르는 막대다.
+
+**설치 폴더 경로의 공백**(2026-11-16, 앱 변경 #138)
+
+사용자 보고: "업데이트 시 진행 창이 chromite 설치 단계에서 꺼진 후 한참동안 아무런 액션이 화면에 나타나지 않는데 개선 가능한가?"
+- 원인: `UpdateWindowCopy.frameworkJar()`가 OSGi 프레임워크 jar의 위치(코드 출처 URL과 런처의 `osgi.framework` 속성)를 엄격한 `URI`로 바꿨다
+  (`source.getLocation().toURI()`, `URI.create(framework)`). Equinox 런처는 이 URL을 인코딩하지 않는다(`file:/c:/Program Files/Chromite/plugins/org.eclipse.osgi_….jar`,
+  공백·한글·`+`·`&`·괄호가 그대로). 그래서 경로에 공백이 있으면 `Illegal character in path`로 실패했고, 첫 시도의 예외가 메서드를 끝내 두 번째 시도도 하지 않았다.
+  기본 설치 폴더(`C:\Program Files\Chromite`, 모든 사용자)가 여기에 해당한다. 사본을 만들지 못하면 PowerShell 도우미가 화면 없이 설치하므로,
+  옛 앱의 창("업데이트 파일 확인")이 닫힌 뒤 설치가 끝나고 새 버전이 뜰 때까지(이 PC의 기록으로 26–60초) Chromite 창이 하나도 없었다.
+  이 PC의 26.0.7·26.0.8·26.1.0·26.1.1 업데이트가 모두 이 경로였다(`apply-update.log`, 앱 로그의 `The update window's copy was not made: the framework's jar was not found: Illegal character in path at index 16`).
+- 고침: URL을 쓰인 그대로 경로로 읽고(`RuntimeUtils.getLocalPathFromURL`, 공백·한글·`%`를 바꾸지 않음, UNC는 권한 부분 처리), 그 경로에 파일이 없을 때만
+  인코딩된 URL로 보고 `URI`로 읽는다(`UpdateWindowCopy.localFile`). 코드 출처와 `osgi.framework`는 따로 시도한다(앞의 실패가 뒤를 막지 않음).
+- 같은 원인의 다른 변환(확인함): 번들 jar(`FileLocator.getBundleFileLocation`, `File`로 받음)·FlatLaf 항목(`Bundle.getEntry` 스트림)·`java.home`은 URL을 거치지 않아
+  공백 경로에서도 됐다(26.1.3에서 실패 지점이 프레임워크 jar뿐). `javaw` 명령, 업데이트 폴더 인자, 설치 파일·런처 실행은 `ProcessBuilder`의 인자 목록이라 Java가
+  따옴표를 붙인다. PowerShell 도우미와 승격 실행 스크립트는 경로를 환경 변수와 `-LiteralPath`로 받는다. 업데이트 기록은 UTF-8 JSON이다. 이것들은 바꾸지 않았다.
+- 경로에 `#`나 `%`가 있으면 Chromite가 아예 시작하지 않는다(Equinox 런처: `#` 뒤를 잘라 "Could not find framework", `%`는 URL 디코딩 오류 또는 `%20`을 공백으로 읽어
+  `EclipseStarter`를 찾지 못함). 업데이터와 상관없는 런처의 한계라 고치지 않았다.
+
+**사본을 만들지 못할 때(남은 대체 경로)**: [지금 다시 시작]의 창은 옛 앱의 것이고, 옛 앱은 설치 프로그램이 기다리는 `jre\bin\server\jvm.dll`을 쥐고 있어 끝나야 한다.
+그래서 `applyAtExit`는 도우미를 띄운 뒤 창을 닫고(`finally`의 `window.close()`) 끝나며, 설치하는 동안 화면에는 아무것도 없고, 새 버전의 첫 시작 창이
+"Chromite 시작"부터 뜬다(기록의 `restartAt`이 있어 단계 1–3의 시간은 보인다). 모든 사용자 설치는 그 사이 UAC 창만 뜬다. 이 빈 시간을 옛 앱이 메울 수는 없다.
+고친 뒤에는 사본을 만들지 못하는 경우가 디스크 부족·권한 같은 드문 오류뿐이라 이 경로는 그대로 두었다.
 
 ### 관리자 권한으로 설치 (2026-11-09, 앱 변경 #23)
 
@@ -422,6 +444,8 @@ DBeaver는 p2 업데이트 사이트와 dbeaver.io 버전 확인을 쓴다. Chro
 빌드한 Swing 제품(시험 모드, 로컬 사이트 `127.0.0.1`, 데이터·작업 공간·업데이트 폴더는 `D:\Tools\_scratch\update-window`)을 우리가 띄운 프로세스에 붙인
 시험 에이전트(attach API, Swing 객체를 EDT에서 직접 조작, OS 입력 없음)로 확인했다. 그림은 창 자체를 150%로 그린 것이다(`D:\Tools\_scratch\update-window\shots\`).
 dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 버전은 SEIZIA가 서명한 Turbrix 0.3.0 설치 파일(`chromite.update.test.product=Turbrix`)이다.
+이 확인은 경로에 공백이 없는 폴더에서만 했다. 실제 설치본(기본 `C:\Program Files\Chromite`)에서는 26.1.3까지 사본이 만들어지지 않아 이 창들이 설치하는 동안 보이지 않았다
+(2026-11-16 확인, 위 "설치 폴더 경로의 공백", 아래 "설치 폴더 경로의 공백 (2026-11-16)").
 
 | 확인 | 결과 |
 |---|---|
@@ -460,7 +484,42 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
 | Windows 도우미(PowerShell, 가짜 설치 파일) | 사용자별: `running …\fake-setup.exe /CurrentUser /S`, 종료 코드가 결과 파일에. 모든 사용자 dry run: `test mode: not run: … /AllUsers /S (elevated)` |
 | 앱의 사본(`UpdateWindowApp`, 기록 `allUsers=true`·dry run·코드 -5) | 기록 `test mode: not run: …\fake-setup.exe /AllUsers /S (elevated) (code -5)`, 창이 "새 버전을 설치하지 못했습니다" + 관리자 확인 거부 문구, 단계 "설치" 실패, [다시 시도]가 Enter 단추(한국어 라이트 `01-allusers-uac-refused-ko.png`, 영어 다크 `02-…-en-dark.png`, 150%로 그린 창, `D:\Tools\_scratch\chromite-install-update-2\shots\`). 사용자별 코드 2는 지금 문구 그대로(`03`), 명령은 `/CurrentUser /S` |
 
+### 설치 폴더 경로의 공백 (2026-11-16, 앱 변경 #138, `chromite/update-window-space-path`)
+
+빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` `BUILD SUCCESS`(고치기 전 devel `1ef4f577cc`와 고친 뒤 각각), `java tools/jre/BundleJre.java windows-x64`.
+모든 것은 `D:\Tools\_scratch\update-window-space-path\`에서 했다: 앱은 `run\Program Files\Chromite Test\`, `LOCALAPPDATA`는 `run\local app 데이터`(한글과 공백,
+업데이트 폴더가 그 아래), 작업 공간·설정·`CHROMITE_DATA`도 그 아래. 사이트는 `127.0.0.1:18795`. 시험 모드의 새 버전은 [지금 다시 시작]까지 가려면 26.1.3보다 높은
+ProductVersion의 유효 서명 파일이 필요해 Docker가 서명한 `docker.exe`(ProductVersion 29.8.0)를 `Chromite-29.8.0-x64-setup.exe`로 올렸다(게시자·제품명은 시험 속성, dry run이라 실행하지 않음).
+Turbrix 설치 파일(0.x)은 버전 체계가 26.x가 된 뒤로 시험 모드의 새 버전이 될 수 없다. 창의 나타남·사라짐은 이 앱 프로세스들의 최상위 창 목록을 50 ms마다 읽어 기록했다(그림 아님).
+
+| 확인 | 결과 |
+|---|---|
+| 재현(devel, 공백 경로, 시험 모드) | 앱 로그 `The update window's copy was not made: the framework's jar was not found: Illegal character in path at index 60: file:/d:/tools/…/run/Program Files/Chromite Test/plugins/org.eclipse.osgi_….jar`. `apply-update.log`는 도우미 경로(`the app ended` / `test mode: not run: …\local app 데이터\…\Chromite-29.8.0-x64-setup.exe /CurrentUser /S` / `started again`), 사본 없음 |
+| 실행 중인 앱 안의 값 | `osgi.framework`와 `NLS`의 코드 출처 모두 `file:/d:/…/Program Files/Chromite Test/plugins/org.eclipse.osgi_….jar`(인코딩 안 됨) |
+| 고친 뒤 같은 경로 | `update window copy made: 90040429 bytes in 393 ms`, 사본의 창이 같은 자리(1060, 500)에 뜨고 옛 앱의 창은 같은 순간 사라짐, `/CurrentUser /S`(dry run), 다시 시작 |
+| 고친 뒤 실제 사용자별 설치(공백 경로) | `INSTANCE=ChromiteSpacePathTest`로 만든 시험 설치 프로그램(서명 없음, 26.1.3)을 `/CurrentUser /S /D=…\Program Files\Chromite Test`로 설치한 앱이 옛 앱. 그 앱 안에서 `UpdateWindowCopy.make`와 `UpdateApplier.startWindowCopy`를 실행하고(시험 에이전트, 기록은 스크립트가 씀: 서명 없는 설치 파일은 확인을 통과할 수 없음) 주 창을 닫음. 사본이 `…\local app 데이터\…\26.1.3\Chromite-26.1.3-x64-setup.exe /CurrentUser /S`를 실제로 실행(14초, 종료 코드 0), 런처를 다시 띄움, 새 버전이 같은 자리에서 창을 이어받고 "업데이트를 마쳤습니다" 뒤 닫힘. 끝난 뒤 시험 설치는 `uninstall.exe /S`로 지움(HKCU 항목·시작 메뉴 바로 가기 없어짐 확인) |
+| 공백 없는 경로, 모든 사용자 시험 모드 | 사본 만들어짐, `/AllUsers /S (elevated)`(dry run), 다시 시작 |
+| `Program Files (x86)\Chro  mite 한글 +&`(괄호, 공백 둘, 한글, `+`, `&`) | `frameworkJar`가 그 경로의 jar를 돌려주고 사본을 만들어 띄움(274 ms) |
+| `#`, `%`가 든 경로 | Chromite 자체가 시작하지 않음(위 "설치 폴더 경로의 공백"의 런처 한계) |
+
+시간(고친 뒤, 공백 경로, 50 ms 단위 관찰):
+
+| 순간 | 고치기 전(dry run) | 고친 뒤(dry run) | 고친 뒤 실제 사용자별 설치 |
+|---|---|---|---|
+| 주 창 닫힘 → 옛 앱의 창 | 관찰 간격 안 | 0.12초 | (옛 앱의 창 대신 주 창을 닫음) |
+| 옛 앱의 창 → 사본의 창 | 사본 없음, 옛 창이 0.8초 뒤 닫힘 | 같은 순간(3.3초 뒤 사본이 뜨면서 옛 창 사라짐) | 사본의 창이 뜬 뒤 옛 앱 종료 |
+| 설치 | 창 없음(실제 설치면 그 시간 전부, 이 PC 기록 26–60초) | 사본의 창 | 사본의 창 "설치" 14초 |
+| 새 버전의 창 | 창 없는 0.9초 뒤 런처 시작 화면 | 다시 연 옛 버전의 주 창이 사본의 창 아래에 뜬 뒤 사본 닫힘 | 새 버전의 창이 같은 자리에 뜬 0.06초 뒤 사본 닫힘, 1.7초 뒤 주 창, 0.6초 뒤 업데이트 창 닫힘 |
+| Chromite 창이 하나도 없는 가장 긴 시간 | 설치 시간 전부 | 0.12초(주 창이 닫히고 옛 앱의 창이 뜰 때까지) | 0초 |
+
+그림(한국어, 라이트, 창 자체를 150%로 그림): `D:\Tools\_scratch\update-window-space-path\sheets\install-window-ko.png`(사본 "설치", 사본 "Chromite 시작", 이어받은 새 버전,
+완료). 완료 그림이 다크인 것은 새 버전이 작업 공간을 읽은 뒤 운영체제 테마(다크)로 바뀐 것으로, 이 변경과 상관없다. 회귀 테스트는 요청되지 않아 작성·실행하지 않았다.
+
 ## 확인하지 못한 것
+
+- 설치 폴더 경로의 공백(2026-11-16): 모든 사용자 설치의 실제 UAC 창과 그 동안 사본의 창(보안 데스크톱이 UAC 창 동안 다른 창을 가린다). 시험 모드의 승격 경로 기록까지만 했다.
+  서명된 실제 릴리스 사이의 한 바퀴(설치본의 옛 앱이 직접 사본을 만들고 받은 파일을 확인)는 다음 릴리스에서 본다. 시스템 코드 페이지가 UTF-8이 아닌 PC(이 PC는 65001)에서
+  그 코드 페이지에 없는 글자가 든 업데이트 폴더: JDK 런처가 명령줄을 ANSI로 읽으므로 사본이 뜨지 않을 수 있다(한국어 Windows의 CP949는 한글을 담는다).
 
 - 모든 사용자 설치의 실제 승격 업데이트(UAC 창, [예]·[아니요], 시간 초과, 창이 앞에 뜨는지): 이 PC에서 UAC를 띄우지 않았다(브리프). 승격 경로는 시험 모드의 명령 기록과
   PowerShell 스크립트의 분기(흉내 낸 1223)로만 확인했다. 숨긴 PowerShell이 요청한 UAC 창이 바로 앞에 뜨는지, 작업 표시줄에서 깜박이는지도 확인하지 못했다.
@@ -506,3 +565,6 @@ dry run이라 설치 프로그램은 실행하지 않았다. 사이트의 새 �
 - 2026-11-12 끝날 때 도는 업데이트 확인·받기를 기다리지 않고 멈춤(앱 변경 #96, `chromite/exit-leaves-process`, "적용"): 인터넷이 없을 때 창이 닫힌 뒤 확인의 시간 제한만큼 프로세스가 남던 것. [exit-process.md](exit-process.md).
 - 2026-11-15 macOS 도우미가 바꿔 넣은 새 앱을 `-nosplash`로 다시 시작(앱 변경 #52, `chromite/mac-splash-single-window`, "업데이트 진행 창"의 macOS 단락,
   [branding.md](branding.md) "자리"). Windows 경로는 그대로.
+- 2026-11-16 설치 폴더 경로에 공백이 있으면(기본 설치 폴더 Program Files) 업데이트 진행 창의 사본을 만들지 못해 설치하는 동안 창이 없던 것을 고침(앱 변경 #138,
+  `chromite/update-window-space-path`, "업데이트 진행 창"의 "설치 폴더 경로의 공백"): 프레임워크 jar의 인코딩되지 않은 URL을 쓰인 그대로 경로로 읽음. 2026-11-08의 확인이
+  공백 없는 폴더에서만 한 것이었음을 "확인한 것"에 적음.
