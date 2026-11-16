@@ -108,6 +108,8 @@ import java.util.WeakHashMap;
  *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장", docs/chromite/shardsphere.md)
  * - 2026-11-17 감지한 확장의 방언 기여(문법 낱말, 함수, 문장 접두어)를 이 데이터 원본의 방언 객체에 넘김
  *   ({@link AltibaseSQLDialect#applyServerExtensions}, 앱 변경 #139 작업 6a)
+ * - 2026-11-17 복제 문장을 연결의 복제 카탈로그({@link #getReplicationCatalog()})에서 받음: 기본은 Altibase 카탈로그(문장은 전과 같음),
+ *   감지된 서버 확장이 다른 카탈로그를 주면 그것(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -606,47 +608,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                 @Nullable AltibaseReplication object, @Nullable String objectName) throws SQLException {
             String replName = (object != null) ? object.getName() : objectName;
             final JDBCPreparedStatement dbStat = session.prepareStatement(
-                    "SELECT"
-                            + " r.replication_name,"
-                            + " r.is_started,"
-                            + " DECODE( r.conflict_resolution,"
-                                + " 0, 'Default', "
-                                + " 1, 'Master', "
-                                + " 2, 'Slave', "
-                                + " 'Unknown') AS conflict_resolution,"
-                            + " DECODE( r.repl_mode, "
-                                + " 0, 'Lazy', "
-                                + " 2,'Eager', "
-                                + " 'Unknown') AS repl_mode, "
-                            + " DECODE( r.role,"
-                                + " 0, 'General',"
-                                + " 1, 'Log Analyzer',"
-                                + " 2, 'Propagable Logging',"
-                                + " 3, 'Propagation',"
-                                + " 4, 'Propagation for Log Analyzer ',"
-                                + " 'Unknown') AS role,"
-                            + " r.options,"
-                            + " DECODE( r.invalid_recovery,"
-                                + " 0, 'Valid',"
-                                + " 1, 'Invalid',"
-                                + " 'Unknown') AS recoverable,"
-                            + " parallel_applier_count,"
-                            + " rh.host_ip || ':' || rh.port_no AS remote_addr,"
-                            + " rh.conn_type AS remote_conn_type,"
-                            + " r.xsn,"
-                            + " r.remote_last_ddl_xsn,"
-                            + " r.remote_fault_detect_time,"
-                            + " r.give_up_time,"
-                            + " r.give_up_xsn,"
-                            + " r.remote_xsn,"
-                            + " r.applier_init_buffer_size,"
-                            + " r.peer_replication_name"
-                        + " FROM system_.sys_replications_ r, system_.sys_repl_hosts_ rh"
-                        + " WHERE"
-                            + " r.replication_name = rh.replication_name"
-                            + (CommonUtils.isEmpty(replName) ? "" : " AND r.replication_name = ?")
-                        + " ORDER BY r.replication_name"
-                    );
+                    dataSource.getReplicationCatalog().getListQuery(CommonUtils.isNotEmpty(replName)));
 
             if (CommonUtils.isNotEmpty(replName)) {
                 dbStat.setString(1, replName);
@@ -664,11 +626,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         @Override
         protected JDBCStatement prepareChildrenStatement(@NotNull JDBCSession session, @NotNull GenericStructContainer owner, 
                 @NotNull AltibaseReplication forTable) throws SQLException {
-            final JDBCPreparedStatement dbStat = session.prepareStatement(
-                    "SELECT * FROM system_.sys_repl_items_"
-                    + " WHERE replication_name = ?"
-                    + " ORDER BY local_user_name, local_table_name, local_partition_name, "
-                    + " remote_user_name, remote_table_name, remote_partition_name");
+            // The catalog the replication was read from
+            final JDBCPreparedStatement dbStat = session.prepareStatement(forTable.getReplicationCatalog().getItemsQuery());
             dbStat.setString(1, forTable.getName());
             return dbStat;
         }
@@ -689,8 +648,27 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     }
 
     /**
-     * Return all cached replications. A server without the replication catalog (SYSTEM_.SYS_REPLICATIONS_ is not there,
-     * as on ShardSphere) has no replications: that one error is an empty list, every other error is reported.
+     * The replication catalog of this connection's server: the one a detected server extension supplies, otherwise the
+     * Altibase catalog. Read from this connection's detection, no query.
+     */
+    @NotNull
+    public AltibaseReplicationCatalog getReplicationCatalog() {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        if (extensions != null) {
+            for (AltibaseServerExtensionState extension : extensions) {
+                AltibaseReplicationCatalog catalog = extension.getReplicationCatalog();
+                if (catalog != null) {
+                    return catalog;
+                }
+            }
+        }
+        return AltibaseDefaultReplicationCatalog.INSTANCE;
+    }
+
+    /**
+     * Return all cached replications. A server without the tables of its replication catalog (SYSTEM_.SYS_REPLICATIONS_
+     * is not there and no server extension supplies the server's own catalog) has no replications: that one error is an
+     * empty list, every other error is reported.
      */
     @Association
     public Collection<AltibaseReplication> getReplications(DBRProgressMonitor monitor) throws DBException {

@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 6 복제 상태 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-08 Altibase 복제 상태 문구 (docs/chromite/altibase.md "복제 시작·중지·동기화")
+ * - 2026-11-17 복제 카탈로그가 이름을 주는 서버의 포트 행, 단위 없는 지연 열(docs/chromite/altibase.md "복제 카탈로그")
  */
 public class ReplicationMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.model.admin.replication.ReplicationMessages"; //$NON-NLS-1$
@@ -186,6 +187,8 @@ public class ReplicationMessages extends NLS {
     public static String repl_ms_no_distributor;
     public static String repl_alti_row_port;
     public static String repl_alti_disabled;
+    public static String repl_alti_row_port_named;
+    public static String repl_alti_disabled_named;
     public static String repl_alti_configured;
     public static String repl_grid_alti_replications;
     public static String repl_grid_alti_senders;
@@ -202,6 +205,8 @@ public class ReplicationMessages extends NLS {
     public static String repl_alti_col_network_error;
     public static String repl_alti_col_peer;
     public static String repl_alti_col_gap_tip;
+    public static String repl_alti_col_gap;
+    public static String repl_alti_col_gap_no_unit_tip;
     public static String repl_alti_col_applied;
     public static String repl_alti_col_failed;
     public static String repl_alti_replications_desc;

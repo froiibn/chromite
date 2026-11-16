@@ -27,6 +27,15 @@ import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
 
 import java.util.List;
 
+/**
+ * Stops a replication.
+ *
+ * 설계: 복제의 카탈로그가 제어 문장을 허락하지 않으면({@link AltibaseReplication#supportsControlStatements()}) 문장을 만들지 않고
+ * 실패한다. 화면은 그런 복제에 이 명령을 내지 않지만, 저장된 작업처럼 다른 길로 와도 확인하지 않은 문장이 서버로 가지 않게 한다.
+ *
+ * 변경 이력:
+ * - 2026-11-17 확인하지 않은 카탈로그의 복제에는 문장을 만들지 않음(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
+ */
 public class AltibaseToolReplicationStop extends SQLToolExecuteHandler<AltibaseReplication, AltibaseToolReplicationStopSettings> {
 
     @Override
@@ -37,6 +46,9 @@ public class AltibaseToolReplicationStop extends SQLToolExecuteHandler<AltibaseR
     @Override
     public void generateObjectQueries(DBCSession session, AltibaseToolReplicationStopSettings settings, 
             List<DBEPersistAction> queries, AltibaseReplication object) throws DBCException {
+        if (!object.supportsControlStatements()) {
+            throw new DBCException("Stopping a replication of this catalog is not supported");
+        }
         String sql = String.format(AltibaseConstants.ALTER_REPL_PREFIX + " %s STOP", object.getName());
         queries.add(new SQLDatabasePersistAction(sql));
     }

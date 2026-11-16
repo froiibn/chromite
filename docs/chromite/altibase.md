@@ -184,6 +184,7 @@ SWT 감사 D-A7(`AltibaseToolReplicationStart/Stop`). 상태는 Activity Monitor
 - 화면: `ObjectMaintenanceCommands`(메뉴 항목, 확인, 노드 다시 읽기), 문구 `ObjectMaintenanceMessages`(`objmaint_repl_*`).
 - 읽는 표: `SYSTEM_.SYS_REPLICATIONS_`, `SYSTEM_.SYS_REPL_HOSTS_`, `V$REPSENDER`, `V$REPGAP`, `V$REPRECEIVER`, `V$PROPERTY`. 값의 뜻(REPL_MODE 0 Lazy/2 Eager, ROLE, 송신 STATUS·START_FLAG 코드,
   지연 = REP_GAP × REPLICATION_GAP_UNIT)은 모델의 복제 노드(`AltibaseDataSource` 복제 캐시, `AltibaseReplicationSender`)와 같다.
+  2026-11-17부터 이 문장들은 연결의 복제 카탈로그가 준다(Altibase는 같은 문장, 아래 "복제 카탈로그"). 카탈로그가 제어 문장을 허락하지 않는 복제에는 세 명령이 없다.
 
 ### 설계 결정
 
@@ -701,6 +702,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `extension/AltibaseServerExtensionState` | 연결마다의 결과. `getAdapter(Class)`(데이터 원본의 어댑터를 먼저 답함), `getTreeObjects()`(아래 트리 자리의 객체), 방언 기여 `getSyntaxKeywords()`·`getFunctions()`·`getStatementPrefixLength(text)`(2026-11-17 작업 6a). 기본 구현은 "기여 없음" |
 | `AltibaseSQLDialect.applyServerExtensions` / `getStatementPrefixLength` | 감지 뒤 데이터 원본이 자기 방언 객체에 넘긴다: 낱말은 키워드로(서버가 `V$RESERVED_WORDS`에 없으면 `mustBeQuoted`의 이유가 아님, `CACHE`와 같은 규칙), 함수는 함수로, 접두어 길이는 확장에 묻는다(확장이 없으면 0 = 전과 같음) |
 | `AltibaseServerExtensionState.getPrefixedStatementSubquery` / `getStatementPrefixProposals` → `AltibaseSQLDialect`의 같은 이름(2026-11-17 작업 6b) | 접두어 문장을 하위 질의로 쓰는 형태(행 수·필터·정렬이 감쌀 때)와 입력 중인 접두어의 자동 완성 제안. 문장의 접두어를 아는 확장에 묻는다. 확장이 없으면 null = 전과 같음(형태 없음 → 다시 읽기 막힘, 제안 없음) |
+| `AltibaseServerExtensionState.getReplicationCatalog()` → `AltibaseDataSource.getReplicationCatalog()`(2026-11-17 작업 4·5) | 복제를 다른 카탈로그에 두는 서버의 복제 카탈로그. 처음 답한 확장의 것, 없으면 Altibase 카탈로그(아래 "복제 카탈로그") |
 | `extension/AltibaseServerExtensionRegistry` | 확장 지점을 처음 물을 때 한 번 읽고 확장 객체를 하나씩 만든다. 만들 수 없는 확장은 기록하고 뺀다 |
 | `AltibaseDataSource.initialize` → `detectServerExtensions` | 연결이 쓸 수 있게 된 뒤(상위 `initialize`, LOB 임계값 다음) 확장마다 `detect`를 메타 세션 하나에서 부르고 결과를 인스턴스 필드 `serverExtensions`에 둔다. 확장이 없으면 세션도 열지 않는다 |
 | `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
@@ -720,11 +722,62 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   새로 고침에서는 `initDriverSettings`(서버 예약어)가 다시 돈 뒤 감지와 기여가 다시 들어오고, 그 사이에도 접두어 인식은 앞 결과를 그대로 쓴다(꺼지지 않음).
   낱말은 한 번 더해지면 남는다(같은 서버에서는 늘 같은 결과). 확인: 두 연결을 함께 열고 양쪽 순서, 새로 고침, 다시 연결에서 방언 객체와 접두어 길이를 읽음
   ([shardsphere.md](shardsphere.md) "문장 접두어").
-- **아직 두지 않은 것:** 복제 카탈로그 전략(S2, GEMINI 트리와 함께), 관리 보고서(S4), 객체 명령(S6/S7)은 그 작업에서 정한다.
+- **아직 두지 않은 것:** 관리 보고서(S4), 객체 명령(S6/S7)은 그 작업에서 정한다. 복제 카탈로그 전략(S2)은 2026-11-17에 두었다(아래 "복제 카탈로그").
 
 ### upstream 대비 변경점
 
 - upstream에는 Altibase 서버 확장이 없다. 확장 지점, 세 타입, 데이터 원본의 감지·어댑터·트리 자리, System Info의 트리 항목 하나를 더했다.
+
+## 복제 카탈로그 (2026-11-17, 앱 변경 #139 작업 4·5)
+
+### 목적
+
+같은 계열의 서버가 복제를 다른 이름의 카탈로그에 둔다(ShardSphere의 GEMINI, [shardsphere.md](shardsphere.md) "GEMINI"). 복제 문장이 Altibase 이름을
+코드 여러 곳에 박아 두어, 그런 서버에서는 Replications 폴더가 늘 비고(표 없음 오류를 숨김) 활동 모니터의 복제 탭이 "읽을 수 없음 … SYS_REPL_HOSTS_"였다.
+이 플러그인과 `model.admin`의 복제 문장을 연결마다 고르는 전략 하나로 모았다. 이 플러그인은 그 서버가 무엇인지 모른다.
+
+### 구조
+
+| 위치 | 하는 일 |
+|---|---|
+| `model/AltibaseReplicationCatalog` (인터페이스) | 카탈로그 이름(`getDisplayName`, Altibase는 null), 트리 문장(`getListQuery(byName)`, `getItemsQuery`, `getSenderQuery`, `getReceiverQuery`), 속성 이름(`getPortProperty`, `getGapUnitProperty` — 없으면 null), 열 유무(`hasHostConnectionType`), 능력(`supportsControlStatements`, `getDdlObjectType` — 모르면 null), 복제 탭 문장 4개(`getStatus*Query`, 열은 순서로 읽음) |
+| `model/AltibaseDefaultReplicationCatalog` | Altibase 카탈로그. 각 클래스에 있던 문자열을 그대로 옮겼다(모양을 고치지 않음) |
+| `AltibaseDataSource.getReplicationCatalog()` | 감지된 서버 확장 중 처음 답한 것(`AltibaseServerExtensionState.getReplicationCatalog()`), 없으면 기본. 질의 없음 |
+| `AltibaseDataSource.ReplicationCache` | 목록·이름 조회는 데이터 원본의 카탈로그, 항목은 그 복제를 읽은 카탈로그 |
+| `AltibaseReplication` | 자기를 읽은 카탈로그를 갖는다: 송신·수신 문장, `supportsControlStatements()`, 속성 `catalogName`(종류, 카탈로그 이름이 있을 때만 보임), `remoteConnType`(그 열이 있을 때만 보임·읽음), 통계 크기(지연 바이트)는 지연 단위가 있을 때만 |
+| `AltibaseReplicationSender` | 지연 단위가 있으면 `GAP_SIZE_IN_BYTE`(바이트, "Gap (Byte)"), 없으면 `REP_GAP`을 단위 없이("Gap"/"지연"). 둘 중 하나만 보인다 |
+| `AltibaseMetaModel.getReplicationDDL` | `DBMS_METADATA.GET_DDL`의 객체 유형을 카탈로그에서. null이면 부르지 않고 빈 DDL |
+| `tasks/AltibaseToolReplicationStart`·`Stop` | 카탈로그가 제어 문장을 허락하지 않으면 문장을 만들지 않고 예외(저장된 작업 같은 다른 길 대비) |
+| `model.admin` `ObjectMaintenanceActions.supports` | 시작·중지·동기화는 `replication.supportsControlStatements()`일 때만 → 오른쪽 클릭 메뉴에 항목이 없다(적용되지 않는 명령은 보이지 않는 규칙) |
+| `model.admin` `AltibaseReplicationDialect` | 문장과 속성 이름을 데이터 원본의 카탈로그에서. 카탈로그 이름이 있으면 요약의 포트 행이 "{이름} 포트", 0이면 "0: 이 서버는 {이름} 사용 안 함({속성})". 지연 단위가 없으면 송신 표의 지연 열이 바이트가 아닌 수("지연", 단위 미확인 툴팁). 제어 문장이 없으면 복제 표의 시작·중지 안내를 붙이지 않는다 |
+
+### 설계 결정
+
+- **모델 클래스는 그대로, SELECT 목록이 별칭한다.** 복제·항목·송신·수신 클래스는 열 이름으로 읽으므로 카탈로그의 SELECT가 열을 Altibase 이름으로 별칭한다.
+  카탈로그에 없는 열은 행에 없을 뿐이고 `JDBCUtils.safeGet*`가 "값 없음"(null/0)으로 읽는다. 그 열에만 기대는 속성(연결 유형, 바이트 지연)은 `@Property(visibleIf)`로
+  그 카탈로그에서 숨기고, 없는 열은 읽지도 않는다(디버그 기록이 쌓이지 않게).
+- **Altibase 문장은 글자 하나까지 같다.** 기본 카탈로그의 문장을 이 변경 전 소스의 문자열과 비교했다(기준 `8d78269ed4`의 소스에서 문자열 식을 그대로 뽑아 컴파일한
+  것과 빌드한 jar의 결과, 12개 모두 같음: 트리 목록·이름 조회·항목·송신·수신, 탭의 포트·지연 단위·호스트·복제·송신·수신, DDL 객체 유형). 탭의 속성 문장은
+  `"SELECT VALUE1 FROM V$PROPERTY WHERE NAME = '" + 속성 + "'"`로 만들어도 같은 글자다.
+- **탭이 카탈로그를 얻는 길: 데이터 원본의 전략을 기존 Altibase 방언이 읽는다.** 계획의 S3(관리 쪽 어댑터 먼저)를 쓰지 않은 이유: 표·열의 뜻과 화면이 같아 다른 것은
+  문장 이름뿐이고, 어댑터로 하면 확장 번들이 `model.admin`에 기대며 같은 방언을 거의 복사해야 한다. `model.admin`은 카탈로그 인터페이스만 알고 제품 이름을 모른다.
+  S3는 표나 화면이 다른 서버가 생기면 그때 둔다.
+- **제어 문장은 능력으로 막는다.** 확인하지 않은 카탈로그(GEMINI)에서 `ALTER REPLICATION`을 보내지 않으려고: 메뉴(`supports`), 스크립트 생성(`generateScript`가 `supports`를 다시 봄),
+  모델 도구(예외) 세 곳. 복제에는 객체 관리자가 없어 새로 만들기·삭제·이름 바꾸기는 원래 없다(`plugin.xml` `objectManager`에 복제 없음, Swing은 관리자가 있을 때만 그 명령을 냄).
+  DDL 탭의 `exec ? := dbms_metadata.get_ddl('REPLICATION', …)`도 확인하지 않은 카탈로그에서는 부르지 않는다.
+- **카탈로그는 복제 객체가 갖는다.** 새로 고침 사이에 데이터 원본의 확장 상태가 바뀌어도(새 감지 객체) 이미 읽은 복제의 항목·송신·수신은 자기를 읽은 카탈로그에서 읽는다.
+- **이름이 없는 카탈로그는 Altibase 문구 그대로.** 카탈로그 이름(`getDisplayName`)이 null이면 탭과 속성 보기의 문구가 전과 같다(종류 속성 숨김).
+
+### 확인 (2026-11-17)
+
+- Altibase 7.3(시험 서버): 기본 카탈로그의 11개 문장을 앱 안에서 준비하고 실행(모두 0행, 속성 2개는 1행), 폴더(0개, 오류 없음)와 탭(복제 포트 "0: 이 서버는 복제가
+  꺼져 있음(REPLICATION_PORT_NO)", 구성되지 않음)이 전과 같은 글자. 쿼리 관리자의 문장이 전과 같다. 손으로 만든 행: 연결 유형 보임, 바이트 지연("168K" = 42 × 4096),
+  시작·중지·동기화 적용됨, 시작 도구가 문장을 만듦. 자세한 것과 ShardSphere 쪽은 [shardsphere.md](shardsphere.md) "GEMINI".
+- 회귀 테스트는 작성·실행하지 않았다.
+
+### upstream 대비 변경점
+
+- upstream의 복제 문장은 각 클래스에 있었다. 그 문자열을 바꾸지 않고 기본 카탈로그로 옮기고, 카탈로그 인터페이스·데이터 원본의 선택·능력 검사를 더했다.
 
 ## 변경 이력
 
@@ -752,3 +805,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-17 서버 확장의 방언 기여(문법 낱말, 함수, 문장 접두어 길이)를 연결의 방언 객체에(`AltibaseSQLDialect.applyServerExtensions`, 앱 변경 #139 작업 6a),
   위 "서버 확장".
 - 2026-11-17 서버 확장의 방언 기여에 접두어 문장의 하위 질의 형태와 입력 중인 접두어의 제안을 더함(앱 변경 #139 작업 6b), 위 "서버 확장".
+- 2026-11-17 복제 카탈로그 전략(S2): 이 플러그인과 활동 모니터 복제 탭의 복제 문장을 연결의 카탈로그에서 받음(Altibase 문장은 같음), 서버 확장이 다른 카탈로그를 줌,
+  제어 문장 능력으로 시작·중지·동기화를 숨김, 단위 없는 지연(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "복제 카탈로그".

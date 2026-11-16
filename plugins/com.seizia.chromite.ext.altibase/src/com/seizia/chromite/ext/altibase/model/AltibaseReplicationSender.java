@@ -19,17 +19,29 @@
 package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.ByteNumberFormat;
 
-/*
+/**
  * A thread to send replication target table's data to a peer database.
+ *
+ * 설계: 지연은 서버가 주는 수에 지연 단위 속성을 곱한 바이트다. 복제 카탈로그에 단위 속성이 없으면
+ * ({@link AltibaseReplicationCatalog#getGapUnitProperty()} = null) 단위를 모르므로 바이트로 보이지 않고 서버의 수를 그대로
+ * 단위 없이 보인다({@link #getGapWithoutUnit()}): 틀린 단위보다 단위 없는 수가 낫다. 두 속성 중 그 카탈로그에 맞는 하나만 보인다.
+ *
+ * 변경 이력:
+ * - 2026-11-17 지연 단위가 없는 카탈로그의 지연을 단위 없이(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  */
 public class AltibaseReplicationSender extends AltibaseReplicationModule {
 
+    // The sender gap times the gap unit; only where the catalog has a gap unit
     private long gapSizeInByte;
+    // The sender gap as the server reports it; only where the catalog has no gap unit
+    private long gapWithoutUnit;
     private String startFlag;
     private boolean networkError;
     private long xsn;
@@ -48,7 +60,15 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
         status = getStatus(JDBCUtils.safeGetLong(resultSet, "STATUS"));
         readLogCount = JDBCUtils.safeGetLong(resultSet, "READ_LOG_COUNT");
         sentLogCount = JDBCUtils.safeGetLong(resultSet, "SEND_LOG_COUNT");
-        gapSizeInByte = JDBCUtils.safeGetLong(resultSet, "GAP_SIZE_IN_BYTE");
+        if (hasGapUnit(parent)) {
+            gapSizeInByte = JDBCUtils.safeGetLong(resultSet, "GAP_SIZE_IN_BYTE");
+        } else {
+            gapWithoutUnit = JDBCUtils.safeGetLong(resultSet, "REP_GAP");
+        }
+    }
+
+    private static boolean hasGapUnit(@NotNull AltibaseReplication replication) {
+        return replication.getReplicationCatalog().getGapUnitProperty() != null;
     }
 
     @NotNull
@@ -58,9 +78,17 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
         return "Sender";
     }
 
-    @Property(viewable = true, order = 2, formatter = ByteNumberFormat.class)
+    @Property(viewable = true, order = 2, formatter = ByteNumberFormat.class, visibleIf = GapUnitKnown.class)
     public long getGap() {
         return gapSizeInByte;
+    }
+
+    /**
+     * The gap in the server's own unit, where the catalog names no unit.
+     */
+    @Property(viewable = true, order = 2, visibleIf = GapUnitUnknown.class)
+    public long getGapWithoutUnit() {
+        return gapWithoutUnit;
     }
 
     @NotNull
@@ -132,6 +160,26 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
             case 8: return "Failback Flush";
             case 9: return "Idle";
             default: return "Unknown";
+        }
+    }
+
+    /**
+     * Shows the gap in bytes where the catalog has a gap unit.
+     */
+    public static class GapUnitKnown implements IPropertyValueValidator<AltibaseReplicationSender, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplicationSender object, @Nullable Object value) {
+            return hasGapUnit(object.getParentObject());
+        }
+    }
+
+    /**
+     * Shows the gap without a unit where the catalog has no gap unit.
+     */
+    public static class GapUnitUnknown implements IPropertyValueValidator<AltibaseReplicationSender, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplicationSender object, @Nullable Object value) {
+            return !hasGapUnit(object.getParentObject());
         }
     }
 }
