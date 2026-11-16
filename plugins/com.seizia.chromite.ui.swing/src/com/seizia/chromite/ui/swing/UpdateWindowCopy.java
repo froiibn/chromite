@@ -60,10 +60,14 @@ import java.util.stream.Stream;
  *     {@code NLS}가 든 OSGi 프레임워크 jar. 진입점은 이 jar들만 클래스 경로로 쓰는 평범한 Java 프로그램이다.</li>
  * </ul>
  * 번들 파일은 OSGi에게 물어 찾는다({@link FileLocator#getBundleFileLocation}). 번들이 폴더면(개발 실행) 폴더째 복사한다.
+ * 프레임워크 jar는 번들이 아니라 런처가 띄운 것이라 그 URL(코드 출처, {@value #PROP_FRAMEWORK})을 경로로 바꾼다. 런처는 이 URL을
+ * 인코딩하지 않으므로(공백 그대로) 엄격한 {@link URI}로 바꾸지 않는다({@link #localFile}).
  * 크기와 걸린 시간은 디버그 로그와 업데이트 도우미 기록에 남긴다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 업데이트 진행 창 (docs/chromite/auto-update.md "업데이트 진행 창")
+ * - 2026-11-16 설치 폴더 경로에 공백이 있으면(기본 설치 폴더 Program Files) 프레임워크 jar를 찾지 못해 사본을 만들지 못하던 것:
+ *   인코딩하지 않은 URL을 쓰인 그대로 읽고, 두 출처를 따로 시도 (앱 변경 #138, docs/chromite/auto-update.md "업데이트 진행 창")
  */
 final class UpdateWindowCopy {
 
@@ -158,29 +162,59 @@ final class UpdateWindowCopy {
 
     /**
      * The OSGi framework's jar (it holds {@link NLS}): where its classes come from, else the launcher's
-     * {@value #PROP_FRAMEWORK} property.
+     * {@value #PROP_FRAMEWORK} property. The two are tried one after the other: a location that cannot be read does not
+     * keep the other from being tried.
      */
     @NotNull
     private static Path frameworkJar() throws IOException {
-        try {
-            CodeSource source = NLS.class.getProtectionDomain().getCodeSource();
-            if (source != null && source.getLocation() != null) {
-                Path path = Path.of(source.getLocation().toURI());
-                if (Files.isRegularFile(path)) {
-                    return path;
-                }
+        List<String> notFound = new ArrayList<>();
+        CodeSource source = NLS.class.getProtectionDomain().getCodeSource();
+        if (source != null && source.getLocation() != null) {
+            Path path = localFile(source.getLocation().toString(), notFound);
+            if (path != null) {
+                return path;
             }
-            String framework = System.getProperty(PROP_FRAMEWORK);
-            if (framework != null) {
-                Path path = RuntimeUtils.getLocalPathFromURL(URI.create(framework).toURL());
-                if (Files.isRegularFile(path)) {
-                    return path;
-                }
+        }
+        String framework = System.getProperty(PROP_FRAMEWORK);
+        if (framework != null) {
+            Path path = localFile(framework, notFound);
+            if (path != null) {
+                return path;
+            }
+        }
+        throw new IOException("the framework's jar was not found: " + String.join("; ", notFound)); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * The existing file a {@code file:} URL names, or null (why goes to {@code notFound}).
+     * <p>
+     * The Equinox launcher does not encode the URLs of the framework's jar: {@code file:/c:/Program Files/...} keeps the
+     * space, and a {@code %}, {@code #} or a Hangul letter of the path is written as it is. A strict {@link URI} refuses
+     * such a URL (the space) or reads another file from it ({@code %20}), so the URL is first read as written
+     * ({@link RuntimeUtils#getLocalPathFromURL}); a URL that is encoded after all names no file that way and is then read
+     * as a URI.
+     */
+    @Nullable
+    private static Path localFile(@NotNull String url, @NotNull List<String> notFound) {
+        try {
+            Path asWritten = RuntimeUtils.getLocalPathFromURL(new URL(url));
+            if (Files.isRegularFile(asWritten)) {
+                return asWritten;
+            }
+        } catch (IOException | RuntimeException e) {
+            notFound.add(e.getMessage());
+        }
+        try {
+            Path encoded = Path.of(new URI(url));
+            if (Files.isRegularFile(encoded)) {
+                return encoded;
             }
         } catch (URISyntaxException | RuntimeException e) {
-            throw new IOException("the framework's jar was not found: " + e.getMessage(), e);
+            notFound.add(e.getMessage());
+            return null;
         }
-        throw new IOException("the framework's jar was not found"); //$NON-NLS-1$
+        notFound.add("no file: " + url); //$NON-NLS-1$
+        return null;
     }
 
     private static void copyTree(@NotNull Path source, @NotNull Path target) throws IOException {
