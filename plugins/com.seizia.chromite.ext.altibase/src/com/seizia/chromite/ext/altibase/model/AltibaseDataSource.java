@@ -1,0 +1,929 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.altibase.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.DBDatabaseException;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.model.plan.AltibaseActualPlanProvider;
+import com.seizia.chromite.ext.altibase.model.plan.AltibaseQueryPlanner;
+import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSessionManager;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericSynonym;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPObjectStatisticsCollector;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectLookupCache;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCStructLookupCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLState;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import org.jkiss.utils.CommonUtils;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+/**
+ * Altibase data source.
+ *
+ * 설계: 서버 출력(PRINT/PRINTLN)은 드라이버의 메시지 콜백이 데이터 원본의 버퍼({@code AltibaseOutputReader})에 모으고,
+ * SQL 편집기가 문장마다 {@code readServerOutput}으로 읽어 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않는다(읽는 쪽도 읽지 않아
+ * 등록하면 버퍼가 연결이 열려 있는 동안 계속 커진다). 콜백은 세션마다 등록되므로, 세션을 연 뒤 설정이 바뀌면 쿼리 창이 다음 문장 전에
+ * 부르는 {@code syncServerOutput}이 그 세션의 콜백을 등록하거나 지운다(드라이버의 {@code registerMessageCallback(null)}은 콜백을 지우고
+ * 서버에 메시지를 보내지 말라고 알린다, {@code javap}로 확인).
+ *
+ * 변경 이력:
+ * - 2026-11-07 서버 출력 설정이 꺼져 있으면 콜백을 등록하지 않고, 비어 있으면 빈 줄을 쓰지 않음
+ *   (docs/chromite/swing-server-output.md)
+ * - 2026-11-08 설정을 바꾸면 열린 세션에도 다음 문장부터 적용({@code syncServerOutput}, docs/chromite/swing-server-output.md)
+ * - 2026-11-08 실제 계획 어댑터({@link AltibaseActualPlanProvider}, docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-12 {@link #discoverErrorType}: 서버가 세션을 닫은 오류 4163(SQLState 08004)을 연결 끊김으로. 실행 중인 문장의 첫 오류라
+ *   자동 복구도, 끊긴 세션 처리도 없었다(앱 변경 #75, docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
+ * - 2026-11-14 서버 출력 콜백 인터페이스를 클래스 이름(`<패키지>.jdbc.driver.AltibaseMessageCallback`)으로 찾지 않고 연결의
+ *   {@code registerMessageCallback} 매개변수에서 얻음. 이름이 다른 Altibase 계열 드라이버(ShardSphere,
+ *   {@code shardsphere.jdbc.driver.shardsphereMessageCallback})는 클래스를 찾지 못해 {@link #initializeContextState}가 예외를 던지고
+ *   연결이 실패한다(서버 출력 기본값이 켜짐, 코드로 확인, 앱 변경 #113, docs/chromite/drivers.md "ShardSphere")
+ * - 2026-11-14 {@link #getReplications}: 복제 카탈로그 표가 없는 서버(ShardSphere)는 복제가 없는 것이므로 "표 없음"(42S02, 0x31031) 하나만
+ *   빈 목록으로 읽는다. Object Explorer의 Replications 폴더가 오류로 끝났다(앱 변경 #113)
+ * - 2026-11-15 {@link #getDbName}: 드라이버 매개변수 query-get-active-db 대신 {@link AltibaseConstants#QUERY_GET_DB_NAME}. 그 매개변수는
+ *   일반(generic) 실행 문맥이 기본 스키마 이름을 읽는 질의라 이제 로그인 사용자를 읽는다(앱 변경 #116, docs/chromite/altibase.md
+ *   "세션의 기본 스키마")
+ */
+public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
+
+    private static final Log log = Log.getLog(AltibaseDataSource.class);
+
+    final TablespaceCache tablespaceCache = new TablespaceCache();
+    final UserCache userCache = new UserCache();
+    final RoleCache roleCache = new RoleCache();
+    final ReplicationCache replCache;
+    final JobCache jobCache;
+    final DbLinkCache dbLinkCache;
+    final MemoryModuleCache memoryModuleCache;
+    
+    private boolean hasStatistics;
+
+    private GenericSchema publicSchema;
+    private boolean isPasswordExpireWarningShown;
+    private AltibaseOutputReader outputReader;
+
+    private String dbName;
+
+    private int lobCacheThreshold;
+
+    public AltibaseDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container, AltibaseMetaModel metaModel)
+            throws DBException {
+        super(monitor, container, metaModel, new AltibaseSQLDialect());
+
+        replCache = new ReplicationCache(this);
+        jobCache = new JobCache();
+        dbLinkCache = new DbLinkCache();
+        memoryModuleCache = new MemoryModuleCache();
+    }
+
+    @Override
+    public void initialize(@NotNull DBRProgressMonitor monitor) throws DBException {
+        super.initialize(monitor);
+        loadLobThreshold(monitor);
+
+        // PublicSchema is for global objects such as public synonym.
+        publicSchema = new GenericSchema(this, null, AltibaseConstants.USER_PUBLIC);
+        publicSchema.setVirtual(true);
+    }
+
+    @Override
+    protected void initializeContextState(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull JDBCExecutionContext context,
+        @Nullable JDBCExecutionContext initFrom
+    ) throws DBException {
+
+        super.initializeContextState(monitor, context, initFrom);
+
+        // Enable DBMS output
+        if (outputReader == null) {
+            outputReader = new AltibaseOutputReader();
+        }
+
+        outputReader.enableServerOutput(
+            monitor,
+            context,
+            outputReader.isServerOutputEnabled());
+    }
+
+    @NotNull
+    public AltibaseMetaModel getMetaModel() {
+        return (AltibaseMetaModel) super.getMetaModel();
+    }
+
+    @Override
+    public boolean isOmitCatalog() {
+        return true;
+    }
+
+    /**
+     * Get database name.
+     */
+    public String getDbName(JDBCSession session) throws DBException {
+        if (dbName == null) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(AltibaseConstants.QUERY_GET_DB_NAME)) {
+                try (JDBCResultSet resultSet = dbStat.executeQuery()) {
+                    resultSet.next();
+                    dbName = JDBCUtils.safeGetStringTrimmed(resultSet, 1);
+                }
+            } catch (SQLException e) {
+                throw new DBDatabaseException(e, this);
+            }
+        }
+
+        return dbName;
+    }
+
+    @Override
+    public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
+        super.refreshObject(monitor);
+
+        this.tablespaceCache.clearCache();
+        this.userCache.clearCache();
+        this.roleCache.clearCache();
+        this.replCache.clearCache();
+        this.jobCache.clearCache();
+        this.dbLinkCache.clearCache();
+
+        hasStatistics = false;
+
+        this.initialize(monitor);
+
+        return this;
+    }
+
+    @Nullable
+    @Override
+    public DBSObject getChild(@NotNull DBRProgressMonitor monitor, @NotNull String childName) throws DBException {
+        DBSObject child = super.getChild(monitor, childName);
+
+        // If it's unable to find the target object in schema, then need to find it from non-schema objects
+        if (child == null) {
+            child = this.getReplication(monitor, childName);
+        }
+
+        return child;
+    }
+
+    @Nullable
+    @Override
+    public <T> T getAdapter(@NotNull Class<T> adapter) {
+        if (adapter == DBCServerOutputReader.class) {
+            return adapter.cast(outputReader);
+        } else if (adapter == DBCQueryPlanner.class) {
+            return adapter.cast(new AltibaseQueryPlanner(this));
+        } else if (adapter == SQLActualPlanProvider.class) {
+            return adapter.cast(new AltibaseActualPlanProvider(this));
+        } else if (adapter == DBAServerSessionManager.class) {
+            return adapter.cast(new AltibaseServerSessionManager(this));
+        }
+
+        return super.getAdapter(adapter);
+    }
+
+    @NotNull
+    @Override
+    public ErrorType discoverErrorType(@NotNull Throwable error) {
+        if (JDBCUtils.matchesSQLException(error, e -> e.getErrorCode() == AltibaseConstants.EC_SESSION_CLOSED)) {
+            // The session is gone: the driver reports 08S01 (communication link failure) only from the next statement on
+            return ErrorType.CONNECTION_LOST;
+        }
+        return super.discoverErrorType(error);
+    }
+
+    @Override
+    protected Connection openConnection(
+            @NotNull DBRProgressMonitor monitor, 
+            @Nullable JDBCExecutionContext context, 
+            @NotNull String purpose) throws DBCException {
+        try {
+            Connection connection = super.openConnection(monitor, context, purpose);
+            try {
+                for (SQLWarning warninig = connection.getWarnings();
+                    warninig != null && !isPasswordExpireWarningShown;
+                    warninig = warninig.getNextWarning()
+                ) {
+                    if (checkForPasswordWillExpireWarning(warninig)) {
+                        isPasswordExpireWarningShown = true;
+                    }
+                }
+            } catch (SQLException e) {
+                log.debug("Can't get connection warnings", e);
+            }
+            return connection;
+        } catch (DBCException e) {
+            throw e;
+        }
+    }
+
+    private boolean checkForPasswordWillExpireWarning(@NotNull SQLWarning warning) {
+        if ((warning != null) && (warning.getErrorCode() == AltibaseConstants.EC_PASSWORD_WILL_EXPIRE)) {
+            DBWorkbench.getPlatformUI().showWarningMessageBox(
+                    AltibaseConstants.SQL_WARNING_TITILE,
+                    warning.getMessage() + 
+                    AltibaseConstants.NEW_LINE + 
+                    AltibaseConstants.PASSWORD_WILL_EXPIRE_WARN_DESCRIPTION);
+
+            return true;
+        }
+        return false;
+    }
+
+    @NotNull
+    @Override
+    public AltibaseDataSource getDataSource() {
+        return this;
+    }
+
+    @Override
+    public boolean splitProceduresAndFunctions() {
+        return true;
+    }
+
+    @NotNull
+    @Override
+    public Class<? extends DBSObject> getPrimaryChildType(@Nullable DBRProgressMonitor monitor) throws DBException {
+        return AltibaseSchema.class;
+    }
+
+    /*
+     * Altibase metadata does not provide information about the target synonym's original object type.
+     */
+    public DBSObject findSynonymTargetObject(DBRProgressMonitor monitor, @Nullable String refSchemaName, @NotNull String refObjName)
+            throws DBException {
+        DBSObject refObj = null;
+        AltibaseSchema refSchema = (AltibaseSchema) this.getSchema(refSchemaName);
+
+        if (refSchema != null) {
+            // No object type from database metadata, so need to find it one by one.
+            if (refObj == null) {
+                refObj = refSchema.getTable(monitor, refObjName);
+            } 
+            if (refObj == null) {
+                refObj = refSchema.getSequence(monitor, refObjName);
+            }
+            if (refObj == null) {
+                refObj = refSchema.getSynonym(monitor, refObjName);
+            }
+            if (refObj == null) {
+                refObj = refSchema.getProcedureByName(monitor, refObjName);
+            }
+            if (refObj == null) {
+                refObj = refSchema.getPackage(monitor, refObjName);
+            }
+            if (refObj == null) {
+                refObj = refSchema.getIndex(monitor, refObjName);
+            }
+            if (refObj == null) {
+                refObj = refSchema.getTableTrigger(monitor, refObjName);
+            }
+        } else {
+            /*
+             *  Though Public synonym does not have its own schema, but SYSTEM_.SYS_SYONYMS_.OBJECT_OWNER_NAME returns 
+             *  the object creator as owner like Oracle.
+             *  So, first look for it in the owner's private schema, and if it is not found, then try to find it at public schema.
+             *  If found, judge it as a public schema.
+             */
+            if (refObj == null) {
+                refObj = publicSchema.getSynonym(monitor, refObjName);
+                if (refObj != null) {
+                    ((AltibaseSynonym) refObj).setPublicSynonym();
+                }
+            }
+        }
+
+        return refObj;
+    }
+
+    /**
+     * Returns public synonym as a collection.
+     */
+    public Collection<? extends GenericSynonym> getPublicSynonyms(DBRProgressMonitor monitor) throws DBException {
+        return publicSchema.getSynonyms(monitor);
+    }
+
+    ///////////////////////////////////////////////
+    // Tablespace
+
+    /**
+     * Get tablespace colection
+     */
+    @Association
+    public Collection<AltibaseTablespace> getTablespaces(DBRProgressMonitor monitor) throws DBException {
+        return tablespaceCache.getAllObjects(monitor, this);
+    }
+
+    /**
+     * Get tablespace cache
+     */
+    public TablespaceCache getTablespaceCache() {
+        return tablespaceCache;
+    }
+
+    static class TablespaceCache extends JDBCObjectCache<AltibaseDataSource, AltibaseTablespace> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(
+                @NotNull JDBCSession session, @NotNull AltibaseDataSource owner) throws SQLException {
+            return session.prepareStatement("SELECT * FROM V$TABLESPACES ORDER BY NAME ASC");
+        }
+
+        @Override
+        protected AltibaseTablespace fetchObject(
+                @NotNull JDBCSession session, 
+                @NotNull AltibaseDataSource owner, 
+                @NotNull JDBCResultSet resultSet) throws SQLException, DBException {
+            return new AltibaseTablespace(owner, resultSet);
+        }
+    }
+
+    /**
+     * Get User cache
+     */
+    static class UserCache extends JDBCObjectCache<AltibaseDataSource, AltibaseUser> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, 
+                @NotNull AltibaseDataSource owner) throws SQLException {
+            return session.prepareStatement(
+                "SELECT u.*, tbs1.name AS default_tbs_name, tbs2.name AS temp_tbs_name "
+                + "FROM SYSTEM_.SYS_USERS_ u, V$TABLESPACES tbs1, V$TABLESPACES tbs2 "
+                + "WHERE u.user_type = 'U' AND u.DEFAULT_TBS_ID = tbs1.id AND u.TEMP_TBS_ID = tbs2.id "
+                + "ORDER BY user_name");
+        }
+
+        @Override
+        protected AltibaseUser fetchObject(@NotNull JDBCSession session, @NotNull AltibaseDataSource owner, 
+                @NotNull JDBCResultSet resultSet) throws SQLException, DBException {
+            return new AltibaseUser(owner, resultSet);
+        }
+    }
+
+    /**
+     * Returns Altibase users. 
+     */
+    @Association
+    public Collection<AltibaseUser> getUsers(DBRProgressMonitor monitor) throws DBException {
+        return userCache.getAllObjects(monitor, this);
+    }
+
+    /**
+     * Returns a specific Altibase user. 
+     */
+    @Association
+    public AltibaseUser getUser(DBRProgressMonitor monitor, String name) throws DBException {
+        return userCache.getObject(monitor, this, name);
+    }
+
+    /**
+     * Altibase Roles
+     */
+    static class RoleCache extends JDBCObjectCache<AltibaseDataSource, AltibaseRole> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, 
+                @NotNull AltibaseDataSource owner) throws SQLException {
+            return session.prepareStatement(
+                "SELECT * "
+                + " FROM SYSTEM_.SYS_USERS_ u "
+                + " WHERE u.user_type = 'R' AND u.user_name <> 'PUBLIC'"
+                + " ORDER BY user_name");
+        }
+
+        @Override
+        protected AltibaseRole fetchObject(@NotNull JDBCSession session, @NotNull AltibaseDataSource owner, 
+                @NotNull JDBCResultSet resultSet) throws SQLException, DBException {
+            return new AltibaseRole(owner, resultSet);
+        }
+    }
+
+    /**
+     * Returns Altibase roles 
+     */
+    @Association
+    public Collection<AltibaseRole> getRoles(DBRProgressMonitor monitor) throws DBException {
+        return roleCache.getAllObjects(monitor, this);
+    }
+
+    /**
+     * Returns a specific Altibase role.
+     */
+    @Association
+    public AltibaseRole getRole(DBRProgressMonitor monitor, String name) throws DBException {
+        return roleCache.getObject(monitor, this, name);
+    }
+
+    /**
+     * Returns Altibase grantee. 
+     */
+    public AltibaseGrantee getGrantee(DBRProgressMonitor monitor, String name) throws DBException {
+        AltibaseUser user = userCache.getObject(monitor, this, name);
+        if (user != null) {
+            return user;
+        }
+        return roleCache.getObject(monitor, this, name);
+    }
+
+
+    ///////////////////////////////////////////////
+    // Replications
+    static class ReplicationCache extends JDBCStructLookupCache<GenericStructContainer, AltibaseReplication, AltibaseReplicationItem> {
+
+        final AltibaseDataSource dataSource;
+
+        protected ReplicationCache(AltibaseDataSource dataSource) {
+            super("Replication");
+            this.dataSource = dataSource;
+            setListOrderComparator(DBUtils.<AltibaseReplication>nameComparatorIgnoreCase());
+        }
+
+        public AltibaseDataSource getDataSource() {
+            return dataSource;
+        }
+
+        @NotNull
+        @Override
+        public JDBCStatement prepareLookupStatement(@NotNull JDBCSession session, @NotNull GenericStructContainer owner, 
+                @Nullable AltibaseReplication object, @Nullable String objectName) throws SQLException {
+            String replName = (object != null) ? object.getName() : objectName;
+            final JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT"
+                            + " r.replication_name,"
+                            + " r.is_started,"
+                            + " DECODE( r.conflict_resolution,"
+                                + " 0, 'Default', "
+                                + " 1, 'Master', "
+                                + " 2, 'Slave', "
+                                + " 'Unknown') AS conflict_resolution,"
+                            + " DECODE( r.repl_mode, "
+                                + " 0, 'Lazy', "
+                                + " 2,'Eager', "
+                                + " 'Unknown') AS repl_mode, "
+                            + " DECODE( r.role,"
+                                + " 0, 'General',"
+                                + " 1, 'Log Analyzer',"
+                                + " 2, 'Propagable Logging',"
+                                + " 3, 'Propagation',"
+                                + " 4, 'Propagation for Log Analyzer ',"
+                                + " 'Unknown') AS role,"
+                            + " r.options,"
+                            + " DECODE( r.invalid_recovery,"
+                                + " 0, 'Valid',"
+                                + " 1, 'Invalid',"
+                                + " 'Unknown') AS recoverable,"
+                            + " parallel_applier_count,"
+                            + " rh.host_ip || ':' || rh.port_no AS remote_addr,"
+                            + " rh.conn_type AS remote_conn_type,"
+                            + " r.xsn,"
+                            + " r.remote_last_ddl_xsn,"
+                            + " r.remote_fault_detect_time,"
+                            + " r.give_up_time,"
+                            + " r.give_up_xsn,"
+                            + " r.remote_xsn,"
+                            + " r.applier_init_buffer_size,"
+                            + " r.peer_replication_name"
+                        + " FROM system_.sys_replications_ r, system_.sys_repl_hosts_ rh"
+                        + " WHERE"
+                            + " r.replication_name = rh.replication_name"
+                            + (CommonUtils.isEmpty(replName) ? "" : " AND r.replication_name = ?")
+                        + " ORDER BY r.replication_name"
+                    );
+
+            if (CommonUtils.isNotEmpty(replName)) {
+                dbStat.setString(1, replName);
+            }
+            return dbStat;
+        }
+
+        @Nullable
+        @Override
+        protected AltibaseReplication fetchObject(@NotNull JDBCSession session, @NotNull GenericStructContainer owner, 
+                @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new AltibaseReplication(owner, dbResult);
+        }
+
+        @Override
+        protected JDBCStatement prepareChildrenStatement(@NotNull JDBCSession session, @NotNull GenericStructContainer owner, 
+                @NotNull AltibaseReplication forTable) throws SQLException {
+            final JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT * FROM system_.sys_repl_items_"
+                    + " WHERE replication_name = ?"
+                    + " ORDER BY local_user_name, local_table_name, local_partition_name, "
+                    + " remote_user_name, remote_table_name, remote_partition_name");
+            dbStat.setString(1, forTable.getName());
+            return dbStat;
+        }
+
+        @Override
+        protected AltibaseReplicationItem fetchChild(@NotNull JDBCSession session, @NotNull GenericStructContainer owner, 
+                @NotNull AltibaseReplication replication, @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new AltibaseReplicationItem(replication, dbResult);
+        }
+    }
+
+    /**
+     * Get Replication Cache
+     */
+
+    public ReplicationCache getReplicationCache() {
+        return replCache;
+    }
+
+    /**
+     * Return all cached replications. A server without the replication catalog (SYSTEM_.SYS_REPLICATIONS_ is not there,
+     * as on ShardSphere) has no replications: that one error is an empty list, every other error is reported.
+     */
+    @Association
+    public Collection<AltibaseReplication> getReplications(DBRProgressMonitor monitor) throws DBException {
+        try {
+            return replCache.getAllObjects(monitor, this);
+        } catch (DBException e) {
+            if (JDBCUtils.matchesSQLException(e, ex -> ex.getErrorCode() == AltibaseConstants.EC_TABLE_NOT_FOUND
+                || SQLState.SQL_42S02.getCode().equals(ex.getSQLState()))) {
+                log.debug("No replication catalog on this server: " + e.getMessage());
+                return Collections.emptyList();
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Return a specific cached replication.
+     */
+    @Association
+    public AltibaseReplication getReplication(DBRProgressMonitor monitor, String name) throws DBException {
+        return replCache.getObject(monitor, this, name);
+    }
+
+    ///////////////////////////////////////////////
+    // Jobs
+    
+
+    public JobCache getJobCache() {
+        return jobCache;
+    }
+
+    static class JobCache extends JDBCObjectLookupCache<GenericStructContainer, AltibaseJob> {
+        
+        @Override
+        protected AltibaseJob fetchObject(@NotNull JDBCSession session, @NotNull GenericStructContainer owner,
+                                          @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new AltibaseJob(owner, dbResult);
+        }
+
+        @Override
+        public JDBCStatement prepareLookupStatement(JDBCSession session, GenericStructContainer owner,
+                AltibaseJob object, String objectName) throws SQLException {
+            boolean isNullObject = object == null && objectName == null;
+            final JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT * FROM system_.sys_jobs_ s "
+                    + (isNullObject ? "" : "  WHERE s.job_name = ?")
+                    + " ORDER BY job_name ASC");
+            
+            if (!isNullObject) {
+                dbStat.setString(1, object != null ? object.getName() : objectName);
+            }
+            
+            return dbStat;
+        }
+    }
+
+    @Association
+    public Collection<AltibaseJob> getJobs(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return jobCache.getAllObjects(monitor, this);
+    }
+
+    ///////////////////////////////////////////////
+    // Modules
+
+    @Association
+    public Collection<AltibaseMemoryModule> getMemoryModules(DBRProgressMonitor monitor) throws DBException {
+        return memoryModuleCache.getAllObjects(monitor, this);
+    }
+
+    public MemoryModuleCache getModuleCache() {
+        return memoryModuleCache;
+    }
+
+    static class MemoryModuleCache extends JDBCObjectCache<GenericStructContainer, AltibaseMemoryModule> {
+
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, 
+                @NotNull GenericStructContainer owner) throws SQLException {
+            return session.prepareStatement("SELECT * FROM v$memstat ORDER BY max_total_size DESC");
+        }
+
+        @Override
+        protected AltibaseMemoryModule fetchObject(@NotNull JDBCSession session, 
+                @NotNull GenericStructContainer owner, @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new AltibaseMemoryModule(owner, dbResult);
+        }
+    }
+
+    @Association
+    public Collection<AltibaseMemoryModule> getModules(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return memoryModuleCache.getAllObjects(monitor, this);
+    }
+
+    ///////////////////////////////////////////////
+    // Public DB Links
+    
+    public DbLinkCache getDbLinkCache() {
+        return dbLinkCache;
+    }
+    
+    static class DbLinkCache extends JDBCObjectLookupCache<GenericStructContainer, AltibaseDbLink> {
+
+        @Override
+        protected AltibaseDbLink fetchObject(@NotNull JDBCSession session, @NotNull GenericStructContainer owner,
+                                             @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new AltibaseDbLink(owner, dbResult);
+        }
+
+        @Override
+        public JDBCStatement prepareLookupStatement(JDBCSession session, GenericStructContainer owner,
+                AltibaseDbLink object, String objectName) throws SQLException {
+            boolean isNullObject = object == null && objectName == null;
+            final JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT null as USER_NAME, l.* FROM system_.sys_database_links_ l"
+                    + " WHERE user_mode = 0"
+                    + (isNullObject ? "" : " AND l.link_name = ?")
+                    + " ORDER BY link_name ASC");
+            
+            if (!isNullObject) {
+                dbStat.setString(1, object != null ? object.getName() : objectName);
+            }
+            
+            return dbStat;
+        }
+    }
+    
+    @Association
+    public Collection<AltibaseDbLink> getPublicDbLinks(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return dbLinkCache.getAllObjects(monitor, this);
+    }
+
+    ///////////////////////////////////////////////
+    // Statistics
+
+    @Override
+    public boolean isStatisticsCollected() {
+        return hasStatistics;
+    }
+
+    void resetStatistics() {
+        hasStatistics = false;
+    }
+
+    @Override
+    public void collectObjectStatistics(@NotNull DBRProgressMonitor monitor, boolean totalSizeOnly, boolean forceRefresh) throws DBException {
+        if (hasStatistics && !forceRefresh) {
+            return;
+        }
+
+        try {
+            for (AltibaseTablespace tbs : tablespaceCache.getAllObjects(monitor, AltibaseDataSource.this)) {
+                AltibaseTablespace tablespace = tablespaceCache.getObject(monitor, AltibaseDataSource.this, tbs.getName());
+                if (tablespace != null) {
+                    tablespace.loadSizes(monitor);
+                }
+            }
+        } catch (DBException e) {
+            throw new DBDatabaseException("Can't read tablespace statistics", e, getDataSource());
+        } finally {
+            hasStatistics = true;
+        }
+    }
+
+    ///////////////////////////////////////////////
+    // Altibase Properties
+    @NotNull
+    public List<AltibaseProperty> getProperties(DBRProgressMonitor monitor)
+            throws DBException {
+        return loadPropertyList(monitor);
+    }
+
+    @NotNull
+    private List<AltibaseProperty> loadPropertyList(@NotNull DBRProgressMonitor monitor) throws DBException {
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Load properties")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * FROM V$PROPERTY ORDER BY NAME ASC")) {
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    List<AltibaseProperty> propertyList = new ArrayList<>();
+                    while (dbResult.next()) {
+                        AltibaseProperty parameter = new AltibaseProperty(this, dbResult);
+                        propertyList.add(parameter);
+                    }
+                    return propertyList;
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DBException("Failed to load database properties", ex);
+        }
+    }
+    
+    ///////////////////////////////////////////////
+    // DBMS Procedure Output
+    private class AltibaseOutputReader implements DBCServerOutputReader {
+
+        private StringBuilder callBackMsg = new StringBuilder();
+        // Whether each session has the PRINT callback, so that syncServerOutput only calls the driver when the setting changed
+        private final Map<DBCExecutionContext, Boolean> callbackRegistered = Collections.synchronizedMap(new WeakHashMap<>());
+
+        @Override
+        public boolean isServerOutputEnabled() {
+            return getContainer().getPreferenceStore().getBoolean(AltibaseConstants.PREF_DBMS_OUTPUT);
+        }
+
+        @Override
+        public boolean isAsyncOutputReadSupported() {
+            return false;
+        }
+
+        /**
+         * Registers the PRINT callback on the session, or removes it ({@code null}): without a callback the driver drops PRINT
+         * output and tells the server to stop sending it; with one it is kept in callBackMsg until it is read.
+         */
+        public void enableServerOutput(
+                DBRProgressMonitor monitor,
+                DBCExecutionContext context,
+                boolean enable) throws DBCException {
+            if (!enable) {
+                // Output nobody reads any more: the buffer is per data source and the setting is per connection
+                callBackMsg.setLength(0);
+                if (!Boolean.TRUE.equals(callbackRegistered.get(context))) {
+                    // A new session has no callback
+                    callbackRegistered.put(context, false);
+                    return;
+                }
+            }
+
+            Connection conn = null;
+            ClassLoader classLoader = null;
+            Class<?> class4MsgCallback = null;
+            Object instance4Callback = null;
+            Method method2RegisterCallback = null;
+
+            try (JDBCSession session = (JDBCSession) context.openSession(monitor, 
+                    DBCExecutionPurpose.UTIL, (enable ? "Enable" : "Disable") + " DBMS output")) {
+
+                conn = session.getOriginal();
+                classLoader = conn.getClass().getClassLoader();
+                if (classLoader == null) {
+                    throw new SecurityException("Failed to load ClassLoader");
+                }
+
+                // The callback interface is the parameter of the connection's own registration method, not a class
+                // name built from "Altibase": the package and class names differ between Altibase.jar, Altibasex_x.jar
+                // and Altibase-derived drivers (shardsphere.jdbc.driver.shardsphereMessageCallback)
+                method2RegisterCallback = findRegisterMessageCallback(conn.getClass());
+                class4MsgCallback = method2RegisterCallback.getParameterTypes()[0];
+
+                if (enable) {
+                    instance4Callback = Proxy.newProxyInstance(classLoader,
+                            new Class[] { class4MsgCallback },
+                            new InvocationHandler() {
+                                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                                    if ("print".equals(method.getName())) {
+                                        callBackMsg.append((String) args[0]);
+                                    }
+
+                                    return null;
+                                }
+                            });
+
+                    if (instance4Callback == null) {
+                        throw new InstantiationException("Failed to instantiate class: " + class4MsgCallback.getName());
+                    }
+                }
+
+                method2RegisterCallback.invoke(conn, new Object[] { instance4Callback });
+                callbackRegistered.put(context, enable);
+
+            } catch (Exception e) {
+                log.error("Failed to register DBMS output message callback method: " + e.getMessage());
+                throw new DBCException(e, context);
+            }
+        }
+
+        /**
+         * The driver connection's {@code registerMessageCallback(<callback interface>)} method.
+         */
+        @NotNull
+        private static Method findRegisterMessageCallback(@NotNull Class<?> connectionClass) throws NoSuchMethodException {
+            for (Method method : connectionClass.getMethods()) {
+                if (AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK.equals(method.getName())
+                    && method.getParameterCount() == 1
+                    && method.getParameterTypes()[0].isInterface()) {
+                    return method;
+                }
+            }
+            throw new NoSuchMethodException(String.format(
+                "Failed to get method: %s of class %s",
+                AltibaseConstants.METHOD_NAME_4_REGISTER_MESSAGE_CALLBACK,
+                connectionClass.getName()));
+        }
+
+        @Override
+        public void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
+            boolean enable = isServerOutputEnabled();
+            if (Boolean.TRUE.equals(callbackRegistered.get(context)) != enable) {
+                enableServerOutput(monitor, context, enable);
+            }
+        }
+
+        @Override
+        public void readServerOutput(
+                @NotNull DBRProgressMonitor monitor,
+                @NotNull DBCExecutionContext context,
+                @Nullable DBCExecutionResult executionResult,
+                @Nullable DBCStatement statement,
+                @NotNull DBCOutputWriter output) throws DBCException {
+            // Read after every statement: nothing printed is no output, not an empty line
+            if (callBackMsg != null && callBackMsg.length() > 0) {
+                output.println(null, callBackMsg.toString());
+                callBackMsg.delete(0, callBackMsg.length());
+            }
+        }
+    }
+
+    ///////////////////////////////////////////////
+    // Server Property: LOB_CACHE_THRESHOLD
+    private void loadLobThreshold(@NotNull DBRProgressMonitor monitor) {
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Load LOB Threshold")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT VALUE1 FROM V$PROPERTY WHERE NAME = 'LOB_CACHE_THRESHOLD'")) {
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    if (dbResult.next()) {
+                        this.lobCacheThreshold = dbResult.getInt(1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not load LOB_CACHE_THRESHOLD, using default.", e);
+            this.lobCacheThreshold = AltibaseConstants.PROP_LOB_CACHE_THRESHOLD_DEFAULT;
+        }
+    }
+
+    /**
+     * Returns the safe character length threshold for LOB value handler.
+     *
+     * LOB_CACHE_THRESHOLD is defined in bytes. Although Java String uses UTF-16 internally,
+     * character data is often handled or stored in UTF-8 where a character may take up to
+     * 3 bytes (or more). To avoid underestimation, the value is conservatively divided by 3
+     * to approximate a safe character-based threshold.
+     */
+    public long getLobCacheThreshold4Char() {
+        return (lobCacheThreshold / 3);
+    }
+}

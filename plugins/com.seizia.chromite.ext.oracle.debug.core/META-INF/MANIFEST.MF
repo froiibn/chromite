@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Oracle Debug Model
+Bundle-SymbolicName: com.seizia.chromite.ext.oracle.debug.core;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.ext.oracle,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.debug.core
+Automatic-Module-Name: com.seizia.chromite.ext.oracle.debug.core

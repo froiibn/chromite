@@ -1,0 +1,33 @@
+# Local rehearsal of chromite.seizia.com (docs/chromite/distribution.md "Rehearsal").
+# The same site block as the server's proxy (the Turbrix server's Caddyfile, chromite.seizia.com, 2026-11-07):
+# same headers, CSP, /downloads/ handling and read-only folders. Differences, for a local run only:
+# plain HTTP on :80 (no certificate) and the access log goes to Caddy's own output.
+{
+	admin off
+}
+
+:80 {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+		-Server
+	}
+	header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+	encode zstd gzip
+	handle /downloads/* {
+		root * /chromite
+		@file not path *.json
+		header @file Content-Disposition attachment
+		header Cache-Control "no-cache"
+		header X-Robots-Tag "noindex"
+		file_server
+	}
+	handle {
+		root * /chromite/site
+		header Cache-Control "no-cache"
+		file_server
+	}
+}

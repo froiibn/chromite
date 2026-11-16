@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.seizia.chromite</groupId>
+        <artifactId>chromite</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../</relativePath>
+    </parent>
+    <artifactId>features</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>com.seizia.chromite.runtime.feature</module>
+        <module>com.seizia.chromite.db.feature</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>desktop</id>
+            <activation><property><name>!headless-platform</name></property></activation>
+            <!-- Desktop components (the Swing frontend; the SWT frontend was removed, docs/chromite/swt-removal.md) -->
+            <modules>
+                <module>com.seizia.chromite.test.feature</module>
+                <module>com.seizia.chromite.test.base.feature</module>
+
+                <!-- Chromite public edition bundled JDBC drivers, included by the Swing product (docs/chromite/drivers.md) -->
+                <module>com.seizia.chromite.drivers.public.feature</module>
+
+                <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
+                <module>com.seizia.chromite.swing.feature</module>
+            </modules>
+        </profile>
+    </profiles>
+
+</project>

@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Update Model
+Bundle-SymbolicName: com.seizia.chromite.model.update
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.update
+Require-Bundle: com.seizia.chromite.model,
+ com.google.gson;bundle-version="2.11.0",
+ com.sun.jna,
+ com.sun.jna.platform
+Automatic-Module-Name: com.seizia.chromite.model.update

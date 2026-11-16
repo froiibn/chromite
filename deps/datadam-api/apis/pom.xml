@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.dbeaver.common</groupId>
+        <artifactId>com.dbeaver.common.main</artifactId>
+        <version>2.9.0-SNAPSHOT</version>
+        <relativePath>../../dbeaver-common</relativePath>
+    </parent>
+
+    <groupId>com.dbeaver.datadam</groupId>
+    <artifactId>api</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.17-SNAPSHOT</version>
+    <name>DataDam API</name>
+    <description>DataDam API</description>
+
+    <modules>
+        <module>com.dbeaver.datadam.mcp.api</module>
+        <module>com.dbeaver.datadam.dm.api</module>
+        <module>com.dbeaver.datadam.dam.remote.api</module>
+        <module>com.dbeaver.datadam.share.api</module>
+        <module>com.dbeaver.datadam.lm.api</module>
+        <module>com.dbeaver.datadam.sso.api</module>
+    </modules>
+
+    <build>
+        <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+        <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+    </build>
+
+</project>

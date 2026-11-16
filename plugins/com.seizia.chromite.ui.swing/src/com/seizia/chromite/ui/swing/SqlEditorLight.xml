@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE RSyntaxTheme SYSTEM "theme.dtd">
+
+<!--
+	Chromite light SQL editor colors. Tokens: SSMS default colors (keyword Blue, system function Magenta, string Red,
+	comment Green, operator Gray; Microsoft Learn "Color coding in query editors"), numbers lime (user decision);
+	editor chrome: DataGrip New UI Light. Values from docs/chromite/design-spec.md "SQL 구문 색". These are the defaults
+	of Tools > Options > Editor Colors (EditorColors overrides them with the user's colors). RSyntaxTextArea draws an
+	underline in the token's own color, so syntax errors are underlined in the text color.
+	Loaded by EditorColors; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
+-->
+<RSyntaxTheme version="1.0">
+
+	<!-- No baseFont: EditorColors loads the theme with the editor font (EditorFont, a composite font). -->
+	<background color="ffffff"/>
+	<caret color="000000"/>
+	<selection useFG="false" bg="a6d2ff" roundedEdges="false"/>
+	<currentLineHighlight color="f5f8fe" fade="false"/>
+	<marginLine fg="ebecf0"/>
+	<markAllHighlight color="edebfc"/>
+	<markOccurrencesHighlight color="edebfc" border="false"/>
+	<matchedBracket fg="080808" bg="93d9d9" highlightBoth="false" animate="false"/>
+	<hyperlinks fg="315fbd"/>
+	<secondaryLanguages>
+		<language index="1" bg="f5f8fe"/>
+		<language index="2" bg="f5f8fe"/>
+		<language index="3" bg="f5f8fe"/>
+	</secondaryLanguages>
+
+	<gutterBackground color="ffffff"/>
+	<gutterBorder color="ffffff"/>
+	<!-- Line numbers 4.5:1 or more on the editor background, the current one darker (app change #55, design-spec "Applied - text contrast") -->
+	<lineNumbers fg="6e727d" currentFG="3b3e45"/>
+	<foldIndicator fg="aeb3c2" iconBg="ffffff"/>
+	<iconRowHeader activeLineRange="aeb3c2"/>
+
+	<tokenStyles>
+		<style token="IDENTIFIER" fg="000000"/>
+		<style token="RESERVED_WORD" fg="0000ff"/>
+		<style token="RESERVED_WORD_2" fg="0000ff"/>
+		<style token="ANNOTATION" fg="000000"/>
+		<style token="COMMENT_DOCUMENTATION" fg="008000" italic="true"/>
+		<style token="COMMENT_EOL" fg="008000" italic="true"/>
+		<style token="COMMENT_MULTILINE" fg="008000" italic="true"/>
+		<style token="COMMENT_KEYWORD" fg="008000" italic="true"/>
+		<style token="COMMENT_MARKUP" fg="008000" italic="true"/>
+		<style token="DATA_TYPE" fg="0000ff"/>
+		<style token="FUNCTION" fg="ff00ff"/>
+		<style token="LITERAL_BOOLEAN" fg="0000ff"/>
+		<style token="LITERAL_NUMBER_DECIMAL_INT" fg="669900"/>
+		<style token="LITERAL_NUMBER_FLOAT" fg="669900"/>
+		<style token="LITERAL_NUMBER_HEXADECIMAL" fg="669900"/>
+		<style token="LITERAL_STRING_DOUBLE_QUOTE" fg="ff0000"/>
+		<style token="LITERAL_CHAR" fg="ff0000"/>
+		<style token="LITERAL_BACKQUOTE" fg="000000"/>
+		<style token="MARKUP_TAG_DELIMITER" fg="000000"/>
+		<style token="MARKUP_TAG_NAME" fg="000000"/>
+		<style token="MARKUP_TAG_ATTRIBUTE" fg="000000"/>
+		<style token="MARKUP_TAG_ATTRIBUTE_VALUE" fg="000000"/>
+		<style token="MARKUP_COMMENT" fg="008000" italic="true"/>
+		<style token="MARKUP_DTD" fg="000000"/>
+		<style token="MARKUP_PROCESSING_INSTRUCTION" fg="000000"/>
+		<style token="MARKUP_CDATA" fg="000000"/>
+		<style token="MARKUP_CDATA_DELIMITER" fg="000000"/>
+		<style token="OPERATOR" fg="808080"/>
+		<style token="PREPROCESSOR" fg="000000"/>
+		<style token="REGEX" fg="000000"/>
+		<style token="SEPARATOR" fg="808080"/>
+		<style token="VARIABLE" fg="000000"/>
+		<style token="WHITESPACE" fg="000000"/>
+		<style token="ERROR_IDENTIFIER" fg="000000" underline="true"/>
+		<style token="ERROR_NUMBER_FORMAT" fg="000000" underline="true"/>
+		<style token="ERROR_STRING_DOUBLE" fg="000000" underline="true"/>
+		<style token="ERROR_CHAR" fg="000000" underline="true"/>
+	</tokenStyles>
+
+</RSyntaxTheme>

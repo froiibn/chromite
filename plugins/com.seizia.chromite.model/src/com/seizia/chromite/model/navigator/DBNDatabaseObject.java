@@ -1,0 +1,137 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.navigator;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.navigator.meta.DBXTreeObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSWrapper;
+import org.jkiss.utils.CommonUtils;
+
+/**
+ * DBNDatabaseObject
+ */
+public class DBNDatabaseObject extends DBNDatabaseNode implements DBSObject {
+    private final DBXTreeObject meta;
+
+    DBNDatabaseObject(@NotNull DBNNode parent, @NotNull DBXTreeObject meta) {
+        super(parent);
+        this.meta = meta;
+        registerNode();
+    }
+
+    @Override
+    public <T> T getAdapter(@NotNull Class<T> adapter) {
+        if (adapter == DBSObject.class) {
+            DBSObject databaseObject = getObject();
+            return adapter.cast(databaseObject);
+        }
+        return super.getAdapter(adapter);
+    }
+
+    @Override
+    protected void dispose(boolean reflect) {
+        unregisterNode(reflect);
+        super.dispose(reflect);
+    }
+
+    @NotNull
+    @Override
+    public DBXTreeObject getMeta() {
+        return meta;
+    }
+
+    @Override
+    protected boolean reloadObject(@NotNull DBRProgressMonitor monitor, DBSObject object) {
+        // do nothing
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public DBSObject getObject() {
+        return this;
+    }
+
+    @Override
+    public Object getValueObject() {
+        return this;
+    }
+
+    @NotNull
+    @Override
+    public String getNodeFullName() {
+        StringBuilder pathName = new StringBuilder();
+        for (DBNNode parent = getParentNode(); parent != null; parent = parent.getParentNode()) {
+            if (parent instanceof DBNDatabaseFolder) {
+                // skip folders
+                continue;
+            }
+            String parentName = parent.getNodeDisplayName();
+            if (!CommonUtils.isEmpty(parentName)) {
+                if (!pathName.isEmpty()) {
+                    pathName.insert(0, '.');
+                }
+                pathName.insert(0, parentName);
+            }
+        }
+        pathName.insert(0, getNodeDisplayName() + " (");
+        pathName.append(")");
+        return pathName.toString();
+    }
+
+
+    @NotNull
+    @Override
+    @Property(viewable = true, order = 1)
+    public String getName() {
+        return meta.getNodeTypeLabel(getDataSource(), null);
+    }
+
+    @NotNull
+    @Override
+    public String getLocalizedName(@NotNull String locale) {
+        return meta.getNodeTypeLabel(getDataSource(), locale);
+    }
+
+    @Nullable
+    @Override
+    public String getDescription() {
+        return meta.getDescription();
+    }
+
+    @Override
+    public DBSObject getParentObject() {
+        return getParentNode() instanceof DBNDatabaseNode ? ((DBSWrapper) getParentNode()).getObject() : null;
+    }
+
+    @NotNull
+    @Override
+    public DBPDataSource getDataSource() {
+        DBSObject parentObject = getParentObject();
+        if (parentObject == null) {
+            throw new IllegalStateException("No parent database object for object node");
+        }
+        return parentObject.getDataSource();
+    }
+
+}

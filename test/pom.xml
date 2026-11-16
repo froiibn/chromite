@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.seizia.chromite</groupId>
+        <artifactId>chromite</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../</relativePath>
+    </parent>
+    <artifactId>tests</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>com.seizia.chromite.test.platform</module>
+        <module>com.seizia.chromite.ext.altibase.test</module>
+        <module>com.seizia.chromite.ext.cubrid.test</module>
+        <module>com.seizia.chromite.ext.clickhouse.test</module>
+        <module>com.seizia.chromite.ext.firebird.test</module>
+        <module>com.seizia.chromite.ext.generic.test</module>
+        <module>com.seizia.chromite.ext.greenplum.test</module>
+        <module>com.seizia.chromite.ext.hana.test</module>
+        <module>com.seizia.chromite.ext.hive.test</module>
+        <module>com.seizia.chromite.ext.mysql.test</module>
+        <module>com.seizia.chromite.ext.mimer.test</module>
+        <module>com.seizia.chromite.ext.oracle.test</module>
+        <module>com.seizia.chromite.ext.postgresql.test</module>
+        <module>com.seizia.chromite.ext.snowflake.test</module>
+        <module>com.seizia.chromite.ext.sqlite.test</module>
+        <module>com.seizia.chromite.ext.cloudflare.d1.test</module>
+        <module>com.seizia.chromite.ext.timeplus.test</module>
+        <module>com.seizia.chromite.model.lsm.test</module>
+        <module>com.seizia.chromite.model.navigator.test</module>
+        <module>com.seizia.chromite.model.net.test</module>
+        <module>com.seizia.chromite.model.datadam.test</module>
+        <module>com.seizia.chromite.model.ai.test</module>
+        <module>com.seizia.chromite.net.ssh.sshj.test</module>
+        <module>com.seizia.chromite.model.sql.test</module>
+        <module>com.seizia.chromite.data.transfer.test</module>
+        <module>com.seizia.chromite.model.test</module>
+        <module>com.seizia.chromite.registry.test</module>
+        <module>com.seizia.chromite.model.ai.tools.test</module>
+        <module>com.seizia.chromite.ui.swing.test</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-surefire-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <useUIHarness>false</useUIHarness>
+                    <useUIThread>false</useUIThread>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <application>com.seizia.chromite.headless.application</application>
+                    <product>com.seizia.chromite.headless.product</product>
+                    <testRuntime>default</testRuntime>
+                    <providerHint>junit6</providerHint>
+                    <!-- Auto activate headless bundle to instantiate test application -->
+                    <bundleStartLevel>
+                        <bundle>
+                            <id>org.apache.felix.scr</id>
+                            <level>2</level>
+                            <autoStart>true</autoStart>
+                        </bundle>
+                        <bundle>
+                            <id>junit-platform-launcher</id>
+                            <level>3</level>
+                            <autoStart>true</autoStart>
+                        </bundle>
+                        <bundle>
+                            <id>junit-jupiter-engine</id>
+                            <level>3</level>
+                            <autoStart>true</autoStart>
+                        </bundle>
+                        <bundle>
+                            <id>com.seizia.chromite.headless</id>
+                            <level>4</level>
+                            <autoStart>true</autoStart>
+                        </bundle>
+                    </bundleStartLevel>
+<!--                    <argLine>-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:15001,suspend=y</argLine>-->
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="phoenixServer" class="com.seizia.chromite.ext.phoenix.model.PhoenixMetaModel" driverClass="org.apache.phoenix.jdbc.PhoenixDriver" dialect="apache_phoenix"/>
+    </extension>
+    
+ 
+
+    <extension point="com.seizia.chromite.dataTypeProvider">
+        <provider
+                class="com.seizia.chromite.ext.phoenix.model.data.PhoenixValueHandlerProvider"
+                description="phoenix data types provider"
+                id="PhoenixValueHandlerProvider"
+                parent="GenericValueHandlerProvider"
+                label="Phoenix data types provider">
+
+            <datasource class="com.seizia.chromite.ext.phoenix.model.PhoenixDataSource"/>
+            <type standard="ARRAY"/>
+        </provider>
+    </extension>
+
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="apache_phoenix" parent="generic" class="com.seizia.chromite.ext.phoenix.model.PhoenixSQLDialect" label="Phoenix" description="Apache Phoenix SQL dialect." icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/phoenix_icon.png">
+        </dialect>
+    </extension>
+
+</plugin>

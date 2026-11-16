@@ -1,0 +1,72 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp
+ *
+ * All Rights Reserved.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of DBeaver Corp and its suppliers, if any.
+ * The intellectual and technical concepts contained
+ * herein are proprietary to DBeaver Corp and its suppliers
+ * and may be covered by U.S. and Foreign Patents,
+ * patents in process, and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from DBeaver Corp.
+ */
+package com.dbeaver.datadam.sso.api.client;
+
+import com.dbeaver.datadam.sso.api.DDSsoConstants;
+import com.dbeaver.datadam.sso.api.exception.DDSsoClientException;
+import com.dbeaver.datadam.sso.api.model.DDSsoIdentity;
+import com.dbeaver.datadam.sso.api.model.DDSsoLoginApprovalRequest;
+import com.dbeaver.datadam.sso.api.model.DDSsoLoginApprovalResponse;
+import com.dbeaver.datadam.sso.api.model.DDSsoTokenRequest;
+import com.dbeaver.datadam.sso.api.model.DDSsoTokenResponse;
+import org.jkiss.code.NotNull;
+
+import java.net.URI;
+
+/** Coordinates SSO protocol responses, identity verification and browser destinations. */
+public class DDSsoService {
+    @NotNull
+    private final DDSsoClientConfig properties;
+    @NotNull
+    private final DDSsoClient client;
+    @NotNull
+    private final DDSsoTokenVerifier verifier;
+
+    public DDSsoService(@NotNull DDSsoClientConfig properties, @NotNull DDSsoClient client, @NotNull DDSsoTokenVerifier verifier) {
+        this.properties = properties;
+        this.client = client;
+        this.verifier = verifier;
+    }
+
+    @NotNull
+    public URI endpoint(@NotNull String path) {
+        return client.endpoint(path);
+    }
+
+    /**
+     * Exchanges an authorization code for a verified identity used to establish a local browser session.
+     * Requires an internal id_token; its signature and identity claims are validated before returning.
+     */
+    @NotNull
+    public DDSsoIdentity exchangeCodeForIdentity(@NotNull String code, @NotNull String codeVerifier) throws DDSsoClientException {
+        DDSsoTokenResponse token = client.exchangeCodeForTokens(new DDSsoTokenRequest(code, codeVerifier, properties.clientId(),
+            properties.redirectUri(), properties.resource()));
+        if (token.idToken() == null || token.idToken().length() > DDSsoTokenVerifier.MAX_TOKEN_LENGTH || token.expiresIn() <= 0) {
+            throw new DDSsoClientException("Invalid SSO token response");
+        }
+        return verifier.verifyIdentity(token.idToken());
+    }
+
+    @NotNull
+    public String approveLogin(@NotNull DDSsoLoginApprovalRequest request) throws DDSsoClientException {
+        DDSsoLoginApprovalResponse approval = client.approveLogin(request);
+        if (approval.completion() == null || !DDSsoConstants.BASE64URL_256_PATTERN.matcher(approval.completion()).matches()) {
+            throw new DDSsoClientException("Invalid SSO login approval response");
+        }
+        return endpoint(DDSsoConstants.LOGIN_RESUME_PATH) + "?completion=" + approval.completion();
+    }
+}

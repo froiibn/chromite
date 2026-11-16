@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Snowflake Model
+Bundle-SymbolicName: com.seizia.chromite.ext.snowflake;singleton:=true
+Bundle-Version: 1.0.211.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.ext.snowflake.internal.SnowflakeActivator
+Require-Bundle: com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.ext.generic;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.snowflake,
+ com.seizia.chromite.ext.snowflake.model,
+ com.seizia.chromite.ext.snowflake.model.auth
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.snowflake

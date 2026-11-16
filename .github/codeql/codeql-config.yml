@@ -1,0 +1,6 @@
+# CodeQL configuration for Chromite (used by .github/workflows/codeql.yml).
+# deps/ holds unmodified upstream copies of dbeaver-common and datadam-api (docs/chromite/build.md);
+# findings there are not actionable in this repository, so they are not analyzed.
+# paths-ignore applies to Java only because Java is analyzed with build-mode: none (docs/chromite/ci.md).
+paths-ignore:
+  - deps

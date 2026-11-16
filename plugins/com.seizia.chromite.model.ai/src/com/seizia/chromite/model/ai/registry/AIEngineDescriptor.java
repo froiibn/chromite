@@ -1,0 +1,128 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.ai.registry;
+
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.engine.AIEngine;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import org.jkiss.utils.CommonUtils;
+
+public class AIEngineDescriptor extends AbstractDescriptor {
+
+    public static final String EXTENSION_ID = "com.seizia.chromite.ai.engine";
+
+    private final IConfigurationElement contributorConfig;
+    private final String id;
+    private final DBPImage icon;
+    private final ObjectType objectType;
+    private final ObjectType propertiesType;
+    private final boolean promoted;
+    private final boolean supportsFunctions;
+    private final boolean providesMetadata;
+
+    protected AIEngineDescriptor(@NotNull IConfigurationElement contributorConfig) {
+        super(contributorConfig);
+        this.contributorConfig = contributorConfig;
+        this.id = contributorConfig.getAttribute("id");
+        this.icon = iconToImage(contributorConfig.getAttribute(RegistryConstants.ATTR_ICON));
+        this.objectType = new ObjectType(contributorConfig, RegistryConstants.ATTR_CLASS);
+        this.promoted = CommonUtils.toBoolean(contributorConfig.getAttribute("promoted"));
+        this.supportsFunctions = CommonUtils.toBoolean(contributorConfig.getAttribute("supportsFunctions"));
+        this.propertiesType = new ObjectType(contributorConfig, "properties");
+        this.providesMetadata = CommonUtils.toBoolean(contributorConfig.getAttribute("providesMetadata"), true);
+    }
+
+    @NotNull
+    public String getId() {
+        return id;
+    }
+
+    @NotNull
+    public DBPImage getIcon() {
+        return icon;
+    }
+
+    @NotNull
+    public String getLabel() {
+        return contributorConfig.getAttribute("label");
+    }
+
+    @Nullable
+    public String getReplaces() {
+        return contributorConfig.getAttribute("replaces");
+    }
+
+    @Nullable
+    public String getFallbacks() {
+        return contributorConfig.getAttribute("fallbacks");
+    }
+
+    public boolean isDefault() {
+        return CommonUtils.toBoolean(contributorConfig.getAttribute("default"));
+    }
+
+    public boolean isPromoted() {
+        return promoted;
+    }
+
+    /**
+     * Indicates whether the engine provides model metadata such as context window size.
+     *
+     * @return true if the engine provides model metadata, false otherwise
+     */
+    public boolean isProvidesMetadata() {
+        return providesMetadata;
+    }
+
+
+    public boolean isSupportsFunctions() {
+        return supportsFunctions;
+    }
+
+    @NotNull
+    public Class<? extends AIEngineProperties> getPropertiesType() {
+        return propertiesType.getImplClass(AIEngineProperties.class);
+    }
+
+    @NotNull
+    public <T extends AIEngineProperties> T createPropertiesInstance() throws DBException {
+        return (T) propertiesType.createInstance(AIEngineProperties.class);
+    }
+
+    @NotNull
+    public ObjectType getEngineObjectType() {
+        return objectType;
+    }
+
+    @NotNull
+    public AIEngine<?> createEngineInstance(@NotNull AIConfigurationProfile profile) throws DBException {
+        return createEngineInstance(profile.getConfiguration());
+    }
+
+    @NotNull
+    public AIEngine<?> createEngineInstance(@NotNull AIEngineProperties properties) throws DBException {
+        return objectType.createInstance(AIEngine.class, properties);
+    }
+}

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.seizia.chromite</groupId>
+    <artifactId>plugins</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../</relativePath>
+  </parent>
+  <groupId>com.seizia.chromite</groupId>
+  <artifactId>com.seizia.chromite.ui.swing</artifactId>
+  <!-- Product-defining bundle: its version is the product version shown in About (GeneralUtils.getProductVersion).
+       Set it only with tools/release/bump-version.ps1 (docs/chromite/versioning.md) -->
+  <version>26.1.4-SNAPSHOT</version>
+  <packaging>eclipse-plugin</packaging>
+
+  <properties>
+    <!-- New Swing code targets Java 25 (docs/chromite/runtime.md). Overrides the shared default (21) for this bundle only. -->
+    <java.version>25</java.version>
+    <flatlaf.version>3.8</flatlaf.version>
+    <rsyntaxtextarea.version>4.0.1</rsyntaxtextarea.version>
+    <!-- UI and editor fonts of the design spec (Inter, JetBrains Mono; SIL OFL 1.1), packaged by FlatLaf -->
+    <flatlaf.fonts.inter.version>4.1</flatlaf.fonts.inter.version>
+    <flatlaf.fonts.jetbrains.mono.version>2.304</flatlaf.fonts.jetbrains.mono.version>
+    <!-- Dockable tool windows (MIT). Only the core API jar: the single-app wrapper and the UI extension (needs flatlaf-extras) are not used -->
+    <moderndocking.version>1.4.9</moderndocking.version>
+  </properties>
+
+  <build>
+    <plugins>
+      <!-- FlatLaf (and its font jars) and ModernDocking have no OSGi manifest and RSyntaxTextArea exports no packages:
+           embed them via Bundle-ClassPath (lib/flatlaf.jar, lib/flatlaf-fonts-*.jar, lib/rsyntaxtextarea.jar,
+           lib/modern-docking-api.jar). The jars are copied from Maven Central before compilation instead of being committed. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-swing-libraries</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf</artifactId>
+                  <version>${flatlaf.version}</version>
+                  <destFileName>flatlaf.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.fifesoft</groupId>
+                  <artifactId>rsyntaxtextarea</artifactId>
+                  <version>${rsyntaxtextarea.version}</version>
+                  <destFileName>rsyntaxtextarea.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf-fonts-inter</artifactId>
+                  <version>${flatlaf.fonts.inter.version}</version>
+                  <destFileName>flatlaf-fonts-inter.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf-fonts-jetbrains-mono</artifactId>
+                  <version>${flatlaf.fonts.jetbrains.mono.version}</version>
+                  <destFileName>flatlaf-fonts-jetbrains-mono.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>io.github.andrewauclair</groupId>
+                  <artifactId>modern-docking-api</artifactId>
+                  <version>${moderndocking.version}</version>
+                  <destFileName>modern-docking-api.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.basedir}/lib</outputDirectory>
+              <overWriteReleases>true</overWriteReleases>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

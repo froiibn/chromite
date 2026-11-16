@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema targetNamespace="com.seizia.chromite.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+    <annotation>
+        <appInfo>
+            <meta.schema plugin="com.seizia.chromite.registry" id="com.seizia.chromite.projectImport" name="Project import transformers"/>
+        </appInfo>
+        <documentation>Transforms selected text resources before they are written to an imported project. The caller controls the character encoding; resources without a transformer are copied without decoding.</documentation>
+    </annotation>
+    <element name="extension">
+        <annotation><appInfo><meta.element/></appInfo></annotation>
+        <complexType>
+            <sequence><element ref="transformer" minOccurs="1" maxOccurs="unbounded"/></sequence>
+            <attribute name="point" type="string" use="required"/>
+            <attribute name="id" type="string"/>
+            <attribute name="name" type="string"/>
+        </complexType>
+    </element>
+    <element name="transformer">
+        <complexType>
+            <attribute name="path" type="string" use="required">
+                <annotation><documentation>Exact project-relative path of a text resource, using forward slashes.</documentation></annotation>
+            </attribute>
+            <attribute name="class" type="string" use="required">
+                <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.app.DBPProjectImportTransformer"/></appInfo></annotation>
+            </attribute>
+        </complexType>
+    </element>
+</schema>

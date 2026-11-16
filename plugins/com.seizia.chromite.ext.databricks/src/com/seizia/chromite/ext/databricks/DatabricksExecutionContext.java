@@ -1,0 +1,97 @@
+
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.databricks;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericExecutionContext;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+import java.sql.SQLException;
+
+public class DatabricksExecutionContext extends GenericExecutionContext {
+
+    private static final Log log = Log.getLog(DatabricksExecutionContext.class);
+
+    @Nullable
+    private String activeCatalogName;
+
+    DatabricksExecutionContext(JDBCRemoteInstance instance, String purpose) {
+        super(instance, purpose);
+    }
+
+    @Nullable
+    @Override
+    public GenericCatalog getDefaultCatalog() {
+        if (CommonUtils.isEmpty(activeCatalogName)) {
+            return super.getDefaultCatalog();
+        }
+        return getDataSource().getCatalog(activeCatalogName);
+    }
+
+    @Override
+    public void setDefaultCatalog(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull GenericCatalog catalog,
+        @Nullable GenericSchema schema
+    ) {
+        try {
+            super.setDefaultCatalog(monitor, catalog, schema);
+            activeCatalogName = catalog.getName();
+        } catch (DBCException e) {
+            log.debug("Error setting default catalog for Databricks", e);
+        }
+    }
+
+    @Override
+    public boolean refreshDefaults(@NotNull DBRProgressMonitor monitor, boolean useBootstrapSettings) throws DBException {
+        boolean isRefreshed = super.refreshDefaults(monitor, useBootstrapSettings);
+
+        try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.META, "Query current catalog")) {
+            try (JDBCStatement dbStat = session.createStatement()) {
+                try (JDBCResultSet dbResult = dbStat.executeQuery("SELECT CURRENT_CATALOG()")) {
+                    if (dbResult != null && dbResult.next()) {
+                        String currentCatalog = dbResult.getString(1);
+                        if (CommonUtils.isNotEmpty(currentCatalog)) {
+                            if (!CommonUtils.equalObjects(currentCatalog, activeCatalogName)) {
+                                activeCatalogName = currentCatalog;
+                                isRefreshed = true;
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                log.debug("Failed to get current catalog", e);
+            }
+        }
+
+        return isRefreshed;
+    }
+}

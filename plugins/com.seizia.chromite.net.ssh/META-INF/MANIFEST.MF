@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite SSH Tunnels
+Bundle-SymbolicName: com.seizia.chromite.net.ssh;singleton:=true
+Bundle-Version: 1.0.212.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.net.ssh,
+ com.seizia.chromite.model.net.ssh.config,
+ com.seizia.chromite.model.net.ssh.registry
+Require-Bundle: org.eclipse.jsch.core,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.registry,
+ com.jcraft.jsch
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.net.ssh

@@ -1,0 +1,282 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.oracle;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
+import com.seizia.chromite.ext.oracle.oci.OCIUtils;
+import com.seizia.chromite.ext.oracle.oci.OracleHomeDescriptor;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPInformationProvider;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.access.DBAUserCredentialsProvider;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPNativeClientLocation;
+import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceProvider;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
+import org.jkiss.utils.CommonUtils;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Oracle data source provider.
+ *
+ * 변경 이력:
+ * - 2026-11-12 연결 전에 실제 계획 여부를 답함({@link SQLActualPlanSupport}): {@link OracleDataSource}는 늘 실제 계획 어댑터를 준다.
+ *   그 하위 클래스를 만드는 제공자(YashanDB)도 이것을 물려받아 데이터 소스의 어댑터와 같다(앱 변경 #70)
+ * - 2026-11-16 TNS 연결이 가리키는 서버는 네트워크 별칭({@link #getConnectionAddress}): 저장된 호스트는 예전 연결 대화상자의 자리 값
+ *   localhost일 수 있다(앱 변경 #135, docs/chromite/swing-conn-advanced.md "Oracle TNS 연결")
+ */
+public class OracleDataSourceProvider extends JDBCDataSourceProvider<OracleDataSource> implements
+    DBAUserCredentialsProvider,
+    DBPNativeClientLocationManager,
+    DBPInformationProvider,
+    SQLActualPlanSupport {
+
+    public OracleDataSourceProvider() {
+        super(OracleDataSource.class);
+    }
+
+    protected OracleDataSourceProvider(@NotNull Class<? extends OracleDataSource> dsClass) {
+        super(dsClass);
+    }
+
+    @Override
+    public long getFeatures()
+    {
+        return FEATURE_SCHEMAS;
+    }
+
+    @Override
+    public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
+        return true;
+    }
+
+    @NotNull
+    @Override
+    public String getConnectionURL(@NotNull DBPDriver driver, @NotNull DBPConnectionConfiguration connectionInfo) throws DBException {
+        //boolean isOCI = OCIUtils.isOciDriver(driver);
+        String connectionType = getConnectionType(connectionInfo);
+        if (OracleConstants.ConnectionType.CUSTOM.equals(connectionType)) {
+            return DatabaseURL.generateUrlByTemplate(connectionInfo.getUrl(), connectionInfo);
+        }
+        StringBuilder url = new StringBuilder(100);
+        url.append("jdbc:oracle:thin:@"); //$NON-NLS-1$
+        String databaseName = CommonUtils.notEmpty(connectionInfo.getDatabaseName());
+        if (OracleConstants.ConnectionType.TNS.equals(connectionType)) {
+            // TNS name specified
+            // Try to get description from TNSNAMES
+            File oraHomePath;
+            boolean checkTnsAdmin;
+            String tnsPathProp = CommonUtils.toString(connectionInfo.getProviderProperty(OracleConstants.PROP_TNS_PATH));
+            if (!CommonUtils.isEmpty(tnsPathProp)) {
+                oraHomePath = new File(tnsPathProp);
+                checkTnsAdmin = false;
+            } else {
+                final String clientHomeId = connectionInfo.getClientHomeId();
+                final OracleHomeDescriptor oraHome = CommonUtils.isEmpty(clientHomeId) ? null : OCIUtils.getOraHome(clientHomeId);
+                oraHomePath = oraHome == null ? null : oraHome.getPath();
+                checkTnsAdmin = true;
+            }
+
+            final Map<String, String> tnsNames = OCIUtils.readTnsNames(oraHomePath, checkTnsAdmin);
+            final String tnsDescription = tnsNames.get(databaseName);
+            if (!CommonUtils.isEmpty(tnsDescription)) {
+                url.append(tnsDescription);
+            } else {
+                // TNS name not found.
+                // Last chance - set TNS path and hope that Oracle driver find figure something out
+                final File tnsNamesFile = OCIUtils.findTnsNamesFile(oraHomePath, checkTnsAdmin);
+                if (tnsNamesFile != null && tnsNamesFile.exists()) {
+                    System.setProperty(OracleConstants.VAR_ORACLE_NET_TNS_ADMIN, tnsNamesFile.getAbsolutePath());
+                }
+                url.append(databaseName);
+            }
+        } else {
+            // Basic connection info specified
+            boolean isSID = OracleConnectionType.SID.name().equals(connectionInfo.getProviderProperty(OracleConstants.PROP_SID_SERVICE));
+            if (!isSID) {
+                url.append("//"); //$NON-NLS-1$
+            }
+            if (!CommonUtils.isEmpty(connectionInfo.getHostName())) {
+                url.append(connectionInfo.getHostName());
+            }
+            if (!CommonUtils.isEmpty(connectionInfo.getHostPort())) {
+                url.append(":"); //$NON-NLS-1$
+                url.append(connectionInfo.getHostPort());
+            }
+            if (isSID) {
+                url.append(":"); //$NON-NLS-1$
+            } else {
+                url.append("/"); //$NON-NLS-1$
+            }
+            if (!CommonUtils.isEmpty(databaseName)) {
+                url.append(databaseName);
+            }
+        }
+        return url.toString();
+    }
+
+    /**
+     * A TNS connection points at its network alias (the database name): the URL is made from it and tnsnames.ora only
+     * ({@link #getConnectionURL}), so the stored host and port name no server. Connections saved before app change #135
+     * hold the connection dialog's hidden placeholder there ("localhost", or the last server used with the driver).
+     */
+    @Nullable
+    @Override
+    public String getConnectionAddress(@NotNull DBPConnectionConfiguration connectionInfo) {
+        if (OracleConstants.ConnectionType.TNS.equals(getConnectionType(connectionInfo))) {
+            return CommonUtils.nullIfEmpty(connectionInfo.getDatabaseName());
+        }
+        return super.getConnectionAddress(connectionInfo);
+    }
+
+    @NotNull
+    private String getConnectionType(DBPConnectionConfiguration connectionInfo) {
+        return OracleConstants.ConnectionType.fromString(
+            connectionInfo.getProviderProperty(OracleConstants.PROP_CONNECTION_TYPE)
+        );
+    }
+
+    @NotNull
+    @Override
+    public OracleDataSource openDataSource(
+        @NotNull DBRProgressMonitor monitor, @NotNull DBPDataSourceContainer container)
+        throws DBException
+    {
+        return new OracleDataSource(monitor, container);
+    }
+
+    //////////////////////////////////////
+    // Client manager
+
+    @Override
+    public List<DBPNativeClientLocation> findLocalClientLocations()
+    {
+        List<DBPNativeClientLocation> homeIds = new ArrayList<>();
+        for (OracleHomeDescriptor home : OCIUtils.getOraHomes()) {
+            homeIds.add(home);
+        }
+        return homeIds;
+    }
+
+    @Override
+    public DBPNativeClientLocation getDefaultLocalClientLocation()
+    {
+        return OCIUtils.getDefaultOraHome();
+    }
+
+    @Override
+    public String getProductName(DBPNativeClientLocation location) {
+        Integer oraVersion = getOracleVersion(location);
+        return "Oracle" + (oraVersion == null ? "" : " " + oraVersion);
+    }
+
+    @Override
+    public String getProductVersion(DBPNativeClientLocation location) {
+        boolean isInstantClient = OCIUtils.isInstantClient(location.getName());
+        return OCIUtils.getFullOraVersion(location.getName(), isInstantClient);
+    }
+
+    public static Integer getOracleVersion(DBPNativeClientLocation location)
+    {
+        File oraHome = location.getPath();
+        boolean isInstantClient = OCIUtils.isInstantClient(location.getName());
+        File folder = isInstantClient ? oraHome : new File(oraHome, "bin");
+        if (!folder.exists()) {
+            return null;
+        }
+        for (int counter = 7; counter <= 15; counter++) {
+            String dllName = System.mapLibraryName("ocijdbc" + counter);
+            File ociLibFile = new File(folder, dllName);
+            if (ociLibFile.exists()) {
+                return counter;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public String getConnectionUserName(@NotNull DBPConnectionConfiguration connectionInfo) {
+        String userName = connectionInfo.getUserName();
+        String authModelId = connectionInfo.getAuthModelId();
+        if (!CommonUtils.isEmpty(authModelId) && !AuthModelDatabaseNative.ID.equals(authModelId)) {
+            return userName;
+        }
+        // FIXME: left for backward compatibility. Replaced by auth model. Remove in future.
+        if (!CommonUtils.isEmpty(userName) && userName.contains(" AS ")) {
+            return userName;
+        }
+        final String role = connectionInfo.getProviderProperty(OracleConstants.PROP_INTERNAL_LOGON);
+        return role == null ? userName : userName + " AS " + role;
+    }
+
+    @Nullable
+    @Override
+    public String getConnectionUserPassword(@NotNull DBPConnectionConfiguration connectionInfo) {
+        return connectionInfo.getUserPassword();
+    }
+
+
+    @Nullable
+    @Override
+    public String getObjectInformation(@NotNull DBPObject object, @NotNull String infoType) {
+        if (object instanceof DBPDataSourceContainer ds && infoType.equals(INFO_TARGET_ADDRESS)) {
+            DBPConnectionConfiguration connectionInfo = ds.getConnectionConfiguration();
+            String connectionType = getConnectionType(connectionInfo);
+            if (OracleConstants.ConnectionType.CUSTOM.equals(connectionType)) {
+                try {
+                    return this.getConnectionURL(ds.getDriver(), connectionInfo);
+                } catch (DBException e) {
+                    log.error("Failed to obtain object information on target address of the oracle datasource container", e);
+                    return null;
+                }
+            }
+            String databaseName = CommonUtils.notEmpty(connectionInfo.getDatabaseName());
+            if (OracleConstants.ConnectionType.TNS.equals(connectionType)) {
+                return databaseName;
+            } else {
+                String hostName = DBWUtils.getTargetTunnelHostName(ds, connectionInfo);
+                String hostPort = connectionInfo.getHostPort();
+                if (CommonUtils.isEmpty(hostName)) {
+                    return null;
+                } else if (CommonUtils.isEmpty(hostPort)) {
+                    return hostName;
+                } else {
+                    return hostName + ":" + hostPort;
+                }
+            }
+        }
+        return null;
+    }
+
+}

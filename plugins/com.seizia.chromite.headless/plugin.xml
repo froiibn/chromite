@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+    <extension point="org.eclipse.core.runtime.applications" id="application" name="Test Application">
+        <application visible="true">
+            <run class="com.seizia.chromite.headless.ChromiteHeadlessApplication"/>
+        </application>
+    </extension>
+
+    <extension point="org.eclipse.core.runtime.products" id="product">
+        <product application="com.seizia.chromite.headless.application" description="Headless product for unit tests" name="DBeaver Test Product">
+        </product>
+    </extension>
+
+    <extension point="com.seizia.chromite.application">
+        <application
+            id="headless-test-app"
+            family="DB"
+            name="DBeaver Console Test Application"
+            description="DBeaver Console Test Application"
+            class="com.seizia.chromite.headless.ChromiteHeadlessApplication"/>
+    </extension>
+
+</plugin>

@@ -1,0 +1,308 @@
+# Swing 테이블 디자이너
+
+## 목적
+
+Object Explorer에서 테이블을 오른쪽 클릭해 **Design**을 고르면(SSMS의 테이블 디자이너) 문서 탭에서 열·키·외래 키·인덱스를 고치고,
+바뀐 내용을 스크립트로 확인한 뒤 DB에 적용한다. Tables 폴더의 **New Table…**은 같은 디자이너로 새 테이블을 만든다.
+SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트엔드로 옮긴 것이다.
+
+## 화면
+
+- **문서 탭 제목:** `<테이블> [Design] - <연결>`(변경이 있으면 끝에 `*`). 쿼리 창(`<파일> - <연결>`)과 같은 형식이라 여러 연결에 같은 이름의
+  테이블이 있어도 구별된다. 연결 이름이 바뀌면 `MainFrame`이 연결 변경 이벤트로 제목을 다시 쓴다.
+- **도구 막대:** Save(Ctrl+S), Generate Script, Revert, 테이블 이름 칸, 상태 글자(새 테이블·변경 있음·읽기 전용).
+- **탭:** Columns, Keys, Foreign Keys, Indexes, Table.
+  - 앞의 네 탭은 위쪽 표와 아래쪽 속성 시트(SSMS "Column Properties")로 나뉜다. 표에서 행을 고르면 그 객체의 모든 속성이 시트에 보인다.
+  - 표의 열은 그 객체 종류의 표시 속성(`@Property(viewable = true)`)이다. SWT 객체 목록(`ObjectListControl`)과 같은 규칙이라
+    드라이버마다 열이 다르다(예: PostgreSQL은 Data type·Identity·Collation, SQL Server는 Data type·Length·Scale·Precision·Identity, MariaDB는 Data type·Auto increment).
+  - Columns 표 맨 앞의 **PK** 확인란은 SSMS "Set Primary Key"에 해당한다.
+  - Table 탭은 테이블 자체의 속성 시트(이름, 설명, 드라이버별 속성)다.
+- **행 색:** 저장하지 않은 새 객체는 결과 표의 추가 색, 고친 객체는 변경 색이다. 편집할 수 없는 칸은 흐린 글자다.
+- **편집:** 칸을 두 번 누르거나 F2/Enter. 불리언은 확인란, 값 목록이 있는 속성(데이터 형식, 열거형)은 콤보(입력 허용 속성은 입력 가능), 나머지는 글자 칸.
+- **추가·삭제:** 각 탭 도구 막대의 New Column / Add Key… / Add Foreign Key… / Add Index…와 Delete(Delete 키).
+  키·인덱스·외래 키는 대화상자에서 이름, 종류, 열(체크한 순서가 키 순서), 정렬, 참조 테이블·키·규칙을 고른다.
+- **저장:** Save는 변경 스크립트를 먼저 보여 준다(Execute / Open in Query Window / Copy / Cancel). Execute를 고르면 적용하고 테이블을 DB에서 다시 읽는다.
+  Generate Script는 스크립트만 보여 준다.
+- **닫기:** 저장하지 않은 변경이 있으면 Save / Don't Save / Cancel을 묻는다. Don't Save면 변경을 되돌린다(저장하지 않은 새 테이블은 모델에서 사라진다).
+  앱을 끝낼 때도 디자이너마다 묻는다.
+
+## 구조
+
+| 클래스 | 역할 |
+|---|---|
+| `TableDesignSession` | UI 없는 편집 세션. 명령 묶음(`DBECommandContext`), 목록 읽기, 속성 편집, 추가·삭제, PK 확인란, 스크립트 생성, 저장 |
+| `TableDesignerPanel` | 문서 탭. 도구 막대, 탭, 표와 속성 시트, 진행 대화상자에서 읽기·편집·저장 |
+| `DesignerTable` | 표와 속성 시트가 함께 쓰는 `JTable`(속성 설명자로 편집기 고르기, 행 색, 가로선) |
+| `DesignerDialogs` | Add Key / Add Index / Add Foreign Key 대화상자 |
+| `ScriptPreviewDialog` | 변경 스크립트 미리 보기 |
+| `design.TableDesignerDriver` | 드라이버별 부분(인덱스·외래 키 열, CHECK 식) 인터페이스 |
+| `design.PostgreTableDesignerDriver`, `SQLServerTableDesignerDriver`, `MySQLTableDesignerDriver` | 위 인터페이스의 드라이버 구현. 테이블 클래스의 어댑터로 등록(plugin.xml) |
+
+- 진입점: `ObjectExplorerPanel`의 오른쪽 클릭 메뉴 Design(테이블, 뷰 제외)·New Table…(Tables 폴더) → `QueryWindows.designTable/newTable` → `MainFrame`이 탭을 연다.
+  같은 테이블의 디자이너가 열려 있으면 그 탭을 보여 준다.
+- `MainFrame`: 디자이너 탭 닫기 확인, Ctrl+S(File > Save)를 활성 디자이너의 Save로, 끝낼 때 확인.
+- MANIFEST: `com.seizia.chromite.model.jdbc`(외래 키 규칙 설정이 `JDBCTableForeignKey`에 있음)를 추가. 세 드라이버 번들(`ext.postgresql`, `ext.mssql`, `ext.mysql`)은
+  처음에 선택 의존(`resolution:=optional`)으로 넣었으나, 고급 연결 설정([swing-conn-advanced.md](swing-conn-advanced.md))이 같은 번들을 필수 의존으로 넣어
+  합칠 때 선택 의존 줄을 뺐다(한 번들은 `Require-Bundle`에 한 번만 적는다).
+  SWT·JFace 번들은 추가하지 않았다.
+
+## SWT에서 옮긴 것 (근거)
+
+| 동작 | SWT 위치 | Swing |
+|---|---|---|
+| 명령 묶음 | `DatabaseEditorInput`(ui.editors.base) 66–90행: `DBUtils.getDefaultContext(object, false)`, `SimpleCommandContext(context, false)` | `AbstractCommandContext`를 바로 씀. `SimpleCommandContext`는 SWT 명령 서비스 갱신만 더한 것 |
+| 칸 편집 | `ItemListControl.CellEditingSupport`(ui.navigator) 343–418행, `NodeListControl.NodeListPropertySource` | 모델의 `PropertySourceEditable.setPropertyValue`(속성 처리기로 명령 생성, 연속 편집 합치기) |
+| 표의 열 | `ObjectListControl` 440–510행: 클래스의 `@Property` 수집, 숨김 속성 제외, `isViewable`이면 보이기 | `TableDesignSession.getGridProperties` |
+| 새 객체 | `NavigatorHandlerObjectCreateBase.createNewObject`(ui.navigator): 컨테이너 자식 먼저 읽기, `DBEObjectMaker.createNewObject` | `TableDesignSession.createTable`, `createChild`(설정 대화상자 대신 `OPTION_SKIP_CONFIGURATION`) |
+| 열의 키 표시 | `EditAttributePage.createConstrainForColumn`(ui.editors.entity) 178–207행: 고유 키 객체를 만들고 `addAttributeReference` | `TableDesignSession.createKey`, `setPrimaryKeyColumn` |
+| 키·인덱스·외래 키 설정 | `PostgreConstraintConfigurator`, `PostgreIndexConfigurator`, `PostgreForeignKeyConfigurator`, `SQLServerIndexConfigurator`, `SQLServerForeignKeyConfigurator`, `SQLServerCheckConstraintConfigurator`, `MySQLIndexConfigurator`, `MySQLForeignKeyConfigurator`, `MySQLConstraintConfigurator`(각 `ext.*.ui/config`) | 대화상자는 `DesignerDialogs`, 값 넣기는 `design.*TableDesignerDriver` |
+| 스크립트 미리 보기 | `EntityEditor.showChanges`(ui.navigator) 511–571행: 명령 검사 → `getPersistActions(OPTION_OBJECT_SAVE)` → `SQLUtils.generateScript` | `TableDesignSession.generateScript`, `ScriptPreviewDialog` |
+| 저장 | `EntityEditor.saveCommandContext` 369–448행: `tryExecuteRecover` 안의 `saveChanges`, 상태 객체 새로 고침, 노드를 `FORCE_REFRESH`(새 객체) / `UPDATE_ON_SAVE`로 새로 읽기 | `TableDesignSession.save` |
+| 저장 전 미리 보기 | `EntityEditor.doSave` 276–291행(`NAVIGATOR_SHOW_SQL_PREVIEW`) | 항상 미리 보기(SSMS처럼 스크립트를 보고 실행) |
+
+## 설계 결정과 이유
+
+- **모델 계층만 쓴다.** 열·키 편집은 모델의 `PropertySourceEditable`과 객체 관리자가 명령을 만든다. 그래서 드라이버마다 다른 속성
+  (PostgreSQL의 `fullTypeName`·`identity`, SQL Server의 `dataType`·`identity`, MySQL의 `fullTypeName`·`autoGenerated`·`comment`)을
+  공통 코드로 편집하고, 생성되는 SQL은 SWT 편집기와 같다.
+- **고정 열(SSMS의 Column Name / Data Type / Allow Nulls)이 아닌 속성 열.** 드라이버마다 같은 뜻의 속성 ID가 달라(위 예) 고정 열은
+  드라이버별 매핑이 필요하고 빠지는 속성이 생긴다. SWT 목록과 같은 규칙(표시 속성)을 쓰고, 나머지 속성은 아래 속성 시트에서 고친다.
+- **드라이버별 부분은 어댑터로.** 새 인덱스·외래 키에 열을 넣는 API가 모델에 공통으로 없다(`PostgreIndexColumn`, `SQLServerTableIndexColumn`,
+  `MySQLTableIndexColumn` 생성자가 모두 다름). SWT에서는 이 일을 SWT 플러그인의 설정기가 하므로 Swing 제품에 넣을 수 없다.
+  설정기의 UI 아닌 부분만 `TableDesignerDriver`로 옮기고, 테이블 클래스의 Eclipse 어댑터로 등록했다. 어댑터 관리자는 그 드라이버 테이블을
+  어댑트할 때만 클래스를 읽는다(드라이버 번들 의존은 위 MANIFEST 항목). PK·UK는 공통 API(`AbstractTableConstraint.addAttributeReference`)가 있어
+  어댑터가 없는 드라이버(DB2, Generic 등)에서도 된다. 인덱스·외래 키·CHECK는 어댑터가 있는 PostgreSQL·SQL Server·MySQL/MariaDB·Oracle만 되고,
+  나머지는 추가 단추가 꺼지고 "Not supported for this database yet"을 보여 준다. Oracle(`OracleTableDesignerDriver`, 2026-11-08)은 외래 키 규칙 중
+  ON DELETE CASCADE·SET NULL만 받는다(ON UPDATE 없음). 다른 규칙은 추가할 때 이유를 알린다([swing-create-objects.md](swing-create-objects.md)).
+- **저장 전 열린 트랜잭션 질문(2026-11-08).** 저장은 명령마다 커밋하고 MySQL·Oracle DDL은 암묵 커밋이라, 미리 보기에서 실행을 고르면
+  연결의 열린 트랜잭션을 먼저 묻는다(커밋 / 롤백 / 취소, 사용자 규칙 "트랜잭션 안전").
+- **설정기가 대화상자 기본값으로 채우는 칸도 같은 값으로.** SWT 인덱스 대화상자(`EditIndexPage`, ui.editors.entity `EditIndexPage.java:100-106`)는
+  넘겨받은 종류 목록의 첫 값을 고르고 설정기가 그 값을 넣는다(`MySQLIndexConfigurator.java:78`). MySQL·MariaDB는 그 목록이
+  `MySQLDataSource.supportedIndexTypes()`(BTREE 먼저, `MySQLDataSource.java:1101-1105`)이고, 관리자는 인덱스를 `DBSIndexType.OTHER`로 만들고(`MySQLIndexManager.java:65`)
+  FULLTEXT가 아니면 `USING <종류>`를 쓴다(`MySQLIndexManager.java:76-80`). 그래서 `MySQLTableDesignerDriver`가 첫 지원 종류를 넣는다
+  (넣지 않으면 `USING OTHER`로 저장이 실패했다). PostgreSQL(대화상자 기본 OTHER, `PostgreIndexConfigurator.java:54`)과 SQL Server(기본
+  `INDEX_TYPE_DEFAULT`, `SQLServerIndexConfigurator.java:50-53`)는 관리자 기본값 UNKNOWN과 DDL이 같으므로(`PostgreIndexManager.java:61-64`는 HASHED만
+  `USING HASH`, `SQLServerIndexManager.java:96-110`은 CLUSTERED·NONCLUSTERED만 씀) 넣지 않았다. 외래 키 규칙은 대화상자에서 고른 값을 넣고,
+  PostgreSQL의 `DEFERRABLE`·`INITIALLY DEFERRED`는 SWT 기본값(꺼짐)과 모델 기본값이 같다.
+- **목록은 테이블 객체 API로 읽는다.** 탐색기 폴더 노드 대신 `getAttributes`·`getConstraints`·`getAssociations`·`getIndexes`를 쓴다.
+  관리자가 새 객체를 모델 캐시에 넣고 지운 객체를 빼므로, 저장 전 새 테이블에서도 같은 경로로 보인다. SQL Server의 CHECK 제약은
+  `getConstraints`에 없어 드라이버 구현이 더한다(`getExtraConstraints`).
+- **이름을 정한 뒤 캐시를 다시 만든다.** 설정 대화상자 없이 만든 객체는 관리자가 기본 이름으로 캐시에 넣은 뒤 이름을 바꾸므로,
+  `PropertySourceEditable`이 이름 변경 뒤에 하는 것처럼 캐시를 다시 만든다(`recache`).
+- **PK 확인란.** 저장하지 않은 PK는 열 목록을 바로 고치고, 저장된 PK는 지우고 새 열 목록으로 다시 만든다(SSMS와 같음, 스크립트에 DROP·ADD가 보임).
+  키에 들어가는 열은 NOT NULL로 바꾼다(`required` 속성).
+- **편집마다 다시 읽기.** 한 편집이 다른 칸을 바꿀 수 있고(PK → NOT NULL, 형식 → 길이), 값은 모델 캐시에서 읽으므로 DB 왕복이 없다.
+  읽기는 진행 대화상자의 작업 스레드에서 하고(300ms 안에 끝나면 창이 뜨지 않음), 게으른 속성도 같은 작업에서 읽는다.
+- **Object Explorer 갱신.** 디자이너는 SWT처럼 모델 노드를 새로 읽고, Object Explorer는 모델 이벤트로 반영한다:
+  다른 곳에서 추가된 노드(`ADD`)는 부모의 자식을, 다른 곳에서 새로 읽은 노드(`UPDATE`/`REFRESH`)는 그 노드와 펼친 하위 노드의 자식을 모델에서 다시 읽는다
+  (펼친 상태 유지). 그래서 저장하지 않은 새 테이블·열도 SWT처럼 트리에 보이고, Don't Save로 닫으면 사라진다.
+- **화면 문구에는 다른 제품 이름을 쓰지 않는다**(2026-11-06 사용자 규칙). 주석과 이 문서에서만 비교 대상으로 적는다.
+
+## upstream 대비 변경점
+
+- 새 파일: `TableDesignSession`, `TableDesignerPanel`, `DesignerTable`, `DesignerDialogs`, `ScriptPreviewDialog`, `design/*`(Swing 번들).
+- 고친 파일: `ObjectExplorerPanel`(메뉴 2개, 모델 `ADD`·`REFRESH` 반영), `MainFrame`(디자이너 탭), Swing 번들 `MANIFEST.MF`·`plugin.xml`.
+- DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다. 다만 2026-11-07에 SQL Server 열 정의의 `COLLATE` 조건을 모델 `SQLServerTableColumnManager`에서 고쳤다(SWT에도 적용).
+  2026-11-08(후속 29 d–f): 모델 `AbstractCommandContext`(실패 뒤 합쳐진 명령 지우기, 적용한 문장 기록), `SQLObjectEditor.ObjectRenameCommand.merge`(옛 이름),
+  `SQLServerTableColumnManager`(`sp_rename` 새 이름, 기본값 제약 조건 이름). 모두 SWT에도 있던 결함이다.
+  2026-11-09(후속 30 b): `SQLServerBaseTableManager`·`SQLServerProcedureManager`(`sp_rename` 옛 이름), `SQLServerTableIndex`(인덱스 DDL 질의의 이름),
+  `SQLServerDatabase`(Babelfish 스키마 목록의 데이터베이스 이름). SWT에도 있던 결함이다.
+
+## 확인 (2026-11-06)
+
+PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Swing 제품, 개인 작업 공간).
+
+- Design: `orders` 열기 → 새 열 추가·이름·형식(`varchar(50)`) → 인덱스 추가 → 외래 키(`customer_id` → `customer.id`, 열 자동 선택) →
+  Generate Script → Save의 미리 보기 → Execute. DB에서 `status varchar(50)`, `orders_customer_id_idx`, `orders_customer_fk` 확인.
+- New Table…: Tables 폴더 → 이름 `product`, 열 2개, PK 확인란(NOT NULL 자동) → `CREATE TABLE ... CONSTRAINT product_pk PRIMARY KEY (id)` 실행, DB 확인.
+  저장 전 새 테이블·이름 변경이 Object Explorer에 바로 보였다.
+- 저장된 열 삭제와 새 열 추가의 스크립트(`DROP COLUMN`, `ADD`), Open in Query Window, 닫을 때 Save / Don't Save / Cancel(Don't Save 뒤 DB 그대로).
+- 확인 중 고친 것: PostgreSQL 새 외래 키가 표에 안 보이던 것(관리자가 다른 캐시에 넣음 → 명령 묶음의 새 객체를 함께 보여 줌),
+  인덱스 표의 Table 열(소유 테이블 열 숨김).
+- **확인하지 못한 것**(2026-11-08 아래에서 SQL Server·MariaDB·다크 테마·형식 바꾸기를 확인함)**:** SQL Server·MariaDB 화면 확인, 다크 테마 화면, 저장된 열의 형식 바꾸기(PostgreSQL에서 편집기가 열리지 않은 적이 있으나,
+  같은 시간에 다른 에이전트의 자동 입력이 이 창에 들어왔다는 보고가 있어 원인을 확정하지 못함). Windows 방화벽 확인 창이 화면 앞을 막아 더 진행하지 못했다.
+
+### 확인 (2026-11-08, SQL Server·MariaDB, 후속 "확인 작업")
+
+`chromite/followups-4` 빌드의 앱 한 벌(개인 데이터 폴더·작업 공간, 한국어)에 붙인 시험 코드가 디자이너를 `MainFrame.designTable`로 열고, 표 모델에 값을 넣어
+(칸 편집기가 커밋하는 것과 같은 `setValueAt`) 편집하고, 도구 막대 동작(스크립트 생성, 저장, 되돌리기)을 실행했다(화면 입력 없음). 공용 Docker DB의 `chr_followups4`.
+증거 `D:\Tools\_scratch\chromite-followups-4\run\d*.txt.log`, `shots\d-*.png`.
+
+- **MariaDB 11 `designer_t`:** 저장된 열 `title`의 형식 `varchar(50)` → `varchar(80)`과 NOT NULL, 새 열 → 스크립트
+  `ALTER TABLE … MODIFY COLUMN title varchar(80) DEFAULT 'x' NOT NULL; ALTER TABLE … ADD Column1 varchar(100) NULL;` → 실행 → `SHOW CREATE TABLE`이 같음(기본값 유지).
+  다크 테마 화면(`d-07-maria-designer-dark.png`)도 읽힘.
+- **SQL Server 2022 `designer_t`(기본값 제약 조건 `df_designer_title`이 있는 열):** 저장된 열의 길이 50 → 80과 NOT NULL은 `DROP CONSTRAINT` → `ALTER COLUMN … NOT NULL` →
+  `ADD DEFAULT … FOR title` 순서로 실행되어 성공했다(위 2026-11-08 오류 5074 수정이 화면에서도 맞음). 화면은 열 표·열 속성 시트·키·인덱스·테이블 탭이 열림(`d-01-ms-designer.png`).
+- **찾은 결함(고치지 않음, 아래 "남긴 것"):**
+  1. SQL Server에서 저장된 열의 이름을 표에서 바꾸면 `sp_rename`이 나오지 않고 새 이름으로 `ALTER COLUMN`만 나온다. 실행하면 오류 4924
+     "column '…' does not exist". 이름 칸 편집이 모델 `PropertySourceEditable.setPropertyValue`의 속성 변경 명령으로만 가고, SQL Server 열 관리자의 `DBEObjectRenamer`(`sp_rename`)를 부르지 않는다.
+  2. 저장 스크립트가 중간에 실패해도 앞 문장은 이미 실행·커밋되어 있다(SQL Server 자동 커밋). 위 경우 `title` 변경과 새 열은 DB에 들어갔는데 디자이너는 모든 변경을 보류 중으로 보이고,
+     되돌리기 뒤에도 모델 캐시의 옛 정의(길이 50, 새 열)를 보인다.
+  3. SQL Server 기본값을 다시 만들 때 이름을 넣지 않아(`ADD DEFAULT N'x' FOR title`) 원래 이름 `df_designer_title`이 시스템 이름 `DF__designer___title__…`로 바뀐다.
+- 회귀 테스트는 실행하지 않았다(코드 변경 없음).
+
+## 후속 29 d–f (2026-11-08, `chromite/followups-5`)
+
+### 저장된 열 이름 바꾸기
+
+- **근본 원인:** 저장된 열·키·테이블의 이름은 모델 속성이 `editable`일 뿐 `updatable`이 아니어서(`JDBCTableColumn.getName`, `JDBCTable.getName`) 디자이너 칸이 잠겨 있었다.
+  이름 바꾸기는 객체 관리자의 `DBEObjectRenamer`(탐색기 Rename과 같음)가 하는데 디자이너는 속성 변경(`PropertySourceEditable.setPropertyValue`)만 썼다.
+  그래서 칸을 고쳐도(후속 확인은 표 모델에 직접 값을 넣음) 이름 바꾸기 명령이 없고 SQL Server는 새 이름으로 `ALTER COLUMN`만 나가 오류 4924가 났다.
+  같은 빈틈이 모든 드라이버(PostgreSQL·MySQL/MariaDB·Oracle 열 관리자도 `DBEObjectRenamer`)와 키·인덱스·테이블 이름에 있었다.
+- **고친 것(`TableDesignSession`):** 저장된 객체의 이름 속성이고 관리자가 `DBEObjectRenamer`이며 `canRenameObject`이면 편집할 수 있고(`isEditable`),
+  값은 `renameObject`로 같은 명령 묶음에 넣는다(`setValue`, 새 객체 이름과 같은 대소문자 변환기를 거침). 스크립트는 드라이버의 이름 바꾸기 문장이다:
+  SQL Server `sp_rename … 'COLUMN'`/`'OBJECT'`, PostgreSQL `RENAME COLUMN`, MariaDB `CHANGE`.
+- **모델 결함 1(`SQLObjectEditor.ObjectRenameCommand.merge`):** 명령 대기열을 다시 만들 때 합친 이름 바꾸기 명령을 새로 만들면서 옛 이름을 객체에서 읽었는데,
+  객체는 명령을 넣을 때 이미 새 이름으로 바뀌어 있어 옛 이름 = 새 이름이 되어 문장이 빠졌다(다른 칸을 고친 뒤의 스크립트·저장). 첫 명령의 옛 이름을 이어받게 고쳤다.
+  탐색기 Rename처럼 바로 저장하는 경로는 대기열을 한 번만 만들어 드러나지 않았다.
+- **모델 결함 2(`SQLServerTableColumnManager.addObjectRenameActions`):** `sp_rename`의 새 이름을 `getQuotedIdentifier`로 감싸, 따옴표가 필요한 이름이면
+  대괄호가 이름의 일부가 됐다. 테이블 이름 바꾸기처럼 문자열(`N'…'`, 방언의 `getQuotedString`)로 넘긴다. 첫 인자도 같은 문자열 처리를 거친다.
+- 이름 바꾸기 명령은 대기열 앞에 온다(`AbstractCommandContext`, upstream #7512): 이름을 바꾸고 형식을 고친 열은 `sp_rename` 뒤에 새 이름으로 `ALTER COLUMN`이 나간다.
+
+### 저장이 중간에 실패할 때
+
+- **근본 원인(모델 `AbstractCommandContext.executeCommands`):** 저장은 명령마다 커밋한다(대부분 DB의 DDL은 트랜잭션이 안 됨). 실패하면 실행된 명령의 **합쳐진 결과**만
+  명령 목록에서 지웠는데, 같은 객체의 속성 편집들은 합친 명령(복합 명령)에 들어가 원래 명령이 목록에 남았다. 그래서 디자이너는 이미 적용된 변경까지 모두 대기로 보이고,
+  다음 저장은 그것을 다시 실행했으며(새 열 다시 추가 → 실패), 되돌리기는 DB에 이미 있는 변경을 모델에서만 되돌렸다.
+- **고친 것:**
+  - `AbstractCommandContext`: 실행된 명령과 그 명령으로 합쳐진 명령을 모두 지운다(`getMergeTarget`). 저장에서 적용된 문장을 기록한다(`getAppliedActions`: 커밋한 명령의 문장,
+    트랜잭션 없이 실행되어 남은 문장. 트랜잭션 안에서 실패한 명령의 문장은 롤백되므로 빼고, 다 저장되거나 되돌리면 비움).
+  - `TableDesignSession.save`: 실패했는데 적용된 문장이 없으면 전처럼 변경을 대기로 둔다(고쳐서 다시 저장). 적용된 문장이 있으면 적용하지 못한 변경의 스크립트를 만든 뒤
+    남은 변경을 버리고(`resetChanges`) 테이블을 DB에서 다시 읽고(`FORCE_REFRESH`) `PartialSaveException`을 던진다.
+  - `TableDesignerPanel.save`: 오류 창에 "'…'의 변경 중 일부를 적용한 뒤 저장이 실패했습니다 … 적용함: … 적용하지 못함: …"과 원래 오류를 보인다(`designer_error_save_partial`).
+- 결정: 적용하지 못한 변경은 디자이너에 남기지 않는다. DB에서 다시 읽은 객체는 새 객체라 옛 객체에 걸린 명령을 그대로 둘 수 없다. 대신 그 문장을 창에 보여 다시 할 수 있게 한다.
+
+### 기본값 제약 조건 이름
+
+- SQL Server에서 기본값이 있는 열을 고치면 제약 조건을 지우고 다시 만드는데(2026-11-08, 오류 5074), 다시 만들 때 이름을 붙이지 않아
+  `df_designer_title`이 시스템 이름 `DF__designer___title__…`로 바뀌었다. `ADD CONSTRAINT <원래 이름> DEFAULT … FOR …`로 고쳤다(`SQLServerTableColumnManager.addObjectModifyActions`).
+  원래 제약 조건이 없던 열에 기본값을 새로 넣을 때는 전처럼 이름 없이 만든다. PostgreSQL·MySQL·Oracle의 기본값은 이름 있는 제약 조건이 아니라 해당 없음.
+
+### 확인 (2026-11-08)
+
+이 브랜치 빌드의 앱 한 벌(개인 데이터 폴더·작업 공간, 한국어)에 붙인 시험 코드가 디자이너를 `MainFrame.designTable`로 열고 표 모델에 값을 넣고(편집 가능 여부는
+`JTable.isCellEditable`로 따로 봄) 도구 막대 동작을 실행했다. 공용 Docker DB의 `chr_followups5`. 증거 `D:\Tools\_scratch\chromite-followups-5\run\d*.txt.log`, `shots\d*.png`, `shots\e*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SQL Server `designer_t`: 저장된 열 `title`의 이름 칸 | 편집 가능(`#` 칸은 그대로 불가) |
+| `title` → `title2`, 길이 50 → 80, 스크립트 | `EXEC chr_followups5.sys.sp_rename N'chr_followups5.dbo.designer_t.title', N'title2', 'COLUMN';` → `DROP CONSTRAINT df_designer_title` → `ALTER COLUMN title2 nvarchar(80) …` → `ADD CONSTRAINT df_designer_title DEFAULT N'x' FOR title2` |
+| 저장(실행) | `sys.columns`: `title2 nvarchar(80)`, `sys.default_constraints`: `df_designer_title (N'x') title2`. 고치기 전에는 첫 실행에서 `sp_rename`이 빠졌다(대기열을 다시 만든 스크립트) |
+| `title2` 길이 100, 새 열 `Column1`, `qty` 기본값 `nosuchfunc()` → 저장 | 오류 창 "적용함: DROP/ALTER/ADD CONSTRAINT(title2), ADD Column1 / 적용하지 못함: ADD DEFAULT nosuchfunc() FOR qty / SQL 오류 [195]"(`shots\e1-partial-save.png`). 디자이너는 저장할 것 없음(제목에 `*` 없음), DB와 같은 `title2 100`, `Column1`, `qty` 기본값 없음 |
+| PostgreSQL `designer_p` `title` → `title2` | `ALTER TABLE public.designer_p RENAME COLUMN title TO title2;`, 저장 뒤 열 `title2`(기본값 유지) |
+| MariaDB `designer_m` `title` → `title2` | `ALTER TABLE chr_followups5.designer_m CHANGE title title2 varchar(50) DEFAULT 'x' NULL;`, 저장 뒤 `SHOW CREATE TABLE`이 같음 |
+| SQL Server 테이블 탭의 이름 `designer_t` → `designer_t2` | `EXEC … sp_rename N'chr_followups5.dbo.designer_t', N'designer_t2', 'OBJECT';`, 저장 뒤 `sys.tables`에 `designer_t2`, 문서 탭 제목도 바뀜 |
+
+- Oracle 열 이름 바꾸기는 실행해 보지 않았다(관리자가 `DBEObjectRenamer`라 같은 경로).
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 명령 묶음으로 저장하는 모든 편집(디자이너, 탐색기 이름 바꾸기·지우기·만들기, Properties 창 편집)의
+  실패 뒤 상태, 이름 바꾸기 명령을 여러 번 합치는 경로, SQL Server 열 이름 바꾸기·기본값 다시 만들기.
+
+## sp_rename의 옛 이름 (2026-11-09, 후속 30 b)
+
+- **원인:** SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)는 `sp_rename`의 첫 인자를
+  `" N'" + 스키마 이름 + "." + 따옴표 붙인 옛 이름 + "'"`로 만들어 `'`를 두 번 쓰지 않았다. 이름(또는 데이터베이스·스키마 이름)에 `'`가 있으면 문장이 깨졌다
+  ("Incorrect syntax near 'tab'"). 열 이름 바꾸기(`SQLServerTableColumnManager`)는 후속 29에서 이미 `SQLUtils.quoteString`을 썼다.
+- **고친 것:** 두 관리자도 열처럼 이름 전체를 `SQLUtils.quoteString`으로 감싼다(`N'chr.dbo.[o''tab]'`).
+- **SQL Server 플러그인의 같은 모양(이름을 문자열 상수에 넣는 곳) 점검:** `sp_rename` 호출은 위 세 곳뿐이다. 확장 속성(`sp_addextendedproperty` 등)은
+  `quoteString`/`getQuotedString`을 쓴다. 고친 곳 두 군데 더:
+  - `SQLServerTableIndex.readIndexDefinition`: 인덱스 DDL을 만드는 질의에 인덱스 이름을 이스케이프하지 않고 `'…'`에 넣어 `'`가 있으면 질의가 깨졌다
+    ("Error reading index definition"). 테이블 이름처럼 이스케이프한 `N'…'`로.
+  - `SQLServerDatabase` 스키마 목록(Babelfish만): 데이터베이스 이름을 식별자 따옴표(`getQuotedIdentifier`)로 문자열에 넣어, 따옴표가 필요한 이름은
+    `[이름]`이 되어 맞지 않았고 `'`가 있으면 질의가 깨졌다. 이스케이프한 이름으로. Babelfish 서버가 없어 실행해 보지 않았다.
+- **같은 확인에서 본 것(범위 밖, 고치지 않음):** 인덱스 DDL의 열 목록은 서버 질의가 열 이름을 따옴표 없이 이어 붙여 `c'ol ASC`처럼 나온다.
+  2026-11-12 고침(아래 "인덱스 DDL의 열 이름").
+
+### 확인 (2026-11-09, `chromite/followups-6`)
+
+탐색기의 이름 바꾸기와 같은 경로(`DBEObjectRenamer.renameObject` → 명령 문맥 저장)를 시험 코드가 입력 대화상자 없이 불렀다. 공용 Docker SQL Server의 `chr_followups6`.
+"고치기 전"은 `origin/devel`(918eec24f4)을 고치지 않고 빌드한 것이다. 증거 `D:\Tools\_scratch\chromite-followups-6\run\r4*.txt.log`(전), `f4.txt.log`(뒤).
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 테이블 `dbo.[o'tab]` → `o'tab2` | `EXEC chr_followups6.sys.sp_rename N'chr_followups6.dbo.[o'tab]', N'o''tab2', 'OBJECT'` → 오류 102 | `… sp_rename N'chr_followups6.dbo.[o''tab]', N'o''tab2', 'OBJECT'` → 저장, `sys.objects`에 `o'tab2` |
+| 프로시저 `dbo.[p'proc]` → `p'proc2` | 오류 156 | `… sp_rename N'chr_followups6.dbo.[p''proc]', N'p''proc2'` → 저장, `p'proc2` |
+| 인덱스 `[ixo'tab]`의 DDL | "Error reading index definition" | `CREATE NONCLUSTERED INDEX [ixo'tab] ON chr_followups6.dbo.[o'tab] (…)` |
+
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: SQL Server 테이블·뷰·프로시저 이름 바꾸기(탐색기, 디자이너 테이블 탭), 인덱스 DDL 보기,
+  Babelfish 스키마 목록.
+
+## 인덱스 DDL의 열 이름 (2026-11-12, B9, `chromite/small-fixes-r2`)
+
+- **원인:** `SQLServerTableIndex.readIndexDefinition`은 SQL Server에서 인덱스 DDL을 글로 만드는 질의(MS TechNet 스크립트)다. 키 열과 포함 열은
+  `' , ' + C.name`을 `FOR XML PATH('')`로 이어 붙이고, 파일 그룹은 `'ON [' + DS.name + ' ]'`로 붙였다. 그래서
+  - 열 이름이 따옴표 없이 나왔다(`c'ol ASC`, `x]y`). 공백·예약어·특수 문자가 있는 이름은 DDL이 실행되지 않았다.
+  - `FOR XML PATH('')`의 결과는 XML 글이라 `&`·`<`·`>`가 `&amp;`·`&lt;`·`&gt;`로 바뀌었다(같은 이어 붙이기의 다른 증상).
+  - 파일 그룹은 `[PRIMARY ]`(닫는 괄호 앞 공백)이었고 이름에 `]`가 있으면 깨졌다.
+- **고친 것:** 키 열·포함 열·파일 그룹 이름을 `QUOTENAME`으로 감싸고(`[c'ol]`, `[x]]y]`), 열 목록은 `FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)')`로
+  XML 값이 아니라 글로 읽는다. 인덱스·테이블 이름은 전처럼 모델의 따옴표 규칙(필요할 때만)을 따른다. 질의 안에서는 방언의 규칙을 쓸 수 없어 열은 늘 `[…]`다(SSMS 스크립트와 같음).
+- XML `value()`는 세션의 `QUOTED_IDENTIFIER`가 ON이어야 한다. JDBC 드라이버(mssql-jdbc, jTDS)의 기본값이 ON이고, 메타데이터는 따로 연 세션(`openMetaSession`)에서 읽는다.
+  사용자가 메타데이터 세션을 따로 쓰지 않게 하고 쿼리 창에서 `SET QUOTED_IDENTIFIER OFF`를 실행했다면 인덱스 DDL 읽기가 오류(1934)를 낸다(틀린 DDL 대신 오류).
+- Babelfish는 전처럼 이 질의를 쓰지 않는다(`getObjectDefinitionText`).
+
+### 확인 (2026-11-12)
+
+클라우드 VM의 SQL Server(`chromite-test-mssql`)에 임시 DB `chromite_small_fixes_r2`를 만들고 `dbo.[t'ab]`에 `[i'x]`(키 `[c'ol] ASC`, `[a&b<c] DESC`, `[x]]y]`,
+포함 `[inc&1]`, `plain`)를 만든 뒤, 고친 질의를 그대로(시스템 표 이름만 이 DB로) `sqlcmd -I`(JDBC처럼 QUOTED_IDENTIFIER ON)로 실행했다. 앱에서 View DDL로 보지는 않았다.
+
+- 나온 DDL: `CREATE NONCLUSTERED INDEX [i'x] ON dbo.[t'ab] (  [c'ol] ASC  , [a&b<c] DESC  , [x]]y] ASC  ) INCLUDE ( [inc&1] , [plain] ) WITH (…) ON [PRIMARY]`.
+- 인덱스를 지우고 그 DDL을 `EXEC`하면 같은 열·순서·DESC·포함 열로 다시 만들어진다. 임시 DB는 지웠다.
+- `QUOTED_IDENTIFIER` OFF(`sqlcmd` 기본)에서는 오류 1934로 질의가 실패한다(위 설명).
+- 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: SQL Server 인덱스의 DDL 글(`getObjectDefinitionText`)을 쓰는 곳(View DDL 등).
+
+## 열 폭과 편집기 (2026-11-12, 앱 변경 #78, `chromite/small-fixes-r3`)
+
+- **증상:** 데이터 형식 칸을 편집하면 `varchar(80)`이 한국어 150%에서 "char(80)", 영어 100%에서 "archar(80)"으로 보였다(앞부분이 가려짐).
+  편집하지 않을 때도 `numeric(12…`, `timestampt…`처럼 값이 잘렸다.
+- **근본 원인(두 가지):**
+  - `TableDesignerPanel.sizeColumns`(고치기 전 794행)가 열 폭을 머리글 글자 수로 어림했다(`max(90, 글자 수 × 8 + 30)`). 값의 폭도, 편집 콤보의 화살표
+    단추와 글자 여백도 보지 않았다. 한국어 150%에서 데이터 형식 열은 89, 편집 칸은 64였다(`varchar(80)`의 선호 폭 64보다 화살표 자리만큼 좁음).
+  - 편집기에 값을 넣으면 캐럿이 글의 끝에 가고, 표가 폭을 주기 전에 글 칸이 캐럿 쪽으로 밀렸다. 그래서 글이 칸에 들어가는 영어 100%(칸 76, 글 66)에서도
+    scrollOffset 7로 앞이 가려졌다(`DesignerTable.createComboEditor`·글 편집기).
+- **고친 것:**
+  - `DesignerTable.getContentWidth`: 머리글과 모든 값을 표의 렌더러로 재고, 목록에서 고르는 열(값 목록이 있거나 열거형인 속성, 고칠 수 있는 칸)은
+    편집기와 같게 만든 콤보(`JComboBox.isTableCellEditor`)의 선호 폭에 4px을 더해 잰다. 150%처럼 글자 폭이 소수인 배율에서 마지막 글자가 칸 끝에 걸리던
+    것을 막는다. 최소 90, 최대 300(넘는 값은 편집할 때 앞부분을 보임).
+  - `DesignerTable.showStart`: 콤보와 글 편집기가 값을 넣은 뒤 캐럿을 처음에 두고 scrollOffset을 0으로. 긴 값(기본값 식 등)은 앞부분을 보인다.
+- **같은 원인을 쓰는 곳:** 글자 수로 폭을 어림하는 규칙은 이 한 곳뿐이었다(`length() * 8` 검색). 속성 시트(값 열 320)는 같은 편집기를 쓰므로 앞부분 보이기가
+  함께 적용된다. 다른 편집 표의 콤보 편집기(데이터 가져오기·복사 마법사의 형식 콤보, 연결 속성 표 등)는 다른 폭 규칙이라 이번에 바꾸지 않았다(보고만).
+- **확인(이 브랜치 빌드, PostgreSQL 17 임시 DB의 `td_pg`):** 한국어 150% 어두운 테마에서 데이터 형식 열 130, 편집 칸 105, scrollOffset 0, 캐럿 0으로
+  `varchar(80)`과 `timestamptz(6)`이 모두 보임. 밝은 테마·조밀(compact)에서 131/106, 영어 100%에서 133/108로 같음. 기본값 칸(글 편집기)도 처음부터 보임.
+  증거 `D:\Tools\_scratch\small-fixes-r3\sheets\78-*.png`.
+- 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 디자이너 모든 탭(열·키·외래 키·인덱스) 표의 처음 열 폭, 디자이너 칸 편집 시작.
+
+## 남긴 것
+
+- **New View…:** 뷰는 SQL 정의를 편집해야 해서 디자이너 표가 맞지 않는다. 다음에 "CREATE VIEW 틀을 쿼리 창으로 열기"로 만든다.
+- 다른 객체(시퀀스, 프로시저 등)의 속성 편집: 같은 `PropertySourceEditable` 시트로 만들 수 있으나 이번에는 하지 않았다.
+- 열 순서 바꾸기(SSMS 끌어 놓기), 실행 취소·다시 실행(Ctrl+Z), 저장된 키·인덱스의 열 구성 편집(지금은 지우고 다시 추가).
+- 다른 스키마의 테이블을 참조하는 외래 키(대화상자는 같은 스키마·카탈로그의 테이블만 보여 줌).
+- DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
+- ~~(2026-11-08 확인에서 찾음) SQL Server 저장된 열 이름 바꾸기가 `sp_rename` 없이 `ALTER COLUMN`으로 나가는 것, 저장 스크립트가 중간에 실패할 때 앞 문장이 남는 것과
+  디자이너가 보이는 상태, 다시 만든 기본값 제약 조건의 이름(위 "확인 (2026-11-08, SQL Server·MariaDB…)").~~ 2026-11-08 고침(위 "후속 29 d–f").
+- ~~SQL Server 테이블·프로시저 이름 바꾸기(`SQLServerBaseTableManager`, `SQLServerProcedureManager`)의 `sp_rename` 첫 인자는 따옴표를 두 번 쓰지 않은 채
+  `N'…'`에 넣는다. 이름에 `'`가 있으면 문장이 깨진다.~~ 2026-11-09 고침(위 "sp_rename의 옛 이름").
+
+## 변경 이력
+
+- 2026-11-06 최초 작성: 테이블 디자이너(Design), New Table…, 스크립트 미리 보기와 저장, PostgreSQL·SQL Server·MySQL/MariaDB 드라이버 구현.
+- 2026-11-06 확인 중 수정: 명령 묶음의 새 객체·삭제 객체를 목록에 반영(PostgreSQL 외래 키), 소유 테이블 열 숨김. "확인" 절 추가.
+- 2026-11-06 다른 Swing 기능과 합침: 드라이버 번들 선택 의존을 고급 연결 설정의 필수 의존으로 대신함, Object Explorer 메뉴·`QueryWindows`·`MainFrame` 탭 처리를 관리 도구·데이터 전송과 함께 둠.
+- 2026-11-06 MySQL·MariaDB 새 인덱스에 SWT 대화상자의 기본 종류(BTREE)를 넣음: 관리자 기본값 OTHER 때문에 `CREATE INDEX … USING OTHER`가 나가 저장이 실패하던 것.
+- 2026-11-06 탭 제목에 연결 이름(`<테이블> [Design] - <연결>`): 여러 연결의 같은 이름 테이블 탭이 구별되지 않던 것.
+- 2026-11-06 통합 스모크 테스트에서 수정: Views·Materialized Views 폴더에서도 New Table…이 켜지던 것. 뷰 클래스
+  (`SQLServerView`, `PostgreViewBase` 등)도 `DBSTable`이라 `TableDesignSession.canCreateTable`이 `DBSView`를 뺀다.
+- 2026-11-07 SQL Server 열 형식을 varchar에서 int처럼 정렬 규칙이 없는 형식으로 바꾸면 변경 스크립트에 `COLLATE`가 남아 저장이 실패하던 것(오류 447).
+  모델 `SQLServerTableColumnManager`에서 고침. [swing-followup-fixes.md](swing-followup-fixes.md) "SQL Server 열 정렬 규칙".
+- 2026-11-08 SQL Server에서 기본값(DEFAULT 제약 조건)이 있는 열의 형식·NULL 허용을 바꾸는 변경 스크립트가 실패하던 것(오류 5074, 4922, 스키마 비교 시험에서 찾음, 디자이너 화면에서는 확인하지 않음). 모델 `SQLServerTableColumnManager`가
+  제약 조건을 지우고 `ALTER COLUMN` 뒤에 다시 만든다. [schema-compare.md](schema-compare.md) "SQL Server 기본값 제약 조건".
+- 2026-11-08 Oracle 인덱스·외래 키·CHECK(`OracleTableDesignerDriver`, `OracleTableBase` 어댑터), 저장 전 열린 트랜잭션 질문.
+  Object Explorer 테이블 자식 폴더의 New Column…/New Index… 등이 디자이너를 연다. [swing-create-objects.md](swing-create-objects.md).
+- 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
+  참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".
+- 2026-11-08 SQL Server·MariaDB 화면 확인과 다크 테마(`chromite/followups-4`): 저장된 열의 형식 바꾸기 성공, SQL Server 열 이름 바꾸기·중간 실패·기본값 이름 결함을 "남긴 것"에 적음.
+- 2026-11-08 후속 29 d–f(`chromite/followups-5`): 저장된 객체의 이름을 관리자의 이름 바꾸기로(`TableDesignSession`, 모델 `ObjectRenameCommand.merge`·SQL Server `sp_rename` 새 이름),
+  중간에 실패한 저장의 적용·미적용 알림과 다시 읽기(`AbstractCommandContext`, `PartialSaveException`), 다시 만든 SQL Server 기본값 제약 조건의 이름. 위 "후속 29 d–f".
+- 2026-11-09 후속 30 b(`chromite/followups-6`): SQL Server 테이블·프로시저 `sp_rename`의 옛 이름, 인덱스 DDL 질의와 Babelfish 스키마 목록의 이름을 문자열로
+  이스케이프. 위 "sp_rename의 옛 이름".
+- 2026-11-12 B9(`chromite/small-fixes-r2`): SQL Server 인덱스 DDL의 키 열·포함 열·파일 그룹 이름을 `QUOTENAME`으로, 열 목록의 XML 엔터티를 없앰. 위 "인덱스 DDL의 열 이름".
+- 2026-11-12 앱 변경 #78(`chromite/small-fixes-r3`): 표 열 폭을 머리글·값·편집 콤보의 실제 폭으로, 편집기가 값의 앞부분을 보임. 위 "열 폭과 편집기".

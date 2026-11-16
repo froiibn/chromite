@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver Test Plug-in
+Bundle-SymbolicName: com.seizia.chromite.model.lsm.test;singleton:=true
+Bundle-Version: 1.0.52.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.model.lsm,
+ org.apache.felix.scr,
+ com.seizia.chromite.test.platform
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.model.lsm.test

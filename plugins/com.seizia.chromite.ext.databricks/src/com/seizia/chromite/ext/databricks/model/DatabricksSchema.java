@@ -1,0 +1,132 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.databricks.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.databricks.DatabricksConstants;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import org.jkiss.utils.CommonUtils;
+
+import java.sql.SQLException;
+
+public class DatabricksSchema extends GenericSchema implements DBPQualifiedObject {
+
+    private static final Log log = Log.getLog(DatabricksSchema.class);
+
+    private volatile boolean additionalInfoLoaded = false;
+    private String owner;
+    private String location;
+    private String properties;
+
+    public DatabricksSchema(@NotNull GenericDataSource dataSource, @Nullable GenericCatalog catalog, @NotNull String schemaName) {
+        super(dataSource, catalog, schemaName);
+    }
+
+    @Property(viewable = true, order = 2)
+    public String getOwner(@NotNull DBRProgressMonitor monitor) {
+        checkExtraInfo(monitor);
+        return owner;
+    }
+
+    @Property(viewable = true, order = 3)
+    public String getLocation(@NotNull DBRProgressMonitor monitor) {
+        checkExtraInfo(monitor);
+        return location;
+    }
+
+    @Property(viewable = true, length = PropertyLength.MULTILINE, order = 7)
+    public String getProperties(@NotNull DBRProgressMonitor monitor) {
+        checkExtraInfo(monitor);
+        return properties;
+    }
+
+    private void checkExtraInfo(@NotNull DBRProgressMonitor monitor) {
+        if (!additionalInfoLoaded) {
+            loadAdditionalInfo(monitor);
+        }
+    }
+
+    private void loadAdditionalInfo(@NotNull DBRProgressMonitor monitor) {
+        if (!isPersisted()) {
+            additionalInfoLoaded = true;
+            return;
+        }
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Load schema extra info")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                "DESCRIBE SCHEMA EXTENDED " + getFullyQualifiedName(DBPEvaluationContext.DDL))) {
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    while (dbResult.next()) {
+                        // This is table of metadata, where column name is in the database_description_item column
+                        String key = JDBCUtils.safeGetString(dbResult, "database_description_item");
+                        String value = JDBCUtils.safeGetString(dbResult, "database_description_value");
+                        if (CommonUtils.isNotEmpty(key)) {
+                            switch (key) {
+                                case DatabricksConstants.PROP_LOCATION:
+                                    location = value;
+                                    break;
+                                case DatabricksConstants.PROP_OWNER:
+                                    owner = value;
+                                    break;
+                                case "Properties":
+                                    properties = value;
+                                    break;
+                            }
+                        }
+                    }
+                    additionalInfoLoaded = true;
+                }
+            } catch (SQLException e) {
+                log.error("Can't read additional schema info", e);
+            }
+        } catch (DBCException e) {
+            log.error("Can't read additional schema info", e);
+        }
+    }
+
+    @NotNull
+    @Override
+    public String getFullyQualifiedName(@NotNull DBPEvaluationContext context) {
+        return DBUtils.getFullQualifiedName(
+            getDataSource(),
+            getCatalog(),
+            this);
+    }
+
+    @Override
+    public synchronized DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
+        additionalInfoLoaded = false;
+        return super.refreshObject(monitor);
+    }
+}

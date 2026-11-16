@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Firebird Model
+Bundle-SymbolicName: com.seizia.chromite.ext.firebird;singleton:=true
+Bundle-Version: 1.0.292.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.firebird

@@ -1,0 +1,194 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.mysql.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mysql.MySQLUtils;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.connection.DBPConnectionBootstrap;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import org.jkiss.utils.CommonUtils;
+
+import java.sql.SQLException;
+
+/**
+ * MySQLExecutionContext
+ *
+ * 변경 이력:
+ * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
+ *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되었다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
+ */
+public class MySQLExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<MySQLCatalog, DBSSchema> {
+    private static final Log log = Log.getLog(MySQLExecutionContext.class);
+
+    //private MySQLCatalog activeDatabase;
+    private String activeDatabaseName;
+
+    MySQLExecutionContext(@NotNull JDBCRemoteInstance instance, String purpose) {
+        super(instance, purpose);
+    }
+
+    @NotNull
+    @Override
+    public MySQLDataSource getDataSource() {
+        return (MySQLDataSource) super.getDataSource();
+    }
+
+    @NotNull
+    @Override
+    public MySQLExecutionContext getContextDefaults() {
+        return this;
+    }
+
+    public String getActiveDatabaseName() {
+        return activeDatabaseName;
+    }
+
+    @Override
+    public MySQLCatalog getDefaultCatalog() {
+        return CommonUtils.isEmpty(activeDatabaseName) ? null : getDataSource().getCatalog(activeDatabaseName);
+    }
+
+    @Override
+    public DBSSchema getDefaultSchema() {
+        return null;
+    }
+
+    @Override
+    public boolean supportsCatalogChange() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsSchemaChange() {
+        return false;
+    }
+
+    @Override
+    public void setDefaultCatalog(DBRProgressMonitor monitor, MySQLCatalog catalog, DBSSchema schema) throws DBCException {
+        if (activeDatabaseName != null && activeDatabaseName.equals(catalog.getName())) {
+            return;
+        }
+        final MySQLCatalog oldActiveDatabase = getDefaultCatalog();
+
+        // MySQL driver bug - it doesn't ley to change active schema in read-only mode (#9167)
+        boolean connectionReadOnly = isConnectionReadOnly(monitor);
+        if (connectionReadOnly) {
+            setConnectionReadOnly(monitor, false);
+        }
+        try {
+            if (!setCurrentDatabase(monitor, catalog)) {
+                return;
+            }
+        } finally {
+            if (connectionReadOnly) {
+                setConnectionReadOnly(monitor, true);
+            }
+        }
+        activeDatabaseName = catalog.getName();
+
+        // Send notifications
+        DBUtils.fireObjectSelectionChange(oldActiveDatabase, catalog, this);
+    }
+
+    private void setConnectionReadOnly(DBRProgressMonitor monitor, boolean readOnly) {
+        try {
+            getConnection(monitor).setReadOnly(readOnly);
+        } catch (Exception e) {
+            log.debug(e);
+        }
+    }
+
+    private boolean isConnectionReadOnly(DBRProgressMonitor monitor) {
+        try {
+            return getConnection(monitor).isReadOnly();
+        } catch (Exception e) {
+            log.debug(e);
+            return false;
+        }
+    }
+
+    @Override
+    public void setDefaultSchema(DBRProgressMonitor monitor, DBSSchema schema) throws DBCException {
+        throw new DBCFeatureNotSupportedException();
+    }
+
+    @Override
+    public boolean refreshDefaults(DBRProgressMonitor monitor, boolean useBootstrapSettings) throws DBException {
+        // Check default active schema
+        try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.META, "Query active database")) {
+            if (useBootstrapSettings) {
+                DBPConnectionBootstrap bootstrap = getBootstrapSettings();
+                if (!CommonUtils.isEmpty(bootstrap.getDefaultCatalogName())) {
+                    setCurrentDatabaseName(monitor, bootstrap.getDefaultCatalogName());
+                }
+            }
+
+            activeDatabaseName = MySQLUtils.determineCurrentDatabase(session);
+        } catch (DBException e) {
+            throw new DBCException(e, this);
+        }
+        // A database created after the list was read (another session): read it, getDefaultCatalog looks in the cache.
+        // The main context opens inside the data source's constructor, before its caches exist (the list is read by initialize)
+        MySQLDataSource.CatalogCache catalogCache = getDataSource().getCatalogCache();
+        if (!CommonUtils.isEmpty(activeDatabaseName) && catalogCache != null) {
+            try {
+                catalogCache.getObjectReadingNew(monitor, getDataSource(), activeDatabaseName);
+            } catch (DBException e) {
+                log.debug("Error reading the database list again", e);
+            }
+        }
+
+        return true;
+    }
+
+    boolean setCurrentDatabase(DBRProgressMonitor monitor, MySQLCatalog object) throws DBCException {
+        if (object == null) {
+            log.debug("Null current database");
+            return false;
+        }
+        String databaseName = object.getName();
+        return setCurrentDatabaseName(monitor, databaseName);
+    }
+
+    private boolean setCurrentDatabaseName(DBRProgressMonitor monitor, String databaseName) throws DBCException {
+        try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.UTIL, "Set active catalog")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement("use " + DBUtils.getQuotedIdentifier(getDataSource(), databaseName))) {
+                dbStat.execute();
+            } catch (SQLException e) {
+                throw new DBCException(e, session.getExecutionContext());
+            }
+            this.activeDatabaseName = databaseName;
+            return true;
+        }
+    }
+
+    @NotNull
+    @Override
+    public DBCCachedContextDefaults getCachedDefault() {
+        return new DBCCachedContextDefaults(activeDatabaseName, null);
+    }
+}

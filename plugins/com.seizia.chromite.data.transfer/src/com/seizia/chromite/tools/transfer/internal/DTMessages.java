@@ -1,0 +1,144 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.tools.transfer.internal;
+
+import org.eclipse.osgi.util.NLS;
+
+/**
+ * 변경 이력:
+ * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ * - 2026-11-07 "프로세스 실행" 단계의 셸 명령 승인 문구(data_transfer_shell_command_*) 추가(docs/chromite/shell-command-approval.md)
+ * - 2026-11-08 SQL 스크립트 작업의 열린 트랜잭션 질문 문구(sql_script_task_txn_*) 추가(docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 데이터 넣기 트랜잭션의 질문·롤백 알림 문구(database_transfer_consumer_txn_before, _rolled_back*, _rollback_failed) 추가
+ *   (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
+ * - 2026-11-12 결과를 모르는 행으로 넣기를 멈출 때의 문구(database_transfer_consumer_in_doubt*)와 넣기 트랜잭션이 끝나 멈출 때의 문구
+ *   (database_transfer_consumer_txn_ended, 전에는 영어로만 된 예외 문구), 원본 읽기가 행을 넘긴 뒤 실패했을 때의 문구
+ *   (database_transfer_producer_read_failed) 추가 (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ */
+public class DTMessages extends NLS {
+    static final String BUNDLE_NAME = "com.seizia.chromite.tools.transfer.internal.DTMessages"; //$NON-NLS-1$
+
+    public static String data_transfer_wizard_job_container_name;
+    public static String data_transfer_wizard_job_task_export;
+    public static String data_transfer_wizard_job_task_export_table_data;
+    public static String data_transfer_wizard_job_task_retrieve;
+    public static String data_transfer_wizard_output_checkbox_compress;
+    public static String data_transfer_wizard_output_checkbox_new_connection;
+    public static String data_transfer_wizard_output_checkbox_select_row_count;
+    public static String data_transfer_wizard_output_checkbox_fetched_rows_only;
+    public static String data_transfer_wizard_output_checkbox_selected_columns_only;
+    public static String data_transfer_wizard_output_checkbox_selected_rows_only;
+    public static String data_transfer_wizard_output_label_copy_to_clipboard;
+    public static String data_transfer_wizard_output_label_use_single_file;
+    public static String data_transfer_wizard_output_label_directory;
+    public static String data_transfer_wizard_output_label_encoding;
+    public static String data_transfer_wizard_output_label_timestamp_pattern;
+    public static String data_transfer_wizard_output_label_extract_type;
+    public static String data_transfer_wizard_output_label_file_name_pattern;
+    public static String data_transfer_wizard_output_label_insert_bom;
+    public static String data_transfer_wizard_settings_label_binaries;
+    public static String data_transfer_wizard_settings_label_encoding;
+    public static String data_transfer_wizard_settings_label_formatting;
+
+    public static String database_consumer_settings_option_use_transactions;
+    public static String database_consumer_settings_option_commit_after;
+    public static String database_consumer_settings_option_use_multi_insert;
+    public static String database_consumer_settings_option_multi_insert_batch;
+    public static String database_consumer_settings_option_skip_bind_values;
+    public static String database_consumer_settings_option_disable_batches;
+    public static String database_consumer_settings_option_ignore_duplicate_rows;
+    public static String database_consumer_settings_option_on_duplicate_key_method_label;
+    public static String database_consumer_settings_option_transfer_auto_generated_columns;
+    public static String database_consumer_settings_option_disable_referential_integrity;
+    public static String database_consumer_settings_option_use_bulk_load;
+    public static String database_consumer_settings_option_truncate_before_load;
+    public static String database_consumer_settings_option_enable_qm_logging;
+
+    public static String data_transfer_settings_title_find_producer;
+    public static String data_transfer_settings_message_find_data_producer;
+    public static String data_transfer_settings_title_find_consumer;
+    public static String data_transfer_settings_message_find_data_consumer;
+    public static String database_consumer_settings_title_init_connection;
+    public static String database_consumer_settings_message_error_connecting;
+    public static String database_mapping_container_title_attributes_read_failed;
+    public static String database_mapping_container_message_get_attributes_from;
+    public static String database_transfer_consumer_task_error_occurred_during_data_load;
+    public static String database_transfer_consumer_task_error_occurred_during_batch_insert;
+    public static String stream_transfer_consumer_title_attributes_read_failed;
+    public static String stream_transfer_consumer_message_cannot_get_attributes_from;
+    public static String stream_transfer_consumer_title_configuration_load_failed;
+    public static String stream_transfer_consumer_message_cannot_load_configuration;
+
+    public static String data_transfer_task_handler_unexpected_error_title;
+    public static String data_transfer_task_handler_unexpected_error_message;
+    public static String data_transfer_task_handler_resoring_referential_integrity_unexpected_error_title;
+    public static String data_transfer_task_handler_resoring_referential_integrity_unexpected_error_message;
+
+    public static String data_transfer_blob_file_conflict_title;
+    public static String data_transfer_file_conflict_ask_title;
+    public static String data_transfer_file_conflict_ask_message;
+    public static String data_transfer_file_conflict_ask;
+    public static String data_transfer_file_conflict_cancel;
+    public static String data_transfer_file_conflict_override;
+    public static String data_transfer_file_conflict_fix_name;
+    public static String data_transfer_file_conflict_append;
+    public static String data_transfer_file_conflict_behavior_setting;
+    public static String data_transfer_blob_file_conflict_behavior_setting;
+    public static String data_transfer_file_conflict_behavior_apply_to_all;
+    public static String data_transfer_file_conflict_behavior_apply_to_all_for_current_object;
+
+    public static String data_transfer_summary_title;
+
+    public static String pref_data_transfer_name_case_default;
+    public static String pref_data_transfer_name_case_upper;
+    public static String pref_data_transfer_name_case_lower;
+    public static String pref_data_transfer_replacing_combo_do_not;
+    public static String pref_data_transfer_replacing_combo_underscores;
+    public static String pref_data_transfer_replacing_combo_camel_case;
+    public static String data_transfer_shell_command_context_task;
+    public static String data_transfer_shell_command_event_finished;
+    public static String sql_script_task_txn_title;
+    public static String sql_script_task_txn_before;
+    public static String sql_script_task_txn_after;
+    public static String sql_script_task_txn_commit;
+    public static String sql_script_task_txn_rollback;
+    public static String sql_script_task_txn_cancel;
+    public static String sql_script_task_txn_keep;
+    public static String sql_script_task_txn_error;
+
+    public static String database_transfer_consumer_txn_before;
+    public static String database_transfer_consumer_rolled_back_title;
+    public static String database_transfer_consumer_rolled_back;
+    public static String database_transfer_consumer_rolled_back_truncate;
+    public static String database_transfer_consumer_rolled_back_rows;
+    public static String database_transfer_consumer_rollback_failed;
+    public static String database_transfer_consumer_in_doubt;
+    public static String database_transfer_consumer_in_doubt_lost;
+    public static String database_transfer_consumer_in_doubt_batch;
+    public static String database_transfer_consumer_in_doubt_truncate;
+    public static String database_transfer_consumer_txn_ended;
+    public static String database_transfer_producer_read_failed;
+
+    static {
+        // initialize resource bundle
+        NLS.initializeMessages(BUNDLE_NAME, DTMessages.class);
+    }
+
+    private DTMessages() {
+    }
+}

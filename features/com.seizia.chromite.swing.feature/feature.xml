@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Chromite Swing frontend: Swing UI bundle + reused model layer. Must not pull in SWT/JFace/Eclipse UI. -->
+<feature
+        id="com.seizia.chromite.swing.feature"
+        label="Chromite Swing"
+        version="26.2.5.qualifier"
+        provider-name="Chromite contributors"
+        plugin="com.seizia.chromite.ui.swing">
+
+    <description>Chromite - Database Workbench (Swing frontend)</description>
+
+    <copyright>Chromite contributors. Based on DBeaver Community, DBeaver Corp and others</copyright>
+
+    <!-- Reused model layer (UI-free features) -->
+    <includes id="com.seizia.chromite.runtime.feature" version="0.0.0"/>
+    <includes id="com.seizia.chromite.db.feature" version="0.0.0"/>
+    <!-- Public edition bundled JDBC drivers (docs/chromite/drivers.md) -->
+    <includes id="com.seizia.chromite.drivers.public.feature" version="0.0.0"/>
+
+    <!-- Swing UI -->
+    <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>
+    <!-- Startup splash (-showsplash in chromite-swing.product), installed as a folder: docs/chromite/branding.md -->
+    <plugin id="com.seizia.chromite.splash" version="0.0.0"/>
+    <!-- Server administration model of the Swing tools: session filters/commands per database, SQL Server and MySQL lock managers -->
+    <plugin id="com.seizia.chromite.model.admin" version="0.0.0"/>
+    <!-- In-app updater model: update list, checks of release files, update helper (docs/chromite/auto-update.md) -->
+    <plugin id="com.seizia.chromite.model.update" version="0.0.0"/>
+    <!-- AI agent tools (DBA tool catalog, policy-checked) and the local MCP server: docs/chromite/ai-agent.md -->
+    <plugin id="com.seizia.chromite.model.ai.tools" version="0.0.0"/>
+    <!-- Procedure debugger model and its PostgreSQL (pldbgapi) and Oracle (DBMS_DEBUG) implementations: docs/chromite/procedure-debugger.md -->
+    <plugin id="com.seizia.chromite.debug.core" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.postgresql.debug.core" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.oracle.debug.core" version="0.0.0"/>
+    <!-- SVG rendering of navigator icons (MIT, from the Eclipse release repository) -->
+    <plugin id="com.github.weisj.jsvg" version="0.0.0"/>
+    <!-- Desktop workspace (DesktopApplicationImpl, DesktopWorkspaceImpl); not part of runtime.feature -->
+    <plugin id="com.seizia.chromite.model.rcp" version="0.0.0"/>
+    <!-- Logging: slf4j binding fragment, not reachable through bundle requirements -->
+    <plugin id="com.seizia.chromite.slf4j" version="0.0.0"/>
+    <!-- XLSX export of the results grid: the model's exporter and Apache POI -->
+    <plugin id="com.seizia.chromite.data.office" version="0.0.0"/>
+    <plugin id="org.jkiss.bundle.apache.poi" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-collections4" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-codec" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-compress" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-io" version="0.0.0"/>
+    <plugin id="org.apache.commons.lang3" version="0.0.0"/>
+    <plugin id="org.apache.commons.text" version="0.0.0"/>
+
+    <!-- Equinox runtime started by the product configuration (start levels in chromite-swing.product) -->
+    <plugin id="org.eclipse.equinox.simpleconfigurator" version="0.0.0"/>
+    <plugin id="org.apache.felix.scr" version="0.0.0"/>
+    <plugin id="org.eclipse.equinox.event" version="0.0.0"/>
+    <plugin id="org.eclipse.osgi.compatibility.state" version="0.0.0"/>
+
+    <!-- Native launcher (supported platforms only: Windows x64, macOS arm64) -->
+    <plugin id="org.eclipse.equinox.launcher" version="0.0.0"/>
+    <plugin id="org.eclipse.equinox.launcher.win32.win32.x86_64" os="win32" ws="win32" arch="x86_64" version="0.0.0"/>
+    <plugin id="org.eclipse.equinox.launcher.cocoa.macosx.aarch64" os="macosx" ws="cocoa" arch="aarch64" version="0.0.0"/>
+
+    <!-- OS specific, UI-free: secure storage providers and file system support -->
+    <plugin id="org.eclipse.equinox.security.win32" os="win32" version="0.0.0"/>
+    <plugin id="org.eclipse.equinox.security.macosx" os="macosx" version="0.0.0"/>
+    <plugin id="org.eclipse.core.filesystem.macosx" os="macosx" version="0.0.0"/>
+
+</feature>

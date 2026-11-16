@@ -1,0 +1,118 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing.internal;
+
+import org.eclipse.osgi.util.NLS;
+
+/**
+ * Object Explorer의 유지 관리 명령(테이블 잘라내기, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침, 컴파일, Altibase 복제 시작·중지·동기화)의 화면 문구.
+ *
+ * 설계: 기능별 묶음 규칙(docs/chromite/swing-l10n.md)에 따라 이 기능만의 {@link NLS} 묶음을 둔다. 영어가 기본
+ * ({@code ObjectMaintenanceMessages.properties}), 한국어는 {@code ObjectMaintenanceMessages_ko.properties}이고 OS 언어를 따른다.
+ * 키 접두사는 {@code objmaint_}다. 미리 보기 머리글·진행 문구·제한 안내는 삭제와 같은 {@code NavigatorMessages}를 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 Compile 명령 문구 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 Altibase 복제 시작·중지·동기화 문구 (docs/chromite/altibase.md)
+ * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정 문구
+ *   (docs/chromite/altibase.md "테이블스페이스 관리")
+ */
+public class ObjectMaintenanceMessages extends NLS {
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
+
+    public static String objmaint_truncate;
+    public static String objmaint_truncate_tip;
+    public static String objmaint_truncate_title;
+    public static String objmaint_truncate_question_one;
+    public static String objmaint_truncate_question_many;
+    public static String objmaint_truncate_note;
+    public static String objmaint_truncate_note_commit;
+    public static String objmaint_truncate_button;
+    public static String objmaint_enable_trigger;
+    public static String objmaint_enable_trigger_tip;
+    public static String objmaint_enable_trigger_title;
+    public static String objmaint_disable_trigger;
+    public static String objmaint_disable_trigger_tip;
+    public static String objmaint_disable_trigger_title;
+    public static String objmaint_refresh_mview;
+    public static String objmaint_refresh_mview_tip;
+    public static String objmaint_refresh_mview_title;
+    public static String objmaint_error_statement;
+    public static String objmaint_compile;
+    public static String objmaint_compile_tip;
+    public static String objmaint_compile_title;
+    public static String objmaint_compile_reading;
+    public static String objmaint_compile_done_one;
+    public static String objmaint_compile_done_many;
+    public static String objmaint_compile_errors;
+    public static String objmaint_repl_start;
+    public static String objmaint_repl_start_tip;
+    public static String objmaint_repl_start_title;
+    public static String objmaint_repl_start_question;
+    public static String objmaint_repl_start_button;
+    public static String objmaint_repl_stop;
+    public static String objmaint_repl_stop_tip;
+    public static String objmaint_repl_stop_title;
+    public static String objmaint_repl_stop_question;
+    public static String objmaint_repl_stop_button;
+    public static String objmaint_repl_sync;
+    public static String objmaint_repl_sync_tip;
+    public static String objmaint_repl_sync_title;
+    public static String objmaint_repl_sync_question;
+    public static String objmaint_repl_sync_button;
+    public static String objmaint_tbs_online;
+    public static String objmaint_tbs_online_tip;
+    public static String objmaint_tbs_online_title;
+    public static String objmaint_tbs_offline;
+    public static String objmaint_tbs_offline_tip;
+    public static String objmaint_tbs_offline_title;
+    public static String objmaint_tbs_autoextend;
+    public static String objmaint_tbs_autoextend_tip;
+    public static String objmaint_tbs_autoextend_title;
+    public static String objmaint_file_settings;
+    public static String objmaint_file_settings_tip;
+    public static String objmaint_file_settings_title;
+    // Oracle tablespaces (app change #127)
+    public static String objmaint_tbs_read_only;
+    public static String objmaint_tbs_read_only_tip;
+    public static String objmaint_tbs_read_only_title;
+    public static String objmaint_tbs_read_write;
+    public static String objmaint_tbs_read_write_tip;
+    public static String objmaint_tbs_read_write_title;
+
+    // SQL Server filegroups and database files
+    public static String objmaint_mssql_fg_default;
+    public static String objmaint_mssql_fg_default_tip;
+    public static String objmaint_mssql_fg_default_title;
+    public static String objmaint_mssql_fg_read_only;
+    public static String objmaint_mssql_fg_read_only_tip;
+    public static String objmaint_mssql_fg_read_only_title;
+    public static String objmaint_mssql_fg_read_write;
+    public static String objmaint_mssql_fg_read_write_tip;
+    public static String objmaint_mssql_fg_read_write_title;
+    public static String objmaint_mssql_file_settings;
+    public static String objmaint_mssql_file_settings_tip;
+    public static String objmaint_mssql_file_settings_title;
+
+    static {
+        NLS.initializeMessages(BUNDLE_NAME, ObjectMaintenanceMessages.class);
+    }
+
+    private ObjectMaintenanceMessages() {
+    }
+}

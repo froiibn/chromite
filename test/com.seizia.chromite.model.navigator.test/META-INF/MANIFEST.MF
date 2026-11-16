@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver Navigator Tests
+Bundle-SymbolicName: com.seizia.chromite.model.navigator.test
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20251006
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.model
+Bundle-ActivationPolicy: lazy
+Require-Bundle: junit-jupiter-api,
+ com.seizia.chromite.test.platform,
+ com.seizia.chromite.model

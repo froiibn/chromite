@@ -1,0 +1,70 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.seizia.chromite.ext.oracle.internal;
+
+import org.eclipse.osgi.util.NLS;
+
+/**
+ * 변경 이력:
+ * - 2026-11-11 Chromite: SQL*Plus 명령의 Messages 문구({@code sqlplus_*}) (docs/chromite/oracle-sqlplus-commands.md)
+ */
+public class OracleMessages extends NLS {
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.oracle.internal.OracleMessages"; //$NON-NLS-1$
+
+    static {
+        // initialize resource bundle
+        NLS.initializeMessages(BUNDLE_NAME, OracleMessages.class);
+    }
+
+    private OracleMessages() {
+    }
+
+    public static String dialog_connection_sid;
+    public static String dialog_connection_service;
+    public static String edit_oracle_dependencies_dependency_name;
+    public static String edit_oracle_dependencies_dependency_description;
+    public static String edit_oracle_dependencies_dependent_name;
+    public static String edit_oracle_dependencies_dependent_description;
+    public static String edit_oracle_user_disabled_fields_info_label;
+    public static String oracle_password_will_expire_warn_name;
+    public static String oracle_password_will_expire_warn_description;
+    public static String oracle_server_session_manager_details_name;
+    public static String oracle_server_session_manager_details_description;
+    public static String oracle_server_session_manager_display_exec_plan_name;
+    public static String oracle_server_session_manager_display_exec_plan_description;
+    public static String pseudo_column_rowid_description;
+    public static String pseudo_column_ora_rowscn_description;
+    public static String global_variable_sysdate;
+    public static String global_variable_systimestamp;
+    public static String global_variable_dbtimezone;
+    public static String global_variable_sessiontimezone;
+    public static String global_variable_current_timestamp;
+    public static String global_variable_current_date;
+    public static String global_variable_ora_invoking_user;
+    public static String global_variable_ora_invoking_userid;
+    public static String global_variable_uid;
+    public static String global_variable_user;
+    public static String sqlplus_server_output_on;
+    public static String sqlplus_server_output_off;
+    public static String sqlplus_server_output_unlimited;
+    public static String sqlplus_server_output_format_ignored;
+    public static String sqlplus_define_off;
+    public static String sqlplus_define_on;
+    public static String sqlplus_ignored;
+}

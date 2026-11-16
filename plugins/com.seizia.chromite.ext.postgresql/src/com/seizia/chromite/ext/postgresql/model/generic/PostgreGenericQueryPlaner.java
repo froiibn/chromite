@@ -1,0 +1,63 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.postgresql.model.generic;
+
+import org.jkiss.code.NotNull;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.postgresql.model.plan.PostgreExecutionPlan;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlanStyle;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerConfiguration;
+
+/**
+ * PostgreGenericQueryPlaner
+ */
+public class PostgreGenericQueryPlaner implements DBCQueryPlanner
+{
+    private final GenericDataSource dataSource;
+
+    public PostgreGenericQueryPlaner(GenericDataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    public GenericDataSource getDataSource() {
+        return dataSource;
+    }
+
+    @NotNull
+    @Override
+    public DBCPlan planQueryExecution(@NotNull DBCSession session, @NotNull String query, @NotNull DBCQueryPlannerConfiguration configuration) throws DBCException {
+        PostgreExecutionPlan plan = new PostgreExecutionPlan(
+                getPlanStyle() == DBCPlanStyle.QUERY,
+                true,
+                query,
+            configuration);
+        plan.explain(session);
+        return plan;
+    }
+
+    @NotNull
+    @Override
+    public DBCPlanStyle getPlanStyle() {
+        return dataSource.isServerVersionAtLeast(9, 0) ? DBCPlanStyle.PLAN : DBCPlanStyle.QUERY;
+    }
+}

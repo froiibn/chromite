@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite SAP HANA Model
+Bundle-SymbolicName: com.seizia.chromite.ext.hana;singleton:=true
+Bundle-Version: 1.2.169.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.data.gis;visibility:=reexport
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.hana
+Export-Package: com.seizia.chromite.ext.hana.model

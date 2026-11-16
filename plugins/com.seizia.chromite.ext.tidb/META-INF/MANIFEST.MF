@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite TiDB Model
+Bundle-SymbolicName: com.seizia.chromite.ext.tidb;singleton:=true
+Bundle-Version: 1.0.71.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.registry
+Export-Package: com.seizia.chromite.ext.tidb,
+ com.seizia.chromite.ext.tidb.mysql.model
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.tidb

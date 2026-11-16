@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Chromite 변경 내역</title>
+<meta name="description" content="Chromite 버전별 변경 내역">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="canonical" href="https://chromite.seizia.com/ko/changelog.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chromite">
+<meta property="og:title" content="Chromite 변경 내역">
+<meta property="og:description" content="Chromite 버전별 변경 내역">
+<meta property="og:url" content="https://chromite.seizia.com/ko/changelog.html">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-ko-3.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chromite 로고와 &#x27;누구나 편하고 안전하게 다루는 데이터베이스 도구&#x27; 문구, 그 옆의 Chromite 창 화면(개체 탐색기, 쿼리와 결과)">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chromite 변경 내역">
+<meta name="twitter:description" content="Chromite 버전별 변경 내역">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-ko-3.png">
+<meta name="twitter:image:alt" content="Chromite 로고와 &#x27;누구나 편하고 안전하게 다루는 데이터베이스 도구&#x27; 문구, 그 옆의 Chromite 창 화면(개체 탐색기, 쿼리와 결과)">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="alternate" hreflang="en" href="/en/changelog.html">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/ko/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
+    <nav class="nav" aria-label="사이트">
+      <a href="/ko/">다운로드</a>
+      <a href="/ko/support.html">지원 범위</a>
+      <a href="/ko/changelog.html" aria-current="page">변경 내역</a>
+      <a href="/ko/privacy.html">개인정보</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
+      <a href="/en/changelog.html" lang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="page-head">
+    <h1>변경 내역</h1>
+    <p>버전 번호는 <code>연도.차례.수정</code> 형식입니다(0.1.4까지는 <code>주.부.개발</code>). 각 버전의 앵커(예: <code>#v26.0.5</code>)는 앱의 업데이트 알림에서 링크합니다.</p>
+  </div>
+
+  <section class="sect release" id="v26.1.4">
+    <h2>26.1.4</h2>
+    <div class="body">
+      <p>우클릭 메뉴에 해당하는 명령만 보이게 하고, 업데이트 진행 창이 사라지던 문제를 고쳤습니다.</p>
+      <ul>
+        <li>개체 탐색기 우클릭 메뉴: 누른 대상에서 할 수 있는 명령만 보입니다. 할 수 있지만 지금 조건에서는 쓸 수 없는 명령은 비활성으로 보입니다. 연결과 서버에 대한 명령은 연결 노드에서만 보입니다 (예: 테이블 메뉴 51개 → 20개)</li>
+        <li>결과 그리드 우클릭 메뉴: 같은 기준을 적용했습니다. 편집할 수 없는 결과에는 행 추가·삭제가, LOB이 아닌 셀에는 파일 불러오기·저장이, SELECT 한 문장이 아닌 결과에는 데이터 내보내기가 보이지 않습니다</li>
+        <li>등록된 서버, 문서 탭, 다이어그램, 실행 결과 메시지의 우클릭 메뉴에도 같은 기준을 적용했습니다. 메뉴 모음과 단축키는 바뀌지 않았습니다</li>
+        <li>수정 · 자동 업데이트: 경로에 공백이 있는 위치(예: Program Files)에 설치한 경우 설치 단계에서 진행 창이 닫히고 한동안 화면에 아무것도 보이지 않던 문제를 고쳤습니다. 이 수정은 26.1.4에서 다음 버전으로 업데이트할 때부터 적용됩니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.1.3">
+    <h2>26.1.3</h2>
+    <div class="body">
+      <p>Oracle TNS 연결의 서버 표시를 고쳤습니다.</p>
+      <ul>
+        <li>수정 · Oracle TNS 연결: 등록된 서버, 개체 탐색기, 속성 창, 상태 줄에 서버가 localhost(또는 그 드라이버로 마지막에 쓴 서버)로 보이던 문제를 고쳤습니다. 이제 네트워크 별칭이 보입니다. 이미 만들어 둔 연결도 다시 저장하지 않아도 바르게 보이며, 접속 대상은 바뀌지 않습니다</li>
+        <li>Chromite Agent: 연결 정보 도구(getConnectionInfo)가 호스트와 포트 대신 화면과 같은 주소 한 칸(address)을 돌려줍니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.1.2">
+    <h2>26.1.2</h2>
+    <div class="body">
+      <p>26.1.1에서 새로 들어간 저장소 관리 대화상자를 고쳤습니다.</p>
+      <ul>
+        <li>수정 · 저장소 관리: 크기, 증가 크기, 최대 크기 칸에 문자가 입력되던 문제를 고쳤습니다. 이제 숫자만 입력되고(Altibase · ShardSphere와 Oracle은 소수점 하나까지), 붙여넣기도 숫자가 아니면 들어가지 않습니다</li>
+        <li>대화상자 위치와 크기: 저장소 관리 대화상자와 실행 전 스크립트 미리 보기가 개체 탐색기 위가 아니라 창 가운데에 뜨고, 너비가 조금 넓어졌습니다. 새 데이터베이스와 테이블 디자이너의 키·인덱스 대화상자도 창 가운데에 뜹니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.1.1">
+    <h2>26.1.1</h2>
+    <div class="body">
+      <p>테이블스페이스와 데이터 파일을 개체 탐색기에서 만들고 고칠 수 있습니다.</p>
+      <ul>
+        <li>새 기능 · Oracle 저장소 관리: 테이블스페이스 만들기(영구·임시·언두), 삭제, 이름 바꾸기, 온라인·오프라인 전환, 읽기 전용·읽기 쓰기 전환, 데이터 파일 추가, 크기와 자동 확장 변경, 삭제. SYSTEM, SYSAUX, 기본 테이블스페이스, 사용 중인 언두 테이블스페이스에는 명령이 나오지 않습니다</li>
+        <li>새 기능 · SQL Server 저장소 관리: 데이터베이스 아래에 저장소 폴더(파일 그룹과 파일, 로그 파일)가 생겼습니다. 파일 그룹 추가, 이름 바꾸기, 삭제, 기본 파일 그룹으로 설정, 읽기 전용 전환과 파일 추가, 크기·자동 증가·최대 크기 변경, 이름 바꾸기, 삭제를 할 수 있습니다. 시스템 데이터베이스와 주 파일처럼 서버가 받지 않는 대상에는 명령이 나오지 않습니다</li>
+        <li>새 기능 · Altibase · ShardSphere 저장소 관리: 테이블스페이스 만들기(메모리·디스크·임시·휘발성), 삭제, 온라인·오프라인 전환, 자동 확장 설정, 데이터 파일 추가·설정·삭제</li>
+        <li>PostgreSQL: 테이블스페이스의 이름을 바꾸고(F2) 속성 창에서 소유자와 옵션을 고칠 수 있습니다</li>
+        <li>위 명령은 모두 개체 탐색기의 오른쪽 클릭 메뉴에 있고, 실행하기 전에 실행할 스크립트를 보여 줍니다. 쿼리 창에 커밋하지 않은 트랜잭션이 있으면 먼저 묻습니다</li>
+        <li>Altibase · ShardSphere: 메모리 테이블과 휘발성 테이블을 이름의 글자색 대신 테이블 아이콘 색(붉은 계열)으로 표시합니다. 디스크 테이블은 다른 테이블과 같은 모양입니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.1.0">
+    <h2>26.1.0</h2>
+    <div class="body">
+      <p>결과 그리드에서 고친 값이 다른 테이블에 저장되지 않도록 막고, Chromite Agent의 도구를 정리했습니다.</p>
+      <ul>
+        <li>데이터 안전 · 결과 그리드: 쿼리의 별칭이나 WITH 이름이 실제 테이블 이름과 같으면 결과 그리드가 그 이름의 다른 테이블에 묶여, 고친 값이 그 테이블에 저장될 수 있었습니다. 이제 쿼리가 실제로 읽은 테이블에만 묶고, 그렇지 않은 결과는 읽기 전용으로 엽니다(MariaDB, SQL Server, Oracle에서 확인). SQLite에서 연결한(ATTACH) 데이터베이스나 임시 테이블의 결과가 main의 같은 이름 테이블에 묶이던 경우도 고쳤습니다</li>
+        <li>데이터 안전 · PostgreSQL: 수동 커밋 쿼리 창에서 커밋이나 롤백 뒤에 앱이 세션 정보를 다시 읽으면서 트랜잭션이 열린 채(idle in transaction) 남던 문제를 고쳤습니다. 사용자가 실행한 문장이 연 트랜잭션은 전과 같이 표시합니다</li>
+        <li>Chromite Agent: 겹치는 도구를 합치고 이름과 인자를 맞췄습니다(MCP 도구 101개 → 87개). 스키마 변경은 changeSchema 하나로, 백업과 복원은 backupDatabase와 restoreDatabase로 합쳤습니다. 테이블·뷰·인덱스 삭제와 runSql의 DROP 같은 위험한 호출은 연결에 "자동 실행" 규칙이 있어도 항상 확인을 묻습니다. 저장해 둔 도구 정책은 더 엄격한 쪽으로 옮겨집니다. 예전 도구 이름과 인자 이름은 26.2.0 전까지 그대로 받고, formatSql 도구는 없앴습니다</li>
+        <li>개체 탐색기: CREATE DATABASE, DROP DATABASE, CREATE USER 같은 문장을 실행하면 새로 고침을 누르지 않아도 목록에 바로 반영됩니다</li>
+        <li>쿼리 실행: Alt+X로도 실행합니다(F5와 같습니다). 열 선택(Alt+끌기) 중에도 F5, Alt+P, Ctrl+Enter 같은 단축키가 동작합니다. macOS에서 Option 단축키를 누를 때 편집기에 글자가 들어가지 않습니다</li>
+        <li>Altibase · ShardSphere: 세션의 기본 스키마(로그인한 사용자)를 읽어, 스키마 이름을 붙이지 않아도 자동 완성이 되고(예: EXEC DBMS_SHARD.) 자기 테이블을 스키마 없이 조회한 결과를 고칠 수 있습니다. CACHE와 NOCACHE를 키워드 색으로 표시합니다</li>
+        <li>macOS: 시작 화면이 창 하나로 뜹니다. 화면 위쪽에 나타났다가 가운데로 옮겨 가던 현상을 없앴습니다(시작 화면에 버전과 Loading… 글자는 나오지 않습니다)</li>
+        <li>화면: 어두운 테마에서 잘 보이지 않던 데이터베이스 아이콘 19개를 밝은 판 위에 그립니다. Chromite 정보 창에 사이트 주소(chromite.seizia.com)를 넣었습니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.0.8">
+    <h2>26.0.8</h2>
+    <div class="body">
+      <p>ShardSphere 드라이버를 기본으로 넣었습니다. 설치만 하면 인터넷 없이 ShardSphere에 연결할 수 있습니다.</p>
+      <ul>
+        <li>새 기능 · ShardSphere: 데이터베이스 유형에 ShardSphere가 생겼습니다. 드라이버가 설치 파일에 들어 있어 내려받지 않고 바로 연결됩니다. 기본 포트 55321, 기본 데이터베이스 memdb, 기본 사용자 sys가 미리 채워집니다. 개체 탐색기(스키마, 테이블과 열·제약·인덱스, 뷰, 패키지, 테이블스페이스, 사용자)와 쿼리 창은 Altibase 지원과 같은 방식으로 동작합니다</li>
+        <li>연결 대화상자: 기본 포트가 있는 데이터베이스는 서버 이름만 넣어도 연결됩니다(전에는 Altibase처럼 "포트를 입력하세요"로 막히는 유형이 있었습니다)</li>
+        <li>Altibase · ShardSphere: 키워드 강조가 연결한 서버의 예약어 목록을 따릅니다(서버 버전과 제품에 따라 다른 낱말을 그 서버 기준으로 표시). 복제 정보가 없는 서버에서 Replications 폴더가 오류 대신 빈 목록으로 열리고, 함수의 매개 변수가 표시됩니다</li>
+        <li>화면: 어두운 테마에서 ShardSphere 아이콘이 보이도록 밝은 판 위에 그립니다</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.0.7">
+    <h2>26.0.7</h2>
+    <div class="body">
+      <p>PostgreSQL에서 연결을 새로 고칠 때 다른 쿼리 창의 커밋하지 않은 변경이 사라지던 문제를 고쳤습니다. PostgreSQL을 쓰신다면 업데이트를 권합니다. Chromite Agent의 입력 상자를 바꾸고, 개체 탐색기에서 이름을 끌어다 넣는 기능을 더했습니다.</p>
+      <ul>
+        <li>안전(중요) · PostgreSQL: 연결을 새로 고치면(개체 탐색기의 새로 고침, 또는 CREATE DATABASE·DROP DATABASE 같은 문장 뒤의 자동 새로 고침) 그 연결의 세션이 모두 닫혔다 다시 열려, 다른 쿼리 창의 커밋하지 않은 변경이 묻지 않고 롤백되고 search_path·임시 테이블·수동 커밋 방식이 사라졌습니다. 다시 열린 세션은 연결을 끊은 뒤에도 서버에 남았습니다. 이제 새로 고침은 세션을 닫지 않고 서버 정보만 다시 읽습니다</li>
+        <li>새 기능 · 끌어서 이름 넣기: 개체 탐색기에서 테이블·뷰·프로시저·열을 쿼리 편집 창으로 끌어다 놓으면 놓은 자리에 이름이 들어갑니다. 여러 개체나 테이블의 열 폴더(펼쳐서 읽은 뒤)를 끌면 쉼표로 이어 넣습니다. SQL Server에서는 창이 그 데이터베이스에 있으면 스키마.이름만, 다른 데이터베이스에 있으면 데이터베이스까지 넣습니다</li>
+        <li>Chromite Agent · 입력 상자와 모델 선택: 입력이 둥근 상자 하나가 되었습니다. 모델은 상자 안의 단추에서 고르고(지금 제공자의 모델만 나옴), 제공자는 상자 아래의 목록에서 고릅니다. 제공자를 처음 설정하면 빈 대화가 그 제공자로 넘어가, 설정한 뒤에도 "제공자를 설정하세요" 안내가 남던 문제가 없어졌습니다</li>
+        <li>Chromite Agent · 세션을 함께 쓰는 연결("단일 연결"): 데이터베이스나 스키마를 바꿔야 하는 호출은 실행하지 않고 이유를 알립니다(전에는 조용히 무시되거나 쿼리 창의 스키마를 바꿨습니다)</li>
+        <li>SQL Server: CREATE TABLE dbo.t처럼 스키마.이름으로 쓴 DDL을 실행하면 연결 전체를 다시 읽던 것을 그 스키마만 다시 읽게 고쳤습니다(새 테이블이 개체 탐색기에 바로 보입니다). 연결을 다시 읽은 뒤 쿼리 창의 데이터베이스 선택이 현재 데이터베이스를 놓치던 문제도 고쳤습니다</li>
+        <li>화면: 안내 글이 한국어 낱말 가운데에서 줄이 바뀌던 것("…묻습 / 니다.")을 공백에서만 바뀌게 고쳤습니다(연결·설정 내보내기와 가져오기, 셸 명령 승인, 백업·복원 등 작업 대화상자, 데이터 전송 마법사 등)</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.0.6">
+    <h2>26.0.6</h2>
+    <div class="body">
+      <p>26.0.5 바로 다음 판입니다. SQL Server에서 연결한 직후 기본 데이터베이스의 테이블이 보이지 않던 문제를 고치고, 써 보며 나온 불편을 정리했으며, 작업 예약과 창 비교를 더했습니다.</p>
+      <ul>
+        <li>수정(중요): SQL Server에 연결한 직후, 연결의 기본 데이터베이스에서 개체 탐색기의 테이블이 새로 고치기 전까지 보이지 않고 그 테이블을 쓰는 저장된 작업이 실패하던 문제(26.0.5에서 생긴 문제입니다)</li>
+        <li>안전: SQL 스크립트 작업의 스크립트가 트랜잭션을 열고 끝내지 않으면 실행 전과 후에 커밋·롤백·열어 두기를 묻습니다(전에는 묻지 않고 열린 채 남았습니다)</li>
+        <li>종료와 설치: 창을 닫은 뒤에도 프로세스가 남던 경우를 고쳤습니다. 인터넷이 없는 환경에서 끝낼 때 업데이트 확인을 기다리지 않고, Chromite를 한 번 더 띄웠을 때의 오류 창이 작업 표시줄에 보이며, 설치 프로그램이 "실행 중" 안내에서 어디를 봐야 하는지 알려 줍니다</li>
+        <li>새 기능 · 창 비교: 쿼리 편집기 도구 막대의 [비교] 단추(쿼리 메뉴에도 있음)로 열려 있는 창 두 개를 골라 나란히 비교합니다. 다른 줄과 낱말 표시, 이전·다음 차이, 공백·대소문자·빈 줄 무시. 쿼리나 프로시저의 두 버전을 볼 때 씁니다. 스키마 비교의 정의 보기도 같은 화면을 씁니다</li>
+        <li>새 기능 · 작업 예약: 데이터베이스 작업 창에서 저장된 작업(백업, 복원, 스크립트, 내보내기, 가져오기, 테이블 복사)에 일정을 주면 정한 시각에 스스로 실행합니다. Chromite가 실행 중일 때만 실행하며, 예약 실행은 아무것도 묻지 않습니다(물을 일이 있으면 실패로 끝나고 이유가 작업 로그에 남습니다)</li>
+        <li>수정: 파일로 내보낼 때 "파일이 이미 있음" 질문을 취소하면 기존 파일이 지워지던 문제</li>
+        <li>쿼리 편집기: 실행 중인 쿼리 영역을 연두색으로 표시(커서가 있는 줄도), Alt를 누른 채 세로 선택·스크롤·클릭을 한 뒤 Alt를 놓아도 메뉴로 넘어가지 않음</li>
+        <li>화면: 옵션과 연결 대화상자에서 안쪽 목록·입력란 위의 마우스 휠이 화면을 스크롤, 촘촘한 모드의 메뉴 항목 여백, 메뉴 구분선을 보이는 색으로(어두운 테마에서는 보이지 않았습니다)와 보기·도구 메뉴의 묶음 구분선, 아이콘 단추의 도구 설명을 기능 이름으로, 개체 탐색기 검색 칸 문구를 "찾기"로</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v26.0.5">
+    <h2>26.0.5</h2>
+    <div class="body">
+      <p>회사에서 써 본 의견으로 결과와 연결의 안전을 고치고, 쿼리 창과 화면을 다듬은 버전입니다. 이 버전부터 버전 번호가 <code>연도.차례.수정</code>으로 바뀌어 0.1.4 다음이 26.0.5입니다. 업데이트는 전과 같이 됩니다.</p>
+      <ul>
+        <li>안전: 연결을 새로 고친 뒤(개체 탐색기의 새로 고침, CREATE·DROP DATABASE 실행 뒤) SQL Server에서 여러 문장을 한 번에 실행하면 첫 결과만 보이고 뒤 문장의 결과와 오류가 빠진 채 "성공"으로 끝나던 문제 수정</li>
+        <li>안전: Chromite Agent가 실행한 SQL이 중간에 실패해도 앞의 결과, 오류, 오류 뒤에 실행된 문장까지 모두 알림(전에는 오류만 알려 이미 실행된 변경을 놓쳤습니다)</li>
+        <li>안전: Chromite Agent의 읽기 전용 도구가 SQL Server에서 세미콜론 없이 SELECT 뒤에 붙은 DELETE·COMMIT 같은 문장을 SELECT 하나로 보고 확인 없이 실행하던 문제 수정. 읽기라고 증명되지 않으면 거절하고, 여러 문장은 가장 위험한 문장을 기준으로 확인을 받습니다.</li>
+        <li>안전: 세션 하나만 쓰는 연결(SQL Server의 Entra ID 대화형 로그인, Snowflake, ClickHouse, BigQuery 등)에서 Chromite Agent가 "실행한 뒤 롤백"으로 재는 도구(데이터를 바꾸는 문장의 실제 실행 계획 등)가 그 문장을 실제로 실행하던 문제 수정(이제 거절하고 이유를 알림). 같은 연결에서 커밋·롤백 도구가 아무것도 끝내지 않고 성공을 알리던 문제도 수정</li>
+        <li>안전: 실행 중에 서버 연결이 끊기면 데이터를 바꾸는 문장, 여러 문장, 프로시저 호출을 스스로 다시 실행하지 않고 멈춘 뒤 무엇이 확실하고 무엇이 불확실한지 알림(전에는 다시 연결한 뒤 통째로 다시 실행해 INSERT가 두 번 들어갈 수 있었습니다). 데이터 전송, 결과 표 저장, 표 디자이너 저장도 같습니다. 읽기만 하는 SELECT 하나는 전처럼 다시 실행하고 메시지에 그 사실을 적습니다.</li>
+        <li>안전: 연결 대화상자에서 SSH·프록시·SSL 설정을 저장하기 전에 데이터베이스 목록을 펼치면 서버에 끝없이 다시 연결하던 문제 수정</li>
+        <li>쿼리 창: 도구 막대의 서버 선택 대신 맨 왼쪽에 [연결 변경] 단추, USE 뒤 데이터베이스 선택이 세션을 따라감(다른 세션이 만든 데이터베이스 포함), 실행 중 회전 표시와 실행 중인 문장 강조, Alt+끌기로 세로(열) 선택, 닫은 탭 다시 열기(Ctrl+Shift+T), 문서 탭의 오른쪽 클릭 메뉴</li>
+        <li>연결: 연결 대화상자에서 서버의 데이터베이스 목록으로 고르기, URL로 만든 연결의 서버 이름이 localhost로 보이던 문제 수정, 쉬고 있는 연결을 기본으로 끊지 않음</li>
+        <li>결과와 실행 계획: 결과 영역을 두 단으로(격자·텍스트·메시지·서버 출력·실행 계획 탭, 결과 탭은 아래), Oracle·SQL Server에서 실제 실행 계획이 나오지 않던 문제 수정, 실제 계획을 지원하지 않는 DB에서는 토글을 처음부터 끔, Oracle 암시적 결과의 둘째 결과도 보임</li>
+        <li>Oracle·Altibase: Oracle 스크립트 명령(SET SERVEROUTPUT, PROMPT, EXEC, SPOOL, 한 줄의 /) 처리, Altibase에서 나눗셈의 /에서 문장이 잘리던 문제 수정</li>
+        <li>Chromite Agent: 제공자에 vLLM과 Google Gemini 추가, 제공자에 맞춘 도구 묶음과 도구 찾기, 도구를 고르는 설명 다듬음, Oracle PL/SQL 블록과 SQL Server MERGE 실행이 늘 실패하던 문제 수정, 스크립트 실행 도구가 SQL Server의 GO 배치를 한 단위로 보냄</li>
+        <li>화면: 운영체제의 UI 글꼴을 한 단계 크게, 100% 배율에서 더 선명한 글자와 두 테마의 대비, 기본 테마는 운영체제 설정을 따름, 내용 영역의 포커스 테두리와 두꺼운 대화상자 제목 줄 정리, 옵션 화면 새 디자인, 오른쪽 도구 창을 넓혀도 왼쪽 열 너비 유지, macOS 창을 한 덩어리로</li>
+        <li>수정: 표 디자이너에서 데이터 형식의 앞부분이 가려지던 문제, 메시지 대화상자의 한국어가 낱말 중간에서 줄이 바뀌던 문제, MySQL 드라이버 내려받기를 취소해도 질문이 다시 뜨던 문제</li>
+        <li>Windows: 실행 파일 이름이 <code>Chromite.exe</code>로 바뀌었습니다. 작업 표시줄에 고정한 Chromite는 이 버전에서는 그대로 열리지만 다음 버전부터 열리지 않으니, Chromite를 띄운 뒤 작업 표시줄 단추에서 다시 고정하세요.</li>
+        <li>macOS: 업데이트로 받는 앱 이름이 <code>Chromite.app</code>입니다. Dock의 항목이 옛 이름(ChromiteSwing)을 가리키면 Dock에서 빼고 새 Chromite를 다시 고정하세요. 0.1.3 이하는 자동 업데이트가 되지 않으니 디스크 이미지로 설치하세요.</li>
+      </ul>
+    </div>
+  </section>
+  <section class="sect release" id="v0.1.4">
+    <h2>0.1.4</h2>
+    <div class="body">
+      <p>직접 써 보며 모은 의견으로 화면과 동작을 다듬고, 트랜잭션·데이터 안전과 설치·업데이트를 고친 버전입니다.</p>
+      <ul>
+        <li>트랜잭션: 열린 트랜잭션은 DB가 실제로 무언가를 쥐고 있을 때만 표시(DB에 직접 확인), 자동 커밋에서 BEGIN TRAN으로 연 트랜잭션도 표시, 확인할 수 없으면 "확인할 수 없음"으로 표시, 조회만 한 트랜잭션은 한 번에 끝내기와 자동으로 끝내기 설정(기본 꺼짐)</li>
+        <li>결과: 결과 집합마다 탭(결과1, 결과2 …), 중간 오류에서는 앞 결과를 두고 멈춤, 탭을 바꿔도 이전 결과가 남던 문제 수정, 머리글을 누르면 열 선택(정렬·필터는 아이콘), 행 번호 칸의 선택 강조 제거</li>
+        <li>화면: 쿼리 창 상태를 창 맨 아래 상태 표시줄로 옮기고 연결 색으로 칠함, SQL 편집기 도구 막대는 연결·DB 선택이 먼저, Chromite Agent 단추를 오른쪽 끝에, 처음 실행하면 오른쪽에 쿼리 라이브러리와 Chromite Agent, 시작 화면 표시, 트리의 마우스 잔상(150% 배율) 수정, 한국어 문구 끝 말줄임표 정리</li>
+        <li>Chromite Agent: 제공자와 모델을 한 곳에서 고르기(입력란 아래), 대화 기록, 열린 쿼리 창을 읽고 고치는 도구(실행·저장은 하지 않고 고치기 전에 확인), 사용한 토큰 표시</li>
+        <li>옵션: 창을 넓히고 왼쪽 목록 위에 설정 찾기, Chromite Agent 설정으로 바로 열기</li>
+        <li>쿼리 라이브러리: 편집 화면에 저장 단추, 대상 연결의 DB·스키마 목록</li>
+        <li>안전: 데이터 전송을 취소하거나 시작에서 실패하면 적재 연결을 닫고 되돌린 내용을 알림, 실패한 행을 건너뛸 때 앞서 넣은 행이 사라지던 문제와 다시 시도에서 행이 빠지던 문제 수정, 점프 서버 뒤 SSH 호스트 키도 확인</li>
+        <li>표 디자이너: 저장된 열·키·표 이름 바꾸기, 저장이 중간에 실패하면 적용된 것과 아닌 것을 보이고 다시 읽음, DEFAULT 이름 유지</li>
+        <li>설치·업데이트: Windows는 기본으로 모든 사용자(Program Files)에 설치하고 "나만 설치"도 고를 수 있음, 앱이 꺼진 뒤 설치 진행 창 표시, macOS 앱 이름을 Chromite로, 디스크 이미지 창 배치</li>
+        <li>macOS: 메뉴를 화면 맨 위 메뉴 막대에, 단축키는 Command(⌘)</li>
+      </ul>
+    </div>
+  </section>
+  <section class="sect release" id="v0.1.3">
+    <h2>0.1.3</h2>
+    <div class="body">
+      <p>개체 편집과 결과 표 기능을 넓히고, 실행·트랜잭션 안전을 더 단단히 한 버전입니다.</p>
+      <ul>
+        <li>안전: 여러 문장을 한 번에 실행한 결과를 다시 읽을 때 배치 전체를 다시 실행하던 문제 수정(그 결과를 만든 SELECT만 다시 읽음), SQL Server 배치 안의 오류가 사라지고 "성공"으로 나오던 문제 수정</li>
+        <li>트랜잭션: 쿼리 메뉴와 SQL 편집기 도구 막대에서 자동/수동 커밋 전환(열린 트랜잭션이 있으면 먼저 묻습니다), SQL 스크립트 작업이 묻지 않고 커밋·롤백하지 않음</li>
+        <li>개체: 탐색기 폴더에서 새 개체 만들기, 새 데이터베이스 대화상자, 시퀀스·트리거·패키지 템플릿, Oracle 인덱스·외래 키·CHECK 설계, Properties 창에서 속성 편집</li>
+        <li>결과 표: 외래 키 따라가기와 참조·집계 패널, 가상 키, 열 숨기기·이동, 결과 안에서 찾기, 텍스트 보기, 결과 행에서 SQL 만들기, 저장한 필터와 최근 필터, 가상(계산) 열, 참조 값 고르기·배열·hstore·16진수·외부 편집기·UUID</li>
+        <li>실행 계획: 실제 실행 계획 토글을 Oracle·Altibase로 넓힘(켰을 때만, 문장은 한 번만 실행)</li>
+        <li>Query Manager 창: 실행된 모든 문장을 연결·종류·글자로 걸러 봄</li>
+        <li>쿼리 창 자동 저장과 다시 시작할 때 복원(연결하거나 실행하지 않음), 연결별 최근 스크립트</li>
+        <li>연결: 셸 명령, 점프 서버, 네트워크 프로필, 비밀번호 변경, 연결별 제한과 연결 잠금</li>
+        <li>데이터 전송: 작업으로 저장·편집, SQL 스크립트 작업, Copy Tables·Export 고급 옵션(비우기·다시 만들기는 먼저 묻습니다)</li>
+        <li>백업: 스키마·테이블 고르기, pg_dumpall(전역 개체·클러스터 전체), 도구 계정과 추가 인수</li>
+        <li>설정 내보내기·가져오기·되돌리기</li>
+        <li>권한: PostgreSQL 열 권한·기본 권한, MySQL 자원 제한, Altibase 복제 상태와 명령</li>
+        <li>Chromite Agent: Claude 모델에서 모든 요청이 실패하던 문제와 중지가 늦던 문제 수정, 트랜잭션 질문의 답을 감사 기록에 남김</li>
+        <li>보안: 비밀번호를 비밀번호로 따옴표 처리, 비밀번호가 든 문장을 실행 기록에서 뺌, 속성 표에서 비밀번호 가림, Exasol 새 사용자의 고정 비밀번호 제거</li>
+        <li>수정: Oracle 시퀀스 변경 오류(ORA-04007), SQL Server 정렬 열 필터 오류(1033), SQL Server 매개 변수 형식 표시, Altibase·CUBRID 서버 출력 설정 즉시 반영</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v0.1.2">
+    <h2>0.1.2</h2>
+    <div class="body">
+      <p>macOS에서 앱이 시작되지 않던 문제를 고치고, 비교·검색·편집 도구를 더한 버전입니다.</p>
+      <ul>
+        <li>macOS: 시작할 때 창이 뜨지 않고 멈추던 문제를 고쳤습니다(0.1.0·0.1.1의 macOS판). 앱 메뉴 이름이 Chromite로 나오고, Cmd+Q로 끝낼 때 저장과 열린 트랜잭션을 묻습니다</li>
+        <li>트랜잭션: 잠자기 모드와 깨어날 때 열린 트랜잭션을 묻지 않고 롤백하던 문제 수정, 다시 연결 실패를 성공으로 알리던 문제 수정, 실행 중인 작업이 있으면 종료 전에 확인, 스마트 커밋, 지난 트랜잭션 기록</li>
+        <li>스키마 비교와 마이그레이션 스크립트 생성, 스키마의 테이블에서 값을 찾는 데이터 검색</li>
+        <li>결과 표: 저장하고 커밋, 행 복제·여러 칸 붙여넣기·JSON/XML/INSERT로 복사, 불리언·ENUM·날짜 편집기, LOB 파일 불러오기·저장, 차트와 공간 데이터 보기. 머리글 정렬이 쿼리의 ORDER BY를 대신하고, 열 별칭이 머리글에 보입니다</li>
+        <li>SQL 편집기: 코드 접기, 개요, 마우스를 올리면 개체 설명, Ctrl+클릭으로 개체 찾기, 텍스트 도구, 결과 고정과 배치, SQL 터미널</li>
+        <li>루틴: 프로시저 실행 대화상자, Oracle·Altibase 컴파일과 오류 줄 표시, SQL Server 실행 추적</li>
+        <li>개체 탐색기: 개체 필터와 빠른 필터, 편집기와 연결, 긴 폴더 나눠 읽기, 개체 상세(의존 관계), 연결 복제, 기본 데이터베이스·스키마</li>
+        <li>스크립트 창과 저장된 작업 창, 네이티브 클라이언트(psql, mysql, sqlplus)로 스크립트 실행</li>
+        <li>연결: 다른 데이터베이스 도구의 연결 파일과 CSV에서 가져오기, 공급자 속성·SSL·인증 입력란, 연결 설명, 한꺼번에 연결 끊기, H2 초기화 SQL·SQLite 확장 승인</li>
+        <li>설정: 연결별 설정, 데이터 형식, 오류와 시간 제한, 메타데이터, 드라이버·프록시·Maven 저장소, 로그 등 남은 설정 화면</li>
+        <li>드라이버: 직접 추가한 로컬 jar 우선, 드라이버 관리자에서 Maven 항목·로컬 클라이언트·전역 라이브러리 편집. Oracle RAC 잠금 보기와 쿼리 취소(18c 이상)</li>
+        <li>Chromite Agent: PostgreSQL·MySQL 백업·복원 도구와 더 많은 도구, 요청 크기 줄임</li>
+        <li>쿼리 라이브러리: 매개변수 대화상자를 하나로, 매개변수로 실행한 결과에서도 필터·정렬·다음 페이지</li>
+        <li>촘촘한 모드(보기 메뉴), 실행이나 변경을 일으키는 확인 창의 기본 단추를 취소로</li>
+        <li>수정: Oracle 실행 계획 도구가 긴 머리 주석에서 멈추던 문제, SQL Server 기본값 제약이 있는 열을 바꾸지 못하던 문제, sqlplus 실행 때 비밀번호가 명령줄에 보이던 문제</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v0.1.1">
+    <h2>0.1.1</h2>
+    <div class="body">
+      <p>트랜잭션 안전장치와 관리·개발 도구를 넓힌 버전입니다.</p>
+      <ul>
+        <li>트랜잭션: 열린 트랜잭션 표시와 유휴 알림, 커밋·롤백 명령과 트랜잭션 로그, 열린 트랜잭션 목록, 쿼리 창마다 별도 세션. 연결 끊기·종료·오류 복구 때 묻지 않고 커밋하거나 롤백하지 않습니다</li>
+        <li>실행 전 확인: 조건 없는 DELETE·UPDATE, DROP, TRUNCATE, 결과 표 저장 전 SQL 미리 보기, 저장된 셸 명령 승인</li>
+        <li>프로시저 디버거(PostgreSQL, Oracle)</li>
+        <li>Chromite Agent: 데이터베이스 작업 도구, 연결·도구별 권한 정책, 로컬 MCP 서버</li>
+        <li>쿼리 라이브러리 공유: 공유 폴더·Git 루트, 내보내기·가져오기, 저장 충돌 확인</li>
+        <li>개체 탐색기: 삭제·이름 바꾸기(DDL 미리 보기), 이름 복사, 여러 개 선택, SQL 생성</li>
+        <li>설정 화면: 쿼리 실행, 연결 유형, 결과 형식, Oracle</li>
+        <li>저장된 비밀번호를 운영체제 보안 저장소(Windows DPAPI, macOS 키체인)에 보관하고, 암호로 암호화한 연결 내보내기·가져오기를 추가</li>
+        <li>폐쇄망용 오프라인 드라이버 설치 묶음, SQLite 드라이버 내장. MySQL 드라이버는 더 이상 내장하지 않으며 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다</li>
+        <li>Oracle DBMS_OUTPUT·Altibase 출력 표시, 비밀번호를 저장하지 않은 연결의 로그인 창, Windows 인증서 저장소 사용, @export 명령, CALL·EXEC 뒤 프로시저 자동 완성</li>
+        <li>테이블 복사 때 기본 키 생성과 형식 매핑 개선, 행 단위 삽입에서 NULL 열 값이 어긋나던 문제 수정</li>
+        <li>한국어 화면의 남은 영어 문구 정리</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect release" id="v0.1.0">
+    <h2>0.1.0</h2>
+    <div class="body">
+      <p>Chromite의 첫 버전입니다.</p>
+      <ul>
+        <li>개체 탐색기, SQL 편집기와 결과 표, 테이블 디자이너, ER 다이어그램, 데이터 가져오기·내보내기, 백업·복원, 작업 모니터</li>
+        <li>PostgreSQL, SQL Server, MariaDB, MySQL, Oracle JDBC 드라이버 내장</li>
+        <li>Java 런타임(JetBrains Runtime 25) 내장</li>
+        <li>한국어·영어 화면, 밝은 테마·어두운 테마</li>
+        <li>Windows x64 설치 프로그램, Apple Silicon Mac용 디스크 이미지</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="/ko/support.html">지원 범위</a>
+      <a href="https://github.com/froiibn/chromite/blob/HEAD/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
+    <p class="attribution">Chromite는 DBeaver Community(Apache License 2.0)를 바탕으로 만들었습니다. DBeaver는 DBeaver Corp의 상표이며, Chromite는 DBeaver Corp과 관계가 없습니다. <a href="https://github.com/froiibn/chromite/blob/HEAD/NOTICE">NOTICE</a></p>
+  </div>
+</footer>
+</body>
+</html>

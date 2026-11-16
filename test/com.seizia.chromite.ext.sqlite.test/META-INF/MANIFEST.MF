@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver SQLite Tests
+Bundle-SymbolicName: com.seizia.chromite.ext.sqlite.test
+Bundle-Version: 1.0.74.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.ext.sqlite
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.headless,
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.test.platform

@@ -1,0 +1,132 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.runtime.jobs;
+
+import org.eclipse.core.runtime.IStatus;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Tests of {@link ConnectJob} cancellation.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 취소로 생긴 연결 실패는 취소 상태라는 #131의 동작으로 테스트를 고치고 이름을 바꿈
+ *   (docs/chromite/regression-tests.md "실행 결과")
+ */
+public class ConnectJobTest {
+    @Test
+    public void cancelingMonitorInterruptsSynchronousConnectionWithoutOwnerJob() throws Exception {
+        AtomicBoolean canceled = new AtomicBoolean();
+        DBRProgressMonitor monitor = Mockito.mock(DBRProgressMonitor.class);
+        Mockito.when(monitor.isCanceled()).thenAnswer(invocation -> canceled.get());
+
+        DBPDataSourceContainer container = Mockito.mock(DBPDataSourceContainer.class);
+        Mockito.when(container.getName()).thenReturn("Test connection");
+        Mockito.when(container.getDriver()).thenReturn(Mockito.mock(DBPDriver.class));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Mockito.when(container.connect(monitor, true, false)).thenAnswer(invocation -> {
+            started.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException e) {
+                interrupted.countDown();
+            }
+            return false;
+        });
+
+        Thread worker = Thread.ofVirtual().start(() -> new ConnectJob(container).runSync(monitor));
+        try {
+            Assertions.assertTrue(started.await(5, TimeUnit.SECONDS));
+            canceled.set(true);
+            Assertions.assertTrue(interrupted.await(5, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            worker.join(5000);
+        }
+        Assertions.assertFalse(worker.isAlive());
+    }
+
+    @Test
+    public void canceledConnectionThatIgnoresInterruptionIsDisconnected() throws Exception {
+        AtomicBoolean canceled = new AtomicBoolean();
+        DBRProgressMonitor monitor = Mockito.mock(DBRProgressMonitor.class);
+        Mockito.when(monitor.isCanceled()).thenAnswer(invocation -> canceled.get());
+
+        DBPDataSourceContainer container = Mockito.mock(DBPDataSourceContainer.class);
+        Mockito.when(container.getName()).thenReturn("Test connection");
+        Mockito.when(container.getDriver()).thenReturn(Mockito.mock(DBPDriver.class));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch finishInitialization = new CountDownLatch(1);
+        Mockito.when(container.connect(monitor, true, false)).thenAnswer(invocation -> {
+            started.countDown();
+            // Simulate a driver which completes initialization despite cancellation.
+            while (true) {
+                try {
+                    finishInitialization.await();
+                    return true;
+                } catch (InterruptedException ignored) {
+                }
+            }
+        });
+
+        ConnectJob job = new ConnectJob(container);
+        Thread worker = Thread.ofVirtual().start(() -> job.runSync(monitor));
+        try {
+            Assertions.assertTrue(started.await(5, TimeUnit.SECONDS));
+            canceled.set(true);
+        } finally {
+            finishInitialization.countDown();
+            worker.join(5000);
+        }
+        Assertions.assertFalse(worker.isAlive());
+        Assertions.assertEquals(IStatus.CANCEL, job.getConnectStatus().getSeverity());
+        Mockito.verify(container).disconnect(Mockito.any(VoidProgressMonitor.class));
+    }
+
+    // Chromite #131: a failure caused by the user's cancel is a cancel status, not a connection error, so Stop during
+    // connection setup shows no error dialog (upstream reported it as an error)
+    @Test
+    public void canceledConnectionExceptionIsReportedAsCancel() throws Exception {
+        DBRProgressMonitor monitor = Mockito.mock(DBRProgressMonitor.class);
+        Mockito.when(monitor.isCanceled()).thenReturn(true);
+        DBPDataSourceContainer container = Mockito.mock(DBPDataSourceContainer.class);
+        Mockito.when(container.getName()).thenReturn("Test connection");
+        Mockito.when(container.getDriver()).thenReturn(Mockito.mock(DBPDriver.class));
+        DBException cancellation = new DBException("Connection has been canceled");
+        Mockito.when(container.connect(monitor, true, false)).thenThrow(cancellation);
+
+        ConnectJob job = new ConnectJob(container);
+        job.runSync(monitor);
+
+        Assertions.assertEquals(IStatus.CANCEL, job.getConnectStatus().getSeverity());
+        Assertions.assertNull(job.getConnectError());
+        Mockito.verify(container, Mockito.never()).disconnect(Mockito.any());
+    }
+}

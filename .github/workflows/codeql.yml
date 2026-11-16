@@ -1,0 +1,47 @@
+# CodeQL code scanning for Chromite.
+# Java uses build-mode: none: it needs no JDK 25 / Tycho build, and only in this mode does
+# paths-ignore (deps/, see .github/codeql/codeql-config.yml) apply to Java. Design: docs/chromite/ci.md
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "command" ]
+  pull_request:
+    branches: [ "command" ]
+  schedule:
+    - cron: '30 3 * * 2'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: java-kotlin
+          build-mode: none # Analyzes Java sources without building them (the repository has no Kotlin code).
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        config-file: ./.github/codeql/codeql-config.yml
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"

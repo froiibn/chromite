@@ -1,0 +1,122 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.mimer.edit;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.generic.edit.GenericSequenceManager;
+import com.seizia.chromite.ext.generic.model.GenericSequence;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.mimer.model.MimerSequence;
+import com.seizia.chromite.ext.mimer.model.MimerUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Adds CREATE / ALTER support (on top of generic's DROP) for Mimer SQL sequences,
+ * so "Create New Sequence" is available on the Sequences tree node.
+ *
+ * @author Mimer Information Technology
+ */
+public class MimerSequenceManager extends GenericSequenceManager {
+
+    @Override
+    public boolean canCreateObject(@NotNull Object container) {
+        return DBWorkbench.getPlatform().getWorkspace().hasRealmPermission(RMConstants.PERMISSION_METADATA_EDITOR);
+    }
+
+    @Override
+    public long getMakerOptions(@NotNull DBPDataSource dataSource) {
+        // FEATURE_SAVE_IMMEDIATELY: MimerCreateSequencePage collects everything up front, no
+        // post-create editor. FEATURE_DELETE_CASCADE: Mimer SQL's DROP SEQUENCE accepts CASCADE.
+        return FEATURE_SAVE_IMMEDIATELY | FEATURE_DELETE_CASCADE;
+    }
+
+    @Override
+    protected void addObjectDeleteActions(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull SQLObjectEditor<GenericSequence, GenericStructContainer>.ObjectDeleteCommand command,
+        @NotNull Map<String, Object> options
+    ) {
+        actions.add(MimerCascadeDropUtil.dropAction("Drop sequence",
+            "DROP SEQUENCE " + command.getObject().getFullyQualifiedName(DBPEvaluationContext.DDL),
+            options, "sequence", command.getObject().getName(), executionContext));
+    }
+
+    @NotNull
+    @Override
+    protected MimerSequence createDatabaseObject(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBECommandContext context,
+        @NotNull Object container,
+        @Nullable Object copyFrom,
+        @NotNull Map<String, Object> options
+    ) {
+        GenericStructContainer structContainer = (GenericStructContainer) container;
+        MimerSequence sequence = new MimerSequence(structContainer, getBaseObjectName());
+        setNewObjectName(monitor, structContainer.getSchema(), sequence);
+        return sequence;
+    }
+
+    @Override
+    protected void addObjectCreateActions(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull SQLObjectEditor<GenericSequence, GenericStructContainer>.ObjectCreateCommand command,
+        @NotNull Map<String, Object> options
+    ) {
+        MimerSequence sequence = (MimerSequence) command.getObject();
+        actions.add(new SQLDatabasePersistAction("Create sequence", sequence.buildCreateDDL()));
+    }
+
+    @Override
+    protected void addObjectModifyActions(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actionList,
+        @NotNull SQLObjectEditor<GenericSequence, GenericStructContainer>.ObjectChangeCommand command,
+        @NotNull Map<String, Object> options
+    ) throws DBException {
+        // Mimer SQL's ALTER SEQUENCE only supports RESTART WITH; everything else
+        // (type, bounds, increment, cycle) requires drop &amp; recreate.
+        if (command.hasProperty("restartWith")) {
+            MimerSequence sequence = (MimerSequence) command.getObject();
+            actionList.add(new SQLDatabasePersistAction("Alter sequence", sequence.buildRestartDDL(null)));
+        }
+        if (command.hasProperty("comment")) {
+            MimerSequence sequence = (MimerSequence) command.getObject();
+            MimerUtils.addCommentModifyAction(actionList, sequence, "SEQUENCE",
+                sequence.getFullyQualifiedName(DBPEvaluationContext.DDL), "Comment sequence", monitor);
+        }
+    }
+}

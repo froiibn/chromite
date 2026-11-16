@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver Hive Tests
+Bundle-SymbolicName: com.seizia.chromite.ext.hive.test
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20261102
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.ext.hive
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.test.platform

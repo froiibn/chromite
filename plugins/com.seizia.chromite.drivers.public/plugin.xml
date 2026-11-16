@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<!--
+    Chromite: JDBC drivers shipped inside the installation (major databases only).
+
+    Design: each driver in the driver plugin.xml files declares two alternative file sets,
+    a Maven artifact with bundle="!drivers.X" and an install-relative folder with bundle="drivers.X".
+    Declaring the product bundle "drivers.X" here makes the registry use the folder
+    <install>/drivers/... instead of downloading from Maven (DriverUtils.matchesBundle).
+    The folders are filled at build time by features/com.seizia.chromite.drivers.public.feature/pom.xml,
+    so this plugin and the jar files ship together in the same feature. Declaring a bundle
+    without its files would leave the driver without any file source, so never include this
+    plugin in a product that does not ship the matching drivers/ folders.
+
+    History:
+    - 2026-11-06 Created. Public edition bundles SQL Server, Oracle, PostgreSQL and MariaDB
+      (docs/chromite/drivers.md).
+    - 2026-11-06 Moved with the drivers/ root files into com.seizia.chromite.drivers.public.feature,
+      which both the SWT and the Swing product include.
+    - 2026-11-06 Added drivers.mysql (MySQL Connector/J, GPLv2 with the Universal FOSS Exception).
+    - 2026-11-07 Added drivers.sqlite.xerial (Xerial sqlite-jdbc). Chromite ships one edition: these major
+      databases are bundled and every other driver is downloaded when needed; there is no internal edition.
+    - 2026-11-07 Removed drivers.mysql (user decision): MySQL Connector/J is downloaded from Maven again when first
+      used, so MySQL-family drivers use their Maven entries (bundle="!drivers.mysql").
+    - 2026-11-14 Added drivers.shardsphere (ShardSphere JDBC driver, project owner's decision). It is not on Maven
+      Central, so the jar is committed in the feature's drivers-root/drivers/shardsphere/ instead of being copied at
+      build time, and the driver has no Maven alternative (docs/chromite/drivers.md "ShardSphere").
+-->
+<plugin>
+
+    <extension point="com.seizia.chromite.product.bundles">
+        <bundle id="drivers.mssql.new" label="Microsoft SQL Server JDBC driver" description="mssql-jdbc with msal4j in drivers/mssql/new"/>
+        <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
+        <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
+        <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
+        <bundle id="drivers.sqlite.xerial" label="SQLite JDBC driver" description="Xerial sqlite-jdbc in drivers/sqlite/xerial"/>
+        <bundle id="drivers.shardsphere" label="ShardSphere JDBC driver" description="ShardSphere JDBC driver in drivers/shardsphere"/>
+    </extension>
+
+</plugin>

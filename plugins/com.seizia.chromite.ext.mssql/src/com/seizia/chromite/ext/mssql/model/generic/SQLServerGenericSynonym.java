@@ -1,0 +1,75 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.mssql.model.generic;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericSynonym;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+
+/**
+* SQL server synonym
+*/
+public class SQLServerGenericSynonym extends GenericSynonym implements DBPQualifiedObject {
+
+    private static final Log log = Log.getLog(SQLServerGenericSynonym.class);
+
+    private String targetObjectName;
+
+    public SQLServerGenericSynonym(GenericStructContainer container, String name, String description, String targetObjectName) {
+        super(container, name, description);
+        this.targetObjectName = targetObjectName;
+    }
+
+    @NotNull
+    @Override
+    public String getFullyQualifiedName(@NotNull DBPEvaluationContext context) {
+        return DBUtils.getFullQualifiedName(
+            getDataSource(),
+            getParentObject(),
+            this);
+    }
+
+    @Property(viewable = true, order = 20)
+    @Override
+    public DBSObject getTargetObject(DBRProgressMonitor monitor) throws DBException {
+        int divPos = targetObjectName.indexOf("].[");
+        if (divPos == -1) {
+            log.debug("Bad target object name '" + targetObjectName + "' for synonym '" + getName() + "'");
+            return null;
+        }
+        String schemaName = DBUtils.getUnQuotedIdentifier(getDataSource(), targetObjectName.substring(0, divPos + 1));
+        String objectName = DBUtils.getUnQuotedIdentifier(getDataSource(), targetObjectName.substring(divPos + 2));
+        GenericCatalog database = getParentObject().getCatalog();
+        GenericSchema schema = database.getSchema(monitor, schemaName);
+        if (schema == null) {
+            log.debug("Schema '" + schemaName + "' not found for synonym '" + getName() + "'");
+            return null;
+        }
+        return schema.getChild(monitor, objectName);
+    }
+}

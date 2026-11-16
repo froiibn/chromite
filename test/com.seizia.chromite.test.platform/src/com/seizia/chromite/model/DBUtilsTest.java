@@ -1,0 +1,372 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDVoid;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectWithStructuralParent;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.struct.rdb.DBSTablePartition;
+import com.seizia.chromite.junit.ChromiteUnitTest;
+import org.jkiss.utils.Pair;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+
+public class DBUtilsTest extends ChromiteUnitTest {
+
+    BasicSQLDialect sqlDialect = new BasicSQLDialect() {
+        @NotNull
+        @Override
+        public String[][] getIdentifierQuoteStrings() {
+            return new String[][] { { "\"", "\""} };
+        }
+
+        @NotNull
+        @Override
+        public DBPIdentifierCase storesUnquotedCase() {
+            return DBPIdentifierCase.LOWER;
+        }
+
+        @NotNull
+        @Override
+        public DBPIdentifierCase storesQuotedCase() {
+            return DBPIdentifierCase.MIXED;
+        }
+    };
+    JDBCDataSource mockDataSource;
+    @Mock
+    private JDBCDataSource mockDataSourceSchemaTable;
+    @Mock
+    private JDBCDataSource mockDataSourceTable;
+    @Mock
+    private JDBCDataSource mockDataSourceCatalogSchema;
+    @Mock
+    private DBRProgressMonitor monitor;
+    @Mock
+    private JDBCRemoteInstance mockRemoteInstance;
+    @Mock
+    private JDBCRemoteInstance mockRemoteInstanceSchema;
+    @Mock
+    private JDBCRemoteInstance mockRemoteInstanceTable;
+    @Mock
+    private JDBCRemoteInstance mockRemoteInstanceCatalogSchema;
+    @Mock
+    private DBSCatalog mockCatalog;
+    @Mock
+    private DBSCatalog mockCatalogDBO;
+    @Mock
+    private DBSSchema mockSchema;
+    @Mock
+    private DBSSchema mockSchemaDBO;
+    @Mock
+    private DBSEntity mockEntity;
+    @Mock
+    private DBSEntity mockEntityDBO;
+
+    private JDBCExecutionContext executionContext;
+    private JDBCExecutionContext executionContextSchema;
+    private JDBCExecutionContext executionContextTable;
+    private JDBCExecutionContext executionContextCatalogSchema;
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        DBPDataSourceContainer dataSourceContainer = configureTestContainer("sqlite_jdbc");
+        mockDataSource = Mockito.mock(JDBCDataSource.class);//new GenericDataSource(monitor, dataSourceContainer, new GenericMetaModel(), sqlDialect);
+        Mockito.when(mockDataSource.getContainer()).thenReturn(dataSourceContainer);
+        Mockito.when(mockDataSource.getSQLDialect()).thenReturn(sqlDialect);
+
+        Mockito.when(mockDataSourceSchemaTable.getContainer()).thenReturn(dataSourceContainer);
+        Mockito.when(mockDataSourceCatalogSchema.getContainer()).thenReturn(dataSourceContainer);
+        Mockito.when(mockDataSourceTable.getContainer()).thenReturn(dataSourceContainer);
+
+        // Datasource 1. Catalog-table structure
+        Mockito.lenient().when(mockRemoteInstance.getDataSource()).thenReturn(mockDataSource);
+        Mockito.lenient().when(mockDataSource.getName()).thenReturn("test_name");
+        executionContext = new JDBCExecutionContext(mockRemoteInstance, true);
+        Mockito.lenient().<Class<?>>when(mockDataSource.getPrimaryChildType(monitor)).thenReturn(DBSCatalog.class);
+        Mockito.lenient().when(mockDataSource.getChild(monitor, "catalog_test")).thenReturn(mockCatalog);
+        Mockito.lenient().<Class<?>>when(mockCatalog.getPrimaryChildType(monitor)).thenReturn(DBSTable.class);
+        Mockito.lenient().when(mockCatalog.getChild(monitor, "table_test")).thenReturn(mockEntity);
+
+        // Datasource 2. Schema-table structure
+        Mockito.lenient().when(mockRemoteInstanceSchema.getDataSource()).thenReturn(mockDataSourceSchemaTable);
+        Mockito.lenient().when(mockDataSourceSchemaTable.getName()).thenReturn("test_name");
+        executionContextSchema = new JDBCExecutionContext(mockRemoteInstanceSchema, true);
+        Mockito.lenient().<Class<?>>when(mockDataSourceSchemaTable.getPrimaryChildType(monitor)).thenReturn(DBSSchema.class);
+        Mockito.lenient().when(mockDataSourceSchemaTable.getChild(monitor, "schema_test")).thenReturn(mockSchema);
+        Mockito.lenient().when(mockSchema.getChild(monitor, "table_test")).thenReturn(mockEntity);
+
+        // Datasource 3. Datasource-table structure (like SQLite)
+        Mockito.lenient().when(mockRemoteInstanceTable.getDataSource()).thenReturn(mockDataSourceTable);
+        Mockito.lenient().when(mockDataSourceTable.getName()).thenReturn("test_name");
+        executionContextTable = new JDBCExecutionContext(mockRemoteInstanceTable, true);
+        Mockito.lenient().<Class<?>>when(mockDataSourceTable.getPrimaryChildType(monitor)).thenReturn(DBSTable.class);
+        Mockito.lenient().when(mockDataSourceTable.getChild(monitor, "table_test")).thenReturn(mockEntity);
+
+        // Datasource 4. Catalog-schema-table structure
+        Mockito.lenient().when(mockRemoteInstanceCatalogSchema.getDataSource()).thenReturn(mockDataSourceCatalogSchema);
+        Mockito.lenient().when(mockDataSourceCatalogSchema.getName()).thenReturn("test_name");
+        executionContextCatalogSchema = new JDBCExecutionContext(mockRemoteInstanceCatalogSchema, true);
+        Mockito.lenient().<Class<?>>when(mockDataSourceCatalogSchema.getPrimaryChildType(monitor)).thenReturn(DBSCatalog.class);
+        Mockito.lenient().when(mockDataSourceCatalogSchema.getChild(monitor, "catalog_test")).thenReturn(mockCatalog);
+        Mockito.lenient().when(mockDataSourceCatalogSchema.getChild(monitor, "DBO")).thenReturn(mockCatalogDBO);
+        Mockito.lenient().<Class<?>>when(mockCatalog.getPrimaryChildType(monitor)).thenReturn(DBSSchema.class);
+        Mockito.lenient().when(mockCatalog.getChild(monitor, "schema_test")).thenReturn(mockSchema);
+        Mockito.lenient().when(mockCatalogDBO.getChild(monitor, "DBO")).thenReturn(mockSchemaDBO);
+        Mockito.lenient().<Class<?>>when(mockSchema.getPrimaryChildType(monitor)).thenReturn(DBSTable.class);
+        Mockito.lenient().when(mockSchema.getChild(monitor, "table_test")).thenReturn(mockEntity);
+        Mockito.lenient().when(mockSchemaDBO.getChild(monitor, "table_test")).thenReturn(mockEntityDBO);
+    }
+
+    @Test
+    public void testObjectPathUsesStructuralParent() {
+        DBSObject root = Mockito.mock(DBSObject.class, Mockito.CALLS_REAL_METHODS);
+        DBSObject owner = Mockito.mock(DBSObject.class, Mockito.CALLS_REAL_METHODS);
+        DBSObject object = Mockito.mock(DBSObject.class, Mockito.CALLS_REAL_METHODS);
+        Mockito.when(owner.getParentObject()).thenReturn(root);
+        Mockito.when(object.getParentObject()).thenReturn(owner);
+
+        Assertions.assertArrayEquals(new DBSObject[] {root, owner, object}, DBUtils.getObjectPath(object, true));
+        DBSObjectWithStructuralParent structuralObject = Mockito.mock(DBSObjectWithStructuralParent.class);
+        Mockito.when(structuralObject.getStructuralParent()).thenReturn(root);
+        Assertions.assertArrayEquals(new DBSObject[] {root, structuralObject}, DBUtils.getObjectPath(structuralObject, true));
+        Assertions.assertArrayEquals(new DBSObject[] {root}, DBUtils.getObjectPath(structuralObject, false));
+        Assertions.assertArrayEquals(new DBSObject[0], DBUtils.getObjectPath(root, false));
+    }
+
+    @Test
+    public void testPartitionObjectPath() {
+        DBSObject schema = Mockito.mock(DBSObject.class, Mockito.CALLS_REAL_METHODS);
+        DBSTable table = Mockito.mock(DBSTable.class, Mockito.CALLS_REAL_METHODS);
+        DBSTablePartition partition = Mockito.mock(DBSTablePartition.class, Mockito.CALLS_REAL_METHODS);
+        DBSTablePartition subPartition = Mockito.mock(DBSTablePartition.class, Mockito.CALLS_REAL_METHODS);
+        Mockito.when(table.getParentObject()).thenReturn(schema);
+        Mockito.when(partition.getParentObject()).thenReturn(schema);
+        Mockito.when(partition.getParentTable()).thenReturn(table);
+        Mockito.when(subPartition.isSubPartition()).thenReturn(true);
+        Mockito.when(subPartition.getPartitionParent()).thenReturn(partition);
+
+        Assertions.assertArrayEquals(new DBSObject[] {schema, table, partition}, DBUtils.getObjectPath(partition, true));
+        Assertions.assertArrayEquals(new DBSObject[] {schema, table}, DBUtils.getObjectPath(partition, false));
+        Assertions.assertArrayEquals(
+            new DBSObject[] {schema, table, partition, subPartition}, DBUtils.getObjectPath(subPartition, true));
+        Assertions.assertArrayEquals(
+            new DBSObject[] {schema, table, partition}, DBUtils.getObjectPath(subPartition, false));
+
+        Mockito.when(partition.needFullPath()).thenReturn(false);
+        Assertions.assertArrayEquals(new DBSObject[] {schema, partition}, DBUtils.getObjectPath(partition, true));
+        Assertions.assertArrayEquals(new DBSObject[] {schema}, DBUtils.getObjectPath(partition, false));
+    }
+
+    @Test
+    public void testArrayIndexesDoNotResolveToSiblingCollection() {
+        DBDAttributeBinding attribute = Mockito.mock(DBDAttributeBinding.class);
+        Mockito.when(attribute.getTopParent()).thenReturn(attribute);
+        Mockito.when(attribute.getOrdinalPosition()).thenReturn(0);
+
+        DBDCollection outer = Mockito.mock(DBDCollection.class);
+        DBDCollection inner = Mockito.mock(DBDCollection.class);
+        Mockito.when(outer.getItemCount()).thenReturn(1);
+        Mockito.when(outer.get(0)).thenReturn(inner);
+        Mockito.when(inner.getItemCount()).thenReturn(1);
+        Mockito.when(inner.get(0)).thenReturn(42);
+
+        Object[] values = { outer };
+        DBDAttributeBinding[] attributes = { attribute };
+        Assertions.assertSame(outer, DBUtils.getAttributeValue(attribute, attributes, values, null, false));
+        Assertions.assertSame(inner, DBUtils.getAttributeValue(attribute, attributes, values, new int[] { 0 }, false));
+        Assertions.assertEquals(42, DBUtils.getAttributeValue(attribute, attributes, values, new int[] { 0, 0 }, false));
+        Assertions.assertSame(DBDVoid.INSTANCE, DBUtils.getAttributeValue(attribute, attributes, values, new int[] { 0, 0, 0 }, false));
+
+        // A shallower array in another column must not reappear at deeper row levels.
+        Mockito.when(outer.get(0)).thenReturn(42);
+        Assertions.assertSame(DBDVoid.INSTANCE, DBUtils.getAttributeValue(attribute, attributes, values, new int[] { 0, 0 }, false));
+    }
+
+    @Test
+    public void checkIdentifiersQuote() throws Exception {
+        Assertions.assertEquals(DBUtils.getQuotedIdentifier(mockDataSource, "table_name"), "table_name");
+        Assertions.assertEquals(DBUtils.getQuotedIdentifier(mockDataSource, "table name"), "\"table name\"");
+        Assertions.assertEquals(DBUtils.getQuotedIdentifier(mockDataSource, "TableName"), "\"TableName\"");
+    }
+
+    @Test
+    public void testExtractTypeModifiers() throws DBException {
+        Assertions.assertEquals(new Pair<>("NUMBER", new String[0]), DBUtils.getTypeModifiers("NUMBER"));
+        Assertions.assertEquals(new Pair<>("NUMBER", new String[]{"5"}), DBUtils.getTypeModifiers("NUMBER(5)"));
+        Assertions.assertEquals(new Pair<>("NUMBER", new String[]{"10", "5"}), DBUtils.getTypeModifiers("NUMBER(10,   5)"));
+        Assertions.assertEquals(new Pair<>("NUMBER", new String[]{"10", "5", "TEST"}), DBUtils.getTypeModifiers("NUMBER (10, 5, TEST)"));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("NUMBER()"));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("NUMBER("));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("NUMBER)"));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("NUMBER(5, 10"));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("(5, 10)"));
+        Assertions.assertThrows(DBException.class, () -> DBUtils.getTypeModifiers("()"));
+    }
+
+    @Test
+    public void testMainServices() {
+
+/*
+        org.eclipse.equinox.launcher.Main.main(new String[] {
+            "-product", "com.seizia.chromite.product"}
+        );
+        System.out.println("OSGI started");
+*/
+    }
+
+    @Test
+    public void testGetCatalogWithEntityByPath() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContext,
+            mockDataSource,
+            "catalog_test",
+            null,
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetCatalogWithEntityByPathWithSchemaNameOnly() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContext,
+            mockDataSource,
+            null,
+            "catalog_test",
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testReturnDatasourceIfNoNamesWithSearchByPath() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContext,
+            mockDataSource,
+            null,
+            null,
+            null);
+        Assertions.assertEquals(dbsObject, mockDataSource);
+    }
+
+    @Test
+    public void testGetSchemaWithEntityByPath() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextSchema,
+            mockDataSourceSchemaTable,
+            null,
+            "schema_test",
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetSchemaWithEntityByPathIgnoreCatalogName() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextSchema,
+            mockDataSourceSchemaTable,
+            "catalog_name",
+            "schema_test",
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetEntityByPathFromDatasource() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextTable,
+            mockDataSourceTable,
+            null,
+            null,
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetEntityByPathIgnoreCatalogName() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextTable,
+            mockDataSourceTable,
+            "catalog_name",
+            null,
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetEntityByPathWithAllNames() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextCatalogSchema,
+            mockDataSourceCatalogSchema,
+            "catalog_test",
+            "schema_test",
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetEntityByPathWithEqualDatabaseAndSchemaNames() throws DBException {
+        DBSObject dbsObject = DBUtils.getObjectByPath(
+            monitor,
+            executionContextCatalogSchema,
+            mockDataSourceCatalogSchema,
+            "DBO",
+            "DBO",
+            "table_test");
+        Assertions.assertEquals(dbsObject, mockEntityDBO);
+        Assertions.assertNotEquals(dbsObject, mockEntity);
+    }
+
+    @Test
+    public void testGetSimpleQualifiedNameForEntityMetadata() {
+        // Typical PostgreSQL: schema + table, no catalog
+        Assertions.assertEquals("public.authors", DBUtils.getSimpleQualifiedName(null, "public", "authors"));
+
+        // Full catalog.schema.table (e.g. SQL Server)
+        Assertions.assertEquals("mydb.dbo.orders", DBUtils.getSimpleQualifiedName("mydb", "dbo", "orders"));
+
+        // Table only, no catalog or schema (e.g. SQLite)
+        Assertions.assertEquals("users", DBUtils.getSimpleQualifiedName(null, null, "users"));
+
+        // All nulls should produce empty string
+        Assertions.assertEquals("", DBUtils.getSimpleQualifiedName(null, null, null));
+    }
+
+}

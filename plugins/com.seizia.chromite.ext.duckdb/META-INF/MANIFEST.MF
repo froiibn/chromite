@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite DuckDB Model
+Bundle-SymbolicName: com.seizia.chromite.ext.duckdb;singleton:=true
+Bundle-Version: 1.0.83.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.data.gis
+Import-Package: org.jkiss.code,
+ com.seizia.chromite.model.sql.format
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.duckdb.model,
+ com.seizia.chromite.ext.duckdb.model.data
+Automatic-Module-Name: com.seizia.chromite.ext.duckdb

@@ -1,0 +1,94 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.registry.datatype;
+
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.data.DBDAttributeTransformer;
+import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * AttributeTransformerDescriptor
+ */
+public class AttributeTransformerDescriptor extends DataTypeAbstractDescriptor<DBDAttributeTransformer> implements DBDAttributeTransformerDescriptor
+{
+    private final String name;
+    private final String description;
+    private final boolean applyByDefault;
+    private final boolean custom;
+    private final DBPImage icon;
+    private final List<DBPPropertyDescriptor> properties = new ArrayList<>();
+
+    public AttributeTransformerDescriptor(IConfigurationElement config)
+    {
+        super(config, DBDAttributeTransformer.class);
+
+        this.name = config.getAttribute(RegistryConstants.ATTR_NAME);
+        this.description = config.getAttribute(RegistryConstants.ATTR_DESCRIPTION);
+        this.applyByDefault = "true".equals(config.getAttribute("applyByDefault"));
+        this.custom = "true".equals(config.getAttribute("custom"));
+        this.icon = iconToImage(config.getAttribute(RegistryConstants.ATTR_ICON));
+
+        for (IConfigurationElement prop : config.getChildren(PropertyDescriptor.TAG_PROPERTY_GROUP)) {
+            properties.addAll(PropertyDescriptor.extractProperties(prop));
+        }
+    }
+
+    @NotNull
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Nullable
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public boolean isApplicableByDefault() {
+        return applyByDefault;
+    }
+
+    @Override
+    public boolean isCustom() {
+        return custom;
+    }
+
+    @NotNull
+    @Override
+    public List<DBPPropertyDescriptor> getProperties() {
+        return properties;
+    }
+
+    @Nullable
+    @Override
+    public DBPImage getIcon() {
+        return icon;
+    }
+
+}

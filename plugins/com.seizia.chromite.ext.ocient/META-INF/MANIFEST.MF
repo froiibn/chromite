@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Ocient Model
+Bundle-SymbolicName: com.seizia.chromite.ext.ocient;singleton:=true
+Bundle-Version: 1.0.162.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.ocient
+Export-Package: com.seizia.chromite.ext.ocient,
+ com.seizia.chromite.ext.ocient.model,
+ com.seizia.chromite.ext.ocient.model.plan

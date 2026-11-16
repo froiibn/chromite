@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite GreptimeDB Support
+Bundle-SymbolicName: com.seizia.chromite.ext.greptime;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20260724
+Bundle-Vendor: Chromite contributors
+Bundle-Localization: OSGI-INF/l10n/bundle
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.ext.greptime,
+ com.seizia.chromite.ext.greptime.model
+Automatic-Module-Name: com.seizia.chromite.ext.greptime

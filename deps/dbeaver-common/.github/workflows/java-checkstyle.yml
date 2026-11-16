@@ -1,0 +1,51 @@
+name: Lint
+
+on:
+  # Allows you to reuse workflows by referencing their YAML files
+  workflow_call:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: 'checkstyle: checkout target repository'
+        uses: actions/checkout@v4
+
+      - name: 'checkstyle: checkout configuration'
+        uses: actions/checkout@v4
+        with:
+          repository: dbeaver/dbeaver-common
+          path: dbeaver-common
+          cache: maven
+
+      - name: 'checkstyle-nullability-annotations: checkout plugin'
+        uses: actions/checkout@v4
+        with:
+          repository: dbeaver/checkstyle-nullability-annotations
+          path: checkstyle-nullability-annotations
+          cache: maven
+
+      - name: 'checkstyle-nullability-annotations: set up JDK 17'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          cache-dependency-path: checkstyle-nullability-annotations/pom.xml
+
+      - name: 'checkstyle-nullability-annotations: build using Maven'
+        run: dbeaver-common/mvnw -B package -f checkstyle-nullability-annotations/pom.xml -DskipTests=true
+
+      - uses: dbeaver/action-java-checkstyle@b4e54be8402de609f964a6eac5f11dc1250ca35d
+        with:
+          reporter: github-pr-annotations
+          filter_mode: diff_context
+          checkstyle_config: dbeaver-common/.github/dbeaver-checkstyle-config.xml
+          checkstyle_classpath: checkstyle-nullability-annotations/target/checkstyle-nullability-annotations-latest.jar
+          fail_on_error: false

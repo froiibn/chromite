@@ -1,0 +1,182 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.ai.engine.openai;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.ai.engine.*;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.internal.AIMessages;
+import com.seizia.chromite.model.ai.utils.DisposableLazyValue;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+import java.util.List;
+import java.util.Set;
+
+/**
+ * OpenAI engine (API key or ChatGPT account sign-in).
+ *
+ * 설계: 모델 목록은 사용자가 연결한 제공자에서만 받는다. API 키 방식은 설정한 base URL의 GET models,
+ * ChatGPT 계정 방식은 OpenAIAccountAuthenticator.listModelDetails()(chatgpt.com Codex 모델 목록)를 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: getCatalogProviderId(), findCatalogEntry() 재정의와
+ *   목록 보강(mapModels)을 삭제했다.
+ */
+public class OpenAIEngine<PROPS extends OpenAIBaseProperties> extends BaseCompletionEngine<PROPS> {
+
+    protected DisposableLazyValue<OpenAIClientResponses, DBException> openAiService = new DisposableLazyValue<>() {
+        @NotNull
+        @Override
+        protected OpenAIClientResponses initialize() throws DBException {
+            OpenAIClientResponses newClient = createClient();
+            newClient.setTimeout(properties.getTimeout());
+            return newClient;
+        }
+
+        @Override
+        protected void onDispose(@NotNull OpenAIClientResponses disposedValue) {
+            disposedValue.close();
+        }
+    };
+
+    public OpenAIEngine(@NotNull PROPS properties) {
+        super(properties);
+    }
+
+    @Override
+    public int estimateImageTokens(@NotNull AIImageAttachment image) {
+        return OpenAiUtils.estimateImageTokens(properties.getEffectiveModel(), image);
+    }
+
+    @NotNull
+    @Override
+    public List<AIModel> getModels(@NotNull DBRProgressMonitor monitor) throws DBException {
+        if (properties instanceof OpenAIProperties openAIProperties && openAIProperties.isChatGptAccountAuthentication()) {
+            if (!OpenAIAccountAuthenticator.isSupported()) {
+                throw new DBException("ChatGPT account authentication is available only in standalone desktop applications");
+            }
+            return new OpenAIAccountAuthenticator(openAIProperties.getTimeout()).listModelDetails(openAIProperties);
+        }
+        return openAiService.getInstance().getModels(monitor).stream()
+            .map(model -> OpenAIModels.fromApiModel(model, getModelFeatures(model.id())))
+            .toList();
+    }
+
+    @NotNull
+    protected Set<AIModelFeature> getModelFeatures(@NotNull String modelName) {
+        return OpenAIModels.isOpenAIEndpoint(properties.getEffectiveBaseUrl()) ? OpenAIModels.detectModelFeatures(modelName)
+            : Set.of(AIModelFeature.CHAT, AIModelFeature.STREAMING);
+    }
+
+    @NotNull
+    @Override
+    public AIEngineResponse requestCompletion(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIEngineRequest request
+    ) throws DBException {
+        OAIResponsesResponse completionResult = complete(monitor, request);
+        // Filter reasoning messages from the response for OpenAI reasoning models (e.g., gpt-5, gpt-5-mini, gpt-5-nano)
+        List<OAIMessage> messages = completionResult.output.stream()
+            .filter(msg -> !OAIMessage.TYPE_FUNCTION_REASONING.equals(msg.type))
+            .toList();
+        AIUsage usage = completionResult.getAIUsage();
+        if (messages.isEmpty()) {
+            return new AIEngineResponse(
+                AIMessageType.ASSISTANT,
+                List.of(AIMessages.ai_empty_engine_response),
+                usage
+            );
+        }
+        OAIMessage message = messages.getFirst();
+        if (OAIMessage.TYPE_FUNCTION_CALL.equals(message.type)) {
+            AIFunctionCall fc = OpenAiUtils.createFunctionCall(message);
+            return new AIEngineResponse(fc, usage);
+        } else {
+            List<String> choices = messages.stream()
+                .map(OAIMessage::getFullText)
+                .toList();
+
+            return new AIEngineResponse(AIMessageType.ASSISTANT, choices, usage);
+        }
+    }
+
+    @Override
+    public void requestCompletionStream(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIEngineRequest request,
+        @NotNull AIEngineResponseConsumer listener
+    ) throws DBException {
+        OAIResponsesRequest oaiRequest = createRequest(request);
+        oaiRequest.stream = true;
+        openAiService.getInstance().createChatCompletionStream(monitor, oaiRequest, listener);
+    }
+
+    @Override
+    public void close() throws DBException {
+        openAiService.dispose();
+    }
+
+    @NotNull
+    protected OAIResponsesResponse complete(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIEngineRequest request
+    ) throws DBException {
+        OAIResponsesRequest oaiRequest = createRequest(request);
+
+        return openAiService.getInstance().createChatCompletion(monitor, oaiRequest);
+    }
+
+    @NotNull
+    private OAIResponsesRequest createRequest(@NotNull AIEngineRequest request) throws DBException {
+        OAIResponsesRequest oaiRequest = OpenAiUtils.createOpenAiRequest(request, model(), getRequestTemperature());
+        if (properties instanceof OpenAIProperties openAIProperties
+            && openAIProperties.isChatGptAccountAuthentication()
+        ) {
+            OpenAiUtils.prepareChatGptAccountRequest(oaiRequest);
+        }
+        return oaiRequest;
+    }
+
+    @NotNull
+    protected OpenAIClientResponses createClient() throws DBException {
+        if (properties instanceof OpenAIProperties openAIProperties && openAIProperties.isChatGptAccountAuthentication()) {
+            if (!openAIProperties.isChatGptAccountConnected()) {
+                throw new DBException("OpenAI ChatGPT account is not connected");
+            }
+            return new OpenAIAccountClient(openAIProperties);
+        }
+        String token = properties.getEffectiveToken();
+        if (properties.isTokenRequired() && CommonUtils.isEmptyTrimmed(token)) {
+            throw new DBException("OpenAI API token is not set");
+        }
+        String baseUrl = properties.getEffectiveBaseUrl();
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = OpenAIClientResponses.OPENAI_ENDPOINT;
+        }
+        return OpenAIClientResponses.createClient(baseUrl, token, properties.getCustomHeaders());
+    }
+
+}

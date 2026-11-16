@@ -1,0 +1,32 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver Test Suite
+Bundle-SymbolicName: com.seizia.chromite.test.platform
+Bundle-Version: 1.0.148.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.junit
+Require-Bundle: junit-jupiter-api,
+ org.eclipse.equinox.security,
+ com.seizia.chromite.headless,
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.security,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.data.transfer,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.h2,
+ com.seizia.chromite.ext.sqlite,
+ com.seizia.chromite.ext.postgresql,
+ com.seizia.chromite.osgi.test.runner;visibility:=reexport,
+ com.seizia.chromite.ext.oracle,
+ com.seizia.chromite.ext.snowflake,
+ com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.firebird,
+ com.seizia.chromite.ext.databricks,
+ com.seizia.chromite.ext.hana,
+ com.seizia.chromite.ext.mssql,
+ com.seizia.chromite.ext.bigquery

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Chromite privacy</title>
+<meta name="description" content="What the Chromite download site and update check send and keep">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="canonical" href="https://chromite.seizia.com/en/privacy.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chromite">
+<meta property="og:title" content="Chromite privacy">
+<meta property="og:description" content="What the Chromite download site and update check send and keep">
+<meta property="og:url" content="https://chromite.seizia.com/en/privacy.html">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en-3.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Chromite logo, the line &#x27;A database tool anyone can use easily and safely&#x27; and the Chromite window with Object Explorer, a query and its results">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chromite privacy">
+<meta name="twitter:description" content="What the Chromite download site and update check send and keep">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en-3.png">
+<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;A database tool anyone can use easily and safely&#x27; and the Chromite window with Object Explorer, a query and its results">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="alternate" hreflang="ko" href="/ko/privacy.html">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/en/"><picture><source srcset="/assets/brand/wordmark-dark.svg" media="(prefers-color-scheme: dark)"><img src="/assets/brand/wordmark-light.svg" width="139" height="16" alt="Chromite"></picture></a>
+    <nav class="nav" aria-label="Site">
+      <a href="/en/">Download</a>
+      <a href="/en/support.html">Database support</a>
+      <a href="/en/changelog.html">Changelog</a>
+      <a href="/en/privacy.html" aria-current="page">Privacy</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
+      <a href="/ko/privacy.html" lang="ko">한국어</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap page">
+  <div class="page-head">
+    <h1>Privacy</h1>
+  </div>
+
+  <section class="sect">
+    <h2>The app's update check</h2>
+    <div class="body">
+      <p>When the update check is on, Chromite reads this site's release list (<code>https://chromite.seizia.com/downloads/releases.json</code>) and, when there is a new version, downloads its installer from the same place.</p>
+      <ul>
+        <li>The requests carry one fixed User-Agent, the same for every copy of Chromite, and nothing else: no installation ID, account, usage history, database details or cookies.</li>
+        <li>Without an internet connection, or when a company network blocks it, the check is skipped quietly.</li>
+        <li>You can turn the automatic update check off in Options.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>Chromite Agent</h2>
+    <div class="body">
+      <p>Chromite Agent sends nothing until you set it up. To use it, choose a provider in the Chromite Agent tab of Options (Anthropic Claude, OpenAI or an OpenAI-compatible address, Ollama) and enter your own API key or Ollama address. Requests go from this computer straight to the address of the provider you chose. They do not pass through this site or any other Chromite server, and Chromite does not collect them.</p>
+      <ul>
+        <li>What is sent: what you write in the chat and the whole conversation so far, the name and driver of the current connection and the database name, and the results of the tools Chromite Agent runs. Tool results can contain structure (tables, columns), query text and query results (100 rows at a time by default, at most 10,000), execution plans, and server status such as sessions, locks and server settings. Connection passwords and credentials are never put into tool results.</li>
+        <li>By default, read tools run without asking. Tools that change data or structure ask before they run, and on production connections they are blocked until you allow them for that connection.</li>
+        <li>With Ollama, requests go only to the Ollama server you entered (usually this computer or your company network).</li>
+        <li>What reaches a provider is covered by that provider's privacy policy and terms.</li>
+        <li>From the version after 0.1.0, API keys are stored encrypted in the secure storage of the operating system on this computer (on Windows it is tied to your Windows account, on macOS it uses the Keychain), never in a settings file, and are not shown again in the settings. Version 0.1.0 stored them unencrypted in a settings file of the Chromite workspace; the newer version moves such a key to the secure storage the first time it uses it and deletes the unencrypted copy. Conversations and the tool log stay in the workspace.</li>
+      </ul>
+      <p>The local MCP server is off by default. When you turn it on, it accepts only requests from this computer (127.0.0.1) that carry the token shown in the settings. The same permission and confirmation rules apply to other AI tools connected to it; where such a tool sends the results is up to that tool's settings and terms.</p>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>Saved passwords</h2>
+    <div class="body">
+      <ul>
+        <li>Saved connection passwords and other saved credentials (SSH and proxy passwords, network profiles, Maven repositories) stay on this computer, encrypted in the secure storage of the operating system (on Windows it is tied to your Windows account, on macOS it uses the Keychain). They are never sent anywhere and are not kept in the workspace files.</li>
+        <li>Earlier versions kept them in the workspace, in a file encrypted with a key that was the same for every installation, or in a settings file without encryption. The newer version moves them to the secure storage when it starts and deletes those files and settings after checking the moved copy.</li>
+        <li>Because of this, a workspace copied to another computer does not carry the passwords. To move connections with their passwords, use File &gt; Export Connections with a passphrase you choose.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>This site</h2>
+    <div class="body">
+      <ul>
+        <li>No cookies, analytics, ads, or external fonts or scripts. Every file comes from this site only.</li>
+        <li>Like any web server, it logs requests (IP address, time, requested address, User-Agent, response code) and deletes the log after 30 days. The log is used only to run the server and deal with abuse.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>Usage statistics</h2>
+    <div class="body">
+      <p>Chromite does not collect or send feature usage statistics.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="/en/support.html">Database support</a>
+      <a href="https://github.com/froiibn/chromite/blob/HEAD/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
+    <p class="attribution">Chromite is based on DBeaver Community (Apache License 2.0). DBeaver is a trademark of DBeaver Corp; Chromite is not affiliated with DBeaver Corp. <a href="https://github.com/froiibn/chromite/blob/HEAD/NOTICE">NOTICE</a></p>
+  </div>
+</footer>
+</body>
+</html>

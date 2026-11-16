@@ -1,0 +1,265 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.ai.engine.copilot;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.ai.engine.*;
+import com.seizia.chromite.model.ai.engine.copilot.dto.*;
+import com.seizia.chromite.model.ai.engine.openai.OpenAiUtils;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAITool;
+import com.seizia.chromite.model.ai.internal.AIMessages;
+import com.seizia.chromite.model.ai.utils.DisposableLazyValue;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+import org.jkiss.utils.Pair;
+
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * GitHub Copilot completion engine.
+ *
+ * 설계: 모델 목록과 모델별 한도·기능은 Copilot 모델 목록 API(CopilotClientBase.loadModels)의 응답만 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 공급자 ID(getCatalogProviderId)와 카탈로그 보강(mapModels)을 삭제했다.
+ *   모델별 기본 temperature가 없어져 temperature() 재정의(CopilotProperties.getEffectiveTemperature 사용)도 삭제했다.
+ */
+public class CopilotCompletionEngine<P extends CopilotProperties> extends BaseCompletionEngine<P> {
+
+    protected final DisposableLazyValue<CopilotClientResponses, DBException> client = new DisposableLazyValue<>() {
+        @NotNull
+        @Override
+        protected CopilotClientResponses initialize() throws DBException {
+            CopilotClientResponses newClient = createClient(getProperties().getEffectiveBaseAuthUrl());
+            newClient.setTimeout(getProperties().getTimeout());
+            return newClient;
+        }
+
+        @Override
+        protected void onDispose(@NotNull CopilotClientResponses disposedValue) {
+            disposedValue.close();
+        }
+    };
+    private CopilotSessionToken sessionToken;
+
+    public CopilotCompletionEngine(@NotNull P properties) {
+        super(properties);
+    }
+
+    @Override
+    public int estimateImageTokens(@NotNull AIImageAttachment image) {
+        return OpenAiUtils.estimateImageTokens(properties.getEffectiveModel(), image);
+    }
+
+    @NotNull
+    @Override
+    public List<AIModel> getModels(@NotNull DBRProgressMonitor monitor) throws DBException {
+        List<CopilotModel> models = client.getInstance().loadModels(monitor, requestSessionToken(monitor));
+        boolean isPremium = models.stream().anyMatch(CopilotModel::modelPickerEnabled);
+        return models.stream()
+            .filter(model -> isModelOffered(model, isPremium))
+            .map(CopilotModel::toAIModel)
+            .toList();
+    }
+
+    private static boolean isModelOffered(@NotNull CopilotModel model, boolean isPremium) {
+        if (model.isDisabledByPolicy()) {
+            return false;
+        }
+        if (isPremium) {
+            return model.modelPickerEnabled();
+        }
+        return !model.declaresEndpoints();
+    }
+
+    @NotNull
+    @Override
+    public AIEngineResponse requestCompletion(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIEngineRequest request
+    ) throws DBException {
+        Double temperature = getRequestTemperature();
+        Pair<OAIResponsesRequest, CopilotChatRequest> copilotChatRequestOAIResponsesRequestPair = new Pair<>(
+            OpenAiUtils.createOpenAiRequest(request, getModelName(), temperature),
+            createLegacyChatRequest(request, false, temperature)
+        );
+        Object chatResponse = client.getInstance().chat(
+            monitor,
+            requestSessionToken(monitor),
+            copilotChatRequestOAIResponsesRequestPair
+        );
+        if (chatResponse instanceof OAIResponsesResponse oaiResponse) {
+            return toEngineResponse(oaiResponse);
+        } else if (chatResponse instanceof CopilotChatResponseLegacy copilotResponse) {
+            return toEngineResponse(copilotResponse);
+        } else {
+            throw new DBException("Unexpected response type from Copilot client: " + chatResponse.getClass().getName());
+        }
+    }
+
+    @NotNull
+    private AIEngineResponse toEngineResponse(@NotNull CopilotChatResponseLegacy response) throws DBException {
+        AIUsage usage = response.getAIUsage();
+        CopilotChatResponseLegacy.ToolCall toolCall = getFirstToolCall(response);
+        if (toolCall != null) {
+            return new AIEngineResponse(CopilotUtils.createFunctionCall(toolCall), usage);
+        }
+
+        List<String> variants = response.choices().stream()
+            .map(CopilotChatResponseLegacy.Choice::message)
+            .map(CopilotChatResponseLegacy.Message::content)
+            .filter(CommonUtils::isNotEmpty)
+            .toList();
+        if (variants.isEmpty()) {
+            variants = List.of(AIMessages.ai_empty_engine_response);
+        }
+
+        return new AIEngineResponse(AIMessageType.ASSISTANT, variants, usage);
+    }
+
+    @Nullable
+    private static CopilotChatResponseLegacy.ToolCall getFirstToolCall(@NotNull CopilotChatResponseLegacy response) {
+        return response.choices().stream()
+            .map(CopilotChatResponseLegacy.Choice::message)
+            .filter(Objects::nonNull)
+            .map(CopilotChatResponseLegacy.Message::toolCalls)
+            .filter(calls -> calls != null && !calls.isEmpty())
+            .map(List::getFirst)
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public void requestCompletionStream(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIEngineRequest request,
+        @NotNull AIEngineResponseConsumer listener
+    ) throws DBException {
+        Double temperature = getRequestTemperature();
+        Pair<OAIResponsesRequest, CopilotChatRequest> copilotChatRequestOAIResponsesRequestPair = new Pair<>(
+            OpenAiUtils.createOpenAiRequest(request, getModelName(), temperature),
+            createLegacyChatRequest(request, true, temperature)
+        );
+        client.getInstance().createChatCompletionStream(
+            monitor,
+            requestSessionToken(monitor),
+            copilotChatRequestOAIResponsesRequestPair,
+            listener
+        );
+    }
+
+    @Override
+    public void close() throws DBException {
+        client.dispose();
+    }
+
+    @NotNull
+    protected CopilotSessionToken requestSessionToken(@NotNull DBRProgressMonitor monitor) throws DBException {
+        if (sessionToken != null) {
+            return sessionToken;
+        }
+
+        synchronized (this) {
+            if (sessionToken == null) {
+                sessionToken = client.getInstance().requestSessionToken(monitor, properties.getEffectiveToken());
+            }
+        }
+        return sessionToken;
+    }
+
+    @Nullable
+    public String getModelName() {
+        return properties.getEffectiveModel();
+    }
+
+    @NotNull
+    private CopilotChatRequest createLegacyChatRequest(
+        @NotNull AIEngineRequest request,
+        boolean stream,
+        @Nullable Double temperature
+    ) {
+        return CopilotChatRequest.builder()
+            .withModel(getModelName())
+            .withMessages(toCopilotMessages(request.getMessages()))
+            .withTools(request.getFunctions().stream()
+                .map(OAITool::fromDescriptor)
+                .map(CopilotFunction::new)
+                .toList())
+            .withOptionalTemperature(temperature)
+            .withStream(stream)
+            .withIntent(false)
+            .withTopP(1)
+            .withN(1)
+            .build();
+    }
+
+
+    @NotNull
+    private AIEngineResponse toEngineResponse(@NotNull OAIResponsesResponse response) throws DBException {
+        List<OAIMessage> messages = response.output.stream()
+            .filter(msg -> !OAIMessage.TYPE_FUNCTION_REASONING.equals(msg.type))
+            .toList();
+        AIUsage usage = response.getAIUsage();
+        if (messages.isEmpty()) {
+            return new AIEngineResponse(
+                AIMessageType.ASSISTANT,
+                List.of(AIMessages.ai_empty_engine_response),
+                usage
+            );
+        }
+        OAIMessage message = messages.getFirst();
+        if (OAIMessage.TYPE_FUNCTION_CALL.equals(message.type)) {
+            AIFunctionCall fc = OpenAiUtils.createFunctionCall(message);
+            return new AIEngineResponse(fc, usage);
+        } else {
+            List<String> choices = messages.stream()
+                .map(OAIMessage::getFullText)
+                .toList();
+
+            return new AIEngineResponse(AIMessageType.ASSISTANT, choices, usage);
+        }
+    }
+
+    @NotNull
+    private static List<CopilotMessage> toCopilotMessages(@NotNull List<AIMessage> messages) {
+        return messages.stream()
+            .flatMap(message -> CopilotMessage.from(message).stream())
+            .toList();
+    }
+
+    @NotNull
+    protected CopilotClientResponses createClient(@NotNull String baseAuthUrl) throws DBException {
+        String token = properties.getEffectiveToken();
+        if (token == null || token.isEmpty()) {
+            throw new DBException("Copilot API token is not set");
+        }
+
+        return new CopilotClientResponses(baseAuthUrl);
+    }
+}

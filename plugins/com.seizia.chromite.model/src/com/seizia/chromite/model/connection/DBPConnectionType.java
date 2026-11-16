@@ -1,0 +1,615 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.connection;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourcePermission;
+import com.seizia.chromite.model.DBPDataSourcePermissionOwner;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
+import org.jkiss.utils.CommonUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * Connection type
+ *
+ * 설계: 기본 유형(dev, test, prod)의 이름과 설명은 화면 언어로 번역된다. 저장 파일에는 사용자가 바꾸지 않은 기본 문구를 화면 언어와
+ * 상관없이 영어 기본 문구로 쓰고({@link #toStoredText}), 읽을 때 어느 언어의 기본 문구든 지금 화면 언어 문구로 바꾼다({@link #fromStoredText}).
+ * 사용자가 입력한 이름은 그대로 둔다. 기본 문구인지는 텍스트로만 알 수 있어 모델이 가진 모든 번역 파일과 비교한다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 유휴 트랜잭션: {@link #isAutoCloseTransactions()}와 {@link #getCloseIdleTransactionPeriod()}를 Chromite에서는
+ *   "유휴 트랜잭션 알림"과 그 기간의 기본값으로 읽는다(롤백 동의가 아님). TEST 기간 주석을 실제 값(15분)으로 고침
+ *   (docs/chromite/idle-transactions.md)
+ * - 2026-11-08 기본 유형의 이름·설명을 언어와 상관없이 저장·읽기({@link #toStoredText}, {@link #fromStoredText}). 전에는 저장할 때의 화면 언어
+ *   문구가 그대로 저장돼, 영어로 저장한 뒤 한국어 화면에서 "Development"로 보였다 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-09 {@link #isAutoEndReadOnlyTransactions()}: 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기(앱 변경 #31, 사용자 결정으로
+ *   연결 종류마다 켜고 기본은 꺼짐). 생성자 인자가 아니라 속성으로 두어 업스트림 생성자를 부르는 곳을 바꾸지 않는다
+ *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-11 기본 유형(dev/test/prod)의 유휴 연결 닫기({@link #isAutoCloseConnections()}) 기본값을 끔: 연결한 세션은 사용자가 끊을 때까지
+ *   유지한다(사용자 요청). 기간 값은 사용자가 켤 때의 기본값으로 남기고, DEV 기간 주석을 실제 값(4시간)으로 고침. 이미 저장된 연결 종류 설정은
+ *   그대로 읽는다 (앱 변경 #48, docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ */
+public class DBPConnectionType implements DBPDataSourcePermissionOwner {
+
+    public static final DBPConnectionType DEV;
+    public static final DBPConnectionType TEST;
+    public static final DBPConnectionType PROD;
+
+    public static final DBPConnectionType[] SYSTEM_TYPES;
+    public static final DBPConnectionType DEFAULT_TYPE;
+
+    private static final Log log = Log.getLog(DBPConnectionType.class);
+
+    /**
+     * Built-in name and description of a system type: the NLS keys (to find every translation) and the texts in the
+     * current UI language.
+     */
+    private record BuiltInText(
+        @NotNull String nameKey,
+        @NotNull String name,
+        @NotNull String descriptionKey,
+        @NotNull String description
+    ) {
+    }
+
+    // By system type id
+    private static final Map<String, BuiltInText> BUILT_IN_TEXTS;
+    // NLS key of a built-in text -> the text in every language the model carries, and in the base (English) file
+    private static Map<String, Set<String>> builtInTranslations;
+    private static Map<String, String> builtInBaseTexts;
+
+    static {
+        DEV = new DBPConnectionType(
+            "dev",
+            ModelMessages.dbp_connection_type_table_development,
+            "255,255,255",
+            "255,255,255",
+            ModelMessages.dbp_connection_type_table_regular_development_database,
+            true,
+            false,
+            false,
+            false,
+            true,
+            true,
+            1800, //30 minutes
+            false, // idle connections are not closed unless the user turns it on (app change #48)
+            14400, //4 hours
+            true,
+            null,
+            null
+        ); //$NON-NLS-1$ //$NON-NLS-3$
+        TEST = new DBPConnectionType(
+            "test",
+            ModelMessages.dbp_connection_type_table_test,
+            "214,250,207",
+            "64,89,66",
+            ModelMessages.dbp_connection_type_table_test_database,
+            true,
+            false,
+            true,
+            false,
+            true,
+            true,
+            900, //15 minutes
+            false, // idle connections are not closed unless the user turns it on (app change #48)
+            7200, //2 hours
+            true,
+            null,
+            "com.seizia.chromite.color.connectionType.qa.background"
+        ); //$NON-NLS-1$ //$NON-NLS-3$
+        PROD = new DBPConnectionType(
+            "prod",
+            ModelMessages.dbp_connection_type_table_production,
+            "250,207,207",
+            "97,61,63",
+            ModelMessages.dbp_connection_type_table_production_database,
+            false,
+            true,
+            true,
+            false,
+            false,
+            true,
+            600, //10 minutes
+            false, // idle connections are not closed unless the user turns it on (app change #48)
+            3600, //1 hour
+            true,
+            null,
+            "com.seizia.chromite.color.connectionType.prod.background"
+        ); //$NON-NLS-1$ //$NON-NLS-3$
+
+        SYSTEM_TYPES = new DBPConnectionType[] { DEV, TEST, PROD };
+        BUILT_IN_TEXTS = Map.of(
+            DEV.id, new BuiltInText(
+                "dbp_connection_type_table_development", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_development,
+                "dbp_connection_type_table_regular_development_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_regular_development_database),
+            TEST.id, new BuiltInText(
+                "dbp_connection_type_table_test", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_test,
+                "dbp_connection_type_table_test_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_test_database),
+            PROD.id, new BuiltInText(
+                "dbp_connection_type_table_production", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_production,
+                "dbp_connection_type_table_production_database", //$NON-NLS-1$
+                ModelMessages.dbp_connection_type_table_production_database)
+        );
+
+        DBPConnectionType defaultType = new DBPConnectionType(DEV);
+        defaultType.predefined = false;
+        DEFAULT_TYPE = defaultType;
+    }
+
+    private String id;
+    private String name;
+    private String colorLight;
+    private String colorDark;
+    private String description;
+    private boolean autocommit;
+    private boolean confirmExecute;
+    private boolean confirmDataChange;
+    private boolean smartCommit;
+    private boolean smartCommitRecover;
+    private boolean autoCloseTransactions;
+    private int closeIdleTransactionPeriod;
+    private boolean autoCloseConnections;
+    private int closeIdleConnectionPeriod;
+    private boolean autoEndReadOnlyTransactions;
+    private final String colorConstant;
+
+    private boolean predefined;
+    private List<DBPDataSourcePermission> connectionModifyRestrictions;
+
+    public DBPConnectionType(@NotNull DBPConnectionType source) {
+        this(
+            source.id,
+            source.name,
+            source.colorLight,
+            source.colorDark,
+            source.description,
+            source.autocommit,
+            source.confirmExecute,
+            source.confirmDataChange,
+            source.smartCommit,
+            source.smartCommitRecover,
+            source.autoCloseTransactions,
+            source.closeIdleTransactionPeriod,
+            source.autoCloseConnections,
+            source.closeIdleConnectionPeriod,
+            source.predefined,
+            source.connectionModifyRestrictions,
+            source.colorConstant
+        );
+        this.autoEndReadOnlyTransactions = source.autoEndReadOnlyTransactions;
+    }
+
+    public DBPConnectionType(
+        @NotNull String id,
+        @NotNull String name,
+        @NotNull String colorLight,
+        @Nullable String colorDark,
+        @Nullable String description,
+        boolean autocommit,
+        boolean confirmExecute,
+        boolean confirmDataChange,
+        boolean smartCommit,
+        boolean smartCommitRecover,
+        boolean autoCloseTransactions,
+        int closeIdleTransactionPeriod,
+        boolean autoCloseConnections,
+        int closeIdleConnectionPeriod
+    ) {
+        this(
+            id,
+            name,
+            colorLight,
+            colorDark,
+            description,
+            autocommit,
+            confirmExecute,
+            confirmDataChange,
+            smartCommit,
+            smartCommitRecover,
+            autoCloseTransactions,
+            closeIdleTransactionPeriod,
+            autoCloseConnections,
+            closeIdleConnectionPeriod,
+            false,
+            null,
+            null
+        );
+    }
+
+    private DBPConnectionType(
+        @NotNull String id,
+        @NotNull String name,
+        @NotNull String colorLight,
+        @Nullable String colorDark,
+        @Nullable String description,
+        boolean autocommit,
+        boolean confirmExecute,
+        boolean confirmDataChange,
+        boolean smartCommit,
+        boolean smartCommitRecover,
+        boolean autoCloseTransactions,
+        int closeIdleTransactionPeriod,
+        boolean autoCloseConnections,
+        int closeIdleConnectionPeriod,
+        boolean predefined,
+        @Nullable List<DBPDataSourcePermission> connectionModifyRestrictions,
+        @Nullable String colorConstant
+    ) {
+        this.id = id;
+        this.name = name;
+        this.colorLight = getColorValueFixed(colorLight);
+        this.colorDark = getColorValueFixed(colorDark);
+        this.description = description;
+        this.autocommit = autocommit;
+        this.confirmExecute = confirmExecute;
+        this.confirmDataChange = confirmDataChange;
+        this.smartCommit = smartCommit;
+        this.smartCommitRecover = smartCommitRecover;
+        this.autoCloseTransactions = autoCloseTransactions;
+        this.closeIdleTransactionPeriod = closeIdleTransactionPeriod;
+        this.autoCloseConnections = autoCloseConnections;
+        this.closeIdleConnectionPeriod = closeIdleConnectionPeriod;
+        this.predefined = predefined;
+        this.colorConstant = colorConstant;
+        if (connectionModifyRestrictions != null) {
+            this.connectionModifyRestrictions = new ArrayList<>(connectionModifyRestrictions);
+        }
+    }
+
+    public boolean isPredefined() {
+        return predefined;
+    }
+
+    public void setPredefined(boolean predefined) {
+        this.predefined = predefined;
+    }
+
+    @NotNull
+    public String getId() {
+        return id;
+    }
+
+    @NotNull
+    public String setId(@NotNull String id) {
+        return this.id = id;
+    }
+
+    @NotNull
+    public String getName() {
+        return name;
+    }
+
+    public void setName(@NotNull String name) {
+        this.name = name;
+    }
+
+    @NotNull
+    public String getColorLight() {
+        return colorLight;
+    }
+
+    public void setColorLight(@NotNull String colorLight) {
+        this.colorLight = getColorValueFixed(colorLight);
+    }
+
+    @Nullable
+    public String getColorDark() {
+        return colorDark == null ? colorLight : colorDark;
+    }
+
+    public void setColorDark(@Nullable String color) {
+        this.colorDark = getColorValueFixed(color);
+    }
+
+    @Nullable
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(@Nullable String description) {
+        this.description = description;
+    }
+
+    public boolean isAutocommit() {
+        return autocommit;
+    }
+
+    public void setAutocommit(boolean autocommit) {
+        this.autocommit = autocommit;
+    }
+
+    public boolean isConfirmExecute() {
+        return confirmExecute;
+    }
+
+    public void setConfirmExecute(boolean confirmExecute) {
+        this.confirmExecute = confirmExecute;
+    }
+
+    public boolean isConfirmDataChange() {
+        return confirmDataChange;
+    }
+
+    public void setConfirmDataChange(boolean confirmDataChange) {
+        this.confirmDataChange = confirmDataChange;
+    }
+
+    public boolean isSmartCommit() {
+        return smartCommit;
+    }
+
+    public void setSmartCommit(boolean smartCommit) {
+        this.smartCommit = smartCommit;
+    }
+
+    public boolean isSmartCommitRecover() {
+        return smartCommitRecover;
+    }
+
+    public void setSmartCommitRecover(boolean smartCommitRecover) {
+        this.smartCommitRecover = smartCommitRecover;
+    }
+
+    /**
+     * Default of the idle open transaction reminder of the type's connections (IdleTransactionMonitor). The name comes
+     * from upstream, where it rolled back; Chromite only reminds by default and never reads it as consent to roll back.
+     */
+    public boolean isAutoCloseTransactions() {
+        return autoCloseTransactions;
+    }
+
+    public void setAutoCloseTransactions(boolean autoCloseTransactions) {
+        this.autoCloseTransactions = autoCloseTransactions;
+    }
+
+    /**
+     * Default idle period (seconds) of an open transaction before the reminder.
+     */
+    public int getCloseIdleTransactionPeriod() {
+        return closeIdleTransactionPeriod;
+    }
+
+    public void setCloseIdleTransactionPeriod(int closeIdleTransactionPeriod) {
+        this.closeIdleTransactionPeriod = closeIdleTransactionPeriod;
+    }
+
+    public boolean isAutoCloseConnections() {
+        return autoCloseConnections;
+    }
+
+    public void setAutoCloseConnections(boolean autoCloseConnections) {
+        this.autoCloseConnections = autoCloseConnections;
+    }
+    
+    public int getCloseIdleConnectionPeriod() {
+        return closeIdleConnectionPeriod;
+    }
+
+    public void setCloseIdleConnectionPeriod(int closeIdleConnectionPeriod) {
+        this.closeIdleConnectionPeriod = closeIdleConnectionPeriod;
+    }
+
+    /**
+     * End a transaction of the type's connections that only read (read locks and a snapshot, confirmed by the database)
+     * right after each statement, with a rollback that discards nothing (IdleTransactionMonitor). Off by default.
+     */
+    public boolean isAutoEndReadOnlyTransactions() {
+        return autoEndReadOnlyTransactions;
+    }
+
+    public void setAutoEndReadOnlyTransactions(boolean autoEndReadOnlyTransactions) {
+        this.autoEndReadOnlyTransactions = autoEndReadOnlyTransactions;
+    }
+
+    @Override
+    public boolean hasModifyPermission(@NotNull DBPDataSourcePermission permission) {
+        return connectionModifyRestrictions == null || !connectionModifyRestrictions.contains(permission);
+    }
+
+    @NotNull
+    @Override
+    public List<DBPDataSourcePermission> getModifyPermission() {
+        if (CommonUtils.isEmpty(this.connectionModifyRestrictions)) {
+            return Collections.emptyList();
+        } else {
+            return new ArrayList<>(this.connectionModifyRestrictions);
+        }
+    }
+
+    @Override
+    public void setModifyPermissions(@Nullable Collection<DBPDataSourcePermission> permissions) {
+        if (CommonUtils.isEmpty(permissions)) {
+            this.connectionModifyRestrictions = null;
+        } else {
+            this.connectionModifyRestrictions = new ArrayList<>(permissions);
+        }
+    }
+
+    @Nullable
+    public String getColorConstant() {
+        return colorConstant;
+    }
+
+    @Nullable
+    private String getColorValueFixed(@Nullable String color) {
+        if (color == null) {
+            return null;
+        }
+        // Backward compatibility.
+        // In old times we had hardcoded colors now we need to change them to color constants
+        if (PROD != null && this.id.equals(PROD.id) && color.equals("247,159,129")) {
+            return PROD.colorLight;
+        } else if (TEST != null && this.id.equals(TEST.id) && color.equals("196,255,181")) {
+            return TEST.colorLight;
+        }
+        return color;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof DBPConnectionType ct) {
+            return CommonUtils.equalObjects(id, ct.id) &&
+                CommonUtils.equalObjects(name, ct.name) &&
+                CommonUtils.equalObjects(colorLight, ct.colorLight) &&
+                CommonUtils.equalObjects(colorDark, ct.colorDark) &&
+                CommonUtils.equalObjects(description, ct.description) &&
+                autocommit == ct.autocommit &&
+                confirmExecute == ct.confirmExecute &&
+                confirmDataChange == ct.confirmDataChange &&
+                smartCommit == ct.smartCommit &&
+                smartCommitRecover == ct.smartCommitRecover &&
+                autoCloseTransactions == ct.autoCloseTransactions &&
+                CommonUtils.equalObjects(closeIdleTransactionPeriod, ct.closeIdleTransactionPeriod) &&
+                autoCloseConnections == ct.autoCloseConnections &&
+                CommonUtils.equalObjects(closeIdleConnectionPeriod, ct.closeIdleConnectionPeriod) &&
+                autoEndReadOnlyTransactions == ct.autoEndReadOnlyTransactions &&
+                predefined == ct.predefined &&
+                CommonUtils.equalObjects(connectionModifyRestrictions, ct.connectionModifyRestrictions);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    private static final String DEFAULT_CONNECTION_TYPE_PREF = "default.connection.type";
+
+    public static DBPConnectionType getDefaultConnectionType() {
+        String defTypeName = DBWorkbench.getPlatform().getPreferenceStore().getString(DEFAULT_CONNECTION_TYPE_PREF);
+        if (CommonUtils.isEmpty(defTypeName)) {
+            defTypeName = DEV.getId();
+        }
+
+        return DBWorkbench.getPlatform().getDataSourceProviderRegistry().getConnectionType(defTypeName, DEV);
+    }
+
+    public static void setDefaultConnectionType(@NotNull DBPConnectionType connectionType) {
+        DBWorkbench.getPlatform().getPreferenceStore().setValue(DEFAULT_CONNECTION_TYPE_PREF, connectionType.getId());
+    }
+
+    /**
+     * The name or description of a type as the configuration file stores it. For a system type whose text is still the
+     * built-in one (in any language the model carries) this is the base (English) built-in text, so the file does not
+     * depend on the UI language it was saved in. Text the user typed, and the texts of other types, are stored as they are.
+     */
+    @Nullable
+    public static String toStoredText(@NotNull String typeId, boolean description, @Nullable String text) {
+        BuiltInText builtIn = BUILT_IN_TEXTS.get(typeId);
+        if (builtIn == null || text == null) {
+            return text;
+        }
+        String key = description ? builtIn.descriptionKey() : builtIn.nameKey();
+        synchronized (BUILT_IN_TEXTS) {
+            loadBuiltInTranslations();
+            return builtInTranslations.get(key).contains(text) ? builtInBaseTexts.get(key) : text;
+        }
+    }
+
+    /**
+     * The name or description of a type read from the configuration file. For a system type whose stored text is missing
+     * or is the built-in text in any language the model carries, this is the built-in text in the current UI language:
+     * files saved before 2026-11-08 hold the text of the language they were saved in. Other texts are kept as typed.
+     */
+    @Nullable
+    public static String fromStoredText(@NotNull String typeId, boolean description, @Nullable String text) {
+        BuiltInText builtIn = BUILT_IN_TEXTS.get(typeId);
+        if (builtIn == null) {
+            return text;
+        }
+        String current = description ? builtIn.description() : builtIn.name();
+        if (text == null || text.equals(current)) {
+            return current;
+        }
+        String key = description ? builtIn.descriptionKey() : builtIn.nameKey();
+        synchronized (BUILT_IN_TEXTS) {
+            loadBuiltInTranslations();
+            return builtInTranslations.get(key).contains(text) ? current : text;
+        }
+    }
+
+    /**
+     * Reads the built-in texts from every translation file of the model messages (the bundle and its language
+     * fragments) once. Outside OSGi only the current language is known, and it is also used as the base text.
+     */
+    private static void loadBuiltInTranslations() {
+        if (builtInTranslations != null) {
+            return;
+        }
+        Map<String, Set<String>> translations = new HashMap<>();
+        Map<String, String> baseTexts = new HashMap<>();
+        for (BuiltInText builtIn : BUILT_IN_TEXTS.values()) {
+            translations.computeIfAbsent(builtIn.nameKey(), k -> new HashSet<>()).add(builtIn.name());
+            translations.computeIfAbsent(builtIn.descriptionKey(), k -> new HashSet<>()).add(builtIn.description());
+            baseTexts.put(builtIn.nameKey(), builtIn.name());
+            baseTexts.put(builtIn.descriptionKey(), builtIn.description());
+        }
+        String path = ModelMessages.BUNDLE_NAME.replace('.', '/');
+        int divPos = path.lastIndexOf('/');
+        String folder = path.substring(0, divPos);
+        String baseFileName = path.substring(divPos + 1) + ".properties"; //$NON-NLS-1$
+        Bundle bundle = FrameworkUtil.getBundle(ModelMessages.class);
+        Enumeration<URL> files = bundle == null ? null : bundle.findEntries(folder, path.substring(divPos + 1) + "*.properties", false); //$NON-NLS-1$
+        while (files != null && files.hasMoreElements()) {
+            URL file = files.nextElement();
+            Properties properties = new Properties();
+            // Translation files are UTF-8, as NLS reads them
+            try (Reader reader = new InputStreamReader(file.openStream(), StandardCharsets.UTF_8)) {
+                properties.load(reader);
+            } catch (IOException e) {
+                log.debug("Can't read " + file, e);
+                continue;
+            }
+            boolean base = file.getPath().endsWith("/" + baseFileName);
+            for (Map.Entry<String, Set<String>> entry : translations.entrySet()) {
+                String value = properties.getProperty(entry.getKey());
+                if (value != null) {
+                    entry.getValue().add(value);
+                    if (base) {
+                        baseTexts.put(entry.getKey(), value);
+                    }
+                }
+            }
+        }
+        builtInBaseTexts = baseTexts;
+        builtInTranslations = translations;
+    }
+
+}

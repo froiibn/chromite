@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Cubrid Support
+Bundle-SymbolicName: com.seizia.chromite.ext.cubrid;singleton:=true
+Bundle-Version: 1.0.67.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Activator: com.seizia.chromite.ext.cubrid.internal.CubridActivator
+Export-Package: com.seizia.chromite.ext.cubrid,
+ com.seizia.chromite.ext.cubrid.model,
+ com.seizia.chromite.ext.cubrid.model.plan
+Require-Bundle: com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.cubrid

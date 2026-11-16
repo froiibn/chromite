@@ -1,0 +1,104 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.vertica.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+
+import java.util.Date;
+
+public class VerticaSystemTable extends VerticaTable {
+
+    private boolean isSuperUserOnly;
+    private boolean isMonitorable;
+    private boolean isAccessibleDuringLockdown;
+    private String description;
+
+    public VerticaSystemTable(VerticaSchema container, String tableName, String tableType, JDBCResultSet dbResult) {
+        super(container, tableName, tableType, dbResult);
+        if (dbResult != null) {
+            this.isSuperUserOnly = JDBCUtils.safeGetBoolean(dbResult, "is_superuser_only");
+            this.isMonitorable = JDBCUtils.safeGetBoolean(dbResult, "is_monitorable");
+            this.isAccessibleDuringLockdown = JDBCUtils.safeGetBoolean(dbResult, "is_accessible_during_lockdown");
+            this.description = JDBCUtils.safeGetString(dbResult, "remarks");
+        }
+    }
+
+    @Property(viewable = true, order = 5)
+    public boolean isSuperUserOnly() {
+        return isSuperUserOnly;
+    }
+
+    @Property(viewable = true, order = 6)
+    public boolean isMonitorable() {
+        return isMonitorable;
+    }
+
+    @Property(viewable = true, order = 7)
+    public boolean isAccessibleDuringLockdown() {
+        return isAccessibleDuringLockdown;
+    }
+
+    // Hide properties
+    @Override
+    public String getPartitionExpression() {
+        return super.getPartitionExpression();
+    }
+
+    // Hide properties
+    @Override
+    public Date getCreateTime() {
+        return super.getCreateTime();
+    }
+
+    // Hide properties
+    @Override
+    public boolean isTempTable() {
+        return super.isTempTable();
+    }
+
+    // Hide properties
+    @Override
+    public boolean isHasAggregateProjection() {
+        return super.isHasAggregateProjection();
+    }
+
+    @Nullable
+    @Override
+    @Property(viewable = true, editable = false, updatable = false, length = PropertyLength.MULTILINE, order = 100)
+    public String getDescription() {
+        return description;
+    }
+
+    @Nullable
+    @Override
+    public String getDescription(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return description;
+    }
+
+    @Override
+    public boolean isSystem() {
+        return true;
+    }
+}

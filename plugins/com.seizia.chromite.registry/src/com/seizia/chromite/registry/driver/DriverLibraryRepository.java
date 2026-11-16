@@ -1,0 +1,75 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.registry.driver;
+
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+
+/**
+ * DriverLibraryDescriptor
+ */
+public class DriverLibraryRepository extends DriverLibraryLocal
+{
+    public static final String PATH_PREFIX = "repo:/";
+
+    public DriverLibraryRepository(@NotNull DriverDescriptor driver, @NotNull FileType type, @NotNull String path) {
+        super(driver, type, path);
+    }
+
+    public DriverLibraryRepository(@NotNull DriverDescriptor driver, @NotNull IConfigurationElement config) {
+        super(driver, config);
+    }
+
+    private DriverLibraryRepository(@NotNull DriverDescriptor driver, @NotNull DriverLibraryRepository copyFrom) {
+        super(driver, copyFrom);
+    }
+
+    @NotNull
+    @Override
+    public DBPDriverLibrary copyLibrary(@NotNull DriverDescriptor driverDescriptor) {
+        return new DriverLibraryRepository(driver, this);
+    }
+
+    @Override
+    public boolean isDownloadable()
+    {
+        return true;
+    }
+
+    @Override
+    protected String getLocalFilePath() {
+        return path.substring(PATH_PREFIX.length());
+    }
+
+    @Nullable
+    @Override
+    public String getExternalURL(@NotNull DBRProgressMonitor monitor) {
+        String localPath = getLocalFilePath();
+        String primarySource = DriverDescriptor.getDriversPrimarySource();
+        if (!primarySource.endsWith("/") && !localPath.startsWith("/")) {
+            primarySource += '/';
+        }
+        return primarySource + localPath;
+    }
+
+
+
+}

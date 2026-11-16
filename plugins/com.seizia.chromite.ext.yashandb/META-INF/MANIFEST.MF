@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite YashanDB Model
+Bundle-SymbolicName: com.seizia.chromite.ext.yashandb;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20260205
+Require-Bundle: org.eclipse.core.runtime,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.oracle
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.yashandb.model,
+ com.seizia.chromite.ext.yashandb.model.session
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.yashandb

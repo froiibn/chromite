@@ -1,0 +1,76 @@
+# 제품 방향
+
+## 목적
+
+Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으로 개발하는지 정리한다.
+세부 설계는 각 문서([swing-frontend.md](swing-frontend.md), [drivers.md](drivers.md), [runtime.md](runtime.md))를 본다.
+
+## 제품 정의
+
+- **제품:** Chromite, Database Workbench
+- **기반:** DBeaver Community (Apache License 2.0)를 2026-11-06에 포크
+- **사용자:** 개발자와 DBA. 주 사용자인 개발팀은 고객사 폐쇄망에서 작업하는 경우가 많다.
+- **차별화:**
+  - SSMS식 화면 배치와 사용 흐름, DataGrip New UI 모양의 디자인
+  - 폐쇄망에서도 바로 쓸 수 있는 드라이버 내장
+  - Java 런타임을 따로 설치할 필요가 없는 사용자 경험
+  - AI 기능 강화 (세부 내용은 추후 논의)
+
+## 결정 사항
+
+| 주제 | 결정 | 날짜 |
+|---|---|---|
+| 공개 여부 | 오픈소스. 저장소 `froiibn/chromite`는 공개로 유지하고, Chromite 코드도 Apache 2.0으로 배포 | 2026-11-06 |
+| upstream | DBeaver와 독립 개발. 정기 병합을 하지 않고, 필요한 커밋만 요청할 때 `git cherry-pick -x`로 가져옴 | 2026-11-06 |
+| UI 기술 | SWT/Eclipse RCP UI를 Swing으로 새로 만들고, 모델 계층은 재사용 | 2026-11-06 |
+| UX / 디자인 | 화면 배치와 동작은 SSMS, 모양은 다크·라이트 모두 DataGrip New UI. 아이콘은 오픈 라이선스 세트. 사양은 [design-spec.md](design-spec.md) | 2026-11-06 |
+| 드라이버 | 설치 파일에 미리 내장. 오프라인 우선 조회, 메모리 로딩은 연결할 때만 | 2026-11-06 |
+| 배포판 | 배포판은 하나. 주요 DB 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere)만 내장하고(MySQL은 2026-11-07 결정으로 뺌, 처음 쓸 때 다운로드. ShardSphere는 2026-11-14 결정으로 더함), 나머지는 내부망이든 외부망이든 필요할 때 내려받음. 폐쇄망용 별도 오프라인 설치 경로는 계획(설계 중). 이전 결정(2026-11-06)은 공개판·내부판 분리([drivers.md](drivers.md) "배포판 구성") | 2026-11-07 |
+| 런타임 | JBR 25 LTS를 jlink로 줄여 내장. 사용자가 JRE를 따로 설치하지 않음 | 2026-11-06 |
+| 플랫폼 | Windows x64, macOS Apple Silicon(arm64). Linux, Intel Mac, Windows ARM은 지원하지 않음 | 2026-11-06 |
+| SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
+| SWT 삭제 | 기능이 다 옮겨지기를 기다리지 않고 내부 이름 변경 직후 SWT 프런트엔드를 삭제. Swing 제품 하나만 빌드. 아직 옮기지 않은 기능 목록은 [swt-removal.md](swt-removal.md) | 2026-11-07 |
+| 내부 이름 | DBeaver 내부 이름(패키지·번들·ID·실행 식별자)을 `com.seizia.chromite`로 한 번에 변경, 데이터는 새로 시작([internal-rename.md](internal-rename.md)) | 2026-11-07 |
+| 버전 체계 | Chromite 자체 버전 `YY.seq.dev`(첫째 수 연도, 둘째 수 판마다, 셋째 수 급한 수정판), 태그 `v<버전>`. 0.1.4 다음은 26.0.5, 첫 사용자 배포 판 26.1.0은 사용자가 정함([versioning.md](versioning.md)). 전: `major.minor.dev`, 0.1.0부터(2026-11-07) | 2026-11-12 |
+| 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품"). 같은 날 SWT 제품도 삭제("SWT 삭제") | 2026-11-07 |
+
+## 개발 원칙
+
+작업 규칙은 [CLAUDE.md](../../CLAUDE.md)의 "작업 원칙"을 따른다.
+최소 변경, 근거 기반 판단, 근본 원인 해결, 사용하지 않는 코드 완전 삭제, 주석 최신화, 설계 문서 갱신,
+회귀 테스트(사용자가 요청할 때만)의 7가지다.
+
+## 진행 단계 (초안)
+
+1. **1단계 리브랜딩:** 제품명, 아이콘, 스플래시, 라이선스 고지 (완료, PR froiibn/chromite#1)
+2. **빌드 환경:** JDK와 Maven 설치, GitHub Actions에서 Windows와 macOS arm64 빌드
+3. **드라이버 내장:** 라이선스 목록 작성, 드라이버 묶음과 `maven-local` 구성, 오프라인 모드
+4. **런타임 내장:** JBR 25 + jlink, AOT 캐시, 설치 파일
+5. **Swing MVP:** [swing-frontend.md](swing-frontend.md)의 MVP 범위
+6. **SWT 버전 삭제** (2026-11-07 완료, [swt-removal.md](swt-removal.md))
+7. **AI 기능 강화 등 차별화 기능**
+
+순서와 세부 일정은 확정되지 않았다.
+
+첫 사용자 배포 판(26.1.0) 이후에 넣을 기능은 [roadmap-post-1.0.md](roadmap-post-1.0.md)에 정해 두었다(2026-11-08 합의).
+
+## 미결정 사항
+
+- AI 기능의 구체적인 범위
+- 업데이트 방식 (GitHub Releases 기반 버전 확인 등)
+- Windows 코드 서명 인증서, Apple Developer 계정과 공증
+- GitHub 포크 연결 해제 여부 (저장소 소유자가 직접 처리)
+
+## 변경 이력
+
+- 2026-11-06 최초 작성. 제품 방향 논의 결과(공개 여부, upstream, UI 기술, 드라이버, 런타임, 플랫폼)를 정리.
+- 2026-11-06 UX / 디자인 결정 변경: 라이트도 SSMS풍 대신 DataGrip New UI 모양을 따름(사용자 피드백). 아이콘은 오픈 라이선스 세트.
+- 2026-11-07 결정 사항에 "제품 구성" 추가: 쓰지 않는 제품(Microsoft Store, Eclipse 플러그인, Snap) 삭제.
+- 2026-11-07 미결정 사항 "내부 이름을 바꿀지와 그 시점"을 결정 사항 "내부 이름"으로 옮김.
+- 2026-11-07 결정 사항에 "SWT 삭제" 추가, 진행 단계 6(SWT 버전 삭제) 완료 표시([swt-removal.md](swt-removal.md)).
+- 2026-11-07 미결정 사항 "버전 체계"를 결정 사항 "버전 체계"로 옮김([versioning.md](versioning.md)).
+- 2026-11-07 결정 사항 "배포판" 변경: 공개판·내부판 분리(2026-11-06)에서 배포판 하나로. 주요 DB와 SQLite만 내장, 나머지는 필요할 때 다운로드, 폐쇄망은 별도 오프라인 설치 경로(계획).
+- 2026-11-07 결정 사항 "배포판"의 내장 목록에서 MySQL을 뺌(사용자 결정, [drivers.md](drivers.md) "MySQL Connector/J 내장 취소").
+- 2026-11-08 1.0.0 이후 로드맵 문서 [roadmap-post-1.0.md](roadmap-post-1.0.md)를 가리키는 줄 추가.
+- 2026-11-12 버전 체계 변경(앱 변경 #63, `chromite/release-26-0-5`): "버전 체계" 줄과 로드맵 안내의 "1.0.0"을 첫 사용자 배포 판(26.1.0)으로.
+- 2026-11-14 결정 사항 "배포판"의 내장 목록에 ShardSphere를 더함(사용자 결정, 앱 변경 #113, [drivers.md](drivers.md) "ShardSphere").

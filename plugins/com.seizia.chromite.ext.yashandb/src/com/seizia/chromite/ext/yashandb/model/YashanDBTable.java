@@ -1,0 +1,108 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.yashandb.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.OraclePrivTable;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.ext.oracle.model.OracleTable;
+import com.seizia.chromite.ext.oracle.model.OracleTablespace;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.LazyProperty;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Collections;
+
+
+/**
+ * YashanDBTable
+ */
+public class YashanDBTable extends OracleTable {
+
+    private static final Log log = Log.getLog(YashanDBTable.class);
+
+    public YashanDBTable(@NotNull DBRProgressMonitor monitor, @NotNull OracleSchema schema, @NotNull ResultSet dbResult) {
+        super(monitor, schema, dbResult);
+    }
+
+    public YashanDBTable(@NotNull OracleSchema schema, @NotNull String name) {
+        super(schema, name);
+    }
+
+    @NotNull
+    @Override
+    public Collection<OraclePrivTable> getTablePrivs(@NotNull DBRProgressMonitor monitor) throws DBException {
+        // YashanDB not support yet
+        return Collections.emptyList();
+    }
+
+    @Nullable
+    @Override
+    @Property(viewable = true, order = 22, editable = true, updatable = false, listProvider = TablespaceListProvider.class)
+    @LazyProperty(cacheValidator = OracleTablespace.TablespaceReferenceValidator.class)
+    public Object getTablespace(@NotNull DBRProgressMonitor monitor) throws DBException {
+        // YashanDB not support move table space
+        return OracleTablespace.resolveTablespaceReference(monitor, this, null);
+    }
+
+    @Override
+    protected void loadAdditionalInfo(@NotNull DBRProgressMonitor monitor) throws DBException {
+        if (!isPersisted()) {
+            additionalInfo.loaded = true;
+            return;
+        }
+        // YashanDB not support ALL_TAB_STATS_HISTORY yet
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Load table status")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                "SELECT * FROM " + OracleUtils.getAdminAllViewPrefix(monitor, getDataSource(), "TABLES")
+                    + " WHERE OWNER=? AND TABLE_NAME=?")) {
+                dbStat.setString(1, getContainer().getName());
+                dbStat.setString(2, getName());
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    if (dbResult.next()) {
+                        additionalInfo.pctFree = JDBCUtils.safeGetInt(dbResult, "PCT_FREE");
+                        additionalInfo.iniTrans = JDBCUtils.safeGetInt(dbResult, "INI_TRANS");
+                        additionalInfo.maxTrans = JDBCUtils.safeGetInt(dbResult, "MAX_TRANS");
+                        additionalInfo.blocks = JDBCUtils.safeGetInt(dbResult, "BLOCKS");
+                        additionalInfo.emptyBlocks = JDBCUtils.safeGetInt(dbResult, "EMPTY_BLOCKS");
+                    } else {
+                        log.warn("Cannot find table '" + getFullyQualifiedName(DBPEvaluationContext.UI) + "' metadata");
+                    }
+                    additionalInfo.loaded = true;
+                }
+            } catch (SQLException e) {
+                throw new DBCException(e, session.getExecutionContext());
+            }
+        }
+
+    }
+}

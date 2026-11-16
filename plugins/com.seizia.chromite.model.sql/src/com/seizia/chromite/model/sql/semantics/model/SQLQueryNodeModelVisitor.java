@@ -1,0 +1,381 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.sql.semantics.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.sql.semantics.model.ddl.*;
+import com.seizia.chromite.model.sql.semantics.model.dml.*;
+import com.seizia.chromite.model.sql.semantics.model.expressions.*;
+import com.seizia.chromite.model.sql.semantics.model.select.*;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.*;
+import com.seizia.chromite.model.sql.semantics.model.statements.*;
+
+/**
+ * Query model visitor. Each new model class of a top-level of the query abstraction should have the corresponding method here.
+ */
+public interface SQLQueryNodeModelVisitor<T, R> {
+
+    /**
+     * Visit subquery expression
+     */
+    @Nullable
+    R visitValueSubqueryExpr(@NotNull SQLQueryValueSubqueryExpression subqueryExpr, T arg);
+
+    /**
+     * Visit value expressions tree
+     */
+    @Nullable
+    R visitValueFlatExpr(@NotNull SQLQueryValueFlattenedExpression flattenedExpr, T arg);
+
+    /**
+     * Visit value expressions tree
+     */
+    @Nullable
+    R visitValueFunctionExpr(@NotNull SQLQueryValueFunctionExpression funcExpr, T arg);
+
+    /**
+     * Visit script variable
+     */
+    @Nullable
+    R visitValueVariableExpr(@NotNull SQLQueryValueVariableExpression varExpr, T arg);
+
+    /**
+     * Visit an UPDATE SET target reference
+     */
+    @Nullable
+    R visitValueTargetRefExpr(SQLQueryValueTargetReferenceExpression targetRefExpr, T arg);
+
+    /**
+     * Visit reference to the tuple of columns of the table
+     */
+    @Nullable
+    R visitValueTupleRefExpr(@NotNull SQLQueryValueTupleReferenceExpression tupleRefExpr, T arg);
+
+    /**
+     * Visit column or its member reference
+     */
+    R visitValueReferenceExpr(@NotNull SQLQueryValueReferenceExpression valueRefExpr, T arg);
+
+    /**
+     * Visit a member access to the element of the composite type
+     */
+    @Nullable
+    R visitValueMemberReferenceExpr(@NotNull SQLQueryValueMemberExpression memberRefExpr, T arg);
+
+    /**
+     * Visit array element(s) access
+     */
+    @Nullable
+    R visitValueIndexingExpr(@NotNull SQLQueryValueIndexingExpression indexingExpr, T arg);
+
+    /**
+     * Visit type cast expression
+     */
+    @Nullable
+    R visitValueTypeCastExpr(@NotNull SQLQueryValueTypeCastExpression typeCastExpr, T arg);
+
+    /**
+     * Visit constant expression
+     */
+    @Nullable
+    R visitValueConstantExpr(@NotNull SQLQueryValueConstantExpression constExpr, T arg);
+
+    /**
+     * Visit select clause result
+     */
+    @Nullable
+    R visitSelectionResult(@NotNull SQLQuerySelectionResultModel selectionResult, T arg);
+
+    /**
+     * Visit query
+     */
+    @Nullable
+    R visitSelectionModel(@NotNull SQLQueryModel selection, T arg);
+
+    /**
+     * Visit table definition
+     */
+    @Nullable
+    R visitRowsTableData(@NotNull SQLQueryRowsTableDataModel tableData, T arg);
+
+    /**
+     * Visit a table constructed by VALUES clause
+     */
+    @Nullable
+    R visitRowsTableValue(@NotNull SQLQueryRowsTableValueModel tableValue, T arg);
+
+    /**
+     * Visit a rows-producing procedure call
+     */
+    @Nullable
+    R visitRowsTableProc(@NotNull SQLQueryRowsTableProcModel tableProc, T arg);
+
+    /**
+     * Visit cross join clause
+     */
+    @Nullable
+    R visitRowsCrossJoin(@NotNull SQLQueryRowsCrossJoinModel crossJoin, T arg);
+
+    /**
+     * Visit a subquery source that have an alias and optionally columns list
+     */
+    @Nullable
+    R visitRowsCorrelatedSource(@NotNull SQLQueryRowsCorrelatedSourceModel correlated, T arg);
+
+    /**
+     * Visit natral join
+     */
+    @Nullable
+    R visitRowsNaturalJoin(@NotNull SQLQueryRowsNaturalJoinModel naturalJoin, T arg);
+
+    /**
+     * Visit select clause
+     */
+    @Nullable
+    R visitRowsProjection(@NotNull SQLQueryRowsProjectionModel projection, T arg);
+
+    /**
+     * Visit set operation kind
+     */
+    @Nullable
+    R visitRowsSetCorrespondingOp(@NotNull SQLQueryRowsSetCorrespondingOperationModel correspondingOp, T arg);
+
+    /**
+     * Visit all columns of the table of a selection result
+     */
+    @Nullable
+    R visitSelectCompleteTupleSpec(@NotNull SQLQuerySelectionResultCompleteTupleSpec completeTupleSpec, T arg);
+
+    /**
+     * Visit several columns from the table of a selection result
+     */
+    @Nullable
+    R visitSelectTupleSpec(@NotNull SQLQuerySelectionResultTupleSpec tupleSpec, T arg);
+
+    /**
+     * Visit one column of a selection result
+     */
+    @Nullable
+    R visitSelectColumnSpec(@NotNull SQLQuerySelectionResultColumnSpec columnSpec, T arg);
+
+    /**
+     * Visit Common Table Expressiion (CTE)
+     */
+    @Nullable
+    R visitRowsCte(@NotNull SQLQueryRowsCteModel cte, T arg);
+
+    /**
+     * Visit Common table expression (CTE) subquery
+     */
+    @Nullable
+    R visitRowsCteSubquery(@NotNull SQLQueryRowsCteSubqueryModel cteSubquery, T arg);
+
+    /**
+     * Visit DELETE statement
+     */
+    @Nullable
+    R visitTableStatementDelete(@NotNull SQLQueryDeleteModel deleteStatement, T arg);
+
+    /**
+     * Visit INSERT statement
+     */
+    @Nullable
+    R visitTableStatementInsert(@NotNull SQLQueryInsertModel insertStatement, T arg);
+
+    /**
+     * Visit UPDATE statement
+     */
+    @Nullable
+    R visitTableStatementUpdate(@NotNull SQLQueryUpdateModel updateStatement, T arg);
+
+    /**
+     * Visit SET clause of a UPDATE statement
+     */
+    @Nullable
+    R visitTableStatementUpdateSetClause(@NotNull SQLQueryUpdateSetClauseModel setClause, T arg);
+
+    @Nullable
+    R visitTableStatementDrop(@NotNull SQLQueryTableDropModel dropStatement, T arg);
+
+    @Nullable
+    R visitObjectStatementDrop(@NotNull SQLQueryObjectDropModel dropStatement, T arg);
+
+    R visitObjectReference(SQLQueryObjectDataModel objectReference, T arg);
+
+    R visitCreateTable(SQLQueryTableCreateModel createTable, T arg);
+
+    R visitColumnConstraintSpec(SQLQueryColumnConstraintSpec columnConstraintSpec, T arg);
+
+    R visitColumnSpec(SQLQueryColumnSpec columnSpec, T arg);
+
+    R visitTableConstraintSpec(SQLQueryTableConstraintSpec tableConstraintSpec, T arg);
+
+    R visitAlterTable(SQLQueryTableAlterModel alterTable, T arg);
+
+    R visitAlterTableAction(SQLQueryTableAlterActionSpec actionSpec, T arg);
+
+    @Nullable
+    default R visitLocalTable(@NotNull SQLQueryRowsLocalTableModel localTable, T arg) {
+        return null;
+    }
+
+    @Nullable
+    default R visitAffectedSubset(@NotNull SQLQueryTriggerStatementModel.AffectedSubsetModel subset, T arg) {
+        return null;
+    }
+
+    @Nullable
+    default R visitProgrammaticalStatement(@NotNull SQLQueryProgrammaticalStatementModel statement, T arg) {
+        return null;
+    }
+
+    @Nullable
+    default R visitStatement(@NotNull SQLQueryStatementModel statement, T arg) {
+        return null;
+    }
+
+    @Nullable
+    default R visitRoutineStatement(@NotNull SQLQueryRoutineStatementModel statement, T arg) {
+        return visitProgrammaticalStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitRoutineCreate(@NotNull SQLQueryRoutineCreateModel statement, T arg) {
+        return visitRoutineStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitRoutineAlter(@NotNull SQLQueryRoutineAlterModel statement, T arg) {
+        return visitRoutineStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitTriggerStatement(@NotNull SQLQueryTriggerStatementModel statement, T arg) {
+        return visitProgrammaticalStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitTriggerCreate(@NotNull SQLQueryTriggerCreateModel statement, T arg) {
+        return visitTriggerStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitTriggerAlter(@NotNull SQLQueryTriggerAlterModel statement, T arg) {
+        return visitTriggerStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitAnonymousBlock(@NotNull SQLQueryAnonymousBlockModel statement, T arg) {
+        return visitProgrammaticalStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitRoutineDrop(@NotNull SQLQueryRoutineDropModel statement, T arg) {
+        return visitProgrammaticalStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitTriggerDrop(@NotNull SQLQueryTriggerDropModel statement, T arg) {
+        return visitProgrammaticalStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitStatementBlock(@NotNull SQLQueryStatementBlock statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitStatementSequence(@NotNull SQLQueryStatementSequence statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitConditionalStatement(@NotNull SQLQueryConditionalStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitVariableDeclarationStatement(@NotNull SQLQueryVariableDeclarationStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitRelationDeclarationStatement(@NotNull SQLQueryRelationDeclarationStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitCursorOperationStatement(@NotNull SQLQueryCursorOperationStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitAssignmentStatement(@NotNull SQLQueryAssignmentStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitEmbeddedStatement(@NotNull SQLQueryEmbeddedStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    @Nullable
+    default R visitUnknownStatement(@NotNull SQLQueryUnknownStatement statement, T arg) {
+        return visitStatement(statement, arg);
+    }
+
+    R visitRowsProjectionInto(SQLQuerySelectIntoModel selectIntoStatement, T arg);
+
+    @Nullable
+    default R visitRowsSelectIntoResult(@NotNull SQLQuerySelectIntoResultModel statement, T arg) {
+        return statement.getResultQuery().apply(this, arg);
+    }
+
+    R visitRowsProjectionIntoTargetsList(SQLQuerySelectIntoModel.SQLQuerySelectIntoTargetsList targetsList, T arg);
+
+    /**
+     * Visit CALL, EXEC, EXECUTE queries
+     */
+    @Nullable
+    R visitCallStatement(@NotNull SQLQueryCallModel callStatement, T arg);
+
+    /**
+     * Visit DBeaver control command (like @echo, @set, @export and so on)
+     */
+    @Nullable
+    R visitCommand(@NotNull SQLCommandModel command, T arg);
+
+    /**
+     * Visit DBeaver variable used in the DBeaver control command
+     */
+    @Nullable
+    R visitCommandVariable(@NotNull SQLCommandModel.VariableNode variable, T arg);
+
+    /**
+     * Visit item-local variable declarations and assignments.
+     */
+    @Nullable
+    R visitVariableStatement(@NotNull SQLQueryVariableStatementModel variableStatement, T arg);
+
+    /**
+     * Visit SQL batch/script variable clause
+     */
+    @Nullable
+    R visitVariableClause(@NotNull SQLQueryVariableClause variableClause, T arg);
+}

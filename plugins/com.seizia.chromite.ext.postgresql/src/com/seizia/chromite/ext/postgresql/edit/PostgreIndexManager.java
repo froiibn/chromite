@@ -1,0 +1,163 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.postgresql.edit;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.postgresql.model.*;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectRenamer;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLIndexManager;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndexColumn;
+import org.jkiss.utils.CommonUtils;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Postgre index manager
+ */
+public class PostgreIndexManager extends SQLIndexManager<PostgreIndex, PostgreTableBase> implements DBEObjectRenamer<PostgreIndex> {
+
+    @Override
+    public boolean canRenameObject(@NotNull PostgreIndex object) {
+        return object.getDataSource().getServerType().supportsKeyAndIndexRename();
+    }
+
+    @Nullable
+    @Override
+    public DBSObjectCache<PostgreTableContainer, PostgreIndex> getObjectsCache(PostgreIndex object)
+    {
+        return object.getTable().getContainer().getSchema().getIndexCache();
+    }
+
+    @Override
+    protected void appendIndexTypeAfterOn(PostgreIndex index, StringBuilder decl) {
+        DBSIndexType indexType = index.getIndexType();
+        if(indexType == DBSIndexType.HASHED){
+            decl.append(" USING ").append("HASH");
+        }
+    }
+
+    @Override
+    protected PostgreIndex createDatabaseObject(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBECommandContext context,
+        @NotNull Object container,
+        @Nullable Object from,
+        @NotNull Map<String, Object> options
+    ) {
+        PostgreTableBase tableBase = (PostgreTableBase) container;
+        return new PostgreIndex(
+            tableBase,
+            "NewIndex",
+            DBSIndexType.UNKNOWN,
+            false);
+    }
+
+    protected void appendIndexColumnModifiers(DBRProgressMonitor monitor, StringBuilder decl, DBSTableIndexColumn indexColumn) {
+        try {
+            final PostgreOperatorClass operatorClass = ((PostgreIndexColumn) indexColumn).getOperatorClass(monitor);
+            if (operatorClass != null) {
+                decl.append(" ").append(operatorClass.getName());
+            }
+        } catch (DBException e) {
+            log.warn(e);
+        }
+        if (!indexColumn.isAscending()) {
+            decl.append(" DESC"); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public void deleteObject(@NotNull DBECommandContext commandContext, @NotNull PostgreIndex object, @NotNull Map<String, Object> options) throws DBException {
+        if (object.isPrimaryKeyIndex()) {
+            throw new DBException("You can not drop constraint-based unique index.\n" +
+                "Try to drop constraint '" + object.getName() + "'.");
+        }
+        super.deleteObject(commandContext, object, options);
+    }
+
+    @Override
+    protected String getDropIndexPattern(PostgreIndex index)
+    {
+        return "DROP INDEX " + PATTERN_ITEM_INDEX; //$NON-NLS-1$
+    }
+
+    @Override
+    protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) {
+        boolean hasDDL = false;
+        PostgreIndex index = command.getObject();
+        if (index.isPersisted()) {
+            try {
+                String indexDDL = index.getObjectDefinitionText(monitor, DBPScriptObject.EMPTY_OPTIONS);
+                if (!CommonUtils.isEmpty(indexDDL)) {
+                    actions.add(
+                        new SQLDatabasePersistAction(ModelMessages.model_jdbc_create_new_index, indexDDL)
+                    );
+                    hasDDL = true;
+                }
+            } catch (DBException e) {
+                log.warn("Can't extract index DDL", e);
+            }
+        }
+        if (!hasDDL) {
+            super.addObjectCreateActions(monitor, executionContext, actions, command, options);
+        }
+        if (!CommonUtils.isEmpty(index.getDescription())) {
+            addIndexCommentAction(actions, index);
+        }
+    }
+
+    private static void addIndexCommentAction(List<DBEPersistAction> actions, PostgreIndex index) {
+        actions.add(new SQLDatabasePersistAction(
+            "Comment index",
+            "COMMENT ON INDEX " + index.getFullyQualifiedName(DBPEvaluationContext.DDL) +
+                " IS " + SQLUtils.quoteString(index, index.getDescription())));
+    }
+
+    @Override
+    public void renameObject(@NotNull DBECommandContext commandContext, @NotNull PostgreIndex object, @NotNull Map<String, Object> options, @NotNull String newName) throws DBException {
+        processObjectRename(commandContext, object, options, newName);
+    }
+
+    @Override
+    protected void addObjectRenameActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectRenameCommand command, @NotNull Map<String, Object> options) {
+        PostgreIndex index = command.getObject();
+        PostgreDataSource dataSource = index.getDataSource();
+        actions.add(
+                new SQLDatabasePersistAction(
+                        "Rename index",
+                        "ALTER INDEX " + DBUtils.getQuotedIdentifier(index.getTable().getContainer()) + "." + //$NON-NLS-1$
+                                DBUtils.getQuotedIdentifier(dataSource, command.getOldName()) +
+                                " RENAME TO " + DBUtils.getQuotedIdentifier(dataSource, command.getNewName())) //$NON-NLS-1$
+        );
+    }
+}

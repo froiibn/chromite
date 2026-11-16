@@ -1,0 +1,1465 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.tools.transfer.database;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBindingCustom;
+import com.seizia.chromite.model.data.DBDInsertReplaceMethod;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.AbstractExecutionSource;
+import com.seizia.chromite.model.impl.struct.AbstractAttribute;
+import com.seizia.chromite.model.meta.DBSerializable;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSManipulationType;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.tools.transfer.*;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferEventProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import org.eclipse.osgi.util.NLS;
+import org.jkiss.utils.CommonUtils;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Stream transfer consumer
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 대상 테이블을 비우기(TRUNCATE) 전에 그 열 메타데이터를 읽어 둠. 비우기는 넣기 트랜잭션 안에서 테이블을 잠그고
+ *   (SQL Server Sch-M), 넣기({@code JDBCTable.insertData})가 다른 세션(메타데이터 문맥)으로 열을 다시 읽으면 그 잠금을 기다리며 멈췄다
+ *   (같은 스키마에 새 테이블을 만들면 열 캐시가 비워짐) (docs/chromite/swing-data-transfer.md "고급 옵션")
+ * - 2026-11-08 Chromite: 넣기 트랜잭션을 조용히 끝내지 않음(사용자 규칙 "트랜잭션 안전"). 취소·실패로 닫을 때 커밋하지 않은 비우기·행을
+ *   롤백하면 무엇을 되돌렸는지 알리고(롤백하지 못하면 오류로 알림), 새 연결을 열지 않아 연결의 세션에서 넣을 때는 그 세션에 이미 열린
+ *   트랜잭션을 커밋 / 롤백 / 취소로 먼저 묻는다(넣기의 커밋·롤백이 그 트랜잭션까지 끝내기 때문). 닫기가 불리지 않던 경로는
+ *   {@code DBDDataReceiver.startFetchWorkflow}에서 고침 (docs/chromite/swing-data-transfer.md "취소·실패 때 넣기 트랜잭션")
+ * - 2026-11-08 Chromite: 넣기가 실패한 뒤 다시 시도·자동 복구는 실패한 행부터 다시 넣고(복구가 롤백했으면 그 실행이 넣은 행부터),
+ *   건너뛰기는 실패한 행만 버림({@code ExecuteBatchImpl}). 전에는 한 행씩 넣기에서 실패한 행이 조용히 빠졌다. 사용자가 취소해 넣던 문장이
+ *   취소된 것은 오류로 묻지 않고 취소로 끝냄 (docs/chromite/swing-data-transfer.md "한 행씩 넣기의 다시 시도와 복구", "넣는 중 취소")
+ * - 2026-11-09 Chromite: 수동 커밋 넣기는 실행마다 저장점을 두고, 실패하면 그 저장점으로 되돌린 뒤에 묻는다. 오류가 트랜잭션 전체를
+ *   끝내는 DB(PostgreSQL은 중단, SQL Server 트리거 오류·교착 상태는 롤백)에서 건너뛰기가 그 전에 넣은 행을 조용히 잃었다(커밋이 롤백이
+ *   됨). 저장점으로 되돌릴 수 없으면(트랜잭션이 이미 끝남) 커밋하지 않은 앞 행이 있을 때 넣기를 멈추고 어떤 행인지 알린다. 건너뛴 뒤
+ *   남은 행은 곧바로 넣는다(마지막 실행에서 건너뛰면 남은 행이 버려졌다). 넣기가 멈추면(중지, 위의 멈춤) 읽기를 닫을 때의 마지막
+ *   넣기({@link #fetchEnd})를 하지 않는다: 멈춘 행을 다시 실행해 같은 질문을 또 하고, 성공하면 멈춘 넣기를 커밋했다
+ *   (docs/chromite/swing-data-transfer.md "오류가 트랜잭션을 끝내는 DB의 건너뛰기")
+ * - 2026-11-12 Chromite: 결과를 모르는 문장은 다시 보내지 않음(사용자 결정, 앱 변경 #75). 트랜잭션 없이(자동 커밋) 넣다가 연결이 끊기거나
+ *   여러 행을 싣는 문장(JDBC 일괄 처리, 여러 행 INSERT)이 실패하면 그 행의 일부가 이미 커밋돼 있을 수 있는데, 자동 복구와 다시 시도가
+ *   그 행을 처음부터 다시 넣어 키가 없는 테이블에 조용히 두 번 들어갔다. 이제 자동 커밋 넣기는 자동 복구를 하지 않고, 결과를 모르는 행이
+ *   있으면 묻지 않고 그 테이블의 넣기를 멈추며 확실히 쓴 행 수와 결과를 모르는 원본 행 범위를 알린다. 커밋·대량 로드 중에 연결이
+ *   끊긴 경우도 같다. 수동 커밋 넣기는 트랜잭션에 이번 실행의 행만 있을 때만 자동 복구한다(다시 연결하면 앞 실행의 행·비우기를 조용히
+ *   잃었다). 다시 시도는 같은 읽기에서 복구가 한 번 실패했어도 다시 연결할 수 있다({@code DBExecUtils.allowRecoveryAgain})
+ *   (docs/chromite/swing-data-transfer.md "연결이 끊긴 넣기")
+ */
+@DBSerializable(DatabaseTransferConsumer.NODE_ID)
+public class DatabaseTransferConsumer implements IDataTransferConsumer<DatabaseConsumerSettings, IDataTransferProcessor>,
+        IDataTransferNodePrimary, DBPReferentialIntegrityController {
+    private static final Log log = Log.getLog(DatabaseTransferConsumer.class);
+
+    public static final String NODE_ID = "databaseTransferConsumer";
+
+    private final DBCStatistics statistics = new DBCStatistics();
+    private DatabaseConsumerSettings settings;
+    private DatabaseMappingContainer containerMapping;
+    private ColumnMapping[] columnMappings;
+    private DBDAttributeBinding[] sourceBindings;
+    private DBCExecutionContext targetContext;
+    private DBCSession targetSession;
+    private DBSDataManipulator.ExecuteBatch executeBatch;
+    private boolean useDirectTarget;
+    private DBSDataBulkLoader.BulkLoadManager bulkLoadManager;
+    private long rowsExported = 0;
+    private boolean ignoreErrors = false;
+
+    private List<DBSAttributeBase> targetAttributes;
+    private boolean useIsolatedConnection;
+    private Boolean oldAutoCommit;
+    // What the load transaction holds that is not committed yet (manual commit): told to the user when it is rolled back
+    private boolean truncateUncommitted;
+    private long rowsCommitted;
+    // Rows inserted in the load transaction by earlier executions (manual commit): lost if the database ends the transaction
+    private boolean executedUncommitted;
+    // The driver cannot set savepoints (then none is tried again in this load) or cannot release them (SQL Server, Oracle:
+    // they stay until the commit)
+    private boolean savepointUnsupported;
+    private boolean savepointReleaseUnsupported;
+    // An insert error stopped the load (Stop, or rows lost with the transaction): the end of the fetch inserts nothing more
+    private boolean insertStopped;
+    // Rows the user skipped after insert errors (not in the table), in all and up to the last commit: left out of the
+    // counts told when the outcome of rows is unknown
+    private long rowsSkipped;
+    private long rowsSkippedCommitted;
+
+    // Used only for non-explicit import
+    // In this case consumer will be replaced with explicit consumers during configuration
+    private DBSObjectContainer targetObjectContainer;
+    // Used in deserialized or directly instantiated consumers
+    private DBSDataManipulator localTargetObject;
+
+    private boolean isPreview;
+    private List<Object[]> previewRows;
+    private DBDAttributeBinding[] rsAttributes;
+    private DBSObjectContainer container;
+
+    public void setContainer(DBSObjectContainer container) {
+        this.container = container;
+    }
+
+    public static class ColumnMapping {
+        public DBDAttributeBinding sourceAttr;
+        public DatabaseMappingAttribute targetAttr;
+        public DBDValueHandler sourceValueHandler;
+        public DBDValueHandler targetValueHandler;
+        public int targetIndex = -1;
+        public IDataTransferAttributeTransformer valueTransformer;
+        public Map<String, Object> valueTransformerProperties;
+
+        private ColumnMapping(DBDAttributeBinding sourceAttr) {
+            this.sourceAttr = sourceAttr;
+        }
+
+        @Override
+        public String toString() {
+            return sourceAttr + "->" + targetAttr;
+        }
+    }
+
+    public DatabaseTransferConsumer() {
+    }
+
+    public DatabaseTransferConsumer(DBSDataManipulator targetObject) {
+        this.localTargetObject = targetObject;
+    }
+
+    public DatabaseTransferConsumer(DBSObjectContainer targetObjectContainer) {
+        this.targetObjectContainer = targetObjectContainer;
+    }
+
+    public DBSObjectContainer getTargetObjectContainer() {
+        return targetObjectContainer;
+    }
+
+    public ColumnMapping[] getColumnMappings() {
+        return columnMappings;
+    }
+
+    @Override
+    public DBSObject getDatabaseObject() {
+        if (targetObjectContainer != null) {
+            return targetObjectContainer;
+        }
+        return containerMapping == null ? localTargetObject : containerMapping.getTarget();
+    }
+
+    @Override
+    @Nullable
+    public DBPProject getProject() {
+        return getDataSourceContainer() == null ? null : getDataSourceContainer().getProject();
+    }
+
+    protected boolean isPreview() {
+        return isPreview;
+    }
+
+    protected void setPreview(boolean preview) {
+        isPreview = preview;
+    }
+
+    protected List<Object[]> getPreviewRows() {
+        return previewRows;
+    }
+
+    /**
+     * @return list of target attributes
+     */
+    @Nullable
+    public List<DBSAttributeBase> getTargetAttributes() {
+        return targetAttributes;
+    }
+
+    @Override
+    public void fetchStart(@NotNull DBCSession session, @NotNull DBCResultSet resultSet, long offset, long maxRows) throws DBException {
+        try {
+            initExporter(session.getProgressMonitor());
+        } catch (DBException e) {
+            throw new DBCException("Error initializing exporter", e);
+        }
+        if (containerMapping == null) {
+            throw new DBCException("Internal error: consumer mappings not set");
+        }
+
+        AbstractExecutionSource executionSource = new AbstractExecutionSource(containerMapping.getSource(), targetContext, this);
+
+        DBSDataManipulator targetObject = getTargetObject();
+        if (targetObject != null && !isPreview && offset <= 0 && settings.isTruncateBeforeLoad() && (containerMapping == null || containerMapping.getMappingType() == DatabaseMappingType.existing)) {
+            // Truncate target tables
+            // Note: all implementations support truncate in some way (e.g. DELETE FROM)
+            // even if DBSDataManipulator.FEATURE_DATA_TRUNCATE is reported to be not supported.
+            if (targetObject instanceof DBSEntity targetEntity) {
+                // The truncate locks the table until the load transaction ends; metadata is read with another session
+                // (the metadata context), so the columns the insert needs must be cached before or that read waits forever
+                try {
+                    targetEntity.getAttributes(targetSession.getProgressMonitor());
+                } catch (DBException e) {
+                    throw new DBCException("Can't read the columns of " + targetObject.getName(), e);
+                }
+            }
+            try {
+                targetObject.truncateData(targetSession, executionSource);
+                truncateUncommitted = true;
+            } catch (DBCFeatureNotSupportedException e) {
+                log.warn("Table '" + targetObject.getName() + "' doesn't support truncate operation");
+            }
+        }
+
+        boolean dynamicTarget = targetContext.getDataSource().getInfo().isDynamicMetadata();
+        DBSDataContainer sourceObject = getSourceObject();
+        if (dynamicTarget) {
+            // Document-based datasource
+            rsAttributes = DBUtils.getAttributeBindings(session, sourceObject, resultSet.getMeta());
+        } else {
+            rsAttributes = DTUtils.makeLeafAttributeBindings(session, sourceObject, resultSet);
+        }
+        columnMappings = new ColumnMapping[rsAttributes.length];
+        sourceBindings = rsAttributes;
+        targetAttributes = new ArrayList<>(columnMappings.length);
+        for (int i = 0; i < rsAttributes.length; i++) {
+            if (isSkipColumn(rsAttributes[i])) {
+                continue;
+            }
+            ColumnMapping columnMapping = new ColumnMapping(rsAttributes[i]);
+            if (containerMapping == null) {
+                // No explicit mappings. Mapping must be provided by data producer
+                // Map all attributes directly.
+                if (targetObject instanceof DBSEntity) {
+                    try {
+                        DBSEntityAttribute attribute = ((DBSEntity) targetObject).getAttribute(session.getProgressMonitor(), columnMapping.sourceAttr.getName());
+                        if (attribute != null) {
+                            columnMapping.targetAttr = new DatabaseMappingAttribute(null, columnMapping.sourceAttr);
+                            columnMapping.targetAttr.setTarget(attribute);
+                            columnMapping.targetAttr.setMappingType(DatabaseMappingType.existing);
+                        }
+                    } catch (DBException e) {
+                        log.error("Error getting target attribute");
+                    }
+                }
+                if (columnMapping.targetAttr == null) {
+                    throw new DBCException("Can't resolve target attribute for [" + columnMapping.sourceAttr.getName() + "]");
+                }
+            } else if (sourceObject instanceof DBSDocumentContainer && dynamicTarget) {
+                try {
+                    DBSDocumentContainer docContainer = (DBSDocumentContainer) (targetObject instanceof DBSDocumentContainer ? targetObject : sourceObject);
+                    DBSEntityAttribute docAttribute = docContainer.getDocumentAttribute(session.getProgressMonitor());
+                    if (docAttribute != null) {
+                        columnMapping.targetAttr = new DatabaseMappingAttribute(containerMapping, columnMapping.sourceAttr);
+                        columnMapping.targetAttr.setTarget(docAttribute);
+                        columnMapping.targetAttr.setMappingType(DatabaseMappingType.existing);
+                    }
+                } catch (DBException e) {
+                    throw new DBCException("Error getting document attribute", e);
+                }
+            } else {
+                columnMapping.targetAttr = containerMapping.getAttributeMapping(columnMapping.sourceAttr);
+                if (columnMapping.targetAttr == null) {
+                    throw new DBCException("Can't find target attribute [" + columnMapping.sourceAttr.getName() + "]");
+                }
+            }
+            if (columnMapping.targetAttr.getMappingType() == DatabaseMappingType.skip) {
+                continue;
+            }
+            if (columnMapping.targetAttr.getTransformer() != null) {
+                try {
+                    columnMapping.valueTransformer = columnMapping.targetAttr.getTransformer().createTransformer();
+                    columnMapping.valueTransformerProperties = columnMapping.targetAttr.getTransformerProperties();
+                } catch (DBException e) {
+                    throw new DBCException("Can't create attribute transformer", e);
+                }
+            }
+            DBSAttributeBase targetAttr = columnMapping.targetAttr.getTarget();
+            if (targetAttr == null) {
+                if (isPreview) {
+                    targetAttr = new PreviewColumnInfo(null, columnMapping.sourceAttr, columnMapping.targetIndex);
+                } else if (columnMapping.targetAttr.getSource() instanceof DBSEntityAttribute || targetObject instanceof DBSDocumentContainer) {
+                    // Use source attr. Some datasource (e.g. document oriented do not have strict set of attributes)
+                    targetAttr = columnMapping.targetAttr.getSource();
+                } else {
+                    throw new DBCException("Target attribute for [" + columnMapping.sourceAttr.getName() + "] wasn't resolved");
+                }
+            }
+            columnMapping.sourceValueHandler = columnMapping.sourceAttr.getValueHandler();
+            columnMapping.targetValueHandler = DBUtils.findValueHandler(targetContext.getDataSource(), targetAttr);
+            columnMapping.targetIndex = targetAttributes.size();
+
+            columnMappings[i] = columnMapping;
+
+            targetAttributes.add(targetAttr);
+        }
+        DBSAttributeBase[] attributes = targetAttributes.toArray(new DBSAttributeBase[0]);
+
+        Map<String, Object> options = new HashMap<>();
+        options.put(DBSDataManipulator.OPTION_USE_MULTI_INSERT, settings.isUseMultiRowInsert());
+        options.put(DBSDataManipulator.OPTION_SKIP_BIND_VALUES, settings.isSkipBindValues());
+
+        if (!isPreview && targetObject != null) {
+            if (settings.isUseBulkLoad()) {
+                DBSDataBulkLoader bulkLoader = DBUtils.getAdapter(DBSDataBulkLoader.class, targetContext.getDataSource());
+                if (bulkLoader != null) {
+                    try {
+                        bulkLoadManager = bulkLoader.createBulkLoad(
+                            targetSession, targetObject, attributes, executionSource, settings.getCommitAfterRows(), options);
+                    } catch (Exception e) {
+                        throw new DBCException("Error creating bulk loader", e);
+                    }
+                }
+            }
+            if (bulkLoadManager == null) {
+                if (targetObject instanceof DBSDataManipulatorExt) {
+                    ((DBSDataManipulatorExt) targetObject).beforeDataChange(targetSession, DBSManipulationType.INSERT, attributes, executionSource);
+                }
+                executeBatch = targetObject.insertData(
+                    targetSession,
+                    attributes,
+                    null,
+                    executionSource,
+                    options);
+            }
+        } else {
+            previewRows = new ArrayList<>();
+            executeBatch = new PreviewBatch();
+        }
+    }
+
+    private boolean isSkipColumn(DBDAttributeBinding attr) {
+        return attr.isPseudoAttribute() ||
+            (!settings.isTransferAutoGeneratedColumns() && attr.isAutoGenerated()) ||
+            attr instanceof DBDAttributeBindingCustom;
+    }
+
+    @Override
+    public void fetchRow(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBCException {
+        if (isTransferCanceled(session)) {
+            return;
+        }
+
+        final Object document;
+
+        if (session.getDataSource().getInfo().isDynamicMetadata()) {
+            final DBDAttributeBinding attr = DBUtils.getAttributeBindings(session, getSourceObject(), resultSet.getMeta())[0];
+            document = attr.getValueHandler().fetchValueObject(session, resultSet, attr, attr.getOrdinalPosition());
+        } else {
+            document = null;
+        }
+
+        Object[] rowValues = new Object[targetAttributes.size()];
+        for (int i = 0; i < columnMappings.length; i++) {
+            ColumnMapping column = columnMappings[i];
+            if (column == null || column.targetIndex < 0) {
+                continue;
+            }
+            Object attrValue;
+            if (column.sourceValueHandler != null) {
+                if (column.sourceAttr instanceof DBDAttributeBindingCustom) {
+                    attrValue = DBUtils.getAttributeValue(column.sourceAttr, sourceBindings, rowValues);
+                } else {
+                    attrValue = column.sourceValueHandler.fetchValueObject(
+                        session,
+                        resultSet,
+                        column.sourceAttr,
+                        column.sourceAttr.getOrdinalPosition());
+                }
+            } else {
+                // No value handler - get raw value
+                attrValue = resultSet.getAttributeValue(i);
+            }
+
+            if (containerMapping != null && containerMapping.getTarget() instanceof DBSDocumentContainer) {
+                rowValues[column.targetIndex] = attrValue;
+            } else {
+                DatabaseMappingAttribute targetAttr = column.targetAttr;
+                rowValues[column.targetIndex] = column.targetValueHandler.getValueFromObject(
+                    targetSession,
+                    targetAttr.getTarget() == null ? targetAttr.getSource() : targetAttr.getTarget(),
+                    attrValue,
+                    false, false);
+            }
+        }
+
+        // Transform value
+        for (ColumnMapping column : columnMappings) {
+            if (column == null || column.targetIndex < 0) {
+                continue;
+            }
+            if (column.valueTransformer != null) {
+                Object attrValue = rowValues[column.targetIndex];
+                try {
+                    rowValues[column.targetIndex] = column.valueTransformer.transformAttribute(
+                        session,
+                        rsAttributes,
+                        document != null ? new Object[]{document} : rowValues,
+                        column.sourceAttr,
+                        document != null ? document : attrValue,
+                        column.valueTransformerProperties);
+                } catch (DBException e) {
+                    throw new DBCException(
+                        "Error transforming attribute '" + column.sourceAttr.getName() +
+                            "' value with transformer '" + column.targetAttr.getTransformer().getName() + "'", e);
+                }
+            }
+        }
+
+        if (bulkLoadManager != null) {
+            bulkLoadManager.addRow(targetSession, rowValues);
+        } else {
+            executeBatch.add(rowValues);
+        }
+
+        rowsExported++;
+        // No need. monitor is incremented in data reader
+        //session.getProgressMonitor().worked(1);
+
+        insertBatch(false);
+    }
+
+    private void insertBatch(boolean force) throws DBCException {
+        if (isPreview || targetSession.getProgressMonitor().isCanceled()) {
+            return;
+        }
+        boolean ignoreDuplicateRowsErrors = settings.isIgnoreDuplicateRows();
+        boolean needCommit = force || ignoreDuplicateRowsErrors || ((rowsExported % settings.getCommitAfterRows()) == 0);
+        // Do commit action in these cases:
+        // 1. This is the end of the insert operation (fetchEnd)
+        // 2. ignoreDuplicateRowsErrors option is enabled - that means, what we do not have batches, only single rows, and we can loose inserted rows without commit in some databases like PG
+        // 3. We approached the amount of rows selected for commenting
+
+        if (bulkLoadManager != null) {
+            if (needCommit) {
+                bulkLoadManager.flushRows(targetSession);
+            }
+            return;
+        } else {
+            boolean disableUsingBatches = settings.isDisableUsingBatches();
+            if ((needCommit || disableUsingBatches) && executeBatch != null) {
+                if (DBFetchProgress.monitorFetchProgress(rowsExported)) {
+                    targetSession.getProgressMonitor().subTask("Insert rows (" + rowsExported + ")");
+                }
+
+                Map<String, Object> options = new HashMap<>();
+                options.put(DBSDataManipulator.OPTION_DISABLE_BATCHES, disableUsingBatches);
+                options.put(DBSDataManipulator.OPTION_MULTI_INSERT_BATCH_SIZE, settings.getMultiRowInsertBatch());
+                options.put(DBSDataManipulator.OPTION_SKIP_BIND_VALUES, settings.isSkipBindValues());
+
+                boolean onDuplicateKeyCaseOn = settings.getOnDuplicateKeyInsertMethodId() != null &&
+                    !settings.getOnDuplicateKeyInsertMethodId().equals(DBSDataManipulator.INSERT_NONE_METHOD);
+                if (onDuplicateKeyCaseOn) {
+                    String insertMethodId = settings.getOnDuplicateKeyInsertMethodId();
+                    if (!CommonUtils.isEmpty(insertMethodId)) {
+                        SQLDialectInsertReplaceMethod insertReplaceMethod =
+                            DBWorkbench.getPlatform().getSQLDialectRegistry().getInsertReplaceMethod(insertMethodId);
+                        if (insertReplaceMethod != null) {
+                            try {
+                                DBDInsertReplaceMethod insertMethod = insertReplaceMethod.createInsertMethod();
+                                options.put(DBSDataManipulator.OPTION_INSERT_REPLACE_METHOD, insertMethod);
+                            } catch (DBException e) {
+                                log.debug("Can't get insert replace method", e);
+                            }
+                        }
+                    }
+                }
+
+                // Whether the rows of a failed execution stay in an open transaction (that the recovery would roll back)
+                DBCTransactionManager loadTxnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
+                boolean manualCommit = loadTxnManager != null && loadTxnManager.isSupportsTransactions() && !loadTxnManager.isAutoCommit();
+                boolean retryInsert;
+                do {
+                    retryInsert = false;
+                    // Set before the last try (manual commit): rolling back to it undoes that try only
+                    DBCSavepoint[] savepoint = {null};
+                    try {
+                        if (manualCommit && !truncateUncommitted && !executedUncommitted) {
+                            // The load transaction holds nothing but this execution's rows: a recovery that rolls it back
+                            // or reconnects (the server ended it with the session) loses nothing else, and the next try
+                            // runs the whole execution again
+                            int[] tries = {0};
+                            DBExecUtils.tryExecuteRecover(targetSession, targetSession.getDataSource(), param -> {
+                                if (tries[0]++ > 0) {
+                                    // The recovery rolled back or reconnected: the rows the failed try executed are gone
+                                    executeBatch.restoreAppliedRows();
+                                }
+                                executeInsert(loadTxnManager, savepoint, options);
+                            });
+                        } else {
+                            // No automatic recovery. Without a transaction a failed execution may have written part of
+                            // its rows, which a repeat would write twice; with earlier rows or the emptying of the table in
+                            // the transaction, a reconnect would lose them
+                            executeInsert(manualCommit ? loadTxnManager : null, savepoint, options);
+                        }
+                        if (manualCommit) {
+                            executedUncommitted = true;
+                        }
+                    } catch (Throwable e) {
+                        if (targetSession.getProgressMonitor().isCanceled()) {
+                            // The user canceled the transfer and with it the running statement: not an error to ask about.
+                            // The load transaction is rolled back and told when the consumer closes
+                            log.debug("Insert canceled: " + e.getMessage());
+                            break;
+                        }
+                        if (manualCommit) {
+                            keepLoadTransaction(loadTxnManager, savepoint[0], e);
+                        } else {
+                            stopWhenOutcomeUnknown(e);
+                        }
+                        // After a skip the rows that follow the failed ones are inserted at once: left in the batch, the
+                        // last execution's were dropped when the batch closed
+                        if (ignoreDuplicateRowsErrors && (e.getCause() instanceof SQLException)) {
+                            DBPErrorAssistant.ErrorType errorType = DBExecUtils.discoverErrorType(targetSession.getDataSource(), e.getCause());
+                            if (errorType == DBPErrorAssistant.ErrorType.UNIQUE_KEY_VIOLATION) {
+                                skipFailedRows();
+                                retryInsert = true;
+                                continue;
+                            }
+                        }
+                        log.error("Error inserting row", e);
+                        if (ignoreErrors) {
+                            skipFailedRows();
+                            retryInsert = true;
+                            continue;
+                        }
+                        if (DBWorkbench.getPlatform().getApplication().isHeadlessMode()) {
+                            insertStopped = true;
+                            if (e instanceof DBCException dbe) {
+                                throw dbe;
+                            }
+                            throw new DBCException(e.getMessage(), e);
+                        }
+                        String message;
+                        if (disableUsingBatches) {
+                            message = DTMessages.database_transfer_consumer_task_error_occurred_during_data_load;
+                        } else {
+                            message = DTMessages.database_transfer_consumer_task_error_occurred_during_batch_insert;
+                        }
+                        DBPPlatformUI.UserResponse response = DBWorkbench.getPlatformUI().showErrorStopRetryIgnore(message, e, true);
+                        retryInsert = switch (response) {
+                            case STOP -> {
+                                insertStopped = true;
+                                throw new DBCException("Can't insert row", e);
+                            }
+                            case RETRY -> {
+                                // Safe here: a failed execution whose outcome is unknown stopped the load above. The
+                                // user's Retry may reconnect even after a recovery of this read failed
+                                DBExecUtils.allowRecoveryAgain();
+                                yield true;
+                            }
+                            case IGNORE -> {
+                                skipFailedRows();
+                                yield true;
+                            }
+                            case IGNORE_ALL -> {
+                                ignoreErrors = true;
+                                skipFailedRows();
+                                yield true;
+                            }
+                            default -> retryInsert;
+                        };
+                    }
+                } while (retryInsert);
+            }
+        }
+        if (settings.isUseTransactions() && needCommit && !targetSession.getProgressMonitor().isCanceled()) {
+            DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
+            if (txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit()) {
+                targetSession.getProgressMonitor().subTask("Commit changes");
+                try {
+                    txnManager.commit(targetSession);
+                } catch (DBCException e) {
+                    // A commit cut off by a lost connection may or may not have been done
+                    stopWhenOutcomeUnknown(e, rowsCommitted + 1, rowsSkippedCommitted);
+                    throw e;
+                }
+                resetUncommitted();
+            }
+        }
+    }
+
+    private void executeInsert(
+        @Nullable DBCTransactionManager txnManager,
+        @NotNull DBCSavepoint[] savepoint,
+        @NotNull Map<String, Object> options
+    ) throws DBException {
+        savepoint[0] = txnManager != null ? setInsertSavepoint(txnManager) : null;
+        statistics.accumulate(executeBatch.execute(targetSession, options));
+        if (txnManager != null) {
+            releaseInsertSavepoint(txnManager, savepoint[0]);
+        }
+        savepoint[0] = null;
+    }
+
+    private void skipFailedRows() {
+        rowsSkipped += executeBatch.getFailedRowCount();
+        executeBatch.skipFailedRows();
+    }
+
+    // After a commit, or after the rollback was told
+    private void resetUncommitted() {
+        truncateUncommitted = false;
+        executedUncommitted = false;
+        rowsCommitted = rowsExported;
+        rowsSkippedCommitted = rowsSkipped;
+    }
+
+    /**
+     * After a failed insert execution without a transaction to undo it (auto-commit, or a database without
+     * transactions). When the outcome of rows is unknown the load stops here: Retry, Skip and the automatic recovery
+     * would send them again or leave them out without a word. Unknown are the rows of the failing statement when the
+     * connection was lost (the server may have run it), or when it carried several rows (a JDBC batch, a multi-row
+     * INSERT: drivers and servers go on after a failed row, or commit a batch in parts). An error the database reported
+     * for a statement with one row means that row is not written; the user is asked as before.
+     *
+     * @throws DBCException with the rows written for certain and the rows in doubt: the load stops
+     */
+    private void stopWhenOutcomeUnknown(@NotNull Throwable error) throws DBCException {
+        int failed = executeBatch.getFailedRowCount();
+        boolean connectionLost = DBExecUtils.discoverErrorType(targetSession.getDataSource(), error) == DBPErrorAssistant.ErrorType.CONNECTION_LOST;
+        if (failed == 0 || (!connectionLost && failed == 1)) {
+            return;
+        }
+        // The held rows are the last ones read; the failed ones follow those the execution already wrote
+        long firstInDoubt = rowsExported - executeBatch.getRowCount() + executeBatch.getAppliedRowCount() + 1;
+        throw stopInDoubt(
+            connectionLost ? DTMessages.database_transfer_consumer_in_doubt_lost : DTMessages.database_transfer_consumer_in_doubt_batch,
+            firstInDoubt, firstInDoubt + failed - 1, failed, rowsSkipped, false, error);
+    }
+
+    /**
+     * A commit or a bulk load (that writes and commits all its rows at once) failed: when the connection was lost, it is
+     * not known whether the rows from {@code firstRow} on were committed, nor the emptying of the table when it was not
+     * committed before. The load stops and says so; the consumer's close does not tell them as rolled back.
+     *
+     * @param skippedBefore rows the user skipped before {@code firstRow}
+     * @throws DBCException with the rows written for certain and the rows in doubt
+     */
+    private void stopWhenOutcomeUnknown(@NotNull Throwable error, long firstRow, long skippedBefore) throws DBCException {
+        if (DBExecUtils.discoverErrorType(targetSession.getDataSource(), error) != DBPErrorAssistant.ErrorType.CONNECTION_LOST
+            || firstRow > rowsExported) {
+            return;
+        }
+        boolean truncateInDoubt = truncateUncommitted;
+        // Not to be told as rolled back when the consumer closes: whether they were committed is not known
+        resetUncommitted();
+        throw stopInDoubt(DTMessages.database_transfer_consumer_in_doubt_lost, firstRow, rowsExported,
+            rowsExported - firstRow + 1 - (rowsSkipped - skippedBefore), skippedBefore, truncateInDoubt, error);
+    }
+
+    @NotNull
+    private DBCException stopInDoubt(
+        @NotNull String reason,
+        long firstRow,
+        long lastRow,
+        long rowsInDoubt,
+        long skippedBefore,
+        boolean truncateInDoubt,
+        @NotNull Throwable error
+    ) {
+        insertStopped = true;
+        String message = NLS.bind(DTMessages.database_transfer_consumer_in_doubt, new Object[]{
+            reason, getTargetName(), firstRow - 1 - skippedBefore, firstRow, lastRow, rowsInDoubt,
+            truncateInDoubt ? " " + DTMessages.database_transfer_consumer_in_doubt_truncate : "", error.getMessage()}); //$NON-NLS-1$ //$NON-NLS-2$
+        log.error(message);
+        return stopException(message, error);
+    }
+
+    /**
+     * The error that stops the load. Its message already carries the error's text; the error is kept as suppressed, not
+     * as the cause: the progress table shows the deepest cause's message, and no recovery around the load may read
+     * this as a lost connection.
+     */
+    @NotNull
+    static DBCException stopException(@NotNull String message, @NotNull Throwable error) {
+        DBCException stop = new DBCException(message);
+        stop.addSuppressed(error);
+        return stop;
+    }
+
+    /**
+     * A savepoint before an insert execution of a manual-commit load, or null when the driver has none. The driver is
+     * asked by trying: {@code supportsSavepoints()} of JDBC data sources is always false (upstream), and turning it on
+     * would also switch on the savepoints of other features (result set saves, the transfer producer).
+     */
+    @Nullable
+    private DBCSavepoint setInsertSavepoint(@NotNull DBCTransactionManager txnManager) {
+        if (savepointUnsupported) {
+            return null;
+        }
+        try {
+            return txnManager.setSavepoint(targetSession.getProgressMonitor(), null);
+        } catch (Throwable e) {
+            // A lost connection says nothing about the driver; the execution fails too and the recovery reconnects
+            if (DBExecUtils.discoverErrorType(targetSession.getDataSource(), e) != DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
+                savepointUnsupported = true;
+            }
+            log.debug("Can't set a savepoint before the insert: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void releaseInsertSavepoint(@NotNull DBCTransactionManager txnManager, @Nullable DBCSavepoint savepoint) {
+        if (savepoint == null || savepointReleaseUnsupported) {
+            return;
+        }
+        try {
+            txnManager.releaseSavepoint(targetSession.getProgressMonitor(), savepoint);
+        } catch (Throwable e) {
+            savepointReleaseUnsupported = true;
+            log.debug("Can't release the savepoint of the insert: " + e.getMessage());
+        }
+    }
+
+    /**
+     * After a failed insert execution of a manual-commit load, before Retry or Skip: makes the load transaction hold
+     * exactly the rows inserted before that execution. Skip assumed that a failed statement undoes only itself, but in
+     * some databases an error ends the whole transaction (PostgreSQL aborts it and its COMMIT becomes a rollback,
+     * SQL Server rolls it back on an error in a trigger or on a deadlock), and the rows inserted before were lost
+     * without a word.
+     * <ul>
+     *     <li>Rolled back to the savepoint set before the execution: the transaction is usable again; the rows the
+     *     execution inserted before it failed are undone and inserted again by the next try. Not when the database
+     *     says it has no transaction any more ({@link DBCTransactionProbe}): the SQL Server driver skips the rollback to
+     *     a savepoint without a transaction ({@code IF @@TRANCOUNT > 0}), so it would succeed after the server rolled
+     *     everything back.</li>
+     *     <li>No savepoint (the database has none) and not reported as an aborted transaction or a lost connection: the
+     *     failed statement undid only itself.</li>
+     *     <li>Otherwise the transaction is ended or can only be rolled back. When it held nothing but this execution's
+     *     rows (they are still in the batch), it is rolled back (a lost connection cannot, but the server ended the
+     *     transaction with it) and they are inserted again (Retry reconnects). When it held earlier rows or
+     *     the emptying of the table, those are lost: the load stops and names them (the close tells the rollback).</li>
+     * </ul>
+     *
+     * @throws DBCException when the database ended a transaction with earlier rows: the load stops
+     */
+    private void keepLoadTransaction(
+        @NotNull DBCTransactionManager txnManager,
+        @Nullable DBCSavepoint savepoint,
+        @NotNull Throwable error
+    ) throws DBCException {
+        if (savepoint != null) {
+            DBCServerTransaction server = targetSession.getExecutionContext() instanceof DBCTransactionProbe probe ? probe.probeTransaction() : null;
+            if (server != null && server.kind() == DBCServerTransaction.Kind.NONE) {
+                log.debug("The load transaction ended with the failed insert");
+            } else {
+                try {
+                    txnManager.rollback(targetSession, savepoint);
+                    executeBatch.restoreAppliedRows();
+                    return;
+                } catch (Throwable e) {
+                    log.debug("Can't roll back to the savepoint of the failed insert: " + e.getMessage());
+                }
+            }
+        } else {
+            DBPErrorAssistant.ErrorType errorType = DBExecUtils.discoverErrorType(targetSession.getDataSource(), error);
+            if (errorType != DBPErrorAssistant.ErrorType.TRANSACTION_ABORTED && errorType != DBPErrorAssistant.ErrorType.CONNECTION_LOST) {
+                // The rows the execution inserted before the failure stay in the transaction
+                executedUncommitted = true;
+                return;
+            }
+        }
+        if (truncateUncommitted || executedUncommitted) {
+            insertStopped = true;
+            throw stopException(NLS.bind(DTMessages.database_transfer_consumer_txn_ended,
+                new Object[]{getTargetName(), rowsCommitted + 1, rowsExported, error.getMessage()}), error);
+        }
+        try {
+            txnManager.rollback(targetSession, null);
+        } catch (Throwable e) {
+            // The connection is lost: the server ended the transaction with it, and Retry reconnects
+            log.debug("Can't roll back the ended load transaction: " + e.getMessage());
+        }
+        executeBatch.restoreAppliedRows();
+    }
+
+    @Override
+    public void fetchEnd(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBCException {
+        boolean canceled = isTransferCanceled(session);
+        try {
+            if (!canceled && !insertStopped && rowsExported > 0) {
+                insertBatch(true);
+            }
+            if (!canceled && bulkLoadManager != null) {
+                // (commits the load)
+                try {
+                    bulkLoadManager.finishBulkLoad(targetSession);
+                } catch (DBCException e) {
+                    // The loader sends all rows at once and commits them: cut off, it may or may not have done it
+                    stopWhenOutcomeUnknown(e, rowsCommitted + 1, rowsSkippedCommitted);
+                    throw e;
+                }
+                resetUncommitted();
+            } else if (executeBatch != null) {
+                executeBatch.close();
+                executeBatch = null;
+            }
+        } finally {
+            DBSDataManipulator targetObject = getTargetObject();
+            if (!canceled && !isPreview && targetObject instanceof DBSDataManipulatorExt) {
+                ((DBSDataManipulatorExt) targetObject).afterDataChange(
+                    targetSession,
+                    DBSManipulationType.INSERT,
+                    targetAttributes.toArray(new DBSAttributeBase[0]),
+                    new AbstractExecutionSource(getSourceObject(), targetContext, this));
+            }
+        }
+    }
+
+    private boolean isTransferCanceled(@NotNull DBCSession session) {
+        return session.getProgressMonitor().isCanceled() ||
+            (targetSession != null && targetSession.getProgressMonitor().isCanceled());
+    }
+
+    @Override
+    public void close() {
+        closeExporter();
+    }
+
+    private void initExporter(DBRProgressMonitor monitor) throws DBException {
+        DBSObject targetDB = checkTargetContainer(monitor);
+
+        DBPDataSourceContainer dataSourceContainer = targetDB.getDataSource().getContainer();
+        if (!dataSourceContainer.hasModifyPermission(DBPDataSourcePermission.PERMISSION_IMPORT_DATA)) {
+            throw new DBCException("Data transfer to database [" + dataSourceContainer.getName() + "] restricted by connection configuration");
+        }
+
+        try {
+            useIsolatedConnection = !isPreview && settings.isOpenNewConnections() && !dataSourceContainer.getDriver().isEmbedded();
+            targetContext = useIsolatedConnection ?
+                DBUtils.getObjectOwnerInstance(targetDB).openIsolatedContext(monitor, "Data transfer consumer", null) : DBUtils.getDefaultContext(targetDB, false);
+        } catch (DBException e) {
+            throw new DBCException("Error opening new connection", e);
+        }
+        targetSession = targetContext.openSession(monitor, DBCExecutionPurpose.UTIL, "Data load");
+        targetSession.enableLogging(settings.isEnableQmLogging());
+
+        if (!isPreview) {
+            if (!useIsolatedConnection) {
+                endOpenTransaction();
+            }
+            DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
+            if (txnManager != null && txnManager.isSupportsTransactions()) {
+                oldAutoCommit = txnManager.isAutoCommit();
+                if (settings.isUseTransactions()) {
+                    if (oldAutoCommit) {
+                        txnManager.setAutoCommit(monitor, false);
+                    }
+                } else {
+                    if (!oldAutoCommit) {
+                        txnManager.setAutoCommit(monitor, true);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Without a new connection the load runs in a session of the connection itself, and its commits and its rollback on
+     * a cancel would end a transaction the user left open there. That transaction is ended first by the user's answer:
+     * Commit / Roll back / Cancel (the default; nothing is loaded).
+     */
+    private void endOpenTransaction() throws DBException {
+        if (!QMUtils.isTransactionActive(targetContext) && !QMUtils.getTransactionState(targetContext).isOpen()) {
+            return;
+        }
+        String connection = targetContext.getDataSource().getContainer().getName();
+        String target = getTargetName();
+        List<String> labels = List.of(DTMessages.sql_script_task_txn_commit, DTMessages.sql_script_task_txn_rollback,
+            DTMessages.sql_script_task_txn_cancel);
+        int choice = DBWorkbench.getPlatformUI().showUserChoice(DTMessages.sql_script_task_txn_title,
+            NLS.bind(DTMessages.database_transfer_consumer_txn_before, connection, target), labels, List.of(), 2, 2).choiceIndex;
+        if (choice != 0 && choice != 1) {
+            throw new DBCException("Data load into " + target + " not started: the session of connection " + connection
+                + " has a transaction that is not committed");
+        }
+        DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetContext);
+        if (txnManager != null) {
+            if (choice == 0) {
+                txnManager.commit(targetSession);
+            } else {
+                txnManager.rollback(targetSession, null);
+            }
+        }
+    }
+
+    @NotNull
+    private String getTargetName() {
+        DBSDataManipulator targetObject = getTargetObject();
+        return targetObject != null ? DBUtils.getObjectFullName(targetObject, DBPEvaluationContext.UI) : "?"; //$NON-NLS-1$
+    }
+
+    /**
+     * What the load transaction holds that is not committed, as told to the user; null when nothing.
+     */
+    @Nullable
+    private String describeUncommitted() {
+        List<String> parts = new ArrayList<>();
+        if (truncateUncommitted) {
+            parts.add(DTMessages.database_transfer_consumer_rolled_back_truncate);
+        }
+        if (rowsExported > rowsCommitted) {
+            parts.add(NLS.bind(DTMessages.database_transfer_consumer_rolled_back_rows,
+                new Object[]{rowsExported - rowsCommitted, rowsCommitted + 1, rowsExported}));
+        }
+        return parts.isEmpty() ? null : String.join(", ", parts); //$NON-NLS-1$
+    }
+
+    private DBSObject checkTargetContainer(DBRProgressMonitor monitor) throws DBException {
+        DBSDataManipulator targetObject = getTargetObject();
+        if (targetObject == null) {
+            DBSObjectContainer container = settings.getContainer();
+            if (container instanceof DBPDataSourceContainer && container.getDataSource() == null) {
+                // Init connection
+                DBUtils.initDataSource(monitor, (DBPDataSourceContainer) settings.getContainer(), null);
+            }
+            if (settings.getContainer() == null) {
+                throw new DBCException("Can't initialize database consumer. No target object and no target container");
+            }
+        }
+
+        return targetObject == null ? settings.getContainer() : targetObject;
+    }
+
+    private void closeExporter() {
+        if (!isPreview && targetSession != null && oldAutoCommit != null) {
+            try {
+                DBCTransactionManager txnManager = DBUtils.getTransactionManager(targetSession.getExecutionContext());
+                if (txnManager != null && txnManager.isSupportsTransactions()) {
+                    // Every uncommited data here is considered as fail, and we need to rollback them.
+                    // The user is told what was undone (or that it could not be), never silently
+                    if (!txnManager.isAutoCommit()) {
+                        String uncommitted = describeUncommitted();
+                        String connection = targetContext.getDataSource().getContainer().getName();
+                        try {
+                            txnManager.rollback(targetSession, null);
+                        } catch (DBCException e) {
+                            if (uncommitted != null) {
+                                DBWorkbench.getPlatformUI().showError(DTMessages.database_transfer_consumer_rolled_back_title,
+                                    NLS.bind(DTMessages.database_transfer_consumer_rollback_failed,
+                                        new Object[]{getTargetName(), connection, uncommitted}), e);
+                            }
+                            throw e;
+                        }
+                        if (uncommitted != null) {
+                            resetUncommitted();
+                            DBWorkbench.getPlatformUI().showWarningNotification(DTMessages.database_transfer_consumer_rolled_back_title,
+                                NLS.bind(DTMessages.database_transfer_consumer_rolled_back, new Object[]{getTargetName(), connection, uncommitted}));
+                        }
+                    }
+                    txnManager.setAutoCommit(targetSession.getProgressMonitor(), oldAutoCommit);
+                }
+            } catch (Exception e) {
+                log.debug("Error reverting auto-commit mode", e);
+            }
+        }
+
+        try {
+            if (targetSession != null) {
+                targetSession.close();
+                targetSession = null;
+            }
+        } catch (Throwable e) {
+            log.debug(e);
+        }
+        if (targetContext != null && useIsolatedConnection) {
+            DBUtils.closeSafely(targetContext);
+            targetContext = null;
+        }
+
+        if (bulkLoadManager != null) {
+            bulkLoadManager.close();
+            bulkLoadManager = null;
+        }
+    }
+
+    @Override
+    public void initTransfer(
+        @NotNull DBSObject sourceObject,
+        @Nullable DatabaseConsumerSettings settings,
+        @NotNull TransferParameters parameters,
+        @Nullable IDataTransferProcessor processor,
+        @Nullable Map<String, Object> processorProperties,
+        @Nullable DBPProject project
+    ) {
+        this.settings = settings;
+        if (settings != null) {
+            this.containerMapping = settings.getDataMapping((DBSDataContainer) sourceObject);
+        }
+    }
+
+    @Override
+    public void startTransfer(DBRProgressMonitor monitor) throws DBException {
+        // Create all necessary database objects
+        monitor.beginTask("Create necessary database objects", 1);
+        try {
+            DBSObject dbObject = checkTargetContainer(monitor);
+
+            if (!isPreview && containerMapping != null) {
+                DBSObjectContainer container = settings.getContainer();
+                if (container == null) {
+                    throw new DBException("No target datasource - can't create target objects");
+                }
+
+                boolean hasNewObjects = createTargetDatabaseObjects(monitor, dbObject);
+
+                if (hasNewObjects) {
+                    DatabaseTransferUtils.refreshDatabaseModel(monitor, settings, containerMapping);
+                }
+            }
+        } finally {
+            monitor.done();
+        }
+    }
+
+    private boolean createTargetDatabaseObjects(DBRProgressMonitor monitor, DBSObject dbObject) throws DBException {
+        try (DBCSession session = DBUtils.openMetaSession(monitor, dbObject, "Create target metadata")) {
+            // We may need to change active catalog to create target object in the proper location
+            DBSCatalog oldCatalog = null;
+            DBSSchema oldSchema = null;
+            DBSCatalog catalog = dbObject instanceof DBSSchema ? DBUtils.getParentOfType(DBSCatalog.class, dbObject) : null;
+            if (catalog != null) {
+                var contextDefaults = session.getExecutionContext().getContextDefaults();
+                if (contextDefaults != null && contextDefaults.supportsCatalogChange() && contextDefaults.getDefaultCatalog() != catalog) {
+                    oldCatalog = contextDefaults.getDefaultCatalog();
+                    oldSchema = contextDefaults.getDefaultSchema();
+                    try {
+                        contextDefaults.setDefaultCatalog(monitor, catalog, (DBSSchema) dbObject);
+                    } catch (DBCException e) {
+                        log.debug(e);
+                    }
+                }
+            }
+            try {
+                return switch (containerMapping.getMappingType()) {
+                    case create, recreate, existing -> createTargetTable(session, containerMapping);
+                    default -> false;
+                };
+            } finally {
+                if (oldCatalog != null) {
+                    // Revert to old catalog
+                    try {
+                        session.getExecutionContext().getContextDefaults().setDefaultCatalog(monitor, oldCatalog, oldSchema);
+                    } catch (DBCException e) {
+                        log.debug(e);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean createTargetTable(DBCSession session, DatabaseMappingContainer containerMapping) throws DBException {
+        DBSObjectContainer schema = settings.getContainer();
+        if (schema == null) {
+            throw new DBException("No target container selected");
+        }
+        if (session.getDataSource().getInfo().isDynamicMetadata()) {
+            if (containerMapping.hasNewTargetObject()) {
+                DBSDataManipulator target = DatabaseTransferUtils.createTargetDynamicTable(
+                    session.getProgressMonitor(),
+                    session.getExecutionContext(),
+                    schema,
+                    containerMapping,
+                    containerMapping.getTarget() != null
+                );
+                if (target != null) {
+                    DatabaseTransferUtils.setMappingTarget(containerMapping, target);
+                    useDirectTarget = true;
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            DBEPersistAction[] actions = DatabaseTransferUtils.generateTargetTableDDL(
+                session.getProgressMonitor(),
+                session.getExecutionContext(),
+                schema,
+                containerMapping,
+                containerMapping.getChangedPropertiesMap(),
+                settings);
+            executeDDLWithScript(session, actions, "Can't create or update target table:");
+            return actions.length > 0;
+        }
+    }
+
+    private void executeDDLWithScript(
+        @NotNull DBCSession session, @NotNull DBEPersistAction[] actions, @NotNull String messagePrefix) throws DBCException {
+        try {
+            DatabaseTransferUtils.executeDDL(session, actions);
+        } catch (DBException e) {
+            throw new DBCException(messagePrefix + "\n" + SQLUtils.generateScript(session.getDataSource(), actions, false), e);
+        }
+    }
+
+    @Override
+    public void finishTransfer(@NotNull DBRProgressMonitor monitor, @Nullable Throwable error, @Nullable DBTTask task, boolean last) {
+        boolean headlessMode = DBWorkbench.getPlatform().getApplication().isHeadlessMode();
+        if (last && error == null) {
+            try {
+                if (settings.hasPostTransferActions()
+                    && settings.executePostTransferActions(monitor, checkTargetContainer(monitor))
+                    && settings.getContainer() != null) {
+                    DatabaseTransferUtils.refreshDatabaseModel(monitor, settings, containerMapping);
+                }
+            } catch (Exception e) {
+                log.error("Error executing post-transfer actions", e);
+                if (!headlessMode) {
+                    DBWorkbench.getPlatformUI().showError(
+                        "Post-transfer actions",
+                        "Error executing post-transfer actions",
+                        e);
+                }
+            }
+            // Refresh navigator
+            monitor.subTask("Refresh final database model");
+            try {
+                DBSObjectContainer container = settings.getContainer();
+                DBNModel navigatorModel = DBNUtils.getNavigatorModel(container);
+                if (navigatorModel != null) {
+                    var node = DBNUtils.getNodeByObject(containerMapping.getTarget());
+                    if (node == null) {
+                        node = DBNUtils.getNodeByObject(container);
+                    }
+                    if (node != null) {
+                        node.refreshNode(monitor, this);
+                    }
+                } else if (container instanceof DBPRefreshableObject refreshableObject) {
+                    refreshableObject.refreshObject(monitor);
+                }
+            } catch (Exception e) {
+                log.debug("Error refreshing database model after data consumer", e);
+            }
+        }
+
+        if (!headlessMode && !last && settings.isOpenTableOnFinish() && error == null) {
+            try {
+                // Mappings can be outdated so is the target object.
+                // This may happen when several database consumers point to the same container node
+                if (!useDirectTarget) {
+                    DatabaseTransferUtils.refreshDatabaseMappings(monitor, settings, containerMapping, true);
+                }
+            } catch (Exception e) {
+                log.error("Error refreshing database model", e);
+            }
+            DBSDataManipulator targetObject = getTargetObject();
+            if (targetObject != null) {
+                // Refresh node first (this will refresh table data as well)
+                try {
+                    DBNModel navigatorModel = DBNUtils.getNavigatorModel(targetObject);
+                    if (navigatorModel != null) {
+                        DBNDatabaseNode objectNode = DBNUtils.getNodeByObject(targetObject);
+                        if (objectNode != null) {
+                            objectNode.refreshNode(monitor, DBNEvent.FORCE_REFRESH);
+                        }
+                    } else if (targetObject instanceof DBPRefreshableObject ro) {
+                        ro.refreshObject(monitor);
+                    }
+                } catch (Exception e) {
+                    log.error("Error refreshing object '" + targetObject.getName() + "'", e);
+                }
+
+                try {
+                    DBWorkbench.getPlatformUI().openEntityEditor(targetObject);
+                } catch (Exception e) {
+                    log.error("Error opening entity editor for '" + targetObject.getName() + "'", e);
+                }
+            }
+        }
+
+        if (last) {
+            final DataTransferRegistry registry = DataTransferRegistry.getInstance();
+            for (Map.Entry<String, Map<String, Object>> entry : settings.getEventProcessors().entrySet()) {
+                final DataTransferEventProcessorDescriptor descriptor = registry.getEventProcessorById(entry.getKey());
+                if (descriptor == null) {
+                    log.debug("Can't find event processor '" + entry.getKey() + "'");
+                    continue;
+                }
+                try {
+                    final IDataTransferEventProcessor<DatabaseTransferConsumer> processor = descriptor.create();
+
+                    if (error == null) {
+                        processor.processEvent(monitor, IDataTransferEventProcessor.Event.FINISH, this, task, entry.getValue());
+                    } else {
+                        processor.processError(monitor, error, this, task, entry.getValue());
+                    }
+                } catch (DBException e) {
+                    DBWorkbench.getPlatformUI()
+                        .showError(
+                            "Transfer event processor",
+                            "Error executing data transfer event processor '" + descriptor.getLabel() + "'",
+                            e
+                        );
+                }
+            }
+        }
+    }
+
+    @Nullable
+    public DBSDataContainer getSourceObject() {
+        return containerMapping == null ? null : containerMapping.getSource();
+    }
+
+    @Nullable
+    public DBSDataManipulator getTargetObject() {
+        return containerMapping == null ? localTargetObject : containerMapping.getTarget();
+    }
+
+    public void setTargetObject(@Nullable DBSDataManipulator targetObject) {
+        this.localTargetObject = targetObject;
+    }
+
+    public DBSObjectContainer getContainer() {
+        return container;
+    }
+
+    @Override
+    public String getObjectName() {
+        if (targetObjectContainer != null) {
+            return targetObjectContainer.getName();
+        }
+
+        DBSDataManipulator targetObject = getTargetObject();
+
+        String targetName = null;
+        if (targetObject != null) {
+            targetName = DBUtils.getObjectFullName(targetObject, DBPEvaluationContext.UI);
+        }
+
+        if (targetName != null) {
+            return targetName + " [Existing]";
+        }
+
+        if (containerMapping == null) {
+            return "?";
+        }
+
+        targetName = containerMapping.getTargetFullName();
+
+        // + " [No changes]";
+        return switch (containerMapping.getMappingType()) {
+            case create -> targetName + " [Create]";
+            case recreate -> targetName + " [Recreate]";
+            case existing -> {
+                for (DatabaseMappingAttribute attr : containerMapping.getAttributeMappings(new VoidProgressMonitor())) {
+                    if (attr.getMappingType() == DatabaseMappingType.create) {
+                        yield targetName + " [Alter]";
+                    }
+                }
+                yield targetName;
+            }
+            case skip -> "[Skip]";
+            default -> targetName + " [Existing]";
+        };
+    }
+
+    @Override
+    public DBPImage getObjectIcon() {
+        if (targetObjectContainer != null) {
+            return DBIcon.TREE_FOLDER_TABLE;
+        }
+        DBSDataManipulator targetObject = getTargetObject();
+        if (targetObject instanceof DBPImageProvider) {
+            return DBValueFormatting.getObjectImage(targetObject);
+        }
+        return DBIcon.TREE_TABLE;
+    }
+
+    @Override
+    public String getObjectContainerName() {
+        if (targetObjectContainer != null) {
+            return DBUtils.getObjectFullName(targetObjectContainer, DBPEvaluationContext.UI);
+        }
+        DBPDataSourceContainer container = getDataSourceContainer();
+        return container != null ? container.getName() : "?";
+    }
+
+    @Override
+    public DBPImage getObjectContainerIcon() {
+        if (targetObjectContainer != null) {
+            return DBIcon.TREE_FOLDER_TABLE;
+        }
+        DBPDataSourceContainer container = getDataSourceContainer();
+        return container != null ? container.getDriver().getIcon() : null;
+    }
+
+    @Override
+    public boolean isConfigurationComplete() {
+        if (localTargetObject != null) {
+            return true;
+        }
+        return containerMapping != null &&
+            (containerMapping.getTarget() != null || !CommonUtils.isEmpty(containerMapping.getTargetName()));
+    }
+
+    @Override
+    public DBPDataSourceContainer getDataSourceContainer() {
+        if (targetObjectContainer != null) {
+            return targetObjectContainer.getDataSource().getContainer();
+        }
+        DBSDataManipulator targetObject = getTargetObject();
+        if (targetObject != null) {
+            return targetObject.getDataSource().getContainer();
+        }
+        DBSObjectContainer container = settings.getContainer();
+        if (container != null) {
+            return container.getDataSource().getContainer();
+        }
+        return null;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof DatabaseTransferConsumer &&
+            CommonUtils.equalObjects(getTargetObject(), ((DatabaseTransferConsumer) obj).getTargetObject());
+    }
+
+    @Override
+    public boolean supportsChangingReferentialIntegrity(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return checkTargetContainer(monitor) instanceof DBPReferentialIntegrityController;
+    }
+
+    @Override
+    public void enableReferentialIntegrity(@NotNull DBRProgressMonitor monitor, boolean enable) throws DBException {
+        DBSObject dbsObject = checkTargetContainer(monitor);
+        if (!(dbsObject instanceof DBPReferentialIntegrityController controller)) {
+            throw new DBException("Changing referential integrity is unsupported!");
+        }
+        controller.enableReferentialIntegrity(monitor, enable);
+    }
+
+    @Nullable
+    @Override
+    public String getChangeReferentialIntegrityStatement(@NotNull DBRProgressMonitor monitor, boolean enable) throws DBException {
+        DBSObject dbsObject = checkTargetContainer(monitor);
+        if (dbsObject instanceof DBPReferentialIntegrityController) {
+            return ((DBPReferentialIntegrityController) dbsObject).getChangeReferentialIntegrityStatement(monitor, enable);
+        }
+        return null;
+    }
+
+    public DatabaseConsumerSettings getSettings() {
+        return settings;
+    }
+
+    @Override
+    @NotNull
+    public DBCStatistics getStatistics() {
+        return statistics;
+    }
+
+    private class PreviewBatch implements DBSDataManipulator.ExecuteBatch {
+        @NotNull
+        @Override
+        public DBSDataManipulator.ExecuteBatch add(@NotNull Object[] attributeValues) {
+            previewRows.add(attributeValues);
+            return this;
+        }
+
+        @NotNull
+        @Override
+        public DBCStatistics execute(@NotNull DBCSession session, @NotNull Map<String, Object> options) throws DBCException {
+            return new DBCStatistics();
+        }
+
+        @Override
+        public void generatePersistActions(@NotNull DBCSession session, @NotNull List<DBEPersistAction> actions, @NotNull Map<String, Object> options) throws DBCException {
+
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+
+    /*
+     * This class is only suitable for data transfer preview.
+     */
+    private static class PreviewColumnInfo extends AbstractAttribute implements DBSEntityAttribute {
+        private final DBSEntity entity;
+        private final DBDAttributeBinding binding;
+
+        public PreviewColumnInfo(DBSEntity entity, DBDAttributeBinding binding, int index) {
+            super(binding.getName(), binding.getTypeName(), -1, index, binding.getMaxLength(), null, null, false, false);
+            this.entity = entity;
+            this.binding = binding;
+        }
+
+        @Nullable
+        @Override
+        public String getDefaultValue() {
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public DBSEntity getParentObject() {
+            return entity;
+        }
+
+        @NotNull
+        @Override
+        public DBPDataSource getDataSource() {
+            return this.binding.getDataSource();
+        }
+
+        @NotNull
+        @Override
+        public DBPDataKind getDataKind() {
+            return this.binding.getDataKind();
+        }
+    }
+
+    public void setSettings(@Nullable DatabaseConsumerSettings settings) {
+        this.settings = settings;
+    }
+
+    public void setContainerMapping(@Nullable DatabaseMappingContainer containerMapping) {
+        this.containerMapping = containerMapping;
+    }
+
+    @Override
+    public String toString() {
+        return containerMapping.getTargetFullName();
+    }
+}

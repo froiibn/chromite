@@ -1,0 +1,739 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.altibase.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.model.DBPIdentifierCase;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
+import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialectDDLExtension;
+import com.seizia.chromite.model.sql.SQLDialectSchemaController;
+import com.seizia.chromite.model.sql.parser.SQLParserActionKind;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateFactory;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateSet;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
+import org.jkiss.utils.ArrayUtils;
+import org.jkiss.utils.CommonUtils;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Altibase SQL dialect.
+ *
+ * 설계: 엔진 키워드(키워드 강조, 식별자 따옴표)는 연결한 서버가 {@code V$RESERVED_WORDS}로 알려 주는 예약어다
+ * ({@link #readServerKeywords}). 이 방언은 Altibase와 이름만 바뀐 Altibase 계열 서버(ShardSphere)가 함께 쓰고, 서버마다 예약어가 달라
+ * 정적 목록 하나로는 모든 서버에 맞출 수 없다. 제품 이름으로 나누지 않고 같은 코드가 각 서버의 목록을 읽는다. 뷰를 읽지 못하면
+ * Altibase 7.x용 정적 목록({@link #ALTIBASE_ONLY_KEYWORDS})을 쓴다. 표준 SQL 키워드와 함수 목록은 그대로 두고, 서버의 낱말은 정적 목록과
+ * 같은 방법({@code addSQLKeywords})으로 더한다: 함수이기도 한 낱말은 키워드 종류가 되고(엔진은 키워드로 따옴표를 정한다) 함수 목록에는 남는다.
+ * 방언 객체는 데이터 원본마다 하나라({@link AltibaseDataSource} 생성자) 한 연결의 낱말이 다른 연결로 가지 않는다.
+ * 예약어 목록은 문법 낱말 목록이 아니다: 계열의 어느 서버도 예약하지 않는 문법 낱말({@link #ALTIBASE_SYNTAX_KEYWORDS}, 시퀀스의
+ * {@code CACHE}·{@code NOCACHE})은 서버와 관계없이 키워드로 넣되, 예약어가 아니라 이름에 따옴표를 붙이는 이유가 되지 않는다
+ * ({@link #mustBeQuoted}). 한 서버라도 예약하는 낱말({@code SHARD}, {@code REPLICATION})은 연결한 서버를 따른다.
+ *
+ * 변경 이력:
+ * - 2026-11-12 Chromite: 문장 구분자의 {@code /}를 지움(기본 {@code ;}만). {@code /}만 있는 줄은 방언 규칙
+ *   ({@code AltibaseDialectRules}, {@code SQLSlashLineRule})이 문장 끝으로 본다. 구분자에 {@code /}가 있으면 나눗셈에서도 문장이 끊겼다
+ *   ({@code SELECT 4/2 AS q FROM dual}, 앱 변경 #80, docs/chromite/oracle-sqlplus-commands.md "Altibase")
+ * - 2026-11-15 Chromite: 엔진 키워드를 정적 목록 대신 연결한 서버의 {@code V$RESERVED_WORDS}에서 읽음(읽지 못하면 정적 목록).
+ *   ShardSphere의 {@code CONTINUOUS}·{@code CONTROLFILE}·{@code STREAM}이 키워드가 아니었고, Altibase 7.3에만 있는 {@code REPLICATION} 등이
+ *   ShardSphere에서도 키워드였다(앱 변경 #115, docs/chromite/altibase.md "서버 예약어")
+ * - 2026-11-15 Chromite: 예약어가 아닌 문법 낱말({@link #ALTIBASE_SYNTAX_KEYWORDS})을 정적 목록에서 떼어 서버와 관계없이 키워드로.
+ *   #115부터 서버가 보고하지 않는 {@code CACHE}·{@code NOCACHE}가 키워드 색을 잃었다. 이름으로는 따옴표 없이 둔다(앱 변경 #118,
+ *   docs/chromite/altibase.md "서버 예약어")
+ */
+public class AltibaseSQLDialect extends JDBCSQLDialect 
+            implements SQLDialectDDLExtension, SQLDialectSchemaController {
+
+    private static final Log log = Log.getLog(AltibaseSQLDialect.class);
+
+    /**
+     * Reserved words the server reports (Altibase and ShardSphere have the view). The RESERVED_TYPE column is not read:
+     * on Altibase 7.3 type 1 words work unquoted as column names and aliases and type 0 words do not, but no word of
+     * either type works unquoted as a table name, ShardSphere's values do not follow that rule, and this dialect quotes
+     * every reported word alike (its only non-reserved keywords are the syntax words the view does not list).
+     */
+    private static final String QUERY_RESERVED_WORDS = "SELECT KEYWORD FROM V$RESERVED_WORDS";
+
+    private static final String[] ALTIBASE_NON_TRANSACTIONAL_KEYWORDS = ArrayUtils.concatArrays(
+            BasicSQLDialect.NON_TRANSACTIONAL_KEYWORDS,
+            new String[]{
+                "CREATE", "ALTER", "DROP", "ANALYZE", "VALIDATE",
+            }
+        );
+    
+    private static final String[] ALTIBASE_BLOCK_HEADERS = new String[] {
+        "DECLARE", "PACKAGE"
+    };
+
+    private static final String[][] ALTIBASE_BEGIN_END_BLOCK = new String[][]{
+        {SQLConstants.BLOCK_BEGIN, SQLConstants.BLOCK_END},
+        {"LOOP", SQLConstants.BLOCK_END + " LOOP"},
+        {SQLConstants.KEYWORD_CASE, SQLConstants.BLOCK_END + " " + SQLConstants.KEYWORD_CASE},
+    };
+    
+    private static final String[] ALTIBASE_INNER_BLOCK_PREFIXES = new String[]{
+        "AS", "IS"
+    };
+
+    public static final String[] OTHER_TYPES_FUNCTIONS = {
+        //functions without parentheses
+        "SYSDATE"
+    };
+    
+    /**
+     * Altibase 7.x reserved words that are not SQL standard keywords: the engine keywords when the server's
+     * {@code V$RESERVED_WORDS} cannot be read ({@link #readServerKeywords}). Non-reserved syntax words are not here
+     * ({@link #ALTIBASE_SYNTAX_KEYWORDS}).
+     */
+    public static final String[] ALTIBASE_ONLY_KEYWORDS = new String[] {
+        "ACCESS",             "AGER",               //  2
+        "APPLY",              "ARCHIVE",            //  4
+        "ARCHIVELOG",         "AUDIT",              //  6
+        "AUTHID",             "AUTOEXTEND",         //  8
+        "BACKUP",             "BODY",               // 10
+        "BULK",               "CHECKPOINT",         // 12
+        "COMMENT",            "COMPILE",            // 14
+        "COMPRESS",           "COMPRESSED",         // 16
+        "CONJOIN",            "CONNECT_BY_ROOT",    // 18
+        "CONSTANT",           "CURRENT_USER",       // 20
+        "DATABASE",           "DECRYPT",            // 22
+        "DELAUDIT",           "DEQUEUE",            // 24
+        "DIRECTORY",          "DISABLE",            // 26
+        "DISASTER",           "DISJOIN",            // 28
+        "DUMP_CALLSTACKS",    "ELSEIF",             // 30
+        "ELSIF",              "ENABLE",             // 32
+        "ENQUEUE",            "EXIT",               // 34
+        "EXTENT",             "EXTENTSIZE",         // 36
+        "FIFO",               "FIXED",              // 38
+        "FLASHBACK",          "FLUSH",              // 40
+        "FLUSHER",            "IDENTIFIED",         // 42
+        "INITRANS",           "INSTEAD",            // 44
+        "KEEP",               "LESS",               // 46
+        "LIBRARY",            "LIFO",               // 48
+        "LINK",               "LINKER",             // 50
+        "LOB",                "LOCALUNIQUE",        // 52
+        "LOCK",               "LOGANCHOR",          // 54
+        "LOGGING",            "LOOP",               // 56
+        "MATERIALIZED",       "MAXROWS",            // 58
+        "MAXTRANS",           "MINUS",              // 60
+        "MODE",               "MODIFY",             // 62
+        "MOVE",               "MOVEMENT",           // 64
+        "NOARCHIVELOG",       "NOAUDIT",            // 66
+        "NOCOPY",             "NOCYCLE",            // 68
+        "NOLOGGING",          "NOPARALLEL",         // 70
+        "OFF",                "OFFLINE",            // 72
+        "ONLINE",             "PACKAGE",            // 74
+        "PARALLEL",           "PARAMETERS",         // 76
+        "PARTITIONS",         "PIVOT",              // 78
+        "PURGE",              "QUEUE",              // 80
+        "RAISE",              "REBUILD",            // 82
+        "RECOVER",            "REMOTE_TABLE",       // 84
+        "REMOTE_TABLE_STORE", "REMOVE",             // 86
+        "REORGANIZE",         "REPLACE",            // 88
+        "REPLICATION",        "RETURNING",          // 90
+        "ROWCOUNT",           "ROWNUM",             // 92
+        "ROWTYPE",            "SEGMENT",            // 94
+        "SHARD",              "SHRINK_MEMPOOL",     // 96
+        "SPECIFICATION",      "SPLIT",              // 98
+        "SQLCODE",            "SQLERRM",            //100
+        "STEP",               "STORAGE",            //102
+        "STORE",              "SUPPLEMENTAL",       //104
+        "SYNONYM",            "TABLESPACE",         //106
+        "THAN",               "TOP",                //108
+        "TRUNCATE",           "TYPESET",            //110
+        "UNCOMPRESSED",       "UNLOCK",             //112
+        "UNPIVOT",            "UNTIL",              //114
+        "VARIABLE",           "VARIABLE_LARGE",     //116
+        "VC2COLL",            "VOLATILE",           //118
+        "WAIT",               "WHILE",              //120
+        "WRAPPED",            "_PROWID",            //122
+    };
+    
+    /**
+     * Non-reserved syntax words: words of the Altibase grammar ({@code CREATE / ALTER SEQUENCE ... CACHE n | NOCACHE}) that
+     * no server of the family reserves, so {@code V$RESERVED_WORDS} does not list them and they work unquoted as names.
+     * They are keywords on every connection, whatever the server reports, but not a reason to quote a name
+     * ({@link #mustBeQuoted}). A word one server of the family reserves ({@code SHARD}, {@code REPLICATION}) is not one of
+     * these: it follows the connected server's list.
+     */
+    private static final String[] ALTIBASE_SYNTAX_KEYWORDS = new String[] {
+        "CACHE", "NOCACHE"
+    };
+
+    public static final String[] ALTIBASE_ONLY_FUNCTIONS = new String[] {
+        "ACOS",                    "ADD_MONTHS",                //  2
+        "AESDECRYPT",              "AESENCRYPT",                //  4
+        "ASCII",                   "ASCIISTR",                  //  6
+        "ASIN",                    "ATAN",                      //  8
+        "ATAN2",                   "BASE64_DECODE",             // 10
+        "BASE64_DECODE_STR",       "BASE64_ENCODE",             // 12
+        "BASE64_ENCODE_STR",       "BINARY_LENGTH",             // 14
+        "BIN_TO_NUM",              "BITAND",                    // 16
+        "BITNOT",                  "BITOR",                     // 18
+        "BITXOR",                  "CASE2",                     // 20
+        "CEIL",                    "CHOSUNG",                   // 22
+        "CHR",                     "COALESCE",                  // 24
+        "CONCAT",                  "CONVERT",                   // 26
+        "CONV_TIMEZONE",           "CORR",                      // 28
+        "COS",                     "COSH",                      // 30
+        "COVAR_POP",               "COVAR_SAMP",                // 32
+        "CUME_DIST",               "CURRENT_DATE",              // 34
+        "CURRENT_TIMESTAMP",       "DATEADD",                   // 36
+        "DATEDIFF",                "DATENAME",                  // 38
+        "DATE_TO_UNIX",            "DB_TIMEZONE",               // 40
+        "DECODE",                  "DENSE_RANK",                // 42
+        "DESDECRYPT",              "DESENCRYPT",                // 44
+        "DIGEST",                  "DIGITS",                    // 46
+        "DUMP",                    "EMPTY_BLOB",                // 48
+        "EMPTY_CLOB",              "EXP",                       // 50
+        "EXTRACT",                 "FIRST",                     // 52
+        "FIRST_VALUE",             "FIRST_VALUE_IGNORE_NULLS",  // 54
+        "GREATEST",                "GROUPING",                  // 56
+        "GROUPING_ID",             "GROUP_CONCAT",              // 58
+        "HEX_DECODE",              "HEX_ENCODE",                // 60
+        "HEX_TO_NUM",              "HOST_NAME",                 // 62
+        "INITCAP",                 "INSTR",                     // 64
+        "ISNUMERIC",               "LAG",                       // 66
+        "LAG_IGNORE_NULLS",        "LAST",                      // 68
+        "LAST_DAY",                "LAST_VALUE",                // 70
+        "LAST_VALUE_IGNORE_NULLS", "LEAD",                      // 72
+        "LEAD_IGNORE_NULLS",       "LEAST",                     // 74
+        "LISTAGG",                 "LN",                        // 76
+        "LNNVL",                   "LOG",                       // 78
+        "LPAD",                    "LTRIM",                     // 80
+        "MEDIAN",                  "MOD",                       // 82
+        "MONTHS_BETWEEN",          "MSG_CREATE_QUEUE",          // 84
+        "MSG_DROP_QUEUE",          "MSG_RCV_QUEUE",             // 86
+        "MSG_SND_QUEUE",           "NCHR",                      // 88
+        "NEXT_DAY",                "NTH_VALUE",                 // 90
+        "NTH_VALUE_IGNORE_NULLS",  "NTILE",                     // 92
+        "NULLIF",                  "NUMAND",                    // 94
+        "NUMOR",                   "NUMSHIFT",                  // 96
+        "NUMXOR",                  "NVL",                       // 98
+        "NVL2",                    "OCT_TO_NUM",                //100
+        "PKCS7PAD16",              "PKCS7UNPAD16",              //102
+        "QUOTE_PRINTABLE_DECODE",  "QUOTE_PRINTABLE_ENCODE",    //104
+        "RAND",                    "RANDOM",                    //106
+        "RANDOM_STRING",           "RANK",                      //108
+        "RATIO_TO_REPORT",         "RAW_CONCAT",                //110
+        "RAW_SIZEOF",              "RAW_TO_FLOAT",              //112
+        "RAW_TO_INTEGER",          "RAW_TO_NUMERIC",            //114
+        "RAW_TO_VARCHAR",          "REGEXP_COUNT",              //116
+        "REGEXP_INSTR",            "REGEXP_REPLACE",            //118
+        "REGEXP_SUBSTR",           "REPLACE2",                  //120
+        "REPLICATE",               "REVERSE_STR",               //122
+        "ROUND",                   "ROWNUM",                    //124
+        "ROW_NUMBER",              "RPAD",                      //126
+        "RTRIM",                   "SENDMSG",                   //128
+        "SESSION_ID",              "SESSION_TIMEZONE",          //130
+        "SIGN",                    "SIN",                       //132
+        "SINH",                    "SIZEOF",                    //134
+        "STATS_ONE_WAY_ANOVA",     "STDDEV",                    //136
+        "STDDEV_POP",              "STDDEV_SAMP",               //138
+        "STUFF",                   "SUBRAW",                    //140
+        "SUBSTRB",                 "SYSTIMESTAMP",              //142
+        "SYS_CONNECT_BY_PATH",     "SYS_CONTEXT",               //144
+        "SYS_GUID_STR",            "TAN",                       //146
+        "TANH",                    "TDESDECRYPT",               //148
+        "TDESENCRYPT",             "TO_BIN",                    //150
+        "TO_CHAR",                 "TO_DATE",                   //152
+        "TO_HEX",                  "TO_INTERVAL",               //154
+        "TO_NCHAR",                "TO_NUMBER",                 //156
+        "TO_OCT",                  "TO_RAW",                    //158
+        "TRANSLATE",               "TRIPLE_DESDECRYPT",         //160
+        "TRIPLE_DESENCRYPT",       "TRUNC",                     //162
+        "UNISTR",                  "UNIX_DATE",                 //164
+        "UNIX_TIMESTAMP",          "UNIX_TO_DATE",              //166
+        "USER_ID",                 "USER_LOCK_RELEASE",         //168
+        "USER_LOCK_REQUEST",       "USER_NAME",                 //170
+        "VARIANCE",                "VAR_POP",                   //172
+        "VAR_SAMP",                
+    };
+    
+    private static final String[] ALTIBASE_FUNCTIONS = new String[] {
+        // Aggregation functions
+        "AVG", "CORR", "COUNT", "COVAR_POP", "COVAR_SAMP", 
+        "CUME_DIST", "FIRST", "GROUP_CONCAT", "LAST", "LISTAGG", 
+        "MAX", "MIN", "PERCENTILE_CONT", "PERCENTILE_DISC", "PERCENT_RANK", 
+        "RANK", "STATS_ONE_WAY_ANOVA", "STDDEV", "STDDEV_POP", "STDDEV_SAMP", 
+        "SUM", "VARIANCE", "VAR_POP", "VAR_SAMP", "MEDIAN",
+        // Window functions
+        "LISTAGG", "RATIO_TO_REPORT", "GROUP_CONCAT", 
+        "RANK", "DENSE_RANK", "ROW_NUMBER", "LAG", "LAG_IGNORE_NULLS", 
+        "LEAD", "LEAD_IGNORE_NULLS", "NTILE", "FIRST", "LAST",
+        "FIRST_VALUE", "FIRST_VALUE_IGNORE_NULLS", "LAST_VALUE", "LAST_VALUE_IGNORE_NULLS", "NTH_VALUE",
+        "NTH_VALUE_IGNORE_NULLS",
+
+        // Number
+        "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", 
+        "CEIL", "COS", "COSH", "EXP", "FLOOR", 
+        "ISNUMERIC", "LN", "LOG", "MOD", "NUMAND", 
+        "NUMOR", "NUMSHIFT", "NUMXOR", "POWER", "RAND", 
+        "RANDOM", "ROUND", "SIGN", "SIN", "SINH", 
+        "SQRT", "TAN", "TANH", "TRUNC", "BITAND", 
+        "BITOR", "BITXOR", "BITNOT",
+
+        // Convert string
+        "CHR", "CHOSUNG", "CONCAT", "DIGITS", "INITCAP", 
+        "LOWER", "LPAD", "LTRIM", "NCHR", "PKCS7PAD16", 
+        "PKCS7UNPAD16", "RANDOM_STRING", "REGEXP_COUNT", "REGEXP_REPLACE", "REPLICATE", 
+        "REPLACE2", "REVERSE_STR", "RPAD", "RTRIM", "STUFF", "SUBSTRB", 
+        "TRANSLATE", "TRIM", "UPPER", 
+
+        // Convert number
+        "ASCII", "CHAR_LENGTH", "DIGEST", "INSTR", "OCTET_LENGTH", 
+        "REGEXP_INSTR", "REGEXP_SUBSTR", "SIZEOF",
+
+        // Date
+        "ADD_MONTHS", "DATEADD", "DATEDIFF", "DATENAME", "EXTRACT", 
+        "LAST_DAY", "MONTHS_BETWEEN", "NEXT_DAY", "SESSION_TIMEZONE", "SYSTIMESTAMP", 
+        "UNIX_DATE", "UNIX_TIMESTAMP", "CURRENT_DATE", "CURRENT_TIMESTAMP", "DB_TIMEZONE", 
+        "CONV_TIMEZONE", "ROUND", "TRUNC",
+
+        // Convert
+        "ASCIISTR", "BIN_TO_NUM", "CONVERT", "DATE_TO_UNIX", "HEX_ENCODE", 
+        "HEX_DECODE", "HEX_TO_NUM", "OCT_TO_NUM", "RAW_TO_FLOAT", "RAW_TO_INTEGER", 
+        "RAW_TO_NUMERIC", "RAW_TO_VARCHAR", "TO_BIN", "TO_CHAR", "TO_DATE", 
+        "TO_HEX", "TO_INTERVAL", "TO_NCHAR", "TO_NUMBER", "TO_OCT", 
+        "TO_RAW", "UNISTR", "UNIX_TO_DATE",
+
+        // Encryption
+        "AESDECRYPT", "AESENCRYPT", "DESENCRYPT", "DESDECRYPT", "TDESDECRYPT", "TRIPLE_DESDECRYPT", 
+        "TDESENCRYPT", "TRIPLE_DESENCRYPT",
+
+        // Etc.
+        "BASE64_DECODE", "BASE64_DECODE_STR", "BASE64_ENCODE", "BASE64_ENCODE_STR", "BINARY_LENGTH", 
+        "CASE2", "COALESCE", "DECODE", "DIGEST", 
+        "DUMP", "EMPTY_BLOB", "EMPTY_CLOB", "GREATEST", "GROUPING", 
+        "GROUPING_ID", "HOST_NAME", "LEAST", "LNNVL", "MSG_CREATE_QUEUE", 
+        "MSG_DROP_QUEUE", "MSG_SND_QUEUE", "MSG_RCV_QUEUE", "NULLIF", "NVL", 
+        "NVL2", "QUOTE_PRINTABLE_DECODE", "QUOTE_PRINTABLE_ENCODE", "RAW_CONCAT", "RAW_SIZEOF", 
+        "ROWNUM", "SENDMSG", "USER_ID", "USER_NAME", "SESSION_ID", 
+        "SUBRAW", "SYS_CONNECT_BY_PATH", "SYS_GUID_STR", "USER_LOCK_REQUEST", "USER_LOCK_RELEASE", 
+        "SYS_CONTEXT"
+    };
+    /******************************************************************************
+     * Base data to generate Altibase only keyword and function list
+     * (keywords: the Altibase 7.x reserved word list; the syntax words are ALTIBASE_SYNTAX_KEYWORDS)
+     ******************************************************************************/
+    private static final String[] ALTIBASE_KEYWORDS = {
+        "ACCESS",             "ADD",                "AFTER",              "AGER",               "ALL",                  //5
+        "ALTER",              "AND",                "ANY",                "APPLY",              "ARCHIVE",              //10
+        "ARCHIVELOG",         "AS",                 "ASC",                "AT",                 "AUDIT",                //15
+        "AUTHID",             "AUTOEXTEND",         "BACKUP",             "BEFORE",             "BEGIN",                //20
+        "BETWEEN",            "BODY",               "BULK",               "BY",                 "CASCADE",              //25
+        "CASE",               "CAST",               "CHECK",              "CHECKPOINT",         "CLOSE",                //30
+        "COALESCE",           "COLUMN",             "COMMENT",            "COMMIT",             "COMPILE",              //35
+        "COMPRESS",           "COMPRESSED",         "CONJOIN",            "CONNECT",            "CONNECT_BY_ROOT",      //40
+        "CONSTANT",           "CONSTRAINT",         "CONSTRAINTS",        "CONTINUE",           "CREATE",               //45
+        "CROSS",              "CUBE",               "CURRENT_USER",       "CURSOR",             "CYCLE",                //50
+        "DATABASE",           "DECLARE",            "DECRYPT",            "DEFAULT",            "DEFINER",              //55
+        "DELAUDIT",           "DELETE",             "DEQUEUE",            "DESC",               "DETERMINISTIC",        //60
+        "DIRECTORY",          "DISABLE",            "DISASTER",           "DISCONNECT",         "DISJOIN",              //65
+        "DISTINCT",           "DROP",               "DUMP_CALLSTACKS",    "EACH",               "ELSE",                 //70
+        "ELSEIF",             "ELSIF",              "ENABLE",             "END",                "ENQUEUE",              //75
+        "ESCAPE",             "EXCEPTION",          "EXEC",               "EXECUTE",            "EXISTS",               //80
+        "EXIT",               "EXTENT",             "EXTENTSIZE",         "FALSE",              "FETCH",                //85
+        "FIFO",               "FIXED",              "FLASHBACK",          "FLUSH",              "FLUSHER",              //90
+        "FOLLOWING",          "FOR",                "FOREIGN",            "FROM",               "FULL",                 //95
+        "FUNCTION",           "GOTO",               "GRANT",              "GROUP",              "HAVING",               //100
+        "IDENTIFIED",         "IF",                 "IN",                 "INDEX",              "INITRANS",             //105
+        "INNER",              "INSERT",             "INSTEAD",            "INTERSECT",          "INTO",                 //110
+        "IS",                 "ISOLATION",          "JOIN",               "KEEP",               "KEY",                  //115
+        "LANGUAGE",           "LATERAL",            "LEFT",               "LESS",               "LEVEL",                //120
+        "LIBRARY",            "LIFO",               "LIKE",               "LIMIT",              "LINK",                 //125
+        "LINKER",             "LOB",                "LOCAL",              "LOCALUNIQUE",        "LOCK",                 //130
+        "LOGANCHOR",          "LOGGING",            "LOOP",               "MATERIALIZED",       "MAXROWS",              //135
+        "MAXTRANS",           "MERGE",              "MINUS",              "MODE",               "MODIFY",               //140
+        "MOVE",               "MOVEMENT",           "NEW",                "NOARCHIVELOG",       "NOAUDIT",              //145
+        "NOCOPY",             "NOCYCLE",            "NOLOGGING",          "NOPARALLEL",         "NOT",                  //150
+        "NULL",               "NULLS",              "OF",                 "OFF",                "OFFLINE",              //155
+        "OLD",                "ON",                 "ONLINE",             "OPEN",               "OR",                   //160
+        "ORDER",              "OTHERS",             "OUT",                "OUTER",              "OVER",                 //165
+        "PACKAGE",            "PARALLEL",           "PARAMETERS",         "PARTITION",          "PARTITIONS",           //170
+        "PIVOT",              "PRECEDING",          "PRIMARY",            "PRIOR",              "PRIVILEGES",           //175
+        "PROCEDURE",          "PURGE",              "QUEUE",              "RAISE",              "READ",                 //180
+        "REBUILD",            "RECOVER",            "REFERENCES",         "REFERENCING",        "REMOTE_TABLE",         //185
+        "REMOTE_TABLE_STORE", "REMOVE",             "RENAME",             "REORGANIZE",         "REPLACE",              //190
+        "REPLICATION",        "RETURN",             "RETURNING",          "REVOKE",             "RIGHT",                //195
+        "ROLLBACK",           "ROLLUP",             "ROW",                "ROWCOUNT",           "ROWNUM",               //200
+        "ROWTYPE",            "SAVEPOINT",          "SEGMENT",            "SELECT",             "SEQUENCE",             //205
+        "SESSION",            "SET",                "SHARD",              "SHRINK_MEMPOOL",     "SOME",                 //210
+        "SPECIFICATION",      "SPLIT",              "SQLCODE",            "SQLERRM",            "START",                //215
+        "STATEMENT",          "STEP",               "STORAGE",            "STORE",              "SUPPLEMENTAL",         //220
+        "SYNONYM",            "TABLE",              "TABLESPACE",         "TEMPORARY",          "THAN",                 //225
+        "THEN",               "TO",                 "TOP",                "TRIGGER",            "TRUE",                 //230
+        "TRUNCATE",           "TYPE",               "TYPESET",            "UNCOMPRESSED",       "UNION",                //235
+        "UNIQUE",             "UNLOCK",             "UNPIVOT",            "UNTIL",              "UPDATE",               //240
+        "USING",              "VALUES",             "VARIABLE",           "VARIABLE_LARGE",     "VC2COLL",              //245
+        "VIEW",               "VOLATILE",           "WAIT",               "WHEN",               "WHENEVER",             //250
+        "WHERE",              "WHILE",              "WITH",               "WITHIN",             "WORK",                 //255
+        "WRAPPED",            "WRITE",              "_PROWID"
+    };
+    
+    // ALTIBASE_SYNTAX_KEYWORDS the connected server does not reserve (set when the dialect is initialized for a connection)
+    private volatile Set<String> nonReservedKeywords = Set.of();
+
+    public AltibaseSQLDialect() {
+        super("Altibase", "altibase");
+        setUnquotedIdentCase(DBPIdentifierCase.UPPER);
+    }
+
+    @NotNull
+    @Override
+    public String[] getDDLKeywords() {
+        return super.getDDLKeywords();
+    }
+
+    @Override
+    public String[] getBlockHeaderStrings() {
+        return ALTIBASE_BLOCK_HEADERS;
+    }
+    
+
+    @Nullable
+    @Override
+    public String[] getInnerBlockPrefixes() {
+        return ALTIBASE_INNER_BLOCK_PREFIXES;
+    }
+    
+    @Override
+    public String[][] getBlockBoundStrings() {
+        return ALTIBASE_BEGIN_END_BLOCK;
+    }
+
+    /**
+     * Register Altibase functions, the server's reserved words as SQL keywords, and so on.
+     */
+    public void initDriverSettings(JDBCSession session, JDBCDataSource dataSource, JDBCDatabaseMetaData metaData) {
+        super.initDriverSettings(session, dataSource, metaData);
+        
+        addFunctions(Arrays.asList(ALTIBASE_ONLY_FUNCTIONS));
+        Collection<String> reservedWords = readServerKeywords(session);
+        addSQLKeywords(reservedWords);
+        // A syntax word stays a keyword; it is a reserved one only if this server says so
+        addSQLKeywords(Arrays.asList(ALTIBASE_SYNTAX_KEYWORDS));
+        nonReservedKeywords = Arrays.stream(ALTIBASE_SYNTAX_KEYWORDS)
+            .filter(word -> !reservedWords.contains(word))
+            .collect(Collectors.toUnmodifiableSet());
+        addKeywords(Arrays.asList(OTHER_TYPES_FUNCTIONS), DBPKeywordType.OTHER);
+        turnFunctionIntoKeyword("TRUNCATE");
+        
+        cachedDialectSkipTokenPredicates = makeDialectSkipTokenPredicates(dataSource);
+    }
+
+    /**
+     * The reserved words of the connected server, or {@link #ALTIBASE_ONLY_KEYWORDS} when the view cannot be read
+     * (an older server, no privilege, an error): a missing list must not fail the connect.
+     */
+    @NotNull
+    private static Collection<String> readServerKeywords(@NotNull JDBCSession session) {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_RESERVED_WORDS);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            List<String> words = new ArrayList<>();
+            while (dbResult.next()) {
+                String word = JDBCUtils.safeGetStringTrimmed(dbResult, 1);
+                if (CommonUtils.isNotEmpty(word)) {
+                    words.add(word.toUpperCase(Locale.ENGLISH));
+                }
+            }
+            if (!words.isEmpty()) {
+                return words;
+            }
+            log.debug("No reserved words in V$RESERVED_WORDS, using the static Altibase keyword list");
+        } catch (SQLException e) {
+            log.debug("Error reading V$RESERVED_WORDS, using the static Altibase keyword list: " + e.getMessage());
+        }
+        return Arrays.asList(ALTIBASE_ONLY_KEYWORDS);
+    }
+    
+    /**
+     * A non-reserved syntax word is quoted only for the reasons any other plain name would be (it has letters only):
+     * quote-always, or a case the server would fold. Every other word is decided as before.
+     */
+    @Override
+    public boolean mustBeQuoted(@NotNull String str, boolean forceCaseSensitive) {
+        if (nonReservedKeywords.contains(str.toUpperCase(Locale.ENGLISH))) {
+            return isQuoteIdentifiersAlways()
+                || forceCaseSensitive && !useCaseInsensitiveNameLookup() && !str.equals(storesUnquotedCase().transform(str));
+        }
+        return super.mustBeQuoted(str, forceCaseSensitive);
+    }
+
+    @Override
+    protected void loadDataTypesFromDatabase(JDBCDataSource dataSource) {
+        super.loadDataTypesFromDatabase(dataSource);
+        addDataTypes(Stream.of(AltibaseDataTypeDomain.values())
+                .map(AltibaseDataTypeDomain::name)
+                .collect(Collectors.toList()));
+    }
+    
+    @Nullable
+    @Override
+    public String getDualTableName() {
+        return "DUAL";
+    }
+
+    @NotNull
+    @Override
+    public String[] getNonTransactionKeywords() {
+        return ALTIBASE_NON_TRANSACTIONAL_KEYWORDS;
+    }
+    
+    @Override
+    public boolean supportsInsertAllDefaultValuesStatement() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsAliasInConditions() {
+        return false;
+    }
+
+    @Override
+    public String getClobComparingPart(@NotNull String columnName) {
+        return "DBMS_LOB.COMPARE(%s,?) = 0".formatted(columnName);
+    }
+    
+    @Override
+    public boolean supportsAliasInSelect() {
+        return true;
+    }
+    
+    @Override
+    public boolean supportsTableDropCascade() {
+        return true;
+    }
+    
+    @NotNull
+    @Override
+    protected TokenPredicateSet makeDialectSkipTokenPredicatesImpl(@NotNull JDBCDataSource dataSource, @NotNull TokenPredicateFactory tt) {
+
+        TokenPredicateSet conditions = TokenPredicateSet.of(
+            /* Oracle grammar */
+            new TokenPredicatesCondition(
+                    SQLParserActionKind.BEGIN_BLOCK,
+                    tt.sequence(
+                            "CREATE",
+                            tt.optional("OR", "REPLACE"),
+                            "PACKAGE", "BODY"
+                    ),
+                    tt.sequence()
+            ),
+            new TokenPredicatesCondition(
+                    SQLParserActionKind.SKIP_SUFFIX_TERM,
+                    tt.sequence(
+                            "CREATE",
+                            tt.optional("OR", "REPLACE"),
+                            tt.alternative("FUNCTION", "PROCEDURE")
+                    ),
+                    tt.sequence(
+                            tt.alternative(
+                                    tt.sequence("RETURN", SQLTokenType.T_TYPE),
+                                    "deterministor", "pipelined", "parallel_enable", "result_cache",
+                                    ")",
+                                    tt.sequence("procedure", SQLTokenType.T_OTHER),
+                                    tt.sequence(SQLTokenType.T_OTHER, SQLTokenType.T_TYPE)
+                                    ), ";")
+            ),
+            new TokenPredicatesCondition(
+                SQLParserActionKind.BEGIN_BLOCK,
+                tt.sequence(),
+                tt.sequence(tt.not("END"), "IF", tt.not("EXISTS"))
+            ),
+            /*
+             * Altibase only grammar
+             * Grammar conflict between PSM and Typeset
+             * PSM: CREATE...[AS|IS] ... BEGIN ... END
+             * TYPESET: CREATE...[AS|IS] ... END
+             *
+             * https://github.com/ALTIBASE/Documents/blob/master/Manuals/Altibase_7.3/eng/Stored%20Procedures%20Manual.md#create-typeset
+             */
+            new TokenPredicatesCondition(
+                    SQLParserActionKind.BEGIN_BLOCK,
+                    tt.sequence(
+                            "CREATE",
+                            tt.optional("OR", "REPLACE"),
+                            "TYPESET"
+                    ),
+                    tt.sequence()
+            ),
+            new TokenPredicatesCondition(
+                    SQLParserActionKind.SKIP_SUFFIX_TERM,
+                    tt.token("END"),
+                    tt.sequence(";")
+            )
+        );
+
+        return conditions;
+    }
+    
+    @Override
+    public boolean isDisableScriptEscapeProcessing() {
+        return false;
+    }
+    
+    /*
+     * Implements SQLDialectDDLExtension
+     */
+    @Override
+    public String getAutoIncrementKeyword() {
+        return null;
+    }
+
+    @Override
+    public boolean supportsCreateIfExists() {
+        return false;
+    }
+
+    @Override
+    public String getTimestampDataType() {
+        return AltibaseDataTypeDomain.DATE.getTypeName();
+    }
+
+    @Override
+    public String getBigIntegerType() {
+        return AltibaseDataTypeDomain.BIGINT.getTypeName();
+    }
+
+    @Override
+    public String getBlobDataType() {
+        return AltibaseDataTypeDomain.BLOB.getTypeName();
+    }
+    
+    @Override
+    public String getClobDataType() {
+        return AltibaseDataTypeDomain.CLOB.getTypeName();
+    }
+
+    @Override
+    public String getUuidDataType() {
+        // Not supported data type
+        return "";
+    }
+
+    @Override
+    public String getBooleanDataType() {
+        // Not supported data type
+        return "";
+    }
+
+    @NotNull
+    @Override
+    public String getAlterColumnOperation() {
+        return AltibaseConstants.OPERATION_MODIFY;
+    }
+
+    @Override
+    public boolean supportsAlterColumnSet() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsAlterHasColumn() {
+        return false;
+    }
+
+    @NotNull
+    @Override
+    public String getSchemaExistQuery(@NotNull String schemaName) {
+        return "SELECT 1 FROM SYSTEM_.SYS_USERS_ WHERE USER_NAME='" + schemaName + "'";
+    }
+
+    @NotNull
+    @Override
+    public String getCreateSchemaQuery(@NotNull String schemaName) {
+        return "CREATE USER \"" + schemaName + "\" IDENTIFIED BY \"" + schemaName + "\"";
+    }
+    
+    /**
+     * Extracting and Formatting Altibase only keywords and functions 
+     * for ALTIBASE_ONLY_KEYWORDS and ALTIBASE_ONLY_FUNCTIONS.
+     */
+    public static void main(String[] args) {
+        filter(ALTIBASE_KEYWORDS, SQLConstants.SQL2003_RESERVED_KEYWORDS);
+        filter(ALTIBASE_FUNCTIONS, SQLConstants.SQL2003_FUNCTIONS);
+    }
+    
+    private static void filter(String[] dbProvideNames, String[] sqlProvidedNames) {
+        
+        if (!AltibaseConstants.DEBUG) {
+            return;
+        }
+        
+        String[] sqlDistinctNames = null;
+        String[] dbDistinctNames = null;
+        
+        // Remove duplicates if any
+        sqlDistinctNames = Arrays.stream(sqlProvidedNames).distinct().toArray(String[]::new);
+        dbDistinctNames = Arrays.stream(dbProvideNames).distinct().toArray(String[]::new);
+        
+        // Find DB only words
+        Set<String> defaultWordList = Set.of(sqlDistinctNames);
+        final List<String> dbOnlyWordList = List.of(dbDistinctNames).stream()
+                .filter(e -> !defaultWordList.contains(e))
+                .sorted()
+                .collect(Collectors.toList());
+        
+        // Print out the result
+        int maxLen = dbOnlyWordList.stream()
+                .mapToInt(String::length)
+                .max().orElse(8);
+
+        maxLen++;
+        
+        int i = 0;
+        int numOfWordsLine = 2;
+        String wordFormat = "%-" + (maxLen + 2) + "s";
+        String numFormat = "\t//%3d";
+        
+        for (String dbOnlyWord : dbOnlyWordList) {
+            System.out.print(String.format(wordFormat, "\"" + dbOnlyWord + "\","));
+            if (++i % numOfWordsLine == 0) {
+                System.out.println(String.format(numFormat, i));
+            }
+        }
+        
+        System.out.println();
+    }
+
+    @Override
+    public boolean supportsNoActionIndex() {
+        return false;
+    }
+}

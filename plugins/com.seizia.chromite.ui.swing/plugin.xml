@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+    <!-- Icons that need a light plate in dark themes (dark vendor marks); the plugin that owns the icon declares it.
+         Read by IconPlates (docs/chromite/design-spec.md "벤더 아이콘의 밝은 판"). -->
+    <extension-point id="iconPlate" name="Icon plates" schema="schema/com.seizia.chromite.ui.swing.iconPlate.exsd"/>
+
+    <extension point="org.eclipse.core.runtime.applications" id="application" name="Chromite Swing">
+        <application visible="true">
+            <run class="com.seizia.chromite.ui.swing.ChromiteSwingApplication"/>
+        </application>
+    </extension>
+
+    <extension point="org.eclipse.core.runtime.products" id="product">
+        <product application="com.seizia.chromite.ui.swing.application" description="Database Workbench" name="Chromite">
+            <property name="appName" value="Chromite"/>
+            <property name="subTitle" value="Database Workbench"/>
+            <property name="copyright" value="© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"/>
+        </product>
+    </extension>
+
+    <!-- Connects data sources for the model layer (navigator expansion); the SWT product registers UIServiceConnectionsImpl -->
+    <extension point="com.seizia.chromite.service">
+        <service name="com.seizia.chromite.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
+        <!-- Asks before downloading missing driver files; the SWT product registers UIServiceDriversImpl -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceDrivers" class="com.seizia.chromite.ui.swing.SwingDriversService"/>
+        <!-- Notifies the end of long operations (native backup/restore tools); the SWT product registers UIServiceSystemAgentImpl.
+             Without it DBWorkbench.getService logs "Service ... not found" into the task output. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
+        <!-- Reminder and notice of idle open transactions (IdleTransactionMonitor); without it the monitor neither reminds nor rolls back -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceIdleTransactions" class="com.seizia.chromite.ui.swing.SwingIdleTransactionService"/>
+        <!-- Asks before running shell commands from saved settings (connection events, password command, data transfer step);
+             the SWT product registered UIServiceShellCommandsImpl. Without it the model refuses to run them. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceShellCommands" class="com.seizia.chromite.ui.swing.SwingShellCommandsService"/>
+        <!-- Shows the SQL that an @ai script command generated before it runs; the SWT product registers UIServiceSQLImpl.
+             Without it AIUtils asks a plain yes/no question without the SQL. Only confirmQueryExecution is implemented. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceSQL" class="com.seizia.chromite.ui.swing.SwingSqlService"/>
+        <!-- Asks before H2 runs initialization SQL from the connection settings (INIT= in the URL, bootstrap queries);
+             the SWT product registered UIServiceConnectionInitImpl. Without it the model refuses those connections. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceConnectionInit" class="com.seizia.chromite.ui.swing.SwingConnectionInitService"/>
+        <!-- Asks before a SQLite connection loads native extensions; the SWT product registered SQLiteExtensionConfirmationImpl
+             in ext.sqlite.ui. Without it the model refuses those connections. -->
+        <service name="com.seizia.chromite.ext.sqlite.SQLiteExtensionConfirmation" class="com.seizia.chromite.ui.swing.SwingSqliteExtensionConfirmation"/>
+    </extension>
+
+    <!-- @export script command: exports the next query with the Export Data wizard; the SWT product registered
+         SQLPragmaExport in data.transfer.ui. Without it the command was ignored and the next query ran in the query window. -->
+    <extension point="com.seizia.chromite.sqlCommand">
+        <pragma id="export" class="com.seizia.chromite.ui.swing.SqlExportPragma"/>
+    </extension>
+
+    <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'
+         non-UI part). Adapters of the driver's table class, so a driver class is loaded only for its own tables. -->
+    <extension point="org.eclipse.core.runtime.adapters">
+        <factory adaptableType="com.seizia.chromite.ext.postgresql.model.PostgreTableBase" class="com.seizia.chromite.ui.swing.design.PostgreTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
+        <factory adaptableType="com.seizia.chromite.ext.mssql.model.SQLServerTable" class="com.seizia.chromite.ui.swing.design.SQLServerTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
+        <factory adaptableType="com.seizia.chromite.ext.mysql.model.MySQLTable" class="com.seizia.chromite.ui.swing.design.MySQLTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
+        <factory adaptableType="com.seizia.chromite.ext.oracle.model.OracleTableBase" class="com.seizia.chromite.ui.swing.design.OracleTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
+    </extension>
+
+    <!-- JSch SSH questions (host key, password, passphrase, keyboard-interactive/OTP) as Swing dialogs; the SWT product
+         registered JSCHUIPromptProviderAdapterFactory. Without it JSch refuses new host keys and answers OTP with the password. -->
+    <extension point="org.eclipse.core.runtime.adapters">
+        <factory adaptableType="com.seizia.chromite.model.net.ssh.JSCHSessionController" class="com.seizia.chromite.ui.swing.JschPromptAdapterFactory">
+            <adapter type="com.seizia.chromite.model.net.ssh.JSCHUserInfoPromptProvider"/>
+        </factory>
+    </extension>
+
+    <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->
+    <extension point="com.seizia.chromite.application">
+        <application id="chromite-swing"
+            family="DB"
+            name="Chromite"
+            description="Database Workbench"/>
+    </extension>
+
+</plugin>

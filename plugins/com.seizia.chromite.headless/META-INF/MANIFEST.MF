@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Headless Application
+Bundle-SymbolicName: com.seizia.chromite.headless;singleton:=true
+Bundle-ActivationPolicy: lazy
+Bundle-Version: 1.0.124.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Activator: com.seizia.chromite.headless.ChromiteTestActivator
+Export-Package: com.seizia.chromite.headless
+Require-Bundle: org.eclipse.equinox.app,
+ org.eclipse.core.resources,
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.rcp,
+ com.seizia.chromite.registry
+Automatic-Module-Name: com.seizia.chromite.headless

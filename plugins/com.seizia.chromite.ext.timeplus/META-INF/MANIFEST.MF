@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Timeplus Support
+Bundle-SymbolicName: com.seizia.chromite.ext.timeplus;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20260403
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.timeplus
+Export-Package: com.seizia.chromite.ext.timeplus,
+ com.seizia.chromite.ext.timeplus.model

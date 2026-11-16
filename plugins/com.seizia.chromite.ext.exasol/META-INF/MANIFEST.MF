@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Exasol Model
+Bundle-SymbolicName: com.seizia.chromite.ext.exasol;singleton:=true
+Bundle-Version: 1.0.249.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.data.gis
+Automatic-Module-Name: com.seizia.chromite.ext.exasol
+Export-Package: com.seizia.chromite.ext.exasol,
+ com.seizia.chromite.ext.exasol.editors,
+ com.seizia.chromite.ext.exasol.model,
+ com.seizia.chromite.ext.exasol.model.app,
+ com.seizia.chromite.ext.exasol.model.lock,
+ com.seizia.chromite.ext.exasol.model.security

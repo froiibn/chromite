@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <!-- PL/pgSQL debugger (pldbgapi): the controller factory is an adapter of the routine class, so the Swing "Debug…"
+        command is enabled for PostgreSQL functions and procedures only (docs/chromite/procedure-debugger.md) -->
+   <extension point="org.eclipse.core.runtime.adapters">
+      <factory adaptableType="com.seizia.chromite.ext.postgresql.model.PostgreProcedure" class="com.seizia.chromite.ext.postgresql.debug.internal.PostgreDebugAdapterFactory">
+         <adapter type="com.seizia.chromite.debug.DBGControllerFactory"/>
+      </factory>
+   </extension>
+
+</plugin>

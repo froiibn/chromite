@@ -1,0 +1,69 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.junit.osgi.annotation;
+
+import com.seizia.chromite.junit.osgi.OSGIFrameworkHandler;
+
+import java.lang.annotation.*;
+
+/**
+ * Run with product used for @{@link OSGIFrameworkHandler}
+ * Annotation to provide an application parameters for OSGI tests
+ * See {@link OSGIFrameworkHandler}
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Inherited
+public @interface RunWithApplication {
+    @interface Property {
+        String name();
+
+        String value();
+    }
+
+    /**
+     * Bundle name with application
+     */
+    String bundleName();
+
+    /**
+     * Force include bundles
+     */
+    String[] forceDependencies() default {};
+
+    /**
+     Application classname
+     */
+    String registryName();
+
+    /**
+     * Application parameters
+     */
+    String[] args() default {};
+
+    Property[] properties() default {};
+
+    String[] vmArgs() default {};
+
+    /**
+     * No longer used; retained for compatibility with existing test annotations.
+     */
+    @Deprecated
+    boolean waitForWorkbench() default true;
+
+}

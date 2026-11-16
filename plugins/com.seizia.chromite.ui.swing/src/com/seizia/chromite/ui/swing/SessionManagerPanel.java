@@ -1,0 +1,546 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.admin.ServerAdminAccess;
+import com.seizia.chromite.model.admin.ServerAdminMessages;
+import com.seizia.chromite.model.admin.ServerAdminProfile;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
+import org.fife.ui.rtextarea.RTextScrollPane;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionDetails;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionDetailsProvider;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManagerSQL;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.utils.PrefUtils;
+import org.jkiss.utils.CommonUtils;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Activity Monitor의 Processes 탭: 서버 세션 목록, 고른 세션의 현재 SQL과 속성, 세션 끝내기.
+ *
+ * 설계: SWT의 {@code SessionManagerViewer}(세션 표, SQL 미리 보기, 속성, 세부 정보 탭, 자동 새로 고침)와
+ * DB별 세션 편집기({@code PostgreSessionEditor} 등의 필터·끝내기 단추)를 화면 하나로 옮겼다. DB별 차이는
+ * {@link ServerAdminProfile}(모델 번들)이 정한다. 세션 목록은 {@code DBAServerSessionManager#getSessions}, 끝내기는
+ * {@code #alterSession}이며 SWT와 같은 옵션을 넘긴다.
+ * <ul>
+ *     <li>필터 체크 상자는 세션 관리자의 읽기 옵션이라 바꾸면 서버에서 다시 읽는다. 값은 드라이버마다 설정 저장소에 둔다
+ *     (SWT는 편집기 대화 설정에 둔다).</li>
+ *     <li>"Only my sessions"는 연결 설정의 사용자와 세션의 사용자를 비교하는 화면 쪽 필터다(SWT에 없음). 연결 설정에 사용자가 없으면
+ *     (Windows 인증 등) 쓸 수 없다.</li>
+ *     <li>찾기 칸은 SWT 세션 편집기의 검색처럼 어느 열에든 그 글자가 있는 세션만 남긴다.</li>
+ *     <li>끝내기 명령은 SWT처럼 확인을 받는다. Oracle의 "Immediate"는 SWT 확인 대화상자의 토글과 같이 확인 창의 체크 상자다.
+ *     끝낸 뒤 목록을 다시 읽는다.</li>
+ *     <li>세션 읽기 SQL을 만들 수 있으면({@link DBAServerSessionManagerSQL}) SWT의 "Open SQL editor"처럼 그 SQL을 새 쿼리 창에서 실행한다.</li>
+ *     <li>아래 탭: Current SQL(읽기 전용 SQL 편집기), Details(세션의 모든 속성, {@link PropertyCollector}), 그리고 세션 관리자가 주는
+ *     추가 세부 정보({@link DBAServerSessionDetailsProvider}, 예: Oracle long operations). 실행 계획 탭은 Swing 계획 보기가 없어 아직 없다.</li>
+ *     <li>로그인 권한({@link ServerAdminAccess})이 모자라면 도구 막대 아래 안내 줄({@link AccessNoticeBar})에 알리고, 세션을 읽을 수 없으면
+ *     읽지 않으며, 세션을 끝낼 권한이 없으면 명령 단추를 끈다.</li>
+ * </ul>
+ *
+ * 변경 이력:
+ * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 찾기 칸과 "Only my sessions"가 테마 전환을 놓치던 문제: 패널과 함께 만들고 첫 읽기 뒤에야 붙이므로(createTools),
+ *   붙일 때 현재 Look and Feel로 다시 설치함 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 권한 안내 줄과 권한에 따른 명령 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 세션 명령 확인은 명령 이름 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 세션 상세의 암호 속성 가리기({@link ObjectListTable#maskPassword}, docs/chromite/password-handling.md)
+ * - 2026-11-09 명령 실행 중 상태 문구를 명령 이름 + "…" 대신 NLS 문구로 만듦(한국어 문구 끝에 말줄임표를 쓰지 않음, docs/chromite/swing-l10n.md)
+ * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ */
+final class SessionManagerPanel extends JPanel {
+
+    private static final Log log = Log.getLog(SessionManagerPanel.class);
+    private static final String PREF_FILTER_PREFIX = "activityMonitor.sessions.filter."; //$NON-NLS-1$
+    private static final String PREF_REFRESH = "activityMonitor.sessions.refreshSeconds"; //$NON-NLS-1$
+
+    private final AdminConnection connection;
+    private final ObjectExplorerPanel.QueryWindows queryWindows;
+    private final ObjectListTable<DBAServerSession> sessionTable;
+    private final JToolBar toolBar = new JToolBar();
+    /**
+     * Second row under the tool bar: the read options (check boxes); one row would not fit next to the commands.
+     */
+    private final JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(12), 0));
+    private final AccessNoticeBar noticeBar = new AccessNoticeBar();
+    private final JLabel statusLabel = new JLabel(" ");
+    private final SqlEditorPanel.SqlTextArea sqlText = new SqlEditorPanel.SqlTextArea();
+    private final DefaultTableModel detailsModel = new DefaultTableModel(
+        new Object[] {ConnectionMessages.properties_column_property, ConnectionMessages.properties_column_value}, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    private final JTabbedPane detailTabs = new JTabbedPane();
+    private final AutoRefreshBox autoRefresh;
+    private final JCheckBox onlyMineCheck = new JCheckBox(ConnectionMessages.sessions_only_mine);
+    private final JTextField searchField = new JTextField(16);
+    private final List<JButton> actionButtons = new ArrayList<>();
+    private final List<ServerAdminProfile.SessionAction> actions = new ArrayList<>();
+    @Nullable
+    private ServerAdminProfile profile;
+    private boolean loading;
+    private boolean toolsCreated;
+    @Nullable
+    private DBAServerSession currentSession;
+
+    SessionManagerPanel(@NotNull AdminConnection connection, @NotNull ObjectExplorerPanel.QueryWindows queryWindows) {
+        super(new BorderLayout());
+        this.connection = connection;
+        this.queryWindows = queryWindows;
+        sessionTable = new ObjectListTable<>(session -> CommonUtils.notEmpty(session.getSessionId()), connection.getContainer());
+        sessionTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                sessionSelected();
+            }
+        });
+
+        toolBar.setFloatable(false);
+        toolBar.setOpaque(false);
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
+        Action refreshAction = new AbstractAction(ConnectionMessages.common_refresh) {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                refresh();
+            }
+        };
+        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
+        autoRefresh = new AutoRefreshBox(PREF_REFRESH, this, () -> {
+            // Not after a failed connect: that would ask for the password again at each interval
+            if (!loading && connection.getContainer().isConnected()) {
+                refresh();
+            }
+        });
+        autoRefresh.setMaximumSize(autoRefresh.getPreferredSize());
+        toolBar.add(autoRefresh);
+        toolBar.addSeparator();
+
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.sessions_search_placeholder);
+        searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
+        searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
+        searchField.setMaximumSize(searchField.getPreferredSize());
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                searchChanged();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                searchChanged();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                searchChanged();
+            }
+        });
+
+        onlyMineCheck.setOpaque(false);
+        onlyMineCheck.addActionListener(e -> applyUserFilter());
+
+        sqlText.setEditable(false);
+        sqlText.setLineWrap(true);
+        RTextScrollPane sqlScroll = new RTextScrollPane(sqlText, true);
+        sqlScroll.setBorder(BorderFactory.createEmptyBorder());
+        sqlText.applyTheme();
+        JTable detailsTable = new JTable(detailsModel);
+        detailsTable.setShowGrid(false);
+        detailsTable.setFillsViewportHeight(true);
+        detailsTable.setIntercellSpacing(new Dimension(0, 0));
+        JScrollPane detailsScroll = new JScrollPane(detailsTable);
+        detailsScroll.setBorder(BorderFactory.createEmptyBorder());
+        detailTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+        detailTabs.addTab(ConnectionMessages.sessions_tab_sql, UiIcons.get("file-sql"), sqlScroll); //$NON-NLS-1$
+        detailTabs.addTab(ConnectionMessages.sessions_tab_details, UiIcons.get("info"), detailsScroll); //$NON-NLS-1$
+        detailTabs.addChangeListener(e -> loadSelectedDetails());
+
+        JScrollPane tableScroll = new JScrollPane(sessionTable);
+        tableScroll.setBorder(BorderFactory.createEmptyBorder());
+        // Most of the height for the sessions; the split starts from the preferred sizes
+        tableScroll.setPreferredSize(new Dimension(UIScale.scale(600), UIScale.scale(360)));
+        detailTabs.setPreferredSize(new Dimension(UIScale.scale(600), UIScale.scale(180)));
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tableScroll, detailTabs);
+        split.setResizeWeight(0.65);
+        split.setContinuousLayout(true);
+        split.setBorder(BorderFactory.createEmptyBorder());
+
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(10), UIScale.scale(4), UIScale.scale(10)));
+        statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
+
+        filterBar.setOpaque(false);
+        filterBar.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(4), UIScale.scale(4), UIScale.scale(8)));
+        filterBar.setVisible(false);
+        JPanel north = new JPanel(new BorderLayout());
+        north.setOpaque(false);
+        north.add(toolBar, BorderLayout.NORTH);
+        north.add(filterBar, BorderLayout.CENTER);
+        north.add(noticeBar, BorderLayout.SOUTH);
+        add(north, BorderLayout.NORTH);
+        add(split, BorderLayout.CENTER);
+        add(statusLabel, BorderLayout.SOUTH);
+    }
+
+    /**
+     * Reads the sessions (connecting first if needed).
+     */
+    void refresh() {
+        loading = true;
+        statusLabel.setText(connection.getContainer().isConnected() ? ConnectionMessages.sessions_reading : ConnectionMessages.common_connecting);
+        connection.run("Read server sessions", (monitor, session, profile) -> {
+            DBAServerSessionManager<DBAServerSession> manager = profile.getSessionManager();
+            if (manager == null) {
+                // Shown in the status line
+                throw new DBException(NLS.bind(ConnectionMessages.sessions_not_supported, session.getDataSource().getContainer().getDriver().getName()));
+            }
+            ServerAdminAccess access = profile.getAccess();
+            if (!access.canReadSessions()) {
+                // The views are not readable: say what to grant instead of the server error (also in the notice bar)
+                throw new DBException(access.notice());
+            }
+            Map<String, Object> options = new LinkedHashMap<>();
+            for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
+                options.put(option.optionKey(), getFilterValue(option));
+            }
+            return new ArrayList<>(manager.getSessions(session, options));
+        }, this::showSessions, error -> {
+            loading = false;
+            createTools();
+            updateStatus(error);
+        });
+    }
+
+    void dispose() {
+        autoRefresh.dispose();
+    }
+
+    private void searchChanged() {
+        sessionTable.setSearchText(searchField.getText());
+        updateStatus(null);
+    }
+
+    private void showSessions(@NotNull List<DBAServerSession> sessions) {
+        loading = false;
+        createTools();
+        sessionTable.setObjects(sessions, sessions.isEmpty() ? DBAServerSession.class : sessions.get(0).getClass());
+        DBAServerSession selected = sessionTable.getSelectedObject();
+        // The same session (by id) is a new object after each read: show its current query and state
+        if (selected != null) {
+            showSession(selected);
+        } else if (currentSession != null) {
+            showSession(null);
+        }
+        updateStatus(null);
+    }
+
+    /**
+     * Tool bar items that depend on the database: filters, commands, the session SQL; created once the first read
+     * has connected (the profile needs the data source).
+     */
+    private void createTools() {
+        ServerAdminProfile connectedProfile = connection.getProfile();
+        if (toolsCreated || connectedProfile == null) {
+            return;
+        }
+        toolsCreated = true;
+        profile = connectedProfile;
+        noticeBar.setNotice(profile.getAccess().notice());
+        // Created with the panel but added to it only now: a theme switch since then (e.g. while the Locks tab was shown)
+        // did not reach them, as it updates only the components in a window
+        SwingUtilities.updateComponentTreeUI(searchField);
+        SwingUtilities.updateComponentTreeUI(onlyMineCheck);
+        for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
+            JCheckBox check = new JCheckBox(option.label(), getFilterValue(option));
+            check.setToolTipText(option.toolTip());
+            check.setOpaque(false);
+            check.addActionListener(e -> {
+                DBPPreferenceStore preferences = ChromiteSwingActivator.getInstance().getPreferences();
+                preferences.setValue(getFilterPreference(option), check.isSelected());
+                PrefUtils.savePreferenceStore(preferences);
+                refresh();
+            });
+            filterBar.add(check);
+        }
+        if (profile.supportsUserFilter()) {
+            String user = connection.getContainer().getActualConnectionConfiguration().getUserName();
+            onlyMineCheck.setEnabled(!CommonUtils.isEmpty(user));
+            onlyMineCheck.setToolTipText(CommonUtils.isEmpty(user)
+                ? ConnectionMessages.sessions_only_mine_no_user
+                : NLS.bind(ConnectionMessages.sessions_only_mine_tip, user));
+            filterBar.add(onlyMineCheck);
+        }
+        filterBar.setVisible(filterBar.getComponentCount() > 0);
+        for (ServerAdminProfile.SessionAction action : profile.getSessionActions()) {
+            Action swingAction = new AbstractAction(action.label()) {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    runAction(action);
+                }
+            };
+            swingAction.putValue(Action.SHORT_DESCRIPTION, action.toolTip());
+            JButton button = UiIcons.createToolButton(swingAction, action.queryOnly() ? "stop" : "disconnect"); //$NON-NLS-1$ //$NON-NLS-2$
+            actions.add(action);
+            actionButtons.add(button);
+            toolBar.add(button);
+        }
+        DBAServerSessionManager<DBAServerSession> manager = profile.getSessionManager();
+        if (manager instanceof DBAServerSessionManagerSQL sqlManager && sqlManager.canGenerateSessionReadQuery()) {
+            toolBar.addSeparator();
+            Action scriptAction = new AbstractAction(ConnectionMessages.sessions_open_query) {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    Map<String, Object> options = new LinkedHashMap<>();
+                    for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
+                        options.put(option.optionKey(), getFilterValue(option));
+                    }
+                    queryWindows.openScript(connection.getContainer(), sqlManager.generateSessionReadQuery(options), 0, true);
+                }
+            };
+            toolBar.add(UiIcons.createActionButton(scriptAction, "new-query")); //$NON-NLS-1$
+        }
+        toolBar.add(Box.createHorizontalGlue());
+        toolBar.add(searchField);
+        if (manager instanceof DBAServerSessionDetailsProvider detailsProvider) {
+            for (DBAServerSessionDetails details : detailsProvider.getSessionDetails()) {
+                addDetailsTab(details);
+            }
+        }
+        applyUserFilter();
+        updateActions();
+        revalidate();
+        repaint();
+    }
+
+    private boolean getFilterValue(@NotNull ServerAdminProfile.FilterOption option) {
+        DBPPreferenceStore preferences = ChromiteSwingActivator.getInstance().getPreferences();
+        String key = getFilterPreference(option);
+        return preferences.contains(key) ? preferences.getBoolean(key) : option.defaultValue();
+    }
+
+    @NotNull
+    private String getFilterPreference(@NotNull ServerAdminProfile.FilterOption option) {
+        return PREF_FILTER_PREFIX + connection.getContainer().getDriver().getId() + "." + option.optionKey(); //$NON-NLS-1$
+    }
+
+    private void applyUserFilter() {
+        String user = connection.getContainer().getActualConnectionConfiguration().getUserName();
+        if (profile != null && onlyMineCheck.isSelected() && !CommonUtils.isEmpty(user)) {
+            ServerAdminProfile currentProfile = profile;
+            sessionTable.setExtraFilter(session -> user.equalsIgnoreCase(CommonUtils.notEmpty(currentProfile.getSessionUser(session))));
+        } else {
+            sessionTable.setExtraFilter(null);
+        }
+        updateStatus(null);
+    }
+
+    private void sessionSelected() {
+        showSession(sessionTable.getSelectedObject());
+        updateActions();
+    }
+
+    private void showSession(@Nullable DBAServerSession session) {
+        currentSession = session;
+        String query = session == null ? "" : CommonUtils.notEmpty(session.getActiveQuery());
+        if (!query.equals(sqlText.getText())) {
+            sqlText.setText(query);
+            sqlText.setCaretPosition(0);
+        }
+        detailsModel.setRowCount(0);
+        if (session != null) {
+            PropertyCollector collector = new PropertyCollector(session, false);
+            collector.collectProperties();
+            for (DBPPropertyDescriptor property : collector.getProperties()) {
+                Object value = ObjectListTable.maskPassword(property, collector.getPropertyValue(null, property.getId()));
+                detailsModel.addRow(new Object[] {property.getDisplayName(), ObjectListTable.formatValue(value)});
+            }
+        }
+        loadSelectedDetails();
+    }
+
+    private void updateActions() {
+        List<DBAServerSession> selected = sessionTable.getSelectedObjects();
+        // Without the privilege (e.g. Oracle ALTER SYSTEM) the commands stay disabled; the notice bar says why
+        boolean allowed = profile == null || profile.getAccess().canEndSessions();
+        for (int i = 0; i < actions.size(); i++) {
+            actionButtons.get(i).setEnabled(allowed && actions.get(i).isEnabled(selected));
+        }
+    }
+
+    /**
+     * Ends the selected sessions (or their queries) after a confirmation.
+     */
+    private void runAction(@NotNull ServerAdminProfile.SessionAction action) {
+        List<DBAServerSession> sessions = sessionTable.getSelectedObjects();
+        if (sessions.isEmpty() || profile == null) {
+            return;
+        }
+        List<String> ids = new ArrayList<>();
+        for (DBAServerSession session : sessions) {
+            ids.add(session.getSessionId());
+        }
+        String idList = String.join(", ", ids); //$NON-NLS-1$
+        boolean single = sessions.size() == 1;
+        JCheckBox immediateCheck = action.immediateOptionKey() == null ? null : new JCheckBox(
+            ServerAdminMessages.action_immediate);
+        String question = NLS.bind(single ? ConnectionMessages.sessions_action_confirm_one : ConnectionMessages.sessions_action_confirm_many,
+            new Object[] {action.label(), idList, action.toolTip()});
+        Object message = immediateCheck == null ? question : new Object[] {question, immediateCheck};
+        if (!SwingPlatformUI.confirmChange(this, message, action.label(), action.label(), JOptionPane.WARNING_MESSAGE)) {
+            return;
+        }
+        Map<String, Object> options = new LinkedHashMap<>(action.options());
+        if (immediateCheck != null && immediateCheck.isSelected()) {
+            options.put(action.immediateOptionKey(), true);
+        }
+        statusLabel.setText(NLS.bind(ConnectionMessages.sessions_action_running, action.label()));
+        connection.run(action.label(), (monitor, session, connectedProfile) -> {
+            DBAServerSessionManager<DBAServerSession> manager = connectedProfile.getSessionManager();
+            if (manager == null) {
+                return null;
+            }
+            DBException lastError = null;
+            for (DBAServerSession serverSession : sessions) {
+                try {
+                    manager.alterSession(session, serverSession.getSessionId(), options);
+                } catch (DBException e) {
+                    log.debug("Error altering session " + serverSession.getSessionId(), e);
+                    lastError = e;
+                }
+            }
+            if (lastError != null) {
+                throw lastError;
+            }
+            return null;
+        }, result -> refresh(), error -> {
+            DBWorkbench.getPlatformUI().showError(action.label(), NLS.bind(
+                single ? ConnectionMessages.sessions_action_error_one : ConnectionMessages.sessions_action_error_many, action.label(), idList), error);
+            refresh();
+        });
+    }
+
+    /**
+     * Extra details of the database ({@link DBAServerSessionDetailsProvider}): plain text, or a list of objects.
+     */
+    private void addDetailsTab(@NotNull DBAServerSessionDetails details) {
+        JComponent content;
+        Class<?> type = details.getDetailsType();
+        if (DBPObjectWithDescription.class.isAssignableFrom(type)) {
+            SqlEditorPanel.SqlTextArea text = new SqlEditorPanel.SqlTextArea();
+            text.setEditable(false);
+            RTextScrollPane scroll = new RTextScrollPane(text, false);
+            scroll.setBorder(BorderFactory.createEmptyBorder());
+            text.applyTheme();
+            scroll.putClientProperty(DBAServerSessionDetails.class, details);
+            content = scroll;
+        } else {
+            ObjectListTable<DBPObject> table = new ObjectListTable<>(object -> object, connection.getContainer());
+            JScrollPane scroll = new JScrollPane(table);
+            scroll.setBorder(BorderFactory.createEmptyBorder());
+            scroll.putClientProperty(DBAServerSessionDetails.class, details);
+            content = scroll;
+        }
+        detailTabs.addTab(details.getDetailsTitle(), NodeIcons.getIcon(details.getDetailsIcon()), content, details.getDetailsTooltip());
+    }
+
+    /**
+     * Reads the extra details of the selected session when their tab is shown.
+     */
+    @SuppressWarnings("unchecked")
+    private void loadSelectedDetails() {
+        if (!(detailTabs.getSelectedComponent() instanceof JScrollPane scroll)
+            || !(scroll.getClientProperty(DBAServerSessionDetails.class) instanceof DBAServerSessionDetails details)) {
+            return;
+        }
+        DBAServerSession session = currentSession;
+        Component view = scroll.getViewport().getView();
+        if (session == null) {
+            if (view instanceof ObjectListTable<?> table) {
+                table.clearObjects();
+            } else if (view instanceof JTextArea text) {
+                text.setText("");
+            }
+            return;
+        }
+        connection.run("Read session details", (monitor, dbSession, connectedProfile) ->
+            new ArrayList<DBPObject>(CommonUtils.safeCollection(details.getSessionDetails(dbSession, session))), objects -> {
+            if (session != currentSession) {
+                return;
+            }
+            if (view instanceof ObjectListTable<?> table) {
+                ((ObjectListTable<DBPObject>) table).setObjects(objects, details.getDetailsType());
+            } else if (view instanceof JTextArea text) {
+                StringBuilder builder = new StringBuilder();
+                for (DBPObject object : objects) {
+                    if (object instanceof DBPObjectWithDescription described) {
+                        builder.append(CommonUtils.notEmpty(described.getDescription())).append('\n');
+                    }
+                }
+                text.setText(builder.toString());
+                text.setCaretPosition(0);
+            }
+        }, error -> DBWorkbench.getPlatformUI().showError(details.getDetailsTitle(), ConnectionMessages.sessions_details_error, error));
+    }
+
+    private void updateStatus(@Nullable Throwable error) {
+        if (error != null) {
+            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error, ErrorText.describeLine(error)));
+            statusLabel.setToolTipText(ErrorText.describeLine(error));
+            log.debug("Error reading sessions", error);
+            return;
+        }
+        if (loading) {
+            return;
+        }
+        Collection<DBAServerSession> sessions = sessionTable.getObjects();
+        int shown = sessionTable.getRowCount();
+        String text = NLS.bind(sessions.size() == 1 ? ConnectionMessages.sessions_count_one : ConnectionMessages.sessions_count_many, sessions.size());
+        if (shown != sessions.size()) {
+            text = NLS.bind(ConnectionMessages.sessions_count_shown, text, shown);
+        }
+        statusLabel.setText(NLS.bind(ConnectionMessages.common_status_updated, text, DateFormat.getTimeInstance(DateFormat.MEDIUM).format(new Date())));
+        statusLabel.setToolTipText(null);
+    }
+}

@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="com.seizia.chromite.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="com.seizia.chromite.registry" id="com.seizia.chromite.language" name="Language description"/>
+      </appInfo>
+      <documentation>Plugin Service</documentation>
+   </annotation>
+
+   <element name="extension">
+      <annotation><appInfo><meta.element/></appInfo></annotation>
+      <complexType>
+         <sequence>
+            <element ref="language" minOccurs="0" maxOccurs="unbounded"/>
+         </sequence>
+         <attribute name="point" type="string" use="required"/>
+      </complexType>
+   </element>
+
+   <element name="language">
+      <complexType>
+         <attribute name="code" type="string" use="required">
+            <annotation>
+               <appInfo>
+                  <meta.attribute kind="identifier"/>
+               </appInfo>
+            </annotation>
+         </attribute>
+         <attribute name="label" type="string" use="required"/>
+         <attribute name="description" type="string"/>
+      </complexType>
+   </element>
+
+
+
+
+
+
+</schema>

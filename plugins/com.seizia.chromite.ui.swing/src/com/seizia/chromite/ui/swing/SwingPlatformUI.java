@@ -1,0 +1,1040 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing;
+
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.osgi.util.NLS;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAPasswordChangeInfo;
+import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.navigator.fs.DBNPathBase;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProcessDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
+import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.runtime.load.ILoadVisualizer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
+import org.jkiss.utils.CommonUtils;
+
+import javax.swing.*;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+
+/**
+ * 모델 계층의 UI 요청({@link DBPPlatformUI})을 Swing으로 처리한다.
+ *
+ * 설계: 모델 계층은 오류 표시, 확인 질문, 비밀번호 입력 등을 이 인터페이스로 요청하고, 호출 스레드는 대개
+ * 백그라운드 Job이다. 그래서 대화상자는 항상 EDT에서 띄우고, 결과가 필요하면 {@link SwingUtilities#invokeAndWait}로
+ * 기다린다(이미 EDT이면 바로 실행). A단계는 {@link JOptionPane} 기반의 단순한 대화상자로 구현했고,
+ * B단계에서 진행 표시({@link ProgressDialog})와 비모달 알림({@link NotificationToast})을 더했다.
+ * 아직 화면이 없는 기능(객체 선택 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
+ * 돌려주며 {@code // Phase C:} 주석으로 무엇이 빠졌는지 표시한다. 객체 편집기 요청은 Object Explorer에서 그 객체를 보여 준다.
+ * {@code ConsoleUserInterface}를 상속하지 않은 것은, 어떤 메서드가 아직 콘솔 동작인지 이 클래스만 보고 알 수 있게 하기 위해서다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-06 B단계: 진행 대화상자({@code runWithProgress}, {@code runWithMonitor}, {@code executeWithProgressBlocking}),
+ *   비모달 알림({@code showNotification}, {@code showWarningNotification}). 남은 항목은 {@code // Phase C:}로 표시
+ *   (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 D단계: {@code openConnectionEditor}를 범용 연결 대화상자({@link ConnectionDialog})로 구현
+ *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고(클래스 이름이 화면에 나오지 않게), 오류 대화상자에 접힌 스택 추적과
+ *   복사 단추({@link ErrorDialog})를 더함. 모델 계층이 넘긴 오류 문자열과 알림도 같은 규칙으로 정리한다
+ *   (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 {@code promptAuthModelCredentials}: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의
+ *   비밀번호를 저장하지 않은 연결이 묻지 않고 취소되던 것을 고침 (docs/chromite/swing-auth-prompts.md)
+ * - 2026-11-08 경고 확인({@code confirmAction(title, message, true)})은 No가 기본 단추. 데이터·스키마·작업·세션·파일을 바꾸는 확인의
+ *   공통 대화상자 {@link #confirmChange}(동사 단추와 기본 단추인 Cancel) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 {@code showError}의 DB별 처리(연결 끊김의 다시 연결, 드라이버 클래스 없음의 드라이버 편집, 드라이버 라이선스 오류)를
+ *   {@link DatabaseErrorDialogs}로 함(SWT {@code DesktopUI.showDatabaseError}) (docs/chromite/connection-lifecycle.md)
+ * - 2026-11-08 {@code openEntityEditor}가 디버그 로그만 남기던 것(swt-parity B-E12): Object Explorer에서 그 객체를 보여 줌. SWT에서 저장한
+ *   데이터 전송 작업의 "끝나면 테이블 열기"가 닿는 곳 (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
+ * - 2026-11-12 {@code createMessageComponent}의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
+ *   낱말 가운데서 끊었다("…입니 / 다.", 앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-12 예약 실행(무인 실행, {@link UnattendedRuns})에서는 묻지 않음: 확인·선택·입력·라이선스는 실행을 실패시키고, 모달 메시지 상자와
+ *   개체 탐색기·파일 탐색기·연결 편집 열기는 로그에만 남김(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
+ */
+public class SwingPlatformUI implements DBPPlatformUI {
+
+    private static final Log log = Log.getLog(SwingPlatformUI.class);
+
+    private static final int MESSAGE_WIDTH = 480;
+    private static final int MAX_MESSAGE_ROWS = 20;
+
+    /**
+     * Called reflectively by {@code AbstractApplication.initializePlatform()}, which looks the method up
+     * with {@code getDeclaredMethod}, so it must be declared in this class.
+     */
+    protected void initialize() {
+        // nothing to initialize yet
+    }
+
+    //////////////////////////////////////////////////////////
+    // Messages
+
+    @Override
+    public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
+        if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(status)))) {
+            return UserResponse.OK;
+        }
+        Throwable error = ErrorText.findException(status);
+        if (error != null && showDatabaseError(title, message, error)) {
+            return UserResponse.OK;
+        }
+        showErrorBox(title, joinText(ErrorText.clean(message), ErrorText.describe(status)), error);
+        return UserResponse.OK;
+    }
+
+    @Override
+    public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
+        log.debug(e);
+        if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(e)))) {
+            return UserResponse.OK;
+        }
+        if (showDatabaseError(title, message, e)) {
+            return UserResponse.OK;
+        }
+        showErrorBox(CommonUtils.isEmpty(title) ? CoreMessages.common_error : title,
+            joinText(ErrorText.clean(message), ErrorText.describe(e)), e);
+        return UserResponse.OK;
+    }
+
+    /**
+     * The dialogs of lost connections, missing driver classes and driver licenses (SWT {@code DesktopUI.showDatabaseError}).
+     *
+     * @return true when the error had such a dialog
+     */
+    private static boolean showDatabaseError(@Nullable String title, @Nullable String message, @NotNull Throwable error) {
+        return Boolean.TRUE.equals(runOnEdt(() -> DatabaseErrorDialogs.show(title, message, error)));
+    }
+
+    @Override
+    public UserResponse showError(@NotNull String title, @Nullable String message) {
+        if (UnattendedRuns.skip(title, message)) {
+            return UserResponse.OK;
+        }
+        showMessage(title, ErrorText.clean(message), JOptionPane.ERROR_MESSAGE);
+        return UserResponse.OK;
+    }
+
+    @Override
+    public void showNotification(@NotNull String title, @Nullable String message, boolean error, @Nullable Runnable feedback) {
+        if (error) {
+            log.error(title + (message == null ? "" : ": " + message));
+        } else {
+            log.info(title + (message == null ? "" : ": " + message));
+        }
+        showToast(title, ErrorText.clean(message), error ? NotificationToast.Kind.ERROR : NotificationToast.Kind.INFO, feedback);
+    }
+
+    @Override
+    public void showWarningNotification(@NotNull String title, @Nullable String message) {
+        log.warn(title + (message == null ? "" : ": " + message));
+        showToast(title, ErrorText.clean(message), NotificationToast.Kind.WARNING, null);
+    }
+
+    /**
+     * Non-modal toast in the main window. Never waits for the EDT, because notifications come from background jobs
+     * (a modal dialog would block them). Without a main window (startup, shutdown) the notification is only logged.
+     */
+    private static void showToast(
+        @NotNull String title,
+        @Nullable String message,
+        @NotNull NotificationToast.Kind kind,
+        @Nullable Runnable feedback
+    ) {
+        SwingUtilities.invokeLater(() -> {
+            for (Frame frame : Frame.getFrames()) {
+                if (frame instanceof MainFrame mainFrame && mainFrame.isDisplayable()) {
+                    mainFrame.showNotification(title, message, kind, feedback);
+                    return;
+                }
+            }
+        });
+    }
+
+    @Override
+    public void showMessageBox(@NotNull String title, @Nullable String message, boolean error) {
+        if (UnattendedRuns.skip(title, message)) {
+            return;
+        }
+        showMessage(title, error ? ErrorText.clean(message) : message, error ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    @Override
+    public void showWarningMessageBox(@NotNull String title, @Nullable String message) {
+        if (UnattendedRuns.skip(title, message)) {
+            return;
+        }
+        showMessage(title, message, JOptionPane.WARNING_MESSAGE);
+    }
+
+    //////////////////////////////////////////////////////////
+    // Confirmations and choices
+
+    @Override
+    public boolean confirmAction(String title, String message) {
+        return confirmAction(title, message, false);
+    }
+
+    @Override
+    public boolean confirmAction(String title, String message, boolean isWarning) {
+        UnattendedRuns.refuseQuestion(title, message);
+        String yes = UIManager.getString("OptionPane.yesButtonText"); //$NON-NLS-1$
+        String no = UIManager.getString("OptionPane.noButtonText"); //$NON-NLS-1$
+        Object[] options = {yes, no};
+        Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
+            getDialogParent(),
+            createMessageComponent(message),
+            title,
+            JOptionPane.YES_NO_OPTION,
+            isWarning ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            // A warning asks before something that changes data (a modifying query on a confirmed connection type,
+            // renaming a database file): Enter pressed by habit must not run it
+            isWarning ? no : yes));
+        return result != null && result == 0;
+    }
+
+    @Override
+    public boolean confirmAction(@NotNull String title, @NotNull String message, @NotNull String buttonLabel, boolean isWarning) {
+        UnattendedRuns.refuseQuestion(title, message);
+        String cancelLabel = UIManager.getString("OptionPane.cancelButtonText");
+        Object[] options = {buttonLabel, cancelLabel};
+        Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
+            getDialogParent(),
+            createMessageComponent(message),
+            title,
+            JOptionPane.DEFAULT_OPTION,
+            isWarning ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            // Do not make a potentially destructive action the default button
+            isWarning ? cancelLabel : buttonLabel));
+        return result != null && result == 0;
+    }
+
+    @NotNull
+    @Override
+    public UserChoiceResponse showUserChoice(
+        @NotNull String title,
+        @Nullable String message,
+        @NotNull List<String> labels,
+        @NotNull List<String> forAllLabels,
+        @Nullable Integer previousChoice,
+        int defaultChoice
+    ) {
+        UnattendedRuns.refuseQuestion(title, message);
+        // Empty labels are placeholders: they get no button, but the returned index refers to the original list
+        List<String> options = new ArrayList<>();
+        List<Integer> optionIndexes = new ArrayList<>();
+        for (int i = 0; i < labels.size(); i++) {
+            if (!CommonUtils.isEmpty(labels.get(i))) {
+                options.add(labels.get(i));
+                optionIndexes.add(i);
+            }
+        }
+        UserChoiceResponse response = runOnEdt(() -> {
+            JPanel panel = new JPanel(new BorderLayout(0, 8));
+            panel.add(createMessageComponent(message), BorderLayout.CENTER);
+            // "For all" options are mutually exclusive check boxes, as in DesktopUI
+            List<JCheckBox> forAllBoxes = new ArrayList<>();
+            if (!forAllLabels.isEmpty()) {
+                JPanel boxesPanel = new JPanel(new GridLayout(0, 1));
+                for (String forAllLabel : forAllLabels) {
+                    JCheckBox box = new JCheckBox(forAllLabel);
+                    box.addActionListener(e -> {
+                        if (box.isSelected()) {
+                            forAllBoxes.stream().filter(b -> b != box).forEach(b -> b.setSelected(false));
+                        }
+                    });
+                    forAllBoxes.add(box);
+                    boxesPanel.add(box);
+                }
+                panel.add(boxesPanel, BorderLayout.SOUTH);
+            }
+            Object initialOption = previousChoice != null && optionIndexes.contains(previousChoice)
+                ? labels.get(previousChoice) : null;
+            int selected = JOptionPane.showOptionDialog(
+                getDialogParent(),
+                panel,
+                title,
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options.toArray(),
+                initialOption);
+            Integer forAllIndex = null;
+            for (int i = 0; i < forAllBoxes.size(); i++) {
+                if (forAllBoxes.get(i).isSelected()) {
+                    forAllIndex = i;
+                }
+            }
+            int choiceIndex = selected >= 0 && selected < optionIndexes.size() ? optionIndexes.get(selected) : -1;
+            return new UserChoiceResponse(choiceIndex, forAllIndex);
+        });
+        return response == null ? new UserChoiceResponse(-1, null) : response;
+    }
+
+    @Override
+    public UserResponse showErrorStopRetryIgnore(String task, Throwable error, boolean queue) {
+        log.debug(error);
+        UnattendedRuns.refuseQuestion(CoreMessages.platform_execution_error,
+            joinText(NLS.bind(CoreMessages.platform_error_during, task), ErrorText.describe(error)));
+        // Same buttons and mapping as ExecutionQueueErrorDialog / ExecutionQueueErrorJob of the SWT UI
+        String[] options = queue
+            ? new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry, CoreMessages.platform_skip, CoreMessages.platform_skip_all}
+            : new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry};
+        String text = joinText(NLS.bind(CoreMessages.platform_error_during, task), ErrorText.describe(error));
+        Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
+            getDialogParent(),
+            ErrorDialog.createContent(text, error),
+            CoreMessages.platform_execution_error,
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.ERROR_MESSAGE,
+            null,
+            options,
+            options[0]));
+        if (result == null) {
+            return UserResponse.STOP;
+        }
+        return switch (result) {
+            case 1 -> UserResponse.RETRY;
+            case 2 -> UserResponse.IGNORE;
+            case 3 -> UserResponse.IGNORE_ALL;
+            default -> UserResponse.STOP;
+        };
+    }
+
+    //////////////////////////////////////////////////////////
+    // Prompts
+
+    @Nullable
+    @Override
+    public DBPAuthInfo promptUserCredentials(
+        @Nullable String prompt,
+        @Nullable String description,
+        @Nullable String userName,
+        @Nullable String userPassword,
+        boolean passwordOnly,
+        boolean showSavePassword
+    ) {
+        return promptUserCredentials(prompt, description, CoreMessages.platform_user_name, userName, CoreMessages.platform_password, userPassword,
+            passwordOnly, showSavePassword);
+    }
+
+    @Nullable
+    @Override
+    public DBPAuthInfo promptUserCredentials(
+        @Nullable String prompt,
+        @Nullable String description,
+        @NotNull String userNameLabel,
+        @Nullable String userName,
+        @NotNull String passwordLabel,
+        @Nullable String userPassword,
+        boolean passwordOnly,
+        boolean showSavePassword
+    ) {
+        UnattendedRuns.refuseQuestion(CommonUtils.isEmpty(prompt) ? CoreMessages.platform_authentication : prompt, description);
+        return runOnEdt(() -> {
+            FormPanel form = new FormPanel(description);
+            JTextField userField = new JTextField(CommonUtils.notEmpty(userName), 24);
+            if (!passwordOnly) {
+                form.addRow(userNameLabel, userField);
+            }
+            JPasswordField passwordField = new JPasswordField(CommonUtils.notEmpty(userPassword), 24);
+            form.addRow(passwordLabel, passwordField);
+            JCheckBox savePasswordCheck = new JCheckBox(CoreMessages.platform_save_password);
+            if (showSavePassword) {
+                form.addRow(null, savePasswordCheck);
+            }
+            focusWhenShown(passwordOnly || !CommonUtils.isEmpty(userName) ? passwordField : userField);
+
+            int result = JOptionPane.showConfirmDialog(
+                getDialogParent(),
+                form,
+                CommonUtils.isEmpty(prompt) ? CoreMessages.platform_authentication : prompt,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+            if (result != JOptionPane.OK_OPTION) {
+                return null;
+            }
+            return new DBPAuthInfo(
+                passwordOnly ? userName : userField.getText(),
+                new String(passwordField.getPassword()),
+                showSavePassword && savePasswordCheck.isSelected());
+        });
+    }
+
+    /**
+     * Credentials of an auth model other than the plain native one (SQL Server Authentication, Oracle Username/password,
+     * pgpass...), asked when connecting without a saved password. The fields are the ones the connection dialog shows
+     * for the model ({@link ConnectionAuthModels#getFields}); they are written into the connection settings as SWT
+     * {@code DatabaseNativeAuthModelConfigurator} does in its credentials prompt mode, and the registry
+     * ({@code DataSourceDescriptor.askForPassword}) keeps or restores them depending on "Save password".
+     * A model without such fields has nothing to ask here (SWT showed its own settings page, which Swing does not have),
+     * so the connection goes on with its stored settings instead of being canceled silently.
+     */
+    @Override
+    public boolean promptAuthModelCredentials(@NotNull DBPDataSourceContainer dataSourceContainer) {
+        DBPConnectionConfiguration configuration = dataSourceContainer.getConnectionConfiguration();
+        DBPAuthModelDescriptor authModel = configuration.getAuthModelDescriptor();
+        ConnectionAuthModels.Fields fields = ConnectionAuthModels.getFields(authModel);
+        if (!fields.managed() || fields.isEmpty()) {
+            log.debug("Auth model " + authModel.getId() + " has no credential fields to ask for");
+            return true;
+        }
+        UnattendedRuns.refuseQuestion(NLS.bind(ConnectionMessages.auth_prompt_title, dataSourceContainer.getName()),
+            NLS.bind(ConnectionMessages.auth_prompt_description, authModel.getName()));
+        Boolean confirmed = runOnEdt(() -> {
+            FormPanel form = new FormPanel(NLS.bind(ConnectionMessages.auth_prompt_description, authModel.getName()));
+            JTextField userField = new JTextField(CommonUtils.notEmpty(configuration.getUserName()), 24);
+            if (fields.userLabel() != null) {
+                form.addRow(fields.userLabel(), userField);
+            }
+            JPasswordField passwordField = new JPasswordField(CommonUtils.notEmpty(configuration.getUserPassword()), 24);
+            // A temporary connection keeps its password anyway, as in the native prompt (askForPassword)
+            boolean showSavePassword = fields.passwordLabel() != null && !dataSourceContainer.isTemporary();
+            JCheckBox savePasswordCheck = new JCheckBox(CoreMessages.platform_save_password, dataSourceContainer.isSavePassword());
+            if (fields.passwordLabel() != null) {
+                form.addRow(fields.passwordLabel(), passwordField);
+                if (showSavePassword) {
+                    form.addRow(null, savePasswordCheck);
+                }
+            }
+            focusWhenShown(fields.passwordLabel() != null && (fields.userLabel() == null || !CommonUtils.isEmpty(userField.getText()))
+                ? passwordField : userField);
+
+            int result = JOptionPane.showConfirmDialog(
+                getDialogParent(),
+                form,
+                NLS.bind(ConnectionMessages.auth_prompt_title, dataSourceContainer.getName()),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+            if (result != JOptionPane.OK_OPTION) {
+                return false;
+            }
+            if (fields.userLabel() != null) {
+                configuration.setUserName(GeneralUtils.trimAllWhitespaces(userField.getText()));
+            }
+            configuration.setUserPassword(fields.passwordLabel() != null
+                ? GeneralUtils.trimAllWhitespaces(new String(passwordField.getPassword())) : null);
+            dataSourceContainer.setSavePassword(fields.passwordLabel() != null
+                && (dataSourceContainer.isTemporary() || savePasswordCheck.isSelected()));
+            return true;
+        });
+        return Boolean.TRUE.equals(confirmed);
+    }
+
+    @Nullable
+    @Override
+    public DBAPasswordChangeInfo promptUserPasswordChange(
+        String prompt,
+        @Nullable String userName,
+        @Nullable String oldPassword,
+        boolean userEditable,
+        boolean oldPasswordVisible
+    ) {
+        UnattendedRuns.refuseQuestion(CommonUtils.isEmpty(prompt) ? CoreMessages.platform_change_password : prompt, userName);
+        return runOnEdt(() -> {
+            FormPanel form = new FormPanel(null);
+            JTextField userField = new JTextField(CommonUtils.notEmpty(userName), 24);
+            userField.setEditable(userEditable);
+            form.addRow(CoreMessages.platform_user_name, userField);
+            JPasswordField oldPasswordField = new JPasswordField(CommonUtils.notEmpty(oldPassword), 24);
+            if (oldPasswordVisible) {
+                form.addRow(CoreMessages.platform_old_password, oldPasswordField);
+            }
+            JPasswordField newPasswordField = new JPasswordField(24);
+            form.addRow(CoreMessages.platform_new_password, newPasswordField);
+            JPasswordField confirmPasswordField = new JPasswordField(24);
+            form.addRow(CoreMessages.platform_confirm_password, confirmPasswordField);
+            focusWhenShown(newPasswordField);
+
+            while (true) {
+                int result = JOptionPane.showConfirmDialog(
+                    getDialogParent(),
+                    form,
+                    CommonUtils.isEmpty(prompt) ? CoreMessages.platform_change_password : prompt,
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE);
+                if (result != JOptionPane.OK_OPTION) {
+                    return null;
+                }
+                char[] newPassword = newPasswordField.getPassword();
+                char[] confirmPassword = confirmPasswordField.getPassword();
+                boolean matches = Arrays.equals(newPassword, confirmPassword);
+                Arrays.fill(confirmPassword, '\0');
+                if (!matches) {
+                    Arrays.fill(newPassword, '\0');
+                    JOptionPane.showMessageDialog(getDialogParent(), CoreMessages.platform_passwords_mismatch, CoreMessages.platform_change_password,
+                        JOptionPane.ERROR_MESSAGE);
+                    continue;
+                }
+                DBAPasswordChangeInfo info = new DBAPasswordChangeInfo(
+                    userField.getText(),
+                    oldPasswordVisible ? new String(oldPasswordField.getPassword()) : oldPassword);
+                info.setNewPassword(new String(newPassword));
+                Arrays.fill(newPassword, '\0');
+                return info;
+            }
+        });
+    }
+
+    @Nullable
+    @Override
+    public String promptProperty(@NotNull String prompt, @Nullable String defValue) {
+        return promptProperty(CoreMessages.common_input, prompt, defValue);
+    }
+
+    @Nullable
+    @Override
+    public String promptProperty(@NotNull String title, @NotNull String prompt, @Nullable String defValue) {
+        UnattendedRuns.refuseQuestion(title, prompt);
+        return runOnEdt(() -> (String) JOptionPane.showInputDialog(
+            getDialogParent(),
+            prompt,
+            title,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            null,
+            defValue));
+    }
+
+    @Nullable
+    @Override
+    public String promptText(@Nullable String title, @Nullable String prompt, @Nullable String defValue) {
+        UnattendedRuns.refuseQuestion(title, prompt);
+        return runOnEdt(() -> {
+            JTextArea textArea = new JTextArea(CommonUtils.notEmpty(defValue), 12, 60);
+            JPanel panel = new JPanel(new BorderLayout(0, 6));
+            if (!CommonUtils.isEmpty(prompt)) {
+                panel.add(new JLabel(prompt), BorderLayout.NORTH);
+            }
+            panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
+            focusWhenShown(textArea);
+            int result = JOptionPane.showConfirmDialog(
+                getDialogParent(),
+                panel,
+                CommonUtils.isEmpty(title) ? CoreMessages.common_input : title,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+            return result == JOptionPane.OK_OPTION ? textArea.getText() : null;
+        });
+    }
+
+    @Override
+    public boolean acceptLicense(String message, String licenseText) {
+        UnattendedRuns.refuseQuestion(CoreMessages.platform_license_agreement, message);
+        Integer result = runOnEdt(() -> {
+            JTextArea licenseArea = new JTextArea(CommonUtils.notEmpty(licenseText), 20, 70);
+            licenseArea.setEditable(false);
+            licenseArea.setLineWrap(true);
+            licenseArea.setWrapStyleWord(true);
+            licenseArea.setCaretPosition(0);
+            JPanel panel = new JPanel(new BorderLayout(0, 6));
+            panel.add(createMessageComponent(message), BorderLayout.NORTH);
+            panel.add(new JScrollPane(licenseArea), BorderLayout.CENTER);
+            Object[] options = {CoreMessages.platform_accept, CoreMessages.platform_decline};
+            return JOptionPane.showOptionDialog(
+                getDialogParent(),
+                panel,
+                CoreMessages.platform_license_agreement,
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[1]);
+        });
+        return result != null && result == 0;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Navigator and editors
+
+    @Override
+    public DBNNode selectObject(
+        @NotNull Object parentShell,
+        String title,
+        DBNNode rootNode,
+        DBNNode selectedNode,
+        Class<?>[] allowedTypes,
+        Class<?>[] resultTypes,
+        Class<?>[] leafTypes
+    ) {
+        // Phase C: navigator tree selection dialog (can reuse the Object Explorer tree)
+        log.debug("Object selection dialog is not implemented yet: " + title);
+        return null;
+    }
+
+    /**
+     * Swing has no object editor: the object is shown in Object Explorer instead. The model asks for it after a data transfer
+     * into a new table when "open the table when done" is set, which data transfer tasks saved by SWT have (the Swing wizards
+     * turn it off). Called from a background job; the node is looked up there.
+     */
+    @Override
+    public void openEntityEditor(@NotNull DBSObject object) {
+        if (UnattendedRuns.skip(null, "Show in Object Explorer: " + object.getName())) { //$NON-NLS-1$
+            return;
+        }
+        DBNDatabaseNode node = DBNUtils.getNodeByObject(object);
+        if (node == null && !SwingUtilities.isEventDispatchThread()) {
+            // Reads the parent nodes; never on the EDT
+            node = DBNUtils.getNodeByObject(new VoidProgressMonitor(), object, true);
+        }
+        if (node == null) {
+            log.debug("No navigator node to show for " + object.getName());
+            return;
+        }
+        revealInExplorer(node);
+    }
+
+    @Override
+    public void openEntityEditor(@NotNull DBNNode selectedNode, @Nullable String defaultPageId) {
+        if (UnattendedRuns.skip(null, "Show in Object Explorer: " + selectedNode.getNodeDisplayName())) { //$NON-NLS-1$
+            return;
+        }
+        if (selectedNode instanceof DBNDatabaseNode node) {
+            revealInExplorer(node);
+        } else {
+            log.debug("No object to show for " + selectedNode.getNodeDisplayName());
+        }
+    }
+
+    private static void revealInExplorer(@NotNull DBNDatabaseNode node) {
+        SwingUtilities.invokeLater(() -> {
+            for (Frame frame : Frame.getFrames()) {
+                if (frame instanceof MainFrame mainFrame && mainFrame.isDisplayable()) {
+                    mainFrame.revealNode(node);
+                    return;
+                }
+            }
+        });
+    }
+
+    @Override
+    public void openConnectionEditor(@NotNull DBPDataSourceContainer dataSourceContainer) {
+        if (UnattendedRuns.skip(null, "Edit connection: " + dataSourceContainer.getName())) { //$NON-NLS-1$
+            return;
+        }
+        // Generic connection dialog (swing-frontend.md, MVP item 2). Waits until it is closed, like DesktopUI (syncExec):
+        // callers may use the changed settings right after this call.
+        runOnEdt(() -> {
+            ConnectionCommands.edit(getDialogParent(), dataSourceContainer);
+            return null;
+        });
+    }
+
+    //////////////////////////////////////////////////////////
+    // Execution
+
+    @Override
+    public void executeProcess(@NotNull DBRProcessDescriptor processDescriptor) {
+        try {
+            processDescriptor.execute();
+        } catch (DBException e) {
+            showError(CoreMessages.platform_execute_process, processDescriptor.getName(), e);
+        }
+    }
+
+    @Override
+    public void executeInMainThread(@NotNull Runnable runnable) {
+        // Synchronous, like DesktopUI (UIUtils.syncExec)
+        runOnEdt(() -> {
+            runnable.run();
+            return null;
+        });
+    }
+
+    @NotNull
+    @Override
+    public <T> Future<T> executeWithProgressBlocking(
+        @NotNull String operationDescription,
+        @NotNull DBRRunnableWithResult<Future<T>> runnable
+    ) {
+        // Same job as DesktopUI. On the EDT the caller waits in a progress dialog, otherwise it just joins the job.
+        AbstractJob job = new AbstractJob(operationDescription) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                monitor.beginTask(operationDescription, IProgressMonitor.UNKNOWN);
+                try {
+                    runnable.run(monitor);
+                    return Status.OK_STATUS;
+                } catch (Exception ex) {
+                    return GeneralUtils.makeExceptionStatus(ex);
+                } finally {
+                    monitor.done();
+                }
+            }
+
+            @Override
+            protected void canceling() {
+                runnable.cancel();
+            }
+        };
+        if (SwingUtilities.isEventDispatchThread()) {
+            ProgressDialog.waitForJob(operationDescription, job);
+        } else {
+            job.schedule();
+        }
+        try {
+            job.join();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return CompletableFuture.failedFuture(ex);
+        }
+        IStatus result = job.getResult();
+        if (result == null) {
+            return CompletableFuture.failedFuture(new DBException("The result of the job is null. Has it finished?"));
+        }
+        if (result.isOK()) {
+            return runnable.getResult();
+        }
+        return CompletableFuture.failedFuture(result.getException());
+    }
+
+    @Override
+    public <T> T runWithMonitor(@NotNull DBRRunnableWithReturn<T> runnable) throws DBException {
+        // DesktopUI runs this in the workbench progress service, which shows a dialog for long tasks
+        return runWithProgress(runnable);
+    }
+
+    @Override
+    public <T> T runWithProgress(@NotNull DBRRunnableWithReturn<T> runnable) throws DBException {
+        if (SwingUtilities.isEventDispatchThread()) {
+            // Keep the UI painting: run in a job and wait in a modal progress dialog with Cancel
+            return ProgressDialog.runTask(GeneralUtils.getProductName(), runnable);
+        }
+        // Already in a background thread: nothing to keep responsive
+        return runnable.runTask(new LoggingProgressMonitor(log));
+    }
+
+    @NotNull
+    @Override
+    public <RESULT> Job createLoadingService(
+        @NotNull ILoadService<RESULT> loadingService,
+        @NotNull ILoadVisualizer<RESULT> visualizer
+    ) {
+        // Phase C: Swing loading placeholder; the visualizer is completed in the job thread for now
+        return new AbstractJob(loadingService.getServiceName()) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    RESULT result = loadingService.evaluate(monitor);
+                    visualizer.completeLoading(result);
+                    return Status.OK_STATUS;
+                } catch (InvocationTargetException e) {
+                    return GeneralUtils.makeExceptionStatus(e.getTargetException());
+                } catch (InterruptedException e) {
+                    return Status.CANCEL_STATUS;
+                }
+            }
+        };
+    }
+
+    //////////////////////////////////////////////////////////
+    // Desktop integration
+
+    @Override
+    public void copyTextToClipboard(@NotNull String text, boolean htmlFormat) {
+        if (CommonUtils.isEmpty(text)) {
+            return;
+        }
+        // Phase C: HTML flavor when htmlFormat is true (copied as plain text for now)
+        runOnEdt(() -> {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
+            return null;
+        });
+    }
+
+    @Override
+    public void executeShellProgram(@NotNull String shellCommand) {
+        if (UnattendedRuns.skip(null, "Open " + shellCommand)) { //$NON-NLS-1$
+            return;
+        }
+        // Opens a URL or file with the associated program, like SWT Program.launch() in DesktopUI
+        try {
+            if (!Desktop.isDesktopSupported()) {
+                log.warn("Desktop integration is not supported, can't open '" + shellCommand + "'");
+                return;
+            }
+            Desktop desktop = Desktop.getDesktop();
+            File file = new File(shellCommand);
+            if (file.exists()) {
+                desktop.open(file);
+            } else {
+                desktop.browse(URI.create(shellCommand));
+            }
+        } catch (Exception e) {
+            log.error("Error opening '" + shellCommand + "'", e);
+        }
+    }
+
+    @Override
+    public void showInSystemExplorer(@NotNull String path) {
+        if (UnattendedRuns.skip(null, "Show in the file manager: " + path)) { //$NON-NLS-1$
+            return;
+        }
+        // Same commands as ShellUtils.showInSystemExplorer of the SWT UI, for the supported platforms
+        File file = new File(path);
+        try {
+            if (RuntimeUtils.isWindows()) {
+                new ProcessBuilder("explorer.exe", "/select," + file.getAbsolutePath()).start();
+            } else if (RuntimeUtils.isMacOS()) {
+                new ProcessBuilder("open", "-R", file.getAbsolutePath()).start();
+            } else if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(file.isDirectory() ? file : file.getAbsoluteFile().getParentFile());
+            }
+        } catch (IOException e) {
+            log.debug("Error opening file in explorer", e);
+        }
+    }
+
+    @Override
+    public DBNPathBase openFileSystemSelector(
+        @NotNull String title,
+        boolean folder,
+        int style,
+        boolean binary,
+        String[] filterExt,
+        String defaultValue
+    ) {
+        // Same as DesktopUI of the SWT UI
+        showMessageBox(CoreMessages.platform_not_supported, CoreMessages.platform_external_fs_not_supported, true);
+        return null;
+    }
+
+    @Override
+    public boolean readAndDispatchEvents() {
+        // Phase C: callers use this to keep the UI responsive while they wait. Swing can't pump events from
+        // an arbitrary thread; a java.awt.SecondaryLoop would be needed when called on the EDT.
+        return false;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Helpers
+
+    /**
+     * Runs the task on the EDT and waits for its result. Returns {@code null} if the task failed or the
+     * waiting thread was interrupted.
+     */
+    @Nullable
+    private static <T> T runOnEdt(@NotNull Supplier<T> task) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            return task.get();
+        }
+        AtomicReference<T> result = new AtomicReference<>();
+        try {
+            SwingUtilities.invokeAndWait(() -> result.set(task.get()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.debug("Interrupted while waiting for UI task");
+            return null;
+        } catch (InvocationTargetException e) {
+            log.error("Error in UI task", e.getTargetException());
+            return null;
+        }
+        return result.get();
+    }
+
+    private static void showMessage(@NotNull String title, @Nullable String message, int messageType) {
+        runOnEdt(() -> {
+            JOptionPane.showMessageDialog(getDialogParent(), createMessageComponent(message), title, messageType);
+            return null;
+        });
+    }
+
+    /**
+     * Error message box; with an error it also has the collapsed stack trace (Details) and Copy.
+     */
+    private static void showErrorBox(@NotNull String title, @Nullable String message, @Nullable Throwable error) {
+        runOnEdt(() -> {
+            ErrorDialog.show(getDialogParent(), title, message, error);
+            return null;
+        });
+    }
+
+    /**
+     * Asks before an action that changes data, schema, jobs, sessions or files. The action button carries its verb
+     * (Delete, Kill, Replace…) and Cancel is the default button with the initial focus ({@link JOptionPane} gives both to
+     * the initial value), so that Enter pressed by habit does not run the action. Call on the EDT.
+     *
+     * @param message     text or component shown in the dialog, as {@link JOptionPane#showOptionDialog} takes it
+     * @param actionLabel label of the button that runs the action
+     * @param messageType {@link JOptionPane} message type (icon)
+     * @return true if the user chose the action
+     */
+    static boolean confirmChange(
+        @Nullable Component parent,
+        @NotNull Object message,
+        @NotNull String title,
+        @NotNull String actionLabel,
+        int messageType
+    ) {
+        Object[] options = {actionLabel, CoreMessages.common_cancel};
+        return JOptionPane.showOptionDialog(parent, message, title, JOptionPane.DEFAULT_OPTION, messageType, null, options, options[1]) == 0;
+    }
+
+    /**
+     * The focused window, or else any visible frame, so that dialogs stay on top of the application.
+     */
+    @Nullable
+    static Component getDialogParent() {
+        Window activeWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
+        if (activeWindow != null) {
+            return activeWindow;
+        }
+        for (Frame frame : Frame.getFrames()) {
+            if (frame.isVisible()) {
+                return frame;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A read-only wrapping text area: JOptionPane shows a plain string on one line, which breaks on long
+     * error messages. Long texts get a scroll bar. Lines break only between words, also in Korean
+     * ({@link WrappingNote.MessageArea}); the text can be selected and copied.
+     */
+    @NotNull
+    static JComponent createMessageComponent(@Nullable String message) {
+        JTextArea textArea = new WrappingNote.MessageArea(CommonUtils.notEmpty(message));
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setOpaque(false);
+        textArea.setBorder(null);
+        textArea.setFont(UIManager.getFont("Label.font"));
+        // Fixing the width first lets the text area compute its wrapped height
+        textArea.setSize(new Dimension(MESSAGE_WIDTH, Short.MAX_VALUE));
+        Dimension preferredSize = textArea.getPreferredSize();
+        int maxHeight = textArea.getFontMetrics(textArea.getFont()).getHeight() * MAX_MESSAGE_ROWS;
+        if (preferredSize.height <= maxHeight) {
+            textArea.setPreferredSize(new Dimension(MESSAGE_WIDTH, preferredSize.height));
+            return textArea;
+        }
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(MESSAGE_WIDTH + 20, maxHeight));
+        return scrollPane;
+    }
+
+    @NotNull
+    private static String joinText(@Nullable String first, @Nullable String second) {
+        if (CommonUtils.isEmpty(first)) {
+            return CommonUtils.notEmpty(second);
+        }
+        if (CommonUtils.isEmpty(second) || first.equals(second)) {
+            return first;
+        }
+        return first + "\n\n" + second;
+    }
+
+    /**
+     * JOptionPane focuses its first button; credential prompts should start in the input field instead.
+     */
+    static void focusWhenShown(@NotNull JComponent component) {
+        component.addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                component.removeAncestorListener(this);
+                SwingUtilities.invokeLater(component::requestFocusInWindow);
+            }
+
+            @Override
+            public void ancestorRemoved(AncestorEvent event) {
+            }
+
+            @Override
+            public void ancestorMoved(AncestorEvent event) {
+            }
+        });
+    }
+
+    /**
+     * Label/field rows for the credential prompts.
+     */
+    private static final class FormPanel extends JPanel {
+        private final GridBagConstraints constraints = new GridBagConstraints();
+
+        FormPanel(@Nullable String description) {
+            super(new GridBagLayout());
+            constraints.insets = new Insets(3, 3, 3, 3);
+            constraints.anchor = GridBagConstraints.WEST;
+            constraints.gridy = 0;
+            if (!CommonUtils.isEmpty(description)) {
+                constraints.gridx = 0;
+                constraints.gridwidth = 2;
+                add(createMessageComponent(description), constraints);
+                constraints.gridwidth = 1;
+                constraints.gridy++;
+            }
+        }
+
+        void addRow(@Nullable String label, @NotNull JComponent field) {
+            constraints.gridx = 0;
+            constraints.fill = GridBagConstraints.NONE;
+            constraints.weightx = 0;
+            if (label != null) {
+                add(new JLabel(label.endsWith(":") ? label : label + ":"), constraints);
+            }
+            constraints.gridx = 1;
+            constraints.fill = GridBagConstraints.HORIZONTAL;
+            constraints.weightx = 1;
+            add(field, constraints);
+            constraints.gridy++;
+        }
+    }
+}

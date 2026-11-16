@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite GIS Support
+Bundle-SymbolicName: com.seizia.chromite.data.gis;singleton:=true
+Bundle-Version: 1.0.215.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ org.jkiss.bundle.gis;visibility:=reexport
+Export-Package: com.seizia.chromite.data.gis.handlers,
+ com.seizia.chromite.model.gis
+Automatic-Module-Name: com.seizia.chromite.data.gis

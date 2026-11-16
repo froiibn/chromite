@@ -1,0 +1,73 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.connection;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.access.DBAAuthCredentials;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+
+/**
+ * Data source provider descriptor
+ */
+public interface DBPAuthModelDescriptor extends DBPNamedObject, DBPDriverLibraryProvider {
+
+    @NotNull
+    String getId();
+
+    String getDescription();
+
+    DBPImage getIcon();
+
+    @NotNull
+    String getImplClassName();
+
+    boolean isDefaultModel();
+
+    // Model works in desktop application only
+    boolean isDesktopModel();
+
+    // Model works in application that uses servers only
+    boolean requiresServerApplication();
+
+    // Model needs a configuration on a local FS
+    boolean requiresLocalConfiguration();
+
+    boolean isApplicableTo(DBPDriver driver);
+
+    // Auth model which replaced this one. Usually null
+    @Nullable
+    DBPAuthModelDescriptor getReplacedBy(@NotNull DBPDriver driver);
+
+    @NotNull
+    <T extends DBAAuthCredentials> DBAAuthModel<T> getInstance();
+
+    @NotNull
+    DBPPropertySource createCredentialsSource(@Nullable DBPDataSourceContainer dataSource, @Nullable DBPConnectionConfiguration configuration);
+
+    /**
+     * Returns id of required external authorization.
+     * Null - if additional authorization is not required
+     */
+    @Nullable
+    String getRequiredAuthProviderId();
+}

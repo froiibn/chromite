@@ -1,0 +1,208 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.mssql.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.mssql.SQLServerUtils;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
+
+/**
+ * SQLServerProcedureParameter
+ *
+ * 설계: 매개변수 종류는 sys.parameters에서 정한다. parameter_id 0은 함수의 반환 값이고, is_output은 OUTPUT 매개변수다.
+ * is_readonly는 테이블 반환 매개변수(READONLY)에만 붙으므로 방향을 정하는 데 쓰지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 일반 매개변수를 INOUT이 아니라 IN으로, 반환 값을 OUT이 아니라 RETURN으로 보고함
+ *   (docs/chromite/model-fixes.md)
+ * - 2026-11-08 nchar·nvarchar 길이를 바이트가 아니라 글자 수로(테이블 열과 같은 {@code SQLServerUtils.getDisplayMaxLength}).
+ *   nvarchar(50)이 nvarchar(100)으로 보이고 실행 스크립트의 OUTPUT 변수 선언도 그 길이였다 (docs/chromite/model-fixes.md "후속 수정 3")
+ */
+public class SQLServerProcedureParameter implements DBSProcedureParameter, DBSAttributeBase, DBSObject {
+    private SQLServerProcedure procedure;
+    private String paramName;
+    private int ordinalPosition;
+    private SQLServerDataType dataType;
+    private int maxLength;
+    private int scale;
+    private int precision;
+    private DBSProcedureParameterKind parameterKind;
+    private boolean nullable;
+    private String defaultValue;
+
+    public SQLServerProcedureParameter(
+        DBRProgressMonitor monitor,
+        SQLServerProcedure procedure,
+        JDBCResultSet dbResult)
+        throws DBException
+    {
+        this.procedure = procedure;
+        this.paramName = JDBCUtils.safeGetString(dbResult, "name");
+        this.ordinalPosition = JDBCUtils.safeGetInt(dbResult, "parameter_id");
+
+        int typeID = JDBCUtils.safeGetInt(dbResult, "user_type_id");
+        this.dataType = procedure.getContainer().getDatabase().getDataTypeByUserTypeId(monitor, typeID);
+
+        boolean isOutput = JDBCUtils.safeGetInt(dbResult, "is_output") != 0;
+        boolean isCursor = JDBCUtils.safeGetInt(dbResult, "is_cursor_ref") != 0;
+        // parameter_id 0 is a function's return value (sys.parameters also flags it is_output)
+        if (ordinalPosition == 0) {
+            this.parameterKind = DBSProcedureParameterKind.RETURN;
+        } else if (isCursor) {
+            this.parameterKind = DBSProcedureParameterKind.RESULTSET;
+        } else {
+            this.parameterKind = isOutput ? DBSProcedureParameterKind.OUT : DBSProcedureParameterKind.IN;
+        }
+
+        // sys.parameters.max_length is in bytes: nvarchar(50) is 100, as for table columns
+        int rawMaxLength = JDBCUtils.safeGetInt(dbResult, "max_length");
+        this.maxLength = dataType == null ? rawMaxLength
+            : SQLServerUtils.getDisplayMaxLength(getDataSource(), dataType.getTypeName(), rawMaxLength);
+        this.scale = JDBCUtils.safeGetInt(dbResult, "scale");
+        this.precision = JDBCUtils.safeGetInt(dbResult, "precision");
+
+        if (JDBCUtils.safeGetInt(dbResult, "has_default_value") != 0) {
+            defaultValue = JDBCUtils.safeGetString(dbResult, "default_value");
+        }
+        nullable = JDBCUtils.safeGetInt(dbResult, "is_nullable") != 0;
+    }
+
+    @NotNull
+    @Override
+    public SQLServerDataSource getDataSource() {
+        return procedure.getDataSource();
+    }
+
+    @Nullable
+    @Override
+    public String getDescription() {
+        return null;
+    }
+
+    @Override
+    public SQLServerProcedure getParentObject() {
+        return procedure;
+    }
+
+    @Override
+    public boolean isPersisted() {
+        return true;
+    }
+
+    @NotNull
+    @Override
+    @Property(viewable = true, order = 1)
+    public String getName() {
+        return paramName;
+    }
+
+    @NotNull
+    @Override
+    @Property(viewable = true, order = 2)
+    public SQLServerDataType getParameterType() {
+        return dataType;
+    }
+
+    @NotNull
+    @Override
+    @Property(viewable = true, order = 3)
+    public DBSProcedureParameterKind getParameterKind() {
+        return parameterKind;
+    }
+
+    @Override
+    @Property(viewable = true, order = 4)
+    public int getOrdinalPosition() {
+        return ordinalPosition;
+    }
+
+    @Override
+    public boolean isRequired() {
+        return !nullable;
+    }
+
+    @Override
+    public boolean isAutoGenerated() {
+        return false;
+    }
+
+    @NotNull
+    @Override
+    public String getTypeName() {
+        return dataType.getTypeName();
+    }
+
+    @NotNull
+    @Override
+    public String getFullTypeName() {
+        return DBUtils.getFullTypeName(this);
+    }
+
+    @Override
+    public int getTypeID() {
+        return dataType.getTypeID();
+    }
+
+    @NotNull
+    @Override
+    public DBPDataKind getDataKind() {
+        return dataType.getDataKind();
+    }
+
+    @Nullable
+    @Override
+    public Integer getScale() {
+        return scale;
+    }
+
+    @Override
+    public Integer getPrecision() {
+        return precision;
+    }
+
+    @Override
+    public long getMaxLength() {
+        return maxLength;
+    }
+
+    @Override
+    public long getTypeModifiers() {
+        return 0;
+    }
+
+    @Property(viewable = true, order = 5)
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+
+}
