@@ -98,6 +98,10 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
   | Pull / Commit & Push… | 메뉴: 루트가 Git 작업 사본일 때만 보임 (④) |
   | Refresh | F5(트리에 초점이 있을 때, Object Explorer와 같은 규칙), 도구 막대 |
   | Library Roots… | 도구 막대 ⚙, 메뉴 |
+
+  오른쪽 클릭 메뉴는 누른 것에 해당하는 명령만 보인다(2026-11-17, 앱 변경 #141, [context-menus.md](context-menus.md) "작은 메뉴 5곳"): 루트와 빈 곳에는
+  Rename…·Delete가, 빈 곳에는 Export…와 Open Folder가 없고, 데스크톱이 폴더를 열 수 없는 시스템에서는 Open Folder가 없다. 읽기 전용 루트는
+  Library Roots…에서 바꿀 수 있으므로 쓰기 명령이 전처럼 꺼진 채 보인다.
   | 끌어다 놓기 | 쿼리·폴더를 다른 폴더로 옮김. 파일 탐색기의 `.sql` 파일을 놓으면 그 폴더로 복사 |
 
   읽기 전용 루트에서는 쓰기 명령(새로 만들기, 이름 바꾸기, 삭제, 놓기)을 끈다.
@@ -676,3 +680,5 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
 - 2026-11-12 예약 대화상자 Parameters 목록의 열 폭을 머리글·값의 폭으로(앱 변경 #81, `chromite/small-fixes-r3`). "예약 실행".
 - 2026-11-12 저장된 작업 예약과 스케줄러 하나(앱 변경 #104, `chromite/task-scheduling`): 시각 규칙을 `ScheduleTiming`, 타이머를 `RunScheduler`로 옮김,
   시작·정지는 메인 창, Schedule…의 When 칸은 작업 예약 대화상자와 같은 부품(`ScheduleWhenPanel`). 쿼리 예약의 동작과 파일 형식은 그대로. "스케줄러".
+- 2026-11-17 오른쪽 클릭 메뉴: 루트·빈 곳의 Rename…·Delete, 빈 곳의 Export…·Open Folder, 데스크톱이 폴더를 열 수 없을 때의 Open Folder를 숨김
+  (앱 변경 #141, `chromite/small-menus-applicable`). "명령" 표 아래.

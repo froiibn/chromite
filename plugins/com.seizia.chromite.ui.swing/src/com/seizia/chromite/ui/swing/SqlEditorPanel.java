@@ -3243,6 +3243,8 @@ final class SqlEditorPanel extends JPanel {
      * - 2026-11-13 개체 탐색기에서 끌어 온 이름을 놓은 자리에 붙여넣기처럼 한 실행 취소 단계로 넣고 초점을 받음({@link ExplorerDropHandler},
      *   앱 변경 #112). 다른 끌어 놓기는 RSyntaxTextArea의 처리 그대로다
      * - 2026-11-13 쿼리 창의 편집 영역은 자기 연결과 현재 DB(DB 선택이 보이는 것)로 이름을 고름: 그 DB의 개체는 DB를 뺀 이름(#112 검토)
+     * - 2026-11-17 오른쪽 클릭 메뉴는 {@link ContextMenus#tidyTextArea}: 편집할 수 없는 보기에서는 편집 항목, 접기가 없는 언어에서는 Folding을
+     *   숨김(앱 변경 #141, docs/chromite/context-menus.md)
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3438,6 +3440,7 @@ final class SqlEditorPanel extends JPanel {
                 copyAction.setEnabled(true);
                 cutAction.setEnabled(isEditable());
             }
+            ContextMenus.tidyTextArea(this, popupMenu);
         }
 
         /**

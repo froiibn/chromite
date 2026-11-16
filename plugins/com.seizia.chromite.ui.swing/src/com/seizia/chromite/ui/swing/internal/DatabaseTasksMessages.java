@@ -31,6 +31,7 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업", "SQL 스크립트 작업")
  * - 2026-11-12 예약 실행 문구(일정 명령·열·대화상자, 예약할 수 없는 이유, 상태 줄) (앱 변경 #104, docs/chromite/task-scheduling.md)
  * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-17 편집 화면이 없는 작업의 Edit 도구 설명 키를 지움(Edit가 그 작업에서 숨음, 앱 변경 #141, docs/chromite/context-menus.md)
  */
 public class DatabaseTasksMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages"; //$NON-NLS-1$
@@ -54,7 +55,6 @@ public class DatabaseTasksMessages extends NLS {
     public static String tasks_run_confirm;
     public static String tasks_no_client;
     public static String tasks_edit;
-    public static String tasks_edit_unsupported;
     public static String tasks_show_log;
     public static String tasks_show_log_tip;
     public static String tasks_log_title;

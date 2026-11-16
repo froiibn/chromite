@@ -30,6 +30,8 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
   | Remove Connection Link | 메뉴 | 묶기를 푼다 |
   | Refresh | F5(트리에 초점), 도구 막대, 메뉴 | 폴더를 다시 읽는다 |
 
+- 오른쪽 클릭 메뉴는 누른 것에 해당하는 명령만 보인다: 스크립트 폴더(루트)와 빈 곳에는 Rename·Delete가 없다(2026-11-17, 앱 변경 #141,
+  [context-menus.md](context-menus.md) "작은 메뉴 5곳"). 키(F2, Delete)는 전처럼 그곳에서 아무 일도 하지 않는다.
 - 연결 묶기의 효과: Scripts 창, File > Open File, Recent Files 어디서 열어도 묶은 연결로 연다. 묶지 않았거나 묶은 연결이 없으면 예전처럼
   Object Explorer에서 고른 연결 → 활성 쿼리 창의 연결 → 연결 없음 순서다.
 - 저장: 쿼리 창을 스크립트 폴더 안에 저장(Save, Save As, Save All)하면 Scripts 창이 다시 읽고, 그 파일에 묶은 연결이 없으면 쿼리 창의 연결에 묶는다.
@@ -120,3 +122,4 @@ Swing에 SSMS의 Solution Explorer와 같은 자리의 **Scripts** 도구 창을
   [swing-query-window-recovery.md](swing-query-window-recovery.md) "확인 기록"
 - 2026-11-08 기본 자리를 새 기본 배치(앱 변경 #12)에 맞춤: Properties 위 대신 Query Library 탭 → Properties 탭 → Chromite Agent 위 → 오른쪽 가장자리(`chromite/ui-layout`).
 - 2026-11-12 열린 창의 연결은 그 창의 연결 변경 명령으로만 바뀜(앱 변경 #73, `chromite/change-connection`)
+- 2026-11-17 루트와 빈 곳의 오른쪽 클릭 메뉴에서 Rename·Delete를 숨김(앱 변경 #141, `chromite/small-menus-applicable`)

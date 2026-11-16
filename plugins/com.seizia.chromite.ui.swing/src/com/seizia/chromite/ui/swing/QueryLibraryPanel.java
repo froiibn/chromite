@@ -107,6 +107,8 @@ import java.util.Set;
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-13 커밋 메시지 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다(입력은 그대로)
  *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-17 오른쪽 클릭 메뉴: Rename·Delete는 루트가 아닌 폴더·쿼리에서, Export는 폴더에서, Open Folder는 데스크톱이 폴더를 열 수 있을 때만 보임.
+ *   읽기 전용 루트는 Library Roots에서 바꿀 수 있어 쓰기 명령은 전처럼 꺼짐({@link ContextMenus}, 앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -623,11 +625,14 @@ final class QueryLibraryPanel extends JPanel {
         newQueryAction.setEnabled(targetWritable);
         newFolderAction.setEnabled(targetWritable);
         duplicateAction.setEnabled(query != null && targetWritable);
-        renameAction.setEnabled(writable && !isRoot);
-        deleteAction.setEnabled(writable && !isRoot);
-        openFolderAction.setEnabled(path != null && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN));
+        // A root is renamed and removed in Library Roots; a read-only root can be made writable there, so it is "now"
+        ContextMenus.set(renameAction, path != null && !isRoot, writable);
+        ContextMenus.set(deleteAction, path != null && !isRoot, writable);
+        ContextMenus.set(openFolderAction, path != null && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN), true);
         saveSqlAction.setEnabled(query != null);
-        exportAction.setEnabled(node != null && node.getUserObject() instanceof QueryLibrary.Folder folder && !folder.missing);
+        // A root whose folder was missing when it was read can be there on the next read
+        ContextMenus.set(exportAction, node != null && node.getUserObject() instanceof QueryLibrary.Folder,
+            node != null && node.getUserObject() instanceof QueryLibrary.Folder folder && !folder.missing);
         importAction.setEnabled(targetWritable);
         QueryLibrary.Folder root = getSelectedRoot();
         boolean gitAvailable = QueryLibraryGit.isAvailable();
@@ -700,6 +705,7 @@ final class QueryLibraryPanel extends JPanel {
         menu.add(scheduledAction);
         menu.add(refreshAction);
         menu.add(rootsAction);
+        ContextMenus.tidy(menu);
         menu.show(tree, e.getX(), e.getY());
     }
 

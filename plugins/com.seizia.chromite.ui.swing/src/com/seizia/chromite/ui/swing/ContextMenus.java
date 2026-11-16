@@ -16,6 +16,9 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
+import org.fife.ui.rtextarea.RTextArea;
 import org.jkiss.code.NotNull;
 
 import javax.swing.*;
@@ -39,6 +42,8 @@ import java.awt.*;
  * 변경 이력:
  * - 2026-11-16 최초 작성: Object Explorer 오른쪽 클릭 메뉴(앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-16 {@link #setApplies}: 메뉴에는 연결 노드에서만 보이지만 도구 막대·메뉴 막대에서는 전처럼 켜지는 연결 명령(사용자 결정 "연결 노드에서만")
+ * - 2026-11-17 {@link #tidyTextArea}: RSyntaxTextArea가 만든 글 영역 메뉴(SQL 편집기, 읽기 전용 보기, 값 패널, 원본 계획)를 한곳에서 같은 규칙으로
+ *   (앱 변경 #141). 라이브러리가 만든 항목이라 동작 객체로 골라 낸다
  */
 final class ContextMenus {
 
@@ -47,6 +52,13 @@ final class ContextMenus {
      * kind of thing the menu is opened on.
      */
     static final String APPLIES = "chromite.applies"; //$NON-NLS-1$
+
+    /**
+     * Client property of a text area ({@link Boolean#TRUE}): it shows changing content while it is open (the value panel
+     * shows each selected cell, the template page each selected template), so whether it is editable and its language can
+     * change. Without it, a read-only text area is a viewer that never becomes editable.
+     */
+    static final String VARYING_TEXT = "chromite.varyingText"; //$NON-NLS-1$
 
     private ContextMenus() {
     }
@@ -83,6 +95,38 @@ final class ContextMenus {
      */
     static void tidy(@NotNull JPopupMenu menu) {
         tidy(menu.getComponents());
+    }
+
+    /**
+     * The text area's own popup (RTextArea: Undo, Redo | Cut, Copy, Paste, Delete | Select All | Folding, and what the
+     * caller added): call it from {@code configurePopupMenu} after the library set the enabled states.
+     * <p>
+     * The library disables the editing items in a read-only text area and Folding where the language has no folds. A viewer
+     * that never becomes editable (DDL, sources, previews, logs) is a kind, so the editing items are hidden there; a text
+     * area marked {@link #VARYING_TEXT} is read-only only now and keeps them disabled. Nothing to undo, no selection, nothing
+     * to paste stay "now" (the library's enabled states). Folding is hidden where it never works: folding is off, or the
+     * language of a text area that is not {@link #VARYING_TEXT} has no fold parser. The items are found by their actions,
+     * shared by all text areas (the library keeps its item fields private).
+     */
+    static void tidyTextArea(@NotNull RSyntaxTextArea area, @NotNull JPopupMenu menu) {
+        boolean varying = Boolean.TRUE.equals(area.getClientProperty(VARYING_TEXT));
+        boolean editingApplies = area.isEditable() || varying;
+        boolean folding = area.getFoldManager().isCodeFoldingSupportedAndEnabled();
+        for (Component component : menu.getComponents()) {
+            if (component instanceof JMenu submenu && submenu.getItemCount() > 0
+                && submenu.getItem(0).getAction() instanceof RSyntaxTextAreaEditorKit.ToggleCurrentFoldAction) {
+                set(submenu, varying ? area.isCodeFoldingEnabled() : folding, folding);
+            } else if (component instanceof JMenuItem item && isEditingAction(item.getAction())) {
+                set(item, editingApplies, item.isEnabled());
+            }
+        }
+        tidy(menu);
+    }
+
+    private static boolean isEditingAction(Action action) {
+        return action != null && (action == RTextArea.getAction(RTextArea.UNDO_ACTION) || action == RTextArea.getAction(RTextArea.REDO_ACTION)
+            || action == RTextArea.getAction(RTextArea.CUT_ACTION) || action == RTextArea.getAction(RTextArea.PASTE_ACTION)
+            || action == RTextArea.getAction(RTextArea.DELETE_ACTION));
     }
 
     /**

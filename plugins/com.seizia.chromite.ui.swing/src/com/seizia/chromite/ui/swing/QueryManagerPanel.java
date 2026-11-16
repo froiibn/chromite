@@ -116,6 +116,8 @@ import java.util.TreeMap;
  * - 2026-11-09 복사 도구 설명의 키 글자를 플랫폼 키에서 만듦({@link UiKeys}, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 보일 항목 메뉴 끝에 Options의 Logs 페이지를 여는 Log Settings (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-17 오른쪽 클릭 메뉴: Open·Copy는 고른 행에 문장이 있을 때, Show Transaction은 트랜잭션이 있는 행 하나를 골랐을 때만 보임
+ *   ({@link ContextMenus}, 앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPreferenceListener {
 
@@ -667,11 +669,13 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
 
     private void updateActions() {
         boolean statements = !getSelectedStatements().isEmpty();
-        openAction.setEnabled(statements);
-        copyAction.setEnabled(statements);
+        // Session and transaction rows have no statement; a mixed selection opens and copies its statements
+        ContextMenus.set(openAction, statements, true);
+        ContextMenus.set(copyAction, statements, true);
         List<Row> selected = getSelectedRows();
-        showTransactionAction.setEnabled(selected.size() == 1 && selected.getFirst().getTransaction() != null
-            && selected.getFirst().getTransaction() != transactionFilter);
+        // One row that ran in a transaction (a session row, or a statement in auto-commit mode, never has one)
+        ContextMenus.set(showTransactionAction, selected.size() == 1 && selected.getFirst().getTransaction() != null,
+            selected.size() == 1 && selected.getFirst().getTransaction() != transactionFilter);
         clearAction.setEnabled(!rows.isEmpty());
     }
 
@@ -739,6 +743,7 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
         menu.add(new JMenuItem(showTransactionAction));
         menu.addSeparator();
         menu.add(new JMenuItem(clearAction));
+        ContextMenus.tidy(menu);
         menu.show(table, e.getX(), e.getY());
     }
 

@@ -69,6 +69,8 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-17 오른쪽 클릭 메뉴는 {@link ContextMenus#tidyTextArea}: 늘 읽기 전용이고 접기를 끈 보기라 편집 항목과 Folding을 숨김
+ *   (앱 변경 #141, docs/chromite/context-menus.md)
  */
 final class PlanRawView {
 
@@ -306,6 +308,12 @@ final class PlanRawView {
      * Read-only text area themed like the SQL editor (the theme is applied again after a look and feel switch).
      */
     private static final class PlanTextArea extends RSyntaxTextArea {
+        @Override
+        protected void configurePopupMenu(JPopupMenu popupMenu) {
+            super.configurePopupMenu(popupMenu);
+            ContextMenus.tidyTextArea(this, popupMenu);
+        }
+
         @Override
         public void updateUI() {
             super.updateUI();
