@@ -21,6 +21,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.model.DBPIdentifierCase;
 import com.seizia.chromite.model.DBPKeywordType;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
@@ -46,6 +47,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -75,6 +77,9 @@ import java.util.stream.Stream;
  * - 2026-11-15 Chromite: 예약어가 아닌 문법 낱말({@link #ALTIBASE_SYNTAX_KEYWORDS})을 정적 목록에서 떼어 서버와 관계없이 키워드로.
  *   #115부터 서버가 보고하지 않는 {@code CACHE}·{@code NOCACHE}가 키워드 색을 잃었다. 이름으로는 따옴표 없이 둔다(앱 변경 #118,
  *   docs/chromite/altibase.md "서버 예약어")
+ * - 2026-11-17 Chromite: 서버 확장의 방언 기여({@link #applyServerExtensions}): 이 연결에서 감지된 확장의 문법 낱말(예약어가 아니면 따옴표
+ *   이유가 아님), 함수, 문장 접두어({@link #getStatementPrefixLength}). 이 방언 객체에만 더하므로 같은 앱의 다른 Altibase 연결은 그대로다
+ *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장")
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect 
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -406,8 +411,13 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "WRAPPED",            "WRITE",              "_PROWID"
     };
     
-    // ALTIBASE_SYNTAX_KEYWORDS the connected server does not reserve (set when the dialect is initialized for a connection)
+    // ALTIBASE_SYNTAX_KEYWORDS and the server extensions' syntax words the connected server does not reserve
+    // (set when the dialect is initialized for a connection and when the extensions are applied)
     private volatile Set<String> nonReservedKeywords = Set.of();
+    // The words the connected server reports in V$RESERVED_WORDS (or the static list)
+    private volatile Set<String> serverReservedWords = Set.of();
+    // The server extensions detected on this dialect's connection (applyServerExtensions)
+    private volatile List<AltibaseServerExtensionState> serverExtensions = List.of();
 
     public AltibaseSQLDialect() {
         super("Altibase", "altibase");
@@ -448,9 +458,8 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         addSQLKeywords(reservedWords);
         // A syntax word stays a keyword; it is a reserved one only if this server says so
         addSQLKeywords(Arrays.asList(ALTIBASE_SYNTAX_KEYWORDS));
-        nonReservedKeywords = Arrays.stream(ALTIBASE_SYNTAX_KEYWORDS)
-            .filter(word -> !reservedWords.contains(word))
-            .collect(Collectors.toUnmodifiableSet());
+        serverReservedWords = Set.copyOf(reservedWords);
+        updateNonReservedKeywords();
         addKeywords(Arrays.asList(OTHER_TYPES_FUNCTIONS), DBPKeywordType.OTHER);
         turnFunctionIntoKeyword("TRUNCATE");
         
@@ -481,7 +490,47 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         }
         return Arrays.asList(ALTIBASE_ONLY_KEYWORDS);
     }
-    
+
+    /**
+     * Adds what the server extensions detected on this dialect's connection contribute: their syntax words (keywords that
+     * do not make a name quoted unless the server reserves them), their functions and their statement prefix. Called by the
+     * data source after each detection; a later call replaces the prefix recognizers (the words stay, as other words do).
+     */
+    public void applyServerExtensions(@NotNull List<AltibaseServerExtensionState> extensions) {
+        for (AltibaseServerExtensionState extension : extensions) {
+            addSQLKeywords(extension.getSyntaxKeywords());
+            addFunctions(extension.getFunctions());
+        }
+        serverExtensions = List.copyOf(extensions);
+        updateNonReservedKeywords();
+    }
+
+    private void updateNonReservedKeywords() {
+        Set<String> reserved = serverReservedWords;
+        Set<String> words = new HashSet<>(Arrays.asList(ALTIBASE_SYNTAX_KEYWORDS));
+        for (AltibaseServerExtensionState extension : serverExtensions) {
+            for (String word : extension.getSyntaxKeywords()) {
+                words.add(word.toUpperCase(Locale.ENGLISH));
+            }
+        }
+        words.removeAll(reserved);
+        nonReservedKeywords = Set.copyOf(words);
+    }
+
+    /**
+     * The statement prefix of a server extension detected on this connection; 0 for a server without one (Altibase).
+     */
+    @Override
+    public int getStatementPrefixLength(@NotNull String text) {
+        for (AltibaseServerExtensionState extension : serverExtensions) {
+            int length = extension.getStatementPrefixLength(text);
+            if (length > 0) {
+                return length;
+            }
+        }
+        return 0;
+    }
+
     /**
      * A non-reserved syntax word is quoted only for the reasons any other plain name would be (it has letters only):
      * quote-always, or a case the server would fold. Every other word is decided as before.

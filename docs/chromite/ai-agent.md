@@ -106,6 +106,22 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 "단일 연결" 연결(공유 세션)에서는 2·3번이 없어 1번 분류기만 보호하고, 롤백에 기대어 쓰는 호출은 거절한다(아래 "공유 세션에서 롤백에 기대는 호출", 2026-11-12).
 
+### 문장 접두어 (2026-11-17, 앱 변경 #139 작업 6a)
+
+연결의 방언이 문장 접두어를 알리면(`SQLDialect.getStatementPrefixLength`, 지금은 샤딩 패키지가 있는 ShardSphere 연결의 `NODE[...]`·`SHARD`) 분류기는 접두어를 뺀
+본문으로 토큰 검사(`statementWordAfterFirst`)와 위험 판정(`DANGEROUS_COMMAND`, 위험 낱말, 첫 낱말 뒤의 DELETE/UPDATE)을 하고, `SQLQuery`는 본문으로 종류를 정한다.
+접두어가 있는 문장은 `SQLQuery.getStatement()`가 없으므로(다시 쓰기 방지) `INTO`·`FOR UPDATE`는 `isModifying()`으로 본다.
+
+| 문장 (ShardSphere 메타 노드 연결) | 전 | 후 |
+|---|---|---|
+| `NODE[data] SELECT 1 FROM DUAL`, `SHARD SELECT * FROM t` | WRITE, 읽기 아님(해석 실패) | READ, 읽기 |
+| `NODE[meta] SELECT * FROM t FOR UPDATE`, `NODE[data] SELECT a INTO t2 FROM t` | WRITE | WRITE(같음, 이유 "the SELECT changes data …") |
+| `NODE[all] INSERT …`, `NODE[all] DELETE … WHERE …` | WRITE, DANGEROUS(DELETE를 둘째 낱말로 봄) | WRITE (접두어 없는 같은 문장과 같음) |
+| `NODE[all] DELETE FROM t`, `NODE[all] UPDATE t SET …`, `DROP`, `TRUNCATE` | DANGEROUS | DANGEROUS |
+
+접두어가 있는 SELECT는 읽기다: 노드에서 읽기만 하고, 읽기 도구는 그래도 읽기 전용 트랜잭션과 롤백으로 실행한다. 읽기 전용 연결에서 접두어가 있는 쓰기는 전처럼
+막힌다(WRITE). Altibase 등 다른 연결의 분류는 같다(분류 하네스 303문장 × 5방언, 차이 0).
+
 ## 도구 카탈로그
 
 ### 공통 규칙
@@ -2227,6 +2243,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
+- 2026-11-17 분류기가 문장 접두어를 뺀 본문을 봄(앱 변경 #139 작업 6a): 접두어가 있는 SELECT는 읽기, 접두어가 있는 쓰기는 같은 문장과 같은 분류. 위 "문장 접두어".
 - 2026-11-16 `getConnectionInfo`의 `host`·`port`를 `address` 한 칸으로(앱 변경 #135, `chromite/oracle-tns-localhost`): 모델 공급자의
   `getConnectionAddress`, 화면·Properties 창과 같은 글. Oracle TNS 연결은 네트워크 별칭이고 저장된 호스트는 예전 연결 대화상자가 넣은 자리 값
   `localhost`일 수 있다. 도구 번들의 `ext.oracle` 의존은 없다. [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle TNS 연결".

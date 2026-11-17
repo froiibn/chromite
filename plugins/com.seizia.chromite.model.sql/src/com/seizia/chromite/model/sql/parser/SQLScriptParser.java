@@ -56,10 +56,18 @@ import java.util.*;
 
 /**
  * SQL parser
+ *
+ * 변경 이력:
+ * - 2026-11-17 Chromite: 문장 접두어({@link SQLDialect#getStatementPrefixLength})의 토큰은 방언의 블록 규칙(건너뛸 토큰 조건)과 첫 키워드에
+ *   넣지 않음. 조건은 문장 앞에서부터 맞추므로 {@code NODE[meta] CREATE PROCEDURE p AS v INTEGER; BEGIN … END;}가 선언의 {@code ;}에서
+ *   나뉘었다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public class SQLScriptParser {
 
     static protected final Log log = Log.getLog(SQLScriptParser.class);
+
+    // The text read from a statement's start to find its prefix: a prefix with its leading comments is short
+    private static final int STATEMENT_PREFIX_WINDOW = 1024;
 
     private static final String CLI_ARG_DEBUG_DISABLE_SKIP_TOKEN_EVALUATION = "chromite.debug.sql.disable-skip-token-evaluation";
 
@@ -147,6 +155,9 @@ public class SQLScriptParser {
         SQLTokenType prevNotEmptyTokenType = SQLTokenType.T_UNKNOWN;
         String firstKeyword = null, lastKeyword = null;
         boolean endClosedCaseBlock = false;
+        // The statement start the prefix end was read for, and the end of that statement's prefix
+        int prefixStatementStart = -1;
+        int statementPrefixEnd = startPos;
         for (; ; ) {
             TPToken token = ruleScanner.nextToken();
             int tokenOffset = ruleScanner.getTokenOffset();
@@ -173,7 +184,19 @@ public class SQLScriptParser {
             boolean isControl = false;
             String delimiterText = null;
             try {
-                if (isPredicateEvaluationEnabled && tokenLength > 0 && !token.isWhitespace() && tokenType != SQLTokenType.T_COMMENT) {
+                // A statement prefix (SQLDialect.getStatementPrefixLength) is not the statement: the dialect's block rules
+                // and the first keyword start after it, as for the same statement without the prefix
+                boolean inStatementPrefix = false;
+                if (tokenLength > 0 && !token.isWhitespace()) {
+                    if (prefixStatementStart != statementStart) {
+                        prefixStatementStart = statementStart;
+                        int window = Math.min(STATEMENT_PREFIX_WINDOW, document.getLength() - statementStart);
+                        statementPrefixEnd = statementStart + (window > 0 ? dialect.getStatementPrefixLength(document.get(statementStart, window)) : 0);
+                    }
+                    inStatementPrefix = tokenOffset < statementPrefixEnd;
+                }
+                if (isPredicateEvaluationEnabled && tokenLength > 0 && !token.isWhitespace() && tokenType != SQLTokenType.T_COMMENT
+                    && !inStatementPrefix) {
                     String tokenText = document.get(tokenOffset, tokenLength);
                     predicateEvaluator.captureToken(new SQLTokenEntry(tokenText, tokenType, false));
                     newTokenCaptured = true;
@@ -296,7 +319,7 @@ public class SQLScriptParser {
                     if (tokenType != SQLTokenType.T_COMMENT) {
                         hasNonCommentToken = true;
                     }
-                    switch (tokenType) {
+                    switch (inStatementPrefix ? SQLTokenType.T_OTHER : tokenType) {
                         case T_BLOCK_END:
                             if (endClosedCaseBlock) {
                                 // Skip lastKeyword overwrite — END here closed a CASE

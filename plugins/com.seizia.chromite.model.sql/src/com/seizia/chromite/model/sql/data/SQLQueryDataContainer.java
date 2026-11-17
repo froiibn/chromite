@@ -62,6 +62,8 @@ import java.util.Map;
  *   "전체 -1행"이 보이고 내보내기는 전체 행 수를 몰랐다 (docs/chromite/swing-grid-navigation.md "전체 행 수")
  * - 2026-11-08 {@link #restrictToResultSet}: 배치 결과를 다시 읽으면 그 결과를 만든 문장만 실행하고, 문장을 정하지 못하면 거절
  *   (docs/chromite/sql-batch-reread.md)
+ * - 2026-11-17 {@link #countData}: 문장 접두어가 있는 SELECT는 세지 않음. 이제 그 종류가 SELECT로 정해지는데 세는 문장으로 감싸면
+ *   접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContainer, DBPContextProvider, DBPImageProvider {
 
@@ -257,7 +259,8 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
         throws DBCException
     {
         checkCanReadAgain(session);
-        if (query.getType() != SQLQueryType.SELECT || query.isModifying()) {
+        // A prefixed SELECT (SQLDialect.getStatementPrefixLength) is not counted: the count wrapper would lose the prefix
+        if (query.getType() != SQLQueryType.SELECT || query.isModifying() || query.getStatementPrefixLength() > 0) {
             throw new DBCException("Can't count the rows of a statement that is not a single SELECT");
         }
         DBPDataSource dataSource = session.getDataSource();

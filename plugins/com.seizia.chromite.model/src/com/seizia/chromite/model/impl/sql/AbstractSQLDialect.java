@@ -48,6 +48,11 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
  * Abstract SQL Dialect
+ *
+ * 변경 이력:
+ * - 2026-11-17 Chromite: {@link #isTransactionModifyingQuery}가 문장 접두어({@link #getStatementPrefixLength})를 뺀 본문의 첫 키워드를 봄.
+ *   접두어 낱말을 첫 키워드로 읽어, 접두어가 있는 DML이 트랜잭션을 바꾸는 문장으로 세어지지 않았다(수동 커밋의 열린 트랜잭션 표시, 스마트 커밋)
+ *   (앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public abstract class AbstractSQLDialect implements SQLDialect {
 
@@ -736,7 +741,13 @@ public abstract class AbstractSQLDialect implements SQLDialect {
 
     @Override
     public boolean isTransactionModifyingQuery(String queryString) {
-        queryString = SQLUtils.stripComments(this, queryString);
+        // The first keyword of the statement proper: a prefix word (getStatementPrefixLength) is not the statement's kind
+        int prefixLength = queryString == null ? 0 : getStatementPrefixLength(queryString);
+        queryString = SQLUtils.stripComments(this, prefixLength > 0 ? queryString.substring(prefixLength) : queryString);
+        if (prefixLength > 0) {
+            // getFirstKeyword reads a one-word statement after the whitespace that follows a prefix as that whitespace and the word
+            queryString = queryString.strip();
+        }
         if (queryString.isEmpty()) {
             // Empty query - must be some metadata reading or something
             // anyhow it shouldn't be transactional

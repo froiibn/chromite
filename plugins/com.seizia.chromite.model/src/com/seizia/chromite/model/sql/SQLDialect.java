@@ -49,6 +49,9 @@ import java.util.List;
  *   데이터베이스마다 다른 규칙(SQL Server는 스칼라 함수도 EXEC 가능)을 방언에 둔다 (docs/chromite/swing-sql-completion.md)
  * - 2026-11-08 Chromite: {@link #supportsMergeStatement}를 추가. 결과 행에서 MERGE를 만들 때 MERGE가 있는 데이터베이스에서만
  *   제안하도록 방언이 알린다(키워드 목록은 모든 방언에 MERGE를 넣으므로 근거가 되지 못함) (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-17 Chromite: {@link #getStatementPrefixLength}를 추가. 문장 앞에 문장이 아닌 접두어(실행 위치 지시)를 받는 서버가 있어, 문장의
+ *   종류를 정하는 곳이 접두어를 뺀 본문을 보도록 방언이 길이만 알린다. 기본은 접두어 없음(다른 데이터베이스는 그대로)
+ *   (앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public interface SQLDialect {
 
@@ -525,6 +528,18 @@ public interface SQLDialect {
      * You need to check query results to ensure that it is not transactional.
      */
     boolean isTransactionModifyingQuery(String queryString);
+
+    /**
+     * The length of a statement prefix at the start of the text: words before the statement proper that the server reads
+     * as an instruction about the statement (where to run it), not as part of it. The kind of the statement (query,
+     * change, DDL, the confirmations, the transaction state) is decided from {@code text.substring(length)}; the text sent
+     * to the server keeps the prefix. The length includes the whitespace and comments before the prefix.
+     *
+     * @return 0 when the text has no prefix (every dialect unless the connected server has one)
+     */
+    default int getStatementPrefixLength(@NotNull String text) {
+        return 0;
+    }
 
     @Nullable
     String[] getTransactionCommitKeywords();

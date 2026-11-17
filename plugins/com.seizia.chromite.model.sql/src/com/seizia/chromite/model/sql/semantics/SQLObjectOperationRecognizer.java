@@ -53,6 +53,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-07 {@link #isDropStatement}: Swing 쿼리 창의 DROP 확인이 JSQLParser가 읽지 못하는 DROP(DATABASE, USER, TABLESPACE,
  *   PROCEDURE, TRIGGER 등)도 찾도록. SWT 편집기는 이 클래스로 그것을 찾았다 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-17 방언의 문장 접두어({@link SQLDialect#getStatementPrefixLength})를 뺀 본문을 읽음: 접두어가 있는 DROP을 DROP으로 찾고
+ *   (실행 전 확인), 접두어가 있는 DDL 뒤에도 Object Explorer를 새로 고침(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 public final class SQLObjectOperationRecognizer {
 
@@ -88,8 +90,9 @@ public final class SQLObjectOperationRecognizer {
     ) {
         LSMAnalyzer analyzer = LSMDialectRegistry.getInstance().getAnalyzerFactoryForDialect(dialect)
             .createAnalyzer(LSMAnalyzerParameters.forDialect(dialect, syntaxManager));
-        // The listener only keeps the parser from reporting the syntax errors on the console
-        STMTreeNode tree = analyzer.parseSqlQueryTree(STMSource.fromString(statement), new RecognitionErrorListener());
+        // The listener only keeps the parser from reporting the syntax errors on the console. The statement proper is read,
+        // without the dialect's statement prefix
+        STMTreeNode tree = analyzer.parseSqlQueryTree(STMSource.fromString(withoutPrefix(dialect, statement)), new RecognitionErrorListener());
         STMTreeNode schemaStatement = tree == null ? null : unwrapSchemaStatement(tree);
         STMTreeNode node = schemaStatement == null ? null : schemaStatement.findFirstNonErrorChild();
         return node != null && DROP_STATEMENTS.contains(node.getNodeName());
@@ -109,8 +112,16 @@ public final class SQLObjectOperationRecognizer {
         LSMAnalyzer analyzer = LSMDialectRegistry.getInstance().getAnalyzerFactoryForDialect(dialect)
             .createAnalyzer(LSMAnalyzerParameters.forDialect(dialect, syntaxManager));
         return query.representsOneStatement() ?
-            recognizeStatement(analyzer, query.getText()) :
+            recognizeStatement(analyzer, withoutPrefix(dialect, query.getText())) :
             separateAndRecognize(dataSource, syntaxManager, analyzer, query.getText());
+    }
+
+    /**
+     * The statement proper: the text after the dialect's statement prefix ({@link SQLDialect#getStatementPrefixLength}).
+     */
+    @NotNull
+    private static String withoutPrefix(@NotNull SQLDialect dialect, @NotNull String statement) {
+        return statement.substring(dialect.getStatementPrefixLength(statement));
     }
 
     @NotNull
@@ -140,7 +151,7 @@ public final class SQLObjectOperationRecognizer {
             false
         )) {
             if (element instanceof SQLQuery query) {
-                operations.addAll(recognizeStatement(analyzer, query.getText()));
+                operations.addAll(recognizeStatement(analyzer, withoutPrefix(syntaxManager.getDialect(), query.getText())));
             }
         }
         return List.copyOf(operations);

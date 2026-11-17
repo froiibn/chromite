@@ -698,7 +698,8 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 |---|---|
 | `plugin.xml` 확장 지점 `com.seizia.chromite.altibase.serverExtension`, 스키마 `schema/com.seizia.chromite.altibase.serverExtension.exsd` | `<serverExtension id="…" class="…"/>`. 클래스는 상태 없는 구현 하나로 모든 연결이 함께 쓴다 |
 | `extension/AltibaseServerExtension` | `detect(JDBCSession, AltibaseDataSource)`: 연결한 서버의 카탈로그를 읽고(SELECT만) 맞으면 그 연결의 상태를, 아니면 null을 돌려준다. 실패는 "없음" |
-| `extension/AltibaseServerExtensionState` | 연결마다의 결과. `getAdapter(Class)`(데이터 원본의 어댑터를 먼저 답함), `getTreeObjects()`(아래 트리 자리의 객체). 기본 구현은 "기여 없음" |
+| `extension/AltibaseServerExtensionState` | 연결마다의 결과. `getAdapter(Class)`(데이터 원본의 어댑터를 먼저 답함), `getTreeObjects()`(아래 트리 자리의 객체), 방언 기여 `getSyntaxKeywords()`·`getFunctions()`·`getStatementPrefixLength(text)`(2026-11-17 작업 6a). 기본 구현은 "기여 없음" |
+| `AltibaseSQLDialect.applyServerExtensions` / `getStatementPrefixLength` | 감지 뒤 데이터 원본이 자기 방언 객체에 넘긴다: 낱말은 키워드로(서버가 `V$RESERVED_WORDS`에 없으면 `mustBeQuoted`의 이유가 아님, `CACHE`와 같은 규칙), 함수는 함수로, 접두어 길이는 확장에 묻는다(확장이 없으면 0 = 전과 같음) |
 | `extension/AltibaseServerExtensionRegistry` | 확장 지점을 처음 물을 때 한 번 읽고 확장 객체를 하나씩 만든다. 만들 수 없는 확장은 기록하고 뺀다 |
 | `AltibaseDataSource.initialize` → `detectServerExtensions` | 연결이 쓸 수 있게 된 뒤(상위 `initialize`, LOB 임계값 다음) 확장마다 `detect`를 메타 세션 하나에서 부르고 결과를 인스턴스 필드 `serverExtensions`에 둔다. 확장이 없으면 세션도 열지 않는다 |
 | `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
@@ -713,9 +714,12 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - **실패는 연결을 막지 않는다.** 확장의 오류(`RuntimeException`, `LinkageError`)와 세션 오류는 디버그 기록만 남기고 그 확장은 "없음"이다.
 - **어댑터는 확장이 먼저.** 계열 공통 구현(세션 관리자, 실행 계획 등)을 어느 서버에서 바꿔야 할 때 이 클래스를 고치지 않으려고. 확장이 없으면 빈 목록을 한 번 도는 비용뿐이다.
 - **트리 자리는 System Info 안 한 곳.** 이번 변경이 쓰는 곳만 두었다. 다음 작업의 GEMINI 트리는 Replications 폴더 아래이고(계획의 결정), 그때 필요한 자리를 정한다.
-- **이번에 두지 않은 것(쓰는 곳이 없어서):** 방언 기여(추가 문법 낱말·함수)는 작업 6에서 문장 접두어(`NODE[...]`)와 실행 전 확인 보강과 함께 넣는다. 그보다 먼저
-  `NODE`·`SHARD` 낱말을 강조·완성에 내면 확인을 건너뛰는 문장(`NODE[all] DELETE …`)을 권하는 셈이고, 서버 예약어는 이미 `V$RESERVED_WORDS`에서 온다.
-  복제 카탈로그 전략(S2, GEMINI 트리와 함께), 관리 보고서(S4), 객체 명령(S6/S7)도 그 작업에서 정한다.
+- **방언 기여는 데이터 원본의 방언 객체에만(2026-11-17, 작업 6a).** 방언 객체는 데이터 원본마다 하나(`AltibaseDataSource` 생성자의 `new AltibaseSQLDialect()`)라
+  한 연결이 감지한 낱말·접두어가 같은 앱의 다른 Altibase 연결로 가지 않는다(정적 배열에 넣지 않음). `initialize`가 감지 뒤 `applyServerExtensions`를 부른다.
+  새로 고침에서는 `initDriverSettings`(서버 예약어)가 다시 돈 뒤 감지와 기여가 다시 들어오고, 그 사이에도 접두어 인식은 앞 결과를 그대로 쓴다(꺼지지 않음).
+  낱말은 한 번 더해지면 남는다(같은 서버에서는 늘 같은 결과). 확인: 두 연결을 함께 열고 양쪽 순서, 새로 고침, 다시 연결에서 방언 객체와 접두어 길이를 읽음
+  ([shardsphere.md](shardsphere.md) "문장 접두어").
+- **아직 두지 않은 것:** 복제 카탈로그 전략(S2, GEMINI 트리와 함께), 관리 보고서(S4), 객체 명령(S6/S7)은 그 작업에서 정한다.
 
 ### upstream 대비 변경점
 
@@ -744,3 +748,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   (앱 변경 #139 작업 1), 위 "상태 다시 읽기".
 - 2026-11-17 Altibase 서버 확장 지점(`com.seizia.chromite.altibase.serverExtension`): 연결마다 감지해 데이터 원본에 두고, 어댑터를 먼저 묻고, System Info 아래 트리 자리
   (앱 변경 #139 작업 2·3, 첫 사용자는 ShardSphere 플러그인), 위 "서버 확장".
+- 2026-11-17 서버 확장의 방언 기여(문법 낱말, 함수, 문장 접두어 길이)를 연결의 방언 객체에(`AltibaseSQLDialect.applyServerExtensions`, 앱 변경 #139 작업 6a),
+  위 "서버 확장".

@@ -106,6 +106,8 @@ import java.util.WeakHashMap;
  *   (메타 모델은 연결 사이에 공유되므로), 새로 고침에서 다시 감지한다. {@link #getAdapter}는 감지된 확장에 먼저 묻고,
  *   {@link #getExtensionObjects}는 System Info 아래 트리 자리에 확장의 객체를 낸다. 확장이 없으면 질의를 하나도 더 하지 않는다
  *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장", docs/chromite/shardsphere.md)
+ * - 2026-11-17 감지한 확장의 방언 기여(문법 낱말, 함수, 문장 접두어)를 이 데이터 원본의 방언 객체에 넘김
+ *   ({@link AltibaseSQLDialect#applyServerExtensions}, 앱 변경 #139 작업 6a)
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -158,6 +160,10 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         publicSchema.setVirtual(true);
 
         serverExtensions = detectServerExtensions(monitor);
+        // This data source's own dialect object: the words and the statement prefix do not reach other connections
+        if (getSQLDialect() instanceof AltibaseSQLDialect dialect) {
+            dialect.applyServerExtensions(serverExtensions);
+        }
     }
 
     /**

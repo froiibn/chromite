@@ -48,7 +48,7 @@ import java.util.regex.Pattern;
  * <ul>
  *     <li>"증명하지 못하면 쓰기"가 원칙이다. JSQLParser(DBeaver {@link SQLQuery})가 SELECT로 해석했고, 데이터를 바꾸는 부분
  *     ({@link SQLQuery#isMutatingStatement()}: 쓰기 CTE 포함), {@code INTO}(SQL Server SELECT INTO는 테이블을 만든다),
- *     {@code FOR UPDATE}가 없을 때만 읽기다. {@link SQLQuery#isModifying()}은 해석 실패(UNKNOWN)를 "바꾸지 않음"으로 보므로 쓰지 않는다.</li>
+ *     {@code FOR UPDATE}가 없을 때만 읽기다. {@link SQLQuery#isModifying()}은 해석 실패(UNKNOWN)를 "바꾸지 않음"으로 보므로 SELECT로 해석된 뒤에만 쓴다.</li>
  *     <li>해석기가 모르는 진단 명령 중 읽기 전용으로 알려진 것({@code SHOW}, {@code DESCRIBE}, ANALYZE 없는 {@code EXPLAIN}, 읽기 DBCC,
  *     인수 없는 읽기 시스템 프로시저)은 이름으로 허용한다. 정규식은 문장 전체에 맞아야 해서 뒤에 다른 문장을 붙이면 맞지 않는다.</li>
  *     <li>읽기 도구는 이 분류에 더해 읽기 전용 트랜잭션과 롤백으로 실행한다({@link AgentSql.Mode#READ_ONLY}). 분류기가 틀려도 두 번째 겹이 막는다.
@@ -79,6 +79,10 @@ import java.util.regex.Pattern;
  *   거절했다), 업서트({@code ON CONFLICT … DO UPDATE SET}, {@code ON DUPLICATE KEY UPDATE})는 한 문장이고 WRITE, 힌트의 USE
  *   ({@code USE HINT}, {@code USE PLAN}, MySQL {@code USE INDEX/KEY})는 문장이 아님, SQL Server 끝의 {@code OPTION (…)}은 떼고 해석
  *   (JSQLParser가 해석하지 못해 {@code SELECT … OPTION (RECOMPILE)}이 거절됐다)
+ * - 2026-11-17 문장 접두어(방언의 {@code getStatementPrefixLength})를 뺀 본문으로 토큰 검사와 위험 판정을 함. 접두어가 있는 SELECT는
+ *   이제 읽기(전에는 해석 실패라 쓰기), 접두어가 있는 쓰기는 접두어 없는 같은 문장과 같은 분류(전에는 접두어 뒤의 DELETE·UPDATE를 둘째
+ *   낱말로 보아 DANGEROUS). 접두어가 있는 문장은 파싱한 문장이 없으므로 INTO·FOR UPDATE를 {@link SQLQuery#isModifying()}으로 봄
+ *   (앱 변경 #139, docs/chromite/ai-agent.md "문장 접두어")
  */
 public final class AgentSqlClassifier {
 
@@ -240,8 +244,9 @@ public final class AgentSqlClassifier {
         if (dataSource != null && QueryTools.splitScript(dataSource, text).size() > 1) {
             return new Verdict(false, SQLQueryType.UNKNOWN, "the text holds more than one statement");
         }
-        // The parser's verdict alone is not proof: an independent token scan must agree (T-SQL statements need no ';')
-        String word = statementWordAfterFirst(words(dataSource, text));
+        // The parser's verdict alone is not proof: an independent token scan must agree (T-SQL statements need no ';'). It
+        // reads the statement proper: the words of a statement prefix are not statements
+        String word = statementWordAfterFirst(words(dataSource, withoutPrefix(dataSource, text)));
         if (word != null) {
             return new Verdict(false, SQLQueryType.UNKNOWN, "the text has the bare word " + word + " after its first word, which " +
                 "may start another statement (SQL Server needs no ';' between statements). If it is a column or alias name, quote " +
@@ -271,6 +276,10 @@ public final class AgentSqlClassifier {
                 return new Verdict(false, type, "SELECT ... FOR " + plain.getForMode() + " takes write locks");
             }
         }
+        // A prefixed statement has no parsed statement above (SQLQuery keeps only its kind): its INTO and FOR UPDATE are read here
+        if (query.isModifying()) {
+            return new Verdict(false, type, "the SELECT changes data (SELECT INTO, a data-modifying CTE or a locking clause)");
+        }
         String upper = text.toUpperCase(Locale.ROOT);
         if (upper.matches("(?s).*\\bINTO\\s+(OUTFILE|DUMPFILE)\\b.*")) {
             return new Verdict(false, type, "SELECT ... INTO OUTFILE writes a file");
@@ -295,10 +304,12 @@ public final class AgentSqlClassifier {
             }
             return access;
         }
-        if (DANGEROUS_COMMAND.matcher(text).matches()) {
+        // The statement proper decides, after a statement prefix: the prefix's words are not statements
+        String body = withoutPrefix(dataSource, text);
+        if (DANGEROUS_COMMAND.matcher(body).matches()) {
             return AIToolAccess.DANGEROUS;
         }
-        List<String> words = words(dataSource, text);
+        List<String> words = words(dataSource, body);
         for (int i = 0; i < words.size(); i++) {
             String word = words.get(i);
             String previous = i == 0 ? "" : words.get(i - 1);
@@ -317,6 +328,14 @@ public final class AgentSqlClassifier {
             return AIToolAccess.DANGEROUS;
         }
         return classify(dataSource, text).readOnly() ? AIToolAccess.READ : AIToolAccess.WRITE;
+    }
+
+    /**
+     * The text after the connection dialect's statement prefix ({@code SQLDialect.getStatementPrefixLength}), or the text.
+     */
+    @NotNull
+    private static String withoutPrefix(@Nullable DBPDataSource dataSource, @NotNull String text) {
+        return dataSource == null ? text : text.substring(dataSource.getSQLDialect().getStatementPrefixLength(text));
     }
 
     @NotNull

@@ -150,6 +150,8 @@ import java.util.Set;
  *   docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-16 {@link #appliesExportQuery}: 쿼리가 무엇인지만 보는 부분을 나눔, 결과 그리드 메뉴가 SELECT 하나가 아닌 결과에서 Export Data…를 숨김
  *   (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-17 {@link #appliesExportQuery}: 문장 접두어가 있는 SELECT는 다시 실행해 내보내지 않음(전처럼). 이제 종류가 SELECT로 정해지지만
+ *   필터·정렬을 넣은 다시 쓰기가 접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -525,6 +527,10 @@ final class DataExportWizard extends DataTransferWizard {
         SQLScriptElement element = queryContainer.getQuery();
         // isModifying: SELECT … INTO, data-changing CTEs (SelectMutationVisitor) and SELECT … FOR UPDATE
         if (!(element instanceof SQLQuery sqlQuery) || sqlQuery.getType() != SQLQueryType.SELECT || sqlQuery.isModifying()) {
+            return false;
+        }
+        // A prefixed SELECT (SQLDialect.getStatementPrefixLength): the export's filter and order rewrite would lose the prefix
+        if (sqlQuery.getStatementPrefixLength() > 0) {
             return false;
         }
         // A GO batch of several statements is one query (SQLScriptBatches) and the type above is that of its first
