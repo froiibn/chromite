@@ -1077,3 +1077,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): 배포 절차의 브랜치 이름. 지난 배포 기록의 `devel`은 그대로 둠.
 - 2026-11-17 지원 범위 표에 ShardSphere 행(주요 데이터베이스, Altibase 앞)과 데이터베이스별 기능의 ShardSphere 줄, 변경 내역의 "Altibase · ShardSphere" 5곳을
   "ShardSphere · Altibase"로(두 언어, 순서만) (앱 변경 #149, `chromite/shardsphere-own-name`), "기능과 지원 범위 페이지"의 "ShardSphere 행".
+- 2026-11-17 사이트(앱 변경 #149 검토 때 더함): 26.0.8 변경 이력의 ShardSphere 항목에서 "Altibase 지원과 같은 방식으로 동작합니다"를 "쓸 수 있습니다"로 바꿈(ShardSphere를 Altibase에 빗대어 설명하지 않음). 지원 표 Altibase 줄의 "공간·로그"를 "일부: 공간만"으로 고침(#323의 공간 탭이 Altibase에서도 확인됨).
