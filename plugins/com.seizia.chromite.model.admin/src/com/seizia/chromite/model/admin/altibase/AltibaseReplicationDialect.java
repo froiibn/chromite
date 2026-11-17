@@ -62,6 +62,8 @@ import java.util.Map;
  * - 2026-11-08 최초 작성: Altibase 복제 상태 (SWT 감사 D-A7, docs/chromite/altibase.md "복제 시작·중지·동기화")
  * - 2026-11-17 문장·속성 이름을 데이터 원본의 복제 카탈로그에서 받음, 카탈로그 이름이 있으면 요약에, 지연 단위가 없으면 단위 없는 지연,
  *   제어 문장이 없으면 시작·중지 안내 없음(앱 변경 #139 작업 5, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 카탈로그의 상태 코드가 이 계열의 것이 아니면({@code hasFamilyStateCodes}) 시작 여부·모드·역할·송신 상태·시작 옵션·
+ *   네트워크 오류를 서버의 값 그대로, 요약은 개수만(앱 변경 #139 수정 3, docs/chromite/shardsphere.md "GEMINI")
  */
 public class AltibaseReplicationDialect extends ReplicationDialect {
 
@@ -120,6 +122,8 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
             }
             replications.setEmptyText(ReplicationMessages.repl_alti_no_replications);
             int started = 0;
+            // Without the family's codes the started flag, mode, role and the sender's codes are the server's values
+            boolean familyCodes = catalog.hasFamilyStateCodes();
             try {
                 Map<String, List<String>> hosts = new LinkedHashMap<>();
                 AdminSql.query(session, catalog.getStatusHostsQuery(),
@@ -132,9 +136,9 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                         rows.add(new Object[]{
                             name,
                             String.join(", ", hosts.getOrDefault(name, List.of())), //$NON-NLS-1$
-                            isStarted ? ReplicationMessages.repl_value_yes : ReplicationMessages.repl_value_no,
-                            decodeMode(rs.getInt(3)),
-                            decodeRole(rs.getInt(4)),
+                            !familyCodes ? rs.getString(2) : isStarted ? ReplicationMessages.repl_value_yes : ReplicationMessages.repl_value_no,
+                            familyCodes ? decodeMode(rs.getInt(3)) : rs.getString(3),
+                            familyCodes ? decodeRole(rs.getInt(4)) : rs.getString(4),
                             AdminSql.getLong(rs, 5),
                             AdminSql.getLong(rs, 6),
                             rs.getString(7),
@@ -154,7 +158,9 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
             if (replications.getUnavailableReason() == null) {
                 summary.addRow(ReplicationMessages.repl_row_replication, replications.getRows().isEmpty()
                     ? ReplicationMessages.repl_not_configured
-                    : NLS.bind(ReplicationMessages.repl_alti_configured, replications.getRows().size(), started));
+                    : familyCodes
+                        ? NLS.bind(ReplicationMessages.repl_alti_configured, replications.getRows().size(), started)
+                        : NLS.bind(ReplicationMessages.repl_alti_configured_count, replications.getRows().size()));
             }
 
             AdminGrid senders = new AdminGrid("senders", ReplicationMessages.repl_grid_alti_senders, //$NON-NLS-1$
@@ -176,9 +182,9 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                         Long gap = AdminSql.getLong(rs, 7);
                         senders.addRow(
                             rs.getString(1),
-                            decode(SENDER_STATUSES, rs.getInt(2)),
-                            decode(SENDER_START_FLAGS, rs.getInt(3)),
-                            rs.getInt(4) == 1 ? ReplicationMessages.repl_value_yes : ReplicationMessages.repl_value_no,
+                            familyCodes ? decode(SENDER_STATUSES, rs.getInt(2)) : rs.getString(2),
+                            familyCodes ? decode(SENDER_START_FLAGS, rs.getInt(3)) : rs.getString(3),
+                            !familyCodes ? rs.getString(4) : rs.getInt(4) == 1 ? ReplicationMessages.repl_value_yes : ReplicationMessages.repl_value_no,
                             rs.getString(5) == null ? null : rs.getString(5) + ":" + rs.getString(6), //$NON-NLS-1$
                             gap == null || senderGapUnit == null ? gap : gap * senderGapUnit,
                             AdminSql.getLong(rs, 8),

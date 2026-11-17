@@ -58,6 +58,8 @@ import java.util.Map;
  *   시작 여부로 읽음)를 복제 목록의 조회 문장으로 바꿈(앱 변경 #139, docs/chromite/altibase.md "상태 다시 읽기")
  * - 2026-11-17 문장을 복제 카탈로그에서 받음, 카탈로그 이름 속성, 연결 유형 속성은 카탈로그에 그 열이 있을 때만, 통계(송신 지연 바이트)는
  *   지연 단위가 있을 때만(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 카탈로그의 상태 코드가 이 계열의 것이 아니면({@link AltibaseReplicationCatalog#hasFamilyStateCodes()}) 시작 여부 대신
+ *   서버의 IS_STARTED 값을 보이고 노드를 "활성"으로 그리지 않음(앱 변경 #139 수정 3, docs/chromite/shardsphere.md "GEMINI")
  */
 public class AltibaseReplication extends AltibaseGlobalObject 
     implements DBSObjectLazy<AltibaseDataSource>, DBPRefreshableObject, DBPScriptObject, DBPStatefulObject, DBPObjectStatistics {
@@ -76,6 +78,8 @@ public class AltibaseReplication extends AltibaseGlobalObject
     private String remoteConnType;
 
     private boolean isStarted;
+    // IS_STARTED as the server stores it, for a catalog whose codes are not the family's
+    private String startedValue;
     private String conflictResolution;
     private String mode;
     private String role;
@@ -96,6 +100,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
         name = JDBCUtils.safeGetString(resultSet, "REPLICATION_NAME");
 
         isStarted = readStarted(resultSet);
+        startedValue = JDBCUtils.safeGetString(resultSet, "IS_STARTED");
         conflictResolution = JDBCUtils.safeGetString(resultSet, "CONFLICT_RESOLUTION");
         mode = JDBCUtils.safeGetString(resultSet, "REPL_MODE");
         role = JDBCUtils.safeGetString(resultSet, "ROLE");
@@ -175,9 +180,18 @@ public class AltibaseReplication extends AltibaseGlobalObject
         return catalog.getDisplayName();
     }
 
-    @Property(viewable = true, order = 10)
+    @Property(viewable = true, order = 10, visibleIf = FamilyStateCodes.class)
     public boolean getIsStarted() {
         return isStarted;
+    }
+
+    /**
+     * IS_STARTED as the server stores it, where the catalog's codes are not the family's (shown instead of the flag).
+     */
+    @Nullable
+    @Property(viewable = true, order = 10, visibleIf = OtherStateCodes.class)
+    public String getStartedValue() {
+        return startedValue;
     }
 
     @Property(viewable = true, order = 11)
@@ -263,7 +277,8 @@ public class AltibaseReplication extends AltibaseGlobalObject
     @NotNull
     @Override
     public DBSObjectState getObjectState() {
-        return isStarted ? DBSObjectState.ACTIVE : DBSObjectState.NORMAL;
+        // A started flag whose codes are not known does not mark the node as active
+        return isStarted && catalog.hasFamilyStateCodes() ? DBSObjectState.ACTIVE : DBSObjectState.NORMAL;
     }
 
     /**
@@ -282,6 +297,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
                 try (JDBCResultSet dbResult = dbStat.getResultSet()) {
                     if (dbResult != null && dbResult.next()) {
                         isStarted = readStarted(dbResult);
+                        startedValue = JDBCUtils.safeGetString(dbResult, "IS_STARTED");
                     }
                 }
             } catch (SQLException e) {
@@ -362,6 +378,26 @@ public class AltibaseReplication extends AltibaseGlobalObject
         @Override
         public boolean isValidValue(@NotNull AltibaseReplication object, @Nullable Object value) {
             return object.catalog.getDisplayName() != null;
+        }
+    }
+
+    /**
+     * Shows the started flag where the catalog's state codes are the family's.
+     */
+    public static class FamilyStateCodes implements IPropertyValueValidator<AltibaseReplication, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplication object, @Nullable Object value) {
+            return object.catalog.hasFamilyStateCodes();
+        }
+    }
+
+    /**
+     * Shows the stored started value where the catalog's state codes are not established.
+     */
+    public static class OtherStateCodes implements IPropertyValueValidator<AltibaseReplication, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplication object, @Nullable Object value) {
+            return !object.catalog.hasFamilyStateCodes();
         }
     }
 

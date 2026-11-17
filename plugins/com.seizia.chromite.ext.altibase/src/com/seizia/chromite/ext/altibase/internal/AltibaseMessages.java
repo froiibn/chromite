@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 서버 정보 항목 이름 (앱 변경 #139 작업 8, docs/chromite/altibase.md "개요 차트와 서버 정보")
+ * - 2026-11-17 작업의 주기와 종류 값(앱 변경 #139 수정 5, docs/chromite/altibase.md "작업")
  */
 public class AltibaseMessages extends NLS {
 
@@ -50,6 +51,14 @@ public class AltibaseMessages extends NLS {
     public static String server_info_next_archive_log;
     public static String server_info_backups;
     public static String server_info_last_backup;
+
+    // A job's interval ({0}: the number) by SYS_JOBS_.INTERVAL_TYPE, and its type
+    public static String job_interval_year;
+    public static String job_interval_month;
+    public static String job_interval_day;
+    public static String job_interval_hour;
+    public static String job_interval_minute;
+    public static String job_type_procedure;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, AltibaseMessages.class);

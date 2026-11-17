@@ -19,7 +19,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`. 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -40,6 +40,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 
 - **방언 기여(2026-11-17 작업 6a):** `getSyntaxKeywords()`, `getFunctions()`, `getStatementPrefixLength(text)`. 실행 전 확인 보강과 함께 넣었다(아래 "문장 접두어").
 - **복제 카탈로그(2026-11-17 작업 4·5):** `getReplicationCatalog()`. GEMINI를 Replications 폴더와 복제 탭에 보인다(아래 "GEMINI").
+- **기존 객체의 추가 속성(2026-11-17 수정 6, 계획의 S8):** `getObjectProperties(monitor, object)`. 테이블의 TTL과 샤드 객체(아래 "테이블 속성: TTL과 샤드").
 - **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·객체 명령(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
 
 ## 감지
@@ -240,8 +241,9 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 
 ### 자동 완성
 
-- **접두어 안:** `NODE[` 뒤 `meta`, `data`, `all`(입력한 `NODE`가 대문자면 대문자). `all`도 넣었다: SELECT 앞에서는 서버가 거절하지만 DML 앞에서는 맞는 접두어이고,
-  입력하는 때에는 뒤에 무엇이 올지 모른다(사용자가 고름). `data(` 안(쉼표 뒤 포함)은 메타 노드의 노드 이름을 작은따옴표로(`'NODE1'`). 이름은 연결할 때 한 번
+- **접두어 안:** `NODE[` 뒤 `meta`, `data`(입력한 `NODE`가 대문자면 대문자). `all`은 제안하지 않는다(2026-11-17 고침): 시스피어 답변(2026-11-17) "`node[all]`에서
+  DML은 동작하지 않음, DML은 `node[data]`로만", 메타 노드는 `NODE[all] SELECT`를 거절하고, 분산 관리 매뉴얼은 `NODE[all]`을 DDL 앞에서만 쓴다. 손으로 친
+  `NODE[all]`은 그대로 접두어로 알아본다(실행 전 확인·트랜잭션 분류가 본문으로 판단, 아래 "접두어 규칙"). `data(` 안(쉼표 뒤 포함)은 메타 노드의 노드 이름을 작은따옴표로(`'NODE1'`). 이름은 연결할 때 한 번
   `SELECT NODE_NAME FROM SYS_SHARD.NODES_ ORDER BY NODE_ID`로 읽는다(이름만, 호스트·포트는 읽지 않음, 새로 고침에서 다시). 메타 노드가 아닌 서버는 이름이 없다.
   자리: `SQLDialect.getStatementPrefixProposals(text)`(기본 null) → `AltibaseSQLDialect` → `ShardSphereStatementPrefix.getProposals`, 화면은 `SqlCompletionAnalysis`.
   `[`·`(`를 입력할 때 자동으로 뜨지는 않는다(Ctrl+Space, 또는 글자를 입력할 때 자동 완성).
@@ -335,11 +337,11 @@ SELECT만 준비하므로 막지 않았다. 결과(메타 노드, JDBC와 앱 �
 
 | 열 | 코드 | 보이는 이름 | 근거 |
 |---|---|---|---|
-| `OBJECT_TYPE` | `T` | 테이블 / Table | 서버에서 봄(2개) |
-| | `P` | 프로시저 / Procedure | 미확인(매뉴얼의 식별자만) |
-| `SPLIT_METHOD`, `SUB_SPLIT_METHOD` | `H` | 해시 / Hash | 서버에서 봄(`SPLIT_METHOD`만, 서브는 NULL) |
-| | `R`, `L` | 범위 / Range, 리스트 / List | 미확인(매뉴얼의 식별자만) |
-| `SPLIT_METHOD` | `C`, `S` | 복제 / Clone, 독립 / Solo | 미확인(매뉴얼의 식별자만) |
+| `OBJECT_TYPE` | `T` | 테이블 / Table | 시스피어 답변(2026-11-17), 서버에서 봄(2개) |
+| | `P` | 프로시저 / Procedure | 시스피어 답변(2026-11-17) |
+| `SPLIT_METHOD`, `SUB_SPLIT_METHOD` | `H` | 해시 / Hash | 시스피어 답변(2026-11-17), 서버에서 봄(`SPLIT_METHOD`만, 서브는 NULL) |
+| | `R`, `L` | 범위 / Range, 리스트 / List | 시스피어 답변(2026-11-17) |
+| | `C`, `S` | 복제 / Clone, 독립 / Solo | 시스피어 답변(2026-11-17) |
 | 그 밖 | | 코드 그대로 | 뜻을 만들지 않음 |
 
 이름은 `internal/ShardSphereMessages*.properties`(영어, 한국어). 복합 분산은 따로 코드가 없고 서브 분산 방식·서브 키가 채워진 객체다(미확인: 이 서버에 없음).
@@ -363,9 +365,7 @@ SELECT만 준비하므로 막지 않았다. 결과(메타 노드, JDBC와 앱 �
 - 사전은 카탈로그와 이름(소유자, 객체 이름)으로만 이어진다. Swing 속성 보기에는 객체 참조 값을 눌러 그 노드로 가는 기능이 없다(`PropertiesPanel.formatValue`는
   이름만 그림). 그래서 소유자와 이름을 속성으로 보인다. 가는 기능을 넣으려면 UI 쪽(속성 보기의 링크 칸 → `DBNUtils.getNodeByObject` → `revealNode`)과
   모델의 참조 속성(`linkPossible`)이 함께 필요하다(이 변경 밖).
-- 일반 트리의 테이블에 "샤드 객체: 방식, 키"를 보이는 것은 하지 않았다: 다른 번들의 객체(`AltibaseTable`)에 속성 묶음을 더하는 자리가 모델에 없다(속성은 객체
-  클래스의 `@Property`만). 필요한 것: 계획의 S8(기존 객체에 추가 속성) — 예를 들어 `AltibaseServerExtensionState.getObjectProperties(DBSObject)` 같은 중립 자리와
-  속성 수집기(`PropertyCollector`)가 그것을 묻는 길, 그리고 테이블을 이름으로 사전에 찾는 캐시.
+- 일반 트리의 테이블에 분산 방식과 샤드 키를 보이는 것은 2026-11-17에 더했다(아래 "테이블 속성: TTL과 샤드").
 
 ### 새로 고침
 
@@ -400,7 +400,7 @@ UNSHARD, 재배치)은 넣지 않았다(쓰기 서버가 필요한 작업 11).
 
 ### 미확인 (벤더 문의)
 
-- 미확인: 객체 종류 `P`와 분산 방식 `R`·`L`·`C`·`S`의 실제 코드, 복합(서브) 분산의 `SUB_SPLIT_METHOD`·`SUB_VALUE` 값(이 서버에 없음, 매뉴얼의 식별자만).
+- 확인됨(시스피어 답변 2026-11-17): 객체 종류 `T`·`P`, 분산 방식 `H`·`R`·`L`·`C`·`S`의 뜻. 미확인: 복합(서브) 분산의 `SUB_SPLIT_METHOD`·`SUB_VALUE` 값(이 서버에 없음).
 - 미확인: 범위·리스트 방식에서 `RANGES_.VALUE`의 뜻(상한인지, 값 하나인지)과 사전 행의 순서가 정의되어 있는지.
 - 미확인: `V$SHARD_CONNECTION_INFO.CONNECT_TIME`의 단위(유닉스 초로 보임), `TOUCH_COUNT`의 뜻.
 - 미확인: `DEFAULT_NODE_ID`가 `NODES_`에 없는 번호일 수 있는지(그때 번호로 보임).
@@ -413,6 +413,11 @@ UNSHARD, 재배치)은 넣지 않았다(쓰기 서버가 필요한 작업 11).
 ShardSphere의 복제(GEMINI)를 기존 Replications 폴더(한국어 "이중화 객체")와 활동 모니터의 복제 탭에서 읽는다. 전에는 Altibase 이름을 질의해 폴더는 늘 비고
 (표 없음 오류를 숨김) 탭은 "읽을 수 없음 … SYS_REPL_HOSTS_"였다. 읽기만 한다: 시작·중지·동기화 같은 제어 문장은 GEMINI가 설정된 서버에서 확인하기 전까지 내지 않는다
 (사용자 결정 2026-11-17 "권장안대로").
+
+제어 문장은 2026-11-17 받은 GEMINI 매뉴얼에 있다: `ALTER GEMINI g START [RETRY] | QUICKSTART [RETRY] | STOP | RESET | SYNC [PARALLEL n] [TABLE …] | SYNC ONLY … |
+FLUSH [ALL] [WAIT sec]`, 테이블·호스트 추가·삭제, `SET RECOVERY|GAPLESS|GROUPING …`(RESET·테이블·호스트 변경은 멈춘 뒤에만, SYS만). **그래도 숨긴 채 둔다:** GEMINI가
+설정된 서버(쌍)에서 쓰기 시험을 하기 전에는 문장 모양(매뉴얼 두 권이 서로 다른 곳이 있음), 실행 계정, 결과 상태 코드를 확인할 수 없다. 켜려면 카탈로그 능력에 문장
+낱말(`ALTER REPLICATION` 대신 `ALTER GEMINI`)이 필요하다(`AltibaseConstants`의 문장, 도구 둘, `ObjectMaintenanceActions`).
 
 ### 구조
 
@@ -441,9 +446,10 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 | 곳 | GEMINI가 있는 서버 |
 |---|---|
 | Global metadata ▸ 이중화 객체 | GEMINI 객체, 그 아래 송신·수신·이중화 테이블(Altibase 복제와 같은 노드) |
-| 복제 객체의 속성 보기 | 종류 = GEMINI(이 속성은 Altibase 복제에서 보이지 않음), 연결 유형 없음, 나머지는 Altibase와 같은 속성 |
-| 송신의 속성 보기 | "지연"(서버의 수, 단위 없음, 설명 "단위 미확인"). "Gap (Byte)"는 보이지 않음. 복제 객체의 통계 크기(지연 바이트)도 없음 |
-| 활동 모니터 ▸ 복제 ▸ 요약 | "GEMINI 포트" = `GEMINI_PORT_NO`, 0이면 "0: 이 서버는 GEMINI 사용 안 함(GEMINI_PORT_NO)", 복제 수와 시작된 수 |
+| 복제 객체의 속성 보기 | 종류 = GEMINI(이 속성은 Altibase 복제에서 보이지 않음), 연결 유형 없음, 충돌 해결은 이름(None/Master/Slave), 시작됨·모드·역할·복구 가능은 서버의 값 그대로(아래 "코드 값") |
+| 송신의 속성 보기 | "지연"(서버의 수, 단위 없음, 설명 "단위 미확인"). "Gap (Byte)"는 보이지 않음. 복제 객체의 통계 크기(지연 바이트)도 없음. 시작 옵션·상태·네트워크 오류는 서버의 값 그대로 |
+| 활동 모니터 ▸ 복제 ▸ 요약 | "GEMINI 포트" = `GEMINI_PORT_NO`, 0이면 "0: 이 서버는 GEMINI 사용 안 함(GEMINI_PORT_NO)", 복제 수(시작 코드를 모르므로 "시작된 수"는 없음) |
+| 활동 모니터 ▸ 복제 ▸ 복제·송신 | 시작됨·모드·역할·상태·시작 옵션·네트워크 오류 열은 서버의 값 그대로 |
 | 활동 모니터 ▸ 복제 ▸ 송신 | 지연 열 "지연"(수, 툴팁 "…서버가 준 수 그대로(단위 미확인)") |
 | 활동 모니터 ▸ 복제 ▸ 복제 | 표 설명(오른쪽 클릭으로 시작·중지·동기화)을 붙이지 않음 |
 
@@ -454,10 +460,24 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 - **새로 만들기·삭제·이름 바꾸기:** 복제에는 객체 관리자가 없어 원래 없다(Altibase도 같음). 바꾸지 않았다.
 - **DDL:** `DBMS_METADATA.GET_DDL`의 객체 유형이 GEMINI에서 무엇인지 모르므로(`getDdlObjectType()` = null) 부르지 않는다. DDL 탭은 비어 있다(EXEC 문장을 보내지 않음).
 
-### 코드 값 (미확인)
+### 코드 값 (2026-11-17 고침)
 
-값 코드(IS_STARTED 1 = 시작, GEMI_MODE 0 Lazy / 2 Eager, ROLE, CONFLICT_RESOLUTION, INVALID_RECOVERY, 송신 START_FLAG·STATUS)는 Altibase와 같다고 보고 같은 해석을 쓴다
-(GEMINI가 같은 카탈로그의 이름만 바꾼 것이라). **실제 GEMINI 행을 본 적이 없다**(두 서버 모두 GEMINI 표·뷰가 비어 있고 `GEMINI_PORT_NO` = 0).
+전에는 모든 코드를 Altibase와 같다고 보고 Altibase 이름(모드 Lazy/Eager, 역할 General/…, 송신 상태 등)을 썼다. GEMINI 매뉴얼(2026-11-17)로 확인한 것만 이름으로 보이고
+나머지는 서버의 값 그대로 보이게 고쳤다(`GeminiReplicationCatalog`, 중립 능력 `AltibaseReplicationCatalog.hasFamilyStateCodes()` = false, [altibase.md](altibase.md) "복제 카탈로그").
+
+| 열 | 문서로 확인한 뜻 | 보이는 것 |
+|---|---|---|
+| `CONFLICT_RESOLUTION` | 0 없음, 1 master, 2 slave | None / Master / Slave, 그 밖은 수 |
+| `OPTIONS` | 1 = recovery(다른 비트는 문서에 없음) | 수 그대로(전과 같음) |
+| `GEMI_MODE` | 생성 낱말 `ASYNC`(기본)·`SYNC`만 있고 코드는 없음 | 수 그대로. Altibase의 Lazy/Eager도, 매뉴얼의 ASYNC/SYNC도 쓰지 않음(코드 대응 미확인) |
+| `ROLE` | 생성 절 `FOR ANALYSIS`·`FOR PROPAGABLE LOGGING`·`FOR PROPAGATION`만, 코드 없음 | 수 그대로 |
+| `IS_STARTED`, `INVALID_RECOVERY` | 없음 | 수 그대로("시작됨" 속성은 서버의 값, 노드를 활성으로 그리지 않음) |
+| `V$GEMSENDER.START_FLAG`, `STATUS`, `NET_ERROR_FLAG` | 없음 | 수 그대로 |
+
+**실제 GEMINI 행을 본 적이 없다**(두 서버 모두 GEMINI 표·뷰가 비어 있고 `GEMINI_PORT_NO` = 0).
+
+**지연 단위(미확인, 단위 없이 보임).** 매뉴얼의 단서가 서로 맞지 않는다: (1) 지연 뷰 설명은 송신이 읽는 로그 위치와 현재 로그 위치의 차이, (2) 다른 곳은 "SN 차이",
+(3) `NOVA_MIN_GAP` 같은 속성은 바이트 단위. 어느 것이 `V$GEMGAP.GEM_GAP`의 단위인지 확정되지 않았다.
 
 ### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
 
@@ -487,11 +507,115 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 
 ### 미확인 (벤더 문의)
 
-- 미확인: GEMINI의 값 코드(IS_STARTED, GEMI_MODE, ROLE, CONFLICT_RESOLUTION, INVALID_RECOVERY, `V$GEMSENDER.START_FLAG`·`STATUS`)가 Altibase와 같은지.
-- 미확인: `V$GEMGAP.GEM_GAP`의 단위(바이트·로그 레코드·페이지). 단위 속성이 없다. 다른 후보는 `V$GEMSENDER_LOG.GAP_SIZE`, `V$GEMRECEIVER_GAP.SENDER_GAP`(읽지 않음).
-- 미확인: GEMINI의 시작·중지·동기화 문법(`ALTER GEMINI … START`인지, `ALTER REPLICATION`을 받는지), 실행 계정, `DBMS_METADATA.GET_DDL`의 객체 유형.
+- 확인됨(GEMINI 매뉴얼 2026-11-17): `CONFLICT_RESOLUTION` 0/1/2, `OPTIONS` 1 = recovery, 제어 문장 `ALTER GEMINI …`(SYS만).
+- 미확인: `IS_STARTED`, `GEMI_MODE`, `ROLE`, `INVALID_RECOVERY`, `V$GEMSENDER.START_FLAG`·`STATUS`·`NET_ERROR_FLAG`의 코드.
+- 미확인: `V$GEMGAP.GEM_GAP`의 단위(위 세 단서가 다름). 단위 속성이 없다. 다른 후보는 `V$GEMSENDER_LOG.GAP_SIZE`, `V$GEMRECEIVER_GAP.SENDER_GAP`(읽지 않음).
+- 미확인: 제어 문장의 실제 동작(매뉴얼 두 권이 `CREATE GEMINI`의 OPTIONS 자리·`SET HOST`에서 다름), `DBMS_METADATA.GET_DDL`의 객체 유형(문서에 없음).
 - 미확인: `CONN_TYPE`이 없는 이유(GEMINI는 연결 유형이 하나뿐인지).
 - 실제 GEMINI 행은 한 번도 보지 못했다: GEMINI가 설정된 서버가 있어야 값 코드, 지연 단위, 송신·수신 행의 모양을 확인한다.
+
+## 시스피어 답변과 새 매뉴얼 (2026-11-17, 앱 변경 #139 수정)
+
+2026-11-17 10:37 시스피어가 문의에 답하고 SQL·스트림·GEMINI 매뉴얼과 작업 예제를 보냈다(사본은 저장소 밖, 저작권 고지가 있어 본문을 옮기지 않음). 이 문서에 반영한 답:
+
+| 문의 | 답 | 반영 |
+|---|---|---|
+| `NODE[all]` | `node[all]`에서 DML은 동작하지 않고 DML은 `node[data]`로만. 전체를 보려면 `node[meta] select … union all node[data] select …` | `NODE[` 뒤 자동 완성에서 `all`을 뺌(위 "자동 완성"), 접두어 인식은 그대로 |
+| 샤딩 코드 | 종류 T 테이블 / P 프로시저, 분산 방식 H 해시 / R 범위 / L 리스트 / C 복제 / S 독립 | 코드 표의 "미확인"을 지움(위 "코드 값") |
+| TTL | 서버 속성 `EXPIRED_DATA_DELETION_ENABLE = 1`(설정 파일, 재기동)로 켬, `CREATE TABLE … USING TTL n 단위 ON COLUMN c`, ALTER로도 | 테이블 속성의 TTL(아래), 문법 낱말 `TTL` |
+| GEMINI | 매뉴얼 | 코드 이름은 문서에 있는 것만, 제어 문장은 문서화됐으나 숨김 유지(위 "GEMINI") |
+| JDBC | 반드시 `shardsphere.jar`(관리는 메타 노드에서) | 바꾼 것 없음(이미 그 드라이버) |
+| 쓰기 가능한 서버 | "현재 서버에서 User 생성 등 작업이 가능" | 이 작업은 사용자 지시대로 벤더 서버에서 조회·준비만 했다 |
+
+매뉴얼로 알게 된 것 중 큐의 내부 시퀀스와 작업은 계열 공통이라 [altibase.md](altibase.md) "큐의 내부 시퀀스", "작업"에 있다.
+
+## 테이블 속성: TTL과 샤드 (2026-11-17, 앱 변경 #139 수정 6)
+
+### 보이는 것
+
+일반 트리(스키마 ▸ 테이블)의 테이블을 고르면 속성 보기의 자기 속성 뒤에 묶음이 붙는다(기존 흐름, 새 화면 없음):
+
+| 묶음 | 속성 | 언제 | 읽는 곳 |
+|---|---|---|---|
+| TTL | TTL 기준 컬럼, TTL(예: "7일") | 서버에 `SYSTEM_.SYS_TTL_`가 있고(감지) 그 테이블의 행이 있을 때 | `SYS_TTL_` ⋈ `SYS_TABLES_`·`SYS_USERS_`(소유자·이름) ⟕ `SYS_COLUMNS_`(`TABLE_ID`·`COLUMN_ID`) |
+| 샤딩 | 분산 방식, 샤드 키(서브 분산이면 하위 분산 방식, 하위 샤드 키) | 샤딩 메타 노드이고 `SYS_SHARD.OBJECTS_`에 그 테이블(`OBJECT_TYPE = 'T'`, 소유자·이름)이 있을 때 | `OBJECTS_` |
+
+- **TTL 단위 코드:** Y 년, Q 분기, O 월, W 주, D 일, H 시간, M 분, S 초(스트림 매뉴얼의 `SYS_TTL_` 설명). 모르는 코드는 수와 코드 그대로("9 X"). 기준 컬럼을
+  찾지 못하면 컬럼 번호를 보인다. 분산 방식 이름은 샤딩 탐색기와 같다(`ShardObject.splitMethodLabel`).
+- **실제 TTL 행은 본 적이 없다.** 두 ShardSphere 서버 모두 `SYS_TTL_` 0행이고 `EXPIRED_DATA_DELETION_ENABLE` = 0이다. 이 작업은 벤더 서버에 쓰지 않았다.
+  확인한 것: 문장을 두 서버에서 준비·실행(0행), 표시는 손으로 만든 행(이 번들의 행 읽기·형식, 가짜 결과 집합)으로. `SYS_TTL_.COLUMN_ID`가 `SYS_COLUMNS_.COLUMN_ID`와
+  같은 번호인지는 미확인이다(같은 이름이라 그렇게 이었다).
+- **샤드 테이블 확인(메타 노드, 실제 행):** 샤드 테이블 둘 모두 분산 방식 "해시"와 샤드 키가 보이고, 같은 메타 노드의 다른 테이블(`SYS_SHARD` 스키마의 표)에는 묶음이 없다.
+
+### 자리와 비용
+
+- 중립 자리는 `ext.altibase`의 `AltibaseServerExtensionState.getObjectProperties`와 모델의 `DBPObjectWithContributedProperties`, 속성 보기
+  (`PropertiesPanel`)의 작은 변경이다([altibase.md](altibase.md) "기존 객체의 추가 속성"). 이 번들은 `ShardSphereServer.getObjectProperties`에서 테이블일 때만
+  `ShardTableProperties.read`를 부른다.
+- **연결마다:** 감지 SELECT에 부분 질의 하나(`SYS_TTL_`가 있는지)를 더했다(왕복은 그대로 하나).
+- **고를 때마다:** 속성 보기가 테이블을 보일 때만, 일반 서버는 TTL SELECT 하나, 메타 노드는 TTL과 샤드 SELECT 둘(같은 메타데이터 세션). 다른 객체·목록 열·트리를
+  읽을 때는 질의가 없다. Altibase 7.3에는 확장이 없어 질의가 하나도 늘지 않는다(쿼리 관리자로 확인: 테이블 선택 때 전과 같은 두 문장).
+  속성 보기가 같은 노드를 다시 그리면(연결 새로 고침 뒤 등) 다시 읽는다(기존 속성의 크기 질의와 같음).
+
+## 낱말과 함수 (2026-11-17, 앱 변경 #139 수정 8)
+
+두 ShardSphere 서버와 Altibase 7.3에서 `SELECT f(...) FROM DUAL`을 준비해 정했다(실행하지 않음, 2026-11-17):
+
+| 함수 | Altibase 7.3 | ShardSphere 5.1.9 · 메타 노드 | 넣은 곳 |
+|---|---|---|---|
+| `DATEPART`, `INSTRB`, `LENGTH`, `LENGTHB`, `POSITION`, `SUBSTR`, `REGEXP_LIKE` | 준비됨 | 준비됨 | Altibase 방언의 함수 목록(계열 공통) |
+| `FROM_UNIXTIME`, `PVTIME_TO_DATE`, `EXPORT_CONTINUOUS_OBJECT` | 함수 없음(201001) | 준비됨 | 이 번들의 방언 기여(감지된 모든 ShardSphere 연결) |
+| `SHARD_ID()`(SQL 매뉴얼에 이름만), `PVDATE_TO_TIME` | 없음 | 없음(인자 0·1개, 글자 인자 모두 201001, 없는 함수와 같은 코드) | 넣지 않음 |
+
+- `LENGTH`, `POSITION`은 엔진에서 이미 키워드 종류라(예약어 목록) 강조 색은 키워드다. 함수 목록에도 들어가 자동 완성에 함수로 나온다.
+- **문법 낱말:** `TTL`만 더했다(서버에 `SYS_TTL_`가 있을 때, 예약어가 아니면 따옴표 이유가 아님). 이 문서가 다루는 문장(`… USING TTL n 단위 ON COLUMN c`) 때문이다.
+  `GEMINI`는 서버가 이미 예약어로 알려 준다. GEMINI 제어 문장의 낱말(`QUICKSTART`, `RETRY`, `GAPLESS` …), 스트림·작업·큐 낱말은 Chromite가 그 문장을 아직
+  다루지 않아 넣지 않았다.
+
+## 서버에서 읽은 사실 (2026-11-17, 조회·준비만)
+
+두 서버(일반 5.1.9, 메타 노드 5.1.9-beta9)에서 같은 값:
+
+| 항목 | 값 |
+|---|---|
+| `SHARD_ID()` | 없음(준비 201001) |
+| `V$PROPERTY` `EXPIRED_DATA_DELETION_ENABLE` | 0 |
+| `EXPIRED_DATA_DELETION_INTERVAL` | 60 |
+| `EXPIRED_DATA_DELETION_TYPE`(이름에 EXPIRED가 든 다른 속성) | 0 |
+| `JOB_SCHEDULER_ENABLE`, `JOB_THREAD_COUNT` | `V$PROPERTY`에 없음(이름에 JOB이 든 속성 0개). Altibase 7.3에도 없다(JOB_MSGLOG_* 넷만) |
+| `CONTINUOUS_QUERY_ENABLE` | 1 (`CONTINUOUS_QUERY_INTERVAL` 100000, `CONTINUOUS_QUERY_THREAD_COUNT` 0) |
+| `SYS_TABLES_.TABLE_TYPE` | 일반: S 15, T 108, V 41 / 메타 노드: S 18, T 102, V 41 (Q·M·I 없음). `STREAM` 열은 모두 N |
+| `SYS_CONTINUOUS_TABLES_` | 0행. 열: USER_ID, TABLE_ID, AGGR_TABLE_ID, VIEW_ID, EXEC_QUERY1~4, WINDOW_UNIT, WINDOW_TIME, WINDOW_STEP_UNIT, WINDOW_STEP_TIME, EXEC_GROUP, EXEC_ORDER, IS_ENABLE, OPTION_OFFSET, OPTION_SIZE |
+| `SYS_STREAM_FUNCTIONS_` | 0행. 열: FUNC_NAME, FUNC_TYPE, ARG1~4, CREATED |
+| `SYS_TTL_FORMAT_` | 0행. 열: USER_ID, TABLE_ID, COLUMN_ID, FORMAT |
+| `SYS_TTL_` | 0행. 열: USER_ID, TABLE_ID, COLUMN_ID, UNIT, TIME |
+| `SYS_AUDIT_OPTS_` | 0행. 열: USER_NAME, OBJECT_NAME, OBJECT_TYPE과 연산마다 하나(SELECT·INSERT·UPDATE·DELETE·MOVE·MERGE·ENQUEUE·DEQUEUE·LOCK_TABLE·EXECUTE·COMMIT·ROLLBACK·SAVEPOINT·CONNECT·DISCONNECT·ALTER_SESSION·ALTER_SYSTEM·DDL `_OP`). Altibase 7.3에도 같은 열·0행 |
+| `V$STREAM_FUNCTION` | 0행(열: FUNC_NAME, FUNC_TYPE, ALLOC_SIZE, GROUP_COUNT, CREATE_TIME, TOUCH_TIME, TOUCH_COUNT) |
+| `V$STREAM_TIMESTAMP` | 0행(열: TIMESTAMP) |
+| `SYS_JOBS_` | 0행. 열에 Altibase 7.3에 없는 JOB_USER_ID, JOB_TYPE, FAIL_COUNT가 있다 |
+
+스트림 탐색기·감사 보기는 행이 있는 서버(또는 쓰기 시험)가 있어야 화면을 확인할 수 있다: 두 서버 모두 스트림·연속·감사 사전이 비어 있다.
+
+## 확인 (2026-11-17, 수정 1~8, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반), `SHARD`(메타 노드), `ALTI`(Altibase 7.3, 터널). 값은 환경 변수 참조로만, 암호 저장 끔, ShardSphere 두 연결은 읽기 전용 표시. 벤더 서버에서는 연결,
+카탈로그 읽기, 준비, SELECT만 했다. "전"은 이 브랜치 빌드에 기준(`a3f6a0df5d`) 소스의 바뀐 클래스·자원을 다시 넣은 jar 두 개(`ext.altibase`, `ext.shardsphere`)다.
+
+- **자동 완성:** 전 `NODE[` → META, DATA, ALL / 후 META, DATA(소문자 `node[`는 meta, data). Altibase는 제안 없음(전과 같음). 손으로 친 `NODE[all] DELETE …`는
+  여전히 DELETE로 분류되어 위험한 문 확인 대화상자가 뜬다(취소함, 실행하지 않음).
+- **테이블 속성:** 위 "테이블 속성: TTL과 샤드". 전에는 샤드 테이블에 샤딩 묶음이 없었다.
+- **GEMINI:** 손으로 만든 행: 속성 보기 "시작됨" = 1(서버 값), 송신 시작 옵션 0·상태 1·네트워크 오류 0(서버 값). 복제 탭 요약 "복제 1개"(시작 수 없음), 복제·송신 표의 코드
+  열은 수. Altibase 카탈로그는 전과 같은 이름(Started true, Normal, Run, "복제 1개, 시작됨 1개"). GEMINI 목록 문장을 두 서버에서 실행(0행).
+- **함수·낱말:** 연결의 방언에서 `TTL`=키워드(SS·SHARD), `PVTIME_TO_DATE`·`EXPORT_CONTINUOUS_OBJECT`·`FROM_UNIXTIME`=함수(SS·SHARD, ALTI 없음), 계열 일곱 개는 세 연결 모두 함수
+  (`LENGTH`·`POSITION`은 키워드 종류), `SHARD_ID`·`PVDATE_TO_TIME` 없음.
+- **세 연결 함께, 새로 고침 뒤, 모두 끊고 SHARD → ALTI → SS 순서로 다시 연결한 뒤:** 각 연결이 자기 것만 보인다(ALTI: 샤딩·TTL 묶음 없음·추가 질의 없음, 자동 완성 없음).
+- **기능 없는 제품**(내 앱 사본에서 이 번들과 feature를 빼고 `bundles.info`에서 그 줄을 지움): SS·SHARD에 감지 문장 없음, 자동 완성 없음, 테이블 속성에 묶음 없음, 복제 카탈로그는
+  Altibase. 작업 폴더는 계열 공통 코드라 이 번들 없이도 ShardSphere의 소유자·종류·실패 횟수를 읽는다([altibase.md](altibase.md) "작업").
+- **보낸 문장(쿼리 관리자):** ShardSphere 두 연결이 받은 실행은 모두 SELECT(실행마다 감사: SS 10 + 10 + 7, SHARD 61 + 21 + 19, SELECT 아닌 것 0). 앱 밖 JDBC 확인도 SELECT와
+  준비만(읽기 전용 연결).
+- 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-corrections\sheets\`.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 속성 보기(기여 인터페이스를 구현한 객체만 바뀜), Altibase 계열의 작업·시퀀스 목록, 복제 노드·복제 탭,
+  ShardSphere 자동 완성.
 
 ## 아직 없는 것
 
@@ -504,6 +628,12 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
   "ShardSphere" 노드가 GEMINI 아니오로 보인다.
 - 미확인: 메타 노드의 판정(`SYS_SHARD` 사용자 + `SHARD_META_ENABLE` = 1)이 데이터 노드와 메타 노드를 늘 가르는지. 데이터 노드에도 `SYS_SHARD`가 만들어지는지.
 - 미확인: `SYS_GEMINIS_`가 GEMINI를 쓰지 않는 ShardSphere 설치에도 늘 있는지(두 서버 모두 있음, 둘 다 GEMINI 비어 있음).
+- 미확인(2026-11-17): 실제 TTL 행의 모양(`SYS_TTL_.COLUMN_ID`가 `SYS_COLUMNS_.COLUMN_ID`인지, 분 단위가 M인지: 메일은 MIN, 예제는 MINUTE), `SYS_TTL_FORMAT_`의 용도, TTL을 바꾸거나
+  없애는 문법.
+- 미확인(2026-11-17): 스케줄러 속성 `JOB_SCHEDULER_ENABLE`·`JOB_THREAD_COUNT`가 `V$PROPERTY`에 보이지 않는 이유(숨김 속성인지), 그래서 Chromite가 스케줄러가 켜져 있는지 알 길.
+- 미확인(2026-11-17): `SYS_JOBS_.STATE` 코드(작업 예제의 켜진 작업은 0), `JOB_TYPE`의 P 외 코드.
+- 미확인(2026-11-17): 큐의 내부 시퀀스 `<큐>_NEXT_MSG_ID`의 `TABLE_TYPE`(Altibase 7.3은 W, ShardSphere는 큐를 만들 수 없어 보지 못함).
+- 미확인(2026-11-17): `SHARD_ID()`가 SQL 매뉴얼에 이름만 있고 두 서버에 없는 이유.
 
 ## 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
 
@@ -535,3 +665,6 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 - 2026-11-17 GEMINI 읽기: GEMINI 카탈로그를 감지한 연결에 GEMINI 복제 카탈로그를 줌 — Replications 폴더와 활동 모니터 복제 탭이 GEMINI를 읽음, 속성 보기에 종류 GEMINI,
   요약에 GEMINI 포트, 지연은 단위 없이, 시작·중지·동기화와 DDL 호출은 내지 않음(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "GEMINI".
 - 2026-11-17 계열 공통 공간 탭(작업 7)을 Altibase 공용 코드에 둠(이 번들 없이도 동작): [altibase.md](altibase.md) "공간 사용량", "아직 없는 것"에서 뺌.
+- 2026-11-17 시스피어 답변과 새 매뉴얼의 수정(앱 변경 #139 수정, `chromite/shardsphere-corrections`): `NODE[` 뒤 `all` 제안 뺌, 샤딩 코드 확인됨, GEMINI 코드는 문서에 있는
+  것만 이름으로·제어 문장은 문서화됐지만 숨김·지연 단서 셋, 테이블 속성의 TTL과 샤드(기여 자리 S8), 함수와 `TTL` 낱말, 두 서버의 사실 목록. 위 "시스피어 답변과 새 매뉴얼"부터
+  "확인 (2026-11-17, 수정 1~8 …)"까지.

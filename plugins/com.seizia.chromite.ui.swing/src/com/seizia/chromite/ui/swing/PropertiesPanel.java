@@ -24,8 +24,10 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBValueFormatting;
 import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.navigator.DBNNode;
@@ -98,6 +100,9 @@ import java.util.stream.Stream;
  *   머리말 없이 Object Details 속성 탭에 넣을 수 있게 함 (docs/chromite/swing-object-properties.md)
  * - 2026-11-13 아래 설명 칸을 {@link WrappingNote.MessageArea}로: Swing 단어 줄 바꿈이 한국어 낱말 가운데서 끊었다
  *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-17 객체가 {@link DBPObjectWithContributedProperties}면 다른 번들이 이 연결에서 더하는 읽기 전용 속성을 자기 속성 뒤에 보임:
+ *   주석 속성은 클래스마다 고정이라 서버 확장이 기존 객체에 속성을 더할 다른 길이 없다. 읽기 실패는 자기 속성을 지우지 않는다
+ *   (앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -334,6 +339,9 @@ final class PropertiesPanel extends JPanel {
             byCategory.computeIfAbsent(CommonUtils.notEmpty(property.getCategory()), c -> new ArrayList<>())
                 .add(new Property(property.getDisplayName(), formatValue(value), CommonUtils.notEmpty(property.getDescription()), edit));
         }
+        if (object instanceof DBPObjectWithContributedProperties contributor && !monitor.isCanceled()) {
+            addContributedProperties(monitor, contributor, byCategory);
+        }
         List<Category> result = new ArrayList<>();
         byCategory.forEach((name, properties) -> {
             if (!properties.isEmpty()) {
@@ -341,6 +349,25 @@ final class PropertiesPanel extends JPanel {
             }
         });
         return result;
+    }
+
+    /**
+     * Adds the read-only properties another bundle contributes for the object on its connection, after its own. They are
+     * optional: a failure to read them leaves the object's own properties shown.
+     */
+    private static void addContributedProperties(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPObjectWithContributedProperties contributor,
+        @NotNull Map<String, List<Property>> byCategory
+    ) {
+        try {
+            for (DBPObjectWithContributedProperties.ContributedProperty property : contributor.getContributedProperties(monitor)) {
+                byCategory.computeIfAbsent(CommonUtils.notEmpty(property.category()), c -> new ArrayList<>())
+                    .add(new Property(property.name(), formatValue(property.value()), CommonUtils.notEmpty(property.description()), null));
+            }
+        } catch (DBException e) {
+            log.debug("Error reading contributed properties", e);
+        }
     }
 
     /**

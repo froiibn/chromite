@@ -44,8 +44,8 @@ import java.util.List;
  * A shard object of the sharding meta node's dictionary ({@code SYS_SHARD.OBJECTS_}) and its distribution.
  *
  * 설계: 사전은 카탈로그와 이름(소유자, 객체 이름)으로만 이어지고 번호가 없다. 그래서 실제 테이블로 가는 길은 소유자와 이름 속성이다(Swing
- * 속성 보기에는 객체 참조를 눌러 이동하는 기능이 없다, docs/chromite/shardsphere.md "샤딩 탐색기"). 코드는 서버에서 본 것(종류 {@code T},
- * 방식 {@code H})과 매뉴얼의 식별자로만 아는 것을 이름으로 보이고, 모르는 코드는 코드 그대로 보인다.
+ * 속성 보기에는 객체 참조를 눌러 이동하는 기능이 없다, docs/chromite/shardsphere.md "샤딩 탐색기"). 코드는 시스피어가 답한 뜻(종류
+ * {@code T}·{@code P}, 방식 {@code H}·{@code R}·{@code L}·{@code C}·{@code S})을 이름으로 보이고, 모르는 코드는 코드 그대로 보인다.
  *
  * 분산({@link #getDistribution})은 이 객체를 처음 열 때 한 SELECT로 읽는다(분산 값·복제·독립 행). 해시는 사전에 상한이 글자로 저장되어
  * 글자 순서(1000, 250, …)가 되므로 수로 정렬하고, 다른 방식은 사전에 있는 순서 그대로 둔다(뜻을 모르는 순서를 만들지 않음). 기본 노드는
@@ -56,6 +56,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성(앱 변경 #139 작업 9, docs/chromite/shardsphere.md "샤딩 탐색기")
+ * - 2026-11-17 코드 뜻을 시스피어 답변(2026-11-17)으로 확인됨으로 고침, 방식 이름을 테이블 속성 기여({@link ShardTableProperties})와 같이 씀
+ *   (앱 변경 #139 수정 2·6)
  */
 public class ShardObject implements DBPRefreshableObject {
 
@@ -270,7 +272,7 @@ public class ShardObject implements DBPRefreshableObject {
     }
 
     /**
-     * The names of OBJECTS_.OBJECT_TYPE: T seen on the server; P from the manual's identifiers only. Other codes as they are.
+     * The names of OBJECTS_.OBJECT_TYPE: T table, P procedure (the vendor's answer, 2026-11-17). Other codes as they are.
      */
     @Nullable
     private static String objectTypeLabel(@Nullable String code) {
@@ -285,11 +287,11 @@ public class ShardObject implements DBPRefreshableObject {
     }
 
     /**
-     * The names of OBJECTS_.SPLIT_METHOD and SUB_SPLIT_METHOD: H seen on the server; R, L, C, S from the manual's
-     * identifiers only. Other codes as they are.
+     * The names of OBJECTS_.SPLIT_METHOD and SUB_SPLIT_METHOD: H hash, R range, L list, C clone, S solo (the vendor's
+     * answer, 2026-11-17). Other codes as they are.
      */
     @Nullable
-    private static String splitMethodLabel(@Nullable String code) {
+    static String splitMethodLabel(@Nullable String code) {
         if (code == null) {
             return null;
         }

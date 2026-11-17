@@ -42,6 +42,8 @@ import java.util.Locale;
  *   {@code FROM NODE[x](SELECT …)}·{@code FROM SHARD (SELECT …)}이고 {@code FROM (NODE[x] SELECT …)}는 거절한다(조사와 이 작업의 JDBC 확인).
  *   서버가 받지 않는 접두어({@code NODE[all]}, 접두어 둘)와 SELECT가 아닌 본문은 형태가 없다(앱 변경 #139 작업 6b,
  *   docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
+ * - 2026-11-17 {@code NODE[} 뒤에 {@code all}을 제안하지 않음: 시스피어 답변(2026-11-17) "DML은 {@code node[data]}로만",
+ *   서버는 {@code NODE[all] SELECT}를 거절. 접두어로는 계속 알아봄(안전 분류)(앱 변경 #139 수정 1)
  */
 public final class ShardSphereStatementPrefix {
 
@@ -50,8 +52,10 @@ public final class ShardSphereStatementPrefix {
     private static final List<String> NODE_TARGETS_WITHOUT_NAMES = List.of("META", "ALL"); //$NON-NLS-1$ //$NON-NLS-2$
     private static final String NODE_TARGET_DATA = "DATA"; //$NON-NLS-1$
     private static final String NODE_TARGET_ALL = "ALL"; //$NON-NLS-1$
-    // What may follow "NODE[": every target of the prefix (NODE[all] is valid before DML, the server rejects it before SELECT)
-    private static final List<String> NODE_TARGET_PROPOSALS = List.of("meta", "data", "all"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    // What is proposed after "NODE[": meta and data only. NODE[all] is still recognised as a prefix (getLength), but the
+    // vendor answered that DML runs only with NODE[data] and the meta node rejects NODE[all] SELECT; the shard manual uses
+    // it before DDL only, so proposing it would lead to statements that fail
+    private static final List<String> NODE_TARGET_PROPOSALS = List.of("meta", "data"); //$NON-NLS-1$ //$NON-NLS-2$
     private static final String SELECT = "SELECT"; //$NON-NLS-1$
     // A line break before the closing parenthesis ends a line comment at the end of the statement
     private static final String SUBQUERY_OPEN = "(\n"; //$NON-NLS-1$
@@ -88,7 +92,8 @@ public final class ShardSphereStatementPrefix {
     }
 
     /**
-     * Proposals for a {@code NODE[...]} prefix being typed: after {@code NODE[} its targets, inside {@code data(} the
+     * Proposals for a {@code NODE[...]} prefix being typed: after {@code NODE[} the targets {@code meta} and {@code data}
+     * (not {@code all}, see {@link #NODE_TARGET_PROPOSALS}), inside {@code data(} the
      * given node names (quoted). The targets follow the case of the typed {@code NODE}.
      *
      * @param text      a statement from its start to the caret
