@@ -110,6 +110,8 @@ import java.util.WeakHashMap;
  *   ({@link AltibaseSQLDialect#applyServerExtensions}, 앱 변경 #139 작업 6a)
  * - 2026-11-17 복제 문장을 연결의 복제 카탈로그({@link #getReplicationCatalog()})에서 받음: 기본은 Altibase 카탈로그(문장은 전과 같음),
  *   감지된 서버 확장이 다른 카탈로그를 주면 그것(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 {@link #getServerInfo}: System Info > 서버 정보 폴더(버전, 시작, 아카이브 로그, 백업, {@link AltibaseServerInfoItem})
+ *   (앱 변경 #139 작업 8, docs/chromite/altibase.md "개요 차트와 서버 정보")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -878,6 +880,14 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         }
     }
     
+    /**
+     * Server facts of the System Info > Server Information folder, read again each time the folder is read.
+     */
+    @NotNull
+    public List<AltibaseServerInfoItem> getServerInfo(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return AltibaseServerInfoItem.read(monitor, this);
+    }
+
     ///////////////////////////////////////////////
     // DBMS Procedure Output
     private class AltibaseOutputReader implements DBCServerOutputReader {

@@ -533,6 +533,59 @@ Locks 탭(자동 새로 고침 10초): 나무 "Session 4 · blocking 1" → "Ses
 상세 "Locks of session 5 (waiting)" `CHR_ALTI.CHR_ALTI_DEFAULT TBL X_LOCK WAITING`, "Locks of blocking session 4" `… X_LOCK GRANTED`(`D:\Tools\_scratch\p3-oracle-altibase-admin\shots\` `alti-en-locks.png`).
 Kill Session은 공용 컨테이너에서 실행하지 않았다(다른 작업의 세션을 끊지 않도록).
 
+## Altibase 계열 개요 (Overview, 2026-11-17, 앱 변경 #139 작업 8)
+
+Altibase 계열 연결(Altibase 7.3, ShardSphere)의 개요 탭이 "이 데이터베이스 유형에는 정의된 차트가 없습니다"였다: 대시보드 정의가 없었다.
+새 장치 없이 다른 DB와 같은 확장 점(`com.seizia.chromite.dashboard`)에 정의 8개를 `model.admin/plugin.xml`에 더했다. `<datasource id="altibase"/>`는
+공급자로 고르므로 그 공급자의 두 드라이버(Altibase, ShardSphere)가 같은 정의를 받는다(제품 이름 검사 없음, ShardSphere 기능 번들이 없어도 같음).
+갱신 간격, 실패한 차트만 "읽을 수 없음", 탭이 보일 때만 읽기는 개요 탭의 규칙 그대로다([swing-dashboard.md](swing-dashboard.md)).
+
+### 차트
+
+| 차트(기본 표시 *) | 문장 | 뜻과 확인한 방법 |
+|---|---|---|
+| 세션*: 전체·활성·트랜잭션 중 | `V$SESSION`의 `COUNT(*)`, `TASK_STATE = 'EXECUTING'`인 수, `SUM(ACTIVE_FLAG)` | 클라이언트 세션만 나온다(시험 서버에서 서버 내부 세션 없음, 개요 자신의 연결 포함). 부하 중 관찰: 문을 실행하는 동안 `EXECUTING`, 클라이언트를 기다리면 `WAITING`. `ACTIVE_FLAG`는 커밋하지 않은 트랜잭션이 있는 세션(UPDATE 뒤 쉬는 세션)과 DML 실행 중에 1, 자동 커밋 SELECT와 쉬는 자동 커밋 세션은 0 |
+| 초당 트랜잭션*: 커밋·롤백 | `V$SYSSTAT`의 `session commit`, `session rollback`(차분) | 테이블을 읽거나 쓴 문의 커밋(자동 커밋 포함). `V$` 뷰만 읽는 문은 트랜잭션을 시작하지 않아 세지 않는다(개요 자신의 읽기는 0). 명시적 ROLLBACK 2번 → 롤백 +2 |
+| 초당 문*: SELECT·INSERT·UPDATE·DELETE | `execute success count : select/insert/update/delete`(차분) | 성공한 실행 수. 부하의 루프 수와 같음. 개요 자신의 SELECT(간격마다 보이는 차트 수만큼)도 들어간다 |
+| 잠금 대기* | `V$LOCK_WAIT`의 `COUNT(DISTINCT TRANS_ID)` | 다른 트랜잭션의 잠금을 기다리는 트랜잭션 수. 내 두 세션의 같은 행 UPDATE로 20초 동안 1 |
+| 버퍼 풀 적중률*(%) | `V$BUFFPOOL_STAT.HIT_RATIO` | (GET_PAGES + FIX_PAGES − READ_PAGES) / (GET_PAGES + FIX_PAGES) × 100과 같음(값으로 확인), 서버 시작 뒤 누적. 디스크 테이블만 버퍼 풀을 쓴다 |
+| 서버 메모리*(바이트) | `V$MEMSTAT`의 `SUM(ALLOC_SIZE)` | 서버 모듈이 할당한 메모리의 합(MMAP, 스레드 스택 포함). 프로세스의 상주 크기가 아니다: 시험 서버 2.36 GB, 컨테이너 사용 597 MiB |
+| 네트워크 트래픽(초당 바이트) | `byte received via inet`, `byte sent via inet`(차분) | TCP로 받고 보낸 바이트. 부하에 따라 움직임 |
+| 리두 로그(초당 바이트) | `write redo log bytes`(차분) | 리두 로그에 쓴 바이트. 쓰기 부하에서만 움직임(읽기만이면 0) |
+
+`V$SYSSTAT`은 세션들의 카운터를 **3초마다** 모아 그 시각을 `base time in second`(1970-01-01 UTC부터의 초)로 준다(시험 서버에서 값이 3씩 늘고 시계와 같음,
+ShardSphere도 같음). 그래서 차분 차트는 이 값 × 1000을 `STAT_TIMESTAMP`로 돌려주고, `DashboardSampler`가 숫자 `STAT_TIMESTAMP`를 UTC 밀리초로 받아 그 시각 사이로
+나눈다. 시각이 그대로인 읽기(2초 간격이면 셋 중 하나)는 점을 만들지 않는다. 읽은 때로 나누면 0과 1.5배가 번갈아 나왔다. 날짜로 바꾸면 서버의 시간대 없는 시각이
+클라이언트 시간대로 읽혀 시간 축이 어긋난다(시험 Altibase는 UTC, 클라이언트는 KST). `logon current`도 3초 늦게 바뀌어 세션 수는 `V$SESSION`에서 센다.
+이름은 `NAME`으로 찾는다(`SEQNUM`은 서버마다 다름: Altibase에만 `ddl sync timeout`이 있어 뒤 번호가 하나씩 밀림).
+
+한 번 읽기에 보이는 차트마다 SELECT 하나(기본 6개, 모두 켜면 8개). 문장마다 시험 Altibase 60–120 ms(터널), ShardSphere 10–30 ms.
+
+### 넣지 않은 것
+
+- `V$SYSTEM_EVENT`: 시험 Altibase와 ShardSphere 일반 서버는 `TIMED_STATISTICS = 0`(메타 노드만 1)이고, 잠금 대기를 20초 만들어도 시험 Altibase의 모든 이벤트가
+  0이었다(`enq: TX - row lock contention, data row` 포함). 서버 속성을 바꾸지 않으므로 이 속성과의 관계를 확인할 수 없어 넣지 않았다(미확인, 벤더 질문).
+- `V$TRANSACTION.STATUS`(0, 3, 5가 보임), `V$SYSSTAT`의 `lock acquired count`·`lock row retry count`·`update retry count`, 버퍼 풀의 `READ_PAGES`(부하 중에도 20 그대로,
+  디스크 읽기를 만들 수 없었음): 코드·단위의 뜻을 서버 관찰로 정할 수 없어 넣지 않았다(미확인).
+- ShardSphere에만 있는 `shard data node …`·`continuous query …`·`delete expired data …` 카운터: Altibase에 없고 시험할 샤딩 부하가 없다.
+
+### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- 전: Altibase·ShardSphere 개요 모두 "이 데이터베이스 유형에는 정의된 차트가 없습니다"(`available=0`).
+- Altibase 7.3 시험 서버, 내 시험 표 `CHR_OV_T`(디스크 테이블스페이스, 1,000행)에 자동 커밋 작업 세션 3개(INSERT·UPDATE·키 SELECT, 다섯 번에 한 번 DELETE,
+  20번에 한 번 전체 읽기) 120초, 가운데 20초는 내 두 세션의 같은 행 UPDATE로 잠금 대기(둘 다 명시적 ROLLBACK). 같은 시각의 독립 읽기와 비교:
+  - 차분 차트의 점은 `base time in second`와 같은 시각(3초 간격)에 놓이고, 같은 두 시각 사이의 독립 `V$SYSSTAT` 차이 ÷ 3과 정수까지 같다. 예: 커밋 204/3 = 68, 279/3 = 93,
+    SELECT 118/3 ≈ 39, INSERT 87/3 = 29, 받은 바이트 24,362/3 ≈ 8,121, 리두 114,843/3 = 38,281, 롤백 2/3 → 1.
+  - 세션 9 / 활성 2 / 트랜잭션 중 2(독립 `V$SESSION` 같음), 잠금 대기 1(10:11:55–10:12:13, 독립 `V$LOCK_WAIT` 1 → 끝난 뒤 0), 적중률 99.9807(독립 99.98071),
+    메모리 2.371 GB(독립 2,371,120,592).
+  - 한 번 읽기의 문장 수: 개요의 서버 세션 `V$SESSTAT`의 `execute success count`가 30초(2초 간격 15번)에 차트 8개로 121, 모두 SELECT(INSERT·UPDATE·DELETE·실패 0).
+  - 연결 새로 고침 뒤, 끊고 다시 연결한 뒤에도 차트가 이어서 읽음(끊긴 동안은 "연결되지 않았습니다").
+- ShardSphere 일반 서버와 샤딩 메타 노드(조회 전용, 읽기 전용 연결, 부하 없음): 8개 문장 모두 준비·실행, 차트가 그려짐. 한 번 읽기의 문장 수는 두 서버 모두 30초에
+  기본 6개 차트로 90 = 6 × 15, 모두 SELECT. 쿼리 관리자에는 남지 않는다(개요의 읽기는 기록을 끔, 위 "서버 연결").
+- ShardSphere 기능 번들(`com.seizia.chromite.ext.shardsphere`)을 뺀 제품: 두 연결의 개요가 같은 8개 차트로 읽힘.
+- PostgreSQL·SQL Server(터널, 읽기 전용): 개요의 차트 목록과 값이 전과 같다(PostgreSQL 5개, SQL Server 7개).
+- 캡처: `D:\Tools\_scratch\altibase-overview-charts\sheets\`(저장소 밖). 회귀 테스트는 작성·실행하지 않았다.
+
 ## Oracle RAC와 쿼리 취소 (2026-11-08)
 
 후속 #69(세션·잠금에서 미룬 것). 모델 번들(`model.admin`)만 고쳤다. 화면(`SessionManagerPanel`, `LockManagerPanel`)은 `ServerAdminProfile`의 명령과 잠금 관리자를 그대로 쓴다.
@@ -761,3 +814,5 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 - 2026-11-12 유지 관리 대화상자의 진행 표시를 길이를 모르는 막대에서 도넛 스피너로(앱 변경 #60, `chromite/small-fixes-r2`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "스피너 하나와 길이를 모르는 진행").
 - 2026-11-17 공간 사용량 탭에 Altibase 계열(Altibase·ShardSphere, `altibase/AltibaseSpaceDialect`, 앱 변경 #139 작업 7): 테이블스페이스·데이터 파일·체크포인트 경로·큰 테이블,
   트리와 같은 크기 문장. [altibase.md](altibase.md) "공간 사용량".
+- 2026-11-17 개요 탭에 Altibase 계열 차트 8개(`model.admin/plugin.xml`, 공급자 `altibase`)와 `DashboardSampler`의 숫자 `STAT_TIMESTAMP`(UTC 밀리초,
+  앱 변경 #139 작업 8). 위 "Altibase 계열 개요", 서버 정보는 [altibase.md](altibase.md) "개요 차트와 서버 정보".

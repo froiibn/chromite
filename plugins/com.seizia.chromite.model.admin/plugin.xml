@@ -3,7 +3,7 @@
 
 <!--
     Server dashboard charts that DBeaver does not define (docs/chromite/swing-dashboard.md).
-    DBeaver has no SQL Server dashboards and no lock, wait or cache charts for PostgreSQL and MySQL/MariaDB.
+    DBeaver has no SQL Server or Altibase dashboards and no lock, wait or cache charts for PostgreSQL and MySQL/MariaDB.
     The definitions use DBeaver's dashboard extension point, so DashboardRegistry lists them next to the DBeaver ones.
     Labels are %keys of OSGI-INF/l10n/bundle.properties (English) and bundle_ko.properties (Korean).
 -->
@@ -125,6 +125,92 @@ FROM pg_catalog.pg_stat_database
             mapFormula="map.innodb_buffer_pool_read_requests > 0 ? 100 - map.innodb_buffer_pool_reads * 100.0 / map.innodb_buffer_pool_read_requests : 100"
             showByDefault="true">
             <datasource id="mysql"/>
+        </dashboard>
+
+        <!-- Altibase family: provider "altibase" covers every driver of it (Altibase, ShardSphere); the views and columns are on both servers.
+             V$SYSSTAT sums the sessions' counters every 3 seconds and stamps the sum with "base time in second" (seconds since 1970 UTC):
+             the rates divide by that time, so a read between two sums adds no point (docs/chromite/swing-admin-tools.md, Altibase family overview) -->
+        <dashboard id="chromite.altibase.sessions" label="%dashboard.altibase.sessions.label" description="%dashboard.altibase.sessions.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT
+    COUNT(*) AS "Total",
+    SUM(CASE WHEN TASK_STATE = 'EXECUTING' THEN 1 ELSE 0 END) AS "Active",
+    SUM(ACTIVE_FLAG) AS "In transaction"
+FROM V$SESSION
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.transactions" label="%dashboard.altibase.transactions.label" description="%dashboard.altibase.transactions.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT
+    MAX(CASE WHEN NAME = 'base time in second' THEN VALUE END) * 1000 AS STAT_TIMESTAMP,
+    SUM(CASE WHEN NAME = 'session commit' THEN VALUE END) AS "Commit",
+    SUM(CASE WHEN NAME = 'session rollback' THEN VALUE END) AS "Rollback"
+FROM V$SYSSTAT
+WHERE NAME IN ('base time in second', 'session commit', 'session rollback')
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.statements" label="%dashboard.altibase.statements.label" description="%dashboard.altibase.statements.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT
+    MAX(CASE WHEN NAME = 'base time in second' THEN VALUE END) * 1000 AS STAT_TIMESTAMP,
+    SUM(CASE WHEN NAME = 'execute success count : select' THEN VALUE END) AS "Select",
+    SUM(CASE WHEN NAME = 'execute success count : insert' THEN VALUE END) AS "Insert",
+    SUM(CASE WHEN NAME = 'execute success count : update' THEN VALUE END) AS "Update",
+    SUM(CASE WHEN NAME = 'execute success count : delete' THEN VALUE END) AS "Delete"
+FROM V$SYSSTAT
+WHERE NAME IN ('base time in second', 'execute success count : select', 'execute success count : insert',
+    'execute success count : update', 'execute success count : delete')
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.lockWaits" label="%dashboard.altibase.lockWaits.label" description="%dashboard.altibase.lockWaits.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT COUNT(DISTINCT TRANS_ID) AS "Waiting" FROM V$LOCK_WAIT
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.bufferHit" label="%dashboard.altibase.bufferHit.label" description="%dashboard.altibase.bufferHit.description"
+            group="Standard" defaultView="timeseries" calc="value" value="percent" fetch="columns" measure="%" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT HIT_RATIO AS "Cache hit" FROM V$BUFFPOOL_STAT
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.memory" label="%dashboard.altibase.memory.label" description="%dashboard.altibase.memory.description"
+            group="Standard" defaultView="timeseries" calc="value" value="bytes" fetch="columns" showByDefault="true">
+            <datasource id="altibase"/>
+            <query>
+SELECT SUM(ALLOC_SIZE) AS "Allocated" FROM V$MEMSTAT
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.network" label="%dashboard.altibase.network.label" description="%dashboard.altibase.network.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="bytes" fetch="columns" showByDefault="false">
+            <datasource id="altibase"/>
+            <query>
+SELECT
+    MAX(CASE WHEN NAME = 'base time in second' THEN VALUE END) * 1000 AS STAT_TIMESTAMP,
+    SUM(CASE WHEN NAME = 'byte received via inet' THEN VALUE END) AS "Received",
+    SUM(CASE WHEN NAME = 'byte sent via inet' THEN VALUE END) AS "Sent"
+FROM V$SYSSTAT
+WHERE NAME IN ('base time in second', 'byte received via inet', 'byte sent via inet')
+            </query>
+        </dashboard>
+        <dashboard id="chromite.altibase.redo" label="%dashboard.altibase.redo.label" description="%dashboard.altibase.redo.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="bytes" fetch="columns" showByDefault="false">
+            <datasource id="altibase"/>
+            <query>
+SELECT
+    MAX(CASE WHEN NAME = 'base time in second' THEN VALUE END) * 1000 AS STAT_TIMESTAMP,
+    SUM(CASE WHEN NAME = 'write redo log bytes' THEN VALUE END) AS "Write"
+FROM V$SYSSTAT
+WHERE NAME IN ('base time in second', 'write redo log bytes')
+            </query>
         </dashboard>
 
     </extension>
