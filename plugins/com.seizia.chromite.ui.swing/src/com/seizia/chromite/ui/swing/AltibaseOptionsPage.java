@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Tools &gt; Options &gt; Altibase, and the same page for an Altibase connection (SWT {@code PrefPageAltibase}).
+ * Tools &gt; Options &gt; ShardSphere · Altibase, and the same page for a connection of the Altibase provider (SWT {@code PrefPageAltibase}).
  *
  * 설계:
  * <ul>
@@ -48,6 +48,8 @@ import java.util.List;
  * - 2026-11-08 PRINT 켜기·끄기가 열린 세션에도 다음 문장부터 적용됨(주석) (docs/chromite/swing-server-output.md)
  * - 2026-11-17 연결의 페이지는 제목을 받는다: Altibase 공급자를 쓰는 ShardSphere 연결의 탭과 머리글이 "Altibase"가 아니라
  *   "ShardSphere"다(앱 변경 #148, docs/chromite/drivers.md "ShardSphere 화면의 Altibase 이름"). Options의 전역 페이지는 그대로 "Altibase".
+ * - 2026-11-17 Options의 전역 페이지 제목 "ShardSphere · Altibase": 두 드라이버의 연결에 함께 적용되는 페이지라 두 이름을 적고 ShardSphere를
+ *   앞에 둔다(앱 변경 #149). 연결의 페이지는 위처럼 연결의 데이터베이스 유형 이름이다.
  */
 final class AltibaseOptionsPage extends SettingsPage {
 

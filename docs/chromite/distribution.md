@@ -344,7 +344,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
 | `/ko/`, `/en/` | 홈: 어두운 무대(첫 화면: 가로 로고·제목·부제·근거 두 묶음과 앱 창, 특장점 8장면, 마지막이 "모든 기능 무료": GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크, 아래 "홈 무대"), 다운로드 블록(`#download`: 제품 소개, 들어 있는 것, Windows 설치 파일, macOS 디스크 이미지: 버전, 크기, 게시일, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침) |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
-| `/ko|en/support.html` | 기능과 지원 범위: 데이터베이스(행 110개) × 기능(열 17개) 표, 찾기 칸, 열 설명, 데이터베이스별 기능, 라이선스와 출처(아래 "기능과 지원 범위 페이지") |
+| `/ko|en/support.html` | 기능과 지원 범위: 데이터베이스(행 111개) × 기능(열 17개) 표, 찾기 칸, 열 설명, 데이터베이스별 기능, 라이선스와 출처(아래 "기능과 지원 범위 페이지") |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, Chromite Agent(설정 전에는 보내지 않음, 무엇을 어느 제공자로 보내는지, API 키 저장 위치, 로컬 MCP 서버), 사이트에 쿠키·분석 없음, 접속 기록 30일 |
 | `/favicon.ico` | 16·32·48px 아이콘(아래 "파비콘과 공유 이미지") |
 | `/assets/` | `site.css`, `site.js`, `reveal.js`(무대의 한 번 등장과 반복 재생 켜고 끄기), `support.js`(지원 범위 표의 찾기 칸), `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장: 첫 화면은 `-dark`, `-light`는 공유 이미지 생성기 입력, `shots/tour/` 기능 장면 화면 14장 `-dark`), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`, 사이트 아이콘 PNG 3장), `og/`(공유 이미지 2장, `og-<언어>-3.png`), `brand/`(워드마크·가로 로고 SVG, 밝은·어두운 글자 각 2장, [branding.md](branding.md) "사이트의 로고") |
@@ -579,8 +579,8 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 이유는 "DB가 제공하지 않음"과 "Chromite에서 아직 지원하지 않음"을 구분, 코드·설계 문서로 확인한 사실만.
 
 - 파일: `site/ko/support.html`, `site/en/support.html`, `site/assets/support.js`, `site.css`의 `.matrix*`·`.filter*`·`--state-*` 토큰. 문서형 쪽(변경 내역·개인정보와 같은 머리글·`.page-head`·`.sect`·바닥글).
-- 행 110개, 세 묶음:
-  - 주요 데이터베이스 7개: SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, Altibase, SQLite(Chromite가 직접 시험하고 고친 DB와 미리 설치된 드라이버).
+- 행 111개(2026-11-17 ShardSphere를 더하기 전 110개), 세 묶음:
+  - 주요 데이터베이스 8개: SQL Server, Oracle, PostgreSQL, MySQL, MariaDB, ShardSphere, Altibase, SQLite(Chromite가 직접 시험하고 고친 DB와 미리 설치된 드라이버).
   - 그 밖의 데이터베이스 98개, 이름순("Apache "는 빼고 정렬).
   - 파일·연합 드라이버 5개: CSV, DBF, JDBCX, Apache Calcite Avatica, Apache Arrow Flight SQL.
 - 행을 만든 기준: `plugins/*/plugin.xml`에서 `label`이 있는 `<driver>` 144개(XML로 읽어 셈)를 제품 단위로 묶었다. 같은 제품의 옛·사용 중단·클라우드 판은 한 행이다(MySQL 5·MySQL (Old)는 MySQL,
@@ -624,6 +624,16 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   행이 모두 숨은 묶음(`tbody`)도 숨긴다. 표시 수 문구는 상자의 `data-count`(언어별)에서 읽어 스크립트에 화면 글이 없다. CSP(`script-src 'self'`) 때문에 같은 출처 파일이다.
 - 고칠 때: 표는 두 언어 HTML에 직접 있다(행마다 `<tr data-terms>`, 칸은 `<td class="y|p|n|u">상태<small>이유</small></td>`). 처음 만들 때는 칸 판정을 한 곳에 모은 일회용 스크립트로 두 언어를
   함께 썼다(저장소에 넣지 않음). 기능이 바뀌면 두 언어의 같은 칸을 함께 고치고, 근거를 이 절에 더한다.
+- **ShardSphere 행(2026-11-17, 앱 변경 #149, 사용자 결정 "정리 후 배포한다"):** 주요 데이터베이스에서 Altibase 바로 앞(행 111개, 주요 8개). 벤더가 ShardSphere를 Altibase와
+  묶는 것을 싫어해 행과 설명 어디에도 Altibase 계열·기반·호환이라고 쓰지 않는다. 칸은 이 브랜치 시점의 코드와 ShardSphere 서버 확인([shardsphere.md](shardsphere.md),
+  [altibase.md](altibase.md), [swing-admin-tools.md](swing-admin-tools.md), [drivers.md](drivers.md))으로 정했다:
+  쿼리 편집기 지원; 디버거·실행 추적·네이티브 백업·Agent 전용 진단은 "Chromite에서 아직 지원하지 않음"(DB가 제공하지 않는지는 확인하지 않음); 실제 계획 지원(2026-11-17 ShardSphere
+  서버에서 `SELECT 1 FROM DUAL`의 실제 계획 확인); 예상 계획 지원(메타 노드에서 확인); 세션·잠금 지원(프로세스 7행, 잠금 탭 오류 없음); 작업 스케줄러는 읽기 전용 목록;
+  공간·로그는 일부(공간 사용량 탭만, 서버 로그 없음); 유지 관리는 확인 필요(같은 개체 동작 코드, 이 서버에서 TRUNCATE·컴파일을 실행해 보지 않음); 복제 상태는 GEMINI 읽기 전용;
+  보안은 사용자 읽기 전용 목록; 스키마 비교·Agent 공통 도구 지원; 드라이버 미리 설치, 오프라인 묶음 필요 없음.
+  데이터베이스별 기능 절에 ShardSphere 줄(Altibase 줄 앞): 미리 설치된 드라이버, 개체 탐색기, 서버 예약어 강조, 저장소 관리, 작업 모니터의 개요 차트·잠금·공간·GEMINI 복제 상태,
+  메타 노드의 샤딩 탐색기, `NODE[...]`·`SHARD` 문장의 실행 전 확인과 자동 완성, 테이블 TTL과 샤드 키. "샤딩"의 `샤`·`딩`은 이전 사이트에 없던 글자라 헤드리스 Edge로 그려 확인했다.
+  남긴 것: 쪽 머리의 "Chromite 0.1.3의 코드와 설계 문서로 확인한 내용만"과 Altibase 행의 "공간·로그 미지원"은 그 뒤에 들어온 공간 사용량 탭(#323)과 맞지 않는다(이번 범위 밖, 보고만).
 
 ### 파비콘과 공유 이미지 (2026-11-07)
 
@@ -1065,3 +1075,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-16 26.1.4 준비(`chromite/release-26-1-4`): 버전 26.1.4와 변경 내역(#304: 공백 경로 설치에서 업데이트 진행 창이 사라지던 것, #305·#306: 우클릭 메뉴에 해당하는 명령만 표시).
 - 2026-11-17 26.1.4 릴리스 기록: 26.1.3 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인, macOS 러너가 배정되지 않아 다시 실행한 일을 적음.
 - 2026-11-17 기본 브랜치 이름을 `devel`에서 `command`로 바꿈([history-cleanup.md](history-cleanup.md)): 배포 절차의 브랜치 이름. 지난 배포 기록의 `devel`은 그대로 둠.
+- 2026-11-17 지원 범위 표에 ShardSphere 행(주요 데이터베이스, Altibase 앞)과 데이터베이스별 기능의 ShardSphere 줄, 변경 내역의 "Altibase · ShardSphere" 5곳을
+  "ShardSphere · Altibase"로(두 언어, 순서만) (앱 변경 #149, `chromite/shardsphere-own-name`), "기능과 지원 범위 페이지"의 "ShardSphere 행".

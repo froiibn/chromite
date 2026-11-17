@@ -83,7 +83,7 @@
     <div class="body">
       <p>Fixes for the storage management dialogs that were new in 26.1.1.</p>
       <ul>
-        <li>Fix · Storage management: the size, next and maximum size fields accepted letters. They now take only numbers (one decimal point too for Altibase · ShardSphere and Oracle), and a paste that is not a number is not inserted</li>
+        <li>Fix · Storage management: the size, next and maximum size fields accepted letters. They now take only numbers (one decimal point too for ShardSphere · Altibase and Oracle), and a paste that is not a number is not inserted</li>
         <li>Dialog position and size: the storage management dialogs and the script preview appear in the middle of the window instead of over Object Explorer, and are a little wider. The New Database dialog and the table designer's key and index dialogs appear in the middle of the window too</li>
       </ul>
     </div>
@@ -96,10 +96,10 @@
       <ul>
         <li>New · Oracle storage management: create a tablespace (permanent, temporary, undo), delete, rename, bring online or take offline, make read-only or read-write; add a data file, change its size and autoextend, delete it. SYSTEM, SYSAUX, the default tablespaces and the undo tablespace in use get no commands</li>
         <li>New · SQL Server storage management: each database has a Storage folder (filegroups with their files, and log files). Add, rename and delete a filegroup, make it the default or read-only; add a file, change its size, autogrowth and maximum size, rename and delete it. Targets the server does not accept, such as system databases and primary files, get no commands</li>
-        <li>New · Altibase · ShardSphere storage management: create a tablespace (memory, disk, temporary, volatile), delete, bring online or take offline, autoextend settings; add, change and delete data files</li>
+        <li>New · ShardSphere · Altibase storage management: create a tablespace (memory, disk, temporary, volatile), delete, bring online or take offline, autoextend settings; add, change and delete data files</li>
         <li>PostgreSQL: a tablespace can be renamed (F2), and its owner and options can be edited in the Properties window</li>
         <li>All of these commands are in the right-click menu of Object Explorer and show the script before it runs. If a query window has an uncommitted transaction, the app asks first</li>
-        <li>Altibase · ShardSphere: memory and volatile tables are marked by the colour of the table icon (red tones) instead of the colour of the name. Disk tables look like any other table</li>
+        <li>ShardSphere · Altibase: memory and volatile tables are marked by the colour of the table icon (red tones) instead of the colour of the name. Disk tables look like any other table</li>
       </ul>
     </div>
   </section>
@@ -114,7 +114,7 @@
         <li>Chromite Agent: overlapping tools were merged and names and arguments made consistent (MCP tools 101 → 87). Schema changes are one tool, changeSchema; backup and restore are backupDatabase and restoreDatabase. Dangerous calls, such as dropping a table, view or index or a DROP through runSql, always ask for confirmation even when the connection has a "run automatically" rule. A saved tool policy moves to the stricter of its old rules. Old tool names and argument names are accepted until 26.2.0; the formatSql tool was removed</li>
         <li>Object Explorer: after statements such as CREATE DATABASE, DROP DATABASE or CREATE USER the list is updated at once, without Refresh</li>
         <li>Running queries: Alt+X also runs the query (the same as F5). Shortcuts such as F5, Alt+P and Ctrl+Enter work while a column selection (Alt+drag) is active. On macOS an Option shortcut no longer types a character into the editor</li>
-        <li>Altibase · ShardSphere: the session's default schema (the login user) is read, so completion works without the schema name (for example EXEC DBMS_SHARD.) and the result of your own table queried without a schema can be edited. CACHE and NOCACHE are coloured as keywords</li>
+        <li>ShardSphere · Altibase: the session's default schema (the login user) is read, so completion works without the schema name (for example EXEC DBMS_SHARD.) and the result of your own table queried without a schema can be edited. CACHE and NOCACHE are coloured as keywords</li>
         <li>macOS: the startup screen is a single window. It no longer appears near the top and then moves to the middle (the startup screen shows no version or Loading… text)</li>
         <li>Screens: in the dark theme, 19 database icons that were hard to see are drawn on a light plate. The About Chromite window shows the site address (chromite.seizia.com)</li>
       </ul>
@@ -128,7 +128,7 @@
       <ul>
         <li>New · ShardSphere: the database type list has ShardSphere. Its driver ships in the installer, so nothing is downloaded. The default port 55321, the default database memdb and the default user sys are filled in. Object Explorer (schemas, tables with columns, constraints and indexes, views, packages, tablespaces, users) and the query window work as they do for Altibase</li>
         <li>Connect dialog: for a database with a default port, the server name alone is enough (some types, such as Altibase, were stopped by "Enter the port" before)</li>
-        <li>Altibase · ShardSphere: keyword highlighting follows the reserved words of the connected server (the words differ by server version and product). On a server without replication information the Replications folder opens empty instead of failing, and the parameters of functions are shown</li>
+        <li>ShardSphere · Altibase: keyword highlighting follows the reserved words of the connected server (the words differ by server version and product). On a server without replication information the Replications folder opens empty instead of failing, and the parameters of functions are shown</li>
         <li>Screens: in the dark theme the ShardSphere icon is drawn on a light plate so that it can be seen</li>
       </ul>
     </div>

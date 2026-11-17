@@ -35,6 +35,12 @@ import java.util.List;
 
 /**
  * AltibaseDataTypeCache
+ *
+ * 설계: 이 공급자의 모든 드라이버(Altibase, ShardSphere)가 쓰므로 진행 작업 이름에 제품 이름을 넣지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-17 작업 이름 "Load Altibase data types"·"Load Altibase domain types"에서 제품 이름을 뺌(ShardSphere 연결에도 보임, 앱 변경 #149,
+ *   docs/chromite/drivers.md "ShardSphere 화면의 Altibase 이름")
  */
 public class AltibaseDataTypeCache extends JDBCBasicDataTypeCache<GenericStructContainer, AltibaseDataType> {
 
@@ -54,10 +60,10 @@ public class AltibaseDataTypeCache extends JDBCBasicDataTypeCache<GenericStructC
         List<AltibaseDataType> tmpObjectList = new ArrayList<>();
 
         try {
-            try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load Altibase data types")) {
+            try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load data types")) {
                 try (JDBCPreparedStatement dbStat = session.prepareStatement(
                         "SELECT * FROM V$DATATYPE ORDER BY TYPE_NAME")) {
-                    monitor.subTask("Load Altibase domain types");
+                    monitor.subTask("Load domain types");
                     try (JDBCResultSet dbResult = dbStat.executeQuery()) {
                         while (dbResult.next()) {
                             if (monitor.isCanceled()) {
