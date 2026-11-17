@@ -82,6 +82,8 @@ import java.util.stream.Stream;
  *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장")
  * - 2026-11-17 Chromite: 서버 확장의 접두어 문장 하위 질의 형태({@link #getPrefixedStatementSubquery})와 입력 중인 접두어의 제안
  *   ({@link #getStatementPrefixProposals})도 이 연결에서 감지된 확장에 묻는다(앱 변경 #139 작업 6b, docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-17 Chromite: SQL 매뉴얼에 있고 Altibase 7.3과 ShardSphere 5.1.9가 모두 준비하는 함수 일곱 개를 함수 목록에(DATEPART, INSTRB,
+ *   LENGTH, LENGTHB, POSITION, REGEXP_LIKE, SUBSTR). ShardSphere에만 있는 함수는 그 번들의 방언 기여로 간다(앱 변경 #139 수정 8)
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -290,6 +292,8 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "USER_LOCK_REQUEST",       "USER_NAME",                 //170
         "VARIANCE",                "VAR_POP",                   //172
         "VAR_SAMP",                
+        // Documented in the family's SQL manual and prepared on Altibase 7.3 and ShardSphere 5.1.9 (2026-11-17)
+        "DATEPART", "INSTRB", "LENGTH", "LENGTHB", "POSITION", "REGEXP_LIKE", "SUBSTR",
     };
     
     private static final String[] ALTIBASE_FUNCTIONS = new String[] {
@@ -352,7 +356,10 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         "NVL2", "QUOTE_PRINTABLE_DECODE", "QUOTE_PRINTABLE_ENCODE", "RAW_CONCAT", "RAW_SIZEOF", 
         "ROWNUM", "SENDMSG", "USER_ID", "USER_NAME", "SESSION_ID", 
         "SUBRAW", "SYS_CONNECT_BY_PATH", "SYS_GUID_STR", "USER_LOCK_REQUEST", "USER_LOCK_RELEASE", 
-        "SYS_CONTEXT"
+        "SYS_CONTEXT",
+
+        // Documented in the family's SQL manual, prepared on Altibase 7.3 and ShardSphere 5.1.9 (2026-11-17)
+        "DATEPART", "INSTRB", "LENGTH", "LENGTHB", "POSITION", "REGEXP_LIKE", "SUBSTR"
     };
     /******************************************************************************
      * Base data to generate Altibase only keyword and function list

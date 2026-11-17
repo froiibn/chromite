@@ -703,6 +703,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `AltibaseSQLDialect.applyServerExtensions` / `getStatementPrefixLength` | 감지 뒤 데이터 원본이 자기 방언 객체에 넘긴다: 낱말은 키워드로(서버가 `V$RESERVED_WORDS`에 없으면 `mustBeQuoted`의 이유가 아님, `CACHE`와 같은 규칙), 함수는 함수로, 접두어 길이는 확장에 묻는다(확장이 없으면 0 = 전과 같음) |
 | `AltibaseServerExtensionState.getPrefixedStatementSubquery` / `getStatementPrefixProposals` → `AltibaseSQLDialect`의 같은 이름(2026-11-17 작업 6b) | 접두어 문장을 하위 질의로 쓰는 형태(행 수·필터·정렬이 감쌀 때)와 입력 중인 접두어의 자동 완성 제안. 문장의 접두어를 아는 확장에 묻는다. 확장이 없으면 null = 전과 같음(형태 없음 → 다시 읽기 막힘, 제안 없음) |
 | `AltibaseServerExtensionState.getReplicationCatalog()` → `AltibaseDataSource.getReplicationCatalog()`(2026-11-17 작업 4·5) | 복제를 다른 카탈로그에 두는 서버의 복제 카탈로그. 처음 답한 확장의 것, 없으면 Altibase 카탈로그(아래 "복제 카탈로그") |
+| `AltibaseServerExtensionState.getObjectProperties(monitor, object)` → `AltibaseDataSource.getExtensionProperties`(2026-11-17 수정 6) | 기존 객체(지금은 테이블)의 속성 보기에 더할 읽기 전용 속성. 아래 "기존 객체의 추가 속성" |
 | `extension/AltibaseServerExtensionRegistry` | 확장 지점을 처음 물을 때 한 번 읽고 확장 객체를 하나씩 만든다. 만들 수 없는 확장은 기록하고 뺀다 |
 | `AltibaseDataSource.initialize` → `detectServerExtensions` | 연결이 쓸 수 있게 된 뒤(상위 `initialize`, LOB 임계값 다음) 확장마다 `detect`를 메타 세션 하나에서 부르고 결과를 인스턴스 필드 `serverExtensions`에 둔다. 확장이 없으면 세션도 열지 않는다 |
 | `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
@@ -749,6 +750,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `AltibaseMetaModel.getReplicationDDL` | `DBMS_METADATA.GET_DDL`의 객체 유형을 카탈로그에서. null이면 부르지 않고 빈 DDL |
 | `tasks/AltibaseToolReplicationStart`·`Stop` | 카탈로그가 제어 문장을 허락하지 않으면 문장을 만들지 않고 예외(저장된 작업 같은 다른 길 대비) |
 | `model.admin` `ObjectMaintenanceActions.supports` | 시작·중지·동기화는 `replication.supportsControlStatements()`일 때만 → 오른쪽 클릭 메뉴에 항목이 없다(적용되지 않는 명령은 보이지 않는 규칙) |
+| `hasFamilyStateCodes()`(2026-11-17 수정 3) | 카탈로그의 상태 코드(복제의 `IS_STARTED`, 송신의 `START_FLAG`·`STATUS`·`NET_ERROR_FLAG`, 탭의 모드·역할)가 이 계열의 것인지. 아니면 `AltibaseReplication`은 "시작됨"을 서버의 값(`startedValue`)으로 보이고 노드를 활성으로 그리지 않으며, 송신은 코드를 그대로, 탭은 그 열들을 수로·요약은 복제 수만 보인다. Altibase는 true(전과 같음) |
 | `model.admin` `AltibaseReplicationDialect` | 문장과 속성 이름을 데이터 원본의 카탈로그에서. 카탈로그 이름이 있으면 요약의 포트 행이 "{이름} 포트", 0이면 "0: 이 서버는 {이름} 사용 안 함({속성})". 지연 단위가 없으면 송신 표의 지연 열이 바이트가 아닌 수("지연", 단위 미확인 툴팁). 제어 문장이 없으면 복제 표의 시작·중지 안내를 붙이지 않는다 |
 
 ### 설계 결정
@@ -933,6 +935,59 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 
 - upstream에는 Altibase 대시보드가 없다(SWT 대시보드도 정의 없음). System Info에 폴더 하나와 이 번들의 첫 NLS 문구 클래스를 더했다.
 
+## 기존 객체의 추가 속성 (2026-11-17, 앱 변경 #139 수정 6, 계획의 S8)
+
+### 목적
+
+서버 확장이 그 서버의 카탈로그에서 읽은 값을 Altibase 모델의 기존 객체(테이블) 속성 보기에 더한다. 첫 사용자는 ShardSphere 번들의 TTL과 샤드 객체다
+([shardsphere.md](shardsphere.md) "테이블 속성: TTL과 샤드").
+
+### 속성 보기가 속성을 모으는 방법과 자리
+
+- 속성 보기(`ui.swing` `PropertiesPanel.readProperties`)는 객체 클래스의 `@Property` 게터를 모으고(`PropertyCollector`/`PropertySourceEditable` →
+  `ObjectAttributeDescriptor.extractAnnotations`), 객체가 `DBPPropertySource`면 그 원본만 쓴다. 주석은 클래스마다 고정이고 `@PropertyGroup`도 게터의 반환 형식으로
+  정해지므로, 다른 번들이 연결마다 다른 속성을 기존 클래스에 더할 길이 없었다. `DBPPropertySource`를 테이블이 구현하면 속성 보기가 주석 속성을 버린다.
+- 그래서 가장 작은 중립 자리 셋을 두었다:
+
+| 위치 | 하는 일 |
+|---|---|
+| `model` `DBPObjectWithContributedProperties`(새 인터페이스) | `getContributedProperties(monitor)` → (묶음, 이름, 값, 설명) 목록. 읽기 전용, 이름은 기여하는 쪽이 옮긴 글 |
+| `ui.swing` `PropertiesPanel.readProperties`(10줄) | 객체가 그 인터페이스면 자기 속성 뒤에 기여 속성을 붙인다(같은 백그라운드 작업, 같은 형식). 읽기 실패는 기록만 하고 자기 속성은 그대로 |
+| `ext.altibase` `AltibaseServerExtensionState.getObjectProperties`(기본 빈 목록), `AltibaseDataSource.getExtensionProperties`, `AltibaseTable`이 인터페이스 구현 | 감지된 확장마다 물어 모은다. 확장이 없으면 빈 목록(질의 없음) |
+
+- **비용:** 연결마다 0(감지 결과를 그대로 씀). 고를 때마다: 속성 보기가 그 객체를 보일 때만 확장이 정한 질의(ShardSphere는 테이블에 SELECT 하나 또는 둘). 목록 열·트리 읽기·
+  다른 객체에는 없다. Altibase 7.3에는 확장이 없어 테이블을 골라도 문장이 늘지 않는다(확인).
+- **대안(고르지 않음):** 텍스트 속성 하나(`@Property getExtensionProperties`)나 자식 노드. 속성 보기의 변경이 작아 정식 속성 줄로 보이게 했다.
+
+## 작업 (2026-11-17, 앱 변경 #139 수정 5)
+
+### 고친 것
+
+| 전 | 후 | 근거 |
+|---|---|---|
+| "Activated"(한국어 "실행 중") = `STATE = '1'` | "상태 코드" = `STATE` 그대로 | Altibase 7.3에서 켜진 작업·꺼진 작업 모두 0(스케줄러가 돌지 않아 실행 중인 작업은 보지 못함). 시스피어 예제의 켜진 채 한 번 실행된 작업도 0 |
+| 수행 주기 "1 MI" | "1분"(YY 년, MM 월, DD 일, HH 시간, MI 분; 모르는 코드는 "수 코드") | SQL 매뉴얼의 CREATE JOB 단위 YEAR·MONTH·DAY·HOUR·MINUTE로 Altibase 7.3에 작업을 만들어 읽은 코드(SECOND는 문법 오류) |
+| 소유자·종류·실패 횟수 없음 | `SYS_JOBS_`에 `JOB_USER_ID`·`JOB_TYPE`·`FAIL_COUNT`가 있는 연결에서만 소유자(`SYS_USERS_`에서 이름)·종류(P = 프로시저, 그 밖은 코드)·실패 횟수 | ShardSphere 5.1.9에는 셋이 있고 Altibase 7.3에는 없다. 연결의 카탈로그로 정한다(`JobCache`, 처음 목록을 읽을 때 `SYS_COLUMNS_` 세기 하나, 새로 고침이 지움) |
+| "Is Enabled"(실행 가능 여부)가 실행 횟수와 같은 순서(8) | 순서 5(주기 다음) | 속성 순서 겹침 |
+
+- 켜짐은 `IS_ENABLE`(T/F)이 말한다: 만든 직후 F, `ALTER JOB … SET ENABLE` 뒤 T(확인).
+- 스케줄러 상태: `JOB_SCHEDULER_ENABLE`·`JOB_THREAD_COUNT`는 Altibase 7.3과 두 ShardSphere 서버 모두 `V$PROPERTY`에 없다. 켜진 1분 주기 작업이 3분 동안 한 번도 실행되지
+  않아(실행 횟수 0) 시험 서버의 스케줄러는 꺼져 있다고 본다. 서버 속성은 바꾸지 않았다.
+- 작업 정의를 만드는·바꾸는 명령은 이 변경에 없다.
+
+## 큐의 내부 시퀀스 (2026-11-17, 앱 변경 #139 수정 4)
+
+- `CREATE QUEUE q`는 시퀀스 `q_NEXT_MSG_ID`를 만들고 `DROP QUEUE`가 지운다. 사용자가 바꾸면 안 되는 큐의 내부 객체다(계열 매뉴얼).
+- Altibase 7.3은 이 시퀀스를 `SYS_TABLES_.TABLE_TYPE = 'W'`로 둔다(`V$SEQ`에는 있음). 그래서 전에는 시퀀스 목록(`'S'`)에 나오지 않아 지울 수도 없었다.
+- **후:** 시퀀스 목록이 `'S'`와 `'W'`를 읽고, 같은 스키마에 그 이름의 큐(`'Q'`)가 있는지를 카탈로그에서 함께 읽는다(이름만으로 정하지 않음). 큐의 것이면 읽기 전용
+  `AltibaseQueueSequence`(현재 값 등 속성은 그대로), 큐의 것이 아닌 `'W'`는 전처럼 목록에 없다. `'S'`로 두는 서버에서도 같은 판단이다(ShardSphere 5.1.9도 `'W'`: 2026-11-17 시험용 큐로 확인).
+- **명령:** 객체 관리자 등록이 이 클래스에 정확히 맞는 `AltibaseQueueSequenceManager`(만들기·지우기·고치기·이름 바꾸기 없음)를 고르므로 보통 시퀀스의 관리자가 이어받지
+  않는다. 오른쪽 클릭 메뉴에 삭제가 없다(해당하지 않는 명령은 보이지 않는 규칙, [context-menus.md](context-menus.md)). 보통 시퀀스는 전처럼 삭제가 보인다.
+- **고른 것과 대안:** 7.3에서 이 시퀀스를 목록에 새로 보이게 했다(큐의 메시지 번호가 보이고, 같은 판단이 모든 서버에서 쓰임). 대안은 전처럼 `'S'`만 읽고 숨겨 두는 것
+  (`TABLE_TYPE IN ('S', 'W')`를 `'S'`로 되돌리면 됨).
+- **확인(Altibase 7.3, `CHR_COR_Q`와 보통 시퀀스 `CHR_COR_SEQ`):** 전: 시퀀스 1개(보통 시퀀스, 메뉴에 삭제). 후: 2개, 큐 시퀀스 메뉴 10항목(삭제 없음), 보통 시퀀스 11항목
+  (삭제 켜짐). 연결 새로 고침과 다시 연결 뒤에도 같음. 끝에 모두 지움(`SYS_TABLES_`·`SYS_PROCEDURES_`·`SYS_JOBS_`에 `CHR_COR%` 0행).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -964,3 +1019,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-17 활동 모니터 공간 사용량 탭에 Altibase 계열(앱 변경 #139 작업 7): 트리와 같은 크기 문장을 정적으로 옮겨 함께 씀, 자동 확장을 끈 메모리·휘발성
   테이블스페이스의 한도를 현재 크기로(메모리는 MAXSIZE와 MEM_MAX_DB_SIZE 중 작은 쪽), 위 "공간 사용량".
 - 2026-11-17 활동 모니터 개요 차트 8개와 System Info > 서버 정보(버전, 시작, 아카이브 로그, 백업, 앱 변경 #139 작업 8), 위 "개요 차트와 서버 정보".
+- 2026-11-17 시스피어 답변의 수정(앱 변경 #139 수정, `chromite/shardsphere-corrections`): 기존 객체의 추가 속성 자리(S8), 작업의 상태 코드·읽을 수 있는 주기·소유자·종류·
+  실패 횟수, 큐의 내부 시퀀스를 읽기 전용 종류로, 복제 카탈로그의 상태 코드 능력, 계열 함수 일곱 개. 위 "기존 객체의 추가 속성", "작업", "큐의 내부 시퀀스", "복제 카탈로그".

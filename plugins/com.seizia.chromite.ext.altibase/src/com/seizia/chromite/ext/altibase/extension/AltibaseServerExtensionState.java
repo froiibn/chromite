@@ -20,8 +20,11 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
+import com.seizia.chromite.model.DBPObjectWithContributedProperties;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.struct.DBSObject;
+import org.jkiss.dbeaver.DBException;
 
 import java.util.Collection;
 import java.util.List;
@@ -42,6 +45,8 @@ import java.util.List;
  * - 2026-11-17 방언 기여: 접두어 문장의 하위 질의 형태, 입력 중인 접두어의 제안(앱 변경 #139 작업 6b, docs/chromite/altibase.md "서버 확장")
  * - 2026-11-17 복제 카탈로그({@link #getReplicationCatalog()}): 복제를 다른 카탈로그에 두는 서버(앱 변경 #139 작업 4·5,
  *   docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 기존 객체의 추가 속성({@link #getObjectProperties}): 서버 확장이 그 서버의 카탈로그에서 읽어 속성 보기에 더하는 값
+ *   (앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
  */
 public interface AltibaseServerExtensionState {
 
@@ -116,6 +121,20 @@ public interface AltibaseServerExtensionState {
     @Nullable
     default AltibaseReplicationCatalog getReplicationCatalog() {
         return null;
+    }
+
+    /**
+     * Read-only properties this extension adds to an object of this connection's Altibase model, shown after the object's
+     * own in the property view (objects that implement {@link DBPObjectWithContributedProperties}, today the table). Called
+     * only when the property view shows the object, off the UI thread; an extension that has nothing for this object or
+     * this server returns an empty list without a query.
+     */
+    @NotNull
+    default List<DBPObjectWithContributedProperties.ContributedProperty> getObjectProperties(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSObject object
+    ) throws DBException {
+        return List.of();
     }
 
 }

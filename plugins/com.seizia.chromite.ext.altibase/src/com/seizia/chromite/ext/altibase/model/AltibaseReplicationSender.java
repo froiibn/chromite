@@ -25,6 +25,7 @@ import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.ByteNumberFormat;
+import org.jkiss.utils.CommonUtils;
 
 /**
  * A thread to send replication target table's data to a peer database.
@@ -35,6 +36,7 @@ import org.jkiss.utils.ByteNumberFormat;
  *
  * 변경 이력:
  * - 2026-11-17 지연 단위가 없는 카탈로그의 지연을 단위 없이(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 카탈로그의 상태 코드가 이 계열의 것이 아니면 시작 옵션·상태·네트워크 오류를 서버의 값 그대로(앱 변경 #139 수정 3)
  */
 public class AltibaseReplicationSender extends AltibaseReplicationModule {
 
@@ -44,6 +46,8 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
     private long gapWithoutUnit;
     private String startFlag;
     private boolean networkError;
+    // NET_ERROR_FLAG as the server stores it, where the catalog's codes are not the family's
+    private String networkErrorValue;
     private long xsn;
     private long commitXsn;
     private String status;
@@ -53,11 +57,18 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
     public AltibaseReplicationSender(AltibaseReplication parent, JDBCResultSet resultSet) {
         super(parent);
 
-        startFlag = getStartFlag(JDBCUtils.safeGetLong(resultSet, "START_FLAG"));
+        // The family's names only where the catalog's codes are the family's; otherwise the server's values
+        boolean familyCodes = parent.getReplicationCatalog().hasFamilyStateCodes();
+        startFlag = familyCodes
+            ? getStartFlag(JDBCUtils.safeGetLong(resultSet, "START_FLAG"))
+            : CommonUtils.notEmpty(JDBCUtils.safeGetString(resultSet, "START_FLAG"));
         networkError = JDBCUtils.safeGetBoolean(resultSet, "NET_ERROR_FLAG", "1");
+        networkErrorValue = JDBCUtils.safeGetString(resultSet, "NET_ERROR_FLAG");
         xsn = JDBCUtils.safeGetLong(resultSet, "XSN");
         commitXsn = JDBCUtils.safeGetLong(resultSet, "COMMIT_XSN");
-        status = getStatus(JDBCUtils.safeGetLong(resultSet, "STATUS"));
+        status = familyCodes
+            ? getStatus(JDBCUtils.safeGetLong(resultSet, "STATUS"))
+            : CommonUtils.notEmpty(JDBCUtils.safeGetString(resultSet, "STATUS"));
         readLogCount = JDBCUtils.safeGetLong(resultSet, "READ_LOG_COUNT");
         sentLogCount = JDBCUtils.safeGetLong(resultSet, "SEND_LOG_COUNT");
         if (hasGapUnit(parent)) {
@@ -97,9 +108,18 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
         return startFlag;
     }
 
-    @Property(viewable = true, order = 4)
+    @Property(viewable = true, order = 4, visibleIf = FamilyStateCodes.class)
     public boolean getNetworkError() {
         return networkError;
+    }
+
+    /**
+     * NET_ERROR_FLAG as the server stores it, where the catalog's codes are not the family's (shown instead of the flag).
+     */
+    @Nullable
+    @Property(viewable = true, order = 4, visibleIf = OtherStateCodes.class)
+    public String getNetworkErrorValue() {
+        return networkErrorValue;
     }
 
     @Property(viewable = true, order = 5)
@@ -180,6 +200,26 @@ public class AltibaseReplicationSender extends AltibaseReplicationModule {
         @Override
         public boolean isValidValue(@NotNull AltibaseReplicationSender object, @Nullable Object value) {
             return !hasGapUnit(object.getParentObject());
+        }
+    }
+
+    /**
+     * Shows the network error flag where the catalog's state codes are the family's.
+     */
+    public static class FamilyStateCodes implements IPropertyValueValidator<AltibaseReplicationSender, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplicationSender object, @Nullable Object value) {
+            return object.getParentObject().getReplicationCatalog().hasFamilyStateCodes();
+        }
+    }
+
+    /**
+     * Shows the stored network error value where the catalog's state codes are not established.
+     */
+    public static class OtherStateCodes implements IPropertyValueValidator<AltibaseReplicationSender, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplicationSender object, @Nullable Object value) {
+            return !object.getParentObject().getReplicationCatalog().hasFamilyStateCodes();
         }
     }
 }
