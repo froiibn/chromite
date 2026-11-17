@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ext.altibase.AltibaseDataSourceProvider;
 import com.seizia.chromite.ext.cubrid.CubridDataSourceProvider;
 import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
@@ -49,6 +50,9 @@ import java.util.Set;
  *     값은 연결 설정 파일의 {@code custom-properties}에 저장된다(모델의 직렬화가 기본값과 다른 값만 씀).</li>
  *     <li>다시 연결: 모델이 작업마다 읽는 페이지의 키는 {@link #getKeysAppliedWithoutReconnect}로 알려 연결 대화상자가 다시 연결을 묻지 않게 한다.
  *     세션을 열 때 읽는 페이지(Client Identification, Oracle)는 기존 "다시 연결할까요" 질문을 거치고, 다시 연결은 열린 트랜잭션을 먼저 묻는다.</li>
+ *     <li>페이지는 Tools &gt; Options처럼 왼쪽 목록({@link JList})에서 고르고 오른쪽 {@link CardLayout}에 보인다. 왼쪽 배치 {@link JTabbedPane}은
+ *     낮은 대화상자에서 탭이 두 열로 엇갈려 감기고 목록 영역·선택 모양이 없었다. 행 모양은 Options의 렌더러({@link OptionsDialog.PageListRenderer}),
+ *     둘레 여백과 오른쪽 구분선도 Options와 같다(찾기 칸은 페이지가 열 개 남짓이라 두지 않음). 켠 페이지의 행에는 확인 표시를 그린다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -57,11 +61,19 @@ import java.util.Set;
  *   (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-12 "Tools &gt; Options의 설정을 따른다" 안내 옆에 Options의 같은 페이지를 여는 링크 (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  * - 2026-11-17 Altibase 공급자 연결의 페이지 제목은 연결의 데이터베이스 유형 이름(ShardSphere 연결은 "ShardSphere", 앱 변경 #148)
+ * - 2026-11-17 왼쪽 배치 탭을 Options와 같은 페이지 목록으로 (앱 변경 #150, docs/chromite/swing-options.md "연결 Settings 탭의 페이지 목록 (#150)")
  */
 final class ConnectionSettingsOverrides extends JPanel {
 
+    // Preferred list height in rows: below the page count, so that the preferred width counts the scroll bar (no title is cut
+    // when the list scrolls), and low, so that the list does not make the connection dialog taller
+    private static final int LIST_VISIBLE_ROWS = 6;
+
     private final List<Entry> entries = new ArrayList<>();
-    private final JTabbedPane tabs = new JTabbedPane(SwingConstants.LEFT);
+    private final DefaultListModel<Entry> listModel = new DefaultListModel<>();
+    private final JList<Entry> pageList = new JList<>(listModel);
+    private final CardLayout pageCards = new CardLayout();
+    private final JPanel pageHolder = new JPanel(pageCards);
 
     /**
      * @param dataSource the edited (or new) connection; it is only read here
@@ -92,7 +104,8 @@ final class ConnectionSettingsOverrides extends JPanel {
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
             scrollPane.setBorder(BorderFactory.createEmptyBorder());
             scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            tabs.addTab(page.getTitle(), scrollPane);
+            pageHolder.add(scrollPane, cardName(entries.size() - 1));
+            listModel.addElement(entry);
             boolean override = page.getKeys().stream().anyMatch(store::contains);
             // The connection's values, or the global ones for the keys it does not set
             page.load(store);
@@ -100,8 +113,39 @@ final class ConnectionSettingsOverrides extends JPanel {
             entry.overrideBox.addActionListener(e -> overrideChanged(entry));
             entry.updateState();
         }
-        add(tabs, BorderLayout.CENTER);
-        updateTabIcons();
+        add(createPageList(), BorderLayout.WEST);
+        add(pageHolder, BorderLayout.CENTER);
+        pageList.setSelectedIndex(0);
+    }
+
+    /**
+     * The page list on the left, as in Tools &gt; Options: the same renderer (rows, rounded selection), padding and dividing
+     * line, without the search field (a few pages). As wide as its longest title with the scroll bar, so that no title is cut.
+     */
+    @NotNull
+    private JComponent createPageList() {
+        pageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pageList.setCellRenderer(new PageRenderer());
+        pageList.setVisibleRowCount(LIST_VISIBLE_ROWS);
+        pageList.addListSelectionListener(e -> {
+            int index = pageList.getSelectedIndex();
+            if (!e.getValueIsAdjusting() && index >= 0) {
+                pageCards.show(pageHolder, cardName(index));
+            }
+        });
+        JScrollPane listScroll = new JScrollPane(pageList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        listScroll.setBorder(BorderFactory.createEmptyBorder());
+        int padding = UIScale.scale(OptionsDialog.LIST_PADDING);
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(OptionsForm.createDividerBorder(SwingConstants.RIGHT, new Insets(padding, padding, padding, padding)));
+        panel.add(listScroll, BorderLayout.CENTER);
+        return panel;
+    }
+
+    @NotNull
+    private static String cardName(int index) {
+        return Integer.toString(index);
     }
 
     /**
@@ -138,16 +182,8 @@ final class ConnectionSettingsOverrides extends JPanel {
             entry.page.load(entry.page.getGlobalStore());
         }
         entry.updateState();
-        updateTabIcons();
-    }
-
-    /**
-     * A check mark on the pages the connection overrides, as on the network handler tabs.
-     */
-    private void updateTabIcons() {
-        for (int i = 0; i < entries.size(); i++) {
-            tabs.setIconAt(i, entries.get(i).overrideBox.isSelected() ? UiIcons.get("check") : null); //$NON-NLS-1$
-        }
+        // The row's check mark follows the box (PageRenderer)
+        pageList.repaint();
     }
 
     private static void setEnabledDeep(@NotNull Component component, boolean enabled) {
@@ -156,6 +192,39 @@ final class ConnectionSettingsOverrides extends JPanel {
             for (Component child : container.getComponents()) {
                 setEnabledDeep(child, enabled);
             }
+        }
+    }
+
+    /**
+     * A page row of the Options list ({@link OptionsDialog.PageListRenderer}) with a check mark when the connection overrides the
+     * page, as on the network handler tabs. Pages without one keep the mark's space, so that all titles start at the same place.
+     */
+    private static final class PageRenderer implements ListCellRenderer<Entry> {
+        private final OptionsDialog.PageListRenderer shared = new OptionsDialog.PageListRenderer();
+
+        @Override
+        public Component getListCellRendererComponent(JList<? extends Entry> list, Entry entry, int index, boolean isSelected,
+                                                      boolean cellHasFocus) {
+            shared.getListCellRendererComponent(list, entry.page.getTitle(), index, isSelected, cellHasFocus);
+            Icon check = UiIcons.get("check"); //$NON-NLS-1$
+            shared.setIcon(entry.overrideBox.isSelected() ? check : new BlankIcon(check.getIconWidth(), check.getIconHeight()));
+            return shared;
+        }
+    }
+
+    private record BlankIcon(int width, int height) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+        }
+
+        @Override
+        public int getIconWidth() {
+            return width;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return height;
         }
     }
 

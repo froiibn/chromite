@@ -130,6 +130,8 @@ import java.util.regex.Pattern;
  * - 2026-11-12 UI 글꼴 행을 지움: UI 글꼴은 운영체제 글꼴 하나 (앱 변경 #67, docs/chromite/swing-options.md "UI 글꼴")
  * - 2026-11-12 페이지 휠 한 칸이 양식 약 세 줄을 움직이게 스크롤 단위를 {@link PageView} 한 곳에서 줌(16 → 44). 안쪽 스크롤 창 위의 휠은
  *   {@link ChromiteScrollPaneUI}가 페이지로 넘김 (앱 변경 #97, docs/chromite/swing-options.md "휠 스크롤 (#97)")
+ * - 2026-11-17 목록 렌더러({@link PageListRenderer})를 패키지 안에 열어 연결 대화상자 Settings 탭 목록이 같은 모양을 씀
+ *   (앱 변경 #150, docs/chromite/swing-options.md "연결 Settings 탭의 페이지 목록 (#150)")
  */
 final class OptionsDialog extends JDialog {
 
@@ -142,8 +144,8 @@ final class OptionsDialog extends JDialog {
     private static final int MAX_DELAY = 5000;
     // The page list is at least this wide (scaled), wider when a title needs it
     private static final int PAGE_LIST_MIN_WIDTH = 236;
-    // Around the page list; the page's margins (top, sides, bottom)
-    private static final int LIST_PADDING = 12;
+    // Around the page list (also the connection dialog's Settings list); the page's margins (top, sides, bottom)
+    static final int LIST_PADDING = 12;
     private static final int PAGE_MARGIN_TOP = 18;
     private static final int PAGE_MARGIN_SIDE = 28;
     private static final int PAGE_MARGIN_BOTTOM = 20;
@@ -1252,9 +1254,10 @@ final class OptionsDialog extends JDialog {
 
     /**
      * Group titles small and grey with space above; pages with their icon, on roomy rows (the rounded selection is FlatLaf's,
-     * List.selectionArc).
+     * List.selectionArc). Other values are rendered as page rows with their text: the connection dialog's Settings tab
+     * ({@link ConnectionSettingsOverrides}) uses it so that both page lists look the same.
      */
-    private static final class PageListRenderer extends DefaultListCellRenderer {
+    static final class PageListRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             if (value instanceof Group group) {
