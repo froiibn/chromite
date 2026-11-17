@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
@@ -32,6 +33,7 @@ import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNEvent;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -54,7 +56,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View, Compile and the Altibase
+ * Object Explorer commands Truncate Table…, TTL… (where the server offers a table TTL), Enable Trigger, Disable Trigger, Refresh Materialized View, Compile and the Altibase
  * replication commands Start, Stop and Synchronize, and the Altibase tablespace commands Bring Online, Take Offline,
  * Autoextend Settings… and Data File Settings…, and the SQL Server commands Set as Default Filegroup, Make Read-Only, Make
  * Read-Write and File Settings… on the selected objects.
@@ -87,6 +89,9 @@ import java.util.stream.Collectors;
  *     파일 그룹의 항목은 꺼짐). 파일 설정은 지금 값으로 채운 설정 대화상자({@link SQLServerStorageDialogs})를 보인다(데이터 파일 설정과 같음).
  *     실행 뒤(실패해도) 그 노드를 다시 읽는다: 파일 그룹은 데이터베이스의 파일 그룹 행을 모두 다시 읽어 이전 기본 파일 그룹도 맞추고, 파일은
  *     자기 행을 다시 읽는다.</li>
+ *     <li>Altibase 계열 테이블의 TTL…: 연결의 서버 확장이 그 테이블에 TTL을 줄 때만 보인다({@link AltibaseTableTtl}, 제품 이름을 보지 않음).
+ *     지금 TTL로 채운 설정 대화상자({@link AltibaseTableTtlDialog}) 뒤는 자동 확장 설정과 같은 흐름이고, 실행 뒤(실패해도) 테이블 노드를
+ *     다시 읽어 속성(TTL 묶음)과 DDL이 새 값을 보이게 한다. 한 개를 고를 때만 보인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -101,6 +106,7 @@ import java.util.stream.Collectors;
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  * - 2026-11-16 스크립트 미리 보기와 열린 트랜잭션 질문이 탐색기 패널 대신 창 가운데에 뜸(다른 확인·알림과 같음, 앱 변경 #132,
  *   docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
+ * - 2026-11-17 테이블 TTL…(서버 확장이 주는 중립 능력, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  */
 final class ObjectMaintenanceCommands {
 
@@ -126,6 +132,7 @@ final class ObjectMaintenanceCommands {
         this.queryWindows = queryWindows;
         addItem(ObjectMaintenanceActions.Action.TRUNCATE, ObjectMaintenanceMessages.objmaint_truncate,
             ObjectMaintenanceMessages.objmaint_truncate_tip);
+        addItem(ObjectMaintenanceActions.Action.TABLE_TTL, ObjectMaintenanceMessages.objmaint_ttl, ObjectMaintenanceMessages.objmaint_ttl_tip);
         addItem(ObjectMaintenanceActions.Action.ENABLE_TRIGGER, ObjectMaintenanceMessages.objmaint_enable_trigger,
             ObjectMaintenanceMessages.objmaint_enable_trigger_tip);
         addItem(ObjectMaintenanceActions.Action.DISABLE_TRIGGER, ObjectMaintenanceMessages.objmaint_disable_trigger,
@@ -309,9 +316,10 @@ final class ObjectMaintenanceCommands {
                     refreshNodes.add(parent);
                 }
             }
-        } else if (isReplicationAction(action) || isTablespaceAction(action)) {
+        } else if (isReplicationAction(action) || isTablespaceAction(action) || action == ObjectMaintenanceActions.Action.TABLE_TTL) {
             // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers.
             // A tablespace reads its catalog row (state, file count) and its files again (AltibaseTablespace.refreshObject).
+            // A table node with a new TTL is read again so that its properties and DDL show it.
             for (DBNNode node : nodes) {
                 if (node instanceof DBNDatabaseNode databaseNode) {
                     refreshNodes.add(databaseNode);
@@ -457,7 +465,10 @@ final class ObjectMaintenanceCommands {
      */
     @Nullable
     private Object askSettings(@NotNull ObjectMaintenanceActions.Action action, @NotNull DBSObject object, @NotNull String title) {
-        if (action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND && object instanceof AltibaseTablespace tablespace) {
+        if (action == ObjectMaintenanceActions.Action.TABLE_TTL && object instanceof DBSTable table) {
+            AltibaseTableTtl ttl = AltibaseTableTtl.forTable(table);
+            return ttl == null ? null : AltibaseTableTtlDialog.ask(explorer, title, table, ttl);
+        } else if (action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND && object instanceof AltibaseTablespace tablespace) {
             return AltibaseTablespaceDialogs.askAutoextend(explorer, title, tablespace);
         } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof AltibaseDataFile4Disk file) {
             return AltibaseTablespaceDialogs.askDataFileSettings(explorer, title, file);
@@ -509,6 +520,7 @@ final class ObjectMaintenanceCommands {
     private static String getTitle(@NotNull ObjectMaintenanceActions.Action action) {
         return switch (action) {
             case TRUNCATE -> ObjectMaintenanceMessages.objmaint_truncate_title;
+            case TABLE_TTL -> ObjectMaintenanceMessages.objmaint_ttl_title;
             case ENABLE_TRIGGER -> ObjectMaintenanceMessages.objmaint_enable_trigger_title;
             case DISABLE_TRIGGER -> ObjectMaintenanceMessages.objmaint_disable_trigger_title;
             case REFRESH_MATERIALIZED_VIEW -> ObjectMaintenanceMessages.objmaint_refresh_mview_title;

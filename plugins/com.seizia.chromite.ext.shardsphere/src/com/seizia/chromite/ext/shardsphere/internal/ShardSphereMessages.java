@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-17 최초 작성: 객체 종류, 분산 방식, 분산 행의 종류(앱 변경 #139 작업 9)
  * - 2026-11-17 테이블 속성(TTL, 샤드 객체)의 이름과 TTL 단위(앱 변경 #139 수정 6)
+ * - 2026-11-17 TTL 대화상자의 단위 이름(앱 변경 #152)
  */
 public class ShardSphereMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages"; //$NON-NLS-1$
@@ -68,6 +69,16 @@ public class ShardSphereMessages extends NLS {
     public static String ttl_unit_hour;
     public static String ttl_unit_minute;
     public static String ttl_unit_second;
+
+    // The units of the TTL dialog
+    public static String ttl_unit_name_year;
+    public static String ttl_unit_name_quarter;
+    public static String ttl_unit_name_month;
+    public static String ttl_unit_name_week;
+    public static String ttl_unit_name_day;
+    public static String ttl_unit_name_hour;
+    public static String ttl_unit_name_minute;
+    public static String ttl_unit_name_second;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ShardSphereMessages.class);

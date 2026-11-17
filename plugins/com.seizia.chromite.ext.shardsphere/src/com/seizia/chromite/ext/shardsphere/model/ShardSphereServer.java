@@ -17,6 +17,7 @@
 package com.seizia.chromite.ext.shardsphere.model;
 
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
+import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
@@ -35,6 +36,7 @@ import org.jkiss.dbeaver.DBException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * What one connection found on its ShardSphere server.
@@ -61,6 +63,10 @@ import java.util.List;
  * - 2026-11-17 테이블 속성 기여({@link ShardTableProperties}: {@code SYS_TTL_}가 있으면 TTL, 메타 노드면 샤드 객체), 문서의 함수
  *   ({@code PVTIME_TO_DATE}, {@code EXPORT_CONTINUOUS_OBJECT}, {@code FROM_UNIXTIME}: 두 서버에서 준비됨)와 TTL 문법 낱말
  *   (앱 변경 #139 수정 6·8, docs/chromite/shardsphere.md "테이블 속성: TTL과 샤드", "낱말과 함수")
+ * - 2026-11-17 {@code SYS_TTL_}가 있으면 연결의 어댑터로 기존 테이블의 TTL 설정·변경·해제({@link ShardTableTtl}, 중립 자리
+ *   {@link AltibaseTableTtl}). 메타 노드의 샤드 테이블에는 내지 않으려고 감지 때 읽은 샤드 테이블 목록을 받음(읽지 못했으면 null → TTL
+ *   명령 없음)(앱 변경 #152,
+ *   docs/chromite/shardsphere.md "TTL 관리")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
@@ -98,14 +104,22 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     // The sharding explorer's reads; only on a sharding meta node
     @Nullable
     private final ShardingDictionary sharding;
+    // The TTL of existing tables; only where the TTL dictionary table exists
+    @Nullable
+    private final ShardTableTtl tableTtl;
 
+    /**
+     * @param shardTables owner and name of each shard table of a sharding meta node (empty on another server): no TTL
+     *                    command for them; null if they could not be read: no TTL command at all
+     */
     public ShardSphereServer(
         @NotNull AltibaseDataSource dataSource,
         boolean geminiCatalog,
         boolean shardingPackage,
         boolean shardingMetaNode,
         boolean ttlCatalog,
-        @NotNull List<String> nodeNames
+        @NotNull List<String> nodeNames,
+        @Nullable Set<List<String>> shardTables
     ) {
         this.dataSource = dataSource;
         this.geminiCatalog = geminiCatalog;
@@ -114,6 +128,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         this.ttlCatalog = ttlCatalog;
         this.nodeNames = List.copyOf(nodeNames);
         this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
+        this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables) : null;
     }
 
     @NotNull
@@ -275,6 +290,15 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     @Override
     public SQLDialect.StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
         return shardingPackage ? ShardSphereStatementPrefix.getProposals(text, nodeNames) : null;
+    }
+
+    /**
+     * The TTL of existing tables ({@link AltibaseTableTtl}) where the TTL dictionary table was detected.
+     */
+    @Nullable
+    @Override
+    public <T> T getAdapter(@NotNull Class<T> adapter) {
+        return adapter == AltibaseTableTtl.class && tableTtl != null ? adapter.cast(tableTtl) : null;
     }
 
     /**
