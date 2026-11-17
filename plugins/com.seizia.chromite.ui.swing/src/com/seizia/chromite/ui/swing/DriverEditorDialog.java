@@ -24,6 +24,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverLibrary;
 import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
@@ -70,12 +71,17 @@ import java.util.Map;
  *     ({@code getNativeClientManager()})일 때만. OK가 추가한 폴더를 {@code setNativeClientLocations}로 쓴다. 새 드라이버의 공급자를 바꾸면
  *     이전 공급자의 목록이라 탭을 뺀다(저장한 뒤 편집에서 지정).</li>
  *     <li>Libraries 탭을 열 때마다 라이브러리 상태를 다시 그린다. "로컬 파일 우선" 상태가 Settings 탭의 Class name 값에 달려 있어서다.</li>
+ *     <li>Driver type: 공급자를 바꿀 수 없는 드라이버는, 자기 데이터베이스 유형이 있는 공급자에 다른 유형으로 선언된 드라이버이면
+ *     그 드라이버의 유형 이름과 아이콘을 보인다(Altibase 공급자의 ShardSphere 드라이버). 공급자 이름은 그 공급자의 데이터베이스 이름이라
+ *     다른 데이터베이스의 드라이버에는 맞지 않아서다. 유형이 없는 공급자(Generic 등)와 사용자 정의 드라이버는 전처럼 공급자 이름이다.</li>
  * </ul>
  * 분산 제품의 라이브러리 업로드는 없다(설계 문서 "남긴 것").
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
  * - 2026-11-08 Local Client 탭, Libraries 탭을 열 때 상태 다시 그리기 (docs/chromite/swing-driver-manager.md "Local Client")
+ * - 2026-11-17 Driver type에 드라이버 자기 데이터베이스 유형(ShardSphere 드라이버가 "Altibase"로 보이던 것, 앱 변경 #149,
+ *   docs/chromite/drivers.md "ShardSphere 화면의 Altibase 이름")
  */
 final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.Host {
 
@@ -262,13 +268,16 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
     private JComponent createSettingsTab() {
         boolean manageable = isManageable();
 
+        // The type of a driver that cannot change provider: its own database type where the provider serves another one too
+        DBPDataSourceType ownType = getOwnDataSourceType();
         providerCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof DataSourceProviderDescriptor descriptor) {
-                    setText(descriptor.getName());
-                    setIcon(NodeIcons.getIcon(descriptor.getIcon()));
+                    boolean own = ownType != null && !providerCombo.isEnabled();
+                    setText(own ? ownType.getName() : descriptor.getName());
+                    setIcon(NodeIcons.getIcon(own ? ownType.getIcon() : descriptor.getIcon()));
                 }
                 return this;
             }
@@ -343,6 +352,21 @@ final class DriverEditorDialog extends JDialog implements DriverLibrariesPanel.H
         JPanel holder = new JPanel(new BorderLayout());
         holder.add(form.panel, BorderLayout.NORTH);
         return holder;
+    }
+
+    /**
+     * The driver's own database type when it is not the provider's: a provider of one database (it declares a type) whose
+     * driver declares another type (the Altibase provider's ShardSphere driver). Null for every other driver, which keeps
+     * the provider's name: Generic and the providers without a type of their own, and custom drivers (type "custom").
+     */
+    @Nullable
+    private DBPDataSourceType getOwnDataSourceType() {
+        DBPDataSourceType providerType = provider.getDataSourceType();
+        DBPDataSourceType driverType = driver.getDataSourceType();
+        if (providerType == null || driver.isCustom() || driverType.getId().equals(providerType.getId())) {
+            return null;
+        }
+        return driverType;
     }
 
     @NotNull

@@ -55,6 +55,7 @@ import java.sql.SQLException;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-sql-editor-plus.md "실제 계획 토글을 Altibase·Oracle로")
+ * - 2026-11-17 오류 문장에서 제품 이름을 뺌: 이 공급자의 ShardSphere 연결에도 보인다(앱 변경 #149, docs/chromite/drivers.md "ShardSphere 화면의 Altibase 이름")
  */
 public class AltibaseActualPlanProvider implements SQLActualPlanProvider {
 
@@ -96,7 +97,7 @@ public class AltibaseActualPlanProvider implements SQLActualPlanProvider {
                     log.debug("No explain plan for the statement", e.getTargetException());
                     return null;
                 } catch (ReflectiveOperationException e) {
-                    throw new DBException("The Altibase driver does not give statement plans (getExplainPlan)", e);
+                    throw new DBException("The driver does not give statement plans (getExplainPlan)", e);
                 }
                 if (CommonUtils.isEmptyTrimmed(planText)) {
                     return null;
@@ -135,7 +136,7 @@ public class AltibaseActualPlanProvider implements SQLActualPlanProvider {
                 throw new DBException("Can't read the explain plan mode of the session, so it could not be restored afterwards", e);
             }
         }
-        throw new DBException("The Altibase driver does not report the explain plan mode of the session (explainPlanMode)");
+        throw new DBException("The driver does not report the explain plan mode of the session (explainPlanMode)");
     }
 
     private static void setExplainPlanMode(@NotNull DBCSession session, @NotNull Connection connection, byte mode) throws DBException {
@@ -147,7 +148,7 @@ public class AltibaseActualPlanProvider implements SQLActualPlanProvider {
             }
             throw new DBException("Can't set the explain plan mode of the session", e.getTargetException());
         } catch (ReflectiveOperationException e) {
-            throw new DBException("The Altibase driver can't set the explain plan mode (setExplainPlan)", e);
+            throw new DBException("The driver can't set the explain plan mode (setExplainPlan)", e);
         }
     }
 }

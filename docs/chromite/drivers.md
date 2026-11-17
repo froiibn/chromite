@@ -455,20 +455,47 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   - 증거 `D:\Tools\_scratch\connection-default-drivers\sheets\`. 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 새 연결의 기본 드라이버와 Database type 콤보,
     Altibase·ShardSphere 연결의 옵션 > 설정 탭.
 
-### ShardSphere 화면의 Altibase 이름 (2026-11-17, 앱 변경 #148)
+### ShardSphere 화면의 Altibase 이름 (2026-11-17, 앱 변경 #148·#149)
 
-ShardSphere 드라이버는 Altibase 공급자에 있으므로 공급자 이름이 보이는 곳에서는 "Altibase"가 나온다. 조사한 곳과 처리:
+ShardSphere 드라이버는 Altibase 공급자(`altibase`)에 있으므로 공급자 이름이 보이는 곳에서는 "Altibase"가 나왔다. 사용자 결정(2026-11-17, 앱 변경 #149):
+"우리 제품에서 알티베이스 보다 샤드 스피어가 눈에 더 잘띄게 한다", 벤더는 ShardSphere가 Altibase와 묶이는 것을 싫어한다, "정리 후 배포한다".
 
-| 곳 | 보이는 글 | 처리 |
-|---|---|---|
-| 연결 대화상자 > Options > 설정의 데이터베이스 탭(`ConnectionSettingsOverrides`, `AltibaseOptionsPage`) | 탭과 머리글 "Altibase" | **고침:** 연결의 데이터베이스 유형 이름("ShardSphere"). Tools > Options의 전역 페이지는 두 제품에 함께 적용되므로 "Altibase" 그대로 |
-| Driver Manager > Edit의 "Driver type"(`DriverEditorDialog`, 공급자 콤보) | "Altibase"와 Altibase 아이콘 | 제안만: 공급자를 바꿀 수 없을 때 드라이버의 데이터베이스 유형을 보이면 되지만, Generic 공급자의 드라이버 약 100개도 함께 바뀌어(예: "Generic" → "Teradata") 이번 범위를 넘는다 |
-| 개체 탐색기 System Info > Memory modules 도구 설명(`ext.altibase` `bundle.properties`) | "Memory usage of Altibase modules" | 제안만: 제품 이름 없는 문구로. 다른 작업이 `ext.altibase`를 고치는 중이라 손대지 않음 |
-| 실제 실행 계획 오류(`AltibaseActualPlanProvider`) | "The Altibase driver …" | 제안만: "The driver …". 같은 이유로 손대지 않음 |
-| 실제 실행 계획 도구 설명(`EditorMessages` `editor_sql_actual_plan_unsupported`) | "… SQL Server, Oracle and Altibase connections …" | 제안만: ShardSphere를 Altibase 앞에 더함(새 문구라 이번에는 넣지 않음) |
-| 진행 작업 이름(`AltibaseDataTypeCache`) | "Load Altibase data types" | 제안만(`ext.altibase` 모델 클래스) |
-| Agent의 연결 목록(`ConnectionTools`, `family`) | 연결 전 `altibase` | 제안만: 드라이버의 유형 ID를 쓰기 |
-| 개체 트리 뿌리의 "Altibase data source"(`plugin.xml` `<tree label>`) | 화면에 보이지 않음 | 해당 없음 |
+**규칙(#149):** `ext.altibase` 안에 ShardSphere라는 이름이나 `if shardsphere` 분기를 넣지 않는다.
+1. 제품 이름이 필요 없는 글은 이름을 뺀다("Memory usage of server modules", "Load data types", "The driver …").
+2. 연결의 데이터베이스를 가리키는 글은 연결(드라이버)의 데이터베이스 유형 이름을 쓴다(#148의 `ConnectionSettingsOverrides`와 같음). Altibase 연결은 그대로 "Altibase"다.
+3. 두 제품에 함께 적용되는 곳과 지원 데이터베이스를 나열하는 곳은 ShardSphere를 Altibase 앞에 둔다. 나열은 ShardSphere 서버에서 확인한 것만.
+4. 내부 ID·클래스·번들·설정 키·확장 ID·파일 이름·아이콘은 바꾸지 않는다(저장된 연결, 설정). Altibase 지원은 그대로다.
+
+**Driver type 규칙:** 공급자를 바꿀 수 없는 드라이버(편집·복사)에서, 공급자가 자기 데이터베이스 유형을 선언했고(`<datasource dataSourceType=…>`) 드라이버의 유형이 그것과 다르면
+드라이버 유형의 이름과 아이콘을 보인다(`DriverEditorDialog.getOwnDataSourceType`). 유형이 없는 공급자(Generic, PostgreSQL, SQL Server, MySQL, SQLite, IoTDB 등)와
+사용자 정의 드라이버(유형 "custom")는 전처럼 공급자 이름이다. 실제 앱의 드라이버 181개(정의 144개 + 이름 없는 옛 항목)를 같은 조건으로 세면 바뀌는 것은 `altibase:shardsphere` 하나다
+(공급자 이름 "Altibase" → "ShardSphere"). 처음 생각한 "공급자를 바꿀 수 없으면 드라이버 유형"은 Generic 공급자의 드라이버 약 100개도 바꿔(예: "Generic" → "Teradata") 쓰지 않았다.
+새 드라이버의 공급자 콤보(공급자를 고르는 곳)는 그대로 공급자 이름이다.
+
+| 보이는 글 | 곳 | 파일:줄 | 처리 |
+|---|---|---|---|
+| 탭과 머리글 "Altibase" | 연결 대화상자 > Options > 설정의 데이터베이스 탭 | `ConnectionSettingsOverrides.java:81`, `AltibaseOptionsPage` | #148에서 고침: 연결의 데이터베이스 유형 이름 |
+| "Altibase"(Altibase 아이콘) | Driver Manager > Edit의 Driver type | `DriverEditorDialog.java:272-281`(공급자 `plugin.xml:38`) | 고침: 위 "Driver type 규칙". ShardSphere 드라이버는 "ShardSphere"와 그 아이콘 |
+| "Memory usage of Altibase modules" | 개체 탐색기 시스템 정보 > Module Memory Usage 도구 설명 | `ext.altibase` `bundle.properties:341` | 고침: "Memory usage of server modules". 한국어 키는 원래 없어 한국어 화면도 이 영어 문구다. pl·tw·zh의 같은 키는 "Altibase"만 뺌. fr·ro에는 키가 없음 |
+| "Altibase"(목록과 머리글) | Tools > Options의 전역 페이지 | `SettingsMessages(_ko).properties:268` | 고침: "ShardSphere · Altibase"(두 드라이버의 연결에 함께 적용됨: PRINT 출력, 계획 들여쓰기). 키 이름 `altibase_tab`은 그대로. `ConnectionSettingsOverrides.java:81`의 대체값(유형이 null일 때)도 이 키지만 `getDataSourceType()`은 null이 아니라 닿지 않는다(그 파일은 다른 작업이 고치는 중이라 손대지 않음) |
+| "… SQL Server, Oracle and Altibase connections …" | 쿼리 도구 모음의 실제 계획 단추 도구 설명(지원하지 않는 연결), 계획 탭 | `EditorMessages(_ko).properties:56` | 고침: "SQL Server, Oracle, ShardSphere and Altibase". ShardSphere 서버에서 `SELECT 1 FROM DUAL`의 실제 계획(ACCESS: 1)을 확인함 |
+| "Load Altibase data types", "Load Altibase domain types" | 진행 작업 이름(상태 표시줄·진행 창), 쿼리 관리자의 목적 | `AltibaseDataTypeCache.java:63,66` | 고침: "Load data types", "Load domain types" |
+| "The Altibase driver does not give statement plans …" 외 둘 | 실제 계획을 켜고 실행할 때의 오류(계획 탭) | `AltibaseActualPlanProvider.java:100,139,151` | 고침: "The driver …" |
+| 공급자 ID "altibase" | Driver Manager > Edit의 설명 묶음(읽기 전용 칸) | `DriverEditorDialog.java:397,429` | 남김: 내부 ID(저장된 연결의 `provider`), 바꾸지 않는다는 규칙 |
+| `"family": "altibase"`(연결 전) | Agent의 연결 목록 도구 결과 | `ConnectionTools.java:147` | 남김: 모델이 읽는 ID 값. 연결 뒤에는 `DbFamily` ID |
+| "SQL dialect: Altibase" | Agent가 모델에 보내는 시스템 프롬프트(화면에 보이지 않음) | `AIPromptUtils.java:67`, 방언 이름 `AltibaseSQLDialect.java:432` | 남김: 사용자 화면이 아님. 방언은 실제로 같은 문법이다. 다음 줄 "Server version"은 서버 제품 이름(ShardSphere) |
+| 작업 범주 "Altibase", "Altibase database task/tools" | 작업 범주(`com.seizia.chromite.task`) | `plugin.xml:455-459`, `bundle.properties:286-287` | 남김: Swing에 작업 범주를 보이는 화면이 없음(검색) |
+| "Altibase" 방언 이름, "Altibase data types provider", "Altibase JDBC connector", "Altibase data source", "Altibase Server Extension" | `plugin.xml:7,34,106,423,426,450` | — | 남김: Swing에 보이는 곳이 없음(검색) |
+| "Altibase", "Altibase JDBC Driver", "Altibase 개발" 등 | Altibase 연결·드라이버의 화면 | — | 남김: Altibase 연결의 데이터베이스 이름 |
+| 아이콘 경로 `plugins/com.seizia.chromite.ext.altibase/icons/…` | `NOTICE:70` | — | 남김: 출처 고지 문구(바꾸지 않음) |
+
+- **찾은 방법:** `*.properties` 값(키 제외), `plugin.xml`의 label·description·name, 주석이 아닌 Java 문자열(로그 제외)을 검색하고, 앱에서 ShardSphere 연결로 연 화면의 글자를 모두 읽었다
+  (창 제목, 레이블, 단추, 글 칸, 도구 설명, 탭, 트리 행과 그 도구 설명·노드 설명, 표 머리글과 칸, 목록, 콤보, 메뉴).
+- **확인(2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·영어 밝은 테마 150 %):** ShardSphere 연결(읽기 전용 표시, 암호 저장 끔, SELECT만):
+  Driver Manager(묶음 행에 Altibase 없음, ShardSphere는 맨 위 수준), 드라이버 편집, Tools > Options의 페이지, 연결 편집 > Options > 설정, 개체 탐색기(스키마, Global metadata, 저장소,
+  보안, 관리, 시스템 정보와 그 아래 ShardSphere 노드), Module Memory Usage 도구 설명, 작업 모니터 7개 탭(개요, 프로세스, 잠금, 공간 사용량, 서버 로그, 유지 관리, 복제), 쿼리 창과
+  실제 계획. 남은 "Altibase"는 드라이버 편집의 공급자 ID "altibase" 하나다(위 표). Altibase 7.3 연결은 설정 탭·드라이버 편집·연결 도구 설명이 그대로 "Altibase"이고 실제 계획도 같다.
+  캡처(저장소 밖) `D:\Tools\_scratch\shardsphere-own-name\sheets\`. 회귀 테스트는 작성·실행하지 않았다.
 
 ### 폐쇄망 오프라인 설치 경로
 
@@ -553,3 +580,5 @@ ShardSphere 드라이버는 Altibase 공급자에 있으므로 공급자 이름�
 - 2026-11-17 ShardSphere 기능을 별도 번들·feature로(앱 변경 #139, `chromite/shardsphere-plugin-skeleton`): 드라이버 정의는 그대로, "ShardSphere"에 [shardsphere.md](shardsphere.md)를 가리키는 항목.
 - 2026-11-17 "새 연결의 기본 목록"(앱 변경 #148, `chromite/connection-default-drivers`, 사용자 요청): Connect 대화상자 맨 위 목록을 손으로 적은 목록 대신 내장 드라이버
   묶음에서 정함(ShardSphere 들어옴, MySQL 빠짐), 묶음 선언 순서를 예전 목록 순서로. "ShardSphere 화면의 Altibase 이름": 연결의 설정 탭 제목을 고치고 나머지는 제안으로 남김.
+- 2026-11-17 "ShardSphere 화면의 Altibase 이름"(앱 변경 #149, `chromite/shardsphere-own-name`, 사용자 결정 "정리 후 배포한다"): 제품 이름이 필요 없는 글에서 이름을 뺌,
+  Driver type은 드라이버 자기 유형(ShardSphere 하나만 바뀜), Options 전역 페이지 "ShardSphere · Altibase", 실제 계획 안내에 ShardSphere, 전체 표와 규칙.
