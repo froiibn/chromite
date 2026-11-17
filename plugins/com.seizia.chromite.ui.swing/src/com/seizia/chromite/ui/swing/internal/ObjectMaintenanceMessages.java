@@ -31,6 +31,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 Altibase 복제 시작·중지·동기화 문구 (docs/chromite/altibase.md)
  * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정 문구
  *   (docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-17 테이블 TTL 명령과 대화상자 문구(앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  */
 public class ObjectMaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
@@ -43,6 +44,16 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_truncate_note;
     public static String objmaint_truncate_note_commit;
     public static String objmaint_truncate_button;
+    // Table TTL (where the server offers it)
+    public static String objmaint_ttl;
+    public static String objmaint_ttl_tip;
+    public static String objmaint_ttl_title;
+    public static String objmaint_ttl_enabled;
+    public static String objmaint_ttl_column;
+    public static String objmaint_ttl_amount;
+    public static String objmaint_ttl_unit;
+    public static String objmaint_ttl_error_column;
+    public static String objmaint_ttl_error_amount;
     public static String objmaint_enable_trigger;
     public static String objmaint_enable_trigger_tip;
     public static String objmaint_enable_trigger_title;

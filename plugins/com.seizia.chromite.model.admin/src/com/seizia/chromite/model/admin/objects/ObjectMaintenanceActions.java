@@ -19,6 +19,7 @@ package com.seizia.chromite.model.admin.objects;
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView;
 import com.seizia.chromite.ext.altibase.model.AltibasePackage;
@@ -92,6 +93,7 @@ import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectState;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -100,6 +102,7 @@ import org.jkiss.utils.CommonUtils;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -137,6 +140,9 @@ import java.util.function.Consumer;
  *     {@link SQLServerStorageDDL}(시험 서버에서 확인한 문법)이다. 상태는 모델이 읽은 {@code sys.filegroups} 행이고, 파일이 없는 파일 그룹은
  *     서버가 바꾸지 않는다({@link #changesFilegroupState}). 격리된 실행 문맥이 수동 커밋이어도 열린 트랜잭션이 없으면 서버가 {@code ALTER DATABASE}를
  *     받는다(시험 서버에서 확인).</li>
+ *     <li>Altibase 계열 테이블의 TTL 설정·변경·해제 — 연결의 서버 확장이 중립 능력 {@link AltibaseTableTtl}을 어댑터로 줄 때만(그 서버의
+ *     TTL 사전을 감지한 연결, 확장이 그 테이블에 해당한다고 할 때) 적용된다. 문장도 그 확장이 만들고(이 클래스는 서버를 모름), 값은 화면이
+ *     먼저 받은 {@link AltibaseTableTtl.Change}다. 실행·트랜잭션·오류는 다른 유지 관리 명령과 같은 길이다.</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -156,6 +162,7 @@ import java.util.function.Consumer;
  *   docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  * - 2026-11-17 복제 시작·중지·동기화는 복제의 카탈로그가 제어 문장을 허락할 때만(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 테이블 TTL(서버 확장이 주는 {@link AltibaseTableTtl}, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  */
 public final class ObjectMaintenanceActions {
 
@@ -166,6 +173,11 @@ public final class ObjectMaintenanceActions {
      */
     public enum Action {
         TRUNCATE,
+        /**
+         * Set, change or remove the TTL of an Altibase-family table where a server extension offers it; settings:
+         * {@link AltibaseTableTtl.Change}.
+         */
+        TABLE_TTL,
         ENABLE_TRIGGER,
         DISABLE_TRIGGER,
         REFRESH_MATERIALIZED_VIEW,
@@ -202,7 +214,8 @@ public final class ObjectMaintenanceActions {
      * Action, List, Object)}).
      */
     public static boolean needsSettings(@NotNull Action action) {
-        return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS || action == Action.DATABASE_FILE_SETTINGS;
+        return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS || action == Action.DATABASE_FILE_SETTINGS
+            || action == Action.TABLE_TTL;
     }
 
     /**
@@ -231,6 +244,8 @@ public final class ObjectMaintenanceActions {
                 || object instanceof OracleTable
                 || object instanceof AltibaseTable
                 || object instanceof SQLServerTable;
+            // Only where the connection's server extension offers it for this table (detected catalog, in memory)
+            case TABLE_TTL -> AltibaseTableTtl.forTable(object) != null;
             case ENABLE_TRIGGER, DISABLE_TRIGGER -> object instanceof PostgreTriggerBase
                 || object instanceof SQLServerTableTrigger
                 || object instanceof OracleTableTrigger;
@@ -537,6 +552,12 @@ public final class ObjectMaintenanceActions {
                 } else if (object instanceof SQLServerTable table) {
                     actions.add(new SQLDatabasePersistAction(
                         "TRUNCATE TABLE " + DBUtils.getObjectFullName(table, DBPEvaluationContext.DDL))); //$NON-NLS-1$
+                }
+            }
+            case TABLE_TTL -> {
+                // The statement is the server extension's (supports() made sure it offers it)
+                if (object instanceof DBSTable table && commandSettings instanceof AltibaseTableTtl.Change change) {
+                    actions.add(new SQLDatabasePersistAction(Objects.requireNonNull(AltibaseTableTtl.forTable(table)).getStatement(table, change)));
                 }
             }
             case ENABLE_TRIGGER -> {

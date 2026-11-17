@@ -19,7 +19,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`. 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `model/ShardTableTtl`: 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -41,7 +41,8 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 - **방언 기여(2026-11-17 작업 6a):** `getSyntaxKeywords()`, `getFunctions()`, `getStatementPrefixLength(text)`. 실행 전 확인 보강과 함께 넣었다(아래 "문장 접두어").
 - **복제 카탈로그(2026-11-17 작업 4·5):** `getReplicationCatalog()`. GEMINI를 Replications 폴더와 복제 탭에 보인다(아래 "GEMINI").
 - **기존 객체의 추가 속성(2026-11-17 수정 6, 계획의 S8):** `getObjectProperties(monitor, object)`. 테이블의 TTL과 샤드 객체(아래 "테이블 속성: TTL과 샤드").
-- **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·객체 명령(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
+- **테이블 TTL(2026-11-17 앱 변경 #152, S6/S7 가운데 좁은 능력):** `getAdapter(AltibaseTableTtl.class)`. 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리").
+- **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·일반 객체 명령 틀(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
 
 ## 감지
 
@@ -563,6 +564,96 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
   읽을 때는 질의가 없다. Altibase 7.3에는 확장이 없어 질의가 하나도 늘지 않는다(쿼리 관리자로 확인: 테이블 선택 때 전과 같은 두 문장).
   속성 보기가 같은 노드를 다시 그리면(연결 새로 고침 뒤 등) 다시 읽는다(기존 속성의 크기 질의와 같음).
 
+## TTL 관리 (2026-11-17, 앱 변경 #152)
+
+### 목적
+
+ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정·변경·해제한다. 읽기(위 "테이블 속성: TTL과 샤드")는 전부터 있었다. 화면은 기존 흐름 안에서
+짧게(사용자 규칙: 새 화면도 기존 흐름, 대화상자에 설명 문구 없음).
+
+### 문장 (시스피어 답변 2026-11-17 15:28, 같은 날 일반 서버에서 확인)
+
+| 할 일 | 문장 | 서버의 답 |
+|---|---|---|
+| 설정·변경 | `ALTER TABLE t USING TTL n 단위 ON COLUMN c` | TTL이 없는 표에 걸고, 있는 TTL의 수·단위·기준 컬럼을 바꾼다(`SYS_TTL_` 행 하나) |
+| 해제 | `ALTER TABLE t USING NOTTL` | `SYS_TTL_` 행과 DDL의 TTL 절이 없어진다. TTL이 없는 표에서도 오류 없음 |
+
+- **단위:** 시스피어가 이름을 든 다섯만 고르게 한다: 분 `MINUTE`(M), 시간 `HOUR`(H), 일 `DAY`(D), 월 `MONTH`(O), 년 `YEAR`(Y). 메일의 `MIN`은 서버의 구문 오류라
+  `MINUTE`를 쓴다. 서버가 받는 `WEEK`·`QUARTER`, 삭제 주기보다 짧으면 거절되는 `SECOND`는 고르게 하지 않는다(다른 길로 걸린 TTL이면 지금 값으로만 보인다).
+  TTL이 없는 표의 처음 단위는 일이다(시스피어의 예, 분으로 잘못 고르면 행이 너무 일찍 만료됨).
+- **수:** `SYS_TTL_.TIME`은 INTEGER다. 1 ~ 2147483647을 받고(`2147483647 YEAR`도 받음) 2147483648은 201846, 0은 구문 오류다. 대화상자는 숫자만 받는 칸에 1 이상의 정수(int 범위)를 요구한다.
+- **이름:** 방언 규칙대로 따옴표를 붙인다(`소유자.테이블`, 컬럼). `"CHR_TTL_q"`·`"d 1"` 같은 따옴표 이름도 서버가 받는다. 다만 서버의 `DBMS_METADATA.GET_DDL`은 기준 컬럼 이름을
+  따옴표 없이 쓴다(`… ON COLUMN d 1`, 그대로는 다시 실행할 수 없는 DDL: 벤더 문의).
+- **해당하는 표:** 메모리 테이블, 디스크 테이블(`TABLESPACE DISK_DATA`), 분할 테이블(디스크·메모리)에서 설정·해제가 된다(시험용 표로 확인). 그래서 일반 테이블
+  모두에 명령을 낸다. 큐·뷰·구체화된 뷰는 다른 모델 클래스라 명령이 없다(큐는 이 작업의 쓰기 범위 밖이라 서버에서 시험하지 않음). 시스템 스키마(`SYSTEM_`)의 표에는
+  내지 않는다(남의 객체라 서버에서 시험하지 않음, 안전 쪽).
+- **트랜잭션:** DDL이라 바로 커밋된다(미리 보기 머리글의 "DDL 문을 바로 커밋" 줄, JDBC `dataDefinitionCausesTransactionCommit`).
+
+### 화면
+
+| 곳 | 무엇 |
+|---|---|
+| Object Explorer ▸ 테이블 오른쪽 클릭 | "테이블 잘라내기" 바로 아래 "TTL 설정"(영어 "TTL…"). 하나를 고를 때만, TTL 사전(`SYS_TTL_`)을 감지한 연결의 일반 테이블에만 보인다. Altibase, 다른 DB, 기능을 뺀 제품에는 항목이 없다(숨김, 끄지 않음) |
+| 대화상자 "TTL 설정" | 확인란 "TTL 사용", 기준 컬럼(날짜·시간 컬럼만), 기간(숫자만), 단위(분·시간·일·개월·년). 지금 TTL로 채워짐. 확인/취소, 오류는 단추 줄 한 줄("1 이상의 정수를 입력하십시오.", "날짜 컬럼을 고르십시오.") |
+| 그 뒤 | 다른 유지 관리 명령과 같다: 스크립트 미리 보기(취소가 기본 단추) → 열린 트랜잭션 질문 → 격리된 실행 문맥에서 실행 → 테이블 노드 다시 읽기(속성의 TTL 묶음과 DDL이 새 값) |
+
+- **해제:** "TTL 사용"을 끄면 칸이 꺼지고 `USING NOTTL`이 된다(자동 확장 설정의 확인란과 같은 모양을 골랐다. 대안: "TTL 해제" 단추).
+- **날짜 컬럼이 없는 표:** 명령은 보이고(메뉴는 메모리만 보며 컬럼 목록은 아직 읽지 않았을 수 있음), 대화상자의 "TTL 사용"과 칸이 모두 꺼져 있어 확인은 "실행할 문장 없음"
+  알림이다(고른 것. 대안: 컬럼을 미리 읽어 명령을 숨김).
+- **바뀐 것 없음:** 확인을 누르면 다른 설정 대화상자처럼 "실행할 문장 없음" 알림, 문장 없음. 취소(대화상자·미리 보기)는 아무것도 보내지 않는다.
+- **오류:** 서버의 메시지가 기존 오류 창으로 보인다(문장, 서버 메시지, 코드, URL 없음). 그 뒤 명령은 다시 쓸 수 있다(대화상자는 실행 전에 닫히는 기존 흐름).
+- 문구: 공용 낱말(메뉴, 제목, 칸 이름, 오류)은 `ui.swing`의 `ObjectMaintenanceMessages`(영어·한국어), 단위 이름은 이 번들의 `ShardSphereMessages`(`ttl_unit_name_*`).
+
+### 자리(seam)
+
+- `ext.altibase`의 중립 능력 `extension/AltibaseTableTtl`([altibase.md](altibase.md) "테이블 TTL 자리"). 이 번들의 `model/ShardTableTtl`이 구현하고
+  `ShardSphereServer.getAdapter`가 `SYS_TTL_`를 감지한 연결에서만 준다. 문장·단위·해당 판단·지금 값 읽기는 모두 이 번들에 있다(모델). Swing은 이 번들에 기대지 않는다.
+- `model.admin`의 `ObjectMaintenanceActions.Action.TABLE_TTL`(설정이 필요한 명령), `ui.swing`의 `ObjectMaintenanceCommands`(메뉴·흐름)와 `AltibaseTableTtlDialog`(대화상자).
+- **샤딩 메타 노드:** 샤드 테이블(`SYS_SHARD.OBJECTS_`의 테이블)에는 명령을 내지 않는다. 샤드 테이블의 TTL은 클러스터 전체에 걸리므로 확인하기 전까지 숨긴다(안전 쪽).
+  목록은 감지 때 한 번 읽는다(`SELECT USER_NAME, OBJECT_NAME FROM SYS_SHARD.OBJECTS_ WHERE OBJECT_TYPE = 'T'`, 메타 노드이고 TTL 사전이 있을 때만). 읽지 못하면 그 연결의 어느
+  표에도 내지 않는다. 연결 중에 쿼리 창에서 표를 샤딩하면 연결을 새로 고칠 때까지 그 표에 명령이 보인다(남은 것). 메타 노드의 샤드가 아닌 표에는 보이지만 이 작업에서는 실행하지 않았다.
+
+### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반 서버, 자동 커밋), `SSTX`(같은 서버, 수동 커밋), `SHARD`(메타 노드, 읽기 전용 표시), `ALTI`(Altibase 7.3). 값은 환경 변수 참조, 암호 저장 끔.
+시험용 표는 로그인 스키마의 `CHR_TTL_*`만 만들고 끝에 지웠다. `SYS_TTL_` 행은 앱 밖의 다른 연결로 SELECT해 확인했다.
+
+| 단계 | 대화상자 | 문장(쿼리 관리자, UTIL) | `SYS_TTL_` | 속성 TTL 묶음 / DDL 보기 |
+|---|---|---|---|---|
+| TTL 없음 → 설정 | 확인란 꺼짐, 칸 꺼짐 | `ALTER TABLE <소유자>.CHR_TTL_T USING TTL 7 DAY ON COLUMN D1` | D1, D, 7 | D1, 7일 / `USING TTL 7 DAY ON COLUMN D1` |
+| 수·단위 | 7·일 채워짐 | `… USING TTL 3 MONTH ON COLUMN D1` | D1, O, 3 | 3개월 |
+| 기준 컬럼·단위 | | `… USING TTL 1 YEAR ON COLUMN D2` | D2, Y, 1 | D2, 1년 / DDL 같음 |
+| 단위 | | `… USING TTL 12 HOUR ON COLUMN D2`, `… 30 MINUTE …` | H 12, M 30 | 12시간, 30분 |
+| 해제 | 확인란 끔 | `ALTER TABLE <소유자>.CHR_TTL_T USING NOTTL` | 행 없음 | 묶음 없음 / DDL에 TTL 절 없음 |
+
+- 바뀐 것 없이 확인 → "실행할 문장 없음" 알림, 대화상자 취소·미리 보기 취소 → 쿼리 관리자에 ALTER 없음, `SYS_TTL_` 그대로.
+- 기간 칸: `12abc` 입력은 들어가지 않음, 빈 칸·`0` → "1 이상의 정수를 입력하십시오." 줄, 대화상자는 열린 채.
+- 날짜 컬럼 없는 표(`CHR_TTL_N`): 확인란·칸 꺼짐, 컬럼 목록 빈 것, 확인 → "실행할 문장 없음".
+- 앱 뒤에서 지운 표: 서버 메시지 "Table or view was not found"(200753) 오류 창, 그 뒤 다른 표에서 명령 정상.
+- **트랜잭션(SSTX, 쿼리 창의 커밋하지 않은 INSERT):** TTL 실행에서 "커밋하지 않은 트랜잭션" 질문(커밋 / 롤백 / 취소, 취소가 기본). 취소 → ALTER 없음, 다른 세션에서 행 0, TTL
+  없음. 롤백 → INSERT가 사라지고(다음 질문에 그 창이 없음, 다른 세션 행 수에 없음) TTL 2일. 커밋 → 다른 세션에서 행이 보이고 TTL 6개월. 자동 커밋 연결(SS)의 INSERT 뒤에는
+  질문 없이 실행. ALTER는 늘 격리된 실행 문맥(UTIL)에서 실행되어 쿼리 창의 세션을 건드리지 않는다.
+- **메타 노드(SHARD):** 샤드 테이블의 메뉴에 TTL 없음(17항목), 샤드가 아닌 표의 메뉴에 TTL 있음(18항목). 실행하지 않았다. SHARD로 간 실행은 모두 SELECT.
+- **Altibase 7.3:** 표 메뉴에 TTL 없음, 능력 없음, 질의 늘지 않음. 메뉴 덤프 전후(기준 클래스로 되돌린 jar) 같음.
+- **기능을 뺀 제품**(내 앱 사본에서 이 번들을 빼고 `bundles.info`에서 그 줄을 지움): SS 표의 메뉴에 TTL 없음.
+- 실행 뒤 표 노드를 다시 읽을 때 쿼리 관리자에 TTL 읽기 SELECT가 한 번 "오류 0"으로 남는 때가 있다(속성 보기가 노드 갱신으로 앞 읽기를 취소하고 다시 읽음, 바로 뒤
+  같은 SELECT는 성공). 속성 보기의 기존 동작이라 고치지 않았다.
+- 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-ttl-manage\sheets\`.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Object Explorer 유지 관리 메뉴(항목 순서), Altibase 계열 연결의 어댑터, ShardSphere 감지(메타 노드의 SELECT 하나).
+
+### 남은 것 (이 작업 밖)
+
+- 테이블 디자이너·CREATE TABLE의 TTL 절, TTL 컬럼의 인덱스 권장, 서버 속성 `EXPIRED_DATA_DELETION_ENABLE` 켜기(설정 파일·재기동), 연속 테이블의 TTL, 시스피어가 이름을 들지
+  않은 단위(`WEEK`, `QUARTER`, `SECOND`).
+- 샤드 테이블의 TTL(메타 노드에서 숨김, 확인 전), 연결 중 샤딩한 표의 메뉴(새로 고침까지).
+
+### 미확인 (벤더 문의)
+
+- 미확인: 샤드 테이블에 `ALTER TABLE … USING TTL`을 메타 노드에서 실행하면 데이터 노드 모두에 걸리는지, 노드마다 따로인지.
+- 미확인: INTEGER·VARCHAR 컬럼을 TTL 컬럼으로 받는 뜻(시간 값으로 읽는지, 형식은 `SYS_TTL_FORMAT_`인지).
+- 미확인: `DBMS_METADATA.GET_DDL`이 기준 컬럼 이름을 따옴표 없이 쓰는 것(`ON COLUMN d 1`)이 의도인지.
+- 미확인: 큐·시스템 표에 TTL을 받는지.
+
 ## 낱말과 함수 (2026-11-17, 앱 변경 #139 수정 8)
 
 두 ShardSphere 서버와 Altibase 7.3에서 `SELECT f(...) FROM DUAL`을 준비해 정했다(실행하지 않음, 2026-11-17):
@@ -626,7 +717,7 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 ## 아직 없는 것
 
 관리 보고서(작업 8),
-쓰기 기능(작업 11, 샤딩의 노드 관리·분산·UNSHARD·재배치 포함), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
+쓰기 기능(작업 11, 샤딩의 노드 관리·분산·UNSHARD·재배치 포함, 테이블 TTL은 위 "TTL 관리"), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
 
 ## 미확인 (벤더 문의)
 
@@ -635,7 +726,7 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 - 미확인: 메타 노드의 판정(`SYS_SHARD` 사용자 + `SHARD_META_ENABLE` = 1)이 데이터 노드와 메타 노드를 늘 가르는지. 데이터 노드에도 `SYS_SHARD`가 만들어지는지.
 - 미확인: `SYS_GEMINIS_`가 GEMINI를 쓰지 않는 ShardSphere 설치에도 늘 있는지(두 서버 모두 있음, 둘 다 GEMINI 비어 있음).
 - 확인됨(2026-11-17, 시험용 표): `SYS_TTL_.COLUMN_ID` = `SYS_COLUMNS_.COLUMN_ID`, 분은 `MINUTE`로 쓰고 `M`으로 저장, TTL은 `ALTER TABLE … USING TTL …`로 걸고 바꾼다.
-  미확인: `SYS_TTL_FORMAT_`의 용도, TTL을 없애는 문법.
+  미확인: `SYS_TTL_FORMAT_`의 용도. 확인됨(시스피어 답변 2026-11-17 15:28): TTL을 없애는 문법 `ALTER TABLE t USING NOTTL`(위 "TTL 관리").
 - 미확인(2026-11-17): 스케줄러 속성 `JOB_SCHEDULER_ENABLE`·`JOB_THREAD_COUNT`가 `V$PROPERTY`에 보이지 않는 이유(숨김 속성인지), 그래서 Chromite가 스케줄러가 켜져 있는지 알 길.
 - 미확인(2026-11-17): `SYS_JOBS_.STATE` 코드(작업 예제의 켜진 작업은 0), `JOB_TYPE`의 P 외 코드.
 - 확인됨(2026-11-17, 시험용 큐 `CHR_COR_Q`, `CREATE QUEUE q (40)`): 큐의 내부 시퀀스 `<큐>_NEXT_MSG_ID`의 `TABLE_TYPE`은 ShardSphere 5.1.9에서도 `W`이고 `V$SEQ`에 있다(Altibase 7.3과 같음). 앱 화면에서는 Altibase 7.3으로만 확인했다.
@@ -674,3 +765,5 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 - 2026-11-17 시스피어 답변과 새 매뉴얼의 수정(앱 변경 #139 수정, `chromite/shardsphere-corrections`): `NODE[` 뒤 `all` 제안 뺌, 샤딩 코드 확인됨, GEMINI 코드는 문서에 있는
   것만 이름으로·제어 문장은 문서화됐지만 숨김·지연 단서 셋, 테이블 속성의 TTL과 샤드(기여 자리 S8), 함수와 `TTL` 낱말, 두 서버의 사실 목록. 위 "시스피어 답변과 새 매뉴얼"부터
   "확인 (2026-11-17, 수정 1~8 …)"까지.
+- 2026-11-17 기존 테이블의 TTL 설정·변경·해제(앱 변경 #152, `chromite/shardsphere-ttl-manage`): 표 오른쪽 클릭 "TTL 설정"과 대화상자, 문장은 이 번들(`ShardTableTtl`),
+  중립 능력 `AltibaseTableTtl`, 메타 노드의 샤드 테이블에는 내지 않음(감지 때 샤드 테이블 목록 읽기). 위 "TTL 관리".

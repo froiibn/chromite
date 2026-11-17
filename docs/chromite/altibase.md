@@ -723,7 +723,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   새로 고침에서는 `initDriverSettings`(서버 예약어)가 다시 돈 뒤 감지와 기여가 다시 들어오고, 그 사이에도 접두어 인식은 앞 결과를 그대로 쓴다(꺼지지 않음).
   낱말은 한 번 더해지면 남는다(같은 서버에서는 늘 같은 결과). 확인: 두 연결을 함께 열고 양쪽 순서, 새로 고침, 다시 연결에서 방언 객체와 접두어 길이를 읽음
   ([shardsphere.md](shardsphere.md) "문장 접두어").
-- **아직 두지 않은 것:** 관리 보고서(S4), 객체 명령(S6/S7)은 그 작업에서 정한다. 복제 카탈로그 전략(S2)은 2026-11-17에 두었다(아래 "복제 카탈로그").
+- **아직 두지 않은 것:** 관리 보고서(S4), 일반 객체 명령 틀(S6/S7)은 그 작업에서 정한다(테이블 TTL은 좁은 능력으로 2026-11-17, 아래 "테이블 TTL 자리"). 복제 카탈로그 전략(S2)은 2026-11-17에 두었다(아래 "복제 카탈로그").
 
 ### upstream 대비 변경점
 
@@ -959,6 +959,33 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   다른 객체에는 없다. Altibase 7.3에는 확장이 없어 테이블을 골라도 문장이 늘지 않는다(확인).
 - **대안(고르지 않음):** 텍스트 속성 하나(`@Property getExtensionProperties`)나 자식 노드. 속성 보기의 변경이 작아 정식 속성 줄로 보이게 했다.
 
+## 테이블 TTL 자리 (2026-11-17, 앱 변경 #152, 계획의 S6/S7 가운데 좁은 능력)
+
+### 목적
+
+서버 확장이 그 서버의 TTL(만료 기간이 지난 행을 지우는 테이블 설정)을 기존 테이블에 걸고 바꾸고 없애는 명령을 낸다. 이 플러그인과 공용 UI는 그 서버가 무엇인지 모른다.
+첫 사용자는 ShardSphere 번들이다([shardsphere.md](shardsphere.md) "TTL 관리").
+
+### 모양과 이유
+
+| 위치 | 하는 일 |
+|---|---|
+| `ext.altibase` `extension/AltibaseTableTtl`(새 인터페이스) | `appliesTo(table)`(메모리만), `getUnits()`·`getDefaultUnit()`·`getUnit(code)`, `isTtlColumn(column)`, `readSetting(monitor, table)`(지금 값), `getStatement(table, change)`. 값 `Unit`(문장 낱말, 카탈로그 코드, 이름), `Setting`, `Change`(컬럼이 null이면 해제). `forTable(object)`: 연결의 데이터 원본 어댑터로 얻고 그 표에 해당할 때만 |
+| 서버 확장 | `AltibaseServerExtensionState.getAdapter(AltibaseTableTtl.class)`로 준다(기존 자리, 새 메서드 없음). 확장이 없으면 null = 명령 없음 |
+| `model.admin` `ObjectMaintenanceActions` | 동작 `TABLE_TTL`(설정이 필요한 명령): `supports`는 `forTable(object) != null`, 문장은 능력이 만든다 |
+| `ui.swing` `ObjectMaintenanceCommands`, `AltibaseTableTtlDialog`(새), `ObjectMaintenanceMessages` | 메뉴 항목(테이블 잘라내기 다음), 지금 값으로 채운 설정 대화상자, 그 뒤 자동 확장 설정과 같은 흐름(미리 보기 → 열린 트랜잭션 질문 → 격리 실행 → 테이블 노드 다시 읽기) |
+
+- **왜 좁은 능력인가:** 일반 "객체 명령" 확장 지점(S6)과 쓰기 대화상자 API(S7)는 메뉴 이름·보임 조건·대화상자 칸(종류, 검사, 처음 값)·문장·실행 뒤 다시 읽을 노드·문구 묶음을
+  모두 기여로 받아야 한다. 쓰는 곳이 하나뿐이라 큰 틀은 짐작으로 만들게 된다. 기존 유지 관리 명령의 흐름(트랜잭션 규칙, 미리 보기, 격리 실행, 오류 표시)은 그대로 쓰고,
+  서버마다 다른 것만 묻는 인터페이스 하나를 두었다. 두 번째 쓰기 기능이 오면 그때 일반 틀을 정한다: 확장 지점(명령 id, 대상 클래스, 보임 조건), 칸 기술(종류·검사·처음 값,
+  `DesignerDialogs` 틀로 그림), 문장 생성기(모델), 실행 뒤 새로 고침 범위, 문구 묶음.
+- **모델 타입만:** 메서드는 `DBSTable`·`DBSEntityAttribute`를 받는다. `ui.swing`은 Generic 플러그인에 기대지 않기 때문이다(`AltibaseTable` 판단은 `forTable` 안).
+- **메뉴는 메모리만:** `appliesTo`는 감지 결과와 객체 종류만 본다(질의 없음, 메뉴를 열 때마다 불림). 컬럼과 지금 값은 대화상자를 열 때 진행 대화상자에서 읽는다.
+
+### upstream 대비 변경점
+
+- upstream에는 없다. 인터페이스 하나, 유지 관리 동작 하나, 대화상자 하나를 더했다.
+
 ## 작업 (2026-11-17, 앱 변경 #139 수정 5)
 
 ### 고친 것
@@ -1021,3 +1048,4 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-17 활동 모니터 개요 차트 8개와 System Info > 서버 정보(버전, 시작, 아카이브 로그, 백업, 앱 변경 #139 작업 8), 위 "개요 차트와 서버 정보".
 - 2026-11-17 시스피어 답변의 수정(앱 변경 #139 수정, `chromite/shardsphere-corrections`): 기존 객체의 추가 속성 자리(S8), 작업의 상태 코드·읽을 수 있는 주기·소유자·종류·
   실패 횟수, 큐의 내부 시퀀스를 읽기 전용 종류로, 복제 카탈로그의 상태 코드 능력, 계열 함수 일곱 개. 위 "기존 객체의 추가 속성", "작업", "큐의 내부 시퀀스", "복제 카탈로그".
+- 2026-11-17 테이블 TTL 자리(`AltibaseTableTtl`, 유지 관리 동작 `TABLE_TTL`, 설정 대화상자, 앱 변경 #152), 위 "테이블 TTL 자리".

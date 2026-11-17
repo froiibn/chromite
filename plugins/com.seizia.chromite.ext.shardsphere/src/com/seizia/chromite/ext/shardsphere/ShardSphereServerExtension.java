@@ -29,7 +29,9 @@ import org.jkiss.code.Nullable;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Recognises a ShardSphere server by its catalog.
@@ -45,6 +47,8 @@ import java.util.List;
  * - 2026-11-17 메타 노드면 노드 이름을 한 번 더 읽음({@code SYS_SHARD.NODES_}의 이름만, 호스트·포트는 읽지 않음): {@code NODE[data(} 뒤
  *   자동 완성(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  * - 2026-11-17 같은 SELECT로 TTL 사전 표({@code SYSTEM_.SYS_TTL_})가 있는지도 읽음: 테이블 속성의 TTL(앱 변경 #139 수정 6)
+ * - 2026-11-17 TTL 사전이 있는 메타 노드면 샤드 테이블의 소유자·이름을 한 번 더 읽음: 샤드 테이블에는 TTL 명령을 내지 않음. 읽지 못하면
+ *   그 연결의 어느 테이블에도 내지 않음(앱 변경 #152, docs/chromite/shardsphere.md "TTL 관리")
  */
 public class ShardSphereServerExtension implements AltibaseServerExtension {
 
@@ -70,6 +74,11 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
      */
     private static final String QUERY_NODE_NAMES = "SELECT NODE_NAME FROM SYS_SHARD.NODES_ ORDER BY NODE_ID";
 
+    /**
+     * Owner and name of the shard tables of a sharding meta node.
+     */
+    private static final String QUERY_SHARD_TABLES = "SELECT USER_NAME, OBJECT_NAME FROM SYS_SHARD.OBJECTS_ WHERE OBJECT_TYPE = 'T'";
+
     @Nullable
     @Override
     public AltibaseServerExtensionState detect(@NotNull JDBCSession session, @NotNull AltibaseDataSource dataSource) {
@@ -87,7 +96,8 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
                 return null;
             }
             return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode, ttlCatalog,
-                shardingMetaNode ? readNodeNames(session) : List.of());
+                shardingMetaNode ? readNodeNames(session) : List.of(),
+                shardingMetaNode && ttlCatalog ? readShardTables(session) : Set.of());
         } catch (SQLException e) {
             log.debug("Can't read the ShardSphere catalog: " + e.getErrorCode() + " " + e.getSQLState());
             return null;
@@ -114,6 +124,31 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
             return List.of();
         }
         return names;
+    }
+
+    /**
+     * Owner and name of each shard table of the meta node's sharding dictionary: the TTL command is not offered on them.
+     *
+     * @return the tables, or null if they can't be read: then the connection offers the TTL command on no table (an
+     * empty set would offer it on the shard tables)
+     */
+    @Nullable
+    private static Set<List<String>> readShardTables(@NotNull JDBCSession session) {
+        Set<List<String>> tables = new HashSet<>();
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_SHARD_TABLES);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            while (dbResult.next()) {
+                String owner = dbResult.getString(1);
+                String name = dbResult.getString(2);
+                if (owner != null && name != null) {
+                    tables.add(List.of(owner.trim(), name.trim()));
+                }
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the shard tables: " + e.getErrorCode() + " " + e.getSQLState());
+            return null;
+        }
+        return tables;
     }
 
 }

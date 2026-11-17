@@ -97,7 +97,7 @@
 | Tasks ▸ Import/Export/Copy Tables… | 1270–1275 | 그 객체에 해당, 연결 노드는 `DataTransferObjects.appliesToConnection`(맨 위가 스키마나 데이터베이스; 닫혀 있으면 보임) | 연결 노드는 연결했고 읽은 DB가 하나 |
 | Tasks | 1277 | 하위 항목에서 | 하위 항목에서 |
 | Maintenance… | 1279 `canMaintain` | 같음 | – |
-| 유지 관리 명령(TRUNCATE, 트리거·테이블스페이스·파일 그룹 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`) |
+| 유지 관리 명령(TRUNCATE, TTL, 트리거·테이블스페이스·파일 그룹 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`) |
 | Connect | 1287 | 연결 노드 | 연결 안 됨(켜짐은 전처럼 연결 아래 노드 기준, 도구 막대) |
 | Disconnect | 1289 | 연결 노드 | –(켜짐은 전처럼 연결 아래 노드, 도구 막대) |
 | Disconnect Others | 1291 | 연결 노드 | 다른 연결된 서버가 있음 |
@@ -449,3 +449,4 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-16 결과 그리드 셀 메뉴: 결과·칸의 종류에 해당하는 항목만 보임, 저장하고 커밋의 예외, 읽기 전용 연결 결과의 편집 명령(앱 변경 #137 3부, `chromite/result-grid-menu`)
 - 2026-11-17 남은 작은 메뉴 5곳(SQL 편집기 글 영역과 같은 메뉴를 쓰는 모든 글 영역, Scripts, Query Library, Query Manager, Database Tasks)에 같은 규칙
   (사용자 "둘 다 고친다", 앱 변경 #141, `chromite/small-menus-applicable`, `ContextMenus.tidyTextArea`·`VARYING_TEXT`)
+- 2026-11-17 유지 관리 명령 목록에 TTL(서버 확장이 그 표에 줄 때만 보임, 앱 변경 #152, [shardsphere.md](shardsphere.md) "TTL 관리")
