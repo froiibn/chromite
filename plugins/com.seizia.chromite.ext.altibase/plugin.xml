@@ -379,6 +379,11 @@
                     icon="platform:/plugin/com.seizia.chromite.model/icons/tree/folder_database.svg">
                         <items label="%tree.memorymodules.node.name" path="memoryModule" property="memoryModules" navigable="false"/>
                     </folder>
+                    <!-- Chromite: version, startup, archive log and backups from the V$ views both Altibase and ShardSphere have
+                         (AltibaseServerInfoItem, docs/chromite/altibase.md "개요 차트와 서버 정보") -->
+                    <folder label="%tree.server_info.node.name" icon="#info" description="%tree.server_info.node.description">
+                        <items label="%tree.server_info_item.node.name" path="serverInfo" property="serverInfo" icon="#info" navigable="false" virtual="true"/>
+                    </folder>
                     <!-- Chromite: objects of the server extensions detected on this connection (AltibaseDataSource.getExtensionObjects);
                          no node on a server without one (docs/chromite/altibase.md "서버 확장") -->
                     <items label="%tree.server_extension.node.name" path="serverExtension" property="extensionObjects" icon="#info" virtual="true"/>

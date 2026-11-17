@@ -61,12 +61,16 @@ import java.util.Map;
  *     끌지 말지는 화면이 정한다.</li>
  *     <li>차분({@code calc="delta"})은 직전 값과의 차이를 두 읽기 사이의 시간(밀리초)으로 나눈 초당 값이다. SWT는 초 단위로 버린 경과 시간으로
  *     나누어 1.9초 간격이 1초로 계산되는 일이 있었다. 반올림 규칙(값 형식이 {@code decimal}이 아니면 정수로)은 SWT와 같다.</li>
- *     <li>읽은 시각은 결과의 {@code STAT_TIMESTAMP} 열이 있으면 그 값, 없으면 읽은 때다(SWT와 같음).</li>
+ *     <li>읽은 시각은 결과의 {@code STAT_TIMESTAMP} 열이 있으면 그 값, 없으면 읽은 때다(SWT와 같음). 날짜 말고 숫자(1970-01-01 UTC부터의
+ *     밀리초)도 받는다. 서버가 통계를 몇 초마다 모아 그 시각을 초 수로 주는 경우(Altibase 계열 {@code V$SYSSTAT}의 {@code base time in second})
+ *     그 시각으로 나누어야 초당 값이 고르다. 날짜로 바꾸면 서버의 시간대 없는 시각이 클라이언트 시간대로 읽혀 시간 축이 어긋난다.
+ *     시각이 그대로면(서버가 아직 다시 모으지 않음) 차분 점을 만들지 않는다.</li>
  * </ul>
  * 같은 작업 안에서만 부른다(직전 값을 들고 있어 여러 스레드에서 동시에 부르지 않는다).
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-dashboard.md)
+ * - 2026-11-17 숫자 {@code STAT_TIMESTAMP}(UTC 밀리초)를 받음: Altibase 계열 개요 차트 (docs/chromite/swing-admin-tools.md "Altibase 계열 개요")
  */
 public final class DashboardSampler {
 
@@ -299,8 +303,14 @@ public final class DashboardSampler {
         while (dbResults.nextRow() && rowIndex < item.getMaxItems()) {
             rowIndex++;
             long time = now;
-            if (timestampColumn >= 0 && dbResults.getAttributeValue(timestampColumn) instanceof Date date) {
-                time = date.getTime();
+            if (timestampColumn >= 0) {
+                Object stamp = dbResults.getAttributeValue(timestampColumn);
+                if (stamp instanceof Date date) {
+                    time = date.getTime();
+                } else if (stamp instanceof Number millis) {
+                    // Milliseconds since 1970-01-01 UTC: an instant, not a wall clock time read in the client's time zone
+                    time = millis.longValue();
+                }
             }
             if (byRows) {
                 // First column is the series name, the second its value (SWT transposeDataset with one value column)

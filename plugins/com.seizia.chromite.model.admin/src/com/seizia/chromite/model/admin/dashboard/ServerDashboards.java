@@ -29,12 +29,13 @@ import java.util.List;
  * 연결 하나에 그릴 수 있는 서버 대시보드 차트 목록.
  *
  * 설계: 차트 정의는 DBeaver 대시보드 등록부({@link DashboardRegistry}, 확장 점 {@code com.seizia.chromite.dashboard})를 그대로 쓴다.
- * DBeaver(PostgreSQL, MySQL)와 Chromite({@code plugin.xml}: SQL Server, 잠금·대기·캐시 차트)의 정의, 사용자가 SWT 제품에서 만든
+ * DBeaver(PostgreSQL, MySQL)와 Chromite({@code plugin.xml}: SQL Server, Altibase 계열, 잠금·대기·캐시 차트)의 정의, 사용자가 SWT 제품에서 만든
  * {@code dashboards.xml}의 사용자 정의 차트가 모두 여기서 나온다. SWT 대시보드 보기({@code DashboardListViewer})처럼 연결의 드라이버로 고른다.
  * Swing 화면은 시계열 차트만 그리므로 질의가 없는 항목(웹 페이지를 보이는 {@code provided} 형식)은 뺀다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-dashboard.md)
+ * - 2026-11-17 Altibase 계열 정의가 더해짐(공급자 {@code altibase}로 골라 ShardSphere 드라이버도 받음, docs/chromite/swing-admin-tools.md)
  */
 public final class ServerDashboards {
 

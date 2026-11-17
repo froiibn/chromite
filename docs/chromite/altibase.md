@@ -869,6 +869,70 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 ### upstream 대비 변경점
 
 - upstream에는 공간 사용량 화면이 없다. 크기 문장을 정적 메서드로 옮기고(문자열은 메모리·휘발성 한도 말고 같음) 세션을 받는 읽기를 더했다.
+
+## 개요 차트와 서버 정보 (2026-11-17, 앱 변경 #139 작업 8)
+
+### 목적
+
+활동 모니터의 개요 탭이 이 계열(Altibase, ShardSphere)에서 "이 데이터베이스 유형에는 정의된 차트가 없습니다"였고, 서버의 시작 단계·시각, 아카이브 로그 모드,
+버전 세부, 백업 기록은 앱 어디에도 없었다. 두 서버에 다 있는 뷰로 둘 다 더한다. 한 구현이 세 서버(Altibase 7.3, ShardSphere 5.1.9, 메타 노드 5.1.9-beta9)에
+같은 문장을 보낸다(제품 이름 검사 없음, ShardSphere 기능 번들이 없어도 같음).
+
+### 구조
+
+| 위치 | 하는 일 |
+|---|---|
+| `model.admin` `plugin.xml`(차트 정의 8개, `<datasource id="altibase"/>`) | 개요 차트. 차트·문장·뜻은 [swing-admin-tools.md](swing-admin-tools.md) "Altibase 계열 개요" |
+| `model.admin` `dashboard/DashboardSampler` | 숫자 `STAT_TIMESTAMP`를 UTC 밀리초로 받음(`V$SYSSTAT`이 3초마다 모은 시각) |
+| `ext.altibase` `plugin.xml` System Info 폴더 | "서버 정보" 폴더(속성·모듈 메모리 옆), 항목은 `AltibaseDataSource.getServerInfo` |
+| `ext.altibase` `model/AltibaseServerInfoItem`(새) | 이름·값 항목, 뷰마다 문장 하나 |
+| `ext.altibase` `internal/AltibaseMessages`(새, +`_ko`) | 항목 이름(객체의 값이라 `bundle*.properties`가 옮길 수 없음) |
+
+### 서버 정보: 둘 곳
+
+이 공급자는 System Info 폴더에 이미 서버의 사실을 이름·값 목록으로 둔다(Properties = `V$PROPERTY`, Module Memory Usage = `V$MEMSTAT`). 같은 모양의 폴더
+"서버 정보"를 하나 더했다. 새 창이나 Swing 코드가 없고, 폴더를 열면 개체 세부 정보에 이름·값 표가 나온다. 개요 탭에 글자 줄로 두는 안(다른 DB의 개요에는
+서버 사실이 없음)은 Swing 번들과 대시보드 화면을 고쳐야 해서 고르지 않았다.
+
+| 항목 | 읽는 곳 | 비고 |
+|---|---|---|
+| 버전, 빌드, 빌드 시각, 저장 관리자 버전, 메타 버전, 프로토콜 버전 | `V$VERSION`의 PRODUCT_VERSION, PKG_BUILD_PLATFORM_INFO, PRODUCT_TIME, SM_VERSION, META_VERSION, PROTOCOL_VERSION | 두 서버 공통 열만 |
+| 시작 단계, 시작 시각, 가동 시간 | `V$INSTANCE`의 STARTUP_PHASE, STARTUP_TIME_SEC, WORKING_TIME_SEC | 시작 시각은 1970 UTC부터의 초(시험 서버에서 컨테이너 시작 시각과 같고, 시작 + 가동 = 지금), 클라이언트 시간대로 보임 |
+| 서버 상태, 아카이브 로그 모드 | `V$LOG`의 SERVER_STATUS, ARCHIVELOG_MODE | 서버 글자 그대로(`SERVER STARTED`, `NOARCHIVE`) |
+| 아카이브 스레드, 현재 로그 파일, 다음에 아카이브할 로그 파일 | `V$ARCHIVE`의 ARCHIVE_THR_RUNNING(실행 중/멈춤), CURRENT_LOGFILE, NEXTLOGFILE_TO_ARCH(ARCHIVE_MODE가 0이 아닐 때만) | 현재 로그 파일은 `V$LFG.CUR_WRITE_LF_NO`와 세 서버 모두 같음(0, 1, 6). 첫 로그 파일 그룹 |
+| 백업 기록, 마지막 백업 | `V$BACKUP_INFO`의 `COUNT(*)`, `MAX(END_BACKUP_TIME)`(행이 있을 때만) | 세 서버 모두 0행 |
+
+아카이브 경로(`V$ARCHIVE.ARCHIVE_DEST`)는 넣지 않았다: 같은 값이 서버 속성 `ARCHIVE_DIR`로 Properties에 있다. 뷰 하나를 읽지 못하면 그 항목만 빠지고, 모두 실패하면
+첫 오류를 보인다.
+
+### 두 서버의 같은 점과 다른 점
+
+- 같음: 차트 문장 8개와 서버 정보 문장 5개가 세 서버에서 모두 준비·실행됐다. `V$SYSSTAT` 이름과 3초 모음, `V$SESSION`·`V$LOCK_WAIT`·`V$BUFFPOOL_STAT`·`V$MEMSTAT`의
+  열이 같다.
+- 다름(읽지 않음): ShardSphere에만 `V$INSTANCE.PROCESS_ID`, `V$VERSION.PRODUCT_NAME`, `V$SESSION.IS_INTERNAL`·`PROGRAM_NAME` 등, 복제 프로토콜 열 이름(Altibase
+  `REPL_PROTOCOL_VERSION`, ShardSphere `GEMI_PROTOCOL_VERSION`), `V$SYSSTAT`의 샤딩·연속 질의·만료 데이터 카운터(166행 대 132행, `SEQNUM`이 다름). Altibase에만
+  `ddl sync timeout`. 메타 노드만 `TIMED_STATISTICS = 1`.
+- ShardSphere 일반 서버에서 `session commit`은 개요가 연결해 있는 동안 늘지 않았다(`V$` 뷰만 읽어 트랜잭션이 없음, 다른 세션의 쓰기도 없었음).
+
+### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- 개요 차트: [swing-admin-tools.md](swing-admin-tools.md) "Altibase 계열 개요"의 확인(부하 중 독립 질의와 같은 값, 한 번 읽기의 문장 수).
+- 서버 정보: 세 서버에서 14항목(아카이브 모드가 아니라 "다음에 아카이브할 로그 파일", 백업이 없어 "마지막 백업"은 없음). 시험 Altibase 버전 7.3.0.0.7, 시작 단계
+  SERVICE, 가동 5일, NOARCHIVE, 아카이브 스레드 멈춤, 현재 로그 파일 0, 백업 기록 0. 연결 새로 고침, 끊고 다시 연결한 뒤에도 같다.
+- ShardSphere 기능 번들을 뺀 제품: 두 ShardSphere 연결의 서버 정보 14항목, System Info 아래 ShardSphere 노드만 없음.
+- 시험 Altibase에 만든 `CHR_OV_T`는 끝에 지웠다(`SYS_TABLES_`에 0행, 지우기 전 열린 트랜잭션·잠금 대기 0). 서버 속성은 바꾸지 않았다.
+
+### 미확인
+
+- 미확인: 아카이브 모드 서버에서 `ARCHIVE_THR_RUNNING`, `NEXTLOGFILE_TO_ARCH`의 값(세 서버 모두 NOARCHIVE).
+- 미확인: `V$BACKUP_INFO`의 `END_BACKUP_TIME` 글자 형식과 최댓값이 마지막 백업인지(세 서버 모두 0행).
+- 미확인: `STARTUP_PHASE`의 SERVICE 밖 값(시작 중인 서버를 볼 수 없음).
+- 미확인: `V$SYSTEM_EVENT`가 `TIMED_STATISTICS`와 어떤 관계인지, `V$TRANSACTION.STATUS` 코드, `lock row retry count` 등의 뜻(차트에 넣지 않음, 벤더 질문).
+
+### upstream 대비 변경점
+
+- upstream에는 Altibase 대시보드가 없다(SWT 대시보드도 정의 없음). System Info에 폴더 하나와 이 번들의 첫 NLS 문구 클래스를 더했다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -899,3 +963,4 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   제어 문장 능력으로 시작·중지·동기화를 숨김, 단위 없는 지연(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "복제 카탈로그".
 - 2026-11-17 활동 모니터 공간 사용량 탭에 Altibase 계열(앱 변경 #139 작업 7): 트리와 같은 크기 문장을 정적으로 옮겨 함께 씀, 자동 확장을 끈 메모리·휘발성
   테이블스페이스의 한도를 현재 크기로(메모리는 MAXSIZE와 MEM_MAX_DB_SIZE 중 작은 쪽), 위 "공간 사용량".
+- 2026-11-17 활동 모니터 개요 차트 8개와 System Info > 서버 정보(버전, 시작, 아카이브 로그, 백업, 앱 변경 #139 작업 8), 위 "개요 차트와 서버 정보".

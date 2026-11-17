@@ -34,7 +34,7 @@ com.seizia.chromite.model.admin (모델 번들, UI 없음)
   dashboard/DashboardSample ─── 한 번 읽은 결과(점들 또는 오류)
   dashboard/DashboardHistory ── 계열별 최근 값(최대 개수·최대 나이)
   dashboard/DashboardLabels(+.properties, _ko) ── DBeaver 차트 제목·계열 이름의 번역표
-  plugin.xml ── Chromite 차트 정의(SQL Server 7개, PostgreSQL 3개, MySQL·MariaDB 3개)
+  plugin.xml ── Chromite 차트 정의(SQL Server 7개, PostgreSQL 3개, MySQL·MariaDB 3개, Altibase 계열 8개)
         │
         ▼
 DBeaver 모델 (그대로 재사용)
@@ -62,6 +62,8 @@ DBeaver 파일은 고치지 않았다.
 SWT와 다르게 한 것:
 
 - 차분 값은 두 읽기 사이의 **밀리초** 시간으로 나눈다. SWT는 경과 시간을 초 단위로 버려(`/ 1000`, 정수) 1.9초 간격을 1초로 나누는 일이 있었다.
+- `STAT_TIMESTAMP`가 숫자면 1970-01-01 UTC부터의 밀리초로 받는다(2026-11-17, Altibase 계열의 `V$SYSSTAT`은 3초마다 모은 시각을 초로 줌,
+  [swing-admin-tools.md](swing-admin-tools.md) "Altibase 계열 개요"). SWT는 날짜만 받는다.
 - 카운터가 줄어든 구간(서버 재시작, 통계 초기화)의 음수 차분은 점으로 넣지 않는다.
 - 맵 질의 값이 글자(`SHOW GLOBAL STATUS`)이면 수식에 숫자로 넘긴다. JEXL `has()`가 `map`을 알도록 했다(SWT는 `object`, `dashboard`만 답함).
 - 수식이 0으로 나누면(예: MariaDB 키 효율, `Key_read_requests`가 0) 오류가 아니라 그 시각의 값이 없는 것으로 본다(차트는 "값을 기다리는 중").
@@ -88,6 +90,7 @@ DBeaver 대시보드 등록부(`DashboardRegistry#getDashboardItems`)에서 연�
 | MySQL·MariaDB | DBeaver `ext.mysql` | 네트워크 트래픽*, InnoDB 데이터*, 쿼리*(SELECT·INSERT·UPDATE·DELETE 초당), 서버 세션*(명령별), InnoDB 메모리, 키 효율 |
 | MySQL·MariaDB | Chromite | 스레드*(연결됨·실행 중), 행 잠금 대기*, 버퍼 풀 적중률*(%) |
 | SQL Server | Chromite (DBeaver에는 없음) | 세션*, CPU 사용률*(%), 초당 요청*(일괄 처리·트랜잭션·컴파일), 대기 중인 작업*(대기·차단됨), 데이터베이스 I/O*, 잠금 대기*(잠금 대기·교착 상태, 초당), 버퍼 캐시 적중률*(%) |
+| Altibase·ShardSphere | Chromite (2026-11-17) | 세션*(전체·활성·트랜잭션 중), 초당 트랜잭션*(커밋·롤백), 초당 문*(SELECT·INSERT·UPDATE·DELETE), 잠금 대기*, 버퍼 풀 적중률*(%), 서버 메모리*, 네트워크 트래픽, 리두 로그 ([swing-admin-tools.md](swing-admin-tools.md) "Altibase 계열 개요") |
 | 그 밖 | — | 정의가 없으면 "이 데이터베이스 유형에는 정의된 차트가 없습니다." |
 
 Chromite 정의는 DBeaver 확장 점(`com.seizia.chromite.dashboard`)에 `com.seizia.chromite.model.admin/plugin.xml`로 더했다. 제목·설명은
@@ -199,3 +202,4 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
 - 2026-11-07 Activity Monitor 탭 스타일: 밀도 B 브랜치와 합칠 때 옛 고정값(`tabHeight: 32`) 줄이 남아 밀도 B 값(`UiSizes.TOOL_TABS_STYLE`)을 덮던 것을 지움.
 - 2026-11-07 PostgreSQL "Block IO" 정의의 단위를 바이트에서 정수(블록/초)로(`ext.postgresql` `plugin.xml`, #50).
 - 2026-11-08 `LICENSE.md`의 "JFreeChart - Apache 2.0" 줄 삭제(제품에 없음, 실제 라이선스는 LGPL 2.1) 기록(#49).
+- 2026-11-17 Altibase 계열 차트 8개와 숫자 `STAT_TIMESTAMP`(UTC 밀리초) (앱 변경 #139 작업 8, [swing-admin-tools.md](swing-admin-tools.md) "Altibase 계열 개요").
