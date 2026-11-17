@@ -20,6 +20,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.driver.DriverUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -40,8 +41,10 @@ import java.util.function.Consumer;
  * 검색 창({@link DriverSelectionPanel}: 검색, 범주, 전체 드라이버)에서 고른다(docs/chromite/design-spec.md "11. 대화상자").
  * 드라이버가 100개가 넘어 콤보 하나에 모두 넣으면 찾기 어렵고, 편집 가능한 콤보로 걸러 내면 공급자 아이콘을 편집 칸에 보일 수 없기 때문이다.
  * <ul>
- *     <li>맨 위: 주요 DB({@link #FAVORITES}: SQL Server, PostgreSQL, MySQL, MariaDB, Oracle, SQLite) 중 이 제품에 있는 것.
- *     MySQL을 뺀 다섯은 드라이버가 내장돼 있고, MySQL은 처음 연결할 때 드라이버를 내려받는다(docs/chromite/drivers.md).</li>
+ *     <li>맨 위: 드라이버 파일이 제품에 들어 있는 데이터베이스({@link DriverUtils#getBundledDrivers}). 구성원과 순서는 제품이 선언한
+ *     드라이버 묶음(com.seizia.chromite.drivers.public의 plugin.xml)에서 나온다. 손으로 적은 목록을 두지 않는 이유는 내장 여부와
+ *     따로 놀기 때문이다: 예전 목록에는 내장한 ShardSphere가 없고 내장하지 않은 MySQL이 있었다(docs/chromite/drivers.md "새 연결의 기본 목록").
+ *     내장하지 않은 드라이버(MySQL, Altibase 등)는 "More database types…"의 검색·전체 목록이나 아래 최근 목록으로 고른다.</li>
  *     <li>그다음: 최근에 연결을 만든 다른 드라이버({@link ConnectionHistory#getRecentDrivers()}), 더 찾기에서 고른 드라이버.</li>
  *     <li>콤보에 포커스가 있을 때 글자를 치면 이름이 그 글자들로 시작하는 항목으로 간다(1초 안에 친 글자를 이어 붙임).</li>
  * </ul>
@@ -51,19 +54,10 @@ import java.util.function.Consumer;
  * - 2026-11-06 최초 작성: SSMS식 Connect 대화상자 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 MySQL 드라이버 내장을 없앰: 사용자 결정은 내장 여부만 정했으므로 목록은 그대로 두고 설명만 고침
+ * - 2026-11-17 맨 위 목록을 손으로 적은 FAVORITES 대신 내장 드라이버에서 정함(앱 변경 #148, 사용자 요청 "드라이버 기본 내장 기준으로"):
+ *   ShardSphere가 들어오고 MySQL은 빠짐
  */
 final class DatabaseTypeCombo extends JComboBox<Object> {
-
-    /**
-     * Full driver IDs ({@code provider:driver}) shown first, in this order.
-     */
-    private static final List<String> FAVORITES = List.of(
-        "sqlserver:microsoft", //$NON-NLS-1$
-        "postgresql:postgres-jdbc", //$NON-NLS-1$
-        "mysql:mysql8", //$NON-NLS-1$
-        "mysql:mariaDB", //$NON-NLS-1$
-        "oracle:oracle_thin", //$NON-NLS-1$
-        "sqlite:sqlite_jdbc"); //$NON-NLS-1$
 
     private static final Object MORE_ITEM = new Object() {
         @Override
@@ -94,11 +88,8 @@ final class DatabaseTypeCombo extends JComboBox<Object> {
         for (DBPDriver driver : DriverSelectionPanel.getConnectableDrivers()) {
             connectable.put(driver.getFullId(), driver);
         }
-        for (String id : FAVORITES) {
-            DBPDriver driver = connectable.get(id);
-            if (driver != null) {
-                model.addElement(driver);
-            }
+        for (DBPDriver driver : DriverUtils.getBundledDrivers(List.copyOf(connectable.values()))) {
+            model.addElement(driver);
         }
         favoriteCount = model.getSize();
         for (String id : ConnectionHistory.getRecentDrivers()) {
@@ -129,17 +120,14 @@ final class DatabaseTypeCombo extends JComboBox<Object> {
     }
 
     /**
-     * The first driver of the list (SQL Server), for a new connection.
+     * The first driver of the list (the first declared bundle, SQL Server), for a new connection.
      */
     @Nullable
     static DBPDriver getDefaultDriver() {
         List<DBPDriver> drivers = DriverSelectionPanel.getConnectableDrivers();
-        for (String id : FAVORITES) {
-            for (DBPDriver driver : drivers) {
-                if (driver.getFullId().equals(id)) {
-                    return driver;
-                }
-            }
+        List<DBPDriver> bundled = DriverUtils.getBundledDrivers(drivers);
+        if (!bundled.isEmpty()) {
+            return bundled.getFirst();
         }
         return drivers.isEmpty() ? null : drivers.getFirst();
     }

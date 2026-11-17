@@ -46,20 +46,33 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-08 PRINT 켜기·끄기가 열린 세션에도 다음 문장부터 적용됨(주석) (docs/chromite/swing-server-output.md)
+ * - 2026-11-17 연결의 페이지는 제목을 받는다: Altibase 공급자를 쓰는 ShardSphere 연결의 탭과 머리글이 "Altibase"가 아니라
+ *   "ShardSphere"다(앱 변경 #148, docs/chromite/drivers.md "ShardSphere 화면의 Altibase 이름"). Options의 전역 페이지는 그대로 "Altibase".
  */
 final class AltibaseOptionsPage extends SettingsPage {
 
     private final JCheckBox dbmsOutputBox = new JCheckBox(SettingsMessages.altibase_dbms_output);
     private final JCheckBox planPrefixBox = new JCheckBox(SettingsMessages.altibase_plan_prefix);
+    @NotNull
+    private final String title;
 
     /**
      * @param global the global settings (Options, loaded here); otherwise one connection's settings, loaded by the caller
      */
     AltibaseOptionsPage(boolean global) {
+        this(global, SettingsMessages.altibase_tab);
+    }
+
+    /**
+     * @param global the global settings (Options, loaded here); otherwise one connection's settings, loaded by the caller
+     * @param title  the tab and section title: the connection's database type name for a connection
+     */
+    AltibaseOptionsPage(boolean global, @NotNull String title) {
+        this.title = title;
         // Starts the Altibase bundle (lazy activation) so that its preference initializer has set the defaults
         FrameworkUtil.getBundle(AltibaseConstants.class);
         JPanel form = new JPanel(new GridBagLayout());
-        int row = OptionsDialog.addSection(form, 0, SettingsMessages.altibase_tab);
+        int row = OptionsDialog.addSection(form, 0, title);
         row = OptionsDialog.addRow(form, row, null, dbmsOutputBox, null);
         OptionsDialog.addRow(form, row, null, planPrefixBox, null);
         add(OptionsDialog.wrapPage(form), BorderLayout.CENTER);
@@ -71,7 +84,7 @@ final class AltibaseOptionsPage extends SettingsPage {
     @NotNull
     @Override
     String getTitle() {
-        return SettingsMessages.altibase_tab;
+        return title;
     }
 
     @NotNull

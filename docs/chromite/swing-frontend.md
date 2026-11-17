@@ -1549,9 +1549,9 @@ Connection Properties | Driver Properties | Provider Properties | Additional Con
 
 ### Database type 콤보 (`DatabaseTypeCombo`)
 
-- 순서: 주요 DB(SQL Server `sqlserver:microsoft`, PostgreSQL `postgresql:postgres-jdbc`, MySQL `mysql:mysql8`,
-  MariaDB `mysql:mariaDB`, Oracle `oracle:oracle_thin`, SQLite `sqlite:sqlite_jdbc`) → 최근에 연결을 만든 다른 드라이버 → "More database types…".
-  MySQL을 뺀 다섯은 드라이버가 내장돼 있다. MySQL은 2026-11-07부터 내장하지 않지만(처음 연결할 때 다운로드, [drivers.md](drivers.md)) 목록에는 그대로 둔다.
+- 순서: 드라이버 파일이 제품에 들어 있는 데이터베이스(내장 드라이버 묶음마다 하나, 묶음 선언 순서: SQL Server, PostgreSQL, MariaDB, Oracle, SQLite, ShardSphere)
+  → 최근에 연결을 만든 다른 드라이버 → "More database types…". 손으로 적은 목록은 두지 않는다(2026-11-17, 앱 변경 #148,
+  규칙과 전후 목록은 [drivers.md](drivers.md) "새 연결의 기본 목록"). 내장하지 않은 MySQL·Altibase 등은 검색·전체 목록·최근 목록으로 고른다.
   새 연결은 첫 항목(SQL Server)으로 시작한다(SSMS의 기본 서버 종류와 같음).
 - "More database types…"는 D단계의 드라이버 고르기 화면(`DriverSelectionPanel`: 검색, 범주, 전체 드라이버)을 작은 창으로 연다. 고른 드라이버는 콤보의 주요 DB 다음에 들어간다.
 - 콤보에 포커스가 있을 때 글자를 치면 이름이 그 글자들로 시작하는 항목으로 간다(1초 안에 친 글자를 이어 붙임. 예: `sqli` → SQLite).
@@ -3827,3 +3827,5 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-15 "쿼리 실행 사양"의 F5 줄에 둘째 키 Alt+X(앱 변경 #122, `chromite/execute-alt-x`, [shortcuts.md](shortcuts.md)).
 - 2026-11-15 SQLite에서 ATTACH한 데이터베이스·`temp.` 테이블이 주 데이터베이스의 같은 이름 테이블에 묶이지 않게(앱 변경 #125, `chromite/sqlite-qualified-binding`):
   `bindAttributes`는 쿼리가 한정했으나 풀리지 않은 테이블을 컨테이너 없는 열 이름으로 다시 찾지 않고, SQLite 모델은 `main`을 데이터 원본 자신으로 푼다. "결과 그리드의 테이블 묶기" 절. 회귀 테스트는 실행하지 않았다.
+- 2026-11-17 Database type 콤보의 맨 위 목록을 손으로 적은 주요 DB 대신 내장 드라이버 묶음에서 정함(앱 변경 #148, `chromite/connection-default-drivers`): ShardSphere 들어옴, MySQL 빠짐.
+  Altibase 공급자 연결의 Options > 설정 탭 제목은 연결의 데이터베이스 유형 이름(ShardSphere). [drivers.md](drivers.md) "새 연결의 기본 목록". 회귀 테스트는 실행하지 않았다.

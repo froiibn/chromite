@@ -21,14 +21,20 @@ package com.seizia.chromite.registry;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
+import org.jkiss.code.NotNull;
 import com.seizia.chromite.model.runtime.OSDescriptor;
 import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * ProductBundleRegistry
+ *
+ * 변경 이력:
+ * - 2026-11-17 {@link #getBundleIds()}: 선언 순서대로 묶음 ID를 준다. 새 연결의 기본 데이터베이스 목록이 이 순서를 따른다
+ *   (docs/chromite/drivers.md "새 연결의 기본 목록").
  */
 public class ProductBundleRegistry {
 
@@ -71,6 +77,15 @@ public class ProductBundleRegistry {
     public ProductBundleDescriptor getBundle(String id)
     {
         return bundles.get(id);
+    }
+
+    /**
+     * IDs of the declared bundles in declaration order (the order of the New Connection default list).
+     */
+    @NotNull
+    public List<String> getBundleIds()
+    {
+        return List.copyOf(bundles.keySet());
     }
 
 }

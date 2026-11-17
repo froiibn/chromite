@@ -43,8 +43,10 @@ import java.io.OutputStream;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
@@ -56,6 +58,9 @@ import java.util.zip.ZipInputStream;
  * 변경 이력:
  * - 2026-11-06 {@link #isOfflineMode()} 추가. 드라이버 파일 원격 다운로드를 막는 오프라인 모드 판단을 한곳에 둔다
  *   (docs/chromite/drivers.md).
+ * - 2026-11-17 {@link #getBundledDrivers}: 새 연결의 기본 데이터베이스 목록을 제품에 들어 있는 드라이버 파일에서 정한다. 손으로 적은
+ *   목록(Swing {@code DatabaseTypeCombo.FAVORITES})은 내장 여부와 따로 놀아 내장한 ShardSphere가 빠지고 내장하지 않은 MySQL이 남았다
+ *   (docs/chromite/drivers.md "새 연결의 기본 목록").
  */
 public class DriverUtils {
     private static final Log log = Log.getLog(DriverUtils.class);
@@ -232,6 +237,46 @@ public class DriverUtils {
         allDrivers.sort(Comparator.comparing(DBPNamedObject::getName));
 
         return allDrivers;
+    }
+
+    /**
+     * One driver for each product bundle whose files ship with the product, in the order the bundles are declared
+     * ({@link ProductBundleRegistry#getBundleIds()}): the databases a new connection lists first.
+     * A driver belongs to a bundle when a required, enabled, predefined file of it comes from that bundle and the file is
+     * in the installation. When several drivers share a bundle (PostgreSQL, TimescaleDB, Greenplum… all use
+     * {@code drivers.postgresql}) the one with the highest promoted score represents it, then the first by name.
+     *
+     * @param drivers the drivers to choose from (for example those a connection can be created with)
+     */
+    @NotNull
+    public static List<DBPDriver> getBundledDrivers(@NotNull List<? extends DBPDriver> drivers) {
+        Map<String, DBPDriver> byBundle = new HashMap<>();
+        for (DBPDriver driver : drivers) {
+            for (DBPDriverLibrary library : driver.getDriverLibraries()) {
+                if (!(library instanceof DriverLibraryAbstract predefined) || predefined.getProductBundle() == null
+                    || predefined.isCustom() || predefined.isDisabled() || predefined.isOptional()
+                    || predefined.getType() != DBPDriverLibrary.FileType.jar || !predefined.matchesCurrentPlatform()) {
+                    continue;
+                }
+                // The declaration alone is not enough: a bundle declared without its folder ships no driver
+                Path file = predefined.getLocalFile();
+                if (file == null || !Files.exists(file)) {
+                    continue;
+                }
+                byBundle.merge(predefined.getProductBundle(), driver, (current, candidate) ->
+                    candidate.getPromotedScore() > current.getPromotedScore()
+                        || (candidate.getPromotedScore() == current.getPromotedScore()
+                            && candidate.getName().compareToIgnoreCase(current.getName()) < 0) ? candidate : current);
+            }
+        }
+        List<DBPDriver> result = new ArrayList<>();
+        for (String bundle : ProductBundleRegistry.getInstance().getBundleIds()) {
+            DBPDriver driver = byBundle.get(bundle);
+            if (driver != null && !result.contains(driver)) {
+                result.add(driver);
+            }
+        }
+        return result;
     }
 
     public static boolean downloadDriverFiles(

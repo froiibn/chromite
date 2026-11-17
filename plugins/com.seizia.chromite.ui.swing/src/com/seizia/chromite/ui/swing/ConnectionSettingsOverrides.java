@@ -21,6 +21,7 @@ import com.seizia.chromite.ext.altibase.AltibaseDataSourceProvider;
 import com.seizia.chromite.ext.cubrid.CubridDataSourceProvider;
 import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
 import com.seizia.chromite.model.DBPDataSourceProvider;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.registry.DataSourceDescriptor;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
@@ -55,6 +56,7 @@ import java.util.Set;
  * - 2026-11-08 Binary and LOB, Code Completion, Data Transfer 페이지와 Altibase·CUBRID 연결의 페이지, 끈 페이지는 페이지의 전역 저장소 값을 보임
  *   (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  * - 2026-11-12 "Tools &gt; Options의 설정을 따른다" 안내 옆에 Options의 같은 페이지를 여는 링크 (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
+ * - 2026-11-17 Altibase 공급자 연결의 페이지 제목은 연결의 데이터베이스 유형 이름(ShardSphere 연결은 "ShardSphere", 앱 변경 #148)
  */
 final class ConnectionSettingsOverrides extends JPanel {
 
@@ -74,7 +76,9 @@ final class ConnectionSettingsOverrides extends JPanel {
         if (provider instanceof OracleDataSourceProvider) {
             pages.add(new OracleOptionsPage(false));
         } else if (provider instanceof AltibaseDataSourceProvider) {
-            pages.add(new AltibaseOptionsPage(false));
+            // The provider also serves ShardSphere: the page is titled after the connection's own database type
+            DBPDataSourceType type = dataSource.getDriver().getDataSourceType();
+            pages.add(new AltibaseOptionsPage(false, type == null ? SettingsMessages.altibase_tab : type.getName()));
         } else if (provider instanceof CubridDataSourceProvider) {
             pages.add(new CubridOptionsPage(false));
         }

@@ -30,6 +30,7 @@ import com.seizia.chromite.model.fs.DBFUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.OSDescriptor;
 import com.seizia.chromite.model.runtime.OSDescriptorMatch;
+import com.seizia.chromite.registry.ProductBundleRegistry;
 import com.seizia.chromite.registry.RegistryConstants;
 import com.seizia.chromite.registry.internal.RegistryMessages;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -49,6 +50,9 @@ import java.util.Collections;
  * 변경 이력:
  * - 2026-11-06 오프라인 모드({@link DriverUtils#isOfflineMode()})에서는 {@link #downloadLibraryFile}이 원격(file: 이외) 다운로드 대신
  *   안내 메시지와 함께 실패한다. Maven, URL, repo: 파일 모두 이 메서드로 내려받으므로 여기 한곳에서 막는다.
+ * - 2026-11-17 {@link #getProductBundle()}: 이 파일을 제품에 넣는 묶음({@code bundle="drivers.X"})을 기억한다. 새 연결의 기본
+ *   데이터베이스 목록이 "드라이버 파일이 제품에 들어 있는 데이터베이스"를 손으로 적은 목록 없이 찾는 근거다
+ *   ({@link DriverUtils#getBundledDrivers}, docs/chromite/drivers.md "새 연결의 기본 목록").
  */
 public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
     private static final Log log = Log.getLog(DriverLibraryAbstract.class);
@@ -64,6 +68,8 @@ public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
     protected boolean embedded;
     protected boolean disabled;
     protected long fileCRC;
+    @Nullable
+    private String productBundle;
 
     public static DriverLibraryAbstract createFromPath(
         @NotNull  DriverDescriptor driver,
@@ -125,6 +131,7 @@ public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
         this.optional = copyFrom.optional;
         this.custom = copyFrom.custom;
         this.disabled = copyFrom.disabled;
+        this.productBundle = copyFrom.productBundle;
     }
 
     protected DriverLibraryAbstract(@NotNull  DriverDescriptor driver, @NotNull FileType type, @NotNull String path) {
@@ -152,6 +159,11 @@ public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
         this.embedded = CommonUtils.getBoolean(config.getAttribute(RegistryConstants.ATTR_EMBEDDED), false);
         this.optional = CommonUtils.getBoolean(config.getAttribute(RegistryConstants.ATTR_OPTIONAL), false);
         this.custom = false;
+        // Only a declared product bundle ships the file; "!drivers.X" marks the download used when it is not declared
+        String bundle = config.getAttribute(RegistryConstants.ATTR_BUNDLE);
+        if (!CommonUtils.isEmpty(bundle) && !bundle.startsWith("!") && ProductBundleRegistry.getInstance().hasBundle(bundle)) { //$NON-NLS-1$
+            this.productBundle = bundle;
+        }
     }
 
     @Nullable
@@ -225,6 +237,15 @@ public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
     @Override
     public boolean isDisabled() {
         return disabled;
+    }
+
+    /**
+     * The product bundle ({@code com.seizia.chromite.product.bundles}) that ships this predefined file with the product,
+     * or null for a file that is downloaded or added by the user.
+     */
+    @Nullable
+    public String getProductBundle() {
+        return productBundle;
     }
 
     @Override
