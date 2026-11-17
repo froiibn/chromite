@@ -65,7 +65,7 @@ com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
   oracle/OracleActivitySessionManager(+OracleActivitySession), oracle/OracleBlockingLockManager(+OracleBlockingLock)
   AdminSql ── 시스템 뷰 읽기 도우미(공간 사용량·서버 로그)
   space/ServerSpaceDialect(+SpaceGrid, SpaceColumn, SpaceReport, SpaceFormat, SpaceMessages)
-    └ mssql/SQLServerSpaceDialect, postgresql/PostgreSpaceDialect, mysql/MySQLSpaceDialect, oracle/OracleSpaceDialect
+    └ mssql/SQLServerSpaceDialect, postgresql/PostgreSpaceDialect, mysql/MySQLSpaceDialect, oracle/OracleSpaceDialect, altibase/AltibaseSpaceDialect
   logs/ServerLogDialect(+ServerLogSource, ServerLogQuery, ServerLogEntry, ServerLogPage, LogMessages)
     └ mssql/SQLServerLogDialect, postgresql/PostgreLogDialect, mysql/MySQLLogDialect, oracle/OracleLogDialect
   AdminGrid ── 유지 관리·복제 표(문자열 ID, 행 값·상세, 빈 표·읽을 수 없음 문구, 설명; 열은 SpaceColumn)
@@ -251,7 +251,7 @@ Activity Monitor·Locks)는 원래부터 연결된 모든 DB에서 켜져 있었
 DB 관리 기능 축 3. 연결마다 데이터베이스 크기, 파일·테이블스페이스·데이터 파일의 크기와 빈 공간, 크기가 큰 테이블(데이터, 인덱스, 합계, 행 수)을 보인다.
 DBeaver에는 같은 화면이 없다(SWT의 테이블 속성 "Disk space"가 테이블 하나씩만 보인다). 모델은 `com.seizia.chromite.model.admin.space`
 (`ServerSpaceDialect`, `SpaceGrid`, `SpaceColumn`, `SpaceReport`, `SpaceFormat`, `SpaceMessages`)와 DB별 방언(`mssql/SQLServerSpaceDialect`,
-`postgresql/PostgreSpaceDialect`, `mysql/MySQLSpaceDialect`, `oracle/OracleSpaceDialect`), 화면은 `DiskUsagePanel`과 `AdminGridTable`이다.
+`postgresql/PostgreSpaceDialect`, `mysql/MySQLSpaceDialect`, `oracle/OracleSpaceDialect`, `altibase/AltibaseSpaceDialect`(2026-11-17)), 화면은 `DiskUsagePanel`과 `AdminGridTable`이다.
 
 ### 둘 곳: Activity Monitor의 탭
 
@@ -267,13 +267,13 @@ DBeaver에는 같은 화면이 없다(SWT의 테이블 속성 "Disk space"가 �
 
 ### DB별 지원
 
-| 항목 | SQL Server | PostgreSQL | MySQL·MariaDB | Oracle |
-|---|---|---|---|---|
-| 데이터베이스 크기 | 데이터베이스마다 데이터 크기·사용·빈 공간, 로그 크기·사용·사용 %, 합계, 상태, 복구 모델, 로그 재사용 대기 | `pg_database_size`(소유자, 인코딩, 기본 테이블스페이스) | 스키마마다 테이블 수, 행 수(추정), 데이터, 인덱스, 빈 공간(DATA_FREE), 합계 | 연결한 PDB(CON_NAME) 하나: 데이터 파일 크기·사용·빈 공간, 임시 파일, 합계 |
-| 파일·테이블스페이스 | Files: 데이터베이스의 데이터·로그 파일마다 크기, 사용, 빈 공간, 빈 공간 %, 자동 증가(64 MB씩 / 10%씩 / 없음), 최대 크기(무제한), 파일 그룹, 경로 | Tablespaces: 크기, 소유자, 위치 | — (InnoDB 빈 공간은 테이블의 DATA_FREE) | Tablespaces: 내용, 상태, 크기, 사용, 빈 공간, 사용 %, 최대 크기, 최대 대비 사용 %, 자동 확장. Data Files: 파일(임시 파일 포함)마다 크기, 사용, 빈 공간, 자동 확장, 증가 단위, 최대 크기, 상태 |
-| 큰 테이블 | 고른 데이터베이스의 행 수, 데이터, 인덱스, 미사용, 합계(예약) | 연결한 데이터베이스의 종류(테이블/구체화된 뷰), 행 수(추정), 죽은 행, 데이터, TOAST, 인덱스, 합계 | 엔진, 행 형식, 행 수(추정), 데이터, 인덱스, 빈 공간, 합계 | 소유자, 행 수(통계), 데이터, 인덱스, LOB, 합계 |
-| 큰 테이블 범위 | 데이터베이스 하나(기본: 연결의 데이터베이스) | 스키마 또는 전체 | 스키마 또는 전체 | 소유자 또는 전체(DBA 뷰가 없으면 자기 스키마) |
-| 쓰는 뷰·함수 | `sys.databases`, `sys.master_files`, 데이터베이스마다 `[db].sys.sp_executesql`로 `sys.database_files`·`FILEPROPERTY`, `sys.partitions`·`sys.allocation_units` | `pg_database_size`, `pg_tablespace_size`, `pg_table_size`, `pg_total_relation_size`, `pg_indexes_size`, `pg_stat_all_tables` | `information_schema.SCHEMATA`, `TABLES`, `USER_PRIVILEGES` | `DBA_TABLESPACES`, `DBA_DATA_FILES`, `DBA_FREE_SPACE`, `DBA_TEMP_FILES`, `DBA_TEMP_FREE_SPACE`, `DBA_SEGMENTS`, `DBA_INDEXES`, `DBA_LOBS`, `DBA_TABLES`(없으면 `USER_*`) |
+| 항목 | SQL Server | PostgreSQL | MySQL·MariaDB | Oracle | Altibase·ShardSphere |
+|---|---|---|---|---|---|
+| 데이터베이스 크기 | 데이터베이스마다 데이터 크기·사용·빈 공간, 로그 크기·사용·사용 %, 합계, 상태, 복구 모델, 로그 재사용 대기 | `pg_database_size`(소유자, 인코딩, 기본 테이블스페이스) | 스키마마다 테이블 수, 행 수(추정), 데이터, 인덱스, 빈 공간(DATA_FREE), 합계 | 연결한 PDB(CON_NAME) 하나: 데이터 파일 크기·사용·빈 공간, 임시 파일, 합계 | — (서버에 데이터베이스 하나, 한도는 테이블스페이스 표) |
+| 파일·테이블스페이스 | Files: 데이터베이스의 데이터·로그 파일마다 크기, 사용, 빈 공간, 빈 공간 %, 자동 증가(64 MB씩 / 10%씩 / 없음), 최대 크기(무제한), 파일 그룹, 경로 | Tablespaces: 크기, 소유자, 위치 | — (InnoDB 빈 공간은 테이블의 DATA_FREE) | Tablespaces: 내용, 상태, 크기, 사용, 빈 공간, 사용 %, 최대 크기, 최대 대비 사용 %, 자동 확장. Data Files: 파일(임시 파일 포함)마다 크기, 사용, 빈 공간, 자동 확장, 증가 단위, 최대 크기, 상태 | Tablespaces: 종류(`V$TABLESPACES.TYPE` 이름), 상태, 크기, 사용, 사용 가능, 사용 %, 최대 크기, 최대 대비 사용 %, 자동 확장(메모리·휘발성·디스크 데이터·언두·임시 모두). Data Files: 디스크 데이터·언두 파일과 임시 파일마다 크기, 자동 확장, 증가 단위, 최대 크기, 상태, 메모리 테이블스페이스의 체크포인트 경로(경로만). 파일마다의 사용량은 없음 |
+| 큰 테이블 | 고른 데이터베이스의 행 수, 데이터, 인덱스, 미사용, 합계(예약) | 연결한 데이터베이스의 종류(테이블/구체화된 뷰), 행 수(추정), 죽은 행, 데이터, TOAST, 인덱스, 합계 | 엔진, 행 형식, 행 수(추정), 데이터, 인덱스, 빈 공간, 합계 | 소유자, 행 수(통계), 데이터, 인덱스, LOB, 합계 | 소유자, 테이블스페이스, 메모리, 디스크, 합계(행 수 없음) |
+| 큰 테이블 범위 | 데이터베이스 하나(기본: 연결의 데이터베이스) | 스키마 또는 전체 | 스키마 또는 전체 | 소유자 또는 전체(DBA 뷰가 없으면 자기 스키마) | 소유자 또는 전체 |
+| 쓰는 뷰·함수 | `sys.databases`, `sys.master_files`, 데이터베이스마다 `[db].sys.sp_executesql`로 `sys.database_files`·`FILEPROPERTY`, `sys.partitions`·`sys.allocation_units` | `pg_database_size`, `pg_tablespace_size`, `pg_table_size`, `pg_total_relation_size`, `pg_indexes_size`, `pg_stat_all_tables` | `information_schema.SCHEMATA`, `TABLES`, `USER_PRIVILEGES` | `DBA_TABLESPACES`, `DBA_DATA_FILES`, `DBA_FREE_SPACE`, `DBA_TEMP_FILES`, `DBA_TEMP_FREE_SPACE`, `DBA_SEGMENTS`, `DBA_INDEXES`, `DBA_LOBS`, `DBA_TABLES`(없으면 `USER_*`) | `V$TABLESPACES`, `V$DATAFILES`, `V$MEM_TABLESPACES`, `V$VOL_TABLESPACES`, `V$MEM_TABLESPACE_CHECKPOINT_PATHS`, 트리의 크기 문장(`V$MEMTBL_INFO`, `X$SEGMENT`, `X$TEMPTABLE_STATS`, `V$DISK_UNDO_USAGE`, `V$DATABASE`, `V$PROPERTY`), `SYSTEM_.SYS_TABLE_SIZE_` |
 
 ### 화면
 
@@ -304,8 +304,14 @@ DBeaver에는 같은 화면이 없다(SWT의 테이블 속성 "Disk space"가 �
   세그먼트 뷰가 없으면 큰 테이블은 `USER_*` 뷰로 로그인 자신의 스키마만 보인다. 테이블 크기는 세그먼트를 테이블로 모은다(테이블·파티션, 그 테이블 인덱스,
   LOB 세그먼트와 LOB 인덱스). 휴지통(`BIN$`)은 뺀다. 임시 테이블스페이스는 `DBA_TEMP_FREE_SPACE`로 크기·빈 공간을 읽는다.
 - **ORACLE LICENSE GUARD**: 공간 기록을 주는 AWR 뷰(`DBA_HIST_TBSPC_SPACE_USAGE`, `DBA_HIST_SEG_STAT`)와 `DBA_TABLESPACE_USAGE_METRICS`는 쓰지 않는다. 위 뷰는 팩이 필요 없다.
+- **Altibase 계열(2026-11-17)은 트리와 같은 크기 문장을 쓴다**: 테이블스페이스의 사용·최대 크기는 Storage > Tablespaces 트리의 문장(`AltibaseTablespace.readSizes`)을
+  탭의 세션에서 부른다(트리의 Available Size = 최대 크기 − 사용). 크기는 페이지 수 × 그 테이블스페이스의 페이지 크기(메모리 32 KB, 디스크 8 KB). 언두·임시 사용량은
+  그 테이블스페이스의 행이고, 데이터 파일마다의 사용량과 체크포인트 이미지의 크기는 서버가 주지 않아 없다. 큰 테이블은 서버 뷰 `SYS_TABLE_SIZE_`(메모리·디스크, 행 수 없음).
+  Altibase 7.3과 ShardSphere(일반 서버, 샤딩 메타 노드)에 같은 문장, 제품 이름 검사 없음. 표마다 문장이 실패하면 그 표만 "읽을 수 없음: {서버 메시지}".
+  자세한 것과 확인은 [altibase.md](altibase.md) "공간 사용량".
 - **적용 범위**: SQL Server는 Azure SQL Database·Synapse(엔진 에디션 5, 6, 11)를 빼고, PostgreSQL은 서버 종류가 PostgreSQL이고 9.2 이상일 때만
-  (Greenplum·Redshift 같은 계열 서버는 크기 함수가 다르다), MySQL은 MySQL·MariaDB 데이터 소스 모두, Oracle은 모든 버전(임시 빈 공간은 11g+).
+  (Greenplum·Redshift 같은 계열 서버는 크기 함수가 다르다), MySQL은 MySQL·MariaDB 데이터 소스 모두, Oracle은 모든 버전(임시 빈 공간은 11g+),
+  Altibase는 Altibase 데이터 소스 모두(같은 클래스인 ShardSphere 포함, ShardSphere 기능 번들이 없어도 된다).
 
 ### 권한 확인
 
@@ -315,6 +321,7 @@ DBeaver에는 같은 화면이 없다(SWT의 테이블 속성 "Disk space"가 �
 | PostgreSQL | `has_database_privilege(.., 'CONNECT')`, `has_tablespace_privilege(.., 'CREATE')`, `pg_has_role('pg_read_all_stats', 'USAGE')` | 그 데이터베이스·테이블스페이스의 크기를 비우고 안내 |
 | MySQL·MariaDB | `information_schema.USER_PRIVILEGES`의 전역 SELECT | "권한을 가진 스키마와 테이블만 표시합니다" |
 | Oracle | 뷰마다 `SELECT 1 FROM <뷰> WHERE 1 = 0` | 못 읽는 뷰 이름과 "SELECT_CATALOG_ROLE을 부여하십시오", 해당 표는 "사용할 수 없음", 큰 테이블은 자기 스키마 |
+| Altibase·ShardSphere | 미리 확인하지 않음(7.3에서 SYS가 아닌 사용자도 모든 문장을 준비함) | 실패한 표만 "읽을 수 없음: {서버 메시지}", 다른 표는 그대로 |
 
 ## 서버 로그 (Server Logs, 2026-11-07)
 
@@ -752,3 +759,5 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
   (`ALTER SYSTEM CANCEL SQL`, 목록의 SQL_ID 사용, ALTER SYSTEM 권한, 취소가 기본인 확인). 위 "Oracle RAC와 쿼리 취소".
 - 2026-11-08 복제 탭에 Altibase(`AltibaseReplicationDialect`, SWT 감사 D-A7). Docker Altibase 7.3(복제 꺼짐)에서 확인([altibase.md](altibase.md) "복제 시작·중지·동기화").
 - 2026-11-12 유지 관리 대화상자의 진행 표시를 길이를 모르는 막대에서 도넛 스피너로(앱 변경 #60, `chromite/small-fixes-r2`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "스피너 하나와 길이를 모르는 진행").
+- 2026-11-17 공간 사용량 탭에 Altibase 계열(Altibase·ShardSphere, `altibase/AltibaseSpaceDialect`, 앱 변경 #139 작업 7): 테이블스페이스·데이터 파일·체크포인트 경로·큰 테이블,
+  트리와 같은 크기 문장. [altibase.md](altibase.md) "공간 사용량".

@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 공간 사용량 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-17 Altibase 계열 문구: 메모리·디스크 열, 파일 종류, 표의 읽기 오류, 테이블스페이스 한도 설명 (앱 변경 #139 작업 7)
  */
 public class SpaceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.model.admin.space.SpaceMessages"; //$NON-NLS-1$
@@ -92,6 +93,10 @@ public class SpaceMessages extends NLS {
     public static String space_col_toast;
     public static String space_col_toast_tip;
     public static String space_col_lob;
+    public static String space_col_memory;
+    public static String space_col_memory_tip;
+    public static String space_col_disk;
+    public static String space_col_disk_tip;
     public static String space_col_unused;
     public static String space_col_total;
     public static String space_col_reserved_tip;
@@ -102,6 +107,10 @@ public class SpaceMessages extends NLS {
     public static String space_value_growth_none;
     public static String space_value_growth_percent;
     public static String space_value_growth_size;
+    public static String space_value_data_file;
+    public static String space_value_temp_file;
+    public static String space_value_checkpoint_path;
+    public static String space_error;
     public static String space_mssql_edition;
     public static String space_mssql_hidden_databases;
     public static String space_mssql_tables_partial;
@@ -111,6 +120,7 @@ public class SpaceMessages extends NLS {
     public static String space_oracle_missing_views;
     public static String space_oracle_missing_views_own_tables;
     public static String space_oracle_unavailable;
+    public static String space_alti_max_size_tip;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, SpaceMessages.class);
