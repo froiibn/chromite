@@ -93,6 +93,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - **v0.1.0에서 올린 사용자:** 작업 공간의 `drivers.xml`에 `drivers/mysql/mysql8` 라이브러리가 저장돼 있어도, 사용자 정의가 아닌 라이브러리가
   `plugin.xml`에 없으면 읽을 때 건너뛴다(`DriverDescriptorSerializerLegacy`의 "Skip obsolete custom library"). 그래서 Maven 항목이 쓰이고 처음 연결할 때 내려받는다.
 - **Connect 대화상자:** Database type 콤보의 주요 DB 목록(`DatabaseTypeCombo.FAVORITES`)에는 MySQL을 그대로 둔다. 결정은 내장 여부만 정했다.
+  2026-11-17부터 이 목록은 내장 드라이버에서 정하므로 MySQL은 빠졌다(아래 "새 연결의 기본 목록").
 
 ### 내장 방법
 
@@ -401,6 +402,74 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
   Altibase 공급자에 얹는다. 이 드라이버·jar·데이터 원본 유형·아이콘은 위 그대로 여기에 있고(저장된 연결 변화 없음), 플러그인은 드라이버가 아니라 서버 카탈로그로
   ShardSphere를 알아본다. 구조·감지·빼는 방법은 [shardsphere.md](shardsphere.md).
 
+### 새 연결의 기본 목록 (2026-11-17, 앱 변경 #148)
+
+사용자 요청(2026-11-17, 원문): "우리 제품에서 알티베이스 보다 샤드 스피어가 눈에 더 잘띄게 한다. 최초 연결 시 기본으로 나열되는 데이터베이스에
+샤드스피어를 추가한다. 드라이버 기본 내장 기준으로 표시되게 한다"
+
+- **전:** Connect 대화상자의 Database type 콤보 맨 위 목록은 손으로 적은 드라이버 ID 여섯 개였다(`DatabaseTypeCombo.FAVORITES`: SQL Server, PostgreSQL,
+  MySQL, MariaDB, Oracle, SQLite). 내장 여부와 따로 놀아, 2026-11-07에 내장을 취소한 MySQL은 남고 2026-11-14에 내장한 ShardSphere는 없었다.
+- **규칙(근본 원인 수정):** 맨 위 목록은 **드라이버 파일이 제품에 들어 있는 데이터베이스**다. 구성원과 순서를 모두 이 문서의 묶음 선언
+  ([drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml))에서 얻는다.
+  - 드라이버가 묶음에 속한다: 미리 정의된(사용자 정의가 아닌) 필수 jar 파일 하나가 `bundle="drivers.X"`이고, `drivers.X`가 선언돼 있고, 그 파일이 설치 폴더에 있다.
+    선언만 있고 폴더가 없으면 빠진다(선언과 폴더는 같은 feature로 배포하지만, 어긋나면 연결할 수 없는 드라이버를 맨 위에 보이지 않게).
+    파일이 어느 묶음에서 왔는지는 `DriverLibraryAbstract.getProductBundle()`이 plugin.xml을 읽을 때 기억한다.
+  - 한 묶음에 드라이버가 여럿이면(`drivers.postgresql`: PostgreSQL, TimescaleDB, YugabyteDB, CockroachDB, Greenplum 등 11개, `drivers.mssql.new`: SQL Server, Azure SQL Server, Babelfish)
+    `promoted` 점수가 가장 높은 드라이버 하나가 그 묶음을 대표하고, 같으면 이름순 첫째다(upstream이 주요 드라이버에 준 `promoted="1"`: SQL Server, PostgreSQL).
+  - 순서는 묶음 선언 순서다(`ProductBundleRegistry.getBundleIds()`). 예전 목록의 순서를 지키려고 선언 순서를 SQL Server, PostgreSQL, MariaDB, Oracle, SQLite, ShardSphere로 바꿨다.
+    새 연결은 첫 항목(SQL Server)으로 시작한다(전과 같음).
+  - 코드: [DriverUtils.getBundledDrivers](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverUtils.java),
+    [DatabaseTypeCombo](../../plugins/com.seizia.chromite.ui.swing/src/com/seizia/chromite/ui/swing/DatabaseTypeCombo.java)(목록과 `getDefaultDriver`).
+- **목록 전과 후:**
+
+  | 전 | 후 | 후의 근거 |
+  |---|---|---|
+  | SQL Server | SQL Server | `drivers.mssql.new`, `promoted=1`(Azure SQL Server·Babelfish보다 앞) |
+  | PostgreSQL | PostgreSQL | `drivers.postgresql`, `promoted=1`(나머지 10개보다 앞) |
+  | MySQL | (빠짐) | 내장하지 않음(2026-11-07 결정). 검색·전체 목록·최근 목록으로 고른다 |
+  | MariaDB | MariaDB | `drivers.mariadb` |
+  | Oracle | Oracle | `drivers.oracle` |
+  | SQLite | SQLite | `drivers.sqlite.xerial` |
+  | (없음) | ShardSphere | `drivers.shardsphere`(2026-11-14 내장) |
+
+  Altibase는 드라이버를 처음 쓸 때 내려받으므로(`drivers.altibase`를 선언하지 않음) 맨 위 목록에 없다. "More database types…"의 검색과 전체 목록, 최근 목록으로 고른다.
+- **빠진 MySQL(선택과 대안):** 사용자가 "드라이버 기본 내장 기준"을 정했으므로 그대로 따랐다. MySQL 서버에는 내장된 MariaDB 드라이버로도 연결할 수 있고,
+  MySQL 드라이버로 연결을 한 번 만들면 최근 목록으로 맨 위 목록 바로 아래에 보인다. 대안: MySQL을 다시 내장하거나(GPL 대응 소스 의무, 2026-11-07에 취소한 이유),
+  "내장 + 손으로 고른 추가 항목" 규칙을 두는 것. 둘 다 이번에는 하지 않았다.
+- **최근 목록:** 그대로다. 맨 위 목록 다음에 연결을 만든 다른 드라이버가 최근 순으로 온다(`ConnectionHistory.getRecentDrivers`). 맨 위 목록에 있는 드라이버는 한 번만 보인다.
+- **ShardSphere를 Altibase보다 앞에:** 순서를 사람이 정하는 목록(이 맨 위 목록)에서 ShardSphere는 들어 있고 Altibase는 없다. 이름순으로 설계된 목록(More database types…의
+  전체 목록, Driver Manager)은 이름순 그대로 두었다(Altibase가 A라 앞). 검색어로 찾을 때는 검색어로 시작하는 이름이 먼저라 "shard"·"sphere"는 ShardSphere 하나,
+  "alti"는 Altibase 하나다. 그 밖에 두 이름이 함께 나오는 목록은 없다(오프라인 묶음 만들기는 내려받을 파일이 있는 드라이버만 보여 ShardSphere가 나오지 않는다,
+  `DriverBundleCreateDialog`).
+- **확인(2026-11-17, 전: origin/command `a3f6a0df5d` 빌드, 후: 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트):**
+  - 처음 실행(연결 없음): 전은 SQL Server, PostgreSQL, MySQL, MariaDB, Oracle, SQLite, 후는 SQL Server, PostgreSQL, MariaDB, Oracle, SQLite, ShardSphere.
+    새 연결은 둘 다 SQL Server로 시작했다. 한국어·영어 150 % 밝은 테마, 한국어 100 % 어두운 테마.
+  - 검색(More database types…, 전후 같음): "shard"·"sphere" → ShardSphere 하나, "alti" → Altibase 하나, 빈 검색 → 135개(Altibase 0번째, ShardSphere 112번째, 이름순).
+  - 맨 위 목록의 ShardSphere를 고르면 전과 같은 연결 화면(서버 이름, 데이터베이스 memdb, 로그인 sys)이다. 암호 저장을 끄고 연결하자 로그인 창이 열렸고, 암호를 넣어
+    실제 ShardSphere 서버에 연결해 `SELECT 1 FROM DUAL`이 1을 돌려줬다(제품 "ShardSphere", 저장된 연결의 암호 저장 꺼짐).
+  - Altibase는 검색으로 골라 Altibase 7.3 시험 서버(터널)에 같은 방법으로 연결해 `SELECT 1 FROM DUAL` → 1. 로컬 `Altibase.jar`를 드라이버에 더해 내려받지 않았다.
+  - 연결이 있는 작업 공간(위 두 연결): 맨 위 목록 다음에 최근 목록으로 Altibase가 왔다. ShardSphere는 이미 맨 위에 있어 한 번만 보였다.
+  - Driver Manager(전후 같음): 112행 이름순, Altibase 0행, ShardSphere 88행. 검색 "sphere" → ShardSphere, "alti" → Altibase.
+  - 연결 대화상자 > 옵션 > 설정: ShardSphere 연결의 탭과 머리글이 전은 "Altibase", 후는 "ShardSphere". Altibase 연결은 그대로 "Altibase".
+  - 묶음을 뺀 빌드(커밋하지 않음): `drivers.sqlite.xerial` 선언과 feature `pom.xml`의 sqlite-jdbc를 지우고 빌드하자 SQLite가 맨 위 목록에서 빠지고 검색 "sqlite"로는 그대로 찾았다.
+  - 증거 `D:\Tools\_scratch\connection-default-drivers\sheets\`. 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 새 연결의 기본 드라이버와 Database type 콤보,
+    Altibase·ShardSphere 연결의 옵션 > 설정 탭.
+
+### ShardSphere 화면의 Altibase 이름 (2026-11-17, 앱 변경 #148)
+
+ShardSphere 드라이버는 Altibase 공급자에 있으므로 공급자 이름이 보이는 곳에서는 "Altibase"가 나온다. 조사한 곳과 처리:
+
+| 곳 | 보이는 글 | 처리 |
+|---|---|---|
+| 연결 대화상자 > Options > 설정의 데이터베이스 탭(`ConnectionSettingsOverrides`, `AltibaseOptionsPage`) | 탭과 머리글 "Altibase" | **고침:** 연결의 데이터베이스 유형 이름("ShardSphere"). Tools > Options의 전역 페이지는 두 제품에 함께 적용되므로 "Altibase" 그대로 |
+| Driver Manager > Edit의 "Driver type"(`DriverEditorDialog`, 공급자 콤보) | "Altibase"와 Altibase 아이콘 | 제안만: 공급자를 바꿀 수 없을 때 드라이버의 데이터베이스 유형을 보이면 되지만, Generic 공급자의 드라이버 약 100개도 함께 바뀌어(예: "Generic" → "Teradata") 이번 범위를 넘는다 |
+| 개체 탐색기 System Info > Memory modules 도구 설명(`ext.altibase` `bundle.properties`) | "Memory usage of Altibase modules" | 제안만: 제품 이름 없는 문구로. 다른 작업이 `ext.altibase`를 고치는 중이라 손대지 않음 |
+| 실제 실행 계획 오류(`AltibaseActualPlanProvider`) | "The Altibase driver …" | 제안만: "The driver …". 같은 이유로 손대지 않음 |
+| 실제 실행 계획 도구 설명(`EditorMessages` `editor_sql_actual_plan_unsupported`) | "… SQL Server, Oracle and Altibase connections …" | 제안만: ShardSphere를 Altibase 앞에 더함(새 문구라 이번에는 넣지 않음) |
+| 진행 작업 이름(`AltibaseDataTypeCache`) | "Load Altibase data types" | 제안만(`ext.altibase` 모델 클래스) |
+| Agent의 연결 목록(`ConnectionTools`, `family`) | 연결 전 `altibase` | 제안만: 드라이버의 유형 ID를 쓰기 |
+| 개체 트리 뿌리의 "Altibase data source"(`plugin.xml` `<tree label>`) | 화면에 보이지 않음 | 해당 없음 |
+
 ### 폐쇄망 오프라인 설치 경로
 
 - 2026-11-07 결정으로 전체 드라이버를 내장하는 내부판은 만들지 않는다(위 "배포판 구성").
@@ -482,3 +551,5 @@ Maven Central에 없는 jar(ShardSphere)는 4번 대신 jar를 `drivers-root/dri
 - 2026-11-15 ShardSphere 드라이버의 기본 사용자를 `sys`로(프로젝트 소유자의 결정, `chromite/shardsphere-default-user`).
 - 2026-11-15 ShardSphere 연결의 키워드를 서버의 `V$RESERVED_WORDS`에 맞춤(앱 변경 #115, `chromite/shardsphere-keywords`), "ShardSphere"의 "예약어".
 - 2026-11-17 ShardSphere 기능을 별도 번들·feature로(앱 변경 #139, `chromite/shardsphere-plugin-skeleton`): 드라이버 정의는 그대로, "ShardSphere"에 [shardsphere.md](shardsphere.md)를 가리키는 항목.
+- 2026-11-17 "새 연결의 기본 목록"(앱 변경 #148, `chromite/connection-default-drivers`, 사용자 요청): Connect 대화상자 맨 위 목록을 손으로 적은 목록 대신 내장 드라이버
+  묶음에서 정함(ShardSphere 들어옴, MySQL 빠짐), 묶음 선언 순서를 예전 목록 순서로. "ShardSphere 화면의 Altibase 이름": 연결의 설정 탭 제목을 고치고 나머지는 제안으로 남김.

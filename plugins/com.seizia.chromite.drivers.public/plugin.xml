@@ -26,14 +26,17 @@
     - 2026-11-14 Added drivers.shardsphere (ShardSphere JDBC driver, project owner's decision). It is not on Maven
       Central, so the jar is committed in the feature's drivers-root/drivers/shardsphere/ instead of being copied at
       build time, and the driver has no Maven alternative (docs/chromite/drivers.md "ShardSphere").
+    - 2026-11-17 The New Connection dialog lists first one database per bundle declared here, in this order
+      (DriverUtils.getBundledDrivers, docs/chromite/drivers.md "새 연결의 기본 목록"). Reordered to keep the order of the
+      former hand-kept list (SQL Server, PostgreSQL, MariaDB, Oracle, SQLite); ShardSphere follows.
 -->
 <plugin>
 
     <extension point="com.seizia.chromite.product.bundles">
         <bundle id="drivers.mssql.new" label="Microsoft SQL Server JDBC driver" description="mssql-jdbc with msal4j in drivers/mssql/new"/>
-        <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
         <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
         <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
+        <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
         <bundle id="drivers.sqlite.xerial" label="SQLite JDBC driver" description="Xerial sqlite-jdbc in drivers/sqlite/xerial"/>
         <bundle id="drivers.shardsphere" label="ShardSphere JDBC driver" description="ShardSphere JDBC driver in drivers/shardsphere"/>
     </extension>
