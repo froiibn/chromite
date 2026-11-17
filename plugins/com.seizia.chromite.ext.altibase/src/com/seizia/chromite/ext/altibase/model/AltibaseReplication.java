@@ -30,6 +30,7 @@ import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
 import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -44,20 +45,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An Altibase replication (SYSTEM_.SYS_REPLICATIONS_ row).
+ * A replication of a server of the Altibase family: a row of the connection's replication catalog
+ * ({@link AltibaseReplicationCatalog}; on Altibase SYSTEM_.SYS_REPLICATIONS_).
  *
- * 설계: 상태(시작 여부)는 목록과 같은 카탈로그 행에서 같은 문장({@code AltibaseDataSource.ReplicationCache})으로 읽는다. 복제 카탈로그 이름을
- * 한곳에만 두어, 다른 카탈로그를 쓰는 서버(ShardSphere GEMINI)의 전략이 그곳 하나만 바꾸면 되게 한다.
+ * 설계: 상태(시작 여부)는 목록과 같은 카탈로그 행에서 같은 문장({@code AltibaseDataSource.ReplicationCache})으로 읽는다. 문장은 모두 복제
+ * 카탈로그가 주고, 이 객체는 자기를 읽은 카탈로그를 갖는다: 항목·송신·수신을 같은 카탈로그에서 읽고, 카탈로그에 없는 열에만 기대는 속성을
+ * 숨기고({@link HasConnectionType}), 카탈로그가 이름을 주면 속성 보기에 보이고({@link #getCatalogName()}), 확인하지 않은 제어 문장을
+ * 막는다({@link #supportsControlStatements()}).
  *
  * 변경 이력:
  * - 2026-11-17 {@link #refreshObjectState}: 프로시저 클래스에서 복사된 SYS_PROCEDURES_ 질의(자리표시자 둘 중 하나만 채움, 프로시저 상태를
  *   시작 여부로 읽음)를 복제 목록의 조회 문장으로 바꿈(앱 변경 #139, docs/chromite/altibase.md "상태 다시 읽기")
+ * - 2026-11-17 문장을 복제 카탈로그에서 받음, 카탈로그 이름 속성, 연결 유형 속성은 카탈로그에 그 열이 있을 때만, 통계(송신 지연 바이트)는
+ *   지연 단위가 있을 때만(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
  */
 public class AltibaseReplication extends AltibaseGlobalObject 
     implements DBSObjectLazy<AltibaseDataSource>, DBPRefreshableObject, DBPScriptObject, DBPStatefulObject, DBPObjectStatistics {
 
     private final SenderCache senderCache = new SenderCache();
     private final ReceiverCache receiverCache = new ReceiverCache();
+
+    // The catalog this replication was read from
+    @NotNull
+    private final AltibaseReplicationCatalog catalog;
 
     private String ddl;
 
@@ -81,6 +91,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
 
     protected AltibaseReplication(GenericStructContainer owner, JDBCResultSet resultSet) {
         super((AltibaseDataSource) owner.getDataSource(), true);
+        catalog = ((AltibaseDataSource) owner.getDataSource()).getReplicationCatalog();
 
         name = JDBCUtils.safeGetString(resultSet, "REPLICATION_NAME");
 
@@ -99,7 +110,26 @@ public class AltibaseReplication extends AltibaseGlobalObject
         remoteFaultDetectTime = JDBCUtils.safeGetTimestamp(resultSet, "REMOTE_FAULT_DETECT_TIME");
 
         remoteAddr = JDBCUtils.safeGetString(resultSet, "REMOTE_ADDR");
-        remoteConnType = JDBCUtils.safeGetString(resultSet, "REMOTE_CONN_TYPE");
+        // Not read where the catalog has no such column (the row has none)
+        if (catalog.hasHostConnectionType()) {
+            remoteConnType = JDBCUtils.safeGetString(resultSet, "REMOTE_CONN_TYPE");
+        }
+    }
+
+    /**
+     * The replication catalog this replication was read from; its items, sender and receiver are read from it too.
+     */
+    @NotNull
+    public AltibaseReplicationCatalog getReplicationCatalog() {
+        return catalog;
+    }
+
+    /**
+     * Whether the start, stop and synchronize statements may be sent for this replication
+     * ({@link AltibaseReplicationCatalog#supportsControlStatements()}).
+     */
+    public boolean supportsControlStatements() {
+        return catalog.supportsControlStatements();
     }
 
     // SYS_REPLICATIONS_.IS_STARTED: 1 started, 0 stopped
@@ -131,9 +161,18 @@ public class AltibaseReplication extends AltibaseGlobalObject
         return remoteAddr;
     }
 
-    @Property(viewable = true, order = 3)
+    @Property(viewable = true, order = 3, visibleIf = HasConnectionType.class)
     public String getRemoteConnType() {
         return remoteConnType;
+    }
+
+    /**
+     * The name the server gives its replication when its catalog is not the family's own; shown only then.
+     */
+    @Nullable
+    @Property(viewable = true, order = 9, visibleIf = HasCatalogName.class)
+    public String getCatalogName() {
+        return catalog.getDisplayName();
     }
 
     @Property(viewable = true, order = 10)
@@ -256,9 +295,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, 
                 @NotNull AltibaseReplication owner) throws SQLException {
-            final JDBCPreparedStatement dbStat = session.prepareStatement(
-                    "SELECT s.*, (g.rep_gap * p.value1) as gap_size_in_byte FROM v$repsender s, v$repgap g,  v$property p "
-                            + "WHERE s.rep_name = ? AND s.rep_name = g.rep_name AND p.name = 'REPLICATION_GAP_UNIT'");
+            final JDBCPreparedStatement dbStat = session.prepareStatement(owner.getReplicationCatalog().getSenderQuery());
             dbStat.setString(1, owner.getName());
             return dbStat;
         }
@@ -275,7 +312,7 @@ public class AltibaseReplication extends AltibaseGlobalObject
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, 
                 @NotNull AltibaseReplication owner) throws SQLException {
-            final JDBCPreparedStatement dbStat = session.prepareStatement("SELECT * from v$repreceiver WHERE rep_name = ?");
+            final JDBCPreparedStatement dbStat = session.prepareStatement(owner.getReplicationCatalog().getReceiverQuery());
             dbStat.setString(1, owner.getName());
             return dbStat;
         }
@@ -290,9 +327,13 @@ public class AltibaseReplication extends AltibaseGlobalObject
     ///////////////////////////////////
     // Statistics
 
+    /**
+     * The statistics size is the sender gap in bytes, which needs the catalog's gap unit: without one there is no size
+     * rather than a wrong one.
+     */
     @Override
     public boolean hasStatistics() {
-        return true;
+        return catalog.getGapUnitProperty() != null;
     }
 
     @Override
@@ -302,6 +343,26 @@ public class AltibaseReplication extends AltibaseGlobalObject
             gap = senderCache.getCachedObjects().get(0).getGapSizeInByte();
         }
         return gap;
+    }
+
+    /**
+     * Shows the connection type only where the catalog's host table has that column.
+     */
+    public static class HasConnectionType implements IPropertyValueValidator<AltibaseReplication, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplication object, @Nullable Object value) {
+            return object.catalog.hasHostConnectionType();
+        }
+    }
+
+    /**
+     * Shows the catalog's name only where the catalog has one (not on the family's own replication).
+     */
+    public static class HasCatalogName implements IPropertyValueValidator<AltibaseReplication, Object> {
+        @Override
+        public boolean isValidValue(@NotNull AltibaseReplication object, @Nullable Object value) {
+            return object.catalog.getDisplayName() != null;
+        }
     }
 
 }

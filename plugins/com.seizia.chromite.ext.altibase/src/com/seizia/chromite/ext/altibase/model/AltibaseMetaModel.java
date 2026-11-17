@@ -64,6 +64,8 @@ import java.util.Map;
  *   앱 변경 #139, docs/chromite/altibase.md "ShardSphere에서 다른 문장")
  * - 2026-11-17 GET_DEPENDENT_DDL을 {@code SELECT ...(?, ?, ?) FROM DUAL}이 아니라 get_ddl처럼 {@code exec ? := ...}로 부름. Altibase 7.3은
  *   SELECT 목록의 함수 인자로 호스트 변수를 받지 않아(201275 "Invalid use of host variables") Altibase에서도 주석이 늘 빠졌다(같은 문서)
+ * - 2026-11-17 {@link #getReplicationDDL}: DBMS_METADATA 객체 유형을 복제의 카탈로그에서 받고, 카탈로그가 유형을 모르면 부르지 않음
+ *   (앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
@@ -316,11 +318,16 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
     }
 
     /**
-     * Get a specific Replication DDL
+     * Get a specific Replication DDL. Empty where the replication's catalog names no DBMS_METADATA object type (the call
+     * is not known to work there and is not sent).
      */
-    public String getReplicationDDL(@NotNull DBRProgressMonitor monitor, @NotNull  AltibaseReplication sourceObject, 
+    public String getReplicationDDL(@NotNull DBRProgressMonitor monitor, @NotNull  AltibaseReplication sourceObject,
             @NotNull Map<String, Object> options) throws DBException {
-        return getDDLFromDbmsMetadata(monitor, sourceObject, null, "REPLICATION");
+        String objectType = sourceObject.getReplicationCatalog().getDdlObjectType();
+        if (objectType == null) {
+            return "";
+        }
+        return getDDLFromDbmsMetadata(monitor, sourceObject, null, objectType);
     }
     
     /**

@@ -124,8 +124,9 @@ import java.util.function.Consumer;
  *     <li>Altibase 복제 시작·중지·동기화 — 시작·중지는 SWT 도구({@link AltibaseToolReplicationStart}, {@link AltibaseToolReplicationStop})의
  *     {@code ALTER REPLICATION r START|STOP}이다. 동기화는 모델에 도구가 없어 같은 모양으로 {@code ALTER REPLICATION r SYNC}를 쓴다
  *     (Altibase 문서: 복제 대상 테이블의 모든 행을 원격 서버로 보낸 뒤 복제를 시작한다). 시작 여부는 모델이 읽은
- *     {@link AltibaseReplication#getIsStarted()}다. 모델의 {@code AltibaseReplication.refreshObjectState}는 복제가 아니라 프로시저
- *     카탈로그를 읽으므로(범위 밖 모델 버그) 상태 다시 읽기는 노드 새로 고침({@code refreshObject})에 맡긴다.</li>
+ *     {@link AltibaseReplication#getIsStarted()}다. 상태 다시 읽기는 노드 새로 고침({@code refreshObject})에 맡긴다(송신·수신 목록도
+ *     다시 읽음). 복제의 카탈로그가 제어 문장을 허락하지 않으면({@link AltibaseReplication#supportsControlStatements()}, 확인하지 않은
+ *     카탈로그) 세 명령 모두 그 복제에 적용되지 않는다.</li>
  *     <li>Altibase 계열 테이블스페이스 — 온라인·오프라인(메모리·디스크 데이터), 자동 확장(메모리·휘발성), 데이터·임시 파일의 크기와
  *     자동 확장. 문장은 {@link AltibaseTablespaceDDL}(시험 서버에서 확인한 문법)이고, 자동 확장과 파일 설정은 화면이 먼저 받은 값
  *     ({@link #needsSettings})으로 만든다. 온라인 여부는 모델이 읽은 {@code V$TABLESPACES.STATE}다({@link #isTablespaceOnline}).</li>
@@ -154,6 +155,7 @@ import java.util.function.Consumer;
  * - 2026-11-15 Oracle 테이블스페이스 온라인·오프라인, 읽기 전용·읽기 쓰기, 데이터 파일 설정(앱 변경 #127,
  *   docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
+ * - 2026-11-17 복제 시작·중지·동기화는 복제의 카탈로그가 제어 문장을 허락할 때만(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  */
 public final class ObjectMaintenanceActions {
 
@@ -244,7 +246,9 @@ public final class ObjectMaintenanceActions {
                 || object instanceof AltibaseView
                 || object instanceof AltibaseProcedureStandAlone
                 || object instanceof AltibasePackage;
-            case START_REPLICATION, STOP_REPLICATION, SYNC_REPLICATION -> object instanceof AltibaseReplication;
+            // Not on a replication whose catalog's control statements are not verified
+            case START_REPLICATION, STOP_REPLICATION, SYNC_REPLICATION -> object instanceof AltibaseReplication replication
+                && replication.supportsControlStatements();
             case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> object instanceof AltibaseTablespace tablespace && tablespace.supportsOnlineChange();
             case TABLESPACE_AUTOEXTEND -> object instanceof AltibaseTablespace tablespace && tablespace.supportsAutoextendChange();
             case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();

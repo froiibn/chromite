@@ -19,7 +19,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`. 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여. `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -39,7 +39,8 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | | `getTreeObjects()` | Object Explorer에 확장의 객체를 내는 중립 자리. 이번에는 감지 결과 노드 하나 |
 
 - **방언 기여(2026-11-17 작업 6a):** `getSyntaxKeywords()`, `getFunctions()`, `getStatementPrefixLength(text)`. 실행 전 확인 보강과 함께 넣었다(아래 "문장 접두어").
-- **나중으로 둔 것(쓰는 곳이 아직 없음):** 복제 카탈로그 전략(S2)은 GEMINI 트리와 함께, 관리 보고서 지점(S4)·객체 명령(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
+- **복제 카탈로그(2026-11-17 작업 4·5):** `getReplicationCatalog()`. GEMINI를 Replications 폴더와 복제 탭에 보인다(아래 "GEMINI").
+- **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·객체 명령(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
 
 ## 감지
 
@@ -405,9 +406,96 @@ UNSHARD, 재배치)은 넣지 않았다(쓰기 서버가 필요한 작업 11).
 - 미확인: `DEFAULT_NODE_ID`가 `NODES_`에 없는 번호일 수 있는지(그때 번호로 보임).
 - 미확인: 사용자(소유자)가 다른 같은 이름의 샤드 객체가 있을 수 있는지(트리는 이름만 보이고 소유자는 속성).
 
+## GEMINI (2026-11-17, 앱 변경 #139 작업 4·5)
+
+### 목적
+
+ShardSphere의 복제(GEMINI)를 기존 Replications 폴더(한국어 "이중화 객체")와 활동 모니터의 복제 탭에서 읽는다. 전에는 Altibase 이름을 질의해 폴더는 늘 비고
+(표 없음 오류를 숨김) 탭은 "읽을 수 없음 … SYS_REPL_HOSTS_"였다. 읽기만 한다: 시작·중지·동기화 같은 제어 문장은 GEMINI가 설정된 서버에서 확인하기 전까지 내지 않는다
+(사용자 결정 2026-11-17 "권장안대로").
+
+### 구조
+
+- Altibase 플러그인의 중립 전략 `AltibaseReplicationCatalog`([altibase.md](altibase.md) "복제 카탈로그")에 이 번들이 `model/GeminiReplicationCatalog`를 준다.
+  `ShardSphereServer.getReplicationCatalog()`는 GEMINI 카탈로그(`SYSTEM_.SYS_GEMINIS_`)를 감지한 연결에서만 그것을, 아니면 null(= Altibase 카탈로그)을 돌려준다.
+  메타 노드인지와 상관없다(일반 서버도 GEMINI 카탈로그가 있음). 결과는 감지 결과처럼 데이터 원본 인스턴스에 있다.
+- 이 번들은 `model.admin`에 기대지 않는다: 복제 탭의 Altibase 방언이 데이터 원본의 카탈로그를 읽는다.
+
+### 대응표 (조회 전용 조사 2026-11-16의 열 목록과 이 변경의 준비 확인)
+
+| Altibase | GEMINI | 모델이 읽는 이름으로 별칭 |
+|---|---|---|
+| `SYSTEM_.SYS_REPLICATIONS_` | `SYSTEM_.SYS_GEMINIS_` | `GEMINI_NAME` → `REPLICATION_NAME`, `GEMI_MODE` → `REPL_MODE`(같은 DECODE), `PEER_GEMINI_NAME` → `PEER_REPLICATION_NAME`. 나머지 열은 같은 이름 |
+| `SYSTEM_.SYS_REPL_HOSTS_` | `SYSTEM_.SYS_GEMI_HOSTS_` | `HOST_IP || ':' || PORT_NO` → `REMOTE_ADDR`. **`CONN_TYPE` 없음** → 연결 유형 속성을 숨김 |
+| `SYSTEM_.SYS_REPL_ITEMS_` | `SYSTEM_.SYS_GEMI_ITEMS_` | `GEMINI_NAME` → `REPLICATION_NAME`, `GEMINI_UNIT` → `REPLICATION_UNIT` |
+| `V$REPSENDER` + `V$REPGAP` | `V$GEMSENDER` + `V$GEMGAP` | `GEM_NAME` → `REP_NAME`, `GEM_GAP` → `REP_GAP`(단위 없이) |
+| `V$REPRECEIVER` | `V$GEMRECEIVER` | `GEM_NAME` → `REP_NAME` |
+| `REPLICATION_PORT_NO` | `GEMINI_PORT_NO` | 0이면 "사용 안 함" |
+| `REPLICATION_GAP_UNIT` | **없음** | 지연은 서버의 수 그대로(단위 미확인) |
+| `SYS_REPLICATIONS_.REMOTE_LAST_DDL_XSN` | **없음** | 모델이 읽지 않으므로 SELECT 목록에서 뺐다 |
+
+SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 않음: 이름이 다른 열이 별칭 없이 오지 않게). 송신 목록은 Altibase 문장처럼 지연 뷰와 내부 조인이다.
+
+### 보이는 것
+
+| 곳 | GEMINI가 있는 서버 |
+|---|---|
+| Global metadata ▸ 이중화 객체 | GEMINI 객체, 그 아래 송신·수신·이중화 테이블(Altibase 복제와 같은 노드) |
+| 복제 객체의 속성 보기 | 종류 = GEMINI(이 속성은 Altibase 복제에서 보이지 않음), 연결 유형 없음, 나머지는 Altibase와 같은 속성 |
+| 송신의 속성 보기 | "지연"(서버의 수, 단위 없음, 설명 "단위 미확인"). "Gap (Byte)"는 보이지 않음. 복제 객체의 통계 크기(지연 바이트)도 없음 |
+| 활동 모니터 ▸ 복제 ▸ 요약 | "GEMINI 포트" = `GEMINI_PORT_NO`, 0이면 "0: 이 서버는 GEMINI 사용 안 함(GEMINI_PORT_NO)", 복제 수와 시작된 수 |
+| 활동 모니터 ▸ 복제 ▸ 송신 | 지연 열 "지연"(수, 툴팁 "…서버가 준 수 그대로(단위 미확인)") |
+| 활동 모니터 ▸ 복제 ▸ 복제 | 표 설명(오른쪽 클릭으로 시작·중지·동기화)을 붙이지 않음 |
+
+### 숨긴 것과 방법
+
+- **시작·중지·동기화:** `GeminiReplicationCatalog.supportsControlStatements()` = false → `ObjectMaintenanceActions.supports`가 거짓이라 GEMINI 객체의 오른쪽 클릭 메뉴에
+  세 항목이 없고, 스크립트 생성도 거부하고(`generateScript`가 `supports`를 다시 봄), 모델 도구 `AltibaseToolReplicationStart`·`Stop`은 예외를 던진다(저장된 작업 같은 다른 길).
+- **새로 만들기·삭제·이름 바꾸기:** 복제에는 객체 관리자가 없어 원래 없다(Altibase도 같음). 바꾸지 않았다.
+- **DDL:** `DBMS_METADATA.GET_DDL`의 객체 유형이 GEMINI에서 무엇인지 모르므로(`getDdlObjectType()` = null) 부르지 않는다. DDL 탭은 비어 있다(EXEC 문장을 보내지 않음).
+
+### 코드 값 (미확인)
+
+값 코드(IS_STARTED 1 = 시작, GEMI_MODE 0 Lazy / 2 Eager, ROLE, CONFLICT_RESOLUTION, INVALID_RECOVERY, 송신 START_FLAG·STATUS)는 Altibase와 같다고 보고 같은 해석을 쓴다
+(GEMINI가 같은 카탈로그의 이름만 바꾼 것이라). **실제 GEMINI 행을 본 적이 없다**(두 서버 모두 GEMINI 표·뷰가 비어 있고 `GEMINI_PORT_NO` = 0).
+
+### 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반 서버 5.1.9), `SHARD`(메타 노드 5.1.9-beta9), `ALTI`(Altibase 7.3, 터널). 값은 환경 변수 참조로만, 암호 저장 끔, ShardSphere 두 연결은 읽기 전용 표시.
+벤더 서버에서는 연결, 카탈로그 읽기, SELECT만 했다.
+
+- **문장 준비:** GEMINI 카탈로그의 10개 문장(트리 목록·이름 조회·항목·송신·수신, 탭의 포트·호스트·복제·송신·수신)을 두 ShardSphere 서버에서 앱의 메타 세션으로 준비하고
+  실행했다(매개변수는 없는 이름): 10/10 준비됨, 모두 0행, 포트 속성은 1행. Altibase 기본 카탈로그 11개 문장도 7.3에서 11/11.
+- **손으로 만든 행(서버의 실제 GEMINI 행은 없음):** 모델 클래스와 탭 방언에 GEMINI SELECT 목록이 별칭한 열 이름으로 만든 행을 넣었다(앱 안, 실제 데이터 원본, 가짜 결과 집합·세션).
+  GEMINI 행: 속성 보기에 종류 = GEMINI, 연결 유형 없음, 송신 "지연" = 42(단위 없음), "Gap (Byte)" 없음, 시작·중지·동기화 적용 안 됨, 시작 도구 거부. 같은 카탈로그에 Altibase
+  모양 행(없는 두 열이 있음): 같은 속성(두 열은 읽지 않음), 지연 0(값 없음). Altibase 카탈로그에 Altibase 행: 연결 유형 보임, "Gap (Byte)" = 168K(42 × 4096),
+  명령 적용, 도구가 문장을 만듦. Altibase 카탈로그에 GEMINI 모양 행(두 열 없음): 연결 유형 빈 값, 오류 없음.
+  탭 방언: GEMINI 요약 "GEMINI 포트 | 0: 이 서버는 GEMINI 사용 안 함(GEMINI_PORT_NO)"(포트 21300이면 "21300"), 송신 지연 열 종류 COUNT·값 42, Altibase는 BYTES·172032.
+- **앱(기능 있는 빌드):** 세 연결 모두 Global metadata ▸ 이중화 객체 = 0개, 오류 없음(처음, 연결 새로 고침 뒤, 다시 연결 뒤, 모두 끊고 ALTI → SHARD → SS 순서로
+  다시 연결한 뒤). 연결마다 카탈로그: SS·SHARD는 GEMINI, ALTI는 Altibase(각 데이터 원본 인스턴스에서 읽음, 새로 고침·다시 연결 뒤에도 같음). 복제 탭: SS·SHARD
+  요약 "GEMINI 포트 | 0: 이 서버는 GEMINI 사용 안 함(GEMINI_PORT_NO)", "복제 | 구성되지 않음", "읽을 수 없음" 없음, 송신·수신 표는 빈 표 문구. ALTI는 "복제 포트 |
+  0: 이 서버는 복제가 꺼져 있음(REPLICATION_PORT_NO)", "복제 | 구성되지 않음"(전과 같음). 쿼리 관리자: ShardSphere 두 연결이 받은 문장은 모두 SELECT
+  (SS 41개, SHARD 39개, 오류 0), 복제 문장은 GEMINI 이름뿐이고 Altibase 복제 이름은 하나도 가지 않았다. ALTI는 Altibase 이름 그대로.
+- **기능 없는 빌드(feature 포함 줄만 로컬에서 뺌, 커밋하지 않음):** 제품에 이 번들이 없다. SS·SHARD의 카탈로그는 Altibase, 폴더 0개·오류 없음(새로 고침 뒤에도),
+  복제 탭은 전과 같이 "읽을 수 없음: Table or view was not found … SYS_REPL_HOSTS_"와 "복제 포트 | 0: 이 서버는 복제가 꺼져 있음". ALTI는 기능 있는 빌드와 같은 글자.
+- 캡처(한국어, 밝은 테마, 150 %): `D:\Tools\_scratch\shardsphere-gemini-read\sheets\` — `before-1-ss-replication-summary.png`, `before-1b-ss-replication-replications.png`
+  (기능 없는 빌드 = 이 변경 전과 같은 문장), `after-1-ss-replication-summary.png`, `after-1b-ss-replication-senders.png`, `after-2-shard-replication-summary.png`,
+  `before-3-alti-replication-summary.png`, `after-3-alti-replication-summary.png`. "전"은 origin 기준 빌드가 아니라 이 브랜치에서 feature만 뺀 빌드다(Altibase 카탈로그의
+  문장이 기준과 글자 하나까지 같음을 따로 확인).
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase·ShardSphere의 Replications 폴더와 복제 노드(송신·수신·항목·DDL·통계), 복제 시작·중지·동기화 메뉴,
+  활동 모니터 복제 탭.
+
+### 미확인 (벤더 문의)
+
+- 미확인: GEMINI의 값 코드(IS_STARTED, GEMI_MODE, ROLE, CONFLICT_RESOLUTION, INVALID_RECOVERY, `V$GEMSENDER.START_FLAG`·`STATUS`)가 Altibase와 같은지.
+- 미확인: `V$GEMGAP.GEM_GAP`의 단위(바이트·로그 레코드·페이지). 단위 속성이 없다. 다른 후보는 `V$GEMSENDER_LOG.GAP_SIZE`, `V$GEMRECEIVER_GAP.SENDER_GAP`(읽지 않음).
+- 미확인: GEMINI의 시작·중지·동기화 문법(`ALTER GEMINI … START`인지, `ALTER REPLICATION`을 받는지), 실행 계정, `DBMS_METADATA.GET_DDL`의 객체 유형.
+- 미확인: `CONN_TYPE`이 없는 이유(GEMINI는 연결 유형이 하나뿐인지).
+- 실제 GEMINI 행은 한 번도 보지 못했다: GEMINI가 설정된 서버가 있어야 값 코드, 지연 단위, 송신·수신 행의 모양을 확인한다.
+
 ## 아직 없는 것
 
-GEMINI 트리와 복제 탭(작업 4·5), 계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
+계열 공통 공간 탭(작업 7), 관리 보고서(작업 8),
 쓰기 기능(작업 11, 샤딩의 노드 관리·분산·UNSHARD·재배치 포함), 샤딩 JDBC 드라이버(작업 12). 계획: `D:\Tools\_briefs\shardsphere-plugin-plan.md`(저장소 밖).
 
 ## 미확인 (벤더 문의)
@@ -444,3 +532,5 @@ GEMINI 트리와 복제 탭(작업 4·5), 계열 공통 공간 탭(작업 7), �
   접두어 안과 뒤의 자동 완성, 실행 계획 확인(앱 변경 #139 작업 6b, `chromite/shardsphere-prefix-requery`), 위 "접두어 문장 다시 읽기".
 - 2026-11-17 샤딩 메타 노드의 읽기 전용 샤딩 탐색기: ShardSphere 노드 아래 데이터 노드·샤드 객체(분산)·샤딩 속성·노드 연결 폴더, 사전 버전 속성,
   노드별 행 수는 기존 "비용이 큰 개체 속성 읽기" 설정으로만, 모두 SELECT(앱 변경 #139 작업 9, `chromite/shardsphere-sharding-explorer`), 위 "샤딩 탐색기".
+- 2026-11-17 GEMINI 읽기: GEMINI 카탈로그를 감지한 연결에 GEMINI 복제 카탈로그를 줌 — Replications 폴더와 활동 모니터 복제 탭이 GEMINI를 읽음, 속성 보기에 종류 GEMINI,
+  요약에 GEMINI 포트, 지연은 단위 없이, 시작·중지·동기화와 DDL 호출은 내지 않음(앱 변경 #139 작업 4·5, `chromite/shardsphere-gemini-read`), 위 "GEMINI".

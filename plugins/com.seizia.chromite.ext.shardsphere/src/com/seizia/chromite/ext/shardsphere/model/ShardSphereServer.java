@@ -18,6 +18,7 @@ package com.seizia.chromite.ext.shardsphere.model;
 
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.meta.IPropertyValueValidator;
@@ -52,6 +53,8 @@ import java.util.List;
  *   {@code plugin.xml}이 Altibase 트리의 {@code serverExtension} 자리 아래에 넣고 {@code visibleIf}로 메타 노드에서만 보인다. 사전은
  *   {@link ShardingDictionary}가 메타 노드인 연결에서만 갖는다(다른 서버에는 질의 없음). 새로 고침은 읽은 것을 비운다
  *   (앱 변경 #139 작업 9, docs/chromite/shardsphere.md "샤딩 탐색기")
+ * - 2026-11-17 GEMINI 카탈로그가 있으면 연결의 복제 카탈로그로 {@link GeminiReplicationCatalog}를 줌: Replications 폴더와 활동 모니터의
+ *   복제 탭이 GEMINI를 읽음(앱 변경 #139 작업 4·5, docs/chromite/shardsphere.md "GEMINI")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
@@ -225,6 +228,15 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     @Override
     public SQLDialect.StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
         return shardingPackage ? ShardSphereStatementPrefix.getProposals(text, nodeNames) : null;
+    }
+
+    /**
+     * GEMINI where its catalog was detected (on any ShardSphere server, meta node or not); otherwise the Altibase catalog.
+     */
+    @Nullable
+    @Override
+    public AltibaseReplicationCatalog getReplicationCatalog() {
+        return geminiCatalog ? GeminiReplicationCatalog.INSTANCE : null;
     }
 
     /**

@@ -18,6 +18,7 @@ package com.seizia.chromite.model.admin.altibase;
 
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
 import com.seizia.chromite.model.admin.AdminGrid;
 import com.seizia.chromite.model.admin.AdminSql;
 import com.seizia.chromite.model.admin.replication.ReplicationDialect;
@@ -51,10 +52,16 @@ import java.util.Map;
  *     <li>이 표들과 {@code V$PROPERTY}는 SYS가 아닌 사용자도 읽는다(7.3, 스키마 사용자로 확인). 그래도 읽지 못한 표는 서버 오류를
  *     "읽을 수 없음"으로 보인다.</li>
  *     <li>시작·중지·동기화는 이 탭(읽기 전용)이 아니라 Object Explorer의 복제 노드 명령이다({@code ObjectMaintenanceActions}).</li>
+ *     <li>문장과 속성 이름은 데이터 원본의 복제 카탈로그({@link AltibaseDataSource#getReplicationCatalog()})가 준다. 기본(Altibase)은 위의
+ *     표·뷰·속성이고 문장이 전과 같다. 카탈로그가 다른 서버(서버 확장이 감지)는 그 카탈로그의 이름을 요약에 쓰고(포트 행), 지연 단위 속성이
+ *     없으면 지연을 바이트가 아닌 서버의 수로 단위 없이 보인다. 이 클래스는 카탈로그가 어느 제품의 것인지 모른다. 별도 방언(관리 쪽 어댑터)을
+ *     두지 않은 이유: 표·열의 뜻과 화면이 같아 문장 이름만 다르고, 확장 번들이 관리 번들에 기대지 않게 하려고.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: Altibase 복제 상태 (SWT 감사 D-A7, docs/chromite/altibase.md "복제 시작·중지·동기화")
+ * - 2026-11-17 문장·속성 이름을 데이터 원본의 복제 카탈로그에서 받음, 카탈로그 이름이 있으면 요약에, 지연 단위가 없으면 단위 없는 지연,
+ *   제어 문장이 없으면 시작·중지 안내 없음(앱 변경 #139 작업 5, docs/chromite/altibase.md "복제 카탈로그")
  */
 public class AltibaseReplicationDialect extends ReplicationDialect {
 
@@ -74,14 +81,28 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
     @Override
     public ReplicationReport read(@NotNull DBRProgressMonitor monitor, @NotNull JDBCSession session) throws DBException {
         List<String> notices = new ArrayList<>();
+        AltibaseReplicationCatalog catalog = dataSource.getReplicationCatalog();
+        // The server's name of its replication, or null: the family's own replication (the texts as before)
+        String catalogName = catalog.getDisplayName();
         try {
             AdminGrid summary = createSummary();
-            String port = AdminSql.queryString(session, "SELECT VALUE1 FROM V$PROPERTY WHERE NAME = 'REPLICATION_PORT_NO'"); //$NON-NLS-1$
+            String portProperty = catalog.getPortProperty();
+            String port = AdminSql.queryString(session, "SELECT VALUE1 FROM V$PROPERTY WHERE NAME = '" + portProperty + "'"); //$NON-NLS-1$ //$NON-NLS-2$
             boolean disabled = port == null || "0".equals(port.trim()); //$NON-NLS-1$
-            summary.addRow(ReplicationMessages.repl_alti_row_port, disabled ? ReplicationMessages.repl_alti_disabled : port.trim());
-            String gapUnitText = AdminSql.queryString(session, "SELECT VALUE1 FROM V$PROPERTY WHERE NAME = 'REPLICATION_GAP_UNIT'"); //$NON-NLS-1$
-            Long parsedGapUnit = parseLong(gapUnitText);
-            long gapUnit = parsedGapUnit == null ? 1 : parsedGapUnit;
+            if (catalogName == null) {
+                summary.addRow(ReplicationMessages.repl_alti_row_port, disabled ? ReplicationMessages.repl_alti_disabled : port.trim());
+            } else {
+                summary.addRow(NLS.bind(ReplicationMessages.repl_alti_row_port_named, catalogName),
+                    disabled ? NLS.bind(ReplicationMessages.repl_alti_disabled_named, catalogName, portProperty) : port.trim());
+            }
+            // Without a gap unit property the unit is unknown (gapUnit stays null): the gap is the server's number, not bytes
+            String gapUnitProperty = catalog.getGapUnitProperty();
+            Long gapUnit = null;
+            if (gapUnitProperty != null) {
+                String gapUnitText = AdminSql.queryString(session, "SELECT VALUE1 FROM V$PROPERTY WHERE NAME = '" + gapUnitProperty + "'"); //$NON-NLS-1$ //$NON-NLS-2$
+                Long parsedGapUnit = parseLong(gapUnitText);
+                gapUnit = parsedGapUnit == null ? 1 : parsedGapUnit;
+            }
 
             AdminGrid replications = new AdminGrid("replications", ReplicationMessages.repl_grid_alti_replications, //$NON-NLS-1$
                 SpaceColumn.text(ReplicationMessages.repl_col_name),
@@ -93,16 +114,18 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                 SpaceColumn.count(ReplicationMessages.repl_alti_col_xsn),
                 SpaceColumn.text(ReplicationMessages.repl_alti_col_fault_time),
                 SpaceColumn.text(ReplicationMessages.repl_alti_col_give_up_time));
-            replications.setDescription(ReplicationMessages.repl_alti_replications_desc);
+            // The commands the description names are not offered where the catalog's control statements are not verified
+            if (catalog.supportsControlStatements()) {
+                replications.setDescription(ReplicationMessages.repl_alti_replications_desc);
+            }
             replications.setEmptyText(ReplicationMessages.repl_alti_no_replications);
             int started = 0;
             try {
                 Map<String, List<String>> hosts = new LinkedHashMap<>();
-                AdminSql.query(session, "SELECT REPLICATION_NAME, HOST_IP, PORT_NO FROM SYSTEM_.SYS_REPL_HOSTS_ ORDER BY REPLICATION_NAME, HOST_NO", //$NON-NLS-1$
+                AdminSql.query(session, catalog.getStatusHostsQuery(),
                     rs -> hosts.computeIfAbsent(rs.getString(1), name -> new ArrayList<>()).add(rs.getString(2) + ":" + rs.getString(3))); //$NON-NLS-1$
                 List<Object[]> rows = new ArrayList<>();
-                AdminSql.query(session, "SELECT REPLICATION_NAME, IS_STARTED, REPL_MODE, ROLE, ITEM_COUNT, XSN, " //$NON-NLS-1$
-                        + "REMOTE_FAULT_DETECT_TIME, GIVE_UP_TIME FROM SYSTEM_.SYS_REPLICATIONS_ ORDER BY REPLICATION_NAME", //$NON-NLS-1$
+                AdminSql.query(session, catalog.getStatusReplicationsQuery(),
                     rs -> {
                         String name = rs.getString(1);
                         boolean isStarted = rs.getInt(2) == 1;
@@ -140,13 +163,15 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                 SpaceColumn.text(ReplicationMessages.repl_alti_col_start_mode),
                 SpaceColumn.text(ReplicationMessages.repl_alti_col_network_error),
                 SpaceColumn.text(ReplicationMessages.repl_alti_col_peer),
-                new SpaceColumn(ReplicationMessages.repl_col_lag_bytes, SpaceColumn.Kind.BYTES, ReplicationMessages.repl_alti_col_gap_tip),
+                gapUnit != null
+                    ? new SpaceColumn(ReplicationMessages.repl_col_lag_bytes, SpaceColumn.Kind.BYTES, ReplicationMessages.repl_alti_col_gap_tip)
+                    : new SpaceColumn(ReplicationMessages.repl_alti_col_gap, SpaceColumn.Kind.COUNT, ReplicationMessages.repl_alti_col_gap_no_unit_tip),
                 SpaceColumn.count(ReplicationMessages.repl_alti_col_xsn),
                 SpaceColumn.count(ReplicationMessages.repl_alti_col_commit_xsn));
             senders.setEmptyText(ReplicationMessages.repl_alti_no_senders);
+            Long senderGapUnit = gapUnit;
             try {
-                AdminSql.query(session, "SELECT s.REP_NAME, s.STATUS, s.START_FLAG, s.NET_ERROR_FLAG, s.PEER_IP, s.PEER_PORT, g.REP_GAP, " //$NON-NLS-1$
-                        + "s.XSN, s.COMMIT_XSN FROM V$REPSENDER s LEFT OUTER JOIN V$REPGAP g ON g.REP_NAME = s.REP_NAME ORDER BY s.REP_NAME", //$NON-NLS-1$
+                AdminSql.query(session, catalog.getStatusSendersQuery(),
                     rs -> {
                         Long gap = AdminSql.getLong(rs, 7);
                         senders.addRow(
@@ -155,7 +180,7 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                             decode(SENDER_START_FLAGS, rs.getInt(3)),
                             rs.getInt(4) == 1 ? ReplicationMessages.repl_value_yes : ReplicationMessages.repl_value_no,
                             rs.getString(5) == null ? null : rs.getString(5) + ":" + rs.getString(6), //$NON-NLS-1$
-                            gap == null ? null : gap * gapUnit,
+                            gap == null || senderGapUnit == null ? gap : gap * senderGapUnit,
                             AdminSql.getLong(rs, 8),
                             AdminSql.getLong(rs, 9));
                     });
@@ -171,9 +196,7 @@ public class AltibaseReplicationDialect extends ReplicationDialect {
                 SpaceColumn.count(ReplicationMessages.repl_alti_col_failed));
             receivers.setEmptyText(ReplicationMessages.repl_alti_no_receivers);
             try {
-                AdminSql.query(session, "SELECT REP_NAME, PEER_IP, PEER_PORT, APPLY_XSN, " //$NON-NLS-1$
-                        + "INSERT_SUCCESS_COUNT + UPDATE_SUCCESS_COUNT + DELETE_SUCCESS_COUNT, " //$NON-NLS-1$
-                        + "INSERT_FAILURE_COUNT + UPDATE_FAILURE_COUNT + DELETE_FAILURE_COUNT FROM V$REPRECEIVER ORDER BY REP_NAME", //$NON-NLS-1$
+                AdminSql.query(session, catalog.getStatusReceiversQuery(),
                     rs -> receivers.addRow(
                         rs.getString(1),
                         rs.getString(2) == null ? null : rs.getString(2) + ":" + rs.getString(3), //$NON-NLS-1$
