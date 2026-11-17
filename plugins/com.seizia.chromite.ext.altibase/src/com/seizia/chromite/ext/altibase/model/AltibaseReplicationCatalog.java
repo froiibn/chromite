@@ -36,6 +36,7 @@ import org.jkiss.code.Nullable;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 복제 카탈로그 전략(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 {@link #hasFamilyStateCodes()}: 상태 코드의 뜻이 확인되지 않은 카탈로그는 이름 대신 서버의 값을 보임(앱 변경 #139 수정 3)
  */
 public interface AltibaseReplicationCatalog {
 
@@ -99,6 +100,14 @@ public interface AltibaseReplicationCatalog {
      * on this catalog's replications. False: the commands are not offered and the tools refuse to write them.
      */
     boolean supportsControlStatements();
+
+    /**
+     * Whether the catalog's state codes are the family's own, which Chromite shows by name: a replication's
+     * {@code IS_STARTED}, a sender's {@code START_FLAG}, {@code STATUS} and {@code NET_ERROR_FLAG}, and in the replication
+     * status the mode and role codes. False: their meaning is not established for this catalog, so they are shown as the
+     * server's values (a started flag that is not known is not turned into "started" or "stopped").
+     */
+    boolean hasFamilyStateCodes();
 
     /**
      * The {@code DBMS_METADATA.GET_DDL} object type of a replication; null if it is not known for this catalog (no call,

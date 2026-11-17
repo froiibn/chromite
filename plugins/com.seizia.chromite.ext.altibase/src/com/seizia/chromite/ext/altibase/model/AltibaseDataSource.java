@@ -35,6 +35,7 @@ import com.seizia.chromite.ext.generic.model.GenericStructContainer;
 import com.seizia.chromite.ext.generic.model.GenericSynonym;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPObjectStatisticsCollector;
+import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
 import com.seizia.chromite.model.exec.*;
@@ -112,6 +113,9 @@ import java.util.WeakHashMap;
  *   감지된 서버 확장이 다른 카탈로그를 주면 그것(앱 변경 #139 작업 4·5, docs/chromite/altibase.md "복제 카탈로그")
  * - 2026-11-17 {@link #getServerInfo}: System Info > 서버 정보 폴더(버전, 시작, 아카이브 로그, 백업, {@link AltibaseServerInfoItem})
  *   (앱 변경 #139 작업 8, docs/chromite/altibase.md "개요 차트와 서버 정보")
+ * - 2026-11-17 {@link #getExtensionProperties}: 감지된 확장이 이 연결의 객체에 더하는 읽기 전용 속성(속성 보기). 작업 목록은 연결의
+ *   {@code SYS_JOBS_}에 소유자·종류·실패 횟수 열이 있을 때만 그 열과 소유자 이름을 읽는다({@link JobCache}, 앱 변경 #139 수정 5·6,
+ *   docs/chromite/altibase.md "작업", "기존 객체의 추가 속성")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -212,6 +216,26 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             }
         }
         return objects;
+    }
+
+    /**
+     * The read-only properties the detected server extensions add to an object of this connection, in extension order
+     * (the property view of the object). Without a detected extension: empty, no query.
+     */
+    @NotNull
+    public List<DBPObjectWithContributedProperties.ContributedProperty> getExtensionProperties(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSObject object
+    ) throws DBException {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        if (extensions == null || extensions.isEmpty()) {
+            return List.of();
+        }
+        List<DBPObjectWithContributedProperties.ContributedProperty> properties = new ArrayList<>();
+        for (AltibaseServerExtensionState extension : extensions) {
+            properties.addAll(extension.getObjectProperties(monitor, object));
+        }
+        return properties;
     }
 
     @Override
@@ -721,12 +745,46 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         return jobCache;
     }
 
+    /**
+     * The jobs. Whether the connection's SYS_JOBS_ has the owner, type and fail count columns (ShardSphere 5.1.9 has
+     * them, Altibase 7.3 has not) is read from the catalog once per connection, with the first list; then the owner's
+     * name is joined in. A refresh of the connection clears it with the cache.
+     */
     static class JobCache extends JDBCObjectLookupCache<GenericStructContainer, AltibaseJob> {
         
+        // The owner's name joined from SYS_USERS_
+        static final String COLUMN_JOB_USER_NAME = "JOB_USER_NAME";
+
+        private static final String QUERY_EXTENDED_COLUMNS = "SELECT COUNT(*) FROM SYSTEM_.SYS_COLUMNS_ C, SYSTEM_.SYS_TABLES_ T,"
+            + " SYSTEM_.SYS_USERS_ U WHERE C.TABLE_ID = T.TABLE_ID AND T.USER_ID = U.USER_ID AND U.USER_NAME = 'SYSTEM_'"
+            + " AND T.TABLE_NAME = 'SYS_JOBS_' AND C.COLUMN_NAME IN ('JOB_USER_ID', 'JOB_TYPE', 'FAIL_COUNT')";
+
+        // Null until read on this connection
+        @Nullable
+        private volatile Boolean extendedColumns;
+
         @Override
         protected AltibaseJob fetchObject(@NotNull JDBCSession session, @NotNull GenericStructContainer owner,
                                           @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
-            return new AltibaseJob(owner, dbResult);
+            return new AltibaseJob(owner, dbResult, Boolean.TRUE.equals(extendedColumns));
+        }
+
+        @Override
+        public void clearCache() {
+            extendedColumns = null;
+            super.clearCache();
+        }
+
+        private boolean hasExtendedColumns(@NotNull JDBCSession session) throws SQLException {
+            Boolean result = extendedColumns;
+            if (result == null) {
+                try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_EXTENDED_COLUMNS);
+                     JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    result = dbResult.next() && dbResult.getInt(1) == 3;
+                }
+                extendedColumns = result;
+            }
+            return result;
         }
 
         @Override
@@ -734,7 +792,10 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                 AltibaseJob object, String objectName) throws SQLException {
             boolean isNullObject = object == null && objectName == null;
             final JDBCPreparedStatement dbStat = session.prepareStatement(
-                    "SELECT * FROM system_.sys_jobs_ s "
+                    (hasExtendedColumns(session)
+                        ? "SELECT s.*, u.user_name AS " + COLUMN_JOB_USER_NAME + " FROM system_.sys_jobs_ s"
+                            + " LEFT OUTER JOIN system_.sys_users_ u ON u.user_id = s.job_user_id "
+                        : "SELECT * FROM system_.sys_jobs_ s ")
                     + (isNullObject ? "" : "  WHERE s.job_name = ?")
                     + " ORDER BY job_name ASC");
             

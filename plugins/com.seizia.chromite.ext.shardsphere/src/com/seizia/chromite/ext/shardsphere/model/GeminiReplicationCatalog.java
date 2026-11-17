@@ -32,9 +32,12 @@ import org.jkiss.code.Nullable;
  *     <li>없는 것: {@code SYS_GEMINIS_.REMOTE_LAST_DDL_XSN}(모델이 읽지 않음, 목록에서 뺌), {@code SYS_GEMI_HOSTS_.CONN_TYPE}
  *     ({@link #hasHostConnectionType()} = false, 연결 유형 속성 숨김), 지연 단위 속성({@link #getGapUnitProperty()} = null: 지연은
  *     {@code GEM_GAP}을 {@code REP_GAP}으로 별칭해 단위 없이 보인다. 단위 미확인).</li>
- *     <li>값 코드(IS_STARTED, GEMI_MODE, ROLE, CONFLICT_RESOLUTION, INVALID_RECOVERY, 송신 START_FLAG·STATUS)는 Altibase와 같다고 보고
- *     같은 해석을 쓴다. 실제 GEMINI 행을 본 적이 없다(두 서버 모두 비어 있음, 미확인).</li>
- *     <li>제어 문장(시작·중지·동기화)과 {@code DBMS_METADATA.GET_DDL}의 객체 유형은 GEMINI가 설정된 서버에서 확인하지 않았으므로 보내지 않는다
+ *     <li>값 코드는 GEMINI 매뉴얼에 뜻이 있는 것만 이름으로 보인다: CONFLICT_RESOLUTION 0 없음 / 1 master / 2 slave. OPTIONS는 수
+ *     그대로다(매뉴얼: 1 = recovery, 다른 비트는 모름). 모드(GEMI_MODE)·역할(ROLE)·INVALID_RECOVERY·IS_STARTED·송신 START_FLAG·STATUS·
+ *     NET_ERROR_FLAG는 코드가 문서에 없고 실제 GEMINI 행을 본 적이 없어 서버의 값 그대로 보인다({@link #hasFamilyStateCodes()} = false).
+ *     매뉴얼의 모드 낱말(ASYNC/SYNC)과 Altibase의 모드 이름(Lazy/Eager)은 코드와의 대응이 확인되지 않아 쓰지 않는다.</li>
+ *     <li>제어 문장({@code ALTER GEMINI g START | QUICKSTART | STOP | RESET | SYNC …}, 2026-11-17 받은 GEMINI 매뉴얼에 있음)과
+ *     {@code DBMS_METADATA.GET_DDL}의 객체 유형은 GEMINI가 설정된 서버에서 시험하지 않았으므로 보내지 않는다
  *     ({@link #supportsControlStatements()} = false, {@link #getDdlObjectType()} = null).</li>
  *     <li>송신 목록은 Altibase 문장처럼 지연 뷰와 내부 조인한다(트리의 송신 노드는 두 뷰에 다 있는 송신만, 전과 같은 모양).</li>
  * </ul>
@@ -42,6 +45,8 @@ import org.jkiss.code.Nullable;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: GEMINI를 Replications 폴더와 활동 모니터 복제 탭에서 읽음(앱 변경 #139 작업 4·5, docs/chromite/shardsphere.md "GEMINI")
+ * - 2026-11-17 문서에 뜻이 있는 코드만 이름으로(충돌 해결), 나머지는 서버의 값 그대로; Altibase의 모드·역할 이름을 쓰지 않음
+ *   (앱 변경 #139 수정 3)
  */
 public final class GeminiReplicationCatalog implements AltibaseReplicationCatalog {
 
@@ -65,12 +70,13 @@ public final class GeminiReplicationCatalog implements AltibaseReplicationCatalo
         return "SELECT" //$NON-NLS-1$
             + " r.gemini_name AS replication_name," //$NON-NLS-1$
             + " r.is_started," //$NON-NLS-1$
-            + " DECODE(r.conflict_resolution, 0, 'Default', 1, 'Master', 2, 'Slave', 'Unknown') AS conflict_resolution," //$NON-NLS-1$
-            + " DECODE(r.gemi_mode, 0, 'Lazy', 2, 'Eager', 'Unknown') AS repl_mode," //$NON-NLS-1$
-            + " DECODE(r.role, 0, 'General', 1, 'Log Analyzer', 2, 'Propagable Logging', 3, 'Propagation'," //$NON-NLS-1$
-            + " 4, 'Propagation for Log Analyzer ', 'Unknown') AS role," //$NON-NLS-1$
+            // Documented codes only (GEMINI manual): conflict resolution 0 none, 1 master, 2 slave; mode, role and
+            // recovery validity as stored (their codes are not documented)
+            + " DECODE(r.conflict_resolution, 0, 'None', 1, 'Master', 2, 'Slave', TO_CHAR(r.conflict_resolution)) AS conflict_resolution," //$NON-NLS-1$
+            + " TO_CHAR(r.gemi_mode) AS repl_mode," //$NON-NLS-1$
+            + " TO_CHAR(r.role) AS role," //$NON-NLS-1$
             + " r.options," //$NON-NLS-1$
-            + " DECODE(r.invalid_recovery, 0, 'Valid', 1, 'Invalid', 'Unknown') AS recoverable," //$NON-NLS-1$
+            + " TO_CHAR(r.invalid_recovery) AS recoverable," //$NON-NLS-1$
             + " r.parallel_applier_count," //$NON-NLS-1$
             + " rh.host_ip || ':' || rh.port_no AS remote_addr," //$NON-NLS-1$
             + " r.xsn," //$NON-NLS-1$
@@ -136,6 +142,15 @@ public final class GeminiReplicationCatalog implements AltibaseReplicationCatalo
 
     @Override
     public boolean supportsControlStatements() {
+        return false;
+    }
+
+    /**
+     * IS_STARTED, START_FLAG, STATUS, NET_ERROR_FLAG and the mode and role codes are not documented for GEMINI and no
+     * GEMINI row has been seen: shown as stored.
+     */
+    @Override
+    public boolean hasFamilyStateCodes() {
         return false;
     }
 

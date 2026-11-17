@@ -19,7 +19,9 @@ package com.seizia.chromite.ext.shardsphere.model;
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
+import com.seizia.chromite.ext.altibase.model.AltibaseTable;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
+import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
@@ -30,6 +32,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -55,6 +58,9 @@ import java.util.List;
  *   (앱 변경 #139 작업 9, docs/chromite/shardsphere.md "샤딩 탐색기")
  * - 2026-11-17 GEMINI 카탈로그가 있으면 연결의 복제 카탈로그로 {@link GeminiReplicationCatalog}를 줌: Replications 폴더와 활동 모니터의
  *   복제 탭이 GEMINI를 읽음(앱 변경 #139 작업 4·5, docs/chromite/shardsphere.md "GEMINI")
+ * - 2026-11-17 테이블 속성 기여({@link ShardTableProperties}: {@code SYS_TTL_}가 있으면 TTL, 메타 노드면 샤드 객체), 문서의 함수
+ *   ({@code PVTIME_TO_DATE}, {@code EXPORT_CONTINUOUS_OBJECT}, {@code FROM_UNIXTIME}: 두 서버에서 준비됨)와 TTL 문법 낱말
+ *   (앱 변경 #139 수정 6·8, docs/chromite/shardsphere.md "테이블 속성: TTL과 샤드", "낱말과 함수")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
@@ -68,12 +74,24 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     private static final List<String> SHARDING_SYNTAX_WORDS = List.of(
         "NODE", "META", "UNSHARD", "CLONE", "SOLO", "AUTOHASH", "SUBSHARD", "HASH"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$
     private static final List<String> SHARDING_FUNCTIONS = List.of("SHARD_NODE_NAME", "SHARD_KEY"); //$NON-NLS-1$ //$NON-NLS-2$
+    /**
+     * Documented functions that both ShardSphere servers prepare and Altibase 7.3 does not (2026-11-17). SHARD_ID (named in
+     * the SQL manual) and PVDATE_TO_TIME are not here: both servers answer "function not found".
+     */
+    private static final List<String> SERVER_FUNCTIONS = List.of(
+        "PVTIME_TO_DATE", "EXPORT_CONTINUOUS_OBJECT", "FROM_UNIXTIME"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    /**
+     * The TTL clause of CREATE / ALTER TABLE ({@code USING TTL n unit ON COLUMN c}), where the server has SYS_TTL_.
+     */
+    private static final List<String> TTL_SYNTAX_WORDS = List.of("TTL"); //$NON-NLS-1$
 
     @NotNull
     private final AltibaseDataSource dataSource;
     private final boolean geminiCatalog;
     private final boolean shardingPackage;
     private final boolean shardingMetaNode;
+    // The TTL dictionary table SYSTEM_.SYS_TTL_ exists
+    private final boolean ttlCatalog;
     // The node names of the meta node's sharding dictionary (names only), empty on another server
     @NotNull
     private final List<String> nodeNames;
@@ -86,12 +104,14 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         boolean geminiCatalog,
         boolean shardingPackage,
         boolean shardingMetaNode,
+        boolean ttlCatalog,
         @NotNull List<String> nodeNames
     ) {
         this.dataSource = dataSource;
         this.geminiCatalog = geminiCatalog;
         this.shardingPackage = shardingPackage;
         this.shardingMetaNode = shardingMetaNode;
+        this.ttlCatalog = ttlCatalog;
         this.nodeNames = List.copyOf(nodeNames);
         this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
     }
@@ -200,13 +220,40 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     @NotNull
     @Override
     public Collection<String> getSyntaxKeywords() {
-        return shardingPackage ? SHARDING_SYNTAX_WORDS : List.of();
+        List<String> words = new ArrayList<>();
+        if (shardingPackage) {
+            words.addAll(SHARDING_SYNTAX_WORDS);
+        }
+        if (ttlCatalog) {
+            words.addAll(TTL_SYNTAX_WORDS);
+        }
+        return words;
     }
 
     @NotNull
     @Override
     public Collection<String> getFunctions() {
-        return shardingPackage ? SHARDING_FUNCTIONS : List.of();
+        List<String> functions = new ArrayList<>(SERVER_FUNCTIONS);
+        if (shardingPackage) {
+            functions.addAll(SHARDING_FUNCTIONS);
+        }
+        return functions;
+    }
+
+    /**
+     * A table's TTL where the server has SYS_TTL_, and its shard object on a sharding meta node; nothing (no query) for
+     * any other object or server.
+     */
+    @NotNull
+    @Override
+    public List<DBPObjectWithContributedProperties.ContributedProperty> getObjectProperties(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSObject object
+    ) throws DBException {
+        if (!(object instanceof AltibaseTable table) || !(ttlCatalog || shardingMetaNode)) {
+            return List.of();
+        }
+        return ShardTableProperties.read(monitor, table, ttlCatalog, shardingMetaNode);
     }
 
     @Override

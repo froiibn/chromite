@@ -31,6 +31,7 @@ import org.jkiss.code.Nullable;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 각 클래스의 복제 문장을 옮겨 모음(앱 변경 #139 작업 4·5)
+ * - 2026-11-17 상태 코드는 이 계열의 것(이름으로 보임, 앱 변경 #139 수정 3)
  */
 public final class AltibaseDefaultReplicationCatalog implements AltibaseReplicationCatalog {
 
@@ -131,6 +132,11 @@ public final class AltibaseDefaultReplicationCatalog implements AltibaseReplicat
 
     @Override
     public boolean supportsControlStatements() {
+        return true;
+    }
+
+    @Override
+    public boolean hasFamilyStateCodes() {
         return true;
     }
 

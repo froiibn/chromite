@@ -28,6 +28,7 @@ import com.seizia.chromite.ext.generic.model.GenericTableColumn;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPNamedObject2;
 import com.seizia.chromite.model.DBPObjectStatistics;
+import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDPseudoAttribute;
 import com.seizia.chromite.model.exec.DBCException;
@@ -60,8 +61,11 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 저장 방식({@link DBSTableWithStorageKind}) 추가, 테이블스페이스와 파티션 여부를 목록 질의에서 받음
  *   (docs/chromite/altibase.md)
+ * - 2026-11-17 속성 보기에 서버 확장이 이 연결에서 더하는 읽기 전용 속성({@link DBPObjectWithContributedProperties}): 속성 보기가 이
+ *   테이블을 보일 때만 묻고, 확장이 없거나 해당하지 않으면 질의가 없다(앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
  */
-public class AltibaseTable extends GenericTable implements DBPNamedObject2, DBPObjectStatistics, DBSTableWithStorageKind {
+public class AltibaseTable extends GenericTable
+    implements DBPNamedObject2, DBPObjectStatistics, DBSTableWithStorageKind, DBPObjectWithContributedProperties {
 
     private static final Log log = Log.getLog(AltibaseTable.class);
     
@@ -249,7 +253,17 @@ public class AltibaseTable extends GenericTable implements DBPNamedObject2, DBPO
     public DBSTableStorageKind getStorageKind() {
         return storageKind;
     }
-    
+
+    /**
+     * What the server extensions detected on this connection add to this table's property view; empty (no query) when
+     * none applies.
+     */
+    @NotNull
+    @Override
+    public List<ContributedProperty> getContributedProperties(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return ((AltibaseDataSource) getDataSource()).getExtensionProperties(monitor, this);
+    }
+
     ///////////////////////////////////
     // Statistics
     

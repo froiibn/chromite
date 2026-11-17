@@ -66,10 +66,16 @@ import java.util.Map;
  *   SELECT 목록의 함수 인자로 호스트 변수를 받지 않아(201275 "Invalid use of host variables") Altibase에서도 주석이 늘 빠졌다(같은 문서)
  * - 2026-11-17 {@link #getReplicationDDL}: DBMS_METADATA 객체 유형을 복제의 카탈로그에서 받고, 카탈로그가 유형을 모르면 부르지 않음
  *   (앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
+ * - 2026-11-17 시퀀스 목록에 큐의 내부 시퀀스({@code <queue>_NEXT_MSG_ID})를 카탈로그로 가려 읽기 전용 {@link AltibaseQueueSequence}로
+ *   (앱 변경 #139 수정 4, docs/chromite/altibase.md "큐의 내부 시퀀스")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
     private static final Log log = Log.getLog(AltibaseMetaModel.class);
+
+    // The name a queue's internal sequence has after the queue's name, and the sequence list's column that marks it
+    private static final String QUEUE_SEQUENCE_SUFFIX = "_NEXT_MSG_ID";
+    private static final String COLUMN_QUEUE_SEQUENCE = "QUEUE_SEQUENCE";
 
     // The dependent object type of DBMS_METADATA.GET_DEPENDENT_DDL for the comments of a table
     private static final String DEP_OBJECT_COMMENT = "COMMENT";
@@ -498,26 +504,42 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
         return true;
     }
 
+    /**
+     * The sequences of a schema, with whether each is the internal sequence of a queue of the same schema
+     * ({@code <queue>_NEXT_MSG_ID}, decided from the catalog: a queue of that name exists). Altibase 7.3 stores that
+     * sequence as {@code TABLE_TYPE = 'W'}; it is listed too, as a read-only {@link AltibaseQueueSequence}.
+     */
     @Override
     public JDBCStatement prepareSequencesLoadStatement(@NotNull JDBCSession session, 
             @NotNull GenericStructContainer container) throws SQLException {
         final JDBCPreparedStatement dbStat = session.prepareStatement(
                 "SELECT"
-                        + " TABLE_NAME, CURRENT_SEQ, START_SEQ, INCREMENT_SEQ, CACHE_SIZE, MAX_SEQ, MIN_SEQ, IS_CYCLE"
+                        + " TABLE_NAME, T.TABLE_TYPE, CURRENT_SEQ, START_SEQ, INCREMENT_SEQ, CACHE_SIZE, MAX_SEQ, MIN_SEQ, IS_CYCLE,"
+                        + " CASE WHEN EXISTS (SELECT 1 FROM SYSTEM_.SYS_TABLES_ Q WHERE Q.USER_ID = T.USER_ID"
+                        + " AND Q.TABLE_TYPE = 'Q' AND Q.TABLE_NAME || '" + QUEUE_SEQUENCE_SUFFIX + "' = T.TABLE_NAME)"
+                        + " THEN 'T' ELSE 'F' END AS " + COLUMN_QUEUE_SEQUENCE
                         + " FROM V$SEQ S, SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U"
                         + " WHERE"
                         + " U.USER_NAME = ?"
                         + " AND U.USER_ID = T.USER_ID"
                         + " AND T.TABLE_OID = S.SEQ_OID"
-                        + " AND T.TABLE_TYPE= 'S'"
+                        + " AND T.TABLE_TYPE IN ('S', 'W')"
                         + " ORDER BY TABLE_NAME ASC");
         dbStat.setString(1, container.getName());
         return dbStat;
     }
 
+    @Nullable
     @Override
     public GenericSequence createSequenceImpl(@NotNull JDBCSession session, 
             @NotNull GenericStructContainer container, @NotNull JDBCResultSet dbResult) {
+        if (JDBCUtils.safeGetBoolean(dbResult, COLUMN_QUEUE_SEQUENCE, AltibaseConstants.RESULT_T_VALUE)) {
+            return new AltibaseQueueSequence(container, dbResult);
+        }
+        // Another 'W' object than a queue's sequence is not a sequence the user created: not listed (as before)
+        if (!"S".equals(JDBCUtils.safeGetStringTrimmed(dbResult, "TABLE_TYPE"))) {
+            return null;
+        }
         return new AltibaseSequence(container, dbResult);
     }
 

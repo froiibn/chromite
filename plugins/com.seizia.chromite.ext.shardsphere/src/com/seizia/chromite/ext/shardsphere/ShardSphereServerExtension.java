@@ -44,13 +44,15 @@ import java.util.List;
  * - 2026-11-17 최초 작성: 감지만(앱 변경 #139 작업 2·3, docs/chromite/shardsphere.md)
  * - 2026-11-17 메타 노드면 노드 이름을 한 번 더 읽음({@code SYS_SHARD.NODES_}의 이름만, 호스트·포트는 읽지 않음): {@code NODE[data(} 뒤
  *   자동 완성(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
+ * - 2026-11-17 같은 SELECT로 TTL 사전 표({@code SYSTEM_.SYS_TTL_})가 있는지도 읽음: 테이블 속성의 TTL(앱 변경 #139 수정 6)
  */
 public class ShardSphereServerExtension implements AltibaseServerExtension {
 
     private static final Log log = Log.getLog(ShardSphereServerExtension.class);
 
     /**
-     * GEMINI catalog table rows, DBMS_SHARD package rows (spec and body), SYS_SHARD user rows, SHARD_META_ENABLE = 1 rows.
+     * GEMINI catalog table rows, DBMS_SHARD package rows (spec and body), SYS_SHARD user rows, SHARD_META_ENABLE = 1 rows,
+     * TTL dictionary table rows.
      */
     private static final String QUERY_DETECT = "SELECT"
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U"
@@ -58,7 +60,9 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_PACKAGES_ P, SYSTEM_.SYS_USERS_ U"
         + " WHERE P.USER_ID = U.USER_ID AND U.USER_NAME = 'SYS' AND P.PACKAGE_NAME = 'DBMS_SHARD'),"
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_USERS_ WHERE USER_NAME = 'SYS_SHARD'),"
-        + " (SELECT COUNT(*) FROM V$PROPERTY WHERE NAME = 'SHARD_META_ENABLE' AND VALUE1 = '1')"
+        + " (SELECT COUNT(*) FROM V$PROPERTY WHERE NAME = 'SHARD_META_ENABLE' AND VALUE1 = '1'),"
+        + " (SELECT COUNT(*) FROM SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U"
+        + " WHERE T.USER_ID = U.USER_ID AND U.USER_NAME = 'SYSTEM_' AND T.TABLE_NAME = 'SYS_TTL_')"
         + " FROM DUAL";
 
     /**
@@ -77,10 +81,12 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
             boolean geminiCatalog = dbResult.getLong(1) > 0;
             boolean shardingPackage = dbResult.getLong(2) > 0;
             boolean shardingMetaNode = dbResult.getLong(3) > 0 && dbResult.getLong(4) > 0;
+            // Not a reason on its own: the TTL table only adds to a server recognised by the three above
+            boolean ttlCatalog = dbResult.getLong(5) > 0;
             if (!geminiCatalog && !shardingPackage && !shardingMetaNode) {
                 return null;
             }
-            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode,
+            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode, ttlCatalog,
                 shardingMetaNode ? readNodeNames(session) : List.of());
         } catch (SQLException e) {
             log.debug("Can't read the ShardSphere catalog: " + e.getErrorCode() + " " + e.getSQLState());
