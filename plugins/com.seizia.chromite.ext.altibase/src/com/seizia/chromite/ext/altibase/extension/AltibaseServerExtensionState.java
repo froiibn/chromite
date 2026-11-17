@@ -19,6 +19,7 @@ package com.seizia.chromite.ext.altibase.extension;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.Collection;
@@ -37,6 +38,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-17 최초 작성: 어댑터와 트리 객체(앱 변경 #139, docs/chromite/shardsphere.md)
  * - 2026-11-17 방언 기여: 문법 낱말, 함수, 문장 접두어 길이(앱 변경 #139 작업 6a, docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-17 방언 기여: 접두어 문장의 하위 질의 형태, 입력 중인 접두어의 제안(앱 변경 #139 작업 6b, docs/chromite/altibase.md "서버 확장")
  */
 public interface AltibaseServerExtensionState {
 
@@ -83,6 +85,24 @@ public interface AltibaseServerExtensionState {
      */
     default int getStatementPrefixLength(@NotNull String text) {
         return 0;
+    }
+
+    /**
+     * The subquery form of a statement with this server's prefix, as
+     * {@link com.seizia.chromite.model.sql.SQLDialect#getPrefixedStatementSubquery}; null if this extension has none.
+     */
+    @Nullable
+    default String getPrefixedStatementSubquery(@NotNull String text) {
+        return null;
+    }
+
+    /**
+     * Proposals for this server's statement prefix being typed, as
+     * {@link com.seizia.chromite.model.sql.SQLDialect#getStatementPrefixProposals}; null if the caret is not in one.
+     */
+    @Nullable
+    default SQLDialect.StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
+        return null;
     }
 
 }

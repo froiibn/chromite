@@ -109,8 +109,11 @@ MariaDB에서 `DROP DATABASE`가 묻지 않고 실행되었다(설정 작업 에
 본문(`text.substring(length)`)을 본다: `SQLQuery`(종류·`isModifying`·`isDeleteUpdateDangerous`·`isTruncate`·`isDropDangerous`), LSM의 DROP 판단
 (`SQLObjectOperationRecognizer`, 이 확인의 `isDrop`), 트랜잭션을 바꾸는 문장인지(`AbstractSQLDialect.isTransactionModifyingQuery`), 운영 연결의 실행 확인
 (`SQLSemanticProcessor.isSelectQuery`), 문장 나누기의 블록 규칙(`SQLScriptParser`), Agent 분류기. 확인 대화상자는 접두어까지 문장 그대로 보인다. 서버로 보내는 글은
-바뀌지 않는다. 접두어가 있는 문장은 다시 쓰는 코드(행 수, 필터, 페이지, 결과 편집, 다시 실행해 내보내기)가 쓰지 못하게 `SQLQuery.getStatement()`가 없고
-다시 읽기는 전처럼 막힌다. 접두어가 있는 COMMIT·ROLLBACK은 UNKNOWN으로 둔다(쿼리 창이 세션 전체를 커밋·롤백하지 않게). 규칙과 확인: [shardsphere.md](shardsphere.md) "문장 접두어".
+바뀌지 않는다. 접두어가 있는 문장은 다시 쓰는 코드가 본문만 쓰지 못하게 `SQLQuery.getStatement()`가 없다(결과 편집, 자동 행 제한은 꺼짐).
+행 수·필터·정렬·값 목록은 문장 전체를 방언이 주는 하위 질의 형태(`SQLDialect.getPrefixedStatementSubquery`, ShardSphere 메타 노드의 `NODE[x](…)`·`SHARD (…)`)로
+감싸고(2026-11-17 작업 6b), 형태가 없으면 다시 읽기는 전처럼 막힌다. 규칙은 그대로다: **무엇도 접두어 없이 접두어 문장을 다시 쓰지 않는다.**
+접두어가 있는 COMMIT·ROLLBACK은 UNKNOWN으로 둔다(쿼리 창이 세션 전체를 커밋·롤백하지 않게). 규칙과 확인: [shardsphere.md](shardsphere.md) "문장 접두어",
+"접두어 문장 다시 읽기".
 
 ## upstream(SWT) 대비 변경점
 
@@ -174,3 +177,4 @@ AI는 실제 키를 쓰지 않았다. 작업 공간 복사본의 `.metadata/.con
 - 2026-11-08 `@include`로 읽은 파일의 문장도 끼우기 전에 위험한 문을 묻고 목록에 파일 이름을 붙임(`SQLQueryExecuteHandler.confirmIncludedScript`),
   실행 제한 설명을 문장 명령에 맞춤 ([swing-query-commands.md](swing-query-commands.md))
 - 2026-11-17 문장 접두어(`SQLDialect.getStatementPrefixLength`): 접두어가 있는 WHERE 없는 UPDATE·DELETE, TRUNCATE, DROP도 묻는다(앱 변경 #139 작업 6a), 위 "문장 접두어"
+- 2026-11-17 접두어 SELECT의 다시 읽기는 방언의 하위 질의 형태로 감쌈(앱 변경 #139 작업 6b), 위 "문장 접두어"의 규칙 문구를 맞춤

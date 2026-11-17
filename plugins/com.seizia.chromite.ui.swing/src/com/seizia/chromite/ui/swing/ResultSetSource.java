@@ -50,6 +50,9 @@ import java.util.List;
  * - 2026-11-16 막는 이유가 연결인지를 문구 비교 대신 {@link Blocker}로 넘김({@link #requeryBlockedByConnection})
  * - 2026-11-17 문장 접두어가 있는 SELECT({@link SQLQuery#getStatementPrefixLength()})는 다시 읽지 않음(전처럼). 이제 종류가 SELECT로
  *   정해지지만 필터·행 수·페이지의 다시 쓰기가 접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-17 방언이 하위 질의 형태를 주는 접두어 SELECT는 다시 읽음({@link SQLQuery#hasSubqueryForm()}): 행 수·필터·서버 정렬·다음 페이지·
+ *   내보내기가 그 형태로 감싼다. 형태가 없으면 전처럼 "단일 SELECT 쿼리가 아님"(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md
+ *   "접두어 문장 다시 읽기")
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
@@ -98,9 +101,9 @@ record ResultSetSource(
         }
         if (dataContainer instanceof SQLQueryContainer queryContainer) {
             SQLScriptElement element = queryContainer.getQuery();
-            // A prefixed SELECT (SQLDialect.getStatementPrefixLength): the filter, count and paging rewrites would lose the prefix
+            // A prefixed SELECT (SQLDialect.getStatementPrefixLength) is read again only through the dialect's subquery form
             if (!(element instanceof SQLQuery query) || query.getType() != SQLQueryType.SELECT || query.isModifying()
-                || query.getStatementPrefixLength() > 0) {
+                || !query.hasSubqueryForm()) {
                 return new Blocker(EditorMessages.editor_source_not_single_select, false);
             }
         }

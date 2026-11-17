@@ -35,6 +35,13 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
 
+/**
+ * Grouping query of a data container (the result grid's value lists).
+ *
+ * 변경 이력:
+ * - 2026-11-17 Chromite: 문장 접두어가 있는 쿼리는 방언의 하위 질의 형태로 묶음({@code SQLDialect.getPrefixedStatementSubquery}). 괄호 안의
+ *   접두어는 서버가 거절한다(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
+ */
 public class SQLGroupingQueryGenerator {
 
     private static final Log log = Log.getLog(SQLGroupingQueryGenerator.class);
@@ -127,9 +134,18 @@ public class SQLGroupingQueryGenerator {
                     sql.append(" as ").append(funcAliases[i]);
                 }
             }
-            sql.append(" FROM (\n");
-            sql.append(queryText);
-            sql.append("\n) ").append(subqueryAlias);
+            if (dialect.getStatementPrefixLength(queryText) > 0) {
+                // A statement prefix stays outside the parentheses: the dialect's subquery form of the whole statement
+                String subquery = dialect.getPrefixedStatementSubquery(queryText);
+                if (subquery == null) {
+                    throw new DBException("The statement prefix can't be kept in a grouping query");
+                }
+                sql.append(" FROM ").append(subquery).append(' ').append(subqueryAlias);
+            } else {
+                sql.append(" FROM (\n");
+                sql.append(queryText);
+                sql.append("\n) ").append(subqueryAlias);
+            }
         } else {
             subqueryAlias = null;
             if (statement instanceof PlainSelect select) {

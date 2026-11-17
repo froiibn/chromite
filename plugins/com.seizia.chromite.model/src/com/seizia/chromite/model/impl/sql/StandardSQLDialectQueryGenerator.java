@@ -52,6 +52,9 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Chromite: 감싼 필터 쿼리의 ORDER BY를 바깥으로 옮김(SQL Server 별칭·계산 열 필터 실패), 행을 고르는 ORDER BY가 있는
  *   쿼리의 정렬은 감싸서 함 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  * - 2026-11-08 Chromite: 결과 열이 아닌 것으로 정렬하는 쿼리를 감쌀 때 바깥 열 목록을 따로 씀(숨은 정렬 열 제외, evening #23)
+ * - 2026-11-17 Chromite: 문장 접두어가 있는 쿼리는 방언의 하위 질의 형태 바깥에 필터·정렬을 둠({@link #getPrefixedFilterQuery}). 괄호로
+ *   감싸면 접두어가 괄호 안에 들어가 서버가 거절하고, 파싱해 조건을 넣으면 접두어를 잃는다(앱 변경 #139 작업 6b,
+ *   docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
     private static final Log log = Log.getLog(StandardSQLDialectQueryGenerator.class);
@@ -208,6 +211,9 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
         @NotNull String sqlQuery,
         @NotNull DBDDataFilter dataFilter
     ) throws DBException {
+        if (dataSource.getSQLDialect().getStatementPrefixLength(sqlQuery) > 0) {
+            return getPrefixedFilterQuery(dataSource, sqlQuery, dataFilter);
+        }
         boolean isForceFilterSubQuery = dataSource.getSQLDialect().supportsSubqueries() && dataSource.getContainer()
             .getPreferenceStore()
             .getBoolean(ModelPreferences.SQL_FILTER_FORCE_SUBSELECT);
@@ -259,6 +265,34 @@ public class StandardSQLDialectQueryGenerator implements SQLQueryGenerator {
             SQLUtils.appendOrderString(dataFilter, dataSource, NESTED_QUERY_AlIAS, true, modifiedQuery);
         } else if (wrapped.outerOrder() != null) {
             modifiedQuery.append(" ORDER BY ").append(wrapped.outerOrder()); //$NON-NLS-1$
+        }
+        return modifiedQuery.toString();
+    }
+
+    /**
+     * The filter and order of a statement with a statement prefix ({@code SQLDialect.getStatementPrefixLength}) go around
+     * the dialect's subquery form of the whole statement ({@code SQLDialect.getPrefixedStatementSubquery}): nothing is
+     * injected into the statement, whose own ORDER BY and LIMIT stay inside as the user wrote them.
+     */
+    @NotNull
+    private String getPrefixedFilterQuery(
+        @NotNull DBPDataSource dataSource,
+        @NotNull String sqlQuery,
+        @NotNull DBDDataFilter dataFilter
+    ) throws DBException {
+        String subquery = dataSource.getSQLDialect().getPrefixedStatementSubquery(sqlQuery);
+        if (subquery == null) {
+            throw new DBException("The statement prefix can't be kept in a filtered query");
+        }
+        StringBuilder modifiedQuery = new StringBuilder(subquery.length() + 100);
+        modifiedQuery.append("SELECT * FROM ").append(subquery).append(' ').append(NESTED_QUERY_AlIAS);
+        if (dataFilter.hasConditions()) {
+            modifiedQuery.append(" WHERE ");
+            SQLUtils.appendConditionString(dataFilter, dataSource, NESTED_QUERY_AlIAS, modifiedQuery, true, true);
+        }
+        if (dataFilter.hasOrdering()) {
+            modifiedQuery.append(" ORDER BY "); //$NON-NLS-1$
+            SQLUtils.appendOrderString(dataFilter, dataSource, NESTED_QUERY_AlIAS, true, modifiedQuery);
         }
         return modifiedQuery.toString();
     }

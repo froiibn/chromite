@@ -152,6 +152,8 @@ import java.util.Set;
  *   (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
  * - 2026-11-17 {@link #appliesExportQuery}: 문장 접두어가 있는 SELECT는 다시 실행해 내보내지 않음(전처럼). 이제 종류가 SELECT로 정해지지만
  *   필터·정렬을 넣은 다시 쓰기가 접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-17 {@link #appliesExportQuery}: 방언이 하위 질의 형태를 주는 접두어 SELECT는 다시 실행해 내보냄({@code SQLQuery.hasSubqueryForm},
+ *   앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -529,8 +531,9 @@ final class DataExportWizard extends DataTransferWizard {
         if (!(element instanceof SQLQuery sqlQuery) || sqlQuery.getType() != SQLQueryType.SELECT || sqlQuery.isModifying()) {
             return false;
         }
-        // A prefixed SELECT (SQLDialect.getStatementPrefixLength): the export's filter and order rewrite would lose the prefix
-        if (sqlQuery.getStatementPrefixLength() > 0) {
+        // A prefixed SELECT (SQLDialect.getStatementPrefixLength): the export's filter and order go around the dialect's
+        // subquery form; without one the rewrite would lose the prefix
+        if (!sqlQuery.hasSubqueryForm()) {
             return false;
         }
         // A GO batch of several statements is one query (SQLScriptBatches) and the type above is that of its first

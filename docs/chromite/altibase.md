@@ -700,6 +700,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `extension/AltibaseServerExtension` | `detect(JDBCSession, AltibaseDataSource)`: 연결한 서버의 카탈로그를 읽고(SELECT만) 맞으면 그 연결의 상태를, 아니면 null을 돌려준다. 실패는 "없음" |
 | `extension/AltibaseServerExtensionState` | 연결마다의 결과. `getAdapter(Class)`(데이터 원본의 어댑터를 먼저 답함), `getTreeObjects()`(아래 트리 자리의 객체), 방언 기여 `getSyntaxKeywords()`·`getFunctions()`·`getStatementPrefixLength(text)`(2026-11-17 작업 6a). 기본 구현은 "기여 없음" |
 | `AltibaseSQLDialect.applyServerExtensions` / `getStatementPrefixLength` | 감지 뒤 데이터 원본이 자기 방언 객체에 넘긴다: 낱말은 키워드로(서버가 `V$RESERVED_WORDS`에 없으면 `mustBeQuoted`의 이유가 아님, `CACHE`와 같은 규칙), 함수는 함수로, 접두어 길이는 확장에 묻는다(확장이 없으면 0 = 전과 같음) |
+| `AltibaseServerExtensionState.getPrefixedStatementSubquery` / `getStatementPrefixProposals` → `AltibaseSQLDialect`의 같은 이름(2026-11-17 작업 6b) | 접두어 문장을 하위 질의로 쓰는 형태(행 수·필터·정렬이 감쌀 때)와 입력 중인 접두어의 자동 완성 제안. 문장의 접두어를 아는 확장에 묻는다. 확장이 없으면 null = 전과 같음(형태 없음 → 다시 읽기 막힘, 제안 없음) |
 | `extension/AltibaseServerExtensionRegistry` | 확장 지점을 처음 물을 때 한 번 읽고 확장 객체를 하나씩 만든다. 만들 수 없는 확장은 기록하고 뺀다 |
 | `AltibaseDataSource.initialize` → `detectServerExtensions` | 연결이 쓸 수 있게 된 뒤(상위 `initialize`, LOB 임계값 다음) 확장마다 `detect`를 메타 세션 하나에서 부르고 결과를 인스턴스 필드 `serverExtensions`에 둔다. 확장이 없으면 세션도 열지 않는다 |
 | `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
@@ -750,3 +751,4 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   (앱 변경 #139 작업 2·3, 첫 사용자는 ShardSphere 플러그인), 위 "서버 확장".
 - 2026-11-17 서버 확장의 방언 기여(문법 낱말, 함수, 문장 접두어 길이)를 연결의 방언 객체에(`AltibaseSQLDialect.applyServerExtensions`, 앱 변경 #139 작업 6a),
   위 "서버 확장".
+- 2026-11-17 서버 확장의 방언 기여에 접두어 문장의 하위 질의 형태와 입력 중인 접두어의 제안을 더함(앱 변경 #139 작업 6b), 위 "서버 확장".

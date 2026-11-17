@@ -16,8 +16,11 @@
  */
 package com.seizia.chromite.ext.shardsphere;
 
+import com.seizia.chromite.model.sql.SQLDialect;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -35,6 +38,10 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 접두어 인식(앱 변경 #139 작업 6a, docs/chromite/shardsphere.md)
+ * - 2026-11-17 하위 질의 형태({@link #getSubqueryForm})와 입력 중인 접두어의 제안({@link #getProposals}). 메타 노드가 받는 형태는
+ *   {@code FROM NODE[x](SELECT …)}·{@code FROM SHARD (SELECT …)}이고 {@code FROM (NODE[x] SELECT …)}는 거절한다(조사와 이 작업의 JDBC 확인).
+ *   서버가 받지 않는 접두어({@code NODE[all]}, 접두어 둘)와 SELECT가 아닌 본문은 형태가 없다(앱 변경 #139 작업 6b,
+ *   docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public final class ShardSphereStatementPrefix {
 
@@ -42,8 +49,132 @@ public final class ShardSphereStatementPrefix {
     private static final String SHARD = "SHARD"; //$NON-NLS-1$
     private static final List<String> NODE_TARGETS_WITHOUT_NAMES = List.of("META", "ALL"); //$NON-NLS-1$ //$NON-NLS-2$
     private static final String NODE_TARGET_DATA = "DATA"; //$NON-NLS-1$
+    private static final String NODE_TARGET_ALL = "ALL"; //$NON-NLS-1$
+    // What may follow "NODE[": every target of the prefix (NODE[all] is valid before DML, the server rejects it before SELECT)
+    private static final List<String> NODE_TARGET_PROPOSALS = List.of("meta", "data", "all"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    private static final String SELECT = "SELECT"; //$NON-NLS-1$
+    // A line break before the closing parenthesis ends a line comment at the end of the statement
+    private static final String SUBQUERY_OPEN = "(\n"; //$NON-NLS-1$
+    private static final String SUBQUERY_CLOSE = "\n)"; //$NON-NLS-1$
 
     private ShardSphereStatementPrefix() {
+    }
+
+    /**
+     * The derived table that reads a prefixed SELECT on the nodes of its prefix, for the rewrites that put a query in a
+     * subquery (row count, filters, order): {@code NODE[x](body)} or {@code SHARD (body)}, the forms the sharding meta node
+     * accepts; the statement in parentheses with its prefix is rejected. The body keeps its own ORDER BY and LIMIT (they
+     * apply per node, as the user wrote them); a trailing {@code ;} and the comments before the prefix are left out.
+     *
+     * @return null when the text has no prefix, has two (rejected by the server), has {@code NODE[all]} (rejected before
+     * a SELECT) or its body is not a SELECT
+     */
+    @Nullable
+    public static String getSubqueryForm(@NotNull String text) {
+        int end = prefixEnd(text, 0);
+        if (end < 0 || getLength(text) != end) {
+            return null;
+        }
+        int start = skipSpaceAndComments(text, 0);
+        boolean shard = text.substring(start, wordEnd(text, start)).equalsIgnoreCase(SHARD);
+        if (!shard && nodeTarget(text, start).equals(NODE_TARGET_ALL)) {
+            return null;
+        }
+        String body = stripTrailingDelimiters(text.substring(end));
+        if (!isSelect(body)) {
+            return null;
+        }
+        return text.substring(start, end) + (shard ? " " : "") + SUBQUERY_OPEN + body + SUBQUERY_CLOSE;
+    }
+
+    /**
+     * Proposals for a {@code NODE[...]} prefix being typed: after {@code NODE[} its targets, inside {@code data(} the
+     * given node names (quoted). The targets follow the case of the typed {@code NODE}.
+     *
+     * @param text      a statement from its start to the caret
+     * @param nodeNames the node names of the connection's meta node, empty for another server
+     * @return null when the caret is not in the brackets of a {@code NODE} prefix (or in {@code data(} without names)
+     */
+    @Nullable
+    public static SQLDialect.StatementPrefixProposals getProposals(@NotNull String text, @NotNull List<String> nodeNames) {
+        int i = skipSpaceAndComments(text, 0);
+        int nodeEnd = wordEnd(text, i);
+        String node = text.substring(i, nodeEnd);
+        if (!node.equalsIgnoreCase(NODE)) {
+            return null;
+        }
+        int j = skipSpace(text, nodeEnd);
+        if (j >= text.length() || text.charAt(j) != '[') {
+            return null;
+        }
+        j = skipSpace(text, j + 1);
+        int targetEnd = wordEnd(text, j);
+        if (targetEnd == text.length()) {
+            boolean upper = node.equals(node.toUpperCase(Locale.ENGLISH));
+            List<String> words = new ArrayList<>();
+            for (String target : NODE_TARGET_PROPOSALS) {
+                words.add(upper ? target.toUpperCase(Locale.ENGLISH) : target);
+            }
+            return new SQLDialect.StatementPrefixProposals(j, words);
+        }
+        if (!text.substring(j, targetEnd).equalsIgnoreCase(NODE_TARGET_DATA)) {
+            return null;
+        }
+        int k = skipSpace(text, targetEnd);
+        if (k >= text.length() || text.charAt(k) != '(' || nodeNames.isEmpty()) {
+            return null;
+        }
+        // The name being typed starts after the opening parenthesis or the last comma; a closed list is not completed
+        int nameStart = k + 1;
+        for (int m = k + 1; m < text.length(); m++) {
+            char c = text.charAt(m);
+            if (c == ')' || c == ']') {
+                return null;
+            }
+            if (c == ',') {
+                nameStart = m + 1;
+            }
+        }
+        nameStart = skipSpace(text, nameStart);
+        int typed = nameStart < text.length() && (text.charAt(nameStart) == '\'' || text.charAt(nameStart) == '"') ? nameStart + 1 : nameStart;
+        if (wordEnd(text, typed) != text.length()) {
+            return null;
+        }
+        List<String> names = new ArrayList<>();
+        for (String name : nodeNames) {
+            names.add('\'' + name.replace("'", "''") + '\''); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        return new SQLDialect.StatementPrefixProposals(nameStart, names);
+    }
+
+    /**
+     * The target word of a {@code NODE[...]} prefix that starts at {@code nodeStart}, in upper case.
+     */
+    @NotNull
+    private static String nodeTarget(@NotNull String text, int nodeStart) {
+        int j = skipSpace(text, wordEnd(text, nodeStart));
+        j = skipSpace(text, j + 1);
+        return text.substring(j, wordEnd(text, j)).toUpperCase(Locale.ENGLISH);
+    }
+
+    /**
+     * Whether the statement starts with SELECT, after whitespace, comments and opening parentheses.
+     */
+    private static boolean isSelect(@NotNull String body) {
+        int i = skipSpaceAndComments(body, 0);
+        while (i < body.length() && body.charAt(i) == '(') {
+            i = skipSpaceAndComments(body, i + 1);
+        }
+        return body.substring(i, wordEnd(body, i)).equalsIgnoreCase(SELECT);
+    }
+
+    @NotNull
+    private static String stripTrailingDelimiters(@NotNull String body) {
+        int end = body.length();
+        while (end > 0 && (Character.isWhitespace(body.charAt(end - 1)) || body.charAt(end - 1) == ';')) {
+            end--;
+        }
+        return body.substring(0, end);
     }
 
     /**

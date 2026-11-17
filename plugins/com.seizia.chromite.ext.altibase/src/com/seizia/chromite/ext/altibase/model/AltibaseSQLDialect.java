@@ -80,8 +80,10 @@ import java.util.stream.Stream;
  * - 2026-11-17 Chromite: 서버 확장의 방언 기여({@link #applyServerExtensions}): 이 연결에서 감지된 확장의 문법 낱말(예약어가 아니면 따옴표
  *   이유가 아님), 함수, 문장 접두어({@link #getStatementPrefixLength}). 이 방언 객체에만 더하므로 같은 앱의 다른 Altibase 연결은 그대로다
  *   (앱 변경 #139, docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-17 Chromite: 서버 확장의 접두어 문장 하위 질의 형태({@link #getPrefixedStatementSubquery})와 입력 중인 접두어의 제안
+ *   ({@link #getStatementPrefixProposals})도 이 연결에서 감지된 확장에 묻는다(앱 변경 #139 작업 6b, docs/chromite/altibase.md "서버 확장")
  */
-public class AltibaseSQLDialect extends JDBCSQLDialect 
+public class AltibaseSQLDialect extends JDBCSQLDialect
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
 
     private static final Log log = Log.getLog(AltibaseSQLDialect.class);
@@ -529,6 +531,35 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
             }
         }
         return 0;
+    }
+
+    /**
+     * The subquery form of the server extension whose prefix the statement has; null for a server without one (Altibase).
+     */
+    @Nullable
+    @Override
+    public String getPrefixedStatementSubquery(@NotNull String text) {
+        for (AltibaseServerExtensionState extension : serverExtensions) {
+            if (extension.getStatementPrefixLength(text) > 0) {
+                return extension.getPrefixedStatementSubquery(text);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The proposals of a server extension for a statement prefix being typed; null for a server without one (Altibase).
+     */
+    @Nullable
+    @Override
+    public StatementPrefixProposals getStatementPrefixProposals(@NotNull String text) {
+        for (AltibaseServerExtensionState extension : serverExtensions) {
+            StatementPrefixProposals proposals = extension.getStatementPrefixProposals(text);
+            if (proposals != null) {
+                return proposals;
+            }
+        }
+        return null;
     }
 
     /**

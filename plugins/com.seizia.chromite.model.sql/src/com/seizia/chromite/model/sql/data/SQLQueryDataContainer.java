@@ -64,6 +64,8 @@ import java.util.Map;
  *   (docs/chromite/sql-batch-reread.md)
  * - 2026-11-17 {@link #countData}: 문장 접두어가 있는 SELECT는 세지 않음. 이제 그 종류가 SELECT로 정해지는데 세는 문장으로 감싸면
  *   접두어를 잃는다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-17 {@link #countData}: 방언이 하위 질의 형태를 주는 접두어 SELECT는 셈({@link SQLQuery#hasSubqueryForm()}, COUNT 변환기가
+ *   그 형태를 씀). 형태가 없으면 전처럼 거절(앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
  */
 public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContainer, DBPContextProvider, DBPImageProvider {
 
@@ -259,8 +261,8 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
         throws DBCException
     {
         checkCanReadAgain(session);
-        // A prefixed SELECT (SQLDialect.getStatementPrefixLength) is not counted: the count wrapper would lose the prefix
-        if (query.getType() != SQLQueryType.SELECT || query.isModifying() || query.getStatementPrefixLength() > 0) {
+        // A prefixed SELECT (SQLDialect.getStatementPrefixLength) is counted only through the dialect's subquery form
+        if (query.getType() != SQLQueryType.SELECT || query.isModifying() || !query.hasSubqueryForm()) {
             throw new DBCException("Can't count the rows of a statement that is not a single SELECT");
         }
         DBPDataSource dataSource = session.getDataSource();
