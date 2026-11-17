@@ -54,6 +54,28 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.5">
+    <h2>26.1.5</h2>
+    <div class="body">
+      <p>Broader ShardSphere support: a sharding explorer, NODE and SHARD prefixed statements, a GEMINI view, and Overview charts and space usage in the Activity Monitor.</p>
+      <ul>
+        <li>New · ShardSphere: the default database type list of a new connection includes ShardSphere. The default list holds the databases whose driver ships in the installer (SQL Server, PostgreSQL, MariaDB, Oracle, SQLite, ShardSphere). Other databases are found under "More database types"</li>
+        <li>New · ShardSphere sharding explorer: on a sharding meta node, System Info shows the data nodes, the shard objects with their distribution, the sharding properties and the node links (read-only). A table's properties show its split method and shard key</li>
+        <li>New · ShardSphere NODE[...] and SHARD prefixed statements: a prefixed DELETE, UPDATE, DROP or TRUNCATE gets the same confirmation before it runs as the statement without a prefix. Row count, filter, sort and export work on the result of a prefixed SELECT, and the targets and node names are completed after NODE[</li>
+        <li>New · ShardSphere GEMINI: the Replications folder and the Replication tab of the Activity Monitor show the GEMINI configuration and the sender state (read-only)</li>
+        <li>New · ShardSphere TTL: a table's properties show its TTL column and period</li>
+        <li>New · ShardSphere · Altibase Activity Monitor: the Overview has charts for sessions, transactions per second, statements per second, lock waits, buffer pool hit ratio and server memory, and the Space tab shows the usage of tablespaces, data files and the largest tables. System Info has a Server Information folder (version, start time, status)</li>
+        <li>ShardSphere · Altibase: a job's interval is shown in words ("1 minute(s)"), and on ShardSphere its owner, type and fail count too. The sequence a queue uses internally is shown read-only</li>
+        <li>ShardSphere: the settings page of a connection and the driver editor show the ShardSphere name</li>
+        <li>Fix · ShardSphere: an error on the Locks tab of the Activity Monitor, empty sizes of disk tablespaces, and comments missing from the table DDL</li>
+        <li>Connection dialog, Settings tab: the page list on the left is now a list of the same look as in the Options dialog</li>
+        <li>Context menus: the menus of Scripts, Query Library, Query Manager, Database Tasks and read-only text views list only the commands that apply</li>
+        <li>Fix · Numeric fields: fields that take a number (Go to Row, numeric properties, numeric Query Library parameters and others) no longer accept letters</li>
+        <li>Fix · Debugger: the start dialog did not restore the attach mode used last</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.4">
     <h2>26.1.4</h2>
     <div class="body">
