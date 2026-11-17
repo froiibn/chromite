@@ -45,7 +45,8 @@ import java.util.List;
  * <ul>
  *     <li>TTL 단위 코드: Y 년, Q 분기, O 월, W 주, D 일, H 시간, M 분, S 초(스트림 매뉴얼의 {@code SYS_TTL_} 설명). 모르는 코드는 수와
  *     코드 그대로. 기준 컬럼은 {@code SYS_COLUMNS_}에서 {@code TABLE_ID}·{@code COLUMN_ID}로 찾고, 못 찾으면 번호를 보인다.
- *     실제 TTL 행을 본 적이 없다(두 서버 모두 0건, 2026-11-17): 문장은 두 서버에서 실행해 0건, 표시는 손으로 만든 행으로만 확인.</li>
+ *     {@code SYS_TTL_.COLUMN_ID}는 {@code SYS_COLUMNS_.COLUMN_ID}와 같은 번호다(2026-11-17 시험용 표로 확인: 일 D, 분 M, 월 O, 시간 H, 년 Y가
+ *     저장됨). 문장은 실제 행으로, 표시는 손으로 만든 행으로 확인했다.</li>
  *     <li>분산 방식 이름은 샤딩 탐색기와 같다({@link ShardObject#splitMethodLabel}, 시스피어가 답한 코드).</li>
  * </ul>
  *

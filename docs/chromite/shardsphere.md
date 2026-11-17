@@ -525,7 +525,7 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 | TTL | 서버 속성 `EXPIRED_DATA_DELETION_ENABLE = 1`(설정 파일, 재기동)로 켬, `CREATE TABLE … USING TTL n 단위 ON COLUMN c`, ALTER로도 | 테이블 속성의 TTL(아래), 문법 낱말 `TTL` |
 | GEMINI | 매뉴얼 | 코드 이름은 문서에 있는 것만, 제어 문장은 문서화됐으나 숨김 유지(위 "GEMINI") |
 | JDBC | 반드시 `shardsphere.jar`(관리는 메타 노드에서) | 바꾼 것 없음(이미 그 드라이버) |
-| 쓰기 가능한 서버 | "현재 서버에서 User 생성 등 작업이 가능" | 이 작업은 사용자 지시대로 벤더 서버에서 조회·준비만 했다 |
+| 쓰기 가능한 서버 | "현재 서버에서 User 생성 등 작업이 가능" | 구현 작업은 벤더 서버에서 조회·준비만 했다. 그 뒤 사용자 허락(2026-11-17)으로 일반 서버에 시험용 개체 `CHR_COR_*`만 만들어 TTL 행과 큐 시퀀스를 확인하고 지웠다(아래 "테이블 속성: TTL과 샤드") |
 
 매뉴얼로 알게 된 것 중 큐의 내부 시퀀스와 작업은 계열 공통이라 [altibase.md](altibase.md) "큐의 내부 시퀀스", "작업"에 있다.
 
@@ -542,9 +542,15 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
 
 - **TTL 단위 코드:** Y 년, Q 분기, O 월, W 주, D 일, H 시간, M 분, S 초(스트림 매뉴얼의 `SYS_TTL_` 설명). 모르는 코드는 수와 코드 그대로("9 X"). 기준 컬럼을
   찾지 못하면 컬럼 번호를 보인다. 분산 방식 이름은 샤딩 탐색기와 같다(`ShardObject.splitMethodLabel`).
-- **실제 TTL 행은 본 적이 없다.** 두 ShardSphere 서버 모두 `SYS_TTL_` 0행이고 `EXPIRED_DATA_DELETION_ENABLE` = 0이다. 이 작업은 벤더 서버에 쓰지 않았다.
-  확인한 것: 문장을 두 서버에서 준비·실행(0행), 표시는 손으로 만든 행(이 번들의 행 읽기·형식, 가짜 결과 집합)으로. `SYS_TTL_.COLUMN_ID`가 `SYS_COLUMNS_.COLUMN_ID`와
-  같은 번호인지는 미확인이다(같은 이름이라 그렇게 이었다).
+- **실제 TTL 행(2026-11-17, 일반 서버 5.1.9, 시험용 표 `CHR_COR_*`를 만들어 읽고 지움, 앱 밖 JDBC):** 두 서버 모두 원래 `SYS_TTL_` 0행이고
+  `EXPIRED_DATA_DELETION_ENABLE` = 0이다(만료 삭제는 돌지 않음).
+  - `CREATE TABLE … USING TTL 7 DAY ON COLUMN c` → `SYS_TTL_`에 UNIT `D`, TIME 7. `5 MINUTE` → `M`, `2 MONTH` → `O`. `ALTER TABLE … USING TTL 3 HOUR ON COLUMN c`는
+    있는 TTL을 바꾸고(`H`, 3) TTL이 없는 표에도 건다(`1 YEAR` → `Y`). 단위 낱말 `MIN`은 문법 오류(200705)이고 `MINUTE`가 맞다(메일의 `MIN`과 다름).
+  - `SYS_TTL_.COLUMN_ID`는 `SYS_COLUMNS_.COLUMN_ID`와 같은 번호다: 이 번들의 문장(`ShardTableProperties.QUERY_TTL`)이 실제 행에서 기준 컬럼 이름과 수·단위를 돌려준다.
+  - `DBMS_METADATA.GET_DDL`의 표 DDL에 `USING TTL 7 DAY ON COLUMN c`가 들어 있다(DDL 보기에 TTL이 보임). `SYS_TTL_FORMAT_`에는 행이 생기지 않았다.
+  - 끝에 모두 지움: `SYS_TABLES_`에 `CHR_COR_%` 0행, `SYS_TTL_` 0행.
+  - **앱 화면에서 실제 TTL 행을 본 것은 아니다:** 문장은 실제 행으로(앱 밖), 표시는 손으로 만든 행(이 번들의 행 읽기·형식, 가짜 결과 집합)으로 확인했다. 주(W)·분기(Q)·초(S)
+    코드는 만들어 보지 않았다(매뉴얼의 코드).
 - **샤드 테이블 확인(메타 노드, 실제 행):** 샤드 테이블 둘 모두 분산 방식 "해시"와 샤드 키가 보이고, 같은 메타 노드의 다른 테이블(`SYS_SHARD` 스키마의 표)에는 묶음이 없다.
 
 ### 자리와 비용
@@ -628,11 +634,11 @@ SELECT 목록은 모델이 읽는 열만 고른다(`SELECT *`·`s.*`를 쓰지 �
   "ShardSphere" 노드가 GEMINI 아니오로 보인다.
 - 미확인: 메타 노드의 판정(`SYS_SHARD` 사용자 + `SHARD_META_ENABLE` = 1)이 데이터 노드와 메타 노드를 늘 가르는지. 데이터 노드에도 `SYS_SHARD`가 만들어지는지.
 - 미확인: `SYS_GEMINIS_`가 GEMINI를 쓰지 않는 ShardSphere 설치에도 늘 있는지(두 서버 모두 있음, 둘 다 GEMINI 비어 있음).
-- 미확인(2026-11-17): 실제 TTL 행의 모양(`SYS_TTL_.COLUMN_ID`가 `SYS_COLUMNS_.COLUMN_ID`인지, 분 단위가 M인지: 메일은 MIN, 예제는 MINUTE), `SYS_TTL_FORMAT_`의 용도, TTL을 바꾸거나
-  없애는 문법.
+- 확인됨(2026-11-17, 시험용 표): `SYS_TTL_.COLUMN_ID` = `SYS_COLUMNS_.COLUMN_ID`, 분은 `MINUTE`로 쓰고 `M`으로 저장, TTL은 `ALTER TABLE … USING TTL …`로 걸고 바꾼다.
+  미확인: `SYS_TTL_FORMAT_`의 용도, TTL을 없애는 문법.
 - 미확인(2026-11-17): 스케줄러 속성 `JOB_SCHEDULER_ENABLE`·`JOB_THREAD_COUNT`가 `V$PROPERTY`에 보이지 않는 이유(숨김 속성인지), 그래서 Chromite가 스케줄러가 켜져 있는지 알 길.
 - 미확인(2026-11-17): `SYS_JOBS_.STATE` 코드(작업 예제의 켜진 작업은 0), `JOB_TYPE`의 P 외 코드.
-- 미확인(2026-11-17): 큐의 내부 시퀀스 `<큐>_NEXT_MSG_ID`의 `TABLE_TYPE`(Altibase 7.3은 W, ShardSphere는 큐를 만들 수 없어 보지 못함).
+- 확인됨(2026-11-17, 시험용 큐 `CHR_COR_Q`, `CREATE QUEUE q (40)`): 큐의 내부 시퀀스 `<큐>_NEXT_MSG_ID`의 `TABLE_TYPE`은 ShardSphere 5.1.9에서도 `W`이고 `V$SEQ`에 있다(Altibase 7.3과 같음). 앱 화면에서는 Altibase 7.3으로만 확인했다.
 - 미확인(2026-11-17): `SHARD_ID()`가 SQL 매뉴얼에 이름만 있고 두 서버에 없는 이유.
 
 ## 확인 (2026-11-17, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
