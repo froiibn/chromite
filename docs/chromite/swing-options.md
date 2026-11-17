@@ -157,7 +157,7 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 |---|---|---|
 | 페이지 틀 | `SettingsPage` | 페이지의 키 목록(`getKeys`), 저장소에서 읽기(`load`), 쓰기(`save(Writer)`), 연결 값 지우기(`clear`), 다시 연결 필요 여부(`isAppliedWithoutReconnect`). Options와 연결 대화상자가 같은 클래스를 쓴다 |
 | 쓰기 방식 | `SettingsPage.Writer` | 전역: 바뀐 값만 쓰고 바뀐 것이 있으면 저장. 연결별: 모든 값을 연결의 값으로 씀(전역과 같은 값도: 나중에 전역을 바꿔도 이 연결은 그대로). 빈 칸이 기본값인 글자(구분 기호, 매개 변수 접두사)는 연결이면 기본값 자체를 씀 |
-| 연결 대화상자 탭 | `ConnectionSettingsOverrides` | Options > Settings 탭. 왼쪽 목록에 페이지, 페이지마다 "이 연결에 다른 설정 사용" 확인란. 끄면 Options의 값을 보이고 고칠 수 없음. 켠 페이지 목록에 확인 표시 |
+| 연결 대화상자 탭 | `ConnectionSettingsOverrides` | Options > Settings 탭. 왼쪽 목록(Tools > Options와 같은 `JList` + `CardLayout`, 아래 "연결 Settings 탭의 페이지 목록 (#150)")에 페이지, 페이지마다 "이 연결에 다른 설정 사용" 확인란. 끄면 Options의 값을 보이고 고칠 수 없음. 켠 페이지 목록에 확인 표시 |
 | 페이지 | `SqlExecutionOptionsPage`, `ResultSetOptionsPage`, `ContentOptionsPage`, `DataFormatOptionsPage`, `ConnectionErrorsOptionsPage`, `MetadataOptionsPage`, `ClientIdentificationOptionsPage`, `CodeCompletionOptionsPage`, `DataTransferOptionsPage`, `OracleOptionsPage`·`AltibaseOptionsPage`·`CubridOptionsPage`(그 데이터베이스 연결만) | 아래 각 절 |
 | 전역 저장소 | `SettingsPage.getGlobalStore` | 페이지의 전역 값이 있는 저장소. 기본은 플랫폼 저장소, Data Transfer는 데이터 전송 번들 저장소. Options의 OK와 연결 페이지를 끌 때 보이는 값이 이것을 쓴다 |
 | 전역만 있는 페이지 | `ConnectionsOptionsPage`, `DriversOptionsPage`, `NavigatorOptionsPage`, `NotificationsOptionsPage`, `LogsOptionsPage`, `MimerOptionsPage` | 모델이 플랫폼 저장소에서만 읽는 키. 같은 틀(`SettingsPage`)을 쓰고 Options에만 넣음 |
@@ -856,6 +856,28 @@ design-spec "적용 현황 — 글자 선명도와 대비".
 - 보고(고치지 않음, 범위 밖): 연결 대화상자 Shell Commands 페이지의 스크롤 창은 단위가 1이라 휠 한 칸이 3px만 움직인다(`ConnectionShellCommandsPage`).
   연결 대화상자의 다른 양식 칸(`ConnectionSettingsOverrides`, `ConnectionNetworkPage`)은 16이다. 옵션 페이지와 같은 단위로 맞출지는 따로 정할 일이다.
 
+## 연결 Settings 탭의 페이지 목록 (#150)
+
+사용자 요청(2026-11-17): 연결 대화상자 Options > Settings의 왼쪽이 "영역 구분이 없이 글자만 보인다". DataGrip UI 스타일을 따르기로 했으니 이 부분도 맞춘다.
+
+- **원인:** 페이지를 왼쪽 배치 `JTabbedPane(SwingConstants.LEFT)`로 골랐다. 연결 대화상자는 낮아서(설정 탭 높이 약 307) 탭 열 개가 한 열에 들어가지 않고
+  두 열로 엇갈려 감겼다(150%에서 탭 영역 폭 246, 영어 274). 탭 줄에는 바탕·구분선·선택 모양이 없어 글자만 보였다. 페이지 아홉 개(SQL Server 등)일 때는 한 열이었다.
+- **고침:** Tools > Options와 같은 목록. 왼쪽 `JList`(한 열, 단일 선택), 오른쪽 `CardLayout`(페이지마다 기존 스크롤 창 그대로).
+  - 행 모양은 Options의 렌더러 `OptionsDialog.PageListRenderer`를 그대로 쓴다(행 위아래 7·좌우 10 여백, 아이콘–글자 10, 둥근 선택은 FlatLaf `List.selectionArc` 8,
+    선택색 `selection.bg`/`selection.inactiveBg`, 글자색 유지). 이 렌더러를 패키지 안에 열었다(`private` → 패키지). 둘레 여백(`OptionsDialog.LIST_PADDING` 12)과
+    오른쪽 1px 구분선(`OptionsForm.createDividerBorder`, `Chromite.dividerColor`)도 Options와 같다. 찾기 칸은 두지 않는다(페이지가 열 개 남짓).
+  - 아이콘 자리에 연결별 값을 켠 페이지의 확인 표시(`check`)를 그린다. 켜지 않은 행은 같은 크기의 빈 자리를 두어 제목 시작 위치가 같다.
+  - 목록 폭은 가장 긴 제목 + 세로 스크롤 막대(가로 스크롤 없음). 선호 높이는 6행으로 두어(`LIST_VISIBLE_ROWS`) 폭에 스크롤 막대가 늘 들어가고 대화상자를 높이지 않는다.
+  - 탭이 열리면 첫 페이지가 선택되어 있다. 화살표·Home·End가 페이지를 바꾸고, Tab은 보이는 페이지의 "이 연결에 다른 설정 사용" 확인란으로 간다.
+- **폭(설정 탭 왼쪽 영역, 논리 px):** 전 150% 한국어 246(두 열, 확인 표시 두 개면 286), 영어 274(314), 100% 한국어 254(294). 후 150% 한국어 180, 영어 194,
+  100% 한국어 184. 대화상자 폭은 전후 같다(150% 640, 100% 646). 오른쪽 페이지 자리가 그만큼 넓어졌다.
+- **같은 결함을 찾은 결과:** Swing UI에서 왼쪽·오른쪽 배치 `JTabbedPane`은 이 한 곳이었다. 문서 탭의 배치 메뉴(`DocumentTabMenu`, 사용자가 문서 탭을 왼쪽·오른쪽에 둘 수 있음)는
+  Islands 알약 탭이라 다른 경우로 그대로 둔다.
+- **확인(2026-11-17, 이 브랜치 빌드, 테스트 에이전트, 연결은 하지 않음):** SQL Server·Oracle·ShardSphere 연결(기본값 localhost)과 새 연결 대화상자의 ShardSphere,
+  한국어·영어 150% 밝게, 한국어 100% 어둡게. 마우스·화살표로 페이지 선택, 두 페이지에 연결별 값을 켜면 두 행에 확인 표시, 저장 뒤 다시 열면 표시와 연결의 키가 남고
+  끄고 저장하면 사라짐. Options 대화상자의 목록·찾기·페이지는 전과 같음. 전후 캡처: `D:\Tools\_scratch\connection-settings-sidebar\sheets\`
+  (전 = 같은 빌드에 이전 `ConnectionSettingsOverrides`를 넣은 것).
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
@@ -1030,6 +1052,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   `chromite/html-label-wrapping`, 위 "HTML 라벨 안내"). 회귀 테스트는 실행하지 않았다.
 - 2026-11-13 #90 2차: 경고 아이콘과 안내의 세로 맞춤(`WrappingNote.withIcon`), 같은 원인의 나머지 HTML 안내와 Swing 단어 줄 바꿈 글 상자
   (`WrappingNote.MessageArea`), 굵은 글씨·가운데 맞춤 안내(위 "HTML 라벨 안내 2차"). 회귀 테스트는 실행하지 않았다.
+- 2026-11-17 연결 대화상자 Settings 탭의 왼쪽 배치 탭을 Options와 같은 페이지 목록(`JList` + `CardLayout`, `OptionsDialog.PageListRenderer` 공유)으로
+  (앱 변경 #150, `chromite/connection-settings-sidebar`, 위 "연결 Settings 탭의 페이지 목록 (#150)"). 회귀 테스트는 실행하지 않았다.
 
 ## 부록: 키별 상태
 
