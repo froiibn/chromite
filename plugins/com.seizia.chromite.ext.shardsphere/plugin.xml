@@ -9,4 +9,34 @@
         <serverExtension id="shardsphere" class="com.seizia.chromite.ext.shardsphere.ShardSphereServerExtension"/>
     </extension>
 
+    <!-- Sharding explorer, read-only (docs/chromite/shardsphere.md "샤딩 탐색기"): folders under the ShardSphere node that
+         ext.altibase's neutral tree host (System Info, items path "serverExtension") shows for this extension's object.
+         visibleIf: only on a sharding meta node; on any other object of that host the expression fails and the folder is
+         hidden. The folders have no type: their classes are not visible to ext.altibase, which loads folder types, and the
+         tree reads the children's class from the getters. -->
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <datasourcePatch id="altibase">
+            <treeInjection path="altibase/serverExtension">
+                <folder id="shardNodes" label="%tree.shard_nodes.node.name" description="%tree.shard_nodes.node.name"
+                        icon="#folder_server" visibleIf="object.isShardingMetaNode()">
+                    <items label="%tree.shard_node.node.name" path="shardNode" property="shardNodes" icon="#server"/>
+                </folder>
+                <folder id="shardObjects" label="%tree.shard_objects.node.name" description="%tree.shard_objects.node.name"
+                        icon="#folder_table" visibleIf="object.isShardingMetaNode()">
+                    <items label="%tree.shard_object.node.name" path="shardObject" property="shardObjects" icon="#table">
+                        <items label="%tree.shard_placement.node.name" path="shardPlacement" property="distribution" icon="#partition"/>
+                    </items>
+                </folder>
+                <folder id="shardingProperties" label="%tree.sharding_properties.node.name" description="%tree.sharding_properties.node.name"
+                        icon="#info" visibleIf="object.isShardingMetaNode()">
+                    <items label="%tree.sharding_property.node.name" path="shardingProperty" property="shardingProperties" icon="#info"/>
+                </folder>
+                <folder id="shardLinks" label="%tree.shard_links.node.name" description="%tree.shard_links.node.name"
+                        icon="#folder_link" visibleIf="object.isShardingMetaNode()">
+                    <items label="%tree.shard_link.node.name" path="shardLink" property="shardLinks" icon="#link"/>
+                </folder>
+            </treeInjection>
+        </datasourcePatch>
+    </extension>
+
 </plugin>
