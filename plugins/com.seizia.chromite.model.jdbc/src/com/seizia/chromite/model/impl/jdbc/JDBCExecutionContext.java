@@ -44,7 +44,9 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Savepoint;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -57,6 +59,8 @@ import java.util.function.Consumer;
  * 변경 이력:
  * - 2026-11-08 {@link DBCTransactionProbe}: 세션의 트랜잭션이 무엇을 쥐었는지 방언의 질의({@link JDBCTransactionProbe})로 이 문맥의
  *   JDBC 연결에 물음. 쿼리 관리자의 추적기가 사용자 작업 뒤에 부름 (docs/chromite/idle-transactions.md "트랜잭션 상태")
+ * - 2026-11-22 드라이버 execute 호출 안의 문장을 시작 순서로 기억하고({@link #isServingOtherSession}), 다른 세션의 문장 뒤에서 기다리는 세션의
+ *   취소가 그 문장을 멈추지 않게 함 (앱 변경 #161, docs/chromite/cancel-busy-connection.md)
  */
 public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
     implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
@@ -77,6 +81,9 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     private final List<DBCTransactionListener> transactionListeners = new CopyOnWriteArrayList<>();
 
     private StatementLock statementLock = NoOpLock.INSTANCE;
+    // Statements inside a driver execute call, oldest first. The connection serves one call at a time, so the oldest is the
+    // one the server runs and the later ones wait for the driver's connection lock.
+    private final Queue<DBCStatement> executingStatements = new ConcurrentLinkedQueue<>();
 
     public JDBCExecutionContext(@NotNull JDBCRemoteInstance instance, String purpose) {
         super(instance, purpose);
@@ -586,6 +593,32 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
 
     public void unlockStatementExecution(@NotNull DBCStatement stmt) {
         statementLock.unlock(stmt);
+    }
+
+    /**
+     * A statement of this context enters a driver execute call.
+     */
+    public void statementExecuteStarted(@NotNull DBCStatement stmt) {
+        executingStatements.add(stmt);
+    }
+
+    /**
+     * A statement of this context left its driver execute call.
+     */
+    public void statementExecuteEnded(@NotNull DBCStatement stmt) {
+        executingStatements.remove(stmt);
+    }
+
+    /**
+     * Whether the connection serves a statement of another session that entered its execute call first. A call of the given
+     * session then waits for the driver's connection lock, and a cancel sent to the driver now would stop that other
+     * statement: Oracle {@code Connection.cancel}, the PostgreSQL backend cancel and MariaDB {@code KILL QUERY} reach whatever the
+     * connection runs. Without executing statements (the session's own {@code DatabaseMetaData} call or result reading) this is
+     * false, so such a cancel works as before.
+     */
+    public boolean isServingOtherSession(@NotNull DBCSession session) {
+        DBCStatement oldest = executingStatements.peek();
+        return oldest != null && oldest.getSession() != session;
     }
 
     ///////////////////////
