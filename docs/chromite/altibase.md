@@ -989,9 +989,30 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - **모델 타입만:** 메서드는 `DBSTable`·`DBSEntityAttribute`를 받는다. `ui.swing`은 Generic 플러그인에 기대지 않기 때문이다(`AltibaseTable` 판단은 `forTable` 안).
 - **메뉴는 메모리만:** `appliesTo`는 감지 결과와 객체 종류만 본다(질의 없음, 메뉴를 열 때마다 불림). 컬럼과 지금 값은 대화상자를 열 때 진행 대화상자에서 읽는다.
 
+### 새 테이블 (2026-11-21, 앱 변경 #155)
+
+테이블 디자이너의 새 테이블이 만들어지는 같은 저장에서 TTL을 받는다. 같은 능력을 가장 작게 늘렸다.
+
+| 위치 | 하는 일 |
+|---|---|
+| `AltibaseTableTtl` | `appliesToNewTable(table)`(메모리만, 서버마다 기존 테이블보다 좁게 정할 수 있게 따로), `getCreateClause(change)`(CREATE TABLE 끝에 붙일 절, 앞 공백 포함), `forNewTable(object)`(저장 전 `AltibaseTable`이고 능력이 해당할 때만), `setNewTableChange(object, change)`(새 테이블에 값 넣기, 다른 객체는 무시) |
+| `model/AltibaseTable` | 필드 `newTableTtl`(속성이 아님). 디자이너가 EDT에서 넣고 스크립트 생성이 작업 스레드에서 읽는다(`volatile`) |
+| `edit/AltibaseTableManager` | `appendTableModifiers`: 새 테이블(ALTER 아님)에 값이 있고 `forNewTable`이 능력을 주면 `getCreateClause`를 붙인다. 컬럼이 더는 그 테이블의 컬럼이 아니면 문장을 만들지 않고 예외(디자이너가 먼저 비우므로 막이 하나 더) |
+| `ui.swing` `AltibaseNewTableTtlPart`(새), `TableDesignerPanel` | 디자이너의 "테이블" 탭 아래 칸([swing-table-designer.md](swing-table-designer.md) "새 테이블의 TTL") |
+
+- **같은 문장에 넣은 이유(고른 것):** 서버가 절을 거절하면(0, 범위 밖, 모르는 컬럼, 날짜가 아닌 컬럼) 테이블도 만들어지지 않는다. 사용자는 디자이너의 기존 저장 오류
+  창을 보고 입력은 그대로 남아 고쳐 다시 저장한다. **대안(고르지 않음):** 같은 미리 보기·실행의 두 번째 문장 `ALTER TABLE … USING TTL …`. 그러면 ALTER가 실패할 때 TTL 없는
+  테이블이 남고(디자이너의 "일부만 적용" 창), 서버가 ALTER에서는 날짜가 아닌 컬럼도 받아 대화상자와 규칙이 달라진다. 자리도 더 크다(새 명령이나 추가 동작).
+- **절의 자리:** 서버는 열 목록과 테이블스페이스·파티션 절 **뒤**에만 받는다(앞이면 구문 오류). 디자이너는 그런 절을 쓰지 않아 문장 끝이 곧 그 자리다.
+- **값이 명령이 아닌 이유:** 새 테이블은 이미 만들기 명령이 있어 디자이너가 "변경 있음"이고, 그 명령이 스크립트를 만들 때마다 테이블 객체를 읽는다. 따로 명령을 두면
+  되돌리기·합치기 규칙이 더 필요하다. 저장하지 않고 닫으면 새 테이블과 함께 사라진다.
+- **기존 테이블:** 디자이너에는 두지 않는다. 기존 테이블의 TTL은 "TTL 설정" 한 길이다.
+- 능력이 없는 연결(Altibase 7.3, 다른 DB, 확장 번들을 뺀 제품)에서는 `forNewTable`이 null이라 칸도 절도 없다. 스크립트는 전과 같다.
+
 ### upstream 대비 변경점
 
-- upstream에는 없다. 인터페이스 하나, 유지 관리 동작 하나, 대화상자 하나를 더했다.
+- upstream에는 없다. 인터페이스 하나, 유지 관리 동작 하나, 대화상자 하나를 더했다. 2026-11-21 새 테이블의 TTL: `AltibaseTable` 필드 하나,
+  `AltibaseTableManager.appendTableModifiers` 재정의(upstream에는 없음), 디자이너의 칸 하나.
 
 ## 작업 (2026-11-17, 앱 변경 #139 수정 5)
 
@@ -1279,3 +1300,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   첫 사용자는 ShardSphere 스트림 탐색기), 위 "서버 확장".
 - 2026-11-22 확장 객체의 명령 자리(`AltibaseExecutionSettings`, `AltibaseObjectTemplates`, 유지 관리 동작 셋, 실행 설정 대화상자, "New …"의 확장 틀,
   앱 변경 #156, 첫 사용자는 ShardSphere 스트림 명령), 위 "확장 객체의 명령 자리".
+- 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): `AltibaseTableTtl`의 새 테이블 메서드, `AltibaseTable.newTableTtl`,
+  `AltibaseTableManager.appendTableModifiers`가 CREATE TABLE 끝에 절. 위 "테이블 TTL 자리" ▸ "새 테이블".

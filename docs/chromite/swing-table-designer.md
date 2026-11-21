@@ -16,7 +16,8 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
   - 표의 열은 그 객체 종류의 표시 속성(`@Property(viewable = true)`)이다. SWT 객체 목록(`ObjectListControl`)과 같은 규칙이라
     드라이버마다 열이 다르다(예: PostgreSQL은 Data type·Identity·Collation, SQL Server는 Data type·Length·Scale·Precision·Identity, MariaDB는 Data type·Auto increment).
   - Columns 표 맨 앞의 **PK** 확인란은 SSMS "Set Primary Key"에 해당한다.
-  - Table 탭은 테이블 자체의 속성 시트(이름, 설명, 드라이버별 속성)다.
+  - Table 탭은 테이블 자체의 속성 시트(이름, 설명, 드라이버별 속성)다. 새 테이블이고 연결의 서버가 새 테이블에 TTL을 줄 때(지금은 ShardSphere 일반 서버)만
+    그 아래에 TTL 칸이 있다(아래 "새 테이블의 TTL").
 - **행 색:** 저장하지 않은 새 객체는 결과 표의 추가 색, 고친 객체는 변경 색이다. 편집할 수 없는 칸은 흐린 글자다.
 - **편집:** 칸을 두 번 누르거나 F2/Enter. 불리언은 확인란, 값 목록이 있는 속성(데이터 형식, 열거형)은 콤보(입력 허용 속성은 입력 가능), 나머지는 글자 칸.
 - **추가·삭제:** 각 탭 도구 막대의 New Column / Add Key… / Add Foreign Key… / Add Index…와 Delete(Delete 키).
@@ -36,6 +37,7 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 | `DesignerDialogs` | Add Key / Add Index / Add Foreign Key 대화상자 |
 | `ScriptPreviewDialog` | 변경 스크립트 미리 보기 |
 | `design.TableDesignerDriver` | 드라이버별 부분(인덱스·외래 키 열, CHECK 식) 인터페이스 |
+| `AltibaseNewTableTtlPart` | 새 테이블의 TTL 칸(Table 탭 아래, 서버 확장이 새 테이블에 TTL을 줄 때만). 아래 "새 테이블의 TTL" |
 | `design.PostgreTableDesignerDriver`, `SQLServerTableDesignerDriver`, `MySQLTableDesignerDriver` | 위 인터페이스의 드라이버 구현. 테이블 클래스의 어댑터로 등록(plugin.xml) |
 
 - 진입점: `ObjectExplorerPanel`의 오른쪽 클릭 메뉴 Design(테이블, 뷰 제외)·New Table…(Tables 폴더) → `QueryWindows.designTable/newTable` → `MainFrame`이 탭을 연다.
@@ -270,6 +272,24 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   증거 `D:\Tools\_scratch\small-fixes-r3\sheets\78-*.png`.
 - 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 디자이너 모든 탭(열·키·외래 키·인덱스) 표의 처음 열 폭, 디자이너 칸 편집 시작.
 
+## 새 테이블의 TTL (2026-11-21, 앱 변경 #155, `chromite/shardsphere-ttl-create-table`)
+
+연결의 서버 확장이 아직 없는 테이블에 TTL을 줄 때(`AltibaseTableTtl.forNewTable`, 지금은 ShardSphere 일반 서버) 새 테이블의 Table 탭 속성 시트 아래에 칸이 붙는다.
+서버 쪽 사실과 고른 문장 모양은 [shardsphere.md](shardsphere.md) "새 테이블의 TTL", 자리는 [altibase.md](altibase.md) "테이블 TTL 자리" ▸ "새 테이블".
+
+- **자리(고른 것):** 디자이너에서 테이블 단위 설정이 있는 곳은 Table 탭뿐이라 그 아래. 속성 시트의 줄로 넣으려면 테이블 클래스에 편집 속성(컬럼 목록이 바뀌는 콤보 포함)을
+  더해야 해서 크다. 대안: 도구 막대 단추로 "TTL 설정" 대화상자를 여는 것(한 번 더 누름, 지금 값이 보이지 않음).
+- **칸:** "TTL 사용", 기준 컬럼, 기간, 단위. "TTL 설정" 대화상자와 같은 문구(`ObjectMaintenanceMessages`), 숫자 칸(`NumberInputFilter`), 기본 단위(일). 설명 문구 없음.
+  기준 컬럼은 디자이너에 지금 있는 컬럼 가운데 날짜 컬럼이고, 날짜 컬럼이 없으면 "TTL 사용"이 꺼져 있다.
+- **흐름:** 값은 새 테이블 객체에 바로 들어가고(명령 없음, 새 테이블은 이미 "변경 있음") 스크립트를 만들 때마다 CREATE TABLE 끝의 절이 된다. 그래서 미리 보기, 실행,
+  열린 트랜잭션 질문, 오류 창, 저장 뒤 다시 읽기는 전과 같다. 서버가 거절하면 표가 만들어지지 않고 입력이 남는다.
+- **이름 바꾸기·지우기:** 표를 다시 읽을 때마다 컬럼 목록을 새로 만든다. 고른 컬럼의 이름을 바꾸면 새 이름이 보이고 문장도 새 이름이다. 고른 컬럼을 지우거나 날짜가 아닌 형식으로
+  바꾸면 선택이 비워진다(다른 컬럼으로 옮기지 않음). 그대로 저장·스크립트 생성 → "날짜 컬럼을 고르십시오." 경고, 입력 그대로.
+- **잘못된 기간:** 빈 칸, 0, int 범위 밖 → "1 이상의 정수를 입력하십시오."(저장·스크립트 생성 전, `TableDesignerPanel.checkTtl`). 테이블 관리자도 컬럼이 그 테이블의 것이 아니면
+  문장을 만들지 않는다(막이 하나 더).
+- **기존 테이블:** 칸이 없다. 저장해 기존 테이블이 되면 칸이 사라진다. 기존 테이블의 TTL은 Object Explorer의 "TTL 설정"으로 바꾼다(두 번째 길을 두지 않음).
+- 그 밖의 연결(Altibase, 다른 DB, 메타 노드, 기능을 뺀 제품)에서는 Table 탭이 전과 같은 속성 시트 하나이고 스크립트도 같다(기준 빌드와 비교, shardsphere.md의 확인 표).
+
 ## 남긴 것
 
 - **New View…:** 뷰는 SQL 정의를 편집해야 해서 디자이너 표가 맞지 않는다. 다음에 "CREATE VIEW 틀을 쿼리 창으로 열기"로 만든다.
@@ -306,3 +326,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   이스케이프. 위 "sp_rename의 옛 이름".
 - 2026-11-12 B9(`chromite/small-fixes-r2`): SQL Server 인덱스 DDL의 키 열·포함 열·파일 그룹 이름을 `QUOTENAME`으로, 열 목록의 XML 엔터티를 없앰. 위 "인덱스 DDL의 열 이름".
 - 2026-11-12 앱 변경 #78(`chromite/small-fixes-r3`): 표 열 폭을 머리글·값·편집 콤보의 실제 폭으로, 편집기가 값의 앞부분을 보임. 위 "열 폭과 편집기".
+- 2026-11-21 앱 변경 #155(`chromite/shardsphere-ttl-create-table`): 새 테이블의 TTL 칸(Table 탭 아래, 서버 확장이 새 테이블에 TTL을 줄 때만, `AltibaseNewTableTtlPart`),
+  저장·스크립트 생성 전 TTL 입력 검사. 위 "새 테이블의 TTL".

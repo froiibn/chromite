@@ -32,7 +32,7 @@ import java.util.List;
  * A table expiry (TTL) capability of a server of the Altibase family: rows older than an amount of time in one date
  * column of a table expire. A server extension that knows the server's TTL catalog and statements offers it as an
  * adapter of the connection's data source ({@link AltibaseServerExtensionState#getAdapter}); the maintenance command
- * "TTL" and its dialog use it without knowing the server.
+ * "TTL" and its dialog, and the table designer for a new table, use it without knowing the server.
  *
  * 설계: 계획의 S6/S7(객체 명령 확장 지점과 쓰기 대화상자 API) 가운데 이 기능에 필요한 가장 좁은 중립 자리다. 일반 "객체 명령" 틀은
  * 메뉴 항목·대화상자 칸·문장·새로 고침을 모두 기여로 받아야 해서 크고, 쓰는 곳이 하나뿐이다. 그래서 기존 유지 관리 명령의 흐름
@@ -40,9 +40,16 @@ import java.util.List;
  * 단위 낱말, 문장, 해당하는 테이블)만 이 인터페이스로 묻는다. 문장은 확장이 만든다(모델·UI 분리, UI는 값만 넘김). 제품 이름이 없고
  * 어댑터가 없으면 명령도 없다(그 확장이 없는 서버, 확장 번들을 뺀 제품). 메서드는 모델의 일반 타입({@link DBSTable},
  * {@link DBSEntityAttribute})만 받는다: Swing 번들은 Generic 플러그인에 기대지 않는다.
+ * <p>
+ * 새 테이블(테이블 디자이너가 만들고 아직 저장하지 않은 것)은 TTL을 CREATE TABLE 문 끝의 절로 받는다({@link #getCreateClause}).
+ * 두 번째 문장(ALTER TABLE)이 아니라 같은 문장에 넣는 것은, 서버가 절을 거절하면 테이블도 만들어지지 않아 TTL 없는 테이블이 남지
+ * 않기 때문이다(docs/chromite/altibase.md "테이블 TTL 자리"). 해당 판단도 따로 둔다({@link #appliesToNewTable}): 아직 없는 테이블은
+ * 카탈로그로 알 수 있는 것이 적어 서버마다 더 좁게 정할 수 있어야 한다.
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 기존 테이블의 TTL 설정·변경·해제(앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
+ * - 2026-11-21 새 테이블의 TTL: {@link #forNewTable}, {@link #appliesToNewTable}, {@link #getCreateClause}(테이블 디자이너,
+ *   docs/chromite/altibase.md "테이블 TTL 자리")
  */
 public interface AltibaseTableTtl {
 
@@ -90,9 +97,37 @@ public interface AltibaseTableTtl {
     }
 
     /**
+     * The capability of the object's connection when the object is a new (not yet created) Altibase-family table that
+     * can be created with a TTL; null otherwise. In memory only.
+     */
+    @Nullable
+    static AltibaseTableTtl forNewTable(@Nullable DBSObject object) {
+        if (!(object instanceof AltibaseTable table) || table.isPersisted()) {
+            return null;
+        }
+        AltibaseTableTtl ttl = DBUtils.getAdapter(AltibaseTableTtl.class, table.getDataSource());
+        return ttl != null && ttl.appliesToNewTable(table) ? ttl : null;
+    }
+
+    /**
+     * Sets the TTL a new table is created with (null for none); the table manager appends its clause to the table's
+     * CREATE TABLE statement each time the script is made. Nothing for another object.
+     */
+    static void setNewTableChange(@NotNull DBSObject object, @Nullable Change change) {
+        if (object instanceof AltibaseTable table) {
+            table.setNewTableTtl(change);
+        }
+    }
+
+    /**
      * Whether the table can take a TTL on this server (no database access).
      */
     boolean appliesTo(@NotNull DBSTable table);
+
+    /**
+     * Whether a table that does not exist yet can be created with a TTL on this server (no database access).
+     */
+    boolean appliesToNewTable(@NotNull DBSTable table);
 
     /**
      * The units offered for a new or changed TTL, in their order.
@@ -128,5 +163,13 @@ public interface AltibaseTableTtl {
      */
     @NotNull
     String getStatement(@NotNull DBSTable table, @NotNull Change change);
+
+    /**
+     * The clause that gives a new table its TTL, appended to the end of its CREATE TABLE statement (with a leading space).
+     *
+     * @param change a TTL to set (column and unit not null)
+     */
+    @NotNull
+    String getCreateClause(@NotNull Change change);
 
 }

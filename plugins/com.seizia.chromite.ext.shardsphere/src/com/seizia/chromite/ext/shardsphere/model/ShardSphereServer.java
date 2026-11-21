@@ -81,6 +81,7 @@ import java.util.Set;
  *   docs/chromite/shardsphere.md "스트림 탐색기")
  * - 2026-11-22 스트림 함수 폴더의 "New …" 틀(중립 자리 {@link AltibaseObjectTemplates}), 삭제가 쓰는 함수 캐시(앱 변경 #156,
  *   docs/chromite/shardsphere.md "스트림 명령")
+ * - 2026-11-21 TTL 능력에 메타 노드인지 넘김: 새 테이블의 TTL은 메타 노드에서 내지 않음(앱 변경 #155, docs/chromite/shardsphere.md "TTL 관리")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject, AltibaseObjectTemplates {
 
@@ -148,7 +149,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         this.streamCatalog = streamCatalog;
         this.nodeNames = List.copyOf(nodeNames);
         this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
-        this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables) : null;
+        this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables, shardingMetaNode) : null;
     }
 
     @NotNull

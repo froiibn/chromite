@@ -45,6 +45,8 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   New View…/New Procedure… 바로 아래에 있고, 맞는 폴더에서만 보인다(SQL Server 에이전트 항목과 같은 방식).
 - New Table·New View·New Procedure·New Function·보안 주체(New Login/User/Role)·MySQL 이벤트(New Event)처럼 따로 항목이 있는 폴더에는
   나오지 않는다.
+- New Table은 테이블 디자이너다. ShardSphere 일반 서버의 새 테이블은 Table 탭에서 TTL도 함께 준다
+  ([swing-table-designer.md](swing-table-designer.md) "새 테이블의 TTL").
 - 대화상자의 "(기본값)"이나 빈 칸은 문장에 넣지 않는다(서버나 템플릿의 값). 대화상자 아래에 그렇게 적었다.
 - 대화상자의 OK 다음은 언제나 스크립트 미리 보기다(복사, 쿼리 창에서 열기, 실행, **취소가 기본 단추**). DDL을 바로 커밋하는 DB
   (MySQL·MariaDB·Oracle)는 머리글에 "롤백할 수 없습니다" 줄이 붙는다. 실행을 고르면 그 연결에 커밋하지 않은 트랜잭션이 있을 때
@@ -354,3 +356,4 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   숫자 속성, NUMBER 매개 변수, 디버거 프로세스 ID에 필터. 필터에 음수 칸의 앞 빼기 부호. 그리드 셀·열 필터·배열 등 둔 칸과 이유.
 - 2026-11-22 ShardSphere 스트림 폴더의 틀 다섯(스트림 테이블, 연속 테이블, 연속 스트림 테이블, 연속 쿼리, 스트림 함수): 서버 확장이 주는 틀을 폴더의
   항목 속성 이름으로 묻고 틀마다 "New &lt;종류&gt;…" 항목(`NewObjectCommands`, 앱 변경 #156, [shardsphere.md](shardsphere.md) "스트림 명령").
+- 2026-11-21 New Table(테이블 디자이너)의 새 테이블 TTL을 "화면"에 적음(앱 변경 #155, [swing-table-designer.md](swing-table-designer.md) "새 테이블의 TTL").

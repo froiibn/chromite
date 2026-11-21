@@ -56,10 +56,14 @@ import java.util.Set;
  *     샤딩 메타 노드에서는 샤드 테이블({@code SYS_SHARD.OBJECTS_}의 테이블)을 뺀다: 샤드 테이블의 TTL은 클러스터 전체에 걸리므로
  *     확인하기 전까지 명령을 내지 않는다(안전 쪽). 목록은 감지 때 한 번 읽은 것이다(메뉴는 메모리만 봄).</li>
  *     <li>이름은 방언의 규칙대로 따옴표를 붙인다(소유자.테이블, 컬럼).</li>
+ *     <li>새 테이블(테이블 디자이너): {@code CREATE TABLE … (열) USING TTL n 단위 ON COLUMN c}, 같은 단위·컬럼 규칙. 서버는 CREATE의 절에서
+ *     날짜가 아닌 컬럼을 거절하고(201906) 테이블스페이스·파티션 절 뒤에만 받는다(2026-11-21 일반 서버). 샤딩 메타 노드에서는 내지 않는다:
+ *     아직 없는 테이블이 샤드 테이블이 될지, 메타 노드의 CREATE가 노드에 어떻게 걸리는지 확인하지 않았다(안전 쪽).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-17 최초 작성: 기존 테이블의 TTL 설정·변경·해제(앱 변경 #152, docs/chromite/shardsphere.md "TTL 관리")
+ * - 2026-11-21 새 테이블의 TTL 절({@link #getCreateClause}, 메타 노드 아님, 앱 변경 #155, docs/chromite/shardsphere.md "TTL 관리")
  */
 public final class ShardTableTtl implements AltibaseTableTtl {
 
@@ -85,9 +89,11 @@ public final class ShardTableTtl implements AltibaseTableTtl {
     // Owner and name of each shard table of a sharding meta node, as read at detection; empty on another server
     @NotNull
     private final Set<List<String>> shardTables;
+    private final boolean shardingMetaNode;
 
-    ShardTableTtl(@NotNull Set<List<String>> shardTables) {
+    ShardTableTtl(@NotNull Set<List<String>> shardTables, boolean shardingMetaNode) {
         this.shardTables = Set.copyOf(shardTables);
+        this.shardingMetaNode = shardingMetaNode;
     }
 
     @Override
@@ -97,6 +103,18 @@ public final class ShardTableTtl implements AltibaseTableTtl {
         }
         GenericSchema schema = altibaseTable.getSchema();
         return schema != null && !schema.isSystem() && !shardTables.contains(List.of(schema.getName(), table.getName()));
+    }
+
+    /**
+     * Not on a sharding meta node (unverified there); otherwise as an existing table, in a schema that is not a system one.
+     */
+    @Override
+    public boolean appliesToNewTable(@NotNull DBSTable table) {
+        if (shardingMetaNode || !(table instanceof AltibaseTable altibaseTable) || table.isPersisted()) {
+            return false;
+        }
+        GenericSchema schema = altibaseTable.getSchema();
+        return schema != null && !schema.isSystem();
     }
 
     @NotNull
@@ -163,8 +181,18 @@ public final class ShardTableTtl implements AltibaseTableTtl {
         if (column == null) {
             return KEYWORD_ALTER_TABLE + name + KEYWORD_USING_NOTTL;
         }
+        return KEYWORD_ALTER_TABLE + name + getCreateClause(change);
+    }
+
+    /**
+     * {@code USING TTL n unit ON COLUMN c}: the same clause as the ALTER TABLE that sets a TTL.
+     */
+    @NotNull
+    @Override
+    public String getCreateClause(@NotNull Change change) {
+        DBSEntityAttribute column = Objects.requireNonNull(change.column(), "TTL column"); //$NON-NLS-1$
         Unit unit = Objects.requireNonNull(change.unit(), "TTL unit"); //$NON-NLS-1$
-        return KEYWORD_ALTER_TABLE + name + KEYWORD_USING_TTL + change.amount() + " " + unit.keyword() //$NON-NLS-1$
+        return KEYWORD_USING_TTL + change.amount() + " " + unit.keyword() //$NON-NLS-1$
             + KEYWORD_ON_COLUMN + DBUtils.getQuotedIdentifier(column);
     }
 
