@@ -187,6 +187,8 @@ import java.util.function.Consumer;
  * - 2026-11-17 다시 읽을 수 없는 결과에서 필터 머리글·필터 적용·행 수 세기가 아무것도 하지 않던 것을, 상태 줄에 이유를 보이게 함
  *   ({@link #showRequeryBlocked}, 기존 문구 "필터를 쓸 수 없음: {0}"·"행 수 세기 실패: {0}"). 프로시저 호출 결과와 접두어 SELECT가 같은 경로
  *   (앱 변경 #139 작업 6b, docs/chromite/shardsphere.md "접두어 문장 다시 읽기")
+ * - 2026-11-22 표에 칸의 LOB가 값 전체를 보이지 않는지 알림({@link ResultSetGrid.Host#isPartialContent}): 표가 그 칸을 링크로 그리고
+ *   누르면 값 패널을 연다 (앱 변경 #160, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -385,6 +387,13 @@ final class ResultSetViewerPanel extends JPanel {
             public void editInValuePanel() {
                 setValuePanelShown(true);
                 scheduleSelectionUpdate();
+            }
+
+            @Override
+            public boolean isPartialContent(int row, int column) {
+                // The LOB content the receiver kept, unless the cell got another value in the grid (panel, file)
+                return column < ResultSetViewerPanel.this.fetched.data().bindings().length
+                    && getCellValue(row, column) instanceof ResultSetCellContent content && content.isPartial();
             }
 
             @Override

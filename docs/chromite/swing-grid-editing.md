@@ -122,6 +122,8 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
     (PostgreSQL json은 `PostgreContentJSON`, 그 밖은 `JDBCContentChars`·`JDBCContentBytes`·`JDBCContentXML`)이고 바인딩도 그 처리기가 한다.
   - 저장한 LOB 값은 행이 계속 알고 있다(저장 뒤 다시 읽기가 LOB 값을 놓아 주어도). 그래야 값 패널이 처음 받은 내용이 아니라 저장한 값을 보인다.
 - 그리드 셀과 레코드 보기에서는 LOB를 글자로 고치지 않는다(시작 글자가 비어 값을 지울 수 있음). F2·두 번 누르기·Edit Cell은 값 패널을 연다.
+  2026-11-22부터 값 전체를 보이지 않는 LOB 칸은 읽기 전용 결과에서도 링크로 그려지고, 칸 글자를 누르거나 두 번 누르거나 F2를 누르면 값 패널을 연다
+  ([swing-result-viewer.md](swing-result-viewer.md) "긴 LOB 칸"). 패널·파일로 바꾼 칸은 보통 칸으로 그린다.
 - **값 패널:** 글자 LOB(JSON, XML, CLOB, 텍스트)는 패널에서 고치고 Apply(Ctrl+Enter)로 넣는다. 값 패널이 1,000,000자까지만 읽은 LOB는 고치면 뒷부분을 잃으므로 고치지 않는다(파일로 바꿈).
   이진 LOB는 패널에서 고치지 않는다.
 - **JSON·XML 편집기(SWT `JSONPanelEditor`, `XMLPanelEditor`):** Format(Ctrl+Shift+F)이 지금 글자를 들여쓴다(보기와 같은 Gson·JDK 변환, XXE 차단 그대로).
@@ -216,3 +218,5 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 - 2026-11-09 macOS 키: 아래 행 값 복사 ⇧⌘D(⌥⌘D는 Dock), 다시 실행 ⇧⌘Z(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
 - 2026-11-16 오른쪽 클릭 메뉴에 해당하는 편집 명령만 보임, 읽기 전용 연결에서 읽은 결과는 편집 명령이 꺼진 채 보임(앱 변경 #137, `chromite/result-grid-menu`,
   위 "오른쪽 클릭 메뉴에 보이는 편집 명령").
+- 2026-11-22 값 전체를 보이지 않는 LOB 칸은 링크, 누르기·두 번 누르기·F2로 값 패널(읽기 전용 결과 포함, 앱 변경 #160, `chromite/grid-lob-full-text`,
+  위 "LOB 편집과 파일").

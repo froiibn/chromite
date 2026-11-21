@@ -85,6 +85,9 @@ import java.util.UUID;
  * 메뉴는 앱의 오른쪽 클릭 메뉴 규칙({@link ContextMenus}, docs/chromite/context-menus.md "결과 그리드")을 따른다: 결과와 칸의 종류에 해당하지 않는
  * 명령은 숨고, 해당하지만 지금 할 수 없는 명령은 꺼진다. 숨김은 메뉴에만 있고 동작의 켜짐은 그대로라 단축키와 Save / Cancel 단추는 전과 같다.
  * 연결이 편집을 막을 때 읽은 결과({@link Fetched#editingApplies()}이고 편집 모델 없음)는 편집 명령을 꺼진 채 보이고 그 키는 묶지 않는다.
+ * 값 전체를 보이지 않는 LOB 칸("[CLOB]" 같은 자리 표시나 앞부분, {@link Host#isPartialContent})은 앱의 링크 색으로 그린다. 칸 글자를 누르거나
+ * 칸을 두 번 누르거나 F2를 누르면 값 패널이 값 전체를 보인다({@link Host#editInValuePanel}). 글자 밖을 누르면 다른 칸처럼 고르기만 한다.
+ * 읽기 전용 결과도 같다(편집하는 칸의 F2와 같은 키).
  * <p>
  * 편집(G단계): 수신기가 편집할 수 있다고 정한 결과({@link Fetched#editModel()}, 판단은 {@link ResultSetEditModel#getReadOnlyReason})는
  * 표 위 줄에 Save / Cancel 단추와 상태(바뀐 수, "Saving…")를 두고, 읽기 전용 결과는 같은 줄에 이유("read-only: no unique key")를 쓴다.
@@ -154,6 +157,8 @@ import java.util.UUID;
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-16 오른쪽 클릭 메뉴가 해당하는 명령만 보임({@link ContextMenus}): 테이블이 받지 않는 행 추가·삭제, SELECT 하나가 아닌 결과의
  *   Export Data…는 숨김(그 도구 설명 문구 삭제), 읽기 전용 연결에서 읽은 결과는 편집 명령을 꺼진 채 보임 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-22 값 전체를 보이지 않는 LOB 칸을 링크로 그리고 누르기·두 번 누르기·F2로 값 패널을 엶. 전에는 읽기 전용 결과(DDL을 돌려주는
+ *   쿼리 등)의 "[CLOB]" 칸에서 값 패널로 가는 길이 F7·상태 줄 단추뿐이었다 (앱 변경 #160, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -258,10 +263,22 @@ final class ResultSetGrid extends JPanel {
         }
 
         /**
-         * Edit Cell (F2, double click) on a LOB cell: its value is edited in the value panel, which the result viewer
-         * opens. A grid without a viewer does nothing.
+         * Edit Cell (F2, double click) on a LOB cell, or a click on the link of a LOB cell that does not show its whole
+         * value ({@link #isPartialContent}): the value panel, which the result viewer opens, shows and edits its value.
+         * A grid without a viewer does nothing.
          */
         default void editInValuePanel() {
+        }
+
+        /**
+         * Whether a cell holds a LOB value its text does not show in full (a placeholder such as "[CLOB]", or the
+         * value's beginning): the grid draws it as a link to the value panel. A grid without a viewer has none.
+         *
+         * @param row    row index of the table model
+         * @param column model column index
+         */
+        default boolean isPartialContent(int row, int column) {
+            return false;
         }
 
         /**
@@ -412,6 +429,7 @@ final class ResultSetGrid extends JPanel {
         fitColumnWidths(table, data);
         followCellPadding();
         installContextMenu();
+        installContentLinks();
         updateState();
     }
 
@@ -623,7 +641,7 @@ final class ResultSetGrid extends JPanel {
         if (row < 0 || column < 0) {
             return;
         }
-        if (isPanelEditedCell(row, column)) {
+        if (isPanelEditedCell(row, column) || isContentLink(row, column)) {
             host.editInValuePanel();
             return;
         }
@@ -641,6 +659,43 @@ final class ResultSetGrid extends JPanel {
     private boolean isPanelEditedCell(int row, int viewColumn) {
         int column = table.convertColumnIndexToModel(viewColumn);
         return editModel != null && editModel.isContentColumn(column) && editModel.isCellEditable(row, column);
+    }
+
+    /**
+     * A LOB cell that does not show its whole value ({@link Host#isPartialContent}): a link to the value panel, in
+     * editable and read-only results alike.
+     */
+    private boolean isContentLink(int row, int viewColumn) {
+        return host.isPartialContent(table.convertRowIndexToModel(row), table.convertColumnIndexToModel(viewColumn));
+    }
+
+    /**
+     * Whether a point is on the text of a cell (where a link is drawn), not on the empty rest of the cell: a click
+     * there opens the link, a click elsewhere only selects the cell.
+     */
+    private boolean isOnCellText(int row, int viewColumn, @NotNull Point point) {
+        if (!(table.prepareRenderer(table.getCellRenderer(row, viewColumn), row, viewColumn) instanceof JLabel label)) {
+            return false;
+        }
+        Rectangle cell = table.getCellRect(row, viewColumn, false);
+        Insets insets = label.getInsets();
+        int available = cell.width - insets.left - insets.right;
+        String text = CommonUtils.notEmpty(label.getText());
+        // A text of more characters than pixels fills the cell (every character is at least a pixel wide): not measured
+        int textWidth = text.length() >= available ? available : Math.min(label.getFontMetrics(label.getFont()).stringWidth(text), available);
+        int x = label.getHorizontalAlignment() == SwingConstants.RIGHT ? cell.x + cell.width - insets.right - textWidth : cell.x + insets.left;
+        return point.x >= x && point.x < x + textWidth;
+    }
+
+    /**
+     * F2 in a read-only result: a LOB cell that does not show its whole value opens the value panel, as its link does.
+     */
+    private void openSelectedContent() {
+        int row = table.getSelectedRow();
+        int column = table.getSelectedColumn();
+        if (row >= 0 && column >= 0 && isContentLink(row, column)) {
+            host.editInValuePanel();
+        }
     }
 
     /**
@@ -711,7 +766,7 @@ final class ResultSetGrid extends JPanel {
         if (row < 0 || viewColumn < 0) {
             return;
         }
-        if (isPanelEditedCell(row, viewColumn)) {
+        if (isPanelEditedCell(row, viewColumn) || isContentLink(row, viewColumn)) {
             host.editInValuePanel();
             return;
         }
@@ -1400,6 +1455,56 @@ final class ResultSetGrid extends JPanel {
         });
     }
 
+    /**
+     * Links of LOB cells that do not show their whole value: a click on the cell's text (or a double click anywhere
+     * in it) opens the value panel, a click elsewhere in the cell only selects it, and the hand cursor marks the text.
+     * Modified clicks keep selecting (Ctrl / Command, Shift). F2 opens it from the keyboard: an editable result's Edit
+     * Cell does, and a read-only result, which has no Edit Cell key, gets the key here.
+     */
+    private void installContentLinks() {
+        MouseAdapter links = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.isShiftDown() || UiKeys.isCommandDown(e)) {
+                    return;
+                }
+                int row = table.rowAtPoint(e.getPoint());
+                int column = table.columnAtPoint(e.getPoint());
+                if (row < 0 || column < 0 || !isContentLink(row, column)) {
+                    return;
+                }
+                // A double click on an editable LOB cell opens the panel already (installContextMenu)
+                if (e.getClickCount() == 1 ? isOnCellText(row, column, e.getPoint()) : e.getClickCount() == 2 && !isPanelEditedCell(row, column)) {
+                    host.editInValuePanel();
+                }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int row = table.rowAtPoint(e.getPoint());
+                int column = table.columnAtPoint(e.getPoint());
+                boolean onLink = row >= 0 && column >= 0 && isContentLink(row, column) && isOnCellText(row, column, e.getPoint());
+                Cursor cursor = onLink ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null;
+                if (table.isCursorSet() ? table.getCursor() != cursor : cursor != null) {
+                    table.setCursor(cursor);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (table.isCursorSet()) {
+                    table.setCursor(null);
+                }
+            }
+        };
+        table.addMouseListener(links);
+        table.addMouseMotionListener(links);
+        if (editModel == null) {
+            Action openContentAction = createAction("openContent", KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::openSelectedContent); //$NON-NLS-1$
+            bindKey(table, JComponent.WHEN_FOCUSED, openContentAction, "chromite.openContent"); //$NON-NLS-1$
+        }
+    }
+
     private static void bindKey(@NotNull JComponent component, int condition, @NotNull Action action, @NotNull String key) {
         component.getInputMap(condition).put((KeyStroke) action.getValue(Action.ACCELERATOR_KEY), key);
         component.getActionMap().put(key, action);
@@ -2005,8 +2110,10 @@ final class ResultSetGrid extends JPanel {
             }
             setFont(font);
             if (!isSelected) {
-                // setForeground/setBackground also become the renderer's defaults, so every cell sets them
-                setForeground(isNull ? UIManager.getColor("Chromite.secondaryForeground") : table.getForeground()); //$NON-NLS-1$
+                // setForeground/setBackground also become the renderer's defaults, so every cell sets them. A LOB cell
+                // that does not show its whole value is a link (the app's link color, as the status line's links)
+                setForeground(isNull ? UIManager.getColor("Chromite.secondaryForeground") //$NON-NLS-1$
+                    : isContentLink(row, column) ? UIManager.getColor("Component.linkColor") : table.getForeground()); //$NON-NLS-1$
                 Color changeColor = editRow == null ? null : getChangeColor(editRow, modelColumn);
                 setBackground(changeColor != null ? changeColor : table.getBackground());
             }
