@@ -19,6 +19,9 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.AltibaseJob;
+import com.seizia.chromite.ext.altibase.model.AltibaseQueue;
+import com.seizia.chromite.ext.altibase.model.AltibaseSchema;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
@@ -111,6 +114,8 @@ import java.util.function.Function;
  *   패키지 안에 엶: 자동 확장 설정이 지금 값을 읽음) (docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-15 Oracle 테이블스페이스·데이터 파일은 {@link OracleStorageDialogs}가 묻는다(앱 변경 #127, docs/chromite/oracle-storage.md)
  * - 2026-11-15 SQL Server 데이터·로그 파일은 {@link SQLServerStorageDialogs}가 묻는다 (앱 변경 #128, docs/chromite/mssql-storage.md)
+ * - 2026-11-21 Altibase 계열 작업은 {@link AltibaseJobDialogs}가, 큐는 이름과 메시지 크기 대화상자({@link #askAltibaseQueue})가 묻는다
+ *   (앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
  */
 final class NewObjectDialogs {
 
@@ -149,6 +154,11 @@ final class NewObjectDialogs {
      */
     private static final String MASKED_PASSWORD = "********"; //$NON-NLS-1$
 
+    /**
+     * The largest message size of an Altibase-family queue (bytes; 32001 is refused by both servers, 201454).
+     */
+    private static final int MAX_QUEUE_MESSAGE_SIZE = 32000;
+
     private NewObjectDialogs() {
     }
 
@@ -160,6 +170,8 @@ final class NewObjectDialogs {
             || MySQLCatalog.class.isAssignableFrom(childClass) || PostgreSchema.class.isAssignableFrom(childClass)
             || PostgreTablespace.class.isAssignableFrom(childClass) || PostgreExtension.class.isAssignableFrom(childClass)
             || AltibaseTablespace.class.isAssignableFrom(childClass) || AltibaseDataFile.class.isAssignableFrom(childClass)
+            // Altibase-family jobs and queues (app change #154)
+            || AltibaseJob.class.isAssignableFrom(childClass) || AltibaseQueue.class.isAssignableFrom(childClass)
             // Oracle (app change #127)
             || OracleTablespace.class.isAssignableFrom(childClass) || OracleDataFile.class.isAssignableFrom(childClass)
             // SQL Server database files
@@ -189,6 +201,10 @@ final class NewObjectDialogs {
             return AltibaseTablespaceDialogs.askTablespace(owner, title);
         } else if (AltibaseDataFile.class.isAssignableFrom(childClass) && container instanceof AltibaseTablespace) {
             return AltibaseTablespaceDialogs.askDataFile(owner, title);
+        } else if (AltibaseJob.class.isAssignableFrom(childClass) && container instanceof AltibaseDataSource) {
+            return AltibaseJobDialogs.askJob(owner, title);
+        } else if (AltibaseQueue.class.isAssignableFrom(childClass) && container instanceof AltibaseSchema) {
+            return askAltibaseQueue(owner, title);
         } else if (OracleTablespace.class.isAssignableFrom(childClass) && container instanceof OracleDataSource dataSource) {
             // Oracle (app change #127)
             return OracleStorageDialogs.askTablespace(owner, title, dataSource);
@@ -751,6 +767,48 @@ final class NewObjectDialogs {
             extension.setName(values.extension().getName());
             // The model writes "SCHEMA <schema>" as given: the quoted name keeps names that need quotes valid
             extension.setSchema(DBUtils.getQuotedIdentifier(values.schema()));
+        };
+    }
+
+    //////////////////////////////////////////////////////////
+    // Altibase-family queue
+
+    /**
+     * New Queue: the name and the message size (bytes), the only values both servers' {@code CREATE QUEUE q (size)} need.
+     * The server's range is 1 to 32000; the field takes digits only.
+     */
+    @Nullable
+    private static Configurer askAltibaseQueue(@NotNull Component owner, @NotNull String title) {
+        JTextField nameField = new JTextField(28);
+        JTextField sizeField = new JTextField(12);
+        NumberInputFilter.install(sizeField, false);
+        JPanel form = new JPanel(new GridBagLayout());
+        DesignerDialogs.addRow(form, 0, CreateObjectMessages.create_label_name, nameField);
+        DesignerDialogs.addRow(form, 1, CreateObjectMessages.create_label_message_size, sizeField);
+        record Values(String name, int size) {
+        }
+        Values values = DesignerDialogs.showDialog(owner, title, form, () -> {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) {
+                return DesignerDialogs.error(CreateObjectMessages.create_error_name);
+            }
+            int size;
+            try {
+                size = Integer.parseInt(sizeField.getText().trim());
+            } catch (NumberFormatException e) {
+                size = 0;
+            }
+            if (size < 1 || size > MAX_QUEUE_MESSAGE_SIZE) {
+                return DesignerDialogs.error(CreateObjectMessages.create_error_message_size);
+            }
+            return new Values(name, size);
+        });
+        if (values == null) {
+            return null;
+        }
+        return (monitor, object, context) -> {
+            setName(object, values.name());
+            ((AltibaseQueue) object).setInitialMessageSize(values.size());
         };
     }
 

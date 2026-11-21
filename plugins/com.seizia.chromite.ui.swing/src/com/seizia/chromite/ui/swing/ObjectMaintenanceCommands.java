@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
+import com.seizia.chromite.ext.altibase.model.AltibaseJob;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseFile;
 import com.seizia.chromite.ext.oracle.model.OracleDataFile;
@@ -92,6 +93,11 @@ import java.util.stream.Collectors;
  *     <li>Altibase 계열 테이블의 TTL…: 연결의 서버 확장이 그 테이블에 TTL을 줄 때만 보인다({@link AltibaseTableTtl}, 제품 이름을 보지 않음).
  *     지금 TTL로 채운 설정 대화상자({@link AltibaseTableTtlDialog}) 뒤는 자동 확장 설정과 같은 흐름이고, 실행 뒤(실패해도) 테이블 노드를
  *     다시 읽어 속성(TTL 묶음)과 DDL이 새 값을 보이게 한다. 한 개를 고를 때만 보인다.</li>
+ *     <li>Altibase 계열 작업(Global metadata &gt; Jobs): 작업 사용 / 작업 사용 안 함은 트리거 사용/사용 안 함과 같다(모델이 읽은
+ *     {@code IS_ENABLE}과 같은 항목은 꺼짐, 미리 보기가 확인). 작업 설정…은 지금 값으로 채운 대화상자({@link AltibaseJobDialogs}) 뒤
+ *     자동 확장 설정과 같은 흐름이고, 한 개를 고를 때만 보인다. 실행 뒤(실패해도) 작업 노드를 다시 읽고 선택을 다시 보여 속성 보기가 새 값을
+ *     보이게 한다(작업 노드는 자식이 없어 트리가 다시 읽지 않고, 같은 노드라 선택 사건도 없다. 폴더를 다시 읽으면 선택이 풀렸다).
+ *     큐 압축은 큐 노드에서 미리 보기가 확인이다. 권한이 없으면 서버 오류가 다른 명령과 같은 오류 창에 보인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -107,6 +113,7 @@ import java.util.stream.Collectors;
  * - 2026-11-16 스크립트 미리 보기와 열린 트랜잭션 질문이 탐색기 패널 대신 창 가운데에 뜸(다른 확인·알림과 같음, 앱 변경 #132,
  *   docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  * - 2026-11-17 테이블 TTL…(서버 확장이 주는 중립 능력, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
+ * - 2026-11-21 Altibase 계열 작업 사용·사용 안 함·설정, 큐 압축(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
  */
 final class ObjectMaintenanceCommands {
 
@@ -154,6 +161,15 @@ final class ObjectMaintenanceCommands {
             ObjectMaintenanceMessages.objmaint_tbs_autoextend_tip);
         addItem(ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS, ObjectMaintenanceMessages.objmaint_file_settings,
             ObjectMaintenanceMessages.objmaint_file_settings_tip);
+        // Altibase-family jobs and queues (app change #154)
+        addItem(ObjectMaintenanceActions.Action.ENABLE_JOB, ObjectMaintenanceMessages.objmaint_job_enable,
+            ObjectMaintenanceMessages.objmaint_job_enable_tip);
+        addItem(ObjectMaintenanceActions.Action.DISABLE_JOB, ObjectMaintenanceMessages.objmaint_job_disable,
+            ObjectMaintenanceMessages.objmaint_job_disable_tip);
+        addItem(ObjectMaintenanceActions.Action.JOB_SETTINGS, ObjectMaintenanceMessages.objmaint_job_settings,
+            ObjectMaintenanceMessages.objmaint_job_settings_tip);
+        addItem(ObjectMaintenanceActions.Action.COMPACT_QUEUE, ObjectMaintenanceMessages.objmaint_queue_compact,
+            ObjectMaintenanceMessages.objmaint_queue_compact_tip);
         // Oracle (app change #127)
         addItem(ObjectMaintenanceActions.Action.TABLESPACE_READ_ONLY, ObjectMaintenanceMessages.objmaint_tbs_read_only,
             ObjectMaintenanceMessages.objmaint_tbs_read_only_tip);
@@ -220,9 +236,12 @@ final class ObjectMaintenanceCommands {
         Boolean enabled = ObjectMaintenanceActions.isTriggerEnabled(object);
         Boolean started = ObjectMaintenanceActions.isReplicationStarted(object);
         Boolean online = ObjectMaintenanceActions.isTablespaceOnline(object);
+        Boolean jobEnabled = ObjectMaintenanceActions.isJobEnabled(object);
         return switch (action) {
             case ENABLE_TRIGGER -> !Boolean.TRUE.equals(enabled);
             case DISABLE_TRIGGER -> !Boolean.FALSE.equals(enabled);
+            case ENABLE_JOB -> !Boolean.TRUE.equals(jobEnabled);
+            case DISABLE_JOB -> !Boolean.FALSE.equals(jobEnabled);
             case START_REPLICATION, SYNC_REPLICATION -> !Boolean.TRUE.equals(started);
             case STOP_REPLICATION -> !Boolean.FALSE.equals(started);
             case TABLESPACE_ONLINE -> !Boolean.TRUE.equals(online);
@@ -316,10 +335,13 @@ final class ObjectMaintenanceCommands {
                     refreshNodes.add(parent);
                 }
             }
-        } else if (isReplicationAction(action) || isTablespaceAction(action) || action == ObjectMaintenanceActions.Action.TABLE_TTL) {
+        } else if (isReplicationAction(action) || isTablespaceAction(action) || action == ObjectMaintenanceActions.Action.TABLE_TTL
+            || isJobAction(action)) {
             // The replication node reads itself again (AltibaseReplication.refreshObject): started flag, senders, receivers.
             // A tablespace reads its catalog row (state, file count) and its files again (AltibaseTablespace.refreshObject).
             // A table node with a new TTL is read again so that its properties and DDL show it.
+            // A job reads its catalog row again (AltibaseJob.refreshObject); the tree does not reload a node without
+            // children, so the selection is shown again below (label and Properties view of the new object).
             for (DBNNode node : nodes) {
                 if (node instanceof DBNDatabaseNode databaseNode) {
                     refreshNodes.add(databaseNode);
@@ -357,6 +379,9 @@ final class ObjectMaintenanceCommands {
         }
         // Also after a failure: statements of other databases before it may have run
         refreshNodes.forEach(this::refresh);
+        if (isJobAction(action)) {
+            explorer.showSelectionAgain();
+        }
         if (action == ObjectMaintenanceActions.Action.COMPILE) {
             showCompileResult(nodes, objects, executed);
         }
@@ -453,6 +478,11 @@ final class ObjectMaintenanceCommands {
             || action == ObjectMaintenanceActions.Action.TABLESPACE_READ_ONLY || action == ObjectMaintenanceActions.Action.TABLESPACE_READ_WRITE;
     }
 
+    private static boolean isJobAction(@NotNull ObjectMaintenanceActions.Action action) {
+        return action == ObjectMaintenanceActions.Action.ENABLE_JOB || action == ObjectMaintenanceActions.Action.DISABLE_JOB
+            || action == ObjectMaintenanceActions.Action.JOB_SETTINGS;
+    }
+
     private static boolean isSqlServerStorageAction(@NotNull ObjectMaintenanceActions.Action action) {
         return action == ObjectMaintenanceActions.Action.FILEGROUP_DEFAULT || action == ObjectMaintenanceActions.Action.FILEGROUP_READ_ONLY
             || action == ObjectMaintenanceActions.Action.FILEGROUP_READ_WRITE || action == ObjectMaintenanceActions.Action.DATABASE_FILE_SETTINGS;
@@ -468,6 +498,8 @@ final class ObjectMaintenanceCommands {
         if (action == ObjectMaintenanceActions.Action.TABLE_TTL && object instanceof DBSTable table) {
             AltibaseTableTtl ttl = AltibaseTableTtl.forTable(table);
             return ttl == null ? null : AltibaseTableTtlDialog.ask(explorer, title, table, ttl);
+        } else if (action == ObjectMaintenanceActions.Action.JOB_SETTINGS && object instanceof AltibaseJob job) {
+            return AltibaseJobDialogs.askJobSettings(explorer, title, job);
         } else if (action == ObjectMaintenanceActions.Action.TABLESPACE_AUTOEXTEND && object instanceof AltibaseTablespace tablespace) {
             return AltibaseTablespaceDialogs.askAutoextend(explorer, title, tablespace);
         } else if (action == ObjectMaintenanceActions.Action.DATA_FILE_SETTINGS && object instanceof AltibaseDataFile4Disk file) {
@@ -532,6 +564,11 @@ final class ObjectMaintenanceCommands {
             case TABLESPACE_OFFLINE -> ObjectMaintenanceMessages.objmaint_tbs_offline_title;
             case TABLESPACE_AUTOEXTEND -> ObjectMaintenanceMessages.objmaint_tbs_autoextend_title;
             case DATA_FILE_SETTINGS -> ObjectMaintenanceMessages.objmaint_file_settings_title;
+            // Altibase-family jobs and queues (app change #154)
+            case ENABLE_JOB -> ObjectMaintenanceMessages.objmaint_job_enable_title;
+            case DISABLE_JOB -> ObjectMaintenanceMessages.objmaint_job_disable_title;
+            case JOB_SETTINGS -> ObjectMaintenanceMessages.objmaint_job_settings_title;
+            case COMPACT_QUEUE -> ObjectMaintenanceMessages.objmaint_queue_compact_title;
             // Oracle (app change #127)
             case TABLESPACE_READ_ONLY -> ObjectMaintenanceMessages.objmaint_tbs_read_only_title;
             case TABLESPACE_READ_WRITE -> ObjectMaintenanceMessages.objmaint_tbs_read_write_title;

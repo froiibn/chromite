@@ -405,6 +405,9 @@
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseQueueManager"               objectType="com.seizia.chromite.ext.altibase.model.AltibaseQueue"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseMaterializedViewManager"    objectType="com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTableColumnManager"         objectType="com.seizia.chromite.ext.altibase.model.AltibaseTableColumn"/>
+        <!-- A queue's keys and indexes are the queue's own: no new, edit or delete there (the generic managers otherwise) -->
+        <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseConstraintManager"          objectType="com.seizia.chromite.ext.altibase.model.AltibaseConstraint"/>
+        <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTableIndexManager"          objectType="com.seizia.chromite.ext.altibase.model.AltibaseTableIndex"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseSequenceManager"            objectType="com.seizia.chromite.ext.altibase.model.AltibaseSequence"/>
         <!-- A queue's internal sequence: a manager without maker, editor or renamer, so no Delete, Rename or edits (AltibaseQueueSequence) -->
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseQueueSequenceManager"       objectType="com.seizia.chromite.ext.altibase.model.AltibaseQueueSequence"/>
@@ -415,6 +418,7 @@
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTriggerManager"             objectType="com.seizia.chromite.ext.altibase.model.AltibaseTrigger"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseTablespaceManager"          objectType="com.seizia.chromite.ext.altibase.model.AltibaseTablespace"/>
         <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseDataFileManager"            objectType="com.seizia.chromite.ext.altibase.model.AltibaseDataFile"/>
+        <manager class="com.seizia.chromite.ext.altibase.edit.AltibaseJobManager"                 objectType="com.seizia.chromite.ext.altibase.model.AltibaseJob"/>
     </extension>
 
     <extension point="com.seizia.chromite.dataTypeProvider">

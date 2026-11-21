@@ -19,6 +19,7 @@ package com.seizia.chromite.ext.altibase.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.altibase.model.AltibaseQueue;
 import com.seizia.chromite.ext.generic.edit.GenericTableColumnManager;
 import com.seizia.chromite.ext.generic.model.GenericTableBase;
 import com.seizia.chromite.ext.generic.model.GenericTableColumn;
@@ -35,12 +36,36 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Column manager of Altibase-family tables.
+ *
+ * 설계: 큐의 열은 서버가 메시지 크기로 만드는 큐의 내부 구조라 더하거나 바꾸거나 이름을 바꾸거나 지울 수 없다(전에는 일반 테이블처럼
+ * New Column…, Rename, Delete가 보였다). 다른 테이블의 열은 전과 같다.
+ *
+ * 변경 이력:
+ * - 2026-11-21 Chromite: 큐의 열에는 만들기·바꾸기·이름 바꾸기·삭제 없음(앱 변경 #154, docs/chromite/altibase.md "큐")
+ */
 public class AltibaseTableColumnManager extends GenericTableColumnManager 
     implements DBEObjectRenamer<GenericTableColumn> {
 
     @Override
+    public boolean canCreateObject(@NotNull Object container) {
+        return !(container instanceof AltibaseQueue) && super.canCreateObject(container);
+    }
+
+    @Override
+    public boolean canEditObject(@NotNull GenericTableColumn object) {
+        return !(object.getParentObject() instanceof AltibaseQueue) && super.canEditObject(object);
+    }
+
+    @Override
+    public boolean canDeleteObject(@NotNull GenericTableColumn object) {
+        return !(object.getParentObject() instanceof AltibaseQueue) && super.canDeleteObject(object);
+    }
+
+    @Override
     public boolean canRenameObject(@NotNull GenericTableColumn object) {
-        return true;
+        return !(object.getParentObject() instanceof AltibaseQueue);
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 이름 대화상자의 암호 오류 {@code create_error_password}, {@code create_error_password_mismatch}
  *   (swing-create-objects.md "새 사용자의 암호")
  * - 2026-11-15 Altibase 계열 테이블스페이스·데이터 파일 대화상자의 칸과 오류(docs/chromite/altibase.md "테이블스페이스 관리")
+ * - 2026-11-21 Altibase 계열 작업·큐 대화상자의 칸과 오류(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
  */
 public class CreateObjectMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CreateObjectMessages"; //$NON-NLS-1$
@@ -96,6 +97,26 @@ public class CreateObjectMessages extends NLS {
     public static String create_label_growth;
     public static String create_error_file;
     public static String create_error_growth;
+
+    // Altibase-family jobs and queues (app change #154)
+    public static String create_label_procedure;
+    public static String create_label_start;
+    public static String create_label_end;
+    public static String create_label_interval;
+    public static String create_label_enabled;
+    public static String create_label_comment;
+    public static String create_label_message_size;
+    public static String create_unit_none;
+    public static String create_unit_year;
+    public static String create_unit_month;
+    public static String create_unit_day;
+    public static String create_unit_hour;
+    public static String create_unit_minute;
+    public static String create_error_procedure;
+    public static String create_error_time;
+    public static String create_error_end;
+    public static String create_error_interval;
+    public static String create_error_message_size;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, CreateObjectMessages.class);

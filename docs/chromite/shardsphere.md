@@ -654,6 +654,31 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 미확인: `DBMS_METADATA.GET_DDL`이 기준 컬럼 이름을 따옴표 없이 쓰는 것(`ON COLUMN d 1`)이 의도인지.
 - 미확인: 큐·시스템 표에 TTL을 받는지.
 
+## 작업·큐·세션 종료 (2026-11-21, 앱 변경 #154)
+
+계열 공통 코드로 만들었다([altibase.md](altibase.md) "작업 만들기·바꾸기·삭제", "큐", "세션 종료 문장"). 이 번들은 바꾸지 않았다: 두 서버가 다 받는 문장만
+쓰므로 연결마다 고를 것이 없다. ShardSphere 5.1.9 일반 서버에서 확인한 사실(시험용 `CHR_JQ_*`만, 사용자 허락 2026-11-17, 끝에 모두 지움):
+
+| 항목 | ShardSphere 5.1.9 | Altibase 7.3과 다른가 |
+|---|---|---|
+| START 없는 `CREATE JOB` | 됨(START_TIME null) | 다름(Altibase 200705) |
+| `INTERVAL n SECOND` | 됨(코드 SS) | 다름(Altibase 200705) |
+| `ALTER JOB … SET START NULL` | 됨 | 다름(Altibase 200820) |
+| `DBMS_METADATA.GET_DDL('JOB', …)` | 990001(작업의 View DDL이 실패함, 고치지 않음) | 다름(Altibase는 CREATE JOB 글) |
+| 그 밖의 작업 문법(절 하나씩, END NULL, COMMENT, ENABLE/DISABLE, 없는 작업 201143) | Altibase와 같음 | 같음 |
+| 작업 권한 | `SYS_PRIVILEGES_`에 CREATE / ALTER / DROP ANY JOB(266, 268, 267). 벤더 서버에는 사용자를 만들지 않아 권한 없는 사용자는 시험하지 않음 | 같은 권한 목록 |
+| 큐(CREATE 모양들, COMPACT, DROP, CASCADE 200705, DROP TABLE 201252, INSERT 201248, UPDATE 201854) | 위와 같음 | UPDATE의 코드만 다름(Altibase 200753) |
+| 세션 종료 | `ALTER DATABASE <db> SESSION CLOSE <id>` 됨, 매뉴얼 예의 이름 없는 모양은 200705 | 같음 |
+
+### 미확인 (벤더 문의)
+
+- 미확인: 매뉴얼의 `ALTER JOB` 예에는 여러 절을 한 문장에 쓴 것(`SET START … END … INTERVAL … EXEC …`)이 있는데 서버는 200705로 거절한다. 절 하나씩이 맞는지.
+- 미확인: 매뉴얼은 작업 문장을 "SYS만"이라고 하지만 서버에 CREATE / ALTER / DROP ANY JOB 권한이 있다. 일반 사용자에게 그 권한을 주는 것이 지원되는지.
+- 미확인: `INTERVAL 0`(또는 INTERVAL 없이 만든 작업)을 스케줄러가 한 번만 실행하는지, START 없는 작업은 언제 실행되는지.
+- 미확인: 작업의 `DBMS_METADATA.GET_DDL('JOB', …)`이 990001로 실패하는 것이 의도인지.
+- 미확인: 매뉴얼의 `ALTER JOB … SET`에 `ENABLE`, `DISABLE`, `COMMENT`, `END NULL`이 없지만 서버는 받는다. 지원되는 문법인지.
+- 미확인: 세션 종료 예가 데이터베이스 이름 없는 `ALTER DATABASE SESSION CLOSE n`인데 서버는 이름이 있는 모양만 받는다(매뉴얼 오류인지).
+
 ## 낱말과 함수 (2026-11-17, 앱 변경 #139 수정 8)
 
 두 ShardSphere 서버와 Altibase 7.3에서 `SELECT f(...) FROM DUAL`을 준비해 정했다(실행하지 않음, 2026-11-17):
@@ -767,3 +792,4 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
   "확인 (2026-11-17, 수정 1~8 …)"까지.
 - 2026-11-17 기존 테이블의 TTL 설정·변경·해제(앱 변경 #152, `chromite/shardsphere-ttl-manage`): 표 오른쪽 클릭 "TTL 설정"과 대화상자, 문장은 이 번들(`ShardTableTtl`),
   중립 능력 `AltibaseTableTtl`, 메타 노드의 샤드 테이블에는 내지 않음(감지 때 샤드 테이블 목록 읽기). 위 "TTL 관리".
+- 2026-11-21 작업·큐·세션 종료의 ShardSphere 사실과 남은 문의(앱 변경 #154, `chromite/altibase-family-jobs-queues`, 코드는 계열 공통), 위 "작업·큐·세션 종료".

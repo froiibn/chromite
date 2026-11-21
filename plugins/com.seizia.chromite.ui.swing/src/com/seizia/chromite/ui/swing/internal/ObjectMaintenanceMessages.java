@@ -32,6 +32,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-15 Altibase 계열 테이블스페이스 온라인·오프라인, 자동 확장 설정, 데이터 파일 설정 문구
  *   (docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-17 테이블 TTL 명령과 대화상자 문구(앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
+ * - 2026-11-21 Altibase 계열 작업 사용·사용 안 함·설정, 큐 압축 문구(앱 변경 #154, docs/chromite/altibase.md)
  */
 public class ObjectMaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
@@ -98,6 +99,19 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_file_settings;
     public static String objmaint_file_settings_tip;
     public static String objmaint_file_settings_title;
+    // Altibase-family jobs and queues (app change #154)
+    public static String objmaint_job_enable;
+    public static String objmaint_job_enable_tip;
+    public static String objmaint_job_enable_title;
+    public static String objmaint_job_disable;
+    public static String objmaint_job_disable_tip;
+    public static String objmaint_job_disable_title;
+    public static String objmaint_job_settings;
+    public static String objmaint_job_settings_tip;
+    public static String objmaint_job_settings_title;
+    public static String objmaint_queue_compact;
+    public static String objmaint_queue_compact_tip;
+    public static String objmaint_queue_compact_title;
     // Oracle tablespaces (app change #127)
     public static String objmaint_tbs_read_only;
     public static String objmaint_tbs_read_only_tip;

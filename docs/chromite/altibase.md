@@ -1000,7 +1000,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 켜짐은 `IS_ENABLE`(T/F)이 말한다: 만든 직후 F, `ALTER JOB … SET ENABLE` 뒤 T(확인).
 - 스케줄러 상태: `JOB_SCHEDULER_ENABLE`·`JOB_THREAD_COUNT`는 Altibase 7.3과 두 ShardSphere 서버 모두 `V$PROPERTY`에 없다. 켜진 1분 주기 작업이 3분 동안 한 번도 실행되지
   않아(실행 횟수 0) 시험 서버의 스케줄러는 꺼져 있다고 본다. 서버 속성은 바꾸지 않았다.
-- 작업 정의를 만드는·바꾸는 명령은 이 변경에 없다.
+- 작업 정의를 만드는·바꾸는 명령은 이 변경에 없었다. 2026-11-21 아래 "작업 만들기·바꾸기·삭제"에서 더했다(주기 0도 주기 없음으로 보이게 바꿈).
 
 ## 큐의 내부 시퀀스 (2026-11-17, 앱 변경 #139 수정 4)
 
@@ -1014,6 +1014,190 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   (`TABLE_TYPE IN ('S', 'W')`를 `'S'`로 되돌리면 됨).
 - **확인(Altibase 7.3, `CHR_COR_Q`와 보통 시퀀스 `CHR_COR_SEQ`):** 전: 시퀀스 1개(보통 시퀀스, 메뉴에 삭제). 후: 2개, 큐 시퀀스 메뉴 10항목(삭제 없음), 보통 시퀀스 11항목
   (삭제 켜짐). 연결 새로 고침과 다시 연결 뒤에도 같음. 끝에 모두 지움(`SYS_TABLES_`·`SYS_PROCEDURES_`·`SYS_JOBS_`에 `CHR_COR%` 0행).
+
+## 작업 만들기·바꾸기·삭제 (2026-11-21, 앱 변경 #154)
+
+### 목적
+
+사용자 "ShardSphere부터"(139번의 남은 작업). Altibase 계열 연결(Altibase, ShardSphere: 같은 모델, 제품 이름 검사 없음)에서 Global metadata ▸ Jobs의 작업을 만들고,
+설정을 바꾸고, 사용 / 사용 안 함으로 바꾸고, 지운다. 모든 명령은 테이블스페이스 관리와 같은 기존 흐름 안에 있다: Object Explorer 메뉴 → (대화상자) → 스크립트
+미리 보기(취소가 기본) → 열린 트랜잭션 질문 → 실행 → 트리 갱신. 대화상자에 설명 문단은 없다.
+
+### 화면
+
+| 위치 | 메뉴 항목 | 흐름 | 문장 |
+|---|---|---|---|
+| Global metadata ▸ Jobs 폴더 | New Job… / 새 작업 | 이름, 프로시저, 시작, 끝(비우면 없음), 주기(수 + 단위, "없음"은 한 번 실행), 사용, 주석 대화상자 → 미리 보기 | `CREATE JOB j EXEC p START TO_DATE(…) [END TO_DATE(…)] [INTERVAL n unit] [ENABLE] [COMMENT '…']` |
+| 작업 노드 | Enable Job / Disable Job (작업 사용 / 작업 사용 안 함) | 트리거 사용/사용 안 함과 같음: 지금 상태(`IS_ENABLE`)의 항목은 꺼짐, 미리 보기가 확인 | `ALTER JOB j SET ENABLE / DISABLE` |
+| 작업 노드 | Job Settings… / 작업 설정 | 지금 값으로 채운 대화상자(이름은 읽기 전용) → 바뀐 칸마다 한 문장 → 미리 보기 | `ALTER JOB j SET EXEC p`, `… START …`, `… END …` / `… END NULL`, `… INTERVAL n unit`, `… COMMENT '…'`(빈 주석 = `''`) |
+| 작업 노드 | Delete(기존 명령) | 삭제 확인(확인란 없음) → 미리 보기 | `DROP JOB j` |
+
+- 실행 뒤(실패해도) 작업 노드를 다시 읽고 선택을 다시 보인다(`ObjectExplorerPanel.showSelectionAgain`). 작업 노드는 자식이 없어 트리가 다시 읽지 않고 같은 노드라 선택 사건도 없어, 노드만 다시 읽으면 속성 보기가 옛 값이었다. 폴더를 다시 읽으면 선택이 풀렸다(아래 확인).
+- 바꾼 것이 없으면 다른 설정 대화상자처럼 "실행할 문장이 없다" 알림이다.
+- 이름 바꾸기는 없다(서버에 문장이 없음).
+- 문구는 영어·한국어(`CreateObjectMessages`, `ObjectMaintenanceMessages`, 드라이버 번들의 `tree.job(s).node.name`에 한국어 "작업"을 더함). "Altibase" 글자는 없다.
+
+### 구조
+
+| 위치 | 내용 |
+|---|---|
+| `ext.altibase` `model/AltibaseJobDDL`(새) | 두 서버에서 확인한 문법으로 작업·큐 문장을 만드는 한 곳: 만들기, 절마다 바꾸기, 사용·사용 안 함, 삭제, 큐 만들기·압축·삭제. 단위 `Unit`(YEAR YY … MINUTE MI) |
+| `ext.altibase` `edit/AltibaseJobManager`(새) | 객체 관리자: 만들기(데이터 원본 컨테이너만), 삭제, CREATE 직후 같은 세션에서 새 행 읽기 |
+| `ext.altibase` `AltibaseJob` | 새 작업 생성자·이름·정의, `readCreated`, 대화상자용 주기 값, 주기 0은 주기 없음으로 보임, 단위 코드를 `Unit`에서 읽음 |
+| `ext.altibase` `AltibaseDataSource.JobCache` | 공개(관리자가 같은 질의로 새 행을 읽음) |
+| `model.admin` `ObjectMaintenanceActions` | 동작 `ENABLE_JOB`, `DISABLE_JOB`, `JOB_SETTINGS`(설정 `AltibaseJobDDL.Change`), `COMPACT_QUEUE`, `isJobEnabled` |
+| `ui.swing` `AltibaseJobDialogs`(새) | New Job, Job Settings 대화상자(`DesignerDialogs.showDialog` 틀, 주기 수는 `NumberInputFilter`) |
+| `ui.swing` `NewObjectDialogs`, `ObjectMaintenanceCommands`, `ObjectExplorerPanel` | 대화상자 연결, 메뉴 항목, 실행 뒤 작업 노드 다시 읽기와 선택 다시 보이기(`showSelectionAgain`) |
+
+### 확인한 문법 (Altibase 7.3.0.0.7 시험 서버와 ShardSphere 5.1.9 일반 서버, 시험용 `CHR_JQ_*`만, 끝에 모두 지움)
+
+| 문장 | Altibase 7.3 | ShardSphere 5.1.9 |
+|---|---|---|
+| `CREATE JOB j EXEC p START s [END e] [INTERVAL n YEAR/MONTH/DAY/HOUR/MINUTE]` | 됨(코드 YY, MM, DD, HH, MI) | 됨(같은 코드) |
+| START 없이 `CREATE JOB j EXEC p` | 200705 구문 오류 | **됨**(START_TIME null) |
+| `INTERVAL 1 SECOND` | 200705 | **됨**(코드 SS) |
+| `INTERVAL 1 WEEK` | 200705 | (시험 안 함) |
+| INTERVAL 없이 | 됨: `INTERVAL` 0, `INTERVAL_TYPE` null | 같음 |
+| `… END e`만(START 없이) | 200705 | 200705 |
+| 끝 `ENABLE` / `DISABLE` | 됨(ENABLE이면 `IS_ENABLE` T) | 같음 |
+| 끝 `COMMENT 'c'`, `ENABLE COMMENT 'c'`, `DISABLE COMMENT 'c'` | 됨 | 됨 |
+| `COMMENT 'c' DISABLE`(순서 바꿈) | (시험 안 함) | 200705 |
+| `EXEC SYS.p`, `EXEC p()`, `EXEC p(5)`(IN 매개 변수) | 됨(`EXEC_QUERY`에 쓴 글 그대로) | 됨 |
+| 없는 프로시저 `EXEC CHR_JQ_NOPROC` | **됨**(서버가 확인하지 않음) | 됨 |
+| `INTERVAL 0 DAY` | 됨(0, DD) | (만들기는 시험 안 함, `SET INTERVAL 0 DAY` 됨) |
+| 같은 이름 | 200738 | 200738 |
+| 따옴표 이름 `"CHR_JQ_low"` | 됨(소문자 보존) | 됨 |
+| `ALTER JOB j SET EXEC p2` / `SET EXEC p(7)` | 됨 | 됨 |
+| `SET START s` / `SET END e` / `SET END NULL` | 됨 | 됨 |
+| `SET INTERVAL n unit`(다섯 단위) | 됨 | 됨 |
+| `SET INTERVAL 0 DAY` | 됨(주기 0, DD로 남음) | 됨 |
+| `SET INTERVAL NULL` | 200705 | 200705 |
+| `SET START NULL` | 200820(NOT NULL 열) | **됨** |
+| `SET ENABLE` / `SET DISABLE` | 됨 | 됨 |
+| `SET COMMENT 'c'` / `SET COMMENT ''`(→ null) | 됨 | 됨 |
+| `SET COMMENT NULL` | 200705 | (시험 안 함) |
+| 절 둘 이상 한 문장(`SET START s END e`, 쉼표, `SET ENABLE COMMENT 'x'`, 매뉴얼의 여러 절 예) | 200705 | 200705 |
+| 없는 작업 `ALTER JOB` / `DROP JOB` | 201143 | 201143 |
+| `DROP JOB j`(켜진 작업 포함) | 됨 | 됨 |
+| `DBMS_METADATA.GET_DDL('JOB', j)` | 됨(`CREATE JOB "j" EXEC … START TO_DATE(…) END … INTERVAL 2 HOUR`) | **990001**(기존 "View DDL"이 실패함, 이 변경에서 고치지 않음) |
+| 권한 없는 사용자(`CHR_JQ_U`, CREATE SESSION만) | 201137 "must have CREATE_ANY_JOB / ALTER_ANY_JOB / DROP_ANY_JOB privilege(s)". 세 권한을 주면 만들기·바꾸기·삭제가 됨. `SYS_JOBS_`는 권한 없이 읽힘 | 사용자를 만들지 않음(지시). `SYS_PRIVILEGES_`에 같은 세 권한(266, 268, 267)이 있다 |
+
+- 스케줄러는 두 시험 서버에서 꺼져 있다(위 "작업"). 그래서 켠 작업이 실제로 도는지, `INTERVAL 0`인 작업을 스케줄러가 어떻게 다루는지는 확인할 수 없었다.
+  벤더 서버에서 켠 작업은 시작을 2030년 이후로 두고 자기 프로시저(`NULL` 본문, 자기 표에 INSERT)만 부르게 했으며 곧 끄고 지웠다.
+
+### 설계 결정
+
+- **두 서버가 다 받는 모양만.** 다른 점(START 생략, SECOND, START NULL)은 쓰지 않으므로 연결마다 고를 것이 없고 서버 확장 자리도 쓰지 않았다. 대화상자는 시작을
+  늘 받는다(Altibase가 START 없는 작업을 거절). 단위는 다섯 개다. ShardSphere에서 다른 길로 초 단위가 된 작업은 속성에 "n SS"로 보이고 설정 대화상자의 주기 칸이 꺼진다.
+- **사용은 만들 때만 대화상자에, 그 뒤는 메뉴.** 사용 / 사용 안 함은 트리거처럼 상태 짝 명령이 앱의 흐름이다. 만들 때 함께 켜는 `ENABLE`은 두 서버가 받아 대화상자에 둔다.
+- **주기 없애기는 넣지 않음.** 서버는 `SET INTERVAL 0 …`을 받지만 스케줄러가 꺼져 있어 그 뒤 작업이 어떻게 도는지 볼 수 없었다. 주기가 있는 작업의 설정 대화상자에는
+  "없음"이 없다(대안: "없음"을 두고 `SET INTERVAL 0 DAY`를 쓰기).
+- **권한은 서버가 말함(고른 것).** 메뉴는 권한과 관계없이 보이고, 권한이 없으면 서버 오류 201137이 다른 변경과 같은 오류 창에 보인다(테이블스페이스와 같음).
+  매뉴얼은 "SYS만"이라고 하지만 실제로는 시스템 권한 CREATE / ALTER / DROP ANY JOB으로 정해지고, 권한은 역할(그리고 PUBLIC)로도 받을 수 있다. 카탈로그로
+  미리 판단하려면 역할까지 따라가는 질의를 메뉴를 열 때마다 해야 한다(대안: 세션 사용자와 역할의 권한을 읽어 꺼진 항목으로).
+- **끝이 시작보다 이르면 대화상자가 막음.** 서버는 받는다(`START s END s-1`가 됨).
+- **프로시저는 쓴 글 그대로.** `EXEC` 뒤에 매개 변수(`p(5)`)와 스키마가 올 수 있다. 문장 구분자와 줄바꿈만 막는다. 서버가 프로시저가 있는지 확인하지 않으므로
+  없는 프로시저도 만들어진다(실행할 때 실패할 것).
+
+### 확인
+
+아래 "작업·큐·세션 종료 확인 (2026-11-21)".
+
+## 큐 (2026-11-21, 앱 변경 #154)
+
+### 화면과 문장
+
+| 위치 | 메뉴 항목 | 흐름 | 문장 |
+|---|---|---|---|
+| 스키마 ▸ Queues(큐 테이블) 폴더 | New Queue… / 새 큐 테이블 | 이름, 메시지 크기(바이트, 숫자만, 1~32000) → 미리 보기 | `CREATE QUEUE s.q (n)` |
+| 큐 노드 | Compact Queue / 큐 압축 | 미리 보기가 확인 | `ALTER QUEUE s.q COMPACT` |
+| 큐 노드 | Delete(기존 명령) | 삭제 확인(확인란 없음) → 미리 보기 | `DROP QUEUE s.q` |
+
+- 큐를 만들거나 지운 뒤 같은 스키마의 시퀀스 목록을 맞춘다(`AltibaseQueueManager`): 목록을 이미 읽었으면 새 내부 시퀀스 `<q>_NEXT_MSG_ID`를 카탈로그에서
+  읽어 넣고, 지운 큐의 것은 뺀다. 전에는 지운 큐의 시퀀스 노드가 남았다.
+- 메시지 크기만 묻는다: `FIXED`/`VARIABLE`, `MAXROWS`, `TABLESPACE`도 두 서버가 받지만 지시서의 칸이 이름과 크기다.
+
+### 확인한 문법 (두 서버, 시험용 `CHR_JQ_Q*`만, 끝에 모두 지움)
+
+| 문장 | Altibase 7.3 | ShardSphere 5.1.9 |
+|---|---|---|
+| `CREATE QUEUE q (40)`, `(40) MAXROWS 1000`, `(256 FIXED)`, `(1024 VARIABLE) MAXROWS 100000`, `(32000)` | 됨: 열 MSGID·MESSAGE(VARCHAR n+2)·CORRID·ENQUEUE_TIME, 인덱스 하나, 기본 키 하나, 시퀀스 `q_NEXT_MSG_ID`(TABLE_TYPE W) | 같음 |
+| `CREATE QUEUE q (MESSAGE VARCHAR(40))`(매뉴얼이 엇갈리는 열 목록 모양) | 됨, 열 셋인 큐 | 같음 |
+| `CREATE QUEUE q`(크기 없음) | 200705 | 200705 |
+| `(0)` | 됨 | (시험 안 함) |
+| `(32001)` | 201454 | 201454 |
+| `… (40) TABLESPACE SYS_TBS_MEM_DATA` | 됨 | (시험 안 함) |
+| 스키마를 붙인 이름 `CREATE / ALTER … COMPACT / DROP QUEUE s.q` | 됨 | 됨 |
+| `ALTER QUEUE q COMPACT`(빈 큐, 메시지 하나 있는 큐) | 됨 | 됨 |
+| 없는 큐 `ALTER QUEUE … COMPACT` | 201445 | 201445 |
+| `DROP QUEUE q` | 됨: 큐·인덱스·시퀀스가 모두 없어짐 | 같음 |
+| `DROP QUEUE q CASCADE` | **200705** | **200705** |
+| `DROP TABLE q` | 201252 "Cannot use a DROP TABLE statement on a queue table" | 201252 |
+| `INSERT INTO q (MESSAGE) VALUES (…)` | 201248 "Cannot execute DML statements on queue table" | 201248 |
+| `UPDATE q SET …` | 200753 | 201854 |
+| `DELETE FROM q WHERE …`, `TRUNCATE TABLE q`, `ENQUEUE INTO q (MESSAGE) VALUES (…)` | 됨 | 됨 |
+| 권한 없는 사용자(`CHR_JQ_U`)의 `CREATE QUEUE` | 됨(자기 스키마) | 시험 안 함 |
+
+### 큐에서 고친 메뉴 (덤프: 이름, 보임, 켜짐)
+
+| 노드 | 전(기준 빌드) | 후 | 이유 |
+|---|---|---|---|
+| Queues 폴더 | New Queue 없음 | **New Queue…** | 만들기 |
+| 큐 | Design(테이블 디자이너) 켜짐 | 없음 | 큐의 열·키·인덱스는 바꿀 수 없다. 큐 관리자가 이제 구조 편집기가 아니다(전에는 일반 테이블 관리자를 이어받음) |
+| 큐 | – | **Compact Queue** | 두 서버가 받음 |
+| 큐의 Delete | 확인에 "종속 개체도 삭제(cascade)" 확인란 → `DROP QUEUE … CASCADE`(200705) | 확인란 없음, `DROP QUEUE s.q` | 서버 문법 |
+| 큐의 Columns·Keys·Indexes 폴더 | New Column… / New Key… / New Index… 켜짐 | 없음 | 디자이너가 큐에 해당하지 않음 |
+| 큐의 열 | Rename, Delete 켜짐 | 꺼짐(보임) | 큐의 내부 구조(`AltibaseTableColumnManager`). 종류(열)에는 해당하므로 규칙대로 꺼짐 |
+| 큐의 인덱스·키 | Delete 켜짐 | 꺼짐(보임) | 같은 이유(새 `AltibaseTableIndexManager`, `AltibaseConstraintManager`, 다른 테이블은 일반 관리자 그대로) |
+
+- **남긴 것(보고만):** 큐 노드의 Tasks ▸ Import Data…와 Generate SQL ▸ INSERT·UPDATE·MERGE는 서버가 거절하는 문장(201248, 200753/201854)이 된다. 결과 그리드의
+  행 편집도 같다. 이것들은 공용 데이터 전송·생성기·그리드의 판단(`DataImportWizard.canImport`는 삽입 기능을 보지 않음)이라 큐만의 고침으로 넣지 않았다.
+  Truncate는 두 서버가 받지만(`TRUNCATE TABLE q`) 메뉴에 없다(DBeaver의 `AltibaseQueue.isTruncateSupported` = false, 그대로).
+
+## 세션 종료 문장 (2026-11-21, 앱 변경 #154)
+
+- Chromite가 보내는 `ALTER DATABASE <db> SESSION CLOSE <id>`(`<db>`는 `V$DATABASE.DB_NAME`)를 두 서버가 받는다. 벤더 매뉴얼의 예처럼 데이터베이스 이름을 뺀
+  `ALTER DATABASE SESSION CLOSE <id>`는 **두 서버 모두 200705**(구문 오류)이고 그 세션은 그대로다. 소문자 `alter database <db> session close <id>`도 된다.
+- 확인 방법: 내가 연 두 번째 연결의 `SESSION_ID()`를 읽어 그 번호로만 닫았다(다른 세션은 닫지 않음). 닫힌 세션의 다음 문장은 334337(08S01)이다.
+- 그래서 문장은 고치지 않았다. 문장을 만드는 곳은 셋이다: 활동 모니터 세션 탭(`AltibaseServerSessionManager.alterSession`), 잠금 탭(`AltibaseBlockingLockManager.killSession`),
+  SWT 잠금 편집기용 `AltibaseLockManager`(Swing에서 쓰지 않음). 모두 같은 모양이다.
+
+## 작업·큐·세션 종료 확인 (2026-11-21)
+
+이 브랜치 빌드(사설 작업 공간·설정·데이터 폴더), 앱 안 테스트 에이전트, 연결 `ALTI`(Altibase 7.3, 터널, SYS), `ALTX`(같은 서버, 수동 커밋), `ALTU`(시험용 사용자
+`CHR_JQ_U`, CREATE SESSION만), `SS`(벤더 일반 서버). 값은 환경 변수 참조로만, 암호 저장 끔. 영어·한국어 150 %, 영어 다크 100 %.
+
+| 확인 | Altibase 7.3 | ShardSphere 5.1.9 |
+|---|---|---|
+| New Job: 취소 | 문장 없음(Query Manager 기록 없음) | – |
+| New Job: 빈 이름, 잘못된 시각(`2030-13-01 00:00`), 시작보다 이른 끝, 단위를 골랐는데 빈 주기 | 대화상자 오류 줄 "Enter a name." / "Enter the time as YYYY-MM-DD HH:MM:SS." / "The end must not be before the start." / "Enter the interval as a whole number of 1 or more.", 문장 없음 | – |
+| New Job(단위·끝·사용) | J1 DAY 끝 없음, J2 주기 없음·끝·사용·주석, J3 `SYS.p` 2 YEAR: 미리 보기의 문장 그대로 실행, `SYS_JOBS_` 행과 속성(ID, 주기 "1 day(s)"·빈 주기, 사용, 시각, 주석)이 같음 | J4 1 MONTH, J5 12 HOUR·끝·사용·주석(곧 사용 안 함), J6 15 MINUTE, J7 주기 없음: 같음. 속성에 소유자·종류(프로시저)·실패 횟수 |
+| Job Settings: 취소 / 바꾸지 않고 OK / 시작 지움 | 문장 없음 / "실행할 문장이 없다" 알림 / 오류 줄 | – |
+| Job Settings: 프로시저·시작·끝·주기 단위·주석 | 다섯 문장(`SET EXEC`, `SET START`, `SET END`, `SET INTERVAL 6 HOUR`, `SET COMMENT`), 행과 속성이 새 값 | 같은 다섯 문장(`SYS.p2`, 3 DAY) |
+| Job Settings: 끝·주석 지움, 주기 단위 바꿈 | `SET END NULL`, `SET INTERVAL 30 MINUTE`, `SET COMMENT ''` → 행 END null, 주석 null | `SET END NULL`, `SET COMMENT ''` |
+| 주기 없는 작업 / 주기 있는 작업의 설정 대화상자 | 단위 목록에 "None"이 있고 고름 / "None" 없음 | – |
+| Enable Job / Disable Job | `SET ENABLE` → `IS_ENABLE` T, 메뉴의 Enable 꺼짐·Disable 켜짐, 속성 "true", 반대도 | 같음 |
+| 서버 오류: 다른 세션에서 지운 작업에 Enable | 오류 창 "The command failed on CHR_JQ_J3: ALTER JOB … SET ENABLE … Msg 201143", 그 뒤 다른 명령 정상 | 같음(201143) |
+| Delete 작업 | 확인(확인란 없음) → `DROP JOB j` → 행 없음, 노드 빠짐 | 같음(J4, J5, J6) |
+| 권한 없는 사용자(`ALTU`) | New Job 201137 CREATE_ANY_JOB, Enable 201137 ALTER_ANY_JOB, Delete 201137 DROP_ANY_JOB, 모두 오류 창 | 시험 안 함(사용자 만들지 않음) |
+| New Queue: 크기 40000 / 0 / 32001 | 오류 줄 "Enter a message size from 1 to 32000." | 32001 같은 오류 줄 |
+| New Queue | `CREATE QUEUE SYS.CHR_JQ_Q1 (40)` → 큐 노드, 시퀀스 폴더에 `CHR_JQ_Q1_NEXT_MSG_ID`가 바로 보임 | `(128)`, 같음 |
+| Compact Queue | `ALTER QUEUE SYS.CHR_JQ_Q1 COMPACT` | 같음 |
+| Delete 큐 | 확인에 확인란 없음 → `DROP QUEUE SYS.CHR_JQ_Q1` → 큐 노드와 시퀀스 노드가 함께 빠짐 | 같음 |
+| 큐 메뉴 전·후 | 위 "큐에서 고친 메뉴" | 같음 |
+| 세션 종료(활동 모니터 Processes, 내 두 번째 세션만 골라 Terminate Session) | `ALTER DATABASE mydb SESSION CLOSE 6`, 그 세션의 다음 문장 334337 | `ALTER DATABASE <db> SESSION CLOSE 4`, 같음 |
+| 열린 트랜잭션(`ALTX`, 쿼리 창의 INSERT) | New Job·Enable·Job Settings·Disable·New Queue·Compact·Delete 큐·Delete 작업 모두 "Uncommitted Transactions" 질문. 취소 → 문장 없음, 롤백 → INSERT 없어지고 실행, 커밋 → INSERT 남고 실행(`CHR_JQ_T`에 커밋한 행 하나만 남음) | – |
+| 자동 커밋 연결 | 질문 없음 | 질문 없음 |
+
+- 실행 뒤 속성 보기: 첫 빌드에서는 작업 노드만 모델에서 다시 읽어 메뉴는 새 상태인데 속성 보기는 옛 값이었다(노드가 자식이 없어 트리가 다시 읽지 않음). 폴더를
+  다시 읽게 바꾼 둘째 빌드는 선택이 풀렸다. 셋째 빌드는 노드를 다시 읽은 뒤 선택을 다시 보인다(`ObjectExplorerPanel.showSelectionAgain`): Enable·Settings·Disable 뒤
+  속성의 "Is Enabled", "Comment"가 바로 새 값.
+- 남은 것: 다른 세션에서 지운 작업에 명령을 내리면 오류 뒤에도 그 노드가 트리에 남는다(폴더 새로 고침으로 빠짐).
+- ShardSphere 연결의 새 화면(New Job, Job Settings, 미리 보기, 오류 창, New Queue, 메뉴)에 "Altibase" 글자 없음. Altibase 연결은 같은 화면.
+- 캡처: `D:\Tools\_scratch\altibase-family-jobs-queues\sheets\`. 벤더 서버의 것은 대화상자만 자른 그림이다(트리에 다른 사용자의 객체가 보이지 않게).
+- 끝에 모두 지움: 두 서버의 `SYS_JOBS_`, `SYS_TABLES_`, `SYS_PROCEDURES_`, `SYS_INDICES_`에 `CHR_JQ%` 0행, Altibase `SYS_USERS_`에 `CHR_JQ%` 0행.
+- 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: Altibase 계열 테이블의 열·키·인덱스 편집(큐가 아닌 테이블은 일반 관리자 그대로),
+  작업 속성 표시(주기 0), 유지 관리 메뉴.
 
 ## 변경 이력
 
@@ -1049,3 +1233,6 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-17 시스피어 답변의 수정(앱 변경 #139 수정, `chromite/shardsphere-corrections`): 기존 객체의 추가 속성 자리(S8), 작업의 상태 코드·읽을 수 있는 주기·소유자·종류·
   실패 횟수, 큐의 내부 시퀀스를 읽기 전용 종류로, 복제 카탈로그의 상태 코드 능력, 계열 함수 일곱 개. 위 "기존 객체의 추가 속성", "작업", "큐의 내부 시퀀스", "복제 카탈로그".
 - 2026-11-17 테이블 TTL 자리(`AltibaseTableTtl`, 유지 관리 동작 `TABLE_TTL`, 설정 대화상자, 앱 변경 #152), 위 "테이블 TTL 자리".
+- 2026-11-21 작업 만들기·바꾸기·사용·사용 안 함·삭제, 큐 만들기·압축·삭제와 큐에 맞지 않던 명령 정리(디자이너, 열·키·인덱스 편집, `DROP QUEUE … CASCADE`),
+  큐를 만들고 지운 뒤 시퀀스 목록 맞추기, 세션 종료 문장 확인(앱 변경 #154, `chromite/altibase-family-jobs-queues`), 위 "작업 만들기·바꾸기·삭제", "큐",
+  "세션 종료 문장", "작업·큐·세션 종료 확인".
