@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/altibase.md "테이블스페이스 관리")
  * - 2026-11-17 테이블 TTL 명령과 대화상자 문구(앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  * - 2026-11-21 Altibase 계열 작업 사용·사용 안 함·설정, 큐 압축 문구(앱 변경 #154, docs/chromite/altibase.md)
+ * - 2026-11-22 서버 확장의 백그라운드 실행 객체 사용·사용 안 함·실행 설정 문구(앱 변경 #156, docs/chromite/altibase.md "확장 객체의 명령 자리")
  */
 public class ObjectMaintenanceMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages"; //$NON-NLS-1$
@@ -112,6 +113,19 @@ public class ObjectMaintenanceMessages extends NLS {
     public static String objmaint_queue_compact;
     public static String objmaint_queue_compact_tip;
     public static String objmaint_queue_compact_title;
+    // Objects a server extension runs in the background (app change #156)
+    public static String objmaint_exec_enable;
+    public static String objmaint_exec_enable_tip;
+    public static String objmaint_exec_enable_title;
+    public static String objmaint_exec_disable;
+    public static String objmaint_exec_disable_tip;
+    public static String objmaint_exec_disable_title;
+    public static String objmaint_exec_settings;
+    public static String objmaint_exec_settings_tip;
+    public static String objmaint_exec_settings_title;
+    public static String objmaint_exec_group;
+    public static String objmaint_exec_order;
+    public static String objmaint_exec_error_number;
     // Oracle tablespaces (app change #127)
     public static String objmaint_tbs_read_only;
     public static String objmaint_tbs_read_only_tip;

@@ -19,6 +19,7 @@ package com.seizia.chromite.model.admin.objects;
 import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.extension.AltibaseExecutionSettings;
 import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
 import com.seizia.chromite.ext.altibase.model.AltibaseJob;
@@ -150,6 +151,9 @@ import java.util.function.Consumer;
  *     {@code ALTER JOB j SET …} 하나, 값은 화면이 먼저 받은 {@link AltibaseJobDDL.Change}). 켜짐 여부는 모델이 읽은
  *     {@code SYS_JOBS_.IS_ENABLE}이다({@link #isJobEnabled}). 큐 압축({@code ALTER QUEUE q COMPACT}). 문장은 {@link AltibaseJobDDL}(두 서버에서
  *     확인한 문법, 연결마다 고를 것 없음)이다.</li>
+ *     <li>서버 확장이 트리에 보이는 백그라운드 실행 객체(예: 연속 테이블·연속 쿼리) — 사용·사용 안 함, 실행 설정(그룹, 순서,
+ *     TTL). 객체가 중립 능력 {@link AltibaseExecutionSettings}를 구현할 때만 적용되고, 지금 상태·값과 문장은 모두 그 객체가 준다(이 클래스는
+ *     서버를 모름). 값은 화면이 먼저 받은 {@link AltibaseExecutionSettings.Settings}다.</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -171,6 +175,8 @@ import java.util.function.Consumer;
  * - 2026-11-17 복제 시작·중지·동기화는 복제의 카탈로그가 제어 문장을 허락할 때만(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  * - 2026-11-17 테이블 TTL(서버 확장이 주는 {@link AltibaseTableTtl}, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  * - 2026-11-21 Altibase 계열 작업 켜기·끄기·설정, 큐 압축(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
+ * - 2026-11-22 서버 확장의 백그라운드 실행 객체 사용·사용 안 함·실행 설정(중립 능력 {@link AltibaseExecutionSettings}, 앱 변경 #156,
+ *   docs/chromite/altibase.md "확장 객체의 명령 자리")
  */
 public final class ObjectMaintenanceActions {
 
@@ -212,6 +218,13 @@ public final class ObjectMaintenanceActions {
          */
         JOB_SETTINGS,
         COMPACT_QUEUE,
+        // Objects a server extension runs in the background (app change #156)
+        ENABLE_EXECUTION,
+        DISABLE_EXECUTION,
+        /**
+         * Execution group, order and TTL of such an object; settings: {@link AltibaseExecutionSettings.Settings}.
+         */
+        EXECUTION_SETTINGS,
         // Oracle (app change #127)
         TABLESPACE_READ_ONLY,
         TABLESPACE_READ_WRITE,
@@ -231,7 +244,7 @@ public final class ObjectMaintenanceActions {
      */
     public static boolean needsSettings(@NotNull Action action) {
         return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS || action == Action.DATABASE_FILE_SETTINGS
-            || action == Action.TABLE_TTL || action == Action.JOB_SETTINGS;
+            || action == Action.TABLE_TTL || action == Action.JOB_SETTINGS || action == Action.EXECUTION_SETTINGS;
     }
 
     /**
@@ -285,6 +298,8 @@ public final class ObjectMaintenanceActions {
             case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();
             case ENABLE_JOB, DISABLE_JOB, JOB_SETTINGS -> object instanceof AltibaseJob;
             case COMPACT_QUEUE -> object instanceof AltibaseQueue;
+            // The object of a server extension says it (no product name here)
+            case ENABLE_EXECUTION, DISABLE_EXECUTION, EXECUTION_SETTINGS -> object instanceof AltibaseExecutionSettings;
             // Oracle only (above)
             case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> false;
             // SQL Server filegroups and database files
@@ -329,6 +344,14 @@ public final class ObjectMaintenanceActions {
     @Nullable
     public static Boolean isJobEnabled(@NotNull DBSObject object) {
         return object instanceof AltibaseJob job ? job.getIsEnable() : null;
+    }
+
+    /**
+     * Whether a server extension's background object was enabled when the model read it, or null for another object.
+     */
+    @Nullable
+    public static Boolean isExecutionEnabled(@NotNull DBSObject object) {
+        return object instanceof AltibaseExecutionSettings executed ? executed.isEnabled() : null;
     }
 
     /**
@@ -674,6 +697,19 @@ public final class ObjectMaintenanceActions {
             case COMPACT_QUEUE -> {
                 if (object instanceof AltibaseQueue queue) {
                     actions.add(new SQLDatabasePersistAction(AltibaseJobDDL.compactQueue(DBUtils.getObjectFullName(queue, DBPEvaluationContext.DDL))));
+                }
+            }
+            // The statements are the server extension's
+            case ENABLE_EXECUTION, DISABLE_EXECUTION -> {
+                if (object instanceof AltibaseExecutionSettings executed) {
+                    actions.add(new SQLDatabasePersistAction(executed.getEnableStatement(action == Action.ENABLE_EXECUTION)));
+                }
+            }
+            case EXECUTION_SETTINGS -> {
+                if (object instanceof AltibaseExecutionSettings executed && commandSettings instanceof AltibaseExecutionSettings.Settings change) {
+                    for (String sql : executed.getSettingsStatements(change)) {
+                        actions.add(new SQLDatabasePersistAction(sql));
+                    }
                 }
             }
             // SQL Server filegroups and database files

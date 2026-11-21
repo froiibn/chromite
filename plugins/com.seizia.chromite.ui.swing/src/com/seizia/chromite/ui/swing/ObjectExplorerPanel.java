@@ -293,6 +293,8 @@ import java.util.regex.Pattern;
  *   도구 막대와 키는 전과 같다({@link ContextMenus#setApplies}, docs/chromite/context-menus.md)
  * - 2026-11-21 {@link #showSelectionAgain}: 모델에서만 다시 읽은 자식 없는 노드(Altibase 계열 작업)의 글자와 속성 보기를 새 객체로
  *   (앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
+ * - 2026-11-22 "New …" 항목을 {@link NewObjectCommands#addTo}로 넣음: 서버 확장 폴더의 틀 항목이 그 뒤에 들어감(앱 변경 #156,
+ *   docs/chromite/swing-create-objects.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -905,7 +907,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewViewAction());
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
-        popupMenu.add(newObjectCommands.getItem());
+        newObjectCommands.addTo(popupMenu);
         popupMenu.add(newPrincipalAction);
         agentCommands.addTo(popupMenu);
         schedulerCommands.addTo(popupMenu);

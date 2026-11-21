@@ -16,11 +16,15 @@
  */
 package com.seizia.chromite.ext.shardsphere.model;
 
+import com.seizia.chromite.DBDatabaseException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.extension.AltibaseExecutionSettings;
+import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
@@ -39,6 +43,7 @@ import org.jkiss.dbeaver.DBException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -60,12 +65,17 @@ import java.util.StringJoiner;
  *     ({@link ShardTableProperties#ttlPeriod}).</li>
  *     <li>{@code IS_ENABLE}: T 켜짐, F 꺼짐(ENABLE·DISABLE로 만든 개체로 확인).</li>
  * </ul>
- * 읽기 전용이다(만들기·바꾸기·켜기·끄기·삭제는 이 작업 밖).
+ * 사용 / 사용 안 함과 실행 설정(그룹, 순서, 연속 테이블의 TTL)은 Altibase 플러그인의 중립 능력 {@link AltibaseExecutionSettings}로 유지 관리
+ * 명령에 준다(문장은 {@link StreamDDL}). TTL 단위는 그 연결의 테이블 TTL 능력({@link ShardTableTtl}, TTL 사전이 있을 때)의 것을 쓴다. 연속
+ * 스트림 테이블과 연속 쿼리는 TTL을 받지 않는다(서버가 201849, 200705로 거절). 삭제는 이 번들의 객체 관리자, 만들기는 틀이다.
+ * 노드를 다시 읽으면({@link #refreshObject}) 자기 사전 행을 다시 읽어 값을 바꾼다(목록의 캐시가 같은 객체를 가지므로 새 객체를 만들지
+ * 않음). 행이 없으면(다른 곳에서 지움) 노드가 빠진다.
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
+ * - 2026-11-22 사용 / 사용 안 함, 실행 설정, 자기 행 다시 읽기(앱 변경 #156, docs/chromite/shardsphere.md "스트림 명령")
  */
-public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifiedObject {
+public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifiedObject, DBPRefreshableObject, AltibaseExecutionSettings {
 
     private static final Log log = Log.getLog(ContinuousObject.class);
 
@@ -89,33 +99,38 @@ public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifie
     private final StreamSchema parent;
     @NotNull
     private final String name;
-    @Nullable
-    private final String tableType;
     private final int tableId;
-    private final int viewId;
+    // The values below are read again by refreshObject
     @Nullable
-    private final String storageTable;
+    private String tableType;
+    private int viewId;
     @Nullable
-    private final String windowUnit;
-    private final int windowTime;
+    private String storageTable;
     @Nullable
-    private final String windowStepUnit;
-    private final int windowStepTime;
-    private final int execGroup;
-    private final int execOrder;
-    private final boolean enabled;
+    private String windowUnit;
+    private int windowTime;
+    @Nullable
+    private String windowStepUnit;
+    private int windowStepTime;
+    private int execGroup;
+    private int execOrder;
+    private boolean enabled;
     @NotNull
-    private final String statements;
+    private String statements = "";
     @Nullable
-    private final String ttlUnit;
+    private String ttlUnit;
     @Nullable
-    private final Integer ttlTime;
+    private Integer ttlTime;
 
     ContinuousObject(@NotNull StreamSchema parent, @NotNull ResultSet dbResult) {
         this.parent = parent;
         this.name = String.valueOf(JDBCUtils.safeGetStringTrimmed(dbResult, "TABLE_NAME"));
-        this.tableType = JDBCUtils.safeGetStringTrimmed(dbResult, "TABLE_TYPE");
         this.tableId = JDBCUtils.safeGetInt(dbResult, "TABLE_ID");
+        read(dbResult);
+    }
+
+    private void read(@NotNull ResultSet dbResult) {
+        this.tableType = JDBCUtils.safeGetStringTrimmed(dbResult, "TABLE_TYPE");
         this.viewId = JDBCUtils.safeGetInt(dbResult, "VIEW_ID");
         this.storageTable = JDBCUtils.safeGetStringTrimmed(dbResult, "AGGR_TABLE_NAME");
         this.windowUnit = JDBCUtils.safeGetStringTrimmed(dbResult, "WINDOW_UNIT");
@@ -208,6 +223,7 @@ public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifie
     }
 
     @Property(viewable = true, order = 10)
+    @Override
     public boolean isEnabled() {
         return enabled;
     }
@@ -223,6 +239,80 @@ public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifie
 
     boolean isQuery() {
         return TYPE_QUERY.equals(tableType);
+    }
+
+    /**
+     * A continuous table with or without aggregation (not a continuous stream table or query): the kinds that take a TTL.
+     */
+    private boolean isTable() {
+        return TYPE_AGGREGATE_TABLE.equals(tableType) || TYPE_TABLE.equals(tableType);
+    }
+
+    /**
+     * The TTL capability of the connection where the server has the TTL dictionary (for its units), on continuous tables only.
+     */
+    @Nullable
+    private AltibaseTableTtl getTtlCapability() {
+        return isTable() ? parent.getServer().getAdapter(AltibaseTableTtl.class) : null;
+    }
+
+    @NotNull
+    @Override
+    public Settings getExecutionSettings() {
+        AltibaseTableTtl ttl = getTtlCapability();
+        AltibaseTableTtl.Unit unit = ttl == null || ttlUnit == null ? null : ttl.getUnit(ttlUnit);
+        return new Settings(execGroup, execOrder, unit == null || ttlTime == null ? null : new Ttl(ttlTime, unit));
+    }
+
+    /**
+     * The units of the table TTL; none where a TTL is set in a unit this connection does not know (it is not changed here).
+     */
+    @NotNull
+    @Override
+    public List<AltibaseTableTtl.Unit> getTtlUnits() {
+        AltibaseTableTtl ttl = getTtlCapability();
+        if (ttl == null || ttlUnit != null && ttl.getUnit(ttlUnit) == null) {
+            return List.of();
+        }
+        return ttl.getUnits();
+    }
+
+    @Nullable
+    @Override
+    public AltibaseTableTtl.Unit getDefaultTtlUnit() {
+        AltibaseTableTtl ttl = getTtlCapability();
+        return ttl == null ? null : ttl.getDefaultUnit();
+    }
+
+    @NotNull
+    @Override
+    public String getEnableStatement(boolean enable) {
+        return StreamDDL.enable(this, enable);
+    }
+
+    @NotNull
+    @Override
+    public List<String> getSettingsStatements(@NotNull Settings settings) {
+        return StreamDDL.changeSettings(this, getExecutionSettings(), settings);
+    }
+
+    /**
+     * Reads this object's dictionary row again; null if it is gone (the node is then removed).
+     */
+    @Nullable
+    @Override
+    public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, this, "Read continuous object '" + name + "' again");
+             JDBCPreparedStatement dbStat = StreamSchema.prepareContinuous(session, parent, tableId);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            if (!dbResult.next()) {
+                return null;
+            }
+            read(dbResult);
+            return this;
+        } catch (SQLException e) {
+            throw new DBDatabaseException(e, getDataSource());
+        }
     }
 
     @Override

@@ -62,4 +62,12 @@
         </datasourcePatch>
     </extension>
 
+    <!-- Stream commands (docs/chromite/shardsphere.md "스트림 명령"): Object Explorer's Delete drops the stream objects; they
+         are created from templates in a query window, not by the manager -->
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.shardsphere.edit.StreamObjectManager" objectType="com.seizia.chromite.ext.shardsphere.model.StreamTable"/>
+        <manager class="com.seizia.chromite.ext.shardsphere.edit.StreamObjectManager" objectType="com.seizia.chromite.ext.shardsphere.model.ContinuousObject"/>
+        <manager class="com.seizia.chromite.ext.shardsphere.edit.StreamObjectManager" objectType="com.seizia.chromite.ext.shardsphere.model.StreamFunction"/>
+    </extension>
+
 </plugin>

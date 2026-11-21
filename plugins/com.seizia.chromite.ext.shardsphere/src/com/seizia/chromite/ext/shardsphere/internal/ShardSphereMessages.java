@@ -30,6 +30,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-17 테이블 속성(TTL, 샤드 객체)의 이름과 TTL 단위(앱 변경 #139 수정 6)
  * - 2026-11-17 TTL 대화상자의 단위 이름(앱 변경 #152)
  * - 2026-11-21 스트림 탐색기의 노드 이름, 연속 객체 종류, 마이크로초, 스트림 함수 유형, 정의가 없을 때의 줄(앱 변경 #153)
+ * - 2026-11-22 "New …" 틀의 스트림 테이블·스트림 함수 종류 이름(앱 변경 #156)
  */
 public class ShardSphereMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages"; //$NON-NLS-1$
@@ -87,6 +88,9 @@ public class ShardSphereMessages extends NLS {
     public static String stream_kind_continuous_table;
     public static String stream_kind_continuous_stream_table;
     public static String stream_kind_continuous_query;
+    // "New …" templates (app change #156)
+    public static String stream_kind_stream_table;
+    public static String stream_kind_stream_function;
     public static String stream_unit_microsecond;
     public static String stream_function_lastnth;
     public static String stream_function_topk;
