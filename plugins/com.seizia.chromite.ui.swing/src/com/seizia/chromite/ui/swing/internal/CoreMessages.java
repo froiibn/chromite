@@ -404,6 +404,7 @@ public class CoreMessages extends NLS {
     public static String ddl_format_compact;
     public static String scripts_cant_generate;
     public static String scripts_none_generated;
+    public static String scripts_no_privilege;
     public static String sql_file_invalid_text;
     public static String sql_file_neither;
     public static String sql_file_unmappable;

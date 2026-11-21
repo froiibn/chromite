@@ -50,6 +50,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
  * - 2026-11-08 창을 열 때 보일 위치 없음(null)을 넘김: openSourceScript가 위치를 받게 됨 (docs/chromite/swing-routines.md)
  * - 2026-11-16 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-22 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  */
 final class SourceEditCommands {
 
@@ -178,7 +179,7 @@ final class SourceEditCommands {
         } catch (DBInterruptedException e) {
             return null;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
+            DBWorkbench.getPlatformUI().showError(title, ObjectScripts.errorMessage(e, CoreMessages.explorer_cant_generate), e);
             return null;
         }
     }

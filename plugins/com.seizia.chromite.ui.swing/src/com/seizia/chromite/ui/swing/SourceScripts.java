@@ -67,6 +67,7 @@ import com.seizia.chromite.model.struct.rdb.DBSSequence;
 import com.seizia.chromite.model.struct.rdb.DBSTable;
 import com.seizia.chromite.model.struct.rdb.DBSTrigger;
 import com.seizia.chromite.model.struct.rdb.DBSView;
+import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
@@ -131,6 +132,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   (docs/chromite/swing-create-objects.md)
  * - 2026-11-16 {@link #canModify}를 종류({@link #appliesModify}, 메뉴에 보임)와 지금 상태(저장됨, 편집기가 허락함)로 나눔
  *   (앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-22 {@link #generateAlter}: 취소되면 결과 없이 {@link DBInterruptedException} (읽다 만 정의로 만든 스크립트를 열지 않음,
+ *   앱 변경 #159, docs/chromite/swing-source-editor.md)
  */
 final class SourceScripts {
 
@@ -236,6 +239,10 @@ final class SourceScripts {
             if (commandActions != null) {
                 actions.addAll(List.of(commandActions));
             }
+        }
+        if (monitor.isCanceled()) {
+            // The definition reading stops at a canceled monitor and returns what it has
+            throw new DBInterruptedException("Script generation canceled");
         }
         if (actions.isEmpty()) {
             throw new DBException(NLS.bind(SourceEditMessages.source_error_no_script, DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)));
