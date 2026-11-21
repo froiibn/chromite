@@ -35,6 +35,11 @@ SWT 대조 B-S41([swt-parity/B-editors.md](swt-parity/B-editors.md))이고, 탐�
 키 없는 테이블의 결과에는 키가 필요 없는 문장과 CREATE TABLE만 보인다. 꺼진 항목은 도구 설명에 이유("행을 하나 이상 고르세요")를 쓴다.
 연결이 끊긴 결과는 메뉴 전체가 꺼진다.
 
+행을 쓰는 문장은 결과의 테이블이 그 행을 받는다고 모델이 말할 때만 보인다(2026-11-22, 앱 변경 #157, `ResultSetGenerateSql.acceptsWrite`):
+INSERT·중복 키 INSERT는 `FEATURE_DATA_INSERT`, UPDATE는 `FEATURE_DATA_UPDATE`, 고유 키로 DELETE는 `FEATURE_DATA_DELETE`, MERGE는 넣기와 바꾸기 둘 다.
+Altibase 계열 큐는 넣기·바꾸기를 받지 않으므로(서버 201248, 200753 / 201854) 큐 결과에는 SELECT 둘, 고유 키로 DELETE, CREATE TABLE만 보인다
+([altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령"). 데이터 기능을 줄이는 모델이 큐뿐이라 다른 테이블의 결과는 전과 같다.
+
 결과 대화상자(제목 "SQL 생성 - 항목")는 머리글(무엇에서 몇 행으로 만들었는지, "아무것도 실행하지 않았습니다"), SQL 글 상자(읽기 전용),
 **복사 / 쿼리 창에서 열기 / 닫기**만 있다. 닫기가 기본 단추다. 쿼리 창에서 열기는 그 연결의 새 쿼리 창에 글만 넣는다(실행하지 않음).
 
@@ -142,3 +147,5 @@ SWT 대조 B-S41([swt-parity/B-editors.md](swt-parity/B-editors.md))이고, 탐�
   키가 필요한 문장 끄기, DELETE의 키 없는 결과 예외 고침, UPDATE의 SET에서 자동 생성 열 빼기, PostgreSQL 정밀도 없는 numeric의 새 열 형식 고침.
 - 2026-11-16 테이블 하나에서 오지 않았거나 키가 없는 결과의 행 문장은 끄는 대신 숨김, 그 도구 설명 문구(`gridsql_no_table`, `gridsql_no_key`,
   `gridsql_no_columns`) 삭제(앱 변경 #137, `chromite/result-grid-menu`, [context-menus.md](context-menus.md) "결과 그리드").
+- 2026-11-22 행을 쓰는 문장은 테이블의 모델이 그 행을 받을 때만 보임(`acceptsWrite`, 앱 변경 #157, `chromite/queue-data-commands`): 큐 결과에 INSERT·UPDATE가
+  나오지 않음. Altibase 7.3·ShardSphere 5.1.9의 큐에서 확인, 테이블(두 서버, SQL Server, PostgreSQL, MariaDB, Oracle)의 메뉴는 전과 같음.

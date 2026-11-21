@@ -50,7 +50,7 @@ import java.util.Map;
  * 설계: 테이블 노드에서 연 가져오기는 대상이 정해져 있지만, 데이터베이스 노드(SSMS 데이터베이스 ▸ Tasks ▸ Import Data)에서는 대상을 골라야 한다.
  * 스키마 목록과 테이블 찾기는 테이블 복사 대상 단계와 같은 {@link DatabaseCopyMappings} 호출(숨김·시스템 스키마 제외, 주 자식 형식으로
  * 스키마 단계가 있는지 판단)을 쓴다. 새 테이블은 여기서 이름만 정하고, 실제 매핑(create)은 파일의 열을 읽은 뒤 마법사가
- * {@link DatabaseCopyMappings#setTableTarget}으로 만든다. 그 이름의 테이블이 이미 있으면 그 테이블에 넣는 매핑(existing)이 된다.
+ * {@link DatabaseCopyMappings#setTableTarget}으로 만든다. 그 이름의 테이블이 이미 있으면 그 테이블에 넣는 매핑(existing)이 된다(행을 받지 않는 객체면 오류).
  * 메타데이터는 EDT에서 읽지 않는다: 스키마 목록과 처음 고른 스키마의 테이블은 마법사를 열기 전에({@link #readTargets}), 다른 스키마의 테이블은
  * 그 스키마를 고를 때 진행 대화상자에서 읽는다. 목록에는 테이블만 둔다(뷰에 넣기는 테이블 노드에서처럼 그 뷰를 직접 고를 때만).
  *
@@ -60,6 +60,8 @@ import java.util.Map;
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  * - 2026-11-13 대상 안내({@link DataTransferObjects#createNote})를 HTML 없이 글로 넣음: 안내가 {@link WrappingNote}가 되어 한국어 낱말
  *   가운데서 끊지 않음(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-22 기존 테이블 목록에서 행을 받지 않는다고 모델이 말하는 객체(큐)를 뺌({@link #readTables}) (앱 변경 #157,
+ *   docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
  */
 final class DataImportTargetPage implements DataTransferWizard.Page {
 
@@ -212,14 +214,14 @@ final class DataImportTargetPage implements DataTransferWizard.Page {
     }
 
     /**
-     * Tables of a container that can receive rows, by name.
+     * Tables of a container that can receive rows ({@link DataTransferObjects#acceptsRows}), by name.
      */
     @NotNull
     private static List<DBSDataManipulator> readTables(@NotNull DBRProgressMonitor monitor, @NotNull DBSObjectContainer container) throws DBException {
         List<DBSDataManipulator> result = new ArrayList<>();
         for (DBSObject child : CommonUtils.safeCollection(container.getChildren(monitor))) {
             if (child instanceof DBSDataManipulator table && child instanceof DBSEntity entity && entity.getEntityType() == DBSEntityType.TABLE
-                && !DBUtils.isHiddenObject(child)) {
+                && DataTransferObjects.acceptsRows(child) && !DBUtils.isHiddenObject(child)) {
                 result.add(table);
             }
         }

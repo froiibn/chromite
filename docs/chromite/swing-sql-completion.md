@@ -103,7 +103,12 @@ Oracle 패키지(`CHR_PKG`: `PKG_PROC`, `PKG_FN`)를 두었다. 확인 뒤 모�
   스키마 없이 쓰면 나온다. 값 참조의 원천 문제로 이번 범위 밖이다.
 - `DROP PROCEDURE x`·`DROP TRIGGER x` 같은 다른 객체 이름 자리도 `DbObjectRef`가 테이블 자리에서만 쓰이는 같은 제한이 있을 수 있다(확인하지 않음).
 - 값 자리의 함수 제안은 SQL Server에서 테이블 반환 함수와 프로시저도 섞어 내고 `name(:@x)`를 넣는다(upstream 동작, 바꾸지 않음).
+- **ShardSphere 스트림 객체(2026-11-22, 앱 변경 #158 3항, 만들지 않음).** 스트림 테이블(`X`)·연속 테이블(`B`, `C`)·연속 스트림 테이블(`Y`)은
+  SELECT로 읽히지만(연속 쿼리 `I`는 200753) FROM 뒤와 별칭 점 뒤에 나오지 않는다. 완성은 스키마의 `getChildren`에서 `DBSTable`·`DBSView`만
+  고르고(`SQLQueryCompletionContext.collectTables`), 열은 이름을 `getChild`로 찾은 객체의 `getAttributes`에서 온다. 스트림 객체는 스키마의
+  테이블 목록 밖(트리의 "스트림" 노드)에 있고 열이 없는 `DBSObject`다. 내는 길과 크기는 [shardsphere.md](shardsphere.md) "자동 완성의 스트림 객체".
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: `EXEC dbo.` 예외(#56), `CALL`/`EXEC` 뒤 프로시저 제안(#57), 값 자리 함수 제안 설정(#33) 확인.
+- 2026-11-22 "남긴 것"에 ShardSphere 스트림 객체(앱 변경 #158 3항: 원인과 길만 적고 만들지 않음).

@@ -19,11 +19,17 @@
 package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.dbeaver.DBException;
-import com.seizia.chromite.ext.generic.model.GenericTable;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
+/**
+ * A table (or a partition of it) of a tablespace's Tables folder.
+ *
+ * 변경 이력:
+ * - 2026-11-22 Chromite: 객체를 GenericTableBase로(구체화된 뷰도 이 폴더에 있음, {@link AltibaseTablespaceObjAbs})
+ */
 public class AltibaseTablespaceObj4Table extends AltibaseTablespaceObjAbs {
 
     AltibaseTablespaceObj4Table(AltibaseTablespace parent, JDBCResultSet resultSet) {
@@ -31,7 +37,7 @@ public class AltibaseTablespaceObj4Table extends AltibaseTablespaceObjAbs {
     }
 
     @Property(viewable = true, linkPossible = true, order = 3)
-    public GenericTable getObject(DBRProgressMonitor monitor) throws DBException {
+    public GenericTableBase getObject(DBRProgressMonitor monitor) throws DBException {
         return getTargetTable(monitor, schemaName, objName);
     }
 }
