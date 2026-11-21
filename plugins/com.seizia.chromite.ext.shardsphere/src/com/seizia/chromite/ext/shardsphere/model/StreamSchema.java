@@ -34,6 +34,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -47,10 +48,13 @@ import java.util.List;
  * {@code I} 연속 쿼리. 연속 테이블·스트림 테이블·쿼리는 {@code SYS_CONTINUOUS_TABLES_} 한 SELECT로 함께 읽고 폴더마다 나눈다.
  * 새로 고침은 읽은 것을 비운다. 세 폴더의 "New …" 틀은 이 객체가 준다(Altibase 플러그인의 중립 자리 {@link AltibaseObjectTemplates},
  * 폴더는 트리 정의의 항목 속성 이름으로 가름, 문장은 {@link StreamDDL}).
+ * 스키마의 개체 목록에 낼 객체({@link #getRelations})도 같은 두 목록에서 만든다: 폴더와 목록이 한 번 읽은 것을 함께 쓰고, 새로 고침·삭제가
+ * 둘에 같이 미친다.
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
  * - 2026-11-22 폴더의 새 개체 틀, 연속 객체 하나의 행 다시 읽기, 삭제가 쓰는 캐시(앱 변경 #156, docs/chromite/shardsphere.md "스트림 명령")
+ * - 2026-11-22 스키마의 개체 목록에 낼 객체({@link #getRelations})(앱 변경 #163, docs/chromite/shardsphere.md "자동 완성의 스트림 객체")
  */
 public class StreamSchema implements DBPRefreshableObject, AltibaseObjectTemplates {
 
@@ -117,6 +121,25 @@ public class StreamSchema implements DBPRefreshableObject, AltibaseObjectTemplat
     @NotNull
     public List<ContinuousObject> getContinuousQueries(@NotNull DBRProgressMonitor monitor) throws DBException {
         return continuousCache.getAllObjects(monitor, this).stream().filter(ContinuousObject::isQuery).toList();
+    }
+
+    /**
+     * The stream tables and continuous tables (not the queries) as the schema's object list shows them, from the same
+     * lists as the folders (read once: one SELECT each, none if the folders were read).
+     */
+    @NotNull
+    List<StreamRelation> getRelations(@NotNull DBRProgressMonitor monitor) throws DBException {
+        List<StreamRelation> relations = new ArrayList<>();
+        for (StreamTable table : getStreamTables(monitor)) {
+            relations.add(table.getRelation());
+        }
+        for (ContinuousObject table : getContinuousTables(monitor)) {
+            StreamRelation relation = table.getRelation();
+            if (relation != null) {
+                relations.add(relation);
+            }
+        }
+        return relations;
     }
 
     @NotNull

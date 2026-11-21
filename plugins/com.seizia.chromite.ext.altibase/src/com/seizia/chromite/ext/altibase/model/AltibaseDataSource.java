@@ -119,6 +119,8 @@ import java.util.WeakHashMap;
  * - 2026-11-21 {@link JobCache}를 열어 작업 관리자가 새 작업의 행을 같은 질의로 읽음(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
  * - 2026-11-21 {@link #getSchemaExtensionObjects}: 감지된 확장이 스키마마다 내는 트리 객체(스키마 아래 트리 자리, 앱 변경 #153,
  *   docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-22 {@link #getSchemaExtensionChildren}: 감지된 확장이 스키마의 개체 목록에 더하는 객체, 스키마를 새로 고친 알림
+ *   ({@link #schemaRefreshed})(앱 변경 #163, docs/chromite/altibase.md "서버 확장")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -235,6 +237,38 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             }
         }
         return objects;
+    }
+
+    /**
+     * Objects of the detected server extensions that the schema's object list adds to its tables and synonyms
+     * ({@link AltibaseServerExtensionState#getSchemaObjects}). Without a detected extension: empty, no query.
+     */
+    @NotNull
+    public List<DBSObject> getSchemaExtensionChildren(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AltibaseSchema schema
+    ) throws DBException {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        if (extensions == null || extensions.isEmpty()) {
+            return List.of();
+        }
+        List<DBSObject> objects = new ArrayList<>();
+        for (AltibaseServerExtensionState extension : extensions) {
+            objects.addAll(extension.getSchemaObjects(monitor, schema));
+        }
+        return objects;
+    }
+
+    /**
+     * Tells the detected server extensions that a schema was refreshed ({@link AltibaseServerExtensionState#schemaRefreshed}).
+     */
+    void schemaRefreshed(@NotNull AltibaseSchema schema) {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        if (extensions != null) {
+            for (AltibaseServerExtensionState extension : extensions) {
+                extension.schemaRefreshed(schema);
+            }
+        }
     }
 
     /**

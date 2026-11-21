@@ -896,7 +896,7 @@ ShardSphere의 스트림 객체(스트림 테이블, 연속 스트림 테이블,
   테이블스페이스의 테이블 폴더는 `T`·`Q`만 읽어 `MEM_DATA`에 행을 두는 연속 테이블(`B`의 `$AGGR`, `C`)이 없다. SQL 편집기의 자동 완성도 테이블 목록을 쓰므로 스트림
   테이블·연속 테이블 이름을 모른다.
   - 2026-11-22 인덱스 폴더를 고쳤다: 두 폴더가 같은 종류(`T`, `Q`, `M`)를 읽어 `$AGGR`의 인덱스가 빠진다. 연속 테이블은 테이블 폴더에 더하지 않았다(이유:
-    [altibase.md](altibase.md) "테이블스페이스의 테이블과 인덱스"). 자동 완성은 아래 "자동 완성의 스트림 객체"(만들지 않음).
+    [altibase.md](altibase.md) "테이블스페이스의 테이블과 인덱스"). 자동 완성은 아래 "자동 완성의 스트림 객체"(2026-11-22 앱 변경 #163에서 만듦).
 
 ### 오른쪽 클릭 메뉴
 
@@ -1088,9 +1088,9 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 미확인: 연속 테이블의 TTL에 `SECOND`를 받지 않는 이유(201848), `ALTER … SET` 절을 한 문장에 하나만 받는 것이 문법인지.
 - 미확인: 연속 스트림 테이블·연속 쿼리의 `EXEC GROUP`·`EXEC ORDER`가 처리에 쓰이는 방식(처리 스레드 0인 서버라 확인하지 못함).
 
-## 자동 완성의 스트림 객체 (2026-11-22, 앱 변경 #158 3항, 만들지 않음)
+## 자동 완성의 스트림 객체 (2026-11-22, 원인 앱 변경 #158 3항, 만듦 앱 변경 #163)
 
-### 증상과 원인
+### 증상과 원인 (#158에서 확인)
 
 - 일반 서버에서 스트림 테이블(`X`), 연속 테이블(`B`, `C`), 연속 스트림 테이블(`Y`)은 `SELECT * FROM t`로 읽힌다(열은 `$INSERT_TIME`과 정의한 열).
   연속 쿼리(`I`)는 200753(42S02)이라 제안하면 안 된다. 연속 테이블의 저장 표 `<t>$AGGR`(`H`)도 읽히지만 서버의 내부 객체다(시험용 `CHR_DSP_*`, 2026-11-22).
@@ -1101,20 +1101,136 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 앱에서 확인(기준 빌드, 완성 분석을 앱 안에서 부름): `SELECT * FROM CHR_DSP` → `CHR_DSP_QU`, `CHR_DSP_T`, `CHR_DSP_V`(스트림 객체 없음).
   `SELECT s. FROM CHR_DSP_S s`, `SELECT c. FROM CHR_DSP_CA c` → 제안 0개. `SELECT t. FROM CHR_DSP_T t` → `ID`, `V`. Altibase 7.3은 표·큐·뷰·구체화된 뷰.
 
-### 고르지 않은 이유와 길(크기는 어림)
+#158에서 길 셋(A 스키마의 개체 목록, B 완성만의 자리, C 이름만)을 보고했고, 사용자가 A를 골랐다(2026-11-22, "권장대로"): 스키마의 개체 목록이
+이 객체들을 품고, 그 목록을 읽는 모든 곳이 함께 본다.
 
-지시서의 멈춤 조건("작은 자리보다 크면 만들지 않고 길을 보고")에 걸린다: 어느 길이든 열을 주는 새 모델 클래스(엔티티·속성, 열 질의)가 필요하고,
-자리가 완성 한 곳에 머물지 않는다.
+### 서버에서 확인한 사실 (일반 서버 5.1.9, 시험용 개체 `CHR_SCP_*`, 앱 밖 JDBC, 2026-11-22)
 
-| 길 | 바꾸는 곳 | 크기 | 함께 바뀌는 것 |
+| 종류 | 열(어디서) | SELECT | INSERT | UPDATE / DELETE | MERGE | TRUNCATE |
+|---|---|---|---|---|---|---|
+| 스트림 테이블 `X` | 자기 `SYS_COLUMNS_` 행: 서버의 `$INSERT_TIME`(DATE, NOT NULL, 첫 열)과 정의한 열 | 열 목록, 별칭, `소유자.이름` 모두 됨 | 열 목록이 있으면 됨(없으면 `$INSERT_TIME`까지 세어 200787), `$INSERT_TIME`에 값을 주어도 됨, `INSERT … SELECT` 됨 | 201854 | 200753 | 200753 |
+| 연속 테이블(집계 있음) `B` | 자기 `SYS_COLUMNS_` 행(`$INSERT_TIME`, 정의의 열). `$AGGR`(H)는 내부 열 `A1`·`K1`·`WN`, `$TEXT`(U)는 정의의 열 | 됨 | 200792 | 201636 | 201636 | 200753 |
+| 연속 테이블(집계 없음) `C` | 자기 행(`$INSERT_TIME` NOT NULL + 정의의 열) | 됨 | 201589 | 201589 | 201589 | 200753 |
+| 연속 스트림 테이블 `Y` | 자기 행(위와 같음) | 됨 | 됨(열 목록) | 201854 | 200753 | 200753 |
+| 연속 쿼리 `I` | 열 없음(`COLUMN_COUNT` 0) | 200753 | 200753 | 200753 | – | 200753 |
+
+- 드라이버의 `DatabaseMetaData.getColumns`는 `X`·`B`·`C`·`Y`에 위 열을 같은 순서로 준다(`$INSERT_TIME`은 `DATE`/93). `$AGGR`·`I`는 0행.
+  `getTables`의 종류 이름: `STREAM TABLE`, `CONTINUOUS TABLE`(C), `CONTINUOUS TABLE VIEW`(B), `CONTINUOUS STREAM TABLE`.
+- 스트림 테이블은 `PRIMARY KEY`를 받고 카탈로그에 기본 키·인덱스가 남지만 같은 키의 두 행을 받는다(키가 지켜지지 않음).
+- 결과 집합 메타데이터: `X`·`C`·`Y`는 열마다 테이블 이름을 준다. 집계 있는 연속 테이블에 별칭을 쓰면(`… FROM CHR_SCP_CB x`) 테이블 이름으로
+  별칭 `X`를 주고 읽기 전용으로 표시한다.
+- 모든 시험용 개체는 `DISABLE`이었다(처리 스레드 0, 서버 속성은 바꾸지 않음). 연속 스트림 테이블에 넣은 행은 그대로 남았다.
+
+### 만든 것
+
+```
+AltibaseSchema.getChildren / getChild        (계열 공통, 중립)
+  └ AltibaseDataSource.getSchemaExtensionChildren(monitor, schema)
+      └ AltibaseServerExtensionState.getSchemaObjects(monitor, schema)   기본: 없음
+          └ ShardSphereServer.getSchemaObjects → StreamSchema.getRelations
+              ├ StreamTable.getRelation()        → StreamRelation(테이블, 넣기 받음)
+              └ ContinuousObject.getRelation()   → StreamRelation(뷰, Y만 넣기 받음), 연속 쿼리는 null
+AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → AltibaseServerExtensionState.schemaRefreshed
+```
+
+- **자리:** 기존 트리 자리(`getSchemaTreeObjects`)와 짝인 중립 메서드 하나(`getSchemaObjects`)와 새로 고침 알림(`schemaRefreshed`)을
+  `AltibaseServerExtensionState`에 더했다. `AltibaseSchema`는 `getChildren`(테이블·시노님 뒤에 확장의 객체)과 `getChild`(스키마 자기 객체를 먼저 찾고
+  없을 때만 확장의 객체)를 고쳤다. 공용 코드에 제품 이름이 없고, 확장이 없는 서버(Altibase, 기능을 뺀 제품)에서는 빈 목록이라 질의가 늘지 않는다.
+  대안(고르지 않음): 트리 자리(`getSchemaTreeObjects`)를 목록에도 쓰기 — 트리 노드 객체를 목록에 넣으면 그 객체가 엔티티여야 해 "스트림" 노드의 메뉴
+  (데이터 보기, 내보내기, SQL 생성 …)가 함께 바뀐다.
+- **목록 객체 `StreamRelation`(이 번들, `JDBCTable`):** 트리 노드 객체(`StreamTable`, `ContinuousObject`)가 하나씩 갖는다(처음 물을 때 만듦). 그래서
+  "스트림" 노드와 그 메뉴는 그대로이고, 노드를 지우거나 다시 읽으면 목록도 따라간다. 부모는 스키마(`소유자.이름`)다. 연속 테이블 셋은 뷰로 답한다
+  (서버의 연속 질의가 채움, 아이콘이 "스트림" 노드의 연속 테이블 폴더와 같음). 스트림 테이블은 테이블이다.
+- **열 `StreamColumn`:** 처음 물을 때 객체마다 드라이버 `getColumns` 한 번(일반 테이블과 같은 호출이라 형식 이름 규칙이 같음, 이름 패턴은 이스케이프하고
+  정확한 이름으로 다시 거름). 연결할 때와 트리를 열 때는 읽지 않는다.
+- **데이터 기능(#337의 답):** 넣기를 받는 종류(`X`, `Y`)는 읽기(개수, 필터, 찾기)와 `FEATURE_DATA_INSERT`, 연속 테이블(`B`, `C`)은 읽기만. 바꾸기·지우기·잘라내기는
+  어느 종류에도 없고 부르면 문장 없이 `DBCFeatureNotSupportedException`. 키·인덱스·관계는 없다(기본 키가 지켜지지 않으므로).
+- **정의:** 목록 객체의 DDL은 노드 객체의 것(`EXPORT_CONTINUOUS_OBJECT` / `GET_DDL`)이다.
+- **한 번 읽기:** 스키마마다 "스트림" 노드 객체(`StreamSchema`)를 하나 두고(`ShardSphereServer.streamSchemas`, 스키마 이름) 트리와 목록이 그 두 목록을 함께 쓴다.
+  트리가 먼저 열렸으면 목록은 질의가 없고, 목록이 먼저면 SELECT 둘(스트림 테이블, 연속 객체)이 한 번 간다. 스키마를 새로 고치면(탐색기, 쿼리 창의 DDL 뒤
+  메타데이터 새로 고침) 그 객체를 버려 다시 읽는다. 전에는 트리가 스키마를 읽을 때마다 노드 객체를 새로 만들었다.
+- **화면 글:** 새 글은 없다. 완성의 종류 글은 공용 완성이 모든 DB에 쓰는 "- Table" / "- View"이고 아이콘이 "스트림" 노드와 같다(스트림 테이블은 테이블,
+  연속 테이블은 뷰 아이콘). 대안(고르지 않음): 객체가 종류 이름을 주는 중립 자리(`DBSObjectWithType`)를 완성 글에 쓰기 — 그 인터페이스를 이미 구현한
+  PostgreSQL 테이블의 완성 글도 바뀐다.
+
+### 테이블 폴더와 개체 목록을 가르는 것
+
+탐색기의 테이블 폴더는 트리 정의의 항목 속성 `physicalTables`(`AltibaseSchema.getPhysicalTables` → `getTables`, 테이블 목록 `T`·`V`·`M`·`Q`)를 읽고,
+`getChildren`·`getChild`를 부르지 않는다(`DBNDatabaseNode`는 항목 속성의 getter만 읽음). "스트림" 노드는 항목 속성 `extensionObjects`다. 목록 객체는 어느 폴더의
+자식 형식(`AltibaseTable` 등)도 아니라 `DBNModel.getNodeByObject`가 노드를 만들지 않는다. 그래서 같은 객체가 트리에 두 번 나오지 않는다
+(앱: 테이블 폴더 24, 스트림 테이블 2·연속 테이블 3·연속 쿼리 1, 전후 같음).
+
+### 개체 목록을 읽는 곳 (전 → 후)
+
+확인: "앱" = 이 브랜치 빌드에서 앱 안 테스트 에이전트로 그 코드를 부름, "코드" = 호출 지점을 읽고 판단.
+
+| 곳 | 전 | 후 | 확인 |
 |---|---|---|---|
-| A. 스키마 자식 자리 | `AltibaseServerExtensionState`에 스키마의 "질의할 수 있는 객체" 기본 메서드, `AltibaseDataSource` 전달, `AltibaseSchema.getChildren`·`getChild`가 확장의 것을 더함(계열 공통 약 40줄). 이 번들에 읽히는 종류(`X`·`B`·`C`·`Y`)만 감싼 `DBSView`(또는 `DBSTable`) 객체, 열 객체(`DBSEntityAttribute`), `SYS_COLUMNS_` 열 질의(객체마다 한 번, 캐시)(약 330줄) | 약 370줄, 번들 둘 | `AltibaseSchema.getChildren`을 쓰는 모든 곳: 데이터 전송·가져오기 대상·DB 복사의 표 고르기, 스키마 비교, Agent의 데이터베이스 요약, 개체 세부 정보. 편집기의 의미 분석(지금은 모르는 표)과 Ctrl+클릭 이동(트리에 감싼 객체의 노드가 없음). 데이터 전송 코드는 다른 작업이 고치는 중 |
-| B. 완성만의 자리 | 공용 모델에 중립 인터페이스(컨테이너 어댑터 "더 질의할 객체"), 완성의 `collectTables`와 이름 찾기(`SQLSearchUtils`)가 묻는다(공용 완성 엔진 두 곳). 이 번들의 감싼 객체·열은 A와 같음 | 약 350줄 | 완성·의미 분석만. 공용 엔진의 두 곳이 지시서의 "한 곳"을 넘는다 |
-| C. 이름만 | 확장의 방언 기여로 이름을 낱말처럼 제안 | 약 70줄 | 열 완성·의미 분석 없음(지시서의 별칭 점 뒤를 채우지 못함) |
+| SQL 완성: FROM·JOIN 뒤, `소유자.` 뒤(`SQLQueryCompletionContext.collectImmediateChildren` → `getChildren`) | 없음 | 스트림 테이블(테이블 아이콘, "- Table"), 연속 테이블·연속 스트림 테이블(뷰 아이콘, "- View"). 연속 쿼리·`$AGGR`·`$TEXT` 없음 | 앱 |
+| 별칭 점 뒤 열(의미 분석의 이름 찾기 `SQLSearchUtils` → `getChild`) | 0개 | `"$INSERT_TIME"`과 정의한 열(객체마다 `getColumns` 한 번, 두 번째부터 질의 없음) | 앱 |
+| 마우스 올림 설명(`SqlObjectNavigation.describe`) | 없음 | 이름, 정규화된 이름, 열과 형식(노드가 없어 종류 이름 없음) | 앱 |
+| Ctrl+클릭 이동(`DBNUtils.getNodeByObject`) | "개체를 찾지 못했습니다" | 같은 알림(목록 객체는 트리 노드가 아님). 아래 "남은 것" | 코드(노드 null은 앱) |
+| 결과 그리드의 원본 테이블(`DBExecUtils.bindAttributes` → `DBUtils.getEntityFromMetaData` → `getChild`) | 원본 없음 | 목록 객체로 묶임. 읽기 전용 "고유 키 없음", 칸 편집이 시작되지 않음. SQL 생성: SELECT … WHERE, INSERT(스트림 테이블·연속 스트림 테이블만). UPDATE·DELETE·MERGE 없음. 가상 키를 정해도 바꾸기 기능이 없어 읽기 전용 | 앱(`X`, `Y`, `C`) |
+| 가져오기 대상 목록(`DataImportTargetPage.readTables`: 테이블 종류 + 넣기) | 없음 | 스트림 테이블만(연속 스트림 테이블은 뷰 종류라 없음, 연속 테이블은 넣기 없음). "대상 비우기"는 꺼짐(`acceptsEmptying`) | 앱(목록), 코드(체크 상자) |
+| 테이블 복사 대상(`DatabaseCopyMappings.readTargetTableNames`, `setTableTarget`) | 없음 | 스트림 테이블·연속 스트림 테이블이 기존 대상(existing). 형식은 기존·건너뛰기(다시 만들기 없음), 맞는 열이 없는 원본 열은 건너뜀, 다른 이름으로 바꾸면 다시 새 열. 연속 테이블 이름은 기존 오류 줄("다른 개체(Table)") | 앱 |
+| 데이터 내보내기·데이터 찾기 원본 목록(`DataTransferObjects.readDataContainers`) | 없음 | 다섯 객체(읽기만, SELECT를 받음) | 앱(내보내기 캡처), 코드(찾기) |
+| ERD 스키마 다이어그램(`ERDUtils.collectDatabaseTables`) | 없음 | 다섯 객체(열만, 관계 없음, "탐색기에서 보기"는 노드가 없어 아무것도 안 함) | 앱(목록) |
+| Agent 데이터베이스 요약(`AIDatabaseSnapshotService` → `AIUtils.isExcludableObject`) | 없음 | 없음(노드가 없는 객체는 뺌) | 앱(`isExcludableObject` true) |
+| Agent 테이블 목록 도구(`ListTableNamesFunction`) | 없음 | 포함 | 코드 |
+| Agent DDL 도구(`MetadataTools` → `DBStructUtils.generateTableDDL`) | "개체 없음" | "DDL을 만들 수 없음" 주석 줄(테이블 편집기 없음) | 코드 |
+| 저장된 작업·가상 모델의 이름 찾기(`DBUtils.findObjectById`, `DBVEntity`) | 없음 | 찾음 | 코드 |
+| 테이블 디자이너의 참조 테이블, 가상 외래 키 대상 | 없음 | 스트림 테이블 포함(키가 없어 고를 키 열 없음) | 코드 |
+| 개체 찾기(`GenericStructureAssistant`: 자기 `getTables` 질의 + `getTable`), 스키마 비교(노드), 개체 세부 정보·탐색기(노드) | – | 바뀌지 않음 | 코드 |
 
-- 권하는 길: A(완성·의미 분석·Agent가 한 모델을 본다). 데이터 전송 작업이 병합된 뒤에, 표 고르기 화면마다 스트림 객체가 나와도 되는지 정하고 시작한다
-  (스트림 테이블은 `INSERT`를 받는다. 연속 객체에 쓰기는 확인하지 않음).
-- 테이블 폴더는 그대로이고 "스트림" 노드도 그대로다(어느 길이든 트리 정의는 바꾸지 않는다).
+### 문장 (쿼리 관리자, 전 = `origin/command` 5d0858f63c 빌드, 후 = 이 브랜치 빌드)
+
+- 연결할 때와 스키마·폴더를 열 때: 같다(트리를 열면 테이블 목록, 스트림 테이블 목록, 연속 객체 목록 SELECT 셋).
+- 완성: 트리를 연 뒤에는 목록 SELECT가 더 없고 객체마다 `getColumns` 한 번. 메타 노드(스트림 사전 있음)는 모르는 이름을 찾을 때 목록 SELECT 둘(0행)이 한 번
+  더 간다(전 7 → 후 9, 모두 SELECT). Altibase 7.3은 같다(12 → 12). 일반 서버의 실행도 모두 SELECT.
+
+### 확인 (2026-11-22, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반 서버), `SHARD`(메타 노드, 읽기 전용), `ALTI`(Altibase 7.3, 터널, 읽기 전용) 셋을 함께 연다. 값은 환경 변수 참조, 암호 저장 끔.
+
+- **완성(전 → 후):** `SELECT * FROM CHR_SCP` 2개(일반 테이블) → 7개(스트림 테이블 2, 연속 테이블 3 추가, 연속 쿼리 없음). `SELECT * FROM 소유자.CHR_SCP`,
+  `… JOIN CHR_SCP`도 같다. `SELECT s. FROM CHR_SCP_S s` 0 → 4(`"$INSERT_TIME"`, `ID`, `V`, `N`), 연속 테이블 셋 0 → 3, `SELECT q. FROM CHR_SCP_Q q` 0 → 0.
+  메타 노드와 Altibase 7.3은 0 → 0.
+- **새로 고침:** 앱 밖에서 스트림 테이블을 만든 뒤에는 완성에 없고(읽어 둔 목록), 스키마를 새로 고치면 나온다(그 열도). 연결 새로 고침, 끊고 다시 연결 뒤에도
+  같은 목록. 세 연결이 함께 열려도 각자의 것만(메타 노드 목록에 시험용 개체 없음, Altibase 목록에 확장 객체 없음).
+- **기능을 뺀 제품**(내 앱 사본에서 이 번들과 feature를 빼고 `bundles.info`에서 그 줄을 지움): 아래 "기능을 뺀 제품의 확인".
+- 캡처(저장소 밖, 호스트·계정·다른 객체 이름은 가림): `D:\Tools\_scratch\shardsphere-stream-completion\sheets\`.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열 스키마의 개체 목록을 읽는 곳(위 표), 스키마 새로 고침, 테이블 복사·가져오기의
+  기존 대상 처리(모든 DB: 편집기가 없는 대상만 바뀜).
+
+### 남은 것
+
+- **Ctrl+클릭 이동:** 목록 객체는 트리 노드가 아니라 "찾지 못했습니다" 알림이 나온다(전과 같은 알림). 고치려면 목록 객체가 자기 트리 객체를 알려 주는 중립
+  자리(예: 모델의 "탐색기에서 이 객체" 질문)를 `DBNModel`이나 `SqlObjectNavigation`이 묻게 해야 한다(공용 코드 두 곳). 이번 범위 밖으로 두었다.
+- **완성의 종류 글:** 위 "화면 글".
+
+### 벤더 서버에 쓴 것 (사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_SCP_*`만)
+
+- 앱 밖 JDBC: 일반 테이블 2(`CHR_SCP_SRC`·`CHR_SCP_T`, 지어낸 두 행), 스트림 테이블 3(`CHR_SCP_S`, 기본 키가 있는 `CHR_SCP_SK`, 새로 고침 확인용 `CHR_SCP_S2`),
+  연속 테이블 2(집계 있음·없음), 연속 스트림 테이블 1, 연속 쿼리 1(모두 `DISABLE`). 위 표의 넣기·바꾸기·지우기·MERGE·TRUNCATE를 종류마다 한 번씩(받은 것은
+  지어낸 몇 행). 앱: 스트림 테이블 DDL을 읽는 `dbms_metadata.get_ddl` EXEC 2번(목록 객체의 정의 확인). 문장 목록은 저장소 밖 `probe\writes-vendor.log`.
+  서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 SELECT만.
+- 지운 순서: 읽는 쪽부터(연속 쿼리 → 연속 테이블 둘 → 연속 스트림 테이블 → 스트림 테이블 셋 → 일반 테이블 둘). 모두 성공.
+- 확인: 지운 뒤 `SYS_TABLES_`·`SYS_CONTINUOUS_TABLES_`·`SYS_STREAM_FUNCTIONS_`·`SYS_TTL_`에 `CHR_SCP%` 행 0, 짝 없는 `SYS_TTL_`·`SYS_CONTINUOUS_TABLES_` 행 0.
+  행 수(전 → 후): `SYS_TABLES_` 164 → 164(종류 S 15·T 108·V 41 같음), `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_STREAM_FUNCTIONS_` 0 → 0, `SYS_TTL_` 0 → 0,
+  `V$STREAM_FUNCTION` 0 → 0, `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41, `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_INDICES_` 183 → 183, `SYS_COLUMNS_` 1454 → 1454.
+
+### 기능을 뺀 제품의 확인
+
+내 앱 사본에서 이 번들과 feature를 빼고 `bundles.info`에서 그 줄을 지웠다: 스키마의 자식 15개(스트림 노드 없음), `SELECT * FROM CHR_SCP` 2개(일반 테이블),
+`SELECT s. FROM CHR_SCP_S s` 0개, 일반 서버 개체 목록 24개(전과 같음), 메타 노드 2개, Altibase 7.3 6개. 모르는 이름을 찾아도 일반 서버에 문장이 늘지 않았다
+(Altibase는 전부터 있던 복제 이름 찾기 하나). 오류 없음.
+
+### 미확인 (벤더 문의)
+
+- 미확인: 스트림 테이블의 `PRIMARY KEY`를 받으면서 같은 키의 행을 받는 것이 의도인지(키가 지켜지지 않으면 결과 그리드가 행을 가리킬 수 없음).
+- 미확인: 집계 있는 연속 테이블을 별칭과 함께 읽으면 결과 집합의 테이블 이름이 별칭이 되는 것이 의도인지.
+- 미확인: 연속 스트림 테이블에 사용자가 넣은 행이 처리되는 방식(처리 스레드 0인 서버라 확인하지 못함), 연속 테이블에 넣기를 거절하는 오류 코드가 종류마다
+  다른 이유(200792 / 201589).
 
 ## 표시 결함 세 가지의 시험 (2026-11-22, 앱 변경 #158)
 
@@ -1197,3 +1313,7 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
   (앱 변경 #158, `chromite/altibase-family-display-fixes`), 위 "작업·큐·세션 종료", "표시 결함 세 가지의 시험".
 - 2026-11-22 테이블스페이스의 인덱스 폴더가 `$AGGR`의 인덱스를 보이지 않음(계열 공통 코드, 앱 변경 #158 2항), 위 "일반 트리가 보이던 것".
 - 2026-11-22 자동 완성이 스트림 객체를 모르는 원인과 길(앱 변경 #158 3항, 크기가 지시서의 작은 자리를 넘어 만들지 않음), 위 "자동 완성의 스트림 객체".
+- 2026-11-22 스키마의 개체 목록에 스트림 테이블·연속 테이블(사용자 선택 A, 앱 변경 #163, `chromite/shardsphere-stream-completion`): 열이 있는 목록 객체
+  `StreamRelation`·`StreamColumn`, 서버가 받는 행에 맞춘 데이터 기능, 트리와 목록이 한 번 읽은 것을 함께 씀, 스키마 새로 고침 알림, 목록을 읽는 곳의 전후 표,
+  데이터 전송의 구조를 바꿀 수 없는 대상([swing-data-transfer.md](swing-data-transfer.md)). 일반 서버에 시험용 `CHR_SCP_*`로 열·받는 행을 확인하고 지움.
+  위 "자동 완성의 스트림 객체".

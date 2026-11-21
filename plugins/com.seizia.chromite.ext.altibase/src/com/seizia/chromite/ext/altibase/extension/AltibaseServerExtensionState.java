@@ -50,6 +50,9 @@ import java.util.List;
  *   (앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
  * - 2026-11-21 스키마마다의 트리 객체({@link #getSchemaTreeObjects}): 사용자(스키마)가 소유한 확장의 객체를 그 스키마 아래에 보이는
  *   자리(앱 변경 #153, docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-22 스키마의 개체 목록에 더하는 객체({@link #getSchemaObjects}): 테이블 목록에 없지만 질의가 테이블처럼 부르는 확장의 객체를
+ *   자동 완성·이름 찾기가 보게 함. 트리 자리와 따로 두어 테이블 폴더와 트리는 그대로다. 스키마를 새로 고치면 알림({@link #schemaRefreshed})
+ *   (앱 변경 #163, docs/chromite/altibase.md "서버 확장")
  */
 public interface AltibaseServerExtensionState {
 
@@ -81,6 +84,27 @@ public interface AltibaseServerExtensionState {
     @NotNull
     default Collection<? extends DBSObject> getSchemaTreeObjects(@NotNull AltibaseSchema schema) {
         return List.of();
+    }
+
+    /**
+     * Objects the schema's user owns on this server that a query names like a table but that the schema's table list does
+     * not hold: the schema's object list ({@link AltibaseSchema#getChildren}, {@link AltibaseSchema#getChild}) adds them,
+     * so SQL completion, name resolution and every other reader of that list see them. Not called at connect or when the
+     * tree opens; an extension reads them on the first call and keeps them until its own objects are refreshed.
+     */
+    @NotNull
+    default Collection<? extends DBSObject> getSchemaObjects(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AltibaseSchema schema
+    ) throws DBException {
+        return List.of();
+    }
+
+    /**
+     * The schema was refreshed (Object Explorer, or a DDL statement of a query window): an extension forgets what it read
+     * for the schema's tree objects and object list, so that they are read again.
+     */
+    default void schemaRefreshed(@NotNull AltibaseSchema schema) {
     }
 
     /**

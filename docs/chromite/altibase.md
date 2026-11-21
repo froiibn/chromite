@@ -759,6 +759,8 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `AltibaseDataSource.getAdapter` | 감지된 확장에 먼저 묻고, 답이 없으면 전과 같다 |
 | `AltibaseDataSource.getExtensionObjects` + `plugin.xml` 트리 System Info 안 `<items path="serverExtension" property="extensionObjects">` | 트리 자리. 감지된 확장의 객체가 System Info 아래 노드가 되고 그 `@Property`가 속성 보기에 보인다. 확장이 없는 서버에서는 노드가 없다(빈 목록, 질의 없음) |
 | `AltibaseServerExtensionState.getSchemaTreeObjects(schema)` → `AltibaseDataSource.getSchemaExtensionObjects` → `AltibaseSchema.getExtensionObjects` + `plugin.xml` 스키마의 마지막 자식 `<items path="schemaExtension" property="extensionObjects">`(2026-11-21 앱 변경 #153) | 스키마 아래 트리 자리. 사용자가 소유한 확장의 객체(ShardSphere의 스트림 객체)를 그 스키마 아래에 둔다. 스키마의 자식을 읽을 때 불리므로 확장은 질의 없이 노드만 내고, 그 아래는 열 때 읽는다. 확장이 없으면 노드가 없다(빈 목록, 질의 없음) |
+| `AltibaseServerExtensionState.getSchemaObjects(monitor, schema)` → `AltibaseDataSource.getSchemaExtensionChildren` → `AltibaseSchema.getChildren`·`getChild`(2026-11-22 앱 변경 #163) | 스키마의 개체 목록 자리. 테이블 목록에 없지만 질의가 테이블처럼 부르는 확장의 객체(ShardSphere의 스트림 테이블·연속 테이블)를 목록에 더한다: `getChildren`은 테이블·시노님 뒤에, `getChild`는 스키마 자기 객체(테이블, 프로시저, 패키지, 시노님)에 없는 이름만. SQL 완성·이름 찾기·결과 그리드·데이터 전송 등 목록을 읽는 모든 곳이 본다([shardsphere.md](shardsphere.md) "자동 완성의 스트림 객체"). 트리는 이 목록을 읽지 않으므로(테이블 폴더는 `physicalTables`) 바뀌지 않는다. 확장이 없으면 빈 목록, 질의 없음 |
+| `AltibaseServerExtensionState.schemaRefreshed(schema)` ← `AltibaseSchema.refreshObject`(2026-11-22 앱 변경 #163) | 스키마를 새로 고쳤다는 알림. 확장이 그 스키마에 읽어 둔 것을 버려 다음에 다시 읽는다(탐색기 새로 고침, 쿼리 창 DDL 뒤의 모델 새로 고침) |
 
 ### 설계 결정
 
@@ -773,6 +775,9 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   getter가 있어야 한다. 확장마다 getter를 더하지 않으려고 중립 getter 하나(`getExtensionObjects`)가 확장의 노드를 내고, 확장 번들은 그 노드 아래에 폴더를
   주입한다(`altibase/schema/schemaExtension`). 그래서 확장의 폴더는 스키마 아래 한 단계 더(확장의 노드) 아래에 있다. 대안(고르지 않음): 확장마다 `AltibaseSchema`의
   getter — 제품 이름이 공용 코드에 들어간다. 항목은 스키마의 마지막 자식이라 기존 폴더의 순서는 그대로다.
+- **개체 목록 자리는 트리 자리와 따로(2026-11-22, 앱 변경 #163).** 트리 노드 객체를 그대로 목록에 넣으면 그 객체가 열이 있는 엔티티여야 하고, 그러면 트리
+  노드의 메뉴(데이터 보기, 내보내기, SQL 생성 …)가 함께 바뀐다. 그래서 확장은 목록에 낼 객체를 따로 준다(ShardSphere는 노드 객체가 하나씩 갖는 목록
+  객체). 이름으로 찾을 때 스키마 자기 객체가 먼저라 같은 이름이 있으면 테이블이 이긴다(서버에서 둘은 같은 이름 공간이라 실제로는 겹치지 않음).
 - **방언 기여는 데이터 원본의 방언 객체에만(2026-11-17, 작업 6a).** 방언 객체는 데이터 원본마다 하나(`AltibaseDataSource` 생성자의 `new AltibaseSQLDialect()`)라
   한 연결이 감지한 낱말·접두어가 같은 앱의 다른 Altibase 연결로 가지 않는다(정적 배열에 넣지 않음). `initialize`가 감지 뒤 `applyServerExtensions`를 부른다.
   새로 고침에서는 `initDriverSettings`(서버 예약어)가 다시 돈 뒤 감지와 기여가 다시 들어오고, 그 사이에도 접두어 인식은 앞 결과를 그대로 쓴다(꺼지지 않음).
@@ -784,6 +789,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 
 - upstream에는 Altibase 서버 확장이 없다. 확장 지점, 세 타입, 데이터 원본의 감지·어댑터·트리 자리, System Info의 트리 항목 하나를 더했다.
   2026-11-21 스키마의 트리 항목 하나와 `AltibaseSchema.getExtensionObjects`를 더했다.
+  2026-11-22 `AltibaseSchema.getChildren`(새 재정의)·`getChild`·`refreshObject`가 확장의 개체 목록 자리와 새로 고침 알림을 부른다.
 
 ## 복제 카탈로그 (2026-11-17, 앱 변경 #139 작업 4·5)
 
@@ -1495,3 +1501,5 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
   작업, 모르는 주기 단위는 주석 줄. `GET_DDL`이 실패하는 다른 종류 표(앱 변경 #158 1항, `chromite/altibase-family-display-fixes`), 위 "작업 정의 보기".
 - 2026-11-22 테이블스페이스의 테이블·인덱스 폴더가 같은 종류(`T`, `Q`, `M`)를 읽음: 내부 표(`$AGGR`)의 인덱스가 빠지고 구체화된 뷰가 테이블 폴더에 더해짐,
   항목의 테이블을 `GenericTableBase`로(구체화된 뷰 인덱스의 형 변환 오류)(앱 변경 #158 2항), 위 "테이블스페이스의 테이블과 인덱스".
+- 2026-11-22 서버 확장의 스키마 개체 목록 자리(`getSchemaObjects`, `AltibaseDataSource.getSchemaExtensionChildren`, `AltibaseSchema.getChildren`·`getChild`)와
+  스키마 새로 고침 알림(`schemaRefreshed`)(앱 변경 #163, `chromite/shardsphere-stream-completion`), 위 "서버 확장".
