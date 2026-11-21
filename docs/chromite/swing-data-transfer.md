@@ -771,6 +771,28 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   (자동 복구 없음, 여러 행 문장의 실패는 질문 대신 멈춤), 수동 커밋 넣기의 복구 조건, 모든 데이터 전송(내보내기 포함)의 원본 읽기 복구, `tryExecuteRecover`의 실패
   표시(다시 시도), 여러 행 INSERT의 실패 뒤 다시 시도·건너뛰기.
 
+## 행을 받지 않는 객체 (2026-11-22, 앱 변경 #157)
+
+- **문제:** 가져오기와 테이블 복사의 대상 판단이 형식만 보았다(`DataImportWizard.canImport`·`open`: `DBSDataManipulator`이면서 `DBSEntity`,
+  `DataImportTargetPage.readTables`: 거기에 테이블 종류, `DatabaseCopyMappings.readTargetTableNames`·`setTableTarget`: `DBSDataManipulator`).
+  모델에는 행을 받는지 답하는 자리(`DBSDataManipulator.FEATURE_DATA_INSERT`)가 있지만 묻지 않았다. 그래서 Altibase 계열 큐에서 Tasks ▸ Import Data…가 켜지고,
+  데이터베이스 노드의 가져오기 대상 목록에 큐가 나오고, 새 테이블 이름에 큐 이름을 쓰면 그 큐에 넣는 매핑(existing)이 되어 서버가 거절하는 INSERT(201248)를 만들었다.
+- **고침:** 판단 한 곳 `DataTransferObjects.acceptsRows`(모델의 `FEATURE_DATA_INSERT`)를 네 곳이 묻는다.
+  - `canImport`·`open`: 행을 받지 않는 객체에는 가져오기가 해당하지 않는다(메뉴에서 숨음, [context-menus.md](context-menus.md) 규칙).
+  - `readTables`: 가져오기 첫 단계의 기존 테이블 목록에서 뺀다.
+  - `readTargetTableNames`: 테이블 복사의 대상 이름 목록에서 뺀다.
+  - `setTableTarget`: 그 이름을 대상으로 고르면 뷰·시퀀스 이름처럼 기존 오류 줄 "The name {0} is already used by another object ({1})."이 되고 매핑은
+    unspecified다(새 문구 없음).
+- **다른 객체:** 데이터 기능에서 넣기를 빼는 모델은 지금 큐뿐이라 다른 테이블·뷰·구체화된 뷰의 판단은 전과 같다. 뷰는 전처럼 테이블 노드에서 고를 때만 가져오기
+  대상이고 목록에는 없다(테이블 종류만). 갱신할 수 없는 뷰·구체화된 뷰에 넣으면 서버가 거절하는 것도 전과 같다([altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령"의
+  객체 표, "남긴 것").
+- **남긴 것:** 저장된 가져오기·복사 작업을 읽을 때(`DatabaseMappingContainer.loadSettings`, 모델)는 이름으로 찾은 `DBSDataManipulator`를 그대로 대상으로 삼는다.
+  큐를 대상으로 저장한 작업은 이 화면으로 만들 수 없게 되었지만, 전에 저장한 작업은 실행하면 서버가 거절한다.
+- **확인 (이 브랜치 빌드):** Altibase 7.3과 ShardSphere 5.1.9의 큐 `CHR_QDC_Q`: `canImport` true → false, 메뉴의 Tasks ▸ Import Data… 보임 → 숨음(Export Data…,
+  Copy Tables…는 그대로), 가져오기 대상 목록 `CHR_QDC_Q CHR_QDC_T` → `CHR_QDC_T`, 대상 이름 `CHR_QDC_Q` → existing에서 오류 줄과 unspecified로, 복사 대상 이름
+  목록에서 빠짐. 같은 스키마의 테이블·새 이름은 전과 같음(existing·create). SQL Server·PostgreSQL·MariaDB·Oracle의 테이블·뷰·구체화된 뷰는 `canImport`와
+  대상 목록이 전과 같음. 연결 새로 고침·다시 연결 뒤에도 같음.
+
 ## upstream 대비 변경점
 
 - SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 실행 명령 이벤트 처리기, 원격 파일 시스템, 동시 추출 수는 이 화면에 없다.
@@ -1026,3 +1048,5 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   원본 연결이 끊기면 처음부터 다시 읽어 넣은 행이 두 번 들어가던 것, 복구가 실패한 읽기에서 다시 시도가 다시 연결하지 않던 것. 위 "연결이 끊긴 넣기".
 - 2026-11-16 앱 변경 #137(`chromite/result-grid-menu`): 결과 그리드의 Export Data…는 SELECT 하나인 결과에서만 보임(`appliesExportQuery`), "SELECT 하나인 쿼리만"
   도구 설명 문구(`editor_grid_export_data_single`) 삭제. [context-menus.md](context-menus.md) "결과 그리드".
+- 2026-11-22 앱 변경 #157(`chromite/queue-data-commands`): 가져오기·테이블 복사의 대상 판단이 모델의 넣기 기능을 물음(`DataTransferObjects.acceptsRows`).
+  행을 받지 않는 객체(큐)에는 Import Data…가 숨고 대상 목록에 나오지 않으며 그 이름은 대상 오류가 됨. 위 "행을 받지 않는 객체".

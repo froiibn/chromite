@@ -1163,6 +1163,8 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `DROP TABLE q` | 201252 "Cannot use a DROP TABLE statement on a queue table" | 201252 |
 | `INSERT INTO q (MESSAGE) VALUES (…)` | 201248 "Cannot execute DML statements on queue table" | 201248 |
 | `UPDATE q SET …` | 200753 | 201854 |
+| `MERGE INTO q … WHEN MATCHED THEN UPDATE … WHEN NOT MATCHED THEN INSERT …`, `… WHEN NOT MATCHED THEN INSERT …`(2026-11-22) | 201248 | 201248 |
+| `MERGE INTO q … WHEN MATCHED THEN UPDATE …`(2026-11-22) | 200753 | 200753 |
 | `DELETE FROM q WHERE …`, `TRUNCATE TABLE q`, `ENQUEUE INTO q (MESSAGE) VALUES (…)` | 됨 | 됨 |
 | 권한 없는 사용자(`CHR_JQ_U`)의 `CREATE QUEUE` | 됨(자기 스키마) | 시험 안 함 |
 
@@ -1178,9 +1180,79 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | 큐의 열 | Rename, Delete 켜짐 | 꺼짐(보임) | 큐의 내부 구조(`AltibaseTableColumnManager`). 종류(열)에는 해당하므로 규칙대로 꺼짐 |
 | 큐의 인덱스·키 | Delete 켜짐 | 꺼짐(보임) | 같은 이유(새 `AltibaseTableIndexManager`, `AltibaseConstraintManager`, 다른 테이블은 일반 관리자 그대로) |
 
-- **남긴 것(보고만):** 큐 노드의 Tasks ▸ Import Data…와 Generate SQL ▸ INSERT·UPDATE·MERGE는 서버가 거절하는 문장(201248, 200753/201854)이 된다. 결과 그리드의
-  행 편집도 같다. 이것들은 공용 데이터 전송·생성기·그리드의 판단(`DataImportWizard.canImport`는 삽입 기능을 보지 않음)이라 큐만의 고침으로 넣지 않았다.
-  Truncate는 두 서버가 받지만(`TRUNCATE TABLE q`) 메뉴에 없다(DBeaver의 `AltibaseQueue.isTruncateSupported` = false, 그대로).
+- 가져오기, Generate SQL의 INSERT·UPDATE·MERGE, 결과 그리드의 행 편집은 아래 "큐에 맞지 않는 데이터 명령"(2026-11-22)에서 고쳤다.
+- **남긴 것(보고만):** Truncate는 두 서버가 받지만(`TRUNCATE TABLE q`) 메뉴에 없다(DBeaver의 `AltibaseQueue.isTruncateSupported` = false, 그대로).
+
+### 큐에 맞지 않는 데이터 명령 (2026-11-22, 앱 변경 #157)
+
+**원인.** 세 곳이 객체가 행을 받는지 모델에 묻지 않거나, 물어도 모델이 "받는다"고 답했다.
+
+| 곳 | 판단(고치기 전) | 결과 |
+|---|---|---|
+| Tasks ▸ Import Data…와 가져오기 대상 | `DataImportWizard.canImport`·`open`, `DataImportTargetPage.readTables`, `DatabaseCopyMappings.readTargetTableNames`·`setTableTarget`이 형식(`DBSDataManipulator`)만 봄 | 큐에 INSERT(201248) |
+| Generate SQL ▸ INSERT·UPDATE·DELETE·MERGE | 생성기 확장점의 `objectType`(`DBSDataManipulator`)만 봄(`model.sql/plugin.xml`, `SQLGeneratorDescriptor.appliesTo`) | 큐에 INSERT·UPDATE·MERGE |
+| 결과 그리드 편집, 그리드의 Generate SQL | 그리드는 이미 데이터 기능을 물음(`ResultSetEditModel.getResultReadOnlyReason`의 `FEATURE_DATA_UPDATE`·`_INSERT`·`_DELETE`). 그리드의 Generate SQL은 묻지 않음 | 모델(`JDBCTable.getSupportedFeatures`)이 큐에도 넣기·바꾸기를 답해 편집이 켜짐 |
+
+**고침.** 모델의 기존 답 자리 `DBSDataContainer.getSupportedFeatures`(`DBSDataManipulator.FEATURE_DATA_INSERT`·`_UPDATE`·`_DELETE`)를 쓴다. 새 인터페이스는 없다.
+- 모델의 답: `AltibaseQueue.getSupportedFeatures`가 넣기·바꾸기를 뺀다. 지우기는 남긴다(두 서버가 받음). 잘라내기는 전처럼 없다.
+- 공용 코드(제품 이름 없음): 가져오기·복사 대상은 `DataTransferObjects.acceptsRows`([swing-data-transfer.md](swing-data-transfer.md) "행을 받지 않는 객체"),
+  탐색기 Generate SQL은 생성기 `objectType`의 `if` 조건([swing-explorer-object-actions.md](swing-explorer-object-actions.md) "행을 쓰는 생성기"),
+  그리드의 Generate SQL은 `ResultSetGenerateSql.acceptsWrite`([swing-result-generate-sql.md](swing-result-generate-sql.md)). 그리드 편집은 코드 변경 없이 모델의 답을 따른다
+  (기존 이유 `the table doesn't support data changes` / "테이블이 데이터 변경을 지원하지 않음").
+
+**화면(전 → 후, Altibase 7.3과 ShardSphere 5.1.9 같음).**
+
+| 자리 | 전 | 후 |
+|---|---|---|
+| 큐 노드 ▸ 작업(Tasks) | Import Data…, Export Data…, Copy Tables… | Export Data…, Copy Tables… |
+| 큐 노드 ▸ SQL 생성 | SELECT, INSERT, UPDATE, DELETE, MERGE, DDL | SELECT, DELETE, DDL |
+| 데이터베이스(스키마) 노드의 가져오기 대상 목록 | 큐가 있음 | 없음 |
+| 가져오기·복사의 대상 이름에 큐 이름 | 그 큐에 넣는 매핑(existing) | 기존 오류 줄 "The name … is already used by another object (Table)."(모델의 종류 이름) |
+| 큐 결과 그리드 | 편집 가능(셀 편집기 열림, 행 넣기·지우기·붙여넣기 등 18항목) | 읽기 전용 "the table doesn't support data changes", 편집 항목 없음 |
+| 큐 결과 그리드 ▸ SQL 생성 | SELECT 둘, INSERT, UPDATE, 고유 키로 DELETE, CREATE TABLE | SELECT 둘, 고유 키로 DELETE, CREATE TABLE |
+
+- 그리드 편집은 UPDATE를 받지 않으면 결과 전체를 읽기 전용으로 두는 기존 규칙(6번, [swing-frontend.md](swing-frontend.md) "편집 가능 판단")을 따른다. 그래서 큐는
+  서버가 받는 DELETE도 그리드에서는 하지 않는다(Generate SQL의 고유 키로 DELETE, 쿼리 창은 그대로).
+
+**같은 자리에 있는 다른 객체(전 = 후, 이 고침으로 바뀌지 않음).** 데이터 기능에서 넣기·바꾸기를 빼는 모델은 큐뿐이다(`getSupportedFeatures`를 다시 정의한 곳은
+`JDBCTable`과 `AltibaseQueue`뿐). 서버 사실은 시험용 `CHR_QDC_*`로 확인했다(SQL Server·PostgreSQL·MariaDB·Altibase는 터널, Oracle은 1522 KO16 컨테이너. 1521 컨테이너는
+이날 열리지 않음(ORA-01109)).
+
+| DB | 객체 | 서버: INSERT / UPDATE / DELETE / MERGE | Import Data 메뉴 / 대상 목록 | 탐색기 SQL 생성 | 그리드 편집 |
+|---|---|---|---|---|---|
+| Altibase 7.3 | 테이블 | 됨 | 보임 / 있음 | 전부 | 편집 가능 |
+| Altibase 7.3 | 갱신 가능한 뷰 | 됨 | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| Altibase 7.3 | 집계 뷰 | 201636 ×3 | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| Altibase 7.3 | 구체화된 뷰 | 201589 / 200753 / 201589 | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| ShardSphere 5.1.9 | 테이블 | 됨(MERGE 포함) | 보임 / 있음 | 전부 | 편집 가능 |
+| SQL Server 2022 | 테이블, 갱신 가능한 뷰 | 됨 | 보임 / 테이블만 | 전부 | 테이블 편집 가능, 뷰 읽기 전용(고유 키 없음) |
+| SQL Server 2022 | 집계 뷰 | 4406 / 4406 / 4403 / 4406 | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| PostgreSQL 17 | 테이블, 갱신 가능한 뷰 | 됨(뷰의 MERGE 포함) | 보임 / 테이블만 | 전부 + INSERT ON CONFLICT·UPDATE FROM·DELETE USING | 테이블 편집 가능, 뷰 읽기 전용(고유 키 없음) |
+| PostgreSQL 17 | 집계 뷰 | 55000 ×3 | 보임 / 없음 | 같음 | 읽기 전용(고유 키 없음) |
+| PostgreSQL 17 | 구체화된 뷰 | 42809 ×3 / 0A000 | 보임 / 없음 | 같음 | 읽기 전용(고유 키 없음) |
+| MariaDB 11.8 | 테이블, 갱신 가능한 뷰 | 됨 | 보임 / 테이블만 | 전부 | 테이블 편집 가능, 뷰 읽기 전용(고유 키 없음) |
+| MariaDB 11.8 | 집계 뷰(`IS_UPDATABLE` = NO) | 1471 / 1288 / 1288 / (MERGE 없음) | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| Oracle 23.26 | 테이블, 갱신 가능한 뷰 | 됨 | 보임 / 테이블만 | 전부 | 테이블 편집 가능, 뷰 읽기 전용(고유 키 없음) |
+| Oracle 23.26 | 집계 뷰 | ORA-01732 ×3 | 보임 / 없음 | 전부 | 읽기 전용(고유 키 없음) |
+| Oracle 23.26 | 구체화된 뷰 | ORA-01732 ×4 | 보임 / **있음** | 전부 | **편집 가능**(키가 있음) |
+
+- 서버가 거절하지만 이 고침이 다루지 않은 것(같은 원인, 모델이 아직 "받는다"고 답함): 갱신할 수 없는 뷰, 구체화된 뷰(특히 Oracle은 가져오기 대상 목록과
+  그리드 편집까지 열림). 모델이 그렇게 답하려면 읽어 둔 값이 있어야 한다: MySQL/MariaDB `MySQLView`의 `IS_UPDATABLE`, Oracle `OracleMaterializedView`의
+  `UPDATABLE`은 둘 다 따로 읽는 추가 정보라 메뉴를 그리는 EDT에서 물을 수 없다. 각 모델이 `getSupportedFeatures`를 다시 정의하면 세 곳이 그대로 따른다(후속).
+- 시스템 뷰·카탈로그는 내 객체가 아니어서 서버에 쓰기를 시험하지 않았다. SQLite는 시험 서버가 없어 확인하지 않았다.
+
+**확인.** 이 브랜치 빌드, 사설 작업 공간, 앱 안 테스트 에이전트(Swing 객체 직접). 연결 ALTI(Altibase 7.3), SS(벤더 일반 서버, 값은 환경 변수 참조, 암호 저장 끔),
+MS·PG·MARIA·ORA(시험 VM). 위 표의 객체마다 데이터 기능, `canImport`, 탐색기 생성기, 가져오기 대상 목록, 큐·테이블 메뉴, 결과 그리드의 읽기 전용 이유·셀 편집 시도
+(편집기를 열어 보고 취소, 저장하지 않음)·그리드 메뉴를 기준 빌드와 이 빌드에서 덤프해 비교했다. 달라진 것은 두 서버의 큐뿐이다. 연결 새로 고침과 다시 연결 뒤에도 같다.
+쿼리 관리자: 이 빌드에서 ALTI 28개, SS 20개 실행이 모두 SELECT(큐에 보낸 INSERT·UPDATE·MERGE 없음). 다른 연결의 SELECT가 아닌 실행은 연결할 때의 세션 설정뿐
+(`USE`, `SET search_path`, `SHOW FULL TABLES`, `DBMS_OUTPUT.ENABLE`, `ALTER SESSION SET CURRENT_SCHEMA`). 캡처(영어·한국어 밝은 테마 150 %, 영어 어두운 테마 100 %):
+`D:\Tools\_scratch\queue-data-commands\sheets\`. 시험용 객체는 모두 지우고 카탈로그로 확인했다(벤더 서버: `SYS_TABLES_`에 `CHR_QDC%` 없음, `CHR_QDC_Q_NEXT_MSG_ID` 0).
+회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 가져오기·테이블 복사의 대상 판단, 탐색기와 결과 그리드의 Generate SQL 항목,
+큐 결과의 그리드 편집.
+
+**후속(만들지 않음).** 큐 전용 Generate SQL ▸ ENQUEUE / DEQUEUE. 갱신할 수 없는 뷰·구체화된 뷰의 모델 답(위). PostgreSQL INSERT ON CONFLICT·UPDATE FROM·DELETE USING,
+Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음). 저장된 작업이 읽은 대상(`DatabaseMappingContainer.loadSettings`). 대상 이름 오류의 종류 이름이
+"Table"이다(모델의 `DBUtils.getObjectTypeName`).
 
 ## 세션 종료 문장 (2026-11-21, 앱 변경 #154)
 
@@ -1302,3 +1374,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   앱 변경 #156, 첫 사용자는 ShardSphere 스트림 명령), 위 "확장 객체의 명령 자리".
 - 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): `AltibaseTableTtl`의 새 테이블 메서드, `AltibaseTable.newTableTtl`,
   `AltibaseTableManager.appendTableModifiers`가 CREATE TABLE 끝에 절. 위 "테이블 TTL 자리" ▸ "새 테이블".
+- 2026-11-22 큐의 데이터 기능에서 넣기·바꾸기를 빼고 가져오기·Generate SQL(탐색기·그리드)이 데이터 기능을 물음(앱 변경 #157, `chromite/queue-data-commands`):
+  큐에 서버가 거절하는 INSERT·UPDATE·MERGE를 만들지 않고 그리드는 읽기 전용. 위 "큐에 맞지 않는 데이터 명령".
