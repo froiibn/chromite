@@ -76,6 +76,7 @@ SWT: `ValueViewerPanel`(panel/valueviewer/ValueViewerPanel.java:60), `ContentPan
 - **글꼴과 색:** 구문 색은 SQL 편집기 테마 파일(`SqlEditorLight/Dark.xml`), 글꼴은 Messages·오류 상세와 같은 코드 글꼴 `monospaced.font`
   ([design-spec.md](design-spec.md) `font.code`)다. SQL 편집기 글꼴(`EditorFont`, Options에서 바꿈)은 따르지 않는다.
 - **열고 닫기:** F7, 상태 줄 오른쪽 "Value" 단추(2026-11-07 전에는 필터 줄 오른쪽), 오른쪽 클릭 "Value Panel". 연 상태는 이 실행 동안 다음 결과에도 이어진다.
+  값 전체를 보이지 않는 LOB 칸은 링크로 그려지고, 칸 글자를 누르거나 두 번 누르거나 F2를 누르면 패널이 열린다(2026-11-22, 아래 "긴 LOB 칸").
 
 ### 정렬과 필터
 
@@ -170,9 +171,82 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   (PostgreSQL `double precision`, SQL Server `float`, Oracle `BINARY_DOUBLE`). Oracle `NUMBER` 리터럴 `1E-120`·`-2.5E-11`도 지수로 보였다.
   Oracle에서 `-2.5E-300`을 `NUMBER` 리터럴로 넣으면 `NUMBER` 범위(약 1E-130) 밖이라 저장 전에 0이 된다(`-2.5E-300d`로 넣어야 함, DB 동작).
 
+### 긴 LOB 칸 (2026-11-22, 앱 변경 #160)
+
+- 증상(실사용자, Oracle): DDL을 가져오는 쿼리(`SELECT DBMS_METADATA.GET_DDL('TABLE', …) FROM DUAL`)의 결과가 `[CLOB]`로만 보이고, 칸에서 전문을 열 길이 보이지 않았다.
+- 원인:
+  - 모델은 `content.cache.clob`(켬)이면 `content.cache.maxsize`(1,000,000)보다 짧은 CLOB을 읽을 때 미리 읽는다(`JDBCContentValueHandler.getValueFromObject`).
+    `content.memory.maxsize`(10,000자)보다 짧으면 메모리 문자열, 길면 로컬 임시 파일에 둔다(`JDBCContentCLOB.getContents`). 표시 문자열은 메모리 문자열일 때만
+    값이고, 임시 파일과 읽지 않은 CLOB은 `[CLOB]`이다(`JDBCContentCLOB.getDisplayString`, 수정 전 JDBCContentCLOB.java:253). BLOB(`[BLOB]`, JDBCContentBLOB.java:279,
+    `content.cache.blob` 기본 끔이라 읽지 않음), SQLXML(`[XML]`, JDBCContentXML.java:192, 읽지 않음), Oracle XMLTYPE 등(`OracleContentOpaque`)도 같다.
+    수신기는 이 표시 문자열을 그대로 칸 글자로 썼다(`ResultSetGridReceiver.fetchRow`).
+  - 값 패널은 이런 칸도 읽어 보인다(1,000,000자까지). 그러나 칸에서 패널로 가는 키(F2, 두 번 누르기, Shift+Enter)는 편집할 수 있는 결과의 LOB 칸에만 있었다
+    (수정 전 ResultSetGrid.java:1306–1329, 편집 모델이 있을 때만 묶음). DDL 쿼리 결과는 테이블 열이 없어 읽기 전용이라 F7, 상태 줄 "값 패널", 오른쪽 클릭 "Value Panel"뿐이었고
+    칸은 보통 글자와 같은 모양이라 열 수 있다는 표시가 없었다.
+- 고친 것(모든 DB, 모든 LOB 종류):
+  - 칸의 LOB가 값 전체를 보이지 않으면(`ResultSetCellContent.isPartial`: 자리 표시, 임시 파일의 앞부분, 이진 값의 앞 바이트) 앱의 링크 색(`Component.linkColor`,
+    [design-spec.md](design-spec.md) `text.link`)으로 그린다. 칸 글자 위에서 손 모양 커서, 글자를 누르면 값 패널이 열리고 그 칸의 값 전체를 보인다(읽는 동안 "읽는 중",
+    1,000,000자 넘으면 "처음 1,000,000만 표시"는 그대로). 글자 밖을 누르면 고르기만 한다. Ctrl(macOS Command)·Shift 누르기는 고르기다. 두 번 누르기와 F2는 칸 어디서나 연다.
+    읽기 전용 결과에는 F2를 따로 묶었다(편집 결과는 Edit Cell의 F2가 같은 일을 함). 그리드에 이미 있던 링크 규칙은 없었다(외래 키는 Ctrl+B).
+  - 링크는 칸 값이 받은 LOB일 때만이다: 패널·파일로 바꾼 값은 보통 칸으로 그리고, 바꾼 것을 되돌리면 다시 링크다.
+  - 모델이 로컬 임시 파일에 읽어 둔 LOB(10,000자 이상 1,000,000자 미만 CLOB, 설정을 켰을 때의 큰 BLOB 등)는 `[CLOB]` 대신 앞부분을 칸 글자로 쓴다
+    (`ResultSetCellContent.readPreview`, 수신기의 Job 스레드). 글자는 `content.memory.maxsize`만큼 + `...`, 이진은 표의 이진 표시 길이(`resultset.binary.stringMaxLength`)만큼.
+    읽은 적 없는 LOB(1,000,000자 이상 CLOB, 기본 설정의 BLOB, SQLXML·XMLTYPE)는 칸마다 서버를 부르지 않도록 자리 표시를 둔다.
+  - 모델의 `JDBCContentLOB.getLoadedContents`(새 메서드): 읽어 둔 내용을, 읽지 않았으면 null을 준다. `getContents`와 달리 DB를 읽지 않는다.
+- 미리 보기 결정과 비용: 링크만(자리 표시 유지)과 미리 보기+링크 가운데 미리 보기+링크를 골랐다(대안 캡처: `ko-alt-placeholder-link.png`).
+  - 임시 파일 CLOB: 칸마다 로컬 파일에서 최대 10,000자를 읽는다(서버 호출 없음). 칸 하나가 메모리에 두는 글자는 10,000자 미만 CLOB이 이미 두는 만큼을 넘지 않는다.
+    500행×20,000자 CLOB: 읽기 24.5초 → 25.4초(같은 네트워크로 잰 한 번씩, 대부분 서버에서 임시 파일로 받는 시간), 힙 +2MB → +6MB, 끝까지 내리기 55 → 65ms, 내리는 동안 문장 0개.
+  - 읽지 않은 LOB: 미리 보기에는 칸마다 서버 왕복이 필요하다. 하지 않는다.
+  - `content.memory.maxsize`를 키우는 대안(임시 파일 대신 메모리)은 바꾸지 않았다: 칸마다 최대 그 크기의 문자열을 메모리에 둔다(1,000,000으로 하면 행마다 최대 2MB).
+- 복사·내보내기(2026-11-22 사용자 결정 "권장대로": 미리 보기와 링크는 그대로, 이미 읽은 LOB는 전문 복사):
+  - Ctrl+C(편집 > 복사), 머리글 포함 복사, Copy As(CSV·TSV·Markdown·SQL IN·JSON·XML·HTML·SQL INSERT), 고급 복사, 결과 CSV 내보내기는 칸 글자가 값의 일부인 LOB 칸에
+    DB 없이 얻을 수 있는 전문을 쓴다(`ResultSetCellContent.readFullText`): 로컬 임시 파일(`JDBCContentLOB.getLoadedContents`), 모델의 메모리 글자, 값 패널이 다 읽은 글자.
+  - 서버는 부르지 않는다: 읽지 않은 LOB(1,000,000자 이상 CLOB, 기본 설정의 BLOB, SQLXML·XMLTYPE)는 전처럼 칸 글자(`[CLOB]`·`[BLOB]`·`[XML]`)를 복사한다.
+    값 패널이 그 값을 다 읽었으면(예: XMLTYPE 53,171자) 그 글자를 복사한다. 패널이 1,000,000자에서 자른 값은 자리 표시 그대로다.
+  - 한계: 칸 하나에 1,000,000자(값 패널과 같은 `MAX_LOAD_SIZE`). 모델은 `content.cache.maxsize`(기본 1,000,000)보다 짧은 LOB만 임시 파일에 두지만, 설정을 키웠어도
+    더 긴 파일은 메모리로 읽지 않고 칸 글자(앞부분과 `...`)를 둔다.
+  - 이진 LOB는 전처럼 칸 글자(앞 바이트의 표시 형식과 `...`, 읽지 않았으면 `[BLOB]`)다. 고른 복사 형식이 모두 글자 형식이라 바이트 전체를 넣을 형식이 없다.
+  - 파일은 백그라운드 Job에서 읽는다(`ProgressDialog.runTask`: 300ms 넘으면 진행 대화상자, 취소하면 아무것도 복사하지 않음). Ctrl+C는 표의 기본 전송 처리기를 그대로 쓰고
+    복사하는 동안만 표 모델이 전문을 준다. 그래서 칸 묶음·여러 행의 탭·줄 구분과 HTML 표 흐름이 전과 같고, 여러 줄 글자는 표의 다른 여러 줄 글자처럼 줄바꿈 그대로 들어간다
+    (JDK 표 전송 처리기는 값을 고치지 않음). CSV 내보내기는 쓰는 동안 한 칸씩 읽어 한 칸의 글자만 메모리에 둔다.
+  - XLSX 내보내기는 칸 글자 그대로다: 엑셀 칸 하나는 32,767자까지라 전문을 넣을 수 없다. Export Data…(쿼리를 다시 실행)는 바뀌지 않았다.
+  - 시간과 메모리(Oracle 1521, 디스크 캐시가 따뜻한 상태): 500칸×20,000자 Ctrl+C 85ms(EDT 최대 응답 지연 72ms, 복사본이 잡은 힙 +23MB),
+    20칸×900,000자 61ms(지연 53ms, +36MB, 일반 글자와 HTML 두 벌), 진행 대화상자는 뜨지 않았다. 복사하는 동안 Query Manager 문장 0개.
+  - 확인: `GET_DDL` 14,668자와 CLOB 50,000자를 Ctrl+C(표의 전송 처리기 → 앱 안의 개인 클립보드 객체)로 복사해 길이와 SHA-256이 앱 밖 JDBC로 읽은 서버 값과 같았다
+    (`4d1120cd7e0fd782`, `e4936548cdb3c555`). 900,000자 칸과 500칸 묶음도 길이가 맞고 `...`가 없었다. CSV의 DDL 칸을 풀어 읽은 값도 같았다.
+- 오늘의 동작(전·후, 2026-11-22, 시험 VM, 앱 안 시험 에이전트). "링크"는 링크 색·손 커서·누르기/두 번/F2로 패널. 패널 값의 길이와 SHA-256은 앱 밖 JDBC로 읽은 서버 값과 같았다.
+
+  | DB · 형식(길이) | 칸(전) | 칸(후) | 누르기·두 번·F2·Shift+Enter(전) | (후) | 복사·CSV(전 → 후) |
+  |---|---|---|---|---|---|
+  | Oracle `GET_DDL` 672자(읽기 전용) | 전문 한 줄 | 같음, 보통 칸 | 없음 | 없음(전문이 칸 글자) | 전문 |
+  | Oracle `GET_DDL` 14,668자(읽기 전용) | `[CLOB]` | 앞 10,000자…, 링크 | 아무 일 없음(F7만) | 패널 14,668자 | `[CLOB]` → 전문 14,668자 |
+  | Oracle CLOB 100자 / 50,000 / 1,200,000(편집 결과) | 전문 / `[CLOB]` / `[CLOB]` | 전문 / 앞부분…, 링크 / `[CLOB]`, 링크 | 두 번·F2·Shift+Enter로 패널, 누르기 없음 | 누르기도 패널 | `[CLOB]` → 전문 50,000자 / `[CLOB]`(읽지 않음) |
+  | Oracle BLOB 100 / 50,000 / 1,200,000바이트 | `[BLOB]`(읽지 않음) | `[BLOB]`, 링크 | 위와 같음 | 누르기도 패널(Hex) | `[BLOB]`(그대로) |
+  | Oracle XMLTYPE, JSON(23ai) | `[XML]`, JSON 전문 | `[XML]` 링크, JSON 그대로 | 위와 같음 | XML 누르기 패널 | 같음 |
+  | Oracle 읽기 전용 연결의 CLOB 표 | `[CLOB]` | 링크 | 아무 일 없음 | 패널(1,000,000자, "처음 1,000,000만 표시") | 위와 같음 |
+  | SQL Server `varchar(max)`·`nvarchar(max)`·`xml` | 전문(문자열, 1,200,000자도) | 같음 | 없음 | 없음 | 전문 |
+  | SQL Server `varbinary(max)` | 앞 32바이트 글자… | 같음, 링크 | 두 번·F2·Shift+Enter로 패널(편집 결과의 이진 칸, 코드로 판단)¹ | 누르기도 패널(Hex) | 앞 32바이트… |
+  | PostgreSQL `text`·`json` | 전문 | 같음 | 없음 | 없음 | 전문 |
+  | PostgreSQL `bytea` | 앞 32바이트… | 같음, 링크 | 위와 같음¹ | 누르기도 패널 | 앞 32바이트… |
+  | PostgreSQL `xml` | `[XML]`(읽지 않음) | `[XML]`, 링크 | 위와 같음¹ | 누르기도 패널 50,005자 | `[XML]` |
+  | MariaDB `longtext`(JSON 포함) | 전문 | 같음 | 없음 | 없음 | 전문 |
+  | MariaDB `longblob` | 앞 32바이트… | 같음, 링크 | 위와 같음¹ | 누르기도 패널 | 앞 32바이트… |
+  | Altibase CLOB(자동 커밋) | 오류 글자(ERR-11104 "LobLocator cannot span the transaction", 100자도) | 같음, 보통 칸 | 두 번·F2로 패널(오류 글자) | 같음 | 오류 글자 |
+  | Altibase BLOB(자동 커밋) | `[BLOB]` | `[BLOB]`, 링크 | F7 패널이 "읽는 중"에서 60초 넘게 멈춤 | 링크도 같음 | `[BLOB]` |
+  | Altibase CLOB·BLOB(수동 커밋) | (후만 확인) | 100자 전문 / 앞부분…, 링크 / `[CLOB]`, 링크 / `[BLOB]` 링크 | – | 패널 50,000·1,000,000자·Hex | – |
+
+  - ¹ 수정 전 빌드에서 이 칸은 누르지 않았다(전 빌드에서 누른 것은 Oracle CLOB·DDL과 각 DB의 긴 문자열 칸). 편집할 수 있는 결과의 LOB·이진 칸은 F2·두 번 누르기·Shift+Enter가 값 패널을 여는 코드(ResultSetGrid.isPanelEditedCell)라 그렇게 적었다.
+  - 연결을 끊은 뒤(결과는 남음): 읽지 않은 CLOB·BLOB 링크는 패널에 기존 문구 "값을 읽지 못했습니다: … ORA-17008"을 보이고 예외는 없다. 임시 파일 CLOB은 그대로 읽힌다.
+  - 정렬(표 안)·필터(서버 다시 읽기) 뒤에도 링크가 맞는 칸에 남고 눌러 열린다. 글자 밖 누르기·Ctrl+누르기는 고르기만, 보통 칸의 F2(읽기 전용)는 아무 일 없음, Shift+Enter는 위 행으로(전과 같음).
+  - 편집: 링크 칸을 패널에서 고쳐 Apply하면 보통 칸(바뀐 바탕), 변경 취소로 다시 링크. 파일로 저장은 값 전체(50,000·1,200,000자, 서버와 같은 SHA-256).
+  - 테마: 라이트 `#315fbd`, 다크 `#6b9bfa`(design-spec `text.link`). 캡처는 `D:\Tools\_scratch\grid-lob-full-text\sheets\`.
+- 찾았지만 고치지 않은 것(범위 밖): Altibase 자동 커밋 연결에서 CLOB이 길이와 관계없이 칸 오류가 되는 것(`AltibaseCLOBValueHandler`의 안내 문구 대신 읽기 오류)과
+  BLOB 패널이 멈추는 것. SQL Server·PostgreSQL·MariaDB의 긴 문자열 형식은 드라이버가 문자열로 주어 1,200,000자도 칸 글자로 메모리에 둔다(기존 동작).
+
 ## upstream 대비 변경점
 
 - upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)와 아주 작은 수의 표시(`NumberFormatSample`의 기본값, `DBValueFormatting.convertNumberToNativeString`)를 고쳤다(SWT에도 적용).
+  2026-11-22에 `JDBCContentLOB.getLoadedContents`(읽어 둔 LOB 내용, DB를 읽지 않음)를 더했다(긴 LOB 칸).
 - SWT와 다른 동작: 정렬 아이콘 클릭은 한 열 정렬(Ctrl로 더하기), 머리글 이름 클릭은 열 전체 선택, 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
@@ -226,3 +300,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 2026-11-08 "남긴 것"에서 저장한 필터를 지움(저장한 필터·최근 필터·가상 열, [swing-saved-filters-virtual-columns.md](swing-saved-filters-virtual-columns.md)).
 - 2026-11-08 배치 결과 다시 읽기: 결과를 만든 SELECT만 실행, 정할 수 없으면 막고 이유를 보임. [sql-batch-reread.md](sql-batch-reread.md).
 - 2026-11-08 행 번호 칸을 선택·포커스와 관계없이 늘 그리드 바탕으로("표 편의 기능"), 머리글 이름 자리는 정렬 대신 열 선택(swing-grid-column-filters.md "머리글 누르기").
+- 2026-11-22 긴 LOB 칸(앱 변경 #160): 값 전체를 보이지 않는 LOB 칸을 링크로 그리고 누르기·두 번 누르기·F2로 값 패널을 엶, 로컬 임시 파일에 읽은 LOB는 `[CLOB]` 대신 앞부분.
+  위 "긴 LOB 칸"(전·후 표, 비용, 복사·내보내기)과 "값 패널"의 "열고 닫기".
+- 2026-11-22 긴 LOB 칸 후속(사용자 결정 "권장대로"): 복사·머리글 포함 복사·Copy As·고급 복사·CSV 내보내기가 DB 없이 얻을 수 있는 LOB 전문을 씀(칸 하나 1,000,000자까지),
+  읽지 않은 LOB와 이진 값은 칸 글자 그대로. 위 "긴 LOB 칸"의 "복사·내보내기"와 표의 복사 열.
