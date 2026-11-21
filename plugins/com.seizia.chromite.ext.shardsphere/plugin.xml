@@ -35,6 +35,29 @@
                         icon="#folder_link" visibleIf="object.isShardingMetaNode()">
                     <items label="%tree.shard_link.node.name" path="shardLink" property="shardLinks" icon="#link"/>
                 </folder>
+                <!-- Stream explorer (docs/chromite/shardsphere.md "스트림 탐색기"): stream functions belong to no user, so they
+                     are listed for the server -->
+                <folder id="streamFunctions" label="%tree.stream_functions.node.name" description="%tree.stream_functions.node.name"
+                        icon="#functions" visibleIf="object.isStreamCatalog()">
+                    <items label="%tree.stream_function.node.name" path="streamFunction" property="streamFunctions" icon="#function"/>
+                </folder>
+            </treeInjection>
+            <!-- Stream explorer, read-only: folders under the "Stream" node that ext.altibase's neutral schema host (items path
+                 "schemaExtension") shows for this extension's StreamSchema; on another object there the expression fails and
+                 the folder is hidden. No type, as above. -->
+            <treeInjection path="altibase/schema/schemaExtension">
+                <folder id="streamTables" label="%tree.stream_tables.node.name" description="%tree.stream_tables.node.name"
+                        icon="#folder_table" visibleIf="object.isStreamSchema()">
+                    <items label="%tree.stream_table.node.name" path="streamTable" property="streamTables" icon="#table"/>
+                </folder>
+                <folder id="continuousTables" label="%tree.continuous_tables.node.name" description="%tree.continuous_tables.node.name"
+                        icon="#folder_view" visibleIf="object.isStreamSchema()">
+                    <items label="%tree.continuous_table.node.name" path="continuousTable" property="continuousTables" icon="#view"/>
+                </folder>
+                <folder id="continuousQueries" label="%tree.continuous_queries.node.name" description="%tree.continuous_queries.node.name"
+                        icon="#folder" visibleIf="object.isStreamSchema()">
+                    <items label="%tree.continuous_query.node.name" path="continuousQuery" property="continuousQueries" icon="#trigger"/>
+                </folder>
             </treeInjection>
         </datasourcePatch>
     </extension>

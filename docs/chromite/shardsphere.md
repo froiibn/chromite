@@ -18,8 +18,8 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 
 | 위치 | 내용 |
 |---|---|
-| `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`. 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `model/ShardTableTtl`: 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`과 스키마 아래 트리 항목 `schemaExtension`(2026-11-21). 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `model/ShardTableTtl`: 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리"). `model/StreamSchema`·`StreamTable`·`ContinuousObject`·`StreamFunction`: 스트림 탐색기(아래 "스트림 탐색기"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -42,7 +42,8 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 - **복제 카탈로그(2026-11-17 작업 4·5):** `getReplicationCatalog()`. GEMINI를 Replications 폴더와 복제 탭에 보인다(아래 "GEMINI").
 - **기존 객체의 추가 속성(2026-11-17 수정 6, 계획의 S8):** `getObjectProperties(monitor, object)`. 테이블의 TTL과 샤드 객체(아래 "테이블 속성: TTL과 샤드").
 - **테이블 TTL(2026-11-17 앱 변경 #152, S6/S7 가운데 좁은 능력):** `getAdapter(AltibaseTableTtl.class)`. 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리").
-- **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·일반 객체 명령 틀(S6/S7)은 그 기능과 함께 정한다. 트리 자리도 지금은 System Info 한 곳뿐이다.
+- **스키마 아래 트리 객체(2026-11-21 앱 변경 #153):** `getSchemaTreeObjects(schema)`. 스키마마다 "스트림" 노드(아래 "스트림 탐색기").
+- **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·일반 객체 명령 틀(S6/S7)은 그 기능과 함께 정한다. 트리 자리는 System Info와 스키마 아래 두 곳이다.
 
 ## 감지
 
@@ -717,6 +718,7 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 | `SYS_JOBS_` | 0행. 열에 Altibase 7.3에 없는 JOB_USER_ID, JOB_TYPE, FAIL_COUNT가 있다 |
 
 스트림 탐색기·감사 보기는 행이 있는 서버(또는 쓰기 시험)가 있어야 화면을 확인할 수 있다: 두 서버 모두 스트림·연속·감사 사전이 비어 있다.
+스트림 사전은 2026-11-21 일반 서버에 시험용 개체를 만들어 확인했다(아래 "스트림 탐색기").
 
 ## 확인 (2026-11-17, 수정 1~8, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
 
@@ -738,6 +740,159 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-corrections\sheets\`.
 - 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 속성 보기(기여 인터페이스를 구현한 객체만 바뀜), Altibase 계열의 작업·시퀀스 목록, 복제 노드·복제 탭,
   ShardSphere 자동 완성.
+
+## 스트림 탐색기 (2026-11-21, 앱 변경 #153, 읽기 전용)
+
+### 목적
+
+ShardSphere의 스트림 객체(스트림 테이블, 연속 스트림 테이블, 연속 테이블, 연속 쿼리, 스트림 함수)를 Object Explorer에서 보고 정의를 읽는다. 전에는 어디에도
+보이지 않았다. 만들기·바꾸기·켜기/끄기·삭제는 이 작업 밖이다(아래 "쓰기 명령에 필요한 것").
+
+### 서버에서 확인한 사실 (일반 서버 5.1.9, 시험용 개체 `CHR_STM_*`, 앱 밖 JDBC, 2026-11-21)
+
+로그인 스키마에 종류마다 시험용 개체를 만들고 사전을 읽은 뒤 지웠다(아래 "벤더 서버에 쓴 것"). `CONTINUOUS_QUERY_THREAD_COUNT` = 0이어도 모든 종류가 만들어졌다
+(처리는 되지 않음: 스트림 테이블에 넣은 두 행이 그대로 있고 연속 객체는 0행).
+
+| 종류 | `SYS_TABLES_.TABLE_TYPE` / `STREAM` | 함께 생기는 것 | `SYS_CONTINUOUS_TABLES_` | 정의를 주는 곳 |
+|---|---|---|---|---|
+| 스트림 테이블 | `X` / `Y` | 자동 열 `$INSERT_TIME`(열 수에 들어감), 테이블스페이스 `MEM_DIC` | 행 없음 | `DBMS_METADATA.GET_DDL('TABLE', …)` → `CREATE STREAM TABLE …`(자동 열 없음). `EXPORT_CONTINUOUS_OBJECT`는 오류 201859 |
+| 연속 스트림 테이블 | `Y` / `Y` | 정의를 담은 내부 객체 `<t>$TEXT`(`U`, `SYS_VIEWS_`·`SYS_VIEW_PARSE_`에 만든 문장) | 행, `VIEW_ID` = `$TEXT` | `EXPORT_CONTINUOUS_OBJECT(VIEW_ID)` |
+| 연속 테이블(집계 있음) | `B` / `N` | `$TEXT`(`U`), 저장 테이블 `<t>$AGGR`(`H`, `MEM_DATA`, 시스템 인덱스 하나). 연속 테이블 자신은 `$AGGR` 위의 뷰(`SYS_VIEWS_`에 행) | `AGGR_TABLE_ID` = `$AGGR`, `EXEC_QUERY1` MERGE, 윈도가 있으면 `EXEC_QUERY2` DELETE | 같음 |
+| 연속 테이블(집계 없음) | `C` / `N` | `$TEXT`(`U`). 행은 자기(`MEM_DATA`)에 | `AGGR_TABLE_ID` 없음, `EXEC_QUERY1` INSERT | 같음 |
+| 연속 쿼리 | `I` / `N` | 없음(열 0) | 행, `VIEW_ID` = 자기 `TABLE_ID`, `EXEC_QUERY1` = INSERT 문 | 같음(`SYS_VIEW_PARSE_` 행은 없음) |
+| 스트림 함수 | (테이블 아님) | `V$STREAM_FUNCTION` 행(메모리, 호출 수) | `SYS_STREAM_FUNCTIONS_`(소유자 열 없음) | 정의 함수 없음 |
+
+- **`EXPORT_CONTINUOUS_OBJECT`:** 사전의 `VIEW_ID`를 넘겨야 한다. 연속 테이블의 `TABLE_ID`, 스트림 테이블, `$AGGR`, 일반 테이블, 없는 번호는 모두 201859. 결과는 만든
+  문장 그대로(옵션 순서, 소유자 접두어 없음)이고 `SYS_VIEW_PARSE_`의 글(100자씩)과 같다. 여러 행을 한 SELECT로 읽을 때 그중 하나가 201859면 SELECT 전체가 실패한다
+  (그래서 목록 질의에 넣지 않고 정의를 볼 때 하나씩 읽는다).
+- **`DBMS_METADATA.GET_DDL`:** 스트림 테이블만 된다(쓰기 가능한 연결). 연속 객체는 `TABLE` 990000, `VIEW` 990001. **읽기 전용 연결에서는 이 EXEC 자체를 서버가
+  거절한다(266307)** — 일반 테이블의 DDL도 같아서 앱은 전부터 대체 DDL을 만든다.
+- **윈도 단위(`WINDOW_UNIT`):** `S` 초, `M` 분, `H` 시간, `D` 일, `W` 주, `O` 월(각각 만들어 확인). `WITH WINDOW 1 YEAR`는 200705로 거절. 스텝(`WINDOW_STEP_UNIT`·
+  `WINDOW_STEP_TIME`)은 문법에 없고 서버가 정한다: 5시간 → 3분, 10분 → 6초, 30초 → `R` 200000, 2일 → 20분, 1개월 → 6시간, 1주 → 60분, 집계 없는 3분 → 1초.
+  `R`은 매뉴얼의 마이크로초(실행 문장의 `TRUNC(…, '200000MICROSECOND')`와 맞음). 윈도가 없으면 단위 NULL, 수 0.
+- **`IS_ENABLE`:** `T` 켜짐, `F` 꺼짐(ENABLE·DISABLE로 확인; 기본은 DISABLE). `EXEC GROUP`·`EXEC ORDER`는 준 값, 없으면 0.
+- **`OPTION_OFFSET`·`OPTION_SIZE`:** 만든 문장 안 옵션 절의 시작 위치와 길이(예: `CREATE CONTINUOUS TABLE <이름> ` 뒤부터 `… DISABLE`까지). 화면에 쓰지 않는다.
+- **TTL(`USING TTL`):** 집계 없는 연속 테이블은 자기 표에, 집계 있는 것은 `$AGGR`에 `SYS_TTL_` 행이 생기고 기준 열은 `$INSERT_TIME`이다.
+- **`SYS_TABLES_.STREAM`:** 스트림 테이블과 연속 스트림 테이블만 `Y`.
+- **거절된 문장:** `GROUP BY`가 있는 연속 쿼리(201855, 매뉴얼의 예와 다름), 윈도 단위 `YEAR`.
+- **스트림 함수:** `FUNC_TYPE`은 `LASTNTH`, `TOPK`, `DIST`, `HLL`(만든 문장의 `lastnth(10, 100)` → ARG1 10, ARG2 100, `hll` → 인자 없음). `V$STREAM_FUNCTION.CREATE_TIME`은
+  정수(유닉스 초로 보임).
+- **메타 노드:** 같은 사전이 있고(비어 있음) 같은 목록 문장이 0행으로 실행된다(SELECT만).
+
+### 벤더 서버에 쓴 것 (사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_STM_*`만)
+
+- 만든 것: 스트림 테이블 2(`CHR_STM_S`, 새로 고침 확인용 `CHR_STM_SX`), 연속 스트림 테이블 1, 연속 테이블 12, 일반 테이블 1(연속 쿼리의 대상 `CHR_STM_T`), 연속 쿼리 3,
+  스트림 함수 6. 거절된 것 2(`GROUP BY`가 있는 연속 쿼리 201855 두 번, `WITH WINDOW 1 YEAR` 200705). 스트림 테이블에 지어낸 두 행. 조회용 `dbms_metadata.get_ddl` EXEC(앱 밖 9번, 앱에서 스트림 테이블 DDL을 볼 때마다 1번).
+  서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 SELECT만.
+- 지운 순서: 읽는 쪽부터(연속 쿼리 → 연속 스트림 테이블을 읽는 연속 테이블 → 나머지 연속 테이블 → 연속 스트림 테이블 → 스트림 테이블 → 대상 테이블 → 함수). 모두 성공.
+- 확인: 지운 뒤 `SYS_TABLES_`·`SYS_CONTINUOUS_TABLES_`·`SYS_STREAM_FUNCTIONS_`·`SYS_TTL_`·`V$STREAM_FUNCTION`에 `CHR_STM%` 행 0, 짝 없는 `SYS_TTL_`·`SYS_CONTINUOUS_TABLES_` 행 0.
+  행 수(전 → 후): `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_STREAM_FUNCTIONS_` 0 → 0, `SYS_TTL_` 0 → 0, `V$STREAM_FUNCTION` 0 → 0, `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41,
+  `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_TABLES_` 164 → 165(늘어난 하나는 같은 시간에 다른 작업이 만든 그 작업의 시험용 표, 이 작업의 것이 아님).
+
+### 트리와 자리
+
+```
+스키마 ▸ <사용자>
+  … (기존 폴더 그대로)
+  └ 스트림                     (이 번들의 노드, 스트림 사전이 있는 서버의 모든 스키마)
+    ├ 스트림 테이블            CHR_STM_S …
+    ├ 연속 테이블              연속 테이블과 연속 스트림 테이블(종류 속성으로 가름)
+    └ 연속 쿼리
+시스템 정보 ▸ ShardSphere
+  └ 스트림 함수                (사전에 소유자가 없고 모든 사용자에게 공개 → 서버 단위)
+```
+
+- **스키마 아래(골랐음).** 스트림 객체는 사용자가 소유하고 같은 스키마의 테이블과 이름 공간을 나누므로 스키마 아래에서 찾는다. 공급자 트리의 스키마 항목은
+  `AltibaseSchema`의 getter를 리플렉션으로 읽으므로 중립 자리 하나(`AltibaseSchema.getExtensionObjects`, 트리 항목 `schemaExtension`)를 더했다
+  ([altibase.md](altibase.md) "서버 확장"). 이 번들은 그 자리에 "스트림" 노드(`StreamSchema`)를 내고 그 아래에 폴더 셋을 주입한다(`plugin.xml`의
+  `altibase/schema/schemaExtension`). 대안(고르지 않음): System Info ▸ ShardSphere 아래에 모든 사용자의 객체를 소유자 속성과 함께 — 공용 코드 변경은 없지만
+  사용자가 테이블 옆에서 찾지 못한다.
+- **"스트림" 노드를 한 단계 둔 이유:** 중립 getter 하나가 확장마다 폴더를 따로 낼 수 없고(트리 항목은 getter 하나에 아이콘·이름 하나), 확장마다 getter를 두면
+  공용 코드에 제품 이름이 들어간다. 스키마의 마지막 자식이라 기존 폴더 순서는 그대로다.
+- **스트림 테이블은 자기 폴더(골랐음).** 기존 테이블 폴더는 유형 `T`만 읽어 스트림 테이블이 없다. 거기에 넣으면 테이블 명령(삭제, 잘라내기, TTL, 디자인, 데이터
+  보기)이 따라오는데 스트림 테이블에서 확인하지 않았다. 대안: 테이블 목록에 넣고 표시 — 명령마다 확인이 필요해 이번 범위를 넘는다.
+- **나타나는 조건:** 감지 SELECT의 여섯째 값(`SYS_CONTINUOUS_TABLES_`, `SYS_STREAM_FUNCTIONS_`가 모두 있음, `ShardSphereServer.isStreamCatalog`). 일반 서버와 메타
+  노드 모두 있다. Altibase 7.3과 기능을 뺀 제품에는 노드가 없다. 폴더의 `visibleIf`(`object.isStreamSchema()`, `object.isStreamCatalog()`)는 같은 자리의 다른 확장
+  객체에서 식이 실패해 숨는다.
+- **비용:** 스키마를 펼칠 때는 질의가 없다(노드만 만듦). 폴더를 처음 열 때 한 SELECT(스트림 테이블 하나, 연속 테이블·쿼리는 함께 하나), 스트림 함수 폴더 하나.
+  정의는 DDL 보기에서 객체마다 하나.
+
+### 객체와 속성 (모두 `model/`, 읽기 전용, 객체 관리자 없음)
+
+| 객체 | 속성 | 읽는 문장 |
+|---|---|---|
+| `StreamTable` | 이름, 소유자, 컬럼 수(`$INSERT_TIME` 포함), 테이블스페이스, 만든 시각 | `StreamSchema.QUERY_STREAM_TABLES`(`TABLE_TYPE = 'X'`, 소유자 바인드). DDL: `exec ? := dbms_metadata.get_ddl('TABLE', 이름, 소유자)`(드라이버 연결로 직접, 쿼리 관리자에 남지 않음). 실패하면(읽기 전용 연결) "-- 정의를 읽을 수 없음" |
+| `ContinuousObject`(연속 테이블·연속 스트림 테이블·연속 쿼리) | 이름, 소유자, 종류, 윈도, 윈도 간격, TTL, 저장 테이블(쿼리는 이 넷을 숨김), 실행 그룹, 실행 순서, 사용, 실행 문장(`EXEC_QUERY1`–`4`, 속성 보기에만) | `StreamSchema.QUERY_CONTINUOUS`(`SYS_CONTINUOUS_TABLES_` ⋈ `SYS_TABLES_`·`SYS_USERS_` ⟕ `$AGGR` 이름 ⟕ `SYS_TTL_`(`NVL(AGGR_TABLE_ID, TABLE_ID)`)). DDL: `SELECT EXPORT_CONTINUOUS_OBJECT(C.VIEW_ID) … WHERE C.TABLE_ID = ?`, 실패하면 테이블은 `SYS_VIEW_PARSE_`(같은 `VIEW_ID`), 그래도 없으면 "-- 정의를 읽을 수 없음" |
+| `StreamFunction` | 이름, 유형(최근 N개 / 상위 K개 / T-Digest / HyperLogLog, 모르는 값은 그대로), 인자, 만든 시각, 메모리(바이트), 호출 횟수 | `StreamFunction.QUERY_FUNCTIONS`(`SYS_STREAM_FUNCTIONS_` ⟕ `V$STREAM_FUNCTION`) |
+
+- 윈도·간격·TTL의 말은 테이블 TTL과 같은 단위 이름(`ShardTableProperties.ttlPeriod`)에 `R`(마이크로초)을 더했다. 모르는 코드는 수와 코드 그대로.
+- 호스트 변수를 SELECT 목록의 함수 인자로 쓰지 않는다(이 계열 서버가 거절, [altibase.md](altibase.md) "ShardSphere에서 다른 문장"): 정의는 `VIEW_ID`를 같은 질의에서 읽는다.
+- 정규화된 이름은 `소유자.이름`(`DBPQualifiedObject`). DDL에는 서버가 준 대로 소유자가 없다.
+
+### 일반 트리가 보이던 것 (고친 것과 보고만 하는 것)
+
+- 지시서의 가정("`$AGGR`가 사용자 테이블처럼 보임", "연속 테이블이 두 번 보임")은 이 서버에서 맞지 않았다: 테이블 목록은 유형 `T`(와 `V`·`M`·`Q` 다른 폴더)만 읽어
+  `X`·`Y`·`B`·`C`·`I`·`H`·`U`는 하나도 보이지 않았다(앱에서 확인: 스키마의 테이블 폴더에 `CHR_STM_T`만). 그래서 공용 목록 질의(`AltibaseMetaModel`)는 바꾸지
+  않았다. 보이지 않던 것은 위 탐색기가 보인다. `$AGGR`·`$TEXT`는 서버의 내부 객체라 보이지 않는 채로 두고 연속 테이블의 "저장 테이블" 속성으로 이름을 보인다.
+- **보고만(고치지 않음):** 저장소 ▸ 테이블스페이스의 인덱스 폴더는 유형을 거르지 않아 `$AGGR`의 시스템 인덱스를 그 테이블 이름과 함께 보인다(실제로 있는 인덱스).
+  테이블스페이스의 테이블 폴더는 `T`·`Q`만 읽어 `MEM_DATA`에 행을 두는 연속 테이블(`B`의 `$AGGR`, `C`)이 없다. SQL 편집기의 자동 완성도 테이블 목록을 쓰므로 스트림
+  테이블·연속 테이블 이름을 모른다.
+
+### 오른쪽 클릭 메뉴
+
+[context-menus.md](context-menus.md) 규칙대로 해당하는 명령만 보인다(덤프, 2026-11-21, 한국어). 연속 테이블·연속 쿼리·스트림 테이블: 새 쿼리, 최근 스크립트, 스크립팅 ▸
+CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DDL 보기, 개체 세부 정보 | 이름 복사, 정규화된 이름 복사, 선택하여 복사 | 새로 고침(10개, 모두 켜짐; 정의 글이
+있어 DDL 명령이 해당). 스트림 함수: DDL 명령 없이 7개. "스트림" 노드 7개, 폴더 5개(새 쿼리, 최근 스크립트, 개체 세부 정보 | 이름 복사 | 새로 고침). 삭제·이름 바꾸기·
+잘라내기·TTL·디자인·데이터 보기는 없다(객체 관리자 없음, 테이블 클래스가 아님).
+
+### 새로 고침
+
+폴더나 "스트림" 노드의 새로 고침은 그 스키마의 목록을 비우고 다시 읽는다(스트림 테이블과 연속 객체 함께). 스트림 함수 폴더는 ShardSphere 노드의 새로 고침(샤딩 사전과
+함께). 스키마를 새로 고치면 "스트림" 노드가 새로 만들어진다. 연결의 새로 고침은 감지부터 다시 한다.
+
+### 확인 (2026-11-21, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반 서버, 읽기 전용 표시), `SSRW`(같은 서버, 쓰기 가능 표시: 스트림 테이블 DDL만 확인), `SHARD`(메타 노드, 읽기 전용), `ALTI`(Altibase 7.3, 터널, 읽기 전용).
+값은 환경 변수 참조로만, 암호 저장 끔. 앱은 벤더 서버에 SELECT와 스트림 테이블 DDL의 `dbms_metadata.get_ddl` EXEC만 보냈다.
+
+- **일반 서버(시험용 개체가 있을 때):** 스트림 ▸ 스트림 테이블 1, 연속 테이블 12(연속 스트림 테이블 1 포함), 연속 쿼리 2, ShardSphere ▸ 스트림 함수 5 — 사전과 같다(앱 밖
+  SELECT: `X` 1행, `SYS_CONTINUOUS_TABLES_` 14행 중 `I` 2행, `SYS_STREAM_FUNCTIONS_` 5행). 속성은 사전 값과 같다(예: `CHR_STM_CT` 윈도 5시간·간격 3분·저장 테이블
+  `CHR_STM_CT$AGGR`·그룹 1·순서 2·사용 false, `CHR_STM_AT` TTL 2시간, `CHR_STM_CL` TTL 1일, `CHR_STM_W2` 간격 200000마이크로초, `CHR_STM_CS` 종류 연속 스트림 테이블,
+  함수 `CHR_STM_FL` 최근 N개·인자 10, 100). ShardSphere 노드의 속성에 스트림 카탈로그 true.
+- **DDL 보기:** 연속 테이블·연속 스트림 테이블·연속 쿼리는 만든 문장(`EXPORT_CONTINUOUS_OBJECT`, 끝에 `;`). 스트림 테이블은 `SS`(읽기 전용)에서 "-- 정의를 읽을 수 없음",
+  `SSRW`에서 `CREATE STREAM TABLE "CHR_STM_S" (…) TABLESPACE "MEM_DIC";`.
+- **새로 고침:** 앱 밖에서 연속 쿼리·스트림 함수·스트림 테이블을 하나씩 만들고 폴더를 새로 고치면 보이고, 지우고 새로 고치면 사라진다. 연결 새로 고침·다시 연결 뒤에도 같은 수.
+- **빈 서버(정리 뒤):** 스트림 노드의 세 폴더와 스트림 함수 폴더가 0개, 오류 없음.
+- **메타 노드:** 스트림 노드와 폴더가 보이고(사전이 있음) 모두 0개, ShardSphere 아래 샤딩 폴더 넷 뒤에 스트림 함수. SELECT만(쿼리 관리자 감사 37개).
+- **Altibase 7.3:** 스키마의 자식 15개·System Info 자식 3개(전과 같음), 스트림 문장 없음. 연결 때의 문장 수는 같고 감지 SELECT에 부분 질의 하나가 늘었을 뿐이다
+  (그 SELECT는 전부터 있음). 스키마를 펼칠 때 늘어난 문장 없음(`getExtensionObjects`는 질의 없음). SELECT만(감사 24개).
+- **세 연결 함께:** SHARD → ALTI → SS 순서(첫 실행은 ALTI → SS → SHARD)로 연결, 세 연결 새로 고침, 다시 연결 뒤 모두 자기 것만(SS 12/2/1/5, SHARD 0, ALTI 노드 없음).
+- **기능을 뺀 제품**(내 앱 사본에서 이 번들과 feature를 빼고 `bundles.info`에서 그 줄을 지움): 세 연결 모두 스키마 자식 15개, System Info 자식 3개, 감지 문장 없음, SELECT만.
+- **보낸 문장(쿼리 관리자 감사):** 벤더 서버로 간 실행은 모두 SELECT(SS 47, SHARD 37, 캡처마다 SS 12). `get_ddl` EXEC은 드라이버 연결로 바로 가서 쿼리 관리자에 남지 않는다
+  (기존 테이블 DDL과 같음).
+- **일반 트리:** 스키마의 테이블 폴더에는 시험용 개체 가운데 일반 테이블 `CHR_STM_T`만, 테이블스페이스 `MEM_DATA`의 인덱스 폴더에 `$AGGR`의 시스템 인덱스(`__SYS_IDX_ID_*`),
+  테이블 폴더에는 연속 테이블 없음(위 "일반 트리가 보이던 것").
+- 캡처(저장소 밖, 호스트·계정·다른 객체 이름은 가림): `D:\Tools\_scratch\shardsphere-stream-explorer\sheets\` — 한국어·영어 150 % 밝은 테마 각 7장(`ko-*`, `en-*`: 트리 전체,
+  연속 테이블·연속 쿼리·스트림 함수·스트림 테이블 속성, 메뉴, DDL 보기), 어두운 테마 100 % 한국어(`dark-ko-*`).
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열 연결의 스키마 자식(마지막 항목 하나), ShardSphere 감지(부분 질의 하나), System Info ▸ ShardSphere.
+
+### 쓰기 명령에 필요한 것 (이 작업 밖)
+
+- **문장(매뉴얼):** `ALTER CONTINUOUS TABLE|QUERY t SET {ENABLE | DISABLE | EXEC GROUP n | EXEC ORDER n}`, `DROP CONTINUOUS TABLE|QUERY t`, 스트림 테이블은 `DROP TABLE t`,
+  `DROP STREAM FUNCTION f`, `CREATE …`(위 종류마다). 연속 테이블의 TTL 바꾸기는 매뉴얼의 `ALTER CONTINUOUS TABLE t ttl_option`(문법 미확인).
+- **자리:** 객체 관리자(이 번들의 모델, `DBEObjectManager`)나 유지 관리 동작처럼 좁은 능력(TTL과 같은 길, [altibase.md](altibase.md) "테이블 TTL 자리"), 확인 대화상자,
+  실행 뒤 이 폴더 다시 읽기. 열린 트랜잭션 확인(DDL이라 바로 커밋).
+- **서버에서 확인할 것:** 켜기·끄기의 결과(`IS_ENABLE`), 다른 객체가 읽는 객체(예: 연속 쿼리가 읽는 연속 스트림 테이블)를 지울 때의 순서와 오류(시험 정리에서는 읽는
+  쪽부터 지움), 권한(다른 사용자의 객체), `CONTINUOUS_QUERY_THREAD_COUNT`가 0이 아닌 서버에서 처리 중인 객체를 바꿀 때.
+
+### 미확인 (벤더 문의)
+
+- 미확인: `TABLE_TYPE` `B`·`C`·`Y`·`X`·`I`·`H`·`U`가 문서화된 값인지(시험용 개체로 본 뜻만 씀), 다른 값이 있는지.
+- 미확인: `WINDOW_STEP_UNIT`을 사용자가 정할 문법이 있는지(서버가 정함), `R`이 늘 마이크로초인지.
+- 미확인: `GROUP BY`가 있는 연속 쿼리를 받지 않는 이유(매뉴얼의 예는 받는 것으로 보임), 윈도 단위 `YEAR`가 없는 것이 의도인지.
+- 미확인: `V$STREAM_FUNCTION.CREATE_TIME`·`TOUCH_TIME`의 단위.
+- 미확인: 읽기 전용 연결에서 `DBMS_METADATA.GET_DDL`을 거절하는 것이 의도인지.
+- 미확인: 스트림 함수에 소유자가 없는 것(이름이 서버 전체에서 하나인지).
 
 ## 아직 없는 것
 
@@ -793,3 +948,6 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 2026-11-17 기존 테이블의 TTL 설정·변경·해제(앱 변경 #152, `chromite/shardsphere-ttl-manage`): 표 오른쪽 클릭 "TTL 설정"과 대화상자, 문장은 이 번들(`ShardTableTtl`),
   중립 능력 `AltibaseTableTtl`, 메타 노드의 샤드 테이블에는 내지 않음(감지 때 샤드 테이블 목록 읽기). 위 "TTL 관리".
 - 2026-11-21 작업·큐·세션 종료의 ShardSphere 사실과 남은 문의(앱 변경 #154, `chromite/altibase-family-jobs-queues`, 코드는 계열 공통), 위 "작업·큐·세션 종료".
+- 2026-11-21 읽기 전용 스트림 탐색기(앱 변경 #153, `chromite/shardsphere-stream-explorer`): 일반 서버에 시험용 개체 `CHR_STM_*`를 만들어 사전의 값을 확인하고 지움, 스키마 아래
+  "스트림" 노드(스트림 테이블·연속 테이블·연속 쿼리)와 System Info ▸ ShardSphere ▸ 스트림 함수, 정의는 `EXPORT_CONTINUOUS_OBJECT(VIEW_ID)`, 스키마 아래 중립 트리 자리
+  ([altibase.md](altibase.md) "서버 확장"). 위 "스트림 탐색기".

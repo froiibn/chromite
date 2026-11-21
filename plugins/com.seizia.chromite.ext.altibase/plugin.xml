@@ -257,6 +257,9 @@
                         label="%tree.directories.node.name">
                             <items label="%tree.directory.node.name" path="directory" property="directories" icon="#file"/>
                         </folder>
+                        <!-- Chromite: objects the server extensions detected on this connection show for this schema
+                             (AltibaseSchema.getExtensionObjects); no node on a server without one (docs/chromite/altibase.md "서버 확장") -->
+                        <items label="%tree.server_extension.node.name" path="schemaExtension" property="extensionObjects" icon="#folder" virtual="true"/>
                     </items> <!--</items>-->
                 </folder> <!-- Schemas -->
                 <folder id="globalMetadataObjects" 

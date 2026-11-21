@@ -709,6 +709,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | `AltibaseDataSource.refreshObject` | 결과를 비우고 `initialize`가 다시 감지한다. 끊고 다시 연결하면 데이터 원본 인스턴스가 새로 만들어지므로 그때도 다시 감지한다 |
 | `AltibaseDataSource.getAdapter` | 감지된 확장에 먼저 묻고, 답이 없으면 전과 같다 |
 | `AltibaseDataSource.getExtensionObjects` + `plugin.xml` 트리 System Info 안 `<items path="serverExtension" property="extensionObjects">` | 트리 자리. 감지된 확장의 객체가 System Info 아래 노드가 되고 그 `@Property`가 속성 보기에 보인다. 확장이 없는 서버에서는 노드가 없다(빈 목록, 질의 없음) |
+| `AltibaseServerExtensionState.getSchemaTreeObjects(schema)` → `AltibaseDataSource.getSchemaExtensionObjects` → `AltibaseSchema.getExtensionObjects` + `plugin.xml` 스키마의 마지막 자식 `<items path="schemaExtension" property="extensionObjects">`(2026-11-21 앱 변경 #153) | 스키마 아래 트리 자리. 사용자가 소유한 확장의 객체(ShardSphere의 스트림 객체)를 그 스키마 아래에 둔다. 스키마의 자식을 읽을 때 불리므로 확장은 질의 없이 노드만 내고, 그 아래는 열 때 읽는다. 확장이 없으면 노드가 없다(빈 목록, 질의 없음) |
 
 ### 설계 결정
 
@@ -718,6 +719,11 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - **실패는 연결을 막지 않는다.** 확장의 오류(`RuntimeException`, `LinkageError`)와 세션 오류는 디버그 기록만 남기고 그 확장은 "없음"이다.
 - **어댑터는 확장이 먼저.** 계열 공통 구현(세션 관리자, 실행 계획 등)을 어느 서버에서 바꿔야 할 때 이 클래스를 고치지 않으려고. 확장이 없으면 빈 목록을 한 번 도는 비용뿐이다.
 - **트리 자리는 System Info 안 한 곳.** 이번 변경이 쓰는 곳만 두었다. 다음 작업의 GEMINI 트리는 Replications 폴더 아래이고(계획의 결정), 그때 필요한 자리를 정한다.
+- **스키마 아래 자리(2026-11-21, 앱 변경 #153).** 사용자가 소유한 객체는 스키마 아래에 있어야 찾는다. 공급자 트리의 항목은 부모 객체의 실제 클래스에서 getter를
+  리플렉션으로 읽으므로(`DBNDatabaseNode.extractPropertyValue`, 어댑터를 거치지 않음) 확장 번들이 스키마 바로 아래 폴더를 넣으려면 `AltibaseSchema`에 그 폴더의
+  getter가 있어야 한다. 확장마다 getter를 더하지 않으려고 중립 getter 하나(`getExtensionObjects`)가 확장의 노드를 내고, 확장 번들은 그 노드 아래에 폴더를
+  주입한다(`altibase/schema/schemaExtension`). 그래서 확장의 폴더는 스키마 아래 한 단계 더(확장의 노드) 아래에 있다. 대안(고르지 않음): 확장마다 `AltibaseSchema`의
+  getter — 제품 이름이 공용 코드에 들어간다. 항목은 스키마의 마지막 자식이라 기존 폴더의 순서는 그대로다.
 - **방언 기여는 데이터 원본의 방언 객체에만(2026-11-17, 작업 6a).** 방언 객체는 데이터 원본마다 하나(`AltibaseDataSource` 생성자의 `new AltibaseSQLDialect()`)라
   한 연결이 감지한 낱말·접두어가 같은 앱의 다른 Altibase 연결로 가지 않는다(정적 배열에 넣지 않음). `initialize`가 감지 뒤 `applyServerExtensions`를 부른다.
   새로 고침에서는 `initDriverSettings`(서버 예약어)가 다시 돈 뒤 감지와 기여가 다시 들어오고, 그 사이에도 접두어 인식은 앞 결과를 그대로 쓴다(꺼지지 않음).
@@ -728,6 +734,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 ### upstream 대비 변경점
 
 - upstream에는 Altibase 서버 확장이 없다. 확장 지점, 세 타입, 데이터 원본의 감지·어댑터·트리 자리, System Info의 트리 항목 하나를 더했다.
+  2026-11-21 스키마의 트리 항목 하나와 `AltibaseSchema.getExtensionObjects`를 더했다.
 
 ## 복제 카탈로그 (2026-11-17, 앱 변경 #139 작업 4·5)
 
@@ -1236,3 +1243,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 2026-11-21 작업 만들기·바꾸기·사용·사용 안 함·삭제, 큐 만들기·압축·삭제와 큐에 맞지 않던 명령 정리(디자이너, 열·키·인덱스 편집, `DROP QUEUE … CASCADE`),
   큐를 만들고 지운 뒤 시퀀스 목록 맞추기, 세션 종료 문장 확인(앱 변경 #154, `chromite/altibase-family-jobs-queues`), 위 "작업 만들기·바꾸기·삭제", "큐",
   "세션 종료 문장", "작업·큐·세션 종료 확인".
+- 2026-11-21 서버 확장의 스키마 아래 트리 자리(`getSchemaTreeObjects`, `AltibaseSchema.getExtensionObjects`, 트리 항목 `schemaExtension`, 앱 변경 #153,
+  첫 사용자는 ShardSphere 스트림 탐색기), 위 "서버 확장".

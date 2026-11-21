@@ -49,6 +49,8 @@ import java.util.Set;
  * - 2026-11-17 같은 SELECT로 TTL 사전 표({@code SYSTEM_.SYS_TTL_})가 있는지도 읽음: 테이블 속성의 TTL(앱 변경 #139 수정 6)
  * - 2026-11-17 TTL 사전이 있는 메타 노드면 샤드 테이블의 소유자·이름을 한 번 더 읽음: 샤드 테이블에는 TTL 명령을 내지 않음. 읽지 못하면
  *   그 연결의 어느 테이블에도 내지 않음(앱 변경 #152, docs/chromite/shardsphere.md "TTL 관리")
+ * - 2026-11-21 같은 SELECT로 스트림 사전 표 둘({@code SYS_CONTINUOUS_TABLES_}, {@code SYS_STREAM_FUNCTIONS_})이 있는지도 읽음: 스트림
+ *   탐색기(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
  */
 public class ShardSphereServerExtension implements AltibaseServerExtension {
 
@@ -56,7 +58,7 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
 
     /**
      * GEMINI catalog table rows, DBMS_SHARD package rows (spec and body), SYS_SHARD user rows, SHARD_META_ENABLE = 1 rows,
-     * TTL dictionary table rows.
+     * TTL dictionary table rows, stream dictionary table rows.
      */
     private static final String QUERY_DETECT = "SELECT"
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U"
@@ -66,8 +68,13 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_USERS_ WHERE USER_NAME = 'SYS_SHARD'),"
         + " (SELECT COUNT(*) FROM V$PROPERTY WHERE NAME = 'SHARD_META_ENABLE' AND VALUE1 = '1'),"
         + " (SELECT COUNT(*) FROM SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U"
-        + " WHERE T.USER_ID = U.USER_ID AND U.USER_NAME = 'SYSTEM_' AND T.TABLE_NAME = 'SYS_TTL_')"
+        + " WHERE T.USER_ID = U.USER_ID AND U.USER_NAME = 'SYSTEM_' AND T.TABLE_NAME = 'SYS_TTL_'),"
+        + " (SELECT COUNT(*) FROM SYSTEM_.SYS_TABLES_ T, SYSTEM_.SYS_USERS_ U WHERE T.USER_ID = U.USER_ID"
+        + " AND U.USER_NAME = 'SYSTEM_' AND T.TABLE_NAME IN ('SYS_CONTINUOUS_TABLES_', 'SYS_STREAM_FUNCTIONS_'))"
         + " FROM DUAL";
+
+    // Both stream dictionary tables of the detection's last column
+    private static final int STREAM_CATALOG_TABLES = 2;
 
     /**
      * The node names of a sharding meta node (names only: the hosts and ports of the nodes are not read).
@@ -92,10 +99,12 @@ public class ShardSphereServerExtension implements AltibaseServerExtension {
             boolean shardingMetaNode = dbResult.getLong(3) > 0 && dbResult.getLong(4) > 0;
             // Not a reason on its own: the TTL table only adds to a server recognised by the three above
             boolean ttlCatalog = dbResult.getLong(5) > 0;
+            // Not a reason on its own either: the stream explorer only adds to a recognised server
+            boolean streamCatalog = dbResult.getLong(6) == STREAM_CATALOG_TABLES;
             if (!geminiCatalog && !shardingPackage && !shardingMetaNode) {
                 return null;
             }
-            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode, ttlCatalog,
+            return new ShardSphereServer(dataSource, geminiCatalog, shardingPackage, shardingMetaNode, ttlCatalog, streamCatalog,
                 shardingMetaNode ? readNodeNames(session) : List.of(),
                 shardingMetaNode && ttlCatalog ? readShardTables(session) : Set.of());
         } catch (SQLException e) {
