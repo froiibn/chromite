@@ -22,6 +22,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.generic.model.GenericStructContainer;
 import com.seizia.chromite.ext.generic.model.GenericTable;
 import com.seizia.chromite.ext.generic.model.GenericTableColumn;
@@ -63,6 +64,9 @@ import java.util.List;
  *   (docs/chromite/altibase.md)
  * - 2026-11-17 속성 보기에 서버 확장이 이 연결에서 더하는 읽기 전용 속성({@link DBPObjectWithContributedProperties}): 속성 보기가 이
  *   테이블을 보일 때만 묻고, 확장이 없거나 해당하지 않으면 질의가 없다(앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
+ * - 2026-11-21 새 테이블의 TTL({@link #getNewTableTtl}): 테이블 디자이너가 넣고 테이블 관리자가 CREATE TABLE 끝에 절로 붙인다. 속성이
+ *   아니라 필드인 것은 명령이 필요 없어서다(새 테이블의 만들기 명령이 스크립트를 만들 때마다 이 값을 읽음)
+ *   (docs/chromite/altibase.md "테이블 TTL 자리")
  */
 public class AltibaseTable extends GenericTable
     implements DBPNamedObject2, DBPObjectStatistics, DBSTableWithStorageKind, DBPObjectWithContributedProperties {
@@ -84,6 +88,9 @@ public class AltibaseTable extends GenericTable
     private boolean partitioned;
     @Nullable
     private DBSTableStorageKind storageKind;
+    // Set by the table designer on the EDT, read by the script generation in a worker thread
+    @Nullable
+    private volatile AltibaseTableTtl.Change newTableTtl;
     
     private final TablePrivCache tablePrivCache = new TablePrivCache();
     
@@ -262,6 +269,19 @@ public class AltibaseTable extends GenericTable
     @Override
     public List<ContributedProperty> getContributedProperties(@NotNull DBRProgressMonitor monitor) throws DBException {
         return ((AltibaseDataSource) getDataSource()).getExtensionProperties(monitor, this);
+    }
+
+    /**
+     * The TTL a new table is created with (the end of its CREATE TABLE statement, {@code AltibaseTableManager}); null for a
+     * saved table and for a new one without a TTL.
+     */
+    @Nullable
+    public AltibaseTableTtl.Change getNewTableTtl() {
+        return newTableTtl;
+    }
+
+    public void setNewTableTtl(@Nullable AltibaseTableTtl.Change newTableTtl) {
+        this.newTableTtl = newTableTtl;
     }
 
     ///////////////////////////////////

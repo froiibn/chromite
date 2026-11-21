@@ -19,7 +19,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.ext.altibase` (중립, ShardSphere를 모름) | 확장 지점 `com.seizia.chromite.altibase.serverExtension`과 스키마, `extension/AltibaseServerExtension`·`AltibaseServerExtensionState`·`AltibaseServerExtensionRegistry`, `AltibaseDataSource`의 감지·어댑터·트리 자리, System Info 안 트리 항목 `serverExtension`과 스키마 아래 트리 항목 `schemaExtension`(2026-11-21). 자세한 것은 [altibase.md](altibase.md) "서버 확장" |
-| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `model/ShardTableTtl`: 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리"). `model/StreamSchema`·`StreamTable`·`ContinuousObject`·`StreamFunction`: 스트림 탐색기(아래 "스트림 탐색기"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.shardsphere` (모델만, UI 번들에 의존하지 않음) | `plugin.xml`: 확장 하나(`<serverExtension id="shardsphere">`)와 샤딩 탐색기 트리 주입(`<datasourcePatch id="altibase">`). `ShardSphereServerExtension`: 감지. `model/ShardSphereServer`: 연결마다의 결과이자 System Info 아래 노드, 읽기 전용 속성, 방언 기여, 복제 카탈로그. `model/GeminiReplicationCatalog`: GEMINI 복제 카탈로그(아래 "GEMINI"). `ShardSphereStatementPrefix`: 문장 접두어 인식. `model/ShardingDictionary`·`ShardNode`·`ShardObject`·`ShardPlacement`·`ShardingProperty`·`ShardLink`, `internal/ShardSphereMessages`: 샤딩 탐색기(아래). `model/ShardTableProperties`: 테이블 속성의 TTL과 샤드(아래 "테이블 속성: TTL과 샤드"). `model/ShardTableTtl`: 기존 테이블의 TTL 설정·변경·해제와 새 테이블의 TTL 절(아래 "TTL 관리"). `model/StreamSchema`·`StreamTable`·`ContinuousObject`·`StreamFunction`: 스트림 탐색기(아래 "스트림 탐색기"). `OSGI-INF/l10n/bundle*.properties`: 속성·트리 이름(영어, 한국어) |
 | `features/com.seizia.chromite.shardsphere.feature` | 이 번들 하나를 담는 feature. 제품에서 뺄 단위 |
 | `features/com.seizia.chromite.swing.feature/feature.xml` | `<includes id="com.seizia.chromite.shardsphere.feature">` |
 | `plugins/pom.xml`(desktop 프로필), `features/pom.xml`(desktop 프로필) | 모듈 |
@@ -41,7 +41,7 @@ ShardSphere(CISPHERE Inc.의 Altibase 계열 DBMS)에만 있는 기능(GEMINI �
 - **방언 기여(2026-11-17 작업 6a):** `getSyntaxKeywords()`, `getFunctions()`, `getStatementPrefixLength(text)`. 실행 전 확인 보강과 함께 넣었다(아래 "문장 접두어").
 - **복제 카탈로그(2026-11-17 작업 4·5):** `getReplicationCatalog()`. GEMINI를 Replications 폴더와 복제 탭에 보인다(아래 "GEMINI").
 - **기존 객체의 추가 속성(2026-11-17 수정 6, 계획의 S8):** `getObjectProperties(monitor, object)`. 테이블의 TTL과 샤드 객체(아래 "테이블 속성: TTL과 샤드").
-- **테이블 TTL(2026-11-17 앱 변경 #152, S6/S7 가운데 좁은 능력):** `getAdapter(AltibaseTableTtl.class)`. 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리").
+- **테이블 TTL(2026-11-17 앱 변경 #152, S6/S7 가운데 좁은 능력):** `getAdapter(AltibaseTableTtl.class)`. 기존 테이블의 TTL 설정·변경·해제(아래 "TTL 관리"). 2026-11-21 새 테이블의 TTL 절(`appliesToNewTable`, `getCreateClause`, 앱 변경 #155).
 - **스키마 아래 트리 객체(2026-11-21 앱 변경 #153):** `getSchemaTreeObjects(schema)`. 스키마마다 "스트림" 노드(아래 "스트림 탐색기").
 - **나중으로 둔 것(쓰는 곳이 아직 없음):** 관리 보고서 지점(S4)·일반 객체 명령 틀(S6/S7)은 그 기능과 함께 정한다. 트리 자리는 System Info와 스키마 아래 두 곳이다.
 
@@ -642,9 +642,64 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-ttl-manage\sheets\`.
 - 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Object Explorer 유지 관리 메뉴(항목 순서), Altibase 계열 연결의 어댑터, ShardSphere 감지(메타 노드의 SELECT 하나).
 
+### 새 테이블의 TTL (2026-11-21, 앱 변경 #155)
+
+테이블 디자이너로 새 테이블을 만들 때 같은 저장에서 TTL을 준다. 전에는 테이블을 만든 뒤 "TTL 설정"을 따로 열어야 했다.
+
+**서버에서 확인한 사실(일반 서버 5.1.9, 앱 밖 JDBC, 시험용 표 `CHR_TTLC_*`, 끝에 모두 지움):**
+
+| 문장 모양 | 결과 |
+|---|---|
+| `CREATE TABLE t (열…, CONSTRAINT … PRIMARY KEY (…), CONSTRAINT … UNIQUE (…)) USING TTL 7 DAY ON COLUMN c` | 됨. `SYS_TTL_` D 7, DDL 보기에 절 |
+| 같은 모양에 `5 MINUTE`·`3 HOUR`·`2 MONTH`·`1 YEAR`·`2147483647 YEAR` | 됨(M, H, O, Y) |
+| `… USING TTL 0 DAY …` / `1 MIN` | 200705(구문), 테이블 없음 |
+| `… ON COLUMN 없는컬럼` / `2147483648 DAY` / `1 SECOND` | 200792 / 201846 / 201848, 테이블 없음 |
+| `… USING TTL 1 DAY ON COLUMN 정수·문자 컬럼` | **201906, 테이블 없음.** CREATE에서는 날짜가 아닌 컬럼을 받지 않는다(ALTER는 정수 컬럼도 받음, 같은 날 다시 확인) |
+| `("d 1" DATE, …) USING TTL 4 DAY ON COLUMN "d 1"` | 됨 |
+| `(…) TABLESPACE DISK_DATA USING TTL …`, `(…) PARTITION BY RANGE … USING TTL …` | 됨. 절을 테이블스페이스·파티션 절 **앞**에 두면 200705 |
+| `CREATE TABLE t (…)` 뒤 `ALTER TABLE t USING TTL … ON COLUMN 없는컬럼` / `0 DAY` | ALTER만 실패(200792 / 200705), TTL 없는 테이블이 남음 |
+
+**고른 모양:** CREATE TABLE 문 끝의 절(`… ) USING TTL n 단위 ON COLUMN c`). 서버가 절을 거절하면 테이블이 없으니 "TTL 없는 테이블"이 남지 않고, 사용자는 디자이너의 기존 저장
+오류 창을 본 뒤 입력이 그대로인 디자이너에서 고친다. 서버 규칙도 대화상자(날짜 컬럼만)와 같다. **대안:** 같은 미리 보기의 두 번째 문장 `ALTER TABLE … USING TTL …`.
+실패하면 TTL 없는 테이블이 남고("일부만 적용" 창), ALTER가 정수 컬럼도 받는다. 자리는 [altibase.md](altibase.md) "테이블 TTL 자리" ▸ "새 테이블".
+
+**화면:** 디자이너의 "테이블" 탭(테이블 속성 시트) 아래, 새 테이블이고 TTL 사전이 있는 일반 서버일 때만. 칸은 "TTL 설정" 대화상자와 같다(TTL 사용, 기준 컬럼, 기간, 단위,
+같은 문구·숫자 칸·기본 단위 일). 기준 컬럼은 디자이너에 지금 있는 날짜 컬럼이다. 자세한 동작은 [swing-table-designer.md](swing-table-designer.md) "새 테이블의 TTL".
+
+- **기존 테이블:** 디자이너에는 칸이 없다("TTL 설정" 한 길). 저장해 기존 테이블이 되면 칸이 사라진다.
+- **메타 노드:** 새 테이블에는 내지 않는다(`ShardTableTtl.appliesToNewTable`). 아직 없는 테이블이 샤드 테이블이 될지, 메타 노드의 CREATE가 노드에 어떻게 걸리는지
+  확인하지 않았다(안전 쪽, 메타 노드는 이 작업에서 조회만).
+- 시스템 스키마의 새 테이블에도 내지 않는다(기존 테이블과 같은 규칙).
+
+**확인 (2026-11-21, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %; 영어와 어두운 테마 100 %는 캡처만):**
+연결 `SS`(일반 서버, 자동 커밋), `SSTX`(같은 서버, 수동 커밋), `SHARD`(메타 노드), `ALTI`(Altibase 7.3), `PG`(PostgreSQL 17). `SYS_TTL_`은 앱의 다른 세션에서 SELECT로 읽었다.
+
+| 디자이너 | 미리 보기 / 쿼리 관리자 | `SYS_TTL_` | 속성 TTL 묶음 / DDL 보기 |
+|---|---|---|---|
+| ID INTEGER PK, D1·D2 DATE, V VARCHAR, TTL 7일 D1 | `CREATE TABLE <소유자>.CHR_TTLC_D1 (… CONSTRAINT CHR_TTLC_D1_PK PRIMARY KEY (ID)) USING TTL 7 DAY ON COLUMN D1` | D1, D, 7 | D1, 7일 / 절 있음 |
+| 5분 D1, 저장 전에 D1 → DX 이름 바꿈 | 콤보가 DX, `… USING TTL 5 MINUTE ON COLUMN DX` | DX, M, 5 | DX, 5분 / 같음 |
+| 3개월 D2, 저장 전에 D2 지움 | 콤보 비워짐, 저장·스크립트 → "날짜 컬럼을 고르십시오."; D1을 INTEGER로 바꾸면 목록에서 빠지고 DATE로 돌리면 다시 들어옴(선택은 비운 채); D1 고른 뒤 `… 3 MONTH ON COLUMN D1` | D1, O, 3 | D1, 3개월 |
+| 12시간, 1년 | `… 12 HOUR …`, `… 1 YEAR …` | H 12, Y 1 | 12시간, 1년 |
+| TTL 없음 | `CREATE TABLE <소유자>.CHR_TTLC_N0 (ID INTEGER NOT NULL, D1 DATE, CONSTRAINT CHR_TTLC_N0_PK PRIMARY KEY (ID))` — 기준 빌드(`2b256de3d4`의 클래스로 되돌린 같은 앱)와 글자 하나까지 같음 | 행 없음 | 묶음 없음 |
+
+- 미리 보기 취소 → 문장 없음, `SYS_TABLES_`에 행 없음. 기간 `0`·빈 칸 → "1 이상의 정수를 입력하십시오."(저장·스크립트 생성 모두), `12abc`는 들어가지 않음, 입력 그대로.
+- 서버 오류: 앱 뒤에서 같은 이름의 표를 만든 뒤 저장 → 기존 오류 창 "SQL 오류 [200738] [42S01]"(쿼리 관리자에 그 CREATE 하나), 디자이너는 새 테이블·TTL 입력 그대로, 이름만 바꿔 다시 저장 → 됨.
+  (캐시에 있는 이름이면 서버에 가기 전에 "이미 있음"으로 막히는 디자이너의 기존 검사, 입력 그대로.)
+- 열린 트랜잭션(SSTX 쿼리 창의 커밋하지 않은 INSERT): 저장의 실행에서 "커밋하지 않은 트랜잭션" 질문(커밋 / 롤백 / 취소). 취소 → CREATE 없음, 표 없음. 롤백 → INSERT가 사라지고(다른 세션 0행) 표와 TTL 1일.
+- 만든 뒤 "TTL 설정": 7일·D1로 채워짐, 9개월로 바꿈(`ALTER … USING TTL 9 MONTH ON COLUMN D1`, O 9), 해제(`USING NOTTL`, 행 없음, DDL에 절 없음).
+- 연결 새로 고침 뒤, 끊고 다시 연결한 뒤에도 같음(칸 있음, 절 있음).
+- **메타 노드(SHARD):** 새 테이블 디자이너에 칸 없음. 저장하지 않았다(조회만).
+- **Altibase 7.3·PostgreSQL:** 칸 없음, 탭은 전과 같은 속성 시트, Altibase 스크립트 `CREATE TABLE <소유자>.NEWTABLE (ID INTEGER, D1 DATE)`가 기준 빌드와 같음. 저장하지 않았다.
+- **기능을 뺀 제품**(앱 사본에서 이 번들과 `bundles.info` 줄을 뺌): SS에서도 능력 없음, 칸 없음, 스크립트에 절 없음.
+- **벤더 서버에 쓴 것(사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_TTLC_*`만):** 위 표의 CREATE·ALTER·DROP과 앱에서 만든 표, 행 하나의 INSERT(롤백됨),
+  `DBMS_METADATA.GET_DDL`. 끝에 모두 지움: `SYS_TABLES_`에 `CHR_TTLC%` 0행, `SYS_TTL_`에 `CHR_TTLC%` 0행. `SYS_TTL_` 행 수는 시작 0, 끝 2(다른 작업의 `CHR_STW_*`
+  행, 건드리지 않음), 짝 없는 행 0. 메타 노드는 조회만.
+- 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-ttl-create-table\sheets\`.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열 새 테이블의 CREATE TABLE 문(`AltibaseTableManager`), 테이블 디자이너의 저장·스크립트 생성 전 검사와 "테이블" 탭.
+
 ### 남은 것 (이 작업 밖)
 
-- 테이블 디자이너·CREATE TABLE의 TTL 절, TTL 컬럼의 인덱스 권장, 서버 속성 `EXPIRED_DATA_DELETION_ENABLE` 켜기(설정 파일·재기동), 연속 테이블의 TTL, 시스피어가 이름을 들지
+- TTL 컬럼의 인덱스 권장, 서버 속성 `EXPIRED_DATA_DELETION_ENABLE` 켜기(설정 파일·재기동), 연속 테이블의 TTL, 시스피어가 이름을 들지
   않은 단위(`WEEK`, `QUARTER`, `SECOND`).
 - 샤드 테이블의 TTL(메타 노드에서 숨김, 확인 전), 연결 중 샤딩한 표의 메뉴(새로 고침까지).
 
@@ -654,6 +709,8 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 미확인: INTEGER·VARCHAR 컬럼을 TTL 컬럼으로 받는 뜻(시간 값으로 읽는지, 형식은 `SYS_TTL_FORMAT_`인지).
 - 미확인: `DBMS_METADATA.GET_DDL`이 기준 컬럼 이름을 따옴표 없이 쓰는 것(`ON COLUMN d 1`)이 의도인지.
 - 미확인: 큐·시스템 표에 TTL을 받는지.
+- 미확인: `CREATE TABLE … USING TTL`은 날짜가 아닌 컬럼을 거절하고(201906) `ALTER TABLE … USING TTL`은 받는 차이가 의도인지.
+- 미확인: 샤딩 메타 노드에서 `CREATE TABLE … USING TTL …`의 TTL이 어디에 걸리는지(메타 노드만인지, 뒤에 샤드 테이블로 바꾸면 노드마다 걸리는지).
 
 ## 작업·큐·세션 종료 (2026-11-21, 앱 변경 #154)
 
@@ -951,3 +1008,5 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 2026-11-21 읽기 전용 스트림 탐색기(앱 변경 #153, `chromite/shardsphere-stream-explorer`): 일반 서버에 시험용 개체 `CHR_STM_*`를 만들어 사전의 값을 확인하고 지움, 스키마 아래
   "스트림" 노드(스트림 테이블·연속 테이블·연속 쿼리)와 System Info ▸ ShardSphere ▸ 스트림 함수, 정의는 `EXPORT_CONTINUOUS_OBJECT(VIEW_ID)`, 스키마 아래 중립 트리 자리
   ([altibase.md](altibase.md) "서버 확장"). 위 "스트림 탐색기".
+- 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): 테이블 디자이너의 "테이블" 탭에 TTL 칸, CREATE TABLE 끝의 절
+  (`ShardTableTtl.getCreateClause`, 메타 노드 제외). 일반 서버에 시험용 표 `CHR_TTLC_*`를 만들어 문장 모양을 확인하고 지움. 위 "TTL 관리" ▸ "새 테이블의 TTL".

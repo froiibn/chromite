@@ -88,6 +88,9 @@ import java.util.Set;
  *   단추 자리까지 더해 정함({@link DesignerTable#getContentWidth}): 데이터 형식 칸을 편집하면 "char(80)"처럼 앞이 가려졌다(앱 변경 #78,
  *   docs/chromite/swing-table-designer.md "열 폭과 편집기")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-21 새 테이블의 TTL: 연결의 서버가 새 테이블에 TTL을 줄 때만 "테이블" 탭의 속성 시트 아래에 {@link AltibaseNewTableTtlPart}.
+ *   표를 다시 읽을 때 컬럼 목록을 넘기고, 저장·스크립트 보기 전에 입력을 검사한다(앱 변경 #155,
+ *   docs/chromite/swing-table-designer.md "새 테이블의 TTL")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -122,6 +125,9 @@ final class TableDesignerPanel extends JPanel {
     private final Action saveAction;
     private final Action scriptAction;
     private final Action revertAction;
+    // The TTL of a new table, where the connection's server gives one (otherwise null and the "Table" tab is the sheet only)
+    @Nullable
+    private final AltibaseNewTableTtlPart ttlPart;
     @Nullable
     private Snapshot snapshot;
     private boolean disposed;
@@ -173,7 +179,14 @@ final class TableDesignerPanel extends JPanel {
         DesignerTable tableSheet = createSheetTable(tableSheetModel);
         JScrollPane tableSheetScroll = new JScrollPane(tableSheet);
         tableSheetScroll.setBorder(BorderFactory.createEmptyBorder());
-        sectionTabs.addTab(ToolsMessages.designer_section_table, UiIcons.get("table"), tableSheetScroll); //$NON-NLS-1$
+        ttlPart = session.isNewTable() ? AltibaseNewTableTtlPart.create(session.getTable()) : null;
+        JComponent tableTab = tableSheetScroll;
+        if (ttlPart != null) {
+            tableTab = new JPanel(new BorderLayout());
+            tableTab.add(tableSheetScroll, BorderLayout.CENTER);
+            tableTab.add(ttlPart.getComponent(), BorderLayout.SOUTH);
+        }
+        sectionTabs.addTab(ToolsMessages.designer_section_table, UiIcons.get("table"), tableTab); //$NON-NLS-1$
         sectionTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
 
         nameField.addActionListener(e -> renameTable());
@@ -384,6 +397,9 @@ final class TableDesignerPanel extends JPanel {
             nameField.setText(session.getTable().getName());
         }
         nameField.setEditable(newSnapshot.nameProperty() != null && session.isEditable(session.getTable(), newSnapshot.nameProperty()));
+        if (ttlPart != null) {
+            ttlPart.setColumns(session.isNewTable() ? getColumns() : null);
+        }
         updateState();
     }
 
@@ -587,6 +603,9 @@ final class TableDesignerPanel extends JPanel {
     }
 
     private void showScript() {
+        if (!checkTtl(ToolsMessages.designer_generate_script)) {
+            return;
+        }
         String script = generateScript(ToolsMessages.designer_generate_script);
         if (script == null) {
             return;
@@ -612,6 +631,9 @@ final class TableDesignerPanel extends JPanel {
         }
         if (nameField.isFocusOwner()) {
             renameTable();
+        }
+        if (!checkTtl(ToolsMessages.designer_save)) {
+            return false;
         }
         String script = generateScript(ToolsMessages.designer_save);
         if (script == null) {
@@ -651,6 +673,20 @@ final class TableDesignerPanel extends JPanel {
             reload();
             return false;
         }
+    }
+
+    /**
+     * A new table's TTL as entered: an incomplete one (no column, a wrong amount) is refused before any script; the
+     * input stays.
+     */
+    private boolean checkTtl(@NotNull String title) {
+        String error = ttlPart == null ? null : ttlPart.check();
+        if (error == null) {
+            return true;
+        }
+        sectionTabs.setSelectedIndex(sectionTabs.getTabCount() - 1);
+        JOptionPane.showMessageDialog(this, error, title, JOptionPane.WARNING_MESSAGE);
+        return false;
     }
 
     private void revert() {
