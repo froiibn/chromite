@@ -197,6 +197,9 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   - 이 컨테이너의 ORA-38802([model-fixes.md](model-fixes.md) #30) 원인을 찾았다: 메타데이터 세션의 `OPTIMIZER_FEATURES_ENABLE='10.2.0.5'`
     (`OracleDataSource.initializeContextState`, "메타데이터 옵티마이저" 설정; JDBC로는 `'10.2.0.1'`로 같은 결과) 아래에서 23.26의 `DBMS_METADATA.GET_DDL`이 `DBMS_EDITIONS_UTILITIES`의
     ORA-01403 때문에 ORA-38802로 실패한다(같은 세션에서 `'23.1.0'`으로 되돌리면 됨). 그래서 이 서버에서는 소유자·SYSTEM도 사전 뷰 DDL을 받는다. 고치지 않았다.
+    → 2026-11-22 앱 변경 #162로 고침: 23ai 이상에서 메타데이터 세션의 기본 옵티마이저 버전이 11.2.0.4다. 테이블 DDL은 서버가 만든 DDL(대체 DDL 머리 주석 없음),
+    인덱스 DDL은 오류 창 대신 서버 DDL이다. 권한이 없어 서버가 거절하면(ORA-31603) 위 대체 DDL과 머리 주석은 그대로다. 사실 표와 고른 이유는
+    [model-fixes.md](model-fixes.md) #30.
 
 ## 남긴 것
 
@@ -211,3 +214,4 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   구조 검증(O20), Altibase TRUNCATE·구체화된 뷰 새로 고침(A5). PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 - 2026-11-22 "DDL 권한과 취소"(앱 변경 #159): 취소한 DDL 읽기가 대체 DDL을 만들거나 빈 DDL 탭을 열지 않음, 권한이 없을 때의 대체 DDL 표시와 오류 창 첫 줄,
   메뉴를 흐리게 하지 않은 이유, ORA-38802 원인(고치지 않음).
+- 2026-11-22 ORA-38802 고침(앱 변경 #162): 23ai 이상의 메타데이터 세션 기본 옵티마이저 버전 11.2.0.4, "DDL 권한과 취소"의 남긴 것에 표시.

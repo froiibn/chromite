@@ -195,7 +195,7 @@
   저장한 뒤, 실패한 페이지를 "페이지: 오류" 줄로 한 번에 알린다(`options_save_failed`, 영어·한국어). 저장 순서는 그대로다(테마가 마지막).
   자세한 것은 [swing-options.md](swing-options.md). 확인: 정상 저장(Altibase, 로그 페이지)은 앱에서, 실패 경로는 코드로만 확인했다(예외를 일으킬 방법이 없음).
 
-### Oracle View DDL의 ORA-38802 (#30, 고치지 않음)
+### Oracle View DDL의 ORA-38802 (#30, 2026-11-22 고침)
 
 - 보고: B5 작업이 23ai 컨테이너에서 테이블 `T1`의 View DDL·Script as CREATE가 메타데이터 세션에서 ORA-38802("edition does not exist")로 실패해
   일반 DDL로 대신하는 것을 보았다([swing-routines.md](swing-routines.md) "범위 밖").
@@ -212,6 +212,65 @@
 - 2026-11-22 원인 확인(앱 변경 #159, 고치지 않음): 시험 VM의 26ai Free 23.26에서 메타데이터 세션의 10.2 옵티마이저 기능 값(앱은 `'10.2.0.5'`,
   JDBC 확인은 `'10.2.0.1'`)만으로 `GET_DDL`이 ORA-38802가 된다(같은 세션에서 `'23.1.0'`으로 되돌리면 됨, 숨은 옵티마이저 값 셋은 상관없음). 에디션 권한이 아니다.
   자세한 것은 [swing-routines.md](swing-routines.md) "DDL 권한과 취소".
+- 2026-11-22 고침(앱 변경 #162). 아래는 시험 VM의 두 Oracle(1521 AL32UTF8, 1522 KO16MSWIN949, 둘 다 26ai Free 23.26.3.0.0,
+  서버 기본 `OPTIMIZER_FEATURES_ENABLE`=`23.1.0`)에서 새 세션마다 설정 하나를 주고 `DBMS_METADATA`를 부른 결과다(두 서버 결과가 같다,
+  SYSTEM과 소유자 계정, 증거 `D:\Tools\_scratch\oracle-getddl-23ai\facts\`).
+
+  | 세션 설정 | `GET_DDL` TABLE(PK·UK·CHECK·FK·인덱스가 있는 테이블)·INDEX·MATERIALIZED_VIEW, `GET_DEPENDENT_DDL` INDEX·CONSTRAINT, 앱의 인덱스 DDL 질의 | 나머지 호출 |
+  |---|---|---|
+  | 없음, 숨은 값(`_optimizer_push_pred_cost_based`, `_optimizer_squ_bottomup`, `_optimizer_cost_based_transformation`) 하나씩·셋 | 됨 | 됨 |
+  | `OPTIMIZER_FEATURES_ENABLE` 10.2.0.1·10.2.0.4·10.2.0.5·11.1.0.6·11.1.0.7·11.2.0.1·11.2.0.2 | ORA-38802 | 됨 |
+  | `OPTIMIZER_FEATURES_ENABLE` 11.2.0.3·11.2.0.4·12.1.0.2·12.2.0.1·18.1.0·19.1.0·21.1.0·23.1.0·23.1.0.1 | 됨 | 됨 |
+  | 앱의 예전 기본(숨은 값 셋 + 10.2.0.5) | ORA-38802 | 됨 |
+  | 예전 기본 뒤 같은 세션에서 23.1.0 / 11.2.0.1로 바꿈 | 됨 / ORA-38802 | 됨 |
+
+  "나머지 호출": 인덱스 없는 파티션 테이블의 TABLE, VIEW, SEQUENCE, TRIGGER, PACKAGE, PACKAGE_BODY, PROCEDURE, FUNCTION, TABLESPACE, USER,
+  `GET_DEPENDENT_DDL` REF_CONSTRAINT·TRIGGER·OBJECT_GRANT·COMMENT, `GET_GRANTED_DDL` 세 종류, `SET_TRANSFORM_PARAM`(ROLE_GRANT는 부여가 없어
+  어느 설정에서나 ORA-31608). 오류 스택은 `DBMS_METADATA` → `DBMS_EDITIONS_UTILITIES`의 ORA-01403(데이터 없음)이 ORA-38802로 바뀐 것이다.
+  실패는 세션의 지금 값만 따른다(같은 세션에서 값을 바꾸면 바로 되고 되돌리면 다시 실패). 권한이 적은 계정(`CHR_GDL_LOW`, 테이블 SELECT만)은 어느 설정에서나
+  ORA-31603이라 차이가 없다. 2026-11-08에 재현되지 않은 것은 시험 테이블에 인덱스·제약이 없었기 때문으로 보인다(그때 객체 모양은 기록이 없어 확인 못 함).
+- Oracle 문서: `OPTIMIZER_FEATURES_ENABLE` 참조 페이지(19c, 23ai)는 8.0.0부터 모든 값을 허용 값으로 적고 최솟값·에디션·`DBMS_METADATA`에 대한 말이 없다.
+  ORA-38802 설명은 "에디션이 없거나 권한이 없음"뿐이다. 이 현상을 다룬 Oracle 지원 문서나 공개 보고는 찾지 못했다. 21c 이하 서버는 이 VM에 없어 확인하지 못했다.
+- 설정이 얻는 것(1521, SYSTEM, 트리의 사전 질의를 서버 안 PL/SQL 커서로 끝까지 읽은 시간, 두 번째 회 ms. 첫 회는 구문 분석 포함이라 비슷하거나 더 큼):
+
+  | 스키마(행 수) | 질의 | 설정 없음 | 숨은 값 셋만 | 10.2.0.5만 | 예전 기본(셋+10.2.0.5) | 셋+11.2.0.4 |
+  |---|---|---|---|---|---|---|
+  | SYS(141,035열) | 열 `ALL_TAB_COLS` | 22,626 | 21,250 | 15,511 | 15,130 | 15,405 |
+  | SYS(5,468행) | 인덱스(`IndexCache`) | 646 | 167,441 | 263 | 314 | 386 |
+  | SYS(10,293행) | 테이블(`TableCache`) | 1,907 | 947 | 544 | 577 | 635 |
+  | MDSYS(234행) | 인덱스 | 573 | 481 | 21 | 23 | 22 |
+  | MDSYS(253행) | 테이블 | 1,411 | 416 | 137 | 137 | 163 |
+
+  제약(`ConstraintCache`)과 외래 키 질의는 어느 설정에서나 0.4초 아래였다. 이 DB는 작아(사용자 스키마 몇 개) 큰 운영 DB의 차이는 확인하지 못했다.
+  23ai에서도 오래된 옵티마이저 값이 열·테이블 질의를 빠르게 하고, 숨은 값 셋만 두면 인덱스 질의가 SYS에서 2분 47초로 느려진다(값을 빼면 안 되는 이유).
+- 고친 것: 연결 설정에 버전이 없을 때 23ai 이상 서버의 기본 옵티마이저 버전을 10.2.0.5 대신 **11.2.0.4**로 한다(`OracleDataSource.initializeContextState`,
+  `OracleConstants.OPTIMIZER_VERSION_DEFAULT_23`). 서버 버전은 연결할 때 모델이 이미 읽은 값이라 문장이 늘지 않는다. 11.2.0.4는 서버의 DDL 함수가 되는
+  값 가운데 11.2의 마지막 값이고(되는 가장 낮은 값 11.2.0.3보다 한 단계 여유), 위 표처럼 사전 질의 시간이 10.2.0.5와 같다.
+  21c 이하는 그대로 10.2.0.5다(업스트림이 오래 써 온 기본값이고 그 버전에서 실패한다는 근거가 없다). 연결 설정에 사용자가 넣은 버전과 "메타데이터 쿼리 최적화 사용"
+  끄기는 그대로 따른다(23ai에서 11.2.0.2 이하를 넣으면 서버 DDL은 여전히 실패하고 테이블은 머리 주석이 달린 대체 DDL이 된다. 설정 설명에 적었다).
+- 고르지 않은 방법: (1) 23ai 이상에서 값을 아예 넣지 않기 — 위 표처럼 인덱스 질의가 SYS에서 0.3초→2분 47초가 된다. (2) `DBMS_METADATA`를 부르는 동안만 서버
+  기본값으로 바꿨다 되돌리기 — 보통 계정은 서버 기본값을 읽을 수 없고(`V$PARAMETER`·`V$SES_OPTIMIZER_ENV` ORA-00942, `DBMS_UTILITY.GET_PARAMETER_VALUE`
+  ORA-01031), `ALTER SESSION SET OPTIMIZER_FEATURES_ENABLE=DEFAULT`는 ORA-00096이라 되돌릴 값을 알 수 없다. 요청마다 문장 두 개가 늘고 실패·취소 사이에
+  세션이 바뀐 채 남을 수 있다. (3) ORA-38802면 바꿔서 다시 부르기 — 의존 DDL 호출(`GET_DEPENDENT_DDL`, 인덱스 질의)은 오류를 삼키므로 실패를 놓쳐
+  인덱스·제약이 말없이 빠진 DDL이 나올 수 있다. 새 설정 칸은 만들지 않았다(기존 "메타데이터 최적화 버전"으로 고를 수 있음).
+- `DBMS_METADATA`를 부르는 곳(모두 메타데이터 세션): `OracleUtils.getDDL`(테이블·뷰·구체화된 뷰: `SET_TRANSFORM_PARAM`, `GET_DDL`, `GET_DEPENDENT_DDL`,
+  인덱스 질의), `OracleTableIndex.getObjectDefinitionText`, `OracleTablespace.getObjectDefinitionText`, `OracleUser.getObjectDefinitionText`(`GET_DDL USER`,
+  `GET_GRANTED_DDL`). 세션 값을 고쳤으므로 모두 한 번에 고쳐진다. 연결 설정이 단일 연결이면 메타데이터 세션이 주 세션이라 쿼리 창도 같은 값을 쓴다(전과 같음).
+- 앱 확인(빌드한 앱, 스크래치 작업 공간, 한국어 150 %, 두 서버, 소유자·SYSTEM·권한이 적은 계정 × 테이블·파티션 테이블·인덱스·뷰·구체화된 뷰·시퀀스·트리거·
+  패키지·프로시저·함수 × DDL 보기·스크립팅 ▸ CREATE 대상·SQL 생성 ▸ DDL, SYSTEM의 테이블스페이스·사용자, 결과 파일 `D:\Tools\_scratch\oracle-getddl-23ai\s\`):
+  - 인덱스·제약이 있는 테이블: 고치기 전 대체 DDL(머리 주석 `-- DBMS_METADATA: ORA-38802…`, "DDL generated by Chromite"), 고친 뒤 서버 DDL(USING INDEX·
+    TABLESPACE·트리거·인덱스·권한 부여·주석 포함, 머리 주석 없음). 인덱스: 고치기 전 ORA-38802 오류 창, 고친 뒤 서버 DDL. 구체화된 뷰: 고치기 전 DDL 자리에
+    ORA-38802 오류 주석, 고친 뒤 `CREATE MATERIALIZED VIEW`. 나머지(인덱스 없는 파티션 테이블, 뷰, 시퀀스, 트리거, 패키지, 프로시저, 함수, 테이블스페이스, 사용자)는
+    고치기 전과 바이트가 같다. 권한이 적은 계정은 고치기 전과 같다(테이블은 ORA-31603 머리 주석의 대체 DDL, 인덱스는 권한 오류 창).
+  - DDL 형식: 전체 DDL은 STORAGE 절과 권한 부여, 저장소 정보 제외는 STORAGE 절·권한 부여 없음(테이블스페이스·세그먼트 속성은 있음), 간단히는 세그먼트 속성·
+    테이블스페이스·주석 없음(세그먼트가 있는 시험 테이블 `TS`와 `T`). 고치기 전에는 세 형식이 같은 대체 DDL이었다.
+  - 세션 값(SYSTEM 연결의 메타데이터 세션, `V$SES_OPTIMIZER_ENV`): 고친 뒤 숨은 값 셋과 `optimizer_features_enable`=11.2.0.4. DDL 요청, 실패한 요청(지운 인덱스,
+    ORA-31603), 취소한 요청(2,048 파티션 테이블의 DDL 보기를 1초에 취소, 0.8초 뒤 창이 닫힘) 뒤에도 같다. 연결 설정에 10.2.0.5를 넣은 연결은 10.2.0.5 그대로
+    (테이블은 대체 DDL, 인덱스는 오류 창: 고치기 전과 같음), 최적화를 끈 연결은 값 없음(23.1.0)이고 고치기 전에도 서버 DDL이었다.
+  - 연결 새로 고침, 연결 끊고 다시 연결한 뒤에도 테이블·인덱스 DDL이 서버 DDL이다.
+  - 트리: SYSTEM 연결에서 보이는 스키마 다섯(GSMADMIN_INTERNAL, DVSYS, LBACSYS, AUDSYS, CHR_GDL_OWN)을 세 단계까지 펼친 시간과 Query Manager의 메타데이터
+    문장 수가 고치기 전과 같다(각각 9.1/8.4초·48, 7.3/7.2초·69, 7.7/7.8초·40, 5.2/5.1초·19, 5.6/5.6초·21개; 시간은 터널 왕복이 대부분). 시스템 스키마(SYS, MDSYS)는
+    트리에 보이지 않아 위 서버 안 시간으로 대신했다.
 
 ### 확인 (2026-11-08, 후속 수정 3)
 
@@ -323,3 +382,5 @@ PostgreSQL 17(DB `chr_model_ddl_fixes`)에 이 작업이 만든 개체만 썼고
 - 2026-11-08 "후속 수정 3": SQL 로그 파일 핸들, Options OK의 저장 실패 알림(#33).
 - 2026-11-08 "후속 수정 3": 머리말, Oracle View DDL의 ORA-38802 조사(#30, 재현 안 됨), 확인 표.
 - 2026-11-08 "모델 DDL 수정"(`chromite/model-ddl-fixes`, 후속 저녁 #35): Oracle ALTER SEQUENCE는 바꾼 절만, PostgreSQL Partition by·파티션 식은 저장된 객체에서 읽기 전용.
+- 2026-11-22 Oracle View DDL의 ORA-38802(#30) 고침(앱 변경 #162, `chromite/oracle-getddl-23ai`): 23ai 이상에서 메타데이터 세션의 기본 옵티마이저 버전 11.2.0.4,
+  사실 표, 설정이 얻는 시간, 고르지 않은 방법, 앱 확인. 회귀 테스트는 실행하지 않았다.
