@@ -722,7 +722,7 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 | START 없는 `CREATE JOB` | 됨(START_TIME null) | 다름(Altibase 200705) |
 | `INTERVAL n SECOND` | 됨(코드 SS) | 다름(Altibase 200705) |
 | `ALTER JOB … SET START NULL` | 됨 | 다름(Altibase 200820) |
-| `DBMS_METADATA.GET_DDL('JOB', …)` | 990001(작업의 View DDL이 실패함, 고치지 않음) | 다름(Altibase는 CREATE JOB 글) |
+| `DBMS_METADATA.GET_DDL('JOB', …)` | 990001(작업의 View DDL이 `;`만 보였다. 2026-11-22 고침: 정의를 카탈로그로, [altibase.md](altibase.md) "작업 정의 보기") | 다름(Altibase는 CREATE JOB 글) |
 | 그 밖의 작업 문법(절 하나씩, END NULL, COMMENT, ENABLE/DISABLE, 없는 작업 201143) | Altibase와 같음 | 같음 |
 | 작업 권한 | `SYS_PRIVILEGES_`에 CREATE / ALTER / DROP ANY JOB(266, 268, 267). 벤더 서버에는 사용자를 만들지 않아 권한 없는 사용자는 시험하지 않음 | 같은 권한 목록 |
 | 큐(CREATE 모양들, COMPACT, DROP, CASCADE 200705, DROP TABLE 201252, INSERT 201248, UPDATE 201854) | 위와 같음 | UPDATE의 코드만 다름(Altibase 200753) |
@@ -733,7 +733,8 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 미확인: 매뉴얼의 `ALTER JOB` 예에는 여러 절을 한 문장에 쓴 것(`SET START … END … INTERVAL … EXEC …`)이 있는데 서버는 200705로 거절한다. 절 하나씩이 맞는지.
 - 미확인: 매뉴얼은 작업 문장을 "SYS만"이라고 하지만 서버에 CREATE / ALTER / DROP ANY JOB 권한이 있다. 일반 사용자에게 그 권한을 주는 것이 지원되는지.
 - 미확인: `INTERVAL 0`(또는 INTERVAL 없이 만든 작업)을 스케줄러가 한 번만 실행하는지, START 없는 작업은 언제 실행되는지.
-- 미확인: 작업의 `DBMS_METADATA.GET_DDL('JOB', …)`이 990001로 실패하는 것이 의도인지.
+- 미확인: `DBMS_METADATA.GET_DDL`이 `TABLE` 말고는 모든 객체 유형(작업, 인덱스, 큐, 뷰, 시노님, 시퀀스, 트리거, 프로시저, 타입세트, 패키지, 디렉터리,
+  라이브러리, 데이터베이스 링크)을 990001로 거절하는 것이 의도인지(2026-11-22 확인), 앞으로 다른 유형을 줄 계획이 있는지.
 - 미확인: 매뉴얼의 `ALTER JOB … SET`에 `ENABLE`, `DISABLE`, `COMMENT`, `END NULL`이 없지만 서버는 받는다. 지원되는 문법인지.
 - 미확인: 세션 종료 예가 데이터베이스 이름 없는 `ALTER DATABASE SESSION CLOSE n`인데 서버는 이름이 있는 모양만 받는다(매뉴얼 오류인지).
 
@@ -894,6 +895,8 @@ ShardSphere의 스트림 객체(스트림 테이블, 연속 스트림 테이블,
 - **보고만(고치지 않음):** 저장소 ▸ 테이블스페이스의 인덱스 폴더는 유형을 거르지 않아 `$AGGR`의 시스템 인덱스를 그 테이블 이름과 함께 보인다(실제로 있는 인덱스).
   테이블스페이스의 테이블 폴더는 `T`·`Q`만 읽어 `MEM_DATA`에 행을 두는 연속 테이블(`B`의 `$AGGR`, `C`)이 없다. SQL 편집기의 자동 완성도 테이블 목록을 쓰므로 스트림
   테이블·연속 테이블 이름을 모른다.
+  - 2026-11-22 인덱스 폴더를 고쳤다: 두 폴더가 같은 종류(`T`, `Q`, `M`)를 읽어 `$AGGR`의 인덱스가 빠진다. 연속 테이블은 테이블 폴더에 더하지 않았다(이유:
+    [altibase.md](altibase.md) "테이블스페이스의 테이블과 인덱스"). 자동 완성은 아래 "자동 완성의 스트림 객체"(만들지 않음).
 
 ### 오른쪽 클릭 메뉴
 
@@ -1010,7 +1013,7 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 
 이 서버에서 일반 트리는 둘을 보이지 않는다(테이블 폴더는 유형 `T`만, 위 "일반 트리가 보이던 것"). 저장소 ▸ 테이블스페이스 ▸ `MEM_DATA` ▸ 인덱스에 보이는
 `$AGGR`의 시스템 인덱스(`__SYS_IDX_ID_n`) 메뉴에는 삭제가 없다(7항목: 새 쿼리, 최근 스크립트, 개체 세부 정보 | 이름 복사, 정규화된 이름 복사, 선택하여 복사 |
-새로 고침). 고칠 것이 없었다.
+새로 고침). 고칠 것이 없었다. 2026-11-22부터 그 인덱스는 인덱스 폴더에 보이지 않는다(위 "일반 트리가 보이던 것").
 
 ### 자리(seam)
 
@@ -1085,6 +1088,49 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 미확인: 연속 테이블의 TTL에 `SECOND`를 받지 않는 이유(201848), `ALTER … SET` 절을 한 문장에 하나만 받는 것이 문법인지.
 - 미확인: 연속 스트림 테이블·연속 쿼리의 `EXEC GROUP`·`EXEC ORDER`가 처리에 쓰이는 방식(처리 스레드 0인 서버라 확인하지 못함).
 
+## 자동 완성의 스트림 객체 (2026-11-22, 앱 변경 #158 3항, 만들지 않음)
+
+### 증상과 원인
+
+- 일반 서버에서 스트림 테이블(`X`), 연속 테이블(`B`, `C`), 연속 스트림 테이블(`Y`)은 `SELECT * FROM t`로 읽힌다(열은 `$INSERT_TIME`과 정의한 열).
+  연속 쿼리(`I`)는 200753(42S02)이라 제안하면 안 된다. 연속 테이블의 저장 표 `<t>$AGGR`(`H`)도 읽히지만 서버의 내부 객체다(시험용 `CHR_DSP_*`, 2026-11-22).
+- 쿼리 창의 FROM 뒤 완성은 기본 스키마의 `getChildren`에서 `DBSTable`·`DBSView`만 고른다(`SQLQueryCompletionContext.collectTables`).
+  `AltibaseSchema`의 자식은 테이블 목록(`T`·`V`·`M`·`Q`, `AltibaseMetaModel.prepareTableLoadStatement`)과 시노님이다. 별칭 점 뒤의 열은
+  이름을 `getChild`로 찾은 객체(`SQLSearchUtils.findObjectsByPath`)의 `getAttributes`에서 온다.
+- 스트림 객체(`StreamTable`, `ContinuousObject`)는 "스트림" 노드 아래에만 있고 `DBSObject`만 구현한다(열이 없다). 그래서 이름도 열도 나오지 않는다.
+- 앱에서 확인(기준 빌드, 완성 분석을 앱 안에서 부름): `SELECT * FROM CHR_DSP` → `CHR_DSP_QU`, `CHR_DSP_T`, `CHR_DSP_V`(스트림 객체 없음).
+  `SELECT s. FROM CHR_DSP_S s`, `SELECT c. FROM CHR_DSP_CA c` → 제안 0개. `SELECT t. FROM CHR_DSP_T t` → `ID`, `V`. Altibase 7.3은 표·큐·뷰·구체화된 뷰.
+
+### 고르지 않은 이유와 길(크기는 어림)
+
+지시서의 멈춤 조건("작은 자리보다 크면 만들지 않고 길을 보고")에 걸린다: 어느 길이든 열을 주는 새 모델 클래스(엔티티·속성, 열 질의)가 필요하고,
+자리가 완성 한 곳에 머물지 않는다.
+
+| 길 | 바꾸는 곳 | 크기 | 함께 바뀌는 것 |
+|---|---|---|---|
+| A. 스키마 자식 자리 | `AltibaseServerExtensionState`에 스키마의 "질의할 수 있는 객체" 기본 메서드, `AltibaseDataSource` 전달, `AltibaseSchema.getChildren`·`getChild`가 확장의 것을 더함(계열 공통 약 40줄). 이 번들에 읽히는 종류(`X`·`B`·`C`·`Y`)만 감싼 `DBSView`(또는 `DBSTable`) 객체, 열 객체(`DBSEntityAttribute`), `SYS_COLUMNS_` 열 질의(객체마다 한 번, 캐시)(약 330줄) | 약 370줄, 번들 둘 | `AltibaseSchema.getChildren`을 쓰는 모든 곳: 데이터 전송·가져오기 대상·DB 복사의 표 고르기, 스키마 비교, Agent의 데이터베이스 요약, 개체 세부 정보. 편집기의 의미 분석(지금은 모르는 표)과 Ctrl+클릭 이동(트리에 감싼 객체의 노드가 없음). 데이터 전송 코드는 다른 작업이 고치는 중 |
+| B. 완성만의 자리 | 공용 모델에 중립 인터페이스(컨테이너 어댑터 "더 질의할 객체"), 완성의 `collectTables`와 이름 찾기(`SQLSearchUtils`)가 묻는다(공용 완성 엔진 두 곳). 이 번들의 감싼 객체·열은 A와 같음 | 약 350줄 | 완성·의미 분석만. 공용 엔진의 두 곳이 지시서의 "한 곳"을 넘는다 |
+| C. 이름만 | 확장의 방언 기여로 이름을 낱말처럼 제안 | 약 70줄 | 열 완성·의미 분석 없음(지시서의 별칭 점 뒤를 채우지 못함) |
+
+- 권하는 길: A(완성·의미 분석·Agent가 한 모델을 본다). 데이터 전송 작업이 병합된 뒤에, 표 고르기 화면마다 스트림 객체가 나와도 되는지 정하고 시작한다
+  (스트림 테이블은 `INSERT`를 받는다. 연속 객체에 쓰기는 확인하지 않음).
+- 테이블 폴더는 그대로이고 "스트림" 노드도 그대로다(어느 길이든 트리 정의는 바꾸지 않는다).
+
+## 표시 결함 세 가지의 시험 (2026-11-22, 앱 변경 #158)
+
+작업 정의([altibase.md](altibase.md) "작업 정의 보기"), 테이블스페이스의 폴더, 자동 완성의 스트림 객체를 확인하려고 일반 서버의 로그인 스키마에
+시험용 `CHR_DSP_*`만 만들고 지웠다(사용자 허락 2026-11-17). 서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 SELECT만.
+
+- **만든 것(앱 밖 JDBC):** 일반 테이블 1(기본 키), 인덱스 1, 큐 1, 뷰 1, 시노님 1, 시퀀스 1, 테이블 트리거 1, 프로시저 1(`NULL` 본문), 타입세트 1, 패키지 1(명세·본문),
+  작업 11(J1–J6, 다시 만들기 R1–R5; ENABLE 둘), 스트림 테이블 1, 연속 테이블 2(집계 있음·없음), 연속 스트림 테이블 1, 연속 쿼리 1, 지어낸 행 2.
+  조회용 `dbms_metadata.get_ddl` EXEC 19번. 문장 목록은 저장소 밖 `probe\writes-vendor.log`.
+- **지운 순서:** ENABLE이던 작업 둘 `SET DISABLE` → 작업 → 연속 쿼리 → 연속 테이블 → 연속 스트림 테이블 → 스트림 테이블 → 트리거·시노님·뷰·시퀀스·큐·인덱스 →
+  테이블 → 패키지·타입세트·프로시저. 모두 성공.
+- **확인:** `SYS_TABLES_`·`SYS_JOBS_`·`SYS_PROCEDURES_`·`SYS_PACKAGES_`·`SYS_INDICES_`·`SYS_TRIGGERS_`·`SYS_SYNONYMS_`·`SYS_STREAM_FUNCTIONS_`에 `CHR_DSP%` 0행,
+  `SYS_CONTINUOUS_TABLES_` 0행. 행 수(전 → 후): `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_STREAM_FUNCTIONS_` 0 → 0, `SYS_TTL_` 0 → 0, `V$STREAM_FUNCTION` 0 → 0,
+  `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41, `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_JOBS_` 0 → 0, `SYS_PROCEDURES_` 47 → 47. `SYS_TABLES_` 164 → 167,
+  `SYS_INDICES_` 183 → 185, `SYS_COLUMNS_` 1454 → 1460은 같은 시간에 다른 작업이 만든 그 작업의 시험용 개체(`CHR_QDC_*`)이고, 그것을 빼면 164·183·1454로 같다.
+
 ## 아직 없는 것
 
 관리 보고서(작업 8),
@@ -1147,3 +1193,7 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
   "확장 객체의 명령 자리"). 위 "스트림 명령".
 - 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): 테이블 디자이너의 "테이블" 탭에 TTL 칸, CREATE TABLE 끝의 절
   (`ShardTableTtl.getCreateClause`, 메타 노드 제외). 일반 서버에 시험용 표 `CHR_TTLC_*`를 만들어 문장 모양을 확인하고 지움. 위 "TTL 관리" ▸ "새 테이블의 TTL".
+- 2026-11-22 작업의 DDL 보기가 `;`만 보이던 것을 계열 공통 코드에서 고침(정의를 카탈로그로), `GET_DDL`이 `TABLE`만 주는 사실과 벤더 문의, 시험용 `CHR_DSP_*`
+  (앱 변경 #158, `chromite/altibase-family-display-fixes`), 위 "작업·큐·세션 종료", "표시 결함 세 가지의 시험".
+- 2026-11-22 테이블스페이스의 인덱스 폴더가 `$AGGR`의 인덱스를 보이지 않음(계열 공통 코드, 앱 변경 #158 2항), 위 "일반 트리가 보이던 것".
+- 2026-11-22 자동 완성이 스트림 객체를 모르는 원인과 길(앱 변경 #158 3항, 크기가 지시서의 작은 자리를 넘어 만들지 않음), 위 "자동 완성의 스트림 객체".

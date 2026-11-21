@@ -19,12 +19,18 @@
 package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.dbeaver.DBException;
-import com.seizia.chromite.ext.generic.model.GenericTable;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
+/**
+ * An index (or a partition of it) of a tablespace's Indexes folder.
+ *
+ * 변경 이력:
+ * - 2026-11-22 Chromite: 테이블을 GenericTableBase로(구체화된 뷰의 인덱스, {@link AltibaseTablespaceObjAbs})
+ */
 public class AltibaseTablespaceObj4Index extends AltibaseTablespaceObjAbs {
 
     private String tableSchema;
@@ -49,7 +55,7 @@ public class AltibaseTablespaceObj4Index extends AltibaseTablespaceObjAbs {
     } 
 
     @Property(viewable = true, linkPossible = true, order = 21)
-    public GenericTable getTable(DBRProgressMonitor monitor) throws DBException {
+    public GenericTableBase getTable(DBRProgressMonitor monitor) throws DBException {
         return getTargetTable(monitor, tableSchema, tableName);
     }
 

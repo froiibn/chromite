@@ -34,9 +34,11 @@ import java.util.List;
  * "작업 만들기·바꾸기·삭제", "큐"). 그래서 연결마다 고를 것이 없다. 객체 관리자({@code AltibaseJobManager}, {@code AltibaseQueueManager})와
  * Object Explorer 유지 관리 명령({@code ObjectMaintenanceActions})이 이 함수를 써서 문장이 한 곳에서만 만들어진다. 화면은 값만 넘긴다.
  * <ul>
- *     <li>CREATE JOB은 START가 늘 있다: Altibase는 START 없는 CREATE JOB을 구문 오류로 거절하고 ShardSphere는 받는다. END·INTERVAL은 빼도
+ *     <li>새 작업의 CREATE JOB은 START가 늘 있다: Altibase는 START 없는 CREATE JOB을 구문 오류로 거절하고 ShardSphere는 받는다. END·INTERVAL은 빼도
  *     둘 다 받는다(INTERVAL이 없으면 카탈로그에 주기 0, 단위 없음). ENABLE과 COMMENT는 이 순서로 끝에 쓴다(COMMENT 뒤의 ENABLE·DISABLE은
  *     구문 오류). DISABLE은 쓰지 않는다: 새 작업은 꺼진 채 만들어진다.</li>
+ *     <li>있는 작업의 정의(DDL 보기)도 이 문장이다({@code AltibaseJob#getObjectDefinitionText}, 카탈로그 행에서). 카탈로그에 시작이 없는
+ *     작업(START 없이 만든 작업, 그런 문장을 받는 서버에만 있음)은 START 없이 쓴다: 그 서버에서 같은 행을 다시 만든다.</li>
  *     <li>주기 단위는 두 서버가 다 받는 YEAR, MONTH, DAY, HOUR, MINUTE이다(카탈로그 코드 YY, MM, DD, HH, MI). SECOND는 ShardSphere만
  *     받고(코드 SS) WEEK는 둘 다 구문 오류다.</li>
  *     <li>ALTER JOB … SET은 한 문장에 절 하나만 받는다(둘 이상은 두 서버 모두 구문 오류). 그래서 바뀐 절마다 문장 하나다:
@@ -51,6 +53,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성: 작업 만들기·바꾸기·켜기·끄기·삭제, 큐 만들기·압축·삭제(앱 변경 #154, docs/chromite/altibase.md)
+ * - 2026-11-22 {@link Definition#start()}가 없으면 START 없이: 있는 작업의 정의를 카탈로그에서 이 문장으로 만든다(docs/chromite/altibase.md
+ *   "작업 정의 보기")
  */
 public final class AltibaseJobDDL {
 
@@ -99,16 +103,17 @@ public final class AltibaseJobDDL {
     }
 
     /**
-     * A new job.
+     * A job's definition: a new job's settings, or an existing job's catalog row.
      *
      * @param exec     the procedure call ({@code [user.]procedure[(args)]})
+     * @param start    null: no start (only an existing job's catalog row; the job dialogs always give one)
      * @param end      null: no end
      * @param interval null: no interval (the job runs once)
      * @param comment  null or empty: no comment
      */
     public record Definition(
         @NotNull String exec,
-        @NotNull LocalDateTime start,
+        @Nullable LocalDateTime start,
         @Nullable LocalDateTime end,
         @Nullable Interval interval,
         boolean enabled,
@@ -139,13 +144,15 @@ public final class AltibaseJobDDL {
     }
 
     /**
-     * {@code CREATE JOB j EXEC p START s [END e] [INTERVAL n unit] [ENABLE] [COMMENT 'c']}.
+     * {@code CREATE JOB j EXEC p [START s] [END e] [INTERVAL n unit] [ENABLE] [COMMENT 'c']}.
      */
     @NotNull
     public static String createJob(@NotNull AltibaseJob job, @NotNull Definition definition) {
         StringBuilder sql = new StringBuilder("CREATE JOB ").append(DBUtils.getQuotedIdentifier(job))
-            .append(" EXEC ").append(definition.exec())
-            .append(" START ").append(toDate(definition.start()));
+            .append(" EXEC ").append(definition.exec());
+        if (definition.start() != null) {
+            sql.append(" START ").append(toDate(definition.start()));
+        }
         if (definition.end() != null) {
             sql.append(" END ").append(toDate(definition.end()));
         }

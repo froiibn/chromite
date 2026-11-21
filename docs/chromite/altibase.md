@@ -567,6 +567,55 @@ Object Explorer 메뉴 → (설정 대화상자) → 스크립트 미리 보기(
 
 - upstream은 Altibase 테이블스페이스를 조회만 한다. 객체 관리자 두 개, 문장 클래스, 모델의 새 객체·다시 읽기, 삭제 기능 비트 두 개를 더했다.
 
+## 테이블스페이스의 테이블과 인덱스 (2026-11-22, 앱 변경 #158 2항)
+
+### 증상과 원인
+
+- 저장소 ▸ 테이블스페이스 ▸ &lt;테이블스페이스&gt;의 테이블 폴더는 `SYS_TABLES_.TABLE_TYPE`이 `T`·`Q`인 표만 읽고, 인덱스 폴더는 종류를 거르지 않았다
+  (`AltibaseTablespace.TablePartnCache` / `IndexPartnCache`의 질의). 그래서 두 폴더가 어긋났다.
+  - ShardSphere: 집계 있는 연속 테이블의 저장 표 `<t>$AGGR`(`H`, 서버의 내부 객체)의 시스템 인덱스가 `MEM_DATA` ▸ 인덱스에 그 표 이름과 함께 보였다(그 항목의
+    테이블은 스키마의 목록에 없어 비어 있음). 전: `MEM_DATA` 테이블 26, 인덱스 27.
+  - Altibase 7.3: 구체화된 뷰(`M`)의 인덱스가 인덱스 폴더에 보이는데 그 뷰는 테이블 폴더에 없었고, 그 항목의 테이블 속성은 형 변환 오류(`ClassCastException`,
+    구체화된 뷰는 `GenericTable`이 아님)였다.
+- 인덱스를 가진 표의 종류(시험용 `CHR_DSP_*`가 있을 때, 2026-11-22): Altibase 7.3 `T`(SYSTEM_ 134, 그 밖 10), `Q` 2, `M` 1. ShardSphere 5.1.9 `T`, `Q`, `H`.
+  시험용 개체가 없을 때 두 서버 모두 `T`만. 스트림 객체의 `TBS_ID`: 연속 테이블 `C`와 `$AGGR`(`H`)은 `MEM_DATA`(1), 스트림 테이블 `X`·연속 스트림 테이블 `Y`·
+  집계 있는 연속 테이블 `B`·연속 쿼리 `I`·정의 객체 `U`는 `MEM_DIC`(0).
+
+### 고친 것
+
+두 폴더가 같은 종류 목록(`AltibaseTablespace.TABLE_KINDS` = `T`, `Q`, `M`)을 읽는다: 스키마의 테이블 목록(`AltibaseMetaModel.prepareTableLoadStatement`)
+가운데 행을 테이블스페이스에 두는 종류다(`V`는 저장소가 없음). 인덱스 폴더는 그 종류의 표의 인덱스만 보인다. 항목의 테이블은 `GenericTableBase`로 받아
+(`AltibaseTablespaceObjAbs`) 구체화된 뷰도 그 객체로 이어진다.
+
+- **고른 것:** 구체화된 뷰를 테이블 폴더에 더했다. 뷰의 행이 그 테이블스페이스에 있고 그 인덱스가 전부터 인덱스 폴더에 보였기 때문이다(인덱스를 빼면 Altibase
+  사용자가 보던 것이 사라진다). 대안(고르지 않음): 두 폴더 모두 `T`·`Q` — 구체화된 뷰의 인덱스가 사라진다. 또는 인덱스만 `T`·`Q`·`M` — 폴더가 다시 어긋난다.
+- **연속 테이블은 더하지 않음(고른 것).** `C`와 `B`의 `$AGGR`도 `MEM_DATA`에 행을 두지만, 이 폴더의 항목은 스키마의 테이블 목록에서 객체를 찾는데 연속
+  테이블은 그 목록 밖("스트림" 노드)에 있어 항목이 아무것에도 이어지지 않고, `$AGGR`은 서버의 내부 객체다. 제품을 가리는 조건 없이 넣을 수 있는 일이
+  아니라 그대로 둔다(연속 테이블의 저장 표 이름은 그 객체의 "저장 테이블" 속성에 있다, [shardsphere.md](shardsphere.md) "스트림 탐색기").
+- 크기 숫자는 다른 질의라 바뀌지 않는다: 트리의 사용·남은 크기는 아래 확인에서 전후가 같다. 활동 모니터 공간 탭(`AltibaseSpaceDialect`, "큰 테이블"은
+  `SYS_TABLE_SIZE_`)은 이 변경이 고치지 않은 코드이고 앱에서 다시 열어 보지는 않았다.
+
+### 확인 (2026-11-22, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %; 영어 150 %, 어두운 테마 100 % 한 번씩)
+
+"전"은 "작업 정의 보기"의 확인과 같은 jar다. 폴더는 모델로 읽고(새로 고침 뒤) 내 시험용 개체만 이름으로, 나머지는 수로 적었다.
+
+| 연결 ▸ 테이블스페이스 | 테이블 전 → 후 | 인덱스 전 → 후 | 내 개체(후) | 사용 / 남은 크기(바이트, 전 = 후) |
+|---|---|---|---|---|
+| SS ▸ `MEM_DATA` | 26 → 26 | 27 → 26 | 표 `CHR_DSP_T`, `CHR_DSP_QU`; 인덱스 `CHR_DSP_I`, 시스템 인덱스 둘. `CHR_DSP_CA$AGGR`의 인덱스 빠짐 | 36792 / 2147446856 |
+| SS ▸ `MEM_DIC` | 86 → 86 | 162 → 162 | – | 3468976 / 2144014672 |
+| SS ▸ `DISK_DATA` | 0 → 0 | 0 → 0 | – | 0 / 2147475456 |
+| SHARD(메타 노드) ▸ `MEM_DATA` | 12 → 12 | 14 → 14 | – | 636432 / 2146847216 |
+| ALTI ▸ `SYS_TBS_MEM_DATA` | 9 → 11 | 12 → 12 | 표에 구체화된 뷰 `CHR_DSP_MV`(와 같은 시간 다른 작업의 구체화된 뷰 하나)가 더해짐. 인덱스 `CHR_DSP_MI`의 테이블: 전 `ClassCastException` → 후 그 구체화된 뷰 | 10256984 / 2137226664 |
+| ALTI ▸ `SYS_TBS_MEM_DIC` | 68 → 68 | 134 → 134 | – | 2152464 / 2145331184 |
+| ALTI ▸ `SYS_TBS_DISK_DATA` | 1 → 1 | 1 → 1 | – | 1048576 / 2146426880 |
+
+- 큐(`CHR_DSP_QU`)와 그 시스템 인덱스는 두 서버에서 전후 모두 보인다.
+- 쿼리 관리자: 폴더마다 SELECT 하나씩(전과 같은 수), 바뀐 것은 `t.table_type IN ('T', 'Q', 'M')` 조건뿐. 세 연결 모두 SELECT만.
+- 연결 새로 고침 뒤, 다시 연결 뒤에도 `MEM_DATA` 26 / 26.
+- 캡처(저장소 밖): `D:\Tools\_scratch\altibase-family-display-fixes\sheets\` — `before-ko-2-mem-data-folders-ss`(테이블 26, 인덱스 27), `after-ko-3-…`(26, 26),
+  `after-en-2-…`, `after-dark-en-2-…`. 다른 객체의 이름이 보이는 행은 그리지 않았다.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열 테이블스페이스의 테이블·인덱스 폴더(구체화된 뷰 항목), 그 항목의 속성·링크.
+
 ## ShardSphere에서 다른 문장 (2026-11-17, 앱 변경 #139 1단계)
 
 ### 목적
@@ -1107,7 +1156,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | 절 둘 이상 한 문장(`SET START s END e`, 쉼표, `SET ENABLE COMMENT 'x'`, 매뉴얼의 여러 절 예) | 200705 | 200705 |
 | 없는 작업 `ALTER JOB` / `DROP JOB` | 201143 | 201143 |
 | `DROP JOB j`(켜진 작업 포함) | 됨 | 됨 |
-| `DBMS_METADATA.GET_DDL('JOB', j)` | 됨(`CREATE JOB "j" EXEC … START TO_DATE(…) END … INTERVAL 2 HOUR`) | **990001**(기존 "View DDL"이 실패함, 이 변경에서 고치지 않음) |
+| `DBMS_METADATA.GET_DDL('JOB', j)` | 됨(`CREATE JOB "j" EXEC … START TO_DATE(…) END … INTERVAL 2 HOUR`) | **990001**(기존 "View DDL"이 실패함. 2026-11-22 고침: 아래 "작업 정의 보기") |
 | 권한 없는 사용자(`CHR_JQ_U`, CREATE SESSION만) | 201137 "must have CREATE_ANY_JOB / ALTER_ANY_JOB / DROP_ANY_JOB privilege(s)". 세 권한을 주면 만들기·바꾸기·삭제가 됨. `SYS_JOBS_`는 권한 없이 읽힘 | 사용자를 만들지 않음(지시). `SYS_PRIVILEGES_`에 같은 세 권한(266, 268, 267)이 있다 |
 
 - 스케줄러는 두 시험 서버에서 꺼져 있다(위 "작업"). 그래서 켠 작업이 실제로 도는지, `INTERVAL 0`인 작업을 스케줄러가 어떻게 다루는지는 확인할 수 없었다.
@@ -1130,6 +1179,72 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 ### 확인
 
 아래 "작업·큐·세션 종료 확인 (2026-11-21)".
+
+## 작업 정의 보기 (2026-11-22, 앱 변경 #158 1항)
+
+### 증상과 원인
+
+- ShardSphere 일반 서버에서 Global metadata ▸ 작업의 DDL 보기(SQL 생성 ▸ DDL도 같은 생성기)가 `;`만 보였다(전 캡처). 작업의 정의는
+  `AltibaseMetaModel.getJobDDL` → `getDDLFromDbmsMetadata(…, "JOB")`이 `exec ? := dbms_metadata.get_ddl('JOB', 이름, NULL)`로 읽었는데, 그 서버는
+  990001로 거절하고, `getDDLFromDbmsMetadata`는 예외를 삼켜 빈 글을 돌려주며 `AltibaseJob`이 `;`를 붙였다.
+- 서버의 사실(시험용 `CHR_DSP_*`, 앱 밖 JDBC, 2026-11-22): ShardSphere 5.1.9의 `GET_DDL`은 `TABLE`만 준다. `INDEX`, `QUEUE`, `VIEW`, `SYNONYM`,
+  `SEQUENCE`, `TRIGGER`, `PROCEDURE`, `TYPESET`, `PACKAGE_SPEC`, `PACKAGE_BODY`, `JOB`, `DIRECTORY`, `LIBRARY`, `DB_LINK`는 있는 객체도 없는 객체도 990001,
+  없는 `TABLE`은 990000이다. Altibase 7.3은 모두 준다(`JOB`은 소유자 NULL일 때만: 소유자를 주면 990010, 없는 작업은 990013).
+- Altibase 7.3의 작업 결과: `CREATE JOB "j" EXEC p START TO_DATE('2031/01/01 00:00:00', 'YYYY/MM/DD HH24:MI:SS') [END …] [INTERVAL n 단위] [ENABLE]
+  [COMMENT '…']`(절마다 줄바꿈, 주기 0이면 INTERVAL 없음).
+
+### 고친 것
+
+작업의 정의를 서버에 묻지 않고 카탈로그 행(모델이 이미 가진 `SYS_JOBS_` 값)으로 새 작업과 같은 문장 만들기(`AltibaseJobDDL.createJob`)에 넘긴다
+(`AltibaseJob.getObjectDefinitionText`). 제품 이름 검사는 없다. `AltibaseMetaModel.getJobDDL`은 쓰는 곳이 없어 지웠다.
+
+- **늘 카탈로그(고른 것).** 두 서버에서 같은 문장이고 질의가 없다(전에는 Altibase에서 패키지 확인 SELECT와 EXEC 하나). Altibase의 `GET_DDL`과
+  절이 같다: START, END, INTERVAL, ENABLE, COMMENT. 다른 것은 날짜 구분자(`-` / `/`), 이름의 따옴표(필요할 때만 / 늘), 한 줄 / 절마다 줄바꿈이다.
+  대안(고르지 않음): `GET_DDL`이 빈 글을 줄 때만 카탈로그로 — Altibase의 글은 그대로지만 길이 둘이고 서버마다 EXEC가 남는다.
+- **START가 없는 작업**(START 없이 만든 작업, ShardSphere만 받음): START 없이 쓴다. 그 서버에서 같은 행을 다시 만든다(아래 확인).
+  그래서 `AltibaseJobDDL.Definition`의 시작이 null일 수 있게 했다(작업 대화상자는 늘 시작을 준다).
+- **문장 만들기가 모르는 주기 단위**(ShardSphere의 초 `SS`): 문장에서 INTERVAL을 빼고 앞에 주석 줄 `-- Not in this statement: INTERVAL 10 SS`
+  (한국어 `-- 이 문장에 없는 값: …`, `AltibaseMessages.job_ddl_left_out`)로 알린다. 틀린 문장(다른 단위)을 보이지 않는다. 대안(고르지 않음):
+  `SS` → `SECOND`로 쓰기 — 두 서버 사실과 맞지만(`INTERVAL n SECOND`가 `SS`로 저장) 대화상자 단위 목록 밖의 낱말을 공용 코드에 하나 더 둔다.
+- 상태·실행 횟수·마지막 실행 같은 실행 값은 정의가 아니라 문장에 없다(`GET_DDL`도 없음).
+
+### 같은 원인의 다른 종류 (ShardSphere 일반 서버, 이 브랜치 빌드의 DDL 보기)
+
+| 종류 | 앱이 보이는 것 | 처리 |
+|---|---|---|
+| 테이블 | 서버의 `CREATE TABLE`(기본 키·인덱스 문장 포함) 뒤에 사용자 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;` | 보고만: 인덱스 줄은 아래 인덱스와 같은 원인 |
+| 인덱스 | `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`(문장 없음) | 보고만: 카탈로그로 CREATE INDEX를 만들 문장 만들기가 모델에 없다(같은 고침이 아님) |
+| 큐 | `-- [WARNING] Without DBMS_METADATA …` + `-- Can't generate DDL: table editor not found for …AltibaseQueue`(문장 없음) | 보고만: 큐는 다른 작업이 고치는 중(`AltibaseQueue`). 카탈로그로 쓰려면 `CREATE QUEUE q (n)`의 크기·`FIXED`/`VARIABLE`·`MAXROWS`를 읽어야 한다 |
+| 뷰, 프로시저, 타입세트, 패키지(명세·본문), 테이블 트리거, 시노님 | `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.` 다음에 카탈로그에서 읽은 바른 문장 | 전부터 카탈로그로 대체(문장은 맞음). 경고 줄은 남김 |
+| 시퀀스 | 앱이 만든 `CREATE SEQUENCE …`(전부터 `GET_DDL`을 쓰지 않음) | 해당 없음 |
+| 데이터베이스 링크, 라이브러리, 디렉터리 | 서버에 객체가 없음(`SYS_DATABASE_LINKS_`·`SYS_LIBRARIES_`·`SYS_DIRECTORIES_` 0행) | 보고만: 있으면 작업과 같이 `;`만 보일 것(`GET_DDL` 990001, 대체 없음). 확인하지 못함 |
+| 복제(GEMINI) | 복제 카탈로그가 객체 유형을 주지 않아 부르지 않음(전부터) | 해당 없음 |
+
+- 읽기 전용 연결에서는 ShardSphere가 `GET_DDL` EXEC 자체를 거절한다(266307, [shardsphere.md](shardsphere.md) "스트림 탐색기"). 작업은 이제 EXEC가 없어 그
+  연결에서도 정의가 보인다.
+
+### 확인 (2026-11-22, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %; 영어 150 %, 어두운 테마 100 % 한 번씩)
+
+연결 `SS`(일반 서버), `SHARD`(메타 노드, 읽기 전용), `ALTI`(Altibase 7.3, 터널, 읽기 전용)를 함께 열었다. 값은 환경 변수 참조, 암호 저장 끔.
+"전"은 같은 빌드에 기준(`8fce65770d`) 소스의 바뀐 클래스·문구를 다시 넣은 `ext.altibase` jar다.
+
+| 작업(두 서버에 같게 만듦) | 전: ShardSphere / Altibase | 후: 두 서버 |
+|---|---|---|
+| J1 START만 | `;` / `GET_DDL` 글 | `CREATE JOB CHR_DSP_J1 EXEC CHR_DSP_P START TO_DATE('2031-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS');` |
+| J2 END·2 HOUR·ENABLE·주석 | `;` / 같음 | `… END TO_DATE(…) INTERVAL 2 HOUR ENABLE COMMENT 'dsp two';` |
+| J3 30 MINUTE·주석 `it's` | `;` / 같음 | `… INTERVAL 30 MINUTE COMMENT 'it''s';` |
+| `"CHR_DSP_j4"` 1 MONTH | `;` / 같음 | `CREATE JOB "CHR_DSP_j4" … INTERVAL 1 MONTH;` |
+| J5 START 없음(ShardSphere만) | `;` | `CREATE JOB CHR_DSP_J5 EXEC CHR_DSP_P;` |
+| J6 10 SECOND(ShardSphere만) | `;` | 주석 줄 `-- 이 문장에 없는 값: INTERVAL 10 SS` + START까지의 문장 |
+
+- **다시 만들기:** 후의 글을 이름만 바꿔(`CHR_DSP_R1`–`R5`, `"CHR_DSP_r4"`) 두 서버에서 실행하면 `SYS_JOBS_` 행이 원본과 같다(EXEC_QUERY, START, END,
+  INTERVAL, 단위, STATE, IS_ENABLE, COMMENT; ShardSphere의 R5는 START null까지 같음).
+- 연결 새로 고침 뒤, 다시 연결 뒤에도 같은 글. 작업 DDL에 보낸 문장 없음(전: 작업마다 `SYS_PACKAGES_` SELECT 하나와 쿼리 관리자에 남지 않는 EXEC 하나).
+  쿼리 관리자 감사는 세 연결 모두 SELECT만.
+- 캡처(저장소 밖, 계정은 가림): `D:\Tools\_scratch\altibase-family-display-fixes\sheets\` — `before-ko-1-job-ddl-ss`, `after-ko-1-job-ddl-ss`,
+  `after-ko-2-job-ddl-ss-seconds`, `after-ko-4-job-ddl-ss-nostart`, `after-en-1-…`, `after-dark-en-1-…`.
+- 시험용 작업·프로시저는 두 서버에서 끄고(ENABLE이던 것) 지웠다([shardsphere.md](shardsphere.md) "표시 결함 세 가지의 시험").
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 작업의 DDL 보기·SQL 생성 ▸ DDL·스크립트 복사, 새 작업 대화상자의 미리 보기(같은 문장 만들기).
 
 ## 큐 (2026-11-21, 앱 변경 #154)
 
@@ -1376,3 +1491,7 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
   `AltibaseTableManager.appendTableModifiers`가 CREATE TABLE 끝에 절. 위 "테이블 TTL 자리" ▸ "새 테이블".
 - 2026-11-22 큐의 데이터 기능에서 넣기·바꾸기를 빼고 가져오기·Generate SQL(탐색기·그리드)이 데이터 기능을 물음(앱 변경 #157, `chromite/queue-data-commands`):
   큐에 서버가 거절하는 INSERT·UPDATE·MERGE를 만들지 않고 그리드는 읽기 전용. 위 "큐에 맞지 않는 데이터 명령".
+- 2026-11-22 작업의 정의를 `DBMS_METADATA.GET_DDL` 대신 카탈로그 행으로(`AltibaseJobDDL.createJob`): ShardSphere에서 `;`만 보이던 DDL 보기, START 없는
+  작업, 모르는 주기 단위는 주석 줄. `GET_DDL`이 실패하는 다른 종류 표(앱 변경 #158 1항, `chromite/altibase-family-display-fixes`), 위 "작업 정의 보기".
+- 2026-11-22 테이블스페이스의 테이블·인덱스 폴더가 같은 종류(`T`, `Q`, `M`)를 읽음: 내부 표(`$AGGR`)의 인덱스가 빠지고 구체화된 뷰가 테이블 폴더에 더해짐,
+  항목의 테이블을 `GenericTableBase`로(구체화된 뷰 인덱스의 형 변환 오류)(앱 변경 #158 2항), 위 "테이블스페이스의 테이블과 인덱스".

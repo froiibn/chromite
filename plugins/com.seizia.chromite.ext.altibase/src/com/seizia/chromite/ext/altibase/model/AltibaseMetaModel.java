@@ -69,6 +69,7 @@ import java.util.Map;
  * - 2026-11-17 시퀀스 목록에 큐의 내부 시퀀스({@code <queue>_NEXT_MSG_ID})를 카탈로그로 가려 읽기 전용 {@link AltibaseQueueSequence}로
  *   (앱 변경 #139 수정 4, docs/chromite/altibase.md "큐의 내부 시퀀스")
  * - 2026-11-21 {@link #QUEUE_SEQUENCE_SUFFIX}를 열어 큐 관리자가 큐를 만들고 지운 뒤 시퀀스 목록을 맞춤(앱 변경 #154, docs/chromite/altibase.md "큐")
+ * - 2026-11-22 작업 DDL(getJobDDL)을 지움: 작업이 정의를 카탈로그 행으로 만든다(앱 변경 #158, docs/chromite/altibase.md "작업 정의 보기")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
@@ -335,14 +336,6 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
             return "";
         }
         return getDDLFromDbmsMetadata(monitor, sourceObject, null, objectType);
-    }
-    
-    /**
-     * Get a specific Job DDL
-     */
-    public String getJobDDL(DBRProgressMonitor monitor, AltibaseJob sourceObject, 
-            Map<String, Object> options) throws DBException {
-        return getDDLFromDbmsMetadata(monitor, sourceObject, null, "JOB");
     }
     
     /**
