@@ -43,6 +43,11 @@ import java.util.concurrent.Executor;
 
 /**
  * Manageable connection
+ *
+ * 변경 이력:
+ * - 2026-11-22 {@link #cancelBlock}: 이 세션의 호출이 다른 세션의 문장 뒤에서 연결을 기다리면 드라이버의 연결 취소를 부르지 않음. Oracle
+ *   {@code Connection.cancel}·PostgreSQL {@code cancelQuery}는 연결이 지금 실행하는 다른 세션의 문장(쿼리 창의 문장일 수도 있음)을 멈췄다
+ *   (앱 변경 #161, docs/chromite/cancel-busy-connection.md)
  */
 public class JDBCConnectionImpl extends AbstractSession implements JDBCSession, DBRBlockingObject {
 
@@ -718,6 +723,11 @@ public class JDBCConnectionImpl extends AbstractSession implements JDBCSession, 
 
     @Override
     public void cancelBlock(@NotNull DBRProgressMonitor monitor, @Nullable Thread blockThread) throws DBException {
+        if (context.isServingOtherSession(this)) {
+            // This session's call waits for the connection: a connection cancel would stop the other session's statement
+            log.debug("Session waits for the connection behind another session; cancel not sent");
+            return;
+        }
         // Let's try with driver implementation
         Connection connection = context.getConnectionOrNull();
         if (connection != null) {

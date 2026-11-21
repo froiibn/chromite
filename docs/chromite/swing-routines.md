@@ -188,11 +188,10 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   PostgreSQL 뷰를 다른 세션이 `ACCESS EXCLUSIVE`로 잠근 채 DDL 보기를 취소: `pg_get_viewdef`가 멈추고 0.2초 뒤 창이 닫힘, 탭 없음.
   권한이 없는 계정(SEL·INS)의 인덱스는 오류 창 첫 줄이 권한 문구(한국어·영어), 테이블 DDL은 두 줄 머리 주석만 늘고 나머지는 고치기 전과 바이트가 같음,
   뷰·시퀀스·패키지·프로시저·함수 DDL은 고치기 전과 같음. DDL 문장은 모두 연결의 메타데이터 문맥(Query Manager `META`)에서 돌아 쿼리 창의 세션을 쓰지 않는다.
+- **메타데이터 연결이 바쁠 때의 취소(2026-11-22, 앱 변경 #161에서 고침).** 메타데이터 연결이 다른 작업의 긴 문장으로 바쁠 때 DDL 요청은 드라이버의
+  연결 잠금에서 기다리고, 취소는 Oracle에서 **다른 작업의 문장**을 멈추고 다른 드라이버에서는 아무것도 하지 못했다. 이제 기다리는 요청의 취소는 다른 문장에
+  닿지 않고, 진행 창은 취소 1.5초 뒤 닫혀 사용자를 풀어 준다([cancel-busy-connection.md](cancel-busy-connection.md)).
 - **남긴 것(고치지 않음).**
-  - 메타데이터 연결이 다른 작업의 긴 문장으로 바쁠 때 DDL 요청은 드라이버의 연결 잠금에서 기다린다(문장을 만들기 전이라 문장 블록이 없다). 이때 취소는
-    세션 블록으로 가서 Oracle `connection.cancel()`이 **다른 작업의 문장**을 ORA-01013으로 멈추게 하고(시험: 4–5초 뒤 진행 창이 닫힘), 기본
-    `JDBCDataSource.cancelCurrentExecution`을 쓰는 드라이버에서는 아무 일도 일어나지 않는다. 고치려면 모든 DB의 취소 경로(`AbstractJob`,
-    `JDBCStatementImpl`)를 바꿔야 해 범위를 넘는다.
   - 소유자가 아닌 계정의 트리거 DDL은 `ALL_SOURCE`에 본문이 없어 `;`만 나오고, 패키지 본문은 말없이 빠진다(전부터 그랬음, 표시 없음).
   - 이 컨테이너의 ORA-38802([model-fixes.md](model-fixes.md) #30) 원인을 찾았다: 메타데이터 세션의 `OPTIMIZER_FEATURES_ENABLE='10.2.0.5'`
     (`OracleDataSource.initializeContextState`, "메타데이터 옵티마이저" 설정; JDBC로는 `'10.2.0.1'`로 같은 결과) 아래에서 23.26의 `DBMS_METADATA.GET_DDL`이 `DBMS_EDITIONS_UTILITIES`의
@@ -211,3 +210,4 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   구조 검증(O20), Altibase TRUNCATE·구체화된 뷰 새로 고침(A5). PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 - 2026-11-22 "DDL 권한과 취소"(앱 변경 #159): 취소한 DDL 읽기가 대체 DDL을 만들거나 빈 DDL 탭을 열지 않음, 권한이 없을 때의 대체 DDL 표시와 오류 창 첫 줄,
   메뉴를 흐리게 하지 않은 이유, ORA-38802 원인(고치지 않음).
+- 2026-11-22 "DDL 권한과 취소"의 남긴 것 중 바쁜 메타데이터 연결에서의 취소를 고친 것으로 옮김(앱 변경 #161, [cancel-busy-connection.md](cancel-busy-connection.md)).
