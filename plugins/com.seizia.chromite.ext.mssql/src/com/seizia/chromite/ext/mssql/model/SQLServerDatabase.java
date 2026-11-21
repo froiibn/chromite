@@ -69,6 +69,8 @@ import java.util.TreeSet;
 *   {@code [이름]}이 되어 맞지 않았고 {@code '}가 있으면 질의가 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
 * - 2026-11-15 파일 그룹·로그 파일 목록({@link #getFilegroups}, {@link #getLogFiles})과 저장소 명령을 받는지({@link #supportsStorageChanges}):
 *   탐색기의 Storage 폴더. 목록은 폴더를 열 때 그 데이터베이스의 카탈로그 뷰에서 읽는다 (앱 변경 #128, docs/chromite/mssql-storage.md)
+* - 2026-11-22 {@link #isSchemaListLoaded}: 실행 문맥이 기본 스키마를 읽지 않고 답할 수 있는지 안다(앱 변경 #164,
+*   docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
 */
 public class SQLServerDatabase
     implements
@@ -560,6 +562,13 @@ public class SQLServerDatabase
 
     public SQLServerSchema getSchema(String name) {
         return schemaCache.getCachedObject(name);
+    }
+
+    /**
+     * True when the schema list is read: {@link #getSchema(DBRProgressMonitor, String)} then answers from memory.
+     */
+    boolean isSchemaListLoaded() {
+        return schemaCache.isFullyCached();
     }
 
     public SQLServerSchema getSysSchema(DBRProgressMonitor monitor) throws DBException {

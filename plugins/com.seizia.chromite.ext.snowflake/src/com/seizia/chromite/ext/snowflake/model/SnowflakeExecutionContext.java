@@ -37,12 +37,22 @@ import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
 import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
 
+/**
+ * Snowflake execution context: the active database and schema of the session.
+ *
+ * 설계(Chromite): {@link #getDefaultSchema}는 기본 데이터베이스의 스키마 목록이 없으면 서버에서 읽는다. 화면을 그리는 코드가 그 읽기를
+ * 하지 않도록 {@link #isDefaultSchemaLoaded}로 먼저 답한다.
+ *
+ * 변경 이력:
+ * - 2026-11-22 {@link #isDefaultSchemaLoaded} 추가(앱 변경 #164, docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
+ */
 class SnowflakeExecutionContext extends GenericExecutionContext {
     private static final Log log = Log.getLog(SnowflakeExecutionContext.class);
 
@@ -79,6 +89,23 @@ class SnowflakeExecutionContext extends GenericExecutionContext {
         } catch (DBException e) {
             log.error("Unable to retrieve active schema by its name", e);
             return null;
+        }
+    }
+
+    /**
+     * The default database's schema list is read (getDefaultSchema would read it otherwise).
+     */
+    @Override
+    public boolean isDefaultSchemaLoaded() {
+        GenericCatalog defaultCatalog = CommonUtils.isEmpty(activeSchemaName) ? null : getDefaultCatalog();
+        if (defaultCatalog == null) {
+            return true;
+        }
+        try {
+            // A monitor that forces the cache gets the list read so far: null while it is not read
+            return defaultCatalog.getSchemas(new LocalCacheProgressMonitor(new VoidProgressMonitor())) != null;
+        } catch (DBException e) {
+            return false;
         }
     }
 

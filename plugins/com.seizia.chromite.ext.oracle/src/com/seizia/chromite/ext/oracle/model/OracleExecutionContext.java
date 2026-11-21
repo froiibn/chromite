@@ -44,6 +44,9 @@ import java.sql.SQLException;
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  * - 2026-11-11 Chromite: 쿼리 창의 {@code SET SERVEROUTPUT}이 이 세션만 켜고 끈 값({@link #getServerOutputOverride}). 연결 설정보다 앞서고
  *   설정은 바꾸지 않는다. 세션 객체가 살아 있는 동안(다시 연결해도) 유지된다 (docs/chromite/oracle-sqlplus-commands.md)
+ * - 2026-11-22 Chromite: {@link #isDefaultSchemaLoaded}. {@link #getDefaultSchema}는 스키마 목록이 비어 있으면(Refresh 직후) 서버에서
+ *   읽는데, 개체 탐색기가 그림을 그리다 이것을 불러 이벤트 스레드가 메타데이터 연결을 기다렸다(앱 변경 #164,
+ *   docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
  */
 public class OracleExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<DBSCatalog, OracleSchema> {
     private static final Log log = Log.getLog(OracleExecutionContext.class);
@@ -121,6 +124,14 @@ public class OracleExecutionContext extends JDBCExecutionContext implements DBCE
             log.error(e);
             return null;
         }
+    }
+
+    /**
+     * The schema list of the data source is read (getSchema would read it otherwise).
+     */
+    @Override
+    public boolean isDefaultSchemaLoaded() {
+        return activeSchemaName == null || getDataSource().schemaCache.isFullyCached();
     }
 
     @Override

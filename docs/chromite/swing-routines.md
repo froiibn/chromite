@@ -193,6 +193,10 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
     세션 블록으로 가서 Oracle `connection.cancel()`이 **다른 작업의 문장**을 ORA-01013으로 멈추게 하고(시험: 4–5초 뒤 진행 창이 닫힘), 기본
     `JDBCDataSource.cancelCurrentExecution`을 쓰는 드라이버에서는 아무 일도 일어나지 않는다. 고치려면 모든 DB의 취소 경로(`AbstractJob`,
     `JDBCStatementImpl`)를 바꿔야 해 범위를 넘는다.
+  - 2026-11-22 덧붙임(앱 변경 #164): 바쁜 메타데이터 연결에서 **창 전체**가 멈추던 경로 하나는 진행 창 밖이었다. Refresh로 Oracle 스키마 목록
+    (SQL Server는 데이터베이스의 스키마 목록)이 빈 사이 개체 탐색기가 기본 스키마를 굵게 그리려고 이벤트 스레드에서 목록을 읽어, 취소 단추를 포함한
+    모든 창이 연결이 풀릴 때까지 멈췄다(무효화와 겹치면 영영). 이제 그리기는 DB를 읽지 않는다
+    ([swing-explorer-productivity.md](swing-explorer-productivity.md) "기본값 굵게 표시"). 진행 창 안의 작업이 바쁜 연결을 기다리는 것은 위와 같다.
   - 소유자가 아닌 계정의 트리거 DDL은 `ALL_SOURCE`에 본문이 없어 `;`만 나오고, 패키지 본문은 말없이 빠진다(전부터 그랬음, 표시 없음).
   - 이 컨테이너의 ORA-38802([model-fixes.md](model-fixes.md) #30) 원인을 찾았다: 메타데이터 세션의 `OPTIMIZER_FEATURES_ENABLE='10.2.0.5'`
     (`OracleDataSource.initializeContextState`, "메타데이터 옵티마이저" 설정; JDBC로는 `'10.2.0.1'`로 같은 결과) 아래에서 23.26의 `DBMS_METADATA.GET_DDL`이 `DBMS_EDITIONS_UTILITIES`의

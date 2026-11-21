@@ -46,6 +46,8 @@ import java.sql.SQLException;
  * 변경 이력:
  * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
  *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되고 상태 줄에서 DB가 빠졌다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
+ * - 2026-11-22 {@link #isDefaultSchemaLoaded}: {@link #getDefaultSchema}는 기본 데이터베이스의 스키마 목록이 없으면 서버에서 읽는다.
+ *   개체 탐색기가 그림을 그리다 그 읽기를 하지 않도록 먼저 묻는다(앱 변경 #164, docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
  */
 public class SQLServerExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<SQLServerDatabase, SQLServerSchema> {
     private static final Log log = Log.getLog(SQLServerExecutionContext.class);
@@ -101,6 +103,15 @@ public class SQLServerExecutionContext extends JDBCExecutionContext implements D
             log.error(e);
             return null;
         }
+    }
+
+    /**
+     * The default database's schema list is read (getDefaultSchema would read it otherwise).
+     */
+    @Override
+    public boolean isDefaultSchemaLoaded() {
+        SQLServerDatabase defaultCatalog = CommonUtils.isEmpty(activeSchemaName) ? null : getDefaultCatalog();
+        return defaultCatalog == null || defaultCatalog.isSchemaListLoaded();
     }
 
     @Override
