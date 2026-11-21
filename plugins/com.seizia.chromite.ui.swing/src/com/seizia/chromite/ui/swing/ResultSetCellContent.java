@@ -57,6 +57,8 @@ import java.nio.file.Path;
  * 이미 읽어 로컬 임시 파일에 있는 LOB는 자리 표시 대신 앞부분을 보인다({@link #readPreview}): 모델은 {@code content.memory.maxsize}(10,000자)
  * 이상인 CLOB을 임시 파일에 두고 표시 문자열로 "[CLOB]"만 주는데, 그 파일을 읽는 일은 서버를 부르지 않는다. 앞부분 길이는 같은 설정이라
  * 칸 하나가 메모리에 두는 글자는 그 설정보다 작은 CLOB이 이미 두는 만큼을 넘지 않는다. 읽지 않은 LOB는 칸마다 서버를 부르지 않도록 자리 표시를 그대로 둔다.
+ * 복사와 CSV 내보내기는 칸 글자 대신 DB 없이 얻을 수 있는 전문을 쓴다({@link #readFullText}): 값 패널이 다 읽은 글자, 모델의 메모리 글자, 또는
+ * {@link #MAX_LOAD_SIZE}자 이하의 로컬 임시 파일. 그보다 긴 파일은 메모리로 읽지 않고 칸 글자(앞부분과 표시)를 둔다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널 (docs/chromite/swing-result-viewer.md "값 패널")
@@ -67,6 +69,8 @@ import java.nio.file.Path;
  * - 2026-11-22 칸이 값 전체를 보이지 않는지({@link #isPartial}, 링크로 그림)와 로컬 임시 파일에 읽은 LOB의 앞부분({@link #readPreview}):
  *   DDL을 돌려주는 Oracle 쿼리의 결과가 "[CLOB]"로만 보이고 칸에서 전문을 열 길이 보이지 않던 결함 (앱 변경 #160,
  *   docs/chromite/swing-result-viewer.md "긴 LOB 칸")
+ * - 2026-11-22 복사·CSV 내보내기용 전문({@link #readFullText}): 사용자 결정 "권장대로", 이미 읽은 LOB는 앞 10,000자와 "..." 대신 전문을 복사
+ *   (앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetCellContent {
 
@@ -276,6 +280,46 @@ final class ResultSetCellContent {
             }
             boolean truncated = out.length() >= MAX_LOAD_SIZE && (length > out.length() || in.read() >= 0);
             return new Loaded(null, out.toString(), Math.max(length, out.length()), truncated);
+        }
+    }
+
+    /**
+     * The whole text of a text LOB whose cell shows only part of it, when it is available without the database, for
+     * Copy and the CSV export: the text the value panel read completely, the model's in-memory text, or a local
+     * temporary file of at most {@link #MAX_LOAD_SIZE} characters (the model writes one only below
+     * {@code content.cache.maxsize}, 1,000,000 by default; a larger one is not read here). Null when the content was
+     * not read (reading it would query the database), is binary (its cell shows the formatted first bytes), is longer,
+     * or the cell shows it whole. Job thread: it reads the file.
+     */
+    @Nullable
+    String readFullText() throws IOException {
+        if (!partial || !isText()) {
+            return null;
+        }
+        Loaded result = loaded;
+        if (result != null) {
+            return result.text() != null && !result.truncated() ? result.text() : null;
+        }
+        DBDContent content;
+        synchronized (this) {
+            content = liveContent;
+        }
+        DBDContentStorage storage = content instanceof JDBCContentLOB lob ? lob.getLoadedContents() : null;
+        if (storage == null) {
+            return null;
+        }
+        if (storage instanceof DBDContentCached cached && cached.getCachedValue() instanceof String text) {
+            return text;
+        }
+        try (Reader in = storage.getContentReader()) {
+            StringBuilder text = new StringBuilder();
+            char[] buffer = new char[8192];
+            int count;
+            while (text.length() < MAX_LOAD_SIZE && (count = in.read(buffer, 0, Math.min(buffer.length, MAX_LOAD_SIZE - text.length()))) > 0) {
+                text.append(buffer, 0, count);
+            }
+            // Longer than the value panel reads: the cell's cut text and mark stay
+            return in.read() >= 0 ? null : text.toString();
         }
     }
 

@@ -88,7 +88,8 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 
 - Copy As 메뉴에 JSON(객체 배열, 숫자·불리언은 JSON 값), XML(`<rows><row><column name="…">`), HTML 표, SQL INSERT를 더했다.
   SWT는 데이터 전송 처리기를 다시 실행했지만 Swing은 표가 가진 값(숫자·불리언·날짜 원래 값과 표시 문자열)으로 바로 만든다: 쿼리를 다시 실행하지 않고, 저장하지 않은 변경도 복사된다.
-  LOB 값은 표에 보이는 글자다(저장 미리 보기와 같은 한계).
+  LOB 값은 표에 보이는 글자다(저장 미리 보기와 같은 한계). 2026-11-22부터 칸 글자가 값의 일부인 LOB는 DB 없이 얻을 수 있으면 전문이다
+  ([swing-result-viewer.md](swing-result-viewer.md) "긴 LOB 칸" "복사·내보내기").
 - SQL INSERT: 테이블은 결과의 단일 원본 테이블(`DBExecUtils.detectSingleSourceTable`), 없으면 `table`. 열 이름은 방언의 따옴표, 날짜·불리언은 `SQLUtils.convertValueToSQL`, 글자는 `SQLUtils.quoteString`.
 - 고급 복사…(Copy As 메뉴 끝): 열 이름, 행 번호, 구분자(`\t`, `,`, `;`, `|` 또는 입력), 따옴표(필요할 때·항상·쓰지 않음), NULL 글자. 설정은 이 실행 동안 기억한다.
   SWT의 Ctrl+Shift+C는 Swing에서 이미 Copy with Headers라 고급 복사에는 단축키를 두지 않았다.
@@ -220,3 +221,4 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
   위 "오른쪽 클릭 메뉴에 보이는 편집 명령").
 - 2026-11-22 값 전체를 보이지 않는 LOB 칸은 링크, 누르기·두 번 누르기·F2로 값 패널(읽기 전용 결과 포함, 앱 변경 #160, `chromite/grid-lob-full-text`,
   위 "LOB 편집과 파일").
+- 2026-11-22 고급 복사·복사 형식이 이미 읽은 LOB의 전문을 씀(앱 변경 #160 후속, 위 "고급 복사와 복사 형식").
