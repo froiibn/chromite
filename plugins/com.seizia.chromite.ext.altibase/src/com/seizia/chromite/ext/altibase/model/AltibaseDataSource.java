@@ -116,6 +116,8 @@ import java.util.WeakHashMap;
  * - 2026-11-17 {@link #getExtensionProperties}: 감지된 확장이 이 연결의 객체에 더하는 읽기 전용 속성(속성 보기). 작업 목록은 연결의
  *   {@code SYS_JOBS_}에 소유자·종류·실패 횟수 열이 있을 때만 그 열과 소유자 이름을 읽는다({@link JobCache}, 앱 변경 #139 수정 5·6,
  *   docs/chromite/altibase.md "작업", "기존 객체의 추가 속성")
+ * - 2026-11-21 {@link #getSchemaExtensionObjects}: 감지된 확장이 스키마마다 내는 트리 객체(스키마 아래 트리 자리, 앱 변경 #153,
+ *   docs/chromite/altibase.md "서버 확장")
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -213,6 +215,22 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
         if (extensions != null) {
             for (AltibaseServerExtensionState extension : extensions) {
                 objects.addAll(extension.getTreeObjects());
+            }
+        }
+        return objects;
+    }
+
+    /**
+     * Objects of the detected server extensions under one schema (tree host {@code schemaExtension} in {@code plugin.xml}).
+     * Without a detected extension: empty, no query.
+     */
+    @NotNull
+    public Collection<DBSObject> getSchemaExtensionObjects(@NotNull AltibaseSchema schema) {
+        List<AltibaseServerExtensionState> extensions = serverExtensions;
+        List<DBSObject> objects = new ArrayList<>();
+        if (extensions != null) {
+            for (AltibaseServerExtensionState extension : extensions) {
+                objects.addAll(extension.getSchemaTreeObjects(schema));
             }
         }
         return objects;

@@ -35,8 +35,19 @@ import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+/**
+ * Altibase schema (a user).
+ *
+ * 설계: 서버 확장이 사용자가 소유한 자기 객체를 스키마 아래에 보이는 자리({@link #getExtensionObjects})는 이 클래스의 getter다:
+ * 공급자 트리의 항목은 부모 객체의 실제 클래스에서 리플렉션으로 읽히므로(어댑터를 거치지 않음) 확장이 이 클래스를 고치지 않고 쓸 수 있는
+ * 중립 이름 하나를 둔다. 무엇을 내는지는 연결의 감지 결과가 정한다({@link AltibaseDataSource#getSchemaExtensionObjects}).
+ *
+ * 변경 이력:
+ * - 2026-11-21 {@link #getExtensionObjects}: 스키마 아래 서버 확장의 트리 자리(앱 변경 #153, docs/chromite/altibase.md "서버 확장")
+ */
 public class AltibaseSchema extends GenericSchema implements DBPObjectStatisticsCollector {
 
     private volatile boolean hasStatistics;
@@ -83,6 +94,15 @@ public class AltibaseSchema extends GenericSchema implements DBPObjectStatistics
     
     public DirectoryCache getDirectoryCache() {
         return directoryCache;
+    }
+
+    /**
+     * Objects of the connection's detected server extensions for this schema (tree host {@code schemaExtension} in
+     * {@code plugin.xml}); empty without one.
+     */
+    @NotNull
+    public Collection<DBSObject> getExtensionObjects() {
+        return ((AltibaseDataSource) getDataSource()).getSchemaExtensionObjects(this);
     }
 
     public DBSObject getChild(@NotNull DBRProgressMonitor monitor, @NotNull String childName) throws DBException {
