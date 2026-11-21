@@ -70,10 +70,13 @@ import java.util.StringJoiner;
  * 스트림 테이블과 연속 쿼리는 TTL을 받지 않는다(서버가 201849, 200705로 거절). 삭제는 이 번들의 객체 관리자, 만들기는 틀이다.
  * 노드를 다시 읽으면({@link #refreshObject}) 자기 사전 행을 다시 읽어 값을 바꾼다(목록의 캐시가 같은 객체를 가지므로 새 객체를 만들지
  * 않음). 행이 없으면(다른 곳에서 지움) 노드가 빠진다.
+ * 스키마의 개체 목록(자동 완성, 이름 찾기)에는 테이블 종류만 열이 있는 {@link StreamRelation}으로 낸다({@link #getRelation}). 연속 쿼리는
+ * 서버가 SELECT를 거절하므로(200753) 내지 않는다.
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
  * - 2026-11-22 사용 / 사용 안 함, 실행 설정, 자기 행 다시 읽기(앱 변경 #156, docs/chromite/shardsphere.md "스트림 명령")
+ * - 2026-11-22 스키마의 개체 목록에 낼 객체({@link #getRelation}, 쿼리는 없음)(앱 변경 #163, docs/chromite/shardsphere.md "자동 완성의 스트림 객체")
  */
 public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifiedObject, DBPRefreshableObject, AltibaseExecutionSettings {
 
@@ -121,6 +124,9 @@ public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifie
     private String ttlUnit;
     @Nullable
     private Integer ttlTime;
+    // This table in the schema's object list: made on first use, none for a query
+    @Nullable
+    private volatile StreamRelation relation;
 
     ContinuousObject(@NotNull StreamSchema parent, @NotNull ResultSet dbResult) {
         this.parent = parent;
@@ -239,6 +245,29 @@ public class ContinuousObject implements DBSObject, DBPScriptObject, DBPQualifie
 
     boolean isQuery() {
         return TYPE_QUERY.equals(tableType);
+    }
+
+    /**
+     * This table as the schema's object list shows it: a view-like table with columns; only a continuous stream table
+     * accepts inserted rows (the server refuses every write into a continuous table). Null for a continuous query, which
+     * the server does not let a query read (SELECT 200753).
+     */
+    @Nullable
+    StreamRelation getRelation() {
+        if (isQuery()) {
+            return null;
+        }
+        StreamRelation result = relation;
+        if (result == null) {
+            synchronized (this) {
+                result = relation;
+                if (result == null) {
+                    result = new StreamRelation(parent.getSchema(), this, name, true, TYPE_STREAM_TABLE.equals(tableType));
+                    relation = result;
+                }
+            }
+        }
+        return result;
     }
 
     /**

@@ -47,6 +47,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-08 실패한 문장 뒤에 수동 커밋 트랜잭션을 롤백하던 {@code query.rollback-on-error}를 지움. 묻지 않고 롤백해 트랜잭션 안전
  *   규칙에 어긋나고, 설정 파일이나 설정 가져오기로 다시 켜지지 않게 키를 읽지 않는다 (docs/chromite/swing-options.md "Errors and Timeouts")
+ * - 2026-11-22 execute 호출 동안 문맥에 알리고, 다른 세션의 문장 뒤에서 연결을 기다리는 문장의 취소는 드라이버에 보내지 않음. PostgreSQL·MariaDB
+ *   드라이버의 문장 취소는 연결이 지금 실행하는 문장(다른 세션의 것)을 멈춘다 (앱 변경 #161, docs/chromite/cancel-busy-connection.md)
  */
 public class JDBCStatementImpl<STATEMENT extends Statement> extends AbstractStatement<JDBCSession> implements JDBCStatement {
 
@@ -113,6 +115,11 @@ public class JDBCStatementImpl<STATEMENT extends Statement> extends AbstractStat
         @NotNull DBRProgressMonitor monitor,
         @Nullable Thread blockThread
     ) throws DBException {
+        if (connection.getExecutionContext().isServingOtherSession(connection)) {
+            // Still waiting for the connection: the driver's cancel would stop the other session's statement
+            log.debug("Statement waits for the connection behind another session; cancel not sent");
+            return;
+        }
         getConnection().getDataSource().cancelStatementExecute(monitor, this);
     }
 
@@ -307,9 +314,11 @@ public class JDBCStatementImpl<STATEMENT extends Statement> extends AbstractStat
             JDBCTrace.traceQueryBegin(getQueryString());
         }
         this.startBlock();
+        this.connection.getExecutionContext().statementExecuteStarted(this);
     }
 
     protected void afterExecute() {
+        this.connection.getExecutionContext().statementExecuteEnded(this);
         this.connection.setBlockThread(null);
         if (JDBCUtils.LOG_JDBC_WARNINGS) {
             try {

@@ -44,9 +44,15 @@ import java.util.List;
  * 설계: 서버 확장이 사용자가 소유한 자기 객체를 스키마 아래에 보이는 자리({@link #getExtensionObjects})는 이 클래스의 getter다:
  * 공급자 트리의 항목은 부모 객체의 실제 클래스에서 리플렉션으로 읽히므로(어댑터를 거치지 않음) 확장이 이 클래스를 고치지 않고 쓸 수 있는
  * 중립 이름 하나를 둔다. 무엇을 내는지는 연결의 감지 결과가 정한다({@link AltibaseDataSource#getSchemaExtensionObjects}).
+ * 개체 목록({@link #getChildren}, {@link #getChild})은 트리와 따로 확장의 객체를 더한다
+ * ({@link AltibaseDataSource#getSchemaExtensionChildren}): 테이블 폴더는 테이블 목록({@link #getPhysicalTables})만 읽으므로 그대로이고,
+ * 이름으로 찾을 때는 스키마 자기 객체가 먼저다.
  *
  * 변경 이력:
  * - 2026-11-21 {@link #getExtensionObjects}: 스키마 아래 서버 확장의 트리 자리(앱 변경 #153, docs/chromite/altibase.md "서버 확장")
+ * - 2026-11-22 {@link #getChildren}, {@link #getChild}가 서버 확장의 객체를 더함(질의로 부르는 스트림 테이블·연속 테이블: 자동 완성,
+ *   이름 찾기). 확장이 없으면 질의가 늘지 않는다. 새로 고치면 확장에 알려 그 객체를 다시 읽게 함(앱 변경 #163, docs/chromite/altibase.md
+ *   "서버 확장")
  */
 public class AltibaseSchema extends GenericSchema implements DBPObjectStatisticsCollector {
 
@@ -70,6 +76,7 @@ public class AltibaseSchema extends GenericSchema implements DBPObjectStatistics
         this.libraryCache.clearCache();
         this.directoryCache.clearCache();
         hasStatistics = false;
+        ((AltibaseDataSource) getDataSource()).schemaRefreshed(this);
         return this;
     }
     
@@ -105,6 +112,17 @@ public class AltibaseSchema extends GenericSchema implements DBPObjectStatistics
         return ((AltibaseDataSource) getDataSource()).getSchemaExtensionObjects(this);
     }
 
+    /**
+     * The tables and synonyms, then the objects the connection's detected server extensions add to the object list.
+     */
+    @Override
+    public Collection<? extends DBSObject> getChildren(@NotNull DBRProgressMonitor monitor) throws DBException {
+        List<DBSObject> children = new ArrayList<>(super.getChildren(monitor));
+        children.addAll(((AltibaseDataSource) getDataSource()).getSchemaExtensionChildren(monitor, this));
+        return children;
+    }
+
+    @Override
     public DBSObject getChild(@NotNull DBRProgressMonitor monitor, @NotNull String childName) throws DBException {
         
         DBSObject object = null;
@@ -125,8 +143,12 @@ public class AltibaseSchema extends GenericSchema implements DBPObjectStatistics
         }
         
         object = getSynonym(monitor, childName);
+        if (object != null) {
+            return object;
+        }
 
-        return object;
+        // A name the schema's own objects do not have: the server extensions' objects share the tables' name space
+        return DBUtils.findObject(((AltibaseDataSource) getDataSource()).getSchemaExtensionChildren(monitor, this), childName);
     }
     
     @Override

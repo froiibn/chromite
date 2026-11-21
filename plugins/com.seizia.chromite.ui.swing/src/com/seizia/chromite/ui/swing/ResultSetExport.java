@@ -23,6 +23,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.data.office.export.DataExporterXLSX;
 import com.seizia.chromite.model.DBPNamedObject;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
@@ -67,6 +68,8 @@ import java.util.Map;
  *     나머지 값은 표에 보이는 표시 문자열을 그대로 쓴다({@link GridXlsxExporter}). 그래서 세션·결과 집합 없이 쓸 수 있다(LOB 값이 엔진에 가지 않음).
  *     날짜 셀 형식은 {@value #XLSX_DATE_FORMAT}이다(엔진 기본 속성의 빈 형식 대신. 엑셀 셀 형식과 엔진이 1900년 이전 날짜에 쓰는
  *     {@code SimpleDateFormat}에서 같은 뜻이다). NULL은 빈 칸이다.</li>
+ *     <li>LOB 칸: CSV는 칸 글자가 값의 일부(앞부분·자리 표시)인 LOB를 DB 없이 얻을 수 있으면 전문으로 쓴다({@link ResultSetCellContent#readFullText}, 쓰는 동안 한 칸씩 읽음).
+ *     XLSX는 칸 글자 그대로다: 엑셀 칸 하나는 32,767자까지라 전문(최대 1,000,000자)을 넣을 수 없다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -76,8 +79,11 @@ import java.util.Map;
  * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-13 가져온 행 안내를 HTML 라벨 대신 {@link WrappingNote}로, 멈춘 가져오기는 굵은 안내 한 문단과 나머지 문단으로 나눔:
  *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-22 CSV 내보내기가 이미 읽은 LOB의 전문을 씀(앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetExport {
+
+    private static final Log log = Log.getLog(ResultSetExport.class);
 
     private static final String CSV_LINE_END = "\r\n"; //$NON-NLS-1$
     private static final int PROGRESS_STEP = 1000;
@@ -144,9 +150,11 @@ final class ResultSetExport {
     }
 
     /**
-     * Asks for the file and options, then writes the fetched rows as CSV.
+     * Asks for the file and options, then writes the fetched rows as CSV. LOB cells that show only part of their value
+     * ({@code fullTexts}, by {@link ResultSetGrid#cellKey}) are written whole when their text is available without the
+     * database ({@link ResultSetCellContent#readFullText}).
      */
-    static void exportCsv(@NotNull Component parent, @NotNull ResultSetGrid.Data data) {
+    static void exportCsv(@NotNull Component parent, @NotNull ResultSetGrid.Data data, @NotNull Map<Long, ResultSetCellContent> fullTexts) {
         JCheckBox headersCheck = new JCheckBox(EditorMessages.editor_export_include_headers, lastIncludeHeaders);
         JComboBox<String> delimiterCombo = new JComboBox<>(DELIMITER_LABELS);
         delimiterCombo.setSelectedIndex(lastDelimiter);
@@ -181,7 +189,7 @@ final class ResultSetExport {
         Path target = file;
         try {
             ProgressDialog.runTask(EditorMessages.editor_export_csv_title, monitor -> {
-                writeCsv(monitor, target, data, csvOptions);
+                writeCsv(monitor, target, data, csvOptions, fullTexts);
                 return null;
             });
         } catch (DBInterruptedException e) {
@@ -436,11 +444,30 @@ final class ResultSetExport {
     private record CsvOptions(boolean headers, char delimiter, boolean bom, boolean escapeFormulas) {
     }
 
+    /**
+     * The whole text of a LOB cell that shows only part of it, read now (job thread) so that one cell's text is in
+     * memory at a time; null when there is none to read without the database, or the file can't be read (the cell's
+     * text is written then, as the grid shows it).
+     */
+    @Nullable
+    private static String getFullText(@Nullable ResultSetCellContent content) {
+        if (content == null) {
+            return null;
+        }
+        try {
+            return content.readFullText();
+        } catch (IOException e) {
+            log.debug("Can't read the whole text of a LOB to export", e);
+            return null;
+        }
+    }
+
     private static void writeCsv(
         @NotNull DBRProgressMonitor monitor,
         @NotNull Path file,
         @NotNull ResultSetGrid.Data data,
-        @NotNull CsvOptions options
+        @NotNull CsvOptions options,
+        @NotNull Map<Long, ResultSetCellContent> fullTexts
     ) throws DBException {
         List<Object[]> rows = data.rows();
         monitor.beginTask(NLS.bind(EditorMessages.editor_export_task, rows.size(), file.getFileName()), rows.size());
@@ -470,7 +497,10 @@ final class ResultSetExport {
                     if (value == null || value == ResultSetGrid.NULL_VALUE) {
                         continue;
                     }
-                    String text = value.toString();
+                    String text = getFullText(fullTexts.get(ResultSetGrid.cellKey(rowIndex, i)));
+                    if (text == null) {
+                        text = value.toString();
+                    }
                     if (i >= data.numeric().length || !data.numeric()[i]) {
                         text = escapeFormula(text, options);
                     }

@@ -114,6 +114,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-data-transfer.md "고급 옵션")
  * - 2026-11-13 매핑·불러오기 안내({@link DataTransferObjects#createNote})와 매핑 문제 줄이 {@link WrappingNote}가 됨. 대상 안내는 이름이 문장 가운데서 굵게
  *   보여 HTML 라벨로 이 클래스에 남김(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-22 비울 테이블 목록과 DDL 미리 보기의 비우기 줄은 모델이 잘라내기나 지우기를 받는 대상만({@link DataTransferObjects#acceptsEmptying}):
+ *   넣기만 받는 대상은 불러오기가 비우지 않고 넣는다(앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
  */
 final class DatabaseCopyPages {
 
@@ -381,14 +383,15 @@ final class DatabaseCopyPages {
     }
 
     /**
-     * Existing destination tables whose rows are deleted before copying (truncate is checked).
+     * Existing destination tables whose rows are deleted before copying (truncate is checked), without those whose model
+     * accepts neither truncating nor deleting rows: the load leaves them as they are.
      */
     @NotNull
     private List<String> getTruncatedTables() {
         List<String> truncated = new ArrayList<>();
         if (truncateCheck.isSelected()) {
             for (DatabaseMappingContainer mapping : mappings) {
-                if (mapping.getMappingType() == DatabaseMappingType.existing && mapping.getTarget() != null) {
+                if (mapping.getMappingType() == DatabaseMappingType.existing && DataTransferObjects.acceptsEmptying(mapping.getTarget())) {
                     truncated.add(DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI));
                 }
             }
@@ -1234,7 +1237,7 @@ final class DatabaseCopyPages {
             }
             text = added.isEmpty() ? DbCopyMessages.ddl_no_changes
                 : NLS.bind(DbCopyMessages.ddl_added_columns, mapping.getTargetName(), String.join("\n    ", added)); //$NON-NLS-1$
-            if (truncateCheck.isSelected() && mapping.getTarget() != null) {
+            if (truncateCheck.isSelected() && DataTransferObjects.acceptsEmptying(mapping.getTarget())) {
                 text = NLS.bind(TransferOptionsMessages.ddl_truncate, DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI))
                     + "\n\n" + text; //$NON-NLS-1$
             }
