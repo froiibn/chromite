@@ -20,10 +20,15 @@ import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
+import com.seizia.chromite.ext.altibase.model.AltibaseSchema;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
 import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
 import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -33,6 +38,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -67,6 +73,10 @@ import java.util.Set;
  *   {@link AltibaseTableTtl}). 메타 노드의 샤드 테이블에는 내지 않으려고 감지 때 읽은 샤드 테이블 목록을 받음(읽지 못했으면 null → TTL
  *   명령 없음)(앱 변경 #152,
  *   docs/chromite/shardsphere.md "TTL 관리")
+ * - 2026-11-21 스트림 탐색기: 스트림 사전({@code SYS_CONTINUOUS_TABLES_}, {@code SYS_STREAM_FUNCTIONS_})이 있으면 스키마마다
+ *   "스트림" 노드({@link StreamSchema}, Altibase 트리의 스키마 자리)와 이 노드 아래 스트림 함수 폴더({@link StreamFunction}: 사전에 소유자가
+ *   없고 모든 사용자에게 공개되므로 서버 단위). 스트림 카탈로그 속성. 새로 고침은 읽은 함수를 비운다(앱 변경 #153,
+ *   docs/chromite/shardsphere.md "스트림 탐색기")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
@@ -98,6 +108,8 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     private final boolean shardingMetaNode;
     // The TTL dictionary table SYSTEM_.SYS_TTL_ exists
     private final boolean ttlCatalog;
+    // The stream dictionary tables SYSTEM_.SYS_CONTINUOUS_TABLES_ and SYS_STREAM_FUNCTIONS_ exist
+    private final boolean streamCatalog;
     // The node names of the meta node's sharding dictionary (names only), empty on another server
     @NotNull
     private final List<String> nodeNames;
@@ -107,6 +119,8 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     // The TTL of existing tables; only where the TTL dictionary table exists
     @Nullable
     private final ShardTableTtl tableTtl;
+    // The stream functions; read only where the stream dictionary exists
+    private final StreamFunctionCache streamFunctionCache = new StreamFunctionCache();
 
     /**
      * @param shardTables owner and name of each shard table of a sharding meta node (empty on another server): no TTL
@@ -118,6 +132,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         boolean shardingPackage,
         boolean shardingMetaNode,
         boolean ttlCatalog,
+        boolean streamCatalog,
         @NotNull List<String> nodeNames,
         @Nullable Set<List<String>> shardTables
     ) {
@@ -126,6 +141,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         this.shardingPackage = shardingPackage;
         this.shardingMetaNode = shardingMetaNode;
         this.ttlCatalog = ttlCatalog;
+        this.streamCatalog = streamCatalog;
         this.nodeNames = List.copyOf(nodeNames);
         this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
         this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables) : null;
@@ -171,6 +187,32 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         return sharding == null ? null : sharding.getVersion(monitor, this);
     }
 
+    /**
+     * The stream dictionary tables SYSTEM_.SYS_CONTINUOUS_TABLES_ and SYS_STREAM_FUNCTIONS_ exist.
+     */
+    @Property(viewable = true, order = 6)
+    public boolean isStreamCatalog() {
+        return streamCatalog;
+    }
+
+    boolean isTtlCatalog() {
+        return ttlCatalog;
+    }
+
+    @NotNull
+    public List<StreamFunction> getStreamFunctions(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return streamCatalog ? streamFunctionCache.getAllObjects(monitor, this) : List.of();
+    }
+
+    /**
+     * The "Stream" node of each schema where the stream dictionary exists: no query here, its folders read on opening.
+     */
+    @NotNull
+    @Override
+    public Collection<? extends DBSObject> getSchemaTreeObjects(@NotNull AltibaseSchema schema) {
+        return streamCatalog ? List.of(new StreamSchema(this, schema)) : List.of();
+    }
+
     @NotNull
     public List<ShardNode> getShardNodes(@NotNull DBRProgressMonitor monitor) throws DBException {
         return sharding == null ? List.of() : sharding.getNodes(monitor, this);
@@ -192,7 +234,8 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     }
 
     /**
-     * Forgets what the sharding explorer read; the detection itself is renewed by a refresh of the connection.
+     * Forgets what the sharding explorer and the stream function folder read; the detection itself is renewed by a refresh
+     * of the connection.
      */
     @NotNull
     @Override
@@ -200,6 +243,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         if (sharding != null) {
             sharding.clear();
         }
+        streamFunctionCache.clearCache();
         return this;
     }
 
@@ -317,6 +361,20 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         @Override
         public boolean isValidValue(@NotNull ShardSphereServer object, @Nullable Object value) {
             return object.isShardingMetaNode();
+        }
+    }
+
+    private static class StreamFunctionCache extends JDBCObjectCache<ShardSphereServer, StreamFunction> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull ShardSphereServer owner) throws SQLException {
+            return session.prepareStatement(StreamFunction.QUERY_FUNCTIONS);
+        }
+
+        @NotNull
+        @Override
+        protected StreamFunction fetchObject(@NotNull JDBCSession session, @NotNull ShardSphereServer owner, @NotNull JDBCResultSet resultSet) {
+            return new StreamFunction(owner, resultSet);
         }
     }
 

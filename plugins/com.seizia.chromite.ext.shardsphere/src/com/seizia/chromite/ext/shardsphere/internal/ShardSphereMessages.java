@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-17 최초 작성: 객체 종류, 분산 방식, 분산 행의 종류(앱 변경 #139 작업 9)
  * - 2026-11-17 테이블 속성(TTL, 샤드 객체)의 이름과 TTL 단위(앱 변경 #139 수정 6)
  * - 2026-11-17 TTL 대화상자의 단위 이름(앱 변경 #152)
+ * - 2026-11-21 스트림 탐색기의 노드 이름, 연속 객체 종류, 마이크로초, 스트림 함수 유형, 정의가 없을 때의 줄(앱 변경 #153)
  */
 public class ShardSphereMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages"; //$NON-NLS-1$
@@ -79,6 +80,19 @@ public class ShardSphereMessages extends NLS {
     public static String ttl_unit_name_hour;
     public static String ttl_unit_name_minute;
     public static String ttl_unit_name_second;
+
+    // The stream explorer: the schema's node, SYS_TABLES_.TABLE_TYPE of continuous objects, the window step unit R
+    // ({0}: the amount), SYS_STREAM_FUNCTIONS_.FUNC_TYPE, the DDL view without a definition
+    public static String stream_node_name;
+    public static String stream_kind_continuous_table;
+    public static String stream_kind_continuous_stream_table;
+    public static String stream_kind_continuous_query;
+    public static String stream_unit_microsecond;
+    public static String stream_function_lastnth;
+    public static String stream_function_topk;
+    public static String stream_function_dist;
+    public static String stream_function_hll;
+    public static String stream_definition_unavailable;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ShardSphereMessages.class);

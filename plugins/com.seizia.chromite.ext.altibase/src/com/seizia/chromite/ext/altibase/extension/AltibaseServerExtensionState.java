@@ -20,6 +20,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
+import com.seizia.chromite.ext.altibase.model.AltibaseSchema;
 import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
@@ -47,6 +48,8 @@ import java.util.List;
  *   docs/chromite/altibase.md "복제 카탈로그")
  * - 2026-11-17 기존 객체의 추가 속성({@link #getObjectProperties}): 서버 확장이 그 서버의 카탈로그에서 읽어 속성 보기에 더하는 값
  *   (앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
+ * - 2026-11-21 스키마마다의 트리 객체({@link #getSchemaTreeObjects}): 사용자(스키마)가 소유한 확장의 객체를 그 스키마 아래에 보이는
+ *   자리(앱 변경 #153, docs/chromite/altibase.md "서버 확장")
  */
 public interface AltibaseServerExtensionState {
 
@@ -67,6 +70,16 @@ public interface AltibaseServerExtensionState {
      */
     @NotNull
     default Collection<? extends DBSObject> getTreeObjects() {
+        return List.of();
+    }
+
+    /**
+     * Objects shown in Object Explorer under one schema of the connection (the tree host {@code schemaExtension} in
+     * ext.altibase's {@code plugin.xml}), for what the schema's user owns on this server. Called when the schema's
+     * children are read: an extension returns its containers without a query and reads their content when they are opened.
+     */
+    @NotNull
+    default Collection<? extends DBSObject> getSchemaTreeObjects(@NotNull AltibaseSchema schema) {
         return List.of();
     }
 
