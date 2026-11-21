@@ -91,7 +91,7 @@ public class AltibaseTable extends GenericTable
     // Set by the table designer on the EDT, read by the script generation in a worker thread
     @Nullable
     private volatile AltibaseTableTtl.Change newTableTtl;
-
+    
     private final TablePrivCache tablePrivCache = new TablePrivCache();
     
     public AltibaseTable(GenericStructContainer container, String tableName, String tableType, JDBCResultSet dbResult) {
