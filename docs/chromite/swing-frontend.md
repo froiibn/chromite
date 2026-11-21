@@ -1213,7 +1213,7 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 | 3 | 단일 원본 테이블 없음(`detectSingleSourceTable`) | 열에 식별자가 있으면 `columns of several tables`(조인), 없으면 `no table columns`(식, 상수, 테이블을 모르는 결과) |
 | 4 | 기본 행 식별자(첫 열 순서의 식별자, SWT `getDefaultRowIdentifier`)가 없거나 불완전하거나 유효하지 않음 | `no unique key` |
 | 5 | 키 열 값을 읽지 못함(값 객체·읽기 오류) | `key values can't be read` |
-| 6 | 원본 테이블이 `FEATURE_DATA_UPDATE`를 지원하지 않음 | `the table doesn't support data changes` |
+| 6 | 원본 테이블이 `FEATURE_DATA_UPDATE`를 지원하지 않음(2026-11-22부터 Altibase 계열 큐, 앱 변경 #157, [altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령") | `the table doesn't support data changes` |
 | 7 | 편집할 수 있는 열이 하나도 없음 | `no editable columns` |
 
 - **열 단위:** 원본 테이블의 열이면서 `DBExecUtils.isAttributeReadOnly(binding, true)`가 거짓이고, 의사 열(ROWID 등)이 아니고, 자료형이 문자열·숫자·불리언·날짜인 열만 편집한다.
@@ -3829,3 +3829,4 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
   `bindAttributes`는 쿼리가 한정했으나 풀리지 않은 테이블을 컨테이너 없는 열 이름으로 다시 찾지 않고, SQLite 모델은 `main`을 데이터 원본 자신으로 푼다. "결과 그리드의 테이블 묶기" 절. 회귀 테스트는 실행하지 않았다.
 - 2026-11-17 Database type 콤보의 맨 위 목록을 손으로 적은 주요 DB 대신 내장 드라이버 묶음에서 정함(앱 변경 #148, `chromite/connection-default-drivers`): ShardSphere 들어옴, MySQL 빠짐.
   Altibase 공급자 연결의 Options > 설정 탭 제목은 연결의 데이터베이스 유형 이름(ShardSphere). [drivers.md](drivers.md) "새 연결의 기본 목록". 회귀 테스트는 실행하지 않았다.
+- 2026-11-22 편집 가능 판단 6번(`FEATURE_DATA_UPDATE`)에 걸리는 첫 모델: Altibase 계열 큐(앱 변경 #157). 그리드 코드는 바꾸지 않았다. [altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령".

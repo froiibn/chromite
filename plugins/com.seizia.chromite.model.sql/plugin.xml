@@ -26,17 +26,20 @@
         <generator id="tableSelect" class="com.seizia.chromite.model.sql.generator.SQLGeneratorSelect" label="SELECT" description="SELECT from table" order="1">
             <objectType name="com.seizia.chromite.model.struct.DBSDataContainer"/>
         </generator>
+        <!-- Chromite (2026-11-22): the writing generators apply only to objects whose data features include the rows they
+             write (DBSDataManipulator.FEATURE_DATA_INSERT / _UPDATE / _DELETE); an object that refuses them (a queue) gets
+             no statement its server would refuse (docs/chromite/swing-explorer-object-actions.md "행을 쓰는 생성기") -->
         <generator id="tableInsert" class="com.seizia.chromite.model.sql.generator.SQLGeneratorInsert" label="INSERT" description="INSERT into table" order="2">
-            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator" if="object.isFeatureSupported('data.insert')"/>
         </generator>
         <generator id="tableUpdate" class="com.seizia.chromite.model.sql.generator.SQLGeneratorUpdate" label="UPDATE" description="UPDATE table" order="3">
-            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator" if="object.isFeatureSupported('data.update')"/>
         </generator>
         <generator id="tableDelete" class="com.seizia.chromite.model.sql.generator.SQLGeneratorDelete" label="DELETE" description="DELETE from table" order="4">
-            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator" if="object.isFeatureSupported('data.delete')"/>
         </generator>
         <generator id="tableMerge" class="com.seizia.chromite.model.sql.generator.SQLGeneratorMerge" label="MERGE" description="MERGE table" order="5">
-            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator" if="object.isFeatureSupported('data.insert') and object.isFeatureSupported('data.update')"/>
         </generator>
         <generator id="tableJoin" class="com.seizia.chromite.model.sql.generator.SQLGeneratorSimpleJoin" label="SIMPLE JOIN" description="JOIN tables" order="6" multiObject="true">
             <objectType name="com.seizia.chromite.model.struct.DBSDataContainer"/>

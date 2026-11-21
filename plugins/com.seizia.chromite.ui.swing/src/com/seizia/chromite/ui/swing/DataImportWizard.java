@@ -109,6 +109,8 @@ import java.util.Set;
  *   (docs/chromite/swing-database-tasks.md "데이터 전송 작업")
  * - 2026-11-13 안내({@link DataTransferObjects#createNote})가 {@link WrappingNote}가 되어 칸 형식을 {@code JTextArea}로(앱 변경 #90,
  *   docs/chromite/swing-options.md "HTML 라벨 안내")
+ * - 2026-11-22 행을 받지 않는다고 모델이 말하는 객체(큐)에는 가져오기가 해당하지 않음({@link #canImport}, {@link #open}): 형식만 보아
+ *   서버가 거절하는 INSERT를 만들었다 (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -235,15 +237,16 @@ final class DataImportWizard extends DataTransferWizard {
     }
 
     /**
-     * Whether a table can receive imported data (SWT {@code DataImportHandler}: a {@link DBSDataManipulator}), or a
-     * database whose tables (or a new table) can be chosen on the first page.
+     * Whether a table can receive imported data (SWT {@code DataImportHandler}: a {@link DBSDataManipulator}, here also one
+     * whose model accepts inserted rows, {@link DataTransferObjects#acceptsRows}), or a database whose tables (or a new
+     * table) can be chosen on the first page.
      */
     static boolean canImport(@Nullable DBSObject object) {
-        return object instanceof DBSDataManipulator && object instanceof DBSEntity || DataTransferObjects.isDatabase(object);
+        return DataTransferObjects.acceptsRows(object) && object instanceof DBSEntity || DataTransferObjects.isDatabase(object);
     }
 
     static void open(@NotNull Component parent, @NotNull DBSObject object) {
-        DBSDataManipulator table = object instanceof DBSDataManipulator manipulator && object instanceof DBSEntity ? manipulator : null;
+        DBSDataManipulator table = DataTransferObjects.acceptsRows(object) && object instanceof DBSEntity ? (DBSDataManipulator) object : null;
         if (table == null && !(DataTransferObjects.isDatabase(object) && object instanceof DBSObjectContainer)) {
             return;
         }

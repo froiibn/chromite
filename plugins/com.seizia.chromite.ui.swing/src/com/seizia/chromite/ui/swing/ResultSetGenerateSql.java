@@ -50,12 +50,16 @@ import com.seizia.chromite.model.impl.local.LocalStatement;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
 import com.seizia.chromite.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorDeleteFromData;
+import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorInsertFromData;
 import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorInsertReplaceFromData;
 import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorMergeFromData;
 import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorResultSet;
+import com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorUpdateFromData;
 import com.seizia.chromite.model.sql.registry.SQLGeneratorConfigurationRegistry;
 import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -92,7 +96,8 @@ import java.util.Locale;
  *     <li>행 문장은 SWT처럼 결과가 테이블 하나에서 왔을 때만 메뉴에 보인다. 키가 꼭 있어야 하는 문장({@link SQLGeneratorResultSet#isUniqueKeyRequired}:
  *     UPDATE, SELECT … IN, MERGE)은 결과에 그 테이블의 완전한 고유 키(가상 키 포함)가 있을 때만 보인다(결과의 종류, 앱의 오른쪽 클릭 메뉴 규칙
  *     {@link ContextMenus}). 고른 행이 없으면 꺼지고 도구 설명에 이유를 쓴다. 연결이 닫혔으면 메뉴가 꺼진다.
- *     키가 없을 때 SWT UPDATE는 WHERE 없이 테이블 전체를 바꾸는 문장을 만들었다.</li>
+ *     키가 없을 때 SWT UPDATE는 WHERE 없이 테이블 전체를 바꾸는 문장을 만들었다. 행을 쓰는 문장은 그 테이블의 모델이 그 행을 받는다고
+ *     할 때만 보인다({@link DBSDataManipulator}의 데이터 기능, 큐는 넣기·바꾸기를 받지 않음).</li>
  *     <li>CREATE TABLE은 데이터 전송의 대상 테이블 DDL({@link DatabaseTransferUtils#generateTargetTableDDL}, 테이블 복사 미리 보기와 같은
  *     {@link DatabaseCopyMappings#generateTableDdl})로 만든다. 원본은 결과의 열 정보를 그대로 돌려주는 데이터 컨테이너({@link ResultColumns})다.
  *     SWT는 결과 모델을 감싼 컨테이너를 썼고, 데이터 전송의 기본 경로는 쿼리를 다시 실행해 열을 읽으므로 쓰지 않는다. 테이블은 쿼리 창의
@@ -107,6 +112,8 @@ import java.util.Locale;
  *   (docs/chromite/swing-saved-filters-virtual-columns.md)
  * - 2026-11-16 테이블 하나에서 오지 않았거나 키가 없는 결과의 행 문장을 끄는 대신 숨김, 그 도구 설명 문구 삭제 (앱 변경 #137,
  *   docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-22 테이블이 받지 않는다고 모델이 말하는 행을 쓰는 문장(큐의 INSERT·UPDATE·MERGE)을 숨김({@link #acceptsWrite}): 서버가
+ *   거절하는 문장을 만들었다 (앱 변경 #157, docs/chromite/swing-result-generate-sql.md)
  */
 final class ResultSetGenerateSql {
 
@@ -254,10 +261,36 @@ final class ResultSetGenerateSql {
 
     /**
      * A statement from rows applies to a result from one table, and one that needs a key to a result with that table's
-     * unique key (what the result is; a virtual key comes with reading the result again).
+     * unique key (what the result is; a virtual key comes with reading the result again), and one that writes rows to a
+     * table whose model accepts them ({@link #acceptsWrite}).
      */
     private static boolean appliesRows(@Nullable DBSEntity table, @NotNull SQLGeneratorResultSet generator, boolean hasKey) {
-        return table != null && (!generator.isUniqueKeyRequired() || hasKey);
+        return table != null && (!generator.isUniqueKeyRequired() || hasKey) && acceptsWrite(table, generator);
+    }
+
+    /**
+     * Whether the table accepts the rows the statement writes, by its data features ({@link DBSDataManipulator}): INSERT
+     * and the insert methods need inserted rows, UPDATE updated rows, DELETE deleted rows, MERGE both inserted and updated
+     * rows. Only a model that says no (a queue) leaves a statement out; other statements and tables are as before.
+     */
+    private static boolean acceptsWrite(@NotNull DBSEntity table, @NotNull SQLGeneratorResultSet generator) {
+        if (!(table instanceof DBSDataManipulator manipulator)) {
+            return true;
+        }
+        if (generator instanceof SQLGeneratorInsertFromData || generator instanceof SQLGeneratorInsertReplaceFromData) {
+            return manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_INSERT);
+        }
+        if (generator instanceof SQLGeneratorUpdateFromData) {
+            return manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_UPDATE);
+        }
+        if (generator instanceof SQLGeneratorDeleteFromData) {
+            return manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_DELETE);
+        }
+        if (generator instanceof SQLGeneratorMergeFromData) {
+            return manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_INSERT)
+                && manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_UPDATE);
+        }
+        return true;
     }
 
     /**

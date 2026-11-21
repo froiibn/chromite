@@ -71,6 +71,8 @@ import java.util.TreeMap;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 복사: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-22 행을 받지 않는다고 모델이 말하는 객체(큐)는 대상 이름 목록에서 빼고({@link #readTargetTableNames}), 그 이름을 대상으로
+ *   고르면 다른 종류 객체의 이름처럼 오류로 둠({@link #setTableTarget}) (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
  */
 final class DatabaseCopyMappings {
 
@@ -106,7 +108,8 @@ final class DatabaseCopyMappings {
     }
 
     /**
-     * Names of the writable tables of the target container, as a target name list (SWT {@code createTargetEditor}).
+     * Names of the writable tables of the target container, as a target name list (SWT {@code createTargetEditor}; here
+     * only those that accept inserted rows, {@link DataTransferObjects#acceptsRows}).
      */
     @NotNull
     static List<String> readTargetTableNames(@NotNull DBRProgressMonitor monitor, @NotNull DatabaseConsumerSettings settings) throws DBException {
@@ -114,7 +117,7 @@ final class DatabaseCopyMappings {
         DBSObjectContainer container = settings.getContainer();
         if (container != null) {
             for (DBSObject child : CommonUtils.safeCollection(container.getChildren(monitor))) {
-                if (child instanceof DBSDataManipulator) {
+                if (DataTransferObjects.acceptsRows(child)) {
                     names.add(DBUtils.getQuotedIdentifier(child));
                 }
             }
@@ -236,6 +239,12 @@ final class DatabaseCopyMappings {
                         break;
                     }
                 }
+            }
+            if (existingTable != null && !DataTransferObjects.acceptsRows(existingTable)) {
+                // The model says the object refuses inserted rows (a queue): the name is taken, as by a view or sequence
+                mapping.setTargetName(name);
+                mapping.refreshMappingType(monitor, DatabaseMappingType.unspecified, false, false);
+                return NLS.bind(DbCopyMessages.mapping_error_name_used, unquotedName, DBUtils.getObjectTypeName(existingTable));
             }
             if (existingTable != null) {
                 mapping.setTarget(existingTable);
