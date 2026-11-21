@@ -541,6 +541,9 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 - 진행 대화상자는 짧은 작업에서 깜빡이지 않도록 처음 300ms는 대화상자 없이 기다린다(SWT의 짧은 대기와 같은 방식).
   기다리는 동안 EDT는 모달 대화상자의 이벤트 루프에 있으므로, 작업이 `invokeAndWait`로 띄우는 대화상자(비밀번호 입력 등)도 정상으로 뜬다.
+- 취소(2026-11-22, 앱 변경 #161): `runTask`의 작업이 취소 1.5초 뒤에도 메타데이터 세션의 DB 호출 안에 있으면(바쁜 연결을 기다림, 응답 없는 연결) 창을 닫고
+  호출한 쪽에 `DBInterruptedException`을 돌려준다. 작업은 그대로 끝나게 두고 결과와 오류는 버린다. `waitForJob`과 메타데이터가 아닌 작업은 전처럼 끝날 때까지
+  기다린다([cancel-busy-connection.md](cancel-busy-connection.md)).
 - 남은 항목(코드에 `// Phase C:`로 표시): `showError`의 DB별 처리와 상세 정보 창, `selectObject`(탐색기 선택 대화상자),
   `openEntityEditor`(객체 편집기), `openConnectionEditor`(범용 연결 화면), `createLoadingService`(Swing 로딩 표시, EDT에서 완료 통지),
   `copyTextToClipboard`의 HTML 형식, `readAndDispatchEvents`, `promptAuthModelCredentials`(인터페이스 기본값 `false`).
@@ -3834,3 +3837,5 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-17 Database type 콤보의 맨 위 목록을 손으로 적은 주요 DB 대신 내장 드라이버 묶음에서 정함(앱 변경 #148, `chromite/connection-default-drivers`): ShardSphere 들어옴, MySQL 빠짐.
   Altibase 공급자 연결의 Options > 설정 탭 제목은 연결의 데이터베이스 유형 이름(ShardSphere). [drivers.md](drivers.md) "새 연결의 기본 목록". 회귀 테스트는 실행하지 않았다.
 - 2026-11-22 편집 가능 판단 6번(`FEATURE_DATA_UPDATE`)에 걸리는 첫 모델: Altibase 계열 큐(앱 변경 #157). 그리드 코드는 바꾸지 않았다. [altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령".
+- 2026-11-22 진행 대화상자의 취소: 바쁜 메타데이터 연결을 기다리는 작업은 취소 1.5초 뒤 창을 닫음(앱 변경 #161), 위 "DBPPlatformUI B단계 구현",
+  [cancel-busy-connection.md](cancel-busy-connection.md).

@@ -44,7 +44,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * What one connection found on its ShardSphere server.
@@ -82,6 +84,9 @@ import java.util.Set;
  * - 2026-11-22 스트림 함수 폴더의 "New …" 틀(중립 자리 {@link AltibaseObjectTemplates}), 삭제가 쓰는 함수 캐시(앱 변경 #156,
  *   docs/chromite/shardsphere.md "스트림 명령")
  * - 2026-11-21 TTL 능력에 메타 노드인지 넘김: 새 테이블의 TTL은 메타 노드에서 내지 않음(앱 변경 #155, docs/chromite/shardsphere.md "TTL 관리")
+ * - 2026-11-22 스키마의 개체 목록에 스트림 테이블·연속 테이블({@link #getSchemaObjects}, {@link StreamRelation}): 스키마마다 "스트림"
+ *   노드 객체를 스키마를 새로 고칠 때까지 하나로 두어({@link #schemaRefreshed}) 트리와 목록이 한 번 읽은 것을 함께 쓴다. 전에는 트리가
+ *   스키마를 읽을 때마다 새로 만들었다(앱 변경 #163, docs/chromite/shardsphere.md "자동 완성의 스트림 객체")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject, AltibaseObjectTemplates {
 
@@ -126,6 +131,9 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     private final ShardTableTtl tableTtl;
     // The stream functions; read only where the stream dictionary exists
     private final StreamFunctionCache streamFunctionCache = new StreamFunctionCache();
+    // The "Stream" node object of each schema, by schema name, until the schema is refreshed: the tree and the schema's
+    // object list share its lists
+    private final Map<String, StreamSchema> streamSchemas = new ConcurrentHashMap<>();
 
     /**
      * @param shardTables owner and name of each shard table of a sharding meta node (empty on another server): no TTL
@@ -240,7 +248,34 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     @NotNull
     @Override
     public Collection<? extends DBSObject> getSchemaTreeObjects(@NotNull AltibaseSchema schema) {
-        return streamCatalog ? List.of(new StreamSchema(this, schema)) : List.of();
+        return streamCatalog ? List.of(getStreamSchema(schema)) : List.of();
+    }
+
+    /**
+     * The stream tables and continuous tables of the schema for its object list (SQL completion, name resolution), from the
+     * lists the "Stream" node shows: read once on the first call, nothing where the stream dictionary does not exist.
+     */
+    @NotNull
+    @Override
+    public Collection<? extends DBSObject> getSchemaObjects(@NotNull DBRProgressMonitor monitor, @NotNull AltibaseSchema schema) throws DBException {
+        return streamCatalog ? getStreamSchema(schema).getRelations(monitor) : List.of();
+    }
+
+    /**
+     * A refreshed schema gets a new "Stream" node object, which reads the stream objects again when asked.
+     */
+    @Override
+    public void schemaRefreshed(@NotNull AltibaseSchema schema) {
+        streamSchemas.remove(schema.getName());
+    }
+
+    /**
+     * The "Stream" node object of the schema, shared by the tree and the object list (one read of its lists for both).
+     */
+    @NotNull
+    private StreamSchema getStreamSchema(@NotNull AltibaseSchema schema) {
+        return streamSchemas.compute(schema.getName(),
+            (name, known) -> known != null && known.getSchema() == schema ? known : new StreamSchema(this, schema));
     }
 
     @NotNull

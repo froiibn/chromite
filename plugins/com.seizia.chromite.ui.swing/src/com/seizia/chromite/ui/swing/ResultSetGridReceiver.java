@@ -73,6 +73,7 @@ import java.util.function.Consumer;
  * 파일로 값 전체를 바꾼다, {@link ResultSetEditModel#isContentColumn}).
  * 값 패널·정렬·필터·다음 페이지(결과 뷰어): 값 패널이 칸의 원래 값을 보여 주도록 행마다 칸 값을 함께 넘긴다({@link ResultSetSource#cellValues()}).
  * LOB({@link DBDContent})는 {@link ResultSetCellContent}로 바꿔 넘기고, 메모리에 없는 LOB는 패널이 나중에 읽도록 값 객체를 놓아 주지 않는다.
+ * 모델이 로컬 임시 파일에 읽어 둔 LOB는 표시 문자열("[CLOB]") 대신 그 앞부분을 칸 글자로 쓴다({@link ResultSetCellContent#readPreview}).
  * 공간 값({@link DBGeometry}, {@code data.gis})은 결과 공간 보기가 그리도록 칸 값에 그대로 남긴다(DB 자원을 잡지 않는 값). 열은 지금처럼 편집하지 않는다.
  * 다음 페이지를 읽을 때는 첫 결과의 열 바인딩을 그대로 쓰는 수신기({@link #forNextSegment})를 만든다(SWT {@code ResultSetDataReceiver}의
  * {@code nextSegmentRead}처럼 열 정보를 다시 만들지 않는다). 이 수신기는 테이블 메타데이터에 다시 묶지 않고 편집 모델도 만들지 않는다
@@ -104,6 +105,8 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-saved-filters-virtual-columns.md)
  * - 2026-11-16 결과가 종류로 편집할 수 있는지({@link ResultSetEditModel#appliesEditing})와 LOB 열을 함께 넘김: 오른쪽 클릭 메뉴가
  *   해당하지 않는 명령을 숨기고, 연결이 편집을 막은 결과는 편집 명령을 꺼진 채 보임 (앱 변경 #137, docs/chromite/context-menus.md "결과 그리드")
+ * - 2026-11-22 로컬 임시 파일에 읽은 LOB(10,000자 이상 CLOB 등)는 "[CLOB]" 대신 앞부분을 칸 글자로 (앱 변경 #160,
+ *   docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -223,6 +226,12 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                         ResultSetCellContent cellContent = ResultSetCellContent.capture(content);
                         cells[i] = cellContent;
                         keepValue = cellContent.isLive();
+                        // A LOB read into a local temporary file shows its beginning instead of its placeholder (no
+                        // query); one not read keeps the placeholder
+                        String preview = cellContent.readPreview();
+                        if (preview != null) {
+                            row[i] = preview;
+                        }
                     } else if (value instanceof DBGeometry geometry && !isNull) {
                         // For the spatial view; a geometry is a plain value (its release does nothing), so it is kept as it is
                         cells[i] = geometry;
