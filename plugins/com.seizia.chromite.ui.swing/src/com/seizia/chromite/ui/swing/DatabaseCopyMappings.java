@@ -73,6 +73,10 @@ import java.util.TreeMap;
  * - 2026-11-06 테이블 복사: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-22 행을 받지 않는다고 모델이 말하는 객체(큐)는 대상 이름 목록에서 빼고({@link #readTargetTableNames}), 그 이름을 대상으로
  *   고르면 다른 종류 객체의 이름처럼 오류로 둠({@link #setTableTarget}) (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
+ * - 2026-11-22 구조를 바꿀 수 없는 기존 대상({@link DataTransferObjects#isStructureEditable}: 서버 확장이 스키마의 개체 목록에 더한, 행만
+ *   받는 객체)에는 "다시 만들기"를 내지 않고({@link #getTableMappingTypes}) 맞는 열이 없는 원본 열은 건너뜀({@link #skipNewColumns},
+ *   {@link #setColumnTarget}). 다시 만들기·새 열은 스키마의 테이블 관리자가 만드는 DDL인데 그 관리자는 이 객체를 모른다
+ *   (앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
  */
 final class DatabaseCopyMappings {
 
@@ -215,6 +219,14 @@ final class DatabaseCopyMappings {
             return null;
         }
         name = transformTargetName(settings, name, mapping.getMappingType());
+        if (mapping.getTarget() != null && !DataTransferObjects.isStructureEditable(mapping.getTarget())) {
+            // The columns skipped for a target that takes no new column are mapped again for the next target
+            for (DatabaseMappingAttribute attribute : mapping.getAttributeMappings(monitor)) {
+                if (attribute.getMappingType() == DatabaseMappingType.skip) {
+                    attribute.setMappingType(DatabaseMappingType.unspecified);
+                }
+            }
+        }
         DBSObjectContainer container = settings.getContainer();
         if (container != null && container.getDataSource() != null) {
             String unquotedName = DBUtils.getUnQuotedIdentifier(container.getDataSource(), name);
@@ -248,12 +260,13 @@ final class DatabaseCopyMappings {
             }
             if (existingTable != null) {
                 mapping.setTarget(existingTable);
-                if (forceRefresh && mapping.getMappingType() == DatabaseMappingType.recreate) {
+                if (forceRefresh && mapping.getMappingType() == DatabaseMappingType.recreate && DataTransferObjects.isStructureEditable(existingTable)) {
                     // Keep "recreate", refresh only the columns
                     mapping.refreshAttributesMappingTypes(monitor, false, false);
                 } else {
                     mapping.refreshMappingType(monitor, DatabaseMappingType.existing, false, false);
                 }
+                skipNewColumns(monitor, mapping);
                 return null;
             }
         }
@@ -288,23 +301,42 @@ final class DatabaseCopyMappings {
             }
             mapping.setExtraMappingState(null);
         }
-        if (type == DatabaseMappingType.recreate && mapping.getTarget() != null) {
+        if (type == DatabaseMappingType.recreate && mapping.getTarget() != null && DataTransferObjects.isStructureEditable(mapping.getTarget())) {
             mapping.refreshMappingType(monitor, DatabaseMappingType.recreate, false, false);
         } else {
             mapping.refreshMappingType(monitor, mapping.getTarget() != null ? DatabaseMappingType.existing : DatabaseMappingType.create, false, false);
+            skipNewColumns(monitor, mapping);
+        }
+    }
+
+    /**
+     * Source columns without a column of the existing target are skipped where the target takes no new column
+     * ({@link DataTransferObjects#isStructureEditable}): adding one would be DDL the target's model does not make.
+     */
+    private static void skipNewColumns(@NotNull DBRProgressMonitor monitor, @NotNull DatabaseMappingContainer mapping) throws DBException {
+        if (mapping.getMappingType() != DatabaseMappingType.existing || mapping.getTarget() == null
+            || DataTransferObjects.isStructureEditable(mapping.getTarget())) {
+            return;
+        }
+        for (DatabaseMappingAttribute attribute : mapping.getAttributeMappings(monitor)) {
+            if (attribute.getMappingType() == DatabaseMappingType.create) {
+                attribute.setMappingType(DatabaseMappingType.skip);
+            }
         }
     }
 
     /**
      * The mapping types a table can be switched to (SWT {@code createMappingTypeEditor}; "recreate" only for a table
-     * that exists, since this wizard is not saved as a task).
+     * that exists, since this wizard is not saved as a task, and whose model can drop and create it again).
      */
     @NotNull
     static List<DatabaseMappingType> getTableMappingTypes(@NotNull DatabaseMappingContainer mapping) {
         List<DatabaseMappingType> types = new ArrayList<>();
         if (mapping.getTarget() != null) {
             types.add(DatabaseMappingType.existing);
-            types.add(DatabaseMappingType.recreate);
+            if (DataTransferObjects.isStructureEditable(mapping.getTarget())) {
+                types.add(DatabaseMappingType.recreate);
+            }
         } else {
             types.add(DatabaseMappingType.create);
         }
@@ -372,6 +404,11 @@ final class DatabaseCopyMappings {
                     attribute.setTargetName(name);
                     return;
                 }
+            }
+            if (attribute.getParent().getMappingType() == DatabaseMappingType.existing && !DataTransferObjects.isStructureEditable(parentEntity)) {
+                // A name the target does not have would be a new column, which this target does not take
+                attribute.setMappingType(DatabaseMappingType.skip);
+                return;
             }
         }
         attribute.setMappingType(DatabaseMappingType.create);
