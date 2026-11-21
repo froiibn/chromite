@@ -20,14 +20,20 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.DBValueFormatting;
 import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDContentCached;
 import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.impl.jdbc.data.JDBCContentBytes;
 import com.seizia.chromite.model.impl.jdbc.data.JDBCContentChars;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCContentLOB;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.ByteArrayOutputStream;
@@ -47,6 +53,12 @@ import java.nio.file.Path;
  * 읽는 양은 {@link #MAX_LOAD_SIZE}까지다(SWT 기본 LOB 캐시 크기 {@code content.cache.maxsize}와 같은 1,000,000바이트).
  * 결과를 지울 때 {@link #release}로 남긴 값 객체를 놓아 준다.
  * 파일로 저장할 때는({@link #writeTo}) 다 읽은 내용은 메모리에서, 잘라 읽었거나 아직 읽지 않은 LOB는 DB 값에서 끝까지 쓴다.
+ * 칸 글자가 값 전체가 아닌 LOB({@link #isPartial}: "[CLOB]" 같은 자리 표시나 앞부분만 보이는 값)는 그리드가 링크로 그리고 누르면 값 패널을 연다.
+ * 이미 읽어 로컬 임시 파일에 있는 LOB는 자리 표시 대신 앞부분을 보인다({@link #readPreview}): 모델은 {@code content.memory.maxsize}(10,000자)
+ * 이상인 CLOB을 임시 파일에 두고 표시 문자열로 "[CLOB]"만 주는데, 그 파일을 읽는 일은 서버를 부르지 않는다. 앞부분 길이는 같은 설정이라
+ * 칸 하나가 메모리에 두는 글자는 그 설정보다 작은 CLOB이 이미 두는 만큼을 넘지 않는다. 읽지 않은 LOB는 칸마다 서버를 부르지 않도록 자리 표시를 그대로 둔다.
+ * 복사와 CSV 내보내기는 칸 글자 대신 DB 없이 얻을 수 있는 전문을 쓴다({@link #readFullText}): 값 패널이 다 읽은 글자, 모델의 메모리 글자, 또는
+ * {@link #MAX_LOAD_SIZE}자 이하의 로컬 임시 파일. 그보다 긴 파일은 메모리로 읽지 않고 칸 글자(앞부분과 표시)를 둔다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널 (docs/chromite/swing-result-viewer.md "값 패널")
@@ -54,13 +66,25 @@ import java.nio.file.Path;
  * - 2026-11-08 파일로 저장({@link #writeTo}), 글자 내용 판단({@link #isText}) (docs/chromite/swing-grid-editing.md "LOB 파일")
  * - 2026-11-08 만든 문장의 값({@link #toStatementValue}): 결과 행에서 SQL 만들기가 LOB 칸을 리터럴로 쓰도록 남긴 값 객체나 받은 바이트·글자를
  *   값 객체로 돌려줌 (docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-22 칸이 값 전체를 보이지 않는지({@link #isPartial}, 링크로 그림)와 로컬 임시 파일에 읽은 LOB의 앞부분({@link #readPreview}):
+ *   DDL을 돌려주는 Oracle 쿼리의 결과가 "[CLOB]"로만 보이고 칸에서 전문을 열 길이 보이지 않던 결함 (앱 변경 #160,
+ *   docs/chromite/swing-result-viewer.md "긴 LOB 칸")
+ * - 2026-11-22 복사·CSV 내보내기용 전문({@link #readFullText}): 사용자 결정 "권장대로", 이미 읽은 LOB는 앞 10,000자와 "..." 대신 전문을 복사
+ *   (앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetCellContent {
+
+    private static final Log log = Log.getLog(ResultSetCellContent.class);
 
     /**
      * Bytes or characters read from a LOB for the value panel (SWT default {@code content.cache.maxsize}).
      */
     static final int MAX_LOAD_SIZE = 1_000_000;
+
+    /**
+     * Marks a preview that is not the whole value, as the model's binary display strings do.
+     */
+    private static final String PREVIEW_MORE = "..."; //$NON-NLS-1$
 
     /**
      * Loaded content: bytes or text, the full length, and whether it was cut at {@link #MAX_LOAD_SIZE}.
@@ -74,11 +98,13 @@ final class ResultSetCellContent {
     private DBDContent liveContent;
     @Nullable
     private volatile Loaded loaded;
+    private final boolean partial;
 
-    private ResultSetCellContent(@NotNull String contentType, @Nullable DBDContent liveContent, @Nullable Loaded loaded) {
+    private ResultSetCellContent(@NotNull String contentType, @Nullable DBDContent liveContent, @Nullable Loaded loaded, boolean partial) {
         this.contentType = contentType;
         this.liveContent = liveContent;
         this.loaded = loaded;
+        this.partial = partial;
     }
 
     /**
@@ -88,16 +114,93 @@ final class ResultSetCellContent {
     @NotNull
     static ResultSetCellContent capture(@NotNull DBDContent content) {
         String contentType = CommonUtils.notEmpty(content.getContentType());
+        String display = content.getDisplayString(DBDDisplayFormat.UI);
         if (content instanceof DBDContentCached cached) {
             Object value = cached.getCachedValue();
             if (value instanceof byte[] bytes) {
-                return new ResultSetCellContent(contentType, null, new Loaded(bytes, null, bytes.length, false));
+                return new ResultSetCellContent(contentType, null, new Loaded(bytes, null, bytes.length, false), isBinaryCut(content, bytes));
             }
             if (value instanceof String text) {
-                return new ResultSetCellContent(contentType, null, new Loaded(null, text, text.length(), false));
+                return new ResultSetCellContent(contentType, null, new Loaded(null, text, text.length(), false), !text.equals(display));
             }
         }
-        return new ResultSetCellContent(contentType, content, null);
+        // A LOB read already shows its text in full when it is in memory (a CLOB under content.memory.maxsize); a LOB
+        // in a temporary file or not read shows a placeholder
+        DBDContentStorage storage = content instanceof JDBCContentLOB lob ? lob.getLoadedContents() : null;
+        boolean partial = true;
+        if (storage instanceof DBDContentCached cached) {
+            Object value = cached.getCachedValue();
+            if (value instanceof String text) {
+                partial = !text.equals(display);
+            } else if (value instanceof byte[] bytes) {
+                partial = isBinaryCut(content, bytes);
+            }
+        }
+        return new ResultSetCellContent(contentType, content, null, partial);
+    }
+
+    /**
+     * Whether the display string of binary content shows only its first bytes: the grid's display format cuts it at
+     * {@code resultset.binary.stringMaxLength} ({@link DBValueFormatting#formatBinaryString}).
+     */
+    private static boolean isBinaryCut(@NotNull DBDContent content, @NotNull byte[] bytes) {
+        return bytes.length > getBinaryDisplayLength(content);
+    }
+
+    private static int getBinaryDisplayLength(@NotNull DBDContent content) {
+        return content.getDataSource().getContainer().getPreferenceStore().getInt(ModelPreferences.RESULT_SET_BINARY_STRING_MAX_LEN);
+    }
+
+    /**
+     * Whether the cell's text is not the whole value (a placeholder such as "[CLOB]", or its first characters or
+     * bytes): the grid draws it as a link to the value panel.
+     */
+    boolean isPartial() {
+        return partial;
+    }
+
+    /**
+     * The first characters (or bytes, as the grid formats binary values) of a LOB the model read into a local
+     * temporary file when the row was fetched, to show instead of its placeholder; null when the content was not read
+     * (reading it would query the database) or its display string already shows it. Job thread: it reads the file.
+     */
+    @Nullable
+    String readPreview() {
+        if (!partial) {
+            return null;
+        }
+        DBDContent content;
+        synchronized (this) {
+            content = liveContent;
+        }
+        DBDContentStorage storage = content instanceof JDBCContentLOB lob ? lob.getLoadedContents() : null;
+        if (storage == null || storage instanceof DBDContentCached cached && cached.getCachedValue() instanceof byte[]) {
+            // Not read, or binary in memory whose display string is its first bytes already
+            return null;
+        }
+        try {
+            if (isText()) {
+                // As many characters as an in-memory CLOB holds at most (content.memory.maxsize)
+                int limit = DBWorkbench.getPlatform().getPreferenceStore().getInt(ModelPreferences.MEMORY_CONTENT_MAX_SIZE);
+                try (Reader in = storage.getContentReader()) {
+                    StringBuilder text = new StringBuilder();
+                    char[] buffer = new char[8192];
+                    int count;
+                    while (text.length() < limit && (count = in.read(buffer, 0, Math.min(buffer.length, limit - text.length()))) > 0) {
+                        text.append(buffer, 0, count);
+                    }
+                    return in.read() >= 0 ? text + PREVIEW_MORE : text.toString();
+                }
+            }
+            // One byte more than the display format shows, so that it marks the rest
+            int limit = getBinaryDisplayLength(content) + 1;
+            try (InputStream in = storage.getContentStream()) {
+                return DBValueFormatting.formatBinaryString(content.getDataSource(), in.readNBytes(limit), DBDDisplayFormat.UI);
+            }
+        } catch (IOException e) {
+            log.debug("Can't read the beginning of a LOB", e);
+            return null;
+        }
     }
 
     /**
@@ -177,6 +280,46 @@ final class ResultSetCellContent {
             }
             boolean truncated = out.length() >= MAX_LOAD_SIZE && (length > out.length() || in.read() >= 0);
             return new Loaded(null, out.toString(), Math.max(length, out.length()), truncated);
+        }
+    }
+
+    /**
+     * The whole text of a text LOB whose cell shows only part of it, when it is available without the database, for
+     * Copy and the CSV export: the text the value panel read completely, the model's in-memory text, or a local
+     * temporary file of at most {@link #MAX_LOAD_SIZE} characters (the model writes one only below
+     * {@code content.cache.maxsize}, 1,000,000 by default; a larger one is not read here). Null when the content was
+     * not read (reading it would query the database), is binary (its cell shows the formatted first bytes), is longer,
+     * or the cell shows it whole. Job thread: it reads the file.
+     */
+    @Nullable
+    String readFullText() throws IOException {
+        if (!partial || !isText()) {
+            return null;
+        }
+        Loaded result = loaded;
+        if (result != null) {
+            return result.text() != null && !result.truncated() ? result.text() : null;
+        }
+        DBDContent content;
+        synchronized (this) {
+            content = liveContent;
+        }
+        DBDContentStorage storage = content instanceof JDBCContentLOB lob ? lob.getLoadedContents() : null;
+        if (storage == null) {
+            return null;
+        }
+        if (storage instanceof DBDContentCached cached && cached.getCachedValue() instanceof String text) {
+            return text;
+        }
+        try (Reader in = storage.getContentReader()) {
+            StringBuilder text = new StringBuilder();
+            char[] buffer = new char[8192];
+            int count;
+            while (text.length() < MAX_LOAD_SIZE && (count = in.read(buffer, 0, Math.min(buffer.length, MAX_LOAD_SIZE - text.length()))) > 0) {
+                text.append(buffer, 0, count);
+            }
+            // Longer than the value panel reads: the cell's cut text and mark stay
+            return in.read() >= 0 ? null : text.toString();
         }
     }
 

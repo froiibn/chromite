@@ -44,6 +44,7 @@ import com.seizia.chromite.model.struct.DBSObjectContainer;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
 import org.jkiss.utils.CommonUtils;
 
@@ -79,6 +80,9 @@ import java.util.Map;
  *   (앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-22 행을 받을 수 있는 객체인지({@link #acceptsRows}, 모델의 데이터 기능 FEATURE_DATA_INSERT): 가져오기·테이블 복사의 대상 판단이
  *   형식만 보아 서버가 INSERT를 거절하는 객체(큐)도 대상이 되었다 (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
+ * - 2026-11-22 비울 수 있는 대상인지({@link #acceptsEmptying}), 구조를 바꿀 수 있는 대상인지({@link #isStructureEditable}): 행만 받는
+ *   객체(서버 확장이 스키마의 개체 목록에 더한 객체)에 "대상 비우기", 다시 만들기, 새 열을 내지 않음
+ *   (앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
  */
 final class DataTransferObjects {
 
@@ -138,6 +142,24 @@ final class DataTransferObjects {
      */
     static boolean acceptsRows(@Nullable DBSObject object) {
         return object instanceof DBSDataManipulator manipulator && manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_INSERT);
+    }
+
+    /**
+     * An existing target whose rows can be removed before a load ("truncate before load"): its model accepts truncating or
+     * deleting rows (the load truncates, or deletes where the table does not truncate). Called on the EDT.
+     */
+    static boolean acceptsEmptying(@Nullable DBSObject object) {
+        return object instanceof DBSDataManipulator manipulator && (manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_TRUNCATE)
+            || manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_DELETE));
+    }
+
+    /**
+     * Whether an existing target's structure can change (new columns) or the target be dropped and created again: the model
+     * has an editor for its class. An object without one (an object a server extension adds to a schema's object list)
+     * only receives rows; the structure DDL would be made by the container's table manager, which does not know it.
+     */
+    static boolean isStructureEditable(@NotNull DBSObject target) {
+        return DBWorkbench.getPlatform().getEditorsRegistry().getObjectManager(target.getClass()) != null;
     }
 
     /**

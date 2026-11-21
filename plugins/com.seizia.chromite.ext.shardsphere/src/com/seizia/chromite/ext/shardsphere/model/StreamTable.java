@@ -47,9 +47,12 @@ import java.util.Map;
  * {@code SYS_TABLES_.COLUMN_COUNT} 그대로다. 정의는 {@code DBMS_METADATA.GET_DDL('TABLE', …)}이 {@code CREATE STREAM TABLE}로 돌려준다
  * (2026-11-21 확인, 자동 열은 들어 있지 않음). {@code EXPORT_CONTINUOUS_OBJECT}는 스트림 테이블에 오류(201859)다. 읽기 전용 연결에서는
  * 서버가 이 EXEC를 거절하므로(266307) DDL 보기는 정의가 없다는 줄 하나를 보인다(오류 창 대신).
+ * 스키마의 개체 목록(자동 완성, 이름 찾기)에는 이 객체가 아니라 열이 있는 {@link StreamRelation} 하나를 낸다({@link #getRelation}): 이 객체는
+ * 트리의 노드라 메뉴가 바뀌지 않는다.
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
+ * - 2026-11-22 스키마의 개체 목록에 낼 객체({@link #getRelation})(앱 변경 #163, docs/chromite/shardsphere.md "자동 완성의 스트림 객체")
  */
 public class StreamTable implements DBSObject, DBPScriptObject, DBPQualifiedObject {
 
@@ -68,6 +71,9 @@ public class StreamTable implements DBSObject, DBPScriptObject, DBPQualifiedObje
     private final String tablespace;
     @Nullable
     private final Timestamp created;
+    // This table in the schema's object list: made on first use
+    @Nullable
+    private volatile StreamRelation relation;
 
     StreamTable(@NotNull StreamSchema parent, @NotNull ResultSet dbResult) {
         this.parent = parent;
@@ -108,6 +114,25 @@ public class StreamTable implements DBSObject, DBPScriptObject, DBPQualifiedObje
     @Property(viewable = true, order = 5)
     public Timestamp getCreated() {
         return created;
+    }
+
+    /**
+     * This table as the schema's object list shows it: a table with columns that accepts inserted rows (the server takes
+     * INSERT and refuses UPDATE, DELETE, MERGE and TRUNCATE).
+     */
+    @NotNull
+    StreamRelation getRelation() {
+        StreamRelation result = relation;
+        if (result == null) {
+            synchronized (this) {
+                result = relation;
+                if (result == null) {
+                    result = new StreamRelation(parent.getSchema(), this, name, false, true);
+                    relation = result;
+                }
+            }
+        }
+        return result;
     }
 
     @Override

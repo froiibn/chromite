@@ -111,6 +111,8 @@ import java.util.Set;
  *   docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-22 행을 받지 않는다고 모델이 말하는 객체(큐)에는 가져오기가 해당하지 않음({@link #canImport}, {@link #open}): 형식만 보아
  *   서버가 거절하는 INSERT를 만들었다 (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
+ * - 2026-11-22 "대상 비우기"는 모델이 잘라내기나 지우기를 받는 대상에서만 켬({@link DataTransferObjects#acceptsEmptying}): 넣기만 받는
+ *   대상에서는 비울 수 없으므로 고를 수 없게 한다 (앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -1007,9 +1009,10 @@ final class DataImportWizard extends DataTransferWizard {
 
         @Override
         public void activate() {
-            // A new table is empty
-            truncateCheck.setEnabled(!creating);
-            if (creating) {
+            // A new table is empty, and a table whose model accepts neither truncating nor deleting rows can't be emptied
+            boolean emptied = !creating && DataTransferObjects.acceptsEmptying(mapping != null && mapping.getTarget() != null ? mapping.getTarget() : table);
+            truncateCheck.setEnabled(emptied);
+            if (!emptied) {
                 truncateCheck.setSelected(false);
             }
         }

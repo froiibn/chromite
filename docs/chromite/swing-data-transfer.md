@@ -793,6 +793,24 @@ SWT 대조 C-36(테이블 복사 고급), C-37(내보내기 고급). 브랜치 `
   목록에서 빠짐. 같은 스키마의 테이블·새 이름은 전과 같음(existing·create). SQL Server·PostgreSQL·MariaDB·Oracle의 테이블·뷰·구체화된 뷰는 `canImport`와
   대상 목록이 전과 같음. 연결 새로 고침·다시 연결 뒤에도 같음.
 
+## 구조를 바꿀 수 없는 대상 (2026-11-22, 앱 변경 #163)
+
+- **문제:** 서버 확장이 스키마의 개체 목록에 더한 객체(ShardSphere의 스트림 테이블, [shardsphere.md](shardsphere.md) "자동 완성의 스트림 객체")는 행을 받지만
+  (`FEATURE_DATA_INSERT`) 모델에 객체 관리자가 없다. 테이블 복사·가져오기는 기존 대상을 비우고(잘라내기, 아니면 지우기), 다시 만들고(DROP·CREATE), 맞는 열이 없는
+  원본 열을 새 열로 더한다(ALTER). 다시 만들기·새 열은 스키마의 테이블 관리자(`DatabaseTransferUtils.generateStructTableDDL`)가 만드는데 그 관리자는 이 객체를
+  모르고, 비우기는 서버가 거절한다(UPDATE·DELETE 201854, TRUNCATE 200753).
+- **고침(모델의 답을 묻는다, 다른 DB의 대상은 전과 같음):**
+  - `DataTransferObjects.isStructureEditable`: 대상 클래스에 객체 관리자가 있는지(`DBERegistry.getObjectManager`). 없으면 테이블 복사의 형식에 "다시 만들기"가 없고
+    (`DatabaseCopyMappings.getTableMappingTypes`, `setTableMappingType`), 맞는 열이 없는 원본 열은 건너뛴다(`skipNewColumns`, 이름을 쳐도 `setColumnTarget`이
+    건너뜀). 다른 대상으로 바꾸면 건너뛴 열을 다시 맞춘다(`setTableTarget`). 가져오기는 전부터 기존 테이블에 새 열을 더하지 않는다.
+  - `DataTransferObjects.acceptsEmptying`: 모델이 잘라내기나 지우기를 받는지(`FEATURE_DATA_TRUNCATE`·`FEATURE_DATA_DELETE`). 아니면 가져오기의 "대상 비우기"가
+    꺼지고(`DataImportWizard`의 불러오기 설정), 테이블 복사의 비울 테이블 확인·DDL 미리 보기에 그 대상이 없다(`DatabaseCopyPages`). 저장된 작업이 비우라고 해도
+    객체가 지원하지 않는다고 답해 불러오기는 경고만 남기고 넣는다(`DatabaseTransferConsumer`의 기존 처리).
+- **확인 (이 브랜치 빌드, 앱 안 테스트 에이전트, 쓰기 없이 판단만):** 일반 테이블 `CHR_SCP_SRC` → 스트림 테이블 `CHR_SCP_S`: 기존, 형식 [기존, 건너뛰기].
+  `CHR_SCP_S` → 연속 스트림 테이블 `CHR_SCP_CY`: 열 `N` 건너뜀, 이어서 새 이름으로 바꾸면 네 열 모두 새 열. `CHR_SCP_S` → 일반 테이블 `CHR_SCP_T`: 형식
+  [기존, 다시 만들기, 건너뛰기], 없는 열은 새 열(전과 같음). 가져오기 대상 목록에 스트림 테이블 둘(연속 스트림 테이블은 뷰 종류라 없음), `acceptsEmptying` false.
+  실제 복사·가져오기는 실행하지 않았다.
+
 ## upstream 대비 변경점
 
 - SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 실행 명령 이벤트 처리기, 원격 파일 시스템, 동시 추출 수는 이 화면에 없다.
@@ -1050,3 +1068,5 @@ MariaDB `items`·`tags`, SQL Server `dbo.customers`에 지울 행 2개). 한국�
   도구 설명 문구(`editor_grid_export_data_single`) 삭제. [context-menus.md](context-menus.md) "결과 그리드".
 - 2026-11-22 앱 변경 #157(`chromite/queue-data-commands`): 가져오기·테이블 복사의 대상 판단이 모델의 넣기 기능을 물음(`DataTransferObjects.acceptsRows`).
   행을 받지 않는 객체(큐)에는 Import Data…가 숨고 대상 목록에 나오지 않으며 그 이름은 대상 오류가 됨. 위 "행을 받지 않는 객체".
+- 2026-11-22 앱 변경 #163(`chromite/shardsphere-stream-completion`): 객체 관리자가 없는 기존 대상에 다시 만들기·새 열을 내지 않고, 잘라내기·지우기를 받지 않는
+  대상은 비우지 않음(`isStructureEditable`, `acceptsEmptying`). 위 "구조를 바꿀 수 없는 대상".

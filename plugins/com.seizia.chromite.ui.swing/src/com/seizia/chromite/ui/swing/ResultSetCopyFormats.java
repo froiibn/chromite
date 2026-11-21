@@ -46,7 +46,8 @@ import java.util.function.Supplier;
  * 달리 클립보드용 글자만 만든다. NULL은 CSV·TSV에서 빈 칸, Markdown에서 {@code NULL}, IN 목록에서 {@code NULL}이다.
  * IN 목록은 고른 칸의 값을 중복 없이 차례대로 쓰고, 숫자 열의 숫자는 그대로, 나머지는 DB 방언의 문자열 따옴표({@link SQLUtils#quoteString})로 감싼다.
  * SWT는 JSON·XML·HTML·INSERT 복사에 데이터 전송 처리기를 다시 실행했다. Swing은 표가 가진 값(숫자·불리언·날짜 원래 값과 표시 문자열)으로
- * 바로 만든다: 쿼리를 다시 실행하지 않고 저장하지 않은 변경도 그대로 복사하기 위해서다. 그래서 LOB 값은 표에 보이는 글자다(저장 미리 보기와 같은 한계).
+ * 바로 만든다: 쿼리를 다시 실행하지 않고 저장하지 않은 변경도 그대로 복사하기 위해서다. LOB 값은 표에 보이는 글자이되, 칸 글자가 값의 일부인 LOB를 DB 없이 얻을 수 있으면
+ * 전문이다({@link ResultSetGrid#getCopyData}: 로컬 임시 파일이나 값 패널이 읽은 글자, 백그라운드에서 읽음). 읽지 않은 LOB는 칸 글자(자리 표시)다.
  * INSERT의 테이블은 결과의 단일 원본 테이블, 없으면 {@code table}이고 이름과 값은 DB 방언으로 쓴다({@link SQLUtils#convertValueToSQL}).
  * 고급 복사 설정은 이 실행 동안 기억한다.
  *
@@ -54,6 +55,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "표 편의 기능")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 JSON, XML, HTML, SQL INSERT 형식과 고급 복사 대화상자 (docs/chromite/swing-grid-editing.md "고급 복사")
+ * - 2026-11-22 이미 읽은 LOB는 앞부분 대신 전문을 복사, 고급 복사는 설정을 고른 뒤 행을 읽음 (앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  */
 final class ResultSetCopyFormats {
 
@@ -93,9 +95,10 @@ final class ResultSetCopyFormats {
     }
 
     /**
-     * Advanced Copy…: asks for the settings, then copies the selected cells with them.
+     * Advanced Copy…: asks for the settings, then copies the selected cells with them. The rows are taken after the
+     * settings: reading the whole text of LOB cells may show a progress dialog, and the user may cancel it (nothing copied).
      */
-    static void advancedCopy(@NotNull JTable table, @NotNull ResultSetGrid.Data data) {
+    static void advancedCopy(@NotNull JTable table, @NotNull Supplier<ResultSetGrid.Data> data) {
         if (table.getSelectedRowCount() == 0 || table.getSelectedColumnCount() == 0) {
             return;
         }
@@ -140,7 +143,10 @@ final class ResultSetCopyFormats {
         Object delimiter = delimiterCombo.getEditor().getItem();
         lastAdvanced = new AdvancedOptions(headerCheck.isSelected(), rowNumbersCheck.isSelected(),
             delimiter == null ? "" : delimiter.toString(), quoteCombo.getSelectedIndex(), nullField.getText()); //$NON-NLS-1$
-        DBWorkbench.getPlatformUI().copyTextToClipboard(advanced(table, data, lastAdvanced), false);
+        ResultSetGrid.Data copyData = data.get();
+        if (copyData != null) {
+            DBWorkbench.getPlatformUI().copyTextToClipboard(advanced(table, copyData, lastAdvanced), false);
+        }
     }
 
     /**
@@ -210,13 +216,15 @@ final class ResultSetCopyFormats {
         JMenu menu = new JMenu(EditorMessages.editor_copy_as);
         for (Format format : Format.values()) {
             menu.add(ResultSetViewerPanel.createAction(format.label, null, () -> {
-                if (table.getSelectedRowCount() > 0 && table.getSelectedColumnCount() > 0) {
-                    DBWorkbench.getPlatformUI().copyTextToClipboard(format(format, table, data.get(), dataSource.get()), false);
+                ResultSetGrid.Data rows = table.getSelectedRowCount() > 0 && table.getSelectedColumnCount() > 0 ? data.get() : null;
+                // Null: no selection, or reading the whole text of LOB cells was canceled
+                if (rows != null) {
+                    DBWorkbench.getPlatformUI().copyTextToClipboard(format(format, table, rows, dataSource.get()), false);
                 }
             }));
         }
         menu.addSeparator();
-        menu.add(ResultSetViewerPanel.createAction(GridEditMessages.gridedit_copy_advanced_menu, null, () -> advancedCopy(table, data.get())));
+        menu.add(ResultSetViewerPanel.createAction(GridEditMessages.gridedit_copy_advanced_menu, null, () -> advancedCopy(table, data)));
         return menu;
     }
 

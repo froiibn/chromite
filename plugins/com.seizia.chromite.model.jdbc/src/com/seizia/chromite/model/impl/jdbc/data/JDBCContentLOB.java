@@ -36,6 +36,14 @@ import java.io.IOException;
 /**
  * JDBCContentLOB
  *
+ * 설계: {@link #getLoadedContents} tells a caller whether the contents were read already (precached when the value was
+ * fetched, read since, or set) without reading the database: {@link #getContents} reads the LOB when they were not,
+ * which is a server round trip a result grid must not make per cell while it builds its rows.
+ *
+ * 변경 이력:
+ * - 2026-11-22 Chromite: {@link #getLoadedContents} for the result grid's preview of a LOB read into a temporary file
+ *   (app change #160, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
+ *
  * @author Serge Rider
  */
 public abstract class JDBCContentLOB extends JDBCContentAbstract implements DBDContent {
@@ -63,6 +71,15 @@ public abstract class JDBCContentLOB extends JDBCContentAbstract implements DBDC
     }
 
     protected abstract long getLOBLength() throws DBCException;
+
+    /**
+     * The contents when they were read already (in memory or in a local temporary file), or null when reading them
+     * needs the database. Unlike {@link #getContents} it never reads the LOB.
+     */
+    @Nullable
+    public DBDContentStorage getLoadedContents() {
+        return storage;
+    }
 
     @Override
     public boolean updateContents(
