@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ext.shardsphere.model;
 
+import com.seizia.chromite.ext.altibase.extension.AltibaseObjectTemplates;
 import com.seizia.chromite.ext.altibase.extension.AltibaseServerExtensionState;
 import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
@@ -23,6 +24,7 @@ import com.seizia.chromite.ext.altibase.model.AltibaseReplicationCatalog;
 import com.seizia.chromite.ext.altibase.model.AltibaseSchema;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
 import com.seizia.chromite.ext.shardsphere.ShardSphereStatementPrefix;
+import com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages;
 import com.seizia.chromite.model.DBPObjectWithContributedProperties;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
@@ -77,8 +79,10 @@ import java.util.Set;
  *   "스트림" 노드({@link StreamSchema}, Altibase 트리의 스키마 자리)와 이 노드 아래 스트림 함수 폴더({@link StreamFunction}: 사전에 소유자가
  *   없고 모든 사용자에게 공개되므로 서버 단위). 스트림 카탈로그 속성. 새로 고침은 읽은 함수를 비운다(앱 변경 #153,
  *   docs/chromite/shardsphere.md "스트림 탐색기")
+ * - 2026-11-22 스트림 함수 폴더의 "New …" 틀(중립 자리 {@link AltibaseObjectTemplates}), 삭제가 쓰는 함수 캐시(앱 변경 #156,
+ *   docs/chromite/shardsphere.md "스트림 명령")
  */
-public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
+public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject, AltibaseObjectTemplates {
 
     // The product name, not a translatable label
     private static final String NAME = "ShardSphere"; //$NON-NLS-1$
@@ -202,6 +206,31 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
     @NotNull
     public List<StreamFunction> getStreamFunctions(@NotNull DBRProgressMonitor monitor) throws DBException {
         return streamCatalog ? streamFunctionCache.getAllObjects(monitor, this) : List.of();
+    }
+
+    /**
+     * The model cache of the stream functions (the object manager's Delete removes the dropped one).
+     */
+    @NotNull
+    public JDBCObjectCache<ShardSphereServer, StreamFunction> getStreamFunctionCache() {
+        return streamFunctionCache;
+    }
+
+    /**
+     * "New Stream Function" on the stream functions folder.
+     */
+    @NotNull
+    @Override
+    public List<Template> getTemplates(@NotNull String itemsProperty) {
+        return streamCatalog && itemsProperty.equals("streamFunctions") //$NON-NLS-1$
+            ? List.of(new Template(StreamDDL.KIND_STREAM_FUNCTION, ShardSphereMessages.stream_kind_stream_function, "NEW_STREAM_FUNCTION")) //$NON-NLS-1$
+            : List.of();
+    }
+
+    @NotNull
+    @Override
+    public String getTemplateScript(@NotNull Template template, @NotNull String name) {
+        return StreamDDL.template(template.kind(), dataSource, null, name, ttlCatalog);
     }
 
     /**

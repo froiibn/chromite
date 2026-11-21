@@ -843,7 +843,8 @@ ShardSphere의 스트림 객체(스트림 테이블, 연속 스트림 테이블,
 [context-menus.md](context-menus.md) 규칙대로 해당하는 명령만 보인다(덤프, 2026-11-21, 한국어). 연속 테이블·연속 쿼리·스트림 테이블: 새 쿼리, 최근 스크립트, 스크립팅 ▸
 CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DDL 보기, 개체 세부 정보 | 이름 복사, 정규화된 이름 복사, 선택하여 복사 | 새로 고침(10개, 모두 켜짐; 정의 글이
 있어 DDL 명령이 해당). 스트림 함수: DDL 명령 없이 7개. "스트림" 노드 7개, 폴더 5개(새 쿼리, 최근 스크립트, 개체 세부 정보 | 이름 복사 | 새로 고침). 삭제·이름 바꾸기·
-잘라내기·TTL·디자인·데이터 보기는 없다(객체 관리자 없음, 테이블 클래스가 아님).
+잘라내기·TTL·디자인·데이터 보기는 없다(객체 관리자 없음, 테이블 클래스가 아님). 2026-11-22부터 삭제·사용·사용 안 함·실행 설정과 폴더의 "새 …" 틀이 더해졌다
+(아래 "스트림 명령").
 
 ### 새로 고침
 
@@ -878,6 +879,8 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 
 ### 쓰기 명령에 필요한 것 (이 작업 밖)
 
+2026-11-22 아래 "스트림 명령"에서 만들었다(서버에서 확인한 결과가 아래 목록과 다른 곳: 읽히는 객체도 서버가 지운다, 문장 하나에 SET 절 하나).
+
 - **문장(매뉴얼):** `ALTER CONTINUOUS TABLE|QUERY t SET {ENABLE | DISABLE | EXEC GROUP n | EXEC ORDER n}`, `DROP CONTINUOUS TABLE|QUERY t`, 스트림 테이블은 `DROP TABLE t`,
   `DROP STREAM FUNCTION f`, `CREATE …`(위 종류마다). 연속 테이블의 TTL 바꾸기는 매뉴얼의 `ALTER CONTINUOUS TABLE t ttl_option`(문법 미확인).
 - **자리:** 객체 관리자(이 번들의 모델, `DBEObjectManager`)나 유지 관리 동작처럼 좁은 능력(TTL과 같은 길, [altibase.md](altibase.md) "테이블 TTL 자리"), 확인 대화상자,
@@ -893,6 +896,137 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 미확인: `V$STREAM_FUNCTION.CREATE_TIME`·`TOUCH_TIME`의 단위.
 - 미확인: 읽기 전용 연결에서 `DBMS_METADATA.GET_DDL`을 거절하는 것이 의도인지.
 - 미확인: 스트림 함수에 소유자가 없는 것(이름이 서버 전체에서 하나인지).
+
+## 스트림 명령 (2026-11-22, 앱 변경 #156)
+
+### 목적
+
+위 "스트림 탐색기"가 보이는 스트림 객체에 기존 흐름의 명령을 낸다: 연속 테이블·연속 스트림 테이블·연속 쿼리의 사용 / 사용 안 함과 실행 설정(그룹, 순서,
+연속 테이블의 TTL), 네 종류의 삭제, 폴더의 "새 …" 틀 다섯. 스트림 사전을 감지한 연결에서만 보인다. Altibase, 다른 DB, 이 번들을 뺀 제품에는 없다.
+새 화면도 기존 흐름이고 대화상자에 설명 문구가 없다(사용자 규칙).
+
+### 서버에서 확인한 사실 (일반 서버 5.1.9, 시험용 개체 `CHR_STW_*`, 앱 밖 JDBC와 앱, 2026-11-21~22)
+
+| 종류 | 받는 문장 | 거절하는 문장(코드) |
+|---|---|---|
+| 연속 테이블(`B`·`C`), 연속 스트림 테이블(`Y`) | `ALTER CONTINUOUS TABLE t SET ENABLE`·`DISABLE`(이미 그 상태여도 오류 없음), `SET EXEC GROUP n`, `SET EXEC ORDER n`(0 ~ 2147483647), `소유자.t`, 따옴표 이름, `DROP CONTINUOUS TABLE t` | 절 둘을 한 문장(`SET EXEC GROUP 4 EXEC ORDER 6`, 쉼표, `SET ENABLE EXEC GROUP 1`) 200705, 음수·`NULL` 200705, 2147483648 201054, `ALTER/DROP CONTINUOUS QUERY t` 201860, `ALTER/DROP CONTINUOUS STREAM TABLE` 200705, `DROP TABLE t`·`DROP VIEW t`·`TRUNCATE` 200753, `DELETE FROM t` 201150 |
+| 연속 테이블의 TTL(`B`·`C`만) | `ALTER CONTINUOUS TABLE t USING TTL n 단위`(MINUTE·HOUR·DAY·WEEK·MONTH·QUARTER·YEAR, 1 ~ 2147483647), `USING NOTTL`. 집계 있는 표는 `<t>$AGGR`, 없는 표는 자기에 `SYS_TTL_` 행(기준 열 `$INSERT_TIME`) | `SECOND` 201848, 0 200705, 2147483648 201846, `MIN` 200705, `SET USING TTL` 200705, 연속 스트림 테이블 201849, 쿼리 200705, `ALTER TABLE t USING TTL … ON COLUMN $INSERT_TIME` 200705 |
+| 연속 쿼리(`I`) | `ALTER CONTINUOUS QUERY q SET ENABLE`·`DISABLE`·`EXEC GROUP n`·`EXEC ORDER n`, `DROP CONTINUOUS QUERY q` | `ALTER/DROP CONTINUOUS TABLE q` 200753, TTL 200705 |
+| 스트림 테이블(`X`) | `DROP TABLE t` | `DROP STREAM TABLE` 200705, `DROP CONTINUOUS TABLE` 200753, `ALTER CONTINUOUS TABLE` 200753 |
+| 스트림 함수 | `DROP STREAM FUNCTION f`, `CREATE OR REPLACE STREAM FUNCTION` | `CREATE STREAM FUNCTION 소유자.f` 200705, 같은 이름 200738, 없는 함수 `DROP` 201856 |
+| `$AGGR`·`$TEXT` | (지울 길 없음) | `DROP TABLE t$AGGR`·`DROP TABLE t$TEXT`·`DROP VIEW t$TEXT` 200753. 연속 테이블을 지우면 함께 없어진다(`SYS_TABLES_`·`SYS_TTL_`·인덱스) |
+| 없는 객체 | | `ALTER/DROP CONTINUOUS TABLE` 200753, `… QUERY` 201860 |
+
+- **만들기 모양(틀이 쓰는 것):** `CREATE STREAM TABLE 소유자.t (…)`, `CREATE CONTINUOUS STREAM TABLE 소유자.t EXEC GROUP 0 EXEC ORDER 0 DISABLE AS SELECT …`,
+  `CREATE CONTINUOUS TABLE 소유자.t WITH WINDOW 1 HOUR USING TTL 1 DAY EXEC GROUP 0 EXEC ORDER 0 DISABLE AS SELECT … GROUP BY …`(옵션 순서를 바꿔도 받음),
+  `CREATE CONTINUOUS QUERY 소유자.q EXEC GROUP 0 EXEC ORDER 0 DISABLE AS INSERT INTO 소유자.t (…) SELECT …`, `CREATE STREAM FUNCTION f IS LASTNTH(10)`
+  (`TOPK(10)`, `DIST()`, `HLL`, `HLL(20)`도 받음). 여러 줄로 쓴 틀을 쿼리 창에서 실행해도 같다. 읽는 표가 없으면 200753.
+- **읽히는 객체 지우기(지시서의 가정과 다름):** 서버는 다른 객체가 읽는 객체도 지운다. 연속 테이블이 읽는 연속 스트림 테이블, 모든 객체가 읽는 스트림 테이블,
+  연속 테이블이 쓰는 스트림 함수, 연속 쿼리가 넣는 일반 테이블 모두 `DROP`이 성공하고(읽는 쪽이 사용 중이어도), 읽는 쪽은 남는다. 남은 객체는 사용·실행 설정·
+  `EXPORT_CONTINUOUS_OBJECT`·`DROP`이 모두 된다. 그래서 "읽히는 객체를 지울 때의 서버 오류"는 이 서버에서 나지 않는다. 연쇄 삭제는 만들지 않았다(지시).
+- **정의 글은 만든 문장 그대로:** `EXPORT_CONTINUOUS_OBJECT`는 `ALTER` 뒤에도 만든 문장을 돌려준다(TTL을 바꾸거나 없애도 처음 `USING TTL`, 실행 그룹은 없음).
+  DDL 보기와 속성(사전 값)이 다를 수 있다(벤더 문의).
+- **트랜잭션:** 스트림 문장은 모두 같은 세션의 열린 트랜잭션을 커밋한다: `ALTER CONTINUOUS … SET …`, `CREATE`/`DROP STREAM FUNCTION`, 그리고 **실패한**
+  `ALTER`(200753)도(앞의 `INSERT`가 `ROLLBACK` 뒤에 남음). JDBC `dataDefinitionCausesTransactionCommit` = true. 앱은 명령을 격리된 실행 문맥에서 실행하고
+  실행 전에 열린 트랜잭션을 묻는다(아래 "확인").
+- **권한:** `SYS_PRIVILEGES_`에 스트림·연속 객체 전용 권한이 없다(78개 중 CONTINUOUS·STREAM 이름 없음). 벤더 서버에 사용자를 만들지 않아 다른 사용자의 객체에서
+  무엇이 나오는지는 확인하지 않았다(미확인). 메뉴는 권한과 관계없이 보이고 거절은 서버 오류 창으로 보인다(작업과 같음).
+- `CONTINUOUS_QUERY_THREAD_COUNT` = 0이라 켠 객체도 처리되지 않는다(서버 속성은 바꾸지 않음). 켠 객체는 내 시험용 개체만 읽었고 끝에 끄고 지웠다.
+
+### 화면
+
+| 곳 | 메뉴 | 흐름 | 문장(`StreamDDL`) |
+|---|---|---|---|
+| 연속 테이블·연속 스트림 테이블·연속 쿼리 | **사용 / 사용 안 함**(Enable / Disable) | 지금 상태(`IS_ENABLE`)의 항목은 꺼짐. 미리 보기(취소가 기본) → 열린 트랜잭션 질문 → 격리 실행 → 노드 다시 읽기 | `ALTER CONTINUOUS TABLE (QUERY) 소유자.이름 SET ENABLE (DISABLE)` |
+| 같음(하나를 고를 때) | **실행 설정**(Execution Settings…) | 지금 값으로 채운 대화상자: 이름(읽기 전용), 실행 그룹, 실행 순서(숫자만, 0~2147483647), 연속 테이블은 "TTL 사용"·기간(1 이상)·단위(분·시간·일·개월·년, TTL 사전이 있을 때). 바꾼 것 없음 → "실행할 문장 없음" | 바뀐 절마다 한 문장: `… SET EXEC GROUP n`, `… SET EXEC ORDER n`, `ALTER CONTINUOUS TABLE … USING TTL n 단위` / `USING NOTTL` |
+| 네 종류 | **삭제**(기존 명령) | 삭제 확인(확인란 없음) → 미리 보기 → 실행 → 노드 빠짐 | `DROP CONTINUOUS TABLE (QUERY) 소유자.이름`, `DROP TABLE 소유자.이름`, `DROP STREAM FUNCTION 이름` |
+| 스트림 테이블 / 연속 테이블 / 연속 쿼리 폴더, 스트림 함수 폴더 | **새 스트림 테이블 / 새 연속 테이블·새 연속 스트림 테이블 / 새 연속 쿼리 / 새 스트림 함수** | 새 쿼리 창에 틀(실행하지 않음). 창은 실행할 때마다 그 폴더를 다시 읽는다(기존 틀과 같음) | 위 "만들기 모양". 이름 `NEW_…`(폴더에 있으면 번호), 고칠 자리 `SOURCE_STREAM`(읽는 스트림), `TABLE_NAME`(쿼리가 넣을 표) |
+
+- 실행 뒤(실패해도) 객체 노드는 자기 행을 다시 읽는다(`ContinuousObject.refreshObject`). 행이 없으면(다른 곳에서 지움) 노드가 빠진다.
+- TTL 단위는 테이블 TTL과 같은 다섯이다(시스피어가 이름을 든 단위). 서버는 주·분기도 받는다. 다른 길로 그 단위가 걸린 연속 테이블은 대화상자에 지금 단위로 보인다.
+- 틀은 `OR REPLACE`를 쓰지 않고 기본값(`DISABLE`, 그룹·순서 0)을 드러내 쓴다. 자리 표시는 서로나 새 이름을 품지 않아 찾아 바꾸기로 하나씩 고칠 수 있다.
+- 스트림 테이블은 테이블 디자이너로 만들지 않고 틀로 만든다: 디자이너는 일반 테이블 관리자(`CREATE TABLE`)라 `STREAM`을 넣을 자리가 없고, 서버가 넣는
+  `$INSERT_TIME`·테이블스페이스(`MEM_DIC`)를 디자이너가 다룰 수 없다.
+- 메타 노드에도 같은 명령이 보인다(스트림 사전이 있음). 이 작업에서는 메타 노드에서 실행하지 않았다(읽기 전용 연결이라 실행하면 기존 "변경 제한" 알림).
+
+### 일반 트리의 `$AGGR`·`$TEXT`
+
+이 서버에서 일반 트리는 둘을 보이지 않는다(테이블 폴더는 유형 `T`만, 위 "일반 트리가 보이던 것"). 저장소 ▸ 테이블스페이스 ▸ `MEM_DATA` ▸ 인덱스에 보이는
+`$AGGR`의 시스템 인덱스(`__SYS_IDX_ID_n`) 메뉴에는 삭제가 없다(7항목: 새 쿼리, 최근 스크립트, 개체 세부 정보 | 이름 복사, 정규화된 이름 복사, 선택하여 복사 |
+새로 고침). 고칠 것이 없었다.
+
+### 자리(seam)
+
+- 공용 코드의 중립 자리 둘([altibase.md](altibase.md) "확장 객체의 명령 자리"): `AltibaseExecutionSettings`(사용·설정, `ContinuousObject`가 구현),
+  `AltibaseObjectTemplates`(틀, `StreamSchema`·`ShardSphereServer`가 구현). 공용 코드에 제품 이름이 없다.
+- 삭제는 공용 코드 변경 없이 이 번들의 `plugin.xml`이 기존 객체 관리자 확장 지점으로 `edit/StreamObjectManager`를 세 클래스에 준다
+  (`canCreateObject` 거짓: 이름만 대화상자가 나오지 않음).
+- 문장은 모두 이 번들의 모델 `model/StreamDDL`에 있다. 대안(고르지 않음): 객체 관리자의 속성 편집으로 그룹·순서를 바꾸는 길 — 절마다 따로 실행하는
+  문장을 한 미리 보기에 보이지 못하고, 사용 / 사용 안 함은 앱에서 메뉴 명령이다.
+- 이 번들에서 바뀐 줄: `plugin.xml`(객체 관리자 확장 하나), `ShardSphereMessages`(`stream_kind_stream_table`, `stream_kind_stream_function`, 영어·한국어),
+  `ContinuousObject`(능력 구현, 다시 읽기), `StreamSchema`(틀, 캐시 접근, 한 행 질의), `ShardSphereServer`(함수 틀, 함수 캐시 접근).
+
+### 오른쪽 클릭 메뉴 (덤프: 이름, 켜짐; 전 = `origin/command` 2b256de3d4 빌드, 후 = 이 브랜치 빌드, 한국어)
+
+| 노드 | 전 | 후 |
+|---|---|---|
+| 연속 테이블(`B`, `C`), 연속 스트림 테이블, 연속 쿼리 | 10항목 | 14항목: 개체 세부 정보 뒤 **사용**(켜짐)·**사용 안 함**(꺼짐, 지금 사용 안 함)·**실행 설정**, 선택하여 복사 뒤 **삭제** |
+| 스트림 테이블 | 10항목 | 11항목(**삭제**) |
+| 스트림 함수 | 7항목 | 8항목(**삭제**) |
+| 스트림 테이블 폴더 / 연속 쿼리 폴더 / 스트림 함수 폴더 | 5항목 | 6항목(**새 스트림 테이블** / **새 연속 쿼리** / **새 스트림 함수**) |
+| 연속 테이블 폴더 | 5항목 | 7항목(**새 연속 테이블**, **새 연속 스트림 테이블**) |
+| "스트림" 노드 | 7항목 | 같음 |
+| 메타 노드의 스트림 폴더 | 5항목 | 일반 서버와 같음(틀 항목) |
+| 일반 테이블(SS), 작업 폴더(SS·Altibase), Altibase 스키마·테이블·큐 테이블 폴더 | 18 / 7 / 9 / 9 | 같음 |
+| 기능을 뺀 제품의 SS 테이블·폴더 | – | 스트림 노드 없음, 테이블 17항목(TTL은 이 번들의 것이라 없음), 작업·테이블 폴더 같음 |
+
+### 확인 (2026-11-22, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 `SS`(일반 서버, 자동 커밋), `SSTX`(같은 서버, 수동 커밋), `SHARD`(메타 노드, 읽기 전용), `ALTI`(Altibase 7.3, 터널, 읽기 전용). 값은 환경 변수 참조, 암호 저장 끔.
+사전 값은 앱의 메타 세션으로 따로 SELECT해 비교했다.
+
+- **사용 / 사용 안 함:** 연속 테이블(집계 있음) `SET ENABLE` → `IS_ENABLE` T, 속성 "사용" true, 메뉴의 사용 꺼짐·사용 안 함 켜짐. 반대도 같다. 연속 쿼리도 같다.
+- **실행 설정:** 취소 → 문장 없음. 바꾸지 않고 확인 → "실행할 문장 없음". 그룹 빈 칸, 2147483648 → "0에서 2147483647 사이의 정수를 입력하십시오." 줄, `1a-2` 입력은
+  들어가지 않음, 기간 0 → "1 이상의 정수를 입력하십시오.". 그룹 3·순서 4·TTL 6시간 → 미리 보기에 세 문장, 사전 `EXEC_GROUP` 3·`EXEC_ORDER` 4·`$AGGR`의 TTL 6H,
+  속성이 바로 새 값. "TTL 사용" 끔 → `USING NOTTL`, `SYS_TTL_` 행 없음. 연속 스트림 테이블·연속 쿼리의 대화상자에는 TTL이 없다(순서 5, 그룹 7 실행 확인).
+  집계 없는 연속 테이블은 TTL 1일로 채워진다.
+- **삭제:** 연속 테이블(집계 있음) → `DROP CONTINUOUS TABLE`, 노드 빠짐, `$AGGR`·`$TEXT`·TTL 행 함께 없어짐. 연속 쿼리·스트림 테이블·스트림 함수도 노드가 빠지고
+  사전에 없다. 미리 보기 취소 → 문장 없음, 노드 그대로.
+- **서버 오류:** 앱 밖에서 지운 연속 테이블에 사용 → 기존 오류 창("…에서 명령이 실패했습니다", 문장, "Table or view was not found", 메시지 200753), 확인 뒤 그 노드가
+  빠지고 다른 명령은 정상. 읽히는 객체 지우기는 서버가 거절하지 않아 오류가 없다(위 "서버에서 확인한 사실").
+- **틀:** 다섯 틀이 새 쿼리 창에 열리고, 자리 표시를 시험용 이름으로 바꿔 실행하면 만들어지며 폴더에 바로 나타난다(쿼리 창이 실행 뒤 폴더를 다시 읽음,
+  F5 없이). 연속 테이블 틀 → 집계 있는 연속 테이블(`$AGGR` TTL 1D), 연속 스트림 테이블, 연속 쿼리, 스트림 테이블, 스트림 함수(LASTNTH).
+  폴더에 같은 이름이 있으면 번호를 붙이는 규칙(기존 틀과 같음)은 이 작업에서 시험하지 않았다.
+- **열린 트랜잭션(SSTX, 쿼리 창의 `INSERT`):** 사용 → "커밋하지 않은 트랜잭션" 질문(커밋 / 롤백 / 취소, 취소가 기본). 취소 → `ALTER` 없음, 다른 세션 행 0. 롤백 →
+  `INSERT` 사라지고 실행. 커밋 → 다른 세션에서 행 1, 그 뒤 실행. 실행 설정·삭제도 같은 질문. 자동 커밋 연결(SS)은 질문 없이 실행.
+- **보낸 문장(쿼리 관리자):** 명령마다 미리 보기의 문장만 갔다(UTIL 문맥). SSTX 실행의 감사: `INSERT` 3(내가 쓴 것), `ALTER` 2, SS `ALTER` 1, 나머지 SELECT.
+- **메타 노드(SHARD, 읽기 전용):** 스트림 폴더에 틀 항목이 보이고 다른 항목은 전과 같다. 명령은 열지 않았다. 이 실행의 감사: 메타 노드로 간 실행 0.
+- **Altibase 7.3:** 스키마·테이블 폴더·큐 테이블 폴더·작업 폴더 메뉴가 전과 같다. System Info 자식 3개. 감사: SELECT만 12.
+- **기능을 뺀 제품**(내 앱 사본에서 이 번들과 feature를 빼고 `bundles.info`에서 그 줄을 지움): 스키마 자식 15개(스트림 노드 없음), System Info 자식 3개, 테이블 메뉴
+  17항목(TTL 없음), 작업 폴더 7항목. 감사: 실행 0(이 실행).
+- 캡처(저장소 밖, 호스트·계정·다른 사용자의 객체 이름은 가림): `D:\Tools\_scratch\shardsphere-stream-commands\sheets\` — 한국어·영어 150 % 밝은 테마(`ko-*`,
+  `en-*`: 연속 테이블·연속 쿼리 메뉴, 실행 설정 대화상자, 삭제 미리 보기(스트림 함수: 소유자가 없어 가리지 않음), 폴더의 "새" 메뉴, 연속 테이블 틀(캡처할 때만
+  계정을 `OWNER`로 바꿔 보임), 스트림 함수 틀), 어두운 테마 100 % 한국어(`dark-ko-*`). "전" 메뉴 캡처는 #332의 것(`before-*-332.png`, 같은 메뉴)이다.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Object Explorer 폴더의 "New …" 항목(모든 DB, 항목 넣는 방식이 바뀜), 유지 관리 메뉴, Altibase 계열의
+  객체 관리자 조회.
+
+### 벤더 서버에 쓴 것 (사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_STW_*`만)
+
+- 앱 밖 JDBC와 앱으로 만들고·바꾸고·지운 것(다시 만든 것 포함): 일반 테이블 3번(대상 하나), 스트림 테이블 5, 연속 스트림 테이블 4, 연속 테이블 11, 연속 쿼리 5,
+  스트림 함수 10, 내 표에 지어낸 행 몇 개. 거절된 시도는 위 표의 코드. 문장 목록은 보고서(저장소 밖 `probe\writes-vendor.log`). 서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 SELECT만.
+- 지운 순서: 읽는 쪽부터(연속 쿼리 → 연속 테이블 → 연속 스트림 테이블 → 스트림 테이블 → 일반 테이블 → 함수). 모두 성공.
+- 확인: 지운 뒤 `SYS_TABLES_`·`SYS_CONTINUOUS_TABLES_`·`SYS_STREAM_FUNCTIONS_`·`SYS_TTL_`·`V$STREAM_FUNCTION`에 `CHR_STW%` 행 0, 짝 없는 `SYS_TTL_`·`SYS_CONTINUOUS_TABLES_`
+  행 0. 행 수(전 → 후): `SYS_TABLES_` 164 → 164, `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_STREAM_FUNCTIONS_` 0 → 0, `SYS_TTL_` 0 → 0, `V$STREAM_FUNCTION` 0 → 0,
+  `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41, `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_INDICES_` 183 → 183, `SYS_COLUMNS_` 1454 → 1454.
+
+### 미확인 (벤더 문의)
+
+- 미확인: 다른 객체가 읽는 스트림 테이블·연속 스트림 테이블·스트림 함수·대상 표를 지워도 서버가 받는 것이 의도인지, 남은 객체를 켠 채 처리 스레드가 돌면 무엇이 되는지.
+- 미확인: `EXPORT_CONTINUOUS_OBJECT`가 `ALTER`(TTL·실행 그룹·순서) 뒤에도 만든 문장을 돌려주는 것이 의도인지, 지금 설정을 담은 정의를 얻는 길이 있는지.
+- 미확인: 실패한 `ALTER CONTINUOUS …`도 열린 트랜잭션을 커밋하는 것이 의도인지.
+- 미확인: 스트림·연속 객체의 권한(전용 권한이 없음: 테이블 권한을 따르는지), 다른 사용자의 객체를 바꾸고 지울 수 있는 조건.
+- 미확인: 연속 테이블의 TTL에 `SECOND`를 받지 않는 이유(201848), `ALTER … SET` 절을 한 문장에 하나만 받는 것이 문법인지.
+- 미확인: 연속 스트림 테이블·연속 쿼리의 `EXEC GROUP`·`EXEC ORDER`가 처리에 쓰이는 방식(처리 스레드 0인 서버라 확인하지 못함).
 
 ## 아직 없는 것
 
@@ -951,3 +1085,6 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 2026-11-21 읽기 전용 스트림 탐색기(앱 변경 #153, `chromite/shardsphere-stream-explorer`): 일반 서버에 시험용 개체 `CHR_STM_*`를 만들어 사전의 값을 확인하고 지움, 스키마 아래
   "스트림" 노드(스트림 테이블·연속 테이블·연속 쿼리)와 System Info ▸ ShardSphere ▸ 스트림 함수, 정의는 `EXPORT_CONTINUOUS_OBJECT(VIEW_ID)`, 스키마 아래 중립 트리 자리
   ([altibase.md](altibase.md) "서버 확장"). 위 "스트림 탐색기".
+- 2026-11-22 스트림 명령(앱 변경 #156, `chromite/shardsphere-stream-commands`): 일반 서버에 시험용 개체 `CHR_STW_*`로 ALTER·DROP·CREATE 모양, 의존, 트랜잭션을
+  확인하고 지움. 연속 객체의 사용·사용 안 함·실행 설정(그룹, 순서, 연속 테이블 TTL), 네 종류의 삭제, 폴더의 틀 다섯. 중립 자리 둘([altibase.md](altibase.md)
+  "확장 객체의 명령 자리"). 위 "스트림 명령".

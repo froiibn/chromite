@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ext.altibase.extension.AltibaseObjectTemplates;
 import com.seizia.chromite.ext.mysql.model.MySQLEvent;
 import com.seizia.chromite.ext.oracle.model.OracleSchema;
 import com.seizia.chromite.model.DBPDataSource;
@@ -53,9 +54,13 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -90,6 +95,9 @@ import java.util.function.Supplier;
  *   (swing-create-objects.md "새 사용자의 암호")
  * - 2026-11-08 모델이 묻지 않는 필수 값을 선언한 종류를 이름만 길에서 뺌(Exasol New Connection…의 NullPointerException,
  *   docs/chromite/password-handling.md)
+ * - 2026-11-22 서버 확장 폴더의 틀(중립 자리 {@link AltibaseObjectTemplates}): 확장 번들이 넣은 폴더는 종류가 없어 위 길에 들지 않으므로
+ *   폴더의 항목 속성 이름으로 확장의 노드에 틀을 묻고, 틀마다 "New &lt;종류&gt;…" 항목을 이 항목 바로 뒤에 넣는다(한 폴더가 두 종류를 담을 수
+ *   있음). 여는 길은 틀과 같다(앱 변경 #156, docs/chromite/swing-create-objects.md)
  */
 final class NewObjectCommands {
 
@@ -119,6 +127,10 @@ final class NewObjectCommands {
     private final ObjectExplorerPanel.QueryWindows queryWindows;
     private final ExplorerObjectCommands objectCommands;
     private final JMenuItem item;
+    // A server extension's template items of the selected folder (in the menu after item)
+    private final List<JMenuItem> templateItems = new ArrayList<>();
+    @Nullable
+    private JPopupMenu menu;
 
     NewObjectCommands(
         @NotNull JComponent owner,
@@ -140,11 +152,12 @@ final class NewObjectCommands {
     }
 
     /**
-     * The menu item; visible only on folders it applies to.
+     * Adds the menu item (visible only on folders it applies to) to the menu; a server extension's templates are put
+     * right after it when a folder of theirs is selected ({@link #update}).
      */
-    @NotNull
-    JMenuItem getItem() {
-        return item;
+    void addTo(@NotNull JPopupMenu menu) {
+        this.menu = menu;
+        menu.add(item);
     }
 
     /**
@@ -160,6 +173,34 @@ final class NewObjectCommands {
                 case DESIGNER -> CreateObjectMessages.create_new_designer_tip;
                 case DIALOG -> CreateObjectMessages.create_new_object_tip;
             }, target.typeLabel()));
+        }
+        updateExtensionTemplates(node);
+    }
+
+    /**
+     * One "New &lt;kind&gt;…" item per template of a server extension's folder, after the generic item (a folder may hold
+     * two kinds). The items of the previous selection are taken out first.
+     */
+    private void updateExtensionTemplates(@Nullable DBNNode node) {
+        if (menu == null) {
+            return;
+        }
+        templateItems.forEach(menu::remove);
+        templateItems.clear();
+        if (!(node instanceof DBNDatabaseFolder folder) || !(folder.getValueObject() instanceof AltibaseObjectTemplates templates)) {
+            return;
+        }
+        DBXTreeItem items = folder.getItemsMeta();
+        if (items == null || items.getPropertyName() == null) {
+            return;
+        }
+        int index = menu.getComponentIndex(item) + 1;
+        for (AltibaseObjectTemplates.Template template : templates.getTemplates(items.getPropertyName())) {
+            JMenuItem templateItem = new JMenuItem(NLS.bind(CreateObjectMessages.create_new_object, template.typeLabel()));
+            templateItem.setToolTipText(NLS.bind(CreateObjectMessages.create_new_template_tip, template.typeLabel()));
+            templateItem.addActionListener(e -> openExtensionTemplate(folder, templates, template));
+            menu.insert(templateItem, index++);
+            templateItems.add(templateItem);
         }
     }
 
@@ -254,6 +295,38 @@ final class NewObjectCommands {
             return;
         }
         queryWindows.openSourceScript(target.folder().getDataSourceContainer(), script, target.folder(), null);
+    }
+
+    /**
+     * Opens a server extension's CREATE template in a new query window that reads the folder again after each run, as
+     * {@link #openTemplate}. The new object's name is the template's base name, numbered when the folder has it.
+     */
+    private void openExtensionTemplate(
+        @NotNull DBNDatabaseFolder folder,
+        @NotNull AltibaseObjectTemplates templates,
+        @NotNull AltibaseObjectTemplates.Template template
+    ) {
+        String title = NLS.bind(CreateObjectMessages.create_title, template.typeLabel());
+        String script;
+        try {
+            script = ProgressDialog.runTask(title, monitor -> {
+                Set<String> existingNames = new HashSet<>();
+                for (DBSObject child : CommonUtils.safeCollection(folder.getChildrenObjects(monitor))) {
+                    existingNames.add(child.getName().toUpperCase(Locale.ENGLISH));
+                }
+                String name = template.baseName();
+                for (int i = 1; existingNames.contains(name.toUpperCase(Locale.ENGLISH)); i++) {
+                    name = template.baseName() + i;
+                }
+                return templates.getTemplateScript(template, name);
+            });
+        } catch (DBInterruptedException e) {
+            return;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
+            return;
+        }
+        queryWindows.openSourceScript(folder.getDataSourceContainer(), script, folder, null);
     }
 
     /**

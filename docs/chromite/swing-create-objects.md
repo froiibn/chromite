@@ -37,6 +37,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | Oracle Queues | **New Queue…** | `DBMS_AQADM` 틀(큐 테이블, 큐, 시작) |
 | Altibase 계열(Altibase, ShardSphere) Global metadata ▸ Jobs | **New Job…** | 대화상자(이름, 프로시저, 시작, 끝, 주기 수·단위, 사용, 주석) → 미리 보기 → 실행([altibase.md](altibase.md) "작업 만들기·바꾸기·삭제") |
 | Altibase 계열 스키마의 Queues(큐 테이블) | **New Queue…** | 대화상자(이름, 메시지 크기 바이트) → 미리 보기 → 실행([altibase.md](altibase.md) "큐") |
+| ShardSphere 스키마 ▸ 스트림의 Stream Tables / Continuous Tables / Continuous Queries, System Info ▸ ShardSphere ▸ Stream Functions | **New Stream Table… / New Continuous Table…·New Continuous Stream Table… / New Continuous Query… / New Stream Function…** | CREATE 틀을 새 쿼리 창에(서버 확장의 틀, [shardsphere.md](shardsphere.md) "스트림 명령", [altibase.md](altibase.md) "확장 객체의 명령 자리") |
 | 테이블의 Columns, Constraints/Keys, Foreign Keys, Indexes | **New Column… / New Index…** 등 | 테이블 디자이너를 연다 |
 | 그 밖에 객체 관리자가 있는 폴더 | **New &lt;종류&gt;…** | 이름 대화상자 → 미리 보기 → 실행 |
 
@@ -351,3 +352,5 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   (앱 변경 #154, `chromite/altibase-family-jobs-queues`, [altibase.md](altibase.md) "작업 만들기·바꾸기·삭제", "큐").
 - 2026-11-16 "숫자 칸"에 앱의 다른 숫자 칸(앱 변경 #142, `chromite/numeric-fields`): 컨텍스트 크기, HANA 인스턴스 번호, 자원 제한, 행으로 가기,
   숫자 속성, NUMBER 매개 변수, 디버거 프로세스 ID에 필터. 필터에 음수 칸의 앞 빼기 부호. 그리드 셀·열 필터·배열 등 둔 칸과 이유.
+- 2026-11-22 ShardSphere 스트림 폴더의 틀 다섯(스트림 테이블, 연속 테이블, 연속 스트림 테이블, 연속 쿼리, 스트림 함수): 서버 확장이 주는 틀을 폴더의
+  항목 속성 이름으로 묻고 틀마다 "New &lt;종류&gt;…" 항목(`NewObjectCommands`, 앱 변경 #156, [shardsphere.md](shardsphere.md) "스트림 명령").

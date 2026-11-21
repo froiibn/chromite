@@ -1206,6 +1206,38 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 - 회귀 테스트는 작성·실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: Altibase 계열 테이블의 열·키·인덱스 편집(큐가 아닌 테이블은 일반 관리자 그대로),
   작업 속성 표시(주기 0), 유지 관리 메뉴.
 
+## 확장 객체의 명령 자리 (2026-11-22, 앱 변경 #156)
+
+### 목적
+
+서버 확장이 트리에 보이는 객체(첫 사용자는 ShardSphere의 스트림 객체, [shardsphere.md](shardsphere.md) "스트림 명령")에 기존 흐름의 명령을 낸다:
+사용 / 사용 안 함, 실행 설정, 삭제, 폴더의 "New …" 틀. 이 플러그인과 공용 UI는 그 서버가 무엇인지 모른다(제품 이름 없음). 기능 번들이 없으면
+그 객체가 없으므로 명령도 없다.
+
+### 자리와 이유
+
+| 위치 | 하는 일 |
+|---|---|
+| `ext.altibase` `extension/AltibaseExecutionSettings`(새 인터페이스) | 서버가 백그라운드로 실행하는 확장 객체의 능력: `isEnabled`, `getExecutionSettings`(그룹·순서·TTL), `getTtlUnits`·`getDefaultTtlUnit`(비면 TTL 없음), `getEnableStatement`, `getSettingsStatements`(바뀐 설정마다 한 문장). 값 `Settings`, `Ttl`(단위는 `AltibaseTableTtl.Unit`). 확장의 객체가 직접 구현한다(어댑터 없음) |
+| `ext.altibase` `extension/AltibaseObjectTemplates`(새 인터페이스) | 확장 노드가 자기 아래 폴더의 "New …" 틀을 준다: `getTemplates(항목 속성 이름)`(한 폴더에 여럿), `getTemplateScript(틀, 이름)` |
+| `model.admin` `ObjectMaintenanceActions` | 동작 `ENABLE_EXECUTION`, `DISABLE_EXECUTION`, `EXECUTION_SETTINGS`(설정 `AltibaseExecutionSettings.Settings`), `isExecutionEnabled`. `supports`는 `instanceof AltibaseExecutionSettings`, 문장은 객체가 만든다 |
+| `ui.swing` `ObjectMaintenanceCommands`, `AltibaseExecutionSettingsDialog`(새), `ObjectMaintenanceMessages` | 메뉴 "사용", "사용 안 함"(지금 상태의 항목은 꺼짐), "실행 설정"(지금 값으로 채운 대화상자: 그룹·순서는 숫자만 0~2147483647, 확장이 단위를 주면 "TTL 사용"·기간·단위). 그 뒤는 작업 설정과 같은 흐름(미리 보기 → 열린 트랜잭션 질문 → 격리 실행 → 노드 다시 읽기, 선택 다시 보이기) |
+| `ui.swing` `NewObjectCommands`, `ObjectExplorerPanel` | 폴더의 값 객체가 `AltibaseObjectTemplates`이면 틀마다 "New &lt;종류&gt;…" 항목을 기존 "New …" 항목 바로 뒤에 넣는다(선택이 바뀔 때). 틀은 기존 틀처럼 새 쿼리 창에 열리고, 창은 실행할 때마다 그 폴더를 다시 읽는다. 탐색기는 `getItem` 대신 `addTo(menu)`를 부른다 |
+| 삭제 | 공용 코드 변경 없음: 기능 번들이 기존 객체 관리자 확장 지점(`com.seizia.chromite.objectManager`)으로 자기 클래스에 관리자를 준다 |
+
+- **왜 이 모양인가:** 테이블 TTL(위 "테이블 TTL 자리")과 같은 좁은 능력을 골랐다. 이번이 두 번째 쓰기 기능이지만 명령은 셋(사용, 사용 안 함, 설정)이고
+  칸은 정수 둘과 TTL뿐이라, 메뉴 이름·보임 조건·칸 기술까지 기여로 받는 일반 "객체 명령" 확장 지점(계획의 S6/S7)은 아직 짐작이 많다. 대안(고르지 않음):
+  확장 번들의 객체 관리자가 속성 편집으로 값을 바꾸는 길 — 속성 보기의 편집은 절마다 따로 실행해야 하는 문장을 한 미리 보기에 보이지 못하고,
+  사용 / 사용 안 함은 앱에서 메뉴 명령(트리거, 작업)이다.
+- **틀을 폴더의 항목 속성 이름으로 묻는 이유:** 확장 번들이 넣은 폴더는 종류(type)가 없다(그 클래스를 이 플러그인이 불러올 수 없음). 기존 "New …"는
+  폴더의 자식 클래스와 방언으로 틀을 고르므로(`SourceScripts.getTemplateKind`, 네 방언만) 이 폴더에는 항목이 없었다.
+- **틀 항목을 메뉴에 그때그때 넣는 이유:** 한 폴더가 두 종류를 담는다(연속 테이블 폴더의 연속 테이블과 연속 스트림 테이블). 기존 "New …"는 항목 하나라
+  선택이 바뀔 때 확장의 틀 항목을 지우고 다시 넣는다. 다른 폴더·다른 DB의 메뉴는 전과 같다(덤프로 확인, [shardsphere.md](shardsphere.md) "스트림 명령").
+
+### upstream 대비 변경점
+
+- upstream에는 없다. 인터페이스 둘, 유지 관리 동작 셋, 대화상자 하나, "New …" 항목의 확장 틀.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -1245,3 +1277,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   "세션 종료 문장", "작업·큐·세션 종료 확인".
 - 2026-11-21 서버 확장의 스키마 아래 트리 자리(`getSchemaTreeObjects`, `AltibaseSchema.getExtensionObjects`, 트리 항목 `schemaExtension`, 앱 변경 #153,
   첫 사용자는 ShardSphere 스트림 탐색기), 위 "서버 확장".
+- 2026-11-22 확장 객체의 명령 자리(`AltibaseExecutionSettings`, `AltibaseObjectTemplates`, 유지 관리 동작 셋, 실행 설정 대화상자, "New …"의 확장 틀,
+  앱 변경 #156, 첫 사용자는 ShardSphere 스트림 명령), 위 "확장 객체의 명령 자리".

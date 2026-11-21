@@ -76,7 +76,7 @@
 | Set as Default | 1328 `canSetDefault` | `appliesSetDefault` | 연결됨, 기본값 아님 |
 | New Table… | 1281 `canCreateTable(folder)` | 같음(폴더의 자식 종류, 드라이버) | – |
 | New View/Procedure/Function… | `SourceEditCommands.update` `getNewKinds` | 같음(폴더 종류, 방언) | – |
-| New &lt;종류&gt;… | `NewObjectCommands.update`(이미 숨김) | 같음 | – |
+| New &lt;종류&gt;… | `NewObjectCommands.update`(이미 숨김) | 같음. 서버 확장 폴더(ShardSphere 스트림 폴더)는 틀마다 한 항목(2026-11-22) | – |
 | New Login/Role/User… | 1320 `getNewPrincipalKind` | 같음(보안 폴더) | – |
 | SQL Server 에이전트 항목 | `AgentCommands.update`(이미 숨김) | 에이전트 노드·폴더·객체; **에이전트가 없는 에디션이면 바꾸는 명령 숨김(전에는 꺼짐)** | 작업 상태(사용/사용 안 함), 에이전트 실행 중 |
 | 작업 스케줄러 항목 | `SchedulerCommands.update`(이미 숨김) | 그대로 | 권한, pg_cron 기능·설치, 읽기 전용 연결(그대로) |
@@ -97,7 +97,7 @@
 | Tasks ▸ Import/Export/Copy Tables… | 1270–1275 | 그 객체에 해당, 연결 노드는 `DataTransferObjects.appliesToConnection`(맨 위가 스키마나 데이터베이스; 닫혀 있으면 보임) | 연결 노드는 연결했고 읽은 DB가 하나 |
 | Tasks | 1277 | 하위 항목에서 | 하위 항목에서 |
 | Maintenance… | 1279 `canMaintain` | 같음 | – |
-| 유지 관리 명령(TRUNCATE, TTL, 트리거·테이블스페이스·파일 그룹, Altibase 계열 작업 사용·사용 안 함·설정과 큐 압축 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`, 작업은 `IS_ENABLE`) |
+| 유지 관리 명령(TRUNCATE, TTL, 트리거·테이블스페이스·파일 그룹, Altibase 계열 작업 사용·사용 안 함·설정과 큐 압축, 서버 확장 객체의 사용·사용 안 함·실행 설정 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`, 작업·확장 객체는 모델이 읽은 사용 여부) |
 | Connect | 1287 | 연결 노드 | 연결 안 됨(켜짐은 전처럼 연결 아래 노드 기준, 도구 막대) |
 | Disconnect | 1289 | 연결 노드 | –(켜짐은 전처럼 연결 아래 노드, 도구 막대) |
 | Disconnect Others | 1291 | 연결 노드 | 다른 연결된 서버가 있음 |
@@ -454,3 +454,5 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
   (사용자 "둘 다 고친다", 앱 변경 #141, `chromite/small-menus-applicable`, `ContextMenus.tidyTextArea`·`VARYING_TEXT`)
 - 2026-11-17 유지 관리 명령 목록에 TTL(서버 확장이 그 표에 줄 때만 보임, 앱 변경 #152, [shardsphere.md](shardsphere.md) "TTL 관리")
 - 2026-11-21 유지 관리 명령 목록에 Altibase 계열 작업·큐 명령, 큐의 열·키·인덱스는 꺼짐·디자이너 항목 숨김(앱 변경 #154, [altibase.md](altibase.md))
+- 2026-11-22 ShardSphere 스트림 객체의 사용·사용 안 함·실행 설정·삭제와 스트림 폴더의 "New &lt;종류&gt;…" 틀 항목(앱 변경 #156, [shardsphere.md](shardsphere.md) "스트림 명령",
+  [altibase.md](altibase.md) "확장 객체의 명령 자리")

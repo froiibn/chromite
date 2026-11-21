@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ext.shardsphere.model;
 
+import com.seizia.chromite.ext.altibase.extension.AltibaseObjectTemplates;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
 import com.seizia.chromite.ext.altibase.model.AltibaseSchema;
 import com.seizia.chromite.ext.shardsphere.internal.ShardSphereMessages;
@@ -44,12 +45,14 @@ import java.util.List;
  * 폴더를 처음 열 때 그 폴더의 목록을 읽는다. 카탈로그의 {@code SYS_TABLES_.TABLE_TYPE}으로 가른다(2026-11-21 시험용 개체로 확인):
  * {@code X} 스트림 테이블, {@code B}(집계 저장 테이블 {@code <t>$AGGR}이 있음)·{@code C} 연속 테이블, {@code Y} 연속 스트림 테이블,
  * {@code I} 연속 쿼리. 연속 테이블·스트림 테이블·쿼리는 {@code SYS_CONTINUOUS_TABLES_} 한 SELECT로 함께 읽고 폴더마다 나눈다.
- * 새로 고침은 읽은 것을 비운다. 읽기 전용이다(객체 관리자 없음).
+ * 새로 고침은 읽은 것을 비운다. 세 폴더의 "New …" 틀은 이 객체가 준다(Altibase 플러그인의 중립 자리 {@link AltibaseObjectTemplates},
+ * 폴더는 트리 정의의 항목 속성 이름으로 가름, 문장은 {@link StreamDDL}).
  *
  * 변경 이력:
  * - 2026-11-21 최초 작성(앱 변경 #153, docs/chromite/shardsphere.md "스트림 탐색기")
+ * - 2026-11-22 폴더의 새 개체 틀, 연속 객체 하나의 행 다시 읽기, 삭제가 쓰는 캐시(앱 변경 #156, docs/chromite/shardsphere.md "스트림 명령")
  */
-public class StreamSchema implements DBPRefreshableObject {
+public class StreamSchema implements DBPRefreshableObject, AltibaseObjectTemplates {
 
     /**
      * The stream tables of one user (TABLE_TYPE 'X').
@@ -68,7 +71,9 @@ public class StreamSchema implements DBPRefreshableObject {
         + " FROM SYSTEM_.SYS_CONTINUOUS_TABLES_ C JOIN SYSTEM_.SYS_TABLES_ T ON T.TABLE_ID = C.TABLE_ID"
         + " JOIN SYSTEM_.SYS_USERS_ U ON U.USER_ID = T.USER_ID"
         + " LEFT OUTER JOIN SYSTEM_.SYS_TABLES_ A ON A.TABLE_ID = C.AGGR_TABLE_ID%s"
-        + " WHERE U.USER_NAME = ? ORDER BY T.TABLE_NAME";
+        + " WHERE U.USER_NAME = ?%s ORDER BY T.TABLE_NAME";
+    // One object's row (ContinuousObject.refreshObject)
+    private static final String ONE_OBJECT = " AND T.TABLE_ID = ?";
     private static final String TTL_COLUMNS = "X.UNIT AS TTL_UNIT, X.TIME AS TTL_TIME";
     private static final String TTL_JOIN = " LEFT OUTER JOIN SYSTEM_.SYS_TTL_ X ON X.TABLE_ID = NVL(C.AGGR_TABLE_ID, C.TABLE_ID)";
     private static final String NO_TTL_COLUMNS = "NULL AS TTL_UNIT, NULL AS TTL_TIME";
@@ -117,6 +122,71 @@ public class StreamSchema implements DBPRefreshableObject {
     @NotNull
     AltibaseSchema getSchema() {
         return schema;
+    }
+
+    @NotNull
+    ShardSphereServer getServer() {
+        return server;
+    }
+
+    /**
+     * The model cache of the stream tables (the object manager's Delete removes the dropped one).
+     */
+    @NotNull
+    public JDBCObjectCache<StreamSchema, StreamTable> getStreamTableCache() {
+        return streamTableCache;
+    }
+
+    /**
+     * The model cache of the continuous tables, continuous stream tables and continuous queries.
+     */
+    @NotNull
+    public JDBCObjectCache<StreamSchema, ContinuousObject> getContinuousCache() {
+        return continuousCache;
+    }
+
+    /**
+     * The statement that reads the continuous objects of the schema, or only the one with this table id.
+     */
+    @NotNull
+    static JDBCPreparedStatement prepareContinuous(
+        @NotNull JDBCSession session,
+        @NotNull StreamSchema owner,
+        @Nullable Integer tableId
+    ) throws SQLException {
+        boolean ttl = owner.server.isTtlCatalog();
+        JDBCPreparedStatement dbStat = session.prepareStatement(String.format(QUERY_CONTINUOUS,
+            ttl ? TTL_COLUMNS : NO_TTL_COLUMNS, ttl ? TTL_JOIN : "", tableId == null ? "" : ONE_OBJECT)); //$NON-NLS-1$ //$NON-NLS-2$
+        dbStat.setString(1, owner.schema.getName());
+        if (tableId != null) {
+            dbStat.setInt(2, tableId);
+        }
+        return dbStat;
+    }
+
+    /**
+     * "New Stream Table", "New Continuous Table" and "New Continuous Stream Table", "New Continuous Query" on the folders.
+     */
+    @NotNull
+    @Override
+    public List<Template> getTemplates(@NotNull String itemsProperty) {
+        return switch (itemsProperty) {
+            case "streamTables" -> List.of(new Template(StreamDDL.KIND_STREAM_TABLE, //$NON-NLS-1$
+                ShardSphereMessages.stream_kind_stream_table, "NEW_STREAM_TABLE")); //$NON-NLS-1$
+            case "continuousTables" -> List.of( //$NON-NLS-1$
+                new Template(StreamDDL.KIND_CONTINUOUS_TABLE, ShardSphereMessages.stream_kind_continuous_table, "NEW_CONTINUOUS_TABLE"), //$NON-NLS-1$
+                new Template(StreamDDL.KIND_CONTINUOUS_STREAM_TABLE, ShardSphereMessages.stream_kind_continuous_stream_table,
+                    "NEW_CONTINUOUS_STREAM_TABLE")); //$NON-NLS-1$
+            case "continuousQueries" -> List.of(new Template(StreamDDL.KIND_CONTINUOUS_QUERY, //$NON-NLS-1$
+                ShardSphereMessages.stream_kind_continuous_query, "NEW_CONTINUOUS_QUERY")); //$NON-NLS-1$
+            default -> List.of();
+        };
+    }
+
+    @NotNull
+    @Override
+    public String getTemplateScript(@NotNull Template template, @NotNull String name) {
+        return StreamDDL.template(template.kind(), getDataSource(), schema, name, server.isTtlCatalog());
     }
 
     /**
@@ -173,11 +243,7 @@ public class StreamSchema implements DBPRefreshableObject {
         @NotNull
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull StreamSchema owner) throws SQLException {
-            boolean ttl = owner.server.isTtlCatalog();
-            JDBCPreparedStatement dbStat = session.prepareStatement(String.format(QUERY_CONTINUOUS,
-                ttl ? TTL_COLUMNS : NO_TTL_COLUMNS, ttl ? TTL_JOIN : "")); //$NON-NLS-1$
-            dbStat.setString(1, owner.schema.getName());
-            return dbStat;
+            return prepareContinuous(session, owner, null);
         }
 
         @NotNull
