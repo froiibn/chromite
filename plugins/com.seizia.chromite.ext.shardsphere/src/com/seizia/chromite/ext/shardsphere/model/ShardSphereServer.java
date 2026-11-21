@@ -77,6 +77,7 @@ import java.util.Set;
  *   "스트림" 노드({@link StreamSchema}, Altibase 트리의 스키마 자리)와 이 노드 아래 스트림 함수 폴더({@link StreamFunction}: 사전에 소유자가
  *   없고 모든 사용자에게 공개되므로 서버 단위). 스트림 카탈로그 속성. 새로 고침은 읽은 함수를 비운다(앱 변경 #153,
  *   docs/chromite/shardsphere.md "스트림 탐색기")
+ * - 2026-11-21 TTL 능력에 메타 노드인지 넘김: 새 테이블의 TTL은 메타 노드에서 내지 않음(앱 변경 #155, docs/chromite/shardsphere.md "TTL 관리")
  */
 public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefreshableObject {
 
@@ -144,7 +145,7 @@ public class ShardSphereServer implements AltibaseServerExtensionState, DBPRefre
         this.streamCatalog = streamCatalog;
         this.nodeNames = List.copyOf(nodeNames);
         this.sharding = shardingMetaNode ? new ShardingDictionary() : null;
-        this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables) : null;
+        this.tableTtl = ttlCatalog && shardTables != null ? new ShardTableTtl(shardTables, shardingMetaNode) : null;
     }
 
     @NotNull
