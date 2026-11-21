@@ -63,8 +63,14 @@ import java.util.Collection;
  * - 2026-11-17 종류별 크기 문장을 객체 필드에서 정적 {@link #getSizeQuery}로, 세션을 받는 {@link #readSizes}를 둠: 활동 모니터의 공간 탭이
  *   트리와 같은 문장으로 읽어 두 화면의 값이 어긋날 수 없게. 메모리·휘발성의 한도가 자동 확장이 꺼져 있으면 현재 크기, 메모리는 자기 MAXSIZE와
  *   MEM_MAX_DB_SIZE 중 작은 쪽(전에는 모든 메모리 테이블스페이스가 MEM_MAX_DB_SIZE) (앱 변경 #139 작업 7, docs/chromite/altibase.md "공간 사용량")
+ * - 2026-11-22 Tables·Indexes 폴더가 같은 테이블 종류({@link #TABLE_KINDS})를 읽음: 인덱스 폴더는 종류를 거르지 않아 테이블 폴더에 없는 내부 표의
+ *   인덱스까지 보였고, 테이블 폴더는 구체화된 뷰를 빠뜨렸다(앱 변경 #158, docs/chromite/altibase.md "테이블스페이스의 테이블과 인덱스")
  */
 public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefreshableObject, DBPObjectStatistics {
+
+    // SYS_TABLES_.TABLE_TYPE of the tables the Tables and Indexes folders show: table, queue, materialized view (the kinds of
+    // the schema's table list that keep rows in a tablespace; other kinds are the server's internal or extension objects)
+    private static final String TABLE_KINDS = "'T', 'Q', 'M'";
 
     public enum TbsType {
         MEMORY_SYSTEM_DICTIONARY(0),
@@ -726,7 +732,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                     + " FROM"
                         + " system_.sys_users_ u, system_.sys_tables_ t"
                     + " WHERE"
-                        + " u.user_id = t.user_id AND (t.table_type = 'T' OR t.table_type = 'Q') AND "
+                        + " u.user_id = t.user_id AND t.table_type IN (" + TABLE_KINDS + ") AND "
                         + " t.is_partitioned = 'F' AND t.tbs_id = ?"
                     + " UNION ALL"
                     + " SELECT"
@@ -734,7 +740,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                     + " FROM"
                         + " system_.sys_users_ u, system_.sys_tables_ t, system_.sys_table_partitions_ tp"
                     + " WHERE"
-                        + " u.user_id = t.user_id AND (t.table_type = 'T' OR t.table_type = 'Q') AND "
+                        + " u.user_id = t.user_id AND t.table_type IN (" + TABLE_KINDS + ") AND "
                         + " t.is_partitioned = 'T' AND t.table_id = tp.table_id AND tp.tbs_id = ?"
                 + " )"
                 + " ORDER BY 1,2,3";
@@ -785,6 +791,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                     + " WHERE"
                         + " u.user_id = i.user_id AND i.is_partitioned = 'F'"
                         + " AND i.table_id = t.table_id AND ut.user_id = t.user_id"
+                        + " AND t.table_type IN (" + TABLE_KINDS + ")"
                         + " AND i.tbs_id = ?"
                     + " UNION ALL "
                     + " SELECT"
@@ -801,6 +808,7 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
                         + " AND i.index_id = ip.index_id"
                         + " AND i.is_partitioned = 'T'"
                         + " AND i.table_id = t.table_id AND ut.user_id = t.user_id"
+                        + " AND t.table_type IN (" + TABLE_KINDS + ")"
                         + " AND ip.tbs_id = ?"
                     + " )"
                     + " ORDER BY 1, 2, 3";

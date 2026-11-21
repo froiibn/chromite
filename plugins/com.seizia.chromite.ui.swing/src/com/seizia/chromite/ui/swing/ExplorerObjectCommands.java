@@ -136,6 +136,7 @@ import java.util.function.Supplier;
  *   앱 변경 #132, docs/chromite/swing-create-objects.md "대화상자 크기와 위치")
  * - 2026-11-16 이름 바꾸기·삭제를 종류({@link #appliesRename}, {@link #appliesDelete}, 메뉴에 보임)와 지금 상태({@link #canRename},
  *   {@link #canDelete})로 나눔, 복사·Generate SQL은 해당할 때만 보임(앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-22 Generate SQL 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  */
 final class ExplorerObjectCommands {
 
@@ -531,7 +532,7 @@ final class ExplorerObjectCommands {
         } catch (DBInterruptedException e) {
             return;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(NavigatorMessages.navigator_generate_sql, NavigatorMessages.navigator_generate_sql_error, e);
+            DBWorkbench.getPlatformUI().showError(NavigatorMessages.navigator_generate_sql, ObjectScripts.errorMessage(e, NavigatorMessages.navigator_generate_sql_error), e);
             return;
         }
         queryWindows.openScript(container, script, 0, false);

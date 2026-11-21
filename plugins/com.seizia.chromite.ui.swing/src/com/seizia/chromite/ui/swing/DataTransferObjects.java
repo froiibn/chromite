@@ -36,6 +36,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSFolder;
 import com.seizia.chromite.model.struct.DBSObject;
@@ -76,6 +77,8 @@ import java.util.Map;
  *   (앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-16 연결 노드의 작업이 그 종류에 해당하는지({@link #appliesToConnection}, 메뉴에 보임; 데이터베이스가 여럿이거나 아직 읽지 않았으면 꺼짐)
  *   (앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-22 행을 받을 수 있는 객체인지({@link #acceptsRows}, 모델의 데이터 기능 FEATURE_DATA_INSERT): 가져오기·테이블 복사의 대상 판단이
+ *   형식만 보아 서버가 INSERT를 거절하는 객체(큐)도 대상이 되었다 (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
  */
 final class DataTransferObjects {
 
@@ -126,6 +129,15 @@ final class DataTransferObjects {
      */
     static boolean isDatabase(@Nullable DBSObject object) {
         return isSchemaContainer(object) || object instanceof DBSCatalog && isDataContainerParent(object);
+    }
+
+    /**
+     * An object that can receive inserted rows: a {@link DBSDataManipulator} whose model says so
+     * ({@link DBSDataManipulator#FEATURE_DATA_INSERT}). An object the model says refuses them (a queue, written with its own
+     * statement) is not an import or copy target. Called on the EDT: the model answers from what it has read.
+     */
+    static boolean acceptsRows(@Nullable DBSObject object) {
+        return object instanceof DBSDataManipulator manipulator && manipulator.isFeatureSupported(DBSDataManipulator.FEATURE_DATA_INSERT);
     }
 
     /**

@@ -29,6 +29,7 @@ import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
@@ -42,6 +43,7 @@ import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectLazy;
 import com.seizia.chromite.model.struct.DBStructUtils;
 import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.runtime.DBInterruptedException;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 
@@ -63,8 +65,15 @@ import java.util.regex.Pattern;
  * 설계: 암호는 {@link #quotePassword}로만 문장에 넣는다. {@code DBUtils.getQuotedIdentifier}는 식별자용이라 이미 큰따옴표로
  * 싸인 글을 그대로 두고(사용자가 친 {@code "abc"}가 암호 {@code abc}가 됨), 이름 규칙에 맞는 글은 따옴표 없이 둔다.
  *
+ * {@link #getDDL}은 취소({@code ORA-01013}, 취소된 모니터)를 "DBMS_METADATA를 쓸 수 없음"으로 보지 않는다. 그렇게 보면 취소 뒤에
+ * 다른 방법으로 DDL을 만들러 가서(빈 문자열을 받은 {@code DBStructUtils.getTableDDL}도 같음) 취소가 듣지 않고 빈 DDL이 나온다.
+ * 권한이 없어 DBMS_METADATA가 거절한 테이블(ORA-31603)은 업스트림처럼 사전 뷰로 만든 DDL로 대신하되, 서버의 거절과
+ * 빠질 수 있다는 것을 머리 주석으로 밝힌다.
+ *
  * 변경 이력:
  * - 2026-11-08 {@link #quotePassword} 추가: 암호 바꾸기·새 스키마의 암호 따옴표 처리 (docs/chromite/password-handling.md)
+ * - 2026-11-22 {@link #getDDL}: 취소면 {@link DBInterruptedException}(대신 만들지 않음), 대신 만든 테이블 DDL에 서버 오류와
+ *   "빠질 수 있음" 주석 (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
  */
 public class OracleUtils {
 
@@ -94,7 +103,7 @@ public class OracleUtils {
         Map<String, Object> options) throws DBException
     {
         if (monitor.isCanceled()) {
-            return "";
+            throw new DBInterruptedException("DDL reading canceled");
         }
         String objectFullName = DBUtils.getObjectFullName(object, DBPEvaluationContext.DDL);
 
@@ -134,7 +143,7 @@ public class OracleUtils {
             }
 
             if (monitor.isCanceled()) {
-                return "";
+                throw new DBInterruptedException("DDL reading canceled");
             }
 
             String ddl = fetchDDL(session, objectType, object.getName(), schema);
@@ -192,9 +201,17 @@ public class OracleUtils {
             }
             return ddl;
         } catch (SQLException e) {
+            if (monitor.isCanceled() || DBExecUtils.isExecutionCanceled(dataSource, e)) {
+                // A canceled GET_DDL (ORA-01013) is not a reason to generate the DDL another way
+                throw new DBInterruptedException("DDL reading canceled", e);
+            }
             if (object instanceof OracleTablePhysical) {
                 log.error("Error generating Oracle DDL. Generate default.", e);
-                return DBStructUtils.generateTableDDL(monitor, object, options, true);
+                // Marked with the server's refusal: the generated DDL has only what this account can read in the
+                // dictionary views (no storage, grants or trigger bodies of another schema's table)
+                return SQLUtils.generateCommentLine(dataSource, "DBMS_METADATA: " + CommonUtils.notEmpty(e.getMessage()).lines().findFirst().orElse("").trim()) +
+                    SQLUtils.generateCommentLine(dataSource, "DDL generated from the dictionary views this account can read. It may be incomplete.") +
+                    DBStructUtils.generateTableDDL(monitor, object, options, true);
             } else {
                 throw new DBDatabaseException(e, dataSource);
             }

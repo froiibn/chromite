@@ -161,6 +161,43 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
 - 범위 밖에서 본 것(고치지 않음): 이 Oracle 23ai 컨테이너에서 View DDL·Script as CREATE의 테이블 DDL이 메타데이터 세션에서 ORA-38802("edition does not exist")로
   실패해 모델이 일반 DDL로 대신한다. 같은 사용자의 쿼리 창과 sqlplus에서는 `DBMS_METADATA.GET_DDL`이 된다. 이 작업의 변경과 상관없이 나는 오류다(첫 View DDL에서도 남).
 
+## DDL 권한과 취소 (2026-11-22, 앱 변경 #159)
+
+실사용자 보고: Oracle에서 조회 권한이 없는 계정으로 테이블의 "DDL 보기"를 하면 진행 창이 끝나지 않고 취소도 듣지 않았다(Oracle 버전, 스키마, 계정 권한은 모름).
+
+- **재현(시험 VM Oracle 26ai Free 23.26, KO16MSWIN949 컨테이너; AL32UTF8 컨테이너는 PDB가 열리지 않아 못 씀).** 계정 다섯
+  (`CHR_DDLP_OWN` 소유자, `_SEL` SELECT·EXECUTE만, `_INS` 테이블에 INSERT만(보이지만 SELECT 못 함), `_NONE` CREATE SESSION만,
+  `_CAT` SELECT_CATALOG_ROLE) × 테이블·뷰·인덱스·시퀀스·패키지·프로시저·함수·트리거 × DDL 보기·스크립팅 ▸ CREATE 대상·SQL 생성 ▸ DDL.
+  서버는 소유자가 아니고 SELECT_CATALOG_ROLE이 없으면 `DBMS_METADATA.GET_DDL`을 0.2초 안에 ORA-31603으로 거절한다(DUAL 같은 SYS 개체도).
+  앱은 모든 경우 5초 안에 끝났다. **끝나지 않는 진행은 재현되지 않았다.** `EXECUTE ON DBMS_METADATA`는 PUBLIC에만 있어 시험 계정 하나에서 뺄 수 없어 시험하지 않았다.
+- **취소가 듣지 않은 원인(재현됨).** 첫 `GET_DDL`(세션의 첫 호출은 2–4초)을 취소하면 문장은 ORA-01013으로 바로 멈추지만, `OracleUtils.getDDL`이
+  이 SQLException을 "DBMS_METADATA를 쓸 수 없음"으로 보고 사전 뷰로 DDL을 새로 만들러 갔고(취소 전 확인의 `return ""`도 `DBStructUtils.getTableDDL`이
+  같은 대체 경로로 보냄), 생성기는 취소된 모니터에서 멈추고 만든 데까지 돌려줘 **취소 뒤에 열이 없는 `CREATE TABLE … ( );` 탭이 열렸다.**
+  권한이 없는 계정은 늘 이 대체 경로(ALL_* 사전 뷰 읽기 여러 번)를 타는데, 큰 사전에서는 이 읽기가 오래 걸린다(이 시험 DB는 작아 확인하지 못함).
+- **고친 것.** `OracleUtils.getDDL`은 취소면 `DBInterruptedException`을 던지고 대신 만들지 않는다. `ObjectScripts.runGenerator`(DDL 보기, 스크립팅,
+  SQL 생성, 선택하여 복사, DDL 형식 콤보가 모두 지나는 곳)와 `SourceScripts.generateAlter`(수정, ALTER 대상)는 모니터가 취소됐으면 결과를 버린다(모든 DB).
+- **권한이 없을 때.** 테이블은 업스트림처럼 사전 뷰로 만든 DDL을 보이되, 맨 위에 서버의 거절(`-- DBMS_METADATA: ORA-31603: …`)과
+  "이 계정이 읽을 수 있는 사전 뷰로 만들어 빠질 수 있음" 주석을 단다(저장소·권한 부여·트리거 본문이 빠짐). 대체 경로가 없는 인덱스 등은 기존 오류 창에
+  첫 줄 "권한이 없어 개체 정의를 읽을 수 없습니다."와 서버 오류(코드, 글)를 보인다. `OracleDataSource.discoverErrorType`이 ORA-01031과 ORA-31603을
+  권한 오류(`PERMISSION_DENIED`)로 알린다. 뷰는 전처럼 `ALL_VIEWS` 글로 대신한다(빠지는 것 없음).
+- **메뉴를 흐리게 하지 않은 이유.** 계정이 DDL을 읽을 수 있는지는 소유자인지, SELECT_CATALOG_ROLE·역할 활성 상태, DBMS_METADATA 실행 권한이 함께
+  정한다. 연결할 때 모델이 읽어 둔 것으로는 확실히 알 수 없고(역할은 세션마다 켜고 끌 수 있음), 메뉴를 열 때마다 서버에 묻는 것은 규칙에 어긋난다.
+  잘못 꺼진 명령이 더 나쁘므로 메시지로 알린다([context-menus.md](context-menus.md)).
+- **확인(빌드한 앱, 스크래치 작업 공간, 앱 안 시험 드라이버).** 2048 파티션 테이블의 DDL 보기를 1초에 취소: `GET_DDL`이 ORA-01013으로 멈추고
+  0.2초 뒤 진행 창이 닫힘, 대체 DDL 읽기 없음, 탭이 열리지 않음, 다음 요청은 정상(고치기 전: 취소 뒤 열 없는 `CREATE TABLE` 탭이 열림).
+  PostgreSQL 뷰를 다른 세션이 `ACCESS EXCLUSIVE`로 잠근 채 DDL 보기를 취소: `pg_get_viewdef`가 멈추고 0.2초 뒤 창이 닫힘, 탭 없음.
+  권한이 없는 계정(SEL·INS)의 인덱스는 오류 창 첫 줄이 권한 문구(한국어·영어), 테이블 DDL은 두 줄 머리 주석만 늘고 나머지는 고치기 전과 바이트가 같음,
+  뷰·시퀀스·패키지·프로시저·함수 DDL은 고치기 전과 같음. DDL 문장은 모두 연결의 메타데이터 문맥(Query Manager `META`)에서 돌아 쿼리 창의 세션을 쓰지 않는다.
+- **남긴 것(고치지 않음).**
+  - 메타데이터 연결이 다른 작업의 긴 문장으로 바쁠 때 DDL 요청은 드라이버의 연결 잠금에서 기다린다(문장을 만들기 전이라 문장 블록이 없다). 이때 취소는
+    세션 블록으로 가서 Oracle `connection.cancel()`이 **다른 작업의 문장**을 ORA-01013으로 멈추게 하고(시험: 4–5초 뒤 진행 창이 닫힘), 기본
+    `JDBCDataSource.cancelCurrentExecution`을 쓰는 드라이버에서는 아무 일도 일어나지 않는다. 고치려면 모든 DB의 취소 경로(`AbstractJob`,
+    `JDBCStatementImpl`)를 바꿔야 해 범위를 넘는다.
+  - 소유자가 아닌 계정의 트리거 DDL은 `ALL_SOURCE`에 본문이 없어 `;`만 나오고, 패키지 본문은 말없이 빠진다(전부터 그랬음, 표시 없음).
+  - 이 컨테이너의 ORA-38802([model-fixes.md](model-fixes.md) #30) 원인을 찾았다: 메타데이터 세션의 `OPTIMIZER_FEATURES_ENABLE='10.2.0.5'`
+    (`OracleDataSource.initializeContextState`, "메타데이터 옵티마이저" 설정; JDBC로는 `'10.2.0.1'`로 같은 결과) 아래에서 23.26의 `DBMS_METADATA.GET_DDL`이 `DBMS_EDITIONS_UTILITIES`의
+    ORA-01403 때문에 ORA-38802로 실패한다(같은 세션에서 `'23.1.0'`으로 되돌리면 됨). 그래서 이 서버에서는 소유자·SYSTEM도 사전 뷰 DDL을 받는다. 고치지 않았다.
+
 ## 남긴 것
 
 - Oracle REF CURSOR OUT 값을 결과 표로 보이기(`DBMS_SQL.RETURN_RESULT`), 레코드·컬렉션 값 보이기.
@@ -172,3 +209,5 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
 
 - 2026-11-08 최초 작성: Execute Procedure…(B-S42), Compile과 결과(O11·A6), 쿼리 창 컴파일 오류 줄(O12), Go to Source Code(O13), DDL 형식(O14),
   구조 검증(O20), Altibase TRUNCATE·구체화된 뷰 새로 고침(A5). PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
+- 2026-11-22 "DDL 권한과 취소"(앱 변경 #159): 취소한 DDL 읽기가 대체 DDL을 만들거나 빈 DDL 탭을 열지 않음, 권한이 없을 때의 대체 DDL 표시와 오류 창 첫 줄,
+  메뉴를 흐리게 하지 않은 이유, ORA-38802 원인(고치지 않음).

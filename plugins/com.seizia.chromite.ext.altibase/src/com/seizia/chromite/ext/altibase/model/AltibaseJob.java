@@ -21,6 +21,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
 import com.seizia.chromite.ext.altibase.internal.AltibaseMessages;
 import com.seizia.chromite.ext.generic.model.GenericStructContainer;
 import com.seizia.chromite.model.DBPNamedObject2;
@@ -60,6 +61,10 @@ import java.util.Map;
  *     수와 코드 그대로 보인다.</li>
  *     <li>새 작업(Object Explorer의 New Job)은 이름과 정의({@link AltibaseJobDDL.Definition})로 만들어지고, CREATE 직후 같은 세션에서 자기
  *     카탈로그 행을 읽는다({@link #readCreated}). 읽지 않으면 새 노드의 ID·시각·상태가 비어 있다.</li>
+ *     <li>정의(DDL 보기, SQL 생성 ▸ DDL)는 카탈로그 행으로 만든 CREATE JOB이다({@link AltibaseJobDDL#createJob}, 새 작업과 같은 문장).
+ *     전에는 {@code DBMS_METADATA.GET_DDL('JOB', …)}을 불렀는데, 그 함수가 작업을 모르는 서버(990001)에서는 정의가 ";"만 남았다.
+ *     함수가 있는 서버의 결과와 절이 같다(START, END, INTERVAL, ENABLE, COMMENT, 날짜 구분자와 이름 따옴표만 다름). 서버마다 묻지 않으므로
+ *     질의도 없다. 문장 만들기가 모르는 주기 단위는 문장에서 빼고 앞에 주석 줄로 알린다(틀린 문장을 보이지 않음).</li>
  * </ul>
  *
  * 변경 이력:
@@ -67,14 +72,13 @@ import java.util.Map;
  *   (앱 변경 #139 수정 5, docs/chromite/altibase.md "작업")
  * - 2026-11-21 Chromite: 새 작업(이름·정의, CREATE 뒤 행 읽기), 작업 대화상자가 쓰는 주기 값, 주기 0은 주기 없음, 단위 코드를
  *   {@link AltibaseJobDDL.Unit}에서 읽음(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
+ * - 2026-11-22 Chromite: 정의를 DBMS_METADATA 대신 카탈로그 행으로 만듦(앱 변경 #158, docs/chromite/altibase.md "작업 정의 보기")
  */
 public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject, DBPRefreshableObject, DBPNamedObject2 {
 
     // SYS_JOBS_.JOB_TYPE
     private static final String JOB_TYPE_PROCEDURE = "P"; //$NON-NLS-1$
 
-    private String ddl;
-    
     private int jobId;
     private String jobName;
     private String execQuery;
@@ -284,14 +288,25 @@ public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject
         return comment;
     }
 
+    /**
+     * The CREATE JOB statement of the catalog row (see the class comment). A repeat unit the statement builder does not
+     * know is left out of the statement and named in a comment line before it.
+     */
     @NotNull
     @Override
     public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) throws DBException {
-        if (CommonUtils.isEmpty(ddl)) {
-            ddl = ((AltibaseMetaModel) getDataSource().getMetaModel()).getJobDDL(monitor, this, options) + ";";
+        String statement = AltibaseJobDDL.createJob(this, new AltibaseJobDDL.Definition(
+            CommonUtils.notEmpty(execQuery),
+            startTime == null ? null : startTime.toLocalDateTime(),
+            endTime == null ? null : endTime.toLocalDateTime(),
+            getIntervalSetting(),
+            isEnable,
+            comment)) + ";";
+        if (hasOtherIntervalUnit()) {
+            return NLS.bind(AltibaseMessages.job_ddl_left_out, "INTERVAL " + interval + " " + intervalType)
+                + AltibaseConstants.NEW_LINE + statement;
         }
-        
-        return ddl;
+        return statement;
     }
 
     @Override

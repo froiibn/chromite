@@ -88,6 +88,11 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
 - **생성기 대상 거르기.** 생성기는 객체를 자기 형식으로 바꿔 쓰므로(SELECT 생성기는 테이블), 테이블과 프로시저를 함께 고르면 SWT는 실패할 수 있었다.
   각 생성기에 그 생성기가 받는 객체만 넘긴다(`ObjectScripts.generate`).
 - **DDL 항목.** "SQL 생성 ▸ DDL"은 등록된 `SQLGeneratorDDL`이고 "스크립팅 ▸ CREATE 대상"·"DDL 보기"가 쓰는 생성기와 같다. 메뉴를 따로 만들지 않았다.
+- **취소와 권한 오류(2026-11-22, 앱 변경 #159).** 진행 창의 취소는 실행 중인 메타데이터 문장을 쿼리 창의 중지와 같은 길(작업 취소 → 문장 블록 취소)로
+  멈춘다. 생성기는 취소된 모니터에서 멈추고 만든 데까지 돌려주므로, `ObjectScripts.runGenerator`는 취소된 생성의 결과를 버린다(전에는 취소 뒤에도
+  열이 없는 `CREATE TABLE`이 탭에 열렸다). 서버가 권한 때문에 거절하면(데이터 원본의 오류 종류 `PERMISSION_DENIED`) DDL 보기·스크립팅·SQL 생성·
+  선택하여 복사·수정의 오류 창 첫 줄이 "권한이 없어 개체 정의를 읽을 수 없습니다."가 되고 서버 오류가 뒤따른다. 메뉴는 흐리게 하지 않는다
+  ([swing-routines.md](swing-routines.md) "DDL 권한과 취소").
 
 ## upstream 대비 변경점
 
@@ -275,6 +280,23 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
   `chr t2⏎chr_t1`, Columns 폴더는 `Columns`; 편집기 안에서 고른 글 끌기(옮기기, 선택 안에 놓기는 아무 일 없음)와 실행 취소가 전·후 같음.
 - 연결을 새로 고친 뒤에도 같은 결과. 회귀 테스트는 실행하지 않았다(요청 없음).
 
+## 행을 쓰는 생성기 (2026-11-22, 앱 변경 #157)
+
+- **문제:** "SQL 생성" ▸ INSERT·UPDATE·DELETE·MERGE는 객체 형식(`DBSDataManipulator`)만 보고 나왔다(`com.seizia.chromite.model.sql/plugin.xml`의
+  `objectType`, `SQLGeneratorDescriptor.appliesTo`). 그래서 서버가 행 넣기·바꾸기를 거절하는 Altibase 계열 큐에도 INSERT·UPDATE·MERGE가 나왔다
+  (201248, 200753 / 201854).
+- **고침:** 네 생성기의 `objectType`에 확장점이 이미 가진 조건(`if`, JEXL)을 붙여 모델의 데이터 기능을 묻는다. INSERT `data.insert`, UPDATE `data.update`,
+  DELETE `data.delete`, MERGE는 `data.insert`와 `data.update` 둘 다(`DBSDataManipulator.FEATURE_DATA_*`). 메뉴(`ObjectScripts.getGenerators`)와 실행
+  (`ObjectScripts.generate`)이 같은 `appliesTo`를 쓰므로 두 곳이 함께 바뀐다. 코드에는 제품 이름이 없다: 큐가 데이터 기능에서 넣기·바꾸기를 뺀다
+  ([altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령").
+- **다른 객체:** 데이터 기능을 줄이는 모델은 지금 큐뿐이다(`JDBCTable.getSupportedFeatures`를 다시 정의한 곳은 `AltibaseQueue` 하나). 그래서 다른 모든
+  테이블·뷰·구체화된 뷰의 메뉴는 전과 같다(아래 확인).
+- **남긴 것:** PostgreSQL INSERT ON CONFLICT·UPDATE FROM·DELETE USING, Firebird UPDATE OR INSERT는 그 DB의 테이블 형식만 본다. 데이터 기능을 줄이는 그 DB의
+  모델이 없어 지금은 결과가 같으므로 그 번들은 고치지 않았다(같은 `if`를 붙이면 된다).
+- **확인:** 이 브랜치 빌드, 객체마다 `ObjectScripts.getGenerators`의 결과. 큐(Altibase 7.3, ShardSphere 5.1.9): 전 SELECT INSERT UPDATE DELETE MERGE DDL →
+  후 SELECT DELETE DDL. 테이블(Altibase·ShardSphere·SQL Server·PostgreSQL·MariaDB·Oracle), 뷰(갱신 가능·집계), 구체화된 뷰(Altibase·PostgreSQL·Oracle)는
+  전과 같음(PostgreSQL은 INSERT ON CONFLICT·UPDATE FROM·DELETE USING까지). 연결 새로 고침·다시 연결 뒤에도 같음.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 개체 삭제·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴.
@@ -289,3 +311,5 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-15 PostgreSQL 테이블스페이스 이름 바꾸기(앱 변경 #129, [swing-object-properties.md](swing-object-properties.md) "PostgreSQL 테이블스페이스").
 - 2026-11-15 SQL Server 파일 그룹·파일: 유지 관리 명령 기본 파일 그룹으로 설정·읽기 전용·읽기 쓰기·파일 설정, 파일 그룹·파일의 삭제·이름 바꾸기(앱 변경 #128, [mssql-storage.md](mssql-storage.md)).
 - 2026-11-16 메뉴 항목은 노드의 종류에 해당할 때만 보이고 지금 할 수 없으면 꺼짐: 이름 바꾸기·삭제의 조건을 종류(`appliesRename`·`appliesDelete`)와 지금 상태(`canRename`·`canDelete`)로 나눔, 이름 복사·SQL 생성은 해당할 때만 보임(앱 변경 #137, [context-menus.md](context-menus.md)).
+- 2026-11-22 DDL 명령의 취소와 권한 오류: 취소한 생성은 결과를 열지 않음, 권한 오류의 첫 줄(앱 변경 #159, [swing-routines.md](swing-routines.md) "DDL 권한과 취소").
+- 2026-11-22 행을 쓰는 생성기(INSERT·UPDATE·DELETE·MERGE)가 객체의 데이터 기능을 물음: 큐에 서버가 거절하는 문장이 나오지 않음(앱 변경 #157), 위 "행을 쓰는 생성기".

@@ -92,6 +92,8 @@ import java.util.regex.Pattern;
  *   setting in reading, syncing and reconnecting, and the setting is not changed (docs/chromite/oracle-sqlplus-commands.md).
  * - 2026-11-15 Chromite: the tablespace list also reads the default and active undo tablespaces ({@link OracleStorageRoles})
  *   for the storage commands of Object Explorer (app change #127, docs/chromite/oracle-storage.md).
+ * - 2026-11-22 Chromite: {@link #discoverErrorType} reports ORA-01031 and DBMS_METADATA's ORA-31603 as a missing privilege,
+ *   so the DDL commands' error window says so first (app change #159, docs/chromite/swing-routines.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -465,6 +467,12 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
         }
         if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == OracleConstants.EC_FEATURE_NOT_SUPPORTED)) {
             return ErrorType.FEATURE_UNSUPPORTED;
+        }
+        // ORA-31603 says "not found" for an object the account sees but may not read with DBMS_METADATA: the DDL
+        // commands only ask for objects the model listed, so for them it is the missing privilege
+        if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == OracleConstants.EC_INSUFFICIENT_PRIVILEGES
+            || exception.getErrorCode() == OracleConstants.EC_METADATA_OBJECT_NOT_FOUND)) {
+            return ErrorType.PERMISSION_DENIED;
         }
         return super.discoverErrorType(error);
     }

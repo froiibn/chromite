@@ -38,6 +38,9 @@
 - 하위 메뉴(Tasks, Script as, Generate SQL, Recent Scripts, New …)는 안의 항목이 하나도 해당하지 않으면 숨고, 해당하지만 지금 할 수 있는 것이 없으면 꺼진다.
 - 구분선은 맨 앞·맨 뒤·연달아 둘이 되지 않는다. 묶음이 모두 숨으면 그 구분선도 사라진다.
 - 남은 항목의 순서는 그대로다.
+- 계정의 권한은 "지금 할 수 있는가"에 넣지 않는다(앱 변경 #159). 메뉴를 열 때마다 서버에 묻지 않고, 연결 때 읽어 둔 것만으로는 객체마다 읽을 수 있는지
+  확실히 알 수 없기 때문이다(Oracle DDL은 소유자, 세션의 역할, SELECT_CATALOG_ROLE이 함께 정함). 그런 명령은 켜 둔 채로 실행하고, 서버가 거절하면
+  오류 창의 첫 줄로 알린다([swing-routines.md](swing-routines.md) "DDL 권한과 취소").
 - 도구 막대 단추와 두 번 클릭은 전처럼 켜짐만 본다. 숨은 항목은 늘 꺼져 있다(해당하지 않으면 켜지지 않음). 예외는 아래 연결·서버·프로젝트 명령으로,
   메뉴에서만 숨고 켜짐은 전과 같다. 트리의 키(F2, Delete, F7, F5,
   Ctrl+Shift+C …)는 전처럼 명령을 부르고 명령이 스스로 조건을 확인하므로, 해당하지 않는 노드에서는 전처럼 아무 일도 하지 않는다(코드가 바뀌지 않음).
@@ -89,12 +92,12 @@
 | Select Top 1000 Rows, Script as ▸ SELECT To | 1263–1265 `canSelect` | 같음 | – |
 | Script as ▸ CREATE To, View DDL | 1264, 1267 `canScriptCreate` | 같음 | – |
 | Script as | 1266 | 하위 항목에서 | 하위 항목에서 |
-| Generate SQL | `ExplorerObjectCommands.update` 생성기 수 | 생성기가 있음 | – |
+| Generate SQL | `ExplorerObjectCommands.update` 생성기 수 | 생성기가 있음. 행을 쓰는 생성기(INSERT·UPDATE·DELETE·MERGE)는 객체의 데이터 기능이 그 행을 받을 때만(2026-11-22, [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "행을 쓰는 생성기") | – |
 | View Diagram | 1268 `canShow` | 같음 | – |
 | Object Details | 1326 | DB 노드이고 객체이거나 자식이 있는 폴더 | 연결 노드는 연결됨 |
 | Tasks ▸ Back Up…/Restore… | 1272–1273 `canBackUp` | 같음 | – |
 | Tasks ▸ Run Script with Native Client… | 1274 `canRunScript` | 같음, 연결 노드는 `BackupRestoreCommands.appliesRunScript`(PostgreSQL·MySQL/MariaDB의 네이티브 클라이언트, Oracle; 닫혀 있으면 알 수 없어 보임) | `canRunScript`(연결 노드는 DB 하나를 읽었음) |
-| Tasks ▸ Import/Export/Copy Tables… | 1270–1275 | 그 객체에 해당, 연결 노드는 `DataTransferObjects.appliesToConnection`(맨 위가 스키마나 데이터베이스; 닫혀 있으면 보임) | 연결 노드는 연결했고 읽은 DB가 하나 |
+| Tasks ▸ Import/Export/Copy Tables… | 1270–1275 | 그 객체에 해당(Import Data…는 행을 받는 객체, `DataTransferObjects.acceptsRows`, 2026-11-22), 연결 노드는 `DataTransferObjects.appliesToConnection`(맨 위가 스키마나 데이터베이스; 닫혀 있으면 보임) | 연결 노드는 연결했고 읽은 DB가 하나 |
 | Tasks | 1277 | 하위 항목에서 | 하위 항목에서 |
 | Maintenance… | 1279 `canMaintain` | 같음 | – |
 | 유지 관리 명령(TRUNCATE, TTL, 트리거·테이블스페이스·파일 그룹, Altibase 계열 작업 사용·사용 안 함·설정과 큐 압축, 서버 확장 객체의 사용·사용 안 함·실행 설정 …) | `ObjectMaintenanceCommands.update`(이미 숨김) | 그대로(`supports`) | 그대로(`changesState`, 작업·확장 객체는 모델이 읽은 사용 여부) |
@@ -256,7 +259,7 @@ p2-*.tsv), `D:\Tools\_scratch\explorer-menu-applicable\sheets\`(menus-v2-before-
 | Copy, Copy with Headers | G:516·517 `hasRows` | 늘 | 행 있음 |
 | Copy As ▸ | V:1090 | 늘 | – |
 | Generate SQL ▸ | S:178 연결 | 열이 있음(CREATE TABLE) | 연결됨(도구 설명 그대로) |
-| Generate SQL ▸ 행 문장(SELECT…, INSERT, UPDATE, DELETE, MERGE, 중복 키 INSERT ▸) | S:188 `rowsBlocker`, S:258 `getBlocker` | 테이블 하나 + 키가 필요한 문장은 고유 키 | 행을 고름(도구 설명 그대로) |
+| Generate SQL ▸ 행 문장(SELECT…, INSERT, UPDATE, DELETE, MERGE, 중복 키 INSERT ▸) | S:188 `rowsBlocker`, S:258 `getBlocker` | 테이블 하나 + 키가 필요한 문장은 고유 키 + 행을 쓰는 문장은 그 테이블이 그 행을 받음(`acceptsWrite`, 2026-11-22) | 행을 고름(도구 설명 그대로) |
 | Generate SQL ▸ CREATE TABLE | S:227 `bindings.length` | 열이 있음 | – |
 | Export Data… | G:1208 `canExportQuery` | SELECT 하나(`appliesExportQuery`) | 쿼리의 데이터 원본 있음(도구 설명: 연결 안 됨) |
 | Export to CSV… / Excel (XLSX)… | 늘 켜짐 | 늘 | – |
@@ -456,3 +459,6 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-21 유지 관리 명령 목록에 Altibase 계열 작업·큐 명령, 큐의 열·키·인덱스는 꺼짐·디자이너 항목 숨김(앱 변경 #154, [altibase.md](altibase.md))
 - 2026-11-22 ShardSphere 스트림 객체의 사용·사용 안 함·실행 설정·삭제와 스트림 폴더의 "New &lt;종류&gt;…" 틀 항목(앱 변경 #156, [shardsphere.md](shardsphere.md) "스트림 명령",
   [altibase.md](altibase.md) "확장 객체의 명령 자리")
+- 2026-11-22 권한은 켜짐 조건에 넣지 않음: DDL 명령은 켜 둔 채 서버의 거절을 오류 창 첫 줄로 알림(앱 변경 #159, [swing-routines.md](swing-routines.md) "DDL 권한과 취소")
+- 2026-11-22 Import Data…, Generate SQL의 행을 쓰는 항목(탐색기·결과 그리드)이 객체의 데이터 기능을 물음: 큐에는 숨음(앱 변경 #157, [altibase.md](altibase.md)
+  "큐에 맞지 않는 데이터 명령")
