@@ -427,7 +427,7 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
 | `ext.postgresql` | 모두 | `@…-use-prepared-statements-db@` | Performance(새 묶음) | `PostgreDataSource.getInternalConnectionProperties`(서버 종류가 prepared statement를 끄는 경우) |
 | `ext.mssql` | Azure SQL Server, Babelfish | `show-all-databases-azure` + SQL Server 드라이버의 줄 복사(`copyFrom="microsoft"`: 모든 스키마 표시, 서버 인증서 신뢰) | Advanced | `SQLServerDataSource`의 DB 목록 쿼리(값이 없으면 이 두 드라이버는 현재 DB만) |
 | `ext.mssql` | Generic 공급자(Sybase·예전 jTDS) 모두 | `@…-encrypt-password@` | Advanced | `SQLServerGenericDataSource.getInternalConnectionProperties` |
-| `ext.oracle` | 모두 | `oracle-meta-optimizer-version`(SWT 목록 콤보), `@…-meta-read-column-comments@`, `oracle.meta-search-in-sequences` | Performance | `OracleDataSource`(메타데이터 최적화를 켰을 때), `OracleSchema` |
+| `ext.oracle` | 모두 | `oracle-meta-optimizer-version`(SWT 목록 콤보), `@…-meta-read-column-comments@`, `oracle.meta-search-in-sequences` | Performance | `OracleDataSource`(메타데이터 최적화를 켰을 때. 비우면 10.2~21c는 10.2.0.5, 23ai 이상은 11.2.0.4: 2026-11-22 앱 변경 #162, [model-fixes.md](model-fixes.md) #30), `OracleSchema` |
 
 - 서버 인증서 신뢰는 주 양식 칸이 맡으므로 Azure·Babelfish 표에서도 빠진다(`ConnectionDriverFields#getHandledProviderProperties`).
 - 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않는다(HANA).
@@ -841,3 +841,5 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
 - 2026-11-16 2차(같은 브랜치, 사용자 "개체탐색기도 당연히 수정해야 한다"): 연결이 가리키는 서버의 출처를 모델 공급자의 `getConnectionAddress` 하나로,
   Properties 창 Address도 TNS 연결은 별칭. Swing의 `ConnectionDriverFields.isGenericAddressUsed(DBPDataSourceContainer)`와 에이전트 번들의 `ext.oracle`
   의존을 지움, 에이전트는 `address` 한 칸. 위 "Properties 창과 출처 하나로". 회귀 테스트는 실행하지 않았다.
+- 2026-11-22 Oracle "메타데이터 최적화 버전"이 비었을 때 23ai 이상은 11.2.0.4(앱 변경 #162, `chromite/oracle-getddl-23ai`): 설명 글(영어·한국어)과 위 "6. 공급자 속성 선언" 표.
+  이유와 사실 표는 [model-fixes.md](model-fixes.md) #30.

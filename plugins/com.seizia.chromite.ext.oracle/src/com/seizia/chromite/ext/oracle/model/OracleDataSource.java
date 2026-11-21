@@ -94,6 +94,10 @@ import java.util.regex.Pattern;
  *   for the storage commands of Object Explorer (app change #127, docs/chromite/oracle-storage.md).
  * - 2026-11-22 Chromite: {@link #discoverErrorType} reports ORA-01031 and DBMS_METADATA's ORA-31603 as a missing privilege,
  *   so the DDL commands' error window says so first (app change #159, docs/chromite/swing-routines.md).
+ * - 2026-11-22 Chromite: on Oracle 23ai and later the metadata session's default optimizer version is 11.2.0.4 instead
+ *   of 10.2.0.5. There the server's DBMS_METADATA fails with ORA-38802 under any value up to 11.2.0.2, so every table
+ *   DDL was the dictionary-view fallback and an index DDL an error; 11.2.0.4 keeps the dictionary queries as fast as
+ *   10.2.0.5 did (app change #162, docs/chromite/model-fixes.md #30). A version set in the connection is applied as is.
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -412,7 +416,11 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
 
                         String optimizerVersion = connectionInfo.getProviderProperty(OracleConstants.PROP_USE_META_OPTIMIZER_VERSION);
                         if (CommonUtils.isEmpty(optimizerVersion) && isServerVersionAtLeast(10, 2)) {
-                            optimizerVersion = OracleConstants.OPTIMIZER_VERSION_DEFAULT;
+                            // From 23ai the server's DBMS_METADATA fails with ORA-38802 under 11.2.0.2 or older
+                            // (tables with indexes or constraints, indexes, materialized views)
+                            optimizerVersion = isServerVersionAtLeast(OracleConstants.OPTIMIZER_VERSION_DEFAULT_23_SERVER, 0)
+                                ? OracleConstants.OPTIMIZER_VERSION_DEFAULT_23
+                                : OracleConstants.OPTIMIZER_VERSION_DEFAULT;
                         }
                         if (!CommonUtils.isEmpty(optimizerVersion)) {
                             paramsMap.put("OPTIMIZER_FEATURES_ENABLE", "'" + optimizerVersion + "'");

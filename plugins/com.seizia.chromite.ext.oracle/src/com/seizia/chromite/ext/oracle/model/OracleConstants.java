@@ -34,6 +34,8 @@ import com.seizia.chromite.model.struct.rdb.DBSIndexType;
  * 변경 이력:
  * - 2026-11-22 권한 오류 코드 {@link #EC_INSUFFICIENT_PRIVILEGES}, {@link #EC_METADATA_OBJECT_NOT_FOUND}
  *   (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
+ * - 2026-11-22 {@link #OPTIMIZER_VERSION_DEFAULT_23}: 23ai 이상에서 메타데이터 세션의 기본 옵티마이저 버전(10.2.0.5에서는 서버의
+ *   DBMS_METADATA가 ORA-38802, 앱 변경 #162, docs/chromite/model-fixes.md #30)
  */
 public class OracleConstants {
 
@@ -52,6 +54,10 @@ public class OracleConstants {
     public static final String OPTIMIZER_VERSION_191 = "19.1.0";
     public static final String OPTIMIZER_VERSION_231 = "23.1.0";
     public static final String OPTIMIZER_VERSION_DEFAULT = OPTIMIZER_VERSION_102;
+    // From this server major version DBMS_METADATA fails with ORA-38802 under OPTIMIZER_VERSION_DEFAULT (any value up to
+    // 11.2.0.2), so the default there is the last 11.2 value: as fast as 10.2.0.5 for the dictionary queries
+    public static final int OPTIMIZER_VERSION_DEFAULT_23_SERVER = 23;
+    public static final String OPTIMIZER_VERSION_DEFAULT_23 = "11.2.0.4";
     public static final String[] OPTIMIZER_VERSIONS = {
         OPTIMIZER_VERSION_102,
         OPTIMIZER_VERSION_121,
