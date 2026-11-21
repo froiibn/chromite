@@ -722,7 +722,7 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 | START 없는 `CREATE JOB` | 됨(START_TIME null) | 다름(Altibase 200705) |
 | `INTERVAL n SECOND` | 됨(코드 SS) | 다름(Altibase 200705) |
 | `ALTER JOB … SET START NULL` | 됨 | 다름(Altibase 200820) |
-| `DBMS_METADATA.GET_DDL('JOB', …)` | 990001(작업의 View DDL이 실패함, 고치지 않음) | 다름(Altibase는 CREATE JOB 글) |
+| `DBMS_METADATA.GET_DDL('JOB', …)` | 990001(작업의 View DDL이 `;`만 보였다. 2026-11-22 고침: 정의를 카탈로그로, [altibase.md](altibase.md) "작업 정의 보기") | 다름(Altibase는 CREATE JOB 글) |
 | 그 밖의 작업 문법(절 하나씩, END NULL, COMMENT, ENABLE/DISABLE, 없는 작업 201143) | Altibase와 같음 | 같음 |
 | 작업 권한 | `SYS_PRIVILEGES_`에 CREATE / ALTER / DROP ANY JOB(266, 268, 267). 벤더 서버에는 사용자를 만들지 않아 권한 없는 사용자는 시험하지 않음 | 같은 권한 목록 |
 | 큐(CREATE 모양들, COMPACT, DROP, CASCADE 200705, DROP TABLE 201252, INSERT 201248, UPDATE 201854) | 위와 같음 | UPDATE의 코드만 다름(Altibase 200753) |
@@ -733,7 +733,8 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - 미확인: 매뉴얼의 `ALTER JOB` 예에는 여러 절을 한 문장에 쓴 것(`SET START … END … INTERVAL … EXEC …`)이 있는데 서버는 200705로 거절한다. 절 하나씩이 맞는지.
 - 미확인: 매뉴얼은 작업 문장을 "SYS만"이라고 하지만 서버에 CREATE / ALTER / DROP ANY JOB 권한이 있다. 일반 사용자에게 그 권한을 주는 것이 지원되는지.
 - 미확인: `INTERVAL 0`(또는 INTERVAL 없이 만든 작업)을 스케줄러가 한 번만 실행하는지, START 없는 작업은 언제 실행되는지.
-- 미확인: 작업의 `DBMS_METADATA.GET_DDL('JOB', …)`이 990001로 실패하는 것이 의도인지.
+- 미확인: `DBMS_METADATA.GET_DDL`이 `TABLE` 말고는 모든 객체 유형(작업, 인덱스, 큐, 뷰, 시노님, 시퀀스, 트리거, 프로시저, 타입세트, 패키지, 디렉터리,
+  라이브러리, 데이터베이스 링크)을 990001로 거절하는 것이 의도인지(2026-11-22 확인), 앞으로 다른 유형을 줄 계획이 있는지.
 - 미확인: 매뉴얼의 `ALTER JOB … SET`에 `ENABLE`, `DISABLE`, `COMMENT`, `END NULL`이 없지만 서버는 받는다. 지원되는 문법인지.
 - 미확인: 세션 종료 예가 데이터베이스 이름 없는 `ALTER DATABASE SESSION CLOSE n`인데 서버는 이름이 있는 모양만 받는다(매뉴얼 오류인지).
 
@@ -1085,6 +1086,21 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
 - 미확인: 연속 테이블의 TTL에 `SECOND`를 받지 않는 이유(201848), `ALTER … SET` 절을 한 문장에 하나만 받는 것이 문법인지.
 - 미확인: 연속 스트림 테이블·연속 쿼리의 `EXEC GROUP`·`EXEC ORDER`가 처리에 쓰이는 방식(처리 스레드 0인 서버라 확인하지 못함).
 
+## 표시 결함 세 가지의 시험 (2026-11-22, 앱 변경 #158)
+
+작업 정의([altibase.md](altibase.md) "작업 정의 보기"), 테이블스페이스의 폴더, 자동 완성의 스트림 객체를 확인하려고 일반 서버의 로그인 스키마에
+시험용 `CHR_DSP_*`만 만들고 지웠다(사용자 허락 2026-11-17). 서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 SELECT만.
+
+- **만든 것(앱 밖 JDBC):** 일반 테이블 1(기본 키), 인덱스 1, 큐 1, 뷰 1, 시노님 1, 시퀀스 1, 테이블 트리거 1, 프로시저 1(`NULL` 본문), 타입세트 1, 패키지 1(명세·본문),
+  작업 11(J1–J6, 다시 만들기 R1–R5; ENABLE 둘), 스트림 테이블 1, 연속 테이블 2(집계 있음·없음), 연속 스트림 테이블 1, 연속 쿼리 1, 지어낸 행 2.
+  조회용 `dbms_metadata.get_ddl` EXEC 19번. 문장 목록은 저장소 밖 `probe\writes-vendor.log`.
+- **지운 순서:** ENABLE이던 작업 둘 `SET DISABLE` → 작업 → 연속 쿼리 → 연속 테이블 → 연속 스트림 테이블 → 스트림 테이블 → 트리거·시노님·뷰·시퀀스·큐·인덱스 →
+  테이블 → 패키지·타입세트·프로시저. 모두 성공.
+- **확인:** `SYS_TABLES_`·`SYS_JOBS_`·`SYS_PROCEDURES_`·`SYS_PACKAGES_`·`SYS_INDICES_`·`SYS_TRIGGERS_`·`SYS_SYNONYMS_`·`SYS_STREAM_FUNCTIONS_`에 `CHR_DSP%` 0행,
+  `SYS_CONTINUOUS_TABLES_` 0행. 행 수(전 → 후): `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_STREAM_FUNCTIONS_` 0 → 0, `SYS_TTL_` 0 → 0, `V$STREAM_FUNCTION` 0 → 0,
+  `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41, `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_JOBS_` 0 → 0, `SYS_PROCEDURES_` 47 → 47. `SYS_TABLES_` 164 → 167,
+  `SYS_INDICES_` 183 → 185, `SYS_COLUMNS_` 1454 → 1460은 같은 시간에 다른 작업이 만든 그 작업의 시험용 개체(`CHR_QDC_*`)이고, 그것을 빼면 164·183·1454로 같다.
+
 ## 아직 없는 것
 
 관리 보고서(작업 8),
@@ -1147,3 +1163,5 @@ CREATE 대상 ▸ 새 쿼리 편집기 창·클립보드, SQL 생성 ▸ DDL, DD
   "확장 객체의 명령 자리"). 위 "스트림 명령".
 - 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): 테이블 디자이너의 "테이블" 탭에 TTL 칸, CREATE TABLE 끝의 절
   (`ShardTableTtl.getCreateClause`, 메타 노드 제외). 일반 서버에 시험용 표 `CHR_TTLC_*`를 만들어 문장 모양을 확인하고 지움. 위 "TTL 관리" ▸ "새 테이블의 TTL".
+- 2026-11-22 작업의 DDL 보기가 `;`만 보이던 것을 계열 공통 코드에서 고침(정의를 카탈로그로), `GET_DDL`이 `TABLE`만 주는 사실과 벤더 문의, 시험용 `CHR_DSP_*`
+  (앱 변경 #158, `chromite/altibase-family-display-fixes`), 위 "작업·큐·세션 종료", "표시 결함 세 가지의 시험".

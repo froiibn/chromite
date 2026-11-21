@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-17 최초 작성: 서버 정보 항목 이름 (앱 변경 #139 작업 8, docs/chromite/altibase.md "개요 차트와 서버 정보")
  * - 2026-11-17 작업의 주기와 종류 값(앱 변경 #139 수정 5, docs/chromite/altibase.md "작업")
+ * - 2026-11-22 작업 정의에서 빠진 값을 알리는 주석 줄(docs/chromite/altibase.md "작업 정의 보기")
  */
 public class AltibaseMessages extends NLS {
 
@@ -59,6 +60,8 @@ public class AltibaseMessages extends NLS {
     public static String job_interval_hour;
     public static String job_interval_minute;
     public static String job_type_procedure;
+    // A comment line before a job's definition naming a catalog value the statement leaves out ({0}: the clause)
+    public static String job_ddl_left_out;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, AltibaseMessages.class);

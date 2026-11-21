@@ -1107,7 +1107,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | 절 둘 이상 한 문장(`SET START s END e`, 쉼표, `SET ENABLE COMMENT 'x'`, 매뉴얼의 여러 절 예) | 200705 | 200705 |
 | 없는 작업 `ALTER JOB` / `DROP JOB` | 201143 | 201143 |
 | `DROP JOB j`(켜진 작업 포함) | 됨 | 됨 |
-| `DBMS_METADATA.GET_DDL('JOB', j)` | 됨(`CREATE JOB "j" EXEC … START TO_DATE(…) END … INTERVAL 2 HOUR`) | **990001**(기존 "View DDL"이 실패함, 이 변경에서 고치지 않음) |
+| `DBMS_METADATA.GET_DDL('JOB', j)` | 됨(`CREATE JOB "j" EXEC … START TO_DATE(…) END … INTERVAL 2 HOUR`) | **990001**(기존 "View DDL"이 실패함. 2026-11-22 고침: 아래 "작업 정의 보기") |
 | 권한 없는 사용자(`CHR_JQ_U`, CREATE SESSION만) | 201137 "must have CREATE_ANY_JOB / ALTER_ANY_JOB / DROP_ANY_JOB privilege(s)". 세 권한을 주면 만들기·바꾸기·삭제가 됨. `SYS_JOBS_`는 권한 없이 읽힘 | 사용자를 만들지 않음(지시). `SYS_PRIVILEGES_`에 같은 세 권한(266, 268, 267)이 있다 |
 
 - 스케줄러는 두 시험 서버에서 꺼져 있다(위 "작업"). 그래서 켠 작업이 실제로 도는지, `INTERVAL 0`인 작업을 스케줄러가 어떻게 다루는지는 확인할 수 없었다.
@@ -1130,6 +1130,72 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 ### 확인
 
 아래 "작업·큐·세션 종료 확인 (2026-11-21)".
+
+## 작업 정의 보기 (2026-11-22, 앱 변경 #158 1항)
+
+### 증상과 원인
+
+- ShardSphere 일반 서버에서 Global metadata ▸ 작업의 DDL 보기(SQL 생성 ▸ DDL도 같은 생성기)가 `;`만 보였다(전 캡처). 작업의 정의는
+  `AltibaseMetaModel.getJobDDL` → `getDDLFromDbmsMetadata(…, "JOB")`이 `exec ? := dbms_metadata.get_ddl('JOB', 이름, NULL)`로 읽었는데, 그 서버는
+  990001로 거절하고, `getDDLFromDbmsMetadata`는 예외를 삼켜 빈 글을 돌려주며 `AltibaseJob`이 `;`를 붙였다.
+- 서버의 사실(시험용 `CHR_DSP_*`, 앱 밖 JDBC, 2026-11-22): ShardSphere 5.1.9의 `GET_DDL`은 `TABLE`만 준다. `INDEX`, `QUEUE`, `VIEW`, `SYNONYM`,
+  `SEQUENCE`, `TRIGGER`, `PROCEDURE`, `TYPESET`, `PACKAGE_SPEC`, `PACKAGE_BODY`, `JOB`, `DIRECTORY`, `LIBRARY`, `DB_LINK`는 있는 객체도 없는 객체도 990001,
+  없는 `TABLE`은 990000이다. Altibase 7.3은 모두 준다(`JOB`은 소유자 NULL일 때만: 소유자를 주면 990010, 없는 작업은 990013).
+- Altibase 7.3의 작업 결과: `CREATE JOB "j" EXEC p START TO_DATE('2031/01/01 00:00:00', 'YYYY/MM/DD HH24:MI:SS') [END …] [INTERVAL n 단위] [ENABLE]
+  [COMMENT '…']`(절마다 줄바꿈, 주기 0이면 INTERVAL 없음).
+
+### 고친 것
+
+작업의 정의를 서버에 묻지 않고 카탈로그 행(모델이 이미 가진 `SYS_JOBS_` 값)으로 새 작업과 같은 문장 만들기(`AltibaseJobDDL.createJob`)에 넘긴다
+(`AltibaseJob.getObjectDefinitionText`). 제품 이름 검사는 없다. `AltibaseMetaModel.getJobDDL`은 쓰는 곳이 없어 지웠다.
+
+- **늘 카탈로그(고른 것).** 두 서버에서 같은 문장이고 질의가 없다(전에는 Altibase에서 패키지 확인 SELECT와 EXEC 하나). Altibase의 `GET_DDL`과
+  절이 같다: START, END, INTERVAL, ENABLE, COMMENT. 다른 것은 날짜 구분자(`-` / `/`), 이름의 따옴표(필요할 때만 / 늘), 한 줄 / 절마다 줄바꿈이다.
+  대안(고르지 않음): `GET_DDL`이 빈 글을 줄 때만 카탈로그로 — Altibase의 글은 그대로지만 길이 둘이고 서버마다 EXEC가 남는다.
+- **START가 없는 작업**(START 없이 만든 작업, ShardSphere만 받음): START 없이 쓴다. 그 서버에서 같은 행을 다시 만든다(아래 확인).
+  그래서 `AltibaseJobDDL.Definition`의 시작이 null일 수 있게 했다(작업 대화상자는 늘 시작을 준다).
+- **문장 만들기가 모르는 주기 단위**(ShardSphere의 초 `SS`): 문장에서 INTERVAL을 빼고 앞에 주석 줄 `-- Not in this statement: INTERVAL 10 SS`
+  (한국어 `-- 이 문장에 없는 값: …`, `AltibaseMessages.job_ddl_left_out`)로 알린다. 틀린 문장(다른 단위)을 보이지 않는다. 대안(고르지 않음):
+  `SS` → `SECOND`로 쓰기 — 두 서버 사실과 맞지만(`INTERVAL n SECOND`가 `SS`로 저장) 대화상자 단위 목록 밖의 낱말을 공용 코드에 하나 더 둔다.
+- 상태·실행 횟수·마지막 실행 같은 실행 값은 정의가 아니라 문장에 없다(`GET_DDL`도 없음).
+
+### 같은 원인의 다른 종류 (ShardSphere 일반 서버, 이 브랜치 빌드의 DDL 보기)
+
+| 종류 | 앱이 보이는 것 | 처리 |
+|---|---|---|
+| 테이블 | 서버의 `CREATE TABLE`(기본 키·인덱스 문장 포함) 뒤에 사용자 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;` | 보고만: 인덱스 줄은 아래 인덱스와 같은 원인 |
+| 인덱스 | `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`(문장 없음) | 보고만: 카탈로그로 CREATE INDEX를 만들 문장 만들기가 모델에 없다(같은 고침이 아님) |
+| 큐 | `-- [WARNING] Without DBMS_METADATA …` + `-- Can't generate DDL: table editor not found for …AltibaseQueue`(문장 없음) | 보고만: 큐는 다른 작업이 고치는 중(`AltibaseQueue`). 카탈로그로 쓰려면 `CREATE QUEUE q (n)`의 크기·`FIXED`/`VARIABLE`·`MAXROWS`를 읽어야 한다 |
+| 뷰, 프로시저, 타입세트, 패키지(명세·본문), 테이블 트리거, 시노님 | `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.` 다음에 카탈로그에서 읽은 바른 문장 | 전부터 카탈로그로 대체(문장은 맞음). 경고 줄은 남김 |
+| 시퀀스 | 앱이 만든 `CREATE SEQUENCE …`(전부터 `GET_DDL`을 쓰지 않음) | 해당 없음 |
+| 데이터베이스 링크, 라이브러리, 디렉터리 | 서버에 객체가 없음(`SYS_DATABASE_LINKS_`·`SYS_LIBRARIES_`·`SYS_DIRECTORIES_` 0행) | 보고만: 있으면 작업과 같이 `;`만 보일 것(`GET_DDL` 990001, 대체 없음). 확인하지 못함 |
+| 복제(GEMINI) | 복제 카탈로그가 객체 유형을 주지 않아 부르지 않음(전부터) | 해당 없음 |
+
+- 읽기 전용 연결에서는 ShardSphere가 `GET_DDL` EXEC 자체를 거절한다(266307, [shardsphere.md](shardsphere.md) "스트림 탐색기"). 작업은 이제 EXEC가 없어 그
+  연결에서도 정의가 보인다.
+
+### 확인 (2026-11-22, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %; 영어 150 %, 어두운 테마 100 % 한 번씩)
+
+연결 `SS`(일반 서버), `SHARD`(메타 노드, 읽기 전용), `ALTI`(Altibase 7.3, 터널, 읽기 전용)를 함께 열었다. 값은 환경 변수 참조, 암호 저장 끔.
+"전"은 같은 빌드에 기준(`8fce65770d`) 소스의 바뀐 클래스·문구를 다시 넣은 `ext.altibase` jar다.
+
+| 작업(두 서버에 같게 만듦) | 전: ShardSphere / Altibase | 후: 두 서버 |
+|---|---|---|
+| J1 START만 | `;` / `GET_DDL` 글 | `CREATE JOB CHR_DSP_J1 EXEC CHR_DSP_P START TO_DATE('2031-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS');` |
+| J2 END·2 HOUR·ENABLE·주석 | `;` / 같음 | `… END TO_DATE(…) INTERVAL 2 HOUR ENABLE COMMENT 'dsp two';` |
+| J3 30 MINUTE·주석 `it's` | `;` / 같음 | `… INTERVAL 30 MINUTE COMMENT 'it''s';` |
+| `"CHR_DSP_j4"` 1 MONTH | `;` / 같음 | `CREATE JOB "CHR_DSP_j4" … INTERVAL 1 MONTH;` |
+| J5 START 없음(ShardSphere만) | `;` | `CREATE JOB CHR_DSP_J5 EXEC CHR_DSP_P;` |
+| J6 10 SECOND(ShardSphere만) | `;` | 주석 줄 `-- 이 문장에 없는 값: INTERVAL 10 SS` + START까지의 문장 |
+
+- **다시 만들기:** 후의 글을 이름만 바꿔(`CHR_DSP_R1`–`R5`, `"CHR_DSP_r4"`) 두 서버에서 실행하면 `SYS_JOBS_` 행이 원본과 같다(EXEC_QUERY, START, END,
+  INTERVAL, 단위, STATE, IS_ENABLE, COMMENT; ShardSphere의 R5는 START null까지 같음).
+- 연결 새로 고침 뒤, 다시 연결 뒤에도 같은 글. 작업 DDL에 보낸 문장 없음(전: 작업마다 `SYS_PACKAGES_` SELECT 하나와 쿼리 관리자에 남지 않는 EXEC 하나).
+  쿼리 관리자 감사는 세 연결 모두 SELECT만.
+- 캡처(저장소 밖, 계정은 가림): `D:\Tools\_scratch\altibase-family-display-fixes\sheets\` — `before-ko-1-job-ddl-ss`, `after-ko-1-job-ddl-ss`,
+  `after-ko-2-job-ddl-ss-seconds`, `after-ko-4-job-ddl-ss-nostart`, `after-en-1-…`, `after-dark-en-1-…`.
+- 시험용 작업·프로시저는 두 서버에서 끄고(ENABLE이던 것) 지웠다([shardsphere.md](shardsphere.md) "표시 결함 세 가지의 시험").
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 작업의 DDL 보기·SQL 생성 ▸ DDL·스크립트 복사, 새 작업 대화상자의 미리 보기(같은 문장 만들기).
 
 ## 큐 (2026-11-21, 앱 변경 #154)
 
@@ -1302,3 +1368,5 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
   앱 변경 #156, 첫 사용자는 ShardSphere 스트림 명령), 위 "확장 객체의 명령 자리".
 - 2026-11-21 새 테이블의 TTL(앱 변경 #155, `chromite/shardsphere-ttl-create-table`): `AltibaseTableTtl`의 새 테이블 메서드, `AltibaseTable.newTableTtl`,
   `AltibaseTableManager.appendTableModifiers`가 CREATE TABLE 끝에 절. 위 "테이블 TTL 자리" ▸ "새 테이블".
+- 2026-11-22 작업의 정의를 `DBMS_METADATA.GET_DDL` 대신 카탈로그 행으로(`AltibaseJobDDL.createJob`): ShardSphere에서 `;`만 보이던 DDL 보기, START 없는
+  작업, 모르는 주기 단위는 주석 줄. `GET_DDL`이 실패하는 다른 종류 표(앱 변경 #158 1항, `chromite/altibase-family-display-fixes`), 위 "작업 정의 보기".
