@@ -116,6 +116,7 @@ import java.util.WeakHashMap;
  * - 2026-11-17 {@link #getExtensionProperties}: 감지된 확장이 이 연결의 객체에 더하는 읽기 전용 속성(속성 보기). 작업 목록은 연결의
  *   {@code SYS_JOBS_}에 소유자·종류·실패 횟수 열이 있을 때만 그 열과 소유자 이름을 읽는다({@link JobCache}, 앱 변경 #139 수정 5·6,
  *   docs/chromite/altibase.md "작업", "기존 객체의 추가 속성")
+ * - 2026-11-21 {@link JobCache}를 열어 작업 관리자가 새 작업의 행을 같은 질의로 읽음(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
  * - 2026-11-21 {@link #getSchemaExtensionObjects}: 감지된 확장이 스키마마다 내는 트리 객체(스키마 아래 트리 자리, 앱 변경 #153,
  *   docs/chromite/altibase.md "서버 확장")
  */
@@ -768,7 +769,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
      * them, Altibase 7.3 has not) is read from the catalog once per connection, with the first list; then the owner's
      * name is joined in. A refresh of the connection clears it with the cache.
      */
-    static class JobCache extends JDBCObjectLookupCache<GenericStructContainer, AltibaseJob> {
+    public static class JobCache extends JDBCObjectLookupCache<GenericStructContainer, AltibaseJob> {
         
         // The owner's name joined from SYS_USERS_
         static final String COLUMN_JOB_USER_NAME = "JOB_USER_NAME";
@@ -793,7 +794,7 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             super.clearCache();
         }
 
-        private boolean hasExtendedColumns(@NotNull JDBCSession session) throws SQLException {
+        boolean hasExtendedColumns(@NotNull JDBCSession session) throws SQLException {
             Boolean result = extendedColumns;
             if (result == null) {
                 try (JDBCPreparedStatement dbStat = session.prepareStatement(QUERY_EXTENDED_COLUMNS);

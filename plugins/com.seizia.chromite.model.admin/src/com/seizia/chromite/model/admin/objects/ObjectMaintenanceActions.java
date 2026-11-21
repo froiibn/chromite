@@ -21,9 +21,12 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
 import com.seizia.chromite.ext.altibase.extension.AltibaseTableTtl;
 import com.seizia.chromite.ext.altibase.model.AltibaseDataFile4Disk;
+import com.seizia.chromite.ext.altibase.model.AltibaseJob;
+import com.seizia.chromite.ext.altibase.model.AltibaseJobDDL;
 import com.seizia.chromite.ext.altibase.model.AltibaseMaterializedView;
 import com.seizia.chromite.ext.altibase.model.AltibasePackage;
 import com.seizia.chromite.ext.altibase.model.AltibaseProcedureStandAlone;
+import com.seizia.chromite.ext.altibase.model.AltibaseQueue;
 import com.seizia.chromite.ext.altibase.model.AltibaseReplication;
 import com.seizia.chromite.ext.altibase.model.AltibaseTable;
 import com.seizia.chromite.ext.altibase.model.AltibaseTablespace;
@@ -143,6 +146,10 @@ import java.util.function.Consumer;
  *     <li>Altibase 계열 테이블의 TTL 설정·변경·해제 — 연결의 서버 확장이 중립 능력 {@link AltibaseTableTtl}을 어댑터로 줄 때만(그 서버의
  *     TTL 사전을 감지한 연결, 확장이 그 테이블에 해당한다고 할 때) 적용된다. 문장도 그 확장이 만들고(이 클래스는 서버를 모름), 값은 화면이
  *     먼저 받은 {@link AltibaseTableTtl.Change}다. 실행·트랜잭션·오류는 다른 유지 관리 명령과 같은 길이다.</li>
+ *     <li>Altibase 계열 작업(Global metadata &gt; Jobs) — 켜기·끄기({@code ALTER JOB j SET ENABLE | DISABLE}), 설정 바꾸기(바뀐 절마다
+ *     {@code ALTER JOB j SET …} 하나, 값은 화면이 먼저 받은 {@link AltibaseJobDDL.Change}). 켜짐 여부는 모델이 읽은
+ *     {@code SYS_JOBS_.IS_ENABLE}이다({@link #isJobEnabled}). 큐 압축({@code ALTER QUEUE q COMPACT}). 문장은 {@link AltibaseJobDDL}(두 서버에서
+ *     확인한 문법, 연결마다 고를 것 없음)이다.</li>
  *     <li>도구 설정은 처리기의 기본값을 쓴다. 다만 PostgreSQL 구체화된 뷰 새로 고침의 기본값은 {@code WITH NO DATA}(뷰를 비움)라
  *     새로 고침의 뜻에 맞게 {@code WITH DATA}로 둔다.</li>
  *     <li>실행은 보안 편집기({@code SecurityDialect#execute})처럼 대상 인스턴스의 격리된 실행 문맥에서 한다. 사용자 쿼리 창의 세션과 트랜잭션을
@@ -163,6 +170,7 @@ import java.util.function.Consumer;
  * - 2026-11-15 SQL Server 기본 파일 그룹, 파일 그룹 읽기 전용·읽기 쓰기, 파일 설정(앱 변경 #128, docs/chromite/mssql-storage.md)
  * - 2026-11-17 복제 시작·중지·동기화는 복제의 카탈로그가 제어 문장을 허락할 때만(앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  * - 2026-11-17 테이블 TTL(서버 확장이 주는 {@link AltibaseTableTtl}, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
+ * - 2026-11-21 Altibase 계열 작업 켜기·끄기·설정, 큐 압축(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
  */
 public final class ObjectMaintenanceActions {
 
@@ -196,6 +204,14 @@ public final class ObjectMaintenanceActions {
          * {@link OracleTablespaceDDL.Space} (the change).
          */
         DATA_FILE_SETTINGS,
+        // Altibase-family jobs and queues (app change #154)
+        ENABLE_JOB,
+        DISABLE_JOB,
+        /**
+         * The settings of a job (procedure, start, end, interval, comment); settings: {@link AltibaseJobDDL.Change}.
+         */
+        JOB_SETTINGS,
+        COMPACT_QUEUE,
         // Oracle (app change #127)
         TABLESPACE_READ_ONLY,
         TABLESPACE_READ_WRITE,
@@ -215,7 +231,7 @@ public final class ObjectMaintenanceActions {
      */
     public static boolean needsSettings(@NotNull Action action) {
         return action == Action.TABLESPACE_AUTOEXTEND || action == Action.DATA_FILE_SETTINGS || action == Action.DATABASE_FILE_SETTINGS
-            || action == Action.TABLE_TTL;
+            || action == Action.TABLE_TTL || action == Action.JOB_SETTINGS;
     }
 
     /**
@@ -267,6 +283,8 @@ public final class ObjectMaintenanceActions {
             case TABLESPACE_ONLINE, TABLESPACE_OFFLINE -> object instanceof AltibaseTablespace tablespace && tablespace.supportsOnlineChange();
             case TABLESPACE_AUTOEXTEND -> object instanceof AltibaseTablespace tablespace && tablespace.supportsAutoextendChange();
             case DATA_FILE_SETTINGS -> object instanceof AltibaseDataFile4Disk file && file.getParentObject().hasDiskFiles();
+            case ENABLE_JOB, DISABLE_JOB, JOB_SETTINGS -> object instanceof AltibaseJob;
+            case COMPACT_QUEUE -> object instanceof AltibaseQueue;
             // Oracle only (above)
             case TABLESPACE_READ_ONLY, TABLESPACE_READ_WRITE -> false;
             // SQL Server filegroups and database files
@@ -303,6 +321,14 @@ public final class ObjectMaintenanceActions {
             case FILEGROUP_READ_WRITE -> filegroup.isReadOnly();
             default -> false;
         };
+    }
+
+    /**
+     * Whether an Altibase-family job was enabled when the model read it, or null if the object is not a job.
+     */
+    @Nullable
+    public static Boolean isJobEnabled(@NotNull DBSObject object) {
+        return object instanceof AltibaseJob job ? job.getIsEnable() : null;
     }
 
     /**
@@ -630,6 +656,24 @@ public final class ObjectMaintenanceActions {
                     for (String sql : AltibaseTablespaceDDL.alterFile(file, change)) {
                         actions.add(new SQLDatabasePersistAction(sql));
                     }
+                }
+            }
+            // Altibase-family jobs and queues
+            case ENABLE_JOB, DISABLE_JOB -> {
+                if (object instanceof AltibaseJob job) {
+                    actions.add(new SQLDatabasePersistAction(AltibaseJobDDL.setJobEnabled(job, action == Action.ENABLE_JOB)));
+                }
+            }
+            case JOB_SETTINGS -> {
+                if (object instanceof AltibaseJob job && commandSettings instanceof AltibaseJobDDL.Change change) {
+                    for (String sql : AltibaseJobDDL.alterJob(job, change)) {
+                        actions.add(new SQLDatabasePersistAction(sql));
+                    }
+                }
+            }
+            case COMPACT_QUEUE -> {
+                if (object instanceof AltibaseQueue queue) {
+                    actions.add(new SQLDatabasePersistAction(AltibaseJobDDL.compactQueue(DBUtils.getObjectFullName(queue, DBPEvaluationContext.DDL))));
                 }
             }
             // SQL Server filegroups and database files

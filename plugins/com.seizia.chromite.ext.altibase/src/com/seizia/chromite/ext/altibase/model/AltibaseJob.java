@@ -23,8 +23,12 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.altibase.internal.AltibaseMessages;
 import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.DBPNamedObject2;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.meta.IPropertyValueValidator;
 import com.seizia.chromite.model.meta.Property;
@@ -33,6 +37,7 @@ import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Map;
 
@@ -49,20 +54,22 @@ import java.util.Map;
  *     (Altibase 7.3에서 읽음: 스케줄러가 돌지 않아 실행 중인 작업은 보지 못함), 시스피어 예제의 켜진 채 실행된 작업도 0이다. 켜짐은
  *     {@code IS_ENABLE}(T/F)이 말한다.</li>
  *     <li>종류: {@code P}는 프로시저(시스피어 예제의 {@code DBMS_SCHEDULER} 작업 종류 STORED_PROCEDURE가 P로 저장됨). 다른 코드는 그대로.</li>
+ *     <li>주기가 0이면 주기가 없다(한 번 실행): INTERVAL 없이 만든 작업은 카탈로그에 주기 0, 단위 없음으로 남는다(두 서버에서 확인).
+ *     주기 없음으로 보인다(전에는 단위가 없으면 비었다).</li>
+ *     <li>단위 코드는 {@link AltibaseJobDDL.Unit}과 같은 목록이다(작업 대화상자와 한 곳). ShardSphere만 받는 초(코드 SS)는 그 목록에 없어
+ *     수와 코드 그대로 보인다.</li>
+ *     <li>새 작업(Object Explorer의 New Job)은 이름과 정의({@link AltibaseJobDDL.Definition})로 만들어지고, CREATE 직후 같은 세션에서 자기
+ *     카탈로그 행을 읽는다({@link #readCreated}). 읽지 않으면 새 노드의 ID·시각·상태가 비어 있다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-17 Chromite: 소유자·종류·실패 횟수(있는 서버에서만), 읽을 수 있는 주기, "Activated"를 상태 코드로 바꿈
  *   (앱 변경 #139 수정 5, docs/chromite/altibase.md "작업")
+ * - 2026-11-21 Chromite: 새 작업(이름·정의, CREATE 뒤 행 읽기), 작업 대화상자가 쓰는 주기 값, 주기 0은 주기 없음, 단위 코드를
+ *   {@link AltibaseJobDDL.Unit}에서 읽음(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
  */
-public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject, DBPRefreshableObject {
+public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject, DBPRefreshableObject, DBPNamedObject2 {
 
-    // SYS_JOBS_.INTERVAL_TYPE
-    private static final String INTERVAL_YEAR = "YY"; //$NON-NLS-1$
-    private static final String INTERVAL_MONTH = "MM"; //$NON-NLS-1$
-    private static final String INTERVAL_DAY = "DD"; //$NON-NLS-1$
-    private static final String INTERVAL_HOUR = "HH"; //$NON-NLS-1$
-    private static final String INTERVAL_MINUTE = "MI"; //$NON-NLS-1$
     // SYS_JOBS_.JOB_TYPE
     private static final String JOB_TYPE_PROCEDURE = "P"; //$NON-NLS-1$
 
@@ -82,15 +89,29 @@ public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject
     private boolean isEnable;
     private String comment;
     // Read only where the connection's SYS_JOBS_ has these columns
-    private final boolean extendedColumns;
+    private boolean extendedColumns;
     private String jobOwner;
     private String jobType;
     private Integer failCount;
+    // A new job's settings until it is created
+    @Nullable
+    private AltibaseJobDDL.Definition initialDefinition;
 
     public AltibaseJob(GenericStructContainer owner, @NotNull ResultSet resultSet, boolean extendedColumns) {
 
         super((AltibaseDataSource) owner.getDataSource(), true);
+        load(resultSet, extendedColumns);
+    }
 
+    /**
+     * A new job (not created yet); its name and definition are set before it is created.
+     */
+    public AltibaseJob(@NotNull AltibaseDataSource dataSource) {
+        super(dataSource, false);
+        jobName = "";
+    }
+
+    private void load(@NotNull ResultSet resultSet, boolean extendedColumns) {
         jobId = JDBCUtils.safeGetInt(resultSet, "JOB_ID");
         jobName = JDBCUtils.safeGetString(resultSet, "JOB_NAME");
         execQuery = JDBCUtils.safeGetString(resultSet, "EXEC_QUERY");
@@ -119,6 +140,34 @@ public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject
         return jobName;
     }
 
+    @Override
+    public void setName(@NotNull String name) {
+        this.jobName = name;
+    }
+
+    @Nullable
+    public AltibaseJobDDL.Definition getInitialDefinition() {
+        return initialDefinition;
+    }
+
+    public void setInitialDefinition(@Nullable AltibaseJobDDL.Definition initialDefinition) {
+        this.initialDefinition = initialDefinition;
+    }
+
+    /**
+     * Reads the new job's catalog row in the session that created it (ID, times, state).
+     */
+    public void readCreated(@NotNull JDBCSession session) throws SQLException {
+        AltibaseDataSource.JobCache cache = getDataSource().getJobCache();
+        try (JDBCPreparedStatement dbStat = (JDBCPreparedStatement) cache.prepareLookupStatement(session, getDataSource(), this, null);
+             JDBCResultSet dbResult = dbStat.executeQuery()) {
+            if (dbResult.next()) {
+                load(dbResult, cache.hasExtendedColumns(session));
+                initialDefinition = null;
+            }
+        }
+    }
+
     @Property(viewable = true, order = 2)
     public int getJobId() {
         return jobId;
@@ -131,23 +180,41 @@ public class AltibaseJob extends AltibaseGlobalObject implements DBPScriptObject
     }
 
     /**
-     * The interval with its unit in words; an unknown unit code as the number and the code, nothing without a unit.
+     * The interval with its unit in words; an unknown unit code as the number and the code, nothing without an interval
+     * (no unit, or 0: the job runs once).
      */
     @Nullable
     @Property(viewable = true, order = 4)
     public String getinterval() {
-        if (intervalType == null || intervalType.isEmpty()) {
+        if (intervalType == null || intervalType.isEmpty() || interval <= 0) {
             return null;
         }
-        String pattern = switch (intervalType) {
-            case INTERVAL_YEAR -> AltibaseMessages.job_interval_year;
-            case INTERVAL_MONTH -> AltibaseMessages.job_interval_month;
-            case INTERVAL_DAY -> AltibaseMessages.job_interval_day;
-            case INTERVAL_HOUR -> AltibaseMessages.job_interval_hour;
-            case INTERVAL_MINUTE -> AltibaseMessages.job_interval_minute;
-            default -> null;
+        AltibaseJobDDL.Unit unit = AltibaseJobDDL.Unit.fromCode(intervalType);
+        String pattern = unit == null ? null : switch (unit) {
+            case YEAR -> AltibaseMessages.job_interval_year;
+            case MONTH -> AltibaseMessages.job_interval_month;
+            case DAY -> AltibaseMessages.job_interval_day;
+            case HOUR -> AltibaseMessages.job_interval_hour;
+            case MINUTE -> AltibaseMessages.job_interval_minute;
         };
         return pattern == null ? interval + " " + intervalType : NLS.bind(pattern, interval);
+    }
+
+    /**
+     * The repeat interval as the catalog holds it, or null if the job has none or a unit the job dialogs do not offer
+     * ({@link #hasOtherIntervalUnit}).
+     */
+    @Nullable
+    public AltibaseJobDDL.Interval getIntervalSetting() {
+        AltibaseJobDDL.Unit unit = AltibaseJobDDL.Unit.fromCode(intervalType);
+        return unit == null || interval <= 0 ? null : new AltibaseJobDDL.Interval(interval, unit);
+    }
+
+    /**
+     * Whether the job repeats in a unit the job dialogs do not offer (ShardSphere's seconds).
+     */
+    public boolean hasOtherIntervalUnit() {
+        return interval > 0 && intervalType != null && !intervalType.isEmpty() && AltibaseJobDDL.Unit.fromCode(intervalType) == null;
     }
 
     @Property(viewable = true, order = 5)

@@ -291,6 +291,8 @@ import java.util.regex.Pattern;
  * - 2026-11-16 연결 상태 명령과 서버 보기(Activity Monitor, Locks, 대시보드, 관리 보기)는 연결 노드에서만, New Connection·Disconnect All은 빈 곳과
  *   연결 노드에서만, Find Objects·Compare Schemas는 그곳과 데이터베이스·스키마에서만 메뉴에 보임(사용자 결정 "연결 노드에서만"). 켜짐은 그대로라
  *   도구 막대와 키는 전과 같다({@link ContextMenus#setApplies}, docs/chromite/context-menus.md)
+ * - 2026-11-21 {@link #showSelectionAgain}: 모델에서만 다시 읽은 자식 없는 노드(Altibase 계열 작업)의 글자와 속성 보기를 새 객체로
+ *   (앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -523,6 +525,7 @@ final class ObjectExplorerPanel extends JPanel {
      */
     private boolean revealFocus;
     private boolean disposed;
+    private final Consumer<DBNNode> selectionListener;
 
     /**
      * @param selectionListener receives the selected navigator node (or null)
@@ -531,6 +534,7 @@ final class ObjectExplorerPanel extends JPanel {
     ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull QueryWindows queryWindows) {
         super(new BorderLayout());
         this.queryWindows = queryWindows;
+        this.selectionListener = selectionListener;
 
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         projectNode = project == null ? null :
@@ -1877,6 +1881,19 @@ final class ObjectExplorerPanel extends JPanel {
      * (and the Properties window) are off with a multi-selection.
      */
     @Nullable
+    /**
+     * Repaints the selected row and gives its node to the selection listener again (the Properties view reads it again).
+     * For a node whose object the model read again without the tree reloading it: a node without children is not
+     * reloaded by {@link #refreshNavigatorNode}, and selecting it again does not fire a selection event. EDT.
+     */
+    void showSelectionAgain() {
+        TreePath path = tree.getSelectionPath();
+        if (path != null && path.getLastPathComponent() instanceof ExplorerNode node) {
+            treeModel.nodeChanged(node);
+        }
+        selectionListener.accept(getSelectedNavigatorNode());
+    }
+
     private DBNNode getSelectedNavigatorNode() {
         TreePath path = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
         if (path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {

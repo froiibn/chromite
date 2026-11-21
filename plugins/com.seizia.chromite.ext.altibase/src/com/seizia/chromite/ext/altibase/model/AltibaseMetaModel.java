@@ -68,13 +68,14 @@ import java.util.Map;
  *   (앱 변경 #139 작업 4, docs/chromite/altibase.md "복제 카탈로그")
  * - 2026-11-17 시퀀스 목록에 큐의 내부 시퀀스({@code <queue>_NEXT_MSG_ID})를 카탈로그로 가려 읽기 전용 {@link AltibaseQueueSequence}로
  *   (앱 변경 #139 수정 4, docs/chromite/altibase.md "큐의 내부 시퀀스")
+ * - 2026-11-21 {@link #QUEUE_SEQUENCE_SUFFIX}를 열어 큐 관리자가 큐를 만들고 지운 뒤 시퀀스 목록을 맞춤(앱 변경 #154, docs/chromite/altibase.md "큐")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
     private static final Log log = Log.getLog(AltibaseMetaModel.class);
 
     // The name a queue's internal sequence has after the queue's name, and the sequence list's column that marks it
-    private static final String QUEUE_SEQUENCE_SUFFIX = "_NEXT_MSG_ID";
+    public static final String QUEUE_SEQUENCE_SUFFIX = "_NEXT_MSG_ID";
     private static final String COLUMN_QUEUE_SEQUENCE = "QUEUE_SEQUENCE";
 
     // The dependent object type of DBMS_METADATA.GET_DEPENDENT_DDL for the comments of a table

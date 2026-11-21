@@ -35,6 +35,8 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 | Oracle·MariaDB Packages | **New Package…** | 명세와 본문 틀 |
 | PostgreSQL·SQL Server·Oracle Types | **New Type…** | 틀(복합 형식, 별칭 형식, OBJECT 형식) |
 | Oracle Queues | **New Queue…** | `DBMS_AQADM` 틀(큐 테이블, 큐, 시작) |
+| Altibase 계열(Altibase, ShardSphere) Global metadata ▸ Jobs | **New Job…** | 대화상자(이름, 프로시저, 시작, 끝, 주기 수·단위, 사용, 주석) → 미리 보기 → 실행([altibase.md](altibase.md) "작업 만들기·바꾸기·삭제") |
+| Altibase 계열 스키마의 Queues(큐 테이블) | **New Queue…** | 대화상자(이름, 메시지 크기 바이트) → 미리 보기 → 실행([altibase.md](altibase.md) "큐") |
 | 테이블의 Columns, Constraints/Keys, Foreign Keys, Indexes | **New Column… / New Index…** 등 | 테이블 디자이너를 연다 |
 | 그 밖에 객체 관리자가 있는 폴더 | **New &lt;종류&gt;…** | 이름 대화상자 → 미리 보기 → 실행 |
 
@@ -345,5 +347,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - 2026-11-15 SQL Server New Filegroup…(이름 대화상자)·New File…·New Log File… 대화상자(`SQLServerStorageDialogs`, 앱 변경 #128, [mssql-storage.md](mssql-storage.md)).
 - 2026-11-16 "대화상자 크기와 위치"(앱 변경 #132)와 "숫자 칸"(앱 변경 #133) 추가(`chromite/storage-dialog-fixes`): `showDialog`의 폼 최소 너비 480과
   창 가운데 위치, Object Explorer 개체 변경의 미리 보기·트랜잭션 질문도 창 가운데, 저장소 대화상자 숫자 칸의 `NumberInputFilter`.
+- 2026-11-21 Altibase 계열 New Job…(`AltibaseJobDialogs`)·New Queue…(`NewObjectDialogs`의 이름·메시지 크기 대화상자, 숫자 칸은 `NumberInputFilter`)
+  (앱 변경 #154, `chromite/altibase-family-jobs-queues`, [altibase.md](altibase.md) "작업 만들기·바꾸기·삭제", "큐").
 - 2026-11-16 "숫자 칸"에 앱의 다른 숫자 칸(앱 변경 #142, `chromite/numeric-fields`): 컨텍스트 크기, HANA 인스턴스 번호, 자원 제한, 행으로 가기,
   숫자 속성, NUMBER 매개 변수, 디버거 프로세스 ID에 필터. 필터에 음수 칸의 앞 빼기 부호. 그리드 셀·열 필터·배열 등 둔 칸과 이유.
