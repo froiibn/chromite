@@ -25,6 +25,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPErrorAssistant;
 import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDDataFilter;
@@ -32,6 +33,7 @@ import com.seizia.chromite.model.exec.DBCQueryTransformProvider;
 import com.seizia.chromite.model.exec.DBCQueryTransformType;
 import com.seizia.chromite.model.exec.DBCQueryTransformer;
 import com.seizia.chromite.model.exec.DBCQueryTransformerExt;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLQuery;
@@ -76,6 +78,8 @@ import java.util.List;
  * - 2026-11-07 Generate SQL 메뉴의 생성기 고르기와 실행 (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 Oracle DDL 형식(전체, 저장소 제외, 간단히)으로 만들기 (SWT 감사 O14, docs/chromite/swing-routines.md)
  * - 2026-11-08 조건을 붙인 SELECT {@link #generateFilteredSelect}(데이터 검색, docs/chromite/swing-data-search.md)
+ * - 2026-11-22 취소한 생성은 결과를 돌려주지 않음(생성기는 취소된 모니터에서 멈추고 만든 데까지 돌려줘, 취소 뒤에 열이 없는
+ *   CREATE TABLE이 탭에 열렸다), 권한 오류의 첫 줄 {@link #errorMessage} (앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  */
 final class ObjectScripts {
 
@@ -188,14 +192,34 @@ final class ObjectScripts {
         return runGenerator(monitor, descriptor.createGenerator(applicable));
     }
 
+    /**
+     * The first line of the error window of a command that reads object definitions: "no privilege" when the server
+     * refused for privileges (the data source's error type, e.g. Oracle ORA-31603 from DBMS_METADATA), otherwise the
+     * command's own line. The server's error (code and text) follows in the window either way.
+     */
+    @NotNull
+    static String errorMessage(@NotNull DBException error, @NotNull String defaultMessage) {
+        return DBExecUtils.discoverErrorType(null, error) == DBPErrorAssistant.ErrorType.PERMISSION_DENIED
+            ? CoreMessages.scripts_no_privilege
+            : defaultMessage;
+    }
+
     @NotNull
     private static String runGenerator(@NotNull DBRProgressMonitor monitor, @NotNull SQLGenerator<?> generator) throws DBException {
         try {
             generator.run(monitor);
         } catch (InvocationTargetException e) {
+            if (monitor.isCanceled()) {
+                throw new DBInterruptedException("SQL generation canceled");
+            }
             Throwable cause = e.getTargetException();
             throw cause instanceof DBException dbException ? dbException : new DBException(CoreMessages.scripts_cant_generate, cause);
         } catch (InterruptedException e) {
+            throw new DBInterruptedException("SQL generation canceled");
+        }
+        // Generators stop at a canceled monitor and return what they have (an Oracle table without columns, a partial
+        // script): a canceled request shows nothing rather than that
+        if (monitor.isCanceled()) {
             throw new DBInterruptedException("SQL generation canceled");
         }
         String result = generator.getResult();

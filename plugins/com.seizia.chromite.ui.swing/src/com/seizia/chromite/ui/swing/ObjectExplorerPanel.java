@@ -295,6 +295,8 @@ import java.util.regex.Pattern;
  *   (앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제")
  * - 2026-11-22 "New …" 항목을 {@link NewObjectCommands#addTo}로 넣음: 서버 확장 폴더의 틀 항목이 그 뒤에 들어감(앱 변경 #156,
  *   docs/chromite/swing-create-objects.md)
+ * - 2026-11-22 DDL 명령 오류 창의 첫 줄: 권한 오류면 "권한이 없어 개체 정의를 읽을 수 없습니다"(앱 변경 #159,
+ *   docs/chromite/swing-explorer-object-actions.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1175,7 +1177,7 @@ final class ObjectExplorerPanel extends JPanel {
         } catch (DBInterruptedException e) {
             return null;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
+            DBWorkbench.getPlatformUI().showError(title, ObjectScripts.errorMessage(e, CoreMessages.explorer_cant_generate), e);
             return null;
         }
     }

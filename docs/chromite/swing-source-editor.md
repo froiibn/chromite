@@ -120,6 +120,8 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
 - **새 노드를 미리 만들지 않음:** 테이블 디자이너와 달리 템플릿은 실행 전까지 DB에 아무것도 없으므로 모델에 저장 안 된 객체를 만들지 않는다.
 - **SSMS와 다른 점:** `SET ANSI_NULLS ON` / `SET QUOTED_IDENTIFIER ON` 배치와 `/****** Object: … ******/` 머리말을 넣지 않는다(드라이버가 만들지 않음.
   JDBC 연결의 기본값이 둘 다 ON이라 실행 결과는 같다). SSMS 템플릿의 `<매개 변수, 형식, 값>` 자리표시자(Ctrl+Shift+M)는 없고 바로 실행되는 이름·본문을 넣었다.
+- **취소와 권한 오류(2026-11-22, 앱 변경 #159):** 정의 읽기를 취소하면 모델은 읽은 데까지 돌려주므로 `SourceScripts.generateAlter`는 취소된 모니터면
+  스크립트를 만들지 않는다. 권한 오류면 오류 창 첫 줄이 "권한이 없어 개체 정의를 읽을 수 없습니다."다([swing-routines.md](swing-routines.md) "DDL 권한과 취소").
 
 ## upstream 대비 변경점
 
@@ -164,3 +166,4 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
 - 2026-11-08 "남긴 것"의 Execute Stored Procedure…·Oracle 컴파일 오류 표시를 [swing-routines.md](swing-routines.md)로 옮김(완료). 열 때 보일 위치(`openSourceScript`의 위치 인수)를 더함.
 - 2026-11-08 같은 틀 경로(`SourceScripts.generateNew`)에 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀을 더함. 메뉴는 폴더의
   "New &lt;종류&gt;…" 하나([swing-create-objects.md](swing-create-objects.md)).
+- 2026-11-22 수정·ALTER 대상: 취소하면 스크립트를 열지 않음, 권한 오류의 첫 줄(앱 변경 #159).

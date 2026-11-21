@@ -48,6 +48,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-productivity.md "Copy Special")
+ * - 2026-11-22 DDL 복사 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  */
 final class CopySpecialDialog extends JDialog {
 
@@ -189,7 +190,7 @@ final class CopySpecialDialog extends JDialog {
             } catch (DBInterruptedException e) {
                 return false;
             } catch (DBException e) {
-                DBWorkbench.getPlatformUI().showError(ObjectExplorerMessages.oe_copy_special_title, ObjectExplorerMessages.oe_copy_ddl_error, e);
+                DBWorkbench.getPlatformUI().showError(ObjectExplorerMessages.oe_copy_special_title, ObjectScripts.errorMessage(e, ObjectExplorerMessages.oe_copy_ddl_error), e);
                 return false;
             }
         } else {

@@ -30,6 +30,10 @@ import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 /**
  * Oracle constants
+ *
+ * 변경 이력:
+ * - 2026-11-22 권한 오류 코드 {@link #EC_INSUFFICIENT_PRIVILEGES}, {@link #EC_METADATA_OBJECT_NOT_FOUND}
+ *   (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
  */
 public class OracleConstants {
 
@@ -235,6 +239,9 @@ public class OracleConstants {
     public static final int EC_PASSWORD_EXPIRED = 28001;
     public static final int EC_PASSWORD_WILL_EXPIRE = 28002;
     public static final int EC_PASSWORD_GRACE_PERIOD = 28098;
+    public static final int EC_INSUFFICIENT_PRIVILEGES = 1031;
+    /** DBMS_METADATA: object not found or not readable by the account (no ownership, no SELECT_CATALOG_ROLE). */
+    public static final int EC_METADATA_OBJECT_NOT_FOUND = 31603;
     public static final int NUMERIC_MAX_PRECISION = 38;
     public static final int INTERVAL_DEFAULT_SECONDS_PRECISION = 6;
     public static final int INTERVAL_DEFAULT_YEAR_DAY_PRECISION = 2;
