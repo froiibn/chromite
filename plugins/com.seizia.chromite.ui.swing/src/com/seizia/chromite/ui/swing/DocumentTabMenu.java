@@ -61,8 +61,9 @@ import java.util.Locale;
  *     같은 폴더에서 파일 이름을 바꾸고(확장자 유지, 같은 이름이 있으면 " (2)"), 저장 전 창은 이름(탭 제목, 저장할 때 제안하는 파일 이름)만
  *     바꾼다. Query Library 창은 확장의 이름 바꾸기({@link SqlEditorExtension#rename})다.</li>
  *     <li>탭 고정: 고정 탭은 왼쪽에 고정한 순서대로 모이고, 아이콘 뒤에 핀을 그리며, 닫기 단추와 가운데 단추 닫기가 없다(메뉴의 닫기는 된다).
- *     상태는 탭 컴포넌트의 속성({@link #isPinned})이라 다시 시작 후 복원({@link QueryWindowRecovery})이 쿼리 창과 함께 저장한다. 탭을 옮기는
- *     API가 없어 빼고 다시 넣는다(제목, 아이콘, 도구 설명, 선택을 옮김).</li>
+ *     상태는 탭 컴포넌트의 속성({@link #isPinned})이라 다시 시작 후 복원({@link QueryWindowRecovery})이 쿼리 창과 함께 저장한다. 탭은
+ *     문서 탭 창의 한 옮기기 경로({@link MainFrame.EditorTabbedPane#moveTab})로 옮긴다. 끌어서 순서 바꾸기({@link DocumentTabDrag})도
+ *     같은 경로를 쓰고, 고정 탭은 고정 탭 사이에서만 옮겨 이 규칙을 지킨다.</li>
  *     <li>닫은 탭 다시 열기: 닫은 쿼리 창을 다시 시작 후 복원과 같은 기록({@link QueryWindowRecovery.Window}: 파일, 연결, 기본 DB/스키마,
  *     저장하지 않은 글, 커서, 고정)으로 최근 {@value #MAX_CLOSED_WINDOWS}개까지 메모리에 둔다. 다시 열 때 연결하거나 실행하지 않는다.
  *     복원과 같은 규칙으로 Query Library 창과 고치지 않은 Modify 창은 넣지 않는다. 저장하지 않고 닫은 글도 돌아온다(고침 상태로).</li>
@@ -78,6 +79,8 @@ import java.util.Locale;
  * - 2026-11-12 닫은 탭 다시 열기에 Ctrl+Shift+T(macOS ⇧⌘T) (앱 변경 #66, docs/chromite/shortcuts.md)
  * - 2026-11-12 쿼리 창의 연결 변경 항목(Query &gt; Change Connection…과 같은 명령, 앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-16 쿼리 창이 아닌 탭에서 쿼리 창 항목을 끄는 대신 숨김, 구분선 정리(앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-22 탭 옮기기를 {@link MainFrame.EditorTabbedPane#moveTab} 하나로(여기의 빼고 다시 넣기를 지움), 끌어서 순서 바꾸기
+ *   {@link DocumentTabDrag}를 붙임(앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
  */
 final class DocumentTabMenu {
 
@@ -124,12 +127,12 @@ final class DocumentTabMenu {
     private static final String PLACEMENT_LEFT = "left"; //$NON-NLS-1$
     private static final String PLACEMENT_RIGHT = "right"; //$NON-NLS-1$
 
-    private final JTabbedPane tabs;
+    private final MainFrame.EditorTabbedPane tabs;
     private final Host host;
     private final Deque<QueryWindowRecovery.Window> closedWindows = new ArrayDeque<>();
     private final Action reopenAction;
 
-    DocumentTabMenu(@NotNull JTabbedPane tabs, @NotNull Host host) {
+    DocumentTabMenu(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull Host host) {
         this.tabs = tabs;
         this.host = host;
         reopenAction = new AbstractAction(DocumentTabMessages.tab_reopen_closed) {
@@ -160,6 +163,7 @@ final class DocumentTabMenu {
         DBPPreferenceStore preferences = getPreferences();
         tabs.setTabPlacement(toPlacement(preferences.getString(PREF_PLACEMENT)));
         tabs.setTabLayoutPolicy(preferences.getBoolean(PREF_MULTIPLE_ROWS) ? JTabbedPane.WRAP_TAB_LAYOUT : JTabbedPane.SCROLL_TAB_LAYOUT);
+        DocumentTabDrag.install(tabs);
     }
 
     /**
@@ -215,24 +219,8 @@ final class DocumentTabMenu {
         }
         component.putClientProperty(PINNED_KEY, pinned ? Boolean.TRUE : null);
         component.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, !pinned);
-        moveTab(index, target);
+        tabs.moveTab(index, target);
         tabs.setIconAt(target, getTabIcon(document, tabs.getIconAt(target)));
-    }
-
-    private void moveTab(int from, int to) {
-        if (from == to) {
-            return;
-        }
-        Component component = tabs.getComponentAt(from);
-        String title = tabs.getTitleAt(from);
-        Icon icon = tabs.getIconAt(from);
-        String toolTip = tabs.getToolTipTextAt(from);
-        boolean selected = tabs.getSelectedIndex() == from;
-        tabs.removeTabAt(from);
-        tabs.insertTab(title, icon, component, toolTip, to);
-        if (selected) {
-            tabs.setSelectedIndex(to);
-        }
     }
 
     private void showMenu(@NotNull MouseEvent e) {
