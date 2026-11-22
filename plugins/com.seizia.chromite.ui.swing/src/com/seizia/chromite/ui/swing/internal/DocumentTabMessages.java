@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성: 문서 탭 오른쪽 클릭 메뉴(앱 변경 #42) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-22 새 창으로 이동, 주 창으로 이동, 별도 창 제목(앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 public class DocumentTabMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DocumentTabMessages"; //$NON-NLS-1$
@@ -51,6 +52,9 @@ public class DocumentTabMessages extends NLS {
     public static String tab_position_right;
     public static String tab_multiple_rows;
     public static String tab_library_rename_modified;
+    public static String tab_move_to_window;
+    public static String tab_move_to_main;
+    public static String tab_window_title;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, DocumentTabMessages.class);
