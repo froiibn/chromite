@@ -103,6 +103,10 @@ import java.util.regex.Pattern;
  *   lookup read the schema list. Invalidate/Reconnect holds the instance's exclusive lock there, and a background job
  *   (query window completion) that read the list waited for that lock to reopen the metadata session: both waited
  *   forever (app change #165, docs/chromite/cancel-busy-connection.md).
+ * - 2026-11-22 Chromite: {@link #discoverErrorType} reports ORA-01013 as a canceled execution, so the driver's report of the
+ *   user's Cancel in a progress dialog is a cancel, not an error window. The driver raises the same error for a query timeout
+ *   and for another session's ALTER SYSTEM CANCEL SQL; only callers that know the user canceled take it as the user's
+ *   (app change #169, docs/chromite/swing-frontend.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -488,6 +492,9 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
         if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == OracleConstants.EC_INSUFFICIENT_PRIVILEGES
             || exception.getErrorCode() == OracleConstants.EC_METADATA_OBJECT_NOT_FOUND)) {
             return ErrorType.PERMISSION_DENIED;
+        }
+        if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == OracleConstants.EC_USER_REQUESTED_CANCEL)) {
+            return ErrorType.EXECUTION_CANCELED;
         }
         return super.discoverErrorType(error);
     }

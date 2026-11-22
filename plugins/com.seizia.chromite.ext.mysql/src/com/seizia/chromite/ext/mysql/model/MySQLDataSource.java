@@ -83,6 +83,10 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-12 서버 인증서 확인 + CA 인증서 없음을 연결 전에 알림(앱 변경 #81)
+ * - 2026-11-22 {@link #discoverErrorType}: 1317(KILL QUERY로 멈춘 문장)과 MySQL Connector/J의 자기 취소 예외를 실행 취소로 알림.
+ *   진행 창에서 사용자가 누른 취소가 오류 창으로 보이지 않게 한다. 1317은 다른 세션의 KILL QUERY도 같으므로 취소를 요청했는지
+ *   아는 쪽만 사용자의 취소로 본다. 시간 초과(MariaDB 1969, MySQL 3024, Connector/J의 시간 초과 예외)는 분류하지 않는다
+ *   (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector {
     private static final Log log = Log.getLog(MySQLDataSource.class);
@@ -953,6 +957,10 @@ public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisti
         }
         if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == MySQLConstants.ER_ACCESS_DENIED_ERROR)) {
             return ErrorType.AUTHENTICATION_FAILED;
+        }
+        if (JDBCUtils.matchesSQLException(error, exception -> exception.getErrorCode() == MySQLConstants.ER_QUERY_INTERRUPTED
+            || MySQLConstants.CJ_STATEMENT_CANCELLED_EXCEPTION.equals(exception.getClass().getName()))) {
+            return ErrorType.EXECUTION_CANCELED;
         }
         if (isMariaDB()) {
             // MariaDB-specific. They have bad SQLState support

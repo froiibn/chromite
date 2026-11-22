@@ -24,6 +24,10 @@ import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 /**
  * MySQL constants
+ *
+ * 변경 이력:
+ * - 2026-11-22 취소 보고 {@link #ER_QUERY_INTERRUPTED}, {@link #CJ_STATEMENT_CANCELLED_EXCEPTION} (앱 변경 #169,
+ *   docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class MySQLConstants {
     public static final int DEFAULT_PORT = 3306;
@@ -248,6 +252,13 @@ public class MySQLConstants {
     // https://dev.mysql.com/doc/mysql-errors/8.4/en/server-error-reference.html
     public static final int ER_ACCESS_DENIED_ERROR = 1045;
     public static final int ER_MUST_CHANGE_PASSWORD_LOGIN = 1862;
+    /** "Query execution was interrupted": the statement's KILL QUERY, sent by the driver's Statement.cancel or by another session. */
+    public static final int ER_QUERY_INTERRUPTED = 1317;
+    /**
+     * MySQL Connector/J's report of its own Statement.cancel, with no vendor code and no SQL state. Its query timeout is another
+     * class (a SQLTimeoutException).
+     */
+    public static final String CJ_STATEMENT_CANCELLED_EXCEPTION = "com.mysql.cj.jdbc.exceptions.MySQLStatementCancelledException";
 
     // https://mariadb.com/kb/en/e1820/
     public static final int MARIA_ER_MUST_CHANGE_PASSWORD_LOGIN = 1820;

@@ -276,8 +276,8 @@ SQL 오류 [1220] [08000]: … Connection is closed". DDL 미리 보기의 정�
 - 남은 것: 연결하며 뜬 암호 입력을 닫은 뒤의 "연결되어 있지 않습니다" 글은 관리 도구 탭(`AdminConnection`을 쓰는 10개 화면)과 개체 찾기·스키마 비교·실행 계획
   등이 같은 방식으로 보인다. 고치려면 연결 서비스가 "취소됨"을 호출한 쪽에 알려야 한다(`DBUtils.initDataSource`는 참·거짓만 돌려줌). 이번 범위 밖.
 - 남은 것: 드라이버 파일 내려받기·Maven 의존성 읽기는 취소를 누른 뒤에도 네트워크 읽기 시간 초과(10초)까지 기다리고, 그동안 실패하면 오류를 보인다(취소 예외가 아님).
-- 드라이버의 취소 오류 중 분류(`EXECUTION_CANCELED`)가 없는 것: Oracle ORA-01013(`OracleDataSource`), MariaDB·MySQL 1317(`MySQLDataSource`), Altibase.
-  이 DB에서 바쁘지 않은 연결의 자기 문장을 취소하면 전처럼 드라이버 오류가 오류 창에 보인다(재현 못 함: Oracle 사전 읽기는 잠금에 막히지 않음).
+- ~~드라이버의 취소 오류 중 분류(`EXECUTION_CANCELED`)가 없는 것: Oracle ORA-01013, MariaDB·MySQL 1317, Altibase~~: 2026-11-22 고침(앱 변경 #169, 아래
+  "드라이버 취소 오류의 분류"). Altibase는 측정해 보니 이미 분류돼 있었다(4202, SQLSTATE HY008).
 
 ### 바뀌지 않음 (확인)
 
@@ -289,6 +289,65 @@ SQL 오류 [1220] [08000]: … Connection is closed". DDL 미리 보기의 정�
 | 쿼리 창 문법 오류(PostgreSQL `SELEC 1`, Oracle 없는 함수) | 메시지 탭 `42601` / `ORA-00904`, 창 없음 | 같음 |
 | 쿼리 창 중지(Oracle, SQL Server, PostgreSQL, MariaDB, Altibase 7.3) | 4.9초 / 0.25초 / 0.25초 / 0.25초 / 0.76초 뒤 "사용자가 쿼리를 취소했습니다.", 창 없음 | 4.8초 / 0.13초 / 0.26초 / 0.26초 / 0.76초, 같은 글, 창 없음 |
 | 연결 새로 고침 뒤, 다시 연결 뒤의 "사용 권한" 취소(PostgreSQL) | (고치기 전 측정 안 함) | 창 없음 |
+
+## 드라이버 취소 오류의 분류 (2026-11-22, 앱 변경 #169)
+
+### 측정 (시험 VM, 앱에 든 드라이버와 같은 판: ojdbc11 23.2, mssql-jdbc 13.4, pgjdbc 42.7.14, MariaDB Connector/J 3.5.10, MySQL Connector/J 9.7, Altibase.jar)
+
+스크래치 계정 `CHR_DCC_U`의 세션에서 서버 쪽 대기(`DBMS_SESSION.SLEEP`, `WAITFOR DELAY`, `pg_sleep`, `SELECT SLEEP(n) FROM 표`, `EXEC DBMS_LOCK.SLEEP`)를
+실행하고 (a) 2초 뒤 `Statement.cancel`(사용자의 취소와 같은 길), (b) `setQueryTimeout(2)`와 세션의 서버 한도, (c) 관리자 세션이 그 세션에 보낸 취소로 멈췄다.
+
+| DB | (a) 사용자의 취소 | (b) 시간 초과 | (c) 다른 세션의 취소 | 구별 |
+|---|---|---|---|---|
+| Oracle 26ai (두 컨테이너 같음) | `SQLTimeoutException` ORA-01013, 72000 | `setQueryTimeout`: 같음. 세션 한도 없음(Resource Manager만) | `ALTER SYSTEM CANCEL SQL`: 같음 | **없음**(예외 종류·코드·상태·글이 셋 다 같음) |
+| PostgreSQL 17 | `PSQLException` 57014 "due to user request" | `setQueryTimeout`: 같음. `statement_timeout`: 57014 "due to statement timeout" | `pg_cancel_backend`: (a)와 같음 | 서버 한도만 글로 구별, 나머지 없음 |
+| SQL Server 2022 | `SQLServerException` HY008 "쿼리가 취소되었습니다." | `SQLTimeoutException` HY008 "쿼리 시간이 초과되었습니다." | 없음(`KILL`은 세션 종료, 596) | 예외 종류로 구별 |
+| MariaDB 11.8 | `SQLTimeoutException` 1317, 70100 | 1969, 70100(`setQueryTimeout`, `max_statement_time` 모두) | `KILL QUERY`: 1317 | 시간 초과는 코드로 구별, (a)와 (c)는 없음 |
+| MySQL 8.4 (Connector/J) | `MySQLStatementCancelledException`(코드 0, 상태 없음) | `MySQLTimeoutException`(코드 0), `max_execution_time` 3024 HY000 | `KILL QUERY`: `MySQLQueryInterruptedException` 1317, 70100 | 셋 다 구별됨 |
+| Altibase 7.3 | `SQLException` 4202, HY008 "Query canceled by client" | `setQueryTimeout`은 듣지 않음(12초 끝까지), `QUERY_TIMEOUT` 4164 HYT00 | 없음(세션 닫기는 4163, 08004) | 코드로 구별 |
+
+열린 트랜잭션(수동 커밋, INSERT 뒤 대기를 취소): Oracle·SQL Server·MariaDB·MySQL·Altibase는 문장만 멈추고 트랜잭션은 열린 채(세션 안에서 넣은 행이 보임),
+PostgreSQL은 트랜잭션이 중단 상태(25P02, ROLLBACK만 받음). 앱은 커밋·롤백하지 않는다.
+
+### 고치기 전 소비자 (앱, 같은 문장)
+
+| 곳 | 고치기 전 |
+|---|---|
+| 진행 창(`ProgressDialog.runTask`) 취소 | PostgreSQL·SQL Server·Altibase: 창 없음. **Oracle(UTIL 세션, 두 컨테이너)·MariaDB·MySQL: 오류 창**(ORA-01013, 1317, "Statement cancelled due to client request"). Oracle 메타데이터 세션은 취소가 1.5초 안에 오지 않아 #161로 창 없이 풀려남 |
+| 진행 창, 시간 초과·다른 세션의 취소 | 모든 DB 오류 창(맞음) |
+| 쿼리 창 중지 | 다섯 DB "사용자가 쿼리를 취소했습니다." |
+| **쿼리 창, PostgreSQL `statement_timeout`·`pg_cancel_backend`, SQL Server 시간 초과(드라이버 속성 `queryTimeout`)** | **오류 없이 "쿼리를 실행했습니다." / "명령이 완료되었습니다."**(분류된 취소를 `SQLQueryExecuteJob`이 사용자의 취소로 보고 오류를 버림) |
+| 쿼리 창, Oracle `CANCEL SQL`, MariaDB·MySQL `KILL QUERY`·시간 초과, Altibase `QUERY_TIMEOUT` | 오류(분류가 없었기 때문) |
+| Oracle DDL 보기 취소 | 창 없음, 탭 없음 |
+
+### 설계
+
+- 분류(`discoverErrorType`)는 "드라이버가 문장 취소를 알림"만 뜻한다: Oracle ORA-01013(`OracleConstants.EC_USER_REQUESTED_CANCEL`), MariaDB·MySQL 1317
+  (`MySQLConstants.ER_QUERY_INTERRUPTED`)과 Connector/J의 `MySQLStatementCancelledException`(`CJ_STATEMENT_CANCELLED_EXCEPTION`, 코드·상태가 없어 클래스 이름으로).
+  시간 초과 전용 코드는 넣지 않는다. Altibase·ShardSphere는 HY008로 이미 분류된다(`AltibaseDataSource`가 `JDBCDataSource`로 넘김).
+- Oracle은 세 경우가 같은 예외라 예외로는 사용자의 취소를 알 수 없다. 그래서 "사용자의 취소"는 취소를 요청했는지 아는 쪽이 정한다(공용 코드, 제품 이름 없음):
+  - `ProgressDialog.runTask`: 전처럼 취소 단추를 눌렀을 때만(바꾸지 않음).
+  - `SQLQueryExecuteJob`(실행 :711, 읽기 :856): 모니터가 취소됐거나 프로세스 안의 중단(`DBExecUtils.isInterruption`, 새 메서드)일 때만 취소. 중지는 모니터를 먼저
+    취소하고(Eclipse `JobManager.cancel`이 `setCanceled` 뒤 `canceling`) 문장을 멈추므로 사용자의 중지는 그대로 취소다.
+  - `OracleUtils.getDDL`: 같은 판단. ORA-01013만으로 대체 DDL을 건너뛰면 시간 초과가 조용히 사라진다.
+  - Query Manager(`QMMConnectionInfo`, `QMMCollectorImpl.handleFetchError`): 바꾸지 않음. 오류 글을 그대로 남길 뿐 "사용자의 취소"로 적지 않는다.
+- 대안: (1) 분류만 넣기 — 쿼리 창이 Oracle·MariaDB·MySQL의 다른 세션 취소도 오류 없이 끝냄(버림). (2) 사용자의 취소 전용 분류값을 따로 두기 — Oracle은 예외로 가릴 수
+  없어 결국 "취소를 요청했는가"를 물어야 하므로 값만 늘어남(버림).
+
+### 고친 뒤 (같은 방법, 고친 빌드)
+
+| 곳 | 고친 뒤 |
+|---|---|
+| 진행 창 취소 | 여섯 DB 모두 창 없음(Oracle UTIL 두 컨테이너, MariaDB 0.2초, MySQL 0.3초, PostgreSQL·SQL Server·Altibase 전과 같음). 연결 새로 고침·다시 연결 뒤에도 같음 |
+| 진행 창, 시간 초과·다른 세션의 취소·서버 한도·세션 종료 | 전과 같은 글의 오류 창(Oracle ORA-01013, MariaDB 1969·1317, MySQL `MySQLTimeoutException`·3024·1317, PostgreSQL 57014·57P01 연결 끊김 창, SQL Server HY008, Altibase 4164) |
+| 쿼리 창 중지 | 다섯 DB(+Oracle 1521) "사용자가 쿼리를 취소했습니다." 전과 같음 |
+| **쿼리 창, PostgreSQL `statement_timeout`·`pg_cancel_backend`, SQL Server 시간 초과** | **"쿼리가 완료되었지만 오류가 있습니다." + 메시지 탭 57014 / HY008 "쿼리 시간이 초과되었습니다."**(새로 고침 뒤에도) |
+| 쿼리 창, 나머지 시간 초과·다른 세션의 취소, 세션 종료(읽기 다시 실행), 권한 없음(42501) | 전과 같음 |
+| Oracle DDL 보기 / 취소 | 같은 DDL 글(707자) / 창·탭 없음 |
+| Query Manager | 실행 오류 항목은 전과 같음. 읽기(fetch) 중 Oracle·MariaDB·MySQL 취소는 이제 `handleFetchError`가 오류 글을 남김(실행해 보지 않음, 코드로 확인) |
+
+확인하지 못한 것: Oracle DDL 보기 중 시간 초과·다른 세션의 취소(시험 DB의 `GET_DDL`이 짧아 그 사이에 맞추지 못함; 앱에 Oracle 문장 시간 초과 설정이 없음),
+ShardSphere 서버(코드로만: 같은 공급자와 HY008).
 
 ## upstream 대비 변경점
 
@@ -305,3 +364,6 @@ SQL 오류 [1220] [08000]: … Connection is closed". DDL 미리 보기의 정�
 - 2026-11-22 "세션을 다시 열 때의 교착"(앱 변경 #165): Oracle·YashanDB·SQL Server가 다시 열거나 새로 여는 세션의 기본 스키마를 이름으로 받고 알림은
   메모리의 목록에서만. 세 DB 재현, PostgreSQL은 남김. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 연결·Invalidate/Reconnect·쿼리 창의 새
   세션의 현재 스키마, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택).
+- 2026-11-22 "드라이버 취소 오류의 분류"(앱 변경 #169, `chromite/driver-cancel-classification`): DB별 측정, Oracle·MariaDB·MySQL 분류, 쿼리 창과 Oracle DDL 읽기는
+  취소를 요청했을 때만 취소로 봄(PostgreSQL·SQL Server의 쿼리 창 시간 초과·다른 세션의 취소가 이제 오류). 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 진행 창
+  작업의 취소, 쿼리 창의 중지·시간 초과, Oracle DDL 보기, Query Manager의 읽기 오류).

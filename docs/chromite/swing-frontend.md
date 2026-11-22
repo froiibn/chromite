@@ -2702,8 +2702,8 @@ Windows 11 150%와 `-Dsun.java2d.uiScale=1`, 한국어, SQLite 시험 연결). �
   원인 쪽으로 벗긴(`ErrorText.unwrap`) 예외가 `DBInterruptedException`, `InterruptedException`, `ClosedByInterruptException`, `OperationCanceledException`,
   `CancellationException`이면 취소다. `IStatus`는 심각도가 `CANCEL`이거나, 자식 없는 상태의 예외가 취소일 때다.
 - **받지 않는 것:** 제 종류가 있는 감싸개 안의 취소(테이블 디자이너의 `PartialSaveException`, 보안·유지 관리 스크립트의 `ExecutionException`): 쓰기에서 무엇이
-  적용됐는지 알리므로 오류 창을 그대로 연다. 드라이버 오류(취소를 알리는 것도): 문장 시간 초과·다른 세션이 보낸 취소가 같은 코드(PostgreSQL 57014, SQL Server HY008)를
-  쓰므로 예외만 보고는 사용자의 취소인지 모른다.
+  적용됐는지 알리므로 오류 창을 그대로 연다. 드라이버 오류(취소를 알리는 것도): 문장 시간 초과·다른 세션이 보낸 취소가 같은 코드(PostgreSQL 57014, Oracle ORA-01013,
+  MariaDB·MySQL 1317, SQL Server HY008)를 쓰므로 예외만 보고는 사용자의 취소인지 모른다.
 - **드라이버의 취소 오류:** 취소를 누른 것을 아는 `ProgressDialog.runTask`가 정한다. 취소를 누른 뒤 작업이 감싸개만 두른 드라이버 오류로 끝났고 연결의 오류 도우미가 그것을
   `EXECUTION_CANCELED`로 보면(`DBExecUtils.isExecutionCanceled`) `DBInterruptedException`(원인으로 그 오류)으로 돌려준다. 그래서 `DBInterruptedException`을
   잡는 호출은 드라이버의 취소도 취소로 처리한다. 문구를 맞춰 보지 않는다.
@@ -2713,8 +2713,15 @@ Windows 11 150%와 `-Dsun.java2d.uiScale=1`, 한국어, SQLite 시험 연결). �
 - **오류 창을 거치지 않는 곳(2026-11-22, 앱 변경 #168):** 자기 메시지 상자를 띄우는 곳은 같은 판단으로 상자를 띄우지 않고, 화면 안의 글(미리 보기 영역 등)은
   중립 문구 `ErrorMessages.error_canceled`("작업을 취소했습니다.")를 보인다. 고친 곳과 취소가 오지 않아 제외한 곳은
   [cancel-busy-connection.md](cancel-busy-connection.md) "남은 곳".
-- **DB별 취소 오류의 분류(`DBPErrorAssistant.discoverErrorType`):** PostgreSQL 57014(`PostgreDataSource`), SQLSTATE HY008(`JDBCDataSource`, SQL Server의 "쿼리가 취소되었습니다")는
-  `EXECUTION_CANCELED`다. Oracle ORA-01013(상태 72000), MariaDB·MySQL 1317 "Query execution was interrupted"(70100), Altibase는 분류가 없어 그대로 오류 창에 보인다(고치지 않음).
+- **DB별 취소 오류의 분류(`DBPErrorAssistant.discoverErrorType`, 2026-11-22 앱 변경 #169):** 드라이버가 "문장이 취소됨"을 알리는 오류는 `EXECUTION_CANCELED`다.
+  PostgreSQL 57014(`PostgreDataSource`), SQLSTATE HY008(`JDBCDataSource`: SQL Server의 "쿼리가 취소되었습니다"·"쿼리 시간이 초과되었습니다", Altibase·ShardSphere의 4202
+  "Query canceled by client"), Oracle ORA-01013(`OracleDataSource`), MariaDB·MySQL 1317 "Query execution was interrupted"와 MySQL Connector/J의
+  `MySQLStatementCancelledException`(`MySQLDataSource`). 시간 초과 전용 코드(MariaDB 1969, MySQL 3024, Connector/J `MySQLTimeoutException`, Altibase 4164)는 분류하지 않는다.
+- **분류는 누구의 취소인지 말하지 않는다.** Oracle은 사용자의 `Statement.cancel`, `setQueryTimeout`, 다른 세션의 `ALTER SYSTEM CANCEL SQL`이 모두 같은
+  `SQLTimeoutException` ORA-01013(72000)이고, PostgreSQL은 세 경우 모두 57014(서버의 `statement_timeout`만 글이 다름), MariaDB·MySQL은 사용자의 취소와 다른 세션의
+  `KILL QUERY`가 같은 1317이다. 그래서 분류를 "사용자의 취소"로 받는 곳은 사용자가 취소를 요청했는지도 묻는다: `ProgressDialog.runTask`(취소 단추를 눌렀을 때만),
+  `SQLQueryExecuteJob`(실행·읽기 오류는 모니터가 취소됐을 때와 프로세스 안의 중단 `DBExecUtils.isInterruption`만 취소), `OracleUtils.getDDL`(같음). 측정과 전후는
+  [cancel-busy-connection.md](cancel-busy-connection.md) "드라이버 취소 오류의 분류".
 - `runTask`를 부르는 129곳의 분류와 남은 곳은 [cancel-busy-connection.md](cancel-busy-connection.md) "취소는 오류가 아님".
 
 ### 오래 걸린 작업 알림 (`SwingSystemAgent`)
@@ -3867,3 +3874,6 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-22 오류 창을 거치지 않는 곳의 취소(앱 변경 #168, `chromite/cancel-remaining-callers`): 백업 개체 읽기의 경고 상자, 가져오기·복사의 DDL 미리 보기.
   중립 문구를 `ErrorMessages.error_canceled`로 옮김. "사용자의 취소는 오류가 아님".
   회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창, 진행 창 작업의 취소).
+- 2026-11-22 DB별 취소 오류의 분류에 Oracle ORA-01013, MariaDB·MySQL 1317과 Connector/J의 취소 예외를 넣고, 쿼리 창(`SQLQueryExecuteJob`)과 Oracle DDL 읽기는 취소를
+  요청했을 때만 드라이버의 취소 보고를 취소로 봄(앱 변경 #169, `chromite/driver-cancel-classification`): "사용자의 취소는 오류가 아님"의 "DB별 취소 오류의 분류".
+  회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 진행 창 작업의 취소, 쿼리 창의 중지·시간 초과·다른 세션의 취소, Oracle DDL 보기, Query Manager의 읽기 오류).

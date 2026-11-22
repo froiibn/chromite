@@ -36,6 +36,7 @@ import com.seizia.chromite.model.struct.rdb.DBSIndexType;
  *   (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
  * - 2026-11-22 {@link #OPTIMIZER_VERSION_DEFAULT_23}: 23ai 이상에서 메타데이터 세션의 기본 옵티마이저 버전(10.2.0.5에서는 서버의
  *   DBMS_METADATA가 ORA-38802, 앱 변경 #162, docs/chromite/model-fixes.md #30)
+ * - 2026-11-22 취소 오류 코드 {@link #EC_USER_REQUESTED_CANCEL} (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class OracleConstants {
 
@@ -246,6 +247,8 @@ public class OracleConstants {
     public static final int EC_PASSWORD_WILL_EXPIRE = 28002;
     public static final int EC_PASSWORD_GRACE_PERIOD = 28098;
     public static final int EC_INSUFFICIENT_PRIVILEGES = 1031;
+    /** ORA-01013: the statement was canceled: by Statement.cancel, by a query timeout or by another session's ALTER SYSTEM CANCEL SQL. */
+    public static final int EC_USER_REQUESTED_CANCEL = 1013;
     /** DBMS_METADATA: object not found or not readable by the account (no ownership, no SELECT_CATALOG_ROLE). */
     public static final int EC_METADATA_OBJECT_NOT_FOUND = 31603;
     public static final int NUMERIC_MAX_PRECISION = 38;
