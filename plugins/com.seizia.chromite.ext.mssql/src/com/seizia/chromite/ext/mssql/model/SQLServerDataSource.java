@@ -86,6 +86,9 @@ import java.util.Properties;
  *   docs/chromite/connection-lifecycle.md "끊긴 세션의 오류 분류")
  * - 2026-11-15 연결할 때 읽는 엔진 에디션을 기억하고 {@link #supportsDatabaseFiles}로 알림: 탐색기의 파일·파일 그룹 노드와 명령은
  *   SQL Server 자체(에디션 1-4)에만 (앱 변경 #128, docs/chromite/mssql-storage.md)
+ * - 2026-11-22 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 기본 스키마를 원본 세션이 가진 이름으로 정함
+ *   ({@link SQLServerExecutionContext#setDefaultSchemaFrom}). 스키마 개체를 찾느라 기본 DB의 스키마 목록을 읽으면, Invalidate/Reconnect의
+ *   배타 잠금 아래에서 그 목록을 쥔 채 잠금을 기다리는 배경 작업과 서로 기다렸다(앱 변경 #165, docs/chromite/cancel-busy-connection.md)
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -463,10 +466,9 @@ public class SQLServerDataSource
                 if (defaultObject != null) {
                     ((SQLServerExecutionContext)context).setCurrentDatabase(monitor, defaultObject);
                 }
-                SQLServerSchema defaultSchema = ssContext.getDefaultSchema();
-                if (defaultSchema != null && !isDataWarehouseServer(monitor)) {
-                    ((SQLServerExecutionContext)context).setDefaultSchema(monitor, defaultSchema);
-                }
+                // By name: Invalidate/Reconnect runs this under the instance's exclusive lock, and reading the schema list
+                // here waited for a thread that held the list while it waited for that lock
+                ((SQLServerExecutionContext)context).setDefaultSchemaFrom(ssContext);
             }
         } else {
             ((SQLServerExecutionContext)context).refreshDefaults(monitor, true);

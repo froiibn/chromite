@@ -48,6 +48,8 @@ import java.sql.SQLException;
  *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되고 상태 줄에서 DB가 빠졌다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
  * - 2026-11-22 {@link #isDefaultSchemaLoaded}: {@link #getDefaultSchema}는 기본 데이터베이스의 스키마 목록이 없으면 서버에서 읽는다.
  *   개체 탐색기가 그림을 그리다 그 읽기를 하지 않도록 먼저 묻는다(앱 변경 #164, docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
+ * - 2026-11-22 {@link #setDefaultSchemaFrom}: 다시 열거나 새로 여는 세션이 기본 스키마를 이름으로 받음. 스키마 목록을 읽지 않으므로
+ *   Invalidate/Reconnect의 배타 잠금 아래에서 목록을 쥔 스레드를 기다리지 않는다(앱 변경 #165, docs/chromite/cancel-busy-connection.md)
  */
 public class SQLServerExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<SQLServerDatabase, SQLServerSchema> {
     private static final Log log = Log.getLog(SQLServerExecutionContext.class);
@@ -167,6 +169,35 @@ public class SQLServerExecutionContext extends JDBCExecutionContext implements D
 
         // Send notifications
         DBUtils.fireObjectSelectionChange(oldActiveSchema, schema, this);
+    }
+
+    /**
+     * Takes the default schema of another session of the connection (a session opened again by Invalidate/Reconnect, or a
+     * new one) by the name that session holds. The schema list is not read: Invalidate/Reconnect calls this under the
+     * instance's exclusive lock, which a thread reading the list may wait for. The change notice carries the schemas of
+     * the list in memory, none while it is not read.
+     */
+    void setDefaultSchemaFrom(@NotNull SQLServerExecutionContext source) {
+        String schemaName = source.activeSchemaName;
+        if (CommonUtils.isEmpty(schemaName) || schemaName.equals(activeSchemaName)) {
+            return;
+        }
+        SQLServerSchema oldActiveSchema = getLoadedDefaultSchema();
+        activeSchemaName = schemaName;
+        DBUtils.fireObjectSelectionChange(oldActiveSchema, getLoadedDefaultSchema(), this);
+    }
+
+    /**
+     * {@link #getDefaultSchema} from the schema list in memory only: null while the list is not read.
+     */
+    @Nullable
+    private SQLServerSchema getLoadedDefaultSchema() {
+        SQLServerDatabase defaultCatalog = CommonUtils.isEmpty(activeSchemaName) ? null : getDefaultCatalog();
+        if (defaultCatalog == null) {
+            return null;
+        }
+        SQLServerSchema schema = defaultCatalog.getSchema(activeSchemaName);
+        return schema != null ? schema : defaultCatalog.getSchema(SQLServerConstants.DEFAULT_SCHEMA_NAME);
     }
 
     @Override
