@@ -84,6 +84,9 @@ import java.util.regex.Pattern;
  *   새로 만들어, 다른 쿼리 창의 트랜잭션이 묻지 않고 롤백되고 search_path·임시 테이블·커밋 방식이 사라졌으며, 옛 인스턴스에 다시 열린
  *   세션(주·메타데이터 한 쌍과 쿼리 창 세션)이 연결을 끊은 뒤에도 서버에 남았다(앱 변경 #109,
  *   docs/chromite/connection-lifecycle.md "연결 새로 고침과 세션")
+ * - 2026-11-22 {@link #initializeContextState}: 다시 열거나 새로 여는 세션이 같은 데이터베이스의 원본 세션에서 기본 스키마를 이름으로 받고
+ *   ({@link PostgreExecutionContext#setDefaultSchemaFrom}) 스키마 목록을 읽지 않음. Invalidate/Reconnect의 배타 잠금 아래에서 그 목록을 쥔 채
+ *   잠금을 기다리는 배경 작업과 서로 기다렸다(앱 변경 #170, docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
  */
 public class PostgreDataSource extends JDBCDataSource implements DBSInstanceContainer, DBPAdaptable,
     DBPObjectStatisticsCollector {
@@ -461,13 +464,28 @@ public class PostgreDataSource extends JDBCDataSource implements DBSInstanceCont
         @Nullable JDBCExecutionContext initFrom
     ) throws DBException {
         PostgreExecutionContext postgreContext = (PostgreExecutionContext) context;
-        PostgreSchema activeSchema = null;
+        // Taken before refreshDefaults: Invalidate/Reconnect reopens a session from itself. A session of the same database
+        // gives the name: Invalidate/Reconnect runs this under the instance's exclusive lock, and reading the schema list
+        // here waited for a thread that held the list while it waited for that lock
+        String sourceSchemaName = null;
+        PostgreSchema otherDatabaseSchema = null;
         if (initFrom != null) {
-            activeSchema = ((PostgreExecutionContext)initFrom).getDefaultSchema();
+            PostgreExecutionContext source = (PostgreExecutionContext) initFrom;
+            if (source.getDefaultCatalog() == postgreContext.getDefaultCatalog()) {
+                sourceSchemaName = source.getCachedDefault().schemaName();
+            } else {
+                otherDatabaseSchema = source.getDefaultSchema();
+            }
         }
-        postgreContext.refreshDefaults(monitor, true);
-        if (activeSchema != null) {
-            postgreContext.setDefaultCatalog(monitor, activeSchema.getDatabase(), activeSchema, true);
+        postgreContext.refreshDefaults(monitor, true, false);
+        boolean schemaTaken = false;
+        if (sourceSchemaName != null) {
+            schemaTaken = postgreContext.setDefaultSchemaFrom(monitor, sourceSchemaName);
+        } else if (otherDatabaseSchema != null) {
+            postgreContext.setDefaultCatalog(monitor, otherDatabaseSchema.getDatabase(), otherDatabaseSchema, true);
+            schemaTaken = true;
+        }
+        if (schemaTaken) {
 
             try {
                 // Commit possible changes to search_path

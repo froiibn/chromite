@@ -604,7 +604,8 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 ### 편집기 열기
 
 - Object Explorer에서 연결이나 그 아래 아무 노드를 오른쪽 클릭 → **New Query**: 그 노드의 연결(`DBNDatabaseNode.getDataSourceContainer()`)로 연다.
-- **File > New Query (Ctrl+N)**, 메뉴 아래 도구 막대의 **New Query**: Object Explorer에서 선택한 연결, 없으면 활성 편집기의 연결. 둘 다 없으면 안내 메시지.
+- **File > New Query (Ctrl+N)**, 메뉴 아래 도구 막대의 **New Query**: 활성 문서 탭의 연결(쿼리 창이면 그 창의 현재 DB/스키마까지), 탭이 연결을 모르면
+  Object Explorer에서 선택한 연결. 둘 다 없으면 안내 메시지(2026-11-22, 아래 "새 쿼리는 활성 탭의 연결과 DB로").
 - 탭 제목은 SSMS처럼 `SQLQueryN.sql - <연결 이름>`(N은 실행 중 1부터 증가). 편집기 탭에는 닫기 단추가 있고(FlatLaf `tabClosable`, 탭 줄은 여러 줄로 감지 않고 한 줄 스크롤), 닫으면 실행 중인 쿼리를 취소한다.
   아직 파일 저장이 없어서 닫을 때 저장 여부를 묻지 않는다. (E단계에서 파일 열기·저장과 닫을 때 저장 확인을 넣고, 제목에 고침 표시 `*`를 붙였다)
 - 연결은 편집기를 열 때가 아니라 실행할 때 필요하면 연다(SSMS는 열 때 연결한다. 연결 실패를 실행 결과와 같은 곳에서 다루기 위해 실행 시점으로 했다).
@@ -3300,7 +3301,8 @@ SQLite 시험 DB(t1 3행, t2 5행, t3 7행)와 이 PC의 임시 PostgreSQL 17. �
 | Chromite Agent·MCP의 `open_sql_editor`: 대화에 연결이 없음 | `AiQueryWindowBridge.openSqlEditor` → `AiAssistantPanel.openInEditor` |
 | Query History·Query Manager에서 연 문장의 연결이 지워짐 | `MainFrame.openHistoryQuery`, `QueryManagerPanel` |
 
-File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 선택하십시오"라고 알린다(그대로).
+File > New Query는 연결이 없으면 창을 열지 않고 "먼저 연결을 선택하십시오"라고 알린다(그대로. 2026-11-22부터 활성 탭의 연결이 먼저다:
+아래 "새 쿼리는 활성 탭의 연결과 DB로").
 
 ### 창을 다른 서버에 다시 묶던 경로
 
@@ -3762,6 +3764,70 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 주 도구 막대(쿼리 라이브러리, 찾기), SQL Editor 도구 막대(주석, 예상 계획), Object Explorer(연결), 도구 창 머리글(×), 옵션 대화상자(테마)의 도구 설명을
 단추 아래에 그려 전·후를 찍었다(`D:\Tools\_scratch\icon-tooltips\shots\`). 문서 탭 밖의 창(작업 모니터, ERD, 디버거 등)은 코드로만 확인했다. 회귀 테스트는 실행하지 않았다.
 
+## 새 쿼리는 활성 탭의 연결과 DB로 (2026-11-22, 앱 변경 #172)
+
+사용자 요청: "새 쿼리"를 누르면 지금 열린 탭의 연결과 같은 데이터베이스로 새 쿼리 창이 열린다.
+
+### 동작
+
+File > New Query, 주 도구 막대의 New Query, Ctrl+N은 한 동작(`newQueryAction` → `MainFrame.newQuery`)이다.
+
+| 활성 문서 탭 | 새 창의 연결 | 새 창의 DB/스키마 |
+|---|---|---|
+| 연결이 있는 쿼리 창 | 그 창의 연결 | 그 창의 DB 선택이 보이는 값(`SqlEditorPanel.getDefaultObjectNames`): 선택 상자로 고른 것, 그 창에서 실행한 `USE`, `SET search_path`, `ALTER SESSION SET CURRENT_SCHEMA`를 서버에서 다시 읽은 것(swing-sql-editor-session-ui.md "현재 DB 따라가기"), 다시 시작 뒤 아직 연결하지 않은 창은 복원할 이름 |
+| DDL 탭, 테이블 디자이너, ERD, 개체 세부 정보, 작업 모니터 | 그 탭의 연결(탭이 이미 가진 접근자) | 연결의 기본값(Object Explorer에서 연 창과 같음) |
+| 탭 없음, 서버 없는 쿼리 창, 연결을 모르는 탭(비교, 찾기, Agent 작업 등) | Object Explorer에서 선택한 연결(전과 같음) | 연결의 기본값 |
+| 위 어느 것도 없음 | 창을 열지 않고 "먼저 연결을 선택하십시오"(전과 같음) | |
+
+자기 연결을 정하는 명령은 그대로다: Object Explorer의 노드 메뉴 New Query와 두 번 클릭, Query Library, Scripts, 기록, Query Manager, Chromite Agent,
+"Script as … New Query Editor Window". 도구 설명(`main_new_query_tip`, 영어·한국어)은 "활성 탭의 연결과 DB로, 없으면 개체 탐색기에서 선택한 연결로"다.
+
+### 설계
+
+- **DB/스키마를 넘기는 길은 복원과 같다.** 새 창에 이름(`DefaultObjectNames`)을 정해 두면(`SqlEditorPanel.setRestoredDefaults`) 새 창의 세션이 열릴 때
+  (`openWindowContext`, 연결된 연결이면 곧 기본 DB 읽기에서, 아니면 첫 실행에서) `DBExecUtils.setExecutionContextDefaults`로 그 세션에만 정한다.
+  다시 시작 뒤 복원(swing-query-window-recovery.md)이 이미 쓰는 길이라 DB마다 다른 코드가 없다: SQL Server·MariaDB/MySQL `USE`, PostgreSQL 다른 데이터베이스
+  (창의 격리 세션이 그 DB로 다시 연결, `PostgreExecutionContext.setDefaultCatalog`)와 `search_path`, Oracle `CURRENT_SCHEMA`. 실행 문맥은 이미 그 값이면
+  아무것도 보내지 않는다(SQL Server·MySQL·Oracle·PostgreSQL의 `setDefault*` 앞 비교).
+- **활성 창은 읽기만 한다.** 활성 창의 세션에는 아무것도 실행하지 않고 트랜잭션도 건드리지 않는다. 이름은 활성 창이 이미 기억한 값(EDT, 서버 왕복 없음)이다.
+- **세션을 함께 쓰는 창(연결 설정의 단일 연결, "Never")은 바꾸지 않는다.** 새 창도 주 세션을 쓰므로 바꿀 것이 없고, 복원 길의 기존 판단
+  (`context != windowContext.getOwn(...)`)이 그 이름을 적용하지 않는다. 묻지도, 커밋·롤백하지도 않는다.
+- **창이 모르는 값은 넘기지 못한다.** 저장 프로시저 안의 `USE`(끝나면 세션에 남지 않음), 목록에 없어 이름 글로만 보이는 현재 DB(Object Explorer 필터, DB
+  하나만 보이는 연결: 이름으로 객체를 찾지 못해 새 창은 연결 기본값), PostgreSQL에서 그 DB에 없는 스키마로 `SET search_path`(창이 search_path의 첫 목록 스키마를
+  보이므로 그 값), 연결이 끊긴 창(선택이 비어 있음). Altibase 계열은 스키마가 로그인 사용자로 고정이라 연결 기본값과 같다.
+- 다른 문서 탭은 이미 있는 접근자만 쓴다(`DdlViewerPanel.getDataSourceContainer`, `ObjectDetailsPanel.getNode`, `ActivityMonitorPanel.getContainer`,
+  `TableDesignerPanel.getSession().getTable()`, `ErdDiagramPanel.getRoot()`). 새 접근자는 더하지 않았다.
+
+### 바뀐 파일
+
+| 파일 | 내용 |
+|---|---|
+| `MainFrame` | `newQuery`: 활성 쿼리 창의 연결과 DB/스키마, 아니면 `getDocumentConnection`(새), 아니면 Object Explorer |
+| `SqlEditorPanel` | 주석만: `setRestoredDefaults`·`openWindowContext`·클래스 설명이 New Query도 그 길을 씀 |
+| `CoreMessages.properties`, `CoreMessages_ko.properties` | `main_new_query_tip` |
+
+### 확인 (이 브랜치 빌드, GCP 테스트 VM, 앱 안 시험 에이전트, OS 입력 없음)
+
+창의 선택·상태 줄, 새 창 세션에서 직접 읽은 현재 DB/스키마, 원래 창 세션의 같은 값. 증거 `D:\Tools\_scratch\new-query-active-tab\`.
+
+| 경우 | 전 | 후 |
+|---|---|---|
+| SQL Server 창 `USE chr_nqt_db`, Object Explorer에 PG 선택, 메뉴 | PG 창 | MS `chr_nqt_db`(`db_name()`), 원래 창 그대로(같은 SPID, `chr_nqt_db`) |
+| 그 새 창 선택 상자로 `chr_nqt_db2`, 도구 막대, Ctrl+N | MS `master` | MS `chr_nqt_db2` 두 번 |
+| PostgreSQL 데이터베이스 `chr_nqt_db` 창 `SET search_path TO chr_nqt_s`, 주 세션은 `postgres` | `postgres`/`public` | `chr_nqt_db`/`chr_nqt_s`(`current_database()`, `current_schema()`) |
+| Oracle 1522·1521 `ALTER SESSION SET CURRENT_SCHEMA = CHR_NQT_U` | `SYSTEM` | `CHR_NQT_U`(`SYS_CONTEXT`) |
+| MariaDB `USE chr_nqt_db`(기본 DB 없는 연결) | `< N/A >` | `chr_nqt_db`(`DATABASE()`) |
+| Altibase 7.3 | | `SYS`(바꿀 수 없음, 선택 꺼짐) |
+| 개체 세부 정보 탭(MA), PG 선택 | | MA |
+| 탭 없음, PG 선택 | PG | PG |
+| 단일 세션(MS "Never"), 수동 커밋 `INSERT` 뒤 메뉴·Ctrl+N | | 질문 없음, QM 기록 0, 서버 `sys.dm_tran_session_transactions`의 같은 트랜잭션 ID, `@@TRANCOUNT` 1 그대로 |
+| 연결 Refresh 뒤, DDL(`CREATE TABLE`) 뒤, 다시 연결 뒤 `USE` | | 각각 창의 DB로 엶 |
+
+새 창이 보내는 문장(Query Manager): Object Explorer에서 연 창과 같고, DB/스키마가 연결 기본값과 다를 때 하나가 더해진다(SQL Server `use chr_nqt_db`,
+Oracle `ALTER SESSION SET CURRENT_SCHEMA=CHR_NQT_U`, MariaDB `use chr_nqt_db`). PostgreSQL 다른 데이터베이스는 창의 세션을 그 DB로 다시 연결한다(연결 1번 더).
+원래 창의 세션에는 아무 문장도 가지 않았다. 다시 시작 뒤 복원은 저장하는 값(`getDefaultObjectNames`)이 새 창에서 이름을 돌려주는 것까지 보았고 다시 시작해 보지는 않았다.
+회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: New Query·Ctrl+N, 다시 시작 뒤 복원의 기본 DB 적용, Link with Editor).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -3947,6 +4013,8 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-22 문서 탭을 끌어서 순서 바꾸기(앱 변경 #171, `chromite/document-tab-reorder`): `DocumentTabDrag`(새 파일), 탭 옮기기를 `MainFrame.EditorTabbedPane#moveTab`
   하나로(`DocumentTabMenu`의 옮기기를 옮겨 옴), "문서 탭 메뉴"의 "끌어서 순서 바꾸기". 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 탭 고정·해제, 탭 누르기·닫기·
   오른쪽 클릭 메뉴, 다시 시작 후 복원의 창 순서).
+- 2026-11-22 New Query(메뉴, 도구 막대, Ctrl+N)가 활성 문서 탭의 연결로, 쿼리 창이면 그 창의 현재 DB/스키마로 엶. 탭이 연결을 모르면 전처럼 Object Explorer에서 고른 연결
+  (앱 변경 #172, `chromite/new-query-active-tab`): "새 쿼리는 활성 탭의 연결과 DB로". 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: New Query, 복원 뒤 기본 DB).
 - 2026-11-22 쿼리 창을 별도 창으로(앱 변경 #173, `chromite/document-tab-detach`): `QueryWindowFrame`(새 파일), 활성 편집기 규칙 `MainFrame#getActiveDocument`,
   문서 탭 메뉴의 새 창으로 이동과 탭 줄 밖에 놓기, "부동은 넣지 않음" 삭제. "쿼리 창을 별도 창으로". 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능:
   Query 메뉴·SQL Editor 도구 막대의 켜짐과 단축키, 탭 닫기·끝내기·모두 저장의 질문, Link with Editor, Outline, Find, 다시 시작 후 복원).

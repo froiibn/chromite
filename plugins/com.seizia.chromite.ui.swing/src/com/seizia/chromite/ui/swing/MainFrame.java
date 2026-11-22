@@ -331,6 +331,8 @@ import java.util.function.Supplier;
  * - 2026-11-15 macOS: 단축키가 처리한 Option 키의 글자(⌥P "π", ⌥X "≈")가 편집기에 들어가지 않게 {@link MacOptionKeyGuard}를 설치(앱 변경 #122)
  * - 2026-11-22 문서 탭을 끌어서 순서 바꾸기: {@link EditorTabbedPane#moveTab}이 탭 옮기기의 한 경로(옮기는 동안 선택 이벤트를 막고 한 번만 냄),
  *   놓을 자리 선, 닫기 단추 판정({@link DocumentTabDrag}, 앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-22 New Query(메뉴, 도구 막대, Ctrl+N)가 활성 문서 탭의 연결로, 쿼리 창이면 그 창의 현재 DB/스키마로 엶. 탭이 연결을 모르면
+ *   전처럼 Object Explorer에서 고른 연결({@link #newQuery}, 앱 변경 #172, docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
  * - 2026-11-22 쿼리 창을 별도 창으로({@link QueryWindowFrame}, 앱 변경 #173): 활성 편집기 규칙 {@link #getActiveDocument}와 탭의 쿼리 창
  *   {@link #getTabEditor}를 나눔, 탭 닫기와 창 닫기의 한 경로 {@link #closeQueryWindow}, 쿼리 창 보이기는 {@link #showQueryWindow}로, 별도 창의
  *   질문·파일 대화상자는 그 창 위에({@link #getDialogParent}), 모두 저장·끝내기·복원이 별도 창도 다룸, 단축키가 쓰는 결과 영역에 별도 창의 결과,
@@ -1192,13 +1194,25 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     // Query editors
 
     /**
-     * File > New Query and the tool bar: the connection selected in Object Explorer, else the one of the active editor.
+     * File &gt; New Query, the tool bar and Ctrl+N (app change #172): the connection of the active document tab, and for a
+     * query window also its default database/schema as its picker shows it; else the connection selected in Object
+     * Explorer. The active window is only read: its names reach the new window through the path of a restored window
+     * ({@link SqlEditorPanel#setRestoredDefaults}), which sets them on the new window's own session when that opens and
+     * never on a session it shares with other windows.
      */
     private void newQuery() {
-        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        SqlEditorPanel activeEditor = getActiveEditor();
+        if (activeEditor != null && activeEditor.getDataSourceContainer() != null) {
+            SqlEditorPanel.DefaultObjectNames defaults = activeEditor.getDefaultObjectNames();
+            SqlEditorPanel editor = openQueryEditor(activeEditor.getDataSourceContainer(), null);
+            if (defaults != null) {
+                editor.setRestoredDefaults(defaults);
+            }
+            return;
+        }
+        DBPDataSourceContainer dataSource = getDocumentConnection(getActiveDocument());
         if (dataSource == null) {
-            SqlEditorPanel activeEditor = getActiveEditor();
-            dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
+            dataSource = explorerPanel.getSelectedDataSource();
         }
         if (dataSource == null) {
             JOptionPane.showMessageDialog(this, CoreMessages.common_select_connection_first,
@@ -1206,6 +1220,28 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return;
         }
         openQuery(dataSource);
+    }
+
+    /**
+     * The connection of a document tab that is not a query window, from the accessors the tab kinds have already: a DDL tab,
+     * a designed table, a diagram's root, a details document's node, an Activity Monitor. Null for other kinds (a tab of
+     * no connection, or of several: compare, search, Agent jobs).
+     */
+    @Nullable
+    private static DBPDataSourceContainer getDocumentConnection(@Nullable Component document) {
+        DBSObject object = null;
+        if (document instanceof DdlViewerPanel viewer) {
+            return viewer.getDataSourceContainer();
+        } else if (document instanceof ObjectDetailsPanel details) {
+            return details.getNode().getDataSourceContainer();
+        } else if (document instanceof ActivityMonitorPanel monitor) {
+            return monitor.getContainer();
+        } else if (document instanceof TableDesignerPanel designer) {
+            object = designer.getSession().getTable();
+        } else if (document instanceof ErdDiagramPanel diagram) {
+            object = diagram.getRoot();
+        }
+        return object != null && object.getDataSource() != null ? object.getDataSource().getContainer() : null;
     }
 
     @Override
@@ -1502,11 +1538,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 linkExplorerToDocument();
             }
         });
-        editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
-        int index = documentTabs.indexOfComponent(editor);
-        documentTabs.setToolTipTextAt(index, editor.getToolTip());
-        documentTabs.setSelectedIndex(index);
+        addQueryTab(editor);
         SwingUtilities.invokeLater(editor::focusEditor);
         return editor;
     }
@@ -1655,8 +1687,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * A query window's tab as the last one, selected: a window that comes back from its own window. New windows get theirs
-     * in {@link #openQueryEditor}.
+     * A query window's tab as the last one, selected: a new window ({@link #openQueryEditor}) and one that comes back from
+     * its own window.
      */
     private void addQueryTab(@NotNull SqlEditorPanel editor) {
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
