@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
+import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
@@ -113,6 +114,8 @@ import java.util.Set;
  *   서버가 거절하는 INSERT를 만들었다 (앱 변경 #157, docs/chromite/swing-data-transfer.md "행을 받지 않는 객체")
  * - 2026-11-22 "대상 비우기"는 모델이 잘라내기나 지우기를 받는 대상에서만 켬({@link DataTransferObjects#acceptsEmptying}): 넣기만 받는
  *   대상에서는 비울 수 없으므로 고를 수 없게 한다 (앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
+ * - 2026-11-22 DDL 미리 보기에서 사용자의 취소({@link ErrorText#isUserCancel})는 "DDL 오류" 대신 중립 문구: 취소를 실패로 보였다
+ *   (앱 변경 #168, docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -779,7 +782,8 @@ final class DataImportWizard extends DataTransferWizard {
                     monitor -> DatabaseCopyMappings.generateTableDdl(monitor, consumerSettings, newMapping));
                 text = ddl == null ? DbCopyMessages.ddl_no_changes : ddl;
             } catch (DBException e) {
-                text = NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
+                // The user's own cancel is not a DDL error; the neutral text also replaces the DDL shown before
+                text = ErrorText.isUserCancel(e) ? ErrorMessages.error_canceled : NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
             }
             ddlArea.setText(text);
             ddlArea.setCaretPosition(0);

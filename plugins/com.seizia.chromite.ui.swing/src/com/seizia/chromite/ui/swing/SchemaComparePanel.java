@@ -40,7 +40,6 @@ import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.model.struct.rdb.DBSTable;
 import com.seizia.chromite.model.struct.rdb.DBSView;
-import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.tools.compare.schema.SchemaCompareItem;
 import com.seizia.chromite.tools.compare.schema.SchemaCompareResult;
@@ -97,6 +96,8 @@ import java.util.Objects;
  * - 2026-11-08 최초 작성 (docs/chromite/schema-compare.md)
  * - 2026-11-12 DDL 나란히 보기를 텍스트 비교와 함께 쓰는 {@link TextDiffView}로 옮김: 줄 비교는 LCS 대신 모델의 Myers {@code Diff}(EDT 밖),
  *   좌우 맞춤 빈 행·바뀐 낱말 표시·스크롤 맞춤이 더해짐, 색과 줄 앞뒤 공백 무시는 그대로 (docs/chromite/text-compare.md)
+ * - 2026-11-22 {@code showError}의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뜀(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class SchemaComparePanel extends JPanel implements ToolDocument {
 
@@ -714,9 +715,7 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
     }
 
     private void showError(@NotNull String message, @NotNull DBException e) {
-        if (e instanceof DBInterruptedException) {
-            return;
-        }
+        // The user's own cancel shows nothing: showError leaves it out (ErrorText.isUserCancel)
         DBWorkbench.getPlatformUI().showError(CompareMessages.compare_title, message, e);
     }
 

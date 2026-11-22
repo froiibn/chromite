@@ -35,6 +35,8 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 고급 백업·복원: 백업 범위(native_pg_scope*), 개체 페이지(native_objects_*), pg_dumpall 옵션(native_pg_all_*),
  *   도구 계정·추가 인수(native_tool_*, native_extra_args*), MySQL --compress (docs/chromite/swing-backup-restore.md "고급 백업·복원")
+ * - 2026-11-22 task_message_canceled를 {@code ErrorMessages.error_canceled}로 옮김: DDL 미리 보기도 쓰는 일반 문구(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 public class BackupRestoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.BackupRestoreMessages"; //$NON-NLS-1$
@@ -59,7 +61,6 @@ public class BackupRestoreMessages extends NLS {
     public static String task_status_failed;
     public static String task_status_canceling;
     public static String task_status_canceled;
-    public static String task_message_canceled;
     public static String task_button_script;
     public static String task_button_ok;
     public static String task_button_cancel;

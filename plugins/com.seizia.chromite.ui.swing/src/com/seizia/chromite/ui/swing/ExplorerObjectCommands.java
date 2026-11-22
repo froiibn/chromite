@@ -137,6 +137,8 @@ import java.util.function.Supplier;
  * - 2026-11-16 이름 바꾸기·삭제를 종류({@link #appliesRename}, {@link #appliesDelete}, 메뉴에 보임)와 지금 상태({@link #canRename},
  *   {@link #canDelete})로 나눔, 복사·Generate SQL은 해당할 때만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-22 Generate SQL 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-22 개체 변경 실행 오류의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뛰고, 남은 변경 버리기는 전처럼 늘 함(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class ExplorerObjectCommands {
 
@@ -835,10 +837,8 @@ final class ExplorerObjectCommands {
         } catch (DBException e) {
             // Objects changed before the failing one stay changed (each command commits); the rest are discarded
             discard(prepared.changes());
-            if (!(e instanceof DBInterruptedException)) {
-                String objectName = current[0] == null ? "" : DBUtils.getObjectFullName(current[0], DBPEvaluationContext.UI); //$NON-NLS-1$
-                DBWorkbench.getPlatformUI().showError(title, NLS.bind(errorMessage, objectName), e);
-            }
+            String objectName = current[0] == null ? "" : DBUtils.getObjectFullName(current[0], DBPEvaluationContext.UI); //$NON-NLS-1$
+            DBWorkbench.getPlatformUI().showError(title, NLS.bind(errorMessage, objectName), e);
         }
     }
 
