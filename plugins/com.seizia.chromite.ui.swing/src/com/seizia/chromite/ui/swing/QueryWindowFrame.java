@@ -54,15 +54,17 @@ import java.util.Set;
  *     <li>제목은 탭 제목과 제품 이름, 아이콘은 제품 창 아이콘. 작업 표시줄에 따로 보이는 보통 창이고 항상 위가 아니다(소유 창 없음). 크기는 쿼리
  *     창이 메인 창에서 차지하던 크기다({@link #place}): 편집기 카드는 문서 탭의 편집기 영역, 결과 카드는 그 아래 Results 카드의 크기이고 분할선도 그
  *     자리다. 보던 것을 그대로 보이려는 것이다(메인 창 크기의 비율로 정하면 결과 영역의 고정 줄만 남아 그리드 행이 보이지 않았다). 카드마다 편집기
- *     {@link #MIN_EDITOR_LINES}줄, 그리드 {@link #MIN_GRID_ROWS}행은 보이게 하고(메인 창이 그 카드를 보이지 않을 때의 크기도 이것), 폭은 도구 막대
- *     줄과 상태 표시줄이 다 들어가게 한다. 위치는 놓은 자리(끌어서 뗄 때) 또는 메인 창에서 계단식이며, 어느 화면에도 다 들어가지 않으면 그 점이
+ *     {@link #MIN_EDITOR_LINES}줄, 그리드 {@link #MIN_GRID_ROWS}행은 보이게 하고, 폭은 도구 막대 줄과 상태 표시줄이 다 들어가게 한다. 메인 창이
+ *     편집기 아래에 보이지 않는 결과 카드(숨김, 옆)는 그 최소 높이를 편집기 영역에서 덜어 창이 쿼리 창이 차지하던 높이를 넘지 않게 한다. 창은 화면
+ *     작업 영역의 {@link #SCREEN_SHARE} 이하다(메인 창 위가 아니라 옆에 두는 창이라, 최대화한 메인 창에서도 화면을 덮지 않게). 줄이는 높이는 편집기에서
+ *     뺀다. 최소 줄·행과 도구 막대 폭이 이 한도보다 앞선다. 위치는 놓은 자리(끌어서 뗄 때) 또는 메인 창에서 계단식이며, 어느 화면에도 다 들어가지 않으면 그 점이
  *     있는 화면(없으면 메인 창의 화면) 안으로 옮기고 줄인다({@link #fitToScreen}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-22 최초 작성(앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
- * - 2026-11-22 크기를 메인 창의 60%(편집기 60%) 대신 메인 창에서의 편집기 영역과 Results 카드 크기로, 최소 줄·행 수는 컴포넌트의 줄·행 높이로
- *   (앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-22 크기를 메인 창의 60%(편집기 60%) 대신 메인 창에서의 편집기 영역과 Results 카드 크기로, 최소 줄·행 수는 컴포넌트의 줄·행 높이로,
+ *   화면 작업 영역의 2/3 이하로, 화면 고르기를 {@link #fitToScreen}과 함께 쓰는 getUsableArea로 (앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class QueryWindowFrame extends JFrame {
 
@@ -93,9 +95,9 @@ final class QueryWindowFrame extends JFrame {
      */
     private static final double EDITOR_SHARE = 0.6;
     /**
-     * Lines of the editor and rows of the result grid a new window shows at least: what it shows when the main window gives
-     * no size to keep (the Results card hidden or beside the documents, a very small main window). Counted in the
-     * components' own line and row heights, so that they hold at every scale and density.
+     * Lines of the editor and rows of the result grid a new window shows at least, and the size of a card the main window
+     * does not give (the results when the Results card is hidden or beside the documents, both cards when the main window
+     * is minimized). Counted in the components' own line and row heights, so that they hold at every scale and density.
      */
     private static final int MIN_EDITOR_LINES = 10;
     private static final int MIN_GRID_ROWS = 5;
@@ -104,6 +106,11 @@ final class QueryWindowFrame extends JFrame {
      * about one grid row high each; the results add two tool tab rows (Grid… and Result N).
      */
     private static final int RESULT_VIEWER_LINES = 4;
+    /**
+     * Largest share of the screen's usable area, in each dimension, a new window takes: a window to put beside the main
+     * window, not over it. A maximized main window would otherwise give a window as large as the screen.
+     */
+    private static final double SCREEN_SHARE = 2.0 / 3;
     private static final int CASCADE_STEP = 32;
 
     private final SqlEditorPanel editor;
@@ -242,10 +249,13 @@ final class QueryWindowFrame extends JFrame {
      * Sizes and places a new window: at the point where the tab was dropped, or cascaded from the main window.
      * <p>
      * The cards get the size the query window had in the main window, so that the user keeps seeing what they saw: the
-     * editor area of the document tabs above, the Results card below, the divider between them. Each card is at least
-     * {@link #MIN_EDITOR_LINES} lines or the results with {@link #MIN_GRID_ROWS} grid rows, which is also what a card gets
-     * that the main window does not show; the window is at least as wide as its tool bar row and status bar. The frame adds
-     * those two rows and its decoration ({@link #pack()}).
+     * editor area of the document tabs above, the Results card below, the divider between them. A Results card the main
+     * window does not show below the editor (hidden, beside) gets its floor out of the editor area, so the window is as
+     * high as the area the query window had. Floors: the editor {@link #MIN_EDITOR_LINES} lines, the results
+     * {@link #MIN_GRID_ROWS} grid rows, the width of the tool bar row and status bar. The frame adds those two rows and its
+     * decoration ({@link #pack()}). The frame is at most {@link #SCREEN_SHARE} of the usable screen area in each
+     * dimension; the height it takes away comes from the editor, down to its floor. The floors win over that limit, and
+     * {@link #fitToScreen} over everything.
      *
      * @param drop        screen point where the tab was dropped, or null
      * @param index       how many separate windows are open already (the cascade step)
@@ -253,19 +263,13 @@ final class QueryWindowFrame extends JFrame {
      * @param resultsSize the main window's Results card content below the editor, or null if it is not there
      */
     void place(@Nullable Point drop, @NotNull Window main, int index, @Nullable Dimension editorSize, @Nullable Dimension resultsSize) {
+        int minEditorHeight = getMinEditorHeight();
         int width = Math.max(editorSize != null ? editorSize.width : 0, resultsSize != null ? resultsSize.width : 0);
-        int editorHeight = Math.max(editorSize != null ? editorSize.height : 0, getMinEditorHeight());
         int resultsHeight = Math.max(resultsSize != null ? resultsSize.height : 0, getMinResultsHeight());
-        Insets editorInsets = editorCard.getInsets();
-        Insets resultsInsets = resultsCard.getInsets();
-        editorCard.setPreferredSize(new Dimension(width + editorInsets.left + editorInsets.right, editorHeight + editorInsets.top + editorInsets.bottom));
-        resultsCard.setPreferredSize(new Dimension(width + resultsInsets.left + resultsInsets.right, resultsHeight + resultsInsets.top + resultsInsets.bottom));
-        pack();
-        resultsCardHeight = resultsCard.getPreferredSize().height;
-        // Only for this size: later the user's resizing and the divider decide
-        editorCard.setPreferredSize(null);
-        resultsCard.setPreferredSize(null);
-        Dimension size = getSize();
+        int editorHeight = editorSize == null ? 0 : resultsSize != null ? editorSize.height
+            // The results come out of the column the editor had alone
+            : editorSize.height - resultsHeight - split.getDividerSize();
+        editorHeight = Math.max(editorHeight, minEditorHeight);
         Point location;
         if (drop != null) {
             // The pointer stays over the window's title bar, near its left end
@@ -274,7 +278,30 @@ final class QueryWindowFrame extends JFrame {
             int step = UIScale.scale(CASCADE_STEP) * (index + 1);
             location = new Point(main.getX() + step, main.getY() + step);
         }
-        setBounds(fitToScreen(new Rectangle(location, size), main.getGraphicsConfiguration()));
+        packCards(width, editorHeight, resultsHeight);
+        Rectangle area = getUsableArea(new Rectangle(location, getSize()), main.getGraphicsConfiguration());
+        int extraWidth = getWidth() - (int) (area.width * SCREEN_SHARE);
+        int extraHeight = getHeight() - (int) (area.height * SCREEN_SHARE);
+        if (extraWidth > 0 || extraHeight > 0) {
+            // pack() keeps the tool bar row's and status bar's width; the results keep their height
+            packCards(Math.max(0, width - Math.max(0, extraWidth)), Math.max(minEditorHeight, editorHeight - Math.max(0, extraHeight)), resultsHeight);
+        }
+        resultsCardHeight = resultsHeight + resultsCard.getInsets().top + resultsCard.getInsets().bottom;
+        setBounds(fitToScreen(new Rectangle(location, getSize()), main.getGraphicsConfiguration()));
+    }
+
+    /**
+     * Packs the frame around cards of these content sizes; the preferred sizes are only for this size, later the user's
+     * resizing and the divider decide.
+     */
+    private void packCards(int width, int editorHeight, int resultsHeight) {
+        Insets editorInsets = editorCard.getInsets();
+        Insets resultsInsets = resultsCard.getInsets();
+        editorCard.setPreferredSize(new Dimension(width + editorInsets.left + editorInsets.right, editorHeight + editorInsets.top + editorInsets.bottom));
+        resultsCard.setPreferredSize(new Dimension(width + resultsInsets.left + resultsInsets.right, resultsHeight + resultsInsets.top + resultsInsets.bottom));
+        pack();
+        editorCard.setPreferredSize(null);
+        resultsCard.setPreferredSize(null);
     }
 
     /**
@@ -303,6 +330,20 @@ final class QueryWindowFrame extends JFrame {
      */
     @NotNull
     static Rectangle fitToScreen(@NotNull Rectangle bounds, @Nullable GraphicsConfiguration fallback) {
+        Rectangle area = getUsableArea(bounds, fallback);
+        int width = Math.min(bounds.width, area.width);
+        int height = Math.min(bounds.height, area.height);
+        int x = Math.clamp(bounds.x, area.x, area.x + area.width - width);
+        int y = Math.clamp(bounds.y, area.y, area.y + area.height - height);
+        return new Rectangle(x, y, width, height);
+    }
+
+    /**
+     * The usable area (bounds without the task bar and the like) of the screen that bounds belong to: the one that holds
+     * their top left corner, else the one they overlap most, else the given screen, else the default one.
+     */
+    @NotNull
+    private static Rectangle getUsableArea(@NotNull Rectangle bounds, @Nullable GraphicsConfiguration fallback) {
         GraphicsConfiguration screen = null;
         int overlap = 0;
         for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
@@ -324,13 +365,8 @@ final class QueryWindowFrame extends JFrame {
         }
         Rectangle area = screen.getBounds();
         Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(screen);
-        area = new Rectangle(area.x + insets.left, area.y + insets.top, area.width - insets.left - insets.right,
+        return new Rectangle(area.x + insets.left, area.y + insets.top, area.width - insets.left - insets.right,
             area.height - insets.top - insets.bottom);
-        int width = Math.min(bounds.width, area.width);
-        int height = Math.min(bounds.height, area.height);
-        int x = Math.clamp(bounds.x, area.x, area.x + area.width - width);
-        int y = Math.clamp(bounds.y, area.y, area.y + area.height - height);
-        return new Rectangle(x, y, width, height);
     }
 
     /**
