@@ -48,6 +48,13 @@ import java.util.stream.Collectors;
  * (docs/chromite/swing-sql-editor-session-ui.md "현재 DB 따라가기") 읽기가 실패해도 알던 값을 지우지 않고, 연결 설정의 역할(SET ROLE)은
  * 세션을 시작할 때만 정한다. 수동 커밋 세션에 트랜잭션이 없을 때는 BEGIN 없이 읽는다: 그냥 읽으면 pgjdbc가 BEGIN을 먼저 보내, 사용자가 커밋한
  * 뒤에도 앱이 연 트랜잭션이 세션에 남아 스냅숏(xmin)과 카탈로그 잠금을 쥔다(앱이 사용자 세션에 묻지 않은 트랜잭션을 여는 것).
+ * <p>
+ * 기본 스키마는 OID가 아니라 이름({@code activeSchemaName})으로 기억하고 개체는 메모리에 있는 스키마 목록에서만 찾는다. 세션을 여는 길
+ * ({@code PostgreDataSource.initializeContextState}: 연결, Invalidate/Reconnect, 쿼리 창의 새 세션)은 스키마 목록을 읽지 않는다
+ * ({@link #refreshDefaults(DBRProgressMonitor, boolean, boolean)}). Invalidate/Reconnect는 인스턴스의 배타 잠금을 쥔 채 이 길을 지나는데, 목록을
+ * 읽는 다른 스레드는 목록 캐시의 모니터를 쥔 채 닫힌 메타데이터 세션을 다시 열려고 그 잠금을 기다린다. 목록이 없을 때는 이름만 두고, 목록을
+ * 읽으면 {@link #getDefaultSchema}가 다시 묻지 않고 그 이름의 개체를 돌려준다. 쿼리 창이 실행 뒤에 부르는 {@link #refreshDefaults}는 잠금
+ * 밖이라 전처럼 목록을 읽는다(다른 세션이 만든 스키마 포함).
  *
  * 변경 이력:
  * - 2026-11-11 refreshDefaults: 읽은 뒤에 값을 바꿈(중단된 트랜잭션에서 읽기 실패 시 활성 스키마가 사라지던 것), SET ROLE은 시작할 때만(앱 변경 #33)
@@ -56,11 +63,16 @@ import java.util.stream.Collectors;
  * - 2026-11-15 refreshDefaults: 트랜잭션이 없는 수동 커밋 세션에서는 BEGIN 없이 읽음({@link #queryWithoutBegin}). 쿼리 창이 커밋·롤백 뒤,
  *   DDL 뒤 새로 고침 뒤에 기본 스키마를 읽으면 세션이 idle in transaction으로 남아 xmin(VACUUM이 지우지 못함)과 pg_settings 잠금을 쥐었고,
  *   상태 줄은 아무것도 보이지 않았다(앱 변경 #111, docs/chromite/idle-transactions.md "앱이 사용자 세션에 연 트랜잭션")
+ * - 2026-11-22 기본 스키마를 이름으로 기억({@code activeSchemaId} 삭제), 세션을 여는 길은 스키마 목록을 읽지 않음, {@link #setDefaultSchemaFrom}.
+ *   Invalidate/Reconnect가 배타 잠금을 쥔 채 {@code setActiveSchema}의 목록 읽기에서, 목록을 쥔 채 그 잠금을 기다리던 배경 작업(쿼리 창
+ *   자동 완성)과 서로 기다려 연결이 앱을 다시 시작할 때까지 멈췄다(앱 변경 #170, docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
  */
 public class PostgreExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<PostgreDatabase, PostgreSchema> {
     private final List<String> searchPath = new ArrayList<>();
     private String activeUser;
-    private long activeSchemaId;
+    // The server's current schema (current_schema()) or the schema Chromite put first in search_path
+    @Nullable
+    private String activeSchemaName;
     private boolean isolatedContext;
 
     public PostgreExecutionContext(@NotNull PostgreDatabase database, @NotNull String purpose) {
@@ -89,8 +101,39 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
     @Nullable
     @Override
     public PostgreSchema getDefaultSchema() {
-        // Get value from cached, used in getCachedDefault()
-        return getDefaultCatalog().getSchema(activeSchemaId);
+        // From the schema list in memory only, used in getCachedDefault()
+        PostgreDatabase database = getDefaultCatalog();
+        if (activeSchemaName != null) {
+            PostgreSchema schema = database.schemaCache.getCachedObject(activeSchemaName);
+            if (schema != null) {
+                return schema;
+            }
+        }
+        if (!database.schemaCache.isFullyCached()) {
+            // Not read yet: whether the current schema is listed is not known
+            return null;
+        }
+        // The current schema is not listed (hidden by a filter): the first listed schema of the search path
+        for (String schemaName : searchPath) {
+            PostgreSchema schema = database.schemaCache.getCachedObject(schemaName);
+            if (schema != null) {
+                return schema;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The name of the default schema: the schema {@link #getDefaultSchema} finds while the schema list is in memory,
+     * else the name this session was given (the list is not read yet).
+     */
+    @Nullable
+    private String getDefaultSchemaName() {
+        PostgreSchema schema = getDefaultSchema();
+        if (schema != null) {
+            return schema.getName();
+        }
+        return getDefaultCatalog().schemaCache.isFullyCached() ? null : activeSchemaName;
     }
 
     @Override
@@ -164,14 +207,14 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
         boolean reflect,
         boolean force
     ) throws DBException {
-        if (activeSchemaId == schema.getObjectId() && !force) {
+        var oldActiveSchema = getDefaultSchema();
+        if (oldActiveSchema != null && oldActiveSchema.getObjectId() == schema.getObjectId() && !force) {
             return false;
         }
         if (schema.isExternal() || schema.isSystem()) {
             return false;
         }
 
-        var oldActiveSchema = getDefaultSchema();
         setSearchPath(monitor, schema.getName());
 
         if (reflect) {
@@ -183,6 +226,16 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
 
     @Override
     public boolean refreshDefaults(@NotNull DBRProgressMonitor monitor, boolean useBootstrapSettings) throws DBException {
+        return refreshDefaults(monitor, useBootstrapSettings, true);
+    }
+
+    /**
+     * Reads the session's search path, current schema and user.
+     *
+     * @param readSchemaList false on the path that opens a session (see the class comment): the schema list is not read,
+     *                       the current schema is kept by name until it is
+     */
+    boolean refreshDefaults(@NotNull DBRProgressMonitor monitor, boolean useBootstrapSettings, boolean readSchemaList) throws DBException {
         // Read first, then replace: a read that fails (a transaction aborted by an error) keeps the values known before
         // instead of leaving no active schema. The query window reads the defaults again after its runs.
         String searchPathStr;
@@ -212,13 +265,12 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
                 throw new DBCException(e, this);
             }
         }
-        this.activeSchemaId = 0;
         this.activeUser = null;
         this.searchPath.clear();
         for (String str : searchPathStr.split(",")) {
             searchPath.add(DBUtils.getUnQuotedIdentifier(getDataSource(), str.trim()));
         }
-        setActiveSchema(monitor, result.getFirst());
+        setActiveSchema(monitor, result.getFirst(), readSchemaList);
         setActiveUser(result.getLast());
 
         if (useBootstrapSettings) {
@@ -285,28 +337,21 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
         }
     }
 
-    private void setActiveSchema(@NotNull DBRProgressMonitor monitor, @Nullable String activeSchemaName) throws DBException {
-        // Pre-cache schemas, we need them anyway
-        getDefaultCatalog().getSchemas(monitor);
-
-        if (CommonUtils.isNotEmpty(activeSchemaName)) {
-            // A schema created after the list was read (another session) is read too: the server says it is the current one
-            var activeSchema = getDefaultCatalog().schemaCache.getObjectReadingNew(monitor, getDefaultCatalog(), activeSchemaName);
-            if (activeSchema != null) {
-                activeSchemaId = activeSchema.getObjectId();
+    private void setActiveSchema(
+        @NotNull DBRProgressMonitor monitor,
+        @Nullable String activeSchemaName,
+        boolean readSchemaList
+    ) throws DBException {
+        if (readSchemaList) {
+            // Pre-cache schemas, we need them anyway
+            getDefaultCatalog().getSchemas(monitor);
+            if (CommonUtils.isNotEmpty(activeSchemaName)) {
+                // A schema created after the list was read (another session) is read too: the server says it is the current one
+                getDefaultCatalog().schemaCache.getObjectReadingNew(monitor, getDefaultCatalog(), activeSchemaName);
             }
         }
-
-        if (activeSchemaId == 0) {
-            // This may happen
-            for (String schemaName : searchPath) {
-                var activeSchema = getDefaultCatalog().getSchema(monitor, schemaName);
-                if (activeSchema != null) {
-                    activeSchemaId = activeSchema.getObjectId();
-                    break;
-                }
-            }
-        }
+        // The schema object comes from the list when getDefaultSchema is asked (the search path when this one is not listed)
+        this.activeSchemaName = CommonUtils.isEmpty(activeSchemaName) ? null : activeSchemaName;
     }
 
     private void setActiveUser(@Nullable String activeUser) {
@@ -333,19 +378,43 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
     public List<String> computeSearchPath() {
         var path = new ArrayList<>(searchPath);
 
-        var activeSchema = getDefaultSchema();
-        if (activeSchema != null) {
-            path.remove(activeSchema.getName());
-            path.addFirst(activeSchema.getName());
+        var activeSchemaName = getDefaultSchemaName();
+        if (activeSchemaName != null) {
+            path.remove(activeSchemaName);
+            path.addFirst(activeSchemaName);
         }
 
         return List.copyOf(path);
     }
 
+    /**
+     * Takes the default schema of another session of the same database (a session opened again by Invalidate/Reconnect,
+     * or a new one) by its name, without reading the schema list (see the class comment). While the list is in memory
+     * this is "Set as Default" with that schema (its checks and change notice); while it is not, the name goes first in
+     * the search path and no notice is sent: the Object Explorer draws the default once the list is read.
+     *
+     * @return whether the search path was set
+     */
+    boolean setDefaultSchemaFrom(@NotNull DBRProgressMonitor monitor, @NotNull String schemaName) throws DBException {
+        PostgreSchema schema = getDefaultCatalog().schemaCache.getCachedObject(schemaName);
+        if (schema != null) {
+            changeDefaultSchema(monitor, schema, true, true);
+            return true;
+        }
+        if (getDefaultCatalog().schemaCache.isFullyCached()) {
+            // The list read without it: the schema is gone
+            return false;
+        }
+        setSearchPath(monitor, schemaName);
+        return true;
+    }
+
     private void setSearchPath(@NotNull DBRProgressMonitor monitor, @NotNull String activeSchemaName) throws DBException {
-        var activeSchema = getDefaultCatalog().getSchema(monitor, activeSchemaName);
-        if (activeSchema != null) {
-            activeSchemaId = activeSchema.getObjectId();
+        // No list read (see the class comment): while the list is not in memory the name is taken as it is (the server
+        // skips a search path schema that does not exist); a list that does not hold it says the schema does not exist
+        var schemaCache = getDefaultCatalog().schemaCache;
+        if (!schemaCache.isFullyCached() || schemaCache.getCachedObject(activeSchemaName) != null) {
+            this.activeSchemaName = activeSchemaName;
         }
 
         var searchPath = computeSearchPath().stream()
@@ -388,8 +457,7 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
     @Override
     public DBCCachedContextDefaults getCachedDefault() {
         //Method get cashed value
-        String schemaName = (getDefaultSchema() != null) ? getDefaultSchema().getName() : null;
-        return new DBCCachedContextDefaults(getOwnerInstance().getName(), schemaName);
+        return new DBCCachedContextDefaults(getOwnerInstance().getName(), getDefaultSchemaName());
     }
 
     @Override
