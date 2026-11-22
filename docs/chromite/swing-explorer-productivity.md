@@ -28,6 +28,7 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 4순위 B8 묶음�
 | `ObjectDetailsPanel`(새 파일) | 개체 세부 정보 문서 탭(`ToolDocument`): 폴더면 목록 하나, 객체면 자식 폴더·항목 묶음마다 탭 |
 | `CopySpecialDialog`(새 파일) | 선택하여 복사 |
 | `DefaultObjectCommands`(새 파일) | 기본값으로 설정(연결 주 세션) |
+| `DBNUtils.isDefaultElement`, `DBCExecutionContextDefaults.isDefaultSchemaLoaded`(Oracle·SQL Server·Snowflake 구현) | 기본값 굵게 표시: DB를 읽지 않고 답함("기본값 굵게 표시") |
 | `ObjectChooserDialog`(새 파일) | Ctrl+9 / Ctrl+0의 걸러 고르는 목록 |
 | `ConnectionCommands.duplicate` | 연결 복제 |
 | `ExitTransactionCheck.confirmDefaultChange` | 기본값을 다른 데이터베이스 인스턴스로 옮기기 전 트랜잭션 질문 |
@@ -83,6 +84,20 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 4순위 B8 묶음�
   행을 두 번 누르거나 Enter를 누르면 트리에서 그 노드를 고른다. 연결 노드의 세부 정보는 연결된 연결에서만 켠다(데이터베이스 목록을 읽으면 연결되므로).
 - **기본값으로 설정은 주 세션만.** Swing 쿼리 창은 대개 자기 세션을 가지며(쿼리 창마다 별도 연결) 창의 DB 콤보와 Ctrl+0이 그 세션을 바꾼다.
   그래서 이 명령은 SWT와 달리 활성 편집기 문맥은 바꾸지 않고 주 세션만 바꾼다. 주 세션을 같이 쓰는 쿼리 창과 새로 여는 쿼리 창(주 세션의 기본값을 복사)이 따른다. 바꾼 뒤 그 연결의 쿼리 창 DB 콤보를 다시 읽는다.
+- **기본값 굵게 표시(2026-11-22, 앱 변경 #164).** 트리는 줄을 그릴 때마다(이벤트 스레드) `DBNUtils.isDefaultElement`로 그 데이터베이스·스키마가
+  주 세션의 기본값인지 묻는다. **그리기는 DB를 읽지 않는다.** 전에는 Oracle(`OracleExecutionContext.getDefaultSchema` → 스키마 목록)과
+  SQL Server·Snowflake(기본 데이터베이스의 스키마 목록)가 목록이 비어 있으면 그 자리에서 서버에서 읽었다. 목록은 연결 Refresh(`OracleDataSource.refreshObject`가
+  먼저 비우고 `initialize` 뒤에 다시 읽음)와 쿼리 창의 DDL 뒤 새로 고침(`SqlMetadataRefresh`가 탐색기 노드를 둔 채 모델을 새로 고침) 동안 비어 있다.
+  그 사이에 트리가 다시 그려지면 이벤트 스레드가 메타데이터 연결을 기다렸다. 연결이 바쁘면 창 전체(모든 취소 단추 포함)가 그동안 멈추고(시험: 메타데이터
+  연결을 서버 쪽 sleep으로 붙잡고 Oracle 연결을 모델에서 새로 고침 → 이벤트 스레드 18 085 ms 멈춤, SQL Server 데이터베이스 노드 Refresh → 6 510 ms),
+  무효화(`InvalidateJob`)와 겹치면 잠금 순서가 엇갈려 영영 멈췄다(#162 중에 본 교착을 지연 프록시로 그대로 재현: 이벤트 스레드는 `SchemaCache`
+  모니터를 쥐고 인스턴스의 배타 잠금을 기다림, 무효화 스레드는 배타 잠금을 쥐고 `initializeContextState`에서 `SchemaCache`를 기다림).
+  이제 `DBCExecutionContextDefaults.isDefaultSchemaLoaded`(읽지 않고 답할 수 있는지)가 거짓이면 기본 스키마를 묻지 않고 그 줄을 보통 글꼴로 그린다.
+  기본 카탈로그(데이터베이스)는 모든 공급자가 메모리에서 답하므로 그대로 비교한다. 목록을 다시 읽으면 탐색기가 그 가지를 다시 그리며(새로 고침 끝, 펼치기)
+  굵게 돌아온다. 따로 읽는 작업은 두지 않았다: 목록은 새로 고침 자신이 곧 다시 읽고, 무효화 중에 다른 스레드가 같은 목록을 읽으면 같은 교착에 끼기 때문이다.
+  공급자별: Oracle은 데이터 소스의 스키마 목록, SQL Server·Snowflake는 기본 데이터베이스의 스키마 목록을 읽었는지 본다. PostgreSQL·MySQL/MariaDB·Generic
+  (Altibase 계열, SQLite)·DB2·Exasol·Dameng 등은 원래 메모리에서만 찾아 바뀌지 않는다. "기본값으로 설정" 메뉴의 켜기(`DefaultObjectCommands.canSetDefault`)도
+  같은 질문을 써서, 목록을 읽기 전 잠깐은 지금 기본값에서도 켜져 있을 수 있다(고르면 같은 값을 다시 설정할 뿐).
 - **트랜잭션(사용자 규칙).** 같은 인스턴스 안의 스키마·카탈로그 바꾸기(PostgreSQL `SET search_path`, Oracle `ALTER SESSION SET CURRENT_SCHEMA`, SQL Server `USE`)는 열린 트랜잭션을 끝내지 않는다.
   다른 데이터베이스 인스턴스로 옮기면(PostgreSQL 데이터베이스) 주 세션이 다른 서버 세션이 되어 열린 트랜잭션이 보이지 않게 남는다. 그때만 커밋 / 롤백 / 취소를 묻는다(쿼리 창 DB 콤보의 판단과 같음).
   Ctrl+0은 쿼리 창의 콤보를 지나므로 그 창의 기존 질문(자기 세션을 다른 인스턴스로 다시 연결할 때)을 그대로 쓴다.
@@ -128,6 +143,11 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 필터: 이름 붙인 저장 필터, "선택한 개체로 포함/제외 추가", "연결된 것만"·객체 종류 거르기.
 - 긴 폴더: 통계 렌더러(테이블 크기 막대).
 - 붙여넣기로 DB 객체 복제(C-12의 나머지).
+- 작업 스레드끼리의 교착(앱 변경 #164에서 확인, 고치지 않음): Oracle 스키마 목록이 비어 있을 때 무효화가 `initializeContextState`에서 그 목록을
+  읽고(배타 잠금을 쥔 채 `SchemaCache` 모니터를 기다림), 다른 작업 스레드가 같은 목록을 읽던 중이면(모니터를 쥔 채 닫힌 메타데이터 문맥을 다시 열려고
+  배타 잠금을 기다림) 둘 다 영영 멈춘다. 창은 움직이지만 그 연결은 다시 연결할 수 없다. 고치려면 `initializeContextState`가 `initFrom`의 스키마
+  객체 대신 이름(`getActiveSchemaName`)으로 세션 스키마를 맞추고 `setCurrentSchema`의 알림이 목록을 읽지 않게 해야 한다(열린 PR #342가 고치는
+  메서드라 이번에는 제안만 함).
 - PostgreSQL에서 열린 트랜잭션 안의 스키마 바꾸기(`SET search_path`)는 롤백하면 서버에서도 되돌아가지만, 모델의 문맥은 바꾼 스키마를 기억한다(쿼리 창 DB 콤보도 같음, 모델 동작).
 
 ## 변경 이력
@@ -136,3 +156,4 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 2026-11-08 객체의 Object Details 첫 탭이 속성 탭(속성 편집), 자식이 없는 객체(시퀀스)에서도 F7이 켜짐([swing-object-properties.md](swing-object-properties.md)).
 - 2026-11-12 서버가 있는 창의 Ctrl+9 안내가 연결 변경을 알려 줌, Query > Change Connection…(앱 변경 #73, `chromite/change-connection`)
 - 2026-11-12 빠른 거르기 입력란의 안내 글자를 "읽은 개체 거르기(Ctrl+F)"에서 "찾기(Ctrl+F)"(영어 "Find (Ctrl+F)")로 바꿈(앱 변경 #101). 사용자: "읽은 개체 거르기는 그냥 '찾기'라고 표시한다". 이미 읽은 개체만 거른다는 설명은 도구 설명(`oe_quick_filter_tip`)에 그대로 있고, 동작은 바뀌지 않음.
+- 2026-11-22 "기본값 굵게 표시"(앱 변경 #164): 트리 그리기가 기본 스키마 목록을 서버에서 읽지 않음(`DBCExecutionContextDefaults.isDefaultSchemaLoaded`, Oracle·SQL Server·Snowflake). 바쁜 메타데이터 연결에서 창이 멈추던 것과 무효화와의 교착을 고침. 작업 스레드끼리의 교착은 "남긴 것".

@@ -43,6 +43,14 @@ import java.util.*;
 
 /**
  * Navigator helper functions
+ *
+ * 설계(Chromite): {@link #isDefaultElement}는 개체 탐색기가 줄을 그릴 때마다(이벤트 스레드) 부른다. 그래서 메모리에 있는 것만 본다.
+ * 모델이 기본 스키마의 목록을 다시 읽으면(새로 고침이 끝나 탐색기가 노드를 다시 그림) 굵게 돌아온다.
+ *
+ * 변경 이력:
+ * - 2026-11-22 {@link #isDefaultElement}가 기본 스키마 목록을 읽지 않음. Oracle 연결 Refresh 중에 이벤트 스레드가 스키마 목록을
+ *   읽다가 메타데이터 연결을 기다려 창이 멈추고, 무효화와 교착되었다(앱 변경 #164, docs/chromite/swing-explorer-productivity.md
+ *   "기본값 굵게 표시")
  */
 public class DBNUtils {
 
@@ -198,6 +206,11 @@ public class DBNUtils {
            dbNode.getObject().getDataSource().getContainer().getNavigatorSettings().isMergeEntities();
     }
 
+    /**
+     * Whether the element is the default instance, catalog or schema of its connection (or the active project). Never
+     * reads the database: a default schema whose list is not read yet counts as not default
+     * ({@link DBCExecutionContextDefaults#isDefaultSchemaLoaded}).
+     */
     public static boolean isDefaultElement(@Nullable Object element) {
         try {
             if (element instanceof DBSWrapper wrapper) {
@@ -212,8 +225,10 @@ public class DBNUtils {
                     if (defaultContext != null) {
                         DBCExecutionContextDefaults<?, ?> contextDefaults = defaultContext.getContextDefaults();
                         if (contextDefaults != null) {
+                            // Tree painting asks this on the event thread: a schema list not read yet (or cleared by
+                            // Refresh) is not read here, the row is drawn as not default until the model reads it
                             return Objects.equals(contextDefaults.getDefaultCatalog(), object)
-                                || Objects.equals(contextDefaults.getDefaultSchema(), object);
+                                || contextDefaults.isDefaultSchemaLoaded() && Objects.equals(contextDefaults.getDefaultSchema(), object);
                         }
                     }
                 }
