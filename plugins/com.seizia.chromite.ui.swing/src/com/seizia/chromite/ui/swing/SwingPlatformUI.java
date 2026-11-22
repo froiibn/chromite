@@ -102,6 +102,8 @@ import java.util.function.Supplier;
  *   낱말 가운데서 끊었다("…입니 / 다.", 앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
  * - 2026-11-12 예약 실행(무인 실행, {@link UnattendedRuns})에서는 묻지 않음: 확인·선택·입력·라이선스는 실행을 실패시키고, 모달 메시지 상자와
  *   개체 탐색기·파일 탐색기·연결 편집 열기는 로그에만 남김(앱 변경 #104, docs/chromite/task-scheduling.md "무인 실행")
+ * - 2026-11-22 {@code showError}가 사용자 자신의 취소({@link ErrorText#isUserCancel})는 오류 창 없이 디버그 로그에만 남김. 취소를 따로
+ *   잡지 않는 호출이 취소 예외의 영어 문구를 오류 창에 보이던 것(앱 변경 #167, docs/chromite/swing-frontend.md "오류 문구")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -123,6 +125,11 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
+        if (ErrorText.isUserCancel(status)) {
+            // The user's own cancel is not an error: no window, no "skipped error" note in a scheduled run's log
+            log.debug("Canceled: " + title);
+            return UserResponse.OK;
+        }
         if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(status)))) {
             return UserResponse.OK;
         }
@@ -137,6 +144,10 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Override
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
         log.debug(e);
+        if (ErrorText.isUserCancel(e)) {
+            // The user's own cancel is not an error: no window, no "skipped error" note in a scheduled run's log
+            return UserResponse.OK;
+        }
         if (UnattendedRuns.skip(title, joinText(ErrorText.clean(message), ErrorText.describe(e)))) {
             return UserResponse.OK;
         }
@@ -898,10 +909,12 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     /**
      * Error message box; with an error it also has the collapsed stack trace (Details) and Copy.
+     * Not {@link ErrorDialog#show}: the callers have already left out the user's cancel, and for a status the error is only
+     * its first exception (the Details), while another child of the status may be a real error.
      */
     private static void showErrorBox(@NotNull String title, @Nullable String message, @Nullable Throwable error) {
         runOnEdt(() -> {
-            ErrorDialog.show(getDialogParent(), title, message, error);
+            JOptionPane.showMessageDialog(getDialogParent(), ErrorDialog.createContent(message, error), title, JOptionPane.ERROR_MESSAGE);
             return null;
         });
     }

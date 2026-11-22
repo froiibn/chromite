@@ -16,18 +16,27 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.DBDatabaseException;
+import com.seizia.chromite.DBRuntimeException;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
@@ -41,6 +50,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,9 +76,15 @@ import java.util.regex.Pattern;
  * </ul>
  * 스택 추적({@link #stackTrace})에는 패키지 이름이 그대로 있다. 버그 보고에 필요하므로 오류 대화상자의 접힌 "자세히"
  * 영역에서만 보여 주고({@link ErrorDialog}), 처음 보이는 문구에는 넣지 않는다.
+ * <p>
+ * 사용자 자신의 취소는 오류가 아니므로 오류 창이 보이지 않는다. 그 판단({@link #isUserCancel})도 예외를 읽는 이곳 하나에 둔다. 예외만 보고
+ * 정하므로 드라이버 오류 코드(문장 시간 초과와 취소가 같은 코드를 쓰는 DB가 있음)는 보지 않는다. 그것은 취소를 누른 것을 아는
+ * {@link ProgressDialog#runTask}가 정한다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-22 {@link #isUserCancel}, {@link #unwrap}: 오류 창이 사용자의 취소를 보이지 않게(앱 변경 #167,
+ *   docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ErrorText {
 
@@ -152,6 +169,60 @@ final class ErrorText {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether the error is the user's own cancel and says nothing else: following the causes through wrappers that add
+     * nothing of their own ({@link #isPlainWrapper}) it reaches an interruption or a cancel ({@link DBInterruptedException},
+     * {@link InterruptedException}, {@link ClosedByInterruptException}, {@link OperationCanceledException},
+     * {@link CancellationException}). Error windows show nothing for such an error.
+     * <p>
+     * Refused: an error of its own type around the cancel (a partly applied save, the failing statement of a script),
+     * which reports what a write did; and a driver error, also a driver's "query canceled" (a statement timeout, a session
+     * killed elsewhere and the user's cancel share its codes): only the caller that saw the user press Cancel may call it a
+     * cancel ({@link ProgressDialog#runTask}).
+     */
+    static boolean isUserCancel(@NotNull Throwable error) {
+        Throwable reported = unwrap(error);
+        return reported instanceof DBInterruptedException || reported instanceof InterruptedException
+            || reported instanceof ClosedByInterruptException || reported instanceof OperationCanceledException
+            || reported instanceof CancellationException;
+    }
+
+    /**
+     * The status of a canceled job, or a single status whose exception is the user's cancel ({@link #isUserCancel}).
+     * A status with children is not: one of them may be a real error.
+     */
+    static boolean isUserCancel(@NotNull IStatus status) {
+        if (status.getSeverity() == IStatus.CANCEL) {
+            return true;
+        }
+        return status.getChildren().length == 0 && status.getException() != null && isUserCancel(status.getException());
+    }
+
+    /**
+     * The error without the wrappers around it that add nothing of their own ({@link #isPlainWrapper}).
+     */
+    @NotNull
+    static Throwable unwrap(@NotNull Throwable error) {
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        Throwable reported = error;
+        while (seen.add(reported) && isPlainWrapper(reported) && reported.getCause() != null) {
+            reported = reported.getCause();
+        }
+        return reported;
+    }
+
+    /**
+     * Wrappers that only carry their cause across a boundary (reflection, a future, a layer that rethrows as its own
+     * checked type). Subclasses with a meaning of their own are not plain.
+     */
+    private static boolean isPlainWrapper(@NotNull Throwable throwable) {
+        Class<?> type = throwable.getClass();
+        return throwable instanceof InvocationTargetException || throwable instanceof UndeclaredThrowableException
+            || throwable instanceof ExecutionException || throwable instanceof CompletionException
+            || type == DBException.class || type == DBDatabaseException.class || type == DBCException.class
+            || type == DBRuntimeException.class || type == RuntimeException.class;
     }
 
     /**

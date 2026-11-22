@@ -2693,6 +2693,27 @@ Windows 11 150%와 `-Dsun.java2d.uiScale=1`, 한국어, SQLite 시험 연결). �
 
 그 밖의 오류 대화상자(테이블 디자이너, 개체 탐색기, ER 다이어그램, 쿼리 라이브러리, 연결 대화상자, 보안 편집기, 가져오기·내보내기 등)는 모두 `DBWorkbench.getPlatformUI().showError`를 거치므로 위 첫 줄로 함께 바뀐다.
 
+### 사용자의 취소는 오류가 아님 (2026-11-22, 앱 변경 #167)
+
+규칙: 사용자가 누른 취소는 오류 창을 열지 않고 실패로 말하지 않는다. 실제 오류(권한 없음, 연결 끊김, 문장 시간 초과, 다른 세션이 끊은 세션)는 전처럼 오류 창에 같은 글로 보인다.
+
+- **판단은 한 곳:** `ErrorText.isUserCancel(Throwable)`. 아무 뜻도 더하지 않는 감싸개(`InvocationTargetException`, `UndeclaredThrowableException`,
+  `ExecutionException`, `CompletionException`, 클래스가 정확히 `DBException`·`DBDatabaseException`·`DBCException`·`DBRuntimeException`·`RuntimeException`인 것)를
+  원인 쪽으로 벗긴(`ErrorText.unwrap`) 예외가 `DBInterruptedException`, `InterruptedException`, `ClosedByInterruptException`, `OperationCanceledException`,
+  `CancellationException`이면 취소다. `IStatus`는 심각도가 `CANCEL`이거나, 자식 없는 상태의 예외가 취소일 때다.
+- **받지 않는 것:** 제 종류가 있는 감싸개 안의 취소(테이블 디자이너의 `PartialSaveException`, 보안·유지 관리 스크립트의 `ExecutionException`): 쓰기에서 무엇이
+  적용됐는지 알리므로 오류 창을 그대로 연다. 드라이버 오류(취소를 알리는 것도): 문장 시간 초과·다른 세션이 보낸 취소가 같은 코드(PostgreSQL 57014, SQL Server HY008)를
+  쓰므로 예외만 보고는 사용자의 취소인지 모른다.
+- **드라이버의 취소 오류:** 취소를 누른 것을 아는 `ProgressDialog.runTask`가 정한다. 취소를 누른 뒤 작업이 감싸개만 두른 드라이버 오류로 끝났고 연결의 오류 도우미가 그것을
+  `EXECUTION_CANCELED`로 보면(`DBExecUtils.isExecutionCanceled`) `DBInterruptedException`(원인으로 그 오류)으로 돌려준다. 그래서 `DBInterruptedException`을
+  잡는 호출은 드라이버의 취소도 취소로 처리한다. 문구를 맞춰 보지 않는다.
+- **적용한 곳:** `SwingPlatformUI.showError(…, Throwable)`, `showError(…, IStatus)`(무인 실행 메모 `UnattendedRuns.skip`보다 먼저: 예약 실행의 로그에 "건너뛴 오류 창"으로
+  남지 않고 디버그 로그에만), `ErrorDialog.show`(이 창을 직접 띄우는 호출). `SwingPlatformUI`의 상태 오류 창은 상태의 첫 예외만 자세히에 넣으므로 `ErrorDialog.show`의 판단을
+  거치지 않는다(다른 자식이 실제 오류일 수 있음).
+- **DB별 취소 오류의 분류(`DBPErrorAssistant.discoverErrorType`):** PostgreSQL 57014(`PostgreDataSource`), SQLSTATE HY008(`JDBCDataSource`, SQL Server의 "쿼리가 취소되었습니다")는
+  `EXECUTION_CANCELED`다. Oracle ORA-01013(상태 72000), MariaDB·MySQL 1317 "Query execution was interrupted"(70100), Altibase는 분류가 없어 그대로 오류 창에 보인다(고치지 않음).
+- `runTask`를 부르는 129곳의 분류와 남은 곳은 [cancel-busy-connection.md](cancel-busy-connection.md) "취소는 오류가 아님".
+
 ### 오래 걸린 작업 알림 (`SwingSystemAgent`)
 
 - 등록: Swing 번들 `plugin.xml`의 `com.seizia.chromite.service` 확장(`UIServiceSystemAgent` → `SwingSystemAgent`). SWT의 `com.seizia.chromite.core/plugin.xml:1112`와 같은 방식이고,
@@ -3839,3 +3860,5 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-22 편집 가능 판단 6번(`FEATURE_DATA_UPDATE`)에 걸리는 첫 모델: Altibase 계열 큐(앱 변경 #157). 그리드 코드는 바꾸지 않았다. [altibase.md](altibase.md) "큐에 맞지 않는 데이터 명령".
 - 2026-11-22 진행 대화상자의 취소: 바쁜 메타데이터 연결을 기다리는 작업은 취소 1.5초 뒤 창을 닫음(앱 변경 #161), 위 "DBPPlatformUI B단계 구현",
   [cancel-busy-connection.md](cancel-busy-connection.md).
+- 2026-11-22 사용자의 취소는 오류 창을 열지 않음(앱 변경 #167, `chromite/cancel-not-an-error`): "오류 문구"의 "사용자의 취소는 오류가 아님".
+  회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창, 진행 창 작업의 취소).

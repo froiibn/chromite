@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -39,8 +40,12 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-22 {@link #show}가 사용자 자신의 취소는 보이지 않음: 이 창을 직접 띄우는 호출도 취소를 오류로 보이지 않게(앱 변경 #167,
+ *   docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ErrorDialog {
+
+    private static final Log log = Log.getLog(ErrorDialog.class);
 
     private static final int DETAILS_ROWS = 14;
 
@@ -49,8 +54,14 @@ final class ErrorDialog {
 
     /**
      * Shows a modal error message box; with an error, the box also has the collapsed Details and a Copy button.
+     * Nothing is shown for the user's own cancel ({@link ErrorText#isUserCancel}): callers that show their own errors
+     * through this box need no cancel case of their own.
      */
     static void show(@Nullable Component parent, @NotNull String title, @Nullable String text, @Nullable Throwable error) {
+        if (error != null && ErrorText.isUserCancel(error)) {
+            log.debug("Canceled: " + title);
+            return;
+        }
         JOptionPane.showMessageDialog(parent, createContent(text, error), title, JOptionPane.ERROR_MESSAGE);
     }
 

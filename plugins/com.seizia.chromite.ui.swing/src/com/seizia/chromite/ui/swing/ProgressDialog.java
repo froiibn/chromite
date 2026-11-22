@@ -27,9 +27,11 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPErrorAssistant;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRBlockingObject;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -42,6 +44,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -60,6 +63,10 @@ import java.util.List;
  * 취소({@link DBInterruptedException})를 돌려준다. 작업 스레드는 그대로 두고(죽이지 않음) 나중에 끝나면 결과와 오류를 버린다. 메타데이터 읽기로 한정한
  * 이유: 커밋·저장 같은 쓰기와 DB 밖 작업(드라이버 내려받기 등)은 사용자가 취소했다고 본 뒤에 끝나면 안 되므로 전처럼 끝날 때까지 기다린다
  * (docs/chromite/cancel-busy-connection.md).
+ * <p>
+ * 사용자가 취소를 누른 뒤 작업이 드라이버의 "취소됨" 오류(연결의 오류 도우미가 {@code EXECUTION_CANCELED}로 보는 것)로 끝나면
+ * {@link #runTask}는 그것을 취소({@link DBInterruptedException})로 돌려준다. 같은 코드가 문장 시간 초과나 다른 세션이 보낸 취소도 알리므로,
+ * 사용자가 취소를 눌렀는지 아는 이곳에서만 바꾼다. 감싼 예외에 제 뜻이 있으면(일부만 저장됨, 실패한 문장) 바꾸지 않는다: 쓰기의 결과를 알린다.
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
@@ -70,6 +77,8 @@ import java.util.List;
  *   docs/chromite/swing-sql-editor-session-ui.md "실행 중 표시")
  * - 2026-11-22 취소한 메타데이터 작업이 바쁜 연결을 기다리면 1.5초 뒤 창을 닫고 취소로 돌아감(앱 변경 #161,
  *   docs/chromite/cancel-busy-connection.md)
+ * - 2026-11-22 취소를 누른 뒤의 드라이버 취소 오류를 취소로 돌려줌: 오류 창이 취소를 실패로 보이지 않게(앱 변경 #167,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class ProgressDialog {
 
@@ -89,6 +98,8 @@ final class ProgressDialog {
     private volatile boolean jobDone;
     // Closed after Cancel while the task was still inside a metadata call: the caller gets a cancel, the task ends unseen
     private volatile boolean released;
+    // The user pressed Cancel or closed the window: a driver's "canceled" error is then the user's cancel
+    private volatile boolean cancelRequested;
 
     private ProgressDialog(@Nullable Window owner, @NotNull String title) {
         dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
@@ -116,7 +127,8 @@ final class ProgressDialog {
     /**
      * Runs a task in a background job and waits for it with a progress dialog. Must be called on the EDT.
      *
-     * @throws DBInterruptedException when the dialog was closed after Cancel while the task was still inside a metadata call
+     * @throws DBInterruptedException when the dialog was closed after Cancel while the task was still inside a metadata call,
+     *                                or when the task ended after Cancel with the driver's report of the canceled statement
      */
     static <T> T runTask(@NotNull String title, @NotNull DBRRunnableWithReturn<T> runnable) throws DBException {
         Object[] result = new Object[1];
@@ -144,6 +156,10 @@ final class ProgressDialog {
         if (progressDialog.released) {
             throw new DBInterruptedException("Canceled while the database call was still running");
         }
+        if (progressDialog.cancelRequested && error[0] != null && isDriverCancel(error[0])) {
+            // The driver's report of the user's own cancel: callers see it as the cancel it is, not as a failure
+            throw new DBInterruptedException("Canceled by the user", error[0]);
+        }
         if (error[0] instanceof DBException dbe) {
             throw dbe;
         } else if (error[0] != null) {
@@ -152,6 +168,16 @@ final class ProgressDialog {
         @SuppressWarnings("unchecked")
         T typedResult = (T) result[0];
         return typedResult;
+    }
+
+    /**
+     * Whether the error is only the driver's report of a canceled statement: through wrappers that add nothing
+     * ({@link ErrorText#unwrap}) a driver error that the connection's error assistant calls
+     * {@link DBPErrorAssistant.ErrorType#EXECUTION_CANCELED}. Asked only after the user pressed Cancel: the same codes also
+     * report a statement timeout (PostgreSQL 57014) or a cancel sent from another session.
+     */
+    private static boolean isDriverCancel(@NotNull Throwable error) {
+        return ErrorText.unwrap(error) instanceof SQLException && DBExecUtils.isExecutionCanceled(null, error);
     }
 
     /**
@@ -197,6 +223,7 @@ final class ProgressDialog {
             return;
         }
         cancelButton.setEnabled(false);
+        cancelRequested = true;
         taskLabel.setText(CoreMessages.progress_canceling);
         job.cancel();
         if (taskMonitor != null) {
