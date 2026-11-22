@@ -65,8 +65,9 @@ import java.util.regex.Pattern;
  * 설계: 암호는 {@link #quotePassword}로만 문장에 넣는다. {@code DBUtils.getQuotedIdentifier}는 식별자용이라 이미 큰따옴표로
  * 싸인 글을 그대로 두고(사용자가 친 {@code "abc"}가 암호 {@code abc}가 됨), 이름 규칙에 맞는 글은 따옴표 없이 둔다.
  *
- * {@link #getDDL}은 취소({@code ORA-01013}, 취소된 모니터)를 "DBMS_METADATA를 쓸 수 없음"으로 보지 않는다. 그렇게 보면 취소 뒤에
- * 다른 방법으로 DDL을 만들러 가서(빈 문자열을 받은 {@code DBStructUtils.getTableDDL}도 같음) 취소가 듣지 않고 빈 DDL이 나온다.
+ * {@link #getDDL}은 사용자의 취소(취소된 모니터, 프로세스 안의 중단)를 "DBMS_METADATA를 쓸 수 없음"으로 보지 않는다. 그렇게 보면 취소
+ * 뒤에 다른 방법으로 DDL을 만들러 가서(빈 문자열을 받은 {@code DBStructUtils.getTableDDL}도 같음) 취소가 듣지 않고 빈 DDL이 나온다.
+ * {@code ORA-01013}만으로는 사용자의 취소로 보지 않는다: 문장 시간 초과와 다른 세션의 {@code ALTER SYSTEM CANCEL SQL}도 같은 오류다.
  * 권한이 없어 DBMS_METADATA가 거절한 테이블(ORA-31603)은 업스트림처럼 사전 뷰로 만든 DDL로 대신하되, 서버의 거절과
  * 빠질 수 있다는 것을 머리 주석으로 밝힌다.
  *
@@ -74,6 +75,8 @@ import java.util.regex.Pattern;
  * - 2026-11-08 {@link #quotePassword} 추가: 암호 바꾸기·새 스키마의 암호 따옴표 처리 (docs/chromite/password-handling.md)
  * - 2026-11-22 {@link #getDDL}: 취소면 {@link DBInterruptedException}(대신 만들지 않음), 대신 만든 테이블 DDL에 서버 오류와
  *   "빠질 수 있음" 주석 (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
+ * - 2026-11-22 {@link #getDDL}: 취소는 모니터와 프로세스 안의 중단으로만 판단. ORA-01013을 취소로 분류한 뒤에도 시간 초과·다른 세션의
+ *   취소가 오류(테이블은 대신 만든 DDL)로 남게 (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class OracleUtils {
 
@@ -201,8 +204,9 @@ public class OracleUtils {
             }
             return ddl;
         } catch (SQLException e) {
-            if (monitor.isCanceled() || DBExecUtils.isExecutionCanceled(dataSource, e)) {
-                // A canceled GET_DDL (ORA-01013) is not a reason to generate the DDL another way
+            if (monitor.isCanceled() || DBExecUtils.isInterruption(e)) {
+                // A GET_DDL the user canceled is not a reason to generate the DDL another way. ORA-01013 alone is not
+                // the user's cancel: a statement timeout and another session's cancel raise it too
                 throw new DBInterruptedException("DDL reading canceled", e);
             }
             if (object instanceof OracleTablePhysical) {

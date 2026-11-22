@@ -88,6 +88,9 @@ import java.util.Map;
  * - 2026-11-12 연결이 끊긴 뒤의 자동 재실행을 허용 목록으로({@link SQLQueryRecovery}, 앱 변경 #86). 전의 {@code shouldRecoverQuery}는
  *   하나로 파싱된 INSERT·UPDATE·DELETE·SELECT INTO만 뺐기 때문에 SQL Server 배치(INSERT + WAITFOR)가 다시 연결한 세션에서 통째로
  *   다시 실행되어 INSERT가 두 번 커밋되었다. 읽기를 다시 실행했으면 Messages에 그렇게 적는다 (docs/chromite/transactions.md "연결이 끊긴 쿼리")
+ * - 2026-11-22 실행·읽기 오류를 취소로 보는 것은 모니터가 취소됐을 때(사용자의 중지)와 프로세스 안의 중단뿐이다. 전에는 연결의 오류 도우미가
+ *   취소로 보는 드라이버 오류도 취소로 보아, 문장 시간 초과와 다른 세션이 보낸 취소가 오류 없이 "쿼리를 실행했습니다."로 끝났다 (앱 변경 #169,
+ *   docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -708,7 +711,9 @@ public class SQLQueryExecuteJob extends DataSourceJob {
             }
         }
         catch (Throwable ex) {
-            if (DBExecUtils.isExecutionCanceled(dataSource, ex) || monitor.isCanceled()) {
+            // The user's Stop cancels the monitor before the statement. A driver's cancel report without it is a statement
+            // timeout or another session's cancel: an error of the query (DBExecUtils.isExecutionCanceled)
+            if (monitor.isCanceled() || DBExecUtils.isInterruption(ex)) {
                 executionCanceled = true;
             } else if (!(ex instanceof DBException)) {
                 log.error("Unexpected error while processing SQL", ex);
@@ -853,7 +858,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                                     // Checked first: it does not read the driver's error chain, which would drop the
                                     // later results of a SQL Server batch (SQLBatchErrors.canReadPast)
                                     boolean readPast = SQLBatchErrors.canReadPast(session, e);
-                                    if (!readPast && (DBExecUtils.isExecutionCanceled(session.getDataSource(), e) || monitor.isCanceled())) {
+                                    if (!readPast && (monitor.isCanceled() || DBExecUtils.isInterruption(e))) {
                                         throw e;
                                     }
                                     if (rowsFetched == 0 && !readPast) {

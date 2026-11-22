@@ -90,6 +90,10 @@ import java.util.*;
  *   없는 열의 테이블 이름(SQLite 드라이버)을 기본 컨테이너의 이름으로 다시 읽지 않는다. SQLite에서 ATTACH한 데이터베이스·{@code temp}의
  *   테이블이 주 데이터베이스의 같은 이름 테이블에 묶여 편집이 그 테이블에 쓰던 결함(앱 변경 #125,
  *   docs/chromite/swing-frontend.md "결과 그리드의 테이블 묶기")
+ * - 2026-11-22 {@link #isInterruption}: 드라이버의 취소 보고 없이 이 프로세스 안의 중단(스레드 인터럽트, 취소된 모니터)만 묻는다.
+ *   {@link #isExecutionCanceled}는 누구의 취소인지 모른다: 여러 드라이버가 문장 시간 초과·다른 세션의 취소를 사용자의 취소와 같은
+ *   오류로 알린다. 사용자의 취소인지는 취소를 요청했는지 아는 쪽(모니터, 진행 창)이 정한다 (앱 변경 #169,
+ *   docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  */
 public class DBExecUtils {
 
@@ -204,11 +208,17 @@ public class DBExecUtils {
         return DBPErrorAssistant.ErrorType.NORMAL;
     }
 
+    /**
+     * Whether the error reports a canceled execution: an interruption ({@link #isInterruption}) or a database error that the
+     * connection's error assistant calls {@link DBPErrorAssistant.ErrorType#EXECUTION_CANCELED}.
+     * <p>
+     * It does not tell whose cancel it was. Several drivers report a statement timeout and a cancel sent from another session
+     * with the same error as the user's own cancel. Code that treats the cancel as the user's must also know that the user
+     * asked for it (a canceled progress monitor, a pressed Cancel).
+     */
     public static boolean isExecutionCanceled(@Nullable DBPDataSource dataSource, @NotNull Throwable error) {
         for (Throwable t = error; t != null; t = t.getCause()) {
-            if (t instanceof InterruptedException ||
-                t instanceof DBInterruptedException ||
-                t instanceof ClosedByInterruptException) {
+            if (isInterruptionOnly(t)) {
                 return true;
             }
             if (discoverErrorType(dataSource, t) == DBPErrorAssistant.ErrorType.EXECUTION_CANCELED) {
@@ -219,6 +229,28 @@ public class DBExecUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Whether the error, or one of its causes, is an interruption of the work in this process (the thread was interrupted,
+     * or the work stopped at a canceled progress monitor), not an error the database reported.
+     */
+    public static boolean isInterruption(@NotNull Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (isInterruptionOnly(t)) {
+                return true;
+            }
+            if (t.getCause() == t) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isInterruptionOnly(@NotNull Throwable error) {
+        return error instanceof InterruptedException ||
+            error instanceof DBInterruptedException ||
+            error instanceof ClosedByInterruptException;
     }
 
     /**
