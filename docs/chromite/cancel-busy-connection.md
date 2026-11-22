@@ -112,9 +112,8 @@ Object Explorer의 테이블에서 "DDL 보기"와 "디자인"을 누르고 3초
 
 ## 남은 것
 
-- `DBInterruptedException`을 따로 잡지 않는 `runTask` 호출(예: `ObjectPermissionsDialog`의 권한 대상 고르기, `SchemaComparePanel`, `SecurityCommands`)에서
-  메타데이터 읽기가 풀려나면 기존 오류 창이 취소 예외의 글을 보일 수 있다(실행해 확인하지 않음). 전에도 이 호출들은 취소된 문장의 드라이버 오류를 오류 창에
-  보였다. 오류 창이 취소를 보이지 않게 하려면 `SwingPlatformUI.showError`가 `DBInterruptedException`을 건너뛰거나 호출마다 따로 잡아야 한다(범위 밖).
+- ~~`DBInterruptedException`을 따로 잡지 않는 `runTask` 호출의 오류 창~~: 2026-11-22 고침(앱 변경 #167, 아래 "취소는 오류가 아님"). 오류 창을 거치지 않고
+  취소를 글로 보이는 10곳은 그 절의 "남은 곳".
 - 풀려난 작업의 스레드는 연결이 풀릴 때까지 남는다(죽이지 않음). 연결이 끝내 응답하지 않으면 사용자가 무효화·다시 연결을 해야 한다. 바쁜 연결을 알아채
   다시 연결을 권하는 기능은 만들지 않았다: 만들려면 연결이 응답하지 않는 것을 알아낼 기준(예: 메타데이터 호출이 N초 넘게 다른 세션 뒤에 있음)과 그때의
   안내(기존 연결 끊김 대화상자 재사용), 열린 트랜잭션 질문이 필요하다.
@@ -195,6 +194,84 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
   연결·새 세션·Invalidate/Reconnect·Reconnect는 같다. 연결할 때 `SYS_CONTEXT` 읽기가 두 세션 모두에서 도는 것은 서버의 `V$SQL` 실행 수(+2)로도 확인했다.
 - SQL Server: 쿼리 창이 `USE tempdb` 한 뒤 Invalidate/Reconnect(목록 있음·없음 두 번) → 창 세션 tempdb·dbo, 주·메타데이터 세션 master·dbo(전과 같음).
 
+## 취소는 오류가 아님 (2026-11-22, 앱 변경 #167)
+
+### 재현 (고치기 전 빌드, 시험 VM, 스크래치 작업 공간, 시험 개체 `CHR_CNE_*`)
+
+위 "고치기 전 측정"과 같은 방법(메타데이터 문맥을 서버 쪽 대기로 붙잡고 진행 창의 취소를 3초 뒤 누름)으로 취소를 따로 잡지 않는 호출을 눌렀다.
+
+| 호출 | 위치 | DB | 고치기 전 | 고친 뒤 |
+|---|---|---|---|---|
+| 테이블의 "사용 권한" | `SecurityCommands.openObjectPermissions` (`SecurityCommands.java:178`) | Oracle, PostgreSQL, MariaDB (SQL Server는 고친 뒤만 재현) | 1.6초 뒤 오류 창 "사용 권한": "chr_cne_t1을(를) 읽지 못했습니다." + 영어 "Canceled while the database call was still running" | 1.6초 뒤 창이 닫히고 아무 창 없음, 다시 누르면 정상으로 열림 |
+| 권한 대상 고르기("사용자 또는 역할 추가") | `ObjectPermissionsDialog.addGrantees` (`ObjectPermissionsDialog.java:126`) | Oracle, SQL Server, PostgreSQL | 오류 창 "사용자 또는 역할 추가": 영어 문구 한 줄뿐 | 아무 창 없음, 권한 대화상자는 그대로 쓸 수 있음 |
+| 로그인·사용자 "속성" | `SecurityCommands.openProperties` (`SecurityCommands.java:121`) | Oracle, SQL Server, MariaDB | 오류 창 "속성": "SYSTEM을(를) 읽지 못했습니다." + 영어 문구 | 아무 창 없음 |
+| 바쁘지 않은 연결에서 자기 문장이 잠금에 막힌 "사용 권한"(다른 세션이 `ALTER TABLE`로 Sch-M 잠금을 쥠) | 같음 | SQL Server | 0.1초 뒤 오류 창: "CHR_CNE_T1을(를) 읽지 못했습니다. SQL 오류 [HY008]: 쿼리가 취소되었습니다." | 아무 창 없음(드라이버의 취소를 취소로 받음) |
+| "DDL 보기"(이미 취소를 잡는 호출, 견본) | `ObjectExplorerPanel.generate` | PostgreSQL(바쁜 연결, 뷰 잠금) | 아무 창 없음 | 같음 |
+
+`SchemaComparePanel`은 자기 `showError`(`SchemaComparePanel.java:716`)가 이미 `DBInterruptedException`을 건너뛴다(실행해 보지 않음, 코드로 확인).
+
+### 설계
+
+- 판단 하나: `ErrorText.isUserCancel`(감싸개를 벗긴 예외가 `DBInterruptedException`, `InterruptedException`, `ClosedByInterruptException`,
+  `OperationCanceledException`, `CancellationException`). 이것을 `SwingPlatformUI.showError`(예외·상태)와 `ErrorDialog.show`가 쓴다. 규칙과 받지 않는 것은
+  [swing-frontend.md](swing-frontend.md) "사용자의 취소는 오류가 아님".
+- 드라이버의 취소 오류는 예외만으로는 문장 시간 초과·다른 세션의 취소와 구별되지 않는다(PostgreSQL 57014, SQL Server HY008). 그래서 취소를 누른 것을 아는
+  `ProgressDialog.runTask`만 그것을 `DBInterruptedException`으로 바꾼다(연결의 오류 도우미가 `EXECUTION_CANCELED`로 볼 때만, 문구를 맞춰 보지 않음).
+- 제 종류가 있는 감싸개(`TableDesignSession.PartialSaveException`, `SecurityDialect.ExecutionException`, `ObjectMaintenanceActions.ExecutionException`)는 바꾸지도
+  숨기지도 않는다: 쓰기 중 취소에서 무엇이 적용됐는지 알린다. 쓰기의 취소는 #161대로 일찍 풀려나지 않는다.
+- 고른 것과 대안: 호출 129곳을 하나씩 고치는 대신 오류 창 두 입구와 `runTask` 하나에서 정했다(호출마다 고치면 새 호출이 또 빠뜨림). 대안이었던 "`DBInterruptedException`만
+  건너뛰기"는 드라이버의 취소(위 SQL Server 경우)를 남기고, "드라이버 취소 코드도 오류 창에서 건너뛰기"는 문장 시간 초과를 숨긴다.
+
+### `ProgressDialog.runTask` 호출 129곳의 분류 (2026-11-22 코드 검색, `com.seizia.chromite.ui.swing`)
+
+| 분류 | 수 | 취소 뒤 |
+|---|---|---|
+| 이미 취소를 따로 잡음(`catch (DBInterruptedException)`, `instanceof`, `SchemaComparePanel`의 helper) | 67 | 아무것도 보이지 않음. 이제 드라이버의 취소도 이리로 옴 |
+| `DBWorkbench.getPlatformUI().showError`(또는 그것을 부르는 helper)로 보임 | 28 | 고친 공용 판단으로 창 없음. 이 중 권한(`ObjectPermissionsDialog` 1, `SecurityCommands` 5, `PrincipalPropertiesDialog` 3), 연결 시험·암호 바꾸기, 설정·연결 옮기기, LOB 읽기·저장, 드라이버 내려받기, SQL Server 백업·복원 읽기, 디자이너 버리기 |
+| `ErrorDialog.show`로 직접 보임 | 12 | 고친 `ErrorDialog.show`로 창 없음(`CommitModeSwitch`, `DataTransferWizard` 작업 저장, `ExitTransactionCheck` 2, `NativeBackupRestoreDialog` 2, `ProcedureDebuggerPanel` 3, `SqlServerRestoreDialog` 3). 오류 뒤 상태 정리(디버거 상태, 종료 취소)는 창과 상관없이 그대로 |
+| `JOptionPane`에 `e.getMessage()`·`ErrorText.describe`를 직접 넣음 | 6 | **남은 곳**(아래) |
+| 화면 안의 글(미리 보기 영역, 문제 글)로 보임 | 4 | **남은 곳**(아래) |
+| 디버그 로그만, 또는 조용히 넘어감 | 11 | 바뀌지 않음 |
+| 모델 쪽으로 던짐(`SwingPlatformUI.runWithProgress`·`runWithMonitor`) | 1 | 모델 호출의 오류가 `showError`로 오면 공용 판단을 거침 |
+
+`runTask` 밖에서 오류를 화면 안 상태 줄에 보이는 helper(`SchedulerTablePanel.showError` :257, `ServerLogPanel.showError` :496, `ConnectionDatabaseList.showError` :289)는
+진행 창이 없어 사용자가 취소를 누를 곳이 없다. `ConnectionDatabaseList`는 암호 입력 취소를 이미 따로 처리한다(:233). `ServerLogPanel`은 연결하면서 암호 입력을
+취소하면 상태 줄에 연결 취소 예외의 영어 글을 보일 수 있다(실행해 보지 않음, 남은 곳).
+
+### 남은 곳 (호출마다 고쳐야 함, 이번에 고치지 않음)
+
+브리프의 규칙(호출 열 곳이 넘으면 공용 입구와 이름 붙은 세 호출까지만)에 따라 아래는 고치지 않았다. 각 곳은 취소면 아무것도 보이지 않거나(창), 기존 중립 문구
+`BackupRestoreMessages.task_message_canceled`("작업을 취소했습니다." / "The operation was canceled.")를 보이면 된다(글).
+
+| 곳 | 지금 보이는 것 | 필요한 것 |
+|---|---|---|
+| `DriverBundleCreateDialog.java:260`, `DriverBundleInstallDialog.java:170`, `:193` | `JOptionPane` 오류 상자에 `e.getMessage()`(취소면 영어 취소 문구) | `ErrorText.isUserCancel`이면 상자 없이 돌아감 |
+| `DriverLibrariesPanel.java:405` | 같음(`driverlib_find_class_error` 안에) | 같음 |
+| `NativeBackupRestoreDialog.java:503`, `:513` | 경고 상자 "개체를 읽지 못했습니다: …" | 같음 |
+| `ConnectionSettingsPanel.java:1655` | 드라이버 속성 문제 글 | 취소면 문제 글 없이 |
+| `DataImportWizard.java:778`, `DatabaseCopyPages.java:1246` | DDL 미리 보기 영역에 "DDL 오류: …" | 취소면 중립 문구 |
+| `DriverLibraryDetailsDialog.java:164` | 의존성 영역에 원인 메시지 | 취소면 중립 문구 |
+| `ServerLogPanel.java:285`, `:449`(상태 줄) | "오류: …" | 취소면 중립 문구 |
+
+크기: 파일 8개, 호출 12곳, 곳마다 1~3줄.
+
+- 이제 쓸모가 줄어든 기존 취소 검사(`SchemaComparePanel.showError`의 `instanceof`, `TableDesignerPanel` :521·:544·:568, `ExecutionTracePanel` :281,
+  `ProcedureDebuggerPanel` :373, `ExplorerObjectCommands` :815의 `!(e instanceof DBInterruptedException)`)는 지우지 않았다: 동작은 같고, 지우면 범위가 여섯 파일 넓어진다.
+- 드라이버의 취소 오류 중 분류(`EXECUTION_CANCELED`)가 없는 것: Oracle ORA-01013(`OracleDataSource`), MariaDB·MySQL 1317(`MySQLDataSource`), Altibase.
+  이 DB에서 바쁘지 않은 연결의 자기 문장을 취소하면 전처럼 드라이버 오류가 오류 창에 보인다(재현 못 함: Oracle 사전 읽기는 잠금에 막히지 않음).
+
+### 바뀌지 않음 (확인)
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 문장 시간 초과(연결의 `options=-c statement_timeout=3000`, 잠긴 뷰의 DDL 보기, 취소 누르지 않음) | 오류 창 "스크립트를 생성할 수 없습니다. … canceling statement due to statement timeout 상태 57014" | 같은 글 |
+| 다른 세션이 끊은 세션(`pg_terminate_backend`로 DDL 보기의 메타데이터 백엔드를 끊음) | 오류 창 "… FATAL: terminating connection due to administrator command 백엔드로 전송하는 동안 I/O 오류가 발생했습니다. 상태 57P01" | 같은 글 |
+| 권한 없음(`SET ROLE chr_cne_r`인 연결에서 테이블 삭제 실행) | 오류 창 "chr_cne.chr_cne_t1을(를) 삭제하지 못했습니다. SQL 오류 [42501]: ERROR: must be owner of table chr_cne_t1" | 같은 글(테이블 그대로) |
+| 쿼리 창 문법 오류(PostgreSQL `SELEC 1`, Oracle 없는 함수) | 메시지 탭 `42601` / `ORA-00904`, 창 없음 | 같음 |
+| 쿼리 창 중지(Oracle, SQL Server, PostgreSQL, MariaDB, Altibase 7.3) | 4.9초 / 0.25초 / 0.25초 / 0.25초 / 0.76초 뒤 "사용자가 쿼리를 취소했습니다.", 창 없음 | 4.8초 / 0.13초 / 0.26초 / 0.26초 / 0.76초, 같은 글, 창 없음 |
+| 연결 새로 고침 뒤, 다시 연결 뒤의 "사용 권한" 취소(PostgreSQL) | (고치기 전 측정 안 함) | 창 없음 |
+
+## upstream 대비 변경점
 
 - upstream `ProgressMonitorDialog`(SWT)와 `AbstractJob`은 취소가 듣지 않으면 일정 시간 뒤 바깥 블록(세션)까지 취소했다. Chromite는 2026-11-08에 이를 지웠고
   ([swing-options.md](swing-options.md) "Errors and Timeouts"), 이번에는 기다리는 세션의 취소가 다른 문장에 닿지 않게 하고 진행 창이 메타데이터 읽기를 놓아 준다.
@@ -203,6 +280,9 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
 
 - 2026-11-22 최초 작성(앱 변경 #161): 고치기 전 측정, 설계와 대안, 고친 뒤 확인(다섯 DB, 함께 쓰는 세션, 응답하지 않는 연결, 쿼리 창 중지). 회귀 테스트는
   실행하지 않았다(영향받을 수 있는 기능: 모든 진행 창 작업의 취소, 모든 JDBC 문장·세션의 취소, 쿼리 창 중지).
+- 2026-11-22 "취소는 오류가 아님"(앱 변경 #167, `chromite/cancel-not-an-error`): 사용자의 취소는 오류 창을 열지 않음, 취소를 누른 뒤의 드라이버 취소 오류는
+  `runTask`가 취소로 돌려줌, 호출 129곳의 분류와 남은 곳. "남은 것"의 첫 항목을 고침. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창,
+  진행 창 작업의 취소).
 - 2026-11-22 "세션을 다시 열 때의 교착"(앱 변경 #165): Oracle·YashanDB·SQL Server가 다시 열거나 새로 여는 세션의 기본 스키마를 이름으로 받고 알림은
   메모리의 목록에서만. 세 DB 재현, PostgreSQL은 남김. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 연결·Invalidate/Reconnect·쿼리 창의 새
   세션의 현재 스키마, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택).
