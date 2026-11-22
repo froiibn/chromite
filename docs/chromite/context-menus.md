@@ -462,3 +462,4 @@ DBeaver(SWT)의 탐색기 메뉴는 Eclipse 명령의 `visibleWhen`/`enabledWhen
 - 2026-11-22 권한은 켜짐 조건에 넣지 않음: DDL 명령은 켜 둔 채 서버의 거절을 오류 창 첫 줄로 알림(앱 변경 #159, [swing-routines.md](swing-routines.md) "DDL 권한과 취소")
 - 2026-11-22 Import Data…, Generate SQL의 행을 쓰는 항목(탐색기·결과 그리드)이 객체의 데이터 기능을 물음: 큐에는 숨음(앱 변경 #157, [altibase.md](altibase.md)
   "큐에 맞지 않는 데이터 명령")
+- 2026-11-22 문서 탭: 쿼리 창 탭에 "새 창으로 이동"(배치 항목 묶음의 맨 앞), 다른 탭에서는 숨음(앱 변경 #173, `chromite/document-tab-detach`).

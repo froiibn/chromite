@@ -26,6 +26,7 @@ import java.awt.*;
 import java.awt.dnd.DragSource;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.function.BiConsumer;
 
 /**
  * 메인 창 문서 탭을 탭 줄 위에서 끌어 순서를 바꾼다(앱 변경 #171).
@@ -42,18 +43,23 @@ import java.awt.event.MouseEvent;
  *     무리 밖을 가리키면 무리의 끝에 놓는다.</li>
  *     <li>탭 줄(보이는 탭이 있는 띠, 탭 두께의 반만큼 여유) 밖에서 놓으면 옮기지 않는다. 한 행 배치에서 포인터가 보이는 탭 줄의 끝에 가면
  *     탭 줄을 그쪽으로 넘긴다(30개 탭처럼 다 보이지 않을 때).</li>
+ *     <li>탭 줄에서 탭 두께만큼 더 떨어진 곳에 놓으면 그 문서와 화면 위치를 넘긴다({@link DocumentTabMenu}: 쿼리 창은 별도 창, 앱 변경 #173).
+ *     그 사이 띠는 아무것도 하지 않아, 순서를 바꾸려다 조금 벗어나 놓은 것이 창을 열지 않는다.</li>
  *     <li>옮기기는 {@link MainFrame.EditorTabbedPane#moveTab} 하나로 한다(탭 고정과 같은 경로). 탭의 모든 것이 따라가고, 선택 이벤트는
  *     옮긴 뒤 한 번만 나며, 다시 시작 후 복원({@link QueryWindowRecovery})은 탭 순서대로 쓰므로 끈 순서가 저장된다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-22 최초 작성(앱 변경 #171) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-22 탭 줄에서 멀리 놓은 탭을 알림(쿼리 창을 별도 창으로, 앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class DocumentTabDrag extends MouseAdapter {
 
     private static final int SCROLL_DELAY_MS = 40;
 
     private final MainFrame.EditorTabbedPane tabs;
+    // A tab dropped well off the tab strip: its document and the screen point (a query window gets a window of its own)
+    private final BiConsumer<Component, Point> droppedOff;
     private final Timer scrollTimer;
     // The pressed tab's document: its index changes when tabs open or close during the drag
     @Nullable
@@ -67,13 +73,17 @@ final class DocumentTabDrag extends MouseAdapter {
     // Pixels per timer tick along the tab run while the pointer is at an end of the scrolling tab row
     private int scrollStep;
 
-    private DocumentTabDrag(@NotNull MainFrame.EditorTabbedPane tabs) {
+    private DocumentTabDrag(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull BiConsumer<Component, Point> droppedOff) {
         this.tabs = tabs;
+        this.droppedOff = droppedOff;
         scrollTimer = new Timer(SCROLL_DELAY_MS, e -> autoScroll());
     }
 
-    static void install(@NotNull MainFrame.EditorTabbedPane tabs) {
-        DocumentTabDrag drag = new DocumentTabDrag(tabs);
+    /**
+     * @param droppedOff called with the document and the screen point when a tab is dropped well off the tab strip
+     */
+    static void install(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull BiConsumer<Component, Point> droppedOff) {
+        DocumentTabDrag drag = new DocumentTabDrag(tabs, droppedOff);
         tabs.addMouseListener(drag);
         tabs.addMouseMotionListener(drag);
     }
@@ -113,11 +123,15 @@ final class DocumentTabDrag extends MouseAdapter {
         }
         if (dragging && dragged != null) {
             update(e.getPoint());
-            int from = tabs.indexOfComponent(dragged);
+            Component document = dragged;
+            int from = tabs.indexOfComponent(document);
             int to = dropIndex;
+            boolean off = to < 0 && isWellOffStrip(e.getPoint());
             reset();
             if (from >= 0 && to >= 0) {
                 tabs.moveTab(from, to);
+            } else if (from >= 0 && off) {
+                droppedOff.accept(document, e.getLocationOnScreen());
             }
         } else {
             reset();
@@ -251,6 +265,25 @@ final class DocumentTabDrag extends MouseAdapter {
         }
         int spare = first != null ? first.height / 2 : 0;
         return new Rectangle(0, tabArea.y - spare, tabs.getWidth(), tabArea.height + 2 * spare);
+    }
+
+    /**
+     * Whether a point is off the tab strip by more than another half tab beyond its own margin: a drop there takes a
+     * query window out (app change #173), a drop between that and the strip does nothing, so that a sloppy reorder does
+     * not open a window.
+     */
+    private boolean isWellOffStrip(@NotNull Point point) {
+        Rectangle strip = getStrip();
+        Rectangle first = tabs.getTabCount() > 0 ? tabs.getBoundsAt(0) : null;
+        if (strip == null || first == null) {
+            return false;
+        }
+        if (isVertical()) {
+            strip.grow(first.width / 2, 0);
+        } else {
+            strip.grow(0, first.height / 2);
+        }
+        return !strip.contains(point);
     }
 
     /**

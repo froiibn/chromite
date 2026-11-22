@@ -69,6 +69,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
@@ -156,6 +158,11 @@ import java.util.function.Supplier;
  *     ({@link SqlEditorToolBar}: 연결 변경, DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
  *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
  *     그 창의 DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
+ *     <li>쿼리 창은 별도 창({@link QueryWindowFrame})으로 옮길 수 있다(앱 변경 #173). "활성 편집기" 규칙은 {@link #getActiveDocument} 한 곳이다:
+ *     마지막으로 활성이 된 별도 창의 쿼리 창, 그 뒤에 메인 창이 활성이 되었으면 메인 창의 선택한 탭. Query 메뉴·도구 막대 동작, 그 켜짐, Find,
+ *     Outline, Link with Editor, Chromite Agent, Query Library, New Query의 연결이 이 규칙을 따른다. 결과 카드, 상태 표시줄, 메인 도구 막대의
+ *     DB 콤보는 늘 메인 창의 선택한 탭의 것이다({@link #getTabEditor}). 별도 창은 탭 목록({@link #getEditors})에 들어가 끝내기·모두 저장·
+ *     다시 시작 후 복원(탭으로 돌아옴)·연결 변경 알림이 함께 다루고, 닫기는 탭 닫기와 같은 {@link #closeQueryWindow}다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -326,9 +333,13 @@ import java.util.function.Supplier;
  *   놓을 자리 선, 닫기 단추 판정({@link DocumentTabDrag}, 앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-22 New Query(메뉴, 도구 막대, Ctrl+N)가 활성 문서 탭의 연결로, 쿼리 창이면 그 창의 현재 DB/스키마로 엶. 탭이 연결을 모르면
  *   전처럼 Object Explorer에서 고른 연결({@link #newQuery}, 앱 변경 #172, docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
+ * - 2026-11-22 쿼리 창을 별도 창으로({@link QueryWindowFrame}, 앱 변경 #173): 활성 편집기 규칙 {@link #getActiveDocument}와 탭의 쿼리 창
+ *   {@link #getTabEditor}를 나눔, 탭 닫기와 창 닫기의 한 경로 {@link #closeQueryWindow}, 쿼리 창 보이기는 {@link #showQueryWindow}로, 별도 창의
+ *   질문·파일 대화상자는 그 창 위에({@link #getDialogParent}), 모두 저장·끝내기·복원이 별도 창도 다룸, 단축키가 쓰는 결과 영역에 별도 창의 결과,
+ *   {@code StatusBar}·{@code CanvasPanel}·{@code LineSplitPane}을 별도 창이 함께 씀 (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
-    QueryWindowRecovery.Host, DocumentTabMenu.Host {
+    QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -401,6 +412,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     };
     private final EditorTabbedPane documentTabs;
     private final DocumentTabMenu documentTabMenu;
+    /**
+     * Query windows moved out of the document tabs into windows of their own (app change #173), in the order they were
+     * moved out.
+     */
+    private final List<QueryWindowFrame> queryFrames = new ArrayList<>();
+    /**
+     * The separate query window activated last, or null when the main window was activated after it: whose query window
+     * is the active editor ({@link #getActiveDocument}).
+     */
+    @Nullable
+    private QueryWindowFrame activeQueryFrame;
+    /**
+     * The menus whose shortcuts work in a separate query window too (File, Edit, Query, Window; {@link QueryWindowFrame}).
+     */
+    private List<JMenu> queryWindowMenus = List.of();
+    // EDT only: a query window is moving into or out of the document tabs (moveToNewWindow, moveToMainWindow)
+    private boolean movingQueryWindow;
     /**
      * The document tabs, or the welcome content while no document is open.
      */
@@ -590,13 +618,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsSplit = new ToolWindow.SplitHost(resultsWindow, resultsArea, documentSplit, DEFAULT_RESULTS_HEIGHT, new ToolWindow.SplitHost.Context() {
             @Override
             public boolean isShown() {
-                SqlEditorPanel editor = getActiveEditor();
+                SqlEditorPanel editor = getTabEditor();
                 return editor != null && editor.getClientProperty(RESULTS_HIDDEN_KEY) == null;
             }
 
             @Override
             public void setShown(boolean shown) {
-                SqlEditorPanel editor = getActiveEditor();
+                SqlEditorPanel editor = getTabEditor();
                 if (editor != null) {
                     editor.putClientProperty(RESULTS_HIDDEN_KEY, shown ? null : Boolean.TRUE);
                 }
@@ -703,7 +731,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     saveEditor(editor, false);
-                } else if (documentTabs.getSelectedComponent() instanceof TableDesignerPanel designer) {
+                } else if (getActiveDocument() instanceof TableDesignerPanel designer) {
                     designer.save();
                 }
             }));
@@ -841,7 +869,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsBesideAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         maximizeResultsAction = createAction(CoreMessages.main_maximize_results, CoreMessages.main_maximize_results_tip,
             UiKeys.command(KeyEvent.VK_R, InputEvent.SHIFT_DOWN_MASK), () -> {
-                if (getActiveEditor() == null) {
+                if (getTabEditor() == null) {
                     return;
                 }
                 boolean maximize = !resultsSplit.isMaximized();
@@ -867,10 +895,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         textCompareCommand = new TextCompareCommand(this, this, documentTabs);
-        sqlEditorToolBar = new SqlEditorToolBar(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
-            commitAction, rollbackAction, commitModeAction, this::openQueryHistory, textCompareCommand.getAction());
+        sqlEditorToolBar = createSqlEditorToolBar();
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
+        // A tab that opens while a separate query window is active (New Query or Open File there, a statement opened from
+        // its results, Move to Main Window): the main window comes to the front to show it
+        documentTabs.addContainerListener(new ContainerAdapter() {
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                // A document, not a part of the tab row the look and feel adds
+                if (activeQueryFrame != null && documentTabs.indexOfComponent(e.getChild()) >= 0) {
+                    SwingUtilities.invokeLater(MainFrame.this::toFront);
+                }
+            }
+        });
         updateQueryActions();
         documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, UiKeys.format(CoreMessages.main_welcome_next, newQueryAction)),
             List.of(newQueryAction, openFileAction, registeredServersWindow.getToggleAction())), WELCOME_CARD);
@@ -917,6 +955,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
 
             @Override
+            public void windowActivated(WindowEvent e) {
+                // The selected tab's query window is the active editor again
+                setActiveQueryFrame(null);
+            }
+
+            @Override
             public void windowOpened(WindowEvent e) {
                 // Split panes have their real size only after the window is shown and laid out
                 SwingUtilities.invokeLater(() -> {
@@ -945,6 +989,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             saveLayout();
             // While the query windows are still open (also when the application is stopped from outside, without questions)
             recovery.stop();
+            // The separate query windows close with the main window (their questions were asked by requestExit)
+            for (QueryWindowFrame frame : List.copyOf(queryFrames)) {
+                frame.dispose();
+            }
+            queryFrames.clear();
+            activeQueryFrame = null;
             // Also closes the floating tool windows
             toolWindowDocking.dispose();
         }
@@ -1057,7 +1107,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         // The component the key went to: the focus owner when the key was pressed
         Component focus = keyEvent.getComponent() != null ? keyEvent.getComponent() : KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        return focus == null || !SwingUtilities.isDescendingFrom(focus, editor) && !SwingUtilities.isDescendingFrom(focus, resultsArea);
+        // In a separate query window its results are beside the editor, not in the Results card (QueryWindowFrame)
+        return focus == null || !SwingUtilities.isDescendingFrom(focus, editor) && !SwingUtilities.isDescendingFrom(focus, resultsArea)
+            && !SwingUtilities.isDescendingFrom(focus, editor.getResultsView().getComponent());
     }
 
     @NotNull
@@ -1158,7 +1210,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
             return;
         }
-        DBPDataSourceContainer dataSource = getDocumentConnection(documentTabs.getSelectedComponent());
+        DBPDataSourceContainer dataSource = getDocumentConnection(getActiveDocument());
         if (dataSource == null) {
             dataSource = explorerPanel.getSelectedDataSource();
         }
@@ -1318,7 +1370,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Activity Monitor's connection.
      */
     private void linkExplorerToDocument() {
-        Component document = documentTabs.getSelectedComponent();
+        Component document = getActiveDocument();
         DBSObject object = null;
         DBPDataSourceContainer container = null;
         if (document instanceof SqlEditorPanel editor) {
@@ -1486,11 +1538,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 linkExplorerToDocument();
             }
         });
-        editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
-        int index = documentTabs.indexOfComponent(editor);
-        documentTabs.setToolTipTextAt(index, editor.getToolTip());
-        documentTabs.setSelectedIndex(index);
+        addQueryTab(editor);
         SwingUtilities.invokeLater(editor::focusEditor);
         return editor;
     }
@@ -1503,13 +1551,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private boolean closeDocumentTab(int index) {
         Component component = documentTabs.getComponentAt(index);
         if (component instanceof SqlEditorPanel editor) {
-            if (!confirmClose(editor)) {
-                return false;
-            }
-            // After the questions: the text that was not saved can come back with Reopen Closed Tab
-            documentTabMenu.queryWindowClosing(editor);
-            editor.dispose();
-            documentTabs.remove(editor);
+            return closeQueryWindow(editor);
         } else if (component instanceof DdlViewerPanel) {
             documentTabs.removeTabAt(index);
         } else if (component instanceof ToolDocument document) {
@@ -1536,6 +1578,135 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return index < 0 || closeDocumentTab(index);
     }
 
+    /**
+     * Closes a query window, in a tab or in a window of its own, after its questions (result changes, unsaved text, open
+     * transaction of its own session); one path for the tab's close button, the tab menu and the separate window's close.
+     *
+     * @return false if the user canceled (the window stays)
+     */
+    @Override
+    public boolean closeQueryWindow(@NotNull SqlEditorPanel editor) {
+        if (!confirmClose(editor)) {
+            return false;
+        }
+        // After the questions: the text that was not saved can come back with Reopen Closed Tab
+        documentTabMenu.queryWindowClosing(editor);
+        editor.dispose();
+        QueryWindowFrame frame = getQueryFrame(editor);
+        if (frame != null) {
+            removeQueryFrame(frame);
+        } else {
+            documentTabs.remove(editor);
+        }
+        return true;
+    }
+
+    /**
+     * Document tab menu "Move to New Window" and a query window's tab dropped off the tab strip (app change #173): the
+     * query window, the same object with its session, run, results and text, goes into a window of its own. Nothing
+     * connects and no statement is sent; a pinned tab is unpinned (the window comes back as the last unpinned tab).
+     *
+     * @param drop screen point where the tab was dropped, or null (cascaded from the main window)
+     */
+    @Override
+    public void moveToNewWindow(@NotNull SqlEditorPanel editor, @Nullable Point drop) {
+        if (documentTabs.indexOfComponent(editor) < 0) {
+            return;
+        }
+        documentTabMenu.setPinned(editor, false);
+        // The main window's Results card, status bar and tool bar let it go as another tab becomes the selected one
+        movingQueryWindow = true;
+        try {
+            documentTabs.remove(editor);
+        } finally {
+            movingQueryWindow = false;
+        }
+        QueryWindowFrame frame = new QueryWindowFrame(editor, createSqlEditorToolBar(), this, queryWindowMenus, getRootPane(),
+            saveAction, saveAsAction);
+        frame.place(drop, this, queryFrames.size());
+        queryFrames.add(frame);
+        frame.setVisible(true);
+        frame.toFront();
+        SwingUtilities.invokeLater(editor::focusEditor);
+    }
+
+    /**
+     * "Move to Main Window" of a separate query window: back into the document tabs as the last tab, selected.
+     */
+    @Override
+    public void moveToMainWindow(@NotNull SqlEditorPanel editor) {
+        QueryWindowFrame frame = getQueryFrame(editor);
+        if (frame == null) {
+            return;
+        }
+        removeQueryFrame(frame);
+        movingQueryWindow = true;
+        try {
+            addQueryTab(editor);
+        } finally {
+            movingQueryWindow = false;
+        }
+        toFront();
+        SwingUtilities.invokeLater(editor::focusEditor);
+    }
+
+    @Override
+    public void queryWindowActivated(@NotNull QueryWindowFrame frame) {
+        setActiveQueryFrame(frame);
+    }
+
+    /**
+     * The window whose query window is the active editor changed (a separate query window or the main window was
+     * activated, or the active separate window went away).
+     */
+    private void setActiveQueryFrame(@Nullable QueryWindowFrame frame) {
+        if (frame == activeQueryFrame) {
+            return;
+        }
+        activeQueryFrame = frame;
+        activeDocumentChanged();
+    }
+
+    private void removeQueryFrame(@NotNull QueryWindowFrame frame) {
+        queryFrames.remove(frame);
+        frame.release();
+        frame.dispose();
+        if (frame == activeQueryFrame) {
+            setActiveQueryFrame(null);
+        }
+    }
+
+    @Nullable
+    private QueryWindowFrame getQueryFrame(@NotNull SqlEditorPanel editor) {
+        for (QueryWindowFrame frame : queryFrames) {
+            if (frame.getEditor() == editor) {
+                return frame;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A query window's tab as the last one, selected: a new window ({@link #openQueryEditor}) and one that comes back from
+     * its own window.
+     */
+    private void addQueryTab(@NotNull SqlEditorPanel editor) {
+        editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
+        int index = documentTabs.indexOfComponent(editor);
+        documentTabs.setToolTipTextAt(index, editor.getToolTip());
+        documentTabs.setSelectedIndex(index);
+    }
+
+    /**
+     * A SQL Editor tool bar on the Query menu's actions: the main window's, and one per separate query window.
+     */
+    @NotNull
+    private SqlEditorToolBar createSqlEditorToolBar() {
+        return new SqlEditorToolBar(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
+            commitAction, rollbackAction, commitModeAction, this::openQueryHistory, textCompareCommand.getAction());
+    }
+
     @Override
     public boolean saveQueryWindow(@NotNull SqlEditorPanel editor) {
         return saveEditor(editor, false);
@@ -1558,7 +1729,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         Path file = window.file() != null ? Path.of(window.file()) : null;
         for (SqlEditorPanel editor : getEditors()) {
             if (file != null && file.equals(editor.getFile())) {
-                documentTabs.setSelectedComponent(editor);
+                showQueryWindow(editor);
                 return editor;
             }
         }
@@ -1570,6 +1741,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabMenu.setPinned(editor, true);
     }
 
+    /**
+     * Every open query window: the tabs in their order, then the separate windows in the order they were moved out (exit,
+     * restart recovery, connection changes, the Agent's editor tools, Scripts and Query Library see them all).
+     */
     @NotNull
     private List<SqlEditorPanel> getEditors() {
         List<SqlEditorPanel> editors = new ArrayList<>();
@@ -1577,6 +1752,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             if (documentTabs.getComponentAt(i) instanceof SqlEditorPanel editor) {
                 editors.add(editor);
             }
+        }
+        for (QueryWindowFrame frame : queryFrames) {
+            editors.add(frame.getEditor());
         }
         return editors;
     }
@@ -1614,7 +1792,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         lastDirectory = file.getParent();
         for (SqlEditorPanel editor : getEditors()) {
             if (file.equals(editor.getFile())) {
-                documentTabs.setSelectedComponent(editor);
+                showQueryWindow(editor);
                 RecentFiles.add(file);
                 return;
             }
@@ -1660,14 +1838,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             JFileChooser chooser = createSqlFileChooser(saveAs ? CoreMessages.main_save_as_title : CoreMessages.common_save);
             File directory = file != null ? file.getParent().toFile() : chooser.getCurrentDirectory();
             chooser.setSelectedFile(new File(directory, editor.getFileName()));
-            if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            if (chooser.showSaveDialog(getDialogParent(editor)) != JFileChooser.APPROVE_OPTION) {
                 return false;
             }
             Path selected = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
             if (!selected.getFileName().toString().contains(".")) {
                 selected = selected.resolveSibling(selected.getFileName() + ".sql"); //$NON-NLS-1$
             }
-            if (!selected.equals(file) && Files.exists(selected) && !SwingPlatformUI.confirmChange(this,
+            if (!selected.equals(file) && Files.exists(selected) && !SwingPlatformUI.confirmChange(getDialogParent(editor),
                 NLS.bind(CoreMessages.main_file_exists, selected.getFileName()), CoreMessages.main_save_as_title,
                 CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
                 return false;
@@ -1699,14 +1877,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * File &gt; Save All and the tool bar: every modified query window is saved like Save (a query that was never saved
      * asks for its file), every table designer with changes with its own Save (change script preview). Each document is
-     * brought to the front while it is saved; the first one that is not saved (canceled or failed) stops the others.
+     * brought to the front while it is saved; the first one that is not saved (canceled or failed) stops the others. The
+     * tabs come first, then the separate query windows.
      */
     private void saveAll() {
         Component selected = documentTabs.getSelectedComponent();
         for (int i = 0; i < documentTabs.getTabCount(); i++) {
             Component component = documentTabs.getComponentAt(i);
             if (component instanceof SqlEditorPanel editor && editor.isDirty()) {
-                documentTabs.setSelectedComponent(editor);
+                showQueryWindow(editor);
                 if (!saveEditor(editor, false)) {
                     return;
                 }
@@ -1720,6 +1899,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (selected != null && documentTabs.indexOfComponent(selected) >= 0) {
             documentTabs.setSelectedComponent(selected);
         }
+        for (QueryWindowFrame frame : List.copyOf(queryFrames)) {
+            if (frame.getEditor().isDirty()) {
+                showQueryWindow(frame.getEditor());
+                if (!saveEditor(frame.getEditor(), false)) {
+                    return;
+                }
+            }
+        }
     }
 
     private boolean hasModifiedDocuments() {
@@ -1727,6 +1914,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             Component component = documentTabs.getComponentAt(i);
             if (component instanceof SqlEditorPanel editor && editor.isDirty()
                 || component instanceof TableDesignerPanel designer && designer.isDirty()) {
+                return true;
+            }
+        }
+        for (QueryWindowFrame frame : queryFrames) {
+            if (frame.getEditor().isDirty()) {
                 return true;
             }
         }
@@ -1752,8 +1944,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return false;
         }
         if (editor.isDirty()) {
-            documentTabs.setSelectedComponent(editor);
-            boolean saved = switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()), false)) {
+            showQueryWindow(editor);
+            boolean saved = switch (askSave(editor, NLS.bind(CoreMessages.main_save_changes, editor.getFileName()), false)) {
                 case 0 -> saveEditor(editor, false);
                 case 1 -> true;
                 default -> false;
@@ -1777,8 +1969,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!editor.hasPendingResultChanges()) {
             return true;
         }
-        documentTabs.setSelectedComponent(editor);
-        return switch (askSave(NLS.bind(CoreMessages.main_save_result_changes, editor.getFileName(), describeResultChanges(editor)), true)) {
+        showQueryWindow(editor);
+        return switch (askSave(editor, NLS.bind(CoreMessages.main_save_result_changes, editor.getFileName(), describeResultChanges(editor)), true)) {
             case 0 -> editor.saveResultChanges();
             case 1 -> true;
             default -> false;
@@ -1792,8 +1984,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!editor.isSavingResults()) {
             return true;
         }
-        documentTabs.setSelectedComponent(editor);
-        JOptionPane.showMessageDialog(this, NLS.bind(CoreMessages.main_results_being_saved, editor.getFileName()),
+        showQueryWindow(editor);
+        JOptionPane.showMessageDialog(getDialogParent(editor), NLS.bind(CoreMessages.main_results_being_saved, editor.getFileName()),
             GeneralUtils.getProductName(), JOptionPane.INFORMATION_MESSAGE);
         return false;
     }
@@ -1841,16 +2033,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             for (SqlEditorPanel editor : resultsModified) {
                 message.append('\n').append(describeResultChanges(editor));
             }
-            int answer = askSave(message.toString(), !resultsModified.isEmpty());
+            int answer = askSave(this, message.toString(), !resultsModified.isEmpty());
             if (answer == 0) {
                 for (SqlEditorPanel editor : resultsModified) {
-                    documentTabs.setSelectedComponent(editor);
+                    showQueryWindow(editor);
                     if (!editor.saveResultChanges()) {
                         return;
                     }
                 }
                 for (SqlEditorPanel editor : modified) {
-                    documentTabs.setSelectedComponent(editor);
+                    showQueryWindow(editor);
                     if (!saveEditor(editor, false)) {
                         return;
                     }
@@ -1881,14 +2073,25 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
+     * @param parent        the query window asked about, or the main window ({@link #getDialogParent})
      * @param resultChanges Save also writes result grid changes to the database (DML, without a preview when the connection
      *                      does not ask for one): Cancel is then the default button, so that Enter does not run it
      * @return 0 Save, 1 Don't Save, anything else Cancel
      */
-    private int askSave(@NotNull String message, boolean resultChanges) {
+    private int askSave(@NotNull Component parent, @NotNull String message, boolean resultChanges) {
         String[] options = {CoreMessages.common_save, CoreMessages.common_dont_save, CoreMessages.common_cancel};
-        return JOptionPane.showOptionDialog(this, message, GeneralUtils.getProductName(), JOptionPane.YES_NO_CANCEL_OPTION,
+        return JOptionPane.showOptionDialog(getDialogParent(parent), message, GeneralUtils.getProductName(), JOptionPane.YES_NO_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE, null, options, resultChanges ? options[2] : options[0]);
+    }
+
+    /**
+     * The window of a query window, for its questions and file dialogs: a separate query window keeps the focus and is
+     * the active window again when they close, instead of the main window.
+     */
+    @NotNull
+    private Component getDialogParent(@NotNull Component component) {
+        Window window = SwingUtilities.getWindowAncestor(component);
+        return window != null ? window : this;
     }
 
     /**
@@ -1938,9 +2141,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return getActiveEditor();
     }
 
+    /**
+     * Shows a query window: selects its tab, or brings its separate window to the front (restored if minimized).
+     */
     @Override
     public void showQueryWindow(@NotNull SqlEditorPanel editor) {
-        documentTabs.setSelectedComponent(editor);
+        QueryWindowFrame frame = getQueryFrame(editor);
+        if (frame == null) {
+            documentTabs.setSelectedComponent(editor);
+            return;
+        }
+        if ((frame.getExtendedState() & Frame.ICONIFIED) != 0) {
+            frame.setExtendedState(frame.getExtendedState() & ~Frame.ICONIFIED);
+        }
+        frame.toFront();
     }
 
     @NotNull
@@ -1955,35 +2169,67 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return saveAction;
     }
 
+    /**
+     * The active document, the one rule for what the commands, the Query menu, the tool bars' enabled state, Find,
+     * Outline, Link with Editor, the Chromite Agent and the Query Library act on (app change #173): the query window of
+     * the separate window activated last, unless the main window was activated after it; then the main window's selected
+     * tab. A dialog or a floating tool window being active changes nothing: the window the user worked in last stays.
+     */
+    @Nullable
+    private Component getActiveDocument() {
+        return activeQueryFrame != null ? activeQueryFrame.getEditor() : documentTabs.getSelectedComponent();
+    }
+
     @Nullable
     private SqlEditorPanel getActiveEditor() {
+        return getActiveDocument() instanceof SqlEditorPanel editor ? editor : null;
+    }
+
+    /**
+     * The query window of the main window's selected tab, whichever window is active: the one whose results, status cells
+     * and picker the main window shows (Results card, status bar, SQL Editor tool bar).
+     */
+    @Nullable
+    private SqlEditorPanel getTabEditor() {
         return documentTabs.getSelectedComponent() instanceof SqlEditorPanel editor ? editor : null;
     }
 
     /**
-     * Text of the active document tab (query window or DDL tab), for Edit &gt; Find / Replace.
+     * Text of the active document (query window or DDL tab, {@link #getActiveDocument}), for Edit &gt; Find / Replace.
      */
     @Nullable
     private SqlEditorPanel.SqlTextArea getActiveTextArea() {
-        Component component = documentTabs.getSelectedComponent();
+        Component component = getActiveDocument();
         if (component instanceof SqlEditorPanel editor) {
             return editor.getTextArea();
         }
         return component instanceof DdlViewerPanel viewer ? viewer.getTextArea() : null;
     }
 
+    /**
+     * The main window's selected tab changed: its query window's results, status cells and picker go into the main window.
+     */
     private void activeEditorChanged() {
-        SqlEditorPanel editor = getActiveEditor();
+        SqlEditorPanel editor = getTabEditor();
         // No query window: the card lets go of the last window's tab row (the Results card is hidden)
         attachResults(editor != null ? editor.getResultsView().getComponent() : null);
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
-        outlinePanel.setTextArea(getActiveTextArea());
         sqlEditorToolBar.setActiveEditor(editor);
-        if (editor != null) {
-            // A window that shares the connection's main context shares its commit mode with the other windows
+        // A window that shares the connection's main context shares its commit mode with the other windows. Reading it
+        // opens the window's session, which a query window moving in or out must not do to the tab that becomes selected
+        if (editor != null && (!movingQueryWindow || editor.getExecutionContext() != null)) {
             editor.refreshTransactionMode();
         }
+        activeDocumentChanged();
+    }
+
+    /**
+     * The active document changed ({@link #getActiveDocument}): Outline, the Query actions and Link with Editor follow it.
+     * Switching between windows reads nothing from the server.
+     */
+    private void activeDocumentChanged() {
+        outlinePanel.setTextArea(getActiveTextArea());
         updateQueryActions();
         linkExplorerToDocument();
     }
@@ -2064,9 +2310,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && !actualPlanUnsupported && editor.isIncludeActualPlan());
         actualPlanAction.putValue(Action.SHORT_DESCRIPTION,
             actualPlanUnsupported ? EditorMessages.editor_sql_actual_plan_unsupported : CoreMessages.main_actual_plan_tip);
-        if (sqlEditorToolBar != null) {
-            sqlEditorToolBar.setActualPlanUnsupported(actualPlanUnsupported);
-        }
         terminalAction.setEnabled(editor != null);
         terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
         // Ending the transaction needs it idle: a running statement or script of this window would be refused
@@ -2079,12 +2322,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         commitModeAction.setEnabled(editor != null && editor.canSwitchCommitMode());
         commitModeAction.putValue(Action.SELECTED_KEY, Boolean.TRUE.equals(autoCommit));
         commitModeAction.putValue(Action.SHORT_DESCRIPTION, CommitModeSwitch.describe(autoCommit, editor != null && editor.isSharedSession()));
-        sqlEditorToolBar.setCommitMode(autoCommit);
+        // The actions' enabled state is the active editor's; each tool bar's words (commit mode, why Actual Plan is off) are
+        // its own window's, as its picker is
+        updateToolBarState(sqlEditorToolBar, getTabEditor());
+        for (QueryWindowFrame frame : queryFrames) {
+            updateToolBarState(frame.getToolBar(), frame.getEditor());
+        }
         pinResultsAction.setEnabled(editor != null);
         resultsBesideAction.putValue(Action.SELECTED_KEY, resultsSplit.isBeside());
         maximizeResultsAction.setEnabled(editor != null);
         maximizeResultsAction.putValue(Action.SELECTED_KEY, resultsSplit.isMaximized());
-        saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
+        saveAction.setEnabled(editor != null || getActiveDocument() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
         // Results belong to a query window: without one, Ctrl+R and the View menu item are disabled and say why
         Action resultsToggle = resultsWindow.getToggleAction();
@@ -2093,6 +2341,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         saveAllAction.setEnabled(hasModifiedDocuments());
         updateActivityMonitorAction();
         editMenu.activeDocumentChanged();
+    }
+
+    /**
+     * A SQL Editor tool bar's own words for the query window it shows: its commit mode and why Actual Plan is off.
+     */
+    private static void updateToolBarState(@NotNull SqlEditorToolBar toolBar, @Nullable SqlEditorPanel editor) {
+        toolBar.setActualPlanUnsupported(editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport()));
+        toolBar.setCommitMode(editor == null ? null : editor.getAutoCommit());
     }
 
     /**
@@ -2124,8 +2380,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         showResultsCard(editor);
     }
 
+    /**
+     * The Results card is the selected tab's; a separate query window shows its results below its editor at all times.
+     */
     private void showResultsCard(@NotNull SqlEditorPanel editor) {
-        if (editor == getActiveEditor()) {
+        if (editor == getTabEditor()) {
             resultsWindow.setShown(true);
         }
     }
@@ -2172,7 +2431,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @Override
     public void executionStateChanged(@NotNull SqlEditorPanel editor) {
-        if (editor == getActiveEditor()) {
+        // Also a window whose tool bar shows it without being active (the main window's tab, a separate window)
+        if (editor == getActiveEditor() || editor == getTabEditor() || getQueryFrame(editor) != null) {
             updateQueryActions();
         }
     }
@@ -2184,6 +2444,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             documentTabs.setTitleAt(index, editor.getTitle());
             documentTabs.setToolTipTextAt(index, editor.getToolTip());
             documentTabs.setIconAt(index, DocumentTabMenu.getTabIcon(editor, editor.getTabIcon()));
+        }
+        QueryWindowFrame frame = getQueryFrame(editor);
+        if (frame != null) {
+            frame.updateTitle();
         }
         // Modified or saved (Save All), or another connection (Activity Monitor, Link with Editor)
         saveAllAction.setEnabled(hasModifiedDocuments());
@@ -2431,6 +2695,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!appMenu) {
             menuBar.add(helpMenu);
         }
+        // View and Tools act on the main window's Results card and tool windows: not bound in a separate query window
+        queryWindowMenus = List.of(fileMenu, editMenu.getMenu(), queryMenu, windowMenu);
         return menuBar;
     }
 
@@ -2870,7 +3136,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Islands canvas (main-window-bg): the background around the cards, under the main tool bar and the status bar.
      */
-    private static class CanvasPanel extends JPanel {
+    static class CanvasPanel extends JPanel {
         CanvasPanel(@NotNull LayoutManager layout) {
             super(layout);
         }
@@ -2890,7 +3156,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * draggable but without a line or FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing).
      * The split pane paints the canvas color, so the gap shows the canvas; set again on every look and feel change.
      */
-    private static final class LineSplitPane extends JSplitPane {
+    static final class LineSplitPane extends JSplitPane {
         LineSplitPane(int orientation) {
             super(orientation);
         }
@@ -2917,7 +3183,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * the text color the line picked when the theme's text is unreadable on it ({@link #STATUS_BAR_FOREGROUND_KEY},
      * also read by the update progress at the right end, {@link UpdateUi}).
      */
-    private static final class StatusBar extends JPanel {
+    static final class StatusBar extends JPanel {
         private final JLabel statusLabel;
         @Nullable
         private QueryStatusLine line;

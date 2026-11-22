@@ -52,7 +52,8 @@ import java.util.Locale;
  * 설계:
  * <ul>
  *     <li>메뉴: 저장, 이름 바꾸기 │ 연결 변경(쿼리 창, {@link SqlEditorPanel#changeConnection}) │ 닫기, 모든 탭 닫기, 다른 탭 닫기 │ 닫은 탭 다시 열기 │ 전체 경로 복사, 상위 폴더 열기 │ 탭 고정 │
- *     탭 위치 ▸, 여러 행에 탭 표시. 탭 줄의 빈 곳에서는 닫은 탭 다시 열기와 배치 항목만 보인다. 열 때마다 누른 탭으로 만든다.
+ *     새 창으로 이동(쿼리 창, {@link Host#moveToNewWindow}), 탭 위치 ▸, 여러 행에 탭 표시. 탭 줄의 빈 곳에서는 닫은 탭 다시 열기와 배치 항목만 보인다.
+ *     열 때마다 누른 탭으로 만든다.
  *     쿼리 창의 항목(저장, 이름 바꾸기, 연결 변경, 경로 복사, 상위 폴더 열기)은 쿼리 창 탭에서만 보이고, 저장 전 창의 경로 항목과 실행 중인
  *     창의 연결 변경은 꺼진다({@link ContextMenus}의 규칙).</li>
  *     <li>닫기는 모두 메인 창의 닫기 경로({@link Host#closeDocument}: 저장하지 않은 변경 질문, 결과 표 변경, 열린 트랜잭션 질문)를 탭마다
@@ -70,8 +71,9 @@ import java.util.Locale;
  *     <li>탭 위치(위쪽·왼쪽·오른쪽)와 여러 행 배치는 설정에 저장한다. 여러 행에서는 고른 탭의 행을 내용 쪽으로 옮기지 않는다
  *     ({@code rotateTabRuns: false}, {@link MainFrame}): 누를 때마다 행이 바뀌면 탭을 다시 찾아야 하기 때문이다. 한 행 배치에서는 FlatLaf가
  *     마우스 휠로 탭 줄을 넘긴다.</li>
- *     <li>부동(문서 탭을 별도 창으로 띄우기)은 넣지 않았다. 결과 카드, SQL Editor 도구 막대, 상태 표시줄, Find, Outline이 모두 이 탭 창의
- *     활성 탭을 따라가는 구조라, 탭 밖의 쿼리 창은 결과와 명령을 잃는다.</li>
+ *     <li>새 창으로 이동(앱 변경 #173): 쿼리 창만 메뉴 항목과 탭 줄 밖으로 끌어 놓기로 별도 창({@link QueryWindowFrame})으로 옮긴다. 그 창이
+ *     편집기·결과·상태 칸·DB 콤보를 끼우고, 명령은 메인 창의 "활성 편집기" 규칙({@link MainFrame})으로 그 창에 적용된다. 다른 문서(DDL 탭, 도구
+ *     문서, 테이블 디자이너)는 항목이 숨고 탭 줄 밖에 놓아도 아무 일이 없다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -81,6 +83,8 @@ import java.util.Locale;
  * - 2026-11-16 쿼리 창이 아닌 탭에서 쿼리 창 항목을 끄는 대신 숨김, 구분선 정리(앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-22 탭 옮기기를 {@link MainFrame.EditorTabbedPane#moveTab} 하나로(여기의 빼고 다시 넣기를 지움), 끌어서 순서 바꾸기
  *   {@link DocumentTabDrag}를 붙임(앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
+ * - 2026-11-22 쿼리 창의 "새 창으로 이동" 항목과 탭 줄 밖에 놓기, 부동을 넣지 않은 이유 삭제(앱 변경 #173, docs/chromite/swing-frontend.md
+ *   "쿼리 창을 별도 창으로")
  */
 final class DocumentTabMenu {
 
@@ -117,6 +121,13 @@ final class DocumentTabMenu {
 
         @NotNull
         Action getSaveAction();
+
+        /**
+         * Moves a query window into a window of its own (app change #173).
+         *
+         * @param drop screen point where its tab was dropped, or null
+         */
+        void moveToNewWindow(@NotNull SqlEditorPanel editor, @Nullable Point drop);
     }
 
     static final int MAX_CLOSED_WINDOWS = 10;
@@ -163,7 +174,12 @@ final class DocumentTabMenu {
         DBPPreferenceStore preferences = getPreferences();
         tabs.setTabPlacement(toPlacement(preferences.getString(PREF_PLACEMENT)));
         tabs.setTabLayoutPolicy(preferences.getBoolean(PREF_MULTIPLE_ROWS) ? JTabbedPane.WRAP_TAB_LAYOUT : JTabbedPane.SCROLL_TAB_LAYOUT);
-        DocumentTabDrag.install(tabs);
+        // A query window's tab dropped off the tab strip goes into a window of its own; other documents stay
+        DocumentTabDrag.install(tabs, (document, drop) -> {
+            if (document instanceof SqlEditorPanel editor) {
+                host.moveToNewWindow(editor, drop);
+            }
+        });
     }
 
     /**
@@ -259,6 +275,11 @@ final class DocumentTabMenu {
             menu.add(new JMenuItem(reopenAction));
         }
         menu.addSeparator();
+        if (document != null) {
+            // With the tab arrangement items; query windows only (the other documents follow the main window's tab)
+            addItem(menu, DocumentTabMessages.tab_move_to_window, document instanceof SqlEditorPanel, true,
+                () -> host.moveToNewWindow((SqlEditorPanel) document, null));
+        }
         JMenu positionMenu = new JMenu(DocumentTabMessages.tab_position);
         addPositionItem(positionMenu, DocumentTabMessages.tab_position_top, SwingConstants.TOP);
         addPositionItem(positionMenu, DocumentTabMessages.tab_position_left, SwingConstants.LEFT);

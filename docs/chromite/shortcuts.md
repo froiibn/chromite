@@ -95,6 +95,9 @@ Windows 키와 macOS 키. "같음"이 아닌 줄은 위 표의 키다. 같은 �
 | Scripts / Outline / Chromite Agent | Ctrl+Alt+L / Ctrl+Alt+O / Ctrl+Alt+I | ⌥⌘L / ⌥⌘O / ⌥⌘I |
 | Object Explorer / Properties | F8 / F4 | F8 / F4 |
 
+- **별도 쿼리 창**(앱 변경 #173, [swing-frontend.md](swing-frontend.md) "쿼리 창을 별도 창으로"): 위 표의 File·Edit·Query·Window 키(Alt+X 포함)가 별도 창에서도
+  그 창의 쿼리 창에 적용된다. View·Tools 키(Ctrl+R, Ctrl+Shift+R, F8, F4, Ctrl+Alt+…, 작업 모니터)는 메인 창 것이라 별도 창에서는 아무 일도 없다.
+
 ### 쿼리 편집기
 
 | 명령 | Windows | macOS |
@@ -224,3 +227,4 @@ DBeaver(SWT)는 Eclipse 키 바인딩(`M1` = 플랫폼 명령 키)으로 같은 
   편집기에 가지 않음, 묶이지 않은 ⌥O는 글자가 편집기에 감('ø'), 데드 키 흉내(⌥N 누름 뒤 조합 글자 'ñ')도 들어감(⌥E는 Windows에서 Edit 메뉴
   니모닉이라 흉내에 쓰지 않음). 가드 없이는 같은 순서에서 'π'가 편집기에 들어감.
   Windows에는 설치되지 않음(키 디스패처 목록). 실제 Mac은 확인하지 않음. 회귀 테스트는 실행하지 않았다.
+- 2026-11-22 별도 쿼리 창에서 쓰는 키(앱 변경 #173, `chromite/document-tab-detach`). 회귀 테스트는 실행하지 않았다.
