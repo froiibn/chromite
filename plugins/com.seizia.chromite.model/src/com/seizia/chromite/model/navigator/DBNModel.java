@@ -34,6 +34,7 @@ import com.seizia.chromite.model.app.DBPWorkspace;
 import com.seizia.chromite.model.auth.SMSessionContext;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSNavigatorObjectProvider;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectState;
 import com.seizia.chromite.model.virtual.DBVUtils;
@@ -59,6 +60,11 @@ import java.util.stream.Collectors;
  * - 2026-11-07 새 객체의 부모 폴더(getParentNode)와 걸러진 객체를 넣을 폴더(cacheNodeChildren)를 객체 클래스가 맞는 첫 폴더 대신
  *   객체를 담는 폴더로 고름(findObjectFolder). 같은 클래스를 받는 폴더가 여럿이면(SQL Server·Oracle·generic의 프로시저/함수)
  *   새 함수가 프로시저 폴더에 들어갔다 (docs/chromite/swing-frontend.md "새 객체의 부모 폴더")
+ * - 2026-11-22 부모를 따라 노드를 찾을 때({@link #getNodeByObject(DBRProgressMonitor, DBSObject, boolean)}) 트리에 없는 객체는
+ *   탐색기가 그 대신 보이는 객체({@link DBSNavigatorObjectProvider})의 노드를 찾음. 이름으로 찾은 목록 객체를 Ctrl+클릭하면 "찾지 못했습니다"였다
+ *   (앱 변경 #166, docs/chromite/swing-sql-editor-ergonomics.md). 메모리만 보는 {@link #getNodeByObject(DBSObject)}와 이벤트 처리는 그대로다
+ * - 2026-11-22 부모를 따라 내려갈 때(cacheNodeChildren) 항목 형식이 없는 폴더도 읽음: 형식을 적을 수 없는 트리(다른 번들이 공급자의 트리에
+ *   더한 폴더)의 객체는 그 폴더가 펼쳐지기 전에는 노드를 찾지 못했다. 객체의 부모 노드에서, 형식 있는 폴더와 항목에 없을 때만 읽는다(앱 변경 #166)
  */
 public class DBNModel {
 
@@ -215,6 +221,10 @@ public class DBNModel {
 
     @Nullable
     public DBNDatabaseNode getNodeByObject(@NotNull DBRProgressMonitor monitor, @Nullable DBSObject object, boolean addFiltered) {
+        if (object instanceof DBSNavigatorObjectProvider provider) {
+            // An object that is not itself in the tree (a list object found by name): the node of the object shown for it
+            object = provider.getNavigatorObject();
+        }
         if (object instanceof DBSEntity entity) {
             try {
                 object = DBVUtils.getRealEntity(monitor, entity);
@@ -418,6 +428,20 @@ public class DBNModel {
                 } else if (child.getObject() == objectToCache) {
                     cached = true;
                     break;
+                }
+            }
+            if (getNodeByObject(objectToCache) == null
+                && DBUtils.getPublicObjectContainer(objectToCache.getParentObject()) == node.getObject()) {
+                // A folder without an item type (a provider's tree that cannot name the class of its items) may hold it.
+                // Read only under the object's own parent and only when no typed folder or item held it: other lookups read no more
+                for (DBNDatabaseNode child : children) {
+                    if (child instanceof DBNDatabaseFolder folder && folder.getChildrenClass() == null) {
+                        folder.getChildren(monitor);
+                        if (getNodeByObject(objectToCache) != null) {
+                            cached = true;
+                            break;
+                        }
+                    }
                 }
             }
         }

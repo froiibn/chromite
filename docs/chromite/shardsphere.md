@@ -1168,14 +1168,14 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
 |---|---|---|---|
 | SQL 완성: FROM·JOIN 뒤, `소유자.` 뒤(`SQLQueryCompletionContext.collectImmediateChildren` → `getChildren`) | 없음 | 스트림 테이블(테이블 아이콘, "- Table"), 연속 테이블·연속 스트림 테이블(뷰 아이콘, "- View"). 연속 쿼리·`$AGGR`·`$TEXT` 없음 | 앱 |
 | 별칭 점 뒤 열(의미 분석의 이름 찾기 `SQLSearchUtils` → `getChild`) | 0개 | `"$INSERT_TIME"`과 정의한 열(객체마다 `getColumns` 한 번, 두 번째부터 질의 없음) | 앱 |
-| 마우스 올림 설명(`SqlObjectNavigation.describe`) | 없음 | 이름, 정규화된 이름, 열과 형식(노드가 없어 종류 이름 없음) | 앱 |
-| Ctrl+클릭 이동(`DBNUtils.getNodeByObject`) | "개체를 찾지 못했습니다" | 같은 알림(목록 객체는 트리 노드가 아님). 아래 "남은 것" | 코드(노드 null은 앱) |
+| 마우스 올림 설명(`SqlObjectNavigation.describe`) | 없음 | 이름, 정규화된 이름, 열과 형식(노드가 없어 종류 이름 없음). #166부터 "스트림" 노드의 종류 이름("스트림 테이블", "연속 테이블")도 | 앱 |
+| Ctrl+클릭 이동(`DBNUtils.getNodeByObject`) | "개체를 찾지 못했습니다" | 같은 알림(목록 객체는 트리 노드가 아님). #166부터 "스트림" 노드 아래의 그 객체를 고름(아래 "목록 객체의 탐색기 노드") | 앱 |
 | 결과 그리드의 원본 테이블(`DBExecUtils.bindAttributes` → `DBUtils.getEntityFromMetaData` → `getChild`) | 원본 없음 | 목록 객체로 묶임. 읽기 전용 "고유 키 없음", 칸 편집이 시작되지 않음. SQL 생성: SELECT … WHERE, INSERT(스트림 테이블·연속 스트림 테이블만). UPDATE·DELETE·MERGE 없음. 가상 키를 정해도 바꾸기 기능이 없어 읽기 전용 | 앱(`X`, `Y`, `C`) |
 | 가져오기 대상 목록(`DataImportTargetPage.readTables`: 테이블 종류 + 넣기) | 없음 | 스트림 테이블만(연속 스트림 테이블은 뷰 종류라 없음, 연속 테이블은 넣기 없음). "대상 비우기"는 꺼짐(`acceptsEmptying`) | 앱(목록), 코드(체크 상자) |
 | 테이블 복사 대상(`DatabaseCopyMappings.readTargetTableNames`, `setTableTarget`) | 없음 | 스트림 테이블·연속 스트림 테이블이 기존 대상(existing). 형식은 기존·건너뛰기(다시 만들기 없음), 맞는 열이 없는 원본 열은 건너뜀, 다른 이름으로 바꾸면 다시 새 열. 연속 테이블 이름은 기존 오류 줄("다른 개체(Table)") | 앱 |
 | 데이터 내보내기·데이터 찾기 원본 목록(`DataTransferObjects.readDataContainers`) | 없음 | 다섯 객체(읽기만, SELECT를 받음) | 앱(내보내기 캡처), 코드(찾기) |
-| ERD 스키마 다이어그램(`ERDUtils.collectDatabaseTables`) | 없음 | 다섯 객체(열만, 관계 없음, "탐색기에서 보기"는 노드가 없어 아무것도 안 함) | 앱(목록) |
-| Agent 데이터베이스 요약(`AIDatabaseSnapshotService` → `AIUtils.isExcludableObject`) | 없음 | 없음(노드가 없는 객체는 뺌) | 앱(`isExcludableObject` true) |
+| ERD 스키마 다이어그램(`ERDUtils.collectDatabaseTables`) | 없음 | 다섯 객체(열만, 관계 없음, "탐색기에서 보기"는 노드가 없어 아무것도 안 함). #166부터 "탐색기에서 보기"가 "스트림" 노드를 고름 | 앱(목록), 코드(#166: 같은 노드 찾기를 앱에서) |
+| Agent 데이터베이스 요약(`AIDatabaseSnapshotService` → `AIUtils.isExcludableObject`) | 없음 | 없음(노드가 없는 객체는 뺌). #166부터 포함(노드가 있음) | 앱(`isExcludableObject` true, #166 뒤 false) |
 | Agent 테이블 목록 도구(`ListTableNamesFunction`) | 없음 | 포함 | 코드 |
 | Agent DDL 도구(`MetadataTools` → `DBStructUtils.generateTableDDL`) | "개체 없음" | "DDL을 만들 수 없음" 주석 줄(테이블 편집기 없음) | 코드 |
 | 저장된 작업·가상 모델의 이름 찾기(`DBUtils.findObjectById`, `DBVEntity`) | 없음 | 찾음 | 코드 |
@@ -1204,8 +1204,7 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
 
 ### 남은 것
 
-- **Ctrl+클릭 이동:** 목록 객체는 트리 노드가 아니라 "찾지 못했습니다" 알림이 나온다(전과 같은 알림). 고치려면 목록 객체가 자기 트리 객체를 알려 주는 중립
-  자리(예: 모델의 "탐색기에서 이 객체" 질문)를 `DBNModel`이나 `SqlObjectNavigation`이 묻게 해야 한다(공용 코드 두 곳). 이번 범위 밖으로 두었다.
+- **Ctrl+클릭 이동:** 2026-11-22 앱 변경 #166에서 고쳤다(아래 "목록 객체의 탐색기 노드").
 - **완성의 종류 글:** 위 "화면 글".
 
 ### 벤더 서버에 쓴 것 (사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_SCP_*`만)
@@ -1231,6 +1230,63 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
 - 미확인: 집계 있는 연속 테이블을 별칭과 함께 읽으면 결과 집합의 테이블 이름이 별칭이 되는 것이 의도인지.
 - 미확인: 연속 스트림 테이블에 사용자가 넣은 행이 처리되는 방식(처리 스레드 0인 서버라 확인하지 못함), 연속 테이블에 넣기를 거절하는 오류 코드가 종류마다
   다른 이유(200792 / 201589).
+
+## 목록 객체의 탐색기 노드 (2026-11-22, 앱 변경 #166)
+
+쿼리 창에서 스트림 테이블·연속 테이블 이름을 Ctrl+클릭하면 "…에 해당하는 데이터베이스 개체를 찾지 못했습니다"가 나왔다(위 "남은 것").
+
+### 원인 (둘)
+
+1. **목록 객체는 트리 객체가 아니다.** 이름으로 찾은 객체는 `StreamRelation`(목록 객체)인데 트리는 그 객체를 감싼 `StreamTable`·`ContinuousObject`를
+   보인다. 노드 찾기(`DBNModel.getNodeByObject(monitor, object, addFiltered)`)는 객체의 부모를 따라 내려가므로 목록 객체에는 노드가 없다.
+2. **항목 형식이 없는 폴더는 노드 찾기가 내려가지 않았다.** "스트림" 노드의 세 폴더는 형식(`type`)이 없다(이 번들의 클래스를 Altibase 공급자가
+   읽지 못해 적을 수 없음, `plugin.xml` 주석). `cacheNodeChildren`은 형식 있는 폴더만 읽으므로 트리 객체(`StreamTable`)조차 그 폴더를 펼치기 전에는
+   노드를 찾지 못했다(앱: 1만 고친 빌드에서 `StreamTable`의 노드 null, 스키마 ▸ 스트림 ▸ 폴더 세 개의 `getChildrenClass()` 모두 null).
+
+### 고친 것
+
+- 모델에 중립 질문 `DBSNavigatorObjectProvider.getNavigatorObject()`("탐색기가 이 객체 대신 보이는 객체")를 두고, 부모를 따라 찾는
+  `DBNModel.getNodeByObject(monitor, …)`가 그 객체의 노드를 찾는다. `StreamRelation`이 자기 노드 객체를 돌려준다. 메모리만 보는
+  `getNodeByObject(object)`와 탐색기 이벤트 처리는 묻지 않는다(목록 객체의 알림이 트리 객체의 노드를 바꾸면 안 됨).
+- `cacheNodeChildren`이 객체의 부모 노드에서, 형식 있는 폴더와 항목에 객체가 없을 때만 형식 없는 폴더를 읽는다. 전에 null이던 찾기만 더 읽는다.
+  스트림 폴더는 목록이 이미 읽은 캐시(`StreamSchema`)라 문장이 늘지 않는다(쿼리 관리자: Ctrl+클릭 때 SELECT만, 목록 SELECT는 연결·새로 고침마다 한 번).
+- 기존 인터페이스를 쓰지 않은 이유: `DBSWrapper`는 `DBUtils.getFromObject`가 모든 곳에서 풀어 버리고(데이터 전송 등이 목록 객체 대신 트리 객체를 받게 됨),
+  `DBSAlias`(시노님)는 그 자체가 트리 노드다. 이 인터페이스는 새것이라 다른 구현이 없다.
+- 열(`StreamColumn`)은 구현하지 않았다: 트리에 열 노드가 없어 대신할 객체가 없다. 스트림 테이블 열의 Ctrl+클릭은 전과 같이 "찾지 못했습니다".
+  대안(고르지 않음): 열이 테이블 노드를 돌려주기 — 그러면 열의 마우스 올림이 테이블의 종류 글("스트림 테이블")을 보인다.
+
+### 노드 찾기를 부르는 곳 (전 → 후, 목록 객체)
+
+| 곳 | 전 | 후 | 확인 |
+|---|---|---|---|
+| Ctrl+클릭(`SqlObjectNavigation`, `DBNUtils.getNodeByObject(monitor, …, true)`) | "찾지 못했습니다" | "스트림" ▸ 스트림 테이블 / 연속 테이블 아래 그 노드를 고름(이름만, `소유자.이름`, `SELECT … FROM`, `INSERT INTO`) | 앱 |
+| 마우스 올림(`SqlObjectNavigation.describe`) | 종류 글 없음 | "스트림 테이블" / "연속 테이블"(트리 노드의 글) | 앱 |
+| 탐색기에서 보기(`SwingPlatformUI.openEntityEditor`, 데이터 전송 뒤 "테이블 열기") | 아무것도 안 함 | 그 노드를 고름 | 앱 |
+| ERD "탐색기에서 보기"(`ErdDiagramPanel.showInExplorer`), ERD 노드 주소(`ERDEntity.toMap`) | 노드 없음 | 노드 | 코드(같은 찾기, 앱에서 찾기 확인) |
+| Agent 요약(`AIUtils.isExcludableObject`) | 뺌 | 넣음(노드가 있음) | 앱 |
+| 개체 찾기(`ObjectSearchPanel`) | 목록 객체가 나오지 않음(자기 질의) | 같음. 이 서버에서는 드라이버의 `getSchemas(String, String)`이 없어 찾기 자체가 실패(전부터, 이 작업 밖) | 앱 |
+| 메모리만 보는 곳(`MainFrame` 스키마 고르기, `ObjectExplorerPanel` 편집기와 연결, `SqlMetadataRefresh` DDL 뒤 새로 고침) | – | 바뀌지 않음 | 코드 |
+
+### 확인 (2026-11-22, 이 브랜치 빌드와 `origin/command` 016882af2f 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+- 연결 `SS`(일반 서버), `ALTI`(Altibase 7.3), `ORA`(Oracle, 시스템 개체 보이기 켬), `PG`(PostgreSQL 17), 모두 읽기 전용 표시, 값은 환경 변수 참조, 암호 저장 끔.
+- 전: 스트림 테이블·연속 테이블·연속 스트림 테이블의 Ctrl+클릭(이름만, `소유자.이름`, `INSERT INTO`) 모두 "찾지 못했습니다". 후: 모두 그 노드를 고름.
+  연결 새로 고침, 스키마 새로 고침, 끊고 다시 연결한 뒤에도 같음.
+- 바뀌지 않음(전·후 같음): 일반 테이블·열·함수(SS), 테이블·뷰·시노님·프로시저·열(ALTI, ORA), 테이블·뷰·함수·열(PG), 없는 이름의 알림(네 DB).
+  Oracle 사설 시노님 Ctrl+클릭은 전·후 모두 "찾지 못했습니다"(이름 찾기가 시노님을 찾지 않음, 이 작업 밖).
+- 개체 목록의 다른 객체: 네 DB 스키마의 `getChildren` 전체에서 노드가 없는 객체는 `StreamRelation` 셋뿐이었다(전). 후 0.
+- 기능을 뺀 제품(내 앱 사본에서 이 번들과 feature, `bundles.info`의 줄을 지움): 시작, 일반 테이블·열·시노님·뷰 Ctrl+클릭 됨, 스트림 테이블 이름은 "찾지 못했습니다"(목록 객체 없음).
+- 캡처(저장소 밖, 호스트·계정·다른 객체 이름은 가림): `D:\Tools\_scratch\nav-list-object\sheets\`.
+- 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: 노드 찾기를 쓰는 곳(위 표), 항목 형식이 없는 폴더 안의 객체를 찾는 모든 DB의 Ctrl+클릭·탐색기에서 보기.
+
+### 벤더 서버에 쓴 것 (사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_NAV_*`만)
+
+- 앱 밖 JDBC: 일반 테이블 1(`CHR_NAV_T`), 스트림 테이블 1(`CHR_NAV_S`), 연속 테이블 1(`CHR_NAV_C`), 연속 스트림 테이블 1(`CHR_NAV_Y`, 모두 `DISABLE`). 행은 넣지 않았다.
+  앱은 읽기만 했다. 서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다. 메타 노드에는 연결하지 않았다.
+- 지운 순서: 연속 테이블 → 일반 테이블 → 연속 스트림 테이블(`DROP CONTINUOUS TABLE`) → 스트림 테이블(`DROP TABLE`). 처음 시도한
+  `DROP CONTINUOUS STREAM TABLE`·`DROP STREAM TABLE`은 200705로 거절됐다(`StreamDDL`의 형태가 맞음).
+- 확인: `SYS_TABLES_`에 `CHR_NAV%` 0행, 짝 없는 `SYS_CONTINUOUS_TABLES_`·`SYS_TTL_` 0행. 행 수(전 → 후): `SYS_TABLES_` 164 → 164(S 15·T 108·V 41),
+  `SYS_CONTINUOUS_TABLES_` 0 → 0, `SYS_TTL_` 0 → 0, `SYS_COLUMNS_` 1454 → 1454, `SYS_VIEWS_` 41 → 41, `SYS_INDICES_` 183 → 183, `V$STREAM_FUNCTION` 0 → 0.
 
 ## 표시 결함 세 가지의 시험 (2026-11-22, 앱 변경 #158)
 
@@ -1317,3 +1373,6 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
   `StreamRelation`·`StreamColumn`, 서버가 받는 행에 맞춘 데이터 기능, 트리와 목록이 한 번 읽은 것을 함께 씀, 스키마 새로 고침 알림, 목록을 읽는 곳의 전후 표,
   데이터 전송의 구조를 바꿀 수 없는 대상([swing-data-transfer.md](swing-data-transfer.md)). 일반 서버에 시험용 `CHR_SCP_*`로 열·받는 행을 확인하고 지움.
   위 "자동 완성의 스트림 객체".
+- 2026-11-22 스트림 테이블·연속 테이블 이름의 Ctrl+클릭이 "스트림" 노드를 고름(앱 변경 #166, `chromite/nav-list-object`): 모델의 중립 질문
+  `DBSNavigatorObjectProvider`, 노드 찾기가 항목 형식 없는 폴더를 읽음, 마우스 올림의 종류 글, Agent 요약에 포함. 일반 서버에 시험용 `CHR_NAV_*`를 만들고 지움.
+  위 "목록 객체의 탐색기 노드".

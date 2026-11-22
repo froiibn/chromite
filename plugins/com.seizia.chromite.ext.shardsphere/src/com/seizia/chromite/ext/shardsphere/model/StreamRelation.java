@@ -39,6 +39,8 @@ import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAssociation;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSNavigatorObjectProvider;
+import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.rdb.DBSTableConstraint;
 import com.seizia.chromite.model.struct.rdb.DBSTableIndex;
 import org.jkiss.code.NotNull;
@@ -75,13 +77,17 @@ import java.util.Map;
  *     <li>연속 테이블(연속 스트림 테이블 포함)은 뷰로 답한다({@link #isView}): 서버의 연속 질의가 채우는 객체이고, 아이콘이 "스트림" 노드의
  *     연속 테이블 폴더와 같다. 스트림 테이블은 테이블이다.</li>
  *     <li>정의(DDL)는 노드 객체의 것이다.</li>
+ *     <li>탐색기: 이 객체는 트리에 없고 노드 객체가 이 객체를 대신한다({@link #getNavigatorObject}). 그래서 Ctrl+클릭은 "스트림" 노드 아래의
+ *     그 객체를 고르고 마우스 올림은 그 노드의 종류 글을 보인다. 열({@link StreamColumn})은 트리에 노드가 없어 대신할 객체가 없다.</li>
  * </ul>
  * 연속 쿼리는 이 객체가 없다(SELECT를 200753으로 거절). 저장 테이블 {@code $AGGR}과 {@code $TEXT}도 없다(서버의 내부 객체).
  *
  * 변경 이력:
  * - 2026-11-22 최초 작성(앱 변경 #163, docs/chromite/shardsphere.md "자동 완성의 스트림 객체")
+ * - 2026-11-22 탐색기가 이 객체 대신 보이는 노드 객체({@link #getNavigatorObject}): Ctrl+클릭이 "찾지 못했습니다"였다(앱 변경 #166,
+ *   docs/chromite/shardsphere.md "목록 객체의 탐색기 노드")
  */
-public class StreamRelation extends JDBCTable<AltibaseDataSource, AltibaseSchema> implements DBPScriptObject {
+public class StreamRelation extends JDBCTable<AltibaseDataSource, AltibaseSchema> implements DBPScriptObject, DBSNavigatorObjectProvider {
 
     @NotNull
     private final DBPScriptObject source;
@@ -92,11 +98,17 @@ public class StreamRelation extends JDBCTable<AltibaseDataSource, AltibaseSchema
     private volatile List<StreamColumn> columns;
 
     /**
-     * @param source        the stream node's object of the same name (its DDL is this object's)
+     * @param source        the stream node's object of the same name (its DDL is this object's, Object Explorer shows it for this one)
      * @param view          a continuous table, filled by the server's continuous query
      * @param acceptsInsert the server accepts INSERT into it
      */
-    StreamRelation(@NotNull AltibaseSchema schema, @NotNull DBPScriptObject source, @NotNull String name, boolean view, boolean acceptsInsert) {
+    <T extends DBSObject & DBPScriptObject> StreamRelation(
+        @NotNull AltibaseSchema schema,
+        @NotNull T source,
+        @NotNull String name,
+        boolean view,
+        boolean acceptsInsert
+    ) {
         super(schema, name, true);
         this.source = source;
         this.view = view;
@@ -259,6 +271,17 @@ public class StreamRelation extends JDBCTable<AltibaseDataSource, AltibaseSchema
     @Override
     public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) throws DBException {
         return source.getObjectDefinitionText(monitor, options);
+    }
+
+    /**
+     * The stream node's object: this object is not in the tree, Object Explorer shows that one for it (Ctrl+click, the
+     * hover's kind).
+     */
+    @NotNull
+    @Override
+    public DBSObject getNavigatorObject() {
+        // The constructor takes only objects of the tree
+        return (DBSObject) source;
     }
 
     @NotNull

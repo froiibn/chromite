@@ -94,6 +94,13 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 - Ctrl+클릭: 별칭·CTE 같은 문장 안의 이름이면 그 정의를 편집기에서 고른다(SWT와 같음). 데이터베이스 개체면 Object Explorer에서 그 노드를
   펼쳐 고른다. Swing에는 개체 편집기가 없고(`SwingPlatformUI.openEntityEditor`는 아무것도 하지 않음) Properties 창이 Object Explorer 선택을
   따르므로 이것이 가장 가까운 동작이다. 찾지 못하면 상태 줄에 알린다.
+- 노드는 모델의 노드 찾기(`DBNUtils.getNodeByObject(monitor, object, …)` → `DBNModel`)가 객체의 부모를 따라 찾는다(2026-11-22, 앱 변경 #166).
+  - 이름으로 찾은 객체가 트리에 없는 목록 객체(개체 목록에만 있는 객체)이면 그 객체가 `DBSNavigatorObjectProvider.getNavigatorObject()`로 알려 주는
+    트리 객체의 노드를 고른다. 마우스 올림의 종류 글도 그 노드의 것이다. 지금 구현은 ShardSphere 스트림 테이블·연속 테이블의 목록 객체 하나다
+    ([shardsphere.md](shardsphere.md) "목록 객체의 탐색기 노드").
+  - 항목 형식이 없는 폴더(다른 번들이 공급자의 트리에 더해 형식을 적을 수 없는 폴더)의 객체도 찾는다: 객체의 부모 노드에서, 형식 있는 폴더와
+    항목에 없을 때만 그 폴더를 읽는다. 전에는 그 폴더를 펼치기 전에는 찾지 못했다.
+  - 트리에 노드가 없는 객체(예: 목록 객체의 열)는 전처럼 "찾지 못했습니다"다.
 - 설명 내용: 이름과 종류(탐색기 노드 종류 이름), 전체 이름, 열이면 형식·NOT NULL·기본값, 테이블·뷰면 열 목록(30개까지), 루틴이면 매개변수,
   주석(설명). 도구 설명은 RSyntaxTextArea의 포커스 가능한 도구 설명(HTML)이고 색은 테마의 도구 설명 색이다.
 
@@ -186,3 +193,5 @@ SWT 대응 점검 영역 B의 쿼리 편집기 편의 행(S3, S28, S31, S33, S34
 - 2026-11-09 블록 주석 토글의 macOS 키 ⌥⌘/(⇧⌘/는 도움말 메뉴 검색, 앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md))
 - 2026-11-12 결과 고정(S3): 결과 탭이 Grid 안의 자식 탭(Result 1…)이 되어 Grid에서 고른 탭을 고정(앱 변경 #54, `chromite/result-area-2`)
 - 2026-11-12 결과 최대화 키를 Ctrl+Shift+T에서 Ctrl+Shift+R(⇧⌘R)로: Ctrl+Shift+T는 닫은 탭 다시 열기(앱 변경 #66, `chromite/small-fixes-r2`, [shortcuts.md](shortcuts.md))
+- 2026-11-22 Ctrl+클릭·마우스 올림의 노드: 트리에 없는 목록 객체는 탐색기가 대신 보이는 객체의 노드(`DBSNavigatorObjectProvider`), 항목 형식이 없는 폴더의 객체도 찾음
+  (앱 변경 #166, `chromite/nav-list-object`, [shardsphere.md](shardsphere.md) "목록 객체의 탐색기 노드")
