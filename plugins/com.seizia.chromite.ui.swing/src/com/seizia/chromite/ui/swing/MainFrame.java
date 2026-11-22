@@ -337,6 +337,8 @@ import java.util.function.Supplier;
  *   {@link #getTabEditor}를 나눔, 탭 닫기와 창 닫기의 한 경로 {@link #closeQueryWindow}, 쿼리 창 보이기는 {@link #showQueryWindow}로, 별도 창의
  *   질문·파일 대화상자는 그 창 위에({@link #getDialogParent}), 모두 저장·끝내기·복원이 별도 창도 다룸, 단축키가 쓰는 결과 영역에 별도 창의 결과,
  *   {@code StatusBar}·{@code CanvasPanel}·{@code LineSplitPane}을 별도 창이 함께 씀 (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-22 {@link #moveToNewWindow}가 탭이 빠지기 전에 문서 탭의 편집기 영역과 아래 Results 카드의 크기를 재어 별도 창에 넘김(창이 메인 창의
+ *   60% 대신 그 크기로 열림, 앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -1614,6 +1616,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return;
         }
         documentTabMenu.setPinned(editor, false);
+        // The window keeps the size the query window has here (app change #174): the tabs' editor area, the same for every
+        // tab, and the Results card if it is below the documents. Measured before the tab leaves, which hides the card
+        // when no query window is left; a minimized main window gives none
+        Dimension editorSize = null;
+        Dimension resultsSize = null;
+        if ((getExtendedState() & ICONIFIED) == 0) {
+            editorSize = documentTabs.getSelectedComponent().getSize();
+            resultsSize = resultsSplit.isShown() && !resultsSplit.isBeside() ? resultsArea.getSize() : null;
+        }
         // The main window's Results card, status bar and tool bar let it go as another tab becomes the selected one
         movingQueryWindow = true;
         try {
@@ -1623,7 +1634,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         QueryWindowFrame frame = new QueryWindowFrame(editor, createSqlEditorToolBar(), this, queryWindowMenus, getRootPane(),
             saveAction, saveAsAction);
-        frame.place(drop, this, queryFrames.size());
+        frame.place(drop, this, queryFrames.size(), editorSize, resultsSize);
         queryFrames.add(frame);
         frame.setVisible(true);
         frame.toFront();

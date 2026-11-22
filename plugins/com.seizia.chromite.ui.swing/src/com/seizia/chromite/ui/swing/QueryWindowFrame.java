@@ -51,13 +51,18 @@ import java.util.Set;
  *     결과 카드와 도구 창)는 걸지 않는다: 이 창에서 누르면 아무 일도 없다.</li>
  *     <li>창 닫기(X)는 탭 닫기와 같은 경로({@link Host#closeQueryWindow}: 결과 표 변경, 저장하지 않은 변경, 열린 트랜잭션 질문)이고, 취소하면 창이
  *     남는다. 그래서 {@code DO_NOTHING_ON_CLOSE}로 직접 처리한다.</li>
- *     <li>제목은 탭 제목과 제품 이름, 아이콘은 제품 창 아이콘. 작업 표시줄에 따로 보이는 보통 창이고 항상 위가 아니다(소유 창 없음). 크기는 메인
- *     창의 60%, 위치는 놓은 자리(끌어서 뗄 때) 또는 메인 창에서 계단식이며, 어느 화면에도 다 들어가지 않으면 그 점이 있는 화면(없으면 메인 창의
- *     화면) 안으로 옮긴다({@link #fitToScreen}).</li>
+ *     <li>제목은 탭 제목과 제품 이름, 아이콘은 제품 창 아이콘. 작업 표시줄에 따로 보이는 보통 창이고 항상 위가 아니다(소유 창 없음). 크기는 쿼리
+ *     창이 메인 창에서 차지하던 크기다({@link #place}): 편집기 카드는 문서 탭의 편집기 영역, 결과 카드는 그 아래 Results 카드의 크기이고 분할선도 그
+ *     자리다. 보던 것을 그대로 보이려는 것이다(메인 창 크기의 비율로 정하면 결과 영역의 고정 줄만 남아 그리드 행이 보이지 않았다). 카드마다 편집기
+ *     {@link #MIN_EDITOR_LINES}줄, 그리드 {@link #MIN_GRID_ROWS}행은 보이게 하고(메인 창이 그 카드를 보이지 않을 때의 크기도 이것), 폭은 도구 막대
+ *     줄과 상태 표시줄이 다 들어가게 한다. 위치는 놓은 자리(끌어서 뗄 때) 또는 메인 창에서 계단식이며, 어느 화면에도 다 들어가지 않으면 그 점이
+ *     있는 화면(없으면 메인 창의 화면) 안으로 옮기고 줄인다({@link #fitToScreen}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-22 최초 작성(앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-22 크기를 메인 창의 60%(편집기 60%) 대신 메인 창에서의 편집기 영역과 Results 카드 크기로, 최소 줄·행 수는 컴포넌트의 줄·행 높이로
+ *   (앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class QueryWindowFrame extends JFrame {
 
@@ -84,10 +89,21 @@ final class QueryWindowFrame extends JFrame {
     }
 
     /**
-     * Share of the main window's size for a new window, and of the window's height for the editor above the results.
+     * Share of a change of the window's height that goes to the editor above the results (resize weight).
      */
-    private static final double SIZE_SHARE = 0.6;
     private static final double EDITOR_SHARE = 0.6;
+    /**
+     * Lines of the editor and rows of the result grid a new window shows at least: what it shows when the main window gives
+     * no size to keep (the Results card hidden or beside the documents, a very small main window). Counted in the
+     * components' own line and row heights, so that they hold at every scale and density.
+     */
+    private static final int MIN_EDITOR_LINES = 10;
+    private static final int MIN_GRID_ROWS = 5;
+    /**
+     * The result viewer's own lines around the grid rows (edit line, column header, a status line of up to two lines),
+     * about one grid row high each; the results add two tool tab rows (Grid… and Result N).
+     */
+    private static final int RESULT_VIEWER_LINES = 4;
     private static final int CASCADE_STEP = 32;
 
     private final SqlEditorPanel editor;
@@ -96,6 +112,8 @@ final class QueryWindowFrame extends JFrame {
     private final JPanel resultsCard;
     private final JSplitPane split;
     private final MainFrame.StatusBar statusBar;
+    // The results card's height when the window was sized (place), applied by the divider once it is shown
+    private int resultsCardHeight;
 
     /**
      * @param toolBar      a SQL Editor tool bar of its own, with the main window's Query actions
@@ -166,7 +184,9 @@ final class QueryWindowFrame extends JFrame {
 
             @Override
             public void windowOpened(WindowEvent e) {
-                split.setDividerLocation(EDITOR_SHARE);
+                // The divider where place() put it. A window the screen made lower takes the height from the editor: the
+                // results keep their rows, which the editor (the larger card when the window does not fit) can spare
+                split.setDividerLocation(Math.max(0, split.getHeight() - split.getDividerSize() - resultsCardHeight));
             }
         });
     }
@@ -220,12 +240,32 @@ final class QueryWindowFrame extends JFrame {
 
     /**
      * Sizes and places a new window: at the point where the tab was dropped, or cascaded from the main window.
+     * <p>
+     * The cards get the size the query window had in the main window, so that the user keeps seeing what they saw: the
+     * editor area of the document tabs above, the Results card below, the divider between them. Each card is at least
+     * {@link #MIN_EDITOR_LINES} lines or the results with {@link #MIN_GRID_ROWS} grid rows, which is also what a card gets
+     * that the main window does not show; the window is at least as wide as its tool bar row and status bar. The frame adds
+     * those two rows and its decoration ({@link #pack()}).
      *
-     * @param drop  screen point where the tab was dropped, or null
-     * @param index how many separate windows are open already (the cascade step)
+     * @param drop        screen point where the tab was dropped, or null
+     * @param index       how many separate windows are open already (the cascade step)
+     * @param editorSize  the editor area of the main window's document tabs, or null if the main window gives none
+     * @param resultsSize the main window's Results card content below the editor, or null if it is not there
      */
-    void place(@Nullable Point drop, @NotNull Window main, int index) {
-        Dimension size = new Dimension((int) (main.getWidth() * SIZE_SHARE), (int) (main.getHeight() * SIZE_SHARE));
+    void place(@Nullable Point drop, @NotNull Window main, int index, @Nullable Dimension editorSize, @Nullable Dimension resultsSize) {
+        int width = Math.max(editorSize != null ? editorSize.width : 0, resultsSize != null ? resultsSize.width : 0);
+        int editorHeight = Math.max(editorSize != null ? editorSize.height : 0, getMinEditorHeight());
+        int resultsHeight = Math.max(resultsSize != null ? resultsSize.height : 0, getMinResultsHeight());
+        Insets editorInsets = editorCard.getInsets();
+        Insets resultsInsets = resultsCard.getInsets();
+        editorCard.setPreferredSize(new Dimension(width + editorInsets.left + editorInsets.right, editorHeight + editorInsets.top + editorInsets.bottom));
+        resultsCard.setPreferredSize(new Dimension(width + resultsInsets.left + resultsInsets.right, resultsHeight + resultsInsets.top + resultsInsets.bottom));
+        pack();
+        resultsCardHeight = resultsCard.getPreferredSize().height;
+        // Only for this size: later the user's resizing and the divider decide
+        editorCard.setPreferredSize(null);
+        resultsCard.setPreferredSize(null);
+        Dimension size = getSize();
         Point location;
         if (drop != null) {
             // The pointer stays over the window's title bar, near its left end
@@ -235,6 +275,26 @@ final class QueryWindowFrame extends JFrame {
             location = new Point(main.getX() + step, main.getY() + step);
         }
         setBounds(fitToScreen(new Rectangle(location, size), main.getGraphicsConfiguration()));
+    }
+
+    /**
+     * {@link #MIN_EDITOR_LINES} lines of the editor's text, and what the editor has besides its text (a document kind's
+     * header) as it was laid out in the main window.
+     */
+    private int getMinEditorHeight() {
+        SqlEditorPanel.SqlTextArea textArea = editor.getTextArea();
+        Component scrollPane = SwingUtilities.getAncestorOfClass(JScrollPane.class, textArea);
+        int other = scrollPane != null ? Math.max(0, editor.getHeight() - scrollPane.getHeight()) : 0;
+        return MIN_EDITOR_LINES * textArea.getLineHeight() + other;
+    }
+
+    /**
+     * The result tab rows, the result viewer's own lines and {@link #MIN_GRID_ROWS} rows, in the grid's row height before
+     * zoom (FlatLaf gives tables the theme's {@code Table.rowHeight}, scaled).
+     */
+    private static int getMinResultsHeight() {
+        int rowHeight = UIScale.scale(UIManager.getInt("Table.rowHeight")); //$NON-NLS-1$
+        return 2 * UiSizes.get(UiSizes.TOOL_TAB_HEIGHT) + (RESULT_VIEWER_LINES + MIN_GRID_ROWS) * rowHeight;
     }
 
     /**
