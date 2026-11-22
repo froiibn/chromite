@@ -98,6 +98,11 @@ import java.util.regex.Pattern;
  *   of 10.2.0.5. There the server's DBMS_METADATA fails with ORA-38802 under any value up to 11.2.0.2, so every table
  *   DDL was the dictionary-view fallback and an index DDL an error; 11.2.0.4 keeps the dictionary queries as fast as
  *   10.2.0.5 did (app change #162, docs/chromite/model-fixes.md #30). A version set in the connection is applied as is.
+ * - 2026-11-22 Chromite: {@link #initializeContextState} gives a reopened or new session the current schema by the name
+ *   the source session holds ({@link OracleExecutionContext#setCurrentSchemaFrom}) instead of the schema object, whose
+ *   lookup read the schema list. Invalidate/Reconnect holds the instance's exclusive lock there, and a background job
+ *   (query window completion) that read the list waited for that lock to reopen the metadata session: both waited
+ *   forever (app change #165, docs/chromite/cancel-busy-connection.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -362,7 +367,9 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
             context,
             outputReader.isServerOutputEnabled(context));
         if (initFrom != null) {
-            ((OracleExecutionContext)context).setCurrentSchema(monitor, ((OracleExecutionContext)initFrom).getDefaultSchema());
+            // By name: Invalidate/Reconnect runs this under the instance's exclusive lock, and reading the schema list
+            // here waited for a thread that held the list while it waited for that lock
+            ((OracleExecutionContext)context).setCurrentSchemaFrom(monitor, (OracleExecutionContext)initFrom);
         } else {
             ((OracleExecutionContext)context).refreshDefaults(monitor, true);
         }
