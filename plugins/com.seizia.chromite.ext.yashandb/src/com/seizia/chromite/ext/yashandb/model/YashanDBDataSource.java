@@ -44,6 +44,11 @@ import java.sql.SQLException;
 
 /**
  * YashanDBDataSource
+ *
+ * 변경 이력:
+ * - 2026-11-22 Chromite: 다시 열거나 새로 여는 세션의 스키마를 원본 세션이 가진 이름으로 정함
+ *   ({@link OracleExecutionContext#setCurrentSchemaFrom}). 스키마 개체를 찾느라 목록을 읽으면 Invalidate/Reconnect의 배타 잠금 아래에서
+ *   목록을 쥔 다른 스레드를 기다려 교착할 수 있었다(Oracle과 같은 원인, 앱 변경 #165)
  */
 public class YashanDBDataSource extends OracleDataSource {
 
@@ -117,8 +122,7 @@ public class YashanDBDataSource extends OracleDataSource {
         // Enable DBMS output
         outputReader.enableServerOutput(monitor, context, outputReader.isServerOutputEnabled());
         if (initFrom != null) {
-            ((OracleExecutionContext) context).setCurrentSchema(monitor,
-                ((OracleExecutionContext) initFrom).getDefaultSchema());
+            ((OracleExecutionContext) context).setCurrentSchemaFrom(monitor, (OracleExecutionContext) initFrom);
         } else {
             ((OracleExecutionContext) context).refreshDefaults(monitor, true);
         }
