@@ -233,7 +233,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>다시 시작 뒤 복원({@link QueryWindowRecovery}): 복원한 창은 연결하지 않고 열리고, 예전 기본 DB/스키마
  *     ({@link #setRestoredDefaults})는 창의 세션이 처음 열릴 때 적용한다. 세션을 여는 작업(실행, 계획, 기본 DB·커밋 방식 읽기)은 모두
  *     {@link #openWindowContext}를 거치므로 첫 실행이 예전 DB/스키마에서 돈다. 주 문맥을 함께 쓰는 창은 다른 창의 기본값을 바꾸지 않도록 적용하지 않는다.
- *     연결 전에는 DB 콤보(꺼짐)와 상태 줄에 복원할 이름을 보인다.</li>
+ *     연결 전에는 DB 콤보(꺼짐)와 상태 줄에 복원할 이름을 보인다. New Query도 활성 쿼리 창의 DB/스키마를 같은 길로 새 창에 넘긴다
+ *     ({@code MainFrame.newQuery}): 활성 창의 세션에는 아무것도 하지 않고, 새 창의 세션이 열릴 때 그 세션에만 정한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -370,6 +371,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   오류 문장 표시는 그대로 (docs/chromite/swing-sql-editor-session-ui.md "실행 중 문장 색")
  * - 2026-11-13 개체 탐색기에서 끌어 온 이름을 놓은 자리에 넣음({@code SqlTextArea.ExplorerDropHandler}, 앱 변경 #112,
  *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기"). 창이 개체의 DB에 있으면 DB를 뺀 이름({@link #getDefaultObjectNames})
+ * - 2026-11-22 주석만: {@link #setRestoredDefaults}를 New Query도 씀(활성 창의 DB/스키마를 새 창에, 앱 변경 #172,
+ *   docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1285,9 +1288,9 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * A window restored after a restart ({@link QueryWindowRecovery}) gets its default database/schema back when its own
-     * session opens, which is when the user runs something or the connection is connected already. Nothing connects here.
-     * EDT.
+     * A window restored after a restart ({@link QueryWindowRecovery}), or opened by New Query from another window of the
+     * connection ({@code MainFrame.newQuery}), gets that default database/schema when its own session opens, which is when
+     * the user runs something or the connection is connected already. Nothing connects here. EDT.
      */
     void setRestoredDefaults(@NotNull DefaultObjectNames names) {
         synchronized (restoredDefaultsLock) {
@@ -1299,7 +1302,8 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * Opens (or gets) the window's session ({@link QueryWindowContext#open}) and gives it the restored default
-     * database/schema first, so that the first run after a restart runs where the window ran before. Every job that
+     * database/schema first, so that the first run after a restart runs where the window ran before (and the first run of
+     * a New Query window where the window it was opened from is, {@link #setRestoredDefaults}). Every job that
      * opens the session comes here (run, plan, the default schema and commit mode reads). Job thread.
      */
     @NotNull
@@ -1312,8 +1316,8 @@ final class SqlEditorPanel extends JPanel {
             if (names == null || contextDefaults == null) {
                 return context;
             }
-            // The connection's main context is shared with the other windows of the connection: a restored window does not
-            // change their default (it shows the shared one instead)
+            // The connection's main context is shared with the other windows of the connection: a restored or New Query
+            // window does not change their default (it shows the shared one instead)
             if (context != windowContext.getOwn(dataSource.getContainer())) {
                 log.debug("Restored default '" + names.label() + "' not applied: the window shares the main context of '"
                     + dataSource.getContainer().getName() + "'");
