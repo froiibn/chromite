@@ -120,6 +120,79 @@ Object Explorer의 테이블에서 "DDL 보기"와 "디자인"을 누르고 3초
 - `waitForJob`(그리드 저장·미리 보기)과 메타데이터가 아닌 세션의 작업(커밋·롤백, DDL 실행)은 바쁜 연결 뒤에서 기다리면 전처럼 끝날 때까지 창이 남는다.
   다만 그 취소도 이제 다른 세션의 문장을 멈추지 않는다.
 - Altibase: 취소된 모니터에서 `AltibaseMetaModel.getTableDDL`이 null 인덱스 목록으로 NPE를 낸다(이제는 버려져 보이지 않음, 모델은 고치지 않음).
+- PostgreSQL의 세션을 다시 열 때의 교착(앱 변경 #165에서 재현, 고치지 않음): `PostgreExecutionContext`는 기본 스키마를 스키마 OID로 기억하고 OID는 목록에서만
+  얻는다. 고치려면 목록이 없을 때 이름을 두었다가 목록을 읽은 뒤 OID를 찾게 하고(`setActiveSchema`, 검색 경로의 첫 스키마, 연결 설정의 기본 스키마
+  `setSearchPath`, `getDefaultSchema`·`computeSearchPath`·`getCachedDefault`), 연결할 때 목록을 미리 읽던 것을 어떻게 할지 정해야 한다(약 50-70줄, PostgreSQL
+  전용 확인 필요). 같은 구조의 DB2·Exasol(`initializeContextState`가 `initFrom.getDefaultSchema()`)은 시험 서버가 없어 보지 않았다(각 몇 줄).
+- 다른 길: 목록을 읽는 쪽(A)이 무효화 중인 문맥을 스스로 다시 열지 않게 하면(`getConnection`의 `connect`) 모든 DB의 이 교착이 한 곳에서 풀리지만, 무효화
+  중의 요청이 기다리는 대신 오류가 된다. 그 다시 열기는 무효화가 곧 다시 여는 문맥을 한 번 더 열기도 한다(공용 코드, 바꾸지 않음).
+
+## 세션을 다시 열 때의 교착 (2026-11-22, 앱 변경 #165)
+
+응답하지 않는 연결을 되살리는 Invalidate/Reconnect가 배경 작업과 서로 기다려 그 연결이 앱을 다시 시작할 때까지 멈췄다. 창은 움직이지만 그 연결의 모든
+요청이 끝나지 않는다. 앱 변경 #164([swing-explorer-productivity.md](swing-explorer-productivity.md) "기본값 굵게 표시")가 이벤트 스레드 쪽을 고친 뒤
+남은 배경 스레드 둘 사이의 경우다.
+
+### 원인
+
+| 스레드 | 쥔 것 | 기다리는 것 |
+|---|---|---|
+| A: 스키마 목록을 읽는 배경 작업(쿼리 창 자동 완성 `SQLQueryCompletionContext.obtainDefaultContext` → `getDefaultSchema` → 목록 캐시) | 목록 캐시의 모니터(`JDBCObjectCache.loadObjects`는 `synchronized`) | 닫힌 메타데이터 세션을 다시 열려고 `JDBCExecutionContext.connect` → 인스턴스의 배타 잠금 |
+| B: Invalidate/Reconnect(`InvalidateJob.invalidateInstances`가 문맥마다 배타 잠금을 쥐고 `invalidateContext`) | 인스턴스의 배타 잠금 | `initializeContextState`가 원본 세션의 기본 스키마 **개체**를 찾느라 같은 목록 캐시 |
+
+A는 B가 세션을 닫은 뒤(BEFORE_INVALIDATE) 다시 열기 전에 목록을 읽기 시작하면 이 상태가 된다. 목록이 비어 있어야 하므로(연결 직후 탐색기에서 스키마
+폴더를 펼치지 않았거나, Refresh가 비운 뒤) 흔하지는 않지만, 서버가 응답하지 않아 사용자가 Invalidate/Reconnect를 누르고 그동안 쿼리 창에서 자동 완성을
+쓰면 생긴다. `JDBCExecutionContext.connect`의 주석("Do it outside of exclusive lock")은 `connect` 자신의 잠금만 말한다. 무효화(`InvalidateJob`)와 끊긴 세션
+다시 열기(`TransactionRecoveryGuard.reopenLostSession`)는 바깥에서 같은 잠금을 쥐고 부른다.
+
+**고치기 전 재현**(시험 VM, 이 PC의 지연 프록시를 거친 연결, 앱 안 시험 드라이버): 연결(목록을 읽지 않은 상태) → 프록시 멈춤 → Invalidate/Reconnect → 8초 뒤
+자동 완성 계산(`SqlCompletionAnalysis.compute`, Ctrl+Space가 작업에서 부르는 것을 시험 스레드에서) → 프록시 풀기. Oracle·SQL Server·PostgreSQL 세 DB 모두
+영구 교착(풀고 60초 뒤에도 그대로): 무효화 스레드는 `BLOCKED on …SchemaCache owned by "bg-complete-test"`, 자동 완성 스레드는
+`SimpleExclusiveLock.acquireExclusiveLock` ← `JDBCExecutionContext.connect` ← `JDBCObjectCache.loadObjects`. 무효화 쪽 자리는 Oracle
+`OracleDataSource.initializeContextState`(`initFrom.getDefaultSchema()`), SQL Server `SQLServerDataSource.initializeContextState`(`ssContext.getDefaultSchema()`),
+PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
+
+### 고친 것
+
+세션을 여는 길은 목록을 읽지 않는다. 원본 세션의 기본 스키마를 **이름**으로 받는다.
+
+| 자리 | 바꾼 것 |
+|---|---|
+| `OracleDataSource.initializeContextState`, `YashanDBDataSource.initializeContextState` | `OracleExecutionContext.setCurrentSchemaFrom(원본)`: 원본이 가진 이름(`getActiveSchemaName`)으로 `ALTER SESSION SET CURRENT_SCHEMA`. 이름이 없으면 전처럼 아무것도 안 함. 설정이 실패하면(그새 지운 스키마) 경고를 남기고 세션의 실제 스키마를 읽는다(`refreshDefaults`) |
+| `OracleExecutionContext.setCurrentSchema(String)` | 바뀜 알림의 옛·새 개체를 메모리의 목록에서만 찾음(`getLoadedSchema`). 연결 설정의 기본 스키마(`refreshDefaults`)도 이 길을 지나므로 연결할 때 목록을 읽지 않는다 |
+| `SQLServerDataSource.initializeContextState` | `SQLServerExecutionContext.setDefaultSchemaFrom(원본)`: 이름을 받고 알림은 메모리의 목록에서(`getLoadedDefaultSchema`, 없으면 `dbo`) |
+
+**알림을 받는 쪽.** Swing에서 `OBJECT_SELECT` 알림을 받는 것은 탐색기 모델(`DBNProjectDatabases`, 그 노드를 다시 그림)뿐이다. 쿼리 창의 스키마 선택과
+상태 줄은 알림이 아니라 세션이 가진 이름과 목록을 작업 스레드에서 읽는다. 목록이 메모리에 있으면 알림은 전과 같은 개체를 싣는다. 목록이 없으면 알림을
+보내지 않는다. 그때 탐색기에는 스키마 노드가 없거나(목록을 읽어야 노드가 생김) #164에 따라 목록을 읽기 전까지 보통 글꼴이고, 목록을 읽으면 그리기가
+`getDefaultSchema`로 맞는 줄을 굵게 한다.
+
+**바뀌는 것.** 원본 세션의 스키마가 목록에 없을 때(탐색기 필터로 숨김, "빈 스키마 숨기기") 전에는 새 세션의 스키마를 바꾸지 않았고 이제는 그 이름으로
+바꾼다. 다시 연 세션이 사용자가 쓰던 스키마를 잃지 않는다. 연결 설정에 기본 스키마가 있으면 연결할 때 목록 읽기(ALL_USERS 한 문장)가 없어졌다.
+
+### 다른 DB
+
+| DB | 세션을 여는 길에서 잠금 아래 기다리는 캐시 | 결과 |
+|---|---|---|
+| Oracle(+ YashanDB) | 스키마 목록 | 고침, 재현·확인 |
+| SQL Server | 기본 DB의 스키마 목록 | 고침, 재현·확인 |
+| PostgreSQL | 데이터베이스의 스키마 목록(`refreshDefaults` → `setActiveSchema` → `getSchemas`, `setSearchPath` → `getSchema`) | **재현, 고치지 않음**(위 "남은 것") |
+| MySQL/MariaDB | 읽기 전용 연결의 `refreshDefaults` → `getObjectReadingNew`: 목록이 다 읽혔고 현재 DB가 없을 때만 모니터를 기다림 | 고치지 않음(두 스레드가 동시에 "없는 이름"으로 다시 읽을 때만, 재현하지 않음) |
+| Altibase 계열, Generic, SQLite | 없음(카탈로그·스키마는 연결할 때 읽어 둔 메모리 목록, DBMS_OUTPUT은 SQL만) | 해당 없음 |
+| Snowflake(코드만) | 데이터베이스의 스키마 목록을 읽지만 `GenericCatalog.getSchemas`는 모니터를 쓰지 않음 | 교착 없음(같은 목록을 두 번 읽을 수 있음), 바꾸지 않음 |
+| SQL Server·MySQL `refreshDefaults`의 `getObjectReadingNew` | MySQL과 같음 | 고치지 않음 |
+
+### 확인 (2026-11-22, 고친 빌드, 같은 방법)
+
+- 재현 방법 그대로 Oracle 1회 + 20회 반복(매번 목록을 비우고 프록시 멈춤 → Invalidate/Reconnect → 자동 완성 → 풀기): 20/20 교착 없음. 자동 완성은 풀린 뒤
+  약 2초에 끝났고 무효화 작업·스레드가 남지 않았으며, 매번 두 세션 모두 쓸 수 있었다(`CURRENT_SCHEMA=SYSTEM`). 고치기 전과 같은 순간(자동 완성이 닫히는 메타데이터
+  연결을 기다림)에 들어간 것을 스레드 덤프로 확인. SQL Server도 같은 방법으로 교착 없음(자동 완성 3.5초에 끝남). PostgreSQL은 그대로 교착(고치지 않음).
+- 현재 스키마(Oracle 1521·1522, 연결 설정의 기본 스키마 없음·`PDBADMIN`·따옴표 소문자 `"chr_cil_lower"`, 시험 스키마 `CHR_CIL_*`): 연결, 쿼리 창의 새 세션,
+  Invalidate/Reconnect, Reconnect, "기본값으로 설정" 뒤 새 쿼리 창, 쿼리 창의 `ALTER SESSION SET CURRENT_SCHEMA` 뒤 Invalidate/Reconnect에서 모든 세션의
+  `SYS_CONTEXT('USERENV','CURRENT_SCHEMA')`, 쿼리 창 스키마 선택·상태 줄, 탐색기의 굵은 기본 스키마가 고치기 전과 같다.
+- 문장 수(쿼리 관리자): 기본 스키마 설정이 있는 연결은 연결할 때 10 → 9(ALL_USERS 읽기가 첫 쿼리 창을 열 때로 옮겨 감, 새 세션 2 → 3, 합은 같음), 그 밖의
+  연결·새 세션·Invalidate/Reconnect·Reconnect는 같다. 연결할 때 `SYS_CONTEXT` 읽기가 두 세션 모두에서 도는 것은 서버의 `V$SQL` 실행 수(+2)로도 확인했다.
+- SQL Server: 쿼리 창이 `USE tempdb` 한 뒤 Invalidate/Reconnect(목록 있음·없음 두 번) → 창 세션 tempdb·dbo, 주·메타데이터 세션 master·dbo(전과 같음).
 
 ## 취소는 오류가 아님 (2026-11-22, 앱 변경 #167)
 
@@ -162,28 +235,47 @@ Object Explorer의 테이블에서 "DDL 보기"와 "디자인"을 누르고 3초
 | 모델 쪽으로 던짐(`SwingPlatformUI.runWithProgress`·`runWithMonitor`) | 1 | 모델 호출의 오류가 `showError`로 오면 공용 판단을 거침 |
 
 `runTask` 밖에서 오류를 화면 안 상태 줄에 보이는 helper(`SchedulerTablePanel.showError` :257, `ServerLogPanel.showError` :496, `ConnectionDatabaseList.showError` :289)는
-진행 창이 없어 사용자가 취소를 누를 곳이 없다. `ConnectionDatabaseList`는 암호 입력 취소를 이미 따로 처리한다(:233). `ServerLogPanel`은 연결하면서 암호 입력을
-취소하면 상태 줄에 연결 취소 예외의 영어 글을 보일 수 있다(실행해 보지 않음, 남은 곳).
+진행 창이 없어 사용자가 취소를 누를 곳이 없다. `ConnectionDatabaseList`는 암호 입력 취소를 이미 따로 처리한다(:233). `ServerLogPanel`의 암호 입력 취소는 아래
+"남은 곳"의 결과를 본다.
 
-### 남은 곳 (호출마다 고쳐야 함, 이번에 고치지 않음)
+### 남은 곳 (2026-11-22 앱 변경 #168에서 다시 보고 고침)
 
-브리프의 규칙(호출 열 곳이 넘으면 공용 입구와 이름 붙은 세 호출까지만)에 따라 아래는 고치지 않았다. 각 곳은 취소면 아무것도 보이지 않거나(창), 기존 중립 문구
-`BackupRestoreMessages.task_message_canceled`("작업을 취소했습니다." / "The operation was canceled.")를 보이면 된다(글).
+앞 작업이 코드 검색으로만 찾은 12곳을 다시 읽고, 예외가 사용자의 취소일 수 있는지 모델 코드까지 따라갔다. 취소가 실제로 오는 곳만 `ErrorText.isUserCancel`
+하나로 고쳤다: 상자는 띄우지 않고, 화면 안의 글은 기존 중립 문구 "작업을 취소했습니다." / "The operation was canceled."다. 이 문구의 키는 백업·복원 묶음
+(`BackupRestoreMessages.task_message_canceled`)에서 오류 문구 묶음(`ErrorMessages.error_canceled`)으로 옮겼다(DDL 미리 보기도 쓰는 일반 문구, 쓰던 곳
+`DatabaseTaskDialog` 한 곳도 함께). 새 문구·새 판단·새 helper는 없다.
 
-| 곳 | 지금 보이는 것 | 필요한 것 |
-|---|---|---|
-| `DriverBundleCreateDialog.java:260`, `DriverBundleInstallDialog.java:170`, `:193` | `JOptionPane` 오류 상자에 `e.getMessage()`(취소면 영어 취소 문구) | `ErrorText.isUserCancel`이면 상자 없이 돌아감 |
-| `DriverLibrariesPanel.java:405` | 같음(`driverlib_find_class_error` 안에) | 같음 |
-| `NativeBackupRestoreDialog.java:503`, `:513` | 경고 상자 "개체를 읽지 못했습니다: …" | 같음 |
-| `ConnectionSettingsPanel.java:1655` | 드라이버 속성 문제 글 | 취소면 문제 글 없이 |
-| `DataImportWizard.java:778`, `DatabaseCopyPages.java:1246` | DDL 미리 보기 영역에 "DDL 오류: …" | 취소면 중립 문구 |
-| `DriverLibraryDetailsDialog.java:164` | 의존성 영역에 원인 메시지 | 취소면 중립 문구 |
-| `ServerLogPanel.java:285`, `:449`(상태 줄) | "오류: …" | 취소면 중립 문구 |
+| 곳 | 고치기 전 | 고친 뒤 | 확인 |
+|---|---|---|---|
+| `NativeBackupRestoreDialog.loadObjects` (:506 PostgreSQL 스키마, :516 MySQL·MariaDB 테이블; 상자 :527) | 경고 상자 "개체 목록을 읽지 못했습니다: Canceled while the database call was still running" | 상자 없음, 백업 대화상자가 바로 열리고 개체 목록은 비어 전체 백업(실제 오류 때와 같음) | 실행(MariaDB, 바쁜 메타데이터 연결, 3초 뒤 취소, 1.6초 뒤 진행 창 닫힘) |
+| `DataImportWizard` DDL 미리 보기 (:781, 글 :786) | "DDL을 만들 수 없습니다: Canceled …" | 중립 문구가 이전 DDL을 대신함, 탭을 다시 고르면 다시 만듦 | 코드만: 아래 복사와 같은 `DatabaseCopyMappings.generateTableDdl` |
+| `DatabaseCopyPages` DDL 미리 보기 (:1249, 글 :1254) | 같음 | 같음 | 코드만(MariaDB→MariaDB 복사에서 바쁜 연결·새로 고침 뒤에도 진행 창이 뜨지 않음, 취소할 수 없음) |
 
-크기: 파일 8개, 호출 12곳, 곳마다 1~3줄.
+제외한 곳(취소 예외가 오지 않음, 고치지 않음):
 
-- 이제 쓸모가 줄어든 기존 취소 검사(`SchemaComparePanel.showError`의 `instanceof`, `TableDesignerPanel` :521·:544·:568, `ExecutionTracePanel` :281,
-  `ProcedureDebuggerPanel` :373, `ExplorerObjectCommands` :815의 `!(e instanceof DBInterruptedException)`)는 지우지 않았다: 동작은 같고, 지우면 범위가 여섯 파일 넓어진다.
+| 곳 | 이유 (근거) |
+|---|---|
+| `DriverBundleCreateDialog` :260, `DriverBundleInstallDialog` :170·:193 | 모델이 취소를 `InterruptedException`으로만 알리고(`DriverOfflineBundleWriter.checkCanceled`, `DriverOfflineBundleInstaller.checkCanceled`, `WebUtils.downloadRemoteFile`) 작업이 그것을 잡아 `null`을 돌려준다. `ProgressDialog.runTask`가 취소로 바꾸는 두 경우(메타데이터 세션 안, 드라이버의 `SQLException`)는 이 작업에 없다. 작업 스레드는 인터럽트되지 않아(`AbstractJob.canceling`) `ClosedByInterruptException`도 없다 |
+| `DriverLibrariesPanel.findClasses` :405 | `DriverClassFindJob`은 취소면 멈추기만 하고 던지지 않는다(:86, :106) |
+| `DriverLibraryDetailsDialog.resolve` :164 | 의존성 해석(`DriverDependencies.resolveDependencies`, Maven POM 읽기)은 모니터의 취소를 보지 않고 `IOException`만 감싼다 |
+| `ConnectionSettingsPanel.loadDriverProperties` :1655 | 드라이버 속성 읽기는 DB 세션을 열지 않고(`JDBCDataSourceProvider.getConnectionProperties`), 드라이버 파일 내려받기의 취소는 내려받기 쪽(`SwingDriversService`)에서 끝난다 |
+| `ServerLogPanel` :285·:449 | 진행 창이 없다. 연결하며 뜬 암호 입력을 닫으면 `AdminConnection.execute`가 "'X'에 연결되어 있지 않습니다."(`activity_not_connected`)를 던진다. 취소 예외가 아니라서 이 판단으로는 바뀌지 않는다(실행: 고치기 전·후 모두 상태 줄 "오류: 'MA'에 연결되어 있지 않습니다.") |
+
+다시 찾은 결과(이 번들에서 예외 글을 오류 창 밖에 보이는 130곳): 위 목록 밖에서 취소가 올 수 있는 곳은 이미 취소를 따로 처리한다(`OracleJobDialog` :250,
+`TaskScheduleDialog` :164, `ExecutionTracePanel` :315, `DataSearchPanel` :365, `PropertiesPanel` :290, `ObjectDetailsPanel`·`SchemaComparePanel` DDL의 일련번호,
+`MaintenanceDialect`의 `CANCELED`). `ConnectionTransferCommands`·`SettingsTransferCommands`의 `showReadProblem`은 파일 내용 오류만 상자로, 나머지는 `showError`로 보낸다.
+
+`#345`로 쓸모없어진 취소 검사 7개를 지웠다. 오류가 그대로 `showError`·`ErrorDialog.show`로 가고 그 분기의 다른 일(`ExecutionTracePanel`의 열린 추적 세션 정리,
+`ProcedureDebuggerPanel`의 컨트롤러 정리, `ExplorerObjectCommands`의 남은 변경 버리기)은 검사 밖에서 늘 했으므로 동작이 같다: `SchemaComparePanel.showError`,
+`TableDesignerPanel.addKey`·`addIndex`·`addForeignKey`, `ExecutionTracePanel.run`, `ProcedureDebuggerPanel.start`, `ExplorerObjectCommands.runChange`.
+`catch (DBInterruptedException)`로 따로 잡고 다른 일을 하는 곳(`TableDesignerPanel.run`의 다시 읽기, `generateScript`의 `null` 등)은 그대로 두었다.
+
+바뀌지 않음(확인): 백업 개체 읽기의 실제 오류(바쁜 연결 뒤에서 기다리는 동안 그 메타데이터 세션을 `KILL`) → 전처럼 경고 상자 "개체 목록을 읽지 못했습니다:
+SQL 오류 [1220] [08000]: … Connection is closed". DDL 미리 보기의 정상 DDL은 같다. 드라이버 라이브러리·서버 로그 화면은 코드를 바꾸지 않았다.
+
+- 남은 것: 연결하며 뜬 암호 입력을 닫은 뒤의 "연결되어 있지 않습니다" 글은 관리 도구 탭(`AdminConnection`을 쓰는 10개 화면)과 개체 찾기·스키마 비교·실행 계획
+  등이 같은 방식으로 보인다. 고치려면 연결 서비스가 "취소됨"을 호출한 쪽에 알려야 한다(`DBUtils.initDataSource`는 참·거짓만 돌려줌). 이번 범위 밖.
+- 남은 것: 드라이버 파일 내려받기·Maven 의존성 읽기는 취소를 누른 뒤에도 네트워크 읽기 시간 초과(10초)까지 기다리고, 그동안 실패하면 오류를 보인다(취소 예외가 아님).
 - ~~드라이버의 취소 오류 중 분류(`EXECUTION_CANCELED`)가 없는 것: Oracle ORA-01013, MariaDB·MySQL 1317, Altibase~~: 2026-11-22 고침(앱 변경 #169, 아래
   "드라이버 취소 오류의 분류"). Altibase는 측정해 보니 이미 분류돼 있었다(4202, SQLSTATE HY008).
 
@@ -269,6 +361,9 @@ ShardSphere 서버(코드로만: 같은 공급자와 HY008).
 - 2026-11-22 "취소는 오류가 아님"(앱 변경 #167, `chromite/cancel-not-an-error`): 사용자의 취소는 오류 창을 열지 않음, 취소를 누른 뒤의 드라이버 취소 오류는
   `runTask`가 취소로 돌려줌, 호출 129곳의 분류와 남은 곳. "남은 것"의 첫 항목을 고침. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창,
   진행 창 작업의 취소).
+- 2026-11-22 "세션을 다시 열 때의 교착"(앱 변경 #165): Oracle·YashanDB·SQL Server가 다시 열거나 새로 여는 세션의 기본 스키마를 이름으로 받고 알림은
+  메모리의 목록에서만. 세 DB 재현, PostgreSQL은 남김. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 연결·Invalidate/Reconnect·쿼리 창의 새
+  세션의 현재 스키마, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택).
 - 2026-11-22 "드라이버 취소 오류의 분류"(앱 변경 #169, `chromite/driver-cancel-classification`): DB별 측정, Oracle·MariaDB·MySQL 분류, 쿼리 창과 Oracle DDL 읽기는
   취소를 요청했을 때만 취소로 봄(PostgreSQL·SQL Server의 쿼리 창 시간 초과·다른 세션의 취소가 이제 오류). 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 진행 창
   작업의 취소, 쿼리 창의 중지·시간 초과, Oracle DDL 보기, Query Manager의 읽기 오류).

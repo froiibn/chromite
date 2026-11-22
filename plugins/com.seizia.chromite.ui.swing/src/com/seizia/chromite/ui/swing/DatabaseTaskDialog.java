@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
+import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -64,6 +65,8 @@ import java.util.List;
  *   끊었다. 폭은 양식 칸이 정하고 높이가 그 폭을 따르는 것은 그대로(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-16 연결의 서버를 {@link QueryStatusLine#describeAddress}로: Oracle TNS 연결은 저장된 호스트(localhost) 대신 네트워크 별칭
  *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
+ * - 2026-11-22 취소 메시지를 {@code ErrorMessages.error_canceled}에서 읽음(문구 그대로, 키만 옮김; 앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -457,7 +460,7 @@ abstract class DatabaseTaskDialog extends JDialog {
             progressBar.setValue(0);
             if (canceled) {
                 statusLabel.setText(BackupRestoreMessages.task_status_canceled);
-                appendMessage(BackupRestoreMessages.task_message_canceled);
+                appendMessage(ErrorMessages.error_canceled);
             } else {
                 log.debug("Database task failed", error);
                 statusLabel.setText(BackupRestoreMessages.task_status_failed);

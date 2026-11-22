@@ -37,7 +37,6 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.rdb.DBSProcedure;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
-import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DebugMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
@@ -102,6 +101,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-07 Oracle 디버거: attach 지원 여부를 시작 대화상자에 넘김, 프로시저 나가기 도움말을 세션에 따라 바꿈, 시작하는 동안 호출이
  *   끝난 경우(TERMINATE가 시작 중에 옴)를 끝내기로 처리, 권한 오류 안내
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-22 세션 시작 오류의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뛰고, 컨트롤러 정리는 전처럼 늘 함(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEventHandler {
 
@@ -387,9 +388,7 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
             }
             updateState();
         } catch (DBException e) {
-            if (!(e instanceof DBInterruptedException)) {
-                ErrorDialog.show(this, DebugMessages.debug_error_start, DebugCommands.describeError(e), e);
-            }
+            ErrorDialog.show(this, DebugMessages.debug_error_start, DebugCommands.describeError(e), e);
             newController.unregisterEventHandler(this);
             newController.dispose();
             controller = null;

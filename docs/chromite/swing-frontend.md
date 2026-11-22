@@ -2710,6 +2710,9 @@ Windows 11 150%와 `-Dsun.java2d.uiScale=1`, 한국어, SQLite 시험 연결). �
 - **적용한 곳:** `SwingPlatformUI.showError(…, Throwable)`, `showError(…, IStatus)`(무인 실행 메모 `UnattendedRuns.skip`보다 먼저: 예약 실행의 로그에 "건너뛴 오류 창"으로
   남지 않고 디버그 로그에만), `ErrorDialog.show`(이 창을 직접 띄우는 호출). `SwingPlatformUI`의 상태 오류 창은 상태의 첫 예외만 자세히에 넣으므로 `ErrorDialog.show`의 판단을
   거치지 않는다(다른 자식이 실제 오류일 수 있음).
+- **오류 창을 거치지 않는 곳(2026-11-22, 앱 변경 #168):** 자기 메시지 상자를 띄우는 곳은 같은 판단으로 상자를 띄우지 않고, 화면 안의 글(미리 보기 영역 등)은
+  중립 문구 `ErrorMessages.error_canceled`("작업을 취소했습니다.")를 보인다. 고친 곳과 취소가 오지 않아 제외한 곳은
+  [cancel-busy-connection.md](cancel-busy-connection.md) "남은 곳".
 - **DB별 취소 오류의 분류(`DBPErrorAssistant.discoverErrorType`, 2026-11-22 앱 변경 #169):** 드라이버가 "문장이 취소됨"을 알리는 오류는 `EXECUTION_CANCELED`다.
   PostgreSQL 57014(`PostgreDataSource`), SQLSTATE HY008(`JDBCDataSource`: SQL Server의 "쿼리가 취소되었습니다"·"쿼리 시간이 초과되었습니다", Altibase·ShardSphere의 4202
   "Query canceled by client"), Oracle ORA-01013(`OracleDataSource`), MariaDB·MySQL 1317 "Query execution was interrupted"와 MySQL Connector/J의
@@ -3868,6 +3871,8 @@ scratch 작업 공간·설정·`CHROMITE_DATA`(`D:\Tools\_scratch\change-connect
 - 2026-11-22 진행 대화상자의 취소: 바쁜 메타데이터 연결을 기다리는 작업은 취소 1.5초 뒤 창을 닫음(앱 변경 #161), 위 "DBPPlatformUI B단계 구현",
   [cancel-busy-connection.md](cancel-busy-connection.md).
 - 2026-11-22 사용자의 취소는 오류 창을 열지 않음(앱 변경 #167, `chromite/cancel-not-an-error`): "오류 문구"의 "사용자의 취소는 오류가 아님".
+- 2026-11-22 오류 창을 거치지 않는 곳의 취소(앱 변경 #168, `chromite/cancel-remaining-callers`): 백업 개체 읽기의 경고 상자, 가져오기·복사의 DDL 미리 보기.
+  중립 문구를 `ErrorMessages.error_canceled`로 옮김. "사용자의 취소는 오류가 아님".
   회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창, 진행 창 작업의 취소).
 - 2026-11-22 DB별 취소 오류의 분류에 Oracle ORA-01013, MariaDB·MySQL 1317과 Connector/J의 취소 예외를 넣고, 쿼리 창(`SQLQueryExecuteJob`)과 Oracle DDL 읽기는 취소를
   요청했을 때만 드라이버의 취소 보고를 취소로 봄(앱 변경 #169, `chromite/driver-cancel-classification`): "사용자의 취소는 오류가 아님"의 "DB별 취소 오류의 분류".

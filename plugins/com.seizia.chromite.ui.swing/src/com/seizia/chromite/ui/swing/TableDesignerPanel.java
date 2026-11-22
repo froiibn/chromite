@@ -91,6 +91,8 @@ import java.util.Set;
  * - 2026-11-21 새 테이블의 TTL: 연결의 서버가 새 테이블에 TTL을 줄 때만 "테이블" 탭의 속성 시트 아래에 {@link AltibaseNewTableTtlPart}.
  *   표를 다시 읽을 때 컬럼 목록을 넘기고, 저장·스크립트 보기 전에 입력을 검사한다(앱 변경 #155,
  *   docs/chromite/swing-table-designer.md "새 테이블의 TTL")
+ * - 2026-11-22 키·인덱스·외래 키 추가의 이름 읽기에서 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뜀(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -526,9 +528,7 @@ final class TableDesignerPanel extends JPanel {
                 return result;
             });
         } catch (DBException e) {
-            if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_key, null, e);
-            }
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_key, null, e);
             return;
         }
         TableDesignSession.KeySpec spec = DesignerDialogs.editKey(this, getColumns(), types, names);
@@ -550,9 +550,7 @@ final class TableDesignerPanel extends JPanel {
                 return result;
             });
         } catch (DBException e) {
-            if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_index, null, e);
-            }
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_index, null, e);
             return;
         }
         DesignerDialogs.IndexSpec spec = DesignerDialogs.editIndex(this, columns, names);
@@ -567,9 +565,7 @@ final class TableDesignerPanel extends JPanel {
         try {
             referenceTables = ProgressDialog.runTask(ToolsMessages.designer_add_foreign_key, session::readReferenceTables);
         } catch (DBException e) {
-            if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_foreign_key, null, e);
-            }
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_foreign_key, null, e);
             return;
         }
         DesignerDialogs.ForeignKeySpec spec = DesignerDialogs.editForeignKey(this, session.getTable(), getColumns(), referenceTables);

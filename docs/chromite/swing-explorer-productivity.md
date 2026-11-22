@@ -143,11 +143,8 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 필터: 이름 붙인 저장 필터, "선택한 개체로 포함/제외 추가", "연결된 것만"·객체 종류 거르기.
 - 긴 폴더: 통계 렌더러(테이블 크기 막대).
 - 붙여넣기로 DB 객체 복제(C-12의 나머지).
-- 작업 스레드끼리의 교착(앱 변경 #164에서 확인, 고치지 않음): Oracle 스키마 목록이 비어 있을 때 무효화가 `initializeContextState`에서 그 목록을
-  읽고(배타 잠금을 쥔 채 `SchemaCache` 모니터를 기다림), 다른 작업 스레드가 같은 목록을 읽던 중이면(모니터를 쥔 채 닫힌 메타데이터 문맥을 다시 열려고
-  배타 잠금을 기다림) 둘 다 영영 멈춘다. 창은 움직이지만 그 연결은 다시 연결할 수 없다. 고치려면 `initializeContextState`가 `initFrom`의 스키마
-  객체 대신 이름(`getActiveSchemaName`)으로 세션 스키마를 맞추고 `setCurrentSchema`의 알림이 목록을 읽지 않게 해야 한다(열린 PR #342가 고치는
-  메서드라 이번에는 제안만 함).
+- 작업 스레드끼리의 교착(앱 변경 #164에서 확인): Oracle·SQL Server는 앱 변경 #165에서 고쳤다(세션을 다시 열 때 기본 스키마를 이름으로 받음,
+  [cancel-busy-connection.md](cancel-busy-connection.md) "세션을 다시 열 때의 교착"). PostgreSQL은 같은 교착이 재현되지만 고치지 않았다(같은 문서 "남은 것").
 - PostgreSQL에서 열린 트랜잭션 안의 스키마 바꾸기(`SET search_path`)는 롤백하면 서버에서도 되돌아가지만, 모델의 문맥은 바꾼 스키마를 기억한다(쿼리 창 DB 콤보도 같음, 모델 동작).
 
 ## 변경 이력
@@ -157,3 +154,4 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 2026-11-12 서버가 있는 창의 Ctrl+9 안내가 연결 변경을 알려 줌, Query > Change Connection…(앱 변경 #73, `chromite/change-connection`)
 - 2026-11-12 빠른 거르기 입력란의 안내 글자를 "읽은 개체 거르기(Ctrl+F)"에서 "찾기(Ctrl+F)"(영어 "Find (Ctrl+F)")로 바꿈(앱 변경 #101). 사용자: "읽은 개체 거르기는 그냥 '찾기'라고 표시한다". 이미 읽은 개체만 거른다는 설명은 도구 설명(`oe_quick_filter_tip`)에 그대로 있고, 동작은 바뀌지 않음.
 - 2026-11-22 "기본값 굵게 표시"(앱 변경 #164): 트리 그리기가 기본 스키마 목록을 서버에서 읽지 않음(`DBCExecutionContextDefaults.isDefaultSchemaLoaded`, Oracle·SQL Server·Snowflake). 바쁜 메타데이터 연결에서 창이 멈추던 것과 무효화와의 교착을 고침. 작업 스레드끼리의 교착은 "남긴 것".
+- 2026-11-22 "남긴 것"의 작업 스레드끼리 교착: Oracle·SQL Server는 고침(앱 변경 #165, [cancel-busy-connection.md](cancel-busy-connection.md)), PostgreSQL은 남김.
