@@ -120,10 +120,8 @@ Object Explorer의 테이블에서 "DDL 보기"와 "디자인"을 누르고 3초
 - `waitForJob`(그리드 저장·미리 보기)과 메타데이터가 아닌 세션의 작업(커밋·롤백, DDL 실행)은 바쁜 연결 뒤에서 기다리면 전처럼 끝날 때까지 창이 남는다.
   다만 그 취소도 이제 다른 세션의 문장을 멈추지 않는다.
 - Altibase: 취소된 모니터에서 `AltibaseMetaModel.getTableDDL`이 null 인덱스 목록으로 NPE를 낸다(이제는 버려져 보이지 않음, 모델은 고치지 않음).
-- PostgreSQL의 세션을 다시 열 때의 교착(앱 변경 #165에서 재현, 고치지 않음): `PostgreExecutionContext`는 기본 스키마를 스키마 OID로 기억하고 OID는 목록에서만
-  얻는다. 고치려면 목록이 없을 때 이름을 두었다가 목록을 읽은 뒤 OID를 찾게 하고(`setActiveSchema`, 검색 경로의 첫 스키마, 연결 설정의 기본 스키마
-  `setSearchPath`, `getDefaultSchema`·`computeSearchPath`·`getCachedDefault`), 연결할 때 목록을 미리 읽던 것을 어떻게 할지 정해야 한다(약 50-70줄, PostgreSQL
-  전용 확인 필요). 같은 구조의 DB2·Exasol(`initializeContextState`가 `initFrom.getDefaultSchema()`)은 시험 서버가 없어 보지 않았다(각 몇 줄).
+- ~~PostgreSQL의 세션을 다시 열 때의 교착~~: 2026-11-22 고침(앱 변경 #170, 아래 "세션을 다시 열 때의 교착"의 "PostgreSQL"). 같은 구조의
+  DB2·Exasol(`initializeContextState`가 `initFrom.getDefaultSchema()`)은 시험 서버가 없어 보지 않았다(각 몇 줄).
 - 다른 길: 목록을 읽는 쪽(A)이 무효화 중인 문맥을 스스로 다시 열지 않게 하면(`getConnection`의 `connect`) 모든 DB의 이 교착이 한 곳에서 풀리지만, 무효화
   중의 요청이 기다리는 대신 오류가 된다. 그 다시 열기는 무효화가 곧 다시 여는 문맥을 한 번 더 열기도 한다(공용 코드, 바꾸지 않음).
 
@@ -176,7 +174,7 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
 |---|---|---|
 | Oracle(+ YashanDB) | 스키마 목록 | 고침, 재현·확인 |
 | SQL Server | 기본 DB의 스키마 목록 | 고침, 재현·확인 |
-| PostgreSQL | 데이터베이스의 스키마 목록(`refreshDefaults` → `setActiveSchema` → `getSchemas`, `setSearchPath` → `getSchema`) | **재현, 고치지 않음**(위 "남은 것") |
+| PostgreSQL | 데이터베이스의 스키마 목록(`refreshDefaults` → `setActiveSchema` → `getSchemas`, `setSearchPath` → `getSchema`) | 고침, 재현·확인(앱 변경 #170, 아래 "PostgreSQL") |
 | MySQL/MariaDB | 읽기 전용 연결의 `refreshDefaults` → `getObjectReadingNew`: 목록이 다 읽혔고 현재 DB가 없을 때만 모니터를 기다림 | 고치지 않음(두 스레드가 동시에 "없는 이름"으로 다시 읽을 때만, 재현하지 않음) |
 | Altibase 계열, Generic, SQLite | 없음(카탈로그·스키마는 연결할 때 읽어 둔 메모리 목록, DBMS_OUTPUT은 SQL만) | 해당 없음 |
 | Snowflake(코드만) | 데이터베이스의 스키마 목록을 읽지만 `GenericCatalog.getSchemas`는 모니터를 쓰지 않음 | 교착 없음(같은 목록을 두 번 읽을 수 있음), 바꾸지 않음 |
@@ -186,13 +184,76 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
 
 - 재현 방법 그대로 Oracle 1회 + 20회 반복(매번 목록을 비우고 프록시 멈춤 → Invalidate/Reconnect → 자동 완성 → 풀기): 20/20 교착 없음. 자동 완성은 풀린 뒤
   약 2초에 끝났고 무효화 작업·스레드가 남지 않았으며, 매번 두 세션 모두 쓸 수 있었다(`CURRENT_SCHEMA=SYSTEM`). 고치기 전과 같은 순간(자동 완성이 닫히는 메타데이터
-  연결을 기다림)에 들어간 것을 스레드 덤프로 확인. SQL Server도 같은 방법으로 교착 없음(자동 완성 3.5초에 끝남). PostgreSQL은 그대로 교착(고치지 않음).
+  연결을 기다림)에 들어간 것을 스레드 덤프로 확인. SQL Server도 같은 방법으로 교착 없음(자동 완성 3.5초에 끝남). PostgreSQL은 그대로 교착(이때는 고치지 않음,
+  아래 "PostgreSQL").
 - 현재 스키마(Oracle 1521·1522, 연결 설정의 기본 스키마 없음·`PDBADMIN`·따옴표 소문자 `"chr_cil_lower"`, 시험 스키마 `CHR_CIL_*`): 연결, 쿼리 창의 새 세션,
   Invalidate/Reconnect, Reconnect, "기본값으로 설정" 뒤 새 쿼리 창, 쿼리 창의 `ALTER SESSION SET CURRENT_SCHEMA` 뒤 Invalidate/Reconnect에서 모든 세션의
   `SYS_CONTEXT('USERENV','CURRENT_SCHEMA')`, 쿼리 창 스키마 선택·상태 줄, 탐색기의 굵은 기본 스키마가 고치기 전과 같다.
 - 문장 수(쿼리 관리자): 기본 스키마 설정이 있는 연결은 연결할 때 10 → 9(ALL_USERS 읽기가 첫 쿼리 창을 열 때로 옮겨 감, 새 세션 2 → 3, 합은 같음), 그 밖의
   연결·새 세션·Invalidate/Reconnect·Reconnect는 같다. 연결할 때 `SYS_CONTEXT` 읽기가 두 세션 모두에서 도는 것은 서버의 `V$SQL` 실행 수(+2)로도 확인했다.
 - SQL Server: 쿼리 창이 `USE tempdb` 한 뒤 Invalidate/Reconnect(목록 있음·없음 두 번) → 창 세션 tempdb·dbo, 주·메타데이터 세션 master·dbo(전과 같음).
+
+### PostgreSQL (2026-11-22, 앱 변경 #170)
+
+**고치기 전 재현**(시험 VM PostgreSQL 17, 같은 지연 프록시와 방법): 연결 → 스키마 목록 비움 → 프록시 멈춤 → Invalidate/Reconnect → 8초 뒤 자동 완성 계산
+(`SELECT * FROM ^`) → 풀기. 풀고 75초 뒤에도 그대로: 무효화 스레드는 `BLOCKED on PostgreDatabase$SchemaCache owned by "bg-complete-test"`
+(`JDBCObjectCache.loadObjects` ← `PostgreDatabase.getSchemas` ← `PostgreExecutionContext.setActiveSchema` ← `refreshDefaults` ←
+`PostgreDataSource.initializeContextState` ← `JDBCExecutionContext.connect` ← `invalidateContext` ← `InvalidateJob.invalidateInstances`), 자동 완성 스레드는
+`SimpleExclusiveLock.acquireExclusiveLock` ← `JDBCExecutionContext.connect` ← `JDBCObjectCache.loadObjects` ← `PostgreDatabase.getSchemas` ← `getChildren` ←
+`SQLQueryCompletionContext...collectTables`(PostgreSQL에서 목록을 쥔 쪽은 기본 스키마가 아니라 테이블 후보를 모으는 길이다).
+
+**원인.** `PostgreExecutionContext`가 기본 스키마를 OID(`activeSchemaId`)로 기억했고 OID는 목록에서만 얻으므로, 세션을 여는 길이 목록을 읽었다.
+
+| 배타 잠금 아래(무효화, `TransactionRecoveryGuard.reopenLostSession`)에서 지나는 자리 | 캐시를 기다리나 | 결과 |
+|---|---|---|
+| `initializeContextState`의 `initFrom.getDefaultSchema()` | 아니오(메모리, `cacheSync`만 잠깐) | 이름(`getCachedDefault().schemaName()`)으로 바꿈 |
+| `refreshDefaults` → `setActiveSchema` → `getSchemas` | **예**(`loadObjects`는 `synchronized`) | 세션을 여는 길에서는 읽지 않음 |
+| `setActiveSchema` → `schemaCache.getObjectReadingNew` | **예**(목록을 다시 읽을 때 `synchronized`) | 세션을 여는 길에서는 부르지 않음 |
+| `setActiveSchema`의 검색 경로 대체, `setSearchPath` → `getSchema(monitor, 이름)` | 아니오(한 개체 조회는 모니터를 잡지 않음), 하지만 메타데이터 세션 문장 | 메모리의 목록만 봄 |
+| 연결 설정의 기본 스키마(`refreshDefaults` → `setSearchPath`), `SET ROLE`(`setSessionRole`) | 기본 스키마는 위와 같음, `SET ROLE`은 SQL만 | 기본 스키마는 메모리·이름, `SET ROLE`은 그대로 |
+| `setDefaultCatalog` → `checkInstanceConnection`(다른 데이터베이스면 그 인스턴스를 열고 형식·목록을 읽음) | 다른 인스턴스의 캐시 | 원본 세션이 **다른 데이터베이스**일 때만 지나며(무효화는 늘 자기 자신이 원본) 전과 같음 |
+| 바뀜 알림 `DBUtils.fireObjectSelectionChange` | 아니오(탐색기 모델이 다시 그림) | 메모리의 목록이 있을 때만 전과 같은 개체 |
+
+**고친 것**(PostgreSQL 번들 안).
+
+| 자리 | 바꾼 것 |
+|---|---|
+| `PostgreExecutionContext` | 기본 스키마를 이름(`activeSchemaName`: 서버의 `current_schema()` 또는 Chromite가 검색 경로 맨 앞에 둔 것)으로 기억. `getDefaultSchema`는 메모리의 목록에서 그 이름, 없으면(필터로 숨김) 검색 경로의 첫 목록 스키마. 목록을 읽으면 다시 묻지 않고 맞는 개체를 돌려준다 |
+| `refreshDefaults(monitor, bootstrap, readSchemaList)` | 세션을 여는 길은 `false`: 목록 읽기(`getSchemas`, `getObjectReadingNew`)를 하지 않는다. 쿼리 창이 실행 뒤 부르는 공개 `refreshDefaults`는 잠금 밖이라 전처럼 읽는다(다른 세션이 만든 스키마 포함) |
+| `setSearchPath` | 목록이 메모리에 없으면 이름을 그대로 두고, 목록이 그 이름을 갖고 있지 않으면(없는 스키마) 전처럼 두지 않는다. 검색 경로 맨 앞은 `getDefaultSchemaName` |
+| `setDefaultSchemaFrom`(새 메서드), `PostgreDataSource.initializeContextState` | 같은 데이터베이스의 원본 세션에서 기본 스키마를 이름으로 받음. 목록에 있으면 전처럼 "기본값으로 설정"(시스템 스키마 거름, 알림), 없으면 이름으로 `SET search_path`(알림 없음). 다른 데이터베이스의 원본은 전과 같은 길. 커밋(:472-477의 그것)은 스키마를 받았을 때만 |
+| `getCachedDefault` | 목록이 없을 때도 세션이 받은 이름을 돌려줌(쿼리 창 선택·상태 줄은 목록과 이 이름을 씀) |
+
+**알림.** 목록이 메모리에 있으면 전과 같은 개체를 싣는다. 없으면 #165처럼 보내지 않는다(옛·새 개체가 모두 없음). 탐색기는 목록을 읽어야 스키마 노드가
+생기고, 읽으면 그리기가 `getDefaultSchema`로 맞는 줄을 굵게 한다.
+
+**바뀌는 것**(모두 목록이 메모리에 없을 때만).
+
+- 연결할 때 목록 읽기(`pg_namespace` 한 문장)가 주 세션의 `setActiveSchema`에서 곧이은 데이터 형식 읽기(`cacheDataTypes` → `PostgreDataType.readDataType` →
+  `getSchema(monitor, oid)`)로 옮겨 감. 문장 수는 같다.
+- 목록이 없을 때의 Invalidate/Reconnect: 전에는 다시 연 주 세션이 목록을 읽은 뒤(두 번, 15문장) 원본의 기본 스키마를 찾지 못해 잃었다("기본값으로 설정"한
+  `chr_pci_a`가 `public`이나 연결 설정의 기본 스키마로 돌아감). 이제는 목록을 읽지 않고(12문장) 이름으로 지킨다. 목록은 처음 쓰는 곳(탐색기 펼치기, 자동 완성)이 읽는다.
+  주 세션의 검색 경로 글이 `"$user", public`에서 `public, "$user"`로 바뀌는데, 이것은 목록이 있을 때의 Invalidate/Reconnect가 전부터 만들던 글과 같다(현재 스키마 같음).
+- 목록이 없을 때 연결 설정의 기본 스키마가 **없는** 스키마면 그 이름이 검색 경로 맨 앞에 들어간다(서버가 건너뛰어 `current_schema()`는 같음). 확인하려면 한 개체 조회
+  한 문장이 더 든다(연결할 때 문장 수가 늘어 고르지 않음). 시스템 스키마(`pg_catalog` 등)를 원본에서 받을 때도 목록이 없으면 거르지 못하고 이름 그대로 둔다(전에는
+  아예 받지 못했다).
+- 탐색기 필터로 숨긴 스키마: 쿼리 창이 `SET search_path TO chr_pci_a`(숨김) 한 뒤 Invalidate/Reconnect → 전과 같이 창 세션이 `public`으로 돌아간다(목록이 있으면
+  기본 스키마를 찾지 못함). Oracle(#165)처럼 이름으로 지키게 바꾸지는 않았다. 목록이 없을 때는 이름으로 받는다.
+
+**확인**(2026-11-22, 고친 빌드, 시험 VM PostgreSQL 17, 시험 개체 `chr_pci_*`, 증거 `D:\Tools\_scratch\postgres-context-init-lock\`):
+
+- 재현 방법 그대로 1회 + 20회 반복(매번 목록을 비우고 프록시 멈춤 → Invalidate/Reconnect → 자동 완성 → 풀기): 20/20 교착 없음, 자동 완성은 5.1-5.5초에 끝났고
+  무효화 작업·스레드가 남지 않았으며 매번 세 세션(주·메타데이터·쿼리 창) 모두 쓸 수 있었다. 20번의 스레드 덤프 모두 고치기 전과 같은 순간(자동 완성이 목록을 쥐고
+  배타 잠금을 기다림, 무효화는 멈춘 프록시 뒤에서 연결 중)에 찍혔다.
+- 현재 스키마·검색 경로(`current_schema()`, `SHOW search_path`, 주·메타데이터·쿼리 창 세션), 쿼리 창 스키마 선택·상태 줄, 탐색기의 굵은 기본 스키마: 연결,
+  새 쿼리 창, Invalidate/Reconnect, Reconnect, "기본값으로 설정" 뒤 새 쿼리 창, 쿼리 창의 `SET search_path TO "CHR_PCI_Mixed", public` 뒤
+  Invalidate/Reconnect, 다른 세션이 만든 스키마로 `SET search_path` 뒤 Invalidate/Reconnect, 모든 데이터베이스 표시에서 쿼리 창의 데이터베이스 바꾸기(`chr_pci_db`)
+  뒤 Invalidate/Reconnect와 되돌리기, 연결 설정의 기본 스키마 `chr_pci_a`·따옴표 대소문자 `CHR_PCI_Mixed`, 탐색기 필터로 숨긴 스키마에서 고치기 전과 같다
+  (`"$user"` 스키마는 없음). 다른 것은 위 "바뀌는 것"의 목록이 없을 때뿐.
+- 수동 커밋 연결: 연결·새 쿼리 창·Invalidate/Reconnect 뒤 모든 세션이 `idle`(트랜잭션 없음, `pg_stat_activity`), 쿼리 창의 오류(`SELECT 1/0`)로 중단된
+  트랜잭션 뒤에도 스키마 선택은 `public`(전과 같음).
+- 문장 수(쿼리 관리자, 단계마다): 연결 9·11·8, 새 쿼리 창 3·4, 목록이 있는 Invalidate/Reconnect 9·12, Reconnect 12·15·11, "기본값으로 설정" 2 — 전과 같다.
+  목록이 없을 때의 Invalidate/Reconnect만 15 → 12, 20 → 16(연결 설정의 기본 스키마), 12 → 9(필터). 서버의 실행 수는 `pg_stat_statements`가 없어 보지 못했다.
 
 ## 취소는 오류가 아님 (2026-11-22, 앱 변경 #167)
 
@@ -367,3 +428,6 @@ ShardSphere 서버(코드로만: 같은 공급자와 HY008).
 - 2026-11-22 "드라이버 취소 오류의 분류"(앱 변경 #169, `chromite/driver-cancel-classification`): DB별 측정, Oracle·MariaDB·MySQL 분류, 쿼리 창과 Oracle DDL 읽기는
   취소를 요청했을 때만 취소로 봄(PostgreSQL·SQL Server의 쿼리 창 시간 초과·다른 세션의 취소가 이제 오류). 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 진행 창
   작업의 취소, 쿼리 창의 중지·시간 초과, Oracle DDL 보기, Query Manager의 읽기 오류).
+- 2026-11-22 "세션을 다시 열 때의 교착"의 PostgreSQL(앱 변경 #170, `chromite/postgres-context-init-lock`): 기본 스키마를 이름으로 기억하고 세션을 여는 길은
+  스키마 목록을 읽지 않음. 재현, 20/20 확인, 전후 표. "남은 것"의 PostgreSQL 항목을 닫음. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: PostgreSQL 계열
+  연결·Invalidate/Reconnect·쿼리 창의 새 세션의 search_path, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택·상태 줄, 데이터 형식 해석의 기본 스키마).

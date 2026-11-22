@@ -144,7 +144,7 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 긴 폴더: 통계 렌더러(테이블 크기 막대).
 - 붙여넣기로 DB 객체 복제(C-12의 나머지).
 - 작업 스레드끼리의 교착(앱 변경 #164에서 확인): Oracle·SQL Server는 앱 변경 #165에서 고쳤다(세션을 다시 열 때 기본 스키마를 이름으로 받음,
-  [cancel-busy-connection.md](cancel-busy-connection.md) "세션을 다시 열 때의 교착"). PostgreSQL은 같은 교착이 재현되지만 고치지 않았다(같은 문서 "남은 것").
+  [cancel-busy-connection.md](cancel-busy-connection.md) "세션을 다시 열 때의 교착"). PostgreSQL은 앱 변경 #170에서 고쳤다(기본 스키마를 이름으로 기억, 세션을 여는 길은 목록을 읽지 않음).
 - PostgreSQL에서 열린 트랜잭션 안의 스키마 바꾸기(`SET search_path`)는 롤백하면 서버에서도 되돌아가지만, 모델의 문맥은 바꾼 스키마를 기억한다(쿼리 창 DB 콤보도 같음, 모델 동작).
 
 ## 변경 이력
@@ -155,3 +155,4 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 - 2026-11-12 빠른 거르기 입력란의 안내 글자를 "읽은 개체 거르기(Ctrl+F)"에서 "찾기(Ctrl+F)"(영어 "Find (Ctrl+F)")로 바꿈(앱 변경 #101). 사용자: "읽은 개체 거르기는 그냥 '찾기'라고 표시한다". 이미 읽은 개체만 거른다는 설명은 도구 설명(`oe_quick_filter_tip`)에 그대로 있고, 동작은 바뀌지 않음.
 - 2026-11-22 "기본값 굵게 표시"(앱 변경 #164): 트리 그리기가 기본 스키마 목록을 서버에서 읽지 않음(`DBCExecutionContextDefaults.isDefaultSchemaLoaded`, Oracle·SQL Server·Snowflake). 바쁜 메타데이터 연결에서 창이 멈추던 것과 무효화와의 교착을 고침. 작업 스레드끼리의 교착은 "남긴 것".
 - 2026-11-22 "남긴 것"의 작업 스레드끼리 교착: Oracle·SQL Server는 고침(앱 변경 #165, [cancel-busy-connection.md](cancel-busy-connection.md)), PostgreSQL은 남김.
+- 2026-11-22 PostgreSQL의 같은 교착을 고침(앱 변경 #170, [cancel-busy-connection.md](cancel-busy-connection.md) "세션을 다시 열 때의 교착"). 그리기는 그대로 메모리의 목록만 본다.
