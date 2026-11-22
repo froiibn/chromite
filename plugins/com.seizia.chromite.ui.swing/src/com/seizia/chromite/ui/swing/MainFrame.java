@@ -84,6 +84,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
@@ -321,6 +322,8 @@ import java.util.function.Supplier;
  * - 2026-11-15 Execute가 F5 외에 Alt+X(macOS ⌥X, DBeaver의 스크립트 실행 키)도 받음: 같은 동작의 추가 키라 메뉴·도구 설명은 F5,
  *   F5처럼 초점이 쿼리 창(편집기와 결과)에 있을 때만 걸림({@link #createEditorAction}의 추가 키) (앱 변경 #122, docs/chromite/shortcuts.md)
  * - 2026-11-15 macOS: 단축키가 처리한 Option 키의 글자(⌥P "π", ⌥X "≈")가 편집기에 들어가지 않게 {@link MacOptionKeyGuard}를 설치(앱 변경 #122)
+ * - 2026-11-22 문서 탭을 끌어서 순서 바꾸기: {@link EditorTabbedPane#moveTab}이 탭 옮기기의 한 경로(옮기는 동안 선택 이벤트를 막고 한 번만 냄),
+ *   놓을 자리 선, 닫기 단추 판정({@link DocumentTabDrag}, 앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-22 New Query(메뉴, 도구 막대, Ctrl+N)가 활성 문서 탭의 연결로, 쿼리 창이면 그 창의 현재 DB/스키마로 엶. 탭이 연결을 모르면
  *   전처럼 Object Explorer에서 고른 연결({@link #newQuery}, 앱 변경 #172, docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
  */
@@ -396,7 +399,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SwingUtilities.invokeLater(() -> connectionUpdated(container));
         }
     };
-    private final JTabbedPane documentTabs;
+    private final EditorTabbedPane documentTabs;
     private final DocumentTabMenu documentTabMenu;
     /**
      * The document tabs, or the welcome content while no document is open.
@@ -2202,8 +2205,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * {@link WelcomePanel}. Their position, rows and menu are {@link DocumentTabMenu}'s.
      */
     @NotNull
-    private JTabbedPane createDocumentTabs() {
-        JTabbedPane tabs = new EditorTabbedPane(this::updateDocumentCard);
+    private EditorTabbedPane createDocumentTabs() {
+        EditorTabbedPane tabs = new EditorTabbedPane(this::updateDocumentCard);
         // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline.
         // In several rows (DocumentTabMenu) the rows stay where they are: the selected tab's row does not move next to the content
         tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE + "; rotateTabRuns: false"); //$NON-NLS-1$
@@ -2659,10 +2662,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      *     (a synchronous layout) ran before the UI knew the new tab: {@code ArrayIndexOutOfBoundsException}, and the tab
      *     pane stayed broken. All adds and removes ({@code addTab}, {@code add}, {@code remove}, {@code removeAll}) go
      *     through these two methods.</li>
+     *     <li>{@link #moveTab} is the one way to move a tab (pinning in {@link DocumentTabMenu}, dragging in
+     *     {@link DocumentTabDrag}, app change #171). Swing has no move API, so it removes the tab and inserts it again,
+     *     and while it does, the selection events stay out: removing the selected tab would otherwise make its neighbour
+     *     the active document for a moment (Results, tool bar, status line and Link with Editor follow it, and Link with
+     *     Editor can load Object Explorer nodes). The dragged tab's landing place is painted over the tabs
+     *     ({@link #setDropIndicator}).</li>
      * </ul>
      */
-    private static final class EditorTabbedPane extends JTabbedPane {
+    static final class EditorTabbedPane extends JTabbedPane {
         private final Runnable tabsChanged;
+        // EDT only: moveTab is removing and inserting a tab
+        private boolean moving;
+        @Nullable
+        private Rectangle dropIndicator;
 
         EditorTabbedPane(@NotNull Runnable tabsChanged) {
             this.tabsChanged = tabsChanged;
@@ -2672,13 +2685,103 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public void insertTab(String title, Icon icon, Component component, String tip, int index) {
             super.insertTab(title, icon, component, tip, index);
-            tabsChanged.run();
+            if (!moving) {
+                tabsChanged.run();
+            }
         }
 
         @Override
         public void removeTabAt(int index) {
             super.removeTabAt(index);
-            tabsChanged.run();
+            if (!moving) {
+                tabsChanged.run();
+            }
+        }
+
+        @Override
+        protected void fireStateChanged() {
+            if (!moving) {
+                super.fireStateChanged();
+            }
+        }
+
+        /**
+         * Moves a tab with everything it carries: title, icon, tool tip, tab component and enabled state as tab
+         * attributes; pin state, closable property and the document itself (caret, scroll position, running query,
+         * results, modified mark) stay on the component. The selection stays on the tab, and the keyboard focus goes
+         * back into it when it was there. The per-tab colors, disabled icon and mnemonic are not copied: no document tab
+         * sets them, and their getters return values derived from the pane and the icon that copying would freeze.
+         */
+        void moveTab(int from, int to) {
+            int count = getTabCount();
+            if (from == to || from < 0 || to < 0 || from >= count || to >= count) {
+                return;
+            }
+            // FlatLaf swaps the close button's tool tip into the hovered tab and puts it back by index later: put it
+            // back now, so that it neither travels with the tab nor lands on another one
+            dispatchEvent(new MouseEvent(this, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, -1, -1, 0, false));
+            Component component = getComponentAt(from);
+            String title = getTitleAt(from);
+            Icon icon = getIconAt(from);
+            String toolTip = getToolTipTextAt(from);
+            Component tabComponent = getTabComponentAt(from);
+            boolean enabled = isEnabledAt(from);
+            boolean selected = getSelectedIndex() == from;
+            Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+            boolean focused = focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, component);
+            moving = true;
+            try {
+                removeTabAt(from);
+                insertTab(title, icon, component, toolTip, to);
+                setTabComponentAt(to, tabComponent);
+                setEnabledAt(to, enabled);
+                if (selected) {
+                    setSelectedIndex(to);
+                }
+            } finally {
+                moving = false;
+            }
+            if (selected) {
+                // One selection event for the whole move: the same document is active, at its new place
+                fireStateChanged();
+                if (focused) {
+                    focusOwner.requestFocusInWindow();
+                }
+            }
+            // The rollover (hovered tab, close button) of the tabs as they are now
+            Point mouse = getMousePosition(true);
+            if (mouse != null) {
+                dispatchEvent(new MouseEvent(this, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, mouse.x, mouse.y, 0, false));
+            }
+        }
+
+        /**
+         * Where a dragged tab will land ({@link DocumentTabDrag}), painted over the tabs; null for none.
+         */
+        void setDropIndicator(@Nullable Rectangle indicator) {
+            if (Objects.equals(indicator, dropIndicator)) {
+                return;
+            }
+            dropIndicator = indicator;
+            repaint();
+        }
+
+        /**
+         * Whether a point is on the close button of a tab (a press there closes the tab instead of dragging it).
+         */
+        boolean isCloseButtonAt(int index, @NotNull Point point) {
+            return getUI() instanceof IslandTabbedPaneUI ui && ui.isCloseButtonAt(index, point);
+        }
+
+        @Override
+        public void paint(Graphics g) {
+            super.paint(g);
+            // Over the children: in the scrolling layout the tabs are painted by a child (the tab viewport)
+            if (dropIndicator != null) {
+                Color color = UIManager.getColor("TabbedPane.underlineColor"); //$NON-NLS-1$
+                g.setColor(color != null ? color : getForeground());
+                g.fillRect(dropIndicator.x, dropIndicator.y, dropIndicator.width, dropIndicator.height);
+            }
         }
 
         @Override
@@ -2754,6 +2857,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             if (tabIndex == tabPane.getSelectedIndex() || tabIndex == getRolloverTab()) {
                 super.paintTabCloseButton(g, tabIndex, x, y, w, h);
             }
+        }
+
+        /**
+         * The close button's hit area as FlatLaf uses it (the whole tab height at the button).
+         */
+        boolean isCloseButtonAt(int tabIndex, @NotNull Point point) {
+            return tabIndex >= 0 && tabIndex < tabPane.getTabCount() && isTabClosable(tabIndex) && getTabCloseHitArea(tabIndex).contains(point);
         }
     }
 
