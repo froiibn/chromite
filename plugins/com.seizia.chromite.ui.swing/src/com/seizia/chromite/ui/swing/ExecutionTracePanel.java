@@ -79,6 +79,8 @@ import java.util.function.IntFunction;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/sqlserver-execution-trace.md)
+ * - 2026-11-22 실행 오류의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뛰고, 열린 추적 세션의 정리는 전처럼 늘 함(앱 변경 #168,
+ *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class ExecutionTracePanel extends JPanel implements ToolDocument {
 
@@ -280,9 +282,7 @@ final class ExecutionTracePanel extends JPanel implements ToolDocument {
         try {
             result = ProgressDialog.runTask(TraceMessages.trace_progress_run, monitor -> trace.run(monitor, target.parameters(), values));
         } catch (DBException e) {
-            if (!(e instanceof DBInterruptedException)) {
-                ErrorDialog.show(this, NLS.bind(TraceMessages.trace_error_run, routineName), ExecutionTraceCommands.describeError(e), e);
-            }
+            ErrorDialog.show(this, NLS.bind(TraceMessages.trace_error_run, routineName), ExecutionTraceCommands.describeError(e), e);
             if (trace.isOpen()) {
                 // The call ran but its trace could not be read: its transaction is still the user's to end
                 pendingTrace = trace;

@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
+import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import com.seizia.chromite.ui.swing.internal.TransferOptionsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -116,6 +117,8 @@ import java.util.function.Supplier;
  *   보여 HTML 라벨로 이 클래스에 남김(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-22 비울 테이블 목록과 DDL 미리 보기의 비우기 줄은 모델이 잘라내기나 지우기를 받는 대상만({@link DataTransferObjects#acceptsEmptying}):
  *   넣기만 받는 대상은 불러오기가 비우지 않고 넣는다(앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
+ * - 2026-11-22 DDL 미리 보기에서 사용자의 취소({@link ErrorText#isUserCancel})는 "DDL 오류" 대신 중립 문구: 취소를 실패로 보였다
+ *   (앱 변경 #168, docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class DatabaseCopyPages {
 
@@ -1247,7 +1250,8 @@ final class DatabaseCopyPages {
                     monitor -> DatabaseCopyMappings.generateTableDdl(monitor, target, mapping));
                 text = ddl == null ? DbCopyMessages.ddl_no_changes : ddl;
             } catch (DBException e) {
-                text = NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
+                // The user's own cancel is not a DDL error; the neutral text also replaces the DDL shown before
+                text = ErrorText.isUserCancel(e) ? ErrorMessages.error_canceled : NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
             }
         }
         ddlArea.setText(text);

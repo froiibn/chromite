@@ -118,6 +118,8 @@ import java.util.function.Predicate;
  *   (docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 고급 백업·복원: PostgreSQL 스키마·테이블 고르기, pg_dumpall(전역 개체, 전체 클러스터), MySQL 테이블 고르기와 --compress,
  *   도구 계정, 추가 인수 (docs/chromite/swing-backup-restore.md "고급 백업·복원")
+ * - 2026-11-22 개체 목록 읽기를 사용자가 취소하면({@link ErrorText#isUserCancel}) "개체를 읽지 못했습니다" 경고 상자를 띄우지 않음
+ *   (앱 변경 #168, docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -495,7 +497,8 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
     /**
      * Reads the objects to choose from when the dialog opens: the PostgreSQL schemas (their tables are read when a schema
      * is selected) and databases, or the MySQL tables and views. Everything is checked: the whole database, as before.
-     * When they can't be read, the page says so and the whole database is backed up.
+     * When they can't be read, a message box says so and the whole database is backed up; after the user's own cancel the same
+     * happens without the box.
      */
     private void loadObjects() {
         try {
@@ -519,8 +522,11 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             }
         } catch (DBException e) {
             log.debug("Can't read the objects of " + database.getName(), e);
-            JOptionPane.showMessageDialog(getOwner(), NLS.bind(BackupRestoreMessages.native_objects_error, ErrorText.describe(e)),
-                getTitle(), JOptionPane.WARNING_MESSAGE);
+            // The user's own cancel needs no explanation: the lists stay empty and the whole database is backed up, as below
+            if (!ErrorText.isUserCancel(e)) {
+                JOptionPane.showMessageDialog(getOwner(), NLS.bind(BackupRestoreMessages.native_objects_error, ErrorText.describe(e)),
+                    getTitle(), JOptionPane.WARNING_MESSAGE);
+            }
         }
         if (database instanceof PostgreDatabase pg) {
             pgSelection.selectSchemas(pgSchemas, true);

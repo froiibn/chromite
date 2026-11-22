@@ -25,9 +25,13 @@ import org.eclipse.osgi.util.NLS;
  * ({@code ErrorMessages.properties}), 한국어는 {@code ErrorMessages_ko.properties}이고 OS 언어를 따른다.
  * 키 접두사는 오류 설명 {@code error_}, 오류 종류 {@code error_kind_}, 대화상자 {@code dialog_}, 알림 {@code agent_}다.
  * {@code CoreMessages}에 두지 않은 것은 같은 날 다른 작업(PR #55)이 그 파일을 고쳐 병합 충돌을 피하려는 것이다.
+ * {@code error_canceled}는 오류 대신 보이는 사용자 자신의 취소다(화면 안의 글: DDL 미리 보기, 작업 메시지). 여러 기능이 쓰는 문구라
+ * 백업·복원 묶음이 아니라 이곳에 둔다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-22 {@code error_canceled}: {@code BackupRestoreMessages.task_message_canceled}를 옮김. 가져오기·복사의 DDL 미리 보기도
+ *   취소를 이 중립 문구로 보임(앱 변경 #168, docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
  */
 public class ErrorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ErrorMessages"; //$NON-NLS-1$
@@ -52,6 +56,7 @@ public class ErrorMessages extends NLS {
     public static String error_sql_state;
     public static String error_sql_code_state;
     public static String error_disconnect;
+    public static String error_canceled;
 
     public static String dialog_details;
     public static String dialog_details_button;

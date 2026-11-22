@@ -235,28 +235,47 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
 | 모델 쪽으로 던짐(`SwingPlatformUI.runWithProgress`·`runWithMonitor`) | 1 | 모델 호출의 오류가 `showError`로 오면 공용 판단을 거침 |
 
 `runTask` 밖에서 오류를 화면 안 상태 줄에 보이는 helper(`SchedulerTablePanel.showError` :257, `ServerLogPanel.showError` :496, `ConnectionDatabaseList.showError` :289)는
-진행 창이 없어 사용자가 취소를 누를 곳이 없다. `ConnectionDatabaseList`는 암호 입력 취소를 이미 따로 처리한다(:233). `ServerLogPanel`은 연결하면서 암호 입력을
-취소하면 상태 줄에 연결 취소 예외의 영어 글을 보일 수 있다(실행해 보지 않음, 남은 곳).
+진행 창이 없어 사용자가 취소를 누를 곳이 없다. `ConnectionDatabaseList`는 암호 입력 취소를 이미 따로 처리한다(:233). `ServerLogPanel`의 암호 입력 취소는 아래
+"남은 곳"의 결과를 본다.
 
-### 남은 곳 (호출마다 고쳐야 함, 이번에 고치지 않음)
+### 남은 곳 (2026-11-22 앱 변경 #168에서 다시 보고 고침)
 
-브리프의 규칙(호출 열 곳이 넘으면 공용 입구와 이름 붙은 세 호출까지만)에 따라 아래는 고치지 않았다. 각 곳은 취소면 아무것도 보이지 않거나(창), 기존 중립 문구
-`BackupRestoreMessages.task_message_canceled`("작업을 취소했습니다." / "The operation was canceled.")를 보이면 된다(글).
+앞 작업이 코드 검색으로만 찾은 12곳을 다시 읽고, 예외가 사용자의 취소일 수 있는지 모델 코드까지 따라갔다. 취소가 실제로 오는 곳만 `ErrorText.isUserCancel`
+하나로 고쳤다: 상자는 띄우지 않고, 화면 안의 글은 기존 중립 문구 "작업을 취소했습니다." / "The operation was canceled."다. 이 문구의 키는 백업·복원 묶음
+(`BackupRestoreMessages.task_message_canceled`)에서 오류 문구 묶음(`ErrorMessages.error_canceled`)으로 옮겼다(DDL 미리 보기도 쓰는 일반 문구, 쓰던 곳
+`DatabaseTaskDialog` 한 곳도 함께). 새 문구·새 판단·새 helper는 없다.
 
-| 곳 | 지금 보이는 것 | 필요한 것 |
-|---|---|---|
-| `DriverBundleCreateDialog.java:260`, `DriverBundleInstallDialog.java:170`, `:193` | `JOptionPane` 오류 상자에 `e.getMessage()`(취소면 영어 취소 문구) | `ErrorText.isUserCancel`이면 상자 없이 돌아감 |
-| `DriverLibrariesPanel.java:405` | 같음(`driverlib_find_class_error` 안에) | 같음 |
-| `NativeBackupRestoreDialog.java:503`, `:513` | 경고 상자 "개체를 읽지 못했습니다: …" | 같음 |
-| `ConnectionSettingsPanel.java:1655` | 드라이버 속성 문제 글 | 취소면 문제 글 없이 |
-| `DataImportWizard.java:778`, `DatabaseCopyPages.java:1246` | DDL 미리 보기 영역에 "DDL 오류: …" | 취소면 중립 문구 |
-| `DriverLibraryDetailsDialog.java:164` | 의존성 영역에 원인 메시지 | 취소면 중립 문구 |
-| `ServerLogPanel.java:285`, `:449`(상태 줄) | "오류: …" | 취소면 중립 문구 |
+| 곳 | 고치기 전 | 고친 뒤 | 확인 |
+|---|---|---|---|
+| `NativeBackupRestoreDialog.loadObjects` (:506 PostgreSQL 스키마, :516 MySQL·MariaDB 테이블; 상자 :527) | 경고 상자 "개체 목록을 읽지 못했습니다: Canceled while the database call was still running" | 상자 없음, 백업 대화상자가 바로 열리고 개체 목록은 비어 전체 백업(실제 오류 때와 같음) | 실행(MariaDB, 바쁜 메타데이터 연결, 3초 뒤 취소, 1.6초 뒤 진행 창 닫힘) |
+| `DataImportWizard` DDL 미리 보기 (:781, 글 :786) | "DDL을 만들 수 없습니다: Canceled …" | 중립 문구가 이전 DDL을 대신함, 탭을 다시 고르면 다시 만듦 | 코드만: 아래 복사와 같은 `DatabaseCopyMappings.generateTableDdl` |
+| `DatabaseCopyPages` DDL 미리 보기 (:1249, 글 :1254) | 같음 | 같음 | 코드만(MariaDB→MariaDB 복사에서 바쁜 연결·새로 고침 뒤에도 진행 창이 뜨지 않음, 취소할 수 없음) |
 
-크기: 파일 8개, 호출 12곳, 곳마다 1~3줄.
+제외한 곳(취소 예외가 오지 않음, 고치지 않음):
 
-- 이제 쓸모가 줄어든 기존 취소 검사(`SchemaComparePanel.showError`의 `instanceof`, `TableDesignerPanel` :521·:544·:568, `ExecutionTracePanel` :281,
-  `ProcedureDebuggerPanel` :373, `ExplorerObjectCommands` :815의 `!(e instanceof DBInterruptedException)`)는 지우지 않았다: 동작은 같고, 지우면 범위가 여섯 파일 넓어진다.
+| 곳 | 이유 (근거) |
+|---|---|
+| `DriverBundleCreateDialog` :260, `DriverBundleInstallDialog` :170·:193 | 모델이 취소를 `InterruptedException`으로만 알리고(`DriverOfflineBundleWriter.checkCanceled`, `DriverOfflineBundleInstaller.checkCanceled`, `WebUtils.downloadRemoteFile`) 작업이 그것을 잡아 `null`을 돌려준다. `ProgressDialog.runTask`가 취소로 바꾸는 두 경우(메타데이터 세션 안, 드라이버의 `SQLException`)는 이 작업에 없다. 작업 스레드는 인터럽트되지 않아(`AbstractJob.canceling`) `ClosedByInterruptException`도 없다 |
+| `DriverLibrariesPanel.findClasses` :405 | `DriverClassFindJob`은 취소면 멈추기만 하고 던지지 않는다(:86, :106) |
+| `DriverLibraryDetailsDialog.resolve` :164 | 의존성 해석(`DriverDependencies.resolveDependencies`, Maven POM 읽기)은 모니터의 취소를 보지 않고 `IOException`만 감싼다 |
+| `ConnectionSettingsPanel.loadDriverProperties` :1655 | 드라이버 속성 읽기는 DB 세션을 열지 않고(`JDBCDataSourceProvider.getConnectionProperties`), 드라이버 파일 내려받기의 취소는 내려받기 쪽(`SwingDriversService`)에서 끝난다 |
+| `ServerLogPanel` :285·:449 | 진행 창이 없다. 연결하며 뜬 암호 입력을 닫으면 `AdminConnection.execute`가 "'X'에 연결되어 있지 않습니다."(`activity_not_connected`)를 던진다. 취소 예외가 아니라서 이 판단으로는 바뀌지 않는다(실행: 고치기 전·후 모두 상태 줄 "오류: 'MA'에 연결되어 있지 않습니다.") |
+
+다시 찾은 결과(이 번들에서 예외 글을 오류 창 밖에 보이는 130곳): 위 목록 밖에서 취소가 올 수 있는 곳은 이미 취소를 따로 처리한다(`OracleJobDialog` :250,
+`TaskScheduleDialog` :164, `ExecutionTracePanel` :315, `DataSearchPanel` :365, `PropertiesPanel` :290, `ObjectDetailsPanel`·`SchemaComparePanel` DDL의 일련번호,
+`MaintenanceDialect`의 `CANCELED`). `ConnectionTransferCommands`·`SettingsTransferCommands`의 `showReadProblem`은 파일 내용 오류만 상자로, 나머지는 `showError`로 보낸다.
+
+`#345`로 쓸모없어진 취소 검사 7개를 지웠다. 오류가 그대로 `showError`·`ErrorDialog.show`로 가고 그 분기의 다른 일(`ExecutionTracePanel`의 열린 추적 세션 정리,
+`ProcedureDebuggerPanel`의 컨트롤러 정리, `ExplorerObjectCommands`의 남은 변경 버리기)은 검사 밖에서 늘 했으므로 동작이 같다: `SchemaComparePanel.showError`,
+`TableDesignerPanel.addKey`·`addIndex`·`addForeignKey`, `ExecutionTracePanel.run`, `ProcedureDebuggerPanel.start`, `ExplorerObjectCommands.runChange`.
+`catch (DBInterruptedException)`로 따로 잡고 다른 일을 하는 곳(`TableDesignerPanel.run`의 다시 읽기, `generateScript`의 `null` 등)은 그대로 두었다.
+
+바뀌지 않음(확인): 백업 개체 읽기의 실제 오류(바쁜 연결 뒤에서 기다리는 동안 그 메타데이터 세션을 `KILL`) → 전처럼 경고 상자 "개체 목록을 읽지 못했습니다:
+SQL 오류 [1220] [08000]: … Connection is closed". DDL 미리 보기의 정상 DDL은 같다. 드라이버 라이브러리·서버 로그 화면은 코드를 바꾸지 않았다.
+
+- 남은 것: 연결하며 뜬 암호 입력을 닫은 뒤의 "연결되어 있지 않습니다" 글은 관리 도구 탭(`AdminConnection`을 쓰는 10개 화면)과 개체 찾기·스키마 비교·실행 계획
+  등이 같은 방식으로 보인다. 고치려면 연결 서비스가 "취소됨"을 호출한 쪽에 알려야 한다(`DBUtils.initDataSource`는 참·거짓만 돌려줌). 이번 범위 밖.
+- 남은 것: 드라이버 파일 내려받기·Maven 의존성 읽기는 취소를 누른 뒤에도 네트워크 읽기 시간 초과(10초)까지 기다리고, 그동안 실패하면 오류를 보인다(취소 예외가 아님).
 - 드라이버의 취소 오류 중 분류(`EXECUTION_CANCELED`)가 없는 것: Oracle ORA-01013(`OracleDataSource`), MariaDB·MySQL 1317(`MySQLDataSource`), Altibase.
   이 DB에서 바쁘지 않은 연결의 자기 문장을 취소하면 전처럼 드라이버 오류가 오류 창에 보인다(재현 못 함: Oracle 사전 읽기는 잠금에 막히지 않음).
 
