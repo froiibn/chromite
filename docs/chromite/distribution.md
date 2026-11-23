@@ -309,6 +309,7 @@ pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 `
 26.1.7까지는 서버 키를 가진 Turbrix 세션이 Chromite 세션의 요청을 받아 실행했다. 2026-11-23에 사용자가 넘기게 했다:
 Turbrix 세션에 "크로마이트는 앞으로 크로마이트 에이전트가 직접 배포할 수 있도록 정보를 제공하라", Chromite 세션의 확인 질문에 "직접 배포한다".
 그 뒤 배포는 Chromite 세션이 직접 실행한다. 바뀐 것은 실행하는 쪽뿐이다. 릴리스마다 사용자의 지시가 있어야 시작하고, 먼저 리허설을 한다.
+실행은 릴리스 하네스의 `deploy` 단계로 한다. 아래의 실행 전·뒤 확인을 하네스가 모두 한다([release-harness.md](release-harness.md) "운영 배포").
 
 - **접속 값은 저장소에 두지 않는다.** 이 저장소는 공개라서 서버 주소, 계정, 키 경로는 git이 무시하는 `.local/deploy/README.md`에,
   고정한 호스트 키는 `.local/deploy/known_hosts`에 둔다. 비밀 값은 그 파일에도 없다.
@@ -341,6 +342,8 @@ Turbrix 세션에 "크로마이트는 앞으로 크로마이트 에이전트가 
 Turbrix의 서비스 배포 뒤에 chromite.seizia.com이 답하지 않으면 사용자에게 알린다. 프록시의 `chromite.seizia.com` 블록은 Turbrix의 서비스 묶음에 들어 있어 Turbrix 쪽에서 고칠 일이다.
 
 ## 리허설 (로컬 Docker)
+
+`rehearse.ps1`은 Docker가 있는 PC를 위해 그대로 둔다. 릴리스 하네스의 `rehearse` 단계는 아래 "이 PC에 Docker가 없을 때"의 다른 호스트 방법을 쓴다([release-harness.md](release-harness.md) "리허설").
 
 ```powershell
 pwsh tools/release/rehearsal/rehearse.ps1 -Tag v0.1.0 -ArtifactsDir <파일 폴더> [-DataGeneration 1]
@@ -709,6 +712,8 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - 화면 글에 다른 제품 이름을 쓰지 않는다. 소스 링크는 `https://github.com/froiibn/chromite`(공개 저장소, `NOTICE` 포함).
 
 ## 릴리스 순서
+
+아래 순서는 릴리스 하네스(`tools/release/release.ps1`)의 단계로 실행한다. 단계와 확인은 [release-harness.md](release-harness.md)에 있다.
 
 1. `command`에서 버전을 올리고([versioning.md](versioning.md): 첫 사용자 배포 판 전에는 `26.0.x`의 셋째 수, 첫 사용자 배포 판(26.1.0)은 사용자가 정한 뒤 `-FirstUserRelease`),
    같은 PR에 `site/ko|en/changelog.html`의 `<section id="v<버전>">`을 쓴다.
@@ -1174,3 +1179,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-23 26.1.7 준비(`chromite/release-26-1-7`): 버전 26.1.7과 변경 내역(별도 쿼리 창의 탭 줄, 그 탭을 주 창 탭 줄로 끌어 되돌리기, 탭 메뉴 #358). 사용자 결정(2026-11-23): "이후에 병합 배포 공개까지 다 하고 보고하라"(릴리스 중단을 이 배포에 풀음).
 - 2026-11-23 26.1.7 릴리스 기록: 26.1.6 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인·GitHub Release 공개를 적음. 리허설 키를 만드는 셸에 대한 주의를 함께 적음.
 - 2026-11-23 운영 배포를 실행하는 쪽을 Turbrix 세션에서 Chromite 세션으로 바꿈(사용자 결정). "운영 배포를 실행하는 쪽"에 범위, 실행 전·뒤 확인, 멈추는 조건을 적음. 접속 값은 공개 저장소에 넣지 않고 `.local/deploy/`에 둠.
+- 2026-11-23 릴리스 하네스(`tools/release/release.ps1`, [release-harness.md](release-harness.md), 사용자 요청): "릴리스 순서"와 "운영 배포를 실행하는 쪽"은 하네스의 단계로 실행한다고, "리허설"에 하네스는 다른 호스트 방법을 쓰고 `rehearse.ps1`은 Docker가 있는 PC용으로 둔다고 적음.
