@@ -54,6 +54,29 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.6">
+    <h2>26.1.6</h2>
+    <div class="body">
+      <p>Query tabs can be dragged to a new position and moved into a window of their own. Cancel that did nothing and a frozen window are fixed, and ShardSphere TTL and stream objects can be managed from the screen.</p>
+      <ul>
+        <li>New · Document tab order: drag a tab to change the order. Pinned tabs move among the pinned tabs only</li>
+        <li>New · Separate query window: drag a query tab out of the tab strip, or use "Move to New Window" in the tab menu, to show it in a window of its own. The connection and an open transaction stay as they are. A separate window has its own tool bar, results and status line, and is listed in Compare and in the Window menu. "Move to Main Window" in the tool bar menu brings it back as a tab. After a restart, separate windows open as tabs</li>
+        <li>New Query: opens on the connection and database of the query tab you are looking at. Without a query tab it opens on the connection selected in Object Explorer, as before</li>
+        <li>Fix · Long values in the result grid: a long LOB cell, for example from a query that returns DDL, showed only [CLOB]. A value that was already read now shows its beginning, and a cell that does not show the whole value is a link that opens the full text</li>
+        <li>Fix · Cancel: an error window no longer appears after you press Cancel in a progress dialog (Oracle, MariaDB and MySQL included). A statement timeout or a cancel sent from another session is still shown as an error</li>
+        <li>Fix · Cancel that did nothing: a request such as View DDL could not be cancelled while the metadata connection was running another statement. Cancel now closes the progress dialog within about two seconds, and leaves the other statement and the query window's session alone</li>
+        <li>Fix · Frozen window: while the metadata connection was busy, Object Explorer read the database as it painted, which froze the whole window. A possible deadlock between Invalidate/Reconnect and a reader of the schema list on Oracle and PostgreSQL is fixed too</li>
+        <li>Fix · Oracle 23ai and later: View DDL always fell back to generated DDL instead of the server's DBMS_METADATA</li>
+        <li>Fix · Oracle View DDL: cancelling no longer opens an empty CREATE TABLE, and when a missing privilege prevents reading the DDL, the message names the privilege</li>
+        <li>Fix · Objects that take no rows: Import Data, generated INSERT, UPDATE and MERGE statements, and adding or editing rows in the grid are no longer offered on an object the server refuses them on</li>
+        <li>New · ShardSphere TTL: set, change and remove a table's TTL from Object Explorer, and give a new table its TTL in the table designer</li>
+        <li>New · ShardSphere streams: a schema shows its stream tables, continuous tables and continuous queries, and System Info shows stream functions. They can be enabled, disabled, configured and dropped, new ones start from a statement template, and stream and continuous table names are completed</li>
+        <li>New · ShardSphere · Altibase: create, configure and drop jobs, and create, compact and drop queues, from Object Explorer</li>
+        <li>Fix · ShardSphere · Altibase: View DDL of a job failed, and the table and index folders under a tablespace did not match its contents</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.5">
     <h2>26.1.5</h2>
     <div class="body">
