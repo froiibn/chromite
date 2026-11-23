@@ -156,12 +156,14 @@ import java.util.function.Supplier;
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
  *     ({@link SqlEditorToolBar}: 연결 변경, DB 콤보, 실행, 중지, 계획, 커밋·롤백·커밋 방식, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
- *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
- *     그 창의 DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
+ *     실행·중지·계획 단추는 Query 메뉴 동작의 막대마다의 사본이고({@link #createSqlEditorToolBar}), 그 켜짐은 {@link #updateQueryActions()}가
+ *     메뉴와 같은 규칙으로 그 막대 창의 쿼리 창(메인 창은 선택한 탭)에서 정한다. 선택한 탭이 바뀌면 그 창의 DB 콤보를 끼우고, 쿼리 창이 아니면
+ *     막대는 보인 채 모두 꺼진다.</li>
  *     <li>쿼리 창은 별도 창({@link QueryWindowFrame})으로 옮길 수 있다(앱 변경 #173). "활성 편집기" 규칙은 {@link #getActiveDocument} 한 곳이다:
- *     마지막으로 활성이 된 별도 창의 쿼리 창, 그 뒤에 메인 창이 활성이 되었으면 메인 창의 선택한 탭. Query 메뉴·도구 막대 동작, 그 켜짐, Find,
+ *     마지막으로 활성이 된 별도 창의 쿼리 창, 그 뒤에 메인 창이 활성이 되었으면 메인 창의 선택한 탭. Query 메뉴 동작과 단축키, 메뉴의 켜짐, Find,
  *     Outline, Link with Editor, Chromite Agent, Query Library, New Query의 연결이 이 규칙을 따른다. 결과 카드, 상태 표시줄, 메인 도구 막대의
- *     DB 콤보는 늘 메인 창의 선택한 탭의 것이다({@link #getTabEditor}). 별도 창은 탭 목록({@link #getEditors})에 들어가 끝내기·모두 저장·
+ *     DB 콤보와 켜짐은 늘 메인 창의 선택한 탭의 것이고({@link #getTabEditor}), 별도 창의 도구 막대는 그 창의 것이다(앱 변경 #175: 도구 막대 단추를
+ *     누르면 그 창의 쿼리 창을 먼저 활성 편집기로 한다). 별도 창은 탭 목록({@link #getEditors})에 들어가 끝내기·모두 저장·
  *     다시 시작 후 복원(탭으로 돌아옴)·연결 변경 알림이 함께 다루고, 닫기는 탭 닫기와 같은 {@link #closeQueryWindow}다. 열린 창 목록인 비교의
  *     고르기({@link TextCompareCommand})와 Window 메뉴도 탭 뒤에 별도 창을 넣는다({@link #getSeparateEditors}, 앱 변경 #176).</li>
  * </ul>
@@ -343,6 +345,9 @@ import java.util.function.Supplier;
  * - 2026-11-23 비교와 Window 메뉴에 별도 창의 쿼리 창: 비교 명령에 별도 창 목록({@link #getSeparateEditors})과 활성 문서를 알리고 별도 창을
  *   옮기거나 닫으면 켜짐을 다시 정함, Window 메뉴는 탭 뒤 구분선 다음에 별도 창을 이어 번호 매기고 고르면 그 창을 앞으로(편집기에 초점),
  *   표시는 선택한 탭 대신 활성 문서 (앱 변경 #176, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 SQL Editor 도구 막대마다 Query 동작의 사본({@link #createSqlEditorToolBar}): 켜짐·선택·도구 설명이 그 막대 창의 쿼리 창을
+ *   따르고(규칙은 {@link #updateQueryActions(SqlEditorToolBar.QueryActions, SqlEditorPanel)} 한 곳), 누르면 그 창의 쿼리 창을 먼저 활성 편집기로.
+ *   메뉴와 단축키는 활성 편집기 그대로 (앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -507,14 +512,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private final Action nativeScriptAction;
     /**
-     * Query &gt; Commit / Roll Back (also on the SQL Editor tool bar): enabled while the active query window shows an
-     * open transaction that no statement is running in.
+     * Query &gt; Commit / Roll Back (each SQL Editor tool bar has copies, {@link #createSqlEditorToolBar}): enabled while the
+     * active query window shows an open transaction that no statement is running in.
      */
     private final Action commitAction;
     private final Action rollbackAction;
     private final Action transactionLogAction;
     /**
-     * Query &gt; Auto-Commit and the SQL Editor tool bar's commit mode button: switches the active query window's session
+     * Query &gt; Auto-Commit (the SQL Editor tool bars' commit mode buttons are copies): switches the active query window's session
      * between auto-commit and manual commit; selected ({@link Action#SELECTED_KEY}) in auto-commit mode, enabled while
      * the window is connected and nothing of it runs ({@link SqlEditorPanel#canSwitchCommitMode}).
      */
@@ -526,6 +531,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action resultsBesideAction;
     private final Action maximizeResultsAction;
     private final SqlOutlinePanel outlinePanel;
+    /**
+     * The Query menu actions that the SQL Editor tool bars show, in the set {@link #updateQueryActions(SqlEditorToolBar.QueryActions,
+     * SqlEditorPanel)} updates: these for the active editor, each tool bar's copies for its own window.
+     */
+    private final SqlEditorToolBar.QueryActions queryActions;
     private final SqlEditorToolBar sqlEditorToolBar;
     private final TextCompareCommand textCompareCommand;
     private final EditMenu editMenu;
@@ -805,7 +815,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 if (editor != null) {
                     editor.setIncludeActualPlan(!editor.isIncludeActualPlan());
                 }
-                // The menu item and the tool bar button show the active window's state (updateQueryActions)
+                // The menu item shows the active window's state, each tool bar button its own window's (updateQueryActions)
                 updateQueryActions();
             });
         // Menu items and toggle buttons write their state back to the action only if it has one
@@ -901,7 +911,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         textCompareCommand = new TextCompareCommand(this, this, documentTabs, this::getSeparateEditors);
-        sqlEditorToolBar = createSqlEditorToolBar();
+        queryActions = new SqlEditorToolBar.QueryActions(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction,
+            actualPlanAction, commitAction, rollbackAction, commitModeAction);
+        // A click on the main window's tool bar acts on its selected tab's query window
+        sqlEditorToolBar = createSqlEditorToolBar(() -> setActiveQueryFrame(null));
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         // A tab that opens while a separate query window is active (New Query or Open File there, a statement opened from
@@ -1636,8 +1649,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } finally {
             movingQueryWindow = false;
         }
-        QueryWindowFrame frame = new QueryWindowFrame(editor, createSqlEditorToolBar(), this, queryWindowMenus, getRootPane(),
-            saveAction, saveAsAction);
+        QueryWindowFrame frame = new QueryWindowFrame(editor, createSqlEditorToolBar(() -> setActiveQueryFrame(getQueryFrame(editor))), this,
+            queryWindowMenus, getRootPane(), saveAction, saveAsAction);
         frame.place(drop, this, queryFrames.size(), editorSize, resultsSize);
         queryFrames.add(frame);
         textCompareCommand.update();
@@ -1716,12 +1729,38 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * A SQL Editor tool bar on the Query menu's actions: the main window's, and one per separate query window.
+     * A SQL Editor tool bar: the main window's, and one per separate query window (app change #175). Its Query buttons are
+     * its own copies of the Query menu actions, so that their enabled state, selection and tool tips are its window's
+     * query window's ({@link #updateToolBarState}) whichever window is active; with the menu's actions, a tool bar of a
+     * window that is not active showed the active window's state. A click first makes its window's query window the
+     * active editor, then runs the menu's action: it acts on that query window whether the window's activation event
+     * comes before or after the click, and the menu's action keeps the one place of what each command does.
+     *
+     * @param activate makes the tool bar's window the one whose query window is the active editor
      */
     @NotNull
-    private SqlEditorToolBar createSqlEditorToolBar() {
-        return new SqlEditorToolBar(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
-            commitAction, rollbackAction, commitModeAction, this::openQueryHistory, textCompareCommand.getAction());
+    private SqlEditorToolBar createSqlEditorToolBar(@NotNull Runnable activate) {
+        return new SqlEditorToolBar(queryActions.map(action -> createToolBarAction(action, activate)), this::openQueryHistory,
+            textCompareCommand.getAction());
+    }
+
+    /**
+     * A tool bar's copy of a Query menu action: the same name, description, shortcut (which the button's tool tip names; a
+     * button binds no key) and selection key, with its own state.
+     */
+    @NotNull
+    private static Action createToolBarAction(@NotNull Action menuAction, @NotNull Runnable activate) {
+        Action action = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                activate.run();
+                menuAction.actionPerformed(e);
+            }
+        };
+        for (String key : new String[]{Action.NAME, Action.SHORT_DESCRIPTION, Action.ACCELERATOR_KEY, Action.SELECTED_KEY}) {
+            action.putValue(key, menuAction.getValue(key));
+        }
+        return action;
     }
 
     @Override
@@ -2198,8 +2237,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * The active document, the one rule for what the commands, the Query menu, the tool bars' enabled state, Find,
-     * Outline, Link with Editor, the Chromite Agent and the Query Library act on (app change #173): the query window of
+     * The active document, the one rule for what the commands, the Query menu and its enabled state, Find, Outline, Link
+     * with Editor, the Chromite Agent and the Query Library act on (app change #173; the SQL Editor tool bars show their own
+     * window's query window, {@link #updateToolBarState}): the query window of
      * the separate window activated last, unless the main window was activated after it; then the main window's selected
      * tab. A dialog or a floating tool window being active changes nothing: the window the user worked in last stays.
      */
@@ -2321,43 +2361,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     private void updateQueryActions() {
         SqlEditorPanel editor = getActiveEditor();
-        // Also the SQL Editor tool bar's buttons
-        executeQueryAction.setEnabled(editor != null && editor.canExecute());
-        cancelQueryAction.setEnabled(editor != null && editor.canCancel());
-        statementRunActions.forEach(action -> action.setEnabled(editor != null && editor.canExecute()));
-        statementEditActions.forEach(action -> action.setEnabled(editor != null));
-        variablesAction.setEnabled(editor != null && !editor.isExecuting());
-        changeConnectionAction.setEnabled(editor != null && editor.canChangeConnection());
-        // The tool bar's first button says what it does: a window without a server chooses one
-        changeConnectionAction.putValue(Action.SHORT_DESCRIPTION, editor != null && editor.getDataSourceContainer() == null
-            ? EditorMessages.editor_sql_select_server : EditorMessages.editor_sql_change_connection);
-        completeAction.setEnabled(editor != null);
-        estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
-        // A server that gives no actual plans (they would need a second run of the statements) has the toggle off from the
-        // start, with the reason as its tool tip: its driver tells before connecting. A window without a server can turn it on
-        boolean actualPlanUnsupported = editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport());
-        actualPlanAction.setEnabled(editor != null && !actualPlanUnsupported);
-        actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && !actualPlanUnsupported && editor.isIncludeActualPlan());
-        actualPlanAction.putValue(Action.SHORT_DESCRIPTION,
-            actualPlanUnsupported ? EditorMessages.editor_sql_actual_plan_unsupported : CoreMessages.main_actual_plan_tip);
-        terminalAction.setEnabled(editor != null);
-        terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
-        // Ending the transaction needs it idle: a running statement or script of this window would be refused
-        QMTransactionState transaction = editor == null ? null : editor.getOpenTransaction();
-        boolean canEndTransaction = transaction != null && !transaction.isExecuting() && !editor.canCancel();
-        commitAction.setEnabled(canEndTransaction);
-        rollbackAction.setEnabled(canEndTransaction);
-        transactionLogAction.setEnabled(editor != null);
-        Boolean autoCommit = editor == null ? null : editor.getAutoCommit();
-        commitModeAction.setEnabled(editor != null && editor.canSwitchCommitMode());
-        commitModeAction.putValue(Action.SELECTED_KEY, Boolean.TRUE.equals(autoCommit));
-        commitModeAction.putValue(Action.SHORT_DESCRIPTION, CommitModeSwitch.describe(autoCommit, editor != null && editor.isSharedSession()));
-        // The actions' enabled state is the active editor's; each tool bar's words (commit mode, why Actual Plan is off) are
-        // its own window's, as its picker is
+        // The Query menu (and its shortcuts in every window) follows the active editor; each SQL Editor tool bar shows its
+        // own window's query window by the same rule, on its own copies of the actions
+        updateQueryActions(queryActions, editor);
         updateToolBarState(sqlEditorToolBar, getTabEditor());
         for (QueryWindowFrame frame : queryFrames) {
             updateToolBarState(frame.getToolBar(), frame.getEditor());
         }
+        statementRunActions.forEach(action -> action.setEnabled(editor != null && editor.canExecute()));
+        statementEditActions.forEach(action -> action.setEnabled(editor != null));
+        variablesAction.setEnabled(editor != null && !editor.isExecuting());
+        completeAction.setEnabled(editor != null);
+        terminalAction.setEnabled(editor != null);
+        terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
+        transactionLogAction.setEnabled(editor != null);
         pinResultsAction.setEnabled(editor != null);
         resultsBesideAction.putValue(Action.SELECTED_KEY, resultsSplit.isBeside());
         maximizeResultsAction.setEnabled(editor != null);
@@ -2374,9 +2391,44 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * A SQL Editor tool bar's own words for the query window it shows: its commit mode and why Actual Plan is off.
+     * What a query window allows of the Query actions that a SQL Editor tool bar shows: enabled, selected, and the tool
+     * tips that say what the action does or why it is off. The one rule for the Query menu's set (the active editor's)
+     * and each tool bar's copies (its own window's query window, {@link #updateToolBarState}).
+     *
+     * @param editor the query window, or null (no query window: everything off)
+     */
+    private static void updateQueryActions(@NotNull SqlEditorToolBar.QueryActions actions, @Nullable SqlEditorPanel editor) {
+        actions.execute().setEnabled(editor != null && editor.canExecute());
+        actions.cancel().setEnabled(editor != null && editor.canCancel());
+        actions.changeConnection().setEnabled(editor != null && editor.canChangeConnection());
+        // The tool bar's first button says what it does: a window without a server chooses one
+        actions.changeConnection().putValue(Action.SHORT_DESCRIPTION, editor != null && editor.getDataSourceContainer() == null
+            ? EditorMessages.editor_sql_select_server : EditorMessages.editor_sql_change_connection);
+        actions.estimatedPlan().setEnabled(editor != null && editor.canExplain());
+        // A server that gives no actual plans (they would need a second run of the statements) has the toggle off from the
+        // start, with the reason as its tool tip: its driver tells before connecting. A window without a server can turn it on
+        boolean actualPlanUnsupported = editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport());
+        actions.actualPlan().setEnabled(editor != null && !actualPlanUnsupported);
+        actions.actualPlan().putValue(Action.SELECTED_KEY, editor != null && !actualPlanUnsupported && editor.isIncludeActualPlan());
+        actions.actualPlan().putValue(Action.SHORT_DESCRIPTION,
+            actualPlanUnsupported ? EditorMessages.editor_sql_actual_plan_unsupported : CoreMessages.main_actual_plan_tip);
+        // Ending the transaction needs it idle: a running statement or script of this window would be refused
+        QMTransactionState transaction = editor == null ? null : editor.getOpenTransaction();
+        boolean canEndTransaction = transaction != null && !transaction.isExecuting() && !editor.canCancel();
+        actions.commit().setEnabled(canEndTransaction);
+        actions.rollback().setEnabled(canEndTransaction);
+        Boolean autoCommit = editor == null ? null : editor.getAutoCommit();
+        actions.commitMode().setEnabled(editor != null && editor.canSwitchCommitMode());
+        actions.commitMode().putValue(Action.SELECTED_KEY, Boolean.TRUE.equals(autoCommit));
+        actions.commitMode().putValue(Action.SHORT_DESCRIPTION, CommitModeSwitch.describe(autoCommit, editor != null && editor.isSharedSession()));
+    }
+
+    /**
+     * A SQL Editor tool bar shows the query window of its own window, whichever window is active: its Query buttons
+     * ({@link #updateQueryActions(SqlEditorToolBar.QueryActions, SqlEditorPanel)}), its commit mode and why Actual Plan is off.
      */
     private static void updateToolBarState(@NotNull SqlEditorToolBar toolBar, @Nullable SqlEditorPanel editor) {
+        updateQueryActions(toolBar.getQueryActions(), editor);
         toolBar.setActualPlanUnsupported(editor != null && Boolean.FALSE.equals(editor.getActualPlanSupport()));
         toolBar.setCommitMode(editor == null ? null : editor.getAutoCommit());
     }
