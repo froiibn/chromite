@@ -74,6 +74,9 @@ import java.util.Locale;
  *     <li>새 창으로 이동(앱 변경 #173): 쿼리 창만 메뉴 항목과 탭 줄 밖으로 끌어 놓기로 별도 창({@link QueryWindowFrame})으로 옮긴다. 그 창이
  *     편집기·결과·상태 칸·DB 콤보를 끼우고, 명령은 메인 창의 "활성 편집기" 규칙({@link MainFrame})으로 그 창에 적용된다. 다른 문서(DDL 탭, 도구
  *     문서, 테이블 디자이너)는 항목이 숨고 탭 줄 밖에 놓아도 아무 일이 없다.</li>
+ *     <li>별도 창의 탭 하나에도 이 메뉴를 쓴다({@link #showQueryWindowMenu}, 앱 변경 #178): 같은 항목·순서·문구에서 메인 창의 탭 묶음에 대한 것
+ *     (다른 탭 닫기, 닫은 탭 다시 열기, 고정, 탭 위치, 여러 행)을 빼고, 새 창으로 이동 자리에 주 창으로 이동, 저장 뒤에 다른 이름으로 저장(메뉴 막대가
+ *     없는 창에서 마우스로 가는 길)을 둔다. 한 메뉴가 두 곳을 맡아 항목이 갈라지지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -85,6 +88,8 @@ import java.util.Locale;
  *   {@link DocumentTabDrag}를 붙임(앱 변경 #171, docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-22 쿼리 창의 "새 창으로 이동" 항목과 탭 줄 밖에 놓기, 부동을 넣지 않은 이유 삭제(앱 변경 #173, docs/chromite/swing-frontend.md
  *   "쿼리 창을 별도 창으로")
+ * - 2026-11-23 별도 창의 탭 메뉴({@link #showQueryWindowMenu}), 탭 끌기를 메인 창이 받도록 {@link #getTabDrag} (별도 창을 주 창으로 끌어 넣기,
+ *   앱 변경 #178, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class DocumentTabMenu {
 
@@ -128,6 +133,23 @@ final class DocumentTabMenu {
          * @param drop screen point where its tab was dropped, or null
          */
         void moveToNewWindow(@NotNull SqlEditorPanel editor, @Nullable Point drop);
+
+        /**
+         * Moves a separate query window back into the document tabs (app change #173).
+         *
+         * @param index the place among the tabs, or -1 for after the last tab
+         */
+        void moveToMainWindow(@NotNull SqlEditorPanel editor, int index);
+
+        /**
+         * Closes a query window, in a tab or in a window of its own, through the questions of closing its tab.
+         *
+         * @return false if the user canceled
+         */
+        boolean closeQueryWindow(@NotNull SqlEditorPanel editor);
+
+        @NotNull
+        Action getSaveAsAction();
     }
 
     static final int MAX_CLOSED_WINDOWS = 10;
@@ -142,6 +164,7 @@ final class DocumentTabMenu {
     private final Host host;
     private final Deque<QueryWindowRecovery.Window> closedWindows = new ArrayDeque<>();
     private final Action reopenAction;
+    private final DocumentTabDrag tabDrag;
 
     DocumentTabMenu(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull Host host) {
         this.tabs = tabs;
@@ -175,11 +198,19 @@ final class DocumentTabMenu {
         tabs.setTabPlacement(toPlacement(preferences.getString(PREF_PLACEMENT)));
         tabs.setTabLayoutPolicy(preferences.getBoolean(PREF_MULTIPLE_ROWS) ? JTabbedPane.WRAP_TAB_LAYOUT : JTabbedPane.SCROLL_TAB_LAYOUT);
         // A query window's tab dropped off the tab strip goes into a window of its own; other documents stay
-        DocumentTabDrag.install(tabs, (document, drop) -> {
+        tabDrag = DocumentTabDrag.install(tabs, (document, drop) -> {
             if (document instanceof SqlEditorPanel editor) {
                 host.moveToNewWindow(editor, drop);
             }
         });
+    }
+
+    /**
+     * The tab strip's dragging, which also shows where a separate query window's tab dragged here lands.
+     */
+    @NotNull
+    DocumentTabDrag getTabDrag() {
+        return tabDrag;
     }
 
     /**
@@ -244,41 +275,10 @@ final class DocumentTabMenu {
         Component document = index >= 0 ? tabs.getComponentAt(index) : null;
         JPopupMenu menu = new JPopupMenu();
         if (document != null) {
-            SqlEditorPanel editor = document instanceof SqlEditorPanel queryWindow ? queryWindow : null;
-            Path file = editor != null ? editor.getFile() : null;
-            // Query window commands apply to query windows only; a window not saved yet has no file to copy or show (now)
-            boolean queryWindow = editor != null;
-            JMenuItem saveItem = addItem(menu, DocumentTabMessages.tab_save, queryWindow, true, () -> host.saveQueryWindow(editor));
-            saveItem.setAccelerator((KeyStroke) host.getSaveAction().getValue(Action.ACCELERATOR_KEY));
-            addItem(menu, DocumentTabMessages.tab_rename, queryWindow, true, () -> rename(editor));
-            menu.addSeparator();
-            // The query window's one way to another server; it comes to the front first, so its tool bar shows what changes
-            addItem(menu, EditorMessages.editor_sql_change_connection, queryWindow, queryWindow && editor.canChangeConnection(), () -> {
-                tabs.setSelectedComponent(editor);
-                editor.changeConnection();
-            });
-            menu.addSeparator();
-            addItem(menu, DocumentTabMessages.tab_close, true, true, () -> host.closeDocument(document));
-            addItem(menu, DocumentTabMessages.tab_close_all, true, hasUnpinned(null), () -> closeUnpinned(null));
-            addItem(menu, DocumentTabMessages.tab_close_others, true, hasUnpinned(document), () -> closeUnpinned(document));
-            menu.addSeparator();
-            menu.add(new JMenuItem(reopenAction));
-            menu.addSeparator();
-            addItem(menu, DocumentTabMessages.tab_copy_path, queryWindow, file != null, () -> copyPath(file));
-            // The desktop's file manager is a kind of platform, not a state
-            addItem(menu, DocumentTabMessages.tab_open_folder, queryWindow && Desktop.isDesktopSupported()
-                && Desktop.getDesktop().isSupported(Desktop.Action.OPEN), file != null, () -> openFolder(file));
-            menu.addSeparator();
-            boolean pinned = isPinned(document);
-            addItem(menu, pinned ? DocumentTabMessages.tab_unpin : DocumentTabMessages.tab_pin, true, true, () -> setPinned(document, !pinned));
+            addDocumentItems(menu, document, false);
         } else {
             menu.add(new JMenuItem(reopenAction));
-        }
-        menu.addSeparator();
-        if (document != null) {
-            // With the tab arrangement items; query windows only (the other documents follow the main window's tab)
-            addItem(menu, DocumentTabMessages.tab_move_to_window, document instanceof SqlEditorPanel, true,
-                () -> host.moveToNewWindow((SqlEditorPanel) document, null));
+            menu.addSeparator();
         }
         JMenu positionMenu = new JMenu(DocumentTabMessages.tab_position);
         addPositionItem(positionMenu, DocumentTabMessages.tab_position_top, SwingConstants.TOP);
@@ -292,6 +292,75 @@ final class DocumentTabMenu {
         // Only the items that apply to the tab, and no separator at either end or twice in a row
         ContextMenus.tidy(menu);
         menu.show(tabs, e.getX(), e.getY());
+    }
+
+    /**
+     * The menu of a separate query window's one tab (app change #178): this menu's items that apply to a window with one
+     * tab, in the same order, with Move to Main Window in the place of Move to New Window, and Save As, the window's one
+     * way to it with the mouse (it has no menu bar). The items about the main window's tabs are left out: closing other
+     * tabs, Reopen Closed Tab (it opens a tab there), pinning, tab position and rows.
+     */
+    void showQueryWindowMenu(@NotNull SqlEditorPanel editor, @NotNull Component invoker, int x, int y) {
+        JPopupMenu menu = new JPopupMenu();
+        addDocumentItems(menu, editor, true);
+        ContextMenus.tidy(menu);
+        menu.show(invoker, x, y);
+    }
+
+    /**
+     * The items of a document's tab, before the tab arrangement items; separators are tidied by the caller.
+     *
+     * @param separate the query window is in a window of its own
+     */
+    private void addDocumentItems(@NotNull JPopupMenu menu, @NotNull Component document, boolean separate) {
+        SqlEditorPanel editor = document instanceof SqlEditorPanel queryWindow ? queryWindow : null;
+        Path file = editor != null ? editor.getFile() : null;
+        // Query window commands apply to query windows only; a window not saved yet has no file to copy or show (now)
+        boolean queryWindow = editor != null;
+        JMenuItem saveItem = addItem(menu, DocumentTabMessages.tab_save, queryWindow, true, () -> host.saveQueryWindow(editor));
+        saveItem.setAccelerator((KeyStroke) host.getSaveAction().getValue(Action.ACCELERATOR_KEY));
+        if (separate) {
+            // File > Save As acts on the active editor: the separate window is active once its tab was clicked
+            menu.add(new JMenuItem(host.getSaveAsAction()));
+        }
+        addItem(menu, DocumentTabMessages.tab_rename, queryWindow, true, () -> rename(editor));
+        menu.addSeparator();
+        // The query window's one way to another server; it comes to the front first, so its tool bar shows what changes
+        addItem(menu, EditorMessages.editor_sql_change_connection, queryWindow, queryWindow && editor.canChangeConnection(), () -> {
+            if (!separate) {
+                tabs.setSelectedComponent(editor);
+            }
+            editor.changeConnection();
+        });
+        menu.addSeparator();
+        addItem(menu, DocumentTabMessages.tab_close, true, true, () -> {
+            if (separate) {
+                host.closeQueryWindow(editor);
+            } else {
+                host.closeDocument(document);
+            }
+        });
+        addItem(menu, DocumentTabMessages.tab_close_all, !separate, hasUnpinned(null), () -> closeUnpinned(null));
+        addItem(menu, DocumentTabMessages.tab_close_others, !separate, hasUnpinned(document), () -> closeUnpinned(document));
+        menu.addSeparator();
+        if (!separate) {
+            menu.add(new JMenuItem(reopenAction));
+        }
+        menu.addSeparator();
+        addItem(menu, DocumentTabMessages.tab_copy_path, queryWindow, file != null, () -> copyPath(file));
+        // The desktop's file manager is a kind of platform, not a state
+        addItem(menu, DocumentTabMessages.tab_open_folder, queryWindow && Desktop.isDesktopSupported()
+            && Desktop.getDesktop().isSupported(Desktop.Action.OPEN), file != null, () -> openFolder(file));
+        menu.addSeparator();
+        boolean pinned = isPinned(document);
+        addItem(menu, pinned ? DocumentTabMessages.tab_unpin : DocumentTabMessages.tab_pin, !separate, true, () -> setPinned(document, !pinned));
+        menu.addSeparator();
+        if (separate) {
+            addItem(menu, DocumentTabMessages.tab_move_to_main, true, true, () -> host.moveToMainWindow(editor, -1));
+        } else {
+            // With the tab arrangement items; query windows only (the other documents follow the main window's tab)
+            addItem(menu, DocumentTabMessages.tab_move_to_window, queryWindow, true, () -> host.moveToNewWindow(editor, null));
+        }
     }
 
     /**
@@ -370,7 +439,8 @@ final class DocumentTabMenu {
         int dot = fileName.lastIndexOf('.');
         String extension = dot > 0 ? fileName.substring(dot) : ""; //$NON-NLS-1$
         String current = fileName.substring(0, fileName.length() - extension.length());
-        Object input = JOptionPane.showInputDialog(SwingUtilities.getWindowAncestor(tabs), NLS.bind(DocumentTabMessages.tab_rename_prompt, fileName),
+        // Over the window the query window is in (a separate one, app change #178)
+        Object input = JOptionPane.showInputDialog(SwingUtilities.getWindowAncestor(editor), NLS.bind(DocumentTabMessages.tab_rename_prompt, fileName),
             DocumentTabMessages.tab_rename_title, JOptionPane.PLAIN_MESSAGE, null, null, current);
         String name = input != null ? input.toString().strip() : ""; //$NON-NLS-1$
         if (name.isEmpty()) {

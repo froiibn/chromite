@@ -47,11 +47,15 @@ import java.util.function.BiConsumer;
  *     그 사이 띠는 아무것도 하지 않아, 순서를 바꾸려다 조금 벗어나 놓은 것이 창을 열지 않는다.</li>
  *     <li>옮기기는 {@link MainFrame.EditorTabbedPane#moveTab} 하나로 한다(탭 고정과 같은 경로). 탭의 모든 것이 따라가고, 선택 이벤트는
  *     옮긴 뒤 한 번만 나며, 다시 시작 후 복원({@link QueryWindowRecovery})은 탭 순서대로 쓰므로 끈 순서가 저장된다.</li>
+ *     <li>별도 창의 탭을 이 탭 줄로 끌어 오는 것(앱 변경 #178, {@link #dragFromOutside})도 같은 띠, 같은 놓을 자리 계산, 같은 선과 탭 줄 넘기기를
+ *     쓴다. 끌기는 그 창이 받고 메인 창이 포인터를 넘겨 준다. 바깥 탭은 고정하지 않은 탭이라 고정 탭 뒤 어디든, 마지막 탭 뒤에도 놓인다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-22 최초 작성(앱 변경 #171) (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-22 탭 줄에서 멀리 놓은 탭을 알림(쿼리 창을 별도 창으로, 앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 다른 창의 탭을 끌어 오는 자리와 선({@link #dragFromOutside}, 별도 창을 주 창으로 끌어 넣기, 앱 변경 #178)
+ *   (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class DocumentTabDrag extends MouseAdapter {
 
@@ -69,6 +73,8 @@ final class DocumentTabDrag extends MouseAdapter {
     @Nullable
     private Point lastPoint;
     private boolean dragging;
+    // The dragged tab is another window's (dragFromOutside): it lands at dropIndex as a new tab
+    private boolean outside;
     private int dropIndex = -1;
     // Pixels per timer tick along the tab run while the pointer is at an end of the scrolling tab row
     private int scrollStep;
@@ -82,10 +88,34 @@ final class DocumentTabDrag extends MouseAdapter {
     /**
      * @param droppedOff called with the document and the screen point when a tab is dropped well off the tab strip
      */
-    static void install(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull BiConsumer<Component, Point> droppedOff) {
+    @NotNull
+    static DocumentTabDrag install(@NotNull MainFrame.EditorTabbedPane tabs, @NotNull BiConsumer<Component, Point> droppedOff) {
         DocumentTabDrag drag = new DocumentTabDrag(tabs, droppedOff);
         tabs.addMouseListener(drag);
         tabs.addMouseMotionListener(drag);
+        return drag;
+    }
+
+    /**
+     * A tab of another window dragged over this tab strip (a separate query window's, app change #178): shows the line
+     * where it lands, as for a tab of this strip, and scrolls the one-row strip at its ends.
+     *
+     * @param point the pointer in the tab pane's coordinates, or null when the drag is not over this window (or ended)
+     * @return the index the tab gets as a new tab here, or -1 outside the tab strip
+     */
+    int dragFromOutside(@Nullable Point point) {
+        if (point == null) {
+            if (outside) {
+                reset();
+            }
+            return -1;
+        }
+        if (!outside) {
+            reset();
+            outside = true;
+        }
+        update(point);
+        return dropIndex;
     }
 
     @Override
@@ -143,6 +173,7 @@ final class DocumentTabDrag extends MouseAdapter {
         pressedPoint = null;
         lastPoint = null;
         dragging = false;
+        outside = false;
         dropIndex = -1;
         scrollStep = 0;
         scrollTimer.stop();
@@ -152,7 +183,7 @@ final class DocumentTabDrag extends MouseAdapter {
     private void update(@NotNull Point point) {
         lastPoint = point;
         int from = dragged != null ? tabs.indexOfComponent(dragged) : -1;
-        if (from < 0) {
+        if (from < 0 && !outside) {
             // Closed while dragged
             reset();
             return;
@@ -164,7 +195,8 @@ final class DocumentTabDrag extends MouseAdapter {
 
     /**
      * The index the dragged tab gets when dropped at the point, within its group (pinned or not), or -1 outside the
-     * tab strip.
+     * tab strip. A tab from outside ({@code from} -1) is an unpinned tab inserted there: after the pinned tabs, up to
+     * after the last tab.
      */
     private int findDropIndex(@NotNull Point point, int from) {
         Rectangle strip = getStrip();
@@ -196,7 +228,7 @@ final class DocumentTabDrag extends MouseAdapter {
             after = tabs.getComponentOrientation().isLeftToRight() ? point.x >= bounds.getCenterX() : point.x < bounds.getCenterX();
         }
         int insert = after ? nearest + 1 : nearest;
-        int to = insert > from ? insert - 1 : insert;
+        int to = from >= 0 && insert > from ? insert - 1 : insert;
         // Pinned tabs stay together at the start: each group keeps to its own range
         int pinned = 0;
         for (int i = 0; i < tabs.getTabCount(); i++) {
@@ -204,25 +236,27 @@ final class DocumentTabDrag extends MouseAdapter {
                 pinned++;
             }
         }
-        boolean draggedPinned = DocumentTabMenu.isPinned(tabs.getComponentAt(from));
+        boolean draggedPinned = from >= 0 && DocumentTabMenu.isPinned(tabs.getComponentAt(from));
         int first = draggedPinned ? 0 : pinned;
-        int last = draggedPinned ? pinned - 1 : tabs.getTabCount() - 1;
+        int last = draggedPinned ? pinned - 1 : from >= 0 ? tabs.getTabCount() - 1 : tabs.getTabCount();
         return Math.clamp(to, first, last);
     }
 
     /**
      * A 2px line at the edge where the tab lands: before the tab now at {@code to} when it moves toward the start,
-     * after it when it moves toward the end. Null when that edge is scrolled out of sight.
+     * after it when it moves toward the end. A tab from outside ({@code from} -1) lands before the tab now at {@code to},
+     * or after the last tab. Null when that edge is scrolled out of sight.
      */
     @Nullable
     private Rectangle getIndicator(int from, int to) {
-        Rectangle bounds = tabs.getBoundsAt(to);
+        int last = tabs.getTabCount() - 1;
+        Rectangle bounds = tabs.getBoundsAt(from < 0 ? Math.min(to, last) : to);
         if (bounds == null) {
             return null;
         }
         int thickness = UIScale.scale(2);
         int inset = UiSizes.get(UiSizes.DOCUMENT_TAB_PILL_INSET);
-        boolean trailing = to > from;
+        boolean trailing = from < 0 ? to > last : to > from;
         // Inside the tab at that edge, so that the first and the last tab show it whole
         Rectangle line;
         if (isVertical()) {
