@@ -41,8 +41,8 @@ import java.util.Set;
  *     <li>새 쿼리 창을 만들지 않고 탭에 있던 {@link SqlEditorPanel} 객체를 그대로 옮겨 온다. 편집기, 그 결과 탭 줄({@link QueryResultsView}),
  *     상태 칸({@link QueryStatusLine}), DB 콤보는 원래 쿼리 창마다의 컴포넌트라 메인 창이 활성 탭의 것을 끼워 보여 주던 것을 이 창이 늘 끼워 둔다.
  *     그래서 옮겨도 세션, 실행 중인 쿼리, 결과, 트랜잭션, 고침 상태가 같은 객체로 남고 다시 연결하거나 문장을 보내지 않는다.</li>
- *     <li>배치는 메인 창의 쿼리 창 부분과 같다: 위에 SQL Editor 도구 막대({@link SqlEditorToolBar}, 메인 창과 같은 Query 메뉴 동작을 쓰는 둘째
- *     인스턴스, DB 콤보는 이 창 편집기의 것), 가운데 편집기 카드와 그 아래 결과 카드(분할선), 아래 상태 표시줄(연결 색 띠). Islands 캔버스·카드
+ *     <li>배치는 메인 창의 쿼리 창 부분과 같다: 위에 SQL Editor 도구 막대({@link SqlEditorToolBar}, Query 메뉴 동작의 이 창만의 사본을 쓰는 둘째
+ *     인스턴스라 켜짐·선택·도구 설명과 DB 콤보는 이 창 편집기의 것이고, 누르면 이 창의 쿼리 창에 적용된다), 가운데 편집기 카드와 그 아래 결과 카드(분할선), 아래 상태 표시줄(연결 색 띠). Islands 캔버스·카드
  *     모양도 메인 창과 같다. 도구 막대 오른쪽 끝의 ⋮ 단추(도구 창 머리말의 옵션 단추와 같은 모양)가 탭 메뉴 자리다: 저장, 다른 이름으로 저장,
  *     주 창으로 이동, 닫기. 저장 두 항목은 File 메뉴의 동작이라 활성 편집기, 곧 이 창의 쿼리 창에 적용된다.</li>
  *     <li>단축키: 메뉴 막대는 메인 창에만 있으므로, 메인 창의 File·Edit·Query·Window 메뉴 항목의 단축키를 이 창의 루트 창에 같은 항목으로 건다
@@ -65,6 +65,8 @@ import java.util.Set;
  * - 2026-11-22 최초 작성(앱 변경 #173) (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  * - 2026-11-22 크기를 메인 창의 60%(편집기 60%) 대신 메인 창에서의 편집기 영역과 Results 카드 크기로, 최소 줄·행 수는 컴포넌트의 줄·행 높이로,
  *   화면 작업 영역의 2/3 이하로, 화면 고르기를 {@link #fitToScreen}과 함께 쓰는 getUsableArea로 (앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 주석만: 도구 막대가 Query 메뉴 동작 대신 이 창만의 사본을 써서 이 창의 쿼리 창 상태를 보임({@code MainFrame#createSqlEditorToolBar},
+ *   앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class QueryWindowFrame extends JFrame {
 
@@ -123,7 +125,7 @@ final class QueryWindowFrame extends JFrame {
     private int resultsCardHeight;
 
     /**
-     * @param toolBar      a SQL Editor tool bar of its own, with the main window's Query actions
+     * @param toolBar      a SQL Editor tool bar of its own, with its own copies of the main window's Query actions
      * @param menus        the main window's menus whose shortcuts work in this window too
      * @param mainRootPane the main window's root pane, whose extra keys of those actions are bound too
      * @param saveAction   File &gt; Save, for the window's menu

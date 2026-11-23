@@ -30,9 +30,10 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 /**
- * 메인 창 둘째 줄의 SQL Editor 도구 막대(SSMS): 활성 쿼리 창에 적용한다.
+ * SQL Editor 도구 막대(SSMS): 메인 창 둘째 줄의 것은 선택한 탭의 쿼리 창에, 별도 창({@link QueryWindowFrame})의 것은 그 창의 쿼리 창에 적용한다.
  * [연결 변경] │ [DB/스키마 ▾] │ [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [Commit] [Roll Back] [● 커밋 방식] │ [Comment] [Uncomment] │
  * [Decrease Indent] [Increase Indent] │ [Format SQL] [Compare] │ [Query History].
  *
@@ -40,28 +41,30 @@ import java.util.List;
  * <ul>
  *     <li>사용자 결정(2026-11-07): SSMS처럼 메인 창 위에 도구 막대 두 줄(Standard, SQL Editor)을 두고 쿼리 창마다의 도구 막대를 없앤다.
  *     편집기 영역이 한 줄 높아지고, 단추가 늘 같은 자리에 있다.</li>
- *     <li>실행·중지·예상 계획·실제 계획 단추는 메인 창 Query 메뉴와 같은 {@link Action}을 쓴다. 그래서 켜짐과 단축키(F5, Alt+Break, Ctrl+L,
- *     Ctrl+M)가 메뉴와 같고, 켜짐은 메인 창이 활성 쿼리 창({@link SqlEditorPanel#canExecute()} 등)으로 정한다. 아이콘 단추의 도구 설명은
+ *     <li>연결 변경·실행·중지·예상 계획·실제 계획·커밋·롤백·커밋 방식 단추는 메인 창 Query 메뉴 동작의 이 막대만의 사본({@link QueryActions})을 쓴다
+ *     (앱 변경 #175). 이름·도구 설명·단축키 글자(F5, Alt+Break, Ctrl+L, Ctrl+M)는 메뉴와 같고, 누르면 메뉴의 동작이 이 막대 창의 쿼리 창에 적용된다.
+ *     켜짐·선택·도구 설명은 메인 창이 메뉴와 같은 한 규칙으로 이 막대 창의 쿼리 창({@link SqlEditorPanel#canExecute()} 등)에서 정한다. 메뉴와
+ *     같은 객체를 쓰던 때는 모든 막대가 활성 창의 상태를 보였다(활성이 아닌 창에서 실행 중이 아닌데 중지가 켜짐). 아이콘 단추의 도구 설명은
  *     메뉴 항목의 이름과 단축키다(앱 변경 #103). 글자 단추(Execute, Actual Plan)는 쿼리 창 도구 막대에 있던 설명이다.
  *     실제 계획은 메뉴의 확인 표시와 같은 동작의 선택 상태({@link Action#SELECTED_KEY})다.</li>
- *     <li>Commit / Roll Back 단추도 Query 메뉴와 같은 동작이다(SWT 메인 도구 막대의 커밋·롤백 단추). 활성 쿼리 창에 열린 트랜잭션이 있을 때만 켜진다.</li>
+ *     <li>Commit / Roll Back 단추는 SWT 메인 도구 막대의 커밋·롤백 단추다. 이 막대 창의 쿼리 창에 열린 트랜잭션이 있을 때만 켜진다.</li>
  *     <li>커밋 방식 단추(B-S18, SWT 도구 막대의 자동 커밋 토글)는 Query &gt; Auto-Commit과 같은 동작이다. 지금 방식을 상태 줄과 같은 점(자동 커밋 초록,
  *     수동 커밋 빨강)과 글자로 보이고, 누르면 다른 방식으로 바꾼다({@link CommitModeSwitch}). Swing 아이콘 팩에 트랜잭션 방식 아이콘이 없어
  *     상태 줄의 점을 쓴다. 글자가 지금 방식을 말하므로 눌림 상태(토글 단추)는 쓰지 않는다.</li>
  *     <li>DB 콤보는 쿼리 창의 것이다({@link SqlEditorPanel#getSchemaCombo()}): 모델·리스너·켜짐이 창마다의 상태라 하나를 두고 바꿔 끼우는 대신,
- *     활성 창의 것을 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면 DB가 따라온다. 쿼리 창이 없으면 같은 폭의
+ *     이 막대가 보이는 쿼리 창의 것을 이 막대의 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식). 그래서 탭을 바꾸면 DB가 따라온다. 쿼리 창이 없으면 같은 폭의
  *     빈 콤보(꺼짐)를 끼워 막대가 움직이지 않게 한다. 끼울 때는 빼낸 것의 위치(index)에 넣으므로 막대 안 순서와 상관없다.</li>
  *     <li>맨 앞은 연결 변경 단추다(앱 변경 #74, 사용자 결정 2026-11-12: "연결되어있는 서버는 보여줄 필요 없다. 연결 변경부터 가장 좌측으로 땡겨서
  *     아이콘 리스트가 시작되게 한다"). 도구 막대는 연결된 서버를 보이지 않는다(서버는 문서 탭, 상태 표시줄의 서버 칸과 연결 색 띠가 보인다).
- *     단추는 Query &gt; Change Connection…과 같은 동작이라 켜짐(실행·계획 중, 쿼리 창이 없을 때 꺼짐)과 도구 설명이 메뉴와 같고, 이 막대의 첫
+ *     단추는 Query &gt; Change Connection…의 사본이라 켜짐(실행·계획 중, 쿼리 창이 없을 때 꺼짐)과 도구 설명이 메뉴와 같은 규칙이고, 이 막대의 첫
  *     컴포넌트로 늘 같은 자리에 있어 DB 콤보와 뒤 단추들이 창마다 움직이지 않는다. 서버가 없는 창에서는 같은 단추가 서버를 고르고 도구 설명이
  *     "서버 선택"이 된다(메인 창이 동작의 설명을 바꾸면 접근성 이름도 따른다). 창의 서버는 이 명령으로만 바뀐다(앱 변경 #69·#73).</li>
  *     <li>DB 콤보가 연결 변경 단추 바로 뒤다(사용자 결정 2026-11-08): 무엇에 실행할지(DB/스키마)를 본 뒤 실행한다. 좁은 창에서는 콤보가 먼저 줄고
  *     넘치는 단추는 뒤쪽(Query History)부터 메뉴로 가므로 실행 단추는 콤보가 최소 폭이 되어도 남는다. 연결 변경 단추는 포커스를 받지 않으므로
  *     키보드 Tab은 DB/스키마 콤보부터다.</li>
- *     <li>편집 명령(주석, 들여쓰기, 서식)과 Query History는 이 막대의 동작이고, 활성 쿼리 창이 없으면 꺼진다. 편집 명령은
+ *     <li>편집 명령(주석, 들여쓰기, 서식)과 Query History는 이 막대의 동작이고, 이 막대의 쿼리 창이 없으면 꺼진다. 편집 명령은
  *     Edit &gt; Advanced와 같은 명령({@link SqlEditorPanel.SqlTextArea#runCommand})이다.</li>
- *     <li>활성 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS). 비교 단추만은 활성 창이 아니라 열린 창 수를
+ *     <li>이 막대의 문서가 쿼리 창이 아니거나 문서가 없어도 막대는 보이고 모든 컨트롤이 꺼진다(SSMS). 비교 단추만은 쿼리 창이 아니라 열린 창 수를
  *     따른다(글이 있는 창이 둘 이상이면 켜짐, DDL 탭끼리도 비교한다).</li>
  *     <li>모양은 주 도구 막대와 같다(캔버스 위, 투명, {@link OverflowToolBar}로 좁은 창에서 콤보를 먼저 줄이고 넘치는 단추는 » 메뉴).
  *     여백은 28px 콤보가 들어가는 {@code size.toolbar.editor}라 주 도구 막대({@code size.toolbar.main})와 같은 높이(밀도 B 32)다.</li>
@@ -86,6 +89,8 @@ import java.util.List;
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 Query 메뉴·Edit &gt; Advanced의 이름과 단축키로(같은 메시지 키, 앱 변경 #103)
  *   (docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-12 Format SQL 옆에 비교 단추(열린 두 창의 글 비교, {@link TextCompareCommand}, 앱 변경 #105) (docs/chromite/text-compare.md)
+ * - 2026-11-23 Query 단추가 메뉴 동작 대신 이 막대만의 사본({@link QueryActions})을 써서 켜짐·선택·도구 설명이 이 막대 창의 쿼리 창을 따름
+ *   (앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class SqlEditorToolBar {
 
@@ -102,49 +107,68 @@ final class SqlEditorToolBar {
     private SqlEditorPanel editor;
 
     /**
-     * @param changeConnectionAction Query &gt; Change Connection…
-     * @param executeAction       Query &gt; Execute
-     * @param cancelAction        Query &gt; Cancel Executing Query
-     * @param estimatedPlanAction Query &gt; Display Estimated Execution Plan
-     * @param actualPlanAction    Query &gt; Include Actual Execution Plan (with {@link Action#SELECTED_KEY})
-     * @param commitAction        Query &gt; Commit
-     * @param rollbackAction      Query &gt; Roll Back
-     * @param commitModeAction    Query &gt; Auto-Commit (with {@link Action#SELECTED_KEY})
-     * @param openQueryHistory    Query &gt; Query History
-     * @param compareAction       Query &gt; Compare… (two open windows, {@link TextCompareCommand})
+     * The Query menu actions a tool bar shows, as that tool bar's own copies (app change #175): each tool bar's enabled
+     * state, selection and tool tips are its own window's ({@code MainFrame#updateQueryActions}).
+     *
+     * @param changeConnection Query &gt; Change Connection…
+     * @param execute          Query &gt; Execute
+     * @param cancel           Query &gt; Cancel Executing Query
+     * @param estimatedPlan    Query &gt; Display Estimated Execution Plan
+     * @param actualPlan       Query &gt; Include Actual Execution Plan (with {@link Action#SELECTED_KEY})
+     * @param commit           Query &gt; Commit
+     * @param rollback         Query &gt; Roll Back
+     * @param commitMode       Query &gt; Auto-Commit (with {@link Action#SELECTED_KEY})
      */
-    SqlEditorToolBar(
-        @NotNull Action changeConnectionAction,
-        @NotNull Action executeAction,
-        @NotNull Action cancelAction,
-        @NotNull Action estimatedPlanAction,
-        @NotNull Action actualPlanAction,
-        @NotNull Action commitAction,
-        @NotNull Action rollbackAction,
-        @NotNull Action commitModeAction,
-        @NotNull Runnable openQueryHistory,
-        @NotNull Action compareAction
+    record QueryActions(
+        @NotNull Action changeConnection,
+        @NotNull Action execute,
+        @NotNull Action cancel,
+        @NotNull Action estimatedPlan,
+        @NotNull Action actualPlan,
+        @NotNull Action commit,
+        @NotNull Action rollback,
+        @NotNull Action commitMode
     ) {
+        /**
+         * The same set with every action replaced by what the function gives for it.
+         */
+        @NotNull
+        QueryActions map(@NotNull UnaryOperator<Action> function) {
+            return new QueryActions(function.apply(changeConnection), function.apply(execute), function.apply(cancel),
+                function.apply(estimatedPlan), function.apply(actualPlan), function.apply(commit), function.apply(rollback),
+                function.apply(commitMode));
+        }
+    }
+
+    private final QueryActions queryActions;
+
+    /**
+     * @param queryActions     this tool bar's own copies of the Query menu actions
+     * @param openQueryHistory Query &gt; Query History
+     * @param compareAction    Query &gt; Compare… (two open windows, {@link TextCompareCommand})
+     */
+    SqlEditorToolBar(@NotNull QueryActions queryActions, @NotNull Runnable openQueryHistory, @NotNull Action compareAction) {
+        this.queryActions = queryActions;
         // On the Islands canvas like the standard tool bar; size.toolbar.editor fits the size.control 28 combos
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
         // First, in a place that never moves (app change #74). No icon of its own in the packs: the server icon
-        toolBar.add(createChangeConnectionButton(changeConnectionAction));
+        toolBar.add(createChangeConnectionButton(queryActions.changeConnection()));
         toolBar.addSeparator();
         // The picker next (user decision 2026-11-08): what the run applies to, then the run
         toolBar.add(schemaCombo);
         toolBar.addSeparator();
-        toolBar.add(createButton(UiIcons.createToolButton(executeAction, "run"), EditorMessages.editor_sql_execute_tip)); //$NON-NLS-1$
+        toolBar.add(createButton(UiIcons.createToolButton(queryActions.execute(), "run"), EditorMessages.editor_sql_execute_tip)); //$NON-NLS-1$
         // The icon buttons' tool tips are the Query menu names with the shortcut (UiIcons.createActionButton)
-        toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(queryActions.cancel(), "stop")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(estimatedPlanAction, "plan")); //$NON-NLS-1$
-        actualPlanButton = createActualPlanButton(actualPlanAction);
+        toolBar.add(UiIcons.createActionButton(queryActions.estimatedPlan(), "plan")); //$NON-NLS-1$
+        actualPlanButton = createActualPlanButton(queryActions.actualPlan());
         toolBar.add(actualPlanButton);
         toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(commitAction, "commit")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(rollbackAction, "rollback")); //$NON-NLS-1$
-        commitModeButton = createCommitModeButton(commitModeAction);
+        toolBar.add(UiIcons.createActionButton(queryActions.commit(), "commit")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(queryActions.rollback(), "rollback")); //$NON-NLS-1$
+        commitModeButton = createCommitModeButton(queryActions.commitMode());
         toolBar.add(commitModeButton);
         toolBar.addSeparator();
         // The Edit > Advanced names; the editor's two-key chords (SqlEditorPanel.SqlTextArea) and Tab keys are not accelerators
@@ -177,8 +201,16 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * The Actual Plan button's tool tip: its shortcut, or why it is off on the active query window's connection. Called after
-     * the action's description changed, which the button also takes.
+     * This tool bar's copies of the Query menu actions, whose state follows this tool bar's query window.
+     */
+    @NotNull
+    QueryActions getQueryActions() {
+        return queryActions;
+    }
+
+    /**
+     * The Actual Plan button's tool tip: its shortcut, or why it is off on this tool bar's query window's connection.
+     * Called after the action's description changed, which the button also takes.
      */
     void setActualPlanUnsupported(boolean unsupported) {
         actualPlanButton.setToolTipText(unsupported ? EditorMessages.editor_sql_actual_plan_unsupported
@@ -186,8 +218,9 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * The active document changed: puts that query window's picker into the tool bar, or the empty one when the active
-     * document is not a query window. Change Connection, Execute, Stop and the plan buttons follow the Query menu actions.
+     * The query window this tool bar shows changed (the main window's selected tab, a separate window's own): puts its
+     * picker into the tool bar, or the empty one when there is no query window. The Query buttons' state is set by the
+     * main window for the same query window ({@link #getQueryActions}).
      */
     void setActiveEditor(@Nullable SqlEditorPanel editor) {
         this.editor = editor;
@@ -242,7 +275,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Icon and short text ("Actual Plan") next to the estimated plan button, pressed while the active query window
+     * Icon and short text ("Actual Plan") next to the estimated plan button, pressed while this tool bar's query window
      * includes the actual plan.
      */
     @NotNull
@@ -261,7 +294,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * The commit mode of the active query window's session as icon and text, the status line's dot and words; a click
+     * The commit mode of this tool bar's query window's session as icon and text, the status line's dot and words; a click
      * switches to the other mode. Its tool tip is the action's (what the click does).
      */
     @NotNull
@@ -277,7 +310,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Shows the active query window's commit mode on the commit mode button (auto-commit = true); null shows the
+     * Shows this tool bar's query window's commit mode on the commit mode button (auto-commit = true); null shows the
      * connection's mode as unknown (no window, not connected).
      */
     void setCommitMode(@Nullable Boolean autoCommit) {
