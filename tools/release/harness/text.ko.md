@@ -5,6 +5,8 @@ The scripts stay ASCII; every Korean word they write comes from here.
 
 === prepare-history ===
 - {{date}} {{version}} 준비(`{{branch}}`): {{summary}}
+=== history-heading ===
+## 변경 이력
 === prepare-history-marker ===
 {{version}} 준비(
 === block-marker ===

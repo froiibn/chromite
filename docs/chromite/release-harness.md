@@ -48,11 +48,11 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 
 | 단계 | 하는 일과 확인 | 밖을 바꾸는 것 | 사용자 말 |
 |---|---|---|---|
-| `status` | 마지막 `v*` 태그, 운영 피드의 버전과 세대, 그 태그 뒤 `origin/command`의 커밋, 서명 과정 경로(`.github`, `tools/release`, `tools/installer`, `tools/jre`, `product`, 버전 줄 제외)의 변경 → 시험 실행이 필요한지, 끝나지 않은 릴리스 기록. `-Version` 없음 | 없음 | |
+| `status` | 마지막 `v*` 태그, 운영 피드의 버전과 세대, 그 태그 뒤 `origin/command`의 커밋, 서명 과정 경로(`.github`, `tools/release`, `tools/installer`, `tools/jre`, `product`. 버전 줄과 하네스 자신(`release.ps1`, `harness/`)은 제외: `release.yml`이 하네스를 쓰지 않으므로)의 변경 → 시험 실행이 필요한지, 끝나지 않은 릴리스 기록. `-Version` 없음 | 없음 | |
 | `prepare` | `chromite/release-<버전, 점은 -로>` 브랜치이고 `origin/command`에서 갈라졌는지, 버전이 마지막 태그보다 크고 태그가 없는지. `bump-version.ps1 <버전>`, 네 파일 확인, `site/ko|en/changelog.html`에 `id="v<버전>"` 절이 하나씩 맨 위에 있는지(없으면 넣을 줄과 뼈대를 보이고 멈춤, `TODO`가 남아 있으면 멈춤). `-Summary`면 `distribution.md` 변경 이력에 "준비" 줄 | 없음 | |
-| `merge` | `-Pr <번호>`: 머리 브랜치가 `chromite/release-<버전>` 또는 `…-record`, 대상 `command`. MERGEABLE까지 기다림(충돌이면 멈춤), 검사가 모두 통과할 때까지 기다림(실패면 멈춤), 기다리는 동안 새 커밋이 없었는지, squash 병합(`<제목> (#번호)`, 머리 커밋 고정), MERGED 확인 | PR 병합 | |
+| `merge` | `-Pr <번호>`: 머리 브랜치가 `chromite/release-<버전>` 또는 `…-record`, 대상 `command`. MERGEABLE까지 기다림(충돌이면 멈춤), 검사가 모두 통과할 때까지 기다림(실패면 멈춤. 아직 등록되지 않은 검사는 목록에 없으므로, 30초 간격으로 두 번 연속 같은 개수가 모두 통과여야 함), 기다리는 동안 새 커밋이 없었는지, squash 병합(`<제목> (#번호)`, 머리 커밋 고정), MERGED 확인 | PR 병합 | |
 | `trial` | 서명 과정 경로가 앞 태그 뒤로 바뀌었을 때만: `origin/command`가 릴리스 병합 커밋인지, `release.yml`을 `command`에서 수동 실행, 성공까지 기다림(시작도 못 한 작업만 다시 실행) | 워크플로 실행 | |
-| `tag` | 병합 커밋이 `origin/command`에 있고 그 버전을 싣는지, 시험 실행 규칙, `origin`이 `froiibn/chromite`인지. 주석 태그를 병합 커밋에 붙이고 그 태그만 push. 이미 `origin`에 있으면 같은 커밋인지 다시 확인만(push 없음, 사용자 말 불필요) | 태그 push | 필요 |
+| `tag` | 병합 커밋이 `origin/command`에 있고 그 버전을 싣는지, 시험 실행 규칙, `origin`이 `froiibn/chromite`인지. 주석 태그를 병합 커밋에 붙이고 그 태그만 push. 이미 `origin`에 있으면 같은 커밋인지 다시 확인만(push 없음, 사용자 말 불필요). push가 끊겨 이 PC에만 남은 태그는 병합 커밋의 주석 태그일 때만 다시 push하고, 다른 태그면 멈춤 | 태그 push | 필요 |
 | `build` | 태그의 `release.yml` 실행(headSha = 태그 커밋)을 찾아 기다림. 시작도 못 한 작업(단계 0개)만 `-MaxAttempts`(기본 4)까지 다시 실행, 돌다 실패한 작업은 멈춤. 실행 번호, 시도, 걸린 분 | 작업 다시 실행 | |
 | `fetch` | `gh release download`(이미 다 있으면 받지 않음), 정확히 파일 4개와 `SHA256SUMS`, `sha256sum -c` 4개 OK, Release의 파일 이름·크기가 같은지. 크기와 해시 기록 | 없음 | |
 | `rehearse` | 아래 "리허설" | 리허설 호스트만 | |
@@ -108,7 +108,7 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 - 파일이 `SHA256SUMS`와 다름, 남는 파일, Release의 파일과 크기가 다름.
 - 리허설: 호스트에 리허설 흔적이 이미 있음, 키에 암호가 있음, 씨앗 피드가 운영과 다름, `REHEARSAL, NOT CHECKED`, 마지막 줄이 다름, 정리가 덜 됨.
 - 배포: 확인 하나라도 BAD, 이미 운영에 있음, 이웃이 바뀜(종료 코드 3), 배포 뒤 확인 실패.
-- 기록: TODO 줄이 남음.
+- 기록: TODO 줄이 남음. `distribution.md`의 마지막 절이 "변경 이력"이 아님(`prepare`의 준비 줄과 `record`의 기록 줄은 파일 끝에 붙이므로).
 
 멈추면 손으로 대신하지 말고 멈춘 이유를 사용자에게 보고한다(CLAUDE.md "릴리스와 배포").
 
@@ -178,7 +178,11 @@ pwsh -NoProfile -File tools/release/release.ps1 -Stage cleanup -Version <버전>
 
 ## 확인하지 못한 것
 
-- 실제 태그 push, 워크플로 실행·다시 실행, PR 병합, Release 공개, 운영 배포: 모두 `-WhatIf`로만 실행했다(이 작업에서 실제로 하지 않기로 함). 첫 실제 사용은 다음 릴리스다.
+- 실제 태그 push, 워크플로 실행·다시 실행, PR 병합, Release 공개, 운영 배포: 실제로 하지 않았다(이 작업에서 하지 않기로 함). 첫 실제 사용은 다음 릴리스다.
+  `-WhatIf` 출력은 `Invoke-Change`를 같은 인수로 직접 불러 본 것이다. `tag`(새 태그), `trial`, `merge`, `publish` 단계를 처음부터 끝까지 `-WhatIf`로 돌린 것은 아니다:
+  그러려면 아직 태그가 없는 버전을 실은 `origin/command` 커밋, 열린 릴리스 PR, 초안 Release가 있어야 한다. 이 단계들에서 실제로 돌려 본 것은 거절과 "이미 돼 있음" 경로다.
+  다음 릴리스에서는 밖을 바꾸는 단계마다 먼저 `-WhatIf`로 돌려 명령을 본 뒤 실행한다.
+- 검토에서 고친 세 가지(`merge`의 두 번 연속 통과, `tag`의 끊긴 push 다시 하기, 변경 이력이 마지막 절인지 확인)는 구문 검사와 변경 이력 확인 함수 호출로만 확인했다.
 - `merge`가 열린 PR을 기다리는 부분, `trial`과 `build`가 진행 중인 실행을 기다리고 다시 실행하는 부분은 실제 열린 PR·실행이 없어 돌지 않았다(코드는 26.1.x 때의 `merge-one.sh`, `rerun-until-ok.sh`를 옮김).
 - 기본 씨앗(운영 피드)으로 하는 리허설과 피드 비교: 26.1.7이 이미 운영에 있어 `-SeedTags`로만 했다.
 - `update-notice`의 영어 화면("New version"): 시험 사본이 한국어로 떴다.

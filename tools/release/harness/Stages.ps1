@@ -61,6 +61,15 @@ function Write-TextFile([string]$Path, [string]$Text) {
 
 function Get-TodayKst { return [DateTime]::UtcNow.AddHours(9).ToString('yyyy-MM-dd') }
 
+# prepare and record add their history line at the end of distribution.md: that is only right while the change
+# history is the file's last section.
+function Assert-HistoryIsLastSection([string]$Text) {
+    $want = (Format-KoText 'history-heading' @{})[0]
+    $headings = [regex]::Matches($Text, '(?m)^## [^\r\n]*')
+    $last = if ($headings.Count) { $headings[$headings.Count - 1].Value.TrimEnd() } else { '' }
+    if ($last -ne $want) { Stop-Harness "the last section of distribution.md is '$last', not '$want': the history line cannot be added at the end" }
+}
+
 # The checkout must be on $Branch, based on the current origin/command.
 function Assert-ReleaseBranch([string]$Branch) {
     $current = Get-GitLine @('rev-parse', '--abbrev-ref', 'HEAD')
@@ -174,6 +183,7 @@ function Invoke-StagePrepare {
                     date = Get-TodayKst; version = $ver; branch = "chromite/release-$(Get-Dashed $ver)"; summary = $script:Summary.Trim()
                 })[0]
             $text = $doc.Text
+            Assert-HistoryIsLastSection $text
             if (-not $text.EndsWith($doc.Nl)) { $text += $doc.Nl }
             Write-TextFile $docPath ($text + $summaryLine + $doc.Nl)
             Say "distribution.md history: $summaryLine"
@@ -221,6 +231,11 @@ function Invoke-StageMerge {
     if ($mergeable -ne 'MERGEABLE') { Stop-Harness "PR #$n is $mergeable (never merged on a conflict)" }
     Say 'OK: mergeable'
     $deadline = [DateTime]::UtcNow.AddMinutes($script:TimeoutMinutes)
+    # A check that has not registered yet is missing from the list, not "pending" in it, and workflows register one
+    # after another in the first seconds after a push. So the list must be all green, with the same number of
+    # checks, on two polls 30 seconds apart before the PR is merged.
+    $greenPolls = 0
+    $greenCount = -1
     while ($true) {
         $r = Invoke-Native -Exe 'gh' -Arguments @('pr', 'checks', "$n", '--repo', $script:Repo, '--json', 'name,bucket') -Quiet -AllowFail
         $checks = @()
@@ -228,7 +243,10 @@ function Invoke-StageMerge {
         $red = @($checks | Where-Object { $_.bucket -in @('fail', 'cancel') })
         $pending = @($checks | Where-Object { $_.bucket -eq 'pending' })
         if ($red) { Stop-Harness "checks are red: $(($red | ForEach-Object { "$($_.name)=$($_.bucket)" }) -join ', ') (never merged on red)" }
-        if ($checks.Count -and -not $pending) { break }
+        if ($checks.Count -and -not $pending -and $checks.Count -eq $greenCount) { $greenPolls++ }
+        elseif ($checks.Count -and -not $pending) { $greenPolls = 1; $greenCount = $checks.Count }
+        else { $greenPolls = 0; $greenCount = -1 }
+        if ($greenPolls -ge 2) { break }
         if ([DateTime]::UtcNow -gt $deadline) { Stop-Harness "checks still pending after $($script:TimeoutMinutes) min" }
         Say "checks: $($checks.Count) reported, $($pending.Count) pending"
         Start-Sleep -Seconds 30
@@ -355,7 +373,15 @@ function Invoke-StageTag {
     $inCommand = Invoke-Git @('merge-base', '--is-ancestor', $merge, 'origin/command') -AllowFail -Quiet
     if ($inCommand.Code) { Stop-Harness "the release merge commit $merge is not on origin/command" }
     if (-not (Test-CommitCarriesVersion $merge $ver)) { Stop-Harness "the release merge commit $merge does not carry version $ver" }
-    if (Get-TagCommit $ver) { Stop-Harness "a local tag v$ver exists that is not on origin: look at it (git show v$ver) before anything else" }
+    # A local tag that is not on origin is what a failed push leaves behind. Only the tag this stage makes (annotated,
+    # on the release merge commit) is pushed again; any other local tag is somebody else's and stops the stage.
+    $localTag = Get-TagCommit $ver
+    if ($localTag) {
+        $localKind = Get-GitLine @('cat-file', '-t', "refs/tags/v$ver")
+        if ($localTag -ne $merge -or $localKind -ne 'tag') {
+            Stop-Harness "a local tag v$ver exists that is not on origin and is not an annotated tag on $merge ($localKind on $localTag): look at it (git show v$ver) before anything else"
+        }
+    }
     $prev = Get-PrevTagVersion $ver
     $changed = Get-ProcessPathChanges "v$prev" $merge
     if ($changed.Count) {
@@ -369,7 +395,11 @@ function Invoke-StageTag {
     }
     Say $trialNote
     Set-StageStarted
-    Invoke-Change "create the annotated tag v$ver on $merge" 'git' @('-C', $script:RepoRoot, 'tag', '-a', "v$ver", $merge, '-m', "Chromite $ver") | Out-Null
+    if ($localTag) {
+        Say "the annotated tag v$ver is on $merge here already (an earlier push did not finish): pushing it"
+    } else {
+        Invoke-Change "create the annotated tag v$ver on $merge" 'git' @('-C', $script:RepoRoot, 'tag', '-a', "v$ver", $merge, '-m', "Chromite $ver") | Out-Null
+    }
     Invoke-Change "push only the tag v$ver to origin" 'git' @('-C', $script:RepoRoot, 'push', 'origin', "refs/tags/v$ver") | Out-Null
     if ($script:WhatIfMode) { return @{ noState = $true } }
     $now = Get-RemoteTagCommit $ver
@@ -644,8 +674,7 @@ function Invoke-StageRecord {
             publishHistoryPart = $(if ($pubE) { (Format-KoText 'publish-history-part' @{})[0] } else { '' })
         })[0]
     while ($lines.Count -and $lines[$lines.Count - 1] -eq '') { $lines.RemoveAt($lines.Count - 1) }
-    $lastHeading = @($lines | Where-Object { $_ -match '^## ' })[-1]
-    if ($lastHeading -notmatch '^## \S') { Stop-Harness 'distribution.md has no last section' }
+    Assert-HistoryIsLastSection ($lines -join "`n")
     $lines.Add($history)
     Write-TextFile $docPath (($lines -join $nl) + $nl)
     Say "distribution.md: the $ver record after the $best record (line $($insert + 1)), history: $history"

@@ -32,7 +32,10 @@ $script:StageStarted = $false
 function Get-SiteFileNames([string]$Ver) { @("Chromite-$Ver-x64-setup.exe", "Chromite-$Ver-arm64.zip", "Chromite-$Ver-arm64.dmg") }
 function Get-ReleaseFileNames([string]$Ver) { (Get-SiteFileNames $Ver) + "chromite-swing-$Ver-windows-x64.zip" }
 # Release-process paths: a change there since the previous tag means the signing run is tried on command first.
-$script:ProcessPaths = @('.github', 'tools/release', 'tools/installer', 'tools/jre', 'product')
+# The harness itself (release.ps1, harness/) is left out: release.yml does not use it, so a change to it cannot
+# change what the signing run does, and counting it would force a trial run after every harness fix.
+$script:ProcessPaths = @('.github', 'tools/release', 'tools/installer', 'tools/jre', 'product',
+    ':(exclude)tools/release/release.ps1', ':(exclude)tools/release/harness')
 # Files that bump-version.ps1 changes inside those paths; only a change besides the version number counts.
 $script:VersionFiles = @('product/swing/chromite-swing.product', 'product/swing/pom.xml')
 
