@@ -169,10 +169,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *     다른 서버에서 돌지 않게 하기 위해서다(그래서 연결 콤보가 없다). 도구 막대는 서버를 보이지 않는다(앱 변경 #74: 문서 탭과 상태 줄이 보인다).
  *     서버 없이 열린 창(서버를 고르지 않은 파일 열기, 연결이 지워진 복원 창 등)은 서버를 한 번 고른다({@link #chooseServer}: 같은 연결 변경
  *     단추, Query &gt; Select Connection…, 서버 없이 실행·계획). 서버가 없던 창에는 세션이 없으므로 고를 때 끝낼 세션도 없다.</li>
- *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창마다의 도구 막대는 없다. 실행·중지·계획·편집 명령은 메인 창의 SQL Editor 도구 막대
- *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
- *     메인 창이 활성 창의 것을 그 도구 막대에 끼운다(결과 탭·상태 줄과 같은 방식). 단추의 켜짐은 {@link #canExecute()}, {@link #canCancel()},
- *     {@link #canExplain()}으로 메인 창이 정하고, 바뀔 때 {@link Host#executionStateChanged}로 알린다.</li>
+ *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창이 스스로 가진 도구 막대는 없다. 실행·중지·계획·편집 명령은 이 창을 담은 창(메인 창, 또는
+ *     따로 띄운 {@link QueryWindowFrame})의 SQL Editor 도구 막대({@link SqlEditorToolBar})가 그 창의 쿼리 창(메인 창은 선택된 탭의 것)에 적용한다.
+ *     DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며, 담은 창의 도구 막대에 끼워진다(결과 탭·상태 줄과 같은 방식). 단추의
+ *     켜짐은 {@link #canExecute()}, {@link #canCancel()}, {@link #canExplain()}으로 메인 창이 도구 막대마다 그 창의 쿼리 창을 보고 정하고, 바뀔 때
+ *     {@link Host#executionStateChanged}로 알린다.</li>
  *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
  *     목록과 현재 값은 {@link ContextDefaultObjectsReader}, 바꾸기는 {@link DBExecUtils#setExecutionContextDefaults}다(둘 다 작업 스레드).
  *     이 창의 실행 문맥에 적용된다(창이 자기 세션을 쓰면 이 창에만, 주 문맥을 함께 쓰면 같은 연결의 그 창들에도). 연결되어 있지 않거나 문맥이 바꾸기를
@@ -373,6 +374,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   docs/chromite/swing-explorer-object-actions.md "끌어서 이름 넣기"). 창이 개체의 DB에 있으면 DB를 뺀 이름({@link #getDefaultObjectNames})
  * - 2026-11-22 주석만: {@link #setRestoredDefaults}를 New Query도 씀(활성 창의 DB/스키마를 새 창에, 앱 변경 #172,
  *   docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
+ * - 2026-11-23 주석만: 도구 막대 설명을 지금 구조에 맞춤. 별도 창도 자기 도구 막대를 갖고(앱 변경 #173), 막대마다 자기 창의 쿼리 창 상태를
+ *   보이며 그 창에 적용함(앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class SqlEditorPanel extends JPanel {
 
