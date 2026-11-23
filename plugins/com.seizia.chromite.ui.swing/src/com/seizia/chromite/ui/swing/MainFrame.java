@@ -164,7 +164,8 @@ import java.util.function.Supplier;
  *     Outline, Link with Editor, Chromite Agent, Query Library, New Query의 연결이 이 규칙을 따른다. 결과 카드, 상태 표시줄, 메인 도구 막대의
  *     DB 콤보와 켜짐은 늘 메인 창의 선택한 탭의 것이고({@link #getTabEditor}), 별도 창의 도구 막대는 그 창의 것이다(앱 변경 #175: 도구 막대 단추를
  *     누르면 그 창의 쿼리 창을 먼저 활성 편집기로 한다). 별도 창은 탭 목록({@link #getEditors})에 들어가 끝내기·모두 저장·
- *     다시 시작 후 복원(탭으로 돌아옴)·연결 변경 알림이 함께 다루고, 닫기는 탭 닫기와 같은 {@link #closeQueryWindow}다.</li>
+ *     다시 시작 후 복원(탭으로 돌아옴)·연결 변경 알림이 함께 다루고, 닫기는 탭 닫기와 같은 {@link #closeQueryWindow}다. 열린 창 목록인 비교의
+ *     고르기({@link TextCompareCommand})와 Window 메뉴도 탭 뒤에 별도 창을 넣는다({@link #getSeparateEditors}, 앱 변경 #176).</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -341,6 +342,9 @@ import java.util.function.Supplier;
  *   {@code StatusBar}·{@code CanvasPanel}·{@code LineSplitPane}을 별도 창이 함께 씀 (docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  * - 2026-11-22 {@link #moveToNewWindow}가 탭이 빠지기 전에 문서 탭의 편집기 영역과 아래 Results 카드의 크기를 재어 별도 창에 넘김(창이 메인 창의
  *   60% 대신 그 크기로 열림, 앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 비교와 Window 메뉴에 별도 창의 쿼리 창: 비교 명령에 별도 창 목록({@link #getSeparateEditors})과 활성 문서를 알리고 별도 창을
+ *   옮기거나 닫으면 켜짐을 다시 정함, Window 메뉴는 탭 뒤 구분선 다음에 별도 창을 이어 번호 매기고 고르면 그 창을 앞으로(편집기에 초점),
+ *   표시는 선택한 탭 대신 활성 문서 (앱 변경 #176, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  * - 2026-11-23 SQL Editor 도구 막대마다 Query 동작의 사본({@link #createSqlEditorToolBar}): 켜짐·선택·도구 설명이 그 막대 창의 쿼리 창을
  *   따르고(규칙은 {@link #updateQueryActions(SqlEditorToolBar.QueryActions, SqlEditorPanel)} 한 곳), 누르면 그 창의 쿼리 창을 먼저 활성 편집기로.
  *   메뉴와 단축키는 활성 편집기 그대로 (앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
@@ -906,7 +910,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 BackupRestoreCommands.runEditorScript(this, editor);
             }
         });
-        textCompareCommand = new TextCompareCommand(this, this, documentTabs);
+        textCompareCommand = new TextCompareCommand(this, this, documentTabs, this::getSeparateEditors);
         queryActions = new SqlEditorToolBar.QueryActions(changeConnectionAction, executeQueryAction, cancelQueryAction, estimatedPlanAction,
             actualPlanAction, commitAction, rollbackAction, commitModeAction);
         // A click on the main window's tool bar acts on its selected tab's query window
@@ -1649,6 +1653,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             queryWindowMenus, getRootPane(), saveAction, saveAsAction);
         frame.place(drop, this, queryFrames.size(), editorSize, resultsSize);
         queryFrames.add(frame);
+        textCompareCommand.update();
         frame.setVisible(true);
         frame.toFront();
         SwingUtilities.invokeLater(editor::focusEditor);
@@ -1693,6 +1698,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     private void removeQueryFrame(@NotNull QueryWindowFrame frame) {
         queryFrames.remove(frame);
+        textCompareCommand.update();
         frame.release();
         frame.dispose();
         if (frame == activeQueryFrame) {
@@ -1803,6 +1809,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 editors.add(editor);
             }
         }
+        editors.addAll(getSeparateEditors());
+        return editors;
+    }
+
+    /**
+     * The query windows in windows of their own, in the order they were moved out: the open windows that are no tab
+     * (Compare's choices, the Window menu's items after the tabs, app change #176).
+     */
+    @NotNull
+    private List<SqlEditorPanel> getSeparateEditors() {
+        List<SqlEditorPanel> editors = new ArrayList<>();
         for (QueryWindowFrame frame : queryFrames) {
             editors.add(frame.getEditor());
         }
@@ -2276,10 +2293,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * The active document changed ({@link #getActiveDocument}): Outline, the Query actions and Link with Editor follow it.
+     * The active document changed ({@link #getActiveDocument}): Outline, the Query actions, Link with Editor and Compare's
+     * first choices follow it.
      * Switching between windows reads nothing from the server.
      */
     private void activeDocumentChanged() {
+        textCompareCommand.activeDocumentChanged(getActiveDocument());
         outlinePanel.setTextArea(getActiveTextArea());
         updateQueryActions();
         linkExplorerToDocument();
@@ -2765,7 +2784,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Window menu (SSMS): Reset Window Layout, Reopen Closed Tab (also when no tab is left for the tab menu), then the
-     * open document tabs (the active one checked), rebuilt each time the menu opens.
+     * open documents, rebuilt each time the menu opens: the document tabs, then after a separator the query windows in
+     * windows of their own (app change #176), numbered on across both. The active document ({@link #getActiveDocument})
+     * is checked; choosing a separate window brings it to the front with the focus in its editor.
      */
     private void fillWindowMenu(@NotNull JMenu windowMenu) {
         windowMenu.removeAll();
@@ -2774,17 +2795,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resetItem.addActionListener(e -> resetWindowLayout());
         windowMenu.add(resetItem);
         windowMenu.add(new JMenuItem(documentTabMenu.getReopenAction()));
+        Component activeDocument = getActiveDocument();
         if (documentTabs.getTabCount() > 0) {
             windowMenu.addSeparator();
         }
         for (int i = 0; i < documentTabs.getTabCount(); i++) {
             int index = i;
-            // No tab icon: the radio mark shows the active tab
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem((i + 1) + " " + documentTabs.getTitleAt(i), i == documentTabs.getSelectedIndex());
-            if (i < 9) {
-                item.setMnemonic(KeyEvent.VK_1 + i);
-            }
-            item.setToolTipText(documentTabs.getToolTipTextAt(i));
+            JMenuItem item = createWindowItem(i, documentTabs.getTitleAt(i), documentTabs.getToolTipTextAt(i),
+                documentTabs.getComponentAt(i) == activeDocument);
             item.addActionListener(e -> {
                 if (index < documentTabs.getTabCount()) {
                     documentTabs.setSelectedIndex(index);
@@ -2792,6 +2810,36 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
             windowMenu.add(item);
         }
+        List<SqlEditorPanel> separateEditors = getSeparateEditors();
+        if (!separateEditors.isEmpty()) {
+            // The windows apart from the tabs: their items look like the tabs' (the same titles)
+            windowMenu.addSeparator();
+        }
+        for (int i = 0; i < separateEditors.size(); i++) {
+            SqlEditorPanel editor = separateEditors.get(i);
+            JMenuItem item = createWindowItem(documentTabs.getTabCount() + i, editor.getTitle(), editor.getToolTip(), editor == activeDocument);
+            item.addActionListener(e -> {
+                if (getEditors().contains(editor)) {
+                    showQueryWindow(editor);
+                    SwingUtilities.invokeLater(editor::focusEditor);
+                }
+            });
+            windowMenu.add(item);
+        }
+    }
+
+    /**
+     * A Window menu item of an open document: its number (mnemonic 1-9), title and tab tool tip. No icon: the radio mark
+     * shows the active document.
+     */
+    @NotNull
+    private static JMenuItem createWindowItem(int index, @NotNull String title, @Nullable String toolTip, boolean active) {
+        JRadioButtonMenuItem item = new JRadioButtonMenuItem((index + 1) + " " + title, active);
+        if (index < 9) {
+            item.setMnemonic(KeyEvent.VK_1 + index);
+        }
+        item.setToolTipText(toolTip);
+        return item;
     }
 
     /**

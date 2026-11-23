@@ -41,7 +41,8 @@ import java.awt.event.KeyEvent;
  *     명령마다 새 탭이다(비교 여러 개를 나란히 둘 수 있다). 탭 제목은 "비교: 왼쪽 ↔ 오른쪽"(창의 파일·객체 이름), 도구 설명은 두 창의 탭 제목 전체다.
  *     다른 도구 문서처럼 다시 시작할 때 복원하지 않는다(창의 글을 그때 읽은 것이다).</li>
  *     <li>읽기 전용이다: 병합·편집·건너 복사 없음. 글은 창의 선택 영역이 있으면 그것, 없으면 전체이고({@link TextCompareCommand#read}), 머리글이
- *     선택 영역과 그 줄 범위를 말한다. 새로 고침은 두 창의 지금 글을 다시 읽는다. 닫힌 창은 마지막 글을 두고 머리글이 알린다.</li>
+ *     선택 영역과 그 줄 범위를 말한다. 새로 고침은 두 창의 지금 글을 다시 읽는다: 창은 같은 컴포넌트라 비교를 연 뒤 별도 창으로 옮기거나 메인 창으로
+ *     되돌려도 지금 있는 곳에서 찾는다({@link TextCompareCommand#describe}, 앱 변경 #176). 닫힌 창은 마지막 글을 두고 머리글이 알린다.</li>
  *     <li>이전/다음 차이는 Alt+↑ / Alt+↓(WinMerge의 키)이고 이 탭 안에 초점이 있을 때만 걸린다(패널의 {@code WHEN_ANCESTOR_OF_FOCUSED_COMPONENT}).
  *     두 편집기는 같은 키를 줄 옮기기로 직접 묶고 있어(초점 컴포넌트의 키가 먼저) 편집기에도 같은 동작을 묶는다. 메인 창은 Alt+↑/↓를 묶지 않고
  *     (Query 메뉴는 Alt+PageUp/PageDown), F7은 Object Details라 쓰지 않았다. 끝에서 처음으로 돈다.</li>
@@ -51,6 +52,8 @@ import java.awt.event.KeyEvent;
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성 (docs/chromite/text-compare.md)
+ * - 2026-11-23 새로 고침이 창을 탭 묶음 대신 {@link TextCompareCommand}에서 찾음: 별도 창의 쿼리 창도 다시 읽음
+ *   (앱 변경 #176, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class TextComparePanel extends JPanel implements ToolDocument {
 
@@ -79,6 +82,7 @@ final class TextComparePanel extends JPanel implements ToolDocument {
         }
     }
 
+    private final TextCompareCommand command;
     private final JTabbedPane tabs;
     private final TextDiffView view = new TextDiffView();
     private final JCheckBox ignoreWhitespaceBox = new JCheckBox(TextCompareMessages.textcompare_ignore_whitespace);
@@ -93,16 +97,18 @@ final class TextComparePanel extends JPanel implements ToolDocument {
     /**
      * Opens a new Compare tab for two windows (each command opens its own, as the schema compare does).
      *
-     * @param tabs the main window's document tabs, where the windows are (Refresh finds them there again)
+     * @param command the command that knows the open windows (Refresh finds them again, in a tab or a window of their own)
      */
-    static void open(@NotNull ObjectExplorerPanel.QueryWindows host, @NotNull JTabbedPane tabs, @NotNull TextCompareCommand.Window leftWindow,
+    static void open(@NotNull ObjectExplorerPanel.QueryWindows host, @NotNull TextCompareCommand command, @NotNull TextCompareCommand.Window leftWindow,
                      @NotNull TextCompareCommand.Window rightWindow) {
-        host.openToolDocument("textCompare#" + (++documentCounter), () -> new TextComparePanel(tabs, leftWindow, rightWindow)); //$NON-NLS-1$
+        host.openToolDocument("textCompare#" + (++documentCounter), () -> new TextComparePanel(command, leftWindow, rightWindow)); //$NON-NLS-1$
     }
 
-    private TextComparePanel(@NotNull JTabbedPane tabs, @NotNull TextCompareCommand.Window leftWindow, @NotNull TextCompareCommand.Window rightWindow) {
+    private TextComparePanel(@NotNull TextCompareCommand command, @NotNull TextCompareCommand.Window leftWindow,
+                             @NotNull TextCompareCommand.Window rightWindow) {
         super(new BorderLayout());
-        this.tabs = tabs;
+        this.command = command;
+        this.tabs = command.getDocumentTabs();
         left = new Side(leftWindow);
         right = new Side(rightWindow);
 
@@ -190,7 +196,7 @@ final class TextComparePanel extends JPanel implements ToolDocument {
 
     private void refresh() {
         for (Side side : new Side[]{left, right}) {
-            TextCompareCommand.Window window = TextCompareCommand.describe(tabs, side.window.component());
+            TextCompareCommand.Window window = command.describe(side.window.component());
             if (window == null) {
                 // Closed: keep the last text
                 side.closed = true;
