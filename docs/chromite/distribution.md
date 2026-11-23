@@ -257,7 +257,7 @@ pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 `
     -Target <사용자>@<서버> -KnownHosts <known_hosts 파일> [-IdentityFile <키>] [-Port 22] [-Yes]
 ```
 
-- 서버 접속 정보(호스트, 사용자, 키, known_hosts)는 인수로만 받는다. 스크립트에 넣지 않았고, 이 작업에서 키를 찾거나 쓰지 않았다(접속은 Turbrix 세션 또는 사용자).
+- 서버 접속 정보(호스트, 사용자, 키, known_hosts)는 인수로만 받는다. 스크립트에 넣지 않았고, 이 작업에서 키를 찾거나 쓰지 않았다(운영 배포는 26.1.7까지 Turbrix 세션이, 그 뒤로는 Chromite 세션이 실행한다. 아래 "운영 배포를 실행하는 쪽").
   `StrictHostKeyChecking=yes`라 known_hosts에 서버 키가 있어야 한다.
 - 저장소에 둔 이유: Turbrix는 버전마다 `.local/`에 스크립트를 따로 두지만, 이 스크립트는 비밀값이 없고 인수로 바뀌므로 리뷰할 수 있게 저장소에 둔다.
   작업 파일(받은 릴리스, 올릴 묶음)은 `.local/release/<태그>/`(git 무시)에 둔다.
@@ -303,6 +303,42 @@ pwsh tools/release/deploy-chromite-site.ps1 -Tag v0.1.0 -DataGeneration 1 `
   `data_generation`이 다르면 앱이 경고한다.
 - **잘못 올린 릴리스 거두기**: 서버에서 그 버전의 파일을 `old/<시각>/`로 옮기고 `sh /srv/chromite/bin/releases.sh`. 그 번호는 다시 쓰지 않는다.
 - **사이트**: `old/<시각>/site/`의 항목을 `site/`로 되옮긴다(현재 항목은 다른 `old/` 폴더로).
+
+### 운영 배포를 실행하는 쪽 (2026-11-23 사용자 결정)
+
+26.1.7까지는 서버 키를 가진 Turbrix 세션이 Chromite 세션의 요청을 받아 실행했다. 2026-11-23에 사용자가 넘기게 했다:
+Turbrix 세션에 "크로마이트는 앞으로 크로마이트 에이전트가 직접 배포할 수 있도록 정보를 제공하라", Chromite 세션의 확인 질문에 "직접 배포한다".
+그 뒤 배포는 Chromite 세션이 직접 실행한다. 바뀐 것은 실행하는 쪽뿐이다. 릴리스마다 사용자의 지시가 있어야 시작하고, 먼저 리허설을 한다.
+
+- **접속 값은 저장소에 두지 않는다.** 이 저장소는 공개라서 서버 주소, 계정, 키 경로는 git이 무시하는 `.local/deploy/README.md`에,
+  고정한 호스트 키는 `.local/deploy/known_hosts`에 둔다. 비밀 값은 그 파일에도 없다.
+- **키 파일은 사용자의 것이다.** `-IdentityFile`로 경로만 넘긴다. 내용을 읽거나 복사하거나 옮기거나 출력하지 않는다.
+- **PowerShell에서 실행한다.** Git Bash에서는 키 경로가 POSIX 경로로 넘어가 "Permission denied (publickey)"로 멈춘다(26.1.4 때 한 번, 바뀐 것 없이 멈춤).
+- **범위는 `/srv/chromite`뿐이다.** 그 서버는 Turbrix의 운영 서버이고 접속 계정은 서버 전체에 닿는다. 배포 스크립트가 하는 것 말고는 하지 않는다.
+  Turbrix의 서비스 폴더, Docker, sudo, 방화벽, 시스템 설정은 보지도 건드리지도 않는다.
+  범위 밖(프록시 설정, DNS, AWS, `/srv/chromite` 밖)이 필요하면 실행하지 않고, 바뀌는 것·Turbrix가 멈추는 시간·되돌리기·리허설 결과를 적어 사용자에게 묻는다.
+- **호스트 키가 다르다고 나오면 멈추고 사용자에게 묻는다.** `StrictHostKeyChecking`을 끄지 않는다. 서버가 옮겨지면 주소와 호스트 키가 바뀐다.
+
+실행 전에 보는 것(Turbrix 세션이 보던 것 그대로):
+
+1. 태그의 커밋: `git rev-parse <태그>^{commit}`과 `git ls-remote --tags origin <태그>*`가 같은지.
+2. 서명 실행: `gh run view <id> --repo froiibn/chromite --json status,conclusion,headSha,jobs`가 모두 success이고 `headSha`가 태그의 커밋인지.
+3. 파일: `-ArtifactsDir`에서 `sha256sum -c SHA256SUMS` 4개 OK.
+4. 앞 태그와의 차이: `git diff --stat <앞 태그> <태그> -- tools/release site`. 배포 스크립트가 바뀌었으면 읽는다.
+5. 살아 있는 피드가 앞의 두 버전을 싣고 있는지.
+6. `chromite.seizia.com`의 DNS가 `.local/deploy/README.md`의 주소인지.
+7. 리허설 결과가 `ALL CHECKS OK`인지.
+
+스크립트는 그 태그의 `tools/release`와 `site`만 든 깨끗한 체크아웃에서 실행한다(작업 트리의 다른 변경이 섞이지 않게).
+
+실행 뒤에 보는 것:
+
+- 마지막 줄 `ALL CHECKS OK: <버전> is live at https://chromite.seizia.com`, 실패 0, 종료 코드 0.
+- `setups listed: <새 버전>, <앞 버전>`과 그보다 오래된 설치 파일의 404.
+- **같은 서버의 Turbrix가 그대로인지**: 사이트와 API 상태 주소가 200이고 Turbrix의 내려받기 피드 목록이 배포 전과 같은지(주소는 `.local/deploy/README.md`).
+  하나라도 다르면 더 하지 않고 사용자에게 바로 알린다.
+
+Turbrix의 서비스 배포 뒤에 chromite.seizia.com이 답하지 않으면 사용자에게 알린다. 프록시의 `chromite.seizia.com` 블록은 Turbrix의 서비스 묶음에 들어 있어 Turbrix 쪽에서 고칠 일이다.
 
 ## 리허설 (로컬 Docker)
 
@@ -679,6 +715,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 2. 그 커밋에 `v<버전>` 태그 → `release.yml`이 서명 파일과 `SHA256SUMS`로 **초안** Release를 만든다.
 3. 저장 데이터 형식이 바뀌었는지 정해 `-DataGeneration`을 고른다(바뀌었으면 이전 값 + 1).
 4. 사용자 승인 뒤 `deploy-chromite-site.ps1`로 배포(먼저 리허설). 확인이 모두 OK인지 본다.
+   실행은 Chromite 세션이 한다(위 "운영 배포를 실행하는 쪽"의 실행 전·뒤 확인 포함).
 5. 사용자가 GitHub 초안 Release를 공개한다(배포는 초안에서도 된다).
 
 릴리스 체크리스트(버전별):
@@ -859,7 +896,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 - [x] 사용자 데이터 위치 결정(위 "사용자 데이터의 위치"): `%APPDATA%\ChromiteData\workspace6`로 고정하고 기존 작업 공간은 첫 시작 때 복사(2026-11-07).
 - [ ] 첫 태그: 이 작업이 `devel`에 들어간 뒤 [versioning.md](versioning.md)의 순서로 `v<버전>` 태그(이미 커밋된 0.1.0이면 `v0.1.0`).
-- [ ] 첫 실제 배포 승인. 서버 접속(호스트, 사용자, 키, known_hosts)은 Turbrix 세션 또는 사용자가 준다. 배포 전 리허설.
+- [x] 첫 실제 배포 승인. 서버 접속(호스트, 사용자, 키, known_hosts)은 26.1.7까지 Turbrix 세션이 가지고 실행했고, 2026-11-23부터 Chromite 세션이 직접 한다(위 "운영 배포를 실행하는 쪽"). 배포 전 리허설.
 
 ## upstream 대비 변경점
 
@@ -1136,3 +1173,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-23 26.1.6 릴리스 기록: 26.1.5 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인을 적음.
 - 2026-11-23 26.1.7 준비(`chromite/release-26-1-7`): 버전 26.1.7과 변경 내역(별도 쿼리 창의 탭 줄, 그 탭을 주 창 탭 줄로 끌어 되돌리기, 탭 메뉴 #358). 사용자 결정(2026-11-23): "이후에 병합 배포 공개까지 다 하고 보고하라"(릴리스 중단을 이 배포에 풀음).
 - 2026-11-23 26.1.7 릴리스 기록: 26.1.6 기록 아래에 태그·리허설·운영 배포·배포 뒤 확인·GitHub Release 공개를 적음. 리허설 키를 만드는 셸에 대한 주의를 함께 적음.
+- 2026-11-23 운영 배포를 실행하는 쪽을 Turbrix 세션에서 Chromite 세션으로 바꿈(사용자 결정). "운영 배포를 실행하는 쪽"에 범위, 실행 전·뒤 확인, 멈추는 조건을 적음. 접속 값은 공개 저장소에 넣지 않고 `.local/deploy/`에 둠.
