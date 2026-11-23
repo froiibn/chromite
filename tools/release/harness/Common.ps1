@@ -1,0 +1,507 @@
+# Chromite - Database Workbench
+# Copyright (C) 2026 Chromite contributors
+# Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+#
+# Shared helpers of the release harness (tools/release/release.ps1, docs/chromite/release-harness.md):
+# the work root and its config, masking of connection values, the stage log, state.json, the lock, running
+# programs, the live feed, and Invoke-Change - the one function that runs a command changing something
+# outside this PC (it honours -WhatIf).
+#
+# Design:
+#   * A stage stops by throwing an exception that carries 'HarnessStop' in its Data (Stop-Harness); release.ps1
+#     turns it into the last line "STAGE <name>: STOP - <reason>" and the exit code. No other way out.
+#   * Every line goes through Hide-Secret before it reaches the console or a log: the repository is public and
+#     logs are pasted into reports, so the production target, address, key path, neighbour URLs and the
+#     rehearsal host never appear in them.
+#   * Connection values come only from <work root>/deploy/config.json. A missing value stops the stage and names
+#     the field; nothing is guessed.
+#   * State is written only after a stage really started (Set-StageStarted): a refusal (missing go-ahead, missing
+#     earlier stage, lock held) never overwrites what an earlier run recorded.
+#
+# Change history:
+# - 2026-11-23 Created (consolidates the throw-away helpers of the 26.1.7 release).
+
+$script:Repo = 'froiibn/chromite'
+$script:RepoUrlPattern = '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)froiibn/chromite(\.git)?/?$'
+$script:UserAgent = 'chromite-release-harness'
+$script:Masks = @()
+$script:Config = $null
+$script:LogFile = $null
+$script:StageStarted = $false
+# The three files the site serves per version, and the fourth one release.yml publishes (the portable zip).
+function Get-SiteFileNames([string]$Ver) { @("Chromite-$Ver-x64-setup.exe", "Chromite-$Ver-arm64.zip", "Chromite-$Ver-arm64.dmg") }
+function Get-ReleaseFileNames([string]$Ver) { (Get-SiteFileNames $Ver) + "chromite-swing-$Ver-windows-x64.zip" }
+# Release-process paths: a change there since the previous tag means the signing run is tried on command first.
+$script:ProcessPaths = @('.github', 'tools/release', 'tools/installer', 'tools/jre', 'product')
+# Files that bump-version.ps1 changes inside those paths; only a change besides the version number counts.
+$script:VersionFiles = @('product/swing/chromite-swing.product', 'product/swing/pom.xml')
+
+function Stop-Harness([string]$Reason, [int]$Code = 1) {
+    $e = [Exception]::new($Reason)
+    $e.Data['HarnessStop'] = $Code
+    throw $e
+}
+
+function Set-StageStarted { $script:StageStarted = $true }
+
+# ---- work root, config, masking
+
+function Resolve-WorkRoot([string]$Given, [string]$RepoRoot) {
+    if ($Given) {
+        New-Item -ItemType Directory -Force $Given | Out-Null
+        return (Resolve-Path $Given).Path
+    }
+    # <main checkout>/.local, whichever worktree the harness runs from
+    $common = & git -C $RepoRoot rev-parse --path-format=absolute --git-common-dir 2>&1
+    if ($LASTEXITCODE) { Stop-Harness "git rev-parse --git-common-dir failed: $common" }
+    $main = Split-Path -Parent ([IO.Path]::GetFullPath("$common".Trim()))
+    return (Join-Path $main '.local')
+}
+
+function Get-ConfigPath { Join-Path $script:WorkRoot 'deploy/config.json' }
+
+function Get-Config {
+    if ($null -eq $script:Config) {
+        $path = Get-ConfigPath
+        if (-not (Test-Path -LiteralPath $path)) {
+            Stop-Harness "no config at $path (format: tools/release/harness/config.example.json)"
+        }
+        try { $script:Config = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json }
+        catch { Stop-Harness "config $path is not valid JSON: $($_.Exception.Message)" }
+    }
+    return $script:Config
+}
+
+# A value by its dotted name, e.g. 'production.address'. Missing or empty = STOP naming the field.
+function Get-Cfg([string]$Name) {
+    $node = Get-Config
+    foreach ($part in $Name.Split('.')) {
+        if ($null -eq $node -or -not ($node.PSObject.Properties.Name -contains $part)) {
+            Stop-Harness "config value '$Name' is missing in $(Get-ConfigPath)"
+        }
+        $node = $node.$part
+    }
+    $empty = ($null -eq $node) -or ($node -is [string] -and -not $node.Trim()) -or ($node -is [array] -and $node.Count -eq 0)
+    if ($empty) { Stop-Harness "config value '$Name' is empty in $(Get-ConfigPath)" }
+    return $node
+}
+
+# '~' and '$HOME' resolved by PowerShell (never handed to a POSIX shell, docs/chromite/distribution.md).
+function Resolve-UserPath([string]$Path) {
+    $p = $Path
+    if ($p -match '^~([\\/]|$)') { $p = $HOME + $p.Substring(1) }
+    $p = $p -replace '^\$HOME', $HOME
+    return [IO.Path]::GetFullPath($p)
+}
+
+function Add-Mask([string]$Value, [string]$Placeholder) {
+    if (-not $Value -or $Value.Length -lt 3) { return }
+    foreach ($v in @($Value, $Value.Replace('\', '/'), $Value.Replace('/', '\'))) {
+        $script:Masks += [pscustomobject]@{ Value = $v; Placeholder = $Placeholder }
+    }
+    $script:Masks = @($script:Masks | Sort-Object { $_.Value.Length } -Descending)
+}
+
+# Registers the connection values of the config (when there is one) before anything is printed.
+function Initialize-Masks {
+    if (-not (Test-Path -LiteralPath (Get-ConfigPath))) { return }
+    try { $c = Get-Config } catch { return }
+    $p = $c.PSObject.Properties
+    if ($p.Name -contains 'production') {
+        $prod = $c.production
+        if ($prod.PSObject.Properties.Name -contains 'target') { Add-Mask "$($prod.target)" '<production>' }
+        if ($prod.PSObject.Properties.Name -contains 'address') { Add-Mask "$($prod.address)" '<production-address>' }
+        if ($prod.PSObject.Properties.Name -contains 'hostKeyFingerprint') { Add-Mask "$($prod.hostKeyFingerprint)" '<pinned-host-key>' }
+        if ($prod.PSObject.Properties.Name -contains 'identityFile' -and $prod.identityFile) {
+            Add-Mask "$($prod.identityFile)" '<identity-file>'
+            Add-Mask (Resolve-UserPath "$($prod.identityFile)") '<identity-file>'
+        }
+    }
+    if ($p.Name -contains 'neighbor') {
+        $i = 0
+        foreach ($u in @($c.neighbor.status200) + @($c.neighbor.feed)) {
+            if (-not $u) { continue }
+            $i++
+            Add-Mask "$u" "<neighbor-url-$i>"
+            try { Add-Mask ([Uri]"$u").Host "<neighbor-host>" } catch { }
+        }
+    }
+    if ($p.Name -contains 'rehearsal' -and $c.rehearsal.PSObject.Properties.Name -contains 'host') {
+        Add-Mask "$($c.rehearsal.host)" '<rehearsal-host>'
+    }
+}
+
+function Hide-Secret([string]$Text) {
+    if ($null -eq $Text) { return '' }
+    foreach ($m in $script:Masks) {
+        $Text = [regex]::Replace($Text, [regex]::Escape($m.Value), $m.Placeholder, 'IgnoreCase')
+    }
+    return $Text
+}
+
+# ---- log
+
+function Open-Log([string]$Folder, [string]$Name) {
+    New-Item -ItemType Directory -Force $Folder | Out-Null
+    $script:LogFile = Join-Path $Folder ("$Name-" + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '.log')
+    [IO.File]::WriteAllText($script:LogFile, '', [Text.UTF8Encoding]::new($false))
+}
+
+function Say([string]$Text) {
+    $t = Hide-Secret $Text
+    Write-Host $t
+    if ($script:LogFile) { [IO.File]::AppendAllText($script:LogFile, $t + "`n", [Text.UTF8Encoding]::new($false)) }
+}
+
+function Get-Stamp {
+    $u = [DateTime]::UtcNow
+    return [ordered]@{ utc = $u.ToString('yyyy-MM-ddTHH:mm:ssZ'); kst = $u.AddHours(9).ToString('yyyy-MM-dd HH:mm:ss') + ' KST' }
+}
+
+# ---- running programs
+
+function Format-Command([string]$Exe, [string[]]$Arguments) {
+    $parts = @([IO.Path]::GetFileName($Exe)) + @($Arguments | ForEach-Object {
+        if ($_ -eq '') { '""' } elseif ($_ -match '[\s"]') { '"' + $_.Replace('"', '\"') + '"' } else { $_ }
+    })
+    return ($parts -join ' ')
+}
+
+# Runs a program, streams its output (masked) into the log, returns code and lines. Non-zero = STOP unless -AllowFail.
+function Invoke-Native {
+    param([string]$Exe, [string[]]$Arguments = @(), [string]$What, [switch]$AllowFail, [switch]$Quiet)
+    if (-not $What) { $What = Format-Command $Exe $Arguments }
+    $lines = [Collections.Generic.List[string]]::new()
+    & $Exe @Arguments 2>&1 | ForEach-Object {
+        $l = "$_"
+        $lines.Add($l)
+        if (-not $Quiet) { Say "  $l" }
+    }
+    $rc = $LASTEXITCODE
+    if ($rc -and -not $AllowFail) {
+        Stop-Harness "$What failed (exit $rc): $((@($lines) | Select-Object -Last 3) -join ' | ')"
+    }
+    return [pscustomobject]@{ Code = $rc; Lines = @($lines); Text = (@($lines) -join "`n") }
+}
+
+# Runs a program with exact arguments (an empty string stays an empty argument in every shell): ssh-keygen -N "".
+function Invoke-Process([string]$Exe, [string[]]$Arguments) {
+    $psi = [Diagnostics.ProcessStartInfo]::new($Exe)
+    foreach ($a in $Arguments) { $psi.ArgumentList.Add($a) }
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $p = [Diagnostics.Process]::Start($psi)
+    $p.StandardInput.Close()
+    $out = $p.StandardOutput.ReadToEndAsync()
+    $err = $p.StandardError.ReadToEndAsync()
+    $p.WaitForExit()
+    return [pscustomobject]@{ Code = $p.ExitCode; Out = $out.Result; Err = $err.Result }
+}
+
+# The only place that runs a command changing something outside this PC (tag push, workflow run, re-run, merge,
+# Release edit, production deploy). With -WhatIf it prints the exact command (masked) and runs nothing.
+function Invoke-Change([string]$What, [string]$Exe, [string[]]$Arguments, [switch]$AllowFail) {
+    $shown = Format-Command $Exe $Arguments
+    if ($script:WhatIfMode) {
+        Say "WHATIF: would $What`: $shown"
+        return $null
+    }
+    Say "RUN ($What): $shown"
+    return Invoke-Native -Exe $Exe -Arguments $Arguments -What $What -AllowFail:$AllowFail
+}
+
+function Invoke-Git([string[]]$Arguments, [switch]$AllowFail, [switch]$Quiet, [string]$Dir) {
+    if (-not $Dir) { $Dir = $script:RepoRoot }
+    return Invoke-Native -Exe 'git' -Arguments (@('-C', $Dir) + $Arguments) -AllowFail:$AllowFail -Quiet:$Quiet
+}
+
+function Get-GitLine([string[]]$Arguments, [string]$Dir) {
+    $r = Invoke-Git $Arguments -AllowFail -Quiet -Dir $Dir
+    if ($r.Code) { return $null }
+    return ("$($r.Lines | Select-Object -First 1)").Trim()
+}
+
+function Invoke-GhJson([string[]]$Arguments, [string]$What) {
+    $r = Invoke-Native -Exe 'gh' -Arguments $Arguments -Quiet -AllowFail
+    if ($r.Code) { Stop-Harness "$What failed (gh exit $($r.Code)): $((@($r.Lines) | Select-Object -Last 2) -join ' | ')" }
+    $json = (@($r.Lines) | Where-Object { $_ -notmatch '^\s*$' }) -join "`n"
+    try { return ($json | ConvertFrom-Json) } catch { Stop-Harness "$What returned no JSON: $($json.Substring(0, [Math]::Min(200, $json.Length)))" }
+}
+
+# ---- versions, tags, origin
+
+function Test-VersionText([string]$Ver) { return $Ver -match '^\d+\.\d+\.\d+$' }
+function ConvertTo-Ver([string]$Ver) { return [version]$Ver }
+function Get-Dashed([string]$Ver) { return $Ver.Replace('.', '-') }
+
+function Update-Origin {
+    Invoke-Git @('fetch', '--quiet', '--tags', 'origin') -Quiet | Out-Null
+}
+
+function Get-TagVersions {
+    $r = Invoke-Git @('tag', '--list', 'v*') -Quiet
+    return @($r.Lines | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | ForEach-Object { $_.Substring(1) } |
+        Sort-Object { [version]$_ })
+}
+
+function Get-LastTagVersion {
+    $all = Get-TagVersions
+    if (-not $all) { Stop-Harness 'no v* tag found' }
+    return $all[-1]
+}
+
+# The highest tagged version below $Ver.
+function Get-PrevTagVersion([string]$Ver) {
+    $lower = @(Get-TagVersions | Where-Object { [version]$_ -lt [version]$Ver })
+    if (-not $lower) { return $null }
+    return $lower[-1]
+}
+
+function Get-TagCommit([string]$Ver) { return Get-GitLine @('rev-parse', '--verify', '--quiet', "refs/tags/v$Ver^{commit}") }
+
+# The commit the tag points at on origin (the peeled line of an annotated tag), or $null.
+function Get-RemoteTagCommit([string]$Ver) {
+    $r = Invoke-Git @('ls-remote', '--tags', 'origin', "refs/tags/v$Ver", "refs/tags/v$Ver^{}") -Quiet
+    $plain = $null; $peeled = $null
+    foreach ($l in $r.Lines) {
+        if ($l -match '^([0-9a-f]{40})\s+refs/tags/v[\d.]+\^\{\}$') { $peeled = $Matches[1] }
+        elseif ($l -match '^([0-9a-f]{40})\s+refs/tags/v[\d.]+$') { $plain = $Matches[1] }
+    }
+    if ($peeled) { return $peeled }
+    return $plain
+}
+
+function Assert-OriginIsChromite {
+    foreach ($kind in @(@('remote', 'get-url', 'origin'), @('remote', 'get-url', '--push', 'origin'))) {
+        $url = Get-GitLine $kind
+        if ($url -notmatch $script:RepoUrlPattern) { Stop-Harness "origin is '$url', not $($script:Repo) (never upstream)" }
+    }
+}
+
+# True when the product version at $Commit is $Ver.
+function Test-CommitCarriesVersion([string]$Commit, [string]$Ver) {
+    $r = Invoke-Git @('show', "${Commit}:product/swing/chromite-swing.product") -AllowFail -Quiet
+    return ($r.Code -eq 0 -and $r.Text -match "<product\b[^>]*?\sversion=""$([regex]::Escape($Ver))\.qualifier""")
+}
+
+# Files under the release-process paths that changed between two commits; the version files count only when
+# something besides the version number changed.
+function Get-ProcessPathChanges([string]$From, [string]$To) {
+    $r = Invoke-Git (@('diff', '--name-only', $From, $To, '--') + $script:ProcessPaths) -Quiet
+    $changed = @()
+    foreach ($f in @($r.Lines | Where-Object { $_ })) {
+        if ($script:VersionFiles -contains $f) {
+            $a = (Invoke-Git @('show', "${From}:$f") -AllowFail -Quiet).Text
+            $b = (Invoke-Git @('show', "${To}:$f") -AllowFail -Quiet).Text
+            $norm = { param($t) [regex]::Replace($t, '\d+\.\d+\.\d+(?=\.qualifier|-SNAPSHOT)', 'X.Y.Z') }
+            if ((& $norm $a) -ceq (& $norm $b)) { continue }
+        }
+        $changed += $f
+    }
+    return , $changed
+}
+
+# ---- HTTP (curl.exe, as the deploy script; public URLs only)
+
+function Get-HttpTempFile {
+    $dir = Join-Path $script:WorkRoot 'release/tmp'
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    return (Join-Path $dir ("http-" + [Guid]::NewGuid().ToString('N') + '.tmp'))
+}
+
+# GET: status code and body (UTF-8).
+function Get-Http([string]$Url) {
+    $tmp = Get-HttpTempFile
+    try {
+        $code = (& curl.exe -sS -m 60 -A $script:UserAgent -o $tmp -w '%{http_code}' $Url 2>&1) -join ' '
+        $body = if (Test-Path $tmp) { [IO.File]::ReadAllText($tmp, [Text.UTF8Encoding]::new($false)) } else { '' }
+        return [pscustomobject]@{ Code = "$code".Trim(); Body = $body }
+    } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+}
+
+# HEAD: status code and Content-Length.
+function Get-HttpHead([string]$Url) {
+    $lines = @(& curl.exe -sS -m 60 -A $script:UserAgent -I $Url 2>&1 | ForEach-Object { "$_" })
+    $code = ''; $len = -1
+    foreach ($l in $lines) {
+        if ($l -match '^HTTP/\S+\s+(\d{3})') { $code = $Matches[1] }
+        elseif ($l -match '^content-length:\s*(\d+)') { $len = [long]$Matches[1] }
+    }
+    return [pscustomobject]@{ Code = $code; Length = $len }
+}
+
+function Get-LiveFeed {
+    $url = "$((Get-Cfg 'production.siteUrl').TrimEnd('/'))/downloads/releases.json"
+    $r = Get-Http $url
+    if ($r.Code -ne '200') { Stop-Harness "the live feed answered $($r.Code)" }
+    try { $feed = $r.Body | ConvertFrom-Json } catch { Stop-Harness 'the live feed is not JSON' }
+    if ($feed.format -ne 1) { Stop-Harness "the live feed is not format 1" }
+    return $feed
+}
+
+function Get-FeedVersions($Feed) {
+    return @(@($Feed.files) | ForEach-Object { $_.version } | Sort-Object -Unique { [version]$_ } | Sort-Object { [version]$_ } -Descending)
+}
+
+# ---- release folder, files, state
+
+function Get-ReleaseDir([string]$Ver) { return (Join-Path $script:WorkRoot "release/v$Ver") }
+function Get-FilesDir([string]$Ver) { return (Join-Path (Get-ReleaseDir $Ver) 'files') }
+
+function Read-Sums([string]$Dir) {
+    $file = Join-Path $Dir 'SHA256SUMS'
+    $sums = [ordered]@{}
+    if (-not (Test-Path -LiteralPath $file)) { return $sums }
+    foreach ($line in Get-Content -LiteralPath $file) {
+        if ($line -match '^([0-9a-f]{64}) [ *]?(.+)$') { $sums[$Matches[2]] = $Matches[1] }
+    }
+    return $sums
+}
+
+# SHA256SUMS lists exactly $Names and each file has that hash. Prints one OK/BAD line per file.
+function Test-Sums([string]$Dir, [string[]]$Names) {
+    $sums = Read-Sums $Dir
+    $ok = $true
+    if (-not (Test-Path -LiteralPath (Join-Path $Dir 'SHA256SUMS'))) { Say "BAD: no SHA256SUMS in $Dir"; return $false }
+    foreach ($n in $Names) {
+        $p = Join-Path $Dir $n
+        if (-not (Test-Path -LiteralPath $p)) { Say "BAD: $n is missing"; $ok = $false; continue }
+        $h = (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($sums[$n] -eq $h) { Say "OK: $n" } else { Say "BAD: $n does not match SHA256SUMS"; $ok = $false }
+    }
+    return $ok
+}
+
+# The identity of the release files: the hash of SHA256SUMS (fetch verified every file against it).
+function Get-FilesDigest([string]$Ver) {
+    $sums = Join-Path (Get-FilesDir $Ver) 'SHA256SUMS'
+    if (-not (Test-Path -LiteralPath $sums)) { return $null }
+    return (Get-FileHash -LiteralPath $sums -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-StatePath([string]$Ver) { return (Join-Path (Get-ReleaseDir $Ver) 'state.json') }
+
+function Read-State([string]$Ver) {
+    $path = Get-StatePath $Ver
+    if (Test-Path -LiteralPath $path) {
+        $s = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+        if (-not $s.ContainsKey('stages')) { $s['stages'] = @{} }
+        return $s
+    }
+    return @{ version = $Ver; stages = @{} }
+}
+
+function Save-StageState([string]$Ver, [string]$Key, [string]$Status, $Evidence, $Start, [string]$GoAhead, [string]$Reason) {
+    $state = Read-State $Ver
+    $entry = [ordered]@{
+        status = $Status
+        start = $Start
+        end = Get-Stamp
+        evidence = $Evidence
+        log = $script:LogFile
+    }
+    if ($GoAhead) { $entry['goAhead'] = $GoAhead }
+    if ($Reason) { $entry['reason'] = $Reason }
+    $state.stages[$Key] = $entry
+    New-Item -ItemType Directory -Force (Get-ReleaseDir $Ver) | Out-Null
+    [IO.File]::WriteAllText((Get-StatePath $Ver), ($state | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+}
+
+# Stages whose evidence is bound to the tag commit, the file hashes, the data generation.
+$script:TagBound = @('tag', 'build', 'fetch', 'rehearse', 'deploy', 'verify', 'publish')
+$script:FilesBound = @('fetch', 'rehearse', 'deploy', 'verify', 'publish')
+$script:GenerationBound = @('rehearse', 'deploy')
+
+# Problems with the earlier stages $Need (empty = all ok for this tag commit, these files, this generation).
+function Get-PriorProblems([string]$Ver, [string[]]$Need, [string]$TagCommit, [string]$Digest, [int]$DataGeneration) {
+    $state = Read-State $Ver
+    $problems = @()
+    foreach ($n in $Need) {
+        $e = $state.stages[$n]
+        if (-not $e) { $problems += "$n has not run"; continue }
+        if ($e.status -ne 'ok') { $problems += "$n is '$($e.status)'"; continue }
+        $ev = $e.evidence
+        if ($TagCommit -and $script:TagBound -contains $n -and $ev.tagCommit -ne $TagCommit) {
+            $problems += "$n was for tag commit $($ev.tagCommit), the tag is now $TagCommit"
+        }
+        if ($Digest -and $script:FilesBound -contains $n -and $ev.filesDigest -ne $Digest) {
+            $problems += "$n was for other release files (SHA256SUMS $($ev.filesDigest), now $Digest)"
+        }
+        if ($DataGeneration -and $script:GenerationBound -contains $n -and [int]$ev.dataGeneration -ne $DataGeneration) {
+            $problems += "$n was for -DataGeneration $($ev.dataGeneration), now $DataGeneration"
+        }
+    }
+    return , $problems
+}
+
+function Assert-Prior([string]$Ver, [string[]]$Need, [string]$TagCommit, [string]$Digest, [int]$DataGeneration) {
+    $p = Get-PriorProblems $Ver $Need $TagCommit $Digest $DataGeneration
+    if ($p.Count) { Stop-Harness ("earlier stage missing: " + ($p -join '; ')) }
+    Say "earlier stages ok: $($Need -join ', ')"
+}
+
+function Get-StageEvidence([string]$Ver, [string]$Key) {
+    $e = (Read-State $Ver).stages[$Key]
+    if ($e -and $e.status -eq 'ok') { return $e.evidence }
+    return $null
+}
+
+# ---- lock
+
+function Get-LockPath { return (Join-Path $script:WorkRoot 'release/harness.lock') }
+
+function Enter-Lock([string]$StageName, [string]$Ver) {
+    $lock = Get-LockPath
+    New-Item -ItemType Directory -Force (Split-Path $lock) | Out-Null
+    if (Test-Path -LiteralPath $lock) {
+        $held = $null
+        try { $held = Get-Content -LiteralPath $lock -Raw | ConvertFrom-Json } catch { }
+        $alive = $false
+        if ($held -and $held.pid) {
+            $p = Get-Process -Id ([int]$held.pid) -ErrorAction SilentlyContinue
+            # same pid AND same start time: a reused pid is not the holder (ConvertFrom-Json may return a DateTime)
+            if ($p) {
+                try { $alive = [Math]::Abs(($p.StartTime.ToUniversalTime() - ([DateTime]$held.processStart).ToUniversalTime()).TotalSeconds) -lt 1 } catch { $alive = $false }
+            }
+        }
+        if ($alive) { Stop-Harness "lock held by pid $($held.pid) (stage $($held.stage) $($held.version), since $($held.time)): $lock" }
+        Say "taking over a stale lock (pid $($held.pid) is not running): $lock"
+        Remove-Item -LiteralPath $lock -Force
+    }
+    $me = Get-Process -Id $PID
+    $body = [ordered]@{ pid = $PID; processStart = $me.StartTime.ToUniversalTime().ToString('o'); stage = $StageName; version = $Ver; time = (Get-Stamp).utc } |
+        ConvertTo-Json -Compress
+    try {
+        $fs = [IO.File]::Open($lock, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+        try { $bytes = [Text.Encoding]::UTF8.GetBytes($body); $fs.Write($bytes, 0, $bytes.Length) } finally { $fs.Dispose() }
+    } catch [IO.IOException] {
+        Stop-Harness "lock taken by another run just now: $lock"
+    }
+    $script:LockTaken = $true
+}
+
+function Exit-Lock {
+    if (-not $script:LockTaken) { return }
+    $lock = Get-LockPath
+    try {
+        $held = Get-Content -LiteralPath $lock -Raw | ConvertFrom-Json
+        if ([int]$held.pid -eq $PID) { Remove-Item -LiteralPath $lock -Force }
+    } catch { }
+    $script:LockTaken = $false
+}
+
+# ---- go-ahead, checks
+
+function Assert-GoAhead([string]$StageName) {
+    if (-not $script:GoAhead -or -not $script:GoAhead.Trim()) {
+        Stop-Harness "$StageName needs -UserGoAhead `"<the user's own words in this conversation for this release>`""
+    }
+    Say "user go-ahead (as given, not verifiable by the harness): `"$($script:GoAhead)`""
+}
+
+# One check line: OK/BAD, collected in $script:Bad.
+function Test-Check([string]$What, [bool]$Ok, [string]$Detail) {
+    if ($Ok) { Say "OK: $What" } else { Say "BAD: $What ($Detail)"; $script:Bad += $What }
+}

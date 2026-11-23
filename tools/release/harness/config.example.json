@@ -1,0 +1,25 @@
+{
+  "_comment": "Format of <main checkout>/.local/deploy/config.json for tools/release/release.ps1 (docs/chromite/release-harness.md). Copy it there and fill in the values; never commit the filled file (the repository is public). No secrets: the key is passed by path only and never read.",
+  "production": {
+    "target": "<user>@<server address>",
+    "port": 22,
+    "address": "<server address>",
+    "identityFile": "~/.ssh/<key file name>",
+    "knownHosts": "<main checkout>/.local/deploy/known_hosts",
+    "hostKeyFingerprint": "SHA256:<fingerprint of the pinned host key>",
+    "siteUrl": "https://chromite.seizia.com",
+    "siteHost": "chromite.seizia.com",
+    "root": "/srv/chromite"
+  },
+  "neighbor": {
+    "_comment": "The other service on the same server. Checked before and after a production deploy; any difference stops the harness.",
+    "status200": ["<https URL that must answer 200>", "<another one>"],
+    "feed": "<https URL of the other service's download feed (JSON with a files list)>"
+  },
+  "rehearsal": {
+    "sshExe": "C:/Windows/System32/OpenSSH/ssh.exe",
+    "host": "<ssh alias of a Linux host with Docker>",
+    "sshPort": 2222,
+    "httpPort": 8088
+  }
+}
