@@ -66,6 +66,7 @@ import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -165,7 +166,9 @@ import java.util.function.Supplier;
  *     DB 콤보와 켜짐은 늘 메인 창의 선택한 탭의 것이고({@link #getTabEditor}), 별도 창의 도구 막대는 그 창의 것이다(앱 변경 #175: 도구 막대 단추를
  *     누르면 그 창의 쿼리 창을 먼저 활성 편집기로 한다). 별도 창은 탭 목록({@link #getEditors})에 들어가 끝내기·모두 저장·
  *     다시 시작 후 복원(탭으로 돌아옴)·연결 변경 알림이 함께 다루고, 닫기는 탭 닫기와 같은 {@link #closeQueryWindow}다. 열린 창 목록인 비교의
- *     고르기({@link TextCompareCommand})와 Window 메뉴도 탭 뒤에 별도 창을 넣는다({@link #getSeparateEditors}, 앱 변경 #176).</li>
+ *     고르기({@link TextCompareCommand})와 Window 메뉴도 탭 뒤에 별도 창을 넣는다({@link #getSeparateEditors}, 앱 변경 #176). 별도 창의 탭 줄은
+ *     문서 탭과 같은 {@link #createDocumentTabs}이고, 그 탭을 이 창의 탭 줄로 끌면 이 창이 놓을 자리를 보이고 놓은 자리로 되돌린다
+ *     ({@link #queryTabDropped}, 앱 변경 #178).</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -348,6 +351,9 @@ import java.util.function.Supplier;
  * - 2026-11-23 SQL Editor 도구 막대마다 Query 동작의 사본({@link #createSqlEditorToolBar}): 켜짐·선택·도구 설명이 그 막대 창의 쿼리 창을
  *   따르고(규칙은 {@link #updateQueryActions(SqlEditorToolBar.QueryActions, SqlEditorPanel)} 한 곳), 누르면 그 창의 쿼리 창을 먼저 활성 편집기로.
  *   메뉴와 단축키는 활성 편집기 그대로 (앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 별도 창을 탭으로 되돌리기: 문서 탭 만들기를 별도 창과 함께 쓰는 static {@link #createDocumentTabs}로, 별도 창의 탭을 끄는 동안 놓을
+ *   자리(탭 줄의 선, 탭이 없으면 문서 영역 테두리, 앞에 놓인 창 아래는 아님 {@link #isCoveredAt})와 놓은 자리로 {@link #moveToMainWindow},
+ *   별도 창의 탭 메뉴는 {@link DocumentTabMenu} (앱 변경 #178, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -440,6 +446,42 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private List<JMenu> queryWindowMenus = List.of();
     // EDT only: a query window is moving into or out of the document tabs (moveToNewWindow, moveToMainWindow)
     private boolean movingQueryWindow;
+    /**
+     * The application's windows activated since this window was activated last, in that order: the windows that may lie in
+     * front of it where a separate query window's tab is dragged over it ({@link #isCoveredAt}, app change #178).
+     */
+    private final List<Window> windowsInFront = new ArrayList<>();
+    private final AWTEventListener activationListener = event -> {
+        if (event.getSource() instanceof Window window) {
+            if (event.getID() == WindowEvent.WINDOW_ACTIVATED) {
+                if (window == this) {
+                    windowsInFront.clear();
+                } else {
+                    windowsInFront.remove(window);
+                    windowsInFront.add(window);
+                }
+            } else if (event.getID() == WindowEvent.WINDOW_CLOSED) {
+                windowsInFront.remove(window);
+            }
+        }
+    };
+    /**
+     * Painted over the document area while a separate query window's tab dragged there would land in it (no tab open,
+     * {@link #showDocumentDropOutline}).
+     */
+    private final JComponent documentDropOutline = new JComponent() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            // The color and thickness of the tab drop line (EditorTabbedPane, DocumentTabDrag)
+            Color color = UIManager.getColor("TabbedPane.underlineColor"); //$NON-NLS-1$
+            g.setColor(color != null ? color : getForeground());
+            int thickness = UIScale.scale(2);
+            g.fillRect(0, 0, getWidth(), thickness);
+            g.fillRect(0, getHeight() - thickness, getWidth(), thickness);
+            g.fillRect(0, 0, thickness, getHeight());
+            g.fillRect(getWidth() - thickness, 0, thickness, getHeight());
+        }
+    };
     /**
      * The document tabs, or the welcome content while no document is open.
      */
@@ -573,7 +615,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             // Activity Monitor opens for the selected connection
             updateActivityMonitorAction();
         }, this);
-        documentTabs = createDocumentTabs();
+        documentTabs = createDocumentTabs(this::updateDocumentCard, this::closeDocumentTab);
         documentTabMenu = new DocumentTabMenu(documentTabs, this);
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -992,6 +1034,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 });
             }
         });
+        // Removed when this closes (dispose)
+        Toolkit.getDefaultToolkit().addAWTEventListener(activationListener, AWTEvent.WINDOW_EVENT_MASK);
     }
 
     /**
@@ -1014,6 +1058,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
             queryFrames.clear();
             activeQueryFrame = null;
+            Toolkit.getDefaultToolkit().removeAWTEventListener(activationListener);
+            windowsInFront.clear();
             // Also closes the floating tool windows
             toolWindowDocking.dispose();
         }
@@ -1557,7 +1603,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 linkExplorerToDocument();
             }
         });
-        addQueryTab(editor);
+        addQueryTab(editor, documentTabs.getTabCount());
         SwingUtilities.invokeLater(editor::focusEditor);
         return editor;
     }
@@ -1650,7 +1696,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             movingQueryWindow = false;
         }
         QueryWindowFrame frame = new QueryWindowFrame(editor, createSqlEditorToolBar(() -> setActiveQueryFrame(getQueryFrame(editor))), this,
-            queryWindowMenus, getRootPane(), saveAction, saveAsAction);
+            queryWindowMenus, getRootPane());
         frame.place(drop, this, queryFrames.size(), editorSize, resultsSize);
         queryFrames.add(frame);
         textCompareCommand.update();
@@ -1660,10 +1706,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * "Move to Main Window" of a separate query window: back into the document tabs as the last tab, selected.
+     * A separate query window back into the document tabs, selected: "Move to Main Window" of its tab menu as the last
+     * tab, its tab dropped on the tab strip at that place (app change #178). The same object, as when it moved out.
+     *
+     * @param index the place among the tabs, or -1 for after the last tab
      */
     @Override
-    public void moveToMainWindow(@NotNull SqlEditorPanel editor) {
+    public void moveToMainWindow(@NotNull SqlEditorPanel editor, int index) {
         QueryWindowFrame frame = getQueryFrame(editor);
         if (frame == null) {
             return;
@@ -1671,12 +1720,100 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         removeQueryFrame(frame);
         movingQueryWindow = true;
         try {
-            addQueryTab(editor);
+            int count = documentTabs.getTabCount();
+            addQueryTab(editor, index < 0 ? count : Math.min(index, count));
         } finally {
             movingQueryWindow = false;
         }
         toFront();
         SwingUtilities.invokeLater(editor::focusEditor);
+    }
+
+    @Override
+    public void queryTabDragged(@NotNull SqlEditorPanel editor, @NotNull Point screen) {
+        updateQueryTabTarget(screen);
+    }
+
+    @Override
+    public void queryTabDropped(@NotNull SqlEditorPanel editor, @NotNull Point screen) {
+        int index = updateQueryTabTarget(screen);
+        updateQueryTabTarget(null);
+        if (index >= 0) {
+            moveToMainWindow(editor, index);
+        }
+    }
+
+    @Override
+    public void showQueryTabMenu(@NotNull SqlEditorPanel editor, @NotNull Component invoker, int x, int y) {
+        documentTabMenu.showQueryWindowMenu(editor, invoker, x, y);
+    }
+
+    /**
+     * Where a separate query window's tab dragged to a screen point lands in this window (app change #178), shown here
+     * as a tab of this window's strip shows it ({@link DocumentTabDrag}): a place on the tab strip, or the document area
+     * while no tab is open (there is no strip then). Nothing while this window is minimized or not showing, or where a
+     * window lies in front of it ({@link #isCoveredAt}).
+     *
+     * @param screen the pointer, or null to end showing it
+     * @return the place among the tabs, or -1 for none
+     */
+    private int updateQueryTabTarget(@Nullable Point screen) {
+        boolean target = screen != null && isShowing() && (getExtendedState() & ICONIFIED) == 0 && !isCoveredAt(screen);
+        int index = -1;
+        if (target && documentTabs.isShowing()) {
+            Point point = new Point(screen);
+            SwingUtilities.convertPointFromScreen(point, documentTabs);
+            index = documentTabMenu.getTabDrag().dragFromOutside(point);
+        } else {
+            documentTabMenu.getTabDrag().dragFromOutside(null);
+        }
+        boolean area = false;
+        if (target && documentTabs.getTabCount() == 0 && documentCards.isShowing()) {
+            Point point = new Point(screen);
+            SwingUtilities.convertPointFromScreen(point, documentCards);
+            area = documentCards.contains(point);
+        }
+        showDocumentDropOutline(area);
+        return area ? 0 : index;
+    }
+
+    /**
+     * Whether a window lies over this one at a screen point. AWT does not tell the stacking order of windows, so it is
+     * taken from what raises a window: the windows activated since this one was activated last ({@link #windowsInFront},
+     * among them the separate window whose tab is dragged, which the press activated) and the windows this one owns
+     * (dialogs, which stay in front of it). Windows of other applications are not known.
+     */
+    private boolean isCoveredAt(@NotNull Point screen) {
+        for (Window window : windowsInFront) {
+            if (window.isShowing() && window.getBounds().contains(screen)) {
+                return true;
+            }
+        }
+        for (Window window : getOwnedWindows()) {
+            if (window.isShowing() && window.getBounds().contains(screen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The document area's outline in the tab drop line's color while a separate query window's tab dragged over it would
+     * land there (no tab open, app change #178).
+     */
+    private void showDocumentDropOutline(boolean show) {
+        JLayeredPane layers = getLayeredPane();
+        if (show) {
+            if (documentDropOutline.getParent() != layers) {
+                layers.add(documentDropOutline, JLayeredPane.DRAG_LAYER);
+            }
+            documentDropOutline.setBounds(SwingUtilities.convertRectangle(documentCards.getParent(), documentCards.getBounds(), layers));
+            documentDropOutline.repaint();
+        } else if (documentDropOutline.getParent() == layers) {
+            Rectangle bounds = documentDropOutline.getBounds();
+            layers.remove(documentDropOutline);
+            layers.repaint(bounds);
+        }
     }
 
     @Override
@@ -1717,14 +1854,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * A query window's tab as the last one, selected: a new window ({@link #openQueryEditor}) and one that comes back from
-     * its own window.
+     * A query window's tab at a place, selected: a new window ({@link #openQueryEditor}, the last tab) and one that comes
+     * back from its own window.
      */
-    private void addQueryTab(@NotNull SqlEditorPanel editor) {
+    private void addQueryTab(@NotNull SqlEditorPanel editor, int index) {
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
-        int index = documentTabs.indexOfComponent(editor);
-        documentTabs.setToolTipTextAt(index, editor.getToolTip());
+        documentTabs.insertTab(editor.getTitle(), editor.getTabIcon(), editor, editor.getToolTip(), index);
         documentTabs.setSelectedIndex(index);
     }
 
@@ -2236,6 +2371,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return saveAction;
     }
 
+    @NotNull
+    @Override
+    public Action getSaveAsAction() {
+        return saveAsAction;
+    }
+
     /**
      * The active document, the one rule for what the commands, the Query menu and its enabled state, Find, Outline, Link
      * with Editor, the Chromite Agent and the Query Library act on (app change #173; the SQL Editor tool bars show their own
@@ -2547,16 +2688,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Center document area: the document tabs (all closable, but not while pinned). Without tabs the area shows
-     * {@link WelcomePanel}. Their position, rows and menu are {@link DocumentTabMenu}'s.
+     * Document tabs: the center document area's (all closable, but not while pinned; without tabs the area shows
+     * {@link WelcomePanel}; their position, rows and menu are {@link DocumentTabMenu}'s), and the one-tab strip of a
+     * separate query window ({@link QueryWindowFrame}, app change #178), so that a tab looks and closes the same in both.
+     *
+     * @param tabsChanged called after a tab was added or removed
+     * @param closeTab    closes the tab at an index after its questions: the close button and a middle click
      */
     @NotNull
-    private EditorTabbedPane createDocumentTabs() {
-        EditorTabbedPane tabs = new EditorTabbedPane(this::updateDocumentCard);
+    static EditorTabbedPane createDocumentTabs(@NotNull Runnable tabsChanged, @NotNull IntConsumer closeTab) {
+        EditorTabbedPane tabs = new EditorTabbedPane(tabsChanged);
         // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline.
         // In several rows (DocumentTabMenu) the rows stay where they are: the selected tab's row does not move next to the content
         tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE + "; rotateTabRuns: false"); //$NON-NLS-1$
-        tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
+        tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, closeTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
@@ -2565,7 +2710,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     int index = tabs.indexAtLocation(e.getX(), e.getY());
                     if (index >= 0 && tabs.getComponentAt(index) instanceof JComponent component
                         && Boolean.TRUE.equals(component.getClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE))) {
-                        closeDocumentTab(index);
+                        closeTab.accept(index);
                     }
                 }
             }

@@ -16,8 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
-import com.seizia.chromite.ui.swing.internal.DockingMessages;
 import com.seizia.chromite.ui.swing.internal.DocumentTabMessages;
 import com.seizia.chromite.utils.GeneralUtils;
 import org.eclipse.osgi.util.NLS;
@@ -26,7 +26,10 @@ import org.jkiss.code.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.dnd.DragSource;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.HashSet;
@@ -43,8 +46,13 @@ import java.util.Set;
  *     그래서 옮겨도 세션, 실행 중인 쿼리, 결과, 트랜잭션, 고침 상태가 같은 객체로 남고 다시 연결하거나 문장을 보내지 않는다.</li>
  *     <li>배치는 메인 창의 쿼리 창 부분과 같다: 위에 SQL Editor 도구 막대({@link SqlEditorToolBar}, Query 메뉴 동작의 이 창만의 사본을 쓰는 둘째
  *     인스턴스라 켜짐·선택·도구 설명과 DB 콤보는 이 창 편집기의 것이고, 누르면 이 창의 쿼리 창에 적용된다), 가운데 편집기 카드와 그 아래 결과 카드(분할선), 아래 상태 표시줄(연결 색 띠). Islands 캔버스·카드
- *     모양도 메인 창과 같다. 도구 막대 오른쪽 끝의 ⋮ 단추(도구 창 머리말의 옵션 단추와 같은 모양)가 탭 메뉴 자리다: 저장, 다른 이름으로 저장,
- *     주 창으로 이동, 닫기. 저장 두 항목은 File 메뉴의 동작이라 활성 편집기, 곧 이 창의 쿼리 창에 적용된다.</li>
+ *     모양도 메인 창과 같다.</li>
+ *     <li>편집기 카드는 메인 창의 문서 카드처럼 위에 탭 줄을 두고 그 탭 하나가 이 창의 쿼리 창이다(앱 변경 #178). 탭 줄은 메인 창과 같은
+ *     {@link MainFrame.EditorTabbedPane}({@code MainFrame#createDocumentTabs}: 같은 UI·스타일·닫기 단추·가운데 단추 닫기)이라 탭이 메인 창에서와 같게
+ *     그려지고, 제목·아이콘·도구 설명은 메인 창이 탭에 하는 것처럼 {@link #updateTitle}이 맞춘다. 메인 창의 탭 위치·여러 행 설정은 따르지 않는다(탭이
+ *     하나라 늘 위쪽 한 행). 나가는 길(탭 메뉴, 탭 줄 밖으로 끌기)과 같게 돌아오는 길도 탭에 있다: 탭을 메인 창의 탭 줄로 끌어 놓으면 그 자리로
+ *     돌아가고({@link Host#queryTabDropped}), 오른쪽 클릭은 메인 창의 탭 메뉴({@link DocumentTabMenu#showQueryWindowMenu}, 주 창으로 이동 포함)다.
+ *     예전의 도구 막대 ⋮ 단추와 그 메뉴는 같은 항목이 탭 메뉴에 있어 지웠다(한 메뉴는 한 곳에).</li>
  *     <li>단축키: 메뉴 막대는 메인 창에만 있으므로, 메인 창의 File·Edit·Query·Window 메뉴 항목의 단축키를 이 창의 루트 창에 같은 항목으로 건다
  *     (항목이 꺼져 있으면 아무것도 하지 않음). Execute의 Alt+X처럼 메인 창 루트 창에 따로 건 키도 같은 동작이면 건다. 그 동작들은 "활성 편집기"
  *     ({@link MainFrame}: 마지막으로 활성이 된 창의 쿼리 창)에 적용되므로 이 창에서 누르면 이 창의 쿼리 창에 적용된다. View·Tools 메뉴(메인 창의
@@ -52,7 +60,7 @@ import java.util.Set;
  *     <li>창 닫기(X)는 탭 닫기와 같은 경로({@link Host#closeQueryWindow}: 결과 표 변경, 저장하지 않은 변경, 열린 트랜잭션 질문)이고, 취소하면 창이
  *     남는다. 그래서 {@code DO_NOTHING_ON_CLOSE}로 직접 처리한다.</li>
  *     <li>제목은 탭 제목과 제품 이름, 아이콘은 제품 창 아이콘. 작업 표시줄에 따로 보이는 보통 창이고 항상 위가 아니다(소유 창 없음). 크기는 쿼리
- *     창이 메인 창에서 차지하던 크기다({@link #place}): 편집기 카드는 문서 탭의 편집기 영역, 결과 카드는 그 아래 Results 카드의 크기이고 분할선도 그
+ *     창이 메인 창에서 차지하던 크기다({@link #place}): 편집기는 문서 탭의 편집기 영역(탭 줄은 그 위에 더함), 결과 카드는 그 아래 Results 카드의 크기이고 분할선도 그
  *     자리다. 보던 것을 그대로 보이려는 것이다(메인 창 크기의 비율로 정하면 결과 영역의 고정 줄만 남아 그리드 행이 보이지 않았다). 카드마다 편집기
  *     {@link #MIN_EDITOR_LINES}줄, 그리드 {@link #MIN_GRID_ROWS}행은 보이게 하고, 폭은 도구 막대 줄과 상태 표시줄이 다 들어가게 한다. 메인 창이
  *     편집기 아래에 보이지 않는 결과 카드(숨김, 옆)는 그 최소 높이를 편집기 영역에서 덜어 창이 쿼리 창이 차지하던 높이를 넘지 않게 한다. 창은 화면
@@ -67,6 +75,8 @@ import java.util.Set;
  *   화면 작업 영역의 2/3 이하로, 화면 고르기를 {@link #fitToScreen}과 함께 쓰는 getUsableArea로 (앱 변경 #174, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  * - 2026-11-23 주석만: 도구 막대가 Query 메뉴 동작 대신 이 창만의 사본을 써서 이 창의 쿼리 창 상태를 보임({@code MainFrame#createSqlEditorToolBar},
  *   앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-23 편집기 카드 위에 탭 하나의 탭 줄(메인 창의 문서 탭과 같은 것), 탭을 메인 창 탭 줄로 끌어 넣기, 탭의 오른쪽 클릭 메뉴는 메인 창의
+ *   탭 메뉴, ⋮ 단추와 창 메뉴 삭제, 창이 탭 줄만큼 높아짐 (앱 변경 #178, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class QueryWindowFrame extends JFrame {
 
@@ -87,9 +97,20 @@ final class QueryWindowFrame extends JFrame {
         boolean closeQueryWindow(@NotNull SqlEditorPanel editor);
 
         /**
-         * Moves the query window back into the main window as its last tab.
+         * The window's tab is dragged to a screen point: the main window shows where it would land there.
          */
-        void moveToMainWindow(@NotNull SqlEditorPanel editor);
+        void queryTabDragged(@NotNull SqlEditorPanel editor, @NotNull Point screen);
+
+        /**
+         * The window's tab was dropped at a screen point: over the main window's tab strip the query window goes back
+         * there, at that place; anywhere else nothing happens.
+         */
+        void queryTabDropped(@NotNull SqlEditorPanel editor, @NotNull Point screen);
+
+        /**
+         * Shows the tab menu of the window's tab.
+         */
+        void showQueryTabMenu(@NotNull SqlEditorPanel editor, @NotNull Component invoker, int x, int y);
     }
 
     /**
@@ -117,6 +138,8 @@ final class QueryWindowFrame extends JFrame {
 
     private final SqlEditorPanel editor;
     private final SqlEditorToolBar toolBar;
+    // The tab strip with the query window's one tab, the main window's kind of document tabs
+    private final MainFrame.EditorTabbedPane tabs;
     private final JPanel editorCard;
     private final JPanel resultsCard;
     private final JSplitPane split;
@@ -128,11 +151,9 @@ final class QueryWindowFrame extends JFrame {
      * @param toolBar      a SQL Editor tool bar of its own, with its own copies of the main window's Query actions
      * @param menus        the main window's menus whose shortcuts work in this window too
      * @param mainRootPane the main window's root pane, whose extra keys of those actions are bound too
-     * @param saveAction   File &gt; Save, for the window's menu
-     * @param saveAsAction File &gt; Save As, for the window's menu
      */
     QueryWindowFrame(@NotNull SqlEditorPanel editor, @NotNull SqlEditorToolBar toolBar, @NotNull Host host, @NotNull List<JMenu> menus,
-                     @NotNull JRootPane mainRootPane, @NotNull Action saveAction, @NotNull Action saveAsAction) {
+                     @NotNull JRootPane mainRootPane) {
         this.editor = editor;
         this.toolBar = toolBar;
         setIconImages(ChromiteIcons.getWindowIcons());
@@ -140,25 +161,14 @@ final class QueryWindowFrame extends JFrame {
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         toolBar.setActiveEditor(editor);
-        // The tab's menu items for a window without a tab, behind the ⋮ button as in the tool window headers
-        Action menuAction = new AbstractAction(DockingMessages.docking_options) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Component button = (Component) e.getSource();
-                createWindowMenu(host, saveAction, saveAsAction).show(button, 0, button.getHeight());
-            }
-        };
-        JToolBar windowBar = new JToolBar();
-        windowBar.setFloatable(false);
-        windowBar.setOpaque(false);
-        windowBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
-        windowBar.add(UiIcons.createActionButton(menuAction, "more")); //$NON-NLS-1$
-        JPanel toolBars = new JPanel(new BorderLayout());
-        toolBars.setOpaque(false);
-        toolBars.add(toolBar.getComponent(), BorderLayout.CENTER);
-        toolBars.add(windowBar, BorderLayout.EAST);
+        // The close button and a middle click close the window as its X does
+        tabs = MainFrame.createDocumentTabs(() -> { }, index -> host.closeQueryWindow(editor));
+        tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        tabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
+        installTabDrag(host);
 
-        editorCard = new IslandPanel(editor);
+        editorCard = new IslandPanel(tabs);
         resultsCard = new IslandPanel(editor.getResultsView().getComponent());
         split = new MainFrame.LineSplitPane(JSplitPane.VERTICAL_SPLIT);
         split.setContinuousLayout(true);
@@ -173,7 +183,7 @@ final class QueryWindowFrame extends JFrame {
         statusBar.setLine(editor.getStatusLine());
 
         JPanel content = new MainFrame.CanvasPanel(new BorderLayout());
-        content.add(toolBars, BorderLayout.NORTH);
+        content.add(toolBar.getComponent(), BorderLayout.NORTH);
         content.add(split, BorderLayout.CENTER);
         content.add(statusBar, BorderLayout.SOUTH);
         setContentPane(content);
@@ -201,22 +211,68 @@ final class QueryWindowFrame extends JFrame {
     }
 
     /**
-     * Save, Save As │ Move to Main Window, Close; made when it opens, so that it has the current theme. Save and Save As
-     * are the File menu's actions: they act on the active editor, which this window's is once it was clicked.
+     * The tab's right click menu (the main window's tab menu, {@link Host#showQueryTabMenu}) and its dragging: a left
+     * press on the tab, not on its close button, moved past the platform's drag threshold, as on the main window's strip
+     * ({@link DocumentTabDrag}). While it is dragged the main window shows where it lands; the release decides there.
      */
-    @NotNull
-    private JPopupMenu createWindowMenu(@NotNull Host host, @NotNull Action saveAction, @NotNull Action saveAsAction) {
-        JPopupMenu menu = new JPopupMenu();
-        menu.add(new JMenuItem(saveAction));
-        menu.add(new JMenuItem(saveAsAction));
-        menu.addSeparator();
-        JMenuItem moveItem = new JMenuItem(DocumentTabMessages.tab_move_to_main);
-        moveItem.addActionListener(e -> host.moveToMainWindow(editor));
-        menu.add(moveItem);
-        JMenuItem closeItem = new JMenuItem(DocumentTabMessages.tab_close);
-        closeItem.addActionListener(e -> host.closeQueryWindow(editor));
-        menu.add(closeItem);
-        return menu;
+    private void installTabDrag(@NotNull Host host) {
+        MouseAdapter listener = new MouseAdapter() {
+            @Nullable
+            private Point pressedPoint;
+            private boolean dragging;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                pressedPoint = null;
+                dragging = false;
+                if (e.isPopupTrigger()) {
+                    showMenu(e);
+                    return;
+                }
+                int index = tabs.indexAtLocation(e.getX(), e.getY());
+                if (SwingUtilities.isLeftMouseButton(e) && index >= 0 && !tabs.isCloseButtonAt(index, e.getPoint())) {
+                    pressedPoint = e.getPoint();
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (pressedPoint == null) {
+                    return;
+                }
+                if (!dragging) {
+                    if (pressedPoint.distance(e.getPoint()) < DragSource.getDragThreshold()) {
+                        return;
+                    }
+                    dragging = true;
+                }
+                host.queryTabDragged(editor, e.getLocationOnScreen());
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showMenu(e);
+                }
+                if (!SwingUtilities.isLeftMouseButton(e)) {
+                    return;
+                }
+                boolean dropped = dragging;
+                pressedPoint = null;
+                dragging = false;
+                if (dropped) {
+                    host.queryTabDropped(editor, e.getLocationOnScreen());
+                }
+            }
+
+            private void showMenu(@NotNull MouseEvent e) {
+                if (tabs.indexAtLocation(e.getX(), e.getY()) >= 0) {
+                    host.showQueryTabMenu(editor, tabs, e.getX(), e.getY());
+                }
+            }
+        };
+        tabs.addMouseListener(listener);
+        tabs.addMouseMotionListener(listener);
     }
 
     @NotNull
@@ -230,20 +286,27 @@ final class QueryWindowFrame extends JFrame {
     }
 
     /**
-     * The tab's title (file, connection, modified mark) and the product name.
+     * The window's title (the tab's title: file, connection, modified mark; and the product name) and its tab, as the
+     * main window sets a tab ({@code MainFrame#titleChanged}).
      */
     void updateTitle() {
         setTitle(NLS.bind(DocumentTabMessages.tab_window_title, editor.getTitle(), GeneralUtils.getProductName()));
+        int index = tabs.indexOfComponent(editor);
+        if (index >= 0) {
+            tabs.setTitleAt(index, editor.getTitle());
+            tabs.setToolTipTextAt(index, editor.getToolTip());
+            tabs.setIconAt(index, editor.getTabIcon());
+        }
     }
 
     /**
      * Lets the query window's components go, before they go back to the main window or the window closes: the picker
-     * leaves the tool bar, the status cells the status bar, the editor and its results their cards.
+     * leaves the tool bar, the status cells the status bar, the editor its tab and the results their card.
      */
     void release() {
         toolBar.setActiveEditor(null);
         statusBar.setLine(null);
-        editorCard.remove(editor);
+        tabs.remove(editor);
         resultsCard.remove(editor.getResultsView().getComponent());
     }
 
@@ -254,8 +317,8 @@ final class QueryWindowFrame extends JFrame {
      * editor area of the document tabs above, the Results card below, the divider between them. A Results card the main
      * window does not show below the editor (hidden, beside) gets its floor out of the editor area, so the window is as
      * high as the area the query window had. Floors: the editor {@link #MIN_EDITOR_LINES} lines, the results
-     * {@link #MIN_GRID_ROWS} grid rows, the width of the tool bar row and status bar. The frame adds those two rows and its
-     * decoration ({@link #pack()}). The frame is at most {@link #SCREEN_SHARE} of the usable screen area in each
+     * {@link #MIN_GRID_ROWS} grid rows, the width of the tool bar row and status bar. The frame adds those two rows, the
+     * tab strip above the editor and its decoration ({@link #pack()}). The frame is at most {@link #SCREEN_SHARE} of the usable screen area in each
      * dimension; the height it takes away comes from the editor, down to its floor. The floors win over that limit, and
      * {@link #fitToScreen} over everything.
      *
@@ -294,15 +357,16 @@ final class QueryWindowFrame extends JFrame {
 
     /**
      * Packs the frame around cards of these content sizes; the preferred sizes are only for this size, later the user's
-     * resizing and the divider decide.
+     * resizing and the divider decide. The editor's size is the editor's own, below the tab strip (app change #178): the
+     * tab pane adds the strip, so the window is higher by it and the editor keeps the size it had in the main window.
      */
     private void packCards(int width, int editorHeight, int resultsHeight) {
-        Insets editorInsets = editorCard.getInsets();
         Insets resultsInsets = resultsCard.getInsets();
-        editorCard.setPreferredSize(new Dimension(width + editorInsets.left + editorInsets.right, editorHeight + editorInsets.top + editorInsets.bottom));
+        Dimension editorPreferred = editor.isPreferredSizeSet() ? editor.getPreferredSize() : null;
+        editor.setPreferredSize(new Dimension(width, editorHeight));
         resultsCard.setPreferredSize(new Dimension(width + resultsInsets.left + resultsInsets.right, resultsHeight + resultsInsets.top + resultsInsets.bottom));
         pack();
-        editorCard.setPreferredSize(null);
+        editor.setPreferredSize(editorPreferred);
         resultsCard.setPreferredSize(null);
     }
 
