@@ -1785,16 +1785,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private boolean isCoveredAt(@NotNull Point screen) {
         for (Window window : windowsInFront) {
-            if (window.isShowing() && window.getBounds().contains(screen)) {
+            if (coversAt(window, screen)) {
                 return true;
             }
         }
         for (Window window : getOwnedWindows()) {
-            if (window.isShowing() && window.getBounds().contains(screen)) {
+            if (coversAt(window, screen)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * A minimized window covers nothing: it stays showing and keeps the bounds it had before it was minimized.
+     */
+    private static boolean coversAt(@NotNull Window window, @NotNull Point screen) {
+        boolean minimized = window instanceof Frame frame && (frame.getExtendedState() & ICONIFIED) != 0;
+        return window.isShowing() && !minimized && window.getBounds().contains(screen);
     }
 
     /**
