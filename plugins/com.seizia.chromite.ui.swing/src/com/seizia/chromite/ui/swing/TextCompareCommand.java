@@ -34,6 +34,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * "비교" 명령: 열린 창 두 개를 고르게 하고 그 글을 나란히 비교하는 문서 탭({@link TextComparePanel})을 연다. SQL Editor 도구 막대의 단추와
@@ -42,17 +43,24 @@ import java.util.Objects;
  * 설계:
  * <ul>
  *     <li>사용자 결정(2026-11-12): "diff는 버튼을 누르면 열려있는 창을 두개 선택하게 하고 선택된 창의 내용을 비교하는 팝업화면으로 만든다",
- *     팝업을 본 뒤 "스키마 비교처럼 별도 탭으로". 그래서 비교 대상은 열린 문서 탭의 글이고 결과는 새 문서 탭이다: 쿼리 창({@link SqlEditorPanel}, Modify·New 창과 Query Library 창도 쿼리 창이다)을 먼저,
- *     다음에 DDL 탭({@link DdlViewerPanel})을 탭 순서대로. 둘 다 같은 {@link SqlEditorPanel.SqlTextArea}로 글을 그대로 내준다.
- *     다른 문서 탭(비교 탭과 스키마 비교를 포함한 도구 화면, 디버거의 소스, 테이블 디자이너)은 글을 내주는 창이 아니라 넣지 않았다.</li>
+ *     팝업을 본 뒤 "스키마 비교처럼 별도 탭으로". 그래서 비교 대상은 열린 창의 글이고 결과는 새 문서 탭이다: 쿼리 창({@link SqlEditorPanel}, Modify·New 창과 Query Library 창도 쿼리 창이다)을 먼저
+ *     (메인 창 탭의 것을 탭 순서대로, 다음에 별도 창({@link QueryWindowFrame})으로 옮긴 것을 메인 창이 가진 순서대로), 다음에 DDL 탭({@link DdlViewerPanel})을
+ *     탭 순서대로. 둘 다 같은 {@link SqlEditorPanel.SqlTextArea}로 글을 그대로 내준다. 별도 창도 넣는 것은 그 창의 글을 비교하려고 탭으로 되돌리지 않게
+ *     하려는 것이다(앱 변경 #176). 다른 문서 탭(비교 탭과 스키마 비교를 포함한 도구 화면, 디버거의 소스, 테이블 디자이너)은 글을 내주는 창이 아니라 넣지 않았다.</li>
  *     <li>고르기는 "왼쪽", "오른쪽" 콤보 두 개다. 목록 하나에 확인란 두 개보다 어느 쪽에 놓일지가 바로 보인다. 처음 값은 활성 창(왼쪽)과 그 전에
- *     활성이던 창(오른쪽)이다. 그래서 이 명령이 탭 선택을 따라간다. 창이 꼭 두 개여도 묻는다: 늘 같은 흐름이고 좌우를 고를 수 있다.</li>
- *     <li>목록의 행은 탭처럼 보인다: 탭 아이콘과 제목(고침 표시 {@code *} 포함), 제목 안의 연결 이름은 Object Explorer와 같은 연결 색 알약.</li>
- *     <li>켜짐: 비교할 창이 두 개 이상일 때. 꺼졌을 때 도구 설명은 이름과 다음 줄의 이유다(앱 변경 #103의 꺼진 이유 규칙).</li>
+ *     활성이던 창(오른쪽)이다. 활성 창은 메인 창의 활성 편집기 규칙({@code MainFrame#getActiveDocument}: 선택한 탭 또는 마지막으로 활성이 된 별도 창)이고
+ *     메인 창이 바뀔 때마다 알린다({@link #activeDocumentChanged}). 고르기 창은 그 활성 창이 있는 창 위에 뜬다(별도 창의 도구 막대에서 시작하면 그 창 위).
+ *     창이 꼭 두 개여도 묻는다: 늘 같은 흐름이고 좌우를 고를 수 있다.</li>
+ *     <li>목록의 행은 탭처럼 보인다: 탭 아이콘과 제목(고침 표시 {@code *} 포함), 제목 안의 연결 이름은 Object Explorer와 같은 연결 색 알약. 별도 창의
+ *     쿼리 창은 탭이 없어 쿼리 창 자신의 탭 제목과 아이콘으로 같은 모양을 만든다.</li>
+ *     <li>켜짐: 비교할 창이 두 개 이상일 때(어느 창에 있든). 탭은 탭 묶음의 컨테이너 리스너가, 별도 창으로 옮기기·되돌리기·닫기는 메인 창이
+ *     {@link #update}를 불러 알린다. 꺼졌을 때 도구 설명은 이름과 다음 줄의 이유다(앱 변경 #103의 꺼진 이유 규칙).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성 (docs/chromite/text-compare.md)
+ * - 2026-11-23 별도 창의 쿼리 창도 목록·켜짐·처음 값·다시 읽기에 넣음, 활성 창은 탭 선택 대신 메인 창의 활성 문서, 고르기 창은 그 창 위에
+ *   (앱 변경 #176, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class TextCompareCommand {
 
@@ -103,6 +111,7 @@ final class TextCompareCommand {
     private final JFrame owner;
     private final ObjectExplorerPanel.QueryWindows host;
     private final JTabbedPane tabs;
+    private final Supplier<List<SqlEditorPanel>> separateWindows;
     private final Action action;
     @Nullable
     private Component active;
@@ -110,29 +119,23 @@ final class TextCompareCommand {
     private Component previous;
 
     /**
-     * @param host the main window, which opens the Compare tab
-     * @param tabs the main window's document tabs: the windows to choose from
+     * @param host            the main window, which opens the Compare tab
+     * @param tabs            the main window's document tabs: windows to choose from
+     * @param separateWindows the query windows in windows of their own, in the order the main window keeps them: windows
+     *                        to choose from too
      */
-    TextCompareCommand(@NotNull JFrame owner, @NotNull ObjectExplorerPanel.QueryWindows host, @NotNull JTabbedPane tabs) {
+    TextCompareCommand(@NotNull JFrame owner, @NotNull ObjectExplorerPanel.QueryWindows host, @NotNull JTabbedPane tabs,
+                       @NotNull Supplier<List<SqlEditorPanel>> separateWindows) {
         this.owner = owner;
         this.host = host;
         this.tabs = tabs;
+        this.separateWindows = separateWindows;
         action = new AbstractAction(TextCompareMessages.textcompare_command) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 run();
             }
         };
-        // The window active before the current one is the first choice for the right side
-        tabs.addChangeListener(e -> {
-            Component selected = tabs.getSelectedComponent();
-            if (selected != active) {
-                if (getTextArea(active) != null) {
-                    previous = active;
-                }
-                active = selected;
-            }
-        });
         tabs.addContainerListener(new ContainerAdapter() {
             @Override
             public void componentAdded(ContainerEvent e) {
@@ -155,8 +158,25 @@ final class TextCompareCommand {
         return action;
     }
 
-    private void update() {
-        boolean enabled = listWindows(tabs).size() >= 2;
+    /**
+     * The active document changed (the main window's rule, {@code MainFrame#getActiveDocument}: a tab or a separate
+     * window): the window active before it is the first choice for the right side.
+     */
+    void activeDocumentChanged(@Nullable Component document) {
+        if (document != active) {
+            if (getTextArea(active) != null) {
+                previous = active;
+            }
+            active = document;
+        }
+    }
+
+    /**
+     * The open windows changed: the main window calls this when a query window moved into or out of a window of its own
+     * or such a window closed (the tabs' own changes come from their container listener).
+     */
+    void update() {
+        boolean enabled = listWindows().size() >= 2;
         action.setEnabled(enabled);
         // The reason on its own line below the name (app change #103)
         action.putValue(Action.SHORT_DESCRIPTION, enabled ? null
@@ -165,7 +185,7 @@ final class TextCompareCommand {
     }
 
     private void run() {
-        List<Window> windows = listWindows(tabs);
+        List<Window> windows = listWindows();
         if (windows.size() < 2) {
             return;
         }
@@ -178,10 +198,20 @@ final class TextCompareCommand {
             Window first = left;
             right = windows.stream().filter(w -> w.component() != first.component()).findFirst().orElseThrow();
         }
-        Window[] chosen = ChooserDialog.choose(owner, windows, left, right);
+        // Over the window it was started from: the active document's (clicking a separate window's tool bar activates it first)
+        java.awt.Window parent = active != null ? SwingUtilities.getWindowAncestor(active) : null;
+        Window[] chosen = ChooserDialog.choose(parent != null ? parent : owner, windows, left, right);
         if (chosen != null) {
-            TextComparePanel.open(host, tabs, chosen[0], chosen[1]);
+            TextComparePanel.open(host, this, chosen[0], chosen[1]);
         }
+    }
+
+    /**
+     * The main window's document tabs, where the Compare tab is.
+     */
+    @NotNull
+    JTabbedPane getDocumentTabs() {
+        return tabs;
     }
 
     @Nullable
@@ -207,10 +237,11 @@ final class TextCompareCommand {
     }
 
     /**
-     * The open windows with text: query windows, then DDL tabs, each in tab order.
+     * The open windows with text: the query windows of the tabs in tab order, then those in windows of their own in the
+     * main window's order, then the DDL tabs in tab order.
      */
     @NotNull
-    static List<Window> listWindows(@NotNull JTabbedPane tabs) {
+    private List<Window> listWindows() {
         List<Window> queryWindows = new ArrayList<>();
         List<Window> others = new ArrayList<>();
         for (int i = 0; i < tabs.getTabCount(); i++) {
@@ -221,24 +252,41 @@ final class TextCompareCommand {
                 others.add(describe(tabs, i));
             }
         }
+        for (SqlEditorPanel editor : separateWindows.get()) {
+            queryWindows.add(describe(editor));
+        }
         queryWindows.addAll(others);
         return queryWindows;
     }
 
     /**
-     * The window at its tab as the tab shows it now, or null when the window is no longer open.
+     * The window as its tab or its own window shows it now, or null when the window is no longer open. A query window
+     * moved into or out of a window of its own after the comparison opened is the same component, found where it is now.
      */
     @Nullable
-    static Window describe(@NotNull JTabbedPane tabs, @NotNull Component component) {
+    Window describe(@NotNull Component component) {
         int index = tabs.indexOfComponent(component);
-        return index < 0 ? null : describe(tabs, index);
+        if (index >= 0) {
+            return describe(tabs, index);
+        }
+        return component instanceof SqlEditorPanel editor && separateWindows.get().contains(editor) ? describe(editor) : null;
     }
 
     @NotNull
     private static Window describe(@NotNull JTabbedPane tabs, int index) {
-        Component component = tabs.getComponentAt(index);
-        String title = tabs.getTitleAt(index);
-        Icon icon = tabs.getIconAt(index);
+        return describe(tabs.getComponentAt(index), tabs.getTitleAt(index), tabs.getIconAt(index));
+    }
+
+    /**
+     * A query window in a window of its own, as its tab would show it (the title and icon its tab had and gets back).
+     */
+    @NotNull
+    private static Window describe(@NotNull SqlEditorPanel editor) {
+        return describe(editor, editor.getTitle(), editor.getTabIcon());
+    }
+
+    @NotNull
+    private static Window describe(@NotNull Component component, @NotNull String title, @Nullable Icon icon) {
         if (component instanceof SqlEditorPanel editor) {
             // "SQLQuery1.sql - connection*": the connection's name gets its pill
             DBPDataSourceContainer connection = editor.getDataSourceContainer();
@@ -291,7 +339,7 @@ final class TextCompareCommand {
         @Nullable
         private Window[] chosen;
 
-        private ChooserDialog(@NotNull JFrame owner, @NotNull List<Window> windows, @NotNull Window left, @NotNull Window right) {
+        private ChooserDialog(@NotNull java.awt.Window owner, @NotNull List<Window> windows, @NotNull Window left, @NotNull Window right) {
             super(owner, TextCompareMessages.textcompare_choose_title, ModalityType.APPLICATION_MODAL);
             setIconImages(ChromiteIcons.getWindowIcons());
             Window[] items = windows.toArray(new Window[0]);
@@ -335,7 +383,7 @@ final class TextCompareCommand {
         }
 
         @Nullable
-        static Window[] choose(@NotNull JFrame owner, @NotNull List<Window> windows, @NotNull Window left, @NotNull Window right) {
+        static Window[] choose(@NotNull java.awt.Window owner, @NotNull List<Window> windows, @NotNull Window left, @NotNull Window right) {
             ChooserDialog dialog = new ChooserDialog(owner, windows, left, right);
             dialog.setVisible(true);
             return dialog.chosen;
