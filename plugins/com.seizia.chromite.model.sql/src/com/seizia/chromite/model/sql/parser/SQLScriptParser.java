@@ -87,6 +87,12 @@ import java.util.*;
  *   {@code PACKAGE} 낱말이 연 머리가 본문의 {@code BEGIN … END} 뒤에도 남았다. 이 길에 닿는 방언: 그 조건을 가진 Oracle(YashanDB,
  *   OceanBase Oracle 모드)과 Altibase 계열. 그 루틴·트리거에서는 첫 {@code AS}/{@code IS} 앞에 머리 낱말이 오지 않는다
  *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3")
+ * - 2026-11-25 Chromite: {@code DECLARE}가 연 머리 안에서도 {@link SQLParserActionKind#NESTED_BLOCK_HEADER}가 서브프로그램 머리를 연다.
+ *   서브프로그램 머리는 방언의 안쪽 블록 앞붙이({@link SQLDialect#getInnerBlockPrefixes}, Oracle {@code AS}/{@code IS})에서 선언부가 된다
+ *   ({@code DECLARE}에는 루틴의 {@code BLOCK_HEADER} 조건이 없다). 전에는 {@code DECLARE} 안의 {@code BEGIN}이 그 앞 낱말이 {@code AS}/{@code IS}일
+ *   때만 안쪽 서브프로그램의 것으로 보아, 두 단계로 겹친 서브프로그램이나 선언을 가진 서브프로그램의 {@code BEGIN}이 {@code DECLARE} 머리를 닫고
+ *   그 {@code END;}에서 문장이 끝났다. 이 길에 닿는 방언: {@code NESTED_BLOCK_HEADER} 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)뿐이다
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3")
  */
 public class SQLScriptParser {
 
@@ -277,6 +283,7 @@ public class SQLScriptParser {
                 }
                 if (tokenType == SQLTokenType.T_BLOCK_HEADER) {
                     curBlock = new ScriptBlockInfo(curBlock, true);
+                    curBlock.beginToken = document.get(tokenOffset, tokenLength);
                     hasBlocks = true;
                 } else if (tokenType == SQLTokenType.T_BLOCK_TOGGLE) {
                     String togglePattern;
@@ -416,15 +423,21 @@ public class SQLScriptParser {
                         }
                     }
 
-                    if (actionKind == SQLParserActionKind.NESTED_BLOCK_HEADER && curBlock != null && curBlock.isPredicateHeaderBlock
-                        && !curBlock.isSubprogramHeading) {
-                        // A subprogram declared in the routine's declarations gets a header of its own inside the routine's: its
-                        // BEGIN closes that one, so its END does not end the routine
+                    if (actionKind == SQLParserActionKind.NESTED_BLOCK_HEADER && curBlock != null && (
+                        (curBlock.isPredicateHeaderBlock && !curBlock.isSubprogramHeading) ||
+                            (curBlock.isHeader && !curBlock.isPredicateHeaderBlock
+                                && SQLConstants.KEYWORD_DECLARE.equalsIgnoreCase(curBlock.beginToken)))) {
+                        // A subprogram declared in a routine's declarations or in a DECLARE section gets a header of its own
+                        // inside that one: its BEGIN closes that one, so its END does not end the routine or leave the DECLARE
+                        // section, whose own BEGIN then comes after any number of nested subprograms
                         curBlock = new ScriptBlockInfo(curBlock, true, true);
                         curBlock.isNestedHeader = true;
                         curBlock.isSubprogramHeading = true;
-                    } else if (actionKind == SQLParserActionKind.BLOCK_HEADER && curBlock != null && curBlock.isSubprogramHeading) {
-                        // The nested subprogram's AS / IS: its declarations follow, or a call specification that ends it
+                    } else if (curBlock != null && curBlock.isSubprogramHeading
+                        && ArrayUtils.containsIgnoreCase(dialect.getInnerBlockPrefixes(), document.get(tokenOffset, tokenLength))) {
+                        // The nested subprogram's AS / IS (the dialect's inner block prefix, not the routine's BLOCK_HEADER
+                        // predicate, which a DECLARE section has none of): its declarations follow, or a call specification that
+                        // ends it
                         curBlock.isSubprogramHeading = false;
                         curBlock.headerTokenIndex = capturedTokens;
                     }
@@ -1228,6 +1241,7 @@ public class SQLScriptParser {
         // Of a block a BEGIN_BLOCK predicate opened: the block that was open then, before the header blocks it dropped
         @Nullable
         ScriptBlockInfo predicateOpenedOver;
+        // The word that opened a block begin token's block (BEGIN, CASE, LOOP) or a header word's header (DECLARE, PACKAGE)
         @Nullable
         String beginToken;
 

@@ -105,6 +105,10 @@ import java.util.Set;
  *   NESTED_BLOCK_HEADER and the call-spec END_BLOCK for its subprograms), in place of the block its prefix opened
  *   (BEGIN_BLOCK). That block counted BEGIN / END pairs, and the BEGIN of an initialization part has no END of its own: the
  *   splitter joined every following statement into the body (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3").
+ * - 2026-11-25 Chromite: NESTED_BLOCK_HEADER and the call-spec END_BLOCK also hold in anonymous blocks (DECLARE) and triggers,
+ *   and after DECLARE: a subprogram of a DECLARE section opens a header of its own there. The splitter cut a DECLARE section
+ *   whose subprogram held a subprogram, or declarations, at that subprogram's END (docs/chromite/swing-query-commands.md
+ *   "Oracle 스크립트 나누기 3").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -856,16 +860,21 @@ public class OracleSQLDialect extends JDBCSQLDialect
             ),
             // A subprogram declared in that declaration section (PROCEDURE / FUNCTION as the first word of a declaration, after
             // the AS / IS or after the ";" of the previous one) has its own heading, AS / IS, declarations and BEGIN ... END: the
-            // script parser opens a header for it inside the routine's or package body's, so that its BEGIN does not close that
+            // script parser opens a header for it inside the routine's or package body's, so that its BEGIN does not close that.
+            // The DECLARE section of an anonymous block or a trigger (and a DECLARE block inside those units) holds such
+            // subprograms too: there the parser opens the header inside the DECLARE's
             new TokenPredicatesCondition(
                 SQLParserActionKind.NESTED_BLOCK_HEADER,
-                tt.sequence(
-                    "CREATE",
-                    tt.optional("OR", "REPLACE"),
-                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                    tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
+                tt.alternative(
+                    tt.sequence(
+                        "CREATE",
+                        tt.optional("OR", "REPLACE"),
+                        tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                        tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"), "TRIGGER")
+                    ),
+                    "DECLARE"
                 ),
-                tt.sequence(tt.alternative(";", "AS", "IS"), tt.alternative("PROCEDURE", "FUNCTION"))
+                tt.sequence(tt.alternative(";", "AS", "IS", "DECLARE"), tt.alternative("PROCEDURE", "FUNCTION"))
             ),
             // A call specification is the whole body of its routine: no BEGIN follows to end the header that the AS / IS above
             // opened, so its first words end it. Java and C (LANGUAGE JAVA|C, the older EXTERNAL NAME|LIBRARY) and MLE
@@ -873,14 +882,18 @@ public class OracleSQLDialect extends JDBCSQLDialect
             // EXTERNAL or MLE still opens the declaration section. AGGREGATE / PIPELINED USING has no AS / IS and opens nothing.
             // The script parser takes it only right after the AS / IS that opened the header and then ends the statement at the
             // next ";" (SQLScriptParser); after a nested subprogram's AS / IS it ends only that subprogram's header (a package
-            // body's subprograms too: "FUNCTION f RETURN NUMBER AS LANGUAGE JAVA NAME '…';")
+            // body's subprograms too: "FUNCTION f RETURN NUMBER AS LANGUAGE JAVA NAME '…';", and those of a DECLARE section:
+            // "DECLARE PROCEDURE c IS LANGUAGE C …; BEGIN … END;")
             new TokenPredicatesCondition(
                 SQLParserActionKind.END_BLOCK,
-                tt.sequence(
-                    "CREATE",
-                    tt.optional("OR", "REPLACE"),
-                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                    tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
+                tt.alternative(
+                    tt.sequence(
+                        "CREATE",
+                        tt.optional("OR", "REPLACE"),
+                        tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                        tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"), "TRIGGER")
+                    ),
+                    "DECLARE"
                 ),
                 tt.sequence(
                     tt.alternative("AS", "IS"),

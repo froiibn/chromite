@@ -463,6 +463,27 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   `AS|IS` 앞에 머리 낱말(`DECLARE`·`PACKAGE`)이 없다. Altibase의 루틴·트리거도 같다(맨 바깥 머리 낱말 뒤의 `AS|IS`라도 그 머리를 닫는 `BEGIN`이 조건의
   머리도 닫아 같은 자리에서 끝난다). 아래 비교에서 Altibase 스크립트는 바이트까지 같다.
 
+**2. `DECLARE` 안 서브프로그램(익명 블록, 트리거)**
+- 재현: `DECLARE PROCEDURE a IS PROCEDURE b IS BEGIN … END; BEGIN b; END; BEGIN a; END;`가 `a`의 `END;`에서 나뉘어 첫 조각이 PLS-00103(ORA-06550)으로
+  실패했다. 보고보다 넓었다: 한 단계라도 서브프로그램이 선언을 가지면(`PROCEDURE a IS s VARCHAR2(10) DEFAULT 'x'; BEGIN … END;`) 같은 자리에서 나뉘었고,
+  세 단계·커서·형식·앞선 선언이 섞인 블록은 다섯 조각, 두 단계 서브프로그램을 가진 트리거는 둘로 나뉘었다(트리거는 첫 조각으로 INVALID). 안쪽에서
+  Ctrl+Enter를 누르면 그 조각만 갔다.
+- 근본 원인: `DECLARE`는 방언의 블록 머리 낱말로 머리를 열고, `SQLScriptParser`는 그 안의 `BEGIN`이 바로 앞 낱말이 `AS|IS`(`getInnerBlockPrefixes`)일 때만
+  안쪽 서브프로그램의 것으로 보고, 아니면 `DECLARE` 머리를 닫았다. 선언 뒤의 `BEGIN`(앞 낱말이 `DEFAULT`·`NUMBER` 등)이나 안쪽 서브프로그램의 `END;` 뒤에
+  오는 바깥 서브프로그램의 `BEGIN`이 `DECLARE` 머리를 닫아, 그 서브프로그램의 `END;`에서 문장이 끝났다. 앞 낱말 하나로는 서브프로그램이 몇 단계 열려
+  있는지 알 수 없다. 지난 고침의 겹친 머리(`NESTED_BLOCK_HEADER`)는 독립 루틴의 머리 안에서만 열렸다.
+- 고침: `DECLARE` 머리 안에서도 서브프로그램이 겹친 머리를 연다.
+  - `OracleSQLDialect`: `NESTED_BLOCK_HEADER` 조건과 호출 명세 `END_BLOCK` 조건의 머리에 `DECLARE`(익명 블록)와 `CREATE … TRIGGER`를 더하고,
+    `NESTED_BLOCK_HEADER`의 앞 낱말에 `DECLARE`를 더했다(`DECLARE PROCEDURE …`). 호출 명세 조건이 없으면 `DECLARE PROCEDURE c IS LANGUAGE C …;`
+    (Oracle이 받음, 확인)의 머리가 닫히지 않아 뒤 문장을 삼킨다.
+  - `SQLScriptParser`: `DECLARE` 낱말이 연 머리에서도 `NESTED_BLOCK_HEADER`가 서브프로그램 머리를 연다(머리 블록이 연 낱말을 기억한다). 서브프로그램
+    머리는 그 `AS|IS`에서 선언부가 되는데, 전에는 루틴의 `BLOCK_HEADER` 조건이 맞을 때였다. 익명 블록·트리거에는 그 조건이 없고(트리거에 더하면
+    `REFERENCING … AS`에서 머리가 열린다), 방언의 안쪽 블록 앞붙이(`getInnerBlockPrefixes`, `AS|IS`) 낱말로 본다. 루틴·패키지 본문에서는 그 낱말마다
+    `BLOCK_HEADER`가 맞으므로 같다.
+  - `BEGIN`으로 시작하는 블록이나 꼬리표(`<<l>> DECLARE`)로 시작하는 블록은 조건의 머리가 아니라 예전 규칙 그대로다(아래 "남은 것").
+- 공유 파서의 바뀐 길에 닿는 방언: `NESTED_BLOCK_HEADER` 조건을 가진 방언만 서브프로그램 머리를 열므로 Oracle(YashanDB와 OceanBase Oracle 모드가
+  물려받음)뿐이다. `beginToken`을 머리 블록에도 적는 것은 `CASE` 비교(`DECLARE`·`PACKAGE`는 `CASE`가 아님)에 닿지 않는다.
+
 **확인(고친 빌드, 1521, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-script-split-blocks\`):**
 
 | 경우 | 고치기 전 | 고친 뒤 |
@@ -470,11 +491,23 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | 패키지 본문 다섯(초기화 부분에 `FOR … LOOP`·`CASE … END CASE`·`IF`·`EXCEPTION`, 세 단계 서브프로그램·앞선 선언·커서·형식·자바 호출 명세가 든 것, 초기화 부분 없는 것, 초기화 부분만 있는 것, 소문자·이름 없는 `END`, 23ai `IF NOT EXISTS`)과 명세·`SELECT` 스크립트 F5 | 6문장, 두 본문이 뒤 문장을 삼켜 PLS-00103 INVALID | 17문장, 패키지·본문 열 개 모두 VALID |
 | 초기화 부분 안, 아래 `SELECT`, 맨 위·맨 아래 `SELECT`에서 Ctrl+Enter | 아래 `SELECT`에서 본문이 다시 감 | 그 본문 하나, 그 `SELECT` 하나 |
 | 지난 고침의 `mixed.sql`(끝에 초기화 부분 있는 본문) | 10문장(본문이 마지막 `SELECT`를 삼킴) | 11문장 |
-| 지난 두 고침의 참조 스크립트 나머지(Oracle 일반 단위·호출 명세·겹친 서브프로그램·형식 본문·`IF NOT EXISTS`, PostgreSQL, SQL Server, MariaDB·MySQL 8.4(저장 프로그램 규칙과 DDL 글), Altibase 7.3)와 이 절의 `DECLARE` 스크립트, 끊었다 다시 연결한 뒤 | — | 문장 글과 줄마다 Ctrl+Enter 결과가 바이트까지 같음 |
+| 2: 익명 블록 넷(서브프로그램 0·1·2·3단계, 커서·형식·`SUBTYPE`·앞선 선언 섞임), 트리거 둘(`DECLARE`에 서브프로그램 1·2단계), `BEGIN` 안 `DECLARE`, 루틴 본문 안 `DECLARE` 스크립트 F5 | 26문장, 한 단계(선언 있음)부터 `PLS-00103`(ORA-06550)로 멈춤 | 18문장, 모두 성공. 세 단계 블록이 표에 3을 넣음, 트리거 둘·루틴 VALID |
+| 2: 안쪽 서브프로그램 줄, 세 단계의 가장 안쪽 줄, 트리거 안쪽 줄에서 Ctrl+Enter / 위·아래 `SELECT`에서 | 그 조각만 감(ORA-06550, 트리거 INVALID) | 블록·트리거 전체 / 그 `SELECT` 하나 |
+| 2: 앞선 선언과 C 호출 명세를 가진 서브프로그램, 소문자 세 단계 함수, 루틴 본문 안 `DECLARE` 함수 F5 | 14문장(조각남, 1만 고친 빌드: 1은 이 모양에 닿지 않음) | 10문장(꼬리표 블록은 아래 "남은 것"). 꼬리표 블록을 뺀 7문장 F5 모두 성공 |
+| 2: `DECLARE` 안 C·자바 호출 명세(익명 블록), C 호출 명세(트리거) | 바르게 나뉨(자바는 서버가 ORA-06550) | 같음(바이트까지) |
+| 지난 두 고침의 참조 스크립트 나머지(Oracle 일반 단위·호출 명세·겹친 서브프로그램·형식 본문·`IF NOT EXISTS`, PostgreSQL, SQL Server, MariaDB·MySQL 8.4(저장 프로그램 규칙과 DDL 글), Altibase 7.3), 끊었다 다시 연결한 뒤 | — | 문장 글과 줄마다 Ctrl+Enter 결과가 바이트까지 같음(1은 1의 스크립트만, 2는 2의 스크립트만 달라짐) |
+
+비교는 지난 고침과 같은 방법(`SqlQueryCommands.extractElements`로 스크립트 전체와 모든 줄의 첫 글자에서 뽑은 문장을 바이트로 비교)이다. 고치기 전 빌드의
+덤프는 지난 고침이 남긴 참조 덤프 115개와 바이트까지 같았다.
 
 **남은 것(보고만):**
+- 꼬리표로 시작하는 블록(`<<outer>> DECLARE …`)은 조건의 머리(`DECLARE`)가 아니라 예전 규칙으로 나뉘어 두 단계 서브프로그램에서 여전히 나뉜다.
+  `BEGIN`으로 시작하는 블록 안 `DECLARE`도 예전 규칙이다(시험한 두 단계 모양은 바르게 나뉨). 조건 머리에 넣지 않은 것은 그 블록들에서 호출 명세 조건이
+  닿지 않아 `DECLARE PROCEDURE c IS LANGUAGE C …;`가 뒤 문장을 삼키기 때문이다.
 - 복합 트리거(`CREATE TRIGGER … COMPOUND TRIGGER g NUMBER; PROCEDURE p IS … BEFORE STATEMENT IS BEGIN … END BEFORE STATEMENT; END;`)는 첫 선언의 `;`에서
   나뉜다(고치기 전·뒤 같음). 복합 트리거에는 블록 조건이 없다.
+- 한 줄에 `;`가 둘 있는 줄의 가운데(`PROCEDURE q IS BEGIN NULL; END q;`의 `END q` 위)에서 Ctrl+Enter를 누르면 앞 `;` 뒤의 `END q`만 간다. 줄 첫 글자에서는
+  루틴 전체가 간다. 이번 두 고침과 관계없이 지난 고침의 독립 루틴에서도 같다(고친 빌드에서 확인).
 
 ### 저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)
 
@@ -636,3 +669,6 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 2026-11-25 "Oracle 스크립트 나누기 3" 절 추가, 그 1: 패키지 본문의 `AS|IS`가 루틴처럼 선언부 머리를 엶(방언), 맨 바깥 머리 낱말의 머리를 조건의 머리로
   바꿈(`SQLScriptParser`)(`chromite/oracle-script-split-blocks`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle
   모드)의 패키지 본문 나누기, `BLOCK_HEADER` 조건을 가진 방언(Oracle 계열, Altibase 계열)의 루틴·트리거 나누기
+- 2026-11-25 "Oracle 스크립트 나누기 3"의 2: `DECLARE` 안 서브프로그램이 겹친 머리를 엶(방언 조건 머리에 `DECLARE`·`CREATE … TRIGGER`, 파서는 `DECLARE`
+  머리에서도 열고 서브프로그램 머리를 `AS|IS` 낱말에서 선언부로 바꿈)(`chromite/oracle-script-split-blocks`). 회귀 테스트는 실행하지 않았다. 영향받을 수
+  있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 익명 블록·트리거·루틴·패키지 본문 나누기(쿼리 창 F5·Ctrl+Enter, 스크립트 실행, Agent 실행 도구)
