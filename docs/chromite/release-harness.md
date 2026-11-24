@@ -58,7 +58,7 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 | `rehearse` | 아래 "리허설" | 리허설 호스트만 | |
 | `deploy` | 아래 "운영 배포". `-PreflightOnly`는 확인만 | 운영 서버 | 필요 |
 | `verify` | 운영 확인만(언제든 다시 실행): 피드의 세 파일이 이 PC의 크기·SHA-256·세대·`notes_url #v<버전>`, 파일 200과 같은 크기, 피드가 이 버전과 바로 앞 버전 둘만, 앞 버전 설치 파일 200, 그 앞(태그로 찾음) 404, 페이지 12개 200, 두 변경 내역에 앵커 한 번 | 없음 | |
-| `update-notice` | 선택. `-FromVersion <앞 버전>`: 그 판의 포터블 zip을 작업 폴더에 풀어 임시 `-data`, `-configuration`(복사본), `CHROMITE_DATA`로 실행, 그 프로세스의 창만 캡처해 제목 줄의 "새 버전 <버전>"을 OCR로 확인, 그 폴더에서 시작한 프로세스만 끝내고 사본 삭제 | 없음 | |
+| `update-notice` | 선택. `-FromVersion <앞 버전>`: 그 판의 포터블 zip을 작업 폴더에 풀어 임시 `-data`, `-configuration`(복사본), `CHROMITE_DATA`로 실행, 그 프로세스의 창만 캡처해 제목 줄의 "새 버전 <버전>"을 OCR로 확인(알림 문구 바로 뒤의 숫자 하나가 그 버전이어야 함. 점이 빠진 것과 "버전"의 한 글자 오독은 받음), 그 폴더에서 시작한 프로세스만 끝내고 사본 삭제. 멈추면 캡처 수와 마지막 캡처에서 읽은 글(또는 창을 못 찾음)을 이유에 적음 | 없음 | |
 | `publish` | `deploy`와 `verify`가 ok. `gh release edit --draft=false --latest`, 초안 아님·최신 확인. 이미 공개·최신이면 확인만 | Release 공개 | 필요 |
 | `record` | `chromite/release-<버전>-record` 브랜치에서. `distribution.md`의 앞 판 기록 바로 아래에 이 판 기록, 변경 이력 줄(`text.ko.md` 문구, `state.json` 값). `-Summary`(들어간 것), `-NotChecked`(확인하지 않은 것), `-Notes`. `-NotChecked`가 없으면 TODO 줄을 넣고 멈춤, 채운 뒤 다시 실행 | 없음 | |
 | `cleanup` | 이 릴리스의 체크아웃·스테이징·리허설·알림 확인 폴더 삭제. `-PruneOld`: 운영이 싣는 두 버전보다 오래된 `.local/release/v*`를 크기와 함께 보이고 삭제(다시 받을 수 있음). `-WhatIf`로 목록만 | 없음 | |
@@ -104,8 +104,10 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 - 설정 값이 없음, 잠금이 살아 있음, 앞 단계가 ok가 아니거나 다른 태그 커밋·다른 파일·다른 세대의 것임, 사용자 말이 없음.
 - 브랜치가 다르거나 `origin/command`에서 갈라지지 않음(`prepare`, `record`). 버전이 마지막 태그보다 크지 않거나 이미 태그가 있음. 변경 내역 절이 없거나 위치가 틀리거나 `TODO`가 남음.
 - PR이 충돌·검사 실패·기다리는 동안 새 커밋. 실행에서 돌다 실패한 작업, `-MaxAttempts`를 넘김, `-TimeoutMinutes`를 넘김.
-- GitHub API 읽기가 실패함. 다만 저절로 지나가는 오류(5xx, 끊긴 연결, 시간 초과)는 세 번까지 다시 묻고, 그래도 실패할 때만 멈춘다
-  (`Invoke-GhJson`. 26.1.8의 `build` 단계가 `gh run view`의 HTTP 500 한 번에 멈춰서 넣음). 그 밖의 실패(없음, 권한 없음)는 바로 멈춘다.
+- GitHub API 읽기가 실패함. 다만 저절로 지나가는 오류(5xx, 이름 찾기 실패, 거절·끊긴 연결, 시간 초과)는 세 번까지 다시 묻고, 그래도 실패할 때만 멈춘다
+  (`Invoke-GhJson`. 26.1.8의 `build` 단계가 `gh run view`의 HTTP 500 한 번에 멈춰서 넣음). 문구는 gh 2.96이 Windows에서 실제로 내는 것에 맞춘다(`$script:GhPassingError`의 주석).
+  그 밖의 실패(없음, 권한 없음, 잘못된 인수)와 요청 한도(HTTP 429, "API rate limit exceeded")는 바로 멈춘다. 요청 한도는 한 시간까지 가서 다시 묻는 시간 안에 풀리지 않는다.
+  밖을 바꾸는 명령은 다시 묻지 않는다(두 번 바뀔 수 있다). `Invoke-GhJson`을 거치지 않는 읽기 `gh pr checks`(`merge`)와 `gh release download`는 이 규칙 밖이다.
 - 서명 과정 경로가 바뀌었는데 병합 커밋의 시험 실행이 없음. `origin`이 `froiibn/chromite`가 아님.
 - 파일이 `SHA256SUMS`와 다름, 남는 파일, Release의 파일과 크기가 다름.
 - 리허설: 호스트에 리허설 흔적이 이미 있음, 키에 암호가 있음, 씨앗 피드가 운영과 다름, `REHEARSAL, NOT CHECKED`, 마지막 줄이 다름, 정리가 덜 됨.
@@ -182,21 +184,27 @@ pwsh -NoProfile -File tools/release/release.ps1 -Stage cleanup -Version <버전>
 
 - 모든 단계가 실제로 돌았다: `status`, `prepare`(변경 내역 없음으로 멈춘 뒤 OK), `merge`(준비 PR과 기록 PR, 먼저 `-WhatIf`), `trial`(필요 없음으로 기록),
   `tag`(먼저 `-WhatIf`, 그다음 실제 push), `build`, `fetch`, `rehearse`(기본 씨앗: 운영 피드의 두 버전, 넣은 피드가 운영과 같음, OK 35건),
-  `deploy`(`-PreflightOnly` → `-WhatIf` → 실제: OK 35건, 이웃 그대로), `verify`, `record`.
+  `deploy`(`-PreflightOnly` → `-WhatIf` → 실제: OK 35건, 이웃 그대로), `verify`, `update-notice`(처음에는 멈춤, 고친 뒤 통과), `record`.
 - `merge`는 검사가 5개만 등록된 동안 기다렸고 6개가 모두 통과한 뒤 병합했다(두 번 연속 통과 규칙).
-- 멈춘 곳 둘: `build`(GitHub API HTTP 500, 다시 실행), `update-notice`(OCR 오독, 캡처로 눈으로 확인). 위 "변경 이력" 2026-11-24에서 고침.
+- 멈춘 곳 둘: `build`(GitHub API HTTP 500, 다시 실행), `update-notice`(OCR 오독, 캡처로 눈으로 확인). 아래 "변경 이력" 2026-11-24에서 고침.
+  고친 `update-notice`를 같은 날 다시 돌려 약 23초 만에 통과했다(뒤집은 쪽 OCR "새 비전 261.8").
 - `publish`는 배포 때는 사용자의 말이 없어 돌리지 않았고, 같은 날 밤 사용자의 말("공개한다") 뒤에 돌았다(먼저 `-WhatIf`, 그다음 실제: 초안 아님·최신 확인). `trial`의 실제 수동 실행과 다시 실행(`gh run rerun`)은 이번에도 필요가 없어 돌지 않았다.
 
 ## 확인하지 못한 것
 
-- 실제 태그 push, 워크플로 실행·다시 실행, PR 병합, Release 공개, 운영 배포: 실제로 하지 않았다(이 작업에서 하지 않기로 함). 첫 실제 사용은 다음 릴리스다.
-  `-WhatIf` 출력은 `Invoke-Change`를 같은 인수로 직접 불러 본 것이다. `tag`(새 태그), `trial`, `merge`, `publish` 단계를 처음부터 끝까지 `-WhatIf`로 돌린 것은 아니다:
-  그러려면 아직 태그가 없는 버전을 실은 `origin/command` 커밋, 열린 릴리스 PR, 초안 Release가 있어야 한다. 이 단계들에서 실제로 돌려 본 것은 거절과 "이미 돼 있음" 경로다.
-  다음 릴리스에서는 밖을 바꾸는 단계마다 먼저 `-WhatIf`로 돌려 명령을 본 뒤 실행한다.
-- 검토에서 고친 세 가지(`merge`의 두 번 연속 통과, `tag`의 끊긴 push 다시 하기, 변경 이력이 마지막 절인지 확인)는 구문 검사와 변경 이력 확인 함수 호출로만 확인했다.
-- `merge`가 열린 PR을 기다리는 부분, `trial`과 `build`가 진행 중인 실행을 기다리고 다시 실행하는 부분은 실제 열린 PR·실행이 없어 돌지 않았다(코드는 26.1.x 때의 `merge-one.sh`, `rerun-until-ok.sh`를 옮김).
-- 기본 씨앗(운영 피드)으로 하는 리허설과 피드 비교: 26.1.7이 이미 운영에 있어 `-SeedTags`로만 했다.
-- `update-notice`의 영어 화면("New version"): 시험 사본이 한국어로 떴다.
+위 "첫 실제 릴리스"까지의 기록과 코드로 본, 2026-11-25 현재 아직 실제로 돌지 않은 것이다.
+
+- `trial`의 실제 수동 실행(`gh workflow run`)과 그 실행을 기다리는 부분: 26.1.8에서는 서명 과정 경로가 바뀌지 않아 필요 없음으로만 기록됐다.
+- 시작도 못 한 작업의 다시 실행(`gh run rerun --failed`, `trial`과 `build`): 그런 작업이 없었다. `-MaxAttempts`를 넘겨 멈추는 경로도 돌지 않았다.
+- `Invoke-GhJson`의 다시 묻기: 고친 뒤 실제 GitHub의 5xx를 만난 적이 없다. 이 PC(gh 2.96)에서 없는 프록시 주소·닫힌 포트·연결을 끊거나 답하지 않는
+  로컬 프록시로 이름 찾기 실패("error connecting to <host>"), 거절("dial tcp … actively refused"), 끊김("EOF", "unexpected EOF"), 시간 초과("context deadline exceeded")의
+  실제 문구를 확인하고 가짜 `Invoke-Native`로 다시 묻는지 확인했다. Windows의 "wsarecv: An existing connection was forcibly closed by the remote host."는 재현하지 못해
+  Go와 Windows의 오류 문구에서 가져왔고, GraphQL의 5xx 문구("non-200 OK status code: 502 …")는 gh가 쓰는 `cli/shurcooL-graphql`의 소스에서 가져왔다.
+- `tag`의 끊긴 push 다시 하기(이 PC에만 남은 태그): 그런 일이 없었다. 구문 검사로만 확인했다.
+- 변경 이력이 마지막 절이 아닐 때 멈추는 경로(`prepare -Summary`, `record`): 26.1.8의 `record`에서는 통과하는 경로만 돌았다.
+- `merge`가 MERGEABLE이 아닌 PR(충돌, 계산 중)을 기다리거나 멈추는 부분, 검사 실패로 멈추는 부분: 26.1.8의 기록에는 검사가 다 등록되기를 기다린 것만 있다.
+- `update-notice`의 영어 화면("New version"): 시험 사본이 한국어로 떴다. 영어 문구는 가짜 OCR 줄로만 확인했다.
+- `update-notice`의 OCR 판정에는 한계가 있다: 점이 빠지면 숫자가 같은 버전(26.1.11과 26.11.1의 "26.111")을 구별하지 못한다.
 
 ## upstream 대비 변경점
 
@@ -210,3 +218,7 @@ DBeaver에는 없다. 모두 Chromite에서 새로 만들었다(`tools/release/r
   다시 물음: `build` 단계가 `gh run view`의 HTTP 500 한 번에 멈췄다(같은 단계를 다시 실행해 이어 감). ② `update-notice`가 제목 줄을 그대로와 색을 뒤집은 것 둘 다
   읽고, 멈출 때 OCR이 마지막에 읽은 글을 이유에 적음: 알림은 떠 있었는데 OCR이 "26.1.8"을 "26.13"으로 읽어 이유 없이 멈췄다(뒤집은 쪽은 "261.8"로 읽혀 맞음).
   ③ 배포 기록의 "태그 전 수동 실행은 하지 않았다" 문구에 하네스 자신의 파일을 뺀다는 것을 적음(26.1.8 기록은 손으로 고침).
+- 2026-11-25 2026-11-24 변경의 독립 검토에서 나온 다섯 가지를 고침. ① `Invoke-GhJson`이 gh가 Windows에서 실제로 내는 이름 찾기 실패·끊김·시간 초과 문구를
+  놓쳐 바로 멈췄다: 이 PC에서 재현한 문구로 넓힘, 요청 한도는 바로 멈춤을 적음. ② "확인하지 못한 것"이 "첫 실제 릴리스"와 어긋나 지금 남은 것으로 다시 씀.
+  ③ `update-notice`의 캡처가 예외 때도 GDI 개체를 모두 해제하고 임시 띠 파일을 지움. ④ 알림 판정이 줄 전체의 숫자를 이어 붙여 "26.1.80", "2.61.8" 같은 줄도
+  통과시켰다: 알림 문구 바로 뒤의 숫자 하나가 그 버전이어야 함. ⑤ 멈춘 이유가 창을 못 찾음과 OCR이 아무것도 못 읽음을 구별함.
