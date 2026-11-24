@@ -165,6 +165,63 @@ DB 상태는 매번 JDBC로 `pg_tablespace`·`pg_roles`를 읽어 확인했다. 
 - 테이블스페이스는 클러스터 개체인데 모델은 데이터베이스마다 캐시를 둔다. 한 데이터베이스 노드에서 이름을 바꾸면 다른 데이터베이스·다른 연결 노드는 새로 고침 전까지 옛 이름이다.
 - Properties 창은 이름 바꾸기 뒤 다른 값을 고치거나 노드를 다시 고를 때까지 옛 이름을 보인다(스키마도 같음).
 
+## 한 번만 읽기 (2026-11-25, `chromite/properties-read-once`)
+
+### 문제
+
+Properties 창(`PropertiesPanel.showNode`)은 부를 때마다 앞 읽기 작업을 취소하고 새로 읽는다. Object Explorer는 트리 선택 사건마다 선택 노드를 넘겼는데
+(`ObjectExplorerPanel` 선택 리스너), 가지를 모델에서 다시 보일 때(`replaceChildrenPreserving`: 연결 새로 고침, DDL 뒤 스키마 새로 고침, 노드 추가)
+`nodeStructureChanged`가 그 아래 선택을 빼고(선택 없음 사건) 남은 경로를 다시 고르는(같은 노드 사건) 두 사건이 났다. 연결 새로 고침은 읽어 둔 층마다
+따로 다시 보여, 표 하나를 고른 채 연결을 한 번 새로 고치면 같은 표를 8번 읽고 7번 취소했다(아래 표). 취소된 읽기의 문장은 Query Manager에 사용자의 취소
+오류로 남았다([swing-query-manager.md](swing-query-manager.md) "앱이 취소한 읽기").
+
+### 고친 것
+
+- 선택 리스너에는 **선택 노드나 그 객체가 바뀔 때만** 넘긴다(`ObjectExplorerPanel.selectionChanged`): 마지막으로 넘긴 노드와 그때의 객체
+  (`DBNDatabaseNode.getObject`)를 기억해, 같으면 넘기지 않는다. 다른 노드, 같은 노드라도 모델이 다시 읽어 객체가 바뀌었으면 넘긴다.
+- 가지를 다시 보이는 동안(`replaceChildrenPreserving`)의 선택 사건은 무시하고, 끝난 뒤 결과만 본다(선택 노드가 없어졌으면 선택 없음, 객체가 바뀌었으면 다시 읽기).
+- 선택 노드 자신이 다시 읽힐 때는 트리에 선택 사건이 없다. 그래서 자식을 다시 보인 뒤(`showChildren`)와 노드 변경 알림(`navigatorNodeChanged`의 UPDATE) 뒤에도
+  같은 검사를 한다. 객체가 바뀐 때만 읽는다.
+- `showSelectionAgain`(Altibase 계열 작업 실행 뒤)은 전처럼 늘 다시 넘긴다. Properties 창의 값 저장 뒤 다시 읽기, Object Details 속성 탭의 새로 고침은
+  `PropertiesPanel`이 직접 부르므로 바뀌지 않는다.
+- 더는 필요 없는 읽기는 전처럼 버린다: 다른 노드를 고르면 앞 읽기를 취소하고, 늦게 끝난 결과는 번호로 거른다.
+
+### 측정 (Properties 창의 읽기 작업 수 / 그중 취소, 시험 VM, 스크래치 작업 공간, 시험 개체 `chr_properties_read_once`)
+
+읽기는 작업 "Read properties of …"의 수, 상황마다 6초를 기다려 셌다. 문장 수는 Query Manager 모델(메타데이터 포함)의 같은 구간 실행 수로, 트리 읽기도 들어 있다.
+
+| DB | 노드 | 선택 | 연결 새로 고침 | 다시 연결 뒤 선택 | 노드를 바꾸는 DDL |
+|---|---|---|---|---|---|
+| PostgreSQL 17 | 테이블 | 1 → 1 | 8/7 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 뷰 | 1 → 1 | 8/6 → 1/0 | 1 → 1 | 2/0 → 1/0 |
+| | 함수 | 1 → 1 | 8/6 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 스키마 | 1 → 1 | 5/4 → 1/0 | 1 → 1 | 0 → 0 |
+| | 연결 | 1 → 1 | 2/0 → 0 | 0 → 0 | 0 → 0 |
+| SQL Server 2022 | 테이블 | 1 → 1 | 9/6 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 뷰 | 1 → 1 | 8/0 → 1/0 | 1 → 1 | 6/0 → 1/0 |
+| | 저장 프로시저 | 1 → 1 | 8/0 → 1/0 | 1 → 1 | 6/0 → 1/0 |
+| | 스키마 | 1 → 1 | 7/0 → 1/0 | 1 → 1 | 0 → 0 |
+| | 연결 | 1 → 1 | 3/0 → 0 | 0 → 0 | 1/0 → 0 |
+| MariaDB 11 | 테이블 | 1 → 1 | 6/4 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 뷰 | 1 → 1 | 6/5 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 함수 | 1 → 1 | 6/0 → 1/0 | 1 → 1 | 2/1 → 1/0 |
+| | 데이터베이스 | 1 → 1 | 4/2 → 1/0 | 1 → 1 | 0 → 0 |
+| | 연결 | 1 → 1 | 1/0 → 0 | 0 → 0 | 1/0 → 0 |
+
+- 연결 새로 고침은 탐색기 밖에서 연결 노드를 새로 고친 것(쿼리 창의 CREATE DATABASE 뒤와 같은 길, `DBNNode.refreshNode`)이다.
+- DDL은 노드를 고른 채 쿼리 창에서 실행했다: 테이블 열 더하기, 뷰·루틴 바꾸기, 스키마(MariaDB는 데이터베이스)에 테이블 만들기, 연결에 스키마·데이터베이스 만들기.
+  SQL Server의 뷰·프로시저는 `USE`와 `GO`로 나눴다(첫 실행은 `;`로만 이어 써서 "ALTER VIEW must be the first statement in a query batch"로 실패해 다시 쟀다).
+- 다시 연결(Object Explorer의 Reconnect)은 고친 전후 모두 읽기 0이다. 다시 연결은 가지를 접고 선택을 빼며, 선택 없음은 읽지 않는다.
+- 탐색기의 새로 고침(F5)을 고른 테이블·뷰·루틴에 누르면 전후 모두 읽기 0이고 문장도 0이다. 펼친 적 없는 노드의 F5는 서버를 부르지 않고 글자만 다시 그린다
+  (`refreshSelection`의 "Never expanded" 분기, 이 변경 밖).
+- 연결 노드는 새로 고침·DDL 뒤에도 객체(연결 설정)가 같아 다시 읽지 않는다(전에는 선택을 뺐다 되돌리는 사건 때문에 1~3번 읽었다). 연결 노드에서 F5를
+  눌러도 같다(전 1~2번 → 0). 연결 노드의 속성은 연결 설정과 서버 정보라 새로 고침으로 바뀌지 않는다. 스키마에 테이블을 만든 DDL은 스키마 객체를 바꾸지 않아
+  전후 모두 0이다.
+
+### 확인하지 못한 것
+
+- Altibase·ShardSphere·Oracle에서는 재지 않았다(Oracle 1522는 쓰지 않음). 고친 곳은 DB와 상관없는 탐색기 코드다.
+
 ## upstream 대비 변경점
 
 - SWT `EntityEditor`의 Properties 탭(편집·Save·Revert·View Script)을 Properties 창과 Object Details 속성 탭의 바로 저장으로 바꿨다.
@@ -232,3 +289,6 @@ DB 상태는 매번 `docker exec`로 카탈로그를 읽어 확인했다.
 - 2026-11-08 최초 작성: Properties 창과 Object Details 속성 탭의 속성 편집(SWT 감사 B-E1, B-E2, C-15, `chromite/object-properties-edit`)
 - 2026-11-08 알려진 문제 두 가지(Oracle ALTER SEQUENCE, PostgreSQL Partition by)를 고쳤다고 적음(`chromite/model-ddl-fixes`)
 - 2026-11-15 PostgreSQL 테이블스페이스: 이름 바꾸기(F2), 소유자·옵션 속성 편집(앱 변경 #129, `chromite/pg-mysql-storage`). 위 "PostgreSQL 테이블스페이스"
+- 2026-11-25 "한 번만 읽기": Object Explorer는 선택 노드나 그 객체가 바뀔 때만 Properties 창에 넘김. 연결 새로 고침 한 번에 같은 표를 8번 읽던 것을 1번으로
+  (`chromite/properties-read-once`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Properties 창과 Activity Monitor 단추의 선택 따라가기, 새로 고침·DDL·노드 추가 뒤의
+  선택 유지, Altibase 계열 작업 실행 뒤 다시 보이기.
