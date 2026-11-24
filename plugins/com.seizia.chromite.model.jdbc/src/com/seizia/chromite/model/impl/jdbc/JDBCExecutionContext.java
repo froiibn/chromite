@@ -61,6 +61,10 @@ import java.util.function.Consumer;
  *   JDBC 연결에 물음. 쿼리 관리자의 추적기가 사용자 작업 뒤에 부름 (docs/chromite/idle-transactions.md "트랜잭션 상태")
  * - 2026-11-22 드라이버 execute 호출 안의 문장을 시작 순서로 기억하고({@link #isServingOtherSession}), 다른 세션의 문장 뒤에서 기다리는 세션의
  *   취소가 그 문장을 멈추지 않게 함 (앱 변경 #161, docs/chromite/cancel-busy-connection.md)
+ * - 2026-11-25 닫힌 세션을 읽기가 다시 열 때({@link #getConnection(DBRProgressMonitor, boolean)}) Invalidate/Reconnect처럼 이 문맥의 커밋 방식·격리
+ *   수준·상태로 열고, {@code connect}는 잠금을 기다리는 동안 다른 스레드가 연 세션을 하나 더 열지 않음. Invalidate/Reconnect 중에 메타데이터를
+ *   읽으면 세션이 둘 열려 하나는 연결을 끊은 뒤에도 서버에 남았고, 남은 메타데이터 세션은 연결의 기본값(수동 커밋)으로 열려 첫 읽기부터 트랜잭션을
+ *   쥐었다 (앱 변경 #186, docs/chromite/connection-lifecycle.md "닫힌 세션을 다시 열 때")
  */
 public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
     implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
@@ -125,6 +129,12 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
 
         Object exclusiveLock = currentInstance.getExclusiveLock().acquireExclusiveLock();
         try {
+            if (this.connection != null) {
+                // Opened by another thread while this one waited for the lock: Invalidate/Reconnect and a read that found
+                // the session closed (getConnection) reopen the same context. A second connection here replaced the first
+                // without closing it, and that session stayed open on the server, also after a disconnect
+                return;
+            }
             this.connection = dataSource.openConnection(monitor, this, purpose);
             if (this.connection == null) {
                 throw new DBCException("Null connection returned");
@@ -240,7 +250,10 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     public Connection getConnection(DBRProgressMonitor monitor, boolean openIfNeeded) throws SQLException {
         if (connection == null && openIfNeeded) {
             try {
-                connect(monitor);
+                // Reopened as Invalidate/Reconnect reopens it (invalidateContext): with this context's own commit mode,
+                // isolation and state. With the connection's defaults a metadata session became manual-commit and kept a
+                // transaction open after its first read. A context that never connected has no state of its own yet
+                connect(monitor, autoCommit, transactionIsolationLevel, autoCommit == null ? null : this, true);
             } catch (DBCException e) {
                 if (e.getCause() instanceof SQLException) {
                     throw (SQLException) e.getCause();
