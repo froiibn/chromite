@@ -87,6 +87,54 @@ SWT `DataSourceInvalidateHandler`(연결 메뉴 Invalidate/Reconnect)를 옮겼�
   세 문맥 모두 "연결이 거부되었습니다"인데 3/3). 이제 단계마다 같은 자리(처리기·문맥)의 결과를 합쳐 한 단계라도 실패하면 실패로 센다. 같은 함수를 쓰는 연결 유지 핑의
   실패 횟수, 실행 복구의 다시 연결 알림, 사용자가 고른 다시 연결(`TransactionRecoveryGuard.reconnect`)도 이제 실패를 실패로 본다.
 
+### 닫힌 세션을 다시 열 때 (2026-11-25, 앱 변경 #186)
+
+수동 커밋 연결을 시험하다 서버에 "Metadata" 이름의 유휴 세션이 여럿 보였다(#170 전후 같음). 메타데이터 세션이 언제 열리고 몇 개이며 언제 닫히는지 확인했다.
+
+**설계(바꾸지 않음).** 메타데이터 세션은 원격 인스턴스마다 하나다(`JDBCRemoteInstance.initializeMetaContext`, 연결 설정 "메타데이터 읽기에 별도 연결"이
+"안 함"이거나 내장 드라이버면 주 세션을 같이 쓴다). 늘 자동 커밋으로 연다(`connect(monitor, true, …)`). SQL Server·MySQL·Oracle은 연결당 인스턴스가 하나라
+메타데이터 세션도 하나다. PostgreSQL은 데이터베이스마다 인스턴스(`PostgreDatabase`, 세션 이름 `Metadata <DB>`)라서, 모든 데이터베이스 표시로 여러 DB를 열면 연
+DB마다 주·메타데이터 세션 한 쌍이 생기고 연결을 끊을 때까지 둔다. 시험 VM에서 확인(서버 목록 `pg_stat_activity`·`sys.dm_exec_sessions`, 이 앱 세션만 클라이언트
+이름 앞머리로 골라 봄):
+
+| 동작 | PostgreSQL 17(수동 커밋) | SQL Server 2022(수동 커밋) |
+|---|---|---|
+| 연결 | 주 1, 메타데이터 1(자동 커밋), `idle` | 주 1, 메타데이터 1, `sleeping`, 열린 트랜잭션 0 |
+| 쿼리 창 셋 열기 / 닫기 | 창마다 세션 하나 / 닫은 창의 세션만 닫힘 | 같음 |
+| Invalidate/Reconnect(다른 일 없음) | 모든 세션이 새 pid, 수 같음 | 같음 |
+| Reconnect, 연결 끊기 | 새 세션 / 이 앱 세션 0 | 같음 |
+
+**결함(고침).** Invalidate/Reconnect는 모든 세션을 닫은 뒤(BEFORE_INVALIDATE) 하나씩 다시 연다(INVALIDATE, 세션마다 배타 잠금). 그 사이에 메타데이터를 읽으면
+(탐색기, 자동 완성, 배경 작업) 읽는 쪽이 닫힌 세션을 `getConnection` → `connect(monitor)`로 스스로 다시 열었다. 이때 두 가지가 틀렸다.
+
+1. `connect`는 세션이 닫혔는지를 잠금을 잡기 **전에** 보고, 잠금을 기다린 뒤에는 다시 보지 않았다. 무효화가 먼저 그 세션을 다시 열면 읽는 쪽이 하나를 더 열어
+   덮어썼고, 덮인 JDBC 연결은 닫히지 않은 채 서버에 남았다(PostgreSQL에서 연결을 끊은 뒤에도 남음을 확인. 몇 분 뒤에는 없어졌는데 무엇이 닫았는지는 확인하지 못함).
+   잠금은 50ms마다 다시 보는 방식이라 막 잠금을 놓았다 다시 잡는 무효화가 거의 늘 먼저다.
+2. 읽는 쪽의 다시 열기는 그 세션의 설정이 아니라 연결의 기본값(커밋 방식, 격리 수준, 원본 없음)을 썼다. 메타데이터 세션이 수동 커밋 연결의 기본값으로 열려 첫
+   읽기부터 트랜잭션을 쥐었고(PostgreSQL `idle in transaction`과 `backend_xmin`, SQL Server `open_transaction_count` 1), 이후 모든 메타데이터 읽기가 그 트랜잭션
+   안에서 돌아 연결을 끊을 때까지 끝나지 않았다. 다시 열기가 실패한 뒤(서버가 잠시 내려감) 처음 읽을 때도 같았다.
+
+**고치기 전 재현**(이 PC의 지연 프록시를 거친 연결, 수동 커밋): 연결·쿼리 창 하나 → 프록시 멈춤 → Invalidate/Reconnect → 메타데이터 세션으로 읽기 → 프록시 풀기.
+PostgreSQL: `Metadata #10` 세션이 둘(하나 `idle`, 하나 `idle in transaction`, xmin 고정), 문맥의 메타데이터 연결은 자동 커밋 꺼짐. 다음 읽기도 같은 트랜잭션,
+연결 끊기 뒤에도 `idle` 하나가 남음. SQL Server: `Metadata #13` 둘, 그중 하나 열린 트랜잭션 1, 메타데이터 연결 자동 커밋 꺼짐.
+
+**고친 것**(`JDBCExecutionContext`, 공용 한 파일).
+
+| 자리 | 바꾼 것 |
+|---|---|
+| `connect` | 배타 잠금을 잡은 뒤 다른 스레드가 그새 연 세션이 있으면 하나 더 열지 않고 돌아간다 |
+| `getConnection(monitor, true)`의 다시 열기 | 무효화의 다시 열기(`invalidateContext`)와 같게 그 문맥의 커밋 방식·격리 수준·상태(`initFrom` = 자신)로 연다. 한 번도 연결되지 않은 문맥(커밋 방식을 모름)은 전처럼 기본값 |
+
+둘 중 누가 먼저 열든 같은 설정의 세션 하나만 남는다. 읽는 쪽이 무효화 중인 세션을 기다리지 않고 스스로 여는 것은 그대로다(기다리게 하면 그동안의 요청이
+오류가 됨, [cancel-busy-connection.md](cancel-busy-connection.md) "남은 것"의 "다른 길"). 바뀌는 것: 실패한 다시 열기 뒤나 무효화 중에 읽기가 다시 연 쿼리 창
+세션은 연결의 기본 DB·스키마로 돌아가지 않고 쓰던 것을 지킨다(무효화가 다시 열 때와 같음).
+
+**확인**(고친 빌드, 같은 방법, 증거 `D:\Tools\_scratch\context-init-deadlock-others\s\after\`):
+
+- PostgreSQL: 프록시를 5초 멈춘 뒤 읽기 10/10 — 매번 메타데이터 세션 하나(`idle`, 트랜잭션 없음), 문맥의 메타데이터 연결은 자동 커밋, 무효화 작업이 남지 않음.
+  20초 멈춤 10회는 다시 열기가 시간 초과(08001, 연결 끊김 대화상자)로 실패한 뒤 읽기가 메타데이터 세션을 다시 연 경우인데, 그때도 세션 하나·자동 커밋이었다.
+- SQL Server: 20초 멈춘 뒤 읽기 6/6 — 매번 메타데이터 세션 하나(`sleeping`, 열린 트랜잭션 0), 자동 커밋.
+
 ## 연결 끊김·드라이버 오류 대화상자
 
 SWT `DesktopUI.showDatabaseError`는 모델이 `showError`로 넘긴 오류의 종류(`DBExecUtils.discoverErrorType`)를 보고 따로 된 대화상자를 띄웠다. Swing은 모두 일반
@@ -350,7 +398,8 @@ PostgreSQL 연결을 새로 고치면 그 연결의 세션이 모두 닫혔다. 
 
 ## upstream 대비 변경점
 
-- 모델: `InvalidateJob.collectDependentDataSources` 공개, `InvalidateJob`의 결과를 모든 단계로 셈(마지막 단계만 세어 실패를 성공으로 알리던 버그), `QMUtils.getRecentTransactionStatements` 추가, `DataSourceMonitorJob`의 절전 닫기·깨어남 다시 초기화가
+- 모델: `JDBCExecutionContext`가 닫힌 세션을 읽기가 다시 열 때 그 문맥의 설정으로 열고 잠금을 기다린 뒤 이미 열렸으면 하나 더 열지 않음("닫힌 세션을 다시 열 때"),
+  `InvalidateJob.collectDependentDataSources` 공개, `InvalidateJob`의 결과를 모든 단계로 셈(마지막 단계만 세어 실패를 성공으로 알리던 버그), `QMUtils.getRecentTransactionStatements` 추가, `DataSourceMonitorJob`의 절전 닫기·깨어남 다시 초기화가
   쓰는 중인 연결을 건너뜀(`isInUse`, 유휴 연결 닫기의 조건을 이 함수로 뺌).
 - PostgreSQL: `PostgreDataSource.refreshObject`가 `shutdown`하지 않고 세션이 있는 데이터베이스 객체를 둔 채 목록과 캐시를 다시 읽음(`reloadDatabases`),
   작업 중인 데이터베이스를 연결 설정의 것으로 되돌리지 않음.
@@ -406,3 +455,6 @@ PostgreSQL 연결을 새로 고치면 그 연결의 세션이 모두 닫혔다. 
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: PostgreSQL 계열의 Object Explorer 새로 고침, DDL 뒤 탐색기 갱신, DB 콤보, 데이터 형식 목록
 - 2026-11-15 "새로 고침의 다시 연결 갈래": `DataSourceDescriptor.refreshObject`의 `reconnect` 갈래에 사용자 세션을 가진 데이터 소스가 닿지 않음을
   코드로 확인(앱 변경 #111 (b), `chromite/refresh-followups`). 코드는 바꾸지 않았다
+- 2026-11-25 "닫힌 세션을 다시 열 때": 메타데이터 세션의 설계(인스턴스마다 하나, 자동 커밋)를 적고, Invalidate/Reconnect 중의 읽기가 세션을 하나 더 열어 남기고
+  메타데이터 세션을 수동 커밋으로 바꾸던 것을 고침(앱 변경 #186, `chromite/context-init-deadlock-others`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능:
+  모든 JDBC 연결의 Invalidate/Reconnect, 끊긴 세션 다시 열기, 실패한 다시 열기 뒤의 첫 읽기, 쿼리 창 세션의 커밋 방식·DB 선택

@@ -40,6 +40,9 @@ import java.sql.SQLException;
  * 변경 이력:
  * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
  *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되었다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
+ * - 2026-11-25 {@link #refreshDefaults(DBRProgressMonitor, boolean, boolean)}: 세션을 다시 여는 길(읽기 전용 연결의 Invalidate/Reconnect)은 DB 목록을
+ *   다시 읽지 않음. 그 길은 인스턴스의 배타 잠금 아래에 있고, 목록을 쥔 채 그 잠금을 기다리는 스레드와 서로 기다릴 수 있었다(앱 변경 #186,
+ *   docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
  */
 public class MySQLExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<MySQLCatalog, DBSSchema> {
     private static final Log log = Log.getLog(MySQLExecutionContext.class);
@@ -138,6 +141,18 @@ public class MySQLExecutionContext extends JDBCExecutionContext implements DBCEx
 
     @Override
     public boolean refreshDefaults(DBRProgressMonitor monitor, boolean useBootstrapSettings) throws DBException {
+        return refreshDefaults(monitor, useBootstrapSettings, true);
+    }
+
+    /**
+     * Reads the session's current database.
+     *
+     * @param readCatalogList false on the path that reopens a session from a source session: Invalidate/Reconnect runs it
+     *                        under the instance's exclusive lock, and reading the database list again there can wait for a
+     *                        thread that holds the list while it waits for that lock. The name is kept; the query window
+     *                        reads the list again after its next run
+     */
+    boolean refreshDefaults(DBRProgressMonitor monitor, boolean useBootstrapSettings, boolean readCatalogList) throws DBException {
         // Check default active schema
         try (JDBCSession session = openSession(monitor, DBCExecutionPurpose.META, "Query active database")) {
             if (useBootstrapSettings) {
@@ -154,7 +169,7 @@ public class MySQLExecutionContext extends JDBCExecutionContext implements DBCEx
         // A database created after the list was read (another session): read it, getDefaultCatalog looks in the cache.
         // The main context opens inside the data source's constructor, before its caches exist (the list is read by initialize)
         MySQLDataSource.CatalogCache catalogCache = getDataSource().getCatalogCache();
-        if (!CommonUtils.isEmpty(activeDatabaseName) && catalogCache != null) {
+        if (readCatalogList && !CommonUtils.isEmpty(activeDatabaseName) && catalogCache != null) {
             try {
                 catalogCache.getObjectReadingNew(monitor, getDataSource(), activeDatabaseName);
             } catch (DBException e) {

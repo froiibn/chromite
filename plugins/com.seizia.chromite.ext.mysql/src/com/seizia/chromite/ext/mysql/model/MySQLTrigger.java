@@ -38,12 +38,26 @@ import com.seizia.chromite.model.struct.rdb.DBSManipulationType;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * MySQLTrigger
+ *
+ * 설계: DDL 글({@link #getObjectDefinitionText})은 서버가 기억하는 원래 문장(SHOW CREATE TRIGGER의 SQL Original Statement)이고,
+ * 트리거 이름에 DB 이름이 없으면 붙인다. 프로시저의 DDL 글이 이름에 DB를 붙이는 것({@code MySQLProcedure#normalizeCreateStatement})과 같다.
+ * DB를 붙인 트리거의 표({@code ON 표})는 서버가 그 DB에서 찾으므로, 어느 DB의 쿼리 창에 붙여 실행해도 이 트리거의 DB에 만들어진다.
+ *
+ * 변경 이력:
+ * - 2026-11-25 Chromite: DDL 글의 트리거 이름에 DB 이름을 붙임. DB를 고르지 않은 새 쿼리 창에 붙이면 1046(No database selected),
+ *   다른 DB의 창이면 그 DB의 같은 이름 표에 만들어졌다(docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)").
  */
 public class MySQLTrigger extends AbstractTrigger implements MySQLSourceObject, DBPRefreshableObject
 {
+    // The trigger name after CREATE [OR REPLACE] [DEFINER = user] TRIGGER [IF NOT EXISTS], and the dot that follows a database name
+    private static final Pattern TRIGGER_NAME = Pattern.compile(
+        "^(.*?\\bTRIGGER\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?)(`(?:[^`]|``)+`|[\\w$]+)(\\s*\\.)?", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
     private MySQLCatalog catalog;
     private MySQLTable table;
     private String body;
@@ -151,7 +165,7 @@ public class MySQLTrigger extends AbstractTrigger implements MySQLSourceObject, 
                 try (JDBCPreparedStatement dbStat = session.prepareStatement("SHOW CREATE TRIGGER " + getFullyQualifiedName(DBPEvaluationContext.DDL))) {
                     try (JDBCResultSet dbResult = dbStat.executeQuery()) {
                         if (dbResult.next()) {
-                            body = JDBCUtils.safeGetString(dbResult, "SQL Original Statement");
+                            body = qualifyTriggerName(JDBCUtils.safeGetString(dbResult, "SQL Original Statement"));
                         } else {
                             body = "-- Trigger definition not found in catalog";
                         }
@@ -163,6 +177,17 @@ public class MySQLTrigger extends AbstractTrigger implements MySQLSourceObject, 
             }
         }
         return body;
+    }
+
+    /**
+     * The statement with the trigger's database before the trigger name, unless the statement names a database already.
+     */
+    private String qualifyTriggerName(String statement) {
+        Matcher matcher = statement == null ? null : TRIGGER_NAME.matcher(statement);
+        if (matcher == null || !matcher.find() || matcher.group(3) != null) {
+            return statement;
+        }
+        return statement.substring(0, matcher.start(2)) + DBUtils.getQuotedIdentifier(catalog) + "." + statement.substring(matcher.start(2));
     }
 
     @Override

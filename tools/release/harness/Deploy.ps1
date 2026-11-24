@@ -13,26 +13,44 @@
 #     tests that the path exists and never reads, copies or prints the file.
 #   * The same server runs another service: its status URLs and download feed are compared before and after.
 #     A difference exits with its own code (3) and a loud message.
+#   * The network reads of the preflight and the snapshots ask again on no answer only (Invoke-ReadAgain). An answer
+#     (another key, another DNS address, another status or feed) is a result at once. The host key read is only
+#     repeated: it never falls back to accepting a key.
 #   * The output of the deploy script is masked like every other line, so the log can be pasted.
 #
 # Change history:
 # - 2026-11-23 Created.
+# - 2026-11-25 ssh-keyscan, the DNS lookup and the neighbour reads ask again on no answer (one passing failure made a
+#   preflight BAD or, after the deploy, a false "neighbour changed"). A neighbour's 5xx stays an answer, and the tries
+#   that got none are printed and kept in neighbor-*.json outside the compared part.
 
 $script:NeighborChangedCode = 3
 
+# Error codes of Resolve-DnsName (Win32Exception.NativeErrorCode) that mean no answer: 1460 timeout, 9002 server
+# failure, 10054 connection reset (seen on this PC, asking 127.0.0.1 where no DNS server runs), 10060 timed out,
+# 10051/10065 unreachable. Not here, so they are a result: 9003 the name does not exist (seen), 9501 no record.
+$script:DnsNoAnswerCodes = @(1460, 9002, 10051, 10054, 10060, 10065)
+
 function Get-NeighborSnapshot {
-    $snap = [ordered]@{ status = [ordered]@{}; feed = $null }
+    $snap = [ordered]@{ status = [ordered]@{}; feed = $null; retried = [ordered]@{} }
     $i = 0
     foreach ($u in @(Get-Cfg 'neighbor.status200')) {
         $i++
-        $snap.status["$i"] = (Get-Http "$u").Code
+        $r = Get-Http "$u" -Keep5xx
+        $snap.status["$i"] = $r.Code
+        if ($r.Retried) { $snap.retried["status $i"] = @($r.Retried) }
     }
-    $r = Get-Http "$(Get-Cfg 'neighbor.feed')"
+    $r = Get-Http "$(Get-Cfg 'neighbor.feed')" -Keep5xx
+    if ($r.Retried) { $snap.retried['feed'] = @($r.Retried) }
     $list = $null
     try { $list = @(($r.Body | ConvertFrom-Json).files | ForEach-Object { "$($_.file) $($_.size) $($_.sha256)" }) } catch { }
     $snap.feed = [ordered]@{ code = $r.Code; files = $list }
+    foreach ($k in $snap.retried.Keys) { Say "NOTE: neighbor $k got no answer before its last try ($($snap.retried[$k] -join '; ')), kept in the snapshot file" }
     return $snap
 }
+
+# The part of a snapshot that is compared: what the neighbour answered, not how many tries it took.
+function Get-NeighborAnswers($Snap) { return ([ordered]@{ status = $Snap.status; feed = $Snap.feed } | ConvertTo-Json -Depth 5 -Compress) }
 
 # The exact production command; the target and the key path are masked when printed.
 function Get-ProductionDeployArgs([string]$Script, [string]$Ver, [int]$Gen, [string]$Files, [string]$WorkDir) {
@@ -97,9 +115,14 @@ function Invoke-StageDeploy {
     $liveGen = (@($feed.files) | ForEach-Object { [int]$_.data_generation } | Measure-Object -Maximum).Maximum
     Test-Check "-DataGeneration $gen is not lower than the live one ($liveGen)" ($gen -ge $liveGen) "$liveGen"
 
-    $dns = @()
-    try { $dns = @(Resolve-DnsName -Name $siteHost -Type A -DnsOnly -ErrorAction Stop | Where-Object { $_.Type -eq 'A' } | ForEach-Object { $_.IPAddress }) } catch { }
-    Test-Check "DNS: $siteHost A = $address" ($dns.Count -ge 1 -and -not @($dns | Where-Object { $_ -ne $address })) ($dns -join ', ')
+    $lookup = Invoke-ReadAgain "DNS A of $siteHost" {
+        $a = @(); $err = $null; $code = 0
+        try { $a = @(Resolve-DnsName -Name $siteHost -Type A -DnsOnly -ErrorAction Stop | Where-Object { $_.Type -eq 'A' } | ForEach-Object { $_.IPAddress }) }
+        catch { $err = $_.Exception.Message; if ($_.Exception -is [ComponentModel.Win32Exception]) { $code = $_.Exception.NativeErrorCode } }
+        [pscustomobject]@{ A = $a; Error = $err; Code = $code }
+    } { param($d) if ($script:DnsNoAnswerCodes -contains $d.Code) { "error $($d.Code): $($d.Error)" } }
+    $dns = @($lookup.A)
+    Test-Check "DNS: $siteHost A = $address" ($dns.Count -ge 1 -and -not @($dns | Where-Object { $_ -ne $address })) ((@($dns) + @($lookup.Error | Where-Object { $_ })) -join ', ')
 
     $keygen = Get-OpenSshTool 'ssh-keygen'
     $keyscan = Get-OpenSshTool 'ssh-keyscan'
@@ -116,14 +139,21 @@ function Invoke-StageDeploy {
     foreach ($l in $pinned) { if ($l -match '\((\w+)\)\s*$') { $keyType = $Matches[1].ToLowerInvariant() } }
     # Windows OpenSSH 9.5 ssh-keyscan stops with "choose_kex: unsupported KEX method sntrup761x25519-sha512" against
     # newer servers; then Git for Windows' ssh-keyscan is used. Neither logs in.
-    $scan = Invoke-Native -Exe $keyscan -Arguments @('-p', "$port", '-t', $keyType, $address) -AllowFail -Quiet
-    if ($scan.Code -or -not @($scan.Lines | Where-Object { $_ -notmatch '^#' -and $_.Trim() })) {
-        $gitScan = Join-Path (Split-Path (Split-Path (Get-Command git -ErrorAction Stop).Source)) 'usr/bin/ssh-keyscan.exe'
-        if (Test-Path -LiteralPath $gitScan) {
-            Say "ssh-keyscan of $keyscan failed ($((@($scan.Lines) | Select-Object -Last 1))): using $gitScan"
-            $scan = Invoke-Native -Exe $gitScan -Arguments @('-p', "$port", '-t', $keyType, $address) -AllowFail -Quiet
+    # Both exit 1 and print no key line for every failure (on this PC: name lookup, refused, reset, no answer within
+    # its 5 s, a banner and then a closed connection; Git's prints its error texts on stderr, merged into Lines), so
+    # "no line '<host> <type> AAAA...'" is no answer and the read is asked again (Invoke-ReadAgain). Any key line is
+    # an answer and goes to the fingerprint check below as it is.
+    $scan = Invoke-ReadAgain 'ssh-keyscan of the server' {
+        $s = Invoke-Native -Exe $keyscan -Arguments @('-p', "$port", '-t', $keyType, $address) -AllowFail -Quiet
+        if ($s.Code -or -not @($s.Lines | Where-Object { $_ -notmatch '^#' -and $_.Trim() })) {
+            $gitScan = Join-Path (Split-Path (Split-Path (Get-Command git -ErrorAction Stop).Source)) 'usr/bin/ssh-keyscan.exe'
+            if (Test-Path -LiteralPath $gitScan) {
+                Say "ssh-keyscan of $keyscan failed ($((@($s.Lines) | Select-Object -Last 1))): using $gitScan"
+                $s = Invoke-Native -Exe $gitScan -Arguments @('-p', "$port", '-t', $keyType, $address) -AllowFail -Quiet
+            }
         }
-    }
+        $s
+    } { param($k) if (-not @($k.Lines | Where-Object { $_ -match '^\S+\s+\S+\s+AAAA[0-9A-Za-z+/]+=*\s*$' })) { "exit $($k.Code), no key line" } }
     $scanFile = Join-Path (Get-ReleaseDir $ver) 'keyscan.tmp'
     [IO.File]::WriteAllText($scanFile, ((@($scan.Lines) | Where-Object { $_ -notmatch '^#' }) -join "`n") + "`n")
     $scanned = (Invoke-Native -Exe $keygen -Arguments @('-lf', $scanFile) -AllowFail -Quiet).Text
@@ -176,7 +206,7 @@ function Invoke-StageDeploy {
     }
     $after = Get-NeighborSnapshot
     [IO.File]::WriteAllText((Join-Path $logs 'neighbor-after.json'), ($after | ConvertTo-Json -Depth 5))
-    if (($before | ConvertTo-Json -Depth 5 -Compress) -ne ($after | ConvertTo-Json -Depth 5 -Compress)) {
+    if ((Get-NeighborAnswers $before) -ne (Get-NeighborAnswers $after)) {
         Say '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
         Say '!!! THE OTHER SERVICE ON THE SAME SERVER CHANGED DURING THE DEPLOY   !!!'
         Say '!!! Do nothing more. Tell the user at once (neighbor-before/after.json) !!!'

@@ -38,6 +38,13 @@ import java.util.Map;
 
 /**
  * MySQLEvent
+ *
+ * 설계: DDL 글({@link #getObjectDefinitionText})의 이벤트 이름은 DB 이름을 붙인 이름이다. 루틴·뷰·표의 DDL 글처럼 어느 DB의 쿼리 창에
+ * 붙여 실행해도 이 이벤트의 DB에 만들어진다.
+ *
+ * 변경 이력:
+ * - 2026-11-25 Chromite: DDL 글의 이벤트 이름에 DB 이름을 붙임. DB를 고르지 않은 새 쿼리 창에 붙이면 1046(No database selected),
+ *   다른 DB의 창이면 그 DB에 만들어졌다(docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)").
  */
 public class MySQLEvent implements MySQLSourceObject, DBPSaveableObject, DBPQualifiedObject {
 
@@ -254,7 +261,7 @@ public class MySQLEvent implements MySQLSourceObject, DBPSaveableObject, DBPQual
         DateFormat dateFormat = new SimpleDateFormat(DBConstants.DEFAULT_TIMESTAMP_FORMAT);
         StringBuilder sql = new StringBuilder();
         sql.append(CommonUtils.getOption(options, OPTION_OBJECT_ALTER) ? "ALTER" : "CREATE");
-        sql.append(" EVENT ").append(DBUtils.getQuotedIdentifier(this)).append("\n");
+        sql.append(" EVENT ").append(getFullyQualifiedName(DBPEvaluationContext.DDL)).append("\n");
         if (intervalValue != null && intervalField != null) {
             sql.append("ON SCHEDULE EVERY ").append(intervalValue).append(" ").append(intervalField).append("\n");
         } else if (executeAt != null) {
