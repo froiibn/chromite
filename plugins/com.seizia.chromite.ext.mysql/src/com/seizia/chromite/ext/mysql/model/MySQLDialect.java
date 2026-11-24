@@ -33,6 +33,12 @@ import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
 import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
 import com.seizia.chromite.model.sql.SQLDialectFeatures;
 import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.parser.SQLParserActionKind;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.SQLTokenEntry;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateFactory;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateNode;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateSet;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
 import com.seizia.chromite.model.struct.DBSTypedObject;
 import com.seizia.chromite.model.struct.DBStructUtils;
 import com.seizia.chromite.model.struct.rdb.DBSProcedure;
@@ -70,6 +76,9 @@ import java.util.regex.Pattern;
  * - 2026-11-09 Chromite: {@link #probeTransaction} tells that the transaction only reads when INNODB_TRX shows no changed
  *   row and no InnoDB lock, read again 0.11 s later so that the view's copy is current (docs/chromite/idle-transactions.md
  *   "조회만 한 트랜잭션 끝내기").
+ * - 2026-11-25 Chromite: {@link #makeDialectSkipTokenPredicatesImpl}: 저장 프로그램(프로시저·함수·트리거·이벤트)의
+ *   {@code BEGIN … END} 본문을 한 문장으로 둔다. DDL 보기 글처럼 {@code DELIMITER} 없이 쓴 루틴이 본문의 첫 {@code ;}에서 나뉘어
+ *   1064 오류가 났다(docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)").
  */
 public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe {
 
@@ -416,6 +425,7 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
         addDataTypes(List.of("CHAR"));
         addFunctions(Arrays.asList(MYSQL_EXTRA_FUNCTIONS));
         addFunctions(Arrays.asList(JSON_FUNCTIONS));
+        cachedDialectSkipTokenPredicates = makeDialectSkipTokenPredicates(dataSource);
     }
 
     @Override
@@ -468,8 +478,41 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
 
     @Override
     public String[][] getBlockBoundStrings() {
-        // No anonymous blocks in MySQL
+        // BEGIN ... END exists only in the body of a stored program, while BEGIN alone also starts a transaction
+        // (BEGIN; BEGIN WORK;): the bodies are kept whole by makeDialectSkipTokenPredicatesImpl instead
         return null;
+    }
+
+    /**
+     * Keeps the {@code BEGIN … END} body of a stored program (procedure, function, trigger, event) in one statement, so that
+     * it runs without {@code DELIMITER} lines, as the DDL text shows it and as the server takes it. Only statements that start
+     * with a stored program header count; elsewhere {@code BEGIN} is a transaction and {@code IF(…)}, {@code REPEAT(…)} are
+     * functions, and nothing changes.
+     * In the body, {@code BEGIN} and {@code CASE} (statement or expression) open a block and {@code END} closes the innermost
+     * one. {@code IF}, {@code LOOP}, {@code WHILE}, {@code REPEAT} and MariaDB's {@code FOR} open nothing, since the same
+     * words are functions or clauses ({@code IF(…)}, {@code IF EXISTS}); their {@code END IF}, {@code END LOOP} … close the
+     * enclosing block with {@code END} and reopen it with the next word. {@code END CASE} closes the {@code CASE} block. The
+     * statement ends at the delimiter after the last {@code END}; a script with {@code DELIMITER} works as before.
+     */
+    @NotNull
+    @Override
+    protected TokenPredicateSet makeDialectSkipTokenPredicatesImpl(@NotNull JDBCDataSource dataSource, @NotNull TokenPredicateFactory tt) {
+        // Any one token: the '=' of DEFINER and the parts of the user (CURRENT_USER, 'name', `name`@`host`, CURRENT_USER())
+        TokenPredicateNode any = new SQLTokenEntry(null, null, false);
+        TokenPredicateNode definer = tt.optional(tt.sequence("DEFINER", any, tt.alternative(any, tt.sequence(any, any, any))));
+        // CREATE [OR REPLACE] [DEFINER = user] [AGGREGATE] PROCEDURE|FUNCTION|TRIGGER|EVENT, ALTER [DEFINER = user] EVENT
+        TokenPredicateNode storedProgram = tt.alternative(
+            tt.sequence("CREATE", tt.optional("OR", "REPLACE"), definer, tt.optional("AGGREGATE"),
+                tt.alternative("PROCEDURE", "FUNCTION", "TRIGGER", "EVENT")),
+            tt.sequence("ALTER", definer, "EVENT")
+        );
+        return TokenPredicateSet.of(
+            new TokenPredicatesCondition(SQLParserActionKind.BEGIN_BLOCK, storedProgram, tt.token("BEGIN")),
+            new TokenPredicatesCondition(SQLParserActionKind.BEGIN_BLOCK, storedProgram, tt.sequence(tt.not("END"), "CASE")),
+            new TokenPredicatesCondition(SQLParserActionKind.END_BLOCK, storedProgram, tt.token("END")),
+            new TokenPredicatesCondition(SQLParserActionKind.BEGIN_BLOCK, storedProgram,
+                tt.sequence("END", tt.alternative("IF", "LOOP", "WHILE", "REPEAT", "FOR")))
+        );
     }
 
     @Override

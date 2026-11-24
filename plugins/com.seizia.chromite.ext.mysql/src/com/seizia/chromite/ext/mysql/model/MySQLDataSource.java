@@ -87,6 +87,8 @@ import java.util.regex.Pattern;
  *   진행 창에서 사용자가 누른 취소가 오류 창으로 보이지 않게 한다. 1317은 다른 세션의 KILL QUERY도 같으므로 취소를 요청했는지
  *   아는 쪽만 사용자의 취소로 본다. 시간 초과(MariaDB 1969, MySQL 3024, Connector/J의 시간 초과 예외)는 분류하지 않는다
  *   (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
+ * - 2026-11-25 {@link #initializeContextState}: 읽기 전용 연결에서 원본 세션이 있는 세션(Invalidate/Reconnect)을 열 때 DB 목록을 다시 읽지 않음.
+ *   배타 잠금 아래에서 목록 캐시를 기다릴 수 있었다(앱 변경 #186, docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
  * - 2026-11-25 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 현재 DB를 원본 세션이 가진 이름으로 정함
  *   ({@link MySQLExecutionContext#setCurrentDatabaseFrom}). DB 개체를 목록에서 찾지 못하면 아무것도 하지 않아, Invalidate/Reconnect로
  *   다시 연 세션이 옛 이름을 가진 채 DB 없이 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
@@ -281,7 +283,9 @@ public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisti
             // the new session runs without it
             ((MySQLExecutionContext) context).setCurrentDatabaseFrom(monitor, (MySQLExecutionContext) initFrom);
         } else {
-            ((MySQLExecutionContext) context).refreshDefaults(monitor, true);
+            // A session opened from a source session (Invalidate/Reconnect, under the instance's exclusive lock) does not
+            // read the database list again: a thread that holds the list may wait for that lock
+            ((MySQLExecutionContext) context).refreshDefaults(monitor, true, initFrom == null);
         }
     }
 

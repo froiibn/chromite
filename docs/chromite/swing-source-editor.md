@@ -74,7 +74,9 @@ SWT 소스 탭은 고친 글을 속성 `objectDefinitionText`로 객체 편집�
   그 밖의 방언은 `generateScript`처럼 기본 구분자(`;`)를 붙이고, 복합 동작(관리자가 `complex`로 표시한 루틴 본문)은 구분자를 바꾸는 방언(MySQL)에서
   `DELIMITER $$` … `$$` / `DELIMITER ;` 사이에 둔다. MySQL 방언에는 `BEGIN … END` 블록이 없어(`MySQLDialect.getBlockBoundStrings`가 null, 312행)
   쿼리 창의 구문 분석기가 본문 안의 `;`에서 문장을 나누기 때문이다(처음에 `DELIMITER` 없이 만들었다가 MariaDB에서 `CREATE PROCEDURE`가 1064 오류로
-  잘려 보내지는 것을 확인하고 바꿨다). 쿼리 창은 `DELIMITER` 줄을 처리한다(실행 엔진의 구문 분석기가 구분자를 바꿈). `generateScript`와 달리
+  잘려 보내지는 것을 확인하고 바꿨다). 2026-11-25부터 MySQL 방언이 저장 프로그램 본문을 한 문장으로 두어(`MySQLDialect.makeDialectSkipTokenPredicatesImpl`,
+  [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행") 쿼리 창에는 `DELIMITER`가 없어도 되지만, 클립보드로 mysql 클라이언트
+  등에 붙여도 실행되도록 그대로 둔다. 쿼리 창은 `DELIMITER` 줄을 처리한다(실행 엔진의 구문 분석기가 구분자를 바꿈). `generateScript`와 달리
   `DELIMITER $$` 뒤의 빈 `$$` 문장은 넣지 않고, 줄 끝은 편집기와 같은 LF다.
 - **DB/스키마 맞추기:** 쿼리 창은 연결의 기본(주) 실행 문맥에서 실행한다. 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를 개체가 있는 곳으로 바꾼다
   (편집기의 기본 DB/스키마 콤보와 같은 `DBExecUtils.setExecutionContextDefaults`). 그래서
@@ -167,3 +169,5 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
 - 2026-11-08 같은 틀 경로(`SourceScripts.generateNew`)에 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀을 더함. 메뉴는 폴더의
   "New &lt;종류&gt;…" 하나([swing-create-objects.md](swing-create-objects.md)).
 - 2026-11-22 수정·ALTER 대상: 취소하면 스크립트를 열지 않음, 권한 오류의 첫 줄(앱 변경 #159).
+- 2026-11-25 MySQL `DELIMITER`를 남기는 이유를 바로잡음(쿼리 창은 이제 본문을 나누지 않음), DDL 보기·CREATE 대상도 같은 SQL Server `USE` 배치를 씀(`SourceScripts.inObjectDatabase`,
+  `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). Modify 스크립트는 바뀌지 않았다.
