@@ -99,6 +99,8 @@ import java.util.Set;
  * - 2026-11-25 Chromite: a subprogram declared in a standalone routine's declarations opens a header of its own
  *   (NESTED_BLOCK_HEADER at its PROCEDURE / FUNCTION word): its BEGIN closed the routine's header and its END ended the
  *   statement (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
+ * - 2026-11-25 Chromite: the EXISTS of 23ai CREATE ... IF NOT EXISTS ends the block the IF rule opened at its NOT (END_BLOCK):
+ *   the splitter joined every following statement into it (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -837,6 +839,13 @@ public class OracleSQLDialect extends JDBCSQLDialect
                 SQLParserActionKind.BEGIN_BLOCK,
                 tt.sequence(),
                 tt.sequence(tt.not("END"), "IF", tt.not("EXISTS"))
+            ),
+            // 23ai CREATE ... IF NOT EXISTS: the rule above opened a block at its NOT (it sees one word after IF), and nothing
+            // ends that block. Its EXISTS ends it, as BigQuery's dialect does for the same clause. IF EXISTS (ALTER, DROP) opens none
+            new TokenPredicatesCondition(
+                SQLParserActionKind.END_BLOCK,
+                tt.token("CREATE"),
+                tt.sequence("IF", "NOT", "EXISTS")
             ),
             new TokenPredicatesCondition(
                 SQLParserActionKind.BLOCK_HEADER,

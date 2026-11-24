@@ -77,6 +77,11 @@ import java.util.*;
  *   {@code AS}/{@code IS} 전의 {@code ;}는 앞선 선언으로 닫는다. 전에는 안쪽 {@code BEGIN}이 바깥 머리를 닫아 안쪽 {@code END;}에서 문장이
  *   끝났다. 이 길에 닿는 방언: 그 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)뿐이다
  *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
+ * - 2026-11-25 Chromite: 조건({@code BEGIN_BLOCK})이 연 블록을 끝 조건({@code END_BLOCK})이 닫으면 그 블록을 열기 전 상태로 돌아간다(그때 내린 머리
+ *   블록 포함). Oracle {@code CREATE PACKAGE IF NOT EXISTS p AS …}에서 {@code IF} 조건이 {@code NOT}에 연 블록이 {@code PACKAGE} 머리를 내리고
+ *   {@code EXISTS}가 그 블록만 닫아, 명세가 첫 {@code ;}에서 나뉘었다. 이 길에 닿는 것: {@code BEGIN_BLOCK} 블록을 {@code END_BLOCK}이 닫는 경우로,
+ *   지금은 Oracle의 {@code IF NOT EXISTS}뿐이다(Altibase의 끝 조건은 루틴 머리를, BigQuery의 것은 {@code IF} 낱말이 연 블록을 닫는다)
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
  */
 public class SQLScriptParser {
 
@@ -376,11 +381,13 @@ public class SQLScriptParser {
                     newTokenCaptured = false;
                     SQLParserActionKind actionKind = predicateEvaluator.evaluatePredicates();
                     if (actionKind == SQLParserActionKind.BEGIN_BLOCK) {
+                        ScriptBlockInfo openedOver = curBlock;
                         // header blocks seems optional and we are in the block either way
                         while (curBlock != null && curBlock.isHeader) {
                             curBlock = curBlock.parent;
                         }
                         curBlock = new ScriptBlockInfo(curBlock, false);
+                        curBlock.predicateOpenedOver = openedOver;
                         hasBlocks = true;
                     }
 
@@ -390,7 +397,10 @@ public class SQLScriptParser {
                         bodilessRoutine = true;
                     } else if (actionKind == SQLParserActionKind.END_BLOCK) {
                         if (!curBlock.isPredicateHeaderBlock) {
-                            curBlock = curBlock.parent;
+                            // A block a BEGIN_BLOCK predicate opened and an END_BLOCK predicate ends was no block (Oracle: the IF
+                            // rule's block at CREATE PACKAGE IF NOT EXISTS): back to what was open before it, the header it
+                            // dropped included
+                            curBlock = curBlock.predicateOpenedOver != null ? curBlock.predicateOpenedOver : curBlock.parent;
                         } else if (capturedTokens - curBlock.headerTokenIndex < predicateEvaluator.getLastMatchedPredicate().getMaxSuffixLength()) {
                             // Only words that follow the AS / IS which opened the header end it. A nested subprogram's call
                             // specification ("AS PROCEDURE c IS LANGUAGE C …;") ends that subprogram's header, not the routine
@@ -1202,6 +1212,9 @@ public class SQLScriptParser {
         // subprogram's heading, before its AS / IS
         boolean isNestedHeader;
         boolean isSubprogramHeading;
+        // Of a block a BEGIN_BLOCK predicate opened: the block that was open then, before the header blocks it dropped
+        @Nullable
+        ScriptBlockInfo predicateOpenedOver;
         @Nullable
         String beginToken;
 
