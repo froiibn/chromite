@@ -455,10 +455,12 @@ Oracle(#165)은 이미 이름으로 받고, 받지 못하면 세션의 실제 �
 - 다시 연결한 세션에는 트랜잭션이 없다. 새 세션에서 `USE`/`SET search_path`/다른 DB로 다시 열기를 할 뿐 커밋·롤백하지 않고, 끊기 전 문장을 다시 보내지 않는다.
   끊기·Reconnect의 열린 트랜잭션 질문(`ExitTransactionCheck`)은 바뀌지 않았다.
 - 원본 DB를 받지 못했을 때는 세션의 **이름만** 읽고 목록은 읽지 않는다: SQL Server `refreshDefaults(…, false, false)`(목록 다시 읽기 `getObjectReadingNew`를
-  건너뛰는 private 겹침), MySQL `readCurrentDatabaseName`(`DATABASE()`만), DB2·Exasol `refreshDefaults(…, false)`(현재 스키마 질의만, 목록을 읽지 않음).
+  건너뛰는 private 겹침), MySQL `refreshDefaults(…, false, false)`(`DATABASE()`만, #186이 읽기 전용 연결의 다시 열기에 쓰는 것과 같은 길), DB2·Exasol `refreshDefaults(…, false)`(현재 스키마 질의만, 목록을 읽지 않음).
   Invalidate/Reconnect(`InvalidateJob.invalidateInstances`, `InvalidateJob.java:388`)와 끊긴 세션 다시 열기(`TransactionRecoveryGuard.java:235`)는 인스턴스의
   배타 잠금을 쥔 채 `invalidateContext` → `initializeContextState`를 부르므로, 거기서 목록을 읽으면 #165·#350의 교착 모양이 된다. 목록은 쿼리 창이 다음 실행 뒤에 읽는다.
   (2026-11-25 검토 후속: 처음에는 `refreshDefaults(…, false)`를 불러 목록을 다시 읽을 수 있었다.)
+- 앱 변경 #186 뒤에는 닫힌 세션을 읽기가 다시 열 때(`JDBCExecutionContext.getConnection`)도 `initFrom`이 그 문맥 자신이라 같은 길(이름으로 받기, 못 받으면
+  이름만 읽기)을 지난다. 그 길은 목록 캐시를 쥔 스레드에서도 올 수 있어, 이 길에서 목록을 읽지 않는 것이 더 중요하다.
 
 **같은 원인을 본 다른 곳(코드 읽기):** Generic(Altibase 포함)의 `GenericExecutionContext.initDefaultsFrom`은 원본 기본값을 개체로 찾지 못하면 데이터 소스의
 기본 카탈로그/스키마로 `USE`/`setSchema` 하고 그 이름을 가지므로 표시와 세션은 같다(필터로 숨긴 스키마는 선택을 잃음). 바꾸지 않았다.
@@ -556,3 +558,5 @@ MySQL 8.4(번들 MariaDB 드라이버: MySQL 드라이버는 번들에 없어 �
   다시 시작 뒤 복원·New Query의 DB 이어받기(같은 `restoredDefaults` 자리), Invalidate/Reconnect 뒤의 선택 읽기.
 - 2026-11-25 검토 후속(같은 브랜치): DB/스키마를 받지 못했을 때의 대체 읽기가 목록을 읽지 않음(이름만). 다시 여는 길은 인스턴스의 배타 잠금 아래라 목록 읽기가
   교착 모양이 된다. 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 `command` 병합(앱 변경 #186과 함께): MySQL의 대체 읽기를 #186의 `refreshDefaults(…, false, false)`로 합침(같은 일을 하던 `readCurrentDatabaseName` 삭제).
+  회귀 테스트는 실행하지 않았다.
