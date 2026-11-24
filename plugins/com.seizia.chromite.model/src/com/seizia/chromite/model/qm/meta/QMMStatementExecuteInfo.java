@@ -27,6 +27,11 @@ import java.sql.SQLException;
 
 /**
 * Statement execute info
+*
+* 변경 이력:
+* - 2026-11-25 {@link #isCanceledByApplication}: 결과가 더는 필요 없어 앱이 취소한 실행(Properties 창이 다른 노드로 바뀐 읽기)은 오류가 아니라
+*   취소로 둔다. 전에는 사용자의 취소처럼 오류 코드 0, "Query execution was cancelled by user"로 남아 Query Manager에 오류로 보였다.
+*   사용자의 취소는 전과 같이 오류로 기록한다 (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
 */
 public class QMMStatementExecuteInfo extends QMMObject {
 
@@ -39,6 +44,7 @@ public class QMMStatementExecuteInfo extends QMMObject {
 
     private int errorCode;
     private String errorMessage;
+    private boolean canceledByApplication;
 
     private long fetchBeginTime;
     private long fetchEndTime;
@@ -143,6 +149,18 @@ public class QMMStatementExecuteInfo extends QMMObject {
         this.update();
     }
 
+    /**
+     * The application canceled the execution because it no longer needed the result: not an error, so the driver's
+     * report of the cancel is not kept as one.
+     */
+    void setCanceledByApplication()
+    {
+        this.errorCode = 0;
+        this.errorMessage = null;
+        this.canceledByApplication = true;
+        this.update();
+    }
+
     public QMMStatementInfo getStatement()
     {
         return statement;
@@ -180,6 +198,15 @@ public class QMMStatementExecuteInfo extends QMMObject {
     public boolean hasError()
     {
         return errorCode != 0 || errorMessage != null;
+    }
+
+    /**
+     * Whether the application canceled the execution because it no longer needed the result (it then has no error). A
+     * cancel the user asked for is recorded as an error with the cancel message instead.
+     */
+    public boolean isCanceledByApplication()
+    {
+        return canceledByApplication;
     }
 
     public long getFetchBeginTime()

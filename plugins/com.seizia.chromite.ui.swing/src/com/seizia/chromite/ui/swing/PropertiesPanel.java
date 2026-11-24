@@ -71,7 +71,8 @@ import java.util.stream.Stream;
  * 아니면 {@link PropertyCollector}로 {@code @Property} 게터를 모은다. 둘 다 UI에 의존하지 않는다.
  * <ul>
  *     <li>속성 값 읽기는 게으른 속성(DB 조회가 필요한 값)을 포함하므로 백그라운드 Job에서 {@link DBRProgressMonitor}를 넘겨 읽는다.
- *     선택이 바뀌면 이전 Job을 취소하고, 늦게 끝난 이전 결과는 번호로 걸러 버린다.</li>
+ *     선택이 바뀌면 이전 Job을 취소하고({@link AbstractJob#cancelUnneeded}: 사용자의 취소가 아니라 앱의 취소로 기록됨), 늦게 끝난 이전 결과는
+ *     번호로 걸러 버린다.</li>
  *     <li>모델이 고칠 수 있다고 하는 속성(객체 관리자가 있고 {@code @Property(updatable = true)})은 값 칸을 두 번 누르거나 F2로 고친다.
  *     어떤 속성을 어떤 편집기로 고치는지, 저장(스크립트 미리 보기 → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림)은 {@link ObjectPropertyEdits}가 한다.
  *     고칠 수 있는 속성이 있는 객체에서는 SSMS처럼 읽기 전용 값을 흐리게 보인다. 저장한 뒤에는 속성을 다시 읽는다.
@@ -103,6 +104,8 @@ import java.util.stream.Stream;
  * - 2026-11-17 객체가 {@link DBPObjectWithContributedProperties}면 다른 번들이 이 연결에서 더하는 읽기 전용 속성을 자기 속성 뒤에 보임:
  *   주석 속성은 클래스마다 고정이라 서버 확장이 기존 객체에 속성을 더할 다른 길이 없다. 읽기 실패는 자기 속성을 지우지 않는다
  *   (앱 변경 #139 수정 6, docs/chromite/altibase.md "기존 객체의 추가 속성")
+ * - 2026-11-25 다른 노드를 보이게 되어 그만두는 읽기를 {@link AbstractJob#cancelUnneeded}로 취소: Query Manager가 그 문장을 사용자의 취소 오류
+ *   ("Query execution was cancelled by user")로 기록하던 것을 앱의 취소로 (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -254,7 +257,8 @@ final class PropertiesPanel extends JPanel {
         int serial = ++loadSerial;
         shownNode = node;
         if (loadJob != null) {
-            loadJob.cancel();
+            // Not the user's cancel: the Query Manager records the read's statement as canceled, not as the user's error
+            loadJob.cancelUnneeded();
             loadJob = null;
         }
         if (node == null) {

@@ -23,10 +23,17 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.exec.*;
 import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.AbstractJob;
 import org.jkiss.utils.CommonUtils;
 
 /**
  * Data source information
+ *
+ * 변경 이력:
+ * - 2026-11-25 취소된 실행의 기록: 결과가 더는 필요 없어 앱이 취소한 작업({@link AbstractJob#cancelUnneeded})의 실행은 사용자의 취소 오류
+ *   ("Query execution was cancelled by user", 오류 코드 0) 대신 앱의 취소로 기록한다({@link QMMStatementExecuteInfo#isCanceledByApplication}).
+ *   모델은 취소된 모니터만 보고 누가 취소했는지 모르므로, 문장을 실행하는 스레드의 작업에서 읽는다. 다른 취소(사용자의 중지·진행 창의 취소,
+ *   작업 밖의 취소)는 전과 같다 (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 public class QMMConnectionInfo extends QMMObject implements QMMDataSourceInfo {
 
@@ -284,7 +291,7 @@ public class QMMConnectionInfo extends QMMObject implements QMMDataSourceInfo {
         if (exec != null) {
             exec.close(rowCount, error);
             if (isExecutionCanceled(statement, error)) {
-                markExecutionCanceled(exec, error);
+                markExecutionCanceled(statement, exec, error);
             }
         }
         return exec;
@@ -308,7 +315,7 @@ public class QMMConnectionInfo extends QMMObject implements QMMDataSourceInfo {
         if (exec != null) {
             exec.endFetch(rowCount);
             if (exec.getErrorMessage() == null && isExecutionCanceled(resultSet.getSourceStatement(), null)) {
-                markExecutionCanceled(exec, null);
+                markExecutionCanceled(resultSet.getSourceStatement(), exec, null);
             }
         }
         return exec;
@@ -318,7 +325,7 @@ public class QMMConnectionInfo extends QMMObject implements QMMDataSourceInfo {
     public QMMStatementExecuteInfo execution(@NotNull DBCStatement statement, @Nullable Throwable error) {
         QMMStatementExecuteInfo execution = getExecution(statement);
         if (execution != null) {
-            markExecutionCanceled(execution, error);
+            markExecutionCanceled(statement, execution, error);
         }
         return execution;
     }
@@ -328,8 +335,23 @@ public class QMMConnectionInfo extends QMMObject implements QMMDataSourceInfo {
             error != null && DBExecUtils.isExecutionCanceled(statement.getSession().getDataSource(), error);
     }
 
-    private void markExecutionCanceled(@NotNull QMMStatementExecuteInfo exec, @Nullable Throwable error) {
-        exec.setError(exec.getErrorCode(), getCancelMessage(error));
+    private void markExecutionCanceled(@NotNull DBCStatement statement, @NotNull QMMStatementExecuteInfo exec, @Nullable Throwable error) {
+        if (isCanceledAsUnneeded(statement, error)) {
+            exec.setCanceledByApplication();
+        } else {
+            exec.setError(exec.getErrorCode(), getCancelMessage(error));
+        }
+    }
+
+    /**
+     * Whether the application, not the user, canceled the execution: the job running it on this thread was canceled as
+     * unneeded, the statement's monitor is canceled, and the error, if any, only reports the cancel (a real error that
+     * came first stays an error).
+     */
+    private static boolean isCanceledAsUnneeded(@NotNull DBCStatement statement, @Nullable Throwable error) {
+        return AbstractJob.isCurrentJobCanceledAsUnneeded()
+            && statement.getSession().getProgressMonitor().isCanceled()
+            && (error == null || DBExecUtils.isExecutionCanceled(statement.getSession().getDataSource(), error));
     }
 
     @NotNull

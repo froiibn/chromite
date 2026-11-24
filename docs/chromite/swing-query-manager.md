@@ -94,6 +94,60 @@ PostgreSQL 17(수동 커밋 연결)과 SQL Server 2022(자동 커밋 연결)의 
 | Options > Logs, 로그 파일 꺼짐 | 기록할 것·쿼리 종류 체크 상자가 켜져 있고 안내 문구가 보임 |
 | 앱 닫기 | 디버그 로그에 쿼리 관리자 리스너 경고 없음 |
 
+## 앱이 취소한 읽기 (2026-11-25, `chromite/properties-read-once`)
+
+### 문제
+
+Properties 창은 다른 노드를 보이게 되면 앞 읽기 작업을 취소한다. 작업 취소는 실행 중인 문장을 취소하고(`AbstractJob.canceling` → `runBlockCanceler`),
+쿼리 관리자 모델(`QMMConnectionInfo.endExecution`·`endFetch`·`execution`)은 문장의 모니터가 취소되었으면 그 실행을 오류 코드 0, "Query execution was
+cancelled by user"(드라이버가 글을 주면 그 글, SQL Server는 "쿼리가 취소되었습니다.")인 오류로 기록했다. 행을 다 읽은 뒤 취소된 실행도 같았다. 사용자는
+아무것도 취소하지 않았는데 메타데이터 읽기를 켜면 빨간 오류 행이 보였다(고치기 전 표 하나·연결 새로 고침 한 번에 PostgreSQL 1~3행, SQL Server 5행, MariaDB 1행).
+
+### 진실이 없어지는 곳과 고친 것
+
+- 누가 취소를 요청했는지는 취소를 부른 쪽(작업)만 안다. 모델은 취소된 모니터만 본다. 사용자의 중지(Query ▸ Stop, `SqlEditorPanel.cancel`)와
+  진행 창의 취소(`ProgressDialog.cancel`)도, Properties 창의 앱 취소도 모두 `Job.cancel()`이다.
+- `AbstractJob.cancelUnneeded()`: 결과가 더는 필요 없어 앱이 취소하는 작업에 표시를 남기고 `cancel()`한다. 이미 (사용자가) 취소한 작업에는 표시하지 않는다.
+  작업의 문장은 그 작업의 스레드에서 실행되므로 모델은 `AbstractJob.isCurrentJobCanceledAsUnneeded()`(지금 스레드의 작업, `CURRENT_JOB`)로 읽는다.
+- `QMMConnectionInfo.markExecutionCanceled`: 지금 스레드의 작업이 앱 취소이고, 문장의 모니터가 취소되었고, 오류가 없거나 취소 보고뿐이면
+  (`DBExecUtils.isExecutionCanceled`) `QMMStatementExecuteInfo.setCanceledByApplication()` — 오류 코드·글을 비우고 `isCanceledByApplication()`을 켠다.
+  `hasError()`는 거짓이다. 취소 전에 난 진짜 오류는 오류로 남는다. 그 밖의 모든 취소는 전과 같은 코드(`setError`, "cancelled by user")다.
+- 지금 `cancelUnneeded`를 부르는 곳은 `PropertiesPanel.showNode` 하나다(Properties 창, Object Details 속성 탭, Object Details를 닫을 때의 `showNode(null)`).
+- 보이는 곳: Query Manager 결과 열과 트랜잭션 로그의 결과 열은 기록 창의 상태 낱말 "취소됨"(`EditorMessages.editor_history_status_canceled`)을 다시 쓰고,
+  오류 색을 쓰지 않는다. 새 상태·열·문구는 없다. SQL 로그 파일(`QMLogFileWriter`)은 그 실행을 "SUCCESS" 대신 `CANCELED`(심각도 CANCEL)로 적는다.
+
+### 바뀐 길에 닿는 호출
+
+`QMMConnectionInfo.endExecution`·`endFetch`·`execution`은 모든 DB의 모든 실행이 지난다(`QMMCollectorImpl.handleStatementExecuteEnd`·`handleResultSetClose`·
+`handleFetchError`, JDBC 문장·결과 집합 감싸개). 새 분기는 위 세 조건이 모두 맞을 때만 타므로, 지금은 Properties 창의 읽기 작업에서만 기록이 바뀐다.
+
+### 같은 원인, 바꾸지 않은 곳 (보고만)
+
+앱이 스스로 `Job.cancel()`하는 다른 읽기는 그대로라, 그 문장이 취소되면 전처럼 "cancelled by user" 오류로 남는다: `ObjectDetailsPanel`(그룹·목록 읽기,
+`:270`, `:507`), `ErdDiagramPanel.dispose`(`:308`), `SchemaComparePanel`의 DDL 읽기(`:617`, `:747`), `ResultSetColumnFilterPopup`(`:759`),
+`SqlCompletionPopup`(`:460`, `:699`), `SqlObjectNavigation`(`:320`), `DataSearchPanel`·`ObjectSearchPanel`(사용자 중지일 수도 있음). 각각 누가 취소하는지
+확인한 뒤 `cancelUnneeded`로 바꿀 수 있다.
+
+### 사용자의 취소 (전후 같음)
+
+쿼리 창에서 문장을 실행하고 3초 뒤 Query ▸ Stop(`SqlEditorPanel.cancel`)을 눌렀다. 고치기 전과 뒤의 Query Manager 기록과 결과 열이 같다:
+
+| DB | 문장 | 결과 열(전 / 뒤) | 오류 색 |
+|---|---|---|---|
+| PostgreSQL | `SELECT pg_sleep(20)` | "ERROR: canceling statement due to user request" / 같음 | 전후 빨강 |
+| SQL Server | `WAITFOR DELAY '00:00:20'` | "쿼리가 취소되었습니다." / 같음 | 전후 빨강 |
+| MariaDB | `SELECT SLEEP(20)` | "[1317] (conn=…) Query execution was interrupted" / 같음 | 전후 빨강 |
+
+같은 작업이 문장 앞뒤에 읽은 메타데이터(`search_path` 등)도 전후 모두 "Query execution was cancelled by user" 오류다(사용자의 취소이므로 맞다).
+
+### 확인 (2026-11-25, 시험 VM, 스크래치 작업 공간, 메타데이터 읽기 켬)
+
+- 고치기 전: 표를 고른 채 연결 새로 고침 한 번에 Properties 창의 앞 읽기 문장이 오류로 남음. PostgreSQL 2~3행(`pg_total_relation_size`, `pg_roles`,
+  `pg_inherits`), SQL Server 5~6행(표 크기 질의, 하나는 드라이버 글 "쿼리가 취소되었습니다."), MariaDB 1~2행. 모두 오류 코드 0, 빨강.
+- 고친 뒤 같은 조작은 읽기가 한 번이라 취소가 없다([swing-object-properties.md](swing-object-properties.md) "한 번만 읽기"). 앱 취소를 일부러 내려고 연결 새로 고침 뒤
+  표와 뷰를 0·30·80ms 간격으로 4번씩 번갈아 골랐다: PostgreSQL에서 취소된 문장 4개, SQL Server 4개가 모두 오류 없이 "취소됨"(결과 열), 빨강 아님, "cancelled by
+  user" 0개. 오류 행 0개.
+
 ## 남은 일
 
 - 열 머리글 정렬, 행 하나씩 지우기, 모든 칸 복사(SWT Copy All Fields).
@@ -104,3 +158,6 @@ PostgreSQL 17(수동 커밋 연결)과 SQL Server 2022(자동 커밋 연결)의 
 - 2026-11-08 최초 작성(`chromite/query-manager-view`): Query Manager 도구 창, Options > Logs의 기록할 것·쿼리 종류를 로그 파일과 상관없이 켜 둠.
 - 2026-11-17 오른쪽 클릭 메뉴는 고른 행에 해당하는 명령만(열기·복사는 문장이 있을 때, 트랜잭션 보기는 트랜잭션이 있는 행 하나일 때). 도구 막대의 켜짐은 그대로
   (앱 변경 #141, `chromite/small-menus-applicable`).
+- 2026-11-25 "앱이 취소한 읽기": 앱이 더는 필요 없어 취소한 Properties 창의 읽기를 사용자의 취소 오류 대신 "취소됨"으로 기록·표시(`AbstractJob.cancelUnneeded`,
+  `QMMStatementExecuteInfo.isCanceledByApplication`, `chromite/properties-read-once`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 쿼리 관리자 기록
+  (취소된 실행), SQL 로그 파일, 트랜잭션 로그의 결과 열, Properties 창의 읽기 취소.

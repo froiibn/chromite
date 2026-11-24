@@ -118,6 +118,8 @@ import java.util.TreeMap;
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-17 오른쪽 클릭 메뉴: Open·Copy는 고른 행에 문장이 있을 때, Show Transaction은 트랜잭션이 있는 행 하나를 골랐을 때만 보임
  *   ({@link ContextMenus}, 앱 변경 #141, docs/chromite/context-menus.md)
+ * - 2026-11-25 앱이 취소한 실행({@link QMMStatementExecuteInfo#isCanceledByApplication}, 다른 노드를 보이게 된 Properties 창의 읽기)은 결과 열에
+ *   기록 창과 같은 "취소됨", 오류 색 없음. 사용자의 취소는 전과 같이 오류 글과 오류 색 (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPreferenceListener {
 
@@ -968,6 +970,10 @@ final class QueryManagerPanel extends JPanel implements QMMetaListener, DBPPrefe
             }
             if (isRunning()) {
                 return EditorMessages.editor_txn_log_running;
+            }
+            if (exec.isCanceledByApplication()) {
+                // A read the application stopped (a view that shows another object now): canceled, not an error
+                return EditorMessages.editor_history_status_canceled;
             }
             if (!exec.hasError()) {
                 return EditorMessages.editor_txn_log_ok;
