@@ -41,6 +41,9 @@ import org.jkiss.utils.StandardConstants;
  * - 2026-11-25 Chromite: {@link #NO_DBMS_METADATA}의 글을 사실대로("Without DBMS_METADATA package" → DBMS_METADATA가 DDL을 주지 않음).
  *   ShardSphere에는 패키지가 있고 GET_DDL이 그 종류를 거절한다. 이 줄은 이제 앱이 만든 DDL(테이블, 시노님) 앞에만 붙는다
  *   (docs/chromite/altibase.md "뷰 DDL의 경고 줄")
+ * - 2026-11-25 Chromite: {@link #EC_DBMS_METADATA_REFUSED}(990001, GET_DDL이 객체 유형을 거절). 이 경우만 조용히 넘기고 다른 오류는
+ *   디버그 로그에 남긴다. {@link #NO_DDL_WITHOUT_DBMS_METADATA}의 글을 사실대로: 인덱스는 이제 카탈로그에서 문장을 만들고, 이 줄은
+ *   카탈로그에서도 못 얻었을 때만 보인다 (docs/chromite/altibase.md "인덱스 DDL")
  */
 public class AltibaseConstants {
     
@@ -104,8 +107,9 @@ public class AltibaseConstants {
     public static final String NO_DBMS_METADATA = "-- [WARNING] DBMS_METADATA gave no DDL, " 
             + "the generated DDL may not be correct." + NEW_LINE;
     
+    // Neither the server's GET_DDL nor the catalog gave a DDL (the catalog has no such index, or it cannot be read)
     public static final String NO_DDL_WITHOUT_DBMS_METADATA = 
-            "-- [WARNING] DBMS_METADATA package is required to have DDL for %s." + NEW_LINE;
+            "-- [WARNING] Neither DBMS_METADATA nor the catalog gave DDL for %s." + NEW_LINE;
     
     /*
      * Preference page
@@ -158,6 +162,8 @@ public class AltibaseConstants {
     
     public static final int EC_PASSWORD_WILL_EXPIRE = 0x51A79;
     public static final int EC_DBMS_METADATA_NOT_FOUND = 0xF1B3D;
+    // 990001: DBMS_METADATA.GET_DDL refuses the object type (ShardSphere 5.1 for every type but TABLE)
+    public static final int EC_DBMS_METADATA_REFUSED = 0xF1B31;
     // "The session has been closed by the server" (SQLState 08004): the statement in flight when the session is closed
     // (ALTER DATABASE ... SESSION CLOSE); the next statement gets 08S01
     public static final int EC_SESSION_CLOSED = 4163;
