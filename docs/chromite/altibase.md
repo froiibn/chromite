@@ -1221,7 +1221,7 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 | 테이블 | 서버의 `CREATE TABLE`(기본 키·인덱스 문장 포함) 뒤에 사용자 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;` | 보고만: 인덱스 줄은 아래 인덱스와 같은 원인 |
 | 인덱스 | `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`(문장 없음) | 보고만: 카탈로그로 CREATE INDEX를 만들 문장 만들기가 모델에 없다(같은 고침이 아님) |
 | 큐 | `-- [WARNING] Without DBMS_METADATA …` + `-- Can't generate DDL: table editor not found for …AltibaseQueue`(문장 없음) | 보고만: 큐는 다른 작업이 고치는 중(`AltibaseQueue`). 카탈로그로 쓰려면 `CREATE QUEUE q (n)`의 크기·`FIXED`/`VARIABLE`·`MAXROWS`를 읽어야 한다 |
-| 뷰, 프로시저, 타입세트, 패키지(명세·본문), 테이블 트리거, 시노님 | `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.` 다음에 카탈로그에서 읽은 바른 문장 | 전부터 카탈로그로 대체(문장은 맞음). 경고 줄은 남김 |
+| 뷰, 프로시저, 타입세트, 패키지(명세·본문), 테이블 트리거, 시노님 | `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.` 다음에 카탈로그에서 읽은 바른 문장 | 전부터 카탈로그로 대체(문장은 맞음). 경고 줄은 남김(2026-11-25 고침: 카탈로그 원본 앞에는 경고 줄 없음, 시노님은 사실대로 쓴 경고, 아래 "뷰 DDL의 경고 줄") |
 | 시퀀스 | 앱이 만든 `CREATE SEQUENCE …`(전부터 `GET_DDL`을 쓰지 않음) | 해당 없음 |
 | 데이터베이스 링크, 라이브러리, 디렉터리 | 서버에 객체가 없음(`SYS_DATABASE_LINKS_`·`SYS_LIBRARIES_`·`SYS_DIRECTORIES_` 0행) | 보고만: 있으면 작업과 같이 `;`만 보일 것(`GET_DDL` 990001, 대체 없음). 확인하지 못함 |
 | 복제(GEMINI) | 복제 카탈로그가 객체 유형을 주지 않아 부르지 않음(전부터) | 해당 없음 |
@@ -1467,7 +1467,8 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
   다시 연 DDL 보기 글은 머리 주석과 경고 줄이 두 벌이고 머리가 `END`로 끝난다. 그 글을 다시 실행하면 머리와 본문이 한 문장으로 가서
   200705 `line 12: missing or invalid syntax`가 난다.
 - 서버의 사실(앱 밖 JDBC로 한 문장씩): 프로시저·함수(선언부 포함), 타입세트, 패키지 머리·본문, `AS` 선언부가 있는 트리거를 모두 받는다.
-  익명 블록(`DECLARE … BEGIN … END`)도 받는다. `GET_DDL`은 이 종류를 주지 않아 DDL 보기는 카탈로그 원본 앞에 경고 줄을 붙인다(위 "작업 정의 보기").
+  익명 블록(`DECLARE … BEGIN … END`)도 받는다. `GET_DDL`은 이 종류를 주지 않아 DDL 보기는 카탈로그 원본 앞에 경고 줄을 붙인다(위 "작업 정의 보기";
+  2026-11-25부터 붙이지 않음, 아래 "뷰 DDL의 경고 줄").
 
 ### 근본 원인
 
@@ -1490,7 +1491,7 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
 | `AltibaseSQLDialect.makeDialectSkipTokenPredicatesImpl` | Oracle과 같은 `BLOCK_HEADER` 조건: `CREATE [OR REPLACE] FUNCTION\|PROCEDURE\|TRIGGER` 뒤의 `AS\|IS`. 외부 루틴(`AS LANGUAGE C … LIBRARY …;`)은 `BEGIN`이 없으므로 `END_BLOCK` 조건(`AS\|IS LANGUAGE`)이 그 머리를 닫는다 |
 | `AltibaseSQLDialect.isDelimiterAfterBlock` | `true`(Oracle과 같음): `END;`의 `;`가 문장에 남는다 |
 | `AltibasePackage.terminated` | DDL 글의 머리가 `;`로 끝나지 않으면 붙인다(전 빌드가 `END`까지만 보내 저장된 패키지도 두 문장으로 나뉨) |
-| `AltibaseMetaModel.withoutGeneratedHeader`, `AltibaseConstants.PACKAGE_SPEC_HEADER`·`PACKAGE_BODY_HEADER` | 카탈로그 원본 맨 앞의, 이 모델이 붙이는 주석 줄(경고, 머리·본문 이름)을 한 번만 보인다 |
+| `AltibaseMetaModel.withoutGeneratedHeader`, `AltibaseConstants.PACKAGE_SPEC_HEADER`·`PACKAGE_BODY_HEADER` | 카탈로그 원본 맨 앞의, 이 모델이 붙이는 주석 줄(경고, 머리·본문 이름)을 한 번만 보인다(2026-11-25: 스크립트의 객체 이름 줄도, 아래 "뷰 DDL의 경고 줄") |
 
 - **트리거를 더한 이유:** 이 계열의 트리거 본문은 `AS|IS 선언부 BEGIN … END`다(Oracle 트리거는 `DECLARE`라 머리 낱말로 된다).
   `REFERENCING NEW ROW AS 별칭`의 `AS`도 머리를 여는데, 같은 `BEGIN`이 닫으므로 결과는 같다(아래 표 c06·c07).
@@ -1583,6 +1584,79 @@ DDL 보기 → 글 전체 복사(창의 전송 처리기, 사설 클립보드) �
 최대 행 수로만 자른다. 서버 사실(Altibase 7.3, ShardSphere 5.1.9): `LIMIT n`은 ORDER BY·WHERE 뒤, FOR UPDATE 앞에 온다. `LIMIT 0, n`은 200713(오프셋이 1부터),
 `OFFSET`·`FETCH FIRST`·`TOP`은 200705. 자리의 이유, 서버 표, 확인: [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "행 수 제한".
 
+## 뷰 DDL의 경고 줄 (2026-11-25)
+
+### 보고와 재현
+
+앱 변경 182 작업이 보고만 한 것: ShardSphere 연결에서 뷰의 "DDL 보기" 글에 `[WARNING]` 줄이 있다. 고친 브랜치의 기준(`origin/command` d94af99307) 빌드로
+ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만, 끝에 모두 지움).
+
+- 뷰 `CHR_VDW_V2`의 DDL 보기 글: `-- <소유자>.CHR_VDW_V2 소스`, 빈 줄, `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.`,
+  그다음 서버가 둔 원본 `CREATE OR REPLACE VIEW …;`. 두 줄 다 SQL 주석이라 붙여 넣고 F5로 실행하는 것은 된다(한 문장, OK).
+- 그러나 서버는 받은 글을 주석까지 뷰의 원본(`SYS_VIEW_PARSE_`)으로 둔다. 실행 뒤 원본은 `-- <소유자>.CHR_VDW_V2 소스⏎⏎-- [WARNING] …⏎CREATE OR REPLACE VIEW …`이고,
+  다시 연 DDL 보기와 Script as ▸ CREATE의 글에는 이름 줄과 경고 줄이 두 벌이다. 실행할 때마다 한 벌씩 는다. 앱 변경 182의 `withoutGeneratedHeader`는
+  원본 맨 앞의 모델 줄만 지우는데, 맨 앞이 스크립트의 객체 이름 줄이라 거기서 멈췄다.
+- 구체화된 뷰, 프로시저, 테이블 트리거, 시노님의 DDL 보기에도 같은 경고 줄이 있었다. 테이블(쓰기 가능한 연결)은 서버의 `GET_DDL` 글이라 경고가 없다.
+
+### 근본 원인
+
+- **경고 줄이 사실이 아니다.** `getDDLFromDbmsMetadata`는 `SYS_PACKAGES_`에 `DBMS_METADATA` 행이 둘(명세·본문, 상태 0)이면 `GET_DDL`을 부른다.
+  ShardSphere에는 두 행이 있고, `GET_DDL`이 `TABLE` 말고는 990001로 거절한다(위 "작업 정의 보기"). 이 예외는 삼켜져 빈 글이 되고, 카탈로그 대체
+  (`geDDLFromCatalog`)가 원본 앞에 늘 `NO_DBMS_METADATA`를 붙였다(패키지만 예외 조건이 있었음). 그런데 그 글은 모델이 만든 DDL이 아니라 서버가 둔
+  원본 그대로다(`SYS_VIEW_PARSE_`·`SYS_PROC_PARSE_`·`SYS_PACKAGE_PARSE_`·`SYS_TRIGGER_STRINGS_`, 사용자가 보낸 문장). "패키지가 없다"도
+  "맞지 않을 수 있다"도 틀렸다.
+- **앱이 붙인 줄이 원본에 남는다.** 뷰의 DDL 글 앞의 이름 줄은 공용 `DBStructUtils.generateTableListDDL`이 뷰마다 붙인다(`getObjectNameComment`,
+  "추가 DDL 정보" 옵션, 기본 켬). 이 계열 서버는 `CREATE` 앞의 주석도 원본에 두므로, 그 줄이 경고 줄과 함께 원본에 들어간다. 줄 끝도 다르다:
+  DDL 보기 글은 플랫폼 줄 끝(`\r\n`), 쿼리 창이 보낸 원본은 `\n`이라 `DBStructUtils`의 "이미 이름 줄로 시작하면 붙이지 않음" 비교도 맞지 않는다.
+
+### 고친 것
+
+| 위치 | 바꾼 것 |
+|---|---|
+| `AltibaseMetaModel.geDDLFromCatalog` | 카탈로그 원본 앞에 경고 줄을 붙이지 않는다(뷰, 구체화된 뷰, 프로시저·함수, 타입세트, 패키지 명세·본문, 트리거). 쓰지 않게 된 매개변수 `hasDbmsMetdata`를 지움 |
+| `AltibaseMetaModel.withoutGeneratedHeader` | 원본 맨 앞에서 지우는 줄에 스크립트의 객체 이름 줄(`DBStructUtils.getObjectNameComment(객체, 소스)`)을 더함. 줄은 앞뒤 공백·`\r`을 떼고 비교. 전 빌드의 경고 글(`LEGACY_NO_DBMS_METADATA`)도 계속 지운다: 전 빌드로 실행한 원본에 남아 있다 |
+| `DBStructUtils.getObjectNameComment` | `private` → `public`(이름 줄의 모양을 한 곳에 둠) |
+| `AltibaseConstants.NO_DBMS_METADATA` | 글을 사실대로: `-- [WARNING] DBMS_METADATA gave no DDL, the generated DDL may not be correct.` 이제 모델이 직접 만든 DDL 앞에만 붙는다: 테이블(`GET_DDL`이 빈 글일 때 일반 테이블 DDL), 시노님(`AltibaseSynonym.getBuiltDdlLocaly`) |
+
+- **경고를 아예 지우지 않은 이유:** 테이블과 시노님의 대체 글은 모델이 카탈로그로 만든 문장이라 서버의 글과 다를 수 있다. 그 경우에만 사실인 경고로 남겼다.
+  인덱스의 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.`는 그대로다(인덱스는 다른 길이 없다는 뜻으로 사실, 문장 없음은 아래 "남은 것").
+- **이름 줄을 보내는 쪽에서 빼지 않은 이유:** 쿼리 창은 문장 앞 주석을 문장과 함께 보내고(모든 방언 공통, 앱 변경 182와 같음), 이름 줄은 모든 DB의 스크립트에 쓰는
+  공용 줄이다. 그래서 이 계열 모델이 원본을 보일 때 앱이 만든 줄만 알아본다. 사용자가 직접 쓴 주석은 그대로 보인다.
+- 제품 이름 검사는 없다. Altibase 7.3에서 `GET_DDL`이 글을 주면 이 길을 타지 않는다.
+
+### 남은 것 (보고만)
+
+- **인덱스:** ShardSphere에서 `GET_DDL('INDEX')`가 990001이라 인덱스의 DDL 보기는 경고 주석뿐이고, 테이블 DDL에도 사용자 인덱스의 `CREATE INDEX`가 빠진다
+  (위 "작업 정의 보기"의 표와 같음). 카탈로그로 인덱스 문장을 만드는 코드가 없다.
+- **`OR REPLACE` 없이 만든 뷰:** 원본 그대로라 `CREATE VIEW …`다. 붙여 넣어 고쳐 실행하면 서버가 이미 있는 객체로 거절한다. 사용자가 쓴 문장 그대로이므로 고치지 않았다.
+- **테이블 DDL 끝의 `;` 한 줄:** ShardSphere의 `GET_DDL` 글이 `;`로 끝나는데 모델이 `;`를 하나 더 붙여 마지막에 `;`만 있는 줄이 생긴다. 쿼리 창은 빈 문장을
+  버려 두 문장(`CREATE TABLE`, `ALTER TABLE … PRIMARY KEY`)으로 실행된다.
+
+### 확인 (2026-11-25, ShardSphere 일반 서버, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어 150 %)
+
+"전" = 기준 빌드, "후" = 이 브랜치 빌드. 시험 개체는 JDBC로 만든 `CHR_VDW_*`(테이블, `OR REPLACE` 없는 뷰, `OR REPLACE` 뷰(안에 `;` 든 주석),
+구체화된 뷰, 선언부 프로시저, 트리거, 시노님)다.
+
+| 종류 | 전: DDL 보기 | 후: DDL 보기 |
+|---|---|---|
+| 뷰, 구체화된 뷰 | 이름 줄, 경고 줄, 원본 | 이름 줄, 원본 |
+| 프로시저, 트리거 | 경고 줄, 원본 | 원본 |
+| 시노님 | `Without DBMS_METADATA package` 경고, 만든 문장 | `DBMS_METADATA gave no DDL` 경고, 만든 문장 |
+| 테이블 | 서버의 `GET_DDL` 글(경고 없음) | 같음 |
+
+| 뷰 왕복(DDL 보기 → 글 전체 복사 → 새 쿼리 창 → 고침 → F5 → 다시 연 DDL 보기) | 전 | 후 |
+|---|---|---|
+| F5 | 1문장 OK | 1문장 OK, 1회·2회 모두 |
+| 서버 원본(`SYS_VIEW_PARSE_`) | 이름 줄 + 경고 줄 + 문장 | 이름 줄 + 문장(2회 뒤에도 한 벌) |
+| 다시 연 DDL 보기, Script as ▸ CREATE | 이름 줄·경고 줄이 두 벌 | 처음 글과 같은 모양, 고친 본문(`SELECT ID + 20, INITCAP(V)`, 뷰 조회 결과도 새 값) |
+| 전 빌드가 더럽힌 원본을 후 빌드로 열기 | — | 이름 줄 한 벌, 경고 없음 |
+
+연결 새로 고침 뒤와 연결을 끊고 다시 연결한 뒤에도 같은 글이었다. 고친 글이 문법 오류이면(시험 중 본문의 식이 빠진 글) 서버 200705가 오류로 보이고
+("쿼리가 완료되었지만 오류가 있습니다.") 원본은 바뀌지 않았다.
+
+- 확인하지 않은 것: Altibase 7.3(`GET_DDL`이 뷰 글을 주므로 이 대체 길을 타지 않는다. 그 길의 글에 서버가 둔 앞 주석이 있는지는 보지 않았다),
+  패키지·타입세트·함수(같은 `geDDLFromCatalog`, 코드로 판단), 읽기 전용 연결의 테이블 대체 글. 회귀 테스트는 만들거나 실행하지 않았다(요청 없음).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -1639,3 +1713,6 @@ DDL 보기 → 글 전체 복사(창의 전송 처리기, 사설 클립보드) �
   영향받을 수 있는 기능: Altibase 계열 연결의 모든 스크립트 나누기(쿼리 창, 스크립트 실행, Agent 실행 도구, 내보내기 질의 판단), `END`로 끝나는 문장에 남는 `;`,
   DDL 보기·Script as·Modify의 카탈로그 원본 글.
 - 2026-11-24 생성한 스크립트의 행 수 제한 `LIMIT n`(`AltibaseMetaModel`, `SCRIPT_ROW_LIMIT`, 앱 변경 #183, `chromite/select-top-row-limit`), 위 "생성한 스크립트의 행 수 제한".
+- 2026-11-25 카탈로그 원본 앞의 경고 줄을 지우고, 원본에 남은 스크립트의 객체 이름 줄을 한 번만 보이며(`withoutGeneratedHeader`, `DBStructUtils.getObjectNameComment`
+  공개), 남은 경고(테이블·시노님)의 글을 사실대로(`chromite/shardsphere-view-ddl-warning`), 위 "뷰 DDL의 경고 줄". 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Altibase 계열의 DDL 보기·Script as·Modify 글(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거, 시노님, 테이블 대체 글).
