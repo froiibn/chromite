@@ -31,12 +31,16 @@ import com.seizia.chromite.ext.generic.model.meta.GenericMetaObject;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCQueryTransformProvider;
+import com.seizia.chromite.model.exec.DBCQueryTransformType;
+import com.seizia.chromite.model.exec.DBCQueryTransformer;
 import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
 import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.sql.QueryTransformerLimit;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
@@ -74,8 +78,10 @@ import java.util.Set;
  * - 2026-11-24 카탈로그에서 읽은 원본 앞의, 이 모델이 붙이는 주석 줄(경고, 패키지 머리·본문 이름)을 한 번만 보임({@link #withoutGeneratedHeader}).
  *   서버는 받은 글을 주석까지 원본으로 두어, DDL 보기 글을 실행할 때마다 그 줄이 한 벌씩 늘었다(앱 변경 182,
  *   docs/chromite/altibase.md "저장 루틴의 문장 나누기")
+ * - 2026-11-24 생성한 스크립트의 행 수 제한({@link #createQueryTransformer}, {@code LIMIT n}): "상위 1000개 행 선택"이 제한 없는
+ *   SELECT를 열었다(앱 변경 #183, docs/chromite/swing-explorer-object-actions.md "행 수 제한")
  */
-public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
+public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport, DBCQueryTransformProvider {
 
     private static final Log log = Log.getLog(AltibaseMetaModel.class);
 
@@ -92,6 +98,23 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
     @Override
     public boolean isActualPlanSupported(@NotNull DBPDataSourceContainer container) {
         return true;
+    }
+
+    /**
+     * Only the row limit of a generated script ({@link DBCQueryTransformType#SCRIPT_ROW_LIMIT}), not the engine's
+     * {@link DBCQueryTransformType#RESULT_SET_LIMIT}: the user's own queries keep their JDBC row limit.
+     * {@code LIMIT n} after the whole statement (after ORDER BY / WHERE, before FOR UPDATE), checked on Altibase 7.3 and
+     * ShardSphere 5.1 for tables, views, materialized views, synonyms, partitioned tables, queues and stream objects.
+     * Total rows only: the servers count a LIMIT offset from 1 ({@code LIMIT 0, n} is error 200713) and refuse
+     * {@code OFFSET}, {@code FETCH FIRST} and {@code TOP}.
+     */
+    @Nullable
+    @Override
+    public DBCQueryTransformer createQueryTransformer(@NotNull DBCQueryTransformType type) {
+        if (type == DBCQueryTransformType.SCRIPT_ROW_LIMIT) {
+            return new QueryTransformerLimit(false);
+        }
+        return null;
     }
 
     @NotNull
