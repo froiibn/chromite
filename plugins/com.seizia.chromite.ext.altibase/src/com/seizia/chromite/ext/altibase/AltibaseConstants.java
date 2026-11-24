@@ -36,6 +36,8 @@ import org.jkiss.utils.StandardConstants;
  * - 2026-11-17 Chromite: {@link #QUERY_DBMS_METADATA_SUBPROGRAMS}, {@link #DBMS_METADATA_GET_DEPENDENT_DDL},
  *   {@link #DBMS_METADATA_SET_TRANSFORM_PARAM}. ShardSphere의 DBMS_METADATA에는 이 두 서브프로그램이 없어, 서버에 있는지 보고 부른다
  *   (docs/chromite/altibase.md "ShardSphere에서 다른 문장", 앱 변경 #139)
+ * - 2026-11-24 Chromite: {@link #PACKAGE_SPEC_HEADER}, {@link #PACKAGE_BODY_HEADER}. 메타 모델이 저장된 원본 앞의 이 줄을 알아보고 한 번만
+ *   보인다(앱 변경 182, docs/chromite/altibase.md "저장 루틴의 문장 나누기")
  */
 public class AltibaseConstants {
     
@@ -68,6 +70,10 @@ public class AltibaseConstants {
     public static final int PACKAGE_TYPE_SPEC = 6;
     public static final int PACKAGE_TYPE_BODY = 7;
     
+    // The comment lines the package's DDL text has before its specification and its body (AltibasePackage)
+    public static final String PACKAGE_SPEC_HEADER = "-- Package specification ";
+    public static final String PACKAGE_BODY_HEADER = "-- Package body ";
+
     public static final int TYPE_BYTE = 20001;
     public static final int TYPE_VARBYTE = 20003;
     public static final int TYPE_NIBBLE = 20002;

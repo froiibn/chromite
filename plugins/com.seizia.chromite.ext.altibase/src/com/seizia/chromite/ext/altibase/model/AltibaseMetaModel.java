@@ -50,6 +50,7 @@ import org.jkiss.utils.CommonUtils;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Altibase DataSource
@@ -70,6 +71,9 @@ import java.util.Map;
  *   (앱 변경 #139 수정 4, docs/chromite/altibase.md "큐의 내부 시퀀스")
  * - 2026-11-21 {@link #QUEUE_SEQUENCE_SUFFIX}를 열어 큐 관리자가 큐를 만들고 지운 뒤 시퀀스 목록을 맞춤(앱 변경 #154, docs/chromite/altibase.md "큐")
  * - 2026-11-22 작업 DDL(getJobDDL)을 지움: 작업이 정의를 카탈로그 행으로 만든다(앱 변경 #158, docs/chromite/altibase.md "작업 정의 보기")
+ * - 2026-11-24 카탈로그에서 읽은 원본 앞의, 이 모델이 붙이는 주석 줄(경고, 패키지 머리·본문 이름)을 한 번만 보임({@link #withoutGeneratedHeader}).
+ *   서버는 받은 글을 주석까지 원본으로 두어, DDL 보기 글을 실행할 때마다 그 줄이 한 벌씩 늘었다(앱 변경 182,
+ *   docs/chromite/altibase.md "저장 루틴의 문장 나누기")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport {
 
@@ -1142,6 +1146,7 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
     private String geDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql, 
             String colname, boolean hasDbmsMetdata) {
         StringBuilder ddl = new StringBuilder(hasDbmsMetdata ? "" : AltibaseConstants.NO_DBMS_METADATA);
+        StringBuilder source = new StringBuilder();
         String content = null;
         JDBCPreparedStatement jpstmt = null;
         JDBCResultSet jrs = null;
@@ -1160,7 +1165,7 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
 
                 content = GenericUtils.safeGetString(metaObject, jrs, colname);
                 if (content != null) {
-                    ddl.append(content);
+                    source.append(content);
                 }
             }
         } catch (Exception e) {
@@ -1170,7 +1175,32 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
             jpstmt.close();
         }
 
-        return ddl.toString();
+        return ddl.append(withoutGeneratedHeader(source.toString())).toString();
+    }
+
+    /**
+     * The stored source without the comment lines this model puts before a source it shows ({@link AltibaseConstants#NO_DBMS_METADATA},
+     * a package part's name). The server keeps the text a client sent as the unit's source, comments before CREATE included, so
+     * a source run from the DDL viewer's text holds those lines, and they were shown once more after every such run.
+     */
+    @NotNull
+    private static String withoutGeneratedHeader(@NotNull String source) {
+        Set<String> generated = Set.of(AltibaseConstants.NO_DBMS_METADATA.strip(),
+            AltibaseConstants.PACKAGE_SPEC_HEADER.strip(), AltibaseConstants.PACKAGE_BODY_HEADER.strip());
+        int start = 0;
+        boolean removed = false;
+        while (start < source.length()) {
+            int lineEnd = source.indexOf('\n', start);
+            int next = lineEnd < 0 ? source.length() : lineEnd + 1;
+            String line = source.substring(start, next).strip();
+            if (generated.contains(line)) {
+                removed = true;
+            } else if (!line.isEmpty()) {
+                break;
+            }
+            start = next;
+        }
+        return removed ? source.substring(start) : source;
     }
 
     /**

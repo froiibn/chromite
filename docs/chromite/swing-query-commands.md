@@ -234,7 +234,7 @@ DDL 보기 탭은 읽기 전용이라 그 탭에서는 글을 바꿀 수 없고 
 
 **근본 원인:** 모델 객체는 정의를 한 번 읽어 캐시한다(`OracleProcedureStandalone.getObjectDefinitionText`의 `sourceDeclaration`, `OraclePackage`,
 `SQLServerProcedure.body` 등). 쿼리 창의 DDL 뒤 갱신이 그 캐시를 비우는데, `SQLObjectOperationRecognizer.recognizeStatement`가 문법 오류가 하나라도 있는
-문장을 버렸다. 루틴 본문은 문법이 끝까지 읽지 못하는 경우가 많다: PL/SQL 선언부, Oracle·Altibase 블록을 끝내는 `;`(쿼리 창이 문장에 남김),
+문장을 버렸다. 루틴 본문은 문법이 끝까지 읽지 못하는 경우가 많다: PL/SQL 선언부, 블록을 끝내는 `;`(쿼리 창이 Oracle에서는 문장에 남김, Altibase 계열은 앱 변경 182부터),
 T-SQL `SET NOCOUNT ON;` 뒤의 문장. 그래서 `CREATE OR REPLACE PROCEDURE`·SQL Server `ALTER PROCEDURE` 뒤에 아무것도 다시 읽지 않았다.
 Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 읽지 못했다. PostgreSQL 함수(`$$` 본문)는 읽혀서 문제가 없었다.
 
@@ -274,12 +274,13 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | Altibase 타입세트 | 서버 새 본문, 옛 본문(그 뒤 Modify를 그대로 실행하자 옛 본문으로 되돌아감) | 새 본문 |
 | MariaDB 11 / MySQL 8.4 프로시저, DDL 보기 글 앞뒤에 `DROP … IF EXISTS` + `DELIMITER $$` … `$$` | 새 본문 | 새 본문 |
 
-**같은 길에서 본, 원인이 다른 것(고치지 않음):**
+**같은 길에서 본, 원인이 다른 것(이 변경에서는 고치지 않음):**
 - Altibase 선언부가 있는 프로시저(`AS v_a INTEGER := 1; BEGIN …`): DDL 보기 글을 붙여도, Modify로 열어도 F5에서 서버가 `SQL syntax error … line 2: parse error`.
-  창은 오류를 보인다. Altibase 방언의 블록 머리(`AltibaseSQLDialect` `ALTIBASE_BLOCK_HEADERS` = `DECLARE`, `PACKAGE`)에 Oracle 방언과 달리 `AS`·`IS`가 없어
-  쿼리 창이 첫 선언의 `;`에서 문장을 나눈다. 고치면 Altibase·ShardSphere 스크립트 나누기 전체가 바뀌므로 따로 정한다.
-- Altibase 패키지의 DDL 보기 글은 한 번 붙여 실행하면 머리 끝의 `;`와 `-- Package specification` 주석이 저장된 원본에 섞여, 다음 DDL 보기 글은 머리가 `END`로
-  끝나 두 번째 붙여 실행에서 문법 오류가 난다(창은 오류를 보임). 모델의 패키지 DDL 글 만들기 문제다.
+  창은 오류를 보인다. 쿼리 창이 첫 선언의 `;`에서 문장을 나눈다. 앱 변경 182에서 고쳤다. 원인은 블록 머리 낱말이 아니라(Oracle 방언도 `DECLARE`, `PACKAGE`뿐)
+  Oracle 방언에 있는 건너뛸 토큰 조건 `BLOCK_HEADER`가 Altibase 방언에 없던 것이다([altibase.md](altibase.md) "저장 루틴의 문장 나누기").
+- Altibase 패키지의 DDL 보기 글은 한 번 붙여 실행하면 머리 끝의 `;`가 빠지고 `-- Package specification` 주석이 저장된 원본에 섞여, 다음 DDL 보기 글은 머리가 `END`로
+  끝나 두 번째 붙여 실행에서 문법 오류가 난다(창은 오류를 보임). 앱 변경 182에서 고쳤다: 쿼리 창이 `END;`의 `;`를 남기고, 모델의 패키지 DDL 글이 머리를 `;`로
+  끝내며, 모델이 붙이는 주석 줄을 한 번만 보인다(같은 절).
 - MariaDB·MySQL: DDL 보기 글(`CREATE DEFINER=… PROCEDURE … BEGIN … END;`)을 그대로 붙여 F5를 누르면 본문의 `;`에서 나뉘어 1064 오류(창은 오류를 보임).
   DDL 보기 글에는 `DELIMITER`도 `DROP`도 없다. Modify 스크립트는 둘 다 있어 그대로 실행된다.
 - SQL Server: DDL 보기·CREATE 대상 글에 `USE <db>`가 없어 새 쿼리 창(연결 기본 DB `master`)에서 실행된다.
@@ -366,3 +367,5 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 2026-11-24 Oracle 전용 대체 경로(`SqlMetadataRefresh.getOracleUnitSchema`)를 DB와 상관없는 저장 단위 머리 읽기(`recognizeStoredUnitHead`)로 바꾸고
   `CREATE TRIGGER`를 인식함(Altibase 패키지·트리거·타입세트, 앱 변경 181 후속). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤
   Object Explorer 갱신(모든 DB의 트리거·패키지·형식 DDL)
+- 2026-11-24 "저장 루틴 DDL 뒤 (앱 변경 181)"의 Altibase 두 항목을 앱 변경 182에서 고쳤다고 적고, 블록을 끝내는 `;`가 Altibase 계열에서는 182 전까지 빠졌다고
+  바로잡음(`chromite/shardsphere-routine-edit`, [altibase.md](altibase.md) "저장 루틴의 문장 나누기"). 이 문서가 설명하는 코드는 바꾸지 않았다.

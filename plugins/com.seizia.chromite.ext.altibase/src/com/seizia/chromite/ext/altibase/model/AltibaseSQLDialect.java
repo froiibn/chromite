@@ -84,6 +84,13 @@ import java.util.stream.Stream;
  *   ({@link #getStatementPrefixProposals})도 이 연결에서 감지된 확장에 묻는다(앱 변경 #139 작업 6b, docs/chromite/altibase.md "서버 확장")
  * - 2026-11-17 Chromite: SQL 매뉴얼에 있고 Altibase 7.3과 ShardSphere 5.1.9가 모두 준비하는 함수 일곱 개를 함수 목록에(DATEPART, INSTRB,
  *   LENGTH, LENGTHB, POSITION, REGEXP_LIKE, SUBSTR). ShardSphere에만 있는 함수는 그 번들의 방언 기여로 간다(앱 변경 #139 수정 8)
+ * - 2026-11-24 Chromite: 스크립트 나누기를 Oracle 방언과 같은 장치로 맞춤(앱 변경 182, docs/chromite/altibase.md "저장 루틴의 문장 나누기").
+ *   프로시저·함수·트리거의 {@code AS}/{@code IS}가 머리 블록을 열고(건너뛸 토큰 조건 {@code BLOCK_HEADER}), 외부 루틴의
+ *   {@code AS LANGUAGE}는 그 블록을 닫는다({@code END_BLOCK}). 선언부의 {@code ;}에서 문장이 나뉘어 서버가 구문 오류를 냈다.
+ *   {@code AS}/{@code IS}를 블록 머리 낱말({@link #getBlockHeaderStrings})에 넣지 않은 것은 그 낱말이 모든 문장({@code CREATE VIEW … AS},
+ *   별칭, {@code CAST}, {@code IS NULL})에서 블록을 열기 때문이다. 블록을 끝내는 {@code END} 뒤의 {@code ;}는 문장에 남긴다
+ *   ({@link #isDelimiterAfterBlock}): 서버는 받은 글을 그대로 원본으로 두므로, 빠지면 패키지 머리가 {@code END}로 끝나 DDL 보기 글의
+ *   머리와 본문이 한 문장이 되었다
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -663,6 +670,28 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
                 tt.sequence(),
                 tt.sequence(tt.not("END"), "IF", tt.not("EXISTS"))
             ),
+            // The AS / IS of a stored routine or a trigger opens its declaration section, as in the Oracle dialect: the ";" of the
+            // declarations do not end the statement, the BEGIN that follows ends the header. In a trigger the first AS may be the
+            // one of REFERENCING ... AS alias, which opens the header a little earlier; the same BEGIN ends it
+            new TokenPredicatesCondition(
+                SQLParserActionKind.BLOCK_HEADER,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.alternative("FUNCTION", "PROCEDURE", "TRIGGER")
+                ),
+                tt.alternative("AS", "IS")
+            ),
+            // An external routine (AS LANGUAGE C ... LIBRARY ...;) has no BEGIN to end that header: its LANGUAGE does
+            new TokenPredicatesCondition(
+                SQLParserActionKind.END_BLOCK,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.alternative("FUNCTION", "PROCEDURE")
+                ),
+                tt.sequence(tt.alternative("AS", "IS"), "LANGUAGE")
+            ),
             /*
              * Altibase only grammar
              * Grammar conflict between PSM and Typeset
@@ -693,6 +722,15 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
     @Override
     public boolean isDisableScriptEscapeProcessing() {
         return false;
+    }
+
+    /**
+     * The {@code ;} after the {@code END} of a block statement stays in it, as in the Oracle dialect: the server keeps the text
+     * it was sent as the unit's source, so without it a package specification is stored ending in {@code END}.
+     */
+    @Override
+    public boolean isDelimiterAfterBlock() {
+        return true;
     }
     
     /*
