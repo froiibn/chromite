@@ -67,7 +67,7 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   PostgreSQL에서 연결의 세션이 모두 닫혀 다른 창의 트랜잭션이 묻지 않고 롤백되었다([connection-lifecycle.md](connection-lifecycle.md) "연결 새로 고침과 세션").
 - 연결 전체를 다시 읽으면 Object Explorer의 펼쳐 둔 폴더(Databases, Schemas)도 바로 바뀐다. `CREATE USER`도 연결 전체를 다시 읽는다(아래
   "연결 전체를 다시 읽은 뒤의 탐색기 (#111)").
-- 프로시저·함수의 `CREATE`/`ALTER`는 본문을 문법이 읽지 못해도 머리의 이름으로 그 스키마를 다시 읽는다. Oracle 패키지·형식·트리거도 같다.
+- 프로시저·함수의 `CREATE`/`ALTER`는 본문을 문법이 읽지 못해도 머리의 이름으로 그 스키마를 다시 읽는다. 패키지·형식·Altibase 타입세트·트리거도 같다.
   그래서 DDL 보기의 글을 쿼리 창에 붙여 고쳐 실행한 뒤 다시 연 DDL 보기·Script as·Modify가 새 정의를 보인다(아래 "저장 루틴 DDL 뒤 (앱 변경 181)").
 
 ## 구조
@@ -241,8 +241,14 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 **고침:**
 - `SQLObjectOperationRecognizer.recognizeRoutineHead`: 오류가 있는 문장이 프로시저·함수의 `CREATE`/`ALTER`이고 머리(종류와 이름)에 오류가 없으면
   그 이름으로 개체를 찾는다. 같은 클래스의 `isDropStatement`가 DROP을 읽는 방식과 같다(문장은 성공했고, 만든 개체는 머리가 말하는 것).
-- `SqlMetadataRefresh.getOracleUnitSchema`: 파서가 아무것도 찾지 못한 Oracle 문장은 쿼리 창이 컴파일 오류를 읽을 때 쓰는 머리 읽기
-  (`OracleCompileErrors.parseCreate`)로 저장 단위의 스키마를 다시 읽는다(패키지·형식·트리거와 그 본문, 프로시저·함수도 같음).
+- `SQLObjectOperationRecognizer.recognizeStoredUnitHead`: 위에서도 찾지 못한 오류 문장이 저장 단위의 `CREATE`이면(패키지·패키지 본문, 형식·형식 본문,
+  Altibase 타입세트, 트리거, 문법이 읽지 못하는 수식어(`EDITIONABLE`, `FORCE`) 뒤의 프로시저·함수·뷰) 글의 머리에서 종류와 이름을 읽는다.
+  문법에는 이 종류가 없고(`PACKAGE`·`BODY`·`TYPESET` 낱말도 없음), 루틴 수식어가 루틴 종류 앞의 아무 낱말이나 받아 문법에 더하면 다른 문장의 분석이
+  바뀐다. 그래서 문법 대신 머리만 읽는다. 갈래는 새 `SQLObjectOperation.ObjectKind.PROGRAM_UNIT`(이름의 그릇을 다시 읽음, 연결 전체를 다시 읽는
+  `OTHER`와 다름)이다. 처음에는 Swing 쿼리 창에 Oracle에서만 쓰는 대체 경로(`OracleCompileErrors.parseCreate`)를 두었으나, Altibase도 같은 원인이라
+  DB와 상관없는 이 경로로 바꾸고 그 대체 경로는 지웠다.
+- `SQLObjectOperationRecognizer.createTriggerOperation`: 문법이 읽은 `CREATE TRIGGER`도 인식한다(전에는 갈래가 없어 아무것도 다시 읽지 않았다).
+  이름에 스키마가 없으면 대상 표의 스키마를 쓴다(PostgreSQL 트리거 이름에는 스키마가 붙지 않는다).
 - DDL 보기 탭은 그대로 읽기 전용이다(설계, 새 UI 없음).
 
 **확인 (2026-11-24, GCP 시험 VM, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-procedure-ddl-edit\`):**
@@ -258,9 +264,26 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | 연결 새로 고침 뒤, 끊고 다시 연결한 뒤, 수동 커밋 연결 | — | 새 본문(수동 커밋에서도 열린 트랜잭션으로 보이지 않음) |
 | SQL Server 2022 `ALTER PROCEDURE`(USE 줄을 앞에 둠) | 서버 새 본문, DDL 보기 옛 본문 | 새 본문 |
 | PostgreSQL 17 함수 | 새 본문 | 새 본문 |
+| Oracle 1521 트리거 | (코드로 판단: 인식 안 됨) | 새 본문 |
+| Altibase 7.3 프로시저(선언부 없음)·함수 | 새 본문 | 새 본문 |
+| Altibase 패키지(머리 + 본문) | 서버 새 본문, 다시 연 DDL 보기·CREATE 대상 옛 본문 | 새 본문 |
+| Altibase 트리거 | 서버 새 본문, 옛 본문 | 새 본문 |
+| Altibase 타입세트 | 서버 새 본문, 옛 본문(그 뒤 Modify를 그대로 실행하자 옛 본문으로 되돌아감) | 새 본문 |
+| MariaDB 11 / MySQL 8.4 프로시저, DDL 보기 글 앞뒤에 `DROP … IF EXISTS` + `DELIMITER $$` … `$$` | 새 본문 | 새 본문 |
+
+**같은 길에서 본, 원인이 다른 것(고치지 않음):**
+- Altibase 선언부가 있는 프로시저(`AS v_a INTEGER := 1; BEGIN …`): DDL 보기 글을 붙여도, Modify로 열어도 F5에서 서버가 `SQL syntax error … line 2: parse error`.
+  창은 오류를 보인다. Altibase 방언의 블록 머리(`AltibaseSQLDialect` `ALTIBASE_BLOCK_HEADERS` = `DECLARE`, `PACKAGE`)에 Oracle 방언과 달리 `AS`·`IS`가 없어
+  쿼리 창이 첫 선언의 `;`에서 문장을 나눈다. 고치면 Altibase·ShardSphere 스크립트 나누기 전체가 바뀌므로 따로 정한다.
+- Altibase 패키지의 DDL 보기 글은 한 번 붙여 실행하면 머리 끝의 `;`와 `-- Package specification` 주석이 저장된 원본에 섞여, 다음 DDL 보기 글은 머리가 `END`로
+  끝나 두 번째 붙여 실행에서 문법 오류가 난다(창은 오류를 보임). 모델의 패키지 DDL 글 만들기 문제다.
+- MariaDB·MySQL: DDL 보기 글(`CREATE DEFINER=… PROCEDURE … BEGIN … END;`)을 그대로 붙여 F5를 누르면 본문의 `;`에서 나뉘어 1064 오류(창은 오류를 보임).
+  DDL 보기 글에는 `DELIMITER`도 `DROP`도 없다. Modify 스크립트는 둘 다 있어 그대로 실행된다.
+- SQL Server: DDL 보기·CREATE 대상 글에 `USE <db>`가 없어 새 쿼리 창(연결 기본 DB `master`)에서 실행된다.
 
 - 마우스로 마지막 `;`를 빼고 고르면 Oracle이 PLS-00103으로 INVALID를 만들고 창은 "쿼리가 완료되었지만 오류가 있습니다." + 컴파일 오류 줄을 보인다(성공처럼 보이지 않음).
-- 1522(KO16MSWIN949)는 확인 중 인스턴스가 내려가(ORA-00822, 2026-11-24 05:31 UTC) 확인하지 못했다.
+- 확인하지 못한 것: 1522(KO16MSWIN949)는 확인 중 인스턴스가 내려가(ORA-00822, 2026-11-24 05:31 UTC) 확인하지 못했다. Oracle 형식(`TYPE`)·
+  SQL Server·PostgreSQL 트리거는 돌려 보지 않았다(코드로만 판단). 26.1.7에서 Oracle 트리거는 돌려 보지 않았다.
 
 ## upstream 대비 변경점
 
@@ -334,3 +357,6 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 2026-11-24 본문을 문법이 읽지 못한 루틴의 CREATE/ALTER와 Oracle 패키지·형식·트리거 뒤에도 그 스키마를 다시 읽음(앱 변경 181, `chromite/oracle-procedure-ddl-edit`).
   "저장 루틴 DDL 뒤 (앱 변경 181)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤 Object Explorer 갱신(모든 DB의 루틴 DDL),
   DDL 보기·Script as·Modify가 읽는 정의
+- 2026-11-24 Oracle 전용 대체 경로(`SqlMetadataRefresh.getOracleUnitSchema`)를 DB와 상관없는 저장 단위 머리 읽기(`recognizeStoredUnitHead`)로 바꾸고
+  `CREATE TRIGGER`를 인식함(Altibase 패키지·트리거·타입세트, 앱 변경 181 후속). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤
+  Object Explorer 갱신(모든 DB의 트리거·패키지·형식 DDL)

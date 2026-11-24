@@ -22,13 +22,11 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
-import com.seizia.chromite.ext.oracle.model.OracleDataSource;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvent;
 import com.seizia.chromite.model.DBPRefreshableObject;
 import com.seizia.chromite.model.DBUtils;
-import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
 import com.seizia.chromite.model.exec.DBCSession;
@@ -68,9 +66,6 @@ import java.util.regex.Pattern;
  *     <li>SWT {@code SQLMetadataRefreshCoordinator}(ui.editors.sql, 삭제됨)와 같은 모델 부품을 쓴다. 문장이 성공하면 LSM 파서로 바뀐
  *     개체를 찾고({@link SQLObjectOperationRecognizer#recognizeAll}) 그 개체를 담는 가장 좁은 그릇(스키마, DB, 연결 전체)을
  *     {@link SQLMetadataRefreshTargetResolver}로 정한다. 이름을 생략한 개체는 실행한 세션의 기본 DB/스키마에 있다.</li>
- *     <li>Oracle의 패키지·형식·트리거(와 그 본문)는 SQL 문법에 그 종류가 없어 파서가 찾지 못한다. 쿼리 창이 컴파일 오류를 읽을 때 쓰는
- *     머리 읽기({@link OracleCompileErrors#parseCreate})로 그 단위의 스키마를 다시 읽는다. 다시 읽지 않으면 모델에 남은 옛 소스를
- *     DDL 보기·Script as·Modify가 그대로 보인다.</li>
  *     <li>CREATE, ALTER, DROP, RENAME 낱말이 없는 문장은 파서를 부르지 않는다. 긴 스크립트의 SELECT·DML마다 파서를 돌리지 않기 위해서다.</li>
  *     <li>다시 읽기는 실행이 끝나고 세션에 열린 트랜잭션이 없을 때 한다. 수동 커밋 세션의 DDL은 탐색기의 메타데이터 연결에서
  *     커밋 전에 보이지 않으므로(PostgreSQL, SQL Server는 DDL도 트랜잭션 안), 지금 다시 읽으면 바뀌지 않은 목록을 읽는다.
@@ -84,7 +79,6 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-query-commands.md "DDL 뒤 탐색기 갱신")
- * - 2026-11-24 Oracle 패키지·형식·트리거의 CREATE도 그 스키마를 다시 읽음({@link #getOracleUnitSchema}, 앱 변경 181)
  */
 final class SqlMetadataRefresh {
 
@@ -110,14 +104,10 @@ final class SqlMetadataRefresh {
             SQLSyntaxManager syntaxManager = new SQLSyntaxManager();
             syntaxManager.init(dialect, dataSource.getContainer().getPreferenceStore());
             List<SQLObjectOperation> operations = SQLObjectOperationRecognizer.recognizeAll(dataSource, dialect, syntaxManager, query);
-            List<RefreshTarget> targets = new ArrayList<>();
             if (operations.isEmpty()) {
-                RefreshTarget oracleUnit = getOracleUnitSchema(session, query);
-                if (oracleUnit == null) {
-                    return;
-                }
-                targets.add(oracleUnit);
+                return;
             }
+            List<RefreshTarget> targets = new ArrayList<>();
             for (SQLObjectOperation operation : operations) {
                 targets.add(SQLMetadataRefreshTargetResolver.createTarget(session.getProgressMonitor(), context, operation));
             }
@@ -127,33 +117,6 @@ final class SqlMetadataRefresh {
         } catch (Throwable e) {
             log.debug("Can't find the objects a statement changed", e);
         }
-    }
-
-    /**
-     * Oracle: the schema of the stored unit a CREATE statement made when the SQL grammar has no such kind (package, type,
-     * trigger, their bodies), read from the statement's head as the query window reads it for the compile errors
-     * ({@link OracleCompileErrors#parseCreate}). Null for other statements and databases. A unit without an owner is in
-     * the session's current schema, which is the default schema of the context.
-     */
-    @Nullable
-    private static RefreshTarget getOracleUnitSchema(@NotNull DBCSession session, @NotNull SQLQuery query) {
-        if (!(session.getDataSource() instanceof OracleDataSource)) {
-            return null;
-        }
-        OracleCompileErrors.Unit unit = OracleCompileErrors.parseCreate(query.getText());
-        if (unit == null) {
-            return null;
-        }
-        String owner = unit.owner();
-        if (owner == null) {
-            DBCExecutionContextDefaults<?, ?> defaults = session.getExecutionContext().getContextDefaults();
-            DBSSchema defaultSchema = defaults == null ? null : defaults.getDefaultSchema();
-            if (defaultSchema == null) {
-                return null;
-            }
-            owner = defaultSchema.getName();
-        }
-        return new RefreshTarget.Schema(null, owner);
     }
 
     /**
