@@ -62,6 +62,8 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/transactions.md "커밋 방식 전환")
+ * - 2026-11-25 도구 설명({@link #describe})이 "활성 쿼리 창"을 말하지 않음: 2026-11-23(앱 변경 #175)부터 도구 막대마다 자기 창의 쿼리 창을
+ *   보여 활성이 아닌 창의 막대에서는 틀린 말이었음 (앱 변경 #186, docs/chromite/transactions.md "커밋 방식 전환")
  */
 final class CommitModeSwitch {
 
@@ -165,7 +167,8 @@ final class CommitModeSwitch {
     }
 
     /**
-     * The tool tip of the command for the active window's commit mode, or for no mode (not connected, running).
+     * The tool tip of the command for a query window's commit mode, or for no mode (not connected, running). It names no
+     * window: the Query menu's command acts on the active query window, each SQL Editor tool bar's on its own window's.
      */
     @NotNull
     static String describe(@Nullable Boolean autoCommit, boolean shared) {

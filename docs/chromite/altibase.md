@@ -1713,6 +1713,10 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
   영향받을 수 있는 기능: Altibase 계열 연결의 모든 스크립트 나누기(쿼리 창, 스크립트 실행, Agent 실행 도구, 내보내기 질의 판단), `END`로 끝나는 문장에 남는 `;`,
   DDL 보기·Script as·Modify의 카탈로그 원본 글.
 - 2026-11-24 생성한 스크립트의 행 수 제한 `LIMIT n`(`AltibaseMetaModel`, `SCRIPT_ROW_LIMIT`, 앱 변경 #183, `chromite/select-top-row-limit`), 위 "생성한 스크립트의 행 수 제한".
+- 2026-11-25 이 방언의 `AS|IS LANGUAGE` 조건(위 "저장 루틴의 문장 나누기")이 닫은 외부 루틴은 이제 파서가 다음 `;`에서 끝내고 그 `;`를 문장에 남긴다. 머리를 연
+  `AS|IS` 바로 뒤의 `LANGUAGE`일 때만 닫는다(선언부 안쪽 서브프로그램의 것은 아님). 방언 코드는 바꾸지 않았다(`SQLScriptParser`, Oracle 호출 명세 고침,
+  `chromite/oracle-external-routine-split`, [swing-query-commands.md](swing-query-commands.md) "본문 없는 Oracle 루틴의 문장 나누기"). 7.3에서
+  `AS LANGUAGE C NAME … LIBRARY …;`를 F5로 실행해 서버가 받음(STATUS 0). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열의 외부 루틴 스크립트 나누기.
 - 2026-11-25 카탈로그 원본 앞의 경고 줄을 지우고, 원본에 남은 스크립트의 객체 이름 줄을 한 번만 보이며(`withoutGeneratedHeader`, `DBStructUtils.getObjectNameComment`
   공개), 남은 경고(테이블·시노님)의 글을 사실대로(`chromite/shardsphere-view-ddl-warning`), 위 "뷰 DDL의 경고 줄". 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Altibase 계열의 DDL 보기·Script as·Modify 글(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거, 시노님, 테이블 대체 글).

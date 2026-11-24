@@ -111,6 +111,12 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 - **Tibero:** Chromite에 Tibero 드라이버·방언이 없다(저장소에 `tibero` 없음). 확인할 대상이 없다.
 - **YashanDB:** 방언(`YashanDBSQLDialect`)과 실행 문맥이 Oracle 것을 물려받으므로 같은 규칙과 처리기가 적용된다(확인하지 않음).
 
+## 본문 없는 루틴 (2026-11-25)
+
+`/` 줄과 별개로, Oracle 방언의 블록 조건은 호출 명세 루틴(`AS LANGUAGE JAVA|C`, `AS EXTERNAL`, `AS MLE`)을 그 `;`에서 끝내고 `;`를 문장에 남긴다. 전에는
+`AS|IS`가 연 선언부 머리가 `BEGIN`을 기다려 뒤 문장을 모두 합쳤다. 원인·고침·확인은
+[swing-query-commands.md](swing-query-commands.md) "본문 없는 Oracle 루틴의 문장 나누기".
+
 ## upstream 대비 변경점
 
 - upstream DBeaver는 Oracle의 SQL*Plus 줄을 서버에 보낸다(같은 오류). Chromite는 위 명령과 `/` 줄을 클라이언트에서 처리한다.
@@ -189,3 +195,5 @@ Oracle(공유 규칙으로 옮긴 뒤): `SELECT 10 … FROM dual` / `/` / `SELEC
 - 2026-11-12 실제 Oracle(GCP 테스트 VM)에서 확인, #226 결과 영역에서 안내는 Messages·DBMS_OUTPUT은 Server Output 탭으로 가는 것 확인
 - 2026-11-12 앱 변경 #80(`chromite/small-fixes-r3`): `/` 줄 규칙을 `model.sql`의 `SQLSlashLineRule`로 옮겨 Altibase도 씀, Altibase 문장 구분자에서 `/`를 뺌.
   "다른 DB"의 Altibase와 "확인 (2026-11-12, Altibase)" 절. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·Altibase 스크립트의 문장 나누기.
+- 2026-11-25 "본문 없는 루틴" 절: 호출 명세 루틴이 뒤 문장을 합치던 것을 고침(`chromite/oracle-external-routine-split`). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 스크립트 나누기.
