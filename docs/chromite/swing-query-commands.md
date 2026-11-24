@@ -336,12 +336,29 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | 끊었다 다시 연결한 뒤 F5 스크립트 나누기 | — | 17문장 |
 | Altibase 7.3: `AS LANGUAGE C NAME … LIBRARY …;` + 선언부 루틴 + 타입세트 나누기, 외부 프로시저 F5 | (돌리지 않음) | 6문장, 외부 프로시저는 `;`를 붙여 가고 서버가 받음(`SYS_PROCEDURES_` STATUS 0) |
 
-**고치지 않은 것(원인이 다름, 보고만):**
+**고치지 않은 것(원인이 다름, 보고만):** 아래 네 가지는 "Oracle 스크립트 나누기 2"에서 고쳤다.
 - `CREATE FUNCTION … AGGREGATE USING t;`·`PIPELINED USING t;`는 바르게 나뉘지만 `;` 없이 가서 PLS-00103으로 INVALID다. `AS|IS`가 없어 이 고침의 길을
   타지 않는다. 문장 종류를 알아야 `;`를 남길 수 있어 방언 쪽 판단이 따로 필요하다.
 - `CREATE TYPE BODY … AS MEMBER FUNCTION … IS BEGIN … END; END;`가 첫 `END;`에서 나뉜다(패키지 본문과 달리 형식 본문의 블록 조건이 없음).
 - 선언부에 안쪽 서브프로그램 본문(`PROCEDURE inner_p IS BEGIN … END;`)이 있는 독립 루틴은 그 `END;`에서 나뉜다(안쪽 `BEGIN`이 바깥 머리를 닫음).
 - 23ai `CREATE PROCEDURE IF NOT EXISTS …`는 `IF` 조건이 블록을 열어 다음 문장과 합쳐진다.
+
+### Oracle 스크립트 나누기 2 (2026-11-25)
+
+위 "고치지 않은 것" 네 가지(`chromite/oracle-script-split-more`, 발견마다 커밋 하나). 고치기 전 빌드(`origin/command` `67d21e0987`)에서 1521 Oracle 26ai,
+앱 안 시험 에이전트로 F5·Ctrl+Enter를 눌러 넷 모두 재현했다. 서버에 간 문장은 쿼리 관리자 기록에서 읽었다.
+
+**1. 형식·패키지로 구현한 함수(`AGGREGATE USING`, `PIPELINED USING`, `PIPELINED ROW|TABLE POLYMORPHIC USING`)**
+- 재현: 네 함수 모두 바른 자리에서 나뉘지만 `… AGGREGATE USING CHR_OSSM_AGG_T`처럼 `;` 없이 가서 서버가 PLS-00103(`end-of-file`, `;` 기대)으로
+  INVALID로 만들었다. 구현 형식이 VALID여도 같다. 뒤 `SELECT CHR_OSSM_AF(level) …`는 ORA-06575. Ctrl+Enter도 같은 글을 보냈다.
+- 근본 원인: 쿼리 창은 `END` 뒤의 `;`(`needsDelimiterAfterBlock`)와 본문 없는 루틴의 `;`만 남긴다. 본문 없는 루틴은 `AS|IS`가 연 머리를 닫을 때만
+  알아보는데 이 함수들에는 `AS|IS`가 없다. 같은 원인: `AS|IS` 없이 `;`로 끝나는 루틴 단위는 Oracle에서 이 셋뿐이다(호출 명세는 `AS|IS` 뒤).
+  `CREATE`와 `USING`만 보고 `;`를 남기면 `CREATE TABLE … JOIN … USING (n)`도 `;`를 붙여 가므로 쓰지 않았다(스크립트에 넣어 확인).
+- 고침: `OracleSQLDialect`에 `END_BLOCK` 조건 `CREATE [OR REPLACE] [EDITIONABLE|NONEDITIONABLE] FUNCTION` … `AGGREGATE|PIPELINED|POLYMORPHIC USING`.
+  `SQLScriptParser`는 열린 블록이 없을 때 맞은 `END_BLOCK`을 본문 없는 루틴으로 보고, 호출 명세처럼 다음 `;`에서 끝내며 `;`를 남긴다.
+- 공유 파서의 바뀐 길에 닿는 방언: `END_BLOCK` 조건을 가진 Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음), Altibase 계열, BigQuery. Altibase의
+  조건(`AS|IS LANGUAGE`)은 언제나 `AS|IS`가 연 머리 안에서 맞아 열린 블록이 없을 수 없다. BigQuery의 조건(`… IF [NOT] EXISTS`)은 `IF`가 연 블록을
+  닫으므로 블록이 열려 있고, 그렇지 않더라도 건너뛸 끝 조건이 없고 `isDelimiterAfterBlock`이 거짓이라 보내는 글이 같다.
 
 ## upstream 대비 변경점
 
@@ -424,3 +441,6 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   루틴 처리(다음 `;`에서 끝내고 `;`를 남김, 머리를 연 `AS|IS` 바로 뒤에서만)(`chromite/oracle-external-routine-split`). "본문 없는 Oracle 루틴의 문장
   나누기" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 모든 스크립트 나누기
   (쿼리 창 F5·Ctrl+Enter, 스크립트 실행, Agent 실행 도구), 문장 끝 `;` 남기기
+- 2026-11-25 "Oracle 스크립트 나누기 2" 절 추가, 그 1: `AGGREGATE|PIPELINED|POLYMORPHIC USING` 함수를 본문 없는 루틴으로 보고 `;`를 남김(방언 조건, 파서는
+  열린 블록 없이 맞은 `END_BLOCK`)(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·
+  OceanBase(Oracle 모드)의 `CREATE FUNCTION` 나누기와 `;` 남기기

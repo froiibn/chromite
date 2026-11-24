@@ -67,6 +67,11 @@ import java.util.*;
  *   {@code END;}처럼 문장에 남긴다({@link SQLDialect#isDelimiterAfterBlock}인 방언, Oracle은 없으면 PLS-00103). 그 조건은 머리를 연
  *   {@code AS}/{@code IS} 바로 뒤의 낱말일 때만 머리를 닫는다: 선언부의 안쪽 서브프로그램 호출 명세({@code AS PROCEDURE c IS
  *   LANGUAGE C …;})는 바깥 루틴의 끝이 아니다 (docs/chromite/swing-query-commands.md "본문 없는 Oracle 루틴의 문장 나누기")
+ * - 2026-11-25 Chromite: 열린 블록이 없을 때 맞은 끝 조건({@code END_BLOCK})도 본문 없는 루틴이다. Oracle
+ *   {@code CREATE FUNCTION … AGGREGATE USING t;}는 {@code AS}/{@code IS}가 없어 머리가 열리지 않으므로 위의 길을 타지 않고 {@code ;} 없이
+ *   가서 PLS-00103으로 INVALID였다. 이 길에 닿는 방언: 그런 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)과 BigQuery. BigQuery의
+ *   조건은 {@code IF}가 연 블록을 닫으므로 블록이 늘 열려 있고, 열려 있지 않더라도 건너뛸 끝 조건이 없고 {@code isDelimiterAfterBlock}이
+ *   거짓이라 결과가 같다 (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
  */
 public class SQLScriptParser {
 
@@ -161,8 +166,9 @@ public class SQLScriptParser {
         SQLTokenType prevNotEmptyTokenType = SQLTokenType.T_UNKNOWN;
         String firstKeyword = null, lastKeyword = null;
         boolean endClosedCaseBlock = false;
-        // A dialect predicate closed the header block a predicate had opened, with no BEGIN: a routine without a body (a call
-        // specification). Its rest is not a declaration section, so the next delimiter ends it
+        // A dialect predicate closed the header block a predicate had opened, with no BEGIN, or ended the statement with no
+        // block open: a routine without a body (a call specification, a function implemented by a type). Its rest is not a
+        // declaration section, so the next delimiter ends it
         boolean bodilessRoutine = false;
         // Tokens of the statement given to the predicate evaluator
         int capturedTokens = 0;
@@ -368,7 +374,11 @@ public class SQLScriptParser {
                         hasBlocks = true;
                     }
 
-                    if (actionKind == SQLParserActionKind.END_BLOCK && curBlock != null) {
+                    if (actionKind == SQLParserActionKind.END_BLOCK && curBlock == null) {
+                        // Nothing is open to end: a routine whose body-less end comes with no AS / IS before it (Oracle
+                        // AGGREGATE USING t;). It is a whole unit as the call specification below is
+                        bodilessRoutine = true;
+                    } else if (actionKind == SQLParserActionKind.END_BLOCK) {
                         if (!curBlock.isPredicateHeaderBlock) {
                             curBlock = curBlock.parent;
                         } else if (capturedTokens - curBlock.headerTokenIndex < predicateEvaluator.getLastMatchedPredicate().getMaxSuffixLength()) {

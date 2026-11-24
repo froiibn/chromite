@@ -116,6 +116,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 `/` 줄과 별개로, Oracle 방언의 블록 조건은 호출 명세 루틴(`AS LANGUAGE JAVA|C`, `AS EXTERNAL`, `AS MLE`)을 그 `;`에서 끝내고 `;`를 문장에 남긴다. 전에는
 `AS|IS`가 연 선언부 머리가 `BEGIN`을 기다려 뒤 문장을 모두 합쳤다. 원인·고침·확인은
 [swing-query-commands.md](swing-query-commands.md) "본문 없는 Oracle 루틴의 문장 나누기".
+`AS|IS` 없이 형식·패키지로 구현한 함수(`AGGREGATE USING`, `PIPELINED [ROW|TABLE POLYMORPHIC] USING`)도 같게 `;`를 남긴다(같은 문서 "Oracle 스크립트 나누기 2").
 
 ## upstream 대비 변경점
 
@@ -197,3 +198,5 @@ Oracle(공유 규칙으로 옮긴 뒤): `SELECT 10 … FROM dual` / `/` / `SELEC
   "다른 DB"의 Altibase와 "확인 (2026-11-12, Altibase)" 절. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·Altibase 스크립트의 문장 나누기.
 - 2026-11-25 "본문 없는 루틴" 절: 호출 명세 루틴이 뒤 문장을 합치던 것을 고침(`chromite/oracle-external-routine-split`). 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 스크립트 나누기.
+- 2026-11-25 "본문 없는 루틴" 절에 `AGGREGATE|PIPELINED USING` 함수(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 스크립트 나누기.

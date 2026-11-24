@@ -90,6 +90,9 @@ import java.util.Set;
  *   waited for a BEGIN that never came and sent the following statements with it as one statement. SQLScriptParser then
  *   ends the statement at the call spec's ";" and keeps it, as after END
  *   (docs/chromite/swing-query-commands.md "본문 없는 Oracle 루틴의 문장 나누기").
+ * - 2026-11-25 Chromite: a function implemented by a type or package (AGGREGATE USING, PIPELINED [ROW|TABLE POLYMORPHIC]
+ *   USING) is a routine without a body too (END_BLOCK at its USING, with no header open): it was cut right but sent
+ *   without its ";" and stored INVALID, PLS-00103 (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -849,6 +852,19 @@ public class OracleSQLDialect extends JDBCSQLDialect
                         tt.sequence("MLE", tt.alternative("MODULE", "LANGUAGE"))
                     )
                 )
+            ),
+            // A function implemented by a type or package (AGGREGATE USING, PIPELINED USING, PIPELINED ROW|TABLE POLYMORPHIC
+            // USING) has no body and no AS / IS either: no header is open when its USING comes, and the script parser takes an
+            // END_BLOCK with no block open as such a routine, ended at the next ";" which it keeps (PLS-00103 without it)
+            new TokenPredicatesCondition(
+                SQLParserActionKind.END_BLOCK,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                    "FUNCTION"
+                ),
+                tt.sequence(tt.alternative("AGGREGATE", "PIPELINED", "POLYMORPHIC"), "USING")
             )
         );
 
