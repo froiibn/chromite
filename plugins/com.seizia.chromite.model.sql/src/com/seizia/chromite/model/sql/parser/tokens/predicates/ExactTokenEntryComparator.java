@@ -25,6 +25,15 @@ import java.util.Comparator;
 /**
  * Strong comparator implementing foll comparison of data carried by two token entries.
  * Establishes strong ordering on the continuity of possible token entries.
+ *
+ * 설계: an inverted entry ("not EXISTS") and the plain entry with the same type and text ("EXISTS") are different keys of the
+ * predicate tries (TokenPredicateSet). The inversion is compared last, so the order by type stays the first part of the order, as
+ * TokenEntryMatchingComparator needs.
+ *
+ * 변경 이력:
+ * - 2026-11-25 Chromite: compare the inversion too. The two entries were one trie node, so a condition ending in EXISTS was filed
+ *   under the Oracle IF rule's "not EXISTS" node: it never matched at EXISTS and matched after any other word instead
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  */
 class ExactTokenEntryComparator extends TokenEntryComparatorBase implements Comparator<TokenEntry> {
     public static final ExactTokenEntryComparator INSTANCE = new ExactTokenEntryComparator();
@@ -40,6 +49,10 @@ class ExactTokenEntryComparator extends TokenEntryComparatorBase implements Comp
         if (result != 0) {
             return result;
         }
-        return compareByStrings(first, second);
+        result = compareByStrings(first, second);
+        if (result != 0) {
+            return result;
+        }
+        return Boolean.compare(first.isInverted(), second.isInverted());
     }
 }
