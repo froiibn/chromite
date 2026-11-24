@@ -59,7 +59,9 @@ import java.util.List;
  * <ul>
  *     <li>CREATE(DDL): {@link SQLGeneratorDDL}("Generate SQL > DDL"). 테이블·뷰는 {@code DBStructUtils.generateTableListDDL},
  *     그 밖의 객체는 {@link DBPScriptObject#getObjectDefinitionText}로 만든다. 생성기 기본 옵션(완전한 이름, 주석 포함)을 쓴다.
- *     이 생성기는 {@code OPTION_INCLUDE_OBJECT_DROP}을 켜므로, 이 옵션을 읽는 MySQL 테이블은 DROP 문이 앞에 붙는다(SWT와 같음).</li>
+ *     이 생성기는 {@code OPTION_INCLUDE_OBJECT_DROP}을 켜므로, 이 옵션을 읽는 MySQL 테이블은 DROP 문이 앞에 붙는다(SWT와 같음).
+ *     글은 복사해 다른 쿼리 창에 붙여 실행하는 데 쓰이므로, 그 창이 어느 DB에 있든 객체의 DB에서 실행되게 만든다
+ *     ({@link SourceScripts#inObjectDatabase}: SQL Server는 Modify처럼 {@code USE} 배치로 시작). Generate SQL의 DDL도 객체가 하나면 같다.</li>
  *     <li>SELECT: {@link SQLGeneratorSelect}("Generate SQL > SELECT", 숨은 열을 뺀 열 목록). 데이터 검색의 "행 열기"는 같은 SELECT에
  *     모델의 조건 생성기로 만든 WHERE를 붙인다({@link #generateFilteredSelect}).</li>
  *     <li>행 수 제한(Select Top N Rows): 방언마다 다른 문법을 직접 쓰지 않고 연결의 {@link DBCQueryTransformProvider}에 묻는다.
@@ -84,6 +86,9 @@ import java.util.List;
  *   CREATE TABLE이 탭에 열렸다), 권한 오류의 첫 줄 {@link #errorMessage} (앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-24 행 수 제한을 스크립트만의 자리(SCRIPT_ROW_LIMIT)에서 먼저 찾음: 엔진 변환기가 없는 Oracle·Altibase·ShardSphere에서
  *   "상위 1000개 행 선택"이 제한 없는 SELECT를 열었다(앱 변경 #183, 같은 문서 "행 수 제한")
+ * - 2026-11-25 CREATE(DDL) 글을 객체의 DB에서 실행되는 스크립트로({@link SourceScripts#inObjectDatabase}): SQL Server의 DDL 보기·
+ *   CREATE 대상 글을 master 창에 붙여 실행하면 master에 만들어졌다(docs/chromite/swing-query-commands.md
+ *   "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)")
  */
 final class ObjectScripts {
 
@@ -100,11 +105,14 @@ final class ObjectScripts {
         return object instanceof DBSEntity && object instanceof DBSDataContainer;
     }
 
+    /**
+     * The object's DDL as a script that runs in the object's database wherever it is pasted ({@link SourceScripts#inObjectDatabase}).
+     */
     @NotNull
     static String generateCreate(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object) throws DBException {
         SQLGeneratorDDL generator = new SQLGeneratorDDL();
         generator.initGenerator(List.of((DBPScriptObject) object));
-        return runGenerator(monitor, generator);
+        return SourceScripts.inObjectDatabase(object, runGenerator(monitor, generator));
     }
 
     /**
@@ -126,7 +134,7 @@ final class ObjectScripts {
         SQLGeneratorDDL generator = new SQLGeneratorDDL();
         generator.initGenerator(List.of((DBPScriptObject) object));
         generator.setGeneratorOption(OracleConstants.PREF_KEY_DDL_FORMAT, format);
-        return runGenerator(monitor, generator);
+        return SourceScripts.inObjectDatabase(object, runGenerator(monitor, generator));
     }
 
     /**
@@ -193,7 +201,12 @@ final class ObjectScripts {
                 applicable.add(object);
             }
         }
-        return runGenerator(monitor, descriptor.createGenerator(applicable));
+        SQLGenerator<?> generator = descriptor.createGenerator(applicable);
+        String script = runGenerator(monitor, generator);
+        // The DDL of one object is the text of View DDL; several objects make one text without batches between them
+        return generator instanceof SQLGeneratorDDL && applicable.size() == 1 && applicable.getFirst() instanceof DBSObject object
+            ? SourceScripts.inObjectDatabase(object, script)
+            : script;
     }
 
     /**

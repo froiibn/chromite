@@ -25,6 +25,8 @@
 #   connection and a timeout (an independent review found that the 2026-11-24 pattern missed them).
 # - 2026-11-25 The retry moved into Invoke-GhRead; Invoke-GhDownload runs the release downloads of fetch and rehearse
 #   through it (they stopped at once on a passing error) and removes what a failed try wrote.
+# - 2026-11-25 The other network reads ask again on "no answer" too (Invoke-ReadAgain): curl (Get-Http, Get-HttpHead),
+#   git fetch and ls-remote (Invoke-GitRead); a review found that one passing failure stopped a stage or printed BAD.
 
 $script:Repo = 'froiibn/chromite'
 $script:RepoUrlPattern = '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)froiibn/chromite(\.git)?/?$'
@@ -284,6 +286,48 @@ function Invoke-GhDownload([string]$Ver, [string]$Dir, [string[]]$Patterns = @()
     } | Out-Null
 }
 
+# A network read that is asked again, three times at most (waits 5, 10, 15 s), while $NoAnswer says the try got no
+# answer: no connection, a timeout, a dropped connection, a 5xx. $NoAnswer gets the result and returns the reason
+# ($null = an answer). An answer - a 404, another size, hash or key - is returned at once, never asked again into
+# another one, so a check that compares it with an expectation is as strict as before. The last result is returned
+# whatever it is (the caller prints BAD or stops as before) with the reasons of the failed tries in 'Retried', so a
+# caller that compares answers over time (the neighbour snapshot) can show them. Only reads: a change asked again
+# could happen twice. gh has its own loop (Invoke-GhRead: longer waits, cleanup after a failed download).
+function Invoke-ReadAgain([string]$What, [scriptblock]$Read, [scriptblock]$NoAnswer) {
+    $readRetried = @()
+    for ($readTry = 1; ; $readTry++) {
+        $readResult = & $Read
+        $readWhy = & $NoAnswer $readResult
+        if (-not $readWhy -or $readTry -ge 4) { break }
+        $readRetried += "$readWhy"
+        Say "${What}: no answer ($readWhy), asking again ($readTry of 3)"
+        Start-Sleep -Seconds (5 * $readTry)
+    }
+    if ($null -ne $readResult) { $readResult | Add-Member -NotePropertyName Retried -NotePropertyValue $readRetried -Force }
+    return $readResult
+}
+
+# Answers of git (2.37 for Windows, https origin) that pass by themselves, as it prints them for an http(s) remote:
+# the libcurl texts after "unable to access '<url>': " (a failed name lookup "Could not resolve host", a refused
+# connection "Failed to connect to <host> port <n> after <ms> ms: Connection refused", "Empty reply from server",
+# "Recv failure: Connection was reset", "Operation too slow", a 5xx "The requested URL returned error: 503"), seen on
+# this PC against local fakes; and, from git's source, the texts of a fetch cut off midway ("RPC failed; HTTP 5xx" or
+# "; curl <n>", "early EOF", "unexpected disconnect while reading sideband packet").
+# Not here, so they stop at once: "repository '<url>' not found" (404), "Authentication failed", "could not read
+# Username" (401), "The requested URL returned error: 403", a missing ref.
+$script:GitPassingError = 'Could not resolve (host|proxy)|Failed to connect to|Connection refused|Connection timed out|Operation timed out|Operation too slow|returned error: 5\d\d|RPC failed; (HTTP 5\d\d|curl )|Empty reply from server|(Recv|Send) failure|Connection was reset|connection reset|early EOF|unexpected disconnect while reading sideband'
+
+# A git command that only reads origin (fetch, ls-remote), asked again on a passing error (Invoke-ReadAgain).
+# Every other failure stops at once, as Invoke-Git does without -AllowFail.
+function Invoke-GitRead([string[]]$Arguments, [string]$What) {
+    $r = Invoke-ReadAgain $What { Invoke-Git $Arguments -AllowFail -Quiet } {
+        param($g)
+        if ($g.Code -and $g.Text -match $script:GitPassingError) { "git exit $($g.Code): $((@($g.Lines) | Select-Object -Last 1))" }
+    }
+    if ($r.Code) { Stop-Harness "$What failed (exit $($r.Code)): $((@($r.Lines) | Select-Object -Last 3) -join ' | ')" }
+    return $r
+}
+
 # ---- versions, tags, origin
 
 function Test-VersionText([string]$Ver) { return $Ver -match '^\d+\.\d+\.\d+$' }
@@ -291,7 +335,7 @@ function ConvertTo-Ver([string]$Ver) { return [version]$Ver }
 function Get-Dashed([string]$Ver) { return $Ver.Replace('.', '-') }
 
 function Update-Origin {
-    Invoke-Git @('fetch', '--quiet', '--tags', 'origin') -Quiet | Out-Null
+    Invoke-GitRead @('fetch', '--quiet', '--tags', 'origin') 'git fetch --tags origin' | Out-Null
 }
 
 function Get-TagVersions {
@@ -317,7 +361,7 @@ function Get-TagCommit([string]$Ver) { return Get-GitLine @('rev-parse', '--veri
 
 # The commit the tag points at on origin (the peeled line of an annotated tag), or $null.
 function Get-RemoteTagCommit([string]$Ver) {
-    $r = Invoke-Git @('ls-remote', '--tags', 'origin', "refs/tags/v$Ver", "refs/tags/v$Ver^{}") -Quiet
+    $r = Invoke-GitRead @('ls-remote', '--tags', 'origin', "refs/tags/v$Ver", "refs/tags/v$Ver^{}") "git ls-remote --tags origin v$Ver"
     $plain = $null; $peeled = $null
     foreach ($l in $r.Lines) {
         if ($l -match '^([0-9a-f]{40})\s+refs/tags/v[\d.]+\^\{\}$') { $peeled = $Matches[1] }
@@ -365,25 +409,51 @@ function Get-HttpTempFile {
     return (Join-Path $dir ("http-" + [Guid]::NewGuid().ToString('N') + '.tmp'))
 }
 
-# GET: status code and body (UTF-8).
-function Get-Http([string]$Url) {
-    $tmp = Get-HttpTempFile
-    try {
-        $code = (& curl.exe -sS -m 60 -A $script:UserAgent -o $tmp -w '%{http_code}' $Url 2>&1) -join ' '
-        $body = if (Test-Path $tmp) { [IO.File]::ReadAllText($tmp, [Text.UTF8Encoding]::new($false)) } else { '' }
-        return [pscustomobject]@{ Code = "$code".Trim(); Body = $body }
-    } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+# Exit codes of curl.exe (8.x in System32, which pwsh finds first) that mean no answer, seen on this PC against
+# local fakes: 6 "Could not resolve host", 7 "Failed to connect ... Could not connect to server", 28 "Operation timed
+# out" / "Connection timed out", 52 "Empty reply from server", 56 "Recv failure: Connection was reset", 35 a TLS
+# handshake that did not finish ("schannel: ..."); from curl's list of exit codes: 5 proxy name lookup, 16 HTTP/2
+# framing, 18 a body cut short, 55 "Send failure", 92 an HTTP/2 stream cut. A certificate failure (60) and every
+# other code stop at once, as before. An HTTP status is an answer; only a 5xx counts as none (unless -Keep5xx).
+$script:CurlNoAnswerExit = @(5, 6, 7, 16, 18, 28, 35, 52, 55, 56, 92)
+
+function Get-HttpNoAnswer($R, [bool]$Keep5xx) {
+    if ($script:CurlNoAnswerExit -contains $R.Exit) { return "curl exit $($R.Exit)" }
+    if (-not $R.Exit -and -not $Keep5xx -and $R.Code -match '^5\d\d$') { return "HTTP $($R.Code)" }
+    return $null
 }
 
-# HEAD: status code and Content-Length.
-function Get-HttpHead([string]$Url) {
-    $lines = @(& curl.exe -sS -m 60 -A $script:UserAgent -I $Url 2>&1 | ForEach-Object { "$_" })
-    $code = ''; $len = -1
-    foreach ($l in $lines) {
-        if ($l -match '^HTTP/\S+\s+(\d{3})') { $code = $Matches[1] }
-        elseif ($l -match '^content-length:\s*(\d+)') { $len = [long]$Matches[1] }
+# GET: status code and body (UTF-8), asked again on no answer (Invoke-ReadAgain). -Once: a single try, for a caller
+# that polls by itself. -Keep5xx: a 5xx is an answer (the neighbour snapshot records the neighbour's own state).
+# When curl got no status, Code holds curl's message and '000', as before.
+function Get-Http([string]$Url, [switch]$Once, [switch]$Keep5xx) {
+    $read = {
+        $tmp = Get-HttpTempFile
+        try {
+            $code = (& curl.exe -sS -m 60 -A $script:UserAgent -o $tmp -w '%{http_code}' $Url 2>&1) -join ' '
+            $rc = $LASTEXITCODE
+            $body = if (Test-Path $tmp) { [IO.File]::ReadAllText($tmp, [Text.UTF8Encoding]::new($false)) } else { '' }
+            [pscustomobject]@{ Code = "$code".Trim(); Body = $body; Exit = $rc }
+        } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
     }
-    return [pscustomobject]@{ Code = $code; Length = $len }
+    if ($Once) { return (& $read) }
+    return Invoke-ReadAgain "GET $Url" $read { param($h) Get-HttpNoAnswer $h $Keep5xx }
+}
+
+# HEAD: status code and Content-Length, asked again on no answer (Invoke-ReadAgain). When curl got no status, Code
+# holds curl's message.
+function Get-HttpHead([string]$Url) {
+    return Invoke-ReadAgain "HEAD $Url" {
+        $lines = @(& curl.exe -sS -m 60 -A $script:UserAgent -I $Url 2>&1 | ForEach-Object { "$_" })
+        $rc = $LASTEXITCODE
+        $code = ''; $len = -1
+        foreach ($l in $lines) {
+            if ($l -match '^HTTP/\S+\s+(\d{3})') { $code = $Matches[1] }
+            elseif ($l -match '^content-length:\s*(\d+)') { $len = [long]$Matches[1] }
+        }
+        if (-not $code -and $rc) { $code = (@($lines) | Select-Object -Last 1) }
+        [pscustomobject]@{ Code = $code; Length = $len; Exit = $rc }
+    } { param($h) Get-HttpNoAnswer $h $false }
 }
 
 function Get-LiveFeed {

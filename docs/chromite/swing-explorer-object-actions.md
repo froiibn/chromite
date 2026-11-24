@@ -10,7 +10,8 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
 - **이름 복사**(Ctrl+C, 메뉴 "이름 복사"), **정규화된 이름 복사**(Ctrl+Shift+C, 메뉴): 고른 객체마다 한 줄.
 - **여러 개 선택**: 트리에서 Ctrl·Shift로 여러 노드를 고른다. 삭제, 이름 복사, SQL 생성은 선택 전체에 적용하고 나머지 명령은 꺼진다.
 - **SQL 생성**(메뉴 "SQL 생성" ▸ SELECT, INSERT, UPDATE, DELETE, MERGE, SIMPLE JOIN, INNER JOIN, CALL, DDL, PostgreSQL INSERT ON CONFLICT·UPDATE FROM·DELETE USING 등):
-  결과는 새 쿼리 창에 연다(실행하지 않음).
+  결과는 새 쿼리 창에 연다(실행하지 않음). SQL Server에서 객체 하나의 DDL은 DDL 보기·Script as ▸ CREATE 대상과 같이 `USE <db>` / `GO` 배치로 시작하고
+  `GO`로 끝난다: 어느 DB의 창에 붙여 실행해도 객체의 DB에서 실행된다([swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행").
 
 ## 화면
 
@@ -408,6 +409,63 @@ ERD·데이터베이스 복사가 쓰는 `generateSelect`와 데이터 찾기의
 - `DBCQueryTransformType.SCRIPT_ROW_LIMIT`(새 값), Altibase 계열 메타 모델과 Oracle 데이터 원본이 답함, `QueryTransformerFetchFirst`(새).
   upstream의 `RESULT_SET_LIMIT` 답과 엔진 동작은 그대로다.
 
+## DDL 글의 객체 이름 줄 (2026-11-25)
+
+### 보고와 재현
+
+DDL 보기·스크립팅 ▸ CREATE 대상·선택하여 복사(DDL)·SQL 생성 ▸ DDL의 뷰 글은 맨 앞에 객체 이름 줄(`-- dbo.chr_v 소스`)이 있다
+(`DBStructUtils.generateTableListDDL`이 `getObjectNameComment`로 붙임, "추가 DDL 정보" 옵션, 기본 켬). 네 명령이 모두 같은 생성기(`SQLGeneratorDDL`)다.
+쿼리 창은 문장 앞 주석을 문장과 함께 보내므로, `CREATE` 앞 주석까지 정의로 두는 서버에서는 그 글을 붙여 실행할 때마다 정의에 이름 줄이 한 벌씩 들어가고,
+다시 연 DDL 보기에 그만큼 더 보였다. `origin/command` 4c7a63fa21 빌드(사설 작업 공간·설정·데이터 폴더, 앱 안 시험 에이전트, 한국어 150 %)에서
+뷰마다 DDL 보기 → 글 전체 복사 → 새 쿼리 창 → 붙임 → 표지 값 고침 → F5 → 연결 새로 고침을 세 번 했다(시험 개체 `chr_ddl_name_comment_once`).
+
+| DB, 뷰 | DDL 보기의 이름 줄 수(처음 → 1·2·3회 실행 뒤) |
+|---|---|
+| SQL Server 2022 | 1 → 2 → 3 → 4 (세 번째 실행은 아래 `USE` 배치를 앞에 둔 글, 같은 결과) |
+| SQL Server, 정의에 이미 `\n` 이름 줄 세 벌 | 4 → 5 → 6 → 7 |
+| SQL Server, 정의에 이미 `\r\n` 이름 줄 두 벌 | 2(줄 끝이 맞아 앱 줄은 빠지지만 정의의 두 벌이 보임) |
+| Altibase 7.3(`GET_DDL` 글) | 1 → 2 → 3 → 4 |
+| PostgreSQL 17, Oracle 26ai(1521), MariaDB 11 | 1 → 1 → 1 → 1 (서버가 `CREATE` 앞 주석을 두지 않음) |
+
+SQL Server 프로시저·함수·트리거의 DDL 글에는 이름 줄이 없다(`SQLGeneratorDDL.generateSQL`은 정의만 씀). 테이블의 이름 줄(`… 정의`) 앞 글은 모델이 만든 DDL이라 쌓이지 않는다.
+
+### 근본 원인
+
+`generateTableListDDL`은 "정의가 이미 이름 줄로 시작하면 붙이지 않음"을 `startsWith`로 비교했다. 이름 줄은 플랫폼 줄 끝(Windows `\r\n`)으로 끝나는데,
+쿼리 창이 보내 서버가 둔 정의는 `\n`이라 비교가 맞지 않았다. 줄 끝이 맞아도 정의 안의 여러 벌은 그대로 보였다(위 `\r\n` 두 벌).
+
+### 고친 것
+
+`DBStructUtils.generateTableListDDL`이 뷰마다 이름 줄을 한 번 쓰고, 정의 맨 앞의 이름 줄 사본을 모두 뺀다(`withoutObjectNameComment`). 줄은 앞뒤 공백·`\r`을
+떼고 비교하고, 그 사이의 빈 줄은 건너뛴다. 맨 앞이 아닌 곳의 같은 글과 사용자 주석(`-- my own note`)은 그대로 둔다. 정의에 이름 줄이 없으면 글은 전과 같다.
+
+- **보내는 쪽에서 빼지 않은 이유:** 쿼리 창은 모든 방언에서 문장 앞 주석을 함께 보낸다(사용자 주석도 정의에 남아야 함). 앱이 쓰는 줄은 앱이 보일 때 알아본다.
+- **PR 379(`SourceScripts.inObjectDatabase`):** SQL Server 글이 `USE <db>` / `GO` 배치로 시작해도 이름 줄은 다음 배치의 맨 앞이라 정의 맨 앞에 저장된다.
+  위 재현의 세 번째 실행이 그 모양이다.
+- **Altibase 계열의 `AltibaseMetaModel.withoutGeneratedHeader`는 그대로 둔다:** 카탈로그 원본 길(ShardSphere)에서 Modify·속성의 글(DDL 보기 생성기를 지나지 않음)도
+  거르고, 전 빌드의 경고 줄·패키지 머리 줄이 이름 줄 뒤에 있는 원본에서 이름 줄을 지나야 그 줄들에 닿는다([altibase.md](altibase.md) "뷰 DDL의 경고 줄").
+  DDL 보기 길에서는 둘 다 같은 줄을 빼지만 결과는 같다(이미 빠진 글에서 공용 코드는 아무것도 빼지 않음).
+- **남은 것:** SQL Server·Altibase 7.3 뷰의 Modify 글은 서버 정의 그대로라 이미 저장된 이름 줄 사본을 보인다(Modify 글은 이름 줄을 더하지 않으므로 더 늘지 않음).
+  앱 언어를 바꾸면(`소스` ↔ `Source`) 전 언어로 저장된 줄은 사용자 주석으로 보인다.
+
+### 확인
+
+2026-11-25, "전" = `origin/command` 4c7a63fa21 빌드, "후" = 이 브랜치 빌드, 같은 작업 공간과 시험 개체(전의 실행으로 더럽혀진 정의를 그대로 후에서 엶).
+증거는 `D:\Tools\_scratch\ddl-name-comment-once\`(글 `s\texts\`, 캡처 `shots\before|after\`).
+
+| DB, 뷰 | 전 | 후(이어서 세 번 더 실행) |
+|---|---|---|
+| SQL Server `chr_v`(전의 실행으로 정의에 네 벌) | 1 → 4 | 1 → 1 → 1 → 1, 세 번째는 `USE`/`GO` 배치 뒤의 글을 `master` 창에서 실행 |
+| SQL Server `chr_v3`(정의에 일곱 벌) | 4 → 7 | 1 → 1 → 1 → 1 |
+| SQL Server `chr_vcr`(`\r\n` 두 벌), `chr_vu`(이름 줄 + 사용자 주석) | 2, 2 | 1, 1(사용자 주석 `-- my own note`는 남음) |
+| Altibase 7.3, PostgreSQL 17, Oracle 1521, MariaDB 11 | 1 → 4 / 1 / 1 / 1 | 모두 1 |
+
+- 실행마다 표지 값이 바뀌어(`v;v4` → `v;v7`) 매번 서버가 받았다. 후의 실행 뒤 서버 정의(`sys.sql_modules`)의 이름 줄은 한 벌이다(`chr_v`·`chr_v3`·`chr_vu` 1,
+  실행하지 않은 `chr_vcr`는 2, 프로시저와 `chr_v0`은 0).
+- 실행한 적 없는 개체의 DDL 보기 글은 전과 후가 바이트까지 같다: SQL Server·PostgreSQL·Oracle 1521·MariaDB의 테이블 `chr_t`와 뷰 `chr_v0`, 8개 모두(SHA-256 일치).
+- CREATE 대상 창도 이름 줄 한 줄. Modify 글은 서버 정의 그대로(`USE` 배치 뒤 이름 줄 한 벌)다. SQL Server 프로시저의 DDL 글에는 전후 모두 이름 줄이 없다.
+- 확인하지 않은 것: ShardSphere(카탈로그 원본 길, 코드로 판단), MySQL 8.4(MariaDB와 같은 `SHOW CREATE VIEW` 길), 다른 언어로 저장된 이름 줄.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 개체 삭제·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴.
@@ -426,3 +484,7 @@ ERD·데이터베이스 복사가 쓰는 `generateSelect`와 데이터 찾기의
 - 2026-11-22 행을 쓰는 생성기(INSERT·UPDATE·DELETE·MERGE)가 객체의 데이터 기능을 물음: 큐에 서버가 거절하는 문장이 나오지 않음(앱 변경 #157), 위 "행을 쓰는 생성기".
 - 2026-11-24 "상위 1000개 행 선택"이 Oracle·Altibase·ShardSphere에서 제한 없는 SELECT를 열던 것을 고침: 스크립트만의 변환 종류 `SCRIPT_ROW_LIMIT`
   (`LIMIT n`, Oracle 12c 이상 `FETCH FIRST n ROWS ONLY`), 변환기가 없는 데이터 원본 표(앱 변경 #183), 위 "행 수 제한".
+- 2026-11-25 SQL Server의 DDL 보기·CREATE 대상·Copy Special DDL·Generate SQL DDL(객체 하나) 글이 `USE` 배치로 시작(`ObjectScripts`, `SourceScripts.inObjectDatabase`,
+  `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 뷰 DDL 글의 객체 이름 줄을 한 번만 보임(`DBStructUtils.withoutObjectNameComment`, `chromite/ddl-name-comment-once`), 위 "DDL 글의 객체 이름 줄".
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 뷰 DDL 보기·CREATE 대상·선택하여 복사(DDL)·SQL 생성 ▸ DDL, 스키마 DDL(PostgreSQL·SQL Server).
