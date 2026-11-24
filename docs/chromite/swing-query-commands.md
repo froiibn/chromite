@@ -360,6 +360,19 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   조건(`AS|IS LANGUAGE`)은 언제나 `AS|IS`가 연 머리 안에서 맞아 열린 블록이 없을 수 없다. BigQuery의 조건(`… IF [NOT] EXISTS`)은 `IF`가 연 블록을
   닫으므로 블록이 열려 있고, 그렇지 않더라도 건너뛸 끝 조건이 없고 `isDelimiterAfterBlock`이 거짓이라 보내는 글이 같다.
 
+**2. `CREATE TYPE BODY`**
+- 재현: 멤버 넷인 형식 본문이 첫 멤버의 `END;`에서 나뉘어, 서버는 첫 조각을 형식 본문으로 받아 INVALID(PLS-00103)로 만들고 다음 조각
+  `MEMBER FUNCTION … END`는 ORA-00900이었다(그 뒤는 오류에서 멈춤). 멤버 안에서 Ctrl+Enter를 누르면 그 멤버 하나가 가서 ORA-00900.
+- 근본 원인: 형식 본문은 패키지 본문처럼 멤버 서브프로그램을 담고 자기 `END`로 끝나는데, 블록 조건은 `CREATE … PACKAGE BODY`에만 있었다
+  (`BEGIN_BLOCK`, 문장 머리만 보는 조건). 형식 본문에는 열린 블록이 없어 첫 멤버의 `END`가 문장을 끝냈다.
+- 고침: `OracleSQLDialect`에 같은 모양의 `BEGIN_BLOCK` 조건 `CREATE [OR REPLACE] [EDITIONABLE|NONEDITIONABLE] TYPE BODY`. 방언만 바꿨다.
+  형식 본문에는 초기화 부분(`BEGIN`)이 없어 패키지 본문 규칙의 한계(아래 "남은 것")가 생기지 않는다. 형식 명세(`CREATE TYPE … AS OBJECT`)는
+  `BODY`가 없어 닿지 않는다. Altibase 계열에는 형식 본문이 없다.
+
+**남은 것(보고만):**
+- 초기화 부분이 있는 패키지 본문(`CREATE PACKAGE BODY p AS … BEGIN … END p;`)은 그 `BEGIN … END`가 패키지 블록 안에서 짝을 이뤄 패키지 블록이 닫히지
+  않으므로, 뒤 문장이 모두 그 문장에 합쳐진다(고치기 전 빌드에서 확인, 이번 고침과 무관).
+
 ## upstream 대비 변경점
 
 - SWT `SQLCommandInclude`(ui.editors.sql)는 SWT 프런트엔드와 함께 삭제되었다. 모델 번들에 같은 이름으로 다시 만들었다(편집기 대신 엔진, 현재 폴더 찾기 없음,
@@ -444,3 +457,5 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 2026-11-25 "Oracle 스크립트 나누기 2" 절 추가, 그 1: `AGGREGATE|PIPELINED|POLYMORPHIC USING` 함수를 본문 없는 루틴으로 보고 `;`를 남김(방언 조건, 파서는
   열린 블록 없이 맞은 `END_BLOCK`)(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·
   OceanBase(Oracle 모드)의 `CREATE FUNCTION` 나누기와 `;` 남기기
+- 2026-11-25 "Oracle 스크립트 나누기 2"의 2: `CREATE TYPE BODY`의 블록 조건(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 형식 본문 나누기

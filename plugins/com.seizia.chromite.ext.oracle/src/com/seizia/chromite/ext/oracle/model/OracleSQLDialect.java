@@ -93,6 +93,9 @@ import java.util.Set;
  * - 2026-11-25 Chromite: a function implemented by a type or package (AGGREGATE USING, PIPELINED [ROW|TABLE POLYMORPHIC]
  *   USING) is a routine without a body too (END_BLOCK at its USING, with no header open): it was cut right but sent
  *   without its ";" and stored INVALID, PLS-00103 (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
+ * - 2026-11-25 Chromite: CREATE TYPE BODY opens a block as CREATE PACKAGE BODY does (BEGIN_BLOCK): the splitter cut a type
+ *   body at the END of its first member and sent the rest as statements of their own, ORA-00900
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -793,6 +796,18 @@ public class OracleSQLDialect extends JDBCSQLDialect
                     tt.optional("OR", "REPLACE"),
                     tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
                     "PACKAGE", "BODY"
+                ),
+                tt.sequence()
+            ),
+            // A type body holds member subprograms as a package body does and ends with its own END (CREATE TYPE BODY). It has
+            // no initialization section, so its block opens on the statement's prefix as the package body's does
+            new TokenPredicatesCondition(
+                SQLParserActionKind.BEGIN_BLOCK,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                    "TYPE", "BODY"
                 ),
                 tt.sequence()
             ),
