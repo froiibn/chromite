@@ -302,6 +302,8 @@ import java.util.regex.Pattern;
  * - 2026-11-25 선택 리스너(Properties 창)에는 선택한 노드나 그 객체가 바뀔 때만 알림({@link #selectionChanged}). 가지를 다시 보일 때 트리가 선택을
  *   뺐다 되돌리는 사건마다 같은 노드를 다시 넘겨, 연결 새로 고침 한 번에 속성 읽기가 8번(7번 취소) 돌았다. 새로 고친 선택 노드는 객체가 바뀌면
  *   다시 읽힘 (docs/chromite/swing-object-properties.md "한 번만 읽기")
+ * - 2026-11-25 선택 노드나 그 위 노드를 새로 고치면(여기의 F5, 탐색기 밖의 노드 새로 고침) 객체가 같아도 속성을 한 번 다시 읽음({@link #selectionRefreshed}):
+ *   여러 드라이버가 객체를 바꾸지 않고 캐시만 비워 새로 고쳐, 객체 비교만으로는 새 값을 보이지 못했다 (같은 문서 "새로 고침")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -547,6 +549,11 @@ final class ObjectExplorerPanel extends JPanel {
      * events of that are not selection changes.
      */
     private boolean restoringSelection;
+    /**
+     * The selected node or an ancestor was refreshed, and the Properties view reads the selection again once the tree has
+     * shown the refresh ({@link #selectionRefreshed}).
+     */
+    private boolean selectionRefreshPending;
 
     /**
      * @param selectionListener receives the selected navigator node (or null) when it or its object changes
@@ -1921,10 +1928,33 @@ final class ObjectExplorerPanel extends JPanel {
      * started a read of the Properties view that the next one canceled. EDT.
      */
     private void selectionChanged() {
+        if (selectionRefreshPending) {
+            // The read after the refresh shows the selection as it is then
+            return;
+        }
         DBNNode node = getSelectedNavigatorNode();
         if (node != notifiedNode || getNodeObject(node) != notifiedObject) {
             notifySelection(node);
         }
+    }
+
+    /**
+     * A node was refreshed (F5 here, or the navigator's refresh after DDL or of a whole connection): if it is the selected
+     * node or one of its ancestors, the Properties view reads the selection again once, also when the model refreshed the
+     * object in place (the same object with its caches cleared, so the identity check of {@link #selectionChanged} sees no
+     * change). The read waits for the end of the current batch of navigator events and tree changes, so that a refresh
+     * reported for several nodes reads once. EDT.
+     */
+    private void selectionRefreshed(@NotNull ExplorerNode refreshed) {
+        TreePath selected = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
+        if (selectionRefreshPending || selected == null || !new TreePath(refreshed.getPath()).isDescendant(selected)) {
+            return;
+        }
+        selectionRefreshPending = true;
+        SwingUtilities.invokeLater(() -> {
+            selectionRefreshPending = false;
+            notifySelection(getSelectedNavigatorNode());
+        });
     }
 
     private void notifySelection(@Nullable DBNNode node) {
@@ -2021,7 +2051,7 @@ final class ObjectExplorerPanel extends JPanel {
                     }
                     DBNNode[] children = readChildren(monitor, loadNode);
                     DBNNode finalLoadNode = loadNode;
-                    SwingUtilities.invokeLater(() -> showChildren(node, serial, finalLoadNode, children));
+                    SwingUtilities.invokeLater(() -> showChildren(node, serial, finalLoadNode, children, refresh));
                 } catch (Throwable e) {
                     SwingUtilities.invokeLater(() -> showLoadError(node, serial, e));
                 }
@@ -2093,7 +2123,16 @@ final class ObjectExplorerPanel extends JPanel {
             || parameter instanceof DBSAttributeBase attribute && attribute.getOrdinalPosition() == 0;
     }
 
-    private void showChildren(@NotNull ExplorerNode node, int serial, @NotNull DBNNode loadedNode, @Nullable DBNNode[] children) {
+    /**
+     * @param refreshed the children were read after a refresh of the node ({@code DBNNode#refreshNode}), not only loaded
+     */
+    private void showChildren(
+        @NotNull ExplorerNode node,
+        int serial,
+        @NotNull DBNNode loadedNode,
+        @Nullable DBNNode[] children,
+        boolean refreshed
+    ) {
         if (node.loadSerial != serial) {
             return;
         }
@@ -2116,8 +2155,12 @@ final class ObjectExplorerPanel extends JPanel {
         treeModel.nodeStructureChanged(target);
         // Connecting may change the node icon (connected state)
         treeModel.nodeChanged(target);
-        // A refreshed selected node may have a new object; its own row fires no selection event
-        selectionChanged();
+        if (refreshed) {
+            // F5 on the selected node or an ancestor: its own row fires no selection event
+            selectionRefreshed(target);
+        } else {
+            selectionChanged();
+        }
         continueReveal();
     }
 
@@ -2208,8 +2251,12 @@ final class ObjectExplorerPanel extends JPanel {
                     reloadLoadedSubtree(explorerNode);
                 }
                 treeModel.nodeChanged(explorerNode);
-                // The selected node's object may have been read again: the Properties view shows the new one
-                selectionChanged();
+                if (event.getNodeChange() == DBNEvent.NodeChange.REFRESH) {
+                    selectionRefreshed(explorerNode);
+                } else {
+                    // The selected node's object may have been replaced: the Properties view shows the new one
+                    selectionChanged();
+                }
             }
             default -> {
                 // ADD is handled before the lookup: the new node has no tree node yet
@@ -2266,6 +2313,7 @@ final class ObjectExplorerPanel extends JPanel {
                     // whole connection after CREATE DATABASE in a query window): show what the model has now below it, as
                     // for any other refreshed node. A registry event (settings saved, connect) changes no children
                     reloadLoadedSubtree(explorerNode);
+                    selectionRefreshed(explorerNode);
                 }
             }
             default -> {
