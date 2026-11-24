@@ -69,6 +69,10 @@ import java.util.stream.Stream;
  * - 2026-11-25 Chromite: {@link #getObjectNameComment} is public, so a model whose server keeps the comments sent before
  *   CREATE as the object's source (Altibase family) can recognize this line in that source (docs/chromite/altibase.md
  *   "뷰 DDL의 경고 줄").
+ * - 2026-11-25 Chromite: a view's script shows the object name line once ({@link #withoutObjectNameComment}). The check
+ *   "definition already starts with the line" compared the platform's line ends with the stored definition's, so on
+ *   SQL Server and Altibase 7.3 the line was shown once more after every run of the DDL text
+ *   (docs/chromite/swing-explorer-object-actions.md "DDL 글의 객체 이름 줄").
  */
 public final class DBStructUtils {
 
@@ -257,10 +261,8 @@ public final class DBStructUtils {
         for (T table : viewList) {
             String objectNameComment = getObjectNameComment(table, ModelMessages.struct_utils_object_ddl_source);
             String tableDDL = DBStructUtils.getTableDDL(monitor, table, options, addComments);
-            if (!tableDDL.startsWith(objectNameComment)) {
-                sql.append(objectNameComment);
-            }
-            addDDLLine(sql, tableDDL);
+            sql.append(objectNameComment);
+            addDDLLine(sql, withoutObjectNameComment(tableDDL, objectNameComment));
         }
         monitor.done();
     }
@@ -286,6 +288,35 @@ public final class DBStructUtils {
         String lf = GeneralUtils.getDefaultLineSeparator();
         return singleLineComments[0].trim() + " " + DBUtils.getObjectFullName(object, DBPEvaluationContext.DDL) +
             " " + comment + lf + lf;
+    }
+
+    /**
+     * The definition without the copies of the object name line ({@link #getObjectNameComment}) at its start, so that the
+     * script shows the line once. Servers that keep the comments sent before CREATE as the object's source (SQL Server
+     * views, the Altibase family) store the line when a script with it is run, once more after every run. Lines are
+     * compared stripped: the line ends with the platform's line separator, a stored definition with the line ends its
+     * client sent. Only lines at the start count: the same text further down is the user's.
+     */
+    @NotNull
+    private static String withoutObjectNameComment(@NotNull String definition, @NotNull String objectNameComment) {
+        String objectNameLine = objectNameComment.strip();
+        if (objectNameLine.isEmpty()) {
+            return definition;
+        }
+        int rest = -1;
+        int start = 0;
+        while (start < definition.length()) {
+            int lineEnd = definition.indexOf('\n', start);
+            int next = lineEnd < 0 ? definition.length() : lineEnd + 1;
+            String line = definition.substring(start, next).strip();
+            if (line.equals(objectNameLine)) {
+                rest = next;
+            } else if (!line.isEmpty()) {
+                break;
+            }
+            start = next;
+        }
+        return rest < 0 ? definition : definition.substring(rest);
     }
 
     public static void addDDLLine(@NotNull StringBuilder sql, @NotNull String ddl) {
