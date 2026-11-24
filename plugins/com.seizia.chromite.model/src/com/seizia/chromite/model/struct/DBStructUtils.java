@@ -66,6 +66,9 @@ import java.util.stream.Stream;
  *   shared timestamp checks for dialect converters.
  * - 2026-11-07 Chromite: a decimal without precision (PostgreSQL numeric) no longer takes the target type of the same
  *   name, which has a fixed default precision and scale (SQL Server numeric(18,0), MySQL DECIMAL(10,0)).
+ * - 2026-11-25 Chromite: {@link #getObjectNameComment} is public, so a model whose server keeps the comments sent before
+ *   CREATE as the object's source (Altibase family) can recognize this line in that source (docs/chromite/altibase.md
+ *   "뷰 DDL의 경고 줄").
  */
 public final class DBStructUtils {
 
@@ -262,7 +265,12 @@ public final class DBStructUtils {
         monitor.done();
     }
 
-    private static String getObjectNameComment(@NotNull DBSObject object, @NotNull String comment) {
+    /**
+     * The comment line (and empty line) put before an object's DDL in a generated script, e.g. "-- schema.view Source".
+     * Empty when the connection's "extra DDL info" option is off or the dialect has no single-line comment.
+     */
+    @NotNull
+    public static String getObjectNameComment(@NotNull DBSObject object, @NotNull String comment) {
         DBPDataSource dataSource = object.getDataSource();
         if (dataSource == null) {
             return "";

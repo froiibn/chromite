@@ -91,12 +91,14 @@ import java.util.function.UnaryOperator;
  * - 2026-11-12 Format SQL 옆에 비교 단추(열린 두 창의 글 비교, {@link TextCompareCommand}, 앱 변경 #105) (docs/chromite/text-compare.md)
  * - 2026-11-23 Query 단추가 메뉴 동작 대신 이 막대만의 사본({@link QueryActions})을 써서 켜짐·선택·도구 설명이 이 막대 창의 쿼리 창을 따름
  *   (앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-25 편집 명령·Query History 동작과 빈 DB 콤보의 주석을 활성 쿼리 창 대신 이 막대의 쿼리 창으로 바로잡음(#175 뒤 틀린 주석, 앱 변경 #186)
+ *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class SqlEditorToolBar {
 
     private final JToolBar toolBar = new OverflowToolBar();
     /**
-     * Shown in the picker place while no query window is active.
+     * Shown in the picker place while this tool bar shows no query window.
      */
     private final JComboBox<Object> emptySchemaCombo = createEmptyCombo(SqlEditorPanel.SCHEMA_PICKER_WIDTH);
     private final List<Action> editorActions = new ArrayList<>();
@@ -320,7 +322,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * Icon button of an editing command on the active query window's text (the text area gets the focus back). Its tool tip
+     * Icon button of an editing command on this tool bar's query window's text (the text area gets the focus back). Its tool tip
      * is the name with the key of the text area ("Comment Selection (Ctrl+K, Ctrl+C)"): the key is not an accelerator.
      */
     @NotNull
@@ -337,7 +339,7 @@ final class SqlEditorToolBar {
     }
 
     /**
-     * An action of this tool bar that needs an active query window.
+     * An action of this tool bar that is enabled only while this tool bar shows a query window ({@link #setActiveEditor}).
      */
     @NotNull
     private Action createEditorAction(@NotNull String name, @Nullable String toolTip, @NotNull Runnable task) {

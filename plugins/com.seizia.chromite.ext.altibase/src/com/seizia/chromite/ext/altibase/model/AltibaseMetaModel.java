@@ -41,18 +41,21 @@ import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
 import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.impl.sql.QueryTransformerLimit;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanSupport;
 import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectFilter;
+import com.seizia.chromite.model.struct.DBStructUtils;
 import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.*;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,6 +83,9 @@ import java.util.Set;
  *   docs/chromite/altibase.md "저장 루틴의 문장 나누기")
  * - 2026-11-24 생성한 스크립트의 행 수 제한({@link #createQueryTransformer}, {@code LIMIT n}): "상위 1000개 행 선택"이 제한 없는
  *   SELECT를 열었다(앱 변경 #183, docs/chromite/swing-explorer-object-actions.md "행 수 제한")
+ * - 2026-11-25 카탈로그 원본(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거) 앞에 경고 줄을 붙이지 않음: 서버가 둔 원본 그대로이고,
+ *   ShardSphere에는 패키지가 있다(GET_DDL이 그 종류를 거절). {@link #withoutGeneratedHeader}가 스크립트의 객체 이름 줄("-- 소유자.뷰 소스")도
+ *   알아봄: DDL 보기 글을 실행하면 그 줄이 뷰 원본에 남아, 다시 열 때마다 한 벌씩 늘었다(docs/chromite/altibase.md "뷰 DDL의 경고 줄")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport, DBCQueryTransformProvider {
 
@@ -91,6 +97,11 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
 
     // The dependent object type of DBMS_METADATA.GET_DEPENDENT_DDL for the comments of a table
     private static final String DEP_OBJECT_COMMENT = "COMMENT";
+
+    // The warning line builds before 2026-11-25 put before every catalog source. The server keeps it in a source that was
+    // run from such a DDL text, so it is still recognized there (withoutGeneratedHeader)
+    private static final String LEGACY_NO_DBMS_METADATA =
+        "-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.";
 
     public AltibaseMetaModel() {
     }
@@ -478,7 +489,7 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
                     + " AND PP.PACKAGE_TYPE = " + packageType
                     + " ORDER BY PP.PACKAGE_TYPE, SEQ_NO ASC";
 
-            ddl = getPackageDDLFromCatalog(monitor, sourceObject, sourceObject.getSchema().getName(), sql, hasDbmsMetadata);
+            ddl = getPackageDDLFromCatalog(monitor, sourceObject, sourceObject.getSchema().getName(), sql);
         }
         
         return ddl;
@@ -1145,30 +1156,30 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
      * Get DDL source for View/Procedure/Function/Typeset
      */
     private String getViewProcDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql) {
-        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "PARSE", false);
+        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "PARSE");
     }
     
     /**
      * Get DDL source for Package
      */
-    private String getPackageDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql, 
-            boolean hasDbmsMetdata) {
-        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "PARSE", hasDbmsMetdata);
+    private String getPackageDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql) {
+        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "PARSE");
     }
 
     /**
      * Get DDL source for Trigger
      */
     private String getTriggerDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql) {
-        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "SUBSTRING", false);
+        return geDDLFromCatalog(monitor, sourceObject, schemaName, sql, "SUBSTRING");
     }
 
     /**
-     * Get DDL source from DBMS catalog (meta tables): View/Procedure/Function/Typeset/Trigger
+     * Get DDL source from DBMS catalog (meta tables): View/Procedure/Function/Typeset/Trigger.
+     * No warning line before it: the text is the statement the server keeps as the object's source, not a DDL this model
+     * generates (the warning said "may not be correct" of the server's own text, and ShardSphere has the package).
      */
     private String geDDLFromCatalog(DBRProgressMonitor monitor, DBSObject sourceObject, String schemaName, String sql, 
-            String colname, boolean hasDbmsMetdata) {
-        StringBuilder ddl = new StringBuilder(hasDbmsMetdata ? "" : AltibaseConstants.NO_DBMS_METADATA);
+            String colname) {
         StringBuilder source = new StringBuilder();
         String content = null;
         JDBCPreparedStatement jpstmt = null;
@@ -1198,18 +1209,25 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
             jpstmt.close();
         }
 
-        return ddl.append(withoutGeneratedHeader(source.toString())).toString();
+        return withoutGeneratedHeader(source.toString(), sourceObject);
     }
 
     /**
-     * The stored source without the comment lines this model puts before a source it shows ({@link AltibaseConstants#NO_DBMS_METADATA},
-     * a package part's name). The server keeps the text a client sent as the unit's source, comments before CREATE included, so
-     * a source run from the DDL viewer's text holds those lines, and they were shown once more after every such run.
+     * The stored source without the comment lines the app puts before a source it shows: the warning earlier builds put
+     * there ({@link #LEGACY_NO_DBMS_METADATA}), a package part's name, and the script's object name line
+     * ({@link DBStructUtils#getObjectNameComment}, before a view's source). The server keeps the text a client sent as the
+     * unit's source, comments before CREATE included, so a source run from the DDL viewer's text holds those lines, and
+     * they were shown once more after every such run. Lines are compared stripped: the viewer's text has the platform's
+     * line ends, the stored source the query window's.
      */
     @NotNull
-    private static String withoutGeneratedHeader(@NotNull String source) {
-        Set<String> generated = Set.of(AltibaseConstants.NO_DBMS_METADATA.strip(),
-            AltibaseConstants.PACKAGE_SPEC_HEADER.strip(), AltibaseConstants.PACKAGE_BODY_HEADER.strip());
+    private static String withoutGeneratedHeader(@NotNull String source, @NotNull DBSObject sourceObject) {
+        Set<String> generated = new HashSet<>(Set.of(LEGACY_NO_DBMS_METADATA,
+            AltibaseConstants.PACKAGE_SPEC_HEADER.strip(), AltibaseConstants.PACKAGE_BODY_HEADER.strip()));
+        String objectNameLine = DBStructUtils.getObjectNameComment(sourceObject, ModelMessages.struct_utils_object_ddl_source).strip();
+        if (!objectNameLine.isEmpty()) {
+            generated.add(objectNameLine);
+        }
         int start = 0;
         boolean removed = false;
         while (start < source.length()) {
