@@ -19,6 +19,8 @@
 #
 # Change history:
 # - 2026-11-23 Created.
+# - 2026-11-25 The seed files download through Invoke-GhDownload: a passing GitHub error is asked again, a broken
+#   file removed.
 
 function Get-OpenSshTool([string]$Name) {
     $ssh = Get-Cfg 'rehearsal.sshExe'
@@ -93,8 +95,7 @@ function Get-SeedFiles([string]$Ver) {
     if ($missing) {
         Say "v$Ver files missing ($($missing -join ', ')): downloading from its GitHub Release"
         New-Item -ItemType Directory -Force $dir | Out-Null
-        Invoke-Native -Exe 'gh' -Arguments @('release', 'download', "v$Ver", '--repo', $script:Repo, '--dir', $dir, '--skip-existing',
-            '--pattern', 'Chromite-*', '--pattern', 'SHA256SUMS') -What "gh release download v$Ver" | Out-Null
+        Invoke-GhDownload $Ver $dir @('Chromite-*', 'SHA256SUMS')
     }
     if (-not (Test-Sums $dir $names)) { Stop-Harness "the v$Ver files in $dir do not match SHA256SUMS" }
     return $dir

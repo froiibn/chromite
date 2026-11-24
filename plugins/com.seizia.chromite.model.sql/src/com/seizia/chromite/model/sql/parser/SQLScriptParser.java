@@ -61,6 +61,12 @@ import java.util.*;
  * - 2026-11-17 Chromite: 문장 접두어({@link SQLDialect#getStatementPrefixLength})의 토큰은 방언의 블록 규칙(건너뛸 토큰 조건)과 첫 키워드에
  *   넣지 않음. 조건은 문장 앞에서부터 맞추므로 {@code NODE[meta] CREATE PROCEDURE p AS v INTEGER; BEGIN … END;}가 선언의 {@code ;}에서
  *   나뉘었다(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-25 Chromite: 조건이 연 머리 블록(루틴의 {@code AS}/{@code IS})을 {@code BEGIN} 없이 조건({@code END_BLOCK})이 닫은 문장은 본문 없는
+ *   루틴(호출 명세)이다. 그 뒤에는 건너뛸 끝 조건({@code SKIP_SUFFIX_TERM})을 쓰지 않고 다음 구분자에서 문장을 끝낸다. Oracle
+ *   {@code AS LANGUAGE C … PARAMETERS (n);}의 {@code );}가 선언으로 건너뛰어져 다음 문장과 합쳐졌다. 그 구분자 {@code ;}는
+ *   {@code END;}처럼 문장에 남긴다({@link SQLDialect#isDelimiterAfterBlock}인 방언, Oracle은 없으면 PLS-00103). 그 조건은 머리를 연
+ *   {@code AS}/{@code IS} 바로 뒤의 낱말일 때만 머리를 닫는다: 선언부의 안쪽 서브프로그램 호출 명세({@code AS PROCEDURE c IS
+ *   LANGUAGE C …;})는 바깥 루틴의 끝이 아니다 (docs/chromite/swing-query-commands.md "본문 없는 Oracle 루틴의 문장 나누기")
  */
 public class SQLScriptParser {
 
@@ -155,6 +161,11 @@ public class SQLScriptParser {
         SQLTokenType prevNotEmptyTokenType = SQLTokenType.T_UNKNOWN;
         String firstKeyword = null, lastKeyword = null;
         boolean endClosedCaseBlock = false;
+        // A dialect predicate closed the header block a predicate had opened, with no BEGIN: a routine without a body (a call
+        // specification). Its rest is not a declaration section, so the next delimiter ends it
+        boolean bodilessRoutine = false;
+        // Tokens of the statement given to the predicate evaluator
+        int capturedTokens = 0;
         // The statement start the prefix end was read for, and the end of that statement's prefix
         int prefixStatementStart = -1;
         int statementPrefixEnd = startPos;
@@ -200,6 +211,7 @@ public class SQLScriptParser {
                     String tokenText = document.get(tokenOffset, tokenLength);
                     predicateEvaluator.captureToken(new SQLTokenEntry(tokenText, tokenType, false));
                     newTokenCaptured = true;
+                    capturedTokens++;
                 }
 
                 boolean isDelimiter = (tokenType == SQLTokenType.T_DELIMITER) ||
@@ -357,7 +369,14 @@ public class SQLScriptParser {
                     }
 
                     if (actionKind == SQLParserActionKind.END_BLOCK && curBlock != null) {
-                        curBlock = curBlock.parent;
+                        if (!curBlock.isPredicateHeaderBlock) {
+                            curBlock = curBlock.parent;
+                        } else if (capturedTokens - curBlock.headerTokenIndex < predicateEvaluator.getLastMatchedPredicate().getMaxSuffixLength()) {
+                            // Only words that follow the AS / IS which opened the header end it: the same words after a nested
+                            // subprogram in the declarations ("AS PROCEDURE c IS LANGUAGE C …;") are not the routine's own
+                            bodilessRoutine = true;
+                            curBlock = curBlock.parent;
+                        }
                     }
 
                     if (curBlock != null && !token.isEOF()) {
@@ -366,12 +385,15 @@ public class SQLScriptParser {
                         continue;
                     }
 
-                    if (actionKind == SQLParserActionKind.SKIP_SUFFIX_TERM) {
+                    // The suffix skip rules keep the declarations after a nested subprogram ("v NUMBER;", "PROCEDURE p(x NUMBER);")
+                    // in the routine; after a call specification they would skip its own end ("PARAMETERS (n);")
+                    if (actionKind == SQLParserActionKind.SKIP_SUFFIX_TERM && !bodilessRoutine) {
                         continue;
                     }
 
                     if (actionKind == SQLParserActionKind.BLOCK_HEADER) {
                         curBlock = new ScriptBlockInfo(curBlock, true, true);
+                        curBlock.headerTokenIndex = capturedTokens;
                         hasBlocks = true;
                     }
                 }
@@ -452,7 +474,9 @@ public class SQLScriptParser {
                     if (isDelimiter && (
                         keepDelimiters ||
                             (hasBlocks && dialect.isDelimiterAfterQuery()) ||
-                            (needsDelimiterAfterBlock(firstKeyword, lastKeyword, dialect))
+                            (needsDelimiterAfterBlock(firstKeyword, lastKeyword, dialect)) ||
+                            // A routine without a body is a whole unit as one ending in END is (Oracle: PLS-00103 without the ";")
+                            (bodilessRoutine && dialect.isDelimiterAfterBlock())
                     )) {
                         if (delimiterText != null && delimiterText.equals(SQLConstants.DEFAULT_STATEMENT_DELIMITER)) {
                             // Add delimiter in the end of query. Do this only for semicolon delimiters.
@@ -499,6 +523,8 @@ public class SQLScriptParser {
                     if (isPredicateEvaluationEnabled) {
                         firstKeyword = null;
                         predicateEvaluator.reset();
+                        bodilessRoutine = false;
+                        capturedTokens = 0;
                         isControl = false;
                         hasBlocks = false;
                         hasValuableTokens = false;
@@ -1135,6 +1161,8 @@ public class SQLScriptParser {
         final String togglePattern;
         boolean isHeader; // block started by DECLARE, FUNCTION, etc
         boolean isPredicateHeaderBlock;
+        // Of a predicate header block: the statement's captured token count at the token that opened it
+        int headerTokenIndex;
         @Nullable
         String beginToken;
 

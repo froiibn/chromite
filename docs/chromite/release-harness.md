@@ -54,7 +54,7 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 | `trial` | 서명 과정 경로가 앞 태그 뒤로 바뀌었을 때만: `origin/command`가 릴리스 병합 커밋인지, `release.yml`을 `command`에서 수동 실행, 성공까지 기다림(시작도 못 한 작업만 다시 실행) | 워크플로 실행 | |
 | `tag` | 병합 커밋이 `origin/command`에 있고 그 버전을 싣는지, 시험 실행 규칙, `origin`이 `froiibn/chromite`인지. 주석 태그를 병합 커밋에 붙이고 그 태그만 push. 이미 `origin`에 있으면 같은 커밋인지 다시 확인만(push 없음, 사용자 말 불필요). push가 끊겨 이 PC에만 남은 태그는 병합 커밋의 주석 태그일 때만 다시 push하고, 다른 태그면 멈춤 | 태그 push | 필요 |
 | `build` | 태그의 `release.yml` 실행(headSha = 태그 커밋)을 찾아 기다림. 시작도 못 한 작업(단계 0개)만 `-MaxAttempts`(기본 4)까지 다시 실행, 돌다 실패한 작업은 멈춤. 실행 번호, 시도, 걸린 분 | 작업 다시 실행 | |
-| `fetch` | `gh release download`(이미 다 있으면 받지 않음), 정확히 파일 4개와 `SHA256SUMS`, `sha256sum -c` 4개 OK, Release의 파일 이름·크기가 같은지. 크기와 해시 기록 | 없음 | |
+| `fetch` | `gh release download`(이미 다 있으면 받지 않음. 저절로 지나가는 오류는 다시 받음, 아래 "멈추는 조건"), 정확히 파일 4개와 `SHA256SUMS`, `sha256sum -c` 4개 OK, Release의 파일 이름·크기가 같은지. 크기와 해시 기록 | 없음 | |
 | `rehearse` | 아래 "리허설" | 리허설 호스트만 | |
 | `deploy` | 아래 "운영 배포". `-PreflightOnly`는 확인만 | 운영 서버 | 필요 |
 | `verify` | 운영 확인만(언제든 다시 실행): 피드의 세 파일이 이 PC의 크기·SHA-256·세대·`notes_url #v<버전>`, 파일 200과 같은 크기, 피드가 이 버전과 바로 앞 버전 둘만, 앞 버전 설치 파일 200, 그 앞(태그로 찾음) 404, 페이지 12개 200, 두 변경 내역에 앵커 한 번 | 없음 | |
@@ -104,10 +104,13 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
 - 설정 값이 없음, 잠금이 살아 있음, 앞 단계가 ok가 아니거나 다른 태그 커밋·다른 파일·다른 세대의 것임, 사용자 말이 없음.
 - 브랜치가 다르거나 `origin/command`에서 갈라지지 않음(`prepare`, `record`). 버전이 마지막 태그보다 크지 않거나 이미 태그가 있음. 변경 내역 절이 없거나 위치가 틀리거나 `TODO`가 남음.
 - PR이 충돌·검사 실패·기다리는 동안 새 커밋. 실행에서 돌다 실패한 작업, `-MaxAttempts`를 넘김, `-TimeoutMinutes`를 넘김.
-- GitHub API 읽기가 실패함. 다만 저절로 지나가는 오류(5xx, 이름 찾기 실패, 거절·끊긴 연결, 시간 초과)는 세 번까지 다시 묻고, 그래도 실패할 때만 멈춘다
-  (`Invoke-GhJson`. 26.1.8의 `build` 단계가 `gh run view`의 HTTP 500 한 번에 멈춰서 넣음). 문구는 gh 2.96이 Windows에서 실제로 내는 것에 맞춘다(`$script:GhPassingError`의 주석).
+- GitHub 읽기가 실패함. 다만 저절로 지나가는 오류(5xx, 이름 찾기 실패, 거절·끊긴 연결, 시간 초과)는 세 번까지 다시 묻고, 그래도 실패할 때만 멈춘다
+  (`Invoke-GhRead`. 26.1.8의 `build` 단계가 `gh run view`의 HTTP 500 한 번에 멈춰서 넣음). 문구는 gh 2.96이 Windows에서 실제로 내는 것에 맞춘다(`$script:GhPassingError`의 주석).
   그 밖의 실패(없음, 권한 없음, 잘못된 인수)와 요청 한도(HTTP 429, "API rate limit exceeded")는 바로 멈춘다. 요청 한도는 한 시간까지 가서 다시 묻는 시간 안에 풀리지 않는다.
-  밖을 바꾸는 명령은 다시 묻지 않는다(두 번 바뀔 수 있다). `Invoke-GhJson`을 거치지 않는 읽기 `gh pr checks`(`merge`)와 `gh release download`는 이 규칙 밖이다.
+  밖을 바꾸는 명령은 다시 묻지 않는다(두 번 바뀔 수 있다). API 읽기(`Invoke-GhJson`)와 릴리스 파일 받기(`Invoke-GhDownload`, `fetch`와 `rehearse`의 씨앗)가 이 규칙을 따른다.
+  gh 2.96은 파일을 처음부터 최종 이름으로 쓰고 끊긴 파일을 그대로 두며(`cli/cli` v2.96.0 `pkg/cmd/release/download/download.go`), `--skip-existing`은 그 파일을 다 받은 것으로 보고 건너뛴다.
+  그래서 받기가 실패할 때마다(다시 묻기 전과 멈추기 전) 받기 전에 없던 파일을 모두 지운다. 폴더에 남는 파일은 오류 없이 끝난 받기에서 온 것이고, 그 뒤 `SHA256SUMS` 확인이 증거다.
+  `gh pr checks`(`merge`)는 이 규칙 밖이다: 실패한 답은 검사 0개로 읽혀 30초 뒤 다시 묻는다(제한 시간까지).
 - 서명 과정 경로가 바뀌었는데 병합 커밋의 시험 실행이 없음. `origin`이 `froiibn/chromite`가 아님.
 - 파일이 `SHA256SUMS`와 다름, 남는 파일, Release의 파일과 크기가 다름.
 - 리허설: 호스트에 리허설 흔적이 이미 있음, 키에 암호가 있음, 씨앗 피드가 운영과 다름, `REHEARSAL, NOT CHECKED`, 마지막 줄이 다름, 정리가 덜 됨.
@@ -200,6 +203,9 @@ pwsh -NoProfile -File tools/release/release.ps1 -Stage cleanup -Version <버전>
   로컬 프록시로 이름 찾기 실패("error connecting to <host>"), 거절("dial tcp … actively refused"), 끊김("EOF", "unexpected EOF"), 시간 초과("context deadline exceeded")의
   실제 문구를 확인하고 가짜 `Invoke-Native`로 다시 묻는지 확인했다. Windows의 "wsarecv: An existing connection was forcibly closed by the remote host."는 재현하지 못해
   Go와 Windows의 오류 문구에서 가져왔고, GraphQL의 5xx 문구("non-200 OK status code: 502 …")는 gh가 쓰는 `cli/shurcooL-graphql`의 소스에서 가져왔다.
+- 릴리스 파일 받기의 다시 묻기와 실패한 받기의 파일 지우기(`Invoke-GhDownload`): 가짜 `Invoke-Native`로만 확인했다(502·끊김 뒤 성공, 이름 찾기 실패·"unexpected EOF" 네 번,
+  404·"release not found"·요청 한도, 맞지 않는 오류로 중간에 끊김). 2026-11-25의 실제 `fetch`(26.1.8)는 파일이 다 있어 받지 않았다. 실제로 끊긴 받기는 만든 적이 없다.
+  HTTP/2의 "stream error"처럼 패턴에 없는 끊김 문구는 바로 멈춘다(받던 파일은 지움).
 - `tag`의 끊긴 push 다시 하기(이 PC에만 남은 태그): 그런 일이 없었다. 구문 검사로만 확인했다.
 - 변경 이력이 마지막 절이 아닐 때 멈추는 경로(`prepare -Summary`, `record`): 26.1.8의 `record`에서는 통과하는 경로만 돌았다.
 - `merge`가 MERGEABLE이 아닌 PR(충돌, 계산 중)을 기다리거나 멈추는 부분, 검사 실패로 멈추는 부분: 26.1.8의 기록에는 검사가 다 등록되기를 기다린 것만 있다.
@@ -222,3 +228,5 @@ DBeaver에는 없다. 모두 Chromite에서 새로 만들었다(`tools/release/r
   놓쳐 바로 멈췄다: 이 PC에서 재현한 문구로 넓힘, 요청 한도는 바로 멈춤을 적음. ② "확인하지 못한 것"이 "첫 실제 릴리스"와 어긋나 지금 남은 것으로 다시 씀.
   ③ `update-notice`의 캡처가 예외 때도 GDI 개체를 모두 해제하고 임시 띠 파일을 지움. ④ 알림 판정이 줄 전체의 숫자를 이어 붙여 "26.1.80", "2.61.8" 같은 줄도
   통과시켰다: 알림 문구 바로 뒤의 숫자 하나가 그 버전이어야 함. ⑤ 멈춘 이유가 창을 못 찾음과 OCR이 아무것도 못 읽음을 구별함.
+- 2026-11-25 `fetch`와 `rehearse`의 `gh release download`가 저절로 지나가는 오류에 바로 멈췄다(검토에서 찾음): 다시 묻기를 `Invoke-GhRead` 한 곳으로 옮기고
+  `Invoke-GhJson`과 새 `Invoke-GhDownload`가 함께 씀. 실패한 받기가 쓴 파일은 지워, 끊긴 파일을 `--skip-existing`이 다 받은 것으로 보지 않게 함.
