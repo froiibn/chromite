@@ -1623,6 +1623,11 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
 - **이름 줄을 보내는 쪽에서 빼지 않은 이유:** 쿼리 창은 문장 앞 주석을 문장과 함께 보내고(모든 방언 공통, 앱 변경 182와 같음), 이름 줄은 모든 DB의 스크립트에 쓰는
   공용 줄이다. 그래서 이 계열 모델이 원본을 보일 때 앱이 만든 줄만 알아본다. 사용자가 직접 쓴 주석은 그대로 보인다.
 - 제품 이름 검사는 없다. Altibase 7.3에서 `GET_DDL`이 글을 주면 이 길을 타지 않는다.
+- **공용 고침 뒤에도 남긴 이유(2026-11-25, `chromite/ddl-name-comment-once`):** 이름 줄이 늘던 근본 원인(줄 끝이 다른 비교)은 공용
+  `DBStructUtils.generateTableListDDL`에서 고쳤다([swing-explorer-object-actions.md](swing-explorer-object-actions.md) "DDL 글의 객체 이름 줄").
+  7.3의 `GET_DDL` 글도 서버가 둔 앞 주석을 돌려주어 DDL 보기에서 실행할 때마다 한 줄씩 늘었고(1 → 4), 이 필터는 그 길을 지나지 않아 공용 고침이 막는다.
+  이 필터의 이름 줄 항목은 지우지 않았다: 카탈로그 원본 길에서 Modify·속성의 글은 DDL 보기 생성기를 지나지 않고, 전 빌드로 실행한 원본은
+  `이름 줄, 빈 줄, 경고 줄, CREATE …` 순이라 이름 줄을 알아봐야 그 뒤의 경고 줄·패키지 머리 줄에 닿는다. DDL 보기 길에서 두 곳이 같은 줄을 빼도 결과는 같다.
 
 ### 남은 것 (보고만)
 
@@ -1720,3 +1725,5 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
 - 2026-11-25 카탈로그 원본 앞의 경고 줄을 지우고, 원본에 남은 스크립트의 객체 이름 줄을 한 번만 보이며(`withoutGeneratedHeader`, `DBStructUtils.getObjectNameComment`
   공개), 남은 경고(테이블·시노님)의 글을 사실대로(`chromite/shardsphere-view-ddl-warning`), 위 "뷰 DDL의 경고 줄". 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Altibase 계열의 DDL 보기·Script as·Modify 글(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거, 시노님, 테이블 대체 글).
+- 2026-11-25 뷰 DDL 글의 이름 줄을 공용 코드가 한 번만 보임(`chromite/ddl-name-comment-once`). 7.3 `GET_DDL` 길에서도 늘던 것이 멈춤.
+  `withoutGeneratedHeader`를 그대로 둔 이유를 "뷰 DDL의 경고 줄"에 적음. 회귀 테스트는 실행하지 않았다.
