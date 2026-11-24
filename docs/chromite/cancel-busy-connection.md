@@ -120,8 +120,8 @@ Object Explorer의 테이블에서 "DDL 보기"와 "디자인"을 누르고 3초
 - `waitForJob`(그리드 저장·미리 보기)과 메타데이터가 아닌 세션의 작업(커밋·롤백, DDL 실행)은 바쁜 연결 뒤에서 기다리면 전처럼 끝날 때까지 창이 남는다.
   다만 그 취소도 이제 다른 세션의 문장을 멈추지 않는다.
 - Altibase: 취소된 모니터에서 `AltibaseMetaModel.getTableDDL`이 null 인덱스 목록으로 NPE를 낸다(이제는 버려져 보이지 않음, 모델은 고치지 않음).
-- ~~PostgreSQL의 세션을 다시 열 때의 교착~~: 2026-11-22 고침(앱 변경 #170, 아래 "세션을 다시 열 때의 교착"의 "PostgreSQL"). 같은 구조의
-  DB2·Exasol(`initializeContextState`가 `initFrom.getDefaultSchema()`)은 시험 서버가 없어 보지 않았다(각 몇 줄).
+- ~~PostgreSQL의 세션을 다시 열 때의 교착~~: 2026-11-22 고침(앱 변경 #170, 아래 "세션을 다시 열 때의 교착"의 "PostgreSQL"). 같은 구조로
+  보고된 DB2·Exasol은 2026-11-25 코드로 확인했다: 교착하지 않는다(아래 "다른 DB"의 DB2·Exasol 줄, 시험 서버 없음).
 - 다른 길: 목록을 읽는 쪽(A)이 무효화 중인 문맥을 스스로 다시 열지 않게 하면(`getConnection`의 `connect`) 모든 DB의 이 교착이 한 곳에서 풀리지만, 무효화
   중의 요청이 기다리는 대신 오류가 된다. 그 다시 열기는 무효화가 곧 다시 여는 문맥을 한 번 더 열기도 한다(공용 코드, 바꾸지 않음).
 
@@ -176,6 +176,7 @@ PostgreSQL `PostgreExecutionContext.setActiveSchema`(`getSchemas`).
 | SQL Server | 기본 DB의 스키마 목록 | 고침, 재현·확인 |
 | PostgreSQL | 데이터베이스의 스키마 목록(`refreshDefaults` → `setActiveSchema` → `getSchemas`, `setSearchPath` → `getSchema`) | 고침, 재현·확인(앱 변경 #170, 아래 "PostgreSQL") |
 | MySQL/MariaDB | 읽기 전용 연결의 `refreshDefaults` → `getObjectReadingNew`: 목록이 다 읽혔고 현재 DB가 없을 때만 모니터를 기다림 | 고치지 않음(두 스레드가 동시에 "없는 이름"으로 다시 읽을 때만, 재현하지 않음) |
+| DB2, Exasol(코드만, 2026-11-25) | 없음: `initializeContextState`의 `initFrom.getDefaultSchema()`는 `getSchemaCache().getCachedObject(이름)`(`DB2ExecutionContext.java:75`, `ExasolExecutionContext.java:74`)로 메모리만 본다. 잡는 것은 `cacheSync`뿐이고(`AbstractObjectCache.getCachedObject`), 목록을 읽는 쪽(`loadObjects`)이 쥐는 캐시 자체의 모니터가 아니며 `cacheSync`를 쥔 채 잠금이나 서버를 기다리는 곳은 없다. 나머지(`setCurrentSchema`, `refreshDefaults`)는 그 세션의 SQL뿐 | 해당 없음. Oracle·SQL Server(#165 전)는 같은 줄에서 `getSchema(monitor, 이름)`로 목록을 읽어 교착했다 |
 | Altibase 계열, Generic, SQLite | 없음(카탈로그·스키마는 연결할 때 읽어 둔 메모리 목록, DBMS_OUTPUT은 SQL만) | 해당 없음 |
 | Snowflake(코드만) | 데이터베이스의 스키마 목록을 읽지만 `GenericCatalog.getSchemas`는 모니터를 쓰지 않음 | 교착 없음(같은 목록을 두 번 읽을 수 있음), 바꾸지 않음 |
 | SQL Server·MySQL `refreshDefaults`의 `getObjectReadingNew` | MySQL과 같음 | 고치지 않음 |
@@ -431,3 +432,5 @@ ShardSphere 서버(코드로만: 같은 공급자와 HY008).
 - 2026-11-22 "세션을 다시 열 때의 교착"의 PostgreSQL(앱 변경 #170, `chromite/postgres-context-init-lock`): 기본 스키마를 이름으로 기억하고 세션을 여는 길은
   스키마 목록을 읽지 않음. 재현, 20/20 확인, 전후 표. "남은 것"의 PostgreSQL 항목을 닫음. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: PostgreSQL 계열
   연결·Invalidate/Reconnect·쿼리 창의 새 세션의 search_path, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택·상태 줄, 데이터 형식 해석의 기본 스키마).
+- 2026-11-25 "다른 DB"에 DB2·Exasol 줄(앱 변경 #186, `chromite/context-init-deadlock-others`): 같은 구조로 보고된 교착은 코드로 확인해 일어나지 않음(목록을
+  읽지 않고 메모리만 봄). 코드는 바꾸지 않았다. 시험 서버가 없어 실행하지 못했다.
