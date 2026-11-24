@@ -425,6 +425,9 @@ ShardSphere 서버(코드로만: 같은 공급자와 HY008).
 - 2026-11-22 "세션을 다시 열 때의 교착"(앱 변경 #165): Oracle·YashanDB·SQL Server가 다시 열거나 새로 여는 세션의 기본 스키마를 이름으로 받고 알림은
   메모리의 목록에서만. 세 DB 재현, PostgreSQL은 남김. 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 연결·Invalidate/Reconnect·쿼리 창의 새
   세션의 현재 스키마, 탐색기의 기본값 굵게 표시, 쿼리 창의 스키마 선택).
+- 2026-11-22 "남은 곳"(앱 변경 #168, `chromite/cancel-remaining-callers`): 오류 창을 거치지 않는 곳의 취소. 백업 개체 읽기의 경고 상자를 띄우지 않고, 가져오기·복사의
+  DDL 미리 보기는 중립 문구(키를 `ErrorMessages.error_canceled`로 옮김). 취소가 오지 않아 제외한 곳과 근거, #345로 쓸모없어진 취소 검사 7개 삭제.
+  회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 모든 오류 창, 진행 창 작업의 취소).
 - 2026-11-22 "드라이버 취소 오류의 분류"(앱 변경 #169, `chromite/driver-cancel-classification`): DB별 측정, Oracle·MariaDB·MySQL 분류, 쿼리 창과 Oracle DDL 읽기는
   취소를 요청했을 때만 취소로 봄(PostgreSQL·SQL Server의 쿼리 창 시간 초과·다른 세션의 취소가 이제 오류). 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: 진행 창
   작업의 취소, 쿼리 창의 중지·시간 초과, Oracle DDL 보기, Query Manager의 읽기 오류).
