@@ -1321,6 +1321,7 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
   행 수(전 → 후): `SYS_PROCEDURES_` 47 → 47, `SYS_PROC_PARAS_` 143 → 143, `SYS_PROC_PARSE_` 424 → 424, `SYS_TRIGGERS_` 0 → 0, `SYS_PACKAGES_` 49 → 49,
   `SYS_PACKAGE_PARSE_` 1545 → 1545. `SYS_TABLES_` 164 → 180, `SYS_VIEWS_` 41 → 47, `SYS_VIEW_PARSE_` 1056 → 1065, `SYS_COLUMNS_` 1454 → 1491은 같은 시간에 다른 작업이
   만든 그 작업의 시험용 개체(`CHR_TOP_*`, 16행)다.
+
 ## 상위 1000개 행 선택의 행 수 제한 (2026-11-24, 앱 변경 #183)
 
 - **증상:** "상위 1000개 행 선택"이 `SELECT …⏎FROM 소유자.t;`(제한 없음)를 열었다. 계열 메타 모델(`AltibaseMetaModel`)에 행 수 변환기가 없었다.
