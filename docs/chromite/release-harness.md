@@ -185,7 +185,7 @@ pwsh -NoProfile -File tools/release/release.ps1 -Stage cleanup -Version <버전>
   `deploy`(`-PreflightOnly` → `-WhatIf` → 실제: OK 35건, 이웃 그대로), `verify`, `record`.
 - `merge`는 검사가 5개만 등록된 동안 기다렸고 6개가 모두 통과한 뒤 병합했다(두 번 연속 통과 규칙).
 - 멈춘 곳 둘: `build`(GitHub API HTTP 500, 다시 실행), `update-notice`(OCR 오독, 캡처로 눈으로 확인). 위 "변경 이력" 2026-11-24에서 고침.
-- `publish`는 사용자의 말이 없어 돌리지 않았다. `trial`의 실제 수동 실행과 다시 실행(`gh run rerun`)은 이번에도 필요가 없어 돌지 않았다.
+- `publish`는 배포 때는 사용자의 말이 없어 돌리지 않았고, 같은 날 밤 사용자의 말("공개한다") 뒤에 돌았다(먼저 `-WhatIf`, 그다음 실제: 초안 아님·최신 확인). `trial`의 실제 수동 실행과 다시 실행(`gh run rerun`)은 이번에도 필요가 없어 돌지 않았다.
 
 ## 확인하지 못한 것
 
