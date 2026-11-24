@@ -111,6 +111,18 @@ PowerShell 7.3 이상에서 실행한다(`#requires -Version 7.3`). 배포 자�
   gh 2.96은 파일을 처음부터 최종 이름으로 쓰고 끊긴 파일을 그대로 두며(`cli/cli` v2.96.0 `pkg/cmd/release/download/download.go`), `--skip-existing`은 그 파일을 다 받은 것으로 보고 건너뛴다.
   그래서 받기가 실패할 때마다(다시 묻기 전과 멈추기 전) 받기 전에 없던 파일을 모두 지운다. 폴더에 남는 파일은 오류 없이 끝난 받기에서 온 것이고, 그 뒤 `SHA256SUMS` 확인이 증거다.
   `gh pr checks`(`merge`)는 이 규칙 밖이다: 실패한 답은 검사 0개로 읽혀 30초 뒤 다시 묻는다(제한 시간까지).
+- 그 밖의 네트워크 읽기도 **답이 없을 때만** 세 번까지 다시 묻는다(`Invoke-ReadAgain`, 5·10·15초 기다림). 답이 오면 그 답이 결과다.
+  404, 다른 크기·해시, 다른 호스트 키, 다른 DNS 주소는 다시 묻지 않으므로 다시 물어서 통과로 바뀌는 일이 없다. 마지막 시도도 답이 없으면 전처럼 BAD를 찍거나 멈춘다.
+  - curl(`Get-Http`, `Get-HttpHead`: 운영 피드, `verify`, 이웃 스냅숏, 리허설 씨앗 피드): 종료 코드 5, 6, 7, 16, 18, 28, 35, 52, 55, 56, 92와 HTTP 5xx.
+    인증서 실패(60)와 그 밖의 코드는 바로 결과다. 리허설 사이트가 뜨기를 기다리는 곳은 스스로 1초 간격으로 20번 묻는 고리라서 한 번만 읽는다(`-Once`).
+  - git(`Invoke-GitRead`: `Update-Origin`의 `git fetch`, `Get-RemoteTagCommit`의 `git ls-remote`): `$script:GitPassingError`의 문구(이름 찾기 실패, 연결 거절, 빈 답, 끊김, 시간 초과, 5xx,
+    받는 중 끊김). `repository not found`, 인증 실패, 403은 바로 멈춘다. push는 이 규칙 밖이다(`Invoke-Change`).
+  - `ssh-keyscan`(배포 전 확인): 두 `ssh-keyscan`이 모두 키 줄(`<호스트> <종류> AAAA…`)을 하나도 주지 않으면 같은 읽기를 다시 한다. 키 줄이 오면 어떤 키든 그대로 지문 비교로 간다.
+    다시 묻기는 읽기만 되풀이하고, 키를 받아들이는 쪽으로 물러서지 않는다.
+  - DNS(`Resolve-DnsName`, 배포 전 확인): 시간 초과(1460), 서버 실패(9002), 끊김·도달 못 함(10051, 10054, 10060, 10065). 이름 없음(9003)과 기록 없음(9501)은 결과다.
+  - 이웃 스냅숏: 이웃의 5xx는 이웃 상태에 대한 **답**이라 다시 묻지 않는다(`-Keep5xx`). 연결이 안 되거나 시간 초과인 시도만 다시 묻고, 그런 시도는 `NOTE:` 줄로 출력하고
+    `neighbor-before/after.json`의 `retried`에 남긴다. 앞뒤 비교는 `status`와 `feed`(이웃이 준 답)만 한다. 그래서 한 번의 연결 실패로 "이웃이 바뀜"(종료 코드 3)이 잘못 나오지 않고,
+    이웃이 실제로 다르게 답하면(다른 상태 코드, 5xx, 다른 파일 목록, 마지막까지 답 없음) 전처럼 종료 코드 3이다.
 - 서명 과정 경로가 바뀌었는데 병합 커밋의 시험 실행이 없음. `origin`이 `froiibn/chromite`가 아님.
 - 파일이 `SHA256SUMS`와 다름, 남는 파일, Release의 파일과 크기가 다름.
 - 리허설: 호스트에 리허설 흔적이 이미 있음, 키에 암호가 있음, 씨앗 피드가 운영과 다름, `REHEARSAL, NOT CHECKED`, 마지막 줄이 다름, 정리가 덜 됨.
@@ -206,6 +218,11 @@ pwsh -NoProfile -File tools/release/release.ps1 -Stage cleanup -Version <버전>
 - 릴리스 파일 받기의 다시 묻기와 실패한 받기의 파일 지우기(`Invoke-GhDownload`): 가짜 `Invoke-Native`로만 확인했다(502·끊김 뒤 성공, 이름 찾기 실패·"unexpected EOF" 네 번,
   404·"release not found"·요청 한도, 맞지 않는 오류로 중간에 끊김). 2026-11-25의 실제 `fetch`(26.1.8)는 파일이 다 있어 받지 않았다. 실제로 끊긴 받기는 만든 적이 없다.
   HTTP/2의 "stream error"처럼 패턴에 없는 끊김 문구는 바로 멈춘다(받던 파일은 지움).
+- curl, git, `ssh-keyscan`, DNS의 다시 묻기(2026-11-25): 이 PC에서 System32 curl 8.22, Git for Windows 2.37, Windows OpenSSH와 Git의 `ssh-keyscan`을 127.0.0.1의 가짜 서버
+  (503, 404, 닫힘, 끊김, 답 없음, 두 번 실패 뒤 답), 닫힌 포트, 없는 이름, 라우팅되지 않는 주소에 돌려 실제 종료 코드와 문구를 모으고, 하네스 함수와 `Deploy.ps1`의 읽기 블록을 그대로
+  그 가짜에 돌려 확인했다(40건). 실제 운영 서버나 GitHub가 5xx를 낸 적은 없다. git의 받는 중 끊김 문구("RPC failed", "early EOF", "unexpected disconnect while reading sideband packet")와
+  curl 16, 18, 55, 92, DNS 1460·9002·10060·10051·10065는 재현하지 못해 git·curl·Win32의 오류 목록에서 가져왔다. `deploy`(배포 전 확인과 이웃 스냅숏)는 이 변경 뒤 실제로 돌지 않았다.
+  운영 사이트가 통째로 답하지 않으면 `verify`의 읽기 20여 개가 각각 네 번씩 묻는다(시간 초과면 읽기마다 최대 약 4분 반: 60초씩 네 번과 기다림 30초).
 - `tag`의 끊긴 push 다시 하기(이 PC에만 남은 태그): 그런 일이 없었다. 구문 검사로만 확인했다.
 - 변경 이력이 마지막 절이 아닐 때 멈추는 경로(`prepare -Summary`, `record`): 26.1.8의 `record`에서는 통과하는 경로만 돌았다.
 - `merge`가 MERGEABLE이 아닌 PR(충돌, 계산 중)을 기다리거나 멈추는 부분, 검사 실패로 멈추는 부분: 26.1.8의 기록에는 검사가 다 등록되기를 기다린 것만 있다.
@@ -230,3 +247,6 @@ DBeaver에는 없다. 모두 Chromite에서 새로 만들었다(`tools/release/r
   통과시켰다: 알림 문구 바로 뒤의 숫자 하나가 그 버전이어야 함. ⑤ 멈춘 이유가 창을 못 찾음과 OCR이 아무것도 못 읽음을 구별함.
 - 2026-11-25 `fetch`와 `rehearse`의 `gh release download`가 저절로 지나가는 오류에 바로 멈췄다(검토에서 찾음): 다시 묻기를 `Invoke-GhRead` 한 곳으로 옮기고
   `Invoke-GhJson`과 새 `Invoke-GhDownload`가 함께 씀. 실패한 받기가 쓴 파일은 지워, 끊긴 파일을 `--skip-existing`이 다 받은 것으로 보지 않게 함.
+- 2026-11-25 gh 밖의 네트워크 읽기(curl의 `Get-Http`·`Get-HttpHead`, `git fetch`·`git ls-remote`, 배포 전 확인의 `ssh-keyscan`과 DNS)가 저절로 지나가는 실패 한 번에
+  단계를 멈추거나 BAD를 찍었다(검토에서 찾음): 답이 없을 때만 세 번까지 다시 묻는 `Invoke-ReadAgain`을 넣음. 답(404, 다른 크기·해시·키·주소)은 다시 묻지 않음.
+  이웃 스냅숏은 5xx를 답으로 두고, 다시 물은 시도를 비교하지 않는 `retried`에 남김. 리허설 사이트 기다리기는 한 번씩만 읽음.
