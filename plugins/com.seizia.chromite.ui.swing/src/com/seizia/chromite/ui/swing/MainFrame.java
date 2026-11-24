@@ -354,6 +354,9 @@ import java.util.function.Supplier;
  * - 2026-11-23 별도 창을 탭으로 되돌리기: 문서 탭 만들기를 별도 창과 함께 쓰는 static {@link #createDocumentTabs}로, 별도 창의 탭을 끄는 동안 놓을
  *   자리(탭 줄의 선, 탭이 없으면 문서 영역 테두리, 앞에 놓인 창 아래는 아님 {@link #isCoveredAt})와 놓은 자리로 {@link #moveToMainWindow},
  *   별도 창의 탭 메뉴는 {@link DocumentTabMenu} (앱 변경 #178, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-25 Results 숨김 표시({@link #RESULTS_HIDDEN_KEY})를 별도 창의 쿼리 창에서도 지움: Window &gt; Reset Window Layout은 모든 쿼리 창
+ *   ({@link #getEditors}), 별도 창에서의 실행·계획·터미널은 {@link #showResultsCard}. 전에는 탭만 지워 별도 창을 탭으로 되돌리면 Results가
+ *   숨은 채였음 (앱 변경 #186, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -2612,11 +2615,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * The Results card is the selected tab's; a separate query window shows its results below its editor at all times.
+     * The Results card is the selected tab's; a separate query window shows its results below its editor at all times, so
+     * only its hidden mark goes, which would hide them once the window comes back as a tab.
      */
     private void showResultsCard(@NotNull SqlEditorPanel editor) {
         if (editor == getTabEditor()) {
             resultsWindow.setShown(true);
+        } else if (getQueryFrame(editor) != null) {
+            editor.putClientProperty(RESULTS_HIDDEN_KEY, null);
         }
     }
 
@@ -2998,14 +3004,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library and
      * Chromite Agent shown in the right column, Properties hidden) and the results with their default height, shown again
-     * in every query window (still hidden without one).
+     * in every query window (still hidden without one). A separate window shows its results at all times, but loses the
+     * mark too: it would hide them once the window comes back as a tab.
      */
     private void resetWindowLayout() {
         toolWindowDocking.resetLayout();
-        for (int i = 0; i < documentTabs.getTabCount(); i++) {
-            if (documentTabs.getComponentAt(i) instanceof SqlEditorPanel editor) {
-                editor.putClientProperty(RESULTS_HIDDEN_KEY, null);
-            }
+        for (SqlEditorPanel editor : getEditors()) {
+            editor.putClientProperty(RESULTS_HIDDEN_KEY, null);
         }
         resultsSplit.setBeside(false, false);
         resultsSplit.reset();
