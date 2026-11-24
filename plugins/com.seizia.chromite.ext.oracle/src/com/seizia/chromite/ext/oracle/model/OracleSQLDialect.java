@@ -96,6 +96,9 @@ import java.util.Set;
  * - 2026-11-25 Chromite: CREATE TYPE BODY opens a block as CREATE PACKAGE BODY does (BEGIN_BLOCK): the splitter cut a type
  *   body at the END of its first member and sent the rest as statements of their own, ORA-00900
  *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
+ * - 2026-11-25 Chromite: a subprogram declared in a standalone routine's declarations opens a header of its own
+ *   (NESTED_BLOCK_HEADER at its PROCEDURE / FUNCTION word): its BEGIN closed the routine's header and its END ended the
+ *   statement (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -845,12 +848,25 @@ public class OracleSQLDialect extends JDBCSQLDialect
                 ),
                 tt.alternative("AS", "IS")
             ),
+            // A subprogram declared in that declaration section (PROCEDURE / FUNCTION as the first word of a declaration, after
+            // the AS / IS or after the ";" of the previous one) has its own heading, AS / IS, declarations and BEGIN ... END: the
+            // script parser opens a header for it inside the routine's, so that its BEGIN does not close the routine's header
+            new TokenPredicatesCondition(
+                SQLParserActionKind.NESTED_BLOCK_HEADER,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                    tt.alternative("FUNCTION", "PROCEDURE")
+                ),
+                tt.sequence(tt.alternative(";", "AS", "IS"), tt.alternative("PROCEDURE", "FUNCTION"))
+            ),
             // A call specification is the whole body of its routine: no BEGIN follows to end the header that the AS / IS above
             // opened, so its first words end it. Java and C (LANGUAGE JAVA|C, the older EXTERNAL NAME|LIBRARY) and MLE
             // (MLE MODULE|LANGUAGE, 23ai). Two words, not LANGUAGE alone, so that a declaration of a variable named LANGUAGE,
             // EXTERNAL or MLE still opens the declaration section. AGGREGATE / PIPELINED USING has no AS / IS and opens nothing.
-            // The script parser takes it only right after the AS / IS that opened the header (not after a nested subprogram)
-            // and then ends the statement at the next ";" (SQLScriptParser)
+            // The script parser takes it only right after the AS / IS that opened the header and then ends the statement at the
+            // next ";" (SQLScriptParser); after a nested subprogram's AS / IS it ends only that subprogram's header
             new TokenPredicatesCondition(
                 SQLParserActionKind.END_BLOCK,
                 tt.sequence(

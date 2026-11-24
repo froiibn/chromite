@@ -369,6 +369,26 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   형식 본문에는 초기화 부분(`BEGIN`)이 없어 패키지 본문 규칙의 한계(아래 "남은 것")가 생기지 않는다. 형식 명세(`CREATE TYPE … AS OBJECT`)는
   `BODY`가 없어 닿지 않는다. Altibase 계열에는 형식 본문이 없다.
 
+**3. 선언부에 안쪽 서브프로그램 본문이 있는 독립 루틴**
+- 재현: `CREATE PROCEDURE CHR_OSSM_NP IS v NUMBER := 0; PROCEDURE inner_p IS BEGIN … END inner_p; BEGIN inner_p; END;`가 `END inner_p;`에서 나뉘었다.
+  서버는 첫 조각을 PLS-00103(`begin function pragma procedure` 기대)으로 INVALID로 만들고, 나머지 `BEGIN inner_p; END;`는 익명 블록으로 가서
+  PLS-00201이었다.
+- 근본 원인: 방언의 `BLOCK_HEADER` 조건이 루틴의 `AS|IS`에서 머리 블록을 열고, `SQLScriptParser`의 `T_BLOCK_BEGIN` 갈래는 처음 오는 `BEGIN`에서
+  그 머리를 닫는다. 파서의 블록 모형에는 선언부 안의 서브프로그램이 없어 안쪽 `BEGIN`이 바깥 머리를 닫고 안쪽 `END`가 문장을 끝냈다. 안쪽 `IS`는
+  이미 열린 머리 안이라 무시되었다. 그 `IS`만으로는 고칠 수 없다: 선언부의 `CURSOR c IS`, `TYPE t IS TABLE OF`, `SUBTYPE s IS`, `v BOOLEAN := x IS NULL`
+  같은 `AS|IS`와 가릴 수 없다. 가르는 것은 선언을 시작하는 `PROCEDURE`/`FUNCTION` 낱말뿐이다.
+- 고침: 새 동작 종류 `SQLParserActionKind.NESTED_BLOCK_HEADER`. `OracleSQLDialect`의 조건: `CREATE … FUNCTION|PROCEDURE` 문장에서 `AS|IS|;` 바로 뒤의
+  `PROCEDURE|FUNCTION`. `SQLScriptParser`는 조건이 연 머리 안에서 이것이 맞으면 그 안에 머리를 하나 더 연다(서브프로그램 머리, 아직 `AS|IS` 전).
+  - 그 서브프로그램의 `AS|IS`(`BLOCK_HEADER`)가 머리를 선언부로 바꾼다. 그 `BEGIN`이 이 머리만 닫고, 그 `END`는 그 블록만 닫아 바깥 선언부로 돌아간다.
+    두 단계 이상 겹쳐도 같다.
+  - `AS|IS` 전에 오는 `;`(앞선 선언 `PROCEDURE fwd (x NUMBER);`)는 서브프로그램 머리를 닫는다. 빈 줄(스마트 구분자 모드)은 닫지 않는다.
+  - 서브프로그램의 호출 명세(`PROCEDURE c IS LANGUAGE C …;`, 지난 고침의 `END_BLOCK`)는 그 서브프로그램 머리만 닫고 루틴을 끝내지 않는다.
+  - 패키지·형식 본문, 익명 블록, 트리거는 이 조건의 머리(`CREATE … FUNCTION|PROCEDURE`)가 아니라 바뀌지 않는다(패키지·형식 본문은 `BEGIN`/`END`의
+    짝으로 이미 맞게 나뉜다).
+- 바뀐 공유 파서 길에 닿는 방언: `NESTED_BLOCK_HEADER` 조건을 가진 방언만 그 머리를 연다. Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음)뿐이다.
+  `isSubprogramHeading`·`isNestedHeader`는 그 머리에서만 참이므로 다른 방언의 구분자·`END_BLOCK` 처리는 그대로다. Altibase 7.3은 안쪽 서브프로그램을
+  받지 않아(`CREATE PROCEDURE … AS PROCEDURE inner_p AS …`가 서버에서 구문 오류 200705, 확인) Altibase 방언에는 조건을 더하지 않았다.
+
 **남은 것(보고만):**
 - 초기화 부분이 있는 패키지 본문(`CREATE PACKAGE BODY p AS … BEGIN … END p;`)은 그 `BEGIN … END`가 패키지 블록 안에서 짝을 이뤄 패키지 블록이 닫히지
   않으므로, 뒤 문장이 모두 그 문장에 합쳐진다(고치기 전 빌드에서 확인, 이번 고침과 무관).
@@ -459,3 +479,6 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   OceanBase(Oracle 모드)의 `CREATE FUNCTION` 나누기와 `;` 남기기
 - 2026-11-25 "Oracle 스크립트 나누기 2"의 2: `CREATE TYPE BODY`의 블록 조건(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 형식 본문 나누기
+- 2026-11-25 "Oracle 스크립트 나누기 2"의 3: 독립 루틴 선언부의 안쪽 서브프로그램(`NESTED_BLOCK_HEADER`, 파서의 겹친 머리)(`chromite/oracle-script-split-more`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 `CREATE PROCEDURE|FUNCTION` 나누기(쿼리 창 F5·Ctrl+Enter,
+  스크립트 실행, Agent 실행 도구)

@@ -72,6 +72,11 @@ import java.util.*;
  *   가서 PLS-00103으로 INVALID였다. 이 길에 닿는 방언: 그런 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)과 BigQuery. BigQuery의
  *   조건은 {@code IF}가 연 블록을 닫으므로 블록이 늘 열려 있고, 열려 있지 않더라도 건너뛸 끝 조건이 없고 {@code isDelimiterAfterBlock}이
  *   거짓이라 결과가 같다 (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
+ * - 2026-11-25 Chromite: 조건이 연 머리 블록 안에서 {@link SQLParserActionKind#NESTED_BLOCK_HEADER}가 맞으면(선언부의 안쪽 서브프로그램) 그
+ *   안에 머리를 하나 더 연다. 그 서브프로그램의 {@code AS}/{@code IS}가 선언부로 바꾸고, 그 {@code BEGIN}이나 호출 명세가 닫고,
+ *   {@code AS}/{@code IS} 전의 {@code ;}는 앞선 선언으로 닫는다. 전에는 안쪽 {@code BEGIN}이 바깥 머리를 닫아 안쪽 {@code END;}에서 문장이
+ *   끝났다. 이 길에 닿는 방언: 그 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)뿐이다
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
  */
 public class SQLScriptParser {
 
@@ -311,6 +316,11 @@ public class SQLScriptParser {
                     }
                 } else if (isDelimiter && curBlock != null) {
                     // Delimiter in some brackets or inside block. Ignore it.
+                    if (curBlock.isSubprogramHeading && tokenType == SQLTokenType.T_DELIMITER) {
+                        // A nested subprogram's heading ended before any AS / IS: a forward declaration, no body follows.
+                        // Not a blank line (smart delimiter mode): the heading may go on after one
+                        curBlock = curBlock.parent;
+                    }
                     continue;
                 } else if (tokenType == SQLTokenType.T_SET_DELIMITER || tokenType == SQLTokenType.T_CONTROL) {
                     isDelimiter = true;
@@ -382,11 +392,26 @@ public class SQLScriptParser {
                         if (!curBlock.isPredicateHeaderBlock) {
                             curBlock = curBlock.parent;
                         } else if (capturedTokens - curBlock.headerTokenIndex < predicateEvaluator.getLastMatchedPredicate().getMaxSuffixLength()) {
-                            // Only words that follow the AS / IS which opened the header end it: the same words after a nested
-                            // subprogram in the declarations ("AS PROCEDURE c IS LANGUAGE C …;") are not the routine's own
-                            bodilessRoutine = true;
+                            // Only words that follow the AS / IS which opened the header end it. A nested subprogram's call
+                            // specification ("AS PROCEDURE c IS LANGUAGE C …;") ends that subprogram's header, not the routine
+                            if (!curBlock.isNestedHeader) {
+                                bodilessRoutine = true;
+                            }
                             curBlock = curBlock.parent;
                         }
+                    }
+
+                    if (actionKind == SQLParserActionKind.NESTED_BLOCK_HEADER && curBlock != null && curBlock.isPredicateHeaderBlock
+                        && !curBlock.isSubprogramHeading) {
+                        // A subprogram declared in the routine's declarations gets a header of its own inside the routine's: its
+                        // BEGIN closes that one, so its END does not end the routine
+                        curBlock = new ScriptBlockInfo(curBlock, true, true);
+                        curBlock.isNestedHeader = true;
+                        curBlock.isSubprogramHeading = true;
+                    } else if (actionKind == SQLParserActionKind.BLOCK_HEADER && curBlock != null && curBlock.isSubprogramHeading) {
+                        // The nested subprogram's AS / IS: its declarations follow, or a call specification that ends it
+                        curBlock.isSubprogramHeading = false;
+                        curBlock.headerTokenIndex = capturedTokens;
                     }
 
                     if (curBlock != null && !token.isEOF()) {
@@ -395,8 +420,8 @@ public class SQLScriptParser {
                         continue;
                     }
 
-                    // The suffix skip rules keep the declarations after a nested subprogram ("v NUMBER;", "PROCEDURE p(x NUMBER);")
-                    // in the routine; after a call specification they would skip its own end ("PARAMETERS (n);")
+                    // The suffix skip rules keep a routine's declarations ("v NUMBER;", "PROCEDURE p(x NUMBER);") in it where no
+                    // header block holds them; after a call specification they would skip its own end ("PARAMETERS (n);")
                     if (actionKind == SQLParserActionKind.SKIP_SUFFIX_TERM && !bodilessRoutine) {
                         continue;
                     }
@@ -1173,6 +1198,10 @@ public class SQLScriptParser {
         boolean isPredicateHeaderBlock;
         // Of a predicate header block: the statement's captured token count at the token that opened it
         int headerTokenIndex;
+        // Of a nested subprogram's header (NESTED_BLOCK_HEADER): it is inside the routine's declarations, and it is still the
+        // subprogram's heading, before its AS / IS
+        boolean isNestedHeader;
+        boolean isSubprogramHeading;
         @Nullable
         String beginToken;
 
