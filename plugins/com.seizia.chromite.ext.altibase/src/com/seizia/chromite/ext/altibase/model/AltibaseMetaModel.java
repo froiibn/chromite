@@ -54,10 +54,14 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Altibase DataSource
@@ -86,6 +90,10 @@ import java.util.Set;
  * - 2026-11-25 카탈로그 원본(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거) 앞에 경고 줄을 붙이지 않음: 서버가 둔 원본 그대로이고,
  *   ShardSphere에는 패키지가 있다(GET_DDL이 그 종류를 거절). {@link #withoutGeneratedHeader}가 스크립트의 객체 이름 줄("-- 소유자.뷰 소스")도
  *   알아봄: DDL 보기 글을 실행하면 그 줄이 뷰 원본에 남아, 다시 열 때마다 한 벌씩 늘었다(docs/chromite/altibase.md "뷰 DDL의 경고 줄")
+ * - 2026-11-25 인덱스 DDL: GET_DDL이 인덱스를 거절하는 서버(ShardSphere)에서 카탈로그로 문장을 만듦({@link #getIndexDDLFromCatalog}).
+ *   테이블 DDL에 제약조건의 인덱스와 서버의 테이블 글에 이미 있는 인덱스를 다시 붙이지 않음(Altibase 7.3에서도 글을 실행하면 같은 이름의
+ *   인덱스가 한 번 더 만들어져 실패했다), 테이블 글이 이미 ';'로 끝나면 더 붙이지 않음, GET_DDL의 거절(990001)이 아닌 SQLException을
+ *   디버그 로그에 남김(docs/chromite/altibase.md "인덱스 DDL")
  */
 public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlanSupport, DBCQueryTransformProvider {
 
@@ -97,6 +105,16 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
 
     // The dependent object type of DBMS_METADATA.GET_DEPENDENT_DDL for the comments of a table
     private static final String DEP_OBJECT_COMMENT = "COMMENT";
+
+    // SYS_INDICES_.INDEX_TYPE and SYS_PART_INDICES_.PARTITION_TYPE values seen on Altibase 7.3 and ShardSphere 5.1
+    // (CREATE INDEX with INDEXTYPE IS BTREE / RTREE, LOCAL): the only kinds the catalog index statement is built for
+    private static final int INDEX_TYPE_BTREE = 1;
+    private static final int INDEX_TYPE_RTREE = 6;
+    private static final int INDEX_PARTITION_LOCAL = 0;
+
+    // Before an index statement that is commented out because the catalog does not describe the index fully
+    private static final String INDEX_NOT_DESCRIBED =
+        "-- [WARNING] The catalog does not describe this index fully (%s), the statement below may not be correct.";
 
     // The warning line builds before 2026-11-25 put before every catalog source. The server keeps it in a source that was
     // run from such a DDL text, so it is still recognized there (withoutGeneratedHeader)
@@ -282,7 +300,8 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
     }
 
     /**
-     * Get a specific Index DDL
+     * Get a specific Index DDL: the server's (DBMS_METADATA.GET_DDL), else the statement built from the catalog
+     * ({@link #getIndexDDLFromCatalog}; ShardSphere's GET_DDL refuses indexes) after the warning that the model built it.
      */
     public String getIndexDDL(DBRProgressMonitor monitor, AltibaseTableIndex sourceObject, 
             Map<String, Object> options) throws DBException {
@@ -291,6 +310,14 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
         String ddlFromMetadata;
         
         ddlFromMetadata = getDDLFromDbmsMetadata(monitor, sourceObject, schemaName, AltibaseConstants.DBOBJ_INDEX);
+        if (!CommonUtils.isEmpty(ddlFromMetadata)) {
+            ddlFromMetadata = terminated(ddlFromMetadata);
+        } else {
+            String built = getIndexDDLFromCatalog(monitor, sourceObject, schemaName);
+            if (built != null) {
+                ddlFromMetadata = AltibaseConstants.NO_DBMS_METADATA + built;
+            }
+        }
         
         if (CommonUtils.isEmpty(ddlFromMetadata)) {
             ddl.append(String.format(AltibaseConstants.NO_DDL_WITHOUT_DBMS_METADATA, AltibaseConstants.DBOBJ_INDEX));
@@ -300,7 +327,7 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
                 .append(AltibaseConstants.NEW_LINE).append("/*").append(AltibaseConstants.NEW_LINE);
             }
             
-            ddl.append(ddlFromMetadata).append(";");
+            ddl.append(ddlFromMetadata);
             
             if (sourceObject.isSystemGenerated()) {
                 ddl.append(AltibaseConstants.NEW_LINE).append("*/");
@@ -322,15 +349,20 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
         if (CommonUtils.isEmpty(ddlFromMetadata)) {
             ddl.append(AltibaseConstants.NO_DBMS_METADATA).append(super.getTableDDL(monitor, sourceObject, options));
         } else {
-            ddl.append(ddlFromMetadata).append(";").append(AltibaseConstants.NEW_LINE);
+            // ShardSphere's text ends with ';' already, Altibase 7.3's does not
+            ddl.append(terminated(ddlFromMetadata)).append(AltibaseConstants.NEW_LINE);
 
             // Comment
             addTableDependentDdl(ddl, DEP_OBJECT_COMMENT, monitor, sourceObject, schemaName);
 
-            // Dependent index
+            // Dependent index, but not the index of a constraint (the table text has the constraint, which makes its
+            // index) and not one the server's table text creates already (ShardSphere's text has every index):
+            // either would be a second object of the same name when the text is run
+            Set<String> constraintIndexes = getConstraintIndexNames(monitor, sourceObject, schemaName);
             for (GenericTableIndex index : sourceObject.getIndexes(monitor)) {
                 AltibaseTableIndex altiIndex = (AltibaseTableIndex) index;
-                if (!altiIndex.isSystemGenerated()) {
+                if (!altiIndex.isSystemGenerated() && !constraintIndexes.contains(altiIndex.getName())
+                        && !createsIndex(ddlFromMetadata, altiIndex.getName())) {
                     ddl.append(AltibaseConstants.NEW_LINE)
                         .append(altiIndex.getObjectDefinitionText(monitor, options))
                         .append(AltibaseConstants.NEW_LINE);
@@ -1277,8 +1309,13 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
             }
         } catch (SQLException se) {
             // Invalid data length.
-            if (se.getSQLState().equals(AltibaseConstants.SQL_STATE_TOO_LONG)) {
+            if (AltibaseConstants.SQL_STATE_TOO_LONG.equals(se.getSQLState())) {
                 ddl = "-- DDL is too long to be fetched.";
+            } else if (se.getErrorCode() != AltibaseConstants.EC_DBMS_METADATA_REFUSED) {
+                // Not the known refusal of an object type: a real failure must not be silent. Code and state only, a
+                // driver's message may name the server
+                log.debug("DBMS_METADATA.GET_DDL(" + objectType + ") failed: error " + se.getErrorCode()
+                    + ", SQLState " + se.getSQLState());
             }
         } catch (Exception e) {
             log.warn("Can't read DDL from DBMS_METADATA", e);
@@ -1397,6 +1434,193 @@ public class AltibaseMetaModel extends GenericMetaModel implements SQLActualPlan
         return "\"" + name.replace("\"", "\"\"") + "\"";
     }
     
+    /**
+     * The text with one ';' at its end: a server's DDL text may end with one (ShardSphere's table text) or not.
+     */
+    @NotNull
+    private static String terminated(@NotNull String ddl) {
+        String text = ddl.stripTrailing();
+        return text.endsWith(";") ? text : text + ";";
+    }
+
+    /**
+     * Whether the server's DDL text has a CREATE INDEX of this index. Both servers quote the index name there.
+     */
+    private static boolean createsIndex(@NotNull String ddl, @NotNull String indexName) {
+        return Pattern.compile("(?i)\\bCREATE\\s+(?:UNIQUE\\s+|LOCALUNIQUE\\s+)?INDEX\\s+(?:\"(?:[^\"]|\"\")*\"\\s*\\.\\s*)?"
+            + Pattern.quote(quoteCommentTarget(indexName))).matcher(ddl).find();
+    }
+
+    /**
+     * The names of the indexes that the table's constraints (primary key, unique) own. Empty if the catalog cannot be
+     * read: the table text then lists every index as before.
+     */
+    @NotNull
+    private Set<String> getConstraintIndexNames(@NotNull DBRProgressMonitor monitor, @NotNull GenericTableBase table,
+            @NotNull String schemaName) {
+        Set<String> names = new HashSet<>();
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, table, "Read constraint indexes")) {
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT I.INDEX_NAME FROM SYSTEM_.SYS_CONSTRAINTS_ C"
+                    + " JOIN SYSTEM_.SYS_INDICES_ I ON I.INDEX_ID = C.INDEX_ID"
+                    + " JOIN SYSTEM_.SYS_TABLES_ T ON T.TABLE_ID = C.TABLE_ID"
+                    + " JOIN SYSTEM_.SYS_USERS_ U ON U.USER_ID = T.USER_ID"
+                    + " WHERE U.USER_NAME = ? AND T.TABLE_NAME = ?")) {
+                dbStat.setString(1, schemaName);
+                dbStat.setString(2, table.getName());
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    while (dbResult.next()) {
+                        names.add(dbResult.getString(1));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Can't read the constraint indexes of a table: " + e.getClass().getSimpleName());
+        }
+        return names;
+    }
+
+    /**
+     * CREATE INDEX statement of an index built from the catalog, for a server whose DBMS_METADATA.GET_DDL refuses
+     * indexes (ShardSphere 5.1, error 990001), terminated by ';'. The form is the one of Altibase 7.3's GET_DDL text:
+     * UNIQUE or LOCALUNIQUE, key columns in order with DESC, a function-based key as its expression (the hidden column's
+     * DEFAULT_VAL), LOCAL with the index partitions when one has a user's name (only LOCAL when the server named them),
+     * the index type, SET PERSISTENT, DIRECTKEY, and the tablespace of an index that is not partitioned. What the catalog
+     * does not keep (LOGGING, PARALLEL, STORAGE, DIRECTKEY MAXSIZE) is not in the statement, as in the server's text.
+     * An index the catalog cannot describe (an unknown index or partition type, a key without its expression) gets a
+     * warning line and the statement commented out, never a wrong statement.
+     * Null if the catalog has no such index or cannot be read.
+     */
+    @Nullable
+    private String getIndexDDLFromCatalog(@NotNull DBRProgressMonitor monitor, @NotNull AltibaseTableIndex index,
+            @NotNull String schemaName) {
+        String tableName = index.getTable().getName();
+        List<String> unknown = new ArrayList<>();
+        StringBuilder ddl = new StringBuilder();
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, index, "Read index definition")) {
+            long indexId;
+            int indexType;
+            boolean localIndex;
+            String tablespace;
+            String head = "CREATE INDEX ";
+            List<String> options = new ArrayList<>();
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT I.INDEX_ID, I.INDEX_TYPE, I.IS_UNIQUE, I.IS_PERS, I.IS_DIRECTKEY, I.IS_PARTITIONED, TS.NAME,"
+                    + " PI.PARTITION_TYPE, PI.IS_LOCAL_UNIQUE"
+                    + " FROM SYSTEM_.SYS_INDICES_ I"
+                    + " JOIN SYSTEM_.SYS_TABLES_ T ON T.TABLE_ID = I.TABLE_ID"
+                    + " JOIN SYSTEM_.SYS_USERS_ U ON U.USER_ID = T.USER_ID"
+                    + " LEFT OUTER JOIN V$TABLESPACES TS ON TS.ID = I.TBS_ID"
+                    + " LEFT OUTER JOIN SYSTEM_.SYS_PART_INDICES_ PI ON PI.INDEX_ID = I.INDEX_ID"
+                    + " WHERE U.USER_NAME = ? AND T.TABLE_NAME = ? AND I.INDEX_NAME = ?")) {
+                dbStat.setString(1, schemaName);
+                dbStat.setString(2, tableName);
+                dbStat.setString(3, index.getName());
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    if (!dbResult.next()) {
+                        return null;
+                    }
+                    indexId = dbResult.getLong(1);
+                    indexType = dbResult.getInt(2);
+                    if ("T".equals(dbResult.getString(3))) {
+                        head = "CREATE UNIQUE INDEX ";
+                    } else if ("T".equals(dbResult.getString(9))) {
+                        head = "CREATE LOCALUNIQUE INDEX ";
+                    }
+                    localIndex = "T".equals(dbResult.getString(6));
+                    tablespace = dbResult.getString(7);
+                    if (localIndex && dbResult.getInt(8) != INDEX_PARTITION_LOCAL) {
+                        unknown.add("partition type " + dbResult.getInt(8));
+                    }
+                    if (indexType == INDEX_TYPE_BTREE) {
+                        options.add("INDEXTYPE IS BTREE");
+                    } else if (indexType == INDEX_TYPE_RTREE) {
+                        options.add("INDEXTYPE IS RTREE");
+                    } else {
+                        unknown.add("index type " + indexType);
+                    }
+                    if ("T".equals(dbResult.getString(4))) {
+                        options.add("SET PERSISTENT=ON");
+                    }
+                    if ("T".equals(dbResult.getString(5))) {
+                        options.add("DIRECTKEY");
+                    }
+                }
+            }
+
+            List<String> keys = new ArrayList<>();
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                    "SELECT C.COLUMN_NAME, C.IS_HIDDEN, C.DEFAULT_VAL, IC.SORT_ORDER"
+                    + " FROM SYSTEM_.SYS_INDEX_COLUMNS_ IC JOIN SYSTEM_.SYS_COLUMNS_ C ON C.COLUMN_ID = IC.COLUMN_ID"
+                    + " WHERE IC.INDEX_ID = ? ORDER BY IC.INDEX_COL_ORDER")) {
+                dbStat.setLong(1, indexId);
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    while (dbResult.next()) {
+                        String column = dbResult.getString(1);
+                        String key = quoteCommentTarget(column);
+                        if ("T".equals(dbResult.getString(2))) {
+                            key = dbResult.getString(3);
+                            if (CommonUtils.isEmptyTrimmed(key)) {
+                                unknown.add("expression of " + column);
+                                key = quoteCommentTarget(column);
+                            }
+                        }
+                        keys.add("D".equals(dbResult.getString(4)) ? key + " DESC" : key);
+                    }
+                }
+            }
+            if (keys.isEmpty()) {
+                unknown.add("key columns");
+            }
+
+            ddl.append(head).append(quoteCommentTarget(schemaName)).append('.').append(quoteCommentTarget(index.getName()))
+                .append(" ON ").append(quoteCommentTarget(schemaName)).append('.').append(quoteCommentTarget(tableName))
+                .append(" (").append(String.join(", ", keys)).append(')');
+            if (localIndex) {
+                ddl.append(" LOCAL");
+                List<String> partitions = new ArrayList<>();
+                boolean named = false;
+                try (JDBCPreparedStatement dbStat = session.prepareStatement(
+                        "SELECT IP.INDEX_PARTITION_NAME, TP.PARTITION_NAME, TS.NAME"
+                        + " FROM SYSTEM_.SYS_INDEX_PARTITIONS_ IP"
+                        + " JOIN SYSTEM_.SYS_TABLE_PARTITIONS_ TP ON TP.PARTITION_ID = IP.TABLE_PARTITION_ID"
+                        + " LEFT OUTER JOIN V$TABLESPACES TS ON TS.ID = IP.TBS_ID"
+                        + " WHERE IP.INDEX_ID = ? ORDER BY TP.PARTITION_ID")) {
+                    dbStat.setLong(1, indexId);
+                    try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                        while (dbResult.next()) {
+                            String partition = dbResult.getString(1);
+                            named |= !partition.startsWith(AltibaseConstants.SYSTEM_GENERATED_PREFIX);
+                            String partitionTablespace = dbResult.getString(3);
+                            partitions.add(" PARTITION " + quoteCommentTarget(partition) + " ON " + quoteCommentTarget(dbResult.getString(2))
+                                + (partitionTablespace == null ? "" : " TABLESPACE " + quoteCommentTarget(partitionTablespace)));
+                        }
+                    }
+                }
+                if (named) {
+                    ddl.append(" (").append(AltibaseConstants.NEW_LINE)
+                        .append(String.join("," + AltibaseConstants.NEW_LINE, partitions)).append(')');
+                }
+            } else if (tablespace != null) {
+                options.add("TABLESPACE " + quoteCommentTarget(tablespace));
+            }
+            for (String option : options) {
+                ddl.append(AltibaseConstants.NEW_LINE).append(option);
+            }
+            ddl.append(';');
+        } catch (Exception e) {
+            log.debug("Can't read the index definition from the catalog: " + e.getClass().getSimpleName());
+            return null;
+        }
+
+        if (unknown.isEmpty()) {
+            return ddl.toString();
+        }
+        // Commented out line by line: a block comment would end at a "*/" in an expression
+        return String.format(INDEX_NOT_DESCRIBED, String.join(", ", unknown)) + AltibaseConstants.NEW_LINE
+            + "-- " + ddl.toString().replaceAll("\\R", Matcher.quoteReplacement(AltibaseConstants.NEW_LINE + "-- "));
+    }
+
     /**
      * Set dbms_metadata.set_transform_param to change its output format 
      * such as put at the end of returned query with SQL Terminator
