@@ -282,8 +282,8 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   끝나 두 번째 붙여 실행에서 문법 오류가 난다(창은 오류를 보임). 앱 변경 182에서 고쳤다: 쿼리 창이 `END;`의 `;`를 남기고, 모델의 패키지 DDL 글이 머리를 `;`로
   끝내며, 모델이 붙이는 주석 줄을 한 번만 보인다(같은 절).
 - MariaDB·MySQL: DDL 보기 글(`CREATE DEFINER=… PROCEDURE … BEGIN … END;`)을 그대로 붙여 F5를 누르면 본문의 `;`에서 나뉘어 1064 오류(창은 오류를 보임).
-  DDL 보기 글에는 `DELIMITER`도 `DROP`도 없다. Modify 스크립트는 둘 다 있어 그대로 실행된다.
-- SQL Server: DDL 보기·CREATE 대상 글에 `USE <db>`가 없어 새 쿼리 창(연결 기본 DB `master`)에서 실행된다.
+  DDL 보기 글에는 `DELIMITER`도 `DROP`도 없다. Modify 스크립트는 둘 다 있어 그대로 실행된다. 2026-11-25에 고쳤다(아래 "저장 루틴 DDL 글을 그대로 실행").
+- SQL Server: DDL 보기·CREATE 대상 글에 `USE <db>`가 없어 새 쿼리 창(연결 기본 DB `master`)에서 실행된다. 2026-11-25에 고쳤다(같은 절).
 
 - 마우스로 마지막 `;`를 빼고 고르면 Oracle이 PLS-00103으로 INVALID를 만들고 창은 "쿼리가 완료되었지만 오류가 있습니다." + 컴파일 오류 줄을 보인다(성공처럼 보이지 않음).
 - 1522(KO16MSWIN949)는 처음 확인 중(2026-11-24 05:31 UTC) 컨테이너가 메모리 한도(3 GB cgroup)에 닿아 커널이 Oracle 프로세스(`ora_scmn_free`)를
@@ -342,6 +342,66 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - `CREATE TYPE BODY … AS MEMBER FUNCTION … IS BEGIN … END; END;`가 첫 `END;`에서 나뉜다(패키지 본문과 달리 형식 본문의 블록 조건이 없음).
 - 선언부에 안쪽 서브프로그램 본문(`PROCEDURE inner_p IS BEGIN … END;`)이 있는 독립 루틴은 그 `END;`에서 나뉜다(안쪽 `BEGIN`이 바깥 머리를 닫음).
 - 23ai `CREATE PROCEDURE IF NOT EXISTS …`는 `IF` 조건이 블록을 열어 다음 문장과 합쳐진다.
+
+### 저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)
+
+**보고(앱 변경 181 후속, 2026-11-25):** DDL 보기 글을 복사해 다른 쿼리 창에 붙이고 고쳐 F5로 실행하는 사용(앱 변경 181)에서 위 절의 두 항목.
+
+**고치기 전 확인(26.1.8 = `origin/command` bdb0ab42a6와 같은 앱 코드, 시험 DB `chr_ddl_text_runs_as_pasted`):**
+- MariaDB 11·MySQL 8.4: 프로시저·함수의 DDL 보기 글이 본문의 `;`마다 나뉘어(프로시저 하나가 24문장) 1064. 트리거·이벤트는 4·3문장으로 나뉘고, 그 전에
+  이름에 DB가 없어 DB를 고르지 않은 새 창에서 1046(No database selected). 본문 없는 프로시저(`… SELECT 'single;v1'`)와 뷰는 됐다.
+- SQL Server 2022: 새 쿼리 창은 연결 기본 DB(`master`)에 있다. 붙여 실행한 프로시저·함수는 **`master`에 만들어졌다**(카탈로그로 확인). 뷰(`ALTER VIEW`)·
+  트리거는 표가 `master`에 없어 208·8197. 표의 DDL은 세 부분 이름이라 객체의 DB를 가리킨다. CREATE 대상 창도 기본 DB(`master`)에 열리고 글에 `USE`가 없었다.
+  ALTER 대상·Modify는 이미 `USE <db>` / `GO`로 시작했다(보고와 다름).
+- 쿼리 창은 스크립트의 `USE`와 `GO`를 처리하고, 실행 뒤 세션의 DB를 다시 읽어 상태 줄과 DB 고르기에 보인다(`SqlEditorPanel.readSessionDefaults`).
+
+**근본 원인:**
+- MySQL 방언에는 블록이 없다(`MySQLDialect.getBlockBoundStrings` = null). 그래서 쿼리 창과 모든 스크립트 나누기(`SQLScriptParser`)가 `BEGIN … END` 본문 안의 `;`에서
+  문장을 나눴다. Modify는 본문을 `DELIMITER $$` … `DELIMITER ;` 사이에 두어 피해 갔다(`SourceScripts.renderScript`). 블록 낱말로 `BEGIN`/`END`를 더할 수는 없다:
+  MySQL의 `BEGIN;`·`BEGIN WORK;`는 트랜잭션 시작이라 뒤 문장을 모두 삼키고, `IF(…)`·`REPEAT(…)`는 함수다.
+- SQL Server 루틴·뷰·트리거의 글은 `sys.sql_modules`의 원문이라 DB 이름이 없고 넣을 수도 없다(`CREATE PROCEDURE`는 스키마까지만). 그 글을 내주는 DDL 보기·
+  CREATE 대상은 Modify와 달리 `USE` 배치를 붙이지 않았다(`ObjectScripts.generateCreate`).
+- 같은 원인(글이 DB를 말하지 않음)이 MySQL·MariaDB의 트리거(`SHOW CREATE TRIGGER`의 원래 문장)와 이벤트(모델이 `CREATE EVENT 이름`으로 만듦)에도 있었다.
+  프로시저·함수·뷰·표의 글은 이미 DB 이름을 붙였다(`MySQLProcedure.normalizeCreateStatement`).
+
+**고친 것:**
+
+| 위치 | 바꾼 것 |
+|---|---|
+| `MySQLDialect.makeDialectSkipTokenPredicatesImpl` (새) | 저장 프로그램 머리(`CREATE [OR REPLACE] [DEFINER = 사용자] [AGGREGATE] PROCEDURE\|FUNCTION\|TRIGGER\|EVENT`, `ALTER [DEFINER = 사용자] EVENT`)로 시작한 문장에서만: `BEGIN`·`CASE`가 블록을 열고 `END`가 닫는다. `END IF\|LOOP\|WHILE\|REPEAT\|FOR`는 `END`가 닫은 것을 다음 낱말이 다시 연다(그 낱말들은 함수·절로도 쓰여 여는 낱말로 둘 수 없음). Oracle·Altibase 방언과 같은 건너뛸 토큰 조건이다 |
+| `MySQLEvent.getObjectDefinitionText` | 이벤트 이름에 DB 이름 |
+| `MySQLTrigger.getObjectDefinitionText` | 트리거 이름에 DB 이름이 없으면 붙임. DB를 붙인 트리거의 `ON 표`는 서버가 그 DB에서 찾는다(MySQL 8.4, 현재 DB 없는 세션에서 확인) |
+| `SourceScripts.inObjectDatabase` (새), `ObjectScripts.generateCreate`·`generate` | SQL Server의 DDL 보기·CREATE 대상(창·클립보드)·Copy Special DDL·Generate SQL DDL(객체 하나) 글을 Modify와 같은 `USE <db>` / `GO` 배치로 시작하고 끝에 `GO`. 데이터베이스 자신과 다른 DB 종류의 글은 그대로 |
+
+- **나누기를 고친 이유(`DELIMITER`를 글에 넣지 않은 이유):** 글에 `DELIMITER`를 넣으면 앱이 만든 글만 실행되고, 사용자가 직접 쓰거나 다른 곳에서 붙인 루틴은 여전히
+  잘린다. 방언이 본문을 알아보면 둘 다 된다. `DELIMITER`를 쓴 스크립트는 전과 같다(구분자가 `$$`면 본문의 `;`는 처음부터 구분자가 아님).
+- **창의 DB는 숨겨 바꾸지 않는다:** CREATE 대상 창은 전처럼 기본 DB에 열린다. 글의 `USE`를 실행하면 창의 세션이 그 DB로 가고 상태 줄이 그 DB를 보인다.
+- **남은 것:** Ctrl+Enter(현재 문장)는 커서 줄 앞의 구분자 줄부터 문장을 찾으므로(`extractQueryAtPos`, upstream) 본문 가운데에 커서를 두면 본문 조각을 실행한다.
+  Oracle 본문과 같은 동작이다. MariaDB의 이름 없는 블록(`BEGIN NOT ATOMIC … END`)은 저장 프로그램이 아니라 전처럼 나뉜다.
+  Generate SQL DDL에서 SQL Server 루틴 여러 개를 고르면 문장 사이에 `GO`가 없다(생성기 `SQLGeneratorDDL`, 이 변경 전과 같음).
+
+**확인 (2026-11-25, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 시험 에이전트, GCP 시험 VM, 증거 `D:\Tools\_scratch\ddl-text-runs-as-pasted\`):**
+
+| 경우 (DDL 보기 → 복사 → 새 쿼리 창에 붙임 → 이름·표지 고침 → F5) | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| MariaDB 11 / MySQL 8.4 프로시저(중첩 `BEGIN`, 이름표, 처리기, `IF`·`CASE` 문과 식·`WHILE`·`REPEAT`·`LOOP`, 문자열·주석 안의 `;`, `IF(…)`·`REPEAT(…)` 함수) | 24문장, 1064 | 1문장, 만들어짐 |
+| 함수(`CASE` 식) | 4문장, 1064 | 1문장, 만들어짐 |
+| 트리거(`BEGIN … END IF … END`) | 4문장, 1046 | 1문장, 이름 `chr_ddl_text_runs_as_pasted.chr_trg`, 그 DB에 만들어짐 |
+| 이벤트(`DO BEGIN … END`) | 3문장, 1046 | 1문장, DB 이름 붙은 이름, 만들어짐 |
+| 본문 없는 프로시저, 뷰 | 됨 | 됨 |
+| 같은 글을 두 번 왕복(MariaDB `CREATE OR REPLACE`, MySQL `DROP … IF EXISTS` 추가) 뒤 다시 연 DDL 보기 | — | 앱이 쓴 줄이 쌓이지 않음(이름 주석, `DELIMITER`, DB 이름 모두 한 번) |
+| 회귀 스크립트(`BEGIN;`·`BEGIN WORK;` 트랜잭션, `IF(…)`·`REPEAT(…)`·`CASE` 식, `DROP … IF EXISTS`, `DELIMITER $$` 루틴, `CREATE DEFINER = CURRENT_USER`, `CREATE OR REPLACE DEFINER=…`, 본문 한 줄 트리거, `ALTER EVENT … DO BEGIN … END`, 루틴 뒤 문장) | 40문장 | 21문장(루틴마다 1), 두 서버에서 모두 실행됨, 결과 표 4개 값이 같음 |
+| SQL Server: `master`에 있는 새 창에 프로시저·함수 글 | `master`에 만들어짐 | `Changed database context to 'chr_ddl_text_runs_as_pasted'`, 그 DB에서 실행(이미 있어 2714), `master`에 새 개체 없음. 상태 줄·DB 고르기가 그 DB를 보임 |
+| SQL Server 뷰·트리거·표 | 208·8197·2714(`master`) | 그 DB에서 실행 |
+| SQL Server 새 이름(`chr_p1d`)으로 고쳐 실행 | — | 객체의 DB에 만들어짐(카탈로그) |
+| CREATE 대상 창 / ALTER 대상 창 | `master`, `USE` 없음 / 객체 DB, `USE` 있음 | `master`, 글이 `USE … GO`로 시작 / 같음 |
+| SQL Server 왕복 두 번 | — | `USE`·`GO`는 저장되지 않음. 뷰는 이름 주석 줄이 실행할 때마다 한 줄씩 늘어남(아래) |
+
+- **고치지 않은 것(이 변경 밖):** SQL Server 뷰의 DDL 보기 글 맨 앞 이름 주석(`-- dbo.chr_v 소스`)은 서버가 뷰 정의에 함께 저장해, 붙여 실행할 때마다
+  다시 연 글에 한 줄씩 늘었다(세 번째 글에 세 줄). 이 변경 전에도 같다(주석이 같은 배치에 있었음). `DBStructUtils.generateTableListDDL`(255–259행)은 정의가 이미
+  그 주석으로 시작하면 다시 붙이지 않으려 하지만, 주석 끝의 줄 바꿈이 운영체제 줄 바꿈(`\r\n`)이고 쿼리 창이 보낸 정의는 `\n`이라 비교가 맞지 않는다.
+  공용 모델 코드라 고치지 않았다. MariaDB·MySQL 뷰는 주석을 저장하지 않는다.
+- 회귀 테스트는 실행하지 않았다.
 
 ## upstream 대비 변경점
 
@@ -424,3 +484,7 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   루틴 처리(다음 `;`에서 끝내고 `;`를 남김, 머리를 연 `AS|IS` 바로 뒤에서만)(`chromite/oracle-external-routine-split`). "본문 없는 Oracle 루틴의 문장
   나누기" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 모든 스크립트 나누기
   (쿼리 창 F5·Ctrl+Enter, 스크립트 실행, Agent 실행 도구), 문장 끝 `;` 남기기
+- 2026-11-25 MySQL·MariaDB 방언이 저장 프로그램의 `BEGIN … END` 본문을 한 문장으로 둠, 트리거·이벤트 DDL 글의 이름에 DB, SQL Server DDL 보기·CREATE 대상 글이
+  `USE` 배치로 시작(`chromite/ddl-text-runs-as-pasted`). "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)" 절 추가. 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: MySQL·MariaDB·TiDB 연결의 모든 스크립트 나누기(쿼리 창 F5, 커서부터 실행, `@include`·`SOURCE`, 작업의 스크립트 실행, Agent 실행 도구),
+  MySQL 트리거·이벤트의 DDL 글을 쓰는 DDL 보기·Modify·속성, SQL Server DDL 보기·CREATE 대상·Copy Special DDL·Generate SQL DDL의 글
