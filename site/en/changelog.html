@@ -54,6 +54,18 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.8">
+    <h2>26.1.8</h2>
+    <div class="body">
+      <p>Fixes for changing a stored procedure from a query window and for "Select Top 1000 Rows".</p>
+      <ul>
+        <li>Fix · Definition of a changed routine: after a procedure, function, package or trigger was changed and run from a query window, "View DDL", "Modify" and "Script as" still showed the definition from before the run. The server had the change, but it looked as if nothing had changed, and running a script opened from the old definition overwrote the change. Applies to Oracle, SQL Server and ShardSphere · Altibase</li>
+        <li>Fix · ShardSphere · Altibase: a procedure, function or trigger with a declaration section failed with a syntax error when run from a query window, because the statement was cut at the first declaration's semicolon. Running a package's "View DDL" text a second time no longer fails with a syntax error</li>
+        <li>Fix · Select Top 1000 Rows: on Oracle and ShardSphere · Altibase the query opened without a row limit. It now ends with FETCH FIRST 1000 ROWS ONLY on Oracle 12c and later, and with LIMIT 1000 on ShardSphere · Altibase. The same holds for Select Top in the ERD, Database Copy and "open rows" in Data Search. Queries you run yourself are not changed</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.7">
     <h2>26.1.7</h2>
     <div class="body">
