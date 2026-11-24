@@ -20,6 +20,7 @@
 #
 # Change history:
 # - 2026-11-23 Created (consolidates the throw-away helpers of the 26.1.7 release).
+# - 2026-11-24 Invoke-GhJson asks again after a passing GitHub API error (the 26.1.8 build stage stopped on an HTTP 500).
 
 $script:Repo = 'froiibn/chromite'
 $script:RepoUrlPattern = '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)froiibn/chromite(\.git)?/?$'
@@ -226,8 +227,20 @@ function Get-GitLine([string[]]$Arguments, [string]$Dir) {
     return ("$($r.Lines | Select-Object -First 1)").Trim()
 }
 
+# Answers of GitHub's API that pass by themselves: a 5xx, a dropped or refused connection, a timeout
+$script:GhPassingError = 'HTTP 5\d\d|timeout|timed out|connection reset|connection refused|unexpected EOF|TLS handshake|dial tcp|temporarily unavailable'
+
+# A read of GitHub's API as JSON. A stage that polls for many minutes must not stop on one passing error (the build
+# stage of 26.1.8 stopped on an HTTP 500 of "gh run view"), so such an answer is asked for again, three times at
+# most. Every other failure (not found, not authorised, a wrong argument) stops at once. Only reads go through here.
 function Invoke-GhJson([string[]]$Arguments, [string]$What) {
-    $r = Invoke-Native -Exe 'gh' -Arguments $Arguments -Quiet -AllowFail
+    $r = $null
+    for ($try = 1; $try -le 4; $try++) {
+        $r = Invoke-Native -Exe 'gh' -Arguments $Arguments -Quiet -AllowFail
+        if (-not $r.Code -or $try -eq 4 -or $r.Text -notmatch $script:GhPassingError) { break }
+        Say "${What}: GitHub answered '$((@($r.Lines) | Select-Object -Last 1))', asking again ($try of 3)"
+        Start-Sleep -Seconds (15 * $try)
+    }
     if ($r.Code) { Stop-Harness "$What failed (gh exit $($r.Code)): $((@($r.Lines) | Select-Object -Last 2) -join ' | ')" }
     $json = (@($r.Lines) | Where-Object { $_ -notmatch '^\s*$' }) -join "`n"
     try { return ($json | ConvertFrom-Json) } catch { Stop-Harness "$What returned no JSON: $($json.Substring(0, [Math]::Min(200, $json.Length)))" }
