@@ -292,6 +292,57 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 확인하지 못한 것: 1522에서 26.1.7(고치기 전)은 돌리지 못했다(첫 시도 때 인스턴스가 내려가 창에는 ORA-12514 연결 오류만 남음). Oracle 형식(`TYPE`)·
   SQL Server·PostgreSQL 트리거는 돌려 보지 않았다(코드로만 판단). 26.1.7에서 Oracle 트리거는 돌려 보지 않았다.
 
+### 본문 없는 Oracle 루틴의 문장 나누기 (2026-11-25)
+
+**보고(앱 변경 182 때 코드만 읽고 남긴 것):** `CREATE … PROCEDURE p AS LANGUAGE JAVA NAME '…';` 같은 호출 명세 루틴은 `BEGIN … END`가 없어, 쿼리 창이
+다음 문장들을 한 문장으로 합칠 수 있다.
+
+**재현(`origin/command` `bdb0ab42a6` 빌드, 1521 Oracle 26ai, 앱 안 시험 에이전트):** 자바·C·`EXTERNAL`·MLE 루틴과 `AGGREGATE`·`PIPELINED USING` 함수
+사이사이에 `SELECT`를 둔 17문장 스크립트를 F5로 실행하면 쿼리 관리자에 간 문장이 둘이다: 첫 `CREATE … CHR_OERS_JP AS LANGUAGE JAVA …`부터
+`BEGIN NULL; END;`까지 16문장이 한 문장, 그리고 마지막 `SELECT`. 서버는 그 글 전체를 프로시저 본문으로 받아 `CHR_OERS_JP`를 INVALID로 만들고
+(PLS-00103 `SELECT`), 뒤의 루틴은 하나도 만들어지지 않았다. 뒤의 `SELECT`에서 Ctrl+Enter를 눌러도 같은 16문장이 가서, `SELECT`는 실행되지 않고 앞의
+프로시저가 망가진 본문으로 **다시 만들어졌다**. 소문자·주석·매개변수·`AUTHID` 뒤의 `IS`, `NONEDITIONABLE … AS MLE MODULE`도 같다.
+
+**근본 원인:** 방언의 건너뛸 토큰 조건 `BLOCK_HEADER`(`OracleSQLDialect.makeDialectSkipTokenPredicatesImpl`)가 `CREATE … FUNCTION|PROCEDURE` 뒤의
+`AS|IS`에서 머리 블록을 열고, `SQLScriptParser`는 그 머리를 다음 `BEGIN`이 닫을 때까지 `;`를 무시한다. 호출 명세에는 `BEGIN`이 없다. Altibase 방언은
+앱 변경 182에서 `AS|IS LANGUAGE`에 `END_BLOCK` 조건을 받았으나 Oracle 방언에는 없었다. 그 조건만 더하면 두 가지가 더 드러났다(같은 빌드에서 확인):
+- `… LANGUAGE C … PARAMETERS (n);`의 `);`를 Oracle의 건너뛸 끝 조건(`SKIP_SUFFIX_TERM`, 안쪽 서브프로그램 뒤 선언 `PROCEDURE p(x NUMBER);`를 위한 것)이
+  선언으로 보고 건너뛰어 다음 문장과 합쳐졌다.
+- 나뉜 문장이 끝의 `;` 없이 가서 서버가 모든 호출 명세 루틴을 PLS-00103(`end-of-file`, `;` 기대)으로 INVALID로 만들었다. 쿼리 창은 `END` 뒤의
+  `;`만 남긴다(`isDelimiterAfterBlock`).
+
+**고침:**
+- `OracleSQLDialect`: `END_BLOCK` 조건 `CREATE [OR REPLACE] [EDITIONABLE|NONEDITIONABLE] FUNCTION|PROCEDURE` … `AS|IS` 다음
+  `LANGUAGE JAVA|C`, `EXTERNAL NAME|LIBRARY`, `MLE MODULE|LANGUAGE`. 두 낱말로 본 것은 `language`·`external`·`mle`이라는 이름의 변수 선언을
+  호출 명세로 읽지 않기 위해서다(확인함, 아래).
+- `SQLScriptParser`: 조건이 연 머리 블록을 `BEGIN` 없이 조건이 닫은 문장은 본문 없는 루틴이다. 그 문장에는 건너뛸 끝 조건을 쓰지 않고 다음 `;`에서 끝내며,
+  `END;`처럼 `;`를 문장에 남긴다(`isDelimiterAfterBlock`인 방언: Oracle, Altibase 계열). 머리를 닫는 것은 머리를 연 `AS|IS` 바로 뒤의 낱말일 때뿐이다:
+  선언부의 안쪽 서브프로그램 호출 명세(`AS PROCEDURE c IS LANGUAGE C …;`, Oracle이 C만 허용하고 Java·MLE는 PLS-00999)는 바깥 루틴을 끝내지 않는다.
+- 같은 조건을 쓰는 방언: YashanDB(`YashanDBSQLDialect`가 Oracle 방언을 물려받음), OceanBase Oracle 모드(`OracleSQLDialect`를 그대로 씀). 시험 서버가 없어
+  돌려 보지 않았다. Altibase 계열은 자기 조건(`AS|IS LANGUAGE`)을 그대로 두고 파서 쪽 고침만 받는다.
+
+**확인(고친 빌드, 1521, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-external-routine-split\`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 호출 명세 스크립트 F5(17문장) | 2문장, 첫 문장에 16문장 | 17문장. 자바·C(`PARAMETERS`)·`EXTERNAL`·MLE 인라인 루틴 VALID(`;`를 붙여 보냄) |
+| 그 스크립트의 `SELECT`에서 Ctrl+Enter | 16문장이 가서 프로시저를 다시 만듦 | 그 `SELECT` 하나(결과 1행) |
+| 자바 함수에서 Ctrl+Enter | (같은 16문장) | 그 함수 하나, VALID |
+| 소문자·주석·`AUTHID`·`NONEDITIONABLE … MLE MODULE` 스크립트 F5 | 1문장 | 6문장(MLE MODULE은 없는 모듈이라 PLS-00201) |
+| 일반 루틴(선언부)·함수·패키지(머리에 자바 호출 명세)·패키지 본문·형식(자바 정적 메서드)·트리거 3(BEGIN, DECLARE, CALL)·익명 블록 2·`WITH FUNCTION`·`CASE` | 15문장, 모두 VALID | 같음(문장마다 같은 글) |
+| 형식 본문이 든 같은 스크립트 | 17문장(형식 본문이 `END` 하나로 갈라짐) | 같음(아래 "고치지 않은 것") |
+| `language`·`external`·`mle` 변수 선언 루틴, 자바 호출 명세가 든 패키지 본문, `IF NOT EXISTS` | 5문장 | 같음 |
+| 선언부에 C 호출 명세가 있는 루틴 | — | 1문장으로 감, VALID |
+| 끊었다 다시 연결한 뒤 F5 스크립트 나누기 | — | 17문장 |
+| Altibase 7.3: `AS LANGUAGE C NAME … LIBRARY …;` + 선언부 루틴 + 타입세트 나누기, 외부 프로시저 F5 | (돌리지 않음) | 6문장, 외부 프로시저는 `;`를 붙여 가고 서버가 받음(`SYS_PROCEDURES_` STATUS 0) |
+
+**고치지 않은 것(원인이 다름, 보고만):**
+- `CREATE FUNCTION … AGGREGATE USING t;`·`PIPELINED USING t;`는 바르게 나뉘지만 `;` 없이 가서 PLS-00103으로 INVALID다. `AS|IS`가 없어 이 고침의 길을
+  타지 않는다. 문장 종류를 알아야 `;`를 남길 수 있어 방언 쪽 판단이 따로 필요하다.
+- `CREATE TYPE BODY … AS MEMBER FUNCTION … IS BEGIN … END; END;`가 첫 `END;`에서 나뉜다(패키지 본문과 달리 형식 본문의 블록 조건이 없음).
+- 선언부에 안쪽 서브프로그램 본문(`PROCEDURE inner_p IS BEGIN … END;`)이 있는 독립 루틴은 그 `END;`에서 나뉜다(안쪽 `BEGIN`이 바깥 머리를 닫음).
+- 23ai `CREATE PROCEDURE IF NOT EXISTS …`는 `IF` 조건이 블록을 열어 다음 문장과 합쳐진다.
+
 ### 저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)
 
 **보고(앱 변경 181 후속, 2026-11-25):** DDL 보기 글을 복사해 다른 쿼리 창에 붙이고 고쳐 F5로 실행하는 사용(앱 변경 181)에서 위 절의 두 항목.
@@ -429,6 +480,10 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   Object Explorer 갱신(모든 DB의 트리거·패키지·형식 DDL)
 - 2026-11-24 "저장 루틴 DDL 뒤 (앱 변경 181)"의 Altibase 두 항목을 앱 변경 182에서 고쳤다고 적고, 블록을 끝내는 `;`가 Altibase 계열에서는 182 전까지 빠졌다고
   바로잡음(`chromite/shardsphere-routine-edit`, [altibase.md](altibase.md) "저장 루틴의 문장 나누기"). 이 문서가 설명하는 코드는 바꾸지 않았다.
+- 2026-11-25 Oracle 호출 명세 루틴(`AS LANGUAGE JAVA|C`, `AS EXTERNAL`, `AS MLE`)이 뒤 문장을 합치던 것을 고침: 방언의 `END_BLOCK` 조건과 파서의 본문 없는
+  루틴 처리(다음 `;`에서 끝내고 `;`를 남김, 머리를 연 `AS|IS` 바로 뒤에서만)(`chromite/oracle-external-routine-split`). "본문 없는 Oracle 루틴의 문장
+  나누기" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 모든 스크립트 나누기
+  (쿼리 창 F5·Ctrl+Enter, 스크립트 실행, Agent 실행 도구), 문장 끝 `;` 남기기
 - 2026-11-25 MySQL·MariaDB 방언이 저장 프로그램의 `BEGIN … END` 본문을 한 문장으로 둠, 트리거·이벤트 DDL 글의 이름에 DB, SQL Server DDL 보기·CREATE 대상 글이
   `USE` 배치로 시작(`chromite/ddl-text-runs-as-pasted`). "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)" 절 추가. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: MySQL·MariaDB·TiDB 연결의 모든 스크립트 나누기(쿼리 창 F5, 커서부터 실행, `@include`·`SOURCE`, 작업의 스크립트 실행, Agent 실행 도구),
