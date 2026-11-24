@@ -10,7 +10,8 @@ SWT 전수 조사([swt-parity-audit.md](swt-parity-audit.md)) 3순위의 탐색�
 - **이름 복사**(Ctrl+C, 메뉴 "이름 복사"), **정규화된 이름 복사**(Ctrl+Shift+C, 메뉴): 고른 객체마다 한 줄.
 - **여러 개 선택**: 트리에서 Ctrl·Shift로 여러 노드를 고른다. 삭제, 이름 복사, SQL 생성은 선택 전체에 적용하고 나머지 명령은 꺼진다.
 - **SQL 생성**(메뉴 "SQL 생성" ▸ SELECT, INSERT, UPDATE, DELETE, MERGE, SIMPLE JOIN, INNER JOIN, CALL, DDL, PostgreSQL INSERT ON CONFLICT·UPDATE FROM·DELETE USING 등):
-  결과는 새 쿼리 창에 연다(실행하지 않음).
+  결과는 새 쿼리 창에 연다(실행하지 않음). SQL Server에서 객체 하나의 DDL은 DDL 보기·Script as ▸ CREATE 대상과 같이 `USE <db>` / `GO` 배치로 시작하고
+  `GO`로 끝난다: 어느 DB의 창에 붙여 실행해도 객체의 DB에서 실행된다([swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행").
 
 ## 화면
 
@@ -483,5 +484,7 @@ SQL Server 프로시저·함수·트리거의 DDL 글에는 이름 줄이 없다
 - 2026-11-22 행을 쓰는 생성기(INSERT·UPDATE·DELETE·MERGE)가 객체의 데이터 기능을 물음: 큐에 서버가 거절하는 문장이 나오지 않음(앱 변경 #157), 위 "행을 쓰는 생성기".
 - 2026-11-24 "상위 1000개 행 선택"이 Oracle·Altibase·ShardSphere에서 제한 없는 SELECT를 열던 것을 고침: 스크립트만의 변환 종류 `SCRIPT_ROW_LIMIT`
   (`LIMIT n`, Oracle 12c 이상 `FETCH FIRST n ROWS ONLY`), 변환기가 없는 데이터 원본 표(앱 변경 #183), 위 "행 수 제한".
+- 2026-11-25 SQL Server의 DDL 보기·CREATE 대상·Copy Special DDL·Generate SQL DDL(객체 하나) 글이 `USE` 배치로 시작(`ObjectScripts`, `SourceScripts.inObjectDatabase`,
+  `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). 회귀 테스트는 실행하지 않았다.
 - 2026-11-25 뷰 DDL 글의 객체 이름 줄을 한 번만 보임(`DBStructUtils.withoutObjectNameComment`, `chromite/ddl-name-comment-once`), 위 "DDL 글의 객체 이름 줄".
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 뷰 DDL 보기·CREATE 대상·선택하여 복사(DDL)·SQL 생성 ▸ DDL, 스키마 DDL(PostgreSQL·SQL Server).

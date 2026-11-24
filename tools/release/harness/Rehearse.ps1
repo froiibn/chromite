@@ -21,6 +21,8 @@
 # - 2026-11-23 Created.
 # - 2026-11-25 The seed files download through Invoke-GhDownload: a passing GitHub error is asked again, a broken
 #   file removed.
+# - 2026-11-25 The wait for the rehearsal site reads once per round (Get-Http -Once): it is its own loop, and the
+#   new retry of Get-Http would stretch its 20 seconds to minutes.
 
 function Get-OpenSshTool([string]$Name) {
     $ssh = Get-Cfg 'rehearsal.sshExe'
@@ -195,7 +197,7 @@ function Invoke-StageRehearse {
         for ($i = 0; $i -lt 20 -and -not $answers; $i++) {
             Start-Sleep -Seconds 1
             if ($forward.HasExited) { Stop-Harness "the port forward exited ($($forward.ExitCode))" }
-            $answers = (Get-Http "$siteUrl/downloads/releases.json").Code -eq '200'
+            $answers = (Get-Http "$siteUrl/downloads/releases.json" -Once).Code -eq '200'
         }
         if (-not $answers) { Stop-Harness "the rehearsal site does not answer at $siteUrl" }
         Say "OK: rehearsal site answers at $siteUrl"
