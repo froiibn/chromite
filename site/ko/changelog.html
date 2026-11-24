@@ -54,6 +54,18 @@
     <p>버전 번호는 <code>연도.차례.수정</code> 형식입니다(0.1.4까지는 <code>주.부.개발</code>). 각 버전의 앵커(예: <code>#v26.0.5</code>)는 앱의 업데이트 알림에서 링크합니다.</p>
   </div>
 
+  <section class="sect release" id="v26.1.8">
+    <h2>26.1.8</h2>
+    <div class="body">
+      <p>쿼리 창에서 프로시저를 고쳐 실행할 때의 문제와 "상위 1000개 행 선택"의 문제를 고쳤습니다.</p>
+      <ul>
+        <li>수정 · 고친 프로시저의 정의: 쿼리 창에서 프로시저, 함수, 패키지, 트리거를 고쳐 실행한 뒤에도 "DDL 보기", "수정", "스크립팅"이 실행 전 정의를 보이던 문제를 고쳤습니다. 서버에는 반영됐는데 고쳐지지 않은 것처럼 보였고, 옛 정의로 연 스크립트를 실행하면 방금 고친 것을 덮어썼습니다. Oracle, SQL Server, ShardSphere · Altibase에 해당합니다</li>
+        <li>수정 · ShardSphere · Altibase: 선언부가 있는 프로시저, 함수, 트리거를 쿼리 창에서 실행하면 첫 선언의 세미콜론에서 문장이 잘려 구문 오류가 나던 문제를 고쳤습니다. 패키지의 "DDL 보기" 글을 두 번째로 실행하면 구문 오류가 나던 문제도 고쳤습니다</li>
+        <li>수정 · 상위 1000개 행 선택: Oracle과 ShardSphere · Altibase에서 행 수 제한이 없는 쿼리가 열리던 문제를 고쳤습니다. 이제 Oracle 12c 이상은 FETCH FIRST 1000 ROWS ONLY, ShardSphere · Altibase는 LIMIT 1000이 붙습니다. ERD의 상위 행 선택, 데이터베이스 복사, 데이터 검색의 행 열기도 같습니다. 직접 실행하는 쿼리는 달라지지 않습니다</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.7">
     <h2>26.1.7</h2>
     <div class="body">
