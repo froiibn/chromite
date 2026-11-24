@@ -1827,3 +1827,5 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
 - 2026-11-25 인덱스 DDL을 카탈로그로 만듦(ShardSphere), 테이블 DDL에서 제약조건 인덱스·서버 글에 있는 인덱스를 다시 붙이지 않음(7.3 포함), 테이블 글 끝의
   `;` 한 번만, `getDDLFromDbmsMetadata`의 예상 밖 `SQLException`을 디버그 로그에(`chromite/shardsphere-index-ddl`), 위 "인덱스 DDL".
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열의 인덱스·테이블 DDL 보기, Script as ▸ CREATE, 스크립트 복사.
+- 2026-11-25 `ObjectExplorerPanel`: 2026-11-21에 `showSelectionAgain`을 `getSelectedNavigatorNode`의 Javadoc·`@Nullable`과 메서드 사이에 넣어 `void` 메서드가
+  `@Nullable`을 달고 있던 것을 바로잡음(주석만, 동작 같음, `chromite/properties-read-once`). 회귀 테스트는 실행하지 않았다.

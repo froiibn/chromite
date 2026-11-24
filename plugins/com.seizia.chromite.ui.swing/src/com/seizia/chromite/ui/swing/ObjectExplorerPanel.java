@@ -297,6 +297,8 @@ import java.util.regex.Pattern;
  *   docs/chromite/swing-create-objects.md)
  * - 2026-11-22 DDL 명령 오류 창의 첫 줄: 권한 오류면 "권한이 없어 개체 정의를 읽을 수 없습니다"(앱 변경 #159,
  *   docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-25 {@link #showSelectionAgain}을 {@link #getSelectedNavigatorNode}의 Javadoc·{@code @Nullable}과 메서드 사이에서 꺼냄: void 메서드가
+ *   {@code @Nullable}을 달고, 선택 노드 메서드는 설명을 잃었었다(주석만, docs/chromite/altibase.md 변경 이력)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1881,11 +1883,6 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
-     * The selected navigator node; null when nothing or several nodes are selected, so that the commands for one node
-     * (and the Properties window) are off with a multi-selection.
-     */
-    @Nullable
-    /**
      * Repaints the selected row and gives its node to the selection listener again (the Properties view reads it again).
      * For a node whose object the model read again without the tree reloading it: a node without children is not
      * reloaded by {@link #refreshNavigatorNode}, and selecting it again does not fire a selection event. EDT.
@@ -1898,6 +1895,11 @@ final class ObjectExplorerPanel extends JPanel {
         selectionListener.accept(getSelectedNavigatorNode());
     }
 
+    /**
+     * The selected navigator node; null when nothing or several nodes are selected, so that the commands for one node
+     * (and the Properties window) are off with a multi-selection.
+     */
+    @Nullable
     private DBNNode getSelectedNavigatorNode() {
         TreePath path = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
         if (path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
