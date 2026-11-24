@@ -874,15 +874,13 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 ## 확인하지 못한 것
 
-- **0.1.4의 macOS 파일 전부(#22·#26)**: `release.yml`(태그·`devel` 수동 실행에서만 돎)과 Mac이 필요하다. 첫 실행에서 볼 것: dmgbuild 설치와 dmg 생성,
-  서명·공증·staple한 dmg 안 `Chromite.app`과 zip 안 `ChromiteSwing.app` 둘 다의 `codesign --verify --deep --strict`·`spctl`(`verify signed`가 함),
-  "Disk image window" 산출물의 창 사진(밝은 Finder만, 러너는 밝은 모드)과 `.DS_Store` 내용(`Iloc` 앱 (240, 150)·Applications (240, 430), `icvp`의 `iconSize` 144, `bwsp` 창 크기).
-  어두운 Finder의 이름 글자는 대비 계산으로만 확인했다. dmgbuild가 앱을 복사할 때 서명이 유지되는지는 `verify`가 dmg 안의 앱으로 확인한다.
+- **dmg 창(#26)과 0.1.4의 옛 이름 zip(#22)**: "Disk image window" 산출물(실패해도 릴리스는 계속)의 창 사진(밝은 Finder만, 러너는 밝은 모드)과
+  `.DS_Store` 내용(`Iloc` 앱 (240, 150)·Applications (240, 430), `icvp`의 `iconSize` 144, `bwsp` 창 크기)을 본 기록이 없다. 어두운 Finder의 이름 글자는 대비 계산으로만 확인했다.
+  0.1.4 zip 안 `ChromiteSwing.app`을 확인한 기록도 없다(0.1.4 파일은 26.0.6 배포 때 운영에서 내려감). dmgbuild 설치와 dmg 생성, 서명·공증·staple한 dmg·zip 안 앱의
+  `codesign --verify --deep --strict`·`spctl`(`verify signed`가 함)은 26.0.6부터 아래 "릴리스 기록"의 `release.yml` 실행에서 "macOS 서명·공증·검증 모두 성공"이다.
 - 모든 사용자 범위의 실제 설치(Program Files, HKLM, 모든 사용자 바로 가기, 승격된 마침 화면의 탐색기 실행, 제거 프로그램의 `runas` 다시 실행): UAC가 필요해 하지 않았다.
   `release.yml`의 Windows 작업(러너는 관리자)이 `/AllUsers`로 설치·업그레이드·제거를 실제로 한다.
 - 대화형 설치 범위 화면(라디오 단추, UAC 방패, 거부 문구): 이 PC 화면에 설치 프로그램 창을 띄우지 않아 보지 못했다.
-- GitHub Actions에서 `release.yml` 실행(태그·push 없음): Azure 서명 단계에서 `uninstall.exe`·`setup.exe` 서명, 서명된 파일의 정확한 서명자 주체.
-  주체 문자열은 Turbrix `docs/SIGNING.md`(같은 Azure 계정의 게시자)에서 가져왔다. 다르면 확인 단계가 실패한다(의도한 동작). 첫 실행에서 확인한다.
 - 서명된 설치 프로그램의 SmartScreen 동작, 대화형 설치 화면의 나머지 단계(구성 요소·마침), 바탕 화면 바로 가기 유지(바탕 화면이 OneDrive 폴더라 시험하지 않음).
 - `%LOCALAPPDATA%\Programs\Chromite` 기본 위치 설치(시험은 `/D=`로 D: 폴더에만).
 - macOS zip(업데이트 파일)을 Mac에서 풀어 확인하는 것. dmg는 아래처럼 확인했다.
@@ -894,13 +892,12 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   **수정(2026-11-08, [platform-startup.md](platform-startup.md) "macOS 메인 스레드"·"macOS Info.plist")**: 다음 릴리스부터 앱이 시작하고 이름이 Chromite다.
   서명 없는 빌드로는 시작·앱 메뉴·끝내기·키체인을 확인했다. 서명·공증한 dmg에서의 시작(격리, App Translocation, 강화된 런타임)은 다음 릴리스 뒤 `macos-smoke.yml`로 확인한다.
   v0.1.1 macOS 파일은 이 수정이 없으므로 그대로는 쓸 수 없다.
-- 실제 서버 배포(사용자 승인 전이라 하지 않음).
 - 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
 
 ## 사용자가 해야 할 일
 
 - [x] 사용자 데이터 위치 결정(위 "사용자 데이터의 위치"): `%APPDATA%\ChromiteData\workspace6`로 고정하고 기존 작업 공간은 첫 시작 때 복사(2026-11-07).
-- [ ] 첫 태그: 이 작업이 `devel`에 들어간 뒤 [versioning.md](versioning.md)의 순서로 `v<버전>` 태그(이미 커밋된 0.1.0이면 `v0.1.0`).
+- [x] 첫 태그: `v0.1.0`(2026-11-07). 그 뒤 판은 아래 "릴리스 기록".
 - [x] 첫 실제 배포 승인. 서버 접속(호스트, 사용자, 키, known_hosts)은 26.1.7까지 Turbrix 세션이 가지고 실행했고, 2026-11-23부터 Chromite 세션이 직접 한다(위 "운영 배포를 실행하는 쪽"). 배포 전 리허설.
 
 ## upstream 대비 변경점
@@ -914,6 +911,8 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 | `tools/release/dmg/` | dmg 창 설정·배경 그림·생성기·dmgbuild 고정(추가) |
 | `.gitattributes`, `.gitignore` | `tools/release`의 `.sh`는 LF, `.local/` 무시 |
 | `NOTICE` | 사이트의 Pretendard 웹 글꼴, Octicons GitHub 마크(MIT) |
+
+## 릴리스 기록
 
 - 26.0.5 릴리스(2026-11-12, 태그 `v26.0.5` = `412780207b`, #245~#248 포함):
   - 태그 전 `release.yml` 수동 실행 두 번(`2ade8c6996`: 옛 이름 시작 파일 서명 단계가 처음 도는 것 확인, `73448a993a`: 버전 26.0.5와 macOS zip `Chromite.app`) 모두 성공.
@@ -1198,3 +1197,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-24 26.1.8 준비(`chromite/release-26-1-8`): 버전 26.1.8과 변경 내역(쿼리 창에서 고친 루틴의 정의 #364, Altibase 계열 선언부 있는 루틴 실행 #365, 상위 1000개 행 선택의 행 수 제한 #366). 사용자 결정(2026-11-24): "배포하라"(릴리스 중단을 이 배포에 풀음).
 - 2026-11-24 26.1.8 릴리스 기록(하네스 `record`): 26.1.7 기록 아래에 태그, 리허설, 운영 배포, 배포 뒤 확인.
 - 2026-11-24 26.1.8 기록에 GitHub Release 공개를 적음(사용자 결정 "공개한다", 하네스 `publish`).
+- 2026-11-25 릴리스 기록(26.0.5~)에 "릴리스 기록" 제목을 붙여 "upstream 대비 변경점"에서 떼어 냄(줄은 옮기지 않음. 하네스 `record`는 제목이 아니라 앞 판의 "- <버전> 릴리스(" 줄로
+  자리를 찾음). "확인하지 못한 것"에서 릴리스 기록이 끝난 것으로 보여 주는 항목을 고치거나 지움(macOS 서명·확인, Windows 서명자 주체, 실제 서버 배포), "사용자가 해야 할 일"의 첫 태그 완료 표시.
