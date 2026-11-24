@@ -21,6 +21,8 @@
 # Change history:
 # - 2026-11-23 Created (consolidates the throw-away helpers of the 26.1.7 release).
 # - 2026-11-24 Invoke-GhJson asks again after a passing GitHub API error (the 26.1.8 build stage stopped on an HTTP 500).
+# - 2026-11-25 The passing errors include the texts gh really prints on Windows for a failed name lookup, a dropped
+#   connection and a timeout (an independent review found that the 2026-11-24 pattern missed them).
 
 $script:Repo = 'froiibn/chromite'
 $script:RepoUrlPattern = '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)froiibn/chromite(\.git)?/?$'
@@ -227,12 +229,19 @@ function Get-GitLine([string[]]$Arguments, [string]$Dir) {
     return ("$($r.Lines | Select-Object -First 1)").Trim()
 }
 
-# Answers of GitHub's API that pass by themselves: a 5xx, a dropped or refused connection, a timeout
-$script:GhPassingError = 'HTTP 5\d\d|timeout|timed out|connection reset|connection refused|unexpected EOF|TLS handshake|dial tcp|temporarily unavailable'
+# Answers of GitHub's API that pass by themselves, as gh 2.96 prints them on Windows: a 5xx (REST "HTTP 502: ...",
+# GraphQL "non-200 OK status code: 502 ..."), a failed name lookup (gh prints only "error connecting to <host>"), a
+# refused connection ("dial tcp ...: connectex: ... actively refused"), a dropped one (Go prints "EOF" or "unexpected
+# EOF"; Windows "wsarecv: An existing connection was forcibly closed ..." or "... was aborted ..."; elsewhere
+# "connection reset"), a timeout ("context deadline exceeded", "i/o timeout", "TLS handshake timeout").
+# Not here, so they stop at once: 404, 401, 403, a GraphQL "Could not resolve", a wrong argument, and rate limits
+# (HTTP 429, "API rate limit exceeded"): a rate limit lasts up to an hour, longer than the retries wait.
+$script:GhPassingError = 'HTTP 5\d\d|non-200 OK status code: 5\d\d|error connecting to |timeout|timed out|deadline exceeded|connection reset|forcibly closed|connection was aborted|connection refused|actively refused|\bEOF\b|TLS handshake|dial tcp|temporarily unavailable'
 
 # A read of GitHub's API as JSON. A stage that polls for many minutes must not stop on one passing error (the build
 # stage of 26.1.8 stopped on an HTTP 500 of "gh run view"), so such an answer is asked for again, three times at
-# most. Every other failure (not found, not authorised, a wrong argument) stops at once. Only reads go through here.
+# most. Every other failure (not found, not authorised, a rate limit, a wrong argument) stops at once. Only reads go
+# through here: a change asked again could happen twice.
 function Invoke-GhJson([string[]]$Arguments, [string]$What) {
     $r = $null
     for ($try = 1; $try -le 4; $try++) {
