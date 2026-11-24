@@ -23,6 +23,10 @@ import java.util.List;
 
 /**
  * Semantic description of an operation on a database object.
+ *
+ * 변경 이력:
+ * - 2026-11-24 {@link ObjectKind#PROGRAM_UNIT}: 문법에 없는 저장 단위의 CREATE 뒤 그 스키마만 다시 읽기 위해(앱 변경 181,
+ *   docs/chromite/swing-query-commands.md "저장 루틴 DDL 뒤 (앱 변경 181)")
  */
 public record SQLObjectOperation(
     @NotNull Operation operation,
@@ -51,6 +55,11 @@ public record SQLObjectOperation(
         PROCEDURE,
         SEQUENCE,
         SYNONYM,
+        /**
+         * A stored program unit of a kind the SQL grammar does not have (package, type, typeset, trigger): like the
+         * named kinds above it is in the container its qualifier names, unlike {@link #OTHER}
+         */
+        PROGRAM_UNIT,
         OTHER
     }
 }

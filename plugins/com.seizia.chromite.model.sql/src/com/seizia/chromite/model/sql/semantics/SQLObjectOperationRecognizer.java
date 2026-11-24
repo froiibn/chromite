@@ -46,6 +46,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Recognizes database object operations from DDL syntax trees produced by the LSM parser.
@@ -55,6 +57,12 @@ import java.util.Set;
  *   PROCEDURE, TRIGGER 등)도 찾도록. SWT 편집기는 이 클래스로 그것을 찾았다 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-17 방언의 문장 접두어({@link SQLDialect#getStatementPrefixLength})를 뺀 본문을 읽음: 접두어가 있는 DROP을 DROP으로 찾고
  *   (실행 전 확인), 접두어가 있는 DDL 뒤에도 Object Explorer를 새로 고침(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-24 본문을 읽지 못한 프로시저·함수의 CREATE/ALTER도 머리의 이름으로 찾음({@link #recognizeRoutineHead}). 전에는 오류가 하나라도
+ *   있으면 아무것도 찾지 않아, 쿼리 창에서 고쳐 실행한 Oracle·SQL Server 루틴의 DDL 보기가 실행 전 정의를 보였다
+ *   (앱 변경 181, docs/chromite/swing-query-commands.md "DDL 뒤 탐색기 갱신")
+ * - 2026-11-24 문법에 없는 저장 단위(패키지·형식·Altibase 타입세트·트리거)의 CREATE는 글의 머리에서 이름을 읽음({@link #recognizeStoredUnitHead}).
+ *   Swing 쿼리 창에만 있던 Oracle 전용 대체 경로를 이것으로 바꿔 Altibase도 같은 길을 탄다. 문법이 읽은 CREATE TRIGGER도 찾음
+ *   ({@link #createTriggerOperation}, 전에는 인식하지 않아 Altibase 트리거를 고친 뒤 DDL 보기가 옛 본문이었다)(앱 변경 181)
  */
 public final class SQLObjectOperationRecognizer {
 
@@ -70,6 +78,18 @@ public final class SQLObjectOperationRecognizer {
         STMKnownRuleNames.dropNamedObjectStatement,
         STMKnownRuleNames.dropCatalogDatabaseStatement
     );
+
+    // One part of an object name: quoted ("", ``, []) or a plain identifier
+    private static final String NAME = "(?:\"[^\"]+\"|`[^`]+`|\\[[^\\]]+\\]|[\\p{L}_][\\p{L}\\p{N}_$#@]*)"; //$NON-NLS-1$
+    private static final Pattern NAME_PART = Pattern.compile(NAME);
+
+    // The head of a CREATE of a stored program unit after leading comments (recognizeStoredUnitHead)
+    private static final Pattern STORED_UNIT_HEAD = Pattern.compile(
+        "(?:\\s+|--[^\\n]*(?:\\n|$)|/\\*.*?\\*/)*CREATE\\s+(?:OR\\s+(?:REPLACE|ALTER)\\s+)?(?:(?:NO\\s+)?FORCE\\s+)?" //$NON-NLS-1$
+            + "(?:(?:EDITIONABLE|NONEDITIONABLE|EDITIONING)\\s+)*" //$NON-NLS-1$
+            + "(?<kind>PACKAGE\\s+BODY|TYPE\\s+BODY|PACKAGE|TYPESET|TYPE|PROCEDURE|FUNCTION|TRIGGER|MATERIALIZED\\s+VIEW|VIEW)\\s+" //$NON-NLS-1$
+            + "(?:IF\\s+NOT\\s+EXISTS\\s+)?(?<name>" + NAME + "(?:\\s*\\.\\s*" + NAME + "){0,2})", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private SQLObjectOperationRecognizer() {
     }
@@ -164,10 +184,97 @@ public final class SQLObjectOperationRecognizer {
     ) {
         RecognitionErrorListener errorListener = new RecognitionErrorListener();
         STMTreeNode tree = analyzer.parseSqlQueryTree(STMSource.fromString(queryText), errorListener);
-        if (tree == null || errorListener.hasErrors) {
+        if (tree == null) {
             return List.of();
         }
+        if (errorListener.hasErrors || hasErrors(tree)) {
+            List<SQLObjectOperation> operations = recognizeRoutineHead(tree);
+            return operations.isEmpty() ? recognizeStoredUnitHead(queryText) : operations;
+        }
         return recognizeTree(tree);
+    }
+
+    /**
+     * The stored program unit a CREATE statement names in its head, read from the text, when the grammar does not know
+     * the kind or cannot read the head: packages and their bodies, types and type bodies, Altibase typesets, triggers
+     * (Oracle, Altibase), and procedures, functions and views behind modifiers the grammar does not read
+     * ({@code EDITIONABLE}, {@code FORCE}). The grammar has no such kinds (and no tokens for {@code PACKAGE},
+     * {@code BODY}, {@code TYPESET}); its routine modifiers take any word before the routine kind, so adding them there
+     * would change how other statements parse. Reading only the head is enough here, as in {@link #recognizeRoutineHead}:
+     * the statement ran, and only the container of the named unit is wanted.
+     */
+    @NotNull
+    private static List<SQLObjectOperation> recognizeStoredUnitHead(@NotNull String queryText) {
+        Matcher matcher = STORED_UNIT_HEAD.matcher(queryText);
+        if (!matcher.lookingAt()) {
+            return List.of();
+        }
+        String kind = matcher.group("kind").toUpperCase(Locale.ENGLISH);
+        SQLObjectOperation.ObjectKind objectKind;
+        if (kind.equals("PROCEDURE")) {
+            objectKind = SQLObjectOperation.ObjectKind.PROCEDURE;
+        } else if (kind.equals("FUNCTION")) {
+            objectKind = SQLObjectOperation.ObjectKind.FUNCTION;
+        } else if (kind.endsWith("VIEW")) {
+            objectKind = SQLObjectOperation.ObjectKind.VIEW;
+        } else {
+            objectKind = SQLObjectOperation.ObjectKind.PROGRAM_UNIT;
+        }
+        List<String> nameParts = new ArrayList<>();
+        Matcher part = NAME_PART.matcher(matcher.group("name"));
+        while (part.find()) {
+            nameParts.add(part.group());
+        }
+        return List.of(new SQLObjectOperation(SQLObjectOperation.Operation.CREATE, objectKind, nameParts));
+    }
+
+    /**
+     * The routine a CREATE or ALTER of a procedure or function names in its head, when the rest of the statement does
+     * not parse.
+     * <p>
+     * The grammar reads few routine bodies to the end: PL/SQL declarations, T-SQL statements after
+     * {@code SET NOCOUNT ON;}, and the {@code ;} that ends an Oracle or Altibase block (the query window keeps it in the
+     * statement) are left as errors. Like {@link #isDropStatement}, errors after the head do not matter: the statement ran,
+     * and the routine it made or changed is the one its head names. Without this a query window that ran
+     * {@code CREATE OR REPLACE PROCEDURE} found no object, and Object Explorer and the model kept the old definition
+     * (View DDL, Script as and Modify showed the source from before the run).
+     */
+    @NotNull
+    private static List<SQLObjectOperation> recognizeRoutineHead(@NotNull STMTreeNode root) {
+        if (root.getNodeName().equals(STMKnownRuleNames.sqlQueries) &&
+            root.findChildrenOfName(STMKnownRuleNames.sqlQuery).size() != 1) {
+            return List.of();
+        }
+        STMTreeNode schemaStatement = unwrapSchemaStatement(root);
+        STMTreeNode statement = schemaStatement == null ? null : schemaStatement.findFirstNonErrorChild();
+        if (statement == null) {
+            return List.of();
+        }
+        if (statement.getNodeName().equals(STMKnownRuleNames.createTriggerStatement)) {
+            SQLObjectOperation trigger = createTriggerOperation(statement);
+            return trigger == null ? List.of() : List.of(trigger);
+        }
+        SQLObjectOperation.Operation operation;
+        STMTreeNode kindNode;
+        if (statement.getNodeName().equals(STMKnownRuleNames.createNamedObjectStatement)) {
+            operation = SQLObjectOperation.Operation.CREATE;
+            kindNode = statement.findFirstChildOfName(STMKnownRuleNames.createObjectKind);
+        } else if (statement.getNodeName().equals(STMKnownRuleNames.alterNamedObjectStatement)) {
+            operation = SQLObjectOperation.Operation.ALTER;
+            kindNode = statement.findFirstChildOfName(STMKnownRuleNames.alterObjectKind);
+        } else {
+            return List.of();
+        }
+        STMTreeNode nameNode = statement.findFirstChildOfName(STMKnownRuleNames.qualifiedName);
+        if (kindNode == null || nameNode == null || hasErrors(kindNode) || hasErrors(nameNode)) {
+            return List.of();
+        }
+        SQLObjectOperation.ObjectKind objectKind = getObjectKind(kindNode);
+        if (objectKind != SQLObjectOperation.ObjectKind.PROCEDURE && objectKind != SQLObjectOperation.ObjectKind.FUNCTION) {
+            return List.of();
+        }
+        List<String> nameParts = getNameParts(nameNode);
+        return nameParts.isEmpty() ? List.of() : List.of(new SQLObjectOperation(operation, objectKind, nameParts));
     }
 
     @NotNull
@@ -263,6 +370,9 @@ public final class SQLObjectOperationRecognizer {
         }
         if (statement.getNodeName().equals(STMKnownRuleNames.createIndexStatement)) {
             return createIndexOperation(statement, SQLObjectOperation.Operation.CREATE);
+        }
+        if (statement.getNodeName().equals(STMKnownRuleNames.createTriggerStatement)) {
+            return createTriggerOperation(statement);
         }
         if (statement.getNodeName().equals(STMKnownRuleNames.createNamedObjectStatement)) {
             return createNamedOperation(
@@ -368,6 +478,31 @@ public final class SQLObjectOperationRecognizer {
         }
         return indexName.isEmpty() ? null :
             new SQLObjectOperation(operation, SQLObjectOperation.ObjectKind.INDEX, indexName);
+    }
+
+    /**
+     * A trigger the statement creates, in the container of its name, or of its table when the name has no qualifier
+     * (PostgreSQL trigger names never have one; the trigger is in the table's schema). Before 2026-11-24 a CREATE
+     * TRIGGER was not recognized at all, so nothing was read again after it.
+     */
+    @Nullable
+    private static SQLObjectOperation createTriggerOperation(@NotNull STMTreeNode statement) {
+        STMTreeNode nameNode = statement.findFirstChildOfName(STMKnownRuleNames.qualifiedName);
+        if (nameNode == null || hasErrors(nameNode)) {
+            return null;
+        }
+        List<String> nameParts = getNameParts(nameNode);
+        if (nameParts.size() == 1) {
+            STMTreeNode tableNode = findDescendant(statement, STMKnownRuleNames.tableName);
+            List<String> tableParts = tableNode == null || hasErrors(tableNode) ? List.of() : getNameParts(tableNode);
+            if (tableParts.size() > 1) {
+                List<String> qualified = new ArrayList<>(tableParts.subList(0, tableParts.size() - 1));
+                qualified.add(nameParts.getFirst());
+                nameParts = qualified;
+            }
+        }
+        return nameParts.isEmpty() ? null :
+            new SQLObjectOperation(SQLObjectOperation.Operation.CREATE, SQLObjectOperation.ObjectKind.PROGRAM_UNIT, nameParts);
     }
 
     @Nullable

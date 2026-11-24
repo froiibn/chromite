@@ -26,6 +26,8 @@ import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
  * 변경 이력:
  * - 2026-11-07 {@link #dropTriggerStatement}: 쿼리 창의 DROP 확인이 DROP TRIGGER도 찾도록
  *   ({@code SQLObjectOperationRecognizer.isDropStatement}, docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-24 {@link #createTriggerStatement}: 쿼리 창이 CREATE TRIGGER 뒤에 그 스키마를 다시 읽도록
+ *   ({@code SQLObjectOperationRecognizer}, 앱 변경 181, docs/chromite/swing-query-commands.md)
  */
 public class STMKnownRuleNames {
     // root rule for script
@@ -319,6 +321,7 @@ public class STMKnownRuleNames {
     public static final String createIndexStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_createIndexStatement];
     public static final String createNamedObjectStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_createNamedObjectStatement];
     public static final String createObjectKind = SQLStandardParser.ruleNames[SQLStandardParser.RULE_createObjectKind];
+    public static final String createTriggerStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_createTriggerStatement];
     public static final String alterNamedObjectStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_alterNamedObjectStatement];
     public static final String alterObjectKind = SQLStandardParser.ruleNames[SQLStandardParser.RULE_alterObjectKind];
     public static final String dropNamedObjectStatement = SQLStandardParser.ruleNames[SQLStandardParser.RULE_dropNamedObjectStatement];
