@@ -1452,6 +1452,128 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
 
 - upstream에는 없다. 인터페이스 둘, 유지 관리 동작 셋, 대화상자 하나, "New …" 항목의 확장 틀.
 
+## 저장 루틴의 문장 나누기 (2026-11-24, 앱 변경 182)
+
+### 보고와 재현
+
+앱 변경 181([swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 뒤 (앱 변경 181)")이 Altibase 7.3에서 본 두 결함을 사용자가 고치라고
+했다("altibase는 검증 필요없고 샤드스피어 결함은고친다"). 재현과 확인은 ShardSphere 일반 서버(5.1.9)에서 했다. 그 연결의 방언도
+`AltibaseSQLDialect`다(앱 안에서 연결 방언의 클래스를 읽음). 시험 개체는 로그인 스키마의 `CHR_RTE_*`만 쓰고 끝에 모두 지웠다.
+
+- **선언부가 있는 루틴:** `CREATE OR REPLACE PROCEDURE … AS V_A INTEGER := 1; BEGIN … END;`를 쿼리 창에서 F5로 실행하면 쿼리 관리자에 보낸 문장이
+  `CREATE … AS⏎  V_A INTEGER := 1` 하나이고, 서버가 200705 `SQL syntax error … line 2: parse error`를 낸다. 창은 오류로 보인다("쿼리가 완료되었지만
+  오류가 있습니다."). DDL 보기 글을 붙여도, 선언부가 있는 트리거(`FOR EACH ROW AS V_N INTEGER := 7; BEGIN …`)도 같다.
+- **패키지의 DDL 보기 글:** 첫 실행은 된다. 보낸 머리는 `-- Package specification … END`로 `;`가 없고, 서버는 그 글을 그대로 원본으로 둔다.
+  다시 연 DDL 보기 글은 머리 주석과 경고 줄이 두 벌이고 머리가 `END`로 끝난다. 그 글을 다시 실행하면 머리와 본문이 한 문장으로 가서
+  200705 `line 12: missing or invalid syntax`가 난다.
+- 서버의 사실(앱 밖 JDBC로 한 문장씩): 프로시저·함수(선언부 포함), 타입세트, 패키지 머리·본문, `AS` 선언부가 있는 트리거를 모두 받는다.
+  익명 블록(`DECLARE … BEGIN … END`)도 받는다. `GET_DDL`은 이 종류를 주지 않아 DDL 보기는 카탈로그 원본 앞에 경고 줄을 붙인다(위 "작업 정의 보기").
+
+### 근본 원인
+
+- **나누기:** 쿼리 창과 다른 모든 스크립트 나누기는 `SQLScriptParser`가 방언의 블록 규칙으로 한다. 보고는 "Altibase 방언의 블록 머리 낱말에
+  Oracle과 달리 `AS`·`IS`가 없다"였으나 틀렸다. 두 방언 모두 블록 머리 낱말은 `DECLARE`, `PACKAGE`이고 `AS`·`IS`는 안쪽 블록 접두어다.
+  Oracle이 루틴 선언부를 지키는 것은 건너뛸 토큰 조건 `BLOCK_HEADER`다(`OracleSQLDialect.makeDialectSkipTokenPredicatesImpl`:
+  `CREATE [OR REPLACE] [EDITIONABLE] FUNCTION|PROCEDURE` 뒤의 `AS|IS`가 머리 블록을 열고, 다음 `BEGIN`이 닫는다). Altibase 방언에는 그 조건이 없었다.
+  대신 `SKIP_SUFFIX_TERM` 조건이 `이름 형식;`, `);`, `RETURN 형식;`으로 끝나는 `;`만 건너뛰어, `V_N INTEGER;`는 넘어가고 `:= 1;`, 커서,
+  `EXCEPTION`에서 나뉘었다. 트리거에는 조건이 없었다.
+- **`END` 뒤의 `;`:** Oracle 방언은 `isDelimiterAfterBlock() = true`로 블록을 끝내는 `;`를 문장에 남기고, Altibase 방언은 지웠다. 서버는 받은 글을
+  원본(`SYS_PROC_PARSE_`, `SYS_PACKAGE_PARSE_`)으로 두므로 쿼리 창이 만든 패키지 머리는 `END`로 끝났고, 머리와 본문을 차례로 두는 DDL 글
+  (`AltibasePackage`)에 둘 사이의 구분자가 없었다.
+- **늘어나는 주석:** 서버는 `CREATE` 앞의 주석도 원본에 둔다. 모델은 DDL 글 앞에 자기 주석(경고 줄, 패키지의 `-- Package specification`·
+  `-- Package body`)을 붙이므로, DDL 보기 글을 실행할 때마다 그 줄이 한 벌씩 늘었다(프로시저·함수·트리거·타입세트는 경고 줄).
+
+### 고친 것
+
+| 위치 | 바꾼 것 |
+|---|---|
+| `AltibaseSQLDialect.makeDialectSkipTokenPredicatesImpl` | Oracle과 같은 `BLOCK_HEADER` 조건: `CREATE [OR REPLACE] FUNCTION\|PROCEDURE\|TRIGGER` 뒤의 `AS\|IS`. 외부 루틴(`AS LANGUAGE C … LIBRARY …;`)은 `BEGIN`이 없으므로 `END_BLOCK` 조건(`AS\|IS LANGUAGE`)이 그 머리를 닫는다 |
+| `AltibaseSQLDialect.isDelimiterAfterBlock` | `true`(Oracle과 같음): `END;`의 `;`가 문장에 남는다 |
+| `AltibasePackage.terminated` | DDL 글의 머리가 `;`로 끝나지 않으면 붙인다(전 빌드가 `END`까지만 보내 저장된 패키지도 두 문장으로 나뉨) |
+| `AltibaseMetaModel.withoutGeneratedHeader`, `AltibaseConstants.PACKAGE_SPEC_HEADER`·`PACKAGE_BODY_HEADER` | 카탈로그 원본 맨 앞의, 이 모델이 붙이는 주석 줄(경고, 머리·본문 이름)을 한 번만 보인다 |
+
+- **트리거를 더한 이유:** 이 계열의 트리거 본문은 `AS|IS 선언부 BEGIN … END`다(Oracle 트리거는 `DECLARE`라 머리 낱말로 된다).
+  `REFERENCING NEW ROW AS 별칭`의 `AS`도 머리를 여는데, 같은 `BEGIN`이 닫으므로 결과는 같다(아래 표 c06·c07).
+- **고르지 않은 길:** 보고가 제안한 블록 머리 낱말에 `AS`·`IS` 더하기. 낱말 규칙은 문장 종류를 모르므로 `CREATE VIEW … AS`, 별칭, `CAST(… AS …)`,
+  `IS NULL`, 스트림 DDL의 `AS`/`IS`에서도 블록을 열고, `BEGIN`이 없는 그 문장들은 다음 `;`에서 나뉘지 않는다.
+- **주석을 보내는 쪽은 그대로:** 창은 문장 앞의 주석을 문장과 함께 보낸다(모든 방언 공통). 서버가 사용자 주석을 원본에 두는 것은 바른 동작이라,
+  보이는 쪽에서 모델이 만든 줄만 한 번으로 줄였다.
+
+### 나누기 표
+
+쿼리 창의 나누기(`SqlQueryCommands.extractElements`, 창의 코드 그대로)로 센 문장 수. 전 = `origin/command` 96c492fe63 빌드, 후 = 이 브랜치 빌드,
+둘 다 ShardSphere 연결. "서버"는 후 빌드에서 F5로 실행한 결과(쿼리 관리자에 보낸 사용자 문장 수, 모두 OK)다. 모든 경우 끝에 `SELECT 'after-…' FROM DUAL;`이 하나 더 있다.
+
+| 경우 | 전 | 후 | 서버 (후, F5) |
+|---|---|---|---|
+| c01 프로시저, 선언부 없음, `AS` | 2 (`END`에서 `;` 빠짐) | 2 (`END;`) | 2, 호출 결과 새 값 |
+| c02 프로시저, `AS` 선언부(`:= 1`, `'x;y'`) | 4 | 2 | 2, 호출 `P2-v1 2x;y` |
+| c03 프로시저 `IS`: 주석·문자열 속 `; BEGIN END AS IS`, 커서, `EXCEPTION`, 안쪽 `BEGIN … END`, `IF`, `FOR … LOOP`, `CASE … END CASE`, `WHILE`, 예외부 | 5 | 2 | 2, 호출 `P3-v1 5` |
+| c04 함수, `AS` 선언부 | 3 | 2 | 2, `F1-v1 6` |
+| c05 함수, 선언부 없음, `IS` | 2 | 2 | 2, `F2-v1` |
+| c06 트리거, 선언부 없음(`REFERENCING … AS NEW_R`) | 2 | 2 | 2, INSERT 뒤 로그 `TRG1-v1 10` |
+| c07 트리거, `AS` 선언부 | 3 | 2 | 2, 로그 `TRG2-v1 17` |
+| c08 타입세트 | 2 | 2 | 2 |
+| c09 패키지 머리 + 본문(머리에 변수, 본문에 선언부) | 3 | 3 | 3 |
+| c10 익명 블록 `DECLARE … END` | 2 | 2 (`END;`) | 2 (서버가 `END;`도 받음) |
+| c11 `CREATE TABLE … AS SELECT`, `CREATE VIEW … AS SELECT … CAST(… AS …) … IS NOT NULL`, `SELECT a AS b … IS NULL`, `SELECT CAST(… AS INTEGER)`, `CREATE MATERIALIZED VIEW … AS` | 6 | 6 | 6 |
+| c12 스트림 DDL: `CREATE STREAM TABLE`, `CREATE CONTINUOUS STREAM TABLE … AS`, `CREATE CONTINUOUS TABLE … IS`, `CREATE CONTINUOUS QUERY … AS INSERT …` | 5 | 5 | 5 |
+| c13 루틴 둘(프로시저 + 함수, 둘 다 선언부), `/` 없음 | 5 | 3 | 3 |
+| c14 같은 둘, 사이와 끝에 `/` 줄 | 5 | 3 | 3 |
+| c15 한 줄 프로시저(선언부) | 3 | 2 | 2 |
+| c16 외부 프로시저 `AS LANGUAGE C NAME … LIBRARY …;`(나누기만, 실행하지 않음) | 2 | 2 | — |
+| c17 `ALTER PROCEDURE … COMPILE` | 2 | 2 | 2 |
+| c13에서 첫 루틴만 선택하고 F5 | 2 | 1 | — |
+| c13 둘째 루틴 선언부에 커서, Ctrl+Enter(커서 위치 문장) | 머리와 첫 선언까지 | 둘째 루틴 전체 | — |
+| c13 첫 루틴 선언부에 커서 | 머리와 첫 선언까지 | 첫 루틴 전체 | — |
+| c14 둘째 루틴 본문(`RETURN V_R`)에 커서 | `BEGIN RETURN V_R; END` | 둘째 루틴 전체 | — |
+| c14 첫 루틴만 선택하고 F5 | 2 | 1 | — |
+| c03 예외부 안(`RAISE E_BAD`)에 커서 | `BEGIN … END`(본문만) | 루틴 전체 | — |
+
+연결 새로 고침 뒤(c02 나누기, c13 F5)와 연결을 끊고 다시 연결한 뒤(c03·c11 나누기, c07 F5)에도 같았다.
+
+### 다른 호출자 (코드 읽기)
+
+모두 연결의 방언으로 같은 `SQLScriptParser`를 쓰므로(조건은 방언 객체의 `getSkipTokenPredicates`, `isDelimiterAfterBlock`) 같은 나누기를 받는다.
+
+| 호출자 | 길 |
+|---|---|
+| 쿼리 창 F5·선택·Ctrl+Enter·커서부터·이전·다음 문장, 현재 문장 표시 | `SqlQueryCommands.extractElements` / `getActiveStatement` / `selectStatement` → `SQLScriptBatches`, `SQLScriptParser.extractActiveQuery`·`extractNextQuery` (위 표로 실행 확인) |
+| 실행 안전 확인(위험한 문) | `SqlExecutionSafety` → `SQLScriptParser.extractScriptQueries` |
+| DDL 뒤 탐색기 갱신(181) | `SQLObjectOperationRecognizer` → `extractScriptQueries` |
+| 스크립트 실행 작업 | `SQLScriptExecuteHandler` → `SQLScriptParser.parseScript(dataSource, …)` |
+| Agent의 실행 도구, AI 명령 | `QueryTools`, `SQLCommandAI` → `parseScript(dataSource, …)` |
+| 데이터 내보내기의 질의 | `DataExportWizard.canExportQuery` → `parseScript(dataSource, …).size() == 1`(선언부 루틴이 이제 1) |
+| 자동 완성, 개체로 가기 | `SqlCompletionAnalysis`, `SqlObjectNavigation` → `extractQueryAtPos` |
+
+연결이 없는 창(`BasicSQLDialect`)과 `AgentSqlClassifier`의 연결 없는 분류는 이 방언을 쓰지 않아 그대로다.
+
+### 181 길 (후 빌드, ShardSphere, 종류마다)
+
+DDL 보기 → 글 전체 복사(창의 전송 처리기, 사설 클립보드) → 새 쿼리 창에 붙임 → 고침 → F5 → 다시 연 DDL 보기·Script as ▸ CREATE·Modify → Modify에서 고침 → F5 → DDL 보기.
+
+| 종류 | DDL 보기 글 F5 | 다시 연 DDL 보기·CREATE | Modify → F5 → DDL 보기 | 호출 |
+|---|---|---|---|---|
+| 프로시저(선언부, JDBC로 만든 `CHR_RTE_P0`) | 1문장 OK | 새 본문, 경고 줄 하나 | 새 본문 | `EXEC` 뒤 로그 `P0-v2 2` |
+| 함수(선언부) | 1문장 OK | 새 본문 | 새 본문 | `F1-v3 4` |
+| 트리거(`AS` 선언부) | 1문장 OK | 새 본문 | 새 본문 | INSERT 뒤 로그 `TRG0-v2 2` |
+| 타입세트 | 1문장 OK | 새 본문(`VARCHAR(30)`) | 새 본문(`VARCHAR(40)`) | — |
+| 패키지 | 2문장 OK, 다시 연 글로 세 번 더 실행해도 2문장 OK | 머리 `END;`, 주석 한 벌(전 빌드가 망가뜨린 원본도 바로 보임) | Modify는 패키지에서 꺼져 있음(이 변경과 무관) | `GET_V` = `PKG0-v4` |
+| 컴파일 오류(선언부 형식을 `INTEGERX`로) | 오류 201032, 상태 줄 "쿼리가 완료되었지만 오류가 있습니다." | 옛 본문 그대로, `STATUS` 0 | — | — |
+
+전 빌드에서는 프로시저 글이 200705, 패키지 글의 두 번째 실행이 200705였다(캡처 `shots\before\`).
+
+### Oracle 방언 (보고만, 바꾸지 않음)
+
+- 외부 루틴(`AS LANGUAGE JAVA NAME '…';`, `AS LANGUAGE C …`)은 Oracle의 `BLOCK_HEADER`가 연 머리를 닫을 `BEGIN`이 없어, 코드로 보면 뒤 문장이 그 문장에
+  붙는다. 돌려 보지 않았다.
+
+### 확인하지 않은 것
+
+- Altibase 7.3은 돌리지 않았다(사용자 결정, 같은 코드). Altibase 7.3의 `DBMS_METADATA` 길(`GET_DDL`이 원본을 줌)에서는 `withoutGeneratedHeader`가 쓰이지
+  않아 패키지 머리·본문 이름 줄이 늘어날 수 있다(코드로 판단).
+- 외부 루틴은 나누기만 봤다(서버에 라이브러리가 없음, 실행하지 않음).
+- 회귀 테스트는 만들거나 실행하지 않았다(요청 없음).
 ## 생성한 스크립트의 행 수 제한 (2026-11-24, 앱 변경 #183)
 
 "상위 1000개 행 선택"(탐색기·ERD·데이터베이스 복사)과 데이터 찾기의 "행 열기"가 Altibase 계열에서 제한 없는 SELECT를 열었다. 계열 메타 모델이 행 수
@@ -1511,4 +1633,8 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
   항목의 테이블을 `GenericTableBase`로(구체화된 뷰 인덱스의 형 변환 오류)(앱 변경 #158 2항), 위 "테이블스페이스의 테이블과 인덱스".
 - 2026-11-22 서버 확장의 스키마 개체 목록 자리(`getSchemaObjects`, `AltibaseDataSource.getSchemaExtensionChildren`, `AltibaseSchema.getChildren`·`getChild`)와
   스키마 새로 고침 알림(`schemaRefreshed`)(앱 변경 #163, `chromite/shardsphere-stream-completion`), 위 "서버 확장".
+- 2026-11-24 저장 루틴의 문장 나누기를 Oracle 방언과 같은 장치로(`BLOCK_HEADER`·`END_BLOCK` 조건, `isDelimiterAfterBlock`), 패키지 DDL 글의 머리를 `;`로 끝냄,
+  카탈로그 원본 앞의 모델 주석 줄을 한 번만(앱 변경 182, `chromite/shardsphere-routine-edit`), 위 "저장 루틴의 문장 나누기". 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Altibase 계열 연결의 모든 스크립트 나누기(쿼리 창, 스크립트 실행, Agent 실행 도구, 내보내기 질의 판단), `END`로 끝나는 문장에 남는 `;`,
+  DDL 보기·Script as·Modify의 카탈로그 원본 글.
 - 2026-11-24 생성한 스크립트의 행 수 제한 `LIMIT n`(`AltibaseMetaModel`, `SCRIPT_ROW_LIMIT`, 앱 변경 #183, `chromite/select-top-row-limit`), 위 "생성한 스크립트의 행 수 제한".

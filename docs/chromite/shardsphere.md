@@ -1303,6 +1303,24 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
   `V$STREAM_TIMESTAMP` 0 → 0, `SYS_VIEWS_` 41 → 41, `SYS_VIEW_PARSE_` 1056 → 1056, `SYS_JOBS_` 0 → 0, `SYS_PROCEDURES_` 47 → 47. `SYS_TABLES_` 164 → 167,
   `SYS_INDICES_` 183 → 185, `SYS_COLUMNS_` 1454 → 1460은 같은 시간에 다른 작업이 만든 그 작업의 시험용 개체(`CHR_QDC_*`)이고, 그것을 빼면 164·183·1454로 같다.
 
+## 저장 루틴을 쿼리 창에서 고쳐 실행 (2026-11-24, 앱 변경 182)
+
+일반 서버에서 선언부가 있는 프로시저·함수·트리거를 쿼리 창(DDL 보기 글, Modify, 직접 쓴 글)에서 실행하면 첫 선언의 `;`에서 문장이 나뉘어 서버가 구문 오류를 냈고,
+패키지의 DDL 보기 글은 두 번째 실행에서 머리와 본문이 한 문장이 되었다. 원인과 고친 것, 나누기 표, 종류별 확인은 계열 공통 코드라
+[altibase.md](altibase.md) "저장 루틴의 문장 나누기"에 있다.
+
+- **이 서버의 사실(앱 밖 JDBC, 한 문장씩):** 프로시저·함수(선언부), 타입세트, 패키지 머리·본문, `AS` 선언부 트리거, 익명 블록을 받는다. `END` 뒤의 `;`는
+  있어도 없어도 받고, 받은 글(문장 앞의 주석 포함)을 그대로 원본으로 둔다. 스트림 DDL(`CREATE CONTINUOUS … AS|IS …`)은 고친 뒤에도 문장마다 나뉜다.
+- **벤더 서버에 쓴 것(사용자 허락 2026-11-17, 일반 서버만, 로그인 스키마의 `CHR_RTE_*`만):** 표 3(로그·대상·`AS SELECT`), 뷰 1, 구체화된 뷰 1, 프로시저 7,
+  함수 4, 트리거 3, 타입세트 2, 패키지 2(머리·본문), 스트림 테이블 1, 연속 스트림 테이블 1, 연속 테이블 1, 연속 쿼리 1(모두 사용 안 함), 익명 블록 2,
+  `ALTER PROCEDURE … COMPILE` 1, 지어낸 행(대상 표 2행, 로그 표는 프로시저·트리거가 넣은 행). 서버 속성·재기동·`DBMS_SHARD`·GEMINI·`NODE[...]`/`SHARD` 문장은 없다.
+  문장 목록은 저장소 밖 `probe\writes-vendor.log`.
+- **지운 순서:** 트리거 → 패키지 → 프로시저·함수 → 타입세트 → 연속 쿼리 → 연속 테이블 → 연속 스트림 테이블(`DROP CONTINUOUS TABLE`) → 스트림 테이블(`DROP TABLE`) →
+  구체화된 뷰 → 뷰 → 표. `DROP CONTINUOUS STREAM TABLE`·`DROP STREAM TABLE`은 이 서버의 문법이 아니다(200705).
+- **확인:** `SYS_TABLES_`·`SYS_PROCEDURES_`·`SYS_TRIGGERS_`·`SYS_PACKAGES_`·`SYS_MATERIALIZED_VIEWS_`에 `CHR_RTE%` 0행, 짝 없는 `SYS_CONTINUOUS_TABLES_`·`SYS_PROC_PARSE_` 0행.
+  행 수(전 → 후): `SYS_PROCEDURES_` 47 → 47, `SYS_PROC_PARAS_` 143 → 143, `SYS_PROC_PARSE_` 424 → 424, `SYS_TRIGGERS_` 0 → 0, `SYS_PACKAGES_` 49 → 49,
+  `SYS_PACKAGE_PARSE_` 1545 → 1545. `SYS_TABLES_` 164 → 180, `SYS_VIEWS_` 41 → 47, `SYS_VIEW_PARSE_` 1056 → 1065, `SYS_COLUMNS_` 1454 → 1491은 같은 시간에 다른 작업이
+  만든 그 작업의 시험용 개체(`CHR_TOP_*`, 16행)다.
 ## 상위 1000개 행 선택의 행 수 제한 (2026-11-24, 앱 변경 #183)
 
 - **증상:** "상위 1000개 행 선택"이 `SELECT …⏎FROM 소유자.t;`(제한 없음)를 열었다. 계열 메타 모델(`AltibaseMetaModel`)에 행 수 변환기가 없었다.
@@ -1393,5 +1411,7 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
 - 2026-11-22 스트림 테이블·연속 테이블 이름의 Ctrl+클릭이 "스트림" 노드를 고름(앱 변경 #166, `chromite/nav-list-object`): 모델의 중립 질문
   `DBSNavigatorObjectProvider`, 노드 찾기가 항목 형식 없는 폴더를 읽음, 마우스 올림의 종류 글, Agent 요약에 포함. 일반 서버에 시험용 `CHR_NAV_*`를 만들고 지움.
   위 "목록 객체의 탐색기 노드".
+- 2026-11-24 선언부가 있는 루틴·트리거를 쿼리 창에서 실행할 수 있게, 패키지 DDL 보기 글이 되풀이 실행되게(계열 공통 코드, 앱 변경 182, `chromite/shardsphere-routine-edit`).
+  일반 서버에 시험용 `CHR_RTE_*`를 만들어 확인하고 지움. 위 "저장 루틴을 쿼리 창에서 고쳐 실행".
 - 2026-11-24 "상위 1000개 행 선택"·데이터 찾기가 `LIMIT 1000`을 붙임(계열 공통 코드, 앱 변경 #183, `chromite/select-top-row-limit`). 일반 서버에 시험용 `CHR_TOP_*`를
   만들어 문법과 종류별 결과를 확인하고 지움. 위 "상위 1000개 행 선택의 행 수 제한".
