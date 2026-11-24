@@ -43,6 +43,11 @@ import java.sql.SQLException;
  * - 2026-11-25 {@link #refreshDefaults(DBRProgressMonitor, boolean, boolean)}: 세션을 다시 여는 길(읽기 전용 연결의 Invalidate/Reconnect)은 DB 목록을
  *   다시 읽지 않음. 그 길은 인스턴스의 배타 잠금 아래에 있고, 목록을 쥔 채 그 잠금을 기다리는 스레드와 서로 기다릴 수 있었다(앱 변경 #186,
  *   docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
+ * - 2026-11-25 {@link #setCurrentDatabaseFrom}: 다시 열거나 새로 여는 세션이 현재 DB를 이름으로 받고, 받지 못하면 세션의 실제 DB를 읽음.
+ *   목록에 없는 DB(탐색기 필터)였던 쿼리 창이 Invalidate/Reconnect·끊긴 세션 다시 열기 뒤 그 DB를 보이면서 DB 없이 실행했다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
+ * - 2026-11-25 대체 읽기는 이름만 읽고 DB 목록을 다시 읽지 않음({@code refreshDefaults(monitor, false, false)}, #186의 같은 길). 세션을 다시 여는
+ *   길은 인스턴스의 배타 잠금 아래라 목록 읽기가 목록을 쥔 채 그 잠금을 기다리는 스레드와 서로 기다릴 수 있다(#165·#350과 같은 모양)
  */
 public class MySQLExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<MySQLCatalog, DBSSchema> {
     private static final Log log = Log.getLog(MySQLExecutionContext.class);
@@ -178,6 +183,28 @@ public class MySQLExecutionContext extends JDBCExecutionContext implements DBCEx
         }
 
         return true;
+    }
+
+    /**
+     * Gives this session the current database of another session of the connection (a session opened again by
+     * Invalidate/Reconnect or after it was lost, or a new query window session) by the name that session holds; the
+     * catalog list is not looked at, so a database it does not hold (Object Explorer filter) is kept too. When the
+     * database cannot be set (dropped, no access since), the database name this context holds is read from the session
+     * ({@link #refreshDefaults(DBRProgressMonitor, boolean, boolean)} without the catalog list): a reopened session otherwise still held the name it had
+     * before while it ran without it. A source without a database leaves the session as the server opened it.
+     */
+    void setCurrentDatabaseFrom(@NotNull DBRProgressMonitor monitor, @NotNull MySQLExecutionContext source) throws DBException {
+        String databaseName = source.activeDatabaseName;
+        if (CommonUtils.isEmpty(databaseName)) {
+            return;
+        }
+        try {
+            setCurrentDatabaseName(monitor, databaseName);
+        } catch (DBCException e) {
+            log.warn("Can't set current database '" + databaseName + "': " + e.getMessage());
+            // The name only, not the catalog list (the reopen path, see readCatalogList)
+            refreshDefaults(monitor, false, false);
+        }
     }
 
     boolean setCurrentDatabase(DBRProgressMonitor monitor, MySQLCatalog object) throws DBCException {

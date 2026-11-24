@@ -74,6 +74,11 @@ import java.util.*;
  * DB2 DataSource
  * 
  * @author Denis Forveille
+ *
+ * 변경 이력:
+ * - 2026-11-25 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 현재 스키마를 원본 세션이 가진 이름으로 정함
+ *   ({@link DB2ExecutionContext#setCurrentSchemaFrom}). 목록을 읽지 않았으면 개체가 null이라 아무것도 하지 않아, Invalidate/Reconnect로 다시 연
+ *   세션이 옛 이름을 가진 채 로그인 기본 스키마에 있었다(코드 읽기, docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class DB2DataSource extends JDBCDataSource implements DBCQueryPlanner, DBPAdaptable, DBPObjectStatisticsCollector {
 
@@ -204,7 +209,8 @@ public class DB2DataSource extends JDBCDataSource implements DBCQueryPlanner, DB
         @Nullable JDBCExecutionContext initFrom
     ) throws DBException {
         if (initFrom != null) {
-            ((DB2ExecutionContext) context).setCurrentSchema(monitor, ((DB2ExecutionContext) initFrom).getDefaultSchema());
+            // By name: the schema list may not be read, and Invalidate/Reconnect reopens a session from itself
+            ((DB2ExecutionContext) context).setCurrentSchemaFrom(monitor, (DB2ExecutionContext) initFrom);
         } else {
             ((DB2ExecutionContext) context).refreshDefaults(monitor, true);
         }

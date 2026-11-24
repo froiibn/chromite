@@ -376,6 +376,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   docs/chromite/swing-frontend.md "새 쿼리는 활성 탭의 연결과 DB로")
  * - 2026-11-23 주석만: 도구 막대 설명을 지금 구조에 맞춤. 별도 창도 자기 도구 막대를 갖고(앱 변경 #173), 막대마다 자기 창의 쿼리 창 상태를
  *   보이며 그 창에 적용함(앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-25 창의 자기 세션이 연결과 함께 끝나면(Disconnect, Reconnect) 보이던 DB/스키마를 다음 세션에 줌({@link #keepDefaultsOfEndedSession}).
+ *   전에는 다시 연결한 창이 연결의 기본 DB로 돌아갔다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -574,7 +576,8 @@ final class SqlEditorPanel extends JPanel {
     // Object Explorer containers to read again after DDL of this window's runs
     private final SqlMetadataRefresh metadataRefresh = new SqlMetadataRefresh();
     /**
-     * The default database/schema a restored window had before the restart ({@link QueryWindowRecovery}), applied to its own
+     * The default database/schema a restored window had before the restart ({@link QueryWindowRecovery}), or the window
+     * showed when its own session ended with the connection ({@link #keepDefaultsOfEndedSession}), applied to its own
      * session when the session first opens ({@link #openWindowContext}); null when there is none or it was applied. Guarded
      * by the lock: a run waits until another job has applied it.
      */
@@ -1301,6 +1304,31 @@ final class SqlEditorPanel extends JPanel {
         }
         // A read started by the constructor (connected connection) may have opened the session before the names were set
         refreshSchemas();
+    }
+
+    /**
+     * The window's own session ended with the data source it ran on (Disconnect, Reconnect): keeps the default
+     * database/schema the window showed, so that its next session gets it when it opens ({@link #openWindowContext}), as
+     * after a restart, and the disabled picker shows it meanwhile. Invalidate/Reconnect keeps the data source and reopens
+     * the session from itself, so it does not come here. A window that shared the connection's main context keeps
+     * nothing: that context gets the connection's default again. EDT.
+     *
+     * @param dataSource the data source of the window's connection now, null while disconnected
+     */
+    private void keepDefaultsOfEndedSession(@Nullable DBPDataSource dataSource) {
+        SchemaState state = schemaState;
+        if (state == null || state.dataSource() == dataSource || !windowContext.isOwn(state.context())) {
+            return;
+        }
+        DefaultObjectNames names = getDefaultObjectNames();
+        if (names == null) {
+            return;
+        }
+        synchronized (restoredDefaultsLock) {
+            if (restoredDefaults == null) {
+                restoredDefaults = names;
+            }
+        }
     }
 
     /**
@@ -2922,6 +2950,8 @@ final class SqlEditorPanel extends JPanel {
         refreshOpenTransaction();
         DBPDataSourceContainer container = dataSourceContainer;
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
+        // Every connect and disconnect comes here first (also through refreshSchemas), before a job opens the next session
+        keepDefaultsOfEndedSession(dataSource);
         if (dataSource == null) {
             showAutoCommit(null);
             return;

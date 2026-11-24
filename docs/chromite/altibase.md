@@ -1218,8 +1218,8 @@ Altibase 계열의 일부 서버에만 있는 기능(ShardSphere의 GEMINI·샤�
 
 | 종류 | 앱이 보이는 것 | 처리 |
 |---|---|---|
-| 테이블 | 서버의 `CREATE TABLE`(기본 키·인덱스 문장 포함) 뒤에 사용자 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;` | 보고만: 인덱스 줄은 아래 인덱스와 같은 원인 |
-| 인덱스 | `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`(문장 없음) | 보고만: 카탈로그로 CREATE INDEX를 만들 문장 만들기가 모델에 없다(같은 고침이 아님) |
+| 테이블 | 서버의 `CREATE TABLE`(기본 키·인덱스 문장 포함) 뒤에 사용자 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;` | 보고만: 인덱스 줄은 아래 인덱스와 같은 원인(2026-11-25 고침: 아래 "인덱스 DDL") |
+| 인덱스 | `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`(문장 없음) | 보고만: 카탈로그로 CREATE INDEX를 만들 문장 만들기가 모델에 없다(같은 고침이 아님. 2026-11-25 고침: 아래 "인덱스 DDL") |
 | 큐 | `-- [WARNING] Without DBMS_METADATA …` + `-- Can't generate DDL: table editor not found for …AltibaseQueue`(문장 없음) | 보고만: 큐는 다른 작업이 고치는 중(`AltibaseQueue`). 카탈로그로 쓰려면 `CREATE QUEUE q (n)`의 크기·`FIXED`/`VARIABLE`·`MAXROWS`를 읽어야 한다 |
 | 뷰, 프로시저, 타입세트, 패키지(명세·본문), 테이블 트리거, 시노님 | `-- [WARNING] Without DBMS_METADATA package, the generated DDL may not be correct.` 다음에 카탈로그에서 읽은 바른 문장 | 전부터 카탈로그로 대체(문장은 맞음). 경고 줄은 남김(2026-11-25 고침: 카탈로그 원본 앞에는 경고 줄 없음, 시노님은 사실대로 쓴 경고, 아래 "뷰 DDL의 경고 줄") |
 | 시퀀스 | 앱이 만든 `CREATE SEQUENCE …`(전부터 `GET_DDL`을 쓰지 않음) | 해당 없음 |
@@ -1633,10 +1633,11 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
 ### 남은 것 (보고만)
 
 - **인덱스:** ShardSphere에서 `GET_DDL('INDEX')`가 990001이라 인덱스의 DDL 보기는 경고 주석뿐이고, 테이블 DDL에도 사용자 인덱스의 `CREATE INDEX`가 빠진다
-  (위 "작업 정의 보기"의 표와 같음). 카탈로그로 인덱스 문장을 만드는 코드가 없다.
+  (위 "작업 정의 보기"의 표와 같음). 카탈로그로 인덱스 문장을 만드는 코드가 없다. (2026-11-25 고침, 아래 "인덱스 DDL": 테이블 DDL에 인덱스가
+  빠진다는 것은 틀렸다. 서버의 테이블 글에 이미 있고, 모델이 인덱스마다 경고 주석을 더 붙였다.)
 - **`OR REPLACE` 없이 만든 뷰:** 원본 그대로라 `CREATE VIEW …`다. 붙여 넣어 고쳐 실행하면 서버가 이미 있는 객체로 거절한다. 사용자가 쓴 문장 그대로이므로 고치지 않았다.
 - **테이블 DDL 끝의 `;` 한 줄:** ShardSphere의 `GET_DDL` 글이 `;`로 끝나는데 모델이 `;`를 하나 더 붙여 마지막에 `;`만 있는 줄이 생긴다. 쿼리 창은 빈 문장을
-  버려 두 문장(`CREATE TABLE`, `ALTER TABLE … PRIMARY KEY`)으로 실행된다.
+  버려 두 문장(`CREATE TABLE`, `ALTER TABLE … PRIMARY KEY`)으로 실행된다. (2026-11-25 고침, 아래 "인덱스 DDL")
 
 ### 확인 (2026-11-25, ShardSphere 일반 서버, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어 150 %)
 
@@ -1662,6 +1663,102 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
 
 - 확인하지 않은 것: Altibase 7.3(`GET_DDL`이 뷰 글을 주므로 이 대체 길을 타지 않는다. 그 길의 글에 서버가 둔 앞 주석이 있는지는 보지 않았다),
   패키지·타입세트·함수(같은 `geDDLFromCatalog`, 코드로 판단), 읽기 전용 연결의 테이블 대체 글. 회귀 테스트는 만들거나 실행하지 않았다(요청 없음).
+
+## 인덱스 DDL (2026-11-25)
+
+### 보고와 재현
+
+위 "뷰 DDL의 경고 줄"의 "남은 것" 세 가지를 기준(`origin/command` 4c7a63fa21) 빌드로 재현했다. 시험 개체는 두 서버에 같게 만든 `CHR_IDX_*`(메모리 테이블,
+디스크 테이블, 범위 분할 테이블, `GEOMETRY` 테이블 둘과 그 인덱스 18개)다. ShardSphere에서는 로그인 스키마, Altibase 7.3에서는 SYS 스키마.
+
+| 보고 | 재현 |
+|---|---|
+| ShardSphere 인덱스의 DDL 보기가 경고 주석뿐 | 맞음: 인덱스마다 `-- [WARNING] DBMS_METADATA package is required to have DDL for INDEX.;`. `GET_DDL('INDEX', …)`은 있는 인덱스도 990001 |
+| ShardSphere 테이블 DDL에 사용자 인덱스의 `CREATE INDEX`가 빠짐 | **틀림**: ShardSphere의 `GET_DDL('TABLE')` 글에 기본 키·유일 제약(`ALTER TABLE … ADD … USING INDEX TABLESPACE …`)과 모든 사용자 인덱스의 `CREATE INDEX`가 이미 있다. 대신 그 뒤에 모델이 인덱스마다 위 경고 주석을 하나씩 더 붙였다 |
+| 테이블 DDL 끝에 `;`만 있는 줄 | 맞음: 서버 글이 `;`(와 빈 줄)로 끝나는데 모델이 `;`를 더 붙였다 |
+| `getDDLFromDbmsMetadata`가 예상 밖 `SQLException`을 기록 없이 버림 | 맞음(코드): `SQL_STATE_TOO_LONG`이 아니면 아무것도 하지 않았다. SQLState가 null이면 `NullPointerException`이 catch 밖으로 나갔다 |
+
+**같은 원인, Altibase 7.3:** 7.3의 테이블 글은 제약조건을 `CREATE TABLE` 안에 두고(`PRIMARY KEY`, `CONSTRAINT "CHR_IDX_UQ" UNIQUE (…)`), 모델은 이름이
+`__SYS_`로 시작하지 않는 인덱스를 모두 `GET_DDL('INDEX')`로 붙였다. 이름 있는 제약조건의 인덱스(`CHR_IDX_UQ`, `CHR_IDX_DPK`)가 `CREATE UNIQUE INDEX`로 한 번 더
+나와, 테이블 DDL 글을 테이블을 지운 뒤 쿼리 창에서 실행하면 그 문장이 200780 "Duplicate index name"으로 실패했다(전 빌드, `CHR_IDX_D`에서 재현).
+
+### 근본 원인
+
+- 모델에 인덱스 문장을 만드는 길이 `GET_DDL('INDEX')` 하나뿐이었다. ShardSphere가 그 유형을 거절하면 문장이 없었다.
+- 테이블 글에 덧붙일 인덱스를 "시스템 이름이 아님"으로만 골랐다. 제약조건이 만든 인덱스인지, 서버의 테이블 글이 이미 만드는 인덱스인지는 보지 않았다.
+- 서버 글 끝의 `;`를 보지 않고 늘 `;`를 붙였다.
+
+### 카탈로그가 가진 것 (두 서버 같음)
+
+| 카탈로그 | 쓰는 열 | 문장에서 |
+|---|---|---|
+| `SYS_INDICES_` | `INDEX_TYPE`(1 B-트리, 6 R-트리), `IS_UNIQUE`, `IS_PERS`, `IS_DIRECTKEY`, `TBS_ID`, `IS_PARTITIONED`, `INDEX_TABLE_ID` | `UNIQUE`, `INDEXTYPE IS …`, `SET PERSISTENT=ON`, `DIRECTKEY`, `TABLESPACE`. 분할 테이블의 분할되지 않은 인덱스는 `INDEX_TABLE_ID`가 숨은 테이블(`$GIT_…`)이지만 문장은 보통 인덱스와 같다 |
+| `SYS_INDEX_COLUMNS_` + `SYS_COLUMNS_` | `INDEX_COL_ORDER`, `SORT_ORDER`(A/D), `IS_HIDDEN`, `DEFAULT_VAL` | 키 순서와 `DESC`. 함수 기반 키는 숨은 열(`<인덱스>$IDX1`, `IS_HIDDEN = 'T'`)이고 그 `DEFAULT_VAL`이 식(`UPPER(V)`, `A + 1`) |
+| `SYS_PART_INDICES_` | `PARTITION_TYPE`(0 = LOCAL), `IS_LOCAL_UNIQUE` | `LOCAL`, `LOCALUNIQUE` |
+| `SYS_INDEX_PARTITIONS_` + `SYS_TABLE_PARTITIONS_` | 인덱스 분할 이름, 테이블 분할 이름, `TBS_ID` | `LOCAL (PARTITION … ON … TABLESPACE …)`. 서버가 이름을 지은 분할(`__SYS_PART_IDX_ID_n`)만 있으면 `LOCAL`만 |
+| `SYS_CONSTRAINTS_` | `INDEX_ID` | 제약조건의 인덱스를 테이블 글에서 뺀다 |
+
+카탈로그에 없는 것: 만들 때의 `LOGGING`/`NOLOGGING`, `PARALLEL`, `STORAGE`, `INITRANS`/`MAXTRANS`, `DIRECTKEY MAXSIZE`. 7.3의 `GET_DDL`은 `NOLOGGING FORCE`를
+보이므로 다른 곳에 있으나 읽지 않았다(아래 "남은 것").
+
+### 고친 것
+
+| 위치 | 바꾼 것 |
+|---|---|
+| `AltibaseMetaModel.getIndexDDL` | `GET_DDL`이 빈 글이면 `getIndexDDLFromCatalog`의 문장을 `NO_DBMS_METADATA` 경고 줄 뒤에 둔다. 서버 글 끝의 `;`는 한 번만 |
+| `AltibaseMetaModel.getIndexDDLFromCatalog`(새) | 위 카탈로그로 7.3 `GET_DDL`과 같은 모양의 문장: `CREATE [UNIQUE\|LOCALUNIQUE] INDEX "소유자"."이름" ON "소유자"."테이블" (키 [DESC], …) [LOCAL [(…)]]`, 줄마다 `INDEXTYPE IS …`, `SET PERSISTENT=ON`, `DIRECTKEY`, 분할 인덱스가 아니면 `TABLESPACE "…"`. 모르는 인덱스 유형·분할 유형, 식이 없는 숨은 키, 키가 없음이면 `-- [WARNING] The catalog does not describe this index fully (…), the statement below may not be correct.` 뒤에 문장을 줄마다 `-- `로 막는다(틀린 문장을 실행하게 두지 않음) |
+| `AltibaseMetaModel.getTableDDL` | 서버 글은 `;`가 없을 때만 붙인다. 덧붙이는 인덱스에서 제약조건의 인덱스(`getConstraintIndexNames`)와 서버 글이 이미 `CREATE … INDEX "이름"`으로 만드는 인덱스(`createsIndex`)를 뺀다 |
+| `AltibaseMetaModel.getDDLFromDbmsMetadata` | 990001(`EC_DBMS_METADATA_REFUSED`, 알려진 거절)과 너무 긴 글 말고는 디버그 로그에 객체 유형·오류 코드·SQLState를 남긴다. 드라이버 메시지는 서버 주소를 담을 수 있어 남기지 않는다. SQLState null에도 안전 |
+| `AltibaseConstants.NO_DDL_WITHOUT_DBMS_METADATA` | 글을 사실대로: `-- [WARNING] Neither DBMS_METADATA nor the catalog gave DDL for INDEX.` 이제 카탈로그에도 인덱스가 없을 때만 |
+
+- **R-트리:** 7.3의 `GET_DDL`은 R-트리 인덱스에 `INDEXTYPE`을 쓰지 않는다(`GEOMETRY` 열이라 서버가 고름). 만든 문장은 `INDEXTYPE IS RTREE`를 쓴다. 같은 인덱스가
+  만들어지고(두 서버에서 실행해 확인), 카탈로그의 유형을 그대로 보인다.
+- **서버 이름의 LOCAL 분할:** ShardSphere의 테이블 글은 `PARTITION "__SYS_PART_IDX_ID_n" ON …`으로 서버 이름을 그대로 쓰고, 7.3의 `GET_DDL`은 `LOCAL`만 쓴다.
+  만든 문장은 7.3을 따른다: 다시 만들면 서버가 새 이름을 짓는다.
+- **서버의 테이블 글은 그대로:** ShardSphere 테이블 글의 `DIRECTKEY` 빠짐, 분할 이름 따옴표 없음 같은 차이는 서버의 글이라 고치지 않았다(아래 "남은 것").
+- **고르지 않은 길:** 테이블 글에서 인덱스 문장을 찾지 않고 "ShardSphere면 인덱스를 붙이지 않음" — 제품 이름 검사이고, 서버 글이 인덱스를 갖는지가 실제 조건이다.
+  인덱스 이름을 찾는 글 검사는 두 서버 모두 인덱스 이름을 따옴표로 쓰는 것(위 재현 글)에 기댄다.
+
+### 확인 (2026-11-25, 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어 150 %)
+
+**7.3에서 만든 문장과 서버 글 비교:** 7.3 연결의 18개 인덱스마다 DDL 보기 글(서버의 `GET_DDL`, 경고 줄 없음, 전과 같음)과 같은 인덱스로
+`getIndexDDLFromCatalog`가 만든 글을 비교했다. 15개가 글자까지 같다(B-트리, `DESC`, 따옴표 이름 `"CHR_IDX_i4"`, 함수 기반 둘, `SET PERSISTENT`, `DIRECTKEY`,
+`UNIQUE`, 제약조건 인덱스 둘, 디스크, 이름 지은 LOCAL 분할, 서버 이름 LOCAL 분할, `LOCALUNIQUE`, 분할 테이블의 전역 인덱스).
+다른 셋: `NOLOGGING PARALLEL 2`로 만든 `CHR_IDX_D2`(서버 글에 `NOLOGGING FORCE`, 만든 글에 없음), R-트리 둘(만든 글에만 `INDEXTYPE IS RTREE`).
+
+**ShardSphere 일반 서버 (5.1.9):**
+
+| 확인 | 전 | 후 |
+|---|---|---|
+| 인덱스 DDL 보기(16개 사용자 인덱스, 제약조건 인덱스 둘) | 경고 주석 한 줄 | `NO_DBMS_METADATA` 경고 줄 + 위 모양의 문장. 7.3 서버 글과 같은 모양(위 비교에서 서버 글과 다른 셋 빼고) |
+| 인덱스 왕복: DDL 보기 → 글 복사 → 새 쿼리 창에서 `DROP INDEX` → 붙여 넣은 글 F5(16개 모두) | — | 16개 모두 "쿼리를 실행했습니다", 한 문장씩 |
+| 테이블 DDL 보기(`CHR_IDX_T`·`_D`·`_P`·`_G`) | 서버 글 + 끝의 `;`만 있는 줄 + 인덱스마다 경고 주석 | 서버 글 그대로, 끝의 `;` 줄·경고 없음 |
+| 테이블 왕복: 테이블 DDL 글 → `DROP TABLE` → 붙여 넣은 글 F5(네 테이블) | — | 모든 문장 OK(`CHR_IDX_T` 11문장, 서버 이름 LOCAL 분할을 쓴 `CHR_IDX_P` 포함) |
+| 왕복 뒤 카탈로그(테이블, 인덱스 유형·유일·열 수·영속·DIRECTKEY·테이블스페이스·분할, 키 열·순서·방향·식, 제약조건, 인덱스 분할) | 시작 때 기록 | 한 줄만 다름: `CHR_IDX_DK`의 `IS_DIRECTKEY` T → F. 테이블 왕복이 서버 글을 실행했고 서버 글에 `DIRECTKEY`가 없다(아래 "남은 것"). 인덱스 왕복의 만든 문장은 `DIRECTKEY`를 담아 받아들여졌다 |
+| 연결 다시 연결 뒤, 테이블 노드 새로 고침 뒤 인덱스·테이블 DDL 보기 | — | 같은 글 |
+
+**Altibase 7.3:**
+
+| 확인 | 전 | 후 |
+|---|---|---|
+| 인덱스 DDL 보기(18개) | 서버의 `GET_DDL` 글 | 같음(경고 줄 없음, 만든 문장을 쓰지 않음) |
+| 테이블 DDL의 인덱스 | 제약조건 인덱스(`CHR_IDX_UQ`, `CHR_IDX_DPK`)의 `CREATE UNIQUE INDEX`가 더 있음 | 없음. 나머지 인덱스는 서버의 `GET_DDL` 글 그대로 |
+| 테이블 왕복(네 테이블) | `CHR_IDX_D`: 마지막 문장 200780 "Duplicate index name" | 네 테이블 모든 문장 OK, 카탈로그가 시작 때와 같음 |
+
+- 캡처(저장소 밖, 소유자 이름 가림): `D:\Tools\_scratch\shardsphere-index-ddl\shots\before\`(`B-SS-CHR_IDX_I1`, `B-SS-CHR_IDX_T`, `B-ALTI-…`,
+  `B-ALTI-D-run`), `…\shots\after\`(`A-SS-CHR_IDX_I1`, `A-SS-CHR_IDX_PN`, `A-SS-CHR_IDX_T`, `A-ALTI-…`, `RT-SS-run-…`, `RT-ALTI-run-CHR_IDX_T`).
+- 시험 개체는 두 서버에서 모두 지웠다(`SYS_TABLES_`·`SYS_INDICES_`·`SYS_CONSTRAINTS_`·`SYS_TABLE_PARTITIONS_`·`SYS_INDEX_PARTITIONS_`·`SYS_COLUMNS_`에
+  `CHR_IDX%` 0행).
+- 확인하지 않은 것: 디버그 로그 줄(디버그 수준을 켜지 않음, 코드로 판단), 모르는 인덱스 유형의 주석 처리 길(두 서버에 그런 인덱스가 없음, 코드로 판단),
+  읽기 전용 연결.
+
+- 회귀 테스트는 만들거나 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Altibase 계열의 인덱스·테이블 DDL 보기, Script as ▸ CREATE, 스크립트 복사
+  (테이블 글에서 제약조건 인덱스가 빠짐, 7.3 포함), 같은 `getDDLFromDbmsMetadata`를 쓰는 시노님·복제·작업 등의 DDL(로그만 늘어남).
+
+### 남은 것 (보고만)
+
+- 카탈로그에 없는 만들기 옵션(`NOLOGGING`, `PARALLEL`, `STORAGE`, `DIRECTKEY MAXSIZE`)은 만든 문장에 없다. 7.3의 `GET_DDL`이 `NOLOGGING FORCE`를 어디서 읽는지는 찾지 않았다.
+- ShardSphere의 테이블 글(서버 것)은 `DIRECTKEY` 인덱스의 `DIRECTKEY`를 빼고, LOCAL 분할의 테이블 분할 이름을 따옴표 없이 쓴다.
 
 ## 변경 이력
 
@@ -1728,5 +1825,8 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
   영향받을 수 있는 기능: Altibase 계열의 DDL 보기·Script as·Modify 글(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거, 시노님, 테이블 대체 글).
 - 2026-11-25 뷰 DDL 글의 이름 줄을 공용 코드가 한 번만 보임(`chromite/ddl-name-comment-once`). 7.3 `GET_DDL` 길에서도 늘던 것이 멈춤.
   `withoutGeneratedHeader`를 그대로 둔 이유를 "뷰 DDL의 경고 줄"에 적음. 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 인덱스 DDL을 카탈로그로 만듦(ShardSphere), 테이블 DDL에서 제약조건 인덱스·서버 글에 있는 인덱스를 다시 붙이지 않음(7.3 포함), 테이블 글 끝의
+  `;` 한 번만, `getDDLFromDbmsMetadata`의 예상 밖 `SQLException`을 디버그 로그에(`chromite/shardsphere-index-ddl`), 위 "인덱스 DDL".
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열의 인덱스·테이블 DDL 보기, Script as ▸ CREATE, 스크립트 복사.
 - 2026-11-25 초기화 부분이 있는 패키지 본문을 한 문장으로(`chromite/oracle-script-split-blocks`), "저장 루틴의 문장 나누기"의 "고친 것" 표.
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열(Altibase, ShardSphere)의 패키지 본문 나누기

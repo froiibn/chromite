@@ -403,13 +403,83 @@ File > New Query·도구 막대·Ctrl+N은 활성 쿼리 창의 연결과, 그 �
 목록에 없어 이름 글로만 보이는 현재 DB(위 "다시 읽어도 없는 이름")는 객체로 찾을 수 없어 넘기지 못하고 새 창은 연결 기본값이다.
 동작·설계·확인은 [swing-frontend.md](swing-frontend.md) "새 쿼리는 활성 탭의 연결과 DB로".
 
+## 다시 연결 뒤의 DB (2026-11-25)
+
+**보고(2026-11-21~23, 자세한 내용 없음):** "다시 연결하면 기본 데이터베이스로 돌아감".
+
+**고치기 전 사실(이 브랜치의 고치기 전 빌드 = `origin/command` `bdb0ab42a6`, 시험 VM, 앱 안 시험 에이전트).** 쿼리 창(자기 세션)을 바꾼 뒤
+네 가지로 다시 연결하고, 창의 DB 선택·상태 줄과 창 세션의 서버 값(`db_name()`/`DATABASE()`/`current_schema()`/`CURRENT_SCHEMA`)을 읽었다.
+"필터"는 Object Explorer 필터가 숨긴 DB(목록에 없어 선택에 이름 글로만 보임)다. 끊긴 세션은 내 관리자 세션에서 창의 세션만 `KILL`(PostgreSQL
+`pg_terminate_backend`)하고 창에서 `SELECT 1`을 실행했다. Oracle은 `ALTER SYSTEM`이 공용 시험 DB에서 금지라 끊지 않았다.
+
+| DB | 바꾸기 | Invalidate/Reconnect | 끊긴 세션 다시 열기 | Reconnect | Disconnect → Connect |
+|---|---|---|---|---|---|
+| SQL Server 1433 | `USE`, 선택 상자 | 지킴(서버·표시 같음) | 지킴 | 기본 DB `master`(표시도 `master`) | `master`(끊긴 동안 선택 "&lt; N/A &gt;") |
+| SQL Server, 필터 | `USE` | **표시 `…_h`, 서버 `master`** | 다음 실행 뒤 표시가 `master`로(그 실행은 `master`에서) | `master` | `master` |
+| MariaDB 3306 | `USE`, 선택 상자 | 지킴 | 지킴 | DB 없음(N/A) | DB 없음 |
+| MariaDB, 필터 | `USE` | **표시 `…_h`, 서버 DB 없음** | 다시 연 세션은 DB 없음, 실행 끝 읽기 뒤 표시 N/A | DB 없음 | DB 없음 |
+| MySQL 8.4 3307(번들 MariaDB 드라이버) | `USE`, 선택 상자 | 지킴 | 지킴 | DB 없음 | DB 없음 |
+| MySQL, 필터 | `USE` | **표시 `…_h`, 서버 DB 없음** | MariaDB 필터와 같음 | DB 없음 | DB 없음 |
+| PostgreSQL 5432 | `SET search_path`, 선택 상자 | 지킴(#350) | 지킴 | `public` | `public` |
+| Oracle 1521 | `ALTER SESSION SET CURRENT_SCHEMA`, 선택 상자 | 지킴(#165) | 확인 안 함(끊지 않음) | `SYSTEM` | `SYSTEM` |
+
+쿼리 창에는 따로 "다시 연결" 명령이 없다. 창에서 쓰는 다시 연결은 끊긴 세션 다시 열기(`SQLQueryRecovery` → `TransactionRecoveryGuard.reopenLostSession`)와
+연결 끊김 대화상자의 다시 연결(= Invalidate/Reconnect)이다. 둘 다 `JDBCExecutionContext.invalidateContext`로 세션을 자기 자신에서 다시 연다.
+
+**원인 1(표시와 세션이 다름):** Invalidate/Reconnect와 끊긴 세션 다시 열기는 `initFrom`이 그 문맥 자신이다. SQL Server
+(`SQLServerDataSource.initializeContextState`)와 MySQL/MariaDB(`MySQLDataSource.initializeContextState`)는 원본의 DB를 **개체**
+(`getDefaultCatalog()`, 목록 캐시에서만 찾음)로 받아 `USE` 했다. 목록에 없는 DB면 null이라 아무것도 하지 않았고, 문맥은 옛 이름을 그대로 가진 채
+새 JDBC 연결은 로그인 기본 DB(MySQL은 연결 설정의 DB, 없으면 DB 없음)에 있었다. 선택·상태 줄은 그 이름을 보이므로 다음 문장이 다른 DB에서 조용히
+실행된다. `USE`가 실패할 때(그새 지운 DB, 오프라인)도 같다(SQL Server는 오류만 기록, MySQL은 예외가 `connect`에서 기록만 됨). PostgreSQL(#350)과
+Oracle(#165)은 이미 이름으로 받고, 받지 못하면 세션의 실제 값을 읽는다.
+
+**원인 2(사용자의 선택을 잃음):** Disconnect와 Reconnect(끊고 연결)는 데이터 소스를 새로 만든다. 창은 새 데이터 소스에서 자기 세션을 주 문맥에서 새로 연다
+(`QueryWindowContext.open`)므로 연결의 기본 DB로 돌아갔다. 표시는 새 세션과 같았지만, 앱은 다시 시작 뒤에는 창의 DB/스키마를 복원하면서(
+`QueryWindowRecovery` → `setRestoredDefaults`) 끊고 다시 연결할 때는 지키지 않았다. 모든 DB에서 같다.
+
+**고친 것:**
+
+| 자리 | 바꾼 것 |
+|---|---|
+| `SQLServerExecutionContext.setCurrentDatabaseFrom`(새), `SQLServerDataSource.initializeContextState` | 원본이 가진 이름(`activeDatabaseName`)으로 `USE`. 이름이 없거나 실패하면 세션의 실제 DB·스키마를 읽는다(`refreshDefaults(…, false)`). 기본 스키마 이름(`setDefaultSchemaFrom`)은 DB를 받았을 때만 받는다 |
+| `MySQLExecutionContext.setCurrentDatabaseFrom`(새), `MySQLDataSource.initializeContextState` | 같은 방식. 원본에 DB가 없으면 서버가 연 그대로 둔다(전과 같음). 읽기 전용 연결은 전처럼 `refreshDefaults(…, true)`(세션의 값을 읽으므로 표시는 맞고, 선택은 연결 설정의 DB로 돌아감) |
+| `ConnectionCommands.invalidate` | 작업이 끝나면 다시 연 연결들의 쿼리 창이 DB 선택·상태 줄을 다시 읽음(`QueryWindows.connectionDefaultsChanged`, "기본값으로 설정" 뒤와 같은 길). 전에는 Invalidate/Reconnect 뒤 아무도 다시 읽지 않아, 다시 연 세션이 원래 DB를 받지 못한 경우(아래 확인의 오프라인·삭제한 DB) 창이 옛 DB를 보인 채 다음 문장을 로그인 기본 DB에서 실행했다 |
+| `DB2ExecutionContext.setCurrentSchemaFrom`·`ExasolExecutionContext.setCurrentSchemaFrom`(새), 각 `initializeContextState` | 같은 방식으로 스키마를 이름으로(아래 "같은 원인을 본 다른 곳", 코드 읽기만) |
+| `SqlEditorPanel.keepDefaultsOfEndedSession`(새, `refreshTransactionMode`의 처음에서 부름), `QueryWindowContext.isOwn`(새) | 창의 자기 세션이 데이터 소스와 함께 끝나면(창이 본 데이터 소스와 지금 데이터 소스가 다름) 창이 보이던 DB/스키마를 다시 시작 복원과 같은 자리(`restoredDefaults`)에 둔다. 끊긴 동안 선택은 그 이름(비활성), 다음 세션이 열릴 때 `openWindowContext`가 정한다. 주 세션을 함께 쓰는 창은 두지 않는다 |
+
+**고르지 않은 것과 이유:**
+- 목록에 없는 DB를 이름으로 지키는 것은 Oracle #165의 "바뀌는 것"과 같다. "표시를 기본값으로 바꾸기"만으로도 표시와 세션은 같아지지만, 이름으로 `USE`가
+  되면 사용자의 선택도 지켜진다. `USE`가 안 되면 세션의 실제 값을 읽으므로 어느 쪽이든 표시와 세션이 다르지 않다.
+- 끊고 다시 연결할 때 지키는 이름은 목록의 객체로 보이던 것만이다(`getDefaultObjectNames`). 목록에 없어 이름 글로만 보이던 DB는 New Query(#172)와 같이
+  넘기지 않고 연결 기본값으로 연다(표시도 기본값).
+- 다시 연결한 세션에는 트랜잭션이 없다. 새 세션에서 `USE`/`SET search_path`/다른 DB로 다시 열기를 할 뿐 커밋·롤백하지 않고, 끊기 전 문장을 다시 보내지 않는다.
+  끊기·Reconnect의 열린 트랜잭션 질문(`ExitTransactionCheck`)은 바뀌지 않았다.
+- 원본 DB를 받지 못했을 때는 세션의 **이름만** 읽고 목록은 읽지 않는다: SQL Server `refreshDefaults(…, false, false)`(목록 다시 읽기 `getObjectReadingNew`를
+  건너뛰는 private 겹침), MySQL `refreshDefaults(…, false, false)`(`DATABASE()`만, #186이 읽기 전용 연결의 다시 열기에 쓰는 것과 같은 길), DB2·Exasol `refreshDefaults(…, false)`(현재 스키마 질의만, 목록을 읽지 않음).
+  Invalidate/Reconnect(`InvalidateJob.invalidateInstances`, `InvalidateJob.java:388`)와 끊긴 세션 다시 열기(`TransactionRecoveryGuard.java:235`)는 인스턴스의
+  배타 잠금을 쥔 채 `invalidateContext` → `initializeContextState`를 부르므로, 거기서 목록을 읽으면 #165·#350의 교착 모양이 된다. 목록은 쿼리 창이 다음 실행 뒤에 읽는다.
+  (2026-11-25 검토 후속: 처음에는 `refreshDefaults(…, false)`를 불러 목록을 다시 읽을 수 있었다.)
+- 앱 변경 #186 뒤에는 닫힌 세션을 읽기가 다시 열 때(`JDBCExecutionContext.getConnection`)도 `initFrom`이 그 문맥 자신이라 같은 길(이름으로 받기, 못 받으면
+  이름만 읽기)을 지난다. 그 길은 목록 캐시를 쥔 스레드에서도 올 수 있어, 이 길에서 목록을 읽지 않는 것이 더 중요하다.
+
+**같은 원인을 본 다른 곳(코드 읽기):** Generic(Altibase 포함)의 `GenericExecutionContext.initDefaultsFrom`은 원본 기본값을 개체로 찾지 못하면 데이터 소스의
+기본 카탈로그/스키마로 `USE`/`setSchema` 하고 그 이름을 가지므로 표시와 세션은 같다(필터로 숨긴 스키마는 선택을 잃음). 바꾸지 않았다.
+DB2(`DB2DataSource`)와 Exasol(`ExasolDataSource`)은 원본의 스키마를 개체(`getDefaultSchema()`, 목록 캐시에서만 찾음)로 받아, 목록을 읽지 않았거나
+목록에 없으면 null이라 아무것도 하지 않았다(`setCurrentSchema(null)`은 기록만). SQL Server·MySQL과 같은 원인이라 같은 방식으로 고쳤다
+(`setCurrentSchemaFrom`: 이름으로 `SET CURRENT SCHEMA`/`OPEN SCHEMA`, 실패하면 세션의 스키마를 읽음, 그 읽기는 목록을 읽지 않음). 시험 서버가 없어
+코드 읽기와 빌드로만 확인했다.
+
+**확인:** 아래 "확인 기록 (2026-11-25)".
+
 ## upstream 대비 변경점
 
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
 - `PostgreExecutionContext.refreshDefaults`: 읽은 뒤 바꾸기, `SET ROLE`은 시작할 때만.
 - `JDBCObjectCache.getObjectReadingNew`와 그것을 쓰는 SQL Server·MySQL/MariaDB·PostgreSQL 실행 문맥(위 "캐시에 없는 현재 DB").
 - `ContextDefaultObjectsReader.run`: 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음(위 "연결을 다시 읽은 뒤의 DB 선택"). upstream은 기본값을 먼저 묻는다.
-- 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘)는 Swing 프런트엔드에만 있다.
+- SQL Server·MySQL/MariaDB `initializeContextState`: 원본 세션의 DB를 개체 대신 이름으로 받고, 받지 못하면 세션의 값을 읽음(위 "다시 연결 뒤의 DB").
+  upstream은 목록에서 찾은 개체로만 `USE` 한다.
+- 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘, 끊고 다시 연결한 쿼리 창의 DB 지키기)는 Swing 프런트엔드에만 있다.
 
 ## 확인 기록
 
@@ -428,6 +498,36 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
   아이콘 단추 도구 설명 조사: 닫기 단추 "닫기 (Ctrl+R)", "닫기 (F8)", "닫기 (Ctrl+Alt+G)", "닫기 (Ctrl+Alt+T)", "닫기 (Ctrl+Alt+I)"와
   쿼리 실행 취소 "… (Alt+Pause)"가 새로 단축키를 보인다. 나머지 단추는 이미 단축키를 보이고 있었다.
 - #57: 도구 창 머리글과 결과 탭 줄의 단추가 ×.
+
+### 확인 기록 (2026-11-25, "다시 연결 뒤의 DB")
+
+Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(OS 입력 없음), 시험 VM의 SQL Server 2022·MariaDB 11·
+MySQL 8.4(번들 MariaDB 드라이버: MySQL 드라이버는 번들에 없어 내려받기 창이 떴다)·PostgreSQL 17·Oracle 1521, 시험 개체 `chr_reconnect_keeps_database*`.
+고치기 전 빌드는 위 "다시 연결 뒤의 DB"의 표. 고친 빌드에서 같은 절차:
+
+| DB | Invalidate/Reconnect | 끊긴 세션 다시 열기 | Reconnect | Disconnect → Connect |
+|---|---|---|---|---|
+| SQL Server | 지킴 | 지킴 | 지킴(고른 DB) | 끊긴 동안 선택 `chr_reconnect_keeps_database.dbo`(비활성, 글), 연결 뒤 지킴 |
+| SQL Server, 필터 | 지킴(서버도 `…_h`) | 지킴 | `master`(이름 글은 넘기지 않음, 표시도 `master`) | `master` |
+| MariaDB·MySQL | 지킴 | 지킴 | 지킴 | 지킴 |
+| MariaDB·MySQL, 필터 | 지킴(서버도 `…_h`) | 지킴 | DB 없음(표시 N/A) | DB 없음 |
+| PostgreSQL | 지킴 | 지킴 | 지킴 | 지킴(끊긴 동안 `postgres.chr_reconnect_keeps_database`) |
+| Oracle | 지킴 | 확인 안 함 | 지킴 | 지킴 |
+
+- DB를 받지 못하는 경우: 창이 쓰던 SQL Server DB를 내 관리자 세션이 `OFFLINE`으로, MariaDB DB를 `DROP` 한 뒤 Invalidate/Reconnect. 1차 수정 빌드에서 창 세션은
+  `master`/DB 없음을 가졌지만 선택·상태 줄은 옛 DB였다(아무도 다시 읽지 않음). `ConnectionCommands.invalidate`의 다시 읽기를 더한 빌드(고친 뒤 2차): SQL Server 선택·상태 줄 `master`, 세션 `master`; MariaDB 선택
+  "&lt; N/A &gt;", 세션 DB 없음. 고치기 전 빌드에서는 이 경우를 돌리지 않았다(코드로는 SQL Server는 `USE` 실패를 기록만 하고 옛 이름을 가짐, MariaDB는 예외가
+  `connect`에서 기록만 됨). 시험 DB `chr_reconnect_keeps_database_x`는 끝에 `ONLINE` 뒤 지웠다.
+- 주 세션을 함께 쓰는 창(연결 설정 "쿼리 창마다 별도 연결" = NEVER, SQL Server): Disconnect → Connect 뒤 전처럼 `master`(지키지 않음, 표시도 `master`).
+- PostgreSQL 창을 다른 데이터베이스(`chr_reconnect_keeps_database_db`, 모든 데이터베이스 표시)로 옮긴 경우: Invalidate/Reconnect는 고치기 전·후 모두 지킴.
+  Disconnect → Connect는 고치기 전·후 모두 `postgres`/`public`(아래 "남은 것").
+- 캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\reconnect-keeps-database\before-1…4.png`, `after-1…4.png`.
+  1: 필터로 숨긴 DB에서 Invalidate/Reconnect 뒤(전후 모두 선택 `…_h`), 2: 그 창에서 `SELECT db_name()`(전 `master`, 후 `chr_reconnect_keeps_database_h`),
+  3: `USE chr_reconnect_keeps_database` 뒤 Disconnect(전 "&lt; N/A &gt;", 후 `chr_reconnect_keeps_database.dbo` 비활성), 4: Connect 뒤(전 `master`, 후 그 DB).
+
+**남은 것:** PostgreSQL 창이 다른 데이터베이스에 있을 때 선택·상태 줄은 스키마 `public`만 보이고, 창이 기억하는 이름(`getDefaultObjectNames`)은
+`postgres.public`이었다(세션은 `chr_reconnect_keeps_database_db`). 그래서 Disconnect → Connect 뒤 `postgres`로 연다(표시도 `postgres`). 시험 에이전트가
+데이터베이스를 바꾼 길(`DBExecUtils.setExecutionContextDefaults`)이 선택 상자의 길과 같은지 확인하지 못해 고치지 않았다.
 
 **확인하지 못한 것:** 떠 있는(도킹을 뗀) 도구 창에서는 메뉴 막대가 없어 메뉴 가속키(Ctrl+R 포함)가 가지 않을 수 있다(이번 범위 밖, 보고만).
 
@@ -452,3 +552,11 @@ Docker가 멈춰 있어 SQL Server·Oracle 컨테이너 대신 D:의 MariaDB 11.
 - 2026-11-13 앱 변경 #108(`chromite/ddl-refresh-target`): `CREATE TABLE dbo.t`가 연결 전체를 다시 읽던 것을 고쳐 "연결을 다시 읽은 뒤의 DB 선택"의
   "이 순서를 이 문장에서 드러낸 것"과 "남은 것"에 고친 내용을 적음. #89의 선택 고침은 바꾸지 않았다.
 - 2026-11-22 앱 변경 #172(`chromite/new-query-active-tab`): "New Query가 활성 창의 DB를 이어받음". 쿼리 창의 DB 선택과 세션 코드는 바꾸지 않고 주석만 고쳤다. 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 `chromite/reconnect-keeps-database`: "다시 연결 뒤의 DB"와 그 확인 기록. SQL Server·MySQL/MariaDB(시험), DB2·Exasol(코드만)의 다시 연 세션이 DB/스키마를
+  이름으로 받고 받지 못하면 세션의 값을 읽음, Invalidate/Reconnect 뒤 쿼리 창이 선택을 다시 읽음, Disconnect·Reconnect 뒤 창의 자기 세션이 보이던 DB/스키마를
+  지킴. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창의 새 세션·다시 연 세션의 DB(SQL Server, MySQL/MariaDB, DB2, Exasol), 쿼리 창 DB 선택·상태 줄,
+  다시 시작 뒤 복원·New Query의 DB 이어받기(같은 `restoredDefaults` 자리), Invalidate/Reconnect 뒤의 선택 읽기.
+- 2026-11-25 검토 후속(같은 브랜치): DB/스키마를 받지 못했을 때의 대체 읽기가 목록을 읽지 않음(이름만). 다시 여는 길은 인스턴스의 배타 잠금 아래라 목록 읽기가
+  교착 모양이 된다. 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 `command` 병합(앱 변경 #186과 함께): MySQL의 대체 읽기를 #186의 `refreshDefaults(…, false, false)`로 합침(같은 일을 하던 `readCurrentDatabaseName` 삭제).
+  회귀 테스트는 실행하지 않았다.
