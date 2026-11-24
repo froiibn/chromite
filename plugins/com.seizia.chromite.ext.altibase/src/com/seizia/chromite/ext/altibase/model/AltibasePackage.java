@@ -39,6 +39,16 @@ import com.seizia.chromite.model.struct.DBSObjectState;
 import java.sql.SQLException;
 import java.util.Map;
 
+/**
+ * Altibase package: specification and body in one DDL text.
+ *
+ * 설계: DDL 글은 머리와 본문을 차례로 둔 스크립트다. 쿼리 창에 붙여 실행하면 두 문장으로 나뉘어야 하므로 머리 글은 {@code ;}로 끝낸다.
+ *
+ * 변경 이력:
+ * - 2026-11-24 Chromite: 머리 글이 {@code ;}로 끝나지 않으면 붙임({@link #terminated}), 머리·본문 이름 줄을 상수로. 쿼리 창이 머리를
+ *   {@code END}까지만 보내 서버에 그렇게 저장된 패키지는 DDL 보기 글의 머리와 본문이 한 문장이 되어 두 번째 실행에서 구문 오류가 났다
+ *   (앱 변경 182, docs/chromite/altibase.md "저장 루틴의 문장 나누기")
+ */
 public class AltibasePackage extends GenericPackage implements DBPStatefulObject {
 
     protected String schemaName;
@@ -66,12 +76,12 @@ public class AltibasePackage extends GenericPackage implements DBPStatefulObject
     @Override
     public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) throws DBException {
         if (source == null) {
-            source = "-- Package specification " 
+            source = AltibaseConstants.PACKAGE_SPEC_HEADER
                     + AltibaseConstants.NEW_LINE 
-                    + ((AltibaseMetaModel) getDataSource().getMetaModel())
-                        .getPackageDDL(monitor, this, AltibaseConstants.PACKAGE_TYPE_SPEC)
+                    + terminated(((AltibaseMetaModel) getDataSource().getMetaModel())
+                        .getPackageDDL(monitor, this, AltibaseConstants.PACKAGE_TYPE_SPEC))
                     + AltibaseConstants.NEW_LINE 
-                    + "-- Package body " 
+                    + AltibaseConstants.PACKAGE_BODY_HEADER
                     + AltibaseConstants.NEW_LINE;
 
             if (hasBody) {
@@ -82,6 +92,21 @@ public class AltibasePackage extends GenericPackage implements DBPStatefulObject
             }
         }
         return source;
+    }
+
+    /**
+     * The specification ending in ";", so that the body after it in this text is a statement of its own. The server keeps the
+     * text it was sent as the source: one sent without the ";" after END (as the query window did before app change 182) is
+     * stored that way.
+     */
+    @NotNull
+    private static String terminated(@NotNull String specification) {
+        String text = specification.stripTrailing();
+        String lastLine = text.substring(text.lastIndexOf('\n') + 1).strip();
+        if (text.isEmpty() || text.endsWith(";") || lastLine.startsWith("--")) {
+            return specification;
+        }
+        return text + ";";
     }
 
     @Property(viewable = true, order = 5)
