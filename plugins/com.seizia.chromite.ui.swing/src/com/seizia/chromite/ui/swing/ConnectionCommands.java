@@ -95,6 +95,8 @@ import java.util.Set;
  * - 2026-11-08 여러 연결 끊기와 무효화·다시 연결({@link #invalidate}) (docs/chromite/connection-lifecycle.md)
  * - 2026-11-08 {@link #changePassword}: 연결한 사용자의 비밀번호 바꾸기(SWT {@code connection.changeCurrentPassword}, 데이터베이스가
  *   {@code DBAUserPasswordManager}를 줄 때만) (docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
+ * - 2026-11-25 {@link #invalidate}가 끝나면 다시 연 연결의 쿼리 창들이 DB 선택·상태 줄을 다시 읽음. 다시 연 세션이 원래 DB를 받지 못하면
+ *   (그새 지운 DB) 세션의 실제 DB를 가지는데 창은 옛 DB를 보였다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 final class ConnectionCommands {
 
@@ -249,6 +251,15 @@ final class ConnectionCommands {
         invalidateJob.addJobChangeListener(new JobChangeAdapter() {
             @Override
             public void done(IJobChangeEvent event) {
+                // A reopened session that could not get its database or schema back (dropped since) holds the one the
+                // server gave it: the query windows read their pickers and status lines again
+                SwingUtilities.invokeLater(() -> {
+                    for (Window window : Window.getWindows()) {
+                        if (window instanceof ObjectExplorerPanel.QueryWindows queryWindows) {
+                            containers.forEach(queryWindows::connectionDefaultsChanged);
+                        }
+                    }
+                });
                 Throwable error = null;
                 for (InvalidateJob.ContextInvalidateResult result : invalidateJob.getInvalidateResults()) {
                     if (result.isError()) {

@@ -89,6 +89,9 @@ import java.util.regex.Pattern;
  *   (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
  * - 2026-11-25 {@link #initializeContextState}: 읽기 전용 연결에서 원본 세션이 있는 세션(Invalidate/Reconnect)을 열 때 DB 목록을 다시 읽지 않음.
  *   배타 잠금 아래에서 목록 캐시를 기다릴 수 있었다(앱 변경 #186, docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
+ * - 2026-11-25 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 현재 DB를 원본 세션이 가진 이름으로 정함
+ *   ({@link MySQLExecutionContext#setCurrentDatabaseFrom}). DB 개체를 목록에서 찾지 못하면 아무것도 하지 않아, Invalidate/Reconnect로
+ *   다시 연 세션이 옛 이름을 가진 채 DB 없이 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector {
     private static final Log log = Log.getLog(MySQLDataSource.class);
@@ -275,10 +278,10 @@ public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisti
         @Nullable JDBCExecutionContext initFrom
     ) throws DBException {
         if (initFrom != null && !context.getDataSource().getContainer().isConnectionReadOnly()) {
-            MySQLCatalog object = ((MySQLExecutionContext) initFrom).getDefaultCatalog();
-            if (object != null) {
-                ((MySQLExecutionContext) context).setCurrentDatabase(monitor, object);
-            }
+            // By name: the catalog list may not hold the source's database (an Object Explorer filter), and
+            // Invalidate/Reconnect reopens a session from itself, so a database not set here would still be shown while
+            // the new session runs without it
+            ((MySQLExecutionContext) context).setCurrentDatabaseFrom(monitor, (MySQLExecutionContext) initFrom);
         } else {
             // A session opened from a source session (Invalidate/Reconnect, under the instance's exclusive lock) does not
             // read the database list again: a thread that holds the list may wait for that lock
