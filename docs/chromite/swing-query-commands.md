@@ -462,6 +462,11 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 공유 파서의 바뀐 길에 닿는 방언: `BLOCK_HEADER` 조건을 가진 Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음)과 Altibase 계열. Oracle 루틴은 첫
   `AS|IS` 앞에 머리 낱말(`DECLARE`·`PACKAGE`)이 없다. Altibase의 루틴·트리거도 같다(맨 바깥 머리 낱말 뒤의 `AS|IS`라도 그 머리를 닫는 `BEGIN`이 조건의
   머리도 닫아 같은 자리에서 끝난다). 아래 비교에서 Altibase 스크립트는 바이트까지 같다.
+- Altibase(같은 원인, 따로 커밋): Altibase 7.3도 초기화 부분이 있는 패키지 본문을 받는데(VALID, 확인) `AltibaseSQLDialect`가 같은 `BEGIN_BLOCK` 조건을
+  써서 `CREATE PACKAGE BODY … BEGIN v := 1; END;` 뒤의 문장을 모두 삼켰다(3문장, 확인). 같은 방법으로 고쳤다: 그 조건을 지우고 `BLOCK_HEADER`와 외부
+  루틴 `END_BLOCK`(`AS|IS LANGUAGE`)의 머리에 `CREATE … PACKAGE BODY`를 더하고, 패키지 본문에만 `NESTED_BLOCK_HEADER` 조건을 두었다(Altibase는 루틴
+  선언부의 서브프로그램을 받지 않는다). 그 조건의 `AS|IS LANGUAGE`는 한 낱말을 보므로 본문 `AS` 바로 뒤에 `language`라는 변수를 선언하면 본문이 그
+  선언의 `;`에서 끝난다(루틴은 지난 고침부터 같음).
 
 **2. `DECLARE` 안 서브프로그램(익명 블록, 트리거)**
 - 재현: `DECLARE PROCEDURE a IS PROCEDURE b IS BEGIN … END; BEGIN b; END; BEGIN a; END;`가 `a`의 `END;`에서 나뉘어 첫 조각이 PLS-00103(ORA-06550)으로
@@ -491,6 +496,7 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | 패키지 본문 다섯(초기화 부분에 `FOR … LOOP`·`CASE … END CASE`·`IF`·`EXCEPTION`, 세 단계 서브프로그램·앞선 선언·커서·형식·자바 호출 명세가 든 것, 초기화 부분 없는 것, 초기화 부분만 있는 것, 소문자·이름 없는 `END`, 23ai `IF NOT EXISTS`)과 명세·`SELECT` 스크립트 F5 | 6문장, 두 본문이 뒤 문장을 삼켜 PLS-00103 INVALID | 17문장, 패키지·본문 열 개 모두 VALID |
 | 초기화 부분 안, 아래 `SELECT`, 맨 위·맨 아래 `SELECT`에서 Ctrl+Enter | 아래 `SELECT`에서 본문이 다시 감 | 그 본문 하나, 그 `SELECT` 하나 |
 | 지난 고침의 `mixed.sql`(끝에 초기화 부분 있는 본문) | 10문장(본문이 마지막 `SELECT`를 삼킴) | 11문장 |
+| 1(Altibase 7.3): 초기화 부분(`IF`·`FOR … LOOP`·`EXCEPTION`)과 서브프로그램이 든 본문, 초기화 부분 없는 본문, 명세·`SELECT` 스크립트 F5 | 3문장(본문이 뒤를 삼킴) | 7문장, 패키지·본문 넷 모두 VALID(`SYS_PACKAGES_` STATUS 0). 초기화 부분 안 Ctrl+Enter는 그 본문, 아래 `SELECT`는 그 하나 |
 | 2: 익명 블록 넷(서브프로그램 0·1·2·3단계, 커서·형식·`SUBTYPE`·앞선 선언 섞임), 트리거 둘(`DECLARE`에 서브프로그램 1·2단계), `BEGIN` 안 `DECLARE`, 루틴 본문 안 `DECLARE` 스크립트 F5 | 26문장, 한 단계(선언 있음)부터 `PLS-00103`(ORA-06550)로 멈춤 | 18문장, 모두 성공. 세 단계 블록이 표에 3을 넣음, 트리거 둘·루틴 VALID |
 | 2: 안쪽 서브프로그램 줄, 세 단계의 가장 안쪽 줄, 트리거 안쪽 줄에서 Ctrl+Enter / 위·아래 `SELECT`에서 | 그 조각만 감(ORA-06550, 트리거 INVALID) | 블록·트리거 전체 / 그 `SELECT` 하나 |
 | 2: 앞선 선언과 C 호출 명세를 가진 서브프로그램, 소문자 세 단계 함수, 루틴 본문 안 `DECLARE` 함수 F5 | 14문장(조각남, 1만 고친 빌드: 1은 이 모양에 닿지 않음) | 10문장(꼬리표 블록은 아래 "남은 것"). 꼬리표 블록을 뺀 7문장 F5 모두 성공 |
@@ -672,3 +678,5 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 - 2026-11-25 "Oracle 스크립트 나누기 3"의 2: `DECLARE` 안 서브프로그램이 겹친 머리를 엶(방언 조건 머리에 `DECLARE`·`CREATE … TRIGGER`, 파서는 `DECLARE`
   머리에서도 열고 서브프로그램 머리를 `AS|IS` 낱말에서 선언부로 바꿈)(`chromite/oracle-script-split-blocks`). 회귀 테스트는 실행하지 않았다. 영향받을 수
   있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 익명 블록·트리거·루틴·패키지 본문 나누기(쿼리 창 F5·Ctrl+Enter, 스크립트 실행, Agent 실행 도구)
+- 2026-11-25 "Oracle 스크립트 나누기 3"의 1, Altibase: 패키지 본문의 `AS|IS`가 선언부 머리를 엶(`AltibaseSQLDialect`)(`chromite/oracle-script-split-blocks`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열(Altibase, ShardSphere)의 패키지 본문 나누기

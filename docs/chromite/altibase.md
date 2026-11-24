@@ -1490,6 +1490,7 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
 |---|---|
 | `AltibaseSQLDialect.makeDialectSkipTokenPredicatesImpl` | Oracle과 같은 `BLOCK_HEADER` 조건: `CREATE [OR REPLACE] FUNCTION\|PROCEDURE\|TRIGGER` 뒤의 `AS\|IS`. 외부 루틴(`AS LANGUAGE C … LIBRARY …;`)은 `BEGIN`이 없으므로 `END_BLOCK` 조건(`AS\|IS LANGUAGE`)이 그 머리를 닫는다 |
 | `AltibaseSQLDialect.isDelimiterAfterBlock` | `true`(Oracle과 같음): `END;`의 `;`가 문장에 남는다 |
+| `AltibaseSQLDialect.makeDialectSkipTokenPredicatesImpl`(2026-11-25) | 패키지 본문도 `AS\|IS`에서 머리를 연다(`BLOCK_HEADER`, 문장 머리의 `BEGIN_BLOCK` 조건을 지움). 본문의 서브프로그램은 `NESTED_BLOCK_HEADER`로 자기 머리를 열고 외부 서브프로그램은 `AS\|IS LANGUAGE`가 그 머리만 닫는다. 초기화 부분(`BEGIN … END;`)이 있는 본문이 뒤 문장을 모두 삼켰다(swing-query-commands.md "Oracle 스크립트 나누기 3") |
 | `AltibasePackage.terminated` | DDL 글의 머리가 `;`로 끝나지 않으면 붙인다(전 빌드가 `END`까지만 보내 저장된 패키지도 두 문장으로 나뉨) |
 | `AltibaseMetaModel.withoutGeneratedHeader`, `AltibaseConstants.PACKAGE_SPEC_HEADER`·`PACKAGE_BODY_HEADER` | 카탈로그 원본 맨 앞의, 이 모델이 붙이는 주석 줄(경고, 머리·본문 이름)을 한 번만 보인다(2026-11-25: 스크립트의 객체 이름 줄도, 아래 "뷰 DDL의 경고 줄") |
 
@@ -1727,3 +1728,5 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
   영향받을 수 있는 기능: Altibase 계열의 DDL 보기·Script as·Modify 글(뷰, 구체화된 뷰, 루틴, 타입세트, 패키지, 트리거, 시노님, 테이블 대체 글).
 - 2026-11-25 뷰 DDL 글의 이름 줄을 공용 코드가 한 번만 보임(`chromite/ddl-name-comment-once`). 7.3 `GET_DDL` 길에서도 늘던 것이 멈춤.
   `withoutGeneratedHeader`를 그대로 둔 이유를 "뷰 DDL의 경고 줄"에 적음. 회귀 테스트는 실행하지 않았다.
+- 2026-11-25 초기화 부분이 있는 패키지 본문을 한 문장으로(`chromite/oracle-script-split-blocks`), "저장 루틴의 문장 나누기"의 "고친 것" 표.
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열(Altibase, ShardSphere)의 패키지 본문 나누기
