@@ -101,6 +101,10 @@ import java.util.Set;
  *   statement (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
  * - 2026-11-25 Chromite: the EXISTS of 23ai CREATE ... IF NOT EXISTS ends the block the IF rule opened at its NOT (END_BLOCK):
  *   the splitter joined every following statement into it (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
+ * - 2026-11-25 Chromite: a package body's AS / IS opens a declaration header as a routine's does (BLOCK_HEADER, with
+ *   NESTED_BLOCK_HEADER and the call-spec END_BLOCK for its subprograms), in place of the block its prefix opened
+ *   (BEGIN_BLOCK). That block counted BEGIN / END pairs, and the BEGIN of an initialization part has no END of its own: the
+ *   splitter joined every following statement into the body (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -792,20 +796,8 @@ public class OracleSQLDialect extends JDBCSQLDialect
         // by following through Get Started links till the SQL Language Reference link presented
 
         TokenPredicateSet conditions = TokenPredicateSet.of(
-            // https://docs.oracle.com/en/database/oracle/oracle-database/12.2/lnpls/CREATE-PACKAGE-BODY-statement.html#GUID-68526FF2-96A1-4F14-A10B-4DD3E1CD80BE
-            // also presented in the earliest found reference on 7.3, so considered as always supported https://docs.oracle.com/pdf/A32538_1.pdf
-            new TokenPredicatesCondition(
-                SQLParserActionKind.BEGIN_BLOCK,
-                tt.sequence(
-                    "CREATE",
-                    tt.optional("OR", "REPLACE"),
-                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                    "PACKAGE", "BODY"
-                ),
-                tt.sequence()
-            ),
-            // A type body holds member subprograms as a package body does and ends with its own END (CREATE TYPE BODY). It has
-            // no initialization section, so its block opens on the statement's prefix as the package body's does
+            // A type body holds member subprograms and ends with its own END (CREATE TYPE BODY). It has no initialization
+            // section, so a block opened on the statement's prefix and closed by the END that pairs with it holds the whole body
             new TokenPredicatesCondition(
                 SQLParserActionKind.BEGIN_BLOCK,
                 tt.sequence(
@@ -847,26 +839,31 @@ public class OracleSQLDialect extends JDBCSQLDialect
                 tt.token("CREATE"),
                 tt.sequence("IF", "NOT", "EXISTS")
             ),
+            // The AS / IS of a routine or a package body opens its declaration section, which the BEGIN of its body or its
+            // initialization part closes, or the END of a package body without one. A package body counted BEGIN / END pairs
+            // from its prefix instead, and the BEGIN of an initialization part has no END of its own (the body's END closes
+            // both), so every following statement joined it
+            // https://docs.oracle.com/en/database/oracle/oracle-database/12.2/lnpls/CREATE-PACKAGE-BODY-statement.html#GUID-68526FF2-96A1-4F14-A10B-4DD3E1CD80BE
             new TokenPredicatesCondition(
                 SQLParserActionKind.BLOCK_HEADER,
                 tt.sequence(
                         "CREATE",
                         tt.optional("OR", "REPLACE"),
                         tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                        tt.alternative("FUNCTION", "PROCEDURE")
+                        tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
                 ),
                 tt.alternative("AS", "IS")
             ),
             // A subprogram declared in that declaration section (PROCEDURE / FUNCTION as the first word of a declaration, after
             // the AS / IS or after the ";" of the previous one) has its own heading, AS / IS, declarations and BEGIN ... END: the
-            // script parser opens a header for it inside the routine's, so that its BEGIN does not close the routine's header
+            // script parser opens a header for it inside the routine's or package body's, so that its BEGIN does not close that
             new TokenPredicatesCondition(
                 SQLParserActionKind.NESTED_BLOCK_HEADER,
                 tt.sequence(
                     "CREATE",
                     tt.optional("OR", "REPLACE"),
                     tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                    tt.alternative("FUNCTION", "PROCEDURE")
+                    tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
                 ),
                 tt.sequence(tt.alternative(";", "AS", "IS"), tt.alternative("PROCEDURE", "FUNCTION"))
             ),
@@ -875,14 +872,15 @@ public class OracleSQLDialect extends JDBCSQLDialect
             // (MLE MODULE|LANGUAGE, 23ai). Two words, not LANGUAGE alone, so that a declaration of a variable named LANGUAGE,
             // EXTERNAL or MLE still opens the declaration section. AGGREGATE / PIPELINED USING has no AS / IS and opens nothing.
             // The script parser takes it only right after the AS / IS that opened the header and then ends the statement at the
-            // next ";" (SQLScriptParser); after a nested subprogram's AS / IS it ends only that subprogram's header
+            // next ";" (SQLScriptParser); after a nested subprogram's AS / IS it ends only that subprogram's header (a package
+            // body's subprograms too: "FUNCTION f RETURN NUMBER AS LANGUAGE JAVA NAME '…';")
             new TokenPredicatesCondition(
                 SQLParserActionKind.END_BLOCK,
                 tt.sequence(
                     "CREATE",
                     tt.optional("OR", "REPLACE"),
                     tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
-                    tt.alternative("FUNCTION", "PROCEDURE")
+                    tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
                 ),
                 tt.sequence(
                     tt.alternative("AS", "IS"),

@@ -432,12 +432,49 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 파일로 떨어뜨려 바이트로 비교했다. YashanDB·OceanBase(Oracle 모드)는 시험 서버가 없어 돌리지 않았다: 방언을 물려받으므로 위 Oracle 결과가 그대로 적용된다
 (23ai 구문 `IF NOT EXISTS`·다형 표 함수는 그 서버가 받지 않으면 서버 오류로 끝나고 나누기는 같다).
 
-**남은 것(보고만):**
+**남은 것(보고만):** 아래 "Oracle 스크립트 나누기 3"에서 고쳤다.
 - 초기화 부분이 있는 패키지 본문(`CREATE PACKAGE BODY p AS … BEGIN … END p;`)은 그 `BEGIN … END`가 패키지 블록 안에서 짝을 이뤄 패키지 블록이 닫히지
   않으므로, 뒤 문장이 모두 그 문장에 합쳐진다(고치기 전·뒤 빌드에서 확인, 이번 고침과 무관. 고친 빌드에서 F5하면 패키지 본문이 PLS-00103으로 INVALID).
 - 익명 블록과 트리거의 `DECLARE` 안 서브프로그램은 이 고침의 길이 아니라 `AS|IS` 앞붙이 규칙(`getInnerBlockPrefixes`)으로 나뉜다. 한 단계는 맞게
   나뉘었다. 두 단계로 겹친 것(`DECLARE PROCEDURE a IS PROCEDURE b IS BEGIN … END; BEGIN b; END; BEGIN a; END;`)은 `a`의 `END;`에서 나뉜다(고친 빌드의
   나누기로 확인, 그 규칙은 바꾸지 않았으므로 고치기 전에도 같다고 본다).
+
+### Oracle 스크립트 나누기 3 (2026-11-25)
+
+위 "남은 것" 두 가지(`chromite/oracle-script-split-blocks`, 발견마다 커밋 하나). 고치기 전 빌드(`origin/command` `96040426b6`)에서 1521 Oracle 26ai,
+앱 안 시험 에이전트로 F5·Ctrl+Enter를 눌러 둘 다 재현했다. 서버에 간 문장은 쿼리 관리자 기록에서 읽었다.
+
+**1. 초기화 부분이 있는 패키지 본문**
+- 재현: `CREATE PACKAGE BODY CHR_OSSB_PI AS … BEGIN g_n := 0; … EXCEPTION … END CHR_OSSB_PI;` 뒤의 `SELECT` 둘, 패키지 명세, 초기화 부분 없는 패키지
+  본문까지 한 문장으로 가서 서버가 본문을 PLS-00103(`SELECT`)으로 INVALID로 만들었다. 초기화 부분만 있는 본문(`AS BEGIN … END;`)도 스크립트 끝까지
+  삼켰다. 뒤 `SELECT`에서 Ctrl+Enter를 누르면 그 `SELECT` 대신 패키지 본문이 망가진 글로 다시 만들어졌다.
+- 근본 원인: 패키지 본문의 블록 조건은 문장 머리(`CREATE … PACKAGE BODY`)에서 블록을 열고(`BEGIN_BLOCK`) `BEGIN`/`END`의 짝을 셌다. 서브프로그램은
+  `BEGIN … END`가 짝을 이루지만 초기화 부분의 `BEGIN`은 자기 `END`가 없다(본문의 `END`가 둘을 함께 닫는다). 그래서 블록이 닫히지 않았다. 같은 원인:
+  초기화 부분이 있는 모든 패키지 본문(`EXCEPTION`이 있든 없든, 선언 없이 초기화 부분만 있든, 23ai `IF NOT EXISTS`든). 형식 본문에는 초기화 부분이 없어
+  닿지 않는다. Altibase 방언도 같은 조건을 써서 같다(아래).
+- 고침: 패키지 본문을 루틴과 같은 모양으로 본다. 본문의 `AS|IS`가 선언부 머리를 열고(`BLOCK_HEADER`), 초기화 부분의 `BEGIN`이나 본문의 `END`가 그 머리를
+  닫는다. 선언부의 서브프로그램은 지난 고침의 겹친 머리(`NESTED_BLOCK_HEADER`)를 열어 그 `BEGIN`이 본문 머리를 닫지 않고, 서브프로그램의 호출 명세
+  (`FUNCTION f RETURN NUMBER AS LANGUAGE JAVA …;`)는 그 서브프로그램 머리만 닫는다(`END_BLOCK`).
+  - `OracleSQLDialect`: 패키지 본문의 `BEGIN_BLOCK` 조건을 지우고, `BLOCK_HEADER`·`NESTED_BLOCK_HEADER`·호출 명세 `END_BLOCK` 조건의 머리에
+    `CREATE … PACKAGE BODY`를 더했다.
+  - `SQLScriptParser`: `PACKAGE` 낱말(방언의 블록 머리 낱말)이 문장 맨 바깥에 이미 머리를 열어 둔 채 `AS`가 온다. `BLOCK_HEADER` 조건이 맞을 때 열린
+    블록이 문장 맨 바깥에서 머리 낱말이 연 머리면 그 머리를 조건의 머리로 바꾼다. 바꾸지 않으면 그 머리가 본문의 `END` 뒤에도 남는다.
+- 공유 파서의 바뀐 길에 닿는 방언: `BLOCK_HEADER` 조건을 가진 Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음)과 Altibase 계열. Oracle 루틴은 첫
+  `AS|IS` 앞에 머리 낱말(`DECLARE`·`PACKAGE`)이 없다. Altibase의 루틴·트리거도 같다(맨 바깥 머리 낱말 뒤의 `AS|IS`라도 그 머리를 닫는 `BEGIN`이 조건의
+  머리도 닫아 같은 자리에서 끝난다). 아래 비교에서 Altibase 스크립트는 바이트까지 같다.
+
+**확인(고친 빌드, 1521, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-script-split-blocks\`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 패키지 본문 다섯(초기화 부분에 `FOR … LOOP`·`CASE … END CASE`·`IF`·`EXCEPTION`, 세 단계 서브프로그램·앞선 선언·커서·형식·자바 호출 명세가 든 것, 초기화 부분 없는 것, 초기화 부분만 있는 것, 소문자·이름 없는 `END`, 23ai `IF NOT EXISTS`)과 명세·`SELECT` 스크립트 F5 | 6문장, 두 본문이 뒤 문장을 삼켜 PLS-00103 INVALID | 17문장, 패키지·본문 열 개 모두 VALID |
+| 초기화 부분 안, 아래 `SELECT`, 맨 위·맨 아래 `SELECT`에서 Ctrl+Enter | 아래 `SELECT`에서 본문이 다시 감 | 그 본문 하나, 그 `SELECT` 하나 |
+| 지난 고침의 `mixed.sql`(끝에 초기화 부분 있는 본문) | 10문장(본문이 마지막 `SELECT`를 삼킴) | 11문장 |
+| 지난 두 고침의 참조 스크립트 나머지(Oracle 일반 단위·호출 명세·겹친 서브프로그램·형식 본문·`IF NOT EXISTS`, PostgreSQL, SQL Server, MariaDB·MySQL 8.4(저장 프로그램 규칙과 DDL 글), Altibase 7.3)와 이 절의 `DECLARE` 스크립트, 끊었다 다시 연결한 뒤 | — | 문장 글과 줄마다 Ctrl+Enter 결과가 바이트까지 같음 |
+
+**남은 것(보고만):**
+- 복합 트리거(`CREATE TRIGGER … COMPOUND TRIGGER g NUMBER; PROCEDURE p IS … BEFORE STATEMENT IS BEGIN … END BEFORE STATEMENT; END;`)는 첫 선언의 `;`에서
+  나뉜다(고치기 전·뒤 같음). 복합 트리거에는 블록 조건이 없다.
 
 ### 저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)
 
@@ -596,3 +633,6 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   따로 둠(`ExactTokenEntryComparator`), 조건이 연 블록을 조건이 닫으면 내린 머리로 돌아감(`SQLScriptParser`)(`chromite/oracle-script-split-more`).
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 조건(`makeDialectSkipTokenPredicatesImpl`)을 가진 모든 방언의 스크립트 나누기(Oracle·YashanDB·
   OceanBase(Oracle 모드), Altibase 계열, BigQuery), Oracle의 `CREATE` 나누기
+- 2026-11-25 "Oracle 스크립트 나누기 3" 절 추가, 그 1: 패키지 본문의 `AS|IS`가 루틴처럼 선언부 머리를 엶(방언), 맨 바깥 머리 낱말의 머리를 조건의 머리로
+  바꿈(`SQLScriptParser`)(`chromite/oracle-script-split-blocks`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle
+  모드)의 패키지 본문 나누기, `BLOCK_HEADER` 조건을 가진 방언(Oracle 계열, Altibase 계열)의 루틴·트리거 나누기
