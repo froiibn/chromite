@@ -85,6 +85,11 @@ import java.util.Set;
  *   (docs/chromite/swing-result-generate-sql.md).
  * - 2026-11-08 Chromite: {@link #probeTransaction}: whether the session has a transaction, asked from the server
  *   (docs/chromite/idle-transactions.md "Oracle").
+ * - 2026-11-25 Chromite: a routine whose body is a call specification (AS LANGUAGE JAVA|C, AS EXTERNAL, AS MLE) ends the
+ *   declaration header its AS / IS opened ({@link #makeDialectSkipTokenPredicatesImpl}, END_BLOCK): the script splitter
+ *   waited for a BEGIN that never came and sent the following statements with it as one statement. SQLScriptParser then
+ *   ends the statement at the call spec's ";" and keeps it, as after END
+ *   (docs/chromite/swing-query-commands.md "본문 없는 Oracle 루틴의 문장 나누기").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
@@ -821,6 +826,29 @@ public class OracleSQLDialect extends JDBCSQLDialect
                         tt.alternative("FUNCTION", "PROCEDURE")
                 ),
                 tt.alternative("AS", "IS")
+            ),
+            // A call specification is the whole body of its routine: no BEGIN follows to end the header that the AS / IS above
+            // opened, so its first words end it. Java and C (LANGUAGE JAVA|C, the older EXTERNAL NAME|LIBRARY) and MLE
+            // (MLE MODULE|LANGUAGE, 23ai). Two words, not LANGUAGE alone, so that a declaration of a variable named LANGUAGE,
+            // EXTERNAL or MLE still opens the declaration section. AGGREGATE / PIPELINED USING has no AS / IS and opens nothing.
+            // The script parser takes it only right after the AS / IS that opened the header (not after a nested subprogram)
+            // and then ends the statement at the next ";" (SQLScriptParser)
+            new TokenPredicatesCondition(
+                SQLParserActionKind.END_BLOCK,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    tt.optional(tt.alternative("EDITIONABLE", "NONEDITIONABLE")),
+                    tt.alternative("FUNCTION", "PROCEDURE")
+                ),
+                tt.sequence(
+                    tt.alternative("AS", "IS"),
+                    tt.alternative(
+                        tt.sequence("LANGUAGE", tt.alternative("JAVA", "C")),
+                        tt.sequence("EXTERNAL", tt.alternative("NAME", "LIBRARY")),
+                        tt.sequence("MLE", tt.alternative("MODULE", "LANGUAGE"))
+                    )
+                )
             )
         );
 
