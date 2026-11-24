@@ -16,6 +16,8 @@
 #
 # Change history:
 # - 2026-11-23 Created.
+# - 2026-11-24 The title strip is read plain and with inverted colours, and a stop says what OCR read last: at the
+#   26.1.8 release the plain strip gave "26.13" for the notice that was there, and the stage stopped without saying why.
 
 $script:WinApiLoaded = $false
 
@@ -76,8 +78,22 @@ function Save-CopyWindow([string]$Root, [string]$Png) {
     $g.DrawImage($bmp, [System.Drawing.Rectangle]::new(0, 0, $w * 3, $h * 3), [System.Drawing.Rectangle]::new($bmp.Width - $w, 0, $w, $h), 'Pixel')
     $g.Dispose()
     $stripPng = [IO.Path]::ChangeExtension($Png, '.strip.png')
-    $strip.Save($stripPng); $strip.Dispose(); $bmp.Dispose()
-    return [pscustomobject]@{ Title = [ChromiteHarnessWin]::Title($best.H); Strip = $stripPng }
+    $strip.Save($stripPng)
+    # The same strip with inverted colours: OCR reads light text on a dark title bar differently (at 26.1.8 the plain
+    # strip gave "26.13" for "26.1.8", the inverted one "261.8"). Both are read; one that matches is enough.
+    $inverted = New-Object System.Drawing.Bitmap $strip.Width, $strip.Height
+    $g = [System.Drawing.Graphics]::FromImage($inverted)
+    $matrix = New-Object System.Drawing.Imaging.ColorMatrix
+    $matrix.Matrix00 = -1; $matrix.Matrix11 = -1; $matrix.Matrix22 = -1; $matrix.Matrix33 = 1; $matrix.Matrix44 = 1
+    $matrix.Matrix40 = 1; $matrix.Matrix41 = 1; $matrix.Matrix42 = 1
+    $attributes = New-Object System.Drawing.Imaging.ImageAttributes
+    $attributes.SetColorMatrix($matrix)
+    $g.DrawImage($strip, [System.Drawing.Rectangle]::new(0, 0, $strip.Width, $strip.Height), 0, 0, $strip.Width, $strip.Height,
+        [System.Drawing.GraphicsUnit]::Pixel, $attributes)
+    $g.Dispose()
+    $invertedPng = [IO.Path]::ChangeExtension($Png, '.strip-inverted.png')
+    $inverted.Save($invertedPng); $inverted.Dispose(); $strip.Dispose(); $bmp.Dispose()
+    return [pscustomobject]@{ Title = [ChromiteHarnessWin]::Title($best.H); Strips = @($stripPng, $invertedPng) }
 }
 
 function Find-NoticeLine([string[]]$Lines, [string]$Ver) {
@@ -110,7 +126,7 @@ function Invoke-StageUpdateNotice {
     $logs = Join-Path (Get-ReleaseDir $ver) 'logs'
     New-Item -ItemType Directory -Force $logs | Out-Null
     $app = Join-Path $root 'app'
-    $found = $null; $seconds = 0; $title = ''
+    $found = $null; $seconds = 0; $title = ''; $lastRead = ''
     $oldData = $env:CHROMITE_DATA
     try {
         Say "unzipping $zip"
@@ -133,9 +149,14 @@ function Invoke-StageUpdateNotice {
             $cap = Save-CopyWindow $app $png
             if (-not $cap) { continue }
             $title = $cap.Title
-            $lines = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ocr -Path $cap.Strip 2>$null)
-            Remove-Item -LiteralPath $cap.Strip -Force -ErrorAction SilentlyContinue
-            $found = Find-NoticeLine $lines $ver
+            $read = @()
+            foreach ($strip in $cap.Strips) {
+                $lines = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ocr -Path $strip 2>$null)
+                Remove-Item -LiteralPath $strip -Force -ErrorAction SilentlyContinue
+                $read += $lines
+                if (-not $found) { $found = Find-NoticeLine $lines $ver }
+            }
+            $lastRead = ($read | Where-Object { $_ }) -join ' | '
             if ($found) { $seconds = [int]([DateTime]::UtcNow - $start).TotalSeconds; break }
         }
     } finally {
@@ -151,7 +172,9 @@ function Invoke-StageUpdateNotice {
         if (Test-Path -LiteralPath $root) { Say "could not delete $root" } else { Say "deleted the scratch copy $root" }
     }
     if (Test-Path -LiteralPath $root) { Stop-Harness "the scratch copy $root is left" }
-    if (-not $found) { Stop-Harness "no 'New version $ver' in the title bar of $from within $($script:WaitSeconds) s (window title '$title'; last capture $png)" }
+    # What OCR read last is part of the reason: a misread ("26.13" for "26.1.8") and a notice that is not there look the
+    # same otherwise. The capture stays for a look.
+    if (-not $found) { Stop-Harness "no 'New version $ver' read in the title bar of $from within $($script:WaitSeconds) s (window title '$title'; OCR read last: '$lastRead'; look at the capture $png)" }
     $korean = $found.Contains([string][char]0xC0C8)
     $text = if ($korean) { [string]::new([char[]](0xC0C8, 0x20, 0xBC84, 0xC804)) + " $ver" } else { "New version $ver" }
     Say "OK: the $from copy shows the update notice after about $seconds s (OCR: '$found'); capture $png"

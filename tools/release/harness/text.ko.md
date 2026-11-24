@@ -32,7 +32,7 @@ The scripts stay ASCII; every Korean word they write comes from here.
 === record-todo ===
 TODO(record): 확인하지 않은 것을 적는다(-NotChecked).
 === trial-not-needed ===
-태그 전 수동 실행은 하지 않았다: `v{{previousTag}}` 뒤로 서명 과정 경로(`.github`, `tools/release`, `tools/installer`, `tools/jre`, `product`)에 변경이 없음(버전 제외).
+태그 전 수동 실행은 하지 않았다: `v{{previousTag}}` 뒤로 서명 과정 경로(`.github`, `tools/release`, `tools/installer`, `tools/jre`, `product`)에 변경이 없음(버전과, `release.yml`이 쓰지 않는 하네스 자신의 파일 `tools/release/release.ps1`·`tools/release/harness/` 제외).
 === trial-done ===
 태그 전 `release.yml` 수동 실행({{trialRun}}, `{{trialCommit}}`): 성공(약 {{trialMinutes}}분{{trialReruns}}). 바뀐 서명 과정 경로: {{trialPaths}}.
 === run-first-try ===
