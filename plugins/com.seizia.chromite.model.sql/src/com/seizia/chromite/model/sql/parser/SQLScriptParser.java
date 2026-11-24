@@ -67,6 +67,21 @@ import java.util.*;
  *   {@code END;}처럼 문장에 남긴다({@link SQLDialect#isDelimiterAfterBlock}인 방언, Oracle은 없으면 PLS-00103). 그 조건은 머리를 연
  *   {@code AS}/{@code IS} 바로 뒤의 낱말일 때만 머리를 닫는다: 선언부의 안쪽 서브프로그램 호출 명세({@code AS PROCEDURE c IS
  *   LANGUAGE C …;})는 바깥 루틴의 끝이 아니다 (docs/chromite/swing-query-commands.md "본문 없는 Oracle 루틴의 문장 나누기")
+ * - 2026-11-25 Chromite: 열린 블록이 없을 때 맞은 끝 조건({@code END_BLOCK})도 본문 없는 루틴이다. Oracle
+ *   {@code CREATE FUNCTION … AGGREGATE USING t;}는 {@code AS}/{@code IS}가 없어 머리가 열리지 않으므로 위의 길을 타지 않고 {@code ;} 없이
+ *   가서 PLS-00103으로 INVALID였다. 이 길에 닿는 방언: 그런 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)과 BigQuery. BigQuery의
+ *   조건은 {@code IF}가 연 블록을 닫으므로 블록이 늘 열려 있고, 열려 있지 않더라도 건너뛸 끝 조건이 없고 {@code isDelimiterAfterBlock}이
+ *   거짓이라 결과가 같다 (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
+ * - 2026-11-25 Chromite: 조건이 연 머리 블록 안에서 {@link SQLParserActionKind#NESTED_BLOCK_HEADER}가 맞으면(선언부의 안쪽 서브프로그램) 그
+ *   안에 머리를 하나 더 연다. 그 서브프로그램의 {@code AS}/{@code IS}가 선언부로 바꾸고, 그 {@code BEGIN}이나 호출 명세가 닫고,
+ *   {@code AS}/{@code IS} 전의 {@code ;}는 앞선 선언으로 닫는다. 전에는 안쪽 {@code BEGIN}이 바깥 머리를 닫아 안쪽 {@code END;}에서 문장이
+ *   끝났다. 이 길에 닿는 방언: 그 조건을 가진 Oracle(YashanDB, OceanBase Oracle 모드)뿐이다
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
+ * - 2026-11-25 Chromite: 조건({@code BEGIN_BLOCK})이 연 블록을 끝 조건({@code END_BLOCK})이 닫으면 그 블록을 열기 전 상태로 돌아간다(그때 내린 머리
+ *   블록 포함). Oracle {@code CREATE PACKAGE IF NOT EXISTS p AS …}에서 {@code IF} 조건이 {@code NOT}에 연 블록이 {@code PACKAGE} 머리를 내리고
+ *   {@code EXISTS}가 그 블록만 닫아, 명세가 첫 {@code ;}에서 나뉘었다. 이 길에 닿는 것: {@code BEGIN_BLOCK} 블록을 {@code END_BLOCK}이 닫는 경우로,
+ *   지금은 Oracle의 {@code IF NOT EXISTS}뿐이다(Altibase의 끝 조건은 루틴 머리를, BigQuery의 것은 {@code IF} 낱말이 연 블록을 닫는다)
+ *   (docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2")
  */
 public class SQLScriptParser {
 
@@ -161,8 +176,9 @@ public class SQLScriptParser {
         SQLTokenType prevNotEmptyTokenType = SQLTokenType.T_UNKNOWN;
         String firstKeyword = null, lastKeyword = null;
         boolean endClosedCaseBlock = false;
-        // A dialect predicate closed the header block a predicate had opened, with no BEGIN: a routine without a body (a call
-        // specification). Its rest is not a declaration section, so the next delimiter ends it
+        // A dialect predicate closed the header block a predicate had opened, with no BEGIN, or ended the statement with no
+        // block open: a routine without a body (a call specification, a function implemented by a type). Its rest is not a
+        // declaration section, so the next delimiter ends it
         boolean bodilessRoutine = false;
         // Tokens of the statement given to the predicate evaluator
         int capturedTokens = 0;
@@ -305,6 +321,11 @@ public class SQLScriptParser {
                     }
                 } else if (isDelimiter && curBlock != null) {
                     // Delimiter in some brackets or inside block. Ignore it.
+                    if (curBlock.isSubprogramHeading && tokenType == SQLTokenType.T_DELIMITER) {
+                        // A nested subprogram's heading ended before any AS / IS: a forward declaration, no body follows.
+                        // Not a blank line (smart delimiter mode): the heading may go on after one
+                        curBlock = curBlock.parent;
+                    }
                     continue;
                 } else if (tokenType == SQLTokenType.T_SET_DELIMITER || tokenType == SQLTokenType.T_CONTROL) {
                     isDelimiter = true;
@@ -360,23 +381,47 @@ public class SQLScriptParser {
                     newTokenCaptured = false;
                     SQLParserActionKind actionKind = predicateEvaluator.evaluatePredicates();
                     if (actionKind == SQLParserActionKind.BEGIN_BLOCK) {
+                        ScriptBlockInfo openedOver = curBlock;
                         // header blocks seems optional and we are in the block either way
                         while (curBlock != null && curBlock.isHeader) {
                             curBlock = curBlock.parent;
                         }
                         curBlock = new ScriptBlockInfo(curBlock, false);
+                        curBlock.predicateOpenedOver = openedOver;
                         hasBlocks = true;
                     }
 
-                    if (actionKind == SQLParserActionKind.END_BLOCK && curBlock != null) {
+                    if (actionKind == SQLParserActionKind.END_BLOCK && curBlock == null) {
+                        // Nothing is open to end: a routine whose body-less end comes with no AS / IS before it (Oracle
+                        // AGGREGATE USING t;). It is a whole unit as the call specification below is
+                        bodilessRoutine = true;
+                    } else if (actionKind == SQLParserActionKind.END_BLOCK) {
                         if (!curBlock.isPredicateHeaderBlock) {
-                            curBlock = curBlock.parent;
+                            // A block a BEGIN_BLOCK predicate opened and an END_BLOCK predicate ends was no block (Oracle: the IF
+                            // rule's block at CREATE PACKAGE IF NOT EXISTS): back to what was open before it, the header it
+                            // dropped included
+                            curBlock = curBlock.predicateOpenedOver != null ? curBlock.predicateOpenedOver : curBlock.parent;
                         } else if (capturedTokens - curBlock.headerTokenIndex < predicateEvaluator.getLastMatchedPredicate().getMaxSuffixLength()) {
-                            // Only words that follow the AS / IS which opened the header end it: the same words after a nested
-                            // subprogram in the declarations ("AS PROCEDURE c IS LANGUAGE C …;") are not the routine's own
-                            bodilessRoutine = true;
+                            // Only words that follow the AS / IS which opened the header end it. A nested subprogram's call
+                            // specification ("AS PROCEDURE c IS LANGUAGE C …;") ends that subprogram's header, not the routine
+                            if (!curBlock.isNestedHeader) {
+                                bodilessRoutine = true;
+                            }
                             curBlock = curBlock.parent;
                         }
+                    }
+
+                    if (actionKind == SQLParserActionKind.NESTED_BLOCK_HEADER && curBlock != null && curBlock.isPredicateHeaderBlock
+                        && !curBlock.isSubprogramHeading) {
+                        // A subprogram declared in the routine's declarations gets a header of its own inside the routine's: its
+                        // BEGIN closes that one, so its END does not end the routine
+                        curBlock = new ScriptBlockInfo(curBlock, true, true);
+                        curBlock.isNestedHeader = true;
+                        curBlock.isSubprogramHeading = true;
+                    } else if (actionKind == SQLParserActionKind.BLOCK_HEADER && curBlock != null && curBlock.isSubprogramHeading) {
+                        // The nested subprogram's AS / IS: its declarations follow, or a call specification that ends it
+                        curBlock.isSubprogramHeading = false;
+                        curBlock.headerTokenIndex = capturedTokens;
                     }
 
                     if (curBlock != null && !token.isEOF()) {
@@ -385,8 +430,8 @@ public class SQLScriptParser {
                         continue;
                     }
 
-                    // The suffix skip rules keep the declarations after a nested subprogram ("v NUMBER;", "PROCEDURE p(x NUMBER);")
-                    // in the routine; after a call specification they would skip its own end ("PARAMETERS (n);")
+                    // The suffix skip rules keep a routine's declarations ("v NUMBER;", "PROCEDURE p(x NUMBER);") in it where no
+                    // header block holds them; after a call specification they would skip its own end ("PARAMETERS (n);")
                     if (actionKind == SQLParserActionKind.SKIP_SUFFIX_TERM && !bodilessRoutine) {
                         continue;
                     }
@@ -1163,6 +1208,13 @@ public class SQLScriptParser {
         boolean isPredicateHeaderBlock;
         // Of a predicate header block: the statement's captured token count at the token that opened it
         int headerTokenIndex;
+        // Of a nested subprogram's header (NESTED_BLOCK_HEADER): it is inside the routine's declarations, and it is still the
+        // subprogram's heading, before its AS / IS
+        boolean isNestedHeader;
+        boolean isSubprogramHeading;
+        // Of a block a BEGIN_BLOCK predicate opened: the block that was open then, before the header blocks it dropped
+        @Nullable
+        ScriptBlockInfo predicateOpenedOver;
         @Nullable
         String beginToken;
 

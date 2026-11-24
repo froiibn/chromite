@@ -336,12 +336,108 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
 | 끊었다 다시 연결한 뒤 F5 스크립트 나누기 | — | 17문장 |
 | Altibase 7.3: `AS LANGUAGE C NAME … LIBRARY …;` + 선언부 루틴 + 타입세트 나누기, 외부 프로시저 F5 | (돌리지 않음) | 6문장, 외부 프로시저는 `;`를 붙여 가고 서버가 받음(`SYS_PROCEDURES_` STATUS 0) |
 
-**고치지 않은 것(원인이 다름, 보고만):**
+**고치지 않은 것(원인이 다름, 보고만):** 아래 네 가지는 "Oracle 스크립트 나누기 2"에서 고쳤다.
 - `CREATE FUNCTION … AGGREGATE USING t;`·`PIPELINED USING t;`는 바르게 나뉘지만 `;` 없이 가서 PLS-00103으로 INVALID다. `AS|IS`가 없어 이 고침의 길을
   타지 않는다. 문장 종류를 알아야 `;`를 남길 수 있어 방언 쪽 판단이 따로 필요하다.
 - `CREATE TYPE BODY … AS MEMBER FUNCTION … IS BEGIN … END; END;`가 첫 `END;`에서 나뉜다(패키지 본문과 달리 형식 본문의 블록 조건이 없음).
 - 선언부에 안쪽 서브프로그램 본문(`PROCEDURE inner_p IS BEGIN … END;`)이 있는 독립 루틴은 그 `END;`에서 나뉜다(안쪽 `BEGIN`이 바깥 머리를 닫음).
 - 23ai `CREATE PROCEDURE IF NOT EXISTS …`는 `IF` 조건이 블록을 열어 다음 문장과 합쳐진다.
+
+### Oracle 스크립트 나누기 2 (2026-11-25)
+
+위 "고치지 않은 것" 네 가지(`chromite/oracle-script-split-more`, 발견마다 커밋 하나). 고치기 전 빌드(`origin/command` `67d21e0987`)에서 1521 Oracle 26ai,
+앱 안 시험 에이전트로 F5·Ctrl+Enter를 눌러 넷 모두 재현했다. 서버에 간 문장은 쿼리 관리자 기록에서 읽었다.
+
+**1. 형식·패키지로 구현한 함수(`AGGREGATE USING`, `PIPELINED USING`, `PIPELINED ROW|TABLE POLYMORPHIC USING`)**
+- 재현: 네 함수 모두 바른 자리에서 나뉘지만 `… AGGREGATE USING CHR_OSSM_AGG_T`처럼 `;` 없이 가서 서버가 PLS-00103(`end-of-file`, `;` 기대)으로
+  INVALID로 만들었다. 구현 형식이 VALID여도 같다. 뒤 `SELECT CHR_OSSM_AF(level) …`는 ORA-06575. Ctrl+Enter도 같은 글을 보냈다.
+- 근본 원인: 쿼리 창은 `END` 뒤의 `;`(`needsDelimiterAfterBlock`)와 본문 없는 루틴의 `;`만 남긴다. 본문 없는 루틴은 `AS|IS`가 연 머리를 닫을 때만
+  알아보는데 이 함수들에는 `AS|IS`가 없다. 같은 원인: `AS|IS` 없이 `;`로 끝나는 루틴 단위는 Oracle에서 이 셋뿐이다(호출 명세는 `AS|IS` 뒤).
+  `CREATE`와 `USING`만 보고 `;`를 남기면 `CREATE TABLE … JOIN … USING (n)`도 `;`를 붙여 가므로 쓰지 않았다(스크립트에 넣어 확인).
+- 고침: `OracleSQLDialect`에 `END_BLOCK` 조건 `CREATE [OR REPLACE] [EDITIONABLE|NONEDITIONABLE] FUNCTION` … `AGGREGATE|PIPELINED|POLYMORPHIC USING`.
+  `SQLScriptParser`는 열린 블록이 없을 때 맞은 `END_BLOCK`을 본문 없는 루틴으로 보고, 호출 명세처럼 다음 `;`에서 끝내며 `;`를 남긴다.
+- 공유 파서의 바뀐 길에 닿는 방언: `END_BLOCK` 조건을 가진 Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음), Altibase 계열, BigQuery. Altibase의
+  조건(`AS|IS LANGUAGE`)은 언제나 `AS|IS`가 연 머리 안에서 맞아 열린 블록이 없을 수 없다. BigQuery의 조건(`… IF [NOT] EXISTS`)은 `IF`가 연 블록을
+  닫으므로 블록이 열려 있고, 그렇지 않더라도 건너뛸 끝 조건이 없고 `isDelimiterAfterBlock`이 거짓이라 보내는 글이 같다.
+
+**2. `CREATE TYPE BODY`**
+- 재현: 멤버 넷인 형식 본문이 첫 멤버의 `END;`에서 나뉘어, 서버는 첫 조각을 형식 본문으로 받아 INVALID(PLS-00103)로 만들고 다음 조각
+  `MEMBER FUNCTION … END`는 ORA-00900이었다(그 뒤는 오류에서 멈춤). 멤버 안에서 Ctrl+Enter를 누르면 그 멤버 하나가 가서 ORA-00900.
+- 근본 원인: 형식 본문은 패키지 본문처럼 멤버 서브프로그램을 담고 자기 `END`로 끝나는데, 블록 조건은 `CREATE … PACKAGE BODY`에만 있었다
+  (`BEGIN_BLOCK`, 문장 머리만 보는 조건). 형식 본문에는 열린 블록이 없어 첫 멤버의 `END`가 문장을 끝냈다.
+- 고침: `OracleSQLDialect`에 같은 모양의 `BEGIN_BLOCK` 조건 `CREATE [OR REPLACE] [EDITIONABLE|NONEDITIONABLE] TYPE BODY`. 방언만 바꿨다.
+  형식 본문에는 초기화 부분(`BEGIN`)이 없어 패키지 본문 규칙의 한계(아래 "남은 것")가 생기지 않는다. 형식 명세(`CREATE TYPE … AS OBJECT`)는
+  `BODY`가 없어 닿지 않는다. Altibase 계열에는 형식 본문이 없다.
+
+**3. 선언부에 안쪽 서브프로그램 본문이 있는 독립 루틴**
+- 재현: `CREATE PROCEDURE CHR_OSSM_NP IS v NUMBER := 0; PROCEDURE inner_p IS BEGIN … END inner_p; BEGIN inner_p; END;`가 `END inner_p;`에서 나뉘었다.
+  서버는 첫 조각을 PLS-00103(`begin function pragma procedure` 기대)으로 INVALID로 만들고, 나머지 `BEGIN inner_p; END;`는 익명 블록으로 가서
+  PLS-00201이었다.
+- 근본 원인: 방언의 `BLOCK_HEADER` 조건이 루틴의 `AS|IS`에서 머리 블록을 열고, `SQLScriptParser`의 `T_BLOCK_BEGIN` 갈래는 처음 오는 `BEGIN`에서
+  그 머리를 닫는다. 파서의 블록 모형에는 선언부 안의 서브프로그램이 없어 안쪽 `BEGIN`이 바깥 머리를 닫고 안쪽 `END`가 문장을 끝냈다. 안쪽 `IS`는
+  이미 열린 머리 안이라 무시되었다. 그 `IS`만으로는 고칠 수 없다: 선언부의 `CURSOR c IS`, `TYPE t IS TABLE OF`, `SUBTYPE s IS`, `v BOOLEAN := x IS NULL`
+  같은 `AS|IS`와 가릴 수 없다. 가르는 것은 선언을 시작하는 `PROCEDURE`/`FUNCTION` 낱말뿐이다.
+- 고침: 새 동작 종류 `SQLParserActionKind.NESTED_BLOCK_HEADER`. `OracleSQLDialect`의 조건: `CREATE … FUNCTION|PROCEDURE` 문장에서 `AS|IS|;` 바로 뒤의
+  `PROCEDURE|FUNCTION`. `SQLScriptParser`는 조건이 연 머리 안에서 이것이 맞으면 그 안에 머리를 하나 더 연다(서브프로그램 머리, 아직 `AS|IS` 전).
+  - 그 서브프로그램의 `AS|IS`(`BLOCK_HEADER`)가 머리를 선언부로 바꾼다. 그 `BEGIN`이 이 머리만 닫고, 그 `END`는 그 블록만 닫아 바깥 선언부로 돌아간다.
+    두 단계 이상 겹쳐도 같다.
+  - `AS|IS` 전에 오는 `;`(앞선 선언 `PROCEDURE fwd (x NUMBER);`)는 서브프로그램 머리를 닫는다. 빈 줄(스마트 구분자 모드)은 닫지 않는다.
+  - 서브프로그램의 호출 명세(`PROCEDURE c IS LANGUAGE C …;`, 지난 고침의 `END_BLOCK`)는 그 서브프로그램 머리만 닫고 루틴을 끝내지 않는다.
+  - 패키지·형식 본문, 익명 블록, 트리거는 이 조건의 머리(`CREATE … FUNCTION|PROCEDURE`)가 아니라 바뀌지 않는다(패키지·형식 본문은 `BEGIN`/`END`의
+    짝으로 이미 맞게 나뉜다).
+- 바뀐 공유 파서 길에 닿는 방언: `NESTED_BLOCK_HEADER` 조건을 가진 방언만 그 머리를 연다. Oracle(YashanDB와 OceanBase Oracle 모드가 물려받음)뿐이다.
+  `isSubprogramHeading`·`isNestedHeader`는 그 머리에서만 참이므로 다른 방언의 구분자·`END_BLOCK` 처리는 그대로다. Altibase 7.3은 안쪽 서브프로그램을
+  받지 않아(`CREATE PROCEDURE … AS PROCEDURE inner_p AS …`가 서버에서 구문 오류 200705, 확인) Altibase 방언에는 조건을 더하지 않았다.
+
+**4. 23ai `CREATE … IF NOT EXISTS`**
+- 재현: `CREATE TABLE IF NOT EXISTS CHR_OSSM_T4 (id NUMBER);`부터 스크립트 끝까지(루틴·패키지·트리거·익명 블록 포함)가 한 문장으로 가서 ORA-03405였다.
+  그 뒤 `SELECT`에서 Ctrl+Enter를 눌러도 같은 글이 갔다.
+- 근본 원인: 방언의 `IF` 조건(`BEGIN_BLOCK`, 접미 `[END 아님] IF [EXISTS 아님]`)은 `IF` 다음 한 낱말만 본다. `IF EXISTS`(`ALTER`·`DROP`)는 비켜 가지만
+  `IF NOT EXISTS`는 `NOT`에서 블록을 열고, 그 블록을 닫을 `END`가 없다. 같은 원인: `IF NOT EXISTS`를 쓰는 23ai `CREATE` 모두(표, 뷰, 시퀀스, 루틴,
+  패키지, 패키지 본문, 형식, 트리거 등).
+- 고침: `OracleSQLDialect`에 `END_BLOCK` 조건 `CREATE` … `IF NOT EXISTS`. `EXISTS`가 `NOT`에서 열린 블록을 닫는다(BigQuery 방언이 같은 절에 쓰는 방식).
+  `IF` 조건을 `IF NOT` 다음 낱말까지 보게 바꾸는 길은 PL/SQL `IF NOT x THEN`의 블록을 여는 때를 모든 문장에서 늦추므로 쓰지 않았다.
+- 그 조건만으로는 듣지 않았다(고친 빌드에서 확인): 조건 묶음의 트라이(`TokenPredicateSet`)가 `EXISTS`와 `IF` 조건의 "`EXISTS` 아님"을 같은 열쇠로
+  보아(`ExactTokenEntryComparator`가 뒤집힘을 비교하지 않음) 새 조건이 "`EXISTS` 아님" 마디 밑에 들어갔다. 그래서 `EXISTS`에서는 맞지 않고, `CREATE`
+  문장 안의 `IF NOT (…)`에서는 `NOT` 다음 낱말에 맞아 `IF` 블록을 닫았다(`CREATE PROCEDURE … BEGIN IF NOT (1 = 1) THEN … END IF; END;`가 `END IF;`에서
+  나뉨). 비교기가 뒤집힘도 마지막에 비교하게 고쳤다(공유 `model.sql`). 지금 있는 조건 묶음 가운데 뒤집힌 낱말(`tt.not`)을 쓰는 것은 Oracle·Altibase의
+  `IF` 조건뿐이고, 같은 자리에 같은 낱말의 뒤집히지 않은 열쇠가 없으므로 다른 방언의 트라이는 그대로다(아래 다른 DB 비교).
+- 그다음 `CREATE PACKAGE IF NOT EXISTS p AS PROCEDURE a; END;`가 첫 `;`에서 나뉘었다: `PACKAGE` 낱말이 연 머리 블록을 `IF` 조건의 `BEGIN_BLOCK`이
+  내리고(조건이 블록을 열 때 머리를 모두 내림) `EXISTS`는 `IF` 블록만 닫았다. `SQLScriptParser`는 이제 `BEGIN_BLOCK`이 연 블록을 `END_BLOCK`이 닫으면
+  그 블록을 열기 전 블록(내린 머리 포함)으로 돌아간다. 이 길은 `BEGIN_BLOCK` 블록을 `END_BLOCK` 조건이 닫을 때만 타며 지금은 Oracle의 이 조건뿐이다
+  (Altibase의 `END_BLOCK`은 루틴 머리를, BigQuery의 것은 `IF` 낱말이 연 블록을 닫는다). `IF` 조건을 늦추는 길(`IF` 뒤 두 낱말을 보고 열기)은 시험해 보지
+  않고 버렸다: `CREATE PROCEDURE` 안의 `IF v IS NULL THEN`에서 `IS`가 `BLOCK_HEADER` 조건과 겹쳐 두 조건이 함께 맞으면 평가기가 아무것도 하지 않아
+  `IF` 블록이 열리지 않는다.
+  Altibase 방언은 같은 `IF` 조건을 갖지만 Altibase 7.3은 `IF NOT EXISTS`를 받지 않아(`CREATE TABLE IF NOT EXISTS …`가 서버에서 구문 오류 200705, 확인)
+  바꾸지 않았다.
+
+**확인(고친 빌드, 1521, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-script-split-more\`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 1: 형식·패키지 구현 함수 넷 F5 | `;` 없이 감, 넷 모두 PLS-00103 INVALID | `;`를 붙여 감. 집계 함수 둘·다형 표 함수 VALID, `SELECT CHR_OSSM_AF(level) …`가 10. 없는 형식을 쓴 `PIPELINED USING`은 PLS-00201(구문 오류 아님) |
+| 1: 그 함수에서 Ctrl+Enter | 같은 글(`;` 없음) | 그 함수 하나(`;` 있음), 성공 |
+| 1: `CREATE TABLE … JOIN … USING (n)` | `;` 없이 감 | 같음 |
+| 2: 형식 본문 둘(멤버 넷, 생성자·자바 호출 명세·`CASE … END CASE`가 든 것) F5 | 첫 `END;`에서 나뉨, PLS-00103·ORA-00900 | 한 문장씩, 둘 다 VALID |
+| 2: 멤버 안에서 Ctrl+Enter | 그 멤버만 가서 ORA-00900 | 형식 본문 전체 |
+| 3: 안쪽 서브프로그램 루틴, 두 단계(`IF NOT (…)`·`ELSIF`·`LOOP`·앞선 선언), 선언부 C 호출 명세 F5 | 안쪽 `END;`에서 나뉨, PLS-00103·PLS-00201 | 루틴마다 한 문장. `CHR_OSSM_NP`·`CHR_OSSM_TWO` VALID(`CHR_OSSM_NF`는 시험 글이 서브프로그램 뒤에 커서를 선언해 PLS-00103, 글은 통째로 감) |
+| 3: 안쪽 서브프로그램 줄에서 Ctrl+Enter, 위·아래 `SELECT`에서 Ctrl+Enter | — | 루틴 전체, 위·아래는 그 `SELECT` 하나 |
+| 4: 23ai `IF NOT EXISTS` 표·루틴·뷰·시퀀스·패키지·패키지 본문·형식·트리거, `ALTER … IF EXISTS`, `DROP … IF EXISTS`, 익명 블록 F5(18문장) | 2문장, 둘째에 나머지 모두(ORA-03405) | 18문장, 만든 것 모두 VALID |
+| 4: 그 뒤 `SELECT`·`CREATE PACKAGE IF NOT EXISTS`에서 Ctrl+Enter | 나머지 모두 | 그 문장 하나 |
+| 고치기 전과 같아야 하는 Oracle 스크립트(`reg2.sql`: 표·루틴·패키지·패키지 본문·형식·트리거 셋·익명 블록 둘·`WITH FUNCTION`·`CASE`), 지난 고침의 호출 명세 스크립트 | — | 문장 글과 줄마다 Ctrl+Enter 결과가 바이트까지 같음. `reg2.sql` F5 15문장 모두 성공, 9개 객체 VALID |
+| PostgreSQL(`$$`·`DO`·`BEGIN ATOMIC`), SQL Server(`GO`·`BEGIN … END`·`TRY/CATCH`·`MERGE`), MariaDB(`DELIMITER`·`BEGIN NOT ATOMIC`), Altibase 7.3(외부 프로시저·선언부 루틴·타입세트·패키지 본문·`IF NOT EXISTS`·안쪽 서브프로그램, 그리고 Oracle 시험 스크립트 둘) | — | 문장 글과 줄마다 Ctrl+Enter 결과가 바이트까지 같음(이 방언들은 조건 묶음이 비었거나 바뀐 길에 닿지 않음) |
+| 끊었다 다시 연결한 뒤 네 스크립트 나누기 | — | 같음 |
+
+비교는 쿼리 창의 `SqlQueryCommands.extractElements`(F5·Ctrl+Enter가 쓰는 코드)로 고치기 전·뒤 빌드에서 스크립트 전체와 모든 줄의 첫 글자에서 뽑은 문장을
+파일로 떨어뜨려 바이트로 비교했다. YashanDB·OceanBase(Oracle 모드)는 시험 서버가 없어 돌리지 않았다: 방언을 물려받으므로 위 Oracle 결과가 그대로 적용된다
+(23ai 구문 `IF NOT EXISTS`·다형 표 함수는 그 서버가 받지 않으면 서버 오류로 끝나고 나누기는 같다).
+
+**남은 것(보고만):**
+- 초기화 부분이 있는 패키지 본문(`CREATE PACKAGE BODY p AS … BEGIN … END p;`)은 그 `BEGIN … END`가 패키지 블록 안에서 짝을 이뤄 패키지 블록이 닫히지
+  않으므로, 뒤 문장이 모두 그 문장에 합쳐진다(고치기 전·뒤 빌드에서 확인, 이번 고침과 무관. 고친 빌드에서 F5하면 패키지 본문이 PLS-00103으로 INVALID).
+- 익명 블록과 트리거의 `DECLARE` 안 서브프로그램은 이 고침의 길이 아니라 `AS|IS` 앞붙이 규칙(`getInnerBlockPrefixes`)으로 나뉜다. 한 단계는 맞게
+  나뉘었다. 두 단계로 겹친 것(`DECLARE PROCEDURE a IS PROCEDURE b IS BEGIN … END; BEGIN b; END; BEGIN a; END;`)은 `a`의 `END;`에서 나뉜다(고친 빌드의
+  나누기로 확인, 그 규칙은 바꾸지 않았으므로 고치기 전에도 같다고 본다).
 
 ### 저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)
 
@@ -488,3 +584,15 @@ Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 
   `USE` 배치로 시작(`chromite/ddl-text-runs-as-pasted`). "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)" 절 추가. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: MySQL·MariaDB·TiDB 연결의 모든 스크립트 나누기(쿼리 창 F5, 커서부터 실행, `@include`·`SOURCE`, 작업의 스크립트 실행, Agent 실행 도구),
   MySQL 트리거·이벤트의 DDL 글을 쓰는 DDL 보기·Modify·속성, SQL Server DDL 보기·CREATE 대상·Copy Special DDL·Generate SQL DDL의 글
+- 2026-11-25 "Oracle 스크립트 나누기 2" 절 추가, 그 1: `AGGREGATE|PIPELINED|POLYMORPHIC USING` 함수를 본문 없는 루틴으로 보고 `;`를 남김(방언 조건, 파서는
+  열린 블록 없이 맞은 `END_BLOCK`)(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·
+  OceanBase(Oracle 모드)의 `CREATE FUNCTION` 나누기와 `;` 남기기
+- 2026-11-25 "Oracle 스크립트 나누기 2"의 2: `CREATE TYPE BODY`의 블록 조건(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 형식 본문 나누기
+- 2026-11-25 "Oracle 스크립트 나누기 2"의 3: 독립 루틴 선언부의 안쪽 서브프로그램(`NESTED_BLOCK_HEADER`, 파서의 겹친 머리)(`chromite/oracle-script-split-more`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 `CREATE PROCEDURE|FUNCTION` 나누기(쿼리 창 F5·Ctrl+Enter,
+  스크립트 실행, Agent 실행 도구)
+- 2026-11-25 "Oracle 스크립트 나누기 2"의 4: 23ai `CREATE … IF NOT EXISTS`의 `EXISTS`가 `IF` 조건이 연 블록을 닫음(방언), 조건 트라이가 뒤집힌 낱말을
+  따로 둠(`ExactTokenEntryComparator`), 조건이 연 블록을 조건이 닫으면 내린 머리로 돌아감(`SQLScriptParser`)(`chromite/oracle-script-split-more`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 조건(`makeDialectSkipTokenPredicatesImpl`)을 가진 모든 방언의 스크립트 나누기(Oracle·YashanDB·
+  OceanBase(Oracle 모드), Altibase 계열, BigQuery), Oracle의 `CREATE` 나누기
