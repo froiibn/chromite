@@ -102,13 +102,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *     <li>스크립트 글: {@code SQLUtils.generateScript}처럼 동작을 차례로 잇되, 쿼리 창이 실행할 수 있게 구분자를 정한다.
  *     배치 구분자가 있는 방언(SQL Server의 {@code GO})은 동작마다 {@code GO} 줄을 둔다({@code CREATE/ALTER PROCEDURE}는 배치의 첫 문장이어야 한다).
  *     그 밖에는 {@code generateScript}와 같이 기본 구분자({@code ;})를 붙이고, 복합 동작(루틴 본문)은 구분자를 바꾸는 방언(MySQL)에서
- *     {@code DELIMITER $$} … {@code DELIMITER ;} 사이에 둔다. MySQL 방언에는 {@code BEGIN … END} 블록이 없어(MySQLDialect#getBlockBoundStrings)
- *     쿼리 창의 구문 분석기가 본문 안의 {@code ;}에서 나누기 때문이다. 쿼리 창은 {@code DELIMITER} 줄을 처리한다.</li>
+ *     {@code DELIMITER $$} … {@code DELIMITER ;} 사이에 둔다. 처음에는 쿼리 창의 구문 분석기가 본문 안의 {@code ;}에서 나눴기 때문이다.
+ *     2026-11-25부터 MySQL 방언이 저장 프로그램 본문을 한 문장으로 두지만({@code MySQLDialect#makeDialectSkipTokenPredicatesImpl}),
+ *     클립보드로 mysql 클라이언트 등에 붙여도 실행되도록 그대로 둔다. 쿼리 창은 {@code DELIMITER} 줄을 처리한다.</li>
  *     <li>DB/스키마 맞추기: 새 쿼리 창은 연결의 기본 실행 문맥에서 실행하거나 자기 세션을 열 때 그 문맥의 기본값을 복사하므로
  *     ({@link QueryWindowContext}), 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를
  *     객체가 있는 곳으로 바꾼다(편집기의 기본 DB/스키마 콤보와 같은 {@link DBExecUtils#setExecutionContextDefaults}). PostgreSQL은 DB를
  *     바꾸면 기본 인스턴스가 바뀌므로 다른 DB의 객체도 그 DB에서 실행된다. SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
- *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).</li>
+ *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).
+ *     DDL 보기·CREATE 대상의 글도 같은 {@code USE} 배치로 시작한다({@link #inObjectDatabase}): 그 글은 쿼리 창을 객체의 DB에 맞추지 않고,
+ *     복사해 다른 창에 붙이는 데 쓴다.</li>
  *     <li>새 객체 템플릿(New View/Procedure/Function): 객체를 모델에 미리 만들지 않고(탐색기에 저장 안 된 노드가 생기지 않게) 바로 실행할 수 있는
  *     CREATE 문을 만든다. 모델에 같은 기본 본문이 있는 것은 그것을 따랐다({@code MySQLProcedure#getDeclaration}의 새 객체 본문,
  *     SWT 구성기 {@code PostgreProcedureConfigurator}·{@code OracleProcedureConfigurator}의 본문). 이름은 폴더에 없는 기본 이름이다.
@@ -134,6 +137,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *   (앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-22 {@link #generateAlter}: 취소되면 결과 없이 {@link DBInterruptedException} (읽다 만 정의로 만든 스크립트를 열지 않음,
  *   앱 변경 #159, docs/chromite/swing-source-editor.md)
+ * - 2026-11-25 {@link #inObjectDatabase}: SQL Server의 DDL 보기·CREATE 대상 글도 Modify 스크립트처럼 {@code USE} 배치로 시작한다.
+ *   다른 DB의 쿼리 창(새 창은 연결 기본 DB, 보통 master)에 붙여 실행하면 그 DB에 만들어졌다
+ *   (docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)")
  */
 final class SourceScripts {
 
@@ -290,8 +296,8 @@ final class SourceScripts {
     /**
      * Joins the actions into a script the query window runs, as {@code SQLUtils.generateScript}: the statement delimiter after
      * each action, and a complex action (a routine body) between {@code DELIMITER $$} and {@code DELIMITER ;} lines for
-     * dialects that redefine the delimiter (MySQL: its dialect has no {@code BEGIN … END} blocks, so the parser would split
-     * the body at {@code ;}). Dialects with a batch delimiter (SQL Server {@code GO}) get a batch delimiter line after each
+     * dialects that redefine the delimiter (MySQL: the mysql client splits a body without them at {@code ;}, as the query
+     * window did before its dialect kept stored program bodies whole). Dialects with a batch delimiter (SQL Server {@code GO}) get a batch delimiter line after each
      * action instead, since {@code CREATE/ALTER PROCEDURE} must start its batch. Unlike {@code generateScript}, no empty
      * {@code $$} statement follows the {@code DELIMITER} line, and lines end with LF (the editor's line separator).
      *
@@ -346,6 +352,21 @@ final class SourceScripts {
             script.append(delimiter);
         }
         script.append("\n\n"); //$NON-NLS-1$
+    }
+
+    /**
+     * The DDL text of an object (View DDL, Script as CREATE, Copy Special DDL) as a script that runs in the object's database
+     * wherever it is pasted: on SQL Server the {@code USE <database>} batch of the Modify script first and the text as a batch
+     * of its own after it, as SSMS writes "Script as CREATE" (a routine's text from {@code sys.sql_modules} names no database,
+     * and {@code CREATE PROCEDURE} must start its batch). Other data sources and a database itself: the text unchanged.
+     */
+    @NotNull
+    static String inObjectDatabase(@NotNull DBSObject object, @NotNull String ddl) {
+        String databaseSwitch = object instanceof DBSCatalog ? null : getDatabaseSwitch(object);
+        if (databaseSwitch == null || object.getDataSource() == null || CommonUtils.isEmptyTrimmed(ddl)) {
+            return ddl;
+        }
+        return renderScript(object.getDataSource(), databaseSwitch, List.of(new SQLDatabasePersistAction(ddl)));
     }
 
     /**
