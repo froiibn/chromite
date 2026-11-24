@@ -32,6 +32,8 @@ import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.access.DBAUserPasswordManager;
 import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.exec.DBCQueryTransformType;
+import com.seizia.chromite.model.exec.DBCQueryTransformer;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
@@ -49,6 +51,8 @@ import java.sql.SQLException;
  * - 2026-11-22 Chromite: 다시 열거나 새로 여는 세션의 스키마를 원본 세션이 가진 이름으로 정함
  *   ({@link OracleExecutionContext#setCurrentSchemaFrom}). 스키마 개체를 찾느라 목록을 읽으면 Invalidate/Reconnect의 배타 잠금 아래에서
  *   목록을 쥔 다른 스레드를 기다려 교착할 수 있었다(Oracle과 같은 원인, 앱 변경 #165)
+ * - 2026-11-24 Chromite: 생성한 스크립트의 행 수 제한(SCRIPT_ROW_LIMIT)을 Oracle에게서 물려받지 않음. Oracle의 FETCH FIRST를 YashanDB
+ *   서버에서 확인하지 못했다(앱 변경 #183, docs/chromite/swing-explorer-object-actions.md "행 수 제한")
  */
 public class YashanDBDataSource extends OracleDataSource {
 
@@ -81,6 +85,16 @@ public class YashanDBDataSource extends OracleDataSource {
     @Override
     public boolean isAtLeastV9() {
         return false;
+    }
+
+    /**
+     * No row limit for generated scripts: Oracle's {@code FETCH FIRST} ({@link OracleDataSource#createQueryTransformer})
+     * is not checked on a YashanDB server, and a statement the server refuses is worse than a script without a limit.
+     */
+    @Nullable
+    @Override
+    public DBCQueryTransformer createQueryTransformer(@NotNull DBCQueryTransformType type) {
+        return type == DBCQueryTransformType.SCRIPT_ROW_LIMIT ? null : super.createQueryTransformer(type);
     }
 
     @Override

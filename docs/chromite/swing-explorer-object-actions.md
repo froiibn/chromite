@@ -297,6 +297,117 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
   후 SELECT DELETE DDL. 테이블(Altibase·ShardSphere·SQL Server·PostgreSQL·MariaDB·Oracle), 뷰(갱신 가능·집계), 구체화된 뷰(Altibase·PostgreSQL·Oracle)는
   전과 같음(PostgreSQL은 INSERT ON CONFLICT·UPDATE FROM·DELETE USING까지). 연결 새로 고침·다시 연결 뒤에도 같음.
 
+## 행 수 제한 (2026-11-24, 앱 변경 #183)
+
+### 문제와 원인
+
+사용자 보고: "상위1000개 선택을 누르면 테이블 전체 쿼리가 나오는 현상". 탐색기 ▸ "상위 1000개 행 선택"(`ObjectExplorerPanel` `selectTopAction`)은
+`ObjectScripts.generateSelect(…, 1000)`으로 SELECT를 만들어 쿼리 창에 열고 실행한다. 행 수 제한은 방언의 문법을 직접 쓰지 않고 연결의
+`DBCQueryTransformProvider`에 `RESULT_SET_LIMIT` 변환기를 물어 붙였다(`ObjectScripts.applyRowLimit`). 변환기가 없으면 SELECT를 그대로 두었다.
+
+- 번들 드라이버 가운데 **Oracle과 ShardSphere**(그리고 같은 메타 모델의 Altibase)는 이 변환기가 없다. Oracle은 upstream이 `QueryTransformerRowNum`을
+  주석으로 막아 두었고(`OracleDataSource.createQueryTransformer`), Altibase 계열 메타 모델(`AltibaseMetaModel`)은 변환기를 주지 않는다.
+  `JDBCDataSource.createQueryTransformer`의 기본값은 null이다.
+- 그래서 이 연결들에서 열린 스크립트는 `SELECT … FROM t;`였다. 쿼리 창은 최대 행 수 1000(JDBC `setMaxRows`)으로 가져오기를 멈추므로 결과는 1000행이지만
+  글은 "테이블 전체"였고, 그 글을 다른 곳에서 실행하면 전체를 읽는다.
+- 같은 원인의 다른 길: ERD 다이어그램의 "상위 1000개 행 선택"(`ErdDiagramPanel.selectTop`), 데이터베이스 복사 페이지의 같은 명령
+  (`DatabaseCopyPages`), 데이터 찾기의 "행 열기"(`generateFilteredSelect`, WHERE 뒤 제한). 모두 `applyRowLimit`를 지난다.
+  "SQL 생성 ▸ SELECT"와 "스크립팅 ▸ SELECT 대상"은 원래 제한이 없다(행 수 0). Agent 도구는 이 생성기를 부르지 않는다.
+
+### 자리: 스크립트만의 변환 종류 `SCRIPT_ROW_LIMIT`
+
+`RESULT_SET_LIMIT`은 실행 엔진도 쓴다(`DBUtils.makeStatement`): JSQLParser가 읽은 단순 SELECT에, 연결 설정 "SQL로 가져오기 크기 제한"
+(`resultset.maxrows.sql`, 기본 꺼짐)이 켜졌을 때 편집기의 최대 행 수를 SQL로 넣는다(SQL Server는 `isForceTransform`으로 일부 표에서 늘). 이 종류를 새로 답하면
+그 설정을 켠 사용자의 쿼리가 이 DB들에서 바뀐다(설정은 기본값이 모든 연결에 같이 걸린다). Oracle은 upstream이 일부러 꺼 두었다.
+
+- 고른 길(b): `DBCQueryTransformType.SCRIPT_ROW_LIMIT`을 더했다. 엔진은 이 종류를 묻지 않는다(`DBUtils`는 `RESULT_SET_LIMIT`·`FETCH_ALL_TABLE`만).
+  `applyRowLimit`는 먼저 `SCRIPT_ROW_LIMIT`을, 없으면 `RESULT_SET_LIMIT`을 묻는다. 변환기를 이미 가진 데이터 원본은 `SCRIPT_ROW_LIMIT`에 답하지 않으므로
+  전과 같다.
+- 고르지 않은 길(a): Altibase 계열에 `RESULT_SET_LIMIT`을 주기(SQLite·Athena처럼 `QueryTransformerLimit(false)`). 설정이 꺼져 있으면 쿼리는 같지만 켠
+  사용자의 쿼리에 `LIMIT`이 붙고, Oracle에는 같은 방법을 쓸 수 없어 두 DB가 다른 자리를 쓰게 된다.
+- 답하는 곳: `AltibaseMetaModel`(Altibase와 ShardSphere 드라이버가 함께 씀) `QueryTransformerLimit(false)` → `LIMIT n`.
+  `OracleDataSource` 12c 이상 `QueryTransformerFetchFirst`(새, `ext.oracle` `data`) → `FETCH FIRST n ROWS ONLY`, 11g 이하는 null(전과 같음).
+  `YashanDBDataSource`(`OracleDataSource`를 물려받음)는 null을 돌려 전과 같다(FETCH FIRST를 YashanDB 서버에서 확인하지 못함).
+- 문법은 서버에서 확인한 사실로 정했다(아래 "서버에서 확인한 문법"). 제한은 문장 끝(ORDER BY·WHERE 뒤)에 붙고 끝의 `;`는 변환기가 떼었다가
+  `applyRowLimit`가 다시 붙인다.
+
+### 서버에서 확인한 문법 (앱 밖 JDBC, 시험용 개체 `CHR_TOP_*`, 1,100행)
+
+| 문장 | ShardSphere 5.1.9 일반 서버 | Altibase 7.3 | Oracle 26ai |
+|---|---|---|---|
+| `… LIMIT 1000` | 1000행 | 1000행 | 3047 |
+| `… ORDER BY ID LIMIT 1000` / `… WHERE … LIMIT 1000` | 1000행 / 1000행 | – | – |
+| `… LIMIT 1000 ORDER BY ID` | 200705 | – | – |
+| `… LIMIT 0, 1000` / `LIMIT 1, 1000` | 200713 / 1000행(첫 행부터) | 200713 / – | – |
+| `… LIMIT 1000 OFFSET 5` | 200705 | – | – |
+| `… FETCH FIRST 1000 ROWS ONLY` | 200705 | 200705 | 1000행(WHERE·ORDER BY 뒤, 끝의 `;`도 됨) |
+| `SELECT TOP 1000 …` | 200705 | – | – |
+| `… WHERE ROWNUM <= 1000` | 1000행 | – | – |
+| `… LIMIT 1000 FOR UPDATE` / `… FOR UPDATE LIMIT 1000` | 1000행 / 200705 | – | – |
+| `…;⏎LIMIT 1000` | 200705 | – | – |
+
+ShardSphere의 종류마다 `SELECT <열>⏎FROM 소유자.이름⏎LIMIT 1000`: 테이블·뷰·구체화된 뷰·시노님(소유자 붙임·없음)·분할 테이블 1000행, 분할 하나
+(`PARTITION (p)`) 500행, 큐 1000행, 스트림 테이블 1000행, 연속 테이블(집계 있음·없음)·연속 스트림 테이블 오류 없음(DISABLE이라 0행).
+
+### 변환기가 없는 데이터 원본 (2026-11-24, `RESULT_SET_LIMIT`도 `SCRIPT_ROW_LIMIT`도 없음)
+
+"번들"은 제품이 드라이버 jar를 함께 싣는 것(`drivers.public/plugin.xml`, [drivers.md](drivers.md)), 아니면 사용자가 내려받거나 넣는 드라이버다.
+이 표의 데이터 원본은 전과 같이 SELECT에 제한을 쓰지 않고 쿼리 창의 최대 행 수로만 자른다. 문법이 있어도 서버에서 확인하지 못한 것은 넣지 않았다
+(서버가 거절하는 문장은 제한이 없는 문장보다 나쁘다).
+
+| 데이터 원본 (클래스) | 행 수 문법(일반 지식, 서버에서 확인하지 않음) | 번들 |
+|---|---|---|
+| YashanDB (`YashanDBDataSource`, Oracle을 물려받되 null) | 있음(확인 못 함) | 아니오 |
+| Db2 LUW(`DB2DataSource`), Db2 for i(`DB2IMetaModel`), Db2 z/OS(`DB2ZOSMetaModel`) | `FETCH FIRST n ROWS ONLY` | 아니오 |
+| OceanBase Oracle 모드(`OceanbaseOracleDataSource`, 일반 메타 모델) | `ROWNUM`/`FETCH FIRST` | 아니오 |
+| Apache Doris(`DorisMetaModel`), StarRocks(`StarRocksMetaModel`), Manticore(`ManticoreMetaModel`), GreptimeDB(`GreptimeMetaModel`) | `LIMIT` | 아니오 |
+| Dameng(`DamengMetaModel`), GBase 8s(`GBase8sMetaModel`), Informix(`InformixMetaModel`) | `TOP`/`LIMIT`/`FIRST` | 아니오 |
+| Denodo(`DenodoMetaModel`), Firebird(`FireBirdMetaModel`), H2·H2GIS(`H2DataSource`), HANA(`HANAMetaModel`), HSQLDB(`HSQLMetaModel`), Derby(`DerbyMetaModel`), Mimer(`MimerMetaModel`), Netezza(`NetezzaMetaModel`), Ocient(`OcientMetaModel`), Spanner(`SpannerMetaModel`), IoTDB·TimechoDB(`IoTDBMetaModel`) | 대부분 `LIMIT`·`FETCH FIRST`·`FIRST`(DB마다 다름) | 아니오 |
+| 일반 JDBC(`GenericMetaModel`): OpenSearch, Elasticsearch, Solr, Drill, Dremio, Impala, Kyuubi, Presto, Kylin, Calcite Avatica, Arrow Flight SQL, Teiid, MaxDB, Caché·IRIS, Ingres, NuoDB, MonetDB, Virtuoso, OpenEdge, Pervasive, SQream, Db2(구), MySQL(구), CSV, DBF, MS Access, JDBCX, Gemfire XD, SnappyData, Ignite, OmniSci, CrateDB(구), OrientDB, Machbase, TDengine, DolphinDB, Jennifer, Salesforce Data 360, GizmoSQL, 사용자가 더한 드라이버 | 드라이버마다 다르거나 알 수 없음 | 아니오 |
+
+번들 드라이버(SQL Server, Oracle, PostgreSQL, MariaDB, SQLite, ShardSphere) 가운데 변환기가 없던 것은 Oracle과 ShardSphere였고, 이 변경으로 둘 다 답한다.
+Altibase의 옛 드라이버들(`Altibase7_1`, 이름 없는 `Altibase`)도 같은 메타 모델이라 `LIMIT`을 쓴다. 서버에서는 7.3만 확인했다.
+`RESULT_SET_LIMIT`을 가진 데이터 원본(전과 같음): PostgreSQL 계열(Greenplum·Kingbase·GaussDB 등), MySQL·MariaDB·OceanBase MySQL·TiDB, SQL Server·jTDS·Sybase(TOP),
+SQLite·LibSQL·Cloudflare D1, DuckDB, ClickHouse, Exasol, Athena, BigQuery, CUBRID, Databend, Databricks, Snowflake, Vertica, TiDBLake, Timeplus, Hive·Spark, Trino,
+Teradata(TOP), Phoenix.
+
+### 확인 (2026-11-24, 전 = `origin/command` 96c492fe63 빌드, 후 = 이 브랜치 빌드, 사설 작업 공간·설정·데이터 폴더, 앱 안 테스트 에이전트, 한국어·밝은 테마·150 %)
+
+연결 여덟 개(ShardSphere 일반 서버 `SS`, 메타 노드 `SHARD` 읽기 전용, 터널의 Altibase 7.3·Oracle 1521·PostgreSQL·SQL Server·MariaDB·MySQL 8.4)에
+시험용 개체 `CHR_TOP_*`(1,100행)를 두고 탐색기의 명령 자체(`selectTopAction`)를 불러 열린 스크립트, 결과, 쿼리 관리자의 문장을 보았다.
+ERD·데이터베이스 복사가 쓰는 `generateSelect`와 데이터 찾기의 `generateFilteredSelect`(WHERE `ID >= 50`)는 같은 앱에서 직접 불러 실행했다
+(스트림 목록 객체는 트리 노드가 아니라 이 길로만 닿는다).
+
+| DB | 종류 | 전 | 후 | 오류 | 행 |
+|---|---|---|---|---|---|
+| ShardSphere | 테이블·뷰·구체화된 뷰·분할 테이블·큐 | `SELECT …⏎FROM 소유자.t;` | `…⏎LIMIT 1000;` | 없음 | 1000 |
+| ShardSphere | 스트림 테이블(ERD·복사 길) | 제한 없음 | `SELECT "$INSERT_TIME", …⏎LIMIT 1000;` | 없음 | 1000 |
+| ShardSphere | 연속 테이블 둘·연속 스트림 테이블(같은 길) | 제한 없음 | `…⏎LIMIT 1000;` | 없음 | 0(DISABLE) |
+| ShardSphere | 데이터 찾기: 테이블, 스트림 테이블 | `…⏎WHERE ID >= 50;` | `…⏎WHERE ID >= 50⏎LIMIT 1000;` | 없음 | 1000 |
+| ShardSphere | 시노님, "스트림" 노드의 객체 | 명령 꺼짐 | 같음 | – | – |
+| ShardSphere 메타 노드 | 로그인 스키마의 첫 테이블(SELECT만) | 제한 없음 | `…⏎LIMIT 1000;` | 없음 | 100(전부) |
+| Altibase 7.3 | 테이블·뷰·구체화된 뷰 | 제한 없음 | `…⏎LIMIT 1000;` | 없음 | 1000 |
+| Oracle 26ai | 테이블·분할 테이블·뷰·구체화된 뷰, 데이터 찾기 | 제한 없음 | `…⏎FETCH FIRST 1000 ROWS ONLY;` | 없음 | 1000 |
+| Oracle·SQL Server·Altibase | 시노님·동의어 | 명령 꺼짐 | 같음 | – | – |
+| PostgreSQL 17 | 테이블·분할 테이블·뷰·구체화된 뷰 | `…⏎LIMIT 1000;` | 같음 | 없음 | 1000 |
+| SQL Server 2022 | 테이블·분할 테이블·뷰 | `SELECT TOP 1000 …;` | 같음 | 없음 | 1000 |
+| MariaDB 11.8·MySQL 8.4 | 테이블·분할 테이블·뷰 | `…⏎LIMIT 0, 1000;` | 같음 | 없음 | 1000 |
+
+- 쿼리 창은 최대 행 수 1000에서 가져오기를 멈추므로 "행" 열은 전에도 1000이었다. 서버가 제한을 지키는지는 같은 글을 행 수 제한 없이 JDBC로 실행해 확인했다
+  (위 문법 표의 종류별 줄: 1,100행 개체에서 1000행).
+- **사용자 쿼리는 그대로**(쿼리 관리자, 전·후 같은 문장): `SS`·`ORA`·`ALTI`에서 보통 SELECT, 자기 제한이 있는 SELECT(`LIMIT 5`, `FETCH FIRST 5 ROWS ONLY`),
+  `SELECT … FOR UPDATE`, `UPDATE`(같은 값), 스트림 테이블 SELECT를 "SQL로 가져오기 크기 제한" 꺼짐·켜짐 둘 다로 실행: 서버로 간 사용자 문장 글이 전과 후에 같고
+  (`SELECT ID, V FROM CHR_TOP_T` 등, 제한 절이 붙지 않음) 결과 행도 같다(최대 행 수 200에서 멈춤, 5행, 1행).
+- 캡처(저장소 밖, 계정은 `<owner>`, 호스트·다른 객체 이름은 가림): `D:\Tools\_scratch\select-top-row-limit\shots\before|after\`.
+- 회귀 테스트는 작성·실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Oracle·Altibase·ShardSphere의 "상위 1000개 행 선택"(탐색기·ERD·데이터베이스 복사),
+  데이터 찾기의 "행 열기". 넣을 만한 시험: `ObjectScripts.generateSelect`·`generateFilteredSelect`가 데이터 원본별로 만드는 글(모델 시험 플러그인, 가짜 데이터 원본),
+  `QueryTransformerFetchFirst`의 SELECT가 아닌 문장·이미 FETCH가 있는 문장.
+
+### upstream 대비 변경점
+
+- `DBCQueryTransformType.SCRIPT_ROW_LIMIT`(새 값), Altibase 계열 메타 모델과 Oracle 데이터 원본이 답함, `QueryTransformerFetchFirst`(새).
+  upstream의 `RESULT_SET_LIMIT` 답과 엔진 동작은 그대로다.
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 개체 삭제·이름 바꾸기(객체 관리자, 스크립트 미리 보기, 트랜잭션 질문), 이름·정규화된 이름 복사, 여러 개 선택, SQL 생성 메뉴.
@@ -313,3 +424,5 @@ SWT 감사 3순위 "TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 �
 - 2026-11-16 메뉴 항목은 노드의 종류에 해당할 때만 보이고 지금 할 수 없으면 꺼짐: 이름 바꾸기·삭제의 조건을 종류(`appliesRename`·`appliesDelete`)와 지금 상태(`canRename`·`canDelete`)로 나눔, 이름 복사·SQL 생성은 해당할 때만 보임(앱 변경 #137, [context-menus.md](context-menus.md)).
 - 2026-11-22 DDL 명령의 취소와 권한 오류: 취소한 생성은 결과를 열지 않음, 권한 오류의 첫 줄(앱 변경 #159, [swing-routines.md](swing-routines.md) "DDL 권한과 취소").
 - 2026-11-22 행을 쓰는 생성기(INSERT·UPDATE·DELETE·MERGE)가 객체의 데이터 기능을 물음: 큐에 서버가 거절하는 문장이 나오지 않음(앱 변경 #157), 위 "행을 쓰는 생성기".
+- 2026-11-24 "상위 1000개 행 선택"이 Oracle·Altibase·ShardSphere에서 제한 없는 SELECT를 열던 것을 고침: 스크립트만의 변환 종류 `SCRIPT_ROW_LIMIT`
+  (`LIMIT n`, Oracle 12c 이상 `FETCH FIRST n ROWS ONLY`), 변환기가 없는 데이터 원본 표(앱 변경 #183), 위 "행 수 제한".

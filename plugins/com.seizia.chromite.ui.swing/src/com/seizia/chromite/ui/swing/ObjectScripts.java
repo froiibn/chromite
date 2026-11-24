@@ -62,10 +62,12 @@ import java.util.List;
  *     이 생성기는 {@code OPTION_INCLUDE_OBJECT_DROP}을 켜므로, 이 옵션을 읽는 MySQL 테이블은 DROP 문이 앞에 붙는다(SWT와 같음).</li>
  *     <li>SELECT: {@link SQLGeneratorSelect}("Generate SQL > SELECT", 숨은 열을 뺀 열 목록). 데이터 검색의 "행 열기"는 같은 SELECT에
  *     모델의 조건 생성기로 만든 WHERE를 붙인다({@link #generateFilteredSelect}).</li>
- *     <li>행 수 제한(Select Top N Rows): 방언마다 다른 문법을 직접 쓰지 않고, 실행 엔진이 최대 행 수를 SQL로 넣을 때 쓰는
- *     연결의 {@link DBCQueryTransformProvider}({@link DBCQueryTransformType#RESULT_SET_LIMIT})로 바꾼다
- *     (SQL Server {@code TOP}, SQLite·PostgreSQL·MySQL {@code LIMIT} 등). 변환기가 없거나 적용할 수 없으면 SELECT를 그대로 두고,
- *     편집기의 가져오기 행 수 제한으로만 자른다.</li>
+ *     <li>행 수 제한(Select Top N Rows): 방언마다 다른 문법을 직접 쓰지 않고 연결의 {@link DBCQueryTransformProvider}에 묻는다.
+ *     먼저 생성한 스크립트만의 자리({@link DBCQueryTransformType#SCRIPT_ROW_LIMIT}: Oracle 12c 이상 {@code FETCH FIRST},
+ *     Altibase·ShardSphere {@code LIMIT})를, 없으면 실행 엔진이 최대 행 수를 SQL로 넣을 때 쓰는
+ *     {@link DBCQueryTransformType#RESULT_SET_LIMIT}(SQL Server {@code TOP}, SQLite·PostgreSQL·MySQL {@code LIMIT} 등)를 쓴다.
+ *     둘 다 없거나(행 수 문법을 모르는 DB, 일반 JDBC) 적용할 수 없으면 SELECT를 그대로 두고, 편집기의 가져오기 행 수 제한
+ *     (JDBC 최대 행 수)으로만 자른다. 행 수 문법이 없는 데이터 소스의 목록: docs/chromite/swing-explorer-object-actions.md "행 수 제한".</li>
  *     <li>Generate SQL: SWT 메뉴({@code SQLGeneratorContributor})처럼 생성기 확장점의 등록({@link SQLGeneratorConfigurationRegistry})에서
  *     선택한 객체에 맞는 생성기를 고른다(SELECT, INSERT, UPDATE, DELETE, MERGE, JOIN, CALL, DDL, PostgreSQL의 INSERT ON CONFLICT 등).
  *     드라이버가 확장점으로 더한 생성기도 코드 수정 없이 나온다.</li>
@@ -80,6 +82,8 @@ import java.util.List;
  * - 2026-11-08 조건을 붙인 SELECT {@link #generateFilteredSelect}(데이터 검색, docs/chromite/swing-data-search.md)
  * - 2026-11-22 취소한 생성은 결과를 돌려주지 않음(생성기는 취소된 모니터에서 멈추고 만든 데까지 돌려줘, 취소 뒤에 열이 없는
  *   CREATE TABLE이 탭에 열렸다), 권한 오류의 첫 줄 {@link #errorMessage} (앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-24 행 수 제한을 스크립트만의 자리(SCRIPT_ROW_LIMIT)에서 먼저 찾음: 엔진 변환기가 없는 Oracle·Altibase·ShardSphere에서
+ *   "상위 1000개 행 선택"이 제한 없는 SELECT를 열었다(앱 변경 #183, 같은 문서 "행 수 제한")
  */
 final class ObjectScripts {
 
@@ -232,7 +236,14 @@ final class ObjectScripts {
     @NotNull
     private static String applyRowLimit(@Nullable DBPDataSource dataSource, @NotNull String sql, long maxRows) {
         DBCQueryTransformProvider provider = DBUtils.getAdapter(DBCQueryTransformProvider.class, dataSource);
-        DBCQueryTransformer transformer = provider == null ? null : provider.createQueryTransformer(DBCQueryTransformType.RESULT_SET_LIMIT);
+        DBCQueryTransformer transformer = null;
+        if (provider != null) {
+            // The script's own limit first (data sources whose engine limit is off), then the engine's
+            transformer = provider.createQueryTransformer(DBCQueryTransformType.SCRIPT_ROW_LIMIT);
+            if (transformer == null) {
+                transformer = provider.createQueryTransformer(DBCQueryTransformType.RESULT_SET_LIMIT);
+            }
+        }
         if (dataSource == null || transformer == null) {
             return sql;
         }

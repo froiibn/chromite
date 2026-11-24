@@ -1452,6 +1452,14 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
 
 - upstream에는 없다. 인터페이스 둘, 유지 관리 동작 셋, 대화상자 하나, "New …" 항목의 확장 틀.
 
+## 생성한 스크립트의 행 수 제한 (2026-11-24, 앱 변경 #183)
+
+"상위 1000개 행 선택"(탐색기·ERD·데이터베이스 복사)과 데이터 찾기의 "행 열기"가 Altibase 계열에서 제한 없는 SELECT를 열었다. 계열 메타 모델이 행 수
+변환기를 주지 않았기 때문이다. 이제 `AltibaseMetaModel`이 생성한 스크립트만의 종류 `SCRIPT_ROW_LIMIT`에 `QueryTransformerLimit(false)`로 답해 문장 끝에
+`LIMIT n`을 붙인다(Altibase와 ShardSphere 드라이버가 같은 메타 모델). 실행 엔진의 `RESULT_SET_LIMIT`은 여전히 답하지 않으므로 사용자 쿼리는 전처럼 JDBC
+최대 행 수로만 자른다. 서버 사실(Altibase 7.3, ShardSphere 5.1.9): `LIMIT n`은 ORDER BY·WHERE 뒤, FOR UPDATE 앞에 온다. `LIMIT 0, n`은 200713(오프셋이 1부터),
+`OFFSET`·`FETCH FIRST`·`TOP`은 200705. 자리의 이유, 서버 표, 확인: [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "행 수 제한".
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
@@ -1503,3 +1511,4 @@ Firebird UPDATE OR INSERT 생성기에도 같은 `if`(지금은 결과가 같음
   항목의 테이블을 `GenericTableBase`로(구체화된 뷰 인덱스의 형 변환 오류)(앱 변경 #158 2항), 위 "테이블스페이스의 테이블과 인덱스".
 - 2026-11-22 서버 확장의 스키마 개체 목록 자리(`getSchemaObjects`, `AltibaseDataSource.getSchemaExtensionChildren`, `AltibaseSchema.getChildren`·`getChild`)와
   스키마 새로 고침 알림(`schemaRefreshed`)(앱 변경 #163, `chromite/shardsphere-stream-completion`), 위 "서버 확장".
+- 2026-11-24 생성한 스크립트의 행 수 제한 `LIMIT n`(`AltibaseMetaModel`, `SCRIPT_ROW_LIMIT`, 앱 변경 #183, `chromite/select-top-row-limit`), 위 "생성한 스크립트의 행 수 제한".

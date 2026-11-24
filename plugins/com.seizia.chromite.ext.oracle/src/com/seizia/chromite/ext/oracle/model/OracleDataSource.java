@@ -25,6 +25,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.ext.oracle.data.QueryTransformerFetchFirst;
 import com.seizia.chromite.ext.oracle.internal.OracleMessages;
 import com.seizia.chromite.ext.oracle.model.plan.OracleActualPlanProvider;
 import com.seizia.chromite.ext.oracle.model.plan.OracleQueryPlanner;
@@ -107,6 +108,9 @@ import java.util.regex.Pattern;
  *   user's Cancel in a progress dialog is a cancel, not an error window. The driver raises the same error for a query timeout
  *   and for another session's ALTER SYSTEM CANCEL SQL; only callers that know the user canceled take it as the user's
  *   (app change #169, docs/chromite/swing-frontend.md).
+ * - 2026-11-24 Chromite: {@link #createQueryTransformer} answers the generated script's row limit
+ *   ({@link DBCQueryTransformType#SCRIPT_ROW_LIMIT}, {@code FETCH FIRST n ROWS ONLY} on 12c and later); "Select Top 1000 Rows"
+ *   opened a SELECT without a limit (app change #183, docs/chromite/swing-explorer-object-actions.md "행 수 제한").
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -876,6 +880,11 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
     public DBCQueryTransformer createQueryTransformer(@NotNull DBCQueryTransformType type) {
         if (type == DBCQueryTransformType.RESULT_SET_LIMIT) {
             //return new QueryTransformerRowNum();
+        }
+        // Only the generated script's row limit: the engine's RESULT_SET_LIMIT stays off. The clause is Oracle 12c's,
+        // older servers keep the script without a limit.
+        if (type == DBCQueryTransformType.SCRIPT_ROW_LIMIT && isAtLeastV12()) {
+            return new QueryTransformerFetchFirst();
         }
         return super.createQueryTransformer(type);
     }
