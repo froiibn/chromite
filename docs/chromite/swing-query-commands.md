@@ -67,6 +67,8 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   PostgreSQL에서 연결의 세션이 모두 닫혀 다른 창의 트랜잭션이 묻지 않고 롤백되었다([connection-lifecycle.md](connection-lifecycle.md) "연결 새로 고침과 세션").
 - 연결 전체를 다시 읽으면 Object Explorer의 펼쳐 둔 폴더(Databases, Schemas)도 바로 바뀐다. `CREATE USER`도 연결 전체를 다시 읽는다(아래
   "연결 전체를 다시 읽은 뒤의 탐색기 (#111)").
+- 프로시저·함수의 `CREATE`/`ALTER`는 본문을 문법이 읽지 못해도 머리의 이름으로 그 스키마를 다시 읽는다. Oracle 패키지·형식·트리거도 같다.
+  그래서 DDL 보기의 글을 쿼리 창에 붙여 고쳐 실행한 뒤 다시 연 DDL 보기·Script as·Modify가 새 정의를 보인다(아래 "저장 루틴 DDL 뒤 (앱 변경 181)").
 
 ## 구조
 
@@ -221,6 +223,45 @@ DB를 고르지 않은 MySQL·MariaDB 창의 `CREATE/DROP SCHEMA`, Oracle·Altib
 `chr_rf_db.sys.all_objects` 하나(DB 목록 `sys.databases` 없음), 새 표가 `dbo > Tables`에 나타나고 `DROP TABLE` 뒤 빠짐. #109(PostgreSQL 새로 고침이 세션을 닫지 않음): B의 pid 108118, 커밋하지 않은 행, `search_path`
 `chr_rf_ps, public`, 임시 테이블이 `CREATE/DROP DATABASE`와 연결 Refresh 뒤에도 그대로였고 롤백 뒤 행 없음, 연결을 끊은 뒤 내 세션 0개.
 
+### 저장 루틴 DDL 뒤 (앱 변경 181)
+
+**보고(2026-11-24):** Oracle 프로시저의 DDL 보기 글을 쿼리 창에 복사해 붙이고 고쳐 F5를 누르면 고친 것이 적용되지 않는다.
+
+**확인한 것(26.1.7, 1521 Oracle 26ai):** 서버에는 적용된다. 붙인 글을 F5로 실행하면 상태 줄이 "쿼리를 실행했습니다."이고 `ALL_SOURCE`·`LAST_DDL_TIME`·
+호출 결과가 새 본문이다(새 쿼리 탭, 별도 창, 다른 스키마의 개체를 SYSTEM 연결에서, 따옴표 이름, `EDITIONABLE`, 한글 본문, 같은 창에서 두 번째 실행, 패키지 머리·본문 모두).
+그런데 DDL 보기를 다시 열면 **실행 전 정의**가 나온다. Script as ▸ CREATE와 Modify도 같은 옛 소스를 쓴다(Modify로 고쳐 실행하면 붙여 고친 것을 덮어쓴다).
+DDL 보기 탭은 읽기 전용이라 그 탭에서는 글을 바꿀 수 없고 F5도 아무것도 실행하지 않는다(다른 창의 쿼리도 실행하지 않음, Execute가 꺼짐).
+
+**근본 원인:** 모델 객체는 정의를 한 번 읽어 캐시한다(`OracleProcedureStandalone.getObjectDefinitionText`의 `sourceDeclaration`, `OraclePackage`,
+`SQLServerProcedure.body` 등). 쿼리 창의 DDL 뒤 갱신이 그 캐시를 비우는데, `SQLObjectOperationRecognizer.recognizeStatement`가 문법 오류가 하나라도 있는
+문장을 버렸다. 루틴 본문은 문법이 끝까지 읽지 못하는 경우가 많다: PL/SQL 선언부, Oracle·Altibase 블록을 끝내는 `;`(쿼리 창이 문장에 남김),
+T-SQL `SET NOCOUNT ON;` 뒤의 문장. 그래서 `CREATE OR REPLACE PROCEDURE`·SQL Server `ALTER PROCEDURE` 뒤에 아무것도 다시 읽지 않았다.
+Oracle `PACKAGE`·`TYPE`·`TRIGGER`는 문법에 그 종류가 없어 머리도 읽지 못했다. PostgreSQL 함수(`$$` 본문)는 읽혀서 문제가 없었다.
+
+**고침:**
+- `SQLObjectOperationRecognizer.recognizeRoutineHead`: 오류가 있는 문장이 프로시저·함수의 `CREATE`/`ALTER`이고 머리(종류와 이름)에 오류가 없으면
+  그 이름으로 개체를 찾는다. 같은 클래스의 `isDropStatement`가 DROP을 읽는 방식과 같다(문장은 성공했고, 만든 개체는 머리가 말하는 것).
+- `SqlMetadataRefresh.getOracleUnitSchema`: 파서가 아무것도 찾지 못한 Oracle 문장은 쿼리 창이 컴파일 오류를 읽을 때 쓰는 머리 읽기
+  (`OracleCompileErrors.parseCreate`)로 저장 단위의 스키마를 다시 읽는다(패키지·형식·트리거와 그 본문, 프로시저·함수도 같음).
+- DDL 보기 탭은 그대로 읽기 전용이다(설계, 새 UI 없음).
+
+**확인 (2026-11-24, GCP 시험 VM, 앱 안 시험 에이전트, 증거 `D:\Tools\_scratch\oracle-procedure-ddl-edit\`):**
+
+| 경우 (DDL 보기 → 복사 → 새 쿼리 창에 붙여 고침 → F5) | 26.1.7 | 고친 뒤 |
+|---|---|---|
+| Oracle 1521 프로시저, 쿼리 탭 | 서버 새 본문, 다시 연 DDL 보기·Modify는 옛 본문 | 새 본문 |
+| 함수, 별도 쿼리 창 | 같음 | 새 본문 |
+| 패키지(머리 + 본문 두 문장) | 같음 | 새 본문 |
+| 따옴표 이름 `"Chr_DdlEdit_Mixed"`, 같은 창 두 번째 실행 | 같음 | 새 본문 |
+| SYSTEM 연결에서 다른 스키마의 `EDITIONABLE` 프로시저 | 같음(SYSTEM 스키마에 개체 생기지 않음) | 새 본문 |
+| 한글 주석·문자열 | 같음 | 새 본문 |
+| 연결 새로 고침 뒤, 끊고 다시 연결한 뒤, 수동 커밋 연결 | — | 새 본문(수동 커밋에서도 열린 트랜잭션으로 보이지 않음) |
+| SQL Server 2022 `ALTER PROCEDURE`(USE 줄을 앞에 둠) | 서버 새 본문, DDL 보기 옛 본문 | 새 본문 |
+| PostgreSQL 17 함수 | 새 본문 | 새 본문 |
+
+- 마우스로 마지막 `;`를 빼고 고르면 Oracle이 PLS-00103으로 INVALID를 만들고 창은 "쿼리가 완료되었지만 오류가 있습니다." + 컴파일 오류 줄을 보인다(성공처럼 보이지 않음).
+- 1522(KO16MSWIN949)는 확인 중 인스턴스가 내려가(ORA-00822, 2026-11-24 05:31 UTC) 확인하지 못했다.
+
 ## upstream 대비 변경점
 
 - SWT `SQLCommandInclude`(ui.editors.sql)는 SWT 프런트엔드와 함께 삭제되었다. 모델 번들에 같은 이름으로 다시 만들었다(편집기 대신 엔진, 현재 폴더 찾기 없음,
@@ -290,3 +331,6 @@ DB를 고르지 않은 MySQL·MariaDB 창의 `CREATE/DROP SCHEMA`, Oracle·Altib
   "연결 전체를 다시 읽은 뒤의 탐색기 (#111)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Object Explorer의 연결 노드 새로 고침 표시,
   쿼리 창 DDL 뒤 갱신, LSM 문법을 쓰는 SQL 편집기 분석(`CREATE USER` 문장)
 - 2026-11-15 Execute의 둘째 키 Alt+X도 같은 초점 규칙을 따름(앱 변경 #122, `chromite/execute-alt-x`, [shortcuts.md](shortcuts.md) "Execute의 둘째 키")
+- 2026-11-24 본문을 문법이 읽지 못한 루틴의 CREATE/ALTER와 Oracle 패키지·형식·트리거 뒤에도 그 스키마를 다시 읽음(앱 변경 181, `chromite/oracle-procedure-ddl-edit`).
+  "저장 루틴 DDL 뒤 (앱 변경 181)" 절 추가. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 DDL 뒤 Object Explorer 갱신(모든 DB의 루틴 DDL),
+  DDL 보기·Script as·Modify가 읽는 정의

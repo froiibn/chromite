@@ -55,6 +55,9 @@ import java.util.Set;
  *   PROCEDURE, TRIGGER 등)도 찾도록. SWT 편집기는 이 클래스로 그것을 찾았다 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-17 방언의 문장 접두어({@link SQLDialect#getStatementPrefixLength})를 뺀 본문을 읽음: 접두어가 있는 DROP을 DROP으로 찾고
  *   (실행 전 확인), 접두어가 있는 DDL 뒤에도 Object Explorer를 새로 고침(앱 변경 #139, docs/chromite/swing-sql-exec-safety.md "문장 접두어")
+ * - 2026-11-24 본문을 읽지 못한 프로시저·함수의 CREATE/ALTER도 머리의 이름으로 찾음({@link #recognizeRoutineHead}). 전에는 오류가 하나라도
+ *   있으면 아무것도 찾지 않아, 쿼리 창에서 고쳐 실행한 Oracle·SQL Server 루틴의 DDL 보기가 실행 전 정의를 보였다
+ *   (앱 변경 181, docs/chromite/swing-query-commands.md "DDL 뒤 탐색기 갱신")
  */
 public final class SQLObjectOperationRecognizer {
 
@@ -164,10 +167,58 @@ public final class SQLObjectOperationRecognizer {
     ) {
         RecognitionErrorListener errorListener = new RecognitionErrorListener();
         STMTreeNode tree = analyzer.parseSqlQueryTree(STMSource.fromString(queryText), errorListener);
-        if (tree == null || errorListener.hasErrors) {
+        if (tree == null) {
             return List.of();
         }
+        if (errorListener.hasErrors || hasErrors(tree)) {
+            return recognizeRoutineHead(tree);
+        }
         return recognizeTree(tree);
+    }
+
+    /**
+     * The routine a CREATE or ALTER of a procedure or function names in its head, when the rest of the statement does
+     * not parse.
+     * <p>
+     * The grammar reads few routine bodies to the end: PL/SQL declarations, T-SQL statements after
+     * {@code SET NOCOUNT ON;}, and the {@code ;} that ends an Oracle or Altibase block (the query window keeps it in the
+     * statement) are left as errors. Like {@link #isDropStatement}, errors after the head do not matter: the statement ran,
+     * and the routine it made or changed is the one its head names. Without this a query window that ran
+     * {@code CREATE OR REPLACE PROCEDURE} found no object, and Object Explorer and the model kept the old definition
+     * (View DDL, Script as and Modify showed the source from before the run).
+     */
+    @NotNull
+    private static List<SQLObjectOperation> recognizeRoutineHead(@NotNull STMTreeNode root) {
+        if (root.getNodeName().equals(STMKnownRuleNames.sqlQueries) &&
+            root.findChildrenOfName(STMKnownRuleNames.sqlQuery).size() != 1) {
+            return List.of();
+        }
+        STMTreeNode schemaStatement = unwrapSchemaStatement(root);
+        STMTreeNode statement = schemaStatement == null ? null : schemaStatement.findFirstNonErrorChild();
+        if (statement == null) {
+            return List.of();
+        }
+        SQLObjectOperation.Operation operation;
+        STMTreeNode kindNode;
+        if (statement.getNodeName().equals(STMKnownRuleNames.createNamedObjectStatement)) {
+            operation = SQLObjectOperation.Operation.CREATE;
+            kindNode = statement.findFirstChildOfName(STMKnownRuleNames.createObjectKind);
+        } else if (statement.getNodeName().equals(STMKnownRuleNames.alterNamedObjectStatement)) {
+            operation = SQLObjectOperation.Operation.ALTER;
+            kindNode = statement.findFirstChildOfName(STMKnownRuleNames.alterObjectKind);
+        } else {
+            return List.of();
+        }
+        STMTreeNode nameNode = statement.findFirstChildOfName(STMKnownRuleNames.qualifiedName);
+        if (kindNode == null || nameNode == null || hasErrors(kindNode) || hasErrors(nameNode)) {
+            return List.of();
+        }
+        SQLObjectOperation.ObjectKind objectKind = getObjectKind(kindNode);
+        if (objectKind != SQLObjectOperation.ObjectKind.PROCEDURE && objectKind != SQLObjectOperation.ObjectKind.FUNCTION) {
+            return List.of();
+        }
+        List<String> nameParts = getNameParts(nameNode);
+        return nameParts.isEmpty() ? List.of() : List.of(new SQLObjectOperation(operation, objectKind, nameParts));
     }
 
     @NotNull
