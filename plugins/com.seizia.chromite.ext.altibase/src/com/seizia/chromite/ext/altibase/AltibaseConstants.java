@@ -38,6 +38,9 @@ import org.jkiss.utils.StandardConstants;
  *   (docs/chromite/altibase.md "ShardSphere에서 다른 문장", 앱 변경 #139)
  * - 2026-11-24 Chromite: {@link #PACKAGE_SPEC_HEADER}, {@link #PACKAGE_BODY_HEADER}. 메타 모델이 저장된 원본 앞의 이 줄을 알아보고 한 번만
  *   보인다(앱 변경 182, docs/chromite/altibase.md "저장 루틴의 문장 나누기")
+ * - 2026-11-25 Chromite: {@link #NO_DBMS_METADATA}의 글을 사실대로("Without DBMS_METADATA package" → DBMS_METADATA가 DDL을 주지 않음).
+ *   ShardSphere에는 패키지가 있고 GET_DDL이 그 종류를 거절한다. 이 줄은 이제 앱이 만든 DDL(테이블, 시노님) 앞에만 붙는다
+ *   (docs/chromite/altibase.md "뷰 DDL의 경고 줄")
  */
 public class AltibaseConstants {
     
@@ -96,7 +99,9 @@ public class AltibaseConstants {
     public static final String OBJ_TYPE_MATERIALIZED_VIEW = "MATERIALIZED VIEW";
     public static final String OBJ_TYPE_TYPESET = "TYPESET";
     
-    public static final String NO_DBMS_METADATA = "-- [WARNING] Without DBMS_METADATA package, " 
+    // Before a DDL this model generates itself because DBMS_METADATA gave none: no package, a kind the server's GET_DDL
+    // refuses (ShardSphere), or a failed call
+    public static final String NO_DBMS_METADATA = "-- [WARNING] DBMS_METADATA gave no DDL, " 
             + "the generated DDL may not be correct." + NEW_LINE;
     
     public static final String NO_DDL_WITHOUT_DBMS_METADATA = 
