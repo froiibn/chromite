@@ -23,6 +23,8 @@
 # - 2026-11-24 Invoke-GhJson asks again after a passing GitHub API error (the 26.1.8 build stage stopped on an HTTP 500).
 # - 2026-11-25 The passing errors include the texts gh really prints on Windows for a failed name lookup, a dropped
 #   connection and a timeout (an independent review found that the 2026-11-24 pattern missed them).
+# - 2026-11-25 The retry moved into Invoke-GhRead; Invoke-GhDownload runs the release downloads of fetch and rehearse
+#   through it (they stopped at once on a passing error) and removes what a failed try wrote.
 
 $script:Repo = 'froiibn/chromite'
 $script:RepoUrlPattern = '^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)froiibn/chromite(\.git)?/?$'
@@ -238,21 +240,48 @@ function Get-GitLine([string[]]$Arguments, [string]$Dir) {
 # (HTTP 429, "API rate limit exceeded"): a rate limit lasts up to an hour, longer than the retries wait.
 $script:GhPassingError = 'HTTP 5\d\d|non-200 OK status code: 5\d\d|error connecting to |timeout|timed out|deadline exceeded|connection reset|forcibly closed|connection was aborted|connection refused|actively refused|\bEOF\b|TLS handshake|dial tcp|temporarily unavailable'
 
-# A read of GitHub's API as JSON. A stage that polls for many minutes must not stop on one passing error (the build
+# A read of GitHub through gh. A stage that polls for many minutes must not stop on one passing error (the build
 # stage of 26.1.8 stopped on an HTTP 500 of "gh run view"), so such an answer is asked for again, three times at
 # most. Every other failure (not found, not authorised, a rate limit, a wrong argument) stops at once. Only reads go
-# through here: a change asked again could happen twice.
-function Invoke-GhJson([string[]]$Arguments, [string]$What) {
+# through here: a change asked again could happen twice. $AfterFailure runs after every failed try, before the next
+# one and before the stop, so a read that leaves something behind (a download) can remove it first.
+function Invoke-GhRead([string[]]$Arguments, [string]$What, [scriptblock]$AfterFailure) {
     $r = $null
     for ($try = 1; $try -le 4; $try++) {
         $r = Invoke-Native -Exe 'gh' -Arguments $Arguments -Quiet -AllowFail
+        if ($r.Code -and $AfterFailure) { & $AfterFailure }
         if (-not $r.Code -or $try -eq 4 -or $r.Text -notmatch $script:GhPassingError) { break }
         Say "${What}: GitHub answered '$((@($r.Lines) | Select-Object -Last 1))', asking again ($try of 3)"
         Start-Sleep -Seconds (15 * $try)
     }
     if ($r.Code) { Stop-Harness "$What failed (gh exit $($r.Code)): $((@($r.Lines) | Select-Object -Last 2) -join ' | ')" }
+    return $r
+}
+
+# A read of GitHub's API as JSON (Invoke-GhRead).
+function Invoke-GhJson([string[]]$Arguments, [string]$What) {
+    $r = Invoke-GhRead $Arguments $What
     $json = (@($r.Lines) | Where-Object { $_ -notmatch '^\s*$' }) -join "`n"
     try { return ($json | ConvertFrom-Json) } catch { Stop-Harness "$What returned no JSON: $($json.Substring(0, [Math]::Min(200, $json.Length)))" }
+}
+
+# The files of a GitHub Release into $Dir (Invoke-GhRead), only those not there yet (--skip-existing).
+# gh 2.96 writes each file under its final name (no temporary name), up to five at a time, and leaves a broken one
+# where it is (cli/cli v2.96.0 pkg/cmd/release/download/download.go, destinationWriter.Copy). --skip-existing then
+# takes such a file for finished, on the next try and in the next run. So after every failed try each file that was
+# not in $Dir before the download is removed (finished ones of that try are downloaded again): a file that stays in
+# $Dir came from a download that ended without an error. The SHA256SUMS check after the download stays the proof.
+function Invoke-GhDownload([string]$Ver, [string]$Dir, [string[]]$Patterns = @()) {
+    $present = @(Get-ChildItem -LiteralPath $Dir -File | ForEach-Object { $_.Name })
+    $arguments = @('release', 'download', "v$Ver", '--repo', $script:Repo, '--dir', $Dir, '--skip-existing')
+    foreach ($p in $Patterns) { $arguments += @('--pattern', $p) }
+    Invoke-GhRead $arguments "gh release download v$Ver" {
+        foreach ($f in @(Get-ChildItem -LiteralPath $Dir -File | Where-Object { $present -notcontains $_.Name })) {
+            try { Remove-Item -LiteralPath $f.FullName -Force -ErrorAction Stop }
+            catch { Stop-Harness "could not remove $($f.Name) of the failed download ($($_.Exception.Message)); delete it before the next run" }
+            Say "removed $($f.Name) of the failed download (it may be incomplete)"
+        }
+    } | Out-Null
 }
 
 # ---- versions, tags, origin
