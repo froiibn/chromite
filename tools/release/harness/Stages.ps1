@@ -13,6 +13,7 @@
 # Change history:
 # - 2026-11-23 Created (ports of merge-one.sh, rerun-until-ok.sh, verify-prod-26-1-7.py and the prepare/record
 #   edits of the 26.1.7 release).
+# - 2026-11-25 fetch downloads through Invoke-GhDownload: a passing GitHub error is asked again, a broken file removed.
 
 # ---- Korean text (text.ko.md)
 
@@ -456,7 +457,7 @@ function Invoke-StageFetch {
         Say "all $($expected.Count) files are in $dir already: no download"
     } else {
         New-Item -ItemType Directory -Force $dir | Out-Null
-        Invoke-Native -Exe 'gh' -Arguments @('release', 'download', "v$ver", '--repo', $script:Repo, '--dir', $dir, '--skip-existing') -What "gh release download v$ver" | Out-Null
+        Invoke-GhDownload $ver $dir
         $downloaded = $true
     }
     $extra = @(Get-ChildItem -LiteralPath $dir -File | Where-Object { $expected -notcontains $_.Name } | ForEach-Object { $_.Name })
