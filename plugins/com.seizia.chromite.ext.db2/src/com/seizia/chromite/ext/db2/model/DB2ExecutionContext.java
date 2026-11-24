@@ -35,6 +35,10 @@ import java.sql.SQLException;
 
 /**
  * DB2ExecutionContext
+ *
+ * 변경 이력:
+ * - 2026-11-25 {@link #setCurrentSchemaFrom}: 다시 열거나 새로 여는 세션이 현재 스키마를 이름으로 받고, 받지 못하면 세션의 실제 스키마를 읽음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class DB2ExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<DBSCatalog, DB2Schema> {
     private static final Log log = Log.getLog(DB2ExecutionContext.class);
@@ -120,6 +124,27 @@ public class DB2ExecutionContext extends JDBCExecutionContext implements DBCExec
         }
 
         return true;
+    }
+
+    /**
+     * Gives this session the current schema of another session of the connection (a session opened again by
+     * Invalidate/Reconnect, or a new one) by the name that session holds: the schema list may not be read (or may not
+     * hold it), and Invalidate/Reconnect reopens a session from itself, so a schema not set here would still be shown
+     * while the server put the new session in the login's default schema. When the schema cannot be set, the session's
+     * own schema is read.
+     */
+    void setCurrentSchemaFrom(@NotNull DBRProgressMonitor monitor, @NotNull DB2ExecutionContext source) throws DBException {
+        String schemaName = source.activeSchemaName;
+        if (CommonUtils.isEmpty(schemaName)) {
+            log.debug("Null current schema");
+            return;
+        }
+        try {
+            setCurrentSchema(monitor, schemaName);
+        } catch (DBCException e) {
+            log.warn("Can't set current schema '" + schemaName + "': " + e.getMessage());
+            refreshDefaults(monitor, false);
+        }
     }
 
     void setCurrentSchema(DBRProgressMonitor monitor, DB2Schema object) throws DBCException {

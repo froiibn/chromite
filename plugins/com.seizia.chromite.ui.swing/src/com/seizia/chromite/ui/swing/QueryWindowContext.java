@@ -70,6 +70,8 @@ import java.util.function.Supplier;
  * - 2026-11-12 주석만: 연결 변경 명령이 다시 {@link #release}를 부름(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 창의 지금 서버({@link #setServer})에서만 세션을 엶: 연결 변경·창 닫기 뒤 늦게 온 작업이 옛 서버에 주인 없는 세션을 열던 것을 막음
  *   (docs/chromite/transactions.md "늦은 작업의 세션")
+ * - 2026-11-25 {@link #isOwn}: 끝난 데이터 소스의 문맥이 창의 자기 세션이었는지. 다시 연결한 창이 자기 세션의 DB/스키마를 다음 세션에 줄 때 씀
+ *   (docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 final class QueryWindowContext {
 
@@ -181,6 +183,15 @@ final class QueryWindowContext {
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         Binding current = binding;
         return dataSource != null && current != null && current.dataSource() == dataSource ? current.own() : null;
+    }
+
+    /**
+     * Whether the context is the window's own session on the data source it used last, also after that data source
+     * disconnected (any thread, no lock): until the window opens a session on the next data source.
+     */
+    boolean isOwn(@NotNull DBCExecutionContext context) {
+        Binding current = binding;
+        return current != null && current.own() == context;
     }
 
     /**

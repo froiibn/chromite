@@ -87,6 +87,9 @@ import java.util.regex.Pattern;
  *   진행 창에서 사용자가 누른 취소가 오류 창으로 보이지 않게 한다. 1317은 다른 세션의 KILL QUERY도 같으므로 취소를 요청했는지
  *   아는 쪽만 사용자의 취소로 본다. 시간 초과(MariaDB 1969, MySQL 3024, Connector/J의 시간 초과 예외)는 분류하지 않는다
  *   (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
+ * - 2026-11-25 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 현재 DB를 원본 세션이 가진 이름으로 정함
+ *   ({@link MySQLExecutionContext#setCurrentDatabaseFrom}). DB 개체를 목록에서 찾지 못하면 아무것도 하지 않아, Invalidate/Reconnect로
+ *   다시 연 세션이 옛 이름을 가진 채 DB 없이 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector {
     private static final Log log = Log.getLog(MySQLDataSource.class);
@@ -273,10 +276,10 @@ public class MySQLDataSource extends JDBCDataSource implements DBPObjectStatisti
         @Nullable JDBCExecutionContext initFrom
     ) throws DBException {
         if (initFrom != null && !context.getDataSource().getContainer().isConnectionReadOnly()) {
-            MySQLCatalog object = ((MySQLExecutionContext) initFrom).getDefaultCatalog();
-            if (object != null) {
-                ((MySQLExecutionContext) context).setCurrentDatabase(monitor, object);
-            }
+            // By name: the catalog list may not hold the source's database (an Object Explorer filter), and
+            // Invalidate/Reconnect reopens a session from itself, so a database not set here would still be shown while
+            // the new session runs without it
+            ((MySQLExecutionContext) context).setCurrentDatabaseFrom(monitor, (MySQLExecutionContext) initFrom);
         } else {
             ((MySQLExecutionContext) context).refreshDefaults(monitor, true);
         }

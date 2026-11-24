@@ -89,6 +89,9 @@ import java.util.Properties;
  * - 2026-11-22 {@link #initializeContextState}: 다시 열거나 새로 여는 세션의 기본 스키마를 원본 세션이 가진 이름으로 정함
  *   ({@link SQLServerExecutionContext#setDefaultSchemaFrom}). 스키마 개체를 찾느라 기본 DB의 스키마 목록을 읽으면, Invalidate/Reconnect의
  *   배타 잠금 아래에서 그 목록을 쥔 채 잠금을 기다리는 배경 작업과 서로 기다렸다(앱 변경 #165, docs/chromite/cancel-busy-connection.md)
+ * - 2026-11-25 {@link #initializeContextState}: 현재 DB도 원본 세션이 가진 이름으로 정함
+ *   ({@link SQLServerExecutionContext#setCurrentDatabaseFrom}). DB 개체를 목록에서 찾지 못하면 아무것도 하지 않아, Invalidate/Reconnect로
+ *   다시 연 세션이 옛 이름을 가진 채 로그인 기본 DB에서 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -462,13 +465,14 @@ public class SQLServerDataSource
         if (initFrom != null) {
             if (!isDataWarehouseServer(monitor)) {
                 SQLServerExecutionContext ssContext = (SQLServerExecutionContext) initFrom;
-                SQLServerDatabase defaultObject = ssContext.getDefaultCatalog();
-                if (defaultObject != null) {
-                    ((SQLServerExecutionContext)context).setCurrentDatabase(monitor, defaultObject);
+                // By name: the database list may not hold the source's database (an Object Explorer filter, a connection
+                // that lists one database), and Invalidate/Reconnect reopens a session from itself, so a database not
+                // set here would still be shown while the new session runs in the login's default database
+                if (((SQLServerExecutionContext)context).setCurrentDatabaseFrom(monitor, ssContext)) {
+                    // By name: Invalidate/Reconnect runs this under the instance's exclusive lock, and reading the schema list
+                    // here waited for a thread that held the list while it waited for that lock
+                    ((SQLServerExecutionContext)context).setDefaultSchemaFrom(ssContext);
                 }
-                // By name: Invalidate/Reconnect runs this under the instance's exclusive lock, and reading the schema list
-                // here waited for a thread that held the list while it waited for that lock
-                ((SQLServerExecutionContext)context).setDefaultSchemaFrom(ssContext);
             }
         } else {
             ((SQLServerExecutionContext)context).refreshDefaults(monitor, true);

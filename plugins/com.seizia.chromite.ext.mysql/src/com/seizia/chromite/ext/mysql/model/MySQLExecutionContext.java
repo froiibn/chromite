@@ -40,6 +40,9 @@ import java.sql.SQLException;
  * 변경 이력:
  * - 2026-11-12 {@link #refreshDefaults}: 서버가 알려 준 현재 DB가 캐시에 없으면(다른 세션이 만든 DB) DB 목록을 다시 읽음. 그 DB로 USE 하면
  *   쿼리 창의 DB 선택이 "&lt; N/A &gt;"가 되었다(앱 변경 #79, docs/chromite/swing-sql-editor-session-ui.md "캐시에 없는 현재 DB")
+ * - 2026-11-25 {@link #setCurrentDatabaseFrom}: 다시 열거나 새로 여는 세션이 현재 DB를 이름으로 받고, 받지 못하면 세션의 실제 DB를 읽음.
+ *   목록에 없는 DB(탐색기 필터)였던 쿼리 창이 Invalidate/Reconnect·끊긴 세션 다시 열기 뒤 그 DB를 보이면서 DB 없이 실행했다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class MySQLExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<MySQLCatalog, DBSSchema> {
     private static final Log log = Log.getLog(MySQLExecutionContext.class);
@@ -163,6 +166,27 @@ public class MySQLExecutionContext extends JDBCExecutionContext implements DBCEx
         }
 
         return true;
+    }
+
+    /**
+     * Gives this session the current database of another session of the connection (a session opened again by
+     * Invalidate/Reconnect or after it was lost, or a new query window session) by the name that session holds; the
+     * catalog list is not looked at, so a database it does not hold (Object Explorer filter) is kept too. When the
+     * database cannot be set (dropped, no access since), the database this context holds is read from the session: a
+     * reopened session otherwise still held the name it had before while it ran without it. A source without a
+     * database leaves the session as the server opened it.
+     */
+    void setCurrentDatabaseFrom(@NotNull DBRProgressMonitor monitor, @NotNull MySQLExecutionContext source) throws DBException {
+        String databaseName = source.activeDatabaseName;
+        if (CommonUtils.isEmpty(databaseName)) {
+            return;
+        }
+        try {
+            setCurrentDatabaseName(monitor, databaseName);
+        } catch (DBCException e) {
+            log.warn("Can't set current database '" + databaseName + "': " + e.getMessage());
+            refreshDefaults(monitor, false);
+        }
     }
 
     boolean setCurrentDatabase(DBRProgressMonitor monitor, MySQLCatalog object) throws DBCException {

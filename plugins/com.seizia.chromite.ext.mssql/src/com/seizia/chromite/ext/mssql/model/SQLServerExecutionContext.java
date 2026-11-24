@@ -50,6 +50,9 @@ import java.sql.SQLException;
  *   개체 탐색기가 그림을 그리다 그 읽기를 하지 않도록 먼저 묻는다(앱 변경 #164, docs/chromite/swing-explorer-productivity.md "기본값 굵게 표시")
  * - 2026-11-22 {@link #setDefaultSchemaFrom}: 다시 열거나 새로 여는 세션이 기본 스키마를 이름으로 받음. 스키마 목록을 읽지 않으므로
  *   Invalidate/Reconnect의 배타 잠금 아래에서 목록을 쥔 스레드를 기다리지 않는다(앱 변경 #165, docs/chromite/cancel-busy-connection.md)
+ * - 2026-11-25 {@link #setCurrentDatabaseFrom}: 다시 열거나 새로 여는 세션이 현재 DB를 이름으로 받고, 받지 못하면 세션의 실제 DB를 읽음.
+ *   목록에 없는 DB(탐색기 필터)였던 쿼리 창이 Invalidate/Reconnect·끊긴 세션 다시 열기 뒤 그 DB를 보이면서 로그인 기본 DB에서 실행했다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  */
 public class SQLServerExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<SQLServerDatabase, SQLServerSchema> {
     private static final Log log = Log.getLog(SQLServerExecutionContext.class);
@@ -185,6 +188,25 @@ public class SQLServerExecutionContext extends JDBCExecutionContext implements D
         SQLServerSchema oldActiveSchema = getLoadedDefaultSchema();
         activeSchemaName = schemaName;
         DBUtils.fireObjectSelectionChange(oldActiveSchema, getLoadedDefaultSchema(), this);
+    }
+
+    /**
+     * Gives this session the current database of another session of the connection (a session opened again by
+     * Invalidate/Reconnect or after it was lost, or a new query window session) by the name that session holds; the
+     * database list is not looked at, so a database it does not hold (Object Explorer filter) is kept too. When the
+     * database cannot be set (dropped, offline, no access since) or there is no name, the database and schema this
+     * context holds are read from the session: a reopened session otherwise still held the name it had before while the
+     * server put it in the login's default database.
+     *
+     * @return true when the session uses the source's database
+     */
+    boolean setCurrentDatabaseFrom(@NotNull DBRProgressMonitor monitor, @NotNull SQLServerExecutionContext source) throws DBException {
+        String databaseName = source.activeDatabaseName;
+        if (!CommonUtils.isEmpty(databaseName) && setCurrentDatabase(monitor, databaseName)) {
+            return true;
+        }
+        refreshDefaults(monitor, false);
+        return false;
     }
 
     /**
