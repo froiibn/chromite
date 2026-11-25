@@ -471,6 +471,42 @@ DB2(`DB2DataSource`)와 Exasol(`ExasolDataSource`)은 원본의 스키마를 개
 
 **확인:** 아래 "확인 기록 (2026-11-25)".
 
+## 다른 곳에서 바뀐 세션의 DB (2026-11-25)
+
+**보고:** "다시 연결 뒤의 DB"의 남은 것(PostgreSQL 창이 다른 데이터베이스에서 `postgres`로 다시 열림, 중간 확신).
+
+**사실(`origin/command` `9112f945c9` 빌드, 시험 VM PostgreSQL 17, 연결 설정 "모든 데이터베이스 표시", 시험 DB `chr_postgres_window_database_restore` = X).**
+PostgreSQL에서는 DB마다 인스턴스(세션)가 따로다. 쿼리 창의 DB 선택은 창이 있는 DB의 스키마만 보이므로 선택으로는 다른 DB로 옮길 수 없다. 창이 다른 DB에
+가는 길과, 그 뒤(Invalidate/Reconnect, Reconnect, Disconnect → Connect, 앱 다시 시작) 창이 보이는 것·기억하는 이름(`getDefaultObjectNames`, 끊긴 동안과
+다시 시작 뒤에는 `restoredDefaults`)·세션의 `current_database()`:
+
+| 창이 열린 길(자기 세션) | 열렸을 때 | 네 가지 다시 연결·다시 시작 뒤 |
+|---|---|---|
+| 개체 탐색기 X 노드의 새 쿼리 | `postgres`(표시 `public`, 이름 `postgres.public`) | 같음 |
+| X 표의 상위 1000개 행 선택 | `postgres`(위와 같음. `chr_s.chr_t`는 `postgres`에 없음, 아래 "범위 밖") | 같음 |
+| X의 기본값으로 설정 뒤 새 쿼리 | X(표시 `public`, 이름 `X.public`) | X, 끊긴 동안 선택 `X.public`(비활성) |
+| 그 창에서 File &gt; New Query | X(`X.public`) | X |
+| X 함수의 수정(Modify) | X(표시 `chr_s`, 이름 `X.chr_s`) | X(다시 시작에는 고치지 않은 Modify 창은 복원하지 않음) |
+
+자기 세션을 가진 창은 모든 경우 보이는 것·기억하는 이름·세션이 같았다. 보고된 경우는 시험 에이전트가 창의 세션을 창 밖에서 바꾼 것으로 재현된다:
+바꾼 뒤 창은 `postgres.public`을 기억한 채였다(세션은 X). 선택 상자·실행·연결 명령은 바꾼 뒤 창이 선택을 다시 읽으므로 이 상태가 생기지 않는다.
+
+**같은 원인의 실제 경우(결함):** 주 세션을 함께 쓰는 창("쿼리 창마다 별도 연결" = NEVER). 수정(Modify)·프로시저 실행·새 개체 틀은 새 창을 열기 전에 연결의
+주 세션을 개체의 DB/스키마로 옮긴다(`SourceScripts.bindDefaultContext`). PostgreSQL에서는 주 세션이 X의 주 세션으로 바뀌는데, 그 주 세션을 함께 쓰던 창은
+`postgres`의 `public`(이름 `postgres.public`)을 보인 채 다음 문장을 X의 `chr_s`에서 실행했다. "기본값으로 설정"은 끝난 뒤 창들이 선택을 다시 읽어
+(`connectionDefaultsChanged`) 이 문제가 없었다. SQL Server·MySQL/MariaDB도 `bindDefaultContext`가 주 세션에 `USE` 하므로 같은 원인이다(코드 읽기).
+
+**고친 것:** 모델은 세션의 기본 카탈로그/스키마를 바꿀 때 실행 문맥을 붙인 `OBJECT_SELECT` 이벤트를 연결에 보낸다(`DBUtils.fireObjectSelectionChange`,
+각 드라이버의 `setDefaultCatalog`/`setDefaultSchema`, PostgreSQL `setActiveDatabase`). `MainFrame`의 레지스트리 수신기가 이 이벤트를 쿼리 창에 넘기고
+(`SqlEditorPanel.contextDefaultsChanged`), 선택이 그 문맥의 기본값을 보이는 창은 선택을 다시 읽는다. 바꾼 쪽이 어디든(위 명령, 앞으로의 다른 명령, 모델 호출)
+창이 따라간다. 문맥이 붙지 않은 이벤트(개체 새로 고침 `fireObjectRefresh`)는 받지 않는다. 실행 중인 창은 받지 않는다(실행 끝에 읽는다).
+
+**고르지 않은 것:** `bindDefaultContext`를 부르는 곳마다 창 다시 읽기를 넣는 것(직접 부르는 곳이 네 곳이고 Schema Compare 등 그 위의 명령이 더 있어, 새로 생기는 곳에서 빠뜨리기 쉬움). 다시 읽기는
+세션에 문장을 보내지 않고(목록·기본값 읽기는 메타데이터 세션과 메모리), 커밋·롤백하지 않는다. PostgreSQL 창은 DB 이름 없이 스키마만 보인다(바뀌지 않음,
+보이는 스키마는 세션의 것과 같다).
+
+**확인:** 아래 "확인 기록 (2026-11-25, 다른 곳에서 바뀐 세션의 DB)".
+
 ## upstream 대비 변경점
 
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
@@ -525,9 +561,26 @@ MySQL 8.4(번들 MariaDB 드라이버: MySQL 드라이버는 번들에 없어 �
   1: 필터로 숨긴 DB에서 Invalidate/Reconnect 뒤(전후 모두 선택 `…_h`), 2: 그 창에서 `SELECT db_name()`(전 `master`, 후 `chr_reconnect_keeps_database_h`),
   3: `USE chr_reconnect_keeps_database` 뒤 Disconnect(전 "&lt; N/A &gt;", 후 `chr_reconnect_keeps_database.dbo` 비활성), 4: Connect 뒤(전 `master`, 후 그 DB).
 
-**남은 것:** PostgreSQL 창이 다른 데이터베이스에 있을 때 선택·상태 줄은 스키마 `public`만 보이고, 창이 기억하는 이름(`getDefaultObjectNames`)은
-`postgres.public`이었다(세션은 `chr_reconnect_keeps_database_db`). 그래서 Disconnect → Connect 뒤 `postgres`로 연다(표시도 `postgres`). 시험 에이전트가
-데이터베이스를 바꾼 길(`DBExecUtils.setExecutionContextDefaults`)이 선택 상자의 길과 같은지 확인하지 못해 고치지 않았다.
+**남은 것(2026-11-25 뒤 확인, 아래 "다른 곳에서 바뀐 세션의 DB"):** PostgreSQL 창이 다른 데이터베이스에 있을 때 창이 기억하는 이름이
+`postgres.public`이어서 Disconnect → Connect 뒤 `postgres`로 열렸다고 적었다. 앱의 실제 길로는 재현되지 않았다. 그 확인은 시험 에이전트가 창 밖에서
+창의 세션을 바꾸고(`DBExecUtils.setExecutionContextDefaults`) 창이 다시 읽지 않은 상태였다. 같은 원인(창 밖에서 바뀐 세션을 창이 다시 읽지 않음)이
+앱의 실제 길에서는 주 세션을 함께 쓰는 창에 있었고 그것을 고쳤다.
+
+### 확인 기록 (2026-11-25, 다른 곳에서 바뀐 세션의 DB)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트, 시험 VM PostgreSQL 17. 고치기 전(`9112f945c9`)과 고친 빌드에서
+위 표의 여섯 창을 같은 절차로 열고 Invalidate/Reconnect, Reconnect, Disconnect → Connect, 다시 시작(복원 → 연결)을 했다. 자기 세션 창의 결과는 전후가 같다(표).
+주 세션을 함께 쓰는 창(연결 PGS, NEVER):
+
+| 단계 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| `postgres` 기본값 | 선택 `public`, 이름 `postgres.public`, 세션 `postgres` | 같음 |
+| X 함수의 수정 뒤 | 선택 `public`, 이름 `postgres.public`, 세션 X·`chr_s` | 선택 `chr_s`, 이름 `X.chr_s`, 세션 X·`chr_s` |
+| 그 창에서 실행 뒤 | 선택 `chr_s`(실행 끝 읽기) | 같음 |
+
+시험 에이전트가 자기 세션 창을 창 밖에서 X로 옮긴 경우(앞 확인의 절차): 고치기 전 이름 `postgres.public`(세션 X), 고친 뒤 `X.public`.
+캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\postgres-window-database-restore\s\before-shots2\shots\`와 `…\after-shared\shots\`의
+`1-shared-window-on-postgres.png`, `2-shared-window-after-modify.png`(전 `public`, 후 `chr_s`), `3-shared-window-after-run.png`.
 
 **확인하지 못한 것:** 떠 있는(도킹을 뗀) 도구 창에서는 메뉴 막대가 없어 메뉴 가속키(Ctrl+R 포함)가 가지 않을 수 있다(이번 범위 밖, 보고만).
 
@@ -560,3 +613,7 @@ MySQL 8.4(번들 MariaDB 드라이버: MySQL 드라이버는 번들에 없어 �
   교착 모양이 된다. 회귀 테스트는 실행하지 않았다.
 - 2026-11-25 `command` 병합(앱 변경 #186과 함께): MySQL의 대체 읽기를 #186의 `refreshDefaults(…, false, false)`로 합침(같은 일을 하던 `readCurrentDatabaseName` 삭제).
   회귀 테스트는 실행하지 않았다.
+- 2026-11-25 `chromite/postgres-window-database-restore`: "다른 곳에서 바뀐 세션의 DB"와 그 확인 기록, "다시 연결 뒤의 DB"의 남은 것을 고침. 쿼리 창이 세션의
+  기본값이 바뀐 모델 이벤트를 받아 선택을 다시 읽음(`MainFrame` 레지스트리 수신기, `SqlEditorPanel.contextDefaultsChanged`). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: 주 세션을 함께 쓰는 쿼리 창의 DB 선택·상태 줄·기억하는 이름(New Query, 다시 시작 복원), 수정·프로시저 실행·새 개체 틀·기본값으로
+  설정 뒤의 쿼리 창, 모든 드라이버의 기본값 바꾸기 뒤 선택 다시 읽기 횟수.
