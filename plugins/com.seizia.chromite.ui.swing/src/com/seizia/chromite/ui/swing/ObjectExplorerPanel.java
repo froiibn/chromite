@@ -297,6 +297,13 @@ import java.util.regex.Pattern;
  *   docs/chromite/swing-create-objects.md)
  * - 2026-11-22 DDL 명령 오류 창의 첫 줄: 권한 오류면 "권한이 없어 개체 정의를 읽을 수 없습니다"(앱 변경 #159,
  *   docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-25 {@link #showSelectionAgain}을 {@link #getSelectedNavigatorNode}의 Javadoc·{@code @Nullable}과 메서드 사이에서 꺼냄: void 메서드가
+ *   {@code @Nullable}을 달고, 선택 노드 메서드는 설명을 잃었었다(주석만, docs/chromite/altibase.md 변경 이력)
+ * - 2026-11-25 선택 리스너(Properties 창)에는 선택한 노드나 그 객체가 바뀔 때만 알림({@link #selectionChanged}). 가지를 다시 보일 때 트리가 선택을
+ *   뺐다 되돌리는 사건마다 같은 노드를 다시 넘겨, 연결 새로 고침 한 번에 속성 읽기가 8번(7번 취소) 돌았다. 새로 고친 선택 노드는 객체가 바뀌면
+ *   다시 읽힘 (docs/chromite/swing-object-properties.md "한 번만 읽기")
+ * - 2026-11-25 선택 노드나 그 위 노드를 새로 고치면(여기의 F5, 탐색기 밖의 노드 새로 고침) 객체가 같아도 속성을 한 번 다시 읽음({@link #selectionRefreshed}):
+ *   여러 드라이버가 객체를 바꾸지 않고 캐시만 비워 새로 고쳐, 객체 비교만으로는 새 값을 보이지 못했다 (같은 문서 "새로 고침")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -530,10 +537,27 @@ final class ObjectExplorerPanel extends JPanel {
     private boolean revealFocus;
     private boolean disposed;
     private final Consumer<DBNNode> selectionListener;
+    /**
+     * The node the selection listener got last and the object it had then ({@link #selectionChanged}).
+     */
+    @Nullable
+    private DBNNode notifiedNode;
+    @Nullable
+    private DBSObject notifiedObject;
+    /**
+     * A branch is shown again with its selection put back ({@link #replaceChildrenPreserving}): the tree's selection
+     * events of that are not selection changes.
+     */
+    private boolean restoringSelection;
+    /**
+     * The selected node or an ancestor was refreshed, and the Properties view reads the selection again once the tree has
+     * shown the refresh ({@link #selectionRefreshed}).
+     */
+    private boolean selectionRefreshPending;
 
     /**
-     * @param selectionListener receives the selected navigator node (or null)
-     * @param queryWindows      opens query windows ("New Query", scripts) and DDL tabs
+     * @param selectionListener receives the selected navigator node (or null) when it or its object changes
+     * @param queryWindows     opens query windows ("New Query", scripts) and DDL tabs
      */
     ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull QueryWindows queryWindows) {
         super(new BorderLayout());
@@ -569,7 +593,11 @@ final class ObjectExplorerPanel extends JPanel {
             public void treeWillCollapse(TreeExpansionEvent event) {
             }
         });
-        tree.addTreeSelectionListener(e -> selectionListener.accept(getSelectedNavigatorNode()));
+        tree.addTreeSelectionListener(e -> {
+            if (!restoringSelection) {
+                selectionChanged();
+            }
+        });
 
         refreshAction = new AbstractAction(CoreMessages.explorer_refresh) {
             @Override
@@ -1881,11 +1909,6 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
-     * The selected navigator node; null when nothing or several nodes are selected, so that the commands for one node
-     * (and the Properties window) are off with a multi-selection.
-     */
-    @Nullable
-    /**
      * Repaints the selected row and gives its node to the selection listener again (the Properties view reads it again).
      * For a node whose object the model read again without the tree reloading it: a node without children is not
      * reloaded by {@link #refreshNavigatorNode}, and selecting it again does not fire a selection event. EDT.
@@ -1895,9 +1918,61 @@ final class ObjectExplorerPanel extends JPanel {
         if (path != null && path.getLastPathComponent() instanceof ExplorerNode node) {
             treeModel.nodeChanged(node);
         }
-        selectionListener.accept(getSelectedNavigatorNode());
+        notifySelection(getSelectedNavigatorNode());
     }
 
+    /**
+     * Gives the selected node to the selection listener (the Properties view reads it) when it is another node than the
+     * listener got last, or the same node with another object (the model read it again). The tree also fires selection
+     * events when a branch is shown again (the selection is taken away and put back) and for the same node; each of them
+     * started a read of the Properties view that the next one canceled. EDT.
+     */
+    private void selectionChanged() {
+        if (selectionRefreshPending) {
+            // The read after the refresh shows the selection as it is then
+            return;
+        }
+        DBNNode node = getSelectedNavigatorNode();
+        if (node != notifiedNode || getNodeObject(node) != notifiedObject) {
+            notifySelection(node);
+        }
+    }
+
+    /**
+     * A node was refreshed (F5 here, or the navigator's refresh after DDL or of a whole connection): if it is the selected
+     * node or one of its ancestors, the Properties view reads the selection again once, also when the model refreshed the
+     * object in place (the same object with its caches cleared, so the identity check of {@link #selectionChanged} sees no
+     * change). The read waits for the end of the current batch of navigator events and tree changes, so that a refresh
+     * reported for several nodes reads once. EDT.
+     */
+    private void selectionRefreshed(@NotNull ExplorerNode refreshed) {
+        TreePath selected = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
+        if (selectionRefreshPending || selected == null || !new TreePath(refreshed.getPath()).isDescendant(selected)) {
+            return;
+        }
+        selectionRefreshPending = true;
+        SwingUtilities.invokeLater(() -> {
+            selectionRefreshPending = false;
+            notifySelection(getSelectedNavigatorNode());
+        });
+    }
+
+    private void notifySelection(@Nullable DBNNode node) {
+        notifiedNode = node;
+        notifiedObject = getNodeObject(node);
+        selectionListener.accept(node);
+    }
+
+    @Nullable
+    private static DBSObject getNodeObject(@Nullable DBNNode node) {
+        return node instanceof DBNDatabaseNode databaseNode ? databaseNode.getObject() : null;
+    }
+
+    /**
+     * The selected navigator node; null when nothing or several nodes are selected, so that the commands for one node
+     * (and the Properties window) are off with a multi-selection.
+     */
+    @Nullable
     private DBNNode getSelectedNavigatorNode() {
         TreePath path = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
         if (path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
@@ -1976,7 +2051,7 @@ final class ObjectExplorerPanel extends JPanel {
                     }
                     DBNNode[] children = readChildren(monitor, loadNode);
                     DBNNode finalLoadNode = loadNode;
-                    SwingUtilities.invokeLater(() -> showChildren(node, serial, finalLoadNode, children));
+                    SwingUtilities.invokeLater(() -> showChildren(node, serial, finalLoadNode, children, refresh));
                 } catch (Throwable e) {
                     SwingUtilities.invokeLater(() -> showLoadError(node, serial, e));
                 }
@@ -2048,7 +2123,16 @@ final class ObjectExplorerPanel extends JPanel {
             || parameter instanceof DBSAttributeBase attribute && attribute.getOrdinalPosition() == 0;
     }
 
-    private void showChildren(@NotNull ExplorerNode node, int serial, @NotNull DBNNode loadedNode, @Nullable DBNNode[] children) {
+    /**
+     * @param refreshed the children were read after a refresh of the node ({@code DBNNode#refreshNode}), not only loaded
+     */
+    private void showChildren(
+        @NotNull ExplorerNode node,
+        int serial,
+        @NotNull DBNNode loadedNode,
+        @Nullable DBNNode[] children,
+        boolean refreshed
+    ) {
         if (node.loadSerial != serial) {
             return;
         }
@@ -2071,6 +2155,12 @@ final class ObjectExplorerPanel extends JPanel {
         treeModel.nodeStructureChanged(target);
         // Connecting may change the node icon (connected state)
         treeModel.nodeChanged(target);
+        if (refreshed) {
+            // F5 on the selected node or an ancestor: its own row fires no selection event
+            selectionRefreshed(target);
+        } else {
+            selectionChanged();
+        }
         continueReveal();
     }
 
@@ -2161,6 +2251,12 @@ final class ObjectExplorerPanel extends JPanel {
                     reloadLoadedSubtree(explorerNode);
                 }
                 treeModel.nodeChanged(explorerNode);
+                if (event.getNodeChange() == DBNEvent.NodeChange.REFRESH) {
+                    selectionRefreshed(explorerNode);
+                } else {
+                    // The selected node's object may have been replaced: the Properties view shows the new one
+                    selectionChanged();
+                }
             }
             default -> {
                 // ADD is handled before the lookup: the new node has no tree node yet
@@ -2217,6 +2313,7 @@ final class ObjectExplorerPanel extends JPanel {
                     // whole connection after CREATE DATABASE in a query window): show what the model has now below it, as
                     // for any other refreshed node. A registry event (settings saved, connect) changes no children
                     reloadLoadedSubtree(explorerNode);
+                    selectionRefreshed(explorerNode);
                 }
             }
             default -> {
@@ -2318,20 +2415,31 @@ final class ObjectExplorerPanel extends JPanel {
         }
         TreePath[] selection = tree.getSelectionPaths();
 
-        setTreeChildren(node, children, true);
-        node.state = LoadState.LOADED;
-        treeModel.nodeStructureChanged(node);
+        // The structure change takes away the selection below the node and the paths kept are selected again: the
+        // listener hears of the result only (the selected node gone, or its object read again)
+        boolean restoring = restoringSelection;
+        restoringSelection = true;
+        try {
+            setTreeChildren(node, children, true);
+            node.state = LoadState.LOADED;
+            treeModel.nodeStructureChanged(node);
 
-        for (TreePath path : expanded) {
-            if (isAttached(path)) {
-                tree.expandPath(path);
+            for (TreePath path : expanded) {
+                if (isAttached(path)) {
+                    tree.expandPath(path);
+                }
             }
+            if (selection != null) {
+                List<TreePath> kept = Arrays.stream(selection).filter(this::isAttached).toList();
+                if (!kept.isEmpty()) {
+                    tree.setSelectionPaths(kept.toArray(new TreePath[0]));
+                }
+            }
+        } finally {
+            restoringSelection = restoring;
         }
-        if (selection != null) {
-            List<TreePath> kept = Arrays.stream(selection).filter(this::isAttached).toList();
-            if (!kept.isEmpty()) {
-                tree.setSelectionPaths(kept.toArray(new TreePath[0]));
-            }
+        if (!restoring) {
+            selectionChanged();
         }
     }
 

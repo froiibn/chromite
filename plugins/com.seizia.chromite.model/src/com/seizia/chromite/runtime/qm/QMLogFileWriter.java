@@ -51,6 +51,8 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-08 Chromite: 설정이 바뀔 때마다(qm. 키 하나하나) 새 파일을 열면서 이전 핸들을 닫지 않던 것을 고침. 종료할 때도 닫음
  *   (evening #33, docs/chromite/model-fixes.md "후속 수정 3")
+ * - 2026-11-25 앱이 취소한 실행({@code QMMStatementExecuteInfo#isCanceledByApplication})은 오류가 없어도 "SUCCESS" 대신 "CANCELED"(심각도 CANCEL)
+ *   (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
 
@@ -197,10 +199,13 @@ public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
                 buffer.append(executeInfo.getQueryString());
                 buffer.append(lineSeparator);
                 buffer.append("!SUBENTRY 1 ");
-                int subSeverity = executeInfo.hasError() ? IStatus.ERROR : severity;
+                int subSeverity = executeInfo.hasError() ? IStatus.ERROR : executeInfo.isCanceledByApplication() ? IStatus.CANCEL : severity;
                 appendEntryInfo(buffer, subSeverity, executeInfo.getErrorCode(), object.getCloseTime());
                 buffer.append("!MESSAGE ");
-                if (executeInfo.hasError()) {
+                if (executeInfo.isCanceledByApplication()) {
+                    // Stopped by the application (its result was no longer needed): neither the user's error nor a success
+                    buffer.append("CANCELED");
+                } else if (executeInfo.hasError()) {
                     buffer.append(executeInfo.getErrorMessage());
                 } else {
                     buffer.append("SUCCESS [").append(executeInfo.getUpdateRowCount()).append("]");

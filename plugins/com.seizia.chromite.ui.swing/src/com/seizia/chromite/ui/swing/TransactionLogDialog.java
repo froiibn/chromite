@@ -66,6 +66,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/transactions.md)
  * - 2026-11-08 지난 트랜잭션 보이기와 트랜잭션 열 (docs/chromite/connection-lifecycle.md "트랜잭션 로그의 지난 트랜잭션")
+ * - 2026-11-25 앱이 취소한 실행({@code QMMStatementExecuteInfo#isCanceledByApplication})은 오류가 없으므로 "성공" 대신 기록 창과 같은 "취소됨"
+ *   (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 final class TransactionLogDialog extends JDialog {
 
@@ -270,6 +272,7 @@ final class TransactionLogDialog extends JDialog {
                 case 4 -> describeRows(exec);
                 case 6 -> describeTransaction(exec);
                 default -> !exec.isClosed() ? EditorMessages.editor_txn_log_running
+                    : exec.isCanceledByApplication() ? EditorMessages.editor_history_status_canceled
                     : exec.hasError() ? CommonUtils.notEmpty(exec.getErrorMessage()) : EditorMessages.editor_txn_log_ok;
             };
         }

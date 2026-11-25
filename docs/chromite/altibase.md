@@ -1830,3 +1830,5 @@ ShardSphere 일반 서버(5.1.9)에서 재현했다(시험 개체 `CHR_VDW_*`만
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열의 인덱스·테이블 DDL 보기, Script as ▸ CREATE, 스크립트 복사.
 - 2026-11-25 초기화 부분이 있는 패키지 본문을 한 문장으로(`chromite/oracle-script-split-blocks`), "저장 루틴의 문장 나누기"의 "고친 것" 표.
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Altibase 계열(Altibase, ShardSphere)의 패키지 본문 나누기
+- 2026-11-25 `ObjectExplorerPanel`: 2026-11-21에 `showSelectionAgain`을 `getSelectedNavigatorNode`의 Javadoc·`@Nullable`과 메서드 사이에 넣어 `void` 메서드가
+  `@Nullable`을 달고 있던 것을 바로잡음(주석만, 동작 같음, `chromite/properties-read-once`). 회귀 테스트는 실행하지 않았다.

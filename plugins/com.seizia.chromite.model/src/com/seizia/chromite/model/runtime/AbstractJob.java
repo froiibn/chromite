@@ -41,6 +41,9 @@ import java.util.List;
  * - 2026-11-08 취소가 듣지 않으면 {@code execute.cancel.checkTimeout} 뒤 바깥 블록(세션)까지 취소하던 것을 지움. 세션 단위 취소는
  *   연결과 열린 트랜잭션을 묻지 않고 잃을 수 있어 트랜잭션 안전 규칙에 어긋나고, 설정 파일이나 설정 가져오기로 다시 켜지지 않게 키를 읽지
  *   않는다 (docs/chromite/swing-options.md "Errors and Timeouts")
+ * - 2026-11-25 {@link #cancelUnneeded}: 결과가 더는 필요 없어 앱이 직접 취소한 작업을 표시한다. 문장 취소는 {@link #cancel()}과 같고, 모델은
+ *   취소된 모니터만 보므로 Query Manager({@code QMMConnectionInfo})가 지금 스레드의 작업({@link #isCurrentJobCanceledAsUnneeded})에서 누가 취소를
+ *   요청했는지 읽어, 그 실행을 사용자의 취소 오류가 아니라 취소로 기록한다 (docs/chromite/swing-query-manager.md "앱이 취소한 읽기")
  */
 public abstract class AbstractJob extends Job {
     private static final Log log = Log.getLog(AbstractJob.class);
@@ -49,6 +52,7 @@ public abstract class AbstractJob extends Job {
     private volatile boolean finished = false;
     private volatile boolean blockCanceled = false;
     private volatile long cancelTimestamp = -1;
+    private volatile boolean canceledAsUnneeded;
     private AbstractJob attachedJob = null;
     private boolean skipErrorOnCanceling;
     private volatile boolean runDirectly = false;
@@ -148,6 +152,28 @@ public abstract class AbstractJob extends Job {
 
     public boolean isCanceled() {
         return cancelTimestamp > 0;
+    }
+
+    /**
+     * Cancels the job because the application no longer needs its result (a view that shows another object now), not
+     * because the user asked. Its running statement is canceled as by {@link #cancel()}; the Query Manager records the
+     * statement as canceled by the application instead of as the user's cancel error. A job the user already canceled
+     * stays the user's.
+     */
+    public final boolean cancelUnneeded() {
+        if (!isCanceled()) {
+            canceledAsUnneeded = true;
+        }
+        return cancel();
+    }
+
+    /**
+     * Whether the job running on the current thread was canceled with {@link #cancelUnneeded}. The model sees only a
+     * canceled progress monitor; the statements of a job run on its thread, so this tells who asked for the cancel.
+     */
+    public static boolean isCurrentJobCanceledAsUnneeded() {
+        AbstractJob job = CURRENT_JOB.get();
+        return job != null && job.canceledAsUnneeded;
     }
 
     public long getCancelTimestamp() {

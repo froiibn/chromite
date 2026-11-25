@@ -638,7 +638,9 @@ ShardSphere 연결에서 기존 테이블의 TTL을 Object Explorer에서 설정
 - **Altibase 7.3:** 표 메뉴에 TTL 없음, 능력 없음, 질의 늘지 않음. 메뉴 덤프 전후(기준 클래스로 되돌린 jar) 같음.
 - **기능을 뺀 제품**(내 앱 사본에서 이 번들을 빼고 `bundles.info`에서 그 줄을 지움): SS 표의 메뉴에 TTL 없음.
 - 실행 뒤 표 노드를 다시 읽을 때 쿼리 관리자에 TTL 읽기 SELECT가 한 번 "오류 0"으로 남는 때가 있다(속성 보기가 노드 갱신으로 앞 읽기를 취소하고 다시 읽음, 바로 뒤
-  같은 SELECT는 성공). 속성 보기의 기존 동작이라 고치지 않았다.
+  같은 SELECT는 성공). 2026-11-25에 고쳤다(`chromite/properties-read-once`): 탐색기는 선택 노드나 그 객체가 바뀔 때만 속성 창에 넘기고
+  ([swing-object-properties.md](swing-object-properties.md) "한 번만 읽기"), 속성 창이 더는 필요 없어 취소한 읽기는 오류가 아니라 "취소됨"으로 기록된다
+  ([swing-query-manager.md](swing-query-manager.md) "앱이 취소한 읽기"). ShardSphere 서버에서는 다시 재지 않았다.
 - 캡처(저장소 밖): `D:\Tools\_scratch\shardsphere-ttl-manage\sheets\`.
 - 회귀 테스트는 작성·실행하지 않았다. 영향받을 수 있는 기능: Object Explorer 유지 관리 메뉴(항목 순서), Altibase 계열 연결의 어댑터, ShardSphere 감지(메타 노드의 SELECT 하나).
 
@@ -1416,3 +1418,5 @@ AltibaseSchema.refreshObject → AltibaseDataSource.schemaRefreshed → Altibase
   일반 서버에 시험용 `CHR_RTE_*`를 만들어 확인하고 지움. 위 "저장 루틴을 쿼리 창에서 고쳐 실행".
 - 2026-11-24 "상위 1000개 행 선택"·데이터 찾기가 `LIMIT 1000`을 붙임(계열 공통 코드, 앱 변경 #183, `chromite/select-top-row-limit`). 일반 서버에 시험용 `CHR_TOP_*`를
   만들어 문법과 종류별 결과를 확인하고 지움. 위 "상위 1000개 행 선택의 행 수 제한".
+- 2026-11-25 TTL 표의 "실행 뒤 TTL 읽기 SELECT가 오류 0으로 남는 때" 줄을 고쳤다고 적음: 속성 창은 한 번만 읽고, 앱이 취소한 읽기는 "취소됨"
+  (`chromite/properties-read-once`, [swing-query-manager.md](swing-query-manager.md) "앱이 취소한 읽기"). 회귀 테스트는 실행하지 않았다.
