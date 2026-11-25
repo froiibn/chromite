@@ -91,6 +91,10 @@ import java.util.stream.Stream;
  *   별칭, {@code CAST}, {@code IS NULL})에서 블록을 열기 때문이다. 블록을 끝내는 {@code END} 뒤의 {@code ;}는 문장에 남긴다
  *   ({@link #isDelimiterAfterBlock}): 서버는 받은 글을 그대로 원본으로 두므로, 빠지면 패키지 머리가 {@code END}로 끝나 DDL 보기 글의
  *   머리와 본문이 한 문장이 되었다
+ * - 2026-11-25 Chromite: 패키지 본문도 {@code AS}/{@code IS}에서 선언부 머리를 연다({@code BLOCK_HEADER}). 본문의 서브프로그램은 그 안에 자기
+ *   머리를 열고({@code NESTED_BLOCK_HEADER}) 외부 서브프로그램의 {@code AS LANGUAGE}는 그 머리만 닫는다. 전에는 문장 머리에서 연 블록이
+ *   {@code BEGIN}/{@code END}의 짝을 세어, 초기화 부분({@code BEGIN … END;}, 자기 {@code END}가 없음)이 있는 본문이 뒤 문장을 모두 삼켰다
+ *   (Oracle 방언과 같은 원인, docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3")
  */
 public class AltibaseSQLDialect extends JDBCSQLDialect
             implements SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -641,15 +645,6 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
         TokenPredicateSet conditions = TokenPredicateSet.of(
             /* Oracle grammar */
             new TokenPredicatesCondition(
-                    SQLParserActionKind.BEGIN_BLOCK,
-                    tt.sequence(
-                            "CREATE",
-                            tt.optional("OR", "REPLACE"),
-                            "PACKAGE", "BODY"
-                    ),
-                    tt.sequence()
-            ),
-            new TokenPredicatesCondition(
                     SQLParserActionKind.SKIP_SUFFIX_TERM,
                     tt.sequence(
                             "CREATE",
@@ -672,23 +667,38 @@ public class AltibaseSQLDialect extends JDBCSQLDialect
             ),
             // The AS / IS of a stored routine or a trigger opens its declaration section, as in the Oracle dialect: the ";" of the
             // declarations do not end the statement, the BEGIN that follows ends the header. In a trigger the first AS may be the
-            // one of REFERENCING ... AS alias, which opens the header a little earlier; the same BEGIN ends it
+            // one of REFERENCING ... AS alias, which opens the header a little earlier; the same BEGIN ends it. A package body's
+            // AS / IS opens its declaration section too: the BEGIN of its initialization part or its END ends it. A block opened
+            // on the package body's prefix and counting BEGIN / END pairs never closed after an initialization part, whose BEGIN
+            // has no END of its own
             new TokenPredicatesCondition(
                 SQLParserActionKind.BLOCK_HEADER,
                 tt.sequence(
                     "CREATE",
                     tt.optional("OR", "REPLACE"),
-                    tt.alternative("FUNCTION", "PROCEDURE", "TRIGGER")
+                    tt.alternative("FUNCTION", "PROCEDURE", "TRIGGER", tt.sequence("PACKAGE", "BODY"))
                 ),
                 tt.alternative("AS", "IS")
             ),
-            // An external routine (AS LANGUAGE C ... LIBRARY ...;) has no BEGIN to end that header: its LANGUAGE does
+            // A package body's subprogram opens a header of its own inside the body's, so that its BEGIN does not close that.
+            // Routines get none: Altibase does not take subprograms in a routine's declarations
+            new TokenPredicatesCondition(
+                SQLParserActionKind.NESTED_BLOCK_HEADER,
+                tt.sequence(
+                    "CREATE",
+                    tt.optional("OR", "REPLACE"),
+                    "PACKAGE", "BODY"
+                ),
+                tt.sequence(tt.alternative(";", "AS", "IS"), tt.alternative("PROCEDURE", "FUNCTION"))
+            ),
+            // An external routine (AS LANGUAGE C ... LIBRARY ...;) has no BEGIN to end that header: its LANGUAGE does (in a package
+            // body, the header of that subprogram only)
             new TokenPredicatesCondition(
                 SQLParserActionKind.END_BLOCK,
                 tt.sequence(
                     "CREATE",
                     tt.optional("OR", "REPLACE"),
-                    tt.alternative("FUNCTION", "PROCEDURE")
+                    tt.alternative("FUNCTION", "PROCEDURE", tt.sequence("PACKAGE", "BODY"))
                 ),
                 tt.sequence(tt.alternative("AS", "IS"), "LANGUAGE")
             ),
