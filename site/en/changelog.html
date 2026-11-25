@@ -54,6 +54,23 @@
     <p>Versions are numbered <code>year.sequence.fix</code> (<code>major.minor.dev</code> up to 0.1.4). The app's update notice links to each version's anchor (for example <code>#v26.0.5</code>).</p>
   </div>
 
+  <section class="sect release" id="v26.1.9">
+    <h2>26.1.9</h2>
+    <div class="body">
+      <p>Fixes for running scripts in a query window, for the text of "View DDL", and for the database a window is on after a reconnect.</p>
+      <ul>
+        <li>Fix · Oracle scripts: every statement after a routine without a body (AS LANGUAGE JAVA and the like) was joined into one, so running a statement below re-created the routine above. Functions implemented by a type, type bodies, routines with nested subprograms, CREATE … IF NOT EXISTS, package bodies with an initialization part and DECLARE blocks with subprograms now run as one statement each.</li>
+        <li>Fix · MySQL · MariaDB: a procedure, function, trigger or event run without DELIMITER was cut at the semicolons of its body. The text of "View DDL" can be pasted into a query window and run as it is. The DDL text of triggers and events names the database.</li>
+        <li>Fix · SQL Server: the text of "View DDL" and of a CREATE script, run in a query window on another database, created the object there. The text now starts with USE and GO. The name comment at the top of a view's DDL text no longer grows by a line each time the text is run.</li>
+        <li>Fix · Database after a reconnect: on SQL Server and MySQL · MariaDB a query window could show one database and run on another after a reconnect. After Disconnect and Connect a query window returns to the database it was on.</li>
+        <li>Fix · Sessions: reading object information while a connection was reconnecting opened one more session that stayed on the server, and on a manual-commit connection that session held a transaction open.</li>
+        <li>Fix · ShardSphere · Altibase: "View DDL" of an index showed no statement, the DDL text of a view collected a warning line and comments, and the DDL text of a table with a named constraint did not run. A package body with an initialization part runs as one statement.</li>
+        <li>Fix · Object Explorer and Properties: properties were read several times after a refresh, and refreshing an expanded object left the old values. The Query Manager no longer records a read the app stopped by itself as an error cancelled by the user.</li>
+        <li>Fix · Separate window: a query window whose results were hidden, moved to its own window and back, still had its results hidden after "Reset Window Layout".</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v26.1.8">
     <h2>26.1.8</h2>
     <div class="body">
