@@ -378,6 +378,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   보이며 그 창에 적용함(앱 변경 #175, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
  * - 2026-11-25 창의 자기 세션이 연결과 함께 끝나면(Disconnect, Reconnect) 보이던 DB/스키마를 다음 세션에 줌({@link #keepDefaultsOfEndedSession}).
  *   전에는 다시 연결한 창이 연결의 기본 DB로 돌아갔다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
+ * - 2026-11-25 DB 선택이 보이는 세션의 기본값이 다른 곳에서 바뀌면 다시 읽음({@link #contextDefaultsChanged}). 주 세션을 함께 쓰는 창이
+ *   Modify 뒤 옛 DB를 보이며 다음 문장을 개체의 DB에서 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다른 곳에서 바뀐 세션의 DB")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1054,6 +1056,20 @@ final class SqlEditorPanel extends JPanel {
         refreshSchemas();
         // Connected or disconnected: the Query actions that read the window's session (Commit, Roll Back) follow
         host.executionStateChanged(this);
+    }
+
+    /**
+     * The default database or schema of an execution context changed (a model event, any source): when the picker shows
+     * that context's default, it reads it again. A window sharing the connection's main context otherwise kept showing
+     * the database the main context had before Modify, Execute Procedure or a New object template moved it to the object's
+     * database (PostgreSQL: another database is another context, so the window's next statements ran elsewhere than it
+     * showed), and kept that name for New Query and the restart. During a run the run's end reads it. EDT.
+     */
+    void contextDefaultsChanged(@NotNull DBCExecutionContext context) {
+        SchemaState state = schemaState;
+        if (execution == null && state != null && state.context() == context) {
+            refreshSchemas();
+        }
     }
 
     @NotNull

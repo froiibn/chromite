@@ -47,6 +47,7 @@ import com.seizia.chromite.model.ai.agent.AIAgentServices;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNNode;
@@ -357,6 +358,9 @@ import java.util.function.Supplier;
  * - 2026-11-25 Results 숨김 표시({@link #RESULTS_HIDDEN_KEY})를 별도 창의 쿼리 창에서도 지움: Window &gt; Reset Window Layout은 모든 쿼리 창
  *   ({@link #getEditors}), 별도 창에서의 실행·계획·터미널은 {@link #showResultsCard}. 전에는 탭만 지워 별도 창을 탭으로 되돌리면 Results가
  *   숨은 채였음 (앱 변경 #186, docs/chromite/swing-frontend.md "쿼리 창을 별도 창으로")
+ * - 2026-11-25 세션의 기본 DB/스키마가 바뀐 모델 이벤트(OBJECT_SELECT, 실행 문맥이 붙은 것)를 그 세션을 보이는 쿼리 창에 넘김
+ *   ({@link SqlEditorPanel#contextDefaultsChanged}). 전에는 Modify 등이 연결의 주 세션을 개체의 DB로 옮겨도 주 세션을 함께 쓰는 창이 옛 DB를
+ *   보인 채 다음 문장을 새 DB에서 실행했다 (docs/chromite/swing-sql-editor-session-ui.md "다른 곳에서 바뀐 세션의 DB")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -428,6 +432,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SwingUtilities.invokeLater(this::updateStatusText);
         } else if (event.getAction() == DBPEvent.Action.OBJECT_UPDATE && event.getObject() instanceof DBPDataSourceContainer container) {
             SwingUtilities.invokeLater(() -> connectionUpdated(container));
+        } else if (event.getAction() == DBPEvent.Action.OBJECT_SELECT && event.getData() instanceof DBCExecutionContext context) {
+            // A session's default database or schema changed (the model fires this from setDefaultCatalog/Schema): also when
+            // the change came from outside the windows that show that session (Modify, Execute Procedure and New object
+            // templates bind the connection's main session to the object's database)
+            SwingUtilities.invokeLater(() -> {
+                for (SqlEditorPanel editor : getEditors()) {
+                    editor.contextDefaultsChanged(context);
+                }
+            });
         }
     };
     private final EditorTabbedPane documentTabs;

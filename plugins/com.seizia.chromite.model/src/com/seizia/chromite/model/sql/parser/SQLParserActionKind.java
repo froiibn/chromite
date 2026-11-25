@@ -27,6 +27,9 @@ package com.seizia.chromite.model.sql.parser;
  * 변경 이력:
  * - 2026-11-25 Chromite: {@link #NESTED_BLOCK_HEADER} for a subprogram declared in a routine's declarations: its BEGIN closed the
  *   routine's header and its END ended the statement (Oracle, docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 2").
+ * - 2026-11-25 Chromite: {@link #NESTED_BLOCK_HEADER} in a DECLARE section too, and the heading ends at the dialect's inner
+ *   block prefix (AS / IS) rather than at a {@link #BLOCK_HEADER} match, which a DECLARE section has none of
+ *   (Oracle, docs/chromite/swing-query-commands.md "Oracle 스크립트 나누기 3").
  */
 public enum SQLParserActionKind {
     SKIP_SUFFIX_TERM,
@@ -35,10 +38,10 @@ public enum SQLParserActionKind {
     BLOCK_HEADER,
     END_BLOCK,
     /**
-     * The word that starts a subprogram declared in the declarations of a routine whose header a {@link #BLOCK_HEADER} opened.
-     * It opens a header of its own inside that one: the subprogram's AS / IS ({@link #BLOCK_HEADER}) turns it into a declaration
-     * section that its BEGIN or a call specification ({@link #END_BLOCK}) closes, and a delimiter before any AS / IS ends it
-     * (a forward declaration).
+     * The word that starts a subprogram declared in the declarations of a routine whose header a {@link #BLOCK_HEADER} opened,
+     * or in a DECLARE section. It opens a header of its own inside that one: the subprogram's AS / IS (the dialect's inner block
+     * prefix) turns it into a declaration section that its BEGIN or a call specification ({@link #END_BLOCK}) closes, and a
+     * delimiter before any AS / IS ends it (a forward declaration).
      */
     NESTED_BLOCK_HEADER
 }
