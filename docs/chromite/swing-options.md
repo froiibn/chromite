@@ -106,6 +106,7 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
 | 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기(2026-11-09, 기본 꺼짐) | `autoEndReadOnlyTransactions`(Chromite가 더함) | `IdleTransactionMonitor.endReadOnlyAfterWork`([idle-transactions.md](idle-transactions.md) "조회만 한 트랜잭션 끝내기") |
 | 유휴 연결 닫기, 시간(초) | `autoCloseConnections`, `closeIdleConnectionPeriod` | `DataSourceMonitorJob.getDisconnectTimeoutSeconds`, 새 연결의 기본값 |
 | 제한(데이터 편집, 구조 편집, 스크립트 실행, 데이터 가져오기) | `modifyPermission` | `hasModifyPermission`(DBExecUtils, 데이터 전송, `SqlExecutionSafety`) |
+| 편집 제한 해제(2026-11-28, VOC 191) | 저장 값 없음: `confirmDataChange`와 `modifyPermission`의 데이터 편집·구조 편집·데이터 가져오기를 바꾸고 그 값에서 상태를 읽음 | 위 두 줄과 같음. 아래 "운영 연결의 편집 제한" |
 
 - 새로 만들기·삭제: 미리 정의된 세 유형은 지울 수 없다. 지운 유형을 쓰던 연결은 새 연결의 기본 유형(없으면 개발)으로 바뀌고 저장된다.
   지우기 전에 그 유형을 쓰는 연결 수와 바뀔 유형을 보여 주고 묻는다.
@@ -120,6 +121,46 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
   - 스마트 커밋(`smartCommit`, `smartCommitRecover`): 2026-11-08부터 쿼리 창이 쓰므로 두 칸을 더했다([connection-lifecycle.md](connection-lifecycle.md) "스마트 커밋").
   - 유휴 트랜잭션 자동 롤백의 유형별 기본값: 자동 롤백은 사용자가 연결마다 켜는 것이 사용자 결정이다([idle-transactions.md](idle-transactions.md)). 유형에 두려면
     모델에 새 필드가 필요해 이번에는 하지 않았다.
+
+#### 운영 연결의 편집 제한 (2026-11-28, VOC 191, `chromite/production-edit-option`)
+
+사용자 VOC: "운영db로 지정 시 편집이 안되는 문제이다. 주니어들이 사고칠까봐 막아둔게 오히려 시니어들에게는 불편한 점으로 다가가는것 같다.
+옵션으로 해제할 수 있게 해야 한다". 사용자 결정: 해제하는 옵션을 두고 기본값은 지금처럼 제한한다.
+
+**운영 유형이 개발 유형과 다르게 하는 것** (코드와 앱에서 확인, PostgreSQL 17·SQL Server 2022):
+
+| 항목 | 종류 | 곳 | 정하는 값 | 사용자가 바꾸는 곳(전) |
+|---|---|---|---|---|
+| 결과 표 편집 저장 | 확인(저장 전 SQL 미리 보기) | `ResultSetGrid.isSavePreviewRequired`(`ResultSetGrid.java:1330`) | 유형 `confirmDataChange`(운영·테스트 켬) | Connection Types "데이터 변경 확인" |
+| 결과 표 편집 | 막음(읽기 전용 "Data edit restricted") | `DBExecUtils.getResultSetReadOnlyStatus`(`DBExecUtils.java:1256`) | 유형·연결의 "데이터 편집 제한"(기본 유형은 모두 없음) | Connection Types 제한, 연결 대화상자 제한 |
+| 테이블 디자이너 저장, 탐색기 만들기·지우기·이름 바꾸기, 속성 편집, 일정·보안 명령 | 막음("바꿀 수 없습니다") | `TableDesignSession.java:913`, `DBUtils.isReadOnly`(`DBUtils.java:2617`) → `ExplorerObjectCommands.java:907`, `NewObjectCommands.java:340`, `ObjectPropertyEdits.java:127`, `SchedulerCommands`, `SecurityCommands` | "구조 편집 제한"(기본 없음) | 위와 같음 |
+| 데이터 가져오기 | 막음 | `DatabaseTransferConsumer.java:863`(가져오기), `DatabaseTransferUtils.java:819`(대상 테이블 만들기는 구조 편집) | "데이터 가져오기 제한"(기본 없음) | 위와 같음 |
+| 쿼리 창에 쓴 SELECT 아닌 문 | 확인(문장마다 예/아니요) | `SQLQueryExecuteJob.java:570` | 유형 `confirmExecute`(운영 켬) | Connection Types "SQL 실행 확인" |
+| 예약 쿼리의 SELECT 아닌 문 | 막음(확인할 사람이 없어 실행하지 않음) | `QueryScheduler.java:479` | `confirmExecute` | 위와 같음 |
+| 쿼리 창 실행 전체 | 막음 | `SqlExecutionSafety.java:122` | "스크립트 실행 제한"(기본 없음) | Connection Types 제한, 연결 대화상자 제한 |
+| 커밋 방식 | 수동 커밋(저장한 편집은 커밋할 때까지 열린 트랜잭션에 있음) | `DataSourceDescriptor.isDefaultAutoCommit`(`DataSourceDescriptor.java:552`) | 유형 `autocommit`(운영 끔), 연결의 자동 커밋 | Connection Types "기본으로 자동 커밋", 연결 대화상자 |
+| 유휴 트랜잭션 알림 | 알림(운영 10분, 개발 30분) | `IdleTransactionMonitor.java:151` | 유형 `autoCloseTransactions`·기간 | Connection Types, 연결 대화상자 |
+| Chromite Agent 쓰기 도구 | 막음(BLOCKED, "production connection") | `AIToolPolicy.isProduction`(`AIToolPolicy.java:206`, 유형 ID `prod` 또는 `confirmExecute`), `resolve`(`:274`) | 유형 ID와 `confirmExecute`, 연결별 Agent 규칙 | Options > Chromite Agent > 도구 정책(연결별 규칙) |
+| Mimer SQL CASCADE 삭제 | 확인 | `MimerCascadeDropUtil.java:118` | `confirmExecute` | Connection Types "SQL 실행 확인" |
+| 연결 알약 | 표시(테두리) | `ConnectionPill.java:93` | 유형 ID `prod` | 없음 |
+
+읽기 전용 연결(연결 대화상자의 "읽기 전용")은 유형과 상관없는 연결의 값이라 표에 넣지 않았다. 기본 운영 유형에서 편집을 실제로 **막는** 것은 없고,
+편집을 어렵게 하는 것은 저장 전 미리 보기, 문장마다 확인, 수동 커밋이다. 막힘은 관리자가 운영 유형(또는 연결)에 제한을 걸었을 때 생긴다.
+
+**스위치**: Connection Types의 "제한" 절 맨 위 "편집 제한 해제"(Lift editing restrictions). 선택한 유형마다 보인다.
+
+- 켜면 "데이터 변경 확인"과 데이터 편집·구조 편집·데이터 가져오기 제한을 끈다. 끄면 "데이터 변경 확인"을 다시 켠다(기본 테스트·운영 유형의 값).
+  제한 상자는 그대로 둔다(기본 유형에는 제한이 없으므로 끄면 기본값으로 돌아간다). 저장은 페이지의 [저장]이다.
+- 새 저장 값을 두지 않았다: 상태는 그 값들에서 읽는다(모두 꺼져 있으면 켜짐). 그래서 `connection-types.xml`, 연결의 유형 사본(`data-sources.json`),
+  값을 읽는 곳이 바뀌지 않고, 같은 화면의 상자를 하나 바꾸면 스위치도 따라 바뀐다. 명령마다 새 값을 두지 말라는 결정(이미 있는 유형 값을 다시 씀)을 따랐다.
+- 바꾸지 않는 것: "SQL 실행 확인"과 "스크립트 실행 제한"(쿼리 창에 사용자가 쓴 문장), 자동 커밋(트랜잭션 안전 규칙), Chromite Agent의 운영 연결 규칙
+  (유형 ID `prod`로 판단하므로 스위치와 상관없이 막힘), 연결 대화상자에서 연결에 직접 정한 제한(유형보다 앞섬), 읽기 전용 연결.
+
+확인(앱 안 시험 에이전트, 한국어 150%, PostgreSQL·SQL Server에 운영 유형 연결): 기본값에서 결과 표 저장은 미리 보기 뒤 수동 커밋, 문장 확인, 탐색기 삭제 질문.
+관리자 제한(데이터·구조·가져오기)을 건 뒤 결과 표 "읽기 전용: Data edit restricted", 탐색기 삭제 "바꿀 수 없습니다", Agent BLOCKED. 스위치를 켜고 저장하면
+`connection-types.xml`의 운영 유형이 `confirmDataChange="false"`, `modifyPermission` 없음이 되고 결과 표가 미리 보기 없이 저장(수동 커밋, 열린 트랜잭션),
+탐색기 삭제는 보통 질문, 쿼리 창 UPDATE는 계속 확인, Agent는 계속 BLOCKED. 끄고 저장하면 `confirmDataChange="true"`로 돌아가고 미리 보기가 다시 나온다.
+시험 편집은 모두 직접 롤백했다. 회귀 테스트는 실행하지 않았다.
 
 ### Options > Oracle (`OracleOptionsPage`)
 
@@ -1056,6 +1097,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   (`WrappingNote.MessageArea`), 굵은 글씨·가운데 맞춤 안내(위 "HTML 라벨 안내 2차"). 회귀 테스트는 실행하지 않았다.
 - 2026-11-17 연결 대화상자 Settings 탭의 왼쪽 배치 탭을 Options와 같은 페이지 목록(`JList` + `CardLayout`, `OptionsDialog.PageListRenderer` 공유)으로
   (앱 변경 #150, `chromite/connection-settings-sidebar`, 위 "연결 Settings 탭의 페이지 목록 (#150)"). 회귀 테스트는 실행하지 않았다.
+- 2026-11-28 Connection Types의 "편집 제한 해제" 스위치: 운영 유형이 막거나 확인하는 것의 정리와, 데이터 변경 확인·데이터/구조 편집·가져오기 제한을
+  한 번에 끄는 스위치(새 저장 값 없음, 기본 꺼짐)(VOC 191, `chromite/production-edit-option`, 위 "운영 연결의 편집 제한"). 회귀 테스트는 실행하지 않았다.
 
 ## 부록: 키별 상태
 
