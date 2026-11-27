@@ -796,6 +796,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 대체 순서 | 저장한 글꼴(이 컴퓨터에 있으면) → Cascadia Mono(번들) → JetBrains Mono(번들). 운영체제에 같은 이름의 글꼴이 있으면 Java가 등록을 거절하고 운영체제 글꼴을 쓴다(Windows 11은 가변 글꼴 `C:\Windows\Fonts\CascadiaMono.ttf`를 가지고 있어 그 글꼴의 기본 인스턴스를 쓰고, 기울임은 합성 기울임이다) |
 | 한글 | `FontUtils.getCompositeFont`(= `StyleContext.getFont`, 합성 글꼴). 이 PC(JBR 25, 한국어 Windows 11)에서 합성 글꼴의 대체 칸은 Arial, **Malgun Gothic**, Wingdings, Symbol, … 순이다(`sun.font.CompositeFont` 칸 확인). macOS는 JDK의 대체 목록(Apple SD Gothic Neo)이며 확인하지 못했다 |
 | 행 높이 | RSyntaxTextArea는 행 높이를 글꼴에서 한 번 정하고 모든 줄에 같게 쓴다. 한글이 있는 줄도 높이가 같다(확인 아래) |
+| 화면 배율이 바뀔 때 | RSyntaxTextArea는 토큰 너비를 처음 보일 때(또는 글꼴·색 구성이 바뀔 때) 잰 메트릭으로 재고 글자는 지금 배율로 그린다. 창이 배율이 다른 모니터로 옮겨지면 옛 배율의 너비로 자리를 정해 글자가 다음 토큰 위에 겹쳤다(Cascadia Mono 13: 영문 한 글자 100 % 8 px, 150 % 7.33 px, `mixed.sql` 한 줄에서 150 %로 재고 100 %로 그리면 최대 97 px). AWT의 `graphicsConfiguration` 속성 변경에 `TextAreaScale`이 저장된 메트릭의 배율과 창의 배율을 비교해 다르면 같은 색 구성을 다시 넣어(`setSyntaxScheme(getSyntaxScheme())`) 다시 잰다. 같은 배율이면 아무것도 하지 않는다. 쿼리 창·DDL 탭·대화상자의 `SqlTextArea`, 실행 계획 원문, 값 보기 글 칸이 모두 쓴다. 줄 번호는 그릴 때마다 Graphics의 메트릭을 써서 해당 없음. 확인은 이 PC(모니터 하나)에서 메트릭을 다른 배율로 잰 상태를 만들어 AWT와 같은 알림을 보낸 것까지다. 실제 모니터 이동·원격 데스크톱 다시 연결은 확인하지 못했다(앱 변경 #187) |
 | 쓰는 곳 | SQL 편집기, 줄 번호, DDL 탭, Options 미리 보기. 결과 그리드·Messages는 `font.code`(JetBrains Mono) 그대로(2026-11-07부터 결과 그리드는 `font.grid` = UI 글꼴) |
 | 설정 | Tools > Options > Editor: Family(설치된 고정폭 글꼴 + 번들 글꼴, 기본 Cascadia Mono), Size(6–72, 기본 13), 한글이 든 미리 보기. 키 `sqlEditor.font.family`, `sqlEditor.font.size` |
 
@@ -1553,3 +1554,4 @@ mac은 San Francisco를 쓰고 있는걸로 알고 있다. 폰트 사이즈도 �
 - 2026-11-16 "폼 대화상자의 최소 너비와 위치" 추가(앱 변경 #132, `chromite/storage-dialog-fixes`): 폼 도우미 대화상자의 최소 폼 너비 480, 주인 창 가운데.
   여백·줄 간격은 이 사양의 `space.12`·`space.6`이 이미 쓰이고 있어 그대로.
 - 2026-11-16 설계 결정에 "오른쪽 클릭 메뉴는 해당하는 것만, 메뉴 막대는 늘 같게" 추가(앱 변경 #137, [context-menus.md](context-menus.md)).
+- 2026-11-28 "편집기 글꼴과 SQL 색" 글꼴 표에 "화면 배율이 바뀔 때" 추가(앱 변경 #187, `chromite/editor-overlapping-text`): 창이 배율이 다른 모니터로 옮겨지면 RSyntaxTextArea 편집기가 토큰 너비를 다시 잰다(`TextAreaScale`). 사용자 보고 "쿼리 편집창에서 글자가 겹쳐지는 결함"의 가장 유력한 원인이며, 실제 모니터 이동은 확인하지 못함.

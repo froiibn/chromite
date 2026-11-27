@@ -110,6 +110,7 @@ import java.util.Locale;
  *   끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-17 글 칸의 오른쪽 클릭 메뉴는 {@link ContextMenus#tidyTextArea}: 칸마다 읽기 전용·언어가 바뀌므로 {@link ContextMenus#VARYING_TEXT}로
  *   두어 편집 항목과 Folding은 전처럼 꺼진 채 남음(앱 변경 #141, docs/chromite/context-menus.md)
+ * - 2026-11-28 글 칸은 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}, 앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -844,6 +845,8 @@ final class ResultSetValuePanel extends JPanel {
             applyTheme();
             // Each selected cell: read-only or not and the language change with the cell
             putClientProperty(ContextMenus.VARYING_TEXT, Boolean.TRUE);
+            // Token widths measured again when the window moves to a screen of another scale
+            TextAreaScale.follow(this);
         }
 
         @Override
