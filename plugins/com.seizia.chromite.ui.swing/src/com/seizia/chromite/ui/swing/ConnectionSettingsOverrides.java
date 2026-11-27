@@ -62,6 +62,8 @@ import java.util.Set;
  * - 2026-11-12 "Tools &gt; Options의 설정을 따른다" 안내 옆에 Options의 같은 페이지를 여는 링크 (B12, docs/chromite/swing-options.md "특정 페이지로 여는 곳")
  * - 2026-11-17 Altibase 공급자 연결의 페이지 제목은 연결의 데이터베이스 유형 이름(ShardSphere 연결은 "ShardSphere", 앱 변경 #148)
  * - 2026-11-17 왼쪽 배치 탭을 Options와 같은 페이지 목록으로 (앱 변경 #150, docs/chromite/swing-options.md "연결 Settings 탭의 페이지 목록 (#150)")
+ * - 2026-11-28 페이지 스크롤 창의 막대에 주던 휠 단위 16을 지움: 모든 양식 스크롤 창에 같은 기본값을 {@link ChromiteScrollPaneUI}가 줌
+ *   (VOC 192, docs/chromite/swing-options.md "스크롤 단위 기본값 (VOC 192)")
  */
 final class ConnectionSettingsOverrides extends JPanel {
 
@@ -103,7 +105,6 @@ final class ConnectionSettingsOverrides extends JPanel {
             JScrollPane scrollPane = new JScrollPane(entry.panel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
             scrollPane.setBorder(BorderFactory.createEmptyBorder());
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
             pageHolder.add(scrollPane, cardName(entries.size() - 1));
             listModel.addElement(entry);
             boolean override = page.getKeys().stream().anyMatch(store::contains);

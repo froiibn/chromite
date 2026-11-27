@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.ui.FlatScrollPaneUI;
+import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -44,14 +45,34 @@ import java.awt.event.MouseWheelListener;
  *     곳의 동작은 바뀌지 않는다.</li>
  * </ul>
  * 바깥 창은 같은 창(window) 안에서만 찾는다. 창의 부모는 주인 창이라 팝업 목록의 휠이 주인 창으로 넘어가지 않게 하기 위해서다.
+ * <p>
+ * 스크롤 단위 기본값: 보기가 {@link Scrollable}이 아니면(양식 {@code JPanel} 등) Swing은 막대의 단위({@link JScrollBar#getUnitIncrement})를 쓰고,
+ * 아무도 정하지 않은 막대의 단위는 1px이다. 그래서 휠 한 칸이 3px(운영체제 기본 3단위), 터치패드의 작은 이벤트가 1px만 움직였다(VOC 192,
+ * 연결 대화상자 Options의 연결 속성 탭: 끝까지 97칸). 화면마다 막대에 단위를 주는 대신 여기서 그런 창에 {@link #DEFAULT_UNIT_INCREMENT}를 쓴다.
+ * 막대에 {@code setUnitIncrement}를 부르지 않는 이유: 한 번 부르면 나중에 보기가 {@code Scrollable}(표, 목록)로 바뀌어도 그 보기의 단위가 무시된다.
+ * 계산은 {@code FlatScrollPaneUI}의 고해상도 휠과 같다(한 칸은 보이는 크기를 넘지 않음, 소수 회전은 최소 1px). 단위를 정한 막대와
+ * {@code Scrollable} 보기(표, 목록, 글 상자, 옵션 페이지)는 지금까지와 같다.
+ * <p>
  * Look and Feel의 {@code ScrollPaneUI}로 등록한다({@link ChromiteLightLaf#getDefaults()}, {@link ChromiteDarkLaf#getDefaults()}).
  * {@code UIDefaults.getUI}가 리플렉션으로 {@link #createUI}를 부르므로 public이다.
  *
  * 변경 이력:
  * - 2026-11-12 최초 작성: 옵션의 Chromite Agent 등에서 안쪽 스크롤 창이 휠을 삼켜 페이지가 스크롤되지 않던 문제 (앱 변경 #97,
  *   docs/chromite/swing-options.md "휠 스크롤 (#97)")
+ * - 2026-11-28 단위를 정하지 않은 막대와 Scrollable이 아닌 보기의 창은 휠 단위 16(연결 대화상자 Options의 연결 속성 탭이 휠 한 칸에 3px만
+ *   움직이던 문제, VOC 192, docs/chromite/swing-options.md "스크롤 단위 기본값 (VOC 192)")
  */
 public class ChromiteScrollPaneUI extends FlatScrollPaneUI {
+
+    /**
+     * Wheel unit of a pane whose view is not {@link Scrollable} and whose bar has no unit increment of its own (before scaling).
+     * The connection dialog's network and Settings pages set the same 16 on their bars before; three units (a wheel step) are
+     * about one and a half form rows.
+     */
+    private static final int DEFAULT_UNIT_INCREMENT = 16;
+
+    // JScrollBar's unit increment when nobody set one
+    private static final int SWING_UNIT_INCREMENT = 1;
 
     public static ComponentUI createUI(JComponent c) {
         return new ChromiteScrollPaneUI();
@@ -72,12 +93,49 @@ public class ChromiteScrollPaneUI extends FlatScrollPaneUI {
         return e -> {
             JScrollPane outer = canScroll(scrollpane, e) ? null : findOuterScrollPane(e);
             if (outer == null) {
-                own.mouseWheelMoved(e);
+                if (!scrollWithDefaultUnit(e)) {
+                    own.mouseWheelMoved(e);
+                }
                 return;
             }
             e.consume();
             outer.dispatchEvent(SwingUtilities.convertMouseEvent(scrollpane, e, outer));
         };
+    }
+
+    /**
+     * Scrolls this pane by {@link #DEFAULT_UNIT_INCREMENT} per wheel unit when its view is not {@link Scrollable} and the scrolled
+     * bar has the Swing unit increment (nobody chose one); returns false (nothing done) otherwise.
+     */
+    private boolean scrollWithDefaultUnit(@NotNull MouseWheelEvent e) {
+        JViewport viewport = scrollpane.getViewport();
+        Component view = viewport == null ? null : viewport.getView();
+        double rotation = e.getPreciseWheelRotation();
+        if (view == null || view instanceof Scrollable || !scrollpane.isWheelScrollingEnabled()
+            || e.getScrollType() != MouseWheelEvent.WHEEL_UNIT_SCROLL || rotation == 0) {
+            return false;
+        }
+        // The bar the Swing handler would scroll: the vertical one, the horizontal one with Shift or without a vertical bar
+        JScrollBar bar = scrollpane.getVerticalScrollBar();
+        if (bar == null || !bar.isVisible() || e.isShiftDown()) {
+            bar = scrollpane.getHorizontalScrollBar();
+            if (bar == null || !bar.isVisible()) {
+                return false;
+            }
+        }
+        if (bar.getUnitIncrement(rotation < 0 ? -1 : 1) != SWING_UNIT_INCREMENT) {
+            return false;
+        }
+        int visible = bar.getOrientation() == SwingConstants.VERTICAL ? viewport.getHeight() : viewport.getWidth();
+        int step = Math.min(UIScale.scale(DEFAULT_UNIT_INCREMENT) * e.getScrollAmount(), visible);
+        int delta = (int) Math.round(rotation * step);
+        if (delta == 0) {
+            delta = rotation < 0 ? -1 : 1;
+        }
+        BoundedRangeModel model = bar.getModel();
+        bar.setValue(Math.max(model.getMinimum(), Math.min(model.getValue() + delta, model.getMaximum() - model.getExtent())));
+        e.consume();
+        return true;
     }
 
     /**

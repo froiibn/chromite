@@ -57,6 +57,8 @@ import java.util.List;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 대화상자에서 고른 네트워크 프로필로 다시 읽기({@link #loadSettings(DataSourceDescriptor, DBWNetworkProfile)})
  *   (docs/chromite/swing-conn-advanced.md "네트워크 프로필")
+ * - 2026-11-28 막대에 주던 휠 단위 16을 지움: 모든 양식 스크롤 창에 같은 기본값을 {@link ChromiteScrollPaneUI}가 줌
+ *   (VOC 192, docs/chromite/swing-options.md "스크롤 단위 기본값 (VOC 192)")
  */
 final class ConnectionNetworkPage extends JPanel {
 
@@ -93,7 +95,6 @@ final class ConnectionNetworkPage extends JPanel {
         JScrollPane scrollPane = new JScrollPane(handlerPanel.getComponent(),
             ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
     }
 
