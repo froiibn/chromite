@@ -304,6 +304,9 @@ import java.util.regex.Pattern;
  *   다시 읽힘 (docs/chromite/swing-object-properties.md "한 번만 읽기")
  * - 2026-11-25 선택 노드나 그 위 노드를 새로 고치면(여기의 F5, 탐색기 밖의 노드 새로 고침) 객체가 같아도 속성을 한 번 다시 읽음({@link #selectionRefreshed}):
  *   여러 드라이버가 객체를 바꾸지 않고 캐시만 비워 새로 고쳐, 객체 비교만으로는 새 값을 보이지 못했다 (같은 문서 "새로 고침")
+ * - 2026-11-28 New Query·Select Top N·Script as가 선택한 개체를 창에 넘김({@link QueryWindows#openQuery}, {@link QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}):
+ *   창이 개체의 DB/스키마에서 돈다. 전에는 연결의 기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 SELECT가 기본 DB의 같은 이름 표를 읽었다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -324,17 +327,35 @@ final class ObjectExplorerPanel extends JPanel {
      */
     interface QueryWindows {
         /**
-         * Opens an empty query window for the connection ("New Query").
+         * Opens an empty query window for the connection ("New Query"), in the database and schema of the selected node
+         * as {@link #openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}.
+         *
+         * @param location the selected object (or folder), or null for the connection's default database
          */
-        void openQuery(@NotNull DBPDataSourceContainer dataSource);
+        void openQuery(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location);
 
         /**
-         * Opens a query window with a generated script.
+         * Opens a query window with a generated script that is not about one object of a database (the connection's
+         * default database).
          *
          * @param maxRows rows the window fetches at least (0: the connection's maximum)
          * @param execute run the script right away
          */
         void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
+
+        /**
+         * Opens a query window with a script generated for an object. The window's own session gets the object's database
+         * and schema when it opens, before the script runs: the script names the object without its database (PostgreSQL
+         * cannot name one), so in the connection's default database it would read or change an object of the same name
+         * there. A window that shares the connection's main session stays where that session is (it would move the other
+         * windows that share it).
+         *
+         * @param location the object the script is about, or null for the connection's default database
+         * @param maxRows  rows the window fetches at least (0: the connection's maximum)
+         * @param execute  run the script right away
+         */
+        void openScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script, long maxRows,
+                        boolean execute);
 
         /**
          * Shows an object definition in a read-only tab ("View DDL").
@@ -620,7 +641,7 @@ final class ObjectExplorerPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 DBPDataSourceContainer dataSource = getSelectedDataSource();
                 if (dataSource != null) {
-                    queryWindows.openQuery(dataSource);
+                    queryWindows.openQuery(dataSource, getSelectedObject());
                 }
             }
         };
@@ -646,7 +667,7 @@ final class ObjectExplorerPanel extends JPanel {
                 String script = generate(NLS.bind(CoreMessages.explorer_select_top, SELECT_TOP_ROWS),
                     monitor -> ObjectScripts.generateSelect(monitor, entity, SELECT_TOP_ROWS));
                 if (script != null) {
-                    queryWindows.openScript(dataSource, script, SELECT_TOP_ROWS, true);
+                    queryWindows.openScript(dataSource, entity, script, SELECT_TOP_ROWS, true);
                 }
             }
         });
@@ -1190,7 +1211,7 @@ final class ObjectExplorerPanel extends JPanel {
         if (toClipboard) {
             DBWorkbench.getPlatformUI().copyTextToClipboard(script, false);
         } else {
-            queryWindows.openScript(dataSource, script, 0, false);
+            queryWindows.openScript(dataSource, object, script, 0, false);
         }
     }
 
@@ -1609,7 +1630,7 @@ final class ObjectExplorerPanel extends JPanel {
         if (navigatorNode instanceof DBNDataSource dataSourceNode) {
             switch (ExplorerPreferences.getConnectionDoubleClick()) {
                 case NEW_QUERY -> {
-                    queryWindows.openQuery(dataSourceNode.getDataSourceContainer());
+                    queryWindows.openQuery(dataSourceNode.getDataSourceContainer(), null);
                     return;
                 }
                 case EDIT_CONNECTION -> {

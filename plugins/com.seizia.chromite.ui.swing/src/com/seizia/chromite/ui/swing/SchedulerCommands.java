@@ -104,6 +104,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 삭제 확인은 삭제 / 취소, 지금 실행은 지금 실행 / 취소 단추(취소가 기본), 스크립트 미리 보기도 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-12 이벤트 상태 대화상자의 글이 낱말 사이에서만 줄을 바꿈({@link WrappingNote.MessageArea}): Swing 줄 바꿈이 한국어
  *   낱말 가운데서 끊었다(앱 변경 #82, docs/chromite/swing-options.md "잘리던 한 줄 안내")
+ * - 2026-11-28 스크립트를 연 쿼리 창이 실행과 같은 DB에서 돈다({@link Backend#location}: pg_cron은 설치된 DB, MySQL 이벤트는 그 DB).
+ *   전에는 연결의 기본 DB에서 열려 pg_cron이 다른 DB에 있으면 {@code cron} 함수를 찾지 못한다(코드 읽기) (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class SchedulerCommands {
 
@@ -125,6 +127,15 @@ final class SchedulerCommands {
         String formatScript(@NotNull List<String> statements);
 
         void execute(@NotNull DBRProgressMonitor monitor, @NotNull List<String> statements, @Nullable Consumer<String> messages) throws DBException;
+
+        /**
+         * Where a script opened in a query window runs: the database {@link #execute} runs in, or null for the
+         * connection's default (the statements name what they change).
+         */
+        @Nullable
+        default DBSObject location() {
+            return null;
+        }
 
         /**
          * Called after a successful change: the cached access state is read again.
@@ -415,7 +426,7 @@ final class SchedulerCommands {
         String script = backend.formatScript(List.of(statement));
         ScriptPreviewDialog.Result choice = ScriptPreviewDialog.show(owner, NLS.bind(SchedulerMessages.scheduler_script_title, title), script, true);
         if (choice == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            queryWindows.openScript(backend.container(), script, 0, false);
+            queryWindows.openScript(backend.container(), backend.location(), script, 0, false);
         } else if (choice == ScriptPreviewDialog.Result.EXECUTE
             && run(title, monitor -> backend.execute(monitor, List.of(statement), null))) {
             backend.changed();
@@ -874,6 +885,12 @@ final class SchedulerCommands {
             public void execute(@NotNull DBRProgressMonitor monitor, @NotNull List<String> statements, @Nullable Consumer<String> messages) throws DBException {
                 PostgreCronManager.execute(monitor, scheduler.getDatabase(), statements, messages);
             }
+
+            @Override
+            public DBSObject location() {
+                // The cron schema is in the database pg_cron is installed in
+                return scheduler.getDatabase();
+            }
         };
     }
 
@@ -895,6 +912,11 @@ final class SchedulerCommands {
             @Override
             public void execute(@NotNull DBRProgressMonitor monitor, @NotNull List<String> statements, @Nullable Consumer<String> messages) throws DBException {
                 MySQLEventScheduler.execute(monitor, catalog.getDataSource(), statements, messages);
+            }
+
+            @Override
+            public DBSObject location() {
+                return catalog;
             }
 
             @Override

@@ -89,6 +89,7 @@ import java.util.function.Consumer;
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md), 확대·축소 도움말의 수정자 이름
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-16 개체 메뉴의 Design·Select Top은 해당하는 개체에서만 보임(전에는 꺼짐, 앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-28 Select Top의 창이 표의 DB/스키마에서 돈다(전에는 연결의 기본 DB, docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class ErdDiagramPanel extends JPanel implements ToolDocument {
 
@@ -478,7 +479,7 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
         try {
             String script = ProgressDialog.runTask(commandTitle, monitor -> ObjectScripts.generateSelect(monitor, table, rows));
             if (script != null) {
-                queryWindows.openScript(dataSource, script, rows, true);
+                queryWindows.openScript(dataSource, table, script, rows, true);
             }
         } catch (DBInterruptedException e) {
             // Canceled in the progress dialog

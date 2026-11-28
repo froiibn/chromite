@@ -93,6 +93,8 @@ import java.util.Set;
  *   docs/chromite/swing-table-designer.md "새 테이블의 TTL")
  * - 2026-11-22 키·인덱스·외래 키 추가의 이름 읽기에서 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뜀(앱 변경 #168,
  *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
+ * - 2026-11-28 스크립트를 여는 창이 테이블의 DB/스키마에서 돈다({@link Host#openScript}, 전에는 연결의 기본 DB,
+ *   docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -112,9 +114,11 @@ final class TableDesignerPanel extends JPanel {
         void designerChanged(@NotNull TableDesignerPanel designer);
 
         /**
-         * Opens a script in a new query window without running it.
+         * Opens a script in a new query window without running it, in the database and schema of the table
+         * ({@link ObjectExplorerPanel.QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}).
          */
-        void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
+        void openScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script, long maxRows,
+                        boolean execute);
     }
 
     private final TableDesignSession session;
@@ -612,7 +616,7 @@ final class TableDesignerPanel extends JPanel {
         }
         if (ScriptPreviewDialog.show(this, NLS.bind(ToolsMessages.designer_change_script_title, session.getTable().getName()), script, false)
             == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            host.openScript(session.getTable().getDataSource().getContainer(), script, 0, false);
+            host.openScript(session.getTable().getDataSource().getContainer(), session.getTable(), script, 0, false);
         }
     }
 
@@ -639,7 +643,7 @@ final class TableDesignerPanel extends JPanel {
             ScriptPreviewDialog.Result result = ScriptPreviewDialog.show(this,
                 NLS.bind(ToolsMessages.designer_save_changes_title, session.getTable().getName()), script, true);
             if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-                host.openScript(session.getTable().getDataSource().getContainer(), script, 0, false);
+                host.openScript(session.getTable().getDataSource().getContainer(), session.getTable(), script, 0, false);
                 return false;
             }
             // The save commits after each command and MySQL/Oracle DDL commits implicitly: an open transaction of the

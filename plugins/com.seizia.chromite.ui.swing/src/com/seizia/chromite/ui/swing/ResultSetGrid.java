@@ -42,6 +42,7 @@ import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSDataManipulator;
 import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -168,6 +169,8 @@ import java.util.UUID;
  *   쿼리 등)의 "[CLOB]" 칸에서 값 패널로 가는 길이 F7·상태 줄 단추뿐이었다 (앱 변경 #160, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
  * - 2026-11-22 복사·머리글 포함 복사·Copy As·CSV 내보내기가 이미 읽은 LOB의 전문을 씀(앞 10,000자와 "..." 대신, 사용자 결정 "권장대로").
  *   {@code Host.isPartialContent}를 칸의 LOB 내용을 돌려주는 {@link Host#getPartialContent}로 바꿈 (앱 변경 #160 후속)
+ * - 2026-11-28 {@link Host#openScript}가 새 창이 돌 곳(결과 세션의 기본 스키마·DB)을 받음 (docs/chromite/swing-sql-editor-session-ui.md
+ *   "개체에서 연 창의 DB")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -314,8 +317,10 @@ final class ResultSetGrid extends JPanel {
         /**
          * Opens statements made from a result (Generate SQL) in a new query window of the connection, without running
          * them.
+         *
+         * @param location where the new window runs (the default schema or database of the result's session), or null
          */
-        default void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
+        default void openScript(@NotNull DBPDataSourceContainer container, @Nullable DBSObject location, @NotNull String script) {
         }
     }
 

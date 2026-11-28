@@ -37,6 +37,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-28 스크립트를 여는 쿼리 창이 실행과 같은 DB에서 돈다({@code Backend.location}) (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 abstract class SchedulerScriptDialog extends DatabaseTaskDialog {
 
@@ -96,7 +97,7 @@ abstract class SchedulerScriptDialog extends DatabaseTaskDialog {
         String script = backend.formatScript(built);
         ScriptPreviewDialog.Result choice = ScriptPreviewDialog.show(this, NLS.bind(SchedulerMessages.scheduler_script_title, getTitle()), script, true);
         if (choice == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            queryWindows.openScript(backend.container(), script, 0, false);
+            queryWindows.openScript(backend.container(), backend.location(), script, 0, false);
             dispose();
             return false;
         }
@@ -138,7 +139,7 @@ abstract class SchedulerScriptDialog extends DatabaseTaskDialog {
     @NotNull
     @Override
     protected List<Action> getScriptActions() {
-        return createSqlScriptActions(queryWindows, () -> {
+        return createSqlScriptActions(queryWindows, backend.location(), () -> {
             List<String> built = buildStatements();
             return built.isEmpty() ? "-- " + SchedulerMessages.scheduler_no_changes + "\n" : backend.formatScript(built); //$NON-NLS-1$ //$NON-NLS-2$
         });

@@ -119,6 +119,8 @@ import java.util.stream.Collectors;
  * - 2026-11-17 테이블 TTL…(서버 확장이 주는 중립 능력, 앱 변경 #152, docs/chromite/altibase.md "테이블 TTL 자리")
  * - 2026-11-21 Altibase 계열 작업 사용·사용 안 함·설정, 큐 압축(앱 변경 #154, docs/chromite/altibase.md "작업 만들기·바꾸기·삭제", "큐")
  * - 2026-11-22 서버 확장의 백그라운드 실행 객체 사용·사용 안 함·실행 설정(앱 변경 #156, docs/chromite/altibase.md "확장 객체의 명령 자리")
+ * - 2026-11-28 "쿼리 창에서 열기"의 창이 (첫) 개체의 DB/스키마에서 돈다. 전에는 연결의 기본 DB에서 열려 PostgreSQL에서 다른 데이터베이스 표의
+ *   TRUNCATE·VACUUM 등이 기본 DB의 같은 이름 표에 닿을 수 있었다 (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class ObjectMaintenanceCommands {
 
@@ -336,7 +338,7 @@ final class ObjectMaintenanceCommands {
             : NavigatorMessages.navigator_change_preview_header, container.getName());
         ScriptPreviewDialog.Result result = ScriptPreviewDialog.confirmChange(window, title, header, script.toString());
         if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            queryWindows.openScript(container, script.toString(), 0, false);
+            queryWindows.openScript(container, objects.getFirst(), script.toString(), 0, false);
             return;
         }
         if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(window, container)) {

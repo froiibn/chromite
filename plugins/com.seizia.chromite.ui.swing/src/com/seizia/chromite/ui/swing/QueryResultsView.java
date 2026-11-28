@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -101,6 +102,8 @@ import java.util.function.IntConsumer;
  *   (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-16 Messages 메뉴의 "오류 위치로 가기"는 위치를 아는 오류 글자에서만 보임(전에는 꺼짐, 앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-28 {@link Listener#openScript}가 새 창이 돌 곳(결과 세션의 기본 스키마·DB)을 넘김 (docs/chromite/swing-sql-editor-session-ui.md
+ *   "개체에서 연 창의 DB")
  */
 final class QueryResultsView {
 
@@ -132,8 +135,10 @@ final class QueryResultsView {
 
         /**
          * Opens statements made from a result (Generate SQL) in a new query window, without running them.
+         *
+         * @param location where the new window runs (the default schema or database of the result's session), or null
          */
-        void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script);
+        void openScript(@NotNull DBPDataSourceContainer container, @Nullable DBSObject location, @NotNull String script);
     }
 
     /**
@@ -218,8 +223,8 @@ final class QueryResultsView {
         }
 
         @Override
-        public void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
-            listener.openScript(container, script);
+        public void openScript(@NotNull DBPDataSourceContainer container, @Nullable DBSObject location, @NotNull String script) {
+            listener.openScript(container, location, script);
         }
     };
 

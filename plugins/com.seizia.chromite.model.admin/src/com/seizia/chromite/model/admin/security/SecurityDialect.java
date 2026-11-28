@@ -73,6 +73,7 @@ import java.util.Set;
  * - 2026-11-08 Oracle({@link OracleSecurityDialect}) (docs/chromite/swing-security.md "Oracle")
  * - 2026-11-08 PostgreSQL 기본 권한의 종류·대상 역할·행({@link #getDefaultPrivilegeKinds}, {@link #listDefaultPrivilegeRoles},
  *   {@link #createDefaultPrivileges}) (docs/chromite/swing-security.md "열 권한과 기본 권한")
+ * - 2026-11-28 {@link #getContext}: 스크립트를 연 쿼리 창이 실행과 같은 DB에서 돌게 (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 public abstract class SecurityDialect {
 
@@ -168,6 +169,15 @@ public abstract class SecurityDialect {
     @NotNull
     public DBPDataSource getDataSource() {
         return context.getDataSource();
+    }
+
+    /**
+     * The object the dialect was made for: {@link #execute} runs in its database (its owner instance), and a script opened
+     * in a query window runs there too.
+     */
+    @NotNull
+    public DBSObject getContext() {
+        return context;
     }
 
     // Principals
