@@ -607,6 +607,95 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
 
 **확인:** 아래 "확인 기록 (2026-11-28, 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문)".
 
+## 자기 세션을 다른 DB로 다시 연결할 때 (2026-11-28)
+
+**보고:** Query Library 작업(Task V)이 지나가며 본 것. PostgreSQL에서 자기 세션을 쓰는 창이 다른 DB로 옮기면 열린 트랜잭션이 묻지 않고 롤백되고,
+그 뒤의 트랜잭션은 앱에 보이지 않는다.
+
+**사실(`origin/command` `bc380caa34` 빌드, 시험 VM PostgreSQL 17, 연결 수동 커밋, "쿼리 창마다 별도 연결" ALWAYS, "모든 데이터베이스 표시",
+기본 DB `chr_pg_own_session_reconnect_a` = A, 다른 DB `…_b` = B).** PostgreSQL 세션은 DB 하나에 묶이므로 자기 세션(격리 문맥)의 DB를 바꾸면
+`PostgreExecutionContext.setDefaultCatalog`가 세션을 끊고 B에 다시 연다. 그 길에 닿는 곳(코드 검색, `setExecutionContextDefaults`·`setDefaultCatalog`·
+`setDefaultSchema`를 부르는 모든 곳):
+
+| 길 | 열린 트랜잭션이 있을 수 있나 | 고치기 전 |
+|---|---|---|
+| Query Library 창의 실행, 머리말 Database가 다른 DB(`QueryParameterBinder.applyDefaults`, 트리의 Run·Run on…·F5 모두 같은 `SqlEditorPanel.execute`) | 있음 | 질문 없이 다시 연결, A의 행이 롤백됨(아래 확인 기록) |
+| 개체에서 연 창·New Query·다시 시작 복원(`SqlEditorPanel.openWindowContext`, `setRestoredDefaults`) | 없음(세션을 처음 열 때만) | 다시 연결은 맞지만 그 뒤 트랜잭션이 앱에 보이지 않음 |
+| 쿼리 창의 DB 선택(`SqlEditorPanel.changeDefaultObject`) | — | PostgreSQL에서는 세션 DB의 스키마만 보여(`ContextDefaultObjectsReader`) 다른 DB를 고를 수 없음. 고를 수 있으면 이미 묻는다(`confirmEndSession`) |
+| 예약 실행(`QueryScheduler`), 데이터 전송, 저장된 작업(`DBTaskUtils`) | 없음(새로 연 자기 세션) | 다시 연결 뒤 쿼리 관리자가 추적하지 않음, 문맥이 처음 DB의 목록에 남음 |
+| AI 에이전트(`AgentSql`) | — | DB마다 그 DB 인스턴스에서 세션을 열어 다시 연결하지 않음 |
+| 주 세션을 옮기는 명령(`SourceScripts.bindDefaultContext`, 기본값으로 설정) | — | 주 문맥은 격리 문맥이 아니라 다시 연결하지 않음(위 절) |
+
+**원인:**
+1. 묻지 않은 롤백: `QueryParameterBinder.applyDefaults`가 작업 스레드에서 `DBExecUtils.setExecutionContextDefaults`를 부르고, PostgreSQL 격리 문맥은
+   다시 연결하며 `JDBCDataSource.closeConnection(…, doRollback = !autoCommit)`으로 트랜잭션을 롤백한다. 실행 전(EDT)에 묻는 곳이 없었다.
+2. 추적 잃음: 다시 연결이 `disconnect()`(= `disconnect(true)`)로 쿼리 관리자에 문맥이 닫혔다고 알리고(`QMMCollectorImpl.handleContextClose`,
+   `QMTransactionTracker.handleContextClose`), 다시 연 `connect(…, addContext = false)`는 다시 열렸다고 알리지 않았다. 그래서 그 뒤의 문장은 기록되지 않고
+   (`QMUtils.getTransactionState`: 기록 없음 = 트랜잭션 없음) 상태 줄, 창 닫기 질문, 연결 끊기 질문이 트랜잭션을 보지 못했다. 같은 다시 연결이
+   `setOwnerInstance`만 바꿔 문맥은 A의 문맥 목록에 남고 B의 목록에는 들지 않았다(닫을 때 B에서 빼려 해 A 목록에 닫힌 문맥이 남음).
+
+**고친 것:**
+- 모델(`JDBCExecutionContext`): 쿼리 관리자에 닫혔다고 알린 문맥이 다시 연결하면 `connect`가 새 서버 세션을 다시 알린다(`handleContextOpen`, 커밋 방식과 함께).
+  다른 인스턴스로 옮기는 `reconnectTo`는 옛 인스턴스의 목록에서 빼고(`closeContext(true)`) 새 인스턴스에 연다(`connect(…, addContext = true)`).
+  커밋 방식·격리 수준은 전과 같이 연결의 기본값이다(그 인스턴스에서 새로 연 세션과 같음). `PostgreExecutionContext.setDefaultCatalog`는 이것을 부른다.
+  다시 연결하는 드라이버는 PostgreSQL 실행 문맥뿐이다(검색: 다른 `setDefaultCatalog`·`setDefaultSchema` 구현은 같은 세션에서 `USE`·`SET`).
+  PostgreSQL 실행 문맥을 그대로 쓰는 Greenplum·GaussDB·Kingbase와 PostgreSQL 서버 종류도 같은 길이다.
+- 창(`QueryLibraryEditor.prepareExecution`, EDT): 매개변수를 물은 뒤, 쿼리의 Database가 창의 자기 세션과 다른 DB 인스턴스면
+  (`QueryParameterBinder.changesInstance`, 메모리만 읽음) 창 닫기·DB 선택과 같은 질문을 한다(`SqlEditorPanel.confirmEndSession` → 커밋/롤백/취소,
+  트랜잭션이 열려 있을 때만). 취소하면 실행하지 않는다. 새 글은 없다. 주 세션을 함께 쓰는 창은 여기서 묻지 않는다(`confirmEndSession`은 자기 세션만 본다).
+
+**고르지 않은 것:** 다시 연결할 때 문맥의 커밋 방식을 지키는 것. 스마트 커밋이 바꾼 상태는 쿼리 관리자에 닫힐 때 지워지므로
+(`SmartCommit.handleContextClose`) 모드만 지키면 둘이 어긋난다. 전처럼 연결의 기본값으로 연다(아래 "확인하지 못한 것").
+
+**확인:** 아래 "확인 기록 (2026-11-28, 자기 세션을 다른 DB로 다시 연결할 때)".
+
+## 탭의 세션 번호 (2026-11-28, 앱 변경 #193)
+
+**요청:** "쿼리탭에 ssms처럼 세션 번호를 표기할 수 있나?" 정한 모양: 쿼리 창 탭 제목 끝에 서버 세션 번호를 괄호로(`SQLQuery1.sql - PG (52)`,
+SSMS의 SPID처럼), 탭 도구 설명에 한 줄 `Session ID : 52`. 도구 설명 글은 사용자가 정했다("단순하게 … Session ID : 52 와 같은 방식으로만").
+한국어 화면도 같은 글이다. 새 설정·상태 줄 변경은 없다.
+
+**모양:** 제목 `파일 - 연결 (번호)*` — 고침 표시 `*`는 SSMS처럼 맨 끝에 남는다. 도구 설명은 지금의 두 줄(파일, 연결) 아래 `Session ID : 번호` 한 줄.
+창에 세션이 없으면(연결 전, 끊김, 번호를 읽을 수 없는 DB) 제목과 도구 설명은 전과 같다.
+
+**어느 세션인가:** 창이 실제로 실행되는 세션(`QueryWindowContext`): 창마다 별도 연결이면 창 자신의 세션, "쿼리 창마다 별도 연결" = 안 함이면 연결의 주 세션.
+주 세션을 함께 쓰는 창들은 같은 번호를 보인다(의도한 것).
+
+**읽는 때와 자리:** 세션을 여는 `JDBCExecutionContext.connect`에서 한 번, 새 세션에서 무엇보다 먼저(자동 커밋·격리 수준을 정한 뒤, 부트스트랩 문장·상태 초기화 전,
+인스턴스의 배타 잠금 아래) 읽어 문맥이 들고 있다(`getServerSessionId`, 메모리만, 아무 스레드). 연결 끊기는 지우고(`disconnect`), Invalidate/Reconnect는
+같은 문맥 객체로 새 세션을 열므로(`invalidateContext` → `connect`) 새 번호를 읽는다. 닫힌 세션을 다시 여는 `getConnection`, 자기 세션을 다른 DB 인스턴스로 옮기는 `reconnectTo`(위 "자기 세션을 다른 DB로 다시 연결할 때", 쿼리 관리자에 다시 알린 뒤 읽음)도 같다.
+쿼리 창은 EDT의 1초 타이머(열린 트랜잭션 표시와 같은 타이머)에서 지금 세션의 저장된 번호만 비교하고 바뀌면 탭을 고친다(`SqlEditorPanel.refreshSessionId`
+→ `Host.titleChanged`). 그래서 다시 연결, 연결 바꾸기, 창 닫기, 주 세션이 다른 DB 인스턴스로 옮겨 간 경우를 따로 듣지 않는다.
+
+**DB별 읽기**(방언이 `JDBCServerSessionIdReader`를 구현, UI에는 드라이버 판단이 없다):
+
+| DB | 읽기 | 부작용이 없는 근거(시험 VM, 수동 커밋) |
+|---|---|---|
+| PostgreSQL | pgjdbc `getBackendPID()`(로그인 때 받은 BackendKeyData, 문장 없음). PostgreSQL 서버만(`probeTransaction`과 같은 조건) | 수동 커밋 드라이버는 트랜잭션 밖 아무 문장 앞에 BEGIN을 보내므로 문장을 쓰지 않음. 읽은 뒤 드라이버 상태 `IDLE`, `pg_stat_activity` `idle`·`backend_xid`·`xact_start` 없음(SERIALIZABLE 포함) |
+| SQL Server | `SELECT @@SPID`(`probeTransaction`과 같은 서버) | 표를 읽지 않는 SELECT는 IMPLICIT_TRANSACTIONS에서도 트랜잭션을 시작하지 않음: `@@TRANCOUNT` 0, `sys.dm_tran_session_transactions` 행 없음, `open_transaction_count` 0(SERIALIZABLE 포함) |
+| MySQL·MariaDB | `SELECT CONNECTION_ID()` | 드라이버의 서버 상태 SERVER_STATUS_IN_TRANS 꺼짐, MariaDB `@@in_transaction` 0, `INNODB_TRX` 행 없음(MariaDB·MySQL Connector/J·MariaDB 드라이버로 MySQL, SERIALIZABLE 포함) |
+| Oracle | PL/SQL `BEGIN ? := SYS_CONTEXT('USERENV', 'SID'); END;` | `DBMS_TRANSACTION.LOCAL_TRANSACTION_ID` null, `V$TRANSACTION` 행 없음, `V$SESSION.TADDR` null(SERIALIZABLE 포함). 같은 값을 `SELECT … FROM dual`로 읽으면 SERIALIZABLE 세션에서 트랜잭션이 시작되었다(`7.15.2151`). 그래서 PL/SQL 호출 |
+| 그 밖 | 읽지 않음 | 번호 없음, 탭은 전과 같다 |
+
+읽기 문장은 트랜잭션 질의(`JDBCTransactionProbe`)처럼 JDBC 연결에 직접 보낸다. 쿼리 관리자·쿼리 기록에 사용자 문장으로 남지 않는다(확인 기록).
+시간 제한 5초, 실패하면 기록만 하고 번호 없이 지나간다. 연결을 열 때 SQL Server·MySQL/MariaDB·Oracle 세션마다(주·메타데이터·창·도구 문맥) 왕복이 하나 는다.
+
+**구조:**
+
+| 자리 | 바뀐 것 |
+|---|---|
+| `DBCExecutionContext` (`com.seizia.chromite.model`) | 기본 메서드 `getServerSessionId()`(null) |
+| `JDBCServerSessionIdReader` (새, `com.seizia.chromite.model.jdbc`) | 방언의 읽기 능력, `read`(던지지 않음) |
+| `JDBCExecutionContext` | `connect`에서 읽어 둠, `disconnect`에서 지움, `getServerSessionId` |
+| `PostgreDialect`, `SQLServerDialectMssql`, `MySQLDialect`, `OracleSQLDialect` | `readServerSessionId` |
+| `SqlEditorPanel` | `getTitle`, `getToolTip`, `getServerSessionId`, `refreshSessionId`(1초 타이머) |
+| `EditorMessages` (`_ko`) | `editor_sql_tip_session_id` = `Session ID : {0}`(두 언어 같음) |
+
+**고르지 않은 것:** 창이 세션에 묶일 때 작업 스레드에서 따로 읽기. Invalidate/Reconnect는 창의 묶음을 바꾸지 않고 같은 문맥에 새 세션을 열므로 창이 그때를
+따로 알아야 하고, 사용자의 트랜잭션 안에서 읽게 될 수 있다. 세션을 여는 자리에서 읽으면 모든 길(연결, 다시 연결, 다시 열기)이 같고 언제나 빈 세션이다.
+
+**확인:** 아래 "확인 기록 (2026-11-28, 탭의 세션 번호)".
+
 ## upstream 대비 변경점
 
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
@@ -615,7 +704,10 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
 - `ContextDefaultObjectsReader.run`: 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음(위 "연결을 다시 읽은 뒤의 DB 선택"). upstream은 기본값을 먼저 묻는다.
 - SQL Server·MySQL/MariaDB `initializeContextState`: 원본 세션의 DB를 개체 대신 이름으로 받고, 받지 못하면 세션의 값을 읽음(위 "다시 연결 뒤의 DB").
   upstream은 목록에서 찾은 개체로만 `USE` 한다.
+- `JDBCExecutionContext`: 쿼리 관리자에 닫혔다고 알린 문맥이 다시 연결하면 다시 알림, 다른 인스턴스로 옮기기(`reconnectTo`). `PostgreExecutionContext.setDefaultCatalog`가
+  격리 문맥에 그것을 씀(위 "자기 세션을 다른 DB로 다시 연결할 때"). upstream은 다시 연 세션을 알리지 않고 문맥을 처음 DB의 목록에 둔다.
 - 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘, 끊고 다시 연결한 쿼리 창의 DB 지키기, 개체에서 연 창의 DB)는 Swing 프런트엔드에만 있다.
+- 탭의 세션 번호: `DBCExecutionContext.getServerSessionId`, `JDBCServerSessionIdReader`, `JDBCExecutionContext`가 세션을 열 때 번호를 읽음, 네 방언의 읽기(위 절).
 
 ## 확인 기록
 
@@ -744,6 +836,61 @@ SQL Server `sys.dm_exec_sessions.open_transaction_count`, MariaDB `INNODB_TRX`, 
 **확인하지 못한 것:** Schema Compare의 스크립트 만들기(같은 `confirmBindDefaultContext`를 부름, 화면에서는 확인하지 않음). Go to Source Code·오류로 가기는
 Oracle 패키지에만 있고 Oracle은 인스턴스가 하나라 묻는 경우가 없다(코드 읽기).
 
+### 확인 기록 (2026-11-28, 자기 세션을 다른 DB로 다시 연결할 때)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(OS 입력 없음), 시험 VM PostgreSQL 17.
+연결 수동 커밋, "쿼리 창마다 별도 연결" ALWAYS, "모든 데이터베이스 표시", 기본 DB A, 다른 DB B, 두 DB에 같은 이름의 빈 표.
+"앱"은 쿼리 관리자의 트랜잭션 상태(상태 줄의 "열린 트랜잭션"과 창 닫기·연결 끊기 질문이 쓰는 값), "서버"는 따로 연 관리 세션의 `pg_stat_activity`와 커밋된 행 수다.
+창 닫기 질문은 탭 닫기와 같은 `SqlEditorPanel.confirmEndSession`을 불러 보았다.
+
+| 경우 | 고치기 전(`bc380caa34`) | 고친 뒤 |
+|---|---|---|
+| Query Library 창(자기 세션): A에서 `INSERT`(커밋 안 함), 머리말 Database B로 F5 | 질문 없음. A의 세션이 사라지고 A의 커밋된 행 0개(묻지 않은 롤백), 창은 B에서 실행 | 질문(창 닫기와 같은 글). 취소: 실행 안 함, A 세션 `idle in transaction`(xid 있음) 그대로. 롤백: A 세션 끝, 창은 B에서 실행 |
+| 위 창이 B로 옮긴 뒤 `INSERT` | 서버 `idle in transaction`(xid 있음), 앱 트랜잭션 없음, 상태 줄 "수동 커밋"만, 창 닫기 질문 없음 | 앱 열린 트랜잭션(변경 있음), 상태 줄 "열린 트랜잭션 … (변경 있음)", 창 닫기 질문 |
+| 위 창의 문맥이 든 목록 | A의 목록(소유 인스턴스는 B) | B의 목록 |
+| 트랜잭션 없이 머리말 Database A로 F5 | — | 질문 없음, A로 다시 연결, A의 목록 |
+| 처음부터 B에서 열린 새 창(`setRestoredDefaults`: 개체에서 연 창·New Query·다시 시작 복원과 같은 호출)의 `INSERT` | 앱 트랜잭션 없음, 창 닫기 질문 없음, 문맥은 A의 목록 | 앱 열린 트랜잭션, 창 닫기 질문(취소), B의 목록. 트랜잭션을 끝낸 뒤 창을 닫자 B의 목록에서 빠지고 서버 세션도 끝남 |
+| 연결 Reconnect 뒤 위 Library 창(머리말 B)의 `INSERT` | — | 앱 열린 트랜잭션, 창 닫기 질문 |
+| 쿼리 창의 DB 선택 | 항목은 세션 DB의 스키마뿐(`information_schema`, `pg_catalog`, `public`): 다른 DB로 옮길 수 없음 | (바꾸지 않음) |
+
+시험에서 연 트랜잭션은 모두 명시적으로 끝냈다(질문의 롤백, 남은 것은 시험 에이전트가 앱의 `IdleTransactionMonitor.commitOrRollback`으로 롤백). 두 DB의 커밋된 행은
+끝까지 0개였다. 시험 DB는 끝에 지우고 카탈로그로 확인했다(`pg_database`에서 `chr_pg_own_session_reconnect%` 0개).
+캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\pg-own-session-reconnect-transaction\s\before\shots\`(`before-library-no-question.png`: 머리말 B로
+실행한 뒤 질문 없이 B의 결과, `before-library-untracked.png`·`before-restored-untracked.png`: B에서 `INSERT`한 뒤 상태 줄에 열린 트랜잭션 없음)와
+`…\s\after\shots\`(`after-library-question.png`: 실행 전 질문, `after-library-tracked.png`: 상태 줄 "열린 트랜잭션 (변경 있음)",
+`after-restored-close-question.png`: 창 닫기 질문).
+
+**확인하지 못한 것:** 예약 실행(`QueryScheduler`)과 데이터 전송에서 다시 연결한 문맥(같은 `reconnectTo`, 코드 읽기만). 다시 연결한 세션의 커밋 방식은 전과 같이
+연결의 기본값이다(창에서 커밋 방식을 바꾼 뒤 다시 연결하는 경우는 시험하지 않음).
+
+### 확인 기록 (2026-11-28, 탭의 세션 번호)
+
+Windows 11, 150%, 한국어(영어 한 번), 빈 작업 공간·설정·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(OS 입력 없음), 시험 VM의 PostgreSQL 17·
+SQL Server 2022·MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버)·Oracle 26ai(1521). 연결은 모두 수동 커밋. PG(창마다 세션), PGS("쿼리 창마다 별도 연결" = 안 함).
+서버 쪽은 따로 연 관리 세션(자동 커밋)에서 읽었다.
+
+- 읽기 자체의 부작용(앱 밖 JDBC, 같은 드라이버): 위 표의 근거. 로그 `D:\Tools\_scratch\query-tab-session-id\evidence\jdbc-side-effects.txt`.
+- 보이는 번호 = 서버가 보는 그 창의 세션: PostgreSQL `pg_stat_activity.application_name` "… SQLEditor &lt;SQLQuery1.sql&gt;"의 `pid`, SQL Server
+  `sys.dm_exec_sessions.program_name`의 `session_id`, Oracle `V$SESSION.PROGRAM`의 `SID`가 탭의 번호와 같다. MariaDB·MySQL은 그 창에서 실행한
+  `SELECT CONNECTION_ID()`의 결과가 탭의 번호와 같다(이 문장은 트랜잭션을 열지 않음: 창의 쿼리 관리자 상태 `txOpen=false`).
+- 창마다 세션인 PG 창 둘: 다른 번호(200488, 200489). PGS 창 둘: 같은 번호(주 세션 200476).
+- 창을 연 뒤 모든 창 세션: PostgreSQL `idle`·`backend_xid` 없음·`xact_start` 없음, SQL Server `open_transaction_count` 0·`dm_tran_session_transactions` 없음,
+  MariaDB·MySQL `INNODB_TRX` 없음, Oracle `TADDR` null.
+- 쿼리 관리자: 연결·창 열기 동안 기록된 문장에 `@@SPID`, `CONNECTION_ID()`, `SYS_CONTEXT('USERENV', 'SID')`가 없다.
+- Invalidate/Reconnect: 같은 문맥 객체(창의 문맥 id 그대로)에서 새 번호(PG 200488 → 200540, PGS 두 창 200476 → 200542, SQL Server 56 → 55, Oracle 38 → 258),
+  서버 쪽도 새 번호가 그 창의 세션(옛 번호는 사라지거나 다른 세션). Disconnect: 번호가 빠짐(제목 `SQLQuery6.sql - MA*`). Connect: 새 번호(MA 47013 → 47025).
+- 고침 표시와 이름 바꾸기: `chr_renamed.sql - PG (200488)*`. 별도 창: 탭과 창 제목 `SQLQuery2.sql - PG (200560) - Chromite`, Invalidate/Reconnect 뒤 새 번호.
+  다시 시작 복원: 창 이름은 번호 없이 복원되고(`chr_renamed.sql`), 연결하면 새 번호.
+- 캡처(내 앱 창만, Swing 구성 요소로 그림, 도구 설명은 창에 초점이 없어 탭의 `JToolTip`을 팝업 층에 놓고 그림): 전 `D:\Tools\_scratch\query-tab-session-id\s\before\shots\`
+  (`before-ko-pg-tab-tooltip.png`, `before-ko-ms-tab-tooltip.png`, `before-en-ms-tab-tooltip.png`), 후 `…\s\after\shots\`(`after-ko-pg-own-tab-tooltip.png`,
+  `after-ko-pgs-shared-tab-tooltip.png`, `after-ko-ms-tab-tooltip.png`, `after-ko-ora-tab-tooltip.png`, `after-ko-pg-dirty-renamed.png`, `after-ko-disconnected.png`,
+  `after-ko-pg-separate-window.png`, `after-en-ms-tab-tooltip.png`).
+- `command` 병합 뒤(#398의 `reconnectTo`와 함께, 같은 날): PostgreSQL 자기 세션 창(Query Library 창, 자동 커밋)의 머리말 Database를 시험 DB `chr_query_tab_session_id`로 바꾸고 F5 →
+  같은 문맥 객체가 그 DB 인스턴스로 옮겨 가고 번호 201231 → 201235, 서버에서 201235는 그 DB의 `SQLEditor <QL-SID.sql>` 세션(`idle`), 201231은 없어짐.
+  캡처 `D:\Tools\_scratch\query-tab-session-id\s\merge\shots\merge-ko-pg-library-moved-tab-tooltip.png`. 시험 DB는 끝에 지웠다(`pg_database` 0개).
+- 확인하지 못한 것: 쿼리 창의 연결 변경과 주 세션이 다른 PostgreSQL DB 인스턴스로 옮겨 간 경우(같은 타이머 길, 코드 읽기만), 끊긴 세션을 읽기가 다시 여는 길
+  (같은 `connect`), 번호를 읽지 않는 드라이버(Altibase 등)의 탭(코드 읽기: 방언이 읽기를 구현하지 않으면 null). 회귀 테스트는 실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-11 최초 작성: #33(현재 DB 따라가기), #44(실행 중 표시), #40(자동완성 창 닫기), #50(단축키를 도구 설명에), #57(닫기 단추 모양)
@@ -788,3 +935,11 @@ Oracle 패키지에만 있고 Oracle은 인스턴스가 하나라 묻는 경우�
   "새 &lt;종류&gt;" 틀·Schema Compare 스크립트·Go to Source Code·오류로 가기가 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전에 열린 트랜잭션을
   묻는다(`SourceScripts.confirmBindDefaultContext` → `ExitTransactionCheck.confirmDefaultChange`). SQL Server·MariaDB는 결함이 없어 바꾸지 않았다.
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 명령들의 시작(질문·취소), PostgreSQL 다른 DB 개체의 명령, 주 세션을 함께 쓰는 쿼리 창의 트랜잭션.
+- 2026-11-28 `chromite/pg-own-session-reconnect-transaction`: "자기 세션을 다른 DB로 다시 연결할 때"와 그 확인 기록. 쿼리 관리자에 닫혔다고 알린 문맥이 다시 연결하면
+  다시 알림, 다른 인스턴스로 옮기는 `JDBCExecutionContext.reconnectTo`(PostgreSQL 격리 문맥의 DB 바꾸기), Query Library 창의 Database가 자기 세션을 다른 DB로
+  옮길 때 실행 전 질문. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: PostgreSQL 계열(Greenplum·GaussDB·Kingbase 포함) 자기 세션의 DB 바꾸기(개체에서 연 창,
+  New Query, 다시 시작 복원, Query Library, 예약 실행, 데이터 전송), 쿼리 관리자 기록·상태 줄 트랜잭션 표시, 닫힌 문맥을 읽기가 다시 열 때의 쿼리 관리자 기록(모든 JDBC 드라이버).
+- 2026-11-28 `chromite/query-tab-session-id`(앱 변경 #193): "탭의 세션 번호"와 그 확인 기록. 쿼리 창 탭 제목 끝의 세션 번호 `(52)`, 탭 도구 설명의 한 줄
+  `Session ID : 52`. 세션을 열 때 방언이 번호를 읽어 문맥이 들고 있음(PostgreSQL 드라이버 값, SQL Server `@@SPID`, MySQL/MariaDB `CONNECTION_ID()`, Oracle PL/SQL `SYS_CONTEXT`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 탭 제목·도구 설명·별도 창 제목·Window 메뉴 항목(제목을 씀), 자동 커밋 적용 대화상자의 창 이름
+  (`AutoCommitApplier`가 탭 제목을 씀), SQL Server·MySQL/MariaDB·Oracle 세션을 열 때의 왕복 하나(모든 문맥), 세션 열기 실패 시의 기록.

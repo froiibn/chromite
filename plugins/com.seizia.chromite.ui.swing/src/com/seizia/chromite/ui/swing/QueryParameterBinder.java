@@ -25,6 +25,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPContextProvider;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -39,6 +40,7 @@ import com.seizia.chromite.model.sql.SQLScriptContext;
 import com.seizia.chromite.model.sql.SQLScriptElement;
 import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
 import com.seizia.chromite.model.sql.registry.SQLQueryParameterRegistry;
+import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
@@ -73,7 +75,8 @@ import java.util.regex.Matcher;
  *     (엔진의 {@code SQLQueryExecuteHandler.bindParameters}). 같은 이름이 여러 번 나오면 자리마다 같은 값을 바인딩한다.</li>
  *     <li>{@code ${name}}·{@code {{name}}}은 SWT에서도 텍스트 치환 변수다(식별자·SQL 조각 자리). 바인딩할 수 없으므로 값을 그대로 끼우고,
  *     대화상자에 "SQL text"로 표시한다(문서 "매개변수 바인딩"). 익명 {@code ?}는 이름이 없어 정의를 붙일 수 없으므로 받지 않는다.</li>
- *     <li>쿼리의 기본 DB/스키마가 있으면 실행 전에 연결의 기본 문맥에 설정한다(쿼리 창의 DB/스키마 콤보와 같은 API).</li>
+ *     <li>쿼리의 기본 DB/스키마가 있으면 실행 전에 실행할 문맥에 설정한다(쿼리 창의 DB/스키마 콤보와 같은 API). 창의 자기 세션을 다른
+ *     DB 인스턴스로 옮기면(PostgreSQL) 세션을 다시 열어 트랜잭션이 끝나므로, 창이 실행 전에 묻는다({@link #changesInstance}).</li>
  *     <li>실행 전(EDT)의 매개변수 목록은 연결 없이 만들어야 하므로 {@link #detect}가 같은 규칙을 간단히 따르는 문자 단위 검사로 찾는다.
  *     실행할 때 파서가 찾은 이름에 값이 없으면 실행하지 않고 오류를 낸다.</li>
  *     <li>결과를 다시 읽을 때(필터, 서버 정렬, 다음 페이지, Export Data)도 같은 값을 바인딩한다({@link #createDataContainer}). 데이터 컨테이너는
@@ -97,6 +100,8 @@ import java.util.regex.Matcher;
  * - 2026-11-08 쿼리 창의 매개변수 제공자({@link ScriptProvider}, 예전 {@code SqlParameterDialog.Provider})를 옮겨 와 매개변수 입력을 하나로 합침,
  *   결과를 다시 읽을 때도 바인딩({@link #createDataContainer}), 기록에는 리터럴 대신 {@code :name} 글자와 값({@link #getHistoryParameters}, {@link Recorded})
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-28 {@link #changesInstance}: 쿼리의 기본 DB가 창 세션과 다른 DB 인스턴스(PostgreSQL DB)인지. 창의 자기 세션이 그 DB로 다시
+ *   연결되며 열린 트랜잭션이 묻지 않고 롤백되던 것을 창이 실행 전에 묻게 함 (docs/chromite/swing-query-library.md "기본 DB와 열린 트랜잭션")
  */
 final class QueryParameterBinder implements SqlParameterBinding, SQLQueryDataContainer.ParameterBinder {
 
@@ -337,6 +342,24 @@ final class QueryParameterBinder implements SqlParameterBinding, SQLQueryDataCon
         DBPDataSource dataSource = context.getDataSource();
         DBExecUtils.setExecutionContextDefaults(monitor, dataSource, context,
             database != null ? database : currentCatalogName, currentCatalogName, schema);
+    }
+
+    /**
+     * Whether {@link #applyDefaults} moves the context's session to another database instance (a PostgreSQL database): the
+     * context's session is then reopened there, which ends its transaction. In-memory model data only (the window asks
+     * about that transaction in the EDT before the run, {@link QueryLibraryEditor#prepareExecution}).
+     */
+    boolean changesInstance(@NotNull DBCExecutionContext context) {
+        DBCExecutionContextDefaults<?, ?> defaults = context.getContextDefaults();
+        if (database == null || defaults == null || !defaults.supportsCatalogChange()) {
+            return false;
+        }
+        DBSObject currentCatalog = defaults.getDefaultCatalog();
+        if (currentCatalog != null && database.equalsIgnoreCase(currentCatalog.getName())) {
+            return false;
+        }
+        DBSInstance instance = DBUtils.findObject(context.getDataSource().getAvailableInstances(), database);
+        return instance != null && instance != context.getOwnerInstance();
     }
 
     private static boolean isTextSubstitution(@NotNull String originalName) {

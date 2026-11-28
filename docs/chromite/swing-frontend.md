@@ -606,7 +606,8 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 - Object Explorer에서 연결이나 그 아래 아무 노드를 오른쪽 클릭 → **New Query**: 그 노드의 연결(`DBNDatabaseNode.getDataSourceContainer()`)로 연다.
 - **File > New Query (Ctrl+N)**, 메뉴 아래 도구 막대의 **New Query**: 활성 문서 탭의 연결(쿼리 창이면 그 창의 현재 DB/스키마까지), 탭이 연결을 모르면
   Object Explorer에서 선택한 연결. 둘 다 없으면 안내 메시지(2026-11-22, 아래 "새 쿼리는 활성 탭의 연결과 DB로").
-- 탭 제목은 SSMS처럼 `SQLQueryN.sql - <연결 이름>`(N은 실행 중 1부터 증가). 편집기 탭에는 닫기 단추가 있고(FlatLaf `tabClosable`, 탭 줄은 여러 줄로 감지 않고 한 줄 스크롤), 닫으면 실행 중인 쿼리를 취소한다.
+- 탭 제목은 SSMS처럼 `SQLQueryN.sql - <연결 이름>`(N은 실행 중 1부터 증가). 창에 서버 세션이 있으면 끝에 그 세션 번호 `(52)`가 붙는다
+  ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "탭의 세션 번호", 2026-11-28). 편집기 탭에는 닫기 단추가 있고(FlatLaf `tabClosable`, 탭 줄은 여러 줄로 감지 않고 한 줄 스크롤), 닫으면 실행 중인 쿼리를 취소한다.
   아직 파일 저장이 없어서 닫을 때 저장 여부를 묻지 않는다. (E단계에서 파일 열기·저장과 닫을 때 저장 확인을 넣고, 제목에 고침 표시 `*`를 붙였다)
 - 연결은 편집기를 열 때가 아니라 실행할 때 필요하면 연다(SSMS는 열 때 연결한다. 연결 실패를 실행 결과와 같은 곳에서 다루기 위해 실행 시점으로 했다).
 
@@ -4147,5 +4148,6 @@ Oracle `ALTER SESSION SET CURRENT_SCHEMA=CHR_NQT_U`, MariaDB `use chr_nqt_db`). 
   회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: Window > Reset Window Layout, 탭으로 되돌린 쿼리 창의 Results 보임, Ctrl+R 숨김).
 - 2026-11-25 "SQL Editor 도구 막대"의 편집 명령·Query History 문장을 활성 쿼리 창 대신 그 막대 창의 쿼리 창으로 바로잡음(#175 뒤 틀린 문장, 앱 변경 #186,
   `chromite/toolbar-comment-fix`, 주석만 고침). 회귀 테스트는 실행하지 않았다(동작 변경 없음).
+- 2026-11-28 탭 제목의 세션 번호 한 줄(앱 변경 #193, `chromite/query-tab-session-id`): 자세한 것은 [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "탭의 세션 번호".
 - 2026-11-28 "결과 복사와 CSV 내보내기"의 Copy: 표의 전송 처리기가 Chromite 것이 되어 필요할 때 큰따옴표, 이스케이프한 HTML 표(앱 변경 #189,
   `chromite/grid-copy-excel`, [swing-grid-editing.md](swing-grid-editing.md) "엑셀로 붙여넣는 복사").

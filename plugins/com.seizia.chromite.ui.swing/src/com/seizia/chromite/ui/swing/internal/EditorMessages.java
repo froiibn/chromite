@@ -73,6 +73,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 도구 막대의 서버 표시를 지움(앱 변경 #74): 표시만 쓰던 {@code editor_sql_select_server_tip}, {@code editor_sql_server_change_tip} 삭제,
  *   {@code editor_sql_server_change_hint}가 단추의 새 자리(쿼리 도구 막대의 첫 단추)를 말함 (docs/chromite/swing-frontend.md "도구 막대는 연결 변경부터")
  * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-28 쿼리 창 탭 도구 설명의 세션 번호 줄 {@code editor_sql_tip_session_id}. 사용자가 정한 글 "Session ID : 52"라 한국어도 같다
+ *   (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -100,6 +102,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_tip_not_saved;
     public static String editor_sql_tip_not_connected;
     public static String editor_sql_tip_connection;
+    public static String editor_sql_tip_session_id;
     public static String editor_sql_actual_plan_on;
     public static String editor_sql_actual_plan_off;
     public static String editor_sql_schema_tip;

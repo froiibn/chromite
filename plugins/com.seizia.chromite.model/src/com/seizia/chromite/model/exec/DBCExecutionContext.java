@@ -31,6 +31,12 @@ import com.seizia.chromite.model.struct.DBSInstance;
  * Execution context.
  * Provides access to execution sessions.
  * Usually contains some kind of physical database connection inside
+ *
+ * 설계: {@link #getServerSessionId()}는 쿼리 창 탭이 SSMS처럼 서버 세션 번호를 보이려고 EDT에서 묻는다. 그래서 서버를 부르지 않고 세션을
+ * 열 때 읽어 둔 값만 돌려준다. 읽기는 구현(JDBC 문맥과 방언)이 맡고 UI는 드라이버를 모른다.
+ *
+ * 변경 이력:
+ * - 2026-11-28 {@link #getServerSessionId()} (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 public interface DBCExecutionContext extends DBPObject, DBPCloseableObject, DBPContextWithAttributes {
 
@@ -122,5 +128,16 @@ public interface DBCExecutionContext extends DBPObject, DBPCloseableObject, DBPC
 
     default boolean isQMLoggingEnabled() {
         return true;
+    }
+
+    /**
+     * The server's number of this context's session (SQL Server SPID, PostgreSQL backend PID, MySQL connection ID, Oracle
+     * SID), read when the session was opened. Never calls the server, any thread.
+     *
+     * @return the number, or null while disconnected or when the database has no way to read it
+     */
+    @Nullable
+    default String getServerSessionId() {
+        return null;
     }
 }

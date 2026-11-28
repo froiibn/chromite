@@ -26,6 +26,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPAdaptable;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.AbstractExecutionContext;
@@ -65,6 +66,13 @@ import java.util.function.Consumer;
  *   수준·상태로 열고, {@code connect}는 잠금을 기다리는 동안 다른 스레드가 연 세션을 하나 더 열지 않음. Invalidate/Reconnect 중에 메타데이터를
  *   읽으면 세션이 둘 열려 하나는 연결을 끊은 뒤에도 서버에 남았고, 남은 메타데이터 세션은 연결의 기본값(수동 커밋)으로 열려 첫 읽기부터 트랜잭션을
  *   쥐었다 (앱 변경 #186, docs/chromite/connection-lifecycle.md "닫힌 세션을 다시 열 때")
+ * - 2026-11-28 쿼리 관리자에 닫혔다고 알린 문맥이 다시 연결하면({@code disconnect(true)} 뒤 {@code connect}) 새 서버 세션을 다시 알림
+ *   ({@code handleContextOpen}), 다른 인스턴스로 세션 옮기기({@link #reconnectTo}): 옛 인스턴스의 문맥 목록에서 빠지고 새 인스턴스의 목록에 듦.
+ *   PostgreSQL 쿼리 창의 자기 세션이 다른 DB로 다시 연결된 뒤 열린 트랜잭션이 앱에 보이지 않아(상태 줄, 창 닫기 질문) 묻지 않고 끝났고,
+ *   문맥은 처음 DB의 목록에 남았다 (docs/chromite/swing-sql-editor-session-ui.md "자기 세션을 다른 DB로 다시 연결할 때")
+ * - 2026-11-28 {@link #getServerSessionId}: 세션을 열 때({@link #connect}) 방언({@link JDBCServerSessionIdReader})으로 서버의 세션 번호를 한 번
+ *   읽어 둠. 쿼리 창 탭이 EDT에서 서버를 부르지 않고 보이게 하려는 것이다. 새 세션의 부트스트랩 문장·상태 초기화보다 먼저, 인스턴스의 배타 잠금 아래에서 읽는다
+ *   (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
     implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
@@ -79,10 +87,17 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     static final int TXN_INFO_READ_TIMEOUT = 5000;
 
     private volatile Connection connection;
+    // The server's number of the session of this connection (JDBCServerSessionIdReader), read once when it opens
+    @Nullable
+    private volatile String serverSessionId;
     private volatile Boolean autoCommit;
     private volatile Integer transactionIsolationLevel;
     private transient volatile boolean txnIsolationLevelReadInProgress;
     private final List<DBCTransactionListener> transactionListeners = new CopyOnWriteArrayList<>();
+
+    // The query manager was told this context closed (disconnect(true)): the next connect opens a new server session,
+    // which it must track again (handleContextOpen)
+    private volatile boolean reopenInQueryManager;
 
     private StatementLock statementLock = NoOpLock.INSTANCE;
     // Statements inside a driver execute call, oldest first. The connection serves one call at a time, so the oldest is the
@@ -173,6 +188,14 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
                     this.autoCommit = false;
                 }
             }
+            if (reopenInQueryManager) {
+                // Before the bootstrap, which reports the commit mode to the query manager's record of this context
+                QMUtils.getDefaultHandler().handleContextOpen(this, !this.autoCommit);
+                reopenInQueryManager = false;
+            }
+
+            // On the new session before its bootstrap queries and state, under the instance's exclusive lock
+            this.serverSessionId = JDBCServerSessionIdReader.read(dataSource, connection);
 
             try {
                 this.initContextBootstrap(monitor, autoCommit);
@@ -229,12 +252,27 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
             if (connection != null && !dataSource.closeConnection(connection, purpose, !isAutoCommit(false))) {
                 log.debug("Connection close timeout");
             }
+            this.serverSessionId = null;
             this.connection = null;
         }
         if (removeContext) {
             // Notify QM
             super.closeContext();
+            reopenInQueryManager = true;
         }
+    }
+
+    /**
+     * Moves this context's session to another instance of the data source (PostgreSQL: a database is an instance, and a
+     * server session belongs to one database). The server session ends, which ends its transaction: callers ask about it
+     * first. The context leaves the old instance's context list and joins the new one's, and the query manager tracks the
+     * new server session as this context reopened. The new session gets the connection's default commit mode and
+     * isolation, as a context opened there does.
+     */
+    protected void reconnectTo(@NotNull DBRProgressMonitor monitor, @NotNull JDBCRemoteInstance newInstance) throws DBCException {
+        closeContext(true);
+        setOwnerInstance(newInstance);
+        connect(monitor, null, null, null, true);
     }
 
     @NotNull
@@ -281,6 +319,17 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     @Override
     public boolean isConnected() {
         return connection != null;
+    }
+
+    /**
+     * Read in {@link #connect} on the new session, before anything else runs on it; Invalidate/Reconnect, reopening a
+     * closed session and moving to another instance ({@link #reconnectTo}) connect again and so read the new session's
+     * number, a disconnect forgets it.
+     */
+    @Nullable
+    @Override
+    public String getServerSessionId() {
+        return connection != null ? serverSessionId : null;
     }
 
     @Override

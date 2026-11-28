@@ -28,6 +28,7 @@ import com.seizia.chromite.model.data.DBDBinaryFormatter;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
@@ -109,13 +110,32 @@ import java.util.Set;
  *   and after DECLARE: a subprogram of a DECLARE section opens a header of its own there. The splitter cut a DECLARE section
  *   whose subprogram held a subprogram, or declarations, at that subprogram's END (docs/chromite/swing-query-commands.md
  *   "Oracle 스크립트 나누기 3").
+ * - 2026-11-28 Chromite: {@link #readServerSessionId}: the SID for the query window tab, through a PL/SQL call
+ *   (docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호").
  */
 public class OracleSQLDialect extends JDBCSQLDialect
-    implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
+    implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe,
+    JDBCServerSessionIdReader {
     private static final Log log = Log.getLog(OracleSQLDialect.class);
 
     // A PL/SQL call: a SELECT of the function would itself begin a transaction in a SERIALIZABLE session
     private static final String TRANSACTION_PROBE = "BEGIN ? := DBMS_TRANSACTION.LOCAL_TRANSACTION_ID; END;"; //$NON-NLS-1$
+    // A PL/SQL call for the same reason (SELECT … FROM dual began one in a SERIALIZABLE session on the test server)
+    private static final String SESSION_ID_READ = "BEGIN ? := SYS_CONTEXT('USERENV', 'SID'); END;"; //$NON-NLS-1$
+
+    /**
+     * The SID of the session, through a PL/SQL call, which begins no transaction also in a SERIALIZABLE session.
+     */
+    @Nullable
+    @Override
+    public String readServerSessionId(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        try (CallableStatement call = connection.prepareCall(SESSION_ID_READ)) {
+            call.setQueryTimeout(READ_TIMEOUT_SECONDS);
+            call.registerOutParameter(1, Types.VARCHAR);
+            call.execute();
+            return call.getString(1);
+        }
+    }
 
     /**
      * Oracle begins a transaction only with something to end: a change, a row or table lock (SELECT FOR UPDATE, LOCK
