@@ -49,6 +49,8 @@ import java.util.List;
  *   (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-08 {@link #getHistoryText}는 리터럴 대신 {@code :name} 글자, 값은 {@link #getHistoryParameters}. 결과를 다시 읽을 데이터 컨테이너
  *   {@link #createDataContainer} (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-29 {@link #getDefaultObjectNames}: 실행의 DB/스키마. 주 세션을 함께 쓰는 창이 바인딩 전에 그 DB의 주 세션을 고르게 함
+ *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 interface SqlParameterBinding {
 
@@ -87,6 +89,16 @@ interface SqlParameterBinding {
         @NotNull DBCExecutionContext context,
         @NotNull List<SQLScriptElement> elements
     ) throws DBException;
+
+    /**
+     * The database and schema the run is to use, which {@link #prepare} makes the context's defaults (a Query Library
+     * query's header), or null. A window that shares a main context reads it before the run takes its context
+     * ({@code SqlEditorPanel.getRunContext}).
+     */
+    @Nullable
+    default SqlEditorPanel.DefaultObjectNames getDefaultObjectNames() {
+        return null;
+    }
 
     /**
      * Whether the engine must prepare the query and call {@link #bind} (the engine passes a copy of a query returned

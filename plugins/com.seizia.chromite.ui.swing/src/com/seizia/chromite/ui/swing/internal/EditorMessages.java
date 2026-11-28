@@ -75,6 +75,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
  * - 2026-11-28 쿼리 창 탭 도구 설명의 세션 번호 줄 {@code editor_sql_tip_session_id}. 사용자가 정한 글 "Session ID : 52"라 한국어도 같다
  *   (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
+ * - 2026-11-29 {@code editor_sql_query_schema_shared}: Query Library 머리말 스키마가 함께 쓰는 세션의 스키마가 아니어서 실행하지 않을 때
+ *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -142,6 +144,7 @@ public class EditorMessages extends NLS {
     public static String editor_sql_not_connected_to_short;
     public static String editor_sql_no_statements;
     public static String editor_sql_no_context;
+    public static String editor_sql_query_schema_shared;
     public static String editor_sql_cant_include_actual_plan;
     public static String editor_sql_cant_restore_actual_plan;
     public static String editor_sql_rows_affected_one;

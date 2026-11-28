@@ -113,8 +113,10 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
   저장(파일)·닫을 때 확인이 기존 쿼리 창과 같아 새 문서 종류를 만들지 않았다.
 - **스크립트는 드라이버 관리자가 만든다:** 정의 글에서 `CREATE`를 `ALTER`로 바꾸는 식의 방언별 처리를 다시 쓰지 않고 SWT 저장과 같은 실행 동작을 쓴다.
   SWT에서 저장되는 개체라면 같은 문장이 나오고, 드라이버가 나중에 고쳐져도 따라간다.
-- **기본 문맥을 바꾸는 부작용:** Swing 쿼리 창은 아직 연결의 기본 문맥 하나를 함께 쓴다(편집기별 연결 없음, swing-frontend.md "E단계에서 남긴 것").
-  그래서 Modify·New는 같은 연결의 다른 쿼리 창의 기본 DB/스키마도 바꾼다. 편집기 콤보로 바꿀 때와 같은 동작이고, 스크립트 자체는 DB·스키마를 지정하므로
+- **기본 문맥을 바꾸는 부작용:** 쿼리 창은 기본으로 창마다 자기 세션을 연다("쿼리 창마다 별도 연결", `QueryWindowContext.isSeparate`). 그 설정을 끈 연결과
+  "단일 연결" 연결·내장 DB 드라이버의 창은 연결의 주 세션을 함께 쓴다. Modify·New는 새 창의 세션이 주 세션의 기본값을 받으므로(`QueryWindowContext.open`의
+  `initFrom`) 주 세션의 기본 DB/스키마를 바꾸고(`SourceScripts.bindDefaultContext`), 그래서 주 세션을 함께 쓰는 다른 쿼리 창의 기본 DB/스키마도 바뀐다.
+  자기 세션을 쓰는 창은 바뀌지 않는다. 편집기 콤보로 바꿀 때와 같은 동작이고, 스크립트 자체는 DB·스키마를 지정하므로
   다른 창에서 다시 바꿔도 SQL Server·MySQL·Oracle·PostgreSQL(같은 DB 안)은 맞는 곳에서 실행된다. PostgreSQL의 다른 DB 개체만 기본 DB에 의존한다.
   PostgreSQL의 다른 DB로 옮기면 주 세션이 다른 서버 세션이 되므로, 주 세션에 열린 트랜잭션이 있으면 먼저 커밋/롤백/취소를 묻는다
   ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
@@ -175,3 +177,5 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
   `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). Modify 스크립트는 바뀌지 않았다.
 - 2026-11-28 수정·ALTER 대상·새 뷰/프로시저/함수: 주 세션을 다른 PostgreSQL DB로 옮기기 전에 열린 트랜잭션을 물음(`SourceScripts.confirmBindDefaultContext`,
   `chromite/bind-default-context-transaction`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). 회귀 테스트는 실행하지 않았다.
+- 2026-11-29 "기본 문맥을 바꾸는 부작용"의 낡은 문장(쿼리 창이 아직 기본 문맥 하나를 함께 씀)을 지금 동작으로 고침: 창마다 자기 세션이 기본이고
+  설정을 끈 연결 등의 창만 주 세션을 함께 씀(`chromite/query-library-shared-session`, 문서만).
