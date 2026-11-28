@@ -67,7 +67,7 @@ import java.util.function.Supplier;
  *     <li>문맥 이름은 SWT와 같은 {@code SQLEditor <파일 이름>}이다. 드라이버가 서버에 넘기는 클라이언트 이름에 들어가 서버의 세션 목록에서 창을 구별할 수 있다.</li>
  *     <li>주 세션을 함께 쓰는 창의 데이터베이스({@link #shareInstance}): 데이터베이스마다 서버 세션이 따로인 연결(PostgreSQL "모든 데이터베이스 표시",
  *     {@code PostgreDatabase}가 인스턴스)에서는 주 세션도 데이터베이스마다 하나다. 창이 다른 데이터베이스에서 돌아야 하면(개체에서 연 창, 그 창의 New Query,
- *     다시 시작 복원) 그 데이터베이스 인스턴스의 주 세션을 함께 쓴다. 연결의 주 세션을 그 데이터베이스로 옮기지 않는다
+ *     다시 시작 복원, Query Library 머리말 DB가 있는 실행) 그 데이터베이스 인스턴스의 주 세션을 함께 쓴다. 연결의 주 세션을 그 데이터베이스로 옮기지 않는다
  *     ({@code PostgreDataSource.setActiveDatabase}): 옮기면 함께 쓰는 다른 창이 모두 따라가고 열린 트랜잭션이 이전 세션에 보이지 않게 남는다
  *     (사용자 결정 2026-11-28 "기존 세션은 건들지 않게 한다"). 그 인스턴스의 주 세션이 아직 없으면 Object Explorer가 그 데이터베이스를 펼칠 때와 같은 길
  *     ({@code DBSInstanceLazy#checkInstanceConnection})로 연다. 묶은 인스턴스는 데이터 소스 동안 유지하고, 연결의 기본 인스턴스가 바뀌어도
@@ -85,6 +85,8 @@ import java.util.function.Supplier;
  * - 2026-11-28 {@link #shareInstance}, {@link #isSharedIn}: 주 세션을 함께 쓰는 창을 다른 데이터베이스 인스턴스의 주 세션에 묶음. 전에는 다른 DB의
  *   개체에서 연 창이 연결의 기본 DB에서 돌았다(PostgreSQL에서 B의 표의 "상위 1000개 행 선택"이 A의 같은 이름 표를 보임)
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
+ * - 2026-11-29 {@link #shareInstance}: 다른 DB에 묶인 창은 연결의 기본 인스턴스에도 묶음(Query Library 머리말 DB가 기본 DB인 실행). 전에는
+ *   아무것도 바꾸지 않아 실행이 묶인 DB에서 돌았다(docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 final class QueryWindowContext {
 
@@ -181,13 +183,14 @@ final class QueryWindowContext {
 
     /**
      * A window that shares a main context runs in the main context of the connection's database instance of that name from
-     * now on (job thread): an instance that is a database of its own (PostgreSQL with "show all databases"), other than the
-     * connection's default instance. No session moves: the instance's main context is opened when it has none yet, as
+     * now on (job thread): an instance that is a database of its own (PostgreSQL with "show all databases"). The
+     * connection's default instance only for a window bound to another one (a window that follows the default stays
+     * unbound). No session moves: the instance's main context is opened when it has none yet, as
      * Object Explorer does when it opens that database. Call after {@link #open} on the same data source.
      *
      * @param catalogName the database the window is to run in (a catalog name, as the window's database picker shows it)
      * @return the main context the window runs in now, or null when nothing changed: the window has its own session, or no
-     *         instance of the connection has that name, or it is the default instance (the window keeps following that)
+     *         instance of the connection has that name, or it is the default instance and the window follows that already
      */
     @Nullable
     DBCExecutionContext shareInstance(@NotNull DBRProgressMonitor monitor, @NotNull DBPDataSource dataSource, @NotNull String catalogName)
@@ -205,7 +208,7 @@ final class QueryWindowContext {
                     break;
                 }
             }
-            if (instance == null || instance == dataSource.getDefaultInstance()) {
+            if (instance == null || instance == dataSource.getDefaultInstance() && current.instance() == null) {
                 return null;
             }
             DBCExecutionContext context = openMainContext(monitor, instance);

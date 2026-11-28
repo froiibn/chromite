@@ -392,6 +392,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-28 주 문맥을 함께 쓰는 창이 받은 DB가 따로인 세션이면(PostgreSQL) 그 DB의 주 문맥을 함께 씀({@link #openWindowContext}), 끊었다 다시
  *   연결해도 그 DB를 지킴({@link #keepDefaultsOfEndedSession}). 전에는 다른 DB의 개체에서 연 창이 연결의 기본 DB에서 돌았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
+ * - 2026-11-29 Query Library 머리말 DB가 있는 실행: 주 문맥을 함께 쓰는 PostgreSQL 창은 그 DB의 주 문맥에서 돈다({@link #getRunContext}).
+ *   전에는 바인딩이 함께 쓰는 주 세션을 그 DB로 옮기고(연결의 기본 인스턴스) 실행은 옛 DB에서 돌았다. 그 세션의 스키마를 바꿔야 하면 실행하지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -2059,7 +2062,7 @@ final class SqlEditorPanel extends JPanel {
                 return;
             }
             // Opens the window's own session on the first run (QueryWindowContext); fails with editor_sql_no_context
-            DBCExecutionContext context = openWindowContext(monitor, dataSource);
+            DBCExecutionContext context = getRunContext(monitor, dataSource, run.binding, openWindowContext(monitor, dataSource));
             List<SQLScriptElement> extracted = SqlQueryCommands.extractElements(run.mode, dataSource, run.text, run.offset, run.length);
             if (extracted == null || extracted.isEmpty() && run.mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
                 stopPreparation(run, errorStatus(extracted == null ? QueryCommandMessages.query_no_statement : QueryCommandMessages.query_not_a_query));
@@ -2126,6 +2129,51 @@ final class SqlEditorPanel extends JPanel {
             disableActualPlan(run);
             stopPreparation(run, errorStatus(ErrorText.describe(e)));
         }
+    }
+
+    /**
+     * The context a run takes. A run with a database/schema of its own (a Query Library query's header,
+     * {@link SqlParameterBinding#getDefaultObjectNames}) in a window that shares a main context of a connection whose
+     * databases are sessions of their own (PostgreSQL) runs in the main context of that database
+     * ({@link QueryWindowContext#shareInstance}), the window staying there: the binding would otherwise move the shared
+     * session to it ({@code PostgreDataSource.setActiveDatabase}, every window that shares it follows, an open transaction
+     * stays behind unseen) while the run still took the context it had. The schema is not set on a shared session (the
+     * windows that share it would move): when it differs, the run stops with an error and the user picks the schema in
+     * the window. Own sessions and other drivers get the defaults from the binding as before. Job thread.
+     *
+     * @param context the window's context ({@link #openWindowContext})
+     * @throws DBException the query's schema is not the shared session's
+     */
+    @NotNull
+    private DBCExecutionContext getRunContext(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSource dataSource,
+        @NotNull SqlParameterBinding binding,
+        @NotNull DBCExecutionContext context
+    ) throws DBException {
+        DefaultObjectNames names = binding.getDefaultObjectNames();
+        if (names == null || context == windowContext.getOwn(dataSource.getContainer()) || !(context.getOwnerInstance() instanceof DBSCatalog)) {
+            return context;
+        }
+        DBCExecutionContext runContext = context;
+        if (names.catalog() != null) {
+            DBCExecutionContext shared = windowContext.shareInstance(monitor, dataSource, names.catalog());
+            if (shared != null) {
+                runContext = shared;
+            }
+        }
+        DBCExecutionContextDefaults<?, ?> defaults = runContext.getContextDefaults();
+        DBSCatalog catalog = defaults != null ? defaults.getDefaultCatalog() : null;
+        if (names.schema() == null || catalog == null || names.catalog() != null && !names.catalog().equals(catalog.getName())) {
+            // A database the connection does not list by that name: the binding finds no schema to set either
+            return runContext;
+        }
+        // The schema the binding would set (DBExecUtils.changeDefaultObject looks it up the same way); a system schema is never set
+        DBSObject schema = catalog.getChild(monitor, names.schema());
+        if (schema instanceof DBSSchema && schema != defaults.getDefaultSchema() && !DBUtils.isSystemObject(schema)) {
+            throw new DBException(NLS.bind(EditorMessages.editor_sql_query_schema_shared, names.schema()));
+        }
+        return runContext;
     }
 
     /**
