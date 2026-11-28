@@ -559,21 +559,72 @@ DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과
 `EXEC msdb.dbo.…`로 DB를 쓴다. 백업·복원 작업 대화상자(`DatabaseTaskDialog`의 SQL Server 백업·복원)는 `BACKUP DATABASE [db]`·`USE [master]`로 DB를 쓴다.
 세션 관리자(`SessionManagerPanel`)의 세션 읽기는 서버 전체 보기다. MySQL 이벤트 스케줄러 켜기(`SET GLOBAL event_scheduler`)는 서버 설정이다.
 
-**주 세션을 함께 쓰는 창(쿼리 창마다 별도 연결 = NEVER, 단일 연결):** 이름을 적용하지 않는다(`openWindowContext`의 전부터 있던 규칙). 그 세션을 옮기면 함께 쓰는
+**주 세션을 함께 쓰는 창(쿼리 창마다 별도 연결 = NEVER, 단일 연결):** 주 세션을 옮기지 않는다(`openWindowContext`의 전부터 있던 규칙). 그 세션을 옮기면 함께 쓰는
 모든 창이 옮겨지고, PostgreSQL에서는 다른 DB가 다른 서버 세션이며 DB 선택이 스키마만 보여 옮겨진 것이 창에 드러나지 않는다(같은 이름 스키마면 표시가 그대로).
-그래서 새 창은 주 세션이 있는 곳에서 돌고 그곳을 보인다(창이 보이는 곳과 다른 곳에서 돌지 않음). PostgreSQL에서 다른 DB 개체의 글은 그 창에서는 기본 DB에서 돈다
-(고치기 전과 같음, 아래 "남은 것"). 수정·프로시저 실행은 전처럼 주 세션을 옮긴다(바꾸지 않음).
+PostgreSQL(데이터베이스마다 세션이 따로)에서는 새 창이 개체의 DB의 주 세션을 함께 쓴다(아래 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션"). 그 밖의 드라이버에서는
+새 창이 주 세션이 있는 곳에서 돌고 그곳을 보인다(창이 보이는 곳과 다른 곳에서 돌지 않음). 수정·프로시저 실행은 전처럼 주 세션을 옮긴다(바꾸지 않음, 아래
+"주 세션을 다른 DB로 옮기기 전 트랜잭션 질문"의 "사용자 결정 뒤 남은 것").
 
 **고르지 않은 것:** 위 명령들도 `bindDefaultContext`로 주 세션을 옮기기. 창마다 자기 세션인 기본 설정에서도 연결의 기본 DB(탐색기의 굵은 표시, 다음 새 창의 DB)가
 "상위 1000개 행 선택" 한 번에 바뀌고, 주 세션을 함께 쓰는 창은 표시 없이 옮겨진다. `bindDefaultContext`는 PostgreSQL에서 다른 DB로 옮길 때 열린 트랜잭션을 묻지
 않는다("기본값으로 설정"은 `ExitTransactionCheck.confirmDefaultChange`로 묻는다, 아래 "남은 것").
 
 **남은 것:**
-- 주 세션을 함께 쓰는 PostgreSQL 창에서 다른 DB 개체의 글: 기본 DB에서 돈다. 맞게 하려면 주 세션을 옮겨야 하며, 그때는 "기본값으로 설정"과 같은 열린 트랜잭션 질문과
-  PostgreSQL 창이 DB 이름을 보이는 것이 함께 필요하다(새 화면 요소라 하지 않음).
+- ~~주 세션을 함께 쓰는 PostgreSQL 창에서 다른 DB 개체의 글: 기본 DB에서 돈다.~~ 2026-11-28 고침(아래 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션").
+  주 세션을 옮기지 않고 그 DB의 주 세션을 함께 쓰므로 트랜잭션 질문이 필요 없다.
 - 파일 ▸ 새 쿼리(Ctrl+N)는 활성 창이 없으면 Object Explorer에서 선택한 노드의 **연결**로 연다(#172의 설계). 노드의 DB는 넘기지 않는다(바꾸지 않음).
 
 **확인:** 아래 "확인 기록 (2026-11-28, 개체에서 연 창의 DB)".
+
+### 주 세션을 함께 쓰는 창: 개체의 DB의 주 세션 (2026-11-28 후속)
+
+**사용자 결정(2026-11-28):** "기존 세션은 건들지 않게 한다. 의도치 않게 시스템이 세션을 바꿔버리면 위험하다." 명령이 부수 효과로 기존 세션을 다른 DB/스키마로
+옮기지 않는다(질문이 있어도). 세션을 옮기는 것은 사용자가 직접 하는 것(창의 DB 선택, "기본값으로 설정")뿐이다.
+
+**고치기 전 사실(`origin/command` `bc380caa34` 빌드, 시험 VM, 앱 안 시험 에이전트).** 연결마다 수동 커밋, "쿼리 창마다 별도 연결" NEVER, 기본 DB A
+(`chr_shared_session_object_database_a`), PostgreSQL은 "모든 데이터베이스 표시". A와 B에 같은 이름 표 `chr_shared_session_object_database_t`(A: 1, B: 20·21).
+창 W1(주 세션)에서 A의 표에 `INSERT … VALUES (5)`(커밋 안 함)한 뒤 B의 표에서 "상위 1000개 행 선택"으로 W2를 열었다.
+
+| DB | W2가 도는 세션 | W2 결과 | W1·트랜잭션 |
+|---|---|---|---|
+| PostgreSQL 17 | A의 주 세션(`Main <…_a>`, 표시 `public`) | **`1`, `5`**: A의 표, W1의 커밋 안 한 행까지 | A 주 세션 `idle in transaction`, 그대로. B의 주 세션은 B를 펼칠 때 이미 열려 있었음 |
+| SQL Server 2022 | 같은 주 세션, `db_name()` A | `20`, `21`(글이 `…_b.dbo.…`) | 그대로(`open_transaction_count` 1) |
+| MariaDB 11.8 · MySQL 8.4 | 같은 주 세션, `DATABASE()` A | `20`, `21`(글이 `` …_b.… ``) | 그대로(`INNODB_TRX` `RUNNING`) |
+
+SQL Server·MariaDB·MySQL 공유 창에는 `USE`가 가지 않고, 상위 N개·SELECT 글이 DB를 쓰므로 결과가 맞다. 바꾸지 않았다. "SQL 생성 ▸ DDL" 글은 SQL Server가
+`USE …_b` / `GO`로 시작하고(실행하면 그 글이 공유 세션을 옮긴다: 사용자가 실행한 글), MariaDB·MySQL은 `` CREATE TABLE `…_t` ``로 DB가 없다(공유 창에서 실행하면 A에
+만든다, 범위 밖으로 보고).
+
+**원인:** 공유 창의 문맥은 늘 연결의 기본 인스턴스의 주 문맥이었다(`QueryWindowContext.open`·`get`의 `DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false)`).
+`openWindowContext`는 공유 창에 개체의 이름을 적용하지 않았다(적용하면 주 세션이 옮겨진다). PostgreSQL은 데이터베이스마다 인스턴스(`PostgreDatabase`)와 그 주·메타데이터
+세션이 따로 있고(`PostgreDatabase.checkInstanceConnection` 238–252행), 기본 인스턴스는 `PostgreDataSource.setActiveDatabase`만 바꾼다. 그런데 공유 창은 그 B의 주 세션을 쓸 길이 없었다.
+
+**고친 것:** 공유 창이 받은 이름(`setRestoredDefaults`: 개체에서 연 창, 그 창의 New Query, 다시 시작 복원, 다시 연결 뒤 지킨 이름)의 DB가 연결의 인스턴스이면
+(`DBSCatalog`인 `DBSInstance`, 기본 인스턴스가 아닌 것) 창이 그 인스턴스의 주 문맥을 함께 쓴다(`QueryWindowContext.shareInstance`). 그 주 세션이 아직 없으면
+Object Explorer가 그 DB를 펼칠 때와 같은 `DBSInstanceLazy.checkInstanceConnection`으로 연다(주·메타데이터 한 쌍, 기본 인스턴스는 바뀌지 않음). 어느 세션에도 아무것도
+보내지 않는다(`USE`·`SET search_path`·기본 인스턴스 바꾸기 없음). 스키마 이름은 쓰지 않는다: 그 DB의 주 세션의 `search_path`를 바꾸게 되기 때문이다. 창은 그 주 세션의
+스키마를 보이고, PostgreSQL 상위 N개·SQL 생성 글은 스키마를 쓴다.
+- 한 데이터베이스에 주 세션 하나: 같은 DB에 묶인 공유 창들은 그 DB의 주 세션을 함께 쓴다(설정 "쿼리 창마다 별도 연결" 끔의 뜻 그대로: 창마다 세션을 열지 않음).
+- 묶은 DB는 데이터 소스 동안 지킨다. 연결 새로 고침은 세션이 있는 DB 객체를 그대로 두므로(`PostgreDataSource.reloadDatabases`) 그대로다. Disconnect → Connect는
+  창이 그 DB 이름을 지켜(`SqlEditorPanel.keepDefaultsOfEndedSession`, `QueryWindowContext.isSharedIn`) 새 데이터 소스에서 다시 묶는다. 다시 시작 복원은 저장한 DB로 묶는다.
+- "기본값으로 설정"으로 연결의 기본 DB가 바뀌어도 묶인 창은 따라가지 않는다(묶지 않은 공유 창은 전처럼 따라간다).
+- 묶인 창의 DB 선택(PostgreSQL은 그 DB의 스키마 목록)은 그 DB의 주 세션의 스키마를 바꾼다. 사용자가 그 창에서 직접 고른 것이므로 그대로 둔다. 같은 DB에 묶인 창은
+  같은 세션이라 함께 바뀌고, 다른 DB의 창은 바뀌지 않는다.
+- 여러 작업이 동시에 창의 세션을 열 때: 이름을 먼저 가져간 작업이 묶은 뒤 다른 작업은 묶인 문맥을 다시 받는다(`openWindowContext`). 처음 빌드에서 다시 시작 복원 뒤
+  DB 선택이 A의 세션을 읽은 채 실행은 B에서 돈 것을 보고 고쳤다.
+- `shareInstance`는 DB 이름 하나만 받는다: 개체 명령 말고도(예: 쿼리 라이브러리 항목의 기본 DB) 창을 한 DB의 주 세션에 묶는 데 그대로 쓸 수 있다.
+
+**표시:** PostgreSQL 창의 DB 선택·상태 줄은 스키마만 보인다(자기 세션 창과 같음, 새 화면 요소는 만들지 않음). 창이 어느 DB에서 도는지는 실행 결과와 저장된 이름
+(`X.public`)으로 드러난다. 표시와 실제 세션이 다른 경우는 없다(선택이 읽는 문맥 = 실행하는 문맥). 탭의 세션 번호(아래 "탭의 세션 번호")는 그 DB의 주 세션의
+번호다(같은 문맥을 읽음): A의 창들과 B에 묶인 창들의 번호가 다르다.
+
+**남은 것(Query Library 머리말 DB, 바꾸지 않음):** B에 묶인 공유 창에서 머리말 Database가 다른 DB(C)인 Query Library 항목을 실행하면
+`QueryParameterBinder.changesInstance`가 참이지만 `SqlEditorPanel.confirmEndSession`은 공유 창에서 묻지 않고, `applyDefaults`가 B의 주 문맥에
+`setExecutionContextDefaults`를 불러 연결의 기본 인스턴스를 C로 옮긴다(`PostgreDataSource.setActiveDatabase`, 묶지 않은 공유 창이 모두 따라감). 실행은
+작업 전에 잡은 B의 주 문맥에서 돈다. 묶지 않은 공유 창에서도 같은 모양(기본 인스턴스가 옮겨지고 실행은 옛 DB)이며, 쿼리 라이브러리 기본값 작업의 범위다
+(그 작업은 공유 창을 `shareInstance`로 머리말 DB에 묶으면 된다).
+
+**SQL Server·MySQL/MariaDB·Oracle 등:** DB가 인스턴스가 아니므로(`shareInstance`가 이름을 찾지 못함) 전과 같다: 공유 창은 주 세션이 있는 곳에서 돌고 그곳을 보인다.
 
 ## 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문 (2026-11-28)
 
@@ -607,6 +658,23 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
 
 **확인:** 아래 "확인 기록 (2026-11-28, 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문)".
 
+**사용자 결정 뒤 남은 것(2026-11-28, 구현하지 않음):** 사용자 결정 "기존 세션은 건들지 않게 한다. 의도치 않게 시스템이 세션을 바꿔버리면 위험하다."에 따르면
+위 명령들도 주 세션을 옮기지 말고(질문이 있어도) 개체의 DB/스키마에 묶인 창에서 돌아야 한다. 사실(`bc380caa34` 빌드와 코드):
+- `bindDefaultContext`는 창마다 자기 세션인 연결에서도 주 세션을 옮긴다(새 창의 자기 세션이 주 세션의 기본값을 복사하기 때문). PostgreSQL 다른 DB는 기본 인스턴스를
+  바꾸고(질문 뒤), 같은 DB 다른 스키마는 주 세션의 `search_path`를, SQL Server·MySQL/MariaDB는 주 세션에 `USE`를, Oracle은 `ALTER SESSION SET CURRENT_SCHEMA`를
+  묻지 않고 보낸다. "ALTER 대상 ▸ 클립보드"(`SourceEditCommands` 156행)는 창이 없는데도 옮긴다. 주 세션을 함께 쓰는 창은 모델 이벤트로 선택을 다시 읽어 옮겨진 것을 보인다
+  (위 "다른 곳에서 바뀐 세션의 DB"). 같은 DB 안의 스키마 바꾸기도 세션 바꾸기이지만 묻지 않는다.
+- 같은 길(`runWhereObjectIs` → `setRestoredDefaults`, PostgreSQL 공유 창은 그 DB의 주 세션)로 바꾸려면: `openSourceScript`·`openScript`가 개체를 받고
+  (`SourceEditCommands` 158·170행, `RoutineCommands` 142·165·257행, `NewObjectCommands` 302·334행, `SchemaComparePanel` 720행), `generateAlter`·`generateNew`·
+  `generateContainerScript`는 기본값을 바꾸지 않은 개체 인스턴스의 주 문맥으로 글을 만든다. 그러면 `confirmBindDefaultContext`(호출 6곳)와 그 문서가 쓸모없어진다.
+- 작지 않은 이유: 객체 관리자 일부가 글을 만들 때 문맥의 기본 DB를 본다. 묶지 않으면 같은 명령의 글이 바뀐다. MySQL 트리거는 기본 DB가 트리거의 DB와 다르면
+  `USE db` … `USE 원래 db`를 넣고(`MySQLTriggerManager` 72–80행, 이벤트·시퀀스 관리자도 같은 모양), SQL Server는 `USE [db]` … `USE [기본 db]`를 넣는다
+  (`SQLServerObjectManager.addDatabaseSwitchAction1/2`, 앞에 이미 `getDatabaseSwitch`의 `USE` 배치가 있음). 또 공유 창에서는 스키마·SQL Server/MySQL의 DB를 창에
+  정할 수 없어(세션을 옮기게 됨) 글이 이름을 써야 한다: MySQL/MariaDB의 "SQL 생성 ▸ DDL"은 표 이름에 DB가 없다(아래 확인 기록). 드라이버 4개 × 명령 6개 × 개체 종류의
+  글을 다시 확인해야 하고 바뀌는 파일이 7개 이상이라 이번 범위(작은 변경)를 넘는다.
+- 제안: (1) 위 호출을 개체를 넘기는 길로 바꾸고 `bindDefaultContext`·`confirmBindDefaultContext`를 지운다. (2) 글 만들기용 문맥은 개체의 DB 인스턴스 주 문맥으로 하되,
+  기본 DB를 보는 관리자의 `USE` 쌍은 쿼리 창 글에서 빼거나(창이 이미 그 DB) 그대로 두고 확인한다. (3) MySQL/MariaDB DDL·CREATE 대상 글에 DB 이름을 넣는다
+  (SQL Server의 `inObjectDatabase`와 같은 자리). (4) 스키마만 다른 경우(PostgreSQL `search_path`, Oracle 현재 스키마)는 (1)로 함께 사라진다.
 ## 자기 세션을 다른 DB로 다시 연결할 때 (2026-11-28)
 
 **보고:** Query Library 작업(Task V)이 지나가며 본 것. PostgreSQL에서 자기 세션을 쓰는 창이 다른 DB로 옮기면 열린 트랜잭션이 묻지 않고 롤백되고,
@@ -659,7 +727,7 @@ SSMS의 SPID처럼), 탭 도구 설명에 한 줄 `Session ID : 52`. 도구 설�
 창에 세션이 없으면(연결 전, 끊김, 번호를 읽을 수 없는 DB) 제목과 도구 설명은 전과 같다.
 
 **어느 세션인가:** 창이 실제로 실행되는 세션(`QueryWindowContext`): 창마다 별도 연결이면 창 자신의 세션, "쿼리 창마다 별도 연결" = 안 함이면 연결의 주 세션.
-주 세션을 함께 쓰는 창들은 같은 번호를 보인다(의도한 것).
+주 세션을 함께 쓰는 창들은 같은 번호를 보인다(의도한 것). PostgreSQL에서 다른 DB에 묶인 공유 창은 그 DB의 주 세션 번호다(위 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션").
 
 **읽는 때와 자리:** 세션을 여는 `JDBCExecutionContext.connect`에서 한 번, 새 세션에서 무엇보다 먼저(자동 커밋·격리 수준을 정한 뒤, 부트스트랩 문장·상태 초기화 전,
 인스턴스의 배타 잠금 아래) 읽어 문맥이 들고 있다(`getServerSessionId`, 메모리만, 아무 스레드). 연결 끊기는 지우고(`disconnect`), Invalidate/Reconnect는
@@ -890,6 +958,34 @@ SQL Server 2022·MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버)·Oracle 26
   캡처 `D:\Tools\_scratch\query-tab-session-id\s\merge\shots\merge-ko-pg-library-moved-tab-tooltip.png`. 시험 DB는 끝에 지웠다(`pg_database` 0개).
 - 확인하지 못한 것: 쿼리 창의 연결 변경과 주 세션이 다른 PostgreSQL DB 인스턴스로 옮겨 간 경우(같은 타이머 길, 코드 읽기만), 끊긴 세션을 읽기가 다시 여는 길
   (같은 `connect`), 번호를 읽지 않는 드라이버(Altibase 등)의 탭(코드 읽기: 방언이 읽기를 구현하지 않으면 null). 회귀 테스트는 실행하지 않았다.
+### 확인 기록 (2026-11-28, 주 세션을 함께 쓰는 창: 개체의 DB의 주 세션)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·설정·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(Object Explorer 메뉴 항목을 그대로 누름, OS 입력 없음),
+시험 VM PostgreSQL 17·SQL Server 2022·MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 연결과 시험 DB는 위 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션"의 고치기 전 사실과 같다.
+서버 쪽은 따로 연 관리 세션에서 읽었다(`pg_stat_activity`, `sys.dm_exec_sessions`, `INNODB_TRX`, 다른 세션에서 본 커밋된 행 수). 고친 빌드(마지막 빌드)에서:
+
+| 경우(PostgreSQL) | 결과 |
+|---|---|
+| W1이 A에 `INSERT 5`(커밋 안 함) 뒤 B 표의 상위 1000개 행 선택(W2) | W2 결과 `20`, `21`, W2 문맥 `Main <…_b>`. 기본 인스턴스 A 그대로. A 주 세션 `idle in transaction`(xid 있음), 다른 세션에서 본 A의 행 1개(커밋 안 됨) |
+| 그 뒤 W1에서 `current_database()` | A, W1은 여전히 A의 트랜잭션을 보임(상태 줄 "열린 트랜잭션 (변경 있음)") |
+| W2의 DB 선택에서 B의 스키마 `…_s` | W2 `current_schema()` `…_s`(B의 주 세션). W1은 A·`public` 그대로 |
+| W2에서 새 쿼리(W3) | W3 `current_database()` B(같은 B 주 세션, 스키마 `…_s`) |
+| 연결 Refresh 뒤 W2 | B |
+| Disconnect 동안 W2 / Connect 뒤 W2 · W1 | 선택 `…_b.public`(비활성, 글) / B · A |
+| 다시 시작(복원) → 연결 | 첫 실행 전 선택이 읽은 문맥이 B, 실행 B. W1 A. B의 주 세션은 복원 창이 처음 쓸 때 열림(Object Explorer에서 B를 펼치지 않음) |
+| B 함수의 수정(Modify), A의 트랜잭션 열림 | 전과 같음: 기본값으로 설정과 같은 질문, 취소 → 아무것도 바뀌지 않음(이번 범위에서 바꾸지 않음) |
+
+SQL Server·MariaDB·MySQL: 고치기 전과 같다(W2 결과 B의 행, W2·W1의 서버 DB A, A의 트랜잭션 그대로, 공유 세션에 `USE` 없음).
+첫 고친 빌드에서는 다시 시작 복원 뒤 연결할 때 W2의 DB 선택이 A의 문맥을 읽고(실행은 B) 있었다. 두 작업이 동시에 창의 세션을 열면서 먼저 연 문맥을 돌려준 것이었고,
+이름이 없는 쪽이 묶인 문맥을 다시 받게 고친 뒤(위 "여러 작업이 동시에") 위 표를 다시 돌렸다.
+시험에서 연 트랜잭션은 모두 앱의 `IdleTransactionMonitor.commitOrRollback`으로 명시적으로 롤백했다. 시험 DB는 끝에 지우고 카탈로그로 확인했다.
+캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\shared-session-object-database\s\before\shots\`(`pg-1-w2-select-top-b.png`: 결과 `1`·`5`,
+`pg-1-w1-after.png`, `pg-2-modify-question.png`, `ms-1-…`, `ma-1-…`, `my-1-w2-select-top-b.png`)와 `…\s\final\shots\`(`pg-1-w2-select-top-b.png`: 결과 `20`·`21`,
+`pg-3-w1-after-w2-picker.png`, `pg-3-w3-new-query-from-w2.png`, `pg-4-w2-after-reconnect.png`, `pg-5-restored-w2.png`, 드라이버별 `*-1-w2-select-top-b.png`).
+로그: 같은 폴더의 `*.txt.log`.
+
+**확인하지 못한 것:** 단일 연결 드라이버(내장 DB 등)와 PostgreSQL 계열 다른 서버(공유 데이터베이스 `isSharedDatabase`), 연결의 기본 DB를 지운 경우.
+ERD·데이터 검색·데이터베이스 복사·테이블 디자이너·보안·스케줄러 창(같은 `setRestoredDefaults` 길, 코드 읽기와 빌드만). 회귀 테스트는 실행하지 않았다.
 
 ## 변경 이력
 
@@ -943,3 +1039,8 @@ SQL Server 2022·MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버)·Oracle 26
   `Session ID : 52`. 세션을 열 때 방언이 번호를 읽어 문맥이 들고 있음(PostgreSQL 드라이버 값, SQL Server `@@SPID`, MySQL/MariaDB `CONNECTION_ID()`, Oracle PL/SQL `SYS_CONTEXT`).
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 쿼리 창 탭 제목·도구 설명·별도 창 제목·Window 메뉴 항목(제목을 씀), 자동 커밋 적용 대화상자의 창 이름
   (`AutoCommitApplier`가 탭 제목을 씀), SQL Server·MySQL/MariaDB·Oracle 세션을 열 때의 왕복 하나(모든 문맥), 세션 열기 실패 시의 기록.
+- 2026-11-28 `chromite/shared-session-object-database`: "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션"과 그 확인 기록. 주 세션을 함께 쓰는 PostgreSQL 창이 받은 DB
+  (개체에서 연 창, 그 창의 New Query, 다시 시작 복원, 다시 연결)의 주 세션을 함께 쓴다(`QueryWindowContext.shareInstance`). 어느 세션도 옮기지 않는다(사용자 결정).
+  수정·프로시저 실행 등 `bindDefaultContext`의 길은 바꾸지 않고 "사용자 결정 뒤 남은 것"에 사실과 제안을 적었다. 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: 주 세션을 함께 쓰는 쿼리 창(모든 드라이버)의 첫 세션·DB 선택·상태 줄·트랜잭션 표시, 다시 연결·다시 시작 뒤 그 창의 DB, New Query의 DB 이어받기,
+  PostgreSQL에서 그 창이 처음 쓸 때 여는 데이터베이스별 주·메타데이터 세션.

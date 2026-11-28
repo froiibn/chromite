@@ -368,6 +368,7 @@ import java.util.function.Supplier;
  *   DB/스키마에서 돈다({@link #runWhereObjectIs}, New Query·다시 시작 복원과 같은 {@link SqlEditorPanel#setRestoredDefaults}). 전에는 연결의
  *   기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 스크립트가 기본 DB의 같은 이름 표에서 돌았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
+ * - 2026-11-28 주석만: 주 세션을 함께 쓰는 창도 PostgreSQL에서는 개체의 DB의 주 세션을 함께 씀({@link #runWhereObjectIs}, 같은 문서 같은 절)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -1366,9 +1367,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * A window opened from an object runs in the object's database and schema. The names reach the window by the path of
      * New Query and of a window restored after a restart ({@link SqlEditorPanel#setRestoredDefaults}): its own session gets
      * them when it opens, the first job of the window (a run included) waits for that, and no other session changes. A
-     * window that shares the connection's main session does not apply them: moving that session would move every window
-     * that shares it, and on PostgreSQL (another database is another server session) without a sign in those windows,
-     * whose picker shows only the schema. Such a window stays where the main session is and shows that.
+     * window that shares the connection's main session does not move it: that would move every window that shares it, and
+     * on PostgreSQL (another database is another server session) without a sign in those windows, whose picker shows only
+     * the schema. On PostgreSQL such a window shares the main session of the object's database instead
+     * ({@code QueryWindowContext.shareInstance}); elsewhere it stays where the main session is and shows that.
      */
     private static void runWhereObjectIs(@NotNull SqlEditorPanel editor, @Nullable DBSObject location) {
         if (location == null) {
