@@ -385,6 +385,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-28 주석만: {@link #setRestoredDefaults}를 개체에서 연 창도 씀(개체의 DB/스키마, docs/chromite/swing-sql-editor-session-ui.md
  *   "개체에서 연 창의 DB")
  * - 2026-11-28 결과에서 만든 문장의 새 창({@link Host#openScript})이 이 창 세션의 기본 스키마·DB에서 돈다(같은 문서 같은 절)
+ * - 2026-11-28 탭 제목 끝(고침 표시 앞)에 창이 실행되는 서버 세션의 번호 "(52)", 탭 도구 설명에 한 줄 "Session ID : 52"(SSMS의 SPID처럼,
+ *   앱 변경 #193). 세션이 열릴 때 읽어 둔 값만 쓰고({@link #getServerSessionId}), 바뀌면 1초 타이머가 탭을 고침({@link #refreshSessionId})
+ *   (docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -552,6 +555,9 @@ final class SqlEditorPanel extends JPanel {
     private Boolean shownAutoCommit;
     // EDT only: Query > Auto-Commit is switching the session's mode
     private boolean switchingCommitMode;
+    // EDT only: the session number the tab showed at the last check (refreshSessionId), null while it showed none
+    @Nullable
+    private String shownSessionId;
     private final Object jobLock = new Object();
     // EDT only
     @Nullable
@@ -653,8 +659,12 @@ final class SqlEditorPanel extends JPanel {
                 showRunState();
             }
         });
-        // The open transaction segment counts up; the query manager's state is in memory, so a read each second is cheap
-        transactionTimer = new Timer(1000, e -> refreshOpenTransaction());
+        // The open transaction segment counts up; the query manager's state is in memory, so a read each second is cheap.
+        // The session number is in memory too
+        transactionTimer = new Timer(1000, e -> {
+            refreshOpenTransaction();
+            refreshSessionId();
+        });
         transactionTimer.start();
         statusLine.setOpenTransactionActions(new QueryStatusLine.OpenTransactionActions() {
             @Override
@@ -711,22 +721,39 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * SSMS-like tab title: {@code SQLQuery1.sql - connection*} ({@code *} while modified).
+     * SSMS-like tab title: {@code SQLQuery1.sql - connection (52)*} (the server's number of the session the window runs
+     * in while it has one, {@code *} while modified).
      */
     @NotNull
     String getTitle() {
-        return fileName + " - " + (dataSourceContainer != null ? dataSourceContainer.getName() : EditorMessages.editor_common_not_connected) + (dirty ? "*" : "");
+        String sessionId = getServerSessionId();
+        return fileName + " - " + (dataSourceContainer != null ? dataSourceContainer.getName() : EditorMessages.editor_common_not_connected) //$NON-NLS-1$
+            + (sessionId != null ? " (" + sessionId + ")" : "") + (dirty ? "*" : ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     /**
-     * Tab tool tip: the full file path (or the name of a query that was never saved) and the connection with its server.
+     * Tab tool tip: the full file path (or the name of a query that was never saved), the connection with its server and,
+     * while the window has a session, its number.
      */
     @NotNull
     String getToolTip() {
         String location = file != null ? file.toString() : NLS.bind(EditorMessages.editor_sql_tip_not_saved, fileName);
         String connection = dataSourceContainer == null ? EditorMessages.editor_sql_tip_not_connected
             : NLS.bind(EditorMessages.editor_sql_tip_connection, dataSourceContainer.getName(), QueryStatusLine.describeServerDetails(dataSourceContainer));
-        return "<html>" + CommonUtils.escapeHtml(location) + "<br>" + CommonUtils.escapeHtml(connection) + "</html>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        String sessionId = getServerSessionId();
+        return "<html>" + CommonUtils.escapeHtml(location) + "<br>" + CommonUtils.escapeHtml(connection) //$NON-NLS-1$ //$NON-NLS-2$
+            + (sessionId != null ? "<br>" + CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_sql_tip_session_id, sessionId)) : "") //$NON-NLS-1$ //$NON-NLS-2$
+            + "</html>"; //$NON-NLS-1$
+    }
+
+    /**
+     * The server's number of the session the window runs in now (its own, or the connection's main session it shares),
+     * as the session stored it when it opened: no server call (EDT). Null while the window has no session.
+     */
+    @Nullable
+    private String getServerSessionId() {
+        DBCExecutionContext context = getExecutionContext();
+        return context != null ? context.getServerSessionId() : null;
     }
 
     @Nullable
@@ -3112,6 +3139,20 @@ final class SqlEditorPanel extends JPanel {
         shownTransactionMode = mode;
         if (mode != null && previousMode != null && !mode.equals(previousMode)) {
             refreshTransactionMode();
+        }
+    }
+
+    /**
+     * Updates the tab when the number of the window's session changed: the session opened, the window's connection
+     * connected again, was invalidated and reconnected or disconnected, the window changed its connection, or the shared
+     * main session moved to another database instance. Each session reads its number once when it opens (job thread);
+     * this only compares the stored value (EDT, every second with the open transaction).
+     */
+    private void refreshSessionId() {
+        String sessionId = getServerSessionId();
+        if (!Objects.equals(sessionId, shownSessionId)) {
+            shownSessionId = sessionId;
+            host.titleChanged(this);
         }
     }
 

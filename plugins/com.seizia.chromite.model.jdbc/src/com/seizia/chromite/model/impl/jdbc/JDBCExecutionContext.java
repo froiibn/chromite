@@ -26,6 +26,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPAdaptable;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.AbstractExecutionContext;
@@ -65,6 +66,9 @@ import java.util.function.Consumer;
  *   수준·상태로 열고, {@code connect}는 잠금을 기다리는 동안 다른 스레드가 연 세션을 하나 더 열지 않음. Invalidate/Reconnect 중에 메타데이터를
  *   읽으면 세션이 둘 열려 하나는 연결을 끊은 뒤에도 서버에 남았고, 남은 메타데이터 세션은 연결의 기본값(수동 커밋)으로 열려 첫 읽기부터 트랜잭션을
  *   쥐었다 (앱 변경 #186, docs/chromite/connection-lifecycle.md "닫힌 세션을 다시 열 때")
+ * - 2026-11-28 {@link #getServerSessionId}: 세션을 열 때({@link #connect}) 방언({@link JDBCServerSessionIdReader})으로 서버의 세션 번호를 한 번
+ *   읽어 둠. 쿼리 창 탭이 EDT에서 서버를 부르지 않고 보이게 하려는 것이다. 새 세션의 부트스트랩 문장·상태 초기화보다 먼저, 인스턴스의 배타 잠금 아래에서 읽는다
+ *   (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
     implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
@@ -79,6 +83,9 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     static final int TXN_INFO_READ_TIMEOUT = 5000;
 
     private volatile Connection connection;
+    // The server's number of the session of this connection (JDBCServerSessionIdReader), read once when it opens
+    @Nullable
+    private volatile String serverSessionId;
     private volatile Boolean autoCommit;
     private volatile Integer transactionIsolationLevel;
     private transient volatile boolean txnIsolationLevelReadInProgress;
@@ -174,6 +181,9 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
                 }
             }
 
+            // On the new session before its bootstrap queries and state, under the instance's exclusive lock
+            this.serverSessionId = JDBCServerSessionIdReader.read(dataSource, connection);
+
             try {
                 this.initContextBootstrap(monitor, autoCommit);
             } catch (DBException e) {
@@ -229,6 +239,7 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
             if (connection != null && !dataSource.closeConnection(connection, purpose, !isAutoCommit(false))) {
                 log.debug("Connection close timeout");
             }
+            this.serverSessionId = null;
             this.connection = null;
         }
         if (removeContext) {
@@ -281,6 +292,16 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     @Override
     public boolean isConnected() {
         return connection != null;
+    }
+
+    /**
+     * Read in {@link #connect} on the new session, before anything else runs on it; Invalidate/Reconnect and reopening a
+     * closed session connect again and so read the new session's number, a disconnect forgets it.
+     */
+    @Nullable
+    @Override
+    public String getServerSessionId() {
+        return connection != null ? serverSessionId : null;
     }
 
     @Override
