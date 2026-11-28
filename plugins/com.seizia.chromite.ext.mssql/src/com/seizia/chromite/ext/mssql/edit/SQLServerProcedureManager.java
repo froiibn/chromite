@@ -50,6 +50,9 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-09 Chromite: {@code sp_rename}의 옛 이름(스키마까지 붙인 이름)을 문자열로 따옴표 처리. 전에는 {@code N'…'} 안에 그대로 넣어
  *   이름에 {@code '}가 있으면 문장이 깨졌다 (docs/chromite/swing-table-designer.md "sp_rename의 옛 이름")
+ * - 2026-11-29 Chromite: 만들기·고치기가 명령 옵션 {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}을 따라
+ *   끝의 {@code USE <기본 DB>}를 뺄 수 있음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerProcedure, SQLServerSchema>
     implements DBEObjectRenamer<SQLServerProcedure> {
@@ -92,13 +95,13 @@ public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerP
 
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options) throws DBException {
-        createOrReplaceProcedureQuery(executionContext, actions, command.getObject(), true);
+        createOrReplaceProcedureQuery(executionContext, actions, command.getObject(), true, options);
     }
 
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options) throws DBException {
         if (command.getProperties().size() > 1 || !command.hasProperty(DBConstants.PROP_ID_DESCRIPTION)) {
-            createOrReplaceProcedureQuery(executionContext, actionList, command.getObject(), false);
+            createOrReplaceProcedureQuery(executionContext, actionList, command.getObject(), false, options);
         }
     }
 
@@ -113,7 +116,13 @@ public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerP
         addDatabaseSwitchAction2(executionContext, actions, command.getObject().getContainer().getDatabase());
     }
 
-    private void createOrReplaceProcedureQuery(@NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull SQLServerProcedure procedure, boolean create) throws DBException {
+    private void createOrReplaceProcedureQuery(
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull SQLServerProcedure procedure,
+        boolean create,
+        @NotNull Map<String, Object> options
+    ) throws DBException {
         addDatabaseSwitchAction1(executionContext, actions, procedure.getContainer().getDatabase());
 
         if (create) {
@@ -125,7 +134,7 @@ public class SQLServerProcedureManager extends SQLServerObjectManager<SQLServerP
             ));
         }
 
-        addDatabaseSwitchAction2(executionContext, actions, procedure.getContainer().getDatabase());
+        addDatabaseSwitchAction2(executionContext, actions, procedure.getContainer().getDatabase(), options);
     }
 
     @Override

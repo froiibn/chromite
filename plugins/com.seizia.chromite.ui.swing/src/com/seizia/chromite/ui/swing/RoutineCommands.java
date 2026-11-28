@@ -67,6 +67,9 @@ import java.util.regex.Pattern;
  * - 2026-11-28 Execute Procedure·Go to Source Code·오류로 가기가 주 세션을 옮기기 전에 열린 트랜잭션을 물음
  *   ({@code SourceScripts.confirmBindDefaultContext}, 다른 DB로 옮길 때만)
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 프로시저 실행 창은 실행마다 루틴의 스키마를 본다({@code QueryWindows.openCallScript}): 주 세션을 함께 쓰는 PostgreSQL 창의
+ *   스키마가 다르면 실행하지 않고 그 스키마를 고르게 함. Modify·Go to Source·오류로 가기 글은 자기 세션 창이면 끝의 돌아가기 문장을 뺌
+ *   ({@link SourceScripts#generateAlter}) (같은 문서 같은 절)
  * - 2026-11-29 위 질문과 주 세션 옮기기를 지움: 세 명령의 창이 루틴(패키지, 개체)의 DB/스키마에서 열린다
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
@@ -135,8 +138,8 @@ final class RoutineCommands {
         }
         String script = run(title, monitor -> ProcedureCallScript.generate(monitor, procedure, result.values()));
         if (script != null) {
-            // The new window runs in the routine's database and schema, as a Modify window
-            queryWindows.openScript(container, procedure, script, 0, result.execute());
+            // The new window runs in the routine's database and schema, as a Modify window, and only there
+            queryWindows.openCallScript(container, procedure, script, result.execute());
         }
     }
 
@@ -152,7 +155,7 @@ final class RoutineCommands {
         if (packageNode == null || !SourceScripts.canModify(oraclePackage)) {
             return;
         }
-        String script = run(RoutineMessages.routine_go_to_source, monitor -> SourceScripts.generateAlter(monitor, oraclePackage));
+        String script = run(RoutineMessages.routine_go_to_source, monitor -> SourceScripts.generateAlter(monitor, oraclePackage, true));
         if (script == null) {
             return;
         }
@@ -227,7 +230,7 @@ final class RoutineCommands {
         if (object == null || !SourceScripts.canModify(object)) {
             return;
         }
-        String script = run(RoutineMessages.routine_compile_go_to_error, monitor -> SourceScripts.generateAlter(monitor, object));
+        String script = run(RoutineMessages.routine_compile_go_to_error, monitor -> SourceScripts.generateAlter(monitor, object, true));
         if (script == null) {
             return;
         }

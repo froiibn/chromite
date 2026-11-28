@@ -111,6 +111,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *     스크립트를 만드는 실행 문맥은 개체의 DB 인스턴스의 주 문맥을 그대로 쓴다({@link #getObjectContext}). 객체 관리자 일부는 그 문맥의
  *     기본 DB/스키마가 개체의 것과 다르면 개체의 곳으로 갔다가 돌아오는 문장을 더한다(SQL Server {@code USE} 쌍, MySQL 트리거 {@code USE} 쌍,
  *     Oracle 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA}): 그 문맥에서 실행해도 문맥이 제자리로 돌아오게 만든 글이다.
+ *     자기 세션 쿼리 창은 개체의 곳에서 열려 그곳에 남아야 하므로 돌아오는 문장을 빼고({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE},
+ *     창과 같은 판단 {@link QueryWindowContext#isSeparate}), 주 세션을 함께 쓰는 창과 클립보드 글은 둔다(공유 세션이 제자리로 돌아옴).
  *     전에는 스크립트를 만들기 전에 주 문맥을 개체의 곳으로 옮겨(PostgreSQL은 연결의 기본 인스턴스까지) 주 세션을 함께 쓰는 창이 모두 따라갔다.
  *     SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
  *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).
@@ -150,6 +152,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-29 주 세션을 옮기지 않음: 바인드(bindDefaultContext)와 그 앞의 질문(confirmBindDefaultContext)을 지우고, ALTER 글은 개체의
  *   DB 인스턴스의 주 문맥을 그대로 써서 만든다({@link #getObjectContext}). 새 창은 명령이 넘긴 개체의 DB/스키마에서 열린다
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
+ * - 2026-11-29 {@link #generateAlter}: 자기 세션 쿼리 창의 글은 끝의 "기본 DB/스키마로 돌아가기" 문장을 빼게 함
+ *   ({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}, 사용자 결정 "둘 다 고친다", 같은 문서 같은 절)
  */
 final class SourceScripts {
 
@@ -227,10 +231,16 @@ final class SourceScripts {
 
     /**
      * Makes the ALTER script of the object (Modify, Script as ALTER) with the main context of the object's database
-     * instance as it is ({@link #getObjectContext}): no session's default database/schema changes.
+     * instance as it is ({@link #getObjectContext}): no session's default database/schema changes. The object managers add a
+     * switch to the object's database/schema and, when that context is elsewhere, a switch back to it at the end. A query
+     * window with its own session opens in the object's place and is to stay there, so its script leaves the switch back
+     * out ({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}); a window that shares the main context keeps it (the
+     * shared session returns to its place), and so does the clipboard text (it returns any session it runs in).
+     *
+     * @param forQueryWindow true for the script of a new query window (Modify, Go to Source, Go to Error), false for the clipboard
      */
     @NotNull
-    static String generateAlter(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object) throws DBException {
+    static String generateAlter(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, boolean forQueryWindow) throws DBException {
         DBPDataSource dataSource = object.getDataSource();
         DBEObjectEditor<DBSObject> editor = getObjectEditor(object);
         ObjectPropertyDescriptor property = getSourceProperty(object.getClass());
@@ -251,6 +261,10 @@ final class SourceScripts {
             command.validateCommand(monitor, validateOptions);
             Map<String, Object> options = new HashMap<>();
             options.put(DBPScriptObject.OPTION_OBJECT_SAVE, true);
+            // The same fact the new window decides its session by (QueryWindowContext.open)
+            if (forQueryWindow && QueryWindowContext.isSeparate(dataSource.getContainer())) {
+                options.put(DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE, true);
+            }
             DBEPersistAction[] commandActions = command.getPersistActions(monitor, context, options);
             if (commandActions != null) {
                 actions.addAll(List.of(commandActions));

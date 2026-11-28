@@ -77,6 +77,10 @@ import java.util.regex.Pattern;
  *   "빠질 수 있음" 주석 (앱 변경 #159, docs/chromite/swing-routines.md "DDL 권한과 취소")
  * - 2026-11-22 {@link #getDDL}: 취소는 모니터와 프로세스 안의 중단으로만 판단. ORA-01013을 취소로 분류한 뒤에도 시간 초과·다른 세션의
  *   취소가 오류(테이블은 대신 만든 DDL)로 남게 (앱 변경 #169, docs/chromite/swing-frontend.md "DB별 취소 오류의 분류")
+ * - 2026-11-29 {@link #addSchemaChangeActions(DBCExecutionContext, List, OracleSourceObject, Map)}: 명령 옵션
+ *   {@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA=<기본>}을 넣지 않음. Modify 스크립트를
+ *   받는 자기 세션 창은 개체의 스키마에서 열리는데, 그 문장이 실행 뒤 창의 세션을 기본 스키마로 옮겼다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class OracleUtils {
 
@@ -507,6 +511,20 @@ public class OracleUtils {
 
     public static void addSchemaChangeActions(DBCExecutionContext executionContext, List<DBEPersistAction> actions, OracleSourceObject object)
     {
+        addSchemaChangeActions(executionContext, actions, object, DBPScriptObject.EMPTY_OPTIONS);
+    }
+
+    /**
+     * Puts {@code ALTER SESSION SET CURRENT_SCHEMA=<object's schema>} first and, when the context's current schema is another one,
+     * the switch back to it last, unless the command's options keep the session in the object's schema
+     * ({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}).
+     */
+    public static void addSchemaChangeActions(
+        DBCExecutionContext executionContext,
+        List<DBEPersistAction> actions,
+        OracleSourceObject object,
+        Map<String, Object> options
+    ) {
         OracleSchema schema = object.getSchema();
         if (schema == null) {
             return;
@@ -516,7 +534,7 @@ public class OracleUtils {
             "ALTER SESSION SET CURRENT_SCHEMA=" + schema.getName(),
             DBEPersistAction.ActionType.INITIALIZER));
         OracleSchema defaultSchema = ((OracleExecutionContext)executionContext).getDefaultSchema();
-        if (schema != defaultSchema && defaultSchema != null) {
+        if (schema != defaultSchema && defaultSchema != null && !CommonUtils.getOption(options, DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE)) {
             actions.add(new SQLDatabasePersistAction(
                 "Set current schema",
                 "ALTER SESSION SET CURRENT_SCHEMA=" + defaultSchema.getName(),

@@ -25,6 +25,11 @@ import java.util.Map;
 
 /**
  * Object with DDL
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: {@link #OPTION_SKIP_DEFAULTS_RESTORE}. Modify 스크립트를 받는 자기 세션 쿼리 창은 개체의 DB/스키마에서 열리므로,
+ *   객체 관리자가 끝에 붙이던 "실행 문맥의 기본 DB/스키마로 돌아가기" 문장이 그 창의 세션을 다른 곳으로 옮겼다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public interface DBPScriptObject extends DBPObject {
 
@@ -55,6 +60,14 @@ public interface DBPScriptObject extends DBPObject {
 
     // Can be used by DDL generators to generate object ALTER but CREATE.
     String OPTION_OBJECT_ALTER = "object.alter";
+
+    /**
+     * Object managers' persist actions (Boolean, default false): the session that runs the script is to stay in the object's
+     * database/schema, so leave out the last statement that switches it back to the execution context's default database/schema
+     * (SQL Server {@code USE <default>}, MySQL {@code USE <default>}, Oracle {@code ALTER SESSION SET CURRENT_SCHEMA=<default>}).
+     * The first switch to the object's place stays. Without it the script is self-contained: it returns the session where it was.
+     */
+    String OPTION_SKIP_DEFAULTS_RESTORE = "script.skipDefaultsRestore"; //$NON-NLS-1$
 
     String OPTION_DDL_SKIP_FOREIGN_KEYS = "ddl.skipForeignKeys"; //$NON-NLS-1$
     String OPTION_DDL_ONLY_FOREIGN_KEYS = "ddl.onlyForeignKeys"; //$NON-NLS-1$

@@ -118,7 +118,8 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
   `MainFrame.runWhereObjectIs`)로 개체(New는 폴더의 개체)의 DB/스키마에서 열린다: 자기 세션은 그 DB/스키마로 열고, 주 세션을 함께 쓰는 PostgreSQL 창은 그 DB의
   주 세션을 함께 쓴다. 어느 세션의 기본값도 바꾸지 않는다(사용자 결정 2026-11-28). 스크립트는 개체의 DB 인스턴스 주 문맥을 그대로 써서 만든다. 그 문맥의 기본
   DB/스키마가 개체의 것과 다르면 드라이버 관리자가 개체의 곳으로 갔다 돌아오는 문장을 더한다(SQL Server·MySQL 트리거 `USE` 쌍, Oracle 끝의 `ALTER SESSION SET
-  CURRENT_SCHEMA`). 2026-11-28까지는 스크립트를 만들기 전에 주 세션을 개체의 곳으로 옮겨 주 세션을 함께 쓰는 창이 모두 따라갔다
+  CURRENT_SCHEMA`). 자기 세션 창은 개체의 곳에 남아야 하므로 돌아오는 문장을 빼고(`DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE`), 주 세션을 함께 쓰는 창과
+  ALTER 대상 ▸ 클립보드 글은 둔다(공유 세션·붙여 실행한 세션이 제자리로 돌아옴). 2026-11-28까지는 스크립트를 만들기 전에 주 세션을 개체의 곳으로 옮겨 주 세션을 함께 쓰는 창이 모두 따라갔다
   ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창").
 - **실행 뒤 다시 읽기:** 실행이 끝날 때마다(성공 여부와 상관없이) 다시 읽는다. MySQL처럼 `DROP` 뒤 `CREATE`가 실패하면 개체가 사라지므로 트리가 그 상태를 보여야 한다.
   Modify는 개체 노드만 다시 읽어 가볍다. 개체가 없어졌으면 모델이 노드를 지운다. New는 폴더를 다시 읽는데, 모델은 폴더의 부모(스키마)를 다시 읽는다
@@ -181,3 +182,4 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
   설정을 끈 연결 등의 창만 주 세션을 함께 씀(`chromite/query-library-shared-session`, 문서만).
 - 2026-11-29 수정·ALTER 대상·새 뷰/프로시저/함수가 주 세션을 옮기지 않음: 창이 개체의 DB/스키마에서 열리고(`openSourceScript`가 개체를 받음), 위 질문과
   `SourceScripts.bindDefaultContext`를 지움. "창이 도는 DB/스키마"로 고쳐 씀(`chromite/commands-keep-main-session`). 회귀 테스트는 실행하지 않았다.
+- 2026-11-29 같은 브랜치 둘째 커밋: 자기 세션 창의 수정 글은 끝의 돌아가기 문장을 뺌, 클립보드 글은 그대로. 회귀 테스트는 실행하지 않았다.

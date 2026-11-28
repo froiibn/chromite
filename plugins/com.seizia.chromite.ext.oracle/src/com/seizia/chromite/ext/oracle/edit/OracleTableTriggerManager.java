@@ -23,6 +23,7 @@ import com.seizia.chromite.ext.oracle.model.OracleTableBase;
 import com.seizia.chromite.ext.oracle.model.OracleTableTrigger;
 import com.seizia.chromite.ext.oracle.model.OracleUtils;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.edit.DBECommandContext;
 import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -38,6 +39,11 @@ import java.util.Map;
 
 /**
  * OracleTableTriggerManager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 만들기·고치기가 명령 옵션을 {@code OracleUtils.addSchemaChangeActions}에
+ *   넘김: {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA=<기본>}을 넣지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class OracleTableTriggerManager extends SQLTriggerManager<OracleTableTrigger, OracleTableBase> {
 
@@ -82,6 +88,18 @@ public class OracleTableTriggerManager extends SQLTriggerManager<OracleTableTrig
         @NotNull OracleTableTrigger trigger,
         boolean create
     ) {
+        createOrReplaceTriggerQuery(monitor, executionContext, actions, trigger, create, DBPScriptObject.EMPTY_OPTIONS);
+    }
+
+    @Override
+    protected void createOrReplaceTriggerQuery(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull OracleTableTrigger trigger,
+        boolean create,
+        @NotNull Map<String, Object> options
+    ) {
         String source = OracleUtils.normalizeSourceName(monitor, trigger, false);
         if (source == null) {
             return;
@@ -91,7 +109,7 @@ public class OracleTableTriggerManager extends SQLTriggerManager<OracleTableTrig
             script = "CREATE OR REPLACE " + script;
         }
         actions.add(new SQLDatabasePersistAction("Create trigger", script, true)); //$NON-NLS-2$
-        OracleUtils.addSchemaChangeActions(executionContext, actions, trigger);
+        OracleUtils.addSchemaChangeActions(executionContext, actions, trigger, options);
     }
 
 }

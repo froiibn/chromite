@@ -395,6 +395,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-29 Query Library 머리말 DB가 있는 실행: 주 문맥을 함께 쓰는 PostgreSQL 창은 그 DB의 주 문맥에서 돈다({@link #getRunContext}).
  *   전에는 바인딩이 함께 쓰는 주 세션을 그 DB로 옮기고(연결의 기본 인스턴스) 실행은 옛 DB에서 돌았다. 그 세션의 스키마를 바꿔야 하면 실행하지 않음
  *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
+ * - 2026-11-29 {@link #setRunDefaults}: 프로시저 실행 창은 실행마다 루틴의 스키마를 본다. 주 문맥을 함께 쓰는 PostgreSQL 창의 스키마가 다르면
+ *   Query Library와 같은 글로 실행하지 않는다(사용자가 창의 스키마 목록에서 고름). 전에는 루틴 본문의 스키마 없는 이름이 공유 세션의 스키마로 풀렸다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -607,6 +610,12 @@ final class SqlEditorPanel extends JPanel {
     @Nullable
     private DefaultObjectNames restoredDefaults;
     private final Object restoredDefaultsLock = new Object();
+    /**
+     * The database/schema every run of the window is meant for when no binding names one ({@link #setRunDefaults}: an
+     * Execute Procedure window), checked as a Query Library header is ({@link #getRunContext}); null for other windows.
+     */
+    @Nullable
+    private volatile DefaultObjectNames runDefaults;
 
     /**
      * @param dataSourceContainer server (connection) of the query window, or null to choose it once later ({@link #chooseServer})
@@ -1366,6 +1375,17 @@ final class SqlEditorPanel extends JPanel {
         }
         // A read started by the constructor (connected connection) may have opened the session before the names were set
         refreshSchemas();
+    }
+
+    /**
+     * The window's script is meant to run in this database/schema (Execute Procedure's call: the body of a PostgreSQL routine
+     * finds its unqualified names by the caller's search_path). Every run checks it as a Query Library header
+     * ({@link #getRunContext}): a window that shares a PostgreSQL main context whose schema is another one does not run and
+     * asks the user to pick the schema in the window, which the window's picker may change; other windows run as before.
+     * Not kept across a restart. EDT.
+     */
+    void setRunDefaults(@NotNull DefaultObjectNames names) {
+        runDefaults = names;
     }
 
     /**
@@ -2133,7 +2153,7 @@ final class SqlEditorPanel extends JPanel {
 
     /**
      * The context a run takes. A run with a database/schema of its own (a Query Library query's header,
-     * {@link SqlParameterBinding#getDefaultObjectNames}) in a window that shares a main context of a connection whose
+     * {@link SqlParameterBinding#getDefaultObjectNames}, else the window's {@link #setRunDefaults}) in a window that shares a main context of a connection whose
      * databases are sessions of their own (PostgreSQL) runs in the main context of that database
      * ({@link QueryWindowContext#shareInstance}), the window staying there: the binding would otherwise move the shared
      * session to it ({@code PostgreDataSource.setActiveDatabase}, every window that shares it follows, an open transaction
@@ -2152,6 +2172,9 @@ final class SqlEditorPanel extends JPanel {
         @NotNull DBCExecutionContext context
     ) throws DBException {
         DefaultObjectNames names = binding.getDefaultObjectNames();
+        if (names == null) {
+            names = runDefaults;
+        }
         if (names == null || context == windowContext.getOwn(dataSource.getContainer()) || !(context.getOwnerInstance() instanceof DBSCatalog)) {
             return context;
         }

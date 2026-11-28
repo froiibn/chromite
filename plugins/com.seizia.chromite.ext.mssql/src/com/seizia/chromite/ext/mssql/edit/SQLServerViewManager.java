@@ -27,6 +27,7 @@ import com.seizia.chromite.ext.mssql.model.SQLServerSchema;
 import com.seizia.chromite.ext.mssql.model.SQLServerView;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.edit.DBECommandContext;
 import com.seizia.chromite.model.edit.DBEPersistAction;
@@ -43,6 +44,10 @@ import java.util.Map;
 
 /**
  * SQLServerViewManager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 명령 옵션 {@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code USE <기본 DB>}를 넣지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerView> {
 
@@ -96,7 +101,7 @@ public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerVie
         @NotNull StructCreateCommand command,
         @NotNull Map<String, Object> options
     ) {
-        createOrReplaceViewQuery(monitor, executionContext, actions, command.getObject(), ViewAction.CREATE);
+        createOrReplaceViewQuery(monitor, executionContext, actions, command.getObject(), ViewAction.CREATE, options);
     }
 
     @Override
@@ -108,7 +113,7 @@ public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerVie
         @NotNull Map<String, Object> options
     ) throws DBException {
         if (command.getProperties().size() > 1 || !command.hasProperty(DBConstants.PROP_ID_DESCRIPTION)) {
-            createOrReplaceViewQuery(monitor, executionContext, actionList, command.getObject(), ViewAction.ALTER);
+            createOrReplaceViewQuery(monitor, executionContext, actionList, command.getObject(), ViewAction.ALTER, options);
         }
     }
 
@@ -120,7 +125,7 @@ public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerVie
         @NotNull ObjectDeleteCommand command,
         @NotNull Map<String, Object> options
     ) {
-        createOrReplaceViewQuery(monitor, executionContext, actions, command.getObject(), ViewAction.DROP);
+        createOrReplaceViewQuery(monitor, executionContext, actions, command.getObject(), ViewAction.DROP, options);
     }
 
     private void createOrReplaceViewQuery(
@@ -128,7 +133,8 @@ public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerVie
         @NotNull DBCExecutionContext executionContext,
         @NotNull List<DBEPersistAction> actions,
         @NotNull SQLServerView view,
-        @NotNull ViewAction action
+        @NotNull ViewAction action,
+        @NotNull Map<String, Object> options
     ) {
         SQLServerDatabase procDatabase = view.getContainer().getDatabase();
         SQLServerDatabase defaultDatabase = ((SQLServerExecutionContext)executionContext).getDefaultCatalog();
@@ -149,7 +155,7 @@ public class SQLServerViewManager extends SQLServerBaseTableManager<SQLServerVie
                 break;
         }
 
-        if (addUse) {
+        if (addUse && !CommonUtils.getOption(options, DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE)) {
             actions.add(new SQLDatabasePersistAction("Set current database ", "USE " + DBUtils.getQuotedIdentifier(defaultDatabase), false)); //$NON-NLS-2$
         }
     }

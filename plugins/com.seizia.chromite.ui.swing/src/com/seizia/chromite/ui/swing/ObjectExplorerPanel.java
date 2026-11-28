@@ -307,6 +307,7 @@ import java.util.regex.Pattern;
  * - 2026-11-28 New Query·Select Top N·Script as가 선택한 개체를 창에 넘김({@link QueryWindows#openQuery}, {@link QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}):
  *   창이 개체의 DB/스키마에서 돈다. 전에는 연결의 기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 SELECT가 기본 DB의 같은 이름 표를 읽었다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
+ * - 2026-11-29 {@link QueryWindows#openCallScript}: 프로시저 실행 창은 실행마다 루틴의 스키마를 본다(같은 문서 같은 절)
  * - 2026-11-29 {@link QueryWindows#openSourceScript}가 창이 돌 개체를 받음: Modify·새 개체 틀·Go to Source 창도 개체의 DB/스키마에서 열린다.
  *   전에는 명령이 연결의 주 세션을 개체의 곳으로 옮겼다(docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
@@ -358,6 +359,16 @@ final class ObjectExplorerPanel extends JPanel {
          */
         void openScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script, long maxRows,
                         boolean execute);
+
+        /**
+         * Opens a query window with a routine's call script (Execute Procedure) in the routine's database/schema, as
+         * {@link #openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}, and every run of the window checks
+         * that schema ({@link SqlEditorPanel#setRunDefaults}): a window that shares a PostgreSQL main context of another
+         * schema does not run, so that the routine's body does not find its names in that schema.
+         *
+         * @param execute run the script right away
+         */
+        void openCallScript(@NotNull DBPDataSourceContainer dataSource, @NotNull DBSObject routine, @NotNull String script, boolean execute);
 
         /**
          * Shows an object definition in a read-only tab ("View DDL").

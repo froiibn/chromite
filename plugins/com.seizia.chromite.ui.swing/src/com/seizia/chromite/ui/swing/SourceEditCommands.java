@@ -53,6 +53,7 @@ import java.util.function.Supplier;
  * - 2026-11-22 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-28 스크립트를 만들기 전에 주 세션의 열린 트랜잭션을 물음({@code SourceScripts.confirmBindDefaultContext}, 다른 DB로 옮길 때만)
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 Modify 글은 자기 세션 창이면 끝의 돌아가기 문장을 뺌, ALTER 대상 ▸ 클립보드는 둠({@link SourceScripts#generateAlter})
  * - 2026-11-29 위 질문을 지움: 명령이 주 세션을 옮기지 않고, 창이 개체(새 틀은 폴더의 개체)의 DB/스키마에서 열린다
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
@@ -147,7 +148,7 @@ final class SourceEditCommands {
         }
         DBPDataSourceContainer container = objectNode.getDataSourceContainer();
         String title = toClipboard ? SourceEditMessages.source_script_alter : SourceEditMessages.source_modify;
-        String script = generate(title, monitor -> SourceScripts.generateAlter(monitor, object));
+        String script = generate(title, monitor -> SourceScripts.generateAlter(monitor, object, !toClipboard));
         if (script == null) {
             return;
         }

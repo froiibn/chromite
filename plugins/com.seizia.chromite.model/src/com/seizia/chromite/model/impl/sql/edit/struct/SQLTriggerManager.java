@@ -36,6 +36,12 @@ import java.util.Map;
 
 /**
  * SQL trigger manager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 만들기·고치기가 명령의 옵션을 받는 {@link #createOrReplaceTriggerQuery(DBRProgressMonitor, DBCExecutionContext, List, DBSTrigger, boolean, Map)}을
+ *   부른다. 기본은 옵션 없는 메서드와 같고, 끝에 기본 DB/스키마로 돌아가는 문장을 넣는 관리자가
+ *   {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}를 보도록 고쳐 쓴다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public abstract class SQLTriggerManager<OBJECT_TYPE extends DBSTrigger, CONTAINER_TYPE extends DBSObject>
     extends SQLObjectEditor<OBJECT_TYPE, CONTAINER_TYPE>
@@ -61,13 +67,13 @@ public abstract class SQLTriggerManager<OBJECT_TYPE extends DBSTrigger, CONTAINE
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand command, @NotNull Map<String, Object> options)
     {
-        createOrReplaceTriggerQuery(monitor, executionContext, actions, command.getObject(), true);
+        createOrReplaceTriggerQuery(monitor, executionContext, actions, command.getObject(), true, options);
     }
 
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options)
     {
-        createOrReplaceTriggerQuery(monitor, executionContext, actionList, command.getObject(), false);
+        createOrReplaceTriggerQuery(monitor, executionContext, actionList, command.getObject(), false, options);
     }
 
     @Override
@@ -90,6 +96,21 @@ public abstract class SQLTriggerManager<OBJECT_TYPE extends DBSTrigger, CONTAINE
         @NotNull List<DBEPersistAction> actions,
         @NotNull OBJECT_TYPE trigger,
         boolean create);
+
+    /**
+     * Makes the create/replace statements with the command's options (e.g.
+     * {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}); by default the options are not used.
+     */
+    protected void createOrReplaceTriggerQuery(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull OBJECT_TYPE trigger,
+        boolean create,
+        @NotNull Map<String, Object> options)
+    {
+        createOrReplaceTriggerQuery(monitor, executionContext, actions, trigger, create);
+    }
 
 }
 
