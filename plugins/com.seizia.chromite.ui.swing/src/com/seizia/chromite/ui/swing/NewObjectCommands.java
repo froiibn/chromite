@@ -98,8 +98,10 @@ import java.util.function.Supplier;
  * - 2026-11-22 서버 확장 폴더의 틀(중립 자리 {@link AltibaseObjectTemplates}): 확장 번들이 넣은 폴더는 종류가 없어 위 길에 들지 않으므로
  *   폴더의 항목 속성 이름으로 확장의 노드에 틀을 묻고, 틀마다 "New &lt;종류&gt;…" 항목을 이 항목 바로 뒤에 넣는다(한 폴더가 두 종류를 담을 수
  *   있음). 여는 길은 틀과 같다(앱 변경 #156, docs/chromite/swing-create-objects.md)
- * - 2026-11-28 틀을 만들기 전에 주 세션의 열린 트랜잭션을 물음({@link SourceScripts#confirmBindDefaultContext}, 다른 DB로 옮길 때만)
+ * - 2026-11-28 틀을 만들기 전에 주 세션의 열린 트랜잭션을 물음({@code SourceScripts.confirmBindDefaultContext}, 다른 DB로 옮길 때만)
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 위 질문을 지움: 틀이 주 세션을 옮기지 않고, 창이 폴더의 개체의 DB/스키마에서 열린다. 서버 확장의 틀은 전처럼 연결의 기본값에서
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class NewObjectCommands {
 
@@ -287,9 +289,6 @@ final class NewObjectCommands {
      */
     private void openTemplate(@NotNull Target target) {
         String title = NLS.bind(CreateObjectMessages.create_title, target.typeLabel());
-        if (!SourceScripts.confirmBindDefaultContext(owner, target.container())) {
-            return;
-        }
         String script;
         try {
             script = ProgressDialog.runTask(title, monitor -> SourceScripts.generateNew(monitor, target.folder(), target.kind()));
@@ -299,7 +298,7 @@ final class NewObjectCommands {
             DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
             return;
         }
-        queryWindows.openSourceScript(target.folder().getDataSourceContainer(), script, target.folder(), null);
+        queryWindows.openSourceScript(target.folder().getDataSourceContainer(), target.container(), script, target.folder(), null);
     }
 
     /**
@@ -331,7 +330,7 @@ final class NewObjectCommands {
             DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
             return;
         }
-        queryWindows.openSourceScript(folder.getDataSourceContainer(), script, folder, null);
+        queryWindows.openSourceScript(folder.getDataSourceContainer(), null, script, folder, null);
     }
 
     /**

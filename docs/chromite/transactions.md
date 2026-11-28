@@ -123,7 +123,7 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 - 열기: 창이 연결된 연결을 가질 때(창을 열 때, 연결될 때, 연결을 바꿀 때, 상태 줄의 커밋 방식 읽기와 기본 DB 읽기 작업) 또는 처음 실행할 때 작업 스레드에서
   `DBSInstance.openIsolatedContext(monitor, "SQLEditor <파일 이름>", 주 문맥)`으로 연다. SWT와 같은 이름이라 서버의 세션 목록(클라이언트 이름)에서 창을 구별할 수 있다.
   주 문맥을 `initFrom`으로 넘겨 기본 카탈로그·스키마를 복사한다(PostgreSQL search_path, SQL Server·MySQL 현재 DB). 자동 커밋·격리 수준은 연결 설정을 따른다.
-  Modify·New 스크립트 창도 스크립트를 만들 때 주 문맥에 맞춘 DB/스키마를 이렇게 이어받는다(`SourceScripts`).
+  개체에서 연 창(Modify·New 스크립트 창 포함)은 복사한 뒤 그 세션만 개체의 DB/스키마로 옮긴다(`MainFrame.runWhereObjectIs`, 주 문맥은 바뀌지 않음).
 - 닫기: 창을 닫을 때, 창의 연결을 바꿀 때 작업 스레드에서 닫는다.
 - 연결 끊기: 인스턴스가 모든 문맥을 닫는다(`JDBCRemoteInstance.shutdown`). 끊기 전 질문(`ExitTransactionCheck.confirmDisconnect`)은 연결의 모든 문맥을 보므로
   창마다의 세션이 모두 목록에 나오고, 목록은 문맥 이름 대신 창 이름("연결 (SQLQuery1.sql)")이다. 다시 연결하면 창마다 새 세션을 연다.
@@ -582,3 +582,5 @@ SWT 대조 B-S18(영역 A-C5의 자동 커밋 부분): 열린 세션의 자동 �
 - 2026-11-25 커밋 방식 도구 설명에서 "활성"을 뺌(앱 변경 #186, `chromite/separate-window-leftovers`): 도구 막대마다 자기 창의 쿼리 창을 보이므로(#175)
   활성이 아닌 창의 막대에서 틀린 말이었다. "커밋 방식 전환 > 자리와 모양". 회귀 테스트는 실행하지 않았다(영향받을 수 있는 기능: Query 메뉴와 도구 막대의
   커밋 방식 도구 설명)
+- 2026-11-29 "세션의 수명"의 Modify·New 줄을 고침: 그 창도 개체에서 연 창처럼 자기 세션만 개체의 DB/스키마로 옮기고 주 문맥을 바꾸지 않는다
+  (`chromite/commands-keep-main-session`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")

@@ -108,6 +108,8 @@ import java.util.function.Function;
  * - 2026-11-29 {@link #confirmWindowMove}: Query Library 실행이 공유 주 세션의 마지막 쿼리 창을 다른 DB의 주 세션으로 옮기기 전 질문.
  *   {@link #confirmDefaultChange}와 같은 제목·목록·단추, 설명 줄만 다름(기본값이 바뀌지 않고 주 세션도 옮기지 않으므로)
  *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
+ * - 2026-11-29 주석만: {@link #confirmDefaultChange}는 다시 Set as Default만 씀(Modify 등은 주 세션을 옮기지 않게 되어 그 질문을 지움)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class ExitTransactionCheck {
 
@@ -172,11 +174,10 @@ final class ExitTransactionCheck {
     }
 
     /**
-     * Before Object Explorer's Set as Default, or a command that binds the main session to an object's database
-     * (Modify, Execute Procedure, New templates, Schema Compare's script: {@link SourceScripts#confirmBindDefaultContext}),
-     * moves the connection's main session to another database instance (a PostgreSQL database: the windows that share
-     * the main session then use another server session, and the open transaction would stay behind unseen): asks Commit /
-     * Roll back / Cancel when the session has a transaction that is not committed. Call in the EDT.
+     * Before Object Explorer's Set as Default moves the connection's main session to another database instance (a
+     * PostgreSQL database: the windows that share the main session then use another server session, and the open
+     * transaction would stay behind unseen): asks Commit / Roll back / Cancel when the session has a transaction that is
+     * not committed. Call in the EDT.
      *
      * @param target the database or schema that becomes the default
      * @return true when the default may change: no open transaction, or it was committed or rolled back as asked

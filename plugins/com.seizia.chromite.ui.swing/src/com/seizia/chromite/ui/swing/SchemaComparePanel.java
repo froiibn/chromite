@@ -89,8 +89,8 @@ import java.util.Objects;
  *     칠한다(텍스트 비교와 함께 쓰는 {@link TextDiffView}, 줄 앞뒤 공백 무시). 같은 종류 DB면 원본 DDL의 스키마 이름을 대상 이름으로 바꿔 보인다(비교와 같은 기준).</li>
  *     <li>안전: 스크립트는 대상 연결의 새 쿼리 창에 열기만 하고 실행하지 않는다({@code openScript(…, execute=false)}).
  *     쿼리 창의 실행 확인·트랜잭션 규칙이 그대로 적용된다. 스크립트 글은 Modify와 같은 {@link SourceScripts#generateContainerScript}가
- *     구분자(SQL Server {@code GO}, MySQL {@code DELIMITER})와 대상 DB 맞추기를 정한다. 대상 DB 맞추기가 주 세션을 다른 DB로 옮기면
- *     먼저 열린 트랜잭션을 묻는다({@link SourceScripts#confirmBindDefaultContext}).</li>
+ *     구분자(SQL Server {@code GO}, MySQL {@code DELIMITER})와 SQL Server {@code USE} 배치를 정한다. 쿼리 창은 개체에서 연 창과 같이
+ *     대상 DB/스키마에서 열린다(어느 세션도 옮기지 않음).</li>
  * </ul>
  *
  * 변경 이력:
@@ -99,8 +99,10 @@ import java.util.Objects;
  *   좌우 맞춤 빈 행·바뀐 낱말 표시·스크롤 맞춤이 더해짐, 색과 줄 앞뒤 공백 무시는 그대로 (docs/chromite/text-compare.md)
  * - 2026-11-22 {@code showError}의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뜀(앱 변경 #168,
  *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
- * - 2026-11-28 스크립트를 만들기 전에 대상 연결 주 세션의 열린 트랜잭션을 물음({@link SourceScripts#confirmBindDefaultContext},
+ * - 2026-11-28 스크립트를 만들기 전에 대상 연결 주 세션의 열린 트랜잭션을 물음({@code SourceScripts.confirmBindDefaultContext},
  *   다른 DB로 옮길 때만) (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 위 질문과 주 세션 옮기기를 지움: 스크립트 창이 대상 DB/스키마에서 열린다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class SchemaComparePanel extends JPanel implements ToolDocument {
 
@@ -701,23 +703,20 @@ final class SchemaComparePanel extends JPanel implements ToolDocument {
             statusLabel.setText(CompareMessages.compare_nothing_checked);
             return;
         }
-        if (!SourceScripts.confirmBindDefaultContext(this, compared.getTarget())) {
-            return;
-        }
         String script;
         try {
             script = ProgressDialog.runTask(CompareMessages.compare_progress_script, monitor -> {
                 List<DBEPersistAction> actions = new ArrayList<>(SchemaScriptGenerator.createHeader(compared));
                 actions.addAll(SchemaScriptGenerator.generate(monitor, compared));
-                return SourceScripts.generateContainerScript(monitor, compared.getTarget(), actions);
+                return SourceScripts.generateContainerScript(compared.getTarget(), actions);
             });
         } catch (DBException e) {
             showError(CompareMessages.compare_script_failed, e);
             return;
         }
         DBPDataSource dataSource = Objects.requireNonNull(compared.getTarget().getDataSource());
-        // Never run here: the user reviews the script in the query window and runs it there
-        host.openScript(dataSource.getContainer(), script, 0, false);
+        // Never run here: the user reviews the script in the query window (opened in the target database/schema) and runs it there
+        host.openScript(dataSource.getContainer(), compared.getTarget(), script, 0, false);
     }
 
     private void showError(@NotNull String message, @NotNull DBException e) {

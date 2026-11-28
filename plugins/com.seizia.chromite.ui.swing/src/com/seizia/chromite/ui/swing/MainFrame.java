@@ -369,6 +369,9 @@ import java.util.function.Supplier;
  *   기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 스크립트가 기본 DB의 같은 이름 표에서 돌았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  * - 2026-11-28 주석만: 주 세션을 함께 쓰는 창도 PostgreSQL에서는 개체의 DB의 주 세션을 함께 씀({@link #runWhereObjectIs}, 같은 문서 같은 절)
+ * - 2026-11-29 {@link #openSourceScript}(Modify, 새 개체 틀, Go to Source, 오류로 가기)도 개체의 DB/스키마에서 돈다({@link #runWhereObjectIs}).
+ *   전에는 명령이 연결의 주 세션을 개체의 곳으로 옮겨 새 창이 따라갔다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -1385,9 +1388,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     @Override
-    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
-                                 @Nullable SqlEditorPanel.SourcePosition position) {
+    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script,
+                                 @NotNull DBNDatabaseNode refreshNode, @Nullable SqlEditorPanel.SourcePosition position) {
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        runWhereObjectIs(editor, location);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
         // Modify: Query > Debug… and Trace Execution… use the routine of the window (a New window's node is its folder: neither applies)

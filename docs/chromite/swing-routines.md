@@ -59,9 +59,10 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
 - **값 규칙:** 디버거 시작 대화상자와 같은 SQL 식(`10`, `'text'`, `NULL`)이다. 비어 있으면 NULL이다. SQL Server는 `DEFAULT`를 쓰면 매개 변수의 기본값이다
   (T-SQL 프로시저의 기본값은 `sys.parameters`에 없어 미리 채울 수 없다).
 - **기본 단추:** 실행 단추가 루틴을 실행하므로 기본 단추는 취소다(확인의 취소 기본 규칙). "Open in Query Window"는 실행하지 않고 연다.
-- **DB·스키마:** Modify와 같은 `SourceScripts.bindDefaultContext`로 새 창이 루틴의 DB·스키마에서 실행된다(PostgreSQL은 다른 DB의 루틴도 그 DB에서).
-  다른 PostgreSQL DB로 옮길 때 주 세션에 열린 트랜잭션이 있으면 값을 받은 뒤, 옮기기 전에 커밋/롤백/취소를 묻는다(`SourceScripts.confirmBindDefaultContext`,
-  [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
+- **DB·스키마:** 새 창은 개체에서 연 다른 창과 같은 길(`openScript(연결, 루틴, …)` → `MainFrame.runWhereObjectIs`)로 루틴의 DB·스키마에서 열린다.
+  어느 세션도 옮기지 않는다. 창마다 자기 세션이면 그 세션을 루틴의 DB·스키마로 열고(PostgreSQL은 다른 DB의 루틴도 그 DB에서), 주 세션을 함께 쓰는
+  PostgreSQL 창은 그 DB의 주 세션을 함께 쓴다(스키마는 바꾸지 않음). 호출문은 루틴 이름을 스키마까지 쓰므로 맞는 루틴을 부른다
+  ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창").
 - **재사용:** 인수 표는 디버거 시작 대화상자의 표를 `RoutineArgumentTable`로 옮겨 함께 쓴다. 형식 칸은 매개 변수 자신의 길이·정밀도를 보이게 바꿨다
   (전에는 데이터 형식 이름이라 SQL Server에서 `nvarchar(4000)`, `decimal(38,38)`처럼 선언과 달랐다). 스칼라 함수와 테이블 반환 함수의 구분은
   #122의 `SQLDialect.isCallStatementTarget`을 쓴다. Oracle 변수 선언은 Oracle 디버거(`OracleDebugCall`)와 같은 규칙이다(그 클래스는 디버그 번들의
@@ -223,3 +224,6 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
 - 2026-11-22 "DDL 권한과 취소"의 남긴 것 중 바쁜 메타데이터 연결에서의 취소를 고친 것으로 옮김(앱 변경 #161, [cancel-busy-connection.md](cancel-busy-connection.md)).
 - 2026-11-28 프로시저 실행: 주 세션을 다른 PostgreSQL DB로 옮기기 전에 열린 트랜잭션을 물음(`chromite/bind-default-context-transaction`,
   [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). Go to Source Code·오류로 가기도 같은 확인을 부르지만 Oracle은 묻는 경우가 없다. 회귀 테스트는 실행하지 않았다.
+- 2026-11-29 프로시저 실행·Go to Source Code·오류로 가기가 주 세션을 옮기지 않음: 창이 루틴(패키지, 개체)의 DB·스키마에서 열리고, 위 질문은 지움
+  (`chromite/commands-keep-main-session`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창").
+  회귀 테스트는 실행하지 않았다.

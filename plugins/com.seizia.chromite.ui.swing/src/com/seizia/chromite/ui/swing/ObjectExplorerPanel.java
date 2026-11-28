@@ -307,6 +307,8 @@ import java.util.regex.Pattern;
  * - 2026-11-28 New Query·Select Top N·Script as가 선택한 개체를 창에 넘김({@link QueryWindows#openQuery}, {@link QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}):
  *   창이 개체의 DB/스키마에서 돈다. 전에는 연결의 기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 SELECT가 기본 DB의 같은 이름 표를 읽었다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
+ * - 2026-11-29 {@link QueryWindows#openSourceScript}가 창이 돌 개체를 받음: Modify·새 개체 틀·Go to Source 창도 개체의 DB/스키마에서 열린다.
+ *   전에는 명령이 연결의 주 세션을 개체의 곳으로 옮겼다(docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -395,11 +397,13 @@ final class ObjectExplorerPanel extends JPanel {
         /**
          * Opens a query window with an object's ALTER script or a new object's template ("Modify", "New View").
          *
+         * @param location    the object whose database/schema the window runs in (as {@link #openScript(DBPDataSourceContainer,
+         *                    DBSObject, String, long, boolean)}), or null for the connection's default
          * @param refreshNode node read again from the database after each run of the window (the object, or the folder)
          * @param position    the place to show (a routine of a package, compile errors), or null for the start
          */
-        void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
-                              @Nullable SqlEditorPanel.SourcePosition position);
+        void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script,
+                              @NotNull DBNDatabaseNode refreshNode, @Nullable SqlEditorPanel.SourcePosition position);
 
         /**
          * Shows the document tab with a key, creating it first if none is open (SQL Server Agent job activity, history, log).
