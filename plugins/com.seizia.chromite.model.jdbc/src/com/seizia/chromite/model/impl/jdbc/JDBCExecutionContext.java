@@ -26,6 +26,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPAdaptable;
 import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.AbstractExecutionContext;
@@ -69,6 +70,9 @@ import java.util.function.Consumer;
  *   ({@code handleContextOpen}), 다른 인스턴스로 세션 옮기기({@link #reconnectTo}): 옛 인스턴스의 문맥 목록에서 빠지고 새 인스턴스의 목록에 듦.
  *   PostgreSQL 쿼리 창의 자기 세션이 다른 DB로 다시 연결된 뒤 열린 트랜잭션이 앱에 보이지 않아(상태 줄, 창 닫기 질문) 묻지 않고 끝났고,
  *   문맥은 처음 DB의 목록에 남았다 (docs/chromite/swing-sql-editor-session-ui.md "자기 세션을 다른 DB로 다시 연결할 때")
+ * - 2026-11-28 {@link #getServerSessionId}: 세션을 열 때({@link #connect}) 방언({@link JDBCServerSessionIdReader})으로 서버의 세션 번호를 한 번
+ *   읽어 둠. 쿼리 창 탭이 EDT에서 서버를 부르지 않고 보이게 하려는 것이다. 새 세션의 부트스트랩 문장·상태 초기화보다 먼저, 인스턴스의 배타 잠금 아래에서 읽는다
+ *   (앱 변경 #193, docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호")
  */
 public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSource, JDBCRemoteInstance>
     implements DBCTransactionManager, DBCTransactionProbe, DBPAdaptable {
@@ -83,6 +87,9 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     static final int TXN_INFO_READ_TIMEOUT = 5000;
 
     private volatile Connection connection;
+    // The server's number of the session of this connection (JDBCServerSessionIdReader), read once when it opens
+    @Nullable
+    private volatile String serverSessionId;
     private volatile Boolean autoCommit;
     private volatile Integer transactionIsolationLevel;
     private transient volatile boolean txnIsolationLevelReadInProgress;
@@ -187,6 +194,9 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
                 reopenInQueryManager = false;
             }
 
+            // On the new session before its bootstrap queries and state, under the instance's exclusive lock
+            this.serverSessionId = JDBCServerSessionIdReader.read(dataSource, connection);
+
             try {
                 this.initContextBootstrap(monitor, autoCommit);
             } catch (DBException e) {
@@ -242,6 +252,7 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
             if (connection != null && !dataSource.closeConnection(connection, purpose, !isAutoCommit(false))) {
                 log.debug("Connection close timeout");
             }
+            this.serverSessionId = null;
             this.connection = null;
         }
         if (removeContext) {
@@ -308,6 +319,17 @@ public class JDBCExecutionContext extends AbstractExecutionContext<JDBCDataSourc
     @Override
     public boolean isConnected() {
         return connection != null;
+    }
+
+    /**
+     * Read in {@link #connect} on the new session, before anything else runs on it; Invalidate/Reconnect, reopening a
+     * closed session and moving to another instance ({@link #reconnectTo}) connect again and so read the new session's
+     * number, a disconnect forgets it.
+     */
+    @Nullable
+    @Override
+    public String getServerSessionId() {
+        return connection != null ? serverSessionId : null;
     }
 
     @Override

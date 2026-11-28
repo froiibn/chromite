@@ -26,6 +26,7 @@ import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataTypeProvider;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.exec.DBCServerTransaction;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLDialectFeatures;
@@ -58,8 +59,10 @@ import java.util.Set;
  *   (docs/chromite/swing-result-generate-sql.md).
  * - 2026-11-08 Chromite: {@link #probeTransaction}: what the session's transaction holds, asked from the server
  *   (docs/chromite/idle-transactions.md "SQL Server").
+ * - 2026-11-28 Chromite: {@link #readServerSessionId}: the SPID for the query window tab
+ *   (docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호").
  */
-public class SQLServerDialectMssql extends SQLServerDialectBase implements JDBCTransactionProbe {
+public class SQLServerDialectMssql extends SQLServerDialectBase implements JDBCTransactionProbe, JDBCServerSessionIdReader {
 
     // Longest nvarchar(n)/nchar(n); longer or unbounded character data needs nvarchar(max)
     private static final int MAX_NCHAR_LENGTH = 4000;
@@ -85,6 +88,25 @@ public class SQLServerDialectMssql extends SQLServerDialectBase implements JDBCT
 
     public SQLServerDialectMssql() {
         super("SQLServer", "sqlserver");
+    }
+
+    /**
+     * {@code SELECT @@SPID}: a SELECT that reads no table does not start a transaction under IMPLICIT_TRANSACTIONS (manual
+     * commit). The same servers as {@link #probeTransaction}.
+     */
+    @Nullable
+    @Override
+    public String readServerSessionId(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        DBPDriver driver = dataSource.getContainer().getDriver();
+        if (!(dataSource instanceof SQLServerDataSource) || SQLServerUtils.isDriverBabelfish(driver) || SQLServerUtils.isDriverFabric(driver)) {
+            return null;
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(READ_TIMEOUT_SECONDS);
+            try (ResultSet rs = statement.executeQuery("SELECT @@SPID")) { //$NON-NLS-1$
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
     }
 
     /**
