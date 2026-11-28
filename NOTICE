@@ -84,13 +84,13 @@ of the installation (macOS: Contents/Eclipse/jre inside the app), linked
 with jlink from the unmodified JetBrains Runtime SDK. It is not covered by
 the Apache License 2.0 of Chromite (tools/jre/, docs/chromite/runtime.md):
 
-  JetBrains Runtime 25.0.4.1 (build b508.41)
+  JetBrains Runtime 25.0.5.1 (build b508.47)
   https://github.com/JetBrains/JetBrainsRuntime
   Copyright (c) Oracle and/or its affiliates, JetBrains s.r.o. and others
   Licensed under the GNU General Public License, version 2, with the
   Classpath Exception; the license texts are in the legal/ folder of the
   runtime. Source code:
-  https://github.com/JetBrains/JetBrainsRuntime/tree/jbr-release-25.0.4.1b508.41
+  https://github.com/JetBrains/JetBrainsRuntime/tree/jbr-release-25.0.5.1b508.47
 
 The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
 
