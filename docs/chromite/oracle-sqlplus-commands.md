@@ -29,7 +29,7 @@ SQL*Plus로 만든 것이 많아서 같은 원인으로 다른 SQL*Plus 줄도 �
 ## 동작
 
 Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에서, **줄 첫 칸에서 시작하는** 다음 줄은 서버에 보내지 않고 Chromite가 처리한다.
-세미콜론은 없어도 되고 있어도 된다.
+세미콜론은 없어도 되고 있어도 된다. `/`만 있는 줄은 들여 써도 된다(아래 "들여 쓴 `/`").
 
 | 줄 | 처리 | Messages 탭 (DBMS_OUTPUT 줄은 Server Output 탭) |
 |---|---|---|
@@ -42,7 +42,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 | `SPOOL 파일`, `SPOOL OFF` (`SPO`) | 무시 | 위와 같은 무시 안내 |
 | `PROMPT 글` (`PRO`) | 글을 Messages에 씀(빈 `PROMPT`는 아무것도 쓰지 않음) | 그 글 |
 | `EXEC 호출` (`EXECUTE`) | `BEGIN 호출; END;`로 바꿔 평범한 문장처럼 실행(DBMS_OUTPUT, 오류, 트랜잭션 처리가 같음) | 그 문장의 메시지 |
-| `/`만 있는 줄 | 문장 끝. 세미콜론 없는 앞 문장을 끝내고, PL/SQL 블록 뒤의 `/`는 빈 문장이라 버려짐 | 없음 |
+| `/`만 있는 줄(앞뒤 공백·탭 허용) | 문장 끝. 세미콜론 없는 앞 문장을 끝내고, PL/SQL 블록 뒤의 `/`는 빈 문장이라 버려짐 | 없음 |
 
 `SET SERVEROUTPUT`의 세션 값은 그 세션이 살아 있는 동안 연결 설정("DBMS_OUTPUT 읽기", Oracle 설정 페이지)보다 앞선다. 문장 전에 설정에
 맞추는 동작(`syncServerOutput`)이 되돌리지 않고, 문장 뒤에 출력을 읽을지도 세션 값으로 정하며, 다시 연결(`initializeContextState`)해도 유지된다.
@@ -54,7 +54,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 |---|---|
 | `ext.oracle` `sql.OracleSqlPlus`(새로 만듦) | 줄이 SQL*Plus 명령인지와 무엇을 하는지(종류, 옵션 이름, 나머지 글). 규칙과 처리기가 같은 판단을 씀 |
 | `ext.oracle` `sql.OracleSqlPlusRule`(새로 만듦) | 줄 첫 칸의 명령 줄을 `SQLControlToken("oracle.sqlplus")`로 돌려주는 토큰 규칙 |
-| `model.sql` `parser.rules.SQLSlashLineRule`(2026-11-12 새로 만듦) | `/`만 있는 줄을 `SQLDelimiterToken`으로 돌려주는 토큰 규칙. Oracle과 Altibase가 함께 씀(처음에는 `OracleSqlPlusRule` 안에 있었음) |
+| `model.sql` `parser.rules.SQLSlashLineRule`(2026-11-12 새로 만듦) | `/`만 있는 줄(들여 쓴 것 포함)을 `SQLDelimiterToken`으로 돌려주는 토큰 규칙. Oracle과 Altibase가 함께 씀(처음에는 `OracleSqlPlusRule` 안에 있었음) |
 | `ext.oracle` `sql.OracleDialectRules` | CONTROL 위치에 `SQLSlashLineRule`과 `OracleSqlPlusRule`을 더함(upstream MySQL `SOURCE`와 같은 자리) |
 | `ext.altibase` `sql.AltibaseDialectRules`, `model.AltibaseSQLDialect` | CONTROL 위치에 `SQLSlashLineRule`. 문장 구분자는 기본 `;`만(아래 "다른 DB"의 Altibase) |
 | `ext.oracle` `sql.OracleSqlPlusCommandHandler`(새로 만듦), `plugin.xml`의 `com.seizia.chromite.sqlCommand` `oracle.sqlplus` | 명령 실행. 엔진(`SQLQueryExecuteJob`)이 다른 `@` 명령처럼 부름 |
@@ -93,7 +93,8 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
   되므로 서버 출력·오류 위치·트랜잭션 표시가 다른 문장과 같다.
 - **`/`는 줄 단위 구분자.** (2026-11-12 전의) Altibase처럼 방언의 문장 구분자에 `/`를 넣으면 `SELECT 4/2 FROM dual` 같은 나눗셈에서도 문장이 끊긴다.
   `/`만 있는 줄만 구분자로 한다. 파서가 블록 안이라고 보는 동안의 구분자는 무시되므로(upstream 동작), 블록을 잘못 센 경우까지 `/`가 강제로
-  끝내지는 않는다.
+  끝내지는 않는다. 2026-11-28부터 줄 앞의 공백·탭도 허용한다(SQL*Plus·iSQL과 같음, 아래 "들여 쓴 `/`"). SQL*Plus 명령 줄과 달리 `/` 하나뿐인 줄은
+  SQL 본문에 거의 오지 않고, 와도(여러 줄에 걸친 나눗셈) SQL*Plus가 같은 줄에서 끊는다.
 - **`@oracle.sqlplus`.** upstream 명령 등록 방식 때문에 `@oracle.sqlplus …` 줄도 명령 규칙에 걸린다(MySQL `@mysql.source`와 같음). 이 형태는
   SQL*Plus 줄이 아니므로 처리기가 `Not a SQL*Plus command` 오류를 낸다.
 
@@ -119,6 +120,53 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 `AS|IS` 없이 형식·패키지로 구현한 함수(`AGGREGATE USING`, `PIPELINED [ROW|TABLE POLYMORPHIC] USING`)도 같게 `;`를 남긴다(같은 문서 "Oracle 스크립트 나누기 2").
 같은 절에 형식 본문(`CREATE TYPE BODY`), 선언부에 안쪽 서브프로그램이 있는 독립 루틴, 23ai `CREATE … IF NOT EXISTS`의 나누기도 있다.
 
+## 들여 쓴 `/` (2026-11-28)
+
+**보고(V190 작업 중 발견, `chromite/splitter-blank-line-indented-slash`):** 혼자 있는 줄이지만 앞에 공백이나 탭이 있는 `/`는 PL/SQL 블록 뒤에서 문장
+끝으로 쓰이지 않아, 블록과 뒤 글이 함께 실행된다.
+
+**SQL*Plus와 iSQL이 받는 것(시험 VM에서 직접 실행):** Oracle 설명서(SQL*Plus User's Guide and Reference)는 `/`를 "줄에 혼자" 두라고만 하고 앞의
+공백은 말하지 않는다. 그래서 1521 컨테이너의 SQL*Plus 23.26.3과 Altibase 컨테이너의 iSQL 7.3에서 확인했다(객체 없이, 도움 파일은 컨테이너의
+`/tmp/chromite-splitter-blank-line-indented-slash/`에 두고 지움).
+- SQL*Plus: 공백 셋, 탭, 앞뒤 공백이 있는 `/` 줄 모두 블록을 실행하고 다음 문장으로 넘어간다. `;` 없는 `SELECT` 뒤의 들여 쓴 `/`도 그 문장을
+  실행한다. `/` 뒤에 다른 글자가 있는 줄(`  / x`)은 끝이 아니다(블록에 붙어 PLS-00103). 블록 **안**의 들여 쓴 `/` 줄(`v := 10` / `   /` / `2;`)에서도
+  블록을 끊는다.
+- iSQL: 들여 쓴 `/`와 탭 뒤 `/` 모두 블록을 실행한다. `;` 없는 `SELECT` 뒤의 `/`는 줄 첫 칸이든 들여 썼든 끝으로 보지 않는다(구문 오류).
+
+**고치기 전(`origin/command` `e470c1f25c` 빌드, 1521·Altibase 7.3, 앱 안 시험 에이전트, 서버에 간 문장은 쿼리 관리자 기록):**
+블록 · 들여 쓴 `/` · `SELECT` 스크립트를 F5로 실행하면 블록 뒤 `/`가 다음 문장의 첫 글자가 되어 `/⏎SELECT …`가 가서 ORA-00900(Altibase는
+`SQL syntax error … /`)으로 멈췄다. 그 `SELECT`에서 Ctrl+Enter를 눌러도 같은 글이 갔고, 탭 뒤 `/`와 `;` 없는 `SELECT` 뒤의 들여 쓴 `/`는 세 문장을
+`/ SELECT … / BEGIN …; END` 한 문장으로 합쳤다(Ctrl+Enter, 커서부터 실행(Alt+P) 모두).
+
+**근본 원인:** `SQLSlashLineRule.isLineStart`가 `/` 바로 앞 글자가 줄 바꿈일 때만 줄 시작으로 봤다. 그런데 공백 규칙(`WhitespaceRule`)은 줄 바꿈과
+다음 줄의 들여쓰기를 한 토큰으로 읽으므로, 들여 쓴 `/`는 공백 바로 뒤에서 새 토큰으로 시작해 규칙에 걸리지 않고 평범한 기호가 되었다. 같은 규칙을
+쓰는 모든 방언이 같다: Oracle(물려받는 YashanDB, OceanBase Oracle 모드)과 Altibase 계열(ShardSphere).
+
+**고침:** `isLineStart`가 `/` 앞에서 줄 시작까지 공백·탭만 있는지 거슬러 보고(스캐너 위치는 되돌림) 그렇다면 줄 시작으로 본다. 다른 줄(뒤에 글자가 있는
+`/`, 나눗셈, 주석)은 그대로다. 블록 안의 구분자를 무시하는 파서 동작(위 설계 결정)은 바꾸지 않았으므로, 블록 안의 들여 쓴 `/` 줄은 SQL*Plus와 달리
+지금처럼 블록을 끊지 않는다(줄 첫 칸의 `/`와 같은 처리).
+
+**확인(고친 빌드, 같은 방법, 증거 `D:\Tools\_scratch\splitter-blank-line-indented-slash\`):**
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| Oracle: 블록 + 공백 셋 `/` + `SELECT` + 프로시저 + 탭 `/` + `;` 없는 `SELECT` + 공백 `/` + 블록 + 앞뒤 공백 `/` + `SELECT`, F5 | 5문장으로 나뉘고 둘째(`/⏎SELECT …`)에서 ORA-00900, 그 뒤 실행 안 됨 | 6문장 모두 성공, 프로시저 VALID, 표의 행이 기대대로(1 한 번, 2 세 번) |
+| 같은 스크립트, `SELECT … c1` / 프로시저 / `BEGIN CHR_…_P; END;` 줄에서 Ctrl+Enter | `/⏎SELECT …`(ORA-00900) / 프로시저 / `/ SELECT … / BEGIN …; END`(ORA-00900) | 그 `SELECT` 하나 / 프로시저 하나 / 그 블록 하나 |
+| 같은 스크립트, 프로시저에서 Alt+P | 프로시저 뒤 합친 문장에서 ORA-00900 | 프로시저부터 끝까지 4문장 성공 |
+| Altibase 7.3: 블록 · 공백 `/` · `SELECT` · 프로시저 · 탭 `/` · 블록 · `/` · `SELECT`, F5와 Ctrl+Enter | 둘째에서 구문 오류 | 5문장 모두 성공, Ctrl+Enter는 그 문장 하나 |
+| `SELECT 10` / `  / 2 AS q1 FROM dual;`, `SELECT 4/2 …`, 블록 안 들여 쓴 `/` 줄, `'x/y'` | 4문장 성공 | 같음(바이트까지) |
+| 지난 고침들의 참조 스크립트(Oracle 21개, Altibase 10개, PostgreSQL·SQL Server·MariaDB 각 1개)의 F5 문장과 줄마다 Ctrl+Enter 결과 | — | 바이트까지 같음(들여 쓴 `/`가 있는 이번 스크립트 둘만 다름) |
+| 끊었다 다시 연결한 뒤 Oracle·Altibase 스크립트 나누기 | — | 6문장·5문장 |
+
+임시 객체 `CHR_SPLITTER_BLS_T`·`CHR_SPLITTER_BLS_P`(SYSTEM 스키마, Altibase SYS)는 끝에 지우고 카탈로그(`ALL_OBJECTS`·`DBA_RECYCLEBIN`, `SYS_TABLES_`·
+`SYS_PROCEDURES_`)에서 0행을 확인했다.
+
+**같은 보고의 다른 항목(빈 줄로 나뉜 PostgreSQL 두 문장이 F5에서 한 문장으로 감)은 고치지 않았다.** 설정 "빈 줄로 문 끝내기"
+(`script.sql.delimiter.blank`)의 기본값 "항상"(`BLANK_LINE_AND_SEPARATOR`)이 설계대로 동작한 것이다. "항상"은 커서 위치의 문장(Ctrl+Enter)만 빈 줄에서
+끊고 스크립트 실행(F5, Alt+P)은 구분 기호에서만 나눈다(설정 페이지의 도움말과 [swing-options.md](swing-options.md) "Options > Query Execution"이 그렇게
+적음). 같은 빌드에서 PostgreSQL·Oracle·MariaDB는 F5·Alt+P에 두 문장을 한 번에 보내 구문 오류, SQL Server는 한 배치로 받아 결과 두 개, 네 DB 모두
+Ctrl+Enter는 커서의 문장 하나였다. 설정을 "자동"으로 바꾸면 F5가 두 문장으로 나눈다(PostgreSQL에서 확인).
+
 ## upstream 대비 변경점
 
 - upstream DBeaver는 Oracle의 SQL*Plus 줄을 서버에 보낸다(같은 오류). Chromite는 위 명령과 `/` 줄을 클라이언트에서 처리한다.
@@ -128,7 +176,7 @@ Oracle 연결의 쿼리 창(그리고 Oracle 방언을 물려받는 YashanDB)에
 
 - `VARIABLE`, `PRINT`, `DEFINE 이름 = 값`, `COLUMN … FORMAT`, `WHENEVER SQLERROR`, `REM`, `@파일`(SQL*Plus의 `@`는 Chromite의 명령 접두어),
   줄 끝 `-` 이어 쓰기는 처리하지 않는다(요청 범위 밖).
-- 들여 쓴 SQL*Plus 줄은 알아보지 않는다(위 설계 결정).
+- 들여 쓴 SQL*Plus 줄은 알아보지 않는다(위 설계 결정). `/` 줄만 예외다(아래 "들여 쓴 `/`").
 
 ## 확인 (2026-11-11, Windows, 이 브랜치 빌드, 빈 작업 공간, 프로세스 안 시험 에이전트)
 
@@ -203,3 +251,6 @@ Oracle(공유 규칙으로 옮긴 뒤): `SELECT 10 … FROM dual` / `/` / `SELEC
   영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)의 스크립트 나누기.
 - 2026-11-25 "본문 없는 루틴" 절에 형식 본문·안쪽 서브프로그램·`IF NOT EXISTS`를 가리키는 줄(`chromite/oracle-script-split-more`). 회귀 테스트는 실행하지
   않았다. 영향받을 수 있는 기능: 같음.
+- 2026-11-28 "들여 쓴 `/`" 절: 앞에 공백·탭이 있는 `/` 줄도 문장 끝으로 봄(`SQLSlashLineRule`, `chromite/splitter-blank-line-indented-slash`).
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Oracle·YashanDB·OceanBase(Oracle 모드)·Altibase 계열의 스크립트 나누기(쿼리 창 F5·Ctrl+Enter·
+  커서부터 실행, 스크립트 실행, Agent 실행 도구).
