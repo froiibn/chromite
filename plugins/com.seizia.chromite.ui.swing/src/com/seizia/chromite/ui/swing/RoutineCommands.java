@@ -54,7 +54,8 @@ import java.util.regex.Pattern;
  * ({@link ProcedureCallScript}, {@link OracleCompileErrors}). 창은 모두 일반 쿼리 창이다.
  * <ul>
  *     <li>Execute Procedure…: 매개 변수를 읽고(진행 대화상자) {@link ExecuteProcedureDialog}로 값을 받아, 루틴의 DB·스키마를 쿼리 창의 기본으로
- *     맞춘 뒤({@link SourceScripts#bindDefaultContext}, Modify와 같음) 새 쿼리 창에서 실행하거나 열기만 한다. 실행은 새 창의 세션에서
+ *     맞춘 뒤({@link SourceScripts#bindDefaultContext}, Modify와 같음. 주 세션이 다른 DB로 옮겨 가면 먼저 열린 트랜잭션을 물음,
+ *     {@link SourceScripts#confirmBindDefaultContext}) 새 쿼리 창에서 실행하거나 열기만 한다. 실행은 새 창의 세션에서
  *     F5와 같은 경로라 실행 제한·결과·Messages·트랜잭션 표시가 다른 쿼리와 같다. SWT는 {@code :이름} 매개 변수가 든 호출문을 콘솔에 열었다.</li>
  *     <li>Go to Source Code(SWT {@code PackageNavigateHandler}): 패키지의 Modify 창을 열고 그 루틴의 머리글({@code PROCEDURE 이름}, 주석 줄 제외)을
  *     본문에서 고른다. 겹친(overload) 루틴은 겹침 번호 순서의 머리글이다. 본문이 없으면 선언에서 찾는다.</li>
@@ -64,6 +65,9 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-08 최초 작성: Execute Procedure…(B-S42), Go to Source Code(O13), 오류로 가기(O11) (docs/chromite/swing-routines.md)
  * - 2026-11-16 항목의 보임·켜짐을 {@link ContextMenus}로: 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
+ * - 2026-11-28 Execute Procedure·Go to Source Code·오류로 가기가 주 세션을 옮기기 전에 열린 트랜잭션을 물음
+ *   ({@link SourceScripts#confirmBindDefaultContext}, 다른 DB로 옮길 때만)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
  */
 final class RoutineCommands {
 
@@ -125,12 +129,13 @@ final class RoutineCommands {
         }
         ExecuteProcedureDialog.Result result = ExecuteProcedureDialog.show(parent, DBUtils.getObjectFullName(procedure, DBPEvaluationContext.UI),
             parameters, ProcedureCallScript.capturesOutputs(procedure));
-        if (result == null) {
+        DBSObject bound = procedure.getParentObject() != null ? procedure.getParentObject() : procedure;
+        if (result == null || !SourceScripts.confirmBindDefaultContext(parent, bound)) {
             return;
         }
         String script = run(title, monitor -> {
             // The new window runs in the routine's database and schema, as a Modify window
-            SourceScripts.bindDefaultContext(monitor, procedure.getParentObject() != null ? procedure.getParentObject() : procedure);
+            SourceScripts.bindDefaultContext(monitor, bound);
             return ProcedureCallScript.generate(monitor, procedure, result.values());
         });
         if (script != null) {
@@ -147,7 +152,8 @@ final class RoutineCommands {
         }
         OraclePackage oraclePackage = procedure.getParentObject();
         DBNDatabaseNode packageNode = findNode(node, oraclePackage);
-        if (packageNode == null || !SourceScripts.canModify(oraclePackage)) {
+        if (packageNode == null || !SourceScripts.canModify(oraclePackage)
+            || !SourceScripts.confirmBindDefaultContext(parent, oraclePackage)) {
             return;
         }
         String script = run(RoutineMessages.routine_go_to_source, monitor -> SourceScripts.generateAlter(monitor, oraclePackage));
@@ -222,7 +228,7 @@ final class RoutineCommands {
         @NotNull OracleCompileErrors.CompileError selected
     ) {
         DBSObject object = node.getObject();
-        if (object == null || !SourceScripts.canModify(object)) {
+        if (object == null || !SourceScripts.canModify(object) || !SourceScripts.confirmBindDefaultContext(null, object)) {
             return;
         }
         String script = run(RoutineMessages.routine_compile_go_to_error, monitor -> SourceScripts.generateAlter(monitor, object));

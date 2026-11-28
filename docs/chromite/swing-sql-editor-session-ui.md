@@ -575,6 +575,38 @@ DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과
 
 **확인:** 아래 "확인 기록 (2026-11-28, 개체에서 연 창의 DB)".
 
+## 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문 (2026-11-28)
+
+**보고:** 다른 작업(Task R)의 코드 읽기. Modify 등이 주 세션을 개체의 DB로 옮길 때 열린 트랜잭션을 묻지 않는다(재현 전).
+
+**사실(`origin/command` `6d1b523e53` 빌드, 시험 VM, 연결마다 수동 커밋·"쿼리 창마다 별도 연결" = NEVER, 시험 DB `chr_bdct_a` = A(연결 기본값)·`chr_bdct_b` = B).**
+주 세션을 함께 쓰는 창에서 A의 표에 `INSERT`(커밋 안 함)한 뒤 B의 개체에 수정(Modify), 프로시저 실행(실행), 새 뷰를 했다.
+
+| DB | 명령 뒤 주 세션 | 열린 트랜잭션 | 결함 |
+|---|---|---|---|
+| PostgreSQL 17 | 연결의 기본 인스턴스가 B, 창은 B의 주 세션에서 실행(쿼리 관리자: 창의 문맥에 트랜잭션 없음) | A의 주 세션에 남음: `pg_stat_activity` `idle in transaction`(`backend_xid` 있음), 다른 세션에서 본 A의 행 0개. 질문·표시 없음 | 있음(세 명령 모두) |
+| SQL Server 2022 | 같은 세션이 `USE chr_bdct_b` | 같은 세션에 그대로(`open_transaction_count` 1), 창의 문맥이 쥐고 있음 | 없음 |
+| MariaDB 11.8 | 같은 세션이 `USE chr_bdct_b` | 같은 세션에 그대로(`INNODB_TRX` `RUNNING`, 바뀐 행 1), 창의 문맥이 쥐고 있음 | 없음 |
+
+SQL Server·MariaDB는 서버 세션 하나가 모든 DB를 다루고 `USE`는 트랜잭션을 끝내지 않으므로, 창이 계속 그 트랜잭션을 보이고 끝낼 수 있다. 그래서 바꾸지 않았다.
+
+**원인:** `SourceScripts.bindDefaultContext`가 작업 스레드에서 `DBExecUtils.setExecutionContextDefaults`를 부른다. PostgreSQL 주 문맥(격리되지 않은 문맥)은
+DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바꾼다(`PostgreExecutionContext.setDefaultCatalog` → `PostgreDataSource.setActiveDatabase`).
+그래서 이전 DB의 주 세션이 트랜잭션을 쥔 채 남고, 주 세션을 함께 쓰는 창은 새 DB의 세션으로 옮겨 간다. "기본값으로 설정"(`DefaultObjectCommands`)만 그 전에
+`ExitTransactionCheck.confirmDefaultChange`로 물었다. 같은 `bindDefaultContext`를 부르는 길: 수정과 ALTER 대상(새 쿼리 창·클립보드), Go to Source Code·
+오류로 가기(Oracle 패키지, `generateAlter`), 새 뷰/프로시저/함수와 "새 &lt;종류&gt;" 틀(`generateNew`), 프로시저 실행, Schema Compare 스크립트(`generateContainerScript`).
+
+**고친 것:** `SourceScripts.confirmBindDefaultContext`(EDT, 메모리만 읽음)가 바꿀 개체의 데이터베이스 인스턴스가 주 문맥의 인스턴스와 다를 때만
+`confirmDefaultChange`로 커밋/롤백/취소를 묻는다(기본값으로 설정과 같은 판단과 같은 질문). 위 명령들은 진행 대화상자를 띄우기 전에 이것을 부르고,
+취소나 끝내기 실패면 아무것도 하지 않는다(주 세션·트랜잭션 그대로). 커밋·롤백은 사용자가 고른 것만 한다. 같은 인스턴스 안의 DB·스키마 바꾸기는
+묻지 않는다. 질문 글은 기본값으로 설정의 글을 그대로 쓴다: 이 명령들도 그 DB를 주 세션의 기본값으로 만들기 때문이다(새 대화상자·새 글 없음).
+글에 넣는 이름은 옮겨 갈 DB다(스키마 이름 `public`만으로는 어느 DB인지 알 수 없다).
+
+**고르지 않은 것:** `bindDefaultContext` 안에서(작업 스레드) EDT로 묻는 것. 진행 대화상자가 떠 있는 동안 질문과 커밋·롤백 진행 대화상자가 겹치고,
+취소하면 이미 시작한 작업을 되돌려야 한다. 명령마다 한 줄씩이지만 기본값으로 설정과 같은 자리(작업 전, EDT)에서 묻는다.
+
+**확인:** 아래 "확인 기록 (2026-11-28, 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문)".
+
 ## upstream 대비 변경점
 
 - SWT 편집기는 실행 뒤 기본 DB/스키마 다시 읽기가 설정(기본 꺼짐)이었다. Swing은 설정 없이 늘 읽는다(사용자 요구 "실제 세션 값과 콤보가 늘 같아야 함").
@@ -683,6 +715,35 @@ MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 고치기 전은 위 "개�
   캡처 `…\followup\before\shots\before-1-pg-grid-generate-sql-window.png`, `before-2-pg-permissions-script-window.png`, `…\followup\after\shots\after-1…`, `after-2…`.
   스케줄러(pg_cron·MySQL 이벤트)의 창은 코드 읽기와 빌드만(시험 서버에 pg_cron 작업 없음).
 
+### 확인 기록 (2026-11-28, 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(Object Explorer 메뉴 항목을 그대로 누름, OS 입력 없음),
+시험 VM PostgreSQL 17·SQL Server 2022·MariaDB 11.8. 연결은 수동 커밋, "쿼리 창마다 별도 연결" NEVER(PostgreSQL은 "모든 데이터베이스 표시"), 기본 DB A.
+트랜잭션은 매번 주 세션을 함께 쓰는 창의 `INSERT INTO chr_bdct_t VALUES (n)`(A)로 열었다. 서버 쪽은 따로 연 관리 세션에서 읽었다(PostgreSQL `pg_stat_activity`,
+SQL Server `sys.dm_exec_sessions.open_transaction_count`, MariaDB `INNODB_TRX`, 다른 세션에서 본 커밋된 행 수).
+
+| 경우 | 고치기 전(`6d1b523e53`) | 고친 뒤 |
+|---|---|---|
+| PostgreSQL, B 함수의 수정 | 질문 없음, 기본 인스턴스 B, A 주 세션 `idle in transaction`, A 행 0개 | 질문(아래 글). 취소: 창 열리지 않음, 기본 A, 트랜잭션 그대로. 롤백: A 주 세션 `idle`, 창 열림, 기본 B |
+| PostgreSQL, B 함수의 프로시저 실행(실행) | 질문 없음, A에 트랜잭션 남음 | 실행 대화상자 뒤 질문. 커밋: A 행 1개(사용자가 고른 커밋), 호출은 B에서 실행 |
+| PostgreSQL, B의 새 뷰 | 질문 없음, A에 트랜잭션 남음 | 질문. 롤백: A `idle`, 틀 창 열림 |
+| PostgreSQL, B의 새 시퀀스(일반 "새 &lt;종류&gt;" 틀) | (같은 `bindDefaultContext`) | 질문. 취소: 창 열리지 않음, 트랜잭션 그대로 |
+| PostgreSQL, A 함수의 수정(같은 DB, 트랜잭션 열림) | — | 질문 없음, 트랜잭션 그대로 |
+| PostgreSQL, 트랜잭션 없이 B 함수의 수정 | — | 질문 없음 |
+| PostgreSQL, 연결 Refresh 뒤 A·B 함수의 수정 | — | A 질문 없음, B 질문(롤백) |
+| SQL Server·MariaDB, B의 수정·프로시저 실행·새 뷰 | 질문 없음, 같은 세션이 B로, 트랜잭션 그대로(창이 쥠) | 같음(바꾸지 않음) |
+
+질문 글: "PGS의 주 세션에 커밋하지 않은 트랜잭션이 있습니다: PGS (SQLQuery1.sql) - 열린 트랜잭션: 데이터 변경 있음 / chr_bdct_b을(를) 기본값으로 만들면
+주 세션이 다른 데이터베이스로 옮겨 가고, 트랜잭션은 이전 세션에 남습니다. …" [커밋] [롤백] [취소(기본)].
+시험에서 연 트랜잭션은 모두 명시적으로 끝냈다(질문의 커밋·롤백, 남은 것은 시험 에이전트가 앱의 `IdleTransactionMonitor.commitOrRollback`으로 롤백).
+시험 DB는 끝에 지우고 카탈로그로 확인했다(세 서버 모두 `chr_bdct%` 0개).
+캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\bind-default-context-transaction\s\before\shots\`(`pg-before-after-modify.png`,
+`pg-before-first-window-after-new-view.png`, `ms-before-first-window.png`, `ma-before-first-window.png`)와 `…\s\after\shots\`
+(`pg-after-modify-question-popup0.png`, `pg-after-execute-question-popup0.png`, `ms-after-first-window.png`, `ma-after-first-window.png`).
+
+**확인하지 못한 것:** Schema Compare의 스크립트 만들기(같은 `confirmBindDefaultContext`를 부름, 화면에서는 확인하지 않음). Go to Source Code·오류로 가기는
+Oracle 패키지에만 있고 Oracle은 인스턴스가 하나라 묻는 경우가 없다(코드 읽기).
+
 ## 변경 이력
 
 - 2026-11-11 최초 작성: #33(현재 DB 따라가기), #44(실행 중 표시), #40(자동완성 창 닫기), #50(단축키를 도구 설명에), #57(닫기 단추 모양)
@@ -723,3 +784,7 @@ MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 고치기 전은 위 "개�
 - 2026-11-28 같은 브랜치 후속: 같은 원인의 남은 길을 고침. 결과 그리드의 SQL 생성(결과 세션의 기본 스키마·DB), 사용 권한·보안 대화상자의 스크립트
   (`SecurityDialect.getContext`), 작업 스케줄러 스크립트(`Backend.location`: pg_cron·MySQL 이벤트의 DB). 연결만 넘기는 나머지 길의 이유를 적음.
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 결과 그리드 SQL 생성·보안 대화상자·스케줄러 대화상자에서 연 창의 첫 세션과 DB 선택.
+- 2026-11-28 `chromite/bind-default-context-transaction`: "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문"과 그 확인 기록. 수정·ALTER 대상·프로시저 실행·새 뷰/프로시저/함수·
+  "새 &lt;종류&gt;" 틀·Schema Compare 스크립트·Go to Source Code·오류로 가기가 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전에 열린 트랜잭션을
+  묻는다(`SourceScripts.confirmBindDefaultContext` → `ExitTransactionCheck.confirmDefaultChange`). SQL Server·MariaDB는 결함이 없어 바꾸지 않았다.
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 명령들의 시작(질문·취소), PostgreSQL 다른 DB 개체의 명령, 주 세션을 함께 쓰는 쿼리 창의 트랜잭션.

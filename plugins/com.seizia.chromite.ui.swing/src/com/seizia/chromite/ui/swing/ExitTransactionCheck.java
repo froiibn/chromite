@@ -103,6 +103,8 @@ import java.util.function.Function;
  *   계속 묻는다 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  * - 2026-11-12 주석만: 쿼리 창이 연결을 바꾸는 경우를 지움(쿼리 창은 한 서버의 창, 앱 변경 #69) (docs/chromite/swing-frontend.md "쿼리 창은 한 서버의 창")
  * - 2026-11-12 주석만: 쿼리 창의 연결 변경 명령이 다시 {@link #confirmEndSession}을 씀(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
+ * - 2026-11-28 주석만: {@link #confirmDefaultChange}를 Modify·Execute Procedure·새 개체 틀·Schema Compare 스크립트도 씀
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
  */
 final class ExitTransactionCheck {
 
@@ -167,10 +169,11 @@ final class ExitTransactionCheck {
     }
 
     /**
-     * Before Object Explorer's Set as Default moves the connection's main session to another database instance (a
-     * PostgreSQL database: the windows that share the main session then use another server session, and the open
-     * transaction would stay behind unseen): asks Commit / Roll back / Cancel when the session has a transaction that is
-     * not committed. Call in the EDT.
+     * Before Object Explorer's Set as Default, or a command that binds the main session to an object's database
+     * (Modify, Execute Procedure, New templates, Schema Compare's script: {@link SourceScripts#confirmBindDefaultContext}),
+     * moves the connection's main session to another database instance (a PostgreSQL database: the windows that share
+     * the main session then use another server session, and the open transaction would stay behind unseen): asks Commit /
+     * Roll back / Cancel when the session has a transaction that is not committed. Call in the EDT.
      *
      * @param target the database or schema that becomes the default
      * @return true when the default may change: no open transaction, or it was committed or rolled back as asked
