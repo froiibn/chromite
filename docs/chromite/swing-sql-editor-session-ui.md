@@ -550,6 +550,14 @@ DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과
 | 스크립팅 ▸ CREATE·SELECT 대상 ▸ 새 쿼리 편집기 창 | 선택한 개체 |
 | SQL 생성 | 첫 개체(한 글은 한 DB에서만 돈다) |
 | 바꾸기 미리 보기의 "쿼리 창에서 열기"(삭제·이름 바꾸기·새 개체·속성 바꾸기 `runChange`, 유지 관리 명령, 테이블 디자이너의 스크립트·저장) | 첫 변경의 개체, 첫 개체, 그 표. 실행 단추는 전부터 개체의 문맥에서 돈다 |
+| 결과 그리드 ▸ SQL 생성 ▸ 쿼리 창에서 열기(`ResultSetGenerateSql.show` → `ResultSetGrid.Host`·`QueryResultsView.Listener`·`SqlEditorPanel.Host`의 `openScript`) | 결과 세션의 기본 스키마(없으면 DB). 원본 표 대신 세션을 고른 이유: CREATE TABLE(결과를 담을 표)은 원본 표가 없을 수 있고 그 세션의 기본 스키마에 만든다(`getTargetContainer`). 행 문장은 원본 표 하나에서 오며 PostgreSQL에서는 그 표가 세션의 DB에만 있을 수 있고, 스키마는 글이 쓴다 |
+| 사용 권한·로그인/사용자/역할 대화상자의 스크립트(`SecurityCommands.showScript`·`applyScript`) | 대화상자를 연 개체(`SecurityDialect.getContext`, 실행 `SecurityDialect.execute`도 그 개체의 인스턴스에서 돈다) |
+| 작업 스케줄러 스크립트(`SchedulerCommands` 삭제, `SchedulerScriptDialog`) | `Backend.location`: pg_cron은 설치된 DB(`PostgreCronScheduler.getDatabase`, 실행도 그 DB), MySQL 이벤트는 그 DB. Oracle은 없음(전과 같음) |
+
+연결만 넘기는 길(`openScript(연결, 글, …)`)로 남은 것과 그 이유: 프로시저 실행(`RoutineCommands`)·스키마 비교 스크립트(`SchemaComparePanel`)는 열기 전에
+`bindDefaultContext`로 주 세션을 개체의 DB/스키마로 옮기고 새 창이 그것을 복사한다. SQL Server 에이전트(`AgentCommands`·`AgentObjectDialog`)는 문장이
+`EXEC msdb.dbo.…`로 DB를 쓴다. 백업·복원 작업 대화상자(`DatabaseTaskDialog`의 SQL Server 백업·복원)는 `BACKUP DATABASE [db]`·`USE [master]`로 DB를 쓴다.
+세션 관리자(`SessionManagerPanel`)의 세션 읽기는 서버 전체 보기다. MySQL 이벤트 스케줄러 켜기(`SET GLOBAL event_scheduler`)는 서버 설정이다.
 
 **주 세션을 함께 쓰는 창(쿼리 창마다 별도 연결 = NEVER, 단일 연결):** 이름을 적용하지 않는다(`openWindowContext`의 전부터 있던 규칙). 그 세션을 옮기면 함께 쓰는
 모든 창이 옮겨지고, PostgreSQL에서는 다른 DB가 다른 서버 세션이며 DB 선택이 스키마만 보여 옮겨진 것이 창에 드러나지 않는다(같은 이름 스키마면 표시가 그대로).
@@ -563,8 +571,6 @@ DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과
 **남은 것:**
 - 주 세션을 함께 쓰는 PostgreSQL 창에서 다른 DB 개체의 글: 기본 DB에서 돈다. 맞게 하려면 주 세션을 옮겨야 하며, 그때는 "기본값으로 설정"과 같은 열린 트랜잭션 질문과
   PostgreSQL 창이 DB 이름을 보이는 것이 함께 필요하다(새 화면 요소라 하지 않음).
-- 결과 그리드의 SQL 생성(`ResultSetGenerateSql` → `QueryResultsView`/`SqlEditorPanel.Host.openScript`)과 권한 대화상자의 스크립트(`SecurityCommands`)는 연결만 넘겨
-  새 창이 연결의 기본 DB에서 열린다(같은 원인, 고치지 않음: 인터페이스 셋을 바꿔야 함).
 - 파일 ▸ 새 쿼리(Ctrl+N)는 활성 창이 없으면 Object Explorer에서 선택한 노드의 **연결**로 연다(#172의 설계). 노드의 DB는 넘기지 않는다(바꾸지 않음).
 
 **확인:** 아래 "확인 기록 (2026-11-28, 개체에서 연 창의 DB)".
@@ -670,6 +676,12 @@ MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 고치기 전은 위 "개�
   `…\after-extra\shots\after-2-pgs-shared-window-select-top.png`(주 세션을 함께 쓰는 연결: `public`, 행 `postgres`).
 - 확인하지 못한 것: Oracle(창의 현재 스키마가 개체의 스키마로 바뀜, `ALTER SESSION SET CURRENT_SCHEMA`)·Altibase 등 그 밖의 드라이버, ERD·데이터 검색·데이터베이스 복사·
   유지 관리·테이블 디자이너·이름 바꾸기·새 개체·속성 바꾸기의 창(같은 `openScript` 길, 코드 읽기와 빌드만). 회귀 테스트는 실행하지 않았다.
+- 후속(같은 날, 결과 그리드·권한·스케줄러): 고치기 전 빌드(`2c6b655af7`)와 고친 빌드에서 같은 절차(`D:\Tools\_scratch\postgres-open-in-object-database\s\followup\`).
+  PostgreSQL: X의 표에서 연 창(X)의 결과 ▸ SQL 생성 ▸ INSERT ▸ 쿼리 창에서 열기 — 전 새 창 세션 `postgres`(표시 `public`), 후 X(표시 X의 스키마).
+  X의 표 ▸ 사용 권한 ▸ SELECT를 postgres에 줌 ▸ 스크립트 ▸ 쿼리 창에서 열기(`GRANT SELECT ON TABLE …chr_t TO postgres`, 실행 안 함) — 전 `postgres`, 후 X.
+  SQL Server: X의 표에서 연 창의 결과 ▸ INSERT — 전 기본 DB `…_d`(글이 DB를 써서 결과는 맞음), 후 X. 연결의 주 세션은 전후 모두 기본 DB 그대로.
+  캡처 `…\followup\before\shots\before-1-pg-grid-generate-sql-window.png`, `before-2-pg-permissions-script-window.png`, `…\followup\after\shots\after-1…`, `after-2…`.
+  스케줄러(pg_cron·MySQL 이벤트)의 창은 코드 읽기와 빌드만(시험 서버에 pg_cron 작업 없음).
 
 ## 변경 이력
 
@@ -708,3 +720,6 @@ MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 고치기 전은 위 "개�
   SQL 생성, 바꾸기 스크립트의 쿼리 창에서 열기, ERD·데이터 검색·데이터베이스 복사·테이블 디자이너)이 개체의 DB/스키마에서 돎(`MainFrame.runWhereObjectIs` →
   `setRestoredDefaults`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 명령으로 연 창의 첫 세션과 DB 선택(모든 드라이버: SQL Server·MySQL `USE`,
   Oracle·Altibase 등 현재 스키마), 주 세션을 함께 쓰는 창(바뀌지 않음), 다시 연결·다시 시작 뒤 그 창의 복원 이름.
+- 2026-11-28 같은 브랜치 후속: 같은 원인의 남은 길을 고침. 결과 그리드의 SQL 생성(결과 세션의 기본 스키마·DB), 사용 권한·보안 대화상자의 스크립트
+  (`SecurityDialect.getContext`), 작업 스케줄러 스크립트(`Backend.location`: pg_cron·MySQL 이벤트의 DB). 연결만 넘기는 나머지 길의 이유를 적음.
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 결과 그리드 SQL 생성·보안 대화상자·스케줄러 대화상자에서 연 창의 첫 세션과 DB 선택.

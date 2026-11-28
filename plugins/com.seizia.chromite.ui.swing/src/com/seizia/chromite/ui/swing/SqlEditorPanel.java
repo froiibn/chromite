@@ -384,6 +384,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-28 {@link SqlTextArea}는 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}, 앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-28 주석만: {@link #setRestoredDefaults}를 개체에서 연 창도 씀(개체의 DB/스키마, docs/chromite/swing-sql-editor-session-ui.md
  *   "개체에서 연 창의 DB")
+ * - 2026-11-28 결과에서 만든 문장의 새 창({@link Host#openScript})이 이 창 세션의 기본 스키마·DB에서 돈다(같은 문서 같은 절)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -436,12 +437,15 @@ final class SqlEditorPanel extends JPanel {
         void showTerminal(@NotNull SqlEditorPanel editor);
 
         /**
-         * Opens a script in a new query window of a connection (statements made from a result).
+         * Opens a script in a new query window of a connection (statements made from a result), in a database and schema
+         * as {@link ObjectExplorerPanel.QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}.
          *
-         * @param maxRows rows to read if it runs, 0 for the default
-         * @param execute run it right away
+         * @param location where the new window runs (the default schema or database of the result's session), or null
+         * @param maxRows  rows to read if it runs, 0 for the default
+         * @param execute  run it right away
          */
-        void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
+        void openScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script, long maxRows,
+                        boolean execute);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -517,9 +521,9 @@ final class SqlEditorPanel extends JPanel {
         }
 
         @Override
-        public void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
+        public void openScript(@NotNull DBPDataSourceContainer container, @Nullable DBSObject location, @NotNull String script) {
             // Generate SQL from a result: never run here
-            host.openScript(container, script, 0, false);
+            host.openScript(container, location, script, 0, false);
         }
     }, planView.getComponent());
     // EDT only: rows the last run read (all its results), shown while no result tab is selected; null while not known yet

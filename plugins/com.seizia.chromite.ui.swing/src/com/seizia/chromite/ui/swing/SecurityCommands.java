@@ -59,6 +59,9 @@ import java.util.List;
  * - 2026-11-08 미리 보기에서 Execute를 고른 뒤 그 연결의 열린 트랜잭션을 묻는다({@link ExitTransactionCheck#confirmObjectChange}, 사용자 규칙
  *   "트랜잭션 안전"): 실행은 격리된 연결이지만 GRANT·REVOKE·DROP은 사용자 세션의 열린 트랜잭션이 잡은 잠금을 기다릴 수 있다
  *   (Object Explorer 유지 관리 명령과 같은 흐름, docs/chromite/swing-security.md)
+ * - 2026-11-28 "쿼리 창에서 열기"의 창이 실행과 같은 곳(대화상자를 연 개체의 DB/스키마, {@code SecurityDialect.getContext})에서 돈다. 전에는 연결의
+ *   기본 DB에서 열려 PostgreSQL에서 다른 데이터베이스 표의 GRANT가 기본 DB의 같은 이름 표에 닿을 수 있었다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class SecurityCommands {
 
@@ -222,7 +225,7 @@ final class SecurityCommands {
         ScriptPreviewDialog.Result choice = ScriptPreviewDialog.confirmChange(owner, NLS.bind(SecurityMessages.security_script_title, title),
             ToolsMessages.script_preview_execute_question, script);
         if (choice == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            queryWindows.openScript(dialect.getDataSource().getContainer(), script, 0, false);
+            queryWindows.openScript(dialect.getDataSource().getContainer(), dialect.getContext(), script, 0, false);
             return ApplyResult.NOT_EXECUTED;
         }
         if (choice != ScriptPreviewDialog.Result.EXECUTE
@@ -271,7 +274,7 @@ final class SecurityCommands {
         }
         String script = dialect.formatScript(statements);
         if (ScriptPreviewDialog.show(owner, NLS.bind(SecurityMessages.security_script_title, title), script, false) == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-            queryWindows.openScript(dialect.getDataSource().getContainer(), script, 0, false);
+            queryWindows.openScript(dialect.getDataSource().getContainer(), dialect.getContext(), script, 0, false);
         }
     }
 
