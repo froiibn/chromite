@@ -66,6 +66,9 @@ import java.util.stream.Collectors;
  * - 2026-11-22 기본 스키마를 이름으로 기억({@code activeSchemaId} 삭제), 세션을 여는 길은 스키마 목록을 읽지 않음, {@link #setDefaultSchemaFrom}.
  *   Invalidate/Reconnect가 배타 잠금을 쥔 채 {@code setActiveSchema}의 목록 읽기에서, 목록을 쥔 채 그 잠금을 기다리던 배경 작업(쿼리 창
  *   자동 완성)과 서로 기다려 연결이 앱을 다시 시작할 때까지 멈췄다(앱 변경 #170, docs/chromite/cancel-busy-connection.md "세션을 다시 열 때의 교착")
+ * - 2026-11-28 격리 문맥(쿼리 창의 자기 세션 등)의 DB 바꾸기는 {@code JDBCExecutionContext.reconnectTo}로 다시 연결. 전에는 끊고 다시 연
+ *   세션을 쿼리 관리자가 추적하지 않아 그 뒤 트랜잭션이 앱에 보이지 않았고, 문맥은 처음 DB의 문맥 목록에 남았다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "자기 세션을 다른 DB로 다시 연결할 때")
  */
 public class PostgreExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<PostgreDatabase, PostgreSchema> {
     private final List<String> searchPath = new ArrayList<>();
@@ -170,9 +173,7 @@ public class PostgreExecutionContext extends JDBCExecutionContext implements DBC
                 // Changing catalog means reconnect
                 // Change it only for isolated editor contexts
                 if (isolatedContext) {
-                    disconnect();
-                    setOwnerInstance(catalog);
-                    connect(monitor, null, null, null, false);
+                    reconnectTo(monitor, catalog);
                 } else {
                     getDataSource().setActiveDatabase(catalog, this);
                 }
