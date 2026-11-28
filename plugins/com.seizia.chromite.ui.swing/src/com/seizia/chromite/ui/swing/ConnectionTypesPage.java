@@ -43,6 +43,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -73,6 +74,10 @@ import java.util.Set;
  *     실제 값을 기억하고, 저장 뒤 바뀐 연결마다 {@link AutoCommitApplier}(연결 대화상자의 Auto-commit과 같은 경로)로 열린 세션에 적용한다.
  *     자동 커밋으로 바뀌는 세션에 커밋하지 않은 변경이 있으면 커밋 / 롤백 / 취소를 묻는다. 질문이 겹치지 않게 한 연결씩 차례로 한다.</li>
  *     <li>저장 뒤 바뀐 유형을 쓰는 연결에 갱신 이벤트를 보내 개체 탐색기·등록된 서버의 색과 쿼리 창 상태 줄이 다시 그려지게 한다.</li>
+ *     <li>편집 제한 해제(2026-11-28, VOC 191): 운영 유형의 편집 제한을 한 번에 푸는 스위치다. 새 저장 값을 두지 않고 이미 있는 값
+ *     ("데이터 변경 확인"과 데이터 편집·구조 편집·데이터 가져오기 제한)을 바꾸고, 상태도 그 값들에서 읽는다. 그래서 저장 파일과 연결의 유형 사본,
+ *     값을 읽는 곳(결과 표, 표 디자이너, 개체 명령, 가져오기)이 그대로이고 끄면 기본값으로 돌아간다. SQL 실행 확인과 스크립트 실행 제한(쿼리 창에
+ *     직접 쓴 문장), 자동 커밋(트랜잭션 안전), Chromite Agent의 운영 연결 규칙(유형 ID {@code prod}로 판단)은 바꾸지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -81,12 +86,19 @@ import java.util.Set;
  * - 2026-11-08 스마트 커밋·자동 커밋으로 돌아가기 칸: 쿼리 창이 스마트 커밋을 쓰게 되어 효과가 생김 (docs/chromite/connection-lifecycle.md "스마트 커밋")
  * - 2026-11-09 조회만 한 트랜잭션은 문장이 끝나면 자동으로 끝내기 칸 (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
  * - 2026-11-12 Options 저장 표준: 바뀐 수, [저장] 뒤 새 사본, [되돌리기](앱 변경 #59, docs/chromite/swing-options.md "옵션 화면 모양과 저장 (#59)")
+ * - 2026-11-28 제한 절의 "편집 제한 해제" 스위치(VOC 191, docs/chromite/swing-options.md "운영 연결의 편집 제한")
  */
 final class ConnectionTypesPage extends JPanel {
 
     private static final Log log = Log.getLog(ConnectionTypesPage.class);
     private static final String NO_COLOR = "255,255,255"; //$NON-NLS-1$
     private static final int MAX_SECONDS = 7 * 24 * 3600;
+    // The restrictions "Lift editing restrictions" turns off with "Confirm data changes": editing data and objects in the app's
+    // own editors. Script execution stays: it guards the statements typed into a query window, as "Confirm SQL execution" does
+    private static final Set<DBPDataSourcePermission> EDITING_RESTRICTIONS = EnumSet.of(
+        DBPDataSourcePermission.PERMISSION_EDIT_DATA,
+        DBPDataSourcePermission.PERMISSION_EDIT_METADATA,
+        DBPDataSourcePermission.PERMISSION_IMPORT_DATA);
 
     private final DataSourceProviderRegistry registry = DataSourceProviderRegistry.getInstance();
     // The edited copies in list order, and the registry's original of each (none for a new type)
@@ -111,6 +123,7 @@ final class ConnectionTypesPage extends JPanel {
     private final JCheckBox endReadOnlyBox = new JCheckBox(SettingsMessages.types_end_read_only);
     private final JCheckBox closeIdleBox = new JCheckBox(SettingsMessages.types_close_idle);
     private final JSpinner closeIdleSpinner = new JSpinner(new SpinnerNumberModel(1, 1, MAX_SECONDS, 60));
+    private final JCheckBox liftEditingBox = new JCheckBox(SettingsMessages.types_lift_editing);
     private final Map<DBPDataSourcePermission, JCheckBox> restrictionBoxes = new EnumMap<>(DBPDataSourcePermission.class);
     private boolean updating;
 
@@ -212,6 +225,10 @@ final class ConnectionTypesPage extends JPanel {
         row = OptionsDialog.addRow(form, row, null, closeIdleBox, null);
         row = OptionsDialog.addRow(form, row, SettingsMessages.types_close_idle_period, closeIdleSpinner, SettingsMessages.types_seconds);
         row = OptionsDialog.addSection(form, row, SettingsMessages.types_section_restrictions);
+        liftEditingBox.setToolTipText(SettingsMessages.types_lift_editing_tip);
+        liftEditingBox.addActionListener(e -> liftEditingRestrictions(liftEditingBox.isSelected()));
+        liftEditingBox.putClientProperty(OptionsForm.VALUE_CHECK_BOX, true);
+        row = OptionsDialog.addRow(form, row, null, liftEditingBox, null);
         for (DBPDataSourcePermission permission : DBPDataSourcePermission.values()) {
             JCheckBox box = new JCheckBox(permission.getLabel());
             box.setToolTipText(permission.getDescription());
@@ -270,10 +287,12 @@ final class ConnectionTypesPage extends JPanel {
                 entry.getValue().setEnabled(editable);
             }
             for (JComponent component : List.of(nameField, descriptionField, colorButton, colorNoneButton, darkColorButton,
-                darkColorNoneButton, autoCommitBox, smartCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, endReadOnlyBox, closeIdleBox)) {
+                darkColorNoneButton, autoCommitBox, smartCommitBox, confirmExecuteBox, confirmDataChangeBox, idleTxnBox, endReadOnlyBox, closeIdleBox,
+                liftEditingBox)) {
                 component.setEnabled(editable);
             }
             deleteButton.setEnabled(type != null && !type.isPredefined());
+            updateLiftEditingBox();
             updateDependentFields();
             updateColorButtons();
         } finally {
@@ -308,9 +327,40 @@ final class ConnectionTypesPage extends JPanel {
             }
         }
         type.setModifyPermissions(restrictions);
+        updateLiftEditingBox();
         updateDependentFields();
         int row = table.getSelectedRow();
         model.fireTableRowsUpdated(row, row);
+    }
+
+    /**
+     * "Lift editing restrictions": on turns off "Confirm data changes" and the editing restrictions; off turns "Confirm data
+     * changes" on again, the built-in Test and Production default, and leaves the restriction boxes as they are (no built-in
+     * type has them).
+     */
+    private void liftEditingRestrictions(boolean lift) {
+        if (updating || getSelected() == null) {
+            return;
+        }
+        confirmDataChangeBox.setSelected(!lift);
+        if (lift) {
+            for (DBPDataSourcePermission permission : EDITING_RESTRICTIONS) {
+                restrictionBoxes.get(permission).setSelected(false);
+            }
+        }
+        storeSelected();
+    }
+
+    /**
+     * The switch is not stored itself: it is on while the type confirms no data change and has none of the editing
+     * restrictions, so it follows the boxes it stands for when one of them is changed.
+     */
+    private void updateLiftEditingBox() {
+        boolean lifted = !confirmDataChangeBox.isSelected();
+        for (DBPDataSourcePermission permission : EDITING_RESTRICTIONS) {
+            lifted &= !restrictionBoxes.get(permission).isSelected();
+        }
+        liftEditingBox.setSelected(getSelected() != null && lifted);
     }
 
     /**

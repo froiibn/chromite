@@ -35,6 +35,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 Logs 탭의 기록할 것이 Query Manager 창의 보일 항목이기도 하다는 안내({@code logs_objects_hint}) (docs/chromite/swing-query-manager.md)
  * - 2026-11-09 Connection Types의 조회만 한 트랜잭션 자동으로 끝내기({@code types_end_read_only*})
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기")
+ * - 2026-11-28 Connection Types의 편집 제한 해제({@code types_lift_editing*}) (docs/chromite/swing-options.md "운영 연결의 편집 제한")
  */
 public class SettingsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SettingsMessages"; //$NON-NLS-1$
@@ -123,6 +124,8 @@ public class SettingsMessages extends NLS {
     public static String types_close_idle_period;
     public static String types_seconds;
     public static String types_section_restrictions;
+    public static String types_lift_editing;
+    public static String types_lift_editing_tip;
 
     public static String oracle_tab;
     public static String oracle_section_execution;
