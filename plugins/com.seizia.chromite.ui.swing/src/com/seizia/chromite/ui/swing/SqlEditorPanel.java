@@ -3299,6 +3299,9 @@ final class SqlEditorPanel extends JPanel {
      * - 2026-11-13 쿼리 창의 편집 영역은 자기 연결과 현재 DB(DB 선택이 보이는 것)로 이름을 고름: 그 DB의 개체는 DB를 뺀 이름(#112 검토)
      * - 2026-11-17 오른쪽 클릭 메뉴는 {@link ContextMenus#tidyTextArea}: 편집할 수 없는 보기에서는 편집 항목, 접기가 없는 언어에서는 Folding을
      *   숨김(앱 변경 #141, docs/chromite/context-menus.md)
+     * - 2026-11-28 템플릿 내용 칸은 템플릿 키를 끔({@link #disableTemplates}, VOC V190): 내용에 템플릿 이름을 치고 Tab을 누르면 그 템플릿이
+     *   펼쳐져 {@code ${변수}}가 이름 글자로 바뀐 채 저장됐다. Tab은 열린 템플릿 세션의 결과({@link SqlTemplates.TabResult})를 따르고,
+     *   Ctrl+K Ctrl+X 목록은 선택(없으면 캐럿)에 넣는다: 캐럿 앞 낱말까지 지웠다
      * - 2026-11-28 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}): 옛 배율의 너비로 자리를 정해 글자가 겹쳤다
      *   (앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
      */
@@ -3328,6 +3331,8 @@ final class SqlEditorPanel extends JPanel {
         private boolean chordPending;
         @Nullable
         private SqlTemplates.Session templateSession;
+        // False in the Options page's template text, which holds the variables as written
+        private boolean templatesEnabled = true;
         // Null only while the RSyntaxTextArea constructor runs
         private final SqlColumnSelection columnSelection;
         // The running statement's mark (EDT only): its first line's icon, its line count and color, null when nothing runs
@@ -3401,6 +3406,13 @@ final class SqlEditorPanel extends JPanel {
          */
         boolean hasColumnSelection() {
             return columnSelection.hasSelectedText();
+        }
+
+        /**
+         * Tab is a plain Tab and Ctrl+K Ctrl+X does nothing: the text is a template itself (Options &gt; Templates).
+         */
+        void disableTemplates() {
+            templatesEnabled = false;
         }
 
         /**
@@ -3611,22 +3623,20 @@ final class SqlEditorPanel extends JPanel {
         private void tab() {
             Action defaultTab = getActionMap().get(DefaultEditorKit.insertTabAction);
             // A column selection takes the tab on every line (replaceSelection)
-            if (isEditable() && getSelectionStart() == getSelectionEnd() && !columnSelection.isActive()) {
+            if (isEditable() && !columnSelection.isActive()) {
                 SqlTemplates.Session session = templateSession;
-                if (session != null && session.contains(getCaretPosition())) {
-                    session.selectNext(this);
+                SqlTemplates.TabResult result = session == null ? SqlTemplates.TabResult.OUTSIDE : session.tab();
+                if (result == SqlTemplates.TabResult.MOVED) {
                     return;
                 }
                 templateSession = null;
-                SqlTemplates.Template template = SqlTemplates.findAtCaret(this);
+                // At the end of the inserted template the name before the caret is the template's own text: a plain Tab
+                SqlTemplates.Template template = result == SqlTemplates.TabResult.OUTSIDE && templatesEnabled
+                    ? SqlTemplates.findAtCaret(this) : null;
                 if (template != null) {
                     templateSession = SqlTemplates.expand(this, template);
                     return;
                 }
-            } else if (templateSession != null && getSelectedText() != null && templateSession.contains(getSelectionStart())) {
-                // A selected template variable: go on to the next one
-                templateSession.selectNext(this);
-                return;
             }
             if (defaultTab != null) {
                 defaultTab.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, DefaultEditorKit.insertTabAction));
@@ -3634,9 +3644,14 @@ final class SqlEditorPanel extends JPanel {
         }
 
         /**
-         * Ctrl+K Ctrl+X: the templates in a menu at the caret; the chosen one is inserted at the caret.
+         * Ctrl+K Ctrl+X: the templates in a menu at the caret; the chosen one replaces the selection (inserted at the caret
+         * when there is none).
          */
         private void showTemplateMenu() {
+            if (!templatesEnabled) {
+                UIManager.getLookAndFeel().provideErrorFeedback(this);
+                return;
+            }
             JPopupMenu menu = new JPopupMenu();
             for (SqlTemplates.Template template : SqlTemplates.getTemplates()) {
                 if (!template.enabled()) {
@@ -3644,8 +3659,11 @@ final class SqlEditorPanel extends JPanel {
                 }
                 JMenuItem item = new JMenuItem(template.name() + "  -  " + template.description()); //$NON-NLS-1$
                 item.addActionListener(e -> {
-                    replaceSelection(template.name());
-                    templateSession = SqlTemplates.expand(this, template);
+                    if (templateSession != null) {
+                        // Its variables would take the inserted template as their text
+                        templateSession.finish();
+                    }
+                    templateSession = SqlTemplates.expand(this, template, getSelectionStart(), getSelectionEnd());
                     requestFocusInWindow();
                 });
                 menu.add(item);
