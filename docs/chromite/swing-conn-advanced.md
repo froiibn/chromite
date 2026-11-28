@@ -843,3 +843,6 @@ GCP 시험 VM의 SQL Server 2022에 이 확인만 쓰는 로그인 `chr_conn_dbl
   의존을 지움, 에이전트는 `address` 한 칸. 위 "Properties 창과 출처 하나로". 회귀 테스트는 실행하지 않았다.
 - 2026-11-22 Oracle "메타데이터 최적화 버전"이 비었을 때 23ai 이상은 11.2.0.4(앱 변경 #162, `chromite/oracle-getddl-23ai`): 설명 글(영어·한국어)과 위 "6. 공급자 속성 선언" 표.
   이유와 사실 표는 [model-fixes.md](model-fixes.md) #30.
+- 2026-11-28 Options 탭의 양식(연결 속성, Oracle 세션 설정, 셸 명령)이 휠 한 칸에 3px만 움직이던 문제: 휠 단위 기본값을 스크롤 창 UI 한 곳에서 줌,
+  네트워크 핸들러 탭이 막대에 주던 16은 지움(VOC 192, `chromite/connection-dialog-scroll`,
+  [swing-options.md](swing-options.md) "스크롤 단위 기본값 (VOC 192)"). 회귀 테스트는 실행하지 않았다.

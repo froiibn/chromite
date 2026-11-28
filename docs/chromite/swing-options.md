@@ -855,8 +855,53 @@ design-spec "적용 현황 — 글자 선명도와 대비".
 
 - 코드로 본 것: 표 디자이너(`TableDesignerPanel`)는 탭·분할 안의 스크롤 창이라 겹치지 않는다. Chromite Agent 패널의 대화 기록(`AiAssistantPanel`)에는
   안쪽 스크롤 창이 없다.
-- 보고(고치지 않음, 범위 밖): 연결 대화상자 Shell Commands 페이지의 스크롤 창은 단위가 1이라 휠 한 칸이 3px만 움직인다(`ConnectionShellCommandsPage`).
-  연결 대화상자의 다른 양식 칸(`ConnectionSettingsOverrides`, `ConnectionNetworkPage`)은 16이다. 옵션 페이지와 같은 단위로 맞출지는 따로 정할 일이다.
+- 보고(이때는 고치지 않음): 연결 대화상자 Shell Commands 페이지의 스크롤 창은 단위가 1이라 휠 한 칸이 3px만 움직인다(`ConnectionShellCommandsPage`).
+  연결 대화상자의 다른 양식 칸(`ConnectionSettingsOverrides`, `ConnectionNetworkPage`)은 16이다. → VOC 192에서 고침(아래 "스크롤 단위 기본값 (VOC 192)").
+
+## 스크롤 단위 기본값 (VOC 192)
+
+사용자 보고(2026-11-27 VOC): "연결 설정 화면의 아래 고급창의 스크롤이 비정상적으로 잘 안내려간다".
+
+- **"아래 고급창":** 연결 대화상자에서 "옵션 >>"를 누르면 아래에 열리는 탭 묶음(`ConnectionSettingsPanel.optionsTabs`)이다. 처음 고른 탭 "연결 속성"
+  (`ConnectionSettingsPanel.createConnectionPropertiesPage`)은 양식이 탭보다 높아(150%·100% 모두 보기 594, 보이는 높이 305) 스크롤해야 한다.
+- **원인:** 그 스크롤 창의 보기는 `Scrollable`이 아닌 `JPanel`이고 막대에 단위를 준 곳이 없다. Swing은 그런 창의 휠을 막대 단위로 움직이고
+  (`BasicScrollPaneUI`·`BasicScrollBarUI.scrollByUnits`, FlatLaf 3.8 고해상도 휠은 `FlatScrollPaneUI.mouseWheelMovedSmooth`), 아무도 정하지 않은
+  `JScrollBar`의 단위는 1px이다. 그래서 휠 한 칸이 3px(운영체제 기본 3단위), 터치패드의 작은 이벤트는 1px(FlatLaf가 0을 1로 올림)만 움직였다.
+  끝까지 휠 97칸. 막대 끌기와 펼쳐지는 칸(유휴 트랜잭션 경고 줄)은 원인이 아니다(끌기는 끝까지 감, 높이는 바로 반영, 아래 표).
+- **같은 원인:** 보기가 `Scrollable`이 아니고 막대 단위를 정하지 않은 스크롤 창 전부. 연결 대화상자에서는 연결 속성, Oracle "세션 설정"
+  (`ConnectionDriverFields`), "셸 명령"의 양식(`ConnectionShellCommandsPage`). SSH·SSL·Proxy(`ConnectionNetworkPage`)와 "설정" 페이지
+  (`ConnectionSettingsOverrides`)는 막대에 16을 따로 주어 괜찮았다. 연결 대화상자 밖에서는 네트워크 프로필 대화상자의 핸들러 칸
+  (`NetworkProfilesDialog`), 그 밖의 양식·체크 목록·이미지 보기(`AgentScheduleDialog`, `AiOptionsPage` 안쪽 창, `PrincipalPropertiesDialog`,
+  `QueryParameterDialog`, `QueryScheduleDialog`, `ResultSetValueDialogs`, `ResultSetVirtualKeys`, `ResultSetValuePanel` 이미지)가 같다(코드로 봄).
+  표·목록·글 상자·트리와 옵션 페이지(`PageView`, 44), ERD·실행 계획·대시보드·Agent 대화 기록·HEX 편집기는 자기 단위가 있어 해당하지 않는다.
+- **고침:** 규칙 하나(`ChromiteScrollPaneUI.scrollWithDefaultUnit`). 휠을 받은 창의 보기가 `Scrollable`이 아니고, 움직일 막대(세로, Shift나 세로 막대가
+  없으면 가로)의 단위가 Swing 기본값 1이면 단위 16(`DEFAULT_UNIT_INCREMENT`, `UIScale.scale`)으로 직접 움직인다. 계산은 FlatLaf 고해상도 휠과 같다
+  (한 칸 = 16 × 운영체제 단위 수, 보이는 크기를 넘지 않음, 소수 회전은 최소 1px). 나머지 창은 지금까지와 같이 FlatLaf/Swing이 처리한다.
+  - 16은 연결 대화상자의 SSH·SSL·Proxy·설정 페이지가 쓰던 값이다(휠 한 칸 48 = 양식 약 1.5줄). 그래서 그 두 곳의 `setUnitIncrement(16)`은 지웠다(같은 값이 규칙에서 옴).
+  - 막대에 `setUnitIncrement`를 일괄로 부르지 않은 이유: `JScrollPane.ScrollBar`는 한 번 단위를 받으면 나중에 보기가 `Scrollable`(표, 목록)로 바뀌어도
+    그 보기의 단위를 무시한다. 휠에서 판단하면 그때의 보기를 본다.
+  - 키보드 화살표 스크롤(`BasicScrollPaneUI` 동작은 `Scrollable`이 아닌 보기에 10px)과 막대 끌기·트랙 누르기(보이는 높이)는 막대 단위를 쓰지 않아 바뀌지 않는다.
+    이 테마는 막대 화살표 단추를 보이지 않는다(`ScrollBar.showButtons` false).
+
+### 확인 (2026-11-28, 이 브랜치 빌드, 테스트 에이전트)
+
+방법: 빌드한 제품을 복사해 자기 작업 공간·설정·데이터 폴더로 실행(한국어, 150%와 `-Dsun.java2d.uiScale=1`), 연결은 기본값(localhost)으로 만들기만 하고
+연결하지 않음. 휠 이벤트는 대화상자의 이벤트 큐에 넣었다(경량 디스패처가 대상을 고름, OS 입력 없음). 보통 휠 = 회전 1·단위 수 3, 터치패드 = 회전 0·정밀 회전 0.1/0.25.
+막대 끌기는 막대에 누르기·끌기 10번·놓기. 기록: `D:\Tools\_scratch\connection-dialog-scroll\logs\`, 화면: `shots\`.
+
+| 곳 | 전 | 뒤 |
+|---|---|---|
+| 연결 속성(PostgreSQL, Oracle, MariaDB: 범위 289 / SQL Server, ShardSphere, Altibase: 255), 라벨·입력 칸·콤보·빈 곳, 150%·100% | 휠 한 칸 3, 위로 −3, 끝까지 97 / 85칸 | 48, −48, 끝까지 7 / 6칸 |
+| 같은 곳, 터치패드 0.1 / 0.25 | 이벤트마다 1 / 1 | 5 / 12 |
+| 같은 곳, 막대 끌기 | 끝까지 감(289 / 255) | 같음 |
+| 같은 곳, 유휴 트랜잭션 확인란을 켜고 끔(경고 줄) | 보기 높이 = 선호 높이 = 막대 최대 | 같음 |
+| Oracle 세션 설정(대화상자 640×640, 범위 122) | 3, 끝까지 41칸 | 48, 끝까지 3칸 |
+| 셸 명령 양식(범위 30) | 3 | 30(한 칸에 끝) |
+| SSH(범위 297), 설정 페이지(범위 492) | 단위 16(코드) | 48, 끝까지 7 / 11칸(지운 16과 같음) |
+| 드라이버 속성 표, 옵션 페이지(`PageView`) | 72, 132 | 같음 |
+| 네트워크 프로필 대화상자 SSH 칸(범위 213) | 단위 1 | 48 |
+
+- 전 기록의 Altibase 한 번(5칸 0, 끝까지 못 감)은 다시 열어 잰 값(3)과 다르다. 대화상자를 연 직후의 시험 쪽 문제로 보이고 다시 나오지 않았다(뒤에서는 48).
 
 ## 연결 Settings 탭의 페이지 목록 (#150)
 
@@ -1375,3 +1420,6 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-12 #82 검토 후속: `MessageArea`는 낱말 단위로 줄을 바꿀 때만 줄 바꿈 보기를 씀(`lineWrap`이 꺼져 있으면 Swing 보기 그대로), 위 "메시지 대화상자도 같은 줄 바꿈". 회귀 테스트는 실행하지 않았다.
 - 2026-11-22 "Errors and Timeouts"의 "취소는 늘 가장 안쪽 블록(문장)만"을 바로잡음(가장 안쪽 블록은 세션일 수도 있음), 다른 세션 뒤에서 기다리는 취소(앱 변경 #161,
   [cancel-busy-connection.md](cancel-busy-connection.md)).
+- 2026-11-28 보기가 `Scrollable`이 아니고 막대 단위를 정하지 않은 스크롤 창은 휠 단위 16(`ChromiteScrollPaneUI`, 모든 스크롤 창): 연결 대화상자 Options의
+  연결 속성 탭이 휠 한 칸에 3px만 움직이던 문제. `ConnectionNetworkPage`·`ConnectionSettingsOverrides`가 막대에 주던 16은 지움(VOC 192,
+  `chromite/connection-dialog-scroll`, 위 "스크롤 단위 기본값 (VOC 192)"). 회귀 테스트는 실행하지 않았다.
