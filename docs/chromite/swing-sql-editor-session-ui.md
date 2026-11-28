@@ -707,8 +707,8 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
   PostgreSQL 실행 문맥을 그대로 쓰는 Greenplum·GaussDB·Kingbase와 PostgreSQL 서버 종류도 같은 길이다.
 - 창(`QueryLibraryEditor.prepareExecution`, EDT): 매개변수를 물은 뒤, 쿼리의 Database가 창의 자기 세션과 다른 DB 인스턴스면
   (`QueryParameterBinder.changesInstance`, 메모리만 읽음) 창 닫기·DB 선택과 같은 질문을 한다(`SqlEditorPanel.confirmEndSession` → 커밋/롤백/취소,
-  트랜잭션이 열려 있을 때만). 취소하면 실행하지 않는다. 새 글은 없다. 주 세션을 함께 쓰는 창은 여기서 묻지 않는다(`confirmEndSession`은 자기 세션만 본다).
-  그런 창은 세션을 옮기지 않고 그 DB의 주 세션에서 돈다(아래 "Query Library 머리말 DB: 주 세션을 함께 쓰는 창").
+  트랜잭션이 열려 있을 때만). 취소하면 실행하지 않는다. 새 글은 없다. 주 세션을 함께 쓰는 창은 이 질문을 하지 않는다(`confirmEndSession`은 자기 세션만 본다).
+  그런 창은 세션을 옮기지 않고 그 DB의 주 세션에서 돌며, 떠나는 세션의 트랜잭션은 남는 창이 없을 때만 따로 묻는다(아래 "Query Library 머리말 DB: 주 세션을 함께 쓰는 창").
 
 **고르지 않은 것:** 다시 연결할 때 문맥의 커밋 방식을 지키는 것. 스마트 커밋이 바꾼 상태는 쿼리 관리자에 닫힐 때 지워지므로
 (`SmartCommit.handleContextClose`) 모드만 지키면 둘이 어긋난다. 전처럼 연결의 기본값으로 연다(아래 "확인하지 못한 것").
@@ -793,10 +793,21 @@ PR 398의 질문(`QueryLibraryEditor.prepareExecution` → `SqlEditorPanel.confi
 - `shareInstance`: 다른 DB에 묶인 창은 연결의 기본 인스턴스에도 묶는다. 전에는 기본 인스턴스이면 아무것도 하지 않아, B에 묶인 창에서 머리말 A인 실행이 B에서
   돌고 `applyDefaults`가 기본 인스턴스의 주 세션 스키마를 바꿀 수 있었다. 묶지 않은 창(기본 인스턴스를 따라감)은 전과 같다.
 - 자기 세션 창(PR 398의 질문 뒤 다시 연결), SQL Server·MySQL/MariaDB·Oracle 등 DB가 인스턴스가 아닌 드라이버는 바꾸지 않았다(아래).
+- 떠나는 세션의 열린 트랜잭션(2026-11-29 검토 뒤): 창이 옮겨 가면 그 창이 떠난 주 세션의 트랜잭션은 열린 채 남는다. 그 세션에서 도는 다른 쿼리 창이 있으면
+  그 창의 상태 줄·닫기 질문이 계속 보이므로 묻지 않는다. 남는 창이 없으면 어느 창에도 보이지 않게 되므로(아래 사실) 실행 전(EDT, 매개변수를 물은 뒤)
+  기본값으로 설정과 같은 질문을 한다(`QueryLibraryEditor.confirmLeaveSession` → `ExitTransactionCheck.confirmDefaultChange`: 커밋/롤백/취소, 트랜잭션이 열려
+  있을 때만, 취소하면 실행하지 않음). 새 글은 없다. 같은 판단(`QueryParameterBinder.changesInstance`: 머리말 DB가 창의 세션과 다른 DB 인스턴스)이 자기 세션 창에서는
+  PR 398의 질문(`SqlEditorPanel.confirmEndSession`)으로 간다.
+  - 묻지 않을 때의 사실(`6d477fa555`의 동작을 고친 빌드에서 시험 에이전트가 `shareInstance`를 직접 불러 재현): 라이브러리 창 L만 A에 있고 L이 A에
+    `INSERT`(커밋 안 함)한 뒤 B로 옮기면, L의 상태 줄에서 "열린 트랜잭션"이 사라지고 탭 번호가 B의 세션이 된다. L을 닫을 때 묻지 않는다(자기 세션이 아님).
+    A의 트랜잭션은 연결 끊기·끝낼 때의 질문(`ExitTransactionCheck.findActive`는 모든 인스턴스의 문맥을 봄)과 유휴 트랜잭션 알림(연결 종류의 기간 뒤,
+    코드 읽기)에서만 다시 보인다.
+  - 질문 글은 기본값으로 설정의 글이다("{2}을(를) 기본값으로 만들면 주 세션이 다른 데이터베이스로 옮겨 가고, 트랜잭션은 이전 세션에 남습니다"). 연결의 기본 DB는
+    바뀌지 않지만, 그 세션을 쓰던 창이 이 창 하나뿐이라 그 창에서 본 결과(이 창이 그 DB로 옮겨 가고 트랜잭션이 남음)는 같다. 새 글을 만들지 않으려고 그대로 썼다.
 
 **스키마(고른 것):** 머리말 Schema는 공유 세션의 지금 스키마와 같을 때만 그대로 실행한다. 다르면 실행하지 않고(문장 없음, 세션 그대로) Messages에
-"쿼리의 스키마 {0}이(가) 이 창이 다른 쿼리 창과 함께 쓰는 세션의 스키마가 아닙니다. 먼저 창의 스키마 목록에서 {0}을(를) 고르십시오."
-(`EditorMessages.editor_sql_query_schema_shared`)를 낸다. 창은 이미 그 DB에 묶였으므로 창의 스키마 목록이 그 DB의 스키마를 보이고, 사용자가 고르면(직접 하는
+"먼저 창의 스키마 목록에서 {0}을(를) 고르십시오."(영어 "Choose schema {0} in the window's schema list first.",
+`EditorMessages.editor_sql_query_schema_shared`, 2026-11-29 검토 뒤 짧게: 화면 글은 설명 없이 짧게)를 낸다. 창은 이미 그 DB에 묶였으므로 창의 스키마 목록이 그 DB의 스키마를 보이고, 사용자가 고르면(직접 하는
 세션 바꾸기, 위 절과 같이 허용) 다음 실행이 돈다. 같은 DB 안에서 스키마만 다른 머리말(Database 칸 비움)도 같다.
 - 이유: 그 DB의 주 세션은 같은 DB에 묶인 공유 창과 그 DB가 기본이 된 뒤의 공유 창이 함께 쓴다. `search_path`를 바꾸면 그 창들이 말없이 옮겨진다(사용자 결정에 어긋남).
   바꾸지 않고 실행하면 이름에 스키마를 쓰지 않은 표가 다른 스키마의 표로 풀린다(고치기 전 세 번째 줄처럼 다른 데이터를 읽거나 쓴다). 그래서 실행하지 않고 사용자가 고르게 했다.
@@ -818,6 +829,7 @@ PR 398의 질문(`QueryLibraryEditor.prepareExecution` → `SqlEditorPanel.confi
 | `SqlParameterBinding` | 기본 메서드 `getDefaultObjectNames()`(null) |
 | `QueryParameterBinder` | `getDefaultObjectNames()`: 머리말 Database/Schema |
 | `SqlEditorPanel` | `prepareAndSchedule`이 `getRunContext`로 실행 문맥을 정함 |
+| `QueryLibraryEditor` | `confirmLeaveSession`: 떠나는 세션에 남는 창이 없으면 열린 트랜잭션을 물음(자기 세션은 전과 같이 `confirmEndSession`) |
 | `QueryWindowContext` | `shareInstance`가 다른 DB에 묶인 창을 기본 인스턴스에도 묶음 |
 | `EditorMessages` (`_ko`) | `editor_sql_query_schema_shared` |
 
@@ -1058,6 +1070,9 @@ Windows 11, 150%, 한국어, 빈 작업 공간·설정·`CHROMITE_DATA`를 둔 �
 | 그 뒤 W1·W2 | W1 탭 `(203020)`(A의 주 세션), 상태 줄 "열린 트랜잭션 … (변경 있음)". W2 `current_database()` A(203020) |
 | 머리말 C 실행 | C(203085), 기본 인스턴스 A, W1·W2 그대로 A, 머리말 B 창은 B 그대로 |
 | 머리말 B + Schema `chr_qlss_s` | 실행하지 않음, Messages에 스키마 글, 서버 세션·기본 인스턴스·`search_path` 그대로. 창은 B에 묶임(탭 203068) |
+| (검토 뒤 빌드) 라이브러리 창 M만 A에 있고 M이 A에 `INSERT 9` 뒤 머리말 B로 F5 | 질문("커밋하지 않은 트랜잭션", 목록 `PGS (QL-M.sql)`). 취소 → 실행하지 않음, M은 A·"열린 트랜잭션 (변경 있음)" 그대로. 다시 F5 → 롤백 → A의 트랜잭션 롤백(커밋된 A의 행 1개), 실행은 B |
+| (검토 뒤 빌드) W1이 A에 `INSERT 10`, 라이브러리 창 N도 A에서 머리말 B로 F5 | 묻지 않음, N은 B에서 돎, A의 트랜잭션은 W1의 세션에 그대로(W1이 보임) |
+| (검토 뒤 빌드) 머리말 Schema만 `chr_qlss_s`(A) | Messages "먼저 창의 스키마 목록에서 chr_qlss_s을(를) 고르십시오.", 실행하지 않음 |
 | 머리말 Schema만 `chr_qlss_s`(DB 비움, 창은 A) | 같은 글로 실행하지 않음. W2 `current_schema()` `public` 그대로 |
 | 위 B 창의 스키마 목록에서 `chr_qlss_s`를 고른 뒤 F5 | B·`chr_qlss_s`, 결과 `25` |
 | B에 묶인 창의 머리말을 A(기본 DB)로 바꾸고 F5 | A(203020), 창 탭 `(203020)` |
@@ -1069,7 +1084,8 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
 `information_schema.SCHEMATA`에 `chr_qlss%` 0개).
 캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\query-library-shared-session\s\before\shots\pg-before-w1-after-QL-B.png`(W1 탭이 B의 세션 번호, 열린 트랜잭션 표시 없음),
 `…\s\after\shots\`(`pg-after-QL-B-library-window.png`, `pg-after-w1-after-QL-B.png`: W1 탭 A의 번호·열린 트랜잭션, `pg-after-QL-BS-schema-stop.png`,
-`pg-after-QL-BS-after-pick.png`, `pg-after-own-session-question.png`). 로그: 같은 폴더의 `*.txt.log`.
+`pg-after-QL-BS-after-pick.png`, `pg-after-own-session-question.png`). 검토 뒤: `…\s\f2\shots\`(`f2-emulated-6d477fa-L-after-move.png`: 옮긴 뒤 L에
+열린 트랜잭션 표시 없음, `f2-emulated-disconnect-question.png`, `f2-after-M-question.png`, `f2-after-schema-message.png`). 로그: 같은 폴더의 `*.txt.log`.
 
 **확인하지 못한 것:** MySQL 8.4(MariaDB와 같은 코드 경로라 보고 시험하지 않음), Oracle·그 밖의 드라이버, PostgreSQL 계열 다른 서버, "모든 데이터베이스 표시"를 끈 연결
 (머리말 DB가 연결 목록에 없음: 코드 읽기로 바인딩도 아무것도 바꾸지 않고 그 자리에서 돎), 다시 시작 뒤 복원한 라이브러리 창. 회귀 테스트는 실행하지 않았다.
@@ -1135,3 +1151,6 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
   Query Library 실행이 머리말 DB의 주 세션에서 돈다(`SqlEditorPanel.getRunContext`, `QueryWindowContext.shareInstance`). 전에는 공유 세션(연결의 기본 DB)을 옮기고 실행은
   옛 DB에서 돌았다. 머리말 스키마가 공유 세션의 스키마가 아니면 실행하지 않는다. "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션"의 남은 것을 고침. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Query Library 창의 실행(Run, Run on…, F5) 문맥, 주 세션을 함께 쓰는 PostgreSQL 창의 DB 묶음(다른 DB에 묶인 창이 기본 DB에도 묶임), 머리말 스키마가 있는 공유 창 실행.
+- 2026-11-29 같은 브랜치 검토 뒤: 주 세션을 함께 쓰는 창이 머리말 DB로 옮겨 갈 때 떠나는 세션에 열린 트랜잭션이 있고 그 세션에 남는 쿼리 창이 없으면 실행 전에
+  기본값으로 설정의 질문을 함(`QueryLibraryEditor.confirmLeaveSession`), 스키마 글을 짧게. 같은 절과 확인 기록. 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: Query Library 창의 실행 시작(질문), 자기 세션 창의 PR 398 질문(같은 자리로 옮김).

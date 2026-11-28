@@ -234,9 +234,11 @@ PostgreSQL은 DB마다 서버 세션이 따로라, 머리말 Database가 창의 
   찾은 그 DB가 세션의 인스턴스가 아님)로 판단하고, 그러면 창 닫기와 같은 질문(`SqlEditorPanel.confirmEndSession`: 커밋/롤백/취소, 트랜잭션이 열려 있을 때만)을 한다.
   취소하면 실행하지 않는다. 같은 인스턴스 안의 DB·스키마 바꾸기(SQL Server·MySQL의 `USE`, 스키마)는 세션을 끊지 않아 묻지 않는다.
 - 다시 연 세션의 트랜잭션도 상태 줄·창 닫기 질문에 보인다(모델의 다시 연결, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "자기 세션을 다른 DB로 다시 연결할 때").
-- 주 세션을 함께 쓰는 창은 여기서 묻지 않는다. 세션을 옮기지 않기 때문이다(2026-11-29): PostgreSQL에서는 창이 쿼리의 Database의 주 세션에 묶여 거기서 돈다
+- 주 세션을 함께 쓰는 창은 이 질문을 하지 않는다. 세션을 옮기지 않기 때문이다(2026-11-29): PostgreSQL에서는 창이 쿼리의 Database의 주 세션에 묶여 거기서 돈다
   (`SqlEditorPanel.getRunContext` → `QueryWindowContext.shareInstance`, 연결의 기본 DB와 다른 창은 그대로). 전에는 바인딩이 함께 쓰는 주 세션(연결의 기본 DB)을
   그 DB로 옮기고 실행은 옛 DB에서 돌았다. 쿼리의 Schema가 그 주 세션의 스키마가 아니면 세션을 바꾸지 않고 실행하지 않는다(Messages에 이유, 창의 스키마 목록에서 고르면 실행됨).
+  창이 떠나는 주 세션에 열린 트랜잭션이 있고 그 세션에 남는 쿼리 창이 없으면 실행 전에 기본값으로 설정과 같은 질문을 한다(`QueryLibraryEditor.confirmLeaveSession`,
+  취소하면 실행하지 않음). 남는 창이 있으면 그 창이 트랜잭션을 보이므로 묻지 않는다.
   SQL Server·MySQL/MariaDB 공유 창은 전과 같이 공유 세션에 `USE`를 보낸다(사용자 결정 대기). 자세한 것은
   [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "Query Library 머리말 DB: 주 세션을 함께 쓰는 창".
 - 예약 실행은 실행마다 새 자기 세션을 열어(`QueryScheduler`) 열린 트랜잭션이 없다. 기록에서 다시 연 바인딩 실행(`QueryParameterBinder.Recorded`)은 기본 DB를 갖지 않는다.
@@ -706,3 +708,4 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
 - 2026-11-29 `chromite/query-library-shared-session`: 주 세션을 함께 쓰는 PostgreSQL 창의 실행이 쿼리의 Database의 주 세션에서 돎(공유 세션을 옮기지 않음),
   Schema가 그 세션의 스키마가 아니면 실행하지 않음. "기본 DB와 열린 트랜잭션", "실행 흐름" 5. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Query Library 창의 실행(Run, Run on…, F5), 주 세션을 함께 쓰는 PostgreSQL 창의 DB와 스키마.
+- 2026-11-29 같은 브랜치 검토 뒤: 공유 창이 떠나는 주 세션의 열린 트랜잭션을 남는 창이 없을 때 실행 전에 물음. "기본 DB와 열린 트랜잭션". 회귀 테스트는 실행하지 않았다.
