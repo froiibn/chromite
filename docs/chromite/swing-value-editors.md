@@ -165,3 +165,5 @@ SWT `GenerateUUIDHandler`처럼 고른 셀마다 새 무작위 UUID를 넣는다
 - 2026-11-08 최초 작성(`chromite/value-editors-rest`): 참조 값 고르기, SET, 배열·구조체·hstore 대화상자, `OBJECT`·배열·구조체 열 편집, 비트 문자열 입력,
   16진수 편집, 외부 편집기, UUID 만들기.
 - 2026-11-16 결과 메뉴의 "16진수로 편집"은 이진 열에서만 보임(앱 변경 #137, `chromite/result-grid-menu`, [context-menus.md](context-menus.md) "결과 그리드").
+- 2026-11-28 배열·구조체·hstore 대화상자의 항목 표와 참조 값 고르기 표의 Ctrl+C가 결과 표처럼 복사(필요할 때 큰따옴표, 이스케이프한 HTML 표)
+  (앱 변경 #189, `chromite/grid-copy-excel`, [swing-grid-editing.md](swing-grid-editing.md) "엑셀로 붙여넣는 복사").

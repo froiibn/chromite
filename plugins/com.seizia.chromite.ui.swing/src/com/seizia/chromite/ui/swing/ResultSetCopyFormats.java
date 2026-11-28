@@ -31,11 +31,13 @@ import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Transferable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 /**
@@ -50,12 +52,23 @@ import java.util.function.Supplier;
  * 전문이다({@link ResultSetGrid#getCopyData}: 로컬 임시 파일이나 값 패널이 읽은 글자, 백그라운드에서 읽음). 읽지 않은 LOB는 칸 글자(자리 표시)다.
  * INSERT의 테이블은 결과의 단일 원본 테이블, 없으면 {@code table}이고 이름과 값은 DB 방언으로 쓴다({@link SQLUtils#convertValueToSQL}).
  * 고급 복사 설정은 이 실행 동안 기억한다.
+ * <p>
+ * 결과 표의 복사(Ctrl+C, 편집 ▸ 복사, Copy)와 머리글 포함 복사도 여기서 만든다({@link #copySelection}, 결과 값을 보이는 다른 표는
+ * {@link TableCopyHandler}). Swing 기본 표 복사는 값을 따옴표 없이 탭으로 잇고 HTML 표에 값을 이스케이프 없이 넣어, 줄바꿈·탭·{@code "}가 든
+ * 값이 엑셀에서 여러 칸으로 깨지고 {@code <b>} 같은 글자가 표식이 되었다. 그래서 글자는 고급 복사와 같은 코드({@link #appendDelimited})에
+ * 탭·"필요할 때" 따옴표·그리드의 NULL 글자를 넘겨 만들고, 엑셀이 붙여넣을 때 글자보다 먼저 읽는 HTML 표는 값을 이스케이프하고 줄바꿈을
+ * 칸 안에 남는 {@code <br>}({@code mso-data-placement:same-cell})로 쓴다. 다른 값은 전과 같다(따옴표 없음, 마지막 줄 끝 줄바꿈 없음).
+ * 두 글자는 복사할 때 한 번씩 만든다: Windows의 Java 클립보드는 넣는 순간 모든 형식을 만들기 때문에({@code WClipboard.setContentsNative})
+ * 나중에 만들어도 시간과 메모리가 줄지 않는다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "표 편의 기능")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 JSON, XML, HTML, SQL INSERT 형식과 고급 복사 대화상자 (docs/chromite/swing-grid-editing.md "고급 복사")
  * - 2026-11-22 이미 읽은 LOB는 앞부분 대신 전문을 복사, 고급 복사는 설정을 고른 뒤 행을 읽음 (앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
+ * - 2026-11-28 결과 표의 복사·머리글 포함 복사와 결과 값을 보이는 다른 표의 복사: 고급 복사의 "필요할 때" 따옴표로 만든 글자와 값을 이스케이프한
+ *   HTML 표({@link #copySelection}, {@link TableCopyHandler}). 고급 복사의 글자 만들기를 한 {@link StringBuilder}에 쓰는 {@link #appendDelimited}로,
+ *   XML 이스케이프를 줄바꿈 표식을 받는 {@link #appendEscaped}로 나눔 (앱 변경 #189, docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetCopyFormats {
 
@@ -89,6 +102,11 @@ final class ResultSetCopyFormats {
     }
 
     private static final String[] DELIMITERS = {"\\t", ",", ";", "|"}; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+    /**
+     * A line break in a cell of a copied HTML table. Excel ends a cell at a plain {@code <br>} (the rest goes to the next
+     * row) and turns a raw line break into a space; with this style it keeps the line break inside the cell.
+     */
+    private static final String HTML_LINE_BREAK = "<br style=\"mso-data-placement:same-cell\">"; //$NON-NLS-1$
     private static AdvancedOptions lastAdvanced = new AdvancedOptions(true, false, "\\t", 0, ""); //$NON-NLS-1$ //$NON-NLS-2$
 
     private ResultSetCopyFormats() {
@@ -154,10 +172,34 @@ final class ResultSetCopyFormats {
      */
     @NotNull
     static String advanced(@NotNull JTable table, @NotNull ResultSetGrid.Data data, @NotNull AdvancedOptions options) {
+        return appendDelimited(new StringBuilder(), table.getSelectedRows(), toModelColumns(table), column -> data.columns()[column],
+            (row, column) -> data.rows().get(row)[column], options).toString();
+    }
+
+    /**
+     * A cell of a copied selection: its display value, {@link ResultSetGrid#NULL_VALUE} (or null) for NULL.
+     */
+    @FunctionalInterface
+    interface CellValues {
+        @Nullable
+        Object get(int row, int column);
+    }
+
+    /**
+     * Delimited lines of the cells with the Advanced Copy settings, each line ending with {@code \n}. Rows and columns are
+     * passed to {@code names} and {@code cells} as given. Everything goes into {@code out}: a copy of hundreds of
+     * thousands of rows makes no string per cell.
+     */
+    @NotNull
+    private static StringBuilder appendDelimited(
+        @NotNull StringBuilder out,
+        @NotNull int[] rows,
+        @NotNull int[] columns,
+        @NotNull IntFunction<String> names,
+        @NotNull CellValues cells,
+        @NotNull AdvancedOptions options
+    ) {
         String delimiter = options.delimiter().replace("\\t", "\t"); //$NON-NLS-1$ //$NON-NLS-2$
-        int[] rows = table.getSelectedRows();
-        int[] columns = toModelColumns(table);
-        StringBuilder out = new StringBuilder();
         if (options.header()) {
             if (options.rowNumbers()) {
                 out.append('#').append(delimiter);
@@ -166,7 +208,7 @@ final class ResultSetCopyFormats {
                 if (i > 0) {
                     out.append(delimiter);
                 }
-                out.append(quoteAdvanced(data.columns()[columns[i]], delimiter, options.quote()));
+                appendQuoted(out, names.apply(columns[i]), delimiter, options.quote());
             }
             out.append('\n');
         }
@@ -178,23 +220,132 @@ final class ResultSetCopyFormats {
                 if (i > 0) {
                     out.append(delimiter);
                 }
-                Object value = data.rows().get(row)[columns[i]];
-                out.append(value == ResultSetGrid.NULL_VALUE || value == null
-                    ? options.nullText() : quoteAdvanced(value.toString(), delimiter, options.quote()));
+                Object value = cells.get(row, columns[i]);
+                if (value == ResultSetGrid.NULL_VALUE || value == null) {
+                    out.append(options.nullText());
+                } else {
+                    appendQuoted(out, value.toString(), delimiter, options.quote());
+                }
             }
             out.append('\n');
         }
-        return out.toString();
+        return out;
     }
 
-    @NotNull
-    private static String quoteAdvanced(@NotNull String text, @NotNull String delimiter, int quote) {
+    /**
+     * A value in double quotes with inner {@code "} doubled when the quote setting asks for it (when needed: the value holds
+     * the delimiter, a {@code "} or a line break), else as it is.
+     */
+    private static void appendQuoted(@NotNull StringBuilder out, @NotNull String text, @NotNull String delimiter, int quote) {
         boolean needed = (!delimiter.isEmpty() && text.contains(delimiter)) || text.indexOf('"') >= 0 || text.indexOf('\n') >= 0
             || text.indexOf('\r') >= 0;
-        if (quote == 1 || (quote == 0 && needed)) {
-            return '"' + text.replace("\"", "\"\"") + '"'; //$NON-NLS-1$ //$NON-NLS-2$
+        if (quote != 1 && (quote != 0 || !needed)) {
+            out.append(text);
+            return;
         }
-        return text;
+        out.append('"');
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '"') {
+                out.append('"');
+            }
+            out.append(c);
+        }
+        out.append('"');
+    }
+
+    /**
+     * Copy (Ctrl+C, Edit > Copy) and Copy with Headers of the result grid: the selected cells of {@code data} as
+     * tab-separated text and as an HTML table ({@link #selection}).
+     *
+     * @return null without a selection
+     */
+    @Nullable
+    static Transferable copySelection(@NotNull JTable table, @NotNull ResultSetGrid.Data data, boolean header) {
+        return selection(table.getSelectedRows(), toModelColumns(table), column -> data.columns()[column],
+            (row, column) -> data.rows().get(row)[column], header);
+    }
+
+    /**
+     * Ctrl+C and Edit > Copy of a table that shows result values outside the grid (record view, aggregates, the items of
+     * a value dialog, the reference picker): its selected cells as the grid copies them ({@link #selection}), in place of
+     * Swing's table copy. As Swing's, it copies every row (column) when the table does not select rows (columns), and a
+     * null cell is empty.
+     */
+    static class TableCopyHandler extends TransferHandler {
+        @Override
+        public int getSourceActions(JComponent component) {
+            return COPY;
+        }
+
+        @Nullable
+        @Override
+        protected Transferable createTransferable(JComponent component) {
+            if (!(component instanceof JTable table) || (!table.getRowSelectionAllowed() && !table.getColumnSelectionAllowed())) {
+                return null;
+            }
+            int[] rows = table.getRowSelectionAllowed() ? table.getSelectedRows() : allIndexes(table.getRowCount());
+            int[] columns = table.getColumnSelectionAllowed() ? table.getSelectedColumns() : allIndexes(table.getColumnCount());
+            return selection(rows, columns, table::getColumnName, (row, column) -> {
+                Object value = table.getValueAt(row, column);
+                return value == null ? "" : value; //$NON-NLS-1$
+            }, false);
+        }
+
+        @NotNull
+        private static int[] allIndexes(int count) {
+            int[] indexes = new int[count];
+            for (int i = 0; i < count; i++) {
+                indexes[i] = i;
+            }
+            return indexes;
+        }
+    }
+
+    /**
+     * The clipboard contents of a copy of result cells (why: the class comment):
+     * <ul>
+     *     <li>Text: Advanced Copy with a tab, quotes when needed and the grid's NULL text ({@link #appendDelimited}); the
+     *     other values as they are shown, no line break after the last line (one cell pastes as its value alone).</li>
+     *     <li>HTML (Excel reads it before the text when it pastes): every value escaped, each line break as a {@code <br>}
+     *     that Excel keeps in the cell ({@link #HTML_LINE_BREAK}). Header names are {@code <th>} cells.</li>
+     * </ul>
+     *
+     * @return null when no cell is selected
+     */
+    @Nullable
+    private static Transferable selection(
+        @NotNull int[] rows,
+        @NotNull int[] columns,
+        @NotNull IntFunction<String> names,
+        @NotNull CellValues cells,
+        boolean header
+    ) {
+        if (rows.length == 0 || columns.length == 0) {
+            return null;
+        }
+        String nullText = ResultSetGrid.NULL_VALUE.toString();
+        StringBuilder text = appendDelimited(new StringBuilder(), rows, columns, names, cells, new AdvancedOptions(header, false, "\\t", 0, nullText)); //$NON-NLS-1$
+        text.setLength(text.length() - 1);
+        StringBuilder html = new StringBuilder("<html>\n<body>\n<table>\n"); //$NON-NLS-1$
+        if (header) {
+            html.append("<tr>\n"); //$NON-NLS-1$
+            for (int column : columns) {
+                appendEscaped(html.append("  <th>"), names.apply(column), HTML_LINE_BREAK).append("</th>\n"); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            html.append("</tr>\n"); //$NON-NLS-1$
+        }
+        for (int row : rows) {
+            html.append("<tr>\n"); //$NON-NLS-1$
+            for (int column : columns) {
+                Object value = cells.get(row, column);
+                String cellText = value == ResultSetGrid.NULL_VALUE || value == null ? nullText : value.toString();
+                appendEscaped(html.append("  <td>"), cellText, HTML_LINE_BREAK).append("</td>\n"); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            html.append("</tr>\n"); //$NON-NLS-1$
+        }
+        html.append("</table>\n</body>\n</html>"); //$NON-NLS-1$
+        return new SqlTextTools.HtmlSelection(html.toString(), text.toString());
     }
 
     @NotNull
@@ -371,23 +522,44 @@ final class ResultSetCopyFormats {
 
     @NotNull
     private static String escapeXml(@NotNull String text) {
-        StringBuilder out = new StringBuilder(text.length());
+        return appendEscaped(new StringBuilder(text.length()), text, null).toString();
+    }
+
+    /**
+     * The text with {@code & < > "} as entities and the characters XML 1.0 can't hold left out; with {@code lineBreak},
+     * each line break ({@code \r\n}, {@code \n} or {@code \r}) is written as it.
+     */
+    @NotNull
+    private static StringBuilder appendEscaped(@NotNull StringBuilder out, @NotNull String text, @Nullable String lineBreak) {
+        // Runs of characters that stay as they are go in at once (a copy escapes millions of cells)
+        int plainStart = 0;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
+            boolean lineEnd = c == '\n' || c == '\r';
+            if (c != '&' && c != '<' && c != '>' && c != '"' && !(lineBreak != null && lineEnd) && (c >= 0x20 || c == '\t' || lineEnd)) {
+                continue;
+            }
+            out.append(text, plainStart, i);
+            plainStart = i + 1;
             switch (c) {
                 case '&' -> out.append("&amp;"); //$NON-NLS-1$
                 case '<' -> out.append("&lt;"); //$NON-NLS-1$
                 case '>' -> out.append("&gt;"); //$NON-NLS-1$
                 case '"' -> out.append("&quot;"); //$NON-NLS-1$
                 default -> {
-                    // Characters XML 1.0 can't hold are left out
-                    if (c >= 0x20 || c == '\t' || c == '\n' || c == '\r') {
-                        out.append(c);
+                    if (lineBreak != null && lineEnd) {
+                        out.append(lineBreak);
+                        if (c == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                            i++;
+                            plainStart = i + 1;
+                        }
                     }
+                    // Otherwise a character XML 1.0 can't hold: left out
                 }
             }
         }
-        return out.toString();
+        // A text with nothing to escape (most cells) goes in whole, which copies faster than a range
+        return plainStart == 0 ? out.append(text) : out.append(text, plainStart, text.length());
     }
 
     @NotNull

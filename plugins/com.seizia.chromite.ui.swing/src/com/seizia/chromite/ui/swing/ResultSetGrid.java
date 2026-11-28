@@ -59,7 +59,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -83,8 +83,9 @@ import java.util.UUID;
  * 숫자 열은 오른쪽 정렬한다. 열 너비는 머리글과 앞쪽 행들의 글자 너비로 정하고, 표는 자동 맞춤을 끄고 가로 스크롤한다.
  * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택, 새 행은 {@code *}). 행 번호 칸은 선택·포커스와 관계없이 늘 그리드 바탕이다:
  * 선택한 행의 번호를 칠하면 셀 선택이 번호 열까지 이어졌다가 끊긴 것처럼 보였다.
- * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다(여러 줄 글자는 줄바꿈 그대로, HTML 표도 함께).
- * 칸 글자가 값의 일부인 LOB는 DB 없이 얻을 수 있으면 전문을 복사한다({@link #installFullTextCopy}, {@link #getCopyData}): 파일은 백그라운드 Job에서 읽고,
+ * 복사(Ctrl+C)와 머리글 포함 복사는 선택한 칸의 표시 문자열을 탭으로 나눈 글자와 HTML 표로 복사한다({@link ResultSetCopyFormats#copySelection}):
+ * 탭·줄바꿈·{@code "}가 든 값만 큰따옴표로 감싸고(고급 복사의 "필요할 때"), HTML은 값을 이스케이프해 엑셀에서 칸이 깨지지 않는다.
+ * 칸 글자가 값의 일부인 LOB는 DB 없이 얻을 수 있으면 전문을 복사한다({@link #installCopy}, {@link #getCopyData}): 파일은 백그라운드 Job에서 읽고,
  * 오래 걸리면 진행 대화상자가 뜬다. 읽지 않은 LOB는 서버를 부르지 않고 칸 글자(자리 표시)를 복사한다.
  * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
  * Export Data…는 쿼리를 다시 실행해 모든 행을 모델의 모든 형식으로 내보내는 마법사({@link DataExportWizard})다. 다시 실행할 수 있는 결과
@@ -171,6 +172,9 @@ import java.util.UUID;
  *   {@code Host.isPartialContent}를 칸의 LOB 내용을 돌려주는 {@link Host#getPartialContent}로 바꿈 (앱 변경 #160 후속)
  * - 2026-11-28 {@link Host#openScript}가 새 창이 돌 곳(결과 세션의 기본 스키마·DB)을 받음 (docs/chromite/swing-sql-editor-session-ui.md
  *   "개체에서 연 창의 DB")
+ * - 2026-11-28 복사(Ctrl+C)가 Swing 기본 표 복사 대신 {@link ResultSetCopyFormats#copySelection}을 씀(필요할 때 따옴표, 이스케이프한 HTML),
+ *   머리글 포함 복사도 같은 글자와 HTML 표. 복사하는 동안 모델이 LOB 전문을 주던 {@code copyTexts}를 지우고 {@link #getCopyData}의 행을 씀
+ *   (앱 변경 #189, docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -382,12 +386,6 @@ final class ResultSetGrid extends JPanel {
     private ChoiceCellEditor choiceEditor;
     @Nullable
     private String transientStatus;
-    /**
-     * While Ctrl+C runs the table's own transfer handler: the whole texts of the copied LOB cells by {@link #cellKey},
-     * which the model gives instead of their cell text.
-     */
-    @Nullable
-    private Map<Long, String> copyTexts;
 
     ResultSetGrid(@NotNull Fetched fetched, @NotNull Host host) {
         super(new BorderLayout());
@@ -454,7 +452,7 @@ final class ResultSetGrid extends JPanel {
         followCellPadding();
         installContextMenu();
         installContentLinks();
-        installFullTextCopy();
+        installCopy();
         updateState();
     }
 
@@ -544,7 +542,7 @@ final class ResultSetGrid extends JPanel {
     }
 
     /**
-     * The rows for copying the selection (Copy with Headers, Copy As, Advanced Copy): {@link #getCurrentData} with the
+     * The rows for copying the selection (Copy, Copy with Headers, Copy As, Advanced Copy): {@link #getCurrentData} with the
      * whole text of the selected LOB cells that show only part of it, when the text is available without the database
      * ({@link ResultSetCellContent#readFullText}); or null when the user canceled reading it.
      */
@@ -1440,8 +1438,9 @@ final class ResultSetGrid extends JPanel {
             UiKeys.command(KeyEvent.VK_C, InputEvent.SHIFT_DOWN_MASK),
             () -> {
                 Data copyData = getCopyData();
-                if (copyData != null) {
-                    DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, copyData, true), false);
+                Transferable contents = copyData == null ? null : ResultSetCopyFormats.copySelection(table, copyData, true);
+                if (contents != null) {
+                    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(contents, null);
                 }
             });
         Action exportCsvAction = createAction(EditorMessages.editor_grid_export_csv, null, () -> ResultSetExport.exportCsv(table, getCurrentData(), getPartialContents()));
@@ -1644,43 +1643,17 @@ final class ResultSetGrid extends JPanel {
     }
 
     /**
-     * Ctrl+C (and Edit > Copy) copies the whole text of the selected LOB cells that show only part of it: the table's
-     * own transfer handler still makes the copy, so its tab-separated text and HTML table stay as they were, while the
-     * model gives the whole texts for the time of the copy ({@link #copyTexts}).
+     * Ctrl+C (and Edit > Copy, the menu's Copy) copies the rows of {@link #getCopyData}, with the whole text of the
+     * selected LOB cells that show only part of it, as {@link ResultSetCopyFormats#copySelection} writes them; nothing
+     * when the user cancels reading the LOB texts.
      */
-    private void installFullTextCopy() {
-        TransferHandler tableHandler = table.getTransferHandler();
-        if (tableHandler == null) {
-            return;
-        }
-        table.setTransferHandler(new TransferHandler() {
+    private void installCopy() {
+        table.setTransferHandler(new ResultSetCopyFormats.TableCopyHandler() {
+            @Nullable
             @Override
-            public int getSourceActions(JComponent component) {
-                return tableHandler.getSourceActions(component);
-            }
-
-            @Override
-            public boolean canImport(TransferSupport support) {
-                return tableHandler.canImport(support);
-            }
-
-            @Override
-            public boolean importData(TransferSupport support) {
-                return tableHandler.importData(support);
-            }
-
-            @Override
-            public void exportToClipboard(JComponent component, Clipboard clipboard, int action) throws IllegalStateException {
-                Map<Long, String> texts = readFullTexts(getSelectedPartialContents());
-                if (texts == null) {
-                    return;
-                }
-                copyTexts = texts.isEmpty() ? null : texts;
-                try {
-                    tableHandler.exportToClipboard(component, clipboard, action);
-                } finally {
-                    copyTexts = null;
-                }
+            protected Transferable createTransferable(JComponent component) {
+                Data copyData = getCopyData();
+                return copyData == null ? null : ResultSetCopyFormats.copySelection(table, copyData, false);
             }
         });
     }
@@ -1905,11 +1878,6 @@ final class ResultSetGrid extends JPanel {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            Map<Long, String> texts = copyTexts;
-            String copyText = texts == null ? null : texts.get(cellKey(rowIndex, columnIndex));
-            if (copyText != null) {
-                return copyText;
-            }
             return editModel != null ? editModel.getRow(rowIndex).display[columnIndex] : data.rows().get(rowIndex)[columnIndex];
         }
 

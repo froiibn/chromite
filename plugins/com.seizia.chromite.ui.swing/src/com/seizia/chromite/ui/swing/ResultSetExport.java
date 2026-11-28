@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 결과 표 하나의 복사(머리글 포함/미포함)와 CSV·XLSX 내보내기.
+ * 결과 표 하나의 CSV·XLSX 내보내기(복사는 {@link ResultSetCopyFormats#copySelection}).
  *
  * 설계:
  * <ul>
@@ -80,6 +80,8 @@ import java.util.Map;
  * - 2026-11-13 가져온 행 안내를 HTML 라벨 대신 {@link WrappingNote}로, 멈춘 가져오기는 굵은 안내 한 문단과 나머지 문단으로 나눔:
  *   Swing 줄 바꿈이 한국어 낱말 가운데서 끊었다(앱 변경 #90, docs/chromite/swing-options.md "HTML 라벨 안내")
  * - 2026-11-22 CSV 내보내기가 이미 읽은 LOB의 전문을 씀(앱 변경 #160 후속, docs/chromite/swing-result-viewer.md "긴 LOB 칸")
+ * - 2026-11-28 머리글 포함 복사의 글자 만들기를 지움: 복사와 함께 {@link ResultSetCopyFormats#copySelection}으로 옮김
+ *   (앱 변경 #189, docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetExport {
 
@@ -113,40 +115,6 @@ final class ResultSetExport {
     private static boolean lastXlsxHeaders = true;
 
     private ResultSetExport() {
-    }
-
-    /**
-     * Tab-separated text of the selected cells (rows and columns of the selection) in the format of the grid's
-     * Ctrl+C (lines separated by {@code \n}, no line break at the end), optionally with the column names as the first line.
-     */
-    @NotNull
-    static String copySelection(@NotNull JTable table, @NotNull ResultSetGrid.Data data, boolean withHeaders) {
-        int[] rows = table.getSelectedRows();
-        int[] columns = table.getSelectedColumns();
-        StringBuilder text = new StringBuilder();
-        if (withHeaders) {
-            for (int i = 0; i < columns.length; i++) {
-                if (i > 0) {
-                    text.append('\t');
-                }
-                text.append(data.columns()[table.convertColumnIndexToModel(columns[i])]);
-            }
-        }
-        boolean firstLine = !withHeaders;
-        for (int row : rows) {
-            if (!firstLine) {
-                text.append('\n');
-            }
-            firstLine = false;
-            Object[] values = data.rows().get(table.convertRowIndexToModel(row));
-            for (int i = 0; i < columns.length; i++) {
-                if (i > 0) {
-                    text.append('\t');
-                }
-                text.append(values[table.convertColumnIndexToModel(columns[i])]);
-            }
-        }
-        return text.toString();
     }
 
     /**

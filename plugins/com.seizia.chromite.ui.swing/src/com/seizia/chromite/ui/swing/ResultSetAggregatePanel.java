@@ -62,6 +62,8 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-grid-navigation.md "집계 패널")
+ * - 2026-11-28 Ctrl+C가 결과 표처럼 복사({@link ResultSetCopyFormats.TableCopyHandler}: 필요할 때 따옴표, 이스케이프한 HTML) (앱 변경 #189,
+ *   docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetAggregatePanel extends JPanel {
 
@@ -168,6 +170,7 @@ final class ResultSetAggregatePanel extends JPanel {
         toolBar.add(byColumnCheck);
         add(toolBar, BorderLayout.NORTH);
         resultTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        resultTable.setTransferHandler(new ResultSetCopyFormats.TableCopyHandler());
         resultTable.setCellSelectionEnabled(true);
         resultTable.getTableHeader().setReorderingAllowed(false);
         resultTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {

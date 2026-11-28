@@ -50,6 +50,8 @@ import java.util.Locale;
  * - 2026-11-07 그리드처럼 고정폭 글꼴 대신 UI 글꼴 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  * - 2026-11-09 단축키를 플랫폼 명령 키로({@link UiKeys}: macOS Command, 앱 변경 #24) (docs/chromite/shortcuts.md)
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-28 Ctrl+C가 결과 표처럼 복사({@link ResultSetCopyFormats.TableCopyHandler}: 필요할 때 따옴표, 이스케이프한 HTML) (앱 변경 #189,
+ *   docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetRecordView extends JPanel {
 
@@ -107,6 +109,7 @@ final class ResultSetRecordView extends JPanel {
         super(new BorderLayout());
         this.source = source;
         table = new JTable(model);
+        table.setTransferHandler(new ResultSetCopyFormats.TableCopyHandler());
         table.putClientProperty("JTable.autoStartsEdit", Boolean.FALSE); //$NON-NLS-1$
         table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);

@@ -1001,6 +1001,8 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`com.seizia.chrom
 ### 결과 복사와 CSV 내보내기 (`ResultSetExport`)
 
 - **Copy (Ctrl+C):** C단계와 같은 `JTable` 전송 처리기(선택한 칸의 표시 문자열, 탭·줄바꿈 구분). 메뉴 항목은 같은 동작을 부른다.
+  2026-11-28부터 표의 전송 처리기는 Chromite 것이다: 탭·줄바꿈·`"`가 든 값은 큰따옴표로 감싸고 HTML 표는 이스케이프한다
+  ([swing-grid-editing.md](swing-grid-editing.md) "엑셀로 붙여넣는 복사").
 - **Copy with Headers (Ctrl+Shift+C):** 선택한 행·열의 열 이름 줄을 앞에 붙여 같은 형식으로 복사한다.
 - 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택하고 메뉴를 연다.
 - **Export to CSV…:** 파일 대화상자 옆에 옵션(열 머리글 포함, 구분자 쉼표·세미콜론·탭, UTF-8 BOM(Excel용), 수식 이스케이프)과 안내 문구를 둔다.
@@ -4147,3 +4149,5 @@ Oracle `ALTER SESSION SET CURRENT_SCHEMA=CHR_NQT_U`, MariaDB `use chr_nqt_db`). 
 - 2026-11-25 "SQL Editor 도구 막대"의 편집 명령·Query History 문장을 활성 쿼리 창 대신 그 막대 창의 쿼리 창으로 바로잡음(#175 뒤 틀린 문장, 앱 변경 #186,
   `chromite/toolbar-comment-fix`, 주석만 고침). 회귀 테스트는 실행하지 않았다(동작 변경 없음).
 - 2026-11-28 탭 제목의 세션 번호 한 줄(앱 변경 #193, `chromite/query-tab-session-id`): 자세한 것은 [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "탭의 세션 번호".
+- 2026-11-28 "결과 복사와 CSV 내보내기"의 Copy: 표의 전송 처리기가 Chromite 것이 되어 필요할 때 큰따옴표, 이스케이프한 HTML 표(앱 변경 #189,
+  `chromite/grid-copy-excel`, [swing-grid-editing.md](swing-grid-editing.md) "엑셀로 붙여넣는 복사").
