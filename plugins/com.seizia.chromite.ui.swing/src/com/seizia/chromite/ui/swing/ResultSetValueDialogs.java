@@ -72,6 +72,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-08 최초 작성: 참조 값·SET·배열·구조체·hstore 편집기 (docs/chromite/swing-value-editors.md)
  * - 2026-11-09 한국어 메뉴 이름의 끝 말줄임표를 없앤 것에 맞춰 주석의 메뉴 이름을 고침 (docs/chromite/swing-l10n.md)
+ * - 2026-11-28 항목 표의 Ctrl+C가 결과 표처럼 복사({@link ResultSetCopyFormats.TableCopyHandler}: 필요할 때 따옴표, 이스케이프한 HTML)
+ *   (앱 변경 #189, docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class ResultSetValueDialogs {
 
@@ -609,6 +611,7 @@ final class ResultSetValueDialogs {
             this.mode = mode;
             this.entries = entries;
             table = new JTable(tableModel);
+            table.setTransferHandler(new ResultSetCopyFormats.TableCopyHandler());
             table.setFillsViewportHeight(true);
             table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
             table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);

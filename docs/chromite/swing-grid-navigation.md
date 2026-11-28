@@ -221,3 +221,5 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
 - 2026-11-09 텍스트 보기 키는 macOS에서도 Control+`(앱 변경 #24, `chromite/mac-ui`, [shortcuts.md](shortcuts.md)).
 - 2026-11-16 오른쪽 클릭 메뉴: 테이블 하나에서 오지 않은 결과의 Virtual Keys, 실제 키가 있는 테이블의 가상 고유 키, 외래 키 없는 열의 "외래 키 없음" 항목,
   셀 수 없는 결과의 행 수 세기, 쿼리 없는 결과의 Export Data…를 숨김(앱 변경 #137, `chromite/result-grid-menu`, [context-menus.md](context-menus.md) "결과 그리드").
+- 2026-11-28 집계 패널 표의 Ctrl+C가 결과 표처럼 복사: 탭·줄바꿈·`"`가 든 값(최솟값·최댓값 등)은 큰따옴표, HTML 표는 이스케이프(앱 변경 #189,
+  `chromite/grid-copy-excel`, [swing-grid-editing.md](swing-grid-editing.md) "엑셀로 붙여넣는 복사").

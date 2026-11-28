@@ -65,6 +65,8 @@ import java.util.function.UnaryOperator;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-28 {@link HtmlSelection}을 결과 표의 복사도 쓰도록 패키지에 열고, 글자 형식은 받은 글자를 줌(HTML 복사는 전처럼 HTML 원문을 넘김)
+ *   (앱 변경 #189, docs/chromite/swing-grid-editing.md "엑셀로 붙여넣는 복사")
  */
 final class SqlTextTools {
 
@@ -354,7 +356,11 @@ final class SqlTextTools {
             return;
         }
         Transferable contents = switch (format) {
-            case HTML -> new HtmlSelection(HtmlUtil.getTextAsHtml(textArea, start, end), text);
+            case HTML -> {
+                // Plain text targets (editors) get the HTML source, as the SWT converter's text
+                String html = HtmlUtil.getTextAsHtml(textArea, start, end);
+                yield new HtmlSelection(html, html);
+            }
             case UNFORMATTED -> new StringSelection(unformat(textArea, start, end, SqlEditCommands.getDialect(container)));
             default -> new StringSelection(convertToSource(text, format));
         };
@@ -464,9 +470,10 @@ final class SqlTextTools {
     }
 
     /**
-     * Clipboard contents with an HTML flavor (pasted with colors into mail or documents) and the plain text.
+     * Clipboard contents with an HTML flavor and a plain text flavor: Copy as HTML (pasted with colors into mail or
+     * documents) and the copy of result cells ({@link ResultSetCopyFormats}, an HTML table that Excel reads).
      */
-    private static final class HtmlSelection implements Transferable {
+    static final class HtmlSelection implements Transferable {
         private static final DataFlavor HTML_FLAVOR = createHtmlFlavor();
         private final String html;
         private final String text;
@@ -502,8 +509,7 @@ final class SqlTextTools {
                 return html;
             }
             if (flavor.equals(DataFlavor.stringFlavor)) {
-                // Plain text targets (editors) get the HTML source, as the SWT converter's text
-                return html;
+                return text;
             }
             throw new UnsupportedFlavorException(flavor);
         }

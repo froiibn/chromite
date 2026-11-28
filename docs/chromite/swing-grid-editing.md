@@ -29,7 +29,7 @@ SWT 대조 4순위 B3 작업이고 대상 항목은 다음과 같다([swt-parity
 | `ResultSetViewerPanel` | 변경 | LOB 칸 F2·두 번 누르기 → 값 패널, 파일에서 불러오기·파일로 저장(메뉴, 값 패널 단추), 레코드 보기는 LOB를 칸에서 고치지 않음 |
 | `ResultSetValuePanel` | 변경 | 글자 LOB 편집, JSON·XML 정리(Format)와 검사, 파일 단추 자리 |
 | `ResultSetCellContent` | 변경 | 칸 값 전체를 파일로 쓰기, 글자 내용 판단 |
-| `ResultSetCopyFormats` | 변경 | JSON·XML·HTML·SQL INSERT 형식, 고급 복사 대화상자 |
+| `ResultSetCopyFormats` | 변경 | JSON·XML·HTML·SQL INSERT 형식, 고급 복사 대화상자, 결과 표 복사의 글자·HTML 표와 전송 처리기(2026-11-28, "엑셀로 붙여넣는 복사") |
 | `ResultSetDateTimePicker` | 새 | 날짜·시각 선택 대화상자 |
 | `ResultSetEnumValues` | 새 | ENUM 열의 값(PostgreSQL·MySQL 모델에서 읽음) |
 | `ResultSetPaste` | 새 | 클립보드 글자 나누기, 특수 붙여넣기 설정 |
@@ -93,6 +93,53 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 - SQL INSERT: 테이블은 결과의 단일 원본 테이블(`DBExecUtils.detectSingleSourceTable`), 없으면 `table`. 열 이름은 방언의 따옴표, 날짜·불리언은 `SQLUtils.convertValueToSQL`, 글자는 `SQLUtils.quoteString`.
 - 고급 복사…(Copy As 메뉴 끝): 열 이름, 행 번호, 구분자(`\t`, `,`, `;`, `|` 또는 입력), 따옴표(필요할 때·항상·쓰지 않음), NULL 글자. 설정은 이 실행 동안 기억한다.
   SWT의 Ctrl+Shift+C는 Swing에서 이미 Copy with Headers라 고급 복사에는 단축키를 두지 않았다.
+
+### 엑셀로 붙여넣는 복사 (2026-11-28, 앱 변경 #189)
+
+사용자 보고: 쿼리 결과를 복사해 엑셀에 붙여넣으면 개행 문자 때문에 칸이 깨진다. 사용자 결정: 기본 복사에 고급 복사의 "필요할 때" 따옴표를 넣는다.
+
+- 원인: Ctrl+C·편집 ▸ 복사·메뉴 Copy는 Swing 기본 표 전송 처리기(`BasicTableUI.TableTransferHandler`)였다. 글자(`text/plain`)는 값을 따옴표 없이 탭·줄로 이어
+  줄바꿈·탭·`"`가 든 값이 여러 칸·여러 행으로 나뉘었고(앱 자신의 붙여넣기도 2행을 3줄로 읽음), HTML 표(`text/html`)는 값을 이스케이프하지 않아 엑셀(HTML을 먼저 읽음)에서
+  줄바꿈이 공백이 되고 `x<b>&y`가 `x&y`가 되었다. 머리글 포함 복사도 같은 글자(따옴표 없음)였다.
+- 지금: 결과 표의 전송 처리기는 `ResultSetCopyFormats.TableCopyHandler`다. 복사와 머리글 포함 복사는 `ResultSetCopyFormats.copySelection`이 두 형식을 만든다.
+  - 글자: 고급 복사와 같은 코드(`appendDelimited`)에 탭, 따옴표 "필요할 때", NULL 글자 `NULL`(전과 같음)을 넘긴다. 탭·줄바꿈(`\n`, `\r`)·`"`가 든 값만 큰따옴표로 감싸고
+    안의 `"`는 두 번 쓴다. 다른 값, 열 순서, 마지막 줄 끝에 줄바꿈 없음(칸 하나는 값만)은 전과 같다. 머리글 줄도 같은 규칙.
+  - HTML 표: 모든 값을 이스케이프(`& < > "`)하고 줄바꿈(`\r\n`, `\n`, `\r`)은 `<br style="mso-data-placement:same-cell">`로 쓴다. 그냥 `<br>`은 엑셀이 다음 행으로
+    넘기고, 날 줄바꿈은 공백이 된다(사실 확인 `D:\Tools\_scratch\v189\run\excel-html.log`). 머리글은 `<th>`. 전송 객체는 SQL 편집기의 HTML 복사와 같은
+    `SqlTextTools.HtmlSelection`(HTML과 글자 두 형식).
+  - 칸 글자가 값의 일부인 LOB는 전처럼 DB 없이 얻을 수 있는 전문(`getCopyData`)이다. 복사하는 동안 모델이 전문을 주던 `copyTexts`는 지웠다.
+- 같은 원인의 다른 표: 결과 값을 보이는 레코드 보기, 집계 패널, 배열·구조체·hstore 대화상자의 항목 표, 참조 값 고르기 표도 Swing 기본 표 복사였다.
+  같은 처리기(`TableCopyHandler`, 표의 `getValueAt`, Swing처럼 행·열을 고르지 않는 표는 모든 행·열, null 칸은 빈 글자)를 단다.
+  결과 값이 아닌 표(쿼리 기록, 관리 표 `AdminGridTable` 등)는 바꾸지 않았다. Query Manager의 Ctrl+C는 원래 문장을 복사한다.
+- 엑셀에서 값 종류별(HTML로 읽음, 전 → 후): 줄바꿈 LF·CRLF `a b` → 한 칸 `a`↵`b`, `x<b>&y` → `x&y`에서 `x<b>&y`로. 탭 `a b`(공백), 앞뒤 공백 잘림(`pad`),
+  `say "hi"`, `"lead`, NULL·`NULL` 글자, 숫자(`1,234,567.891` → 1234567.891, `#,##0.00`), 큰 수(1.23456789012345E+19), 앞의 0(`007` → 7), 날짜(`yyyy-mm-dd`),
+  시각(`mm:ss.0` 형식)은 전과 같다(엑셀의 HTML 읽기 그대로).
+- Windows의 Java 클립보드는 넣는 순간 모든 형식을 만든다(`sun.awt.windows.WClipboard.setContentsNative`: 지연 렌더링을 쓰지 않고 형식마다
+  `translateTransferable` → `publishClipboardData`, JBR 25 `src.zip`). 그래서 형식을 나중에 만들게 해도 줄지 않는다. 형식은 HTML Format, UNICODE TEXT, TEXT,
+  UniformResourceLocator(JDK가 글자를 이 형식으로도 넣음)이고, 전에는 Swing 전송 객체의 JVM 지역 객체 형식(글자 한 벌 더)도 있었다.
+- 측정(PostgreSQL 17, `generate_series`로 만든 16열: 줄바꿈 10%·CRLF 5%·탭 14%·`"` 20%·NULL 33%·숫자·날짜·시각·md5·불리언, 전체 선택, 앱 `-Xmx1024m`.
+  같은 PC에서 다른 빌드가 돌아 시간은 흔들림이 크다. 힙 최고는 1ms마다 본 사용량이라 거두지 않은 쓰레기를 포함):
+
+  | | 10만 행 전 | 10만 행 후 | 30만 행 전 | 30만 행 후 |
+  |---|---|---|---|---|
+  | 전송 처리기(첫 복사) | 201 ms | 373 ms | 929 ms | 1,664 ms |
+  | 전송 처리기(되풀이, 전은 같은 모델의 Swing 처리기) | 132~245 ms | 279~319 ms | 521~566 ms | 973~1,104 ms |
+  | 클립보드 형식 만들기 | 1,105 ms | 1,176 ms | 4,660 ms | 5,199 ms |
+  | Ctrl+C 합계(EDT가 멈춘 시간) | 1,306 ms | 1,550 ms | 5,590 ms | 6,863 ms |
+  | text/plain · text/html 글자 수 | 16.1M · 34.8M | 16.2M · 35.8M | 49.0M · 105.1M | 49.4M · 108.3M |
+  | 클립보드 형식 바이트 | 117.5 MB (5개) | 103.0 MB (4개) | 356.9 MB (5개) | 312.7 MB (4개) |
+  | 힙: 결과 / 복사본이 잡은 것 | 185 / +50 MB | 185 / +51 MB | 457 / +138 MB | 457 / +142 MB |
+  | 힙 최고: 처리기 / 형식 만들기 | +159 / +629 MB | +179 / +586 MB | +356 / +424 MB | +459 / +362 MB |
+  | 할당: 처리기 / 형식 만들기 | 173 / 617 MB | 183 / 580 MB | 629 / 1,901 MB | 665 / 1,757 MB |
+
+  - 글자만 만들면(같은 코드, HTML 없음): 10만 행 처리기 151~162 ms(복사용 행 30~45 ms 포함) + 형식 3개 456~617 ms(65.4 MB), 30만 행 712 ms + 1,619 ms(199.0 MB).
+    글자 만들기는 전의 처리기(글자와 HTML)보다 느리지 않고, 처리기에서 늘어난 시간은 HTML 표(이스케이프)다.
+  - 지금도 무겁다: 30만 행 Ctrl+C는 전에도 5.6초 동안 화면이 멈추고 클립보드에 357 MB를 넣으며, 힙 사용량이 1,019 MB(최대 1,024 MB)까지 올랐다.
+  - 엑셀(직접 띄운 인스턴스에서 파일로 연 대용 측정, `Workbooks.Open`·`OpenText`): HTML 10만 행 11~23초(전)·16~20초(후), 30만 행 42초(전)·48초(후).
+    따옴표 글자 10만 행 6~7초, 30만 행 15~19초. 파일의 글자 읽기(`OpenText`)는 따옴표 안의 탭·`"`·앞뒤 공백은 지키지만 따옴표 안의 줄바꿈에서 행을 나눴다
+    (10만 행이 115,000행). 그래서 따옴표 글자만으로 엑셀 칸이 지켜지는지는 확인하지 못했고(실제 붙여넣기는 시스템 클립보드를 쓰지 않아 시험하지 못함), HTML을 남겼다.
+- 남은 선택(사용자 결정 대기): HTML을 빼면 Ctrl+C가 30만 행에서 6.9초 → 2.3초, 클립보드 313 MB → 199 MB가 되지만, 엑셀의 실제 붙여넣기에서 따옴표 안 줄바꿈이
+  한 칸에 남는지 확인해야 하고, Word·메일에 표로 붙던 것이 글자가 된다.
 
 ### 형식별 편집기 (B-R14, D-P28, D-M18)
 
@@ -222,3 +269,5 @@ SWT: `ResultSetHandlerPasteSpecial`, `ResultSetPasteSettings`.
 - 2026-11-22 값 전체를 보이지 않는 LOB 칸은 링크, 누르기·두 번 누르기·F2로 값 패널(읽기 전용 결과 포함, 앱 변경 #160, `chromite/grid-lob-full-text`,
   위 "LOB 편집과 파일").
 - 2026-11-22 고급 복사·복사 형식이 이미 읽은 LOB의 전문을 씀(앱 변경 #160 후속, 위 "고급 복사와 복사 형식").
+- 2026-11-28 결과 표의 복사·머리글 포함 복사가 고급 복사의 "필요할 때" 따옴표 글자와 이스케이프한 HTML 표를 넣음, 결과 값을 보이는 다른 표(레코드 보기, 집계,
+  값 대화상자 항목, 참조 값 고르기)도 같게, 10만·30만 행 측정(앱 변경 #189, `chromite/grid-copy-excel`, 위 "엑셀로 붙여넣는 복사").
