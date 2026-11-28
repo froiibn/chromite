@@ -105,7 +105,8 @@ import java.util.function.Function;
  * - 2026-11-12 주석만: 쿼리 창의 연결 변경 명령이 다시 {@link #confirmEndSession}을 씀(앱 변경 #73) (docs/chromite/swing-frontend.md "쿼리 창의 연결 변경")
  * - 2026-11-28 주석만: {@link #confirmDefaultChange}를 Modify·Execute Procedure·새 개체 틀·Schema Compare 스크립트도 씀
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
- * - 2026-11-29 주석만: {@link #confirmDefaultChange}를 Query Library 실행이 공유 주 세션의 마지막 쿼리 창을 다른 DB로 옮길 때도 씀
+ * - 2026-11-29 {@link #confirmWindowMove}: Query Library 실행이 공유 주 세션의 마지막 쿼리 창을 다른 DB의 주 세션으로 옮기기 전 질문.
+ *   {@link #confirmDefaultChange}와 같은 제목·목록·단추, 설명 줄만 다름(기본값이 바뀌지 않고 주 세션도 옮기지 않으므로)
  *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 final class ExitTransactionCheck {
@@ -174,22 +175,46 @@ final class ExitTransactionCheck {
      * Before Object Explorer's Set as Default, or a command that binds the main session to an object's database
      * (Modify, Execute Procedure, New templates, Schema Compare's script: {@link SourceScripts#confirmBindDefaultContext}),
      * moves the connection's main session to another database instance (a PostgreSQL database: the windows that share
-     * the main session then use another server session, and the open transaction would stay behind unseen), or a Query
-     * Library run moves the last query window of a shared main session to another database
-     * ({@code QueryLibraryEditor.confirmLeaveSession}): asks Commit / Roll back / Cancel when the session has a transaction
-     * that is not committed. Call in the EDT.
+     * the main session then use another server session, and the open transaction would stay behind unseen): asks Commit /
+     * Roll back / Cancel when the session has a transaction that is not committed. Call in the EDT.
      *
      * @param target the database or schema that becomes the default
      * @return true when the default may change: no open transaction, or it was committed or rolled back as asked
      */
     static boolean confirmDefaultChange(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String target) {
+        return confirmMainSession(parent, context, target, ObjectExplorerMessages.oe_set_default_txn_message,
+            ObjectExplorerMessages.oe_set_default_txn_error);
+    }
+
+    /**
+     * Before a Query Library run moves the last query window of a shared main session to another database's main session
+     * ({@code QueryLibraryEditor.confirmLeaveSession}): the session stays open and keeps its transaction, which no window
+     * would show any more. The question of {@link #confirmDefaultChange}, with its own explanation (nothing becomes the
+     * default, the main session does not move). Call in the EDT.
+     *
+     * @param target the database the window moves to
+     * @return true when the window may move: no open transaction, or it was committed or rolled back as asked
+     */
+    static boolean confirmWindowMove(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String target) {
+        return confirmMainSession(parent, context, target, ConnectionMessages.window_move_txn_message, ConnectionMessages.window_txn_error);
+    }
+
+    /**
+     * @param message {@code {0}} = the connection, {@code {1}} = the list of open transactions, {@code {2}} = the target
+     * @param error   the error of a failed commit or rollback, {@code {0}} = the connection
+     */
+    private static boolean confirmMainSession(
+        @Nullable Component parent,
+        @NotNull DBCExecutionContext context,
+        @NotNull String target,
+        @NotNull String message,
+        @NotNull String error
+    ) {
         if (!QMUtils.getTransactionState(context).isOpen()) {
             return true;
         }
         DBPDataSourceContainer container = context.getDataSource().getContainer();
-        return confirm(parent, List.of(context), List.of(),
-            list -> NLS.bind(ObjectExplorerMessages.oe_set_default_txn_message, new Object[]{container.getName(), list, target}),
-            ObjectExplorerMessages.oe_set_default_txn_error);
+        return confirm(parent, List.of(context), List.of(), list -> NLS.bind(message, new Object[]{container.getName(), list, target}), error);
     }
 
     /**

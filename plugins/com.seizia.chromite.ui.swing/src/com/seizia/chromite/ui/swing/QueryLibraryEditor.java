@@ -100,7 +100,7 @@ import java.util.Objects;
  *   트랜잭션을 물음({@link SqlEditorPanel#confirmEndSession}, 취소하면 실행하지 않음). 전에는 세션이 다시 연결되며 묻지 않고 롤백되었다
  *   (docs/chromite/swing-query-library.md "기본 DB와 열린 트랜잭션")
  * - 2026-11-29 {@link #confirmLeaveSession}: 주 세션을 함께 쓰는 창이 머리말 DB의 주 세션으로 옮겨 갈 때, 떠나는 세션에 열린 트랜잭션이 있고
- *   그 세션에 남는 쿼리 창이 없으면 먼저 물음(기본값으로 설정과 같은 질문, 취소하면 실행하지 않음). 묻지 않으면 그 트랜잭션이 어느 창에도 보이지 않게 남았다
+ *   그 세션에 남는 쿼리 창이 없으면 먼저 물음({@link ExitTransactionCheck#confirmWindowMove}, 취소하면 실행하지 않음). 묻지 않으면 그 트랜잭션이 어느 창에도 보이지 않게 남았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
@@ -644,9 +644,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
      * Before the run moves the window off its session to the query's database (EDT). An own session is reopened there, which
      * ends its transaction: the window's database picker's question ({@link SqlEditorPanel#confirmEndSession}). A shared
      * main session stays open with its transaction; that transaction stays seen while another query window runs in the
-     * session (its status line, its close question). With none left it would stay behind unseen, so the question of Set as
-     * Default (the same move of the session's windows to another database) is asked first. Commit and roll back only as
-     * answered; Cancel stops the run.
+     * session (its status line, its close question). With none left it would stay behind unseen, so it is asked about first
+     * ({@link ExitTransactionCheck#confirmWindowMove}). Commit and roll back only as answered; Cancel stops the run.
      *
      * @return true when the run may move the window
      */
@@ -659,7 +658,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 return true;
             }
         }
-        return ExitTransactionCheck.confirmDefaultChange(editor, context, CommonUtils.notEmpty(query.getDatabase()));
+        return ExitTransactionCheck.confirmWindowMove(editor, context, CommonUtils.notEmpty(query.getDatabase()));
     }
 
     /**

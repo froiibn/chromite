@@ -795,15 +795,19 @@ PR 398의 질문(`QueryLibraryEditor.prepareExecution` → `SqlEditorPanel.confi
 - 자기 세션 창(PR 398의 질문 뒤 다시 연결), SQL Server·MySQL/MariaDB·Oracle 등 DB가 인스턴스가 아닌 드라이버는 바꾸지 않았다(아래).
 - 떠나는 세션의 열린 트랜잭션(2026-11-29 검토 뒤): 창이 옮겨 가면 그 창이 떠난 주 세션의 트랜잭션은 열린 채 남는다. 그 세션에서 도는 다른 쿼리 창이 있으면
   그 창의 상태 줄·닫기 질문이 계속 보이므로 묻지 않는다. 남는 창이 없으면 어느 창에도 보이지 않게 되므로(아래 사실) 실행 전(EDT, 매개변수를 물은 뒤)
-  기본값으로 설정과 같은 질문을 한다(`QueryLibraryEditor.confirmLeaveSession` → `ExitTransactionCheck.confirmDefaultChange`: 커밋/롤백/취소, 트랜잭션이 열려
-  있을 때만, 취소하면 실행하지 않음). 새 글은 없다. 같은 판단(`QueryParameterBinder.changesInstance`: 머리말 DB가 창의 세션과 다른 DB 인스턴스)이 자기 세션 창에서는
+  묻는다(`QueryLibraryEditor.confirmLeaveSession` → `ExitTransactionCheck.confirmWindowMove`: 커밋/롤백/취소, 트랜잭션이 열려
+  있을 때만, 취소하면 실행하지 않음). 같은 판단(`QueryParameterBinder.changesInstance`: 머리말 DB가 창의 세션과 다른 DB 인스턴스)이 자기 세션 창에서는
   PR 398의 질문(`SqlEditorPanel.confirmEndSession`)으로 간다.
   - 묻지 않을 때의 사실(`6d477fa555`의 동작을 고친 빌드에서 시험 에이전트가 `shareInstance`를 직접 불러 재현): 라이브러리 창 L만 A에 있고 L이 A에
     `INSERT`(커밋 안 함)한 뒤 B로 옮기면, L의 상태 줄에서 "열린 트랜잭션"이 사라지고 탭 번호가 B의 세션이 된다. L을 닫을 때 묻지 않는다(자기 세션이 아님).
     A의 트랜잭션은 연결 끊기·끝낼 때의 질문(`ExitTransactionCheck.findActive`는 모든 인스턴스의 문맥을 봄)과 유휴 트랜잭션 알림(연결 종류의 기간 뒤,
     코드 읽기)에서만 다시 보인다.
-  - 질문 글은 기본값으로 설정의 글이다("{2}을(를) 기본값으로 만들면 주 세션이 다른 데이터베이스로 옮겨 가고, 트랜잭션은 이전 세션에 남습니다"). 연결의 기본 DB는
-    바뀌지 않지만, 그 세션을 쓰던 창이 이 창 하나뿐이라 그 창에서 본 결과(이 창이 그 DB로 옮겨 가고 트랜잭션이 남음)는 같다. 새 글을 만들지 않으려고 그대로 썼다.
+  - 질문: 기본값으로 설정(`confirmDefaultChange`)과 같은 제목("커밋하지 않은 트랜잭션"), 같은 첫 부분(주 세션과 트랜잭션 목록), 같은 커밋/롤백/취소 단추이고
+    설명 줄만 다르다(`ConnectionMessages.window_move_txn_message`): "이 창이 {2}(으)로 옮겨 가면 트랜잭션은 지금 세션에 남고 이 창에서는 보이지 않습니다.
+    먼저 커밋하거나 롤백하시겠습니까? 취소하면 실행하지 않습니다."(영어 "If this window moves to {2}, the transaction stays in the current session and is no
+    longer shown in this window. Commit or roll back first? Cancel does not run the query."). 끝내기에 실패하면 창 세션 질문의 오류 글(`window_txn_error`)을 쓴다.
+    처음 고친 빌드(`fb0c7b17ee`)는 기본값으로 설정의 글을 그대로 써서 "기본값으로 만들면 주 세션이 … 옮겨 가고"라고 했다. 여기서는 아무것도 기본값이 되지 않고
+    주 세션도 옮기지 않으므로 검토에서 이 글로 바꿨다. 두 메서드는 질문 코드를 함께 쓴다(`ExitTransactionCheck.confirmMainSession`).
 
 **스키마(고른 것):** 머리말 Schema는 공유 세션의 지금 스키마와 같을 때만 그대로 실행한다. 다르면 실행하지 않고(문장 없음, 세션 그대로) Messages에
 "먼저 창의 스키마 목록에서 {0}을(를) 고르십시오."(영어 "Choose schema {0} in the window's schema list first.",
@@ -1085,7 +1089,8 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
 캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\query-library-shared-session\s\before\shots\pg-before-w1-after-QL-B.png`(W1 탭이 B의 세션 번호, 열린 트랜잭션 표시 없음),
 `…\s\after\shots\`(`pg-after-QL-B-library-window.png`, `pg-after-w1-after-QL-B.png`: W1 탭 A의 번호·열린 트랜잭션, `pg-after-QL-BS-schema-stop.png`,
 `pg-after-QL-BS-after-pick.png`, `pg-after-own-session-question.png`). 검토 뒤: `…\s\f2\shots\`(`f2-emulated-6d477fa-L-after-move.png`: 옮긴 뒤 L에
-열린 트랜잭션 표시 없음, `f2-emulated-disconnect-question.png`, `f2-after-M-question.png`, `f2-after-schema-message.png`). 로그: 같은 폴더의 `*.txt.log`.
+열린 트랜잭션 표시 없음, `f2-emulated-disconnect-question.png`, `f2-after-M-question.png`(첫 글), `f2-after-schema-message.png`), 두 번째 검토 뒤의 질문 글: `…\s\f3\shots\f3-window-move-question-popup0.png`
+(같은 M 경우, "이 창이 chr_qlss_b(으)로 옮겨 가면 …", 취소 → 실행하지 않음, A의 트랜잭션은 그 뒤 명시적으로 롤백). 로그: 같은 폴더의 `*.txt.log`.
 
 **확인하지 못한 것:** MySQL 8.4(MariaDB와 같은 코드 경로라 보고 시험하지 않음), Oracle·그 밖의 드라이버, PostgreSQL 계열 다른 서버, "모든 데이터베이스 표시"를 끈 연결
 (머리말 DB가 연결 목록에 없음: 코드 읽기로 바인딩도 아무것도 바꾸지 않고 그 자리에서 돎), 다시 시작 뒤 복원한 라이브러리 창. 회귀 테스트는 실행하지 않았다.
@@ -1154,3 +1159,5 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
 - 2026-11-29 같은 브랜치 검토 뒤: 주 세션을 함께 쓰는 창이 머리말 DB로 옮겨 갈 때 떠나는 세션에 열린 트랜잭션이 있고 그 세션에 남는 쿼리 창이 없으면 실행 전에
   기본값으로 설정의 질문을 함(`QueryLibraryEditor.confirmLeaveSession`), 스키마 글을 짧게. 같은 절과 확인 기록. 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: Query Library 창의 실행 시작(질문), 자기 세션 창의 PR 398 질문(같은 자리로 옮김).
+- 2026-11-29 같은 브랜치 두 번째 검토 뒤: 위 질문의 설명 줄을 기본값으로 설정의 글에서 이 경우의 글(`window_move_txn_message`, `ExitTransactionCheck.confirmWindowMove`)로
+  바꿈. 제목·목록·단추는 같다. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 기본값으로 설정·Modify 등의 질문(같은 코드를 나눠 씀, 글은 그대로).

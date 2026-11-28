@@ -56,6 +56,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-12 JSch 호스트 키·known_hosts 질문의 본문({@code ssh_prompt_host_key_unknown}, {@code ssh_prompt_host_key_changed},
  *   {@code ssh_prompt_create_file}, {@code ssh_prompt_create_folder}) (docs/chromite/swing-auth-prompts.md, 앱 변경 #81)
  * - 2026-11-12 아이콘 단추의 도구 설명에만 쓰던 설명문 키를 지움(도구 설명이 메뉴의 이름이 됨) (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-29 쿼리 창이 공유 주 세션을 떠나 다른 DB의 주 세션으로 옮기기 전 질문({@code window_move_txn_message})
+ *   (docs/chromite/swing-sql-editor-session-ui.md "Query Library 머리말 DB: 주 세션을 함께 쓰는 창")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -520,6 +522,7 @@ public class ConnectionMessages extends NLS {
     public static String disconnect_txn_error;
     // ... and before a query window's own session ends (ExitTransactionCheck.confirmEndSession)
     public static String window_txn_message;
+    public static String window_move_txn_message;
     public static String window_txn_error;
     // ... when sessions with open transactions lost their connection (ExitTransactionCheck)
     public static String lost_txn_checking;

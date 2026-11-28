@@ -237,8 +237,8 @@ PostgreSQL은 DB마다 서버 세션이 따로라, 머리말 Database가 창의 
 - 주 세션을 함께 쓰는 창은 이 질문을 하지 않는다. 세션을 옮기지 않기 때문이다(2026-11-29): PostgreSQL에서는 창이 쿼리의 Database의 주 세션에 묶여 거기서 돈다
   (`SqlEditorPanel.getRunContext` → `QueryWindowContext.shareInstance`, 연결의 기본 DB와 다른 창은 그대로). 전에는 바인딩이 함께 쓰는 주 세션(연결의 기본 DB)을
   그 DB로 옮기고 실행은 옛 DB에서 돌았다. 쿼리의 Schema가 그 주 세션의 스키마가 아니면 세션을 바꾸지 않고 실행하지 않는다(Messages에 이유, 창의 스키마 목록에서 고르면 실행됨).
-  창이 떠나는 주 세션에 열린 트랜잭션이 있고 그 세션에 남는 쿼리 창이 없으면 실행 전에 기본값으로 설정과 같은 질문을 한다(`QueryLibraryEditor.confirmLeaveSession`,
-  취소하면 실행하지 않음). 남는 창이 있으면 그 창이 트랜잭션을 보이므로 묻지 않는다.
+  창이 떠나는 주 세션에 열린 트랜잭션이 있고 그 세션에 남는 쿼리 창이 없으면 실행 전에 커밋/롤백/취소를 묻는다(`QueryLibraryEditor.confirmLeaveSession` →
+  `ExitTransactionCheck.confirmWindowMove`, "이 창이 B(으)로 옮겨 가면 트랜잭션은 지금 세션에 남고 이 창에서는 보이지 않습니다", 취소하면 실행하지 않음). 남는 창이 있으면 그 창이 트랜잭션을 보이므로 묻지 않는다.
   SQL Server·MySQL/MariaDB 공유 창은 전과 같이 공유 세션에 `USE`를 보낸다(사용자 결정 대기). 자세한 것은
   [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "Query Library 머리말 DB: 주 세션을 함께 쓰는 창".
 - 예약 실행은 실행마다 새 자기 세션을 열어(`QueryScheduler`) 열린 트랜잭션이 없다. 기록에서 다시 연 바인딩 실행(`QueryParameterBinder.Recorded`)은 기본 DB를 갖지 않는다.
