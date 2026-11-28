@@ -37,6 +37,11 @@ import java.util.Map;
 
 /**
  * OracleProcedureManager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 만들기·고치기가 명령 옵션을 {@code OracleUtils.addSchemaChangeActions}에
+ *   넘김: {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA=<기본>}을 넣지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class OracleProcedureManager extends SQLObjectEditor<OracleProcedureStandalone, OracleSchema> {
 
@@ -69,7 +74,7 @@ public class OracleProcedureManager extends SQLObjectEditor<OracleProcedureStand
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand objectCreateCommand, @NotNull Map<String, Object> options)
     {
-        createOrReplaceProcedureQuery(monitor, executionContext, actions, objectCreateCommand.getObject());
+        createOrReplaceProcedureQuery(monitor, executionContext, actions, objectCreateCommand.getObject(), options);
     }
 
     @Override
@@ -85,7 +90,7 @@ public class OracleProcedureManager extends SQLObjectEditor<OracleProcedureStand
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand objectChangeCommand, @NotNull Map<String, Object> options)
     {
-        createOrReplaceProcedureQuery(monitor, executionContext, actionList, objectChangeCommand.getObject());
+        createOrReplaceProcedureQuery(monitor, executionContext, actionList, objectChangeCommand.getObject(), options);
     }
 
     @Override
@@ -98,14 +103,15 @@ public class OracleProcedureManager extends SQLObjectEditor<OracleProcedureStand
         @NotNull DBRProgressMonitor monitor,
         @NotNull DBCExecutionContext executionContext,
         @NotNull List<DBEPersistAction> actionList,
-        @NotNull OracleProcedureStandalone procedure
+        @NotNull OracleProcedureStandalone procedure,
+        @NotNull Map<String, Object> options
     ) {
         String source = OracleUtils.normalizeSourceName(monitor, procedure, false);
         if (source == null) {
             return;
         }
         actionList.add(new OracleObjectValidateAction(procedure, OracleObjectType.PROCEDURE, "Create procedure", source)); //$NON-NLS-2$
-        OracleUtils.addSchemaChangeActions(executionContext, actionList, procedure);
+        OracleUtils.addSchemaChangeActions(executionContext, actionList, procedure, options);
     }
 
 }

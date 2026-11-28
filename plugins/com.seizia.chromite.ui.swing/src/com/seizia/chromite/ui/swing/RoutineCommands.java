@@ -53,9 +53,8 @@ import java.util.regex.Pattern;
  * 설계: {@link SourceEditCommands}처럼 탐색기에는 메뉴 항목과 켜고 끄기만 둔다. 스크립트는 모델 번들이 만든다
  * ({@link ProcedureCallScript}, {@link OracleCompileErrors}). 창은 모두 일반 쿼리 창이다.
  * <ul>
- *     <li>Execute Procedure…: 매개 변수를 읽고(진행 대화상자) {@link ExecuteProcedureDialog}로 값을 받아, 루틴의 DB·스키마를 쿼리 창의 기본으로
- *     맞춘 뒤({@link SourceScripts#bindDefaultContext}, Modify와 같음. 주 세션이 다른 DB로 옮겨 가면 먼저 열린 트랜잭션을 물음,
- *     {@link SourceScripts#confirmBindDefaultContext}) 새 쿼리 창에서 실행하거나 열기만 한다. 실행은 새 창의 세션에서
+ *     <li>Execute Procedure…: 매개 변수를 읽고(진행 대화상자) {@link ExecuteProcedureDialog}로 값을 받아, 루틴의 DB·스키마에서 여는
+ *     새 쿼리 창(개체에서 연 창과 같은 길, {@code openScript(연결, 루틴, …)}, Modify와 같음. 어느 세션도 옮기지 않음)에서 실행하거나 열기만 한다. 실행은 새 창의 세션에서
  *     F5와 같은 경로라 실행 제한·결과·Messages·트랜잭션 표시가 다른 쿼리와 같다. SWT는 {@code :이름} 매개 변수가 든 호출문을 콘솔에 열었다.</li>
  *     <li>Go to Source Code(SWT {@code PackageNavigateHandler}): 패키지의 Modify 창을 열고 그 루틴의 머리글({@code PROCEDURE 이름}, 주석 줄 제외)을
  *     본문에서 고른다. 겹친(overload) 루틴은 겹침 번호 순서의 머리글이다. 본문이 없으면 선언에서 찾는다.</li>
@@ -66,8 +65,13 @@ import java.util.regex.Pattern;
  * - 2026-11-08 최초 작성: Execute Procedure…(B-S42), Go to Source Code(O13), 오류로 가기(O11) (docs/chromite/swing-routines.md)
  * - 2026-11-16 항목의 보임·켜짐을 {@link ContextMenus}로: 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-28 Execute Procedure·Go to Source Code·오류로 가기가 주 세션을 옮기기 전에 열린 트랜잭션을 물음
- *   ({@link SourceScripts#confirmBindDefaultContext}, 다른 DB로 옮길 때만)
+ *   ({@code SourceScripts.confirmBindDefaultContext}, 다른 DB로 옮길 때만)
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 프로시저 실행 창은 실행마다 루틴의 스키마를 본다({@code QueryWindows.openCallScript}): 주 세션을 함께 쓰는 PostgreSQL 창의
+ *   스키마가 다르면 실행하지 않고 그 스키마를 고르게 함. Modify·Go to Source·오류로 가기 글은 자기 세션 창이면 끝의 돌아가기 문장을 뺌
+ *   ({@link SourceScripts#generateAlter}) (같은 문서 같은 절)
+ * - 2026-11-29 위 질문과 주 세션 옮기기를 지움: 세 명령의 창이 루틴(패키지, 개체)의 DB/스키마에서 열린다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class RoutineCommands {
 
@@ -129,17 +133,13 @@ final class RoutineCommands {
         }
         ExecuteProcedureDialog.Result result = ExecuteProcedureDialog.show(parent, DBUtils.getObjectFullName(procedure, DBPEvaluationContext.UI),
             parameters, ProcedureCallScript.capturesOutputs(procedure));
-        DBSObject bound = procedure.getParentObject() != null ? procedure.getParentObject() : procedure;
-        if (result == null || !SourceScripts.confirmBindDefaultContext(parent, bound)) {
+        if (result == null) {
             return;
         }
-        String script = run(title, monitor -> {
-            // The new window runs in the routine's database and schema, as a Modify window
-            SourceScripts.bindDefaultContext(monitor, bound);
-            return ProcedureCallScript.generate(monitor, procedure, result.values());
-        });
+        String script = run(title, monitor -> ProcedureCallScript.generate(monitor, procedure, result.values()));
         if (script != null) {
-            queryWindows.openScript(container, script, 0, result.execute());
+            // The new window runs in the routine's database and schema, as a Modify window, and only there
+            queryWindows.openCallScript(container, procedure, script, result.execute());
         }
     }
 
@@ -152,17 +152,16 @@ final class RoutineCommands {
         }
         OraclePackage oraclePackage = procedure.getParentObject();
         DBNDatabaseNode packageNode = findNode(node, oraclePackage);
-        if (packageNode == null || !SourceScripts.canModify(oraclePackage)
-            || !SourceScripts.confirmBindDefaultContext(parent, oraclePackage)) {
+        if (packageNode == null || !SourceScripts.canModify(oraclePackage)) {
             return;
         }
-        String script = run(RoutineMessages.routine_go_to_source, monitor -> SourceScripts.generateAlter(monitor, oraclePackage));
+        String script = run(RoutineMessages.routine_go_to_source, monitor -> SourceScripts.generateAlter(monitor, oraclePackage, true));
         if (script == null) {
             return;
         }
         int[] header = findRoutineHeader(script, oraclePackage.getName(), procedure);
         SqlEditorPanel.SourcePosition position = header == null ? null : new SqlEditorPanel.SourcePosition(header[0], header[1], List.of());
-        queryWindows.openSourceScript(packageNode.getDataSourceContainer(), script, packageNode, position);
+        queryWindows.openSourceScript(packageNode.getDataSourceContainer(), oraclePackage, script, packageNode, position);
     }
 
     /**
@@ -228,10 +227,10 @@ final class RoutineCommands {
         @NotNull OracleCompileErrors.CompileError selected
     ) {
         DBSObject object = node.getObject();
-        if (object == null || !SourceScripts.canModify(object) || !SourceScripts.confirmBindDefaultContext(null, object)) {
+        if (object == null || !SourceScripts.canModify(object)) {
             return;
         }
-        String script = run(RoutineMessages.routine_compile_go_to_error, monitor -> SourceScripts.generateAlter(monitor, object));
+        String script = run(RoutineMessages.routine_compile_go_to_error, monitor -> SourceScripts.generateAlter(monitor, object, true));
         if (script == null) {
             return;
         }
@@ -254,7 +253,7 @@ final class RoutineCommands {
                 caretEnd = lineEnd < 0 ? script.length() : lineEnd;
             }
         }
-        queryWindows.openSourceScript(node.getDataSourceContainer(), script, node, new SqlEditorPanel.SourcePosition(caret, caretEnd, lines));
+        queryWindows.openSourceScript(node.getDataSourceContainer(), object, script, node, new SqlEditorPanel.SourcePosition(caret, caretEnd, lines));
     }
 
     /**

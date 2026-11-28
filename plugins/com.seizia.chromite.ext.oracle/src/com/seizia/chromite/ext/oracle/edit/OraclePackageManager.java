@@ -40,6 +40,11 @@ import java.util.Map;
 
 /**
  * OraclePackageManager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 만들기·고치기가 명령 옵션을 {@code OracleUtils.addSchemaChangeActions}에
+ *   넘김: {@link com.seizia.chromite.model.DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA=<기본>}을 넣지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class OraclePackageManager extends SQLObjectEditor<OraclePackage, OracleSchema> {
 
@@ -71,7 +76,7 @@ public class OraclePackageManager extends SQLObjectEditor<OraclePackage, OracleS
     @Override
     protected void addObjectCreateActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull ObjectCreateCommand objectCreateCommand, @NotNull Map<String, Object> options)
     {
-        createOrReplaceProcedureQuery(executionContext, actions, objectCreateCommand.getObject());
+        createOrReplaceProcedureQuery(executionContext, actions, objectCreateCommand.getObject(), options);
     }
 
     @Override
@@ -87,7 +92,7 @@ public class OraclePackageManager extends SQLObjectEditor<OraclePackage, OracleS
     @Override
     protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand objectChangeCommand, @NotNull Map<String, Object> options)
     {
-        createOrReplaceProcedureQuery(executionContext, actionList, objectChangeCommand.getObject());
+        createOrReplaceProcedureQuery(executionContext, actionList, objectChangeCommand.getObject(), options);
     }
 
     @Override
@@ -96,7 +101,12 @@ public class OraclePackageManager extends SQLObjectEditor<OraclePackage, OracleS
         return FEATURE_EDITOR_ON_CREATE;
     }
 
-    private void createOrReplaceProcedureQuery(DBCExecutionContext executionContext, List<DBEPersistAction> actionList, OraclePackage pack)
+    private void createOrReplaceProcedureQuery(
+        DBCExecutionContext executionContext,
+        List<DBEPersistAction> actionList,
+        OraclePackage pack,
+        Map<String, Object> options
+    )
     {
         try {
             String header = pack.getObjectDefinitionText(new VoidProgressMonitor(), DBPScriptObject.EMPTY_OPTIONS).trim();
@@ -132,7 +142,7 @@ public class OraclePackageManager extends SQLObjectEditor<OraclePackage, OracleS
         } catch (DBException e) {
             log.warn(e);
         }
-        OracleUtils.addSchemaChangeActions(executionContext, actionList, pack);
+        OracleUtils.addSchemaChangeActions(executionContext, actionList, pack, options);
     }
 
 }

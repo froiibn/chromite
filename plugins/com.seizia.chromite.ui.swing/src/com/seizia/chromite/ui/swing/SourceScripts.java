@@ -45,8 +45,6 @@ import com.seizia.chromite.model.edit.DBEObjectEditor;
 import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.edit.prop.DBECommandProperty;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
-import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
-import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.impl.edit.AbstractCommandContext;
 import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
 import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
@@ -59,6 +57,7 @@ import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSDataType;
 import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSInstanceLazy;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSPackage;
@@ -74,8 +73,6 @@ import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
-import java.awt.Component;
-import java.awt.KeyboardFocusManager;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -108,13 +105,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *     {@code DELIMITER $$} … {@code DELIMITER ;} 사이에 둔다. 처음에는 쿼리 창의 구문 분석기가 본문 안의 {@code ;}에서 나눴기 때문이다.
  *     2026-11-25부터 MySQL 방언이 저장 프로그램 본문을 한 문장으로 두지만({@code MySQLDialect#makeDialectSkipTokenPredicatesImpl}),
  *     클립보드로 mysql 클라이언트 등에 붙여도 실행되도록 그대로 둔다. 쿼리 창은 {@code DELIMITER} 줄을 처리한다.</li>
- *     <li>DB/스키마 맞추기: 새 쿼리 창은 연결의 기본 실행 문맥에서 실행하거나 자기 세션을 열 때 그 문맥의 기본값을 복사하므로
- *     ({@link QueryWindowContext}), 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를
- *     객체가 있는 곳으로 바꾼다(편집기의 기본 DB/스키마 콤보와 같은 {@link DBExecUtils#setExecutionContextDefaults}). PostgreSQL은 DB를
- *     바꾸면 기본 인스턴스가 바뀌므로 다른 DB의 객체도 그 DB에서 실행된다. 그때 주 세션이 다른 서버 세션이 되어 열린 트랜잭션이
- *     주 세션을 함께 쓰는 창 뒤에 보이지 않게 남으므로, 명령은 작업을 시작하기 전에 EDT에서 기본값으로 설정과 같은 질문(커밋/롤백/취소)을 한다
- *     ({@link #confirmBindDefaultContext}). 같은 인스턴스 안의 DB·스키마 바꾸기({@code USE}, {@code SET search_path})는 트랜잭션이 세션에
- *     그대로 있으므로 묻지 않는다. SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
+ *     <li>DB/스키마 맞추기: 어느 세션의 기본 DB/스키마도 바꾸지 않는다(사용자 결정 2026-11-28 "기존 세션은 건들지 않게 한다").
+ *     스크립트를 받는 새 쿼리 창은 개체에서 연 다른 창과 같은 길로 개체의 DB/스키마에서 열린다(명령이 창에 개체를 넘김,
+ *     {@code MainFrame.runWhereObjectIs}: 자기 세션은 그 DB/스키마로 열고, 주 세션을 함께 쓰는 PostgreSQL 창은 그 DB의 주 세션을 함께 씀).
+ *     스크립트를 만드는 실행 문맥은 개체의 DB 인스턴스의 주 문맥을 그대로 쓴다({@link #getObjectContext}). 객체 관리자 일부는 그 문맥의
+ *     기본 DB/스키마가 개체의 것과 다르면 개체의 곳으로 갔다가 돌아오는 문장을 더한다(SQL Server {@code USE} 쌍, MySQL 트리거 {@code USE} 쌍,
+ *     Oracle 끝의 {@code ALTER SESSION SET CURRENT_SCHEMA}): 그 문맥에서 실행해도 문맥이 제자리로 돌아오게 만든 글이다.
+ *     자기 세션 쿼리 창은 개체의 곳에서 열려 그곳에 남아야 하므로 돌아오는 문장을 빼고({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE},
+ *     창과 같은 판단 {@link QueryWindowContext#isSeparate}), 주 세션을 함께 쓰는 창과 클립보드 글은 둔다(공유 세션이 제자리로 돌아옴).
+ *     전에는 스크립트를 만들기 전에 주 문맥을 개체의 곳으로 옮겨(PostgreSQL은 연결의 기본 인스턴스까지) 주 세션을 함께 쓰는 창이 모두 따라갔다.
+ *     SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
  *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).
  *     DDL 보기·CREATE 대상의 글도 같은 {@code USE} 배치로 시작한다({@link #inObjectDatabase}): 그 글은 쿼리 창을 객체의 DB에 맞추지 않고,
  *     복사해 다른 창에 붙이는 데 쓴다.</li>
@@ -135,7 +135,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
  * - 2026-11-07 주석만: 쿼리 창마다 별도 연결이면 새 창이 주 문맥의 기본값을 복사함 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
- * - 2026-11-08 {@link #bindDefaultContext}를 패키지 안에 열어 Execute Procedure 창도 루틴의 DB·스키마에서 실행되게 함 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 {@code bindDefaultContext}를 패키지 안에 열어 Execute Procedure 창도 루틴의 DB·스키마에서 실행되게 함 (docs/chromite/swing-routines.md)
  * - 2026-11-08 {@link #generateContainerScript}: 스키마 비교 스크립트도 같은 구분자·DB 맞추기로 만든다 (docs/chromite/schema-compare.md)
  * - 2026-11-08 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀({@link #getTemplateKind}): Object Explorer의 "New …"
  *   (docs/chromite/swing-create-objects.md)
@@ -146,9 +146,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-25 {@link #inObjectDatabase}: SQL Server의 DDL 보기·CREATE 대상 글도 Modify 스크립트처럼 {@code USE} 배치로 시작한다.
  *   다른 DB의 쿼리 창(새 창은 연결 기본 DB, 보통 master)에 붙여 실행하면 그 DB에 만들어졌다
  *   (docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)")
- * - 2026-11-28 {@link #confirmBindDefaultContext}: 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전 열린 트랜잭션 질문.
+ * - 2026-11-28 {@code confirmBindDefaultContext}: 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전 열린 트랜잭션 질문.
  *   전에는 Modify·Execute Procedure·새 개체 틀·Schema Compare 스크립트가 묻지 않고 옮겨, 트랜잭션이 이전 DB의 세션에 보이지 않게 남았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
+ * - 2026-11-29 주 세션을 옮기지 않음: 바인드(bindDefaultContext)와 그 앞의 질문(confirmBindDefaultContext)을 지우고, ALTER 글은 개체의
+ *   DB 인스턴스의 주 문맥을 그대로 써서 만든다({@link #getObjectContext}). 새 창은 명령이 넘긴 개체의 DB/스키마에서 열린다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
+ * - 2026-11-29 {@link #generateAlter}: 자기 세션 쿼리 창의 글은 끝의 "기본 DB/스키마로 돌아가기" 문장을 빼게 함
+ *   ({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}, 사용자 결정 "둘 다 고친다", 같은 문서 같은 절)
  */
 final class SourceScripts {
 
@@ -225,18 +230,24 @@ final class SourceScripts {
     }
 
     /**
-     * Makes the ALTER script of the object (Modify, Script as ALTER) and binds the connection's default context to the
-     * object's database and schema first.
+     * Makes the ALTER script of the object (Modify, Script as ALTER) with the main context of the object's database
+     * instance as it is ({@link #getObjectContext}): no session's default database/schema changes. The object managers add a
+     * switch to the object's database/schema and, when that context is elsewhere, a switch back to it at the end. A query
+     * window with its own session opens in the object's place and is to stay there, so its script leaves the switch back
+     * out ({@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}); a window that shares the main context keeps it (the
+     * shared session returns to its place), and so does the clipboard text (it returns any session it runs in).
+     *
+     * @param forQueryWindow true for the script of a new query window (Modify, Go to Source, Go to Error), false for the clipboard
      */
     @NotNull
-    static String generateAlter(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object) throws DBException {
+    static String generateAlter(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, boolean forQueryWindow) throws DBException {
         DBPDataSource dataSource = object.getDataSource();
         DBEObjectEditor<DBSObject> editor = getObjectEditor(object);
         ObjectPropertyDescriptor property = getSourceProperty(object.getClass());
         if (dataSource == null || editor == null || property == null) {
             throw new DBException(NLS.bind(SourceEditMessages.source_error_not_modifiable, DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)));
         }
-        DBCExecutionContext context = bindDefaultContext(monitor, object.getParentObject() != null ? object.getParentObject() : object);
+        DBCExecutionContext context = getObjectContext(monitor, object);
         // Reads the definition as the SWT source tab shows it (SQLSourceViewer#getSourceOptions); the object managers build
         // their statements from the definition read here
         String source = ((DBPScriptObject) object).getObjectDefinitionText(monitor, Map.of(DBPScriptObject.OPTION_DDL_SOURCE, true));
@@ -250,6 +261,10 @@ final class SourceScripts {
             command.validateCommand(monitor, validateOptions);
             Map<String, Object> options = new HashMap<>();
             options.put(DBPScriptObject.OPTION_OBJECT_SAVE, true);
+            // The same fact the new window decides its session by (QueryWindowContext.open)
+            if (forQueryWindow && QueryWindowContext.isSeparate(dataSource.getContainer())) {
+                options.put(DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE, true);
+            }
             DBEPersistAction[] commandActions = command.getPersistActions(monitor, context, options);
             if (commandActions != null) {
                 actions.addAll(List.of(commandActions));
@@ -267,20 +282,14 @@ final class SourceScripts {
 
     /**
      * Joins actions made for objects of a container (Schema Compare's script) into a query window script, as the
-     * Modify script: the connection's default context is bound to the container first, and SQL Server scripts start
-     * with {@code USE <database>}.
+     * Modify script: SQL Server scripts start with {@code USE <database>}. No session's default database/schema changes.
      */
     @NotNull
-    static String generateContainerScript(
-        @NotNull DBRProgressMonitor monitor,
-        @NotNull DBSObject container,
-        @NotNull List<DBEPersistAction> actions
-    ) throws DBException {
+    static String generateContainerScript(@NotNull DBSObject container, @NotNull List<DBEPersistAction> actions) throws DBException {
         DBPDataSource dataSource = container.getDataSource();
         if (dataSource == null) {
             throw new DBException(NLS.bind(SourceEditMessages.source_error_not_connected, container.getName()));
         }
-        bindDefaultContext(monitor, container);
         return renderScript(dataSource, getDatabaseSwitch(container), actions);
     }
 
@@ -391,72 +400,20 @@ final class SourceScripts {
     }
 
     /**
-     * Before a command binds the connection's main context to the object's database and schema
-     * ({@link #bindDefaultContext}, called in the command's job): when that moves the main session to another database
-     * instance (a PostgreSQL database), asks Commit / Roll back / Cancel for its open transaction, as Set as Default does
-     * ({@link ExitTransactionCheck#confirmDefaultChange}). The windows that share the main session then run in the other
-     * instance's session, and the transaction would stay open behind them unseen. A schema or catalog change in the same
-     * instance (SET search_path, USE, ALTER SESSION SET CURRENT_SCHEMA) keeps the transaction in the session and asks
-     * nothing. In-memory model data only; call in the EDT.
-     *
-     * @param parent the owner of the question; null: the active window (as the command's progress dialog)
-     * @param object the object the command binds (its own database instance, catalog and schema, or its parents')
-     * @return false when the command must stop: the user canceled, or the transaction could not be ended
-     */
-    static boolean confirmBindDefaultContext(@Nullable Component parent, @NotNull DBSObject object) {
-        DBPDataSource dataSource = object.getDataSource();
-        DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
-        DBCExecutionContextDefaults<?, ?> defaults = context == null ? null : context.getContextDefaults();
-        DBSInstance instance = getSelfOrParent(DBSInstance.class, object);
-        if (defaults == null || !(defaults.supportsCatalogChange() || defaults.supportsSchemaChange())
-            || instance == null || instance == context.getOwnerInstance()) {
-            return true;
-        }
-        // The question names the database the main session moves to: a schema name alone (PostgreSQL "public") would not tell which
-        DBSCatalog catalog = getSelfOrParent(DBSCatalog.class, object);
-        DBSObject target = catalog != null ? catalog : instance;
-        Component owner = parent != null ? parent : KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-        return ExitTransactionCheck.confirmDefaultChange(owner, context, DBUtils.getObjectFullName(target, DBPEvaluationContext.UI));
-    }
-
-    /**
-     * Makes the object's catalog and schema the defaults of the connection's main context, which new query windows use
-     * or copy into their own session when they open it ({@link QueryWindowContext}), with the same call as the editor's
-     * default database/schema combo. Failing to do so is not fatal: the scripts name their schema. The command asks
-     * about the main session's open transaction first, in the EDT ({@link #confirmBindDefaultContext}).
-     *
-     * @return the main context after the change (PostgreSQL: the context of the object's database)
+     * The main context of the object's own database instance, as it is: the object managers build the ALTER statements
+     * with it, and no session's default database/schema changes for it (the new query window opens in the object's
+     * database/schema by itself, {@code MainFrame.runWhereObjectIs}). An instance without sessions yet (a PostgreSQL
+     * database not opened yet) opens them first, as Object Explorer does when it opens that database.
      */
     @NotNull
-    static DBCExecutionContext bindDefaultContext(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject container) throws DBException {
-        DBPDataSource dataSource = container.getDataSource();
-        DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
-        if (dataSource == null || context == null) {
-            throw new DBException(NLS.bind(SourceEditMessages.source_error_not_connected, container.getName()));
+    private static DBCExecutionContext getObjectContext(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object) throws DBException {
+        DBSInstance instance = DBUtils.getObjectOwnerInstance(object);
+        if (instance instanceof DBSInstanceLazy lazy) {
+            lazy.checkInstanceConnection(monitor);
         }
-        DBCExecutionContextDefaults<?, ?> defaults = context.getContextDefaults();
-        if (defaults != null && (defaults.supportsCatalogChange() || defaults.supportsSchemaChange())) {
-            DBSCatalog catalog = getSelfOrParent(DBSCatalog.class, container);
-            DBSSchema schema = getSelfOrParent(DBSSchema.class, container);
-            DBSCatalog currentCatalog = defaults.getDefaultCatalog();
-            DBSSchema currentSchema = defaults.getDefaultSchema();
-            boolean catalogChange = catalog != null && defaults.supportsCatalogChange() && catalog != currentCatalog;
-            boolean schemaChange = schema != null && defaults.supportsSchemaChange() && schema != currentSchema;
-            if (catalogChange || schemaChange) {
-                try {
-                    // The same arguments as the editor's combo (SelectActiveSchemaHandler): the catalog, and the schema in it
-                    DBExecUtils.setExecutionContextDefaults(monitor, dataSource, context,
-                        catalog != null && defaults.supportsCatalogChange() ? catalog.getName() : null,
-                        currentCatalog != null ? currentCatalog.getName() : null,
-                        schema != null && defaults.supportsSchemaChange() ? schema.getName() : null);
-                } catch (DBException e) {
-                    log.warn("Can't make '" + container.getName() + "' the default of the connection", e);
-                }
-                DBCExecutionContext changed = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
-                if (changed != null) {
-                    context = changed;
-                }
-            }
+        DBCExecutionContext context = instance == null ? null : DBUtils.getDefaultContext(instance, false);
+        if (context == null) {
+            throw new DBException(NLS.bind(SourceEditMessages.source_error_not_connected, object.getName()));
         }
         return context;
     }
@@ -541,8 +498,9 @@ final class SourceScripts {
     }
 
     /**
-     * Makes the CREATE template of a new object in the folder and binds the connection's default context to the
-     * folder's database and schema.
+     * Makes the CREATE template of a new object in the folder. No session's default database/schema changes: the
+     * template names the schema (SQL Server: after its {@code USE} batch), and the new query window opens in the
+     * folder's database/schema.
      */
     @NotNull
     static String generateNew(@NotNull DBRProgressMonitor monitor, @NotNull DBNDatabaseFolder folder, @NotNull NewObjectKind kind) throws DBException {
@@ -554,7 +512,6 @@ final class SourceScripts {
         if (dialect == null) {
             throw new DBException(NLS.bind(SourceEditMessages.source_error_no_template, dataSource.getContainer().getDriver().getName()));
         }
-        bindDefaultContext(monitor, container);
 
         Set<String> existingNames = new HashSet<>();
         for (DBSObject child : CommonUtils.safeCollection(folder.getChildrenObjects(monitor))) {

@@ -25,6 +25,7 @@ import com.seizia.chromite.ext.mssql.model.SQLServerExecutionContext;
 import com.seizia.chromite.ext.mssql.model.SQLServerTableBase;
 import com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.edit.DBECommandContext;
 import com.seizia.chromite.model.edit.DBEPersistAction;
@@ -34,12 +35,17 @@ import com.seizia.chromite.model.impl.sql.edit.struct.SQLTriggerManager;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
 import java.util.Map;
 
 /**
  * SQLServerTableTriggerManager
+ *
+ * 변경 이력:
+ * - 2026-11-29 Chromite: 명령 옵션 {@link DBPScriptObject#OPTION_SKIP_DEFAULTS_RESTORE}이면 끝의 {@code USE <기본 DB>}를 넣지 않음
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 public class SQLServerTableTriggerManager extends SQLTriggerManager<SQLServerTableTrigger, SQLServerTableBase> {
     @Nullable
@@ -70,6 +76,18 @@ public class SQLServerTableTriggerManager extends SQLTriggerManager<SQLServerTab
     }
 
     protected void createOrReplaceTriggerQuery(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actions, @NotNull SQLServerTableTrigger trigger, boolean create) {
+        createOrReplaceTriggerQuery(monitor, executionContext, actions, trigger, create, DBPScriptObject.EMPTY_OPTIONS);
+    }
+
+    @Override
+    protected void createOrReplaceTriggerQuery(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext executionContext,
+        @NotNull List<DBEPersistAction> actions,
+        @NotNull SQLServerTableTrigger trigger,
+        boolean create,
+        @NotNull Map<String, Object> options
+    ) {
         DBSObject defaultDatabase = ((SQLServerExecutionContext)executionContext).getDefaultCatalog();
         SQLServerTableBase table = trigger.getTable();
         if (defaultDatabase != table.getDatabase()) {
@@ -84,7 +102,7 @@ public class SQLServerTableTriggerManager extends SQLTriggerManager<SQLServerTab
                 SQLServerUtils.changeCreateToAlterDDL(trigger.getDataSource(), trigger.getBody()), true)); //$NON-NLS-2$
         }
 
-        if (defaultDatabase != table.getDatabase()) {
+        if (defaultDatabase != table.getDatabase() && !CommonUtils.getOption(options, DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE)) {
             String defaultCatalogName = getDefaultCatalogName((SQLServerExecutionContext) executionContext, defaultDatabase, table);
             actions.add(new SQLDatabasePersistAction("Set current database ", //$NON-NLS-1$
                 "USE " + defaultCatalogName, false)); //$NON-NLS-1$

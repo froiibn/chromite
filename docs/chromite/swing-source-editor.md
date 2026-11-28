@@ -113,13 +113,14 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
   저장(파일)·닫을 때 확인이 기존 쿼리 창과 같아 새 문서 종류를 만들지 않았다.
 - **스크립트는 드라이버 관리자가 만든다:** 정의 글에서 `CREATE`를 `ALTER`로 바꾸는 식의 방언별 처리를 다시 쓰지 않고 SWT 저장과 같은 실행 동작을 쓴다.
   SWT에서 저장되는 개체라면 같은 문장이 나오고, 드라이버가 나중에 고쳐져도 따라간다.
-- **기본 문맥을 바꾸는 부작용:** 쿼리 창은 기본으로 창마다 자기 세션을 연다("쿼리 창마다 별도 연결", `QueryWindowContext.isSeparate`). 그 설정을 끈 연결과
-  "단일 연결" 연결·내장 DB 드라이버의 창은 연결의 주 세션을 함께 쓴다. Modify·New는 새 창의 세션이 주 세션의 기본값을 받으므로(`QueryWindowContext.open`의
-  `initFrom`) 주 세션의 기본 DB/스키마를 바꾸고(`SourceScripts.bindDefaultContext`), 그래서 주 세션을 함께 쓰는 다른 쿼리 창의 기본 DB/스키마도 바뀐다.
-  자기 세션을 쓰는 창은 바뀌지 않는다. 편집기 콤보로 바꿀 때와 같은 동작이고, 스크립트 자체는 DB·스키마를 지정하므로
-  다른 창에서 다시 바꿔도 SQL Server·MySQL·Oracle·PostgreSQL(같은 DB 안)은 맞는 곳에서 실행된다. PostgreSQL의 다른 DB 개체만 기본 DB에 의존한다.
-  PostgreSQL의 다른 DB로 옮기면 주 세션이 다른 서버 세션이 되므로, 주 세션에 열린 트랜잭션이 있으면 먼저 커밋/롤백/취소를 묻는다
-  ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
+- **창이 도는 DB/스키마(세션은 옮기지 않음):** 쿼리 창은 기본으로 창마다 자기 세션을 연다("쿼리 창마다 별도 연결", `QueryWindowContext.isSeparate`). 그 설정을 끈
+  연결과 "단일 연결" 연결·내장 DB 드라이버의 창은 연결의 주 세션을 함께 쓴다. Modify·New 창은 개체에서 연 다른 창과 같은 길(`openSourceScript(연결, 개체, …)` →
+  `MainFrame.runWhereObjectIs`)로 개체(New는 폴더의 개체)의 DB/스키마에서 열린다: 자기 세션은 그 DB/스키마로 열고, 주 세션을 함께 쓰는 PostgreSQL 창은 그 DB의
+  주 세션을 함께 쓴다. 어느 세션의 기본값도 바꾸지 않는다(사용자 결정 2026-11-28). 스크립트는 개체의 DB 인스턴스 주 문맥을 그대로 써서 만든다. 그 문맥의 기본
+  DB/스키마가 개체의 것과 다르면 드라이버 관리자가 개체의 곳으로 갔다 돌아오는 문장을 더한다(SQL Server·MySQL 트리거 `USE` 쌍, Oracle 끝의 `ALTER SESSION SET
+  CURRENT_SCHEMA`). 자기 세션 창은 개체의 곳에 남아야 하므로 돌아오는 문장을 빼고(`DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE`), 주 세션을 함께 쓰는 창과
+  ALTER 대상 ▸ 클립보드 글은 둔다(공유 세션·붙여 실행한 세션이 제자리로 돌아옴). 2026-11-28까지는 스크립트를 만들기 전에 주 세션을 개체의 곳으로 옮겨 주 세션을 함께 쓰는 창이 모두 따라갔다
+  ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창").
 - **실행 뒤 다시 읽기:** 실행이 끝날 때마다(성공 여부와 상관없이) 다시 읽는다. MySQL처럼 `DROP` 뒤 `CREATE`가 실패하면 개체가 사라지므로 트리가 그 상태를 보여야 한다.
   Modify는 개체 노드만 다시 읽어 가볍다. 개체가 없어졌으면 모델이 노드를 지운다. New는 폴더를 다시 읽는데, 모델은 폴더의 부모(스키마)를 다시 읽는다
   (Object Explorer의 새로 고침과 같음).
@@ -179,3 +180,6 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
   `chromite/bind-default-context-transaction`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). 회귀 테스트는 실행하지 않았다.
 - 2026-11-29 "기본 문맥을 바꾸는 부작용"의 낡은 문장(쿼리 창이 아직 기본 문맥 하나를 함께 씀)을 지금 동작으로 고침: 창마다 자기 세션이 기본이고
   설정을 끈 연결 등의 창만 주 세션을 함께 씀(`chromite/query-library-shared-session`, 문서만).
+- 2026-11-29 수정·ALTER 대상·새 뷰/프로시저/함수가 주 세션을 옮기지 않음: 창이 개체의 DB/스키마에서 열리고(`openSourceScript`가 개체를 받음), 위 질문과
+  `SourceScripts.bindDefaultContext`를 지움. "창이 도는 DB/스키마"로 고쳐 씀(`chromite/commands-keep-main-session`). 회귀 테스트는 실행하지 않았다.
+- 2026-11-29 같은 브랜치 둘째 커밋: 자기 세션 창의 수정 글은 끝의 돌아가기 문장을 뺌, 클립보드 글은 그대로. 회귀 테스트는 실행하지 않았다.

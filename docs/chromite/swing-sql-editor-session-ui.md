@@ -554,20 +554,19 @@ DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과
 | 사용 권한·로그인/사용자/역할 대화상자의 스크립트(`SecurityCommands.showScript`·`applyScript`) | 대화상자를 연 개체(`SecurityDialect.getContext`, 실행 `SecurityDialect.execute`도 그 개체의 인스턴스에서 돈다) |
 | 작업 스케줄러 스크립트(`SchedulerCommands` 삭제, `SchedulerScriptDialog`) | `Backend.location`: pg_cron은 설치된 DB(`PostgreCronScheduler.getDatabase`, 실행도 그 DB), MySQL 이벤트는 그 DB. Oracle은 없음(전과 같음) |
 
-연결만 넘기는 길(`openScript(연결, 글, …)`)로 남은 것과 그 이유: 프로시저 실행(`RoutineCommands`)·스키마 비교 스크립트(`SchemaComparePanel`)는 열기 전에
-`bindDefaultContext`로 주 세션을 개체의 DB/스키마로 옮기고 새 창이 그것을 복사한다. SQL Server 에이전트(`AgentCommands`·`AgentObjectDialog`)는 문장이
+연결만 넘기는 길(`openScript(연결, 글, …)`)로 남은 것과 그 이유(프로시저 실행·스키마 비교 스크립트·수정·새 개체 틀은 2026-11-29부터 개체를 넘긴다,
+아래 "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창"): SQL Server 에이전트(`AgentCommands`·`AgentObjectDialog`)는 문장이
 `EXEC msdb.dbo.…`로 DB를 쓴다. 백업·복원 작업 대화상자(`DatabaseTaskDialog`의 SQL Server 백업·복원)는 `BACKUP DATABASE [db]`·`USE [master]`로 DB를 쓴다.
 세션 관리자(`SessionManagerPanel`)의 세션 읽기는 서버 전체 보기다. MySQL 이벤트 스케줄러 켜기(`SET GLOBAL event_scheduler`)는 서버 설정이다.
 
 **주 세션을 함께 쓰는 창(쿼리 창마다 별도 연결 = NEVER, 단일 연결):** 주 세션을 옮기지 않는다(`openWindowContext`의 전부터 있던 규칙). 그 세션을 옮기면 함께 쓰는
 모든 창이 옮겨지고, PostgreSQL에서는 다른 DB가 다른 서버 세션이며 DB 선택이 스키마만 보여 옮겨진 것이 창에 드러나지 않는다(같은 이름 스키마면 표시가 그대로).
 PostgreSQL(데이터베이스마다 세션이 따로)에서는 새 창이 개체의 DB의 주 세션을 함께 쓴다(아래 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션"). 그 밖의 드라이버에서는
-새 창이 주 세션이 있는 곳에서 돌고 그곳을 보인다(창이 보이는 곳과 다른 곳에서 돌지 않음). 수정·프로시저 실행은 전처럼 주 세션을 옮긴다(바꾸지 않음, 아래
-"주 세션을 다른 DB로 옮기기 전 트랜잭션 질문"의 "사용자 결정 뒤 남은 것").
+새 창이 주 세션이 있는 곳에서 돌고 그곳을 보인다(창이 보이는 곳과 다른 곳에서 돌지 않음). 수정·프로시저 실행도 2026-11-29부터 같은 길이다(아래
+"주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창").
 
-**고르지 않은 것:** 위 명령들도 `bindDefaultContext`로 주 세션을 옮기기. 창마다 자기 세션인 기본 설정에서도 연결의 기본 DB(탐색기의 굵은 표시, 다음 새 창의 DB)가
-"상위 1000개 행 선택" 한 번에 바뀌고, 주 세션을 함께 쓰는 창은 표시 없이 옮겨진다. `bindDefaultContext`는 PostgreSQL에서 다른 DB로 옮길 때 열린 트랜잭션을 묻지
-않는다("기본값으로 설정"은 `ExitTransactionCheck.confirmDefaultChange`로 묻는다, 아래 "남은 것").
+**고르지 않은 것:** 위 명령들도 주 세션을 개체의 곳으로 옮기기(당시 수정·프로시저 실행이 쓰던 `bindDefaultContext`). 창마다 자기 세션인 기본 설정에서도 연결의 기본 DB(탐색기의 굵은 표시, 다음 새 창의 DB)가
+"상위 1000개 행 선택" 한 번에 바뀌고, 주 세션을 함께 쓰는 창은 표시 없이 옮겨진다.
 
 **남은 것:**
 - ~~주 세션을 함께 쓰는 PostgreSQL 창에서 다른 DB 개체의 글: 기본 DB에서 돈다.~~ 2026-11-28 고침(아래 "주 세션을 함께 쓰는 창: 개체의 DB의 주 세션").
@@ -624,6 +623,9 @@ Object Explorer가 그 DB를 펼칠 때와 같은 `DBSInstanceLazy.checkInstance
 **SQL Server·MySQL/MariaDB·Oracle 등:** DB가 인스턴스가 아니므로(`shareInstance`가 이름을 찾지 못함) 전과 같다: 공유 창은 주 세션이 있는 곳에서 돌고 그곳을 보인다.
 
 ## 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문 (2026-11-28)
+
+**2026-11-29에 지움:** 명령들이 주 세션을 옮기지 않게 되어 이 질문(`SourceScripts.confirmBindDefaultContext`)과 `bindDefaultContext`를 지웠다(아래
+"주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창"). 아래는 그때의 기록이다. "기본값으로 설정"의 질문(`ExitTransactionCheck.confirmDefaultChange`)은 그대로다.
 
 **보고:** 다른 작업(Task R)의 코드 읽기. Modify 등이 주 세션을 개체의 DB로 옮길 때 열린 트랜잭션을 묻지 않는다(재현 전).
 
@@ -689,7 +691,7 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
 | 쿼리 창의 DB 선택(`SqlEditorPanel.changeDefaultObject`) | — | PostgreSQL에서는 세션 DB의 스키마만 보여(`ContextDefaultObjectsReader`) 다른 DB를 고를 수 없음. 고를 수 있으면 이미 묻는다(`confirmEndSession`) |
 | 예약 실행(`QueryScheduler`), 데이터 전송, 저장된 작업(`DBTaskUtils`) | 없음(새로 연 자기 세션) | 다시 연결 뒤 쿼리 관리자가 추적하지 않음, 문맥이 처음 DB의 목록에 남음 |
 | AI 에이전트(`AgentSql`) | — | DB마다 그 DB 인스턴스에서 세션을 열어 다시 연결하지 않음 |
-| 주 세션을 옮기는 명령(`SourceScripts.bindDefaultContext`, 기본값으로 설정) | — | 주 문맥은 격리 문맥이 아니라 다시 연결하지 않음(위 절) |
+| 기본값으로 설정(주 세션을 옮기는 명령. 수정·프로시저 실행 등의 `SourceScripts.bindDefaultContext`는 2026-11-29에 지움) | — | 주 문맥은 격리 문맥이 아니라 다시 연결하지 않음(위 절) |
 
 **원인:**
 1. 묻지 않은 롤백: `QueryParameterBinder.applyDefaults`가 작업 스레드에서 `DBExecUtils.setExecutionContextDefaults`를 부르고, PostgreSQL 격리 문맥은
@@ -838,6 +840,86 @@ PR 398의 질문(`QueryLibraryEditor.prepareExecution` → `SqlEditorPanel.confi
 | `EditorMessages` (`_ko`) | `editor_sql_query_schema_shared` |
 
 **확인:** 아래 "확인 기록 (2026-11-29, Query Library 머리말 DB: 주 세션을 함께 쓰는 창)".
+
+## 주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창 (2026-11-29)
+
+**사용자 결정(2026-11-29, "주 세션을 옮기는 나머지 명령(수정·프로시저 실행 등)도 고칠까요?"에):** "고친다". 규칙은 2026-11-28의 "기존 세션은 건들지 않게 한다.
+의도치 않게 시스템이 세션을 바꿔버리면 위험하다."다. 세션을 옮기는 것은 창의 DB/스키마 선택과 "기본값으로 설정"뿐이다.
+
+**고치기 전 사실(`origin/command` `e597c96cc4` 빌드, 시험 VM, 연결 수동 커밋, 기본 DB/스키마 A, 다른 DB/스키마 B).** 수정(Modify)·ALTER 대상(새 창·클립보드)·
+프로시저 실행·새 뷰/프로시저/함수·"새 &lt;종류&gt;" 틀·Schema Compare 스크립트·Go to Source Code·오류로 가기가 스크립트를 만들기 전에 연결의 주 세션을 개체의
+DB/스키마로 옮겼다(`SourceScripts.bindDefaultContext` → `DBExecUtils.setExecutionContextDefaults`). 창마다 자기 세션인 연결에서도 옮겼다(새 창이 주 세션의 기본값을 복사).
+- PostgreSQL("쿼리 창마다 별도 연결" 안 함, 모든 데이터베이스 표시): W1이 A에 `INSERT`(커밋 안 함)한 뒤 B 함수의 수정 → PR 396의 질문. 롤백하자 연결의 기본 인스턴스가 B로
+  바뀌고 W1의 탭 번호가 B의 주 세션 번호가 됨(W1의 다음 문장이 B에서 돎). A의 다른 스키마(`chr_ckms_s`) 함수의 수정은 A 주 세션의 `search_path`를 그 스키마로 바꿈.
+- SQL Server·MariaDB(같은 설정): B의 수정이 주 세션에 `USE B`. W1의 다음 `SELECT DB_NAME()`/`DATABASE()`가 B, 열린 트랜잭션은 같은 세션에 남음.
+  Oracle(기본 스키마 A): B의 수정이 주 세션에 `ALTER SESSION SET CURRENT_SCHEMA=B`(`v$session.schemaname` B).
+
+**고친 것:**
+- 명령은 어느 세션의 기본값도 바꾸지 않는다. `SourceScripts.bindDefaultContext`와 그 앞의 질문 `confirmBindDefaultContext`를 지웠다(질문 호출 7곳: `SourceEditCommands` 2,
+  `NewObjectCommands` 1, `RoutineCommands` 3, `SchemaComparePanel` 1; 바인드 호출 4곳: `SourceScripts` 3, `RoutineCommands` 1. 다른 번들·`plugin.xml`·메시지 파일에는 없음).
+- 스크립트를 받는 창은 개체에서 연 다른 창과 같은 길로 연다(`MainFrame.runWhereObjectIs` → `SqlEditorPanel.setRestoredDefaults`). `QueryWindows.openSourceScript`가 개체를 받고
+  (수정·Go to Source·오류로 가기: 그 개체, 새 틀: 폴더의 개체), 프로시저 실행은 `openCallScript(연결, 루틴, …)`(아래 "프로시저 실행 창의 스키마"), Schema Compare는 `openScript(연결, 대상, …)`이다.
+  자기 세션 창은 그 세션만 개체의 DB/스키마로 열고, 주 세션을 함께 쓰는 PostgreSQL 창은 그 DB의 주 세션을 함께 쓴다(`QueryWindowContext.shareInstance`, 스키마는 바꾸지 않음).
+  주 세션을 함께 쓰는 다른 드라이버의 창은 주 세션이 있는 곳에서 연다. 서버 확장 폴더의 틀(Altibase 계열)은 전처럼 개체를 넘기지 않는다(전에도 주 세션을 옮기지 않았음).
+- ALTER 글은 개체의 DB 인스턴스 주 문맥을 기본값 그대로 써서 만든다(`SourceScripts.getObjectContext`, PostgreSQL에서 그 DB의 세션이 아직 없으면 Object Explorer가 펼칠 때와
+  같이 연다). 새 틀·프로시저 호출·Schema Compare 글은 문맥을 보지 않는다(Schema Compare의 문장은 전부터 대상 인스턴스의 주 문맥으로 만들었다).
+- 질문이 쓸모없어졌다: 주 세션이 옮겨지지 않으므로 그 세션의 트랜잭션은 그 세션을 쓰는 창에 계속 보인다. "기본값으로 설정"의 `ExitTransactionCheck.confirmDefaultChange`,
+  Query Library의 `confirmWindowMove`는 그대로다. 질문 글은 기본값으로 설정의 글을 함께 썼으므로 지운 메시지 키는 없다.
+
+**스크립트 글(전·후 비교, 같은 개체를 같은 연결에서):** PostgreSQL(함수·프로시저·뷰, 기본 DB·다른 DB·다른 스키마), MariaDB 프로시저·뷰, Oracle 뷰, 새 뷰·새 시퀀스 틀,
+그리고 주 세션이 있는 곳(기본 DB/스키마)의 개체는 모든 드라이버에서 글자 하나까지 같다. 다른 곳의 개체는 드라이버 관리자가 문맥의 기본값을 보고 글을 더한다:
+
+| 드라이버·개체(주 세션 A, 개체 B) | 고치기 전 | 고친 뒤: 주 세션을 함께 쓰는 창, ALTER 대상 ▸ 클립보드 | 고친 뒤: 자기 세션 창 |
+|---|---|---|---|
+| SQL Server 프로시저·뷰·트리거(`SQLServerObjectManager.addDatabaseSwitchAction1/2`, 뷰·트리거 관리자) | `USE B` / `ALTER …` | `USE B` / `USE B` / `ALTER …` / `USE A` | `USE B` / `USE B` / `ALTER …` |
+| MariaDB 트리거(`MySQLTriggerManager`) | `DROP TRIGGER IF EXISTS b.t` / `CREATE … TRIGGER b.t …` | 그 사이에 `USE b;`, 끝에 `USE a;` | 그 사이에 `USE b;` |
+| Oracle 프로시저·패키지·트리거(`OracleUtils.addSchemaChangeActions`) | `ALTER SESSION SET CURRENT_SCHEMA=B` / `CREATE OR REPLACE …` | 끝에 `ALTER SESSION SET CURRENT_SCHEMA=A` | 고치기 전과 같음 |
+
+더해진 문장은 개체의 곳으로 갔다가 문맥의 원래 자리로 돌아오는 쌍이다(DBeaver 개체 편집기의 저장과 같은 글). 글은 어느 경우에도 개체의 곳에서 실행된다(이름이 DB/스키마를
+쓰거나 앞의 `USE`·`ALTER SESSION`). 창이 실행 뒤 있을 곳에 맞춰 두 모양을 만든다(사용자 결정 2026-11-29 "둘 다 고친다"):
+- 주 세션을 함께 쓰는 창: 끝의 문장이 공유 세션을 원래 자리(A)로 돌려 놓는다(그대로 둠). 고치기 전 글이었다면 앞의 `USE B`·`ALTER SESSION`이 공유 세션을 B에 남겼다.
+- 자기 세션 창(B에서 열림): 창은 개체의 곳에 남아야 하므로 끝의 문장을 뺀다. 앞의 `USE B`·`ALTER SESSION`(개체의 곳으로 가기)은 둔다: 이미 B인 세션에서는
+  아무것도 바꾸지 않고, SQL Server는 맨 앞의 `getDatabaseSwitch` `USE` 배치도 그대로다. 실행 뒤 창의 세션은 B다(SQL Server `DB_NAME()`, MariaDB `DATABASE()`,
+  Oracle 창의 스키마 선택·`v$session.schemaname`으로 확인). 고친 첫 빌드(`2c887213cc`)는 끝의 문장을 넣어 창이 A로 옮겨졌다.
+- ALTER 대상 ▸ 클립보드: 어디에 붙여 실행할지 모르므로 스스로 완결된 글(가기와 돌아오기 쌍)을 그대로 둔다. 붙여 실행한 세션은 실행 뒤 주 세션의 자리(A)로 간다.
+
+어느 모양인지는 새 창이 세션을 정하는 것과 같은 판단으로 정한다(`QueryWindowContext.isSeparate`: 연결의 "쿼리 창마다 별도 연결" 설정, 기본은 단일 연결·내장 DB 빼고 자기 세션).
+UI에는 드라이버 판단이 없다: `SourceScripts.generateAlter(…, forQueryWindow)`가 자기 세션 창의 글이면 명령 옵션 `DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE`를 넣고,
+끝에 돌아가는 문장을 넣는 관리자가 그 옵션을 본다: `SQLServerObjectManager.addDatabaseSwitchAction2`(옵션을 받는 것, 프로시저 관리자가 씀), `SQLServerViewManager`,
+`SQLServerTableTriggerManager`, `MySQLTriggerManager`, `OracleUtils.addSchemaChangeActions`(옵션을 받는 것, Oracle 프로시저·패키지·테이블 트리거 관리자가 씀).
+트리거 관리자는 명령 옵션이 닿도록 `SQLTriggerManager`에 옵션을 받는 `createOrReplaceTriggerQuery`를 더했다(기본은 옵션 없는 것과 같음, 다른 드라이버의 트리거 관리자는 그대로).
+옵션이 없으면 전과 같은 글이므로 Modify 밖의 쓰임(SWT에서 온 저장 경로, Schema Compare 스크립트, 삭제 문장, Oracle 형식 관리자)은 바뀌지 않는다.
+
+**주 세션을 함께 쓰는 창에서 개체의 스키마가 공유 세션의 스키마와 다를 때:** 공유 세션의 스키마는 바꾸지 않는다. 수정·새 틀·프로시저 호출의 글은 모두 스키마(SQL Server·MariaDB는
+DB도)를 이름에 쓰거나 앞에서 옮기므로(Oracle `ALTER SESSION`, SQL Server `USE`) 그 문장은 맞는 개체에서 돈다. 다만 PostgreSQL 함수·프로시저 본문의 스키마 없는 이름은 호출한
+세션의 `search_path`로 풀린다: 고친 첫 빌드(`2c887213cc`)에서 공유 창으로 A의 `chr_ckms_s.chr_ckms_p`를 실행하자 본문의 `chr_ckms_t`가 `public`의 표였다(결과
+`A s chr_ckms_a.public 5`; 그보다 전에는 공유 세션의 `search_path`를 옮겨 `chr_ckms_s`의 표).
+
+**프로시저 실행 창의 스키마(사용자 결정 2026-11-29 "둘 다 고친다"):** 공유 세션의 스키마를 바꾸지 않고, 실행을 멈추고 PR 402와 같은 글을 Messages에 낸다
+("먼저 창의 스키마 목록에서 {0}을(를) 고르십시오.", `EditorMessages.editor_sql_query_schema_shared`, 새 글 없음). 사용자가 그 창의 스키마 목록에서 루틴의 스키마를 고르면
+(직접 하는 세션 바꾸기) 다음 실행이 돈다.
+- 고른 방법: 실행할 때의 검사(PR 402의 `SqlEditorPanel.getRunContext`). 프로시저 실행 창은 `QueryWindows.openCallScript`로 열리고, 창이 루틴의 DB/스키마를 실행 기준으로
+  기억한다(`SqlEditorPanel.setRunDefaults`, 바인딩이 이름을 주지 않을 때 쓰임). 그래서 명령의 첫 실행과 그 뒤의 F5가 같은 검사를 거친다. 창을 열 때 한 번만 막는 방법
+  (실행하지 않고 열기 + 글)은 사용자가 고르지 않고 F5를 누르면 다른 스키마에서 돌아 고르지 않았다. 검사가 쓰는 판단·조회·글은 Query Library와 같다: 창이 주 세션을 함께
+  쓰고 그 세션의 인스턴스가 데이터베이스(`DBSCatalog`, PostgreSQL 계열)이며 그 DB의 스키마가 지금 스키마가 아니고 시스템 스키마가 아닐 때만 멈춘다.
+- 기억은 창의 동안만이다(다시 시작해 복원한 창에는 없음). 창의 글을 다른 문장으로 바꿔도 검사는 남는다(그 창은 루틴의 창이다). 자기 세션 창은 루틴의 스키마로 열려
+  검사에 걸리지 않는다(`A s chr_ckms_a.chr_ckms_s 6`, 전과 같음).
+- 드라이버별: PostgreSQL 계열만 해당한다(호출자의 `search_path`로 본문 이름을 푼다, 위 판단도 그 계열만 고름). SQL Server 프로시저는 본문의 스키마 없는 이름을 프로시저의
+  스키마에서 먼저 찾고, 호출 글이 `USE <db>`·스키마를 쓴다. MySQL/MariaDB 루틴은 실행하는 동안 루틴의 DB가 기본 DB가 된다(시험: 공유 창 A에서 `CALL b.p` → `DATABASE()` B).
+  Oracle은 정의자 권한 루틴의 이름을 컴파일할 때 소유자 스키마로 풀고, 호출은 스키마를 쓴 익명 블록이다. 그래서 셋은 공유 세션의 현재 스키마에 영향받지 않는다
+  (호출자 권한(`AUTHID CURRENT_USER`) Oracle 루틴은 현재 스키마로 풀 수 있으나 시험하지 않았고 이번 범위 밖).
+
+**SQL Server·MariaDB 공유 창의 프로시저 실행(바꾸지 않음, 사용자 결정 대기):** SQL Server 호출 글은 `USE B` 배치로 시작하므로 창을 열자마자 실행하면 그 문장이 공유 세션을
+B로 옮긴다(시스템이 아니라 글의 문장이지만 명령이 곧바로 실행한다). W1의 다음 `DB_NAME()`이 B였다. 트랜잭션은 같은 세션에 남는다(`open_transaction_count` 1).
+MariaDB 호출 글(`CALL b.p(…)`)은 세션을 옮기지 않는다(W1은 A, 루틴은 B에서 돎). Oracle 호출(익명 블록, 스키마를 씀)도 옮기지 않는다.
+
+**남은 것:**
+- ~~자기 세션 창의 끝 문장~~: 2026-11-29 고침(위 표, `OPTION_SKIP_DEFAULTS_RESTORE`).
+- ~~PostgreSQL 공유 창에서 다른 스키마 루틴의 프로시저 실행~~: 2026-11-29 고침(위 "프로시저 실행 창의 스키마").
+- SQL Server 공유 창의 프로시저 실행 `USE`: 공유 창의 자기 세션 결정과 함께.
+- SQL Server 자기 세션 창의 글은 맨 앞 `USE B` 배치가 둘이다(`getDatabaseSwitch`와 관리자의 가기 문장). 해는 없어 그대로 두었다.
+
+**확인:** 아래 "확인 기록 (2026-11-29, 주 세션을 옮기던 명령)".
 
 ## upstream 대비 변경점
 
@@ -1095,6 +1177,65 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
 **확인하지 못한 것:** MySQL 8.4(MariaDB와 같은 코드 경로라 보고 시험하지 않음), Oracle·그 밖의 드라이버, PostgreSQL 계열 다른 서버, "모든 데이터베이스 표시"를 끈 연결
 (머리말 DB가 연결 목록에 없음: 코드 읽기로 바인딩도 아무것도 바꾸지 않고 그 자리에서 돎), 다시 시작 뒤 복원한 라이브러리 창. 회귀 테스트는 실행하지 않았다.
 
+### 확인 기록 (2026-11-29, 주 세션을 옮기던 명령)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·설정·`CHROMITE_DATA`를 둔 앱 사본 하나, 프로세스 안 시험 에이전트(Object Explorer 메뉴 항목을 그대로 누름, OS 입력 없음),
+시험 VM PostgreSQL 17·SQL Server 2022·MariaDB 11.8·Oracle 26ai(1521). 고치기 전 `e597c96cc4` 빌드, 고친 빌드는 이 브랜치. 연결은 모두 수동 커밋. PGS·MS·MA·ORA는
+"쿼리 창마다 별도 연결" 안 함, PGO·MSO는 기본값(창마다 자기 세션). PostgreSQL은 "모든 데이터베이스 표시", 기본 DB `chr_ckms_a`(A), 다른 DB `chr_ckms_b`(B), 각 DB에
+`public`과 `chr_ckms_s` 스키마, 같은 이름 표·함수·프로시저·뷰(본문이 `current_database()`·`current_schema()`·스키마 없는 표의 최댓값을 돌려줌). SQL Server·MariaDB는 DB A·B,
+Oracle은 연결 기본 스키마 `CHR_CKMS_A`(사용자 `system`), 다른 스키마 `CHR_CKMS_B`(암호 없는 스키마 전용 사용자). 서버 쪽은 따로 연 관리 세션에서 읽었다
+(`pg_stat_activity`, `sys.dm_exec_sessions`, `PROCESSLIST`+`INNODB_TRX`, `v$session`+`v$transaction`).
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| PGS: W1(A 주 세션)이 `INSERT`(커밋 안 함), B 함수의 수정 | PR 396의 질문. 롤백하자 기본 인스턴스 B, W1 탭이 B의 세션 번호(208482 → 208515) | 질문 없음. 기본 인스턴스 A, 새 창은 B의 주 세션(탭 209570), W1은 A·같은 번호(209558), 상태 줄 "열린 트랜잭션 (변경 있음)", 서버 A 주 세션 `idle in transaction`(xid 있음) |
+| PGS: A의 `chr_ckms_s` 함수 수정 | A 주 세션의 스키마가 `chr_ckms_s`로 바뀜 | 바뀌지 않음(`public`), 새 창은 A 주 세션 |
+| PGS: B 프로시저 실행 | (기본 인스턴스가 이미 B) | B의 주 세션에서 실행, 결과 `B public chr_ckms_b.public 20`, 기본 인스턴스 A |
+| PGS: A의 `chr_ckms_s` 프로시저 실행 | 공유 세션의 스키마를 옮긴 뒤 실행 | A 주 세션에서 실행, 본문은 `public`으로 풀림(`A s chr_ckms_a.public 5`, 위 절) |
+| PGS: B의 새 뷰·새 시퀀스 | 질문(트랜잭션이 있을 때)·기본 인스턴스 이동 | 질문 없음, 창은 B의 주 세션, 기본 A |
+| PGS: 연결 Refresh 뒤 W1 `INSERT`, B 함수의 수정 | — | 같음(창은 B, W1 A, 트랜잭션 그대로) |
+| PGO: W1(자기 세션 A) `INSERT`, B 함수의 수정, A `chr_ckms_s` 프로시저 실행 | (주 세션을 옮긴 뒤 새 세션이 복사) | 주 세션 A·`public` 그대로. 수정 창은 자기 세션 B, 실행 창은 자기 세션 A·`chr_ckms_s`(결과 `A s chr_ckms_a.chr_ckms_s 6`), W1 A, 트랜잭션 그대로 |
+| MS: W1 `INSERT`(A), B 프로시저 수정 | 주 세션 `USE B`, W1 B | 주 세션 A 그대로, W1 A |
+| MS: 이어서 B 프로시저 실행 | 주 세션 B | 글의 `USE B`가 공유 세션을 B로(위 절, 바꾸지 않음). 트랜잭션 그대로(`open_transaction_count` 1) |
+| MSO: B 프로시저 수정 | — | 창 자기 세션 B, 주 세션 A. 글을 실행하자 끝의 `USE A`로 창 세션 A(위 표) |
+| MA: W1 `INSERT`(A), B 트리거 수정, B 프로시저 실행 | 수정이 주 세션 `USE B`, W1 B | 주 세션 A 그대로, 실행 결과 `B, chr_ckms_b, 20`, W1 `DATABASE()` A, `INNODB_TRX` `RUNNING` 그대로 |
+| ORA: W1 `INSERT`(A), B 프로시저 수정·실행, B 패키지 루틴의 소스 코드로 이동 | 수정이 주 세션 `CURRENT_SCHEMA=B` | 주 세션 `CHR_CKMS_A` 그대로(`v$session`), 트랜잭션 그대로 |
+
+스크립트 글은 고치기 전·후에 같은 개체의 "ALTER 대상" 글(`SourceScripts.generateAlter`, 클립보드 항목과 같은 메서드를 시험 에이전트가 직접 부름, 시스템 클립보드는
+쓰지 않음)과 수정·새 틀 창의 글을 파일로 남겨 비교했다(`D:\Tools\_scratch\commands-keep-main-session\s\text-compare.txt`): 31개 중 같음 21, 다름 10(위 절의 표:
+SQL Server B의 프로시저·뷰·트리거와 수정 창, MariaDB B의 트리거와 수정 창, Oracle B의 프로시저·패키지·트리거와 수정 창).
+시험에서 연 트랜잭션은 모두 명시적으로 끝냈다(질문의 롤백, 남은 것은 시험 에이전트가 앱의 `IdleTransactionMonitor.commitOrRollback`으로 롤백). 커밋된 행은 끝까지
+DB마다 처음 1행이었다. 시험 개체는 끝에 지우고 카탈로그로 확인했다(`pg_database`·`sys.databases`·`information_schema.SCHEMATA`에 `chr_ckms%` 0개, Oracle `dba_users`·`dba_objects`에
+`CHR_CKMS%` 0개).
+캡처(내 앱 창만, Swing 구성 요소로 그림): `D:\Tools\_scratch\commands-keep-main-session\s\before\shots\pg-before-question.png`(지운 질문),
+`pg-before-w1.png`, `…\s\after\shots\pg-after-modify-b.png`(질문 없이 열린 수정 창: 탭 번호 B, 탐색기의 굵은 기본 DB A), `pg-after-w1.png`(W1 탭 A의 번호·열린 트랜잭션).
+로그: 같은 폴더의 `*.txt.log`.
+
+**확인하지 못한 것:** Schema Compare 스크립트 창(화면에서 비교를 돌리지 않음, 코드 읽기와 빌드만), 오류로 가기(Oracle 컴파일 오류, 같은 `openSourceScript` 길), MySQL 8.4,
+Oracle 자기 세션 창, 다시 시작·연결 끊기 뒤의 수정 창(개체에서 연 창과 같은 `setRestoredDefaults` 길). 회귀 테스트는 실행하지 않았다.
+
+**둘째 고침 뒤(같은 날, 사용자 결정 "둘 다 고친다"):** 같은 시험 서버·같은 시험 개체를 다시 만들어 이 브랜치의 둘째 커밋 빌드에서 확인했다
+(로그·글 `D:\Tools\_scratch\commands-keep-main-session\s\after2\`). MSO·MAO·ORAO는 창마다 자기 세션, MS·MA·ORA는 "쿼리 창마다 별도 연결" 안 함.
+
+| 경우 | 첫 고침(`2c887213cc`) | 둘째 고침 |
+|---|---|---|
+| MSO: B 프로시저 수정 글, 창에서 실행 | 글 끝 `USE chr_ckms_a`, 실행 뒤 창 세션 A | 끝 문장 없음, 실행 뒤 창 `DB_NAME()` B(서버 `dm_exec_sessions` B) |
+| MSO: B 뷰·트리거, A 프로시저의 글 | 뷰·트리거 끝 `USE A` | 뷰·트리거 끝 문장 없음, A 프로시저는 전과 같음 |
+| MAO: B 트리거 수정 글, 창에서 실행(DROP 확인에 실행) | 글 끝 `USE chr_ckms_a;` | 끝 문장 없음, 실행 뒤 창 `DATABASE()` B, 트리거 다시 만들어짐 |
+| ORAO: B 프로시저 수정 글, 창에서 실행 | 글 끝 `ALTER SESSION SET CURRENT_SCHEMA=CHR_CKMS_A` | 끝 문장 없음, 실행 뒤 창의 스키마 선택·`v$session.schemaname` `CHR_CKMS_B` |
+| ORAO: B 패키지·테이블 트리거, A 프로시저의 글 | 끝 `ALTER SESSION … A`(B만) | 끝 문장 없음(B), A는 전과 같음 |
+| MS·MA·ORA(공유): B 개체 수정 글을 창에서 실행 | 끝 문장 있음 | 같음. 실행 뒤 공유 주 세션 A(`DB_NAME()`·`DATABASE()` A, ORA 스키마 선택 `CHR_CKMS_A`) |
+| ALTER 대상 ▸ 클립보드 글(MSO·MAO·ORAO, `generateAlter(…, false)`, 시스템 클립보드는 쓰지 않음) | 끝 문장 있음 | 같음(스스로 완결된 글) |
+| PGS(공유): A의 `chr_ckms_s.chr_ckms_p` 프로시저 실행(A 주 세션 `public`) | 실행됨, `A s chr_ckms_a.public 5` | 실행 안 함: Messages "먼저 창의 스키마 목록에서 chr_ckms_s을(를) 고르십시오.", 상태 줄 "쿼리가 완료되었지만 오류가 있습니다", 문장 없음(트랜잭션 없음) |
+| 같은 창에서 고르지 않고 F5 | — | 같은 글로 멈춤 |
+| 같은 창의 스키마 목록에서 `chr_ckms_s`를 고르고 F5 | — | `SET search_path = "chr_ckms_s",…`(사용자 선택) 뒤 실행, `A s chr_ckms_a.chr_ckms_s 6` |
+| PGS: B의 `public.chr_ckms_p`(B 주 세션 `public`) | 실행됨 | 실행됨, `B public chr_ckms_b.public 20` |
+| PGO(자기 세션): A의 `chr_ckms_s.chr_ckms_p` | `A s chr_ckms_a.chr_ckms_s 6` | 같음 |
+
+시험 트랜잭션은 모두 앱의 `IdleTransactionMonitor.commitOrRollback`으로 명시적으로 롤백했고(SQL Server `ALTER`도 롤백), 커밋된 행은 DB마다 처음 1행이었다. MariaDB·Oracle의
+DDL(트리거·프로시저 다시 만들기, 같은 본문)은 서버가 바로 커밋한다. 시험 개체는 끝에 지우고 카탈로그로 확인했다(네 서버 모두 0개).
+캡처(내 앱 창만): `…\s\after2\shots\pg2-execute-schema-message.png`(프로시저 실행 창의 Messages 글), `pg2-execute-after-pick.png`(스키마를 고른 뒤 결과).
+
 ## 변경 이력
 
 - 2026-11-11 최초 작성: #33(현재 DB 따라가기), #44(실행 중 표시), #40(자동완성 창 닫기), #50(단축키를 도구 설명에), #57(닫기 단추 모양)
@@ -1161,3 +1302,13 @@ SQL Server·MariaDB 공유 창: 고치기 전과 같다(라이브러리 창 결�
   영향받을 수 있는 기능: Query Library 창의 실행 시작(질문), 자기 세션 창의 PR 398 질문(같은 자리로 옮김).
 - 2026-11-29 같은 브랜치 두 번째 검토 뒤: 위 질문의 설명 줄을 기본값으로 설정의 글에서 이 경우의 글(`window_move_txn_message`, `ExitTransactionCheck.confirmWindowMove`)로
   바꿈. 제목·목록·단추는 같다. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 기본값으로 설정·Modify 등의 질문(같은 코드를 나눠 씀, 글은 그대로).
+- 2026-11-29 `chromite/commands-keep-main-session`: "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창"과 그 확인 기록. 수정·ALTER 대상·프로시저 실행·새 개체 틀·
+  Schema Compare 스크립트·Go to Source Code·오류로 가기가 주 세션을 옮기지 않고, 창이 개체의 DB/스키마에서 열린다(`openSourceScript`가 개체를 받음). `bindDefaultContext`와
+  PR 396의 질문 `confirmBindDefaultContext`를 지움("주 세션을 다른 DB로 옮기기 전 트랜잭션 질문"에 표시, "개체에서 연 창의 DB"의 해당 문장 고침). 회귀 테스트는 실행하지 않았다.
+  영향받을 수 있는 기능: 위 명령들의 창이 도는 DB/스키마(자기 세션·공유 세션 모두), 다른 DB/스키마 개체의 ALTER 글(SQL Server·MySQL 트리거·Oracle에 돌아오는 문장이 더해짐),
+  ALTER 대상 ▸ 클립보드의 글, PostgreSQL에서 그 DB의 세션을 처음 여는 때.
+- 2026-11-29 같은 브랜치 둘째 커밋(사용자 결정 "둘 다 고친다"): 자기 세션 창의 ALTER 글은 끝의 "기본 DB/스키마로 돌아가기" 문장을 뺀다(모델 옵션
+  `DBPScriptObject.OPTION_SKIP_DEFAULTS_RESTORE`, SQL Server·MySQL 트리거·Oracle 관리자가 봄, `SQLTriggerManager`에 옵션을 받는 메서드). 공유 창·클립보드 글은 그대로.
+  프로시저 실행 창은 실행마다 루틴의 스키마를 보고(`QueryWindows.openCallScript`, `SqlEditorPanel.setRunDefaults`, PR 402의 검사), 공유 PostgreSQL 세션의 스키마가 다르면
+  실행하지 않는다. 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: SWT에서 온 객체 저장 경로(옵션 없으면 전과 같은 글), SQL Server·MySQL·Oracle·Altibase·generic·PostgreSQL
+  트리거 관리자의 만들기·고치기(`SQLTriggerManager`의 새 메서드를 거침), 프로시저 실행 창의 모든 실행(F5 포함).

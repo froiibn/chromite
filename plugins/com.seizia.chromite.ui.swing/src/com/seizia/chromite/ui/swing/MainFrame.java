@@ -369,6 +369,10 @@ import java.util.function.Supplier;
  *   기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 스크립트가 기본 DB의 같은 이름 표에서 돌았다
  *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  * - 2026-11-28 주석만: 주 세션을 함께 쓰는 창도 PostgreSQL에서는 개체의 DB의 주 세션을 함께 씀({@link #runWhereObjectIs}, 같은 문서 같은 절)
+ * - 2026-11-29 {@link #openCallScript}: 프로시저 실행 창은 루틴의 DB/스키마에서 열고 실행마다 그 스키마를 본다({@link SqlEditorPanel#setRunDefaults})
+ * - 2026-11-29 {@link #openSourceScript}(Modify, 새 개체 틀, Go to Source, 오류로 가기)도 개체의 DB/스키마에서 돈다({@link #runWhereObjectIs}).
+ *   전에는 명령이 연결의 주 세션을 개체의 곳으로 옮겨 새 창이 따라갔다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 옮기던 명령: 개체의 DB/스키마에서 여는 창")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -1373,21 +1377,46 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * ({@code QueryWindowContext.shareInstance}); elsewhere it stays where the main session is and shows that.
      */
     private static void runWhereObjectIs(@NotNull SqlEditorPanel editor, @Nullable DBSObject location) {
+        SqlEditorPanel.DefaultObjectNames names = getObjectPlace(location);
+        if (names != null) {
+            editor.setRestoredDefaults(names);
+        }
+    }
+
+    /**
+     * The catalog and schema names of an object (itself or its parents), or null when it is in neither.
+     */
+    @Nullable
+    private static SqlEditorPanel.DefaultObjectNames getObjectPlace(@Nullable DBSObject location) {
         if (location == null) {
-            return;
+            return null;
         }
         DBSCatalog catalog = location instanceof DBSCatalog self ? self : DBUtils.getParentOfType(DBSCatalog.class, location);
         DBSSchema schema = location instanceof DBSSchema self ? self : DBUtils.getParentOfType(DBSSchema.class, location);
-        if (catalog != null || schema != null) {
-            editor.setRestoredDefaults(new SqlEditorPanel.DefaultObjectNames(catalog != null ? catalog.getName() : null,
-                schema != null ? schema.getName() : null));
+        return catalog == null && schema == null ? null
+            : new SqlEditorPanel.DefaultObjectNames(catalog != null ? catalog.getName() : null, schema != null ? schema.getName() : null);
+    }
+
+    @Override
+    public void openCallScript(@NotNull DBPDataSourceContainer dataSource, @NotNull DBSObject routine, @NotNull String script, boolean execute) {
+        SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        SqlEditorPanel.DefaultObjectNames names = getObjectPlace(routine);
+        if (names != null) {
+            // Before the run below opens the window's session
+            editor.setRestoredDefaults(names);
+            editor.setRunDefaults(names);
+        }
+        editor.setContent(SqlFileContent.newFile(script), null);
+        if (execute) {
+            editor.execute();
         }
     }
 
     @Override
-    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
-                                 @Nullable SqlEditorPanel.SourcePosition position) {
+    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script,
+                                 @NotNull DBNDatabaseNode refreshNode, @Nullable SqlEditorPanel.SourcePosition position) {
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        runWhereObjectIs(editor, location);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
         // Modify: Query > Debug… and Trace Execution… use the routine of the window (a New window's node is its folder: neither applies)
