@@ -116,6 +116,8 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
 - **기본 문맥을 바꾸는 부작용:** Swing 쿼리 창은 아직 연결의 기본 문맥 하나를 함께 쓴다(편집기별 연결 없음, swing-frontend.md "E단계에서 남긴 것").
   그래서 Modify·New는 같은 연결의 다른 쿼리 창의 기본 DB/스키마도 바꾼다. 편집기 콤보로 바꿀 때와 같은 동작이고, 스크립트 자체는 DB·스키마를 지정하므로
   다른 창에서 다시 바꿔도 SQL Server·MySQL·Oracle·PostgreSQL(같은 DB 안)은 맞는 곳에서 실행된다. PostgreSQL의 다른 DB 개체만 기본 DB에 의존한다.
+  PostgreSQL의 다른 DB로 옮기면 주 세션이 다른 서버 세션이 되므로, 주 세션에 열린 트랜잭션이 있으면 먼저 커밋/롤백/취소를 묻는다
+  ([swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
 - **실행 뒤 다시 읽기:** 실행이 끝날 때마다(성공 여부와 상관없이) 다시 읽는다. MySQL처럼 `DROP` 뒤 `CREATE`가 실패하면 개체가 사라지므로 트리가 그 상태를 보여야 한다.
   Modify는 개체 노드만 다시 읽어 가볍다. 개체가 없어졌으면 모델이 노드를 지운다. New는 폴더를 다시 읽는데, 모델은 폴더의 부모(스키마)를 다시 읽는다
   (Object Explorer의 새로 고침과 같음).
@@ -171,3 +173,5 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
 - 2026-11-22 수정·ALTER 대상: 취소하면 스크립트를 열지 않음, 권한 오류의 첫 줄(앱 변경 #159).
 - 2026-11-25 MySQL `DELIMITER`를 남기는 이유를 바로잡음(쿼리 창은 이제 본문을 나누지 않음), DDL 보기·CREATE 대상도 같은 SQL Server `USE` 배치를 씀(`SourceScripts.inObjectDatabase`,
   `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). Modify 스크립트는 바뀌지 않았다.
+- 2026-11-28 수정·ALTER 대상·새 뷰/프로시저/함수: 주 세션을 다른 PostgreSQL DB로 옮기기 전에 열린 트랜잭션을 물음(`SourceScripts.confirmBindDefaultContext`,
+  `chromite/bind-default-context-transaction`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). 회귀 테스트는 실행하지 않았다.

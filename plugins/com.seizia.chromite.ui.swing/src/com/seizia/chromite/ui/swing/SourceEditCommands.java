@@ -51,6 +51,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 창을 열 때 보일 위치 없음(null)을 넘김: openSourceScript가 위치를 받게 됨 (docs/chromite/swing-routines.md)
  * - 2026-11-16 해당하는 노드에서만 보임(앱 변경 #137, docs/chromite/context-menus.md)
  * - 2026-11-22 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-28 스크립트를 만들기 전에 주 세션의 열린 트랜잭션을 물음({@link SourceScripts#confirmBindDefaultContext}, 다른 DB로 옮길 때만)
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
  */
 final class SourceEditCommands {
 
@@ -143,6 +145,9 @@ final class SourceEditCommands {
         }
         DBPDataSourceContainer container = objectNode.getDataSourceContainer();
         String title = toClipboard ? SourceEditMessages.source_script_alter : SourceEditMessages.source_modify;
+        if (!SourceScripts.confirmBindDefaultContext(null, object)) {
+            return;
+        }
         String script = generate(title, monitor -> SourceScripts.generateAlter(monitor, object));
         if (script == null) {
             return;
@@ -157,7 +162,9 @@ final class SourceEditCommands {
     @NotNull
     private Action createNewAction(@NotNull String name, @NotNull String title, @NotNull SourceScripts.NewObjectKind kind) {
         Action action = createAction(name, () -> {
-            if (selection.get() instanceof DBNDatabaseFolder folder && SourceScripts.getNewKinds(folder).contains(kind)) {
+            if (selection.get() instanceof DBNDatabaseFolder folder && SourceScripts.getNewKinds(folder).contains(kind)
+                && folder.getValueObject() instanceof DBSObject container
+                && SourceScripts.confirmBindDefaultContext(null, container)) {
                 String script = generate(title, monitor -> SourceScripts.generateNew(monitor, folder, kind));
                 if (script != null) {
                     queryWindows.openSourceScript(folder.getDataSourceContainer(), script, folder, null);

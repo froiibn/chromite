@@ -58,6 +58,7 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSPackage;
@@ -73,6 +74,8 @@ import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
+import java.awt.Component;
+import java.awt.KeyboardFocusManager;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -108,7 +111,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *     <li>DB/스키마 맞추기: 새 쿼리 창은 연결의 기본 실행 문맥에서 실행하거나 자기 세션을 열 때 그 문맥의 기본값을 복사하므로
  *     ({@link QueryWindowContext}), 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를
  *     객체가 있는 곳으로 바꾼다(편집기의 기본 DB/스키마 콤보와 같은 {@link DBExecUtils#setExecutionContextDefaults}). PostgreSQL은 DB를
- *     바꾸면 기본 인스턴스가 바뀌므로 다른 DB의 객체도 그 DB에서 실행된다. SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
+ *     바꾸면 기본 인스턴스가 바뀌므로 다른 DB의 객체도 그 DB에서 실행된다. 그때 주 세션이 다른 서버 세션이 되어 열린 트랜잭션이
+ *     주 세션을 함께 쓰는 창 뒤에 보이지 않게 남으므로, 명령은 작업을 시작하기 전에 EDT에서 기본값으로 설정과 같은 질문(커밋/롤백/취소)을 한다
+ *     ({@link #confirmBindDefaultContext}). 같은 인스턴스 안의 DB·스키마 바꾸기({@code USE}, {@code SET search_path})는 트랜잭션이 세션에
+ *     그대로 있으므로 묻지 않는다. SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
  *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).
  *     DDL 보기·CREATE 대상의 글도 같은 {@code USE} 배치로 시작한다({@link #inObjectDatabase}): 그 글은 쿼리 창을 객체의 DB에 맞추지 않고,
  *     복사해 다른 창에 붙이는 데 쓴다.</li>
@@ -140,6 +146,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-25 {@link #inObjectDatabase}: SQL Server의 DDL 보기·CREATE 대상 글도 Modify 스크립트처럼 {@code USE} 배치로 시작한다.
  *   다른 DB의 쿼리 창(새 창은 연결 기본 DB, 보통 master)에 붙여 실행하면 그 DB에 만들어졌다
  *   (docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)")
+ * - 2026-11-28 {@link #confirmBindDefaultContext}: 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전 열린 트랜잭션 질문.
+ *   전에는 Modify·Execute Procedure·새 개체 틀·Schema Compare 스크립트가 묻지 않고 옮겨, 트랜잭션이 이전 DB의 세션에 보이지 않게 남았다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문")
  */
 final class SourceScripts {
 
@@ -382,9 +391,39 @@ final class SourceScripts {
     }
 
     /**
+     * Before a command binds the connection's main context to the object's database and schema
+     * ({@link #bindDefaultContext}, called in the command's job): when that moves the main session to another database
+     * instance (a PostgreSQL database), asks Commit / Roll back / Cancel for its open transaction, as Set as Default does
+     * ({@link ExitTransactionCheck#confirmDefaultChange}). The windows that share the main session then run in the other
+     * instance's session, and the transaction would stay open behind them unseen. A schema or catalog change in the same
+     * instance (SET search_path, USE, ALTER SESSION SET CURRENT_SCHEMA) keeps the transaction in the session and asks
+     * nothing. In-memory model data only; call in the EDT.
+     *
+     * @param parent the owner of the question; null: the active window (as the command's progress dialog)
+     * @param object the object the command binds (its own database instance, catalog and schema, or its parents')
+     * @return false when the command must stop: the user canceled, or the transaction could not be ended
+     */
+    static boolean confirmBindDefaultContext(@Nullable Component parent, @NotNull DBSObject object) {
+        DBPDataSource dataSource = object.getDataSource();
+        DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+        DBCExecutionContextDefaults<?, ?> defaults = context == null ? null : context.getContextDefaults();
+        DBSInstance instance = getSelfOrParent(DBSInstance.class, object);
+        if (defaults == null || !(defaults.supportsCatalogChange() || defaults.supportsSchemaChange())
+            || instance == null || instance == context.getOwnerInstance()) {
+            return true;
+        }
+        // The question names the database the main session moves to: a schema name alone (PostgreSQL "public") would not tell which
+        DBSCatalog catalog = getSelfOrParent(DBSCatalog.class, object);
+        DBSObject target = catalog != null ? catalog : instance;
+        Component owner = parent != null ? parent : KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
+        return ExitTransactionCheck.confirmDefaultChange(owner, context, DBUtils.getObjectFullName(target, DBPEvaluationContext.UI));
+    }
+
+    /**
      * Makes the object's catalog and schema the defaults of the connection's main context, which new query windows use
      * or copy into their own session when they open it ({@link QueryWindowContext}), with the same call as the editor's
-     * default database/schema combo. Failing to do so is not fatal: the scripts name their schema.
+     * default database/schema combo. Failing to do so is not fatal: the scripts name their schema. The command asks
+     * about the main session's open transaction first, in the EDT ({@link #confirmBindDefaultContext}).
      *
      * @return the main context after the change (PostgreSQL: the context of the object's database)
      */

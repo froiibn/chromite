@@ -60,6 +60,8 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   (T-SQL 프로시저의 기본값은 `sys.parameters`에 없어 미리 채울 수 없다).
 - **기본 단추:** 실행 단추가 루틴을 실행하므로 기본 단추는 취소다(확인의 취소 기본 규칙). "Open in Query Window"는 실행하지 않고 연다.
 - **DB·스키마:** Modify와 같은 `SourceScripts.bindDefaultContext`로 새 창이 루틴의 DB·스키마에서 실행된다(PostgreSQL은 다른 DB의 루틴도 그 DB에서).
+  다른 PostgreSQL DB로 옮길 때 주 세션에 열린 트랜잭션이 있으면 값을 받은 뒤, 옮기기 전에 커밋/롤백/취소를 묻는다(`SourceScripts.confirmBindDefaultContext`,
+  [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
 - **재사용:** 인수 표는 디버거 시작 대화상자의 표를 `RoutineArgumentTable`로 옮겨 함께 쓴다. 형식 칸은 매개 변수 자신의 길이·정밀도를 보이게 바꿨다
   (전에는 데이터 형식 이름이라 SQL Server에서 `nvarchar(4000)`, `decimal(38,38)`처럼 선언과 달랐다). 스칼라 함수와 테이블 반환 함수의 구분은
   #122의 `SQLDialect.isCallStatementTarget`을 쓴다. Oracle 변수 선언은 Oracle 디버거(`OracleDebugCall`)와 같은 규칙이다(그 클래스는 디버그 번들의
@@ -219,3 +221,5 @@ SWT에 있었지만 Swing에 없던 것을 옮긴다.
   메뉴를 흐리게 하지 않은 이유, ORA-38802 원인(고치지 않음).
 - 2026-11-22 ORA-38802 고침(앱 변경 #162): 23ai 이상의 메타데이터 세션 기본 옵티마이저 버전 11.2.0.4, "DDL 권한과 취소"의 남긴 것에 표시.
 - 2026-11-22 "DDL 권한과 취소"의 남긴 것 중 바쁜 메타데이터 연결에서의 취소를 고친 것으로 옮김(앱 변경 #161, [cancel-busy-connection.md](cancel-busy-connection.md)).
+- 2026-11-28 프로시저 실행: 주 세션을 다른 PostgreSQL DB로 옮기기 전에 열린 트랜잭션을 물음(`chromite/bind-default-context-transaction`,
+  [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). Go to Source Code·오류로 가기도 같은 확인을 부르지만 Oracle은 묻는 경우가 없다. 회귀 테스트는 실행하지 않았다.

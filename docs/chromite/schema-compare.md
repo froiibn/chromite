@@ -110,6 +110,8 @@ SQL Server는 DEFAULT 제약 조건이 걸린 열을 `ALTER COLUMN`으로 바꾸
   키·인덱스의 열과 외래 키의 참조 테이블은 짝지은 대상 객체의 이름을 쓴다.
 - 머리말 주석: 원본, 대상, "실행 전에 검토하세요. 아직 아무것도 실행하지 않았습니다. 지우는 문장은 데이터를 잃을 수 있습니다."
 - 쿼리 창: `SourceScripts.generateContainerScript`가 연결의 기본 문맥을 대상 DB·스키마로 맞추고(Modify와 같다) SQL Server는 `USE <db>`로 시작한다.
+  맞추기가 주 세션을 다른 PostgreSQL DB로 옮기면 스크립트를 만들기 전에 주 세션의 열린 트랜잭션을 묻는다(`SourceScripts.confirmBindDefaultContext`,
+  [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문").
   `openScript(…, execute=false)`라서 실행은 사용자가 쿼리 창에서 한다. 쿼리 창의 실행 확인(DROP 확인 등)과 트랜잭션 규칙이 그대로 적용된다.
 
 ## 설계 결정
@@ -172,3 +174,5 @@ SQL Server 2022(`chr_schema_compare` DB의 `cmp_ms` 스키마). 화면 문구는
 - 2026-11-08 최초 작성 (`chromite/schema-compare`). SQL Server 열 관리자의 기본값 제약 조건 순서 고침(위 "SQL Server 기본값 제약 조건").
 - 2026-11-12 DDL 나란히 보기를 텍스트 비교와 함께 쓰는 `TextDiffView`로(앱 변경 #105, `chromite/text-compare`): LCS를 지우고 모델의 Myers `Diff`, 색·줄 앞뒤 공백 무시·첫 차이로 이동은 그대로,
   좌우 맞춤 빈 행·낱말 표시·스크롤 맞춤·개요 띠가 더해짐([text-compare.md](text-compare.md) "스키마 비교와 함께 쓰기").
+- 2026-11-28 스크립트 만들기 전 대상 주 세션의 열린 트랜잭션 질문(다른 PostgreSQL DB로 옮길 때만, `chromite/bind-default-context-transaction`,
+  [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md)). 스키마 비교 화면에서는 확인하지 않았다(같은 확인 코드). 회귀 테스트는 실행하지 않았다.
