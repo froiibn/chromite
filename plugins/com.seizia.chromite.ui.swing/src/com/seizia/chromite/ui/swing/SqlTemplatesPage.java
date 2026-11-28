@@ -46,6 +46,8 @@ import java.util.List;
  *   docs/chromite/swing-options.md "잘리던 한 줄 안내")
  * - 2026-11-17 내용 칸은 {@link ContextMenus#VARYING_TEXT}: 템플릿을 고르지 않아 읽기 전용일 때도 오른쪽 클릭 메뉴의 편집 항목이 꺼진 채 남음
  *   (앱 변경 #141, docs/chromite/context-menus.md)
+ * - 2026-11-28 내용 칸에서 템플릿 이름 + Tab이 그 템플릿을 펼쳐 {@code ${변수}}를 이름 글자로 바꿈: 내용 칸은 템플릿 키를 끔
+ *   ({@link SqlEditorPanel.SqlTextArea#disableTemplates}, VOC V190, docs/chromite/swing-sql-editor-plus.md)
  */
 final class SqlTemplatesPage extends JPanel {
 
@@ -113,6 +115,8 @@ final class SqlTemplatesPage extends JPanel {
         patternArea.getDocument().addDocumentListener(editListener);
         // Read-only only while no template is selected: its menu keeps the editing items (disabled)
         patternArea.putClientProperty(ContextMenus.VARYING_TEXT, Boolean.TRUE);
+        // A template name and Tab here would insert that template, its ${variables} turned into plain names
+        patternArea.disableTemplates();
         enabledBox.addActionListener(e -> storeSelected());
 
         JPanel fields = new JPanel(new GridBagLayout());

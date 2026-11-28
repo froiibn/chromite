@@ -431,10 +431,19 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 - 기본 템플릿: SWT `templates/default-templates.xml`의 다섯 개(scount, swhere, scgb, sob, sf — 같은 id·내용)와 Chromite의 sel, ins, upd, del.
 - 사용자 템플릿은 SWT와 같은 작업 공간 설정 파일 `templates.xml`(`DBConfigurationController`)에 JFace `TemplateReaderWriter` 형식으로 둔다.
   id 없는 항목 = 사용자 템플릿, 기본 템플릿과 같은 id = 바꾼 기본 템플릿, `deleted="true"` = 지운 기본 템플릿. 같은 작업 공간의 SWT 제품과 함께 쓸 수 있다.
-- 넣기: 커서 바로 앞 단어가 템플릿 이름이면 Tab이 템플릿으로 바꾼다. `${name}`은 이름 글자로 넣고 첫 변수를 선택하며, 템플릿 안에 있는 동안 Tab이
-  다음 변수로 간다. `${cursor}`는 끝 위치, `$$`는 `$`. 여러 줄 템플릿은 현재 줄 들여쓰기를 잇는다.
+- 넣기: 커서 바로 앞 단어가 템플릿 이름이면 Tab이 템플릿으로 바꾼다. `${name}`은 이름 글자로 넣고 첫 변수를 선택한다. `$$`는 `$`.
+  여러 줄 템플릿은 현재 줄 들여쓰기를 잇는다.
   자동완성 목록이 떠 있을 때 템플릿 이름 뒤의 Tab은 목록을 닫고 템플릿을 넣는다(Enter는 그대로 제안을 넣음, `SqlCompletionPopup`의 작은 연결 지점).
+- 변수 세션(`SqlTemplates.Session`, 2026-11-28 VOC V190): SWT linked mode처럼 같은 이름 변수의 모든 자리가 함께 바뀐다(한 자리를 고치면 문서 필터가
+  같은 편집을 다른 자리에도 하고, 여럿을 바꾼 편집은 되돌리기 한 번). Tab은 다음 변수로, 마지막 변수 뒤에는 `${cursor}`(없으면 템플릿 끝)로 간다.
+  그 끝 자리에서 세션이 끝난 것과 같아, 거기서 누른 Tab은 보통 Tab이고 템플릿이 자기 이름으로 끝나도 다시 펼치지 않는다. 변수 밖을 고치거나(입력,
+  되돌리기 포함) 다른 곳에서 Tab을 누르면 세션이 끝난다. 변수 자리의 오프셋은 Swing `Position` 대신 세션이 편집마다 직접 고친다: `Position`은 바꾼
+  변수 자리가 빈 범위로 줄고, 템플릿 끝은 바로 뒤에 친 글까지 늘어 다음 템플릿 이름의 Tab을 가로챘다.
+- Ctrl+K Ctrl+X 목록에서 고른 템플릿은 선택(없으면 캐럿 자리)을 바꾼다. 예전에는 이름을 캐럿에 넣은 뒤 캐럿 앞 낱말을 템플릿 이름으로 보고 지워,
+  `from` 바로 뒤에서 고르면 `from`까지 사라졌다.
 - Options > Templates: 목록과 이름·설명·내용·사용 여부 편집, New, Remove, Restore Defaults(기본 템플릿을 원래대로, 사용자 템플릿은 그대로). OK에서 저장.
+  내용 칸은 쿼리 창과 같은 SQL 편집 영역이지만 템플릿 키는 끈다(`SqlTextArea.disableTemplates`): Tab은 보통 Tab, Ctrl+K Ctrl+X는 아무것도 하지 않는다.
+  예전에는 내용에 템플릿 이름(자기 이름 포함)을 치고 Tab을 누르면 그 템플릿이 펼쳐져 `${변수}`가 이름 글자로 바뀐 채 저장됐다.
 
 ### 매개변수
 
@@ -479,7 +488,7 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 - 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
 - PostgreSQL·MySQL/MariaDB 등의 실제 계획: `EXPLAIN ANALYZE`(MariaDB `ANALYZE FORMAT=JSON`)는 결과를 보이려면 문장을 한 번 더 실행해야 해서
   토글을 끈다(2026-11-08 사용자 결정). 별도 설계로 미룸.
-- 템플릿 변수의 같은 이름 동시 편집(linked mode)과 문맥 값 제안(테이블 이름 목록).
+- ~~템플릿 변수의 같은 이름 동시 편집(linked mode)~~: 2026-11-28 더함(VOC V190, 위 "템플릿"). 문맥 값 제안(테이블 이름 목록)은 그대로 미룸.
 - 매개변수 대화상자의 Cancel은 그 문장을 실행하지 않고 끝내지만, 엔진이 이를 오류나 취소로 알리지 않아 상태 줄은 "Query executed successfully"로 남는다(실행 엔진 `SQLQueryExecuteJob`의 결과 보고를 바꿔야 함).
 
 ## 확인 (2026-11-06)
@@ -503,6 +512,26 @@ SQL Server에만 있던 토글을 Oracle과 Altibase로 넓혔다. 문장은 **�
 
 화면(작업 폴더 `D:\Tools\_scratch\sql-editor-plus\shots\`): 밝은 테마 b01·b03·b04·b05·c01·d01·f01–f06, 어두운 테마 d02–d06·e01–e05.
 회귀 테스트는 실행하지 않았다.
+
+## 확인 — 여러 문장 템플릿과 자기 이름 (2026-11-28, VOC V190)
+
+사용자 보고: "템플릿에 여러 쿼리가 있으면 동작을 잘 안 한다, 템플릿 쿼리 안에 템플릿 이름이 있으면 그런 것 같다". 고치기 전 빌드와 고친 빌드를 같은 작업 공간
+(Options에서 만든 템플릿 7개)으로 띄워 시험용 EDT 에이전트(제품에 넣지 않음)로 키를 보내 확인했다. 실행은 테스트 DB(PostgreSQL 17, SQL Server 2022,
+Oracle 1521)에서 SELECT와 빈 PL/SQL 블록만 썼다.
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 자기 이름으로 끝나는 템플릿(`emp` = `select * from emp`) + Tab, Tab | `select * from select * from select * from emp` | 한 번 펼친 뒤 Tab은 보통 탭 |
+| 같은 변수 두 번(`dept`: `select … ${deptno};` / `delete … ${deptno};`)에 10 | `delete from dept where deptno = deptno;` | 두 문장 모두 10 |
+| 여러 문장 + `${cursor}`(`multi`) | 마지막 변수 뒤 Tab이 첫 변수로 돌아가고(빈 자리) `${cursor}`에 가지 않음, 둘째 문장 `table` | 둘째 문장도 `orders`, 마지막 변수 뒤 Tab이 `${cursor}` 줄로 |
+| 템플릿을 채운 뒤 Enter, `sel` + Tab | 펼치지 않고 첫 템플릿 변수로 돌아감 | `sel`이 펼쳐짐 |
+| Ctrl+K Ctrl+X를 `select * from` 바로 뒤에서 | `from`이 지워짐 | 캐럿 자리에 넣음, 선택이 있으면 선택을 바꿈 |
+| Options 내용 칸에서 `dept` + Tab | 템플릿이 펼쳐져 `${deptno}`가 `deptno`로 바뀜 | 보통 탭 |
+| 펼친 글 실행(F5, 문장마다 Ctrl+Enter) | `GO`(SQL Server), `/`(Oracle) 두 문장 | 같음. 연결 새로 고침 뒤에도 같음 |
+| 저장, 다시 시작 | 내용 그대로 | 같음(저장 형식은 바꾸지 않음) |
+
+되돌리기(Ctrl+Z)는 두 자리를 함께 되돌리고 세션을 끝낸다. 그 뒤의 입력은 한 자리에만 들어간다.
+화면: 작업 폴더 `D:\Tools\_scratch\sql-template-multi-query\shots\`(`before-*`, `after-*`). 회귀 테스트는 실행하지 않았다.
 
 ## 확인 — 실행 계획 세 보기 (2026-11-07)
 
@@ -547,3 +576,6 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
   SQL Server는 켜기 전에 SHOWPLAN 권한을 확인(권한 없는 로그인에서 모든 문장이 오류 262로 실패하던 것), 실행 계획 탭의 새 계획 점.
 - 2026-11-12 실제 계획이 없는 DB는 토글을 처음부터 끔(앱 변경 #70, "실제 계획이 없는 DB는 토글을 처음부터 끔"): 제공자가 연결 전에 답하는
   `SQLActualPlanSupport`, SQL Server 드라이버 조건을 `SQLServerQueryPlanner.isSupported`로 모음.
+- 2026-11-28 여러 문장 템플릿과 자기 이름이 든 템플릿(VOC V190, "확인 — 여러 문장 템플릿과 자기 이름"): 같은 이름 변수를 함께 고치는 변수 세션
+  (`SqlTemplates.Session`, 문서 필터), 마지막 변수 뒤 `${cursor}`/끝에서 세션 끝, 끝 자리의 Tab은 보통 Tab(자기 이름 다시 펼치기 막음), 템플릿 뒤에 친
+  글은 세션에 들지 않음. Ctrl+K Ctrl+X는 선택을 바꿈. Options 내용 칸은 템플릿 키를 끔. "미룬 일"의 linked mode 항목을 닫음.
