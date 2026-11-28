@@ -234,6 +234,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>다시 시작 뒤 복원({@link QueryWindowRecovery}): 복원한 창은 연결하지 않고 열리고, 예전 기본 DB/스키마
  *     ({@link #setRestoredDefaults})는 창의 세션이 처음 열릴 때 적용한다. 세션을 여는 작업(실행, 계획, 기본 DB·커밋 방식 읽기)은 모두
  *     {@link #openWindowContext}를 거치므로 첫 실행이 예전 DB/스키마에서 돈다. 주 문맥을 함께 쓰는 창은 다른 창의 기본값을 바꾸지 않도록 적용하지 않는다.
+ *     다만 데이터베이스마다 세션이 따로인 연결(PostgreSQL)에서는 그 데이터베이스의 주 문맥을 함께 쓴다({@link QueryWindowContext#shareInstance}, 세션은 옮기지 않음).
  *     연결 전에는 DB 콤보(꺼짐)와 상태 줄에 복원할 이름을 보인다. New Query도 활성 쿼리 창의 DB/스키마를 같은 길로 새 창에 넘긴다
  *     ({@code MainFrame.newQuery}): 활성 창의 세션에는 아무것도 하지 않고, 새 창의 세션이 열릴 때 그 세션에만 정한다.
  *     개체에서 연 창(Object Explorer의 New Query·Select Top N·Script as 등)도 개체의 DB/스키마를 같은 길로 받는다({@code MainFrame.runWhereObjectIs}).</li>
@@ -385,6 +386,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-28 주석만: {@link #setRestoredDefaults}를 개체에서 연 창도 씀(개체의 DB/스키마, docs/chromite/swing-sql-editor-session-ui.md
  *   "개체에서 연 창의 DB")
  * - 2026-11-28 결과에서 만든 문장의 새 창({@link Host#openScript})이 이 창 세션의 기본 스키마·DB에서 돈다(같은 문서 같은 절)
+ * - 2026-11-28 주 문맥을 함께 쓰는 창이 받은 DB가 따로인 세션이면(PostgreSQL) 그 DB의 주 문맥을 함께 씀({@link #openWindowContext}), 끊었다 다시
+ *   연결해도 그 DB를 지킴({@link #keepDefaultsOfEndedSession}). 전에는 다른 DB의 개체에서 연 창이 연결의 기본 DB에서 돌았다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1321,7 +1325,9 @@ final class SqlEditorPanel extends JPanel {
      * A window restored after a restart ({@link QueryWindowRecovery}), opened by New Query from another window of the
      * connection ({@code MainFrame.newQuery}), or opened from an object (the object's database/schema,
      * {@code MainFrame.runWhereObjectIs}), gets that default database/schema when its own session opens, which is when
-     * the user runs something or the connection is connected already. Nothing connects here. EDT.
+     * the user runs something or the connection is connected already. A window that shares a main context gets only a
+     * database that is a session of its own, by sharing that database's main context ({@link QueryWindowContext#shareInstance}).
+     * Nothing connects here. EDT.
      */
     void setRestoredDefaults(@NotNull DefaultObjectNames names) {
         synchronized (restoredDefaultsLock) {
@@ -1336,13 +1342,15 @@ final class SqlEditorPanel extends JPanel {
      * database/schema the window showed, so that its next session gets it when it opens ({@link #openWindowContext}), as
      * after a restart, and the disabled picker shows it meanwhile. Invalidate/Reconnect keeps the data source and reopens
      * the session from itself, so it does not come here. A window that shared the connection's main context keeps
-     * nothing: that context gets the connection's default again. EDT.
+     * nothing: that context gets the connection's default again. A window that shared the main context of another
+     * database ({@link QueryWindowContext#shareInstance}) keeps that database, whose main context it shares again. EDT.
      *
      * @param dataSource the data source of the window's connection now, null while disconnected
      */
     private void keepDefaultsOfEndedSession(@Nullable DBPDataSource dataSource) {
         SchemaState state = schemaState;
-        if (state == null || state.dataSource() == dataSource || !windowContext.isOwn(state.context())) {
+        if (state == null || state.dataSource() == dataSource
+            || !windowContext.isOwn(state.context()) && !windowContext.isSharedIn(state.context())) {
             return;
         }
         DefaultObjectNames names = getDefaultObjectNames();
@@ -1369,13 +1377,29 @@ final class SqlEditorPanel extends JPanel {
         synchronized (restoredDefaultsLock) {
             DefaultObjectNames names = restoredDefaults;
             restoredDefaults = null;
+            if (names == null) {
+                // A job that took the names first may have bound the window to another database's main context since the
+                // open above (QueryWindowContext.shareInstance): the window's context now. Cheap, the binding is made
+                return windowContext.open(monitor, dataSource);
+            }
             DBCExecutionContextDefaults<?, ?> contextDefaults = context.getContextDefaults();
-            if (names == null || contextDefaults == null) {
+            if (contextDefaults == null) {
                 return context;
             }
             // The connection's main context is shared with the other windows of the connection: a restored, New Query or
-            // object's window does not change their default (it shows the shared one instead)
+            // object's window does not change their default (it shows the shared one instead). A database that is a session
+            // of its own (PostgreSQL) has a main context of its own, which the window shares instead; no session moves
             if (context != windowContext.getOwn(dataSource.getContainer())) {
+                try {
+                    DBCExecutionContext shared = names.catalog() == null ? null : windowContext.shareInstance(monitor, dataSource, names.catalog());
+                    if (shared != null) {
+                        return shared;
+                    }
+                } catch (DBException e) {
+                    // As an own session's default below: the window runs in the shared context, which its picker shows
+                    log.warn("Can't open the main session of '" + names.catalog() + "' for query window " + fileName, e);
+                    return context;
+                }
                 log.debug("Restored default '" + names.label() + "' not applied: the window shares the main context of '"
                     + dataSource.getContainer().getName() + "'");
                 return context;
