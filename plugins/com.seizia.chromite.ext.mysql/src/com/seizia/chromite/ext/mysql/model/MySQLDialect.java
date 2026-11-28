@@ -26,6 +26,7 @@ import com.seizia.chromite.model.DBPDataTypeProvider;
 import com.seizia.chromite.model.DBPIdentifierCase;
 import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
@@ -79,8 +80,11 @@ import java.util.regex.Pattern;
  * - 2026-11-25 Chromite: {@link #makeDialectSkipTokenPredicatesImpl}: 저장 프로그램(프로시저·함수·트리거·이벤트)의
  *   {@code BEGIN … END} 본문을 한 문장으로 둔다. DDL 보기 글처럼 {@code DELIMITER} 없이 쓴 루틴이 본문의 첫 {@code ;}에서 나뉘어
  *   1064 오류가 났다(docs/chromite/swing-query-commands.md "저장 루틴 DDL 글을 그대로 실행 (MySQL·MariaDB, SQL Server)").
+ * - 2026-11-28 Chromite: {@link #readServerSessionId}: the connection ID for the query window tab
+ *   (docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호").
  */
-public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe {
+public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension, JDBCTransactionProbe,
+    JDBCServerSessionIdReader {
 
     // Target types of convertExternalDataType
     private static final String TYPE_NAME_UUID = "UUID";
@@ -103,6 +107,21 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
 
     // The login may read INNODB_TRX (PROCESS privilege); false after the first refusal
     private volatile boolean innodbTrxReadable = true;
+
+    /**
+     * {@code SELECT CONNECTION_ID()}: a SELECT that reads no table starts no transaction in manual commit (the server
+     * status flags stay without SERVER_STATUS_IN_TRANS, INNODB_TRX lists nothing).
+     */
+    @Nullable
+    @Override
+    public String readServerSessionId(@NotNull DBPDataSource dataSource, @NotNull Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(READ_TIMEOUT_SECONDS);
+            try (ResultSet rs = statement.executeQuery("SELECT CONNECTION_ID()")) { //$NON-NLS-1$
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
 
     /**
      * Whether the session is in a transaction, from the server status flags of the last OK packet as the driver keeps

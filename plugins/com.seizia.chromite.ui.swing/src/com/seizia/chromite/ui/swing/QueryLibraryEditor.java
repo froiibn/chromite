@@ -27,6 +27,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -95,6 +96,9 @@ import java.util.Objects;
  * - 2026-11-12 {@link #rename}: 문서 탭 메뉴의 이름 바꾸기 = 트리의 Rename과 같은 경로, 고친 창은 이름 칸에(앱 변경 #42)
  *   (docs/chromite/swing-frontend.md "문서 탭 메뉴")
  * - 2026-11-12 아이콘 단추의 도구 설명을 설명문 대신 기능 이름(동작·메뉴의 이름)과 단축키로 (앱 변경 #103, docs/chromite/swing-frontend.md "아이콘 단추의 도구 설명")
+ * - 2026-11-28 {@link #prepareExecution}: 머리말의 Database가 창의 자기 세션과 다른 DB 인스턴스(PostgreSQL DB)면 실행 전에 그 세션의 열린
+ *   트랜잭션을 물음({@link SqlEditorPanel#confirmEndSession}, 취소하면 실행하지 않음). 전에는 세션이 다시 연결되며 묻지 않고 롤백되었다
+ *   (docs/chromite/swing-query-library.md "기본 DB와 열린 트랜잭션")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -621,7 +625,16 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     public SqlParameterBinding prepareExecution(@NotNull SqlEditorPanel editor, @NotNull DBPDataSourceContainer container, @NotNull String sql) {
         QueryLibraryItem current = item.copy();
         applyFields(current, editor.getContent().text());
-        return askParameters(editor, current, container, sql);
+        SqlParameterBinding binding = askParameters(editor, current, container, sql);
+        // The query's database in another database instance (PostgreSQL) reopens the window's own session there when it
+        // runs, which ends its transaction: asked first, as the window's database picker asks
+        if (binding instanceof QueryParameterBinder binder) {
+            DBCExecutionContext context = editor.getExecutionContext();
+            if (context != null && binder.changesInstance(context) && !editor.confirmEndSession()) {
+                return null;
+            }
+        }
+        return binding;
     }
 
     /**

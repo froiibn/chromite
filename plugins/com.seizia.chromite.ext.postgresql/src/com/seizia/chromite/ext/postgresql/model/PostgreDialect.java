@@ -30,6 +30,7 @@ import com.seizia.chromite.model.data.DBDBinaryFormatter;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.exec.DBCServerTransaction;
 import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCServerSessionIdReader;
 import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.exec.jdbc.JDBCTransactionProbe;
 import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
@@ -74,9 +75,11 @@ import java.util.*;
  * - 2026-11-09 Chromite: {@link #probeTransaction} also tells whether the transaction only reads (relation AccessShareLock
  *   and predicate SIReadLock only, no transaction id), for ending it in one click or automatically
  *   (docs/chromite/idle-transactions.md "조회만 한 트랜잭션 끝내기").
+ * - 2026-11-28 Chromite: {@link #readServerSessionId}: the backend PID for the query window tab, from the driver without a
+ *   statement (docs/chromite/swing-sql-editor-session-ui.md "탭의 세션 번호").
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
-    SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe {
+    SQLDialectDDLExtension, SQLDialectSchemaController, JDBCTransactionProbe, JDBCServerSessionIdReader {
 
     private static final String TYPE_NUMERIC = "numeric"; //$NON-NLS-1$
     private static final String TYPE_DECIMAL = "decimal"; //$NON-NLS-1$
@@ -107,6 +110,26 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
     @Override
     public SQLDialectFeatures getDialectFeatures() {
         return DialectFeatures.INSTANCE;
+    }
+
+    /**
+     * The backend PID pgjdbc received at login (BackendKeyData), without a statement: in manual commit the driver sends
+     * BEGIN before any statement outside a transaction. Only PostgreSQL servers, as {@link #probeTransaction}.
+     */
+    @Nullable
+    @Override
+    public String readServerSessionId(@NotNull DBPDataSource dataSource, @NotNull Connection connection) {
+        if (!(dataSource instanceof PostgreDataSource pgDataSource) || !(pgDataSource.getServerType() instanceof PostgreServerPostgreSQL)) {
+            return null;
+        }
+        try {
+            Object pid = connection.getClass().getMethod("getBackendPID").invoke(connection); //$NON-NLS-1$
+            // 0 when the server sent no BackendKeyData
+            return pid instanceof Integer number && number > 0 ? number.toString() : null;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            // Not pgjdbc
+            return null;
+        }
     }
 
     /**
