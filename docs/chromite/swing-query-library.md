@@ -198,7 +198,8 @@ WHERE state = :state
    다른 서버에서 같은 쿼리를 나란히 보려고 연결마다 창을 따로 둔다.
 3. 그 창에서 실행한다(`SqlEditorPanel.execute`). 실행 경로는 일반 쿼리 창과 같다: 준비 Job이 필요하면 연결하고(`SwingConnectionService`),
    `SQLScriptBatches.extractQueries`로 문장/`GO` 배치를 나누고, `SQLQueryExecuteJob`을 예약한다. 결과 표는 Results에 쌓이고 행 수·PRINT·오류는 Messages에 간다. EDT는 기다리지 않는다.
-4. 실행 직전(EDT) 확장의 `prepareExecution`이 매개변수를 묻는다(아래). 취소하면 실행하지 않는다.
+4. 실행 직전(EDT) 확장의 `prepareExecution`이 매개변수를 묻는다(아래). 취소하면 실행하지 않는다. 그다음 쿼리의 Database 때문에 창의 자기 세션이
+   다른 DB로 다시 연결되면 그 세션의 열린 트랜잭션을 묻는다(아래 "기본 DB와 열린 트랜잭션").
 5. 준비 Job에서 `SqlParameterBinding.prepare`가 나눈 문장을 바꾸고(기본 DB/스키마 적용, `:name` → `?`), 엔진이 문장을 만들 때 `bindParameters`로 값을 바인딩한다.
 
 **Edit**(더블클릭)는 같은 창을 연다(실행하지 않음). 편집기 위에 머리말이 붙는다(2026-11-07부터 쿼리 창 도구 막대는 메인 창 둘째 줄에 있다):
@@ -222,6 +223,18 @@ SELECT ...
   읽기 전용 루트의 쿼리는 저장하지 않고 Duplicate를 안내한다. 다른 사람이 먼저 저장했으면 덮어쓰기 전에 묻는다(④).
   File > Save As는 라이브러리 쿼리를 바꾸지 않고 SQL만 평범한 `.sql`로 내보낸다(④ "Save As .sql").
 - SQL에서 빠진 매개변수의 정의는 저장할 때 버린다.
+
+### 기본 DB와 열린 트랜잭션 (2026-11-28)
+
+PostgreSQL은 DB마다 서버 세션이 따로라, 머리말 Database가 창의 자기 세션("쿼리 창마다 별도 연결")과 다른 DB면 실행할 때 그 세션을 끊고 그 DB에 다시 연다
+(`QueryParameterBinder.applyDefaults` → `PostgreExecutionContext.setDefaultCatalog`). 끊으면 열린 트랜잭션이 롤백되는데 묻지 않았다.
+
+- `prepareExecution`(EDT)이 매개변수를 물은 뒤 `QueryParameterBinder.changesInstance`(메모리만 읽음: 지금 DB와 이름이 다르고, 연결의 DB 인스턴스 목록에서
+  찾은 그 DB가 세션의 인스턴스가 아님)로 판단하고, 그러면 창 닫기와 같은 질문(`SqlEditorPanel.confirmEndSession`: 커밋/롤백/취소, 트랜잭션이 열려 있을 때만)을 한다.
+  취소하면 실행하지 않는다. 같은 인스턴스 안의 DB·스키마 바꾸기(SQL Server·MySQL의 `USE`, 스키마)는 세션을 끊지 않아 묻지 않는다.
+- 다시 연 세션의 트랜잭션도 상태 줄·창 닫기 질문에 보인다(모델의 다시 연결, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "자기 세션을 다른 DB로 다시 연결할 때").
+- 주 세션을 함께 쓰는 창은 여기서 묻지 않는다. 주 세션은 다시 연결하지 않고 연결의 기본 DB를 옮기며, 그 경우의 질문은 이 변경에 들지 않는다.
+- 예약 실행은 실행마다 새 자기 세션을 열어(`QueryScheduler`) 열린 트랜잭션이 없다. 기록에서 다시 연 바인딩 실행(`QueryParameterBinder.Recorded`)은 기본 DB를 갖지 않는다.
 
 ### 머리말 저장 단추 (2026-11-08)
 
@@ -682,3 +695,6 @@ DB는 공유 테스트 컨테이너(PostgreSQL 17, SQL Server 2022, MariaDB 11, 
   시작·정지는 메인 창, Schedule…의 When 칸은 작업 예약 대화상자와 같은 부품(`ScheduleWhenPanel`). 쿼리 예약의 동작과 파일 형식은 그대로. "스케줄러".
 - 2026-11-17 오른쪽 클릭 메뉴: 루트·빈 곳의 Rename…·Delete, 빈 곳의 Export…·Open Folder, 데스크톱이 폴더를 열 수 없을 때의 Open Folder를 숨김
   (앱 변경 #141, `chromite/small-menus-applicable`). "명령" 표 아래.
+- 2026-11-28 `chromite/pg-own-session-reconnect-transaction`: 머리말 Database가 창의 자기 세션을 다른 DB(PostgreSQL)로 다시 연결하게 하면 실행 전에 열린 트랜잭션을
+  물음(`QueryLibraryEditor.prepareExecution`, `QueryParameterBinder.changesInstance`). 전에는 묻지 않고 롤백했다. "기본 DB와 열린 트랜잭션", "실행 흐름" 4.
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: Query Library 창의 실행(Run, Run on…, F5) 시작, 자기 세션을 쓰는 창의 트랜잭션 표시.
