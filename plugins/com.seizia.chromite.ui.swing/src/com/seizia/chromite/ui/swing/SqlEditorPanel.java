@@ -380,6 +380,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   전에는 다시 연결한 창이 연결의 기본 DB로 돌아갔다(docs/chromite/swing-sql-editor-session-ui.md "다시 연결 뒤의 DB")
  * - 2026-11-25 DB 선택이 보이는 세션의 기본값이 다른 곳에서 바뀌면 다시 읽음({@link #contextDefaultsChanged}). 주 세션을 함께 쓰는 창이
  *   Modify 뒤 옛 DB를 보이며 다음 문장을 개체의 DB에서 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다른 곳에서 바뀐 세션의 DB")
+ * - 2026-11-28 {@link SqlTextArea}는 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}, 앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -3301,6 +3302,8 @@ final class SqlEditorPanel extends JPanel {
      * - 2026-11-28 템플릿 내용 칸은 템플릿 키를 끔({@link #disableTemplates}, VOC V190): 내용에 템플릿 이름을 치고 Tab을 누르면 그 템플릿이
      *   펼쳐져 {@code ${변수}}가 이름 글자로 바뀐 채 저장됐다. Tab은 열린 템플릿 세션의 결과({@link SqlTemplates.TabResult})를 따르고,
      *   Ctrl+K Ctrl+X 목록은 선택(없으면 캐럿)에 넣는다: 캐럿 앞 낱말까지 지웠다
+     * - 2026-11-28 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}): 옛 배율의 너비로 자리를 정해 글자가 겹쳤다
+     *   (앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
      */
     static final class SqlTextArea extends RSyntaxTextArea {
         static {
@@ -3394,6 +3397,8 @@ final class SqlEditorPanel extends JPanel {
             columnSelection = new SqlColumnSelection(this);
             // After the RSyntaxTextArea constructor: its UI installs RSyntaxTextArea's own handler (again on updateUI)
             setTransferHandler(TRANSFER_HANDLER);
+            // Token widths measured again when the window moves to a screen of another scale
+            TextAreaScale.follow(this);
         }
 
         /**
