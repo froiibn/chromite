@@ -31,6 +31,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -67,6 +68,8 @@ import java.util.List;
  *   (앱 변경 #135, docs/chromite/swing-conn-advanced.md "URL 방식 연결의 주소")
  * - 2026-11-22 취소 메시지를 {@code ErrorMessages.error_canceled}에서 읽음(문구 그대로, 키만 옮김; 앱 변경 #168,
  *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
+ * - 2026-11-28 스크립트 메뉴의 새 쿼리 창이 돌 곳을 받는 {@link #createSqlScriptActions(ObjectExplorerPanel.QueryWindows, DBSObject, ScriptBuilder)}
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -297,10 +300,26 @@ abstract class DatabaseTaskDialog extends JDialog {
 
     /**
      * Script menu of the SQL dialogs: the script to a new query window or to the clipboard. The input is checked first.
+     * The window opens in the connection's default database (scripts that name their database).
      */
     @NotNull
     protected final List<Action> createSqlScriptActions(
         @NotNull ObjectExplorerPanel.QueryWindows queryWindows,
+        @NotNull ScriptBuilder builder
+    ) {
+        return createSqlScriptActions(queryWindows, null, builder);
+    }
+
+    /**
+     * Script menu of the SQL dialogs, the window running in a database and schema
+     * ({@link ObjectExplorerPanel.QueryWindows#openScript(DBPDataSourceContainer, DBSObject, String, long, boolean)}).
+     *
+     * @param location where the script runs (the database its statements are for), or null for the connection's default
+     */
+    @NotNull
+    protected final List<Action> createSqlScriptActions(
+        @NotNull ObjectExplorerPanel.QueryWindows queryWindows,
+        @Nullable DBSObject location,
         @NotNull ScriptBuilder builder
     ) {
         Action toWindow = new AbstractAction(BackupRestoreMessages.task_script_new_query) {
@@ -308,7 +327,7 @@ abstract class DatabaseTaskDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 String script = buildScript(builder);
                 if (script != null) {
-                    queryWindows.openScript(container, script, 0, false);
+                    queryWindows.openScript(container, location, script, 0, false);
                     dispose();
                 }
             }

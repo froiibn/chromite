@@ -43,6 +43,7 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvent;
 import com.seizia.chromite.model.DBPEventListener;
+import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.ai.agent.AIAgentServices;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
@@ -55,6 +56,8 @@ import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
@@ -361,6 +364,10 @@ import java.util.function.Supplier;
  * - 2026-11-25 세션의 기본 DB/스키마가 바뀐 모델 이벤트(OBJECT_SELECT, 실행 문맥이 붙은 것)를 그 세션을 보이는 쿼리 창에 넘김
  *   ({@link SqlEditorPanel#contextDefaultsChanged}). 전에는 Modify 등이 연결의 주 세션을 개체의 DB로 옮겨도 주 세션을 함께 쓰는 창이 옛 DB를
  *   보인 채 다음 문장을 새 DB에서 실행했다 (docs/chromite/swing-sql-editor-session-ui.md "다른 곳에서 바뀐 세션의 DB")
+ * - 2026-11-28 개체에서 연 쿼리 창(New Query, Select Top N, Script as, Generate SQL, 바꾸기 스크립트의 쿼리 창에서 열기 등)은 개체의
+ *   DB/스키마에서 돈다({@link #runWhereObjectIs}, New Query·다시 시작 복원과 같은 {@link SqlEditorPanel#setRestoredDefaults}). 전에는 연결의
+ *   기본 DB에서 열려, PostgreSQL에서 다른 데이터베이스 표의 스크립트가 기본 DB의 같은 이름 표에서 돌았다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host, DocumentTabMenu.Host, QueryWindowFrame.Host {
@@ -1325,18 +1332,53 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return object != null && object.getDataSource() != null ? object.getDataSource().getContainer() : null;
     }
 
-    @Override
-    public void openQuery(@NotNull DBPDataSourceContainer dataSource) {
+    /**
+     * An empty query window in the connection's default database (New Query of a connection, Registered Servers).
+     */
+    private void openQuery(@NotNull DBPDataSourceContainer dataSource) {
         openQueryEditor(dataSource, null);
     }
 
     @Override
+    public void openQuery(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location) {
+        runWhereObjectIs(openQueryEditor(dataSource, null), location);
+    }
+
+    @Override
     public void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute) {
+        openScript(dataSource, null, script, maxRows, execute);
+    }
+
+    @Override
+    public void openScript(@NotNull DBPDataSourceContainer dataSource, @Nullable DBSObject location, @NotNull String script, long maxRows,
+                           boolean execute) {
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        // Before the run below opens the window's session
+        runWhereObjectIs(editor, location);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setMaxRows(maxRows);
         if (execute) {
             editor.execute();
+        }
+    }
+
+    /**
+     * A window opened from an object runs in the object's database and schema. The names reach the window by the path of
+     * New Query and of a window restored after a restart ({@link SqlEditorPanel#setRestoredDefaults}): its own session gets
+     * them when it opens, the first job of the window (a run included) waits for that, and no other session changes. A
+     * window that shares the connection's main session does not apply them: moving that session would move every window
+     * that shares it, and on PostgreSQL (another database is another server session) without a sign in those windows,
+     * whose picker shows only the schema. Such a window stays where the main session is and shows that.
+     */
+    private static void runWhereObjectIs(@NotNull SqlEditorPanel editor, @Nullable DBSObject location) {
+        if (location == null) {
+            return;
+        }
+        DBSCatalog catalog = location instanceof DBSCatalog self ? self : DBUtils.getParentOfType(DBSCatalog.class, location);
+        DBSSchema schema = location instanceof DBSSchema self ? self : DBUtils.getParentOfType(DBSSchema.class, location);
+        if (catalog != null || schema != null) {
+            editor.setRestoredDefaults(new SqlEditorPanel.DefaultObjectNames(catalog != null ? catalog.getName() : null,
+                schema != null ? schema.getName() : null));
         }
     }
 

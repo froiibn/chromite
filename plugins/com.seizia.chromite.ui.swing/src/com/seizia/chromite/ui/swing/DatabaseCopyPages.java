@@ -119,6 +119,8 @@ import java.util.function.Supplier;
  *   넣기만 받는 대상은 불러오기가 비우지 않고 넣는다(앱 변경 #163, docs/chromite/swing-data-transfer.md "구조를 바꿀 수 없는 대상")
  * - 2026-11-22 DDL 미리 보기에서 사용자의 취소({@link ErrorText#isUserCancel})는 "DDL 오류" 대신 중립 문구: 취소를 실패로 보였다
  *   (앱 변경 #168, docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
+ * - 2026-11-28 복사한 표를 여는 창이 그 표의 DB/스키마에서 돈다(전에는 연결의 기본 DB,
+ *   docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class DatabaseCopyPages {
 
@@ -462,7 +464,7 @@ final class DatabaseCopyPages {
             try {
                 String script = ProgressDialog.runTask(DbCopyMessages.load_open_tables,
                     monitor -> ObjectScripts.generateSelect(monitor, table, SELECT_TOP_ROWS));
-                queryWindows.openScript(dataSource.getContainer(), script, SELECT_TOP_ROWS, true);
+                queryWindows.openScript(dataSource.getContainer(), table, script, SELECT_TOP_ROWS, true);
             } catch (DBException e) {
                 log.debug("Can't open the copied table " + table.getName(), e);
             }

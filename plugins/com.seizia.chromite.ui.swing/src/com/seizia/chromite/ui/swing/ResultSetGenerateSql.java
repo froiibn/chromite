@@ -114,6 +114,8 @@ import java.util.Locale;
  *   docs/chromite/context-menus.md "결과 그리드")
  * - 2026-11-22 테이블이 받지 않는다고 모델이 말하는 행을 쓰는 문장(큐의 INSERT·UPDATE·MERGE)을 숨김({@link #acceptsWrite}): 서버가
  *   거절하는 문장을 만들었다 (앱 변경 #157, docs/chromite/swing-result-generate-sql.md)
+ * - 2026-11-28 "쿼리 창에서 열기"의 새 창이 결과 세션의 기본 스키마·DB에서 돈다. 전에는 연결의 기본 DB에서 열려, PostgreSQL에서 다른
+ *   데이터베이스 창의 결과로 만든 문장이 기본 DB의 같은 이름 표에 닿았다 (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class ResultSetGenerateSql {
 
@@ -510,7 +512,12 @@ final class ResultSetGenerateSql {
             source.getOwner(), NLS.bind(GridSqlMessages.gridsql_title, label), header, script, host.canOpenScript());
         if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
             DBPDataSourceContainer container = context.getDataSource().getContainer();
-            host.openScript(container, script);
+            // The new window runs where the result's session runs: CREATE TABLE is made for that session's default schema
+            // (getTargetContainer), and on PostgreSQL the rows of a table can only come from the session's database
+            DBCExecutionContextDefaults<?, ?> defaults = context.getContextDefaults();
+            DBSObject location = defaults == null ? null
+                : defaults.getDefaultSchema() != null ? defaults.getDefaultSchema() : defaults.getDefaultCatalog();
+            host.openScript(container, location, script);
         }
     }
 

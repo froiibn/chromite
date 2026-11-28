@@ -507,6 +507,74 @@ PostgreSQL에서는 DB마다 인스턴스(세션)가 따로다. 쿼리 창의 DB
 
 **확인:** 아래 "확인 기록 (2026-11-25, 다른 곳에서 바뀐 세션의 DB)".
 
+## 개체에서 연 창의 DB (2026-11-28)
+
+**보고("다른 곳에서 바뀐 세션의 DB"의 범위 밖, 중간 확신):** "모든 데이터베이스 표시"를 켠 PostgreSQL에서 다른 데이터베이스의 표나 노드에서
+"상위 1000개 행 선택"·"새 쿼리"를 하면 창이 연결의 기본 데이터베이스에서 열려, 만든 `SELECT … FROM 스키마.표`가 `postgres`에서 돈다.
+
+**고치기 전 사실(`origin/command` `e470c1f25c` 빌드, 시험 VM, 앱 안 시험 에이전트).** 시험 DB `chr_postgres_open_in_object_database`(= X)와
+기본 DB `postgres`에 같은 이름의 표 `chr_postgres_open_in_object_database.chr_t`를 두고 행을 다르게 넣었다(X: `(1,'X'),(2,'X')`, `postgres`: `(1,'postgres')`).
+SQL Server·MariaDB(3306)·MySQL 8.4(3307)는 연결의 기본 DB를 `…_d`로 하고 그 DB에 같은 이름의 표(`(1,'default')`)를 두었다. X의 개체에서 명령마다 연 창의
+표시(DB 선택·상태 줄), 창 세션의 서버 값(`current_database()`/`db_name()`/`DATABASE()`), 첫 실행의 결과:
+
+| 명령 | PostgreSQL(창마다 자기 세션, 기본값) | PostgreSQL(주 세션을 함께 씀, NEVER) | SQL Server | MariaDB·MySQL |
+|---|---|---|---|---|
+| 새 쿼리(DB·스키마·표 노드) | `postgres`(표시 `public`) | `postgres` | `…_d` | `…_d` |
+| 상위 1000개 행 선택 | `postgres`, **`(1,'postgres')`**(기본 DB의 같은 이름 표, 편집 가능으로) | 같음 | `…_d`, 글이 `X.dbo.chr_t`라 X의 행(맞음) | `…_d`, 글이 `` X.chr_t ``라 X의 행(맞음) |
+| 스크립팅 ▸ SELECT 대상 → F5 | `postgres`, **`(1,'postgres')`** | 같음 | `…_d`, X의 행 | `…_d`, X의 행 |
+| SQL 생성 ▸ SELECT → F5 | `postgres`, **`(1,'postgres')`** | 같음 | `…_d`, X의 행 | `…_d`, X의 행 |
+| SQL 생성 ▸ INSERT·UPDATE·DELETE(실행 안 함) | `postgres`(글에 DB 없음: 기본 DB의 같은 이름 표를 바꿈) | 같음 | `…_d`(글이 DB를 씀) | `…_d`(글이 DB를 씀) |
+| 스크립팅 ▸ CREATE 대상, SQL 생성 ▸ DDL(실행 안 함) | `postgres`(글에 DB 없음) | 같음 | `…_d`, 글이 `USE X` / `GO`로 시작 | `…_d`, **글이 `` CREATE TABLE `chr_t` ``**(DB 없음: `…_d`에서 돈다) |
+| 삭제 ▸ 쿼리 창에서 열기(`DROP`) | `postgres`(코드 읽기: 같은 `openScript` 길) | 같음 | 코드 읽기 | 코드 읽기 |
+| 수정(Modify), 프로시저 실행 | X(`SourceScripts.bindDefaultContext`가 주 세션을 X로 옮긴 뒤 새 세션이 복사) | X(주 세션이 X로, 함께 쓰는 창 모두 따라감) | X(`USE` 배치) | X |
+
+"데이터 편집·데이터 보기"는 Object Explorer에 따로 없다. 데이터 명령은 "상위 1000개 행 선택"(두 번 누르기 설정 "데이터 열기"도 이 명령)이고 그 결과 그리드가 편집한다.
+"스크립팅 ▸ DROP·EXECUTE"는 삭제의 "쿼리 창에서 열기"와 SQL 생성 ▸ CALL·프로시저 실행이다.
+
+**근본 원인:** 개체에서 창을 여는 길(`ObjectExplorerPanel`의 새 쿼리·상위 N개·스크립팅, `ExplorerObjectCommands`의 SQL 생성·바꾸기 스크립트,
+그 밖에 아래 표의 길)은 `QueryWindows.openQuery(연결)`/`openScript(연결, 글, …)`로 **연결만** 넘겼다(`ObjectExplorerPanel.java` 옛 618–625행,
+643–651행, 1176–1194행). 창은 연결의 기본값에서 세션을 열고(`QueryWindowContext.open`), 개체가 어느 DB/스키마에 있는지 몰랐다. 만든 글은 PostgreSQL에서
+DB를 쓸 수 없어(`스키마.표`) 창이 있는 DB에서 돈다. SQL Server·MySQL은 DML 글이 DB를 쓰므로 결과는 맞았지만 창은 개체의 DB를 보이지 않았다.
+수정·프로시저 실행은 `bindDefaultContext`로 연결의 주 세션을 먼저 옮겨서 맞았다.
+
+**고친 것(앱이 가진 길로):** 창을 여는 쪽이 개체를 함께 넘기고(`QueryWindows.openQuery(연결, 개체)`,
+`openScript(연결, 개체, 글, 행 수, 실행)`), `MainFrame.runWhereObjectIs`가 개체의 카탈로그·스키마 이름을 새 창의 `setRestoredDefaults`에 둔다.
+New Query(#172)·다시 시작 복원과 같은 자리다: 창의 자기 세션이 열릴 때(`openWindowContext`, 상위 N개의 실행도 이 길) 그 세션에만 `setExecutionContextDefaults`
+(DB 선택과 같은 호출, PostgreSQL은 격리 세션을 그 DB로 다시 연결, SQL Server·MySQL `USE`, Oracle `ALTER SESSION SET CURRENT_SCHEMA`)를 하고,
+DB 선택·상태 줄은 그 뒤 세션에서 읽는다. 연결의 주 세션과 다른 창은 바뀌지 않는다. 새 창이라 열린 트랜잭션이 없고, 커밋·롤백하지 않는다.
+
+| 길 | 넘기는 개체 |
+|---|---|
+| 새 쿼리(Object Explorer 노드) | 선택한 개체·폴더(DB·스키마 아래가 아니면 이름이 없어 전과 같음). 연결 노드와 연결 두 번 누르기는 넘기지 않음 |
+| 상위 N개 행 선택(Object Explorer, ERD, 데이터베이스 복사 뒤 표 열기), 데이터 검색의 행 열기 | 그 표 |
+| 스크립팅 ▸ CREATE·SELECT 대상 ▸ 새 쿼리 편집기 창 | 선택한 개체 |
+| SQL 생성 | 첫 개체(한 글은 한 DB에서만 돈다) |
+| 바꾸기 미리 보기의 "쿼리 창에서 열기"(삭제·이름 바꾸기·새 개체·속성 바꾸기 `runChange`, 유지 관리 명령, 테이블 디자이너의 스크립트·저장) | 첫 변경의 개체, 첫 개체, 그 표. 실행 단추는 전부터 개체의 문맥에서 돈다 |
+| 결과 그리드 ▸ SQL 생성 ▸ 쿼리 창에서 열기(`ResultSetGenerateSql.show` → `ResultSetGrid.Host`·`QueryResultsView.Listener`·`SqlEditorPanel.Host`의 `openScript`) | 결과 세션의 기본 스키마(없으면 DB). 원본 표 대신 세션을 고른 이유: CREATE TABLE(결과를 담을 표)은 원본 표가 없을 수 있고 그 세션의 기본 스키마에 만든다(`getTargetContainer`). 행 문장은 원본 표 하나에서 오며 PostgreSQL에서는 그 표가 세션의 DB에만 있을 수 있고, 스키마는 글이 쓴다 |
+| 사용 권한·로그인/사용자/역할 대화상자의 스크립트(`SecurityCommands.showScript`·`applyScript`) | 대화상자를 연 개체(`SecurityDialect.getContext`, 실행 `SecurityDialect.execute`도 그 개체의 인스턴스에서 돈다) |
+| 작업 스케줄러 스크립트(`SchedulerCommands` 삭제, `SchedulerScriptDialog`) | `Backend.location`: pg_cron은 설치된 DB(`PostgreCronScheduler.getDatabase`, 실행도 그 DB), MySQL 이벤트는 그 DB. Oracle은 없음(전과 같음) |
+
+연결만 넘기는 길(`openScript(연결, 글, …)`)로 남은 것과 그 이유: 프로시저 실행(`RoutineCommands`)·스키마 비교 스크립트(`SchemaComparePanel`)는 열기 전에
+`bindDefaultContext`로 주 세션을 개체의 DB/스키마로 옮기고 새 창이 그것을 복사한다. SQL Server 에이전트(`AgentCommands`·`AgentObjectDialog`)는 문장이
+`EXEC msdb.dbo.…`로 DB를 쓴다. 백업·복원 작업 대화상자(`DatabaseTaskDialog`의 SQL Server 백업·복원)는 `BACKUP DATABASE [db]`·`USE [master]`로 DB를 쓴다.
+세션 관리자(`SessionManagerPanel`)의 세션 읽기는 서버 전체 보기다. MySQL 이벤트 스케줄러 켜기(`SET GLOBAL event_scheduler`)는 서버 설정이다.
+
+**주 세션을 함께 쓰는 창(쿼리 창마다 별도 연결 = NEVER, 단일 연결):** 이름을 적용하지 않는다(`openWindowContext`의 전부터 있던 규칙). 그 세션을 옮기면 함께 쓰는
+모든 창이 옮겨지고, PostgreSQL에서는 다른 DB가 다른 서버 세션이며 DB 선택이 스키마만 보여 옮겨진 것이 창에 드러나지 않는다(같은 이름 스키마면 표시가 그대로).
+그래서 새 창은 주 세션이 있는 곳에서 돌고 그곳을 보인다(창이 보이는 곳과 다른 곳에서 돌지 않음). PostgreSQL에서 다른 DB 개체의 글은 그 창에서는 기본 DB에서 돈다
+(고치기 전과 같음, 아래 "남은 것"). 수정·프로시저 실행은 전처럼 주 세션을 옮긴다(바꾸지 않음).
+
+**고르지 않은 것:** 위 명령들도 `bindDefaultContext`로 주 세션을 옮기기. 창마다 자기 세션인 기본 설정에서도 연결의 기본 DB(탐색기의 굵은 표시, 다음 새 창의 DB)가
+"상위 1000개 행 선택" 한 번에 바뀌고, 주 세션을 함께 쓰는 창은 표시 없이 옮겨진다. `bindDefaultContext`는 PostgreSQL에서 다른 DB로 옮길 때 열린 트랜잭션을 묻지
+않는다("기본값으로 설정"은 `ExitTransactionCheck.confirmDefaultChange`로 묻는다, 아래 "남은 것").
+
+**남은 것:**
+- 주 세션을 함께 쓰는 PostgreSQL 창에서 다른 DB 개체의 글: 기본 DB에서 돈다. 맞게 하려면 주 세션을 옮겨야 하며, 그때는 "기본값으로 설정"과 같은 열린 트랜잭션 질문과
+  PostgreSQL 창이 DB 이름을 보이는 것이 함께 필요하다(새 화면 요소라 하지 않음).
+- 파일 ▸ 새 쿼리(Ctrl+N)는 활성 창이 없으면 Object Explorer에서 선택한 노드의 **연결**로 연다(#172의 설계). 노드의 DB는 넘기지 않는다(바꾸지 않음).
+
+**확인:** 아래 "확인 기록 (2026-11-28, 개체에서 연 창의 DB)".
+
 ## 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문 (2026-11-28)
 
 **보고:** 다른 작업(Task R)의 코드 읽기. Modify 등이 주 세션을 개체의 DB로 옮길 때 열린 트랜잭션을 묻지 않는다(재현 전).
@@ -547,7 +615,7 @@ DB를 바꾸면 다시 연결하지 않고 연결의 기본 인스턴스만 바�
 - `ContextDefaultObjectsReader.run`: 기본 카탈로그를 묻기 전에 카탈로그 목록을 읽음(위 "연결을 다시 읽은 뒤의 DB 선택"). upstream은 기본값을 먼저 묻는다.
 - SQL Server·MySQL/MariaDB `initializeContextState`: 원본 세션의 DB를 개체 대신 이름으로 받고, 받지 못하면 세션의 값을 읽음(위 "다시 연결 뒤의 DB").
   upstream은 목록에서 찾은 개체로만 `USE` 한다.
-- 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘, 끊고 다시 연결한 쿼리 창의 DB 지키기)는 Swing 프런트엔드에만 있다.
+- 나머지(스피너, 문장 표시, 바깥 누름으로 닫기, 도구 설명 단축키, 닫기 아이콘, 끊고 다시 연결한 쿼리 창의 DB 지키기, 개체에서 연 창의 DB)는 Swing 프런트엔드에만 있다.
 
 ## 확인 기록
 
@@ -616,6 +684,37 @@ Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사�
 
 **확인하지 못한 것:** 떠 있는(도킹을 뗀) 도구 창에서는 메뉴 막대가 없어 메뉴 가속키(Ctrl+R 포함)가 가지 않을 수 있다(이번 범위 밖, 보고만).
 
+### 확인 기록 (2026-11-28, 개체에서 연 창의 DB)
+
+Windows 11, 150%, 한국어, 빈 작업 공간·설정·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(OS 입력 없음), 시험 VM의 PostgreSQL 17·SQL Server 2022·
+MariaDB 11.8·MySQL 8.4(번들 MariaDB 드라이버). 고치기 전은 위 "개체에서 연 창의 DB"의 표(`e470c1f25c` 빌드). 고친 빌드에서 같은 절차:
+
+| 명령 | PostgreSQL(자기 세션) | PostgreSQL(주 세션을 함께 씀) | SQL Server | MariaDB·MySQL |
+|---|---|---|---|---|
+| 새 쿼리(DB 노드) | X(표시 `public`, 이름 `X.public`) | `postgres`(전과 같음) | X | X |
+| 새 쿼리(스키마·표 노드) | X, 표시 그 스키마 | `postgres` | X | X |
+| 상위 1000개 행 선택 | X, `(1,'X'),(2,'X')` | `postgres`, `(1,'postgres')`(정한 동작) | X, X의 행 | X, X의 행 |
+| 스크립팅 ▸ SELECT 대상 → F5, SQL 생성 ▸ SELECT → F5 | X, X의 행 | `postgres`, `(1,'postgres')` | X, X의 행 | X, X의 행 |
+| SQL 생성 ▸ INSERT·UPDATE·DELETE·DDL, 스크립팅 ▸ CREATE 대상(실행 안 함) | 창 세션 X | `postgres` | X | X(DB 없는 `CREATE TABLE`도 X에서 돈다) |
+| 삭제 ▸ 쿼리 창에서 열기(`DROP TABLE …chr_only_x`, 실행 안 함) | 창 세션 X | 확인 안 함 | 확인 안 함 | 확인 안 함 |
+| 수정, 프로시저 실행 | X(전과 같음) | X(전과 같음, 함께 쓰는 창이 따라감) | X | X |
+
+- PostgreSQL 자기 세션 창: 연결 새로 고침 뒤, Invalidate/Reconnect 뒤, Disconnect → Connect 뒤에도 새 "상위 1000개 행 선택"은 X의 행. Disconnect 동안 앞서 연
+  "상위 1000개 행 선택" 창의 선택은 `X.X`(비활성, "다시 연결 뒤의 DB"의 자리), Connect 뒤 그 창의 세션은 X이고 다시 실행하면 X의 행.
+- 다른 창의 세션과 연결의 주 세션은 바뀌지 않았다(창마다 서버 값을 읽음, 주 세션 `postgres`).
+- 로그: `D:\Tools\_scratch\postgres-open-in-object-database\s\before\*.log`, `…\before-extra\*.log`, `…\after\*.log`, `…\after-extra\01.txt.log`.
+- 캡처(내 앱 창만, Swing 구성 요소로 그림): `…\before-extra\shots\before-1-pg-select-top-other-database.png`(X의 표에서 연 창이 `public`,
+  행 `postgres`), `…\after-extra\shots\after-1-pg-select-top-other-database.png`(같은 명령, 선택·상태 줄 X의 스키마, 행 `X` 둘),
+  `…\after-extra\shots\after-2-pgs-shared-window-select-top.png`(주 세션을 함께 쓰는 연결: `public`, 행 `postgres`).
+- 확인하지 못한 것: Oracle(창의 현재 스키마가 개체의 스키마로 바뀜, `ALTER SESSION SET CURRENT_SCHEMA`)·Altibase 등 그 밖의 드라이버, ERD·데이터 검색·데이터베이스 복사·
+  유지 관리·테이블 디자이너·이름 바꾸기·새 개체·속성 바꾸기의 창(같은 `openScript` 길, 코드 읽기와 빌드만). 회귀 테스트는 실행하지 않았다.
+- 후속(같은 날, 결과 그리드·권한·스케줄러): 고치기 전 빌드(`2c6b655af7`)와 고친 빌드에서 같은 절차(`D:\Tools\_scratch\postgres-open-in-object-database\s\followup\`).
+  PostgreSQL: X의 표에서 연 창(X)의 결과 ▸ SQL 생성 ▸ INSERT ▸ 쿼리 창에서 열기 — 전 새 창 세션 `postgres`(표시 `public`), 후 X(표시 X의 스키마).
+  X의 표 ▸ 사용 권한 ▸ SELECT를 postgres에 줌 ▸ 스크립트 ▸ 쿼리 창에서 열기(`GRANT SELECT ON TABLE …chr_t TO postgres`, 실행 안 함) — 전 `postgres`, 후 X.
+  SQL Server: X의 표에서 연 창의 결과 ▸ INSERT — 전 기본 DB `…_d`(글이 DB를 써서 결과는 맞음), 후 X. 연결의 주 세션은 전후 모두 기본 DB 그대로.
+  캡처 `…\followup\before\shots\before-1-pg-grid-generate-sql-window.png`, `before-2-pg-permissions-script-window.png`, `…\followup\after\shots\after-1…`, `after-2…`.
+  스케줄러(pg_cron·MySQL 이벤트)의 창은 코드 읽기와 빌드만(시험 서버에 pg_cron 작업 없음).
+
 ### 확인 기록 (2026-11-28, 주 세션을 다른 DB로 옮기기 전 트랜잭션 질문)
 
 Windows 11, 150%, 한국어, 빈 작업 공간·`CHROMITE_DATA`를 둔 앱 사본, 프로세스 안 시험 에이전트(Object Explorer 메뉴 항목을 그대로 누름, OS 입력 없음),
@@ -678,6 +777,13 @@ Oracle 패키지에만 있고 Oracle은 인스턴스가 하나라 묻는 경우�
   기본값이 바뀐 모델 이벤트를 받아 선택을 다시 읽음(`MainFrame` 레지스트리 수신기, `SqlEditorPanel.contextDefaultsChanged`). 회귀 테스트는 실행하지 않았다.
   영향받을 수 있는 기능: 주 세션을 함께 쓰는 쿼리 창의 DB 선택·상태 줄·기억하는 이름(New Query, 다시 시작 복원), 수정·프로시저 실행·새 개체 틀·기본값으로
   설정 뒤의 쿼리 창, 모든 드라이버의 기본값 바꾸기 뒤 선택 다시 읽기 횟수.
+- 2026-11-28 `chromite/postgres-open-in-object-database`: "개체에서 연 창의 DB"와 그 확인 기록. 개체에서 연 쿼리 창(새 쿼리, 상위 N개 행 선택, 스크립팅,
+  SQL 생성, 바꾸기 스크립트의 쿼리 창에서 열기, ERD·데이터 검색·데이터베이스 복사·테이블 디자이너)이 개체의 DB/스키마에서 돎(`MainFrame.runWhereObjectIs` →
+  `setRestoredDefaults`). 회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 위 명령으로 연 창의 첫 세션과 DB 선택(모든 드라이버: SQL Server·MySQL `USE`,
+  Oracle·Altibase 등 현재 스키마), 주 세션을 함께 쓰는 창(바뀌지 않음), 다시 연결·다시 시작 뒤 그 창의 복원 이름.
+- 2026-11-28 같은 브랜치 후속: 같은 원인의 남은 길을 고침. 결과 그리드의 SQL 생성(결과 세션의 기본 스키마·DB), 사용 권한·보안 대화상자의 스크립트
+  (`SecurityDialect.getContext`), 작업 스케줄러 스크립트(`Backend.location`: pg_cron·MySQL 이벤트의 DB). 연결만 넘기는 나머지 길의 이유를 적음.
+  회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 결과 그리드 SQL 생성·보안 대화상자·스케줄러 대화상자에서 연 창의 첫 세션과 DB 선택.
 - 2026-11-28 `chromite/bind-default-context-transaction`: "주 세션을 다른 DB로 옮기기 전 트랜잭션 질문"과 그 확인 기록. 수정·ALTER 대상·프로시저 실행·새 뷰/프로시저/함수·
   "새 &lt;종류&gt;" 틀·Schema Compare 스크립트·Go to Source Code·오류로 가기가 주 세션을 다른 데이터베이스 인스턴스(PostgreSQL DB)로 옮기기 전에 열린 트랜잭션을
   묻는다(`SourceScripts.confirmBindDefaultContext` → `ExitTransactionCheck.confirmDefaultChange`). SQL Server·MariaDB는 결함이 없어 바꾸지 않았다.

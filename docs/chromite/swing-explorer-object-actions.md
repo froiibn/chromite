@@ -488,3 +488,6 @@ SQL Server 프로시저·함수·트리거의 DDL 글에는 이름 줄이 없다
   `chromite/ddl-text-runs-as-pasted`, [swing-query-commands.md](swing-query-commands.md) "저장 루틴 DDL 글을 그대로 실행"). 회귀 테스트는 실행하지 않았다.
 - 2026-11-25 뷰 DDL 글의 객체 이름 줄을 한 번만 보임(`DBStructUtils.withoutObjectNameComment`, `chromite/ddl-name-comment-once`), 위 "DDL 글의 객체 이름 줄".
   회귀 테스트는 실행하지 않았다. 영향받을 수 있는 기능: 모든 DB의 뷰 DDL 보기·CREATE 대상·선택하여 복사(DDL)·SQL 생성 ▸ DDL, 스키마 DDL(PostgreSQL·SQL Server).
+- 2026-11-28 새 쿼리·상위 1000개 행 선택·스크립팅 ▸ 새 쿼리 편집기 창·SQL 생성·삭제와 이름 바꾸기의 "쿼리 창에서 열기"가 연 창이 개체의 DB/스키마에서 돎
+  (`chromite/postgres-open-in-object-database`, [swing-sql-editor-session-ui.md](swing-sql-editor-session-ui.md) "개체에서 연 창의 DB"). 전에는 연결의 기본 DB에서 열려
+  PostgreSQL에서 다른 데이터베이스 표의 SELECT가 기본 DB의 같은 이름 표를 읽었다. 회귀 테스트는 실행하지 않았다.

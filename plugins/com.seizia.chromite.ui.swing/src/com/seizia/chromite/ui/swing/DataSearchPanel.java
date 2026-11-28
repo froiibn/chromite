@@ -78,6 +78,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-data-search.md)
+ * - 2026-11-28 행 열기의 창이 표의 DB/스키마에서 돈다(전에는 연결의 기본 DB, docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class DataSearchPanel extends JPanel implements ToolDocument {
 
@@ -510,7 +511,7 @@ final class DataSearchPanel extends JPanel implements ToolDocument {
             DBWorkbench.getPlatformUI().showError(DataSearchMessages.datasearch_open_rows, DataSearchMessages.datasearch_open_failed, e);
             return;
         }
-        queryWindows.openScript(scope.container(), script, maxRows, true);
+        queryWindows.openScript(scope.container(), row.table(), script, maxRows, true);
     }
 
     @NotNull
