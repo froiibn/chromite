@@ -139,6 +139,9 @@ import java.util.function.Supplier;
  * - 2026-11-22 Generate SQL 오류 창의 첫 줄: 권한 오류면 권한 문구(앱 변경 #159, docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-22 개체 변경 실행 오류의 취소 검사를 지움: 오류 창이 사용자의 취소를 스스로 건너뛰고, 남은 변경 버리기는 전처럼 늘 함(앱 변경 #168,
  *   docs/chromite/cancel-busy-connection.md "취소는 오류가 아님")
+ * - 2026-11-28 Generate SQL과 {@link #runChange}의 "쿼리 창에서 열기"가 개체를 창에 넘김: 창이 개체의 DB/스키마에서 돈다. 전에는 연결의 기본 DB에서
+ *   열려, PostgreSQL에서 다른 데이터베이스 개체의 DROP·DML이 기본 DB의 같은 이름 개체에 닿을 수 있었다
+ *   (docs/chromite/swing-sql-editor-session-ui.md "개체에서 연 창의 DB")
  */
 final class ExplorerObjectCommands {
 
@@ -537,7 +540,8 @@ final class ExplorerObjectCommands {
             DBWorkbench.getPlatformUI().showError(NavigatorMessages.navigator_generate_sql, ObjectScripts.errorMessage(e, NavigatorMessages.navigator_generate_sql_error), e);
             return;
         }
-        queryWindows.openScript(container, script, 0, false);
+        // Several objects of one connection: the window runs where the first one is (a script can run in one database only)
+        queryWindows.openScript(container, objects.getFirst(), script, 0, false);
     }
 
     //////////////////////////////////////////////////////////
@@ -808,7 +812,9 @@ final class ExplorerObjectCommands {
         if (result != ScriptPreviewDialog.Result.EXECUTE || !ExitTransactionCheck.confirmObjectChange(window, container)) {
             discard(prepared.changes());
             if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
-                queryWindows.openScript(container, prepared.script(), 0, false);
+                // Where the (first) changed object is: Execute runs the commands there too (the object's context)
+                DBSObject location = prepared.changes().isEmpty() ? null : prepared.changes().getFirst().object();
+                queryWindows.openScript(container, location, prepared.script(), 0, false);
             }
             return;
         }

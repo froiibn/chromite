@@ -235,7 +235,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     ({@link #setRestoredDefaults})는 창의 세션이 처음 열릴 때 적용한다. 세션을 여는 작업(실행, 계획, 기본 DB·커밋 방식 읽기)은 모두
  *     {@link #openWindowContext}를 거치므로 첫 실행이 예전 DB/스키마에서 돈다. 주 문맥을 함께 쓰는 창은 다른 창의 기본값을 바꾸지 않도록 적용하지 않는다.
  *     연결 전에는 DB 콤보(꺼짐)와 상태 줄에 복원할 이름을 보인다. New Query도 활성 쿼리 창의 DB/스키마를 같은 길로 새 창에 넘긴다
- *     ({@code MainFrame.newQuery}): 활성 창의 세션에는 아무것도 하지 않고, 새 창의 세션이 열릴 때 그 세션에만 정한다.</li>
+ *     ({@code MainFrame.newQuery}): 활성 창의 세션에는 아무것도 하지 않고, 새 창의 세션이 열릴 때 그 세션에만 정한다.
+ *     개체에서 연 창(Object Explorer의 New Query·Select Top N·Script as 등)도 개체의 DB/스키마를 같은 길로 받는다({@code MainFrame.runWhereObjectIs}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -381,6 +382,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-25 DB 선택이 보이는 세션의 기본값이 다른 곳에서 바뀌면 다시 읽음({@link #contextDefaultsChanged}). 주 세션을 함께 쓰는 창이
  *   Modify 뒤 옛 DB를 보이며 다음 문장을 개체의 DB에서 실행했다(docs/chromite/swing-sql-editor-session-ui.md "다른 곳에서 바뀐 세션의 DB")
  * - 2026-11-28 {@link SqlTextArea}는 창이 배율이 다른 화면으로 옮겨지면 토큰 너비를 다시 잼({@link TextAreaScale}, 앱 변경 #187, docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-28 주석만: {@link #setRestoredDefaults}를 개체에서 연 창도 씀(개체의 DB/스키마, docs/chromite/swing-sql-editor-session-ui.md
+ *   "개체에서 연 창의 DB")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1311,8 +1314,9 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * A window restored after a restart ({@link QueryWindowRecovery}), or opened by New Query from another window of the
-     * connection ({@code MainFrame.newQuery}), gets that default database/schema when its own session opens, which is when
+     * A window restored after a restart ({@link QueryWindowRecovery}), opened by New Query from another window of the
+     * connection ({@code MainFrame.newQuery}), or opened from an object (the object's database/schema,
+     * {@code MainFrame.runWhereObjectIs}), gets that default database/schema when its own session opens, which is when
      * the user runs something or the connection is connected already. Nothing connects here. EDT.
      */
     void setRestoredDefaults(@NotNull DefaultObjectNames names) {
@@ -1351,7 +1355,8 @@ final class SqlEditorPanel extends JPanel {
     /**
      * Opens (or gets) the window's session ({@link QueryWindowContext#open}) and gives it the restored default
      * database/schema first, so that the first run after a restart runs where the window ran before (and the first run of
-     * a New Query window where the window it was opened from is, {@link #setRestoredDefaults}). Every job that
+     * a New Query window where the window it was opened from is, of a window opened from an object where the object is,
+     * {@link #setRestoredDefaults}). Every job that
      * opens the session comes here (run, plan, the default schema and commit mode reads). Job thread.
      */
     @NotNull
@@ -1364,8 +1369,8 @@ final class SqlEditorPanel extends JPanel {
             if (names == null || contextDefaults == null) {
                 return context;
             }
-            // The connection's main context is shared with the other windows of the connection: a restored or New Query
-            // window does not change their default (it shows the shared one instead)
+            // The connection's main context is shared with the other windows of the connection: a restored, New Query or
+            // object's window does not change their default (it shows the shared one instead)
             if (context != windowContext.getOwn(dataSource.getContainer())) {
                 log.debug("Restored default '" + names.label() + "' not applied: the window shares the main context of '"
                     + dataSource.getContainer().getName() + "'");
