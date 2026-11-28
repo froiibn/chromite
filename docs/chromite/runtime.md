@@ -82,20 +82,25 @@ java tools/jre/BundleJre.java windows-x64 osx-aarch64
 
 | 항목 | 값 |
 |---|---|
-| 릴리스 | [jbr-release-25.0.4.1b508.41](https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr-release-25.0.4.1b508.41) (2026-10-27), 소스 태그 커밋 `74edaa21451b` |
+| 릴리스 | [jbr-release-25.0.5.1b508.47](https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr-release-25.0.5.1b508.47) (2026-11-28), 소스 태그 커밋 `a42cf863588e`. JBR-10807 "Rebase jbr25.508 on top of OpenJDK 25.0.5.1" |
 | 종류 | JBRSDK (JCEF 없음) |
-| windows-x64 | `jbrsdk-25.0.4.1-windows-x64-b508.41.tar.gz`, 292,308,483 바이트, SHA-256 `c477ba00c5d8ebc108a38b29eda533fe8d6e5fad534afc332c48addd9078f719` |
-| osx-aarch64 | `jbrsdk-25.0.4.1-osx-aarch64-b508.41.tar.gz`, 239,972,251 바이트, SHA-256 `2aa9a2944224844105ed9adac704db0eee5fb82a13d6213e79a4551c5e67ae9b` |
+| windows-x64 | `jbrsdk-25.0.5.1-windows-x64-b508.47.tar.gz`, 242,879,439 바이트, SHA-256 `fa976c866a6033e51f4a9910334461280aa6d40a9f451e9ce30cc9d1768cc5e6` |
+| osx-aarch64 | `jbrsdk-25.0.5.1-osx-aarch64-b508.47.tar.gz`, 240,249,281 바이트, SHA-256 `a23b3a562318454d4c8e5226eaf2ba888c377335dc422ae3d8ccc03d404b1a34` |
 | 받는 곳 | `https://cache-redirector.jetbrains.com/intellij-jbr/<파일 이름>` (릴리스 페이지의 링크) |
 
-- 두 파일 모두 JetBrains가 올린 SHA-512(`<파일>.checksum`)와 일치하는 것을 확인한 뒤 SHA-256을 계산해 고정했다(2026-11-07).
+- 두 파일 모두 JetBrains가 올린 SHA-512(`<파일>.checksum`)와 일치하는 것을 확인한 뒤 SHA-256을 계산해 고정했다(2026-11-28).
+- 25.0.5.1로 올린 이유: OpenJDK 25.0.5.1(2026-11-17)이 CVE-2026-114938(x86-64 Base64 내장 함수의 메모리 손상)을 고쳤다.
+  처음 고정한 25.0.4.1 b508.41(2026-10-27, 소스 태그 커밋 `74edaa21451b`)에는 이 수정이 없다.
+- b508.47의 Windows 파일이 b508.41보다 약 49MB 작은 것은 `.pdb` 디버그 기호 78개가 빠졌기 때문이다(릴리스에 `_pdb.zip`으로 따로 있음).
+  두 파일의 목록을 비교하면 `.pdb` 말고 달라진 파일이 없고, `jmods`의 모듈 목록(Windows 70개, macOS 69개)도 같다.
 - **JBRSDK를 쓰는 이유**: jlink는 `jmods/*.jmod`에서 런타임을 만든다. 릴리스의 "JBR (vanilla)" 파일(`jbr-...`)은 이미 jlink로
   만든 런타임이라 `jmods`가 없다. JDK 24부터 jmods 없이 실행 중인 런타임에서 링크하는 기능(JEP 493)이 있지만 같은 플랫폼에서만 되므로,
   Linux 러너에서 macOS 런타임을 만들 수 없다.
 - **JCEF 없는 판을 쓰는 이유**: JCEF(내장 Chromium)는 IntelliJ의 웹 화면용이다. Chromite는 쓰지 않는다(SWT 제품의 브라우저는 SWT가
   Windows WebView2·macOS WebKit을 쓴다). JCEF 판은 훨씬 크다.
-- **b508 계열을 고른 이유**: 25.0.4.1이 b329, b508, b635 세 계열로 나온다(IntelliJ 제품 계열별). 이 PC의 빌드용 JDK
-  (`D:\Tools\jbrsdk-25`, `JBR-25.0.4.1+1-508.41`)와 같은 빌드라서 빌드 JDK와 실행 런타임이 같다.
+- **b508 계열을 고른 이유**: 25.0.4.1이 b329, b508, b635 세 계열로 나온다(IntelliJ 제품 계열별). 처음 고정할 때(2026-11-07) 이 PC의 빌드용 JDK
+  (`D:\Tools\jbrsdk-25`, `JBR-25.0.4.1+1-508.41`)와 같은 빌드라서 빌드 JDK와 실행 런타임이 같았다. 25.0.5.1로 올린 뒤에도 같은 계열을 쓴다.
+  빌드용 JDK는 그대로 25.0.4.1이다. 아래처럼 기능 릴리스(25)만 같으면 링크할 수 있고, 런타임 내용은 고정한 jmod에서 나온다.
 - jlink는 자기와 같은 기능 릴리스(25)의 jmod만 링크한다. 그래서 `BundleJre.java`는 실행 중인 JDK가 25인지 먼저 확인한다.
   CI의 JDK(`actions/setup-java`, JBR 25 최신)는 빌드 번호가 다를 수 있지만 25이면 링크할 수 있고, 런타임 내용은 고정한 jmod에서 나온다.
 
@@ -228,6 +233,22 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
 - 확인하지 못함: Mac에서 실행, 서명·공증된 앱의 실행.
 - 회귀 테스트는 실행하지 않았다.
 
+### 25.0.5.1 b508.47로 올린 뒤 (2026-11-28)
+
+이 PC(Windows 11 x64). `mvn -B package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing`(BUILD SUCCESS, 2분 13초) 뒤
+`java tools/jre/BundleJre.java windows-x64 osx-aarch64`. 빌드 JDK는 그대로 `D:\Tools\jbrsdk-25`(25.0.4.1 b508.41)다.
+
+- jlink가 두 플랫폼 모두 같은 모듈 목록으로 성공했다(Windows jmod 70개, macOS 69개). 런타임 `release`의 `JAVA_VERSION="25.0.5.1"`,
+  Windows `jre\bin\java.exe -version`이 `JBR-25.0.5.1+1-508.47-nomod (build 25.0.5.1+1-b508.47)`.
+- Windows 제품을 임시 `-data`, `-configuration`, `CHROMITE_DATA`, `-eclipse.keyring`으로 실행: 주 창이 떴고 프로세스가 불러온 `jvm.dll`,
+  `java.dll`이 제품의 `jre\bin\` 아래 파일이었다. 디버그 로그에 `Java version: 25.0.5.1 by JetBrains s.r.o.`.
+  시험 VM의 PostgreSQL 17(터널 `127.0.0.1:5432`)에 연결해 쿼리 창에서 `SELECT 1`이 1행 `1`을 돌려줬다. 로그에 오류가 없다.
+- 고친 런타임으로만, 저장소 밖의 일회용 프로그램으로 공개된 입력 모양(`A` 64개 + `=`)을 200만 번 디코딩했다. 매번 같은
+  `IllegalArgumentException`("wrong 4-byte ending unit")이었고, 함께 디코딩한 올바른 입력(`A` 64개)은 매번 0바이트 48개였다.
+- macOS 런타임(이 PC에서 교차 링크): `release`의 `JAVA_VERSION="25.0.5.1"`, `lib/server/libjvm.dylib`가 arm64 Mach-O, ini의
+  `-vm ../Eclipse/jre/lib/libjli.dylib`. Mac에서 실행하지는 못했다.
+- 회귀 테스트는 실행하지 않았다.
+
 ## 갱신 절차
 
 새 JBR 25 빌드로 바꿀 때(보안 업데이트 등). 사용자가 요청할 때 한다.
@@ -291,3 +312,5 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 런타임을 넣는 제품은 Swing 하나. 빌드 명령, `BundleJre.java`의 제품 목록, 구조 표를 고침. 모듈 근거·크기·확인 기록의 SWT 제품 값은 조사 당시 기록으로 둔다.
 - 2026-11-07 "플랫폼별 사항"의 배포 형태를 실제 배포(NSIS 설치 프로그램, [distribution.md](distribution.md))에 맞췄다. 앱 업데이트는 설치 프로그램 전체를 바꾸므로 런타임도 함께 바뀐다.
 - 2026-11-07 `jdk.crypto.mscapi` 근거를 SWT `ChromiteApplication`(삭제됨)에서 Swing 앱 시작으로 고쳤다([platform-startup.md](platform-startup.md)). 내장 런타임에 이미 들어 있어 모듈 목록은 그대로다.
+- 2026-11-28 CVE-2026-114938(OpenJDK x86-64 Base64 내장 함수의 메모리 손상, OpenJDK 25.0.5.1에서 수정) 때문에 고정한 JBR SDK를
+  25.0.4.1 b508.41에서 같은 계열의 25.0.5.1 b508.47로 올렸다(`jbr.properties`, "고정한 JBR", `NOTICE`). 모듈 목록은 그대로다.
